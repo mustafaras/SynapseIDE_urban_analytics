@@ -1,0 +1,513 @@
+.root {
+  display: grid;
+  gap: 16px;
+  color: var(--syn-text-primary);
+}
+
+.hero {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  border-radius: 16px;
+  border: 1px solid rgba(245, 158, 11, 0.24);
+  background:
+    radial-gradient(circle at top right, rgba(245, 158, 11, 0.18), transparent 36%),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.74));
+}
+
+.eyebrow {
+  color: var(--syn-accent-primary);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.heroTitle {
+  font-size: clamp(24px, 2.6vw, 34px);
+  font-weight: 700;
+  line-height: 1.08;
+}
+
+.heroText {
+  max-width: 82ch;
+  color: var(--syn-text-muted);
+  line-height: 1.6;
+}
+
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+.kpiCard {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--syn-overlay-light);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.kpiLabel {
+  font-size: 11px;
+  color: var(--syn-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.kpiValue {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.toolbar {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: end;
+}
+
+.viewSwitch {
+  display: inline-flex;
+  gap: 8px;
+  padding: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--syn-overlay-light);
+}
+
+.viewButton {
+  border: 0;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--syn-text-muted);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.viewButtonActive {
+  background: rgba(245, 158, 11, 0.18);
+  color: var(--syn-accent-primary);
+}
+
+.pathGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 12px;
+}
+
+.pathCard {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid var(--syn-overlay-light);
+  background: rgba(15, 23, 42, 0.7);
+  text-align: left;
+  cursor: pointer;
+}
+
+.pathCardActive {
+  border-color: rgba(245, 158, 11, 0.55);
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.12), rgba(15, 23, 42, 0.84));
+}
+
+.pathCardLocked {
+  opacity: 0.72;
+}
+
+.pathTitleRow {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.pathTitle {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.muted {
+  color: var(--syn-text-muted);
+}
+
+.progressBar {
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.progressFill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #f59e0b, #22c55e);
+}
+
+.chipRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.chip {
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--syn-overlay-light);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--syn-text-muted);
+  font-size: 11px;
+}
+
+.detailGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(320px, 0.9fr);
+  gap: 16px;
+}
+
+.detailPanel,
+.sidePanel,
+.explainerCard,
+.instructorPanel {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid var(--syn-overlay-light);
+  background: rgba(15, 23, 42, 0.78);
+}
+
+.sectionTitle {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.subSectionTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--syn-text-primary);
+}
+
+.dependencyWrap {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.dependencySvg {
+  width: 100%;
+  min-height: 160px;
+  overflow: visible;
+}
+
+.moduleList {
+  display: grid;
+  gap: 12px;
+}
+
+.moduleCard {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid var(--syn-overlay-light);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.moduleCardLocked {
+  border-style: dashed;
+  background: rgba(148, 163, 184, 0.05);
+}
+
+.moduleHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.moduleTitle {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.moduleMeta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  color: var(--syn-text-muted);
+  font-size: 12px;
+}
+
+.smallActionRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.statusBadge,
+.difficultyBadge {
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: 1px solid transparent;
+}
+
+.statusNotStarted {
+  background: rgba(148, 163, 184, 0.12);
+  border-color: rgba(148, 163, 184, 0.24);
+  color: #cbd5e1;
+}
+
+.statusInProgress {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: #93c5fd;
+}
+
+.statusCompleted {
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.3);
+  color: #86efac;
+}
+
+.difficultySupport {
+  background: rgba(14, 165, 233, 0.12);
+  border-color: rgba(14, 165, 233, 0.3);
+  color: #7dd3fc;
+}
+
+.difficultyStandard {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.3);
+  color: #fbbf24;
+}
+
+.difficultyStretch {
+  background: rgba(168, 85, 247, 0.12);
+  border-color: rgba(168, 85, 247, 0.3);
+  color: #d8b4fe;
+}
+
+.controlGroup {
+  display: grid;
+  gap: 6px;
+}
+
+.exerciseLinkPanel {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(245, 158, 11, 0.18);
+  background:
+    radial-gradient(circle at top right, rgba(245, 158, 11, 0.1), transparent 28%),
+    rgba(255, 255, 255, 0.03);
+}
+
+.exerciseLinkHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.exerciseLinkList {
+  display: grid;
+  gap: 8px;
+}
+
+.exerciseLinkButton {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--syn-overlay-light);
+  background: rgba(15, 23, 42, 0.72);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.exerciseLinkButton:hover {
+  border-color: rgba(245, 158, 11, 0.34);
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.exerciseLinkMeta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  color: var(--syn-text-muted);
+  font-size: 12px;
+}
+
+.libraryList {
+  display: grid;
+  gap: 8px;
+}
+
+.libraryButton {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--syn-overlay-light);
+  background: rgba(255, 255, 255, 0.03);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.libraryButtonActive {
+  border-color: rgba(245, 158, 11, 0.5);
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.explainerHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.formulaBlock {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  background: rgba(255, 255, 255, 0.03);
+  overflow-x: auto;
+}
+
+.formulaLabel {
+  font-size: 11px;
+  color: var(--syn-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.listPlain {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--syn-text-muted);
+  line-height: 1.55;
+}
+
+.inlineInfoButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  background: rgba(245, 158, 11, 0.08);
+  color: var(--syn-accent-primary);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(2, 6, 23, 0.72);
+}
+
+.modalPanel {
+  width: min(980px, 100%);
+  max-height: 88vh;
+  overflow: auto;
+  border-radius: 18px;
+  border: 1px solid rgba(245, 158, 11, 0.24);
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(15, 23, 42, 0.92));
+  padding: 18px;
+  box-shadow: 0 24px 60px rgba(2, 6, 23, 0.42);
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.closeButton {
+  border: 0;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--syn-text-primary);
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.instructorGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 16px;
+}
+
+.bars {
+  display: grid;
+  gap: 10px;
+}
+
+.barRow {
+  display: grid;
+  gap: 4px;
+}
+
+.barRail {
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.barFill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #0ea5e9, #f59e0b);
+}
+
+.studentList {
+  display: grid;
+  gap: 10px;
+}
+
+.studentCard {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--syn-overlay-light);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+@media (max-width: 1100px) {
+  .detailGrid,
+  .instructorGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .exerciseLinkHeader {
+    flex-direction: column;
+  }
+}

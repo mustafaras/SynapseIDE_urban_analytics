@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "effortLevel": "medium",
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(npm test:*)",
+      "Bash(npm install:*)",
+      "Bash(npm ci:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx vitest:*)",
+      "Bash(npx eslint:*)",
+      "Bash(npx playwright:*)",
+      "Bash(npx vite:*)",
+      "Bash(git status)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git branch:*)",
+      "Bash(git stash list:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(git ls-files:*)",
+      "PowerShell(Get-ChildItem -Path *)",
+      "PowerShell(Test-Path *)",
+      "PowerShell(Get-Content *)",
+      "PowerShell(Get-Process *)",
+      "PowerShell(Get-NetTCPConnection *)"
+    ],
+    "deny": [
+      "Read(side_UA.mp4)",
+      "Read(eslint-errors.json)",
+      "Read(package-lock.json)",
+      "Read(.venv/**)",
+      "Read(node_modules/**)",
+      "Read(dist/**)",
+      "Read(coverage/**)",
+      "Read(test-results/**)"
+    ]
+  }
+}

@@ -1,0 +1,381 @@
+{
+  "schemaVersion": "1.0.0",
+  "module": "Synapse IDE",
+  "purpose": "Machine-readable prompt ladder for Synapse IDE implementation. The ledger is the execution source of truth; this manifest defines the ordered prompt catalog.",
+  "statusValues": [
+    "pending",
+    "in_progress",
+    "completed",
+    "blocked",
+    "skipped_with_reason"
+  ],
+  "canonicalDocuments": [
+    "DEVELOPMENT_PLANS/START_HERE_SYNAPSE_IDE_AGENT.md",
+    "DEVELOPMENT_PLANS/AGENT_AMNESIA_PREVENTION_PROTOCOL.md",
+    "DEVELOPMENT_PLANS/TRI_MODAL_WORKBENCH_ALIGNMENT_SPEC.md",
+    "DEVELOPMENT_PLANS/SYNAPSE_IDE_DEVELOPMENT_PLAN.md",
+    "DEVELOPMENT_PLANS/SYNAPSE_IDE_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md",
+    "DEVELOPMENT_PLANS/SYNAPSE_IDE_PROMPT_MANIFEST.json",
+    "DEVELOPMENT_PLANS/SYNAPSE_IDE_IMPLEMENTATION_LEDGER.md",
+    "DEVELOPMENT_PLANS/SYNAPSE_IDE_AGENT_HANDOFF_TEMPLATE.md"
+  ],
+  "ledgerPath": "DEVELOPMENT_PLANS/SYNAPSE_IDE_IMPLEMENTATION_LEDGER.md",
+  "promptFilePath": "DEVELOPMENT_PLANS/SYNAPSE_IDE_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md",
+  "handoffTemplatePath": "DEVELOPMENT_PLANS/SYNAPSE_IDE_AGENT_HANDOFF_TEMPLATE.md",
+  "nextPromptHelper": "scripts/get-next-synapse-ide-prompt.ps1",
+  "defaults": {
+    "requiredPreflight": [
+      "Read the canonical documents.",
+      "Read the active prompt block.",
+      "Inspect every file named by the prompt.",
+      "Verify prior prompt status from the ledger.",
+      "Check repository status if version control metadata is available.",
+      "Update the ledger before final response."
+    ],
+    "requiredValidation": [
+      "Run typecheck if available.",
+      "Run lint if available and relevant.",
+      "Run targeted tests if the prompt changed logic.",
+      "Record exact validation results in the ledger."
+    ],
+    "amnesiaGuardrails": [
+      "Do not rely on chat memory.",
+      "Do not assume prior prompt completion.",
+      "Do not skip ledger updates.",
+      "Do not change Map Explorer or Urban Analytics internals unless the active prompt explicitly requires a contract adapter.",
+      "Do not silently mutate user files or evidence artifacts."
+    ]
+  },
+  "prompts": [
+    {
+      "id": "00",
+      "title": "Memory Bootstrapping and Repository Baseline",
+      "status": "pending",
+      "dependsOn": [],
+      "promptHeading": "## Prompt 00 - Memory Bootstrapping and Repository Baseline",
+      "primaryOutcome": "Durable context, audit, and next-step confidence",
+      "tracks": ["memory", "baseline", "architecture"],
+      "validation": ["typecheck-if-available", "lint-if-available", "script-inventory"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "01",
+      "title": "IDE Architecture Map and Ownership Boundaries",
+      "status": "pending",
+      "dependsOn": ["00"],
+      "promptHeading": "## Prompt 01 - IDE Architecture Map and Ownership Boundaries",
+      "primaryOutcome": "Live architecture map aligned to plan",
+      "tracks": ["architecture", "ownership", "contracts"],
+      "validation": ["typecheck-if-code-changed", "documentation-validation"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "02",
+      "title": "Premium Token and Theme Groundwork",
+      "status": "pending",
+      "dependsOn": ["01"],
+      "promptHeading": "## Prompt 02 - Premium Token and Theme Groundwork",
+      "primaryOutcome": "Shared visual substrate without redesign drift",
+      "tracks": ["theme", "premium-ui", "tokens"],
+      "validation": ["typecheck", "lint-if-available"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "03",
+      "title": "IDE Shell Stabilization and Layout Contract",
+      "status": "pending",
+      "dependsOn": ["02"],
+      "promptHeading": "## Prompt 03 - IDE Shell Stabilization and Layout Contract",
+      "primaryOutcome": "Stable shell, rails, panels, and density rules",
+      "tracks": ["layout", "shell", "persistence"],
+      "validation": ["typecheck", "lint", "ui-smoke-if-available"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "04",
+      "title": "Header, Command Surface, and Status Semantics",
+      "status": "pending",
+      "dependsOn": ["03"],
+      "promptHeading": "## Prompt 04 - Header, Command Surface, and Status Semantics",
+      "primaryOutcome": "Premium operational header",
+      "tracks": ["header", "commands", "status"],
+      "validation": ["typecheck", "lint", "manual-smoke-if-available"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "05",
+      "title": "Editor Tab Model and Session Restoration",
+      "status": "pending",
+      "dependsOn": ["04"],
+      "promptHeading": "## Prompt 05 - Editor Tab Model and Session Restoration",
+      "primaryOutcome": "Reliable editor state and tab ergonomics",
+      "tracks": ["editor", "tabs", "persistence"],
+      "validation": ["store-tests-if-available", "typecheck", "manual-reload-check"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "06",
+      "title": "Monaco Surface Enhancement",
+      "status": "pending",
+      "dependsOn": ["05"],
+      "promptHeading": "## Prompt 06 - Monaco Surface Enhancement",
+      "primaryOutcome": "Editor metadata, breadcrumbs, minimap discipline",
+      "tracks": ["editor", "monaco", "metadata"],
+      "validation": ["typecheck", "lint", "manual-edit-open-smoke"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "07",
+      "title": "Diagnostics and Problems Framework",
+      "status": "pending",
+      "dependsOn": ["06"],
+      "promptHeading": "## Prompt 07 - Diagnostics and Problems Framework",
+      "primaryOutcome": "Truthful code health surface",
+      "tracks": ["diagnostics", "problems", "truthfulness"],
+      "validation": ["store-tests-if-available", "typecheck", "diagnostic-fixture-if-available"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "08",
+      "title": "Symbol Outline and Code Intelligence Foundation",
+      "status": "pending",
+      "dependsOn": ["07"],
+      "promptHeading": "## Prompt 08 - Symbol Outline and Code Intelligence Foundation",
+      "primaryOutcome": "Navigation intelligence without overreach",
+      "tracks": ["symbols", "navigation", "monaco"],
+      "validation": ["typecheck", "manual-navigation-check"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "09",
+      "title": "File Explorer Spatial Project Semantics",
+      "status": "pending",
+      "dependsOn": ["08"],
+      "promptHeading": "## Prompt 09 - File Explorer Spatial Project Semantics",
+      "primaryOutcome": "GIS-aware project navigation",
+      "tracks": ["file-explorer", "spatial-semantics", "artifacts"],
+      "validation": ["typecheck", "component-tests-if-available", "manual-tree-smoke"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "10",
+      "title": "File Explorer Actions and Safety",
+      "status": "pending",
+      "dependsOn": ["09"],
+      "promptHeading": "## Prompt 10 - File Explorer Actions and Safety",
+      "primaryOutcome": "Professional file actions with safeguards",
+      "tracks": ["file-explorer", "safety", "file-operations"],
+      "validation": ["store-tests-if-available", "typecheck", "manual-action-smoke"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "11",
+      "title": "Search and Navigation Index",
+      "status": "pending",
+      "dependsOn": ["10"],
+      "promptHeading": "## Prompt 11 - Search and Navigation Index",
+      "primaryOutcome": "Fast global search and precise navigation",
+      "tracks": ["search", "indexing", "navigation"],
+      "validation": ["typecheck", "search-tests-if-available", "manual-query-smoke"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "12",
+      "title": "Command Palette Intelligence",
+      "status": "pending",
+      "dependsOn": ["11"],
+      "promptHeading": "## Prompt 12 - Command Palette Intelligence",
+      "primaryOutcome": "Context-aware command execution",
+      "tracks": ["commands", "palette", "cross-module"],
+      "validation": ["typecheck", "command-registry-tests-if-available", "manual-keyboard-smoke"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "13",
+      "title": "Terminal and Task Runner Upgrade",
+      "status": "pending",
+      "dependsOn": ["12"],
+      "promptHeading": "## Prompt 13 - Terminal and Task Runner Upgrade",
+      "primaryOutcome": "Deterministic execution cockpit",
+      "tracks": ["terminal", "tasks", "diagnostics"],
+      "validation": ["typecheck", "manual-harmless-task-if-available"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "14",
+      "title": "Bottom Panel System",
+      "status": "pending",
+      "dependsOn": ["13"],
+      "promptHeading": "## Prompt 14 - Bottom Panel System",
+      "primaryOutcome": "Problems, terminal, output, and task panes",
+      "tracks": ["layout", "bottom-panel", "workspace"],
+      "validation": ["typecheck", "manual-panel-smoke"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "15",
+      "title": "AI Panel Scientific Guardrails",
+      "status": "pending",
+      "dependsOn": ["14"],
+      "promptHeading": "## Prompt 15 - AI Panel Scientific Guardrails",
+      "primaryOutcome": "AI assistance with evidence and constraints",
+      "tracks": ["ai", "scientific-integrity", "context"],
+      "validation": ["typecheck", "mocked-ai-flow-if-available", "manual-panel-state-smoke"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "16",
+      "title": "Apply Plan Preview and Patch Safety",
+      "status": "pending",
+      "dependsOn": ["15"],
+      "promptHeading": "## Prompt 16 - Apply Plan Preview and Patch Safety",
+      "primaryOutcome": "Reversible AI patch workflow",
+      "tracks": ["ai", "apply-plan", "patch-safety"],
+      "validation": ["patch-tests-if-available", "typecheck", "manual-apply-fixture"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "17",
+      "title": "Apply History, Conflict Handling, and Revert",
+      "status": "pending",
+      "dependsOn": ["16"],
+      "promptHeading": "## Prompt 17 - Apply History, Conflict Handling, and Revert",
+      "primaryOutcome": "Durable patch memory",
+      "tracks": ["ai", "history", "revert"],
+      "validation": ["store-tests-if-available", "typecheck", "manual-apply-revert-fixture"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "18",
+      "title": "Project Memory and `.synapse` Workspace Files",
+      "status": "pending",
+      "dependsOn": ["17"],
+      "promptHeading": "## Prompt 18 - Project Memory and `.synapse` Workspace Files",
+      "primaryOutcome": "Local workbench memory substrate",
+      "tracks": ["workspace-memory", "persistence", "artifacts"],
+      "validation": ["typecheck", "persistence-tests-if-available"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "19",
+      "title": "Typed Synapse Bus Foundation",
+      "status": "completed",
+      "dependsOn": ["18"],
+      "promptHeading": "## Prompt 19 - Typed Synapse Bus Foundation",
+      "primaryOutcome": "Future-safe cross-module synchronization",
+      "tracks": ["sync", "typed-bus", "contracts"],
+      "validation": ["typecheck", "bus-tests-if-created"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "20",
+      "title": "Legacy Editor Bridge Adapter",
+      "status": "pending",
+      "dependsOn": ["19"],
+      "promptHeading": "## Prompt 20 - Legacy Editor Bridge Adapter",
+      "primaryOutcome": "Preserve existing event contracts",
+      "tracks": ["bridge", "compatibility", "sync"],
+      "validation": ["typecheck", "bridge-tests", "manual-bridge-smoke-if-practical"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "21",
+      "title": "IDE to Map Explorer Workflows",
+      "status": "pending",
+      "dependsOn": ["20"],
+      "promptHeading": "## Prompt 21 - IDE to Map Explorer Workflows",
+      "primaryOutcome": "Code-to-map artifact handoff",
+      "tracks": ["map-sync", "artifacts", "commands"],
+      "validation": ["typecheck", "manual-spatial-command-smoke-if-available"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "22",
+      "title": "Map Explorer to IDE Workflows",
+      "status": "pending",
+      "dependsOn": ["21"],
+      "promptHeading": "## Prompt 22 - Map Explorer to IDE Workflows",
+      "primaryOutcome": "Spatial evidence to code handoff",
+      "tracks": ["map-sync", "editor-bridge", "provenance"],
+      "validation": ["typecheck", "adapter-tests-if-feasible", "manual-event-simulation"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "23",
+      "title": "IDE to Urban Analytics Workflows",
+      "status": "pending",
+      "dependsOn": ["22"],
+      "promptHeading": "## Prompt 23 - IDE to Urban Analytics Workflows",
+      "primaryOutcome": "Code-to-scenario handoff",
+      "tracks": ["urban-sync", "scenario", "commands"],
+      "validation": ["typecheck", "manual-command-smoke-if-ui-can-run"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "24",
+      "title": "Urban Analytics to IDE Workflows",
+      "status": "pending",
+      "dependsOn": ["23"],
+      "promptHeading": "## Prompt 24 - Urban Analytics to IDE Workflows",
+      "primaryOutcome": "Analysis evidence to code handoff",
+      "tracks": ["urban-sync", "apply-plan", "provenance"],
+      "validation": ["typecheck", "adapter-tests-if-feasible", "manual-event-simulation"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "25",
+      "title": "Evidence Artifact Model",
+      "status": "pending",
+      "dependsOn": ["24"],
+      "promptHeading": "## Prompt 25 - Evidence Artifact Model",
+      "primaryOutcome": "Shared provenance and artifact contracts",
+      "tracks": ["artifacts", "evidence", "provenance"],
+      "validation": ["typecheck", "registry-tests-if-feasible"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "26",
+      "title": "Accessibility and Keyboard System",
+      "status": "pending",
+      "dependsOn": ["25"],
+      "promptHeading": "## Prompt 26 - Accessibility and Keyboard System",
+      "primaryOutcome": "Professional keyboard-first UX",
+      "tracks": ["accessibility", "keyboard", "premium-ui"],
+      "validation": ["typecheck", "lint", "accessibility-checks-if-available", "manual-keyboard-smoke"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "27",
+      "title": "Performance, Persistence, and Resilience",
+      "status": "pending",
+      "dependsOn": ["26"],
+      "promptHeading": "## Prompt 27 - Performance, Persistence, and Resilience",
+      "primaryOutcome": "Fast, recoverable IDE behavior",
+      "tracks": ["performance", "persistence", "resilience"],
+      "validation": ["typecheck", "build-if-available", "manual-large-tree-or-search-smoke-if-fixtures-exist"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "28",
+      "title": "QA Harness and Regression Checks",
+      "status": "pending",
+      "dependsOn": ["27"],
+      "promptHeading": "## Prompt 28 - QA Harness and Regression Checks",
+      "primaryOutcome": "Repeatable quality gates",
+      "tracks": ["qa", "tests", "regression"],
+      "validation": ["targeted-tests", "typecheck", "build-if-available"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "29",
+      "title": "Final Premium Polish and Handoff",
+      "status": "pending",
+      "dependsOn": ["28"],
+      "promptHeading": "## Prompt 29 - Final Premium Polish and Handoff",
+      "primaryOutcome": "Complete Synapse IDE readiness package",
+      "tracks": ["polish", "handoff", "final-validation"],
+      "validation": ["typecheck", "lint", "unit-tests", "build", "ui-smoke-if-available"],
+      "ledgerRequired": true
+    }
+  ]
+}

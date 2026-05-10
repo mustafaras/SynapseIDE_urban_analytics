@@ -1,0 +1,523 @@
+.catalogShell {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.4fr);
+  gap: 18px;
+}
+
+.browserPane,
+.detailPane {
+  min-width: 0;
+}
+
+.browserPane {
+  display: grid;
+  gap: 14px;
+}
+
+.introCard,
+.definitionCard,
+.computeCard,
+.bottomCard,
+.bandPanel {
+  border: 1px solid color-mix(in srgb, var(--syn-border-strong) 58%, #f1c36d 42%);
+  border-radius: 18px;
+  background:
+    linear-gradient(160deg, rgba(22, 19, 15, 0.94), rgba(34, 28, 21, 0.9)),
+    radial-gradient(circle at top right, rgba(222, 167, 82, 0.18), transparent 52%);
+  box-shadow: 0 18px 34px rgba(9, 6, 2, 0.24);
+}
+
+.introCard {
+  padding: 18px;
+}
+
+.kicker,
+.detailEyebrow,
+.definitionLabel,
+.metricLabel,
+.inputUnit,
+.resultMeta,
+.cardGroup {
+  color: #cda767;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.introTitle,
+.detailTitle {
+  margin: 6px 0 10px;
+  color: var(--syn-text-primary);
+  line-height: 1.08;
+}
+
+.introTitle {
+  font-size: 1.45rem;
+}
+
+.detailTitle {
+  font-size: 1.8rem;
+}
+
+.introText,
+.detailSummary,
+.definitionBody,
+.resultSummary,
+.educationNote,
+.cardSummary,
+.inputHelp,
+.bandCard span,
+.historyItem span,
+.emptyHistory,
+.emptyState,
+.sectionHeader p {
+  color: var(--syn-text-secondary);
+  line-height: 1.55;
+}
+
+.searchField {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--syn-border-strong) 64%, #f0bc67 36%);
+  background: rgba(21, 17, 13, 0.92);
+  color: var(--syn-text-secondary);
+}
+
+.searchField input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--syn-text-primary);
+  font: inherit;
+}
+
+.searchField input::placeholder {
+  color: color-mix(in srgb, var(--syn-text-muted) 78%, #d0a257 22%);
+}
+
+.filterRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.filterChip,
+.activeChip,
+.flowButton,
+.actionButton,
+.computeButton {
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 9px 12px;
+  font: inherit;
+  cursor: pointer;
+  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+
+.filterChip,
+.flowButton,
+.actionButton {
+  background: rgba(33, 28, 22, 0.92);
+  color: var(--syn-text-secondary);
+  border-color: rgba(221, 178, 102, 0.18);
+}
+
+.activeChip,
+.computeButton {
+  background: linear-gradient(135deg, rgba(216, 153, 61, 0.94), rgba(182, 112, 53, 0.92));
+  color: #1b140d;
+  border-color: rgba(255, 221, 170, 0.55);
+}
+
+.filterChip:hover,
+.activeChip:hover,
+.flowButton:hover,
+.actionButton:hover,
+.computeButton:hover,
+.catalogCard:hover,
+.activeCard:hover {
+  transform: translateY(-1px);
+}
+
+.resultMeta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cardList {
+  display: grid;
+  gap: 10px;
+  max-height: 860px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.catalogCard,
+.activeCard {
+  display: grid;
+  gap: 10px;
+  text-align: left;
+  width: 100%;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(226, 182, 103, 0.18);
+  background: linear-gradient(155deg, rgba(25, 20, 15, 0.96), rgba(37, 30, 23, 0.88));
+  cursor: pointer;
+}
+
+.activeCard {
+  border-color: rgba(245, 182, 73, 0.72);
+  box-shadow: inset 0 0 0 1px rgba(252, 215, 156, 0.24);
+}
+
+.cardHeaderRow,
+.cardFooter,
+.detailTitleRow,
+.resultMetaRow,
+.sectionHeader,
+.actionRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cardTitle,
+.metricValue,
+.resultValue {
+  color: var(--syn-text-primary);
+}
+
+.cardTitle {
+  font-weight: 600;
+}
+
+.cardUnit,
+.cardValue,
+.metricClassification {
+  color: #f0c16f;
+  font-size: 0.9rem;
+}
+
+.detailPane {
+  display: grid;
+  gap: 16px;
+}
+
+.detailHero {
+  padding: 20px;
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at top left, rgba(223, 163, 75, 0.2), transparent 34%),
+    linear-gradient(155deg, rgba(31, 24, 18, 0.98), rgba(19, 16, 12, 0.94));
+  border: 1px solid rgba(239, 183, 97, 0.24);
+}
+
+.traceabilityStrip {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0;
+  margin-top: 16px;
+  border-top: 1px solid rgba(239, 183, 97, 0.16);
+  border-bottom: 1px solid rgba(239, 183, 97, 0.1);
+}
+
+.traceabilityItem {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    "icon label"
+    "icon value";
+  align-items: center;
+  column-gap: 8px;
+  min-width: 0;
+  padding: 10px 12px;
+  border-right: 1px solid rgba(239, 183, 97, 0.1);
+}
+
+.traceabilityItem:last-child {
+  border-right: 0;
+}
+
+.traceabilityItem svg {
+  grid-area: icon;
+  color: #f0c16f;
+}
+
+.traceabilityItem span {
+  grid-area: label;
+  color: #cda767;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.traceabilityItem strong {
+  grid-area: value;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--syn-text-primary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.statusColumn {
+  min-width: 220px;
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+}
+
+.metricValue,
+.resultValue {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.definitionGrid,
+.computeGrid,
+.bottomGrid {
+  display: grid;
+  gap: 16px;
+}
+
+.definitionGrid,
+.computeGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.bottomGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.definitionCard,
+.computeCard,
+.bottomCard,
+.bandPanel {
+  padding: 18px;
+}
+
+.formulaBlock {
+  display: block;
+  margin: 10px 0 12px;
+  padding: 14px;
+  border-radius: 14px;
+  background: rgba(15, 12, 9, 0.78);
+  color: #f6d193;
+  white-space: normal;
+  font-size: 0.98rem;
+}
+
+.traceabilityNotes {
+  display: grid;
+  gap: 7px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(239, 183, 97, 0.12);
+  color: var(--syn-text-secondary);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.sourceNote {
+  margin: 10px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid rgba(239, 183, 97, 0.12);
+  color: var(--syn-text-muted);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.referenceLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #f1bc63;
+  text-decoration: none;
+}
+
+.bandList,
+.componentGrid,
+.historyList,
+.flowButtons,
+.guidanceList,
+.formGrid {
+  display: grid;
+  gap: 10px;
+}
+
+.bandList {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  margin-top: 12px;
+}
+
+.bandCard,
+.componentCard,
+.historyItem {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(14, 11, 8, 0.56);
+  border: 1px solid rgba(234, 186, 99, 0.14);
+}
+
+.sectionHeader {
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.sectionHeader h4 {
+  margin: 0 0 6px;
+  color: var(--syn-text-primary);
+}
+
+.computeButton,
+.actionButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.computeButton {
+  min-width: 172px;
+}
+
+.formGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.inputField {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(16, 13, 10, 0.6);
+  border: 1px solid rgba(239, 188, 108, 0.12);
+}
+
+.inputLabel {
+  color: var(--syn-text-primary);
+  font-weight: 600;
+}
+
+.inputField input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(229, 184, 108, 0.16);
+  background: rgba(12, 10, 8, 0.88);
+  color: var(--syn-text-primary);
+  font: inherit;
+}
+
+.errorBox,
+.successBox {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+}
+
+.errorBox {
+  background: rgba(149, 58, 44, 0.22);
+  border: 1px solid rgba(232, 118, 96, 0.24);
+  color: #f0b5ab;
+}
+
+.successBox {
+  background: rgba(88, 108, 53, 0.22);
+  border: 1px solid rgba(193, 205, 122, 0.22);
+  color: #dce5a9;
+}
+
+.resultPanel {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(12, 10, 8, 0.74);
+  border: 1px solid rgba(231, 180, 96, 0.16);
+}
+
+.resultMetaRow {
+  color: var(--syn-text-muted);
+  font-size: 0.9rem;
+}
+
+.componentGrid {
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.actionRow,
+.flowButtons {
+  flex-wrap: wrap;
+}
+
+.guidanceList {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  color: var(--syn-text-secondary);
+}
+
+.emptyState,
+.emptyHistory {
+  padding: 18px;
+  border-radius: 14px;
+  background: rgba(18, 14, 11, 0.9);
+  border: 1px solid rgba(230, 182, 96, 0.16);
+}
+
+@media (max-width: 1280px) {
+  .catalogShell,
+  .definitionGrid,
+  .computeGrid,
+  .bottomGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .statusColumn {
+    justify-items: start;
+    min-width: 0;
+  }
+
+  .traceabilityStrip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 800px) {
+  .formGrid,
+  .bandList {
+    grid-template-columns: 1fr;
+  }
+
+  .detailTitleRow,
+  .sectionHeader,
+  .cardHeaderRow,
+  .cardFooter,
+  .resultMetaRow,
+  .actionRow {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .traceabilityStrip {
+    grid-template-columns: 1fr;
+  }
+
+  .traceabilityItem {
+    border-right: 0;
+    border-bottom: 1px solid rgba(239, 183, 97, 0.1);
+  }
+
+  .traceabilityItem:last-child {
+    border-bottom: 0;
+  }
+}

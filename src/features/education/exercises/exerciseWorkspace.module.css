@@ -1,0 +1,474 @@
+.root {
+  display: grid;
+  gap: 16px;
+}
+
+.banner {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.9fr);
+  gap: 16px;
+  padding: 18px;
+  border-radius: 20px;
+  border: 1px solid rgba(245, 158, 11, 0.24);
+  background:
+    radial-gradient(circle at 85% 12%, rgba(14, 165, 233, 0.16), transparent 28%),
+    radial-gradient(circle at 15% 0%, rgba(245, 158, 11, 0.18), transparent 34%),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.82));
+}
+
+.eyebrow,
+.catalogEyebrow,
+.playerEyebrow {
+  color: var(--syn-accent-primary);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.title {
+  margin: 4px 0 0;
+  font-size: clamp(24px, 2.3vw, 34px);
+  line-height: 1.08;
+}
+
+.lead,
+.panelText,
+.catalogSummary,
+.scenarioText,
+.rubricText,
+.fieldHelper,
+.historyMeta,
+.hintPlaceholder,
+.rubricFeedback,
+.latestScoreMeta,
+.optionDescription,
+.validationText,
+.feedbackSuccess {
+  color: var(--syn-text-muted);
+  line-height: 1.55;
+}
+
+.bannerStats,
+.dashboardStats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.statCard,
+.dashboardCard {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.statLabel,
+.catalogCount,
+.playerScoreLabel,
+.latestScoreLabel {
+  font-size: 11px;
+  color: var(--syn-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.statValue,
+.dashboardValue,
+.playerScoreValue,
+.latestScoreValue {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.filterBar {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: end;
+}
+
+.categoryRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.categoryChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(15, 23, 42, 0.68);
+  color: var(--syn-text-muted);
+  cursor: pointer;
+  transition: border-color 140ms ease, background 140ms ease, color 140ms ease;
+}
+
+.categoryChip:hover,
+.categoryChipActive {
+  border-color: rgba(245, 158, 11, 0.4);
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--syn-text-primary);
+}
+
+.categoryCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  padding: 0 6px;
+  height: 20px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 11px;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.88fr) minmax(0, 1.5fr);
+  gap: 16px;
+}
+
+.catalogPanel,
+.playerPanel,
+.dashboardPanel,
+.rubricPanel,
+.inputPanel,
+.feedbackPanel,
+.historyPanel,
+.scenarioCard,
+.emptyState {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(15, 23, 42, 0.82);
+  box-shadow: 0 18px 40px rgba(2, 6, 23, 0.2);
+}
+
+.mainColumn {
+  display: grid;
+  gap: 16px;
+}
+
+.panelHeaderRow,
+.catalogCardTop,
+.rubricHeader,
+.categorySummaryHeader,
+.latestScoreRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.panelTitle,
+.playerTitle,
+.catalogTitle,
+.historyTitle,
+.scenarioTitle,
+.subTitle,
+.emptyTitle {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--syn-text-primary);
+}
+
+.catalogList,
+.categorySummaryList,
+.historyList {
+  display: grid;
+  gap: 10px;
+}
+
+.catalogCard {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+}
+
+.catalogCardActive {
+  border-color: rgba(245, 158, 11, 0.45);
+  background:
+    radial-gradient(circle at top right, rgba(245, 158, 11, 0.12), transparent 32%),
+    linear-gradient(180deg, rgba(245, 158, 11, 0.08), rgba(255, 255, 255, 0.03));
+}
+
+.statusBadge,
+.contextChip,
+.masteryChip,
+.reviewChip,
+.rubricPoints,
+.catalogCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.statusnot_assigned {
+  color: #cbd5e1;
+  background: rgba(148, 163, 184, 0.12);
+}
+
+.statusassigned {
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.12);
+}
+
+.statusin_progress {
+  color: #7dd3fc;
+  background: rgba(14, 165, 233, 0.12);
+}
+
+.statuscompleted {
+  color: #86efac;
+  background: rgba(34, 197, 94, 0.12);
+}
+
+.catalogMeta,
+.pathContextRow,
+.feedbackTags {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  color: var(--syn-text-muted);
+  font-size: 12px;
+}
+
+.catalogActions,
+.playerActions,
+.feedbackGrid {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.playerPanel,
+.dashboardPanel {
+  background:
+    radial-gradient(circle at top right, rgba(14, 165, 233, 0.08), transparent 22%),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.88), rgba(15, 23, 42, 0.8));
+}
+
+.playerScoreCard {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+}
+
+.masteryChip {
+  color: #86efac;
+  background: rgba(34, 197, 94, 0.14);
+}
+
+.reviewChip {
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.14);
+}
+
+.scenarioCard {
+  background:
+    radial-gradient(circle at top right, rgba(245, 158, 11, 0.12), transparent 32%),
+    rgba(255, 255, 255, 0.03);
+}
+
+.instructionsBlock,
+.rubricPanel,
+.inputPanel,
+.historyPanel {
+  display: grid;
+  gap: 12px;
+}
+
+.instructionsList,
+.feedbackList,
+.hintList {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 18px;
+  line-height: 1.55;
+}
+
+.rubricGrid,
+.inputGrid {
+  display: grid;
+  gap: 10px;
+}
+
+.rubricGrid {
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+}
+
+.rubricCard,
+.fieldCard,
+.categorySummaryCard {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.rubricCardPassed {
+  border-color: rgba(34, 197, 94, 0.35);
+}
+
+.fieldLabel {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.textArea {
+  min-height: 110px;
+  resize: vertical;
+}
+
+.optionList {
+  display: grid;
+  gap: 8px;
+}
+
+.optionCard {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  gap: 10px;
+  align-items: start;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.optionCardChecked {
+  border-color: rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.optionDescription {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+}
+
+.submitButton {
+  border: 0;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.94), rgba(234, 88, 12, 0.92));
+  color: #0f172a;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.submitButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.feedbackGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.hintItem,
+.feedbackList li {
+  color: var(--syn-text-primary);
+}
+
+.feedbackSuccess {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(34, 197, 94, 0.24);
+  background: rgba(34, 197, 94, 0.08);
+  color: #bbf7d0;
+}
+
+.progressRail {
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.progressFill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #0ea5e9, #22c55e, #f59e0b);
+}
+
+.historyItem {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.historyScore {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.emptyState {
+  place-items: center;
+  text-align: center;
+  min-height: 220px;
+}
+
+.emptyText {
+  color: var(--syn-text-muted);
+}
+
+@media (max-width: 1240px) {
+  .layout,
+  .banner,
+  .feedbackGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 800px) {
+  .bannerStats,
+  .dashboardStats {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .catalogActions,
+  .playerActions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .historyItem,
+  .catalogCardTop,
+  .panelHeaderRow,
+  .latestScoreRow {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

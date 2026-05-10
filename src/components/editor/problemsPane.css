@@ -1,0 +1,266 @@
+.syn-problems-pane {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--ide-bg-panel, #121212);
+  color: var(--ide-text-primary, #f5f5f4);
+  font: 500 12px/1.35 var(--font-code, "JetBrains Mono", ui-monospace, monospace);
+  overflow: hidden;
+}
+
+.syn-problems-pane__header {
+  min-height: 34px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 0 10px;
+  border-bottom: 1px solid var(--ide-border-subtle, rgba(255, 255, 255, 0.08));
+  background: var(--ide-bg-surface, #0b0b0b);
+}
+
+.syn-problems-pane__title-block,
+.syn-problems-pane__summary,
+.syn-problems-pane__source-states,
+.syn-problems-pane__severity,
+.syn-problems-pane__time {
+  display: inline-flex;
+  align-items: center;
+}
+
+.syn-problems-pane__title-block {
+  gap: 8px;
+  color: var(--ide-accent, #f59e0b);
+  min-width: 0;
+}
+
+.syn-problems-pane__title-block h2 {
+  margin: 0;
+  font: 700 12px/1 var(--font-code, "JetBrains Mono", ui-monospace, monospace);
+}
+
+.syn-problems-pane__total {
+  min-width: 20px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--ide-border-subtle, rgba(255, 255, 255, 0.1));
+  border-radius: var(--ide-radius-sm, 4px);
+  color: var(--ide-text-secondary, #d6d3d1);
+  background: var(--ide-bg-control, #171717);
+  font-size: 10px;
+}
+
+.syn-problems-pane__summary {
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ide-text-muted, #a8a29e);
+  white-space: nowrap;
+}
+
+.syn-problems-pane__summary span,
+.syn-problems-pane__source-states span {
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 7px;
+  border: 1px solid var(--ide-border-subtle, rgba(255, 255, 255, 0.08));
+  border-radius: var(--ide-radius-sm, 4px);
+  background: var(--ide-bg-control, #171717);
+}
+
+.syn-problems-pane__summary [data-severity="error"] {
+  color: #fca5a5;
+}
+
+.syn-problems-pane__summary [data-severity="warning"] {
+  color: #fcd34d;
+}
+
+.syn-problems-pane__summary [data-severity="info"],
+.syn-problems-pane__summary [data-severity="hint"] {
+  color: #93c5fd;
+}
+
+.syn-problems-pane__source-states {
+  justify-content: flex-end;
+  gap: 6px;
+  color: var(--ide-text-muted, #a8a29e);
+}
+
+.syn-problems-pane__source-states [data-state="loading"] svg {
+  animation: syn-problems-spin 1s linear infinite;
+}
+
+.syn-problems-pane__source-states [data-state="error"] {
+  color: #fca5a5;
+}
+
+.syn-problems-pane__source-states [data-state="stale"] {
+  color: #fcd34d;
+}
+
+.syn-problems-pane__empty {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--ide-text-muted, #a8a29e);
+}
+
+.syn-problems-pane__list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+.syn-problems-pane__row {
+  width: 100%;
+  min-height: 30px;
+  display: grid;
+  grid-template-columns: 92px 82px minmax(160px, 0.95fr) minmax(220px, 1.4fr) 120px 76px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border: 0;
+  border-bottom: 1px solid var(--ide-border-subtle, rgba(255, 255, 255, 0.06));
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.syn-problems-pane__row:hover:not(:disabled),
+.syn-problems-pane__row:focus-visible {
+  background: var(--ide-bg-control-hover, rgba(255, 255, 255, 0.06));
+  outline: none;
+}
+
+.syn-problems-pane__row:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--ide-focus-ring, rgba(245, 158, 11, 0.7));
+}
+
+.syn-problems-pane__row:disabled {
+  cursor: default;
+}
+
+.syn-problems-pane__row[data-stale="true"] {
+  opacity: 0.72;
+}
+
+.syn-problems-pane__severity {
+  gap: 6px;
+  min-width: 0;
+  font-weight: 700;
+}
+
+.syn-problems-pane__row[data-severity="error"] .syn-problems-pane__severity {
+  color: #f87171;
+}
+
+.syn-problems-pane__row[data-severity="warning"] .syn-problems-pane__severity {
+  color: #f59e0b;
+}
+
+.syn-problems-pane__row[data-severity="info"] .syn-problems-pane__severity,
+.syn-problems-pane__row[data-severity="hint"] .syn-problems-pane__severity {
+  color: #60a5fa;
+}
+
+.syn-problems-pane__source,
+.syn-problems-pane__code {
+  justify-self: start;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ide-text-secondary, #d6d3d1);
+}
+
+.syn-problems-pane__source {
+  height: 19px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 6px;
+  border: 1px solid var(--ide-border-subtle, rgba(255, 255, 255, 0.08));
+  border-radius: var(--ide-radius-sm, 4px);
+  background: var(--ide-bg-control, #171717);
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.syn-problems-pane__location,
+.syn-problems-pane__message,
+.syn-problems-pane__artifact,
+.syn-problems-pane__time {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.syn-problems-pane__location {
+  color: var(--ide-text-secondary, #d6d3d1);
+}
+
+.syn-problems-pane__message {
+  color: var(--ide-text-primary, #f5f5f4);
+}
+
+.syn-problems-pane__artifact,
+.syn-problems-pane__time {
+  color: var(--ide-text-muted, #a8a29e);
+}
+
+.syn-problems-pane__time {
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.syn-problems-pane__code {
+  margin-left: 8px;
+  font-size: 10px;
+}
+
+@keyframes syn-problems-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 1040px) {
+  .syn-problems-pane__row {
+    grid-template-columns: 86px 72px minmax(130px, 0.8fr) minmax(180px, 1.2fr) 68px;
+  }
+
+  .syn-problems-pane__artifact {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .syn-problems-pane__header {
+    grid-template-columns: auto 1fr;
+  }
+
+  .syn-problems-pane__source-states {
+    display: none;
+  }
+
+  .syn-problems-pane__row {
+    grid-template-columns: 76px minmax(120px, 1fr) minmax(160px, 1.2fr);
+  }
+
+  .syn-problems-pane__source,
+  .syn-problems-pane__time {
+    display: none;
+  }
+}

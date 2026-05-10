@@ -1,0 +1,542 @@
+import React, { useMemo, useState } from "react";
+import {
+  CheckCircle2,
+  Download,
+  FileJson,
+  FileText,
+  Filter,
+  History,
+  RotateCcw,
+  X,
+} from "lucide-react";
+import type { OverlayLayerConfig } from "./mapTypes";
+import type {
+  MapReviewTimelineEvent,
+  MapReviewTimelineEventInput,
+  MapReviewTimelineEventStatus,
+  MapReviewTimelineEventType,
+  MapReviewSession,
+} from "@/services/map/MapReviewSessionService";
+import {
+  filterMapReviewTimelineEvents,
+  MAP_REVIEW_EVENT_STATUSES,
+  MAP_REVIEW_EVENT_TYPES,
+  triggerMapReviewSessionDownload,
+} from "@/services/map/MapReviewSessionService";
+import type { MapScientificQAState } from "@/services/map/MapScientificQA";
+import {
+  MAP_COLORS,
+  MAP_ICON_SIZES,
+  MAP_RADIUS,
+  MAP_SHADOWS,
+  MAP_SPACING,
+  MAP_STROKES,
+  MAP_TYPOGRAPHY,
+  MAP_Z_INDEX,
+} from "./mapTokens";
+import { createOpaqueFloatingPanelStyle, useDraggableMapPanel } from "./useDraggableMapPanel";
+
+export interface MapReviewTimelinePanelProps {
+  visible: boolean;
+  session: MapReviewSession;
+  overlayLayers: OverlayLayerConfig[];
+  qaState: MapScientificQAState | null;
+  onClose: () => void;
+  onRecordEvent: (event: MapReviewTimelineEventInput) => void;
+  onUpdateEventStatus: (eventId: string, status: MapReviewTimelineEventStatus, outcome?: string) => void;
+  onClearSession: () => void;
+  onAnnounce?: (message: string) => void;
+}
+
+const EVENT_TYPE_LABELS: Record<MapReviewTimelineEventType, string> = {
+  snapshot: "Snapshot",
+  "layer-change": "Layer change",
+  "query-run": "Query run",
+  "analysis-dispatch": "Analysis dispatch",
+  "workflow-action": "Workflow action",
+  "report-handoff": "Report handoff",
+  "qa-event": "QA event",
+  recommendation: "Recommendation",
+  annotation: "Annotation",
+  bookmark: "Bookmark",
+  "action-status": "Action status",
+};
+
+const STATUS_LABELS: Record<MapReviewTimelineEventStatus, string> = {
+  recorded: "Recorded",
+  proposed: "Proposed",
+  previewed: "Previewed",
+  applied: "Applied",
+  rejected: "Rejected",
+  undone: "Undone",
+  acknowledged: "Acknowledged",
+  resolved: "Resolved",
+  failed: "Failed",
+};
+
+const panelStyle: React.CSSProperties = {
+  ...createOpaqueFloatingPanelStyle("min(31rem, calc(100vw - 2rem))", MAP_Z_INDEX.symbologyPanel + 10),
+  height: "min(40rem, calc(100% - 2rem))",
+  display: "grid",
+  gridTemplateRows: "auto auto minmax(0, 1fr) auto",
+  border: MAP_STROKES.hairline,
+  borderRadius: MAP_RADIUS.lg,
+  background: MAP_COLORS.bgPanel,
+  boxShadow: MAP_SHADOWS.panel,
+  color: MAP_COLORS.text,
+  overflow: "hidden",
+};
+
+const headerStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "flex-start",
+  justifyContent: "space-between",
+  gap: MAP_SPACING.md,
+  padding: `${MAP_SPACING.md} ${MAP_SPACING.md} ${MAP_SPACING.sm}`,
+  borderBottom: MAP_STROKES.hairlineSubtle,
+};
+
+const titleStackStyle: React.CSSProperties = {
+  display: "grid",
+  gap: MAP_SPACING.xs,
+  minWidth: MAP_SPACING.zero,
+};
+
+const eyebrowStyle: React.CSSProperties = {
+  color: MAP_COLORS.textMuted,
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+  letterSpacing: MAP_TYPOGRAPHY.letterSpacing.caps,
+  textTransform: "uppercase",
+};
+
+const titleStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: MAP_SPACING.sm,
+  margin: 0,
+  color: MAP_COLORS.amber,
+  fontSize: MAP_TYPOGRAPHY.fontSize.md,
+  lineHeight: MAP_TYPOGRAPHY.lineHeight.tight,
+};
+
+const summaryStyle: React.CSSProperties = {
+  color: MAP_COLORS.textSecondary,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  lineHeight: MAP_TYPOGRAPHY.lineHeight.normal,
+};
+
+const iconButtonStyle: React.CSSProperties = {
+  width: "1.875rem",
+  height: "1.875rem",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.sm,
+  background: MAP_COLORS.transparent,
+  color: MAP_COLORS.textSecondary,
+  cursor: "pointer",
+};
+
+const filterGridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  gap: MAP_SPACING.sm,
+  padding: MAP_SPACING.sm,
+  borderBottom: MAP_STROKES.hairlineSubtle,
+};
+
+const labelStyle: React.CSSProperties = {
+  display: "grid",
+  gap: MAP_SPACING.xs,
+  minWidth: MAP_SPACING.zero,
+  color: MAP_COLORS.textMuted,
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+};
+
+const inputStyle: React.CSSProperties = {
+  width: "100%",
+  minWidth: MAP_SPACING.zero,
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.sm,
+  background: MAP_COLORS.bg,
+  color: MAP_COLORS.text,
+  padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+};
+
+const eventListStyle: React.CSSProperties = {
+  overflowY: "auto",
+  display: "grid",
+  alignContent: "start",
+};
+
+const eventRowStyle: React.CSSProperties = {
+  display: "grid",
+  gap: MAP_SPACING.xs,
+  padding: MAP_SPACING.md,
+  borderBottom: MAP_STROKES.hairlineSubtle,
+};
+
+const eventTopLineStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1fr) auto",
+  gap: MAP_SPACING.sm,
+  alignItems: "start",
+};
+
+const eventTitleStyle: React.CSSProperties = {
+  color: MAP_COLORS.text,
+  fontSize: MAP_TYPOGRAPHY.fontSize.sm,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+  lineHeight: MAP_TYPOGRAPHY.lineHeight.tight,
+};
+
+const metaStyle: React.CSSProperties = {
+  color: MAP_COLORS.textMuted,
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  lineHeight: MAP_TYPOGRAPHY.lineHeight.tight,
+};
+
+const badgeStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: MAP_SPACING.xs,
+  maxWidth: "100%",
+  padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.sm,
+  color: MAP_COLORS.textSecondary,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  lineHeight: MAP_TYPOGRAPHY.lineHeight.tight,
+};
+
+const eventSummaryStyle: React.CSSProperties = {
+  color: MAP_COLORS.textSecondary,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  lineHeight: MAP_TYPOGRAPHY.lineHeight.normal,
+};
+
+const idWrapStyle: React.CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: MAP_SPACING.xs,
+  minWidth: MAP_SPACING.zero,
+};
+
+const eventActionsStyle: React.CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: MAP_SPACING.xs,
+  alignItems: "center",
+};
+
+const actionButtonStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: MAP_SPACING.xs,
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.sm,
+  background: MAP_COLORS.transparent,
+  color: MAP_COLORS.textSecondary,
+  padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
+  cursor: "pointer",
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+};
+
+const footerStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: MAP_SPACING.sm,
+  padding: MAP_SPACING.md,
+  borderTop: MAP_STROKES.hairlineSubtle,
+};
+
+const emptyStyle: React.CSSProperties = {
+  display: "grid",
+  placeItems: "center",
+  gap: MAP_SPACING.sm,
+  padding: MAP_SPACING.xl,
+  color: MAP_COLORS.textMuted,
+  fontSize: MAP_TYPOGRAPHY.fontSize.sm,
+  textAlign: "center",
+};
+
+function formatTimestamp(value: string): string {
+  const parsed = new Date(value);
+  if (!Number.isFinite(parsed.getTime())) return value;
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(parsed);
+}
+
+function formatDateInput(value: string | null): string {
+  if (!value) return "";
+  const parsed = new Date(value);
+  if (!Number.isFinite(parsed.getTime())) return "";
+  const offsetMs = parsed.getTimezoneOffset() * 60_000;
+  return new Date(parsed.getTime() - offsetMs).toISOString().slice(0, 16);
+}
+
+function dateInputToIso(value: string): string | null {
+  if (!value) return null;
+  const parsed = new Date(value);
+  return Number.isFinite(parsed.getTime()) ? parsed.toISOString() : null;
+}
+
+function eventStatusColor(status: MapReviewTimelineEventStatus): string {
+  if (status === "failed" || status === "rejected") return MAP_COLORS.error;
+  if (status === "applied" || status === "resolved" || status === "acknowledged") return MAP_COLORS.success;
+  if (status === "proposed" || status === "previewed") return MAP_COLORS.warning;
+  return MAP_COLORS.textSecondary;
+}
+
+function compactIds(values: readonly string[], limit = 3): string[] {
+  if (values.length <= limit) return [...values];
+  return [...values.slice(0, limit), `+${values.length - limit} more`];
+}
+
+function EventRow({
+  event,
+  layerLookup,
+  onUpdateEventStatus,
+}: {
+  event: MapReviewTimelineEvent;
+  layerLookup: Map<string, string>;
+  onUpdateEventStatus: MapReviewTimelinePanelProps["onUpdateEventStatus"];
+}): React.ReactElement {
+  const layerLabels = event.layerIds.map((layerId) => layerLookup.get(layerId) ?? layerId);
+  const statusColor = eventStatusColor(event.status);
+  const canAcknowledge = event.status === "recorded" || event.status === "proposed" || event.status === "previewed";
+
+  return (
+    <article style={eventRowStyle} data-testid="map-review-timeline-event">
+      <div style={eventTopLineStyle}>
+        <div style={{ minWidth: MAP_SPACING.zero }}>
+          <div style={eventTitleStyle}>{event.title}</div>
+          <div style={metaStyle}>{formatTimestamp(event.timestamp)} / {EVENT_TYPE_LABELS[event.type]}</div>
+        </div>
+        <span style={{ ...badgeStyle, color: statusColor, border: `1px solid ${statusColor}` }}>
+          {STATUS_LABELS[event.status]}
+        </span>
+      </div>
+      <div style={eventSummaryStyle}>{event.summary}</div>
+      <div style={idWrapStyle} aria-label="Timeline event references">
+        {compactIds(layerLabels).map((label) => <span key={`layer-${label}`} style={badgeStyle}>{label}</span>)}
+        {compactIds(event.reportItemIds).map((id) => <span key={`report-${id}`} style={badgeStyle}>Report {id}</span>)}
+        {compactIds(event.qaIssueIds).map((id) => <span key={`qa-${id}`} style={badgeStyle}>QA {id}</span>)}
+        {compactIds(event.recommendationIds).map((id) => <span key={`rec-${id}`} style={badgeStyle}>Rec {id}</span>)}
+      </div>
+      <div style={eventActionsStyle}>
+        {canAcknowledge ? (
+          <button
+            type="button"
+            style={actionButtonStyle}
+            onClick={() => onUpdateEventStatus(event.id, "acknowledged", "Reviewed in map timeline")}
+          >
+            <CheckCircle2 size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+            Acknowledge
+          </button>
+        ) : null}
+        {event.undo ? (
+          <span style={metaStyle}>
+            Undo {event.undo.available ? "available" : "unavailable"}{event.undo.outcome ? ` / ${event.undo.outcome}` : ""}
+          </span>
+        ) : null}
+      </div>
+    </article>
+  );
+}
+
+export const MapReviewTimelinePanel: React.FC<MapReviewTimelinePanelProps> = ({
+  visible,
+  session,
+  overlayLayers,
+  qaState,
+  onClose,
+  onRecordEvent,
+  onUpdateEventStatus,
+  onClearSession,
+  onAnnounce,
+}) => {
+  const panelDrag = useDraggableMapPanel();
+  const [typeFilter, setTypeFilter] = useState<MapReviewTimelineEventType | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<MapReviewTimelineEventStatus | "all">("all");
+  const [layerFilter, setLayerFilter] = useState<string | "all">("all");
+  const [startDate, setStartDate] = useState<string | null>(null);
+  const [endDate, setEndDate] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+
+  const layerLookup = useMemo(
+    () => new Map(overlayLayers.map((layer) => [layer.id, layer.name])),
+    [overlayLayers],
+  );
+  const filteredEvents = useMemo(
+    () => filterMapReviewTimelineEvents(session, {
+      type: typeFilter,
+      status: statusFilter,
+      layerId: layerFilter,
+      startDate,
+      endDate,
+      query,
+    }),
+    [endDate, layerFilter, query, session, startDate, statusFilter, typeFilter],
+  );
+
+  const filteredLayerOptions = useMemo(() => {
+    const ids = new Set(session.events.flatMap((event) => event.layerIds));
+    return overlayLayers.filter((layer) => ids.has(layer.id));
+  }, [overlayLayers, session.events]);
+
+  if (!visible) return null;
+
+  const activeQaIssues = qaState?.issues.filter((issue) => issue.severity !== "info") ?? [];
+
+  return (
+    <aside
+      data-draggable-map-panel="true"
+      style={{ ...panelStyle, ...panelDrag.panelPositionStyle }}
+      role="dialog"
+      aria-modal="false"
+      aria-label="Map review timeline panel"
+    >
+      <header style={{ ...headerStyle, ...panelDrag.dragHandleStyle }} {...panelDrag.dragHandleProps}>
+        <div style={titleStackStyle}>
+          <span style={eyebrowStyle}>Collaborative review</span>
+          <h3 style={titleStyle}>
+            <History size={MAP_ICON_SIZES.md} aria-hidden="true" />
+            Review timeline
+          </h3>
+          <span style={summaryStyle}>
+            {session.events.length} auditable event(s). Filtered view shows {filteredEvents.length}.
+          </span>
+        </div>
+        <button type="button" style={iconButtonStyle} onClick={onClose} aria-label="Close review timeline panel">
+          <X size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+        </button>
+      </header>
+
+      <section style={filterGridStyle} aria-label="Review timeline filters">
+        <label style={labelStyle}>
+          <span><Filter size={MAP_ICON_SIZES.xs} aria-hidden="true" /> Event type</span>
+          <select style={inputStyle} value={typeFilter} onChange={(event) => setTypeFilter(event.target.value as MapReviewTimelineEventType | "all")}>
+            <option value="all">All event types</option>
+            {MAP_REVIEW_EVENT_TYPES.map((type) => <option key={type} value={type}>{EVENT_TYPE_LABELS[type]}</option>)}
+          </select>
+        </label>
+        <label style={labelStyle}>
+          Status
+          <select style={inputStyle} value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as MapReviewTimelineEventStatus | "all")}>
+            <option value="all">All statuses</option>
+            {MAP_REVIEW_EVENT_STATUSES.map((status) => <option key={status} value={status}>{STATUS_LABELS[status]}</option>)}
+          </select>
+        </label>
+        <label style={labelStyle}>
+          Layer
+          <select style={inputStyle} value={layerFilter} onChange={(event) => setLayerFilter(event.target.value)}>
+            <option value="all">All referenced layers</option>
+            {filteredLayerOptions.map((layer) => <option key={layer.id} value={layer.id}>{layer.name}</option>)}
+          </select>
+        </label>
+        <label style={labelStyle}>
+          Search
+          <input style={inputStyle} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Title, layer, report, QA" />
+        </label>
+        <label style={labelStyle}>
+          Start time
+          <input type="datetime-local" style={inputStyle} value={formatDateInput(startDate)} onChange={(event) => setStartDate(dateInputToIso(event.target.value))} />
+        </label>
+        <label style={labelStyle}>
+          End time
+          <input type="datetime-local" style={inputStyle} value={formatDateInput(endDate)} onChange={(event) => setEndDate(dateInputToIso(event.target.value))} />
+        </label>
+      </section>
+
+      <div style={eventListStyle}>
+        {filteredEvents.length > 0 ? (
+          filteredEvents.map((event) => (
+            <EventRow
+              key={event.id}
+              event={event}
+              layerLookup={layerLookup}
+              onUpdateEventStatus={onUpdateEventStatus}
+            />
+          ))
+        ) : (
+          <div style={emptyStyle}>
+            <History size={MAP_ICON_SIZES.md} color={MAP_COLORS.textMuted} aria-hidden="true" />
+            <span>No timeline entries match the current filter set.</span>
+          </div>
+        )}
+      </div>
+
+      <footer style={footerStyle}>
+        <div style={eventActionsStyle}>
+          <button
+            type="button"
+            style={actionButtonStyle}
+            onClick={() => {
+              onRecordEvent({
+                type: "qa-event",
+                status: "acknowledged",
+                title: activeQaIssues.length > 0 ? "QA caveats acknowledged" : "QA state reviewed",
+                summary: activeQaIssues.length > 0
+                  ? `${activeQaIssues.length} visible scientific QA caveat(s) were acknowledged in the review timeline.`
+                  : "The current QA state was reviewed; no non-informational issues are open.",
+                layerIds: activeQaIssues.map((issue) => issue.layerId).filter((layerId): layerId is string => Boolean(layerId)),
+                qaIssueIds: activeQaIssues.map((issue) => issue.id),
+                details: {
+                  qaStatus: qaState?.status ?? "not-run",
+                  issueCount: activeQaIssues.length,
+                },
+              });
+              onAnnounce?.("QA review acknowledgement recorded");
+            }}
+          >
+            <CheckCircle2 size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+            Mark QA reviewed
+          </button>
+          <button type="button" style={actionButtonStyle} onClick={onClearSession}>
+            <RotateCcw size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+            New session
+          </button>
+        </div>
+        <div style={eventActionsStyle}>
+          <button
+            type="button"
+            style={actionButtonStyle}
+            onClick={() => {
+              triggerMapReviewSessionDownload(session, "json");
+              onAnnounce?.("Review timeline exported as JSON");
+            }}
+          >
+            <FileJson size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+            JSON
+          </button>
+          <button
+            type="button"
+            style={actionButtonStyle}
+            onClick={() => {
+              triggerMapReviewSessionDownload(session, "markdown");
+              onAnnounce?.("Review timeline exported as Markdown");
+            }}
+          >
+            <FileText size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+            Markdown
+          </button>
+          <span style={metaStyle}><Download size={MAP_ICON_SIZES.xs} aria-hidden="true" /> Reproducible log</span>
+        </div>
+      </footer>
+    </aside>
+  );
+};

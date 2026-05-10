@@ -1,0 +1,95 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "landmark-ayasofya",
+      "properties": {
+        "name": "Ayasofya Camii",
+        "kind": "landmark",
+        "district": "Fatih",
+        "category": "historic-religious",
+        "visitors_per_year_million": 13.6
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [28.97993, 41.00858]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "landmark-sultanahmet",
+      "properties": {
+        "name": "Sultanahmet Camii",
+        "kind": "landmark",
+        "district": "Fatih",
+        "category": "historic-religious",
+        "visitors_per_year_million": 9.2
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [28.97682, 41.00541]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "landmark-topkapi",
+      "properties": {
+        "name": "Topkapi Sarayi",
+        "kind": "landmark",
+        "district": "Fatih",
+        "category": "museum-palace",
+        "visitors_per_year_million": 4.7
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [28.98329, 41.01152]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "landmark-yerebatan",
+      "properties": {
+        "name": "Yerebatan Sarnici",
+        "kind": "landmark",
+        "district": "Fatih",
+        "category": "historic-cistern",
+        "visitors_per_year_million": 3.1
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [28.9778, 41.0085],
+            [28.9782, 41.0085],
+            [28.9782, 41.0081],
+            [28.9778, 41.0081],
+            [28.9778, 41.0085]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "zone-sultanahmet-square",
+      "properties": {
+        "name": "Sultanahmet Meydani Etki Alani",
+        "kind": "analysis-zone",
+        "district": "Fatih",
+        "category": "pedestrian-core"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [28.9755, 41.0105],
+            [28.9828, 41.0105],
+            [28.9828, 41.0042],
+            [28.9755, 41.0042],
+            [28.9755, 41.0105]
+          ]
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,424 @@
+{
+  "generatedAt": "2026-04-21T16:59:16.850Z",
+  "source": "vitest-v8-json-summary",
+  "overall": {
+    "statements": {
+      "total": 6613,
+      "covered": 5891,
+      "skipped": 0,
+      "pct": 89.08
+    },
+    "branches": {
+      "total": 3863,
+      "covered": 2587,
+      "skipped": 0,
+      "pct": 66.96
+    },
+    "functions": {
+      "total": 1028,
+      "covered": 955,
+      "skipped": 0,
+      "pct": 92.89
+    },
+    "lines": {
+      "total": 5728,
+      "covered": 5185,
+      "skipped": 0,
+      "pct": 90.52
+    }
+  },
+  "globalMinimum": {
+    "statements": 70,
+    "branches": 55,
+    "functions": 75,
+    "lines": 70
+  },
+  "modules": [
+    {
+      "id": "urban_calculators",
+      "label": "Urban Calculator Core",
+      "fileCount": 14,
+      "minimum": {
+        "statements": 90,
+        "branches": 50,
+        "functions": 95,
+        "lines": 95
+      },
+      "coverage": {
+        "statements": {
+          "covered": 423,
+          "total": 458,
+          "skipped": 0,
+          "pct": 92.4
+        },
+        "branches": {
+          "covered": 194,
+          "total": 388,
+          "skipped": 0,
+          "pct": 50
+        },
+        "functions": {
+          "covered": 107,
+          "total": 107,
+          "skipped": 0,
+          "pct": 100
+        },
+        "lines": {
+          "covered": 401,
+          "total": 412,
+          "skipped": 0,
+          "pct": 97.3
+        }
+      },
+      "pass": true
+    },
+    {
+      "id": "indicator_catalog",
+      "label": "Indicator Catalog Contracts",
+      "fileCount": 2,
+      "minimum": {
+        "statements": 80,
+        "branches": 60,
+        "functions": 80,
+        "lines": 80
+      },
+      "coverage": {
+        "statements": {
+          "covered": 61,
+          "total": 64,
+          "skipped": 0,
+          "pct": 95.3
+        },
+        "branches": {
+          "covered": 41,
+          "total": 49,
+          "skipped": 0,
+          "pct": 83.7
+        },
+        "functions": {
+          "covered": 27,
+          "total": 27,
+          "skipped": 0,
+          "pct": 100
+        },
+        "lines": {
+          "covered": 58,
+          "total": 61,
+          "skipped": 0,
+          "pct": 95.1
+        }
+      },
+      "pass": true
+    },
+    {
+      "id": "spatial_stats",
+      "label": "Spatial Statistics Engine",
+      "fileCount": 12,
+      "minimum": {
+        "statements": 80,
+        "branches": 65,
+        "functions": 85,
+        "lines": 80
+      },
+      "coverage": {
+        "statements": {
+          "covered": 1967,
+          "total": 2093,
+          "skipped": 0,
+          "pct": 94
+        },
+        "branches": {
+          "covered": 549,
+          "total": 681,
+          "skipped": 0,
+          "pct": 80.6
+        },
+        "functions": {
+          "covered": 177,
+          "total": 183,
+          "skipped": 0,
+          "pct": 96.7
+        },
+        "lines": {
+          "covered": 1631,
+          "total": 1709,
+          "skipped": 0,
+          "pct": 95.4
+        }
+      },
+      "pass": true
+    },
+    {
+      "id": "simulation_engine",
+      "label": "Simulation Engine",
+      "fileCount": 5,
+      "minimum": {
+        "statements": 85,
+        "branches": 60,
+        "functions": 90,
+        "lines": 85
+      },
+      "coverage": {
+        "statements": {
+          "covered": 1206,
+          "total": 1301,
+          "skipped": 0,
+          "pct": 92.7
+        },
+        "branches": {
+          "covered": 616,
+          "total": 941,
+          "skipped": 0,
+          "pct": 65.5
+        },
+        "functions": {
+          "covered": 279,
+          "total": 293,
+          "skipped": 0,
+          "pct": 95.2
+        },
+        "lines": {
+          "covered": 1107,
+          "total": 1196,
+          "skipped": 0,
+          "pct": 92.6
+        }
+      },
+      "pass": true
+    },
+    {
+      "id": "geoai_runtime",
+      "label": "GeoAI Runtime",
+      "fileCount": 6,
+      "minimum": {
+        "statements": 85,
+        "branches": 65,
+        "functions": 90,
+        "lines": 85
+      },
+      "coverage": {
+        "statements": {
+          "covered": 934,
+          "total": 994,
+          "skipped": 0,
+          "pct": 94
+        },
+        "branches": {
+          "covered": 453,
+          "total": 602,
+          "skipped": 0,
+          "pct": 75.2
+        },
+        "functions": {
+          "covered": 113,
+          "total": 115,
+          "skipped": 0,
+          "pct": 98.3
+        },
+        "lines": {
+          "covered": 827,
+          "total": 863,
+          "skipped": 0,
+          "pct": 95.8
+        }
+      },
+      "pass": true
+    },
+    {
+      "id": "data_connectors",
+      "label": "Remote Data Connectors",
+      "fileCount": 3,
+      "minimum": {
+        "statements": 80,
+        "branches": 60,
+        "functions": 90,
+        "lines": 82
+      },
+      "coverage": {
+        "statements": {
+          "covered": 444,
+          "total": 542,
+          "skipped": 0,
+          "pct": 81.9
+        },
+        "branches": {
+          "covered": 280,
+          "total": 428,
+          "skipped": 0,
+          "pct": 65.4
+        },
+        "functions": {
+          "covered": 69,
+          "total": 75,
+          "skipped": 0,
+          "pct": 92
+        },
+        "lines": {
+          "covered": 388,
+          "total": 457,
+          "skipped": 0,
+          "pct": 84.9
+        }
+      },
+      "pass": true
+    },
+    {
+      "id": "columnar_pipeline",
+      "label": "Columnar I/O Pipeline",
+      "fileCount": 1,
+      "minimum": {
+        "statements": 64,
+        "branches": 53,
+        "functions": 70,
+        "lines": 66
+      },
+      "coverage": {
+        "statements": {
+          "covered": 423,
+          "total": 654,
+          "skipped": 0,
+          "pct": 64.7
+        },
+        "branches": {
+          "covered": 273,
+          "total": 512,
+          "skipped": 0,
+          "pct": 53.3
+        },
+        "functions": {
+          "covered": 91,
+          "total": 126,
+          "skipped": 0,
+          "pct": 72.2
+        },
+        "lines": {
+          "covered": 381,
+          "total": 569,
+          "skipped": 0,
+          "pct": 67
+        }
+      },
+      "pass": true
+    },
+    {
+      "id": "wasm_engine",
+      "label": "WASM Spatial Engine",
+      "fileCount": 2,
+      "minimum": {
+        "statements": 85,
+        "branches": 70,
+        "functions": 90,
+        "lines": 85
+      },
+      "coverage": {
+        "statements": {
+          "covered": 299,
+          "total": 323,
+          "skipped": 0,
+          "pct": 92.6
+        },
+        "branches": {
+          "covered": 117,
+          "total": 148,
+          "skipped": 0,
+          "pct": 79.1
+        },
+        "functions": {
+          "covered": 60,
+          "total": 63,
+          "skipped": 0,
+          "pct": 95.2
+        },
+        "lines": {
+          "covered": 262,
+          "total": 286,
+          "skipped": 0,
+          "pct": 91.6
+        }
+      },
+      "pass": true
+    },
+    {
+      "id": "background_worker_pool",
+      "label": "Background Worker Pool",
+      "fileCount": 1,
+      "minimum": {
+        "statements": 70,
+        "branches": 55,
+        "functions": 80,
+        "lines": 70
+      },
+      "coverage": {
+        "statements": {
+          "covered": 130,
+          "total": 177,
+          "skipped": 0,
+          "pct": 73.4
+        },
+        "branches": {
+          "covered": 61,
+          "total": 108,
+          "skipped": 0,
+          "pct": 56.5
+        },
+        "functions": {
+          "covered": 31,
+          "total": 38,
+          "skipped": 0,
+          "pct": 81.6
+        },
+        "lines": {
+          "covered": 126,
+          "total": 171,
+          "skipped": 0,
+          "pct": 73.7
+        }
+      },
+      "pass": true
+    },
+    {
+      "id": "worker_pool_contracts",
+      "label": "Worker Pool Contracts",
+      "fileCount": 1,
+      "minimum": {
+        "statements": 55,
+        "branches": 50,
+        "functions": 90,
+        "lines": 90
+      },
+      "coverage": {
+        "statements": {
+          "covered": 4,
+          "total": 7,
+          "skipped": 0,
+          "pct": 57.1
+        },
+        "branches": {
+          "covered": 3,
+          "total": 6,
+          "skipped": 0,
+          "pct": 50
+        },
+        "functions": {
+          "covered": 1,
+          "total": 1,
+          "skipped": 0,
+          "pct": 100
+        },
+        "lines": {
+          "covered": 4,
+          "total": 4,
+          "skipped": 0,
+          "pct": 100
+        }
+      },
+      "pass": true
+    }
+  ],
+  "overallPass": true,
+  "notes": [
+    "Coverage artifact generated from Vitest V8 json-summary output.",
+    "Run npm run test:coverage:publish after analytical changes to refresh the diagnostics panel.",
+    "Thresholds are intentionally module-specific so CI can gate high-value analytical surfaces without conflating them with unrelated UI code."
+  ]
+}

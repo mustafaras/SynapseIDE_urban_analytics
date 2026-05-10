@@ -1,0 +1,1019 @@
+/* -------------------------------------------------------------
+   Map Command Center
+   Dense operational cockpit for the Map Explorer navigator view.
+   ------------------------------------------------------------- */
+
+.panel {
+  position: relative;
+  width: 100%;
+  height: auto;
+  max-height: 100%;
+  display: grid;
+  grid-template-rows: auto auto;
+  overflow: hidden;
+  border: 0;
+  border-top: 1px solid rgba(245, 158, 11, 0.22);
+  border-bottom: 1px solid rgba(245, 158, 11, 0.18);
+  border-radius: 6px;
+  background: linear-gradient(180deg, rgba(16, 15, 13, 0.92), rgba(8, 8, 7, 0.9));
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.34);
+  color: #e7e5e4;
+  font-family: var(--font-brand, Inter, system-ui, sans-serif);
+  isolation: isolate;
+}
+
+.panel > * {
+  min-width: 0;
+}
+
+.commandBar {
+  display: grid;
+  grid-template-columns: minmax(210px, 1fr) auto minmax(150px, 0.55fr) minmax(190px, 0.72fr);
+  align-items: center;
+  gap: 8px;
+  padding: 8px 11px;
+  border-bottom: 1px solid rgba(245, 158, 11, 0.1);
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.045), rgba(255, 255, 255, 0.012));
+}
+
+.commandIdentity,
+.commandMeta,
+.commandReadinessTop,
+.primaryCommand,
+.sectionHeading,
+.focusBandTop,
+.sequenceHeader,
+.statusStrip,
+.statusLead,
+.statusHotkey {
+  display: flex;
+  align-items: center;
+}
+
+.commandIdentity {
+  gap: 9px;
+  min-width: 0;
+}
+
+.brandMark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 0;
+  border: 0;
+  background: transparent;
+  color: #f59e0b;
+  flex: 0 0 auto;
+}
+
+.identityCopy {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.brandKicker {
+  color: rgba(245, 158, 11, 0.82);
+  font-family: var(--font-mono, "JetBrains Mono", monospace);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.brandTitle {
+  color: #fafaf9;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.15;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.toneBadge,
+.metaChip,
+.metaChipWarn,
+.sectionHint,
+.signalValue,
+.integrationValue,
+.sequenceStatus,
+.statusHotkey {
+  font-family: var(--font-mono, "JetBrains Mono", monospace);
+}
+
+.toneBadge {
+  padding: 0 0 0 8px;
+  border-left: 1px solid rgba(245, 158, 11, 0.22);
+  border-radius: 0;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.statusBadgeFoundational {
+  color: #fbbf24;
+  background: transparent;
+  border-top: 0;
+  border-right: 0;
+  border-bottom: 0;
+}
+
+.statusBadgeOperational {
+  color: #4ade80;
+  background: transparent;
+  border-top: 0;
+  border-right: 0;
+  border-bottom: 0;
+}
+
+.statusBadgeDelivery {
+  color: #93c5fd;
+  background: transparent;
+  border-top: 0;
+  border-right: 0;
+  border-bottom: 0;
+}
+
+.commandMeta {
+  gap: 6px;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.metaChip,
+.metaChipWarn {
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  color: rgba(250, 250, 249, 0.58);
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.metaChipWarn {
+  color: #fbbf24;
+  background: transparent;
+}
+
+.commandReadiness {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+  pointer-events: none;
+}
+
+.commandReadinessTop {
+  justify-content: space-between;
+  gap: 10px;
+  color: rgba(250, 250, 249, 0.56);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.commandReadinessTop strong {
+  color: #f59e0b;
+  font-size: 11px;
+}
+
+.readinessTrack {
+  height: 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  pointer-events: none;
+}
+
+.readinessFill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #f59e0b, #22c55e);
+  pointer-events: none;
+  transition: width 180ms ease;
+}
+
+.primaryCommand {
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid rgba(245, 158, 11, 0.38);
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.94), rgba(217, 119, 6, 0.94));
+  color: #171412;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  box-shadow: 0 10px 26px rgba(245, 158, 11, 0.16);
+}
+
+.primaryCommand:hover {
+  filter: brightness(1.07);
+}
+
+.primaryCommandIcon {
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.primaryCommandCopy {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.primaryCommandCopy span {
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.primaryCommandCopy strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.bodyGrid {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.9fr) minmax(315px, 1fr) minmax(300px, 0.95fr);
+  min-height: 0;
+  overflow: hidden;
+  align-items: start;
+}
+
+.pane {
+  min-width: 0;
+  min-height: 0;
+  padding: 10px;
+  overflow: visible;
+  border-right: 1px solid rgba(245, 158, 11, 0.06);
+}
+
+.pane:last-child {
+  border-right: 0;
+}
+
+.statePane,
+.flowPane,
+.integrationPane {
+  position: relative;
+}
+
+.pane::-webkit-scrollbar {
+  width: 4px;
+}
+
+.pane::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.pane::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.18);
+}
+
+.sectionHeading,
+.sequenceHeader {
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(245, 158, 11, 0.12);
+}
+
+.sectionHeading > span:first-child,
+.sequenceHeader > span:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(245, 158, 11, 0.86);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.sectionHint,
+.sequenceHeader strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: rgba(250, 250, 249, 0.52);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.metricRibbon {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  overflow: hidden;
+  border-radius: 0;
+  border: 0;
+  background: transparent;
+}
+
+.metricUnit {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  min-width: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.metricValue {
+  color: #fafaf9;
+  font-family: var(--font-mono, "JetBrains Mono", monospace);
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.metricLabel {
+  color: rgba(250, 250, 249, 0.56);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.metricSub {
+  overflow: hidden;
+  max-width: 100%;
+  color: rgba(250, 250, 249, 0.38);
+  font-family: var(--font-mono, "JetBrains Mono", monospace);
+  font-size: 8px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.signalStack,
+.integrationStack,
+.sequenceRail,
+.quickActionGrid,
+.modeRail {
+  display: flex;
+  flex-direction: column;
+}
+
+.signalStack {
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.signalRow,
+.integrationRow {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  padding: 6px 0;
+  border: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.055);
+  border-radius: 0;
+  background: transparent;
+}
+
+.signalStack > :first-child,
+.integrationStack > :first-child,
+.sequenceRail > :first-child,
+.quickActionGrid > :nth-child(-n + 3) {
+  border-top: 0;
+}
+
+.signalReady,
+.signalAttention,
+.signalNeutral {
+  --signal-color: rgba(250, 250, 249, 0.56);
+  --signal-bg: transparent;
+}
+
+.signalReady {
+  --signal-color: #4ade80;
+  --signal-bg: transparent;
+}
+
+.signalAttention {
+  --signal-color: #f59e0b;
+  --signal-bg: transparent;
+}
+
+.signalNeutral {
+  --signal-color: #7dd3fc;
+  --signal-bg: transparent;
+}
+
+.signalIcon,
+.integrationIcon,
+.quickBtnIcon,
+.modeBtnIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0;
+  background: var(--signal-bg, rgba(245, 158, 11, 0.08));
+  color: var(--signal-color, #f59e0b);
+}
+
+.signalIcon,
+.integrationIcon {
+  width: 24px;
+  height: 24px;
+}
+
+.signalCopy,
+.integrationCopy,
+.quickBtnCopy,
+.modeBtnCopy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.signalCopy strong,
+.integrationCopy strong,
+.quickBtnCopy strong,
+.modeBtnCopy strong {
+  overflow: hidden;
+  color: #f5f5f4;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.signalCopy span,
+.integrationCopy span,
+.quickBtnCopy span,
+.modeBtnCopy span {
+  overflow: hidden;
+  color: rgba(250, 250, 249, 0.52);
+  font-size: 8px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.signalValue,
+.integrationValue {
+  color: var(--signal-color, #f59e0b);
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.focusBand {
+  margin-top: 8px;
+  padding: 6px 0 0;
+  border: 0;
+  border-top: 1px solid rgba(245, 158, 11, 0.12);
+  border-radius: 0;
+  background: transparent;
+}
+
+.focusBandTop {
+  gap: 6px;
+  color: #f59e0b;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.focusBand p,
+.recommendedBand p {
+  margin: 4px 0 0;
+  overflow: hidden;
+  color: rgba(250, 250, 249, 0.62);
+  font-size: 9px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+}
+
+.modeRail {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.modeBtn {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  padding: 6px 0;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.055);
+  border-radius: 0;
+  background: transparent;
+  color: #e7e5e4;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.modeBtn:hover {
+  border-color: rgba(245, 158, 11, 0.24);
+  background: transparent;
+}
+
+.modeBtnActive {
+  border-color: rgba(245, 158, 11, 0.42);
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.09), transparent);
+}
+
+.modeBtnIcon {
+  width: 24px;
+  height: 24px;
+  --signal-color: #f59e0b;
+  --signal-bg: rgba(245, 158, 11, 0.1);
+}
+
+.sequenceHeader {
+  margin-top: 10px;
+}
+
+.sequenceRail {
+  gap: 5px;
+}
+
+.sequenceItem {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.055);
+  border-radius: 0;
+  background: transparent;
+}
+
+.sequenceIndex {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 0;
+  background: transparent;
+  color: rgba(250, 250, 249, 0.54);
+  font-family: var(--font-mono, "JetBrains Mono", monospace);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.sequenceCopy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sequenceCopy strong {
+  overflow: hidden;
+  color: #f5f5f4;
+  font-size: 10px;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sequenceCopy span {
+  overflow: hidden;
+  color: rgba(250, 250, 249, 0.44);
+  font-size: 8px;
+  line-height: 1.18;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sequenceStatus {
+  padding: 2px 6px;
+  border-radius: 0;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.sequenceStepComplete .sequenceIndex,
+.sequenceStepComplete .sequenceStatus {
+  color: #4ade80;
+  background: transparent;
+}
+
+.sequenceStepCurrent .sequenceIndex,
+.sequenceStepCurrent .sequenceStatus {
+  color: #f59e0b;
+  background: transparent;
+}
+
+.sequenceStepUpcoming .sequenceStatus {
+  color: rgba(250, 250, 249, 0.38);
+  background: transparent;
+}
+
+.recommendedBand {
+  padding: 0 0 8px;
+  border: 0;
+  border-bottom: 1px solid rgba(245, 158, 11, 0.12);
+  border-radius: 0;
+  background: transparent;
+}
+
+.recommendedEyebrow {
+  display: block;
+  color: #f59e0b;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+}
+
+.recommendedBand strong {
+  display: block;
+  overflow: hidden;
+  color: #fafaf9;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.analysisRecommendationStrip {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 8px;
+  padding: 8px 0 0;
+  border-top: 1px solid rgba(245, 158, 11, 0.12);
+}
+
+.analysisRecommendationHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: rgba(245, 158, 11, 0.86);
+  font-family: var(--font-mono, "JetBrains Mono", monospace);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.analysisRecommendationHeader strong {
+  color: rgba(250, 250, 249, 0.72);
+}
+
+.analysisRecommendationList {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.analysisRecommendationItem {
+  --recommendation-tone: #f59e0b;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+  padding: 8px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  background: transparent;
+}
+
+.analysisRecommendationList > :first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.analysisRecommendationBlocked {
+  --recommendation-tone: #f97316;
+}
+
+.analysisRecommendationHigh {
+  --recommendation-tone: #f59e0b;
+}
+
+.analysisRecommendationMedium {
+  --recommendation-tone: #7dd3fc;
+}
+
+.analysisRecommendationLow {
+  --recommendation-tone: #a7f3d0;
+}
+
+.analysisRecommendationTopline {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.analysisRecommendationTopline strong {
+  overflow: hidden;
+  color: #fafaf9;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.analysisRecommendationSeverity {
+  color: var(--recommendation-tone);
+  font-family: var(--font-mono, "JetBrains Mono", monospace);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.analysisRecommendationRationale {
+  margin: 0;
+  color: rgba(250, 250, 249, 0.64);
+  font-size: 9px;
+  line-height: 1.32;
+}
+
+.analysisRecommendationMetaGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 3px;
+  min-width: 0;
+}
+
+.analysisRecommendationMetaGrid span {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 7px;
+  min-width: 0;
+  color: rgba(250, 250, 249, 0.52);
+  font-size: 8px;
+  line-height: 1.28;
+}
+
+.analysisRecommendationMetaGrid b {
+  color: rgba(245, 158, 11, 0.78);
+  font-family: var(--font-mono, "JetBrains Mono", monospace);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.analysisRecommendationFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  padding-top: 2px;
+}
+
+.analysisRecommendationFooter > span {
+  overflow: hidden;
+  color: rgba(250, 250, 249, 0.42);
+  font-family: var(--font-mono, "JetBrains Mono", monospace);
+  font-size: 8px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.analysisRecommendationAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 24px;
+  flex: 0 0 auto;
+  padding: 4px 7px;
+  border: 1px solid rgba(245, 158, 11, 0.36);
+  border-radius: 6px;
+  background: rgba(245, 158, 11, 0.1);
+  color: #fbbf24;
+  cursor: pointer;
+  font: inherit;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.analysisRecommendationAction:hover:not(:disabled) {
+  border-color: rgba(245, 158, 11, 0.58);
+  background: rgba(245, 158, 11, 0.16);
+  color: #fde68a;
+}
+
+.analysisRecommendationAction:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.analysisRecommendationEmpty {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 7px 0 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.analysisRecommendationEmpty strong {
+  color: #fafaf9;
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+.analysisRecommendationEmpty span {
+  color: rgba(250, 250, 249, 0.52);
+  font-size: 9px;
+  line-height: 1.3;
+}
+
+.integrationStack {
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.integrationRow {
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+}
+
+.quickActionGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.quickBtn {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 34px;
+  padding: 6px 0;
+  border: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.055);
+  border-radius: 0;
+  background: transparent;
+  color: #e7e5e4;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.quickBtn:hover {
+  border-color: rgba(245, 158, 11, 0.22);
+  background: transparent;
+}
+
+.quickBtnIcon {
+  width: 24px;
+  height: 24px;
+  --signal-color: #f59e0b;
+  --signal-bg: rgba(245, 158, 11, 0.1);
+}
+
+.statusStrip {
+  gap: 8px;
+  min-width: 0;
+  padding: 6px 11px;
+  border-top: 1px solid rgba(245, 158, 11, 0.1);
+  background: transparent;
+}
+
+.statusLead,
+.statusHotkey {
+  flex: 0 0 auto;
+  gap: 5px;
+  color: rgba(245, 158, 11, 0.82);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.statusItem {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: rgba(250, 250, 249, 0.46);
+  font-size: 9px;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 980px) {
+  .commandBar {
+    grid-template-columns: minmax(220px, 1fr) auto;
+  }
+
+  .bodyGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .integrationPane {
+    grid-column: 1 / -1;
+    border-top: 1px solid rgba(245, 158, 11, 0.1);
+  }
+
+  .quickActionGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .modeRail {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .commandBar,
+  .bodyGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .commandMeta {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .pane,
+  .integrationPane {
+    border-right: 0;
+    border-top: 1px solid rgba(245, 158, 11, 0.1);
+  }
+
+  .metricRibbon,
+  .quickActionGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .statusHotkey {
+    display: none;
+  }
+}
+
+@media (max-height: 520px) {
+  .commandBar {
+    padding: 7px 9px;
+  }
+
+  .pane {
+    padding: 9px;
+  }
+
+  .metricUnit,
+  .signalRow,
+  .integrationRow,
+  .sequenceItem,
+  .quickBtn {
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+
+  .focusBand,
+  .recommendedBand {
+    padding: 8px;
+  }
+}
+
+.statePane .focusBand p {
+  display: none;
+}

@@ -1,0 +1,452 @@
+.root {
+  display: grid;
+  gap: 14px;
+}
+
+.introCard {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(245, 158, 11, 0.24);
+  background:
+    radial-gradient(circle at top right, rgba(245, 158, 11, 0.22), transparent 32%),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.94), rgba(17, 24, 39, 0.84));
+}
+
+.eyebrow {
+  color: var(--syn-accent-primary);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.introTitle {
+  font-size: clamp(22px, 2.2vw, 30px);
+  font-weight: 700;
+  line-height: 1.08;
+}
+
+.introText {
+  color: var(--syn-text-muted);
+  line-height: 1.6;
+  max-width: 74ch;
+}
+
+.topMetaRow {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.metaPill {
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(245, 158, 11, 0.22);
+  background: rgba(245, 158, 11, 0.08);
+  color: #fcd34d;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.controlShell {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid var(--syn-overlay-light);
+  background: rgba(15, 23, 42, 0.72);
+}
+
+.controlRow {
+  display: grid;
+  grid-template-columns: minmax(240px, 1.2fr) minmax(0, 0.8fr);
+  gap: 12px;
+  align-items: end;
+}
+
+.filterWrap {
+  display: grid;
+  gap: 8px;
+}
+
+.label {
+  display: grid;
+  gap: 6px;
+  color: var(--syn-text-muted);
+  font-size: 12px;
+}
+
+.input,
+.select {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--syn-text-primary);
+  font-size: 13px;
+  box-sizing: border-box;
+}
+
+.filterGroup {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.filterChip {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--syn-text-muted);
+  padding: 7px 11px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.filterChipActive {
+  border-color: rgba(245, 158, 11, 0.42);
+  background: rgba(245, 158, 11, 0.16);
+  color: #fbbf24;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.86fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  gap: 14px;
+}
+
+.card {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.02)),
+    rgba(15, 23, 42, 0.78);
+  cursor: pointer;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(245, 158, 11, 0.24);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22);
+}
+
+.cardActive {
+  border-color: rgba(245, 158, 11, 0.48);
+  background:
+    radial-gradient(circle at top right, rgba(245, 158, 11, 0.12), transparent 38%),
+    linear-gradient(180deg, rgba(245, 158, 11, 0.08), rgba(255, 255, 255, 0.02)),
+    rgba(15, 23, 42, 0.84);
+}
+
+.thumbWrap {
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background:
+    radial-gradient(circle at 18% 18%, rgba(245, 158, 11, 0.22), transparent 30%),
+    linear-gradient(180deg, rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.86));
+}
+
+.cardHeader {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.cardTitle {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.18;
+}
+
+.cardSummary {
+  color: var(--syn-text-muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.cityBadge {
+  padding: 5px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--syn-text-secondary);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.statGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.statCard {
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  display: grid;
+  gap: 4px;
+}
+
+.statLabel {
+  color: var(--syn-text-muted);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.statValue {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.tagRow {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.tag {
+  padding: 5px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--syn-text-muted);
+  font-size: 11px;
+}
+
+.cardActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.button,
+.secondaryButton {
+  border: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.button {
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.88), rgba(217, 119, 6, 0.92));
+  color: #101828;
+}
+
+.secondaryButton {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--syn-text-primary);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.buttonDisabled {
+  opacity: 0.58;
+  cursor: wait;
+}
+
+.emptyState,
+.detailPanel {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid var(--syn-overlay-light);
+  background: rgba(15, 23, 42, 0.78);
+}
+
+.detailHeader {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.detailTitle {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.detailSummary {
+  color: var(--syn-text-muted);
+  line-height: 1.6;
+}
+
+.metaGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.metaCard {
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  display: grid;
+  gap: 5px;
+}
+
+.metaLabel {
+  color: var(--syn-text-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.metaValue {
+  color: var(--syn-text-primary);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.exportPanel {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(245, 158, 11, 0.18);
+  background:
+    radial-gradient(circle at top right, rgba(245, 158, 11, 0.1), transparent 38%),
+    rgba(255, 255, 255, 0.028);
+}
+
+.exportHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.exportMetaGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.exportMetaCard {
+  padding: 11px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.03);
+  display: grid;
+  gap: 5px;
+}
+
+.downloadButtonRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.exportNote {
+  color: var(--syn-text-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.layerList {
+  display: grid;
+  gap: 8px;
+}
+
+.layerButton {
+  width: 100%;
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  text-align: left;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--syn-text-primary);
+  cursor: pointer;
+}
+
+.layerButtonActive {
+  border-color: rgba(245, 158, 11, 0.4);
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.layerMeta {
+  color: var(--syn-text-muted);
+  font-size: 12px;
+}
+
+.schemaTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.schemaTable th,
+.schemaTable td {
+  padding: 9px 8px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.schemaTable th {
+  color: var(--syn-text-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.countText {
+  color: var(--syn-text-muted);
+  font-size: 12px;
+}
+
+@media (max-width: 1120px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .controlRow {
+    grid-template-columns: 1fr;
+  }
+
+  .metaGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .exportMetaGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .statGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .detailHeader,
+  .cardHeader {
+    flex-direction: column;
+  }
+}

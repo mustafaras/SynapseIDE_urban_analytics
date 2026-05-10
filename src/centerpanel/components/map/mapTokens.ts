@@ -1,0 +1,907 @@
+/* ================================================================== */
+/*  Map Explorer Design Tokens                                         */
+/*  All visual values are aliases of DESIGN_TOKENS.                    */
+/* ================================================================== */
+
+import type React from "react";
+import { DESIGN_TOKENS } from "@/constants/design";
+
+const mapToken = DESIGN_TOKENS.mapExplorer;
+
+/* ---- Charcoal-Amber Palette (semantic map aliases) ---- */
+export const MAP_COLORS = {
+  bg: mapToken.colors.charcoalBase,
+  bgPanel: mapToken.colors.charcoalPanel,
+  bgHeader: mapToken.colors.charcoalHeader,
+  bgWorkspace: mapToken.colors.charcoalWorkspace,
+  amber: DESIGN_TOKENS.colors.primary[500],
+  amberSoft: DESIGN_TOKENS.colors.primary[400],
+  amberDark: DESIGN_TOKENS.colors.primary[700],
+  amberDim: mapToken.colors.amberDim,
+  amberSubtle: mapToken.colors.amberSubtle,
+  amberHairline: mapToken.colors.amberHairline,
+  amberBorder: mapToken.colors.amberBorder,
+  amberBorderStrong: mapToken.colors.amberBorderStrong,
+  amberBtnBg: mapToken.colors.amberSubtle,
+  amberBtnBgHover: mapToken.colors.amberDim,
+  amberBtnBorderHover: mapToken.colors.amberBorderFocus,
+  amberBtnBorder: mapToken.colors.amberBorderMedium,
+  amberDashed: mapToken.colors.amberDashed,
+  text: mapToken.colors.warmText,
+  textSecondary: mapToken.colors.warmTextSecondary,
+  textMuted: mapToken.colors.warmTextMuted,
+  error: DESIGN_TOKENS.colors.semantic.error,
+  success: DESIGN_TOKENS.colors.semantic.success,
+  warning: DESIGN_TOKENS.colors.semantic.warning,
+  white: mapToken.colors.markerWhite,
+  overlayBg: mapToken.colors.overlay,
+  transparent: mapToken.colors.transparent,
+} as const;
+
+/* ---- Border Radius ---- */
+export const MAP_RADIUS = {
+  none: DESIGN_TOKENS.borderRadius.geometric,
+  xs: DESIGN_TOKENS.borderRadius.xs,
+  sm: DESIGN_TOKENS.borderRadius.hover,
+  md: DESIGN_TOKENS.borderRadius.md,
+  lg: DESIGN_TOKENS.borderRadius.lg,
+  glass: DESIGN_TOKENS.borderRadius.glassDark,
+  full: DESIGN_TOKENS.borderRadius.full,
+} as const;
+
+/* ---- Shadows ---- */
+export const MAP_SHADOWS = {
+  none: "none",
+  modal: DESIGN_TOKENS.shadows.xl,
+  dropdown: DESIGN_TOKENS.shadows.lg,
+  marker: DESIGN_TOKENS.shadows.sm,
+  panel: DESIGN_TOKENS.shadows.glassDark,
+} as const;
+
+/* ---- Transitions ---- */
+export const MAP_TRANSITIONS = {
+  none: "none",
+  fast: DESIGN_TOKENS.transitions.sm,
+  standard: DESIGN_TOKENS.transitions.md,
+} as const;
+
+/* ---- Typography ---- */
+export const MAP_TYPOGRAPHY = {
+  fontFamily: DESIGN_TOKENS.typography.fontFamily.primary,
+  fontFamilyBrand: DESIGN_TOKENS.typography.fontFamily.brand,
+  fontFamilyMono: DESIGN_TOKENS.typography.fontFamily.mono,
+  fontSize: {
+    xs: DESIGN_TOKENS.typography.fontSize.xs,
+    sm: DESIGN_TOKENS.typography.fontSize.sm,
+    md: DESIGN_TOKENS.typography.fontSize.md,
+  },
+  fontWeight: {
+    medium: DESIGN_TOKENS.typography.fontWeight.medium,
+    semibold: DESIGN_TOKENS.typography.fontWeight.semibold,
+    bold: DESIGN_TOKENS.typography.fontWeight.bold,
+  },
+  lineHeight: {
+    tight: DESIGN_TOKENS.typography.lineHeight.tight,
+    normal: DESIGN_TOKENS.typography.lineHeight.normal,
+    relaxed: DESIGN_TOKENS.typography.lineHeight.relaxed,
+  },
+  letterSpacing: {
+    title: mapToken.letterSpacing.title,
+    label: mapToken.letterSpacing.label,
+    caps: mapToken.letterSpacing.caps,
+  },
+} as const;
+
+/* ---- Spacing ---- */
+export const MAP_SPACING = {
+  zero: MAP_RADIUS.none,
+  xs: DESIGN_TOKENS.spacing.xs,
+  sm: DESIGN_TOKENS.spacing.sm,
+  md: DESIGN_TOKENS.spacing.md,
+  lg: DESIGN_TOKENS.spacing.lg,
+  xl: DESIGN_TOKENS.spacing.xl,
+  panel: DESIGN_TOKENS.spacing.glass,
+} as const;
+
+/* ---- Dimensions ---- */
+export const MAP_DIMENSIONS = {
+  viewportWidth: mapToken.dimensions.viewportWidth,
+  viewportHeight: mapToken.dimensions.viewportHeight,
+  searchWidth: mapToken.dimensions.searchWidth,
+  searchMaxWidth: mapToken.dimensions.searchMaxWidth,
+  pinSidebarWidth: mapToken.dimensions.pinSidebarWidth,
+  layerPanelWidth: mapToken.dimensions.layerPanelWidth,
+  drawingPanelWidth: mapToken.dimensions.drawingPanelWidth,
+  measurementPanelWidth: mapToken.dimensions.measurementPanelWidth,
+  navigatorMaxWidth: mapToken.dimensions.navigatorMaxWidth,
+  navigatorMaxHeight: mapToken.dimensions.navigatorMaxHeight,
+  importProgressWidth: mapToken.dimensions.importProgressWidth,
+  closeButtonSize: mapToken.dimensions.closeButtonSize,
+  symbologyPanelWidth: mapToken.dimensions.symbologyPanelWidth,
+  pinMarkerSize: mapToken.dimensions.pinMarkerSize,
+  separatorWidth: mapToken.dimensions.separatorWidth,
+  toolbarSeparatorHeight: mapToken.dimensions.toolbarSeparatorHeight,
+  progressTrackHeight: mapToken.dimensions.progressTrackHeight,
+  hiddenSize: mapToken.dimensions.hiddenSize,
+} as const;
+
+export const MAP_NUMERIC = {
+  ...mapToken.numeric,
+} as const;
+
+export const MAP_ICON_SIZES = {
+  xs: MAP_NUMERIC.iconXs,
+  sm: MAP_NUMERIC.iconSm,
+  md: MAP_NUMERIC.iconMd,
+} as const;
+
+/* ---- Blur ---- */
+export const MAP_BLUR = {
+  overlay: DESIGN_TOKENS.blur.md,
+  glass: DESIGN_TOKENS.glassmorphism.backdrop.glassDark,
+} as const;
+
+/* ---- Z-Index ---- */
+export const MAP_Z_INDEX = {
+  overlay: MAP_NUMERIC.overlayZIndex,
+  dropdown: MAP_NUMERIC.dropdownZIndex,
+  closeBtn: MAP_NUMERIC.closeButtonZIndex,
+  sidebar: MAP_NUMERIC.sidebarZIndex,
+  temporalSelector: MAP_NUMERIC.temporalSelectorZIndex,
+  symbologyPanel: MAP_NUMERIC.symbologyPanelZIndex,
+  dragOverlay: MAP_NUMERIC.dragOverlayZIndex,
+  importProgress: MAP_NUMERIC.importProgressZIndex,
+} as const;
+
+/* ---- Borders ---- */
+export const MAP_STROKES = {
+  none: "none",
+  hairline: `1px solid ${MAP_COLORS.amberBorder}`,
+  hairlineStrong: `1px solid ${MAP_COLORS.amberBorderStrong}`,
+  hairlineSubtle: `1px solid ${MAP_COLORS.amberHairline}`,
+  dashedStrong: `2px dashed ${MAP_COLORS.amberDashed}`,
+  marker: `2px solid ${MAP_COLORS.white}`,
+} as const;
+
+/* ================================================================== */
+/*  Pre-composed inline style objects                                  */
+/* ================================================================== */
+
+export const mapStyles = {
+  srOnly: {
+    position: "absolute",
+    width: MAP_DIMENSIONS.hiddenSize,
+    height: MAP_DIMENSIONS.hiddenSize,
+    padding: MAP_SPACING.zero,
+    margin: `-${MAP_DIMENSIONS.hiddenSize}`,
+    overflow: "hidden",
+    clip: "rect(0,0,0,0)",
+    whiteSpace: "nowrap",
+    border: MAP_STROKES.none,
+  } satisfies React.CSSProperties,
+
+  skipNavFocus: {
+    position: "absolute",
+    width: "auto",
+    height: "auto",
+    padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
+    margin: MAP_SPACING.zero,
+    overflow: "visible",
+    clip: "auto",
+    whiteSpace: "normal",
+    zIndex: DESIGN_TOKENS.zIndex.tooltip,
+    top: MAP_SPACING.sm,
+    left: MAP_SPACING.sm,
+    background: MAP_COLORS.bgPanel,
+    color: MAP_COLORS.amber,
+    borderRadius: MAP_RADIUS.sm,
+    fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+    fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+    textDecoration: "none",
+    border: MAP_STROKES.hairlineStrong,
+  } satisfies React.CSSProperties,
+
+  overlay: {
+    position: "fixed",
+    inset: MAP_SPACING.zero,
+    zIndex: MAP_Z_INDEX.overlay,
+    background: MAP_COLORS.bg,
+    display: "flex",
+    alignItems: "stretch",
+    justifyContent: "stretch",
+  } satisfies React.CSSProperties,
+
+  modal: {
+    position: "relative",
+    width: MAP_DIMENSIONS.viewportWidth,
+    height: MAP_DIMENSIONS.viewportHeight,
+    background: MAP_COLORS.bg,
+    border: MAP_STROKES.none,
+    borderRadius: MAP_RADIUS.none,
+    overflow: "hidden",
+    overflowX: "clip",
+    overflowY: "hidden",
+    display: "flex",
+    flexDirection: "column",
+    boxShadow: MAP_SHADOWS.none,
+  } satisfies React.CSSProperties,
+
+  embeddedShell: {
+    position: "relative",
+    width: "100%",
+    height: "100%",
+    minHeight: MAP_DIMENSIONS.navigatorMaxHeight,
+    zIndex: DESIGN_TOKENS.zIndex.base,
+    background: MAP_COLORS.bg,
+    display: "flex",
+    alignItems: "stretch",
+    justifyContent: "stretch",
+  } satisfies React.CSSProperties,
+
+  embeddedSurface: {
+    position: "relative",
+    width: "100%",
+    height: "100%",
+    background: MAP_COLORS.bg,
+    border: MAP_STROKES.none,
+    borderRadius: MAP_RADIUS.none,
+    overflow: "hidden",
+    overflowX: "clip",
+    overflowY: "hidden",
+    display: "flex",
+    flexDirection: "column",
+    boxShadow: MAP_SHADOWS.none,
+  } satisfies React.CSSProperties,
+
+  header: {
+    display: "flex",
+    alignItems: "center",
+    alignContent: "flex-start",
+    flexWrap: "wrap",
+    gap: MAP_SPACING.xs,
+    padding: `${MAP_SPACING.xs} calc(${MAP_SPACING.md} + ${MAP_DIMENSIONS.closeButtonSize} + ${MAP_SPACING.md}) ${MAP_SPACING.xs} ${MAP_SPACING.md}`,
+    background: MAP_COLORS.bgHeader,
+    borderBottom: MAP_STROKES.hairline,
+    flexShrink: 0,
+    maxWidth: "100%",
+    minWidth: MAP_SPACING.zero,
+    overflowX: "clip",
+  } satisfies React.CSSProperties,
+
+  title: {
+    color: MAP_COLORS.amber,
+    fontWeight: MAP_TYPOGRAPHY.fontWeight.bold,
+    fontSize: MAP_TYPOGRAPHY.fontSize.sm,
+    fontFamily: MAP_TYPOGRAPHY.fontFamilyBrand,
+    letterSpacing: MAP_TYPOGRAPHY.letterSpacing.title,
+    textTransform: "uppercase",
+    marginRight: MAP_SPACING.sm,
+  } satisfies React.CSSProperties,
+
+  btn: {
+    padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
+    borderRadius: MAP_RADIUS.sm,
+    border: MAP_STROKES.hairline,
+    background: MAP_COLORS.transparent,
+    color: MAP_COLORS.textSecondary,
+    fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+    fontFamily: MAP_TYPOGRAPHY.fontFamily,
+    fontWeight: MAP_TYPOGRAPHY.fontWeight.medium,
+    cursor: "pointer",
+    transition: MAP_TRANSITIONS.fast,
+    display: "inline-flex",
+    alignItems: "center",
+    gap: MAP_SPACING.xs,
+  } satisfies React.CSSProperties,
+
+  btnActive: {
+    padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
+    borderRadius: MAP_RADIUS.sm,
+    border: MAP_STROKES.hairlineStrong,
+    background: MAP_COLORS.amberDim,
+    color: MAP_COLORS.amber,
+    fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+    fontFamily: MAP_TYPOGRAPHY.fontFamily,
+    fontWeight: MAP_TYPOGRAPHY.fontWeight.medium,
+    cursor: "pointer",
+    transition: MAP_TRANSITIONS.fast,
+    display: "inline-flex",
+    alignItems: "center",
+    gap: MAP_SPACING.xs,
+  } satisfies React.CSSProperties,
+
+  btnDisabled: {
+    opacity: DESIGN_TOKENS.opacity[48],
+    cursor: "not-allowed",
+  } satisfies React.CSSProperties,
+
+  btnBusy: {
+    opacity: DESIGN_TOKENS.opacity[64],
+    cursor: "wait",
+  } satisfies React.CSSProperties,
+
+  closeBtn: {
+    position: "absolute",
+    top: MAP_SPACING.sm,
+    right: MAP_SPACING.md,
+    zIndex: MAP_Z_INDEX.closeBtn,
+    background: MAP_COLORS.bgPanel,
+    border: MAP_STROKES.hairline,
+    color: MAP_COLORS.textSecondary,
+    borderRadius: MAP_RADIUS.sm,
+    width: MAP_DIMENSIONS.closeButtonSize,
+    height: MAP_DIMENSIONS.closeButtonSize,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
+    fontSize: MAP_TYPOGRAPHY.fontSize.md,
+    fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+  } satisfies React.CSSProperties,
+
+  mapContainer: {
+    flex: 1,
+    position: "relative",
+    minHeight: MAP_SPACING.zero,
+  } satisfies React.CSSProperties,
+
+  workspaceBar: {
+    display: "flex",
+    alignItems: "center",
+    gap: MAP_SPACING.xs,
+    padding: `${MAP_SPACING.xs} ${MAP_SPACING.md}`,
+    background: DESIGN_TOKENS.gradients.header,
+    borderBottom: MAP_STROKES.hairlineSubtle,
+    boxShadow: `inset 0 1px 0 0 ${MAP_COLORS.amberHairline}`,
+    flexShrink: 0,
+  } satisfies React.CSSProperties,
+
+  workspaceLabel: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: MAP_SPACING.xs,
+    color: MAP_COLORS.amber,
+    fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+    fontFamily: MAP_TYPOGRAPHY.fontFamilyBrand,
+    fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+    letterSpacing: MAP_TYPOGRAPHY.letterSpacing.caps,
+    textTransform: "uppercase",
+    paddingRight: MAP_SPACING.sm,
+    borderRight: MAP_STROKES.hairlineSubtle,
+  } satisfies React.CSSProperties,
+
+  workspaceSpacer: {
+    flex: 1,
+  } satisfies React.CSSProperties,
+
+  workspaceHint: {
+    color: MAP_COLORS.textSecondary,
+    fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+    fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+    lineHeight: MAP_TYPOGRAPHY.lineHeight.tight,
+    letterSpacing: MAP_TYPOGRAPHY.letterSpacing.label,
+    maxWidth: "28rem",
+    textAlign: "right",
+    opacity: DESIGN_TOKENS.opacity[80],
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  } satisfies React.CSSProperties,
+
+  extensionSlotBar: {
+    display: "flex",
+    flexWrap: "nowrap",
+    alignItems: "center",
+    gap: MAP_SPACING.sm,
+    minHeight: "1.875rem",
+    padding: `${MAP_SPACING.xs} ${MAP_SPACING.md}`,
+    background: MAP_COLORS.bgPanel,
+    borderBottom: MAP_STROKES.hairlineSubtle,
+    boxShadow: MAP_SHADOWS.none,
+    flexShrink: 0,
+    overflowX: "auto",
+  } satisfies React.CSSProperties,
+
+  extensionSlotRegion: {
+    flex: "1 1 0",
+    minWidth: "8.5rem",
+    display: "flex",
+    alignItems: "stretch",
+  } satisfies React.CSSProperties,
+
+  extensionSlotNotice: {
+    flex: 1,
+    minWidth: MAP_SPACING.zero,
+    display: "flex",
+    alignItems: "center",
+    gap: MAP_SPACING.xs,
+    padding: `${MAP_SPACING.zero} ${MAP_SPACING.sm}`,
+    background: MAP_COLORS.transparent,
+    border: MAP_STROKES.none,
+    borderLeft: `1px solid ${MAP_COLORS.amberHairline}`,
+    borderRadius: MAP_RADIUS.none,
+    color: MAP_COLORS.textMuted,
+    fontFamily: MAP_TYPOGRAPHY.fontFamily,
+    fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+    lineHeight: MAP_TYPOGRAPHY.lineHeight.tight,
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  } satisfies React.CSSProperties,
+
+  bottomTimelineRegion: {
+    padding: `${MAP_SPACING.xs} ${MAP_SPACING.md}`,
+    background: MAP_COLORS.bgPanel,
+    borderTop: MAP_STROKES.hairlineSubtle,
+    boxShadow: MAP_SHADOWS.none,
+    flexShrink: 0,
+  } satisfies React.CSSProperties,
+
+  bottomTimelineNotice: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: MAP_SPACING.sm,
+    minWidth: MAP_SPACING.zero,
+    padding: `${MAP_SPACING.zero} ${MAP_SPACING.sm}`,
+    background: MAP_COLORS.transparent,
+    border: MAP_STROKES.none,
+    borderLeft: `1px solid ${MAP_COLORS.amberHairline}`,
+    borderRadius: MAP_RADIUS.none,
+    color: MAP_COLORS.textMuted,
+    fontFamily: MAP_TYPOGRAPHY.fontFamily,
+    fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+    lineHeight: MAP_TYPOGRAPHY.lineHeight.tight,
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  } satisfies React.CSSProperties,
+
+  dragOverlay: {
+    position: "absolute",
+    inset: MAP_SPACING.md,
+    zIndex: MAP_Z_INDEX.dragOverlay,
+    border: MAP_STROKES.dashedStrong,
+    borderRadius: MAP_RADIUS.lg,
+    background: MAP_COLORS.amberSubtle,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    color: MAP_COLORS.amber,
+    fontSize: MAP_TYPOGRAPHY.fontSize.sm,
+    fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+    pointerEvents: "none",
+  } satisfies React.CSSProperties,
+
+  importProgress: {
+    position: "absolute",
+    top: MAP_SPACING.md,
+    left: "50%",
+    transform: "translateX(-50%)",
+    width: MAP_DIMENSIONS.importProgressWidth,
+    maxWidth: `calc(100% - ${MAP_SPACING.xl})`,
+    zIndex: MAP_Z_INDEX.importProgress,
+    background: MAP_COLORS.bgPanel,
+    border: MAP_STROKES.hairlineStrong,
+    borderRadius: MAP_RADIUS.lg,
+    boxShadow: MAP_SHADOWS.dropdown,
+    padding: `${MAP_SPACING.sm} ${MAP_SPACING.md}`,
+    color: MAP_COLORS.text,
+  } satisfies React.CSSProperties,
+
+  importProgressHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+    marginBottom: MAP_SPACING.sm,
+  } satisfies React.CSSProperties,
+
+  importProgressMeta: {
+    display: "grid",
+    gap: MAP_SPACING.xs,
+    marginBottom: MAP_SPACING.sm,
+  } satisfies React.CSSProperties,
+
+  importProgressStage: {
+    color: MAP_COLORS.textSecondary,
+    fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  } satisfies React.CSSProperties,
+
+  importProgressStats: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: MAP_SPACING.md,
+    color: MAP_COLORS.textMuted,
+    fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  } satisfies React.CSSProperties,
+
+  importProgressTrack: {
+    width: "100%",
+    height: MAP_DIMENSIONS.progressTrackHeight,
+    borderRadius: MAP_RADIUS.full,
+    background: MAP_COLORS.amberHairline,
+    overflow: "hidden",
+  } satisfies React.CSSProperties,
+
+  importProgressFill: {
+    height: "100%",
+    background: MAP_COLORS.amber,
+  } satisfies React.CSSProperties,
+
+  navigatorStage: {
+    position: "absolute",
+    zIndex: MAP_Z_INDEX.importProgress - 2,
+    display: "grid",
+    placeItems: "center",
+    pointerEvents: "none",
+  } satisfies React.CSSProperties,
+
+  navigatorStageInner: {
+    maxWidth: "100%",
+    maxHeight: "100%",
+    pointerEvents: "auto",
+  } satisfies React.CSSProperties,
+
+  layerManagerFrame: {
+    position: "absolute",
+    top: MAP_SPACING.zero,
+    left: MAP_SPACING.zero,
+    bottom: MAP_SPACING.zero,
+    width: MAP_DIMENSIONS.layerPanelWidth,
+  } satisfies React.CSSProperties,
+
+  layerPanelOpenButton: {
+    position: "absolute",
+    top: MAP_SPACING.md,
+    left: MAP_SPACING.md,
+    zIndex: MAP_Z_INDEX.sidebar,
+    display: "inline-flex",
+    alignItems: "center",
+    gap: MAP_SPACING.xs,
+    padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
+    background: MAP_COLORS.bgPanel,
+    color: MAP_COLORS.amber,
+    border: MAP_STROKES.hairlineSubtle,
+    borderRadius: MAP_RADIUS.sm,
+    fontFamily: MAP_TYPOGRAPHY.fontFamily,
+    fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+    fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+    cursor: "pointer",
+  } satisfies React.CSSProperties,
+
+  sidePanelSurface: {
+    position: "absolute",
+    top: MAP_SPACING.zero,
+    bottom: MAP_SPACING.zero,
+    background: MAP_COLORS.bgPanel,
+    color: MAP_COLORS.text,
+    overflow: "hidden",
+    display: "flex",
+    flexDirection: "column",
+    fontFamily: MAP_TYPOGRAPHY.fontFamily,
+    fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+    zIndex: MAP_Z_INDEX.sidebar,
+    boxShadow: MAP_SHADOWS.none,
+  } satisfies React.CSSProperties,
+
+  sidePanelHeader: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: MAP_SPACING.sm,
+    padding: `${MAP_SPACING.sm} ${MAP_SPACING.md}`,
+    borderBottom: MAP_STROKES.hairlineSubtle,
+    flexShrink: 0,
+  } satisfies React.CSSProperties,
+
+  sidePanelTitleStack: {
+    minWidth: MAP_SPACING.zero,
+    display: "grid",
+    gap: MAP_SPACING.xs,
+  } satisfies React.CSSProperties,
+
+  sidePanelEyebrow: {
+    color: MAP_COLORS.textMuted,
+    fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+    fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+    fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+    letterSpacing: MAP_TYPOGRAPHY.letterSpacing.caps,
+    textTransform: "uppercase",
+    lineHeight: MAP_TYPOGRAPHY.lineHeight.tight,
+  } satisfies React.CSSProperties,
+
+  sidePanelTitle: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: MAP_SPACING.xs,
+    minWidth: MAP_SPACING.zero,
+    color: MAP_COLORS.amber,
+    fontFamily: MAP_TYPOGRAPHY.fontFamilyBrand,
+    fontSize: MAP_TYPOGRAPHY.fontSize.sm,
+    fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+    lineHeight: MAP_TYPOGRAPHY.lineHeight.tight,
+  } satisfies React.CSSProperties,
+
+  sidePanelHeaderActions: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: MAP_SPACING.xs,
+    flexShrink: 0,
+  } satisfies React.CSSProperties,
+
+  sidePanelActionButton: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: MAP_SPACING.xs,
+    minHeight: "1.625rem",
+    padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
+    border: MAP_STROKES.hairlineSubtle,
+    borderRadius: MAP_RADIUS.sm,
+    background: MAP_COLORS.transparent,
+    color: MAP_COLORS.textSecondary,
+    cursor: "pointer",
+    fontFamily: MAP_TYPOGRAPHY.fontFamily,
+    fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+    fontWeight: MAP_TYPOGRAPHY.fontWeight.medium,
+    lineHeight: MAP_TYPOGRAPHY.lineHeight.tight,
+    transition: MAP_TRANSITIONS.fast,
+  } satisfies React.CSSProperties,
+
+  sidePanelPrimaryButton: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: MAP_SPACING.xs,
+    minHeight: "1.875rem",
+    padding: `${MAP_SPACING.xs} ${MAP_SPACING.md}`,
+    border: MAP_STROKES.hairlineStrong,
+    borderRadius: MAP_RADIUS.sm,
+    background: MAP_COLORS.amberDim,
+    color: MAP_COLORS.amber,
+    cursor: "pointer",
+    fontFamily: MAP_TYPOGRAPHY.fontFamily,
+    fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+    fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+    lineHeight: MAP_TYPOGRAPHY.lineHeight.tight,
+    transition: MAP_TRANSITIONS.fast,
+  } satisfies React.CSSProperties,
+
+  sidePanelSummaryStrip: {
+    display: "grid",
+    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+    gap: MAP_SPACING.zero,
+    borderBottom: MAP_STROKES.hairlineSubtle,
+    background: MAP_COLORS.transparent,
+    flexShrink: 0,
+  } satisfies React.CSSProperties,
+
+  sidePanelMetric: {
+    minWidth: MAP_SPACING.zero,
+    padding: `${MAP_SPACING.xs} ${MAP_SPACING.md}`,
+    borderRight: MAP_STROKES.hairlineSubtle,
+    display: "grid",
+    gap: MAP_SPACING.xs,
+  } satisfies React.CSSProperties,
+
+  sidePanelMetricLabel: {
+    color: MAP_COLORS.textMuted,
+    fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+    fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+    fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+    letterSpacing: MAP_TYPOGRAPHY.letterSpacing.caps,
+    textTransform: "uppercase",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  } satisfies React.CSSProperties,
+
+  sidePanelMetricValue: {
+    color: MAP_COLORS.text,
+    fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+    fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+    fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  } satisfies React.CSSProperties,
+
+  sidePanelSearchInput: {
+    width: "100%",
+    boxSizing: "border-box",
+    padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
+    borderRadius: MAP_RADIUS.sm,
+    border: MAP_STROKES.hairlineSubtle,
+    background: MAP_COLORS.bg,
+    color: MAP_COLORS.text,
+    fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+    fontFamily: MAP_TYPOGRAPHY.fontFamily,
+    outline: MAP_STROKES.none,
+  } satisfies React.CSSProperties,
+
+  sidePanelBody: {
+    flex: 1,
+    minHeight: MAP_SPACING.zero,
+    overflowY: "auto",
+    overflowX: "hidden",
+  } satisfies React.CSSProperties,
+
+  sidePanelRow: {
+    minWidth: MAP_SPACING.zero,
+    borderBottom: MAP_STROKES.hairlineSubtle,
+    color: MAP_COLORS.textSecondary,
+    transition: MAP_TRANSITIONS.fast,
+  } satisfies React.CSSProperties,
+
+  sidePanelRowActive: {
+    background: MAP_COLORS.amberDim,
+    color: MAP_COLORS.amber,
+    boxShadow: `inset 2px 0 0 ${MAP_COLORS.amber}`,
+  } satisfies React.CSSProperties,
+
+  sidePanelEmpty: {
+    padding: `${MAP_SPACING.lg} ${MAP_SPACING.md}`,
+    color: MAP_COLORS.textMuted,
+    fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+    lineHeight: MAP_TYPOGRAPHY.lineHeight.normal,
+  } satisfies React.CSSProperties,
+
+  sidePanelStatusBand: {
+    padding: `${MAP_SPACING.sm} ${MAP_SPACING.md}`,
+    background: MAP_COLORS.amberDim,
+    borderBottom: MAP_STROKES.hairlineSubtle,
+    color: MAP_COLORS.textSecondary,
+    fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+    lineHeight: MAP_TYPOGRAPHY.lineHeight.normal,
+    flexShrink: 0,
+  } satisfies React.CSSProperties,
+
+  temporalSelector: {
+    position: "absolute",
+    top: MAP_SPACING.md,
+    left: "50%",
+    transform: "translateX(-50%)",
+    zIndex: MAP_Z_INDEX.temporalSelector,
+    minWidth: "16.25rem",
+    maxWidth: "22.5rem",
+    padding: `${MAP_SPACING.sm} ${MAP_SPACING.md}`,
+    display: "flex",
+    flexDirection: "column",
+    gap: MAP_SPACING.xs,
+    background: DESIGN_TOKENS.glassmorphism.background.glassDark,
+    backdropFilter: DESIGN_TOKENS.glassmorphism.backdrop.glassDark,
+    WebkitBackdropFilter: DESIGN_TOKENS.glassmorphism.backdrop.glassDark,
+    border: `1px solid ${DESIGN_TOKENS.glassmorphism.border.glassDark}`,
+    borderRadius: DESIGN_TOKENS.borderRadius.glassDark,
+    boxShadow: DESIGN_TOKENS.shadows.glassDark,
+  } satisfies React.CSSProperties,
+
+  temporalLabel: {
+    fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+    fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+    fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+    color: MAP_COLORS.amberSoft,
+    letterSpacing: MAP_TYPOGRAPHY.letterSpacing.caps,
+    textTransform: "uppercase",
+  } satisfies React.CSSProperties,
+
+  temporalSelect: {
+    width: "100%",
+    padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
+    background: DESIGN_TOKENS.colors.neutral[900],
+    color: DESIGN_TOKENS.colors.neutral[100],
+    border: `1px solid ${MAP_COLORS.amberDark}`,
+    borderRadius: MAP_RADIUS.md,
+    fontFamily: MAP_TYPOGRAPHY.fontFamily,
+    fontSize: MAP_TYPOGRAPHY.fontSize.sm,
+  } satisfies React.CSSProperties,
+
+  temporalLayerName: {
+    color: DESIGN_TOKENS.colors.neutral[100],
+    fontFamily: MAP_TYPOGRAPHY.fontFamily,
+    fontSize: MAP_TYPOGRAPHY.fontSize.sm,
+    fontWeight: MAP_TYPOGRAPHY.fontWeight.medium,
+  } satisfies React.CSSProperties,
+
+  temporalMeta: {
+    color: DESIGN_TOKENS.colors.neutral[300],
+    fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+    fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  } satisfies React.CSSProperties,
+
+  symbologyPanel: {
+    position: "absolute",
+    top: MAP_SPACING.md,
+    right: MAP_SPACING.md,
+    width: MAP_DIMENSIONS.symbologyPanelWidth,
+    maxWidth: `calc(100% - ${MAP_SPACING.xl})`,
+    maxHeight: `calc(100% - ${MAP_SPACING.xl})`,
+    display: "flex",
+    flexDirection: "column",
+    background: DESIGN_TOKENS.glassmorphism.background.dark,
+    backdropFilter: DESIGN_TOKENS.glassmorphism.backdrop.glassDark,
+    border: MAP_STROKES.hairlineStrong,
+    borderRadius: MAP_RADIUS.md,
+    boxShadow: MAP_SHADOWS.dropdown,
+    overflow: "hidden",
+    zIndex: MAP_Z_INDEX.symbologyPanel,
+  } satisfies React.CSSProperties,
+
+  symbologyHeader: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: MAP_SPACING.md,
+    padding: `${MAP_SPACING.md} ${MAP_SPACING.md}`,
+    borderBottom: MAP_STROKES.hairline,
+    color: MAP_COLORS.text,
+  } satisfies React.CSSProperties,
+
+  symbologyEyebrow: {
+    color: MAP_COLORS.amber,
+    fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+    fontFamily: MAP_TYPOGRAPHY.fontFamilyBrand,
+    fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+    textTransform: "uppercase",
+    letterSpacing: MAP_TYPOGRAPHY.letterSpacing.label,
+  } satisfies React.CSSProperties,
+
+  symbologyLayerName: {
+    color: MAP_COLORS.textSecondary,
+    fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  } satisfies React.CSSProperties,
+
+  symbologyCloseButton: {
+    border: MAP_STROKES.hairline,
+    background: MAP_COLORS.transparent,
+    color: MAP_COLORS.textSecondary,
+    width: "1.75rem",
+    height: "1.75rem",
+    borderRadius: MAP_RADIUS.sm,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
+  } satisfies React.CSSProperties,
+
+  symbologyModeGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(3, 1fr)",
+    gap: MAP_SPACING.sm,
+    padding: `${MAP_SPACING.md} ${MAP_SPACING.md} ${MAP_SPACING.zero}`,
+  } satisfies React.CSSProperties,
+
+  symbologyModeButton: {
+    padding: `${MAP_SPACING.sm} ${MAP_SPACING.sm}`,
+    borderRadius: MAP_RADIUS.sm,
+    border: MAP_STROKES.hairline,
+    background: MAP_COLORS.transparent,
+    color: MAP_COLORS.textSecondary,
+    fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+    fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+    cursor: "pointer",
+  } satisfies React.CSSProperties,
+
+  symbologyModeButtonActive: {
+    border: MAP_STROKES.hairlineStrong,
+    background: MAP_COLORS.amberDim,
+    color: MAP_COLORS.amber,
+  } satisfies React.CSSProperties,
+
+  symbologyBody: {
+    padding: MAP_SPACING.md,
+    overflowY: "auto",
+  } satisfies React.CSSProperties,
+
+  symbologyLoading: {
+    color: MAP_COLORS.textSecondary,
+    fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  } satisfies React.CSSProperties,
+
+  symbologyError: {
+    color: MAP_COLORS.error,
+    fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+    lineHeight: MAP_TYPOGRAPHY.lineHeight.normal,
+  } satisfies React.CSSProperties,
+} as const;

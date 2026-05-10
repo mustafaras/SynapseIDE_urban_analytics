@@ -1,0 +1,1165 @@
+/* ─────────────────────────────────────────────────────────────
+   Urban Analytics Workbench — Left Rail Stylesheet
+   Charcoal-amber design system with amber accent for
+   the urban analytics domain.  Urban analytics rail styles
+   with --rail-accent set to amber (#F59E0B).
+   ───────────────────────────────────────────────────────────── */
+
+.urban-rail {
+  /* ── dimensions ── */
+  --rail-w: 485px;
+  --rail-gap: 10px;
+  --rail-pad: 12px 12px 14px;
+  --rail-radius: 14px;
+  --rail-divider: var(--rail-line, rgba(255,255,255,0.12));
+  --rail-shadow: 0 6px 24px rgba(0,0,0,0.25);
+  --rail-focus: 0 0 0 2px rgba(245,158,11,0.45);
+  --rail-topline: linear-gradient(90deg, #F59E0B 0%, #D97706 100%);
+
+  /* ── colour tokens ── */
+  --rail-accent:         var(--accent, #F59E0B);
+  --rail-fg:             var(--fg, #fff);
+  --rail-fg-muted:       var(--muted, rgba(255,255,255,0.75));
+  --rail-bg:             var(--panel-elevated, var(--bg, rgba(0,0,0,0.35)));
+  --rail-line:           var(--line, rgba(255,255,255,0.12));
+  --rail-line-soft:      color-mix(in oklab, var(--rail-line), transparent 20%);
+  --rail-chip-bg:        var(--chip-bg, rgba(255,255,255,0.06));
+  --rail-hover:          color-mix(in oklab, var(--rail-accent), transparent 95%);
+  --rail-selected:       color-mix(in oklab, var(--rail-accent), transparent 92%);
+  --rail-focus-ring:     var(--rail-accent);
+
+  /* ── priority / risk ── */
+  --rail-risk-fg:        var(--risk-fg, #fff);
+  --rail-risk-bg:        var(--risk-bg, color-mix(in oklab, #EF4444, transparent 82%));
+  --rail-risk-border:    var(--risk-border, color-mix(in oklab, #EF4444, transparent 70%));
+
+  /* ── spacing ── */
+  --rail-space-1: var(--space-1, 4px);
+  --rail-space-2: var(--space-2, 8px);
+  --rail-space-3: var(--space-3, 12px);
+  --rail-radius-2: var(--radius-2, 8px);
+
+  /* ── scrollbar ── */
+  --rail-scrollbar-thumb: color-mix(in oklab, var(--rail-fg), transparent 85%);
+  --rail-scrollbar-track: transparent;
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--rail-bg);
+  overflow: hidden;
+  color: var(--rail-fg);
+}
+
+/* ── light mode ── */
+@media (prefers-color-scheme: light) {
+  .urban-rail {
+    --rail-fg:        var(--fg, #111);
+    --rail-fg-muted:  var(--muted, rgba(0,0,0,0.6));
+    --rail-bg:        var(--panel-elevated, var(--bg, #fff));
+    --rail-line:      var(--line, rgba(0,0,0,0.12));
+    --rail-line-soft: color-mix(in oklab, var(--rail-line), transparent 20%);
+    --rail-chip-bg:   var(--chip-bg, rgba(0,0,0,0.04));
+    --rail-hover:     color-mix(in oklab, var(--rail-accent), transparent 93%);
+    --rail-selected:  color-mix(in oklab, var(--rail-accent), transparent 88%);
+  }
+}
+
+/* ── forced-colors / high-contrast ── */
+@media (forced-colors: active) {
+  .urban-rail {
+    --rail-fg:         CanvasText;
+    --rail-fg-muted:   CanvasText;
+    --rail-bg:         Canvas;
+    --rail-line:       GrayText;
+    --rail-chip-bg:    Canvas;
+    --rail-hover:      Highlight;
+    --rail-selected:   Highlight;
+    --rail-focus-ring: Highlight;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Header
+   ───────────────────────────────────────────────────────────── */
+
+.urban-rail__header {
+  padding: 12px 12px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-bottom: 1px solid var(--rail-line);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--rail-bg);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+
+.urban-rail__topline {
+  height: 2px;
+  width: 100%;
+  background: var(--rail-topline);
+  border-radius: 1px;
+  margin: 0 0 2px;
+}
+
+.urban-rail__masthead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 4px;
+}
+
+.urban-rail__title {
+  margin: 0 0 4px;
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: 0.6px;
+  color: var(--rail-fg);
+  line-height: 1.15;
+}
+
+.urban-rail__titleMain {
+  background: linear-gradient(92deg, var(--rail-accent) 0%, color-mix(in oklab, var(--rail-accent), var(--rail-fg) 55%) 55%, var(--rail-fg) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 0 16px color-mix(in oklab, var(--rail-accent), transparent 65%), 0 0 2px color-mix(in oklab, var(--rail-fg), transparent 75%);
+}
+
+.urban-rail__titleMain::after {
+  content: '';
+  display: block;
+  height: 2px;
+  margin-top: 3px;
+  width: 40%;
+  background: var(--rail-topline);
+  border-radius: 2px;
+  opacity: 0.6;
+}
+
+.urban-rail__subtitle {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.4px;
+  color: var(--rail-fg-muted);
+  line-height: 1.3;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Section filter row
+   ───────────────────────────────────────────────────────────── */
+
+.urban-rail__sectionRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px;
+}
+
+.urban-rail__sectionLabel {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  color: var(--rail-fg-muted);
+}
+
+.urban-rail__sectionSelect {
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  padding: 0 8px;
+  border-radius: var(--rail-radius-2);
+  border: 1px solid var(--rail-line);
+  background: var(--rail-chip-bg);
+  color: var(--rail-fg);
+  font-size: 12px;
+}
+
+.urban-rail__sectionSelect:focus-visible {
+  outline: none;
+  box-shadow: var(--rail-focus);
+}
+
+.urban-rail__count {
+  background: var(--rail-chip-bg);
+  border-radius: 999px;
+  padding: 2px 6px;
+  font-size: 10px;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Inline filter controls
+   ───────────────────────────────────────────────────────────── */
+
+.urban-rail__filtersInline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 4px 2px;
+  align-items: center;
+}
+
+.urban-rail__filtersInline .inline-btn {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--rail-line);
+  background: var(--rail-chip-bg);
+  cursor: pointer;
+  color: var(--rail-fg-muted);
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.urban-rail__filtersInline .inline-btn:hover {
+  background: var(--rail-hover);
+  border-color: var(--rail-line);
+}
+
+.urban-rail__filtersInline .inline-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--rail-focus);
+}
+
+.urban-rail__filtersInline .inline-btn.danger {
+  border-color: var(--rail-risk-border);
+  color: var(--rail-risk-fg);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Tag chip grid (in header)
+   ───────────────────────────────────────────────────────────── */
+
+.urban-rail__tagsMini {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 4px 4px 6px;
+}
+
+.urban-rail__tagsMini .mini-chip-wrap {
+  display: inline-flex;
+}
+
+.urban-rail__tagsMini .mini-chip {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--rail-line);
+  background: var(--rail-chip-bg);
+  cursor: pointer;
+  color: var(--rail-fg);
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.urban-rail__tagsMini .mini-chip:hover {
+  background: var(--rail-hover);
+  border-color: var(--rail-line);
+}
+
+.urban-rail__tagsMini .mini-chip.on {
+  background: linear-gradient(180deg, color-mix(in oklab, var(--rail-accent), transparent 75%), transparent);
+  border-color: var(--rail-accent);
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--rail-accent), transparent 40%) inset;
+}
+
+.urban-rail__tagsMini .mini-chip:focus-visible {
+  outline: none;
+  box-shadow: var(--rail-focus);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Tag group labels (when expanded)
+   ───────────────────────────────────────────────────────────── */
+
+.urban-rail__tagGroup {
+  width: 100%;
+}
+
+.urban-rail__tagGroupLabel {
+  font-weight: 600;
+  opacity: 0.8;
+  padding: 4px 2px 2px;
+  margin-top: 4px;
+  font-size: 10.5px;
+  letter-spacing: 0.3px;
+  color: var(--rail-fg-muted);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Search
+   ───────────────────────────────────────────────────────────── */
+
+.urban-search {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--rail-line);
+  background: var(--rail-bg);
+}
+
+.urban-search__input {
+  width: 100%;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid var(--rail-line);
+  background: color-mix(in oklab, var(--rail-fg), transparent 97%);
+  color: inherit;
+  font-size: 13px;
+  caret-color: var(--rail-accent);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.urban-search__input::placeholder {
+  color: var(--rail-fg-muted);
+  opacity: 0.9;
+}
+
+.urban-search__input:focus-visible {
+  outline: none;
+  box-shadow: var(--rail-focus);
+}
+
+.urban-search__clear {
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid var(--rail-line);
+  background: transparent;
+  cursor: pointer;
+  color: var(--rail-fg);
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.urban-search__clear:hover {
+  background: var(--rail-hover);
+}
+
+.urban-search__clear:focus-visible {
+  outline: none;
+  box-shadow: var(--rail-focus);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Scrollable body
+   ───────────────────────────────────────────────────────────── */
+
+.urban-rail__scroll {
+  flex: 1;
+  overflow: auto;
+  padding: 8px 8px 12px;
+  scroll-padding-bottom: 60px;
+  -ms-overflow-style: none;
+}
+
+.urban-rail__scroll::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+.urban-rail__body {
+  overflow: auto;
+  contain: content;
+  content-visibility: auto;
+  contain-intrinsic-size: 400px 600px;
+}
+
+.urban-rail__divider {
+  height: 1px;
+  background: linear-gradient(90deg, var(--rail-divider), transparent);
+  margin: 4px 2px 2px;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Results strip
+   ───────────────────────────────────────────────────────────── */
+
+.urban-rail .rail-results {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  font-size: 11px;
+  color: var(--rail-fg-muted);
+}
+
+.urban-rail .rail-results-label {
+  font-weight: 600;
+}
+
+.urban-rail .rail-results-value {
+  color: var(--rail-accent);
+  font-weight: 700;
+}
+
+.urban-rail .rail-results-sep {
+  opacity: 0.5;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Section groups (accordion tree)
+   ───────────────────────────────────────────────────────────── */
+
+.urban-rail__group {
+  margin-bottom: 6px;
+}
+
+.urban-rail__groupBtn {
+  width: 100%;
+  text-align: left;
+  font-weight: 600;
+  font-size: 12.5px;
+  letter-spacing: 0.2px;
+  background: linear-gradient(135deg, color-mix(in oklab, var(--rail-fg), transparent 96%), color-mix(in oklab, var(--rail-fg), transparent 98%));
+  border: 1px solid var(--rail-line-soft);
+  padding: 8px 10px 8px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--rail-fg);
+  transition: background 0.18s, border-color 0.18s, box-shadow 0.18s;
+}
+
+.urban-rail__groupBtn:hover {
+  background: var(--rail-hover);
+  border-color: color-mix(in oklab, var(--rail-accent), transparent 70%);
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--rail-accent), transparent 88%);
+}
+
+.urban-rail__groupBtn.is-open {
+  border-color: color-mix(in oklab, var(--rail-accent), transparent 75%);
+  background: linear-gradient(135deg, color-mix(in oklab, var(--rail-accent), transparent 93%), color-mix(in oklab, var(--rail-accent), transparent 97%));
+}
+
+.urban-rail__groupBtn.is-empty {
+  opacity: 0.55;
+}
+
+.urban-rail__groupBtn:focus-visible {
+  outline: none;
+  box-shadow: var(--rail-focus);
+}
+
+.urban-rail__groupChev {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--rail-fg-muted);
+  transition: transform 0.2s ease, color 0.15s;
+}
+
+.urban-rail__groupBtn.is-open .urban-rail__groupChev {
+  transform: rotate(90deg);
+  color: var(--rail-accent);
+}
+
+.urban-rail__groupLabel {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Sub-section labels ── */
+
+.urban-rail__sub {
+  margin: 4px 0 6px;
+}
+
+.urban-rail__subLabel {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 4px 3px 14px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--rail-fg-muted);
+  letter-spacing: 0.2px;
+}
+
+.urban-rail__subDot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--rail-accent);
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.urban-rail__subCount {
+  background: var(--rail-chip-bg);
+  border-radius: 999px;
+  padding: 1px 5px;
+  font-size: 10px;
+  font-weight: 500;
+  margin-left: 2px;
+}
+
+.urban-rail__list {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Card items
+   ───────────────────────────────────────────────────────────── */
+
+.urban-rail__item {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+
+.urban-rail__item:hover {
+  background: var(--rail-hover);
+  border-color: var(--rail-line-soft);
+}
+
+.urban-rail__item.is-active {
+  background: linear-gradient(90deg, color-mix(in oklab, var(--rail-accent), transparent 82%), color-mix(in oklab, var(--rail-accent), transparent 94%));
+  border-color: color-mix(in oklab, var(--rail-accent), transparent 55%);
+  box-shadow: inset 2px 0 0 var(--rail-accent);
+}
+
+.urban-rail__itemBtn {
+  flex: 1;
+  text-align: left;
+  background: transparent;
+  border: none;
+  padding: 6px 8px 6px 10px;
+  font-size: 12.5px;
+  color: var(--rail-fg);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.urban-rail__itemTitle {
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.urban-rail__itemBtn:hover {
+  background: var(--rail-hover);
+}
+
+.urban-rail__itemBtn:focus-visible {
+  outline: none;
+  box-shadow: var(--rail-focus);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Favorite button
+   ───────────────────────────────────────────────────────────── */
+
+.urban-rail__favBtn {
+  border: 1px solid var(--rail-line);
+  background: var(--rail-chip-bg);
+  color: var(--rail-fg-muted);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-inline-size: 32px;
+  min-block-size: 32px;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.urban-rail__favBtn[aria-pressed='true'] {
+  background: color-mix(in oklab, var(--rail-accent), transparent 85%);
+  border-color: var(--rail-accent);
+  color: var(--rail-accent);
+}
+
+.urban-rail__favBtn:focus-visible {
+  outline: none;
+  box-shadow: var(--rail-focus);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Badges
+   ───────────────────────────────────────────────────────────── */
+
+.urban-rail__badge {
+  margin-left: auto;
+  font-size: 10px;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--rail-line);
+  background: var(--rail-chip-bg);
+  color: var(--rail-fg-muted);
+}
+
+.rail-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 20px;
+  margin-left: auto;
+  border: 1px solid var(--rail-line);
+  color: var(--rail-fg-muted);
+  background: var(--rail-chip-bg);
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.rail-badge.has-items {
+  color: var(--rail-accent);
+  border-color: color-mix(in oklab, var(--rail-accent), transparent 70%);
+  background: color-mix(in oklab, var(--rail-accent), transparent 90%);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Rail item metadata row (Prompt 08)
+   ───────────────────────────────────────────────────────────── */
+
+.rail-item-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 4px;
+  max-width: 100%;
+  overflow: hidden;
+  line-height: 1;
+}
+
+/* Capability status — colored dot + label */
+.rail-item-cap {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.15px;
+  color: var(--rim-cap-color, var(--rail-fg-muted));
+  flex-shrink: 0;
+}
+
+.rail-item-cap::before {
+  content: '';
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--rim-cap-color, currentColor);
+  flex-shrink: 0;
+}
+
+/* Method family · maturity · scales — muted text */
+.rail-item-text {
+  font-size: 10px;
+  color: var(--rail-fg-muted);
+  opacity: 0.65;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Affordance counts — datasets/tools/citations */
+.rail-item-afford {
+  font-size: 9.5px;
+  color: var(--rail-accent);
+  opacity: 0.55;
+  letter-spacing: 0.2px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Flat list (favorites / recents groups)
+   ───────────────────────────────────────────────────────────── */
+
+.urban-acc__section {
+  margin-bottom: 4px;
+}
+
+.urban-acc__heading {
+  margin: 0;
+}
+
+.urban-acc__header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--rail-line-soft);
+  background: var(--rail-chip-bg);
+  cursor: pointer;
+  color: var(--rail-fg);
+  font-weight: 600;
+  font-size: 12.2px;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.urban-acc__header:hover {
+  background: var(--rail-hover);
+}
+
+.urban-acc__header:focus-visible {
+  outline: none;
+  box-shadow: var(--rail-focus);
+}
+
+.urban-acc__chev {
+  font-size: 11px;
+  transition: transform 0.18s ease;
+}
+
+.urban-acc__section.is-open .urban-acc__chev {
+  transform: rotate(90deg);
+}
+
+.urban-acc__title {
+  flex: 1;
+  min-width: 0;
+}
+
+.urban-acc__panel {
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.22s ease;
+}
+
+.urban-acc__section.is-open .urban-acc__panel {
+  max-height: var(--acc-h, 999px);
+}
+
+.urban-acc__panelInner {
+  padding: 4px 0;
+}
+
+/* list rows inside accordion */
+.urban-list__item + .urban-list__item {
+  border-top: 1px solid var(--rail-line);
+}
+
+.urban-list__row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  padding: var(--space-2, 8px) var(--space-3, 12px);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  border: none;
+  color: var(--rail-fg);
+}
+
+.urban-list__row:hover {
+  background: var(--rail-hover);
+}
+
+.urban-list__row:focus-visible {
+  outline: none;
+  box-shadow: var(--rail-focus);
+}
+
+.urban-list__row[aria-current='true'] {
+  background: var(--rail-selected);
+}
+
+.urban-list__main {
+  min-width: 0;
+}
+
+.urban-list__title {
+  font-weight: 600;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.urban-list__meta {
+  font-size: 12px;
+  opacity: 0.8;
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.urban-list__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Footer
+   ───────────────────────────────────────────────────────────── */
+
+.urban-rail__footer {
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  border-top: 1px solid var(--rail-line);
+  background: color-mix(in oklab, var(--rail-fg), transparent 98%);
+  color: var(--rail-fg-muted);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Sidebar wrapper (when used inside the 3-panel modal)
+   ───────────────────────────────────────────────────────────── */
+
+.urban-sidebar {
+  flex: 0 0 var(--rail-w);
+  width: var(--rail-w);
+  min-width: var(--rail-w);
+  max-width: var(--rail-w);
+  box-sizing: border-box;
+  gap: var(--rail-gap);
+  padding: var(--rail-pad);
+  flex-shrink: 0;
+  border-radius: var(--rail-radius);
+  box-shadow: var(--rail-shadow), 1px 0 0 var(--rail-line-soft), 0 0 0 1px color-mix(in oklab, var(--rail-bg), var(--rail-fg) 6%);
+  z-index: 10;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Empty / Error / Skeleton
+   ───────────────────────────────────────────────────────────── */
+
+.rail-empty {
+  padding: 16px 12px;
+  text-align: left;
+}
+
+.rail-empty-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.rail-empty-sub {
+  font-size: 13px;
+  opacity: 0.85;
+  margin-bottom: 10px;
+}
+
+.rail-empty-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.rail-error {
+  padding: 12px;
+}
+
+.rail-error-title {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.rail-error-msg {
+  font-size: 12px;
+  opacity: 0.85;
+  white-space: pre-wrap;
+  margin-bottom: 8px;
+}
+
+.rail-error-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.rail-skel {
+  padding: 8px 12px;
+}
+
+.skel-chipbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.skel {
+  background: var(--rail-chip-bg);
+  border-radius: 8px;
+  animation: skel-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes skel-pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.7; }
+}
+
+.skel-chip {
+  width: 56px;
+  height: 24px;
+  border-radius: 999px;
+}
+
+.skel-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.skel-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+}
+
+.skel-chevron {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+.skel-title {
+  flex: 1;
+  height: 14px;
+}
+
+.skel-badge {
+  width: 40px;
+  height: 16px;
+  border-radius: 999px;
+}
+
+.skel-leaflist {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.skel-leaf {
+  height: 36px;
+  border-radius: 8px;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Chips (shared)
+   ───────────────────────────────────────────────────────────── */
+
+.urban-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--rail-line);
+  background: var(--rail-chip-bg);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--rail-fg);
+  opacity: 0.92;
+  transition: background 0.15s, border-color 0.15s;
+  min-inline-size: 32px;
+  min-block-size: 32px;
+}
+
+.urban-chip:hover {
+  background: var(--rail-hover);
+  border-color: var(--rail-line);
+}
+
+.urban-chip.is-on,
+.urban-chip.is-selected {
+  background: linear-gradient(180deg, color-mix(in oklab, var(--rail-accent), transparent 75%), transparent);
+  border-color: var(--rail-accent);
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--rail-accent), transparent 40%) inset;
+  opacity: 1;
+}
+
+.urban-chip.reset {
+  background: transparent;
+  border-style: dashed;
+  opacity: 0.9;
+}
+
+.urban-chip:focus-visible {
+  outline: none;
+  box-shadow: var(--rail-focus);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Accessibility
+   ───────────────────────────────────────────────────────────── */
+
+.visually-hidden,
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Motion
+   ───────────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: no-preference) {
+  .urban-rail__item,
+  .urban-rail__groupBtn,
+  .urban-chip {
+    transition: background 0.18s var(--syn-easing-bauhaus), border-color 0.18s var(--syn-easing-bauhaus), box-shadow 0.18s var(--syn-easing-bauhaus);
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Prompt 09 — Metadata filter bar + panel
+   ───────────────────────────────────────────────────────────── */
+
+.urban-rail__metaFilterBar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 0 0;
+}
+
+.urban-rail__metaFilters {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 0 2px;
+  border-top: 1px solid var(--rail-line-soft);
+  margin-top: 2px;
+}
+
+.urban-rail__metaGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.urban-rail__metaGroupLabel {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--rail-fg-muted);
+  padding: 0 2px;
+}
+
+.urban-rail__metaChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+/* Inline-btn — active variant (has meta filters applied) */
+.inline-btn.active {
+  color: var(--rail-accent);
+  border-color: color-mix(in oklab, var(--rail-accent), transparent 50%);
+}
+
+/* meta-ctx chip — highlights active project scale */
+.mini-chip.meta-ctx {
+  border-color: color-mix(in oklab, var(--rail-accent), transparent 40%);
+  color: var(--rail-accent);
+}
+
+/* Context hint strip */
+.urban-rail__ctxHint {
+  font-size: 10.5px;
+  color: var(--rail-fg-muted);
+  padding: 2px 2px;
+  line-height: 1.4;
+}
+
+.urban-rail__ctxHint strong {
+  color: var(--rail-accent);
+  font-weight: 600;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Prompt 09 — Item state: warning / dim / boost
+   ───────────────────────────────────────────────────────────── */
+
+/* residual_gap — subtle red tint */
+.urban-rail__item.is-warning .urban-rail__itemTitle {
+  color: color-mix(in oklab, #ef4444, var(--rail-fg) 55%);
+}
+
+/* deferred — heavily muted */
+.urban-rail__item.is-dim {
+  opacity: 0.45;
+}
+
+.urban-rail__item.is-dim .urban-rail__itemBtn:hover {
+  opacity: 1;
+}
+
+/* Boost indicator — context scale match */
+.rail-item-boost {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  color: var(--rail-accent);
+  background: color-mix(in oklab, var(--rail-accent), transparent 85%);
+  border: 1px solid color-mix(in oklab, var(--rail-accent), transparent 60%);
+  border-radius: 3px;
+  padding: 0 3px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .urban-rail * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

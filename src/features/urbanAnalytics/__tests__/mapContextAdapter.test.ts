@@ -1,0 +1,179 @@
+// @vitest-environment jsdom
+
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { OverlayLayerConfig } from '@/centerpanel/components/map/mapTypes';
+import type { MapScientificQAState } from '@/services/map/MapScientificQA';
+import { useMapExplorerStore } from '@/stores/useMapExplorerStore';
+import { useUrbanStore } from '../store';
+import { useUrbanContextStore } from '../useUrbanContextStore';
+import {
+  applyMapContextToUrban,
+  buildMapToUrbanContextSummary,
+  subscribeMapContextToUrban,
+} from '../context/mapContextAdapter';
+
+function makeLayer(id: string, overrides?: Partial<OverlayLayerConfig>): OverlayLayerConfig {
+  return {
+    id,
+    name: `Layer ${id}`,
+    type: 'geojson',
+    visible: true,
+    opacity: 1,
+    sourceData: {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          geometry: {
+            type: 'Polygon',
+            coordinates: [[[29, 41], [29.1, 41], [29.1, 41.1], [29, 41.1], [29, 41]]],
+          },
+          properties: {
+            district: 'Kadikoy',
+            capture_date: '2025-01-10',
+            population: 1200,
+          },
+        },
+      ],
+    },
+    metadata: {
+      featureCount: 1,
+      datasetContext: {
+        datasetId: 'dataset-1',
+        crs: 'EPSG:4326',
+      },
+    },
+    ...overrides,
+  };
+}
+
+function makeQaState(): MapScientificQAState {
+  return {
+    status: 'warning',
+    checkedAt: '2026-05-08T10:00:00.000Z',
+    issues: [
+      {
+        id: 'qa:layer-1:geometry:missing-crs',
+        code: 'missing-crs',
+        category: 'crs',
+        severity: 'warning',
+        title: 'Missing CRS metadata',
+        explanation: 'Layer lacks full CRS declaration.',
+        suggestedFix: 'Provide EPSG metadata.',
+        layerId: 'layer-1',
+      },
+    ],
+    layerSummaries: [],
+    metadata: {
+      generatedBy: 'MapScientificQA',
+      version: 1,
+      signature: 'qa-signature-1',
+      visibleLayerCount: 1,
+      workerLayerCount: 0,
+      issueCounts: {
+        info: 0,
+        warning: 1,
+        error: 0,
+        blocker: 0,
+      },
+    },
+  };
+}
+
+beforeEach(() => {
+  vi.useFakeTimers();
+  localStorage.clear();
+  useMapExplorerStore.setState(useMapExplorerStore.getInitialState());
+  useUrbanContextStore.setState({
+    context: null,
+    evidenceArtifacts: [],
+    restoreWarnings: [],
+    lastPersistedAt: null,
+    lastRestoredAt: null,
+    storageStatus: 'available',
+  });
+  useUrbanStore.setState(useUrbanStore.getInitialState());
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
+
+describe('buildMapToUrbanContextSummary', () => {
+  it('builds lightweight map context summary with fields, temporal hints, CRS and QA', () => {
+    const layer = makeLayer('layer-1');
+
+    const summary = buildMapToUrbanContextSummary({
+      activeAoiId: 'aoi-1',
+      overlayLayers: [layer],
+      selectedFeatureIds: { 'layer-1': ['f-1', 'f-2'] },
+      activeAnalysisResultLayerIds: ['analysis-1'],
+      currentMapBounds: [28.9, 40.9, 29.2, 41.2],
+      scientificQA: makeQaState(),
+    });
+
+    expect(summary.aoiReference.aoiId).toBe('aoi-1');
+    expect(summary.layerIds).toEqual(['layer-1']);
+    expect(summary.featureCountSummary.total).toBe(1);
+    expect(summary.crsSummary.distinct).toEqual(['EPSG:4326']);
+    expect(summary.temporalFields).toContain('capture_date');
+    expect(summary.selectionSummary[0]).toMatchObject({ layerId: 'layer-1', selectedFeatureCount: 2 });
+    expect(summary.qaSummary.status).toBe('warning');
+    expect(summary.recommendationHints.length).toBeGreaterThan(0);
+  });
+});
+
+describe('applyMapContextToUrban', () => {
+  it('creates or updates urban context and registers map-origin evidence by reference', () => {
+    const layer = makeLayer('layer-1');
+    const dispatchSpy = vi.spyOn(globalThis, 'dispatchEvent');
+
+    const result = applyMapContextToUrban({
+      mapState: {
+        activeAoiId: 'aoi-kadikoy',
+        overlayLayers: [layer],
+        selectedFeatureIds: { 'layer-1': ['f-1'] },
+        activeAnalysisResultLayerIds: ['analysis-1'],
+        currentMapBounds: [28.9, 40.9, 29.2, 41.2],
+        scientificQA: makeQaState(),
+      },
+      triggerRecommendations: true,
+    });
+
+    const context = useUrbanContextStore.getState().context;
+    expect(context).not.toBeNull();
+    expect(context?.activeAoiId).toBe('aoi-kadikoy');
+    expect(context?.activeLayerIds).toEqual(['layer-1']);
+
+    const artifacts = useUrbanContextStore.getState().evidenceArtifacts;
+    const artifact = artifacts.find((entry) => entry.id === result.evidenceArtifactId);
+    expect(artifact).toBeDefined();
+    expect(artifact?.sourceModule).toBe('map-explorer');
+    expect(artifact?.linkedLayerIds).toEqual(['layer-1']);
+
+    expect(useUrbanStore.getState().recMode).toBe(true);
+    expect(result.recommendationTriggered).toBe(true);
+    expect(dispatchSpy).toHaveBeenCalled();
+  });
+});
+
+describe('subscribeMapContextToUrban', () => {
+  it('syncs map changes into urban context on subscription updates', () => {
+    const unsubscribe = subscribeMapContextToUrban({
+      debounceMs: 50,
+      triggerRecommendations: false,
+      runInitialSync: true,
+    });
+
+    useMapExplorerStore.getState().setActiveAoi('aoi-2');
+    useMapExplorerStore.getState().replaceOverlayLayers([makeLayer('layer-sub')]);
+
+    vi.advanceTimersByTime(60);
+
+    const context = useUrbanContextStore.getState().context;
+    expect(context?.activeAoiId).toBe('aoi-2');
+    expect(context?.activeLayerIds).toEqual(['layer-sub']);
+
+    unsubscribe();
+  });
+});

@@ -1,0 +1,8 @@
+### Remediation Prompt 07 - Completion Report
+- Scope Completed: Promoted object detection from a demo-only path into an explicit real-model-capable GeoAI workflow while preserving a clearly labeled demo fallback.
+- Key Files Added or Updated: `src/centerpanel/components/ObjectDetectorPanel.tsx`; `src/centerpanel/components/objectDetectionPublish.ts`; `src/engine/geoai/hooks/useObjectDetection.ts`; `src/engine/geoai/runtime/OnnxWebRuntimeAdapter.ts`; `src/engine/geoai/models/catalog.ts`; `src/services/data/eo/analysis.ts`; `src/centerpanel/Flows/ObjectDetectionFlow.tsx`; `docs/implementation/prompt-18-completion.md`; `e2e/geoai-real-data.spec.ts`.
+- User-Facing Surfaces Added or Corrected: Object detection now exposes raster-source selection, execution-mode selection, real-model readiness messaging, explicit Demo mode, detection metadata, map publication, and completed-run review provenance.
+- Runtime Truthfulness Improvements: Real-mode failures are reported as model/source configuration issues rather than silently using demo detections, and saved runs retain execution mode, model id, backend, source identity, thresholds, and publication metadata.
+- Validation Performed: Historical validation recorded PASS for targeted object-detection Vitest suites, `npx playwright test e2e/geoai-real-data.spec.ts`, `npm run typecheck`, `npm run build`, and `npm run test`.
+- Residual Risks: Real execution still requires a browser-loadable object-detection model URL or equivalent runtime override; Demo mode remains the guaranteed local fallback when that dependency is absent.
+- Follow-Up Required Before Next Prompt: None for the Prompt 18 remediation scope; future work may add bundled or managed detector weights.

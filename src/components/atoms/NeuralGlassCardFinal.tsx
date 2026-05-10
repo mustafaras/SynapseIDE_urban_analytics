@@ -1,0 +1,529 @@
+import React, { useEffect, useState } from 'react';
+import styled, { css, keyframes } from 'styled-components';
+import { motion } from 'framer-motion';
+import { useTheme } from '../../contexts/ThemeContext';
+
+
+const glitchLight = keyframes`
+  0%, 100% {
+    transform: translate(0);
+    border-color: rgba(245, 158, 11, 0.2);
+    box-shadow: var(--shadow-lg), 0 0 20px rgba(245, 158, 11, 0.05);
+  }
+  10% {
+    transform: translate(-1px, 0.5px);
+    border-color: rgba(245, 158, 11, 0.4);
+  }
+  20% {
+    transform: translate(-0.5px, -0.5px);
+    border-color: rgba(96, 165, 250, 0.3);
+  }
+  30% {
+    transform: translate(0.5px, 1px);
+    border-color: rgba(139, 92, 246, 0.3);
+  }
+  40% {
+    transform: translate(1px, -0.5px);
+    border-color: rgba(245, 158, 11, 0.3);
+  }
+  50% {
+    transform: translate(-0.5px, 0.5px);
+    border-color: rgba(96, 165, 250, 0.4);
+  }
+  60% {
+    transform: translate(0.5px, 0.5px);
+    border-color: rgba(245, 158, 11, 0.3);
+  }
+  70% {
+    transform: translate(-1px, 0.5px);
+    border-color: rgba(139, 92, 246, 0.3);
+  }
+  80% {
+    transform: translate(1px, -1px);
+    border-color: rgba(245, 158, 11, 0.4);
+  }
+  90% {
+    transform: translate(0.5px, -0.5px);
+    border-color: rgba(96, 165, 250, 0.3);
+  }
+`;
+
+const glitchDark = keyframes`
+  0%, 100% {
+    transform: translate(0);
+    border-color: rgba(99, 102, 241, 0.2);
+    box-shadow: var(--shadow-lg), 0 0 20px rgba(99, 102, 241, 0.1);
+  }
+  10% {
+    transform: translate(-1px, 0.5px);
+    border-color: rgba(99, 102, 241, 0.4);
+  }
+  20% {
+    transform: translate(-0.5px, -0.5px);
+    border-color: rgba(139, 92, 246, 0.3);
+  }
+  30% {
+    transform: translate(0.5px, 1px);
+    border-color: rgba(168, 85, 247, 0.3);
+  }
+  40% {
+    transform: translate(1px, -0.5px);
+    border-color: rgba(99, 102, 241, 0.3);
+  }
+  50% {
+    transform: translate(-0.5px, 0.5px);
+    border-color: rgba(139, 92, 246, 0.4);
+  }
+  60% {
+    transform: translate(0.5px, 0.5px);
+    border-color: rgba(99, 102, 241, 0.3);
+  }
+  70% {
+    transform: translate(-1px, 0.5px);
+    border-color: rgba(168, 85, 247, 0.3);
+  }
+  80% {
+    transform: translate(1px, -1px);
+    border-color: rgba(99, 102, 241, 0.4);
+  }
+  90% {
+    transform: translate(0.5px, -0.5px);
+    border-color: rgba(139, 92, 246, 0.3);
+  }
+`;
+
+const glitchNeutral = keyframes`
+
+  0%, 100% {
+    transform: translate(0);
+    border-color: rgba(245, 158, 11, 0.25);
+    box-shadow: var(--shadow-lg), 0 0 20px rgba(245, 158, 11, 0.12);
+  }
+  10% { transform: translate(-1px, 0.5px); border-color: rgba(245, 158, 11, 0.45); }
+  20% { transform: translate(-0.5px, -0.5px); border-color: rgba(245, 158, 11, 0.35); }
+  30% { transform: translate(0.5px, 1px); border-color: rgba(245, 158, 11, 0.40); }
+  40% { transform: translate(1px, -0.5px); border-color: rgba(245, 158, 11, 0.38); }
+  50% { transform: translate(-0.5px, 0.5px); border-color: rgba(245, 158, 11, 0.48); }
+  60% { transform: translate(0.5px, 0.5px); border-color: rgba(245, 158, 11, 0.38); }
+  70% { transform: translate(-1px, 0.5px); border-color: rgba(245, 158, 11, 0.42); }
+  80% { transform: translate(1px, -1px); border-color: rgba(245, 158, 11, 0.50); }
+  90% { transform: translate(0.5px, -0.5px); border-color: rgba(245, 158, 11, 0.40); }
+`;
+
+
+interface SimpleTextProps {
+  children: string;
+  delay?: number;
+}
+
+const FadeText = styled(motion.span)`
+  display: inline-block;
+  font-family:
+    'Fira Code', 'JetBrains Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', 'Source Code Pro',
+    Consolas, 'Courier New', monospace;
+`;
+
+const SimpleText: React.FC<SimpleTextProps> = ({ children, delay = 0 }) => {
+  return (
+    <FadeText
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{
+        duration: 0.6,
+        delay: delay / 1000,
+        ease: 'easeOut',
+      }}
+    >
+      {children}
+    </FadeText>
+  );
+};
+
+interface NeuralGlassCardProps {
+  title: string;
+  description: string;
+  onClick?: () => void;
+  className?: string;
+  cardIndex?: number;
+}
+
+
+const getThemeStyles = (theme: string) => {
+  switch (theme) {
+    case 'light':
+      return {
+        iconColor: '#F59E0B',
+        iconBackground: 'rgba(245, 158, 11, 0.18)',
+        titleColor: '#F59E0B',
+        descriptionColor: '#2A2A2A',
+      };
+    case 'dark':
+      return {
+        iconColor: '#D97706',
+        iconBackground: 'rgba(217, 119, 6, 0.2)',
+        titleColor: '#D97706',
+        descriptionColor: '#CBD5E1',
+      };
+    case 'neutral':
+      return {
+        iconColor: '#F59E0B',
+        iconBackground: 'rgba(245, 158, 11, 0.2)',
+        titleColor: '#F59E0B',
+        descriptionColor: '#F8FAFC',
+      };
+    default:
+      return {
+        iconColor: '#F59E0B',
+        iconBackground: 'rgba(245, 158, 11, 0.18)',
+        titleColor: '#F59E0B',
+        descriptionColor: '#2A2A2A',
+      };
+  }
+};
+
+
+const CardContainer = styled(motion.div)<{ $themeName: string; $isGlitching: boolean }>`
+  position: relative;
+
+  background: ${({ $themeName }) => {
+    switch ($themeName) {
+      case 'light':
+        return 'rgba(255, 255, 255, 0.1)';
+      case 'dark':
+        return 'rgba(0, 0, 0, 0.2)';
+      case 'neutral':
+        return 'rgba(248, 250, 252, 0.15)';
+      default:
+        return 'rgba(255, 255, 255, 0.1)';
+    }
+  }};
+
+
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 20px;
+  border: 2.5px solid
+    ${({ $themeName }) => {
+      switch ($themeName) {
+        case 'light':
+          return 'rgba(245, 158, 11, 0.45)';
+        case 'dark':
+          return 'rgba(99, 102, 241, 0.55)';
+        case 'neutral':
+          return 'rgba(245, 158, 11, 0.55)';
+        default:
+          return 'rgba(245, 158, 11, 0.45)';
+      }
+    }};
+
+
+  box-shadow: ${({ $themeName }) => {
+    switch ($themeName) {
+      case 'light':
+        return '0 8px 32px 0 rgba(146, 64, 14, 0.18), 0 0 32px 4px rgba(245, 158, 11, 0.18), 0 0 0 4px rgba(245,158,11,0.10)';
+      case 'dark':
+        return '0 8px 32px 0 rgba(0, 0, 0, 0.45), 0 0 32px 4px rgba(99, 102, 241, 0.22), 0 0 0 4px rgba(99,102,241,0.13)';
+      case 'neutral':
+        return '0 8px 32px 0 rgba(0, 0, 0, 0.25), 0 0 32px 4px rgba(245, 158, 11, 0.22), 0 0 0 4px rgba(245,158,11,0.12)';
+      default:
+        return '0 8px 32px 0 rgba(146, 64, 14, 0.18), 0 0 32px 4px rgba(245, 158, 11, 0.18)';
+    }
+  }};
+
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: -5px;
+    border-radius: 24px;
+    pointer-events: none;
+    z-index: 2;
+    border: 2.5px solid transparent;
+    box-shadow: ${({ $themeName }) => {
+      switch ($themeName) {
+        case 'light':
+          return '0 0 12px 6px rgba(245,158,11,0.12), 0 0 0 2px rgba(245,158,11,0.18)';
+        case 'dark':
+          return '0 0 12px 6px rgba(99,102,241,0.12), 0 0 0 2px rgba(99,102,241,0.18)';
+        case 'neutral':
+          return '0 0 12px 6px rgba(245,158,11,0.18), 0 0 0 2px rgba(245,158,11,0.25)';
+        default:
+          return '0 0 12px 6px rgba(245,158,11,0.12)';
+      }
+    }};
+    background: ${({ $themeName }) => {
+      switch ($themeName) {
+        case 'light':
+          return 'var(--syn-gradient-glass-amber)';
+        case 'dark':
+          return 'linear-gradient(120deg, rgba(99,102,241,0.18) 0%, rgba(0,0,0,0.10) 100%)';
+        case 'neutral':
+          return 'var(--syn-gradient-glass-amber)';
+        default:
+          return 'var(--syn-gradient-glass-amber)';
+      }
+    }};
+    opacity: 0.95;
+    transition:
+      box-shadow 0.4s,
+      background 0.4s;
+  }
+
+
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+  max-width: 990px;
+  width: 100%;
+  min-height: 110px;
+  padding: 1rem;
+  margin: 2rem 0 2rem 2rem;
+  align-self: flex-start;
+
+
+  cursor: pointer;
+
+
+  font-family:
+    'Fira Code', 'JetBrains Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', 'Source Code Pro',
+    Consolas, 'Courier New', monospace;
+
+
+  scroll-snap-align: start;
+  flex-shrink: 0;
+
+
+  ${({ $isGlitching, $themeName }) =>
+    $isGlitching &&
+    css`
+      animation: ${$themeName === 'light'
+          ? glitchLight
+          : $themeName === 'dark'
+            ? glitchDark
+            : $themeName === 'neutral'
+              ? glitchNeutral
+              : glitchLight}
+        0.5s ease-in-out;
+    `}
+
+
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+
+  &:hover {
+
+  }
+
+  &:active {
+
+  }
+
+  &:focus:not(:focus-visible),
+  &:focus-within:not(:focus-visible) {
+    outline: none;
+    box-shadow: none;
+  }
+
+  &:focus-visible {
+    outline: var(--focus-ring, 2px solid var(--syn-focus-ring, #F59E0B));
+    outline-offset: var(--focus-ring-offset, 4px);
+    box-shadow:
+      var(--shadow-focus),
+      ${({ $themeName }) => {
+        switch ($themeName) {
+          case 'light':
+            return '0 8px 32px 0 rgba(146, 64, 14, 0.18), 0 0 32px 4px rgba(245, 158, 11, 0.18), 0 0 0 4px rgba(245,158,11,0.10)';
+          case 'dark':
+            return '0 8px 32px 0 rgba(0, 0, 0, 0.45), 0 0 32px 4px rgba(99, 102, 241, 0.22), 0 0 0 4px rgba(99,102,241,0.13)';
+          case 'neutral':
+            return '0 8px 32px 0 rgba(0, 0, 0, 0.25), 0 0 32px 4px rgba(245, 158, 11, 0.22), 0 0 0 4px rgba(245,158,11,0.12)';
+          default:
+            return '0 8px 32px 0 rgba(146, 64, 14, 0.18), 0 0 32px 4px rgba(245, 158, 11, 0.18)';
+        }
+      }};
+  }
+
+
+  @media (max-width: 768px) {
+    min-width: 0;
+    max-width: 95vw;
+    width: 100%;
+    padding: 0.75rem;
+    min-height: 110px;
+    margin: 1rem 0 1rem 1rem;
+    align-self: flex-start;
+  }
+
+  @media (max-width: 640px) {
+    min-width: 0;
+    max-width: 98vw;
+    width: 100%;
+    padding: 0.5rem;
+    min-height: 100px;
+    margin: 0.5rem 0 0.5rem 0.5rem;
+    align-self: flex-start;
+  }
+
+  @media (max-width: 480px) {
+    min-width: 0;
+    max-width: 99vw;
+    width: 100%;
+    padding: 0.4rem;
+    min-height: 90px;
+    margin: 0.25rem 0 0.25rem 0.25rem;
+    align-self: flex-start;
+  }
+
+  @media (max-width: 360px) {
+    min-width: 0;
+    max-width: 100vw;
+    width: 100%;
+    padding: 0.3rem;
+    min-height: 80px;
+    margin: 0.1rem 0 0.1rem 0.1rem;
+    align-self: flex-start;
+  }
+`;
+
+const Title = styled.h3<{ $themeName: string; $isGlitching?: boolean }>`
+
+  font-family:
+    'Fira Code', 'JetBrains Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', 'Source Code Pro',
+    Consolas, 'Courier New', monospace;
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: ${({ $themeName }) => getThemeStyles($themeName).titleColor};
+  margin: 0;
+
+
+  border: none !important;
+  outline: none !important;
+
+
+  text-align: left;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+
+  transition: color 0.3s var(--syn-easing-bauhaus);
+  ${({ $isGlitching, $themeName }) =>
+    $isGlitching &&
+    css`
+      animation: ${$themeName === 'light'
+          ? glitchLight
+          : $themeName === 'dark'
+            ? glitchDark
+            : $themeName === 'neutral'
+              ? glitchNeutral
+              : glitchLight}
+        0.5s ease-in-out;
+    `}
+`;
+
+const Description = styled.p<{ $themeName: string; $isGlitching?: boolean }>`
+
+  font-family:
+    'Fira Code', 'JetBrains Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', 'Source Code Pro',
+    Consolas, 'Courier New', monospace;
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.5;
+  color: ${({ $themeName }) => getThemeStyles($themeName).descriptionColor};
+  margin: 0;
+  flex-grow: 1;
+
+
+  border: none !important;
+  outline: none !important;
+
+
+  text-align: justify;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  -webkit-hyphens: auto;
+  -moz-hyphens: auto;
+  -ms-hyphens: auto;
+
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+
+  transition: color 0.3s var(--syn-easing-bauhaus);
+  ${({ $isGlitching, $themeName }) =>
+    $isGlitching &&
+    css`
+      animation: ${$themeName === 'light'
+          ? glitchLight
+          : $themeName === 'dark'
+            ? glitchDark
+            : $themeName === 'neutral'
+              ? glitchNeutral
+              : glitchLight}
+        0.5s ease-in-out;
+    `}
+`;
+
+const NeuralGlassCard: React.FC<NeuralGlassCardProps> = ({
+  title,
+  description,
+  onClick,
+  className,
+  cardIndex,
+}) => {
+  const { themeName } = useTheme();
+  const [isGlitching, setIsGlitching] = useState(false);
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!onClick) {
+      return;
+    }
+
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      onClick();
+    }
+  };
+
+
+  useEffect(() => {
+    setIsGlitching(true);
+    const timeout = setTimeout(() => setIsGlitching(false), 300);
+    return () => clearTimeout(timeout);
+  }, [themeName, cardIndex]);
+
+  return (
+    <CardContainer
+      $themeName={themeName}
+      $isGlitching={isGlitching}
+      onClick={onClick}
+      onKeyDown={handleKeyDown}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      className={`neural-glass-card-final ${className || ''}`}
+      data-component="neural-glass-card-final"
+    >
+      <div>
+        <Title $themeName={themeName} $isGlitching={isGlitching}>
+          <SimpleText delay={50}>{title}</SimpleText>
+        </Title>
+        <Description $themeName={themeName} $isGlitching={isGlitching}>
+          <SimpleText delay={100}>{description}</SimpleText>
+        </Description>
+      </div>
+    </CardContainer>
+  );
+};
+
+export default NeuralGlassCard;

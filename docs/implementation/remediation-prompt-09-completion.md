@@ -1,0 +1,8 @@
+### Remediation Prompt 09 - Completion Report
+- Scope Completed: Added a first-class Emerging Hot Spot Analysis workflow entry and embedded execution surface while preserving the existing map-toolbar shortcut.
+- Key Files Added or Updated: `src/centerpanel/Flows/EmergingHotSpotFlow.tsx`; `src/centerpanel/Flows/flowTypes.ts`; `src/centerpanel/Flows/flowLibraryMeta.ts`; `src/centerpanel/Flows/workflowExperience.ts`; `src/centerpanel/Flows/FlowHost.tsx`; `src/centerpanel/components/MapEmergingHotSpotViz.tsx`; `src/centerpanel/components/__tests__/MapEmergingHotSpotViz.test.tsx`; `e2e/emerging-hot-spot.spec.ts`; `docs/implementation/prompt-25-completion.md`; `docs/implementation/module-matrix.md`.
+- User-Facing Surfaces Added or Corrected: The workflow library now exposes Emerging Hot Spot Analysis as a named tile, opens the analysis panel from Workflows, publishes playback-ready map layers, and saves workflow-specific completed runs.
+- Runtime Truthfulness Improvements: Completed runs persist under `flowId: emerging_hot_spot`, so review counts and provenance match the originating workflow instead of a generic review bucket.
+- Validation Performed: Historical validation recorded PASS for `npm test -- src/centerpanel/Flows/__tests__/flows.test.ts`, `npm test -- src/centerpanel/components/__tests__/MapEmergingHotSpotViz.test.tsx`, and `npx playwright test e2e/emerging-hot-spot.spec.ts`.
+- Residual Risks: The workflow requires a visible polygon GeoJSON layer with at least three numeric temporal fields; absent prerequisites are explained in the workflow rather than hidden.
+- Follow-Up Required Before Next Prompt: None for Prompt 25 scope.

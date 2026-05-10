@@ -1,0 +1,367 @@
+.headerControls {
+  position: relative;
+}
+
+.headerButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: rgba(248, 250, 252, 0.7);
+  cursor: pointer;
+  box-shadow: none;
+  transition: color 120ms ease, background 120ms ease;
+}
+
+.headerButton:hover {
+  color: #f8fafc;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.headerButtonStack {
+  display: inline-flex;
+  align-items: center;
+}
+
+.headerAvatar,
+.avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #0f172a;
+  font-size: 9px;
+  font-weight: 800;
+  border: 1.5px solid rgba(15, 23, 42, 0.92);
+  margin-left: -6px;
+}
+
+.headerButtonLabel,
+.headerButtonState,
+.commentSidebarCount {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.headerButtonState[data-state="connected"],
+.statePill[data-state="connected"] {
+  color: #34d399;
+}
+
+.headerButtonState[data-state="paused"],
+.statePill[data-state="paused"] {
+  color: #fbbf24;
+}
+
+.headerButtonState[data-state="reconnecting"],
+.statePill[data-state="reconnecting"] {
+  color: #38bdf8;
+}
+
+.headerPopover {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  width: 340px;
+  border-radius: 22px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background:
+    radial-gradient(circle at top right, rgba(245, 158, 11, 0.18), transparent 40%),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(15, 23, 42, 0.92));
+  padding: 14px;
+  box-shadow: 0 24px 48px rgba(2, 6, 23, 0.4);
+  z-index: 80;
+}
+
+.headerPopoverHeader,
+.threadHeader,
+.commentSidebarHeader,
+.connectionCard,
+.collaboratorRow,
+.presenceItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.headerPopoverTitle,
+.commentSidebarTitle,
+.connectionTitle {
+  font-size: 13px;
+  font-weight: 800;
+  color: #f8fafc;
+}
+
+.headerPopoverSubtitle,
+.commentSidebarSubtitle,
+.connectionMeta,
+.presenceMeta,
+.collaboratorMeta,
+.presenceEmpty,
+.threadMeta {
+  font-size: 11px;
+  color: rgba(226, 232, 240, 0.7);
+}
+
+.connectionCard {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(15, 23, 42, 0.62);
+}
+
+.connectionCard[data-state="paused"] {
+  border-color: rgba(251, 191, 36, 0.32);
+}
+
+.connectionActions {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.primaryButton,
+.smallButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 12px;
+  border: 1px solid rgba(245, 158, 11, 0.24);
+  cursor: pointer;
+}
+
+.primaryButton {
+  justify-content: center;
+  padding: 9px 12px;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.24), rgba(251, 191, 36, 0.18));
+  color: #fef3c7;
+  font-weight: 700;
+}
+
+.smallButton {
+  padding: 6px 10px;
+  background: rgba(30, 41, 59, 0.74);
+  color: #e2e8f0;
+}
+
+.collaboratorList,
+.threadList,
+.replyList,
+.presenceList,
+.activityList {
+  display: grid;
+  gap: 10px;
+}
+
+.collaboratorList {
+  margin-top: 12px;
+}
+
+.collaboratorRow,
+.presenceItem {
+  justify-content: flex-start;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.64);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.presenceCopy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.presenceSelection,
+.activityTime,
+.activitySnippet {
+  font-size: 11px;
+  color: rgba(226, 232, 240, 0.78);
+  line-height: 1.4;
+}
+
+.activitySnippet {
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  background: rgba(15, 23, 42, 0.42);
+}
+
+.collaboratorName {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.selfBadge,
+.threadAnchor,
+.statePill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.12);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.selfBadge {
+  color: #fef3c7;
+}
+
+.presenceStrip,
+.inlinePresenceStrip,
+.commentSidebar,
+.sessionOverview {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.82), rgba(30, 41, 59, 0.66));
+  border: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.inlinePresenceStrip {
+  padding: 10px;
+}
+
+.presenceStripHeader,
+.formLabel {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(226, 232, 240, 0.72);
+}
+
+.commentSidebar {
+  position: sticky;
+  top: 72px;
+}
+
+.sessionOverview {
+  gap: 12px;
+}
+
+.sessionOverviewHeader,
+.sessionOverviewFooter,
+.activityHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.sessionOverviewTitle {
+  font-size: 13px;
+  font-weight: 800;
+  color: #f8fafc;
+}
+
+.sessionOverviewSubtitle,
+.metricLabel {
+  font-size: 11px;
+  color: rgba(226, 232, 240, 0.72);
+}
+
+.metricGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.metricCard,
+.activityCard {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(15, 23, 42, 0.54);
+}
+
+.metricValue {
+  font-size: 22px;
+  font-weight: 800;
+  color: #f8fafc;
+  letter-spacing: -0.03em;
+}
+
+.commentSidebarHeader {
+  align-items: flex-start;
+}
+
+.textInput,
+.textArea,
+.replyInput {
+  width: 100%;
+  margin-top: 6px;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(15, 23, 42, 0.72);
+  color: #f8fafc;
+  padding: 10px 12px;
+  box-sizing: border-box;
+}
+
+.textArea,
+.replyInput {
+  min-height: 92px;
+  resize: vertical;
+}
+
+.replyInput {
+  min-height: 68px;
+}
+
+.threadCard,
+.replyCard {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(15, 23, 42, 0.54);
+}
+
+.threadCard[data-status="resolved"] {
+  opacity: 0.72;
+  border-color: rgba(52, 211, 153, 0.3);
+}
+
+.threadBody {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #e2e8f0;
+}
+
+@media (max-width: 980px) {
+  .headerPopover {
+    width: min(92vw, 340px);
+  }
+
+  .commentSidebar {
+    position: static;
+  }
+
+  .metricGrid {
+    grid-template-columns: 1fr;
+  }
+}

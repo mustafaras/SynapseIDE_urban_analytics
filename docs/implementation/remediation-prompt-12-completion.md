@@ -1,0 +1,8 @@
+### Remediation Prompt 12 - Completion Report
+- Scope Completed: Preserved release-hardening truth by keeping Prompt 43 as `implemented with residual gap`, documenting launch-only advanced surfaces, and retaining maintainability debt for large UI shells.
+- Key Files Added or Updated: `docs/implementation/prompt-43-completion.md`; `docs/implementation/prompt-status-ledger.md`; `docs/implementation/module-matrix.md`; `docs/release/visual-completeness-checklist.md`; `docs/release/release-candidate-validation.md`; `docs/release/known-risks-and-limitations.md`; `e2e/release-candidate-ui.spec.ts`.
+- User-Facing Surfaces Added or Corrected: Release documentation distinguishes launch verification, execution verification, demo-mode verification, and external dependency gates for visible workflow and tool surfaces.
+- Runtime Truthfulness Improvements: Residual UI-shell maintainability debt and advanced workflow launch-only coverage remain visible instead of being converted into closed claims.
+- Validation Performed: Historical validation recorded PASS for `npm run validate:rc`, `npm run test:e2e:smoke`, focused lifecycle/UI module tests, and release-candidate UI smoke coverage; the correction pass reruns are reported in the final correction report.
+- Residual Risks: Facility optimisation, urban growth, system dynamics, CityJSON import, dashboard authoring, and full Map Explorer remain partially launch-verified or maintainability-debt-bearing as documented.
+- Follow-Up Required Before Next Prompt: Add execution-grade Playwright coverage before promoting any launch-only surface to execution verified.

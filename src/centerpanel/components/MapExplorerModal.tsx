@@ -1,0 +1,5052 @@
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import type maplibregl from "maplibre-gl";
+import type { Feature, FeatureCollection, Geometry, MultiPolygon, Polygon } from "geojson";
+import {
+  BASE_STYLES,
+  MAP_BOOKMARK_LIMIT,
+  MAP_LAYER_REGISTRY_EVENT,
+  type DrawnFeature,
+  type DrawToolId,
+  type MapBookmark,
+  type MapExplorerMode,
+  type MapLayerRegistryChangeDetail,
+  type MapPin,
+  type MeasureToolId,
+  type OverlayLayerConfig,
+} from "./map/mapTypes";
+import {
+  MAP_COLORS,
+  MAP_DIMENSIONS,
+  MAP_ICON_SIZES,
+  MAP_NUMERIC,
+  MAP_RADIUS,
+  MAP_SPACING,
+  MAP_STROKES,
+  MAP_TYPOGRAPHY,
+  mapStyles,
+} from "./map/mapTokens";
+import { MapCanvas, type MapFeatureReportRequest } from "./map/MapCanvas";
+import { MapToolbar } from "./map/MapToolbar";
+import { MapLayerPanel } from "./map/MapLayerPanel";
+import { MapLayerManager } from "./map/MapLayerManager";
+import { MapDrawingManager } from "./MapDrawingManager";
+import { MapMeasurementTool } from "./MapMeasurementTool";
+import { MapContextMenu } from "./MapContextMenu";
+import { MapChoroplethLayer } from "./MapChoroplethLayer";
+import { MapVoxCityOverlay } from "./MapVoxCityOverlay";
+import { SAMPLE_BUILDINGS } from "@/features/urbanAnalytics/voxcity";
+import { MapClusterViz } from "./MapClusterViz";
+import { MapEmergingHotSpotViz } from "./MapEmergingHotSpotViz";
+import { MapHeatmapLayer } from "./MapHeatmapLayer";
+import { MapHotSpotViz } from "./MapHotSpotViz";
+import { MapSymbolLayer, type SymbolMode } from "./MapSymbolLayer";
+import { MapTemporalPlayer } from "./MapTemporalPlayer";
+import { MapDataExportDialog } from "./MapDataExportDialog";
+import { MapExportDialog } from "./MapExportDialog";
+import { MapCsvImportDialog } from "./MapCsvImportDialog";
+import { MapColumnarImportDialog } from "./MapColumnarImportDialog";
+import { MapDataImportHubDialog } from "./MapDataImportHubDialog";
+import { MapServiceDialog, type MapServiceDialogProgressDetail } from "./MapServiceDialog";
+import { MapBookmarkBar } from "./MapBookmarkBar";
+import { MapAnnotationLayer } from "./MapAnnotationLayer";
+import { MapSearchBar } from "./map/MapSearchBar";
+import { MapStatusBar } from "./map/MapStatusBar";
+import { MapPinSidebar } from "./map/MapPinSidebar";
+import {
+  MapBottomTimeline,
+  MapCanvasRegion,
+  MapPanelRail,
+  MapWorkspaceShell,
+} from "./map/MapWorkspaceShell";
+import { MapWorkspaceCockpit } from "./map/MapWorkspaceCockpit";
+import { ScientificQAPanel } from "./map/ScientificQAPanel";
+import { MapNLQueryPanel, type MapNLQueryPanelRunSummary } from "./map/MapNLQueryPanel";
+import { MapWorkflowDrawer } from "./map/MapWorkflowDrawer";
+import { MapReportHandoffDrawer } from "./map/MapReportHandoffDrawer";
+import { MapReviewTimelinePanel } from "./map/MapReviewTimelinePanel";
+import { CartographyRecommendationList } from "./map/CartographyRecommendationList";
+import { createOpaqueFloatingPanelStyle, useDraggableMapPanel } from "./map/useDraggableMapPanel";
+import { getActiveRightDockPanel, getMapDockLayout } from "./map/mapDocking";
+import {
+  type MapQuickActionId,
+  type MapWorkspaceView,
+} from "./map/mapExperience";
+import { useMapExplorerStore } from "../../stores/useMapExplorerStore";
+import { useAppStore } from "../../stores/appStore";
+import { useFlowStore } from "../../stores/useFlowStore";
+import { useProjectRegistryOptional } from "../registry/state";
+import { useFocusTrap } from "./map/useFocusTrap";
+import { useMapKeyboardControls } from "./map/useMapKeyboardControls";
+import { useAnnouncer } from "./map/useAnnouncer";
+import { useLayerSync } from "./map/useLayerSync";
+import { IconClose, IconLayers } from "./map/MapIcons";
+import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
+import {
+  completeCsvImport,
+  getFeatureCollectionBounds,
+  IMPORT_PROGRESS_THRESHOLD_BYTES,
+  MAP_IMPORT_ACCEPT_ATTRIBUTE,
+  type MapImportProgress,
+  prepareMapImportFile,
+} from "../../services/map/MapDataImporter";
+import { loadTeachingDatasetIntoMapWorkspace, type TeachingDatasetId } from "../../services/data/datasetLibrary";
+import {
+  collectNumericFields,
+  hasPointGeometry,
+  isPointCandidate,
+  resolveFeatureCollection,
+} from "./map/symbologyUtils";
+import {
+  exportMapData,
+  type MapExportFormat,
+  type MapExportTarget,
+  triggerMapDataDownload,
+} from "../../services/map/MapDataExporter";
+import { bindTableAlias, loadArrowIPC, loadGeoJSON, toGeoJSON } from "../../engine/spatial-db/SpatialDB";
+import {
+  DEFAULT_MAP_COMPOSITION_OPTIONS,
+  buildMapCompositionLegendItems,
+  calculateScaleBarSpec,
+  exportMapOnlyA0LandscapePdf,
+  exportMapPublication,
+  type MapCompositionOptions,
+  renderMapExportPreview,
+  triggerMapPublicationDownload,
+} from "../../services/map/MapExportService";
+import {
+  getRestorableOverlayLayers,
+  loadProjectMapState,
+  saveProjectMapState,
+} from "../../services/map/MapPersistenceService";
+import {
+  attachSpatialStatsRerun,
+  createAnalysisCompletedRun,
+  createAnalysisMapOutput,
+  createSpatialStatsCompletedRun,
+  hasAnalysisRerun,
+  rerunAnalysisResult,
+} from "../../services/map/MapEngineAdapter";
+import {
+  buildBufferedPointBounds,
+  buildBoundsPolygon,
+  collectSelectionStatistics,
+  dispatchFlowSelection,
+  dispatchIsochroneNavigation,
+  getCompatibleAoiFlows,
+  setMapViewRestriction,
+  type SelectionStatisticsSummary,
+} from "../../services/map/MapAnalysisDispatcher";
+import { resolveMapAnalysisBounds } from "../../services/map/MapAnalysisBounds";
+import {
+  publishViewportSync,
+  setViewportSyncEnabled,
+  subscribeToViewportSync,
+  useViewportSyncStore,
+} from "../../services/map/MapSyncService";
+import { createSpatialStatsExecutionIdentity } from "../../services/map/SpatialStatsExecutionService";
+import { executeHotSpotSpatialStatsAsync } from "../../services/map/SpatialStatsExecutionQueue";
+import {
+  evaluateAnalysisQAGate,
+  evaluateMapScientificQA,
+} from "../../services/map/MapScientificQA";
+import {
+  buildMapNLQueryContext,
+  executeMapNLQueryPreview,
+  type MapNLQueryPreview,
+} from "../../services/map/MapNLQueryBuilder";
+import {
+  buildMapWorkflowContext,
+  buildMapWorkflowPreviewLayer,
+  type MapWorkflowApplyResult,
+  type MapWorkflowGeocodedPlace,
+  type MapWorkflowPreview,
+  type MapWorkflowReportItem,
+} from "../../services/map/MapWorkflowService";
+import {
+  generateMapAnalysisRecommendations,
+  type MapAnalysisRecommendation,
+} from "../../services/map/MapAnalysisRecommender";
+import {
+  DEFAULT_MAP_REPORT_HANDOFF_OPTIONS,
+  buildMapReportHandoffDraft,
+  buildPendingReportInsertFromMapHandoff,
+  enqueueMapReportHandoff,
+  type MapReportHandoffOptions,
+  type MapReportHandoffSource,
+  type MapReportSnapshotInput,
+} from "../../services/map/MapReportHandoffService";
+import {
+  buildLayerRegistryReviewEvent,
+  buildMapReviewContextSnapshot,
+  buildRecommendationActionReviewEvent,
+  buildRecommendationReviewEvent,
+  buildReportHandoffReviewEvent,
+  buildScientificQAReviewEvent,
+  createMapReviewEvent,
+  type MapReviewTimelineEventInput,
+} from "../../services/map/MapReviewSessionService";
+import {
+  applyCartographyRecommendationToLayer,
+  generateMapCartographyReview,
+  type MapCartographyRecommendation,
+} from "../../services/map/MapCartographyAdvisor";
+import { toastError, toastInfo, toastSuccess, toastWarning } from "../../ui/toast/api";
+import { isBackgroundTaskCancelledError } from "../../workers/pool";
+
+type CsvImportSession = import("../../services/map/MapDataImporter").CsvImportSession;
+type ColumnarImportSession = import("../../services/map/MapDataImporter").ColumnarImportSession;
+type ImportedGeoJSONLayer = import("../../services/map/MapDataImporter").ImportedGeoJSONLayer;
+type MapProjectSnapshot = import("../../services/map/MapPersistenceService").MapProjectSnapshot;
+type MapOutput = import("../../features/urbanAnalytics/lib/types").MapOutput;
+type NumericFieldInfo = import("./map/symbologyUtils").NumericFieldInfo;
+
+type DispatchFeedbackTone = "info" | "busy" | "success" | "error";
+
+interface DispatchFeedbackState {
+  tone: DispatchFeedbackTone;
+  title: string;
+  description: string;
+}
+
+function clampNumber(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
+function getReportHandoffPageDimensionsMm(
+  frame: MapReportHandoffOptions["snapshotFrame"],
+  map: maplibregl.Map | null,
+): { width: number; height: number } {
+  if (frame === "landscape") return { width: 297, height: 210 };
+  if (frame === "portrait") return { width: 210, height: 297 };
+  if (frame === "square") return { width: 240, height: 240 };
+
+  const rect = map?.getContainer().getBoundingClientRect();
+  const aspect = rect && rect.width > 0 && rect.height > 0 ? rect.width / rect.height : 16 / 9;
+  const height = 210;
+  return {
+    width: clampNumber(Math.round(height * aspect), 180, 380),
+    height,
+  };
+}
+
+function buildReportHandoffComposition(
+  source: MapReportHandoffSource,
+  options: MapReportHandoffOptions,
+  map: maplibregl.Map | null,
+): MapCompositionOptions {
+  const dimensions = getReportHandoffPageDimensionsMm(options.snapshotFrame, map);
+  return {
+    ...DEFAULT_MAP_COMPOSITION_OPTIONS,
+    format: "png",
+    dpi: 72,
+    pageSize: "custom",
+    customWidthMm: dimensions.width,
+    customHeightMm: dimensions.height,
+    mapFit: options.snapshotFit,
+    title: source.title ?? "Map report handoff",
+    subtitle: `${source.scope.replace("-", " ")} evidence snapshot`,
+    includeInsetMap: false,
+  };
+}
+
+interface CartographyUndoEntry {
+  recommendationId: string;
+  layerId: string;
+  label: string;
+  beforeLayer: OverlayLayerConfig;
+}
+
+const workflowPreviewHudStyle: React.CSSProperties = {
+  position: "absolute",
+  left: "50%",
+  bottom: `calc(${MAP_SPACING.lg} + ${MAP_SPACING.lg})`,
+  transform: "translateX(-50%)",
+  zIndex: MAP_NUMERIC.sidebarZIndex,
+  display: "grid",
+  gap: MAP_SPACING.xs,
+  minWidth: "min(26rem, calc(100% - 2rem))",
+  maxWidth: "34rem",
+  padding: `${MAP_SPACING.sm} ${MAP_SPACING.md}`,
+  border: MAP_STROKES.hairlineStrong,
+  borderRadius: MAP_RADIUS.sm,
+  background: MAP_COLORS.bgPanel,
+  color: MAP_COLORS.textSecondary,
+  boxShadow: MAP_STROKES.none,
+  fontFamily: MAP_TYPOGRAPHY.fontFamily,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  pointerEvents: "none",
+};
+
+const workflowDividerStyle: React.CSSProperties = {
+  position: "absolute",
+  top: MAP_SPACING.zero,
+  bottom: MAP_SPACING.zero,
+  width: MAP_DIMENSIONS.separatorWidth,
+  background: MAP_COLORS.amber,
+  boxShadow: MAP_STROKES.none,
+  pointerEvents: "none",
+  zIndex: MAP_NUMERIC.sidebarZIndex - 1,
+};
+
+const comparisonLegendStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  gap: MAP_SPACING.xs,
+  minWidth: MAP_SPACING.zero,
+};
+
+const comparisonLegendItemStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "0.75rem minmax(0, 1fr)",
+  alignItems: "center",
+  gap: MAP_SPACING.xs,
+  minWidth: MAP_SPACING.zero,
+  color: MAP_COLORS.textSecondary,
+};
+
+const comparisonLegendSwatchStyle: React.CSSProperties = {
+  width: "0.75rem",
+  height: "0.75rem",
+  borderRadius: MAP_RADIUS.xs,
+  border: MAP_STROKES.hairlineSubtle,
+};
+
+const comparisonLayerBColor = "#38bdf8";
+
+const WorkflowPreviewOverlay: React.FC<{ preview: MapWorkflowPreview | null }> = ({ preview }) => {
+  if (!preview) {
+    return null;
+  }
+
+  const comparison = preview.comparisonState;
+  const dividerLeft = comparison
+    ? `${Math.round((comparison.view === "split" ? 0.5 : comparison.swipePosition) * 100)}%`
+    : null;
+
+  return (
+    <>
+      {comparison && comparison.view !== "blend" && dividerLeft ? (
+        <div
+          style={{
+            ...workflowDividerStyle,
+            left: dividerLeft,
+          }}
+          aria-hidden="true"
+        />
+      ) : null}
+      <div style={workflowPreviewHudStyle} data-testid="map-workflow-preview-hud" aria-live="polite">
+        <strong style={{ color: MAP_COLORS.amber }}>
+          {comparison ? "Comparison preview" : "Workflow preview layer"}
+        </strong>
+        {comparison ? (
+          <>
+            <span>
+              {comparison.layerAName} vs {comparison.layerBName} - {comparison.view}
+              {comparison.view === "blend"
+                ? ` - opacity ${Math.round(comparison.blendOpacityA * 100)}% / ${Math.round(comparison.blendOpacityB * 100)}%`
+                : ` - divider ${Math.round(comparison.swipePosition * 100)}%`}
+            </span>
+            <div style={comparisonLegendStyle} data-testid="map-comparison-legend" aria-label="Synchronized comparison legend">
+              <span style={comparisonLegendItemStyle} title={comparison.layerAName}>
+                <span style={{ ...comparisonLegendSwatchStyle, background: MAP_COLORS.amber }} aria-hidden="true" />
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>A · {comparison.layerAName}</span>
+              </span>
+              <span style={comparisonLegendItemStyle} title={comparison.layerBName}>
+                <span style={{ ...comparisonLegendSwatchStyle, background: comparisonLayerBColor }} aria-hidden="true" />
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>B · {comparison.layerBName}</span>
+              </span>
+            </div>
+          </>
+        ) : (
+          <span>
+            {preview.featureCount.toLocaleString()} preview feature{preview.featureCount === 1 ? "" : "s"} - apply to register provenance, QA, and report metadata.
+          </span>
+        )}
+      </div>
+    </>
+  );
+};
+
+interface FlowDispatchAoiCandidate {
+  feature: Feature<Polygon | MultiPolygon>;
+  source: "drawn-aoi" | "map-context-menu";
+  label: string;
+}
+
+function formatBytes(value: number): string {
+  if (!Number.isFinite(value) || value <= 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB"];
+  let size = value;
+  let unitIndex = 0;
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024;
+    unitIndex += 1;
+  }
+  return `${size.toFixed(size >= 100 || unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+}
+
+/* ================================================================== */
+/*  Visually-hidden style (skip-nav link)                              */
+/* ================================================================== */
+
+const MAP_NAVIGATOR_STAGE_MARGIN = MAP_NUMERIC.navigatorStageMargin;
+const MAP_NAVIGATOR_STAGE_TOP = MAP_NUMERIC.navigatorStageTop;
+const MAP_NAVIGATOR_STAGE_BOTTOM = MAP_NUMERIC.navigatorStageBottom;
+
+const srOnlyFocusable: React.CSSProperties = {
+  ...mapStyles.srOnly,
+};
+
+const commandHeaderStyle: React.CSSProperties = {
+  ...mapStyles.header,
+  position: "relative",
+  zIndex: MAP_NUMERIC.importProgressZIndex + 1,
+  flexWrap: "nowrap",
+  alignContent: "center",
+  gap: MAP_SPACING.xs,
+  minHeight: "2.75rem",
+  padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
+  overflowX: "visible",
+  overflowY: "visible",
+  background: MAP_COLORS.bgHeader,
+  boxShadow: `inset 0 -1px 0 ${MAP_COLORS.amberHairline}`,
+};
+
+const commandHeaderTitleStyle: React.CSSProperties = {
+  ...mapStyles.title,
+  flex: "0 0 auto",
+  marginRight: MAP_SPACING.zero,
+  lineHeight: MAP_TYPOGRAPHY.lineHeight.tight,
+  whiteSpace: "nowrap",
+};
+
+const commandHeaderToolbarSlot: React.CSSProperties = {
+  flex: "1 1 20rem",
+  minWidth: MAP_SPACING.zero,
+  display: "flex",
+  alignItems: "center",
+  overflow: "visible",
+};
+
+const commandHeaderCloseButton: React.CSSProperties = {
+  ...mapStyles.closeBtn,
+  position: "static",
+  flex: "0 0 auto",
+  width: "1.75rem",
+  height: "1.75rem",
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.sm,
+  background: MAP_COLORS.transparent,
+};
+
+/* ================================================================== */
+/*  Props                                                              */
+/* ================================================================== */
+
+export interface MapExplorerModalProps {
+  open: boolean;
+  onClose: () => void;
+  mode?: MapExplorerMode;
+  mapCanvasRef?: React.MutableRefObject<maplibregl.Map | null>;
+  bottomTimelineSlot?: React.ReactNode;
+}
+
+function matchesSpatialStatsOutput(
+  output: MapOutput,
+  layerId: string,
+  rerunToken?: string | null,
+  runId?: string,
+): boolean {
+  if (output.id === layerId) {
+    return true;
+  }
+
+  if (rerunToken && output.engineBridge?.rerunToken === rerunToken) {
+    return true;
+  }
+
+  return Boolean(runId && output.engineBridge?.runId === runId);
+}
+
+function replaceSpatialStatsOutput(
+  outputs: MapOutput[],
+  nextOutput: MapOutput,
+  layerId: string,
+  rerunToken?: string | null,
+  runId?: string,
+): MapOutput[] {
+  const index = outputs.findIndex((output) => matchesSpatialStatsOutput(output, layerId, rerunToken, runId));
+  if (index === -1) {
+    return [...outputs, nextOutput];
+  }
+
+  const nextOutputs = [...outputs];
+  nextOutputs[index] = nextOutput;
+  return nextOutputs;
+}
+
+function isPolygonGeometry(geometry: GeoJSON.Geometry | null | undefined): geometry is Polygon | MultiPolygon {
+  return geometry?.type === "Polygon" || geometry?.type === "MultiPolygon";
+}
+
+function isPolygonLayerCandidate(layer: OverlayLayerConfig): boolean {
+  if (!layer.visible || layer.type !== "geojson") {
+    return false;
+  }
+  const geometryType = layer.metadata?.geometryType?.toLowerCase() ?? "";
+  return !geometryType || geometryType.includes("polygon") || geometryType.includes("multi");
+}
+
+function hasPolygonGeometry(collection: GeoJSON.FeatureCollection): boolean {
+  return collection.features.some((feature) => isPolygonGeometry(feature.geometry));
+}
+
+function visitCoordinates(geometry: GeoJSON.Geometry, visitor: (coordinate: [number, number]) => void): void {
+  if (geometry.type === "GeometryCollection") {
+    geometry.geometries.forEach((entry) => visitCoordinates(entry, visitor));
+    return;
+  }
+
+  const walk = (value: unknown): void => {
+    if (!Array.isArray(value) || value.length === 0) {
+      return;
+    }
+    if (typeof value[0] === "number" && typeof value[1] === "number") {
+      visitor([Number(value[0]), Number(value[1])]);
+      return;
+    }
+    for (const entry of value) {
+      walk(entry);
+    }
+  };
+  walk(geometry.coordinates);
+}
+
+function getFeatureBounds(feature: GeoJSON.Feature): [number, number, number, number] | null {
+  if (!feature.geometry) {
+    return null;
+  }
+  let minLng = Number.POSITIVE_INFINITY;
+  let minLat = Number.POSITIVE_INFINITY;
+  let maxLng = Number.NEGATIVE_INFINITY;
+  let maxLat = Number.NEGATIVE_INFINITY;
+  visitCoordinates(feature.geometry, ([lng, lat]) => {
+    minLng = Math.min(minLng, lng);
+    minLat = Math.min(minLat, lat);
+    maxLng = Math.max(maxLng, lng);
+    maxLat = Math.max(maxLat, lat);
+  });
+  if (!Number.isFinite(minLng) || !Number.isFinite(minLat) || !Number.isFinite(maxLng) || !Number.isFinite(maxLat)) {
+    return null;
+  }
+  return [minLng, minLat, maxLng, maxLat];
+}
+
+function doBoundsIntersect(
+  first: [number, number, number, number],
+  second: [number, number, number, number],
+): boolean {
+  return first[0] <= second[2]
+    && first[2] >= second[0]
+    && first[1] <= second[3]
+    && first[3] >= second[1];
+}
+
+function filterFeatureCollectionToBounds(
+  collection: GeoJSON.FeatureCollection,
+  bounds: [number, number, number, number],
+): GeoJSON.FeatureCollection {
+  return {
+    ...collection,
+    features: collection.features.filter((feature) => {
+      const featureBounds = getFeatureBounds(feature);
+      return featureBounds ? doBoundsIntersect(featureBounds, bounds) : false;
+    }),
+  };
+}
+
+function resolveFlowDispatchAoiCandidate(
+  drawnFeatures: DrawnFeature[],
+  selectedFeatureId: string | null,
+  currentMapBounds: [number, number, number, number] | null,
+): FlowDispatchAoiCandidate | null {
+  const selectedPolygon = selectedFeatureId
+    ? drawnFeatures.find((feature) => feature.id === selectedFeatureId && isPolygonGeometry(feature.geometry))
+    : null;
+  const latestPolygon = selectedPolygon
+    ?? [...drawnFeatures].reverse().find((feature) => isPolygonGeometry(feature.geometry));
+
+  if (latestPolygon && isPolygonGeometry(latestPolygon.geometry)) {
+    return {
+      feature: {
+        type: "Feature",
+        id: latestPolygon.id,
+        geometry: latestPolygon.geometry,
+        properties: latestPolygon.properties,
+      } as Feature<Polygon | MultiPolygon>,
+      source: "drawn-aoi",
+      label: String(latestPolygon.properties?.label ?? "Latest drawn AOI"),
+    };
+  }
+
+  if (currentMapBounds) {
+    return {
+      feature: buildBoundsPolygon(currentMapBounds),
+      source: "map-context-menu",
+      label: "Current visible map extent",
+    };
+  }
+
+  return null;
+}
+
+function feedbackAccent(tone: DispatchFeedbackTone): string {
+  switch (tone) {
+    case "success":
+      return "#34d399";
+    case "error":
+      return "#f87171";
+    case "busy":
+      return "#f59e0b";
+    default:
+      return "#fbbf24";
+  }
+}
+
+/* ================================================================== */
+/*  Component — Shell (portal, overlay, layout grid)                   */
+/* ================================================================== */
+
+export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
+  open,
+  onClose,
+  mode = "modal",
+  mapCanvasRef,
+  bottomTimelineSlot,
+}) => {
+  const mapInstanceRef = useRef<maplibregl.Map | null>(null);
+  const suppressViewportSyncPublishRef = useRef(false);
+  const importInputRef = useRef<HTMLInputElement | null>(null);
+  const dragCounterRef = useRef(0);
+  const lastMapRenderErrorRef = useRef<{ message: string; timestamp: number } | null>(null);
+  const headerRef = useRef<HTMLDivElement | null>(null);
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const legendRef = useRef<HTMLDivElement | null>(null);
+  const statusBarRef = useRef<HTMLDivElement | null>(null);
+  const scientificQASequenceRef = useRef(0);
+  const lastReviewQaSignatureRef = useRef<string | null>(null);
+  const lastReviewRecommendationSignatureRef = useRef<string | null>(null);
+  const recordedCopilotProposalIdsRef = useRef<Set<string>>(new Set());
+  const recordedCopilotAuditIdsRef = useRef<Set<string>>(new Set());
+  const symbologyPanelDrag = useDraggableMapPanel();
+  const mapCanvasId = "map-explorer-canvas";
+
+  /* ---- Accessibility hooks ---- */
+  const { trapRef, activate: activateTrap } = useFocusTrap(open);
+  const { announce, AnnouncerRegion } = useAnnouncer();
+  const reducedMotion = usePrefersReducedMotion();
+
+  /* ---- Store selectors ---- */
+  const activeBaseLayer = useMapExplorerStore((s) => s.activeBaseLayer);
+  const setBaseLayer = useMapExplorerStore((s) => s.setBaseLayer);
+  const completedRuns = useFlowStore((s) => s.completedRuns);
+  const upsertCompletedRun = useFlowStore((s) => s.upsertCompletedRun);
+  const pins = useMapExplorerStore((s) => s.pins);
+  const addPin = useMapExplorerStore((s) => s.addPin);
+  const removePin = useMapExplorerStore((s) => s.removePin);
+  const clearPins = useMapExplorerStore((s) => s.clearPins);
+  const bookmarks = useMapExplorerStore((s) => s.bookmarks);
+  const addMapBookmark = useMapExplorerStore((s) => s.addMapBookmark);
+  const renameMapBookmark = useMapExplorerStore((s) => s.renameMapBookmark);
+  const removeMapBookmark = useMapExplorerStore((s) => s.removeMapBookmark);
+  const restoreMapBookmark = useMapExplorerStore((s) => s.restoreMapBookmark);
+  const annotations = useMapExplorerStore((s) => s.annotations);
+  const annotationToolSettings = useMapExplorerStore((s) => s.annotationToolSettings);
+  const selectedAnnotationId = useMapExplorerStore((s) => s.selectedAnnotationId);
+  const setAnnotationToolSettings = useMapExplorerStore((s) => s.setAnnotationToolSettings);
+  const addMapAnnotation = useMapExplorerStore((s) => s.addMapAnnotation);
+  const updateMapAnnotation = useMapExplorerStore((s) => s.updateMapAnnotation);
+  const moveMapAnnotation = useMapExplorerStore((s) => s.moveMapAnnotation);
+  const removeMapAnnotation = useMapExplorerStore((s) => s.removeMapAnnotation);
+  const setSelectedAnnotationId = useMapExplorerStore((s) => s.setSelectedAnnotationId);
+  const activeTool = useMapExplorerStore((s) => s.activeTool);
+  const setActiveTool = useMapExplorerStore((s) => s.setActiveTool);
+  const center = useMapExplorerStore((s) => s.center);
+  const zoom = useMapExplorerStore((s) => s.zoom);
+  const bearing = useMapExplorerStore((s) => s.bearing);
+  const pitch = useMapExplorerStore((s) => s.pitch);
+  const setViewport = useMapExplorerStore((s) => s.setViewport);
+  const restoreProjectState = useMapExplorerStore((s) => s.restoreProjectState);
+  const clearProjectContent = useMapExplorerStore((s) => s.clearProjectContent);
+  const currentMapBounds = useMapExplorerStore((s) => s.currentMapBounds);
+  const setCurrentMapBounds = useMapExplorerStore((s) => s.setCurrentMapBounds);
+  const viewportSyncEnabled = useViewportSyncStore((s) => s.enabled);
+  const viewportSyncStatus = useViewportSyncStore((s) => s.statusLabel);
+  const setActiveAnalysisResultLayers = useMapExplorerStore((s) => s.setActiveAnalysisResultLayers);
+  const activeAnalysisResultLayerIds = useMapExplorerStore((s) => s.activeAnalysisResultLayerIds);
+  const scientificQA = useMapExplorerStore((s) => s.scientificQA);
+  const setScientificQA = useMapExplorerStore((s) => s.setScientificQA);
+  const reviewSession = useMapExplorerStore((s) => s.reviewSession);
+  const addMapReviewEvent = useMapExplorerStore((s) => s.addMapReviewEvent);
+  const updateMapReviewEventStatus = useMapExplorerStore((s) => s.updateMapReviewEventStatus);
+  const clearMapReviewSession = useMapExplorerStore((s) => s.clearMapReviewSession);
+  const copilotActionProposals = useMapExplorerStore((s) => s.copilotActionProposals);
+  const copilotAuditTrail = useMapExplorerStore((s) => s.copilotAuditTrail);
+  const layoutPreferences = useMapExplorerStore((s) => s.layoutPreferences);
+  const setLayoutPreferences = useMapExplorerStore((s) => s.setLayoutPreferences);
+
+  /* ---- Overlay layer store selectors ---- */
+  const overlayLayers = useMapExplorerStore((s) => s.overlayLayers);
+  const addOverlayLayer = useMapExplorerStore((s) => s.addOverlayLayer);
+  const removeOverlayLayer = useMapExplorerStore((s) => s.removeOverlayLayer);
+  const toggleLayerVisibility = useMapExplorerStore((s) => s.toggleLayerVisibility);
+  const setLayerOpacity = useMapExplorerStore((s) => s.setLayerOpacity);
+  const reorderLayers = useMapExplorerStore((s) => s.reorderLayers);
+
+  /* ---- Drawing store selectors ---- */
+  const activeDrawTool = useMapExplorerStore((s) => s.activeDrawTool);
+  const setActiveDrawTool = useMapExplorerStore((s) => s.setActiveDrawTool);
+  const drawnFeatures = useMapExplorerStore((s) => s.drawnFeatures);
+  const addDrawnFeature = useMapExplorerStore((s) => s.addDrawnFeature);
+  const removeDrawnFeature = useMapExplorerStore((s) => s.removeDrawnFeature);
+  const updateDrawnFeature = useMapExplorerStore((s) => s.updateDrawnFeature);
+  const clearDrawnFeatures = useMapExplorerStore((s) => s.clearDrawnFeatures);
+  const selectedFeatureId = useMapExplorerStore((s) => s.selectedFeatureId);
+  const selectedFeatureIds = useMapExplorerStore((s) => s.selectedFeatureIds);
+  const setSelectedFeatureId = useMapExplorerStore((s) => s.setSelectedFeatureId);
+  const activeAoiId = useMapExplorerStore((s) => s.activeAoiId);
+
+  /* ---- Measurement store selectors ---- */
+  const activeMeasureTool = useMapExplorerStore((s) => s.activeMeasureTool);
+  const setActiveMeasureTool = useMapExplorerStore((s) => s.setActiveMeasureTool);
+  const measurements = useMapExplorerStore((s) => s.measurements);
+  const addMeasurement = useMapExplorerStore((s) => s.addMeasurement);
+  const removeMeasurement = useMapExplorerStore((s) => s.removeMeasurement);
+  const clearMeasurements = useMapExplorerStore((s) => s.clearMeasurements);
+  const measureUnit = useMapExplorerStore((s) => s.measureUnit);
+  const setMeasureUnit = useMapExplorerStore((s) => s.setMeasureUnit);
+  const setCurrentTimestep = useMapExplorerStore((s) => s.setCurrentTimestep);
+  const setIsPlaying = useMapExplorerStore((s) => s.setIsPlaying);
+
+  const projectRegistry = useProjectRegistryOptional();
+  const selectedProjectId = projectRegistry?.state.selectedProjectId ?? null;
+  const selectedProject = selectedProjectId
+    ? projectRegistry?.state.projects.find((project) => project.id === selectedProjectId) ?? null
+    : null;
+  const autoSaveEnabled = useAppStore((s) => s.user?.preferences.autoSave ?? true);
+  const initialWorkspaceView: MapWorkspaceView =
+    overlayLayers.length > 0 || pins.length > 0 || drawnFeatures.length > 0 || annotations.length > 0 || measurements.length > 0
+      ? "explore"
+      : "navigator";
+
+  /* ---- Transient local state (not persisted) ---- */
+  const [workspaceView, setWorkspaceView] = useState<MapWorkspaceView>(initialWorkspaceView);
+  const [cursor, setCursor] = useState<{ lng: number; lat: number } | null>(null);
+  const [showSidebar, setShowSidebar] = useState(false);
+  const [showLayerPanel, setShowLayerPanel] = useState(true);
+  const [showChoroplethPanel, setShowChoroplethPanel] = useState(false);
+  const [showClusterViz, setShowClusterViz] = useState(false);
+  const [showHotSpotViz, setShowHotSpotViz] = useState(false);
+  const [showEmergingHotSpotViz, setShowEmergingHotSpotViz] = useState(false);
+  const [showVoxCityOverlay, setShowVoxCityOverlay] = useState(false);
+  const [showScientificQAPanel, setShowScientificQAPanel] = useState(false);
+  const [showNLQueryPanel, setShowNLQueryPanel] = useState(false);
+  const [showWorkflowDrawer, setShowWorkflowDrawer] = useState(false);
+  const [showReviewTimeline, setShowReviewTimeline] = useState(false);
+  const [workflowPreview, setWorkflowPreview] = useState<MapWorkflowPreview | null>(null);
+  const [workflowGeocodedPlace, setWorkflowGeocodedPlace] = useState<MapWorkflowGeocodedPlace | null>(null);
+  const [_workflowReportItems, setWorkflowReportItems] = useState<MapWorkflowReportItem[]>([]);
+  const [showExternalServiceDialog, setShowExternalServiceDialog] = useState(false);
+  const [pointSymbologyLayerId, setPointSymbologyLayerId] = useState<string | null>(null);
+  const [pointSymbologyMode, setPointSymbologyMode] = useState<SymbolMode | "heatmap">("heatmap");
+  const [showDrawPanel, setShowDrawPanel] = useState(true);
+  const [showMeasurePanel, setShowMeasurePanel] = useState(false);
+  const [mapContainerElement, setMapContainerElement] = useState<HTMLDivElement | null>(null);
+  const [mapContainerWidth, setMapContainerWidth] = useState(0);
+  const [restrictToMapView, setRestrictToMapView] = useState(() => Boolean(currentMapBounds));
+  const [dispatchFeedback, setDispatchFeedback] = useState<DispatchFeedbackState | null>(null);
+  const [selectionStatsSummary, setSelectionStatsSummary] = useState<SelectionStatisticsSummary[] | null>(null);
+  const [isFlowDispatchDialogOpen, setIsFlowDispatchDialogOpen] = useState(false);
+  const [isRunningQuickHotSpot, setIsRunningQuickHotSpot] = useState(false);
+  const [isRunningMapNLQuery, setIsRunningMapNLQuery] = useState(false);
+  const [lastMapNLQuerySummary, setLastMapNLQuerySummary] = useState<MapNLQueryPanelRunSummary | null>(null);
+  const [dismissedCartographyRecommendationIds, setDismissedCartographyRecommendationIds] = useState<Set<string>>(() => new Set());
+  const [cartographyUndoStack, setCartographyUndoStack] = useState<CartographyUndoEntry[]>([]);
+  const navigatorStageMode = workspaceView === "navigator";
+
+  const compatibleAoiFlows = useMemo(() => getCompatibleAoiFlows(), []);
+  const flowDispatchAoi = useMemo(
+    () => resolveFlowDispatchAoiCandidate(drawnFeatures, selectedFeatureId, currentMapBounds),
+    [currentMapBounds, drawnFeatures, selectedFeatureId],
+  );
+  const selectedAoiFeatureForQuery = useMemo<Feature<Geometry> | null>(
+    () => flowDispatchAoi?.source === "drawn-aoi" ? flowDispatchAoi.feature : null,
+    [flowDispatchAoi],
+  );
+  const externalServiceBounds = useMemo(
+    () => resolveMapAnalysisBounds({
+      drawnFeatures,
+      selectedFeatureId,
+      currentMapBounds,
+      ...(activeAoiId ? { activeAoiId } : {}),
+    }),
+    [activeAoiId, currentMapBounds, drawnFeatures, selectedFeatureId],
+  );
+  const selectionStatsAvailable = useMemo(
+    () => Object.values(selectedFeatureIds).some((ids) => ids.length > 0),
+    [selectedFeatureIds],
+  );
+  const activeAnalysisInputLayerIds = useMemo(() => {
+    const selectedLayerIds = Object.entries(selectedFeatureIds)
+      .filter(([, ids]) => ids.length > 0)
+      .map(([layerId]) => layerId);
+    return Array.from(new Set([...selectedLayerIds, ...activeAnalysisResultLayerIds]));
+  }, [activeAnalysisResultLayerIds, selectedFeatureIds]);
+  const scientificQAIssueCount = useMemo(
+    () => scientificQA?.issues.filter((issue) => issue.severity !== "info").length ?? 0,
+    [scientificQA?.issues],
+  );
+  const scientificQABlockerCount = useMemo(
+    () => scientificQA
+      ? scientificQA.metadata.issueCounts.blocker + scientificQA.metadata.issueCounts.error
+      : 0,
+    [scientificQA],
+  );
+  const analysisRecommendationState = useMemo(
+    () => generateMapAnalysisRecommendations({
+      overlayLayers,
+      selectedFeatureIds,
+      scientificQA,
+      currentMapBounds,
+      userIntent: workspaceView,
+    }),
+    [currentMapBounds, overlayLayers, scientificQA, selectedFeatureIds, workspaceView],
+  );
+  const nlQueryToolbarContext = useMemo(
+    () => buildMapNLQueryContext(overlayLayers, {
+      scope: "visible",
+      mode: "live",
+      selectedAoiFeature: selectedAoiFeatureForQuery,
+      currentMapBounds,
+    }),
+    [currentMapBounds, overlayLayers, selectedAoiFeatureForQuery],
+  );
+  const workflowDrawnPolygons = useMemo<Array<Feature<Polygon | MultiPolygon>>>(
+    () =>
+      drawnFeatures
+        .filter(
+          (entry): entry is typeof entry & { geometry: Polygon | MultiPolygon } =>
+            entry.geometry?.type === "Polygon" || entry.geometry?.type === "MultiPolygon",
+        )
+        .map((entry) => ({
+          type: "Feature",
+          properties: { ...entry.properties, drawn_feature_id: entry.id },
+          geometry: entry.geometry,
+        }) satisfies Feature<Polygon | MultiPolygon>),
+    [drawnFeatures],
+  );
+  const workflowSelectedFeatures = useMemo<Array<Feature<Geometry>>>(() => {
+    const features: Array<Feature<Geometry>> = [];
+    for (const [layerId, ids] of Object.entries(selectedFeatureIds)) {
+      if (!ids.length) continue;
+      const layer = overlayLayers.find((entry) => entry.id === layerId);
+      if (!layer) continue;
+      const sourceData = layer.sourceData;
+      if (!sourceData || typeof sourceData === "string") continue;
+      const collection =
+        (sourceData as FeatureCollection).type === "FeatureCollection"
+          ? (sourceData as FeatureCollection)
+          : null;
+      if (!collection) continue;
+      const idSet = new Set(ids.map(String));
+      for (const feature of collection.features) {
+        const featureId = feature.id == null ? null : String(feature.id);
+        if (featureId && idSet.has(featureId)) {
+          features.push({
+            ...feature,
+            properties: {
+              ...(feature.properties ?? {}),
+              __selection_layer_id: layerId,
+            },
+          });
+        }
+      }
+    }
+    return features;
+  }, [overlayLayers, selectedFeatureIds]);
+  const workflowSelectedLayerIds = useMemo(
+    () => Object.entries(selectedFeatureIds)
+      .filter(([, ids]) => ids.length > 0)
+      .map(([layerId]) => layerId),
+    [selectedFeatureIds],
+  );
+  const workflowContext = useMemo(
+    () =>
+      buildMapWorkflowContext(overlayLayers, {
+        selectedFeatures: workflowSelectedFeatures,
+        selectedLayerIds: workflowSelectedLayerIds,
+        drawnPolygons: workflowDrawnPolygons,
+        viewportBounds: currentMapBounds,
+        geocodedPlace: workflowGeocodedPlace,
+      }),
+    [currentMapBounds, overlayLayers, workflowDrawnPolygons, workflowGeocodedPlace, workflowSelectedFeatures, workflowSelectedLayerIds],
+  );
+  const workflowReadyCount = useMemo(
+    () => workflowContext.layers.filter((layer) => layer.hasGeometry).length,
+    [workflowContext.layers],
+  );
+  const cartographyReviewState = useMemo(
+    () => generateMapCartographyReview(overlayLayers, {
+      viewport: {
+        zoom,
+        bounds: currentMapBounds,
+      },
+      dismissedRecommendationIds: dismissedCartographyRecommendationIds,
+    }),
+    [currentMapBounds, dismissedCartographyRecommendationIds, overlayLayers, zoom],
+  );
+  const selectedLayerCartographyRecommendations = useMemo(
+    () => pointSymbologyLayerId
+      ? cartographyReviewState.recommendations.filter((recommendation) => recommendation.layerId === pointSymbologyLayerId)
+      : [],
+    [cartographyReviewState.recommendations, pointSymbologyLayerId],
+  );
+
+  const buildCurrentReviewSnapshot = useCallback(() => {
+    const map = mapInstanceRef.current;
+    const mapCenter = map?.getCenter();
+    return buildMapReviewContextSnapshot({
+      overlayLayers,
+      viewport: map && mapCenter
+        ? {
+            center: [mapCenter.lng, mapCenter.lat],
+            zoom: map.getZoom(),
+            bearing: map.getBearing(),
+            pitch: map.getPitch(),
+          }
+        : { center, zoom, bearing, pitch },
+      currentMapBounds,
+      selectedFeatureIds,
+      activeAoiId: activeAoiId ?? null,
+      activeAnalysisResultLayerIds,
+      scientificQA,
+      recommendationCount: analysisRecommendationState.recommendations.length,
+    });
+  }, [
+    activeAnalysisResultLayerIds,
+    activeAoiId,
+    analysisRecommendationState.recommendations.length,
+    bearing,
+    center,
+    currentMapBounds,
+    overlayLayers,
+    pitch,
+    scientificQA,
+    selectedFeatureIds,
+    zoom,
+  ]);
+
+  const recordMapReviewEvent = useCallback((event: MapReviewTimelineEventInput) => {
+    addMapReviewEvent({
+      ...event,
+      snapshot: event.snapshot ?? buildCurrentReviewSnapshot(),
+    });
+  }, [addMapReviewEvent, buildCurrentReviewSnapshot]);
+
+  useEffect(() => {
+    if (!open || reviewSession.events.length > 0) {
+      return;
+    }
+
+    clearMapReviewSession({
+      projectId: selectedProjectId,
+      title: selectedProject?.name ? `${selectedProject.name} map review session` : "Map review session",
+      initialSnapshot: buildCurrentReviewSnapshot(),
+    });
+  }, [buildCurrentReviewSnapshot, clearMapReviewSession, open, reviewSession.events.length, selectedProject?.name, selectedProjectId]);
+
+  useEffect(() => {
+    if (!open || typeof globalThis.addEventListener !== "function") {
+      return undefined;
+    }
+
+    const handleLayerRegistryChange = (event: Event) => {
+      const detail = (event as CustomEvent<MapLayerRegistryChangeDetail>).detail;
+      if (!detail) return;
+      recordMapReviewEvent(buildLayerRegistryReviewEvent(detail, buildCurrentReviewSnapshot()));
+    };
+
+    globalThis.addEventListener(MAP_LAYER_REGISTRY_EVENT, handleLayerRegistryChange as EventListener);
+    return () => globalThis.removeEventListener(MAP_LAYER_REGISTRY_EVENT, handleLayerRegistryChange as EventListener);
+  }, [buildCurrentReviewSnapshot, open, recordMapReviewEvent]);
+
+  useEffect(() => {
+    if (!open || !scientificQA) {
+      return;
+    }
+
+    const signature = scientificQA.metadata.signature;
+    if (lastReviewQaSignatureRef.current === signature) {
+      return;
+    }
+
+    lastReviewQaSignatureRef.current = signature;
+    recordMapReviewEvent(buildScientificQAReviewEvent(scientificQA, buildCurrentReviewSnapshot()));
+  }, [buildCurrentReviewSnapshot, open, recordMapReviewEvent, scientificQA]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const signature = analysisRecommendationState.metadata.signature;
+    if (lastReviewRecommendationSignatureRef.current === signature) {
+      return;
+    }
+
+    lastReviewRecommendationSignatureRef.current = signature;
+    const event = buildRecommendationReviewEvent(analysisRecommendationState, buildCurrentReviewSnapshot());
+    if (event) {
+      recordMapReviewEvent(event);
+    }
+  }, [analysisRecommendationState, buildCurrentReviewSnapshot, open, recordMapReviewEvent]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    for (const proposal of copilotActionProposals) {
+      if (recordedCopilotProposalIdsRef.current.has(proposal.id)) {
+        continue;
+      }
+      recordedCopilotProposalIdsRef.current.add(proposal.id);
+      recordMapReviewEvent({
+        type: "action-status",
+        status: proposal.status === "preview" ? "previewed" : proposal.status === "proposed" ? "proposed" : proposal.status,
+        timestamp: proposal.queuedAt,
+        title: `Action proposed: ${proposal.title}`,
+        summary: `Explicit map action proposal queued with kind ${proposal.kind}.`,
+        actionIds: [proposal.id],
+        details: {
+          kind: proposal.kind,
+          status: proposal.status,
+        },
+      });
+    }
+  }, [copilotActionProposals, open, recordMapReviewEvent]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    for (const auditEntry of copilotAuditTrail) {
+      if (recordedCopilotAuditIdsRef.current.has(auditEntry.id)) {
+        continue;
+      }
+      recordedCopilotAuditIdsRef.current.add(auditEntry.id);
+      const proposal = copilotActionProposals.find((entry) => entry.id === auditEntry.proposalId);
+      recordMapReviewEvent({
+        type: "action-status",
+        status: auditEntry.action === "applied" ? "applied" : auditEntry.action === "rejected" ? "rejected" : "recorded",
+        timestamp: auditEntry.timestamp,
+        title: `Action ${auditEntry.action}: ${proposal?.title ?? auditEntry.proposalId}`,
+        summary: `Explicit action ${auditEntry.proposalId} was ${auditEntry.action}.`,
+        actionIds: [auditEntry.proposalId],
+        details: {
+          auditId: auditEntry.id,
+          kind: proposal?.kind ?? "unknown",
+        },
+      });
+    }
+  }, [copilotActionProposals, copilotAuditTrail, open, recordMapReviewEvent]);
+
+  useEffect(() => {
+    setMapViewRestriction(currentMapBounds ?? null, restrictToMapView);
+  }, [currentMapBounds, restrictToMapView]);
+
+  useEffect(() => {
+    if (!open) {
+      return undefined;
+    }
+
+    return subscribeToViewportSync((event) => {
+      if (event.source !== "voxcity-3d" || !useViewportSyncStore.getState().enabled) {
+        return;
+      }
+
+      const map = mapInstanceRef.current;
+      if (!map) {
+        return;
+      }
+
+      suppressViewportSyncPublishRef.current = true;
+      setViewport({
+        center: event.center,
+        zoom: event.zoom,
+        bearing: event.bearing,
+        pitch: event.pitch,
+      });
+
+      map.easeTo({
+        center: event.center,
+        zoom: event.zoom,
+        bearing: event.bearing,
+        pitch: event.pitch,
+        duration: reducedMotion ? 0 : 180,
+        essential: true,
+      });
+    });
+  }, [open, reducedMotion, setViewport]);
+  const [reportHandoffSource, setReportHandoffSource] = useState<MapReportHandoffSource | null>(null);
+  const [reportHandoffOptions, setReportHandoffOptions] = useState(DEFAULT_MAP_REPORT_HANDOFF_OPTIONS);
+  const [reportHandoffSnapshot, setReportHandoffSnapshot] = useState<MapReportSnapshotInput | null>(null);
+  const [isGeneratingReportHandoffSnapshot, setIsGeneratingReportHandoffSnapshot] = useState(false);
+  const [isExportingReportHandoffPdf, setIsExportingReportHandoffPdf] = useState(false);
+  const requestedRightDockPanel = reportHandoffSource
+    ? "report"
+    : showScientificQAPanel
+    ? "scientificQA"
+    : showWorkflowDrawer
+      ? "workflow"
+    : getActiveRightDockPanel({
+        showPinSidebar: showSidebar,
+        showDrawPanel,
+        showMeasurePanel,
+      });
+  const dockLayout = useMemo(() => getMapDockLayout({
+    containerWidth: mapContainerWidth,
+    layerPanelRequested: showLayerPanel,
+    rightPanel: requestedRightDockPanel,
+    navigatorStageMode,
+    layerPanelWidth: layoutPreferences.layerPanelWidth,
+    rightPanelWidth: layoutPreferences.rightPanelWidth,
+  }), [
+    layoutPreferences.layerPanelWidth,
+    layoutPreferences.rightPanelWidth,
+    mapContainerWidth,
+    navigatorStageMode,
+    requestedRightDockPanel,
+    showLayerPanel,
+  ]);
+  const effectiveShowSidebar = dockLayout.showPinSidebar;
+  const effectiveShowLayerPanel = dockLayout.showLayerPanel;
+  const effectiveShowDrawPanel = dockLayout.showDrawPanel;
+  const effectiveShowMeasurePanel = dockLayout.showMeasurePanel;
+  const effectiveShowScientificQAPanel = showScientificQAPanel && dockLayout.showScientificQAPanel;
+  const effectiveShowNLQueryPanel = showNLQueryPanel && !navigatorStageMode;
+  const effectiveShowWorkflowDrawer = showWorkflowDrawer && dockLayout.showWorkflowPanel;
+  const navigatorLeftInset = navigatorStageMode ? MAP_NAVIGATOR_STAGE_MARGIN : dockLayout.leftInset;
+  const navigatorRightInset = navigatorStageMode ? MAP_NAVIGATOR_STAGE_MARGIN : dockLayout.rightInset;
+  const [drawSeed, setDrawSeed] = useState<{
+    coordinate: [number, number];
+    tool: DrawToolId;
+    token: number;
+  } | null>(null);
+  const [measurementSeed, setMeasurementSeed] = useState<{
+    coordinate: [number, number];
+    tool: MeasureToolId;
+    token: number;
+  } | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState<MapImportProgress | null>(null);
+  const [showImportProgress, setShowImportProgress] = useState(false);
+  const [importLabel, setImportLabel] = useState<string | null>(null);
+  const [isDragActive, setIsDragActive] = useState(false);
+  const [pendingCsvImport, setPendingCsvImport] = useState<CsvImportSession | null>(null);
+  const [pendingColumnarImport, setPendingColumnarImport] = useState<ColumnarImportSession | null>(null);
+  const [csvLatitudeColumn, setCsvLatitudeColumn] = useState("");
+  const [csvLongitudeColumn, setCsvLongitudeColumn] = useState("");
+  const [showImportHub, setShowImportHub] = useState(false);
+  const [loadingTeachingDatasetId, setLoadingTeachingDatasetId] = useState<TeachingDatasetId | null>(null);
+  const [showExportDialog, setShowExportDialog] = useState(false);
+  const [showMapExportDialog, setShowMapExportDialog] = useState(false);
+  const [exportFormat, setExportFormat] = useState<MapExportFormat>("geojson");
+  const [exportTarget, setExportTarget] = useState<MapExportTarget>("visible-layers");
+  const [exportPrecision, setExportPrecision] = useState(6);
+  const [exportPrettyPrint, setExportPrettyPrint] = useState(true);
+  const [exportIncludeProperties, setExportIncludeProperties] = useState(true);
+  const [mapCompositionOptions, setMapCompositionOptions] = useState<MapCompositionOptions>(() => ({
+    ...DEFAULT_MAP_COMPOSITION_OPTIONS,
+  }));
+  const [mapExportPreviewUrl, setMapExportPreviewUrl] = useState<string | null>(null);
+  const [isGeneratingMapExportPreview, setIsGeneratingMapExportPreview] = useState(false);
+  const [isExportingMapImage, setIsExportingMapImage] = useState(false);
+  const [isLoadingPointSymbology, setIsLoadingPointSymbology] = useState(false);
+  const [pointSymbologyError, setPointSymbologyError] = useState<string | null>(null);
+  const [pointSymbologyCollection, setPointSymbologyCollection] = useState<GeoJSON.FeatureCollection | null>(null);
+  const [pointSymbologyFields, setPointSymbologyFields] = useState<NumericFieldInfo[]>([]);
+  const [isSavingProject, setIsSavingProject] = useState(false);
+  const [isLoadingProject, setIsLoadingProject] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
+  const [rerunningAnalysisToken, setRerunningAnalysisToken] = useState<string | null>(null);
+  const [selectedTemporalLayerId, setSelectedTemporalLayerId] = useState<string | null>(null);
+  const quotaWarningShownRef = useRef<string | null>(null);
+  const isRestoringProjectRef = useRef(false);
+  const previousProjectIdRef = useRef<string | null>(selectedProjectId);
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const pinMode = activeTool === "pin";
+  const annotationMode = activeTool === "annotate";
+  const selectedPointSymbologyLayer = pointSymbologyLayerId
+    ? overlayLayers.find((layer) => layer.id === pointSymbologyLayerId) ?? null
+    : null;
+  const interactiveAnalysisLayerIds = useMemo(
+    () => overlayLayers
+      .filter((layer) =>
+        layer.visible &&
+        (layer.queryable ?? (layer.type === "geojson" || layer.type === "heatmap")),
+      )
+      .map((layer) => layer.id),
+    [overlayLayers],
+  );
+  const visiblePublicationLayers = useMemo(
+    () => overlayLayers.filter((layer) => layer.visible),
+    [overlayLayers],
+  );
+  const reportHandoffDraft = useMemo(() => {
+    if (!reportHandoffSource) return null;
+    return buildMapReportHandoffDraft({
+      overlayLayers,
+      viewport: { center, zoom, bearing, pitch },
+      currentMapBounds,
+      baseLayerName: BASE_STYLES[activeBaseLayer].name,
+      selectedFeatureIds,
+      scientificQA,
+      source: reportHandoffSource,
+      snapshot: reportHandoffSnapshot,
+      options: reportHandoffOptions,
+    });
+  }, [
+    activeBaseLayer,
+    bearing,
+    center,
+    currentMapBounds,
+    overlayLayers,
+    pitch,
+    reportHandoffOptions,
+    reportHandoffSnapshot,
+    reportHandoffSource,
+    scientificQA,
+    selectedFeatureIds,
+    zoom,
+  ]);
+  const workflowPreviewLayer = useMemo(
+    () => effectiveShowWorkflowDrawer
+      ? buildMapWorkflowPreviewLayer(workflowPreview, workflowContext)
+      : null,
+    [effectiveShowWorkflowDrawer, workflowContext, workflowPreview],
+  );
+  const mapRenderLayers = useMemo(() => {
+    const comparison = effectiveShowWorkflowDrawer ? workflowPreview?.comparisonState : undefined;
+    const baseLayers = comparison?.view === "blend"
+      ? overlayLayers.map((layer) => {
+          if (layer.id === comparison.layerAId) {
+            return { ...layer, opacity: comparison.blendOpacityA };
+          }
+          if (layer.id === comparison.layerBId) {
+            return { ...layer, opacity: comparison.blendOpacityB };
+          }
+          return layer;
+        })
+      : overlayLayers;
+    return workflowPreviewLayer ? [...baseLayers, workflowPreviewLayer] : baseLayers;
+  }, [effectiveShowWorkflowDrawer, overlayLayers, workflowPreview?.comparisonState, workflowPreviewLayer]);
+  const toolbarActiveGeometryType = useMemo(() => {
+    const selectedLayer = selectedPointSymbologyLayer?.visible
+      ? selectedPointSymbologyLayer
+      : visiblePublicationLayers[0] ?? null;
+    return selectedLayer?.metadata?.geometryType ?? null;
+  }, [selectedPointSymbologyLayer, visiblePublicationLayers]);
+  const temporalLayers = useMemo(
+    () => overlayLayers.filter((layer) =>
+      layer.visible &&
+      layer.metadata?.analysisResult?.visualization.kind === "temporal" &&
+      (layer.metadata.analysisResult.visualization.temporalFrames?.length ?? 0) > 0,
+    ),
+    [overlayLayers],
+  );
+  const activeTemporalLayer = temporalLayers.find((layer) => layer.id === selectedTemporalLayerId)
+    ?? temporalLayers[0]
+    ?? null;
+
+  const handleMapContainerRef = useCallback((element: HTMLDivElement | null) => {
+    mapContainerRef.current = element;
+    setMapContainerElement(element);
+  }, []);
+
+  const handleLayerPanelWidthChange = useCallback((width: number) => {
+    setLayoutPreferences({ layerPanelWidth: width });
+  }, [setLayoutPreferences]);
+
+  const handleRightPanelWidthChange = useCallback((width: number) => {
+    setLayoutPreferences({ rightPanelWidth: width });
+  }, [setLayoutPreferences]);
+
+  const handleSetWorkspaceView = useCallback((view: MapWorkspaceView) => {
+    setWorkspaceView(view);
+    announce(`Map workspace switched to ${view}`);
+  }, [announce]);
+
+  useEffect(() => {
+    if (workspaceView !== "analyze") {
+      setShowLayerPanel(true);
+      setShowMeasurePanel(false);
+      if (activeMeasureTool) {
+        setActiveMeasureTool(null);
+      }
+      return;
+    }
+
+    setShowLayerPanel(true);
+    if (activeMeasureTool || showMeasurePanel) {
+      setShowDrawPanel(false);
+      setShowMeasurePanel(true);
+    } else {
+      setShowDrawPanel(true);
+    }
+  }, [activeMeasureTool, setActiveMeasureTool, showMeasurePanel, workspaceView]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    if (!mapContainerElement) return undefined;
+
+    const updateWidth = () => {
+      setMapContainerWidth(Math.round(mapContainerElement.getBoundingClientRect().width));
+    };
+
+    updateWidth();
+
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", updateWidth);
+      return () => window.removeEventListener("resize", updateWidth);
+    }
+
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(mapContainerElement);
+    return () => observer.disconnect();
+  }, [mapContainerElement, open]);
+
+  useEffect(() => {
+    if (temporalLayers.length === 0) {
+      if (selectedTemporalLayerId !== null) {
+        setSelectedTemporalLayerId(null);
+      }
+      return;
+    }
+
+    if (!selectedTemporalLayerId || !temporalLayers.some((layer) => layer.id === selectedTemporalLayerId)) {
+      setSelectedTemporalLayerId(temporalLayers[0]!.id);
+    }
+  }, [selectedTemporalLayerId, temporalLayers]);
+
+  useEffect(() => {
+    setIsPlaying(false);
+    setCurrentTimestep(0);
+  }, [activeTemporalLayer?.id, setCurrentTimestep, setIsPlaying]);
+
+  const handleTemporalLayerSelection = useCallback((event: React.ChangeEvent<HTMLSelectElement>) => {
+    const nextLayerId = event.target.value;
+    setSelectedTemporalLayerId(nextLayerId);
+    setActiveAnalysisResultLayers([nextLayerId]);
+    setIsPlaying(false);
+    setCurrentTimestep(0);
+
+    const nextLayer = temporalLayers.find((layer) => layer.id === nextLayerId);
+    if (nextLayer) {
+      announce(`Temporal layer selected: ${nextLayer.name}`);
+    }
+  }, [announce, setActiveAnalysisResultLayers, setCurrentTimestep, setIsPlaying, temporalLayers]);
+
+  /* ---- Sync overlay layers to MapLibre ---- */
+  useLayerSync(mapInstanceRef, mapRenderLayers);
+
+  /* ---- Scientific QA evaluation ---- */
+  useEffect(() => {
+    if (!open) {
+      return undefined;
+    }
+
+    const sequence = scientificQASequenceRef.current + 1;
+    scientificQASequenceRef.current = sequence;
+    let cancelled = false;
+
+    void evaluateMapScientificQA(overlayLayers, {
+      viewportZoom: zoom,
+      activeAnalysisInputLayerIds,
+      comparisonLayerIds: activeAnalysisResultLayerIds,
+    })
+      .then((qa) => {
+        if (!cancelled && scientificQASequenceRef.current === sequence) {
+          setScientificQA(qa);
+        }
+      })
+      .catch((error) => {
+        if (cancelled) {
+          return;
+        }
+        const message = error instanceof Error
+          ? error.message
+          : "Scientific QA could not complete for the current map state.";
+        toastWarning(message);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeAnalysisInputLayerIds, activeAnalysisResultLayerIds, open, overlayLayers, setScientificQA, zoom]);
+
+  /* ---- Focus trap activation ---- */
+  useEffect(() => {
+    if (open) {
+      /* Short delay so portal DOM is painted before querying focusables */
+      const id = setTimeout(activateTrap, 50);
+      return () => clearTimeout(id);
+    }
+    return undefined;
+  }, [open, activateTrap]);
+
+  /* ---- Escape to close ---- */
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
+  /* ---- Urban Analytics publish → fit bounds (legacy event compatibility) ---- */
+  useEffect(() => {
+    if (!open) return undefined;
+    const handler = (e: Event) => {
+      const { bounds } = (e as CustomEvent<{ bounds: [number, number, number, number] }>).detail;
+      const map = mapInstanceRef.current;
+      if (!map || !bounds) return;
+      const [minLng, minLat, maxLng, maxLat] = bounds;
+      if (minLng === maxLng && minLat === maxLat) {
+        map.easeTo({ center: [minLng, minLat], zoom: Math.max(map.getZoom(), 14), duration: reducedMotion ? 0 : 500, essential: true });
+      } else {
+        map.fitBounds([[minLng, minLat], [maxLng, maxLat]], { padding: 64, duration: reducedMotion ? 0 : 900, essential: true });
+      }
+    };
+    window.addEventListener('synapse:map:fitBounds', handler);
+    return () => window.removeEventListener('synapse:map:fitBounds', handler);
+  }, [open, reducedMotion]);
+
+  /* ---- Typed pending fit-bounds consumer (durable cross-module sync) ---- */
+  /*
+   * Subscribe to `useMapExplorerStore.pendingFitBounds` so a queued
+   * Urban Analytics fit-bounds request is applied as soon as the modal
+   * is open AND the canvas is ready. This handles the ordering case
+   * where the picker opens Map Explorer before the modal mounts and
+   * before the legacy window event listener is attached.
+   */
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const applyPending = () => {
+      const map = mapInstanceRef.current;
+      if (!map) return;
+      const pending = useMapExplorerStore.getState().pendingFitBounds;
+      if (!pending) return;
+      const [minLng, minLat, maxLng, maxLat] = pending.bounds;
+      if (minLng === maxLng && minLat === maxLat) {
+        map.easeTo({
+          center: [minLng, minLat],
+          zoom: Math.max(map.getZoom(), 14),
+          duration: reducedMotion ? 0 : 500,
+          essential: true,
+        });
+      } else {
+        map.fitBounds(
+          [[minLng, minLat], [maxLng, maxLat]],
+          { padding: 64, duration: reducedMotion ? 0 : 900, essential: true },
+        );
+      }
+      useMapExplorerStore.getState().consumePendingFitBounds();
+    };
+
+    // Try once immediately in case there is already a queued request
+    // (e.g. Open Map Explorer queued before the modal mounted).
+    applyPending();
+
+    const unsubscribe = useMapExplorerStore.subscribe((state, previousState) => {
+      if (state.pendingFitBounds !== previousState.pendingFitBounds) {
+        applyPending();
+      }
+    });
+    return unsubscribe;
+  }, [open, reducedMotion]);
+
+  /* ---- Keyboard map controls ---- */
+  useMapKeyboardControls(mapInstanceRef, {
+    enabled: open,
+    mapElementId: mapCanvasId,
+    reducedMotion,
+    defaultCenter: [29.0, 41.0],
+    defaultZoom: 10,
+    onPanAnnounce: (direction) => announce(`Map panned ${direction}`),
+    onZoomAnnounce: (z) => announce(`Zoom level ${z}`),
+    onResetAnnounce: () => announce("Map view reset to default"),
+  });
+
+  /* ---- Map instance callbacks ---- */
+  const handleMapReady = useCallback((map: maplibregl.Map) => {
+    mapInstanceRef.current = map;
+    if (mapCanvasRef) {
+      mapCanvasRef.current = map;
+    }
+    /* Defensive: re-enable interaction handlers in case a previous session
+       (or a child overlay that unmounted mid-drag) left them disabled. */
+    try {
+      map.dragPan.enable();
+      map.scrollZoom.enable();
+      map.boxZoom.enable();
+      map.doubleClickZoom.enable();
+      map.touchZoomRotate.enable();
+      map.keyboard.enable();
+    } catch {
+      /* maplibre instance gone; ignore */
+    }
+    const bounds = map.getBounds();
+    setCurrentMapBounds([
+      Number(bounds.getWest().toFixed(6)),
+      Number(bounds.getSouth().toFixed(6)),
+      Number(bounds.getEast().toFixed(6)),
+      Number(bounds.getNorth().toFixed(6)),
+    ]);
+
+    /* Drain any pending fit-bounds request queued before the canvas was
+       ready (e.g. the Urban Analytics study-area picker calling
+       `openMapExplorerWithStudyAreaPreview`). The typed store contract
+       guarantees the latest request is honoured exactly once. */
+    const pending = useMapExplorerStore.getState().pendingFitBounds;
+    if (pending) {
+      const [minLng, minLat, maxLng, maxLat] = pending.bounds;
+      if (minLng === maxLng && minLat === maxLat) {
+        map.easeTo({
+          center: [minLng, minLat],
+          zoom: Math.max(map.getZoom(), 14),
+          duration: reducedMotion ? 0 : 500,
+          essential: true,
+        });
+      } else {
+        map.fitBounds(
+          [[minLng, minLat], [maxLng, maxLat]],
+          { padding: 64, duration: reducedMotion ? 0 : 900, essential: true },
+        );
+      }
+      useMapExplorerStore.getState().consumePendingFitBounds();
+    }
+  }, [mapCanvasRef, reducedMotion, setCurrentMapBounds]);
+
+  const handleMapDestroy = useCallback(() => {
+    mapInstanceRef.current = null;
+    if (mapCanvasRef) {
+      mapCanvasRef.current = null;
+    }
+  }, [mapCanvasRef]);
+
+  /* ---- Map event callbacks ---- */
+  const handleCursorMove = useCallback((coords: { lng: number; lat: number }) => {
+    setCursor(coords);
+  }, []);
+
+  const handleZoomChange = useCallback((z: number) => {
+    setViewport({ zoom: z });
+  }, [setViewport]);
+
+  const handleViewportChange = useCallback(
+    (
+      v: { center: [number, number]; zoom: number; bearing: number; pitch: number },
+      meta?: { userInitiated: boolean },
+    ) => {
+      setViewport(v);
+      const shouldPublishViewportSync = viewportSyncEnabled && !suppressViewportSyncPublishRef.current;
+      if (suppressViewportSyncPublishRef.current) {
+        suppressViewportSyncPublishRef.current = false;
+      }
+
+      /* Once the user actively pans/zooms the main canvas, an in-flight
+         explicit fit request from a prior open cycle is no longer relevant
+         and must be cleared so subsequent project autoloads can restore
+         their stored viewport normally. */
+      if (meta?.userInitiated) {
+        useMapExplorerStore.getState().clearLastExplicitFitRequest();
+      }
+
+      const bounds = mapInstanceRef.current?.getBounds();
+      if (bounds) {
+        setCurrentMapBounds([
+          Number(bounds.getWest().toFixed(6)),
+          Number(bounds.getSouth().toFixed(6)),
+          Number(bounds.getEast().toFixed(6)),
+          Number(bounds.getNorth().toFixed(6)),
+        ]);
+      }
+
+      if (shouldPublishViewportSync) {
+        publishViewportSync({
+          source: "map-2d",
+          center: v.center,
+          zoom: v.zoom,
+          bearing: v.bearing,
+          pitch: v.pitch,
+        });
+      }
+    },
+    [setCurrentMapBounds, setViewport, viewportSyncEnabled],
+  );
+
+  const handleToggleViewportSync = useCallback(() => {
+    const nextEnabled = !useViewportSyncStore.getState().enabled;
+    setViewportSyncEnabled(nextEnabled);
+    announce(nextEnabled ? "2D and 3D viewport sync enabled" : "2D and 3D viewport sync disabled");
+  }, [announce]);
+
+  const handleExternalServiceProgress = useCallback((detail: MapServiceDialogProgressDetail) => {
+    setIsImporting(detail.busy);
+    setImportLabel(detail.label);
+    setImportProgress(detail.progress);
+    setShowImportProgress(detail.busy || detail.progress !== null);
+  }, []);
+
+  const handleOpenVoxCityOverlayFromService = useCallback(() => {
+    setWorkspaceView("explore");
+    setShowScientificQAPanel(false);
+    setShowNLQueryPanel(false);
+    setShowSidebar(false);
+    setShowDrawPanel(false);
+    setShowMeasurePanel(false);
+    setPointSymbologyLayerId(null);
+    setShowChoroplethPanel(false);
+    setShowClusterViz(false);
+    setShowHotSpotViz(false);
+    setShowEmergingHotSpotViz(false);
+    setShowVoxCityOverlay(true);
+    announce("VoxCity 2D overlay opened for external building source");
+  }, [announce]);
+
+  const handleMapRenderError = useCallback((message: string) => {
+    const now = Date.now();
+    const previous = lastMapRenderErrorRef.current;
+    if (previous?.message === message && now - previous.timestamp < 8_000) {
+      return;
+    }
+
+    lastMapRenderErrorRef.current = { message, timestamp: now };
+    setDispatchFeedback({
+      tone: "error",
+      title: "External service render issue",
+      description: message,
+    });
+    toastWarning(message);
+    announce(message);
+  }, [announce]);
+
+  const handleMapClick = useCallback((coords: { lng: number; lat: number }) => {
+    const newPin: MapPin = {
+      id: `pin-${Date.now()}`,
+      lng: coords.lng,
+      lat: coords.lat,
+      label: `Pin ${pins.length + 1}`,
+    };
+    addPin(newPin);
+    announce(`Pin added: ${newPin.label} at ${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}`);
+  }, [pins.length, addPin, announce]);
+
+  /* ---- Wrapped actions with announcements ---- */
+  const handleSetBaseLayer = useCallback(
+    (layer: import("./map/mapTypes").BaseLayerId) => {
+      setBaseLayer(layer);
+      const names: Record<string, string> = {
+        streets: "OpenStreetMap",
+        dark: "Dark Matter",
+        satellite: "Satellite",
+        terrain: "Positron",
+      };
+      announce(`Base layer switched to ${names[layer] ?? layer}`);
+    },
+    [setBaseLayer, announce],
+  );
+
+  const handleRemovePin = useCallback(
+    (id: string) => {
+      const pin = pins.find((p) => p.id === id);
+      removePin(id);
+      announce(`Pin removed: ${pin?.label ?? id}`);
+    },
+    [removePin, pins, announce],
+  );
+
+  const handleClearPins = useCallback(() => {
+    const count = pins.length;
+    clearPins();
+    announce(`All ${count} pins cleared`);
+  }, [clearPins, pins.length, announce]);
+
+  const closeFloatingRightPanels = useCallback(() => {
+    setPointSymbologyLayerId(null);
+    setShowChoroplethPanel(false);
+    setShowClusterViz(false);
+    setShowHotSpotViz(false);
+    setShowEmergingHotSpotViz(false);
+    setShowVoxCityOverlay(false);
+    setShowNLQueryPanel(false);
+    setShowReviewTimeline(false);
+  }, []);
+
+  const closeRightDockPanels = useCallback(() => {
+    setShowSidebar(false);
+    setShowDrawPanel(false);
+    setShowMeasurePanel(false);
+  }, []);
+
+  const openScientificQAPanel = useCallback(() => {
+    if (navigatorStageMode) {
+      setWorkspaceView("explore");
+    }
+    closeRightDockPanels();
+    closeFloatingRightPanels();
+    setShowScientificQAPanel(true);
+    announce("Scientific QA panel opened");
+  }, [announce, closeFloatingRightPanels, closeRightDockPanels, navigatorStageMode]);
+
+  const handleToggleScientificQAPanel = useCallback(() => {
+    setShowScientificQAPanel((current) => {
+      const next = !current;
+      if (next) {
+        if (navigatorStageMode) {
+          setWorkspaceView("explore");
+        }
+        closeRightDockPanels();
+        closeFloatingRightPanels();
+      }
+      announce(next ? "Scientific QA panel opened" : "Scientific QA panel closed");
+      return next;
+    });
+  }, [announce, closeFloatingRightPanels, closeRightDockPanels, navigatorStageMode]);
+
+  const handleToggleNLQueryPanel = useCallback(() => {
+    setShowNLQueryPanel((current) => {
+      const next = !current;
+      if (next) {
+        if (navigatorStageMode) {
+          setWorkspaceView("explore");
+        }
+        closeRightDockPanels();
+        setShowScientificQAPanel(false);
+        setPointSymbologyLayerId(null);
+        setShowChoroplethPanel(false);
+        setShowClusterViz(false);
+        setShowHotSpotViz(false);
+        setShowEmergingHotSpotViz(false);
+        setShowVoxCityOverlay(false);
+        setShowWorkflowDrawer(false);
+        setShowReviewTimeline(false);
+      }
+      announce(next ? "Map query builder opened" : "Map query builder closed");
+      return next;
+    });
+  }, [announce, closeRightDockPanels, navigatorStageMode]);
+
+  const handleToggleWorkflowDrawer = useCallback(() => {
+    setShowWorkflowDrawer((current) => {
+      const next = !current;
+      if (next) {
+        if (navigatorStageMode) {
+          setWorkspaceView("explore");
+        }
+        closeRightDockPanels();
+        setShowScientificQAPanel(false);
+        setShowNLQueryPanel(false);
+        setPointSymbologyLayerId(null);
+        setShowChoroplethPanel(false);
+        setShowClusterViz(false);
+        setShowHotSpotViz(false);
+        setShowEmergingHotSpotViz(false);
+        setShowVoxCityOverlay(false);
+        setShowReviewTimeline(false);
+      } else {
+        setWorkflowPreview(null);
+      }
+      announce(next ? "Spatial workflow drawer opened" : "Spatial workflow drawer closed");
+      return next;
+    });
+  }, [announce, closeRightDockPanels, navigatorStageMode]);
+
+  const handleToggleReviewTimeline = useCallback(() => {
+    setShowReviewTimeline((current) => {
+      const next = !current;
+      if (next) {
+        if (navigatorStageMode) {
+          setWorkspaceView("explore");
+        }
+        closeRightDockPanels();
+        setShowScientificQAPanel(false);
+        setShowNLQueryPanel(false);
+        setShowWorkflowDrawer(false);
+        setWorkflowPreview(null);
+        setPointSymbologyLayerId(null);
+        setShowChoroplethPanel(false);
+        setShowClusterViz(false);
+        setShowHotSpotViz(false);
+        setShowEmergingHotSpotViz(false);
+        setShowVoxCityOverlay(false);
+      }
+      announce(next ? "Review timeline opened" : "Review timeline closed");
+      return next;
+    });
+  }, [announce, closeRightDockPanels, navigatorStageMode]);
+
+  const handleApplyMapWorkflow = useCallback(
+    (result: MapWorkflowApplyResult) => {
+      setWorkflowPreview(null);
+      addOverlayLayer(result.layer);
+      const bounds =
+        result.layer.metadata?.bounds ??
+        (result.preview.featureCollection
+          ? getFeatureCollectionBounds(result.preview.featureCollection)
+          : undefined);
+      if (bounds) {
+        const map = mapInstanceRef.current;
+        if (map) {
+          const [minLng, minLat, maxLng, maxLat] = bounds;
+          if (minLng === maxLng && minLat === maxLat) {
+            map.easeTo({
+              center: [minLng, minLat],
+              zoom: Math.max(map.getZoom(), 14),
+              duration: reducedMotion ? 0 : 500,
+              essential: true,
+            });
+          } else {
+            map.fitBounds(
+              [
+                [minLng, minLat],
+                [maxLng, maxLat],
+              ],
+              {
+                padding: 64,
+                duration: reducedMotion ? 0 : 900,
+                essential: true,
+              },
+            );
+          }
+        }
+      }
+      setActiveAnalysisResultLayers([result.layer.id]);
+      setWorkflowReportItems((current) => {
+        const filtered = current.filter((item) => item.id !== result.reportItem.id);
+        return [...filtered, result.reportItem];
+      });
+      recordMapReviewEvent({
+        type: "workflow-action",
+        status: "applied",
+        title: `Workflow applied: ${result.reportItem.title}`,
+        summary: `${result.preview.workflow} workflow committed ${result.layer.name} as a derived, inspectable map layer.`,
+        layerIds: [result.layer.id, ...result.reportItem.sourceLayerIds],
+        reportItemIds: [result.reportItem.id],
+        undo: {
+          available: true,
+          actionLabel: `Remove derived layer ${result.layer.name}`,
+          outcome: "Derived layer can be removed from the layer stack.",
+        },
+        details: {
+          workflow: result.reportItem.workflow,
+          derivedLayerId: result.reportItem.derivedLayerId,
+          sourceLayerIds: result.reportItem.sourceLayerIds,
+          metrics: result.reportItem.metrics,
+          comparisonState: result.reportItem.comparisonState ?? null,
+        },
+      });
+      const message = `${result.reportItem.title} registered as a derived layer.`;
+      setDispatchFeedback({
+        tone: "success",
+        title: "Workflow applied",
+        description: message,
+      });
+      toastSuccess(message);
+      announce(message);
+    },
+    [addOverlayLayer, announce, recordMapReviewEvent, reducedMotion, setActiveAnalysisResultLayers],
+  );
+
+  const handleSaveWorkflowReport = useCallback(
+    (report: MapWorkflowReportItem) => {
+      setWorkflowReportItems((current) => {
+        const filtered = current.filter((item) => item.id !== report.id);
+        return [...filtered, report];
+      });
+      recordMapReviewEvent({
+        type: "report-handoff",
+        status: "recorded",
+        timestamp: report.createdAt,
+        title: `Workflow report item saved: ${report.title}`,
+        summary: `${report.workflow} workflow report item references derived layer ${report.derivedLayerId}.`,
+        layerIds: [report.derivedLayerId, ...report.sourceLayerIds],
+        reportItemIds: [report.id],
+        details: {
+          workflow: report.workflow,
+          parameters: report.parameters,
+          metrics: report.metrics,
+          caveats: report.caveats,
+        },
+      });
+      toastInfo(`Saved ${report.title} as a report item.`);
+      announce(`${report.title} saved as report item.`);
+    },
+    [announce, recordMapReviewEvent],
+  );
+
+  const handleTogglePinMode = useCallback(() => {
+    const next = pinMode ? null : "pin";
+    setActiveTool(next as import("./map/mapTypes").MapToolId);
+    announce(next ? "Pin mode enabled — click map to add pins" : "Pin mode disabled");
+  }, [pinMode, setActiveTool, announce]);
+
+  const handleToggleAnnotationMode = useCallback(() => {
+    const next = annotationMode ? null : "annotate";
+    setActiveTool(next as import("./map/mapTypes").MapToolId);
+    if (next) {
+      setActiveDrawTool(null);
+      setActiveMeasureTool(null);
+      setShowSidebar(false);
+      setShowDrawPanel(false);
+      setShowMeasurePanel(false);
+      setWorkspaceView("explore");
+      announce("Text annotation tool enabled");
+    } else {
+      announce("Text annotation tool disabled");
+    }
+  }, [annotationMode, announce, setActiveDrawTool, setActiveMeasureTool, setActiveTool]);
+
+  const handleDeactivateAnnotationMode = useCallback(() => {
+    if (useMapExplorerStore.getState().activeTool === "annotate") {
+      setActiveTool(null);
+    }
+  }, [setActiveTool]);
+
+  const handleToggleSidebar = useCallback(() => {
+    setShowSidebar((prev) => {
+      if (!prev) {
+        setShowScientificQAPanel(false);
+        closeFloatingRightPanels();
+        setShowDrawPanel(false);
+        setShowMeasurePanel(false);
+      }
+      announce(!prev ? "Pin sidebar opened" : "Pin sidebar closed");
+      return !prev;
+    });
+  }, [announce, closeFloatingRightPanels]);
+
+  const handleToggleLayerPanel = useCallback(() => {
+    if (navigatorStageMode) {
+      setWorkspaceView("explore");
+      setShowLayerPanel(true);
+      announce("Layer panel opened");
+      return;
+    }
+
+    if (dockLayout.compactDock && showLayerPanel && !effectiveShowLayerPanel) {
+      setShowSidebar(false);
+      setShowDrawPanel(false);
+      setShowMeasurePanel(false);
+      setShowLayerPanel(true);
+      announce("Layer panel opened");
+      return;
+    }
+
+    setShowLayerPanel((prev) => {
+      announce(!prev ? "Layer panel opened" : "Layer panel closed");
+      return !prev;
+    });
+  }, [announce, dockLayout.compactDock, effectiveShowLayerPanel, navigatorStageMode, showLayerPanel]);
+
+  const handleToggleChoroplethPanel = useCallback(() => {
+    setShowChoroplethPanel((prev) => {
+      if (!prev) {
+        setShowScientificQAPanel(false);
+        closeRightDockPanels();
+        setPointSymbologyLayerId(null);
+        setShowClusterViz(false);
+        setShowHotSpotViz(false);
+        setShowEmergingHotSpotViz(false);
+      }
+      announce(!prev ? "Choropleth panel opened" : "Choropleth panel closed");
+      return !prev;
+    });
+  }, [announce, closeRightDockPanels]);
+
+  const handleToggleClusterViz = useCallback(() => {
+    setShowClusterViz((prev) => {
+      if (!prev) {
+        setShowScientificQAPanel(false);
+        closeRightDockPanels();
+        setPointSymbologyLayerId(null);
+        setShowChoroplethPanel(false);
+        setShowHotSpotViz(false);
+        setShowEmergingHotSpotViz(false);
+      }
+      announce(!prev ? "LISA cluster panel opened" : "LISA cluster panel closed");
+      return !prev;
+    });
+  }, [announce, closeRightDockPanels]);
+
+  const handleToggleHotSpotViz = useCallback(() => {
+    setShowHotSpotViz((prev) => {
+      if (!prev) {
+        setShowScientificQAPanel(false);
+        closeRightDockPanels();
+        setPointSymbologyLayerId(null);
+        setShowChoroplethPanel(false);
+        setShowClusterViz(false);
+        setShowEmergingHotSpotViz(false);
+      }
+      announce(!prev ? "Getis-Ord Gi star panel opened" : "Getis-Ord Gi star panel closed");
+      return !prev;
+    });
+  }, [announce, closeRightDockPanels]);
+
+  const handleToggleEmergingHotSpotViz = useCallback(() => {
+    setShowEmergingHotSpotViz((prev) => {
+      if (!prev) {
+        setShowScientificQAPanel(false);
+        closeRightDockPanels();
+        setPointSymbologyLayerId(null);
+        setShowChoroplethPanel(false);
+        setShowClusterViz(false);
+        setShowHotSpotViz(false);
+      }
+      announce(!prev ? "Emerging hot spot panel opened" : "Emerging hot spot panel closed");
+      return !prev;
+    });
+  }, [announce, closeRightDockPanels]);
+
+  const handleToggleRestrictToMapView = useCallback(() => {
+    setRestrictToMapView((current) => {
+      const next = !current;
+      setDispatchFeedback({
+        tone: "info",
+        title: next ? "Map extent filter enabled" : "Map extent filter disabled",
+        description: next
+          ? "New dispatches will carry the current visible map bounds into workflows and quick analyses."
+          : "New dispatches can use the selected AOI or local analysis window without the current map extent filter.",
+      });
+      return next;
+    });
+  }, []);
+
+  const handleOpenFlowDispatchDialog = useCallback(() => {
+    if (!flowDispatchAoi) {
+      const message = "Missing prerequisite: draw or select a polygon AOI, or keep the current view focused before routing analysis to a workflow.";
+      setDispatchFeedback({ tone: "error", title: "No AOI available", description: message });
+      toastInfo(message);
+      announce(message);
+      return;
+    }
+
+    setIsFlowDispatchDialogOpen(true);
+    setDispatchFeedback({
+      tone: "info",
+      title: "AOI ready for workflow dispatch",
+      description: `${flowDispatchAoi.label} can now be routed into a compatible workflow with${restrictToMapView ? "" : "out"} the current extent restriction.`,
+    });
+  }, [announce, flowDispatchAoi, restrictToMapView]);
+
+  const handleRunSelectionStatistics = useCallback(() => {
+    const summary = collectSelectionStatistics(overlayLayers, selectedFeatureIds);
+    if (summary.length === 0) {
+      const message = "Select one or more features on a queryable layer to compute quick statistics.";
+      setSelectionStatsSummary(null);
+      setDispatchFeedback({ tone: "error", title: "Selection statistics unavailable", description: message });
+      toastInfo(message);
+      announce(message);
+      return;
+    }
+
+    setSelectionStatsSummary(summary);
+    recordMapReviewEvent({
+      type: "analysis-dispatch",
+      status: "applied",
+      title: "Selection statistics computed",
+      summary: `Computed descriptive statistics for ${summary.reduce((total, entry) => total + entry.selectedFeatureCount, 0).toLocaleString()} selected feature(s).`,
+      layerIds: summary.map((entry) => entry.layerId),
+      details: {
+        selectedFeatureCount: summary.reduce((total, entry) => total + entry.selectedFeatureCount, 0),
+        layerCount: summary.length,
+        numericFieldCounts: Object.fromEntries(summary.map((entry) => [entry.layerId, entry.numericFields.length])),
+      },
+    });
+    setDispatchFeedback({
+      tone: "success",
+      title: "Selection statistics ready",
+      description: `Computed descriptive statistics for ${summary.reduce((total, entry) => total + entry.selectedFeatureCount, 0).toLocaleString()} selected feature(s).`,
+    });
+    announce("Selection statistics panel updated");
+  }, [announce, overlayLayers, recordMapReviewEvent, selectedFeatureIds]);
+
+  const handleDispatchFlowSelection = useCallback((flowId: (typeof compatibleAoiFlows)[number]["id"]) => {
+    if (!flowDispatchAoi) {
+      return;
+    }
+
+    const selectedFlow = compatibleAoiFlows.find((flow) => flow.id === flowId);
+    dispatchFlowSelection({
+      flowId,
+      aoi: flowDispatchAoi.feature,
+      source: flowDispatchAoi.source,
+      restrictToView: restrictToMapView,
+      ...(restrictToMapView && currentMapBounds ? { viewBounds: currentMapBounds } : {}),
+    });
+    setIsFlowDispatchDialogOpen(false);
+    setDispatchFeedback({
+      tone: "success",
+      title: `${selectedFlow?.label ?? flowId} launched`,
+      description: `${flowDispatchAoi.label} was attached to the workflow${restrictToMapView && currentMapBounds ? " with the current view restriction" : ""}.`,
+    });
+    recordMapReviewEvent({
+      type: "analysis-dispatch",
+      status: "applied",
+      title: `AOI workflow dispatched: ${selectedFlow?.label ?? flowId}`,
+      summary: `${flowDispatchAoi.label} was attached to ${flowId}${restrictToMapView && currentMapBounds ? " with current extent restriction" : ""}.`,
+      details: {
+        flowId,
+        aoiSource: flowDispatchAoi.source,
+        restrictToView: restrictToMapView,
+        viewBounds: restrictToMapView ? currentMapBounds : null,
+      },
+    });
+    announce(`${selectedFlow?.label ?? flowId} opened from map dispatch`);
+  }, [announce, compatibleAoiFlows, currentMapBounds, flowDispatchAoi, recordMapReviewEvent, restrictToMapView]);
+
+  const handleIsochroneDispatch = useCallback((coordinate: [number, number]) => {
+    const origin = { lng: coordinate[0], lat: coordinate[1] };
+    dispatchIsochroneNavigation({
+      origin,
+      thresholdMinutes: 15,
+      restrictToView: restrictToMapView,
+      ...(restrictToMapView && currentMapBounds ? { viewBounds: currentMapBounds } : {}),
+    });
+    setDispatchFeedback({
+      tone: "busy",
+      title: "Accessibility workflow launched",
+      description: "Isochrone dispatch is opening the Accessibility flow and will auto-publish a map result into Map Explorer.",
+    });
+    recordMapReviewEvent({
+      type: "analysis-dispatch",
+      status: "applied",
+      title: "Isochrone workflow dispatched",
+      summary: "Point context was sent to the network accessibility engine for isochrone analysis.",
+      details: {
+        longitude: origin.lng,
+        latitude: origin.lat,
+        thresholdMinutes: 15,
+        restrictToView: restrictToMapView,
+        viewBounds: restrictToMapView ? currentMapBounds : null,
+      },
+    });
+    announce("Accessibility workflow opened from map dispatch");
+  }, [announce, currentMapBounds, recordMapReviewEvent, restrictToMapView]);
+
+  const handleOpenPointSymbology = useCallback((layerId: string) => {
+    setPointSymbologyLayerId((current) => {
+      const next = current === layerId ? null : layerId;
+      if (next) {
+        setShowScientificQAPanel(false);
+        closeRightDockPanels();
+        setShowChoroplethPanel(false);
+        setShowClusterViz(false);
+        setShowHotSpotViz(false);
+        setShowEmergingHotSpotViz(false);
+        announce(`Point symbology panel opened for ${overlayLayers.find((layer) => layer.id === layerId)?.name ?? layerId}`);
+      } else {
+        announce("Point symbology panel closed");
+      }
+      return next;
+    });
+  }, [announce, closeRightDockPanels, overlayLayers]);
+
+  const handleAnalysisRecommendationAction = useCallback((recommendation: MapAnalysisRecommendation) => {
+    recordMapReviewEvent(buildRecommendationActionReviewEvent(recommendation, buildCurrentReviewSnapshot()));
+    const { action } = recommendation;
+    if (action.type === "run-selection-statistics") {
+      handleRunSelectionStatistics();
+      return;
+    }
+
+    if (action.type === "open-flow") {
+      useFlowStore.getState().setStepData("map_analysis_recommendation", {
+        recommendationId: recommendation.id,
+        title: recommendation.title,
+        layerIds: action.layerIds ?? recommendation.layerIds,
+        preferredMethod: action.preferredMethod,
+        requiredInputs: recommendation.requiredInputs,
+        expectedOutput: recommendation.expectedOutput,
+        scientificCaveat: recommendation.scientificCaveat,
+        createdAt: new Date().toISOString(),
+      });
+      window.dispatchEvent(new CustomEvent("synapse:navigate", {
+        detail: { tab: "Workflows", flowId: action.flowId },
+      }));
+      setDispatchFeedback({
+        tone: "success",
+        title: `${recommendation.title} opened`,
+        description: `Recommendation routed to the ${action.flowId.replace(/_/g, " ")} workflow with layer context attached.`,
+      });
+      toastInfo(`${recommendation.title} routed to workflow.`);
+      announce(`${recommendation.title} routed to workflow`);
+      return;
+    }
+
+    const openLayerId = action.layerId ?? recommendation.layerIds[0] ?? null;
+    const layerName = openLayerId
+      ? overlayLayers.find((layer) => layer.id === openLayerId)?.name ?? openLayerId
+      : "current map";
+
+    switch (action.panel) {
+      case "scientific-qa":
+        openScientificQAPanel();
+        break;
+      case "choropleth":
+        setWorkspaceView("analyze");
+        setShowScientificQAPanel(false);
+        closeRightDockPanels();
+        setPointSymbologyLayerId(null);
+        setShowClusterViz(false);
+        setShowHotSpotViz(false);
+        setShowEmergingHotSpotViz(false);
+        setShowVoxCityOverlay(false);
+        setShowWorkflowDrawer(false);
+        setShowChoroplethPanel(true);
+        announce(`Choropleth recommendation opened for ${layerName}`);
+        break;
+      case "cluster":
+        setWorkspaceView("analyze");
+        setShowScientificQAPanel(false);
+        closeRightDockPanels();
+        setPointSymbologyLayerId(null);
+        setShowChoroplethPanel(false);
+        setShowHotSpotViz(false);
+        setShowEmergingHotSpotViz(false);
+        setShowVoxCityOverlay(false);
+        setShowWorkflowDrawer(false);
+        setShowClusterViz(true);
+        announce(`LISA recommendation opened for ${layerName}`);
+        break;
+      case "hotspot":
+        setWorkspaceView("analyze");
+        setShowScientificQAPanel(false);
+        closeRightDockPanels();
+        setPointSymbologyLayerId(null);
+        setShowChoroplethPanel(false);
+        setShowClusterViz(false);
+        setShowEmergingHotSpotViz(false);
+        setShowVoxCityOverlay(false);
+        setShowWorkflowDrawer(false);
+        setShowHotSpotViz(true);
+        announce(`Hot spot recommendation opened for ${layerName}`);
+        break;
+      case "emerging-hotspot":
+        setWorkspaceView("analyze");
+        setShowScientificQAPanel(false);
+        closeRightDockPanels();
+        setPointSymbologyLayerId(null);
+        setShowChoroplethPanel(false);
+        setShowClusterViz(false);
+        setShowHotSpotViz(false);
+        setShowVoxCityOverlay(false);
+        setShowWorkflowDrawer(false);
+        setShowEmergingHotSpotViz(true);
+        announce(`Emerging hot spot recommendation opened for ${layerName}`);
+        break;
+      case "point-symbology":
+        if (!openLayerId) {
+          toastInfo("Select or reveal a point layer before opening point symbology.");
+          return;
+        }
+        setWorkspaceView("analyze");
+        setShowScientificQAPanel(false);
+        closeRightDockPanels();
+        setShowChoroplethPanel(false);
+        setShowClusterViz(false);
+        setShowHotSpotViz(false);
+        setShowEmergingHotSpotViz(false);
+        setShowVoxCityOverlay(false);
+        setShowWorkflowDrawer(false);
+        setPointSymbologyMode(action.symbologyMode ?? "heatmap");
+        setPointSymbologyLayerId(openLayerId);
+        announce(`Point symbology recommendation opened for ${layerName}`);
+        break;
+      case "voxcity-overlay":
+        setWorkspaceView("explore");
+        setShowScientificQAPanel(false);
+        closeRightDockPanels();
+        setPointSymbologyLayerId(null);
+        setShowChoroplethPanel(false);
+        setShowClusterViz(false);
+        setShowHotSpotViz(false);
+        setShowEmergingHotSpotViz(false);
+        setShowWorkflowDrawer(false);
+        setShowVoxCityOverlay(true);
+        announce("VoxCity recommendation opened");
+        break;
+      case "workflow":
+        setWorkspaceView("explore");
+        closeRightDockPanels();
+        setShowScientificQAPanel(false);
+        setShowNLQueryPanel(false);
+        setPointSymbologyLayerId(null);
+        setShowChoroplethPanel(false);
+        setShowClusterViz(false);
+        setShowHotSpotViz(false);
+        setShowEmergingHotSpotViz(false);
+        setShowVoxCityOverlay(false);
+        setShowWorkflowDrawer(true);
+        announce(`Workflow recommendation opened for ${layerName}`);
+        break;
+      case "nl-query":
+        setWorkspaceView("explore");
+        closeRightDockPanels();
+        setShowScientificQAPanel(false);
+        setPointSymbologyLayerId(null);
+        setShowChoroplethPanel(false);
+        setShowClusterViz(false);
+        setShowHotSpotViz(false);
+        setShowEmergingHotSpotViz(false);
+        setShowVoxCityOverlay(false);
+        setShowWorkflowDrawer(false);
+        setShowNLQueryPanel(true);
+        announce("Natural-language map query recommendation opened");
+        break;
+      case "layer-panel":
+        setWorkspaceView("explore");
+        setShowLayerPanel(true);
+        setDispatchFeedback({
+          tone: "info",
+          title: `${recommendation.title} ready`,
+          description: `Layer panel opened for ${layerName}; inspect provenance, QA, and styling before applying downstream analysis.`,
+        });
+        announce(`Layer panel opened for ${layerName}`);
+        break;
+      default:
+        break;
+    }
+  }, [announce, buildCurrentReviewSnapshot, closeRightDockPanels, handleRunSelectionStatistics, openScientificQAPanel, overlayLayers, recordMapReviewEvent]);
+
+  const handleApplyCartographyRecommendation = useCallback((recommendationId: string) => {
+    const recommendation = cartographyReviewState.recommendations.find((entry) => entry.id === recommendationId);
+    if (!recommendation) {
+      toastWarning("This cartography recommendation is no longer available for the current map state.");
+      return;
+    }
+    if (!recommendation.proposal) {
+      toastInfo("This recommendation is informational and has no automatic style change.");
+      return;
+    }
+
+    const layer = overlayLayers.find((entry) => entry.id === recommendation.layerId);
+    if (!layer) {
+      toastWarning("The affected layer is no longer available.");
+      return;
+    }
+
+    const nextLayer = applyCartographyRecommendationToLayer(layer, recommendation);
+    addOverlayLayer(nextLayer);
+    setCartographyUndoStack((current) => [
+      ...current.slice(-9),
+      {
+        recommendationId,
+        layerId: layer.id,
+        label: recommendation.proposal?.reversibleLabel ?? recommendation.title,
+        beforeLayer: layer,
+      },
+    ]);
+    setDismissedCartographyRecommendationIds((current) => {
+      const next = new Set(current);
+      next.add(recommendationId);
+      return next;
+    });
+    recordMapReviewEvent({
+      type: "action-status",
+      status: "applied",
+      title: `Cartography recommendation applied: ${recommendation.title}`,
+      summary: `${recommendation.proposal.reversibleLabel} was applied to ${layer.name}.`,
+      layerIds: [layer.id],
+      actionIds: [recommendation.id],
+      recommendationIds: [recommendation.id],
+      undo: {
+        available: true,
+        actionLabel: recommendation.proposal.reversibleLabel,
+      },
+      details: {
+        severity: recommendation.severity,
+        rationale: recommendation.rationale,
+      },
+    });
+    toastSuccess(`Applied cartography recommendation for ${layer.name}.`);
+    announce(`Applied cartography recommendation for ${layer.name}`);
+  }, [addOverlayLayer, announce, cartographyReviewState.recommendations, overlayLayers, recordMapReviewEvent]);
+
+  const handleDismissCartographyRecommendation = useCallback((recommendationId: string) => {
+    setDismissedCartographyRecommendationIds((current) => {
+      const next = new Set(current);
+      next.add(recommendationId);
+      return next;
+    });
+    const recommendation = cartographyReviewState.recommendations.find((entry) => entry.id === recommendationId);
+    recordMapReviewEvent({
+      type: "action-status",
+      status: "rejected",
+      title: `Cartography recommendation dismissed: ${recommendation?.title ?? recommendationId}`,
+      summary: "Analyst dismissed a cartographic recommendation without mutating layer styling.",
+      layerIds: recommendation?.layerId ? [recommendation.layerId] : [],
+      actionIds: [recommendationId],
+      recommendationIds: [recommendationId],
+      details: {
+        severity: recommendation?.severity ?? "unknown",
+      },
+    });
+    announce("Cartography recommendation dismissed");
+  }, [announce, cartographyReviewState.recommendations, recordMapReviewEvent]);
+
+  const handleUndoCartographyRecommendation = useCallback(() => {
+    const lastEntry = cartographyUndoStack[cartographyUndoStack.length - 1];
+    if (!lastEntry) {
+      toastInfo("There is no cartography style change to undo.");
+      return;
+    }
+
+    addOverlayLayer(lastEntry.beforeLayer);
+    setCartographyUndoStack((current) => current.slice(0, -1));
+    setDismissedCartographyRecommendationIds((current) => {
+      const next = new Set(current);
+      next.delete(lastEntry.recommendationId);
+      return next;
+    });
+    recordMapReviewEvent({
+      type: "action-status",
+      status: "undone",
+      title: `Cartography recommendation undone: ${lastEntry.label}`,
+      summary: `Restored prior style for ${lastEntry.layerId}.`,
+      layerIds: [lastEntry.layerId],
+      actionIds: [lastEntry.recommendationId],
+      recommendationIds: [lastEntry.recommendationId],
+      undo: {
+        available: false,
+        outcome: "Previous layer style restored.",
+      },
+    });
+    toastInfo(`Undid ${lastEntry.label}.`);
+    announce(`Undid cartography recommendation for ${lastEntry.layerId}`);
+  }, [addOverlayLayer, announce, cartographyUndoStack, recordMapReviewEvent]);
+
+  const handleShowCartographyDetails = useCallback((recommendation: MapCartographyRecommendation) => {
+    announce(`Cartography details opened for ${recommendation.title}`);
+  }, [announce]);
+
+  const handleReRunAnalysisLayer = useCallback(async (layerId: string, rerunToken?: string | null) => {
+    if (!rerunToken) {
+      toastInfo("No re-run handler is registered for this analysis result.");
+      announce("Re-run is unavailable for this analysis result");
+      return;
+    }
+
+    if (!hasAnalysisRerun(rerunToken)) {
+      toastInfo("The original analysis runner is no longer available in this session.");
+      announce("Re-run is unavailable for this analysis result");
+      return;
+    }
+
+    setRerunningAnalysisToken(rerunToken);
+    try {
+      const rerunResult = await rerunAnalysisResult(rerunToken);
+      if (!rerunResult) {
+        toastInfo("The analysis did not return a refreshed map layer.");
+        announce("Analysis re-run completed without a map layer update");
+        return;
+      }
+
+      const runMetadata = rerunResult.layer.metadata?.analysisResult;
+      const nextOutput = createAnalysisMapOutput(rerunResult);
+      const existingRun = completedRuns.find((run) =>
+        run.mapOutputs.some((output) => matchesSpatialStatsOutput(output, layerId, rerunToken, runMetadata?.runId)),
+      );
+      const persistedRunId = existingRun?.runId ?? runMetadata?.runId;
+      const nextMapOutputs = existingRun
+        ? replaceSpatialStatsOutput(existingRun.mapOutputs, nextOutput, layerId, rerunToken, runMetadata?.runId)
+        : [nextOutput];
+
+      upsertCompletedRun(createAnalysisCompletedRun(rerunResult, {
+        flowId: existingRun?.flowId ?? "review",
+        mapOutputs: nextMapOutputs,
+        ...(persistedRunId ? { runId: persistedRunId } : {}),
+        ...(existingRun?.insertedAt ? { insertedAt: existingRun.insertedAt } : {}),
+        ...(existingRun?.label ? { label: existingRun.label } : {}),
+        ...(existingRun?.paragraph ? { paragraph: existingRun.paragraph } : {}),
+        ...(existingRun?.paragraphPreview ? { paragraphPreview: existingRun.paragraphPreview } : {}),
+        ...(existingRun?.paragraphFull ? { paragraphFull: existingRun.paragraphFull } : {}),
+        ...(existingRun?.chartOutputs ? { chartOutputs: existingRun.chartOutputs } : {}),
+        ...(existingRun?.dataOutputs ? { dataOutputs: existingRun.dataOutputs } : {}),
+      }));
+
+      addOverlayLayer(rerunResult.layer);
+      toastSuccess(`Re-ran ${rerunResult.layer.name}.`);
+      announce(`Analysis result refreshed for ${rerunResult.layer.name}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Analysis re-run failed.";
+      toastError(message);
+      announce(`Analysis re-run failed: ${message}`);
+    } finally {
+      setRerunningAnalysisToken(null);
+    }
+  }, [addOverlayLayer, announce, completedRuns, upsertCompletedRun]);
+
+  /* ---- Drawing handlers ---- */
+  const handleSetDrawTool = useCallback(
+    (tool: DrawToolId | null) => {
+      setActiveDrawTool(tool);
+      // When activating draw, deactivate pin mode
+      if (tool) {
+        setActiveTool(null);
+        setActiveMeasureTool(null);
+        setShowSidebar(false);
+        setShowScientificQAPanel(false);
+        closeFloatingRightPanels();
+        setShowDrawPanel(true);
+        setShowMeasurePanel(false);
+        setWorkspaceView("analyze");
+        announce(`Drawing tool: ${tool}`);
+      } else {
+        announce("Drawing tool deactivated");
+      }
+    },
+    [announce, closeFloatingRightPanels, setActiveDrawTool, setActiveMeasureTool, setActiveTool],
+  );
+
+  const handleCancelDraw = useCallback(() => {
+    setActiveDrawTool(null);
+  }, [setActiveDrawTool]);
+
+  const handleToggleDrawPanel = useCallback(() => {
+    setShowDrawPanel((prev) => {
+      if (!prev) {
+        setShowScientificQAPanel(false);
+        closeFloatingRightPanels();
+        setShowSidebar(false);
+        setShowMeasurePanel(false);
+      }
+      announce(!prev ? "Drawings panel opened" : "Drawings panel closed");
+      return !prev;
+    });
+  }, [announce, closeFloatingRightPanels]);
+
+  /* ---- Measurement handlers ---- */
+  const handleSetMeasureTool = useCallback(
+    (tool: MeasureToolId | null) => {
+      setActiveMeasureTool(tool);
+      // Deactivate pin mode and draw tool when measuring
+      if (tool) {
+        setActiveTool(null);
+        setActiveDrawTool(null);
+        setShowSidebar(false);
+        setShowScientificQAPanel(false);
+        closeFloatingRightPanels();
+        setShowMeasurePanel(true);
+        setShowDrawPanel(false);
+        setWorkspaceView("analyze");
+        announce(`Measure tool: ${tool === "measure-distance" ? "distance" : "area"}`);
+      } else {
+        announce("Measure tool deactivated");
+      }
+    },
+    [announce, closeFloatingRightPanels, setActiveDrawTool, setActiveMeasureTool, setActiveTool],
+  );
+
+  const handleCancelMeasure = useCallback(() => {
+    setActiveMeasureTool(null);
+  }, [setActiveMeasureTool]);
+
+  const handleToggleMeasurePanel = useCallback(() => {
+    setShowMeasurePanel((prev) => {
+      if (!prev) {
+        setShowScientificQAPanel(false);
+        closeFloatingRightPanels();
+        setShowSidebar(false);
+        setShowDrawPanel(false);
+      }
+      announce(!prev ? "Measurements panel opened" : "Measurements panel closed");
+      return !prev;
+    });
+  }, [announce, closeFloatingRightPanels]);
+
+  /* ---- Navigation ---- */
+  const flyTo = useCallback((lng: number, lat: number, z = 14) => {
+    if (reducedMotion) {
+      mapInstanceRef.current?.jumpTo({ center: [lng, lat], zoom: z });
+    } else {
+      mapInstanceRef.current?.flyTo({ center: [lng, lat], zoom: z, duration: 1500 });
+    }
+  }, [reducedMotion]);
+
+  const fitToBounds = useCallback((bounds: [number, number, number, number]) => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+    const [minLng, minLat, maxLng, maxLat] = bounds;
+    if (minLng === maxLng && minLat === maxLat) {
+      flyTo(minLng, minLat, Math.max(map.getZoom(), 14));
+      return;
+    }
+    map.fitBounds(
+      [
+        [minLng, minLat],
+        [maxLng, maxLat],
+      ],
+      {
+        padding: 64,
+        duration: reducedMotion ? 0 : 900,
+        essential: true,
+      },
+    );
+  }, [flyTo, reducedMotion]);
+
+  const handleHotSpotDispatch = useCallback(async (coordinate: [number, number]) => {
+    if (isRunningQuickHotSpot) {
+      return;
+    }
+
+    const origin = { lng: coordinate[0], lat: coordinate[1] };
+    const analysisBounds = restrictToMapView && currentMapBounds
+      ? currentMapBounds
+      : buildBufferedPointBounds(origin, 1600);
+    const prioritizedLayerIds = new Set(activeAnalysisResultLayerIds);
+    const candidateLayers = [...overlayLayers]
+      .filter(isPolygonLayerCandidate)
+      .sort((left, right) => {
+        const leftPriority = prioritizedLayerIds.has(left.id) ? 0 : 1;
+        const rightPriority = prioritizedLayerIds.has(right.id) ? 0 : 1;
+        return leftPriority - rightPriority;
+      });
+
+    setIsRunningQuickHotSpot(true);
+    setDispatchFeedback({
+      tone: "busy",
+      title: "Running hot spot analysis",
+      description: "Resolving the nearest polygon layer and numeric field for a quick Getis-Ord Gi* run.",
+    });
+
+    try {
+      let resolvedLayer: { layer: OverlayLayerConfig; featureCollection: GeoJSON.FeatureCollection; numericField: NumericFieldInfo } | null = null;
+
+      for (const layer of candidateLayers) {
+        const featureCollection = await resolveFeatureCollection(layer);
+        if (!hasPolygonGeometry(featureCollection)) {
+          continue;
+        }
+
+        const clippedCollection = filterFeatureCollectionToBounds(featureCollection, analysisBounds);
+        if (!hasPolygonGeometry(clippedCollection)) {
+          continue;
+        }
+
+        const numericFields = collectNumericFields(clippedCollection);
+        if (numericFields.length === 0) {
+          continue;
+        }
+
+        resolvedLayer = {
+          layer,
+          featureCollection: clippedCollection,
+          numericField: numericFields[0]!,
+        };
+        break;
+      }
+
+      if (!resolvedLayer) {
+        throw new Error("No visible polygon layer with numeric attributes intersects the selected analysis window.");
+      }
+
+      const qaGate = evaluateAnalysisQAGate(scientificQA, {
+        layerIds: [resolvedLayer.layer.id],
+        requiredGeometryTypes: ["polygon"],
+        workflowLabel: "Quick hot spot analysis",
+      });
+      if (qaGate.blocked) {
+        openScientificQAPanel();
+        throw new Error(qaGate.message);
+      }
+      if (qaGate.warnings.length > 0) {
+        const warning = qaGate.warnings[0] ?? "Scientific QA warnings are present on the selected analysis input.";
+        setDispatchFeedback({
+          tone: "info",
+          title: "QA warning on analysis input",
+          description: warning,
+        });
+        toastWarning(warning);
+      }
+
+      const executionIdentity = createSpatialStatsExecutionIdentity(
+        "hotspot",
+        resolvedLayer.layer.id,
+        resolvedLayer.numericField.name,
+      );
+
+      const buildLatestResult = async () => {
+        const latestLayer = useMapExplorerStore.getState().overlayLayers.find((layer) => layer.id === resolvedLayer?.layer.id);
+        if (!latestLayer) {
+          throw new Error("The selected source layer is no longer available.");
+        }
+
+        const latestCollection = filterFeatureCollectionToBounds(await resolveFeatureCollection(latestLayer), analysisBounds);
+        return (await executeHotSpotSpatialStatsAsync({
+          sourceLayer: latestLayer,
+          featureCollection: latestCollection,
+          valueField: resolvedLayer.numericField.name,
+          weightsMethod: "queen",
+          significanceThreshold: 0.05,
+          selfWeight: true,
+          runId: executionIdentity.runId,
+          layerId: executionIdentity.layerId,
+        }).promise).adaptedResult;
+      };
+
+      const execution = await executeHotSpotSpatialStatsAsync({
+        sourceLayer: resolvedLayer.layer,
+        featureCollection: resolvedLayer.featureCollection,
+        valueField: resolvedLayer.numericField.name,
+        weightsMethod: "queen",
+        significanceThreshold: 0.05,
+        selfWeight: true,
+        runId: executionIdentity.runId,
+        layerId: executionIdentity.layerId,
+      }).promise;
+
+      const rerunnableResult = attachSpatialStatsRerun(
+        execution.adaptedResult,
+        buildLatestResult,
+        `${executionIdentity.layerId}::rerun`,
+      );
+
+      addOverlayLayer(rerunnableResult.layer);
+      upsertCompletedRun(createSpatialStatsCompletedRun(rerunnableResult, { flowId: "review" }));
+      setActiveAnalysisResultLayers([rerunnableResult.layer.id]);
+      const resultBounds = rerunnableResult.layer.metadata?.bounds ?? getFeatureCollectionBounds(resolvedLayer.featureCollection);
+      if (resultBounds) {
+        fitToBounds(resultBounds);
+      }
+      const message = `Published ${rerunnableResult.layer.name} using ${resolvedLayer.layer.name} · ${resolvedLayer.numericField.name}.`;
+      setDispatchFeedback({ tone: "success", title: "Hot spot result published", description: message });
+      recordMapReviewEvent({
+        type: "analysis-dispatch",
+        status: "applied",
+        title: `Hot spot analysis published: ${rerunnableResult.layer.name}`,
+        summary: message,
+        layerIds: [resolvedLayer.layer.id, rerunnableResult.layer.id],
+        details: {
+          engine: "Getis-Ord Gi*",
+          valueField: resolvedLayer.numericField.name,
+          sourceLayerId: resolvedLayer.layer.id,
+          resultLayerId: rerunnableResult.layer.id,
+          runId: rerunnableResult.layer.metadata?.analysisResult?.runId ?? null,
+          analysisBounds,
+        },
+      });
+      toastSuccess(message);
+      announce("Hot spot dispatch completed");
+    } catch (error) {
+      const message = isBackgroundTaskCancelledError(error)
+        ? "Hot spot analysis was cancelled before completion."
+        : error instanceof Error
+          ? error.message
+          : "Hot spot analysis failed.";
+      setDispatchFeedback({ tone: "error", title: "Hot spot analysis failed", description: message });
+      recordMapReviewEvent({
+        type: "analysis-dispatch",
+        status: "failed",
+        title: "Hot spot analysis failed",
+        summary: message,
+        layerIds: candidateLayers.map((layer) => layer.id),
+        details: {
+          analysisBounds,
+          restrictToView: restrictToMapView,
+        },
+      });
+      toastError(message);
+      announce(message);
+    } finally {
+      setIsRunningQuickHotSpot(false);
+    }
+  }, [activeAnalysisResultLayerIds, addOverlayLayer, announce, currentMapBounds, fitToBounds, isRunningQuickHotSpot, openScientificQAPanel, overlayLayers, recordMapReviewEvent, restrictToMapView, scientificQA, setActiveAnalysisResultLayers, upsertCompletedRun]);
+
+  const handleRunMapNLQuery = useCallback(async (preview: MapNLQueryPreview) => {
+    if (isRunningMapNLQuery) {
+      return;
+    }
+
+    setIsRunningMapNLQuery(true);
+    setDispatchFeedback({
+      tone: "busy",
+      title: "Running map query",
+      description: `Executing reviewed SQL against ${preview.sourceLayers.length} source layer${preview.sourceLayers.length === 1 ? "" : "s"}.`,
+    });
+
+    try {
+      const result = await executeMapNLQueryPreview(preview, {
+        loadGeoJSON,
+        bindTableAlias,
+        toGeoJSON,
+      });
+      addOverlayLayer(result.layer);
+      upsertCompletedRun(createAnalysisCompletedRun(result.adapterResult, { flowId: "review" }));
+      setActiveAnalysisResultLayers([result.layer.id]);
+      setLastMapNLQuerySummary({
+        layerName: result.layer.name,
+        featureCount: result.featureCount,
+        geometryType: result.geometryType,
+        elapsedMs: result.elapsedMs,
+        followUpSuggestions: result.followUpSuggestions,
+      });
+      const resultBounds = result.layer.metadata?.bounds ?? getFeatureCollectionBounds(result.featureCollection);
+      if (resultBounds) {
+        fitToBounds(resultBounds);
+      }
+      const message = `Published ${result.layer.name} with ${result.featureCount.toLocaleString()} feature${result.featureCount === 1 ? "" : "s"}.`;
+      setDispatchFeedback({ tone: "success", title: "Map query result published", description: message });
+      recordMapReviewEvent({
+        type: "query-run",
+        status: "applied",
+        title: `Map query published: ${result.layer.name}`,
+        summary: `${message} Scope: ${preview.scopeLabel}; execution mode: ${preview.modeLabel}.`,
+        layerIds: [result.layer.id, ...preview.sourceLayers.map((layer) => layer.id)],
+        details: {
+          request: preview.request,
+          sql: preview.sql,
+          predicate: preview.predicate,
+          scope: preview.scope,
+          mode: preview.mode,
+          resultLayerId: result.layer.id,
+          featureCount: result.featureCount,
+          geometryType: result.geometryType,
+          elapsedMs: result.elapsedMs,
+          sourceLayerIds: preview.sourceLayers.map((layer) => layer.id),
+        },
+      });
+      toastSuccess(message);
+      announce("Map query completed");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Map query failed.";
+      setDispatchFeedback({ tone: "error", title: "Map query failed", description: message });
+      recordMapReviewEvent({
+        type: "query-run",
+        status: "failed",
+        title: "Map query failed",
+        summary: message,
+        layerIds: preview.sourceLayers.map((layer) => layer.id),
+        details: {
+          request: preview.request,
+          sql: preview.sql,
+          predicate: preview.predicate,
+          scope: preview.scope,
+          mode: preview.mode,
+          blockers: preview.blockers,
+          warnings: preview.warnings,
+        },
+      });
+      toastError(message);
+      announce(message);
+    } finally {
+      setIsRunningMapNLQuery(false);
+    }
+  }, [addOverlayLayer, announce, fitToBounds, isRunningMapNLQuery, recordMapReviewEvent, setActiveAnalysisResultLayers, upsertCompletedRun]);
+
+  const getCurrentViewportState = useCallback(() => {
+    const map = mapInstanceRef.current;
+    if (!map) {
+      return {
+        center,
+        zoom,
+        bearing,
+        pitch,
+      };
+    }
+
+    const mapCenter = map.getCenter();
+    return {
+      center: [mapCenter.lng, mapCenter.lat] as [number, number],
+      zoom: map.getZoom(),
+      bearing: map.getBearing(),
+      pitch: map.getPitch(),
+    };
+  }, [bearing, center, pitch, zoom]);
+
+  const handleSaveBookmark = useCallback((name: string) => {
+    const viewport = getCurrentViewportState();
+    const bookmark = addMapBookmark({
+      name,
+      ...viewport,
+      layers: overlayLayers.filter((layer) => layer.visible).map((layer) => layer.id),
+      activeVisualization: activeAnalysisResultLayerIds[0] ?? null,
+    });
+
+    if (!bookmark) {
+      const message = `Maximum ${MAP_BOOKMARK_LIMIT} saved views reached.`;
+      toastWarning(message);
+      announce(message);
+      return;
+    }
+
+    recordMapReviewEvent({
+      type: "bookmark",
+      status: "recorded",
+      timestamp: bookmark.timestamp,
+      title: `Viewport bookmark saved: ${bookmark.name}`,
+      summary: `Saved viewport at zoom ${bookmark.zoom.toFixed(2)} with ${bookmark.layers.length} visible layer reference(s).`,
+      layerIds: bookmark.layers,
+      bookmarkIds: [bookmark.id],
+      details: {
+        center: bookmark.center,
+        zoom: bookmark.zoom,
+        bearing: bookmark.bearing,
+        pitch: bookmark.pitch,
+        activeVisualization: bookmark.activeVisualization ?? null,
+      },
+    });
+    toastSuccess(`Saved map view "${bookmark.name}".`);
+    announce(`Saved map view ${bookmark.name}`);
+  }, [activeAnalysisResultLayerIds, addMapBookmark, announce, getCurrentViewportState, overlayLayers, recordMapReviewEvent]);
+
+  const handleRestoreBookmark = useCallback((bookmark: MapBookmark) => {
+    const restoredBookmark = restoreMapBookmark(bookmark.id) ?? bookmark;
+    const map = mapInstanceRef.current;
+    const nextView = {
+      center: restoredBookmark.center,
+      zoom: restoredBookmark.zoom,
+      bearing: restoredBookmark.bearing,
+      pitch: restoredBookmark.pitch,
+    };
+
+    if (restoredBookmark.activeVisualization) {
+      setActiveAnalysisResultLayers([restoredBookmark.activeVisualization]);
+      setSelectedTemporalLayerId(restoredBookmark.activeVisualization);
+    }
+
+    if (map) {
+      if (reducedMotion) {
+        map.jumpTo(nextView);
+      } else {
+        map.flyTo({
+          ...nextView,
+          duration: 900,
+          essential: true,
+        });
+      }
+    }
+
+    recordMapReviewEvent({
+      type: "bookmark",
+      status: "applied",
+      timestamp: new Date().toISOString(),
+      title: `Viewport bookmark restored: ${restoredBookmark.name}`,
+      summary: `Restored bookmark ${restoredBookmark.name} and ${restoredBookmark.layers.length} stored layer visibility reference(s).`,
+      layerIds: restoredBookmark.layers,
+      bookmarkIds: [restoredBookmark.id],
+      details: {
+        center: restoredBookmark.center,
+        zoom: restoredBookmark.zoom,
+        bearing: restoredBookmark.bearing,
+        pitch: restoredBookmark.pitch,
+        activeVisualization: restoredBookmark.activeVisualization ?? null,
+      },
+    });
+    toastInfo(`Restored map view "${restoredBookmark.name}".`);
+    announce(`Restored map view ${restoredBookmark.name}`);
+  }, [announce, recordMapReviewEvent, reducedMotion, restoreMapBookmark, setActiveAnalysisResultLayers]);
+
+  const handleRenameBookmark = useCallback((id: string, name: string) => {
+    renameMapBookmark(id, name);
+    recordMapReviewEvent({
+      type: "bookmark",
+      status: "recorded",
+      title: "Viewport bookmark renamed",
+      summary: `Bookmark ${id} renamed to ${name.trim() || "Untitled view"}.`,
+      bookmarkIds: [id],
+    });
+    announce("Saved view renamed");
+  }, [announce, recordMapReviewEvent, renameMapBookmark]);
+
+  const handleDeleteBookmark = useCallback((id: string) => {
+    removeMapBookmark(id);
+    recordMapReviewEvent({
+      type: "bookmark",
+      status: "undone",
+      title: "Viewport bookmark deleted",
+      summary: `Bookmark ${id} was removed from the saved view list.`,
+      bookmarkIds: [id],
+      undo: {
+        available: false,
+        outcome: "Bookmark removed from current map session.",
+      },
+    });
+    announce("Saved view deleted");
+  }, [announce, recordMapReviewEvent, removeMapBookmark]);
+
+  const handleShareBookmark = useCallback((bookmark: MapBookmark, encodedParam: string) => {
+    const baseUrl = typeof window === "undefined"
+      ? ""
+      : `${window.location.origin}${window.location.pathname}`;
+    const link = `${baseUrl}?mapBookmark=${encodedParam}`;
+    const clipboard = typeof navigator !== "undefined" ? navigator.clipboard : undefined;
+    if (clipboard?.writeText) {
+      void clipboard.writeText(link)
+        .then(() => {
+          toastSuccess(`Copied link for "${bookmark.name}".`);
+          announce("Saved view link copied");
+        })
+        .catch(() => {
+          if (typeof window.prompt === "function") {
+            window.prompt("Copy saved view link", link);
+          }
+          announce("Saved view link prepared");
+        });
+      return;
+    }
+
+    if (typeof window !== "undefined" && typeof window.prompt === "function") {
+      window.prompt("Copy saved view link", link);
+    }
+    announce("Saved view link prepared");
+  }, [announce]);
+
+  const handleAddMapAnnotation = useCallback((annotation: Parameters<typeof addMapAnnotation>[0]) => {
+    const created = addMapAnnotation(annotation);
+    if (created) {
+      recordMapReviewEvent({
+        type: "annotation",
+        status: "recorded",
+        timestamp: created.properties.createdAt,
+        title: "Map annotation added",
+        summary: `Annotation ${created.id} placed at ${created.geometry.coordinates[0].toFixed(5)}, ${created.geometry.coordinates[1].toFixed(5)}.`,
+        annotationIds: [created.id],
+        details: {
+          text: created.properties.text,
+          coordinate: created.geometry.coordinates,
+          hasLeaderLine: Boolean(created.properties.leaderLine),
+          leaderTarget: created.properties.leaderTarget ?? null,
+        },
+      });
+    }
+    return created;
+  }, [addMapAnnotation, recordMapReviewEvent]);
+
+  const handleUpdateMapAnnotation = useCallback((id: string, patch: Parameters<typeof updateMapAnnotation>[1]) => {
+    updateMapAnnotation(id, patch);
+    recordMapReviewEvent({
+      type: "annotation",
+      status: "recorded",
+      title: "Map annotation edited",
+      summary: `Annotation ${id} style, text, or geometry metadata was updated.`,
+      annotationIds: [id],
+      details: {
+        hasGeometryPatch: Boolean(patch.geometry),
+        propertyKeys: Object.keys(patch.properties ?? {}),
+      },
+    });
+  }, [recordMapReviewEvent, updateMapAnnotation]);
+
+  const handleMoveMapAnnotation = useCallback((id: string, coordinate: [number, number]) => {
+    moveMapAnnotation(id, coordinate);
+    recordMapReviewEvent({
+      type: "annotation",
+      status: "applied",
+      title: "Map annotation moved",
+      summary: `Annotation ${id} moved to ${coordinate[0].toFixed(5)}, ${coordinate[1].toFixed(5)}.`,
+      annotationIds: [id],
+      details: { coordinate },
+    });
+  }, [moveMapAnnotation, recordMapReviewEvent]);
+
+  const handleRemoveMapAnnotation = useCallback((id: string) => {
+    removeMapAnnotation(id);
+    recordMapReviewEvent({
+      type: "annotation",
+      status: "undone",
+      title: "Map annotation removed",
+      summary: `Annotation ${id} was removed from the map session.`,
+      annotationIds: [id],
+      undo: {
+        available: false,
+        outcome: "Annotation removed from current map session.",
+      },
+    });
+  }, [recordMapReviewEvent, removeMapAnnotation]);
+
+  const applyProjectSnapshot = useCallback((snapshot: MapProjectSnapshot) => {
+    isRestoringProjectRef.current = true;
+
+    /* If an explicit user-driven fit-bounds request is in effect for this
+       open cycle (e.g. an Urban Analytics study-area selection), the
+       project's stored viewport must NOT override it. We still restore the
+       project's overlays, pins, bookmarks, annotations, and drawn features
+       so the analytical context is intact, but the viewport portion is
+       skipped both at the store level and on the live map instance. */
+    const explicitFit = useMapExplorerStore.getState().lastExplicitFitRequest;
+    const skipViewportRestore = explicitFit !== null;
+
+    restoreProjectState({
+      viewport: snapshot.viewport,
+      activeBaseLayer: snapshot.activeBaseLayer,
+      pins: snapshot.pins,
+      bookmarks: snapshot.bookmarks,
+      annotations: snapshot.annotations,
+      drawnFeatures: snapshot.drawnFeatures,
+      overlayLayers: getRestorableOverlayLayers(snapshot),
+      measurements: [],
+      skipViewport: skipViewportRestore,
+    });
+
+    if (!skipViewportRestore) {
+      const map = mapInstanceRef.current;
+      if (map) {
+        const nextView = {
+          center: snapshot.viewport.center,
+          zoom: snapshot.viewport.zoom,
+          bearing: snapshot.viewport.bearing,
+          pitch: snapshot.viewport.pitch,
+        };
+
+        if (reducedMotion) {
+          map.jumpTo(nextView);
+        } else {
+          map.easeTo({
+            ...nextView,
+            duration: 700,
+            essential: true,
+          });
+        }
+      }
+    }
+
+    window.setTimeout(() => {
+      isRestoringProjectRef.current = false;
+    }, 0);
+  }, [reducedMotion, restoreProjectState]);
+
+  const handleProjectSave = useCallback(async (projectIdOverride?: string | null, options?: {
+    silent?: boolean;
+    reason?: "manual" | "autosave" | "project-switch";
+  }) => {
+    const projectId = projectIdOverride ?? selectedProjectId;
+    if (!projectId) {
+      if (!options?.silent) {
+        toastInfo("Select a project before saving map state.");
+      }
+      return false;
+    }
+
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+      autoSaveTimerRef.current = null;
+    }
+
+    setIsSavingProject(true);
+    try {
+      const result = await saveProjectMapState({
+        projectId,
+        activeBaseLayer,
+        viewport: getCurrentViewportState(),
+        pins,
+        bookmarks,
+        annotations,
+        drawnFeatures,
+        overlayLayers,
+      });
+
+      setLastSavedAt(result.snapshot.savedAt);
+
+      if (result.quota.warning) {
+        const warningKey = `${projectId}:${Math.floor(result.quota.projectedPercentUsed * 100)}`;
+        if (quotaWarningShownRef.current !== warningKey) {
+          quotaWarningShownRef.current = warningKey;
+          toastWarning(
+            `Map storage is ${Math.round(result.quota.projectedPercentUsed * 100)}% full. Further saves may fail soon.`,
+          );
+        }
+      } else {
+        quotaWarningShownRef.current = null;
+      }
+
+      if (!options?.silent) {
+        toastSuccess(
+          `Saved ${result.persistedFeatureCount.toLocaleString()} map feature${result.persistedFeatureCount === 1 ? "" : "s"} to project ${projectId}.`,
+        );
+        recordMapReviewEvent({
+          type: "snapshot",
+          status: "recorded",
+          timestamp: result.snapshot.savedAt,
+          title: "Project map state saved",
+          summary: `Persisted map viewport, layers, drawings, bookmarks, annotations, and ${result.persistedFeatureCount.toLocaleString()} feature reference(s) to project ${projectId}.`,
+          layerIds: overlayLayers.map((layer) => layer.id),
+          details: {
+            projectId,
+            persistedFeatureCount: result.persistedFeatureCount,
+            storageWarning: result.quota.warning,
+          },
+        });
+      }
+      announce(`Project map state saved for ${projectId}`);
+      return true;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Project map save failed.";
+      toastError(message);
+      announce(`Project save failed: ${message}`);
+      return false;
+    } finally {
+      setIsSavingProject(false);
+    }
+  }, [
+    activeBaseLayer,
+    announce,
+    annotations,
+    bookmarks,
+    drawnFeatures,
+    getCurrentViewportState,
+    overlayLayers,
+    pins,
+    recordMapReviewEvent,
+    selectedProjectId,
+  ]);
+
+  const handleProjectLoad = useCallback(async (projectIdOverride?: string | null, options?: {
+    silent?: boolean;
+  }) => {
+    const projectId = projectIdOverride ?? selectedProjectId;
+    if (!projectId) {
+      if (!options?.silent) {
+        toastInfo("Select a project before loading map state.");
+      }
+      return false;
+    }
+
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+      autoSaveTimerRef.current = null;
+    }
+
+    setIsLoadingProject(true);
+    try {
+      const result = await loadProjectMapState(projectId);
+      if (!result.snapshot) {
+        setLastSavedAt(null);
+        clearProjectContent();
+        /* Do not pull the project's default bbox over an explicit fit-bounds
+           request from the current open cycle (e.g. Urban Analytics study
+           area selection). */
+        const explicitFit = useMapExplorerStore.getState().lastExplicitFitRequest;
+        if (selectedProject?.bbox && !explicitFit) {
+          fitToBounds(selectedProject.bbox);
+        }
+        if (!options?.silent) {
+          toastInfo(`No saved map state was found for project ${projectId}.`);
+        }
+        announce(`No saved map state for ${projectId}`);
+        return false;
+      }
+
+      applyProjectSnapshot(result.snapshot);
+      setLastSavedAt(result.snapshot.savedAt);
+      if (!options?.silent) {
+        toastSuccess(
+          `Restored ${result.restoredFeatureCount.toLocaleString()} feature${result.restoredFeatureCount === 1 ? "" : "s"} from project ${projectId}.`,
+        );
+      }
+      announce(`Project map state loaded for ${projectId}`);
+      return true;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Project map load failed.";
+      toastError(message);
+      announce(`Project load failed: ${message}`);
+      return false;
+    } finally {
+      setIsLoadingProject(false);
+    }
+  }, [
+    announce,
+    applyProjectSnapshot,
+    clearProjectContent,
+    fitToBounds,
+    selectedProject?.bbox,
+    selectedProjectId,
+  ]);
+
+  const handleProjectSaveRef = useRef(handleProjectSave);
+  const handleProjectLoadRef = useRef(handleProjectLoad);
+
+  useEffect(() => {
+    handleProjectSaveRef.current = handleProjectSave;
+  }, [handleProjectSave]);
+
+  useEffect(() => {
+    handleProjectLoadRef.current = handleProjectLoad;
+  }, [handleProjectLoad]);
+
+  useEffect(() => {
+    if (!open || !selectedProjectId) {
+      previousProjectIdRef.current = selectedProjectId;
+      return undefined;
+    }
+
+    let cancelled = false;
+    const previousProjectId = previousProjectIdRef.current;
+    previousProjectIdRef.current = selectedProjectId;
+
+    void (async () => {
+      if (previousProjectId && previousProjectId !== selectedProjectId && autoSaveEnabled) {
+        await handleProjectSaveRef.current(previousProjectId, {
+          silent: true,
+          reason: "project-switch",
+        });
+      }
+
+      if (!cancelled) {
+        await handleProjectLoadRef.current(selectedProjectId, { silent: true });
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [autoSaveEnabled, open, selectedProjectId]);
+
+  useEffect(() => {
+    if (
+      !open ||
+      !selectedProjectId ||
+      !autoSaveEnabled ||
+      isLoadingProject ||
+      isSavingProject ||
+      isRestoringProjectRef.current
+    ) {
+      return undefined;
+    }
+
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+    }
+
+    autoSaveTimerRef.current = setTimeout(() => {
+      void handleProjectSave(selectedProjectId, {
+        silent: true,
+        reason: "autosave",
+      });
+    }, 5000);
+
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+        autoSaveTimerRef.current = null;
+      }
+    };
+  }, [
+    activeBaseLayer,
+    annotations,
+    autoSaveEnabled,
+    bearing,
+    bookmarks,
+    center,
+    drawnFeatures,
+    handleProjectSave,
+    isLoadingProject,
+    isSavingProject,
+    open,
+    overlayLayers,
+    pitch,
+    pins,
+    selectedProjectId,
+    zoom,
+  ]);
+
+  useEffect(() => {
+    if (visiblePublicationLayers.length === 0 && mapCompositionOptions.includeLegend) {
+      setMapCompositionOptions((current) => ({ ...current, includeLegend: false }));
+    }
+  }, [mapCompositionOptions.includeLegend, visiblePublicationLayers.length]);
+
+  useEffect(() => {
+    if (!pointSymbologyLayerId) {
+      setPointSymbologyCollection(null);
+      setPointSymbologyFields([]);
+      setPointSymbologyError(null);
+      setIsLoadingPointSymbology(false);
+      return undefined;
+    }
+
+    if (!selectedPointSymbologyLayer || !selectedPointSymbologyLayer.visible || !isPointCandidate(selectedPointSymbologyLayer)) {
+      setPointSymbologyLayerId(null);
+      setPointSymbologyCollection(null);
+      setPointSymbologyFields([]);
+      setPointSymbologyError(null);
+      setIsLoadingPointSymbology(false);
+      return undefined;
+    }
+
+    let cancelled = false;
+    setIsLoadingPointSymbology(true);
+    setPointSymbologyError(null);
+
+    void resolveFeatureCollection(selectedPointSymbologyLayer)
+      .then((featureCollection) => {
+        if (cancelled) return;
+        if (!hasPointGeometry(featureCollection)) {
+          throw new Error("Selected layer does not contain point geometries.");
+        }
+
+        setPointSymbologyCollection(featureCollection);
+        setPointSymbologyFields(collectNumericFields(featureCollection));
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        setPointSymbologyCollection(null);
+        setPointSymbologyFields([]);
+        setPointSymbologyError(error instanceof Error ? error.message : "Failed to load point layer.");
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsLoadingPointSymbology(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pointSymbologyLayerId, selectedPointSymbologyLayer]);
+
+  const resetImportUi = useCallback(() => {
+    setIsImporting(false);
+    setShowImportProgress(false);
+    setImportProgress(null);
+    setImportLabel(null);
+    if (importInputRef.current) {
+      importInputRef.current.value = "";
+    }
+  }, []);
+
+  const clearPendingCsvImport = useCallback(() => {
+    setPendingCsvImport(null);
+    setCsvLatitudeColumn("");
+    setCsvLongitudeColumn("");
+  }, []);
+
+  const clearPendingColumnarImport = useCallback(() => {
+    setPendingColumnarImport(null);
+  }, []);
+
+  const handleImportedLayerReady = useCallback(async (
+    result: ImportedGeoJSONLayer,
+    columnarSession?: ColumnarImportSession,
+  ) => {
+    addOverlayLayer(result.layer);
+
+    const bounds = result.layer.metadata?.bounds ?? getFeatureCollectionBounds(result.featureCollection);
+    if (bounds) {
+      fitToBounds(bounds);
+    }
+
+    const summary = result.summary;
+    let workerTransferReady = false;
+    if (columnarSession) {
+      try {
+        await loadArrowIPC(columnarSession.workerTableName, columnarSession.arrowIPC);
+        workerTransferReady = true;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Worker transfer failed.";
+        toastWarning(`Imported ${result.layer.name}, but the columnar analytics worker could not be primed: ${message}`);
+      }
+    }
+
+    if (summary?.sourceType === "csv" && summary.totalRecords != null) {
+      const skipped = summary.skippedRecordCount ?? 0;
+      const imported = summary.importedFeatureCount;
+      if (skipped > 0) {
+        toastSuccess(
+          `Imported ${imported.toLocaleString()} of ${summary.totalRecords.toLocaleString()} points (${skipped.toLocaleString()} rows skipped due to invalid coordinates).`,
+        );
+      } else {
+        toastSuccess(`Imported ${imported.toLocaleString()} points from ${result.layer.name}.`);
+      }
+    } else if ((summary?.sourceType === "arrow" || summary?.sourceType === "geoparquet") && summary.totalRecords != null) {
+      const skipped = summary.skippedRecordCount ?? 0;
+      const imported = summary.importedFeatureCount;
+      const baseMessage = skipped > 0
+        ? `Imported ${imported.toLocaleString()} of ${summary.totalRecords.toLocaleString()} spatial rows from ${result.layer.name} (${skipped.toLocaleString()} rows skipped during geometry decoding).`
+        : `Imported ${imported.toLocaleString()} spatial rows from ${result.layer.name}.`;
+      toastSuccess(workerTransferReady ? `${baseMessage} Columnar worker transfer is ready for analytics.` : baseMessage);
+    } else {
+      toastSuccess(`Imported ${result.layer.name} (${result.featureCollection.features.length} features).`);
+    }
+
+    announce(`Imported layer ${result.layer.name}`);
+  }, [addOverlayLayer, announce, fitToBounds]);
+
+  const handleImportFiles = useCallback(async (files: FileList | File[] | null) => {
+    const nextFile = files ? Array.from(files)[0] : null;
+    if (!nextFile) return;
+
+    clearPendingCsvImport();
+    clearPendingColumnarImport();
+    setIsImporting(true);
+    setImportProgress({
+      loaded: 0,
+      total: nextFile.size,
+      percent: 0,
+      stage: "Reading file",
+    });
+    setShowImportProgress(
+      nextFile.size > IMPORT_PROGRESS_THRESHOLD_BYTES || /\.(arrow|feather|ipc|parquet|geoparquet)$/i.test(nextFile.name),
+    );
+    setImportLabel(nextFile.name);
+
+    try {
+      const prepared = await prepareMapImportFile(nextFile, {
+        onProgress: (progress) => {
+          setImportProgress(progress);
+        },
+      });
+
+      if (prepared.kind === "csv") {
+        setPendingCsvImport(prepared.session);
+        setCsvLatitudeColumn(prepared.session.suggestedLatitudeColumn ?? "");
+        setCsvLongitudeColumn(prepared.session.suggestedLongitudeColumn ?? "");
+        announce("CSV loaded. Select latitude and longitude columns to finish import.");
+        return;
+      }
+
+      if (prepared.kind === "columnar") {
+        setPendingColumnarImport(prepared.session);
+        announce(`${prepared.session.format === "geoparquet" ? "GeoParquet" : "Arrow"} loaded. Review the schema preview to finish import.`);
+        return;
+      }
+
+      await handleImportedLayerReady(prepared.result);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Spatial import failed.";
+      toastError(message);
+      announce(`Import failed: ${message}`);
+    } finally {
+      resetImportUi();
+    }
+  }, [announce, clearPendingColumnarImport, clearPendingCsvImport, handleImportedLayerReady, resetImportUi]);
+
+  const handleCsvImportConfirm = useCallback(async () => {
+    if (!pendingCsvImport) return;
+
+    try {
+      const result = completeCsvImport(pendingCsvImport, {
+        latitudeColumn: csvLatitudeColumn,
+        longitudeColumn: csvLongitudeColumn,
+      });
+      await handleImportedLayerReady(result);
+      clearPendingCsvImport();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "CSV import failed.";
+      toastError(message);
+      announce(`Import failed: ${message}`);
+    }
+  }, [
+    announce,
+    clearPendingCsvImport,
+    csvLatitudeColumn,
+    csvLongitudeColumn,
+    handleImportedLayerReady,
+    pendingCsvImport,
+  ]);
+
+  const handleColumnarImportConfirm = useCallback(async () => {
+    if (!pendingColumnarImport) return;
+
+    try {
+      await handleImportedLayerReady(pendingColumnarImport.result, pendingColumnarImport);
+      clearPendingColumnarImport();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Columnar import failed.";
+      toastError(message);
+      announce(`Import failed: ${message}`);
+    }
+  }, [announce, clearPendingColumnarImport, handleImportedLayerReady, pendingColumnarImport]);
+
+  const handleImportRequest = useCallback(() => {
+    setShowImportHub(true);
+  }, []);
+
+  const handleBrowseLocalFiles = useCallback(() => {
+    importInputRef.current?.click();
+    setShowImportHub(false);
+  }, []);
+
+  const handleTeachingDatasetImport = useCallback(async (datasetId: TeachingDatasetId) => {
+    setLoadingTeachingDatasetId(datasetId);
+    try {
+      const result = loadTeachingDatasetIntoMapWorkspace(datasetId);
+      fitToBounds(result.dataset.spatialExtent.bounds);
+      setShowImportHub(false);
+      toastSuccess(`Loaded ${result.dataset.city} teaching dataset with ${result.layers.length} published layers.`);
+      announce(`Loaded teaching dataset ${result.dataset.city}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Teaching dataset import failed.";
+      toastError(message);
+      announce(`Import failed: ${message}`);
+    } finally {
+      setLoadingTeachingDatasetId(null);
+    }
+  }, [announce, fitToBounds]);
+
+  const handleExportRequest = useCallback(() => {
+    setShowExportDialog(true);
+  }, []);
+
+  const handleMapExportRequest = useCallback(() => {
+    if (!mapInstanceRef.current) {
+      toastInfo("Map is still initializing. Try the publication export again in a moment.");
+      return;
+    }
+    setShowMapExportDialog(true);
+  }, []);
+
+  const handleMapCompositionChange = useCallback((patch: Partial<MapCompositionOptions>) => {
+    setMapCompositionOptions((current) => ({ ...current, ...patch }));
+  }, []);
+
+  const captureReportHandoffSnapshot = useCallback(async (
+    source: MapReportHandoffSource,
+    options: MapReportHandoffOptions = DEFAULT_MAP_REPORT_HANDOFF_OPTIONS,
+  ) => {
+    const map = mapInstanceRef.current;
+    const legendItems = buildMapCompositionLegendItems(visiblePublicationLayers);
+    const scaleBarSpec = map ? calculateScaleBarSpec(map) : null;
+    const attributionText = DEFAULT_MAP_COMPOSITION_OPTIONS.attributionText;
+
+    setReportHandoffSnapshot({
+      legendItems,
+      scaleBarLabel: scaleBarSpec?.label ?? null,
+      northArrowBearing: map?.getBearing() ?? bearing,
+      attributionText,
+    });
+
+    if (!map) {
+      toastInfo("Map is still initializing. Report handoff metadata is ready; refresh the snapshot in a moment.");
+      return;
+    }
+
+    setIsGeneratingReportHandoffSnapshot(true);
+    try {
+      const composition = buildReportHandoffComposition(source, options, map);
+      const result = await renderMapExportPreview(map, {
+        resolution: "screen",
+        composition,
+        overlayLayers: visiblePublicationLayers,
+        maxPreviewWidth: 620,
+      });
+      setReportHandoffSnapshot({
+        dataUrl: result.dataUrl,
+        filename: result.filename,
+        width: result.width,
+        height: result.height,
+        legendItems,
+        scaleBarLabel: scaleBarSpec?.label ?? null,
+        northArrowBearing: map.getBearing(),
+        attributionText,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Map report snapshot failed.";
+      toastWarning(message);
+      announce(`Report snapshot failed: ${message}`);
+    } finally {
+      setIsGeneratingReportHandoffSnapshot(false);
+    }
+  }, [announce, bearing, visiblePublicationLayers]);
+
+  const handleReportHandoffOptionsChange = useCallback((nextOptions: MapReportHandoffOptions) => {
+    const shouldRefreshSnapshot = nextOptions.snapshotFrame !== reportHandoffOptions.snapshotFrame
+      || nextOptions.snapshotFit !== reportHandoffOptions.snapshotFit;
+    setReportHandoffOptions(nextOptions);
+    if (shouldRefreshSnapshot && reportHandoffSource) {
+      void captureReportHandoffSnapshot(reportHandoffSource, nextOptions);
+    }
+  }, [
+    captureReportHandoffSnapshot,
+    reportHandoffOptions.snapshotFit,
+    reportHandoffOptions.snapshotFrame,
+    reportHandoffSource,
+  ]);
+
+  const handleOpenReportHandoff = useCallback((source: MapReportHandoffSource) => {
+    const initialOptions = DEFAULT_MAP_REPORT_HANDOFF_OPTIONS;
+    closeRightDockPanels();
+    closeFloatingRightPanels();
+    setShowScientificQAPanel(false);
+    setShowWorkflowDrawer(false);
+    setWorkflowPreview(null);
+    setReportHandoffSource(source);
+    setReportHandoffOptions(initialOptions);
+    setReportHandoffSnapshot(null);
+    void captureReportHandoffSnapshot(source, initialOptions);
+    announce("Map report preview opened");
+  }, [announce, captureReportHandoffSnapshot, closeFloatingRightPanels, closeRightDockPanels]);
+
+  const handleOpenCurrentMapReportHandoff = useCallback(() => {
+    handleOpenReportHandoff({ scope: "map-view", title: "Current map evidence" });
+  }, [handleOpenReportHandoff]);
+
+  const handleLayerReportRequest = useCallback((layerId: string) => {
+    const layer = overlayLayers.find((candidate) => candidate.id === layerId);
+    handleOpenReportHandoff({
+      scope: "layer",
+      layerId,
+      title: `${layer?.name ?? "Selected layer"} map finding`,
+    });
+  }, [handleOpenReportHandoff, overlayLayers]);
+
+  const handleFeatureReportRequest = useCallback((payload: MapFeatureReportRequest) => {
+    const titleValue = [
+      payload.properties.detection_class,
+      payload.properties.land_cover_class,
+      payload.properties.cluster_label,
+      payload.properties.query_intent,
+      payload.properties.name,
+      payload.properties.label,
+      payload.properties.id,
+      payload.properties.feature_id,
+    ].find((value) => value != null && value !== "");
+    handleOpenReportHandoff({
+      scope: "feature",
+      featureId: payload.featureId,
+      properties: payload.properties,
+      coordinate: payload.coordinate,
+      title: `${titleValue ? String(titleValue) : "Selected feature"} feature finding`,
+      ...(payload.layerId ? { layerId: payload.layerId } : {}),
+    });
+  }, [handleOpenReportHandoff]);
+
+  const handleRefreshReportHandoffSnapshot = useCallback(() => {
+    if (!reportHandoffSource) return;
+    void captureReportHandoffSnapshot(reportHandoffSource, reportHandoffOptions);
+  }, [captureReportHandoffSnapshot, reportHandoffOptions, reportHandoffSource]);
+
+  const handleDownloadReportHandoffPdf = useCallback(async () => {
+    const map = mapInstanceRef.current;
+    if (!map) {
+      toastError("Map canvas is not ready for A0 export.");
+      announce("A0 map PDF export failed: canvas not ready");
+      return;
+    }
+
+    setIsExportingReportHandoffPdf(true);
+    try {
+      const result = await exportMapOnlyA0LandscapePdf(map, {
+        mapFit: reportHandoffOptions.snapshotFit,
+        title: reportHandoffSource?.title ?? reportHandoffDraft?.title ?? "Current map evidence",
+        overlayLayers,
+        attributionText: DEFAULT_MAP_COMPOSITION_OPTIONS.attributionText,
+      });
+      triggerMapPublicationDownload(result);
+      toastSuccess(`Exported A0 landscape map PDF: ${result.filename}.`);
+      announce("A0 landscape map PDF exported");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "A0 landscape map PDF export failed.";
+      toastError(message);
+      announce(`A0 landscape map PDF export failed: ${message}`);
+    } finally {
+      setIsExportingReportHandoffPdf(false);
+    }
+  }, [announce, overlayLayers, reportHandoffDraft?.title, reportHandoffOptions.snapshotFit, reportHandoffSource?.title]);
+
+  const handleInsertReportHandoff = useCallback(() => {
+    if (!reportHandoffDraft) return;
+    const snapshot = buildCurrentReviewSnapshot();
+    const provisionalInsert = buildPendingReportInsertFromMapHandoff(reportHandoffDraft);
+    const reviewEventInput = buildReportHandoffReviewEvent(reportHandoffDraft, provisionalInsert, snapshot);
+    const reviewEventId = createMapReviewEvent(reviewEventInput).id;
+    const insert = enqueueMapReportHandoff(reportHandoffDraft, { mapReviewEventIds: [reviewEventId] });
+    recordMapReviewEvent({ ...reviewEventInput, id: reviewEventId });
+    setReportHandoffSource(null);
+    setReportHandoffSnapshot(null);
+    toastSuccess(`Added ${insert.sections.length} map report section(s) to the report builder.`);
+    announce("Map finding added to report builder");
+    window.dispatchEvent(new CustomEvent("synapse:navigate", { detail: { tab: "Report" } }));
+  }, [announce, buildCurrentReviewSnapshot, recordMapReviewEvent, reportHandoffDraft]);
+
+  const handleCloseReportHandoff = useCallback(() => {
+    setReportHandoffSource(null);
+    setReportHandoffSnapshot(null);
+    setIsGeneratingReportHandoffSnapshot(false);
+    setIsExportingReportHandoffPdf(false);
+    announce("Map report preview closed");
+  }, [announce]);
+
+  const handleMapQuickAction = useCallback((actionId: MapQuickActionId) => {
+    switch (actionId) {
+      case "import-data":
+        handleSetWorkspaceView("explore");
+        handleImportRequest();
+        break;
+      case "review-layers":
+        handleSetWorkspaceView("explore");
+        setShowLayerPanel(true);
+        break;
+      case "open-pins":
+        handleSetWorkspaceView("explore");
+        setShowScientificQAPanel(false);
+        closeFloatingRightPanels();
+        setShowSidebar(true);
+        setShowDrawPanel(false);
+        setShowMeasurePanel(false);
+        setActiveTool("pin");
+        announce("Pin mode enabled and pin sidebar opened");
+        break;
+      case "draw-aoi":
+        handleSetWorkspaceView("analyze");
+        setShowScientificQAPanel(false);
+        closeFloatingRightPanels();
+        setShowDrawPanel(true);
+        handleSetDrawTool("polygon");
+        break;
+      case "measure":
+        handleSetWorkspaceView("analyze");
+        setShowScientificQAPanel(false);
+        closeFloatingRightPanels();
+        setShowMeasurePanel(true);
+        handleSetMeasureTool("measure-distance");
+        break;
+      case "theme-data":
+        handleSetWorkspaceView("analyze");
+        setShowScientificQAPanel(false);
+        closeRightDockPanels();
+        setShowLayerPanel(true);
+        setPointSymbologyLayerId(null);
+        setShowClusterViz(false);
+        setShowHotSpotViz(false);
+        setShowChoroplethPanel(true);
+        announce("Thematic analysis panel opened");
+        break;
+      case "export-map":
+        handleSetWorkspaceView("explore");
+        handleMapExportRequest();
+        break;
+      case "save-project":
+        handleSetWorkspaceView("explore");
+        void handleProjectSave();
+        break;
+      default:
+        break;
+    }
+  }, [announce, closeFloatingRightPanels, closeRightDockPanels, handleImportRequest, handleMapExportRequest, handleProjectSave, handleSetDrawTool, handleSetMeasureTool, handleSetWorkspaceView, setActiveTool]);
+
+  const handleExportConfirm = useCallback(async () => {
+    try {
+      const result = await exportMapData({
+        target: exportTarget,
+        pins,
+        drawings: drawnFeatures,
+        overlayLayers,
+        options: {
+          format: exportFormat,
+          precision: exportPrecision,
+          prettyPrint: exportPrettyPrint,
+          includeProperties: exportIncludeProperties,
+        },
+      });
+
+      triggerMapDataDownload(result);
+      setShowExportDialog(false);
+      toastSuccess(
+        result.format === "geoparquet"
+          ? `Exported ${result.collection.features.length} features to ${result.filename} (${formatBytes(result.byteLength)}).`
+          : `Exported ${result.collection.features.length} features to ${result.filename}.`,
+      );
+      if (result.skippedLayers.length > 0) {
+        toastInfo(`Skipped non-GeoJSON layers: ${result.skippedLayers.join(", ")}`);
+      }
+      announce(`Export completed for ${exportTarget}`);
+    } catch (error) {
+      const message = error instanceof Error
+        ? error.message
+        : `${exportFormat === "geoparquet" ? "GeoParquet" : "GeoJSON"} export failed.`;
+      toastError(message);
+      announce(`Export failed: ${message}`);
+    }
+  }, [
+    announce,
+    drawnFeatures,
+    exportFormat,
+    exportIncludeProperties,
+    exportPrecision,
+    exportPrettyPrint,
+    exportTarget,
+    overlayLayers,
+    pins,
+  ]);
+
+  const handleMapExportConfirm = useCallback(async () => {
+    const map = mapInstanceRef.current;
+    if (!map) {
+      toastError("Map canvas is not ready for export.");
+      announce("Map export failed: canvas not ready");
+      return;
+    }
+
+    setIsExportingMapImage(true);
+    try {
+      const result = await exportMapPublication(map, {
+        composition: mapCompositionOptions,
+        overlayLayers: visiblePublicationLayers,
+      });
+
+      triggerMapPublicationDownload(result);
+      setShowMapExportDialog(false);
+      toastSuccess(`${result.format.toUpperCase()} map publication rendered: ${result.filename}.`);
+      announce("Map publication export completed");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Map publication export failed.";
+      toastError(message);
+      announce(`Map export failed: ${message}`);
+    } finally {
+      setIsExportingMapImage(false);
+    }
+  }, [
+    announce,
+    mapCompositionOptions,
+    visiblePublicationLayers,
+  ]);
+
+  useEffect(() => {
+    if (!showMapExportDialog) {
+      setMapExportPreviewUrl(null);
+      setIsGeneratingMapExportPreview(false);
+      return undefined;
+    }
+
+    const map = mapInstanceRef.current;
+    if (!map) {
+      setMapExportPreviewUrl(null);
+      return undefined;
+    }
+
+    let cancelled = false;
+    const timerId = window.setTimeout(() => {
+      setIsGeneratingMapExportPreview(true);
+      void renderMapExportPreview(map, {
+        resolution: "screen",
+        composition: mapCompositionOptions,
+        overlayLayers: visiblePublicationLayers,
+        maxPreviewWidth: 520,
+      })
+        .then((result) => {
+          if (cancelled) return;
+          setMapExportPreviewUrl(result.dataUrl);
+        })
+        .catch(() => {
+          if (cancelled) return;
+          setMapExportPreviewUrl(null);
+        })
+        .finally(() => {
+          if (!cancelled) {
+            setIsGeneratingMapExportPreview(false);
+          }
+        });
+    }, 180);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timerId);
+    };
+  }, [
+    mapCompositionOptions,
+    showMapExportDialog,
+    visiblePublicationLayers,
+  ]);
+
+  const handleDragEnter = useCallback((event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    dragCounterRef.current += 1;
+    setIsDragActive(true);
+  }, []);
+
+  const handleDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = "copy";
+    }
+    setIsDragActive(true);
+  }, []);
+
+  const handleDragLeave = useCallback((event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    dragCounterRef.current = Math.max(0, dragCounterRef.current - 1);
+    if (dragCounterRef.current === 0) {
+      setIsDragActive(false);
+    }
+  }, []);
+
+  const handleDrop = useCallback(async (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    dragCounterRef.current = 0;
+    setIsDragActive(false);
+    await handleImportFiles(event.dataTransfer?.files ?? null);
+  }, [handleImportFiles]);
+
+  const handleStartMeasureFromContext = useCallback((coordinate: [number, number]) => {
+    setWorkspaceView("analyze");
+    setShowScientificQAPanel(false);
+    closeFloatingRightPanels();
+    setShowSidebar(false);
+    setShowDrawPanel(false);
+    setShowMeasurePanel(true);
+    setActiveTool(null);
+    setActiveDrawTool(null);
+    setActiveMeasureTool("measure-distance");
+    setMeasurementSeed({
+      coordinate,
+      tool: "measure-distance",
+      token: Date.now(),
+    });
+  }, [closeFloatingRightPanels, setActiveDrawTool, setActiveMeasureTool, setActiveTool]);
+
+  const handleStartPolygonFromContext = useCallback((coordinate: [number, number]) => {
+    setWorkspaceView("analyze");
+    setShowScientificQAPanel(false);
+    closeFloatingRightPanels();
+    setShowSidebar(false);
+    setShowDrawPanel(true);
+    setShowMeasurePanel(false);
+    setActiveTool(null);
+    setActiveMeasureTool(null);
+    setActiveDrawTool("polygon");
+    setDrawSeed({
+      coordinate,
+      tool: "polygon",
+      token: Date.now(),
+    });
+  }, [closeFloatingRightPanels, setActiveDrawTool, setActiveMeasureTool, setActiveTool]);
+
+  /* ---- Render ---- */
+  if (!open) return null;
+
+  const transitionStyle = reducedMotion ? "none" : undefined;
+  const exportDisabled =
+    pins.length === 0 &&
+    drawnFeatures.length === 0 &&
+    overlayLayers.filter((layer) => layer.visible).length === 0;
+  const persistenceDisabled = !selectedProjectId;
+
+  return createPortal(
+    <MapWorkspaceShell mode={mode} shellRef={trapRef} onClose={onClose}>
+        {reducedMotion ? (
+          <style>
+            {'[data-map-explorer-shell="true"], [data-map-explorer-shell="true"] * { transition: none !important; animation: none !important; scroll-behavior: auto !important; }'}
+          </style>
+        ) : null}
+
+        <input
+          ref={importInputRef}
+          type="file"
+          accept={MAP_IMPORT_ACCEPT_ATTRIBUTE}
+          style={{ display: "none" }}
+          onChange={(event) => {
+            void handleImportFiles(event.target.files);
+          }}
+          aria-hidden="true"
+          tabIndex={-1}
+        />
+
+        {/* Skip navigation link */}
+        <a
+          href={`#${mapCanvasId}`}
+          style={srOnlyFocusable}
+          aria-label="Skip to interactive map canvas"
+          onClick={(event) => {
+            event.preventDefault();
+            document.getElementById(mapCanvasId)?.focus();
+          }}
+          onFocus={(e) => {
+            /* Make visible on focus */
+            const el = e.currentTarget;
+            Object.assign(el.style, mapStyles.skipNavFocus);
+          }}
+          onBlur={(e) => {
+            const el = e.currentTarget;
+            Object.assign(el.style, mapStyles.srOnly);
+          }}
+        >
+          Skip to map canvas
+        </a>
+
+        {/* Screen reader announcements */}
+        <AnnouncerRegion />
+
+        {/* Header bar */}
+        <div ref={headerRef} style={commandHeaderStyle} role="toolbar" aria-label="Map command bar">
+          <span style={commandHeaderTitleStyle} id="map-explorer-title">Map Explorer</span>
+
+          <MapSearchBar
+            compact
+            onFlyTo={flyTo}
+            onPlaceSelected={(place) => {
+              if (place.bbox) {
+                setWorkflowGeocodedPlace({
+                  label: place.label,
+                  bbox: place.bbox,
+                  center: place.center,
+                  source: place.source,
+                });
+              } else {
+                setWorkflowGeocodedPlace(null);
+              }
+            }}
+            onResultCount={(count) => announce(`${count} search result${count !== 1 ? "s" : ""} found`)}
+          />
+
+          <div style={commandHeaderToolbarSlot}>
+            <MapToolbar
+              workspaceView={workspaceView}
+              onWorkspaceViewChange={handleSetWorkspaceView}
+              pinMode={pinMode}
+              onTogglePinMode={handleTogglePinMode}
+              showSidebar={effectiveShowSidebar}
+              onToggleSidebar={handleToggleSidebar}
+              pinCount={pins.length}
+              showLayerPanel={effectiveShowLayerPanel}
+              onToggleLayerPanel={handleToggleLayerPanel}
+              layerCount={overlayLayers.length}
+              visibleLayerCount={visiblePublicationLayers.length}
+              activeLayerGeometryType={toolbarActiveGeometryType}
+              hasSelectedAoi={Boolean(selectedAoiFeatureForQuery)}
+              scientificQAStatus={scientificQA?.status ?? "unchecked"}
+              scientificQAIssueCount={scientificQAIssueCount}
+              scientificQABlockerCount={scientificQABlockerCount}
+              showScientificQAPanel={showScientificQAPanel}
+              onToggleScientificQAPanel={handleToggleScientificQAPanel}
+              showNLQueryPanel={showNLQueryPanel}
+              onToggleNLQueryPanel={handleToggleNLQueryPanel}
+              nlQueryLayerCount={nlQueryToolbarContext.queryableLayers.length}
+              showWorkflowDrawer={showWorkflowDrawer}
+              onToggleWorkflowDrawer={handleToggleWorkflowDrawer}
+              workflowReadyCount={workflowReadyCount}
+              showReviewTimeline={showReviewTimeline}
+              onToggleReviewTimeline={handleToggleReviewTimeline}
+              reviewEventCount={reviewSession.events.length}
+              showChoroplethPanel={showChoroplethPanel}
+              onToggleChoroplethPanel={handleToggleChoroplethPanel}
+              showClusterViz={showClusterViz}
+              onToggleClusterViz={handleToggleClusterViz}
+              showHotSpotViz={showHotSpotViz}
+              onToggleHotSpotViz={handleToggleHotSpotViz}
+              showEmergingHotSpotViz={showEmergingHotSpotViz}
+              onToggleEmergingHotSpotViz={handleToggleEmergingHotSpotViz}
+              viewportSyncEnabled={viewportSyncEnabled}
+              onToggleViewportSync={handleToggleViewportSync}
+              showVoxCityOverlayPanel={showVoxCityOverlay}
+              onToggleVoxCityOverlayPanel={() => {
+                setShowVoxCityOverlay((current) => {
+                  const next = !current;
+                  if (next) {
+                    setShowScientificQAPanel(false);
+                    setShowNLQueryPanel(false);
+                    closeRightDockPanels();
+                    setPointSymbologyLayerId(null);
+                    setShowChoroplethPanel(false);
+                    setShowClusterViz(false);
+                    setShowHotSpotViz(false);
+                    setShowEmergingHotSpotViz(false);
+                  }
+                  announce(next ? "VoxCity 2D overlay opened" : "VoxCity 2D overlay closed");
+                  return next;
+                });
+              }}
+              voxCityFootprintCount={SAMPLE_BUILDINGS.length}
+              restrictToMapView={restrictToMapView}
+              onToggleRestrictToMapView={handleToggleRestrictToMapView}
+              activeDrawTool={activeDrawTool}
+              onSetDrawTool={handleSetDrawTool}
+              drawnFeatureCount={drawnFeatures.length}
+              showDrawPanel={effectiveShowDrawPanel}
+              onToggleDrawPanel={handleToggleDrawPanel}
+              annotationMode={annotationMode}
+              onToggleAnnotationMode={handleToggleAnnotationMode}
+              annotationCount={annotations.length}
+              activeMeasureTool={activeMeasureTool}
+              onSetMeasureTool={handleSetMeasureTool}
+              measurementCount={measurements.length}
+              showMeasurePanel={effectiveShowMeasurePanel}
+              onToggleMeasurePanel={handleToggleMeasurePanel}
+              onImportClick={handleImportRequest}
+              onOpenExternalServices={() => {
+                setShowExternalServiceDialog(true);
+                announce("External map services dialog opened");
+              }}
+              onImageExportClick={handleMapExportRequest}
+              onAddToReportClick={handleOpenCurrentMapReportHandoff}
+              onExportClick={handleExportRequest}
+              onSaveProjectClick={() => {
+                void handleProjectSave();
+              }}
+              onLoadProjectClick={() => {
+                void handleProjectLoad();
+              }}
+              isImporting={isImporting}
+              importProgress={importProgress?.percent ?? null}
+              exportDisabled={exportDisabled}
+              reportDisabled={isGeneratingReportHandoffSnapshot}
+              isExportingImage={isExportingMapImage}
+              isSavingProject={isSavingProject}
+              isLoadingProject={isLoadingProject}
+              persistenceDisabled={persistenceDisabled}
+            />
+          </div>
+
+          <MapBookmarkBar
+            variant="menu"
+            bookmarks={bookmarks}
+            maxBookmarks={MAP_BOOKMARK_LIMIT}
+            onSaveBookmark={handleSaveBookmark}
+            onRestoreBookmark={handleRestoreBookmark}
+            onRenameBookmark={handleRenameBookmark}
+            onDeleteBookmark={handleDeleteBookmark}
+            onShareBookmark={handleShareBookmark}
+          />
+
+          <MapLayerPanel compact activeLayer={activeBaseLayer} onSetLayer={handleSetBaseLayer} />
+
+          <button
+            type="button"
+            style={commandHeaderCloseButton}
+            onClick={onClose}
+            aria-label="Close map explorer (Escape)"
+          >
+            <IconClose size={MAP_ICON_SIZES.md} />
+          </button>
+        </div>
+
+        {/* Map area */}
+        {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions -- map surface needs drag-and-drop file handling */}
+        <MapCanvasRegion
+          ref={handleMapContainerRef}
+          style={{
+            "--map-dock-left": `${navigatorLeftInset}px`,
+            "--map-dock-right": `${navigatorRightInset}px`,
+            "--map-layer-panel-width": `${dockLayout.layerPanelWidth}px`,
+          } as React.CSSProperties}
+          data-map-dock-compact={dockLayout.compactDock ? "true" : "false"}
+          data-map-right-panel={dockLayout.activeRightPanel ?? "none"}
+          data-map-layer-placement={dockLayout.layerPanelPlacement ?? "none"}
+          data-testid="map-canvas-region"
+          onDragEnter={handleDragEnter}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={(event) => {
+            void handleDrop(event);
+          }}
+        >
+          {isDragActive ? (
+            <div
+              style={mapStyles.dragOverlay}
+              aria-hidden="true"
+            >
+              Drop GeoJSON, CSV, Arrow, GeoParquet, KML, KMZ, or GPX to import
+            </div>
+          ) : null}
+
+          <MapServiceDialog
+            open={showExternalServiceDialog}
+            bounds={externalServiceBounds?.bounds ?? null}
+            boundsLabel={externalServiceBounds?.label ?? null}
+            overlayLayers={overlayLayers}
+            onAddLayer={addOverlayLayer}
+            onRemoveLayer={removeOverlayLayer}
+            onClose={() => {
+              setShowExternalServiceDialog(false);
+              handleExternalServiceProgress({ busy: false, label: null, progress: null });
+              announce("External map services dialog closed");
+            }}
+            onAnnounce={announce}
+            onProgress={handleExternalServiceProgress}
+            onOpenVoxCityOverlay={handleOpenVoxCityOverlayFromService}
+          />
+
+          {showImportProgress ? (
+            <div
+              style={mapStyles.importProgress}
+              role="status"
+              aria-label={`Importing ${importLabel ?? "spatial data"} ${Math.round(importProgress?.percent ?? 0)} percent`}
+            >
+              <div style={mapStyles.importProgressHeader}>
+                <span>{importLabel ?? "Importing spatial data"}</span>
+                <span>{Math.round(importProgress?.percent ?? 0)}%</span>
+              </div>
+              {importProgress?.stage || importProgress?.rowCount != null || importProgress?.estimatedMemoryBytes != null ? (
+                <div style={mapStyles.importProgressMeta}>
+                  {importProgress?.stage ? (
+                    <span style={mapStyles.importProgressStage}>{importProgress.stage}</span>
+                  ) : null}
+                  {importProgress?.rowCount != null || importProgress?.estimatedMemoryBytes != null ? (
+                    <div style={mapStyles.importProgressStats}>
+                      <span>
+                        {importProgress?.rowCount != null ? `${importProgress.rowCount.toLocaleString()} rows` : "Profiling rows"}
+                      </span>
+                      <span>
+                        {importProgress?.estimatedMemoryBytes != null ? `~${formatBytes(importProgress.estimatedMemoryBytes)}` : "Calculating footprint"}
+                      </span>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+              <div style={mapStyles.importProgressTrack}>
+                <div
+                  style={{ ...mapStyles.importProgressFill, width: `${Math.max(0, Math.min(importProgress?.percent ?? 0, 100))}%` }}
+                />
+              </div>
+            </div>
+          ) : null}
+
+          {dispatchFeedback ? (
+            <div
+              style={{
+                position: "absolute",
+                top: 16,
+                right: navigatorRightInset,
+                width: 320,
+                maxWidth: `calc(100% - ${navigatorLeftInset + navigatorRightInset}px)`,
+                display: "grid",
+                gap: 6,
+                padding: "12px 14px",
+                borderRadius: 10,
+                border: `1px solid ${feedbackAccent(dispatchFeedback.tone)}`,
+                background: "rgba(13, 13, 13, 0.9)",
+                boxShadow: "0 24px 48px rgba(0,0,0,0.28)",
+                zIndex: 20,
+              }}
+              role="status"
+              aria-live="polite"
+            >
+              <span style={{ color: feedbackAccent(dispatchFeedback.tone), fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                {dispatchFeedback.title}
+              </span>
+              <span style={{ color: "rgba(255,255,255,0.92)", fontSize: 12, lineHeight: 1.45 }}>
+                {dispatchFeedback.description}
+              </span>
+            </div>
+          ) : null}
+
+          {selectionStatsSummary && selectionStatsSummary.length > 0 ? (
+            <div
+              style={{
+                position: "absolute",
+                right: navigatorRightInset,
+                bottom: 16,
+                width: 360,
+                maxWidth: `calc(100% - ${navigatorLeftInset + navigatorRightInset}px)`,
+                display: "grid",
+                gap: 10,
+                padding: "12px 14px",
+                borderRadius: 10,
+                border: "1px solid rgba(245, 158, 11, 0.5)",
+                background: "rgba(10, 10, 10, 0.94)",
+                boxShadow: "0 22px 44px rgba(0,0,0,0.32)",
+                zIndex: 20,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                <div>
+                  <div style={{ color: "#fbbf24", fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                    Quick Statistics
+                  </div>
+                  <div style={{ color: "rgba(255,255,255,0.92)", fontSize: 13, fontWeight: 600 }}>
+                    Selected feature summary
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  style={mapStyles.btn}
+                  onClick={() => setSelectionStatsSummary(null)}
+                  aria-label="Close selection statistics panel"
+                >
+                  <IconClose size={MAP_ICON_SIZES.sm} />
+                </button>
+              </div>
+              {selectionStatsSummary.map((summary) => (
+                <div key={summary.layerId} style={{ display: "grid", gap: 8, paddingTop: 4, borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+                  <div style={{ color: "rgba(255,255,255,0.92)", fontSize: 12, fontWeight: 600 }}>
+                    {summary.layerName} · {summary.selectedFeatureCount.toLocaleString()} selected
+                  </div>
+                  {summary.numericFields.length === 0 ? (
+                    <div style={{ color: "rgba(255,255,255,0.62)", fontSize: 12 }}>
+                      Missing prerequisite: selected features need numeric attributes before summary statistics can be computed.
+                    </div>
+                  ) : summary.numericFields.slice(0, 4).map((field) => (
+                    <div key={field.field} style={{ display: "grid", gap: 2, fontSize: 11, color: "rgba(255,255,255,0.78)" }}>
+                      <strong style={{ color: "#fbbf24", fontWeight: 600 }}>{field.field}</strong>
+                      <span>min {field.min.toFixed(2)} · max {field.max.toFixed(2)} · mean {field.mean.toFixed(2)} · median {field.median.toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          ) : null}
+
+          {isFlowDispatchDialogOpen && flowDispatchAoi ? (
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                display: "grid",
+                placeItems: "center",
+                background: "rgba(0,0,0,0.42)",
+                zIndex: 22,
+              }}
+            >
+              <div
+                style={{
+                  width: 460,
+                  maxWidth: "calc(100% - 32px)",
+                  display: "grid",
+                  gap: 14,
+                  padding: "18px 18px 16px",
+                  borderRadius: 12,
+                  border: "1px solid rgba(245, 158, 11, 0.52)",
+                  background: "rgba(11, 11, 11, 0.96)",
+                  boxShadow: "0 28px 60px rgba(0,0,0,0.38)",
+                }}
+                role="dialog"
+                aria-modal="true"
+                aria-label="Choose workflow for map analysis dispatch"
+              >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                  <div>
+                    <div style={{ color: "#fbbf24", fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                      Analyze This Area
+                    </div>
+                    <div style={{ color: "rgba(255,255,255,0.92)", fontSize: 15, fontWeight: 600 }}>
+                      Route {flowDispatchAoi.label.toLowerCase()} into a workflow
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    style={mapStyles.btn}
+                    onClick={() => setIsFlowDispatchDialogOpen(false)}
+                    aria-label="Close map analysis workflow selector"
+                  >
+                    <IconClose size={MAP_ICON_SIZES.sm} />
+                  </button>
+                </div>
+                <div style={{ color: "rgba(255,255,255,0.68)", fontSize: 12, lineHeight: 1.5 }}>
+                  The selected workflow will open in CenterPanel with this AOI attached as map-dispatch input{restrictToMapView && currentMapBounds ? " and the current view preserved as a spatial filter" : ""}.
+                </div>
+                <div style={{ display: "grid", gap: 10 }}>
+                  {compatibleAoiFlows.map((flow) => (
+                    <button
+                      key={flow.id}
+                      type="button"
+                      style={{
+                        display: "grid",
+                        gap: 4,
+                        padding: "12px 14px",
+                        borderRadius: 10,
+                        border: "1px solid rgba(255,255,255,0.12)",
+                        background: "rgba(255,255,255,0.03)",
+                        color: "rgba(255,255,255,0.92)",
+                        textAlign: "left",
+                        cursor: "pointer",
+                      }}
+                      onClick={() => handleDispatchFlowSelection(flow.id)}
+                    >
+                      <span style={{ color: "#fbbf24", fontSize: 13, fontWeight: 600 }}>{flow.label}</span>
+                      <span style={{ color: "rgba(255,255,255,0.64)", fontSize: 12, lineHeight: 1.45 }}>{flow.description}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {workspaceView === "navigator" ? (
+            <div
+              style={{
+                ...mapStyles.navigatorStage,
+                top: MAP_NAVIGATOR_STAGE_TOP,
+                left: navigatorLeftInset,
+                right: navigatorRightInset,
+                bottom: MAP_NAVIGATOR_STAGE_BOTTOM,
+              }}
+            >
+              <div
+                style={{
+                  ...mapStyles.navigatorStageInner,
+                  width: `calc(100% - ${MAP_SPACING.xs})`,
+                  height: `calc(100% - ${MAP_SPACING.xs})`,
+                  maxWidth: MAP_DIMENSIONS.navigatorMaxWidth,
+                  maxHeight: MAP_DIMENSIONS.navigatorMaxHeight,
+                  overflow: "hidden",
+                }}
+              >
+                <MapWorkspaceCockpit
+                  workspaceView={workspaceView}
+                  onSelectView={handleSetWorkspaceView}
+                  onQuickAction={handleMapQuickAction}
+                  overlayLayers={overlayLayers}
+                  pinCount={pins.length}
+                  drawnFeatureCount={drawnFeatures.length}
+                  measurementCount={measurements.length}
+                  selectedProjectId={selectedProjectId}
+                  lastSavedAt={lastSavedAt}
+                  analysisRecommendations={analysisRecommendationState.recommendations}
+                  onAnalysisRecommendationAction={handleAnalysisRecommendationAction}
+                />
+              </div>
+            </div>
+          ) : null}
+
+          {/* Layer management panel (left side) */}
+          {effectiveShowLayerPanel ? (
+            <MapPanelRail
+              ref={legendRef}
+              side={dockLayout.layerPanelPlacement === "bottom" ? "bottom" : "left"}
+              width={dockLayout.layerPanelWidth}
+              height="min(24rem, 54%)"
+              minWidth={MAP_NUMERIC.layerPanelWidth - 72}
+              maxWidth={MAP_NUMERIC.layerPanelWidth + 200}
+              resizable={dockLayout.layerPanelPlacement === "left"}
+              onWidthChange={handleLayerPanelWidthChange}
+              ariaLabel="Layer and data panel"
+              data-testid="map-layer-panel-rail"
+            >
+              <MapLayerManager
+                overlayLayers={overlayLayers}
+                activeBaseLayerName={BASE_STYLES[activeBaseLayer].name}
+                onToggleVisibility={toggleLayerVisibility}
+                onSetOpacity={setLayerOpacity}
+                onRemoveLayer={removeOverlayLayer}
+                onReorderLayers={reorderLayers}
+                onAddLayer={addOverlayLayer}
+                onAddLayerToReport={handleLayerReportRequest}
+                onReRunAnalysisLayer={handleReRunAnalysisLayer}
+                activeRerunToken={rerunningAnalysisToken}
+                onOpenSymbology={handleOpenPointSymbology}
+                activeSymbologyLayerId={pointSymbologyLayerId}
+                cartographyReviewState={cartographyReviewState}
+                onApplyCartographyRecommendation={handleApplyCartographyRecommendation}
+                onDismissCartographyRecommendation={handleDismissCartographyRecommendation}
+                onUndoCartographyRecommendation={handleUndoCartographyRecommendation}
+                canUndoCartographyRecommendation={cartographyUndoStack.length > 0}
+                onShowCartographyDetails={handleShowCartographyDetails}
+                onRequestClose={() => {
+                  setShowLayerPanel(false);
+                  announce("Layer panel closed");
+                }}
+                panelStyle={{ width: "100%", height: "100%" }}
+                onAnnounce={announce}
+              />
+            </MapPanelRail>
+          ) : null}
+
+          <MapCanvas
+            id={mapCanvasId}
+            baseLayer={activeBaseLayer}
+            pinMode={pinMode}
+            pins={pins}
+            interactiveLayerIds={interactiveAnalysisLayerIds}
+            reducedMotion={reducedMotion}
+            onCursorMove={handleCursorMove}
+            onZoomChange={handleZoomChange}
+            onViewportChange={handleViewportChange}
+            onMapClick={handleMapClick}
+            onMapReady={handleMapReady}
+            onMapDestroy={handleMapDestroy}
+            onRenderError={handleMapRenderError}
+            onFeatureReportRequest={handleFeatureReportRequest}
+          />
+
+          <MapReportHandoffDrawer
+            draft={reportHandoffDraft}
+            options={reportHandoffOptions}
+            isGeneratingSnapshot={isGeneratingReportHandoffSnapshot}
+            isExportingPdf={isExportingReportHandoffPdf}
+            presentation={dockLayout.compactDock ? "bottom-drawer" : "right-rail"}
+            width={dockLayout.rightPanelWidth}
+            onWidthChange={handleRightPanelWidthChange}
+            onOptionsChange={handleReportHandoffOptionsChange}
+            onRefreshSnapshot={handleRefreshReportHandoffSnapshot}
+            onDownloadPdf={handleDownloadReportHandoffPdf}
+            onInsert={handleInsertReportHandoff}
+            onClose={handleCloseReportHandoff}
+          />
+
+          <MapReviewTimelinePanel
+            visible={showReviewTimeline && !navigatorStageMode}
+            session={reviewSession}
+            overlayLayers={overlayLayers}
+            qaState={scientificQA}
+            onClose={() => {
+              setShowReviewTimeline(false);
+              announce("Review timeline closed");
+            }}
+            onRecordEvent={recordMapReviewEvent}
+            onUpdateEventStatus={(eventId, status, outcome) => {
+              updateMapReviewEventStatus(eventId, status, outcome);
+              announce(`Timeline event ${status}`);
+            }}
+            onClearSession={() => {
+              clearMapReviewSession({
+                projectId: selectedProjectId,
+                title: selectedProject?.name ? `${selectedProject.name} map review session` : "Map review session",
+                initialSnapshot: buildCurrentReviewSnapshot(),
+              });
+              lastReviewQaSignatureRef.current = null;
+              lastReviewRecommendationSignatureRef.current = null;
+              recordedCopilotProposalIdsRef.current = new Set();
+              recordedCopilotAuditIdsRef.current = new Set();
+              announce("New map review session started");
+            }}
+            onAnnounce={announce}
+          />
+
+          <WorkflowPreviewOverlay preview={effectiveShowWorkflowDrawer ? workflowPreview : null} />
+
+          <ScientificQAPanel
+            visible={effectiveShowScientificQAPanel}
+            qaState={scientificQA}
+            overlayLayers={overlayLayers}
+            presentation={dockLayout.compactDock ? "bottom-drawer" : "right-rail"}
+            width={dockLayout.rightPanelWidth}
+            onWidthChange={handleRightPanelWidthChange}
+            onClose={() => {
+              setShowScientificQAPanel(false);
+              announce("Scientific QA panel closed");
+            }}
+            onShowDetails={(issue) => {
+              announce(`Scientific QA details opened for ${issue.title}`);
+            }}
+          />
+
+          <MapNLQueryPanel
+            visible={effectiveShowNLQueryPanel}
+            overlayLayers={overlayLayers}
+            selectedAoiFeature={selectedAoiFeatureForQuery}
+            currentMapBounds={currentMapBounds}
+            isRunning={isRunningMapNLQuery}
+            lastRunSummary={lastMapNLQuerySummary}
+            onRun={handleRunMapNLQuery}
+            onClose={() => {
+              setShowNLQueryPanel(false);
+              announce("Map query builder closed");
+            }}
+            onAnnounce={announce}
+          />
+
+          <MapWorkflowDrawer
+            visible={effectiveShowWorkflowDrawer}
+            context={workflowContext}
+            presentation={dockLayout.compactDock ? "bottom-drawer" : "right-rail"}
+            width={dockLayout.rightPanelWidth}
+            onWidthChange={handleRightPanelWidthChange}
+            onClose={() => {
+              setShowWorkflowDrawer(false);
+              setWorkflowPreview(null);
+              announce("Spatial workflow drawer closed");
+            }}
+            onApply={handleApplyMapWorkflow}
+            onSaveReport={handleSaveWorkflowReport}
+            onPreviewChange={setWorkflowPreview}
+            onAnnounce={announce}
+          />
+
+          {!effectiveShowLayerPanel && !navigatorStageMode ? (
+            <button
+              type="button"
+              style={mapStyles.layerPanelOpenButton}
+              onClick={() => {
+                setShowLayerPanel(true);
+                announce("Layer panel opened");
+              }}
+              aria-label={`Open layer panel — ${overlayLayers.length} overlay layer${overlayLayers.length !== 1 ? "s" : ""}`}
+            >
+              <IconLayers size={MAP_ICON_SIZES.sm} />
+              Layers{overlayLayers.length > 0 ? ` (${overlayLayers.length})` : ""}
+            </button>
+          ) : null}
+
+          {temporalLayers.length > 1 ? (
+            <div
+              style={mapStyles.temporalSelector}
+              role="group"
+              aria-label="Temporal layer selector"
+            >
+              <span
+                style={mapStyles.temporalLabel}
+              >
+                Temporal Layer
+              </span>
+
+              {temporalLayers.length > 1 ? (
+                <select
+                  aria-label="Select temporal analysis layer"
+                  value={activeTemporalLayer?.id ?? ""}
+                  onChange={handleTemporalLayerSelection}
+                  style={mapStyles.temporalSelect}
+                >
+                  {temporalLayers.map((layer) => (
+                    <option key={layer.id} value={layer.id}>{layer.name}</option>
+                  ))}
+                </select>
+              ) : (
+                <span
+                  style={mapStyles.temporalLayerName}
+                >
+                  {activeTemporalLayer?.name}
+                </span>
+              )}
+
+              <span
+                style={mapStyles.temporalMeta}
+              >
+                {activeTemporalLayer?.metadata?.analysisResult?.visualization.temporalFrames?.length ?? 0} frames loaded
+              </span>
+            </div>
+          ) : null}
+
+          {activeTemporalLayer ? (
+            <MapTemporalPlayer
+              map={mapInstanceRef.current}
+              frames={activeTemporalLayer.metadata?.analysisResult?.visualization.temporalFrames ?? []}
+              timeProperty={activeTemporalLayer.metadata?.analysisResult?.visualization.timeProperty ?? "timestamp"}
+              sourceId={activeTemporalLayer.id}
+              layerId={activeTemporalLayer.id}
+              layerName={activeTemporalLayer.name}
+              visible={open}
+            />
+          ) : null}
+
+          <MapContextMenu
+            mapRef={mapInstanceRef}
+            pins={pins}
+            drawnFeatures={drawnFeatures}
+            overlayLayers={overlayLayers}
+            reducedMotion={reducedMotion}
+            onAddPin={handleMapClick}
+            onStartMeasure={handleStartMeasureFromContext}
+            onStartPolygonDraw={handleStartPolygonFromContext}
+            onAnalyzeArea={handleOpenFlowDispatchDialog}
+            onIsochroneFromHere={handleIsochroneDispatch}
+            onHotSpotAroundHere={handleHotSpotDispatch}
+            onRunStatisticsOnSelection={handleRunSelectionStatistics}
+            selectionStatsAvailable={selectionStatsAvailable}
+            onAnnounce={announce}
+          />
+
+          <MapAnnotationLayer
+            mapRef={mapInstanceRef}
+            active={annotationMode}
+            annotations={annotations}
+            selectedAnnotationId={selectedAnnotationId}
+            settings={annotationToolSettings}
+            onAddAnnotation={handleAddMapAnnotation}
+            onUpdateAnnotation={handleUpdateMapAnnotation}
+            onMoveAnnotation={handleMoveMapAnnotation}
+            onRemoveAnnotation={handleRemoveMapAnnotation}
+            onSelectAnnotation={setSelectedAnnotationId}
+            onSettingsChange={setAnnotationToolSettings}
+            onDeactivate={handleDeactivateAnnotationMode}
+            onAnnounce={announce}
+          />
+
+          <MapChoroplethLayer
+            mapRef={mapInstanceRef}
+            overlayLayers={overlayLayers}
+            visible={showChoroplethPanel && !effectiveShowScientificQAPanel && !effectiveShowNLQueryPanel}
+            onClose={() => setShowChoroplethPanel(false)}
+            onAnnounce={announce}
+          />
+
+          <MapClusterViz
+            mapRef={mapInstanceRef}
+            overlayLayers={overlayLayers}
+            visible={showClusterViz && !effectiveShowScientificQAPanel && !effectiveShowNLQueryPanel}
+            onClose={() => setShowClusterViz(false)}
+            onAnnounce={announce}
+          />
+
+          <MapHotSpotViz
+            mapRef={mapInstanceRef}
+            overlayLayers={overlayLayers}
+            visible={showHotSpotViz && !effectiveShowScientificQAPanel && !effectiveShowNLQueryPanel}
+            onClose={() => setShowHotSpotViz(false)}
+            onAnnounce={announce}
+          />
+
+          <MapEmergingHotSpotViz
+            overlayLayers={overlayLayers}
+            visible={showEmergingHotSpotViz && !effectiveShowScientificQAPanel && !effectiveShowNLQueryPanel}
+            onClose={() => setShowEmergingHotSpotViz(false)}
+            onAnnounce={announce}
+          />
+
+          {showVoxCityOverlay && !effectiveShowScientificQAPanel && !effectiveShowNLQueryPanel ? (
+            <MapVoxCityOverlay
+              mapRef={mapInstanceRef}
+              panelVisible={showVoxCityOverlay}
+              onPanelClose={() => {
+                setShowVoxCityOverlay(false);
+                announce("VoxCity 2D overlay closed");
+              }}
+              onAnnounce={announce}
+              onExternalImportProgress={handleExternalServiceProgress}
+            />
+          ) : null}
+
+          {pointSymbologyLayerId && !effectiveShowScientificQAPanel && !effectiveShowNLQueryPanel ? (
+            <div
+              style={{
+                ...createOpaqueFloatingPanelStyle(MAP_DIMENSIONS.symbologyPanelWidth),
+                ...symbologyPanelDrag.panelPositionStyle,
+              }}
+              role="dialog"
+              aria-label="Point symbology configuration"
+            >
+              <div
+                style={{ ...mapStyles.symbologyHeader, ...symbologyPanelDrag.dragHandleStyle }}
+                {...symbologyPanelDrag.dragHandleProps}
+              >
+                <div>
+                  <div
+                    style={mapStyles.symbologyEyebrow}
+                  >
+                    Symbology
+                  </div>
+                  <div style={mapStyles.symbologyLayerName}>
+                    {selectedPointSymbologyLayer?.name ?? "Point layer"}
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  style={mapStyles.symbologyCloseButton}
+                  onClick={() => setPointSymbologyLayerId(null)}
+                  aria-label="Close symbology panel"
+                >
+                  <IconClose size={MAP_ICON_SIZES.md} />
+                </button>
+              </div>
+
+              <div
+                style={mapStyles.symbologyModeGrid}
+              >
+                {(["heatmap", "proportional", "graduated"] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => setPointSymbologyMode(mode)}
+                    style={{
+                      ...mapStyles.symbologyModeButton,
+                      ...(pointSymbologyMode === mode ? mapStyles.symbologyModeButtonActive : {}),
+                    }}
+                    aria-pressed={pointSymbologyMode === mode}
+                  >
+                    {mode === "heatmap" ? "Heatmap" : mode === "proportional" ? "Proportional" : "Graduated"}
+                  </button>
+                ))}
+              </div>
+
+              <div style={mapStyles.symbologyBody}>
+                {selectedPointSymbologyLayer ? (
+                  <CartographyRecommendationList
+                    title="Scientific symbology review"
+                    recommendations={selectedLayerCartographyRecommendations}
+                    emptyMessage="No pending cartographic issues for this layer."
+                    maxItems={3}
+                    canUndo={cartographyUndoStack.length > 0}
+                    onApply={handleApplyCartographyRecommendation}
+                    onDismiss={handleDismissCartographyRecommendation}
+                    onUndo={handleUndoCartographyRecommendation}
+                    onShowDetails={handleShowCartographyDetails}
+                  />
+                ) : null}
+
+                {isLoadingPointSymbology ? (
+                  <div style={mapStyles.symbologyLoading}>Loading point layer...</div>
+                ) : null}
+
+                {pointSymbologyError ? (
+                  <div style={mapStyles.symbologyError}>
+                    {pointSymbologyError}
+                  </div>
+                ) : null}
+
+                {selectedPointSymbologyLayer && pointSymbologyCollection ? (
+                  pointSymbologyMode === "heatmap" ? (
+                    <MapHeatmapLayer
+                      mapRef={mapInstanceRef}
+                      layer={selectedPointSymbologyLayer}
+                      featureCollection={pointSymbologyCollection}
+                      numericFields={pointSymbologyFields}
+                    />
+                  ) : (
+                    <MapSymbolLayer
+                      mapRef={mapInstanceRef}
+                      layer={selectedPointSymbologyLayer}
+                      featureCollection={pointSymbologyCollection}
+                      numericFields={pointSymbologyFields}
+                      mode={pointSymbologyMode}
+                    />
+                  )
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+
+          {/* Drawing manager + sidebar (right side) */}
+          {!navigatorStageMode ? (
+            <MapDrawingManager
+              mapRef={mapInstanceRef}
+              activeDrawTool={activeDrawTool}
+              sidebarVisible={effectiveShowDrawPanel}
+              seedDrawStart={drawSeed}
+              drawnFeatures={drawnFeatures}
+              selectedFeatureId={selectedFeatureId}
+              onAddFeature={addDrawnFeature}
+              onRemoveFeature={removeDrawnFeature}
+              onUpdateFeature={updateDrawnFeature}
+              onClearFeatures={clearDrawnFeatures}
+              onSelectFeature={setSelectedFeatureId}
+              onCancelDraw={handleCancelDraw}
+              onSeedHandled={(token) =>
+                setDrawSeed((current) => (current?.token === token ? null : current))
+              }
+              onAnnounce={announce}
+            />
+          ) : null}
+
+          {/* Measurement tool + sidebar */}
+          {effectiveShowMeasurePanel ? (
+            <MapMeasurementTool
+              mapRef={mapInstanceRef}
+              activeMeasureTool={activeMeasureTool}
+              seedMeasurementStart={measurementSeed}
+              measurements={measurements}
+              measureUnit={measureUnit}
+              onAddMeasurement={addMeasurement}
+              onRemoveMeasurement={removeMeasurement}
+              onClearMeasurements={clearMeasurements}
+              onSetMeasureUnit={setMeasureUnit}
+              onCancelMeasure={handleCancelMeasure}
+              onSeedHandled={(token) =>
+                setMeasurementSeed((current) =>
+                  current?.token === token ? null : current,
+                )
+              }
+              onAnnounce={announce}
+            />
+          ) : null}
+
+          <MapPinSidebar
+            pins={pins}
+            visible={effectiveShowSidebar}
+            onRemovePin={handleRemovePin}
+            onClearAll={handleClearPins}
+            onFlyTo={flyTo}
+          />
+        </MapCanvasRegion>
+
+        <MapBottomTimeline timelineSlot={bottomTimelineSlot} data-testid="map-bottom-timeline">
+          <div ref={statusBarRef}>
+            <MapStatusBar
+              cursor={cursor}
+              zoom={zoom}
+              projectId={selectedProjectId}
+              workspaceLabel={workspaceView}
+              layerCount={overlayLayers.length}
+              visibleLayerCount={overlayLayers.filter((layer) => layer.visible).length}
+              pinCount={pins.length}
+              drawnFeatureCount={drawnFeatures.length}
+              measurementCount={measurements.length}
+              measureUnit={measureUnit}
+              crs="EPSG:4326"
+              syncStatus={viewportSyncStatus}
+              isSaving={isSavingProject}
+              isLoading={isLoadingProject}
+              lastSavedAt={lastSavedAt}
+              autoSaveEnabled={autoSaveEnabled}
+              style={{ transition: transitionStyle }}
+            />
+          </div>
+        </MapBottomTimeline>
+
+        <MapDataExportDialog
+          open={showExportDialog}
+          format={exportFormat}
+          target={exportTarget}
+          precision={exportPrecision}
+          prettyPrint={exportPrettyPrint}
+          includeProperties={exportIncludeProperties}
+          onFormatChange={setExportFormat}
+          onTargetChange={setExportTarget}
+          onPrecisionChange={(precision) => setExportPrecision(Number.isFinite(precision) ? Math.max(0, Math.min(12, precision)) : 6)}
+          onPrettyPrintChange={setExportPrettyPrint}
+          onIncludePropertiesChange={setExportIncludeProperties}
+          onClose={() => setShowExportDialog(false)}
+          onExport={() => {
+            void handleExportConfirm();
+          }}
+        />
+
+        <MapExportDialog
+          open={showMapExportDialog}
+          compositionOptions={mapCompositionOptions}
+          legendAvailable={visiblePublicationLayers.length > 0}
+          visibleLayerCount={visiblePublicationLayers.length}
+          previewUrl={mapExportPreviewUrl}
+          isGeneratingPreview={isGeneratingMapExportPreview}
+          isExporting={isExportingMapImage}
+          onCompositionChange={handleMapCompositionChange}
+          onClose={() => setShowMapExportDialog(false)}
+          onExport={() => {
+            void handleMapExportConfirm();
+          }}
+        />
+
+        <MapDataImportHubDialog
+          open={showImportHub}
+          loadingDatasetId={loadingTeachingDatasetId}
+          onClose={() => setShowImportHub(false)}
+          onBrowseLocalFiles={handleBrowseLocalFiles}
+          onLoadDataset={handleTeachingDatasetImport}
+        />
+
+        <MapCsvImportDialog
+          open={pendingCsvImport != null}
+          session={pendingCsvImport}
+          latitudeColumn={csvLatitudeColumn}
+          longitudeColumn={csvLongitudeColumn}
+          onLatitudeColumnChange={setCsvLatitudeColumn}
+          onLongitudeColumnChange={setCsvLongitudeColumn}
+          onClose={clearPendingCsvImport}
+          onImport={() => {
+            void handleCsvImportConfirm();
+          }}
+        />
+
+        <MapColumnarImportDialog
+          open={pendingColumnarImport != null}
+          session={pendingColumnarImport}
+          onClose={clearPendingColumnarImport}
+          onImport={() => {
+            void handleColumnarImportConfirm();
+          }}
+        />
+
+    </MapWorkspaceShell>,
+    document.body,
+  );
+};

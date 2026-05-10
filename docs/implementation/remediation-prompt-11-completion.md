@@ -1,0 +1,8 @@
+### Remediation Prompt 11 - Completion Report
+- Scope Completed: Replaced right-panel unavailable fallback copy with substantive methodology, data, code, and reference fallbacks derived from direct card content, section-related seeds, canonical references, and generic analytical guardrails.
+- Key Files Added or Updated: `src/features/urbanAnalytics/RightPanelFourBlock.tsx`; `src/features/urbanAnalytics/rightPanelUtils.ts`; `src/features/urbanAnalytics/seeds/index.ts`; `src/features/urbanAnalytics/__tests__/RightPanelFourBlock.test.tsx`; `e2e/right-panel-fallbacks.spec.ts`; `docs/implementation/prompt-42-completion.md`; `docs/implementation/prompt-status-ledger.md`; `docs/implementation/module-matrix.md`.
+- User-Facing Surfaces Added or Corrected: The right panel now renders meaningful methodology framing, representative inputs or prerequisites, starter code or related prompts, and references even for sparse cards.
+- Runtime Truthfulness Improvements: Production UI branches no longer render the known unavailable filler strings for methodology, data, code, or references; authored content remains preferred over fallback content.
+- Validation Performed: Historical validation recorded PASS for `npm test -- src/features/urbanAnalytics/__tests__/RightPanelFourBlock.test.tsx` and `npx playwright test e2e/right-panel-fallbacks.spec.ts`; the correction pass reruns are reported in the final correction report.
+- Residual Risks: Fallback content is academically useful but generic when no related seed content exists; literature completeness still depends on future corpus expansion.
+- Follow-Up Required Before Next Prompt: Keep right-panel tests updated if new tab types or pack builders are added.

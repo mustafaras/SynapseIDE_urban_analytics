@@ -1,0 +1,8 @@
+### Remediation Prompt 01 - Completion Report
+- Scope Completed: Read `URBAN_ANALYTICS_PROMPT_AUDIT_AND_REMEDIATION.md`, converted its findings into an explicit remediation delivery sequence, added a mandatory surface-declaration rule, and mapped the audit's ten remediation themes to the execution prompts in `URBAN_ANALYTICS_REMEDIATION_SEQUENTIAL_PROMPTS.md`.
+- Key Files Added or Updated: `URBAN_ANALYTICS_REMEDIATION_SEQUENTIAL_PROMPTS.md`; `docs/implementation/prompt-01-completion.md`.
+- User-Facing Surfaces Added or Corrected: None. This prompt established execution governance and repository-truth requirements only.
+- Runtime Truthfulness Improvements: The remediation sequence now explicitly forbids hidden demo-mode behavior, requires per-prompt code/doc/validation surface declarations, and makes the audit's ten remediation themes mandatory tracked scope rather than advisory guidance.
+- Validation Performed: PASS - `npm run typecheck`; PASS - `npm run build`; PASS - `npm run test`; PASS - `npm run lint:errors`; PASS - `npm run perf:budgets`; PASS - `npm run test:e2e:smoke`; targeted Playwright coverage not applicable because Prompt 01 changed no user-facing runtime flow.
+- Residual Risks: Prompt 02 documentation reconciliation is still required before the broader remediation sequence can rely on current-state docs as a truthful implementation ledger. Smoke validation still emits the pre-existing non-fatal MapLibre cleanup `AbortError` from `src/centerpanel/components/map/MapCanvas.tsx`, which remains in scope for the release-hardening prompt rather than this bootstrap prompt.
+- Follow-Up Required Before Next Prompt: Execute Prompt 02 and create the missing current-state documentation artifacts it declares.

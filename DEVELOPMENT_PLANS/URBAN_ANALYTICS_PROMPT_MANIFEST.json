@@ -1,0 +1,385 @@
+{
+  "schemaVersion": "1.0.0",
+  "module": "Urban Analytics",
+  "purpose": "Machine-readable prompt ladder for Urban Analytics implementation. The ledger is the execution source of truth; this manifest defines the ordered prompt catalog.",
+  "statusValues": [
+    "pending",
+    "in_progress",
+    "completed",
+    "blocked",
+    "skipped_with_reason"
+  ],
+  "canonicalDocuments": [
+    "DEVELOPMENT_PLANS/START_HERE_URBAN_ANALYTICS_AGENT.md",
+    "DEVELOPMENT_PLANS/AGENT_AMNESIA_PREVENTION_PROTOCOL.md",
+    "DEVELOPMENT_PLANS/TRI_MODAL_WORKBENCH_ALIGNMENT_SPEC.md",
+    "DEVELOPMENT_PLANS/URBAN_ANALYTICS_DEVELOPMENT_PLAN.md",
+    "DEVELOPMENT_PLANS/URBAN_ANALYTICS_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md",
+    "DEVELOPMENT_PLANS/URBAN_ANALYTICS_PROMPT_MANIFEST.json",
+    "DEVELOPMENT_PLANS/URBAN_ANALYTICS_IMPLEMENTATION_LEDGER.md",
+    "DEVELOPMENT_PLANS/URBAN_ANALYTICS_AGENT_HANDOFF_TEMPLATE.md"
+  ],
+  "ledgerPath": "DEVELOPMENT_PLANS/URBAN_ANALYTICS_IMPLEMENTATION_LEDGER.md",
+  "promptFilePath": "DEVELOPMENT_PLANS/URBAN_ANALYTICS_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md",
+  "handoffTemplatePath": "DEVELOPMENT_PLANS/URBAN_ANALYTICS_AGENT_HANDOFF_TEMPLATE.md",
+  "nextPromptHelper": "scripts/get-next-urban-analytics-prompt.ps1",
+  "defaults": {
+    "requiredPreflight": [
+      "Read the canonical documents.",
+      "Read the active prompt block.",
+      "Inspect every file named by the prompt.",
+      "Verify prior prompt status from the ledger.",
+      "Check repository status if version control metadata is available.",
+      "Update the ledger before final response."
+    ],
+    "requiredValidation": [
+      "Run typecheck if available.",
+      "Run lint if available and relevant.",
+      "Run targeted tests if the prompt changed logic.",
+      "Record exact validation results in the ledger."
+    ],
+    "amnesiaGuardrails": [
+      "Do not rely on chat memory.",
+      "Do not assume prior prompt completion.",
+      "Do not skip ledger updates.",
+      "Do not change Synapse IDE or Map Explorer internals unless the active prompt explicitly requires a contract adapter.",
+      "Do not silently mutate evidence artifacts, analysis outputs, user files, report content, dashboard bindings, or education state."
+    ]
+  },
+  "prompts": [
+    {
+      "id": "00",
+      "title": "Memory Bootstrapping and Repository Baseline",
+      "status": "pending",
+      "dependsOn": [],
+      "promptHeading": "## Prompt 00 - Memory Bootstrapping and Repository Baseline",
+      "primaryOutcome": "Durable context, audit, and next-step confidence",
+      "tracks": ["memory", "baseline", "architecture"],
+      "validation": ["typecheck-if-available", "lint-if-available", "urban-tests-if-available", "script-inventory"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "01",
+      "title": "Urban Architecture Map and Scientific Ownership Boundaries",
+      "status": "pending",
+      "dependsOn": ["00"],
+      "promptHeading": "## Prompt 01 - Urban Architecture Map and Scientific Ownership Boundaries",
+      "primaryOutcome": "Live architecture map aligned to plan",
+      "tracks": ["architecture", "scientific-ownership", "contracts"],
+      "validation": ["typecheck-if-code-changed", "documentation-validation"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "02",
+      "title": "Urban Analysis Context Kernel Types and Store",
+      "status": "pending",
+      "dependsOn": ["01"],
+      "promptHeading": "## Prompt 02 - Urban Analysis Context Kernel Types and Store",
+      "primaryOutcome": "Shared scientific context substrate",
+      "tracks": ["context-kernel", "store", "types"],
+      "validation": ["typecheck", "store-tests-if-available"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "03",
+      "title": "Context Persistence and Restore",
+      "status": "pending",
+      "dependsOn": ["02"],
+      "promptHeading": "## Prompt 03 - Context Persistence and Restore",
+      "primaryOutcome": "Recoverable analysis context",
+      "tracks": ["persistence", "restore", "context"],
+      "validation": ["typecheck", "persistence-tests-if-feasible", "manual-reload-check-if-ui-can-run"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "04",
+      "title": "Evidence Artifact Model Foundation",
+      "status": "pending",
+      "dependsOn": ["03"],
+      "promptHeading": "## Prompt 04 - Evidence Artifact Model Foundation",
+      "primaryOutcome": "Shared provenance-ready evidence objects",
+      "tracks": ["evidence", "provenance", "artifact-registry"],
+      "validation": ["typecheck", "registry-tests-if-feasible", "flow-store-tests-if-touched"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "05",
+      "title": "Data Fitness and QA Profile Foundation",
+      "status": "pending",
+      "dependsOn": ["04"],
+      "promptHeading": "## Prompt 05 - Data Fitness and QA Profile Foundation",
+      "primaryOutcome": "Truthful readiness model",
+      "tracks": ["data-fitness", "qa", "scientific-truthfulness"],
+      "validation": ["typecheck", "qa-helper-tests", "map-qa-tests-if-touched"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "06",
+      "title": "Method Validity Envelope and Capability Metadata",
+      "status": "pending",
+      "dependsOn": ["05"],
+      "promptHeading": "## Prompt 06 - Method Validity Envelope and Capability Metadata",
+      "primaryOutcome": "Defensible method constraints",
+      "tracks": ["method-validity", "capability-status", "metadata"],
+      "validation": ["typecheck", "metadata-validation-tests-if-feasible", "seed-tests-if-present"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "07",
+      "title": "Premium Modal Shell and Context Strip",
+      "status": "completed",
+      "dependsOn": ["06"],
+      "promptHeading": "## Prompt 07 - Premium Modal Shell and Context Strip",
+      "primaryOutcome": "Dense scientific cockpit shell",
+      "tracks": ["premium-ui", "modal-shell", "context-strip"],
+      "validation": ["typecheck", "component-tests-if-available", "manual-ui-smoke-if-dev-server-can-run"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "08",
+      "title": "Left Rail Research Navigator Metadata",
+      "status": "completed",
+      "dependsOn": ["07"],
+      "promptHeading": "## Prompt 08 - Left Rail Research Navigator Metadata",
+      "primaryOutcome": "Method discovery with scientific metadata",
+      "tracks": ["left-rail", "method-discovery", "metadata"],
+      "validation": ["typecheck", "rail-or-right-panel-tests", "manual-selection-search-smoke"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "09",
+      "title": "Rail Search, Filters, and Recommendations",
+      "status": "completed",
+      "completedDate": "2026-05-10",
+      "dependsOn": ["08"],
+      "promptHeading": "## Prompt 09 - Rail Search, Filters, and Recommendations",
+      "primaryOutcome": "Project-aware method selection",
+      "tracks": ["search", "filters", "recommendations"],
+      "validation": ["typecheck", "search-ranking-tests-if-feasible", "manual-query-smoke"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "10",
+      "title": "Right Panel Scientific Dossier",
+      "status": "completed",
+      "completedDate": "2026-05-08",
+      "dependsOn": ["09"],
+      "promptHeading": "## Prompt 10 - Right Panel Scientific Dossier",
+      "primaryOutcome": "Method/evidence dossier surface",
+      "tracks": ["right-panel", "dossier", "scientific-qa"],
+      "validation": ["typecheck", "right-panel-tests", "manual-selection-smoke"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "11",
+      "title": "Evidence Tray and Provenance Surface",
+      "status": "completed",
+      "completedDate": "2026-05-08",
+      "dependsOn": ["10"],
+      "promptHeading": "## Prompt 11 - Evidence Tray and Provenance Surface",
+      "primaryOutcome": "Inspectable artifact evidence",
+      "tracks": ["evidence-tray", "provenance", "artifact-actions"],
+      "validation": ["typecheck", "component-tests-if-feasible", "manual-artifact-fixture-check"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "12",
+      "title": "Indicator Catalog V2 Metadata Traceability",
+      "status": "completed",
+      "completedDate": "2026-05-08",
+      "dependsOn": ["11"],
+      "promptHeading": "## Prompt 12 - Indicator Catalog V2 Metadata Traceability",
+      "primaryOutcome": "Traceable formulas and units",
+      "tracks": ["indicators", "metadata", "traceability"],
+      "validation": ["indicator-tests", "typecheck", "catalog-tests"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "13",
+      "title": "Indicator Calculators QA and Unit Semantics",
+      "status": "pending",
+      "dependsOn": ["12"],
+      "promptHeading": "## Prompt 13 - Indicator Calculators QA and Unit Semantics",
+      "primaryOutcome": "Honest indicator calculation state",
+      "tracks": ["calculators", "qa", "units"],
+      "validation": ["calculator-tests", "typecheck", "flow-tests-if-output-shape-affects-them"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "14",
+      "title": "Workflow Runtime Run Manifest",
+      "status": "pending",
+      "dependsOn": ["13"],
+      "promptHeading": "## Prompt 14 - Workflow Runtime Run Manifest",
+      "primaryOutcome": "Reproducible workflow run records",
+      "tracks": ["workflow-runtime", "run-manifest", "reproducibility"],
+      "validation": ["flow-store-tests", "typecheck", "representative-workflow-tests-if-available"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "15",
+      "title": "Workflow Readiness Gates and Failure Modes",
+      "status": "pending",
+      "dependsOn": ["14"],
+      "promptHeading": "## Prompt 15 - Workflow Readiness Gates and Failure Modes",
+      "primaryOutcome": "Guarded analytical execution",
+      "tracks": ["workflow-readiness", "failure-modes", "qa-blockers"],
+      "validation": ["typecheck", "readiness-helper-tests", "representative-workflow-smoke"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "16",
+      "title": "Map Explorer Incoming Context Adapter",
+      "status": "pending",
+      "dependsOn": ["15"],
+      "promptHeading": "## Prompt 16 - Map Explorer Incoming Context Adapter",
+      "primaryOutcome": "Map-to-urban scientific context",
+      "tracks": ["map-sync", "incoming-context", "adapter"],
+      "validation": ["typecheck", "adapter-tests-if-feasible", "map-dispatcher-tests-if-touched"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "17",
+      "title": "Urban to Map Evidence Publication",
+      "status": "pending",
+      "dependsOn": ["16"],
+      "promptHeading": "## Prompt 17 - Urban to Map Evidence Publication",
+      "primaryOutcome": "Urban evidence to spatial layer handoff",
+      "tracks": ["map-sync", "publication", "evidence"],
+      "validation": ["typecheck", "map-service-tests-if-touched", "manual-publication-smoke-if-ui-can-run"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "18",
+      "title": "Synapse IDE Code Artifact Generation",
+      "status": "pending",
+      "dependsOn": ["17"],
+      "promptHeading": "## Prompt 18 - Synapse IDE Code Artifact Generation",
+      "primaryOutcome": "Reproducible code artifact requests",
+      "tracks": ["ide-sync", "code-artifacts", "reproducibility"],
+      "validation": ["typecheck", "template-generation-tests-if-feasible", "manual-bridge-simulation-if-practical"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "19",
+      "title": "IDE to Urban File and Artifact Recognition",
+      "status": "pending",
+      "dependsOn": ["18"],
+      "promptHeading": "## Prompt 19 - IDE to Urban File and Artifact Recognition",
+      "primaryOutcome": "Code/file evidence to urban context",
+      "tracks": ["ide-sync", "file-recognition", "evidence"],
+      "validation": ["typecheck", "adapter-tests-if-feasible", "manual-event-simulation"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "20",
+      "title": "Reporting Evidence Blocks",
+      "status": "pending",
+      "dependsOn": ["19"],
+      "promptHeading": "## Prompt 20 - Reporting Evidence Blocks",
+      "primaryOutcome": "Report-ready scientific inserts",
+      "tracks": ["reporting", "evidence-blocks", "publication"],
+      "validation": ["typecheck", "reporting-tests-if-available", "manual-report-insertion-smoke-if-ui-can-run"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "21",
+      "title": "Dashboard Bindings and Scenario Outputs",
+      "status": "pending",
+      "dependsOn": ["20"],
+      "promptHeading": "## Prompt 21 - Dashboard Bindings and Scenario Outputs",
+      "primaryOutcome": "Traceable dashboard state",
+      "tracks": ["dashboard", "scenario-output", "bindings"],
+      "validation": ["typecheck", "dashboard-tests-if-touched", "manual-binding-smoke-if-practical"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "22",
+      "title": "Education Mode and Method Learning Path",
+      "status": "pending",
+      "dependsOn": ["21"],
+      "promptHeading": "## Prompt 22 - Education Mode and Method Learning Path",
+      "primaryOutcome": "Teaching-ready method explanation",
+      "tracks": ["education", "learning-path", "method-explanation"],
+      "validation": ["typecheck", "education-link-tests-if-available", "manual-action-smoke"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "23",
+      "title": "VoxCity 2D/3D Scenario Coherence",
+      "status": "pending",
+      "dependsOn": ["22"],
+      "promptHeading": "## Prompt 23 - VoxCity 2D/3D Scenario Coherence",
+      "primaryOutcome": "3D scenario evidence coherence",
+      "tracks": ["voxcity", "3d", "scenario-evidence"],
+      "validation": ["typecheck", "voxcity-tests-if-touched", "manual-3d-smoke-if-practical"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "24",
+      "title": "Scenario Comparison and Policy Interpretation",
+      "status": "pending",
+      "dependsOn": ["23"],
+      "promptHeading": "## Prompt 24 - Scenario Comparison and Policy Interpretation",
+      "primaryOutcome": "Scenario reasoning and limitations",
+      "tracks": ["scenario-comparison", "policy-interpretation", "uncertainty"],
+      "validation": ["typecheck", "comparison-helper-tests-if-feasible", "manual-comparison-fixture-check"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "25",
+      "title": "Reproducible Package Export",
+      "status": "pending",
+      "dependsOn": ["24"],
+      "promptHeading": "## Prompt 25 - Reproducible Package Export",
+      "primaryOutcome": "Exportable scientific package",
+      "tracks": ["export", "reproducibility", "manifest"],
+      "validation": ["typecheck", "export-builder-tests", "manual-json-fixture-check"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "26",
+      "title": "Accessibility and Keyboard Premium",
+      "status": "pending",
+      "dependsOn": ["25"],
+      "promptHeading": "## Prompt 26 - Accessibility and Keyboard Premium",
+      "primaryOutcome": "Professional keyboard-first UX",
+      "tracks": ["accessibility", "keyboard", "premium-ui"],
+      "validation": ["typecheck", "lint", "accessibility-checks-if-available", "manual-keyboard-smoke"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "27",
+      "title": "Performance, Data Movement, and Resilience",
+      "status": "pending",
+      "dependsOn": ["26"],
+      "promptHeading": "## Prompt 27 - Performance, Data Movement, and Resilience",
+      "primaryOutcome": "Fast, bounded, recoverable behavior",
+      "tracks": ["performance", "data-movement", "resilience"],
+      "validation": ["typecheck", "build-if-available", "performance-smoke-if-fixtures-exist"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "28",
+      "title": "QA Harness and Release Validation",
+      "status": "pending",
+      "dependsOn": ["27"],
+      "promptHeading": "## Prompt 28 - QA Harness and Release Validation",
+      "primaryOutcome": "Repeatable scientific quality gates",
+      "tracks": ["qa", "tests", "release-validation"],
+      "validation": ["targeted-tests", "typecheck", "build-if-available"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "29",
+      "title": "Final Premium Polish and Handoff",
+      "status": "pending",
+      "dependsOn": ["28"],
+      "promptHeading": "## Prompt 29 - Final Premium Polish and Handoff",
+      "primaryOutcome": "Complete Urban Analytics readiness package",
+      "tracks": ["polish", "handoff", "final-validation"],
+      "validation": ["typecheck", "lint", "unit-tests", "build", "ui-smoke-if-available"],
+      "ledgerRequired": true
+    }
+  ]
+}

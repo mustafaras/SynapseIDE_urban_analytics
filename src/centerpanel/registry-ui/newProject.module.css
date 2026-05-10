@@ -1,0 +1,289 @@
+/* Shared form/card styles for registry UI components */
+
+.intakePage {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  max-width: 720px;
+}
+
+/* ── Card ── */
+.card {
+  background: var(--ui-card-bg, rgba(0,0,0,0.18));
+  border: 1px solid var(--ui-card-border, rgba(255,255,255,0.08));
+  border-radius: 8px;
+  overflow: hidden;
+}
+.cardHeader {
+  padding: 12px 16px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.cardTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.92);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cardSub {
+  font-size: 11px;
+  color: rgba(255,255,255,0.5);
+  line-height: 1.4;
+}
+.cardBody {
+  padding: 0 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ── Row grid ── */
+.rowGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+/* ── Field ── */
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.fieldLabel {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: rgba(255,255,255,0.6);
+}
+.fieldInput,
+.fieldSelect,
+.fieldTextarea {
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  color: rgba(255,255,255,0.9);
+  font-size: 12px;
+  padding: 6px 8px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.fieldInput:focus,
+.fieldSelect:focus,
+.fieldTextarea:focus {
+  border-color: rgba(255,255,255,0.3);
+}
+.fieldTextarea {
+  min-height: 72px;
+  resize: vertical;
+}
+.fieldError {
+  border-color: var(--syn-danger, #e55);
+}
+.errorText {
+  font-size: 11px;
+  color: var(--syn-danger, #e55);
+}
+
+/* ── Chip row ── */
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.riskChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.riskChip:hover {
+  background: rgba(255,255,255,0.1);
+}
+.riskChipActive {
+  background: rgba(255,255,255,0.14);
+  border-color: rgba(255,255,255,0.25);
+}
+
+/* ── Buttons ── */
+.btnPrimary {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 6px;
+  color: rgba(255,255,255,0.9);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.btnPrimary:hover {
+  background: rgba(255,255,255,0.16);
+  border-color: rgba(255,255,255,0.25);
+}
+.btnPrimary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.btnSecondary {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  color: rgba(255,255,255,0.7);
+  font-size: 12px;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btnSecondary:hover {
+  background: rgba(255,255,255,0.06);
+}
+
+/* ── AI block ── */
+.aiBlock {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+.aiBlockHeader {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.7);
+  margin-bottom: 2px;
+}
+.aiBlockSub {
+  font-size: 10px;
+  color: rgba(255,255,255,0.4);
+  margin-bottom: 6px;
+}
+.aiBlockText {
+  font-size: 12px;
+  color: rgba(255,255,255,0.75);
+  line-height: 1.5;
+}
+.aiBlockMeta {
+  font-size: 10px;
+  color: rgba(255,255,255,0.4);
+}
+
+/* ── Advisory ── */
+.advisory {
+  background: rgba(255,180,0,0.08);
+  border: 1px solid rgba(255,180,0,0.15);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 11px;
+  color: rgba(255,220,100,0.85);
+}
+
+/* ── Count badge ── */
+.countBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: rgba(255,255,255,0.12);
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.8);
+}
+
+/* ── Task list ── */
+.taskListWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.taskListEmpty {
+  font-size: 11px;
+  color: rgba(255,255,255,0.4);
+  padding: 8px 0;
+}
+.taskRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.taskRowMain {
+  flex: 1;
+  min-width: 0;
+}
+.taskRowMeta {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-shrink: 0;
+}
+.taskText {
+  font-size: 12px;
+  color: rgba(255,255,255,0.85);
+  line-height: 1.4;
+}
+.taskDue {
+  font-size: 10px;
+  color: rgba(255,255,255,0.45);
+}
+.taskBadge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 500;
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.7);
+}
+.taskBadgeSafety   { background: rgba(255,60,60,0.12); color: rgba(255,120,120,0.9); }
+.taskBadgeLegal    { background: rgba(255,180,0,0.12);  color: rgba(255,200,80,0.9); }
+.taskBadgeMonitoring { background: rgba(80,160,255,0.12); color: rgba(130,190,255,0.9); }
+.taskBadgeFollowup { background: rgba(100,220,100,0.12); color: rgba(140,230,140,0.9); }
+.taskBadgeUncat    { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.55); }
+
+/* ── Save footer ── */
+.saveFooterOuter {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  background: var(--syn-bg-root, #111);
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+.saveFooterInner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+}
+.footerMeta {
+  font-size: 11px;
+  color: rgba(255,255,255,0.5);
+  margin-left: auto;
+}
+
+/* ── SR only ── */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border: 0;
+}

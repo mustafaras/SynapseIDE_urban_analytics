@@ -1,0 +1,381 @@
+{
+  "schemaVersion": "1.0.0",
+  "module": "Map Explorer",
+  "purpose": "Machine-readable prompt ladder for Map Explorer implementation. The ledger is the execution source of truth; this manifest defines the ordered prompt catalog.",
+  "statusValues": [
+    "pending",
+    "in_progress",
+    "completed",
+    "blocked",
+    "skipped_with_reason"
+  ],
+  "canonicalDocuments": [
+    "DEVELOPMENT_PLANS/START_HERE_MAP_EXPLORER_AGENT.md",
+    "DEVELOPMENT_PLANS/AGENT_AMNESIA_PREVENTION_PROTOCOL.md",
+    "DEVELOPMENT_PLANS/TRI_MODAL_WORKBENCH_ALIGNMENT_SPEC.md",
+    "DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md",
+    "DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md",
+    "DEVELOPMENT_PLANS/MAP_EXPLORER_PROMPT_MANIFEST.json",
+    "DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md",
+    "DEVELOPMENT_PLANS/MAP_EXPLORER_AGENT_HANDOFF_TEMPLATE.md"
+  ],
+  "ledgerPath": "DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md",
+  "promptFilePath": "DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md",
+  "handoffTemplatePath": "DEVELOPMENT_PLANS/MAP_EXPLORER_AGENT_HANDOFF_TEMPLATE.md",
+  "nextPromptHelper": "scripts/get-next-map-explorer-prompt.ps1",
+  "defaults": {
+    "requiredPreflight": [
+      "Read the canonical documents.",
+      "Read the active prompt block.",
+      "Inspect every file named by the prompt.",
+      "Verify prior prompt status from the ledger.",
+      "Check repository status if version control metadata is available.",
+      "Update the ledger before final response."
+    ],
+    "requiredValidation": [
+      "Run typecheck if available.",
+      "Run lint if available and relevant.",
+      "Run targeted tests if the prompt changed logic.",
+      "Record exact validation results in the ledger."
+    ],
+    "amnesiaGuardrails": [
+      "Do not rely on chat memory.",
+      "Do not assume prior prompt completion.",
+      "Do not skip ledger updates.",
+      "Do not change Synapse IDE or Urban Analytics internals unless the active prompt explicitly requires a contract adapter.",
+      "Do not silently mutate layers, spatial evidence artifacts, analysis outputs, report handoffs, dashboard bindings, education state, or IDE file state."
+    ]
+  },
+  "prompts": [
+    {
+      "id": "00",
+      "title": "Memory Bootstrapping and Repository Baseline",
+      "status": "pending",
+      "dependsOn": [],
+      "promptHeading": "## Prompt 00 - Memory Bootstrapping and Repository Baseline",
+      "primaryOutcome": "Durable context, audit, and next-step confidence",
+      "tracks": ["memory", "baseline", "architecture"],
+      "validation": ["typecheck-if-available", "lint-if-available", "map-tests-if-available", "script-inventory"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "01",
+      "title": "Map Architecture Map and Spatial Ownership Boundaries",
+      "status": "pending",
+      "dependsOn": ["00"],
+      "promptHeading": "## Prompt 01 - Map Architecture Map and Spatial Ownership Boundaries",
+      "primaryOutcome": "Live architecture map aligned to plan",
+      "tracks": ["architecture", "spatial-ownership", "contracts"],
+      "validation": ["typecheck-if-code-changed", "documentation-validation"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "02",
+      "title": "Map Context Kernel and Selectors",
+      "status": "pending",
+      "dependsOn": ["01"],
+      "promptHeading": "## Prompt 02 - Map Context Kernel and Selectors",
+      "primaryOutcome": "Shared map context summary",
+      "tracks": ["context-kernel", "selectors", "map-summary"],
+      "validation": ["typecheck", "selector-tests-if-feasible"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "03",
+      "title": "Map Evidence Artifact Model Foundation",
+      "status": "pending",
+      "dependsOn": ["02"],
+      "promptHeading": "## Prompt 03 - Map Evidence Artifact Model Foundation",
+      "primaryOutcome": "Provenance-ready map evidence objects",
+      "tracks": ["evidence", "provenance", "artifact-registry"],
+      "validation": ["typecheck", "registry-tests-if-feasible", "map-service-tests-if-touched"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "04",
+      "title": "Store Persistence Boundaries and Project Snapshots",
+      "status": "pending",
+      "dependsOn": ["03"],
+      "promptHeading": "## Prompt 04 - Store Persistence Boundaries and Project Snapshots",
+      "primaryOutcome": "Safe persistence without heavy payload abuse",
+      "tracks": ["persistence", "snapshots", "state-boundaries"],
+      "validation": ["typecheck", "MapPersistenceService-tests-if-touched"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "05",
+      "title": "Modal Shell Decomposition and Command Hooks",
+      "status": "pending",
+      "dependsOn": ["04"],
+      "promptHeading": "## Prompt 05 - Modal Shell Decomposition and Command Hooks",
+      "primaryOutcome": "Reduced super-component risk",
+      "tracks": ["modal-shell", "decomposition", "command-hooks"],
+      "validation": ["typecheck", "map-modal-tests-if-available", "manual-modal-smoke-if-ui-can-run"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "06",
+      "title": "Premium Workspace Shell and Context Strip",
+      "status": "pending",
+      "dependsOn": ["05"],
+      "promptHeading": "## Prompt 06 - Premium Workspace Shell and Context Strip",
+      "primaryOutcome": "Map-first cockpit shell",
+      "tracks": ["premium-ui", "workspace-shell", "context-strip"],
+      "validation": ["typecheck", "component-tests-if-available", "manual-ui-smoke-if-dev-server-can-run"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "07",
+      "title": "Layer Registry Metadata Upgrade",
+      "status": "pending",
+      "dependsOn": ["06"],
+      "promptHeading": "## Prompt 07 - Layer Registry Metadata Upgrade",
+      "primaryOutcome": "Inspectable scientific layer stack",
+      "tracks": ["layer-registry", "metadata", "provenance"],
+      "validation": ["typecheck", "layer-management-tests-if-available", "map-service-tests-if-adapters-touched"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "08",
+      "title": "Layer Manager Premium UX and Safety",
+      "status": "pending",
+      "dependsOn": ["07"],
+      "promptHeading": "## Prompt 08 - Layer Manager Premium UX and Safety",
+      "primaryOutcome": "Professional layer operations",
+      "tracks": ["layer-manager", "premium-ui", "safety"],
+      "validation": ["typecheck", "layer-manager-tests", "manual-layer-action-smoke"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "09",
+      "title": "Scientific QA Model and Panel",
+      "status": "pending",
+      "dependsOn": ["08"],
+      "promptHeading": "## Prompt 09 - Scientific QA Model and Panel",
+      "primaryOutcome": "First-class spatial QA",
+      "tracks": ["scientific-qa", "qa-panel", "truthfulness"],
+      "validation": ["MapScientificQA-tests", "typecheck", "panel-tests-if-available"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "10",
+      "title": "Publication Readiness Gates",
+      "status": "pending",
+      "dependsOn": ["09"],
+      "promptHeading": "## Prompt 10 - Publication Readiness Gates",
+      "primaryOutcome": "Export/report readiness truthfulness",
+      "tracks": ["publication", "export", "readiness-gates"],
+      "validation": ["MapExportService-tests", "MapReportHandoffService-tests", "typecheck"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "11",
+      "title": "Map Workflow Manifest and Preview",
+      "status": "pending",
+      "dependsOn": ["10"],
+      "promptHeading": "## Prompt 11 - Map Workflow Manifest and Preview",
+      "primaryOutcome": "Reproducible map workflow records",
+      "tracks": ["workflow", "manifest", "preview"],
+      "validation": ["MapWorkflowService-tests", "typecheck", "manual-workflow-drawer-smoke-if-practical"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "12",
+      "title": "Analysis Recommendation and Dispatch",
+      "status": "pending",
+      "dependsOn": ["11"],
+      "promptHeading": "## Prompt 12 - Analysis Recommendation and Dispatch",
+      "primaryOutcome": "Explainable workflow routing",
+      "tracks": ["recommendations", "dispatch", "workflow-routing"],
+      "validation": ["MapAnalysisRecommender-tests", "MapAnalysisDispatcher-tests", "typecheck"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "13",
+      "title": "Engine Adapter Evidence Outputs",
+      "status": "pending",
+      "dependsOn": ["12"],
+      "promptHeading": "## Prompt 13 - Engine Adapter Evidence Outputs",
+      "primaryOutcome": "Analysis-to-layer evidence integrity",
+      "tracks": ["engine-adapter", "derived-layers", "evidence"],
+      "validation": ["MapEngineAdapter-tests", "SpatialStatsExecutionService-tests-if-touched", "typecheck"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "14",
+      "title": "Import and External Service Evidence",
+      "status": "pending",
+      "dependsOn": ["13"],
+      "promptHeading": "## Prompt 14 - Import and External Service Evidence",
+      "primaryOutcome": "Traceable ingestion and external layers",
+      "tracks": ["import", "external-services", "provenance"],
+      "validation": ["MapDataIO-tests", "ExternalServiceConnector-tests", "typecheck"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "15",
+      "title": "CRS, Measurement, and Geometry Validation",
+      "status": "pending",
+      "dependsOn": ["14"],
+      "promptHeading": "## Prompt 15 - CRS, Measurement, and Geometry Validation",
+      "primaryOutcome": "Spatial measurement discipline",
+      "tracks": ["crs", "geometry", "measurement"],
+      "validation": ["geodesic-measurement-tests", "MapScientificQA-tests", "typecheck"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "16",
+      "title": "Map to Urban Context Adapter",
+      "status": "pending",
+      "dependsOn": ["15"],
+      "promptHeading": "## Prompt 16 - Map to Urban Context Adapter",
+      "primaryOutcome": "Map context to urban scientific reasoning",
+      "tracks": ["urban-sync", "map-to-urban", "adapter"],
+      "validation": ["typecheck", "adapter-tests-if-feasible", "manual-event-store-simulation"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "17",
+      "title": "Urban to Map Method Request Adapter",
+      "status": "pending",
+      "dependsOn": ["16"],
+      "promptHeading": "## Prompt 17 - Urban to Map Method Request Adapter",
+      "primaryOutcome": "Urban method needs to map actions",
+      "tracks": ["urban-sync", "urban-to-map", "method-requests"],
+      "validation": ["typecheck", "adapter-tests-if-feasible", "manual-request-simulation"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "18",
+      "title": "Map to IDE Code and Manifest Artifact Requests",
+      "status": "pending",
+      "dependsOn": ["17"],
+      "promptHeading": "## Prompt 18 - Map to IDE Code and Manifest Artifact Requests",
+      "primaryOutcome": "Spatial code artifact handoff",
+      "tracks": ["ide-sync", "code-artifacts", "manifest-requests"],
+      "validation": ["typecheck", "template-request-tests-if-feasible", "manual-bridge-simulation"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "19",
+      "title": "IDE to Map File and Layer Artifact Recognition",
+      "status": "pending",
+      "dependsOn": ["18"],
+      "promptHeading": "## Prompt 19 - IDE to Map File and Layer Artifact Recognition",
+      "primaryOutcome": "Code/file evidence to map layer",
+      "tracks": ["ide-sync", "file-recognition", "layer-validation"],
+      "validation": ["typecheck", "adapter-tests-if-feasible", "manual-event-simulation"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "20",
+      "title": "Report Handoff Structured Evidence",
+      "status": "pending",
+      "dependsOn": ["19"],
+      "promptHeading": "## Prompt 20 - Report Handoff Structured Evidence",
+      "primaryOutcome": "Report-ready map evidence",
+      "tracks": ["reporting", "evidence-blocks", "handoff"],
+      "validation": ["MapReportHandoffService-tests", "typecheck", "manual-report-handoff-smoke-if-practical"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "21",
+      "title": "Dashboard, Education, and Publication Outputs",
+      "status": "pending",
+      "dependsOn": ["20"],
+      "promptHeading": "## Prompt 21 - Dashboard, Education, and Publication Outputs",
+      "primaryOutcome": "Traceable map outputs outside map",
+      "tracks": ["dashboard", "education", "publication"],
+      "validation": ["typecheck", "dashboard-education-tests-if-touched", "manual-action-smoke-if-practical"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "22",
+      "title": "Temporal Playback and Scenario Comparison",
+      "status": "pending",
+      "dependsOn": ["21"],
+      "promptHeading": "## Prompt 22 - Temporal Playback and Scenario Comparison",
+      "primaryOutcome": "Temporal and scenario evidence",
+      "tracks": ["temporal", "scenario-comparison", "evidence"],
+      "validation": ["typecheck", "temporal-player-tests-if-available", "manual-playback-smoke-if-practical"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "23",
+      "title": "VoxCity 2D/3D Synchronization",
+      "status": "pending",
+      "dependsOn": ["22"],
+      "promptHeading": "## Prompt 23 - VoxCity 2D/3D Synchronization",
+      "primaryOutcome": "Coherent 2D/3D spatial handoff",
+      "tracks": ["voxcity", "2d-3d", "projection"],
+      "validation": ["typecheck", "voxcity-selection-projection-tests-if-touched", "manual-2d-3d-smoke-if-practical"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "24",
+      "title": "Natural-Language Query Safety and Audit",
+      "status": "pending",
+      "dependsOn": ["23"],
+      "promptHeading": "## Prompt 24 - Natural-Language Query Safety and Audit",
+      "primaryOutcome": "Safe NL map query operations",
+      "tracks": ["nl-query", "safety", "audit"],
+      "validation": ["MapNLQueryBuilder-tests", "typecheck", "manual-query-smoke"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "25",
+      "title": "Review Timeline and Audit Trail",
+      "status": "pending",
+      "dependsOn": ["24"],
+      "promptHeading": "## Prompt 25 - Review Timeline and Audit Trail",
+      "primaryOutcome": "Durable map action memory",
+      "tracks": ["review-timeline", "audit", "provenance"],
+      "validation": ["MapReviewSessionService-tests", "typecheck", "manual-timeline-smoke"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "26",
+      "title": "Accessibility and Keyboard Premium",
+      "status": "pending",
+      "dependsOn": ["25"],
+      "promptHeading": "## Prompt 26 - Accessibility and Keyboard Premium",
+      "primaryOutcome": "Professional keyboard-first map UX",
+      "tracks": ["accessibility", "keyboard", "premium-ui"],
+      "validation": ["typecheck", "map-accessibility-tests", "manual-keyboard-smoke"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "27",
+      "title": "Performance, Workers, Memory, and Chunking",
+      "status": "pending",
+      "dependsOn": ["26"],
+      "promptHeading": "## Prompt 27 - Performance, Workers, Memory, and Chunking",
+      "primaryOutcome": "Fast, bounded spatial operations",
+      "tracks": ["performance", "workers", "memory"],
+      "validation": ["typecheck", "build-if-available", "performance-or-large-layer-smoke-if-fixtures-exist"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "28",
+      "title": "QA Harness and E2E Validation",
+      "status": "pending",
+      "dependsOn": ["27"],
+      "promptHeading": "## Prompt 28 - QA Harness and E2E Validation",
+      "primaryOutcome": "Repeatable spatial quality gates",
+      "tracks": ["qa", "tests", "e2e"],
+      "validation": ["targeted-tests", "typecheck", "build-if-available"],
+      "ledgerRequired": true
+    },
+    {
+      "id": "29",
+      "title": "Final Premium Polish and Handoff",
+      "status": "pending",
+      "dependsOn": ["28"],
+      "promptHeading": "## Prompt 29 - Final Premium Polish and Handoff",
+      "primaryOutcome": "Complete Map Explorer readiness package",
+      "tracks": ["polish", "handoff", "final-validation"],
+      "validation": ["typecheck", "lint", "unit-tests", "build", "map-e2e-smoke-if-available"],
+      "ledgerRequired": true
+    }
+  ]
+}

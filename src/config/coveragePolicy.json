@@ -1,0 +1,143 @@
+{
+  "global": {
+    "statements": 70,
+    "branches": 55,
+    "functions": 75,
+    "lines": 70
+  },
+  "modules": [
+    {
+      "id": "urban_calculators",
+      "label": "Urban Calculator Core",
+      "include": [
+        "src/features/urbanAnalytics/calculators/**/*.ts"
+      ],
+      "minimum": {
+        "statements": 90,
+        "branches": 50,
+        "functions": 95,
+        "lines": 95
+      }
+    },
+    {
+      "id": "indicator_catalog",
+      "label": "Indicator Catalog Contracts",
+      "include": [
+        "src/features/urbanAnalytics/indicators/catalog.ts",
+        "src/features/urbanAnalytics/indicators/shared.ts"
+      ],
+      "minimum": {
+        "statements": 80,
+        "branches": 60,
+        "functions": 80,
+        "lines": 80
+      }
+    },
+    {
+      "id": "spatial_stats",
+      "label": "Spatial Statistics Engine",
+      "include": [
+        "src/engine/spatial-stats/**/*.ts"
+      ],
+      "minimum": {
+        "statements": 80,
+        "branches": 65,
+        "functions": 85,
+        "lines": 80
+      }
+    },
+    {
+      "id": "simulation_engine",
+      "label": "Simulation Engine",
+      "include": [
+        "src/engine/simulation/**/*.ts"
+      ],
+      "minimum": {
+        "statements": 85,
+        "branches": 60,
+        "functions": 90,
+        "lines": 85
+      }
+    },
+    {
+      "id": "geoai_runtime",
+      "label": "GeoAI Runtime",
+      "include": [
+        "src/engine/geoai/runtime/**/*.ts",
+        "src/engine/geoai/cv/**/*.ts",
+        "src/engine/geoai/nlp/**/*.ts"
+      ],
+      "minimum": {
+        "statements": 85,
+        "branches": 65,
+        "functions": 90,
+        "lines": 85
+      }
+    },
+    {
+      "id": "data_connectors",
+      "label": "Remote Data Connectors",
+      "include": [
+        "src/services/data/connectors/**/*.ts"
+      ],
+      "minimum": {
+        "statements": 80,
+        "branches": 60,
+        "functions": 90,
+        "lines": 82
+      }
+    },
+    {
+      "id": "columnar_pipeline",
+      "label": "Columnar I/O Pipeline",
+      "include": [
+        "src/services/data/pipeline/**/*.ts"
+      ],
+      "minimum": {
+        "statements": 64,
+        "branches": 53,
+        "functions": 70,
+        "lines": 66
+      }
+    },
+    {
+      "id": "wasm_engine",
+      "label": "WASM Spatial Engine",
+      "include": [
+        "src/engine/wasm/**/*.ts"
+      ],
+      "minimum": {
+        "statements": 85,
+        "branches": 70,
+        "functions": 90,
+        "lines": 85
+      }
+    },
+    {
+      "id": "background_worker_pool",
+      "label": "Background Worker Pool",
+      "include": [
+        "src/workers/pool/BackgroundWorkerPool.ts"
+      ],
+      "minimum": {
+        "statements": 70,
+        "branches": 55,
+        "functions": 80,
+        "lines": 70
+      }
+    },
+    {
+      "id": "worker_pool_contracts",
+      "label": "Worker Pool Contracts",
+      "include": [
+        "src/workers/pool/taskDefinitions.ts"
+      ],
+      "minimum": {
+        "statements": 55,
+        "branches": 50,
+        "functions": 90,
+        "lines": 90
+      }
+    }
+  ]
+}

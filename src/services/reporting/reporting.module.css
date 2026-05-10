@@ -1,0 +1,505 @@
+.shell {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(245, 158, 11, 0.22);
+  background:
+    linear-gradient(180deg, rgba(245, 158, 11, 0.10), rgba(12, 14, 18, 0.92)),
+    radial-gradient(circle at top left, rgba(251, 191, 36, 0.08), transparent 45%);
+}
+
+.toolbarGroup {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: end;
+}
+
+.metaBar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.metaBar span {
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(255, 244, 214, 0.82);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(340px, 0.95fr) minmax(420px, 1.05fr);
+  gap: 16px;
+}
+
+.builderColumn,
+.previewColumn {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+
+.panel {
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(180deg, rgba(17, 20, 26, 0.96), rgba(8, 10, 14, 0.94)),
+    radial-gradient(circle at top right, rgba(56, 189, 248, 0.06), transparent 42%);
+}
+
+.panelHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+  margin-bottom: 14px;
+}
+
+.panelHeader h3,
+.previewHeader h3 {
+  margin: 0 0 4px;
+  color: #fff6e5;
+  font-size: 1rem;
+}
+
+.panelHeader p,
+.previewHeader p,
+.emptyState,
+.emptyInline {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+.sectionList,
+.citationResults,
+.editorGrid,
+.citationBrowser,
+.citationEditor {
+  display: grid;
+  gap: 12px;
+}
+
+.sectionCard,
+.citationRow {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: #f8fafc;
+  cursor: pointer;
+  text-align: left;
+}
+
+.sectionCardActive,
+.citationRowActive {
+  border-color: rgba(245, 158, 11, 0.45);
+  background: rgba(245, 158, 11, 0.12);
+}
+
+.dragHandle {
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 16px;
+  letter-spacing: -1px;
+}
+
+.sectionMeta,
+.citationRow span {
+  display: grid;
+  gap: 2px;
+}
+
+.sectionMeta span,
+.citationRow small {
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 0.72rem;
+}
+
+.generatedBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.14);
+  color: #fbbf24;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.control,
+.controlWide,
+.controlBlock {
+  display: grid;
+  gap: 6px;
+}
+
+.control span,
+.controlWide span,
+.controlBlock span {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.controlWide {
+  min-width: min(100%, 320px);
+}
+
+.control input,
+.control select,
+.controlWide input,
+.controlWide select,
+.controlBlock textarea {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(4, 6, 10, 0.82);
+  color: #f8fafc;
+  padding: 10px 12px;
+  font-size: 0.82rem;
+}
+
+.controlBlock textarea {
+  resize: vertical;
+  min-height: 96px;
+}
+
+.assetEditor,
+.attachedList {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.mapEvidenceExportStrip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(245, 158, 11, 0.34);
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.mapEvidenceExportStrip span {
+  display: grid;
+  gap: 3px;
+}
+
+.mapEvidenceExportStrip strong {
+  color: #fff6e5;
+  font-size: 0.82rem;
+}
+
+.mapEvidenceExportStrip small {
+  color: rgba(255, 244, 214, 0.68);
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+.reviewEventLinkStrip {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(56, 189, 248, 0.24);
+  background: rgba(56, 189, 248, 0.08);
+}
+
+.reviewEventLinkStrip strong {
+  color: #e0f2fe;
+  font-size: 0.78rem;
+}
+
+.reviewEventLinkStrip span {
+  overflow-wrap: anywhere;
+  color: rgba(224, 242, 254, 0.72);
+  font-size: 0.72rem;
+}
+
+.citationLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  gap: 12px;
+}
+
+.inlineActions,
+.exportChips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.inlineGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.primaryBtn,
+.ghostBtn {
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.primaryBtn {
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.24), rgba(180, 83, 9, 0.28));
+  color: #fff7ed;
+}
+
+.ghostBtn {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.84);
+}
+
+.citationActions {
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.attachedCitation {
+  justify-self: start;
+  border-radius: 999px;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  background: rgba(56, 189, 248, 0.12);
+  color: #7dd3fc;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.previewColumn {
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(180deg, rgba(16, 18, 23, 0.96), rgba(8, 10, 14, 0.96)),
+    radial-gradient(circle at top center, rgba(245, 158, 11, 0.06), transparent 42%);
+}
+
+.previewHeader {
+  margin-bottom: 14px;
+}
+
+.previewPaper {
+  border-radius: 18px;
+  padding: 22px;
+  background: #fffdf8;
+  color: #1f2937;
+  box-shadow: 0 22px 54px rgba(2, 6, 23, 0.32);
+}
+
+.previewHero {
+  padding-bottom: 16px;
+  margin-bottom: 18px;
+  border-bottom: 2px solid #e7d7b6;
+}
+
+.previewHero h1 {
+  margin: 0 0 8px;
+  font-size: 2rem;
+  line-height: 1.1;
+}
+
+.previewHero p {
+  margin: 0;
+  color: #5b6472;
+}
+
+.previewMeta {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  color: #6b7280;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.previewSection {
+  margin-bottom: 16px;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid #eadfcb;
+  background: #ffffff;
+}
+
+.previewSectionGenerated {
+  background: #fff8ec;
+  border-color: #efc46f;
+}
+
+.previewSectionHead {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.previewSectionActions {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.previewPdfButton {
+  border: 1px solid #d97706;
+  border-radius: 10px;
+  background: #fff7ed;
+  color: #7c2d12;
+  padding: 7px 10px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.previewPdfButton:hover,
+.previewPdfButton:focus-visible {
+  background: #ffedd5;
+  outline: 2px solid rgba(217, 119, 6, 0.25);
+  outline-offset: 2px;
+}
+
+.previewSectionHead h4,
+.previewBibliography h4 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.previewReviewLink {
+  margin: 0 0 10px;
+  color: #7c2d12;
+  overflow-wrap: anywhere;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.previewSection p,
+.previewSection li,
+.previewBibliography li {
+  font-size: 0.92rem;
+  line-height: 1.65;
+}
+
+.previewFigure,
+.previewTableWrap {
+  margin: 14px 0;
+}
+
+.previewPlaceholder {
+  min-height: 120px;
+  display: grid;
+  place-items: center;
+  border: 1px dashed #b7c0d1;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #f8fafc, #eef2f7);
+  color: #64748b;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.previewFigureImage {
+  width: 100%;
+  max-height: 360px;
+  object-fit: contain;
+  border: 1px solid #d7dee8;
+  border-radius: 12px;
+  background: #0f172a;
+}
+
+.mapEvidencePdfPaper {
+  box-shadow: none;
+}
+
+.previewTableTitle {
+  margin-bottom: 8px;
+}
+
+.previewTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.previewTable th,
+.previewTable td {
+  border-bottom: 1px solid #e5e7eb;
+  padding: 8px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.previewTable th {
+  background: #f8fafc;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.72rem;
+}
+
+.previewBibliography {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 2px solid #e7d7b6;
+}
+
+@media (max-width: 1180px) {
+  .layout,
+  .citationLayout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .toolbar {
+    padding: 12px;
+  }
+
+  .previewPaper {
+    padding: 16px;
+  }
+
+  .inlineGrid {
+    grid-template-columns: 1fr;
+  }
+}
