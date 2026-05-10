@@ -16,13 +16,19 @@ import {
 import type {
   BaseLayerId,
   DrawnFeature,
+  LayerPersistenceSource,
+  LayerProvenance,
+  LayerQaStatus,
+  LayerRestoreState,
   LayerGroupId,
   LayerMetadata,
   MapAnnotation,
   MapAnnotationProperties,
   MapAnnotationStyleSettings,
   MapBookmark,
+  MapEvidenceArtifact,
   MapPin,
+  Measurement,
   OverlayLayerConfig,
   ViewportState,
 } from "../../centerpanel/components/map/mapTypes";
@@ -34,9 +40,14 @@ import {
   parseGeoJSONText,
   parseInlineGeoJSONSource,
 } from "./MapDataImporter";
+import type { MapReviewSession } from "./MapReviewSessionService";
+import type {
+  MapScientificQAIssueSeverity,
+  MapScientificQAState,
+} from "./MapScientificQA";
 
 const STORAGE_PREFIX = "synapse.map.project.persistence.v1.";
-const SNAPSHOT_VERSION = 2;
+const SNAPSHOT_VERSION = 3;
 const INLINE_LAYER_DATA_LIMIT_BYTES = 1 * 1024 * 1024;
 const FALLBACK_STORAGE_QUOTA_BYTES = 5 * 1024 * 1024;
 const QUOTA_WARNING_RATIO = 0.8;
@@ -47,6 +58,130 @@ type PersistedSourceData = string | FeatureCollection | Feature | Geometry;
 
 export type SpatialQueryPredicate = "intersects" | "within";
 
+export interface MapProjectSnapshotLayoutPreferences {
+  layerPanelWidth: number;
+  rightPanelWidth: number;
+}
+
+export interface MapProjectLayerReference {
+  layerId: string;
+  name: string;
+  type: OverlayLayerConfig["type"];
+  visible: boolean;
+  opacity: number;
+  sourcePersistence: LayerPersistenceSource;
+  restoreState: LayerRestoreState;
+  restoreWarnings: string[];
+  group?: LayerGroupId;
+  sourceKind?: OverlayLayerConfig["sourceKind"];
+  sourceRef?: string;
+  crs?: string;
+  geometryType?: string;
+  featureCount?: number;
+  bounds?: [number, number, number, number];
+  qaStatus?: LayerQaStatus;
+  queryable?: boolean;
+  provenanceLabel?: string;
+  evidenceArtifactIds: string[];
+}
+
+export interface PersistedMapEvidenceArtifactReference {
+  id: string;
+  artifactId: string;
+  kind: MapEvidenceArtifact["kind"];
+  title: string;
+  state: MapEvidenceArtifact["state"];
+  sourceModule: MapEvidenceArtifact["sourceModule"];
+  linkedLayerIds: string[];
+  sourceLayerIds: string[];
+  linkedAoiId?: string;
+  linkedRunId?: string;
+  linkedWorkflowId?: string;
+  reportInsertId?: string;
+  reportSnapshotId?: string;
+  exportId?: string;
+  qaState: MapEvidenceArtifact["qa"]["state"];
+  qaIssueIds: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MapProjectQASnapshot {
+  status: LayerQaStatus;
+  checkedAt: string | null;
+  issueCount: number;
+  blockerCount: number;
+  layerCount: number;
+  issueCounts: Record<MapScientificQAIssueSeverity, number>;
+  issueIds: string[];
+  signature: string | null;
+}
+
+export interface MapProjectReviewTimelineReference {
+  sessionId: string;
+  title: string;
+  updatedAt: string;
+  eventCount: number;
+  eventIds: string[];
+  layerIds: string[];
+  qaIssueIds: string[];
+  reportItemIds: string[];
+}
+
+export interface MapProjectSnapshotReferences {
+  contextSummaryId?: string;
+  evidenceArtifactIds: string[];
+  publicationManifestIds: string[];
+  reportHandoffIds: string[];
+  externalSourceRefs: string[];
+  staleLayerIds: string[];
+}
+
+export interface MapProjectPersistenceBoundary {
+  localStoragePersists: string[];
+  projectSnapshotPersists: string[];
+  neverPersistInLightweightState: string[];
+}
+
+export const MAP_PROJECT_PERSISTENCE_BOUNDARY: MapProjectPersistenceBoundary = {
+  localStoragePersists: [
+    "viewport",
+    "activeBaseLayer",
+    "pins",
+    "bookmarks",
+    "annotations",
+    "annotationToolSettings",
+    "layoutPreferences",
+    "selectedFeatureIds",
+    "activeAoiId",
+    "activeAnalysisResultLayerIds",
+  ],
+  projectSnapshotPersists: [
+    "viewport",
+    "activeBaseLayer",
+    "layoutPreferences",
+    "pins",
+    "bookmarks",
+    "annotations",
+    "drawnFeatures",
+    "measurements",
+    "layerReferences",
+    "lightweightOverlayLayerMetadata",
+    "evidenceArtifactReferences",
+    "qaSummary",
+    "reviewTimelineReferences",
+  ],
+  neverPersistInLightweightState: [
+    "large GeoJSON layer payloads",
+    "Arrow or GeoParquet buffers",
+    "worker table payloads",
+    "external service fetched payloads outside cache policy",
+    "large map screenshots or canvases",
+    "local file handles",
+    "volatile dialog state",
+  ],
+};
+
 export interface PersistedOverlayLayer {
   id: string;
   name: string;
@@ -54,10 +189,17 @@ export interface PersistedOverlayLayer {
   visible: boolean;
   opacity: number;
   group?: LayerGroupId;
+  sourceKind?: OverlayLayerConfig["sourceKind"];
+  queryable?: boolean;
+  qaStatus?: LayerQaStatus;
+  provenance?: LayerProvenance;
   style?: Record<string, unknown>;
   metadata?: LayerMetadata;
   sourceData?: PersistedSourceData;
-  sourcePersistence: "inline" | "url" | "metadata";
+  sourcePersistence: LayerPersistenceSource;
+  sourceRef?: string;
+  restoreState: LayerRestoreState;
+  restoreWarnings: string[];
 }
 
 export interface MapProjectSnapshot {
@@ -66,11 +208,19 @@ export interface MapProjectSnapshot {
   savedAt: string;
   activeBaseLayer: BaseLayerId;
   viewport: ViewportState;
+  layoutPreferences?: MapProjectSnapshotLayoutPreferences;
   pins: MapPin[];
   bookmarks: MapBookmark[];
   annotations: MapAnnotation[];
   drawnFeatures: DrawnFeature[];
+  measurements: Measurement[];
   overlayLayers: PersistedOverlayLayer[];
+  layerReferences: MapProjectLayerReference[];
+  evidenceArtifacts: PersistedMapEvidenceArtifactReference[];
+  qaSummary: MapProjectQASnapshot | null;
+  reviewTimeline: MapProjectReviewTimelineReference | null;
+  references: MapProjectSnapshotReferences;
+  persistenceBoundary: MapProjectPersistenceBoundary;
 }
 
 export interface MapPersistenceQuotaEstimate {
@@ -92,6 +242,16 @@ export interface SaveProjectMapStateInput {
   annotations?: MapAnnotation[];
   drawnFeatures: DrawnFeature[];
   overlayLayers: OverlayLayerConfig[];
+  layoutPreferences?: MapProjectSnapshotLayoutPreferences;
+  measurements?: Measurement[];
+  mapEvidenceArtifacts?: MapEvidenceArtifact[];
+  scientificQA?: MapScientificQAState | null;
+  reviewSession?: MapReviewSession | null;
+  currentMapBounds?: [number, number, number, number] | null;
+  currentMapBoundsUpdatedAt?: string | null;
+  lastContextSnapshotId?: string;
+  publicationManifestIds?: string[];
+  reportHandoffIds?: string[];
 }
 
 export interface SaveProjectMapStateResult {
@@ -110,6 +270,8 @@ export interface LoadProjectMapStateResult {
   restoredLayerCount: number;
   restoredFeatureCount: number;
   spatialTableName: string | null;
+  staleLayerIds: string[];
+  externalSourceRefs: string[];
 }
 
 export interface ProjectSpatialQueryResult {
@@ -187,6 +349,14 @@ function normalizeViewport(input: unknown): ViewportState {
     zoom: Number.isFinite(zoom) ? zoom : 10,
     bearing: Number.isFinite(bearing) ? bearing : 0,
     pitch: Number.isFinite(pitch) ? pitch : 0,
+  };
+}
+
+function normalizeLayoutPreferences(input: unknown): MapProjectSnapshotLayoutPreferences | undefined {
+  if (!isObject(input)) return undefined;
+  return {
+    layerPanelWidth: clampNumber(input.layerPanelWidth, 220, 520, 280),
+    rightPanelWidth: clampNumber(input.rightPanelWidth, 300, 620, 384),
   };
 }
 
@@ -296,14 +466,93 @@ function normalizeDrawnFeature(feature: unknown, index: number): DrawnFeature {
   };
 }
 
+function normalizeMeasurement(measurement: unknown, index: number): Measurement {
+  const source = isObject(measurement) ? measurement : {};
+  const rawCoordinates = Array.isArray(source.coordinates) ? source.coordinates : [];
+  const coordinates = rawCoordinates
+    .map((coordinate) => normalizeCoordinatePair(coordinate, [0, 0]))
+    .filter((coordinate) => Number.isFinite(coordinate[0]) && Number.isFinite(coordinate[1]));
+  const value = Number(source.value);
+  return {
+    id: typeof source.id === "string" && source.id.trim().length > 0 ? source.id : `measurement-${index + 1}`,
+    type: source.type === "measure-area" ? "measure-area" : "measure-distance",
+    coordinates,
+    value: Number.isFinite(value) ? value : 0,
+    label: typeof source.label === "string" && source.label.trim().length > 0
+      ? source.label
+      : `Measurement ${index + 1}`,
+    timestamp: typeof source.timestamp === "string" ? source.timestamp : new Date(0).toISOString(),
+  };
+}
+
+function normalizeStringList(value: unknown, limit = 200): string[] {
+  if (!Array.isArray(value)) return [];
+  const ids: string[] = [];
+  const seen = new Set<string>();
+  for (const item of value) {
+    if (typeof item !== "string") continue;
+    const normalized = item.trim();
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    ids.push(normalized);
+    if (ids.length >= limit) break;
+  }
+  return ids;
+}
+
+function resolveLayerCrs(metadata: LayerMetadata | undefined): string | undefined {
+  const crs = metadata?.datasetContext?.crs
+    ?? metadata?.columnar?.crs
+    ?? metadata?.eoSource?.crs
+    ?? metadata?.externalService?.crs;
+  return typeof crs === "string" && crs.trim().length > 0 ? crs.trim() : undefined;
+}
+
+function resolveLayerSourceRef(layer: {
+  sourceData?: unknown;
+  metadata?: LayerMetadata;
+  provenance?: LayerProvenance;
+}): string | undefined {
+  if (typeof layer.sourceData === "string" && layer.sourceData.trim().length > 0) {
+    return layer.sourceData.trim();
+  }
+  const external = layer.metadata?.externalService;
+  const sourceRef = external?.urlTemplate ?? external?.endpoint ?? layer.provenance?.sourceUrl;
+  return typeof sourceRef === "string" && sourceRef.trim().length > 0 ? sourceRef.trim() : undefined;
+}
+
+function buildRestoreWarnings(
+  sourcePersistence: LayerPersistenceSource,
+  sourceRef: string | undefined,
+): string[] {
+  if (sourcePersistence === "inline") return [];
+  if (sourcePersistence === "url") {
+    return [
+      sourceRef
+        ? `Layer source must be reloaded from external reference: ${sourceRef}.`
+        : "Layer source uses an external reference that must be reloaded.",
+    ];
+  }
+  return [
+    "Layer source data was not persisted in the lightweight project snapshot; only metadata and references were restored.",
+  ];
+}
+
+function resolveRestoreState(sourcePersistence: LayerPersistenceSource): LayerRestoreState {
+  if (sourcePersistence === "inline") return "restored";
+  if (sourcePersistence === "url") return "external-reference";
+  return "metadata-only";
+}
+
 function normalizeOverlayLayer(layer: unknown): PersistedOverlayLayer {
   const source = isObject(layer) ? layer : {};
   const metadata = isObject(source.metadata) ? cloneJson(source.metadata as LayerMetadata) : undefined;
   const style = isObject(source.style) ? cloneJson(source.style as Record<string, unknown>) : undefined;
+  const provenance = isObject(source.provenance) ? cloneJson(source.provenance as LayerProvenance) : undefined;
   const sourceData = source.sourceData;
   const normalizedSourceData =
     typeof sourceData === "string" || isObject(sourceData) ? cloneJson(sourceData as PersistedSourceData) : undefined;
-  const sourcePersistence =
+  const sourcePersistence: LayerPersistenceSource =
     source.sourcePersistence === "inline" || source.sourcePersistence === "url" || source.sourcePersistence === "metadata"
       ? source.sourcePersistence
       : normalizedSourceData == null
@@ -311,8 +560,19 @@ function normalizeOverlayLayer(layer: unknown): PersistedOverlayLayer {
         : typeof normalizedSourceData === "string"
           ? "url"
           : "inline";
+  const sourceRef = typeof source.sourceRef === "string" && source.sourceRef.trim().length > 0
+    ? source.sourceRef.trim()
+    : resolveLayerSourceRef({ sourceData: normalizedSourceData, metadata, provenance });
+  const restoreWarnings = normalizeStringList(source.restoreWarnings);
+  const defaultWarnings = buildRestoreWarnings(sourcePersistence, sourceRef);
+  const restoreState = source.restoreState === "restored"
+    || source.restoreState === "external-reference"
+    || source.restoreState === "metadata-only"
+    || source.restoreState === "stale-reference"
+    ? source.restoreState
+    : resolveRestoreState(sourcePersistence);
 
-  return {
+  const normalized: PersistedOverlayLayer = {
     id: typeof source.id === "string" && source.id.trim().length > 0 ? source.id : `layer-${Date.now()}`,
     name: typeof source.name === "string" ? source.name : "Restored layer",
     type:
@@ -325,12 +585,176 @@ function normalizeOverlayLayer(layer: unknown): PersistedOverlayLayer {
     visible: source.visible !== false,
     opacity: Number.isFinite(Number(source.opacity)) ? Math.max(0, Math.min(1, Number(source.opacity))) : 1,
     sourcePersistence,
-    ...(source.group === "base" || source.group === "data" || source.group === "analysis"
+    restoreState,
+    restoreWarnings: restoreWarnings.length > 0 ? restoreWarnings : defaultWarnings,
+    ...(source.group === "base" || source.group === "data" || source.group === "analysis" || source.group === "voxcity"
       ? { group: source.group }
       : {}),
+    ...(source.sourceKind === "project" ||
+    source.sourceKind === "imported" ||
+    source.sourceKind === "external" ||
+    source.sourceKind === "derived" ||
+    source.sourceKind === "demo"
+      ? { sourceKind: source.sourceKind }
+      : {}),
+    ...(typeof source.queryable === "boolean" ? { queryable: source.queryable } : {}),
+    ...(source.qaStatus === "unchecked" || source.qaStatus === "passed" || source.qaStatus === "warning" || source.qaStatus === "error"
+      ? { qaStatus: source.qaStatus }
+      : {}),
+    ...(sourceRef ? { sourceRef } : {}),
+    ...(provenance ? { provenance } : {}),
     ...(style ? { style } : {}),
     ...(metadata ? { metadata } : {}),
     ...(normalizedSourceData ? { sourceData: normalizedSourceData } : {}),
+  };
+  return normalized;
+}
+
+function normalizeEvidenceArtifactReference(value: unknown): PersistedMapEvidenceArtifactReference | null {
+  const source = isObject(value) ? value : {};
+  const id = typeof source.id === "string" && source.id.trim().length > 0 ? source.id.trim() : null;
+  const artifactId = typeof source.artifactId === "string" && source.artifactId.trim().length > 0
+    ? source.artifactId.trim()
+    : id;
+  const kind = typeof source.kind === "string" ? source.kind : null;
+  const title = typeof source.title === "string" && source.title.trim().length > 0 ? source.title.trim() : null;
+  const state = typeof source.state === "string" ? source.state : "active";
+  const sourceModule = typeof source.sourceModule === "string" ? source.sourceModule : "map-explorer";
+  if (!id || !artifactId || !kind || !title) return null;
+  const qa = isObject(source.qa) ? source.qa : {};
+  return {
+    id,
+    artifactId,
+    kind: kind as MapEvidenceArtifact["kind"],
+    title,
+    state: state as MapEvidenceArtifact["state"],
+    sourceModule: sourceModule as MapEvidenceArtifact["sourceModule"],
+    linkedLayerIds: normalizeStringList(source.linkedLayerIds),
+    sourceLayerIds: normalizeStringList(source.sourceLayerIds),
+    ...(typeof source.linkedAoiId === "string" && source.linkedAoiId.trim() ? { linkedAoiId: source.linkedAoiId.trim() } : {}),
+    ...(typeof source.linkedRunId === "string" && source.linkedRunId.trim() ? { linkedRunId: source.linkedRunId.trim() } : {}),
+    ...(typeof source.linkedWorkflowId === "string" && source.linkedWorkflowId.trim() ? { linkedWorkflowId: source.linkedWorkflowId.trim() } : {}),
+    ...(typeof source.reportInsertId === "string" && source.reportInsertId.trim() ? { reportInsertId: source.reportInsertId.trim() } : {}),
+    ...(typeof source.reportSnapshotId === "string" && source.reportSnapshotId.trim() ? { reportSnapshotId: source.reportSnapshotId.trim() } : {}),
+    ...(typeof source.exportId === "string" && source.exportId.trim() ? { exportId: source.exportId.trim() } : {}),
+    qaState: typeof qa.state === "string" ? qa.state as MapEvidenceArtifact["qa"]["state"] : "unchecked",
+    qaIssueIds: normalizeStringList(source.qaIssueIds ?? qa.issueIds),
+    createdAt: typeof source.createdAt === "string" ? source.createdAt : new Date(0).toISOString(),
+    updatedAt: typeof source.updatedAt === "string" ? source.updatedAt : new Date(0).toISOString(),
+  };
+}
+
+function normalizeEvidenceArtifactReferences(value: unknown): PersistedMapEvidenceArtifactReference[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map(normalizeEvidenceArtifactReference)
+    .filter((entry): entry is PersistedMapEvidenceArtifactReference => entry != null);
+}
+
+function qaIssueCountsFallback(): Record<MapScientificQAIssueSeverity, number> {
+  return {
+    info: 0,
+    warning: 0,
+    error: 0,
+    blocker: 0,
+  };
+}
+
+function normalizeQASnapshot(value: unknown): MapProjectQASnapshot | null {
+  if (!isObject(value)) return null;
+  const issueCountsSource = isObject(value.issueCounts) ? value.issueCounts : {};
+  const issueCounts = qaIssueCountsFallback();
+  for (const severity of Object.keys(issueCounts) as MapScientificQAIssueSeverity[]) {
+    const count = Number(issueCountsSource[severity]);
+    issueCounts[severity] = Number.isFinite(count) && count >= 0 ? Math.floor(count) : 0;
+  }
+  const issueIds = normalizeStringList(value.issueIds);
+  return {
+    status:
+      value.status === "passed" ||
+      value.status === "warning" ||
+      value.status === "error" ||
+      value.status === "unchecked"
+        ? value.status
+        : "unchecked",
+    checkedAt: typeof value.checkedAt === "string" ? value.checkedAt : null,
+    issueCount: Number.isFinite(Number(value.issueCount)) ? Math.max(0, Math.floor(Number(value.issueCount))) : issueIds.length,
+    blockerCount: Number.isFinite(Number(value.blockerCount)) ? Math.max(0, Math.floor(Number(value.blockerCount))) : 0,
+    layerCount: Number.isFinite(Number(value.layerCount)) ? Math.max(0, Math.floor(Number(value.layerCount))) : 0,
+    issueCounts,
+    issueIds,
+    signature: typeof value.signature === "string" ? value.signature : null,
+  };
+}
+
+function normalizeReviewTimelineReference(value: unknown): MapProjectReviewTimelineReference | null {
+  if (!isObject(value)) return null;
+  const sessionId = typeof value.sessionId === "string" && value.sessionId.trim().length > 0 ? value.sessionId.trim() : null;
+  if (!sessionId) return null;
+  const eventIds = normalizeStringList(value.eventIds);
+  return {
+    sessionId,
+    title: typeof value.title === "string" && value.title.trim().length > 0 ? value.title.trim() : "Map review session",
+    updatedAt: typeof value.updatedAt === "string" ? value.updatedAt : new Date(0).toISOString(),
+    eventCount: Number.isFinite(Number(value.eventCount)) ? Math.max(0, Math.floor(Number(value.eventCount))) : eventIds.length,
+    eventIds,
+    layerIds: normalizeStringList(value.layerIds),
+    qaIssueIds: normalizeStringList(value.qaIssueIds),
+    reportItemIds: normalizeStringList(value.reportItemIds),
+  };
+}
+
+function normalizeSnapshotReferences(value: unknown): MapProjectSnapshotReferences {
+  const source = isObject(value) ? value : {};
+  return {
+    ...(typeof source.contextSummaryId === "string" && source.contextSummaryId.trim()
+      ? { contextSummaryId: source.contextSummaryId.trim() }
+      : {}),
+    evidenceArtifactIds: normalizeStringList(source.evidenceArtifactIds),
+    publicationManifestIds: normalizeStringList(source.publicationManifestIds),
+    reportHandoffIds: normalizeStringList(source.reportHandoffIds),
+    externalSourceRefs: normalizeStringList(source.externalSourceRefs),
+    staleLayerIds: normalizeStringList(source.staleLayerIds),
+  };
+}
+
+function evidenceIdsForLayer(
+  layerId: string,
+  evidenceArtifacts: readonly PersistedMapEvidenceArtifactReference[],
+): string[] {
+  return evidenceArtifacts
+    .filter((artifact) =>
+      artifact.linkedLayerIds.includes(layerId) || artifact.sourceLayerIds.includes(layerId),
+    )
+    .map((artifact) => artifact.id);
+}
+
+function layerReferenceFromPersistedLayer(
+  layer: PersistedOverlayLayer,
+  evidenceArtifacts: readonly PersistedMapEvidenceArtifactReference[],
+): MapProjectLayerReference {
+  const metadata = layer.metadata;
+  const evidenceArtifactIds = evidenceIdsForLayer(layer.id, evidenceArtifacts);
+  return {
+    layerId: layer.id,
+    name: layer.name,
+    type: layer.type,
+    visible: layer.visible,
+    opacity: layer.opacity,
+    sourcePersistence: layer.sourcePersistence,
+    restoreState: layer.restoreState,
+    restoreWarnings: [...layer.restoreWarnings],
+    evidenceArtifactIds,
+    ...(layer.group ? { group: layer.group } : {}),
+    ...(layer.sourceKind ? { sourceKind: layer.sourceKind } : {}),
+    ...(layer.sourceRef ? { sourceRef: layer.sourceRef } : {}),
+    ...(resolveLayerCrs(metadata) ? { crs: resolveLayerCrs(metadata) } : {}),
+    ...(metadata?.geometryType ? { geometryType: metadata.geometryType } : {}),
+    ...(typeof metadata?.featureCount === "number" ? { featureCount: metadata.featureCount } : {}),
+    ...(metadata?.bounds ? { bounds: metadata.bounds } : {}),
+    ...(layer.qaStatus ? { qaStatus: layer.qaStatus } : {}),
+    ...(typeof layer.queryable === "boolean" ? { queryable: layer.queryable } : {}),
+    ...(layer.provenance?.label ? { provenanceLabel: layer.provenance.label } : {}),
   };
 }
 
@@ -356,9 +780,41 @@ function migrateSnapshot(projectId: string, raw: unknown): MapProjectSnapshot {
   const drawnFeatures = Array.isArray(raw.drawnFeatures)
     ? raw.drawnFeatures.map(normalizeDrawnFeature)
     : [];
+  const measurements = Array.isArray(raw.measurements)
+    ? raw.measurements.map(normalizeMeasurement)
+    : [];
   const overlayLayers = Array.isArray(raw.overlayLayers)
     ? raw.overlayLayers.map(normalizeOverlayLayer)
     : [];
+  const evidenceArtifacts = normalizeEvidenceArtifactReferences(raw.evidenceArtifacts);
+  const layerReferences = Array.isArray(raw.layerReferences)
+    ? raw.layerReferences
+        .map((entry) => {
+          if (!isObject(entry)) return null;
+          const layerId = typeof entry.layerId === "string" && entry.layerId.trim().length > 0 ? entry.layerId.trim() : null;
+          if (!layerId) return null;
+          const layer = overlayLayers.find((candidate) => candidate.id === layerId);
+          return layer
+            ? layerReferenceFromPersistedLayer(layer, evidenceArtifacts)
+            : null;
+        })
+        .filter((entry): entry is MapProjectLayerReference => entry != null)
+    : overlayLayers.map((layer) => layerReferenceFromPersistedLayer(layer, evidenceArtifacts));
+  const qaSummary = normalizeQASnapshot(raw.qaSummary);
+  const reviewTimeline = normalizeReviewTimelineReference(raw.reviewTimeline);
+  const references = normalizeSnapshotReferences(raw.references);
+  const externalSourceRefs = Array.from(new Set([
+    ...references.externalSourceRefs,
+    ...overlayLayers
+      .filter((layer) => layer.sourcePersistence === "url" && layer.sourceRef)
+      .map((layer) => layer.sourceRef as string),
+  ]));
+  const staleLayerIds = Array.from(new Set([
+    ...references.staleLayerIds,
+    ...overlayLayers
+      .filter((layer) => layer.restoreState !== "restored")
+      .map((layer) => layer.id),
+  ]));
 
   return {
     version: SNAPSHOT_VERSION,
@@ -372,23 +828,49 @@ function migrateSnapshot(projectId: string, raw: unknown): MapProjectSnapshot {
         ? raw.activeBaseLayer
         : "dark",
     viewport: normalizeViewport(raw.viewport ?? raw),
+    ...(normalizeLayoutPreferences(raw.layoutPreferences) ? { layoutPreferences: normalizeLayoutPreferences(raw.layoutPreferences) } : {}),
     pins,
     bookmarks,
     annotations,
     drawnFeatures,
+    measurements,
     overlayLayers,
+    layerReferences,
+    evidenceArtifacts,
+    qaSummary,
+    reviewTimeline,
+    references: {
+      ...references,
+      evidenceArtifactIds: Array.from(new Set([
+        ...references.evidenceArtifactIds,
+        ...evidenceArtifacts.map((artifact) => artifact.id),
+      ])),
+      externalSourceRefs,
+      staleLayerIds,
+    },
+    persistenceBoundary: MAP_PROJECT_PERSISTENCE_BOUNDARY,
   };
 }
 
 function serializeLayerForPersistence(layer: OverlayLayerConfig): PersistedOverlayLayer {
+  const sourceRef = resolveLayerSourceRef(layer);
+  const baseSourcePersistence: LayerPersistenceSource = !layer.sourceData && sourceRef ? "url" : "metadata";
+  const baseRestoreState = resolveRestoreState(baseSourcePersistence);
   const base: PersistedOverlayLayer = {
     id: layer.id,
     name: layer.name,
     type: layer.type,
     visible: layer.visible,
     opacity: layer.opacity,
-    sourcePersistence: "metadata",
+    sourcePersistence: baseSourcePersistence,
+    restoreState: baseRestoreState,
+    restoreWarnings: buildRestoreWarnings(baseSourcePersistence, sourceRef),
     ...(layer.group ? { group: layer.group } : {}),
+    ...(layer.sourceKind ? { sourceKind: layer.sourceKind } : {}),
+    ...(typeof layer.queryable === "boolean" ? { queryable: layer.queryable } : {}),
+    ...(layer.qaStatus ? { qaStatus: layer.qaStatus } : {}),
+    ...(sourceRef ? { sourceRef } : {}),
+    ...(layer.provenance ? { provenance: cloneJson(layer.provenance) } : {}),
     ...(layer.style ? { style: cloneJson(layer.style) } : {}),
     ...(layer.metadata ? { metadata: cloneJson(layer.metadata) } : {}),
   };
@@ -404,6 +886,8 @@ function serializeLayerForPersistence(layer: OverlayLayerConfig): PersistedOverl
         ...base,
         sourceData: cloneJson(inlineCollection),
         sourcePersistence: "inline",
+        restoreState: "restored",
+        restoreWarnings: [],
       };
     }
 
@@ -411,34 +895,131 @@ function serializeLayerForPersistence(layer: OverlayLayerConfig): PersistedOverl
       ...base,
       sourceData: layer.sourceData,
       sourcePersistence: "url",
+      restoreState: "external-reference",
+      restoreWarnings: buildRestoreWarnings("url", layer.sourceData),
+      sourceRef: layer.sourceData,
     };
   }
 
   const clonedSource = cloneJson(layer.sourceData as FeatureCollection | Feature | Geometry);
   const serializedSource = JSON.stringify(clonedSource);
   if (byteLength(serializedSource) > INLINE_LAYER_DATA_LIMIT_BYTES) {
-    return base;
+    return {
+      ...base,
+      sourcePersistence: "metadata",
+      restoreState: "stale-reference",
+      restoreWarnings: [
+        "Layer source data exceeded the inline snapshot limit and was not persisted; reload the source layer before treating it as available.",
+      ],
+    };
   }
 
   return {
     ...base,
     sourceData: clonedSource,
     sourcePersistence: "inline",
+    restoreState: "restored",
+    restoreWarnings: [],
+  };
+}
+
+function buildQASnapshot(qa: MapScientificQAState | null | undefined): MapProjectQASnapshot | null {
+  if (!qa) return null;
+  const blockerCount = qa.issues.filter((issue) => issue.severity === "blocker" || issue.severity === "error").length;
+  return {
+    status: qa.status,
+    checkedAt: qa.checkedAt,
+    issueCount: qa.issues.length,
+    blockerCount,
+    layerCount: qa.layerSummaries.length,
+    issueCounts: { ...qaIssueCountsFallback(), ...qa.metadata.issueCounts },
+    issueIds: qa.issues.map((issue) => issue.id),
+    signature: qa.metadata.signature,
+  };
+}
+
+function buildReviewTimelineReference(
+  reviewSession: MapReviewSession | null | undefined,
+): MapProjectReviewTimelineReference | null {
+  if (!reviewSession) return null;
+  const layerIds = new Set<string>();
+  const qaIssueIds = new Set<string>();
+  const reportItemIds = new Set<string>();
+  const eventIds: string[] = [];
+
+  for (const event of reviewSession.events) {
+    eventIds.push(event.id);
+    for (const layerId of event.layerIds) layerIds.add(layerId);
+    for (const issueId of event.qaIssueIds) qaIssueIds.add(issueId);
+    for (const reportId of event.reportItemIds) reportItemIds.add(reportId);
+  }
+
+  return {
+    sessionId: reviewSession.id,
+    title: reviewSession.title,
+    updatedAt: reviewSession.updatedAt,
+    eventCount: reviewSession.events.length,
+    eventIds,
+    layerIds: [...layerIds],
+    qaIssueIds: [...qaIssueIds],
+    reportItemIds: [...reportItemIds],
+  };
+}
+
+function buildSnapshotReferences(input: {
+  contextSummaryId?: string;
+  evidenceArtifacts: readonly PersistedMapEvidenceArtifactReference[];
+  overlayLayers: readonly PersistedOverlayLayer[];
+  publicationManifestIds?: string[];
+  reportHandoffIds?: string[];
+}): MapProjectSnapshotReferences {
+  const externalSourceRefs = input.overlayLayers
+    .map((layer) => layer.sourceRef)
+    .filter((sourceRef): sourceRef is string => Boolean(sourceRef));
+  const staleLayerIds = input.overlayLayers
+    .filter((layer) => layer.restoreState !== "restored")
+    .map((layer) => layer.id);
+  return {
+    ...(input.contextSummaryId ? { contextSummaryId: input.contextSummaryId } : {}),
+    evidenceArtifactIds: input.evidenceArtifacts.map((artifact) => artifact.id),
+    publicationManifestIds: normalizeStringList(input.publicationManifestIds),
+    reportHandoffIds: normalizeStringList(input.reportHandoffIds),
+    externalSourceRefs: Array.from(new Set(externalSourceRefs)),
+    staleLayerIds: Array.from(new Set(staleLayerIds)),
   };
 }
 
 function createSnapshot(input: SaveProjectMapStateInput): MapProjectSnapshot {
+  const overlayLayers = input.overlayLayers.map(serializeLayerForPersistence);
+  const evidenceArtifacts = normalizeEvidenceArtifactReferences(input.mapEvidenceArtifacts ?? []);
+  const layerReferences = overlayLayers.map((layer) => layerReferenceFromPersistedLayer(layer, evidenceArtifacts));
+  const qaSummary = buildQASnapshot(input.scientificQA);
+  const reviewTimeline = buildReviewTimelineReference(input.reviewSession);
   return {
     version: SNAPSHOT_VERSION,
     projectId: sanitizeProjectId(input.projectId),
     savedAt: new Date().toISOString(),
     activeBaseLayer: input.activeBaseLayer,
     viewport: cloneJson(input.viewport),
+    ...(input.layoutPreferences ? { layoutPreferences: cloneJson(input.layoutPreferences) } : {}),
     pins: cloneJson(input.pins),
     bookmarks: cloneJson((input.bookmarks ?? []).slice(0, MAP_BOOKMARK_LIMIT)),
     annotations: cloneJson((input.annotations ?? []).slice(0, MAP_ANNOTATION_LIMIT)),
     drawnFeatures: cloneJson(input.drawnFeatures),
-    overlayLayers: input.overlayLayers.map(serializeLayerForPersistence),
+    measurements: cloneJson(input.measurements ?? []),
+    overlayLayers,
+    layerReferences,
+    evidenceArtifacts,
+    qaSummary,
+    reviewTimeline,
+    references: buildSnapshotReferences({
+      contextSummaryId: input.lastContextSnapshotId,
+      evidenceArtifacts,
+      overlayLayers,
+      publicationManifestIds: input.publicationManifestIds,
+      reportHandoffIds: input.reportHandoffIds,
+    }),
+    persistenceBoundary: MAP_PROJECT_PERSISTENCE_BOUNDARY,
   };
 }
 
@@ -503,7 +1084,7 @@ function buildSpatialFeatureCollection(snapshot: MapProjectSnapshot): FeatureCol
 
 function countLayerFeatures(layer: PersistedOverlayLayer): number {
   if (layer.sourcePersistence !== "inline" || !layer.sourceData) {
-    return layer.metadata?.featureCount ?? 0;
+    return 0;
   }
 
   const inlineCollection = typeof layer.sourceData === "string"
@@ -590,8 +1171,22 @@ function restoreOverlayLayers(snapshot: MapProjectSnapshot): OverlayLayerConfig[
     visible: layer.visible,
     opacity: layer.opacity,
     ...(layer.group ? { group: layer.group } : {}),
+    ...(layer.sourceKind ? { sourceKind: layer.sourceKind } : {}),
+    ...(typeof layer.queryable === "boolean" ? { queryable: layer.queryable } : {}),
+    ...(layer.qaStatus ? { qaStatus: layer.qaStatus } : {}),
+    ...(layer.provenance ? { provenance: cloneJson(layer.provenance) } : {}),
     ...(layer.style ? { style: cloneJson(layer.style) } : {}),
-    ...(layer.metadata ? { metadata: cloneJson(layer.metadata) } : {}),
+    metadata: {
+      ...(layer.metadata ? cloneJson(layer.metadata) : {}),
+      persistence: {
+        snapshotVersion: snapshot.version,
+        savedAt: snapshot.savedAt,
+        sourcePersistence: layer.sourcePersistence,
+        restoreState: layer.restoreState,
+        restoreWarnings: [...layer.restoreWarnings],
+        ...(layer.sourceRef ? { sourceRef: layer.sourceRef } : {}),
+      },
+    },
     ...(layer.sourceData ? { sourceData: cloneJson(layer.sourceData) } : {}),
   }));
 }
@@ -660,6 +1255,8 @@ export async function loadProjectMapState(projectId: string): Promise<LoadProjec
       restoredLayerCount: 0,
       restoredFeatureCount: 0,
       spatialTableName: null,
+      staleLayerIds: [],
+      externalSourceRefs: [],
     };
   }
 
@@ -671,6 +1268,8 @@ export async function loadProjectMapState(projectId: string): Promise<LoadProjec
     restoredLayerCount: snapshot.overlayLayers.length,
     restoredFeatureCount: computeRestoredFeatureCount(snapshot),
     spatialTableName: tableName,
+    staleLayerIds: [...snapshot.references.staleLayerIds],
+    externalSourceRefs: [...snapshot.references.externalSourceRefs],
   };
 }
 

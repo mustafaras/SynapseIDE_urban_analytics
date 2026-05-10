@@ -2,12 +2,18 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { FeatureCollection, Geometry } from "geojson";
 import type {
   DrawnFeature,
+  MapEvidenceArtifact,
   MapAnnotation,
   MapBookmark,
   MapPin,
   OverlayLayerConfig,
   ViewportState,
 } from "../../../centerpanel/components/map/mapTypes";
+import type { MapScientificQAState } from "../MapScientificQA";
+import {
+  appendMapReviewEvent,
+  createMapReviewSession,
+} from "../MapReviewSessionService";
 
 const localStore: Record<string, string> = {};
 const persistedTables = new Map<string, FeatureCollection>();
@@ -252,6 +258,106 @@ function makeOverlayLayer(): OverlayLayerConfig {
   };
 }
 
+function makeLargeOverlayLayer(): OverlayLayerConfig {
+  return {
+    ...makeOverlayLayer(),
+    id: "overlay-large",
+    name: "Large parcels",
+    metadata: {
+      featureCount: 1,
+      geometryType: "Polygon",
+      bounds: [29, 41, 29.1, 41.1],
+      datasetContext: {
+        crs: "EPSG:3857",
+      },
+    },
+    sourceData: {
+      type: "FeatureCollection",
+      features: [
+        {
+          type: "Feature",
+          geometry: {
+            type: "Polygon",
+            coordinates: [[[29, 41], [29.1, 41], [29.1, 41.1], [29, 41.1], [29, 41]]],
+          },
+          properties: {
+            payload: "x".repeat(1_100_000),
+          },
+        },
+      ],
+    },
+  };
+}
+
+function makeEvidenceArtifact(): MapEvidenceArtifact {
+  return {
+    id: "map-evidence-layer-overlay-1",
+    artifactId: "map-evidence-layer-overlay-1",
+    kind: "layer",
+    title: "Imported parcels evidence",
+    state: "active",
+    sourceModule: "map-explorer",
+    linkedLayerIds: ["overlay-1"],
+    sourceLayerIds: [],
+    linkedFileIds: [],
+    linkedArtifactIds: [],
+    qaIssueIds: ["qa-1"],
+    tags: [],
+    provenance: {
+      sourceModule: "map-explorer",
+      createdAt: "2026-05-10T08:00:00.000Z",
+      sourceLayerIds: [],
+      layerProvenance: [],
+      inputArtifactIds: [],
+      parentArtifactIds: [],
+      notes: [],
+    },
+    qa: {
+      state: "warning",
+      issueIds: ["qa-1"],
+      issueCount: 1,
+      blockerCount: 0,
+      caveats: ["CRS should be checked."],
+      checkedAt: "2026-05-10T08:05:00.000Z",
+    },
+    createdAt: "2026-05-10T08:00:00.000Z",
+    updatedAt: "2026-05-10T08:05:00.000Z",
+  };
+}
+
+function makeQaState(): MapScientificQAState {
+  return {
+    status: "warning",
+    checkedAt: "2026-05-10T08:05:00.000Z",
+    issues: [
+      {
+        id: "qa-1",
+        code: "missing-crs",
+        category: "crs",
+        severity: "warning",
+        title: "Missing CRS metadata",
+        explanation: "Layer CRS should be confirmed.",
+        suggestedFix: "Add EPSG metadata.",
+        layerId: "overlay-1",
+      },
+    ],
+    layerSummaries: [],
+    metadata: {
+      generatedBy: "MapScientificQA",
+      version: 1,
+      signature: "qa-signature-1",
+      visibleLayerCount: 1,
+      workerLayerCount: 0,
+      issueCounts: {
+        info: 0,
+        warning: 1,
+        error: 0,
+        blocker: 0,
+      },
+    },
+  };
+}
+
 beforeEach(() => {
   localStorage.clear();
   persistedTables.clear();
@@ -414,6 +520,133 @@ describe("MapPersistenceService", () => {
 
     expect(queryResult.collection.features).toHaveLength(1);
     expect(queryResult.collection.features[0].properties?.__mapSourceType).toBe("annotation");
+  });
+
+  it("persists snapshot reference metadata for layout, evidence, QA, and review timeline", async () => {
+    const reviewSession = appendMapReviewEvent(
+      createMapReviewSession({
+        id: "review-session-1",
+        title: "Map review session",
+      }),
+      {
+        id: "review-event-1",
+        type: "qa-event",
+        title: "QA warning recorded",
+        summary: "CRS warning attached to imported parcels.",
+        layerIds: ["overlay-1"],
+        qaIssueIds: ["qa-1"],
+        reportItemIds: ["report-insert-1"],
+      },
+    );
+
+    const saveResult = await saveProjectMapState({
+      projectId: "proj_reference_snapshot",
+      activeBaseLayer: "dark",
+      viewport: makeViewport(),
+      layoutPreferences: {
+        layerPanelWidth: 320,
+        rightPanelWidth: 420,
+      },
+      pins: [],
+      drawnFeatures: [],
+      overlayLayers: [makeOverlayLayer()],
+      mapEvidenceArtifacts: [makeEvidenceArtifact()],
+      scientificQA: makeQaState(),
+      reviewSession,
+      lastContextSnapshotId: "map-context-123",
+      publicationManifestIds: ["publication-manifest-1"],
+      reportHandoffIds: ["report-handoff-1"],
+    });
+
+    expect(saveResult.snapshot.version).toBe(3);
+    expect(saveResult.snapshot.layoutPreferences).toEqual({
+      layerPanelWidth: 320,
+      rightPanelWidth: 420,
+    });
+    expect(saveResult.snapshot.evidenceArtifacts).toHaveLength(1);
+    expect(saveResult.snapshot.layerReferences[0]).toMatchObject({
+      layerId: "overlay-1",
+      evidenceArtifactIds: ["map-evidence-layer-overlay-1"],
+      restoreState: "restored",
+    });
+    expect(saveResult.snapshot.qaSummary).toMatchObject({
+      status: "warning",
+      issueCount: 1,
+      signature: "qa-signature-1",
+    });
+    expect(saveResult.snapshot.reviewTimeline).toMatchObject({
+      sessionId: "review-session-1",
+      eventIds: ["review-event-1"],
+      layerIds: ["overlay-1"],
+      qaIssueIds: ["qa-1"],
+      reportItemIds: ["report-insert-1"],
+    });
+    expect(saveResult.snapshot.references).toMatchObject({
+      contextSummaryId: "map-context-123",
+      evidenceArtifactIds: ["map-evidence-layer-overlay-1"],
+      publicationManifestIds: ["publication-manifest-1"],
+      reportHandoffIds: ["report-handoff-1"],
+    });
+  });
+
+  it("keeps oversized layer payloads out of snapshots and marks them as stale references", async () => {
+    const saveResult = await saveProjectMapState({
+      projectId: "proj_large_layer",
+      activeBaseLayer: "dark",
+      viewport: makeViewport(),
+      pins: [],
+      drawnFeatures: [],
+      overlayLayers: [makeLargeOverlayLayer()],
+    });
+
+    expect(saveResult.persistedFeatureCount).toBe(0);
+    expect(saveResult.metadataOnlyLayerCount).toBe(1);
+    expect(saveResult.snapshot.overlayLayers[0]?.sourceData).toBeUndefined();
+    expect(saveResult.snapshot.overlayLayers[0]?.restoreState).toBe("stale-reference");
+    expect(saveResult.snapshot.references.staleLayerIds).toEqual(["overlay-large"]);
+
+    const loadResult = await loadProjectMapState("proj_large_layer");
+    expect(loadResult.restoredFeatureCount).toBe(0);
+    expect(loadResult.staleLayerIds).toEqual(["overlay-large"]);
+
+    const restoredLayers = getRestorableOverlayLayers(loadResult.snapshot!);
+    expect(restoredLayers[0]?.sourceData).toBeUndefined();
+    expect(restoredLayers[0]?.metadata?.persistence).toMatchObject({
+      sourcePersistence: "metadata",
+      restoreState: "stale-reference",
+      snapshotVersion: 3,
+    });
+    expect(restoredLayers[0]?.metadata?.persistence?.restoreWarnings[0]).toContain("exceeded the inline snapshot limit");
+  });
+
+  it("restores external URL layers as references that require reload", async () => {
+    await saveProjectMapState({
+      projectId: "proj_external_layer",
+      activeBaseLayer: "dark",
+      viewport: makeViewport(),
+      pins: [],
+      drawnFeatures: [],
+      overlayLayers: [
+        {
+          ...makeOverlayLayer(),
+          id: "overlay-url",
+          name: "External parcels",
+          sourceData: "https://example.test/parcels.geojson",
+        },
+      ],
+    });
+
+    const loadResult = await loadProjectMapState("proj_external_layer");
+    expect(loadResult.externalSourceRefs).toEqual(["https://example.test/parcels.geojson"]);
+    expect(loadResult.staleLayerIds).toEqual(["overlay-url"]);
+
+    const restoredLayers = getRestorableOverlayLayers(loadResult.snapshot!);
+    expect(restoredLayers[0]?.sourceData).toBe("https://example.test/parcels.geojson");
+    expect(restoredLayers[0]?.metadata?.persistence).toMatchObject({
+      sourcePersistence: "url",
+      restoreState: "external-reference",
+      sourceRef: "https://example.test/parcels.geojson",
+    });
   });
 
   it("flags quota warnings before storage is full", async () => {

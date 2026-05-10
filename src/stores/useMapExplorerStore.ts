@@ -1419,6 +1419,7 @@ export const useMapExplorerStore = create<MapExplorerState>()(
             scientificQA: null,
             currentMapBounds: null,
             currentMapBoundsUpdatedAt: null,
+            mapEvidenceArtifacts: [],
             selectedFeatureIds: {},
             activeAoiId: resolveActiveAoiId(drawnFeatures),
             activeAnalysisResultLayerIds: [],
@@ -1457,6 +1458,7 @@ export const useMapExplorerStore = create<MapExplorerState>()(
             scientificQA: null,
             currentMapBounds: null,
             currentMapBoundsUpdatedAt: null,
+            mapEvidenceArtifacts: [],
             selectedFeatureIds: {},
             activeAoiId: undefined,
             activeAnalysisResultLayerIds: [],
@@ -1503,3 +1505,49 @@ useMapExplorerStore.subscribe((state, previousState) => {
     emitMapLayerRegistryChange(previousState.overlayLayers, state.overlayLayers);
   }
 });
+
+export function selectMapEvidenceArtifacts(state: MapExplorerState): MapEvidenceArtifact[] {
+  return state.mapEvidenceArtifacts;
+}
+
+export function selectMapEvidenceArtifactsForLayer(layerId: string | null | undefined) {
+  return (state: MapExplorerState): MapEvidenceArtifact[] =>
+    filterMapEvidenceArtifactsByLayer(state.mapEvidenceArtifacts, layerId);
+}
+
+export function selectMapEvidenceArtifactsForAoi(aoiId: string | null | undefined) {
+  return (state: MapExplorerState): MapEvidenceArtifact[] =>
+    filterMapEvidenceArtifactsByAoi(state.mapEvidenceArtifacts, aoiId);
+}
+
+export function selectMapEvidenceArtifactsForWorkflow(workflowId: string | null | undefined) {
+  return (state: MapExplorerState): MapEvidenceArtifact[] =>
+    filterMapEvidenceArtifactsByWorkflow(state.mapEvidenceArtifacts, workflowId);
+}
+
+export function selectMapEvidenceArtifactsForSource(sourceModule: MapEvidenceArtifact["sourceModule"]) {
+  return (state: MapExplorerState): MapEvidenceArtifact[] =>
+    filterMapEvidenceArtifactsBySource(state.mapEvidenceArtifacts, sourceModule);
+}
+
+export function useMapEvidenceArtifacts(): MapEvidenceArtifact[] {
+  return useMapExplorerStore(selectMapEvidenceArtifacts);
+}
+
+export function useMapEvidenceArtifactsByLayer(layerId: string | null | undefined): MapEvidenceArtifact[] {
+  return useMapExplorerStore(selectMapEvidenceArtifactsForLayer(layerId));
+}
+
+export function useMapEvidenceArtifactsByAoi(aoiId: string | null | undefined): MapEvidenceArtifact[] {
+  return useMapExplorerStore(selectMapEvidenceArtifactsForAoi(aoiId));
+}
+
+export function useMapEvidenceArtifactsByWorkflow(workflowId: string | null | undefined): MapEvidenceArtifact[] {
+  return useMapExplorerStore(selectMapEvidenceArtifactsForWorkflow(workflowId));
+}
+
+export function useMapEvidenceArtifactsBySource(
+  sourceModule: MapEvidenceArtifact["sourceModule"],
+): MapEvidenceArtifact[] {
+  return useMapExplorerStore(selectMapEvidenceArtifactsForSource(sourceModule));
+}

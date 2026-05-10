@@ -101,6 +101,23 @@ export interface LayerCartographyReviewMetadata {
   legendPersisted?: boolean;
 }
 
+export type LayerPersistenceSource = "inline" | "url" | "metadata";
+
+export type LayerRestoreState =
+  | "restored"
+  | "external-reference"
+  | "metadata-only"
+  | "stale-reference";
+
+export interface LayerPersistenceMetadata {
+  snapshotVersion: number;
+  savedAt: string;
+  sourcePersistence: LayerPersistenceSource;
+  restoreState: LayerRestoreState;
+  restoreWarnings: string[];
+  sourceRef?: string;
+}
+
 export interface LayerMetadata {
   featureCount?: number;
   geometryType?: string;
@@ -116,6 +133,7 @@ export interface LayerMetadata {
   externalService?: ExternalServiceLayerMetadata;
   scientificQA?: LayerScientificQAMetadata;
   cartographyReview?: LayerCartographyReviewMetadata;
+  persistence?: LayerPersistenceMetadata;
 }
 
 export interface LayerProvenance {

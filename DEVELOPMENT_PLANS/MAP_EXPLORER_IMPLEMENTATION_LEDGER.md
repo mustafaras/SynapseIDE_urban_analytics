@@ -21,14 +21,14 @@ Read these before implementing any Map Explorer prompt:
 
 ## Current Status
 
-- Overall status: Map context kernel landed. 3 of 30 prompts completed.
-- Current prompt: Prompt 02 - Map Context Kernel and Selectors completed 2026-05-10.
-- Next recommended prompt: Prompt 03 - Map Evidence Artifact Model Foundation.
+- Overall status: Modal shell command extraction landed. 6 of 30 prompts completed.
+- Current prompt: Prompt 05 - Modal Shell Decomposition and Command Hooks completed 2026-05-10.
+- Next recommended prompt: Prompt 06 - Premium Workspace Shell and Context Strip.
 - Operating pack status: Installed.
 - Next-prompt helper: `scripts/get-next-map-explorer-prompt.ps1`
 - Machine-readable manifest: `DEVELOPMENT_PLANS/MAP_EXPLORER_PROMPT_MANIFEST.json`
-- Last validated repository state: 2026-05-10; `npm run typecheck` passed; `npm run lint:errors` reports 1 pre-existing error in uncommitted Urban Analytics file `src/features/urbanAnalytics/lib/workflowReadiness.ts` (unused import `UrbanMethodValidityEnvelope`) — unrelated to Map Explorer scope, do not regress.
-- Last known blocker: None for Map Explorer. Pre-existing UA lint error and uncommitted UA work-in-progress (`workflowReadiness.ts` + test) noted but out of Map Explorer scope.
+- Last validated repository state: 2026-05-10; Prompt 05 follow-up validation passed after restoring dependencies: `npm run typecheck` passed, `npx vitest run src/centerpanel/components/__tests__/MapExplorerModal.dispatch.test.tsx src/services/map/__tests__/MapAnalysisDispatcher.test.ts` passed (3/3), and focused VS Code diagnostics remain clean for `MapExplorerModal.tsx`, `useMapPanelCommands.ts`, and `useMapAoiDispatch.ts`.
+- Last known blocker: None for focused Prompt 05 validation. Pre-existing unrelated workspace changes remain outside Map Explorer scope.
 
 ## Agent Operating Pack
 
@@ -58,9 +58,9 @@ This table is the human-readable execution state. The helper script reads it whe
 | 00 | Memory Bootstrapping and Repository Baseline | completed | None | Baseline audit complete 2026-05-10. All planned files confirmed present. Typecheck clean. |
 | 01 | Map Architecture Map and Spatial Ownership Boundaries | completed | 00 | Architecture map complete 2026-05-10. Component tree, store slices, layer flow, contracts, and cross-module boundaries documented. No ownership violations found. |
 | 02 | Map Context Kernel and Selectors | completed | 01 | Context kernel + memoised selectors landed 2026-05-10. `MapExplorerContextSummary` published; layer summarizer extracted into single source of truth. 53/53 tests pass. |
-| 03 | Map Evidence Artifact Model Foundation | in_progress | 02 | Active 2026-05-10. Building lightweight map evidence artifact model and registry helpers. |
-| 04 | Store Persistence Boundaries and Project Snapshots | pending | 03 | Requires evidence model. |
-| 05 | Modal Shell Decomposition and Command Hooks | pending | 04 | Requires persistence boundaries. |
+| 03 | Map Evidence Artifact Model Foundation | completed | 02 | Completed 2026-05-10. Lightweight map evidence model, registry helpers, adapters, selectors, and tests landed. |
+| 04 | Store Persistence Boundaries and Project Snapshots | completed | 03 | Completed 2026-05-10. Snapshot v3, reference schema, stale restore metadata, and persistence tests landed. |
+| 05 | Modal Shell Decomposition and Command Hooks | completed | 04 | Completed 2026-05-10. Extracted panel choreography and AOI dispatch command hooks without changing visible behavior. |
 | 06 | Premium Workspace Shell and Context Strip | pending | 05 | Requires shell command hooks. |
 | 07 | Layer Registry Metadata Upgrade | pending | 06 | Requires workspace shell. |
 | 08 | Layer Manager Premium UX and Safety | pending | 07 | Requires layer metadata. |
@@ -366,6 +366,198 @@ attachSpatialStatsRerun(layer, run) preserves provenance.
 - Next recommended prompt: Prompt 03 - Map Evidence Artifact Model Foundation.
 - Ledger updated: yes
 
+### Prompt 03 - Map Evidence Artifact Model Foundation
+
+- Date: 2026-05-10
+- Agent: Codex
+- Status: completed
+- Started from:
+  - Launcher: `DEVELOPMENT_PLANS/START_HERE_MAP_EXPLORER_AGENT.md`
+  - Manifest: `DEVELOPMENT_PLANS/MAP_EXPLORER_PROMPT_MANIFEST.json`
+  - Ledger: `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md`
+- Files inspected:
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md` sections 7.4, 9.2, 15.4
+  - `DEVELOPMENT_PLANS/TRI_MODAL_WORKBENCH_ALIGNMENT_SPEC.md` Shared Artifact Model and canonical provenance/QA snippets
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` Prompt 03 block
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_PROMPT_MANIFEST.json` Prompt 03 entry
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_AGENT_HANDOFF_TEMPLATE.md`
+  - `DEVELOPMENT_PLANS/AGENT_AMNESIA_PREVENTION_PROTOCOL.md`
+  - `src/centerpanel/components/map/mapTypes.ts`
+  - `src/centerpanel/components/map/mapContextSummary.ts`
+  - `src/centerpanel/components/map/index.ts`
+  - `src/stores/useMapExplorerStore.ts`
+  - `src/stores/__tests__/useMapExplorerStore.test.ts`
+  - `src/services/map/MapEngineAdapter.ts`
+  - `src/services/map/MapReportHandoffService.ts`
+  - `src/services/map/MapReviewSessionService.ts`
+  - `src/services/map/MapExportService.ts`
+  - `src/services/map/MapScientificQA.ts`
+  - `src/services/map/__tests__/MapEngineAdapter.test.ts`
+  - `src/services/map/__tests__/MapReportHandoffService.test.ts`
+  - `src/features/urbanAnalytics/context/evidenceArtifacts.ts`
+  - `src/features/urbanAnalytics/lib/types.ts`
+  - `src/features/urbanAnalytics/useUrbanContextStore.ts`
+- Files changed:
+  - `src/centerpanel/components/map/mapTypes.ts` — added exported `MapEvidenceArtifact` model, kind/source/state/QA/provenance/CRS/geometry/export/report reference types.
+  - `src/centerpanel/components/map/mapEvidenceArtifacts.ts` — added pure creation, normalization, upsert, patch, selector, and adapter helpers for layer, AOI, workflow result, QA finding, export, and report snapshot artifacts.
+  - `src/stores/useMapExplorerStore.ts` — added non-persisted `mapEvidenceArtifacts` registry, register/upsert/update/clear actions, and selectors/hooks by layer, AOI, workflow, and source.
+  - `src/centerpanel/components/map/index.ts` — re-exported artifact model and helper APIs.
+  - `src/centerpanel/components/map/__tests__/mapEvidenceArtifacts.test.ts` — added focused registry/helper tests.
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` — updated durable execution state.
+- Behavior implemented:
+  - First-class `MapEvidenceArtifact` foundation with stable `id`/`artifactId`, kind, title, source module, linked layer/AOI/run/workflow/file/artifact IDs, provenance, QA, metadata, timestamps, and lifecycle state.
+  - Map-specific provenance records source layer IDs, derived layer ID, CRS summary, geometry summary, workflow/run IDs, export reference, report reference, layer provenance, parent/input artifact IDs, and notes.
+  - Pure adapters create artifacts for layers, AOIs, workflow results, QA findings, publication exports, and report snapshots without copying heavy payloads.
+  - Registry actions are in-memory only and store reference records; Prompt 04 owns persistence boundaries.
+  - Selectors filter artifacts by layer, AOI, workflow, and source module.
+- UX changes: None.
+- Spatial evidence/provenance changes: New map evidence artifact reference model. Artifacts preserve source/derived layer IDs, AOI IDs, workflow/run IDs, CRS summaries, geometry summaries, QA issue IDs, and export/report references.
+- CRS, geometry, or measurement changes: No spatial calculations changed. AOI and layer adapters record declared/display CRS and geometry summaries only; missing CRS remains explicit and unknown rather than inferred.
+- Scientific QA changes: No QA computation changed. QA artifacts and artifact QA summaries record existing issue IDs, caveats, checkedAt values, and blocker counts by reference.
+- Layer registry or persistence changes: Added separate non-persisted evidence registry slice to `useMapExplorerStore`. Existing layer registry event payloads and persistence partialize shape are unchanged.
+- Workflow/export/report changes: No existing workflow/export/report behavior changed. New adapters can represent workflow results, exports, and report snapshots as map evidence artifacts.
+- Cross-module contract changes: New exported Map Explorer contract `MapEvidenceArtifact` and helper APIs from `src/centerpanel/components/map/index.ts`; no consumer migration yet.
+- Performance/data movement changes: Evidence artifacts intentionally exclude `sourceData`, GeoJSON, raw tables, screenshots, canvases, and large render state. Store cap is `MAX_MAP_EVIDENCE_ARTIFACTS = 200`.
+- Accessibility changes: None.
+- Validation commands:
+  - `npm run typecheck`
+  - `npx vitest run src/centerpanel/components/map/__tests__/mapEvidenceArtifacts.test.ts src/stores/__tests__/useMapExplorerStore.test.ts src/services/map/__tests__/MapReportHandoffService.test.ts src/services/map/__tests__/MapEngineAdapter.test.ts --reporter=verbose`
+  - `npm run lint:errors`
+  - `npx eslint src/centerpanel/components/map/mapTypes.ts src/centerpanel/components/map/mapEvidenceArtifacts.ts src/centerpanel/components/map/index.ts src/centerpanel/components/map/__tests__/mapEvidenceArtifacts.test.ts src/stores/useMapExplorerStore.ts --quiet`
+- Validation results:
+  - Typecheck passed.
+  - Targeted vitest passed: 4 files, 78/78 tests.
+  - Global lint still reports the known unrelated UA error in `src/features/urbanAnalytics/lib/workflowReadiness.ts:20` (`UrbanMethodValidityEnvelope` unused).
+  - Touched Map Explorer files lint clean.
+- Known risks:
+  - Prompt 03 intentionally does not migrate existing layer/report/export workflows to automatically register every artifact; later prompts own that integration.
+  - Map evidence registry is non-persisted until Prompt 04 defines persistence boundaries and project snapshot shape.
+- Blockers: None.
+- Decisions made:
+  - Map evidence records store IDs and scalar summaries only; raw geometries, render images, sourceData, and table payloads remain in the owning map/service/report stores.
+  - Missing CRS is recorded as missing/unknown with caveats; no analytical CRS readiness is inferred from display coordinates.
+- Next recommended prompt: Prompt 04 - Store Persistence Boundaries and Project Snapshots.
+- Ledger updated: yes
+
+### Prompt 04 - Store Persistence Boundaries and Project Snapshots
+
+- Date: 2026-05-10
+- Agent: Codex
+- Status: completed
+- Started from:
+  - Launcher: `DEVELOPMENT_PLANS/START_HERE_MAP_EXPLORER_AGENT.md`
+  - Manifest: `DEVELOPMENT_PLANS/MAP_EXPLORER_PROMPT_MANIFEST.json`
+  - Ledger: `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md`
+- Files inspected:
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md` section 10 and section 14.7
+  - `DEVELOPMENT_PLANS/TRI_MODAL_WORKBENCH_ALIGNMENT_SPEC.md` section 12 Persistence and Restore
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` Prompt 04 block
+  - `src/stores/useMapExplorerStore.ts`
+  - `src/services/map/MapPersistenceService.ts`
+  - `src/services/map/__tests__/MapPersistenceService.test.ts`
+  - `src/centerpanel/components/map/mapTypes.ts`
+- Files changed:
+  - `src/centerpanel/components/map/mapTypes.ts` — added layer persistence/restore metadata types and optional `LayerMetadata.persistence`.
+  - `src/services/map/MapPersistenceService.ts` — upgraded snapshots to version 3; added persistence boundary metadata, layout/measurement fields, layer references, evidence references, QA summary, review timeline references, external/stale reference lists, and truthful restore metadata.
+  - `src/services/map/__tests__/MapPersistenceService.test.ts` — added coverage for reference snapshots, oversized metadata-only layers, and external URL restore references.
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` — updated durable execution state.
+- Behavior implemented:
+  - Current Zustand local-storage behavior preserved: viewport, base layer, pins, bookmarks, annotations/settings, selected feature IDs, active AOI ID, active analysis result layer IDs, and layout preferences remain the store partialize surface.
+  - `MapProjectSnapshot` v3 now records a code-level persistence boundary, optional layout preferences, measurements, lightweight `layerReferences`, `evidenceArtifacts` references, `qaSummary`, `reviewTimeline`, and `references` (`contextSummaryId`, evidence artifact IDs, publication manifests, report handoffs, external source refs, stale layer IDs).
+  - `PersistedOverlayLayer` now preserves source kind, queryability, QA status, provenance, source reference, restore state, and restore warnings.
+  - Restored layers receive `metadata.persistence` so UI/bridges can truthfully distinguish `restored`, `external-reference`, `metadata-only`, and `stale-reference` layers.
+  - Oversized layer payloads are not persisted; they are restored as stale metadata references with warnings. External URL layers restore as external references that require reload.
+- UX changes: None.
+- Spatial evidence/provenance changes: Project snapshots now persist map evidence artifact references and layer provenance metadata only. No raw evidence payloads were added.
+- CRS, geometry, or measurement changes: No calculations changed. Snapshot layer references preserve declared CRS/geometry/bounds metadata when available; missing or stale source data remains explicit.
+- Scientific QA changes: No QA computation changed. Snapshots now store QA summaries and issue IDs for restore context.
+- Layer registry or persistence changes: Snapshot schema upgraded from version 2 to version 3 with migration from older snapshots. Large layer payload policy remains bounded; metadata-only/stale states are now explicit.
+- Workflow/export/report changes: Snapshot references can carry publication manifest IDs and report handoff IDs. Existing report/export behavior unchanged.
+- Cross-module contract changes: `MapProjectSnapshot` v3 is the durable map project snapshot contract for later Urban/IDE/report/dashboard bridge work.
+- Performance/data movement changes: Large GeoJSON remains excluded when it exceeds the inline limit. `persistedFeatureCount` now counts actually persisted inline/restorable layer features, not metadata-only layer feature counts.
+- Accessibility changes: None.
+- Validation commands:
+  - `npm run typecheck`
+  - `npx vitest run src/services/map/__tests__/MapPersistenceService.test.ts --reporter=verbose`
+  - `npm run lint:errors`
+  - `npx eslint src/services/map/MapPersistenceService.ts src/services/map/__tests__/MapPersistenceService.test.ts src/centerpanel/components/map/mapTypes.ts --quiet`
+- Validation results:
+  - Typecheck passed.
+  - `MapPersistenceService` tests passed: 11/11.
+  - Global lint still reports the known unrelated UA error in `src/features/urbanAnalytics/lib/workflowReadiness.ts:20` (`UrbanMethodValidityEnvelope` unused).
+  - Touched Map persistence files lint clean.
+- Known risks:
+  - Snapshot v3 is backward compatible through migration, but older UI surfaces do not yet display the new restore warnings. Prompt 05+ should expose these where relevant.
+  - Local store still persists `selectedFeatureIds` because this prompt preserved current store behavior; future cleanup should be explicit if product wants that treated as volatile only.
+- Blockers: None.
+- Decisions made:
+  - Keep existing small-inline layer restore behavior, but make oversized/external/metadata-only source states explicit.
+  - Store evidence artifacts in snapshots as lightweight references, not full module-owned payloads.
+  - Count only actually persisted/restorable inline layer features in restored feature counts.
+- Next recommended prompt: Prompt 05 - Modal Shell Decomposition and Command Hooks.
+- Ledger updated: yes
+
+### Prompt 05 - Modal Shell Decomposition and Command Hooks
+
+- Date: 2026-05-10
+- Agent: GPT-5.4 (GitHub Copilot)
+- Status: completed
+- Started from:
+  - Ledger: `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md`
+  - Prompt block: `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md`
+  - Plan authority: `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md`
+- Files inspected:
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md`
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md`
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md`
+  - `src/centerpanel/components/MapExplorerModal.tsx`
+  - `src/centerpanel/components/map/useLayerSync.ts`
+  - `src/centerpanel/components/map/useMapKeyboardControls.ts`
+  - `src/centerpanel/components/__tests__/MapExplorerModal.dispatch.test.tsx`
+  - `src/services/map/MapAnalysisDispatcher.ts`
+  - `src/services/map/MapReviewSessionService.ts`
+- Files changed:
+  - `src/centerpanel/components/map/useMapPanelCommands.ts` — new hook for right-panel and dock choreography, panel toggles, and scientific QA open command.
+  - `src/centerpanel/components/map/useMapAoiDispatch.ts` — new hook for AOI dispatch, selection statistics, and map-extent restriction commands.
+  - `src/centerpanel/components/MapExplorerModal.tsx` — removed inline command blocks and wired the modal to the new hooks while preserving local state ownership.
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` — updated durable execution state.
+- Behavior implemented:
+  - Extracted panel command choreography from `MapExplorerModal` into `useMapPanelCommands`, including dock closing helpers, QA/NL/workflow/review toggles, sidebar toggle, and analytic side-panel exclusivity rules.
+  - Extracted AOI dispatch commands into `useMapAoiDispatch`, including extent restriction feedback, workflow dispatch dialog gating, selection statistics dispatch, AOI workflow dispatch, and isochrone dispatch.
+  - Kept modal state, review-event recording, toasts, and announcer behavior in the same control flow, but moved command logic behind injected setters and callbacks.
+  - Intentionally deferred `handleAnalysisRecommendationAction` and workflow apply/report handlers from this prompt because they remain more coupled and belong to later decomposition prompts.
+- UX changes: None intended. This prompt preserves visible behavior and interaction wording while reducing `MapExplorerModal` command density.
+- Spatial evidence/provenance changes: None.
+- CRS, geometry, or measurement changes: None.
+- Scientific QA changes: No QA computation changes. QA panel opening/closing logic is now encapsulated in a dedicated hook.
+- Layer registry or persistence changes: None.
+- Workflow/export/report changes: No workflow/report behavior changes. Only workflow drawer and AOI dispatch command wiring moved behind hooks.
+- Cross-module contract changes: None. This is an internal Map Explorer shell boundary refactor only.
+- Performance/data movement changes: None material. No new stores or cross-module payload movement introduced.
+- Accessibility changes: Existing announcer messages were preserved; command extraction did not change keyboard or screen-reader semantics.
+- Validation commands:
+  - VS Code file diagnostics via `get_errors` on `src/centerpanel/components/MapExplorerModal.tsx`
+  - VS Code file diagnostics via `get_errors` on `src/centerpanel/components/map/useMapPanelCommands.ts`
+  - VS Code file diagnostics via `get_errors` on `src/centerpanel/components/map/useMapAoiDispatch.ts`
+  - `npm install`
+  - `npm run typecheck`
+  - `npx vitest run src/centerpanel/components/__tests__/MapExplorerModal.dispatch.test.tsx src/services/map/__tests__/MapAnalysisDispatcher.test.ts`
+- Validation results:
+  - No errors found in the three touched implementation files.
+  - Dependencies were restored with `npm install`.
+  - `npm run typecheck` passed.
+  - Focused Vitest validation passed: 2 files, 3/3 tests.
+- Known risks:
+  - `MapExplorerModal` still owns the underlying transient state and several coupled command clusters; this prompt only extracts the safest command slices.
+  - Recommendation routing and workflow apply/report actions remain inline and should be handled by later prompts instead of being force-extracted here.
+- Blockers:
+  - None for Prompt 05 scope.
+- Decisions made:
+  - Preserve modal state ownership and use dependency-injected hooks instead of introducing another store or widening contracts.
+  - Limit Prompt 05 extraction to command slices with clear input/output boundaries and no visible behavior change.
+- Next recommended prompt: Prompt 06 - Premium Workspace Shell and Context Strip.
+- Ledger updated: yes
+
 Use this format for each entry:
 
 ```md
@@ -427,10 +619,13 @@ Append inspected files here as implementation progresses.
 
 | Date | Prompt | Files inspected | Notes |
 | --- | --- | --- | --- |
+| 2026-05-10 | 05 | `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md`; `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md`; `src/centerpanel/components/MapExplorerModal.tsx`; `src/centerpanel/components/map/useLayerSync.ts`; `src/centerpanel/components/map/useMapKeyboardControls.ts`; `src/centerpanel/components/__tests__/MapExplorerModal.dispatch.test.tsx`; `src/services/map/MapAnalysisDispatcher.ts`; `src/services/map/MapReviewSessionService.ts` | Prompt 05 narrowed to safe extraction only: panel choreography and AOI dispatch command hooks. |
 | 2026-05-02 | Operating Pack Installation | `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md`, `DEVELOPMENT_PLANS/TRI_MODAL_WORKBENCH_ALIGNMENT_SPEC.md`, `src/centerpanel/components/MapExplorerModal.tsx`, `src/centerpanel/components/map/*`, `src/stores/useMapExplorerStore.ts`, `src/services/map/*` | Planning and automation-pack inspection only. |
 | 2026-05-10 | Prompt 00 | `package.json`, `src/centerpanel/components/MapExplorerModal.tsx`, `src/centerpanel/components/MapExplorerButton.tsx`, `src/centerpanel/components/map/*` (17 files), `src/stores/useMapExplorerStore.ts`, `src/services/map/*` (25 files + 18 tests), `src/features/urbanAnalytics/store.ts`, `src/services/editorBridge.ts`, `src/services/editor/bridge.ts` + bridgeAdapter + aiEditorBridgeGlobal, `src/services/reporting/*` (10 files) | All planned Prompt 00 inspection targets present and confirmed. |
 | 2026-05-10 | Prompt 01 | `MapExplorerModal.tsx` (lines 29-67, 76-77, 172-178, 710-805, 886, 4047, 4526, 4620-4621), `MapWorkspaceShell.tsx`, `MapWorkspaceCockpit.tsx`, `MapCanvas.tsx`, `MapLayerManager.tsx`, `MapWorkflowDrawer.tsx`, `ScientificQAPanel.tsx`, `MapReportHandoffDrawer.tsx`, `mapTypes.ts` (lines 180-188), `useMapExplorerStore.ts` (lines 131-325), `MapEngineAdapter.ts`, `MapWorkflowService.ts`, `MapScientificQA.ts`, `MapReportHandoffService.ts` (lines 52-63), `MapSyncService.ts`, `MapAnalysisDispatcher.ts`, `MapAnalysisRecommender.ts`, `ExternalServiceConnector.ts` (lines 9-10), `mapContextAdapter.ts`, `mapEvidencePublisher.ts`, `studyAreaSelection.ts`, `services/reporting/storage.ts`, `services/reporting/*` (audit) | Live architecture trace for Prompt 01. No code changed. |
 | 2026-05-10 | Prompt 02 | `mapTypes.ts`, `mapExperience.ts`, `MapStatusBar.tsx`, `MapWorkspaceCockpit.tsx`, `index.ts`, `useMapExplorerStore.ts` (lines 1-340, 522-705, 1450-1488), `MapScientificQA.ts` (lines 17-86), `MapSyncService.ts`, `MapAnalysisBounds.ts`, `__tests__/map-layer-management.test.ts` (lines 347-377) | Inspected for context kernel design + regression-safety check. |
+| 2026-05-10 | Prompt 03 | `MAP_EXPLORER_DEVELOPMENT_PLAN.md` sections 7.4/9.2/15.4, `TRI_MODAL_WORKBENCH_ALIGNMENT_SPEC.md` Shared Artifact Model + provenance/QA snippets, `MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` Prompt 03, `MAP_EXPLORER_PROMPT_MANIFEST.json`, `MAP_EXPLORER_AGENT_HANDOFF_TEMPLATE.md`, `AGENT_AMNESIA_PREVENTION_PROTOCOL.md`, `mapTypes.ts`, `mapContextSummary.ts`, `index.ts`, `useMapExplorerStore.ts`, `useMapExplorerStore.test.ts`, `MapEngineAdapter.ts`, `MapReportHandoffService.ts`, `MapReviewSessionService.ts`, `MapExportService.ts`, `MapScientificQA.ts`, `MapEngineAdapter.test.ts`, `MapReportHandoffService.test.ts`, Urban evidence artifact types/helpers for alignment only | Inspected for map evidence model placement, registry pattern, service adapter compatibility, and no-heavy-payload constraints. |
+| 2026-05-10 | Prompt 04 | `MAP_EXPLORER_DEVELOPMENT_PLAN.md` section 10 and 14.7, `TRI_MODAL_WORKBENCH_ALIGNMENT_SPEC.md` section 12, `MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` Prompt 04, `useMapExplorerStore.ts`, `MapPersistenceService.ts`, `MapPersistenceService.test.ts`, `mapTypes.ts` | Audited current store partialize behavior, project snapshot schema, layer source persistence, quota behavior, and stale restore gaps. |
 
 ## Files Changed Registry
 
@@ -442,6 +637,8 @@ Append changed files here as implementation progresses.
 | 2026-05-10 | Prompt 00 | `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` | Documentation-only baseline audit. No product code changed. |
 | 2026-05-10 | Prompt 01 | `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` | Architecture map appended. No product code changed. |
 | 2026-05-10 | Prompt 02 | `src/centerpanel/components/map/mapContextSummary.ts` (NEW), `src/centerpanel/components/map/index.ts`, `src/stores/useMapExplorerStore.ts`, `src/centerpanel/components/map/__tests__/mapContextSummary.test.ts` (NEW), `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` | Context kernel module + memoised selectors; layer summarizer extracted for single source of truth. |
+| 2026-05-10 | Prompt 03 | `src/centerpanel/components/map/mapTypes.ts`, `src/centerpanel/components/map/mapEvidenceArtifacts.ts`, `src/centerpanel/components/map/index.ts`, `src/stores/useMapExplorerStore.ts`, `src/centerpanel/components/map/__tests__/mapEvidenceArtifacts.test.ts`, `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` | Map evidence artifact type foundation, pure registration/adapters/selectors, non-persisted store registry actions, and focused tests. |
+| 2026-05-10 | Prompt 04 | `src/centerpanel/components/map/mapTypes.ts`, `src/services/map/MapPersistenceService.ts`, `src/services/map/__tests__/MapPersistenceService.test.ts`, `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` | Snapshot v3 reference schema, persistence boundary metadata, stale/external restore state, and tests. |
 
 ## Cross-Module Contract Registry
 
@@ -473,7 +670,8 @@ Record every contract that connects Map Explorer with Synapse IDE, Urban Analyti
 | 2026-05-10 | Prompt 01 | Reporting → Map handoff: `buildMapReportHandoffDraft` → `buildPendingReportInsertFromMapHandoff` → `enqueuePendingReportInsert` → `localStorage[PENDING_INSERTS_KEY]` | Map → Report (one-way structured) | Confirmed Existing | `services/reporting/*` has zero direct imports from `useMapExplorerStore` or `services/map/`. Reports consume only `PendingReportInsert` + `MapReportHandoffDraft` references. Clean boundary. |
 | 2026-05-10 | Prompt 01 | Map → IDE: NO imports from `editorStore`/`appStore` (for IDE state)/`services/editor/` in `src/centerpanel/components/map/` or `src/services/map/` | Map ownership boundary | Confirmed Clean | `MapExplorerModal` imports `appStore` (line 76) and `useFlowStore` (line 77) for modal lifecycle / project ID only — not for editor file/tab state. |
 | Pending | Pending | `MapExplorerContextSummary` | Shared map context | Proposed | Implement only when prompted. |
-| Pending | Pending | `MapEvidenceArtifact` | Shared map evidence reference | Proposed | Implement only when prompted. |
+| 2026-05-10 | Prompt 03 | `MapEvidenceArtifact` + `mapEvidenceArtifacts.ts` helpers | Map → Urban / Report / Dashboard / IDE future consumers | Implemented | Exported from `src/centerpanel/components/map/index.ts`. Stores stable IDs, linked layer/AOI/run/workflow/file/artifact IDs, map provenance, CRS/geometry summaries, QA, and export/report refs only — no GeoJSON/sourceData/screenshots/raw tables. Store registry is non-persisted until Prompt 04. |
+| 2026-05-10 | Prompt 04 | `MapProjectSnapshot` v3 + `MAP_PROJECT_PERSISTENCE_BOUNDARY` | Map project snapshot restore contract | Implemented | `src/services/map/MapPersistenceService.ts`. Persists viewport/base/layout/bookmarks/annotations/drawings/measurements, lightweight layer references, evidence references, QA summary, review timeline references, and stale/external refs. Oversized layer source payloads restore as stale metadata references. |
 | Pending | Pending | `MapReproducibilityManifest` | Export/workflow reproducibility | Proposed | Implement only when prompted. |
 
 ## Scientific GIS Decision Registry
@@ -486,6 +684,10 @@ Record decisions that future agents must not re-litigate unless the repository p
 | Pending | Pending | Urban Analytics owns method interpretation and method-specific data fitness; Map Explorer provides spatial QA summaries. | Prevents hidden scientific coupling. | Proposed |
 | Pending | Pending | Synapse IDE owns code and file state; Map Explorer stores code/file references only. | Prevents Map Explorer from becoming an editor. | Proposed |
 | Pending | Pending | Large geometries and raw datasets must remain in map state, services, or referenced external storage, not lightweight evidence payloads. | Protects performance and avoids event payload abuse. | Proposed |
+| 2026-05-10 | Prompt 03 | Map evidence artifacts store references, provenance, CRS/geometry summaries, QA issue IDs, and scalar metadata only. | Map-derived outputs become auditable without duplicating GeoJSON, raw datasets, canvases, screenshots, or report assets in Zustand/event payloads. | Accepted |
+| 2026-05-10 | Prompt 03 | Missing CRS remains explicit in artifact CRS summaries; display CRS is not treated as analytical readiness. | Prevents false scientific readiness and preserves the rule that analytical distance/area calculations require an explicit projected CRS. | Accepted |
+| 2026-05-10 | Prompt 04 | Project snapshots may keep small inline GeoJSON for current restore compatibility, but oversized layer payloads are never forced into lightweight snapshots. | Preserves current behavior while making large/missing source states truthful and bounded by `INLINE_LAYER_DATA_LIMIT_BYTES`. | Accepted |
+| 2026-05-10 | Prompt 04 | Metadata-only and external source layers must carry restore warnings and stale/external reference IDs. | Restored map sessions must not imply missing layers or external services are locally available. | Accepted |
 
 ## Validation History
 
@@ -502,6 +704,17 @@ Append validation runs here.
 | 2026-05-10 | Prompt 02 | `npm run typecheck` | Passed | Silent exit 0 after store refactor + new module. |
 | 2026-05-10 | Prompt 02 | `npx vitest run src/centerpanel/components/map/__tests__/mapContextSummary.test.ts src/centerpanel/components/map/__tests__/map-layer-management.test.ts` | Passed (53/53) | 12 new tests for context summary + 41 existing layer management tests including the `MAP_LAYER_REGISTRY_EVENT` payload regression. |
 | 2026-05-10 | Prompt 02 | `npx eslint` on `mapContextSummary.ts`, `mapContextSummary.test.ts`, `useMapExplorerStore.ts`, `index.ts` | Clean | No lint issues introduced. |
+| 2026-05-10 | Prompt 03 | `npm run typecheck` | Passed | Full TypeScript project typechecks after map evidence model and registry additions. |
+| 2026-05-10 | Prompt 03 | `npx vitest run src/centerpanel/components/map/__tests__/mapEvidenceArtifacts.test.ts src/stores/__tests__/useMapExplorerStore.test.ts src/services/map/__tests__/MapReportHandoffService.test.ts src/services/map/__tests__/MapEngineAdapter.test.ts --reporter=verbose` | Passed (78/78) | Covers new artifact builders/selectors and existing store/report/engine workflows touched or inspected for compatibility. |
+| 2026-05-10 | Prompt 03 | `npm run lint:errors` | 1 error (out of scope) | Known unrelated UA error remains: `src/features/urbanAnalytics/lib/workflowReadiness.ts:20` unused import `UrbanMethodValidityEnvelope`. No Map Explorer lint errors surfaced. |
+| 2026-05-10 | Prompt 03 | `npx eslint src/centerpanel/components/map/mapTypes.ts src/centerpanel/components/map/mapEvidenceArtifacts.ts src/centerpanel/components/map/index.ts src/centerpanel/components/map/__tests__/mapEvidenceArtifacts.test.ts src/stores/useMapExplorerStore.ts --quiet` | Clean | Touched Map Explorer files lint clean. |
+| 2026-05-10 | Prompt 04 | `npm run typecheck` | Passed | Full TypeScript project typechecks after snapshot v3 additions. |
+| 2026-05-10 | Prompt 04 | `npx vitest run src/services/map/__tests__/MapPersistenceService.test.ts --reporter=verbose` | Passed (11/11) | Covers existing save/load/query/quota behavior plus snapshot references, stale oversized layers, and external URL restore references. |
+| 2026-05-10 | Prompt 04 | `npm run lint:errors` | 1 error (out of scope) | Known unrelated UA error remains: `src/features/urbanAnalytics/lib/workflowReadiness.ts:20` unused import `UrbanMethodValidityEnvelope`. |
+| 2026-05-10 | Prompt 04 | `npx eslint src/services/map/MapPersistenceService.ts src/services/map/__tests__/MapPersistenceService.test.ts src/centerpanel/components/map/mapTypes.ts --quiet` | Clean | Touched Map persistence files lint clean. |
+| 2026-05-10 | Prompt 05 | `npm install` | Passed | Restored dependencies after workspace cleanup so follow-up validation could run. Audit reported 10 vulnerabilities, but no install failure. |
+| 2026-05-10 | Prompt 05 | `npm run typecheck` | Passed | Full TypeScript project typechecks with Prompt 05 hook extraction in place. |
+| 2026-05-10 | Prompt 05 | `npx vitest run src/centerpanel/components/__tests__/MapExplorerModal.dispatch.test.tsx src/services/map/__tests__/MapAnalysisDispatcher.test.ts` | Passed (3/3) | Covers modal dispatch integration and underlying map dispatch service after command-hook extraction. |
 
 ## Known Risks
 
@@ -512,6 +725,10 @@ Append validation runs here.
 | Pending | Pending | CRS and measurement claims can become misleading if metadata is inferred too aggressively. | High | Require explicit unknown/warning states. |
 | Pending | Pending | Cross-module bridges may be partially implemented. | Medium | Use adapters and ledger contract registry. |
 | Pending | Pending | UI polish work may drift into broad redesign. | Medium | Preserve map-first workspace and follow tri-modal alignment spec. |
+| 2026-05-10 | Prompt 03 | Existing map/report/export workflows do not yet auto-register every possible map evidence artifact. | Low | Prompt 03 only added model/foundation. Later prompts should call the builders at apply/publish/export/report boundaries. |
+| 2026-05-10 | Prompt 03 | Map evidence registry is currently in-memory only. | Medium | Prompt 04 owns persistence boundaries and project snapshot shape; do not persist heavy payloads. |
+| 2026-05-10 | Prompt 04 | Snapshot v3 restore warnings are available in metadata but not yet surfaced in UI. | Medium | Prompt 05/06 should expose missing/stale layer states in decomposed shell/context strips. |
+| 2026-05-10 | Prompt 04 | Local store still persists `selectedFeatureIds` as pre-existing behavior. | Low | Preserved by scope; only change in a future explicit cleanup prompt. |
 
 ## Next Prompt Pointer
 
@@ -521,7 +738,7 @@ Start with:
 
 Prompt:
 
-`Prompt 03 - Map Evidence Artifact Model Foundation`
+`Prompt 05 - Modal Shell Decomposition and Command Hooks`
 
 Optional helper command:
 

@@ -79,7 +79,9 @@ import { useProjectRegistryOptional } from "../registry/state";
 import { useFocusTrap } from "./map/useFocusTrap";
 import { useMapKeyboardControls } from "./map/useMapKeyboardControls";
 import { useAnnouncer } from "./map/useAnnouncer";
+import { useMapAoiDispatch } from "./map/useMapAoiDispatch";
 import { useLayerSync } from "./map/useLayerSync";
+import { useMapPanelCommands } from "./map/useMapPanelCommands";
 import { IconClose, IconLayers } from "./map/MapIcons";
 import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
 import {
@@ -130,9 +132,6 @@ import {
 import {
   buildBufferedPointBounds,
   buildBoundsPolygon,
-  collectSelectionStatistics,
-  dispatchFlowSelection,
-  dispatchIsochroneNavigation,
   getCompatibleAoiFlows,
   setMapViewRestriction,
   type SelectionStatisticsSummary,
@@ -1140,6 +1139,63 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const effectiveShowWorkflowDrawer = showWorkflowDrawer && dockLayout.showWorkflowPanel;
   const navigatorLeftInset = navigatorStageMode ? MAP_NAVIGATOR_STAGE_MARGIN : dockLayout.leftInset;
   const navigatorRightInset = navigatorStageMode ? MAP_NAVIGATOR_STAGE_MARGIN : dockLayout.rightInset;
+  const {
+    closeFloatingRightPanels,
+    closeRightDockPanels,
+    openScientificQAPanel,
+    handleToggleScientificQAPanel,
+    handleToggleNLQueryPanel,
+    handleToggleWorkflowDrawer,
+    handleToggleReviewTimeline,
+    handleToggleSidebar,
+    handleToggleLayerPanel,
+    handleToggleChoroplethPanel,
+    handleToggleClusterViz,
+    handleToggleHotSpotViz,
+    handleToggleEmergingHotSpotViz,
+  } = useMapPanelCommands({
+    announce,
+    compactDock: dockLayout.compactDock,
+    effectiveShowLayerPanel,
+    navigatorStageMode,
+    setPointSymbologyLayerId,
+    setShowChoroplethPanel,
+    setShowClusterViz,
+    setShowDrawPanel,
+    setShowEmergingHotSpotViz,
+    setShowHotSpotViz,
+    setShowLayerPanel,
+    setShowMeasurePanel,
+    setShowNLQueryPanel,
+    setShowReviewTimeline,
+    setShowScientificQAPanel,
+    setShowSidebar,
+    setShowVoxCityOverlay,
+    setShowWorkflowDrawer,
+    setWorkspaceView,
+    setWorkflowPreview,
+    showLayerPanel,
+  });
+  const {
+    handleToggleRestrictToMapView,
+    handleOpenFlowDispatchDialog,
+    handleRunSelectionStatistics,
+    handleDispatchFlowSelection,
+    handleIsochroneDispatch,
+  } = useMapAoiDispatch({
+    announce,
+    compatibleAoiFlows,
+    currentMapBounds,
+    flowDispatchAoi,
+    overlayLayers,
+    recordMapReviewEvent,
+    restrictToMapView,
+    selectedFeatureIds,
+    setDispatchFeedback,
+    setIsFlowDispatchDialogOpen,
+    setRestrictToMapView,
+    setSelectionStatsSummary,
+  });
   const [drawSeed, setDrawSeed] = useState<{
     coordinate: [number, number];
     tool: DrawToolId;
@@ -1688,120 +1744,6 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     announce(`All ${count} pins cleared`);
   }, [clearPins, pins.length, announce]);
 
-  const closeFloatingRightPanels = useCallback(() => {
-    setPointSymbologyLayerId(null);
-    setShowChoroplethPanel(false);
-    setShowClusterViz(false);
-    setShowHotSpotViz(false);
-    setShowEmergingHotSpotViz(false);
-    setShowVoxCityOverlay(false);
-    setShowNLQueryPanel(false);
-    setShowReviewTimeline(false);
-  }, []);
-
-  const closeRightDockPanels = useCallback(() => {
-    setShowSidebar(false);
-    setShowDrawPanel(false);
-    setShowMeasurePanel(false);
-  }, []);
-
-  const openScientificQAPanel = useCallback(() => {
-    if (navigatorStageMode) {
-      setWorkspaceView("explore");
-    }
-    closeRightDockPanels();
-    closeFloatingRightPanels();
-    setShowScientificQAPanel(true);
-    announce("Scientific QA panel opened");
-  }, [announce, closeFloatingRightPanels, closeRightDockPanels, navigatorStageMode]);
-
-  const handleToggleScientificQAPanel = useCallback(() => {
-    setShowScientificQAPanel((current) => {
-      const next = !current;
-      if (next) {
-        if (navigatorStageMode) {
-          setWorkspaceView("explore");
-        }
-        closeRightDockPanels();
-        closeFloatingRightPanels();
-      }
-      announce(next ? "Scientific QA panel opened" : "Scientific QA panel closed");
-      return next;
-    });
-  }, [announce, closeFloatingRightPanels, closeRightDockPanels, navigatorStageMode]);
-
-  const handleToggleNLQueryPanel = useCallback(() => {
-    setShowNLQueryPanel((current) => {
-      const next = !current;
-      if (next) {
-        if (navigatorStageMode) {
-          setWorkspaceView("explore");
-        }
-        closeRightDockPanels();
-        setShowScientificQAPanel(false);
-        setPointSymbologyLayerId(null);
-        setShowChoroplethPanel(false);
-        setShowClusterViz(false);
-        setShowHotSpotViz(false);
-        setShowEmergingHotSpotViz(false);
-        setShowVoxCityOverlay(false);
-        setShowWorkflowDrawer(false);
-        setShowReviewTimeline(false);
-      }
-      announce(next ? "Map query builder opened" : "Map query builder closed");
-      return next;
-    });
-  }, [announce, closeRightDockPanels, navigatorStageMode]);
-
-  const handleToggleWorkflowDrawer = useCallback(() => {
-    setShowWorkflowDrawer((current) => {
-      const next = !current;
-      if (next) {
-        if (navigatorStageMode) {
-          setWorkspaceView("explore");
-        }
-        closeRightDockPanels();
-        setShowScientificQAPanel(false);
-        setShowNLQueryPanel(false);
-        setPointSymbologyLayerId(null);
-        setShowChoroplethPanel(false);
-        setShowClusterViz(false);
-        setShowHotSpotViz(false);
-        setShowEmergingHotSpotViz(false);
-        setShowVoxCityOverlay(false);
-        setShowReviewTimeline(false);
-      } else {
-        setWorkflowPreview(null);
-      }
-      announce(next ? "Spatial workflow drawer opened" : "Spatial workflow drawer closed");
-      return next;
-    });
-  }, [announce, closeRightDockPanels, navigatorStageMode]);
-
-  const handleToggleReviewTimeline = useCallback(() => {
-    setShowReviewTimeline((current) => {
-      const next = !current;
-      if (next) {
-        if (navigatorStageMode) {
-          setWorkspaceView("explore");
-        }
-        closeRightDockPanels();
-        setShowScientificQAPanel(false);
-        setShowNLQueryPanel(false);
-        setShowWorkflowDrawer(false);
-        setWorkflowPreview(null);
-        setPointSymbologyLayerId(null);
-        setShowChoroplethPanel(false);
-        setShowClusterViz(false);
-        setShowHotSpotViz(false);
-        setShowEmergingHotSpotViz(false);
-        setShowVoxCityOverlay(false);
-      }
-      announce(next ? "Review timeline opened" : "Review timeline closed");
-      return next;
-    });
-  }, [announce, closeRightDockPanels, navigatorStageMode]);
-
   const handleApplyMapWorkflow = useCallback(
     (result: MapWorkflowApplyResult) => {
       setWorkflowPreview(null);
@@ -1928,228 +1870,6 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       setActiveTool(null);
     }
   }, [setActiveTool]);
-
-  const handleToggleSidebar = useCallback(() => {
-    setShowSidebar((prev) => {
-      if (!prev) {
-        setShowScientificQAPanel(false);
-        closeFloatingRightPanels();
-        setShowDrawPanel(false);
-        setShowMeasurePanel(false);
-      }
-      announce(!prev ? "Pin sidebar opened" : "Pin sidebar closed");
-      return !prev;
-    });
-  }, [announce, closeFloatingRightPanels]);
-
-  const handleToggleLayerPanel = useCallback(() => {
-    if (navigatorStageMode) {
-      setWorkspaceView("explore");
-      setShowLayerPanel(true);
-      announce("Layer panel opened");
-      return;
-    }
-
-    if (dockLayout.compactDock && showLayerPanel && !effectiveShowLayerPanel) {
-      setShowSidebar(false);
-      setShowDrawPanel(false);
-      setShowMeasurePanel(false);
-      setShowLayerPanel(true);
-      announce("Layer panel opened");
-      return;
-    }
-
-    setShowLayerPanel((prev) => {
-      announce(!prev ? "Layer panel opened" : "Layer panel closed");
-      return !prev;
-    });
-  }, [announce, dockLayout.compactDock, effectiveShowLayerPanel, navigatorStageMode, showLayerPanel]);
-
-  const handleToggleChoroplethPanel = useCallback(() => {
-    setShowChoroplethPanel((prev) => {
-      if (!prev) {
-        setShowScientificQAPanel(false);
-        closeRightDockPanels();
-        setPointSymbologyLayerId(null);
-        setShowClusterViz(false);
-        setShowHotSpotViz(false);
-        setShowEmergingHotSpotViz(false);
-      }
-      announce(!prev ? "Choropleth panel opened" : "Choropleth panel closed");
-      return !prev;
-    });
-  }, [announce, closeRightDockPanels]);
-
-  const handleToggleClusterViz = useCallback(() => {
-    setShowClusterViz((prev) => {
-      if (!prev) {
-        setShowScientificQAPanel(false);
-        closeRightDockPanels();
-        setPointSymbologyLayerId(null);
-        setShowChoroplethPanel(false);
-        setShowHotSpotViz(false);
-        setShowEmergingHotSpotViz(false);
-      }
-      announce(!prev ? "LISA cluster panel opened" : "LISA cluster panel closed");
-      return !prev;
-    });
-  }, [announce, closeRightDockPanels]);
-
-  const handleToggleHotSpotViz = useCallback(() => {
-    setShowHotSpotViz((prev) => {
-      if (!prev) {
-        setShowScientificQAPanel(false);
-        closeRightDockPanels();
-        setPointSymbologyLayerId(null);
-        setShowChoroplethPanel(false);
-        setShowClusterViz(false);
-        setShowEmergingHotSpotViz(false);
-      }
-      announce(!prev ? "Getis-Ord Gi star panel opened" : "Getis-Ord Gi star panel closed");
-      return !prev;
-    });
-  }, [announce, closeRightDockPanels]);
-
-  const handleToggleEmergingHotSpotViz = useCallback(() => {
-    setShowEmergingHotSpotViz((prev) => {
-      if (!prev) {
-        setShowScientificQAPanel(false);
-        closeRightDockPanels();
-        setPointSymbologyLayerId(null);
-        setShowChoroplethPanel(false);
-        setShowClusterViz(false);
-        setShowHotSpotViz(false);
-      }
-      announce(!prev ? "Emerging hot spot panel opened" : "Emerging hot spot panel closed");
-      return !prev;
-    });
-  }, [announce, closeRightDockPanels]);
-
-  const handleToggleRestrictToMapView = useCallback(() => {
-    setRestrictToMapView((current) => {
-      const next = !current;
-      setDispatchFeedback({
-        tone: "info",
-        title: next ? "Map extent filter enabled" : "Map extent filter disabled",
-        description: next
-          ? "New dispatches will carry the current visible map bounds into workflows and quick analyses."
-          : "New dispatches can use the selected AOI or local analysis window without the current map extent filter.",
-      });
-      return next;
-    });
-  }, []);
-
-  const handleOpenFlowDispatchDialog = useCallback(() => {
-    if (!flowDispatchAoi) {
-      const message = "Missing prerequisite: draw or select a polygon AOI, or keep the current view focused before routing analysis to a workflow.";
-      setDispatchFeedback({ tone: "error", title: "No AOI available", description: message });
-      toastInfo(message);
-      announce(message);
-      return;
-    }
-
-    setIsFlowDispatchDialogOpen(true);
-    setDispatchFeedback({
-      tone: "info",
-      title: "AOI ready for workflow dispatch",
-      description: `${flowDispatchAoi.label} can now be routed into a compatible workflow with${restrictToMapView ? "" : "out"} the current extent restriction.`,
-    });
-  }, [announce, flowDispatchAoi, restrictToMapView]);
-
-  const handleRunSelectionStatistics = useCallback(() => {
-    const summary = collectSelectionStatistics(overlayLayers, selectedFeatureIds);
-    if (summary.length === 0) {
-      const message = "Select one or more features on a queryable layer to compute quick statistics.";
-      setSelectionStatsSummary(null);
-      setDispatchFeedback({ tone: "error", title: "Selection statistics unavailable", description: message });
-      toastInfo(message);
-      announce(message);
-      return;
-    }
-
-    setSelectionStatsSummary(summary);
-    recordMapReviewEvent({
-      type: "analysis-dispatch",
-      status: "applied",
-      title: "Selection statistics computed",
-      summary: `Computed descriptive statistics for ${summary.reduce((total, entry) => total + entry.selectedFeatureCount, 0).toLocaleString()} selected feature(s).`,
-      layerIds: summary.map((entry) => entry.layerId),
-      details: {
-        selectedFeatureCount: summary.reduce((total, entry) => total + entry.selectedFeatureCount, 0),
-        layerCount: summary.length,
-        numericFieldCounts: Object.fromEntries(summary.map((entry) => [entry.layerId, entry.numericFields.length])),
-      },
-    });
-    setDispatchFeedback({
-      tone: "success",
-      title: "Selection statistics ready",
-      description: `Computed descriptive statistics for ${summary.reduce((total, entry) => total + entry.selectedFeatureCount, 0).toLocaleString()} selected feature(s).`,
-    });
-    announce("Selection statistics panel updated");
-  }, [announce, overlayLayers, recordMapReviewEvent, selectedFeatureIds]);
-
-  const handleDispatchFlowSelection = useCallback((flowId: (typeof compatibleAoiFlows)[number]["id"]) => {
-    if (!flowDispatchAoi) {
-      return;
-    }
-
-    const selectedFlow = compatibleAoiFlows.find((flow) => flow.id === flowId);
-    dispatchFlowSelection({
-      flowId,
-      aoi: flowDispatchAoi.feature,
-      source: flowDispatchAoi.source,
-      restrictToView: restrictToMapView,
-      ...(restrictToMapView && currentMapBounds ? { viewBounds: currentMapBounds } : {}),
-    });
-    setIsFlowDispatchDialogOpen(false);
-    setDispatchFeedback({
-      tone: "success",
-      title: `${selectedFlow?.label ?? flowId} launched`,
-      description: `${flowDispatchAoi.label} was attached to the workflow${restrictToMapView && currentMapBounds ? " with the current view restriction" : ""}.`,
-    });
-    recordMapReviewEvent({
-      type: "analysis-dispatch",
-      status: "applied",
-      title: `AOI workflow dispatched: ${selectedFlow?.label ?? flowId}`,
-      summary: `${flowDispatchAoi.label} was attached to ${flowId}${restrictToMapView && currentMapBounds ? " with current extent restriction" : ""}.`,
-      details: {
-        flowId,
-        aoiSource: flowDispatchAoi.source,
-        restrictToView: restrictToMapView,
-        viewBounds: restrictToMapView ? currentMapBounds : null,
-      },
-    });
-    announce(`${selectedFlow?.label ?? flowId} opened from map dispatch`);
-  }, [announce, compatibleAoiFlows, currentMapBounds, flowDispatchAoi, recordMapReviewEvent, restrictToMapView]);
-
-  const handleIsochroneDispatch = useCallback((coordinate: [number, number]) => {
-    const origin = { lng: coordinate[0], lat: coordinate[1] };
-    dispatchIsochroneNavigation({
-      origin,
-      thresholdMinutes: 15,
-      restrictToView: restrictToMapView,
-      ...(restrictToMapView && currentMapBounds ? { viewBounds: currentMapBounds } : {}),
-    });
-    setDispatchFeedback({
-      tone: "busy",
-      title: "Accessibility workflow launched",
-      description: "Isochrone dispatch is opening the Accessibility flow and will auto-publish a map result into Map Explorer.",
-    });
-    recordMapReviewEvent({
-      type: "analysis-dispatch",
-      status: "applied",
-      title: "Isochrone workflow dispatched",
-      summary: "Point context was sent to the network accessibility engine for isochrone analysis.",
-      details: {
-        longitude: origin.lng,
-        latitude: origin.lat,
-        thresholdMinutes: 15,
-        restrictToView: restrictToMapView,
-        viewBounds: restrictToMapView ? currentMapBounds : null,
-      },
-    });
-    announce("Accessibility workflow opened from map dispatch");
-  }, [announce, currentMapBounds, recordMapReviewEvent, restrictToMapView]);
 
   const handleOpenPointSymbology = useCallback((layerId: string) => {
     setPointSymbologyLayerId((current) => {

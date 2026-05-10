@@ -58,6 +58,18 @@ export type {
   LayerSourceKind,
   LayerScientificQABadge,
   LayerScientificQAMetadata,
+  MapEvidenceArtifact,
+  MapEvidenceArtifactKind,
+  MapEvidenceArtifactState,
+  MapEvidenceCrsSummary,
+  MapEvidenceExportReference,
+  MapEvidenceGeometrySummary,
+  MapEvidenceProvenance,
+  MapEvidenceQA,
+  MapEvidenceQAState,
+  MapEvidenceReportReference,
+  MapEvidenceScalar,
+  MapEvidenceSourceModule,
   MapLayerRegistryChangeDetail,
   MapLayerRegistryLayerSummary,
   MapLayerRegistryOperation,
@@ -98,6 +110,34 @@ export type {
   MapExplorerSelectionSummary,
   MapExplorerViewportSummary,
 } from "./mapContextSummary";
+
+export {
+  MAX_MAP_EVIDENCE_ARTIFACTS,
+  createMapAoiEvidenceArtifact,
+  createMapEvidenceArtifact,
+  createMapExportEvidenceArtifact,
+  createMapLayerEvidenceArtifact,
+  createMapQAFindingEvidenceArtifact,
+  createMapReportSnapshotEvidenceArtifact,
+  createMapWorkflowResultEvidenceArtifact,
+  patchMapEvidenceArtifact,
+  selectMapEvidenceArtifactsByAoi,
+  selectMapEvidenceArtifactsByLayer,
+  selectMapEvidenceArtifactsBySource,
+  selectMapEvidenceArtifactsByWorkflow,
+  selectRecentMapEvidenceArtifacts,
+  upsertMapEvidenceArtifact,
+} from "./mapEvidenceArtifacts";
+export type {
+  MapAoiEvidenceArtifactOptions,
+  MapEvidenceArtifactDraft,
+  MapEvidenceArtifactUpdate,
+  MapExportEvidenceArtifactInput,
+  MapLayerEvidenceArtifactOptions,
+  MapQAFindingEvidenceArtifactOptions,
+  MapReportSnapshotEvidenceArtifactInput,
+  MapWorkflowResultEvidenceArtifactInput,
+} from "./mapEvidenceArtifacts";
 
 export { MapTemporalPlayer } from "../MapTemporalPlayer";
 export type {
