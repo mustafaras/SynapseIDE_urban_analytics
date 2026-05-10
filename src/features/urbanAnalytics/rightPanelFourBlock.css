@@ -727,3 +727,14 @@
   flex-wrap: wrap;
  }
 }
+
+/* ── Focus-visible rings ── */
+.rp-btn:focus-visible,
+.rp-tab:focus-visible {
+ outline: none;
+ box-shadow: 0 0 0 2px rgba(245,158,11,0.65);
+}
+.rp-ref-input:focus-visible {
+ outline: none;
+ box-shadow: 0 0 0 2px rgba(245,158,11,0.65);
+}

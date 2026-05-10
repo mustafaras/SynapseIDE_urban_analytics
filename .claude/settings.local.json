@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
+      "Bash(npm update:*)",
+      "Bash(npm list:*)",
+      "Bash(claude:*)",
+      "Bash(grep -E \"\\\\.test\\\\.tsx?$\")"
+    ]
+  }
+}

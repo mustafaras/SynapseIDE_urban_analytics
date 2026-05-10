@@ -340,7 +340,8 @@
     {
       "id": "26",
       "title": "Accessibility and Keyboard Premium",
-      "status": "pending",
+      "status": "completed",
+      "completedDate": "2026-05-10",
       "dependsOn": ["25"],
       "promptHeading": "## Prompt 26 - Accessibility and Keyboard Premium",
       "primaryOutcome": "Professional keyboard-first UX",
@@ -351,7 +352,8 @@
     {
       "id": "27",
       "title": "Performance, Data Movement, and Resilience",
-      "status": "pending",
+      "status": "completed",
+      "completedDate": "2026-05-10",
       "dependsOn": ["26"],
       "promptHeading": "## Prompt 27 - Performance, Data Movement, and Resilience",
       "primaryOutcome": "Fast, bounded, recoverable behavior",
@@ -362,7 +364,8 @@
     {
       "id": "28",
       "title": "QA Harness and Release Validation",
-      "status": "pending",
+      "status": "completed",
+      "completedDate": "2026-05-10",
       "dependsOn": ["27"],
       "promptHeading": "## Prompt 28 - QA Harness and Release Validation",
       "primaryOutcome": "Repeatable scientific quality gates",
@@ -373,7 +376,8 @@
     {
       "id": "29",
       "title": "Final Premium Polish and Handoff",
-      "status": "pending",
+      "status": "completed",
+      "completedDate": "2026-05-10",
       "dependsOn": ["28"],
       "promptHeading": "## Prompt 29 - Final Premium Polish and Handoff",
       "primaryOutcome": "Complete Urban Analytics readiness package",

@@ -195,6 +195,7 @@ const URBAN_CMD_CSS = `
  opacity: 0.7;
 }
 .ua-iconbtn:hover { background: rgba(255,255,255,0.08); opacity: 1; }
+.ua-iconbtn:focus-visible { outline: none; box-shadow: var(--ua-focus-ring-offset); opacity: 1; }
 .ua-brand-shell {
  display: inline-flex;
  align-items: center;
@@ -370,47 +371,48 @@ function UrbanCommandBar({
  }}
  >
  {scale ? (
- <span className="ua-chip" style={chipStyle('rgba(255,255,255,0.10)','rgba(255,255,255,0.05)','rgba(255,255,255,0.6)')}>
- <span style={{ opacity: 0.5 }}>sc:</span>{scale}
+ <span className="ua-chip" style={chipStyle('rgba(255,255,255,0.10)','rgba(255,255,255,0.05)','rgba(255,255,255,0.6)')} title={`Active scale: ${scale}`} role="status">
+ <span style={{ opacity: 0.5 }} aria-hidden="true">sc:</span>{scale}
  </span>
  ) : null}
  {flowId ? (
- <span className="ua-chip" style={chipStyle('rgba(255,255,255,0.10)','rgba(255,255,255,0.05)','rgba(255,255,255,0.6)')}>
- <span style={{ opacity: 0.5 }}>fl:</span>{flowId.replace(/_/g,' ')}
+ <span className="ua-chip" style={chipStyle('rgba(255,255,255,0.10)','rgba(255,255,255,0.05)','rgba(255,255,255,0.6)')} title={`Active workflow: ${flowId.replace(/_/g, ' ')}`} role="status">
+ <span style={{ opacity: 0.5 }} aria-hidden="true">fl:</span>{flowId.replace(/_/g,' ')}
  </span>
  ) : null}
  {layerCount > 0 ? (
- <span className="ua-chip" style={chipStyle('rgba(255,255,255,0.10)','rgba(255,255,255,0.05)','rgba(255,255,255,0.6)')}>
- <span style={{ opacity: 0.5 }}>ly:</span>{layerCount}
+ <span className="ua-chip" style={chipStyle('rgba(255,255,255,0.10)','rgba(255,255,255,0.05)','rgba(255,255,255,0.6)')} title={`${layerCount} active layer${layerCount === 1 ? '' : 's'}`} role="status">
+ <span style={{ opacity: 0.5 }} aria-hidden="true">ly:</span>{layerCount}
  </span>
  ) : null}
  {runLabel ? (
- <span className="ua-chip" style={chipStyle('rgba(255,255,255,0.10)','rgba(255,255,255,0.05)','rgba(255,255,255,0.6)')}>
- <span style={{ opacity: 0.5 }}>run:</span>{runLabel}
+ <span className="ua-chip" style={chipStyle('rgba(255,255,255,0.10)','rgba(255,255,255,0.05)','rgba(255,255,255,0.6)')} title={`Active run: ${runId}`} role="status">
+ <span style={{ opacity: 0.5 }} aria-hidden="true">run:</span>{runLabel}
  </span>
  ) : null}
  {artifactCount > 0 ? (
- <span className="ua-chip" style={chipStyle('rgba(74,222,128,0.25)','rgba(34,197,94,0.08)','#4ade80')}>
+ <span className="ua-chip" style={chipStyle('rgba(74,222,128,0.25)','rgba(34,197,94,0.08)','#4ade80')} title={`${artifactCount} evidence artifact${artifactCount === 1 ? '' : 's'}`} role="status">
  {artifactCount} ev
  </span>
  ) : null}
  {fitnessStatus === 'ready' ? (
- <span className="ua-chip" style={chipStyle('rgba(74,222,128,0.3)','rgba(34,197,94,0.10)','#4ade80')}>fit ✓</span>
+ <span className="ua-chip" style={chipStyle('rgba(74,222,128,0.3)','rgba(34,197,94,0.10)','#4ade80')} title="Data fitness: ready" role="status">fit <span aria-hidden="true">✓</span><span className="visually-hidden">ready</span></span>
  ) : null}
  {fitnessStatus === 'warning' ? (
- <span className="ua-chip" style={chipStyle('rgba(245,158,11,0.35)','rgba(245,158,11,0.10)','#fbbf24')}>fit !</span>
+ <span className="ua-chip" style={chipStyle('rgba(245,158,11,0.35)','rgba(245,158,11,0.10)','#fbbf24')} title="Data fitness: warning" role="status">fit <span aria-hidden="true">!</span><span className="visually-hidden">warning</span></span>
  ) : null}
  {fitnessStatus === 'blocked' ? (
- <span className="ua-chip" style={chipStyle('rgba(248,113,113,0.3)','rgba(239,68,68,0.10)','#f87171')}>fit ✗</span>
+ <span className="ua-chip" style={chipStyle('rgba(248,113,113,0.3)','rgba(239,68,68,0.10)','#f87171')} title="Data fitness: blocked" role="status">fit <span aria-hidden="true">✗</span><span className="visually-hidden">blocked</span></span>
  ) : null}
  {syncState === 'synced' && !hasRestoreWarnings ? (
- <span className="ua-chip" style={chipStyle('rgba(74,222,128,0.25)','rgba(34,197,94,0.07)','#4ade80')}>⟳</span>
+ <span className="ua-chip" style={chipStyle('rgba(74,222,128,0.25)','rgba(34,197,94,0.07)','#4ade80')} title="Context synced" role="status"><span aria-hidden="true">⟳</span><span className="visually-hidden">Context synced</span></span>
  ) : null}
  {hasRestoreWarnings ? (
  <span
  className="ua-chip"
  title={restoreWarnings.map((w) => w.message).join(' | ')}
  style={chipStyle('rgba(245,158,11,0.35)','rgba(245,158,11,0.10)','#fbbf24')}
+ role="status"
  >
  {restoreWarningCount} stale
  </span>
@@ -877,9 +879,9 @@ export default function UrbanAnalyticsModal({ open, onClose }: UrbanAnalyticsMod
  {/* Bottom action bar */}
  <div role="toolbar" aria-label="Actions" className="bottombar urban-actions" ref={actionsRef} style={{ gridRow: 3 }}>
  <div className="btnline">
- <button className="btnpill" onClick={sendToChat}><IconSend /> <span>Send to Chat</span></button>
- <button className="btnpill" onClick={insertToEditor}><IconCode /> <span>Insert to Editor</span></button>
- <button className="btnpill" onClick={copyOut}><IconCopy /> <span>Copy</span></button>
+ <button className="btnpill" onClick={sendToChat}><IconSend aria-hidden="true" /> <span>Send to Chat</span></button>
+ <button className="btnpill" onClick={insertToEditor}><IconCode aria-hidden="true" /> <span>Insert to Editor</span></button>
+ <button className="btnpill" onClick={copyOut}><IconCopy aria-hidden="true" /> <span>Copy</span></button>
  {selected ? (
  <button
  className={`btnpill ${selected.id && favoritesMap[selected.id] ? 'btnpill--accent' : ''}`}
@@ -890,7 +892,7 @@ export default function UrbanAnalyticsModal({ open, onClose }: UrbanAnalyticsMod
  ★ <span>{selected.id && favoritesMap[selected.id] ? 'Unstar' : 'Star'}</span>
  </button>
  ) : null}
- <button className="btnpill" onClick={() => window.print()}><IconPrint /> <span>Print</span></button>
+ <button className="btnpill" onClick={() => window.print()}><IconPrint aria-hidden="true" /> <span>Print</span></button>
  </div>
  </div>
  <Toast />
@@ -929,6 +931,8 @@ const MODAL_CSS = `
  --accent-rgb:245,158,11;
  --brand-fx:linear-gradient(90deg,#fbbf24 0%,#F59E0B 40%,#d97706 60%,#fbbf24 100%);
  --codefont: "JetBrains Mono","Fira Code",ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+ --ua-focus-ring: 0 0 0 2px rgba(245,158,11,0.65);
+ --ua-focus-ring-offset: 0 0 0 1px rgba(0,0,0,0.9), 0 0 0 3px rgba(245,158,11,0.5);
 }
 
 .urban-v2, .urban-v2 * { box-sizing:border-box; }
@@ -1026,6 +1030,28 @@ const MODAL_CSS = `
  .urban-v2 .leftRail, .urban-v2 .midCol { display:none; }
  .urban-v2 .urban-shell { grid-template-columns:1fr; }
  .urban-v2 .rightPane { grid-column:1; min-width:0; max-width:100%; width:100%; }
+}
+
+/* Focus-visible rings — shared tokens for all Urban Analytics interactive elements */
+.urban-v2 button:focus-visible,
+.urban-v2 [role="button"]:focus-visible,
+.urban-v2 input:focus-visible,
+.urban-v2 select:focus-visible,
+.urban-v2 [tabindex="0"]:focus-visible {
+ outline: none;
+ box-shadow: var(--ua-focus-ring);
+}
+.urban-v2 .btnpill:focus-visible,
+.urban-v2 .iconbtn:focus-visible,
+.urban-v2 .ua-iconbtn:focus-visible {
+ outline: none;
+ box-shadow: var(--ua-focus-ring-offset);
+}
+.urban-v2 .railbtn:focus-visible,
+.urban-v2 .urban-rail__itemBtn:focus-visible,
+.urban-v2 .urban-rail__groupBtn:focus-visible {
+ outline: none;
+ box-shadow: var(--ua-focus-ring);
 }
 
 @media print {

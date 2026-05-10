@@ -519,7 +519,7 @@ function ArtifactRow({
           <span>{SOURCE_LABELS[artifact.sourceModule]}</span>
         </div>
       </div>
-      <button type="button" className="ua-evidence-titleCell" onClick={onInspect}>
+      <button type="button" className="ua-evidence-titleCell" onClick={onInspect} aria-label={`Inspect ${artifact.title}`}>
         <span>{artifact.title}</span>
         <small>
           {artifact.summary
@@ -533,7 +533,7 @@ function ArtifactRow({
         {artifact.linkedArtifactIds.length > 0 ? <EvidenceChip label={`${artifact.linkedArtifactIds.length} linked`} tone="neutral" /> : null}
         {!layerId && !filePath && artifact.linkedArtifactIds.length === 0 ? <EvidenceChip label="Reference only" tone="muted" /> : null}
       </div>
-      <div role="cell" className="ua-evidence-cell ua-evidence-cell--qa">
+      <div role="cell" className="ua-evidence-cell ua-evidence-cell--qa" aria-label={`QA: ${qaConfig.label}, state: ${stateConfig.label}${artifact.dataFitness ? `, fitness: ${artifact.dataFitness.status}` : ''}`}>
         <EvidenceChip label={qaConfig.label} tone={qaConfig.tone} />
         <EvidenceChip label={stateConfig.label} tone={stateConfig.tone} />
         {artifact.dataFitness ? <EvidenceChip label={`Fitness ${artifact.dataFitness.status}`} tone={artifact.dataFitness.status === 'ready' ? 'ok' : 'warning'} /> : null}
@@ -1101,11 +1101,13 @@ export function UrbanEvidenceTray({
       {expanded ? (
         <div className="ua-evidence-panel">
           {context && contextArtifacts.length > 0 ? (
-            <div className="ua-evidence-toolbar" aria-label="Evidence filters">
+            <div className="ua-evidence-toolbar" role="toolbar" aria-label="Evidence kind filters">
               <button
                 type="button"
                 className={`ua-evidence-filter${kindFilter === 'all' ? ' is-on' : ''}`}
                 onClick={() => setKindFilter('all')}
+                aria-pressed={kindFilter === 'all'}
+                aria-label={`Show all evidence artifacts (${contextArtifacts.length})`}
               >
                 All <span>{contextArtifacts.length}</span>
               </button>
@@ -1115,6 +1117,8 @@ export function UrbanEvidenceTray({
                   type="button"
                   className={`ua-evidence-filter${kindFilter === kind ? ' is-on' : ''}`}
                   onClick={() => setKindFilter(kind)}
+                  aria-pressed={kindFilter === kind}
+                  aria-label={`Filter by ${KIND_LABELS[kind]} (${kindCounts.get(kind) ?? 0})`}
                 >
                   <KindIcon kind={kind} size={13} />
                   {KIND_LABELS[kind]} <span>{kindCounts.get(kind) ?? 0}</span>

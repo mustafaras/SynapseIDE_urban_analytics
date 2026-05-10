@@ -510,17 +510,46 @@ function RightPanelFourBlock({ card, onClose }: RightPanelFourBlockProps) {
  </header>
 
  {/* ---- Tab bar ---- */}
- <div className="rp-tabs" role="tablist" aria-label="Content sections">
+ <div
+ className="rp-tabs"
+ role="tablist"
+ aria-label="Content sections"
+ onKeyDown={(e) => {
+ const keys = TABS.map((t) => t.key);
+ const idx = keys.indexOf(tab);
+ if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+ e.preventDefault();
+ const next = keys[(idx + 1) % keys.length];
+ setTab(next);
+ document.getElementById(`rp-tab-${next}`)?.focus();
+ } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+ e.preventDefault();
+ const prev = keys[(idx - 1 + keys.length) % keys.length];
+ setTab(prev);
+ document.getElementById(`rp-tab-${prev}`)?.focus();
+ } else if (e.key === 'Home') {
+ e.preventDefault();
+ setTab(keys[0]);
+ document.getElementById(`rp-tab-${keys[0]}`)?.focus();
+ } else if (e.key === 'End') {
+ e.preventDefault();
+ setTab(keys[keys.length - 1]);
+ document.getElementById(`rp-tab-${keys[keys.length - 1]}`)?.focus();
+ }
+ }}
+ >
  {TABS.map((t) => (
  <button
  key={t.key}
+ id={`rp-tab-${t.key}`}
  role="tab"
  className={`rp-tab ${tab === t.key ? 'rp-tab--active' : ''}`}
  onClick={() => setTab(t.key)}
  aria-selected={tab === t.key}
  aria-controls={`rp-tabpanel-${t.key}`}
+ tabIndex={tab === t.key ? 0 : -1}
  >
- <span className="rp-tab-icon">{t.icon}</span>
+ <span className="rp-tab-icon" aria-hidden="true">{t.icon}</span>
  <span className="rp-tab-label">{t.label}</span>
  </button>
  ))}
@@ -533,6 +562,8 @@ function RightPanelFourBlock({ card, onClose }: RightPanelFourBlockProps) {
  <div
  id="rp-tabpanel-methodology"
  role="tabpanel"
+ aria-labelledby="rp-tab-methodology"
+ tabIndex={0}
  className="rp-tabpanel"
  >
  <section className="rp-dossier-section">
@@ -627,6 +658,8 @@ function RightPanelFourBlock({ card, onClose }: RightPanelFourBlockProps) {
  <div
  id="rp-tabpanel-data"
  role="tabpanel"
+ aria-labelledby="rp-tab-data"
+ tabIndex={0}
  className="rp-tabpanel"
  >
  <section className="rp-dossier-section">
@@ -701,6 +734,8 @@ function RightPanelFourBlock({ card, onClose }: RightPanelFourBlockProps) {
  <div
  id="rp-tabpanel-code"
  role="tabpanel"
+ aria-labelledby="rp-tab-code"
+ tabIndex={0}
  className="rp-tabpanel"
  >
  <section className="rp-dossier-section">
@@ -788,6 +823,8 @@ print("Review assumptions before interpreting results.")`}</pre>
  <div
  id="rp-tabpanel-references"
  role="tabpanel"
+ aria-labelledby="rp-tab-references"
+ tabIndex={0}
  className="rp-tabpanel"
  >
  <section className="rp-dossier-section">
@@ -855,6 +892,7 @@ print("Review assumptions before interpreting results.")`}</pre>
  disabled={!learningPath}
  onClick={openLearningPath}
  title={learningPath ? 'Open the linked Education learning path for this method.' : 'No education learning path is registered for this method yet.'}
+ aria-label={learningPath ? 'Open learning path' : 'Open learning path (unavailable: no learning path registered)'}
  >
  Open learning path
  </button>

@@ -614,6 +614,7 @@ export const RailContainer: React.FC<RailContainerProps> = (props) => {
               type="button"
               className="inline-btn danger"
               onClick={handleResetSearch}
+              aria-label="Reset all search and filter criteria"
             >
               Reset
             </button>
@@ -1135,7 +1136,7 @@ const SectionTree: React.FC<SectionTreeProps> = ({
                                 onClick={() => onSelectCard(card.id)}
                                 title={
                                   isDim
-                                    ? `${card.title} — deferred (not yet implemented)`
+                                    ? `${card.title} — deferred (method pending scientific validation)`
                                     : isWarning
                                     ? `${card.title} — residual gap`
                                     : isDemo

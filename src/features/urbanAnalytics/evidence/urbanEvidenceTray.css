@@ -810,3 +810,12 @@
     grid-template-columns: minmax(0, 1fr) auto;
   }
 }
+
+/* ── Focus-visible rings ── */
+.ua-evidence-action:focus-visible,
+.ua-evidence-filter:focus-visible,
+.ua-evidence-toggle:focus-visible,
+.ua-evidence-iconBtn:focus-visible {
+ outline: none;
+ box-shadow: 0 0 0 2px rgba(245,158,11,0.65);
+}
