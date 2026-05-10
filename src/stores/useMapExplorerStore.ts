@@ -15,8 +15,8 @@ import {
   type MapAnnotationProperties,
   type MapAnnotationStyleSettings,
   type MapBookmark,
+  type MapEvidenceArtifact,
   type MapLayerRegistryChangeDetail,
-  type MapLayerRegistryLayerSummary,
   type MapLayerRegistryOperation,
   type MapPin,
   type MapToolId,
@@ -31,6 +31,21 @@ import {
   type ViewportState,
 } from "../centerpanel/components/map/mapTypes";
 import { MAP_NUMERIC } from "../centerpanel/components/map/mapTokens";
+import {
+  resolveOverlayLayerQueryable,
+  summarizeOverlayLayer,
+} from "../centerpanel/components/map/mapContextSummary";
+import {
+  createMapEvidenceArtifact,
+  patchMapEvidenceArtifact,
+  selectMapEvidenceArtifactsByAoi as filterMapEvidenceArtifactsByAoi,
+  selectMapEvidenceArtifactsByLayer as filterMapEvidenceArtifactsByLayer,
+  selectMapEvidenceArtifactsBySource as filterMapEvidenceArtifactsBySource,
+  selectMapEvidenceArtifactsByWorkflow as filterMapEvidenceArtifactsByWorkflow,
+  upsertMapEvidenceArtifact as upsertMapEvidenceArtifactInRegistry,
+  type MapEvidenceArtifactDraft,
+  type MapEvidenceArtifactUpdate,
+} from "../centerpanel/components/map/mapEvidenceArtifacts";
 import type { MapScientificQAState } from "../services/map/MapScientificQA";
 import {
   appendMapReviewEvent,
@@ -239,6 +254,16 @@ export interface MapExplorerState {
   currentMapBounds: [number, number, number, number] | null;
   currentMapBoundsUpdatedAt: string | null;
   setCurrentMapBounds: (bounds: [number, number, number, number] | null) => void;
+
+  /* --- Map evidence artifact registry (NOT persisted) --- */
+  mapEvidenceArtifacts: MapEvidenceArtifact[];
+  registerMapEvidenceArtifact: (draft: MapEvidenceArtifactDraft) => MapEvidenceArtifact;
+  upsertMapEvidenceArtifact: (artifact: MapEvidenceArtifact) => MapEvidenceArtifact;
+  updateMapEvidenceArtifact: (
+    artifactId: string,
+    patch: MapEvidenceArtifactUpdate,
+  ) => MapEvidenceArtifact | null;
+  clearMapEvidenceArtifacts: () => void;
 
     /* --- Selection metadata (NOT persisted) --- */
   selectedFeatureIds: Record<string, string[]>;
@@ -519,14 +544,6 @@ function resolveOverlayLayerQaStatus(layer: OverlayLayerConfig): LayerQaStatus {
   return "unchecked";
 }
 
-function resolveOverlayLayerQueryable(layer: OverlayLayerConfig): boolean {
-  if (layer.queryable !== undefined) {
-    return layer.queryable;
-  }
-
-  return layer.type === "geojson" || layer.type === "heatmap";
-}
-
 function resolveOverlayLayerProvenance(layer: OverlayLayerConfig): LayerProvenance | undefined {
   if (layer.provenance) {
     return layer.provenance;
@@ -637,33 +654,6 @@ function normalizeOverlayLayerForStore(layer: OverlayLayerConfig): OverlayLayerC
   };
 }
 
-function resolveLayerRegistryCrs(layer: OverlayLayerConfig): string | undefined {
-  return layer.metadata?.datasetContext?.crs
-    ?? layer.metadata?.columnar?.crs
-    ?? layer.metadata?.eoSource?.crs;
-}
-
-function summarizeLayerForRegistry(layer: OverlayLayerConfig): MapLayerRegistryLayerSummary {
-  const crs = resolveLayerRegistryCrs(layer);
-  const featureCount = layer.metadata?.featureCount;
-  const provenanceLabel = layer.provenance?.label;
-
-  return {
-    layerId: layer.id,
-    name: layer.name,
-    layerType: layer.type,
-    group: layer.group ?? "data",
-    visible: layer.visible,
-    opacity: layer.opacity,
-    queryable: resolveOverlayLayerQueryable(layer),
-    ...(layer.sourceKind ? { sourceKind: layer.sourceKind } : {}),
-    ...(layer.qaStatus ? { qaStatus: layer.qaStatus } : {}),
-    ...(crs ? { crs } : {}),
-    ...(featureCount != null ? { featureCount } : {}),
-    ...(provenanceLabel ? { provenanceLabel } : {}),
-  };
-}
-
 function detectLayerRegistryOperation(
   previousLayers: OverlayLayerConfig[],
   layers: OverlayLayerConfig[],
@@ -715,8 +705,8 @@ function emitMapLayerRegistryChange(
   const { operation, layerId } = detectLayerRegistryOperation(previousLayers, layers);
   const detail: MapLayerRegistryChangeDetail = {
     operation,
-    layers: layers.map(summarizeLayerForRegistry),
-    previousLayers: previousLayers.map(summarizeLayerForRegistry),
+    layers: layers.map(summarizeOverlayLayer),
+    previousLayers: previousLayers.map(summarizeOverlayLayer),
     timestamp: nowIsoTimestamp(),
     ...(layerId ? { layerId } : {}),
   };
@@ -1159,6 +1149,34 @@ export const useMapExplorerStore = create<MapExplorerState>()(
           currentMapBounds: bounds,
           currentMapBoundsUpdatedAt: bounds ? nowIsoTimestamp() : null,
         }),
+
+      /* --- Map evidence artifact registry --- */
+      mapEvidenceArtifacts: [] as MapEvidenceArtifact[],
+      registerMapEvidenceArtifact: (draft: MapEvidenceArtifactDraft) => {
+        const artifact = createMapEvidenceArtifact(draft);
+        set((state: MapExplorerState) => ({
+          mapEvidenceArtifacts: upsertMapEvidenceArtifactInRegistry(state.mapEvidenceArtifacts, artifact),
+        }));
+        return artifact;
+      },
+      upsertMapEvidenceArtifact: (artifact: MapEvidenceArtifact) => {
+        set((state: MapExplorerState) => ({
+          mapEvidenceArtifacts: upsertMapEvidenceArtifactInRegistry(state.mapEvidenceArtifacts, artifact),
+        }));
+        return artifact;
+      },
+      updateMapEvidenceArtifact: (artifactId: string, patch: MapEvidenceArtifactUpdate) => {
+        let updated: MapEvidenceArtifact | null = null;
+        set((state: MapExplorerState) => ({
+          mapEvidenceArtifacts: state.mapEvidenceArtifacts.map((artifact) => {
+            if (artifact.id !== artifactId && artifact.artifactId !== artifactId) return artifact;
+            updated = patchMapEvidenceArtifact(artifact, patch);
+            return updated;
+          }),
+        }));
+        return updated;
+      },
+      clearMapEvidenceArtifacts: () => set({ mapEvidenceArtifacts: [] }),
 
       /* --- Selection metadata --- */
       selectedFeatureIds: {} as Record<string, string[]>,

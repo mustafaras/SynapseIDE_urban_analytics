@@ -153,6 +153,145 @@ export interface LayerScientificQAMetadata {
   signature: string;
 }
 
+export type MapEvidenceArtifactKind =
+  | "layer"
+  | "aoi"
+  | "selection"
+  | "workflow-result"
+  | "qa-finding"
+  | "publication-export"
+  | "report-handoff"
+  | "report-snapshot"
+  | "nl-query"
+  | "cartography-review"
+  | "external-service"
+  | "voxcity-handoff"
+  | "temporal-state"
+  | "ide-code-reference";
+
+export type MapEvidenceSourceModule =
+  | "map-explorer"
+  | "urban-analytics"
+  | "synapse-ide"
+  | "ide"
+  | "reporting"
+  | "dashboard"
+  | "education"
+  | "external-service";
+
+export type MapEvidenceArtifactState =
+  | "draft"
+  | "active"
+  | "published"
+  | "stale"
+  | "blocked"
+  | "archived";
+
+export type MapEvidenceQAState = "unchecked" | "passed" | "warning" | "error" | "blocked";
+
+export type MapEvidenceScalar = string | number | boolean | null;
+
+export interface MapEvidenceCrsSummary {
+  declaredCrs?: string;
+  displayCrs?: string;
+  sourceLayerCrs: Array<{
+    layerId: string;
+    crs: string | null;
+  }>;
+  missingLayerIds: string[];
+  notes: string[];
+}
+
+export interface MapEvidenceGeometrySummary {
+  geometryTypes: string[];
+  featureCount?: number;
+  vertexCount?: number;
+  bounds?: [number, number, number, number];
+  source: "metadata" | "aoi-summary" | "qa-summary" | "workflow-summary" | "unknown";
+  notes: string[];
+}
+
+export interface MapEvidenceExportReference {
+  exportId?: string;
+  filename?: string;
+  format?: string;
+  mimeType?: string;
+  fileId?: string;
+}
+
+export interface MapEvidenceReportReference {
+  reportInsertId?: string;
+  reportDraftId?: string;
+  snapshotAssetId?: string;
+  sectionIds: string[];
+}
+
+export interface MapEvidenceProvenance {
+  sourceModule: MapEvidenceSourceModule;
+  sourceName?: string;
+  sourceKind?: LayerSourceKind | "generated";
+  sourceUrl?: string;
+  license?: string;
+  createdAt: string;
+  updatedAt?: string;
+  method?: string;
+  sourceLayerIds: string[];
+  derivedLayerId?: string;
+  crsSummary?: MapEvidenceCrsSummary;
+  geometrySummary?: MapEvidenceGeometrySummary;
+  workflowId?: string;
+  runId?: string;
+  exportReference?: MapEvidenceExportReference;
+  reportReference?: MapEvidenceReportReference;
+  layerProvenance: LayerProvenance[];
+  inputArtifactIds: string[];
+  parentArtifactIds: string[];
+  notes: string[];
+}
+
+export interface MapEvidenceQA {
+  state: MapEvidenceQAState;
+  issueIds: string[];
+  issueCount: number;
+  blockerCount: number;
+  caveats: string[];
+  checkedAt?: string;
+  reviewedAt?: string;
+  reviewedBy?: string;
+}
+
+export interface MapEvidenceArtifact {
+  id: string;
+  artifactId: string;
+  kind: MapEvidenceArtifactKind;
+  title: string;
+  summary?: string;
+  state: MapEvidenceArtifactState;
+  sourceModule: MapEvidenceSourceModule;
+  sourceId?: string;
+  linkedLayerIds: string[];
+  sourceLayerIds: string[];
+  derivedLayerId?: string;
+  linkedAoiId?: string;
+  linkedRunId?: string;
+  linkedWorkflowId?: string;
+  linkedFileIds: string[];
+  linkedArtifactIds: string[];
+  qaIssueIds: string[];
+  reportInsertId?: string;
+  reportSnapshotId?: string;
+  dashboardBindingId?: string;
+  ideArtifactId?: string;
+  urbanEvidenceId?: string;
+  exportId?: string;
+  tags: string[];
+  provenance: MapEvidenceProvenance;
+  qa: MapEvidenceQA;
+  metadata?: Record<string, MapEvidenceScalar>;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface MapLayerRegistryLayerSummary {
   layerId: string;
   name: string;

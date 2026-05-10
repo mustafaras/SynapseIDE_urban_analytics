@@ -79,6 +79,26 @@ export {
 } from "./mapExperience";
 export type { MapQuickActionId, MapWorkspaceView } from "./mapExperience";
 
+export {
+  buildMapExplorerContextSummary,
+  resolveOverlayLayerCrs,
+  resolveOverlayLayerQueryable,
+  selectMapExplorerContextSummary,
+  selectMapExplorerLayerSummaries,
+  selectMapExplorerVisibleLayerSummaries,
+  summarizeOverlayLayer,
+} from "./mapContextSummary";
+export type {
+  MapExplorerAoiGeometryFamily,
+  MapExplorerAoiReference,
+  MapExplorerContextSummary,
+  MapExplorerContextSummaryInput,
+  MapExplorerLayerSelectionCount,
+  MapExplorerQAStatusSummary,
+  MapExplorerSelectionSummary,
+  MapExplorerViewportSummary,
+} from "./mapContextSummary";
+
 export { MapTemporalPlayer } from "../MapTemporalPlayer";
 export type {
   MapTemporalPlayerProps,
