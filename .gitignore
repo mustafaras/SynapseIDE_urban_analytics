@@ -51,6 +51,9 @@ src/*.zip
 playwright-report
 test-results
 junit.xml
+playwright-output.*
+playwright-focused.*
+*.junit.xml
 
 # Coverage
 coverage
