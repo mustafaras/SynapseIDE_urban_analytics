@@ -7,6 +7,7 @@ import type {
   OverlayGeometryType,
   OverlayLayerConfig,
 } from "../../centerpanel/components/map/mapTypes";
+import { withNormalizedLayerRegistryMetadata } from "../../centerpanel/components/map/mapLayerMetadata";
 import {
   type ColumnarDataQuality,
   type ColumnarGeometryEncoding,
@@ -466,10 +467,27 @@ export function buildFeatureCollectionMetadata(featureCollection: FeatureCollect
     Object.keys(feature.properties ?? {}).forEach((key) => fields.add(key));
   });
 
+  const fieldList = Array.from(fields).sort((a, b) => a.localeCompare(b));
+  const geometryType = geometryLabelFromHint(hint);
+
   return {
     featureCount: featureCollection.features.length,
-    geometryType: geometryLabelFromHint(hint),
-    fields: Array.from(fields).sort((a, b) => a.localeCompare(b)),
+    geometryType,
+    fields: fieldList,
+    geometrySummary: {
+      geometryType,
+      geometryTypes: Array.from(labels).sort((a, b) => a.localeCompare(b)),
+      featureCount: featureCollection.features.length,
+      source: "feature-collection",
+      notes: [],
+      ...(bounds ? { bounds } : {}),
+    },
+    schemaSummary: {
+      fieldCount: fieldList.length,
+      fields: fieldList.map((name) => ({ name, role: "attribute" })),
+      source: "feature-collection",
+      notes: fieldList.length > 0 ? [] : ["Feature collection has no attribute fields."],
+    },
     ...(bounds ? { bounds } : {}),
   };
 }
@@ -641,18 +659,28 @@ function buildImportedLayer(
     ...metadataOverrides,
   };
 
+  const layer = withNormalizedLayerRegistryMetadata({
+    id: createLayerId(),
+    name: stripExtension(fileName),
+    type: "geojson",
+    visible: true,
+    opacity: 1,
+    sourceData: featureCollection,
+    sourceKind: "imported",
+    qaStatus: "unchecked",
+    queryable: true,
+    provenance: {
+      label: `${sourceType.toUpperCase()} import`,
+      sourceName: fileName,
+      method: "Browser spatial file import",
+    },
+    metadata,
+    group: "data",
+  });
+
   return {
     featureCollection,
-    layer: {
-      id: createLayerId(),
-      name: stripExtension(fileName),
-      type: "geojson",
-      visible: true,
-      opacity: 1,
-      sourceData: featureCollection,
-      metadata,
-      group: "data",
-    },
+    layer,
     summary: {
       sourceType,
       importedFeatureCount: featureCollection.features.length,

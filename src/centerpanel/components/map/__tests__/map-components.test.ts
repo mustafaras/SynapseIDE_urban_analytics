@@ -680,9 +680,97 @@ describe("Prompt 01 components render without errors", () => {
       React.createElement(MapStatusBar, {
         cursor: { lng: 29, lat: 41 },
         zoom: 10,
+        selectedFeatureCount: 12,
+        hasActiveAoi: true,
+        qaStatus: "warning",
+        qaIssueCount: 2,
       }),
     );
     expect(html).toContain("EPSG");
+    expect(html).toContain("AOI");
+    expect(html).toContain("issues");
+  });
+
+  it("renders MapWorkspaceCockpit with active context strip signals", async () => {
+    const { MapWorkspaceCockpit } = await import("../MapWorkspaceCockpit");
+    const html = renderToStaticMarkup(
+      React.createElement(MapWorkspaceCockpit, {
+        workspaceView: "navigator",
+        onSelectView: () => undefined,
+        onQuickAction: () => undefined,
+        contextSummary: {
+          contextId: "map-context-1",
+          updatedAt: "2026-05-10T20:10:00.000Z",
+          viewport: {
+            center: [29.02, 41.01],
+            zoom: 12,
+            bearing: 0,
+            pitch: 0,
+            baseLayerId: "dark",
+          },
+          currentBounds: [28.95, 40.95, 29.08, 41.08],
+          currentBoundsUpdatedAt: "2026-05-10T20:10:00.000Z",
+          activeAoi: {
+            aoiId: "aoi-1",
+            geometryFamily: "polygon",
+            bbox: [28.96, 40.96, 29.07, 41.07],
+          },
+          visibleLayerIds: ["layer-1"],
+          selectedLayerIds: ["layer-1"],
+          activeAnalysisResultLayerIds: [],
+          selection: {
+            totalSelectedFeatures: 14,
+            layerCounts: [{ layerId: "layer-1", count: 14 }],
+          },
+          qa: {
+            status: "warning",
+            checkedAt: "2026-05-10T20:11:00.000Z",
+            layerCount: 1,
+            blockedLayerCount: 0,
+            issueCounts: {
+              info: 0,
+              warning: 2,
+              error: 0,
+              blocker: 0,
+            },
+          },
+        },
+        activeAoiLabel: "Study area",
+        overlayLayers: [
+          {
+            id: "layer-1",
+            name: "Parcels",
+            type: "geojson",
+            visible: true,
+            opacity: 1,
+            sourceData: {
+              type: "FeatureCollection",
+              features: [],
+            },
+            metadata: {
+              featureCount: 14,
+            },
+          },
+        ],
+        pinCount: 2,
+        drawnFeatureCount: 1,
+        measurementCount: 1,
+        selectedProjectId: "proj_istanbul_risk",
+        lastSavedAt: "2026-05-10T20:12:00.000Z",
+        qaIssueCount: 2,
+        qaBlockerCount: 0,
+        workflowReadyCount: 1,
+        visiblePublicationLayerCount: 1,
+        viewportSyncEnabled: true,
+        syncStatus: "Viewport sync active",
+        analysisRecommendations: [],
+      }),
+    );
+
+    expect(html).toContain("Active map context summary");
+    expect(html).toContain("Study area");
+    expect(html).toContain("Workflow Surface");
+    expect(html).toContain("Viewport sync active");
   });
 
   it("renders project persistence busy indicators in MapStatusBar", async () => {

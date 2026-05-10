@@ -124,6 +124,16 @@ describe("MapDataImporter", () => {
     expect(metadata.geometryType).toBe("Point");
     expect(metadata.bounds).toEqual([29.1, 41.1, 29.2, 41.2]);
     expect(metadata.fields).toEqual(["category", "name", "population"]);
+    expect(metadata.geometrySummary).toMatchObject({
+      geometryType: "Point",
+      geometryTypes: ["Point"],
+      featureCount: 2,
+      source: "feature-collection",
+    });
+    expect(metadata.schemaSummary).toMatchObject({
+      fieldCount: 3,
+      source: "feature-collection",
+    });
   });
 
   it("returns undefined bounds for an empty collection", () => {

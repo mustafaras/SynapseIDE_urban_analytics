@@ -21,14 +21,14 @@ Read these before implementing any Map Explorer prompt:
 
 ## Current Status
 
-- Overall status: Modal shell command extraction landed. 6 of 30 prompts completed.
-- Current prompt: Prompt 05 - Modal Shell Decomposition and Command Hooks completed 2026-05-10.
-- Next recommended prompt: Prompt 06 - Premium Workspace Shell and Context Strip.
+- Overall status: Layer Manager premium UX and safety landed. 9 of 30 prompts completed.
+- Current prompt: Prompt 08 - Layer Manager Premium UX and Safety completed 2026-05-10.
+- Next recommended prompt: Prompt 09 - Scientific QA Model and Panel.
 - Operating pack status: Installed.
 - Next-prompt helper: `scripts/get-next-map-explorer-prompt.ps1`
 - Machine-readable manifest: `DEVELOPMENT_PLANS/MAP_EXPLORER_PROMPT_MANIFEST.json`
-- Last validated repository state: 2026-05-10; Prompt 05 follow-up validation passed after restoring dependencies: `npm run typecheck` passed, `npx vitest run src/centerpanel/components/__tests__/MapExplorerModal.dispatch.test.tsx src/services/map/__tests__/MapAnalysisDispatcher.test.ts` passed (3/3), and focused VS Code diagnostics remain clean for `MapExplorerModal.tsx`, `useMapPanelCommands.ts`, and `useMapAoiDispatch.ts`.
-- Last known blocker: None for focused Prompt 05 validation. Pre-existing unrelated workspace changes remain outside Map Explorer scope.
+- Last validated repository state: 2026-05-10; Prompt 08 validation passed: `npx vitest run src/centerpanel/components/map/__tests__/map-layer-management.test.ts` passed (42/42), `npm run typecheck` passed, and focused `npx eslint` passed.
+- Last known blocker: None for focused Prompt 08 validation. `runTests` previously could not discover the focused Vitest files, so validation used the project Vitest CLI.
 
 ## Agent Operating Pack
 
@@ -61,9 +61,9 @@ This table is the human-readable execution state. The helper script reads it whe
 | 03 | Map Evidence Artifact Model Foundation | completed | 02 | Completed 2026-05-10. Lightweight map evidence model, registry helpers, adapters, selectors, and tests landed. |
 | 04 | Store Persistence Boundaries and Project Snapshots | completed | 03 | Completed 2026-05-10. Snapshot v3, reference schema, stale restore metadata, and persistence tests landed. |
 | 05 | Modal Shell Decomposition and Command Hooks | completed | 04 | Completed 2026-05-10. Extracted panel choreography and AOI dispatch command hooks without changing visible behavior. |
-| 06 | Premium Workspace Shell and Context Strip | pending | 05 | Requires shell command hooks. |
-| 07 | Layer Registry Metadata Upgrade | pending | 06 | Requires workspace shell. |
-| 08 | Layer Manager Premium UX and Safety | pending | 07 | Requires layer metadata. |
+| 06 | Premium Workspace Shell and Context Strip | completed | 05 | Completed 2026-05-10. Navigator cockpit now surfaces truthful AOI, QA, workflow/export, and sync context with a denser premium status strip. |
+| 07 | Layer Registry Metadata Upgrade | completed | 06 | Completed 2026-05-10. Layer registry now carries normalized scientific metadata, provenance, CRS/geometry/schema/license summaries, QA, queryability, evidence IDs, and publication readiness while legacy layers degrade truthfully. |
+| 08 | Layer Manager Premium UX and Safety | completed | 07 | Completed 2026-05-10. Layer rows now expose registry-driven badges, disabled handoff reasons, and guarded delete confirmation. |
 | 09 | Scientific QA Model and Panel | pending | 08 | Requires layer manager safety. |
 | 10 | Publication Readiness Gates | pending | 09 | Requires scientific QA. |
 | 11 | Map Workflow Manifest and Preview | pending | 10 | Requires publication gates. |
@@ -558,6 +558,200 @@ attachSpatialStatsRerun(layer, run) preserves provenance.
 - Next recommended prompt: Prompt 06 - Premium Workspace Shell and Context Strip.
 - Ledger updated: yes
 
+### Prompt 06 - Premium Workspace Shell and Context Strip
+
+- Date: 2026-05-10
+- Agent: GPT-5.4 (GitHub Copilot)
+- Status: completed
+- Started from:
+  - Ledger: `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md`
+  - Prompt block: `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md`
+  - Plan authority: `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md`
+- Files inspected:
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md`
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md`
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md`
+  - `src/centerpanel/components/MapExplorerModal.tsx`
+  - `src/centerpanel/components/map/MapWorkspaceCockpit.tsx`
+  - `src/centerpanel/components/map/MapWorkspaceCockpit.module.css`
+  - `src/centerpanel/components/map/MapStatusBar.tsx`
+  - `src/centerpanel/components/map/mapContextSummary.ts`
+  - `src/centerpanel/components/map/MapCanvas.tsx`
+  - `src/centerpanel/components/map/__tests__/map-components.test.ts`
+- Files changed:
+  - `src/centerpanel/components/map/MapWorkspaceCockpit.tsx` — added a truthful context strip driven by real layer, AOI, selection, QA, workflow, export, and sync state.
+  - `src/centerpanel/components/map/MapWorkspaceCockpit.module.css` — added compact responsive styling for the context strip and tightened navigator cockpit layout density.
+  - `src/centerpanel/components/map/MapStatusBar.tsx` — added AOI, selection, and QA semantics to the bottom status line.
+  - `src/centerpanel/components/MapExplorerModal.tsx` — wired the cockpit/status strip to `selectMapExplorerContextSummary`, existing QA/workflow/sync signals, and slightly tightened navigator-stage sizing.
+  - `src/centerpanel/components/map/__tests__/map-components.test.ts` — added focused render coverage for the new cockpit context strip and enriched status bar.
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` — updated durable execution state.
+- Behavior implemented:
+  - Added a compact premium context strip to the navigator cockpit that surfaces the actual visible stack, active AOI, feature selection, QA state, workflow readiness, export surface, and sync state.
+  - Reused `MapExplorerContextSummary` plus existing modal-derived QA/workflow/sync signals instead of inventing a second state path, keeping the shell truthful and aligned with Prompt 02.
+  - Tightened navigator-stage width/max-height constraints so the cockpit remains map-first and leaves more breathing room around persistent map controls.
+  - Extended the bottom status bar with selection count, AOI state, and QA summary so the workspace retains context even outside navigator mode.
+- UX changes:
+  - Navigator mode now has a visible premium context strip and a denser, more truthful bottom status line.
+  - The workspace remains structurally familiar: no new card stacks, no placeholder chrome, and no change to the underlying map interaction model.
+- Spatial evidence/provenance changes: None. The shell reads existing summary/state only and does not create or mutate map evidence artifacts.
+- CRS, geometry, or measurement changes: No computation changes. AOI messaging is derived from existing `MapExplorerContextSummary` AOI references and current bounds only.
+- Scientific QA changes: No QA computation changes. QA status, issue count, and blocker count are now surfaced more clearly in the navigator cockpit and status bar.
+- Layer registry or persistence changes: None.
+- Workflow/export/report changes: No workflow or export mechanics changed. The shell now truthfully communicates workflow and export readiness using existing derived state.
+- Cross-module contract changes: None. Prompt 06 consumes the existing `MapExplorerContextSummary` contract rather than widening bridge APIs.
+- Performance/data movement changes: None material. No heavy geometry or raw datasets were introduced into shell props.
+- Accessibility changes:
+  - Context strip items carry readable `aria-label` summaries.
+  - Existing status bar role semantics remain intact.
+- Validation commands:
+  - `npx vitest run src/centerpanel/components/map/__tests__/map-components.test.ts`
+  - `npm run typecheck`
+  - `npm run dev`
+- Validation results:
+  - Focused component render validation passed: 59/59.
+  - The first focused Vitest run exposed a local `featureCount` initialization-order bug in `MapWorkspaceCockpit.tsx`; it was repaired immediately and the same focused test reran cleanly.
+  - Full TypeScript project typecheck passed.
+  - Dev server launched successfully and the default shell loaded in-browser. Automated smoke reached the IDE shell and Map Bridge surface, but the default landing path did not expose a direct Map Explorer entrypoint for deeper browser-driven map inspection.
+- Known risks:
+  - Prompt 07 will need to keep the new context strip aligned with richer layer registry metadata so readiness wording stays truthful as metadata becomes more granular.
+  - Manual browser smoke for the actual navigator map surface remains partially unverified because the current landing shell does not directly surface a Map Explorer entrypoint in the automated flow.
+- Blockers:
+  - None for Prompt 06 scope.
+- Decisions made:
+  - Reuse `selectMapExplorerContextSummary` as the shell truth source instead of adding new summary state to `MapExplorerModal`.
+  - Keep the context strip flat and instrument-like rather than introducing additional boxed cards or a broader shell redesign.
+- Next recommended prompt: Prompt 07 - Layer Registry Metadata Upgrade.
+- Ledger updated: yes
+
+### Prompt 07 - Layer Registry Metadata Upgrade
+
+- Date: 2026-05-10
+- Agent: GPT-5.4 (GitHub Copilot)
+- Status: completed
+- Started from:
+  - Ledger: `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md`
+  - Prompt block: `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md`
+  - Plan authority: `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md`
+- Files inspected:
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md`
+  - `src/centerpanel/components/map/mapTypes.ts`
+  - `src/centerpanel/components/map/mapContextSummary.ts`
+  - `src/stores/useMapExplorerStore.ts`
+  - `src/centerpanel/components/map/MapLayerManager.tsx`
+  - `src/centerpanel/components/map/index.ts`
+  - `src/services/map/MapDataImporter.ts`
+  - `src/services/map/MapEngineAdapter.ts`
+  - Focused map and service test files for layer registry, context summaries, import metadata, and analysis adapters.
+- Files changed:
+  - `src/centerpanel/components/map/mapTypes.ts` — added normalized registry metadata, CRS/geometry/schema/license summaries, publication readiness, readiness summary, evidence artifact ID support, and lightweight registry-summary fields.
+  - `src/centerpanel/components/map/mapLayerMetadata.ts` — added shared compatibility normalization helpers for source kind, provenance, QA, queryability, CRS, geometry, schema, license/attribution, readiness, and top-level layer normalization.
+  - `src/centerpanel/components/map/mapContextSummary.ts` — moved registry-event/context layer summaries onto the shared normalizer and widened payloads with scalar readiness metadata only.
+  - `src/stores/useMapExplorerStore.ts` — normalized layers on add/replace/update plus QA/staleness transitions so registry readiness does not drift.
+  - `src/services/map/MapDataImporter.ts` — added schema and geometry summaries to feature collection metadata and normalized imported layers at creation.
+  - `src/services/map/MapEngineAdapter.ts` — normalized analysis output layers before publication.
+  - `src/centerpanel/components/map/MapLayerManager.tsx` — reused shared metadata normalization for inspector/source/QA/queryability/CRS/provenance display and surfaced publication readiness in the existing popover.
+  - `src/centerpanel/components/map/index.ts` — exported new types and helper functions.
+  - Focused tests updated for expanded summaries, truthful legacy degradation, store normalization, import metadata, and adapter compatibility.
+- Behavior implemented:
+  - Layers now carry a normalized `metadata.registry` sidecar with source kind, provenance, QA, queryability, CRS, geometry, schema, license/attribution, evidence artifact ID, publication readiness, and readiness booleans.
+  - Legacy layers degrade truthfully: missing CRS/schema/license/provenance produce `needs-review` rather than implied readiness.
+  - Registry event and context summary payloads remain lightweight and scalar: no raw GeoJSON, features, large schemas, or geometry buffers are emitted.
+- Spatial evidence/provenance changes:
+  - Provenance is normalized from explicit layer provenance, analysis metadata, dataset context, external service metadata, EO metadata, or safe compatibility defaults.
+  - Evidence artifact IDs can be carried through layer metadata and emitted in lightweight registry summaries when present.
+- CRS, geometry, or measurement changes:
+  - Added CRS summary status without performing new spatial measurements.
+  - Added geometry and feature-count summaries from existing metadata/import artifacts only; no new area/distance computation was introduced.
+- Scientific QA changes:
+  - QA status now feeds publication readiness and stale analysis outputs normalize to warning readiness.
+  - Scientific QA computation itself was not changed.
+- Layer registry or persistence changes:
+  - Store normalization now applies on layer add, replace, metadata update, QA state transitions, and stale analysis marking.
+  - Persisted layer schema remains additive and backward compatible.
+- Workflow/export/report changes:
+  - No workflow, export, or report mechanics changed. Publication readiness is now available for later gates.
+- Cross-module contract changes:
+  - `MapLayerRegistryLayerSummary` widened with scalar metadata/readiness fields only.
+  - No Urban Analytics or Synapse IDE ownership boundary changed.
+- UX changes:
+  - Existing Layer Manager metadata popover now shows the normalized publication readiness state and uses truthful unknown CRS wording.
+  - No broader layer-manager redesign was attempted; Prompt 08 owns premium UX and safety polish.
+- Validation commands:
+  - `npx vitest run src/centerpanel/components/map/__tests__/mapContextSummary.test.ts src/centerpanel/components/map/__tests__/map-layer-management.test.ts src/services/map/__tests__/MapDataIO.test.ts src/services/map/__tests__/MapEngineAdapter.test.ts`
+  - `npm run typecheck`
+  - `npx eslint src/centerpanel/components/map/mapTypes.ts src/centerpanel/components/map/mapLayerMetadata.ts src/centerpanel/components/map/mapContextSummary.ts src/stores/useMapExplorerStore.ts src/services/map/MapDataImporter.ts src/services/map/MapEngineAdapter.ts src/centerpanel/components/map/MapLayerManager.tsx src/centerpanel/components/map/__tests__/mapContextSummary.test.ts src/centerpanel/components/map/__tests__/map-layer-management.test.ts src/services/map/__tests__/MapDataIO.test.ts --quiet`
+- Validation results:
+  - Focused Vitest validation passed: 94/94.
+  - Full TypeScript project typecheck passed.
+  - Focused ESLint quiet pass produced no errors.
+  - `runTests` tool could not discover the focused Vitest files, so the project Vitest CLI was used.
+- Known risks:
+  - Prompt 08 should decide how much of the new readiness state becomes visible badges/actions in the premium layer manager without overloading the layer stack.
+  - Deeper evidence-producing engine outputs still belong to Prompt 13; Prompt 07 only added the registry fields and compatibility plumbing.
+- Blockers:
+  - None for Prompt 07 scope.
+- Decisions made:
+  - Use an additive `metadata.registry` sidecar instead of replacing existing metadata fields.
+  - Centralize compatibility defaults in `mapLayerMetadata.ts` so store, context summaries, adapters, and layer inspector do not drift.
+  - Treat missing CRS/license/schema/provenance as `needs-review`, not ready.
+- Next recommended prompt: Prompt 08 - Layer Manager Premium UX and Safety.
+- Ledger updated: yes
+
+### Prompt 08 - Layer Manager Premium UX and Safety
+
+- Date: 2026-05-10
+- Agent: GitHub Copilot
+- Status: completed
+- Files inspected:
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` — confirmed Prompt 07 complete and Prompt 08 pending before work.
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md` sections 13.4, 15.1-15.4, 16.3, and 17.1-17.4 — layer evidence registry, metadata, left rail, and scientific QA requirements.
+  - `src/centerpanel/components/map/MapLayerManager.tsx` — layer row, metadata popover, existing symbology/cartography actions, delete behavior, search, and grouping.
+  - `src/centerpanel/components/map/MapLayerPanel.tsx` — base layer selector audit; no Prompt 08 change needed.
+  - `src/centerpanel/components/MapExplorerModal.tsx` — existing `MapLayerManager` wiring and report/symbology handlers.
+  - `src/centerpanel/components/map/mapTypes.ts` and `src/centerpanel/components/map/mapLayerMetadata.ts` — Prompt 07 registry/readiness contract reused as the badge/action source of truth.
+  - `src/centerpanel/components/map/__tests__/map-layer-management.test.ts` — focused layer manager regression surface.
+- Files changed:
+  - `src/centerpanel/components/map/MapLayerManager.tsx` — added compact registry-driven badge rail, evidence action menu, disabled action reasons, optional future layer action callbacks, metadata-popover report gating, readiness-aware search, and two-step delete confirmation.
+  - `src/centerpanel/components/map/__tests__/map-layer-management.test.ts` — added Prompt 08 render/disabled-reason coverage and updated delete regression to require confirmation.
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` — updated durable prompt state, registries, and validation history.
+- Summary:
+  - Layer rows now show source kind, derived/source state, scientific QA, CRS, queryability, and publication readiness as compact premium badges sourced from `normalizeLayerRegistryMetadata(layer)`.
+  - Row action menu now exposes Export, Urban, IDE, Report, and Dashboard actions with explicit disabled reasons when metadata/readiness blocks the action or the owning bridge is not attached.
+  - Delete now arms an inline confirmation state before calling `onRemoveLayer`, with Cancel/Escape support and screen-reader announcements.
+  - Existing toggle, opacity, reorder, symbology, cartography review, and add-layer flows remain in place.
+- Spatial evidence/provenance changes:
+  - No new evidence artifacts are created in Prompt 08.
+  - Provenance remains read from normalized layer registry metadata and is surfaced in badge titles/action safety reasons only.
+- CRS, geometry, or measurement changes:
+  - No spatial calculations changed.
+  - Missing CRS is shown as a blocking/needs-review badge and handoff reason; it is not inferred.
+- Scientific QA changes:
+  - No QA computation changed.
+  - Existing QA status and scientific QA badges now propagate into layer-row badges and publication action gates.
+- Layer registry or persistence changes:
+  - No persistence schema changed.
+  - Layer manager consumes the Prompt 07 registry normalizer for UI state, search text, and action gating so row display and metadata popover do not drift from registry readiness.
+- Workflow/export/report changes:
+  - Report handoff from the metadata popover and row action menu now respects publication readiness before calling `onAddLayerToReport`.
+  - Export, Urban, IDE, and Dashboard actions are surfaced as optional callback contracts with disabled reasons; no cross-module handler is wired in this prompt.
+- Contract changes:
+  - Added optional `MapLayerManager` props for future `onExportLayer`, `onSendLayerToUrban`, `onOpenLayerInIde`, and `onBindLayerToDashboard` handlers.
+  - No direct imports from Urban Analytics, Synapse IDE, dashboard, or export services were added.
+- UX changes:
+  - Layer stack reads as a denser evidence registry: badges are visible in-row without hiding incomplete metadata layers.
+  - Action safety is discoverable through button titles, ARIA labels, and `data-disabled-reason` attributes.
+  - Destructive removal is guarded by explicit confirmation rather than a single accidental click.
+- Validation:
+  - `npx vitest run src/centerpanel/components/map/__tests__/map-layer-management.test.ts` → passed (42/42).
+  - `npm run typecheck` → passed.
+  - `npx eslint src/centerpanel/components/map/MapLayerManager.tsx src/centerpanel/components/map/__tests__/map-layer-management.test.ts --quiet` → passed with no output.
+  - VS Code diagnostics for the touched files reported no errors.
+- Risks:
+  - Export, Urban, IDE, and Dashboard callbacks are intentionally optional and not wired to owning modules yet; later prompts must connect them through typed adapters rather than direct store/service coupling.
+  - The row action menu adds visible safety surface; future accessibility/premium polish prompts can refine keyboard/menu semantics further.
+- Next recommended prompt: Prompt 09 - Scientific QA Model and Panel.
+- Ledger updated: yes
+
 Use this format for each entry:
 
 ```md
@@ -619,6 +813,9 @@ Append inspected files here as implementation progresses.
 
 | Date | Prompt | Files inspected | Notes |
 | --- | --- | --- | --- |
+| 2026-05-10 | Prompt 08 | `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md`; `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md`; `src/centerpanel/components/map/MapLayerManager.tsx`; `src/centerpanel/components/map/MapLayerPanel.tsx`; `src/centerpanel/components/MapExplorerModal.tsx`; `src/centerpanel/components/map/mapTypes.ts`; `src/centerpanel/components/map/mapLayerMetadata.ts`; `src/centerpanel/components/map/__tests__/map-layer-management.test.ts` | Prompt 08 narrowed to layer manager premium UX/safety: registry badges, disabled handoff reasons, and guarded removal without rewiring cross-module owners. |
+| 2026-05-10 | 07 | `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md`; `src/centerpanel/components/map/mapTypes.ts`; `src/centerpanel/components/map/mapContextSummary.ts`; `src/stores/useMapExplorerStore.ts`; `src/centerpanel/components/map/MapLayerManager.tsx`; `src/centerpanel/components/map/index.ts`; `src/services/map/MapDataImporter.ts`; `src/services/map/MapEngineAdapter.ts`; focused registry/import/adapter tests | Prompt 07 narrowed to additive layer metadata normalization, lightweight registry summaries, adapter/importer metadata enrichment, and legacy readiness degradation. |
+| 2026-05-10 | 06 | `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md`; `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md`; `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md`; `src/centerpanel/components/MapExplorerModal.tsx`; `src/centerpanel/components/map/MapWorkspaceCockpit.tsx`; `src/centerpanel/components/map/MapWorkspaceCockpit.module.css`; `src/centerpanel/components/map/MapStatusBar.tsx`; `src/centerpanel/components/map/mapContextSummary.ts`; `src/centerpanel/components/map/MapCanvas.tsx`; `src/centerpanel/components/map/__tests__/map-components.test.ts` | Prompt 06 narrowed to navigator cockpit/status surfaces and existing context-summary wiring, with shell-level browser smoke limited by the landing flow. |
 | 2026-05-10 | 05 | `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md`; `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md`; `src/centerpanel/components/MapExplorerModal.tsx`; `src/centerpanel/components/map/useLayerSync.ts`; `src/centerpanel/components/map/useMapKeyboardControls.ts`; `src/centerpanel/components/__tests__/MapExplorerModal.dispatch.test.tsx`; `src/services/map/MapAnalysisDispatcher.ts`; `src/services/map/MapReviewSessionService.ts` | Prompt 05 narrowed to safe extraction only: panel choreography and AOI dispatch command hooks. |
 | 2026-05-02 | Operating Pack Installation | `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md`, `DEVELOPMENT_PLANS/TRI_MODAL_WORKBENCH_ALIGNMENT_SPEC.md`, `src/centerpanel/components/MapExplorerModal.tsx`, `src/centerpanel/components/map/*`, `src/stores/useMapExplorerStore.ts`, `src/services/map/*` | Planning and automation-pack inspection only. |
 | 2026-05-10 | Prompt 00 | `package.json`, `src/centerpanel/components/MapExplorerModal.tsx`, `src/centerpanel/components/MapExplorerButton.tsx`, `src/centerpanel/components/map/*` (17 files), `src/stores/useMapExplorerStore.ts`, `src/services/map/*` (25 files + 18 tests), `src/features/urbanAnalytics/store.ts`, `src/services/editorBridge.ts`, `src/services/editor/bridge.ts` + bridgeAdapter + aiEditorBridgeGlobal, `src/services/reporting/*` (10 files) | All planned Prompt 00 inspection targets present and confirmed. |
@@ -633,6 +830,9 @@ Append changed files here as implementation progresses.
 
 | Date | Prompt | Files changed | Reason |
 | --- | --- | --- | --- |
+| 2026-05-10 | Prompt 08 | `src/centerpanel/components/map/MapLayerManager.tsx`, `src/centerpanel/components/map/__tests__/map-layer-management.test.ts`, `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` | Added registry-driven layer badges, disabled layer handoff reasons, guarded report action, two-step delete confirmation, and focused regression coverage. |
+| 2026-05-10 | Prompt 07 | `src/centerpanel/components/map/mapTypes.ts`, `src/centerpanel/components/map/mapLayerMetadata.ts`, `src/centerpanel/components/map/mapContextSummary.ts`, `src/stores/useMapExplorerStore.ts`, `src/services/map/MapDataImporter.ts`, `src/services/map/MapEngineAdapter.ts`, `src/centerpanel/components/map/MapLayerManager.tsx`, `src/centerpanel/components/map/index.ts`, focused tests, `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` | Added normalized scientific layer registry metadata/readiness, compatibility defaults, lightweight summaries, importer/adapter enrichment, and validation coverage. |
+| 2026-05-10 | Prompt 06 | `src/centerpanel/components/map/MapWorkspaceCockpit.tsx`, `src/centerpanel/components/map/MapWorkspaceCockpit.module.css`, `src/centerpanel/components/map/MapStatusBar.tsx`, `src/centerpanel/components/MapExplorerModal.tsx`, `src/centerpanel/components/map/__tests__/map-components.test.ts`, `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` | Premium workspace shell/context strip landed using existing context summary, QA/workflow/sync signals, responsive cockpit refinements, and focused render coverage. |
 | 2026-05-02 | Operating Pack Installation | `DEVELOPMENT_PLANS/START_HERE_MAP_EXPLORER_AGENT.md`, `DEVELOPMENT_PLANS/MAP_EXPLORER_PROMPT_MANIFEST.json`, `DEVELOPMENT_PLANS/MAP_EXPLORER_AGENT_HANDOFF_TEMPLATE.md`, `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md`, `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md`, `DEVELOPMENT_PLANS/AGENT_AMNESIA_PREVENTION_PROTOCOL.md`, `scripts/get-next-map-explorer-prompt.ps1` | Added automation-ready prompt execution controls. |
 | 2026-05-10 | Prompt 00 | `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` | Documentation-only baseline audit. No product code changed. |
 | 2026-05-10 | Prompt 01 | `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` | Architecture map appended. No product code changed. |
@@ -672,6 +872,7 @@ Record every contract that connects Map Explorer with Synapse IDE, Urban Analyti
 | Pending | Pending | `MapExplorerContextSummary` | Shared map context | Proposed | Implement only when prompted. |
 | 2026-05-10 | Prompt 03 | `MapEvidenceArtifact` + `mapEvidenceArtifacts.ts` helpers | Map → Urban / Report / Dashboard / IDE future consumers | Implemented | Exported from `src/centerpanel/components/map/index.ts`. Stores stable IDs, linked layer/AOI/run/workflow/file/artifact IDs, map provenance, CRS/geometry summaries, QA, and export/report refs only — no GeoJSON/sourceData/screenshots/raw tables. Store registry is non-persisted until Prompt 04. |
 | 2026-05-10 | Prompt 04 | `MapProjectSnapshot` v3 + `MAP_PROJECT_PERSISTENCE_BOUNDARY` | Map project snapshot restore contract | Implemented | `src/services/map/MapPersistenceService.ts`. Persists viewport/base/layout/bookmarks/annotations/drawings/measurements, lightweight layer references, evidence references, QA summary, review timeline references, and stale/external refs. Oversized layer source payloads restore as stale metadata references. |
+| 2026-05-10 | Prompt 08 | Optional `MapLayerManager` action callbacks (`onExportLayer`, `onSendLayerToUrban`, `onOpenLayerInIde`, `onAddLayerToReport`, `onBindLayerToDashboard`) | Layer rail UI → future export / Urban / IDE / report / dashboard adapters | UI Surface Implemented; handlers mostly deferred | Row action menu exposes commands with disabled reasons from registry readiness or missing handlers. Only existing report handler can be called, and it is now publication-readiness gated. No direct imports from external owners were added. |
 | Pending | Pending | `MapReproducibilityManifest` | Export/workflow reproducibility | Proposed | Implement only when prompted. |
 
 ## Scientific GIS Decision Registry
@@ -688,6 +889,8 @@ Record decisions that future agents must not re-litigate unless the repository p
 | 2026-05-10 | Prompt 03 | Missing CRS remains explicit in artifact CRS summaries; display CRS is not treated as analytical readiness. | Prevents false scientific readiness and preserves the rule that analytical distance/area calculations require an explicit projected CRS. | Accepted |
 | 2026-05-10 | Prompt 04 | Project snapshots may keep small inline GeoJSON for current restore compatibility, but oversized layer payloads are never forced into lightweight snapshots. | Preserves current behavior while making large/missing source states truthful and bounded by `INLINE_LAYER_DATA_LIMIT_BYTES`. | Accepted |
 | 2026-05-10 | Prompt 04 | Metadata-only and external source layers must carry restore warnings and stale/external reference IDs. | Restored map sessions must not imply missing layers or external services are locally available. | Accepted |
+| 2026-05-10 | Prompt 08 | Incomplete layer metadata stays visible in the layer rail and disables formal handoff actions with explicit reasons. | Prevents false publication/readiness claims while keeping exploratory layer work available. | Accepted |
+| 2026-05-10 | Prompt 08 | Layer removal requires an explicit confirmation step until a full undo stack exists. | Destructive map state edits should not happen on a single accidental click. | Accepted |
 
 ## Validation History
 
@@ -715,6 +918,15 @@ Append validation runs here.
 | 2026-05-10 | Prompt 05 | `npm install` | Passed | Restored dependencies after workspace cleanup so follow-up validation could run. Audit reported 10 vulnerabilities, but no install failure. |
 | 2026-05-10 | Prompt 05 | `npm run typecheck` | Passed | Full TypeScript project typechecks with Prompt 05 hook extraction in place. |
 | 2026-05-10 | Prompt 05 | `npx vitest run src/centerpanel/components/__tests__/MapExplorerModal.dispatch.test.tsx src/services/map/__tests__/MapAnalysisDispatcher.test.ts` | Passed (3/3) | Covers modal dispatch integration and underlying map dispatch service after command-hook extraction. |
+| 2026-05-10 | Prompt 06 | `npx vitest run src/centerpanel/components/map/__tests__/map-components.test.ts` | Passed (59/59) | First focused run caught a local initialization-order bug in `MapWorkspaceCockpit.tsx`; rerun passed immediately after the fix. |
+| 2026-05-10 | Prompt 06 | `npm run typecheck` | Passed | Full TypeScript project typechecks after cockpit/status bar wiring and navigator-stage sizing changes. |
+| 2026-05-10 | Prompt 06 | `npm run dev` | Passed (shell smoke) | Dev server launched at `http://127.0.0.1:3000`; default shell loaded and remained reachable for browser smoke, though no direct Map Explorer entrypoint surfaced from the landing flow. |
+| 2026-05-10 | Prompt 07 | `npx vitest run src/centerpanel/components/map/__tests__/mapContextSummary.test.ts src/centerpanel/components/map/__tests__/map-layer-management.test.ts src/services/map/__tests__/MapDataIO.test.ts src/services/map/__tests__/MapEngineAdapter.test.ts` | Passed (94/94) | Covers expanded lightweight layer summaries, truthful legacy degradation, store normalization, import metadata, and analysis adapter compatibility. |
+| 2026-05-10 | Prompt 07 | `npm run typecheck` | Passed | Full TypeScript project typechecks after normalized registry metadata, store, adapter, importer, and layer inspector changes. |
+| 2026-05-10 | Prompt 07 | `npx eslint src/centerpanel/components/map/mapTypes.ts src/centerpanel/components/map/mapLayerMetadata.ts src/centerpanel/components/map/mapContextSummary.ts src/stores/useMapExplorerStore.ts src/services/map/MapDataImporter.ts src/services/map/MapEngineAdapter.ts src/centerpanel/components/map/MapLayerManager.tsx src/centerpanel/components/map/__tests__/mapContextSummary.test.ts src/centerpanel/components/map/__tests__/map-layer-management.test.ts src/services/map/__tests__/MapDataIO.test.ts --quiet` | Passed | Focused lint pass on touched Prompt 07 files produced no errors. |
+| 2026-05-10 | Prompt 08 | `npx vitest run src/centerpanel/components/map/__tests__/map-layer-management.test.ts` | Passed (42/42) | Covers registry badges, disabled action reasons, guarded remove confirmation, and existing layer sync/store regressions. |
+| 2026-05-10 | Prompt 08 | `npm run typecheck` | Passed | Full TypeScript project typechecks after layer action callback props and guarded row UI changes. |
+| 2026-05-10 | Prompt 08 | `npx eslint src/centerpanel/components/map/MapLayerManager.tsx src/centerpanel/components/map/__tests__/map-layer-management.test.ts --quiet` | Passed | Focused lint pass on touched Prompt 08 files produced no output. |
 
 ## Known Risks
 

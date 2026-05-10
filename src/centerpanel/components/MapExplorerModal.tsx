@@ -72,6 +72,7 @@ import {
   type MapQuickActionId,
   type MapWorkspaceView,
 } from "./map/mapExperience";
+import { selectMapExplorerContextSummary } from "./map/mapContextSummary";
 import { useMapExplorerStore } from "../../stores/useMapExplorerStore";
 import { useAppStore } from "../../stores/appStore";
 import { useFlowStore } from "../../stores/useFlowStore";
@@ -680,6 +681,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const clearProjectContent = useMapExplorerStore((s) => s.clearProjectContent);
   const currentMapBounds = useMapExplorerStore((s) => s.currentMapBounds);
   const setCurrentMapBounds = useMapExplorerStore((s) => s.setCurrentMapBounds);
+  const contextSummary = useMapExplorerStore(selectMapExplorerContextSummary);
   const viewportSyncEnabled = useViewportSyncStore((s) => s.enabled);
   const viewportSyncStatus = useViewportSyncStore((s) => s.statusLabel);
   const setActiveAnalysisResultLayers = useMapExplorerStore((s) => s.setActiveAnalysisResultLayers);
@@ -783,6 +785,16 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     () => flowDispatchAoi?.source === "drawn-aoi" ? flowDispatchAoi.feature : null,
     [flowDispatchAoi],
   );
+  const activeAoiLabel = useMemo(() => {
+    const activeAoiIdFromContext = contextSummary.activeAoi?.aoiId;
+    if (!activeAoiIdFromContext) {
+      return null;
+    }
+
+    const activeAoiFeature = drawnFeatures.find((feature) => feature.id === activeAoiIdFromContext);
+    const label = activeAoiFeature?.properties?.label;
+    return typeof label === "string" && label.trim().length > 0 ? label.trim() : activeAoiIdFromContext;
+  }, [contextSummary.activeAoi?.aoiId, drawnFeatures]);
   const externalServiceBounds = useMemo(
     () => resolveMapAnalysisBounds({
       drawnFeatures,
@@ -4205,10 +4217,10 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               <div
                 style={{
                   ...mapStyles.navigatorStageInner,
-                  width: `calc(100% - ${MAP_SPACING.xs})`,
+                  width: `min(calc(100% - ${MAP_SPACING.lg}), ${MAP_DIMENSIONS.navigatorMaxWidth})`,
                   height: `calc(100% - ${MAP_SPACING.xs})`,
-                  maxWidth: MAP_DIMENSIONS.navigatorMaxWidth,
-                  maxHeight: MAP_DIMENSIONS.navigatorMaxHeight,
+                  maxWidth: `min(calc(100% - ${MAP_SPACING.lg}), ${MAP_DIMENSIONS.navigatorMaxWidth})`,
+                  maxHeight: `min(calc(100% - ${MAP_SPACING.sm}), ${MAP_DIMENSIONS.navigatorMaxHeight})`,
                   overflow: "hidden",
                 }}
               >
@@ -4216,12 +4228,20 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
                   workspaceView={workspaceView}
                   onSelectView={handleSetWorkspaceView}
                   onQuickAction={handleMapQuickAction}
+                  contextSummary={contextSummary}
                   overlayLayers={overlayLayers}
                   pinCount={pins.length}
                   drawnFeatureCount={drawnFeatures.length}
                   measurementCount={measurements.length}
                   selectedProjectId={selectedProjectId}
                   lastSavedAt={lastSavedAt}
+                  activeAoiLabel={activeAoiLabel}
+                  qaIssueCount={scientificQAIssueCount}
+                  qaBlockerCount={scientificQABlockerCount}
+                  workflowReadyCount={workflowReadyCount}
+                  visiblePublicationLayerCount={visiblePublicationLayers.length}
+                  viewportSyncEnabled={viewportSyncEnabled}
+                  syncStatus={viewportSyncStatus}
                   analysisRecommendations={analysisRecommendationState.recommendations}
                   onAnalysisRecommendationAction={handleAnalysisRecommendationAction}
                 />
@@ -4694,6 +4714,11 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               measureUnit={measureUnit}
               crs="EPSG:4326"
               syncStatus={viewportSyncStatus}
+              selectedFeatureCount={contextSummary.selection.totalSelectedFeatures}
+              hasActiveAoi={Boolean(contextSummary.activeAoi)}
+              qaStatus={contextSummary.qa.status}
+              qaIssueCount={scientificQAIssueCount}
+              qaBlockerCount={scientificQABlockerCount}
               isSaving={isSavingProject}
               isLoading={isLoadingProject}
               lastSavedAt={lastSavedAt}

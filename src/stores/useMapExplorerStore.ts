@@ -4,10 +4,6 @@ import {
   MAP_ANNOTATION_LIMIT,
   MAP_BOOKMARK_LIMIT,
   MAP_LAYER_REGISTRY_EVENT,
-  type LayerGroupId,
-  type LayerProvenance,
-  type LayerQaStatus,
-  type LayerSourceKind,
   type BaseLayerId,
   type DrawnFeature,
   type DrawToolId,
@@ -31,10 +27,8 @@ import {
   type ViewportState,
 } from "../centerpanel/components/map/mapTypes";
 import { MAP_NUMERIC } from "../centerpanel/components/map/mapTokens";
-import {
-  resolveOverlayLayerQueryable,
-  summarizeOverlayLayer,
-} from "../centerpanel/components/map/mapContextSummary";
+import { summarizeOverlayLayer } from "../centerpanel/components/map/mapContextSummary";
+import { withNormalizedLayerRegistryMetadata } from "../centerpanel/components/map/mapLayerMetadata";
 import {
   createMapEvidenceArtifact,
   patchMapEvidenceArtifact,
@@ -505,127 +499,19 @@ function normalizeLayoutPreferences(input: Partial<MapExplorerLayoutPreferences>
   };
 }
 
-function resolveOverlayLayerSourceKind(
-  layer: OverlayLayerConfig,
-  group: LayerGroupId,
-): LayerSourceKind {
-  if (layer.sourceKind) {
-    return layer.sourceKind;
-  }
-
-  if (group === "analysis" || layer.metadata?.analysisResult) {
-    return "derived";
-  }
-
-  if (layer.metadata?.datasetContext?.datasetId || layer.metadata?.eoSource?.isDemo) {
-    return "demo";
-  }
-
-  if (layer.metadata?.eoSource || (typeof layer.sourceData === "string" && /^https?:\/\//i.test(layer.sourceData))) {
-    return "external";
-  }
-
-  if (layer.sourceData) {
-    return "imported";
-  }
-
-  return "project";
-}
-
-function resolveOverlayLayerQaStatus(layer: OverlayLayerConfig): LayerQaStatus {
-  if (layer.qaStatus) {
-    return layer.qaStatus;
-  }
-
-  if (layer.metadata?.analysisResult?.stale) {
-    return "warning";
-  }
-
-  return "unchecked";
-}
-
-function resolveOverlayLayerProvenance(layer: OverlayLayerConfig): LayerProvenance | undefined {
-  if (layer.provenance) {
-    return layer.provenance;
-  }
-
-  const analysis = layer.metadata?.analysisResult;
-  if (analysis) {
-    return {
-      label: `${analysis.engine} result`,
-      method: analysis.parameterSummary,
-      generatedAt: analysis.runTimestamp,
-      ...(analysis.sourceLayerIds ? { sourceLayerIds: [...analysis.sourceLayerIds] } : {}),
-      ...(analysis.runId ? { notes: [`run:${analysis.runId}`] } : {}),
-    };
-  }
-
-  const dataset = layer.metadata?.datasetContext;
-  if (dataset) {
-    return {
-      label: dataset.source ?? dataset.datasetTitle ?? dataset.datasetId ?? layer.name,
-      ...(dataset.datasetTitle ? { sourceName: dataset.datasetTitle } : {}),
-      ...(dataset.license ? { license: dataset.license } : {}),
-      ...(dataset.updateDate ? { collectedAt: dataset.updateDate } : {}),
-    };
-  }
-
-  const eoSource = layer.metadata?.eoSource;
-  if (eoSource) {
-    return {
-      label: eoSource.provider,
-      sourceName: eoSource.sourceRef,
-      ...(eoSource.sourceUrl ? { sourceUrl: eoSource.sourceUrl } : {}),
-      ...(eoSource.timeLabel ? { collectedAt: eoSource.timeLabel } : {}),
-      notes: [eoSource.sourceKind],
-    };
-  }
-
-  if (typeof layer.sourceData === "string") {
-    return {
-      label: layer.sourceData,
-      sourceUrl: layer.sourceData,
-    };
-  }
-
-  return undefined;
-}
-
-function buildOverlayLayerRegistryFields(
-  layer: OverlayLayerConfig,
-  group: LayerGroupId,
-): Pick<OverlayLayerConfig, "sourceKind" | "qaStatus" | "queryable" | "provenance"> {
-  const sourceKind = resolveOverlayLayerSourceKind(layer, group);
-  const qaStatus = resolveOverlayLayerQaStatus(layer);
-  const provenance = resolveOverlayLayerProvenance(layer) ?? { label: `${sourceKind} layer` };
-
-  return {
-    sourceKind,
-    qaStatus,
-    queryable: resolveOverlayLayerQueryable(layer),
-    provenance,
-  };
-}
-
 function normalizeOverlayLayerForStore(layer: OverlayLayerConfig): OverlayLayerConfig {
   const group = layer.group ?? "data";
   const timestamp = nowIsoTimestamp();
   const layerWithGroup: OverlayLayerConfig = { ...layer, group };
-  const registryFields = buildOverlayLayerRegistryFields(layerWithGroup, group);
 
   if (group === "analysis") {
     if (!layer.metadata) {
-      return {
-        ...layerWithGroup,
-        ...registryFields,
-        group,
-      };
+      return withNormalizedLayerRegistryMetadata(layerWithGroup);
     }
 
     const { analysisResult, ...metadata } = layer.metadata;
-    return {
+    return withNormalizedLayerRegistryMetadata({
       ...layerWithGroup,
-      ...registryFields,
       group,
       metadata: {
         ...metadata,
@@ -639,19 +525,18 @@ function normalizeOverlayLayerForStore(layer: OverlayLayerConfig): OverlayLayerC
             }
           : {}),
       },
-    };
+    });
   }
 
-  return {
+  return withNormalizedLayerRegistryMetadata({
     ...layerWithGroup,
-    ...registryFields,
     group,
     metadata: {
       ...(layer.metadata ?? {}),
       updatedAt: timestamp,
       dataVersion: layer.metadata?.dataVersion ?? timestamp,
     },
-  };
+  });
 }
 
 function detectLayerRegistryOperation(
@@ -734,7 +619,7 @@ function markDependentAnalysisLayersStale(
       return layer;
     }
 
-    return {
+    return withNormalizedLayerRegistryMetadata({
       ...layer,
       metadata: {
         ...(layer.metadata ?? {}),
@@ -743,7 +628,7 @@ function markDependentAnalysisLayersStale(
           stale: true,
         },
       },
-    };
+    });
   });
 }
 
@@ -758,11 +643,11 @@ function applyScientificQAMetadataToLayers(
       }
       const { scientificQA: _scientificQA, ...metadata } = layer.metadata ?? {};
       void _scientificQA;
-      return {
+      return withNormalizedLayerRegistryMetadata({
         ...layer,
         qaStatus: layer.metadata?.analysisResult?.stale ? "warning" : "unchecked",
         metadata,
-      };
+      });
     });
   }
 
@@ -784,14 +669,14 @@ function applyScientificQAMetadataToLayers(
       return layer;
     }
 
-    return {
+    return withNormalizedLayerRegistryMetadata({
       ...layer,
       qaStatus: summary.status,
       metadata: {
         ...(layer.metadata ?? {}),
         scientificQA: summary.metadata,
       },
-    };
+    });
   });
 }
 
@@ -1118,7 +1003,7 @@ export const useMapExplorerStore = create<MapExplorerState>()(
       updateLayerMetadata: (id: string, patch: Partial<OverlayLayerConfig>) =>
         set((s: MapExplorerState) => ({
           overlayLayers: s.overlayLayers.map((l) =>
-            l.id === id ? { ...l, ...patch } : l,
+            l.id === id ? withNormalizedLayerRegistryMetadata({ ...l, ...patch }) : l,
           ),
         })),
       reorderLayers: (orderedIds: string[]) =>

@@ -3,8 +3,9 @@ import type {
   MapCartographyRecommendation,
   MapCartographyReviewState,
 } from "@/services/map/MapCartographyAdvisor";
-import type { LayerGroupId, LayerQaStatus, LayerScientificQABadge, LayerSourceKind, OverlayLayerConfig } from "./mapTypes";
+import type { LayerGroupId, LayerPublicationReadinessStatus, LayerQaStatus, LayerScientificQABadge, LayerSourceKind, OverlayLayerConfig } from "./mapTypes";
 import { CartographyRecommendationList } from "./CartographyRecommendationList";
+import { normalizeLayerRegistryMetadata } from "./mapLayerMetadata";
 import {
   MAP_COLORS,
   MAP_DIMENSIONS,
@@ -36,6 +37,10 @@ export interface MapLayerManagerProps {
   onAddLayer: (layer: OverlayLayerConfig) => void;
   onReRunAnalysisLayer?: (id: string, rerunToken?: string | null) => void;
   onAddLayerToReport?: (id: string) => void;
+  onExportLayer?: (id: string) => void;
+  onSendLayerToUrban?: (id: string) => void;
+  onOpenLayerInIde?: (id: string) => void;
+  onBindLayerToDashboard?: (id: string) => void;
   activeRerunToken?: string | null;
   onOpenSymbology?: (id: string) => void;
   activeSymbologyLayerId?: string | null;
@@ -77,6 +82,13 @@ const QA_STATUS_LABELS: Record<LayerQaStatus, string> = {
   passed: "QA passed",
   warning: "QA warning",
   error: "QA error",
+};
+
+const PUBLICATION_READINESS_LABELS: Record<LayerPublicationReadinessStatus, string> = {
+  ready: "Ready",
+  "ready-with-caveats": "Ready with caveats",
+  "needs-review": "Needs review",
+  blocked: "Blocked",
 };
 
 const SCIENTIFIC_QA_BADGE_LABELS: Record<LayerScientificQABadge, string> = {
@@ -265,6 +277,119 @@ const layerControlRow: React.CSSProperties = {
   alignItems: "center",
   gap: 6,
   minWidth: 0,
+};
+
+const layerBadgeRail: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  flexWrap: "wrap",
+  gap: 4,
+  minWidth: 0,
+};
+
+const layerBadgeBase: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  maxWidth: "8rem",
+  padding: "2px 5px",
+  borderRadius: MAP_RADIUS.sm,
+  border: MAP_STROKES.hairlineSubtle,
+  background: "rgba(255,255,255,0.025)",
+  color: MAP_COLORS.textSecondary,
+  fontSize: 9,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+  letterSpacing: 0,
+  lineHeight: 1.2,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+  flexShrink: 0,
+};
+
+const layerActionMenu: React.CSSProperties = {
+  position: "relative",
+  flexShrink: 0,
+};
+
+const layerActionSummary: React.CSSProperties = {
+  listStyle: "none",
+  background: "transparent",
+  border: `1px solid ${MAP_COLORS.amberBorder}`,
+  color: MAP_COLORS.textSecondary,
+  cursor: "pointer",
+  fontSize: 10,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+  padding: "2px 6px",
+  lineHeight: 1.2,
+  borderRadius: MAP_RADIUS.sm,
+  transition: MAP_TRANSITIONS.fast,
+};
+
+const layerActionGrid: React.CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: 4,
+  marginTop: 6,
+  padding: 6,
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.sm,
+  background: MAP_COLORS.bgPanel,
+};
+
+const layerActionButton: React.CSSProperties = {
+  background: "transparent",
+  border: `1px solid ${MAP_COLORS.amberBorder}`,
+  color: MAP_COLORS.textSecondary,
+  cursor: "pointer",
+  fontSize: 10,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+  padding: "2px 6px",
+  lineHeight: 1.2,
+  borderRadius: MAP_RADIUS.sm,
+  transition: MAP_TRANSITIONS.fast,
+  maxWidth: "7.5rem",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+};
+
+const layerActionButtonDisabled: React.CSSProperties = {
+  opacity: 0.52,
+  cursor: "not-allowed",
+  color: MAP_COLORS.textMuted,
+  border: MAP_STROKES.hairlineSubtle,
+  background: "rgba(255,255,255,0.015)",
+};
+
+const confirmRemoveBtn: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: MAP_SPACING.xs,
+  background: "rgba(248, 113, 113, 0.12)",
+  border: `1px solid ${MAP_COLORS.error}`,
+  borderRadius: MAP_RADIUS.sm,
+  color: MAP_COLORS.error,
+  cursor: "pointer",
+  fontSize: 11,
+  padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
+  lineHeight: 1.2,
+  transition: MAP_TRANSITIONS.fast,
+  flexShrink: 0,
+};
+
+const cancelRemoveBtn: React.CSSProperties = {
+  background: "transparent",
+  border: `1px solid ${MAP_COLORS.amberBorder}`,
+  color: MAP_COLORS.textMuted,
+  cursor: "pointer",
+  fontSize: 10,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+  padding: "2px 6px",
+  lineHeight: 1.2,
+  borderRadius: MAP_RADIUS.sm,
+  transition: MAP_TRANSITIONS.fast,
+  flexShrink: 0,
 };
 
 const staleChip: React.CSSProperties = {
@@ -550,38 +675,23 @@ const rerunBtn: React.CSSProperties = {
 /* ================================================================== */
 
 function resolveLayerSourceKind(layer: OverlayLayerConfig): LayerSourceKind {
-  if (layer.sourceKind) return layer.sourceKind;
-  if ((layer.group ?? "data") === "analysis" || layer.metadata?.analysisResult) return "derived";
-  if (layer.metadata?.datasetContext?.datasetId || layer.metadata?.eoSource?.isDemo) return "demo";
-  if (layer.metadata?.eoSource || (typeof layer.sourceData === "string" && /^https?:\/\//i.test(layer.sourceData))) return "external";
-  if (layer.sourceData) return "imported";
-  return "project";
+  return normalizeLayerRegistryMetadata(layer).sourceKind;
 }
 
 function resolveLayerQaStatus(layer: OverlayLayerConfig): LayerQaStatus {
-  if (layer.qaStatus) return layer.qaStatus;
-  return layer.metadata?.analysisResult?.stale ? "warning" : "unchecked";
+  return normalizeLayerRegistryMetadata(layer).qaStatus;
 }
 
 function isLayerQueryable(layer: OverlayLayerConfig): boolean {
-  if (layer.queryable !== undefined) return layer.queryable;
-  return layer.type === "geojson" || layer.type === "heatmap";
+  return normalizeLayerRegistryMetadata(layer).queryable;
 }
 
 function resolveLayerCrs(layer: OverlayLayerConfig): string {
-  return layer.metadata?.datasetContext?.crs
-    ?? layer.metadata?.columnar?.crs
-    ?? layer.metadata?.eoSource?.crs
-    ?? "EPSG:4326";
+  return normalizeLayerRegistryMetadata(layer).crsSummary.crs ?? "Unknown CRS";
 }
 
 function resolveLayerProvenanceLabel(layer: OverlayLayerConfig): string {
-  const analysis = layer.metadata?.analysisResult;
-  return layer.provenance?.label
-    ?? analysis?.parameterSummary
-    ?? layer.metadata?.datasetContext?.source
-    ?? layer.metadata?.eoSource?.provider
-    ?? (typeof layer.sourceData === "string" ? layer.sourceData : "No provenance recorded");
+  return normalizeLayerRegistryMetadata(layer).provenance.label;
 }
 
 function formatBounds(bounds: [number, number, number, number]): string {
@@ -667,9 +777,302 @@ function scientificQaBadgeStyle(badge: LayerScientificQABadge): React.CSSPropert
   return scientificQaChip;
 }
 
+type LayerBadgeTone = "neutral" | "info" | "good" | "warning" | "error";
+
+interface LayerBadgeModel {
+  id: string;
+  label: string;
+  title: string;
+  tone: LayerBadgeTone;
+}
+
+type LayerEvidenceActionId = "export" | "urban" | "ide" | "report" | "dashboard";
+
+interface LayerEvidenceActionModel {
+  id: LayerEvidenceActionId;
+  label: string;
+  title: string;
+  disabledReason?: string;
+  onSelect?: () => void;
+}
+
+interface LayerEvidenceActionCallbacks {
+  onExportLayer?: (id: string) => void;
+  onSendLayerToUrban?: (id: string) => void;
+  onOpenLayerInIde?: (id: string) => void;
+  onAddLayerToReport?: (id: string) => void;
+  onBindLayerToDashboard?: (id: string) => void;
+}
+
+function layerBadgeToneStyle(tone: LayerBadgeTone): React.CSSProperties {
+  switch (tone) {
+    case "good":
+      return {
+        border: "1px solid rgba(74, 222, 128, 0.35)",
+        color: "#86EFAC",
+        background: "rgba(22, 101, 52, 0.16)",
+      };
+    case "warning":
+      return {
+        border: `1px solid ${MAP_COLORS.warning}`,
+        color: MAP_COLORS.warning,
+        background: "rgba(251, 191, 36, 0.1)",
+      };
+    case "error":
+      return {
+        border: `1px solid ${MAP_COLORS.error}`,
+        color: MAP_COLORS.error,
+        background: "rgba(248, 113, 113, 0.1)",
+      };
+    case "info":
+      return {
+        border: "1px solid rgba(56, 189, 248, 0.42)",
+        color: "#7DD3FC",
+        background: "rgba(8, 47, 73, 0.32)",
+      };
+    case "neutral":
+    default:
+      return {};
+  }
+}
+
+function qaBadgeTone(status: LayerQaStatus): LayerBadgeTone {
+  switch (status) {
+    case "passed":
+      return "good";
+    case "warning":
+      return "warning";
+    case "error":
+      return "error";
+    case "unchecked":
+    default:
+      return "neutral";
+  }
+}
+
+function publicationBadgeTone(status: LayerPublicationReadinessStatus): LayerBadgeTone {
+  switch (status) {
+    case "ready":
+      return "good";
+    case "ready-with-caveats":
+      return "warning";
+    case "blocked":
+      return "error";
+    case "needs-review":
+    default:
+      return "warning";
+  }
+}
+
+function formatMetadataField(field: string): string {
+  if (field.toLowerCase() === "crs") return "CRS";
+  return field.replace(/-/g, " ");
+}
+
+function formatMetadataFieldList(fields: string[]): string {
+  return fields.map(formatMetadataField).join(", ");
+}
+
+function buildPublicationGateReason(layer: OverlayLayerConfig): string | null {
+  const registry = normalizeLayerRegistryMetadata(layer);
+  const readiness = registry.publicationReadiness;
+  if (readiness.status === "blocked") {
+    const issueLabel = readiness.blockingIssueIds.length > 0
+      ? readiness.blockingIssueIds.join(", ")
+      : "QA blocker";
+    return `Publication blocked by ${issueLabel}.`;
+  }
+  if (readiness.status === "needs-review") {
+    const missing = registry.readiness.missingFields.length > 0
+      ? formatMetadataFieldList(registry.readiness.missingFields)
+      : "metadata review";
+    return `Publication needs review: missing ${missing}.`;
+  }
+  return null;
+}
+
+function buildLayerBadges(layer: OverlayLayerConfig): LayerBadgeModel[] {
+  const registry = normalizeLayerRegistryMetadata(layer);
+  const isDerived = registry.sourceKind === "derived" || Boolean(layer.metadata?.analysisResult);
+  const crsLabel = registry.crsSummary.status === "known"
+    ? registry.crsSummary.crs ?? "CRS known"
+    : "CRS missing";
+  const publicationLabel = `Publication ${PUBLICATION_READINESS_LABELS[registry.publicationReadiness.status].toLowerCase()}`;
+
+  return [
+    {
+      id: "source",
+      label: SOURCE_KIND_LABELS[registry.sourceKind],
+      title: `Source kind: ${SOURCE_KIND_LABELS[registry.sourceKind]}. Provenance: ${registry.provenance.label}`,
+      tone: registry.sourceKind === "external" ? "info" : registry.sourceKind === "demo" ? "warning" : "neutral",
+    },
+    {
+      id: "derived",
+      label: isDerived ? (layer.metadata?.analysisResult?.stale ? "Derived stale" : "Derived") : "Source layer",
+      title: isDerived
+        ? "Derived layer with recorded analysis lineage."
+        : "Source layer, not derived from a map analysis run.",
+      tone: layer.metadata?.analysisResult?.stale ? "warning" : isDerived ? "info" : "neutral",
+    },
+    {
+      id: "qa",
+      label: QA_STATUS_LABELS[registry.qaStatus],
+      title: `Scientific QA status: ${QA_STATUS_LABELS[registry.qaStatus]}.`,
+      tone: qaBadgeTone(registry.qaStatus),
+    },
+    {
+      id: "crs",
+      label: crsLabel,
+      title: registry.crsSummary.notes.length > 0
+        ? registry.crsSummary.notes.join(" ")
+        : `CRS: ${crsLabel}.`,
+      tone: registry.crsSummary.status === "known" ? "good" : "error",
+    },
+    {
+      id: "queryable",
+      label: registry.queryable ? "Queryable" : "Not queryable",
+      title: registry.queryable
+        ? "Layer supports feature-level map queries."
+        : "Layer cannot be queried from the map registry.",
+      tone: registry.queryable ? "good" : "warning",
+    },
+    {
+      id: "publication",
+      label: publicationLabel,
+      title: buildPublicationGateReason(layer) ?? (registry.publicationReadiness.caveats.join(" ") || "Layer metadata is publication-ready."),
+      tone: publicationBadgeTone(registry.publicationReadiness.status),
+    },
+  ];
+}
+
+function createLayerAction(
+  layer: OverlayLayerConfig,
+  id: LayerEvidenceActionId,
+  label: string,
+  callback: ((id: string) => void) | undefined,
+  disabledReason: string | null,
+  fallbackDisabledReason: string,
+): LayerEvidenceActionModel {
+  const reason = disabledReason ?? (callback ? null : fallbackDisabledReason);
+  return {
+    id,
+    label,
+    title: reason ?? `${label} ${layer.name}`,
+    ...(reason ? { disabledReason: reason } : {}),
+    ...(!reason && callback ? { onSelect: () => callback(layer.id) } : {}),
+  };
+}
+
+function buildLayerEvidenceActions(
+  layer: OverlayLayerConfig,
+  callbacks: LayerEvidenceActionCallbacks,
+): LayerEvidenceActionModel[] {
+  const registry = normalizeLayerRegistryMetadata(layer);
+  const publicationGateReason = buildPublicationGateReason(layer);
+  const queryGateReason = registry.queryable ? null : "Layer must be queryable before sending feature context to Urban Analytics.";
+  const crsGateReason = registry.crsSummary.status === "known" ? null : "Layer needs declared CRS before analytical handoff.";
+  const ideGateReason = registry.evidenceArtifactId || registry.provenance.sourceUrl || layer.metadata?.analysisResult?.runId
+    ? null
+    : "Layer needs an evidence artifact, source URL, or analysis run before IDE handoff.";
+
+  return [
+    createLayerAction(
+      layer,
+      "export",
+      "Export",
+      callbacks.onExportLayer,
+      publicationGateReason,
+      "Publication export is not connected from the layer rail yet.",
+    ),
+    createLayerAction(
+      layer,
+      "urban",
+      "Urban",
+      callbacks.onSendLayerToUrban,
+      queryGateReason ?? crsGateReason,
+      "Urban Analytics handoff is not connected from the layer rail yet.",
+    ),
+    createLayerAction(
+      layer,
+      "ide",
+      "IDE",
+      callbacks.onOpenLayerInIde,
+      ideGateReason,
+      "IDE handoff is not connected from the layer rail yet.",
+    ),
+    createLayerAction(
+      layer,
+      "report",
+      "Report",
+      callbacks.onAddLayerToReport,
+      publicationGateReason,
+      "Report handoff is not connected from the layer rail yet.",
+    ),
+    createLayerAction(
+      layer,
+      "dashboard",
+      "Dashboard",
+      callbacks.onBindLayerToDashboard,
+      publicationGateReason,
+      "Dashboard binding is not connected from the layer rail yet.",
+    ),
+  ];
+}
+
 /* ================================================================== */
 /*  Sub-components                                                     */
 /* ================================================================== */
+
+const LayerBadge: React.FC<{ badge: LayerBadgeModel }> = ({ badge }) => (
+  <span style={{ ...layerBadgeBase, ...layerBadgeToneStyle(badge.tone) }} title={badge.title}>
+    {badge.label}
+  </span>
+);
+
+interface LayerActionMenuProps {
+  layerName: string;
+  actions: LayerEvidenceActionModel[];
+  onAnnounce?: (msg: string) => void;
+}
+
+const LayerActionMenu: React.FC<LayerActionMenuProps> = ({ layerName, actions, onAnnounce }) => (
+  <details style={layerActionMenu}>
+    <summary style={layerActionSummary} aria-label={`Layer actions for ${layerName}`} title="Layer evidence actions">
+      Actions
+    </summary>
+    <div style={layerActionGrid} role="menu" aria-label={`Evidence actions for ${layerName}`}>
+      {actions.map((action) => {
+        const disabled = Boolean(action.disabledReason || !action.onSelect);
+        const title = action.disabledReason ?? action.title;
+        return (
+          <button
+            key={action.id}
+            type="button"
+            style={{ ...layerActionButton, ...(disabled ? layerActionButtonDisabled : {}) }}
+            disabled={disabled}
+            title={title}
+            aria-label={disabled ? `${action.label}: ${title}` : `${action.label} ${layerName}`}
+            data-layer-action={action.id}
+            {...(action.disabledReason ? { "data-disabled-reason": action.disabledReason } : {})}
+            onClick={(event) => {
+              event.stopPropagation();
+              if (disabled || !action.onSelect) {
+                if (action.disabledReason) {
+                  onAnnounce?.(`${action.label} disabled for ${layerName}: ${action.disabledReason}`);
+                }
+                return;
+              }
+              action.onSelect();
+              onAnnounce?.(`${action.label} requested for ${layerName}`);
+            }}
+          >
+            {action.label}
+          </button>
+        );
+      })}
+    </div>
+  </details>
+);
 
 /* ---- Metadata Popover ---- */
 
@@ -692,13 +1095,17 @@ const MetadataPopover: React.FC<MetadataPopoverProps> = ({
   const analysisResult = meta?.analysisResult;
   const datasetContext = meta?.datasetContext;
   const columnar = meta?.columnar;
-  const sourceKind = resolveLayerSourceKind(layer);
-  const qaStatus = resolveLayerQaStatus(layer);
+  const registry = normalizeLayerRegistryMetadata(layer);
+  const sourceKind = registry.sourceKind;
+  const qaStatus = registry.qaStatus;
   const scientificQA = meta?.scientificQA;
   const cartographyReview = meta?.cartographyReview;
-  const queryable = isLayerQueryable(layer);
-  const crs = resolveLayerCrs(layer);
-  const provenanceLabel = resolveLayerProvenanceLabel(layer);
+  const queryable = registry.queryable;
+  const crs = registry.crsSummary.crs ?? "Unknown CRS";
+  const provenanceLabel = registry.provenance.label;
+  const reportAction = buildLayerEvidenceActions(layer, {
+    ...(onAddLayerToReport ? { onAddLayerToReport } : {}),
+  }).find((action) => action.id === "report");
   const isRerunning = Boolean(
     analysisResult?.rerunToken && activeRerunToken === analysisResult.rerunToken,
   );
@@ -715,11 +1122,17 @@ const MetadataPopover: React.FC<MetadataPopoverProps> = ({
       <div style={{ fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold, color: MAP_COLORS.amber, marginBottom: 8 }}>
         {layer.name}
       </div>
-      {onAddLayerToReport ? (
+      {onAddLayerToReport && reportAction ? (
         <button
           type="button"
-          style={{ ...rerunBtn, marginBottom: 10 }}
-          onClick={() => onAddLayerToReport(layer.id)}
+          style={{
+            ...rerunBtn,
+            marginBottom: 10,
+            ...(reportAction.disabledReason ? layerActionButtonDisabled : {}),
+          }}
+          onClick={() => reportAction.onSelect?.()}
+          disabled={Boolean(reportAction.disabledReason || !reportAction.onSelect)}
+          title={reportAction.disabledReason ?? "Add this layer to the report handoff draft."}
         >
           Add to report
         </button>
@@ -747,6 +1160,10 @@ const MetadataPopover: React.FC<MetadataPopoverProps> = ({
       <div style={{ marginBottom: 4 }}>
         <span style={{ color: MAP_COLORS.textMuted }}>QA Status: </span>
         <span>{QA_STATUS_LABELS[qaStatus]}</span>
+      </div>
+      <div style={{ marginBottom: 4 }}>
+        <span style={{ color: MAP_COLORS.textMuted }}>Publication: </span>
+        <span>{PUBLICATION_READINESS_LABELS[registry.publicationReadiness.status]}</span>
       </div>
       {scientificQA ? (
         <div>
@@ -1141,11 +1558,20 @@ interface LayerRowProps {
   onToggleVisibility: (id: string) => void;
   onSetOpacity: (id: string, opacity: number) => void;
   onRemove: (id: string) => void;
+  onRequestRemove: (id: string) => void;
+  onCancelRemove: (id: string) => void;
   onNameClick: (id: string, top: number) => void;
   onOpenSymbology?: (id: string) => void;
+  onExportLayer?: (id: string) => void;
+  onSendLayerToUrban?: (id: string) => void;
+  onOpenLayerInIde?: (id: string) => void;
+  onAddLayerToReport?: (id: string) => void;
+  onBindLayerToDashboard?: (id: string) => void;
   isSymbologyActive?: boolean;
+  isRemovePending: boolean;
   cartographyRecommendationCount?: number;
   onReviewCartography?: (id: string) => void;
+  onAnnounce?: (msg: string) => void;
   /** Drag and drop */
   isDragging: boolean;
   onDragStart: (e: React.DragEvent, id: string) => void;
@@ -1159,11 +1585,20 @@ const LayerRow: React.FC<LayerRowProps> = ({
   onToggleVisibility,
   onSetOpacity,
   onRemove,
+  onRequestRemove,
+  onCancelRemove,
   onNameClick,
   onOpenSymbology,
+  onExportLayer,
+  onSendLayerToUrban,
+  onOpenLayerInIde,
+  onAddLayerToReport,
+  onBindLayerToDashboard,
   isSymbologyActive = false,
+  isRemovePending,
   cartographyRecommendationCount = 0,
   onReviewCartography,
+  onAnnounce,
   isDragging,
   onDragStart,
   onDragOver,
@@ -1178,7 +1613,16 @@ const LayerRow: React.FC<LayerRowProps> = ({
   const qaStatus = resolveLayerQaStatus(layer);
   const queryable = isLayerQueryable(layer);
   const crs = resolveLayerCrs(layer);
-  const featureCount = layer.metadata?.featureCount;
+  const registry = normalizeLayerRegistryMetadata(layer);
+  const featureCount = registry.featureCount;
+  const layerBadges = buildLayerBadges(layer);
+  const evidenceActions = buildLayerEvidenceActions(layer, {
+    ...(onExportLayer ? { onExportLayer } : {}),
+    ...(onSendLayerToUrban ? { onSendLayerToUrban } : {}),
+    ...(onOpenLayerInIde ? { onOpenLayerInIde } : {}),
+    ...(onAddLayerToReport ? { onAddLayerToReport } : {}),
+    ...(onBindLayerToDashboard ? { onBindLayerToDashboard } : {}),
+  });
   const importFormat = formatImportSourceLabel(layer.metadata?.importFormat);
   const detailSummary = [
     SOURCE_KIND_LABELS[sourceKind],
@@ -1208,6 +1652,11 @@ const LayerRow: React.FC<LayerRowProps> = ({
       aria-selected={false}
       aria-label={`Layer: ${layer.name}`}
       tabIndex={0}
+      onKeyDown={(event) => {
+        if (event.key === "Escape" && isRemovePending) {
+          onCancelRemove(layer.id);
+        }
+      }}
     >
       {/* Visibility toggle */}
       <button
@@ -1253,6 +1702,12 @@ const LayerRow: React.FC<LayerRowProps> = ({
                 {SCIENTIFIC_QA_BADGE_LABELS[badge]}
               </span>
             ))}
+        </div>
+
+        <div style={layerBadgeRail} aria-label={`Layer readiness badges for ${layer.name}`}>
+          {layerBadges.map((badge) => (
+            <LayerBadge key={badge.id} badge={badge} />
+          ))}
         </div>
 
         {analysisResult ? (
@@ -1311,6 +1766,12 @@ const LayerRow: React.FC<LayerRowProps> = ({
             </button>
           ) : null}
 
+          <LayerActionMenu
+            layerName={layer.name}
+            actions={evidenceActions}
+            {...(onAnnounce ? { onAnnounce } : {})}
+          />
+
           <input
             type="range"
             min={0}
@@ -1327,14 +1788,31 @@ const LayerRow: React.FC<LayerRowProps> = ({
       {/* Remove button */}
       <button
         type="button"
-        style={removeBtn}
-        onClick={() => onRemove(layer.id)}
-        aria-label={`Remove layer ${layer.name}`}
-        title="Remove layer"
+        style={isRemovePending ? confirmRemoveBtn : removeBtn}
+        onClick={() => {
+          if (isRemovePending) {
+            onRemove(layer.id);
+            return;
+          }
+          onRequestRemove(layer.id);
+        }}
+        aria-label={isRemovePending ? `Confirm remove layer ${layer.name}` : `Remove layer ${layer.name}`}
+        title={isRemovePending ? "Confirm removal" : "Remove layer"}
       >
         <IconClose size={11} />
-        Delete
+        {isRemovePending ? "Confirm" : "Delete"}
       </button>
+      {isRemovePending ? (
+        <button
+          type="button"
+          style={cancelRemoveBtn}
+          onClick={() => onCancelRemove(layer.id)}
+          aria-label={`Cancel remove layer ${layer.name}`}
+          title="Cancel removal"
+        >
+          Cancel
+        </button>
+      ) : null}
     </div>
   );
 };
@@ -1352,6 +1830,10 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
   onAddLayer,
   onReRunAnalysisLayer,
   onAddLayerToReport,
+  onExportLayer,
+  onSendLayerToUrban,
+  onOpenLayerInIde,
+  onBindLayerToDashboard,
   activeRerunToken = null,
   onOpenSymbology,
   activeSymbologyLayerId = null,
@@ -1373,6 +1855,7 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
   const [query, setQuery] = useState("");
   const [cartographyPanelOpen, setCartographyPanelOpen] = useState(false);
   const [cartographyLayerFilterId, setCartographyLayerFilterId] = useState<string | null>(null);
+  const [pendingRemoveLayerId, setPendingRemoveLayerId] = useState<string | null>(null);
   const hasSearch = query.trim().length > 0;
 
   const filteredOverlayLayers = useMemo(() => {
@@ -1381,6 +1864,8 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
       if (!normalizedQuery) {
         return true;
       }
+
+      const registry = normalizeLayerRegistryMetadata(layer);
 
       const haystack = [
         layer.name,
@@ -1392,6 +1877,10 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
         resolveLayerCrs(layer),
         resolveLayerProvenanceLabel(layer),
         isLayerQueryable(layer) ? "queryable" : "not queryable",
+        registry.publicationReadiness.status,
+        PUBLICATION_READINESS_LABELS[registry.publicationReadiness.status],
+        ...registry.readiness.missingFields.map(formatMetadataField),
+        ...registry.publicationReadiness.caveats,
         layer.metadata?.geometryType,
         formatImportSourceLabel(layer.metadata?.importFormat),
         layer.metadata?.columnar?.format,
@@ -1509,6 +1998,18 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
     }
   }, [onToggleVisibility, overlayLayers, onAnnounce]);
 
+  const handleRequestRemove = useCallback((id: string) => {
+    const layer = overlayLayers.find((entry) => entry.id === id);
+    setPendingRemoveLayerId(id);
+    onAnnounce?.(`Confirm removal for layer "${layer?.name ?? id}"`);
+  }, [onAnnounce, overlayLayers]);
+
+  const handleCancelRemove = useCallback((id: string) => {
+    setPendingRemoveLayerId((current) => (current === id ? null : current));
+    const layer = overlayLayers.find((entry) => entry.id === id);
+    onAnnounce?.(`Removal cancelled for layer "${layer?.name ?? id}"`);
+  }, [onAnnounce, overlayLayers]);
+
   const handleOpenCartographyReview = useCallback((layerId: string | null) => {
     setCartographyLayerFilterId(layerId);
     setCartographyPanelOpen(true);
@@ -1523,6 +2024,7 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
     const layer = overlayLayers.find((l) => l.id === id);
     onRemoveLayer(id);
     setPopoverLayerId(null);
+    setPendingRemoveLayerId(null);
     onAnnounce?.(`Layer "${layer?.name ?? id}" removed`);
   }, [onRemoveLayer, overlayLayers, onAnnounce]);
 
@@ -1666,10 +2168,19 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
                     onToggleVisibility={handleToggle}
                     onSetOpacity={onSetOpacity}
                     onRemove={handleRemove}
+                    onRequestRemove={handleRequestRemove}
+                    onCancelRemove={handleCancelRemove}
                     onNameClick={handleNameClick}
                     isSymbologyActive={activeSymbologyLayerId === layer.id}
+                    isRemovePending={pendingRemoveLayerId === layer.id}
                     cartographyRecommendationCount={cartographyRecommendationCountByLayer.get(layer.id) ?? 0}
                     {...(cartographyReviewState ? { onReviewCartography: handleOpenCartographyReview } : {})}
+                    {...(onExportLayer ? { onExportLayer } : {})}
+                    {...(onSendLayerToUrban ? { onSendLayerToUrban } : {})}
+                    {...(onOpenLayerInIde ? { onOpenLayerInIde } : {})}
+                    {...(onAddLayerToReport ? { onAddLayerToReport } : {})}
+                    {...(onBindLayerToDashboard ? { onBindLayerToDashboard } : {})}
+                    {...(onAnnounce ? { onAnnounce } : {})}
                     isDragging={dragId === layer.id}
                     onDragStart={handleDragStart}
                     onDragOver={handleDragOver}

@@ -118,6 +118,108 @@ export interface LayerPersistenceMetadata {
   sourceRef?: string;
 }
 
+export type LayerMetadataSource =
+  | "explicit"
+  | "dataset-context"
+  | "columnar"
+  | "eo-source"
+  | "external-service"
+  | "analysis-result"
+  | "feature-collection"
+  | "legacy-default"
+  | "unknown";
+
+export type LayerCrsStatus = "known" | "missing" | "unknown";
+
+export interface LayerCrsSummary {
+  crs: string | null;
+  status: LayerCrsStatus;
+  source: LayerMetadataSource;
+  notes: string[];
+}
+
+export interface LayerGeometrySummary {
+  geometryType: string;
+  geometryTypes: string[];
+  featureCount: number | null;
+  source: LayerMetadataSource;
+  notes: string[];
+  bounds?: [number, number, number, number];
+}
+
+export type LayerSchemaFieldRole = "geometry" | "attribute" | "identifier" | "temporal" | "unknown";
+
+export interface LayerSchemaFieldSummary {
+  name: string;
+  role: LayerSchemaFieldRole;
+  type?: string;
+  nullable?: boolean;
+}
+
+export interface LayerSchemaSummary {
+  fieldCount: number;
+  fields: LayerSchemaFieldSummary[];
+  source: LayerMetadataSource;
+  notes: string[];
+  geometryField?: string;
+}
+
+export interface LayerLicenseAttributionSummary {
+  license: string | null;
+  attribution: string | null;
+  sourceName: string | null;
+  requiresAttribution: boolean;
+  source: LayerMetadataSource;
+  notes: string[];
+  sourceUrl?: string;
+}
+
+export type LayerPublicationReadinessStatus = "ready" | "ready-with-caveats" | "needs-review" | "blocked";
+
+export interface LayerPublicationReadiness {
+  status: LayerPublicationReadinessStatus;
+  missingFields: string[];
+  blockingIssueIds: string[];
+  caveats: string[];
+  checkedAt?: string;
+}
+
+export interface MapLayerReadinessSummary {
+  layerId: string;
+  status: LayerPublicationReadinessStatus;
+  geometryReady: boolean;
+  crsReady: boolean;
+  metadataReady: boolean;
+  queryReady: boolean;
+  temporalReady: boolean;
+  workerReady: boolean;
+  missingFields: string[];
+  blockingIssueIds: string[];
+  caveats: string[];
+}
+
+export interface LayerRegistryCompatibilitySummary {
+  legacy: boolean;
+  source: "explicit" | "normalized";
+  missingMetadata: string[];
+}
+
+export interface LayerRegistryMetadata {
+  sourceKind: LayerSourceKind;
+  provenance: LayerProvenance;
+  crsSummary: LayerCrsSummary;
+  geometrySummary: LayerGeometrySummary;
+  featureCount: number | null;
+  schemaSummary: LayerSchemaSummary;
+  licenseAttribution: LayerLicenseAttributionSummary;
+  qaStatus: LayerQaStatus;
+  queryable: boolean;
+  publicationReadiness: LayerPublicationReadiness;
+  readiness: MapLayerReadinessSummary;
+  compatibility: LayerRegistryCompatibilitySummary;
+  evidenceArtifactId?: string;
+}
+
 export interface LayerMetadata {
   featureCount?: number;
   geometryType?: string;
@@ -134,6 +236,13 @@ export interface LayerMetadata {
   scientificQA?: LayerScientificQAMetadata;
   cartographyReview?: LayerCartographyReviewMetadata;
   persistence?: LayerPersistenceMetadata;
+  schemaSummary?: LayerSchemaSummary;
+  crsSummary?: LayerCrsSummary;
+  geometrySummary?: LayerGeometrySummary;
+  licenseAttribution?: LayerLicenseAttributionSummary;
+  publicationReadiness?: LayerPublicationReadiness;
+  evidenceArtifactId?: string;
+  registry?: LayerRegistryMetadata;
 }
 
 export interface LayerProvenance {
@@ -321,7 +430,15 @@ export interface MapLayerRegistryLayerSummary {
   qaStatus?: LayerQaStatus;
   queryable: boolean;
   crs?: string;
+  crsStatus?: LayerCrsStatus;
+  geometryType?: string;
   featureCount?: number;
+  schemaFieldCount?: number;
+  license?: string;
+  attribution?: string;
+  publicationReadiness?: LayerPublicationReadinessStatus;
+  evidenceArtifactId?: string;
+  metadataReady?: boolean;
   provenanceLabel?: string;
 }
 

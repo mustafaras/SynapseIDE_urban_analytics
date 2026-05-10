@@ -17,6 +17,11 @@ import type {
   MapLayerRegistryLayerSummary,
   OverlayLayerConfig,
 } from "./mapTypes";
+import {
+  normalizeLayerRegistryMetadata,
+  resolveOverlayLayerCrs as resolveNormalizedOverlayLayerCrs,
+  resolveOverlayLayerQueryable as resolveNormalizedOverlayLayerQueryable,
+} from "./mapLayerMetadata";
 import type {
   MapScientificQAIssueSeverity,
   MapScientificQAState,
@@ -112,24 +117,18 @@ export interface MapExplorerContextSummaryInput {
 /* ------------------------------------------------------------------ */
 
 export function resolveOverlayLayerCrs(layer: OverlayLayerConfig): string | undefined {
-  return (
-    layer.metadata?.datasetContext?.crs
-    ?? layer.metadata?.columnar?.crs
-    ?? layer.metadata?.eoSource?.crs
-  );
+  return resolveNormalizedOverlayLayerCrs(layer);
 }
 
 export function resolveOverlayLayerQueryable(layer: OverlayLayerConfig): boolean {
-  if (layer.queryable !== undefined) {
-    return layer.queryable;
-  }
-  return layer.type === "geojson" || layer.type === "heatmap";
+  return resolveNormalizedOverlayLayerQueryable(layer);
 }
 
 export function summarizeOverlayLayer(layer: OverlayLayerConfig): MapLayerRegistryLayerSummary {
-  const crs = resolveOverlayLayerCrs(layer);
-  const featureCount = layer.metadata?.featureCount;
-  const provenanceLabel = layer.provenance?.label;
+  const registry = normalizeLayerRegistryMetadata(layer);
+  const crs = registry.crsSummary.crs;
+  const featureCount = registry.featureCount;
+  const { license, attribution } = registry.licenseAttribution;
 
   return {
     layerId: layer.id,
@@ -138,12 +137,20 @@ export function summarizeOverlayLayer(layer: OverlayLayerConfig): MapLayerRegist
     group: layer.group ?? "data",
     visible: layer.visible,
     opacity: layer.opacity,
-    queryable: resolveOverlayLayerQueryable(layer),
-    ...(layer.sourceKind ? { sourceKind: layer.sourceKind } : {}),
-    ...(layer.qaStatus ? { qaStatus: layer.qaStatus } : {}),
+    queryable: registry.queryable,
+    sourceKind: registry.sourceKind,
+    qaStatus: registry.qaStatus,
+    crsStatus: registry.crsSummary.status,
+    geometryType: registry.geometrySummary.geometryType,
+    schemaFieldCount: registry.schemaSummary.fieldCount,
+    publicationReadiness: registry.publicationReadiness.status,
+    metadataReady: registry.readiness.metadataReady,
+    provenanceLabel: registry.provenance.label,
     ...(crs ? { crs } : {}),
     ...(featureCount != null ? { featureCount } : {}),
-    ...(provenanceLabel ? { provenanceLabel } : {}),
+    ...(license ? { license } : {}),
+    ...(attribution ? { attribution } : {}),
+    ...(registry.evidenceArtifactId ? { evidenceArtifactId: registry.evidenceArtifactId } : {}),
   };
 }
 

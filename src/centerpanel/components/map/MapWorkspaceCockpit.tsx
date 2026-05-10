@@ -22,6 +22,7 @@ import {
 import styles from "./MapWorkspaceCockpit.module.css";
 import type { OverlayLayerConfig } from "./mapTypes";
 import { MAP_TYPOGRAPHY } from "./mapTokens";
+import type { MapExplorerContextSummary } from "./mapContextSummary";
 import type { MapAnalysisRecommendation } from "@/services/map/MapAnalysisRecommender";
 import {
   getMapWorkspaceReadiness,
@@ -36,14 +37,33 @@ export interface MapWorkspaceCockpitProps {
   workspaceView: MapWorkspaceView;
   onSelectView: (view: MapWorkspaceView) => void;
   onQuickAction: (actionId: MapQuickActionId) => void;
+  contextSummary: MapExplorerContextSummary;
   overlayLayers: OverlayLayerConfig[];
   pinCount: number;
   drawnFeatureCount: number;
   measurementCount: number;
   selectedProjectId?: string | null;
   lastSavedAt?: string | null;
+  activeAoiLabel?: string | null;
+  qaIssueCount?: number;
+  qaBlockerCount?: number;
+  workflowReadyCount?: number;
+  visiblePublicationLayerCount?: number;
+  viewportSyncEnabled?: boolean;
+  syncStatus?: string;
   analysisRecommendations?: MapAnalysisRecommendation[];
   onAnalysisRecommendationAction?: (recommendation: MapAnalysisRecommendation) => void;
+}
+
+type ContextSignalTone = keyof typeof signalToneClassName;
+
+interface ContextSignal {
+  id: string;
+  label: string;
+  value: string;
+  detail: string;
+  Icon: LucideIcon;
+  tone: ContextSignalTone;
 }
 
 const viewIcons: Record<MapWorkspaceView, LucideIcon> = {
@@ -141,16 +161,57 @@ function formatSaveLabel(lastSavedAt?: string | null): string {
   }).format(parsed);
 }
 
+function formatGeometryFamily(
+  family: NonNullable<MapExplorerContextSummary["activeAoi"]>["geometryFamily"],
+): string {
+  switch (family) {
+    case "polygon":
+      return "Polygon AOI";
+    case "multipolygon":
+      return "Multi-polygon AOI";
+    case "linestring":
+      return "Line study frame";
+    case "multilinestring":
+      return "Multi-line study frame";
+    case "point":
+      return "Point study frame";
+    case "multipoint":
+      return "Multi-point study frame";
+    case "geometrycollection":
+      return "Mixed study frame";
+    default:
+      return "Study frame";
+  }
+}
+
+function formatShortTime(value?: string | null): string | null {
+  if (!value) return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return new Intl.DateTimeFormat(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(parsed);
+}
+
 export const MapWorkspaceCockpit: React.FC<MapWorkspaceCockpitProps> = ({
   workspaceView,
   onSelectView,
   onQuickAction,
+  contextSummary,
   overlayLayers,
   pinCount,
   drawnFeatureCount,
   measurementCount,
   selectedProjectId = null,
   lastSavedAt = null,
+  activeAoiLabel = null,
+  qaIssueCount = 0,
+  qaBlockerCount = 0,
+  workflowReadyCount = 0,
+  visiblePublicationLayerCount = 0,
+  viewportSyncEnabled = false,
+  syncStatus = "Viewport sync off",
   analysisRecommendations = [],
   onAnalysisRecommendationAction,
 }) => {
@@ -165,8 +226,18 @@ export const MapWorkspaceCockpit: React.FC<MapWorkspaceCockpitProps> = ({
   const visibleLayerCount = overlayLayers.filter((layer) => layer.visible).length;
   const analysisLayerCount = overlayLayers.filter((layer) => (layer.group ?? "data") === "analysis").length;
   const staleLayerCount = overlayLayers.filter((layer) => layer.metadata?.analysisResult?.stale).length;
+  const selectedFeatureCount = contextSummary.selection.totalSelectedFeatures;
+  const selectedLayerCount = contextSummary.selection.layerCounts.length;
+  const activeAoi = contextSummary.activeAoi;
+  const qaCheckedLabel = formatShortTime(contextSummary.qa.checkedAt);
   const projectLabel = useMemo(() => formatProjectLabel(selectedProjectId), [selectedProjectId]);
   const saveLabel = useMemo(() => formatSaveLabel(lastSavedAt), [lastSavedAt]);
+  const dataLayerCount = overlayLayers.filter((layer) => (layer.group ?? "data") === "data").length;
+  const columnarLayerCount = overlayLayers.filter((layer) => Boolean(layer.metadata?.columnar)).length;
+  const featureCount = overlayLayers.reduce((sum, layer) => {
+    const layerFeatureCount = layer.metadata?.featureCount;
+    return sum + (typeof layerFeatureCount === "number" ? layerFeatureCount : 0);
+  }, 0);
 
   const recommendedAction = useMemo(
     () => getRecommendedMapQuickAction({
@@ -195,6 +266,139 @@ export const MapWorkspaceCockpit: React.FC<MapWorkspaceCockpitProps> = ({
     [analysisRecommendations],
   );
 
+  const contextSignals = useMemo<ContextSignal[]>(() => {
+    const aoiValue = activeAoi
+      ? activeAoiLabel ?? activeAoi.aoiId
+      : contextSummary.currentBounds
+        ? "View extent only"
+        : "Needs context";
+    const aoiDetail = activeAoi
+      ? `${formatGeometryFamily(activeAoi.geometryFamily)}${activeAoi.bbox ? " · bounded" : ""}`
+      : contextSummary.currentBounds
+        ? "Current visible extent can scope dispatches until an AOI is drawn."
+        : "Draw or select an AOI before AOI-based workflows can run.";
+
+    const qaValue = qaBlockerCount > 0
+      ? "Blocked"
+      : qaIssueCount > 0 || contextSummary.qa.status === "warning"
+        ? "Caveats"
+        : contextSummary.qa.status === "passed"
+          ? "Ready"
+          : "Unchecked";
+    const qaDetail = qaBlockerCount > 0
+      ? `${qaBlockerCount} blocker${qaBlockerCount === 1 ? "" : "s"} still prevent formal output.`
+      : qaIssueCount > 0
+        ? `${qaIssueCount} issue${qaIssueCount === 1 ? "" : "s"} need review before briefing or export.`
+        : contextSummary.qa.status === "passed"
+          ? `QA checked${qaCheckedLabel ? ` at ${qaCheckedLabel}` : " for the current visible stack"}.`
+          : layerCount > 0
+            ? "Run scientific QA to confirm the current stack is publication-safe."
+            : "Load visible layers before QA can assess the workspace.";
+
+    const workflowValue = workflowReadyCount > 0
+      ? `${workflowReadyCount} ready`
+      : activeAoi || contextSummary.currentBounds
+        ? "Needs inputs"
+        : "Needs frame";
+    const workflowDetail = workflowReadyCount > 0
+      ? `${workflowReadyCount} geometry-bearing layer${workflowReadyCount === 1 ? " is" : "s are"} available for workflow preview.`
+      : activeAoi || contextSummary.currentBounds
+        ? "Theme or reveal a geometry layer so workflow previews have valid spatial input."
+        : "Establish a study frame before spatial workflows or dispatches can run.";
+
+    const exportValue = visiblePublicationLayerCount === 0
+      ? "Needs layer"
+      : qaBlockerCount > 0
+        ? "Blocked"
+        : "Ready";
+    const exportDetail = visiblePublicationLayerCount === 0
+      ? "Reveal at least one visible layer before export or report packaging can begin."
+      : qaBlockerCount > 0
+        ? `${qaBlockerCount} QA blocker${qaBlockerCount === 1 ? "" : "s"} must be resolved before formal output.`
+        : `${visiblePublicationLayerCount} visible publication layer${visiblePublicationLayerCount === 1 ? " is" : "s are"} available for packaging.`;
+
+    return [
+      {
+        id: "stack",
+        label: "Visible Stack",
+        value: `${contextSummary.visibleLayerIds.length}/${layerCount}`,
+        detail: layerCount > 0
+          ? `${featureCount.toLocaleString()} mapped feature${featureCount === 1 ? "" : "s"} across the active stack.`
+          : "Import or reveal a dataset before layer controls, QA, and export can run.",
+        Icon: Layers3,
+        tone: contextSummary.visibleLayerIds.length > 0 ? "ready" : "attention",
+      },
+      {
+        id: "aoi",
+        label: "Active AOI",
+        value: aoiValue,
+        detail: aoiDetail,
+        Icon: MapPinned,
+        tone: activeAoi ? "ready" : contextSummary.currentBounds ? "neutral" : "attention",
+      },
+      {
+        id: "selection",
+        label: "Selection",
+        value: selectedFeatureCount > 0 ? `${selectedFeatureCount} selected` : "No selection",
+        detail: selectedFeatureCount > 0
+          ? `${selectedLayerCount} layer${selectedLayerCount === 1 ? "" : "s"} currently drive map stats and workflow context.`
+          : "Select one or more features to compute statistics and focus analysis.",
+        Icon: Database,
+        tone: selectedFeatureCount > 0 ? "ready" : "neutral",
+      },
+      {
+        id: "qa",
+        label: "QA Status",
+        value: qaValue,
+        detail: qaDetail,
+        Icon: Shield,
+        tone: qaBlockerCount > 0 || qaIssueCount > 0 ? "attention" : contextSummary.qa.status === "passed" ? "ready" : "neutral",
+      },
+      {
+        id: "workflow",
+        label: "Workflow Surface",
+        value: workflowValue,
+        detail: workflowDetail,
+        Icon: FlaskConical,
+        tone: workflowReadyCount > 0 ? "ready" : activeAoi || contextSummary.currentBounds ? "neutral" : "attention",
+      },
+      {
+        id: "export",
+        label: "Export Surface",
+        value: exportValue,
+        detail: exportDetail,
+        Icon: FileOutput,
+        tone: visiblePublicationLayerCount > 0 && qaBlockerCount === 0 ? "ready" : visiblePublicationLayerCount > 0 || qaBlockerCount > 0 ? "attention" : "neutral",
+      },
+      {
+        id: "sync",
+        label: "Sync State",
+        value: viewportSyncEnabled ? "Linked" : "Off",
+        detail: viewportSyncEnabled ? syncStatus : "Local map state only until viewport sync is enabled.",
+        Icon: Globe,
+        tone: viewportSyncEnabled ? "ready" : "neutral",
+      },
+    ];
+  }, [
+    activeAoi,
+    activeAoiLabel,
+    contextSummary.currentBounds,
+    contextSummary.qa.checkedAt,
+    contextSummary.qa.status,
+    contextSummary.visibleLayerIds.length,
+    featureCount,
+    layerCount,
+    qaBlockerCount,
+    qaCheckedLabel,
+    qaIssueCount,
+    selectedFeatureCount,
+    selectedLayerCount,
+    syncStatus,
+    viewportSyncEnabled,
+    visiblePublicationLayerCount,
+    workflowReadyCount,
+  ]);
+
   const supportQuickActions = useMemo(() => {
     const orderedIds = [recommendedActionMeta.id, ...supportingActionOrder];
     const seen = new Set<MapQuickActionId>();
@@ -210,13 +414,6 @@ export const MapWorkspaceCockpit: React.FC<MapWorkspaceCockpitProps> = ({
       .filter((action): action is (typeof MAP_QUICK_ACTIONS)[number] => Boolean(action))
       .slice(0, 6);
   }, [recommendedActionMeta.id]);
-
-  const dataLayerCount = overlayLayers.filter((layer) => (layer.group ?? "data") === "data").length;
-  const columnarLayerCount = overlayLayers.filter((layer) => Boolean(layer.metadata?.columnar)).length;
-  const featureCount = overlayLayers.reduce((sum, layer) => {
-    const layerFeatureCount = layer.metadata?.featureCount;
-    return sum + (typeof layerFeatureCount === "number" ? layerFeatureCount : 0);
-  }, 0);
 
   const workspaceMetrics = useMemo(
     () => [
@@ -346,6 +543,26 @@ export const MapWorkspaceCockpit: React.FC<MapWorkspaceCockpitProps> = ({
           <ArrowRight size={14} />
         </button>
       </header>
+
+      <div className={styles.contextStrip} aria-label="Active map context summary" data-testid="map-workspace-context-strip">
+        {contextSignals.map((signal) => {
+          const SignalIcon = signal.Icon;
+          return (
+            <article
+              key={signal.id}
+              className={`${styles.contextCell} ${signalToneClassName[signal.tone]}`}
+              aria-label={`${signal.label}: ${signal.value}. ${signal.detail}`}
+            >
+              <span className={styles.contextCellIcon}><SignalIcon size={14} /></span>
+              <span className={styles.contextCellCopy}>
+                <span className={styles.contextCellLabel}>{signal.label}</span>
+                <strong>{signal.value}</strong>
+                <span>{signal.detail}</span>
+              </span>
+            </article>
+          );
+        })}
+      </div>
 
       <div className={styles.bodyGrid}>
         <section className={`${styles.pane} ${styles.statePane}`} aria-label="Current map state">

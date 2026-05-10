@@ -52,12 +52,24 @@ export type {
   OverlayLayerConfig,
   OverlayGeometryType,
   LayerGroupId,
+  LayerCrsStatus,
+  LayerCrsSummary,
+  LayerGeometrySummary,
+  LayerLicenseAttributionSummary,
   LayerMetadata,
+  LayerMetadataSource,
+  LayerPublicationReadiness,
+  LayerPublicationReadinessStatus,
   LayerProvenance,
   LayerQaStatus,
+  LayerRegistryMetadata,
+  LayerSchemaFieldRole,
+  LayerSchemaFieldSummary,
+  LayerSchemaSummary,
   LayerSourceKind,
   LayerScientificQABadge,
   LayerScientificQAMetadata,
+  MapLayerReadinessSummary,
   MapEvidenceArtifact,
   MapEvidenceArtifactKind,
   MapEvidenceArtifactState,
@@ -82,6 +94,18 @@ export type {
   TemporalTimeRange,
 } from "./mapTypes";
 export { BASE_STYLES, MAP_LAYER_REGISTRY_EVENT } from "./mapTypes";
+
+export {
+  normalizeLayerRegistryMetadata,
+  resolveOverlayLayerCrsSummary,
+  resolveOverlayLayerGeometrySummary,
+  resolveOverlayLayerLicenseAttribution,
+  resolveOverlayLayerProvenance,
+  resolveOverlayLayerQaStatus,
+  resolveOverlayLayerSchemaSummary,
+  resolveOverlayLayerSourceKind,
+  withNormalizedLayerRegistryMetadata,
+} from "./mapLayerMetadata";
 
 export {
   MAP_WORKSPACE_VIEWS,

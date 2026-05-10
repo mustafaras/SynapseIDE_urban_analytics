@@ -1,5 +1,5 @@
 import React from "react";
-import type { MeasureUnit } from "./mapTypes";
+import type { LayerQaStatus, MeasureUnit } from "./mapTypes";
 import {
   MAP_COLORS,
   MAP_SPACING,
@@ -25,6 +25,11 @@ export interface MapStatusBarProps {
   measureUnit?: MeasureUnit;
   crs?: string;
   syncStatus?: string;
+  selectedFeatureCount?: number;
+  hasActiveAoi?: boolean;
+  qaStatus?: LayerQaStatus;
+  qaIssueCount?: number;
+  qaBlockerCount?: number;
   isSaving?: boolean;
   isLoading?: boolean;
   lastSavedAt?: string | null;
@@ -161,6 +166,19 @@ function formatSaveLabel(value?: string | null): string {
   return parsed.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
+function formatQaLabel(status: LayerQaStatus, issueCount: number, blockerCount: number): string {
+  if (blockerCount > 0 || status === "error") {
+    return blockerCount > 0 ? `${blockerCount} blocked` : "blocked";
+  }
+  if (issueCount > 0 || status === "warning") {
+    return issueCount > 0 ? `${issueCount} issues` : "caveats";
+  }
+  if (status === "passed") {
+    return "ready";
+  }
+  return "unchecked";
+}
+
 /* ================================================================== */
 /*  Component                                                          */
 /* ================================================================== */
@@ -178,6 +196,11 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
   measureUnit = "metric",
   crs = "EPSG:4326",
   syncStatus = "3D link off",
+  selectedFeatureCount = 0,
+  hasActiveAoi = false,
+  qaStatus = "unchecked",
+  qaIssueCount = 0,
+  qaBlockerCount = 0,
   isSaving = false,
   isLoading = false,
   lastSavedAt = null,
@@ -194,15 +217,19 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
   const syncLabel = syncStatus;
   const projectLabel = formatProjectLabel(projectId);
   const geometryLabel = `${drawnFeatureCount} draw / ${measurementCount} meas / ${pinCount} pin`;
+  const qaLabel = formatQaLabel(qaStatus, qaIssueCount, qaBlockerCount);
   const statusItems: StatusItem[] = [
     { label: "Zoom", value: zoom.toFixed(1) },
     ...(cursor != null ? [{ label: "Cursor", value: `${cursor.lat.toFixed(5)}, ${cursor.lng.toFixed(5)}`, maxWidth: "12rem" }] : []),
     { label: "Project", value: projectLabel, maxWidth: "12rem" },
     { label: "Mode", value: workspaceLabel ?? "explore" },
     { label: "Layers", value: `${visibleLayerCount}/${layerCount}` },
+    { label: "Select", value: `${selectedFeatureCount}` },
+    { label: "AOI", value: hasActiveAoi ? "active" : "none" },
     { label: "Marks", value: geometryLabel },
     { label: "Units", value: measureUnit === "metric" ? "metric" : "imperial" },
     { label: "CRS", value: crs },
+    { label: "QA", value: qaLabel },
     { label: "Sync", value: syncLabel },
     { label: "Saved", value: saveLabel, busy: isSaving || isLoading },
   ];

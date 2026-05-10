@@ -308,6 +308,8 @@ describe("useMapExplorerStore — overlay layer actions", () => {
     expect(updated.name).toBe("Updated Name");
     expect(updated.metadata?.featureCount).toBe(42);
     expect(updated.metadata?.geometryType).toBe("Point");
+    expect(updated.metadata?.registry?.geometrySummary.geometryType).toBe("Point");
+    expect(updated.metadata?.registry?.publicationReadiness.status).toBe("needs-review");
   });
 
   it("reorderLayers reorders by ID array", async () => {
@@ -342,6 +344,12 @@ describe("useMapExplorerStore — overlay layer actions", () => {
     expect(stored.qaStatus).toBe("unchecked");
     expect(stored.queryable).toBe(true);
     expect(stored.provenance?.label).toBe("imported layer");
+    expect(stored.metadata?.registry).toMatchObject({
+      sourceKind: "imported",
+      qaStatus: "unchecked",
+      crsSummary: { status: "missing" },
+      publicationReadiness: { status: "needs-review" },
+    });
   });
 
   it("publishes lightweight layer registry events for store changes", async () => {
@@ -372,6 +380,9 @@ describe("useMapExplorerStore — overlay layer actions", () => {
       sourceKind: "project",
       qaStatus: "unchecked",
       queryable: true,
+      crsStatus: "missing",
+      publicationReadiness: "needs-review",
+      metadataReady: false,
       provenanceLabel: "project layer",
     });
   });
@@ -525,12 +536,68 @@ describe("MapLayerManager component", () => {
     );
 
     expect(html).toContain("External");
+    expect(html).toContain("Source layer");
     expect(html).toContain("QA warning");
+    expect(html).toContain("Queryable");
+    expect(html).toContain("Publication needs review");
     expect(html).toContain("queryable");
     expect(html).toContain("EPSG:3857");
     expect(html).toContain("240 features");
+    expect(html).toContain("Actions");
+    expect(html).toContain("Publication needs review: missing license attribution.");
     expect(html).toContain("Delete");
-    expect(html).not.toContain("Scientific QA");
+  });
+
+  it("renders disabled reasons for layer handoff actions", async () => {
+    const mod = await import("../MapLayerManager");
+    const layer: OverlayLayerConfig = {
+      id: "ready-layer",
+      name: "Ready Parcels",
+      type: "geojson",
+      visible: true,
+      opacity: 1,
+      group: "data",
+      sourceKind: "external",
+      qaStatus: "passed",
+      queryable: true,
+      provenance: {
+        label: "City parcel portal",
+        sourceUrl: "https://example.test/parcels.geojson",
+        license: "ODbL",
+        attribution: "City GIS Office",
+      },
+      metadata: {
+        featureCount: 24,
+        geometryType: "Polygon",
+        fields: ["parcel_id", "land_use"],
+        crsSummary: {
+          crs: "EPSG:3857",
+          status: "known",
+          source: "explicit",
+          notes: [],
+        },
+      },
+    };
+
+    const html = renderToStaticMarkup(
+      React.createElement(mod.MapLayerManager, {
+        overlayLayers: [layer],
+        activeBaseLayerName: "Dark Matter",
+        onToggleVisibility: () => undefined,
+        onSetOpacity: () => undefined,
+        onRemoveLayer: () => undefined,
+        onReorderLayers: () => undefined,
+        onAddLayer: () => undefined,
+      }),
+    );
+
+    expect(html).toContain("Publication ready");
+    expect(html).toContain("data-layer-action=\"export\"");
+    expect(html).toContain("Publication export is not connected from the layer rail yet.");
+    expect(html).toContain("Urban Analytics handoff is not connected from the layer rail yet.");
+    expect(html).toContain("IDE handoff is not connected from the layer rail yet.");
+    expect(html).toContain("Report handoff is not connected from the layer rail yet.");
+    expect(html).toContain("Dashboard binding is not connected from the layer rail yet.");
   });
 
   it("renders teaching dataset layers as normal layer rows without package controls", async () => {
@@ -657,7 +724,7 @@ describe("MapLayerManager component", () => {
     expect(html).toContain("Arrow");
   });
 
-  it("removes a layer from the visible row delete action", async () => {
+  it("requires confirmation before removing a layer from the visible row delete action", async () => {
     const mod = await import("../MapLayerManager");
     const removedIds: string[] = [];
     const container = document.createElement("div");
@@ -751,6 +818,31 @@ describe("MapLayerManager component", () => {
 
     await act(async () => {
       deleteButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(removedIds).toEqual([]);
+
+    const cancelButton = container.querySelector('[aria-label="Cancel remove layer Singapore - Neighborhood Atlas"]');
+    expect(cancelButton).not.toBeNull();
+
+    await act(async () => {
+      cancelButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(removedIds).toEqual([]);
+
+    const armedDeleteButton = container.querySelector('[aria-label="Remove layer Singapore - Neighborhood Atlas"]');
+    expect(armedDeleteButton).not.toBeNull();
+
+    await act(async () => {
+      armedDeleteButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    const confirmButton = container.querySelector('[aria-label="Confirm remove layer Singapore - Neighborhood Atlas"]');
+    expect(confirmButton).not.toBeNull();
+
+    await act(async () => {
+      confirmButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
     expect(removedIds).toEqual(["teaching-singapore-neighborhood_atlas"]);

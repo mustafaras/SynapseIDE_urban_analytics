@@ -307,9 +307,38 @@ describe("layer summary helpers", () => {
       sourceKind: "imported",
       qaStatus: "passed",
       crs: "EPSG:4326",
+      crsStatus: "known",
+      geometryType: "Unknown",
       featureCount: 42,
+      schemaFieldCount: 0,
+      publicationReadiness: "needs-review",
+      metadataReady: false,
       provenanceLabel: "imported layer",
     });
+  });
+
+  it("summarizeOverlayLayer degrades legacy layers without claiming readiness", () => {
+    const summary = summarizeOverlayLayer({
+      id: "legacy",
+      name: "Legacy Layer",
+      type: "geojson",
+      visible: true,
+      opacity: 1,
+    });
+
+    expect(summary).toMatchObject({
+      layerId: "legacy",
+      sourceKind: "project",
+      qaStatus: "unchecked",
+      queryable: true,
+      crsStatus: "missing",
+      geometryType: "Unknown",
+      schemaFieldCount: 0,
+      publicationReadiness: "needs-review",
+      metadataReady: false,
+      provenanceLabel: "project layer",
+    });
+    expect(summary.crs).toBeUndefined();
   });
 
   it("resolveOverlayLayerQueryable honours explicit false and defaults by type", () => {

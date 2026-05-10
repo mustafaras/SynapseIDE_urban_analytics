@@ -3,6 +3,7 @@ import type {
   LayerProvenance,
   OverlayLayerConfig,
 } from "@/centerpanel/components/map/mapTypes";
+import { withNormalizedLayerRegistryMetadata } from "@/centerpanel/components/map/mapLayerMetadata";
 import {
   buildHotSpotDecoratedCollection,
   buildLisaDecoratedCollection,
@@ -1038,7 +1039,7 @@ function buildLayerResult(params: {
     ...(params.rerunToken ? { rerunToken: params.rerunToken } : {}),
   });
 
-  const layer: OverlayLayerConfig = {
+  const layer = withNormalizedLayerRegistryMetadata({
     id: buildLayerId(params.engine, params.input),
     name: buildLayerName(params.engine, params.input.layerName),
     type: params.layerType ?? "geojson",
@@ -1055,7 +1056,7 @@ function buildLayerResult(params: {
       analysisResult,
     },
     ...(params.style ? { style: cloneJson(params.style) } : {}),
-  };
+  });
 
   return {
     layer,
