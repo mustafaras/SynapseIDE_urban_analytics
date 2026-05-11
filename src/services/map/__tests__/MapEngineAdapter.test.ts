@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import type { OverlayLayerConfig } from "@/centerpanel/components/map/mapTypes";
+import type {
+  MapReproducibilityManifest,
+  OverlayLayerConfig,
+} from "@/centerpanel/components/map/mapTypes";
 import type { MapOutput } from "@/features/urbanAnalytics/lib/types";
 import type { GeneratedSQL } from "@/engine/geoai/nlp/types";
 import {
@@ -32,6 +35,7 @@ import {
   adaptEmergingHotSpotResult,
   adaptFacilityCatchmentsResult,
   adaptFacilitySitesResult,
+  adaptFeatureCollectionAnalysisResult,
   adaptGlobalMoranResult,
   adaptGWRResult,
   adaptHotSpotResult,
@@ -77,6 +81,69 @@ function makeFeatureCollection(count = 3): GeoJSON.FeatureCollection {
         },
       };
     }),
+  };
+}
+
+function makeReproducibilityManifest(): MapReproducibilityManifest {
+  return {
+    version: 1,
+    manifestId: "map-manifest-applied-test",
+    workflowId: "map-workflow-test",
+    status: "applied",
+    createdAt: "2026-05-01T12:00:00.000Z",
+    mapContextId: "map-context-test",
+    operation: "Generic analysis adapter",
+    workflowKind: "adapter-output",
+    inputLayerIds: ["source-layer"],
+    sourceLayerIds: ["source-layer"],
+    outputLayerIds: ["analysis-layer"],
+    sourceLayers: [{ layerId: "source-layer", role: "source", name: "Source layer", sourceKind: "project", featureCount: 3 }],
+    outputLayers: [{ layerId: "analysis-layer", role: "derived-output", name: "Analysis layer", sourceKind: "derived", featureCount: 3 }],
+    aoiReference: {
+      source: "map-context",
+      selectedLayerIds: [],
+      selectedFeatureCount: 0,
+      drawnPolygonCount: 0,
+    },
+    viewportBounds: null,
+    parameters: { alpha: 0.05 },
+    crsSummary: {
+      status: "known",
+      displayCrs: "EPSG:4326",
+      sourceLayerCrs: [{ layerId: "source-layer", crs: "EPSG:4326" }],
+      missingLayerIds: [],
+      notes: ["Source CRS metadata is present."],
+    },
+    qaSummary: {
+      status: "passed",
+      issueIds: [],
+      blockerCount: 0,
+      warningCount: 0,
+      infoCount: 0,
+      blockers: [],
+      warnings: [],
+      caveats: [],
+    },
+    expectedOutput: {
+      layerName: "Analysis layer",
+      geometryClass: "polygon",
+      featureCount: 3,
+      bounds: null,
+      outputLayerGroup: "analysis",
+      needsWorker: false,
+      reportCompatible: true,
+      dashboardCompatible: true,
+      ideCompatible: true,
+    },
+    handoffReferences: {
+      reportItemIds: [],
+      dashboardBindingIds: [],
+      ideArtifactIds: [],
+    },
+    qaIssueIds: [],
+    sourceDataVersions: { "source-layer": "v1" },
+    engine: "MapEngineAdapter",
+    engineVersion: "1",
   };
 }
 
@@ -185,6 +252,35 @@ describe("MapEngineAdapter", () => {
     expect(collection.features[0]?.properties?.local_i).toBe(1.8);
     expect(collection.features[0]?.properties?.__lisaCluster).toBe("HH");
     expect(adapted.visualization.kind).toBe("lisa-cluster");
+  });
+
+  it("persists reproducibility manifests through generic analysis map outputs", () => {
+    const manifest = makeReproducibilityManifest();
+    const adapted = adaptFeatureCollectionAnalysisResult({
+      engine: "ClusterAnalysis",
+      featureCollection: makeFeatureCollection(),
+      layerId: "analysis-layer",
+      layerName: "Analysis layer",
+      sourceLayerIds: ["source-layer"],
+      reproducibilityManifest: manifest,
+      visualization: {
+        kind: "choropleth",
+        title: "Analysis layer",
+        valueField: "baseline",
+      },
+      statisticalSummary: { clusters: 3 },
+    });
+
+    const output = createAnalysisMapOutput(adapted);
+    const roundTrip = adaptAnalysisMapOutput(output);
+
+    expect(adapted.layer.metadata?.analysisResult?.reproducibilityManifest?.manifestId).toBe(manifest.manifestId);
+    expect(output.metadata?.reproducibilityManifest).toMatchObject({
+      manifestId: manifest.manifestId,
+      workflowId: manifest.workflowId,
+    });
+    expect(roundTrip?.layer.metadata?.analysisResult?.reproducibilityManifest?.manifestId).toBe(manifest.manifestId);
+    expect(roundTrip?.layer.metadata?.reproducibilityManifest?.workflowId).toBe(manifest.workflowId);
   });
 
   it("adapts Getis-Ord Gi* results into an analysis layer", () => {

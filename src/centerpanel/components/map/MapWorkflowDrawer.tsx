@@ -36,8 +36,8 @@ import {
   MAP_SPACING,
   MAP_STROKES,
   MAP_TYPOGRAPHY,
-  mapStyles,
   MAP_Z_INDEX,
+  mapStyles,
 } from "./mapTokens";
 import {
   createOpaqueFloatingPanelStyle,
@@ -501,7 +501,6 @@ export const MapWorkflowDrawer: React.FC<MapWorkflowDrawerProps> = ({
           role="separator"
           aria-orientation="vertical"
           aria-label="Resize workflow analysis panel"
-          tabIndex={0}
           style={workflowResizeHandleStyle}
           onPointerDown={handleResizePointerDown}
           data-testid="map-workflow-panel-resize-handle"
@@ -582,6 +581,8 @@ export const MapWorkflowDrawer: React.FC<MapWorkflowDrawerProps> = ({
             ))}
           </div>
         </div>
+
+        <ManifestSummary preview={preview} />
 
         {/* Guidance */}
         {preview.guidance.length > 0 ? (
@@ -763,12 +764,53 @@ const PreviewBadge: React.FC<{ preview: MapWorkflowPreview }> = ({ preview }) =>
   );
 };
 
+const ManifestSummary: React.FC<{ preview: MapWorkflowPreview }> = ({ preview }) => {
+  const manifest = preview.manifest;
+  return (
+    <div style={sectionStyle}>
+      <div style={{ ...sectionTitle, display: "flex", justifyContent: "space-between", gap: MAP_SPACING.sm }}>
+        <span>Reproducibility manifest</span>
+        <span title={manifest.manifestId}>{shortManifestId(manifest.manifestId)}</span>
+      </div>
+      <div style={metricGrid}>
+        <div style={metricCell}>
+          <span style={metricLabel}>Status</span>
+          <span style={metricValue}>{manifest.status}</span>
+        </div>
+        <div style={metricCell}>
+          <span style={metricLabel}>Sources</span>
+          <span style={metricValue}>{manifest.sourceLayerIds.length.toLocaleString()}</span>
+        </div>
+        <div style={metricCell}>
+          <span style={metricLabel}>CRS</span>
+          <span style={metricValue}>{manifest.crsSummary.status}</span>
+        </div>
+        <div style={metricCell}>
+          <span style={metricLabel}>QA gate</span>
+          <span style={metricValue}>
+            {manifest.qaSummary.blockerCount.toLocaleString()} blocker{manifest.qaSummary.blockerCount === 1 ? "" : "s"}
+            {" · "}
+            {manifest.qaSummary.warningCount.toLocaleString()} warning{manifest.qaSummary.warningCount === 1 ? "" : "s"}
+          </span>
+        </div>
+      </div>
+      <div style={{ color: MAP_COLORS.textMuted, fontSize: MAP_TYPOGRAPHY.fontSize.xs }}>
+        Expected output: {manifest.expectedOutput.layerName ?? "derived layer"} · {manifest.expectedOutput.geometryClass} · {manifest.expectedOutput.featureCount.toLocaleString()} feature{manifest.expectedOutput.featureCount === 1 ? "" : "s"}
+      </div>
+    </div>
+  );
+};
+
 function isStepBeforeCurrent(
   stepId: MapWorkflowStepId,
   current: MapWorkflowStepId | null,
 ): boolean {
   if (!current) return true;
   return MAP_WORKFLOW_STEP_ORDER.indexOf(stepId) < MAP_WORKFLOW_STEP_ORDER.indexOf(current);
+}
+
+function shortManifestId(value: string): string {
+  return value.length > 22 ? `${value.slice(0, 18)}...` : value;
 }
 
 /* ================================================================== */

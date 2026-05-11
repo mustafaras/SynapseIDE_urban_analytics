@@ -69,6 +69,7 @@ import { CartographyRecommendationList } from "./map/CartographyRecommendationLi
 import {
   createMapExportEvidenceArtifact,
   createMapReportSnapshotEvidenceArtifact,
+  createMapWorkflowResultEvidenceArtifact,
 } from "./map/mapEvidenceArtifacts";
 import { createOpaqueFloatingPanelStyle, useDraggableMapPanel } from "./map/useDraggableMapPanel";
 import { getActiveRightDockPanel, getMapDockLayout } from "./map/mapDocking";
@@ -352,6 +353,7 @@ const WorkflowPreviewOverlay: React.FC<{ preview: MapWorkflowPreview | null }> =
               {comparison.view === "blend"
                 ? ` - opacity ${Math.round(comparison.blendOpacityA * 100)}% / ${Math.round(comparison.blendOpacityB * 100)}%`
                 : ` - divider ${Math.round(comparison.swipePosition * 100)}%`}
+              {` - manifest ${shortMapManifestId(preview.manifest.manifestId)}`}
             </span>
             <div style={comparisonLegendStyle} data-testid="map-comparison-legend" aria-label="Synchronized comparison legend">
               <span style={comparisonLegendItemStyle} title={comparison.layerAName}>
@@ -366,13 +368,17 @@ const WorkflowPreviewOverlay: React.FC<{ preview: MapWorkflowPreview | null }> =
           </>
         ) : (
           <span>
-            {preview.featureCount.toLocaleString()} preview feature{preview.featureCount === 1 ? "" : "s"} - apply to register provenance, QA, and report metadata.
+            {preview.featureCount.toLocaleString()} preview feature{preview.featureCount === 1 ? "" : "s"} - manifest {shortMapManifestId(preview.manifest.manifestId)}
           </span>
         )}
       </div>
     </>
   );
 };
+
+function shortMapManifestId(value: string): string {
+  return value.length > 20 ? `${value.slice(0, 16)}...` : value;
+}
 
 interface FlowDispatchAoiCandidate {
   feature: Feature<Polygon | MultiPolygon>;
@@ -1817,6 +1823,52 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         const filtered = current.filter((item) => item.id !== result.reportItem.id);
         return [...filtered, result.reportItem];
       });
+      upsertMapEvidenceArtifact(createMapWorkflowResultEvidenceArtifact({
+        title: `${result.reportItem.title} workflow result`,
+        summary: `${result.preview.workflow} workflow output registered with reproducibility manifest ${result.manifest.manifestId}.`,
+        workflowId: result.manifest.workflowId,
+        sourceLayerIds: result.reportItem.sourceLayerIds,
+        derivedLayerId: result.layer.id,
+        linkedLayerIds: [result.layer.id],
+        crsSummary: {
+          displayCrs: result.manifest.crsSummary.displayCrs,
+          sourceLayerCrs: result.manifest.crsSummary.sourceLayerCrs,
+          missingLayerIds: result.manifest.crsSummary.missingLayerIds,
+          notes: result.manifest.crsSummary.notes,
+        },
+        geometrySummary: {
+          geometryTypes: [result.preview.geometryClass],
+          featureCount: result.preview.featureCount,
+          ...(result.preview.bounds ? { bounds: result.preview.bounds } : {}),
+          source: "workflow-summary",
+          notes: [`Expected output group: ${result.manifest.expectedOutput.outputLayerGroup}`],
+        },
+        qa: {
+          state: result.manifest.qaSummary.status === "blocked"
+            ? "blocked"
+            : result.manifest.qaSummary.warningCount > 0
+              ? "warning"
+              : "passed",
+          issueIds: result.manifest.qaIssueIds,
+          issueCount: result.manifest.qaIssueIds.length,
+          blockerCount: result.manifest.qaSummary.blockerCount,
+          caveats: result.manifest.qaSummary.caveats,
+          checkedAt: result.manifest.createdAt,
+        },
+        metadata: {
+          manifestId: result.manifest.manifestId,
+          manifestVersion: result.manifest.version,
+          workflowKind: result.manifest.workflowKind,
+          workflowStatus: result.manifest.status,
+          sourceLayerCount: result.manifest.sourceLayerIds.length,
+          outputLayerCount: result.manifest.outputLayerIds.length,
+          expectedFeatureCount: result.manifest.expectedOutput.featureCount,
+          qaBlockerCount: result.manifest.qaSummary.blockerCount,
+          qaWarningCount: result.manifest.qaSummary.warningCount,
+          needsWorker: result.manifest.expectedOutput.needsWorker,
+        },
+        createdAt: result.manifest.createdAt,
+      }));
       recordMapReviewEvent({
         type: "workflow-action",
         status: "applied",
@@ -1833,6 +1885,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
           workflow: result.reportItem.workflow,
           derivedLayerId: result.reportItem.derivedLayerId,
           sourceLayerIds: result.reportItem.sourceLayerIds,
+          manifestId: result.manifest.manifestId,
+          workflowId: result.manifest.workflowId,
           metrics: result.reportItem.metrics,
           comparisonState: result.reportItem.comparisonState ?? null,
         },
@@ -1846,7 +1900,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       toastSuccess(message);
       announce(message);
     },
-    [addOverlayLayer, announce, recordMapReviewEvent, reducedMotion, setActiveAnalysisResultLayers],
+    [addOverlayLayer, announce, recordMapReviewEvent, reducedMotion, setActiveAnalysisResultLayers, upsertMapEvidenceArtifact],
   );
 
   const handleSaveWorkflowReport = useCallback(

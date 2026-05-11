@@ -76,6 +76,17 @@ describe("MapWorkflowService", () => {
     const previewLayer = buildMapWorkflowPreviewLayer(preview, context);
 
     expect(preview.canApply).toBe(true);
+    expect(preview.manifest).toMatchObject({
+      status: "preview",
+      workflowKind: "aoi",
+      outputLayerIds: [MAP_WORKFLOW_PREVIEW_LAYER_ID],
+    });
+    expect(preview.expectedOutput).toMatchObject({
+      layerName: "Custom AOI",
+      geometryClass: "polygon",
+      reportCompatible: true,
+    });
+    expect(JSON.stringify(preview.manifest)).not.toContain("coordinates");
     expect(preview.nextRequiredStep).toBeNull();
     expect(preview.featureCollection?.features[0]?.properties).toMatchObject({
       aoi_source: "viewport",
@@ -113,6 +124,9 @@ describe("MapWorkflowService", () => {
     const blocked = generateMapWorkflowPreview(draft, context);
     expect(blocked.canApply).toBe(false);
     expect(blocked.issues.some((issue) => issue.code === "buffer-zero")).toBe(true);
+    expect(blocked.manifest.status).toBe("blocked");
+    expect(blocked.manifest.qaSummary.blockerCount).toBeGreaterThan(0);
+    expect(blocked.manifest.outputLayerIds).toEqual([]);
 
     const valid = generateMapWorkflowPreview({ ...draft, distance: 250 }, context);
     const applied = applyMapWorkflowPreview(valid, context);
@@ -120,6 +134,14 @@ describe("MapWorkflowService", () => {
     expect(valid.canApply).toBe(true);
     expect(valid.metrics.source_scope).toBe("selected features");
     expect(valid.featureCount).toBe(1);
+    expect(valid.manifest.sourceLayerIds).toEqual(["transit-stops"]);
+    expect(applied?.manifest).toMatchObject({
+      status: "applied",
+      workflowId: valid.manifest.workflowId,
+      outputLayerIds: [applied?.layer.id],
+    });
+    expect(applied?.layer.metadata?.reproducibilityManifest?.manifestId).toBe(applied?.manifest.manifestId);
+    expect(applied?.reportItem.manifest.manifestId).toBe(applied?.manifest.manifestId);
     expect(applied?.reportItem.sourceLayerIds).toEqual(["transit-stops"]);
     expect(applied?.layer.provenance?.sourceLayerIds).toEqual(["transit-stops"]);
   });

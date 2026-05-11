@@ -44,6 +44,7 @@ export interface AnalysisResultMetadata {
   statisticalSummary: Record<string, StatisticalSummaryValue>;
   sourceLayerIds?: string[];
   sourceDataVersion?: string;
+  reproducibilityManifest?: MapReproducibilityManifest;
   rerunToken?: string;
   stale?: boolean;
   visualization: AnalysisVisualizationSpec;
@@ -241,8 +242,98 @@ export interface LayerMetadata {
   geometrySummary?: LayerGeometrySummary;
   licenseAttribution?: LayerLicenseAttributionSummary;
   publicationReadiness?: LayerPublicationReadiness;
+  reproducibilityManifest?: MapReproducibilityManifest;
   evidenceArtifactId?: string;
   registry?: LayerRegistryMetadata;
+}
+
+export type MapReproducibilityManifestStatus = "preview" | "applied" | "blocked";
+
+export interface MapReproducibilityLayerReference {
+  layerId: string;
+  role: "source" | "preview" | "derived-output" | "comparison-source";
+  name?: string;
+  sourceKind?: LayerSourceKind;
+  featureCount?: number;
+}
+
+export interface MapReproducibilityAoiReference {
+  source: string;
+  label?: string;
+  aoiId?: string;
+  viewportBounds?: [number, number, number, number];
+  selectedLayerIds: string[];
+  selectedFeatureCount: number;
+  drawnPolygonCount: number;
+  geocodedPlaceLabel?: string;
+}
+
+export interface MapReproducibilityCrsSummary {
+  status: "known" | "mixed" | "missing" | "not-applicable";
+  displayCrs: string;
+  sourceLayerCrs: Array<{
+    layerId: string;
+    crs: string | null;
+  }>;
+  missingLayerIds: string[];
+  notes: string[];
+}
+
+export interface MapReproducibilityQASummary {
+  status: LayerQaStatus | "blocked";
+  issueIds: string[];
+  blockerCount: number;
+  warningCount: number;
+  infoCount: number;
+  blockers: string[];
+  warnings: string[];
+  caveats: string[];
+  categorySummaries?: LayerScientificQACategorySummary[];
+}
+
+export interface MapReproducibilityExpectedOutput {
+  layerName: string | null;
+  geometryClass: string;
+  featureCount: number;
+  bounds: [number, number, number, number] | null;
+  outputLayerGroup: string;
+  needsWorker: boolean;
+  reportCompatible: boolean;
+  dashboardCompatible: boolean;
+  ideCompatible: boolean;
+}
+
+export interface MapReproducibilityHandoffReferences {
+  reportItemIds: string[];
+  dashboardBindingIds: string[];
+  ideArtifactIds: string[];
+}
+
+export interface MapReproducibilityManifest {
+  version: number;
+  manifestId: string;
+  workflowId: string;
+  status: MapReproducibilityManifestStatus;
+  createdAt: string;
+  mapContextId: string;
+  operation: string;
+  workflowKind: string;
+  inputLayerIds: string[];
+  sourceLayerIds: string[];
+  outputLayerIds: string[];
+  sourceLayers: MapReproducibilityLayerReference[];
+  outputLayers: MapReproducibilityLayerReference[];
+  aoiReference: MapReproducibilityAoiReference;
+  viewportBounds: [number, number, number, number] | null;
+  parameters: Record<string, unknown>;
+  crsSummary: MapReproducibilityCrsSummary;
+  qaSummary: MapReproducibilityQASummary;
+  expectedOutput: MapReproducibilityExpectedOutput;
+  handoffReferences: MapReproducibilityHandoffReferences;
+  qaIssueIds: string[];
+  sourceDataVersions: Record<string, string | null>;
+  engine: "MapWorkflowService" | "MapEngineAdapter";
+  engineVersion: string;
 }
 
 export interface LayerProvenance {

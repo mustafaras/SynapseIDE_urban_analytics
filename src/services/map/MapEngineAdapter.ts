@@ -1,6 +1,7 @@
 import type {
   AnalysisResultMetadata,
   LayerProvenance,
+  MapReproducibilityManifest,
   OverlayLayerConfig,
 } from "@/centerpanel/components/map/mapTypes";
 import { withNormalizedLayerRegistryMetadata } from "@/centerpanel/components/map/mapLayerMetadata";
@@ -69,7 +70,7 @@ import {
   type ColorRampName,
   getColorRampColors,
 } from "@/utils/colorRamps";
-import { sphericalPolygonArea, type LngLat } from "@/utils/geodesic";
+import { type LngLat, sphericalPolygonArea } from "@/utils/geodesic";
 import {
   buildFeatureCollectionMetadata,
   parseGeoJSONText,
@@ -233,6 +234,7 @@ export interface AdapterBaseInput {
   sourceKind?: OverlayLayerConfig["sourceKind"];
   provenance?: LayerProvenance;
   caveats?: string[];
+  reproducibilityManifest?: MapReproducibilityManifest;
 }
 
 export interface FeatureCollectionAdapterInput extends AdapterBaseInput {
@@ -391,6 +393,16 @@ function isSpatialStatsBridge(value: unknown): value is SpatialStatsMapOutputBri
     value !== null &&
     (value as { domain?: unknown }).domain === "spatial-stats" &&
     isSpatialStatsEngine((value as { engine?: unknown }).engine)
+  );
+}
+
+function isMapReproducibilityManifest(value: unknown): value is MapReproducibilityManifest {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as { manifestId?: unknown }).manifestId === "string" &&
+    typeof (value as { workflowId?: unknown }).workflowId === "string" &&
+    typeof (value as { version?: unknown }).version === "number"
   );
 }
 
@@ -1013,6 +1025,7 @@ function buildAnalysisMetadata(params: {
     ...(params.input.runId ? { runId: params.input.runId } : {}),
     ...(params.input.sourceLayerIds ? { sourceLayerIds: [...params.input.sourceLayerIds] } : {}),
     ...(params.input.sourceDataVersion ? { sourceDataVersion: params.input.sourceDataVersion } : {}),
+    ...(params.input.reproducibilityManifest ? { reproducibilityManifest: cloneJson(params.input.reproducibilityManifest) } : {}),
     ...(params.rerunToken ? { rerunToken: params.rerunToken } : {}),
   };
 }
@@ -1054,6 +1067,7 @@ function buildLayerResult(params: {
       ...metadata,
       updatedAt: analysisResult.runTimestamp,
       analysisResult,
+      ...(analysisResult.reproducibilityManifest ? { reproducibilityManifest: analysisResult.reproducibilityManifest } : {}),
     },
     ...(params.style ? { style: cloneJson(params.style) } : {}),
   });
@@ -1314,6 +1328,8 @@ function applyBridgeToLayer(
       : buildFacilityCatchmentStyle(bridge.geometryType);
   }
 
+  const persistedManifest = output.metadata?.reproducibilityManifest;
+
   const analysisResult: AnalysisResultMetadata = {
     engine: bridge.engine,
     runTimestamp: bridge.runTimestamp,
@@ -1325,6 +1341,9 @@ function applyBridgeToLayer(
     ...(bridge.runId ? { runId: bridge.runId } : {}),
     ...(bridge.sourceLayerIds ? { sourceLayerIds: [...bridge.sourceLayerIds] } : {}),
     ...(bridge.sourceDataVersion ? { sourceDataVersion: bridge.sourceDataVersion } : {}),
+    ...(isMapReproducibilityManifest(persistedManifest)
+      ? { reproducibilityManifest: cloneJson(persistedManifest) }
+      : {}),
     ...(bridge.rerunToken ? { rerunToken: bridge.rerunToken } : {}),
   };
 
@@ -1340,6 +1359,7 @@ function applyBridgeToLayer(
       ...buildFeatureCollectionMetadata(featureCollection),
       updatedAt: bridge.runTimestamp,
       analysisResult,
+      ...(analysisResult.reproducibilityManifest ? { reproducibilityManifest: analysisResult.reproducibilityManifest } : {}),
     },
     ...(style ? { style } : {}),
   };
@@ -2660,6 +2680,9 @@ export function createAnalysisMapOutput(
     title: outputResult.layer.name,
     layerName: outputResult.layer.name,
     engineBridge: buildOutputBridge(outputResult.layer),
+    ...(outputResult.layer.metadata?.analysisResult?.reproducibilityManifest
+      ? { metadata: { reproducibilityManifest: cloneJson(outputResult.layer.metadata.analysisResult.reproducibilityManifest) } }
+      : {}),
     ...(outputResult.layer.style ? { style: cloneJson(outputResult.layer.style) } : {}),
   };
 }

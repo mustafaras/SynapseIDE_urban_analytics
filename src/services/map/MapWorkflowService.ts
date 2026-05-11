@@ -20,7 +20,7 @@
 /*    - are pure, deterministic, and worker-safe                     */
 /* ================================================================== */
 
-import type { Feature, FeatureCollection, Geometry, Polygon, MultiPolygon } from "geojson";
+import type { Feature, FeatureCollection, Geometry, MultiPolygon, Polygon } from "geojson";
 import * as turf from "@turf/turf";
 import type {
   LayerMetadata,
@@ -28,6 +28,10 @@ import type {
   LayerQaStatus,
   LayerScientificQAMetadata,
   LayerSourceKind,
+  MapReproducibilityExpectedOutput,
+  MapReproducibilityLayerReference,
+  MapReproducibilityManifest,
+  MapReproducibilityQASummary,
   OverlayLayerConfig,
 } from "@/centerpanel/components/map/mapTypes";
 import {
@@ -40,6 +44,8 @@ import {
 /* ================================================================== */
 
 export const MAP_WORKFLOW_SERVICE_VERSION = 1;
+
+export const MAP_WORKFLOW_MANIFEST_VERSION = 1;
 
 /** Threshold above which large datasets should be processed in a worker. */
 export const MAP_WORKFLOW_WORKER_FEATURE_THRESHOLD = 5_000;
@@ -143,6 +149,7 @@ export interface MapWorkflowSourceLayerSummary {
   geometryClass: MapWorkflowGeometryClass;
   featureCount: number;
   crs: string | null;
+  dataVersion: string | null;
   fields: string[];
   hasGeometry: boolean;
 }
@@ -281,6 +288,8 @@ export interface MapWorkflowPreview {
   featureCount: number;
   bounds: [number, number, number, number] | null;
   metrics: Record<string, number | string | null>;
+  expectedOutput: MapReproducibilityExpectedOutput;
+  manifest: MapReproducibilityManifest;
   issues: MapWorkflowIssue[];
   guidance: MapWorkflowGuidance[];
   nextRequiredStep: MapWorkflowStepId | null;
@@ -304,6 +313,7 @@ export interface MapWorkflowComparisonStatePreview {
 export interface MapWorkflowApplyResult {
   layer: OverlayLayerConfig;
   preview: MapWorkflowPreview;
+  manifest: MapReproducibilityManifest;
   reportItem: MapWorkflowReportItem;
 }
 
@@ -317,6 +327,7 @@ export interface MapWorkflowReportItem {
   parameters: Record<string, unknown>;
   metrics: Record<string, number | string | null>;
   caveats: string[];
+  manifest: MapReproducibilityManifest;
   comparisonState?: MapWorkflowComparisonStatePreview;
   createdAt: string;
 }
@@ -366,6 +377,11 @@ export function buildMapWorkflowContext(
       geometryClass: classifyGeometry(geometryType ?? "Unknown"),
       featureCount,
       crs,
+      dataVersion:
+        layer.metadata?.dataVersion ??
+        layer.metadata?.analysisResult?.sourceDataVersion ??
+        layer.metadata?.persistence?.savedAt ??
+        null,
       fields,
       hasGeometry: Boolean(fc && fc.features.length > 0),
     });
@@ -444,6 +460,7 @@ export function createDefaultDraft(kind: MapWorkflowKind): MapWorkflowDraft {
         name: "Layer comparison",
       } satisfies MapWorkflowComparisonDraft;
   }
+  return assertNever(kind);
 }
 
 /* ================================================================== */
@@ -468,6 +485,7 @@ export function generateMapWorkflowPreview(
     case "comparison":
       return previewComparison(draft, context);
   }
+  return assertNever(draft);
 }
 
 /* ================================================================== */
@@ -490,10 +508,33 @@ export function applyMapWorkflowPreview(
     return null;
   }
 
-  const layer = buildDerivedLayer(preview, context);
+  const baseLayer = buildDerivedLayer(preview, context);
   const sourceLayerIds = collectSourceLayerIds(preview.draft, context);
+  const appliedAt = nowIso(context);
+  const reportItemId = `wf:${preview.workflow}:${appliedAt}:${baseLayer.id}`;
+  const manifest = buildAppliedManifest(
+    preview,
+    [{
+      layerId: baseLayer.id,
+      role: "derived-output",
+      name: baseLayer.name,
+      sourceKind: "derived",
+      featureCount: preview.featureCount,
+    }],
+    {
+      createdAt: appliedAt,
+      reportItemIds: [reportItemId],
+    },
+  );
+  const layer: OverlayLayerConfig = {
+    ...baseLayer,
+    metadata: {
+      ...(baseLayer.metadata ?? {}),
+      reproducibilityManifest: manifest,
+    },
+  };
   const reportItem: MapWorkflowReportItem = {
-    id: `wf:${preview.workflow}:${nowIso(context)}:${layer.id}`,
+    id: reportItemId,
     workflow: preview.workflow,
     title: layer.name,
     description: describeWorkflow(preview),
@@ -502,10 +543,11 @@ export function applyMapWorkflowPreview(
     parameters: collectParameters(preview.draft),
     metrics: preview.metrics,
     caveats: collectCaveats(preview),
-    createdAt: nowIso(context),
+    manifest,
+    createdAt: manifest.createdAt,
   };
 
-  return { layer, preview, reportItem };
+  return { layer, preview, manifest, reportItem };
 }
 
 export function buildMapWorkflowPreviewLayer(
@@ -542,6 +584,7 @@ export function buildMapWorkflowPreviewLayer(
       ...baseMetadata,
       updatedAt: nowIso(context),
       scientificQA: qaMetadata,
+      reproducibilityManifest: preview.manifest,
     },
   };
 }
@@ -591,8 +634,30 @@ function applyComparison(
     },
   };
 
+  const appliedAt = nowIso(context);
+  const reportItemId = `wf:comparison:${appliedAt}:${layerId}`;
+  const manifest = buildAppliedManifest(preview, [
+    {
+      layerId,
+      role: "derived-output",
+      name: draft.name,
+      sourceKind: "derived",
+      featureCount: 0,
+    },
+  ], {
+    createdAt: appliedAt,
+    reportItemIds: [reportItemId],
+  });
+  const layerWithManifest: OverlayLayerConfig = {
+    ...layer,
+    metadata: {
+      ...(layer.metadata ?? {}),
+      reproducibilityManifest: manifest,
+    },
+  };
+
   const reportItem: MapWorkflowReportItem = {
-    id: `wf:comparison:${nowIso(context)}:${layerId}`,
+    id: reportItemId,
     workflow: "comparison",
     title: draft.name,
     description: describeWorkflow(preview),
@@ -601,11 +666,12 @@ function applyComparison(
     parameters: collectParameters(draft),
     metrics: preview.metrics,
     caveats: collectCaveats(preview),
+    manifest,
     comparisonState: preview.comparisonState,
-    createdAt: nowIso(context),
+    createdAt: manifest.createdAt,
   };
 
-  return { layer, preview, reportItem };
+  return { layer: layerWithManifest, preview, manifest, reportItem };
 }
 
 /* ================================================================== */
@@ -822,6 +888,7 @@ function previewAOI(
     issues,
     guidance,
     suggestions,
+    context,
   });
 }
 
@@ -993,6 +1060,7 @@ function previewBuffer(
     guidance,
     suggestions,
     needsWorker: workerNeeded,
+    context,
   });
 }
 
@@ -1070,6 +1138,7 @@ function previewIntersect(
     guidance,
     suggestions,
     needsWorker: workerNeeded,
+    context,
   });
 }
 
@@ -1133,6 +1202,7 @@ function previewDifference(
     guidance,
     suggestions,
     needsWorker: workerNeeded,
+    context,
   });
 }
 
@@ -1197,6 +1267,7 @@ function previewUnion(
     guidance,
     suggestions,
     needsWorker: workerNeeded,
+    context,
   });
 }
 
@@ -1311,6 +1382,7 @@ function previewComparison(
     suggestions,
     forceCanApply: ready,
     comparisonState,
+    context,
   });
 }
 
@@ -1328,6 +1400,7 @@ function finalizePreview(input: {
   issues: MapWorkflowIssue[];
   guidance: MapWorkflowGuidance[];
   suggestions: MapWorkflowSuggestedAction[];
+  context: MapWorkflowContext;
   needsWorker?: boolean | undefined;
   forceCanApply?: boolean | undefined;
   comparisonState?: MapWorkflowComparisonStatePreview | undefined;
@@ -1339,6 +1412,19 @@ function finalizePreview(input: {
     (input.forceCanApply ?? (featureCount > 0 || input.workflow === "comparison"));
 
   const nextRequiredStep = blockers[0]?.step ?? null;
+  const expectedOutput = buildExpectedOutput(input, featureCount, input.needsWorker);
+  const manifest = buildPreviewManifest({
+    workflow: input.workflow,
+    draft: input.draft,
+    context: input.context,
+    issues: input.issues,
+    metrics: input.metrics,
+    bounds: input.bounds,
+    featureCount,
+    expectedOutput,
+    needsWorker: Boolean(input.needsWorker),
+    canApply,
+  });
 
   return {
     workflow: input.workflow,
@@ -1348,6 +1434,8 @@ function finalizePreview(input: {
     featureCount,
     bounds: input.bounds,
     metrics: input.metrics,
+    expectedOutput,
+    manifest,
     issues: input.issues,
     guidance: input.guidance,
     nextRequiredStep,
@@ -1356,6 +1444,275 @@ function finalizePreview(input: {
     suggestions: input.suggestions,
     ...(input.comparisonState ? { comparisonState: input.comparisonState } : {}),
   };
+}
+
+function buildExpectedOutput(
+  input: {
+    workflow: MapWorkflowKind;
+    draft: MapWorkflowDraft;
+    geometryClass: MapWorkflowGeometryClass;
+    bounds: [number, number, number, number] | null;
+    forceCanApply?: boolean | undefined;
+  },
+  featureCount: number,
+  needsWorker: boolean | undefined,
+): MapReproducibilityExpectedOutput {
+  const layerName = "name" in input.draft && input.draft.name.trim().length > 0
+    ? input.draft.name.trim()
+    : null;
+  const canProduceOutput = featureCount > 0 || input.workflow === "comparison" || input.forceCanApply === true;
+
+  return {
+    layerName,
+    geometryClass: input.geometryClass,
+    featureCount,
+    bounds: input.bounds,
+    outputLayerGroup: "analysis",
+    needsWorker: Boolean(needsWorker),
+    reportCompatible: canProduceOutput,
+    dashboardCompatible: canProduceOutput && input.workflow !== "comparison",
+    ideCompatible: canProduceOutput,
+  };
+}
+
+function buildPreviewManifest(input: {
+  workflow: MapWorkflowKind;
+  draft: MapWorkflowDraft;
+  context: MapWorkflowContext;
+  issues: MapWorkflowIssue[];
+  metrics: Record<string, number | string | null>;
+  bounds: [number, number, number, number] | null;
+  featureCount: number;
+  expectedOutput: MapReproducibilityExpectedOutput;
+  needsWorker: boolean;
+  canApply: boolean;
+}): MapReproducibilityManifest {
+  const createdAt = nowIso(input.context);
+  const sourceLayerIds = collectSourceLayerIds(input.draft, input.context);
+  const sourceLayers = sourceLayerIds.map((layerId) => buildSourceLayerReference(input.context, layerId, input.workflow));
+  const previewOutputLayers = input.canApply && input.workflow !== "comparison"
+    ? [{
+        layerId: MAP_WORKFLOW_PREVIEW_LAYER_ID,
+        role: "preview" as const,
+        name: `Preview · ${describeMethod({ workflow: input.workflow })}`,
+        sourceKind: "derived" as const,
+        featureCount: input.featureCount,
+      }]
+    : [];
+  const operation = describeMethod({ workflow: input.workflow });
+  const workflowId = buildWorkflowId(input.workflow, createdAt, sourceLayerIds, input.draft);
+  const qaSummary = buildManifestQASummary(input.issues, input.needsWorker);
+
+  return {
+    version: MAP_WORKFLOW_MANIFEST_VERSION,
+    manifestId: buildManifestId("preview", workflowId, createdAt),
+    workflowId,
+    status: input.canApply ? "preview" : "blocked",
+    createdAt,
+    mapContextId: buildMapContextId(input.context, sourceLayerIds),
+    operation,
+    workflowKind: input.workflow,
+    inputLayerIds: sourceLayerIds,
+    sourceLayerIds,
+    outputLayerIds: previewOutputLayers.map((entry) => entry.layerId),
+    sourceLayers,
+    outputLayers: previewOutputLayers,
+    aoiReference: buildAoiReference(input.draft, input.context),
+    viewportBounds: input.context.viewportBounds,
+    parameters: collectParameters(input.draft),
+    crsSummary: buildManifestCrsSummary(input.context, sourceLayerIds),
+    qaSummary,
+    expectedOutput: input.expectedOutput,
+    handoffReferences: {
+      reportItemIds: [],
+      dashboardBindingIds: [],
+      ideArtifactIds: [],
+    },
+    qaIssueIds: qaSummary.issueIds,
+    sourceDataVersions: buildSourceDataVersions(input.context, sourceLayerIds),
+    engine: "MapWorkflowService",
+    engineVersion: String(MAP_WORKFLOW_SERVICE_VERSION),
+  };
+}
+
+function buildAppliedManifest(
+  preview: MapWorkflowPreview,
+  outputLayers: MapReproducibilityLayerReference[],
+  options: {
+    createdAt: string;
+    reportItemIds?: string[];
+  },
+): MapReproducibilityManifest {
+  return {
+    ...preview.manifest,
+    manifestId: buildManifestId("applied", preview.manifest.workflowId, options.createdAt),
+    status: "applied",
+    createdAt: options.createdAt,
+    outputLayerIds: outputLayers.map((entry) => entry.layerId),
+    outputLayers,
+    expectedOutput: {
+      ...preview.manifest.expectedOutput,
+      layerName: outputLayers[0]?.name ?? preview.manifest.expectedOutput.layerName,
+      featureCount: outputLayers[0]?.featureCount ?? preview.manifest.expectedOutput.featureCount,
+    },
+    handoffReferences: {
+      ...preview.manifest.handoffReferences,
+      reportItemIds: options.reportItemIds ?? preview.manifest.handoffReferences.reportItemIds,
+    },
+  };
+}
+
+function buildSourceLayerReference(
+  context: MapWorkflowContext,
+  layerId: string,
+  workflow: MapWorkflowKind,
+): MapReproducibilityLayerReference {
+  const layer = context.layers.find((entry) => entry.id === layerId);
+  const reference: MapReproducibilityLayerReference = {
+    layerId,
+    role: workflow === "comparison" ? "comparison-source" : "source",
+  };
+  if (layer?.name) reference.name = layer.name;
+  if (layer?.sourceKind) reference.sourceKind = layer.sourceKind;
+  if (layer?.featureCount !== undefined) reference.featureCount = layer.featureCount;
+  return reference;
+}
+
+function buildAoiReference(
+  draft: MapWorkflowDraft,
+  context: MapWorkflowContext,
+): MapReproducibilityManifest["aoiReference"] {
+  const reference: MapReproducibilityManifest["aoiReference"] = {
+    source: draft.kind === "aoi" ? draft.source : "map-context",
+    selectedLayerIds: [...context.selectedLayerIds],
+    selectedFeatureCount: context.selectedFeatures.length,
+    drawnPolygonCount: context.drawnPolygons.length,
+  };
+  if ("name" in draft && draft.name.trim().length > 0) reference.label = draft.name.trim();
+  if (context.viewportBounds) reference.viewportBounds = context.viewportBounds;
+  if (context.geocodedPlace?.label) reference.geocodedPlaceLabel = context.geocodedPlace.label;
+  return reference;
+}
+
+function buildManifestCrsSummary(
+  context: MapWorkflowContext,
+  sourceLayerIds: string[],
+): MapReproducibilityManifest["crsSummary"] {
+  if (sourceLayerIds.length === 0) {
+    return {
+      status: "not-applicable",
+      displayCrs: "EPSG:4326",
+      sourceLayerCrs: [],
+      missingLayerIds: [],
+      notes: ["Workflow uses ad-hoc AOI geometry or comparison state without source layer CRS requirements."],
+    };
+  }
+
+  const sourceLayerCrs = sourceLayerIds.map((layerId) => {
+    const layer = context.layers.find((entry) => entry.id === layerId);
+    return { layerId, crs: layer?.crs ?? null };
+  });
+  const missingLayerIds = sourceLayerCrs
+    .filter((entry) => !entry.crs)
+    .map((entry) => entry.layerId);
+  const uniqueCrs = Array.from(new Set(sourceLayerCrs.map((entry) => entry.crs).filter((crs): crs is string => Boolean(crs))));
+  const status = missingLayerIds.length === sourceLayerIds.length
+    ? "missing"
+    : uniqueCrs.length > 1
+      ? "mixed"
+      : "known";
+  const notes = status === "known"
+    ? ["Source CRS metadata is present for workflow traceability."]
+    : status === "mixed"
+      ? ["Source layers declare more than one CRS; verify projection assumptions before measurement-heavy use."]
+      : ["One or more source layers are missing CRS metadata; treat output as needing review."];
+
+  return {
+    status,
+    displayCrs: "EPSG:4326",
+    sourceLayerCrs,
+    missingLayerIds,
+    notes,
+  };
+}
+
+function buildManifestQASummary(
+  issues: MapWorkflowIssue[],
+  needsWorker: boolean,
+): MapReproducibilityQASummary {
+  const blockers = issues.filter((issue) => issue.severity === "blocker");
+  const warnings = issues.filter((issue) => issue.severity === "warning");
+  const info = issues.filter((issue) => issue.severity === "info");
+  const caveats = [
+    ...warnings.map((issue) => issue.message),
+    ...(needsWorker ? ["Large dataset — production runs should execute in a worker for responsiveness."] : []),
+  ];
+
+  return {
+    status: blockers.length > 0 ? "blocked" : warnings.length > 0 ? "warning" : "passed",
+    issueIds: issues.map((issue) => issue.code),
+    blockerCount: blockers.length,
+    warningCount: warnings.length,
+    infoCount: info.length,
+    blockers: blockers.map((issue) => issue.message),
+    warnings: warnings.map((issue) => issue.message),
+    caveats,
+  };
+}
+
+function buildSourceDataVersions(
+  context: MapWorkflowContext,
+  sourceLayerIds: string[],
+): Record<string, string | null> {
+  return sourceLayerIds.reduce<Record<string, string | null>>((accumulator, layerId) => {
+    const layer = context.layers.find((entry) => entry.id === layerId);
+    accumulator[layerId] = layer?.dataVersion ?? null;
+    return accumulator;
+  }, {});
+}
+
+function buildWorkflowId(
+  workflow: MapWorkflowKind,
+  createdAt: string,
+  sourceLayerIds: string[],
+  draft: MapWorkflowDraft,
+): string {
+  return `map-workflow-${workflow}-${safeIdPart(createdAt)}-${stableHash(`${sourceLayerIds.join("|")}:${JSON.stringify(collectParameters(draft))}`)}`;
+}
+
+function buildManifestId(
+  status: MapReproducibilityManifest["status"],
+  workflowId: string,
+  createdAt: string,
+): string {
+  return `map-manifest-${status}-${safeIdPart(createdAt)}-${stableHash(workflowId)}`;
+}
+
+function buildMapContextId(context: MapWorkflowContext, sourceLayerIds: string[]): string {
+  return `map-context-${stableHash(JSON.stringify({
+    sourceLayerIds,
+    viewportBounds: context.viewportBounds,
+    selectedLayerIds: context.selectedLayerIds,
+    selectedFeatureCount: context.selectedFeatures.length,
+    drawnPolygonCount: context.drawnPolygons.length,
+    geocodedPlace: context.geocodedPlace?.label ?? null,
+  }))}`;
+}
+
+function safeIdPart(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48) || "unknown";
+}
+
+function stableHash(value: string): string {
+  let hash = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) | 0;
+  }
+  return Math.abs(hash).toString(36);
+}
+
+function assertNever(value: never): never {
+  throw new Error(`Unhandled map workflow variant: ${String(value)}`);
 }
 
 function pickLayer(
@@ -1955,6 +2312,10 @@ function collectSourceLayerIds(draft: MapWorkflowDraft, context?: MapWorkflowCon
     case "comparison":
       return [draft.layerAId, draft.layerBId].filter((id): id is string => Boolean(id));
     case "aoi":
+      if (draft.source === "selected-features") {
+        return context?.selectedLayerIds ?? [];
+      }
+      return [];
     default:
       return [];
   }
@@ -1985,7 +2346,7 @@ function collectProvenanceNotes(
   return notes;
 }
 
-function describeMethod(preview: MapWorkflowPreview): string {
+function describeMethod(preview: Pick<MapWorkflowPreview, "workflow">): string {
   switch (preview.workflow) {
     case "aoi":
       return "AOI construction (viewport / selection / drawn / geocoded)";
@@ -2000,6 +2361,7 @@ function describeMethod(preview: MapWorkflowPreview): string {
     case "comparison":
       return "Synchronized comparison view";
   }
+  return assertNever(preview.workflow);
 }
 
 function describeWorkflow(preview: MapWorkflowPreview): string {
@@ -2025,6 +2387,7 @@ function describeWorkflow(preview: MapWorkflowPreview): string {
       return `Comparison view (${MAP_WORKFLOW_COMPARISON_VIEW_LABELS[draft.view]})`;
     }
   }
+  return assertNever(preview.workflow);
 }
 
 function buildQaSignature(preview: MapWorkflowPreview, sourceLayerIds: string[]): string {
