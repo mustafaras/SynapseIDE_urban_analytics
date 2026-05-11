@@ -5,6 +5,7 @@ import {
   createMapLayerEvidenceArtifact,
   createMapWorkflowResultEvidenceArtifact,
 } from "../mapEvidenceArtifacts";
+import { evaluateMapScientificQASync } from "../../../../services/map/MapScientificQA";
 import {
   selectMapEvidenceArtifactsForAoi,
   selectMapEvidenceArtifactsForLayer,
@@ -73,6 +74,14 @@ function makeAnalysisLayer(): OverlayLayerConfig {
         featureIssueCount: 1,
         usedWorker: false,
         caveats: ["Source CRS should be confirmed before distance calculations."],
+        categorySummaries: [{
+          category: "crs",
+          severity: "warning",
+          issueIds: ["qa-1"],
+          affectedLayerIds: ["analysis-layer"],
+          reasons: ["Source CRS should be confirmed before distance calculations."],
+          recommendedFixes: ["Attach verified CRS metadata."],
+        }],
         signature: "qa-signature",
       },
     },
@@ -133,7 +142,21 @@ describe("map evidence artifact helpers", () => {
     expect(artifact.provenance.geometrySummary?.featureCount).toBe(12);
     expect(artifact.qa.state).toBe("warning");
     expect(artifact.qa.issueIds).toEqual(["qa-1"]);
+    expect(artifact.qa.categorySummaries?.[0]?.category).toBe("crs");
     expect(Object.prototype.hasOwnProperty.call(artifact, "sourceData")).toBe(false);
+  });
+
+  it("propagates scientific QA runs into QA-finding evidence artifacts", () => {
+    const layer = makeAnalysisLayer();
+    const qa = evaluateMapScientificQASync([layer]);
+
+    useMapExplorerStore.getState().setScientificQA(qa);
+
+    const artifact = useMapExplorerStore.getState().mapEvidenceArtifacts.find((entry) => entry.kind === "qa-finding");
+    expect(artifact).toBeDefined();
+    expect(artifact?.qa.issueCount).toBe(qa.issues.length);
+    expect(artifact?.qa.categorySummaries?.some((summary) => summary.category === "export-readiness")).toBe(true);
+    expect(artifact?.metadata?.visibleLayerCount).toBe(1);
   });
 
   it("summarizes AOI evidence by id, bbox, and geometry counts only", () => {

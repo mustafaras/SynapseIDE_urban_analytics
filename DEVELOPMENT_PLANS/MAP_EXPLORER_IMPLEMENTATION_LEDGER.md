@@ -21,14 +21,14 @@ Read these before implementing any Map Explorer prompt:
 
 ## Current Status
 
-- Overall status: Layer Manager premium UX and safety landed. 9 of 30 prompts completed.
-- Current prompt: Prompt 08 - Layer Manager Premium UX and Safety completed 2026-05-10.
-- Next recommended prompt: Prompt 09 - Scientific QA Model and Panel.
+- Overall status: Publication Readiness Gates landed. 11 of 30 prompts completed.
+- Current prompt: Prompt 10 - Publication Readiness Gates completed 2026-05-11.
+- Next recommended prompt: Prompt 11 - Map Workflow Manifest and Preview.
 - Operating pack status: Installed.
 - Next-prompt helper: `scripts/get-next-map-explorer-prompt.ps1`
 - Machine-readable manifest: `DEVELOPMENT_PLANS/MAP_EXPLORER_PROMPT_MANIFEST.json`
-- Last validated repository state: 2026-05-10; Prompt 08 validation passed: `npx vitest run src/centerpanel/components/map/__tests__/map-layer-management.test.ts` passed (42/42), `npm run typecheck` passed, and focused `npx eslint` passed.
-- Last known blocker: None for focused Prompt 08 validation. `runTests` previously could not discover the focused Vitest files, so validation used the project Vitest CLI.
+- Last validated repository state: 2026-05-11; Prompt 10 validation passed: `npx vitest run src/services/map/__tests__/MapExportService.test.ts src/services/map/__tests__/MapReportHandoffService.test.ts src/centerpanel/components/__tests__/MapExportDialog.test.tsx` passed (26/26), `npm run typecheck` passed, and focused `npx eslint` on touched Prompt 10 files passed with no warnings. Repo-wide `npm run lint:errors` still fails on unrelated `src/features/urbanAnalytics/lib/workflowReadiness.ts:20` unused import.
+- Last known blocker: None for Prompt 10 scope.
 
 ## Agent Operating Pack
 
@@ -64,8 +64,8 @@ This table is the human-readable execution state. The helper script reads it whe
 | 06 | Premium Workspace Shell and Context Strip | completed | 05 | Completed 2026-05-10. Navigator cockpit now surfaces truthful AOI, QA, workflow/export, and sync context with a denser premium status strip. |
 | 07 | Layer Registry Metadata Upgrade | completed | 06 | Completed 2026-05-10. Layer registry now carries normalized scientific metadata, provenance, CRS/geometry/schema/license summaries, QA, queryability, evidence IDs, and publication readiness while legacy layers degrade truthfully. |
 | 08 | Layer Manager Premium UX and Safety | completed | 07 | Completed 2026-05-10. Layer rows now expose registry-driven badges, disabled handoff reasons, and guarded delete confirmation. |
-| 09 | Scientific QA Model and Panel | pending | 08 | Requires layer manager safety. |
-| 10 | Publication Readiness Gates | pending | 09 | Requires scientific QA. |
+| 09 | Scientific QA Model and Panel | completed | 08 | Completed 2026-05-11. First-class QA domain summaries, panel domain rows, layer metadata propagation, QA-finding evidence artifacts, and focused tests landed. |
+| 10 | Publication Readiness Gates | completed | 09 | Completed 2026-05-11. Formal export/report gates now consume scientific QA/export-readiness, carry reproducibility manifests, and register publication/report evidence artifacts. |
 | 11 | Map Workflow Manifest and Preview | pending | 10 | Requires publication gates. |
 | 12 | Analysis Recommendation and Dispatch | pending | 11 | Requires workflow manifest. |
 | 13 | Engine Adapter Evidence Outputs | pending | 12 | Requires recommendation/dispatch. |
@@ -752,6 +752,155 @@ attachSpatialStatsRerun(layer, run) preserves provenance.
 - Next recommended prompt: Prompt 09 - Scientific QA Model and Panel.
 - Ledger updated: yes
 
+### Prompt 09 - Scientific QA Model and Panel
+
+- Date: 2026-05-11
+- Agent: GitHub Copilot
+- Status: completed
+- Started from:
+  - Launcher: `DEVELOPMENT_PLANS/START_HERE_MAP_EXPLORER_AGENT.md`
+  - Manifest: `DEVELOPMENT_PLANS/MAP_EXPLORER_PROMPT_MANIFEST.json`
+  - Ledger: `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md`
+- Files inspected:
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` — Prompt 09 scope and acceptance criteria.
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md` sections 5, 14.3, and 17 — scientific truthfulness, QA service upgrade, and QA propagation requirements.
+  - `DEVELOPMENT_PLANS/TRI_MODAL_WORKBENCH_ALIGNMENT_SPEC.md` QA summary, QA blocker propagation, shared artifact model, and scientific truthfulness sections.
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` — confirmed Prompt 08 complete and Prompt 09 pending before work.
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_AGENT_HANDOFF_TEMPLATE.md` — handoff/ledger requirements.
+  - `src/services/map/MapScientificQA.ts` and `src/services/map/MapScientificQA.worker.ts` — current QA model, worker API, metadata checks, geometry checks, gates, and sync evaluation.
+  - `src/centerpanel/components/map/ScientificQAPanel.tsx` — current panel summary, issue rendering, and resize behavior.
+  - `src/stores/useMapExplorerStore.ts` — current QA layer metadata propagation and map evidence artifact registry actions.
+  - `src/centerpanel/components/map/mapTypes.ts`, `mapEvidenceArtifacts.ts`, `mapLayerMetadata.ts`, and `mapContextSummary.ts` — layer QA metadata, evidence QA shape, registry readiness, and cross-module QA summaries.
+  - `src/centerpanel/components/MapExplorerModal.tsx` — QA evaluation/wiring and review event behavior.
+  - `src/services/map/__tests__/MapScientificQA.test.ts`, `src/centerpanel/components/map/__tests__/mapEvidenceArtifacts.test.ts`, and related QA fixtures in Map/report/context tests.
+- Files changed:
+  - `src/centerpanel/components/map/mapTypes.ts` — added canonical QA domain/severity summary types and optional category summaries on layer/evidence QA metadata.
+  - `src/services/map/MapScientificQA.ts` — added Prompt 09 QA domains (`crs`, `geometry-validity`, `schema`, `scale`, `missingness`, `source-provenance`, `attribution-license`, `workflow-readiness`, `export-readiness`), domain severities (`pass`, `warning`, `blocked`, `unknown`), category summaries/counts, missing schema/license/provenance warnings, and layer/stack summary propagation while preserving legacy issue severity/API behavior.
+  - `src/centerpanel/components/map/ScientificQAPanel.tsx` — added QA domain rows showing severity, reason, affected layers, and recommended fixes; converted the resize handle to a keyboard-capable button.
+  - `src/centerpanel/components/map/mapEvidenceArtifacts.ts` — preserved QA category summaries in evidence QA and QA-finding artifacts.
+  - `src/stores/useMapExplorerStore.ts` — upserts a QA-finding evidence artifact when scientific QA runs and refreshes existing linked map evidence artifacts with current QA issue IDs, caveats, checked time, and category summaries.
+  - `src/services/map/__tests__/MapScientificQA.test.ts` — added category-summary assertions and missing-schema non-pass coverage.
+  - `src/centerpanel/components/map/__tests__/mapEvidenceArtifacts.test.ts` — added category-summary artifact coverage and store-level QA-finding propagation coverage.
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` — updated durable prompt state, registries, validation history, and next pointer.
+- Behavior implemented:
+  - Scientific QA now exposes a first-class domain summary layer alongside existing deterministic issues, so workflows and panels can distinguish unknown metadata, warnings, and blockers without pretending missing metadata passed.
+  - Missing queryable schema metadata and missing license/attribution now become explicit QA warnings.
+  - Stack-level QA metadata carries domain counts and summaries while legacy `info/warning/error/blocker` issue severity remains compatible with existing consumers.
+- UX changes:
+  - The QA panel now includes a compact premium "QA domains" section before issue details, with severity chips, the leading reason, affected layer labels, and a recommended fix where available.
+  - The right-rail resize affordance is now an accessible button with arrow-key resizing support.
+- Spatial evidence/provenance changes:
+  - QA-finding map evidence artifacts are now created/updated from `MapScientificQAState` via the store.
+  - Existing linked map evidence artifacts receive refreshed QA issue IDs, caveats, checked time, and category summaries when QA runs; no heavy geometry, source data, or rendered payloads are copied.
+- CRS, geometry, or measurement changes:
+  - No CRS transformation, geometry operation, distance calculation, or measurement semantics changed.
+  - CRS/geometry readiness is summarized more explicitly as pass/warning/blocked/unknown for QA propagation.
+- Scientific QA changes:
+  - Added canonical QA categories and domain severity summaries.
+  - Missing metadata is represented as warning/unknown domain state rather than silent pass.
+  - Worker API remained compatible; no worker payload mismatch encountered.
+- Layer registry or persistence changes:
+  - Layer `metadata.scientificQA` now receives optional `categorySummaries` from QA evaluation.
+  - No persistence schema migration required; new fields are additive/optional for restored snapshots and test fixtures.
+- Workflow/export/report changes:
+  - Workflow and export readiness are represented in QA domain summaries for Prompt 10 to consume.
+  - No export/report service behavior changed in Prompt 09.
+- Cross-module contract changes:
+  - `MapScientificQAState.metadata.categorySummaries` and layer/evidence `qa.categorySummaries` are additive Map-owned contract fields for future Urban Analytics, IDE manifest, report, dashboard, and publication gates.
+  - No direct imports from Urban Analytics, Synapse IDE, reporting, dashboard, or education modules were added.
+- Performance/data movement changes:
+  - Category summaries store short IDs/reasons/fixes only; no GeoJSON/sourceData/canvas/raw table payloads are copied.
+  - Existing worker threshold and fallback behavior were preserved.
+- Accessibility changes:
+  - Scientific QA panel resize control is keyboard reachable and responds to ArrowLeft/ArrowRight, with Shift for larger increments.
+- Validation commands:
+  - `npx vitest run src/services/map/__tests__/MapScientificQA.test.ts src/centerpanel/components/map/__tests__/mapEvidenceArtifacts.test.ts`
+  - `npm run typecheck`
+  - `npx eslint src/services/map/MapScientificQA.ts src/centerpanel/components/map/ScientificQAPanel.tsx src/centerpanel/components/map/mapEvidenceArtifacts.ts src/stores/useMapExplorerStore.ts src/services/map/__tests__/MapScientificQA.test.ts src/centerpanel/components/map/__tests__/mapEvidenceArtifacts.test.ts src/centerpanel/components/map/mapTypes.ts`
+- Validation results:
+  - Focused Vitest validation passed: 10/10.
+  - Full TypeScript project typecheck passed.
+  - Focused ESLint validation passed with no errors and no warnings.
+  - VS Code diagnostics for touched files reported no errors.
+- Known risks:
+  - Prompt 10 must connect the new `export-readiness` QA domain to formal publication/export gates; Prompt 09 only models and surfaces the readiness summary.
+  - New QA category fields are optional for backward compatibility with persisted/restored snapshots and legacy fixtures.
+- Blockers:
+  - None.
+- Decisions made:
+  - Preserve legacy issue severity values (`info`, `warning`, `error`, `blocker`) for existing Map/Urban/report consumers and add Prompt 09 `pass`, `warning`, `blocked`, `unknown` as a category-summary severity layer.
+  - Keep QA evidence propagation in the Map store so artifacts receive QA references without cross-module coupling or heavy payload copies.
+- Next recommended prompt: Prompt 10 - Publication Readiness Gates.
+- Ledger updated: yes
+
+### Prompt 10 - Publication Readiness Gates
+
+- Date: 2026-05-11
+- Agent: GitHub Copilot
+- Status: completed
+- Started from:
+  - Launcher: `DEVELOPMENT_PLANS/START_HERE_MAP_EXPLORER_AGENT.md`
+  - Ledger: `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md`
+  - Sequential prompt: `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md`
+  - Development plan: `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md` sections 9.5, 14.5, 14.6, 17.4, and 21.4
+  - Alignment spec: `DEVELOPMENT_PLANS/TRI_MODAL_WORKBENCH_ALIGNMENT_SPEC.md` Formal Output Gate and publication/report alignment sections
+- Files inspected:
+  - `src/services/map/MapExportService.ts` — publication composition/export pipeline, legend, scale bar, north arrow, preview, and A0 PDF path.
+  - `src/services/map/MapReportHandoffService.ts` — report handoff draft, citations, caveats, reproducibility, pending inserts, and report document conversion.
+  - `src/centerpanel/components/MapExportDialog.tsx` — publication export modal controls and download action.
+  - `src/centerpanel/components/map/MapReportHandoffDrawer.tsx` — report handoff preview, snapshot controls, and insert/download actions.
+  - `src/centerpanel/components/MapExplorerModal.tsx` — export/report orchestration, visible publication layers, snapshot capture, review events, and evidence store actions.
+  - `src/centerpanel/components/map/mapLayerMetadata.ts` — normalized layer publication readiness, CRS/schema/license/provenance summaries.
+  - `src/centerpanel/components/map/mapEvidenceArtifacts.ts` and `mapTypes.ts` — publication export/report evidence artifact references and QA metadata.
+  - `src/services/map/MapScientificQA.ts` — Prompt 09 category summaries, especially `export-readiness`.
+  - Focused export/report/dialog tests.
+- Files changed:
+  - `src/services/map/MapExportService.ts` — added `MapPublicationReadiness`, readiness checks, manifest builder, evidence QA adapter, export result metadata, and A0/export manifest attachment.
+  - `src/services/map/MapReportHandoffService.ts` — added `publicationReadiness` to report drafts and threaded readiness status/blockers/warnings through caveats and reproducibility.
+  - `src/services/map/MapReviewSessionService.ts` — records report handoff readiness status/counts in review event details.
+  - `src/centerpanel/components/MapExplorerModal.tsx` — computes current map publication readiness, blocks formal export/report actions when blocked, and upserts export/report evidence artifacts after successful formal output.
+  - `src/centerpanel/components/MapExportDialog.tsx` — displays readiness status, blockers/warnings/caveat counts, and disables formal download on blockers.
+  - `src/centerpanel/components/map/MapReportHandoffDrawer.tsx` — displays readiness status in the drawer and disables insert/A0 download on blockers.
+  - `src/services/map/__tests__/MapExportService.test.ts` — added readiness/manifest/evidence-QA unit coverage.
+  - `src/services/map/__tests__/MapReportHandoffService.test.ts` — added draft readiness and pending insert reproducibility coverage.
+  - `src/centerpanel/components/__tests__/MapExportDialog.test.tsx` — added blocked readiness UI coverage.
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` — updated prompt state, registries, validation, risk, and next pointer.
+- Summary:
+  - Formal map exports and report handoffs now pass through a truthful publication readiness gate covering visible layers, title, legend, scale bar, north arrow, attribution/license, CRS/measurement caveats, QA blockers, and caveat capture.
+  - Internal exploration, preview rendering, and normal map use remain available; only formal output actions are blocked when readiness is blocked.
+  - Successful formal exports/report inserts now register lightweight map evidence artifacts with QA state, readiness status/counts, manifest IDs, file/report references, and linked layer IDs.
+- Spatial evidence/provenance changes:
+  - Publication export and report snapshot artifacts are created at formal output boundaries using existing map evidence builders.
+  - Artifacts store references, readiness QA summaries, scalar metadata, and layer IDs only; no rendered payloads, raw datasets, or heavy geometry are copied.
+- CRS, geometry, or measurement changes:
+  - No CRS transformation, geometry calculation, or measurement implementation changed.
+  - Readiness gates surface unknown CRS/measurement state as blockers or caveats before formal output.
+- Scientific QA changes:
+  - Prompt 10 consumes Prompt 09 `export-readiness` category summaries and unacknowledged QA blockers in publication readiness.
+  - QA warning caveats remain controllable in report handoff options while blockers still gate formal output.
+- Layer registry or persistence changes:
+  - Reuses `normalizeLayerRegistryMetadata(layer).publicationReadiness` and layer license/CRS/schema/provenance summaries.
+  - No persisted map snapshot schema change; new readiness fields are additive on runtime export/report results and drafts.
+- Workflow/export/report changes:
+  - `MapPublicationExportResult` can carry `readiness` and a `MapPublicationManifest`.
+  - `MapReportHandoffDraft` now carries `publicationReadiness`; pending report inserts include readiness status, checked time, blockers, and warnings in reproducibility items.
+  - Export/report buttons now block formal output with the leading blocker message instead of silently producing incomplete publication artifacts.
+- Contract changes:
+  - Added additive Map-owned `MapPublicationReadiness` and `MapPublicationManifest` contracts in `MapExportService.ts`.
+  - Added additive `MapReportHandoffDraft.publicationReadiness` for the reporting handoff pipeline.
+- UX changes:
+  - Publication export modal now shows a compact readiness panel with status chip, blocker/warning/caveat counts, and leading findings.
+  - Report handoff drawer now shows readiness status before snapshot details and disables Insert/A0 PDF when formal prerequisites are blocked.
+- Validation:
+  - `npx vitest run src/services/map/__tests__/MapExportService.test.ts src/services/map/__tests__/MapReportHandoffService.test.ts src/centerpanel/components/__tests__/MapExportDialog.test.tsx` passed (26/26).
+  - `npm run typecheck` passed.
+  - Focused `npx eslint` on touched Prompt 10 map/export/report/dialog/test files passed with `--max-warnings=0`.
+  - `npm run lint:errors` remains blocked by unrelated `src/features/urbanAnalytics/lib/workflowReadiness.ts:20` unused `UrbanMethodValidityEnvelope` import, already present outside Prompt 10 scope.
+- Risks:
+  - No Prompt 10 blocker remains. Future Prompt 11 should reuse readiness/manifest outputs rather than creating a parallel workflow-readiness contract.
+- Next recommended prompt: Prompt 11 - Map Workflow Manifest and Preview.
+- Ledger updated: yes
+
 Use this format for each entry:
 
 ```md
@@ -813,6 +962,8 @@ Append inspected files here as implementation progresses.
 
 | Date | Prompt | Files inspected | Notes |
 | --- | --- | --- | --- |
+| 2026-05-11 | Prompt 10 | `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md`; `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md`; `DEVELOPMENT_PLANS/TRI_MODAL_WORKBENCH_ALIGNMENT_SPEC.md`; `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md`; `DEVELOPMENT_PLANS/MAP_EXPLORER_AGENT_HANDOFF_TEMPLATE.md`; `src/services/map/MapExportService.ts`; `src/services/map/MapReportHandoffService.ts`; `src/services/map/MapReviewSessionService.ts`; `src/centerpanel/components/MapExportDialog.tsx`; `src/centerpanel/components/map/MapReportHandoffDrawer.tsx`; `src/centerpanel/components/MapExplorerModal.tsx`; `src/centerpanel/components/map/mapLayerMetadata.ts`; `src/centerpanel/components/map/mapEvidenceArtifacts.ts`; `src/services/map/MapScientificQA.ts`; focused export/report/dialog tests | Prompt 10 narrowed to formal publication readiness gates, manifest metadata, report/export evidence registration, and premium UI blocker/warning display without changing spatial calculations. |
+| 2026-05-11 | Prompt 09 | `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md`; `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md`; `DEVELOPMENT_PLANS/TRI_MODAL_WORKBENCH_ALIGNMENT_SPEC.md`; `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md`; `DEVELOPMENT_PLANS/MAP_EXPLORER_AGENT_HANDOFF_TEMPLATE.md`; `src/services/map/MapScientificQA.ts`; `src/services/map/MapScientificQA.worker.ts`; `src/centerpanel/components/map/ScientificQAPanel.tsx`; `src/stores/useMapExplorerStore.ts`; `src/centerpanel/components/map/mapTypes.ts`; `src/centerpanel/components/map/mapEvidenceArtifacts.ts`; `src/centerpanel/components/map/mapLayerMetadata.ts`; `src/centerpanel/components/map/mapContextSummary.ts`; `src/centerpanel/components/MapExplorerModal.tsx`; focused QA/evidence tests | Prompt 09 narrowed to first-class QA domain summaries, truthful missing metadata warnings, panel rendering, and QA evidence propagation without changing worker payloads or spatial calculations. |
 | 2026-05-10 | Prompt 08 | `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md`; `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md`; `src/centerpanel/components/map/MapLayerManager.tsx`; `src/centerpanel/components/map/MapLayerPanel.tsx`; `src/centerpanel/components/MapExplorerModal.tsx`; `src/centerpanel/components/map/mapTypes.ts`; `src/centerpanel/components/map/mapLayerMetadata.ts`; `src/centerpanel/components/map/__tests__/map-layer-management.test.ts` | Prompt 08 narrowed to layer manager premium UX/safety: registry badges, disabled handoff reasons, and guarded removal without rewiring cross-module owners. |
 | 2026-05-10 | 07 | `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md`; `src/centerpanel/components/map/mapTypes.ts`; `src/centerpanel/components/map/mapContextSummary.ts`; `src/stores/useMapExplorerStore.ts`; `src/centerpanel/components/map/MapLayerManager.tsx`; `src/centerpanel/components/map/index.ts`; `src/services/map/MapDataImporter.ts`; `src/services/map/MapEngineAdapter.ts`; focused registry/import/adapter tests | Prompt 07 narrowed to additive layer metadata normalization, lightweight registry summaries, adapter/importer metadata enrichment, and legacy readiness degradation. |
 | 2026-05-10 | 06 | `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md`; `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md`; `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md`; `src/centerpanel/components/MapExplorerModal.tsx`; `src/centerpanel/components/map/MapWorkspaceCockpit.tsx`; `src/centerpanel/components/map/MapWorkspaceCockpit.module.css`; `src/centerpanel/components/map/MapStatusBar.tsx`; `src/centerpanel/components/map/mapContextSummary.ts`; `src/centerpanel/components/map/MapCanvas.tsx`; `src/centerpanel/components/map/__tests__/map-components.test.ts` | Prompt 06 narrowed to navigator cockpit/status surfaces and existing context-summary wiring, with shell-level browser smoke limited by the landing flow. |
@@ -830,6 +981,8 @@ Append changed files here as implementation progresses.
 
 | Date | Prompt | Files changed | Reason |
 | --- | --- | --- | --- |
+| 2026-05-11 | Prompt 10 | `src/services/map/MapExportService.ts`, `src/services/map/MapReportHandoffService.ts`, `src/services/map/MapReviewSessionService.ts`, `src/centerpanel/components/MapExplorerModal.tsx`, `src/centerpanel/components/MapExportDialog.tsx`, `src/centerpanel/components/map/MapReportHandoffDrawer.tsx`, `src/services/map/__tests__/MapExportService.test.ts`, `src/services/map/__tests__/MapReportHandoffService.test.ts`, `src/centerpanel/components/__tests__/MapExportDialog.test.tsx`, `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` | Added formal publication readiness gates, export/report readiness manifests, blocked-action UI, evidence artifact registration on formal output, review event readiness details, and focused coverage. |
+| 2026-05-11 | Prompt 09 | `src/centerpanel/components/map/mapTypes.ts`, `src/services/map/MapScientificQA.ts`, `src/centerpanel/components/map/ScientificQAPanel.tsx`, `src/centerpanel/components/map/mapEvidenceArtifacts.ts`, `src/stores/useMapExplorerStore.ts`, `src/services/map/__tests__/MapScientificQA.test.ts`, `src/centerpanel/components/map/__tests__/mapEvidenceArtifacts.test.ts`, `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` | Added first-class QA category/severity summaries, explicit missing schema/license warnings, premium QA domain panel rows, QA-finding artifact upsert, linked evidence QA refresh, and focused coverage. |
 | 2026-05-10 | Prompt 08 | `src/centerpanel/components/map/MapLayerManager.tsx`, `src/centerpanel/components/map/__tests__/map-layer-management.test.ts`, `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` | Added registry-driven layer badges, disabled layer handoff reasons, guarded report action, two-step delete confirmation, and focused regression coverage. |
 | 2026-05-10 | Prompt 07 | `src/centerpanel/components/map/mapTypes.ts`, `src/centerpanel/components/map/mapLayerMetadata.ts`, `src/centerpanel/components/map/mapContextSummary.ts`, `src/stores/useMapExplorerStore.ts`, `src/services/map/MapDataImporter.ts`, `src/services/map/MapEngineAdapter.ts`, `src/centerpanel/components/map/MapLayerManager.tsx`, `src/centerpanel/components/map/index.ts`, focused tests, `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` | Added normalized scientific layer registry metadata/readiness, compatibility defaults, lightweight summaries, importer/adapter enrichment, and validation coverage. |
 | 2026-05-10 | Prompt 06 | `src/centerpanel/components/map/MapWorkspaceCockpit.tsx`, `src/centerpanel/components/map/MapWorkspaceCockpit.module.css`, `src/centerpanel/components/map/MapStatusBar.tsx`, `src/centerpanel/components/MapExplorerModal.tsx`, `src/centerpanel/components/map/__tests__/map-components.test.ts`, `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` | Premium workspace shell/context strip landed using existing context summary, QA/workflow/sync signals, responsive cockpit refinements, and focused render coverage. |
@@ -873,6 +1026,8 @@ Record every contract that connects Map Explorer with Synapse IDE, Urban Analyti
 | 2026-05-10 | Prompt 03 | `MapEvidenceArtifact` + `mapEvidenceArtifacts.ts` helpers | Map → Urban / Report / Dashboard / IDE future consumers | Implemented | Exported from `src/centerpanel/components/map/index.ts`. Stores stable IDs, linked layer/AOI/run/workflow/file/artifact IDs, map provenance, CRS/geometry summaries, QA, and export/report refs only — no GeoJSON/sourceData/screenshots/raw tables. Store registry is non-persisted until Prompt 04. |
 | 2026-05-10 | Prompt 04 | `MapProjectSnapshot` v3 + `MAP_PROJECT_PERSISTENCE_BOUNDARY` | Map project snapshot restore contract | Implemented | `src/services/map/MapPersistenceService.ts`. Persists viewport/base/layout/bookmarks/annotations/drawings/measurements, lightweight layer references, evidence references, QA summary, review timeline references, and stale/external refs. Oversized layer source payloads restore as stale metadata references. |
 | 2026-05-10 | Prompt 08 | Optional `MapLayerManager` action callbacks (`onExportLayer`, `onSendLayerToUrban`, `onOpenLayerInIde`, `onAddLayerToReport`, `onBindLayerToDashboard`) | Layer rail UI → future export / Urban / IDE / report / dashboard adapters | UI Surface Implemented; handlers mostly deferred | Row action menu exposes commands with disabled reasons from registry readiness or missing handlers. Only existing report handler can be called, and it is now publication-readiness gated. No direct imports from external owners were added. |
+| 2026-05-11 | Prompt 09 | `MapScientificQAState.metadata.categorySummaries` + layer/evidence `qa.categorySummaries` | Map QA → layer metadata / map evidence / future Urban, IDE, report, dashboard consumers | Implemented Additive Contract | Carries nine canonical QA domains with `pass`, `warning`, `blocked`, or `unknown` severity plus issue IDs, affected layer IDs, reasons, and recommended fixes. Optional for backward compatibility; no heavy spatial payloads. |
+| 2026-05-11 | Prompt 10 | `MapPublicationReadiness` + `MapPublicationManifest` + `MapReportHandoffDraft.publicationReadiness` | Map formal output → export/report/evidence/review consumers | Implemented Additive Contract | Formal map outputs now carry checked readiness status, blocker/warning/caveat details, visible layer IDs/names, composition metadata, manifest ID/version, and QA signature when present. No heavy spatial/rendered payloads are stored in evidence artifacts. |
 | Pending | Pending | `MapReproducibilityManifest` | Export/workflow reproducibility | Proposed | Implement only when prompted. |
 
 ## Scientific GIS Decision Registry
@@ -891,6 +1046,10 @@ Record decisions that future agents must not re-litigate unless the repository p
 | 2026-05-10 | Prompt 04 | Metadata-only and external source layers must carry restore warnings and stale/external reference IDs. | Restored map sessions must not imply missing layers or external services are locally available. | Accepted |
 | 2026-05-10 | Prompt 08 | Incomplete layer metadata stays visible in the layer rail and disables formal handoff actions with explicit reasons. | Prevents false publication/readiness claims while keeping exploratory layer work available. | Accepted |
 | 2026-05-10 | Prompt 08 | Layer removal requires an explicit confirmation step until a full undo stack exists. | Destructive map state edits should not happen on a single accidental click. | Accepted |
+| 2026-05-11 | Prompt 09 | Keep legacy QA issue severity (`info`/`warning`/`error`/`blocker`) and add canonical domain severity (`pass`/`warning`/`blocked`/`unknown`) as a summary layer. | Preserves existing Map, Urban, report, persistence, and recommender consumers while satisfying Prompt 09 readiness vocabulary. | Accepted |
+| 2026-05-11 | Prompt 09 | Missing schema/license/provenance metadata must create explicit QA caveats instead of allowing a silent pass. | The map must not imply stronger evidence fitness than metadata supports. | Accepted |
+| 2026-05-11 | Prompt 10 | Formal export/report actions must be blocked by publication readiness blockers, while internal exploration and previews remain available. | Prevents incomplete or misleading publication artifacts without interrupting analytical map work. | Accepted |
+| 2026-05-11 | Prompt 10 | Readiness manifests must store source/context/QA/caveat summaries and artifact references, not rendered screenshots or raw datasets. | Keeps formal outputs reproducible and auditable without violating lightweight evidence and performance boundaries. | Accepted |
 
 ## Validation History
 
@@ -927,6 +1086,13 @@ Append validation runs here.
 | 2026-05-10 | Prompt 08 | `npx vitest run src/centerpanel/components/map/__tests__/map-layer-management.test.ts` | Passed (42/42) | Covers registry badges, disabled action reasons, guarded remove confirmation, and existing layer sync/store regressions. |
 | 2026-05-10 | Prompt 08 | `npm run typecheck` | Passed | Full TypeScript project typechecks after layer action callback props and guarded row UI changes. |
 | 2026-05-10 | Prompt 08 | `npx eslint src/centerpanel/components/map/MapLayerManager.tsx src/centerpanel/components/map/__tests__/map-layer-management.test.ts --quiet` | Passed | Focused lint pass on touched Prompt 08 files produced no output. |
+| 2026-05-11 | Prompt 09 | `npx vitest run src/services/map/__tests__/MapScientificQA.test.ts src/centerpanel/components/map/__tests__/mapEvidenceArtifacts.test.ts` | Passed (10/10) | Covers QA category summaries, missing-schema warning behavior, evidence category summaries, and store-level QA-finding artifact propagation. |
+| 2026-05-11 | Prompt 09 | `npm run typecheck` | Passed | Full TypeScript project typechecks after QA model, panel, evidence, store, and tests. |
+| 2026-05-11 | Prompt 09 | `npx eslint src/services/map/MapScientificQA.ts src/centerpanel/components/map/ScientificQAPanel.tsx src/centerpanel/components/map/mapEvidenceArtifacts.ts src/stores/useMapExplorerStore.ts src/services/map/__tests__/MapScientificQA.test.ts src/centerpanel/components/map/__tests__/mapEvidenceArtifacts.test.ts src/centerpanel/components/map/mapTypes.ts` | Passed | Focused lint pass on touched Prompt 09 files produced no errors or warnings. |
+| 2026-05-11 | Prompt 10 | `npx vitest run src/services/map/__tests__/MapExportService.test.ts src/services/map/__tests__/MapReportHandoffService.test.ts src/centerpanel/components/__tests__/MapExportDialog.test.tsx` | Passed (26/26) | Covers readiness blockers, attribution warnings, export-readiness QA blockers, manifest/evidence QA conversion, report draft readiness, pending insert reproducibility, and export dialog blocked UI. |
+| 2026-05-11 | Prompt 10 | `npm run typecheck` | Passed | Full TypeScript project typechecks after publication readiness gates, report/export contracts, UI wiring, and tests. |
+| 2026-05-11 | Prompt 10 | `npm run lint:errors` | 1 error (out of scope) | Known unrelated UA error remains: `src/features/urbanAnalytics/lib/workflowReadiness.ts:20` unused import `UrbanMethodValidityEnvelope`. |
+| 2026-05-11 | Prompt 10 | `npx eslint src/services/map/MapExportService.ts src/services/map/MapReportHandoffService.ts src/services/map/MapReviewSessionService.ts src/centerpanel/components/MapExportDialog.tsx src/centerpanel/components/map/MapReportHandoffDrawer.tsx src/services/map/__tests__/MapExportService.test.ts src/services/map/__tests__/MapReportHandoffService.test.ts src/centerpanel/components/__tests__/MapExportDialog.test.tsx --max-warnings=0` | Passed | Focused lint pass on touched Prompt 10 service/UI/test files produced no errors or warnings. |
 
 ## Known Risks
 
@@ -941,6 +1107,8 @@ Append validation runs here.
 | 2026-05-10 | Prompt 03 | Map evidence registry is currently in-memory only. | Medium | Prompt 04 owns persistence boundaries and project snapshot shape; do not persist heavy payloads. |
 | 2026-05-10 | Prompt 04 | Snapshot v3 restore warnings are available in metadata but not yet surfaced in UI. | Medium | Prompt 05/06 should expose missing/stale layer states in decomposed shell/context strips. |
 | 2026-05-10 | Prompt 04 | Local store still persists `selectedFeatureIds` as pre-existing behavior. | Low | Preserved by scope; only change in a future explicit cleanup prompt. |
+| 2026-05-11 | Prompt 09 | Publication/export services do not yet consume the new `export-readiness` QA domain. | Resolved | Prompt 10 now consumes export-readiness and QA blockers in formal publication readiness gates. |
+| 2026-05-11 | Prompt 10 | Workflow preview/run manifests do not yet reuse publication readiness metadata. | Low | Prompt 11 owns Map Workflow Manifest and Preview; reuse `MapPublicationReadiness` instead of creating a duplicate readiness model. |
 
 ## Next Prompt Pointer
 
@@ -950,7 +1118,7 @@ Start with:
 
 Prompt:
 
-`Prompt 05 - Modal Shell Decomposition and Command Hooks`
+`Prompt 11 - Map Workflow Manifest and Preview`
 
 Optional helper command:
 

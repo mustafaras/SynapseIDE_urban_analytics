@@ -4,10 +4,10 @@ import type maplibregl from "maplibre-gl";
 import type { Feature, FeatureCollection, Geometry, MultiPolygon, Polygon } from "geojson";
 import {
   BASE_STYLES,
-  MAP_BOOKMARK_LIMIT,
-  MAP_LAYER_REGISTRY_EVENT,
   type DrawnFeature,
   type DrawToolId,
+  MAP_BOOKMARK_LIMIT,
+  MAP_LAYER_REGISTRY_EVENT,
   type MapBookmark,
   type MapExplorerMode,
   type MapLayerRegistryChangeDetail,
@@ -66,6 +66,10 @@ import { MapWorkflowDrawer } from "./map/MapWorkflowDrawer";
 import { MapReportHandoffDrawer } from "./map/MapReportHandoffDrawer";
 import { MapReviewTimelinePanel } from "./map/MapReviewTimelinePanel";
 import { CartographyRecommendationList } from "./map/CartographyRecommendationList";
+import {
+  createMapExportEvidenceArtifact,
+  createMapReportSnapshotEvidenceArtifact,
+} from "./map/mapEvidenceArtifacts";
 import { createOpaqueFloatingPanelStyle, useDraggableMapPanel } from "./map/useDraggableMapPanel";
 import { getActiveRightDockPanel, getMapDockLayout } from "./map/mapDocking";
 import {
@@ -108,12 +112,14 @@ import {
 } from "../../services/map/MapDataExporter";
 import { bindTableAlias, loadArrowIPC, loadGeoJSON, toGeoJSON } from "../../engine/spatial-db/SpatialDB";
 import {
-  DEFAULT_MAP_COMPOSITION_OPTIONS,
   buildMapCompositionLegendItems,
+  buildMapPublicationReadiness,
   calculateScaleBarSpec,
+  DEFAULT_MAP_COMPOSITION_OPTIONS,
   exportMapOnlyA0LandscapePdf,
   exportMapPublication,
   type MapCompositionOptions,
+  mapPublicationReadinessToEvidenceQA,
   renderMapExportPreview,
   triggerMapPublicationDownload,
 } from "../../services/map/MapExportService";
@@ -131,11 +137,11 @@ import {
   rerunAnalysisResult,
 } from "../../services/map/MapEngineAdapter";
 import {
-  buildBufferedPointBounds,
   buildBoundsPolygon,
+  buildBufferedPointBounds,
   getCompatibleAoiFlows,
-  setMapViewRestriction,
   type SelectionStatisticsSummary,
+  setMapViewRestriction,
 } from "../../services/map/MapAnalysisDispatcher";
 import { resolveMapAnalysisBounds } from "../../services/map/MapAnalysisBounds";
 import {
@@ -168,9 +174,9 @@ import {
   type MapAnalysisRecommendation,
 } from "../../services/map/MapAnalysisRecommender";
 import {
-  DEFAULT_MAP_REPORT_HANDOFF_OPTIONS,
   buildMapReportHandoffDraft,
   buildPendingReportInsertFromMapHandoff,
+  DEFAULT_MAP_REPORT_HANDOFF_OPTIONS,
   enqueueMapReportHandoff,
   type MapReportHandoffOptions,
   type MapReportHandoffSource,
@@ -692,6 +698,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const addMapReviewEvent = useMapExplorerStore((s) => s.addMapReviewEvent);
   const updateMapReviewEventStatus = useMapExplorerStore((s) => s.updateMapReviewEventStatus);
   const clearMapReviewSession = useMapExplorerStore((s) => s.clearMapReviewSession);
+  const upsertMapEvidenceArtifact = useMapExplorerStore((s) => s.upsertMapEvidenceArtifact);
   const copilotActionProposals = useMapExplorerStore((s) => s.copilotActionProposals);
   const copilotAuditTrail = useMapExplorerStore((s) => s.copilotAuditTrail);
   const layoutPreferences = useMapExplorerStore((s) => s.layoutPreferences);
@@ -1273,6 +1280,20 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const visiblePublicationLayers = useMemo(
     () => overlayLayers.filter((layer) => layer.visible),
     [overlayLayers],
+  );
+  const mapPublicationLegendItems = useMemo(
+    () => buildMapCompositionLegendItems(visiblePublicationLayers),
+    [visiblePublicationLayers],
+  );
+  const mapPublicationReadiness = useMemo(
+    () => buildMapPublicationReadiness({
+      mode: "publication-export",
+      overlayLayers: visiblePublicationLayers,
+      composition: mapCompositionOptions,
+      scientificQA,
+      legendItems: mapPublicationLegendItems,
+    }),
+    [mapCompositionOptions, mapPublicationLegendItems, scientificQA, visiblePublicationLayers],
   );
   const reportHandoffDraft = useMemo(() => {
     if (!reportHandoffSource) return null;
@@ -3472,16 +3493,45 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       announce("A0 map PDF export failed: canvas not ready");
       return;
     }
+    if (reportHandoffDraft?.publicationReadiness.status === "blocked") {
+      const message = reportHandoffDraft.publicationReadiness.blockers[0]?.message ?? "Publication readiness blockers must be resolved before formal PDF export.";
+      toastError(message);
+      announce(`A0 map PDF export blocked: ${message}`);
+      return;
+    }
 
     setIsExportingReportHandoffPdf(true);
     try {
       const result = await exportMapOnlyA0LandscapePdf(map, {
         mapFit: reportHandoffOptions.snapshotFit,
         title: reportHandoffSource?.title ?? reportHandoffDraft?.title ?? "Current map evidence",
-        overlayLayers,
+        overlayLayers: visiblePublicationLayers,
         attributionText: DEFAULT_MAP_COMPOSITION_OPTIONS.attributionText,
+        scientificQA,
       });
       triggerMapPublicationDownload(result);
+      const readiness = result.readiness ?? reportHandoffDraft?.publicationReadiness ?? mapPublicationReadiness;
+      upsertMapEvidenceArtifact(createMapExportEvidenceArtifact({
+        title: `${reportHandoffDraft?.title ?? "Current map evidence"} A0 PDF export`,
+        summary: `Formal A0 PDF export recorded with publication readiness status ${readiness.status}.`,
+        exportReference: {
+          exportId: result.manifest?.manifestId ?? result.filename,
+          filename: result.filename,
+          format: result.format,
+          mimeType: result.mimeType,
+        },
+        linkedLayerIds: visiblePublicationLayers.map((layer) => layer.id),
+        sourceLayerIds: visiblePublicationLayers.map((layer) => layer.id),
+        qa: mapPublicationReadinessToEvidenceQA(readiness),
+        metadata: {
+          publicationReadinessStatus: readiness.status,
+          readinessBlockerCount: readiness.blockers.length,
+          readinessWarningCount: readiness.warnings.length,
+          readinessCaveatCount: readiness.caveats.length,
+          ...(result.manifest ? { manifestId: result.manifest.manifestId, manifestVersion: result.manifest.version } : {}),
+        },
+        createdAt: result.manifest?.createdAt ?? readiness.checkedAt,
+      }));
       toastSuccess(`Exported A0 landscape map PDF: ${result.filename}.`);
       announce("A0 landscape map PDF exported");
     } catch (error) {
@@ -3491,22 +3541,62 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     } finally {
       setIsExportingReportHandoffPdf(false);
     }
-  }, [announce, overlayLayers, reportHandoffDraft?.title, reportHandoffOptions.snapshotFit, reportHandoffSource?.title]);
+  }, [
+    announce,
+    mapPublicationReadiness,
+    reportHandoffDraft,
+    reportHandoffOptions.snapshotFit,
+    reportHandoffSource?.title,
+    scientificQA,
+    upsertMapEvidenceArtifact,
+    visiblePublicationLayers,
+  ]);
 
   const handleInsertReportHandoff = useCallback(() => {
     if (!reportHandoffDraft) return;
+    if (reportHandoffDraft.publicationReadiness.status === "blocked") {
+      const message = reportHandoffDraft.publicationReadiness.blockers[0]?.message ?? "Publication readiness blockers must be resolved before report insertion.";
+      toastError(message);
+      announce(`Map report insertion blocked: ${message}`);
+      return;
+    }
     const snapshot = buildCurrentReviewSnapshot();
     const provisionalInsert = buildPendingReportInsertFromMapHandoff(reportHandoffDraft);
     const reviewEventInput = buildReportHandoffReviewEvent(reportHandoffDraft, provisionalInsert, snapshot);
     const reviewEventId = createMapReviewEvent(reviewEventInput).id;
     const insert = enqueueMapReportHandoff(reportHandoffDraft, { mapReviewEventIds: [reviewEventId] });
+    const sourceLayerIds = reportHandoffDraft.references
+      .map((reference) => reference.layerId)
+      .filter((layerId): layerId is string => Boolean(layerId));
+    upsertMapEvidenceArtifact(createMapReportSnapshotEvidenceArtifact({
+      title: `${reportHandoffDraft.title} report snapshot`,
+      summary: `Report handoff inserted with publication readiness status ${reportHandoffDraft.publicationReadiness.status}.`,
+      reportReference: {
+        reportInsertId: insert.id,
+        reportDraftId: reportHandoffDraft.id,
+        snapshotAssetId: reportHandoffDraft.snapshot.assetId,
+        sectionIds: insert.sections.map((section) => section.id),
+      },
+      linkedLayerIds: sourceLayerIds,
+      sourceLayerIds,
+      qa: mapPublicationReadinessToEvidenceQA(reportHandoffDraft.publicationReadiness),
+      metadata: {
+        publicationReadinessStatus: reportHandoffDraft.publicationReadiness.status,
+        readinessBlockerCount: reportHandoffDraft.publicationReadiness.blockers.length,
+        readinessWarningCount: reportHandoffDraft.publicationReadiness.warnings.length,
+        readinessCaveatCount: reportHandoffDraft.publicationReadiness.caveats.length,
+        citationCount: reportHandoffDraft.citations.length,
+        reportSectionCount: insert.sections.length,
+      },
+      createdAt: reportHandoffDraft.createdAt,
+    }));
     recordMapReviewEvent({ ...reviewEventInput, id: reviewEventId });
     setReportHandoffSource(null);
     setReportHandoffSnapshot(null);
     toastSuccess(`Added ${insert.sections.length} map report section(s) to the report builder.`);
     announce("Map finding added to report builder");
     window.dispatchEvent(new CustomEvent("synapse:navigate", { detail: { tab: "Report" } }));
-  }, [announce, buildCurrentReviewSnapshot, recordMapReviewEvent, reportHandoffDraft]);
+  }, [announce, buildCurrentReviewSnapshot, recordMapReviewEvent, reportHandoffDraft, upsertMapEvidenceArtifact]);
 
   const handleCloseReportHandoff = useCallback(() => {
     setReportHandoffSource(null);
@@ -3626,15 +3716,44 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       announce("Map export failed: canvas not ready");
       return;
     }
+    if (mapPublicationReadiness.status === "blocked") {
+      const message = mapPublicationReadiness.blockers[0]?.message ?? "Publication readiness blockers must be resolved before formal export.";
+      toastError(message);
+      announce(`Map publication export blocked: ${message}`);
+      return;
+    }
 
     setIsExportingMapImage(true);
     try {
       const result = await exportMapPublication(map, {
         composition: mapCompositionOptions,
         overlayLayers: visiblePublicationLayers,
+        scientificQA,
       });
 
       triggerMapPublicationDownload(result);
+      const readiness = result.readiness ?? mapPublicationReadiness;
+      upsertMapEvidenceArtifact(createMapExportEvidenceArtifact({
+        title: `${mapCompositionOptions.title || "Map publication"} export`,
+        summary: `Formal ${result.format.toUpperCase()} export recorded with publication readiness status ${readiness.status}.`,
+        exportReference: {
+          exportId: result.manifest?.manifestId ?? result.filename,
+          filename: result.filename,
+          format: result.format,
+          mimeType: result.mimeType,
+        },
+        linkedLayerIds: visiblePublicationLayers.map((layer) => layer.id),
+        sourceLayerIds: visiblePublicationLayers.map((layer) => layer.id),
+        qa: mapPublicationReadinessToEvidenceQA(readiness),
+        metadata: {
+          publicationReadinessStatus: readiness.status,
+          readinessBlockerCount: readiness.blockers.length,
+          readinessWarningCount: readiness.warnings.length,
+          readinessCaveatCount: readiness.caveats.length,
+          ...(result.manifest ? { manifestId: result.manifest.manifestId, manifestVersion: result.manifest.version } : {}),
+        },
+        createdAt: result.manifest?.createdAt ?? readiness.checkedAt,
+      }));
       setShowMapExportDialog(false);
       toastSuccess(`${result.format.toUpperCase()} map publication rendered: ${result.filename}.`);
       announce("Map publication export completed");
@@ -3647,7 +3766,10 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     }
   }, [
     announce,
+    mapPublicationReadiness,
     mapCompositionOptions,
+    scientificQA,
+    upsertMapEvidenceArtifact,
     visiblePublicationLayers,
   ]);
 
@@ -4751,6 +4873,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
           compositionOptions={mapCompositionOptions}
           legendAvailable={visiblePublicationLayers.length > 0}
           visibleLayerCount={visiblePublicationLayers.length}
+          readiness={mapPublicationReadiness}
           previewUrl={mapExportPreviewUrl}
           isGeneratingPreview={isGeneratingMapExportPreview}
           isExporting={isExportingMapImage}

@@ -4,26 +4,51 @@ import type { Feature, FeatureCollection, Geometry, Position } from "geojson";
 import type {
   LayerQaStatus,
   LayerScientificQABadge,
+  LayerScientificQACategory,
+  LayerScientificQACategorySummary,
   LayerScientificQAMetadata,
+  LayerScientificQASeverity,
   LayerSourceKind,
   OverlayLayerConfig,
   OverlaySourceData,
 } from "@/centerpanel/components/map/mapTypes";
 
-export const MAP_SCIENTIFIC_QA_VERSION = 1;
+export const MAP_SCIENTIFIC_QA_VERSION = 2;
 export const DEFAULT_GEOMETRY_WORKER_FEATURE_THRESHOLD = 2_000;
 export const MAX_REASONABLE_DECIMAL_PLACES = 8;
 
+export const MAP_SCIENTIFIC_QA_CATEGORIES: readonly LayerScientificQACategory[] = [
+  "crs",
+  "geometry-validity",
+  "schema",
+  "scale",
+  "missingness",
+  "source-provenance",
+  "attribution-license",
+  "workflow-readiness",
+  "export-readiness",
+];
+
 export type MapScientificQAIssueSeverity = "info" | "warning" | "error" | "blocker";
+
+export type MapScientificQACategory = LayerScientificQACategory;
+export type MapScientificQACategorySummary = LayerScientificQACategorySummary;
+export type MapScientificQASeverity = LayerScientificQASeverity;
 
 export type MapScientificQAIssueCategory =
   | "crs"
   | "geometry"
   | "geometry-type"
   | "coordinates"
+  | "schema"
   | "scale"
+  | "missingness"
   | "temporal"
   | "lineage"
+  | "source-provenance"
+  | "attribution-license"
+  | "workflow-readiness"
+  | "export-readiness"
   | "sample-data";
 
 export type MapScientificQAGeometryFamily = "point" | "line" | "polygon" | "mixed" | "unknown";
@@ -67,6 +92,7 @@ export interface LayerScientificQASummary {
   geometryFamilies: MapScientificQAGeometryFamily[];
   vertexCount: number;
   featureCount: number;
+  categorySummaries: MapScientificQACategorySummary[];
   metadata: LayerScientificQAMetadata;
 }
 
@@ -82,6 +108,8 @@ export interface MapScientificQAState {
     visibleLayerCount: number;
     workerLayerCount: number;
     issueCounts: Record<MapScientificQAIssueSeverity, number>;
+    categoryCounts?: Record<MapScientificQASeverity, number>;
+    categorySummaries?: MapScientificQACategorySummary[];
   };
 }
 
@@ -126,6 +154,257 @@ const severityRank: Record<MapScientificQAIssueSeverity, number> = {
   error: 2,
   blocker: 3,
 };
+
+const qaSeverityRank: Record<MapScientificQASeverity, number> = {
+  pass: 0,
+  unknown: 1,
+  warning: 2,
+  blocked: 3,
+};
+
+const CATEGORY_PASS_REASONS: Record<MapScientificQACategory, string> = {
+  crs: "No CRS metadata blocker was detected for the current context.",
+  "geometry-validity": "No deterministic geometry validity blocker was detected.",
+  schema: "Schema metadata is sufficient for map-side inspection.",
+  scale: "No scale caveat was detected for the current viewport.",
+  missingness: "Feature-count and completeness metadata are available or derivable.",
+  "source-provenance": "Source and lineage metadata are available for review.",
+  "attribution-license": "Attribution or license metadata is available.",
+  "workflow-readiness": "No active workflow-readiness blocker was detected.",
+  "export-readiness": "No publication/export blocker was detected from the current QA state.",
+};
+
+function issueToQASeverity(issue: MapScientificQAIssue): MapScientificQASeverity {
+  if (issue.severity === "blocker" || issue.severity === "error") {
+    return "blocked";
+  }
+  if (issue.severity === "warning") {
+    return "warning";
+  }
+  return "unknown";
+}
+
+function maxQASeverity(severities: Iterable<MapScientificQASeverity>): MapScientificQASeverity {
+  let maxSeverity: MapScientificQASeverity = "pass";
+  for (const severity of severities) {
+    if (qaSeverityRank[severity] > qaSeverityRank[maxSeverity]) {
+      maxSeverity = severity;
+    }
+  }
+  return maxSeverity;
+}
+
+function issueQACategories(issue: MapScientificQAIssue): MapScientificQACategory[] {
+  switch (issue.category) {
+    case "crs":
+      return ["crs", "export-readiness"];
+    case "geometry":
+    case "coordinates":
+      return ["geometry-validity", "workflow-readiness", "export-readiness"];
+    case "geometry-type":
+    case "workflow-readiness":
+      return ["workflow-readiness"];
+    case "schema":
+      return ["schema", "export-readiness"];
+    case "scale":
+      return ["scale", "export-readiness"];
+    case "missingness":
+    case "temporal":
+      return ["missingness", "export-readiness"];
+    case "lineage":
+    case "source-provenance":
+    case "sample-data":
+      return ["source-provenance", "export-readiness"];
+    case "attribution-license":
+      return ["attribution-license", "export-readiness"];
+    case "export-readiness":
+      return ["export-readiness"];
+    default:
+      return ["export-readiness"];
+  }
+}
+
+function categoryIssueMatches(issue: MapScientificQAIssue, category: MapScientificQACategory): boolean {
+  return issueQACategories(issue).includes(category);
+}
+
+function uniqueLimited(values: Array<string | undefined>, limit = 4): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const value of values) {
+    const normalized = value?.trim();
+    if (!normalized || seen.has(normalized)) {
+      continue;
+    }
+    seen.add(normalized);
+    result.push(normalized);
+    if (result.length >= limit) {
+      break;
+    }
+  }
+  return result;
+}
+
+function schemaFieldCount(layer: OverlayLayerConfig): number {
+  return Math.max(
+    layer.metadata?.fields?.length ?? 0,
+    layer.metadata?.schemaSummary?.fieldCount ?? 0,
+    layer.metadata?.registry?.schemaSummary.fieldCount ?? 0,
+  );
+}
+
+function hasLicenseOrAttribution(layer: OverlayLayerConfig): boolean {
+  return Boolean(
+    layer.provenance?.license
+      || layer.provenance?.attribution
+      || layer.metadata?.datasetContext?.license
+      || layer.metadata?.licenseAttribution?.license
+      || layer.metadata?.licenseAttribution?.attribution
+      || layer.metadata?.registry?.licenseAttribution.license
+      || layer.metadata?.registry?.licenseAttribution.attribution
+      || layer.metadata?.analysisResult,
+  );
+}
+
+function isFeatureLayer(layer: OverlayLayerConfig): boolean {
+  return layer.type === "geojson" || layer.type === "heatmap";
+}
+
+function defaultCategorySeverity(
+  category: MapScientificQACategory,
+  layer: OverlayLayerConfig | null,
+  geometryResult: MapScientificQAGeometryResult | null,
+  geometryFamilies: MapScientificQAGeometryFamily[],
+): Pick<MapScientificQACategorySummary, "severity" | "reasons" | "recommendedFixes"> {
+  if (!layer) {
+    return {
+      severity: "pass",
+      reasons: [CATEGORY_PASS_REASONS[category]],
+      recommendedFixes: [],
+    };
+  }
+
+  if (category === "crs" && !resolveLayerCrs(layer)) {
+    return {
+      severity: "unknown",
+      reasons: ["CRS metadata is missing, so analytical projection readiness is unknown."],
+      recommendedFixes: ["Attach a documented EPSG or OGC CRS identifier before analysis or publication."],
+    };
+  }
+
+  if (category === "geometry-validity" && isFeatureLayer(layer) && !geometryResult) {
+    return {
+      severity: "unknown",
+      reasons: ["Feature-level geometry validation could not inspect source features in this session."],
+      recommendedFixes: ["Load inline GeoJSON or attach a geometry validation report to the layer metadata."],
+    };
+  }
+
+  if (category === "geometry-validity" && geometryFamilies.includes("unknown")) {
+    return {
+      severity: "unknown",
+      reasons: ["Geometry family metadata is unknown."],
+      recommendedFixes: ["Attach geometry type metadata or reload a source with inspectable features."],
+    };
+  }
+
+  if (category === "schema" && isFeatureLayer(layer) && schemaFieldCount(layer) === 0) {
+    return {
+      severity: "unknown",
+      reasons: ["Queryable feature schema metadata is missing."],
+      recommendedFixes: ["Add field names or a schema summary before using this layer in queries, reports, or analysis dispatch."],
+    };
+  }
+
+  if (category === "missingness" && layer.metadata?.featureCount == null && !geometryResult) {
+    return {
+      severity: "unknown",
+      reasons: ["Feature count or completeness metadata is missing."],
+      recommendedFixes: ["Attach feature count and skipped-row/completeness notes before treating this layer as analysis-ready."],
+    };
+  }
+
+  if (category === "attribution-license" && !hasLicenseOrAttribution(layer)) {
+    return {
+      severity: "warning",
+      reasons: ["No license or attribution metadata is available for this layer."],
+      recommendedFixes: ["Record license and attribution before report, dashboard, or publication export use."],
+    };
+  }
+
+  return {
+    severity: "pass",
+    reasons: [CATEGORY_PASS_REASONS[category]],
+    recommendedFixes: [],
+  };
+}
+
+function buildCategorySummaries(input: {
+  issues: MapScientificQAIssue[];
+  layer?: OverlayLayerConfig;
+  geometryResult?: MapScientificQAGeometryResult | null;
+  geometryFamilies?: MapScientificQAGeometryFamily[];
+}): MapScientificQACategorySummary[] {
+  const layer = input.layer ?? null;
+  const geometryResult = input.geometryResult ?? null;
+  const geometryFamilies = input.geometryFamilies ?? [];
+  return MAP_SCIENTIFIC_QA_CATEGORIES.map((category) => {
+    const categoryIssues = input.issues.filter((issue) => categoryIssueMatches(issue, category));
+    if (categoryIssues.length === 0) {
+      const fallback = defaultCategorySeverity(category, layer, geometryResult, geometryFamilies);
+      return {
+        category,
+        severity: fallback.severity,
+        issueIds: [],
+        affectedLayerIds: layer ? [layer.id] : [],
+        reasons: fallback.reasons,
+        recommendedFixes: fallback.recommendedFixes,
+      };
+    }
+
+    return {
+      category,
+      severity: maxQASeverity(categoryIssues.map(issueToQASeverity)),
+      issueIds: uniqueLimited(categoryIssues.map((issue) => issue.id), 12),
+      affectedLayerIds: uniqueLimited(categoryIssues.map((issue) => issue.layerId ?? layer?.id), 12),
+      reasons: uniqueLimited(categoryIssues.map((issue) => issue.explanation)),
+      recommendedFixes: uniqueLimited(categoryIssues.map((issue) => issue.suggestedFix)),
+    };
+  });
+}
+
+function mergeCategorySummaries(summaries: MapScientificQACategorySummary[]): MapScientificQACategorySummary[] {
+  return MAP_SCIENTIFIC_QA_CATEGORIES.map((category) => {
+    const entries = summaries.filter((summary) => summary.category === category);
+    if (entries.length === 0) {
+      return {
+        category,
+        severity: "pass",
+        issueIds: [],
+        affectedLayerIds: [],
+        reasons: [CATEGORY_PASS_REASONS[category]],
+        recommendedFixes: [],
+      };
+    }
+    return {
+      category,
+      severity: maxQASeverity(entries.map((entry) => entry.severity)),
+      issueIds: uniqueLimited(entries.flatMap((entry) => entry.issueIds), 24),
+      affectedLayerIds: uniqueLimited(entries.flatMap((entry) => entry.affectedLayerIds), 24),
+      reasons: uniqueLimited(entries.flatMap((entry) => entry.reasons)),
+      recommendedFixes: uniqueLimited(entries.flatMap((entry) => entry.recommendedFixes)),
+    };
+  });
+}
+
+function categoryCounts(summaries: MapScientificQACategorySummary[]): Record<MapScientificQASeverity, number> {
+  return {
+    pass: summaries.filter((summary) => summary.severity === "pass").length,
+    warning: summaries.filter((summary) => summary.severity === "warning").length,
+    blocked: summaries.filter((summary) => summary.severity === "blocked").length,
+    unknown: summaries.filter((summary) => summary.severity === "unknown").length,
+  };
+}
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -889,6 +1168,7 @@ function buildLayerMetadata(summary: Omit<LayerScientificQASummary, "metadata">)
     featureIssueCount: summary.featureIssueCount,
     usedWorker: summary.usedWorker,
     caveats: summary.caveats,
+    categorySummaries: summary.categorySummaries,
     signature: summary.signature,
   };
 }
@@ -965,7 +1245,12 @@ function addMetadataIssues(layer: OverlayLayerConfig, issues: MapScientificQAIss
   );
   const hasLicense = Boolean(
     provenance?.license
+      || provenance?.attribution
       || layer.metadata?.datasetContext?.license
+      || layer.metadata?.licenseAttribution?.license
+      || layer.metadata?.licenseAttribution?.attribution
+      || layer.metadata?.registry?.licenseAttribution.license
+      || layer.metadata?.registry?.licenseAttribution.attribution
       || layer.metadata?.analysisResult,
   );
   const hasLineage = Boolean(
@@ -975,24 +1260,49 @@ function addMetadataIssues(layer: OverlayLayerConfig, issues: MapScientificQAIss
       || layer.metadata?.datasetContext?.schemaSummary?.length
       || layer.metadata?.columnar?.geoParquetVersion,
   );
-  const missing = [
+  const missingLineage = [
     !hasSource ? "source" : null,
     !hasTimestamp ? "timestamp" : null,
-    !hasLicense ? "license" : null,
     !hasLineage ? "provenance" : null,
   ].filter((entry): entry is string => Boolean(entry));
 
-  if (missing.length > 0) {
+  if (missingLineage.length > 0) {
     issues.push(createIssue({
       code: "missing_lineage_metadata",
-      category: "lineage",
+      category: "source-provenance",
       severity: "warning",
       title: "Incomplete lineage metadata",
-      explanation: `The layer is missing ${missing.join(", ")} metadata, limiting reproducibility and publication readiness.`,
-      suggestedFix: "Record the source, timestamp, license, and processing lineage in layer metadata before publishing results.",
+      explanation: `The layer is missing ${missingLineage.join(", ")} metadata, limiting reproducibility and publication readiness.`,
+      suggestedFix: "Record the source, timestamp, and processing lineage in layer metadata before publishing results.",
       layerId: layer.id,
       layerName: layer.name,
-      details: { missing },
+      details: { missing: missingLineage },
+    }));
+  }
+
+  if (!hasLicense) {
+    issues.push(createIssue({
+      code: "missing_attribution_license",
+      category: "attribution-license",
+      severity: "warning",
+      title: "Missing license or attribution",
+      explanation: "The layer has no license or attribution metadata, so report, dashboard, and publication reuse cannot be audited.",
+      suggestedFix: "Attach source license and attribution text before using this layer in formal outputs.",
+      layerId: layer.id,
+      layerName: layer.name,
+    }));
+  }
+
+  if (isFeatureLayer(layer) && schemaFieldCount(layer) === 0) {
+    issues.push(createIssue({
+      code: "missing_schema_metadata",
+      category: "schema",
+      severity: "warning",
+      title: "Missing schema metadata",
+      explanation: "Queryable feature layers need field metadata before query, workflow, or report handoff readiness can be trusted.",
+      suggestedFix: "Attach field names, geometry field, and known required attributes to the layer schema summary.",
+      layerId: layer.id,
+      layerName: layer.name,
     }));
   }
 
@@ -1188,6 +1498,12 @@ async function evaluateLayer(
 
   const status = issueStatus(issues);
   const checkedAt = nowIso();
+  const categorySummaries = buildCategorySummaries({
+    issues,
+    layer,
+    geometryResult,
+    geometryFamilies,
+  });
   const summaryBase: Omit<LayerScientificQASummary, "metadata"> = {
     layerId: layer.id,
     layerName: layer.name,
@@ -1202,6 +1518,7 @@ async function evaluateLayer(
     geometryFamilies,
     vertexCount: geometryResult?.vertexCount ?? 0,
     featureCount: geometryResult?.featureCount ?? layer.metadata?.featureCount ?? 0,
+    categorySummaries,
   };
   const summary: LayerScientificQASummary = {
     ...summaryBase,
@@ -1410,9 +1727,14 @@ export class MapScientificQAEngine {
     const globalIssues = evaluateGlobalIssues(layers, context);
     const issues = sortIssues([...layerResults.flatMap((result) => result.issues), ...globalIssues]);
     const summaries = layerResults.map((result) => result.summary);
+    const categorySummaries = mergeCategorySummaries([
+      ...summaries.flatMap((summary) => summary.categorySummaries),
+      ...buildCategorySummaries({ issues: globalIssues }),
+    ]);
     const signature = stableStringify({
       layerSignatures: summaries.map((summary) => [summary.layerId, summary.signature]),
       issueIds: issues.map((issue) => issue.id),
+      categorySummaries: categorySummaries.map((summary) => [summary.category, summary.severity, summary.issueIds]),
       context: {
         comparisonLayerIds: context.comparisonLayerIds,
         sampleWarningAcknowledged: context.sampleWarningAcknowledged,
@@ -1435,6 +1757,8 @@ export class MapScientificQAEngine {
         visibleLayerCount: layers.filter((layer) => layer.visible).length,
         workerLayerCount: summaries.filter((summary) => summary.usedWorker).length,
         issueCounts: issueCounts(issues),
+        categoryCounts: categoryCounts(categorySummaries),
+        categorySummaries,
       },
     };
 
@@ -1459,9 +1783,14 @@ export class MapScientificQAEngine {
     const globalIssues = evaluateGlobalIssues(layers, syncContext);
     const issues = sortIssues([...layerResults.flatMap((result) => result.issues), ...globalIssues]);
     const summaries = layerResults.map((result) => result.summary);
+    const categorySummaries = mergeCategorySummaries([
+      ...summaries.flatMap((summary) => summary.categorySummaries),
+      ...buildCategorySummaries({ issues: globalIssues }),
+    ]);
     const signature = stableStringify({
       layerSignatures: summaries.map((summary) => [summary.layerId, summary.signature]),
       issueIds: issues.map((issue) => issue.id),
+      categorySummaries: categorySummaries.map((summary) => [summary.category, summary.severity, summary.issueIds]),
       context: {
         comparisonLayerIds: syncContext.comparisonLayerIds,
         sampleWarningAcknowledged: syncContext.sampleWarningAcknowledged,
@@ -1480,6 +1809,8 @@ export class MapScientificQAEngine {
         visibleLayerCount: layers.filter((layer) => layer.visible).length,
         workerLayerCount: 0,
         issueCounts: issueCounts(issues),
+        categoryCounts: categoryCounts(categorySummaries),
+        categorySummaries,
       },
     };
   }
@@ -1515,6 +1846,12 @@ function evaluateLayerSync(
 
   const status = issueStatus(issues);
   const checkedAt = nowIso();
+  const categorySummaries = buildCategorySummaries({
+    issues,
+    layer,
+    geometryResult,
+    geometryFamilies,
+  });
   const summaryBase: Omit<LayerScientificQASummary, "metadata"> = {
     layerId: layer.id,
     layerName: layer.name,
@@ -1529,6 +1866,7 @@ function evaluateLayerSync(
     geometryFamilies,
     vertexCount: geometryResult?.vertexCount ?? 0,
     featureCount: geometryResult?.featureCount ?? layer.metadata?.featureCount ?? 0,
+    categorySummaries,
   };
   return {
     issues,

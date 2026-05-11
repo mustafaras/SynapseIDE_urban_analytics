@@ -269,6 +269,28 @@ export type LayerScientificQABadge =
   | "stale_result"
   | "uncertain_output";
 
+export type LayerScientificQACategory =
+  | "crs"
+  | "geometry-validity"
+  | "schema"
+  | "scale"
+  | "missingness"
+  | "source-provenance"
+  | "attribution-license"
+  | "workflow-readiness"
+  | "export-readiness";
+
+export type LayerScientificQASeverity = "pass" | "warning" | "blocked" | "unknown";
+
+export interface LayerScientificQACategorySummary {
+  category: LayerScientificQACategory;
+  severity: LayerScientificQASeverity;
+  issueIds: string[];
+  affectedLayerIds: string[];
+  reasons: string[];
+  recommendedFixes: string[];
+}
+
 export interface LayerScientificQAMetadata {
   status: LayerQaStatus;
   issueIds: string[];
@@ -277,6 +299,7 @@ export interface LayerScientificQAMetadata {
   featureIssueCount: number;
   usedWorker: boolean;
   caveats: string[];
+  categorySummaries?: LayerScientificQACategorySummary[];
   signature: string;
 }
 
@@ -382,6 +405,7 @@ export interface MapEvidenceQA {
   issueCount: number;
   blockerCount: number;
   caveats: string[];
+  categorySummaries?: LayerScientificQACategorySummary[];
   checkedAt?: string;
   reviewedAt?: string;
   reviewedBy?: string;

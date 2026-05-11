@@ -99,6 +99,7 @@ function createLayer(
     metadata: {
       featureCount: sourceData.features.length,
       geometryType: sourceData.features[0]?.geometry?.type ?? "Unknown",
+      fields: ["value"],
       datasetContext: {
         crs: "EPSG:4326",
         source: "City Open Data",
@@ -128,6 +129,7 @@ describe("MapScientificQA", () => {
     expect(qa.status).toBe("passed");
     expect(qa.issues).toHaveLength(0);
     expect(qa.layerSummaries[0]?.metadata.status).toBe("passed");
+    expect(qa.metadata.categorySummaries?.every((summary) => summary.severity === "pass")).toBe(true);
   });
 
   it("warns and adds a caveat when CRS metadata is missing", () => {
@@ -145,6 +147,21 @@ describe("MapScientificQA", () => {
     expect(qa.issues.some((issue) => issue.code === "missing_crs")).toBe(true);
     expect(qa.layerSummaries[0]?.badges).toContain("missing_crs");
     expect(qa.layerSummaries[0]?.metadata.caveats.length).toBeGreaterThan(0);
+    expect(qa.layerSummaries[0]?.metadata.categorySummaries?.find((summary) => summary.category === "crs")?.severity).toBe("warning");
+  });
+
+  it("keeps missing schema metadata out of pass state", () => {
+    const layer = createLayer("missing-schema", validPolygonCollection, {
+      fields: [],
+    });
+
+    const qa = evaluateMapScientificQASync([layer]);
+    const schemaSummary = qa.layerSummaries[0]?.metadata.categorySummaries?.find((summary) => summary.category === "schema");
+
+    expect(qa.status).toBe("warning");
+    expect(qa.issues.some((issue) => issue.code === "missing_schema_metadata")).toBe(true);
+    expect(schemaSummary?.severity).toBe("warning");
+    expect(schemaSummary?.recommendedFixes[0]).toContain("field names");
   });
 
   it("flags invalid geometry at layer and feature level", () => {

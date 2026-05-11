@@ -1,12 +1,12 @@
 import { create } from "zustand";
 import { createJSONStorage, persist, type StateStorage } from "zustand/middleware";
 import {
-  MAP_ANNOTATION_LIMIT,
-  MAP_BOOKMARK_LIMIT,
-  MAP_LAYER_REGISTRY_EVENT,
   type BaseLayerId,
   type DrawnFeature,
   type DrawToolId,
+  MAP_ANNOTATION_LIMIT,
+  MAP_BOOKMARK_LIMIT,
+  MAP_LAYER_REGISTRY_EVENT,
   type MapAnnotation,
   type MapAnnotationProperties,
   type MapAnnotationStyleSettings,
@@ -31,24 +31,25 @@ import { summarizeOverlayLayer } from "../centerpanel/components/map/mapContextS
 import { withNormalizedLayerRegistryMetadata } from "../centerpanel/components/map/mapLayerMetadata";
 import {
   createMapEvidenceArtifact,
-  patchMapEvidenceArtifact,
+  createMapQAFindingEvidenceArtifact,
   selectMapEvidenceArtifactsByAoi as filterMapEvidenceArtifactsByAoi,
   selectMapEvidenceArtifactsByLayer as filterMapEvidenceArtifactsByLayer,
   selectMapEvidenceArtifactsBySource as filterMapEvidenceArtifactsBySource,
   selectMapEvidenceArtifactsByWorkflow as filterMapEvidenceArtifactsByWorkflow,
-  upsertMapEvidenceArtifact as upsertMapEvidenceArtifactInRegistry,
   type MapEvidenceArtifactDraft,
   type MapEvidenceArtifactUpdate,
+  patchMapEvidenceArtifact,
+  upsertMapEvidenceArtifact as upsertMapEvidenceArtifactInRegistry,
 } from "../centerpanel/components/map/mapEvidenceArtifacts";
 import type { MapScientificQAState } from "../services/map/MapScientificQA";
 import {
   appendMapReviewEvent,
   createMapReviewSession,
-  updateMapReviewEventStatus as updateMapReviewEventStatusInSession,
   type MapReviewSession,
   type MapReviewSessionInput,
   type MapReviewTimelineEventInput,
   type MapReviewTimelineEventStatus,
+  updateMapReviewEventStatus as updateMapReviewEventStatusInSession,
 } from "../services/map/MapReviewSessionService";
 
 /* ================================================================== */
@@ -680,6 +681,70 @@ function applyScientificQAMetadataToLayers(
   });
 }
 
+function uniqueStrings(values: Array<string | undefined>): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const value of values) {
+    const normalized = value?.trim();
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    result.push(normalized);
+  }
+  return result;
+}
+
+function applyScientificQAToEvidenceArtifacts(
+  artifacts: MapEvidenceArtifact[],
+  qa: MapScientificQAState | null,
+): MapEvidenceArtifact[] {
+  if (!qa) return artifacts;
+
+  const refreshedArtifacts = artifacts.map((artifact) => {
+    if (artifact.kind === "qa-finding") return artifact;
+    const linkedLayerIds = uniqueStrings([
+      ...artifact.linkedLayerIds,
+      ...artifact.sourceLayerIds,
+      artifact.derivedLayerId,
+    ]);
+    if (linkedLayerIds.length === 0) return artifact;
+
+    const linkedLayerSet = new Set(linkedLayerIds);
+    const relatedLayerSummaries = qa.layerSummaries.filter((summary) => linkedLayerSet.has(summary.layerId));
+    if (relatedLayerSummaries.length === 0) return artifact;
+
+    const relatedIssues = qa.issues.filter((issue) => issue.layerId && linkedLayerSet.has(issue.layerId));
+    const issueIds = uniqueStrings(relatedIssues.map((issue) => issue.id));
+    const blockerCount = relatedIssues.filter((issue) => issue.severity === "blocker" || issue.severity === "error").length;
+    const warningCount = relatedIssues.filter((issue) => issue.severity === "warning").length;
+    const categorySummaries = relatedLayerSummaries.flatMap((summary) => summary.categorySummaries);
+    const hasUnknownCategory = categorySummaries.some((summary) => summary.severity === "unknown");
+    const caveats = uniqueStrings([
+      ...relatedLayerSummaries.flatMap((summary) => summary.caveats),
+      ...relatedIssues.map((issue) => issue.explanation),
+    ]).slice(0, 8);
+
+    return patchMapEvidenceArtifact(artifact, {
+      qaIssueIds: issueIds,
+      qa: {
+        state: blockerCount > 0
+          ? "blocked"
+          : warningCount > 0 || hasUnknownCategory
+            ? "warning"
+            : "passed",
+        issueIds,
+        issueCount: issueIds.length,
+        blockerCount,
+        caveats,
+        categorySummaries,
+        checkedAt: qa.checkedAt,
+      },
+      updatedAt: qa.checkedAt,
+    });
+  });
+
+  return upsertMapEvidenceArtifactInRegistry(refreshedArtifacts, createMapQAFindingEvidenceArtifact(qa));
+}
+
 function debouncedSetViewport(
   setter: (fn: (s: MapExplorerState) => Partial<MapExplorerState>) => void,
   patch: Partial<ViewportState>,
@@ -1025,6 +1090,7 @@ export const useMapExplorerStore = create<MapExplorerState>()(
           return {
             scientificQA: qa,
             overlayLayers: applyScientificQAMetadataToLayers(state.overlayLayers, qa),
+            mapEvidenceArtifacts: applyScientificQAToEvidenceArtifacts(state.mapEvidenceArtifacts, qa),
           };
         }),
       currentMapBounds: null,

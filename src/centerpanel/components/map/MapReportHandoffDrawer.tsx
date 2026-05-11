@@ -214,6 +214,31 @@ const paragraphStyle: React.CSSProperties = {
   lineHeight: 1.5,
 };
 
+const readinessPanelStyle: React.CSSProperties = {
+  display: "grid",
+  gap: MAP_SPACING.sm,
+  padding: MAP_SPACING.sm,
+  borderRadius: MAP_RADIUS.md,
+  border: MAP_STROKES.hairlineSubtle,
+  background: "rgba(255,255,255,0.035)",
+};
+
+const readinessHeaderStyle: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: MAP_SPACING.sm,
+};
+
+const readinessBadgeStyle: React.CSSProperties = {
+  borderRadius: MAP_RADIUS.sm,
+  border: MAP_STROKES.hairlineSubtle,
+  padding: "4px 7px",
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+  textTransform: "uppercase",
+};
+
 const snapshotFrameStyle: React.CSSProperties = {
   overflow: "hidden",
   borderRadius: MAP_RADIUS.md,
@@ -307,6 +332,11 @@ const primaryButtonStyle: React.CSSProperties = {
   color: MAP_COLORS.amber,
 };
 
+const disabledActionStyle: React.CSSProperties = {
+  opacity: 0.52,
+  cursor: "not-allowed",
+};
+
 type MapReportHandoffBooleanOption = "includeMethods" | "includeDataLineage" | "includeQaWarnings";
 
 function toggleOption(
@@ -314,6 +344,12 @@ function toggleOption(
   key: MapReportHandoffBooleanOption,
 ): MapReportHandoffOptions {
   return { ...options, [key]: !options[key] };
+}
+
+function getReadinessBadgeColor(status: MapReportHandoffDraft["publicationReadiness"]["status"]): React.CSSProperties {
+  if (status === "blocked") return { color: "#fca5a5", background: "rgba(248,113,113,0.12)", borderColor: "rgba(248,113,113,0.34)" };
+  if (status === "ready-with-caveats") return { color: MAP_COLORS.amber, background: "rgba(245,158,11,0.12)", borderColor: "rgba(245,158,11,0.34)" };
+  return { color: "#86efac", background: "rgba(34,197,94,0.1)", borderColor: "rgba(34,197,94,0.28)" };
 }
 
 export const MapReportHandoffDrawer: React.FC<MapReportHandoffDrawerProps> = ({
@@ -360,6 +396,12 @@ export const MapReportHandoffDrawer: React.FC<MapReportHandoffDrawerProps> = ({
 
   if (!draft) return null;
 
+  const publicationReadiness = draft.publicationReadiness;
+  const isPublicationBlocked = publicationReadiness.status === "blocked";
+  const readinessFindings = publicationReadiness.blockers.length > 0
+    ? publicationReadiness.blockers
+    : publicationReadiness.warnings;
+
   return (
     <aside
       style={getDrawerStyle(presentation, width)}
@@ -372,7 +414,6 @@ export const MapReportHandoffDrawer: React.FC<MapReportHandoffDrawerProps> = ({
           role="separator"
           aria-orientation="vertical"
           aria-label="Resize report handoff panel"
-          tabIndex={0}
           style={resizeHandleStyle}
           onPointerDown={handleResizePointerDown}
           data-testid="map-report-panel-resize-handle"
@@ -445,6 +486,27 @@ export const MapReportHandoffDrawer: React.FC<MapReportHandoffDrawerProps> = ({
       </div>
 
       <div style={bodyStyle}>
+        <section style={sectionStyle} aria-label="Publication readiness">
+          <div style={readinessPanelStyle}>
+            <div style={readinessHeaderStyle}>
+              <div style={sectionTitleStyle}>Publication readiness</div>
+              <span style={{ ...readinessBadgeStyle, ...getReadinessBadgeColor(publicationReadiness.status) }}>
+                {publicationReadiness.status.replace(/-/g, " ")}
+              </span>
+            </div>
+            <div style={mutedTextStyle}>
+              {publicationReadiness.blockers.length} blocker(s), {publicationReadiness.warnings.length} warning(s), {publicationReadiness.caveats.length} caveat(s)
+            </div>
+            {readinessFindings.length > 0 ? (
+              <ul style={listStyle}>
+                {readinessFindings.slice(0, 5).map((check) => (
+                  <li key={`${check.criterion}-${check.message}`}>{check.message}</li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+        </section>
+
         <section style={sectionStyle} aria-label="Map snapshot preview">
           <div style={sectionTitleStyle}>Snapshot</div>
           <div style={snapshotFrameStyle}>
@@ -516,11 +578,23 @@ export const MapReportHandoffDrawer: React.FC<MapReportHandoffDrawerProps> = ({
           {isGeneratingSnapshot ? "Rendering..." : "Refresh snapshot"}
         </button>
         <div style={footerActionStyle}>
-          <button type="button" style={secondaryButtonStyle} onClick={onDownloadPdf} disabled={isGeneratingSnapshot || isExportingPdf}>
-            {isExportingPdf ? "Exporting A0..." : "Download A0 PDF"}
+          <button
+            type="button"
+            style={{ ...secondaryButtonStyle, ...(isPublicationBlocked ? disabledActionStyle : {}) }}
+            onClick={onDownloadPdf}
+            disabled={isGeneratingSnapshot || isExportingPdf || isPublicationBlocked}
+            title={isPublicationBlocked ? "Resolve publication readiness blockers before downloading a formal PDF." : undefined}
+          >
+            {isExportingPdf ? "Exporting A0..." : isPublicationBlocked ? "PDF blocked" : "Download A0 PDF"}
           </button>
-          <button type="button" style={primaryButtonStyle} onClick={onInsert}>
-            Insert to report
+          <button
+            type="button"
+            style={{ ...primaryButtonStyle, ...(isPublicationBlocked ? disabledActionStyle : {}) }}
+            onClick={onInsert}
+            disabled={isPublicationBlocked}
+            title={isPublicationBlocked ? "Resolve publication readiness blockers before inserting this report item." : undefined}
+          >
+            {isPublicationBlocked ? "Insert blocked" : "Insert to report"}
           </button>
         </div>
       </footer>

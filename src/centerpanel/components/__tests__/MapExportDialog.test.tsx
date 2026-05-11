@@ -4,7 +4,34 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { MapExportDialog } from "../MapExportDialog";
-import { DEFAULT_MAP_COMPOSITION_OPTIONS } from "@/services/map/MapExportService";
+import { DEFAULT_MAP_COMPOSITION_OPTIONS, type MapPublicationReadiness } from "@/services/map/MapExportService";
+
+const blockedReadiness: MapPublicationReadiness = {
+  id: "readiness-blocked",
+  status: "blocked",
+  mode: "publication-export",
+  checkedAt: "2026-04-11T20:31:45.000Z",
+  visibleLayerCount: 0,
+  hasTitle: true,
+  hasLegend: false,
+  hasScaleBar: true,
+  hasNorthArrow: true,
+  hasAttribution: true,
+  qaBlockingIssueCount: 0,
+  caveats: ["Show at least one overlay layer before creating a formal map output."],
+  blockers: [{
+    criterion: "visible-layer",
+    label: "Visible layer",
+    status: "blocked",
+    required: true,
+    message: "Show at least one overlay layer before creating a formal map output.",
+    affectedLayerIds: [],
+    issueIds: [],
+  }],
+  warnings: [],
+  checks: [],
+  acknowledgedIssueIds: [],
+};
 
 describe("MapExportDialog", () => {
   it("renders the full publication export control surface and preview", () => {
@@ -54,5 +81,29 @@ describe("MapExportDialog", () => {
     expect(html).toContain("Map export preview");
     expect(html).toContain("Print frame");
     expect(html).toContain("Download PDF");
+  });
+
+  it("shows publication readiness blockers and disables formal export", () => {
+    const html = renderToStaticMarkup(
+      React.createElement(MapExportDialog, {
+        open: true,
+        compositionOptions: DEFAULT_MAP_COMPOSITION_OPTIONS,
+        legendAvailable: false,
+        visibleLayerCount: 0,
+        readiness: blockedReadiness,
+        previewUrl: null,
+        isGeneratingPreview: false,
+        isExporting: false,
+        onCompositionChange: vi.fn(),
+        onClose: vi.fn(),
+        onExport: vi.fn(),
+      }),
+    );
+
+    expect(html).toContain("Publication readiness");
+    expect(html).toContain("blocked");
+    expect(html).toContain("Show at least one overlay layer before creating a formal map output.");
+    expect(html).toContain("Export blocked");
+    expect(html).toContain("disabled=\"\"");
   });
 });

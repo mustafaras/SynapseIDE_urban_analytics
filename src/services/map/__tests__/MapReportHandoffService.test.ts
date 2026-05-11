@@ -119,6 +119,7 @@ describe("MapReportHandoffService", () => {
     expect(draft.snapshot.visibleLayerNames).toEqual(["District flood risk"]);
     expect(draft.snapshot.legendItems.map((item) => item.label)).toContain("Low");
     expect(draft.narrative).toContain("{{cite:map-layer-district-risk}}");
+    expect(draft.publicationReadiness.status).toBe("ready-with-caveats");
     expect(draft.references).toEqual(expect.arrayContaining([
       expect.objectContaining({
         layerId: "district-risk",
@@ -126,7 +127,7 @@ describe("MapReportHandoffService", () => {
         crs: "EPSG:4326",
       }),
     ]));
-    expect(draft.reproducibility.map((item) => item.label)).toEqual(expect.arrayContaining(["Viewport bounds", "Methods", "Data lineage"]));
+    expect(draft.reproducibility.map((item) => item.label)).toEqual(expect.arrayContaining(["Viewport bounds", "Methods", "Data lineage", "Publication readiness"]));
   });
 
   it("builds a report insertion payload with screenshot figure and structured reference table", () => {
@@ -156,6 +157,34 @@ describe("MapReportHandoffService", () => {
       columns: ["Type", "ID", "Label", "Source", "CRS", "Timestamp", "Citation"],
       rows: expect.arrayContaining([expect.objectContaining({ ID: "district-risk" })]),
     }));
+    expect(insert.sections[1].blocks).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        kind: "bullet_list",
+        items: expect.arrayContaining([expect.stringContaining("Publication readiness:")]),
+      }),
+    ]));
+  });
+
+  it("blocks report handoff readiness when formal prerequisites are missing", () => {
+    const draft = buildMapReportHandoffDraft({
+      overlayLayers: [],
+      viewport,
+      snapshot: {
+        scaleBarLabel: null,
+        northArrowBearing: null,
+        attributionText: "",
+        legendItems: [],
+      },
+      createdAt: "2025-01-06T00:00:00.000Z",
+    });
+
+    expect(draft.publicationReadiness.status).toBe("blocked");
+    expect(draft.publicationReadiness.blockers.map((check) => check.criterion)).toEqual(expect.arrayContaining([
+      "visible-layer",
+      "legend",
+      "attribution-license",
+    ]));
+    expect(draft.caveats).toEqual(expect.arrayContaining([expect.stringContaining("Show at least one overlay layer")]));
   });
 
   it("links map report sections back to review timeline events when available", () => {

@@ -4,8 +4,10 @@ import {
   MAP_COLORS,
   MAP_TYPOGRAPHY,
 } from "@/centerpanel/components/map/mapTokens";
-import type { OverlayLayerConfig } from "@/centerpanel/components/map/mapTypes";
+import { normalizeLayerRegistryMetadata } from "@/centerpanel/components/map/mapLayerMetadata";
+import type { MapEvidenceQA, OverlayLayerConfig } from "@/centerpanel/components/map/mapTypes";
 import { haversineDistance } from "@/utils/geodesic";
+import type { MapScientificQAState } from "./MapScientificQA";
 
 export type MapExportResolution = "screen" | "print" | "high";
 export type MapPublicationExportFormat = "png" | "svg" | "pdf";
@@ -17,6 +19,19 @@ export type MapCompositionCornerPosition = "top-left" | "top-right" | "bottom-le
 export type MapCompositionAttributionPosition = "bottom-left" | "bottom-center" | "bottom-right";
 export type MapCompositionScaleUnit = "metric" | "imperial";
 export type MapCompositionNorthArrowStyle = "simple" | "compass";
+export type MapPublicationReadinessStatus = "ready" | "ready-with-caveats" | "blocked";
+export type MapPublicationReadinessMode = "publication-export" | "report-handoff" | "public-map";
+export type MapPublicationReadinessSeverity = "pass" | "warning" | "blocked";
+export type MapPublicationReadinessCriterion =
+  | "visible-layer"
+  | "title"
+  | "legend"
+  | "scale-bar"
+  | "north-arrow"
+  | "attribution-license"
+  | "crs-measurement"
+  | "qa-blockers"
+  | "caveats";
 
 export interface MapExportOverlayOptions {
   includeToolbar?: boolean;
@@ -53,6 +68,92 @@ export interface MapExportImageResult {
 export interface MapPublicationExportResult extends MapExportImageResult {
   format: MapPublicationExportFormat;
   mimeType: string;
+  readiness?: MapPublicationReadiness;
+  manifest?: MapPublicationManifest;
+}
+
+export interface MapPublicationReadinessCheck {
+  criterion: MapPublicationReadinessCriterion;
+  label: string;
+  status: MapPublicationReadinessSeverity;
+  required: boolean;
+  message: string;
+  affectedLayerIds: string[];
+  issueIds: string[];
+  recommendedFix?: string;
+}
+
+export interface MapPublicationReadiness {
+  id: string;
+  status: MapPublicationReadinessStatus;
+  mode: MapPublicationReadinessMode;
+  checkedAt: string;
+  visibleLayerCount: number;
+  hasTitle: boolean;
+  hasLegend: boolean;
+  hasScaleBar: boolean;
+  hasNorthArrow: boolean;
+  hasAttribution: boolean;
+  qaBlockingIssueCount: number;
+  caveats: string[];
+  blockers: MapPublicationReadinessCheck[];
+  warnings: MapPublicationReadinessCheck[];
+  checks: MapPublicationReadinessCheck[];
+  acknowledgedIssueIds: string[];
+}
+
+export interface MapPublicationReadinessInput {
+  mode: MapPublicationReadinessMode;
+  overlayLayers: OverlayLayerConfig[];
+  composition?: Partial<MapCompositionOptions> | null;
+  scientificQA?: MapScientificQAState | null | undefined;
+  legendItems?: MapCompositionLegendItem[];
+  snapshot?: {
+    scaleBarLabel?: string | null;
+    northArrowBearing?: number | null;
+    attributionText?: string;
+    legendItems?: MapCompositionLegendItem[];
+  } | null;
+  title?: string;
+  caveats?: string[];
+  acknowledgedIssueIds?: string[] | undefined;
+  requireTitle?: boolean;
+  requireLegend?: boolean;
+  requireScaleBar?: boolean;
+  requireNorthArrow?: boolean;
+  requireAttribution?: boolean;
+  requireCaveats?: boolean;
+  includeQaWarningCaveats?: boolean;
+  now?: Date;
+}
+
+export interface MapPublicationManifest {
+  manifestId: string;
+  version: number;
+  createdAt: string;
+  title: string;
+  format: MapPublicationExportFormat;
+  filename: string;
+  mimeType: string;
+  width: number;
+  height: number;
+  visibleLayerIds: string[];
+  visibleLayerNames: string[];
+  legendItemCount: number;
+  composition: {
+    format: MapPublicationExportFormat;
+    dpi: MapPublicationDpi;
+    pageSize: MapPublicationPageSize;
+    mapFit: MapCompositionMapFit;
+    includeTitleBlock: boolean;
+    includeScaleBar: boolean;
+    includeNorthArrow: boolean;
+    includeLegend: boolean;
+    includeAttribution: boolean;
+  };
+  readiness: MapPublicationReadiness;
+  caveats: string[];
+  qaSignature?: string;
 }
 
 export interface MapCompositionLegendItem {
@@ -172,6 +273,7 @@ type JsPdfConstructor = new (options: {
 };
 
 const DEFAULT_PREVIEW_WIDTH = 360;
+export const MAP_PUBLICATION_MANIFEST_VERSION = 1;
 const DOM_CAPTURE_BACKGROUND = "rgba(13,13,13,0.001)";
 const TITLE_BAND_CSS_HEIGHT = 60;
 const SCALE_BAR_MAX_WIDTH_CSS = 160;
@@ -366,6 +468,334 @@ function normaliseCompositionOptions(options?: Partial<MapCompositionOptions> | 
     ...(options ?? {}),
     titleFontSize: Math.max(12, Math.min(48, options?.titleFontSize ?? DEFAULT_MAP_COMPOSITION_OPTIONS.titleFontSize)),
     marginMm: Math.max(4, Math.min(40, options?.marginMm ?? DEFAULT_MAP_COMPOSITION_OPTIONS.marginMm)),
+  };
+}
+
+function uniquePublicationTexts(values: Array<string | null | undefined>, limit = 12): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const value of values) {
+    const text = value?.trim();
+    if (!text || seen.has(text)) continue;
+    seen.add(text);
+    result.push(text);
+    if (result.length >= limit) break;
+  }
+  return result;
+}
+
+function safeManifestPart(value: string): string {
+  return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 72) || "map";
+}
+
+function readinessCheck(input: {
+  criterion: MapPublicationReadinessCriterion;
+  label: string;
+  status: MapPublicationReadinessSeverity;
+  required: boolean;
+  message: string;
+  affectedLayerIds?: Array<string | null | undefined>;
+  issueIds?: Array<string | null | undefined>;
+  recommendedFix?: string | undefined;
+}): MapPublicationReadinessCheck {
+  const check: MapPublicationReadinessCheck = {
+    criterion: input.criterion,
+    label: input.label,
+    status: input.status,
+    required: input.required,
+    message: input.message,
+    affectedLayerIds: uniquePublicationTexts(input.affectedLayerIds ?? [], 24),
+    issueIds: uniquePublicationTexts(input.issueIds ?? [], 24),
+  };
+  if (input.recommendedFix?.trim()) check.recommendedFix = input.recommendedFix.trim();
+  return check;
+}
+
+function hasSnapshotScaleBar(input: MapPublicationReadinessInput): boolean {
+  const label = input.snapshot?.scaleBarLabel;
+  return typeof label === "string" && label.trim().length > 0;
+}
+
+function hasSnapshotNorthArrow(input: MapPublicationReadinessInput): boolean {
+  return typeof input.snapshot?.northArrowBearing === "number" && Number.isFinite(input.snapshot.northArrowBearing);
+}
+
+function isBlockingQaSeverity(severity: string): boolean {
+  return severity === "blocker" || severity === "error" || severity === "blocked";
+}
+
+export function buildMapPublicationReadiness(input: MapPublicationReadinessInput): MapPublicationReadiness {
+  const checkedAt = (input.now ?? new Date()).toISOString();
+  const composition = normaliseCompositionOptions(input.composition);
+  const visibleLayers = input.overlayLayers.filter((layer) => layer.visible);
+  const layerReadiness = visibleLayers.map((layer) => ({ layer, registry: normalizeLayerRegistryMetadata(layer) }));
+  const legendItems = input.legendItems ?? input.snapshot?.legendItems ?? buildMapCompositionLegendItems(visibleLayers);
+  const title = input.title ?? composition.title;
+  const attributionText = input.snapshot?.attributionText ?? composition.attributionText;
+  const acknowledgedIssueIds = uniquePublicationTexts(input.acknowledgedIssueIds ?? [], 48);
+  const acknowledgedIssueSet = new Set(acknowledgedIssueIds);
+  const requireTitle = input.requireTitle ?? true;
+  const requireLegend = input.requireLegend ?? true;
+  const requireScaleBar = input.requireScaleBar ?? true;
+  const requireNorthArrow = input.requireNorthArrow ?? true;
+  const requireAttribution = input.requireAttribution ?? true;
+  const requireCaveats = input.requireCaveats ?? true;
+  const includeQaWarningCaveats = input.includeQaWarningCaveats ?? true;
+
+  const hasTitle = !requireTitle || (composition.includeTitleBlock && title.trim().length > 0);
+  const hasLegend = !requireLegend || (composition.includeLegend && visibleLayers.length > 0 && legendItems.length > 0);
+  const hasScaleBar = !requireScaleBar || composition.includeScaleBar || hasSnapshotScaleBar(input);
+  const hasNorthArrow = !requireNorthArrow || composition.includeNorthArrow || hasSnapshotNorthArrow(input);
+  const hasAttribution = !requireAttribution || (composition.includeAttribution && attributionText.trim().length > 0);
+
+  const checks: MapPublicationReadinessCheck[] = [];
+  checks.push(readinessCheck({
+    criterion: "visible-layer",
+    label: "Visible layer",
+    status: visibleLayers.length > 0 ? "pass" : "blocked",
+    required: true,
+    message: visibleLayers.length > 0
+      ? `${visibleLayers.length} visible layer${visibleLayers.length === 1 ? "" : "s"} will be included.`
+      : "Show at least one overlay layer before creating a formal map output.",
+    recommendedFix: visibleLayers.length > 0 ? undefined : "Enable a layer in the layer manager or publish a spatial result to the map.",
+  }));
+  checks.push(readinessCheck({
+    criterion: "title",
+    label: "Title",
+    status: hasTitle ? "pass" : "blocked",
+    required: requireTitle,
+    message: hasTitle ? `Title recorded: ${title.trim()}.` : "A publication title is required.",
+    recommendedFix: hasTitle ? undefined : "Enable the title block and enter a descriptive map title.",
+  }));
+  checks.push(readinessCheck({
+    criterion: "legend",
+    label: "Legend",
+    status: hasLegend ? "pass" : "blocked",
+    required: requireLegend,
+    message: hasLegend
+      ? `${legendItems.length} legend item${legendItems.length === 1 ? "" : "s"} will be included.`
+      : "A formal map output needs a visible layer legend.",
+    recommendedFix: hasLegend ? undefined : "Enable Auto legend and keep at least one visible layer with style metadata.",
+  }));
+  checks.push(readinessCheck({
+    criterion: "scale-bar",
+    label: "Scale bar",
+    status: hasScaleBar ? "pass" : "blocked",
+    required: requireScaleBar,
+    message: hasScaleBar ? "Scale information is configured for the output." : "Scale information is missing from the output.",
+    recommendedFix: hasScaleBar ? undefined : "Enable the scale bar before exporting or inserting the map.",
+  }));
+  checks.push(readinessCheck({
+    criterion: "north-arrow",
+    label: "North arrow",
+    status: hasNorthArrow ? "pass" : "blocked",
+    required: requireNorthArrow,
+    message: hasNorthArrow ? "North arrow metadata is configured for the output." : "North arrow metadata is missing from the output.",
+    recommendedFix: hasNorthArrow ? undefined : "Enable the north arrow or attach a snapshot bearing before publishing.",
+  }));
+
+  const missingAttributionLayerIds = layerReadiness
+    .filter(({ registry }) => !registry.licenseAttribution.license && !registry.licenseAttribution.attribution)
+    .map(({ layer }) => layer.id);
+  checks.push(readinessCheck({
+    criterion: "attribution-license",
+    label: "Attribution and license",
+    status: !hasAttribution
+      ? "blocked"
+      : missingAttributionLayerIds.length > 0
+        ? "warning"
+        : "pass",
+    required: requireAttribution,
+    message: !hasAttribution
+      ? "Attribution text is required for formal map outputs."
+      : missingAttributionLayerIds.length > 0
+        ? `${missingAttributionLayerIds.length} visible layer${missingAttributionLayerIds.length === 1 ? "" : "s"} lack layer-level license or attribution metadata.`
+        : "Attribution text and layer license metadata are available.",
+    affectedLayerIds: missingAttributionLayerIds,
+    recommendedFix: !hasAttribution
+      ? "Enable Attribution and write source/license text."
+      : missingAttributionLayerIds.length > 0
+        ? "Attach source license or attribution metadata to each visible layer before external publication."
+        : undefined,
+  }));
+
+  const registryBlockedLayerIds = layerReadiness
+    .filter(({ registry }) => registry.publicationReadiness.status === "blocked")
+    .map(({ layer }) => layer.id);
+  const missingCrsLayerIds = layerReadiness
+    .filter(({ registry }) => !registry.readiness.crsReady)
+    .map(({ layer }) => layer.id);
+  const qaSpatialIssues = input.scientificQA?.issues.filter((issue) =>
+    issue.category === "crs" || issue.category === "geometry" || issue.category === "coordinates" || issue.category === "scale"
+  ) ?? [];
+  const blockingSpatialIssueIds = qaSpatialIssues
+    .filter((issue) => isBlockingQaSeverity(issue.severity) && !acknowledgedIssueSet.has(issue.id))
+    .map((issue) => issue.id);
+  checks.push(readinessCheck({
+    criterion: "crs-measurement",
+    label: "CRS and measurement caveats",
+    status: blockingSpatialIssueIds.length > 0
+      ? "blocked"
+      : missingCrsLayerIds.length > 0 || qaSpatialIssues.length > 0
+        ? "warning"
+        : "pass",
+    required: true,
+    message: blockingSpatialIssueIds.length > 0
+      ? "CRS, geometry, or scale QA blockers must be resolved or explicitly acknowledged."
+      : missingCrsLayerIds.length > 0
+        ? `${missingCrsLayerIds.length} visible layer${missingCrsLayerIds.length === 1 ? "" : "s"} have unknown CRS readiness.`
+        : qaSpatialIssues.length > 0
+          ? "Spatial QA warnings are present and will travel as caveats."
+          : "No CRS or measurement publication caveat was detected.",
+    affectedLayerIds: uniquePublicationTexts([...missingCrsLayerIds, ...qaSpatialIssues.map((issue) => issue.layerId)], 24),
+    issueIds: blockingSpatialIssueIds,
+    recommendedFix: blockingSpatialIssueIds.length > 0 || missingCrsLayerIds.length > 0
+      ? "Run Scientific QA, attach verified CRS metadata, and acknowledge any remaining measurement caveats."
+      : undefined,
+  }));
+
+  const qaBlockerIssues = input.scientificQA?.issues.filter((issue) => issue.severity === "blocker" || issue.severity === "error") ?? [];
+  const unacknowledgedQaBlockers = qaBlockerIssues.filter((issue) => !acknowledgedIssueSet.has(issue.id));
+  const exportReadinessSummary = input.scientificQA?.metadata.categorySummaries?.find((summary) => summary.category === "export-readiness");
+  const exportReadinessBlocked = exportReadinessSummary?.severity === "blocked" && exportReadinessSummary.issueIds.some((issueId) => !acknowledgedIssueSet.has(issueId));
+  const qaWarningCount = includeQaWarningCaveats
+    ? input.scientificQA?.issues.filter((issue) => issue.severity === "warning").length ?? 0
+    : 0;
+  checks.push(readinessCheck({
+    criterion: "qa-blockers",
+    label: "Scientific QA blockers",
+    status: unacknowledgedQaBlockers.length > 0 || exportReadinessBlocked
+      ? "blocked"
+      : input.scientificQA == null
+        ? "warning"
+        : qaWarningCount > 0 || (exportReadinessSummary && exportReadinessSummary.severity !== "pass")
+          ? "warning"
+          : "pass",
+    required: true,
+    message: unacknowledgedQaBlockers.length > 0 || exportReadinessBlocked
+      ? "Scientific QA blockers are present and have not been explicitly acknowledged."
+      : input.scientificQA == null
+        ? "Scientific QA has not run for the current map state; export will carry an unchecked QA caveat."
+        : qaWarningCount > 0 || (exportReadinessSummary && exportReadinessSummary.severity !== "pass")
+          ? "Scientific QA warnings are present and will be included as caveats."
+          : "Scientific QA has no blocker for this formal output.",
+    affectedLayerIds: uniquePublicationTexts([
+      ...qaBlockerIssues.map((issue) => issue.layerId),
+      ...(exportReadinessSummary?.affectedLayerIds ?? []),
+      ...registryBlockedLayerIds,
+    ], 24),
+    issueIds: uniquePublicationTexts([
+      ...unacknowledgedQaBlockers.map((issue) => issue.id),
+      ...(exportReadinessBlocked ? exportReadinessSummary?.issueIds ?? [] : []),
+      ...layerReadiness.flatMap(({ registry }) => registry.publicationReadiness.blockingIssueIds),
+    ], 24),
+    recommendedFix: unacknowledgedQaBlockers.length > 0 || exportReadinessBlocked
+      ? "Resolve QA blockers or record an explicit review acknowledgment before formal output."
+      : undefined,
+  }));
+
+  const generatedCaveats = uniquePublicationTexts([
+    ...(input.caveats ?? []),
+    ...layerReadiness.flatMap(({ layer, registry }) => registry.publicationReadiness.caveats.map((caveat) => `${layer.name}: ${caveat}`)),
+    ...layerReadiness.flatMap(({ layer, registry }) => registry.publicationReadiness.missingFields.map((field) => `${layer.name}: missing ${field} metadata.`)),
+    ...(input.scientificQA?.issues
+      .filter((issue) => issue.severity !== "info" && (includeQaWarningCaveats || issue.severity === "error" || issue.severity === "blocker"))
+      .map((issue) => `${issue.title}${issue.layerName ? ` (${issue.layerName})` : ""}: ${issue.explanation}`) ?? []),
+    ...checks.filter((check) => check.status !== "pass").map((check) => check.message),
+  ], 16);
+  const hasCaveats = !requireCaveats || generatedCaveats.length > 0 || checks.every((check) => check.status === "pass");
+  checks.push(readinessCheck({
+    criterion: "caveats",
+    label: "Caveats",
+    status: hasCaveats ? (generatedCaveats.length > 0 ? "warning" : "pass") : "blocked",
+    required: requireCaveats,
+    message: generatedCaveats.length > 0
+      ? `${generatedCaveats.length} caveat${generatedCaveats.length === 1 ? "" : "s"} will be carried with the output.`
+      : hasCaveats
+        ? "No caveat is required for this output state."
+        : "Warnings or blockers must be recorded as caveats before formal output.",
+    recommendedFix: hasCaveats ? undefined : "Keep QA and source caveats enabled in the output manifest or report handoff.",
+  }));
+
+  const blockers = checks.filter((check) => check.status === "blocked");
+  const warnings = checks.filter((check) => check.status === "warning");
+  const status: MapPublicationReadinessStatus = blockers.length > 0
+    ? "blocked"
+    : warnings.length > 0
+      ? "ready-with-caveats"
+      : "ready";
+
+  return {
+    id: `map-publication-readiness-${safeManifestPart(`${input.mode}-${checkedAt}-${visibleLayers.map((layer) => layer.id).join("-")}`)}`,
+    status,
+    mode: input.mode,
+    checkedAt,
+    visibleLayerCount: visibleLayers.length,
+    hasTitle,
+    hasLegend,
+    hasScaleBar,
+    hasNorthArrow,
+    hasAttribution,
+    qaBlockingIssueCount: qaBlockerIssues.length,
+    caveats: generatedCaveats,
+    blockers,
+    warnings,
+    checks,
+    acknowledgedIssueIds,
+  };
+}
+
+export function buildMapPublicationManifest(input: {
+  result: Pick<MapPublicationExportResult, "filename" | "format" | "mimeType" | "width" | "height">;
+  composition: MapCompositionOptions;
+  overlayLayers: OverlayLayerConfig[];
+  legendItems: MapCompositionLegendItem[];
+  readiness: MapPublicationReadiness;
+  scientificQA?: MapScientificQAState | null | undefined;
+  createdAt?: string;
+}): MapPublicationManifest {
+  const createdAt = input.createdAt ?? input.readiness.checkedAt;
+  const visibleLayers = input.overlayLayers.filter((layer) => layer.visible);
+  const manifest: MapPublicationManifest = {
+    manifestId: `map-publication-manifest-${safeManifestPart(`${input.result.filename}-${createdAt}`)}`,
+    version: MAP_PUBLICATION_MANIFEST_VERSION,
+    createdAt,
+    title: input.composition.title.trim() || "Untitled map publication",
+    format: input.result.format,
+    filename: input.result.filename,
+    mimeType: input.result.mimeType,
+    width: input.result.width,
+    height: input.result.height,
+    visibleLayerIds: visibleLayers.map((layer) => layer.id),
+    visibleLayerNames: visibleLayers.map((layer) => layer.name),
+    legendItemCount: input.legendItems.length,
+    composition: {
+      format: input.composition.format,
+      dpi: input.composition.dpi,
+      pageSize: input.composition.pageSize,
+      mapFit: input.composition.mapFit,
+      includeTitleBlock: input.composition.includeTitleBlock,
+      includeScaleBar: input.composition.includeScaleBar,
+      includeNorthArrow: input.composition.includeNorthArrow,
+      includeLegend: input.composition.includeLegend,
+      includeAttribution: input.composition.includeAttribution,
+    },
+    readiness: input.readiness,
+    caveats: input.readiness.caveats,
+  };
+  if (input.scientificQA?.metadata.signature) manifest.qaSignature = input.scientificQA.metadata.signature;
+  return manifest;
+}
+
+export function mapPublicationReadinessToEvidenceQA(readiness: MapPublicationReadiness): MapEvidenceQA {
+  const issueIds = uniquePublicationTexts(readiness.checks.flatMap((check) => check.issueIds), 48);
+  return {
+    state: readiness.status === "blocked" ? "blocked" : readiness.status === "ready-with-caveats" ? "warning" : "passed",
+    issueIds,
+    issueCount: readiness.blockers.length + readiness.warnings.length,
+    blockerCount: readiness.blockers.length,
+    caveats: readiness.caveats,
+    checkedAt: readiness.checkedAt,
   };
 }
 
@@ -1672,12 +2102,34 @@ export async function exportMapPublication(
   options: {
     composition: Partial<MapCompositionOptions>;
     overlayLayers?: OverlayLayerConfig[];
+    scientificQA?: MapScientificQAState | null;
+    acknowledgedIssueIds?: string[];
   },
 ): Promise<MapPublicationExportResult> {
   const composition = normaliseCompositionOptions(options.composition);
   const overlayLayers = options.overlayLayers ?? [];
+  const legendItems = buildMapCompositionLegendItems(overlayLayers);
+  const readiness = buildMapPublicationReadiness({
+    mode: "publication-export",
+    composition,
+    overlayLayers,
+    scientificQA: options.scientificQA,
+    legendItems,
+    acknowledgedIssueIds: options.acknowledgedIssueIds,
+  });
+  const attachPublicationMetadata = (result: MapPublicationExportResult): MapPublicationExportResult => {
+    const manifest = buildMapPublicationManifest({
+      result,
+      composition,
+      overlayLayers,
+      legendItems,
+      readiness,
+      scientificQA: options.scientificQA,
+    });
+    return { ...result, readiness, manifest };
+  };
   if (composition.format === "svg") {
-    return exportPublicationSvg(map, composition, overlayLayers);
+    return attachPublicationMetadata(await exportPublicationSvg(map, composition, overlayLayers));
   }
 
   const rendered = await renderPublicationCanvas(map, composition, overlayLayers, {
@@ -1685,24 +2137,24 @@ export async function exportMapPublication(
   });
   if (composition.format === "pdf") {
     const pdfDataUrl = await exportPublicationPdfFromCanvas(rendered.canvas, rendered.composition, rendered.legendItems);
-    return {
+    return attachPublicationMetadata({
       dataUrl: pdfDataUrl,
       filename: generateMapPublicationFilename("pdf"),
       width: rendered.canvas.width,
       height: rendered.canvas.height,
       format: "pdf",
       mimeType: getCompositionMimeType("pdf"),
-    };
+    });
   }
 
-  return {
+  return attachPublicationMetadata({
     dataUrl: rendered.canvas.toDataURL("image/png"),
     filename: generateMapPublicationFilename("png"),
     width: rendered.canvas.width,
     height: rendered.canvas.height,
     format: "png",
     mimeType: getCompositionMimeType("png"),
-  };
+  });
 }
 
 export async function exportMapOnlyA0LandscapePdf(
@@ -1712,6 +2164,8 @@ export async function exportMapOnlyA0LandscapePdf(
     title?: string;
     overlayLayers?: OverlayLayerConfig[];
     attributionText?: string;
+    scientificQA?: MapScientificQAState | null;
+    acknowledgedIssueIds?: string[];
   } = {},
 ): Promise<MapPublicationExportResult> {
   const module = await import("jspdf") as { jsPDF: JsPdfConstructor };
@@ -1736,8 +2190,33 @@ export async function exportMapOnlyA0LandscapePdf(
       }
     : null;
   const title = options.title?.trim() || "Current map evidence";
-  const visibleLayerCount = (options.overlayLayers ?? []).filter((layer) => layer.visible).length;
+  const overlayLayers = options.overlayLayers ?? [];
+  const visibleLayerCount = overlayLayers.filter((layer) => layer.visible).length;
   const attribution = options.attributionText?.trim() || "Sources: visible map layers and project metadata. Scale is geodesic at map center.";
+  const composition = normaliseCompositionOptions({
+    ...DEFAULT_MAP_COMPOSITION_OPTIONS,
+    format: "pdf",
+    dpi: 300,
+    pageSize: "custom",
+    customWidthMm: A0_LANDSCAPE_PAGE_MM.width,
+    customHeightMm: A0_LANDSCAPE_PAGE_MM.height,
+    mapFit: options.mapFit ?? "contain",
+    title,
+    attributionText: attribution,
+    includeScaleBar: true,
+    includeNorthArrow: true,
+    includeLegend: true,
+    includeAttribution: true,
+  });
+  const legendItems = buildMapCompositionLegendItems(overlayLayers);
+  const readiness = buildMapPublicationReadiness({
+    mode: "publication-export",
+    composition,
+    overlayLayers,
+    scientificQA: options.scientificQA,
+    legendItems,
+    acknowledgedIssueIds: options.acknowledgedIssueIds,
+  });
   const pdf = new module.jsPDF({
     orientation: "landscape",
     unit: "mm",
@@ -1804,13 +2283,25 @@ export async function exportMapOnlyA0LandscapePdf(
   pdf.setFontSize?.(4.8);
   pdf.text?.(attribution, A0_SHEET_LAYOUT_MM.margin, footerY, { maxWidth: pageFrame.width - A0_SHEET_LAYOUT_MM.margin * 2 });
 
-  return {
+  const result: MapPublicationExportResult = {
     dataUrl: pdf.output("datauristring"),
     filename: generateMapOnlyA0LandscapeFilename(),
     width: Math.round((A0_LANDSCAPE_PAGE_MM.width / MM_PER_INCH) * 300),
     height: Math.round((A0_LANDSCAPE_PAGE_MM.height / MM_PER_INCH) * 300),
     format: "pdf",
     mimeType: getCompositionMimeType("pdf"),
+  };
+  return {
+    ...result,
+    readiness,
+    manifest: buildMapPublicationManifest({
+      result,
+      composition,
+      overlayLayers,
+      legendItems,
+      readiness,
+      scientificQA: options.scientificQA,
+    }),
   };
 }
 

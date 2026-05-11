@@ -11,6 +11,7 @@ import type {
   DrawnFeature,
   LayerProvenance,
   LayerQaStatus,
+  LayerScientificQACategorySummary,
   MapEvidenceArtifact,
   MapEvidenceArtifactKind,
   MapEvidenceArtifactState,
@@ -257,6 +258,39 @@ function normalizeTextList(value: unknown, limit = MAX_REFERENCE_COUNT): string[
   return entries;
 }
 
+function normalizeCategorySummaries(value: unknown): LayerScientificQACategorySummary[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const summaries: LayerScientificQACategorySummary[] = [];
+  for (const entry of value) {
+    if (!entry || typeof entry !== "object") continue;
+    const record = entry as Partial<LayerScientificQACategorySummary>;
+    const category = record.category;
+    const severity = record.severity;
+    if (
+      category !== "crs"
+      && category !== "geometry-validity"
+      && category !== "schema"
+      && category !== "scale"
+      && category !== "missingness"
+      && category !== "source-provenance"
+      && category !== "attribution-license"
+      && category !== "workflow-readiness"
+      && category !== "export-readiness"
+    ) continue;
+    if (severity !== "pass" && severity !== "warning" && severity !== "blocked" && severity !== "unknown") continue;
+    summaries.push({
+      category,
+      severity,
+      issueIds: normalizeStringList(record.issueIds, 24),
+      affectedLayerIds: normalizeStringList(record.affectedLayerIds, 24),
+      reasons: normalizeTextList(record.reasons, 4),
+      recommendedFixes: normalizeTextList(record.recommendedFixes, 4),
+    });
+    if (summaries.length >= 9) break;
+  }
+  return summaries.length > 0 ? summaries : undefined;
+}
+
 function mergeStringLists(...lists: unknown[]): string[] {
   const merged: string[] = [];
   for (const list of lists) {
@@ -463,9 +497,11 @@ function normalizeQa(
     blockerCount,
     caveats,
   };
+  const categorySummaries = normalizeCategorySummaries(input?.categorySummaries);
   const checkedAt = input?.checkedAt ? normalizeIso(input.checkedAt) : undefined;
   const reviewedAt = input?.reviewedAt ? normalizeIso(input.reviewedAt) : undefined;
   const reviewedBy = optionalId(input?.reviewedBy);
+  if (categorySummaries) qa.categorySummaries = categorySummaries;
   if (checkedAt) qa.checkedAt = checkedAt;
   if (reviewedAt) qa.reviewedAt = reviewedAt;
   if (reviewedBy) qa.reviewedBy = reviewedBy;
@@ -843,6 +879,7 @@ function qaFromLayer(layer: OverlayLayerConfig): MapEvidenceQA {
     issueCount: scientificQA?.issueIds.length ?? 0,
     blockerCount: qaState === "error" ? scientificQA?.issueIds.length ?? 1 : 0,
     caveats: scientificQA?.caveats ?? [],
+    categorySummaries: scientificQA?.categorySummaries,
     checkedAt: scientificQA?.checkedAt,
   });
 }
@@ -1093,6 +1130,7 @@ export function createMapQAFindingEvidenceArtifact(
       issueCount: qaIssueIds.length,
       blockerCount,
       caveats: qa.issues.map((issue) => issue.title),
+      categorySummaries: qa.metadata.categorySummaries ?? [],
       checkedAt: qa.checkedAt,
     },
     metadata: {

@@ -552,6 +552,9 @@ export function buildReportHandoffReviewEvent(
       visibleLayerNames: draft.snapshot.visibleLayerNames,
       citationIds: draft.citations.map((citation) => citation.id),
       caveatCount: draft.caveats.length,
+      publicationReadinessStatus: draft.publicationReadiness.status,
+      publicationReadinessBlockers: draft.publicationReadiness.blockers.length,
+      publicationReadinessWarnings: draft.publicationReadiness.warnings.length,
       reportInsertId: insert.id,
     },
   };

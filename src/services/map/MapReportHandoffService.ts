@@ -1,6 +1,11 @@
 import type { OverlayLayerConfig, ViewportState } from "@/centerpanel/components/map/mapTypes";
 import type { MapScientificQAState } from "./MapScientificQA";
-import { buildMapCompositionLegendItems, type MapCompositionLegendItem } from "./MapExportService";
+import {
+  buildMapCompositionLegendItems,
+  buildMapPublicationReadiness,
+  type MapCompositionLegendItem,
+  type MapPublicationReadiness,
+} from "./MapExportService";
 import { enqueuePendingInsert } from "@/services/reporting/storage";
 import type { PendingReportInsert, ReportCitationRecord, ReportDocument, ReportSection } from "@/services/reporting/types";
 
@@ -106,6 +111,7 @@ export interface MapReportHandoffDraft {
   citations: ReportCitationRecord[];
   references: MapReportStructuredReference[];
   caveats: string[];
+  publicationReadiness: MapPublicationReadiness;
   reproducibility: MapReportReproducibilityItem[];
   options: MapReportHandoffOptions;
 }
@@ -348,6 +354,7 @@ function buildReproducibility(input: {
   selectedFeatureIds?: Record<string, string[]> | undefined;
   source?: MapReportHandoffSource | undefined;
   options: MapReportHandoffOptions;
+  publicationReadiness?: MapPublicationReadiness | undefined;
 }): MapReportReproducibilityItem[] {
   const selectedLayerCounts = Object.entries(input.selectedFeatureIds ?? {})
     .filter(([, ids]) => ids.length > 0)
@@ -373,6 +380,15 @@ function buildReproducibility(input: {
 
   if (input.options.includeDataLineage) {
     items.push({ label: "Data lineage", value: input.layers.map(summarizeLayerForLineage).join(" | ") || "No visible overlay lineage recorded." });
+  }
+
+  if (input.publicationReadiness) {
+    items.push(
+      { label: "Publication readiness", value: input.publicationReadiness.status },
+      { label: "Readiness checked", value: input.publicationReadiness.checkedAt },
+      { label: "Readiness blockers", value: input.publicationReadiness.blockers.map((check) => check.message).join(" | ") || "None" },
+      { label: "Readiness warnings", value: input.publicationReadiness.warnings.map((check) => check.message).join(" | ") || "None" },
+    );
   }
 
   return items;
@@ -442,7 +458,32 @@ export function buildMapReportHandoffDraft(input: MapReportHandoffInput): MapRep
   const attributionText = input.snapshot?.attributionText
     ?? (unique(reportLayers.map((layer) => layer.provenance?.attribution ?? getLayerSourceName(layer))).join("; ") || "Map data attribution captured from active sources");
   const assetId = `${handoffId}-snapshot`;
-  const caveats = buildCaveats({ layers: reportLayers, source, scientificQA: input.scientificQA, options });
+  const baseCaveats = buildCaveats({ layers: reportLayers, source, scientificQA: input.scientificQA, options });
+  const publicationReadiness = buildMapPublicationReadiness({
+    mode: "report-handoff",
+    overlayLayers: reportLayers,
+    composition: {
+      title,
+      includeTitleBlock: true,
+      includeScaleBar: true,
+      includeNorthArrow: true,
+      includeLegend: true,
+      includeAttribution: true,
+      attributionText,
+    },
+    scientificQA: input.scientificQA,
+    legendItems,
+    snapshot: {
+      scaleBarLabel,
+      northArrowBearing: input.snapshot?.northArrowBearing ?? input.viewport.bearing,
+      attributionText,
+      legendItems,
+    },
+    caveats: baseCaveats,
+    includeQaWarningCaveats: options.includeQaWarnings,
+    now: new Date(createdAt),
+  });
+  const caveats = unique([...baseCaveats, ...publicationReadiness.caveats]).slice(0, 12);
   const reproducibility = buildReproducibility({
     layers: reportLayers,
     viewport: input.viewport,
@@ -451,6 +492,7 @@ export function buildMapReportHandoffDraft(input: MapReportHandoffInput): MapRep
     selectedFeatureIds: input.selectedFeatureIds,
     source,
     options,
+    publicationReadiness,
   });
 
   return {
@@ -484,6 +526,7 @@ export function buildMapReportHandoffDraft(input: MapReportHandoffInput): MapRep
     citations,
     references,
     caveats,
+    publicationReadiness,
     reproducibility,
     options,
   };

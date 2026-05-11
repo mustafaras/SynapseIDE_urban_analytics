@@ -3,30 +3,88 @@
 import { describe, expect, it } from "vitest";
 import { haversineDistance } from "@/utils/geodesic";
 import {
-  DEFAULT_MAP_COMPOSITION_OPTIONS,
   A0_LANDSCAPE_PAGE_MM,
   A0_LEGEND_PANEL_MM,
   A0_SHEET_LAYOUT_MM,
   buildMapCompositionLegendItems,
+  buildMapPublicationManifest,
+  buildMapPublicationReadiness,
   calculateScaleBarSpec,
   chooseScaleBarDistance,
+  DEFAULT_MAP_COMPOSITION_OPTIONS,
   formatScaleBarLabel,
+  generateMapExportFilename,
+  generateMapOnlyA0LandscapeFilename,
+  generateMapPublicationFilename,
   getA0LegendPanelDimensionsPx,
   getA0SheetMapAreaMm,
   getA0SheetMapAspectRatio,
   getA0SheetMapFrameMm,
-  generateMapOnlyA0LandscapeFilename,
-  generateMapPublicationFilename,
   getCompositionPageDimensionsMm,
   getCompositionPageDimensionsPx,
   getExportPixelRatio,
   getFittedMapImageRect,
   getNorthArrowRotationRadians,
-  generateMapExportFilename,
   getResolutionScale,
   mapDpiToResolution,
+  mapPublicationReadinessToEvidenceQA,
 } from "../MapExportService";
 import type { OverlayLayerConfig } from "@/centerpanel/components/map/mapTypes";
+import type { MapScientificQAState } from "../MapScientificQA";
+
+const fixedReadinessDate = new Date("2026-04-11T20:31:45.000Z");
+
+function publicationLayer(overrides: Partial<OverlayLayerConfig> = {}): OverlayLayerConfig {
+  return {
+    id: "layer-1",
+    name: "Transit access",
+    type: "geojson",
+    visible: true,
+    opacity: 1,
+    style: { fillColor: "#38BDF8" },
+    provenance: {
+      label: "Transit source",
+      sourceName: "Transit authority",
+      attribution: "Transit authority",
+      license: "ODbL",
+    },
+    metadata: {
+      crsSummary: { crs: "EPSG:3857", status: "known", source: "explicit", notes: [] },
+      schemaSummary: { fieldCount: 2, fields: [{ name: "id", role: "identifier" }, { name: "score", role: "attribute" }], source: "explicit", notes: [] },
+      geometrySummary: { geometryType: "Polygon", geometryTypes: ["Polygon"], featureCount: 12, source: "explicit", notes: [] },
+      licenseAttribution: { license: "ODbL", attribution: "Transit authority", sourceName: "Transit authority", requiresAttribution: true, source: "explicit", notes: [] },
+      scientificQA: { status: "pass", issueIds: [], badges: [], caveats: [] },
+    },
+    ...overrides,
+  } as OverlayLayerConfig;
+}
+
+function qaState(overrides: Partial<MapScientificQAState> = {}): MapScientificQAState {
+  return {
+    status: "pass",
+    checkedAt: fixedReadinessDate.toISOString(),
+    issues: [],
+    layerSummaries: [],
+    metadata: {
+      generatedBy: "MapScientificQA",
+      version: 2,
+      signature: "qa-signature",
+      visibleLayerCount: 1,
+      workerLayerCount: 0,
+      issueCounts: { info: 0, warning: 0, error: 0, blocker: 0 },
+      categoryCounts: { pass: 1, warning: 0, blocked: 0, unknown: 0 },
+      categorySummaries: [{
+        category: "export-readiness",
+        severity: "pass",
+        issueIds: [],
+        affectedLayerIds: [],
+        reasons: [],
+        recommendedFixes: [],
+      }],
+    },
+    ...overrides,
+  };
+}
 
 describe("MapExportService", () => {
   it("maps resolution presets to the expected scale multipliers", () => {
@@ -215,5 +273,147 @@ describe("MapExportService", () => {
     expect(
       Math.abs(actualDistance - (spec?.distanceMetres ?? 0)) / (spec?.distanceMetres ?? 1),
     ).toBeLessThanOrEqual(0.01);
+  });
+
+  it("blocks formal publication readiness without a visible layer", () => {
+    const readiness = buildMapPublicationReadiness({
+      mode: "publication-export",
+      overlayLayers: [],
+      composition: DEFAULT_MAP_COMPOSITION_OPTIONS,
+      scientificQA: qaState(),
+      now: fixedReadinessDate,
+    });
+
+    expect(readiness.status).toBe("blocked");
+    expect(readiness.blockers.map((check) => check.criterion)).toContain("visible-layer");
+  });
+
+  it("blocks formal publication readiness when title is missing", () => {
+    const readiness = buildMapPublicationReadiness({
+      mode: "publication-export",
+      overlayLayers: [publicationLayer()],
+      composition: { ...DEFAULT_MAP_COMPOSITION_OPTIONS, title: "  " },
+      scientificQA: qaState(),
+      now: fixedReadinessDate,
+    });
+
+    expect(readiness.status).toBe("blocked");
+    expect(readiness.blockers.map((check) => check.criterion)).toContain("title");
+  });
+
+  it("warns when layer-level attribution metadata is incomplete", () => {
+    const layer = publicationLayer({
+      provenance: { label: "Unknown source" },
+      metadata: {
+        crsSummary: { crs: "EPSG:3857", status: "known", source: "explicit", notes: [] },
+        schemaSummary: { fieldCount: 1, fields: [{ name: "id", role: "identifier" }], source: "explicit", notes: [] },
+        geometrySummary: { geometryType: "Point", geometryTypes: ["Point"], featureCount: 3, source: "explicit", notes: [] },
+      },
+    });
+
+    const readiness = buildMapPublicationReadiness({
+      mode: "publication-export",
+      overlayLayers: [layer],
+      composition: { ...DEFAULT_MAP_COMPOSITION_OPTIONS, attributionText: "Sources: project layer registry." },
+      scientificQA: qaState(),
+      legendItems: buildMapCompositionLegendItems([layer]),
+      now: fixedReadinessDate,
+    });
+
+    expect(readiness.status).toBe("ready-with-caveats");
+    expect(readiness.warnings.map((check) => check.criterion)).toContain("attribution-license");
+  });
+
+  it("blocks unacknowledged export-readiness QA blockers", () => {
+    const readiness = buildMapPublicationReadiness({
+      mode: "publication-export",
+      overlayLayers: [publicationLayer()],
+      composition: DEFAULT_MAP_COMPOSITION_OPTIONS,
+      scientificQA: qaState({
+        status: "error",
+        issues: [{
+          id: "qa-export-1",
+          code: "missing-license",
+          category: "export-readiness",
+          severity: "blocker",
+          title: "Missing license",
+          explanation: "The layer is missing publication license metadata.",
+          suggestedFix: "Attach license metadata.",
+          layerId: "layer-1",
+          layerName: "Transit access",
+        }],
+        metadata: {
+          generatedBy: "MapScientificQA",
+          version: 2,
+          signature: "qa-blocked",
+          visibleLayerCount: 1,
+          workerLayerCount: 0,
+          issueCounts: { info: 0, warning: 0, error: 0, blocker: 1 },
+          categoryCounts: { pass: 0, warning: 0, blocked: 1, unknown: 0 },
+          categorySummaries: [{
+            category: "export-readiness",
+            severity: "blocked",
+            issueIds: ["qa-export-1"],
+            affectedLayerIds: ["layer-1"],
+            reasons: ["Missing license"],
+            recommendedFixes: ["Attach license metadata."],
+          }],
+        },
+      }),
+      now: fixedReadinessDate,
+    });
+
+    expect(readiness.status).toBe("blocked");
+    expect(readiness.blockers.map((check) => check.criterion)).toContain("qa-blockers");
+    expect(readiness.blockers.flatMap((check) => check.issueIds)).toContain("qa-export-1");
+  });
+
+  it("creates a publication manifest and evidence QA from ready-with-caveats readiness", () => {
+    const layer = publicationLayer({ metadata: { scientificQA: { status: "warning", issueIds: ["qa-warn-1"], badges: ["uncertain_output"], caveats: ["Classification uncertainty remains."] } } });
+    const readiness = buildMapPublicationReadiness({
+      mode: "publication-export",
+      overlayLayers: [layer],
+      composition: DEFAULT_MAP_COMPOSITION_OPTIONS,
+      scientificQA: qaState({
+        status: "warning",
+        issues: [{
+          id: "qa-warn-1",
+          code: "classification-warning",
+          category: "source-provenance",
+          severity: "warning",
+          title: "Classification uncertainty",
+          explanation: "Classes should be interpreted as screening evidence.",
+          suggestedFix: "Review class thresholds.",
+          layerId: "layer-1",
+          layerName: "Transit access",
+        }],
+        metadata: {
+          generatedBy: "MapScientificQA",
+          version: 2,
+          signature: "qa-warning",
+          visibleLayerCount: 1,
+          workerLayerCount: 0,
+          issueCounts: { info: 0, warning: 1, error: 0, blocker: 0 },
+          categoryCounts: { pass: 0, warning: 1, blocked: 0, unknown: 0 },
+        },
+      }),
+      now: fixedReadinessDate,
+    });
+    const manifest = buildMapPublicationManifest({
+      result: { filename: "map.pdf", format: "pdf", mimeType: "application/pdf", width: 100, height: 80 },
+      composition: DEFAULT_MAP_COMPOSITION_OPTIONS,
+      overlayLayers: [layer],
+      legendItems: buildMapCompositionLegendItems([layer]),
+      readiness,
+      scientificQA: qaState(),
+      createdAt: fixedReadinessDate.toISOString(),
+    });
+    const evidenceQA = mapPublicationReadinessToEvidenceQA(readiness);
+
+    expect(readiness.status).toBe("ready-with-caveats");
+    expect(manifest.readiness.status).toBe("ready-with-caveats");
+    expect(manifest.visibleLayerIds).toEqual(["layer-1"]);
+    expect(evidenceQA.state).toBe("warning");
+    expect(evidenceQA.caveats.length).toBeGreaterThan(0);
   });
 });

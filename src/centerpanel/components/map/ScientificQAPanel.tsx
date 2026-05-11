@@ -11,8 +11,10 @@ import {
   X,
 } from "lucide-react";
 import type {
+  MapScientificQACategory,
   MapScientificQAIssue,
   MapScientificQAIssueSeverity,
+  MapScientificQASeverity,
   MapScientificQAState,
 } from "@/services/map/MapScientificQA";
 import type { LayerScientificQABadge, OverlayLayerConfig } from "./mapTypes";
@@ -48,6 +50,25 @@ const SEVERITY_LABELS: Record<MapScientificQAIssueSeverity, string> = {
   info: "Info",
 };
 
+const DOMAIN_SEVERITY_LABELS: Record<MapScientificQASeverity, string> = {
+  pass: "Pass",
+  warning: "Warning",
+  blocked: "Blocked",
+  unknown: "Unknown",
+};
+
+const CATEGORY_LABELS: Record<MapScientificQACategory, string> = {
+  crs: "CRS",
+  "geometry-validity": "Geometry validity",
+  schema: "Schema",
+  scale: "Scale",
+  missingness: "Missingness",
+  "source-provenance": "Source/provenance",
+  "attribution-license": "Attribution/license",
+  "workflow-readiness": "Workflow readiness",
+  "export-readiness": "Export readiness",
+};
+
 const BADGE_LABELS: Record<LayerScientificQABadge, string> = {
   invalid_geometry: "Invalid geometry",
   missing_crs: "Missing CRS",
@@ -74,6 +95,8 @@ const rightRailResizeHandleStyle: React.CSSProperties = {
   bottom: MAP_SPACING.zero,
   left: "-0.3125rem",
   width: "0.625rem",
+  padding: MAP_SPACING.zero,
+  border: MAP_STROKES.none,
   cursor: "col-resize",
   touchAction: "none",
   background: MAP_COLORS.transparent,
@@ -174,6 +197,29 @@ const badgeStyle: React.CSSProperties = {
   lineHeight: MAP_TYPOGRAPHY.lineHeight.tight,
 };
 
+const categoryGrid: React.CSSProperties = {
+  display: "grid",
+  gap: MAP_SPACING.sm,
+};
+
+const categoryRowStyle: React.CSSProperties = {
+  display: "grid",
+  gap: MAP_SPACING.xs,
+  padding: MAP_SPACING.sm,
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.sm,
+  background: "rgba(255,255,255,0.02)",
+  minWidth: MAP_SPACING.zero,
+};
+
+const categoryHeaderStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: MAP_SPACING.sm,
+  minWidth: MAP_SPACING.zero,
+};
+
 const issueListStyle: React.CSSProperties = {
   display: "grid",
   gap: MAP_SPACING.sm,
@@ -268,6 +314,19 @@ function severityColor(severity: MapScientificQAIssueSeverity): string {
   }
 }
 
+function domainSeverityColor(severity: MapScientificQASeverity): string {
+  switch (severity) {
+    case "blocked":
+      return MAP_COLORS.error;
+    case "warning":
+      return MAP_COLORS.warning;
+    case "unknown":
+      return MAP_COLORS.textMuted;
+    default:
+      return MAP_COLORS.success;
+  }
+}
+
 function renderSeverityIcon(severity: MapScientificQAIssueSeverity): React.ReactNode {
   const color = severityColor(severity);
   switch (severity) {
@@ -354,6 +413,13 @@ export const ScientificQAPanel: React.FC<ScientificQAPanelProps> = ({
       .filter((entry) => entry.badges.length > 0 || entry.featureIssueCount > 0 || entry.status === "error");
   }, [overlayLayers, qaState?.layerSummaries]);
 
+  const layerNameById = useMemo(() => {
+    return new Map(overlayLayers.map((layer) => [layer.id, layer.name]));
+  }, [overlayLayers]);
+
+  const categoryRows = qaState?.metadata.categorySummaries ?? [];
+  const categoryRiskCount = categoryRows.filter((row) => row.severity !== "pass").length;
+
   const summary = statusText(qaState);
   const issueCount = qaState?.issues.length ?? 0;
   const warningCount = qaState?.metadata.issueCounts.warning ?? 0;
@@ -363,7 +429,7 @@ export const ScientificQAPanel: React.FC<ScientificQAPanelProps> = ({
     minute: "2-digit",
     second: "2-digit",
   }) : "Pending";
-  const handleResizePointerDown = useCallback<React.PointerEventHandler<HTMLDivElement>>((event) => {
+  const handleResizePointerDown = useCallback<React.PointerEventHandler<HTMLButtonElement>>((event) => {
     if (presentation !== "right-rail" || !onWidthChange) {
       return;
     }
@@ -389,6 +455,21 @@ export const ScientificQAPanel: React.FC<ScientificQAPanelProps> = ({
     event.preventDefault();
   }, [maxWidth, minWidth, onWidthChange, presentation, width]);
 
+  const handleResizeKeyDown = useCallback<React.KeyboardEventHandler<HTMLButtonElement>>((event) => {
+    if (presentation !== "right-rail" || !onWidthChange) {
+      return;
+    }
+    const step = event.shiftKey ? 32 : 12;
+    if (event.key === "ArrowLeft") {
+      onWidthChange(clampPanelWidth((width ?? 384) + step, minWidth, maxWidth));
+      event.preventDefault();
+    }
+    if (event.key === "ArrowRight") {
+      onWidthChange(clampPanelWidth((width ?? 384) - step, minWidth, maxWidth));
+      event.preventDefault();
+    }
+  }, [maxWidth, minWidth, onWidthChange, presentation, width]);
+
   if (!visible) {
     return null;
   }
@@ -404,15 +485,14 @@ export const ScientificQAPanel: React.FC<ScientificQAPanelProps> = ({
   return (
     <aside style={resolvedPanelStyle} role="dialog" aria-modal="false" aria-label="Scientific QA side panel">
       {presentation === "right-rail" && onWidthChange ? (
-        <div
-          role="separator"
-          aria-orientation="vertical"
+        <button
+          type="button"
           aria-label="Resize scientific QA panel"
-          tabIndex={0}
           style={rightRailResizeHandleStyle}
           onPointerDown={handleResizePointerDown}
+          onKeyDown={handleResizeKeyDown}
           data-testid="map-right-panel-resize-handle"
-          title="Drag to resize scientific QA panel"
+          title="Drag or use arrow keys to resize scientific QA panel"
         />
       ) : null}
       <div style={resolvedHeaderStyle} {...(floating ? dragHandleProps : {})}>
@@ -462,6 +542,44 @@ export const ScientificQAPanel: React.FC<ScientificQAPanelProps> = ({
       </div>
 
       <div style={mapStyles.sidePanelBody}>
+        <section style={sectionStyle} aria-label="Scientific QA domains">
+          <div style={sectionHeaderStyle}>
+            <span>QA domains</span>
+            <span>{categoryRiskCount > 0 ? `${categoryRiskCount} need review` : "9 checked"}</span>
+          </div>
+          {categoryRows.length > 0 ? (
+            <div style={categoryGrid}>
+              {categoryRows.map((row) => {
+                const color = domainSeverityColor(row.severity);
+                const affectedLayers = row.affectedLayerIds
+                  .map((layerId) => layerNameById.get(layerId) ?? layerId)
+                  .slice(0, 3);
+                return (
+                  <div key={row.category} style={categoryRowStyle}>
+                    <div style={categoryHeaderStyle}>
+                      <span style={issueTitle}>{CATEGORY_LABELS[row.category]}</span>
+                      <span style={{ ...badgeStyle, color, border: `1px solid ${color}` }}>
+                        {DOMAIN_SEVERITY_LABELS[row.severity]}
+                      </span>
+                    </div>
+                    <div style={issueCopy}>{row.reasons[0] ?? "No QA reason recorded for this domain."}</div>
+                    {affectedLayers.length > 0 ? (
+                      <div style={issueMeta}>Affected: {affectedLayers.join(", ")}</div>
+                    ) : null}
+                    {row.recommendedFixes.length > 0 ? (
+                      <div style={fixStyle}>
+                        <strong>Recommended fix:</strong> {row.recommendedFixes[0]}
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div style={issueCopy}>QA domains appear after scientific QA runs for the visible map state.</div>
+          )}
+        </section>
+
         <section style={sectionStyle} aria-label="QA layer badges">
           <div style={sectionHeaderStyle}>
             <span>Layer badges</span>
