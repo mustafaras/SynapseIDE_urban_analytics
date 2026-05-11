@@ -168,6 +168,60 @@ describe("MapDataImporter", () => {
       Name: "Park A",
       Category: "green",
     });
+    expect(result.layer.metadata?.importSource).toMatchObject({
+      format: "csv",
+      fileName: "parks.csv",
+      importedFeatureCount: 1,
+      totalRecords: 3,
+      skippedRecordCount: 2,
+      workerTransferStatus: "not-required",
+    });
+    expect(result.layer.metadata?.crsSummary).toMatchObject({ status: "unknown", source: "import-source" });
+    expect(result.layer.metadata?.licenseAttribution).toMatchObject({ license: null, attribution: null, source: "import-source" });
+    expect(result.layer.metadata?.scientificQA?.status).toBe("warning");
+    expect(result.layer.metadata?.scientificQA?.issueIds).toEqual(expect.arrayContaining([
+      expect.stringContaining("import-crs-unknown"),
+      expect.stringContaining("import-license-unknown"),
+      expect.stringContaining("import-skipped-records"),
+    ]));
+    expect(result.layer.metadata?.evidenceArtifactId).toBe(`map-evidence-layer-${result.layer.id}`);
+    expect(result.layer.metadata?.registry?.evidenceArtifactId).toBe(`map-evidence-layer-${result.layer.id}`);
+  });
+
+  it("marks local GeoJSON imports as evidence candidates without inferring CRS certainty", async () => {
+    const file = new File([JSON.stringify({
+      type: "FeatureCollection",
+      features: [{
+        type: "Feature",
+        geometry: { type: "Polygon", coordinates: [[[28.9, 41], [29, 41], [29, 41.1], [28.9, 41.1], [28.9, 41]]] },
+        properties: { district: "A", score: 0.72 },
+      }],
+    })], "districts.geojson", { type: "application/geo+json" });
+
+    const result = await importGeoJSONFile(file);
+
+    expect(result.layer.sourceKind).toBe("imported");
+    expect(result.layer.qaStatus).toBe("warning");
+    expect(result.layer.provenance).toMatchObject({
+      label: "GEOJSON import",
+      sourceName: "districts.geojson",
+      method: "Browser spatial file import",
+    });
+    expect(result.layer.metadata?.importSource).toMatchObject({
+      format: "geojson",
+      sourceName: "districts.geojson",
+      importedFeatureCount: 1,
+      sourceConfidence: "derived-from-file",
+    });
+    expect(result.layer.metadata?.crsSummary).toMatchObject({
+      crs: null,
+      status: "unknown",
+      source: "import-source",
+    });
+    expect(result.layer.metadata?.schemaSummary?.fieldCount).toBe(2);
+    expect(result.layer.metadata?.geometrySummary).toMatchObject({ geometryType: "Polygon", featureCount: 1 });
+    expect(result.layer.metadata?.registry?.publicationReadiness.status).toBe("needs-review");
+    expect(result.layer.metadata?.registry?.sourceKind).toBe("imported");
   });
 
   it("detects CSV coordinate columns across common aliases and casing", () => {

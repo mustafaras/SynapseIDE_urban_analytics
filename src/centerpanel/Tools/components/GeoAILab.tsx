@@ -683,6 +683,7 @@ const GeoAILab: React.FC = () => {
   const addOverlayLayer = useMapExplorerStore((state) => state.addOverlayLayer);
   const overlayLayers = useMapExplorerStore((state) => state.overlayLayers);
   const openMap = useMapExplorerStore((state) => state.open);
+  const upsertMapEvidenceArtifact = useMapExplorerStore((state) => state.upsertMapEvidenceArtifact);
   const upsertCompletedRun = useFlowStore((state) => state.upsertCompletedRun);
 
   const registrySources = useEOSourceStore((state) => state.sources);
@@ -989,6 +990,7 @@ const GeoAILab: React.FC = () => {
     };
 
     addOverlayLayer(adapted.layer);
+    upsertMapEvidenceArtifact(adapted.evidenceArtifact);
     openMap();
 
     const narrative = buildLandCoverNarrative(run);
@@ -1037,6 +1039,7 @@ const GeoAILab: React.FC = () => {
     selectedLandCoverSource,
     upsertCompletedRun,
     upsertEOSource,
+    upsertMapEvidenceArtifact,
   ]);
 
   const runQuery = useCallback(async () => {
@@ -1159,6 +1162,7 @@ const GeoAILab: React.FC = () => {
         });
 
         addOverlayLayer(adapted.layer);
+      upsertMapEvidenceArtifact(adapted.evidenceArtifact);
         openMap();
         upsertCompletedRun(createAnalysisCompletedRun(adapted, {
           flowId: "review",
@@ -1216,6 +1220,7 @@ const GeoAILab: React.FC = () => {
     queryRunner,
     spatialDb,
     upsertCompletedRun,
+    upsertMapEvidenceArtifact,
   ]);
 
   return (

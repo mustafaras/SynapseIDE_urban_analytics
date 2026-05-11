@@ -345,6 +345,7 @@ const CompositeIndicatorFlow: React.FC = () => {
   const [publishedRunId, setPublishedRunId] = useState<string | null>(null);
   const { stepData, setStepData, upsertCompletedRun } = useFlowStore();
   const addOverlayLayer = useMapExplorerStore((state) => state.addOverlayLayer);
+  const upsertMapEvidenceArtifact = useMapExplorerStore((state) => state.upsertMapEvidenceArtifact);
 
   const [form, setForm] = useState<CompositeIndicatorForm>(() => restoreFormState(stepData, FORM_KEY, DEFAULT_FORM));
 
@@ -469,6 +470,7 @@ const CompositeIndicatorFlow: React.FC = () => {
       },
     });
     addOverlayLayer(adapted.layer);
+    upsertMapEvidenceArtifact(adapted.evidenceArtifact);
     upsertCompletedRun(createAnalysisCompletedRun(adapted, {
       flowId: "indicator_composite",
       runId,

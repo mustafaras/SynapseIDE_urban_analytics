@@ -229,6 +229,7 @@ const UrbanMorphologyFlow: React.FC = () => {
   const registerEvidenceArtifact = useUrbanContextStore((state) => state.registerEvidenceArtifact);
   const addOverlayLayer = useMapExplorerStore((state) => state.addOverlayLayer);
   const openMapExplorer = useMapExplorerStore((state) => state.open);
+  const upsertMapEvidenceArtifact = useMapExplorerStore((state) => state.upsertMapEvidenceArtifact);
   const openTaskPanel = useBackgroundTaskStore((state) => state.openPanel);
 
   const [form, setForm] = useState<UrbanMorphologyForm>(() =>
@@ -393,6 +394,7 @@ const UrbanMorphologyFlow: React.FC = () => {
       });
 
       addOverlayLayer(adapted.layer);
+      upsertMapEvidenceArtifact(adapted.evidenceArtifact);
 
       const nextRunState: UrbanMorphologyRunState = {
         clusterResult,

@@ -1,10 +1,22 @@
 import type { Feature, MultiPolygon, Polygon } from "geojson";
 import type { AnalyticalFlowId } from "@/features/urbanAnalytics/lib/types";
-import type { OverlayLayerConfig } from "@/centerpanel/components/map/mapTypes";
+import type {
+  MapLayerRegistryLayerSummary,
+  OverlayLayerConfig,
+} from "@/centerpanel/components/map/mapTypes";
+import type { MapExplorerContextSummary } from "@/centerpanel/components/map/mapContextSummary";
+import { summarizeOverlayLayer } from "@/centerpanel/components/map/mapContextSummary";
 import { useFlowStore } from "@/stores/useFlowStore";
+import type {
+  MapAnalysisRecommendation,
+  MapAnalysisRecommendationReadiness,
+  MapAnalysisRecommendationReason,
+  MapAnalysisUrbanContextSummary,
+} from "./MapAnalysisRecommender";
 
 export const MAP_ANALYSIS_DISPATCH_KEY = "map_analysis_dispatch";
 export const MAP_ANALYSIS_VIEW_RESTRICTION_KEY = "map_analysis_view_restriction";
+export const MAP_ANALYSIS_RECOMMENDATION_KEY = "map_analysis_recommendation";
 
 export interface MapDispatchOriginPoint {
   lng: number;
@@ -17,7 +29,78 @@ export interface MapViewRestriction {
   updatedAt: string;
 }
 
-export interface MapFlowAoiDispatchPayload {
+export type MapAnalysisLayerReferenceRole =
+  | "visible-context"
+  | "selected-context"
+  | "recommendation-source"
+  | "analysis-result"
+  | "aoi-context";
+
+export interface MapAnalysisLayerReference {
+  layerId: string;
+  name: string;
+  role: MapAnalysisLayerReferenceRole;
+  layerType: OverlayLayerConfig["type"];
+  visible: boolean;
+  sourceKind?: string;
+  geometryType?: string;
+  featureCount?: number;
+  crs?: string;
+  crsStatus?: string;
+  qaStatus?: string;
+  publicationReadiness?: string;
+  evidenceArtifactId?: string;
+  reproducibilityManifestId?: string;
+}
+
+export interface MapAnalysisDispatchContextSummary {
+  contextId: string | null;
+  updatedAt: string;
+  activeAoiId: string | null;
+  activeAoiGeometryFamily: string | null;
+  currentBounds: [number, number, number, number] | null;
+  visibleLayerIds: string[];
+  selectedLayerIds: string[];
+  activeAnalysisResultLayerIds: string[];
+  selectedFeatureCount: number;
+  qaStatus: string;
+  qaIssueCounts: Record<string, number>;
+  urbanContext: {
+    hasContext: boolean;
+    contextId: string | null;
+    studyAreaId: string | null;
+    studyAreaName: string | null;
+    activeFlowId: string | null;
+    activeAoiId: string | null;
+    activeRunId: string | null;
+    layerCount: number;
+    artifactCount: number;
+    fitnessStatus: string | null;
+    syncState: string | null;
+    restoreWarningCount: number;
+  };
+}
+
+export interface MapAnalysisDispatchAuditSummary {
+  explicit: true;
+  reversible: boolean;
+  reviewEventType: "analysis-dispatch";
+  note: string;
+}
+
+interface MapAnalysisDispatchPayloadBase {
+  contextSummary?: MapAnalysisDispatchContextSummary;
+  layerReferences?: MapAnalysisLayerReference[];
+  audit?: MapAnalysisDispatchAuditSummary;
+}
+
+interface OptionalDispatchFieldsInput {
+  contextSummary?: MapAnalysisDispatchContextSummary | undefined;
+  layerReferences?: MapAnalysisLayerReference[] | undefined;
+  audit?: MapAnalysisDispatchAuditSummary | undefined;
+}
+
+export interface MapFlowAoiDispatchPayload extends MapAnalysisDispatchPayloadBase {
   kind: "flow-aoi";
   flowId: AnalyticalFlowId;
   requestId: string;
@@ -28,7 +111,7 @@ export interface MapFlowAoiDispatchPayload {
   createdAt: string;
 }
 
-export interface MapIsochroneDispatchPayload {
+export interface MapIsochroneDispatchPayload extends MapAnalysisDispatchPayloadBase {
   kind: "isochrone";
   requestId: string;
   source: "map-context-menu";
@@ -39,7 +122,7 @@ export interface MapIsochroneDispatchPayload {
   createdAt: string;
 }
 
-export interface MapHotSpotDispatchPayload {
+export interface MapHotSpotDispatchPayload extends MapAnalysisDispatchPayloadBase {
   kind: "hotspot";
   requestId: string;
   source: "map-context-menu";
@@ -174,6 +257,106 @@ function normalizeBounds(bounds: [number, number, number, number]): [number, num
   ];
 }
 
+function uniqueStrings(values: readonly string[], limit = 64): string[] {
+  return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean))).slice(0, limit);
+}
+
+function optionalDispatchFields(input: OptionalDispatchFieldsInput): MapAnalysisDispatchPayloadBase {
+  const output: MapAnalysisDispatchPayloadBase = {};
+  if (input.contextSummary) {
+    output.contextSummary = input.contextSummary;
+  }
+  if (input.layerReferences && input.layerReferences.length > 0) {
+    output.layerReferences = [...input.layerReferences];
+  }
+  if (input.audit) {
+    output.audit = input.audit;
+  }
+  return output;
+}
+
+function referenceFromLayer(
+  layer: OverlayLayerConfig,
+  role: MapAnalysisLayerReferenceRole,
+  summary?: MapLayerRegistryLayerSummary,
+): MapAnalysisLayerReference {
+  const registrySummary = summary ?? summarizeOverlayLayer(layer);
+  const manifestId = layer.metadata?.reproducibilityManifest?.manifestId
+    ?? layer.metadata?.analysisResult?.reproducibilityManifest?.manifestId;
+  return {
+    layerId: layer.id,
+    name: layer.name,
+    role,
+    layerType: layer.type,
+    visible: layer.visible,
+    ...(registrySummary.sourceKind ? { sourceKind: registrySummary.sourceKind } : {}),
+    ...(registrySummary.geometryType ? { geometryType: registrySummary.geometryType } : {}),
+    ...(registrySummary.featureCount != null ? { featureCount: registrySummary.featureCount } : {}),
+    ...(registrySummary.crs ? { crs: registrySummary.crs } : {}),
+    ...(registrySummary.crsStatus ? { crsStatus: registrySummary.crsStatus } : {}),
+    ...(registrySummary.qaStatus ? { qaStatus: registrySummary.qaStatus } : {}),
+    ...(registrySummary.publicationReadiness ? { publicationReadiness: registrySummary.publicationReadiness } : {}),
+    ...(registrySummary.evidenceArtifactId ? { evidenceArtifactId: registrySummary.evidenceArtifactId } : {}),
+    ...(manifestId ? { reproducibilityManifestId: manifestId } : {}),
+  };
+}
+
+export function buildMapAnalysisLayerReferences(
+  overlayLayers: readonly OverlayLayerConfig[],
+  layerIds: readonly string[] = [],
+  role: MapAnalysisLayerReferenceRole = "visible-context",
+): MapAnalysisLayerReference[] {
+  const wanted = layerIds.length > 0 ? new Set(layerIds.map(String)) : null;
+  const summariesByLayerId = new Map(overlayLayers.map((layer) => [layer.id, summarizeOverlayLayer(layer)]));
+  return overlayLayers
+    .filter((layer) => (wanted ? wanted.has(layer.id) : layer.visible))
+    .map((layer) => referenceFromLayer(layer, role, summariesByLayerId.get(layer.id)));
+}
+
+export function buildMapAnalysisDispatchContextSummary(input: {
+  mapContextSummary?: MapExplorerContextSummary | null;
+  urbanContext?: MapAnalysisUrbanContextSummary | null;
+}): MapAnalysisDispatchContextSummary {
+  const mapContext = input.mapContextSummary;
+  const urbanContext = input.urbanContext;
+  return {
+    contextId: mapContext?.contextId ?? null,
+    updatedAt: mapContext?.updatedAt ?? nowIso(),
+    activeAoiId: mapContext?.activeAoi?.aoiId ?? null,
+    activeAoiGeometryFamily: mapContext?.activeAoi?.geometryFamily ?? null,
+    currentBounds: mapContext?.currentBounds ?? null,
+    visibleLayerIds: [...(mapContext?.visibleLayerIds ?? [])],
+    selectedLayerIds: [...(mapContext?.selectedLayerIds ?? [])],
+    activeAnalysisResultLayerIds: [...(mapContext?.activeAnalysisResultLayerIds ?? [])],
+    selectedFeatureCount: mapContext?.selection.totalSelectedFeatures ?? 0,
+    qaStatus: mapContext?.qa.status ?? "unchecked",
+    qaIssueCounts: { ...(mapContext?.qa.issueCounts ?? {}) },
+    urbanContext: {
+      hasContext: urbanContext?.hasContext === true,
+      contextId: urbanContext?.contextId ?? null,
+      studyAreaId: urbanContext?.studyAreaId ?? null,
+      studyAreaName: urbanContext?.studyAreaName ?? null,
+      activeFlowId: urbanContext?.activeFlowId ? String(urbanContext.activeFlowId) : null,
+      activeAoiId: urbanContext?.activeAoiId ?? null,
+      activeRunId: urbanContext?.activeRunId ?? null,
+      layerCount: urbanContext?.layerCount ?? urbanContext?.activeLayerIds?.length ?? 0,
+      artifactCount: urbanContext?.artifactCount ?? 0,
+      fitnessStatus: urbanContext?.fitnessStatus ?? null,
+      syncState: urbanContext?.syncState ?? null,
+      restoreWarningCount: urbanContext?.restoreWarningCount ?? 0,
+    },
+  };
+}
+
+function buildAuditSummary(kind: string, reversible: boolean): MapAnalysisDispatchAuditSummary {
+  return {
+    explicit: true,
+    reversible,
+    reviewEventType: "analysis-dispatch",
+    note: `${kind} dispatch was created by an explicit user action and queued for review before workflow execution.`,
+  };
+}
+
 export function getCompatibleAoiFlows(): readonly MapDispatchCompatibleFlow[] {
   return AOI_COMPATIBLE_FLOWS;
 }
@@ -241,6 +424,10 @@ export function queueMapDispatch(payload: MapAnalysisDispatchPayload): void {
   useFlowStore.getState().setStepData(MAP_ANALYSIS_DISPATCH_KEY, payload);
 }
 
+export function queueRecommendationDispatch(payload: MapAnalysisRecommendationDispatchPayload): void {
+  useFlowStore.getState().setStepData(MAP_ANALYSIS_RECOMMENDATION_KEY, payload);
+}
+
 export function readQueuedMapDispatch(): MapAnalysisDispatchPayload | null {
   const rawValue = useFlowStore.getState().stepData[MAP_ANALYSIS_DISPATCH_KEY];
   if (!rawValue || typeof rawValue !== "object") {
@@ -259,6 +446,8 @@ export function dispatchFlowSelection(input: {
   source: MapFlowAoiDispatchPayload["source"];
   restrictToView: boolean;
   viewBounds?: [number, number, number, number];
+  contextSummary?: MapAnalysisDispatchContextSummary;
+  layerReferences?: MapAnalysisLayerReference[];
 }): MapFlowAoiDispatchPayload {
   const payload: MapFlowAoiDispatchPayload = {
     kind: "flow-aoi",
@@ -269,6 +458,11 @@ export function dispatchFlowSelection(input: {
     restrictToView: input.restrictToView,
     ...(input.viewBounds ? { viewBounds: input.viewBounds } : {}),
     createdAt: nowIso(),
+    ...optionalDispatchFields({
+      contextSummary: input.contextSummary,
+      layerReferences: input.layerReferences,
+      audit: buildAuditSummary("AOI workflow", true),
+    }),
   };
   queueMapDispatch(payload);
   dispatchNavigate({ tab: "Workflows", flowId: input.flowId });
@@ -280,6 +474,8 @@ export function dispatchIsochroneNavigation(input: {
   thresholdMinutes: number;
   restrictToView: boolean;
   viewBounds?: [number, number, number, number];
+  contextSummary?: MapAnalysisDispatchContextSummary;
+  layerReferences?: MapAnalysisLayerReference[];
 }): MapIsochroneDispatchPayload {
   const payload: MapIsochroneDispatchPayload = {
     kind: "isochrone",
@@ -290,6 +486,11 @@ export function dispatchIsochroneNavigation(input: {
     restrictToView: input.restrictToView,
     ...(input.viewBounds ? { viewBounds: input.viewBounds } : {}),
     createdAt: nowIso(),
+    ...optionalDispatchFields({
+      contextSummary: input.contextSummary,
+      layerReferences: input.layerReferences,
+      audit: buildAuditSummary("Isochrone workflow", true),
+    }),
   };
   queueMapDispatch(payload);
   dispatchNavigate({ tab: "Workflows", flowId: "accessibility" });
@@ -303,6 +504,8 @@ export function dispatchHotSpotNavigation(input: {
   valueField?: string;
   restrictToView: boolean;
   viewBounds?: [number, number, number, number];
+  contextSummary?: MapAnalysisDispatchContextSummary;
+  layerReferences?: MapAnalysisLayerReference[];
 }): MapHotSpotDispatchPayload {
   const payload: MapHotSpotDispatchPayload = {
     kind: "hotspot",
@@ -315,9 +518,56 @@ export function dispatchHotSpotNavigation(input: {
     restrictToView: input.restrictToView,
     ...(input.viewBounds ? { viewBounds: input.viewBounds } : {}),
     createdAt: nowIso(),
+    ...optionalDispatchFields({
+      contextSummary: input.contextSummary,
+      layerReferences: input.layerReferences,
+      audit: buildAuditSummary("Hot spot workflow", true),
+    }),
   };
   queueMapDispatch(payload);
   dispatchNavigate({ tab: "Workflows", flowId: "emerging_hot_spot" });
+  return payload;
+}
+
+export function dispatchRecommendationFlow(input: {
+  recommendation: MapAnalysisRecommendation;
+  flowId: AnalyticalFlowId;
+  overlayLayers: readonly OverlayLayerConfig[];
+  mapContextSummary?: MapExplorerContextSummary | null;
+  urbanContext?: MapAnalysisUrbanContextSummary | null;
+}): MapAnalysisRecommendationDispatchPayload {
+  const actionLayerIds = input.recommendation.action.type === "open-flow"
+    ? input.recommendation.action.layerIds ?? input.recommendation.layerIds
+    : input.recommendation.layerIds;
+  const layerIds = uniqueStrings(actionLayerIds);
+  const payload: MapAnalysisRecommendationDispatchPayload = {
+    kind: "recommendation",
+    requestId: createRequestId("recommendation"),
+    source: "map-recommendation",
+    flowId: input.flowId,
+    recommendationId: input.recommendation.id,
+    title: input.recommendation.title,
+    layerIds,
+    ...(input.recommendation.action.type === "open-flow" && input.recommendation.action.preferredMethod
+      ? { preferredMethod: input.recommendation.action.preferredMethod }
+      : {}),
+    requiredInputs: [...input.recommendation.requiredInputs],
+    expectedOutput: input.recommendation.expectedOutput,
+    scientificCaveat: input.recommendation.scientificCaveat,
+    readiness: input.recommendation.readiness,
+    reasons: input.recommendation.reasons,
+    createdAt: nowIso(),
+    ...optionalDispatchFields({
+      contextSummary: buildMapAnalysisDispatchContextSummary({
+        mapContextSummary: input.mapContextSummary,
+        urbanContext: input.urbanContext,
+      }),
+      layerReferences: buildMapAnalysisLayerReferences(input.overlayLayers, layerIds, "recommendation-source"),
+      audit: buildAuditSummary("Recommendation workflow", true),
+    }),
+  };
+  queueRecommendationDispatch(payload);
+  dispatchNavigate({ tab: "Workflows", flowId: input.flowId });
   return payload;
 }
 
@@ -390,4 +640,21 @@ export function collectSelectionStatistics(
       numericFields,
     } satisfies SelectionStatisticsSummary];
   });
+}
+
+export interface MapAnalysisRecommendationDispatchPayload extends MapAnalysisDispatchPayloadBase {
+  kind: "recommendation";
+  requestId: string;
+  source: "map-recommendation";
+  flowId: AnalyticalFlowId;
+  recommendationId: string;
+  title: string;
+  layerIds: string[];
+  preferredMethod?: string;
+  requiredInputs: string[];
+  expectedOutput: string;
+  scientificCaveat: string;
+  readiness: MapAnalysisRecommendationReadiness;
+  reasons: MapAnalysisRecommendationReason[];
+  createdAt: string;
 }

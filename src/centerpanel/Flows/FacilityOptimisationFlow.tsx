@@ -299,6 +299,7 @@ const FacilityOptimisationFlow: React.FC = () => {
 
   const { stepData, setStepData, upsertCompletedRun } = useFlowStore();
   const addOverlayLayer = useMapExplorerStore((state) => state.addOverlayLayer);
+  const upsertMapEvidenceArtifact = useMapExplorerStore((state) => state.upsertMapEvidenceArtifact);
 
   const [form, setForm] = useState<FacilityOptimisationForm>(() =>
     restoreFormState(stepData, FORM_KEY, DEFAULT_FORM),
@@ -426,6 +427,8 @@ const FacilityOptimisationFlow: React.FC = () => {
 
       addOverlayLayer(adaptedCatchments.layer);
       addOverlayLayer(adaptedSites.layer);
+      upsertMapEvidenceArtifact(adaptedCatchments.evidenceArtifact);
+      upsertMapEvidenceArtifact(adaptedSites.evidenceArtifact);
 
       const narrative = buildNarrative(form, result);
       upsertCompletedRun(

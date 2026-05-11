@@ -249,6 +249,19 @@ describe("MapEngineAdapter", () => {
     const collection = asCollection(adapted.layer);
     expect(adapted.layer.group).toBe("analysis");
     expect(adapted.layer.metadata?.analysisResult?.engine).toBe("LocalMoransI");
+    expect(adapted.layer.metadata?.analysisResult?.sourceRunId).toBe("lisa-layer");
+    expect(adapted.layer.metadata?.analysisResult?.sourceLayerIds).toEqual([]);
+    expect(adapted.layer.metadata?.analysisResult?.algorithmWorkflowId).toBe("LocalMoransI");
+    expect(adapted.layer.metadata?.analysisResult?.inputParameters).toMatchObject({ alpha: 0.05, weights: "queen" });
+    expect(adapted.layer.metadata?.analysisResult?.qaSummary?.status).toBe("warning");
+    expect(adapted.layer.metadata?.analysisResult?.caveats?.join(" ")).toContain("multiple-testing");
+    expect(adapted.layer.metadata?.analysisResult?.evidenceArtifactId).toBe("map-evidence-engine-localmoransi-lisa-layer");
+    expect(adapted.layer.metadata?.evidenceArtifactId).toBe("map-evidence-engine-localmoransi-lisa-layer");
+    expect(adapted.layer.metadata?.registry?.evidenceArtifactId).toBe("map-evidence-engine-localmoransi-lisa-layer");
+    expect(adapted.evidenceArtifact.id).toBe("map-evidence-engine-localmoransi-lisa-layer");
+    expect(adapted.evidenceArtifact.derivedLayerId).toBe("lisa-layer");
+    expect(adapted.evidenceArtifact.linkedRunId).toBe("lisa-layer");
+    expect(adapted.evidenceArtifact.qa.state).toBe("warning");
     expect(collection.features[0]?.properties?.local_i).toBe(1.8);
     expect(collection.features[0]?.properties?.__lisaCluster).toBe("HH");
     expect(adapted.visualization.kind).toBe("lisa-cluster");
@@ -261,7 +274,22 @@ describe("MapEngineAdapter", () => {
       featureCollection: makeFeatureCollection(),
       layerId: "analysis-layer",
       layerName: "Analysis layer",
+      runId: "analysis-run-1",
+      sourceRunId: "engine-run-1",
+      algorithmWorkflowId: "workflow-cluster-1",
+      evidenceArtifactId: "map-evidence-engine-cluster-1",
       sourceLayerIds: ["source-layer"],
+      caveats: ["Cluster labels are exploratory."],
+      qaSummary: {
+        status: "warning",
+        issueIds: ["qa-1"],
+        blockerCount: 0,
+        warningCount: 1,
+        infoCount: 0,
+        caveats: ["Review silhouette stability."],
+        uncertaintyNotes: ["Cluster count was analyst-selected."],
+        checkedAt: manifest.createdAt,
+      },
       reproducibilityManifest: manifest,
       visualization: {
         kind: "choropleth",
@@ -275,12 +303,25 @@ describe("MapEngineAdapter", () => {
     const roundTrip = adaptAnalysisMapOutput(output);
 
     expect(adapted.layer.metadata?.analysisResult?.reproducibilityManifest?.manifestId).toBe(manifest.manifestId);
+    expect(adapted.layer.metadata?.analysisResult?.sourceRunId).toBe("engine-run-1");
+    expect(adapted.layer.metadata?.analysisResult?.algorithmWorkflowId).toBe("workflow-cluster-1");
+    expect(adapted.layer.metadata?.analysisResult?.evidenceArtifactId).toBe("map-evidence-engine-cluster-1");
+    expect(adapted.layer.metadata?.analysisResult?.qaSummary?.issueIds).toEqual(["qa-1"]);
+    expect(adapted.evidenceArtifact.provenance.workflowId).toBe("workflow-cluster-1");
+    expect(adapted.evidenceArtifact.provenance.runId).toBe("engine-run-1");
+    expect(adapted.evidenceArtifact.provenance.crsSummary?.displayCrs).toBe("EPSG:4326");
     expect(output.metadata?.reproducibilityManifest).toMatchObject({
       manifestId: manifest.manifestId,
       workflowId: manifest.workflowId,
     });
+    expect(output.metadata?.evidenceArtifactId).toBe("map-evidence-engine-cluster-1");
+    expect(output.metadata?.sourceRunId).toBe("engine-run-1");
+    expect(output.metadata?.algorithmWorkflowId).toBe("workflow-cluster-1");
+    expect(output.metadata?.qaSummary).toMatchObject({ status: "warning", issueIds: ["qa-1"] });
     expect(roundTrip?.layer.metadata?.analysisResult?.reproducibilityManifest?.manifestId).toBe(manifest.manifestId);
     expect(roundTrip?.layer.metadata?.reproducibilityManifest?.workflowId).toBe(manifest.workflowId);
+    expect(roundTrip?.layer.metadata?.analysisResult?.evidenceArtifactId).toBe("map-evidence-engine-cluster-1");
+    expect(roundTrip?.evidenceArtifact.id).toBe("map-evidence-engine-cluster-1");
   });
 
   it("adapts Getis-Ord Gi* results into an analysis layer", () => {
@@ -509,12 +550,24 @@ describe("MapEngineAdapter", () => {
       },
       bounds: [0, 0, 2, 1],
       layerId: "land-cover-grid",
+      sourceLayerIds: ["imagery-source"],
+      parameters: {
+        runtimeMode: "demo-source",
+        modelId: "land-cover-demo-v1",
+        modelVersion: "v1",
+      },
     });
 
     const collection = asCollection(adapted.layer);
     expect(collection.features).toHaveLength(2);
     expect(collection.features[0]?.properties?.__landCoverClass).toBe("built_up");
     expect(collection.features[1]?.properties?.land_cover_class).toBe("Water");
+    expect(adapted.layer.sourceKind).toBe("demo");
+    expect(adapted.layer.metadata?.analysisResult?.outputMode).toBe("demo");
+    expect(adapted.layer.metadata?.analysisResult?.sourceLayerIds).toEqual(["imagery-source"]);
+    expect(adapted.layer.metadata?.analysisResult?.caveats?.join(" ")).toContain("Demo output");
+    expect(adapted.evidenceArtifact.sourceLayerIds).toEqual(["imagery-source"]);
+    expect(adapted.evidenceArtifact.metadata?.outputMode).toBe("demo");
     expect(adapted.visualization.kind).toBe("land-cover");
     expect(adapted.visualization.legendEntries?.[0]?.color).toBe("#E74C3C");
   });

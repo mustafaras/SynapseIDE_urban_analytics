@@ -1,9 +1,16 @@
 import type {
+  AnalysisOutputMode,
   AnalysisResultMetadata,
+  AnalysisResultQASummary,
   LayerProvenance,
+  LayerQaStatus,
+  MapEvidenceArtifact,
+  MapEvidenceQAState,
+  MapEvidenceScalar,
   MapReproducibilityManifest,
   OverlayLayerConfig,
 } from "@/centerpanel/components/map/mapTypes";
+import { createMapWorkflowResultEvidenceArtifact } from "@/centerpanel/components/map/mapEvidenceArtifacts";
 import { withNormalizedLayerRegistryMetadata } from "@/centerpanel/components/map/mapLayerMetadata";
 import {
   buildHotSpotDecoratedCollection,
@@ -219,6 +226,7 @@ type GeoJsonPayload = GeoJSON.FeatureCollection | GeoJSON.Feature | GeoJSON.Geom
 export interface AnalysisAdapterResult {
   layer: OverlayLayerConfig;
   visualization: AnalysisVisualizationSpec;
+  evidenceArtifact: MapEvidenceArtifact;
 }
 
 export type SpatialStatsAdapterResult = AnalysisAdapterResult;
@@ -227,11 +235,17 @@ export interface AdapterBaseInput {
   layerId?: string;
   layerName?: string;
   runId?: string;
+  sourceRunId?: string;
   runTimestamp?: string;
+  algorithmWorkflowId?: string;
+  workflowId?: string;
   parameters?: Record<string, unknown>;
   sourceLayerIds?: string[];
   sourceDataVersion?: string;
   sourceKind?: OverlayLayerConfig["sourceKind"];
+  outputMode?: AnalysisOutputMode;
+  qaSummary?: Partial<AnalysisResultQASummary>;
+  evidenceArtifactId?: string;
   provenance?: LayerProvenance;
   caveats?: string[];
   reproducibilityManifest?: MapReproducibilityManifest;
@@ -786,21 +800,407 @@ function getStringParameter(input: AdapterBaseInput, key: string): string | null
   return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function uniqueTextList(values: Array<string | null | undefined>, limit = 12): string[] {
+  const result: string[] = [];
+  const seen = new Set<string>();
+  for (const value of values) {
+    const normalized = value?.trim();
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    result.push(normalized);
+    if (result.length >= limit) break;
+  }
+  return result;
+}
+
+function normalizeTextArray(value: unknown, limit = 12): string[] {
+  if (!Array.isArray(value)) return [];
+  return uniqueTextList(
+    value.map((entry) => (typeof entry === "string" ? entry : null)),
+    limit,
+  );
+}
+
+function safeEvidencePart(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 96) || "output";
+}
+
+function isAnalysisOutputMode(value: unknown): value is AnalysisOutputMode {
+  return value === "live" || value === "demo" || value === "synthetic" || value === "unknown";
+}
+
+function normalizeAnalysisOutputModeToken(value: string | null): AnalysisOutputMode | null {
+  if (!value) return null;
+  const normalized = value.trim().toLowerCase().replace(/[_\s]+/g, "-");
+  if (
+    normalized === "demo" ||
+    normalized === "demo-data" ||
+    normalized === "demo-mode" ||
+    normalized === "demo-source" ||
+    normalized === "explicit-demo-data"
+  ) {
+    return "demo";
+  }
+  if (normalized === "synthetic" || normalized === "synthetic-data" || normalized === "simulation-synthetic") {
+    return "synthetic";
+  }
+  if (normalized === "live" || normalized === "real" || normalized === "live-project-data" || normalized === "real-source") {
+    return "live";
+  }
+  if (normalized === "unknown" || normalized === "legacy") {
+    return "unknown";
+  }
+  return null;
+}
+
+function resolveAnalysisOutputMode(input: AdapterBaseInput): AnalysisOutputMode {
+  if (input.outputMode) return input.outputMode;
+  if (input.sourceKind === "demo") return "demo";
+
+  const candidate =
+    normalizeAnalysisOutputModeToken(getStringParameter(input, "outputMode")) ??
+    normalizeAnalysisOutputModeToken(getStringParameter(input, "runtimeMode")) ??
+    normalizeAnalysisOutputModeToken(getStringParameter(input, "sourceRuntimeMode")) ??
+    normalizeAnalysisOutputModeToken(getStringParameter(input, "executionMode")) ??
+    normalizeAnalysisOutputModeToken(getStringParameter(input, "datasetMode")) ??
+    normalizeAnalysisOutputModeToken(getStringParameter(input, "executionScope")) ??
+    normalizeAnalysisOutputModeToken(getStringParameter(input, "sourceKind"));
+
+  return candidate ?? "unknown";
+}
+
+function resolveAlgorithmWorkflowId(engine: AnalysisEngineId, input: AdapterBaseInput): string {
+  return input.algorithmWorkflowId?.trim()
+    || input.workflowId?.trim()
+    || input.reproducibilityManifest?.workflowId
+    || getStringParameter(input, "workflowId")
+    || getStringParameter(input, "algorithmId")
+    || getStringParameter(input, "modelId")
+    || engine;
+}
+
+function resolveSourceRunId(input: AdapterBaseInput, layerId: string): string {
+  return input.sourceRunId?.trim()
+    || input.runId?.trim()
+    || getStringParameter(input, "sourceRunId")
+    || getStringParameter(input, "runId")
+    || layerId;
+}
+
+function buildEvidenceArtifactId(engine: AnalysisEngineId, input: AdapterBaseInput, layerId: string): string {
+  return input.evidenceArtifactId?.trim()
+    || `map-evidence-engine-${safeEvidencePart(engine)}-${safeEvidencePart(input.runId ?? layerId)}`;
+}
+
+function modeCaveat(outputMode: AnalysisOutputMode): string | null {
+  if (outputMode === "demo") {
+    return "Demo output: this layer is for demonstration and must not be represented as observed analytical evidence.";
+  }
+  if (outputMode === "synthetic") {
+    return "Synthetic output: inputs or scenarios were generated and must remain labelled before interpretation.";
+  }
+  if (outputMode === "unknown") {
+    return "Execution mode is not declared; treat analytical readiness as unknown until source provenance is reviewed.";
+  }
+  return null;
+}
+
+function buildEngineCaveats(
+  engine: AnalysisEngineId,
+  input: AdapterBaseInput,
+  visualization: AnalysisVisualizationSpec,
+): string[] {
+  const caveats: Array<string | null> = [];
+  if (isSpatialStatsEngine(engine)) {
+    caveats.push("Spatial-statistics interpretation depends on the declared spatial weights, CRS, and feature preparation choices.");
+    if (engine === "LocalMoransI" || engine === "GetisOrdGi" || engine === "EmergingHotSpots") {
+      caveats.push("Local significance classes should be reviewed with multiple-testing and neighbourhood-definition caveats.");
+    }
+    if (engine === "OLS" || engine === "GWR") {
+      caveats.push("Regression surfaces require residual diagnostics and model specification review before policy interpretation.");
+    }
+  }
+  if (engine === "LandCoverClassifier") {
+    caveats.push("Land-cover classes are model predictions; inspect confidence and class definitions before reporting.");
+  }
+  if (engine === "ObjectDetector") {
+    caveats.push("Object detections can contain false positives and false negatives; confidence thresholds are analytical caveats.");
+  }
+  if (engine === "QueryToSQL") {
+    caveats.push("NL query outputs reflect the reviewed generated SQL and visible queryable layer scope, not a full data audit.");
+  }
+  if (engine === "CompositeIndicator") {
+    caveats.push("Composite indicator outputs depend on selected indicators, normalization, weighting, and sensitivity assumptions.");
+  }
+  if (engine === "CellularAutomata" || engine === "ABM" || engine === "FacilityOptimisation") {
+    caveats.push("Simulation output is scenario/model dependent and should be interpreted with parameter and validation limits.");
+  }
+  if (visualization.kind === "temporal") {
+    caveats.push("Temporal playback preserves frame references; compare frames only when source schema and units are compatible.");
+  }
+  return uniqueTextList(caveats, 8);
+}
+
+function buildAnalysisCaveats(params: {
+  engine: AnalysisEngineId;
+  input: AdapterBaseInput;
+  outputMode: AnalysisOutputMode;
+  visualization: AnalysisVisualizationSpec;
+}): string[] {
+  const manifestCaveats = params.input.reproducibilityManifest?.qaSummary.caveats ?? [];
+  return uniqueTextList([
+    modeCaveat(params.outputMode),
+    ...normalizeTextArray(params.input.caveats, 8),
+    ...manifestCaveats,
+    ...buildEngineCaveats(params.engine, params.input, params.visualization),
+  ], 12);
+}
+
+function normalizeQaStatus(value: unknown, fallback: AnalysisResultQASummary["status"]): AnalysisResultQASummary["status"] {
+  if (value === "unchecked" || value === "passed" || value === "warning" || value === "error" || value === "blocked") {
+    return value;
+  }
+  return fallback;
+}
+
+function normalizePartialQASummary(value: unknown): Partial<AnalysisResultQASummary> | undefined {
+  if (!isRecord(value)) return undefined;
+  const summary: Partial<AnalysisResultQASummary> = {};
+  const status = normalizeQaStatus(value.status, "unchecked");
+  summary.status = status;
+  summary.issueIds = normalizeTextArray(value.issueIds, 64);
+  summary.caveats = normalizeTextArray(value.caveats, 12);
+  summary.uncertaintyNotes = normalizeTextArray(value.uncertaintyNotes, 12);
+  if (typeof value.blockerCount === "number" && Number.isFinite(value.blockerCount)) {
+    summary.blockerCount = Math.max(0, Math.floor(value.blockerCount));
+  }
+  if (typeof value.warningCount === "number" && Number.isFinite(value.warningCount)) {
+    summary.warningCount = Math.max(0, Math.floor(value.warningCount));
+  }
+  if (typeof value.infoCount === "number" && Number.isFinite(value.infoCount)) {
+    summary.infoCount = Math.max(0, Math.floor(value.infoCount));
+  }
+  if (typeof value.checkedAt === "string" && value.checkedAt.trim().length > 0) {
+    summary.checkedAt = value.checkedAt;
+  }
+  return summary;
+}
+
+function buildAnalysisQASummary(params: {
+  input: AdapterBaseInput;
+  outputMode: AnalysisOutputMode;
+  caveats: string[];
+}): AnalysisResultQASummary {
+  const manifestQA = params.input.reproducibilityManifest?.qaSummary;
+  const inputQA = params.input.qaSummary;
+  const fallbackStatus: AnalysisResultQASummary["status"] = params.outputMode === "demo" || params.outputMode === "synthetic" || params.caveats.length > 0
+    ? "warning"
+    : "unchecked";
+  const manifestStatus = manifestQA?.status === "blocked" ? "blocked" : manifestQA?.status;
+  const status = normalizeQaStatus(inputQA?.status ?? manifestStatus, fallbackStatus);
+  const issueIds = uniqueTextList([
+    ...(inputQA?.issueIds ?? []),
+    ...(manifestQA?.issueIds ?? []),
+  ], 64);
+  const caveats = uniqueTextList([
+    ...(inputQA?.caveats ?? []),
+    ...(manifestQA?.caveats ?? []),
+    ...params.caveats,
+  ], 12);
+  const uncertaintyNotes = uniqueTextList([
+    ...(inputQA?.uncertaintyNotes ?? []),
+    ...caveats,
+  ], 12);
+  const blockerCount = inputQA?.blockerCount ?? manifestQA?.blockerCount ?? (status === "blocked" || status === "error" ? issueIds.length : 0);
+  const warningCount = inputQA?.warningCount ?? manifestQA?.warningCount ?? (status === "warning" ? Math.max(1, caveats.length) : 0);
+  const infoCount = inputQA?.infoCount ?? manifestQA?.infoCount ?? 0;
+  const checkedAt = inputQA?.checkedAt ?? params.input.reproducibilityManifest?.createdAt;
+  const summary: AnalysisResultQASummary = {
+    status,
+    issueIds,
+    blockerCount,
+    warningCount,
+    infoCount,
+    caveats,
+    uncertaintyNotes,
+  };
+  if (checkedAt) summary.checkedAt = checkedAt;
+  return summary;
+}
+
+function qaStatusToLayerQaStatus(status: AnalysisResultQASummary["status"]): LayerQaStatus {
+  if (status === "blocked" || status === "error") return "error";
+  if (status === "warning") return "warning";
+  if (status === "passed") return "passed";
+  return "unchecked";
+}
+
+function qaStatusToEvidenceState(status: AnalysisResultQASummary["status"]): MapEvidenceQAState {
+  if (status === "blocked") return "blocked";
+  if (status === "error") return "error";
+  if (status === "warning") return "warning";
+  if (status === "passed") return "passed";
+  return "unchecked";
+}
+
+function buildHandoffHints(engine: AnalysisEngineId, layerId: string): NonNullable<AnalysisResultMetadata["handoffHints"]> {
+  const label = ENGINE_TITLES[engine];
+  return {
+    reportCompatible: true,
+    dashboardCompatible: true,
+    ideCompatible: true,
+    reportInsertionHint: `Reference ${layerId} as a ${label} map evidence layer; do not copy sourceData into reports.`,
+    dashboardBindingHint: `Bind dashboards to scalar summaries or layer id ${layerId}, preserving evidenceArtifactId.`,
+    ideArtifactHint: `Generate code or manifests from adapter metadata for ${layerId}; keep geometry referenced by layer id.`,
+  };
+}
+
+function metadataString(metadata: Record<string, unknown> | undefined, key: string): string | undefined {
+  const value = metadata?.[key];
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : undefined;
+}
+
+function metadataOutputMode(metadata: Record<string, unknown> | undefined): AnalysisOutputMode | undefined {
+  const value = metadata?.outputMode;
+  return isAnalysisOutputMode(value) ? value : undefined;
+}
+
+function metadataQASummary(metadata: Record<string, unknown> | undefined): Partial<AnalysisResultQASummary> | undefined {
+  return normalizePartialQASummary(metadata?.qaSummary);
+}
+
+function metadataCaveats(metadata: Record<string, unknown> | undefined): string[] {
+  return normalizeTextArray(metadata?.caveats, 12);
+}
+
+function evidenceScalar(value: unknown): MapEvidenceScalar | null {
+  if (value === null) return null;
+  if (typeof value === "string" || typeof value === "boolean") return value;
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  return null;
+}
+
+function buildAnalysisEvidenceMetadata(
+  analysisResult: AnalysisResultMetadata,
+  featureMetadata: ReturnType<typeof buildFeatureCollectionMetadata>,
+): Record<string, MapEvidenceScalar> {
+  const metadata: Record<string, MapEvidenceScalar> = {
+    engine: analysisResult.engine,
+    domain: resolveEngineDomain(analysisResult.engine),
+    algorithmWorkflowId: analysisResult.algorithmWorkflowId ?? analysisResult.engine,
+    outputMode: analysisResult.outputMode ?? "unknown",
+    sourceLayerCount: analysisResult.sourceLayerIds?.length ?? 0,
+    caveatCount: analysisResult.caveats?.length ?? 0,
+    qaStatus: analysisResult.qaSummary?.status ?? "unchecked",
+    qaWarningCount: analysisResult.qaSummary?.warningCount ?? 0,
+    qaBlockerCount: analysisResult.qaSummary?.blockerCount ?? 0,
+  };
+  if (analysisResult.sourceRunId) metadata.sourceRunId = analysisResult.sourceRunId;
+  if (analysisResult.runId) metadata.runId = analysisResult.runId;
+  if (analysisResult.reproducibilityManifest?.manifestId) {
+    metadata.manifestId = analysisResult.reproducibilityManifest.manifestId;
+  }
+  const featureCount = evidenceScalar(featureMetadata.featureCount);
+  if (featureCount !== null) metadata.featureCount = featureCount;
+  const geometryType = evidenceScalar(featureMetadata.geometryType);
+  if (geometryType !== null) metadata.geometryType = geometryType;
+  return metadata;
+}
+
+function buildAnalysisMapOutputMetadata(layer: OverlayLayerConfig): Record<string, unknown> | undefined {
+  const analysis = layer.metadata?.analysisResult;
+  if (!analysis) return undefined;
+  const metadata: Record<string, unknown> = {
+    evidenceArtifactId: analysis.evidenceArtifactId,
+    sourceRunId: analysis.sourceRunId,
+    algorithmWorkflowId: analysis.algorithmWorkflowId,
+    outputMode: analysis.outputMode,
+    qaSummary: analysis.qaSummary,
+    caveats: analysis.caveats,
+    handoffHints: analysis.handoffHints,
+    sourceLayerIds: analysis.sourceLayerIds,
+    sourceKind: layer.sourceKind,
+  };
+  if (analysis.reproducibilityManifest) {
+    metadata.reproducibilityManifest = cloneJson(analysis.reproducibilityManifest);
+  }
+  return Object.fromEntries(Object.entries(metadata).filter(([, value]) => value !== undefined));
+}
+
+function buildAnalysisEvidenceArtifact(params: {
+  engine: AnalysisEngineId;
+  input: AdapterBaseInput;
+  layerId: string;
+  layerName: string;
+  featureMetadata: ReturnType<typeof buildFeatureCollectionMetadata>;
+  analysisResult: AnalysisResultMetadata;
+}): MapEvidenceArtifact {
+  const sourceLayerIds = params.analysisResult.sourceLayerIds ?? [];
+  const qaSummary = params.analysisResult.qaSummary;
+  const manifest = params.analysisResult.reproducibilityManifest;
+  const evidenceInput = {
+    ...(params.analysisResult.evidenceArtifactId ? { id: params.analysisResult.evidenceArtifactId } : {}),
+    title: `${params.layerName} evidence`,
+    summary: `${ENGINE_TITLES[params.engine]} adapter output for map layer ${params.layerId}.`,
+    workflowId: params.analysisResult.algorithmWorkflowId ?? params.engine,
+    ...(params.analysisResult.sourceRunId || params.analysisResult.runId
+      ? { runId: params.analysisResult.sourceRunId ?? params.analysisResult.runId }
+      : {}),
+    sourceLayerIds,
+    derivedLayerId: params.layerId,
+    linkedLayerIds: [params.layerId],
+    crsSummary: manifest
+      ? {
+          displayCrs: manifest.crsSummary.displayCrs,
+          sourceLayerCrs: manifest.crsSummary.sourceLayerCrs,
+          missingLayerIds: manifest.crsSummary.missingLayerIds,
+          notes: manifest.crsSummary.notes,
+        }
+      : {
+          displayCrs: "EPSG:4326",
+          sourceLayerCrs: sourceLayerIds.map((layerId) => ({ layerId, crs: null })),
+          missingLayerIds: sourceLayerIds,
+          notes: ["Adapter output stores source layer IDs only; inspect source layers for analytical CRS declarations."],
+        },
+    geometrySummary: {
+      geometryTypes: params.featureMetadata.geometryType ? [params.featureMetadata.geometryType] : [],
+      ...(typeof params.featureMetadata.featureCount === "number" ? { featureCount: params.featureMetadata.featureCount } : {}),
+      ...(params.featureMetadata.bounds ? { bounds: params.featureMetadata.bounds } : {}),
+      source: "workflow-summary" as const,
+      notes: ["Map evidence stores adapter metadata and layer references only; raw GeoJSON remains on the map layer."],
+    },
+    ...(qaSummary
+      ? {
+          qa: {
+            state: qaStatusToEvidenceState(qaSummary.status),
+            issueIds: qaSummary.issueIds,
+            issueCount: qaSummary.issueIds.length,
+            blockerCount: qaSummary.blockerCount,
+            caveats: qaSummary.caveats,
+            ...(qaSummary.checkedAt ? { checkedAt: qaSummary.checkedAt } : {}),
+          },
+        }
+      : {}),
+    metadata: buildAnalysisEvidenceMetadata(params.analysisResult, params.featureMetadata),
+    createdAt: params.analysisResult.runTimestamp,
+  };
+
+  return createMapWorkflowResultEvidenceArtifact(evidenceInput);
+}
+
 function resolveAnalysisSourceKind(input: AdapterBaseInput): NonNullable<OverlayLayerConfig["sourceKind"]> {
   if (input.sourceKind) return input.sourceKind;
 
-  const runtimeMode =
-    getStringParameter(input, "runtimeMode") ??
-    getStringParameter(input, "sourceRuntimeMode") ??
-    getStringParameter(input, "executionMode");
-  const datasetMode = getStringParameter(input, "datasetMode");
-  const sourceKind = getStringParameter(input, "sourceKind");
-  if (
-    runtimeMode === "demo-source" ||
-    runtimeMode === "demo-mode" ||
-    datasetMode === "demo-data" ||
-    sourceKind === "demo"
-  ) {
+  if (resolveAnalysisOutputMode(input) === "demo") {
     return "demo";
   }
 
@@ -829,6 +1229,8 @@ function buildAnalysisProvenance(
     ...(sourceUrl ? { sourceUrl } : {}),
     method: "Engine-to-map adapter metadata; no model recomputation required for layer inspection.",
     generatedAt: normalizeRunTimestamp(input.runTimestamp),
+    ...(input.sourceLayerIds ? { sourceLayerIds: [...input.sourceLayerIds] } : {}),
+    ...(input.caveats ? { notes: [...input.caveats] } : {}),
   };
 }
 
@@ -1009,21 +1411,44 @@ function normalizeTemporalFrames(frames: CellularAutomataResult["frames"]): Anal
 function buildAnalysisMetadata(params: {
   engine: AnalysisEngineId;
   input: AdapterBaseInput;
+  layerId: string;
   visualization: AnalysisVisualizationSpec;
   statisticalSummary: Record<string, StatisticalSummaryValue>;
   rerunToken?: string;
 }): AnalysisResultMetadata {
   const parameters = cloneJson(params.input.parameters ?? {});
+  const outputMode = resolveAnalysisOutputMode(params.input);
+  const caveats = buildAnalysisCaveats({
+    engine: params.engine,
+    input: params.input,
+    outputMode,
+    visualization: params.visualization,
+  });
+  const qaSummary = buildAnalysisQASummary({
+    input: params.input,
+    outputMode,
+    caveats,
+  });
+  const sourceRunId = resolveSourceRunId(params.input, params.layerId);
+  const algorithmWorkflowId = resolveAlgorithmWorkflowId(params.engine, params.input);
+  const evidenceArtifactId = buildEvidenceArtifactId(params.engine, params.input, params.layerId);
   return {
     engine: params.engine,
     runTimestamp: normalizeRunTimestamp(params.input.runTimestamp),
     parameterSummary: buildParameterSummary(parameters),
     inputParameters: parameters,
     statisticalSummary: cloneJson(params.statisticalSummary),
+    sourceRunId,
+    algorithmWorkflowId,
+    outputMode,
+    qaSummary,
+    caveats,
+    evidenceArtifactId,
+    handoffHints: buildHandoffHints(params.engine, params.layerId),
     stale: false,
     visualization: cloneJson(params.visualization),
     ...(params.input.runId ? { runId: params.input.runId } : {}),
-    ...(params.input.sourceLayerIds ? { sourceLayerIds: [...params.input.sourceLayerIds] } : {}),
+    sourceLayerIds: [...(params.input.sourceLayerIds ?? [])],
     ...(params.input.sourceDataVersion ? { sourceDataVersion: params.input.sourceDataVersion } : {}),
     ...(params.input.reproducibilityManifest ? { reproducibilityManifest: cloneJson(params.input.reproducibilityManifest) } : {}),
     ...(params.rerunToken ? { rerunToken: params.rerunToken } : {}),
@@ -1044,17 +1469,28 @@ function buildLayerResult(params: {
   queryable?: boolean;
 }): AnalysisAdapterResult {
   const metadata = buildFeatureCollectionMetadata(params.featureCollection);
+  const layerId = buildLayerId(params.engine, params.input);
+  const layerName = buildLayerName(params.engine, params.input.layerName);
   const analysisResult = buildAnalysisMetadata({
     engine: params.engine,
     input: params.input,
+    layerId,
     visualization: params.visualization,
     statisticalSummary: params.statisticalSummary,
     ...(params.rerunToken ? { rerunToken: params.rerunToken } : {}),
   });
+  const evidenceArtifact = buildAnalysisEvidenceArtifact({
+    engine: params.engine,
+    input: params.input,
+    layerId,
+    layerName,
+    featureMetadata: metadata,
+    analysisResult,
+  });
 
   const layer = withNormalizedLayerRegistryMetadata({
-    id: buildLayerId(params.engine, params.input),
-    name: buildLayerName(params.engine, params.input.layerName),
+    id: layerId,
+    name: layerName,
     type: params.layerType ?? "geojson",
     visible: true,
     opacity: params.opacity ?? DEFAULT_LAYER_OPACITY,
@@ -1062,11 +1498,13 @@ function buildLayerResult(params: {
     group: "analysis",
     sourceKind: resolveAnalysisSourceKind(params.input),
     provenance: params.provenance ?? buildAnalysisProvenance(params.engine, params.input, params.visualization.title),
+    qaStatus: qaStatusToLayerQaStatus(analysisResult.qaSummary?.status ?? "unchecked"),
     queryable: params.queryable ?? true,
     metadata: {
       ...metadata,
       updatedAt: analysisResult.runTimestamp,
       analysisResult,
+      evidenceArtifactId: analysisResult.evidenceArtifactId,
       ...(analysisResult.reproducibilityManifest ? { reproducibilityManifest: analysisResult.reproducibilityManifest } : {}),
     },
     ...(params.style ? { style: cloneJson(params.style) } : {}),
@@ -1075,6 +1513,7 @@ function buildLayerResult(params: {
   return {
     layer,
     visualization: cloneJson(params.visualization),
+    evidenceArtifact,
   };
 }
 
@@ -1328,26 +1767,54 @@ function applyBridgeToLayer(
       : buildFacilityCatchmentStyle(bridge.geometryType);
   }
 
-  const persistedManifest = output.metadata?.reproducibilityManifest;
-
-  const analysisResult: AnalysisResultMetadata = {
-    engine: bridge.engine,
+  const outputMetadata = output.metadata;
+  const persistedManifest = outputMetadata?.reproducibilityManifest;
+  const sourceRunId = metadataString(outputMetadata, "sourceRunId");
+  const algorithmWorkflowId = metadataString(outputMetadata, "algorithmWorkflowId");
+  const outputMode = metadataOutputMode(outputMetadata);
+  const evidenceArtifactId = metadataString(outputMetadata, "evidenceArtifactId");
+  const sourceKind = metadataString(outputMetadata, "sourceKind");
+  const restoredCaveats = metadataCaveats(outputMetadata);
+  const restoredQASummary = metadataQASummary(outputMetadata);
+  const restoredInput: AdapterBaseInput = {
+    layerId: output.id,
+    layerName: output.layerName ?? output.title,
     runTimestamp: bridge.runTimestamp,
-    parameterSummary: buildParameterSummary(bridge.parameters),
-    inputParameters: cloneJson(bridge.parameters),
-    statisticalSummary: cloneJson(bridge.statisticalSummary),
-    stale: false,
-    visualization: cloneJson(bridge.visualization),
+    parameters: bridge.parameters,
     ...(bridge.runId ? { runId: bridge.runId } : {}),
+    ...(sourceRunId ? { sourceRunId } : {}),
+    ...(algorithmWorkflowId ? { algorithmWorkflowId } : {}),
     ...(bridge.sourceLayerIds ? { sourceLayerIds: [...bridge.sourceLayerIds] } : {}),
     ...(bridge.sourceDataVersion ? { sourceDataVersion: bridge.sourceDataVersion } : {}),
+    ...(outputMode ? { outputMode } : {}),
+    ...(evidenceArtifactId ? { evidenceArtifactId } : {}),
+    ...(sourceKind === "demo" ? { sourceKind: "demo" as const } : {}),
+    ...(restoredCaveats.length > 0 ? { caveats: restoredCaveats } : {}),
+    ...(restoredQASummary ? { qaSummary: restoredQASummary } : {}),
     ...(isMapReproducibilityManifest(persistedManifest)
       ? { reproducibilityManifest: cloneJson(persistedManifest) }
       : {}),
-    ...(bridge.rerunToken ? { rerunToken: bridge.rerunToken } : {}),
   };
 
-  const layer: OverlayLayerConfig = {
+  const analysisResult = buildAnalysisMetadata({
+    engine: bridge.engine,
+    input: restoredInput,
+    layerId: output.id,
+    visualization: bridge.visualization,
+    statisticalSummary: bridge.statisticalSummary,
+    ...(bridge.rerunToken ? { rerunToken: bridge.rerunToken } : {}),
+  });
+  const featureMetadata = buildFeatureCollectionMetadata(featureCollection);
+  const evidenceArtifact = buildAnalysisEvidenceArtifact({
+    engine: bridge.engine,
+    input: restoredInput,
+    layerId: output.id,
+    layerName: output.layerName ?? output.title,
+    featureMetadata,
+    analysisResult,
+  });
+
+  const layer = withNormalizedLayerRegistryMetadata({
     id: output.id,
     name: output.layerName ?? output.title,
     type: bridge.layerType ?? (bridge.visualization.kind === "agent-density" ? "heatmap" : "geojson"),
@@ -1355,18 +1822,22 @@ function applyBridgeToLayer(
     opacity: bridge.opacity ?? DEFAULT_LAYER_OPACITY,
     sourceData: featureCollection,
     group: "analysis",
+    sourceKind: resolveAnalysisSourceKind(restoredInput),
+    qaStatus: qaStatusToLayerQaStatus(analysisResult.qaSummary?.status ?? "unchecked"),
     metadata: {
-      ...buildFeatureCollectionMetadata(featureCollection),
+      ...featureMetadata,
       updatedAt: bridge.runTimestamp,
       analysisResult,
+      evidenceArtifactId: analysisResult.evidenceArtifactId,
       ...(analysisResult.reproducibilityManifest ? { reproducibilityManifest: analysisResult.reproducibilityManifest } : {}),
     },
     ...(style ? { style } : {}),
-  };
+  });
 
   return {
     layer,
     visualization: cloneJson(bridge.visualization),
+    evidenceArtifact,
   };
 }
 
@@ -2672,6 +3143,7 @@ export function createAnalysisMapOutput(
   const outputResult = options?.rerunHandler
     ? attachAnalysisRerun(result, options.rerunHandler, options.rerunToken)
     : result;
+  const metadata = buildAnalysisMapOutputMetadata(outputResult.layer);
 
   return {
     id: outputResult.layer.id,
@@ -2680,9 +3152,7 @@ export function createAnalysisMapOutput(
     title: outputResult.layer.name,
     layerName: outputResult.layer.name,
     engineBridge: buildOutputBridge(outputResult.layer),
-    ...(outputResult.layer.metadata?.analysisResult?.reproducibilityManifest
-      ? { metadata: { reproducibilityManifest: cloneJson(outputResult.layer.metadata.analysisResult.reproducibilityManifest) } }
-      : {}),
+    ...(metadata ? { metadata } : {}),
     ...(outputResult.layer.style ? { style: cloneJson(outputResult.layer.style) } : {}),
   };
 }

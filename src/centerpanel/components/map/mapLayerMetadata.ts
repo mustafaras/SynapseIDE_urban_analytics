@@ -115,6 +115,25 @@ function resolveOverlayLayerProvenanceWithSource(layer: OverlayLayerConfig): {
     };
   }
 
+  const importSource = layer.metadata?.importSource;
+  if (importSource) {
+    return {
+      provenance: {
+        label: `${importSource.format.toUpperCase()} import`,
+        sourceName: importSource.sourceName,
+        ...(importSource.sourceUri ? { sourceUrl: importSource.sourceUri } : {}),
+        ...(importSource.license ? { license: importSource.license } : {}),
+        ...(importSource.attribution ? { attribution: importSource.attribution } : {}),
+        method: "Browser spatial file import",
+        collectedAt: importSource.importedAt,
+        generatedAt: importSource.importedAt,
+        notes: importSource.caveats,
+      },
+      source: "import-source",
+      fallback: false,
+    };
+  }
+
   const external = layer.metadata?.externalService;
   if (external) {
     const sourceName = external.title ?? external.layerName ?? external.endpoint;
@@ -170,6 +189,7 @@ export function resolveOverlayLayerProvenance(layer: OverlayLayerConfig): LayerP
 export function resolveOverlayLayerCrsSummary(layer: OverlayLayerConfig): LayerCrsSummary {
   const metadata = layer.metadata;
   const crs = compactText(metadata?.crsSummary?.crs)
+    ?? compactText(metadata?.importSource?.declaredCrs)
     ?? compactText(metadata?.datasetContext?.crs)
     ?? compactText(metadata?.columnar?.crs)
     ?? compactText(metadata?.eoSource?.crs)
@@ -179,6 +199,8 @@ export function resolveOverlayLayerCrsSummary(layer: OverlayLayerConfig): LayerC
   if (crs) {
     const source: LayerMetadataSource = metadata?.crsSummary?.crs
       ? "explicit"
+      : metadata?.importSource?.declaredCrs
+        ? "import-source"
       : metadata?.datasetContext?.crs
         ? "dataset-context"
         : metadata?.columnar?.crs
@@ -287,11 +309,15 @@ export function resolveOverlayLayerLicenseAttribution(layer: OverlayLayerConfig)
   const provenanceInfo = resolveOverlayLayerProvenanceWithSource(layer);
   const license = compactText(metadata?.licenseAttribution?.license)
     ?? compactText(layer.provenance?.license)
+    ?? compactText(metadata?.importSource?.license)
     ?? compactText(metadata?.datasetContext?.license)
+    ?? compactText(metadata?.externalService?.license)
     ?? compactText(metadata?.registry?.licenseAttribution.license)
     ?? compactText(provenanceInfo.provenance.license);
   const attribution = compactText(metadata?.licenseAttribution?.attribution)
     ?? compactText(layer.provenance?.attribution)
+    ?? compactText(metadata?.importSource?.attribution)
+    ?? compactText(metadata?.externalService?.attribution)
     ?? compactText(metadata?.externalService?.title)
     ?? compactText(metadata?.externalService?.layerName)
     ?? compactText(metadata?.eoSource?.provider)
@@ -299,6 +325,7 @@ export function resolveOverlayLayerLicenseAttribution(layer: OverlayLayerConfig)
     ?? compactText(provenanceInfo.provenance.attribution);
   const sourceName = compactText(metadata?.licenseAttribution?.sourceName)
     ?? compactText(provenanceInfo.provenance.sourceName)
+    ?? compactText(metadata?.importSource?.sourceName)
     ?? compactText(metadata?.datasetContext?.datasetTitle)
     ?? compactText(metadata?.externalService?.title)
     ?? compactText(metadata?.externalService?.layerName)
@@ -306,12 +333,15 @@ export function resolveOverlayLayerLicenseAttribution(layer: OverlayLayerConfig)
     ?? compactText(metadata?.registry?.licenseAttribution.sourceName);
   const sourceUrl = compactText(metadata?.licenseAttribution?.sourceUrl)
     ?? compactText(provenanceInfo.provenance.sourceUrl)
+    ?? compactText(metadata?.importSource?.sourceUri)
     ?? compactText(metadata?.externalService?.urlTemplate)
     ?? compactText(metadata?.externalService?.endpoint)
     ?? compactText(metadata?.eoSource?.sourceUrl)
     ?? compactText(metadata?.registry?.licenseAttribution.sourceUrl);
   const source = metadata?.licenseAttribution
     ? "explicit"
+    : metadata?.importSource
+      ? "import-source"
     : metadata?.datasetContext?.license
       ? "dataset-context"
       : metadata?.externalService
@@ -345,12 +375,25 @@ function buildPublicationReadiness(
   const missingFields: string[] = [];
   const caveats: string[] = [];
   const scientificQA = layer.metadata?.scientificQA;
-  const blockingIssueIds = qaStatus === "error" ? scientificQA?.issueIds ?? ["layer-qa-error"] : [];
+  const blockingIssueIds = qaStatus === "error" ? [...(scientificQA?.issueIds ?? ["layer-qa-error"])] : [];
+  const externalService = layer.metadata?.externalService;
 
   if (crsSummary.status !== "known") missingFields.push("crs");
   if (provenanceInfo.fallback) missingFields.push("provenance");
   if (!licenseAttribution.license && !licenseAttribution.attribution) missingFields.push("license-attribution");
   if (schemaSummary.fieldCount === 0 && QUERYABLE_LAYER_TYPES.has(layer.type)) missingFields.push("schema");
+  caveats.push(...(layer.metadata?.importSource?.caveats ?? []));
+  caveats.push(...(externalService?.caveats ?? []));
+  if (externalService?.dependencyStatus === "offline") {
+    blockingIssueIds.push("external-service-offline");
+    caveats.push(externalService.offlineReason ?? "External service is currently offline or unreachable.");
+  }
+  if (externalService?.dependencyStatus === "stale") {
+    caveats.push("External service layer is stale and should be refreshed before analytical use.");
+  }
+  if (externalService?.dependencyStatus === "unknown") {
+    caveats.push("External service availability has not been verified in this browser session.");
+  }
   if (!queryable) caveats.push("Layer is not queryable from the map registry.");
   if (qaStatus === "unchecked") caveats.push("Layer has not passed scientific QA.");
   if (qaStatus === "warning") caveats.push("Layer has QA warnings or stale analytical output.");

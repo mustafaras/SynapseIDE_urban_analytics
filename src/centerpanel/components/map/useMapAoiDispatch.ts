@@ -1,6 +1,8 @@
 import { useCallback, type Dispatch, type SetStateAction } from "react";
 import type { Feature, MultiPolygon, Polygon } from "geojson";
 import {
+  buildMapAnalysisDispatchContextSummary,
+  buildMapAnalysisLayerReferences,
   collectSelectionStatistics,
   dispatchFlowSelection,
   dispatchIsochroneNavigation,
@@ -9,6 +11,7 @@ import {
 } from "@/services/map/MapAnalysisDispatcher";
 import type { MapReviewTimelineEventInput } from "@/services/map/MapReviewSessionService";
 import { toastInfo } from "@/ui/toast/api";
+import type { MapExplorerContextSummary } from "./mapContextSummary";
 import type { OverlayLayerConfig } from "./mapTypes";
 
 type DispatchFeedbackTone = "info" | "busy" | "success" | "error";
@@ -28,6 +31,7 @@ interface FlowDispatchAoiCandidate {
 interface UseMapAoiDispatchArgs {
   announce: (message: string) => void;
   compatibleAoiFlows: readonly MapDispatchCompatibleFlow[];
+  contextSummary: MapExplorerContextSummary;
   currentMapBounds: [number, number, number, number] | null;
   flowDispatchAoi: FlowDispatchAoiCandidate | null;
   overlayLayers: OverlayLayerConfig[];
@@ -43,6 +47,7 @@ interface UseMapAoiDispatchArgs {
 export function useMapAoiDispatch({
   announce,
   compatibleAoiFlows,
+  contextSummary,
   currentMapBounds,
   flowDispatchAoi,
   overlayLayers,
@@ -54,6 +59,16 @@ export function useMapAoiDispatch({
   setRestrictToMapView,
   setSelectionStatsSummary,
 }: UseMapAoiDispatchArgs) {
+  const buildDispatchContext = useCallback(() => buildMapAnalysisDispatchContextSummary({
+    mapContextSummary: contextSummary,
+  }), [contextSummary]);
+
+  const buildVisibleLayerReferences = useCallback(() => buildMapAnalysisLayerReferences(
+    overlayLayers,
+    contextSummary.visibleLayerIds,
+    "visible-context",
+  ), [contextSummary.visibleLayerIds, overlayLayers]);
+
   const handleToggleRestrictToMapView = useCallback(() => {
     setRestrictToMapView((current) => {
       const next = !current;
@@ -105,6 +120,7 @@ export function useMapAoiDispatch({
       summary: `Computed descriptive statistics for ${selectedFeatureCount.toLocaleString()} selected feature(s).`,
       layerIds: summary.map((entry) => entry.layerId),
       details: {
+        contextId: contextSummary.contextId,
         selectedFeatureCount,
         layerCount: summary.length,
         numericFieldCounts: Object.fromEntries(summary.map((entry) => [entry.layerId, entry.numericFields.length])),
@@ -121,6 +137,7 @@ export function useMapAoiDispatch({
     overlayLayers,
     recordMapReviewEvent,
     selectedFeatureIds,
+    contextSummary.contextId,
     setDispatchFeedback,
     setSelectionStatsSummary,
   ]);
@@ -131,12 +148,14 @@ export function useMapAoiDispatch({
     }
 
     const selectedFlow = compatibleAoiFlows.find((flow) => flow.id === flowId);
-    dispatchFlowSelection({
+    const payload = dispatchFlowSelection({
       flowId,
       aoi: flowDispatchAoi.feature,
       source: flowDispatchAoi.source,
       restrictToView: restrictToMapView,
       ...(restrictToMapView && currentMapBounds ? { viewBounds: currentMapBounds } : {}),
+      contextSummary: buildDispatchContext(),
+      layerReferences: buildVisibleLayerReferences(),
     });
     setIsFlowDispatchDialogOpen(false);
     setDispatchFeedback({
@@ -151,6 +170,9 @@ export function useMapAoiDispatch({
       summary: `${flowDispatchAoi.label} was attached to ${flowId}${restrictToMapView && currentMapBounds ? " with current extent restriction" : ""}.`,
       details: {
         flowId,
+        requestId: payload.requestId,
+        contextId: payload.contextSummary?.contextId ?? null,
+        layerReferenceCount: payload.layerReferences?.length ?? 0,
         aoiSource: flowDispatchAoi.source,
         restrictToView: restrictToMapView,
         viewBounds: restrictToMapView ? currentMapBounds : null,
@@ -159,6 +181,8 @@ export function useMapAoiDispatch({
     announce(`${selectedFlow?.label ?? flowId} opened from map dispatch`);
   }, [
     announce,
+    buildDispatchContext,
+    buildVisibleLayerReferences,
     compatibleAoiFlows,
     currentMapBounds,
     flowDispatchAoi,
@@ -170,11 +194,13 @@ export function useMapAoiDispatch({
 
   const handleIsochroneDispatch = useCallback((coordinate: [number, number]) => {
     const origin = { lng: coordinate[0], lat: coordinate[1] };
-    dispatchIsochroneNavigation({
+    const payload = dispatchIsochroneNavigation({
       origin,
       thresholdMinutes: 15,
       restrictToView: restrictToMapView,
       ...(restrictToMapView && currentMapBounds ? { viewBounds: currentMapBounds } : {}),
+      contextSummary: buildDispatchContext(),
+      layerReferences: buildVisibleLayerReferences(),
     });
     setDispatchFeedback({
       tone: "busy",
@@ -189,13 +215,16 @@ export function useMapAoiDispatch({
       details: {
         longitude: origin.lng,
         latitude: origin.lat,
+        requestId: payload.requestId,
+        contextId: payload.contextSummary?.contextId ?? null,
+        layerReferenceCount: payload.layerReferences?.length ?? 0,
         thresholdMinutes: 15,
         restrictToView: restrictToMapView,
         viewBounds: restrictToMapView ? currentMapBounds : null,
       },
     });
     announce("Accessibility workflow opened from map dispatch");
-  }, [announce, currentMapBounds, recordMapReviewEvent, restrictToMapView, setDispatchFeedback]);
+  }, [announce, buildDispatchContext, buildVisibleLayerReferences, currentMapBounds, recordMapReviewEvent, restrictToMapView, setDispatchFeedback]);
 
   return {
     handleToggleRestrictToMapView,

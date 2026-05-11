@@ -8,6 +8,7 @@ import {
   type DrawToolId,
   MAP_BOOKMARK_LIMIT,
   MAP_LAYER_REGISTRY_EVENT,
+  type MapEvidenceScalar,
   type MapBookmark,
   type MapExplorerMode,
   type MapLayerRegistryChangeDetail,
@@ -68,6 +69,7 @@ import { MapReviewTimelinePanel } from "./map/MapReviewTimelinePanel";
 import { CartographyRecommendationList } from "./map/CartographyRecommendationList";
 import {
   createMapExportEvidenceArtifact,
+  createMapLayerEvidenceArtifact,
   createMapReportSnapshotEvidenceArtifact,
   createMapWorkflowResultEvidenceArtifact,
 } from "./map/mapEvidenceArtifacts";
@@ -140,6 +142,7 @@ import {
 import {
   buildBoundsPolygon,
   buildBufferedPointBounds,
+  dispatchRecommendationFlow,
   getCompatibleAoiFlows,
   type SelectionStatisticsSummary,
   setMapViewRestriction,
@@ -173,7 +176,9 @@ import {
 import {
   generateMapAnalysisRecommendations,
   type MapAnalysisRecommendation,
+  type MapAnalysisUrbanContextSummary,
 } from "../../services/map/MapAnalysisRecommender";
+import { useUrbanContextSummary } from "../../features/urbanAnalytics/useUrbanContextStore";
 import {
   buildMapReportHandoffDraft,
   buildPendingReportInsertFromMapHandoff,
@@ -694,6 +699,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const currentMapBounds = useMapExplorerStore((s) => s.currentMapBounds);
   const setCurrentMapBounds = useMapExplorerStore((s) => s.setCurrentMapBounds);
   const contextSummary = useMapExplorerStore(selectMapExplorerContextSummary);
+  const urbanContextSummary = useUrbanContextSummary();
   const viewportSyncEnabled = useViewportSyncStore((s) => s.enabled);
   const viewportSyncStatus = useViewportSyncStore((s) => s.statusLabel);
   const setActiveAnalysisResultLayers = useMapExplorerStore((s) => s.setActiveAnalysisResultLayers);
@@ -713,6 +719,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   /* ---- Overlay layer store selectors ---- */
   const overlayLayers = useMapExplorerStore((s) => s.overlayLayers);
   const addOverlayLayer = useMapExplorerStore((s) => s.addOverlayLayer);
+  const updateLayerMetadata = useMapExplorerStore((s) => s.updateLayerMetadata);
   const removeOverlayLayer = useMapExplorerStore((s) => s.removeOverlayLayer);
   const toggleLayerVisibility = useMapExplorerStore((s) => s.toggleLayerVisibility);
   const setLayerOpacity = useMapExplorerStore((s) => s.setLayerOpacity);
@@ -821,6 +828,36 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     () => Object.values(selectedFeatureIds).some((ids) => ids.length > 0),
     [selectedFeatureIds],
   );
+  const activeUrbanContext = useMemo<MapAnalysisUrbanContextSummary>(() => ({
+    hasContext: urbanContextSummary.hasContext,
+    contextId: urbanContextSummary.studyAreaId ?? null,
+    studyAreaId: urbanContextSummary.studyAreaId,
+    studyAreaName: urbanContextSummary.studyAreaName,
+    studyAreaBounds: urbanContextSummary.studyAreaBounds,
+    activeFlowId: urbanContextSummary.flowId,
+    activeAoiId: contextSummary.activeAoi?.aoiId ?? null,
+    activeRunId: urbanContextSummary.runId,
+    layerCount: urbanContextSummary.layerCount,
+    artifactCount: urbanContextSummary.artifactCount,
+    fitnessStatus: urbanContextSummary.fitnessStatus,
+    syncState: urbanContextSummary.syncState,
+    hasRestoreWarnings: urbanContextSummary.hasRestoreWarnings,
+    restoreWarningCount: urbanContextSummary.restoreWarningCount,
+  }), [
+    contextSummary.activeAoi?.aoiId,
+    urbanContextSummary.artifactCount,
+    urbanContextSummary.fitnessStatus,
+    urbanContextSummary.flowId,
+    urbanContextSummary.hasContext,
+    urbanContextSummary.hasRestoreWarnings,
+    urbanContextSummary.layerCount,
+    urbanContextSummary.restoreWarningCount,
+    urbanContextSummary.runId,
+    urbanContextSummary.studyAreaBounds,
+    urbanContextSummary.studyAreaId,
+    urbanContextSummary.studyAreaName,
+    urbanContextSummary.syncState,
+  ]);
   const activeAnalysisInputLayerIds = useMemo(() => {
     const selectedLayerIds = Object.entries(selectedFeatureIds)
       .filter(([, ids]) => ids.length > 0)
@@ -844,8 +881,10 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       scientificQA,
       currentMapBounds,
       userIntent: workspaceView,
+      mapContextSummary: contextSummary,
+      urbanContext: activeUrbanContext,
     }),
-    [currentMapBounds, overlayLayers, scientificQA, selectedFeatureIds, workspaceView],
+    [activeUrbanContext, contextSummary, currentMapBounds, overlayLayers, scientificQA, selectedFeatureIds, workspaceView],
   );
   const nlQueryToolbarContext = useMemo(
     () => buildMapNLQueryContext(overlayLayers, {
@@ -1210,6 +1249,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   } = useMapAoiDispatch({
     announce,
     compatibleAoiFlows,
+    contextSummary,
     currentMapBounds,
     flowDispatchAoi,
     overlayLayers,
@@ -1985,23 +2025,42 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     }
 
     if (action.type === "open-flow") {
-      useFlowStore.getState().setStepData("map_analysis_recommendation", {
-        recommendationId: recommendation.id,
-        title: recommendation.title,
-        layerIds: action.layerIds ?? recommendation.layerIds,
-        preferredMethod: action.preferredMethod,
-        requiredInputs: recommendation.requiredInputs,
-        expectedOutput: recommendation.expectedOutput,
-        scientificCaveat: recommendation.scientificCaveat,
-        createdAt: new Date().toISOString(),
+      const payload = dispatchRecommendationFlow({
+        recommendation,
+        flowId: action.flowId,
+        overlayLayers,
+        mapContextSummary: contextSummary,
+        urbanContext: activeUrbanContext,
       });
-      window.dispatchEvent(new CustomEvent("synapse:navigate", {
-        detail: { tab: "Workflows", flowId: action.flowId },
-      }));
+
+      recordMapReviewEvent({
+        type: "analysis-dispatch",
+        status: "previewed",
+        title: `Recommendation dispatched: ${recommendation.title}`,
+        summary: `Explicit recommendation dispatch queued ${action.flowId.replace(/_/g, " ")} with ${payload.layerReferences?.length ?? 0} lightweight layer reference(s) and map context ${payload.contextSummary?.contextId ?? "none"}.`,
+        layerIds: payload.layerIds,
+        recommendationIds: [recommendation.id],
+        actionIds: [payload.requestId],
+        details: {
+          requestId: payload.requestId,
+          flowId: action.flowId,
+          readinessStatus: recommendation.readiness.status,
+          readinessWarnings: recommendation.readiness.warnings,
+          readinessBlockers: recommendation.readiness.blockers,
+          reasonKinds: recommendation.reasons.map((reason) => reason.kind),
+          contextId: payload.contextSummary?.contextId ?? null,
+          activeAoiId: payload.contextSummary?.activeAoiId ?? null,
+          selectedFeatureCount: payload.contextSummary?.selectedFeatureCount ?? 0,
+          layerReferenceCount: payload.layerReferences?.length ?? 0,
+          urbanActiveFlowId: payload.contextSummary?.urbanContext.activeFlowId ?? null,
+          explicit: payload.audit?.explicit ?? true,
+          reversible: payload.audit?.reversible ?? true,
+        },
+      });
       setDispatchFeedback({
         tone: "success",
         title: `${recommendation.title} opened`,
-        description: `Recommendation routed to the ${action.flowId.replace(/_/g, " ")} workflow with layer context attached.`,
+        description: `Recommendation routed to the ${action.flowId.replace(/_/g, " ")} workflow with ${payload.layerReferences?.length ?? 0} layer reference(s) attached.`,
       });
       toastInfo(`${recommendation.title} routed to workflow.`);
       announce(`${recommendation.title} routed to workflow`);
@@ -2141,7 +2200,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       default:
         break;
     }
-  }, [announce, buildCurrentReviewSnapshot, closeRightDockPanels, handleRunSelectionStatistics, openScientificQAPanel, overlayLayers, recordMapReviewEvent]);
+  }, [activeUrbanContext, announce, buildCurrentReviewSnapshot, closeRightDockPanels, contextSummary, handleRunSelectionStatistics, openScientificQAPanel, overlayLayers, recordMapReviewEvent]);
 
   const handleApplyCartographyRecommendation = useCallback((recommendationId: string) => {
     const recommendation = cartographyReviewState.recommendations.find((entry) => entry.id === recommendationId);
@@ -2300,6 +2359,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       }));
 
       addOverlayLayer(rerunResult.layer);
+      upsertMapEvidenceArtifact(rerunResult.evidenceArtifact);
       toastSuccess(`Re-ran ${rerunResult.layer.name}.`);
       announce(`Analysis result refreshed for ${rerunResult.layer.name}`);
     } catch (error) {
@@ -2309,7 +2369,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     } finally {
       setRerunningAnalysisToken(null);
     }
-  }, [addOverlayLayer, announce, completedRuns, upsertCompletedRun]);
+  }, [addOverlayLayer, announce, completedRuns, upsertCompletedRun, upsertMapEvidenceArtifact]);
 
   /* ---- Drawing handlers ---- */
   const handleSetDrawTool = useCallback(
@@ -2537,6 +2597,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       );
 
       addOverlayLayer(rerunnableResult.layer);
+      upsertMapEvidenceArtifact(rerunnableResult.evidenceArtifact);
       upsertCompletedRun(createSpatialStatsCompletedRun(rerunnableResult, { flowId: "review" }));
       setActiveAnalysisResultLayers([rerunnableResult.layer.id]);
       const resultBounds = rerunnableResult.layer.metadata?.bounds ?? getFeatureCollectionBounds(resolvedLayer.featureCollection);
@@ -2585,7 +2646,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     } finally {
       setIsRunningQuickHotSpot(false);
     }
-  }, [activeAnalysisResultLayerIds, addOverlayLayer, announce, currentMapBounds, fitToBounds, isRunningQuickHotSpot, openScientificQAPanel, overlayLayers, recordMapReviewEvent, restrictToMapView, scientificQA, setActiveAnalysisResultLayers, upsertCompletedRun]);
+  }, [activeAnalysisResultLayerIds, addOverlayLayer, announce, currentMapBounds, fitToBounds, isRunningQuickHotSpot, openScientificQAPanel, overlayLayers, recordMapReviewEvent, restrictToMapView, scientificQA, setActiveAnalysisResultLayers, upsertCompletedRun, upsertMapEvidenceArtifact]);
 
   const handleRunMapNLQuery = useCallback(async (preview: MapNLQueryPreview) => {
     if (isRunningMapNLQuery) {
@@ -2606,6 +2667,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         toGeoJSON,
       });
       addOverlayLayer(result.layer);
+      upsertMapEvidenceArtifact(result.adapterResult.evidenceArtifact);
       upsertCompletedRun(createAnalysisCompletedRun(result.adapterResult, { flowId: "review" }));
       setActiveAnalysisResultLayers([result.layer.id]);
       setLastMapNLQuerySummary({
@@ -2666,7 +2728,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     } finally {
       setIsRunningMapNLQuery(false);
     }
-  }, [addOverlayLayer, announce, fitToBounds, isRunningMapNLQuery, recordMapReviewEvent, setActiveAnalysisResultLayers, upsertCompletedRun]);
+  }, [addOverlayLayer, announce, fitToBounds, isRunningMapNLQuery, recordMapReviewEvent, setActiveAnalysisResultLayers, upsertCompletedRun, upsertMapEvidenceArtifact]);
 
   const getCurrentViewportState = useCallback(() => {
     const map = mapInstanceRef.current;
@@ -3249,11 +3311,47 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     setPendingColumnarImport(null);
   }, []);
 
+  const registerLayerEvidenceCandidate = useCallback((
+    layer: OverlayLayerConfig,
+    sourceModule: "map-explorer" | "external-service",
+  ) => {
+    const metadata: Record<string, MapEvidenceScalar> = {
+      sourceKind: layer.sourceKind ?? "project",
+      layerType: layer.type,
+      queryable: layer.queryable ?? false,
+      qaStatus: layer.qaStatus ?? "unchecked",
+    };
+    const importSource = layer.metadata?.importSource;
+    if (importSource) {
+      metadata.importFormat = importSource.format;
+      metadata.importedFeatureCount = importSource.importedFeatureCount;
+      metadata.skippedRecordCount = importSource.skippedRecordCount ?? 0;
+      metadata.sourceConfidence = importSource.sourceConfidence;
+      metadata.workerTransferStatus = importSource.workerTransferStatus ?? "not-required";
+    }
+    const externalService = layer.metadata?.externalService;
+    if (externalService) {
+      metadata.externalServiceKind = externalService.kind;
+      metadata.externalDependencyStatus = externalService.dependencyStatus ?? "unknown";
+      metadata.externalEndpoint = externalService.endpoint;
+      metadata.cacheHit = externalService.cacheHit ?? false;
+      metadata.staleAt = externalService.staleAt ?? null;
+    }
+
+    const artifact = createMapLayerEvidenceArtifact(layer, {
+      sourceModule,
+      metadata,
+    });
+    upsertMapEvidenceArtifact(artifact);
+    return artifact;
+  }, [upsertMapEvidenceArtifact]);
+
   const handleImportedLayerReady = useCallback(async (
     result: ImportedGeoJSONLayer,
     columnarSession?: ColumnarImportSession,
   ) => {
     addOverlayLayer(result.layer);
+    let layerForEvidence: OverlayLayerConfig = result.layer;
 
     const bounds = result.layer.metadata?.bounds ?? getFeatureCollectionBounds(result.featureCollection);
     if (bounds) {
@@ -3270,7 +3368,70 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         const message = error instanceof Error ? error.message : "Worker transfer failed.";
         toastWarning(`Imported ${result.layer.name}, but the columnar analytics worker could not be primed: ${message}`);
       }
+
+      if (result.layer.metadata?.importSource && result.layer.metadata.scientificQA) {
+        const workerTransferStatus = workerTransferReady ? "ready" : "failed";
+        const workerIssueId = `import-worker-${workerTransferStatus}-${result.layer.id}`;
+        const existingQa = result.layer.metadata.scientificQA;
+        const caveats = Array.from(new Set([
+          ...result.layer.metadata.importSource.caveats,
+          ...(workerTransferReady
+            ? ["Columnar worker transfer is ready for local analytical previews."]
+            : ["Columnar worker transfer failed; map layer remains visible, but columnar analytics should be retried before analysis."]),
+        ]));
+        const issueIds = workerTransferReady
+          ? existingQa.issueIds.filter((issueId) => !issueId.includes("import-worker-pending") && !issueId.includes("import-worker-failed"))
+          : Array.from(new Set([
+            ...existingQa.issueIds.filter((issueId) => !issueId.includes("import-worker-pending")),
+            workerIssueId,
+          ]));
+        const scientificQA = {
+          ...existingQa,
+          status: workerTransferReady ? existingQa.status : "warning",
+          issueIds,
+          caveats,
+          signature: `${existingQa.signature}:${workerTransferStatus}`,
+        } satisfies NonNullable<OverlayLayerConfig["metadata"]>["scientificQA"];
+        const metadata = {
+          ...result.layer.metadata,
+          importSource: {
+            ...result.layer.metadata.importSource,
+            workerTransferStatus,
+            workerTableName: columnarSession.workerTableName,
+            caveats,
+          },
+          scientificQA,
+        } satisfies NonNullable<OverlayLayerConfig["metadata"]>;
+        layerForEvidence = {
+          ...result.layer,
+          qaStatus: scientificQA.status,
+          metadata,
+        };
+        updateLayerMetadata(result.layer.id, {
+          qaStatus: scientificQA.status,
+          metadata,
+        });
+      }
     }
+
+    const evidenceArtifact = registerLayerEvidenceCandidate(layerForEvidence, "map-explorer");
+    recordMapReviewEvent({
+      type: "layer-change",
+      status: "recorded",
+      title: `Import evidence registered: ${result.layer.name}`,
+      summary: `${result.summary.sourceType.toUpperCase()} import added as a QA-aware evidence candidate with CRS ${layerForEvidence.metadata?.crsSummary?.crs ?? "unknown"}.`,
+      layerIds: [result.layer.id],
+      actionIds: [evidenceArtifact.id],
+      details: {
+        evidenceArtifactId: evidenceArtifact.id,
+        sourceType: result.summary.sourceType,
+        featureCount: result.summary.importedFeatureCount,
+        skippedRecordCount: result.summary.skippedRecordCount ?? 0,
+        workerTransferReady,
+        crsStatus: layerForEvidence.metadata?.crsSummary?.status ?? "unknown",
+        licenseStatus: layerForEvidence.metadata?.licenseAttribution?.license ?? "unknown",
+      },
+    });
 
     if (summary?.sourceType === "csv" && summary.totalRecords != null) {
       const skipped = summary.skippedRecordCount ?? 0;
@@ -3294,7 +3455,31 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     }
 
     announce(`Imported layer ${result.layer.name}`);
-  }, [addOverlayLayer, announce, fitToBounds]);
+  }, [addOverlayLayer, announce, fitToBounds, recordMapReviewEvent, registerLayerEvidenceCandidate, updateLayerMetadata]);
+
+  const handleExternalServiceLayerReady = useCallback((layer: OverlayLayerConfig) => {
+    addOverlayLayer(layer);
+    const evidenceArtifact = registerLayerEvidenceCandidate(layer, "external-service");
+    const dependencyStatus = layer.metadata?.externalService?.dependencyStatus ?? "unknown";
+    recordMapReviewEvent({
+      type: "layer-change",
+      status: dependencyStatus === "offline" ? "failed" : dependencyStatus === "stale" ? "previewed" : "recorded",
+      title: `External service evidence registered: ${layer.name}`,
+      summary: `${layer.metadata?.externalService?.kind?.toUpperCase() ?? "External"} layer added with dependency status ${dependencyStatus} and CRS ${layer.metadata?.crsSummary?.crs ?? "unknown"}.`,
+      layerIds: [layer.id],
+      actionIds: [evidenceArtifact.id],
+      details: {
+        evidenceArtifactId: evidenceArtifact.id,
+        serviceKind: layer.metadata?.externalService?.kind ?? null,
+        endpoint: layer.metadata?.externalService?.endpoint ?? null,
+        dependencyStatus,
+        cacheHit: layer.metadata?.externalService?.cacheHit ?? false,
+        staleAt: layer.metadata?.externalService?.staleAt ?? null,
+        crsStatus: layer.metadata?.crsSummary?.status ?? "unknown",
+        attribution: layer.metadata?.licenseAttribution?.attribution ?? null,
+      },
+    });
+  }, [addOverlayLayer, recordMapReviewEvent, registerLayerEvidenceCandidate]);
 
   const handleImportFiles = useCallback(async (files: FileList | File[] | null) => {
     const nextFile = files ? Array.from(files)[0] : null;
@@ -4173,7 +4358,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             bounds={externalServiceBounds?.bounds ?? null}
             boundsLabel={externalServiceBounds?.label ?? null}
             overlayLayers={overlayLayers}
-            onAddLayer={addOverlayLayer}
+            onAddLayer={handleExternalServiceLayerReady}
             onRemoveLayer={removeOverlayLayer}
             onClose={() => {
               setShowExternalServiceDialog(false);

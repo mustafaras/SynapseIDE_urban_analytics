@@ -309,6 +309,7 @@ const CellularAutomataFlow: React.FC = () => {
   const { setStepData, stepData, upsertCompletedRun } = useFlowStore();
   const addOverlayLayer = useMapExplorerStore((state) => state.addOverlayLayer);
   const openMapExplorer = useMapExplorerStore((state) => state.open);
+  const upsertMapEvidenceArtifact = useMapExplorerStore((state) => state.upsertMapEvidenceArtifact);
   const openTaskPanel = useBackgroundTaskStore((state) => state.openPanel);
 
   const [form, setForm] = useState<UrbanGrowthFlowForm>(() =>
@@ -430,6 +431,7 @@ const CellularAutomataFlow: React.FC = () => {
       });
 
       addOverlayLayer(adapted.layer);
+      upsertMapEvidenceArtifact(adapted.evidenceArtifact);
       const narrative = buildRunNarrative(form, nextResult, calibrationStates.map((state) => state.label ?? String(state.step)));
       upsertCompletedRun(createAnalysisCompletedRun(adapted, {
         flowId: "urban_growth_ca",

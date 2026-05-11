@@ -3,7 +3,11 @@ import { booleanValid } from "@turf/boolean-valid";
 import { kinks } from "@turf/kinks";
 import type { Feature, FeatureCollection, GeoJsonProperties, Geometry } from "geojson";
 import type {
+  ImportLayerSourceMetadata,
+  LayerCrsSummary,
+  LayerLicenseAttributionSummary,
   LayerMetadata,
+  LayerScientificQAMetadata,
   OverlayGeometryType,
   OverlayLayerConfig,
 } from "../../centerpanel/components/map/mapTypes";
@@ -161,6 +165,144 @@ function createLayerId(prefix = "import"): string {
     return `${prefix}-${crypto.randomUUID()}`;
   }
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function nowIsoTimestamp(): string {
+  return new Date().toISOString();
+}
+
+function createEvidenceArtifactId(layerId: string): string {
+  return `map-evidence-layer-${layerId.replace(/[^a-zA-Z0-9_-]+/g, "-").replace(/^-+|-+$/g, "")}`;
+}
+
+function uniqueTextList(values: Array<string | null | undefined>): string[] {
+  return Array.from(new Set(values.map((value) => value?.trim()).filter((value): value is string => Boolean(value))));
+}
+
+function buildImportCaveats(input: {
+  sourceType: MapImportFileKind;
+  declaredCrs?: string;
+  totalRecords?: number;
+  skippedRecordCount?: number;
+  workerTransferStatus?: ImportLayerSourceMetadata["workerTransferStatus"];
+}): string[] {
+  const caveats: string[] = [];
+  if (!input.declaredCrs) {
+    caveats.push("Imported layer does not declare a CRS; analytical distance and area operations require CRS review.");
+  }
+  caveats.push("Imported file license and attribution are not declared by the browser import pipeline; review before publication.");
+  if ((input.skippedRecordCount ?? 0) > 0 && input.totalRecords != null) {
+    caveats.push(`${input.skippedRecordCount.toLocaleString()} of ${input.totalRecords.toLocaleString()} input record(s) were skipped during spatial import.`);
+  }
+  if (input.workerTransferStatus === "prepared") {
+    caveats.push("Columnar worker transfer is prepared and will be confirmed when the layer is published to the map workspace.");
+  }
+  if (input.sourceType === "csv") {
+    caveats.push("CSV point geometry was derived from selected latitude/longitude columns; verify coordinate semantics before analysis.");
+  }
+  return uniqueTextList(caveats);
+}
+
+function buildImportCrsSummary(sourceType: MapImportFileKind, declaredCrs?: string): LayerCrsSummary {
+  if (declaredCrs) {
+    return {
+      crs: declaredCrs,
+      status: "known",
+      source: sourceType === "geoparquet" || sourceType === "arrow" ? "columnar" : "import-source",
+      notes: ["CRS was copied from import metadata as a declaration; analytical suitability still requires QA review."],
+    };
+  }
+
+  return {
+    crs: null,
+    status: "unknown",
+    source: "import-source",
+    notes: ["Imported file did not provide CRS metadata; CRS remains unknown until explicitly verified."],
+  };
+}
+
+function buildImportLicenseAttribution(fileName: string): LayerLicenseAttributionSummary {
+  return {
+    license: null,
+    attribution: null,
+    sourceName: fileName,
+    requiresAttribution: false,
+    source: "import-source",
+    notes: ["License and attribution are unknown for this local import; review before publication."],
+  };
+}
+
+function buildImportScientificQA(input: {
+  layerId: string;
+  sourceType: MapImportFileKind;
+  importedAt: string;
+  featureCount: number;
+  fieldCount: number;
+  declaredCrs?: string;
+  caveats: string[];
+  totalRecords?: number;
+  skippedRecordCount?: number;
+  workerTransferStatus?: ImportLayerSourceMetadata["workerTransferStatus"];
+}): LayerScientificQAMetadata {
+  const issueIds: string[] = [];
+  if (!input.declaredCrs) issueIds.push(`import-crs-unknown-${input.layerId}`);
+  issueIds.push(`import-license-unknown-${input.layerId}`);
+  if ((input.skippedRecordCount ?? 0) > 0) issueIds.push(`import-skipped-records-${input.layerId}`);
+  if (input.workerTransferStatus === "prepared") issueIds.push(`import-worker-pending-${input.layerId}`);
+
+  return {
+    status: issueIds.length > 0 ? "warning" : "passed",
+    issueIds,
+    badges: [
+      ...(!input.declaredCrs ? ["missing_crs" as const] : []),
+      ...(issueIds.length > 0 ? ["uncertain_output" as const] : []),
+    ],
+    checkedAt: input.importedAt,
+    featureIssueCount: input.skippedRecordCount ?? 0,
+    usedWorker: input.workerTransferStatus === "prepared" || input.workerTransferStatus === "ready",
+    caveats: input.caveats,
+    categorySummaries: [
+      {
+        category: "crs",
+        severity: input.declaredCrs ? "pass" : "unknown",
+        issueIds: input.declaredCrs ? [] : [`import-crs-unknown-${input.layerId}`],
+        affectedLayerIds: [input.layerId],
+        reasons: input.declaredCrs
+          ? [`CRS declared as ${input.declaredCrs}.`]
+          : ["Imported file did not provide CRS metadata."],
+        recommendedFixes: input.declaredCrs ? [] : ["Assign or verify source CRS before analytical measurement."],
+      },
+      {
+        category: "schema",
+        severity: input.fieldCount > 0 ? "pass" : "unknown",
+        issueIds: [],
+        affectedLayerIds: [input.layerId],
+        reasons: input.fieldCount > 0
+          ? [`${input.fieldCount.toLocaleString()} attribute field(s) detected.`]
+          : ["No attribute fields were detected during import."],
+        recommendedFixes: input.fieldCount > 0 ? [] : ["Inspect source schema before query or indicator use."],
+      },
+      {
+        category: "attribution-license",
+        severity: "unknown",
+        issueIds: [`import-license-unknown-${input.layerId}`],
+        affectedLayerIds: [input.layerId],
+        reasons: ["Browser import does not expose license or attribution metadata."],
+        recommendedFixes: ["Add license and attribution before publication or report handoff."],
+      },
+      {
+        category: "missingness",
+        severity: (input.skippedRecordCount ?? 0) > 0 ? "warning" : "pass",
+        issueIds: (input.skippedRecordCount ?? 0) > 0 ? [`import-skipped-records-${input.layerId}`] : [],
+        affectedLayerIds: [input.layerId],
+        reasons: (input.skippedRecordCount ?? 0) > 0 && input.totalRecords != null
+          ? [`${input.skippedRecordCount?.toLocaleString()} of ${input.totalRecords.toLocaleString()} record(s) were skipped.`]
+          : ["No skipped rows were reported by the importer."],
+        recommendedFixes: (input.skippedRecordCount ?? 0) > 0 ? ["Inspect skipped rows and coordinate mappings before analysis."] : [],
+      },
+    ],
+    signature: `import:${input.sourceType}:${input.layerId}:${input.featureCount}:${input.declaredCrs ?? "unknown"}:${input.skippedRecordCount ?? 0}:${input.workerTransferStatus ?? "not-required"}`,
+  };
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -653,26 +795,75 @@ function buildImportedLayer(
   summaryOverrides?: Partial<ImportedLayerSummary>,
   metadataOverrides?: Partial<LayerMetadata>,
 ): ImportedGeoJSONLayer {
+  const layerId = createLayerId();
+  const importedAt = nowIsoTimestamp();
+  const declaredCrs = metadataOverrides?.crsSummary?.crs ?? metadataOverrides?.columnar?.crs;
+  const totalRecords = summaryOverrides?.totalRecords;
+  const skippedRecordCount = summaryOverrides?.skippedRecordCount;
+  const importedFeatureCount = summaryOverrides?.importedFeatureCount ?? featureCollection.features.length;
+  const workerTransferStatus: ImportLayerSourceMetadata["workerTransferStatus"] =
+    sourceType === "arrow" || sourceType === "geoparquet" ? "prepared" : "not-required";
+  const caveats = buildImportCaveats({
+    sourceType,
+    ...(declaredCrs ? { declaredCrs } : {}),
+    ...(totalRecords != null ? { totalRecords } : {}),
+    ...(skippedRecordCount != null ? { skippedRecordCount } : {}),
+    workerTransferStatus,
+  });
   const metadata = {
     ...buildFeatureCollectionMetadata(featureCollection),
     importFormat: sourceType,
+    updatedAt: importedAt,
+    dataVersion: importedAt,
+    importSource: {
+      format: sourceType,
+      fileName,
+      sourceName: fileName,
+      importedAt,
+      importedFeatureCount,
+      ...(totalRecords != null ? { totalRecords } : {}),
+      ...(skippedRecordCount != null ? { skippedRecordCount } : {}),
+      ...(declaredCrs ? { declaredCrs } : {}),
+      sourceConfidence: declaredCrs ? "declared" : "derived-from-file",
+      workerTransferStatus,
+      ...(metadataOverrides?.columnar?.workerTableName ? { workerTableName: metadataOverrides.columnar.workerTableName } : {}),
+      caveats,
+    },
+    crsSummary: buildImportCrsSummary(sourceType, declaredCrs),
+    licenseAttribution: buildImportLicenseAttribution(fileName),
+    scientificQA: buildImportScientificQA({
+      layerId,
+      sourceType,
+      importedAt,
+      featureCount: featureCollection.features.length,
+      fieldCount: Object.keys(featureCollection.features[0]?.properties ?? {}).length,
+      ...(declaredCrs ? { declaredCrs } : {}),
+      caveats,
+      ...(totalRecords != null ? { totalRecords } : {}),
+      ...(skippedRecordCount != null ? { skippedRecordCount } : {}),
+      workerTransferStatus,
+    }),
+    evidenceArtifactId: createEvidenceArtifactId(layerId),
     ...metadataOverrides,
   };
 
   const layer = withNormalizedLayerRegistryMetadata({
-    id: createLayerId(),
+    id: layerId,
     name: stripExtension(fileName),
     type: "geojson",
     visible: true,
     opacity: 1,
     sourceData: featureCollection,
     sourceKind: "imported",
-    qaStatus: "unchecked",
+    qaStatus: metadata.scientificQA.status,
     queryable: true,
     provenance: {
       label: `${sourceType.toUpperCase()} import`,
       sourceName: fileName,
       method: "Browser spatial file import",
+      collectedAt: importedAt,
+      generatedAt: importedAt,
+      notes: caveats,
     },
     metadata,
     group: "data",

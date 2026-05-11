@@ -35,15 +35,46 @@ export interface ViewportState {
 }
 
 /** Metadata about an overlay layer (lightweight — safe to persist) */
+export type AnalysisOutputMode = "live" | "demo" | "synthetic" | "unknown";
+
+export type AnalysisResultQAStatus = "unchecked" | "passed" | "warning" | "error" | "blocked";
+
+export interface AnalysisResultQASummary {
+  status: AnalysisResultQAStatus;
+  issueIds: string[];
+  blockerCount: number;
+  warningCount: number;
+  infoCount: number;
+  caveats: string[];
+  uncertaintyNotes: string[];
+  checkedAt?: string;
+}
+
+export interface AnalysisResultHandoffHints {
+  reportCompatible: boolean;
+  dashboardCompatible: boolean;
+  ideCompatible: boolean;
+  reportInsertionHint: string;
+  dashboardBindingHint: string;
+  ideArtifactHint: string;
+}
+
 export interface AnalysisResultMetadata {
   engine: AnalysisEngineId;
   runId?: string;
+  sourceRunId?: string;
+  algorithmWorkflowId?: string;
   runTimestamp: string;
   parameterSummary: string;
   inputParameters: Record<string, unknown>;
   statisticalSummary: Record<string, StatisticalSummaryValue>;
   sourceLayerIds?: string[];
   sourceDataVersion?: string;
+  outputMode?: AnalysisOutputMode;
+  qaSummary?: AnalysisResultQASummary;
+  caveats?: string[];
+  evidenceArtifactId?: string;
+  handoffHints?: AnalysisResultHandoffHints;
   reproducibilityManifest?: MapReproducibilityManifest;
   rerunToken?: string;
   stale?: boolean;
@@ -90,6 +121,36 @@ export interface ExternalServiceLayerMetadata {
   bounds?: [number, number, number, number];
   crs?: string;
   refreshedAt?: string;
+  dependencyStatus?: "live" | "cached" | "stale" | "offline" | "unknown";
+  lastRequestAt?: string;
+  cacheTtlMs?: number;
+  cacheHit?: boolean;
+  staleAt?: string;
+  offlineReason?: string;
+  credentialMode?: "not-required" | "browser-managed" | "unknown";
+  corsMode?: "browser-fetch" | "tile-client" | "unknown";
+  license?: string;
+  attribution?: string;
+  caveats?: string[];
+}
+
+export interface ImportLayerSourceMetadata {
+  format: "geojson" | "csv" | "arrow" | "geoparquet" | "kml" | "kmz" | "gpx";
+  fileName: string;
+  sourceName: string;
+  importedAt: string;
+  importedFeatureCount: number;
+  totalRecords?: number;
+  skippedRecordCount?: number;
+  fileSizeBytes?: number;
+  sourceUri?: string;
+  declaredCrs?: string;
+  license?: string;
+  attribution?: string;
+  sourceConfidence: "declared" | "derived-from-file" | "unknown";
+  workerTransferStatus?: "not-required" | "prepared" | "ready" | "failed";
+  workerTableName?: string;
+  caveats: string[];
 }
 
 export interface LayerCartographyReviewMetadata {
@@ -121,6 +182,7 @@ export interface LayerPersistenceMetadata {
 
 export type LayerMetadataSource =
   | "explicit"
+  | "import-source"
   | "dataset-context"
   | "columnar"
   | "eo-source"
@@ -229,6 +291,7 @@ export interface LayerMetadata {
   importFormat?: "geojson" | "csv" | "arrow" | "geoparquet" | "kml" | "kmz" | "gpx";
   updatedAt?: string;
   dataVersion?: string;
+  importSource?: ImportLayerSourceMetadata;
   analysisResult?: AnalysisResultMetadata;
   datasetContext?: DatasetLayerContextMetadata;
   columnar?: ColumnarLayerMetadata;

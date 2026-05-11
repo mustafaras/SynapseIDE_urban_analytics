@@ -21,14 +21,14 @@ Read these before implementing any Map Explorer prompt:
 
 ## Current Status
 
-- Overall status: Map Workflow Manifest and Preview landed. 12 of 30 prompts completed.
-- Current prompt: Prompt 11 - Map Workflow Manifest and Preview completed 2026-05-11.
-- Next recommended prompt: Prompt 12 - Analysis Recommendation and Dispatch.
+- Overall status: Import and External Service Evidence landed. 15 of 30 prompts completed.
+- Current prompt: Prompt 14 - Import and External Service Evidence completed 2026-05-11.
+- Next recommended prompt: Prompt 15 - CRS, Measurement, and Geometry Validation.
 - Operating pack status: Installed.
 - Next-prompt helper: `scripts/get-next-map-explorer-prompt.ps1`
 - Machine-readable manifest: `DEVELOPMENT_PLANS/MAP_EXPLORER_PROMPT_MANIFEST.json`
-- Last validated repository state: 2026-05-11; Prompt 11 validation passed: `npx vitest run src/services/map/__tests__/MapWorkflowService.test.ts src/services/map/__tests__/MapEngineAdapter.test.ts` passed (24/24), `npm run typecheck` passed, and focused `npx eslint --quiet` on touched Prompt 11 files passed. Repo-wide `npm run lint:errors` still fails on unrelated `src/features/urbanAnalytics/lib/workflowReadiness.ts:20` unused import. `npm run lint:no-tailwind-centerpanel` is currently blocked by missing `scripts/check-no-tailwind-centerpanel.ps1` referenced from `package.json`.
-- Last known blocker: None for Prompt 11 scope.
+- Last validated repository state: 2026-05-11; Prompt 14 validation passed: `npx vitest run src/services/map/__tests__/MapDataIO.test.ts src/services/map/__tests__/ExternalServiceConnector.test.ts` passed (35/35, 2 skipped live smoke tests), `npm run typecheck` passed, focused `npx eslint --quiet` on touched Prompt 14 files passed, and `git diff --check` passed with LF-to-CRLF warnings only.
+- Last known blocker: None for Prompt 14 scope; repo setup blocker remains for the missing centerpanel no-Tailwind script and repo-wide lint has the unrelated UA unused import noted above.
 
 ## Agent Operating Pack
 
@@ -67,9 +67,9 @@ This table is the human-readable execution state. The helper script reads it whe
 | 09 | Scientific QA Model and Panel | completed | 08 | Completed 2026-05-11. First-class QA domain summaries, panel domain rows, layer metadata propagation, QA-finding evidence artifacts, and focused tests landed. |
 | 10 | Publication Readiness Gates | completed | 09 | Completed 2026-05-11. Formal export/report gates now consume scientific QA/export-readiness, carry reproducibility manifests, and register publication/report evidence artifacts. |
 | 11 | Map Workflow Manifest and Preview | completed | 10 | Completed 2026-05-11. Workflow previews/apply results now carry lightweight reproducibility manifests, applied workflow outputs register evidence artifacts, and engine adapter map outputs can preserve manifest metadata. |
-| 12 | Analysis Recommendation and Dispatch | pending | 11 | Requires workflow manifest. |
-| 13 | Engine Adapter Evidence Outputs | pending | 12 | Requires recommendation/dispatch. |
-| 14 | Import and External Service Evidence | pending | 13 | Requires engine evidence output model. |
+| 12 | Analysis Recommendation and Dispatch | completed | 11 | Completed 2026-05-11. Recommendations now carry explainable reasons/readiness, and dispatches carry lightweight context/layer references with explicit review/audit events while preserving existing dispatch keys. |
+| 13 | Engine Adapter Evidence Outputs | completed | 12 | Completed 2026-05-11. Engine adapter outputs now carry evidence artifacts, lineage, QA summaries, caveats, output mode labels, handoff hints, completed-run metadata round-trip preservation, and map evidence registry upserts at publication boundaries. |
+| 14 | Import and External Service Evidence | completed | 13 | Completed 2026-05-11. Local imports and external service layers now carry QA-aware source metadata, dependency/cache/stale fields, attribution/CRS summaries, evidence IDs, registry normalization, evidence registry upserts, and review timeline events. |
 | 15 | CRS, Measurement, and Geometry Validation | pending | 14 | Requires import evidence. |
 | 16 | Map to Urban Context Adapter | pending | 15 | Requires CRS/QA foundation. |
 | 17 | Urban to Map Method Request Adapter | pending | 16 | Requires map-to-urban adapter. |
@@ -967,6 +967,259 @@ attachSpatialStatsRerun(layer, run) preserves provenance.
 - Next recommended prompt: Prompt 12 - Analysis Recommendation and Dispatch.
 - Ledger updated: yes
 
+### Prompt 12 - Analysis Recommendation and Dispatch
+
+- Date: 2026-05-11
+- Agent: GitHub Copilot
+- Status: completed
+- Started from:
+  - Ledger: `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md`
+  - Sequential prompt: `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md`
+  - Development plan: `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md` sections 8.3, 18.1, 18.2, and 20.1
+- Files inspected:
+  - `src/services/map/MapAnalysisRecommender.ts` — current recommendation ranking, layer profiling, QA gating, action types, and state signature.
+  - `src/services/map/MapAnalysisDispatcher.ts` — existing AOI/isochrone/hotspot dispatch payloads, `MAP_ANALYSIS_DISPATCH_KEY`, view restriction key, and workflow navigation pattern.
+  - `src/centerpanel/components/MapExplorerModal.tsx` — recommendation generation, Urban context availability, action handler, review-event recording, AOI dispatch hook wiring, and workflow navigation feedback.
+  - `src/centerpanel/components/map/useMapAoiDispatch.ts` — command-hook dispatch payload creation, AOI/isochrone feedback, and review-event details.
+  - `src/centerpanel/components/map/MapWorkspaceCockpit.tsx` and `.module.css` — recommendation strip UI surface and compact premium styling constraints.
+  - `src/centerpanel/components/map/MapWorkflowDrawer.tsx` — workflow consumer context, inspected for Prompt 12 compatibility; no changes required.
+  - `src/stores/useFlowStore.ts` — stepData sidecar queue pattern and workflow dispatch storage behavior.
+  - `src/features/urbanAnalytics/useUrbanContextStore.ts` — active Urban context summary fields available to Map Explorer.
+  - Focused recommender and dispatcher tests.
+- Files changed:
+  - `src/services/map/MapAnalysisRecommender.ts` — added recommendation reasons, readiness state/counts, temporal/field/manifest profiling, AOI/QA/Urban context reason builders, and context-aware ranking/signature fields.
+  - `src/services/map/MapAnalysisDispatcher.ts` — added lightweight dispatch context summaries, layer references, audit summaries, `MAP_ANALYSIS_RECOMMENDATION_KEY`, and explicit recommendation dispatch while preserving `MAP_ANALYSIS_DISPATCH_KEY` for existing payloads.
+  - `src/centerpanel/components/map/useMapAoiDispatch.ts` — enriched AOI/isochrone dispatches with map context summaries, visible layer references, and review details.
+  - `src/centerpanel/components/MapExplorerModal.tsx` — passes map + Urban context into recommendations, routes open-flow recommendation actions through the enriched dispatcher, and records explicit analysis-dispatch review events.
+  - `src/centerpanel/components/map/MapWorkspaceCockpit.tsx` — surfaces readiness labels and top recommendation reasons in the cockpit recommendation strip.
+  - `src/centerpanel/components/map/MapWorkspaceCockpit.module.css` — added restrained readiness/reason styling without Tailwind or additional card chrome.
+  - `src/services/map/__tests__/MapAnalysisRecommender.test.ts` — added coverage for reason kinds, AOI/QA readiness, blockers, and Urban context scoring/metadata.
+  - `src/services/map/__tests__/MapAnalysisDispatcher.test.ts` — added coverage for enriched AOI dispatch and recommendation dispatch sidecar payloads while preserving the legacy dispatch key.
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` — updated durable prompt state, registries, validation history, risks, and next pointer.
+- Summary:
+  - Map analysis recommendations now explain why they were suggested through layer type, geometry, fields, temporal signals, AOI, QA, manifest/provenance, selection, and active Urban context reasons.
+  - Every recommendation now carries readiness with `ready`, `needs-review`, or `blocked` status plus blockers, warnings, required actions, QA blocker counts, and map/Urban context IDs where available.
+  - Recommendation dispatch is explicit: open-flow actions queue a lightweight sidecar payload under `MAP_ANALYSIS_RECOMMENDATION_KEY`, navigate to the requested workflow, and record an `analysis-dispatch` review event.
+  - Existing AOI/isochrone/hotspot dispatches still use `MAP_ANALYSIS_DISPATCH_KEY`, now with optional context summaries, layer references, and audit metadata.
+- Spatial evidence/provenance changes:
+  - Dispatch payloads and recommendation reasons store layer IDs, layer summaries, manifest IDs, QA/readiness metadata, and scalar context only.
+  - No raw GeoJSON, sourceData, large geometry buffers, screenshots, or rendered artifacts were added to recommendation or dispatch payloads.
+- CRS, geometry, or measurement changes:
+  - No CRS transformation, geometry algorithm, distance, or area calculation was changed.
+  - Geometry and CRS information is surfaced as metadata/readiness context only, preserving unknown states for downstream review.
+- Scientific QA changes:
+  - Recommendations now convert QA blockers/warnings/unchecked status into visible reason chips and readiness blockers/warnings.
+  - Dispatch audit details preserve readiness status, QA blocker/warning details, and reason kinds for later review.
+- Layer registry or persistence changes:
+  - No persisted project snapshot schema change and no map layer persistence change.
+  - Added lightweight `MapAnalysisLayerReference` summaries derived from existing layer registry summaries for dispatch handoffs.
+- Workflow/export/report changes:
+  - Workflow dispatch remains user-triggered and does not run workflows silently.
+  - Recommendation dispatch now queues a sidecar workflow context payload and records an explicit review event before/while navigating to Workflows.
+  - Export/report contracts were not changed.
+- Contract changes:
+  - Added additive `MapAnalysisRecommendationReason`, `MapAnalysisRecommendationReadiness`, and `MapAnalysisUrbanContextSummary` contracts to the recommender.
+  - Added `MapAnalysisDispatchContextSummary`, `MapAnalysisLayerReference`, `MapAnalysisDispatchAuditSummary`, `MapAnalysisRecommendationDispatchPayload`, and `MAP_ANALYSIS_RECOMMENDATION_KEY` to the dispatcher.
+  - Existing `MAP_ANALYSIS_DISPATCH_KEY` payload variants remain compatible.
+- UX changes:
+  - Cockpit recommendation rows now show readiness and the top reasons compactly, matching the dense premium map workspace style.
+  - Recommendation action labels now include readiness for screen-reader context.
+- Validation:
+  - `npx vitest run src/services/map/__tests__/MapAnalysisRecommender.test.ts src/services/map/__tests__/MapAnalysisDispatcher.test.ts` passed (10/10).
+  - `npm run typecheck` passed.
+  - Focused `npx eslint --quiet` on touched Prompt 12 TS/TSX service/UI/test files passed.
+  - `git diff --check` passed; only the existing line-ending warning for the ledger was reported.
+  - `npm run lint:no-tailwind-centerpanel` remains blocked by repo setup: `package.json` references missing `scripts/check-no-tailwind-centerpanel.ps1`.
+- Risks:
+  - No Prompt 12 blocker remains.
+  - `useUrbanContextSummary` does not currently expose a canonical Urban context ID, so Map Explorer uses `studyAreaId` as the optional Urban context ID when available; Prompt 16 should refine the full Map -> Urban adapter.
+  - The no-Tailwind centerpanel guard script is still missing from `scripts/`; focused lint passed, and the changed CSS/TSX did not introduce Tailwind classes.
+- Next recommended prompt: Prompt 13 - Engine Adapter Evidence Outputs.
+- Ledger updated: yes
+
+#### Prompt 12 UI Readability Polish - Map Command Center Modal
+
+- Date: 2026-05-11
+- Agent: GitHub Copilot
+- Status: completed
+- Files inspected:
+  - `src/centerpanel/components/map/MapWorkspaceCockpit.tsx` — cockpit structure, context signals, workflow sequence, quick actions, and recommendation strip.
+  - `src/centerpanel/components/map/MapWorkspaceCockpit.module.css` — navigator cockpit layout, responsive behavior, typography, and recommendation styling.
+  - `src/centerpanel/components/MapExplorerModal.tsx` — navigator-stage sizing and cockpit placement.
+- Files changed:
+  - `src/centerpanel/components/map/MapWorkspaceCockpit.module.css` — enlarged the cockpit modal surface, header, context strip, state/sequence/recommendation rows, and quick actions; changed the body to a clearer two-column default with wide-screen three-column mode and readable mobile fallback.
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` — recorded this UI polish and validation.
+- Summary:
+  - The Map Command Center now fills the navigator stage like a larger modal instead of a compressed strip.
+  - Context signals, readiness, workflow controls, analysis recommendations, and quick actions use larger type, spacing, and touch targets while preserving the restrained charcoal/amber Map Explorer language.
+- UX changes:
+  - Header/action area enlarged; readiness bar and recommended action are more legible.
+  - Context signal strip now remains a single seven-column rail; details are clamped inside each cell and only genuinely narrow panes use horizontal rail overflow instead of wrapping to a second row.
+  - Body uses clearer responsive layout: state + workflow/integration columns on normal widths, three columns on wide/tall desktops, single-column scroll on narrow widths.
+  - Recommendation cards are more readable with larger rationale, readiness, metadata, and action controls.
+- Validation:
+  - `npx vitest run src/centerpanel/components/map/__tests__/map-components.test.ts` passed (59/59).
+  - `npm run typecheck` passed.
+  - `npx eslint --quiet src/centerpanel/components/map/MapWorkspaceCockpit.tsx` passed.
+  - Re-ran the same focused component tests, typecheck, and cockpit lint after the single-row context rail correction; all passed.
+  - Dev server launched at `http://127.0.0.1:3000/`; Map Explorer opened through Command Palette and the navigator cockpit was visually inspected with Playwright screenshots.
+- Risks:
+  - On narrow embedded/browser panes the modal correctly falls back to a vertical scroll layout; wide desktop view opens the fuller multi-column layout.
+  - No Prompt 12 blocker introduced.
+
+### Prompt 13 - Engine Adapter Evidence Outputs
+
+- Date: 2026-05-11
+- Agent: GitHub Copilot
+- Status: completed
+- Started from:
+  - Ledger: `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md`
+  - Sequential prompt: `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` Prompt 13
+  - Development plan: `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md` evidence/output bridge sections
+- Files inspected:
+  - `src/services/map/MapEngineAdapter.ts` — adapter result shape, completed-run map output bridge, rerun bridge, and all analysis output adapters.
+  - `src/services/map/SpatialStatsExecutionService.ts` and `SpatialStatsExecutionQueue.ts` — spatial-stats execution metadata handoff into the adapter.
+  - `src/centerpanel/components/map/mapTypes.ts` — analysis result metadata and map output/evidence contracts.
+  - `src/centerpanel/components/map/mapEvidenceArtifacts.ts` — reference-only workflow result evidence artifact builder.
+  - `src/stores/useMapExplorerStore.ts` — evidence registry actions and QA propagation behavior.
+  - Publication boundaries in `MapExplorerModal.tsx`, `GeoAILab.tsx`, `ObjectDetectorPanel.tsx`, and adapter-backed analytical flows.
+  - Focused adapter, spatial-stats, and object-detection publication tests.
+- Files changed:
+  - `src/centerpanel/components/map/mapTypes.ts` — added output mode, QA summary, caveat, evidence ID, source run/workflow, and handoff hint metadata contracts.
+  - `src/services/map/MapEngineAdapter.ts` — now builds lightweight `MapEvidenceArtifact` outputs for every analysis adapter result; enriches layer metadata/registry metadata with source run/layer/workflow IDs, input parameters, QA summary, caveats, output mode, handoff hints, and evidence artifact ID; preserves the metadata through completed-run map outputs and bridge round-trips.
+  - `src/services/map/__tests__/MapEngineAdapter.test.ts` — added coverage for lineage metadata, evidence artifact shape, demo/synthetic warnings, QA/caveats, and completed-run map output preservation.
+  - `src/centerpanel/components/MapExplorerModal.tsx` — registers adapter evidence artifacts for analysis reruns, quick hot spot results, and map NL query outputs.
+  - `src/centerpanel/Tools/components/GeoAILab.tsx` — registers land-cover and query adapter evidence artifacts when published to Map Explorer.
+  - `src/centerpanel/components/ObjectDetectorPanel.tsx` — registers object-detection adapter evidence artifacts when published.
+  - `src/centerpanel/Flows/CellularAutomataFlow.tsx`, `CompositeIndicatorFlow.tsx`, `FacilityOptimisationFlow.tsx`, and `UrbanMorphologyFlow.tsx` — register adapter evidence artifacts for simulation/indicator/morphology publication paths.
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` — updated durable prompt state, registries, validation history, risks, and next pointer.
+- Summary:
+  - Adapter outputs now carry a first-class `evidenceArtifact` alongside the map layer and visualization spec.
+  - Analysis layer metadata now includes source run ID, source layer IDs, algorithm/workflow ID, parameters, QA summary, caveats, output mode, evidence artifact ID, and report/dashboard/IDE handoff hints.
+  - Completed-run map outputs now persist the lightweight metadata required to rebuild evidence-aware layers on round-trip import.
+  - Map publication paths now upsert returned adapter evidence artifacts into the Map Explorer evidence registry when analysis layers are published.
+- Spatial evidence/provenance changes:
+  - Evidence artifacts store layer IDs, source layer IDs, source run/workflow IDs, CRS/geometry summaries, QA state, caveats, and scalar metadata only.
+  - No raw GeoJSON, sourceData, rendered images, screenshots, or large geometry buffers were copied into evidence payloads.
+- CRS, geometry, or measurement changes:
+  - No CRS transformation, area, distance, spatial-statistics, GeoAI, or simulation algorithm changed.
+  - Adapter fallback CRS remains explicitly caveated as display/source-reference metadata, not analytical readiness.
+- Scientific QA changes:
+  - Adapter outputs now surface QA status as metadata, layer `qaStatus`, registry evidence ID, and evidence artifact QA state.
+  - Demo/synthetic/unknown output modes add explicit caveats so exploratory outputs cannot be mistaken for real analytical evidence.
+- Layer registry or persistence changes:
+  - Analysis layers now normalize with `metadata.evidenceArtifactId` and registry evidence artifact IDs.
+  - Map evidence registry receives adapter evidence artifacts at Map Explorer publication boundaries.
+  - Project snapshot persistence schema was not changed.
+- Workflow/export/report changes:
+  - Completed-run map outputs preserve evidence metadata, QA summaries, caveats, output mode, handoff hints, and reproducibility manifests where present.
+  - Existing completed-run integration and rerun handlers remain compatible.
+- Contract changes:
+  - `AnalysisAdapterResult` now includes `evidenceArtifact: MapEvidenceArtifact`.
+  - `AnalysisResultMetadata` gained additive fields for lineage, QA/caveats, output mode, evidence ID, and handoff hints.
+  - `createAnalysisMapOutput` and `adaptAnalysisMapOutput` now preserve/rebuild evidence-aware metadata.
+- UX changes:
+  - No visible layout change in Prompt 13; changes improve downstream evidence, QA, report/dashboard/IDE readiness surfaces.
+- Validation:
+  - `npx vitest run src/services/map/__tests__/MapEngineAdapter.test.ts src/services/map/__tests__/SpatialStatsExecutionService.test.ts src/centerpanel/components/__tests__/objectDetectionPublish.test.ts` passed (26/26).
+  - `npm run typecheck` passed.
+  - Focused `npx eslint src/services/map/MapEngineAdapter.ts src/centerpanel/components/map/mapTypes.ts src/services/map/__tests__/MapEngineAdapter.test.ts src/centerpanel/Tools/components/GeoAILab.tsx src/centerpanel/components/ObjectDetectorPanel.tsx src/centerpanel/components/MapExplorerModal.tsx src/centerpanel/Flows/CellularAutomataFlow.tsx src/centerpanel/Flows/CompositeIndicatorFlow.tsx src/centerpanel/Flows/FacilityOptimisationFlow.tsx src/centerpanel/Flows/UrbanMorphologyFlow.tsx --quiet` passed.
+  - `git diff --check` passed; only LF-to-CRLF warnings were reported for touched Windows working-copy files.
+  - `npm run lint:errors` still fails on unrelated `src/features/urbanAnalytics/lib/workflowReadiness.ts:20` unused import `UrbanMethodValidityEnvelope`.
+- Risks:
+  - No Prompt 13 blocker remains.
+  - Some Urban Analytics VoxCity publication paths use the same adapter but were not changed in this Map Explorer prompt to avoid widening into UA module scope; their completed-run outputs still preserve evidence metadata via `createAnalysisMapOutput`.
+  - Adapter fallback CRS metadata is intentionally conservative and should be refined by Prompt 15 CRS/measurement validation.
+- Next recommended prompt: Prompt 14 - Import and External Service Evidence.
+- Ledger updated: yes
+
+### Prompt 14 - Import and External Service Evidence
+
+- Date: 2026-05-11
+- Agent: GitHub Copilot
+- Status: completed
+- Started from:
+  - Launcher: `DEVELOPMENT_PLANS/START_HERE_MAP_EXPLORER_AGENT.md`
+  - Manifest: `DEVELOPMENT_PLANS/MAP_EXPLORER_PROMPT_MANIFEST.json`
+  - Ledger: `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md`
+  - Sequential prompt: `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` Prompt 14
+  - Development plan: sections 12 M9, 14.4, 14.8, 15.2, and 23
+- Files inspected:
+  - `src/services/map/MapDataImporter.ts` — local GeoJSON/CSV/KML/KMZ/GPX/Arrow/GeoParquet import layer construction, metadata summaries, and columnar worker session handoff.
+  - `src/services/map/MapDataExporter.ts` — visible-layer export path compatibility; no edit required.
+  - `src/services/map/ExternalServiceConnector.ts` — WMS/WMTS/WFS/XYZ/Overpass/CityJSON layer creation, fetch errors, cache, and refresh behavior.
+  - `src/services/map/ExternalServiceQueue.ts` — Overpass background queue/cache behavior; no edit required.
+  - `src/centerpanel/components/MapExplorerModal.tsx` — local import publication boundary, external service `onAddLayer` boundary, evidence registry action, and review event recording.
+  - `src/centerpanel/components/MapServiceDialog.tsx` and `src/centerpanel/components/map/MapToolbar.tsx` — service/import UI call sites; no direct UI edit required.
+  - `src/centerpanel/components/map/mapTypes.ts`, `mapLayerMetadata.ts`, and `mapEvidenceArtifacts.ts` — layer metadata/evidence contracts and registry normalization.
+  - Focused import/export and external service tests.
+- Files changed:
+  - `src/centerpanel/components/map/mapTypes.ts` — added `ImportLayerSourceMetadata`, import-source metadata attachment, external service dependency/cache/stale/offline/caveat fields, and `import-source` metadata source.
+  - `src/centerpanel/components/map/mapLayerMetadata.ts` — registry normalization now consumes import source metadata, external service license/dependency caveats, and offline/stale readiness state.
+  - `src/services/map/MapDataImporter.ts` — local imports now create source identity, import timestamp, CRS unknown/declared summaries, license/attribution unknown state, scientific QA caveats, skipped-row diagnostics, worker readiness state, and stable evidence artifact IDs.
+  - `src/services/map/ExternalServiceConnector.ts` — WMS/WMTS/WFS/XYZ/Overpass/CityJSON layers now normalize with external dependency metadata, CORS/credential caveats, attribution/license, CRS summaries, scientific QA, evidence IDs, cache/live states, and conservative CityJSON unknown CRS handling.
+  - `src/centerpanel/components/MapExplorerModal.tsx` — local imports and external service layer additions register `createMapLayerEvidenceArtifact` outputs and emit `layer-change` review timeline events; columnar worker transfer updates import metadata before evidence registration.
+  - `src/services/map/__tests__/MapDataIO.test.ts` — added coverage for CSV skipped rows, import evidence IDs, CRS unknown, QA caveats, registry readiness, and local GeoJSON provenance.
+  - `src/services/map/__tests__/ExternalServiceConnector.test.ts` — added coverage for WMS/WMTS/WFS/XYZ/Overpass/CityJSON dependency metadata, attribution, cache state, evidence IDs, and unknown CityJSON CRS.
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` — updated durable prompt state, registries, validation history, risks, and next pointer.
+- Behavior implemented:
+  - Local imports now become traceable evidence candidates with source kind, source file/name, import timestamp, schema/geometry summaries, CRS state, license/attribution state, QA caveats, skipped-row diagnostics, worker readiness, and evidence artifact ID.
+  - External service layers now carry provider/service metadata, endpoint/template, dependency status, cache/stale timestamps, CORS/credential caveats, attribution/license, CRS summaries, QA caveats, and evidence artifact ID.
+  - Map Explorer publication boundaries upsert imported/external layer evidence artifacts and create review timeline events without copying raw layer data.
+- UX changes:
+  - No visible layout redesign in Prompt 14. The user-visible effect is richer layer readiness/evidence state in existing layer registry, QA, review, export/report readiness, and evidence surfaces.
+- Spatial evidence/provenance changes:
+  - Imported and external service layers now register lightweight layer evidence artifacts at publication time.
+  - Evidence metadata stores layer IDs, source/service summaries, scalar QA/dependency state, CRS/geometry summaries, and caveats only.
+  - No raw GeoJSON, sourceData, screenshots, canvases, rendered rasters, or large geometry buffers were copied into evidence artifacts or dispatch payloads.
+- CRS, geometry, or measurement changes:
+  - No spatial calculation, CRS transformation, distance, or area algorithm changed.
+  - Local GeoJSON/CSV/KML/KMZ/GPX imports remain CRS unknown unless explicit metadata is present.
+  - GeoParquet/columnar CRS declarations are stored as declared metadata only and still require QA review before analytical measurement.
+  - WFS preserves explicit `srsName=EPSG:4326`; XYZ uses Web Mercator display tile metadata; remote CityJSON does not fabricate CRS when `referenceSystem` is missing.
+- Scientific QA changes:
+  - Import and external service layer metadata now include `LayerScientificQAMetadata` category summaries for CRS, schema, missingness, source provenance, attribution/license, and service dependency state.
+  - Missing CRS/license/attribution and external cache/stale/offline states degrade readiness truthfully instead of silently passing.
+- Layer registry or persistence changes:
+  - Layer registry metadata now normalizes import-source and external-service metadata into provenance, CRS, license, QA, evidence ID, and publication readiness summaries.
+  - No project snapshot persistence schema change; existing layer metadata is additive.
+- Workflow/export/report changes:
+  - Existing export/report gates can now consume richer readiness and evidence metadata for imported and service layers.
+  - No workflow dispatch or export algorithm behavior changed.
+- Cross-module contract changes:
+  - Additive `LayerMetadata.importSource: ImportLayerSourceMetadata` contract for local import provenance and QA summaries.
+  - Additive `ExternalServiceLayerMetadata` dependency/cache/stale/offline/caveat fields for service layer evidence and readiness consumers.
+  - Existing `MapEvidenceArtifact` layer contract reused through `createMapLayerEvidenceArtifact`; no new cross-module owner dependency added.
+- Performance/data movement changes:
+  - Evidence registration remains reference-only and scalar-only.
+  - Columnar worker transfer status is recorded in metadata after publish, but Arrow/GeoParquet buffers remain in the worker/import pipeline and are not copied into evidence.
+- Accessibility changes:
+  - No direct UI/a11y interaction changes.
+- Validation commands:
+  - `npx vitest run src/services/map/__tests__/MapDataIO.test.ts src/services/map/__tests__/ExternalServiceConnector.test.ts`
+  - `npm run typecheck`
+  - `npx eslint --quiet src/services/map/MapDataImporter.ts src/services/map/ExternalServiceConnector.ts src/centerpanel/components/map/mapTypes.ts src/centerpanel/components/map/mapLayerMetadata.ts src/centerpanel/components/MapExplorerModal.tsx src/services/map/__tests__/MapDataIO.test.ts src/services/map/__tests__/ExternalServiceConnector.test.ts`
+  - `git diff --check`
+  - VS Code Problems check for touched Prompt 14 files
+- Validation results:
+  - Focused vitest passed (35/35, 2 live smoke tests skipped by env guard).
+  - `npm run typecheck` passed.
+  - Focused eslint passed with no output.
+  - `git diff --check` passed; only LF-to-CRLF working-copy warnings were reported.
+  - VS Code Problems check reported no errors for touched Prompt 14 files.
+- Known risks:
+  - No Prompt 14 blocker remains.
+  - Actual external service offline detection is still request-time behavior; unavailable services generally fail before a layer is created. Prompt 14 added offline/stale metadata semantics for layer readiness when such states are present.
+  - CRS measurement semantics are still deferred to Prompt 15; Prompt 14 only preserves declared/unknown CRS states and caveats.
+  - Repo-wide `npm run lint:errors` is still known to fail on unrelated `src/features/urbanAnalytics/lib/workflowReadiness.ts:20` unused import, and `npm run lint:no-tailwind-centerpanel` remains blocked by the missing script.
+- Blockers: None for Prompt 14.
+- Decisions made:
+  - Local import CRS remains unknown unless explicitly declared by import metadata; display/source coordinates are not promoted to analytical readiness.
+  - External service evidence stores dependency/service references and scalar state only; raw service payloads stay in layer/source data or service fetch paths.
+  - Remote CityJSON without `referenceSystem` keeps CRS unknown instead of using a placeholder string.
+- Next recommended prompt: Prompt 15 - CRS, Measurement, and Geometry Validation.
+- Ledger updated: yes
+
 Use this format for each entry:
 
 ```md
@@ -1028,6 +1281,10 @@ Append inspected files here as implementation progresses.
 
 | Date | Prompt | Files inspected | Notes |
 | --- | --- | --- | --- |
+| 2026-05-11 | Prompt 14 | `DEVELOPMENT_PLANS/START_HERE_MAP_EXPLORER_AGENT.md`; `DEVELOPMENT_PLANS/TRI_MODAL_WORKBENCH_ALIGNMENT_SPEC.md`; `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md` sections 12 M9, 14.4, 14.8, 15.2, 23; `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` Prompt 14; `DEVELOPMENT_PLANS/MAP_EXPLORER_PROMPT_MANIFEST.json`; `DEVELOPMENT_PLANS/MAP_EXPLORER_AGENT_HANDOFF_TEMPLATE.md`; `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md`; `src/services/map/MapDataImporter.ts`; `src/services/map/MapDataExporter.ts`; `src/services/map/ExternalServiceConnector.ts`; `src/services/map/ExternalServiceQueue.ts`; `src/centerpanel/components/MapExplorerModal.tsx`; `src/centerpanel/components/MapServiceDialog.tsx`; `src/centerpanel/components/map/MapToolbar.tsx`; `src/centerpanel/components/map/mapTypes.ts`; `src/centerpanel/components/map/mapLayerMetadata.ts`; `src/centerpanel/components/map/mapEvidenceArtifacts.ts`; focused import/export and external service tests | Prompt 14 narrowed to QA-aware import/external-service source metadata, evidence candidate registration, dependency/caveat fields, and conservative CRS state preservation without changing spatial calculations or adding providers. |
+| 2026-05-11 | Prompt 13 | `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` Prompt 13; `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md`; `src/services/map/MapEngineAdapter.ts`; `src/services/map/SpatialStatsExecutionService.ts`; `src/services/map/SpatialStatsExecutionQueue.ts`; `src/centerpanel/components/map/mapTypes.ts`; `src/centerpanel/components/map/mapEvidenceArtifacts.ts`; `src/stores/useMapExplorerStore.ts`; `src/centerpanel/components/MapExplorerModal.tsx`; `src/centerpanel/Tools/components/GeoAILab.tsx`; `src/centerpanel/components/ObjectDetectorPanel.tsx`; adapter-backed centerpanel flows; focused adapter/spatial-stats/object-detection tests | Prompt 13 narrowed to engine adapter evidence outputs, evidence-aware completed-run map output round-trips, and Map Explorer publication-boundary evidence registry upserts without changing algorithms or copying heavy payloads. |
+| 2026-05-11 | Prompt 12 UI polish | `src/centerpanel/components/map/MapWorkspaceCockpit.tsx`; `src/centerpanel/components/map/MapWorkspaceCockpit.module.css`; `src/centerpanel/components/MapExplorerModal.tsx`; browser snapshot via dev server | User-requested readability pass for the Map Command Center modal after Prompt 12; scope limited to cockpit layout/CSS and visual inspection. |
+| 2026-05-11 | Prompt 12 | `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` Prompt 12; `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md` sections 8.3, 18.1, 18.2, 20.1; `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md`; `src/services/map/MapAnalysisRecommender.ts`; `src/services/map/MapAnalysisDispatcher.ts`; `src/centerpanel/components/MapExplorerModal.tsx`; `src/centerpanel/components/map/useMapAoiDispatch.ts`; `src/centerpanel/components/map/MapWorkspaceCockpit.tsx`; `src/centerpanel/components/map/MapWorkflowDrawer.tsx`; `src/stores/useFlowStore.ts`; `src/features/urbanAnalytics/useUrbanContextStore.ts`; focused recommender/dispatcher tests | Prompt 12 narrowed to explainable recommendation reasons/readiness, lightweight dispatch context/layer references, explicit workflow dispatch audit, and cockpit recommendation surfacing. |
 | 2026-05-11 | Prompt 11 | `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md`; `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md` sections 9.3, Track M5, 14.2, 18.1, 18.3; `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md`; `src/services/map/MapWorkflowService.ts`; `src/centerpanel/components/map/MapWorkflowDrawer.tsx`; `src/centerpanel/components/MapExplorerModal.tsx`; `src/centerpanel/components/map/mapTypes.ts`; `src/centerpanel/components/map/mapEvidenceArtifacts.ts`; `src/services/map/MapAnalysisDispatcher.ts`; `src/services/map/MapEngineAdapter.ts`; `src/stores/useFlowStore.ts`; focused workflow/adapter tests | Prompt 11 narrowed to workflow preview/apply reproducibility manifests, evidence artifact registration on apply, adapter output manifest preservation, and a compact premium manifest preview panel. |
 | 2026-05-11 | Prompt 10 | `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md`; `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md`; `DEVELOPMENT_PLANS/TRI_MODAL_WORKBENCH_ALIGNMENT_SPEC.md`; `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md`; `DEVELOPMENT_PLANS/MAP_EXPLORER_AGENT_HANDOFF_TEMPLATE.md`; `src/services/map/MapExportService.ts`; `src/services/map/MapReportHandoffService.ts`; `src/services/map/MapReviewSessionService.ts`; `src/centerpanel/components/MapExportDialog.tsx`; `src/centerpanel/components/map/MapReportHandoffDrawer.tsx`; `src/centerpanel/components/MapExplorerModal.tsx`; `src/centerpanel/components/map/mapLayerMetadata.ts`; `src/centerpanel/components/map/mapEvidenceArtifacts.ts`; `src/services/map/MapScientificQA.ts`; focused export/report/dialog tests | Prompt 10 narrowed to formal publication readiness gates, manifest metadata, report/export evidence registration, and premium UI blocker/warning display without changing spatial calculations. |
 | 2026-05-11 | Prompt 09 | `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md`; `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md`; `DEVELOPMENT_PLANS/TRI_MODAL_WORKBENCH_ALIGNMENT_SPEC.md`; `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md`; `DEVELOPMENT_PLANS/MAP_EXPLORER_AGENT_HANDOFF_TEMPLATE.md`; `src/services/map/MapScientificQA.ts`; `src/services/map/MapScientificQA.worker.ts`; `src/centerpanel/components/map/ScientificQAPanel.tsx`; `src/stores/useMapExplorerStore.ts`; `src/centerpanel/components/map/mapTypes.ts`; `src/centerpanel/components/map/mapEvidenceArtifacts.ts`; `src/centerpanel/components/map/mapLayerMetadata.ts`; `src/centerpanel/components/map/mapContextSummary.ts`; `src/centerpanel/components/MapExplorerModal.tsx`; focused QA/evidence tests | Prompt 09 narrowed to first-class QA domain summaries, truthful missing metadata warnings, panel rendering, and QA evidence propagation without changing worker payloads or spatial calculations. |
@@ -1048,6 +1305,10 @@ Append changed files here as implementation progresses.
 
 | Date | Prompt | Files changed | Reason |
 | --- | --- | --- | --- |
+| 2026-05-11 | Prompt 14 | `src/centerpanel/components/map/mapTypes.ts`, `src/centerpanel/components/map/mapLayerMetadata.ts`, `src/services/map/MapDataImporter.ts`, `src/services/map/ExternalServiceConnector.ts`, `src/centerpanel/components/MapExplorerModal.tsx`, `src/services/map/__tests__/MapDataIO.test.ts`, `src/services/map/__tests__/ExternalServiceConnector.test.ts`, `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` | Added import-source metadata, external service dependency/cache/caveat metadata, conservative CRS/attribution QA summaries, layer registry evidence IDs/readiness normalization, evidence registry upserts at import/service publication boundaries, review events, and focused coverage. |
+| 2026-05-11 | Prompt 13 | `src/centerpanel/components/map/mapTypes.ts`, `src/services/map/MapEngineAdapter.ts`, `src/services/map/__tests__/MapEngineAdapter.test.ts`, `src/centerpanel/components/MapExplorerModal.tsx`, `src/centerpanel/Tools/components/GeoAILab.tsx`, `src/centerpanel/components/ObjectDetectorPanel.tsx`, `src/centerpanel/Flows/CellularAutomataFlow.tsx`, `src/centerpanel/Flows/CompositeIndicatorFlow.tsx`, `src/centerpanel/Flows/FacilityOptimisationFlow.tsx`, `src/centerpanel/Flows/UrbanMorphologyFlow.tsx`, `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` | Added adapter-produced map evidence artifacts, evidence-aware analysis metadata, completed-run map output metadata preservation, focused coverage, and registry upserts where Map Explorer publishes adapter-backed analysis layers. |
+| 2026-05-11 | Prompt 12 UI polish | `src/centerpanel/components/map/MapWorkspaceCockpit.module.css`, `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` | Enlarged and clarified the Map Command Center modal presentation after user visual review; corrected the context signal strip to remain a single-row rail; recorded validation and visual inspection. |
+| 2026-05-11 | Prompt 12 | `src/services/map/MapAnalysisRecommender.ts`, `src/services/map/MapAnalysisDispatcher.ts`, `src/centerpanel/components/MapExplorerModal.tsx`, `src/centerpanel/components/map/useMapAoiDispatch.ts`, `src/centerpanel/components/map/MapWorkspaceCockpit.tsx`, `src/centerpanel/components/map/MapWorkspaceCockpit.module.css`, `src/services/map/__tests__/MapAnalysisRecommender.test.ts`, `src/services/map/__tests__/MapAnalysisDispatcher.test.ts`, `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` | Added explainable recommendation reasons/readiness, lightweight context/layer/audit dispatch payloads, explicit recommendation dispatch review events, cockpit readiness/reason UI, and focused coverage. |
 | 2026-05-11 | Prompt 11 | `src/centerpanel/components/map/mapTypes.ts`, `src/services/map/MapWorkflowService.ts`, `src/centerpanel/components/map/MapWorkflowDrawer.tsx`, `src/centerpanel/components/MapExplorerModal.tsx`, `src/services/map/MapEngineAdapter.ts`, `src/services/map/__tests__/MapWorkflowService.test.ts`, `src/services/map/__tests__/MapEngineAdapter.test.ts`, `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` | Added lightweight workflow reproducibility manifests to preview/apply outputs, manifest UI summary, applied workflow evidence artifact registration, engine adapter manifest preservation, and focused coverage. |
 | 2026-05-11 | Prompt 10 | `src/services/map/MapExportService.ts`, `src/services/map/MapReportHandoffService.ts`, `src/services/map/MapReviewSessionService.ts`, `src/centerpanel/components/MapExplorerModal.tsx`, `src/centerpanel/components/MapExportDialog.tsx`, `src/centerpanel/components/map/MapReportHandoffDrawer.tsx`, `src/services/map/__tests__/MapExportService.test.ts`, `src/services/map/__tests__/MapReportHandoffService.test.ts`, `src/centerpanel/components/__tests__/MapExportDialog.test.tsx`, `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` | Added formal publication readiness gates, export/report readiness manifests, blocked-action UI, evidence artifact registration on formal output, review event readiness details, and focused coverage. |
 | 2026-05-11 | Prompt 09 | `src/centerpanel/components/map/mapTypes.ts`, `src/services/map/MapScientificQA.ts`, `src/centerpanel/components/map/ScientificQAPanel.tsx`, `src/centerpanel/components/map/mapEvidenceArtifacts.ts`, `src/stores/useMapExplorerStore.ts`, `src/services/map/__tests__/MapScientificQA.test.ts`, `src/centerpanel/components/map/__tests__/mapEvidenceArtifacts.test.ts`, `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` | Added first-class QA category/severity summaries, explicit missing schema/license warnings, premium QA domain panel rows, QA-finding artifact upsert, linked evidence QA refresh, and focused coverage. |
@@ -1067,6 +1328,15 @@ Record every contract that connects Map Explorer with Synapse IDE, Urban Analyti
 
 | Date | Prompt | Contract | Direction | Status | Notes |
 | --- | --- | --- | --- | --- | --- |
+| 2026-05-11 | Prompt 14 | `LayerMetadata.importSource: ImportLayerSourceMetadata` | Map import pipeline → layer registry / evidence / export-report readiness | Implemented Additive Contract | Local imports now carry format, file/source name, import timestamp, feature/skipped counts, source confidence, declared CRS when present, worker transfer status, and caveats. Raw imported features remain on the map layer only. |
+| 2026-05-11 | Prompt 14 | `ExternalServiceLayerMetadata` dependency/cache/stale/offline fields | External service connector → layer registry / evidence / review timeline | Implemented Additive Contract | Service layers now carry dependency status, last request, cache hit/TTL/stale timestamp, CORS/credential mode, license/attribution, and caveats without adding new providers or storing service payloads in evidence. |
+| 2026-05-11 | Prompt 14 | `createMapLayerEvidenceArtifact` publication-boundary registration | Import/service layer publication → Map evidence registry | Implemented Existing Contract Use | `MapExplorerModal` now upserts layer evidence artifacts when local imports and external service layers are added, using scalar metadata and layer IDs only. |
+| 2026-05-11 | Prompt 13 | `AnalysisAdapterResult.evidenceArtifact` | Engine adapters → Map evidence registry / completed-run producers | Implemented Additive Contract | Every adapter result now returns a lightweight `MapEvidenceArtifact` paired with the layer. Publication boundaries can upsert it directly without reading layer source data. |
+| 2026-05-11 | Prompt 13 | `AnalysisResultMetadata` lineage/QA/evidence fields | Engine adapters → layer registry / reports / dashboards / IDE future consumers | Implemented Additive Contract | Analysis metadata now carries source run/layer IDs, algorithm/workflow ID, output mode, QA summary, caveats, evidence artifact ID, handoff hints, parameters, and scalar summaries. |
+| 2026-05-11 | Prompt 13 | `createAnalysisMapOutput` metadata preservation | Map completed runs → map layer bridge round-trip | Implemented Additive Contract | Completed-run map outputs preserve evidence ID, source run/workflow, output mode, QA summary, caveats, handoff hints, and reproducibility manifests for `adaptAnalysisMapOutput`. |
+| 2026-05-11 | Prompt 12 | `MapAnalysisRecommendationReason` + `MapAnalysisRecommendationReadiness` | Map recommender → cockpit / dispatch / future workflow consumers | Implemented Additive Contract | Recommendations now carry reason kind/tone/detail and readiness status/blockers/warnings/required actions. Built from visible layer type, geometry, fields, temporal data, AOI, QA, manifest/provenance, selection, and Urban context signals. |
+| 2026-05-11 | Prompt 12 | `MapAnalysisDispatchContextSummary` + `MapAnalysisLayerReference` + `MapAnalysisDispatchAuditSummary` | Map Explorer dispatch → workflows / future Urban adapter | Implemented Additive Contract | Existing AOI/isochrone/hotspot dispatches can carry lightweight map context, visible/recommendation layer references, Urban context summary, and explicit/reversible audit metadata. No raw layer source data or geometry buffers are copied. |
+| 2026-05-11 | Prompt 12 | `MAP_ANALYSIS_RECOMMENDATION_KEY` + `MapAnalysisRecommendationDispatchPayload` | Map recommendation action → workflow stepData sidecar | Implemented Additive Contract | Open-flow recommendation actions queue a sidecar recommendation payload while preserving `MAP_ANALYSIS_DISPATCH_KEY` for existing dispatch variants. Navigation remains explicit and user-triggered. |
 | 2026-05-10 | Prompt 00 | `useMapExplorerStore` | Map Explorer state owner | Confirmed Existing | Located at `src/stores/useMapExplorerStore.ts`; exports `useMapExplorerStore`, `MapExplorerState`, `MapExplorerLayoutPreferences`. 56 KB. |
 | 2026-05-10 | Prompt 00 | `MAP_ANALYSIS_DISPATCH_KEY`, `MAP_ANALYSIS_VIEW_RESTRICTION_KEY` | Map Explorer to Urban/workflows | Confirmed Existing | Defined in `src/services/map/MapAnalysisDispatcher.ts`. Payload union: `MapFlowAoiDispatchPayload`, `MapIsochroneDispatchPayload`, `MapHotSpotDispatchPayload`. |
 | 2026-05-10 | Prompt 00 | `MapAnalysisDispatcher` (queueMapDispatch / readQueuedMapDispatch / dispatchFlowSelection / dispatchIsochroneNavigation / dispatchHotSpotNavigation) | Map Explorer to workflows | Confirmed Existing | `src/services/map/MapAnalysisDispatcher.ts`. |
@@ -1120,6 +1390,13 @@ Record decisions that future agents must not re-litigate unless the repository p
 | 2026-05-11 | Prompt 10 | Readiness manifests must store source/context/QA/caveat summaries and artifact references, not rendered screenshots or raw datasets. | Keeps formal outputs reproducible and auditable without violating lightweight evidence and performance boundaries. | Accepted |
 | 2026-05-11 | Prompt 11 | Workflow manifests are created at preview time and promoted at apply time; blocked previews still receive a manifest with blocker counts and messages. | Keeps derived outputs auditable before mutation and prevents blocked workflow states from disappearing from review context. | Accepted |
 | 2026-05-11 | Prompt 11 | Workflow/engine manifests store layer IDs, source versions, CRS/QA summaries, parameters, and handoff references only. | Preserves reproducibility without duplicating GeoJSON/sourceData or heavy render artifacts in lightweight records. | Accepted |
+| 2026-05-11 | Prompt 12 | Recommendation readiness is advisory and pre-dispatch; it must explain blockers/warnings but must not silently execute workflows. | Recommendations influence analytical choices, so the user must explicitly dispatch and review assumptions before workflow execution. | Accepted |
+| 2026-05-11 | Prompt 12 | Dispatch handoffs may include context summaries and layer references only, not raw layer data or large geometries. | Keeps Map -> workflow/Urban payloads bounded and preserves Map Explorer ownership of render/source buffers. | Accepted |
+| 2026-05-11 | Prompt 13 | Engine adapter evidence artifacts must store references, scalar summaries, QA/caveats, and CRS/geometry summaries only. | Preserves auditable engine outputs without duplicating map layer sourceData, raw GeoJSON, rendered images, or large geometry buffers. | Accepted |
+| 2026-05-11 | Prompt 13 | Demo, synthetic, and unknown adapter outputs must remain explicitly labelled in metadata and evidence QA caveats. | Prevents exploratory outputs from being represented as real analytical evidence or publication-ready results. | Accepted |
+| 2026-05-11 | Prompt 14 | Local imports must not infer CRS certainty from coordinates or file extension alone. | Prevents GeoJSON/CSV/KML/GPX display coordinates from being treated as analytical CRS readiness before Prompt 15 validation. | Accepted |
+| 2026-05-11 | Prompt 14 | External service evidence stores endpoint/dependency metadata and scalar QA state only, never raw service payloads or tiles. | Keeps external service layers auditable without duplicating remote data, images, or large feature payloads in evidence artifacts. | Accepted |
+| 2026-05-11 | Prompt 14 | Remote CityJSON without a declared `referenceSystem` keeps CRS unknown. | Avoids placeholder CRS strings that could be misread as verified analytical CRS metadata. | Accepted |
 
 ## Validation History
 
@@ -1169,6 +1446,30 @@ Append validation runs here.
 | 2026-05-11 | Prompt 11 | `npm run lint:errors` | 1 error (out of scope) | Known unrelated UA error remains: `src/features/urbanAnalytics/lib/workflowReadiness.ts:20` unused import `UrbanMethodValidityEnvelope`. |
 | 2026-05-11 | Prompt 11 | `npm run lint:no-tailwind-centerpanel` | Blocked (repo setup) | `package.json` references `scripts/check-no-tailwind-centerpanel.ps1`, but that script is missing from `scripts/`; `powershell` was unavailable in the execution context. |
 | 2026-05-11 | Prompt 11 | `pwsh -ExecutionPolicy Bypass -File scripts/get-next-map-explorer-prompt.ps1` | Passed | Helper returned `Prompt 12 - Analysis Recommendation and Dispatch`. |
+| 2026-05-11 | Prompt 12 | `npx vitest run src/services/map/__tests__/MapAnalysisRecommender.test.ts src/services/map/__tests__/MapAnalysisDispatcher.test.ts` | Passed (10/10) | Covers reason/readiness generation, QA blocker readiness, Urban context ranking/metadata, enriched AOI dispatch payloads, recommendation sidecar dispatch, and legacy dispatch key preservation. |
+| 2026-05-11 | Prompt 12 | `npm run typecheck` | Passed | Full TypeScript project typechecks after recommendation readiness contracts, dispatch context/layer/audit payloads, modal wiring, cockpit UI, and tests. |
+| 2026-05-11 | Prompt 12 | `npx eslint --quiet src/services/map/MapAnalysisRecommender.ts src/services/map/MapAnalysisDispatcher.ts src/services/map/__tests__/MapAnalysisRecommender.test.ts src/services/map/__tests__/MapAnalysisDispatcher.test.ts src/centerpanel/components/map/useMapAoiDispatch.ts src/centerpanel/components/MapExplorerModal.tsx src/centerpanel/components/map/MapWorkspaceCockpit.tsx` | Passed | Focused error-only lint pass on touched Prompt 12 TS/TSX files produced no errors after modal dispatch wiring repair. |
+| 2026-05-11 | Prompt 12 | `git diff --check` | Passed | No whitespace errors; only the existing ledger LF-to-CRLF warning was reported. |
+| 2026-05-11 | Prompt 12 | `npm run lint:no-tailwind-centerpanel` | Blocked (repo setup) | `package.json` references `scripts/check-no-tailwind-centerpanel.ps1`, but no `scripts/*tailwind*` file exists in this checkout. |
+| 2026-05-11 | Prompt 12 | `powershell -ExecutionPolicy Bypass -File scripts/get-next-map-explorer-prompt.ps1` | Passed | Helper returned `Prompt 13 - Engine Adapter Evidence Outputs`. |
+| 2026-05-11 | Prompt 12 UI polish | `npx vitest run src/centerpanel/components/map/__tests__/map-components.test.ts` | Passed (59/59) | Covers MapWorkspaceCockpit import/render regression after modal readability CSS changes. |
+| 2026-05-11 | Prompt 12 UI polish | `npm run typecheck` | Passed | Full TypeScript project typechecks after cockpit modal CSS/layout polish. |
+| 2026-05-11 | Prompt 12 UI polish | `npx eslint --quiet src/centerpanel/components/map/MapWorkspaceCockpit.tsx` | Passed | Focused lint on the related component produced no output. |
+| 2026-05-11 | Prompt 12 UI polish | `npm run dev` + browser inspection | Passed | Dev server opened at `http://127.0.0.1:3000/`; Map Explorer opened through Command Palette and the navigator cockpit was inspected with Playwright screenshots. |
+| 2026-05-11 | Prompt 12 UI polish | `npx vitest run src/centerpanel/components/map/__tests__/map-components.test.ts` | Passed (59/59) | Re-run after correcting the context strip to a single-row signal rail. |
+| 2026-05-11 | Prompt 12 UI polish | `npm run typecheck` | Passed | Re-run after the single-row context strip correction. |
+| 2026-05-11 | Prompt 12 UI polish | `npx eslint --quiet src/centerpanel/components/map/MapWorkspaceCockpit.tsx` | Passed | Re-run after the single-row context strip correction. |
+| 2026-05-11 | Prompt 13 | `npx vitest run src/services/map/__tests__/MapEngineAdapter.test.ts src/services/map/__tests__/SpatialStatsExecutionService.test.ts src/centerpanel/components/__tests__/objectDetectionPublish.test.ts` | Passed (26/26) | Covers adapter evidence metadata, completed-run map output round-trips, spatial-stats execution compatibility, and object-detection publication compatibility. |
+| 2026-05-11 | Prompt 13 | `npm run typecheck` | Passed | Full TypeScript project typechecks after adapter evidence metadata, output bridge, tests, and publication-boundary evidence upserts. |
+| 2026-05-11 | Prompt 13 | `npx eslint src/services/map/MapEngineAdapter.ts src/centerpanel/components/map/mapTypes.ts src/services/map/__tests__/MapEngineAdapter.test.ts src/centerpanel/Tools/components/GeoAILab.tsx src/centerpanel/components/ObjectDetectorPanel.tsx src/centerpanel/components/MapExplorerModal.tsx src/centerpanel/Flows/CellularAutomataFlow.tsx src/centerpanel/Flows/CompositeIndicatorFlow.tsx src/centerpanel/Flows/FacilityOptimisationFlow.tsx src/centerpanel/Flows/UrbanMorphologyFlow.tsx --quiet` | Passed | Focused lint on touched Prompt 13 adapter, test, and publication-boundary files produced no output. |
+| 2026-05-11 | Prompt 13 | `git diff --check` | Passed | No whitespace errors; Git reported LF-to-CRLF working-copy warnings for the ledger and several touched TSX files. |
+| 2026-05-11 | Prompt 13 | `npm run lint:errors` | 1 error (out of scope) | Known unrelated UA error remains: `src/features/urbanAnalytics/lib/workflowReadiness.ts:20` unused import `UrbanMethodValidityEnvelope`. |
+| 2026-05-11 | Prompt 14 | `npx vitest run src/services/map/__tests__/MapDataIO.test.ts src/services/map/__tests__/ExternalServiceConnector.test.ts` | Passed (35/35, 2 skipped) | Covers import evidence metadata, skipped rows, CRS unknown, evidence IDs, external dependency/cache state, attribution, WFS CRS request, and CityJSON unknown CRS. |
+| 2026-05-11 | Prompt 14 | `npm run typecheck` | Passed | Full TypeScript project typechecks after import/external metadata contracts, registry normalization, modal evidence registration, and tests. |
+| 2026-05-11 | Prompt 14 | `npx eslint --quiet src/services/map/MapDataImporter.ts src/services/map/ExternalServiceConnector.ts src/centerpanel/components/map/mapTypes.ts src/centerpanel/components/map/mapLayerMetadata.ts src/centerpanel/components/MapExplorerModal.tsx src/services/map/__tests__/MapDataIO.test.ts src/services/map/__tests__/ExternalServiceConnector.test.ts` | Passed | Focused error-only lint on touched Prompt 14 files produced no output. |
+| 2026-05-11 | Prompt 14 | `git diff --check` | Passed | No whitespace errors; Git reported LF-to-CRLF working-copy warnings for touched Windows files only. |
+| 2026-05-11 | Prompt 14 | VS Code Problems check for touched Prompt 14 files | Passed | `get_errors` reported no errors in `MapDataImporter.ts`, `ExternalServiceConnector.ts`, `MapExplorerModal.tsx`, `mapTypes.ts`, `mapLayerMetadata.ts`, and focused tests. |
+| 2026-05-11 | Prompt 14 | `powershell -ExecutionPolicy Bypass -File scripts/get-next-map-explorer-prompt.ps1` | Passed | Helper returned `Prompt 15 - CRS, Measurement, and Geometry Validation`. |
 
 ## Known Risks
 
@@ -1186,6 +1487,12 @@ Append validation runs here.
 | 2026-05-11 | Prompt 09 | Publication/export services do not yet consume the new `export-readiness` QA domain. | Resolved | Prompt 10 now consumes export-readiness and QA blockers in formal publication readiness gates. |
 | 2026-05-11 | Prompt 10 | Workflow preview/run manifests do not yet reuse publication readiness metadata. | Resolved | Prompt 11 added Map-owned workflow/engine reproducibility manifests and kept the contract lightweight/reference-only. |
 | 2026-05-11 | Prompt 11 | `npm run lint:no-tailwind-centerpanel` cannot currently execute from `package.json` because the referenced PowerShell script is absent. | Low | Do not treat this as a Prompt 11 UI failure; restore or replace the missing script in a repo setup/CI maintenance pass before relying on the command. |
+| 2026-05-11 | Prompt 12 | `useUrbanContextSummary` does not expose a canonical Urban context ID. | Low | Current Map recommendation/dispatch context uses `studyAreaId` as the optional Urban context ID when available. Prompt 16 should replace this with the formal Map -> Urban context adapter. |
+| 2026-05-11 | Prompt 12 | `npm run lint:no-tailwind-centerpanel` still cannot execute because the referenced PowerShell script is absent. | Low | Focused TS/TSX lint passed and Prompt 12 CSS/TSX did not introduce Tailwind classes. Restore or replace `scripts/check-no-tailwind-centerpanel.ps1` in a repo setup/CI maintenance pass. |
+| 2026-05-11 | Prompt 13 | Urban Analytics VoxCity panels still publish adapter-backed map outputs without direct Map Explorer evidence registry upserts. | Low | Kept Prompt 13 Map Explorer scoped; their completed-run map outputs preserve evidence metadata via `createAnalysisMapOutput`. Revisit only when the UA/VoxCity prompt scope authorizes touching those files. |
+| 2026-05-11 | Prompt 13 | Adapter fallback CRS summaries may be too generic until CRS validation work lands. | Low | Prompt 15 owns CRS/measurement validation; current fallback explicitly caveats unknown source CRS and does not claim analytical readiness. |
+| 2026-05-11 | Prompt 14 | External service offline state is usually represented by failed fetches before a layer exists. | Low | Prompt 14 added offline/stale/dependency metadata semantics for layer readiness when present; service-request failure UX remains in `MapServiceDialog`/connector errors. |
+| 2026-05-11 | Prompt 14 | Import and service CRS metadata is now more truthful but not yet a measurement gate. | Medium | Prompt 15 owns CRS, measurement, and geometry validation. Prompt 14 only preserves declared/unknown states and caveats. |
 
 ## Next Prompt Pointer
 
@@ -1195,7 +1502,7 @@ Start with:
 
 Prompt:
 
-`Prompt 12 - Analysis Recommendation and Dispatch`
+`Prompt 15 - CRS, Measurement, and Geometry Validation`
 
 Optional helper command:
 

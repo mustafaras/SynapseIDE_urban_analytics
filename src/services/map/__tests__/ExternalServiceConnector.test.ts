@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { FeatureCollection, GeoJsonProperties, Polygon } from "geojson";
 import type { BuildingFeature } from "@/features/urbanAnalytics/voxcity/buildingTypes";
 import {
   buildingFeaturesToGeoJSON,
@@ -10,6 +11,8 @@ import {
   cacheOverpassBuildingsResult,
   clampOverpassBounds,
   clearOverpassCache,
+  createOsmBuildingsLayerConfig,
+  createRemoteCityJSONLayerConfig,
   createWmsRasterLayerConfig,
   fetchExternalService,
   fetchWfsFeatureCollection,
@@ -17,6 +20,7 @@ import {
   loadWmsCapabilities,
   overpassResponseToGeoJSON,
   refreshRasterLayerConfig,
+  createWfsLayerConfig,
   createXyzRasterLayerConfig,
   normalizeXyzTileUrlTemplate,
   STAMEN_WATERCOLOR_TILE_URL,
@@ -62,6 +66,20 @@ describe("ExternalServiceConnector", () => {
     expect(tileUrl.searchParams.get("layers")).toBe("planning:parcels");
     expect(tileUrl.searchParams.get("bbox")).toBe("{bbox-epsg-3857}");
     expect(String(layer.sourceData)).toContain("{bbox-epsg-3857}");
+    expect(layer.metadata?.externalService).toMatchObject({
+      kind: "wms",
+      endpoint: capabilities.endpoint,
+      dependencyStatus: "live",
+      corsMode: "tile-client",
+      credentialMode: "unknown",
+    });
+    expect(layer.metadata?.crsSummary).toMatchObject({ crs: "EPSG:3857", status: "known", source: "external-service" });
+    expect(layer.metadata?.scientificQA?.status).toBe("warning");
+    expect(layer.metadata?.scientificQA?.issueIds).toEqual(expect.arrayContaining([
+      expect.stringContaining("external-attribution-unknown"),
+    ]));
+    expect(layer.metadata?.evidenceArtifactId).toBe(`map-evidence-layer-${layer.id}`);
+    expect(layer.metadata?.registry?.evidenceArtifactId).toBe(`map-evidence-layer-${layer.id}`);
   });
 
   it("parses WMTS capabilities and creates a tile URL template", async () => {
@@ -93,6 +111,11 @@ describe("ExternalServiceConnector", () => {
     const layer = createWmsRasterLayerConfig(capabilities, capabilities.layers[0]!);
     expect(layer.provenance?.method).toBe("WMTS GetTile raster overlay");
     expect(layer.sourceData).toBe("https://tiles.example.test/wmts/metro:imagery/GoogleMapsCompatible/{z}/{y}/{x}.png");
+    expect(layer.metadata?.externalService?.kind).toBe("wmts");
+    expect(layer.metadata?.externalService?.dependencyStatus).toBe("live");
+    expect(layer.metadata?.registry?.publicationReadiness.caveats).toEqual(expect.arrayContaining([
+      expect.stringContaining("Raster tile layers are visual references"),
+    ]));
   });
 
   it("preserves prefixed WMTS TileMatrix identifiers in MapLibre tile templates", async () => {
@@ -143,6 +166,21 @@ describe("ExternalServiceConnector", () => {
     expect(requestedUrl.searchParams.get("typeNames")).toBe("urban:buildings");
     expect(requestedUrl.searchParams.get("srsName")).toBe("EPSG:4326");
     expect(requestedUrl.searchParams.get("bbox")).toBe("13.37,52.51,13.39,52.53,EPSG:4326");
+
+    const layer = createWfsLayerConfig(
+      { version: "2.0.0", endpoint: "https://maps.example.test/wfs", title: "Metro WFS", featureTypes: [] },
+      { name: "urban:buildings", title: "Buildings", availableCrs: ["EPSG:4326"] },
+      result,
+      [13.37, 52.51, 13.39, 52.53],
+    );
+    expect(layer.metadata?.externalService).toMatchObject({
+      kind: "wfs",
+      dependencyStatus: "live",
+      bounds: [13.37, 52.51, 13.39, 52.53],
+      crs: "EPSG:4326",
+    });
+    expect(layer.metadata?.crsSummary).toMatchObject({ crs: "EPSG:4326", status: "known" });
+    expect(layer.metadata?.scientificQA?.categorySummaries?.map((entry) => entry.category)).toContain("source-provenance");
   });
 
   it("adds a cache-bust token when refreshing raster tile layers", () => {
@@ -158,6 +196,7 @@ describe("ExternalServiceConnector", () => {
 
     expect(layer.sourceData).toBe("https://tiles.example.test/{z}/{x}/{y}.png?_synapseRefresh=refresh-1");
     expect(layer.metadata?.dataVersion).toBeDefined();
+    expect(layer.metadata?.evidenceArtifactId).toBe("map-evidence-layer-raster");
   });
 
   it("rejects XYZ tile templates missing required z/x/y tokens", () => {
@@ -172,6 +211,9 @@ describe("ExternalServiceConnector", () => {
     );
     expect(layer.type).toBe("raster-tile");
     expect(layer.sourceData).toBe("https://tiles.example.test/{z}/{x}/{y}.png");
+    expect(layer.metadata?.externalService).toMatchObject({ kind: "xyz", dependencyStatus: "live", crs: "EPSG:3857" });
+    expect(layer.metadata?.licenseAttribution?.requiresAttribution).toBe(false);
+    expect(layer.metadata?.scientificQA?.status).toBe("warning");
   });
 
   it("uses the current Stadia-hosted endpoint for the Stamen Watercolor preset", () => {
@@ -182,6 +224,8 @@ describe("ExternalServiceConnector", () => {
     const layer = createXyzRasterLayerConfig(preset!.name, preset!.urlTemplate, preset!.attribution);
     expect(layer.sourceData).toBe(preset?.urlTemplate);
     expect(layer.metadata?.externalService?.kind).toBe("xyz");
+    expect(layer.metadata?.licenseAttribution?.attribution).toBe(preset?.attribution);
+    expect(layer.metadata?.externalService?.attribution).toBe(preset?.attribution);
   });
 
   it("migrates legacy Stamen Watercolor tile templates to the current endpoint", () => {
@@ -277,7 +321,20 @@ describe("ExternalServiceConnector", () => {
     };
     cacheOverpassBuildingsResult(cachedResult);
 
-    expect(getCachedOverpassBuildingsForBounds([13.0, 52.0, 14.0, 53.0])?.cacheHit).toBe(true);
+    const cached = getCachedOverpassBuildingsForBounds([13.0, 52.0, 14.0, 53.0]);
+    expect(cached?.cacheHit).toBe(true);
+
+    const layer = createOsmBuildingsLayerConfig(cached!);
+    expect(layer.metadata?.externalService).toMatchObject({
+      kind: "overpass",
+      dependencyStatus: "cached",
+      cacheHit: true,
+      license: "ODbL",
+    });
+    expect(layer.metadata?.licenseAttribution).toMatchObject({ license: "ODbL", attribution: expect.stringContaining("OpenStreetMap") });
+    expect(layer.metadata?.scientificQA?.issueIds).toEqual(expect.arrayContaining([
+      expect.stringContaining("external-dependency-review"),
+    ]));
   });
 
   it("passes through already-geographic VoxCity coordinates when requested", () => {
@@ -294,6 +351,49 @@ describe("ExternalServiceConnector", () => {
 
     expect(passthrough.features[0]?.geometry.coordinates[0]?.[0]).toEqual([13.4, 52.5]);
     expect(anchored.features[0]?.geometry.coordinates[0]?.[0]).not.toEqual([13.4, 52.5]);
+  });
+
+  it("keeps remote CityJSON CRS unknown when the source lacks a reference system", () => {
+    const featureCollection: FeatureCollection<Polygon, GeoJsonProperties> = {
+      type: "FeatureCollection",
+      features: [{
+        type: "Feature",
+        geometry: { type: "Polygon", coordinates: [[[13.4, 52.5], [13.401, 52.5], [13.401, 52.501], [13.4, 52.501], [13.4, 52.5]]] },
+        properties: { id: "city-object-1" },
+      }],
+    };
+
+    const layer = createRemoteCityJSONLayerConfig({
+      objects: [{
+        id: "city-object-1",
+        type: "Building",
+        attributes: {},
+        surfaces: [],
+        bbox: [13.4, 52.5, 0, 13.401, 52.501, 18],
+        children: [],
+        parents: [],
+        lod: "2.2",
+      }],
+      summary: {
+        version: "2.0",
+        referenceSystem: null,
+        objectCount: 1,
+        objectTypeCounts: { Building: 1 },
+        semanticSurfaceCounts: {},
+        attributeKeys: [],
+        vertexCount: 4,
+        bbox: [13.4, 52.5, 0, 13.401, 52.501, 18],
+        parseTimeMs: 12,
+      },
+    }, "https://cityjson.example.test/model.json", featureCollection);
+
+    expect(layer.metadata?.externalService?.kind).toBe("cityjson");
+    expect(layer.metadata?.externalService?.crs).toBeUndefined();
+    expect(layer.metadata?.crsSummary).toMatchObject({ crs: null, status: "unknown" });
+    expect(layer.metadata?.scientificQA?.issueIds).toEqual(expect.arrayContaining([
+      expect.stringContaining("external-crs-unknown"),
+    ]));
+    expect(layer.metadata?.datasetContext?.crs).toBeUndefined();
   });
 });
 

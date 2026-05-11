@@ -6,17 +6,17 @@
 .panel {
   position: relative;
   width: 100%;
-  height: auto;
+  height: 100%;
   max-height: 100%;
   display: grid;
-  grid-template-rows: auto auto auto;
+  grid-template-rows: auto auto minmax(0, 1fr);
   overflow: hidden;
-  border: 0;
-  border-top: 1px solid rgba(245, 158, 11, 0.22);
-  border-bottom: 1px solid rgba(245, 158, 11, 0.18);
-  border-radius: 6px;
-  background: linear-gradient(180deg, rgba(16, 15, 13, 0.92), rgba(8, 8, 7, 0.9));
-  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.34);
+  border: 1px solid rgba(245, 158, 11, 0.22);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(18, 17, 15, 0.96), rgba(8, 8, 7, 0.94)),
+    radial-gradient(circle at top left, rgba(245, 158, 11, 0.08), transparent 34%);
+  box-shadow: 0 24px 72px rgba(0, 0, 0, 0.46);
   color: #e7e5e4;
   font-family: var(--font-brand, Inter, system-ui, sans-serif);
   isolation: isolate;
@@ -28,11 +28,11 @@
 
 .commandBar {
   display: grid;
-  grid-template-columns: minmax(210px, 1fr) auto minmax(150px, 0.55fr) minmax(190px, 0.72fr);
+  grid-template-columns: minmax(300px, 1.2fr) minmax(180px, 0.7fr) minmax(210px, 0.72fr) minmax(280px, 0.95fr);
   align-items: center;
-  gap: 8px;
-  padding: 8px 11px;
-  border-bottom: 1px solid rgba(245, 158, 11, 0.1);
+  gap: 16px;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(245, 158, 11, 0.14);
   background: linear-gradient(90deg, rgba(245, 158, 11, 0.045), rgba(255, 255, 255, 0.012));
 }
 
@@ -51,7 +51,7 @@
 }
 
 .commandIdentity {
-  gap: 9px;
+  gap: 12px;
   min-width: 0;
 }
 
@@ -59,8 +59,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 32px;
+  height: 32px;
   border-radius: 0;
   border: 0;
   background: transparent;
@@ -71,14 +71,14 @@
 .identityCopy {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 3px;
   min-width: 0;
 }
 
 .brandKicker {
   color: rgba(245, 158, 11, 0.82);
   font-family: var(--font-mono, "JetBrains Mono", monospace);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.1em;
   line-height: 1.1;
@@ -87,9 +87,9 @@
 
 .brandTitle {
   color: #fafaf9;
-  font-size: 13px;
+  font-size: 18px;
   font-weight: 700;
-  line-height: 1.15;
+  line-height: 1.1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -107,10 +107,10 @@
 }
 
 .toneBadge {
-  padding: 0 0 0 8px;
+  padding: 0 0 0 10px;
   border-left: 1px solid rgba(245, 158, 11, 0.22);
   border-radius: 0;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -142,7 +142,7 @@
 }
 
 .commandMeta {
-  gap: 6px;
+  gap: 8px;
   justify-content: flex-end;
   min-width: 0;
 }
@@ -153,7 +153,7 @@
   border-radius: 0;
   background: transparent;
   color: rgba(250, 250, 249, 0.58);
-  font-size: 9px;
+  font-size: 10px;
   white-space: nowrap;
 }
 
@@ -165,7 +165,7 @@
 .commandReadiness {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 7px;
   min-width: 0;
   pointer-events: none;
 }
@@ -174,7 +174,7 @@
   justify-content: space-between;
   gap: 10px;
   color: rgba(250, 250, 249, 0.56);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -182,11 +182,11 @@
 
 .commandReadinessTop strong {
   color: #f59e0b;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .readinessTrack {
-  height: 5px;
+  height: 7px;
   overflow: hidden;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.07);
@@ -204,10 +204,11 @@
 
 .primaryCommand {
   justify-content: space-between;
-  gap: 10px;
+  gap: 12px;
   width: 100%;
+  min-height: 50px;
   min-width: 0;
-  padding: 6px 8px;
+  padding: 9px 12px;
   border: 1px solid rgba(245, 158, 11, 0.38);
   border-radius: 8px;
   background: linear-gradient(135deg, rgba(245, 158, 11, 0.94), rgba(217, 119, 6, 0.94));
@@ -231,12 +232,12 @@
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 1px;
+  gap: 3px;
   min-width: 0;
 }
 
 .primaryCommandCopy span {
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.08em;
   line-height: 1;
@@ -247,13 +248,17 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.2;
 }
 
 .bodyGrid {
   display: grid;
-  grid-template-columns: minmax(260px, 0.9fr) minmax(315px, 1fr) minmax(300px, 0.95fr);
+  grid-template-columns: minmax(300px, 0.78fr) minmax(0, 1.22fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "state flow"
+    "state integration";
   min-height: 0;
   overflow: hidden;
   align-items: start;
@@ -261,28 +266,38 @@
 
 .contextStrip {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 8px 12px;
-  padding: 8px 11px 7px;
-  border-bottom: 1px solid rgba(245, 158, 11, 0.08);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0;
+  padding: 10px 14px 9px;
+  border-bottom: 1px solid rgba(245, 158, 11, 0.12);
   background: linear-gradient(180deg, rgba(245, 158, 11, 0.03), rgba(255, 255, 255, 0));
 }
 
 .contextCell {
   display: grid;
-  grid-template-columns: 24px minmax(0, 1fr);
+  grid-template-columns: 22px minmax(0, 1fr);
   align-items: start;
   gap: 7px;
   min-width: 0;
-  padding: 2px 0;
+  padding: 2px 10px;
+  border-left: 1px solid rgba(245, 158, 11, 0.08);
+}
+
+.contextStrip > :first-child {
+  border-left: 0;
+  padding-left: 0;
+}
+
+.contextStrip > :last-child {
+  padding-right: 0;
 }
 
 .contextCellIcon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   color: var(--signal-color, #f59e0b);
   background: transparent;
 }
@@ -290,7 +305,7 @@
 .contextCellCopy {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
   min-width: 0;
 }
 
@@ -319,17 +334,21 @@
 .contextCellCopy span:last-child {
   overflow: hidden;
   color: rgba(250, 250, 249, 0.5);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   font-size: 8px;
   line-height: 1.25;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .pane {
   min-width: 0;
   min-height: 0;
-  padding: 10px;
-  overflow: visible;
+  height: 100%;
+  padding: 16px;
+  overflow: auto;
   border-right: 1px solid rgba(245, 158, 11, 0.06);
 }
 
@@ -341,6 +360,22 @@
 .flowPane,
 .integrationPane {
   position: relative;
+}
+
+.statePane {
+  grid-area: state;
+}
+
+.flowPane {
+  grid-area: flow;
+  border-right: 0;
+}
+
+.integrationPane {
+  grid-area: integration;
+  height: auto;
+  border-top: 1px solid rgba(245, 158, 11, 0.1);
+  border-right: 0;
 }
 
 .pane::-webkit-scrollbar {
@@ -360,9 +395,9 @@
 .sequenceHeader {
   justify-content: space-between;
   gap: 10px;
-  margin-bottom: 8px;
-  padding-bottom: 6px;
-  border-bottom: 1px solid rgba(245, 158, 11, 0.12);
+  margin-bottom: 12px;
+  padding-bottom: 9px;
+  border-bottom: 1px solid rgba(245, 158, 11, 0.16);
 }
 
 .sectionHeading > span:first-child,
@@ -371,7 +406,7 @@
   align-items: center;
   gap: 6px;
   color: rgba(245, 158, 11, 0.86);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -383,14 +418,14 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   color: rgba(250, 250, 249, 0.52);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
 }
 
 .metricRibbon {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 18px;
   overflow: hidden;
   border-radius: 0;
   border: 0;
@@ -401,7 +436,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 1px;
+  gap: 3px;
   min-width: 0;
   padding: 0;
   background: transparent;
@@ -410,14 +445,14 @@
 .metricValue {
   color: #fafaf9;
   font-family: var(--font-mono, "JetBrains Mono", monospace);
-  font-size: 14px;
+  font-size: 20px;
   font-weight: 800;
   line-height: 1;
 }
 
 .metricLabel {
   color: rgba(250, 250, 249, 0.56);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.06em;
   line-height: 1.1;
@@ -429,8 +464,8 @@
   max-width: 100%;
   color: rgba(250, 250, 249, 0.38);
   font-family: var(--font-mono, "JetBrains Mono", monospace);
-  font-size: 8px;
-  line-height: 1.2;
+  font-size: 9px;
+  line-height: 1.25;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -445,18 +480,18 @@
 }
 
 .signalStack {
-  gap: 5px;
-  margin-top: 8px;
+  gap: 0;
+  margin-top: 14px;
 }
 
 .signalRow,
 .integrationRow {
   display: grid;
-  grid-template-columns: 24px minmax(0, 1fr) auto;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 7px;
+  gap: 10px;
   min-width: 0;
-  padding: 6px 0;
+  padding: 10px 0;
   border: 0;
   border-top: 1px solid rgba(255, 255, 255, 0.055);
   border-radius: 0;
@@ -506,8 +541,8 @@
 
 .signalIcon,
 .integrationIcon {
-  width: 24px;
-  height: 24px;
+  width: 30px;
+  height: 30px;
 }
 
 .signalCopy,
@@ -526,7 +561,7 @@
 .modeBtnCopy strong {
   overflow: hidden;
   color: #f5f5f4;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
   line-height: 1.15;
   text-overflow: ellipsis;
@@ -539,23 +574,23 @@
 .modeBtnCopy span {
   overflow: hidden;
   color: rgba(250, 250, 249, 0.52);
-  font-size: 8px;
-  line-height: 1.2;
+  font-size: 10px;
+  line-height: 1.35;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .signalValue,
 .integrationValue {
   color: var(--signal-color, #f59e0b);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
   white-space: nowrap;
 }
 
 .focusBand {
-  margin-top: 8px;
-  padding: 6px 0 0;
+  margin-top: 14px;
+  padding: 12px 0 0;
   border: 0;
   border-top: 1px solid rgba(245, 158, 11, 0.12);
   border-radius: 0;
@@ -563,39 +598,39 @@
 }
 
 .focusBandTop {
-  gap: 6px;
+  gap: 8px;
   color: #f59e0b;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
 }
 
 .focusBand p,
 .recommendedBand p {
-  margin: 4px 0 0;
+  margin: 6px 0 0;
   overflow: hidden;
   color: rgba(250, 250, 249, 0.62);
-  font-size: 9px;
-  line-height: 1.35;
-  text-overflow: ellipsis;
+  font-size: 11px;
+  line-height: 1.45;
+  text-overflow: clip;
 }
 
 .modeRail {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
+  gap: 10px;
 }
 
 .modeBtn {
   display: grid;
-  grid-template-columns: 24px minmax(0, 1fr);
+  grid-template-columns: 32px minmax(0, 1fr);
   align-items: center;
-  gap: 7px;
+  gap: 10px;
   min-width: 0;
-  padding: 6px 0;
-  border: 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.055);
-  border-radius: 0;
-  background: transparent;
+  min-height: 56px;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.025);
   color: #e7e5e4;
   cursor: pointer;
   font: inherit;
@@ -604,35 +639,35 @@
 
 .modeBtn:hover {
   border-color: rgba(245, 158, 11, 0.24);
-  background: transparent;
+  background: rgba(245, 158, 11, 0.055);
 }
 
 .modeBtnActive {
   border-color: rgba(245, 158, 11, 0.42);
-  background: linear-gradient(90deg, rgba(245, 158, 11, 0.09), transparent);
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.12), rgba(245, 158, 11, 0.035));
 }
 
 .modeBtnIcon {
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
   --signal-color: #f59e0b;
   --signal-bg: rgba(245, 158, 11, 0.1);
 }
 
 .sequenceHeader {
-  margin-top: 10px;
+  margin-top: 16px;
 }
 
 .sequenceRail {
-  gap: 5px;
+  gap: 0;
 }
 
 .sequenceItem {
   display: grid;
-  grid-template-columns: 24px minmax(0, 1fr) auto;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 8px;
-  padding: 6px 0;
+  gap: 11px;
+  padding: 11px 0;
   border: 0;
   border-top: 1px solid rgba(255, 255, 255, 0.055);
   border-radius: 0;
@@ -643,13 +678,13 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: 26px;
+  height: 26px;
   border-radius: 0;
   background: transparent;
   color: rgba(250, 250, 249, 0.54);
   font-family: var(--font-mono, "JetBrains Mono", monospace);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
 }
 
@@ -663,8 +698,8 @@
 .sequenceCopy strong {
   overflow: hidden;
   color: #f5f5f4;
-  font-size: 10px;
-  line-height: 1.15;
+  font-size: 12px;
+  line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -672,16 +707,16 @@
 .sequenceCopy span {
   overflow: hidden;
   color: rgba(250, 250, 249, 0.44);
-  font-size: 8px;
-  line-height: 1.18;
+  font-size: 10px;
+  line-height: 1.35;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .sequenceStatus {
-  padding: 2px 6px;
+  padding: 3px 7px;
   border-radius: 0;
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -706,7 +741,7 @@
 }
 
 .recommendedBand {
-  padding: 0 0 8px;
+  padding: 0 0 12px;
   border: 0;
   border-bottom: 1px solid rgba(245, 158, 11, 0.12);
   border-radius: 0;
@@ -716,7 +751,7 @@
 .recommendedEyebrow {
   display: block;
   color: #f59e0b;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.08em;
   line-height: 1;
@@ -728,7 +763,7 @@
   display: block;
   overflow: hidden;
   color: #fafaf9;
-  font-size: 12px;
+  font-size: 15px;
   font-weight: 800;
   line-height: 1.2;
   text-overflow: ellipsis;
@@ -738,9 +773,9 @@
 .analysisRecommendationStrip {
   display: flex;
   flex-direction: column;
-  gap: 7px;
-  margin-top: 8px;
-  padding: 8px 0 0;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 12px 0 0;
   border-top: 1px solid rgba(245, 158, 11, 0.12);
 }
 
@@ -751,7 +786,7 @@
   gap: 10px;
   color: rgba(245, 158, 11, 0.86);
   font-family: var(--font-mono, "JetBrains Mono", monospace);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.08em;
   line-height: 1;
@@ -765,23 +800,24 @@
 .analysisRecommendationList {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 10px;
 }
 
 .analysisRecommendationItem {
   --recommendation-tone: #f59e0b;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 8px;
   min-width: 0;
-  padding: 8px 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
-  background: transparent;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-left-color: color-mix(in srgb, var(--recommendation-tone) 62%, rgba(255, 255, 255, 0.075));
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.026);
 }
 
 .analysisRecommendationList > :first-child {
-  border-top: 0;
-  padding-top: 0;
+  padding-top: 12px;
 }
 
 .analysisRecommendationBlocked {
@@ -802,16 +838,16 @@
 
 .analysisRecommendationTopline {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 7px;
+  gap: 9px;
   min-width: 0;
 }
 
 .analysisRecommendationTopline strong {
   overflow: hidden;
   color: #fafaf9;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 800;
   line-height: 1.2;
   text-overflow: ellipsis;
@@ -821,41 +857,98 @@
 .analysisRecommendationSeverity {
   color: var(--recommendation-tone);
   font-family: var(--font-mono, "JetBrains Mono", monospace);
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.06em;
   line-height: 1;
   text-transform: uppercase;
 }
 
+.analysisRecommendationReadiness {
+  justify-self: end;
+  color: rgba(250, 250, 249, 0.58);
+  font-family: var(--font-mono, "JetBrains Mono", monospace);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.analysisReadinessReady {
+  color: #a7f3d0;
+}
+
+.analysisReadinessNeedsReview {
+  color: #fbbf24;
+}
+
+.analysisReadinessBlocked {
+  color: #fb923c;
+}
+
 .analysisRecommendationRationale {
   margin: 0;
   color: rgba(250, 250, 249, 0.64);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.analysisRecommendationReasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 8px;
+  min-width: 0;
+}
+
+.analysisRecommendationReason {
+  color: rgba(250, 250, 249, 0.48);
+  font-family: var(--font-mono, "JetBrains Mono", monospace);
   font-size: 9px;
-  line-height: 1.32;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.analysisReasonSupporting {
+  color: rgba(167, 243, 208, 0.78);
+}
+
+.analysisReasonContext {
+  color: rgba(125, 211, 252, 0.72);
+}
+
+.analysisReasonWarning {
+  color: rgba(251, 191, 36, 0.82);
+}
+
+.analysisReasonBlocker {
+  color: rgba(251, 146, 60, 0.9);
 }
 
 .analysisRecommendationMetaGrid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 3px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
   min-width: 0;
 }
 
 .analysisRecommendationMetaGrid span {
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr);
-  gap: 7px;
+  grid-template-columns: 1fr;
+  gap: 3px;
   min-width: 0;
   color: rgba(250, 250, 249, 0.52);
-  font-size: 8px;
-  line-height: 1.28;
+  font-size: 10px;
+  line-height: 1.35;
 }
 
 .analysisRecommendationMetaGrid b {
   color: rgba(245, 158, 11, 0.78);
   font-family: var(--font-mono, "JetBrains Mono", monospace);
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -865,7 +958,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 12px;
   min-width: 0;
   padding-top: 2px;
 }
@@ -874,8 +967,8 @@
   overflow: hidden;
   color: rgba(250, 250, 249, 0.42);
   font-family: var(--font-mono, "JetBrains Mono", monospace);
-  font-size: 8px;
-  line-height: 1.2;
+  font-size: 9px;
+  line-height: 1.25;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -885,16 +978,16 @@
   align-items: center;
   justify-content: center;
   gap: 5px;
-  min-height: 24px;
+  min-height: 30px;
   flex: 0 0 auto;
-  padding: 4px 7px;
+  padding: 6px 9px;
   border: 1px solid rgba(245, 158, 11, 0.36);
   border-radius: 6px;
   background: rgba(245, 158, 11, 0.1);
   color: #fbbf24;
   cursor: pointer;
   font: inherit;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 800;
   line-height: 1;
 }
@@ -913,51 +1006,50 @@
 .analysisRecommendationEmpty {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  padding: 7px 0 0;
+  gap: 5px;
+  padding: 10px 0 0;
   border-top: 1px solid rgba(255, 255, 255, 0.07);
 }
 
 .analysisRecommendationEmpty strong {
   color: #fafaf9;
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.2;
 }
 
 .analysisRecommendationEmpty span {
   color: rgba(250, 250, 249, 0.52);
-  font-size: 9px;
-  line-height: 1.3;
+  font-size: 11px;
+  line-height: 1.4;
 }
 
 .integrationStack {
-  gap: 5px;
-  margin-top: 8px;
+  gap: 0;
+  margin-top: 12px;
 }
 
 .integrationRow {
-  grid-template-columns: 24px minmax(0, 1fr) auto;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
 }
 
 .quickActionGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 5px;
-  margin-top: 8px;
+  gap: 8px;
+  margin-top: 12px;
 }
 
 .quickBtn {
   display: grid;
-  grid-template-columns: 24px minmax(0, 1fr);
+  grid-template-columns: 30px minmax(0, 1fr);
   align-items: center;
-  gap: 6px;
+  gap: 9px;
   min-width: 0;
-  min-height: 34px;
-  padding: 6px 0;
-  border: 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.055);
-  border-radius: 0;
-  background: transparent;
+  min-height: 48px;
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.022);
   color: #e7e5e4;
   cursor: pointer;
   font: inherit;
@@ -966,12 +1058,12 @@
 
 .quickBtn:hover {
   border-color: rgba(245, 158, 11, 0.22);
-  background: transparent;
+  background: rgba(245, 158, 11, 0.052);
 }
 
 .quickBtnIcon {
-  width: 24px;
-  height: 24px;
+  width: 30px;
+  height: 30px;
   --signal-color: #f59e0b;
   --signal-bg: rgba(245, 158, 11, 0.1);
 }
@@ -1012,9 +1104,16 @@
   }
 
   .bodyGrid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+    grid-template-areas:
+      "state"
+      "flow"
+      "integration";
+    overflow: auto;
   }
 
+  .flowPane,
   .integrationPane {
     grid-column: 1 / -1;
     border-top: 1px solid rgba(245, 158, 11, 0.1);
@@ -1025,11 +1124,13 @@
   }
 
   .modeRail {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .contextStrip {
-    grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+    grid-template-columns: repeat(7, minmax(124px, 1fr));
+    overflow-x: auto;
+    overflow-y: hidden;
   }
 }
 
@@ -1051,12 +1152,17 @@
   }
 
   .metricRibbon,
-  .quickActionGrid {
+  .quickActionGrid,
+  .analysisRecommendationMetaGrid {
     grid-template-columns: 1fr 1fr;
   }
 
+  .modeRail {
+    grid-template-columns: 1fr;
+  }
+
   .contextStrip {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(7, minmax(124px, 1fr));
   }
 
   .statusHotkey {
@@ -1070,7 +1176,7 @@
   }
 
   .pane {
-    padding: 9px;
+    padding: 12px;
   }
 
   .metricUnit,
@@ -1089,5 +1195,22 @@
 }
 
 .statePane .focusBand p {
-  display: none;
+  display: block;
+}
+
+@media (min-width: 1280px) and (min-height: 700px) {
+  .bodyGrid {
+    grid-template-columns: minmax(300px, 0.8fr) minmax(420px, 1fr) minmax(360px, 0.95fr);
+    grid-template-rows: minmax(0, 1fr);
+    grid-template-areas: "state flow integration";
+  }
+
+  .flowPane {
+    border-right: 1px solid rgba(245, 158, 11, 0.06);
+  }
+
+  .integrationPane {
+    height: 100%;
+    border-top: 0;
+  }
 }

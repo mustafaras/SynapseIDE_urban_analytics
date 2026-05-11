@@ -171,9 +171,17 @@ describe("generateMapAnalysisRecommendations", () => {
     expect(ids).toContain("analysis-rec:polygon:regression:districts");
     expect(ids).toContain("analysis-rec:polygon:cluster:districts");
     expect(state.recommendations[0]?.category).toBe("polygon");
-    expect(state.recommendations.find((recommendation) => recommendation.id.includes("choropleth"))?.action).toMatchObject({
+    const choropleth = state.recommendations.find((recommendation) => recommendation.id.includes("choropleth"));
+    expect(choropleth?.action).toMatchObject({
       type: "open-panel",
       panel: "choropleth",
+    });
+    expect(choropleth?.reasons.map((reason) => reason.kind)).toEqual(
+      expect.arrayContaining(["layer-type", "geometry", "fields", "aoi", "qa"]),
+    );
+    expect(choropleth?.readiness).toMatchObject({
+      status: "needs-review",
+      hasActiveAoi: false,
     });
   });
 
@@ -239,11 +247,46 @@ describe("generateMapAnalysisRecommendations", () => {
     const choropleth = state.recommendations.find((recommendation) => recommendation.id === "analysis-rec:polygon:choropleth:districts");
     expect(choropleth).toMatchObject({
       severity: "blocked",
+      readiness: {
+        status: "blocked",
+        qaBlockingIssueCount: 1,
+      },
       action: {
         type: "open-panel",
         panel: "scientific-qa",
       },
       blockedByIssueIds: ["qa-missing-crs"],
     });
+    expect(choropleth?.reasons.some((reason) => reason.kind === "qa" && reason.tone === "blocker")).toBe(true);
+  });
+
+  it("adds active Urban context reasons and boosts matching workflow routes", () => {
+    const state = generateMapAnalysisRecommendations({
+      overlayLayers: [pointLayer()],
+      userIntent: "analyze",
+      urbanContext: {
+        hasContext: true,
+        contextId: "urban-context-1",
+        studyAreaName: "Kadikoy heat access review",
+        activeFlowId: "accessibility",
+        activeLayerIds: ["events"],
+        layerCount: 1,
+        artifactCount: 0,
+        syncState: "synced",
+      },
+    });
+
+    const accessibility = state.recommendations.find((recommendation) =>
+      recommendation.action.type === "open-flow" && recommendation.action.flowId === "accessibility",
+    );
+
+    expect(accessibility?.reasons).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: "urban-context", label: "Urban flow match", tone: "supporting" }),
+        expect.objectContaining({ kind: "urban-context", label: "Urban layer match", tone: "supporting" }),
+      ]),
+    );
+    expect(accessibility?.readiness.urbanContextId).toBe("urban-context-1");
+    expect(state.metadata.urbanContextId).toBe("urban-context-1");
   });
 });

@@ -682,8 +682,23 @@ export const MapWorkspaceCockpit: React.FC<MapWorkspaceCockpitProps> = ({
                     <div className={styles.analysisRecommendationTopline}>
                       <span className={styles.analysisRecommendationSeverity}>{recommendation.severity}</span>
                       <strong>{recommendation.title}</strong>
+                      <span className={`${styles.analysisRecommendationReadiness} ${styles[`analysisReadiness${recommendation.readiness.status === "needs-review" ? "NeedsReview" : recommendation.readiness.status.charAt(0).toUpperCase() + recommendation.readiness.status.slice(1)}`]}`}>
+                        {recommendation.readiness.label}
+                      </span>
                     </div>
                     <p className={styles.analysisRecommendationRationale}>{recommendation.rationale}</p>
+
+                    <div className={styles.analysisRecommendationReasons} aria-label={`Reasons for ${recommendation.title}`}>
+                      {recommendation.reasons.slice(0, 3).map((reason) => (
+                        <span
+                          key={`${recommendation.id}-${reason.kind}-${reason.label}`}
+                          className={`${styles.analysisRecommendationReason} ${styles[`analysisReason${reason.tone.charAt(0).toUpperCase()}${reason.tone.slice(1)}`]}`}
+                          title={reason.detail}
+                        >
+                          {reason.label}
+                        </span>
+                      ))}
+                    </div>
 
                     <div className={styles.analysisRecommendationMetaGrid}>
                       <span>
@@ -707,7 +722,7 @@ export const MapWorkspaceCockpit: React.FC<MapWorkspaceCockpitProps> = ({
                         className={styles.analysisRecommendationAction}
                         onClick={() => onAnalysisRecommendationAction?.(recommendation)}
                         disabled={!onAnalysisRecommendationAction}
-                        aria-label={`Apply recommendation: ${recommendation.title}`}
+                        aria-label={`Apply recommendation: ${recommendation.title}. Readiness: ${recommendation.readiness.label}`}
                       >
                         {recommendation.actionLabel}
                         <ArrowRight size={12} />

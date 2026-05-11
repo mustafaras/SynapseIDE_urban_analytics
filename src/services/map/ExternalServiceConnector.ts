@@ -8,7 +8,14 @@ import type {
 } from "geojson";
 import { loadCityJSON } from "@/features/urbanAnalytics/voxcity/CityJSONLoader";
 import type { CityJSONLoadResult } from "@/features/urbanAnalytics/voxcity/cityJsonTypes";
-import type { OverlayLayerConfig } from "@/centerpanel/components/map/mapTypes";
+import type {
+  ExternalServiceLayerMetadata,
+  LayerCrsSummary,
+  LayerLicenseAttributionSummary,
+  LayerScientificQAMetadata,
+  OverlayLayerConfig,
+} from "@/centerpanel/components/map/mapTypes";
+import { withNormalizedLayerRegistryMetadata } from "@/centerpanel/components/map/mapLayerMetadata";
 import { buildFeatureCollectionMetadata } from "./MapDataImporter";
 import {
   normalizeXyzTileUrlTemplate,
@@ -108,6 +115,7 @@ export interface OverpassBuildingsResult {
   cacheKey: string;
   cacheHit: boolean;
   fetchedAt: string;
+  endpoint?: string;
   provenance: string;
 }
 
@@ -179,6 +187,196 @@ function createLayerId(prefix: string, sourceName: string): string {
     return `${prefix}-${cleanName}-${crypto.randomUUID()}`;
   }
   return `${prefix}-${cleanName}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function createEvidenceArtifactId(layerId: string): string {
+  return `map-evidence-layer-${layerId.replace(/[^a-zA-Z0-9_-]+/g, "-").replace(/^-+|-+$/g, "")}`;
+}
+
+function uniqueTextList(values: Array<string | null | undefined>): string[] {
+  return Array.from(new Set(values.map((value) => value?.trim()).filter((value): value is string => Boolean(value))));
+}
+
+function externalServiceCaveats(input: {
+  kind: ExternalServiceKind;
+  dependencyStatus?: ExternalServiceLayerMetadata["dependencyStatus"];
+  crs?: string;
+  cacheHit?: boolean;
+  wasClamped?: boolean;
+  cityJsonReferenceSystemMissing?: boolean;
+  extra?: string[];
+}): string[] {
+  const caveats: string[] = [];
+  caveats.push("External service availability, permissions, CORS policy, and rate limits can change outside this project session.");
+  caveats.push("Browser credentials are not embedded in evidence metadata; secured services need explicit review before reuse.");
+  if (!input.crs) {
+    caveats.push("External layer does not declare a usable CRS; CRS remains unknown until source metadata is verified.");
+  }
+  if (input.kind === "wms" || input.kind === "wmts" || input.kind === "xyz") {
+    caveats.push("Raster tile layers are visual references; feature-level geometry and attributes are not queryable from this layer.");
+  }
+  if (input.cacheHit) {
+    caveats.push("Layer was loaded from the in-browser service cache; refresh before time-sensitive interpretation.");
+  }
+  if (input.wasClamped) {
+    caveats.push("Requested viewport was clamped to protect the external public endpoint; spatial extent differs from the original view.");
+  }
+  if (input.cityJsonReferenceSystemMissing) {
+    caveats.push("CityJSON source did not declare a reference system; CRS metadata is intentionally unknown.");
+  }
+  if (input.dependencyStatus === "unknown") {
+    caveats.push("External service dependency state is unknown until a successful refresh or fetch completes.");
+  }
+  return uniqueTextList([...caveats, ...(input.extra ?? [])]);
+}
+
+function buildExternalServiceMetadata(input: {
+  kind: ExternalServiceKind;
+  endpoint: string;
+  title: string;
+  serviceVersion?: string;
+  layerName?: string;
+  urlTemplate?: string;
+  bounds?: [number, number, number, number];
+  crs?: string;
+  refreshedAt: string;
+  dependencyStatus?: ExternalServiceLayerMetadata["dependencyStatus"];
+  cacheTtlMs?: number;
+  cacheHit?: boolean;
+  license?: string;
+  attribution?: string;
+  caveats: string[];
+}): ExternalServiceLayerMetadata {
+  return {
+    kind: input.kind,
+    endpoint: input.endpoint,
+    title: input.title,
+    ...(input.serviceVersion ? { serviceVersion: input.serviceVersion } : {}),
+    ...(input.layerName ? { layerName: input.layerName } : {}),
+    ...(input.urlTemplate ? { urlTemplate: input.urlTemplate } : {}),
+    ...(input.bounds ? { bounds: input.bounds } : {}),
+    ...(input.crs ? { crs: input.crs } : {}),
+    refreshedAt: input.refreshedAt,
+    dependencyStatus: input.dependencyStatus ?? "live",
+    lastRequestAt: input.refreshedAt,
+    ...(input.cacheTtlMs != null ? { cacheTtlMs: input.cacheTtlMs } : {}),
+    ...(input.cacheHit != null ? { cacheHit: input.cacheHit } : {}),
+    staleAt: new Date(new Date(input.refreshedAt).getTime() + (input.cacheTtlMs ?? OVERPASS_CACHE_TTL_MS)).toISOString(),
+    credentialMode: "unknown",
+    corsMode: input.kind === "wms" || input.kind === "wmts" || input.kind === "xyz" ? "tile-client" : "browser-fetch",
+    ...(input.license ? { license: input.license } : {}),
+    ...(input.attribution ? { attribution: input.attribution } : {}),
+    caveats: input.caveats,
+  };
+}
+
+function buildExternalCrsSummary(crs: string | undefined, source: LayerCrsSummary["source"], notes: string[]): LayerCrsSummary {
+  return crs
+    ? { crs, status: "known", source, notes }
+    : { crs: null, status: "unknown", source, notes };
+}
+
+function buildExternalLicenseAttribution(input: {
+  sourceName: string;
+  sourceUrl: string;
+  license?: string;
+  attribution?: string;
+}): LayerLicenseAttributionSummary {
+  return {
+    license: input.license ?? null,
+    attribution: input.attribution ?? null,
+    sourceName: input.sourceName,
+    sourceUrl: input.sourceUrl,
+    requiresAttribution: Boolean(input.attribution || input.license),
+    source: "external-service",
+    notes: input.license || input.attribution
+      ? ["Attribution metadata was copied from the external service or preset declaration."]
+      : ["External service did not expose license or attribution metadata; review before publication."],
+  };
+}
+
+function buildExternalScientificQA(input: {
+  layerId: string;
+  kind: ExternalServiceKind;
+  checkedAt: string;
+  queryable: boolean;
+  crs?: string;
+  hasLicenseOrAttribution: boolean;
+  caveats: string[];
+  dependencyStatus?: ExternalServiceLayerMetadata["dependencyStatus"];
+  cacheHit?: boolean;
+}): LayerScientificQAMetadata {
+  const issueIds: string[] = [];
+  const badges: LayerScientificQAMetadata["badges"] = [];
+  if (!input.crs) {
+    issueIds.push(`external-crs-unknown-${input.layerId}`);
+    badges.push("missing_crs");
+  }
+  if (!input.hasLicenseOrAttribution) {
+    issueIds.push(`external-attribution-unknown-${input.layerId}`);
+  }
+  if (input.dependencyStatus === "stale" || input.dependencyStatus === "offline" || input.cacheHit) {
+    issueIds.push(`external-dependency-review-${input.layerId}`);
+    badges.push("stale_result");
+  }
+  if (input.caveats.length > 0) {
+    badges.push("uncertain_output");
+  }
+
+  return {
+    status: input.dependencyStatus === "offline" ? "error" : issueIds.length > 0 ? "warning" : "passed",
+    issueIds,
+    badges: Array.from(new Set(badges)),
+    checkedAt: input.checkedAt,
+    featureIssueCount: 0,
+    usedWorker: false,
+    caveats: input.caveats,
+    categorySummaries: [
+      {
+        category: "source-provenance",
+        severity: input.dependencyStatus === "offline" ? "blocked" : input.dependencyStatus === "stale" || input.cacheHit ? "warning" : "pass",
+        issueIds: input.dependencyStatus === "offline" || input.dependencyStatus === "stale" || input.cacheHit ? [`external-dependency-review-${input.layerId}`] : [],
+        affectedLayerIds: [input.layerId],
+        reasons: [`External dependency status: ${input.dependencyStatus ?? "live"}.`],
+        recommendedFixes: input.dependencyStatus === "offline" ? ["Reconnect or remove the unavailable external dependency before publication."] : [],
+      },
+      {
+        category: "crs",
+        severity: input.crs ? "pass" : "unknown",
+        issueIds: input.crs ? [] : [`external-crs-unknown-${input.layerId}`],
+        affectedLayerIds: [input.layerId],
+        reasons: input.crs ? [`CRS declared as ${input.crs}.`] : ["External service did not declare CRS metadata for this layer."],
+        recommendedFixes: input.crs ? [] : ["Verify CRS from service documentation before analytical measurement."],
+      },
+      {
+        category: "attribution-license",
+        severity: input.hasLicenseOrAttribution ? "pass" : "unknown",
+        issueIds: input.hasLicenseOrAttribution ? [] : [`external-attribution-unknown-${input.layerId}`],
+        affectedLayerIds: [input.layerId],
+        reasons: input.hasLicenseOrAttribution ? ["License or attribution metadata is present."] : ["License and attribution metadata is missing."],
+        recommendedFixes: input.hasLicenseOrAttribution ? [] : ["Add provider attribution before publication or report handoff."],
+      },
+      {
+        category: "schema",
+        severity: input.queryable ? "pass" : "unknown",
+        issueIds: [],
+        affectedLayerIds: [input.layerId],
+        reasons: input.queryable ? ["Layer is queryable in Map Explorer."] : ["Raster/service layer is not queryable from the map registry."],
+        recommendedFixes: input.queryable ? [] : ["Use a feature service or downloaded dataset for feature-level analysis."],
+      },
+    ],
+    signature: `external:${input.kind}:${input.layerId}:${input.crs ?? "unknown"}:${input.dependencyStatus ?? "live"}:${input.cacheHit ? "cached" : "fresh"}`,
+  };
+}
+
+function withEvidenceMetadata(layer: OverlayLayerConfig): OverlayLayerConfig {
+  return withNormalizedLayerRegistryMetadata({
+    ...layer,
+    metadata: {
+      ...(layer.metadata ?? {}),
+      evidenceArtifactId: layer.metadata?.evidenceArtifactId ?? createEvidenceArtifactId(layer.id),
+    },
+  });
 }
 
 function isAbortError(error: unknown): boolean {
@@ -580,9 +778,23 @@ function createWmtsRasterLayerConfig(
       tileRow: "{y}",
       tileCol: "{x}",
     });
+  const layerId = createLayerId("external-wmts", layer.name);
+  const refreshedAt = nowIsoTimestamp();
+  const crs = matrixSet.supportedCrs;
+  const caveats = externalServiceCaveats({ kind: "wmts", crs });
+  const sourceName = capabilities.title;
+  const scientificQA = buildExternalScientificQA({
+    layerId,
+    kind: "wmts",
+    checkedAt: refreshedAt,
+    queryable: false,
+    crs,
+    hasLicenseOrAttribution: false,
+    caveats,
+  });
 
-  return {
-    id: createLayerId("external-wmts", layer.name),
+  return withEvidenceMetadata({
+    id: layerId,
     name: layer.title || layer.name,
     type: "raster-tile",
     visible: true,
@@ -591,37 +803,45 @@ function createWmtsRasterLayerConfig(
     group: "data",
     sourceKind: "external",
     queryable: false,
-    qaStatus: "passed",
+    qaStatus: scientificQA.status,
     provenance: {
       label: capabilities.title,
       sourceName: capabilities.title,
       sourceUrl: capabilities.endpoint,
       method: "WMTS GetTile raster overlay",
-      generatedAt: nowIsoTimestamp(),
+      generatedAt: refreshedAt,
+      notes: caveats,
     },
     metadata: {
       featureCount: 0,
       geometryType: "Raster tiles",
-      updatedAt: nowIsoTimestamp(),
-      dataVersion: nowIsoTimestamp(),
-      externalService: {
+      updatedAt: refreshedAt,
+      dataVersion: refreshedAt,
+      externalService: buildExternalServiceMetadata({
         kind: "wmts",
         endpoint: capabilities.endpoint,
-        title: capabilities.title,
+        title: sourceName,
         serviceVersion: capabilities.version || "1.0.0",
         layerName: layer.name,
         urlTemplate: tileUrl,
-        crs: matrixSet.supportedCrs,
-        refreshedAt: nowIsoTimestamp(),
-      },
+        crs,
+        refreshedAt,
+        caveats,
+      }),
+      crsSummary: buildExternalCrsSummary(crs, "external-service", ["WMTS tile matrix set declares the display CRS for tile retrieval."]),
+      licenseAttribution: buildExternalLicenseAttribution({
+        sourceName,
+        sourceUrl: capabilities.endpoint,
+      }),
+      scientificQA,
       datasetContext: {
         layerTitle: layer.title,
         source: capabilities.title,
-        crs: matrixSet.supportedCrs,
+        crs,
         schemaSummary: [layer.name, `TileMatrixSet: ${matrixSet.id}`, ...(layer.abstract ? [layer.abstract] : [])],
       },
     },
-  };
+  });
 }
 
 export function createWmsRasterLayerConfig(
@@ -648,9 +868,22 @@ export function createWmsRasterLayerConfig(
     [isWms13 ? "crs" : "srs"]: crs,
     bbox: crs === "EPSG:3857" ? "{bbox-epsg-3857}" : "{bbox-epsg-4326}",
   });
+  const layerId = createLayerId("external-wms", layer.name);
+  const refreshedAt = nowIsoTimestamp();
+  const caveats = externalServiceCaveats({ kind: "wms", crs });
+  const sourceName = capabilities.title;
+  const scientificQA = buildExternalScientificQA({
+    layerId,
+    kind: "wms",
+    checkedAt: refreshedAt,
+    queryable: false,
+    crs,
+    hasLicenseOrAttribution: false,
+    caveats,
+  });
 
-  return {
-    id: createLayerId("external-wms", layer.name),
+  return withEvidenceMetadata({
+    id: layerId,
     name: layer.title || layer.name,
     type: "raster-tile",
     visible: true,
@@ -659,29 +892,37 @@ export function createWmsRasterLayerConfig(
     group: "data",
     sourceKind: "external",
     queryable: false,
-    qaStatus: crs === "EPSG:3857" || crs === "EPSG:4326" ? "passed" : "warning",
+    qaStatus: scientificQA.status,
     provenance: {
       label: capabilities.title,
       sourceName: capabilities.title,
       sourceUrl: capabilities.endpoint,
       method: `${capabilities.serviceType.toUpperCase()} GetMap raster overlay`,
-      generatedAt: nowIsoTimestamp(),
+      generatedAt: refreshedAt,
+      notes: caveats,
     },
     metadata: {
       featureCount: 0,
       geometryType: "Raster tiles",
-      updatedAt: nowIsoTimestamp(),
-      dataVersion: nowIsoTimestamp(),
-      externalService: {
+      updatedAt: refreshedAt,
+      dataVersion: refreshedAt,
+      externalService: buildExternalServiceMetadata({
         kind: "wms",
         endpoint: capabilities.endpoint,
-        title: capabilities.title,
+        title: sourceName,
         serviceVersion: version,
         layerName: layer.name,
         urlTemplate: tileUrl,
         crs,
-        refreshedAt: nowIsoTimestamp(),
-      },
+        refreshedAt,
+        caveats,
+      }),
+      crsSummary: buildExternalCrsSummary(crs, "external-service", ["WMS GetMap request declares the display CRS used for tile retrieval."]),
+      licenseAttribution: buildExternalLicenseAttribution({
+        sourceName,
+        sourceUrl: capabilities.endpoint,
+      }),
+      scientificQA,
       datasetContext: {
         layerTitle: layer.title,
         source: capabilities.title,
@@ -689,7 +930,7 @@ export function createWmsRasterLayerConfig(
         schemaSummary: [layer.name, ...(layer.abstract ? [layer.abstract] : [])],
       },
     },
-  };
+  });
 }
 
 export async function fetchWfsFeatureCollection(
@@ -723,8 +964,23 @@ export function createWfsLayerConfig(
   options: { id?: string; visible?: boolean; opacity?: number } = {},
 ): OverlayLayerConfig {
   const metadata = buildFeatureCollectionMetadata(featureCollection);
-  return {
-    id: options.id ?? createLayerId("external-wfs", featureType.name),
+  const layerId = options.id ?? createLayerId("external-wfs", featureType.name);
+  const refreshedAt = nowIsoTimestamp();
+  const crs = "EPSG:4326";
+  const caveats = externalServiceCaveats({ kind: "wfs", crs });
+  const sourceName = capabilities.title;
+  const scientificQA = buildExternalScientificQA({
+    layerId,
+    kind: "wfs",
+    checkedAt: refreshedAt,
+    queryable: true,
+    crs,
+    hasLicenseOrAttribution: false,
+    caveats,
+  });
+
+  return withEvidenceMetadata({
+    id: layerId,
     name: featureType.title || featureType.name,
     type: "geojson",
     visible: options.visible ?? true,
@@ -733,36 +989,44 @@ export function createWfsLayerConfig(
     group: "data",
     sourceKind: "external",
     queryable: true,
-    qaStatus: "unchecked",
+    qaStatus: scientificQA.status,
     provenance: {
       label: capabilities.title,
       sourceName: capabilities.title,
       sourceUrl: capabilities.endpoint,
       method: "WFS GetFeature GeoJSON with current map bbox filter",
-      generatedAt: nowIsoTimestamp(),
+      generatedAt: refreshedAt,
+      notes: caveats,
     },
     metadata: {
       ...metadata,
-      updatedAt: nowIsoTimestamp(),
-      dataVersion: nowIsoTimestamp(),
-      externalService: {
+      updatedAt: refreshedAt,
+      dataVersion: refreshedAt,
+      externalService: buildExternalServiceMetadata({
         kind: "wfs",
         endpoint: capabilities.endpoint,
-        title: capabilities.title,
+        title: sourceName,
         serviceVersion: capabilities.version || "2.0.0",
         layerName: featureType.name,
         ...(bounds ? { bounds } : {}),
-        crs: "EPSG:4326",
-        refreshedAt: nowIsoTimestamp(),
-      },
+        crs,
+        refreshedAt,
+        caveats,
+      }),
+      crsSummary: buildExternalCrsSummary(crs, "external-service", ["WFS request explicitly requested srsName=EPSG:4326 for the returned GeoJSON features."]),
+      licenseAttribution: buildExternalLicenseAttribution({
+        sourceName,
+        sourceUrl: capabilities.endpoint,
+      }),
+      scientificQA,
       datasetContext: {
         layerTitle: featureType.title,
         source: capabilities.title,
-        crs: "EPSG:4326",
+        crs,
         schemaSummary: featureType.abstract ? [featureType.abstract] : [],
       },
     },
-  };
+  });
 }
 
 export function createXyzRasterLayerConfig(
@@ -772,8 +1036,22 @@ export function createXyzRasterLayerConfig(
 ): OverlayLayerConfig {
   const normalizedUrlTemplate = normalizeXyzTileUrlTemplate(urlTemplate);
   ensureValidXyzUrlTemplate(normalizedUrlTemplate);
-  return {
-    id: createLayerId("external-xyz", name),
+  const layerId = createLayerId("external-xyz", name);
+  const refreshedAt = nowIsoTimestamp();
+  const crs = "EPSG:3857";
+  const caveats = externalServiceCaveats({ kind: "xyz", crs });
+  const scientificQA = buildExternalScientificQA({
+    layerId,
+    kind: "xyz",
+    checkedAt: refreshedAt,
+    queryable: false,
+    crs,
+    hasLicenseOrAttribution: Boolean(attribution),
+    caveats,
+  });
+
+  return withEvidenceMetadata({
+    id: layerId,
     name,
     type: "raster-tile",
     visible: true,
@@ -782,35 +1060,45 @@ export function createXyzRasterLayerConfig(
     group: "data",
     sourceKind: "external",
     queryable: false,
-    qaStatus: "passed",
+    qaStatus: scientificQA.status,
     provenance: {
       label: attribution ?? normalizedUrlTemplate,
       sourceName: name,
       sourceUrl: normalizedUrlTemplate,
       ...(attribution ? { attribution } : {}),
       method: "XYZ raster tile overlay",
-      generatedAt: nowIsoTimestamp(),
+      generatedAt: refreshedAt,
+      notes: caveats,
     },
     metadata: {
       featureCount: 0,
       geometryType: "Raster tiles",
-      updatedAt: nowIsoTimestamp(),
-      dataVersion: nowIsoTimestamp(),
-      externalService: {
+      updatedAt: refreshedAt,
+      dataVersion: refreshedAt,
+      externalService: buildExternalServiceMetadata({
         kind: "xyz",
         endpoint: normalizedUrlTemplate,
         title: name,
         urlTemplate: normalizedUrlTemplate,
-        crs: "EPSG:3857",
-        refreshedAt: nowIsoTimestamp(),
-      },
+        crs,
+        refreshedAt,
+        ...(attribution ? { attribution } : {}),
+        caveats,
+      }),
+      crsSummary: buildExternalCrsSummary(crs, "external-service", ["XYZ web tile templates are treated as Web Mercator display tiles."]),
+      licenseAttribution: buildExternalLicenseAttribution({
+        sourceName: name,
+        sourceUrl: normalizedUrlTemplate,
+        ...(attribution ? { attribution } : {}),
+      }),
+      scientificQA,
       datasetContext: {
         layerTitle: name,
         source: attribution ?? normalizedUrlTemplate,
-        crs: "EPSG:3857",
+        crs,
       },
     },
-  };
+  });
 }
 
 export function refreshRasterLayerConfig(layer: OverlayLayerConfig, token = Date.now().toString()): OverlayLayerConfig {
@@ -819,7 +1107,7 @@ export function refreshRasterLayerConfig(layer: OverlayLayerConfig, token = Date
   }
   const refreshedAt = nowIsoTimestamp();
   const refreshedUrl = cacheBustTileUrlTemplate(layer.sourceData, token);
-  return {
+  return withEvidenceMetadata({
     ...layer,
     sourceData: refreshedUrl,
     metadata: {
@@ -831,10 +1119,14 @@ export function refreshRasterLayerConfig(layer: OverlayLayerConfig, token = Date
           ...layer.metadata.externalService,
           urlTemplate: refreshedUrl,
           refreshedAt,
+          lastRequestAt: refreshedAt,
+          dependencyStatus: "live",
+          cacheHit: false,
+          staleAt: new Date(new Date(refreshedAt).getTime() + (layer.metadata.externalService.cacheTtlMs ?? OVERPASS_CACHE_TTL_MS)).toISOString(),
         } }
         : {}),
     },
-  };
+  });
 }
 
 function toRadians(value: number): number {
@@ -1043,6 +1335,7 @@ export async function fetchOverpassBuildingsForBounds(
     cacheKey: boundsInfo.cacheKey,
     cacheHit: false,
     fetchedAt: nowIsoTimestamp(),
+    endpoint,
     provenance: OSM_BUILDING_PROVENANCE,
   };
   overpassCache.set(boundsInfo.cacheKey, {
@@ -1054,8 +1347,29 @@ export async function fetchOverpassBuildingsForBounds(
 
 export function createOsmBuildingsLayerConfig(result: OverpassBuildingsResult): OverlayLayerConfig {
   const metadata = buildFeatureCollectionMetadata(result.featureCollection);
-  return {
-    id: createLayerId("voxcity-osm-buildings", "osm-buildings"),
+  const layerId = createLayerId("voxcity-osm-buildings", "osm-buildings");
+  const endpoint = result.endpoint ?? DEFAULT_OVERPASS_ENDPOINT;
+  const crs = "EPSG:4326";
+  const caveats = externalServiceCaveats({
+    kind: "overpass",
+    crs,
+    cacheHit: result.cacheHit,
+    wasClamped: result.wasClamped,
+  });
+  const scientificQA = buildExternalScientificQA({
+    layerId,
+    kind: "overpass",
+    checkedAt: result.fetchedAt,
+    queryable: true,
+    crs,
+    hasLicenseOrAttribution: true,
+    caveats,
+    dependencyStatus: result.cacheHit ? "cached" : "live",
+    cacheHit: result.cacheHit,
+  });
+
+  return withEvidenceMetadata({
+    id: layerId,
     name: "OSM Building Footprints",
     type: "geojson",
     visible: true,
@@ -1064,7 +1378,7 @@ export function createOsmBuildingsLayerConfig(result: OverpassBuildingsResult): 
     group: "voxcity",
     sourceKind: "external",
     queryable: true,
-    qaStatus: "unchecked",
+    qaStatus: scientificQA.status,
     style: {
       "fill-color": [
         "interpolate",
@@ -1086,27 +1400,39 @@ export function createOsmBuildingsLayerConfig(result: OverpassBuildingsResult): 
     provenance: {
       label: OSM_BUILDING_PROVENANCE,
       sourceName: "OpenStreetMap Overpass API",
-      sourceUrl: DEFAULT_OVERPASS_ENDPOINT,
+      sourceUrl: endpoint,
       license: "ODbL",
       attribution: OSM_BUILDING_PROVENANCE,
       method: `Overpass building query clipped to ${result.areaKm2.toFixed(2)} km² bbox`,
       generatedAt: result.fetchedAt,
-      notes: result.wasClamped
-        ? ["Requested viewport was clamped to 4 km² to protect the public Overpass endpoint."]
-        : [],
+      notes: caveats,
     },
     metadata: {
       ...metadata,
       updatedAt: result.fetchedAt,
       dataVersion: result.fetchedAt,
-      externalService: {
+      externalService: buildExternalServiceMetadata({
         kind: "overpass",
-        endpoint: DEFAULT_OVERPASS_ENDPOINT,
+        endpoint,
         title: "OpenStreetMap Overpass API",
         bounds: result.requestedBounds,
-        crs: "EPSG:4326",
+        crs,
         refreshedAt: result.fetchedAt,
-      },
+        dependencyStatus: result.cacheHit ? "cached" : "live",
+        cacheTtlMs: OVERPASS_CACHE_TTL_MS,
+        cacheHit: result.cacheHit,
+        license: "ODbL",
+        attribution: OSM_BUILDING_PROVENANCE,
+        caveats,
+      }),
+      crsSummary: buildExternalCrsSummary(crs, "external-service", ["Overpass building coordinates are returned as longitude/latitude GeoJSON from OpenStreetMap."]),
+      licenseAttribution: buildExternalLicenseAttribution({
+        sourceName: "OpenStreetMap Overpass API",
+        sourceUrl: endpoint,
+        license: "ODbL",
+        attribution: OSM_BUILDING_PROVENANCE,
+      }),
+      scientificQA,
       datasetContext: {
         layerTitle: "OSM Building Footprints",
         source: "OpenStreetMap Overpass API",
@@ -1116,7 +1442,7 @@ export function createOsmBuildingsLayerConfig(result: OverpassBuildingsResult): 
         schemaSummary: ["building", "building:levels", "height", "addr:housenumber", "addr:street", "start_date", "osm_id"],
       },
     },
-  };
+  });
 }
 
 export function seedOverpassCacheForTests(result: OverpassBuildingsResult): void {
@@ -1161,8 +1487,26 @@ export function createRemoteCityJSONLayerConfig(
 ): OverlayLayerConfig {
   const metadata = buildFeatureCollectionMetadata(featureCollection);
   const lods = uniqueSorted(result.objects.map((object) => object.lod));
-  return {
-    id: createLayerId("voxcity-cityjson-url", "cityjson"),
+  const layerId = createLayerId("voxcity-cityjson-url", "cityjson");
+  const refreshedAt = nowIsoTimestamp();
+  const crs = result.summary.referenceSystem?.trim() || undefined;
+  const caveats = externalServiceCaveats({
+    kind: "cityjson",
+    crs,
+    cityJsonReferenceSystemMissing: !crs,
+  });
+  const scientificQA = buildExternalScientificQA({
+    layerId,
+    kind: "cityjson",
+    checkedAt: refreshedAt,
+    queryable: true,
+    ...(crs ? { crs } : {}),
+    hasLicenseOrAttribution: false,
+    caveats,
+  });
+
+  return withEvidenceMetadata({
+    id: layerId,
     name: `Remote CityJSON${lods.length > 0 ? ` LOD ${lods[lods.length - 1]}` : ""}`,
     type: "geojson",
     visible: true,
@@ -1171,33 +1515,44 @@ export function createRemoteCityJSONLayerConfig(
     group: "voxcity",
     sourceKind: "external",
     queryable: true,
-    qaStatus: "unchecked",
+    qaStatus: scientificQA.status,
     provenance: {
       label: sourceUrl,
       sourceName: "Remote CityJSON",
       sourceUrl,
       method: "CityJSON URL parsed into semantic 2D footprint surfaces",
-      generatedAt: nowIsoTimestamp(),
+      generatedAt: refreshedAt,
+      notes: caveats,
     },
     metadata: {
       ...metadata,
-      updatedAt: nowIsoTimestamp(),
-      dataVersion: nowIsoTimestamp(),
-      externalService: {
+      updatedAt: refreshedAt,
+      dataVersion: refreshedAt,
+      externalService: buildExternalServiceMetadata({
         kind: "cityjson",
         endpoint: sourceUrl,
         title: "Remote CityJSON",
-        crs: result.summary.referenceSystem ?? "CityJSON source CRS",
-        refreshedAt: nowIsoTimestamp(),
-      },
+        ...(crs ? { crs } : {}),
+        refreshedAt,
+        caveats,
+      }),
+      crsSummary: buildExternalCrsSummary(crs, "external-service", crs
+        ? ["CityJSON source declared a reference system in its metadata."]
+        : ["CityJSON source did not declare a reference system; CRS is intentionally unknown."],
+      ),
+      licenseAttribution: buildExternalLicenseAttribution({
+        sourceName: "Remote CityJSON",
+        sourceUrl,
+      }),
+      scientificQA,
       datasetContext: {
         layerTitle: "Remote CityJSON semantic surfaces",
         source: sourceUrl,
-        crs: result.summary.referenceSystem ?? "CityJSON source CRS",
+        ...(crs ? { crs } : {}),
         schemaSummary: [`LODs: ${lods.join(", ") || "none detected"}`, `${result.objects.length} city objects`],
       },
     },
-  };
+  });
 }
 
 export const ExternalServiceConnector = {

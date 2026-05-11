@@ -83,6 +83,7 @@ function formatThresholdSummary(thresholds: Record<string, number>): string {
 export const ObjectDetectorPanel: React.FC = () => {
   const addOverlayLayer = useMapExplorerStore((state) => state.addOverlayLayer);
   const openMap = useMapExplorerStore((state) => state.open);
+  const upsertMapEvidenceArtifact = useMapExplorerStore((state) => state.upsertMapEvidenceArtifact);
   const upsertCompletedRun = useFlowStore((state) => state.upsertCompletedRun);
   const registrySources = useEOSourceStore((state) => state.sources);
   const selectedEOSourceId = useEOSourceStore((state) => state.selectedSourceId);
@@ -146,10 +147,11 @@ export const ObjectDetectorPanel: React.FC = () => {
     });
 
     addOverlayLayer(publication.adapted.layer);
+    upsertMapEvidenceArtifact(publication.adapted.evidenceArtifact);
     openMap();
     upsertCompletedRun(publication.completedRun);
     setPublishMessage(`${formatModeLabel(run.metadata.executionMode)} detection published from ${run.source.title}. ${publication.publishMessage}`);
-  }, [addOverlayLayer, openMap, upsertCompletedRun]);
+  }, [addOverlayLayer, openMap, upsertCompletedRun, upsertMapEvidenceArtifact]);
 
   const toggleClass = (cls: UrbanObjectClass) => {
     setSelectedClasses((prev) => {

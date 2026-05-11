@@ -1,9 +1,11 @@
 import type { Feature, FeatureCollection, Geometry } from "geojson";
 import type { AnalyticalFlowId } from "@/features/urbanAnalytics/lib/types";
 import type {
+  MapLayerRegistryLayerSummary,
   OverlayLayerConfig,
   OverlaySourceData,
 } from "@/centerpanel/components/map/mapTypes";
+import type { MapExplorerContextSummary } from "@/centerpanel/components/map/mapContextSummary";
 import type {
   MapScientificQAIssue,
   MapScientificQAState,
@@ -12,6 +14,62 @@ import type {
 export const MAP_ANALYSIS_RECOMMENDER_VERSION = 1;
 
 export type MapAnalysisRecommendationSeverity = "blocked" | "high" | "medium" | "low";
+
+export type MapAnalysisRecommendationReadinessStatus = "ready" | "needs-review" | "blocked";
+
+export type MapAnalysisRecommendationReasonKind =
+  | "layer-type"
+  | "geometry"
+  | "fields"
+  | "temporal"
+  | "aoi"
+  | "qa"
+  | "urban-context"
+  | "selection"
+  | "workflow-manifest"
+  | "provenance";
+
+export type MapAnalysisRecommendationReasonTone = "supporting" | "context" | "warning" | "blocker";
+
+export interface MapAnalysisRecommendationReason {
+  kind: MapAnalysisRecommendationReasonKind;
+  tone: MapAnalysisRecommendationReasonTone;
+  label: string;
+  detail: string;
+  layerIds?: string[];
+}
+
+export interface MapAnalysisRecommendationReadiness {
+  status: MapAnalysisRecommendationReadinessStatus;
+  label: string;
+  blockers: string[];
+  warnings: string[];
+  requiredActions: string[];
+  qaBlockingIssueCount: number;
+  hasActiveAoi: boolean;
+  checkedAt: string;
+  contextId?: string;
+  urbanContextId?: string;
+}
+
+export interface MapAnalysisUrbanContextSummary {
+  hasContext: boolean;
+  contextId?: string | null;
+  studyAreaId?: string | null;
+  studyAreaName?: string | null;
+  studyAreaBounds?: [number, number, number, number] | null;
+  activeFlowId?: AnalyticalFlowId | string | null;
+  activeLayerIds?: readonly string[];
+  activeAoiId?: string | null;
+  activeRunId?: string | null;
+  selectedIndicatorKinds?: readonly string[];
+  layerCount?: number;
+  artifactCount?: number;
+  fitnessStatus?: string;
+  syncState?: string;
+  hasRestoreWarnings?: boolean;
+  restoreWarningCount?: number;
+}
 
 export type MapAnalysisRecommendationCategory =
   | "qa"
@@ -68,6 +126,8 @@ export interface MapAnalysisRecommendation {
   action: MapAnalysisRecommendationAction;
   layerIds: string[];
   evidence: string[];
+  reasons: MapAnalysisRecommendationReason[];
+  readiness: MapAnalysisRecommendationReadiness;
   blockedByIssueIds?: string[];
 }
 
@@ -77,6 +137,9 @@ export interface MapAnalysisRecommendationContext {
   scientificQA?: MapScientificQAState | null;
   currentMapBounds?: [number, number, number, number] | null;
   userIntent?: MapAnalysisRecommendationIntent;
+  mapContextSummary?: MapExplorerContextSummary | null;
+  layerSummaries?: readonly MapLayerRegistryLayerSummary[];
+  urbanContext?: MapAnalysisUrbanContextSummary | null;
 }
 
 export interface MapAnalysisRecommendationState {
@@ -88,7 +151,10 @@ export interface MapAnalysisRecommendationState {
     selectedFeatureCount: number;
     qaBlockingIssueCount: number;
     recommendationCounts: Record<MapAnalysisRecommendationSeverity, number>;
+    readinessCounts: Record<MapAnalysisRecommendationReadinessStatus, number>;
     signature: string;
+    contextId?: string;
+    urbanContextId?: string;
   };
 }
 
@@ -97,8 +163,11 @@ interface LayerAnalysisProfile {
   featureCollection: FeatureCollection | null;
   featureCount: number;
   geometryFamilies: Set<"point" | "line" | "polygon" | "mixed" | "unknown" | "raster">;
+  fieldNames: string[];
   numericFields: string[];
+  temporalFields: string[];
   temporalFrameCount: number;
+  manifestIds: string[];
   isBuildingLayer: boolean;
   isGeoAiLayer: boolean;
 }
@@ -180,6 +249,23 @@ function finiteNumber(value: unknown): number | null {
   return null;
 }
 
+function uniqueStrings(values: readonly string[], limit = 24): string[] {
+  return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean))).slice(0, limit);
+}
+
+function collectFieldNames(featureCollection: FeatureCollection | null, layer: OverlayLayerConfig): string[] {
+  const fields: string[] = [];
+  fields.push(...(layer.metadata?.fields ?? []));
+  fields.push(...(layer.metadata?.schemaSummary?.fields.map((field) => field.name) ?? []));
+  fields.push(...(layer.metadata?.datasetContext?.schemaSummary ?? []));
+
+  for (const feature of featureCollection?.features ?? []) {
+    fields.push(...Object.keys(feature.properties ?? {}).filter((field) => !field.startsWith("__")));
+  }
+
+  return uniqueStrings(fields, 48).sort((left, right) => left.localeCompare(right, undefined, { sensitivity: "base" }));
+}
+
 function collectNumericFields(featureCollection: FeatureCollection | null): string[] {
   if (!featureCollection) {
     return [];
@@ -202,6 +288,37 @@ function collectNumericFields(featureCollection: FeatureCollection | null): stri
     .filter(([, count]) => count > 0)
     .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
     .map(([field]) => field);
+}
+
+const TEMPORAL_FIELD_PATTERN = /(^|_)(date|time|timestamp|year|month|period|observed|valid)(_|\b)/i;
+
+function collectTemporalFields(featureCollection: FeatureCollection | null, layer: OverlayLayerConfig, fieldNames: readonly string[]): string[] {
+  const schemaTemporalFields = layer.metadata?.schemaSummary?.fields
+    .filter((field) => field.role === "temporal")
+    .map((field) => field.name) ?? [];
+  const nameMatches = fieldNames.filter((field) => TEMPORAL_FIELD_PATTERN.test(field));
+  const valueMatches: string[] = [];
+
+  for (const feature of featureCollection?.features.slice(0, 24) ?? []) {
+    for (const [field, rawValue] of Object.entries(feature.properties ?? {})) {
+      if (field.startsWith("__") || valueMatches.includes(field)) {
+        continue;
+      }
+      if (typeof rawValue === "string" && Number.isFinite(Date.parse(rawValue))) {
+        valueMatches.push(field);
+      }
+    }
+  }
+
+  return uniqueStrings([...schemaTemporalFields, ...nameMatches, ...valueMatches], 16)
+    .sort((left, right) => left.localeCompare(right, undefined, { sensitivity: "base" }));
+}
+
+function collectManifestIds(layer: OverlayLayerConfig): string[] {
+  return uniqueStrings([
+    layer.metadata?.reproducibilityManifest?.manifestId ?? "",
+    layer.metadata?.analysisResult?.reproducibilityManifest?.manifestId ?? "",
+  ]);
 }
 
 function resolveTemporalFrameCount(layer: OverlayLayerConfig): number {
@@ -258,13 +375,18 @@ function buildLayerProfile(layer: OverlayLayerConfig): LayerAnalysisProfile {
     geometryFamilies.add("unknown");
   }
 
+  const fieldNames = collectFieldNames(featureCollection, layer);
+
   return {
     layer,
     featureCollection,
     featureCount: layer.metadata?.featureCount ?? featureCollection?.features.length ?? 0,
     geometryFamilies,
+    fieldNames,
     numericFields: collectNumericFields(featureCollection),
+    temporalFields: collectTemporalFields(featureCollection, layer, fieldNames),
     temporalFrameCount: resolveTemporalFrameCount(layer),
+    manifestIds: collectManifestIds(layer),
     isBuildingLayer: resolveIsBuildingLayer(layer),
     isGeoAiLayer: resolveIsGeoAiLayer(layer),
   };
@@ -321,12 +443,33 @@ function withQaGate(
   };
 }
 
-function createRecommendation(input: Omit<MapAnalysisRecommendation, "id"> & { idParts: string[] }): MapAnalysisRecommendation {
+function createFallbackReadiness(): MapAnalysisRecommendationReadiness {
+  return {
+    status: "needs-review",
+    label: "Needs review",
+    blockers: [],
+    warnings: ["Recommendation has not been checked against the current map context."],
+    requiredActions: ["Review map context before dispatch."],
+    qaBlockingIssueCount: 0,
+    hasActiveAoi: false,
+    checkedAt: new Date(0).toISOString(),
+  };
+}
+
+function createRecommendation(
+  input: Omit<MapAnalysisRecommendation, "id" | "reasons" | "readiness"> & {
+    idParts: string[];
+    reasons?: MapAnalysisRecommendationReason[];
+    readiness?: MapAnalysisRecommendationReadiness;
+  },
+): MapAnalysisRecommendation {
   const id = ["analysis-rec", ...input.idParts].map(sanitizeIdPart).join(":");
-  const { idParts: _idParts, ...recommendation } = input;
+  const { idParts: _idParts, reasons, readiness, ...recommendation } = input;
   void _idParts;
   return {
     id,
+    reasons: reasons ?? [],
+    readiness: readiness ?? createFallbackReadiness(),
     ...recommendation,
   };
 }
@@ -334,6 +477,339 @@ function createRecommendation(input: Omit<MapAnalysisRecommendation, "id"> & { i
 function describeLayer(layer: OverlayLayerConfig, profile?: LayerAnalysisProfile): string {
   const featureCount = profile?.featureCount ?? layer.metadata?.featureCount;
   return featureCount != null ? `${layer.name} (${featureCount.toLocaleString()} features)` : layer.name;
+}
+
+function formatList(values: readonly string[], limit = 4): string {
+  const shown = values.slice(0, limit);
+  const suffix = values.length > limit ? ` +${values.length - limit}` : "";
+  return shown.length > 0 ? `${shown.join(", ")}${suffix}` : "none";
+}
+
+function pushReason(
+  reasons: MapAnalysisRecommendationReason[],
+  reason: MapAnalysisRecommendationReason,
+): void {
+  const key = `${reason.kind}:${reason.label}:${reason.detail}:${reason.layerIds?.join("|") ?? ""}`;
+  if (reasons.some((entry) => `${entry.kind}:${entry.label}:${entry.detail}:${entry.layerIds?.join("|") ?? ""}` === key)) {
+    return;
+  }
+  reasons.push(reason);
+}
+
+function recommendationNeedsAoi(recommendation: MapAnalysisRecommendation): boolean {
+  if (recommendation.category === "qa" || recommendation.category === "selection" || recommendation.action.type === "run-selection-statistics") {
+    return false;
+  }
+  if (recommendation.action.type === "open-flow") {
+    return recommendation.action.flowId !== "accessibility" && recommendation.action.flowId !== "voxcity_3d";
+  }
+  return recommendation.category === "polygon" || recommendation.category === "temporal";
+}
+
+function findWarningIssues(scientificQA: MapScientificQAState | null | undefined, layerIds: readonly string[]): MapScientificQAIssue[] {
+  return scientificQA?.issues.filter((issue) => issue.severity === "warning" && issueMatchesLayers(issue, layerIds)) ?? [];
+}
+
+function createLayerReasons(profile: LayerAnalysisProfile): MapAnalysisRecommendationReason[] {
+  const { layer } = profile;
+  const layerIds = [layer.id];
+  const reasons: MapAnalysisRecommendationReason[] = [];
+  const sourceKind = layer.sourceKind ?? layer.metadata?.registry?.sourceKind ?? "project";
+  const geometryFamilies = [...profile.geometryFamilies].sort();
+
+  pushReason(reasons, {
+    kind: "layer-type",
+    tone: "supporting",
+    label: "Layer type",
+    detail: `${layer.name} is a visible ${layer.type}${sourceKind ? ` layer from ${sourceKind}` : " layer"}.`,
+    layerIds,
+  });
+
+  pushReason(reasons, {
+    kind: "geometry",
+    tone: geometryFamilies.includes("unknown") ? "warning" : "supporting",
+    label: "Geometry",
+    detail: geometryFamilies.includes("unknown")
+      ? `${layer.name} has incomplete geometry metadata; verify before analytical interpretation.`
+      : `${layer.name} exposes ${formatList(geometryFamilies)} geometry suitable for this route.`,
+    layerIds,
+  });
+
+  pushReason(reasons, {
+    kind: "fields",
+    tone: profile.numericFields.length > 0 || profile.fieldNames.length > 0 ? "supporting" : "warning",
+    label: "Fields",
+    detail: profile.numericFields.length > 0
+      ? `${profile.numericFields.length} numeric field(s) available: ${formatList(profile.numericFields)}.`
+      : profile.fieldNames.length > 0
+        ? `${profile.fieldNames.length} attribute field(s) available; numeric analysis may need field selection.`
+        : "No attribute schema was detected for this layer.",
+    layerIds,
+  });
+
+  const temporalSignalCount = profile.temporalFrameCount + profile.temporalFields.length;
+  pushReason(reasons, {
+    kind: "temporal",
+    tone: temporalSignalCount > 0 ? "supporting" : "context",
+    label: "Temporal data",
+    detail: profile.temporalFrameCount > 0
+      ? `${profile.temporalFrameCount} temporal frame(s) are attached to the layer output.`
+      : profile.temporalFields.length > 0
+        ? `Temporal field candidates detected: ${formatList(profile.temporalFields)}.`
+        : "No temporal frame or temporal field signal was detected.",
+    layerIds,
+  });
+
+  if (profile.manifestIds.length > 0) {
+    pushReason(reasons, {
+      kind: "workflow-manifest",
+      tone: "supporting",
+      label: "Manifest",
+      detail: `Reproducibility manifest reference(s): ${formatList(profile.manifestIds, 2)}.`,
+      layerIds,
+    });
+  }
+
+  if (layer.metadata?.registry?.metadataReady === false || layer.metadata?.publicationReadiness?.status === "blocked") {
+    pushReason(reasons, {
+      kind: "provenance",
+      tone: "warning",
+      label: "Provenance",
+      detail: `${layer.name} needs metadata review before formal handoff or publication use.`,
+      layerIds,
+    });
+  }
+
+  return reasons;
+}
+
+function createAoiReason(
+  recommendation: MapAnalysisRecommendation,
+  context: MapAnalysisRecommendationContext,
+): MapAnalysisRecommendationReason {
+  const activeAoi = context.mapContextSummary?.activeAoi;
+  if (activeAoi) {
+    return {
+      kind: "aoi",
+      tone: "supporting",
+      label: "AOI",
+      detail: `Active ${activeAoi.geometryFamily} AOI ${activeAoi.aoiId} is available for scoped dispatch.`,
+    };
+  }
+
+  return {
+    kind: "aoi",
+    tone: recommendationNeedsAoi(recommendation) ? "warning" : "context",
+    label: "AOI",
+    detail: recommendationNeedsAoi(recommendation)
+      ? "No active AOI is selected; dispatch should open a preview or require AOI confirmation before analysis runs."
+      : "No AOI is required for the immediate recommendation action.",
+  };
+}
+
+function createQaReasons(
+  recommendation: MapAnalysisRecommendation,
+  context: MapAnalysisRecommendationContext,
+): MapAnalysisRecommendationReason[] {
+  const qa = context.scientificQA;
+  if (!qa) {
+    return [{
+      kind: "qa",
+      tone: "warning",
+      label: "QA",
+      detail: "Scientific QA has not run for the current map context; review before formal analysis or report handoff.",
+      layerIds: recommendation.layerIds,
+    }];
+  }
+
+  const blockers = findBlockingIssues(qa, recommendation.layerIds);
+  if (blockers.length > 0) {
+    return [{
+      kind: "qa",
+      tone: "blocker",
+      label: "QA blocker",
+      detail: `${blockers.length} blocking QA issue(s): ${formatList(blockers.map((issue) => issue.title), 2)}.`,
+      layerIds: recommendation.layerIds,
+    }];
+  }
+
+  const warnings = findWarningIssues(qa, recommendation.layerIds);
+  if (warnings.length > 0) {
+    return [{
+      kind: "qa",
+      tone: "warning",
+      label: "QA warning",
+      detail: `${warnings.length} warning(s) should travel with this recommendation: ${formatList(warnings.map((issue) => issue.title), 2)}.`,
+      layerIds: recommendation.layerIds,
+    }];
+  }
+
+  return [{
+    kind: "qa",
+    tone: "supporting",
+    label: "QA",
+    detail: qa.status === "passed"
+      ? "Current scientific QA status is passed for visible layers."
+      : `Current scientific QA status is ${qa.status}; no blocking issue matches this recommendation.`,
+    layerIds: recommendation.layerIds,
+  }];
+}
+
+function createUrbanContextReasons(
+  recommendation: MapAnalysisRecommendation,
+  context: MapAnalysisRecommendationContext,
+): MapAnalysisRecommendationReason[] {
+  const urbanContext = context.urbanContext;
+  if (!urbanContext?.hasContext) {
+    return [];
+  }
+
+  const reasons: MapAnalysisRecommendationReason[] = [];
+  if (urbanContext.studyAreaName || urbanContext.studyAreaId) {
+    pushReason(reasons, {
+      kind: "urban-context",
+      tone: "context",
+      label: "Urban context",
+      detail: `Urban context is active for ${urbanContext.studyAreaName ?? urbanContext.studyAreaId ?? "the current study area"}.`,
+    });
+  }
+
+  if (urbanContext.activeFlowId && recommendation.action.type === "open-flow") {
+    const matchesFlow = urbanContext.activeFlowId === recommendation.action.flowId;
+    pushReason(reasons, {
+      kind: "urban-context",
+      tone: matchesFlow ? "supporting" : "context",
+      label: matchesFlow ? "Urban flow match" : "Urban flow context",
+      detail: matchesFlow
+        ? `Active Urban flow ${urbanContext.activeFlowId} matches this recommendation route.`
+        : `Active Urban flow ${urbanContext.activeFlowId} is different from this route; preserve context in the dispatch payload.`,
+    });
+  }
+
+  const activeLayerIds = urbanContext.activeLayerIds ?? [];
+  const matchingLayerIds = recommendation.layerIds.filter((layerId) => activeLayerIds.includes(layerId));
+  if (matchingLayerIds.length > 0) {
+    pushReason(reasons, {
+      kind: "urban-context",
+      tone: "supporting",
+      label: "Urban layer match",
+      detail: `${matchingLayerIds.length} recommendation layer(s) are already active in Urban Analytics.`,
+      layerIds: matchingLayerIds,
+    });
+  }
+
+  if ((urbanContext.restoreWarningCount ?? 0) > 0 || urbanContext.syncState === "stale") {
+    pushReason(reasons, {
+      kind: "urban-context",
+      tone: "warning",
+      label: "Urban sync",
+      detail: "Urban context has restore or sync warnings; include caveats in dispatch and review before interpretation.",
+    });
+  }
+
+  return reasons;
+}
+
+function applyUrbanContextScoreBoost(
+  recommendation: MapAnalysisRecommendation,
+  urbanContext: MapAnalysisUrbanContextSummary | null | undefined,
+): number {
+  if (!urbanContext?.hasContext) return recommendation.score;
+  let score = recommendation.score + 12;
+  if (urbanContext.activeFlowId && recommendation.action.type === "open-flow" && urbanContext.activeFlowId === recommendation.action.flowId) {
+    score += 70;
+  }
+  const activeLayerIds = urbanContext.activeLayerIds ?? [];
+  if (recommendation.layerIds.some((layerId) => activeLayerIds.includes(layerId))) {
+    score += 24;
+  }
+  if (urbanContext.studyAreaId || urbanContext.studyAreaBounds) {
+    score += 10;
+  }
+  if ((urbanContext.restoreWarningCount ?? 0) > 0 || urbanContext.syncState === "stale") {
+    score -= 24;
+  }
+  return score;
+}
+
+function buildRecommendationReadiness(
+  recommendation: MapAnalysisRecommendation,
+  reasons: readonly MapAnalysisRecommendationReason[],
+  context: MapAnalysisRecommendationContext,
+): MapAnalysisRecommendationReadiness {
+  const blockers = reasons
+    .filter((reason) => reason.tone === "blocker")
+    .map((reason) => reason.detail);
+  const warnings = reasons
+    .filter((reason) => reason.tone === "warning")
+    .map((reason) => reason.detail);
+  const status: MapAnalysisRecommendationReadinessStatus = blockers.length > 0
+    ? "blocked"
+    : warnings.length > 0
+      ? "needs-review"
+      : "ready";
+  const requiredActions = status === "blocked"
+    ? ["Resolve QA blockers or choose a review-only action before dispatch."]
+    : warnings.length > 0
+      ? ["Review warnings and preserve caveats in workflow/report handoff."]
+      : ["Dispatch explicitly from the recommendation action."];
+  const contextId = context.mapContextSummary?.contextId;
+  const urbanContextId = context.urbanContext?.contextId ?? undefined;
+
+  return {
+    status,
+    label: status === "ready" ? "Ready" : status === "blocked" ? "Blocked" : "Needs review",
+    blockers: uniqueStrings(blockers, 8),
+    warnings: uniqueStrings(warnings, 8),
+    requiredActions,
+    qaBlockingIssueCount: recommendation.blockedByIssueIds?.length ?? 0,
+    hasActiveAoi: Boolean(context.mapContextSummary?.activeAoi),
+    checkedAt: context.mapContextSummary?.updatedAt ?? context.scientificQA?.checkedAt ?? new Date(0).toISOString(),
+    ...(contextId ? { contextId } : {}),
+    ...(urbanContextId ? { urbanContextId } : {}),
+  };
+}
+
+function enrichRecommendation(
+  recommendation: MapAnalysisRecommendation,
+  context: MapAnalysisRecommendationContext,
+  profilesByLayerId: ReadonlyMap<string, LayerAnalysisProfile>,
+): MapAnalysisRecommendation {
+  const reasons: MapAnalysisRecommendationReason[] = [];
+  for (const layerId of recommendation.layerIds) {
+    const profile = profilesByLayerId.get(layerId);
+    if (profile) {
+      for (const reason of createLayerReasons(profile)) {
+        pushReason(reasons, reason);
+      }
+    }
+  }
+
+  if (recommendation.action.type === "run-selection-statistics") {
+    pushReason(reasons, {
+      kind: "selection",
+      tone: "supporting",
+      label: "Selection",
+      detail: `${getSelectedFeatureCount(context.selectedFeatureIds).toLocaleString()} selected feature(s) are available for descriptive statistics.`,
+      layerIds: recommendation.layerIds,
+    });
+  }
+
+  pushReason(reasons, createAoiReason(recommendation, context));
+  for (const reason of createQaReasons(recommendation, context)) {
+    pushReason(reasons, reason);
+  }
+  for (const reason of createUrbanContextReasons(recommendation, context)) {
+    pushReason(reasons, reason);
+  }
+
+  const readiness = buildRecommendationReadiness(recommendation, reasons, context);
+  return {
+    ...recommendation,
+    score: applyUrbanContextScoreBoost(recommendation, context.urbanContext),
+    reasons,
+    readiness,
+  };
 }
 
 function addPolygonRecommendations(
@@ -688,6 +1164,16 @@ function countRecommendations(recommendations: MapAnalysisRecommendation[]): Rec
   );
 }
 
+function countReadiness(recommendations: MapAnalysisRecommendation[]): Record<MapAnalysisRecommendationReadinessStatus, number> {
+  return recommendations.reduce<Record<MapAnalysisRecommendationReadinessStatus, number>>(
+    (counts, recommendation) => {
+      counts[recommendation.readiness.status] += 1;
+      return counts;
+    },
+    { ready: 0, "needs-review": 0, blocked: 0 },
+  );
+}
+
 function compareRecommendations(left: MapAnalysisRecommendation, right: MapAnalysisRecommendation): number {
   const scoreDifference = right.score - left.score;
   if (scoreDifference !== 0) {
@@ -701,6 +1187,7 @@ export function generateMapAnalysisRecommendations(
 ): MapAnalysisRecommendationState {
   const visibleLayers = context.overlayLayers.filter((layer) => layer.visible);
   const profiles = visibleLayers.map(buildLayerProfile);
+  const profilesByLayerId = new Map(profiles.map((profile) => [profile.layer.id, profile]));
   const recommendations: MapAnalysisRecommendation[] = [];
 
   addQaRecommendations(recommendations, context);
@@ -722,9 +1209,13 @@ export function generateMapAnalysisRecommendations(
     }
   }
 
-  const orderedRecommendations = [...uniqueRecommendations.values()].sort(compareRecommendations);
+  const orderedRecommendations = [...uniqueRecommendations.values()]
+    .map((recommendation) => enrichRecommendation(recommendation, context, profilesByLayerId))
+    .sort(compareRecommendations);
   const selectedFeatureCount = getSelectedFeatureCount(context.selectedFeatureIds);
   const qaBlockingIssueCount = context.scientificQA?.issues.filter((issue) => BLOCKING_QA_SEVERITIES.has(issue.severity)).length ?? 0;
+  const contextId = context.mapContextSummary?.contextId;
+  const urbanContextId = context.urbanContext?.contextId ?? undefined;
 
   return {
     recommendations: orderedRecommendations,
@@ -735,13 +1226,20 @@ export function generateMapAnalysisRecommendations(
       selectedFeatureCount,
       qaBlockingIssueCount,
       recommendationCounts: countRecommendations(orderedRecommendations),
+      readinessCounts: countReadiness(orderedRecommendations),
       signature: stableStringify({
         layerIds: visibleLayers.map((layer) => layer.id),
+        contextId: context.mapContextSummary?.contextId ?? null,
         selectedFeatureCount,
         qaBlockingIssueCount,
         intent: context.userIntent ?? "navigator",
         bounds: context.currentMapBounds ?? null,
+        activeAoiId: context.mapContextSummary?.activeAoi?.aoiId ?? null,
+        activeUrbanFlowId: context.urbanContext?.activeFlowId ?? null,
+        urbanSyncState: context.urbanContext?.syncState ?? null,
       }),
+      ...(contextId ? { contextId } : {}),
+      ...(urbanContextId ? { urbanContextId } : {}),
     },
   };
 }
