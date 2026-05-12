@@ -89,8 +89,14 @@ export function mergePendingInserts(
   const sections = [...document.sections];
   const sectionOrder = [...document.sectionOrder];
   const linkedRunIds = new Set(document.linkedRunIds);
+  const structuredEvidenceBlocks = new Map(
+    (document.structuredEvidenceBlocks ?? []).map((block) => [block.id, block]),
+  );
 
   for (const insert of inserts) {
+    for (const block of insert.structuredEvidenceBlocks ?? []) {
+      structuredEvidenceBlocks.set(block.id, block);
+    }
     for (const section of insert.sections) {
       sections.push(section);
       sectionOrder.push(section.id);
@@ -106,6 +112,7 @@ export function mergePendingInserts(
     sections,
     sectionOrder,
     linkedRunIds: Array.from(linkedRunIds.values()),
+    ...(structuredEvidenceBlocks.size > 0 ? { structuredEvidenceBlocks: Array.from(structuredEvidenceBlocks.values()) } : {}),
     updatedAt: new Date().toISOString(),
   };
 }

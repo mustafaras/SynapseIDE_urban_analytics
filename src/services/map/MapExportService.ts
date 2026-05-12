@@ -154,6 +154,44 @@ export interface MapPublicationManifest {
   readiness: MapPublicationReadiness;
   caveats: string[];
   qaSignature?: string;
+  traceability: MapPublicationManifestTraceability;
+}
+
+export interface MapPublicationManifestLayerTraceability {
+  layerId: string;
+  name: string;
+  sourceKind: string;
+  qaStatus: string;
+  publicationReadinessStatus: string;
+  provenanceLabel: string;
+  featureCount: number | null;
+  caveats: string[];
+  qaIssueIds: string[];
+  evidenceArtifactId?: string;
+  crs?: string;
+  sourceName?: string;
+  license?: string;
+  attribution?: string;
+}
+
+export interface MapPublicationManifestTraceability {
+  bindingMode: "static-export";
+  refreshMode: "static";
+  isLive: false;
+  liveStateLabel: string;
+  sourceLayerIds: string[];
+  evidenceArtifactIds: string[];
+  layers: MapPublicationManifestLayerTraceability[];
+  qa: {
+    state: MapEvidenceQA["state"];
+    issueIds: string[];
+    blockerCount: number;
+    warningCount: number;
+    caveats: string[];
+    checkedAt: string;
+    signature?: string;
+  };
+  provenanceNotes: string[];
 }
 
 export interface MapCompositionLegendItem {
@@ -759,6 +797,75 @@ export function buildMapPublicationReadiness(input: MapPublicationReadinessInput
   };
 }
 
+function buildMapPublicationManifestTraceability(input: {
+  visibleLayers: OverlayLayerConfig[];
+  readiness: MapPublicationReadiness;
+  scientificQA?: MapScientificQAState | null | undefined;
+}): MapPublicationManifestTraceability {
+  const evidenceArtifactIds: string[] = [];
+  const sourceLayerIds = input.visibleLayers.map((layer) => layer.id);
+  const layerTraceability = input.visibleLayers.map((layer): MapPublicationManifestLayerTraceability => {
+    const registry = normalizeLayerRegistryMetadata(layer);
+    const scientificQA = layer.metadata?.scientificQA;
+    const caveats = uniquePublicationTexts([
+      ...registry.publicationReadiness.caveats,
+      ...(scientificQA?.caveats ?? []),
+      ...(layer.metadata?.analysisResult?.caveats ?? []),
+    ], 12);
+    const qaIssueIds = uniquePublicationTexts([
+      ...registry.publicationReadiness.blockingIssueIds,
+      ...(scientificQA?.issueIds ?? []),
+    ], 24);
+    if (registry.evidenceArtifactId) evidenceArtifactIds.push(registry.evidenceArtifactId);
+    if (layer.metadata?.evidenceArtifactId) evidenceArtifactIds.push(layer.metadata.evidenceArtifactId);
+    if (layer.metadata?.analysisResult?.evidenceArtifactId) evidenceArtifactIds.push(layer.metadata.analysisResult.evidenceArtifactId);
+
+    const traceability: MapPublicationManifestLayerTraceability = {
+      layerId: layer.id,
+      name: layer.name,
+      sourceKind: registry.sourceKind,
+      qaStatus: registry.qaStatus,
+      publicationReadinessStatus: registry.publicationReadiness.status,
+      provenanceLabel: registry.provenance.label,
+      featureCount: registry.geometrySummary.featureCount,
+      caveats,
+      qaIssueIds,
+    };
+    if (registry.evidenceArtifactId) traceability.evidenceArtifactId = registry.evidenceArtifactId;
+    if (registry.crsSummary.crs) traceability.crs = registry.crsSummary.crs;
+    if (registry.provenance.sourceName) traceability.sourceName = registry.provenance.sourceName;
+    if (registry.provenance.license) traceability.license = registry.provenance.license;
+    if (registry.provenance.attribution) traceability.attribution = registry.provenance.attribution;
+    return traceability;
+  });
+  const qa = mapPublicationReadinessToEvidenceQA(input.readiness);
+  const provenanceNotes = uniquePublicationTexts([
+    "Publication manifest describes a static export; it does not claim a live dashboard binding.",
+    "Layer provenance, QA caveats, and evidence IDs are carried as lightweight metadata only.",
+    ...layerTraceability.map((layer) => `${layer.name}: ${layer.provenanceLabel}`),
+  ], 12);
+
+  return {
+    bindingMode: "static-export",
+    refreshMode: "static",
+    isLive: false,
+    liveStateLabel: "Static publication export; regenerate the export after source map state changes.",
+    sourceLayerIds,
+    evidenceArtifactIds: uniquePublicationTexts(evidenceArtifactIds, 80),
+    layers: layerTraceability,
+    qa: {
+      state: qa.state,
+      issueIds: qa.issueIds,
+      blockerCount: qa.blockerCount,
+      warningCount: input.readiness.warnings.length,
+      caveats: qa.caveats,
+      checkedAt: input.readiness.checkedAt,
+      ...(input.scientificQA?.metadata.signature ? { signature: input.scientificQA.metadata.signature } : {}),
+    },
+    provenanceNotes,
+  };
+}
+
 export function buildMapPublicationManifest(input: {
   result: Pick<MapPublicationExportResult, "filename" | "format" | "mimeType" | "width" | "height">;
   composition: MapCompositionOptions;
@@ -796,6 +903,11 @@ export function buildMapPublicationManifest(input: {
     },
     readiness: input.readiness,
     caveats: input.readiness.caveats,
+    traceability: buildMapPublicationManifestTraceability({
+      visibleLayers,
+      readiness: input.readiness,
+      scientificQA: input.scientificQA,
+    }),
   };
   if (input.scientificQA?.metadata.signature) manifest.qaSignature = input.scientificQA.metadata.signature;
   return manifest;

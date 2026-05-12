@@ -388,6 +388,23 @@ function normalizeErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error ?? "Unknown error");
 }
 
+function sanitizeExternalHeaderValue(value: string): string {
+  return value
+    .replace(/[\u2010-\u2015]/g, "-")
+    .replace(/\u00a9/g, "(c)")
+    .replace(/[\r\n]+/g, " ")
+    .replace(/[^\t\x20-\x7e\x80-\xff]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function setSafeExternalHeader(headers: Headers, name: string, value: string): void {
+  const safeValue = sanitizeExternalHeaderValue(value);
+  if (safeValue) {
+    headers.set(name, safeValue);
+  }
+}
+
 export function validateServiceUrl(rawUrl: string): UrlValidationResult {
   const trimmed = rawUrl.trim();
   if (!trimmed) {
@@ -482,10 +499,10 @@ export async function fetchExternalService(
     headers.set("Accept", options.accept ?? "*/*");
   }
   if (options.attribution && !headers.has("X-Synapse-Attribution")) {
-    headers.set("X-Synapse-Attribution", options.attribution);
+    setSafeExternalHeader(headers, "X-Synapse-Attribution", options.attribution);
   }
   if (!headers.has("X-Synapse-Client")) {
-    headers.set("X-Synapse-Client", PROJECT_CLIENT_LABEL);
+    setSafeExternalHeader(headers, "X-Synapse-Client", PROJECT_CLIENT_LABEL);
   }
 
   try {

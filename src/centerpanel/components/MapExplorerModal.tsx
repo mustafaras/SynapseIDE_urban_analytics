@@ -68,11 +68,14 @@ import { MapReportHandoffDrawer } from "./map/MapReportHandoffDrawer";
 import { MapReviewTimelinePanel } from "./map/MapReviewTimelinePanel";
 import { CartographyRecommendationList } from "./map/CartographyRecommendationList";
 import {
+  createMapEvidenceArtifact,
   createMapExportEvidenceArtifact,
   createMapLayerEvidenceArtifact,
   createMapReportSnapshotEvidenceArtifact,
   createMapWorkflowResultEvidenceArtifact,
 } from "./map/mapEvidenceArtifacts";
+import { registerDashboardBinding } from "@/features/dashboard/dataBindings";
+import { queuePendingDashboardBinding } from "@/features/dashboard/storage";
 import { createOpaqueFloatingPanelStyle, useDraggableMapPanel } from "./map/useDraggableMapPanel";
 import { getActiveRightDockPanel, getMapDockLayout } from "./map/mapDocking";
 import {
@@ -182,6 +185,10 @@ import {
   dispatchMapCodeArtifactRequest,
   type MapCodeArtifactRequest,
 } from "../../services/map/MapCodeArtifactRequestService";
+import {
+  buildMapDashboardBinding,
+  buildMapEducationReference,
+} from "../../services/map/MapPublicationOutputBindingService";
 import {
   buildUrbanToMapMethodRequestPreview,
   subscribeUrbanToMapMethodRequests,
@@ -3830,6 +3837,196 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     });
   }, [handleOpenReportHandoff, overlayLayers]);
 
+  const handleBindLayerToDashboard = useCallback((layerId: string) => {
+    const layer = overlayLayers.find((candidate) => candidate.id === layerId);
+    if (!layer) {
+      toastWarning("Layer is no longer available for dashboard binding.");
+      announce("Dashboard binding failed: layer unavailable");
+      return;
+    }
+
+    const layerPublicationReadiness = buildMapPublicationReadiness({
+      mode: "public-map",
+      overlayLayers: [{ ...layer, visible: true }],
+      composition: { ...mapCompositionOptions, title: `${layer.name} dashboard binding` },
+      scientificQA,
+      legendItems: buildMapCompositionLegendItems([{ ...layer, visible: true }]),
+    });
+    const binding = buildMapDashboardBinding({
+      layer,
+      contextSummary,
+      publicationReadiness: layerPublicationReadiness,
+      evidenceArtifacts: mapEvidenceArtifacts,
+    });
+
+    if (!registerDashboardBinding(binding.dashboardBinding)) {
+      toastError("Dashboard binding registry is unavailable; widget was not added.");
+      announce("Dashboard binding failed: registry unavailable");
+      return;
+    }
+    if (!queuePendingDashboardBinding({ bindingId: binding.bindingId, widgetType: binding.widgetType })) {
+      toastError("Dashboard binding queue is unavailable; widget was not added.");
+      announce("Dashboard binding failed: queue unavailable");
+      return;
+    }
+
+    upsertMapEvidenceArtifact(createMapEvidenceArtifact({
+      kind: "dashboard-binding",
+      title: binding.title,
+      summary: binding.summary,
+      dashboardBindingId: binding.bindingId,
+      linkedLayerIds: binding.layerIds,
+      sourceLayerIds: binding.sourceLayerIds,
+      linkedArtifactIds: binding.provenance.evidenceArtifactIds,
+      qa: {
+        state: binding.qa.state,
+        issueIds: binding.qa.issueIds,
+        blockerCount: binding.qa.blockerCount,
+        caveats: binding.qa.caveats,
+        ...(binding.qa.checkedAt ? { checkedAt: binding.qa.checkedAt } : {}),
+      },
+      provenance: {
+        sourceModule: "map-explorer",
+        sourceName: "Map dashboard binding",
+        method: "MapPublicationOutputBindingService.buildMapDashboardBinding",
+        sourceLayerIds: binding.sourceLayerIds,
+        inputArtifactIds: binding.provenance.evidenceArtifactIds,
+        parentArtifactIds: binding.provenance.evidenceArtifactIds,
+        notes: binding.provenance.notes,
+      },
+      metadata: {
+        ...binding.metadata,
+        bindingVersion: binding.version,
+        dashboardWidgetType: binding.widgetType,
+        readinessId: layerPublicationReadiness.id,
+      },
+      createdAt: binding.dashboardBinding.updatedAt,
+    }));
+    recordMapReviewEvent({
+      type: "action-status",
+      status: "applied",
+      title: "Dashboard binding queued",
+      summary: `${layer.name} queued as a static dashboard map widget with QA state ${binding.qa.state}.`,
+      layerIds: binding.layerIds,
+      qaIssueIds: binding.qa.issueIds,
+      actionIds: [binding.bindingId],
+      details: {
+        dashboardBindingId: binding.bindingId,
+        widgetType: binding.widgetType,
+        bindingMode: binding.bindingMode,
+        refreshMode: binding.refreshMode,
+        isLive: binding.isLive,
+        qaState: binding.qa.state,
+        caveatCount: binding.qa.caveats.length,
+        evidenceArtifactIds: binding.provenance.evidenceArtifactIds,
+        readinessStatus: layerPublicationReadiness.status,
+      },
+    });
+
+    window.dispatchEvent(new CustomEvent("synapse:navigate", {
+      detail: {
+        tab: "Dashboard",
+        dashboardBindingId: binding.bindingId,
+        dashboardWidgetType: binding.widgetType,
+        dashboardRequestedAt: Date.now(),
+      },
+    }));
+    toastSuccess(`Queued ${layer.name} as a static dashboard map widget.`);
+    announce(`${layer.name} dashboard binding queued`);
+  }, [
+    announce,
+    contextSummary,
+    mapCompositionOptions,
+    mapEvidenceArtifacts,
+    overlayLayers,
+    recordMapReviewEvent,
+    scientificQA,
+    upsertMapEvidenceArtifact,
+  ]);
+
+  const handleOpenLayerEducationReference = useCallback((layerId: string) => {
+    const layer = overlayLayers.find((candidate) => candidate.id === layerId);
+    if (!layer) {
+      toastWarning("Layer is no longer available for education reference.");
+      announce("Education reference failed: layer unavailable");
+      return;
+    }
+
+    const reference = buildMapEducationReference({
+      layer,
+      contextSummary,
+      evidenceArtifacts: mapEvidenceArtifacts,
+    });
+    upsertMapEvidenceArtifact(createMapEvidenceArtifact({
+      kind: "education-reference",
+      title: reference.title,
+      summary: reference.summary,
+      linkedLayerIds: reference.layerIds,
+      sourceLayerIds: reference.layerIds,
+      linkedArtifactIds: reference.evidenceArtifactIds,
+      qa: {
+        state: reference.qa.state,
+        issueIds: reference.qa.issueIds,
+        blockerCount: reference.qa.blockerCount,
+        caveats: reference.qa.caveats,
+        ...(reference.qa.checkedAt ? { checkedAt: reference.qa.checkedAt } : {}),
+      },
+      provenance: {
+        sourceModule: "map-explorer",
+        sourceName: "Map education reference",
+        method: "MapPublicationOutputBindingService.buildMapEducationReference",
+        sourceLayerIds: reference.layerIds,
+        inputArtifactIds: reference.evidenceArtifactIds,
+        parentArtifactIds: reference.evidenceArtifactIds,
+        notes: reference.provenance.notes,
+      },
+      metadata: {
+        ...reference.metadata,
+        bindingVersion: reference.version,
+        educationRationale: reference.target.rationale,
+      },
+      createdAt: new Date(reference.focusRequest.requestedAt).toISOString(),
+    }));
+    recordMapReviewEvent({
+      type: "action-status",
+      status: "applied",
+      title: "Education reference opened",
+      summary: `${layer.name} opened a static education reference for ${reference.topic}.`,
+      layerIds: reference.layerIds,
+      qaIssueIds: reference.qa.issueIds,
+      actionIds: [reference.referenceId],
+      details: {
+        educationReferenceId: reference.referenceId,
+        educationTopic: reference.topic,
+        educationPathId: reference.target.pathId,
+        educationExplainerId: reference.target.explainerId ?? null,
+        bindingMode: reference.bindingMode,
+        isLive: reference.isLive,
+        qaState: reference.qa.state,
+        evidenceArtifactIds: reference.evidenceArtifactIds,
+      },
+    });
+
+    window.dispatchEvent(new CustomEvent("synapse:navigate", {
+      detail: {
+        tab: "Education",
+        educationView: reference.focusRequest.view,
+        educationPathId: reference.focusRequest.pathId,
+        educationRequestedAt: reference.focusRequest.requestedAt,
+        ...(reference.focusRequest.explainerId ? { educationExplainerId: reference.focusRequest.explainerId } : {}),
+      },
+    }));
+    toastSuccess(`Opened ${reference.topic} guidance for ${layer.name}.`);
+    announce(`${layer.name} education reference opened`);
+  }, [
+    announce,
+    contextSummary,
+    mapEvidenceArtifacts,
+    overlayLayers,
+    recordMapReviewEvent,
+    upsertMapEvidenceArtifact,
+  ]);
+
   const handleSendLayerToUrban = useCallback((layerId: string) => {
     const layer = overlayLayers.find((candidate) => candidate.id === layerId);
     const result = sendMapContextToUrban({
@@ -4146,6 +4343,40 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     visiblePublicationLayers,
   ]);
 
+  const handleRegisterReportEvidenceBlock = useCallback(() => {
+    if (!reportHandoffDraft) return;
+    const sourceLayerIds = reportHandoffDraft.references
+      .map((reference) => reference.layerId)
+      .filter((layerId): layerId is string => Boolean(layerId));
+    const artifact = createMapReportSnapshotEvidenceArtifact({
+      title: `${reportHandoffDraft.title} structured report evidence`,
+      summary: `Structured map evidence block ${reportHandoffDraft.evidenceBlock.id} registered with publication readiness status ${reportHandoffDraft.publicationReadiness.status}.`,
+      reportReference: {
+        reportDraftId: reportHandoffDraft.id,
+        snapshotAssetId: reportHandoffDraft.snapshot.assetId,
+        sectionIds: [],
+      },
+      linkedLayerIds: sourceLayerIds,
+      sourceLayerIds,
+      qa: mapPublicationReadinessToEvidenceQA(reportHandoffDraft.publicationReadiness),
+      metadata: {
+        reportEvidenceBlockId: reportHandoffDraft.evidenceBlock.id,
+        reportEvidenceBlockVersion: reportHandoffDraft.evidenceBlock.version,
+        reportEvidenceLayerCount: reportHandoffDraft.evidenceBlock.payload.composition.layerStack.length,
+        reportEvidenceLegendItemCount: reportHandoffDraft.evidenceBlock.payload.composition.legendItems.length,
+        reportEvidenceCitationCount: reportHandoffDraft.evidenceBlock.payload.provenance.citationIds.length,
+        publicationReadinessStatus: reportHandoffDraft.publicationReadiness.status,
+        readinessBlockerCount: reportHandoffDraft.publicationReadiness.blockers.length,
+        readinessWarningCount: reportHandoffDraft.publicationReadiness.warnings.length,
+        readinessCaveatCount: reportHandoffDraft.publicationReadiness.caveats.length,
+      },
+      createdAt: reportHandoffDraft.createdAt,
+    });
+    upsertMapEvidenceArtifact(artifact);
+    toastSuccess(`Registered structured map evidence block ${reportHandoffDraft.evidenceBlock.id}.`);
+    announce("Structured map report evidence registered");
+  }, [announce, reportHandoffDraft, upsertMapEvidenceArtifact]);
+
   const handleInsertReportHandoff = useCallback(() => {
     if (!reportHandoffDraft) return;
     if (reportHandoffDraft.publicationReadiness.status === "blocked") {
@@ -4175,6 +4406,10 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       sourceLayerIds,
       qa: mapPublicationReadinessToEvidenceQA(reportHandoffDraft.publicationReadiness),
       metadata: {
+        reportEvidenceBlockId: reportHandoffDraft.evidenceBlock.id,
+        reportEvidenceBlockVersion: reportHandoffDraft.evidenceBlock.version,
+        reportEvidenceLayerCount: reportHandoffDraft.evidenceBlock.payload.composition.layerStack.length,
+        reportEvidenceLegendItemCount: reportHandoffDraft.evidenceBlock.payload.composition.legendItems.length,
         publicationReadinessStatus: reportHandoffDraft.publicationReadiness.status,
         readinessBlockerCount: reportHandoffDraft.publicationReadiness.blockers.length,
         readinessWarningCount: reportHandoffDraft.publicationReadiness.warnings.length,
@@ -4988,6 +5223,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
                 onReorderLayers={reorderLayers}
                 onAddLayer={addOverlayLayer}
                 onAddLayerToReport={handleLayerReportRequest}
+                onBindLayerToDashboard={handleBindLayerToDashboard}
+                onOpenLayerEducationReference={handleOpenLayerEducationReference}
                 onSendLayerToUrban={handleSendLayerToUrban}
                 onOpenLayerInIde={handleOpenLayerInIde}
                 onReRunAnalysisLayer={handleReRunAnalysisLayer}
@@ -5037,6 +5274,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             onWidthChange={handleRightPanelWidthChange}
             onOptionsChange={handleReportHandoffOptionsChange}
             onRefreshSnapshot={handleRefreshReportHandoffSnapshot}
+            onRegisterEvidence={handleRegisterReportEvidenceBlock}
             onDownloadPdf={handleDownloadReportHandoffPdf}
             onInsert={handleInsertReportHandoff}
             onClose={handleCloseReportHandoff}

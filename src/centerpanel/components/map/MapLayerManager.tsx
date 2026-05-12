@@ -41,6 +41,7 @@ export interface MapLayerManagerProps {
   onSendLayerToUrban?: (id: string) => void;
   onOpenLayerInIde?: (id: string) => void;
   onBindLayerToDashboard?: (id: string) => void;
+  onOpenLayerEducationReference?: (id: string) => void;
   activeRerunToken?: string | null;
   onOpenSymbology?: (id: string) => void;
   activeSymbologyLayerId?: string | null;
@@ -786,7 +787,7 @@ interface LayerBadgeModel {
   tone: LayerBadgeTone;
 }
 
-type LayerEvidenceActionId = "export" | "urban" | "ide" | "report" | "dashboard";
+type LayerEvidenceActionId = "export" | "urban" | "ide" | "report" | "dashboard" | "education";
 
 interface LayerEvidenceActionModel {
   id: LayerEvidenceActionId;
@@ -802,6 +803,7 @@ interface LayerEvidenceActionCallbacks {
   onOpenLayerInIde?: (id: string) => void;
   onAddLayerToReport?: (id: string) => void;
   onBindLayerToDashboard?: (id: string) => void;
+  onOpenLayerEducationReference?: (id: string) => void;
 }
 
 function layerBadgeToneStyle(tone: LayerBadgeTone): React.CSSProperties {
@@ -1015,6 +1017,14 @@ function buildLayerEvidenceActions(
       callbacks.onBindLayerToDashboard,
       publicationGateReason,
       "Dashboard binding is not connected from the layer rail yet.",
+    ),
+    createLayerAction(
+      layer,
+      "education",
+      "Education",
+      callbacks.onOpenLayerEducationReference,
+      null,
+      "Education reference is not connected from the layer rail yet.",
     ),
   ];
 }
@@ -1594,6 +1604,7 @@ const LayerRow: React.FC<LayerRowProps> = ({
   onOpenLayerInIde,
   onAddLayerToReport,
   onBindLayerToDashboard,
+  onOpenLayerEducationReference,
   isSymbologyActive = false,
   isRemovePending,
   cartographyRecommendationCount = 0,
@@ -1622,6 +1633,7 @@ const LayerRow: React.FC<LayerRowProps> = ({
     ...(onOpenLayerInIde ? { onOpenLayerInIde } : {}),
     ...(onAddLayerToReport ? { onAddLayerToReport } : {}),
     ...(onBindLayerToDashboard ? { onBindLayerToDashboard } : {}),
+    ...(onOpenLayerEducationReference ? { onOpenLayerEducationReference } : {}),
   });
   const importFormat = formatImportSourceLabel(layer.metadata?.importFormat);
   const detailSummary = [
@@ -1834,6 +1846,7 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
   onSendLayerToUrban,
   onOpenLayerInIde,
   onBindLayerToDashboard,
+  onOpenLayerEducationReference,
   activeRerunToken = null,
   onOpenSymbology,
   activeSymbologyLayerId = null,
@@ -2180,6 +2193,7 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
                     {...(onOpenLayerInIde ? { onOpenLayerInIde } : {})}
                     {...(onAddLayerToReport ? { onAddLayerToReport } : {})}
                     {...(onBindLayerToDashboard ? { onBindLayerToDashboard } : {})}
+                    {...(onOpenLayerEducationReference ? { onOpenLayerEducationReference } : {})}
                     {...(onAnnounce ? { onAnnounce } : {})}
                     isDragging={dragId === layer.id}
                     onDragStart={handleDragStart}

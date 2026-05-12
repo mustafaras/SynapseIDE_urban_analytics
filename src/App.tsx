@@ -30,6 +30,7 @@ import { useMapExplorerStore } from '@/stores/useMapExplorerStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useSynapseWorkspaceStore } from '@/stores/useSynapseWorkspaceStore';
 import { installMapToIdeReceiver } from '@/services/map/mapToIdeHandoff';
+import { installIdeToMapArtifactReceiver } from '@/services/map/IdeToMapArtifactRecognitionService';
 import { installUrbanToIdeReceiver } from '@/services/analytics/urbanToIdeHandoff';
 import { installUrbanIdeArtifactReceiver } from '@/features/urbanAnalytics/context/ideArtifactRecognition';
 import { useUrbanStore } from './features/urbanAnalytics/store';
@@ -1225,6 +1226,13 @@ function App() {
   //    surface provenance, and respond to user-driven open/insert actions.
   useEffect(() => {
     installMapToIdeReceiver();
+  }, []);
+
+  // ── Synapse IDE → Map Explorer receiver (Map Prompt 19): recognizes IDE
+  //    file/artifact references as map evidence candidates. Layer state is
+  //    not materialized unless Map Explorer has validated the referenced data.
+  useEffect(() => {
+    installIdeToMapArtifactReceiver();
   }, []);
 
   // ── Urban Analytics → IDE receiver (Prompt 24): mirrors incoming

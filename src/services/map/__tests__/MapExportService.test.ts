@@ -393,7 +393,13 @@ describe("MapExportService", () => {
   });
 
   it("creates a publication manifest and evidence QA from ready-with-caveats readiness", () => {
-    const layer = publicationLayer({ metadata: { scientificQA: { status: "warning", issueIds: ["qa-warn-1"], badges: ["uncertain_output"], caveats: ["Classification uncertainty remains."] } } });
+    const baseLayer = publicationLayer();
+    const layer = publicationLayer({
+      metadata: {
+        ...baseLayer.metadata,
+        scientificQA: { status: "warning", issueIds: ["qa-warn-1"], badges: ["uncertain_output"], caveats: ["Classification uncertainty remains."] },
+      },
+    });
     const readiness = buildMapPublicationReadiness({
       mode: "publication-export",
       overlayLayers: [layer],
@@ -437,6 +443,15 @@ describe("MapExportService", () => {
     expect(readiness.status).toBe("ready-with-caveats");
     expect(manifest.readiness.status).toBe("ready-with-caveats");
     expect(manifest.visibleLayerIds).toEqual(["layer-1"]);
+    expect(manifest.traceability.bindingMode).toBe("static-export");
+    expect(manifest.traceability.isLive).toBe(false);
+    expect(manifest.traceability.layers[0]).toMatchObject({
+      layerId: "layer-1",
+      provenanceLabel: "Transit source",
+      qaStatus: "warning",
+      crs: "EPSG:3857",
+    });
+    expect(manifest.traceability.qa.signature).toBe("qa-signature");
     expect(evidenceQA.state).toBe("warning");
     expect(evidenceQA.caveats.length).toBeGreaterThan(0);
   });

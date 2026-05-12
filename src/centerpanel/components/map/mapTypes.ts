@@ -466,6 +466,8 @@ export type MapEvidenceArtifactKind =
   | "publication-export"
   | "report-handoff"
   | "report-snapshot"
+  | "dashboard-binding"
+  | "education-reference"
   | "nl-query"
   | "cartography-review"
   | "external-service"

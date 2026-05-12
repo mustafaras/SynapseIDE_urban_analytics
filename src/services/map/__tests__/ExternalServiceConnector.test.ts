@@ -248,6 +248,20 @@ describe("ExternalServiceConnector", () => {
     });
   });
 
+  it("sanitizes OSM attribution before adding browser fetch headers", async () => {
+    const fetchMock = vi.fn(async () => new Response("{}", { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await fetchExternalService("https://overpass-api.de/api/interpreter", {}, {
+      accept: "application/json",
+      attribution: "OpenStreetMap contributors — © ODbL",
+    });
+
+    const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    const headers = init.headers as Headers;
+    expect(headers.get("X-Synapse-Attribution")).toBe("OpenStreetMap contributors - (c) ODbL");
+  });
+
   it("surfaces request timeouts with the configured timeout policy", async () => {
     vi.useFakeTimers();
     vi.stubGlobal("fetch", vi.fn((_url: string, init?: RequestInit) =>
