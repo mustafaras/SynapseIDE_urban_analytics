@@ -410,6 +410,15 @@ describe("mapTypes — measurement types", () => {
       value: 12345,
       label: "Distance: 12.345 km",
       timestamp: new Date().toISOString(),
+      assumptions: {
+        method: "geodesic-wgs84",
+        crsBasis: "EPSG:4326",
+        coordinateBasis: "map-display-coordinates",
+        distanceModel: "haversine",
+        areaModel: "not-applicable",
+        unitBase: "metres",
+        caveats: ["Display-coordinate measurement"],
+      },
     };
     expect(m.id).toBeTruthy();
     expect(m.type).toBe("measure-distance");
@@ -417,6 +426,8 @@ describe("mapTypes — measurement types", () => {
     expect(m.value).toBeGreaterThan(0);
     expect(m.label).toContain("km");
     expect(m.timestamp).toBeTruthy();
+    expect(m.assumptions?.method).toBe("geodesic-wgs84");
+    expect(m.assumptions?.crsBasis).toBe("EPSG:4326");
   });
 });
 
@@ -557,6 +568,7 @@ describe("MapMeasurementTool — module export", () => {
     expect(html).toContain("Metric");
     expect(html).toContain("Results");
     expect(html).toContain("Distance active");
+    expect(html).toContain("WGS84 geodesic");
     expect(html).toContain("1.520 km");
     expect(html).toContain("Copy");
     expect(html).toContain("2024-01-01T00:00:00Z");

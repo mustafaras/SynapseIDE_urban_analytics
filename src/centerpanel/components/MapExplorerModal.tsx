@@ -154,6 +154,7 @@ import {
   subscribeToViewportSync,
   useViewportSyncStore,
 } from "../../services/map/MapSyncService";
+import { sendMapContextToUrban } from "../../services/map/MapToUrbanContextAdapter";
 import { createSpatialStatsExecutionIdentity } from "../../services/map/SpatialStatsExecutionService";
 import { executeHotSpotSpatialStatsAsync } from "../../services/map/SpatialStatsExecutionQueue";
 import {
@@ -174,10 +175,25 @@ import {
   type MapWorkflowReportItem,
 } from "../../services/map/MapWorkflowService";
 import {
+  buildExportPackageNoteRequest,
+  buildMapManifestRequest,
+  buildSqlQueryRequest,
+  buildWorkflowScriptRequest,
+  dispatchMapCodeArtifactRequest,
+  type MapCodeArtifactRequest,
+} from "../../services/map/MapCodeArtifactRequestService";
+import {
+  buildUrbanToMapMethodRequestPreview,
+  subscribeUrbanToMapMethodRequests,
+  type UrbanToMapMethodRequest,
+  type UrbanToMapWorkflowDraftRequest,
+} from "../../services/map/UrbanToMapMethodRequestAdapter";
+import {
   generateMapAnalysisRecommendations,
   type MapAnalysisRecommendation,
   type MapAnalysisUrbanContextSummary,
 } from "../../services/map/MapAnalysisRecommender";
+import { applyMapContextToUrban } from "../../features/urbanAnalytics/context/mapContextAdapter";
 import { useUrbanContextSummary } from "../../features/urbanAnalytics/useUrbanContextStore";
 import {
   buildMapReportHandoffDraft,
@@ -667,6 +683,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   /* ---- Store selectors ---- */
   const activeBaseLayer = useMapExplorerStore((s) => s.activeBaseLayer);
   const setBaseLayer = useMapExplorerStore((s) => s.setBaseLayer);
+  const activeFlow = useFlowStore((s) => s.activeFlow);
   const completedRuns = useFlowStore((s) => s.completedRuns);
   const upsertCompletedRun = useFlowStore((s) => s.upsertCompletedRun);
   const pins = useMapExplorerStore((s) => s.pins);
@@ -710,6 +727,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const addMapReviewEvent = useMapExplorerStore((s) => s.addMapReviewEvent);
   const updateMapReviewEventStatus = useMapExplorerStore((s) => s.updateMapReviewEventStatus);
   const clearMapReviewSession = useMapExplorerStore((s) => s.clearMapReviewSession);
+  const mapEvidenceArtifacts = useMapExplorerStore((s) => s.mapEvidenceArtifacts);
   const upsertMapEvidenceArtifact = useMapExplorerStore((s) => s.upsertMapEvidenceArtifact);
   const copilotActionProposals = useMapExplorerStore((s) => s.copilotActionProposals);
   const copilotAuditTrail = useMapExplorerStore((s) => s.copilotAuditTrail);
@@ -776,6 +794,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const [showWorkflowDrawer, setShowWorkflowDrawer] = useState(false);
   const [showReviewTimeline, setShowReviewTimeline] = useState(false);
   const [workflowPreview, setWorkflowPreview] = useState<MapWorkflowPreview | null>(null);
+  const [urbanWorkflowDraftRequest, setUrbanWorkflowDraftRequest] = useState<UrbanToMapWorkflowDraftRequest | null>(null);
   const [workflowGeocodedPlace, setWorkflowGeocodedPlace] = useState<MapWorkflowGeocodedPlace | null>(null);
   const [_workflowReportItems, setWorkflowReportItems] = useState<MapWorkflowReportItem[]>([]);
   const [showExternalServiceDialog, setShowExternalServiceDialog] = useState(false);
@@ -1826,6 +1845,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const handleApplyMapWorkflow = useCallback(
     (result: MapWorkflowApplyResult) => {
       setWorkflowPreview(null);
+      setUrbanWorkflowDraftRequest(null);
       addOverlayLayer(result.layer);
       const bounds =
         result.layer.metadata?.bounds ??
@@ -1969,6 +1989,116 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     },
     [announce, recordMapReviewEvent],
   );
+
+  const handleDispatchMapCodeArtifact = useCallback(async (request: MapCodeArtifactRequest) => {
+    try {
+      const result = await dispatchMapCodeArtifactRequest(request);
+      upsertMapEvidenceArtifact(request.evidenceArtifact);
+      recordMapReviewEvent({
+        type: "action-status",
+        status: result.bridgeRouted ? "applied" : "recorded",
+        title: `IDE artifact requested: ${request.title}`,
+        summary: `${request.kind} opened as ${request.targetFileSuggestion}; evidence ${result.evidenceArtifactId} registered with reference-only provenance.`,
+        layerIds: request.layerIds,
+        qaIssueIds: request.provenance.qaIssueIds,
+        actionIds: [request.requestId],
+        details: {
+          artifactId: request.artifactId,
+          evidenceArtifactId: result.evidenceArtifactId,
+          targetFileSuggestion: request.targetFileSuggestion,
+          language: request.language,
+          bytes: result.bytes,
+          bridgeRouted: result.bridgeRouted,
+          evidenceEventPublished: result.evidenceEventPublished,
+        },
+      });
+      const message = `${request.targetFileSuggestion} opened in Synapse IDE.`;
+      setDispatchFeedback({
+        tone: result.bridgeRouted ? "success" : "info",
+        title: result.bridgeRouted ? "IDE artifact opened" : "IDE artifact registered",
+        description: message,
+      });
+      toastSuccess(message);
+      announce(message);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Map IDE artifact request failed.";
+      recordMapReviewEvent({
+        type: "action-status",
+        status: "failed",
+        title: `IDE artifact failed: ${request.title}`,
+        summary: message,
+        layerIds: request.layerIds,
+        qaIssueIds: request.provenance.qaIssueIds,
+        actionIds: [request.requestId],
+        details: {
+          artifactId: request.artifactId,
+          targetFileSuggestion: request.targetFileSuggestion,
+          kind: request.kind,
+          language: request.language,
+        },
+      });
+      setDispatchFeedback({
+        tone: "error",
+        title: "IDE artifact failed",
+        description: message,
+      });
+      toastError(message);
+      announce(`IDE artifact failed: ${message}`);
+    }
+  }, [announce, recordMapReviewEvent, upsertMapEvidenceArtifact]);
+
+  const handleOpenLayerInIde = useCallback((layerId: string) => {
+    const layer = overlayLayers.find((entry) => entry.id === layerId);
+    if (!layer) {
+      const message = "Layer is no longer available for IDE handoff.";
+      toastWarning(message);
+      announce(message);
+      return;
+    }
+    const request = buildSqlQueryRequest({
+      contextSummary,
+      overlayLayers,
+      mapEvidenceArtifacts,
+      scientificQA,
+      requestedLayerId: layer.id,
+    });
+    void handleDispatchMapCodeArtifact(request);
+  }, [announce, contextSummary, handleDispatchMapCodeArtifact, mapEvidenceArtifacts, overlayLayers, scientificQA]);
+
+  const handleOpenWorkflowScriptInIde = useCallback((preview: MapWorkflowPreview) => {
+    const request = buildWorkflowScriptRequest({
+      contextSummary,
+      overlayLayers,
+      mapEvidenceArtifacts,
+      scientificQA,
+      workflowManifest: preview.manifest,
+    });
+    void handleDispatchMapCodeArtifact(request);
+  }, [contextSummary, handleDispatchMapCodeArtifact, mapEvidenceArtifacts, overlayLayers, scientificQA]);
+
+  const handleOpenMapManifestInIde = useCallback(() => {
+    const request = buildMapManifestRequest({
+      contextSummary,
+      overlayLayers: visiblePublicationLayers.length > 0 ? visiblePublicationLayers : overlayLayers,
+      mapEvidenceArtifacts,
+      scientificQA,
+      publicationReadiness: mapPublicationReadiness,
+      compositionOptions: mapCompositionOptions,
+    });
+    void handleDispatchMapCodeArtifact(request);
+  }, [contextSummary, handleDispatchMapCodeArtifact, mapCompositionOptions, mapEvidenceArtifacts, mapPublicationReadiness, overlayLayers, scientificQA, visiblePublicationLayers]);
+
+  const handleOpenExportNoteInIde = useCallback(() => {
+    const request = buildExportPackageNoteRequest({
+      contextSummary,
+      overlayLayers: visiblePublicationLayers.length > 0 ? visiblePublicationLayers : overlayLayers,
+      mapEvidenceArtifacts,
+      scientificQA,
+      publicationReadiness: mapPublicationReadiness,
+      compositionOptions: mapCompositionOptions,
+    });
+    void handleDispatchMapCodeArtifact(request);
+  }, [contextSummary, handleDispatchMapCodeArtifact, mapCompositionOptions, mapEvidenceArtifacts, mapPublicationReadiness, overlayLayers, scientificQA, visiblePublicationLayers]);
 
   const handleTogglePinMode = useCallback(() => {
     const next = pinMode ? null : "pin";
@@ -3679,6 +3809,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     setShowScientificQAPanel(false);
     setShowWorkflowDrawer(false);
     setWorkflowPreview(null);
+    setUrbanWorkflowDraftRequest(null);
     setReportHandoffSource(source);
     setReportHandoffOptions(initialOptions);
     setReportHandoffSnapshot(null);
@@ -3698,6 +3829,230 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       title: `${layer?.name ?? "Selected layer"} map finding`,
     });
   }, [handleOpenReportHandoff, overlayLayers]);
+
+  const handleSendLayerToUrban = useCallback((layerId: string) => {
+    const layer = overlayLayers.find((candidate) => candidate.id === layerId);
+    const result = sendMapContextToUrban({
+      contextSummary,
+      overlayLayers,
+      drawnFeatures,
+      activeAoiId,
+      selectedFeatureIds,
+      mapEvidenceArtifacts,
+      scientificQA,
+      activeWorkflowId: activeFlow,
+      completedRunIds: completedRuns.map((run) => run.runId),
+      requestedLayerId: layerId,
+      receiver: () => {
+        const applied = applyMapContextToUrban({
+          mapState: {
+            activeAoiId,
+            overlayLayers,
+            selectedFeatureIds,
+            activeAnalysisResultLayerIds,
+            currentMapBounds,
+            scientificQA,
+          },
+          triggerRecommendations: true,
+        });
+        return {
+          contextId: applied.contextId,
+          evidenceArtifactId: applied.evidenceArtifactId,
+          recommendationTriggered: applied.recommendationTriggered,
+          recommendationReason: applied.recommendationReason,
+        };
+      },
+    });
+
+    if (result.status === "blocked") {
+      const reason = result.disabledReasons[0] ?? "No usable map context is available for Urban Analytics.";
+      setDispatchFeedback({
+        tone: "error",
+        title: "Urban handoff blocked",
+        description: reason,
+      });
+      toastWarning(reason);
+      announce(`Urban Analytics handoff blocked: ${reason}`);
+      recordMapReviewEvent({
+        type: "action-status",
+        status: "failed",
+        title: "Urban handoff blocked",
+        summary: reason,
+        layerIds: [layerId],
+        actionIds: [result.payload.payloadId],
+        details: {
+          payloadId: result.payload.payloadId,
+          requestedLayerId: layerId,
+          disabledReasons: result.disabledReasons,
+          qaBlockingIssueCount: result.payload.qaSummary.blockingIssueIds.length,
+        },
+      });
+      return;
+    }
+
+    const sentLayerCount = result.payload.layerSummaries.length;
+    const evidenceCount = result.payload.evidenceSummaries.length;
+    const selectedFeatureCount = result.payload.context.selection.totalSelectedFeatures;
+    const layerLabel = layer?.name ?? "Map context";
+    setDispatchFeedback({
+      tone: "success",
+      title: "Urban context sent",
+      description: `${layerLabel} sent with ${sentLayerCount} layer summary(s), ${selectedFeatureCount} selected feature(s), and ${evidenceCount} evidence reference(s).`,
+    });
+    toastSuccess("Map context sent to Urban Analytics.");
+    announce(`${layerLabel} context sent to Urban Analytics`);
+    recordMapReviewEvent({
+      type: "action-status",
+      status: "applied",
+      title: "Map context sent to Urban Analytics",
+      summary: `Explicit Map to Urban handoff sent payload ${result.payload.payloadId} with ${sentLayerCount} layer summary(s) and ${evidenceCount} evidence reference(s).`,
+      layerIds: [layerId],
+      actionIds: [result.payload.payloadId],
+      details: {
+        payloadId: result.payload.payloadId,
+        payloadVersion: result.payload.version,
+        requestedLayerId: layerId,
+        eventDispatched: result.eventDispatched,
+        urbanContextId: result.urbanContextId,
+        urbanEvidenceArtifactId: result.evidenceArtifactId,
+        recommendationTriggered: result.recommendationTriggered,
+        recommendationReason: result.recommendationReason,
+        layerSummaryCount: sentLayerCount,
+        selectedFeatureCount,
+        evidenceSummaryCount: evidenceCount,
+        visibleLayerCount: result.payload.visibleLayerIds.length,
+        queryableLayerCount: result.payload.queryableLayerIds.length,
+        qaStatus: result.payload.qaSummary.status,
+        crsMissingLayerCount: result.payload.crsSummary.missingLayerIds.length,
+      },
+    });
+  }, [
+    activeAnalysisResultLayerIds,
+    activeAoiId,
+    activeFlow,
+    announce,
+    completedRuns,
+    contextSummary,
+    currentMapBounds,
+    drawnFeatures,
+    mapEvidenceArtifacts,
+    overlayLayers,
+    recordMapReviewEvent,
+    scientificQA,
+    selectedFeatureIds,
+  ]);
+
+  const handleUrbanToMapMethodRequest = useCallback((request: UrbanToMapMethodRequest) => {
+    const preview = buildUrbanToMapMethodRequestPreview({
+      request,
+      contextSummary,
+      overlayLayers,
+      workflowContext,
+      scientificQA,
+    });
+    const actionTypes = preview.requestedActions.map((action) => action.type);
+    const compatibleLayerIds = preview.compatibleLayers
+      .filter((layer) => layer.status !== "blocked")
+      .map((layer) => layer.layerId);
+    const feedbackDescription = preview.missingPrerequisites[0]
+      ?? preview.warnings[0]
+      ?? `${preview.methodLabel} is ready to preview with ${compatibleLayerIds.length} compatible layer${compatibleLayerIds.length === 1 ? "" : "s"}.`;
+
+    setDispatchFeedback({
+      tone: preview.status === "blocked" ? "error" : preview.status === "ready" ? "success" : "info",
+      title: preview.status === "blocked" ? "Urban map request blocked" : "Urban map request previewed",
+      description: feedbackDescription,
+    });
+
+    setWorkspaceView("explore");
+    if (actionTypes.includes("focus-compatible-layers")) {
+      setShowLayerPanel(true);
+    }
+    if (actionTypes.includes("validate-aoi")) {
+      if (preview.aoiPreview.missingPrerequisites.length > 0) {
+        closeRightDockPanels();
+        setShowDrawPanel(true);
+      } else {
+        openScientificQAPanel();
+      }
+    }
+
+    const requestsWorkflow = actionTypes.includes("preview-map-workflow") || actionTypes.includes("publish-derived-layer");
+    if (requestsWorkflow && preview.workflowDraftRequest) {
+      closeRightDockPanels();
+      closeFloatingRightPanels();
+      setReportHandoffSource(null);
+      setReportHandoffSnapshot(null);
+      setShowScientificQAPanel(false);
+      setUrbanWorkflowDraftRequest(preview.workflowDraftRequest);
+      setShowWorkflowDrawer(true);
+    } else {
+      setUrbanWorkflowDraftRequest(null);
+    }
+
+    const requestsReport = actionTypes.includes("prepare-report-ready-snapshot") || request.outputIntent === "report" || Boolean(request.reportIntent);
+    if (!requestsWorkflow && requestsReport && preview.reportSnapshotPreview?.status !== "blocked") {
+      const requestedLayerId = preview.reportSnapshotPreview?.scope === "layer"
+        ? preview.reportSnapshotPreview.targetLayerIds[0] ?? null
+        : null;
+      const requestedLayer = requestedLayerId
+        ? overlayLayers.find((layer) => layer.id === requestedLayerId)
+        : null;
+      handleOpenReportHandoff(requestedLayer
+        ? { scope: "layer", layerId: requestedLayer.id, title: `${requestedLayer.name} Urban method snapshot` }
+        : { scope: "map-view", title: `${preview.methodLabel} map evidence` });
+    }
+
+    recordMapReviewEvent({
+      type: "analysis-dispatch",
+      status: "previewed",
+      title: "Urban method request previewed",
+      summary: `${preview.methodLabel} requested ${actionTypes.join(", ")} from Urban Analytics; Map Explorer produced a ${preview.status} preview without applying map mutations.`,
+      layerIds: compatibleLayerIds,
+      qaIssueIds: preview.qaBlockers.map((issue) => issue.issueId),
+      actionIds: [request.requestId],
+      details: {
+        requestId: request.requestId,
+        methodId: request.methodId,
+        status: preview.status,
+        actionTypes,
+        compatibleLayerIds,
+        blockedLayerIds: preview.blockedLayerIds,
+        missingPrerequisites: preview.missingPrerequisites,
+        warningCount: preview.warnings.length,
+        qaBlockerCount: preview.qaBlockers.length,
+        workflowKind: preview.workflowPreview?.workflow ?? null,
+        workflowCanApply: preview.workflowPreview?.canApply ?? null,
+        reportSnapshotStatus: preview.reportSnapshotPreview?.status ?? null,
+      },
+    });
+
+    if (preview.status === "blocked") {
+      toastWarning(feedbackDescription);
+      announce(`Urban map request blocked: ${feedbackDescription}`);
+      return;
+    }
+    toastInfo(feedbackDescription);
+    announce(`Urban map request previewed: ${preview.methodLabel}`);
+  }, [
+    announce,
+    closeFloatingRightPanels,
+    closeRightDockPanels,
+    contextSummary,
+    handleOpenReportHandoff,
+    openScientificQAPanel,
+    overlayLayers,
+    recordMapReviewEvent,
+    scientificQA,
+    workflowContext,
+  ]);
+
+  useEffect(() => {
+    if (!open) {
+      return undefined;
+    }
+    return subscribeUrbanToMapMethodRequests(handleUrbanToMapMethodRequest);
+  }, [handleUrbanToMapMethodRequest, open]);
 
   const handleFeatureReportRequest = useCallback((payload: MapFeatureReportRequest) => {
     const titleValue = [
@@ -4633,6 +4988,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
                 onReorderLayers={reorderLayers}
                 onAddLayer={addOverlayLayer}
                 onAddLayerToReport={handleLayerReportRequest}
+                onSendLayerToUrban={handleSendLayerToUrban}
+                onOpenLayerInIde={handleOpenLayerInIde}
                 onReRunAnalysisLayer={handleReRunAnalysisLayer}
                 activeRerunToken={rerunningAnalysisToken}
                 onOpenSymbology={handleOpenPointSymbology}
@@ -4750,17 +5107,20 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
           <MapWorkflowDrawer
             visible={effectiveShowWorkflowDrawer}
             context={workflowContext}
+            initialDraftRequest={urbanWorkflowDraftRequest}
             presentation={dockLayout.compactDock ? "bottom-drawer" : "right-rail"}
             width={dockLayout.rightPanelWidth}
             onWidthChange={handleRightPanelWidthChange}
             onClose={() => {
               setShowWorkflowDrawer(false);
               setWorkflowPreview(null);
+              setUrbanWorkflowDraftRequest(null);
               announce("Spatial workflow drawer closed");
             }}
             onApply={handleApplyMapWorkflow}
             onSaveReport={handleSaveWorkflowReport}
             onPreviewChange={setWorkflowPreview}
+            onOpenWorkflowScript={handleOpenWorkflowScriptInIde}
             onAnnounce={announce}
           />
 
@@ -5118,6 +5478,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
           isExporting={isExportingMapImage}
           onCompositionChange={handleMapCompositionChange}
           onClose={() => setShowMapExportDialog(false)}
+          onOpenManifestInIde={handleOpenMapManifestInIde}
+          onOpenExportNoteInIde={handleOpenExportNoteInIde}
           onExport={() => {
             void handleMapExportConfirm();
           }}

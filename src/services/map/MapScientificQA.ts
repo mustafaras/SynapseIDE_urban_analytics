@@ -423,12 +423,24 @@ function normalizeCrs(value: unknown): string | null {
 }
 
 function resolveLayerCrs(layer: OverlayLayerConfig): string | null {
-  return normalizeCrs(
-    layer.metadata?.datasetContext?.crs
-      ?? layer.metadata?.columnar?.crs
-      ?? layer.metadata?.eoSource?.crs
-      ?? layer.metadata?.externalService?.crs,
-  );
+  const metadata = layer.metadata;
+  const candidates = [
+    metadata?.crsSummary?.status === "known" ? metadata.crsSummary.crs : null,
+    metadata?.importSource?.declaredCrs,
+    metadata?.datasetContext?.crs,
+    metadata?.columnar?.crs,
+    metadata?.eoSource?.crs,
+    metadata?.externalService?.crs,
+    metadata?.registry?.crsSummary.status === "known" ? metadata.registry.crsSummary.crs : null,
+  ];
+
+  for (const candidate of candidates) {
+    const crs = normalizeCrs(candidate);
+    if (crs) {
+      return crs;
+    }
+  }
+  return null;
 }
 
 function resolveLayerSourceKind(layer: OverlayLayerConfig): LayerSourceKind {
@@ -983,6 +995,34 @@ function buildLayerSignature(layer: OverlayLayerConfig, context: MapScientificQA
         columnar: metadata.columnar,
         eoSource: metadata.eoSource,
         externalService: metadata.externalService,
+        importSource: metadata.importSource
+          ? {
+              declaredCrs: metadata.importSource.declaredCrs,
+              format: metadata.importSource.format,
+              importedAt: metadata.importSource.importedAt,
+              sourceConfidence: metadata.importSource.sourceConfidence,
+            }
+          : null,
+        crsSummary: metadata.crsSummary,
+        geometrySummary: metadata.geometrySummary,
+        scientificQA: metadata.scientificQA
+          ? {
+              status: metadata.scientificQA.status,
+              issueIds: metadata.scientificQA.issueIds,
+              badges: metadata.scientificQA.badges,
+              categorySummaries: metadata.scientificQA.categorySummaries,
+              signature: metadata.scientificQA.signature,
+            }
+          : null,
+        registry: metadata.registry
+          ? {
+              crsSummary: metadata.registry.crsSummary,
+              geometrySummary: metadata.registry.geometrySummary,
+              qaStatus: metadata.registry.qaStatus,
+              publicationReadiness: metadata.registry.publicationReadiness,
+              readiness: metadata.registry.readiness,
+            }
+          : null,
       },
       provenance: layer.provenance,
       source: summarizeSourceForSignature(layer.sourceData),

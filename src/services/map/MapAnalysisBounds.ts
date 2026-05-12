@@ -31,6 +31,16 @@ function visitGeometryCoordinates(geometry: GeoJSON.Geometry, visitor: (coordina
   walk(geometry.coordinates);
 }
 
+function isValidBounds(bounds: [number, number, number, number]): boolean {
+  const [minLng, minLat, maxLng, maxLat] = bounds;
+  return Number.isFinite(minLng)
+    && Number.isFinite(minLat)
+    && Number.isFinite(maxLng)
+    && Number.isFinite(maxLat)
+    && maxLng > minLng
+    && maxLat > minLat;
+}
+
 export function getGeometryBounds(geometry: GeoJSON.Geometry): [number, number, number, number] | null {
   let minLng = Number.POSITIVE_INFINITY;
   let minLat = Number.POSITIVE_INFINITY;
@@ -44,9 +54,8 @@ export function getGeometryBounds(geometry: GeoJSON.Geometry): [number, number, 
     maxLat = Math.max(maxLat, lat);
   });
 
-  return Number.isFinite(minLng) && Number.isFinite(minLat) && Number.isFinite(maxLng) && Number.isFinite(maxLat)
-    ? [minLng, minLat, maxLng, maxLat]
-    : null;
+  const bounds: [number, number, number, number] = [minLng, minLat, maxLng, maxLat];
+  return isValidBounds(bounds) ? bounds : null;
 }
 
 function toCandidate(feature: DrawnFeature, source: MapAnalysisBoundsSource, fallbackLabel: string): MapAnalysisBounds | null {
@@ -84,7 +93,7 @@ export function resolveMapAnalysisBounds(options: {
   const latestCandidate = latestPolygon ? toCandidate(latestPolygon, "latest-aoi", "Latest drawn AOI") : null;
   if (latestCandidate) return latestCandidate;
 
-  return options.currentMapBounds
+  return options.currentMapBounds && isValidBounds(options.currentMapBounds)
     ? { bounds: options.currentMapBounds, source: "map-view", label: "Current visible map extent" }
     : null;
 }

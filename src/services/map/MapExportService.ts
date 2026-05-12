@@ -625,8 +625,15 @@ export function buildMapPublicationReadiness(input: MapPublicationReadinessInput
   const missingCrsLayerIds = layerReadiness
     .filter(({ registry }) => !registry.readiness.crsReady)
     .map(({ layer }) => layer.id);
+  const geometryNotReadyLayerIds = layerReadiness
+    .filter(({ registry }) => !registry.readiness.geometryReady)
+    .map(({ layer }) => layer.id);
   const qaSpatialIssues = input.scientificQA?.issues.filter((issue) =>
-    issue.category === "crs" || issue.category === "geometry" || issue.category === "coordinates" || issue.category === "scale"
+    issue.category === "crs"
+      || issue.category === "geometry"
+      || issue.category === "geometry-type"
+      || issue.category === "coordinates"
+      || issue.category === "scale"
   ) ?? [];
   const blockingSpatialIssueIds = qaSpatialIssues
     .filter((issue) => isBlockingQaSeverity(issue.severity) && !acknowledgedIssueSet.has(issue.id))
@@ -636,7 +643,7 @@ export function buildMapPublicationReadiness(input: MapPublicationReadinessInput
     label: "CRS and measurement caveats",
     status: blockingSpatialIssueIds.length > 0
       ? "blocked"
-      : missingCrsLayerIds.length > 0 || qaSpatialIssues.length > 0
+      : missingCrsLayerIds.length > 0 || geometryNotReadyLayerIds.length > 0 || qaSpatialIssues.length > 0
         ? "warning"
         : "pass",
     required: true,
@@ -644,13 +651,19 @@ export function buildMapPublicationReadiness(input: MapPublicationReadinessInput
       ? "CRS, geometry, or scale QA blockers must be resolved or explicitly acknowledged."
       : missingCrsLayerIds.length > 0
         ? `${missingCrsLayerIds.length} visible layer${missingCrsLayerIds.length === 1 ? "" : "s"} have unknown CRS readiness.`
+        : geometryNotReadyLayerIds.length > 0
+          ? `${geometryNotReadyLayerIds.length} visible layer${geometryNotReadyLayerIds.length === 1 ? "" : "s"} have unknown or invalid geometry readiness.`
         : qaSpatialIssues.length > 0
           ? "Spatial QA warnings are present and will travel as caveats."
           : "No CRS or measurement publication caveat was detected.",
-    affectedLayerIds: uniquePublicationTexts([...missingCrsLayerIds, ...qaSpatialIssues.map((issue) => issue.layerId)], 24),
+    affectedLayerIds: uniquePublicationTexts([
+      ...missingCrsLayerIds,
+      ...geometryNotReadyLayerIds,
+      ...qaSpatialIssues.map((issue) => issue.layerId),
+    ], 24),
     issueIds: blockingSpatialIssueIds,
-    recommendedFix: blockingSpatialIssueIds.length > 0 || missingCrsLayerIds.length > 0
-      ? "Run Scientific QA, attach verified CRS metadata, and acknowledge any remaining measurement caveats."
+    recommendedFix: blockingSpatialIssueIds.length > 0 || missingCrsLayerIds.length > 0 || geometryNotReadyLayerIds.length > 0
+      ? "Run Scientific QA, attach verified CRS metadata, repair invalid geometry, and acknowledge any remaining measurement caveats."
       : undefined,
   }));
 
@@ -698,6 +711,7 @@ export function buildMapPublicationReadiness(input: MapPublicationReadinessInput
     ...(input.caveats ?? []),
     ...layerReadiness.flatMap(({ layer, registry }) => registry.publicationReadiness.caveats.map((caveat) => `${layer.name}: ${caveat}`)),
     ...layerReadiness.flatMap(({ layer, registry }) => registry.publicationReadiness.missingFields.map((field) => `${layer.name}: missing ${field} metadata.`)),
+    ...layerReadiness.flatMap(({ layer, registry }) => registry.readiness.missingFields.map((field) => `${layer.name}: missing ${field} readiness.`)),
     ...(input.scientificQA?.issues
       .filter((issue) => issue.severity !== "info" && (includeQaWarningCaveats || issue.severity === "error" || issue.severity === "blocker"))
       .map((issue) => `${issue.title}${issue.layerName ? ` (${issue.layerName})` : ""}: ${issue.explanation}`) ?? []),

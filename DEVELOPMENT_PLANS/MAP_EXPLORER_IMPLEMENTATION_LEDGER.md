@@ -21,14 +21,14 @@ Read these before implementing any Map Explorer prompt:
 
 ## Current Status
 
-- Overall status: Import and External Service Evidence landed. 15 of 30 prompts completed.
-- Current prompt: Prompt 14 - Import and External Service Evidence completed 2026-05-11.
-- Next recommended prompt: Prompt 15 - CRS, Measurement, and Geometry Validation.
+- Overall status: Map to IDE Code and Manifest Artifact Requests landed. 19 of 30 prompts completed.
+- Current prompt: Prompt 18 - Map to IDE Code and Manifest Artifact Requests completed 2026-05-12.
+- Next recommended prompt: Prompt 19 - IDE to Map File and Layer Artifact Recognition.
 - Operating pack status: Installed.
 - Next-prompt helper: `scripts/get-next-map-explorer-prompt.ps1`
 - Machine-readable manifest: `DEVELOPMENT_PLANS/MAP_EXPLORER_PROMPT_MANIFEST.json`
-- Last validated repository state: 2026-05-11; Prompt 14 validation passed: `npx vitest run src/services/map/__tests__/MapDataIO.test.ts src/services/map/__tests__/ExternalServiceConnector.test.ts` passed (35/35, 2 skipped live smoke tests), `npm run typecheck` passed, focused `npx eslint --quiet` on touched Prompt 14 files passed, and `git diff --check` passed with LF-to-CRLF warnings only.
-- Last known blocker: None for Prompt 14 scope; repo setup blocker remains for the missing centerpanel no-Tailwind script and repo-wide lint has the unrelated UA unused import noted above.
+- Last validated repository state: 2026-05-12; Prompt 18 validation passed: `npm run test -- src/services/map/__tests__/MapCodeArtifactRequestService.test.ts src/services/map/__tests__/MapToUrbanContextAdapter.test.ts src/services/map/__tests__/UrbanToMapMethodRequestAdapter.test.ts` passed (11/11), `npm run typecheck` passed, focused `npx eslint --quiet` on touched Prompt 18 files passed, `git diff --check` passed with LF-to-CRLF warnings only, and VS Code Problems reported no errors for touched Prompt 18 files.
+- Last known blocker: None for Prompt 18 scope; repo setup blocker remains for the missing centerpanel no-Tailwind script and repo-wide lint has the unrelated UA unused import noted above.
 
 ## Agent Operating Pack
 
@@ -70,10 +70,10 @@ This table is the human-readable execution state. The helper script reads it whe
 | 12 | Analysis Recommendation and Dispatch | completed | 11 | Completed 2026-05-11. Recommendations now carry explainable reasons/readiness, and dispatches carry lightweight context/layer references with explicit review/audit events while preserving existing dispatch keys. |
 | 13 | Engine Adapter Evidence Outputs | completed | 12 | Completed 2026-05-11. Engine adapter outputs now carry evidence artifacts, lineage, QA summaries, caveats, output mode labels, handoff hints, completed-run metadata round-trip preservation, and map evidence registry upserts at publication boundaries. |
 | 14 | Import and External Service Evidence | completed | 13 | Completed 2026-05-11. Local imports and external service layers now carry QA-aware source metadata, dependency/cache/stale fields, attribution/CRS summaries, evidence IDs, registry normalization, evidence registry upserts, and review timeline events. |
-| 15 | CRS, Measurement, and Geometry Validation | pending | 14 | Requires import evidence. |
-| 16 | Map to Urban Context Adapter | pending | 15 | Requires CRS/QA foundation. |
-| 17 | Urban to Map Method Request Adapter | pending | 16 | Requires map-to-urban adapter. |
-| 18 | Map to IDE Code and Manifest Artifact Requests | pending | 17 | Requires urban request adapter. |
+| 15 | CRS, Measurement, and Geometry Validation | completed | 14 | Completed 2026-05-12. Browser measurements now carry WGS84 geodesic assumptions, drawings carry validation metadata, QA honors normalized/import/registry CRS metadata, and publication readiness consumes CRS/geometry blockers and caveats. |
+| 16 | Map to Urban Context Adapter | completed | 15 | Completed 2026-05-12. Map-owned lightweight context payload, explicit layer rail Urban action, event/receiver bridge, and focused coverage landed. |
+| 17 | Urban to Map Method Request Adapter | completed | 16 | Completed 2026-05-12. Map-owned incoming Urban method request contract, preview/readiness adapter, CustomEvent subscription, workflow/report preview wiring, review timeline capture, and focused no-heavy-payload coverage landed. |
+| 18 | Map to IDE Code and Manifest Artifact Requests | completed | 17 | Completed 2026-05-12. Map-owned IDE artifact request service, explicit layer/workflow/export IDE actions, SQL bridge language support, Map evidence registration, Synapse bus evidence events, and focused no-heavy-payload coverage landed. |
 | 19 | IDE to Map File and Layer Artifact Recognition | pending | 18 | Requires map-to-IDE request model. |
 | 20 | Report Handoff Structured Evidence | pending | 19 | Requires IDE recognition contracts. |
 | 21 | Dashboard, Education, and Publication Outputs | pending | 20 | Requires report handoff. |
@@ -1220,6 +1220,268 @@ attachSpatialStatsRerun(layer, run) preserves provenance.
 - Next recommended prompt: Prompt 15 - CRS, Measurement, and Geometry Validation.
 - Ledger updated: yes
 
+### Prompt 15 - CRS, Measurement, and Geometry Validation
+
+- Date: 2026-05-12
+- Agent: GitHub Copilot
+- Status: completed
+- Started from:
+  - Launcher: `DEVELOPMENT_PLANS/START_HERE_MAP_EXPLORER_AGENT.md`
+  - Manifest: `DEVELOPMENT_PLANS/MAP_EXPLORER_PROMPT_MANIFEST.json`
+  - Ledger: `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md`
+  - Sequential prompt: `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` Prompt 15
+  - Alignment/operating docs: `DEVELOPMENT_PLANS/TRI_MODAL_WORKBENCH_ALIGNMENT_SPEC.md`, `DEVELOPMENT_PLANS/AGENT_AMNESIA_PREVENTION_PROTOCOL.md`, and `DEVELOPMENT_PLANS/MAP_EXPLORER_AGENT_HANDOFF_TEMPLATE.md`
+- Files inspected:
+  - `src/centerpanel/components/map/mapTypes.ts` — measurement, drawing, CRS, geometry, QA, readiness, and layer metadata contracts.
+  - `src/centerpanel/components/MapMeasurementTool.tsx` and `src/utils/geodesic.ts` — browser measurement math, UI labels, clipboard output, and stored measurement shape.
+  - `src/centerpanel/components/MapDrawingManager.tsx` and `src/utils/drawingHelpers.ts` — drawing finalization, vertex edit paths, and GeoJSON helpers.
+  - `src/services/map/MapScientificQA.ts` — CRS resolver, geometry validity checks, category summaries, issue badges, and QA gates.
+  - `src/centerpanel/components/map/mapLayerMetadata.ts` — normalized registry readiness, publication readiness, CRS/geometry/schema/license summaries.
+  - `src/services/map/MapExportService.ts` — formal publication readiness gates, CRS/measurement check, QA blockers, caveat generation.
+  - `src/services/map/MapAnalysisBounds.ts` — AOI/map-view bounds derivation for analysis dispatch.
+  - Focused tests for geodesic measurement, drawing tools, Scientific QA, and export readiness.
+- Files changed:
+  - `src/centerpanel/components/map/mapTypes.ts` — added optional `MeasurementAssumptions` and `DrawnGeometryValidation` contracts.
+  - `src/centerpanel/components/MapMeasurementTool.tsx` — completed measurements now store/display/copy WGS84 geodesic assumptions, CRS basis, area/distance model, and caveats; zero-value completions are rejected.
+  - `src/centerpanel/components/MapDrawingManager.tsx` — drawing finalization and vertex edits now run finite-coordinate, degeneracy, closure, area, self-intersection, and GeoJSON validity checks; blocked drawings are not stored and valid/warning drawings carry validation metadata.
+  - `src/centerpanel/components/map/mapLayerMetadata.ts` — publication readiness merges explicit readiness with current CRS/geometry QA, marks unknown geometry validation, and blocks invalid geometry.
+  - `src/services/map/MapScientificQA.ts` — CRS resolver now honors known `crsSummary`, import `declaredCrs`, dataset, columnar, EO, external-service, and registry CRS metadata, with those fields included in QA cache signatures.
+  - `src/services/map/MapExportService.ts` — formal CRS/measurement readiness now includes geometry readiness and geometry-type spatial QA caveats/blockers.
+  - `src/services/map/MapAnalysisBounds.ts` — AOI/map bounds now reject non-finite or degenerate extents.
+  - `src/centerpanel/components/map/__tests__/geodesic-measurement.test.ts`, `src/services/map/__tests__/MapScientificQA.test.ts`, and `src/services/map/__tests__/MapExportService.test.ts` — added coverage for measurement assumptions, normalized CRS metadata, invalid geometry export-readiness, and geometry readiness caveats.
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` — updated durable prompt state, registries, validation history, risks, and next pointer.
+- Summary:
+  - Prompt 15 hardened spatial truthfulness across browser measurements, drawn AOI geometry, Scientific QA CRS resolution, normalized layer readiness, analysis bounds, and formal publication gates.
+- Spatial evidence/provenance changes:
+  - No new evidence artifact kind or heavy payload movement.
+  - Layer readiness/evidence consumers now receive stronger scalar CRS/geometry QA summaries through existing layer metadata and publication readiness contracts.
+- CRS, geometry, or measurement changes:
+  - Browser measurements explicitly record `geodesic-wgs84` assumptions using EPSG:4326 display coordinates, haversine distance, spherical polygon area, metres base units, and caveats.
+  - Drawn geometries are conservatively validated before storage; invalid/self-intersecting/degenerate drawings are blocked, while stored drawings carry validation metadata.
+  - QA CRS resolution now consumes Prompt 14 normalized/import/service/registry CRS metadata only when declared/known; missing CRS remains unknown/missing.
+  - Analysis bounds no longer accepts degenerate or non-finite extents as AOI candidates.
+- Scientific QA changes:
+  - `MapScientificQA` no longer reports false missing CRS for layers whose CRS was declared through normalized `crsSummary`, import metadata, or registry metadata.
+  - Invalid geometry already mapped into `geometry-validity`, `workflow-readiness`, and `export-readiness`; tests now lock export-readiness blocked severity for invalid geometry.
+- Layer registry or persistence changes:
+  - Additive metadata only; no persistence schema change.
+  - Registry publication readiness now merges explicit readiness with current CRS/geometry QA instead of bypassing live QA signals.
+- Workflow/export/report changes:
+  - Formal publication/export readiness now warns or blocks on unknown/invalid geometry readiness in the same CRS/measurement gate that already handles spatial QA issues.
+  - Report/export caveats now include layer geometry readiness gaps.
+- Contract changes:
+  - Additive optional `Measurement.assumptions` contract for map measurement consumers.
+  - Additive optional `DrawnFeature.properties.validation` contract for AOI/drawing consumers.
+  - No cross-module owner dependency added; contracts remain Map-owned and reference/scalar only.
+- UX changes:
+  - Measurement panel and clipboard now disclose the WGS84 geodesic CRS/method basis.
+  - Drawing panel shows compact validation state per drawing.
+  - Invalid drawings announce the blocking reason instead of silently entering map state.
+- Validation:
+  - `npm install` passed to restore missing `node_modules` for local validation; audit reported 10 vulnerabilities but did not block validation.
+  - `npm run test -- src/centerpanel/components/map/__tests__/geodesic-measurement.test.ts src/centerpanel/components/map/__tests__/map-drawing-tools.test.ts src/services/map/__tests__/MapScientificQA.test.ts src/services/map/__tests__/MapExportService.test.ts` passed (124/124).
+  - `npm run typecheck` passed.
+  - Focused `npx eslint --quiet` on touched Prompt 15 files passed with no output.
+  - `git diff --check` passed; only LF-to-CRLF working-copy warnings were reported.
+  - VS Code Problems check reported no errors for touched Prompt 15 files.
+  - `powershell -ExecutionPolicy Bypass -File scripts/get-next-map-explorer-prompt.ps1` returned Prompt 16 after ledger update.
+- Known risks:
+  - Browser measurement remains a display-coordinate geodesic tool, not a projected cadastral/engineering measurement engine. The UI/clipboard now labels that limitation explicitly.
+  - Drawn geometry validation is structural/topological for browser-created GeoJSON and does not verify source CRS; it stores caveats accordingly.
+- Blockers: None for Prompt 15.
+- Decisions made:
+  - Do not infer analytical CRS readiness from coordinates; only known/declarative CRS metadata is treated as CRS metadata.
+  - Invalid drawn geometry should be blocked before entering store state, while warning/valid geometry can remain inspectable with validation metadata.
+  - Explicit layer publication readiness is a baseline, not a bypass; current CRS/geometry QA still participates in readiness.
+- Next recommended prompt: Prompt 16 - Map to Urban Context Adapter.
+- Ledger updated: yes
+
+### Prompt 16 - Map to Urban Context Adapter
+
+- Date: 2026-05-12
+- Agent: GitHub Copilot
+- Status: completed
+- Files inspected:
+  - `DEVELOPMENT_PLANS/START_HERE_MAP_EXPLORER_AGENT.md`, `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` Prompt 16, `DEVELOPMENT_PLANS/MAP_EXPLORER_PROMPT_MANIFEST.json`, `DEVELOPMENT_PLANS/TRI_MODAL_WORKBENCH_ALIGNMENT_SPEC.md`, and this ledger.
+  - `src/centerpanel/components/map/mapContextSummary.ts` — existing Map context summary and layer summarizer.
+  - `src/centerpanel/components/map/mapEvidenceArtifacts.ts` and `src/centerpanel/components/map/mapTypes.ts` — map evidence, QA, layer registry, CRS, schema, and workflow metadata contracts.
+  - `src/features/urbanAnalytics/context/mapContextAdapter.ts`, `src/features/urbanAnalytics/lib/types.ts`, `src/features/urbanAnalytics/store.ts`, and `src/features/urbanAnalytics/useUrbanContextStore.ts` — existing Urban receiver, Urban summary shape, recommendation mode, and evidence/context actions.
+  - `src/services/map/MapAnalysisDispatcher.ts` and `src/services/map/MapSyncService.ts` — reference-only dispatch and event/service patterns.
+  - `src/stores/useMapExplorerStore.ts` and `src/centerpanel/components/MapExplorerModal.tsx` — Map state selectors, evidence registry, review events, active workflow data, and UI wiring surface.
+  - `src/centerpanel/components/map/MapLayerManager.tsx` — existing layer rail Urban action and disabled reason surface.
+- Files changed:
+  - `src/services/map/MapToUrbanContextAdapter.ts` — new Map-owned adapter with `MapToUrbanContextPayload`, readiness assessment, lightweight payload builder, CustomEvent publication, and receiver hook.
+  - `src/services/map/__tests__/MapToUrbanContextAdapter.test.ts` — focused coverage for payload content, blocked reasons, event dispatch, receiver simulation, and no-heavy-payload assertions.
+  - `src/centerpanel/components/MapExplorerModal.tsx` — wired the existing layer rail Urban action to the new Map adapter and the existing Urban `applyMapContextToUrban` receiver with success/block feedback and review timeline events.
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` — updated durable prompt state, contract registry, decisions, validation history, risk notes, and next pointer.
+- Summary:
+  - Prompt 16 now gives Map Explorer an explicit, Map-owned outbound Urban context handoff. The payload carries AOI, layer, selection, field, CRS, QA, workflow/result, and map evidence summaries while keeping raw GeoJSON/source buffers in Map state.
+- Spatial evidence/provenance changes:
+  - Map evidence artifacts are summarized by artifact IDs, layer/AOI/run references, provenance state, QA counts, and timestamps only.
+  - The Urban receiver continues to own Urban evidence registration; Map only sends the handoff payload and invokes the receiver through an explicit action.
+- CRS, geometry, or measurement changes:
+  - No new spatial calculations or CRS inference were added.
+  - Payload CRS summary uses existing normalized layer registry CRS status and flags missing/mixed CRS through scalar summary fields.
+- Scientific QA changes:
+  - Payload includes context-level QA status, issue counts, blocking/warning issue IDs, per-layer QA status, blockers, caveats, badges, and category summaries where present.
+  - Blocking/no-context states produce explicit disabled reasons before Urban handoff.
+- Layer registry or persistence changes:
+  - No persistence schema change.
+  - Layer summaries reuse `summarizeOverlayLayer`/normalized metadata and include queryability, visibility, readiness, CRS, schema-derived field summaries, selected feature counts, and analysis result references.
+- Workflow/export/report changes:
+  - Workflow/run/result IDs and reproducibility manifest IDs are carried as references in `workflowSummary` and per-layer workflow summaries.
+  - No report/export behavior changed.
+- Contract changes:
+  - New `MapToUrbanContextPayload` contract in `src/services/map/MapToUrbanContextAdapter.ts` for Map -> Urban handoff.
+  - New `MAP_TO_URBAN_CONTEXT_EVENT = "map:urban-sync:provided"` CustomEvent for optional observers.
+  - No Urban internals were changed; existing `applyMapContextToUrban` remains the receiving adapter.
+- UX changes:
+  - The existing per-layer `Urban` action in the Map layer rail is now active when the layer is queryable and has declared CRS metadata.
+  - The action sends context to Urban Analytics, enables the existing Urban recommendation path through the receiver, shows success/block feedback, announces accessibility status, and writes a Map review timeline event.
+- Validation:
+  - `npm run test -- src/services/map/__tests__/MapToUrbanContextAdapter.test.ts` passed (3/3).
+  - `npm run test -- src/services/map/__tests__/MapToUrbanContextAdapter.test.ts src/features/urbanAnalytics/__tests__/mapContextAdapter.test.ts` passed (6/6).
+  - `npm run typecheck` passed.
+  - `npx eslint --quiet src/services/map/MapToUrbanContextAdapter.ts src/services/map/__tests__/MapToUrbanContextAdapter.test.ts src/centerpanel/components/MapExplorerModal.tsx` passed with no output.
+  - `git diff --check` passed; only LF-to-CRLF working-copy warnings were reported.
+  - VS Code Problems check reported no errors for touched Prompt 16 files.
+- Known risks:
+  - The explicit UI trigger is currently wired in the large `MapExplorerModal.tsx` orchestrator; future decomposition prompts should extract this into a smaller command hook when authorized.
+  - The event is adjunct/observable; the current authoritative handoff remains the explicit receiver call into Urban's existing adapter.
+- Blockers: None for Prompt 16.
+- Decisions made:
+  - Map owns the outbound payload and readiness reasons; Urban owns interpretation, Urban context mutation, evidence registration, and recommendation mode.
+  - Use explicit layer rail action rather than automatic background sync, so Urban recommendations are user-triggered and auditable.
+  - Keep payloads reference/scalar/summary-only and test that GeoJSON feature collections and coordinate arrays do not appear in serialized payloads.
+- Next recommended prompt: Prompt 17 - Urban to Map Method Request Adapter.
+- Ledger updated: yes
+
+### Prompt 17 - Urban to Map Method Request Adapter
+
+- Date: 2026-05-12
+- Agent: GitHub Copilot
+- Status: completed
+- Files inspected:
+  - `DEVELOPMENT_PLANS/START_HERE_MAP_EXPLORER_AGENT.md`, `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` Prompt 17, `DEVELOPMENT_PLANS/MAP_EXPLORER_PROMPT_MANIFEST.json`, `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md` sections 8.4, 20.2, and 20.4, `DEVELOPMENT_PLANS/URBAN_ANALYTICS_DEVELOPMENT_PLAN.md`, and this ledger.
+  - `src/features/urbanAnalytics/store.ts` and `src/features/urbanAnalytics/useUrbanContextStore.ts` — Urban-side store surface inspected for ownership boundaries only; no Urban code changed.
+  - `src/stores/useMapExplorerStore.ts`, `src/centerpanel/components/MapExplorerModal.tsx`, `src/centerpanel/components/map/useMapAoiDispatch.ts`, and `src/centerpanel/components/map/useMapPanelCommands.ts` — Map-owned state, UI choreography, review events, AOI/panel command patterns.
+  - `src/services/map/MapWorkflowService.ts`, `src/centerpanel/components/map/MapWorkflowDrawer.tsx`, `src/services/map/MapAnalysisRecommender.ts`, `src/services/map/MapReportHandoffService.ts`, and `src/services/map/MapReviewSessionService.ts` — compatibility/readiness, workflow preview/apply separation, report preview, and audit trail surfaces.
+- Files changed:
+  - `src/services/map/UrbanToMapMethodRequestAdapter.ts` — new Map-owned incoming Urban method request contract, compatibility/readiness preview builder, workflow/report preview summaries, and CustomEvent publish/subscribe helpers.
+  - `src/services/map/__tests__/UrbanToMapMethodRequestAdapter.test.ts` — focused coverage for compatible layer matching, missing prerequisites, AOI/QA blockers, workflow draft preview, report snapshot readiness, event subscription, and no-heavy-payload serialization.
+  - `src/centerpanel/components/MapExplorerModal.tsx` — subscribes to incoming Urban method request events, previews compatible layers/AOI/workflow/report actions, opens only preview panels, records review timeline events, and never applies derived layers or inserts reports automatically.
+  - `src/centerpanel/components/map/MapWorkflowDrawer.tsx` — accepts a preview-only initial workflow draft request so incoming Urban workflow requests open the correct workflow without bypassing the existing explicit Apply action.
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` — updated durable prompt state, contract registry, decisions, validation history, risk notes, and next pointer.
+- Summary:
+  - Prompt 17 now gives Map Explorer a typed incoming Urban method request adapter. Urban can request compatible layer focus, AOI validation, workflow preview, derived-layer preview, or report snapshot preparation; Map evaluates readiness and displays explicit blockers before any commit.
+- Spatial evidence/provenance changes:
+  - Incoming request previews record Map review timeline events with request IDs, method IDs, action types, compatible layer IDs, QA issue IDs, and readiness counts.
+  - No new evidence artifact kind was added and no raw spatial payload crosses the Urban -> Map contract.
+- CRS, geometry, or measurement changes:
+  - No new spatial calculation was added.
+  - Layer compatibility checks compare requested geometry family, required fields, temporal field metadata, queryability, feature count, and required CRS metadata using existing Map layer summaries.
+- Scientific QA changes:
+  - Preview output carries QA blockers from current Map Scientific QA and blocks derived-layer publication previews until blockers are resolved.
+  - Missing AOI/fields/CRS/queryability are surfaced as explicit prerequisites rather than silent readiness.
+- Layer registry or persistence changes:
+  - No persistence schema change.
+  - Incoming requests only open preview panels and summarize compatible layer IDs; they do not mutate layer visibility, source data, active result layers, or persisted map state.
+- Workflow/export/report changes:
+  - Urban workflow/derived-layer requests build a `MapWorkflowDraft` and preview summary through `generateMapWorkflowPreview`, then pass the draft into `MapWorkflowDrawer` for explicit user review and Apply.
+  - Report snapshot requests open the existing Map report handoff preview when readiness is not blocked; report insertion remains explicit through the existing drawer action.
+- Contract changes:
+  - New `UrbanToMapMethodRequest` contract in `src/services/map/UrbanToMapMethodRequestAdapter.ts` for Urban Analytics -> Map Explorer method requests.
+  - New `UrbanToMapMethodRequestPreview` readiness output for Map-owned compatibility, AOI, workflow, QA, and report snapshot previews.
+  - New `URBAN_TO_MAP_METHOD_REQUEST_EVENT = "urban:map-method-request"` CustomEvent subscription helper for manual simulation and future Urban emitters.
+  - Additive `MapWorkflowDrawer.initialDraftRequest` prop for preview-only external workflow draft selection.
+- UX changes:
+  - Incoming Urban requests produce command feedback, toast/announcement status, and review timeline entries.
+  - Compatible-layer requests open the layer rail; AOI requests open the draw panel or Scientific QA panel; workflow/derived-layer requests open the workflow drawer with the requested draft; report requests open report preview only when not blocked.
+- Validation:
+  - `npm run test -- src/services/map/__tests__/UrbanToMapMethodRequestAdapter.test.ts` passed (4/4).
+  - `npm run test -- src/services/map/__tests__/UrbanToMapMethodRequestAdapter.test.ts src/services/map/__tests__/MapToUrbanContextAdapter.test.ts` passed (7/7).
+  - `npm run typecheck` passed.
+  - `npx eslint --quiet src/services/map/UrbanToMapMethodRequestAdapter.ts src/services/map/__tests__/UrbanToMapMethodRequestAdapter.test.ts src/centerpanel/components/MapExplorerModal.tsx src/centerpanel/components/map/MapWorkflowDrawer.tsx` passed with no output.
+  - `git diff --check` passed; only LF-to-CRLF working-copy warnings were reported.
+  - VS Code Problems check reported no errors for touched Prompt 17 files.
+- Known risks:
+  - The incoming event is now Map-ready, but no Urban UI emitter was added in this prompt; future Urban prompt work should dispatch the documented event instead of importing Map internals.
+  - Preview choreography still sits in the large `MapExplorerModal.tsx` orchestrator; extract to a command hook when a decomposition prompt authorizes it.
+- Blockers: None for Prompt 17.
+- Decisions made:
+  - Urban method requests are preview-first; derived layers, workflow apply, and report insertion stay explicit user actions.
+  - Map Explorer owns map-side compatibility/readiness evaluation; Urban Analytics owns method semantics and data-fitness interpretation.
+  - Urban -> Map payloads and previews remain reference/scalar/summary-only and exclude GeoJSON/sourceData/coordinates/map instances.
+- Next recommended prompt: Prompt 18 - Map to IDE Code and Manifest Artifact Requests.
+- Ledger updated: yes
+
+### Prompt 18 - Map to IDE Code and Manifest Artifact Requests
+
+- Date: 2026-05-12
+- Agent: GitHub Copilot
+- Status: completed
+- Files inspected:
+  - `DEVELOPMENT_PLANS/START_HERE_MAP_EXPLORER_AGENT.md`, `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` Prompt 18, `DEVELOPMENT_PLANS/MAP_EXPLORER_PROMPT_MANIFEST.json`, `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md` sections 8.5 and 19, `DEVELOPMENT_PLANS/SYNAPSE_IDE_DEVELOPMENT_PLAN.md` IDE handoff sections, and this ledger.
+  - `src/services/editorBridge.ts`, `src/services/editor/bridge.ts`, `src/services/editor/bridgeAdapter.ts`, `src/services/synapseBus.ts`, and `src/types/synapse-bus.ts` — IDE tab bridge, legacy bridge, typed bus, and evidence registration contracts.
+  - `src/services/map/mapToIdeHandoff.ts` and `src/services/map/__tests__/mapToIdeHandoff.test.ts` — existing IDE-side receiver inspected to avoid duplicating inbound logic.
+  - `src/centerpanel/components/map/mapTypes.ts`, `src/centerpanel/components/map/mapEvidenceArtifacts.ts`, and `src/stores/useMapExplorerStore.ts` — Map evidence artifact, reproducibility manifest, and evidence registry contracts.
+  - `src/services/map/MapWorkflowService.ts` and `src/services/map/MapExportService.ts` — workflow preview manifests and publication readiness/composition contracts.
+  - `src/centerpanel/components/MapExplorerModal.tsx`, `src/centerpanel/components/map/MapLayerManager.tsx`, `src/centerpanel/components/map/MapWorkflowDrawer.tsx`, and `src/centerpanel/components/MapExportDialog.tsx` — explicit UI action surfaces.
+  - `src/features/urbanAnalytics/context/codeArtifactRequests.ts` and focused Urban code-artifact tests — local pattern for explicit IDE artifact generation and bridge dispatch.
+- Files changed:
+  - `src/services/map/MapCodeArtifactRequestService.ts` — new Map-owned IDE artifact request builder/dispatcher for workflow scripts, workflow notebooks, map manifests, SQL query scaffolds, and export package notes.
+  - `src/services/map/__tests__/MapCodeArtifactRequestService.test.ts` — focused coverage for reference-only content, notebook/script/manifest/SQL generation, IDE bridge dispatch, lightweight `evidence.artifact.register` events, and evidence-only routing.
+  - `src/services/editorBridge.ts` — added SQL language support and SQL inference so generated SQL opens with the correct editor mode.
+  - `src/centerpanel/components/MapExplorerModal.tsx` — wired explicit layer, workflow, and export IDE actions; registers generated requests as Map `ide-code-reference` evidence; records review timeline events.
+  - `src/centerpanel/components/map/MapWorkflowDrawer.tsx` — added an explicit `IDE script` action for current workflow previews while preserving the existing Apply action.
+  - `src/centerpanel/components/MapExportDialog.tsx` — added compact explicit `IDE manifest` and `IDE note` actions beside export controls.
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` — updated durable prompt state, contract registry, decisions, validation history, risk notes, and next pointer.
+- Summary:
+  - Prompt 18 now lets Map Explorer open reproducible IDE artifacts by explicit user action. Generated artifacts carry layer IDs, AOI references, CRS summaries, QA caveats, workflow/publication metadata, and file suggestions while excluding raw GeoJSON, source buffers, rendered images, and large tables.
+- Spatial evidence/provenance changes:
+  - Generated IDE requests are registered as Map evidence artifacts of kind `ide-code-reference` with linked layer IDs, linked AOI/workflow/file IDs, QA issue IDs, provenance notes, CRS summaries, and scalar metadata.
+  - Dispatch also publishes lightweight `evidence.artifact.register` events through `synapseBus`; event payloads carry references/metadata only, never generated content.
+- CRS, geometry, or measurement changes:
+  - No new spatial calculations were added.
+  - Generated scripts/manifests preserve CRS-by-layer references and state that analytical distance/area work must project before computation.
+- Scientific QA changes:
+  - Generated artifacts include current QA status, issue IDs, blocker/caveat counts, and caveat text where present.
+  - Oversized generated content is rejected before IDE bridge dispatch.
+- Layer registry or persistence changes:
+  - No persistence schema change.
+  - Existing Map evidence registry is used through `upsertMapEvidenceArtifact`; evidence artifact payloads remain scalar/reference-only.
+- Workflow/export/report changes:
+  - Workflow drawer can now open a Python reproducibility script from the current `MapWorkflowPreview.manifest` without applying a workflow.
+  - Export dialog can open a JSON map context manifest or Markdown export package note before or after export readiness review.
+  - Layer rail `IDE` action now opens a SQL query scaffold for the selected layer.
+- Contract changes:
+  - New `MapCodeArtifactRequest` contract in `src/services/map/MapCodeArtifactRequestService.ts` for Map Explorer -> Synapse IDE generated artifact requests.
+  - New `dispatchMapCodeArtifactRequest` bridge dispatcher with size cap, `editorBridge.openNewTab` routing, and lightweight `evidence.artifact.register` event publication.
+  - Extended `SupportedLang` in `src/services/editorBridge.ts` with `sql`.
+- UX changes:
+  - Existing layer rail `IDE` action is now active when eligible and opens a SQL scaffold in a new IDE tab.
+  - Workflow drawer shows a compact `IDE script` action near the manifest summary.
+  - Map export dialog shows compact `IDE manifest` and `IDE note` actions beside Cancel/Download.
+  - All IDE artifact openings remain explicit user actions; no silent insert/replace of the active editor occurs.
+- Validation:
+  - `npm run test -- src/services/map/__tests__/MapCodeArtifactRequestService.test.ts` passed (4/4).
+  - `npm run test -- src/services/map/__tests__/MapCodeArtifactRequestService.test.ts src/services/map/__tests__/MapToUrbanContextAdapter.test.ts src/services/map/__tests__/UrbanToMapMethodRequestAdapter.test.ts` passed (11/11).
+  - `npm run typecheck` passed.
+  - `npx eslint --quiet src/services/map/MapCodeArtifactRequestService.ts src/services/map/__tests__/MapCodeArtifactRequestService.test.ts src/services/editorBridge.ts src/centerpanel/components/MapExplorerModal.tsx src/centerpanel/components/map/MapWorkflowDrawer.tsx src/centerpanel/components/MapExportDialog.tsx` passed with no output.
+  - `git diff --check` passed; only LF-to-CRLF working-copy warnings were reported.
+  - VS Code Problems check reported no errors for touched Prompt 18 files.
+- Known risks:
+  - Prompt 18 opens generated artifacts through the existing `editorBridge.openNewTab` because the typed bus `ide.file.open` is path-only and cannot carry new file content. Future IDE prompts may formalize a bus event for contentful generated tabs.
+  - UI orchestration still lives in `MapExplorerModal.tsx`; extract into smaller command hooks when a decomposition prompt authorizes it.
+- Blockers: None for Prompt 18.
+- Decisions made:
+  - Map Explorer owns outgoing IDE artifact request generation; Synapse IDE owns editor tabs/files.
+  - Generated code/manifests are opened only after explicit user actions and never inserted into the active editor silently.
+  - Prompt 18 uses Map evidence registration plus lightweight Synapse bus artifact events; it does not mutate Urban Analytics context or send heavy spatial payloads.
+  - SQL is a first-class editor bridge language for Map-generated query scaffolds.
+- Next recommended prompt: Prompt 19 - IDE to Map File and Layer Artifact Recognition.
+- Ledger updated: yes
+
 Use this format for each entry:
 
 ```md
@@ -1281,6 +1543,10 @@ Append inspected files here as implementation progresses.
 
 | Date | Prompt | Files inspected | Notes |
 | --- | --- | --- | --- |
+| 2026-05-12 | Prompt 18 | `DEVELOPMENT_PLANS/START_HERE_MAP_EXPLORER_AGENT.md`; `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` Prompt 18; `DEVELOPMENT_PLANS/MAP_EXPLORER_PROMPT_MANIFEST.json`; `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md` sections 8.5 and 19; `DEVELOPMENT_PLANS/SYNAPSE_IDE_DEVELOPMENT_PLAN.md`; `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md`; `src/services/editorBridge.ts`; `src/services/editor/bridge.ts`; `src/services/editor/bridgeAdapter.ts`; `src/services/synapseBus.ts`; `src/types/synapse-bus.ts`; `src/services/map/mapToIdeHandoff.ts`; `src/services/map/__tests__/mapToIdeHandoff.test.ts`; `src/centerpanel/components/map/mapTypes.ts`; `src/centerpanel/components/map/mapEvidenceArtifacts.ts`; `src/stores/useMapExplorerStore.ts`; `src/services/map/MapWorkflowService.ts`; `src/services/map/MapExportService.ts`; `src/centerpanel/components/MapExplorerModal.tsx`; `src/centerpanel/components/map/MapLayerManager.tsx`; `src/centerpanel/components/map/MapWorkflowDrawer.tsx`; `src/centerpanel/components/MapExportDialog.tsx`; `src/features/urbanAnalytics/context/codeArtifactRequests.ts`; focused Urban and Map adapter tests | Prompt 18 narrowed to a Map-owned outgoing IDE artifact request service with explicit UI actions, new generated artifact evidence, and reference-only bridge/bus payloads. |
+| 2026-05-12 | Prompt 17 | `DEVELOPMENT_PLANS/START_HERE_MAP_EXPLORER_AGENT.md`; `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` Prompt 17; `DEVELOPMENT_PLANS/MAP_EXPLORER_PROMPT_MANIFEST.json`; `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md` sections 8.4, 20.2, and 20.4; `DEVELOPMENT_PLANS/URBAN_ANALYTICS_DEVELOPMENT_PLAN.md`; `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md`; `src/features/urbanAnalytics/store.ts`; `src/features/urbanAnalytics/useUrbanContextStore.ts`; `src/stores/useMapExplorerStore.ts`; `src/centerpanel/components/MapExplorerModal.tsx`; `src/centerpanel/components/map/useMapAoiDispatch.ts`; `src/centerpanel/components/map/useMapPanelCommands.ts`; `src/services/map/MapWorkflowService.ts`; `src/centerpanel/components/map/MapWorkflowDrawer.tsx`; `src/services/map/MapAnalysisRecommender.ts`; `src/services/map/MapReportHandoffService.ts`; `src/services/map/MapReviewSessionService.ts`; focused Map/Urban adapter tests | Prompt 17 narrowed to a Map-owned incoming Urban method request adapter with preview/readiness behavior only; no Urban internals changed and no map mutation occurs before explicit user action. |
+| 2026-05-12 | Prompt 16 | `DEVELOPMENT_PLANS/START_HERE_MAP_EXPLORER_AGENT.md`; `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` Prompt 16; `DEVELOPMENT_PLANS/MAP_EXPLORER_PROMPT_MANIFEST.json`; `DEVELOPMENT_PLANS/TRI_MODAL_WORKBENCH_ALIGNMENT_SPEC.md`; `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md`; `src/centerpanel/components/map/mapContextSummary.ts`; `src/centerpanel/components/map/mapEvidenceArtifacts.ts`; `src/centerpanel/components/map/mapTypes.ts`; `src/features/urbanAnalytics/context/mapContextAdapter.ts`; `src/features/urbanAnalytics/lib/types.ts`; `src/features/urbanAnalytics/store.ts`; `src/features/urbanAnalytics/useUrbanContextStore.ts`; `src/services/map/MapAnalysisDispatcher.ts`; `src/services/map/MapSyncService.ts`; `src/stores/useMapExplorerStore.ts`; `src/centerpanel/components/MapExplorerModal.tsx`; `src/centerpanel/components/map/MapLayerManager.tsx`; focused Map/Urban adapter tests | Prompt 16 narrowed to a Map-owned outbound Urban context payload and explicit layer rail action wired to the existing Urban receiver; payloads carry references/summaries only and do not move raw spatial data. |
+| 2026-05-12 | Prompt 15 | `DEVELOPMENT_PLANS/START_HERE_MAP_EXPLORER_AGENT.md`; `DEVELOPMENT_PLANS/AGENT_AMNESIA_PREVENTION_PROTOCOL.md`; `DEVELOPMENT_PLANS/TRI_MODAL_WORKBENCH_ALIGNMENT_SPEC.md`; `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md`; `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` Prompt 15; `DEVELOPMENT_PLANS/MAP_EXPLORER_PROMPT_MANIFEST.json`; `DEVELOPMENT_PLANS/MAP_EXPLORER_AGENT_HANDOFF_TEMPLATE.md`; `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md`; `src/centerpanel/components/map/mapTypes.ts`; `src/centerpanel/components/MapMeasurementTool.tsx`; `src/utils/geodesic.ts`; `src/centerpanel/components/MapDrawingManager.tsx`; `src/utils/drawingHelpers.ts`; `src/services/map/MapScientificQA.ts`; `src/centerpanel/components/map/mapLayerMetadata.ts`; `src/services/map/MapExportService.ts`; `src/services/map/MapAnalysisBounds.ts`; `src/stores/useMapExplorerStore.ts`; focused measurement/drawing/QA/export tests | Prompt 15 narrowed to measurement assumptions, conservative drawn geometry validation, normalized CRS metadata resolution, geometry-aware publication readiness, and degenerate-bounds rejection without changing external owners or moving heavy spatial payloads. |
 | 2026-05-11 | Prompt 14 | `DEVELOPMENT_PLANS/START_HERE_MAP_EXPLORER_AGENT.md`; `DEVELOPMENT_PLANS/TRI_MODAL_WORKBENCH_ALIGNMENT_SPEC.md`; `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md` sections 12 M9, 14.4, 14.8, 15.2, 23; `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` Prompt 14; `DEVELOPMENT_PLANS/MAP_EXPLORER_PROMPT_MANIFEST.json`; `DEVELOPMENT_PLANS/MAP_EXPLORER_AGENT_HANDOFF_TEMPLATE.md`; `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md`; `src/services/map/MapDataImporter.ts`; `src/services/map/MapDataExporter.ts`; `src/services/map/ExternalServiceConnector.ts`; `src/services/map/ExternalServiceQueue.ts`; `src/centerpanel/components/MapExplorerModal.tsx`; `src/centerpanel/components/MapServiceDialog.tsx`; `src/centerpanel/components/map/MapToolbar.tsx`; `src/centerpanel/components/map/mapTypes.ts`; `src/centerpanel/components/map/mapLayerMetadata.ts`; `src/centerpanel/components/map/mapEvidenceArtifacts.ts`; focused import/export and external service tests | Prompt 14 narrowed to QA-aware import/external-service source metadata, evidence candidate registration, dependency/caveat fields, and conservative CRS state preservation without changing spatial calculations or adding providers. |
 | 2026-05-11 | Prompt 13 | `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` Prompt 13; `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md`; `src/services/map/MapEngineAdapter.ts`; `src/services/map/SpatialStatsExecutionService.ts`; `src/services/map/SpatialStatsExecutionQueue.ts`; `src/centerpanel/components/map/mapTypes.ts`; `src/centerpanel/components/map/mapEvidenceArtifacts.ts`; `src/stores/useMapExplorerStore.ts`; `src/centerpanel/components/MapExplorerModal.tsx`; `src/centerpanel/Tools/components/GeoAILab.tsx`; `src/centerpanel/components/ObjectDetectorPanel.tsx`; adapter-backed centerpanel flows; focused adapter/spatial-stats/object-detection tests | Prompt 13 narrowed to engine adapter evidence outputs, evidence-aware completed-run map output round-trips, and Map Explorer publication-boundary evidence registry upserts without changing algorithms or copying heavy payloads. |
 | 2026-05-11 | Prompt 12 UI polish | `src/centerpanel/components/map/MapWorkspaceCockpit.tsx`; `src/centerpanel/components/map/MapWorkspaceCockpit.module.css`; `src/centerpanel/components/MapExplorerModal.tsx`; browser snapshot via dev server | User-requested readability pass for the Map Command Center modal after Prompt 12; scope limited to cockpit layout/CSS and visual inspection. |
@@ -1305,6 +1571,10 @@ Append changed files here as implementation progresses.
 
 | Date | Prompt | Files changed | Reason |
 | --- | --- | --- | --- |
+| 2026-05-12 | Prompt 18 | `src/services/map/MapCodeArtifactRequestService.ts`, `src/services/map/__tests__/MapCodeArtifactRequestService.test.ts`, `src/services/editorBridge.ts`, `src/centerpanel/components/MapExplorerModal.tsx`, `src/centerpanel/components/map/MapWorkflowDrawer.tsx`, `src/centerpanel/components/MapExportDialog.tsx`, `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` | Added Map-owned IDE artifact request generation/dispatch, SQL language support, explicit layer/workflow/export IDE actions, Map `ide-code-reference` evidence registration, lightweight Synapse bus artifact events, and focused no-heavy-payload coverage. |
+| 2026-05-12 | Prompt 17 | `src/services/map/UrbanToMapMethodRequestAdapter.ts`, `src/services/map/__tests__/UrbanToMapMethodRequestAdapter.test.ts`, `src/centerpanel/components/MapExplorerModal.tsx`, `src/centerpanel/components/map/MapWorkflowDrawer.tsx`, `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` | Added Map-owned Urban method request contract, preview/readiness builder, event subscribe/publish helpers, workflow/report preview-only modal wiring, drawer initial draft support, review timeline capture, and focused no-heavy-payload coverage. |
+| 2026-05-12 | Prompt 16 | `src/services/map/MapToUrbanContextAdapter.ts`, `src/services/map/__tests__/MapToUrbanContextAdapter.test.ts`, `src/centerpanel/components/MapExplorerModal.tsx`, `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` | Added Map-owned Urban context payload/readiness/event/receiver adapter, focused no-heavy-payload coverage, explicit layer rail Urban handoff wiring, feedback/review events, and durable ledger updates. |
+| 2026-05-12 | Prompt 15 | `src/centerpanel/components/map/mapTypes.ts`, `src/centerpanel/components/MapMeasurementTool.tsx`, `src/centerpanel/components/MapDrawingManager.tsx`, `src/centerpanel/components/map/mapLayerMetadata.ts`, `src/services/map/MapScientificQA.ts`, `src/services/map/MapExportService.ts`, `src/services/map/MapAnalysisBounds.ts`, `src/centerpanel/components/map/__tests__/geodesic-measurement.test.ts`, `src/services/map/__tests__/MapScientificQA.test.ts`, `src/services/map/__tests__/MapExportService.test.ts`, `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` | Added WGS84 geodesic measurement assumptions, stored drawn geometry validation metadata, invalid drawing blocking, normalized/import/registry CRS resolution in QA, geometry-aware publication readiness/caveats, degenerate bounds rejection, and focused coverage. |
 | 2026-05-11 | Prompt 14 | `src/centerpanel/components/map/mapTypes.ts`, `src/centerpanel/components/map/mapLayerMetadata.ts`, `src/services/map/MapDataImporter.ts`, `src/services/map/ExternalServiceConnector.ts`, `src/centerpanel/components/MapExplorerModal.tsx`, `src/services/map/__tests__/MapDataIO.test.ts`, `src/services/map/__tests__/ExternalServiceConnector.test.ts`, `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` | Added import-source metadata, external service dependency/cache/caveat metadata, conservative CRS/attribution QA summaries, layer registry evidence IDs/readiness normalization, evidence registry upserts at import/service publication boundaries, review events, and focused coverage. |
 | 2026-05-11 | Prompt 13 | `src/centerpanel/components/map/mapTypes.ts`, `src/services/map/MapEngineAdapter.ts`, `src/services/map/__tests__/MapEngineAdapter.test.ts`, `src/centerpanel/components/MapExplorerModal.tsx`, `src/centerpanel/Tools/components/GeoAILab.tsx`, `src/centerpanel/components/ObjectDetectorPanel.tsx`, `src/centerpanel/Flows/CellularAutomataFlow.tsx`, `src/centerpanel/Flows/CompositeIndicatorFlow.tsx`, `src/centerpanel/Flows/FacilityOptimisationFlow.tsx`, `src/centerpanel/Flows/UrbanMorphologyFlow.tsx`, `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` | Added adapter-produced map evidence artifacts, evidence-aware analysis metadata, completed-run map output metadata preservation, focused coverage, and registry upserts where Map Explorer publishes adapter-backed analysis layers. |
 | 2026-05-11 | Prompt 12 UI polish | `src/centerpanel/components/map/MapWorkspaceCockpit.module.css`, `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` | Enlarged and clarified the Map Command Center modal presentation after user visual review; corrected the context signal strip to remain a single-row rail; recorded validation and visual inspection. |
@@ -1328,6 +1598,17 @@ Record every contract that connects Map Explorer with Synapse IDE, Urban Analyti
 
 | Date | Prompt | Contract | Direction | Status | Notes |
 | --- | --- | --- | --- | --- | --- |
+| 2026-05-12 | Prompt 18 | `MapCodeArtifactRequest` + request builders | Map Explorer → Synapse IDE | Implemented Additive Contract | `src/services/map/MapCodeArtifactRequestService.ts` builds workflow scripts, workflow notebooks, map manifests, SQL query scaffolds, and export package notes with artifact IDs, target file suggestions, layer/AOI/workflow references, CRS summaries, QA caveats, and no raw spatial payloads. |
+| 2026-05-12 | Prompt 18 | `dispatchMapCodeArtifactRequest` | Map Explorer → IDE bridge / Synapse bus | Implemented Additive Contract | Routes generated content to `editorBridge.openNewTab`, enforces a 32 KB size cap, returns dispatch status, and emits lightweight `evidence.artifact.register` events without content. |
+| 2026-05-12 | Prompt 18 | Map evidence kind `ide-code-reference` registration | Map Explorer generated artifact → Map evidence registry | Implemented Existing Contract Use | Generated IDE requests upsert Map evidence artifacts with linked layer/file/AOI/workflow IDs, QA issue IDs, provenance notes, CRS summaries, and scalar metadata. |
+| 2026-05-12 | Prompt 18 | `SupportedLang` includes `sql` | Map IDE artifacts → editor bridge | Implemented Additive Contract | SQL scaffolds can open in the IDE bridge with `language: "sql"`; SQL fence/content inference was added to `src/services/editorBridge.ts`. |
+| 2026-05-12 | Prompt 17 | `UrbanToMapMethodRequest` + `buildUrbanToMapMethodRequestPreview` | Urban Analytics → Map Explorer | Implemented Additive Contract | `src/services/map/UrbanToMapMethodRequestAdapter.ts` accepts method/action requirements for compatible layers, AOI validation, workflow preview, derived-layer preview, and report snapshot preview. Map returns readiness summaries, compatible layer IDs, missing prerequisites, QA blockers, workflow draft summary, and report snapshot readiness only. |
+| 2026-05-12 | Prompt 17 | `URBAN_TO_MAP_METHOD_REQUEST_EVENT = "urban:map-method-request"` + subscription helpers | Urban Analytics / manual simulator → Map Explorer | Implemented Additive Contract | Map Explorer subscribes while the modal is open and records previewed review timeline events. Future Urban emitters should dispatch this event rather than import Map store internals. |
+| 2026-05-12 | Prompt 17 | `MapWorkflowDrawer.initialDraftRequest` | Map request adapter → workflow drawer UI | Implemented Additive UI Contract | Allows incoming Urban workflow requests to open the correct preview draft while preserving the existing explicit Apply action. No workflow output is applied by this prop. |
+| 2026-05-12 | Prompt 16 | `MapToUrbanContextPayload` + `sendMapContextToUrban` | Map Explorer → Urban Analytics | Implemented Additive Contract | `src/services/map/MapToUrbanContextAdapter.ts` builds a versioned handoff payload with AOI reference, layer summaries, selected counts, field summaries, CRS/QA summaries, evidence summaries, workflow/result IDs, and disabled reasons. Contract is reference/scalar-only; tests assert serialized payloads do not include GeoJSON feature collections or coordinate arrays. |
+| 2026-05-12 | Prompt 16 | `MAP_TO_URBAN_CONTEXT_EVENT = "map:urban-sync:provided"` | Map Explorer → optional observers / Urban integration diagnostics | Implemented Additive Contract | The explicit send action publishes a CustomEvent after receiver execution unless disabled. Existing Urban `applyMapContextToUrban` remains the authoritative receiver for Urban context/evidence/recommendation updates. |
+| 2026-05-12 | Prompt 15 | `Measurement.assumptions: MeasurementAssumptions` | Map measurement tool → store / clipboard / future evidence-report consumers | Implemented Additive Contract | Completed measurements can now disclose WGS84 geodesic method, EPSG:4326 display-coordinate basis, distance/area model, base units, and caveats. Existing measurements without the optional field remain valid. |
+| 2026-05-12 | Prompt 15 | `DrawnFeature.properties.validation: DrawnGeometryValidation` | Map drawing manager → AOI/readiness/workflow consumers | Implemented Additive Contract | Drawn features can now carry valid/warning/blocked/unknown validation state, issue codes, caveats, and check timestamp. Invalid browser-created drawings are blocked before storage. |
 | 2026-05-11 | Prompt 14 | `LayerMetadata.importSource: ImportLayerSourceMetadata` | Map import pipeline → layer registry / evidence / export-report readiness | Implemented Additive Contract | Local imports now carry format, file/source name, import timestamp, feature/skipped counts, source confidence, declared CRS when present, worker transfer status, and caveats. Raw imported features remain on the map layer only. |
 | 2026-05-11 | Prompt 14 | `ExternalServiceLayerMetadata` dependency/cache/stale/offline fields | External service connector → layer registry / evidence / review timeline | Implemented Additive Contract | Service layers now carry dependency status, last request, cache hit/TTL/stale timestamp, CORS/credential mode, license/attribution, and caveats without adding new providers or storing service payloads in evidence. |
 | 2026-05-11 | Prompt 14 | `createMapLayerEvidenceArtifact` publication-boundary registration | Import/service layer publication → Map evidence registry | Implemented Existing Contract Use | `MapExplorerModal` now upserts layer evidence artifacts when local imports and external service layers are added, using scalar metadata and layer IDs only. |
@@ -1397,6 +1678,19 @@ Record decisions that future agents must not re-litigate unless the repository p
 | 2026-05-11 | Prompt 14 | Local imports must not infer CRS certainty from coordinates or file extension alone. | Prevents GeoJSON/CSV/KML/GPX display coordinates from being treated as analytical CRS readiness before Prompt 15 validation. | Accepted |
 | 2026-05-11 | Prompt 14 | External service evidence stores endpoint/dependency metadata and scalar QA state only, never raw service payloads or tiles. | Keeps external service layers auditable without duplicating remote data, images, or large feature payloads in evidence artifacts. | Accepted |
 | 2026-05-11 | Prompt 14 | Remote CityJSON without a declared `referenceSystem` keeps CRS unknown. | Avoids placeholder CRS strings that could be misread as verified analytical CRS metadata. | Accepted |
+| 2026-05-12 | Prompt 15 | Browser measurements must identify themselves as WGS84 geodesic display-coordinate measurements. | Haversine distance and spherical polygon area are useful map tools but are not projected engineering/cadastral measurement claims. | Accepted |
+| 2026-05-12 | Prompt 15 | QA may honor normalized/import/registry CRS metadata only when the metadata is declared and known. | Prevents Prompt 14 metadata enrichment from becoming a hidden CRS inference step. | Accepted |
+| 2026-05-12 | Prompt 15 | Explicit publication readiness must be merged with current CRS/geometry QA rather than bypassing it. | Publication/report outputs must receive fresh CRS/geometry blockers even when a layer carries older readiness metadata. | Accepted |
+| 2026-05-12 | Prompt 16 | Map Explorer owns outbound Urban context payloads; Urban Analytics owns interpretation and Urban evidence mutation. | Preserves tri-modal ownership while letting Map provide spatial context through typed summaries and the existing Urban receiver. | Accepted |
+| 2026-05-12 | Prompt 16 | Map to Urban handoff is explicit and user-triggered from the layer rail, not automatic background synchronization. | Urban recommendations should be auditable and based on a deliberate action, with review timeline evidence of the handoff. | Accepted |
+| 2026-05-12 | Prompt 16 | Map to Urban payloads must be reference/scalar/summary-only and exclude raw GeoJSON, coordinates, map objects, and source buffers. | Keeps cross-module payloads bounded and prevents duplicating large spatial data outside Map ownership. | Accepted |
+| 2026-05-12 | Prompt 17 | Urban to Map method requests are preview-first and must not apply workflows, derived layers, layer visibility, or report inserts automatically. | Urban recommendations can request Map-side preparation, but Map mutations remain explicit user actions with visible readiness and audit state. | Accepted |
+| 2026-05-12 | Prompt 17 | Map Explorer owns map-side compatibility/readiness evaluation; Urban Analytics owns method semantics and data-fitness interpretation. | Prevents hidden Urban method logic from leaking into Map while still allowing Map to validate fields, geometry, CRS, AOI, QA, and workflow prerequisites. | Accepted |
+| 2026-05-12 | Prompt 17 | Urban to Map request previews must stay reference/scalar/summary-only and exclude raw GeoJSON, sourceData, coordinates, map objects, and heavy buffers. | Keeps the inbound bridge bounded and compatible with tri-modal ownership/performance constraints. | Accepted |
+| 2026-05-12 | Prompt 18 | Map Explorer owns outgoing IDE artifact request generation; Synapse IDE owns generated tabs/files. | Keeps Map responsible for spatial provenance/QA references while respecting IDE ownership of editor state. | Accepted |
+| 2026-05-12 | Prompt 18 | Generated Map IDE artifacts open only after explicit user action and never silently insert into the active editor. | Prevents accidental mutation of user code while keeping generated scripts/manifests auditable. | Accepted |
+| 2026-05-12 | Prompt 18 | Map-to-IDE generated artifact payloads must stay reference/scalar/summary-only and exclude raw GeoJSON, source buffers, rendered images, and large tables. | Preserves tri-modal ownership and prevents large spatial payloads from crossing the editor bridge. | Accepted |
+| 2026-05-12 | Prompt 18 | SQL is a first-class bridge language for Map-generated query scaffolds. | Layer-level IDE actions naturally generate SQL; editor bridge highlighting should match the artifact language. | Accepted |
 
 ## Validation History
 
@@ -1470,6 +1764,33 @@ Append validation runs here.
 | 2026-05-11 | Prompt 14 | `git diff --check` | Passed | No whitespace errors; Git reported LF-to-CRLF working-copy warnings for touched Windows files only. |
 | 2026-05-11 | Prompt 14 | VS Code Problems check for touched Prompt 14 files | Passed | `get_errors` reported no errors in `MapDataImporter.ts`, `ExternalServiceConnector.ts`, `MapExplorerModal.tsx`, `mapTypes.ts`, `mapLayerMetadata.ts`, and focused tests. |
 | 2026-05-11 | Prompt 14 | `powershell -ExecutionPolicy Bypass -File scripts/get-next-map-explorer-prompt.ps1` | Passed | Helper returned `Prompt 15 - CRS, Measurement, and Geometry Validation`. |
+| 2026-05-12 | Prompt 15 | `npm install` | Passed | Restored missing `node_modules` so local validation scripts could run. Audit reported 10 vulnerabilities but no install failure and no package-lock change in git status. |
+| 2026-05-12 | Prompt 15 | `npm run test -- src/centerpanel/components/map/__tests__/geodesic-measurement.test.ts src/centerpanel/components/map/__tests__/map-drawing-tools.test.ts src/services/map/__tests__/MapScientificQA.test.ts src/services/map/__tests__/MapExportService.test.ts` | Passed (124/124) | Covers measurement assumptions, existing drawing regressions, normalized CRS metadata, invalid geometry export-readiness, and geometry readiness publication caveats. |
+| 2026-05-12 | Prompt 15 | `npm run typecheck` | Passed | Full TypeScript project typechecks after Prompt 15 contracts, services, components, and tests. |
+| 2026-05-12 | Prompt 15 | `npx eslint --quiet src/centerpanel/components/MapMeasurementTool.tsx src/centerpanel/components/MapDrawingManager.tsx src/centerpanel/components/map/mapTypes.ts src/centerpanel/components/map/mapLayerMetadata.ts src/services/map/MapScientificQA.ts src/services/map/MapExportService.ts src/services/map/MapAnalysisBounds.ts src/services/map/__tests__/MapScientificQA.test.ts src/services/map/__tests__/MapExportService.test.ts src/centerpanel/components/map/__tests__/geodesic-measurement.test.ts` | Passed | Focused error-only lint on touched Prompt 15 files produced no output. |
+| 2026-05-12 | Prompt 15 | `git diff --check` | Passed | No whitespace errors; Git reported LF-to-CRLF working-copy warnings for touched Windows files only. |
+| 2026-05-12 | Prompt 15 | VS Code Problems check for touched Prompt 15 files | Passed | `get_errors` reported no errors in touched Prompt 15 files and focused tests. |
+| 2026-05-12 | Prompt 15 | `powershell -ExecutionPolicy Bypass -File scripts/get-next-map-explorer-prompt.ps1` | Passed | Helper returned `Prompt 16 - Map to Urban Context Adapter`. |
+| 2026-05-12 | Prompt 16 | `npm run test -- src/services/map/__tests__/MapToUrbanContextAdapter.test.ts` | Passed (3/3) | Covers lightweight payload construction, disabled reasons, CustomEvent publication, receiver hook, and no-heavy-payload serialization assertions. |
+| 2026-05-12 | Prompt 16 | `npm run test -- src/services/map/__tests__/MapToUrbanContextAdapter.test.ts src/features/urbanAnalytics/__tests__/mapContextAdapter.test.ts` | Passed (6/6) | Verifies the new Map outbound adapter and existing Urban receiver adapter boundary together. |
+| 2026-05-12 | Prompt 16 | `npm run typecheck` | Passed | Full TypeScript project typechecks after Map adapter, modal wiring, and tests. |
+| 2026-05-12 | Prompt 16 | `npx eslint --quiet src/services/map/MapToUrbanContextAdapter.ts src/services/map/__tests__/MapToUrbanContextAdapter.test.ts src/centerpanel/components/MapExplorerModal.tsx` | Passed | Focused error-only lint on touched Prompt 16 files produced no output. |
+| 2026-05-12 | Prompt 16 | `git diff --check` | Passed | No whitespace errors; Git reported LF-to-CRLF working-copy warnings for touched Windows files only. |
+| 2026-05-12 | Prompt 16 | VS Code Problems check for touched Prompt 16 files | Passed | `get_errors` reported no errors in `MapToUrbanContextAdapter.ts`, its focused test, and `MapExplorerModal.tsx`. |
+| 2026-05-12 | Prompt 16 | `powershell -ExecutionPolicy Bypass -File scripts/get-next-map-explorer-prompt.ps1` | Passed | Helper returned `Prompt 17 - Urban to Map Method Request Adapter`. |
+| 2026-05-12 | Prompt 17 | `npm run test -- src/services/map/__tests__/UrbanToMapMethodRequestAdapter.test.ts` | Passed (4/4) | Covers compatible layer detection, missing fields/AOI/QA blockers, workflow draft preview, report snapshot readiness, event publish/subscribe, and no-heavy-payload serialization. |
+| 2026-05-12 | Prompt 17 | `npm run test -- src/services/map/__tests__/UrbanToMapMethodRequestAdapter.test.ts src/services/map/__tests__/MapToUrbanContextAdapter.test.ts` | Passed (7/7) | Verifies the new incoming Urban request adapter and existing outbound Map context adapter together. |
+| 2026-05-12 | Prompt 17 | `npm run typecheck` | Passed | Full TypeScript project typechecks after incoming request adapter, modal subscription wiring, drawer prop, and tests. |
+| 2026-05-12 | Prompt 17 | `npx eslint --quiet src/services/map/UrbanToMapMethodRequestAdapter.ts src/services/map/__tests__/UrbanToMapMethodRequestAdapter.test.ts src/centerpanel/components/MapExplorerModal.tsx src/centerpanel/components/map/MapWorkflowDrawer.tsx` | Passed | Focused error-only lint on touched Prompt 17 files produced no output. |
+| 2026-05-12 | Prompt 17 | `git diff --check` | Passed | No whitespace errors; Git reported LF-to-CRLF working-copy warnings for touched Windows files only. |
+| 2026-05-12 | Prompt 17 | VS Code Problems check for touched Prompt 17 files | Passed | `get_errors` reported no errors in `UrbanToMapMethodRequestAdapter.ts`, its focused test, `MapExplorerModal.tsx`, and `MapWorkflowDrawer.tsx`. |
+| 2026-05-12 | Prompt 17 | `powershell -ExecutionPolicy Bypass -File scripts/get-next-map-explorer-prompt.ps1` | Passed | Helper returned `Prompt 18 - Map to IDE Code and Manifest Artifact Requests`. |
+| 2026-05-12 | Prompt 18 | `npm run test -- src/services/map/__tests__/MapCodeArtifactRequestService.test.ts` | Passed (4/4) | Covers reference-only manifest content, workflow script/notebook generation, SQL bridge dispatch, Synapse bus evidence event publication, and evidence-only route behavior. |
+| 2026-05-12 | Prompt 18 | `npm run test -- src/services/map/__tests__/MapCodeArtifactRequestService.test.ts src/services/map/__tests__/MapToUrbanContextAdapter.test.ts src/services/map/__tests__/UrbanToMapMethodRequestAdapter.test.ts` | Passed (11/11) | Verifies Prompt 16, 17, and 18 Map bridge adapters together. |
+| 2026-05-12 | Prompt 18 | `npm run typecheck` | Passed | Full TypeScript project typechecks after Map IDE artifact service, SQL bridge support, modal wiring, drawer/export dialog props, and tests. |
+| 2026-05-12 | Prompt 18 | `npx eslint --quiet src/services/map/MapCodeArtifactRequestService.ts src/services/map/__tests__/MapCodeArtifactRequestService.test.ts src/services/editorBridge.ts src/centerpanel/components/MapExplorerModal.tsx src/centerpanel/components/map/MapWorkflowDrawer.tsx src/centerpanel/components/MapExportDialog.tsx` | Passed | Focused error-only lint on touched Prompt 18 files produced no output. |
+| 2026-05-12 | Prompt 18 | `git diff --check` | Passed | No whitespace errors; Git reported LF-to-CRLF working-copy warnings for touched Windows files only. |
+| 2026-05-12 | Prompt 18 | VS Code Problems check for touched Prompt 18 files | Passed | `get_errors` reported no errors in `MapCodeArtifactRequestService.ts`, its focused test, `editorBridge.ts`, `MapExplorerModal.tsx`, `MapWorkflowDrawer.tsx`, and `MapExportDialog.tsx`. |
 
 ## Known Risks
 
@@ -1492,7 +1813,14 @@ Append validation runs here.
 | 2026-05-11 | Prompt 13 | Urban Analytics VoxCity panels still publish adapter-backed map outputs without direct Map Explorer evidence registry upserts. | Low | Kept Prompt 13 Map Explorer scoped; their completed-run map outputs preserve evidence metadata via `createAnalysisMapOutput`. Revisit only when the UA/VoxCity prompt scope authorizes touching those files. |
 | 2026-05-11 | Prompt 13 | Adapter fallback CRS summaries may be too generic until CRS validation work lands. | Low | Prompt 15 owns CRS/measurement validation; current fallback explicitly caveats unknown source CRS and does not claim analytical readiness. |
 | 2026-05-11 | Prompt 14 | External service offline state is usually represented by failed fetches before a layer exists. | Low | Prompt 14 added offline/stale/dependency metadata semantics for layer readiness when present; service-request failure UX remains in `MapServiceDialog`/connector errors. |
-| 2026-05-11 | Prompt 14 | Import and service CRS metadata is now more truthful but not yet a measurement gate. | Medium | Prompt 15 owns CRS, measurement, and geometry validation. Prompt 14 only preserves declared/unknown states and caveats. |
+| 2026-05-11 | Prompt 14 | Import and service CRS metadata is now more truthful but not yet a measurement gate. | Resolved | Prompt 15 added geodesic measurement disclosure and connected declared/unknown CRS and geometry readiness to QA/publication gates. |
+| 2026-05-12 | Prompt 15 | Browser measurement is still not a projected cadastral/engineering measurement engine. | Low | Measurements now carry WGS84 geodesic assumptions and caveats; future analytical engines should still use projected/source-aware methods when exact legal/engineering measurements are required. |
+| 2026-05-12 | Prompt 16 | Explicit Urban handoff wiring still lives inside the large `MapExplorerModal.tsx` orchestrator. | Low | Keep current scope minimal; future decomposition prompts should extract the action into a smaller command hook when authorized. |
+| 2026-05-12 | Prompt 16 | The new Map-to-Urban CustomEvent is observational; the receiver call remains authoritative. | Low | Continue using `applyMapContextToUrban` for Urban state/evidence/recommendation updates; treat the event as optional integration telemetry unless a later prompt formalizes a bus subscriber. |
+| 2026-05-12 | Prompt 17 | The Urban-to-Map event receiver is Map-ready, but no Urban UI emitter was added in this Map prompt. | Low | Future Urban Analytics work should dispatch `URBAN_TO_MAP_METHOD_REQUEST_EVENT` with the documented request contract rather than importing Map internals. |
+| 2026-05-12 | Prompt 17 | Incoming request preview orchestration lives in `MapExplorerModal.tsx`. | Low | Keep current behavior minimal and audited; extract into a dedicated command hook when a decomposition prompt authorizes it. |
+| 2026-05-12 | Prompt 18 | Generated contentful IDE tabs use `editorBridge.openNewTab` because typed bus `ide.file.open` is path-only. | Low | Keep the bridge use explicit and audited; future IDE prompts may add a contentful generated-tab bus event if needed. |
+| 2026-05-12 | Prompt 18 | Prompt 18 UI orchestration lives in `MapExplorerModal.tsx`. | Low | Current scope keeps behavior minimal; future decomposition prompts should extract Map IDE artifact commands into a dedicated hook/service facade. |
 
 ## Next Prompt Pointer
 
@@ -1502,7 +1830,7 @@ Start with:
 
 Prompt:
 
-`Prompt 15 - CRS, Measurement, and Geometry Validation`
+`Prompt 19 - IDE to Map File and Layer Artifact Recognition`
 
 Optional helper command:
 

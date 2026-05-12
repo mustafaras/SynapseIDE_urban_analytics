@@ -364,24 +364,49 @@ export function resolveOverlayLayerLicenseAttribution(layer: OverlayLayerConfig)
 function buildPublicationReadiness(
   layer: OverlayLayerConfig,
   crsSummary: LayerCrsSummary,
+  geometrySummary: LayerGeometrySummary,
   schemaSummary: LayerSchemaSummary,
   licenseAttribution: LayerLicenseAttributionSummary,
   qaStatus: LayerQaStatus,
   queryable: boolean,
 ): LayerRegistryMetadata["publicationReadiness"] {
-  if (layer.metadata?.publicationReadiness) return layer.metadata.publicationReadiness;
-
+  const explicitReadiness = layer.metadata?.publicationReadiness;
   const provenanceInfo = resolveOverlayLayerProvenanceWithSource(layer);
-  const missingFields: string[] = [];
-  const caveats: string[] = [];
+  const missingFields: string[] = [...(explicitReadiness?.missingFields ?? [])];
+  const caveats: string[] = [...(explicitReadiness?.caveats ?? [])];
   const scientificQA = layer.metadata?.scientificQA;
-  const blockingIssueIds = qaStatus === "error" ? [...(scientificQA?.issueIds ?? ["layer-qa-error"])] : [];
+  const blockingIssueIds = uniqueTexts([
+    ...(explicitReadiness?.blockingIssueIds ?? []),
+    ...(qaStatus === "error" ? scientificQA?.issueIds ?? ["layer-qa-error"] : []),
+  ]);
   const externalService = layer.metadata?.externalService;
+  const isFeatureLayer = QUERYABLE_LAYER_TYPES.has(layer.type);
+  const geometryQaSummary = scientificQA?.categorySummaries?.find((summary) => summary.category === "geometry-validity");
 
   if (crsSummary.status !== "known") missingFields.push("crs");
+  if (isFeatureLayer && geometrySummary.geometryType === FALLBACK_GEOMETRY_TYPE && geometrySummary.featureCount == null) {
+    missingFields.push("geometry");
+  }
   if (provenanceInfo.fallback) missingFields.push("provenance");
   if (!licenseAttribution.license && !licenseAttribution.attribution) missingFields.push("license-attribution");
   if (schemaSummary.fieldCount === 0 && QUERYABLE_LAYER_TYPES.has(layer.type)) missingFields.push("schema");
+  if (geometryQaSummary?.severity === "blocked" || scientificQA?.badges.includes("invalid_geometry")) {
+    blockingIssueIds.push(...uniqueTexts([
+      ...(geometryQaSummary?.issueIds ?? []),
+      ...(scientificQA?.issueIds ?? []),
+      "invalid-geometry",
+    ]));
+    caveats.push(
+      geometryQaSummary?.reasons[0]
+        ?? "Geometry QA reports invalid geometry; repair or document it before publication.",
+    );
+  } else if (geometryQaSummary?.severity === "warning" || geometryQaSummary?.severity === "unknown") {
+    if (geometryQaSummary.severity === "unknown") missingFields.push("geometry-validation");
+    caveats.push(
+      geometryQaSummary.reasons[0]
+        ?? "Geometry validation is incomplete and should be reviewed before publication.",
+    );
+  }
   caveats.push(...(layer.metadata?.importSource?.caveats ?? []));
   caveats.push(...(externalService?.caveats ?? []));
   if (externalService?.dependencyStatus === "offline") {
@@ -399,19 +424,27 @@ function buildPublicationReadiness(
   if (qaStatus === "warning") caveats.push("Layer has QA warnings or stale analytical output.");
   if (resolveOverlayLayerSourceKind(layer) === "demo") caveats.push("Demo data must remain labelled before publication.");
 
-  const status = blockingIssueIds.length > 0
+  const computedStatus = blockingIssueIds.length > 0
     ? "blocked"
     : missingFields.length > 0 || qaStatus === "unchecked"
       ? "needs-review"
       : caveats.length > 0
         ? "ready-with-caveats"
         : "ready";
+  const status: LayerRegistryMetadata["publicationReadiness"]["status"] = explicitReadiness?.status === "blocked" || computedStatus === "blocked"
+    ? "blocked"
+    : explicitReadiness?.status === "needs-review" || computedStatus === "needs-review"
+      ? "needs-review"
+      : explicitReadiness?.status === "ready-with-caveats" || computedStatus === "ready-with-caveats"
+        ? "ready-with-caveats"
+        : "ready";
 
   return {
     status,
-    missingFields,
-    blockingIssueIds,
-    caveats,
+    missingFields: uniqueTexts(missingFields),
+    blockingIssueIds: uniqueTexts(blockingIssueIds),
+    caveats: uniqueTexts(caveats),
+    ...(explicitReadiness?.checkedAt ? { checkedAt: explicitReadiness.checkedAt } : {}),
   };
 }
 
@@ -424,7 +457,12 @@ function buildReadinessSummary(
   queryable: boolean,
 ): MapLayerReadinessSummary {
   const isFeatureLayer = QUERYABLE_LAYER_TYPES.has(layer.type);
-  const geometryReady = !isFeatureLayer || geometrySummary.geometryType !== FALLBACK_GEOMETRY_TYPE || geometrySummary.featureCount != null;
+  const geometryReady = !isFeatureLayer || (
+    (geometrySummary.geometryType !== FALLBACK_GEOMETRY_TYPE || geometrySummary.featureCount != null)
+      && !publicationReadiness.missingFields.includes("geometry")
+      && !publicationReadiness.missingFields.includes("geometry-validation")
+      && !publicationReadiness.blockingIssueIds.some((issueId) => issueId.includes("geometry"))
+  );
   const schemaReady = !isFeatureLayer || schemaSummary.fieldCount > 0;
   const crsReady = crsSummary.status === "known";
   const missingFields = uniqueTexts([
@@ -460,6 +498,7 @@ export function normalizeLayerRegistryMetadata(layer: OverlayLayerConfig): Layer
   const publicationReadiness = buildPublicationReadiness(
     layer,
     crsSummary,
+    geometrySummary,
     schemaSummary,
     licenseAttribution,
     qaStatus,

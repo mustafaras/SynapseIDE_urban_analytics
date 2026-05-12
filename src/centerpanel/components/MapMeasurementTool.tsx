@@ -126,6 +126,30 @@ function getMeasurementInstructions(type: MeasureToolId | null): string {
   return "Choose a tool to start measuring.";
 }
 
+function buildMeasurementAssumptions(type: MeasureToolId): NonNullable<Measurement["assumptions"]> {
+  return {
+    method: "geodesic-wgs84",
+    crsBasis: "EPSG:4326",
+    coordinateBasis: "map-display-coordinates",
+    distanceModel: "haversine",
+    areaModel: type === "measure-area" ? "spherical-polygon" : "not-applicable",
+    unitBase: "metres",
+    caveats: [
+      "Coordinates are captured from the map display as longitude/latitude.",
+      "Use projected analytical tools for legal, engineering, or parcel-accurate area claims.",
+    ],
+  };
+}
+
+function getMeasurementAssumptionLabel(assumptions: Measurement["assumptions"] | undefined): string {
+  const resolved = assumptions ?? buildMeasurementAssumptions("measure-distance");
+  return resolved.method === "geodesic-wgs84" ? "WGS84 geodesic" : resolved.method;
+}
+
+function isValidCompletedMeasurement(value: number): boolean {
+  return Number.isFinite(value) && value > 0;
+}
+
 function getDistanceBearingLabel(coordinates: LngLat[]): string | null {
   if (coordinates.length < 2) {
     return null;
@@ -275,9 +299,12 @@ function buildLivePreviewState(
 }
 
 function buildMeasurementClipboardText(measurement: Measurement, unit: MeasureUnit): string {
+  const assumptions = measurement.assumptions ?? buildMeasurementAssumptions(measurement.type);
   const lines = [
     `${getMeasurementKindLabel(measurement.type)} measurement`,
     `Captured: ${formatMeasurementTimestamp(measurement.timestamp)}`,
+    `Method: ${getMeasurementAssumptionLabel(assumptions)}`,
+    `CRS basis: ${assumptions.crsBasis} from ${assumptions.coordinateBasis}`,
   ];
 
   if (measurement.type === "measure-distance") {
@@ -292,6 +319,7 @@ function buildMeasurementClipboardText(measurement: Measurement, unit: MeasureUn
   }
 
   lines.push(`Vertices: ${measurement.coordinates.length}`);
+  assumptions.caveats.forEach((caveat) => lines.push(`Caveat: ${caveat}`));
   lines.push("Coordinates:");
   measurement.coordinates.forEach((coordinate, index) => {
     lines.push(`${index + 1}. ${coordinate[1].toFixed(6)}, ${coordinate[0].toFixed(6)}`);
@@ -650,6 +678,11 @@ export const MapMeasurementTool: React.FC<MapMeasurementToolProps> = ({
     coordinates: LngLat[],
     value: number,
   ) => {
+    if (!isValidCompletedMeasurement(value)) {
+      onAnnounce?.("Measurement was not captured because the completed geometry has no measurable distance or area");
+      return;
+    }
+
     const measurement: Measurement = {
       id: nextMeasurementId(),
       type,
@@ -660,6 +693,7 @@ export const MapMeasurementTool: React.FC<MapMeasurementToolProps> = ({
           ? `Distance ${formatDistance(value, unitRef.current)}`
           : `Area ${formatArea(value, unitRef.current)}`,
       timestamp: new Date().toISOString(),
+      assumptions: buildMeasurementAssumptions(type),
     };
 
     onAddMeasurement(measurement);
@@ -952,6 +986,9 @@ export const MapMeasurementTool: React.FC<MapMeasurementToolProps> = ({
         </div>
 
         <div style={helperTextStyle}>{getMeasurementInstructions(activeMeasureTool)}</div>
+        <div style={{ ...helperTextStyle, marginTop: MAP_SPACING.xs }}>
+          Method {getMeasurementAssumptionLabel(undefined)}; display coordinates are treated as EPSG:4326.
+        </div>
         {livePreview ? (
           <div style={{ marginTop: MAP_SPACING.sm, display: "grid", gap: MAP_SPACING.xs }}>
             <div style={valueStyle}>{livePreview.primary}</div>
@@ -976,6 +1013,7 @@ export const MapMeasurementTool: React.FC<MapMeasurementToolProps> = ({
           const bearing = isDistance
             ? getDistanceBearingLabel(measurement.coordinates as LngLat[])
             : null;
+          const assumptions = measurement.assumptions ?? buildMeasurementAssumptions(measurement.type);
 
           return (
             <div key={measurement.id} style={rowStyle}>
@@ -1028,6 +1066,9 @@ export const MapMeasurementTool: React.FC<MapMeasurementToolProps> = ({
 
               {perimeter ? <div style={helperTextStyle}>Perimeter {perimeter}</div> : null}
               {bearing ? <div style={helperTextStyle}>{bearing}</div> : null}
+              <div style={helperTextStyle}>
+                Method {getMeasurementAssumptionLabel(assumptions)}; CRS {assumptions.crsBasis}
+              </div>
 
               <div style={{ ...helperTextStyle, display: "inline-flex", alignItems: "center", gap: MAP_SPACING.xs }}>
                 <Clock3 size={12} />

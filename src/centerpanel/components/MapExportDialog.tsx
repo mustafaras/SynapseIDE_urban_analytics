@@ -22,6 +22,8 @@ export interface MapExportDialogProps {
   onCompositionChange: (patch: Partial<MapCompositionOptions>) => void;
   onClose: () => void;
   onExport: () => void;
+  onOpenManifestInIde?: () => void;
+  onOpenExportNoteInIde?: () => void;
 }
 
 const overlayStyle: React.CSSProperties = {
@@ -166,6 +168,8 @@ export const MapExportDialog: React.FC<MapExportDialogProps> = ({
   onCompositionChange,
   onClose,
   onExport,
+  onOpenManifestInIde,
+  onOpenExportNoteInIde,
 }) => {
   if (!open) return null;
 
@@ -209,6 +213,16 @@ export const MapExportDialog: React.FC<MapExportDialogProps> = ({
           ) : null}
 
           <div style={buttonRow}>
+            {onOpenManifestInIde ? (
+              <button type="button" style={buttonStyle} onClick={onOpenManifestInIde}>
+                IDE manifest
+              </button>
+            ) : null}
+            {onOpenExportNoteInIde ? (
+              <button type="button" style={buttonStyle} onClick={onOpenExportNoteInIde}>
+                IDE note
+              </button>
+            ) : null}
             <button type="button" style={buttonStyle} onClick={onClose}>
               Cancel
             </button>

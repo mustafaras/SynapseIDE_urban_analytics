@@ -5,8 +5,10 @@
 /* ================================================================== */
 
 import React, { useCallback, useEffect, useRef } from "react";
+import { booleanValid } from "@turf/boolean-valid";
+import { kinks } from "@turf/kinks";
 import type maplibregl from "maplibre-gl";
-import type { DrawnFeature, DrawToolId } from "./map/mapTypes";
+import type { DrawnFeature, DrawnGeometryValidation, DrawToolId } from "./map/mapTypes";
 import {
   IconLine,
   IconPencil,
@@ -60,6 +62,9 @@ const DRAW_TOOL_LABELS: Record<DrawToolId, string> = {
   circle: "Circle",
 };
 
+const DRAWING_VALIDATION_BASE_CAVEAT =
+  "Drawing coordinates use map display longitude/latitude; structural validation does not verify a source CRS.";
+
 /** Returns false if the MapLibre instance has already been destroyed via map.remove(). */
 const isMapAlive = (map: maplibregl.Map): boolean => {
   try {
@@ -70,6 +75,185 @@ const isMapAlive = (map: maplibregl.Map): boolean => {
     return false;
   }
 };
+
+function createDrawnValidation(
+  status: DrawnGeometryValidation["status"],
+  issueCodes: string[],
+  caveats: string[],
+): DrawnGeometryValidation {
+  return {
+    status,
+    issueCodes: Array.from(new Set(issueCodes)),
+    caveats: Array.from(new Set(caveats)),
+    checkedAt: new Date().toISOString(),
+  };
+}
+
+function visitDrawnGeometryPositions(
+  geometry: GeoJSON.Geometry,
+  visitor: (position: readonly number[]) => void,
+): void {
+  if (geometry.type === "GeometryCollection") {
+    geometry.geometries.forEach((entry) => visitDrawnGeometryPositions(entry, visitor));
+    return;
+  }
+
+  const walk = (value: unknown): void => {
+    if (!Array.isArray(value) || value.length === 0) return;
+    if (typeof value[0] === "number" && typeof value[1] === "number") {
+      visitor(value as readonly number[]);
+      return;
+    }
+    value.forEach(walk);
+  };
+
+  walk(geometry.coordinates);
+}
+
+function isFiniteCoordinatePair(position: readonly number[]): boolean {
+  return Number.isFinite(position[0]) && Number.isFinite(position[1]);
+}
+
+function coordinateKey(position: readonly number[]): string {
+  return `${position[0]},${position[1]}`;
+}
+
+function positionsMatch(first: readonly number[], second: readonly number[]): boolean {
+  return first[0] === second[0] && first[1] === second[1];
+}
+
+function distinctPositionCount(positions: readonly (readonly number[])[]): number {
+  return new Set(positions.map(coordinateKey)).size;
+}
+
+function polygonRingHasArea(ring: readonly (readonly number[])[]): boolean {
+  let signedArea = 0;
+  for (let index = 0; index < ring.length - 1; index += 1) {
+    const current = ring[index]!;
+    const next = ring[index + 1]!;
+    signedArea += current[0] * next[1] - next[0] * current[1];
+  }
+  return Math.abs(signedArea) > 1e-12;
+}
+
+function validateLinePositions(
+  positions: readonly (readonly number[])[],
+  blockedIssueCodes: string[],
+  caveats: string[],
+): void {
+  if (positions.length < 2) {
+    blockedIssueCodes.push("short_line");
+    caveats.push("Line drawings need at least two coordinate positions.");
+    return;
+  }
+  if (distinctPositionCount(positions) < 2) {
+    blockedIssueCodes.push("degenerate_line");
+    caveats.push("Line drawings need at least two distinct positions.");
+  }
+}
+
+function validatePolygonRing(
+  ring: readonly (readonly number[])[],
+  blockedIssueCodes: string[],
+  caveats: string[],
+): void {
+  if (ring.length < 4) {
+    blockedIssueCodes.push("short_ring");
+    caveats.push("Polygon drawings need at least three vertices and a closing coordinate.");
+    return;
+  }
+  if (!positionsMatch(ring[0]!, ring[ring.length - 1]!)) {
+    blockedIssueCodes.push("non_closed_ring");
+    caveats.push("Polygon rings must close before they can be used as an AOI.");
+  }
+  if (distinctPositionCount(ring.slice(0, -1)) < 3) {
+    blockedIssueCodes.push("degenerate_polygon");
+    caveats.push("Polygon drawings need at least three distinct positions.");
+  }
+  if (!polygonRingHasArea(ring)) {
+    blockedIssueCodes.push("zero_area_polygon");
+    caveats.push("Polygon drawings must enclose a measurable area.");
+  }
+}
+
+function validateDrawnGeometry(geometry: GeoJSON.Geometry): DrawnGeometryValidation {
+  const blockedIssueCodes: string[] = [];
+  const warningIssueCodes: string[] = [];
+  const caveats = [DRAWING_VALIDATION_BASE_CAVEAT];
+
+  visitDrawnGeometryPositions(geometry, (position) => {
+    if (!isFiniteCoordinatePair(position)) {
+      blockedIssueCodes.push("invalid_numeric_coordinate");
+      caveats.push("Every drawn coordinate must be finite before it can be stored.");
+      return;
+    }
+    if (Math.abs(position[1]) > 90) {
+      warningIssueCodes.push("latitude_out_of_range");
+      caveats.push("At least one latitude is outside the WGS84 display range.");
+    }
+  });
+
+  if (geometry.type === "Point") {
+    if (!isFiniteCoordinatePair(geometry.coordinates)) {
+      blockedIssueCodes.push("invalid_point_coordinate");
+    }
+  } else if (geometry.type === "LineString") {
+    validateLinePositions(geometry.coordinates, blockedIssueCodes, caveats);
+  } else if (geometry.type === "MultiLineString") {
+    geometry.coordinates.forEach((linePositions) => validateLinePositions(linePositions, blockedIssueCodes, caveats));
+  } else if (geometry.type === "Polygon") {
+    geometry.coordinates.forEach((ring) => validatePolygonRing(ring, blockedIssueCodes, caveats));
+  } else if (geometry.type === "MultiPolygon") {
+    geometry.coordinates.forEach((polygon) => {
+      polygon.forEach((ring) => validatePolygonRing(ring, blockedIssueCodes, caveats));
+    });
+  } else if (geometry.type === "GeometryCollection" && geometry.geometries.length === 0) {
+    blockedIssueCodes.push("empty_geometry_collection");
+    caveats.push("Geometry collections need at least one geometry.");
+  }
+
+  try {
+    if ((geometry.type === "Polygon" || geometry.type === "MultiPolygon")
+      && kinks({ type: "Feature", geometry, properties: {} }).features.length > 0) {
+      blockedIssueCodes.push("self_intersection");
+      caveats.push("Self-intersecting polygons are blocked because area and overlay results are unreliable.");
+    }
+    if (!booleanValid(geometry)) {
+      blockedIssueCodes.push("invalid_geojson_geometry");
+      caveats.push("The drawn geometry failed GeoJSON validity checks.");
+    }
+  } catch {
+    warningIssueCodes.push("topology_validation_unknown");
+    caveats.push("Topology validation could not complete for this drawing.");
+  }
+
+  if (blockedIssueCodes.length > 0) {
+    return createDrawnValidation("blocked", blockedIssueCodes, caveats);
+  }
+  if (warningIssueCodes.length > 0) {
+    return createDrawnValidation("warning", warningIssueCodes, caveats);
+  }
+  return createDrawnValidation("valid", [], caveats);
+}
+
+function getDrawnValidationLabel(status: DrawnGeometryValidation["status"] | undefined): string {
+  if (status === "valid") return "Validated";
+  if (status === "warning") return "Needs review";
+  if (status === "blocked") return "Invalid";
+  return "Validation unknown";
+}
+
+function getDrawnValidationColor(status: DrawnGeometryValidation["status"] | undefined): string {
+  if (status === "valid") return MAP_COLORS.success;
+  if (status === "warning" || status === "unknown") return MAP_COLORS.warning;
+  if (status === "blocked") return MAP_COLORS.error;
+  return MAP_COLORS.textMuted;
+}
+
+function summarizeValidationBlock(validation: DrawnGeometryValidation): string {
+  return validation.caveats.find((caveat) => caveat !== DRAWING_VALIDATION_BASE_CAVEAT)
+    ?? "Geometry validation blocked this drawing.";
+}
 
 /* ================================================================== */
 /*  Props                                                              */
@@ -446,16 +630,27 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
 
   const finishFeature = useCallback(
     (geometry: GeoJSON.Geometry, label: string) => {
+      const validation = validateDrawnGeometry(geometry);
+      if (validation.status === "blocked") {
+        onAnnounce?.(`${label} was not added: ${summarizeValidationBlock(validation)}`);
+        return;
+      }
+
       const feature: DrawnFeature = {
         id: drawId(),
         geometry,
         properties: {
           label,
           createdAt: new Date().toISOString(),
+          validation,
         },
       };
       onAddFeature(feature);
-      onAnnounce?.(`${label} added`);
+      onAnnounce?.(
+        validation.status === "warning"
+          ? `${label} added with geometry validation warnings`
+          : `${label} added`,
+      );
 
       /* Immediately push the new feature to the MapLibre source so it
          renders without waiting for the React re-render → useEffect cycle.
@@ -649,14 +844,24 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
             ring[vertexIndex] = c;
             // Also close the ring if editing index 0
             if (vertexIndex === 0) ring[ring.length - 1] = c;
+            const geometry: GeoJSON.Polygon = { type: "Polygon", coordinates: [ring] };
             onUpdateFeature(featureId, {
-              geometry: { type: "Polygon", coordinates: [ring] },
+              geometry,
+              properties: {
+                ...feat.properties,
+                validation: validateDrawnGeometry(geometry),
+              },
             });
           } else if (feat.geometry.type === "LineString") {
             const coords = [...(feat.geometry as GeoJSON.LineString).coordinates] as [number, number][];
             coords[vertexIndex] = c;
+            const geometry = makeLineString(coords);
             onUpdateFeature(featureId, {
-              geometry: makeLineString(coords),
+              geometry,
+              properties: {
+                ...feat.properties,
+                validation: validateDrawnGeometry(geometry),
+              },
             });
           }
         }
@@ -971,7 +1176,12 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
         </div>
       ) : (
         <div style={mapStyles.sidePanelBody} role="listbox" aria-label="Drawn feature list">
-          {drawnFeatures.map((f) => (
+          {drawnFeatures.map((f) => {
+            const validationStatus = f.properties.validation?.status;
+            const validationLabel = getDrawnValidationLabel(validationStatus);
+            const validationColor = getDrawnValidationColor(validationStatus);
+
+            return (
             <div
               key={f.id}
               role="option"
@@ -1003,7 +1213,7 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
                   {f.properties.label}
                 </span>
                 <span style={{ color: MAP_COLORS.textMuted, fontFamily: MAP_TYPOGRAPHY.fontFamilyMono, fontSize: MAP_TYPOGRAPHY.fontSize.xs }}>
-                  {f.geometry.type}
+                  {f.geometry.type} - <span style={{ color: validationColor }}>{validationLabel}</span>
                 </span>
               </span>
               <button
@@ -1020,7 +1230,8 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
                 <IconTrash size={12} />
               </button>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

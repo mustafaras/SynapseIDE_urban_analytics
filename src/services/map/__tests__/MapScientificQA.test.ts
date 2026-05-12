@@ -150,6 +150,72 @@ describe("MapScientificQA", () => {
     expect(qa.layerSummaries[0]?.metadata.categorySummaries?.find((summary) => summary.category === "crs")?.severity).toBe("warning");
   });
 
+  it("honors normalized CRS metadata sources without marking CRS missing", () => {
+    const metadataCases: Array<[string, OverlayLayerConfig["metadata"]]> = [
+      [
+        "crs-summary",
+        {
+          datasetContext: { source: "City Open Data", license: "ODbL", updateDate: "2026-01-01" },
+          crsSummary: { crs: "EPSG:3857", status: "known", source: "explicit", notes: [] },
+        },
+      ],
+      [
+        "import-source",
+        {
+          datasetContext: { source: "City Open Data", license: "ODbL", updateDate: "2026-01-01" },
+          importSource: {
+            format: "geojson",
+            fileName: "parcels.geojson",
+            sourceName: "Parcel import",
+            importedAt: "2026-01-01T00:00:00Z",
+            importedFeatureCount: 1,
+            declaredCrs: "EPSG:4326",
+            sourceConfidence: "declared",
+            caveats: [],
+          },
+        },
+      ],
+      [
+        "registry-crs-summary",
+        {
+          datasetContext: { source: "City Open Data", license: "ODbL", updateDate: "2026-01-01" },
+          registry: {
+            sourceKind: "imported",
+            provenance: { label: "Registry layer", license: "ODbL" },
+            crsSummary: { crs: "EPSG:4326", status: "known", source: "explicit", notes: [] },
+            geometrySummary: { geometryType: "Polygon", geometryTypes: ["Polygon"], featureCount: 1, source: "explicit", notes: [] },
+            featureCount: 1,
+            schemaSummary: { fieldCount: 1, fields: [{ name: "value", role: "attribute" }], source: "explicit", notes: [] },
+            licenseAttribution: { license: "ODbL", attribution: "City Open Data", sourceName: "City Open Data", requiresAttribution: true, source: "explicit", notes: [] },
+            qaStatus: "passed",
+            queryable: true,
+            publicationReadiness: { status: "ready", missingFields: [], blockingIssueIds: [], caveats: [] },
+            readiness: {
+              layerId: "registry-crs-summary",
+              status: "ready",
+              geometryReady: true,
+              crsReady: true,
+              metadataReady: true,
+              queryReady: true,
+              temporalReady: true,
+              workerReady: true,
+              missingFields: [],
+              blockingIssueIds: [],
+              caveats: [],
+            },
+            compatibility: { legacy: false, source: "explicit", missingMetadata: [] },
+          },
+        },
+      ],
+    ];
+
+    metadataCases.forEach(([id, metadata]) => {
+      const qa = evaluateMapScientificQASync([createLayer(id, validPolygonCollection, metadata)]);
+      expect(qa.issues.some((issue) => issue.code === "missing_crs")).toBe(false);
+      expect(qa.layerSummaries[0]?.metadata.categorySummaries?.find((summary) => summary.category === "crs")?.severity).toBe("pass");
+    });
+  });
+
   it("keeps missing schema metadata out of pass state", () => {
     const layer = createLayer("missing-schema", validPolygonCollection, {
       fields: [],
@@ -173,6 +239,7 @@ describe("MapScientificQA", () => {
     expect(qa.issues.some((issue) => issue.code === "self_intersection" && issue.featureId === "bad-1")).toBe(true);
     expect(qa.layerSummaries[0]?.badges).toContain("invalid_geometry");
     expect(qa.layerSummaries[0]?.featureIssueCount).toBeGreaterThan(0);
+    expect(qa.layerSummaries[0]?.metadata.categorySummaries?.find((summary) => summary.category === "export-readiness")?.severity).toBe("blocked");
   });
 
   it("detects non-closed polygon rings", () => {

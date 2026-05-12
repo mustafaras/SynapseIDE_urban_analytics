@@ -324,6 +324,30 @@ describe("MapExportService", () => {
     expect(readiness.warnings.map((check) => check.criterion)).toContain("attribution-license");
   });
 
+  it("warns when visible layer geometry readiness is unknown", () => {
+    const layer = publicationLayer({
+      metadata: {
+        crsSummary: { crs: "EPSG:3857", status: "known", source: "explicit", notes: [] },
+        schemaSummary: { fieldCount: 1, fields: [{ name: "id", role: "identifier" }], source: "explicit", notes: [] },
+        licenseAttribution: { license: "ODbL", attribution: "Transit authority", sourceName: "Transit authority", requiresAttribution: true, source: "explicit", notes: [] },
+      },
+    });
+
+    const readiness = buildMapPublicationReadiness({
+      mode: "publication-export",
+      overlayLayers: [layer],
+      composition: DEFAULT_MAP_COMPOSITION_OPTIONS,
+      scientificQA: qaState(),
+      legendItems: buildMapCompositionLegendItems([layer]),
+      now: fixedReadinessDate,
+    });
+
+    expect(readiness.status).toBe("ready-with-caveats");
+    expect(readiness.warnings.map((check) => check.criterion)).toContain("crs-measurement");
+    expect(readiness.warnings.find((check) => check.criterion === "crs-measurement")?.affectedLayerIds).toContain("layer-1");
+    expect(readiness.caveats.some((caveat) => caveat.includes("missing geometry"))).toBe(true);
+  });
+
   it("blocks unacknowledged export-readiness QA blockers", () => {
     const readiness = buildMapPublicationReadiness({
       mode: "publication-export",

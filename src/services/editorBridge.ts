@@ -9,6 +9,7 @@ export type SupportedLang =
   | 'javascript'
   | 'typescript'
   | 'python'
+  | 'sql'
   | 'json'
   | 'markdown';
 
@@ -18,6 +19,7 @@ export function inferLanguageFromFence(langHint?: string, code?: string): Suppor
     if (/^js|javascript|jsx$/.test(hint)) return 'javascript';
     if (/^ts|typescript|tsx$/.test(hint)) return 'typescript';
     if (/^py|python$/.test(hint)) return 'python';
+    if (/^sql$/.test(hint)) return 'sql';
     if (/^md|markdown$/.test(hint)) return 'markdown';
     if (/^json$/.test(hint)) return 'json';
     if (/^css$/.test(hint)) return 'css';
@@ -28,6 +30,7 @@ export function inferLanguageFromFence(langHint?: string, code?: string): Suppor
   if (/^(\s*\{|\s*\[)/.test(src.trim()) && /"[\w-]+"\s*:/.test(src)) return 'json';
   if (/function |=>|const |let |var /.test(src) && /;|\(/.test(src)) return 'javascript';
   if (/^\s*#\!.*python|def |import sys|print\(/.test(src)) return 'python';
+  if (/^\s*(with|select|create|explain)\b/i.test(src)) return 'sql';
   if (/^\s*\{[\s\S]*type\s+[A-Za-z]/.test(src) || /:\s*string|:\s*number/.test(src))
     return 'typescript';
   if (/^\s*#{1,6}\s+/.test(src) || /```/.test(src)) return 'markdown';

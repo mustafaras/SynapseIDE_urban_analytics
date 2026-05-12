@@ -738,6 +738,18 @@ export type MeasureToolId = "measure-distance" | "measure-area";
 /** Supported measurement unit systems */
 export type MeasureUnit = "metric" | "imperial";
 
+export type MeasurementCalculationMethod = "geodesic-wgs84";
+
+export interface MeasurementAssumptions {
+  method: MeasurementCalculationMethod;
+  crsBasis: "EPSG:4326";
+  coordinateBasis: "map-display-coordinates";
+  distanceModel: "haversine";
+  areaModel: "spherical-polygon" | "not-applicable";
+  unitBase: "metres";
+  caveats: string[];
+}
+
 /** A completed measurement stored in the Zustand store */
 export interface Measurement {
   id: string;
@@ -746,6 +758,16 @@ export interface Measurement {
   value: number; // metres or m²
   label: string;
   timestamp: string;
+  assumptions?: MeasurementAssumptions;
+}
+
+export type DrawnGeometryValidationStatus = "valid" | "warning" | "blocked" | "unknown";
+
+export interface DrawnGeometryValidation {
+  status: DrawnGeometryValidationStatus;
+  issueCodes: string[];
+  caveats: string[];
+  checkedAt: string;
 }
 
 /** Custom style overrides for a drawn feature */
@@ -764,6 +786,7 @@ export interface DrawnFeature {
     label: string;
     createdAt: string;
     style?: FeatureStyle;
+    validation?: DrawnGeometryValidation;
   };
 }
 

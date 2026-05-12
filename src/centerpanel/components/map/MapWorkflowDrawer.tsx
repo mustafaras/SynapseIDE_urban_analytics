@@ -18,6 +18,7 @@ import {
   CheckCircle2,
   ChevronRight,
   CircleOff,
+  Code2,
   GitBranch,
   Info,
   Layers,
@@ -78,6 +79,12 @@ export interface MapWorkflowDrawerProps {
   onApply: (result: MapWorkflowApplyResult) => void;
   onSaveReport?: (report: MapWorkflowReportItem) => void;
   onPreviewChange?: (preview: MapWorkflowPreview | null) => void;
+  onOpenWorkflowScript?: (preview: MapWorkflowPreview) => void;
+  initialDraftRequest?: {
+    requestId: string;
+    kind: MapWorkflowKind;
+    draft: MapWorkflowDraft;
+  } | null;
   onAnnounce?: (message: string) => void;
   presentation?: "floating" | "right-rail" | "bottom-drawer";
   width?: number;
@@ -389,12 +396,14 @@ export const MapWorkflowDrawer: React.FC<MapWorkflowDrawerProps> = ({
   onApply,
   onSaveReport,
   onPreviewChange,
+  onOpenWorkflowScript,
   onAnnounce,
   presentation = "floating",
   width,
   minWidth = 300,
   maxWidth = 520,
   onWidthChange,
+  initialDraftRequest,
 }) => {
   const [kind, setKind] = useState<MapWorkflowKind>("aoi");
   const [draftsByKind, setDraftsByKind] = useState<Record<MapWorkflowKind, MapWorkflowDraft>>(() => ({
@@ -433,6 +442,17 @@ export const MapWorkflowDrawer: React.FC<MapWorkflowDrawerProps> = ({
     event.currentTarget.setPointerCapture?.(event.pointerId);
     event.preventDefault();
   }, [maxWidth, minWidth, onWidthChange, presentation, width]);
+
+  useEffect(() => {
+    if (!visible || !initialDraftRequest) {
+      return;
+    }
+    setKind(initialDraftRequest.kind);
+    setDraftsByKind((current) => ({
+      ...current,
+      [initialDraftRequest.kind]: initialDraftRequest.draft,
+    }));
+  }, [initialDraftRequest, visible]);
 
   const draft = draftsByKind[kind];
   const preview = useMemo(
@@ -583,6 +603,24 @@ export const MapWorkflowDrawer: React.FC<MapWorkflowDrawerProps> = ({
         </div>
 
         <ManifestSummary preview={preview} />
+
+        {onOpenWorkflowScript ? (
+          <div style={{ ...sectionStyle, display: "flex", justifyContent: "space-between", gap: MAP_SPACING.sm, alignItems: "center" }}>
+            <div style={{ color: MAP_COLORS.textMuted, fontSize: MAP_TYPOGRAPHY.fontSize.xs, lineHeight: 1.45 }}>
+              Manifest-linked script
+            </div>
+            <button
+              type="button"
+              style={mapStyles.sidePanelActionButton}
+              onClick={() => onOpenWorkflowScript(preview)}
+              aria-label="Open workflow script in Synapse IDE"
+              title="Open a new IDE tab with a reproducible workflow script."
+            >
+              <Code2 size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+              IDE script
+            </button>
+          </div>
+        ) : null}
 
         {/* Guidance */}
         {preview.guidance.length > 0 ? (
