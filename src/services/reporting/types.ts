@@ -84,6 +84,21 @@ export type ReportBlock =
   | ReportFigureBlock
   | ReportTableBlock;
 
+export type ReportStructuredEvidenceMetadataValue = string | number | boolean | null | string[] | number[] | boolean[];
+
+export interface ReportStructuredEvidenceBlock<TPayload = Record<string, unknown>> {
+  id: string;
+  sourceModule: "ide" | "map" | "urban";
+  kind: string;
+  title: string;
+  version: number;
+  createdAt: string;
+  artifactIds: string[];
+  metadata: Record<string, ReportStructuredEvidenceMetadataValue>;
+  payload: TPayload;
+  summary?: string;
+}
+
 export interface ReportSection {
   id: string;
   title: string;
@@ -96,6 +111,7 @@ export interface ReportSection {
   sourceRunId?: string;
   badgeLabel?: string;
   mapReviewEventIds?: string[];
+  structuredEvidenceBlockIds?: string[];
 }
 
 export interface ReportDocument {
@@ -114,6 +130,7 @@ export interface ReportDocument {
   sections: ReportSection[];
   sectionOrder: string[];
   linkedRunIds: string[];
+  structuredEvidenceBlocks?: ReportStructuredEvidenceBlock[];
 }
 
 export interface ReportTemplateDefinition {
@@ -196,6 +213,7 @@ export interface CompiledReportSection {
   generated: boolean;
   badgeLabel?: string;
   mapReviewEventIds?: string[];
+  structuredEvidenceBlockIds?: string[];
   blocks: CompiledReportBlock[];
   citationIds: string[];
 }
@@ -224,6 +242,7 @@ export interface PendingReportInsert {
   mapReviewEventIds?: string[];
   citations: ReportCitationRecord[];
   sections: ReportSection[];
+  structuredEvidenceBlocks?: ReportStructuredEvidenceBlock[];
 }
 
 export interface NarrativeInsertPayload {

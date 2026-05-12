@@ -7,9 +7,16 @@ import {
   type MapPublicationReadiness,
 } from "./MapExportService";
 import { enqueuePendingInsert } from "@/services/reporting/storage";
-import type { PendingReportInsert, ReportCitationRecord, ReportDocument, ReportSection } from "@/services/reporting/types";
+import type {
+  PendingReportInsert,
+  ReportCitationRecord,
+  ReportDocument,
+  ReportSection,
+  ReportStructuredEvidenceBlock,
+} from "@/services/reporting/types";
 
 export const MAP_REPORT_HANDOFF_VERSION = 1;
+export const MAP_REPORT_EVIDENCE_BLOCK_VERSION = 1;
 
 export type MapReportHandoffScope = "map-view" | "layer" | "feature";
 export type MapReportSnapshotFrame = "current-view" | "landscape" | "square" | "portrait";
@@ -87,6 +94,92 @@ export interface MapReportReproducibilityItem {
   value: string;
 }
 
+export interface MapReportLayerEvidenceItem {
+  layerId: string;
+  name: string;
+  type: OverlayLayerConfig["type"];
+  visible: boolean;
+  opacity: number;
+  sourceName: string;
+  crs: string;
+  legendItemCount: number;
+  featureCount: number | null;
+  geometryType: string | null;
+  qaStatus: string | null;
+  sourceKind?: OverlayLayerConfig["sourceKind"];
+  license?: string;
+  citationId?: string;
+  evidenceArtifactId?: string;
+  dataVersion?: string;
+}
+
+export interface MapReportEvidenceBlockPayload {
+  composition: {
+    title: string;
+    baseLayerName: string;
+    scope: MapReportHandoffScope;
+    viewport: {
+      center: [number, number];
+      zoom: number;
+      bearing: number;
+      pitch: number;
+      bounds: [number, number, number, number] | null;
+    };
+    visibleExtent: [number, number, number, number] | null;
+    layerStack: MapReportLayerEvidenceItem[];
+    legendItems: MapCompositionLegendItem[];
+    scaleBarLabel: string;
+    northArrowLabel: string;
+    attributionText: string;
+    crsSummary: {
+      displayCrs: string;
+      layerCrs: Array<{ layerId: string; crs: string }>;
+      missingLayerIds: string[];
+      notes: string[];
+    };
+    exportSnapshotReference: {
+      assetId: string;
+      title: string;
+      filename: string | null;
+      width: number | null;
+      height: number | null;
+      hasEmbeddedImage: boolean;
+    };
+  };
+  qa: {
+    readinessId: string;
+    status: MapPublicationReadiness["status"];
+    checkedAt: string;
+    blockerCount: number;
+    warningCount: number;
+    caveatCount: number;
+    issueIds: string[];
+    blockers: string[];
+    warnings: string[];
+    caveats: string[];
+  };
+  provenance: {
+    citationIds: string[];
+    structuredReferenceIds: string[];
+    evidenceArtifactIds: string[];
+    sourceNames: string[];
+    licenses: string[];
+    reproducibilityManifestIds: string[];
+    ideArtifactIds: string[];
+    mapReviewEventIds: string[];
+    generatedBy: "MapReportHandoffService";
+  };
+  caveats: string[];
+  reproducibility: MapReportReproducibilityItem[];
+}
+
+export interface MapReportEvidenceBlock extends ReportStructuredEvidenceBlock<MapReportEvidenceBlockPayload> {
+  sourceModule: "map";
+  kind: "map-report-evidence";
+  version: typeof MAP_REPORT_EVIDENCE_BLOCK_VERSION;
+  payload: MapReportEvidenceBlockPayload;
+}
+
 export interface MapReportHandoffDraft {
   id: string;
   version: number;
@@ -113,6 +206,7 @@ export interface MapReportHandoffDraft {
   caveats: string[];
   publicationReadiness: MapPublicationReadiness;
   reproducibility: MapReportReproducibilityItem[];
+  evidenceBlock: MapReportEvidenceBlock;
   options: MapReportHandoffOptions;
 }
 
@@ -260,6 +354,7 @@ function buildLayerReferences(layers: OverlayLayerConfig[], createdAt: string): 
         sourceKind: layer.sourceKind ?? null,
         visible: layer.visible,
         opacity: layer.opacity,
+        evidenceArtifactId: getLayerEvidenceArtifactId(layer),
         featureCount: layer.metadata?.featureCount ?? null,
         geometryType: layer.metadata?.geometryType ?? null,
         qaStatus: layer.metadata?.scientificQA?.status ?? layer.qaStatus ?? null,
@@ -428,7 +523,224 @@ function buildReferenceTableRows(references: MapReportStructuredReference[]): Ar
     CRS: reference.crs ?? "n/a",
     Timestamp: reference.timestamp ?? "n/a",
     Citation: reference.citationId ?? "n/a",
+    Evidence: typeof reference.metadata.evidenceArtifactId === "string" ? reference.metadata.evidenceArtifactId : "n/a",
   }));
+}
+
+function getLayerEvidenceArtifactId(layer: OverlayLayerConfig): string | null {
+  return firstAvailable(
+    layer.metadata?.evidenceArtifactId,
+    layer.metadata?.registry?.evidenceArtifactId,
+    layer.metadata?.analysisResult?.evidenceArtifactId,
+  );
+}
+
+function getLayerReproducibilityManifestIds(layer: OverlayLayerConfig): string[] {
+  return unique([
+    layer.metadata?.reproducibilityManifest?.manifestId,
+    layer.metadata?.analysisResult?.reproducibilityManifest?.manifestId,
+  ].filter((value): value is string => typeof value === "string" && value.trim().length > 0));
+}
+
+function getLayerIdeArtifactIds(layer: OverlayLayerConfig): string[] {
+  return unique([
+    ...(layer.metadata?.reproducibilityManifest?.handoffReferences.ideArtifactIds ?? []),
+    ...(layer.metadata?.analysisResult?.reproducibilityManifest?.handoffReferences.ideArtifactIds ?? []),
+  ]);
+}
+
+function buildLayerEvidenceItem(
+  layer: OverlayLayerConfig,
+  references: MapReportStructuredReference[],
+  legendItems: MapCompositionLegendItem[],
+): MapReportLayerEvidenceItem {
+  const reference = references.find((entry) => entry.layerId === layer.id);
+  const evidenceArtifactId = getLayerEvidenceArtifactId(layer);
+  const license = layer.provenance?.license ?? layer.metadata?.datasetContext?.license ?? layer.metadata?.externalService?.license;
+  const item: MapReportLayerEvidenceItem = {
+    layerId: layer.id,
+    name: layer.name,
+    type: layer.type,
+    visible: layer.visible,
+    opacity: layer.opacity,
+    sourceName: getLayerSourceName(layer),
+    crs: getLayerCrs(layer),
+    legendItemCount: legendItems.length,
+    featureCount: layer.metadata?.featureCount ?? layer.metadata?.geometrySummary?.featureCount ?? null,
+    geometryType: layer.metadata?.geometryType ?? layer.metadata?.geometrySummary?.geometryType ?? null,
+    qaStatus: layer.metadata?.scientificQA?.status ?? layer.qaStatus ?? null,
+  };
+  if (layer.sourceKind) item.sourceKind = layer.sourceKind;
+  if (license) item.license = license;
+  if (reference?.citationId) item.citationId = reference.citationId;
+  if (evidenceArtifactId) item.evidenceArtifactId = evidenceArtifactId;
+  if (layer.metadata?.dataVersion) item.dataVersion = layer.metadata.dataVersion;
+  return item;
+}
+
+function buildCrsEvidenceSummary(layers: OverlayLayerConfig[]): MapReportEvidenceBlockPayload["composition"]["crsSummary"] {
+  const layerCrs = layers.map((layer) => ({ layerId: layer.id, crs: getLayerCrs(layer) }));
+  const missingLayerIds = layers
+    .filter((layer) => layer.metadata?.scientificQA?.badges.includes("missing_crs") || getLayerCrs(layer) === "EPSG:4326 assumed")
+    .map((layer) => layer.id);
+  const notes = missingLayerIds.length > 0
+    ? ["One or more layers have missing or assumed CRS metadata; analytical distance and area claims require projected CRS review."]
+    : ["CRS values are recorded as source metadata for report traceability; Map Explorer does not infer analytical CRS suitability from this block."];
+  return {
+    displayCrs: "EPSG:4326 display coordinates",
+    layerCrs,
+    missingLayerIds,
+    notes,
+  };
+}
+
+function buildEvidenceSummaryRows(block: MapReportEvidenceBlock): Array<Record<string, string | number | boolean | null>> {
+  const payload = block.payload;
+  return [
+    { Field: "Evidence block ID", Value: block.id },
+    { Field: "Snapshot asset", Value: payload.composition.exportSnapshotReference.assetId },
+    { Field: "Visible extent", Value: payload.composition.visibleExtent ? formatBounds(payload.composition.visibleExtent) : "Not captured" },
+    { Field: "Layer count", Value: payload.composition.layerStack.length },
+    { Field: "Legend items", Value: payload.composition.legendItems.length },
+    { Field: "CRS summary", Value: payload.composition.crsSummary.layerCrs.map((entry) => `${entry.layerId}: ${entry.crs}`).join("; ") || "No layer CRS metadata" },
+    { Field: "Evidence artifact IDs", Value: payload.provenance.evidenceArtifactIds.join("; ") || "None linked" },
+    { Field: "QA status", Value: payload.qa.status },
+    { Field: "Caveat count", Value: payload.qa.caveatCount },
+    { Field: "Attribution", Value: payload.composition.attributionText },
+  ];
+}
+
+function buildMapReportEvidenceBlock(input: {
+  draftId: string;
+  title: string;
+  scope: MapReportHandoffScope;
+  createdAt: string;
+  layers: OverlayLayerConfig[];
+  viewport: ViewportState;
+  currentMapBounds?: [number, number, number, number] | null | undefined;
+  baseLayerName?: string | undefined;
+  references: MapReportStructuredReference[];
+  citations: ReportCitationRecord[];
+  caveats: string[];
+  publicationReadiness: MapPublicationReadiness;
+  reproducibility: MapReportReproducibilityItem[];
+  legendItems: MapCompositionLegendItem[];
+  snapshot: MapReportHandoffDraft["snapshot"];
+  mapReviewEventIds?: string[] | undefined;
+}): MapReportEvidenceBlock {
+  const evidenceArtifactIds = unique(input.layers.map(getLayerEvidenceArtifactId).filter((value): value is string => Boolean(value)));
+  const sourceNames = unique(input.layers.map(getLayerSourceName));
+  const licenses = unique(input.layers
+    .map((layer) => layer.provenance?.license ?? layer.metadata?.datasetContext?.license ?? layer.metadata?.externalService?.license)
+    .filter((value): value is string => typeof value === "string" && value.trim().length > 0));
+  const reproducibilityManifestIds = unique(input.layers.flatMap(getLayerReproducibilityManifestIds));
+  const ideArtifactIds = unique(input.layers.flatMap(getLayerIdeArtifactIds));
+  const issueIds = unique(input.publicationReadiness.checks.flatMap((check) => check.issueIds));
+  const mapReviewEventIds = unique(input.mapReviewEventIds ?? []);
+  const payload: MapReportEvidenceBlockPayload = {
+    composition: {
+      title: input.title,
+      baseLayerName: input.baseLayerName ?? "Current base map",
+      scope: input.scope,
+      viewport: {
+        center: input.viewport.center,
+        zoom: input.viewport.zoom,
+        bearing: input.viewport.bearing,
+        pitch: input.viewport.pitch,
+        bounds: input.currentMapBounds ?? null,
+      },
+      visibleExtent: input.currentMapBounds ?? null,
+      layerStack: input.layers.map((layer) => buildLayerEvidenceItem(layer, input.references, input.legendItems)),
+      legendItems: input.legendItems,
+      scaleBarLabel: input.snapshot.scaleBarLabel,
+      northArrowLabel: input.snapshot.northArrowLabel,
+      attributionText: input.snapshot.attributionText,
+      crsSummary: buildCrsEvidenceSummary(input.layers),
+      exportSnapshotReference: {
+        assetId: input.snapshot.assetId,
+        title: input.snapshot.title,
+        filename: input.snapshot.filename ?? null,
+        width: input.snapshot.width ?? null,
+        height: input.snapshot.height ?? null,
+        hasEmbeddedImage: Boolean(input.snapshot.dataUrl),
+      },
+    },
+    qa: {
+      readinessId: input.publicationReadiness.id,
+      status: input.publicationReadiness.status,
+      checkedAt: input.publicationReadiness.checkedAt,
+      blockerCount: input.publicationReadiness.blockers.length,
+      warningCount: input.publicationReadiness.warnings.length,
+      caveatCount: input.caveats.length,
+      issueIds,
+      blockers: input.publicationReadiness.blockers.map((check) => check.message),
+      warnings: input.publicationReadiness.warnings.map((check) => check.message),
+      caveats: input.caveats,
+    },
+    provenance: {
+      citationIds: input.citations.map((citation) => citation.id),
+      structuredReferenceIds: input.references.map((reference) => reference.id),
+      evidenceArtifactIds,
+      sourceNames,
+      licenses,
+      reproducibilityManifestIds,
+      ideArtifactIds,
+      mapReviewEventIds,
+      generatedBy: "MapReportHandoffService",
+    },
+    caveats: input.caveats,
+    reproducibility: input.reproducibility,
+  };
+
+  return {
+    id: `${input.draftId}-evidence-block`,
+    sourceModule: "map",
+    kind: "map-report-evidence",
+    title: input.title,
+    version: MAP_REPORT_EVIDENCE_BLOCK_VERSION,
+    createdAt: input.createdAt,
+    artifactIds: evidenceArtifactIds,
+    summary: `${input.layers.length} map layer(s), ${input.citations.length} citation(s), ${input.caveats.length} caveat(s), and publication readiness ${input.publicationReadiness.status}.`,
+    metadata: {
+      reportDraftId: input.draftId,
+      snapshotAssetId: input.snapshot.assetId,
+      publicationReadinessStatus: input.publicationReadiness.status,
+      blockerCount: input.publicationReadiness.blockers.length,
+      warningCount: input.publicationReadiness.warnings.length,
+      caveatCount: input.caveats.length,
+      layerIds: input.layers.map((layer) => layer.id),
+      citationIds: input.citations.map((citation) => citation.id),
+      evidenceArtifactIds,
+      mapReviewEventIds,
+      reproducibilityManifestIds,
+      ideArtifactIds,
+    },
+    payload,
+  };
+}
+
+function withMapReviewEventIds(block: MapReportEvidenceBlock, mapReviewEventIds: string[]): MapReportEvidenceBlock {
+  const mergedReviewEventIds = unique([
+    ...block.payload.provenance.mapReviewEventIds,
+    ...mapReviewEventIds,
+  ]);
+  if (mergedReviewEventIds.length === block.payload.provenance.mapReviewEventIds.length) {
+    return block;
+  }
+  return {
+    ...block,
+    metadata: {
+      ...block.metadata,
+      mapReviewEventIds: mergedReviewEventIds,
+    },
+    payload: {
+      ...block.payload,
+      provenance: {
+        ...block.payload.provenance,
+        mapReviewEventIds: mergedReviewEventIds,
+      },
+    },
+  };
 }
 
 export function buildMapReportHandoffDraft(input: MapReportHandoffInput): MapReportHandoffDraft {
@@ -494,6 +806,37 @@ export function buildMapReportHandoffDraft(input: MapReportHandoffInput): MapRep
     options,
     publicationReadiness,
   });
+  const snapshot: MapReportHandoffDraft["snapshot"] = {
+    assetId,
+    title: `${title} map snapshot`,
+    caption: `Static map capture for ${title}. Visible overlays: ${reportLayers.map((layer) => layer.name).join(", ") || "none"}. ${scaleBarLabel}; ${northArrowLabel}. Attribution: ${attributionText}.`,
+    ...(input.snapshot?.dataUrl ? { dataUrl: input.snapshot.dataUrl } : {}),
+    ...(input.snapshot?.filename ? { filename: input.snapshot.filename } : {}),
+    ...(input.snapshot?.width ? { width: input.snapshot.width } : {}),
+    ...(input.snapshot?.height ? { height: input.snapshot.height } : {}),
+    visibleLayerNames: reportLayers.map((layer) => layer.name),
+    legendItems,
+    scaleBarLabel,
+    northArrowLabel,
+    attributionText,
+  };
+  const evidenceBlock = buildMapReportEvidenceBlock({
+    draftId: handoffId,
+    title,
+    scope: source.scope,
+    createdAt,
+    layers: reportLayers,
+    viewport: input.viewport,
+    currentMapBounds: input.currentMapBounds,
+    baseLayerName: input.baseLayerName,
+    references,
+    citations,
+    caveats,
+    publicationReadiness,
+    reproducibility,
+    legendItems,
+    snapshot,
+  });
 
   return {
     id: handoffId,
@@ -501,20 +844,7 @@ export function buildMapReportHandoffDraft(input: MapReportHandoffInput): MapRep
     scope: source.scope,
     title,
     createdAt,
-    snapshot: {
-      assetId,
-      title: `${title} map snapshot`,
-      caption: `Static map capture for ${title}. Visible overlays: ${reportLayers.map((layer) => layer.name).join(", ") || "none"}. ${scaleBarLabel}; ${northArrowLabel}. Attribution: ${attributionText}.`,
-      ...(input.snapshot?.dataUrl ? { dataUrl: input.snapshot.dataUrl } : {}),
-      ...(input.snapshot?.filename ? { filename: input.snapshot.filename } : {}),
-      ...(input.snapshot?.width ? { width: input.snapshot.width } : {}),
-      ...(input.snapshot?.height ? { height: input.snapshot.height } : {}),
-      visibleLayerNames: reportLayers.map((layer) => layer.name),
-      legendItems,
-      scaleBarLabel,
-      northArrowLabel,
-      attributionText,
-    },
+    snapshot,
     narrative: buildNarrative({
       title,
       layers: reportLayers,
@@ -528,6 +858,7 @@ export function buildMapReportHandoffDraft(input: MapReportHandoffInput): MapRep
     caveats,
     publicationReadiness,
     reproducibility,
+    evidenceBlock,
     options,
   };
 }
@@ -539,6 +870,8 @@ export function buildPendingReportInsertFromMapHandoff(
   const referenceRows = buildReferenceTableRows(draft.references);
   const mapReviewEventIds = unique(options.mapReviewEventIds ?? []);
   const reviewEventFields = mapReviewEventIds.length > 0 ? { mapReviewEventIds } : {};
+  const evidenceBlock = withMapReviewEventIds(draft.evidenceBlock, mapReviewEventIds);
+  const structuredEvidenceBlockIds = [evidenceBlock.id];
   const reproducibilityItems = [
     ...draft.reproducibility.map((item) => `${item.label}: ${item.value}`),
     ...mapReviewEventIds.map((id) => `Map review event ID: ${id}`),
@@ -552,6 +885,7 @@ export function buildPendingReportInsertFromMapHandoff(
       generated: true,
       badgeLabel: "Map handoff",
       ...reviewEventFields,
+      structuredEvidenceBlockIds,
       summary: draft.narrative.slice(0, 180),
       citationIds: draft.citations.map((citation) => citation.id),
       blocks: [
@@ -577,6 +911,7 @@ export function buildPendingReportInsertFromMapHandoff(
       generated: true,
       badgeLabel: "Reproducibility block",
       ...reviewEventFields,
+      structuredEvidenceBlockIds,
       citationIds: draft.citations.map((citation) => citation.id),
       blocks: [
         {
@@ -585,10 +920,18 @@ export function buildPendingReportInsertFromMapHandoff(
         },
         {
           kind: "table",
+          assetId: `${draft.id}-map-evidence-block`,
+          title: "Structured map evidence block",
+          caption: "Composition, QA, provenance, and snapshot references preserved as structured report metadata without raw spatial or rendered payloads.",
+          columns: ["Field", "Value"],
+          rows: buildEvidenceSummaryRows(evidenceBlock),
+        },
+        {
+          kind: "table",
           assetId: `${draft.id}-structured-references`,
           title: "Structured map references",
           caption: "Layer, feature, analysis, and citation references serialized with the report handoff payload.",
-          columns: ["Type", "ID", "Label", "Source", "CRS", "Timestamp", "Citation"],
+          columns: ["Type", "ID", "Label", "Source", "CRS", "Timestamp", "Citation", "Evidence"],
           rows: referenceRows,
         },
       ],
@@ -603,6 +946,7 @@ export function buildPendingReportInsertFromMapHandoff(
     ...reviewEventFields,
     citations: draft.citations,
     sections,
+    structuredEvidenceBlocks: [evidenceBlock],
   };
 }
 
@@ -624,6 +968,7 @@ export function buildReportDocumentFromMapHandoff(draft: MapReportHandoffDraft):
     sections: insert.sections,
     sectionOrder: insert.sections.map((section) => section.id),
     linkedRunIds: [],
+    ...(insert.structuredEvidenceBlocks ? { structuredEvidenceBlocks: insert.structuredEvidenceBlocks } : {}),
   };
 }
 

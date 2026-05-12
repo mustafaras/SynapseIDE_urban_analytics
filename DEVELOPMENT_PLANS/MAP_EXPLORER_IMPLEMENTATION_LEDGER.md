@@ -21,14 +21,14 @@ Read these before implementing any Map Explorer prompt:
 
 ## Current Status
 
-- Overall status: Map to IDE Code and Manifest Artifact Requests landed. 19 of 30 prompts completed.
-- Current prompt: Prompt 18 - Map to IDE Code and Manifest Artifact Requests completed 2026-05-12.
-- Next recommended prompt: Prompt 19 - IDE to Map File and Layer Artifact Recognition.
+- Overall status: Report Handoff Structured Evidence landed. 21 of 30 prompts completed.
+- Current prompt: Prompt 20 - Report Handoff Structured Evidence completed 2026-05-12.
+- Next recommended prompt: Prompt 21 - Dashboard, Education, and Publication Outputs.
 - Operating pack status: Installed.
 - Next-prompt helper: `scripts/get-next-map-explorer-prompt.ps1`
 - Machine-readable manifest: `DEVELOPMENT_PLANS/MAP_EXPLORER_PROMPT_MANIFEST.json`
-- Last validated repository state: 2026-05-12; Prompt 18 validation passed: `npm run test -- src/services/map/__tests__/MapCodeArtifactRequestService.test.ts src/services/map/__tests__/MapToUrbanContextAdapter.test.ts src/services/map/__tests__/UrbanToMapMethodRequestAdapter.test.ts` passed (11/11), `npm run typecheck` passed, focused `npx eslint --quiet` on touched Prompt 18 files passed, `git diff --check` passed with LF-to-CRLF warnings only, and VS Code Problems reported no errors for touched Prompt 18 files.
-- Last known blocker: None for Prompt 18 scope; repo setup blocker remains for the missing centerpanel no-Tailwind script and repo-wide lint has the unrelated UA unused import noted above.
+- Last validated repository state: 2026-05-12; Prompt 20 validation passed: focused report handoff tests passed (8/8), focused reporting compatibility tests passed (15/15), `npm run typecheck` passed, focused `npx eslint --quiet` on touched Prompt 20 files passed, `git diff --check -- <Prompt 20 files>` passed with LF-to-CRLF warnings only, VS Code Problems reported no errors for touched Prompt 20 files, and the next-prompt helper returned Prompt 21.
+- Last known blocker: None for Prompt 20 scope; repo setup blocker remains for the missing centerpanel no-Tailwind script and repo-wide lint has the unrelated UA unused import noted above.
 
 ## Agent Operating Pack
 
@@ -74,8 +74,8 @@ This table is the human-readable execution state. The helper script reads it whe
 | 16 | Map to Urban Context Adapter | completed | 15 | Completed 2026-05-12. Map-owned lightweight context payload, explicit layer rail Urban action, event/receiver bridge, and focused coverage landed. |
 | 17 | Urban to Map Method Request Adapter | completed | 16 | Completed 2026-05-12. Map-owned incoming Urban method request contract, preview/readiness adapter, CustomEvent subscription, workflow/report preview wiring, review timeline capture, and focused no-heavy-payload coverage landed. |
 | 18 | Map to IDE Code and Manifest Artifact Requests | completed | 17 | Completed 2026-05-12. Map-owned IDE artifact request service, explicit layer/workflow/export IDE actions, SQL bridge language support, Map evidence registration, Synapse bus evidence events, and focused no-heavy-payload coverage landed. |
-| 19 | IDE to Map File and Layer Artifact Recognition | pending | 18 | Requires map-to-IDE request model. |
-| 20 | Report Handoff Structured Evidence | pending | 19 | Requires IDE recognition contracts. |
+| 19 | IDE to Map File and Layer Artifact Recognition | completed | 18 | Completed 2026-05-12. Added Map-owned IDE artifact recognition service, reference-only typed payload/result, supported file classification, readiness labels, evidence candidate registration, Synapse bus receiver, App install wiring, and focused tests. |
+| 20 | Report Handoff Structured Evidence | completed | 19 | Completed 2026-05-12. Added structured Map report evidence blocks, report insert structured metadata preservation, drawer evidence-registration action, report evidence artifact binding metadata, and focused report/reporting tests. |
 | 21 | Dashboard, Education, and Publication Outputs | pending | 20 | Requires report handoff. |
 | 22 | Temporal Playback and Scenario Comparison | pending | 21 | Requires publication output contracts. |
 | 23 | VoxCity 2D/3D Synchronization | pending | 22 | Requires temporal/scenario model. |
@@ -1482,6 +1482,116 @@ attachSpatialStatsRerun(layer, run) preserves provenance.
 - Next recommended prompt: Prompt 19 - IDE to Map File and Layer Artifact Recognition.
 - Ledger updated: yes
 
+### Prompt 19 - IDE to Map File and Layer Artifact Recognition
+
+- Date: 2026-05-12
+- Agent: GitHub Copilot
+- Status: completed
+- Files inspected:
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` Prompt 19, `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md` sections 8.6, 19.1, and 19.2, `DEVELOPMENT_PLANS/TRI_MODAL_WORKBENCH_ALIGNMENT_SPEC.md` section 8.2, `DEVELOPMENT_PLANS/SYNAPSE_IDE_IMPLEMENTATION_LEDGER.md` Prompt 21 note, and this ledger.
+  - `src/services/map/ideMapHandoff.ts`, `src/services/map/__tests__/ideMapHandoff.test.ts`, `src/services/map/mapToIdeHandoff.ts`, `src/types/synapse-bus.ts`, `src/services/synapseBus.ts`, `src/types/synapse-workspace.ts`, `src/services/commandRegistry.ts`, `src/types/state.ts`, `src/services/map/MapDataImporter.ts`, `src/centerpanel/components/map/mapTypes.ts`, `src/centerpanel/components/map/mapEvidenceArtifacts.ts`, `src/stores/useMapExplorerStore.ts`, `src/App.tsx`, and the Urban `ideArtifactRecognition` implementation/tests for alignment only.
+- Files changed:
+  - `src/services/map/IdeToMapArtifactRecognitionService.ts` — new Map-owned incoming IDE artifact recognition service, classifier, readiness assessor, evidence candidate registration, bounded inbox, and Synapse bus receiver.
+  - `src/services/map/__tests__/IdeToMapArtifactRecognitionService.test.ts` — focused tests for supported file recognition, invalid/unsupported truthfulness, evidence candidate registration, no layer materialization, existing-layer readiness, environment-dependent/code references, and event receiver filtering.
+  - `src/App.tsx` — installs the IDE-to-Map receiver at application startup.
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` — updated durable prompt state, registries, validation history, risk notes, and next pointer.
+- Summary:
+  - Prompt 19 now lets Map Explorer consume Synapse IDE `evidence.artifact.register` references from `sourceModule/source = ide` and convert them into map evidence candidates.
+  - The service defines the incoming payload shape requested by the prompt: file path, language, artifact kind, data reference, CRS/schema metadata, related Urban context, source module, related layer/run/artifact IDs, manifest metadata, hashes, sizes, title, and summary.
+  - Supported recognition covers `.map.json`, `.urban-map-manifest.json`, `.geojson`, `.csv`, `.parquet`/`.geoparquet`, `.gpkg`, `.py`, and `.sql`, plus explicit bus hints such as `map-manifest` and `sql-query`.
+  - Readiness is truthfully labeled as `ready`, `needs-review`, `environment-dependent`, `unsupported`, or `blocked`; `canAddLayer` remains false because the receiver does not have a validated File/worker/import handle.
+- Spatial evidence/provenance changes:
+  - Incoming IDE references register `ide-code-reference` Map evidence artifacts with linked file paths, layer IDs, related artifacts, Urban context IDs when supplied, scalar CRS/schema metadata, and provenance notes.
+  - Evidence artifacts store only references and metadata; no GeoJSON, source buffers, coordinates, rendered images, or large tables are copied from IDE events.
+- CRS, geometry, or measurement changes:
+  - CRS/schema fields from IDE metadata are copied as declarative scalar metadata only.
+  - Missing CRS and missing geometry metadata remain warnings; no analytical readiness is claimed from an IDE file extension alone.
+  - No measurement logic changed.
+- Scientific QA changes:
+  - Evidence QA state is derived from readiness: `passed` only for references to an existing Map Explorer layer, `warning` for review/environment-dependent references, and `blocked` for invalid/unsupported references.
+  - GeoPackage is recognized but labeled environment-dependent because direct browser import is not exposed by the current `MapDataImporter` pipeline.
+- Layer registry or persistence changes:
+  - No layer is added or materialized by the receiver.
+  - Existing layer references can be marked readiness `ready` and linked to evidence, but active layer state is not changed by the receiver.
+- Workflow/export/report changes:
+  - None directly. Prompt 20 can consume the new IDE-to-Map evidence candidates when building report handoff evidence.
+- Contract changes:
+  - New Map-owned contract: `MapIdeArtifactRecognitionPayload`, `MapIdeArtifactClassification`, `MapIdeArtifactReadiness`, `MapIdeArtifactRecognitionResult`, and install/inbox APIs in `IdeToMapArtifactRecognitionService`.
+  - Existing typed bus event `evidence.artifact.register` is the incoming bridge; no new loose CustomEvent was added.
+- UX changes:
+  - No new visible chrome or layout change.
+  - Behavior change: IDE-registered map-related file/artifact references can now appear in Map evidence state automatically as candidates, with review/readiness caveats preserved.
+- Validation:
+  - `npm run test -- src/services/map/__tests__/IdeToMapArtifactRecognitionService.test.ts` passed (6/6).
+  - `npm run test -- src/services/map/__tests__/IdeToMapArtifactRecognitionService.test.ts src/services/map/__tests__/ideMapHandoff.test.ts src/services/map/__tests__/mapToIdeHandoff.test.ts` passed (33/33).
+  - `npm run typecheck` passed.
+  - `npx eslint --quiet src/services/map/IdeToMapArtifactRecognitionService.ts src/services/map/__tests__/IdeToMapArtifactRecognitionService.test.ts src/App.tsx` passed with no output.
+  - `git diff --check -- src/App.tsx src/services/map/IdeToMapArtifactRecognitionService.ts src/services/map/__tests__/IdeToMapArtifactRecognitionService.test.ts` passed with no output.
+  - VS Code Problems check reported no errors for touched Prompt 19 files.
+  - `powershell -ExecutionPolicy Bypass -File scripts/get-next-map-explorer-prompt.ps1` passed and returned Prompt 20.
+- Risks:
+  - Prompt 19 deliberately does not load browser-local file paths from IDE events; users still need explicit Map Explorer import/validation for new layers because browser file paths are references, not readable file handles.
+  - Existing legacy `ideMapHandoff.ts` still contains IDE-command materialization behavior from Synapse IDE Prompt 21. Prompt 19 adds the Map-owned reference receiver rather than rewriting that IDE-side command surface.
+- Next recommended prompt: Prompt 20 - Report Handoff Structured Evidence.
+- Ledger updated: yes
+
+### Prompt 20 - Report Handoff Structured Evidence
+
+- Date: 2026-05-12
+- Agent: GitHub Copilot
+- Status: completed
+- Files inspected:
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` Prompt 20, `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md` sections 14.6, 21.1, and 21.4, `DEVELOPMENT_PLANS/TRI_MODAL_WORKBENCH_ALIGNMENT_SPEC.md` section 8.5, and this ledger.
+  - `src/services/map/MapReportHandoffService.ts`, `src/centerpanel/components/map/MapReportHandoffDrawer.tsx`, `src/services/reporting/types.ts`, `src/services/reporting/storage.ts`, `src/services/reporting/ReportEngine.ts`, `src/services/map/MapExportService.ts`, `src/centerpanel/components/map/mapEvidenceArtifacts.ts`, `src/centerpanel/components/map/mapTypes.ts`, `src/centerpanel/components/MapExplorerModal.tsx`, `src/services/map/MapReviewSessionService.ts`, and focused report/reporting tests.
+- Files changed:
+  - `src/services/map/MapReportHandoffService.ts` — added `MapReportEvidenceBlock`, structured composition/QA/provenance/snapshot payloads, evidence IDs in reference tables, structured report insert metadata, and direct report document preservation.
+  - `src/centerpanel/components/map/MapReportHandoffDrawer.tsx` — added explicit `Register evidence` action for saving structured map report evidence without inserting a report section.
+  - `src/centerpanel/components/MapExplorerModal.tsx` — wires drawer evidence registration into Map evidence artifacts and records evidence block IDs/counts on report insertion artifacts.
+  - `src/services/reporting/types.ts`, `src/services/reporting/storage.ts`, and `src/services/reporting/ReportEngine.ts` — added optional generic structured evidence block carriage, merge preservation, and compiled section ID pass-through.
+  - `src/services/map/__tests__/MapReportHandoffService.test.ts` and `src/centerpanel/components/map/__tests__/MapReportHandoffDrawer.test.tsx` — added focused coverage for structured evidence payloads, no embedded rendered payloads, report insert preservation, review event linkage, direct report documents, and drawer action dispatch.
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` — updated durable prompt state, registries, validation history, risk notes, and next pointer.
+- Summary:
+  - Prompt 20 makes every Map report handoff draft carry a structured `MapReportEvidenceBlock` with title, layer stack, visible extent, viewport, legend metadata, scale, attribution, CRS summary, QA, caveats, provenance, citations, existing map evidence IDs, reproducibility references, and export snapshot references.
+  - Pending report inserts now preserve structured evidence blocks and link generated report sections to the evidence block ID while still rendering human-readable figure, narrative, caveats, reproducibility, and reference tables.
+  - The report handoff drawer now exposes an explicit `Register evidence` action that records the structured block as a Map `report-snapshot` evidence artifact without forcing report insertion.
+- Spatial evidence/provenance changes:
+  - Report evidence blocks include only IDs, scalar metadata, layer summaries, legend entries, QA/caveat strings, and snapshot asset references.
+  - No GeoJSON, source data, coordinates beyond viewport/bounds summaries, screenshots, data URLs, or raw rendered payloads are copied into structured evidence blocks or Map evidence artifacts.
+  - Report insertion artifacts now record `reportEvidenceBlockId`, evidence block version, layer count, legend count, citation count, report insert ID, report draft ID, and snapshot asset ID.
+- CRS, geometry, or measurement changes:
+  - CRS is reported as source metadata per layer plus explicit EPSG:4326 display-coordinate summary; the block does not claim projected analytical distance/area readiness.
+  - Missing or assumed CRS metadata remains caveated through publication readiness and structured QA notes.
+  - No measurement computation changed.
+- Scientific QA changes:
+  - Evidence blocks preserve publication readiness ID/status/check time, blocker/warning counts, issue IDs, blockers, warnings, caveats, and QA caveat count.
+  - Registered report evidence artifacts use existing `mapPublicationReadinessToEvidenceQA` mapping, so blocked report evidence remains blocked in Map evidence state.
+- Layer registry or persistence changes:
+  - No layer state is mutated and no heavy layer payload is persisted.
+  - Reporting storage now preserves optional `structuredEvidenceBlocks` when pending inserts merge into report documents.
+- Workflow/export/report changes:
+  - Report inserts now carry `structuredEvidenceBlocks` and `structuredEvidenceBlockIds` while preserving current figure/paragraph/bullet/table output.
+  - Direct map report document generation also preserves structured evidence blocks.
+  - Drawer action registers structured evidence independently from report insertion; Insert to report remains readiness-gated.
+- Contract changes:
+  - New Map-owned contract: `MapReportEvidenceBlock`, `MapReportEvidenceBlockPayload`, and `MapReportLayerEvidenceItem` in `MapReportHandoffService`.
+  - New reporting-compatible generic contract: optional `ReportStructuredEvidenceBlock`, `structuredEvidenceBlocks`, and `structuredEvidenceBlockIds` in reporting types.
+- UX changes:
+  - Report handoff drawer footer now includes `Register evidence` beside Refresh snapshot, Download A0 PDF, and Insert to report.
+  - Existing drawer layout, readiness display, snapshot preview, narrative, citations, caveats, and Insert/PDF gating are preserved.
+- Validation:
+  - `npm run test -- src/services/map/__tests__/MapReportHandoffService.test.ts src/centerpanel/components/map/__tests__/MapReportHandoffDrawer.test.tsx` passed (8/8).
+  - `npm run test -- src/services/reporting/__tests__/ReportEngine.test.ts src/services/reporting/__tests__/ReportBuilderPanel.test.tsx src/services/reporting/__tests__/indicatorInserts.test.ts src/services/map/__tests__/MapReportHandoffService.test.ts src/centerpanel/components/map/__tests__/MapReportHandoffDrawer.test.tsx` passed (15/15).
+  - `npm run typecheck` passed.
+  - `npx eslint --quiet src/services/map/MapReportHandoffService.ts src/centerpanel/components/map/MapReportHandoffDrawer.tsx src/centerpanel/components/MapExplorerModal.tsx src/services/reporting/types.ts src/services/reporting/storage.ts src/services/reporting/ReportEngine.ts src/services/map/__tests__/MapReportHandoffService.test.ts src/centerpanel/components/map/__tests__/MapReportHandoffDrawer.test.tsx` passed with no output.
+  - `git diff --check -- src/services/map/MapReportHandoffService.ts src/centerpanel/components/map/MapReportHandoffDrawer.tsx src/centerpanel/components/MapExplorerModal.tsx src/services/reporting/types.ts src/services/reporting/storage.ts src/services/reporting/ReportEngine.ts src/services/map/__tests__/MapReportHandoffService.test.ts src/centerpanel/components/map/__tests__/MapReportHandoffDrawer.test.tsx` passed with LF-to-CRLF working-copy warnings only.
+  - VS Code Problems check reported no errors for touched Prompt 20 files.
+  - `powershell -ExecutionPolicy Bypass -File scripts/get-next-map-explorer-prompt.ps1` passed and returned Prompt 21.
+- Risks:
+  - Structured evidence block rendering in the report builder is currently represented by generated tables and preserved metadata; richer visual inspection of `structuredEvidenceBlocks` can be improved in Prompt 21 reporting/dashboard outputs.
+  - The new drawer action remains wired in `MapExplorerModal.tsx`; a later decomposition prompt should extract report evidence commands into a smaller hook if the modal continues to grow.
+- Next recommended prompt: Prompt 21 - Dashboard, Education, and Publication Outputs.
+- Ledger updated: yes
+
 Use this format for each entry:
 
 ```md
@@ -1543,6 +1653,8 @@ Append inspected files here as implementation progresses.
 
 | Date | Prompt | Files inspected | Notes |
 | --- | --- | --- | --- |
+| 2026-05-12 | Prompt 20 | `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` Prompt 20; `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md` sections 14.6, 21.1, and 21.4; `DEVELOPMENT_PLANS/TRI_MODAL_WORKBENCH_ALIGNMENT_SPEC.md` section 8.5; `src/services/map/MapReportHandoffService.ts`; `src/centerpanel/components/map/MapReportHandoffDrawer.tsx`; `src/services/reporting/types.ts`; `src/services/reporting/storage.ts`; `src/services/reporting/ReportEngine.ts`; `src/services/map/MapExportService.ts`; `src/centerpanel/components/map/mapEvidenceArtifacts.ts`; `src/centerpanel/components/map/mapTypes.ts`; `src/centerpanel/components/MapExplorerModal.tsx`; `src/services/map/MapReviewSessionService.ts`; focused report/reporting tests | Prompt 20 narrowed to structured map report evidence metadata, report insert compatibility, drawer evidence registration, and evidence artifact binding without redesigning the report builder or moving heavy map/render payloads. |
+| 2026-05-12 | Prompt 19 | `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` Prompt 19; `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md` sections 8.6, 19.1, and 19.2; `DEVELOPMENT_PLANS/TRI_MODAL_WORKBENCH_ALIGNMENT_SPEC.md` section 8.2; `DEVELOPMENT_PLANS/SYNAPSE_IDE_IMPLEMENTATION_LEDGER.md` Prompt 21 note; `src/services/map/ideMapHandoff.ts`; `src/services/map/__tests__/ideMapHandoff.test.ts`; `src/services/map/mapToIdeHandoff.ts`; `src/types/synapse-bus.ts`; `src/services/synapseBus.ts`; `src/types/synapse-workspace.ts`; `src/services/commandRegistry.ts`; `src/types/state.ts`; `src/services/map/MapDataImporter.ts`; `src/centerpanel/components/map/mapTypes.ts`; `src/centerpanel/components/map/mapEvidenceArtifacts.ts`; `src/stores/useMapExplorerStore.ts`; `src/App.tsx`; Urban IDE artifact recognition implementation/tests for alignment only | Prompt 19 narrowed to a Map-owned incoming IDE artifact receiver that consumes existing typed bus evidence events, classifies file/artifact references, registers map evidence candidates, and refuses layer materialization without Map validation. |
 | 2026-05-12 | Prompt 18 | `DEVELOPMENT_PLANS/START_HERE_MAP_EXPLORER_AGENT.md`; `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` Prompt 18; `DEVELOPMENT_PLANS/MAP_EXPLORER_PROMPT_MANIFEST.json`; `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md` sections 8.5 and 19; `DEVELOPMENT_PLANS/SYNAPSE_IDE_DEVELOPMENT_PLAN.md`; `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md`; `src/services/editorBridge.ts`; `src/services/editor/bridge.ts`; `src/services/editor/bridgeAdapter.ts`; `src/services/synapseBus.ts`; `src/types/synapse-bus.ts`; `src/services/map/mapToIdeHandoff.ts`; `src/services/map/__tests__/mapToIdeHandoff.test.ts`; `src/centerpanel/components/map/mapTypes.ts`; `src/centerpanel/components/map/mapEvidenceArtifacts.ts`; `src/stores/useMapExplorerStore.ts`; `src/services/map/MapWorkflowService.ts`; `src/services/map/MapExportService.ts`; `src/centerpanel/components/MapExplorerModal.tsx`; `src/centerpanel/components/map/MapLayerManager.tsx`; `src/centerpanel/components/map/MapWorkflowDrawer.tsx`; `src/centerpanel/components/MapExportDialog.tsx`; `src/features/urbanAnalytics/context/codeArtifactRequests.ts`; focused Urban and Map adapter tests | Prompt 18 narrowed to a Map-owned outgoing IDE artifact request service with explicit UI actions, new generated artifact evidence, and reference-only bridge/bus payloads. |
 | 2026-05-12 | Prompt 17 | `DEVELOPMENT_PLANS/START_HERE_MAP_EXPLORER_AGENT.md`; `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` Prompt 17; `DEVELOPMENT_PLANS/MAP_EXPLORER_PROMPT_MANIFEST.json`; `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md` sections 8.4, 20.2, and 20.4; `DEVELOPMENT_PLANS/URBAN_ANALYTICS_DEVELOPMENT_PLAN.md`; `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md`; `src/features/urbanAnalytics/store.ts`; `src/features/urbanAnalytics/useUrbanContextStore.ts`; `src/stores/useMapExplorerStore.ts`; `src/centerpanel/components/MapExplorerModal.tsx`; `src/centerpanel/components/map/useMapAoiDispatch.ts`; `src/centerpanel/components/map/useMapPanelCommands.ts`; `src/services/map/MapWorkflowService.ts`; `src/centerpanel/components/map/MapWorkflowDrawer.tsx`; `src/services/map/MapAnalysisRecommender.ts`; `src/services/map/MapReportHandoffService.ts`; `src/services/map/MapReviewSessionService.ts`; focused Map/Urban adapter tests | Prompt 17 narrowed to a Map-owned incoming Urban method request adapter with preview/readiness behavior only; no Urban internals changed and no map mutation occurs before explicit user action. |
 | 2026-05-12 | Prompt 16 | `DEVELOPMENT_PLANS/START_HERE_MAP_EXPLORER_AGENT.md`; `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` Prompt 16; `DEVELOPMENT_PLANS/MAP_EXPLORER_PROMPT_MANIFEST.json`; `DEVELOPMENT_PLANS/TRI_MODAL_WORKBENCH_ALIGNMENT_SPEC.md`; `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md`; `src/centerpanel/components/map/mapContextSummary.ts`; `src/centerpanel/components/map/mapEvidenceArtifacts.ts`; `src/centerpanel/components/map/mapTypes.ts`; `src/features/urbanAnalytics/context/mapContextAdapter.ts`; `src/features/urbanAnalytics/lib/types.ts`; `src/features/urbanAnalytics/store.ts`; `src/features/urbanAnalytics/useUrbanContextStore.ts`; `src/services/map/MapAnalysisDispatcher.ts`; `src/services/map/MapSyncService.ts`; `src/stores/useMapExplorerStore.ts`; `src/centerpanel/components/MapExplorerModal.tsx`; `src/centerpanel/components/map/MapLayerManager.tsx`; focused Map/Urban adapter tests | Prompt 16 narrowed to a Map-owned outbound Urban context payload and explicit layer rail action wired to the existing Urban receiver; payloads carry references/summaries only and do not move raw spatial data. |
@@ -1571,6 +1683,8 @@ Append changed files here as implementation progresses.
 
 | Date | Prompt | Files changed | Reason |
 | --- | --- | --- | --- |
+| 2026-05-12 | Prompt 20 | `src/services/map/MapReportHandoffService.ts`, `src/centerpanel/components/map/MapReportHandoffDrawer.tsx`, `src/centerpanel/components/MapExplorerModal.tsx`, `src/services/reporting/types.ts`, `src/services/reporting/storage.ts`, `src/services/reporting/ReportEngine.ts`, `src/services/map/__tests__/MapReportHandoffService.test.ts`, `src/centerpanel/components/map/__tests__/MapReportHandoffDrawer.test.tsx`, `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` | Added structured Map report evidence blocks, optional reporting structured evidence preservation, drawer evidence-registration action, Map evidence artifact binding metadata, and focused report/reporting coverage. |
+| 2026-05-12 | Prompt 19 | `src/services/map/IdeToMapArtifactRecognitionService.ts`, `src/services/map/__tests__/IdeToMapArtifactRecognitionService.test.ts`, `src/App.tsx`, `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` | Added Map-owned IDE artifact recognition payload/result/readiness contract, supported extension classification, evidence candidate registration, typed bus receiver, App install wiring, and focused validation for no layer materialization without validation. |
 | 2026-05-12 | Prompt 18 | `src/services/map/MapCodeArtifactRequestService.ts`, `src/services/map/__tests__/MapCodeArtifactRequestService.test.ts`, `src/services/editorBridge.ts`, `src/centerpanel/components/MapExplorerModal.tsx`, `src/centerpanel/components/map/MapWorkflowDrawer.tsx`, `src/centerpanel/components/MapExportDialog.tsx`, `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` | Added Map-owned IDE artifact request generation/dispatch, SQL language support, explicit layer/workflow/export IDE actions, Map `ide-code-reference` evidence registration, lightweight Synapse bus artifact events, and focused no-heavy-payload coverage. |
 | 2026-05-12 | Prompt 17 | `src/services/map/UrbanToMapMethodRequestAdapter.ts`, `src/services/map/__tests__/UrbanToMapMethodRequestAdapter.test.ts`, `src/centerpanel/components/MapExplorerModal.tsx`, `src/centerpanel/components/map/MapWorkflowDrawer.tsx`, `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` | Added Map-owned Urban method request contract, preview/readiness builder, event subscribe/publish helpers, workflow/report preview-only modal wiring, drawer initial draft support, review timeline capture, and focused no-heavy-payload coverage. |
 | 2026-05-12 | Prompt 16 | `src/services/map/MapToUrbanContextAdapter.ts`, `src/services/map/__tests__/MapToUrbanContextAdapter.test.ts`, `src/centerpanel/components/MapExplorerModal.tsx`, `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` | Added Map-owned Urban context payload/readiness/event/receiver adapter, focused no-heavy-payload coverage, explicit layer rail Urban handoff wiring, feedback/review events, and durable ledger updates. |
@@ -1598,6 +1712,12 @@ Record every contract that connects Map Explorer with Synapse IDE, Urban Analyti
 
 | Date | Prompt | Contract | Direction | Status | Notes |
 | --- | --- | --- | --- | --- | --- |
+| 2026-05-12 | Prompt 20 | `MapReportEvidenceBlock` + `MapReportEvidenceBlockPayload` | Map Explorer report handoff → reporting / Map evidence registry | Implemented Additive Contract | Drafts now carry structured composition, viewport/bounds, layer stack, legend metadata, scale/north/attribution, CRS summary, QA, caveats, provenance, citations, evidence IDs, reproducibility references, and snapshot asset references. No rendered image data or raw spatial payloads are embedded. |
+| 2026-05-12 | Prompt 20 | `ReportStructuredEvidenceBlock` + `structuredEvidenceBlocks` / `structuredEvidenceBlockIds` | Map report inserts → reporting service | Implemented Additive Contract | Reporting types/storage/engine preserve optional structured evidence metadata while existing report section blocks remain compatible. |
+| 2026-05-12 | Prompt 20 | Report handoff drawer `onRegisterEvidence` action | Map report drawer → Map evidence registry | Implemented Additive UI Contract | Drawer can explicitly register a structured map evidence artifact without inserting report sections; Insert to report remains readiness-gated. |
+| 2026-05-12 | Prompt 19 | `MapIdeArtifactRecognitionPayload` + `MapIdeArtifactRecognitionResult` | Synapse IDE → Map Explorer | Implemented Additive Contract | `src/services/map/IdeToMapArtifactRecognitionService.ts` defines incoming IDE file/artifact references with file path, language, artifact kind, data reference, CRS/schema metadata, related Urban context, source module, and related IDs. Results carry recognition status, artifact kind, language, readiness, evidence ID, warnings, and reason. |
+| 2026-05-12 | Prompt 19 | `installIdeToMapArtifactReceiver` on `evidence.artifact.register` | Synapse IDE typed bus → Map evidence registry | Implemented Existing Contract Use | The Map-owned receiver accepts only IDE-originated evidence events, maps them into Prompt 19 recognition payloads, keeps a bounded inbox, and registers map evidence candidates without reading IDE buffers or adding layers. |
+| 2026-05-12 | Prompt 19 | IDE reference readiness model | IDE artifact reference → Map layer/evidence safety gate | Implemented Additive Contract | Readiness is labeled `ready`, `needs-review`, `environment-dependent`, `unsupported`, or `blocked`; `canAddLayer` remains false unless a future explicit importer supplies a validated file/worker handle. Existing Map layer references can be linked as ready evidence without materializing duplicates. |
 | 2026-05-12 | Prompt 18 | `MapCodeArtifactRequest` + request builders | Map Explorer → Synapse IDE | Implemented Additive Contract | `src/services/map/MapCodeArtifactRequestService.ts` builds workflow scripts, workflow notebooks, map manifests, SQL query scaffolds, and export package notes with artifact IDs, target file suggestions, layer/AOI/workflow references, CRS summaries, QA caveats, and no raw spatial payloads. |
 | 2026-05-12 | Prompt 18 | `dispatchMapCodeArtifactRequest` | Map Explorer → IDE bridge / Synapse bus | Implemented Additive Contract | Routes generated content to `editorBridge.openNewTab`, enforces a 32 KB size cap, returns dispatch status, and emits lightweight `evidence.artifact.register` events without content. |
 | 2026-05-12 | Prompt 18 | Map evidence kind `ide-code-reference` registration | Map Explorer generated artifact → Map evidence registry | Implemented Existing Contract Use | Generated IDE requests upsert Map evidence artifacts with linked layer/file/AOI/workflow IDs, QA issue IDs, provenance notes, CRS summaries, and scalar metadata. |
@@ -1655,6 +1775,11 @@ Record decisions that future agents must not re-litigate unless the repository p
 
 | Date | Prompt | Decision | Rationale | Status |
 | --- | --- | --- | --- | --- |
+| 2026-05-12 | Prompt 20 | Structured report evidence blocks preserve map composition metadata and references, but not rendered image data or raw spatial data. | Report/dashboard consumers need auditable evidence context without duplicating map canvas captures, GeoJSON, source buffers, or large tables. | Accepted |
+| 2026-05-12 | Prompt 20 | Report insertion remains gated by publication readiness; registering evidence is allowed as an explicit Map evidence action with QA state preserved. | Evidence registration can document blocked/caveated context, while formal report insertion should not proceed through blockers. | Accepted |
+| 2026-05-12 | Prompt 19 | IDE-originated file paths are evidence references until Map Explorer obtains and validates an importable File/worker/layer handle. | Browser-local paths in IDE events are not readable data handles; treating them as map-ready layers would overstate readiness and violate prompt safety. | Accepted |
+| 2026-05-12 | Prompt 19 | GeoPackage references are recognized but environment-dependent rather than directly import-ready. | `MapDataImporter` does not expose direct `.gpkg` import in the current live repository; truthful recognition is safer than pretending support exists. | Accepted |
+| 2026-05-12 | Prompt 19 | Code artifacts (`.py`, `.sql`) register as map evidence/reproducibility references, not layers. | Scripts and queries can describe how data was produced, but they do not provide validated geometry/CRS/schema output by themselves. | Accepted |
 | Pending | Pending | Map Explorer owns viewport, layers, AOI, selections, drawing, measurement, spatial QA, map review state, and map-derived evidence. | Required by tri-modal source-of-truth matrix. | Proposed |
 | Pending | Pending | Urban Analytics owns method interpretation and method-specific data fitness; Map Explorer provides spatial QA summaries. | Prevents hidden scientific coupling. | Proposed |
 | Pending | Pending | Synapse IDE owns code and file state; Map Explorer stores code/file references only. | Prevents Map Explorer from becoming an editor. | Proposed |
@@ -1791,6 +1916,20 @@ Append validation runs here.
 | 2026-05-12 | Prompt 18 | `npx eslint --quiet src/services/map/MapCodeArtifactRequestService.ts src/services/map/__tests__/MapCodeArtifactRequestService.test.ts src/services/editorBridge.ts src/centerpanel/components/MapExplorerModal.tsx src/centerpanel/components/map/MapWorkflowDrawer.tsx src/centerpanel/components/MapExportDialog.tsx` | Passed | Focused error-only lint on touched Prompt 18 files produced no output. |
 | 2026-05-12 | Prompt 18 | `git diff --check` | Passed | No whitespace errors; Git reported LF-to-CRLF working-copy warnings for touched Windows files only. |
 | 2026-05-12 | Prompt 18 | VS Code Problems check for touched Prompt 18 files | Passed | `get_errors` reported no errors in `MapCodeArtifactRequestService.ts`, its focused test, `editorBridge.ts`, `MapExplorerModal.tsx`, `MapWorkflowDrawer.tsx`, and `MapExportDialog.tsx`. |
+| 2026-05-12 | Prompt 19 | `npm run test -- src/services/map/__tests__/IdeToMapArtifactRecognitionService.test.ts` | Passed (6/6) | Covers supported file classification, invalid/unsupported truthfulness, GeoJSON evidence candidate registration, no layer materialization, existing layer readiness, environment-dependent/code references, and IDE bus receiver filtering. |
+| 2026-05-12 | Prompt 19 | `npm run test -- src/services/map/__tests__/IdeToMapArtifactRecognitionService.test.ts src/services/map/__tests__/ideMapHandoff.test.ts src/services/map/__tests__/mapToIdeHandoff.test.ts` | Passed (33/33) | Verifies the new incoming IDE artifact receiver alongside existing IDE→Map command and Map→IDE receiver suites. |
+| 2026-05-12 | Prompt 19 | `npm run typecheck` | Passed | Full TypeScript project typechecks after the Map-owned IDE artifact recognition service, App install wiring, and focused tests. |
+| 2026-05-12 | Prompt 19 | `npx eslint --quiet src/services/map/IdeToMapArtifactRecognitionService.ts src/services/map/__tests__/IdeToMapArtifactRecognitionService.test.ts src/App.tsx` | Passed | Focused error-only lint on touched Prompt 19 files produced no output. |
+| 2026-05-12 | Prompt 19 | `git diff --check -- src/App.tsx src/services/map/IdeToMapArtifactRecognitionService.ts src/services/map/__tests__/IdeToMapArtifactRecognitionService.test.ts` | Passed | No whitespace errors in touched Prompt 19 files. |
+| 2026-05-12 | Prompt 19 | VS Code Problems check for touched Prompt 19 files | Passed | `get_errors` reported no errors in `IdeToMapArtifactRecognitionService.ts`, its focused test, and `App.tsx`. |
+| 2026-05-12 | Prompt 19 | `powershell -ExecutionPolicy Bypass -File scripts/get-next-map-explorer-prompt.ps1` | Passed | Helper returned `Prompt 20 - Report Handoff Structured Evidence`. |
+| 2026-05-12 | Prompt 20 | `npm run test -- src/services/map/__tests__/MapReportHandoffService.test.ts src/centerpanel/components/map/__tests__/MapReportHandoffDrawer.test.tsx` | Passed (8/8) | Covers structured evidence block payloads, no embedded image payloads in structured metadata, pending insert preservation, review event linkage, direct report documents, and drawer evidence action dispatch. |
+| 2026-05-12 | Prompt 20 | `npm run test -- src/services/reporting/__tests__/ReportEngine.test.ts src/services/reporting/__tests__/ReportBuilderPanel.test.tsx src/services/reporting/__tests__/indicatorInserts.test.ts src/services/map/__tests__/MapReportHandoffService.test.ts src/centerpanel/components/map/__tests__/MapReportHandoffDrawer.test.tsx` | Passed (15/15) | Verifies reporting compatibility after adding optional structured evidence metadata. |
+| 2026-05-12 | Prompt 20 | `npm run typecheck` | Passed | Full TypeScript project typechecks after structured report evidence contracts, drawer action, modal wiring, and reporting type/storage updates. |
+| 2026-05-12 | Prompt 20 | `npx eslint --quiet src/services/map/MapReportHandoffService.ts src/centerpanel/components/map/MapReportHandoffDrawer.tsx src/centerpanel/components/MapExplorerModal.tsx src/services/reporting/types.ts src/services/reporting/storage.ts src/services/reporting/ReportEngine.ts src/services/map/__tests__/MapReportHandoffService.test.ts src/centerpanel/components/map/__tests__/MapReportHandoffDrawer.test.tsx` | Passed | Focused error-only lint on touched Prompt 20 files produced no output. |
+| 2026-05-12 | Prompt 20 | `git diff --check -- src/services/map/MapReportHandoffService.ts src/centerpanel/components/map/MapReportHandoffDrawer.tsx src/centerpanel/components/MapExplorerModal.tsx src/services/reporting/types.ts src/services/reporting/storage.ts src/services/reporting/ReportEngine.ts src/services/map/__tests__/MapReportHandoffService.test.ts src/centerpanel/components/map/__tests__/MapReportHandoffDrawer.test.tsx` | Passed | No whitespace errors; Git reported LF-to-CRLF working-copy warnings for reporting files only. |
+| 2026-05-12 | Prompt 20 | VS Code Problems check for touched Prompt 20 files | Passed | `get_errors` reported no errors in touched Prompt 20 service, modal, drawer, reporting, and test files. |
+| 2026-05-12 | Prompt 20 | `powershell -ExecutionPolicy Bypass -File scripts/get-next-map-explorer-prompt.ps1` | Passed | Helper returned `Prompt 21 - Dashboard, Education, and Publication Outputs`. |
 
 ## Known Risks
 
@@ -1821,6 +1960,10 @@ Append validation runs here.
 | 2026-05-12 | Prompt 17 | Incoming request preview orchestration lives in `MapExplorerModal.tsx`. | Low | Keep current behavior minimal and audited; extract into a dedicated command hook when a decomposition prompt authorizes it. |
 | 2026-05-12 | Prompt 18 | Generated contentful IDE tabs use `editorBridge.openNewTab` because typed bus `ide.file.open` is path-only. | Low | Keep the bridge use explicit and audited; future IDE prompts may add a contentful generated-tab bus event if needed. |
 | 2026-05-12 | Prompt 18 | Prompt 18 UI orchestration lives in `MapExplorerModal.tsx`. | Low | Current scope keeps behavior minimal; future decomposition prompts should extract Map IDE artifact commands into a dedicated hook/service facade. |
+| 2026-05-12 | Prompt 19 | The Prompt 19 receiver does not import local IDE file paths directly. | Low | This is intentional browser safety: layer creation still requires explicit Map Explorer import/validation or an existing Map layer/worker reference. |
+| 2026-05-12 | Prompt 19 | Legacy `ideMapHandoff.ts` still contains IDE-command materialization behavior from Synapse IDE Prompt 21. | Low | Prompt 19 added a Map-owned reference receiver without rewriting that IDE command surface; revisit only when a cross-module consolidation prompt authorizes it. |
+| 2026-05-12 | Prompt 20 | Structured evidence blocks are preserved as metadata and generated tables; the report builder does not yet expose a dedicated structured evidence inspector. | Low | Prompt 21 can enrich dashboard/report publication outputs using the preserved `structuredEvidenceBlocks` contract. |
+| 2026-05-12 | Prompt 20 | Report evidence registration action is still orchestrated inside `MapExplorerModal.tsx`. | Low | Keep scope minimal now; extract report commands into a focused hook when a future decomposition prompt authorizes it. |
 
 ## Next Prompt Pointer
 
@@ -1830,7 +1973,7 @@ Start with:
 
 Prompt:
 
-`Prompt 19 - IDE to Map File and Layer Artifact Recognition`
+`Prompt 21 - Dashboard, Education, and Publication Outputs`
 
 Optional helper command:
 

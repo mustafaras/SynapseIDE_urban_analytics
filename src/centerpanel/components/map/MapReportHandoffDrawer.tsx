@@ -25,6 +25,7 @@ interface MapReportHandoffDrawerProps {
   onWidthChange?: (width: number) => void;
   onOptionsChange: (options: MapReportHandoffOptions) => void;
   onRefreshSnapshot: () => void;
+  onRegisterEvidence: () => void;
   onDownloadPdf: () => void;
   onInsert: () => void;
   onClose: () => void;
@@ -364,6 +365,7 @@ export const MapReportHandoffDrawer: React.FC<MapReportHandoffDrawerProps> = ({
   onWidthChange,
   onOptionsChange,
   onRefreshSnapshot,
+  onRegisterEvidence,
   onDownloadPdf,
   onInsert,
   onClose,
@@ -578,6 +580,15 @@ export const MapReportHandoffDrawer: React.FC<MapReportHandoffDrawerProps> = ({
           {isGeneratingSnapshot ? "Rendering..." : "Refresh snapshot"}
         </button>
         <div style={footerActionStyle}>
+          <button
+            type="button"
+            style={secondaryButtonStyle}
+            onClick={onRegisterEvidence}
+            disabled={isGeneratingSnapshot}
+            title="Register the structured map evidence block with QA, provenance, caveats, and snapshot references."
+          >
+            Register evidence
+          </button>
           <button
             type="button"
             style={{ ...secondaryButtonStyle, ...(isPublicationBlocked ? disabledActionStyle : {}) }}

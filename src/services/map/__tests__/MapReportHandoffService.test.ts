@@ -40,6 +40,7 @@ function layer(overrides: Partial<OverlayLayerConfig> = {}): OverlayLayerConfig 
       ],
     },
     metadata: {
+      evidenceArtifactId: "map-evidence-layer-district-risk",
       geometryType: "Polygon",
       featureCount: 39,
       dataVersion: "2025-Q1",
@@ -128,6 +129,22 @@ describe("MapReportHandoffService", () => {
       }),
     ]));
     expect(draft.reproducibility.map((item) => item.label)).toEqual(expect.arrayContaining(["Viewport bounds", "Methods", "Data lineage", "Publication readiness"]));
+    expect(draft.evidenceBlock.payload.composition).toEqual(expect.objectContaining({
+      title: "Current map evidence",
+      baseLayerName: "Charcoal street atlas",
+      visibleExtent: [28.9, 40.9, 29.2, 41.2],
+      scaleBarLabel: "1 km",
+      attributionText: "Sources: IMM open data",
+    }));
+    expect(draft.evidenceBlock.payload.composition.layerStack[0]).toEqual(expect.objectContaining({
+      layerId: "district-risk",
+      evidenceArtifactId: "map-evidence-layer-district-risk",
+      citationId: "map-layer-district-risk",
+      crs: "EPSG:4326",
+    }));
+    expect(draft.evidenceBlock.payload.qa.caveats.length).toBeGreaterThan(0);
+    expect(draft.evidenceBlock.payload.provenance.evidenceArtifactIds).toEqual(["map-evidence-layer-district-risk"]);
+    expect(JSON.stringify(draft.evidenceBlock)).not.toContain("data:image/png");
   });
 
   it("builds a report insertion payload with screenshot figure and structured reference table", () => {
@@ -143,7 +160,7 @@ describe("MapReportHandoffService", () => {
     });
     const insert = buildPendingReportInsertFromMapHandoff(draft);
     const figure = insert.sections[0].blocks.find((block) => block.kind === "figure");
-    const referenceTable = insert.sections[1].blocks.find((block) => block.kind === "table");
+    const referenceTable = insert.sections[1].blocks.find((block) => block.kind === "table" && block.assetId.endsWith("-structured-references"));
 
     expect(insert.source).toBe("map-report-handoff:map-view");
     expect(insert.citations).toHaveLength(1);
@@ -154,9 +171,24 @@ describe("MapReportHandoffService", () => {
       height: 260,
     }));
     expect(referenceTable).toEqual(expect.objectContaining({
-      columns: ["Type", "ID", "Label", "Source", "CRS", "Timestamp", "Citation"],
+      columns: ["Type", "ID", "Label", "Source", "CRS", "Timestamp", "Citation", "Evidence"],
       rows: expect.arrayContaining([expect.objectContaining({ ID: "district-risk" })]),
     }));
+    expect(insert.structuredEvidenceBlocks?.[0]).toEqual(expect.objectContaining({
+      sourceModule: "map",
+      kind: "map-report-evidence",
+      artifactIds: ["map-evidence-layer-district-risk"],
+    }));
+    const evidenceBlockId = insert.structuredEvidenceBlocks?.[0]?.id;
+    expect(evidenceBlockId).toBe(draft.evidenceBlock.id);
+    expect(insert.sections.every((section) => section.structuredEvidenceBlockIds?.includes(evidenceBlockId ?? ""))).toBe(true);
+    expect(insert.sections[1].blocks).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        kind: "table",
+        assetId: `${draft.id}-map-evidence-block`,
+        columns: ["Field", "Value"],
+      }),
+    ]));
     expect(insert.sections[1].blocks).toEqual(expect.arrayContaining([
       expect.objectContaining({
         kind: "bullet_list",
@@ -198,6 +230,7 @@ describe("MapReportHandoffService", () => {
     });
 
     expect(insert.mapReviewEventIds).toEqual(["map-review:2025-01-06:report-handoff"]);
+    expect(insert.structuredEvidenceBlocks?.[0]?.payload.provenance.mapReviewEventIds).toEqual(["map-review:2025-01-06:report-handoff"]);
     expect(insert.sections.every((section) => section.mapReviewEventIds?.includes("map-review:2025-01-06:report-handoff"))).toBe(true);
     expect(insert.sections[1].blocks).toEqual(expect.arrayContaining([
       expect.objectContaining({
@@ -229,6 +262,7 @@ describe("MapReportHandoffService", () => {
     expect(document.sections[0].title).toContain("Map Finding");
     expect(document.sections[1].title).toContain("Reproducibility");
     expect(document.sections[1].blocks.some((block) => block.kind === "table")).toBe(true);
+    expect(document.structuredEvidenceBlocks?.[0]?.id).toBe(draft.evidenceBlock.id);
   });
 
   it("keeps selected feature and layer scope explicit in references", () => {

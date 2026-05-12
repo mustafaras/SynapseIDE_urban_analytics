@@ -325,6 +325,7 @@ export function compileReport(document: ReportDocument): CompiledReport {
     blocks: section.blocks.map((block) => compileBlock(block, section, figureLookup, tableLookup, citationLookup, document.citationStyle)),
     ...(section.badgeLabel !== undefined ? { badgeLabel: section.badgeLabel } : {}),
     ...(section.mapReviewEventIds !== undefined ? { mapReviewEventIds: section.mapReviewEventIds } : {}),
+    ...(section.structuredEvidenceBlockIds !== undefined ? { structuredEvidenceBlockIds: section.structuredEvidenceBlockIds } : {}),
   }));
 
   const referencedCitationIds = collectReferencedCitationIds({ sections: orderedSections });
