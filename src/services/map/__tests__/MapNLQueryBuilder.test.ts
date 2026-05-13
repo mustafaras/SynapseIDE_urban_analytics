@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { FeatureCollection } from "geojson";
 import type { OverlayLayerConfig } from "@/centerpanel/components/map/mapTypes";
 import {
+  buildMapNLQueryAuditDetails,
   buildMapNLQueryContext,
   executeMapNLQueryPreview,
   generateMapNLQueryPreview,
@@ -126,6 +127,17 @@ describe("MapNLQueryBuilder", () => {
     expect(preview.sql).toContain("transit_stops");
     expect(preview.sourceLayers.map((entry) => entry.name)).toEqual(["Parcels", "Transit Stops"]);
     expect(preview.copyText).toContain("Scope: Visible layers");
+    expect(preview.requiresExplicitApply).toBe(true);
+    expect(preview.intentPreview).toMatchObject({
+      intent: "proximity",
+      intentLabel: "Proximity",
+      sourceLayerSelection: "matched-request",
+    });
+    expect(preview.affectedLayers.map((entry) => entry.id)).toEqual(["parcels", "transit"]);
+    expect(preview.requiredFields.map((entry) => `${entry.layerId}:${entry.role}:${entry.fieldName}`)).toEqual([
+      "parcels:join:geometry",
+      "transit:join:geometry",
+    ]);
   });
 
   it("adds selected AOI or current extent as an explicit spatial scope predicate", () => {
@@ -141,6 +153,57 @@ describe("MapNLQueryBuilder", () => {
     expect(preview.scopeLabel).toBe("Current map extent");
     expect(preview.sql).toContain("ST_GeomFromGeoJSON");
     expect(preview.sql).toContain("ST_Intersects");
+    expect(preview.requiredFields.some((entry) => entry.layerId === "parcels" && entry.role === "filter" && entry.fieldName === "value")).toBe(true);
+  });
+
+  it("surfaces ambiguity when source layers are selected by fallback rather than semantic certainty", () => {
+    const context = buildMapNLQueryContext([
+      layer("parcels", "Parcels", parcels),
+      layer("transit", "Transit Stops", transitStops),
+    ]);
+
+    const preview = generateMapNLQueryPreview("Show features within 500 meters.", context);
+
+    expect(preview.intentPreview.sourceLayerSelection).toBe("map-order-fallback");
+    expect(preview.intentPreview.ambiguityState).toBe("ambiguous");
+    expect(preview.warnings.join(" ")).toContain("map order");
+  });
+
+  it("does not silently invent missing threshold fields", () => {
+    const context = buildMapNLQueryContext([
+      layer("transit", "Transit Stops", transitStops),
+    ]);
+
+    const preview = generateMapNLQueryPreview("Filter transit stops above 80% confidence.", context);
+
+    expect(preview.requiredFields).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        layerId: "transit",
+        fieldName: "numeric attribute for threshold",
+        role: "filter",
+        available: false,
+      }),
+    ]));
+    expect(preview.warnings.join(" ")).toContain("no matching numeric field");
+    expect(preview.intentPreview.ambiguityState).toBe("needs-review");
+  });
+
+  it("keeps blocked previews auditable without allowing execution", () => {
+    const context = buildMapNLQueryContext([
+      layer("parcels", "Parcels", parcels),
+    ]);
+
+    const preview = generateMapNLQueryPreview("Delete all parcels.", context);
+    const audit = buildMapNLQueryAuditDetails(preview, { decision: "rejected" });
+
+    expect(preview.canRun).toBe(false);
+    expect(preview.blockers.length).toBeGreaterThan(0);
+    expect(audit).toMatchObject({
+      request: "Delete all parcels.",
+      decision: "rejected",
+      requiresExplicitApply: true,
+    });
+    expect(audit.affectedLayers).toEqual(expect.any(Array));
   });
 
   it("creates an amber QueryToSQL result layer with execution metadata", async () => {

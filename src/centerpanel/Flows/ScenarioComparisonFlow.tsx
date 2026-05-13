@@ -35,6 +35,8 @@ import { buildScenarioComparisonNarrativeInput } from "./narrativeBuilders";
 import {
   buildScenarioChartDataExport,
   buildScenarioComparisonCompletedRun,
+  buildScenarioComparisonMapEvidenceArtifact,
+  buildMapScenarioComparisonEvidenceMetadata,
   buildScenarioDeltaCsv,
   buildScenarioDeltaLayer,
   slugifyScenarioComparisonOutput,
@@ -70,6 +72,7 @@ const ScenarioComparisonFlow: React.FC = () => {
   } = useFlowStore();
   const addOverlayLayer = useMapExplorerStore((state) => state.addOverlayLayer);
   const openMap = useMapExplorerStore((state) => state.open);
+  const upsertMapEvidenceArtifact = useMapExplorerStore((state) => state.upsertMapEvidenceArtifact);
 
   const [form, setForm] = useState<ScenarioComparisonForm>(() =>
     restoreFormState(stepData, SCENARIO_COMPARISON_FORM_KEY, DEFAULT_SCENARIO_COMPARISON_FORM),
@@ -269,9 +272,37 @@ const ScenarioComparisonFlow: React.FC = () => {
       return;
     }
 
-    addOverlayLayer(buildScenarioDeltaLayer(result, activeScenario.scenarioId, activeMetric.id, form.deltaMode));
+    const createdAt = new Date().toISOString();
+    const layerId = `scenario-delta-${activeScenario.scenarioId}-${activeMetric.id}-${form.deltaMode}`;
+    const comparisonId = `scenario-comparison-live-${activeScenario.scenarioId}-${activeMetric.id}-${form.deltaMode}`;
+    const scenarioEvidence = buildMapScenarioComparisonEvidenceMetadata(form, result, {
+      comparisonId,
+      createdAt,
+      activeScenarioId: activeScenario.scenarioId,
+      activeMetricId: activeMetric.id,
+      deltaMode: form.deltaMode,
+      mapOutputIds: [layerId],
+      outputLayerIds: [layerId],
+    });
+    const evidenceArtifact = buildScenarioComparisonMapEvidenceArtifact(form, result, {
+      comparisonId,
+      createdAt,
+      activeScenarioId: activeScenario.scenarioId,
+      activeMetricId: activeMetric.id,
+      deltaMode: form.deltaMode,
+      mapOutputIds: [layerId],
+      outputLayerIds: [layerId],
+      derivedLayerId: layerId,
+    });
+    addOverlayLayer(buildScenarioDeltaLayer(result, activeScenario.scenarioId, activeMetric.id, form.deltaMode, {
+      layerId,
+      updatedAt: createdAt,
+      evidenceArtifactId: evidenceArtifact.id,
+      scenarioComparison: scenarioEvidence,
+    }));
+    upsertMapEvidenceArtifact(evidenceArtifact);
     openMap();
-  }, [addOverlayLayer, form.activeMetricId, form.activeScenarioId, form.deltaMode, openMap, result]);
+  }, [addOverlayLayer, form, openMap, result, upsertMapEvidenceArtifact]);
 
   const handleExportSummary = useCallback(() => {
     if (!result) {
@@ -332,9 +363,28 @@ const ScenarioComparisonFlow: React.FC = () => {
       return;
     }
 
-    upsertCompletedRun(buildScenarioComparisonCompletedRun(form, result));
-    setPublishMessage("Published scenario comparison to completed runs.");
-  }, [form, result, upsertCompletedRun]);
+    const completedRun = buildScenarioComparisonCompletedRun(form, result);
+    upsertCompletedRun(completedRun);
+    const mapOutputIds = completedRun.mapOutputs.map((output) => output.id);
+    const chartOutputIds = completedRun.chartOutputs.map((output) => output.id);
+    const dataOutputIds = completedRun.dataOutputs.map((output) => output.id);
+    const outputLayerIds = completedRun.mapOutputs.length > 0 ? [`${completedRun.runId}-delta-layer`] : [];
+    const evidenceArtifact = buildScenarioComparisonMapEvidenceArtifact(form, result, {
+      runId: completedRun.runId,
+      comparisonId: `${completedRun.runId}-comparison`,
+      createdAt: completedRun.insertedAt,
+      activeScenarioId: form.activeScenarioId,
+      activeMetricId: form.activeMetricId,
+      deltaMode: form.deltaMode,
+      mapOutputIds,
+      chartOutputIds,
+      dataOutputIds,
+      outputLayerIds,
+      derivedLayerId: outputLayerIds[0],
+    });
+    upsertMapEvidenceArtifact(evidenceArtifact);
+    setPublishMessage(`Published scenario comparison to completed runs. Evidence ${evidenceArtifact.id} is ready for report and dashboard handoff.`);
+  }, [form, result, upsertCompletedRun, upsertMapEvidenceArtifact]);
 
   const openDashboardModule = useCallback(() => {
     window.dispatchEvent(new CustomEvent("synapse:workflow-workspace", {

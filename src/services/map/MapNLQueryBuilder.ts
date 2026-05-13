@@ -1,18 +1,78 @@
 import type { Feature, FeatureCollection, Geometry } from "geojson";
 import type {
+  LayerPublicationReadinessStatus,
+  LayerQaStatus,
   LayerSourceKind,
   OverlayLayerConfig,
   OverlaySourceData,
 } from "@/centerpanel/components/map/mapTypes";
-import { queryToSQL, isSafeSQL } from "@/engine/geoai/nlp/QueryToSQL";
+import { normalizeLayerRegistryMetadata } from "@/centerpanel/components/map/mapLayerMetadata";
+import { isSafeSQL, queryToSQL } from "@/engine/geoai/nlp/QueryToSQL";
 import type { GeneratedSQL, QueryIntent } from "@/engine/geoai/nlp/types";
-import type { AnalysisAdapterResult } from "./MapEngineAdapter";
-import { adaptQueryResult } from "./MapEngineAdapter";
+import { adaptQueryResult, type AnalysisAdapterResult } from "./MapEngineAdapter";
 import { buildFeatureCollectionMetadata, getFeatureCollectionBounds, parseInlineGeoJSONSource } from "./MapDataImporter";
 
 export type MapNLQueryScope = "visible" | "selected-aoi" | "current-extent" | "project";
 export type MapNLQueryMode = "live" | "demo";
 export type MapNLQueryTableKind = "geojson-overlay" | "worker-table";
+export type MapNLQueryConfidenceBand = "high" | "medium" | "low" | "unknown";
+export type MapNLQueryAmbiguityState = "clear" | "needs-review" | "ambiguous" | "blocked";
+export type MapNLQuerySourceSelectionMode = "matched-request" | "mixed" | "map-order-fallback";
+export type MapNLQueryAffectedLayerRole = "primary-source" | "secondary-source";
+export type MapNLQueryRequiredFieldRole = "geometry" | "filter" | "sort" | "join" | "scope";
+export type MapNLQueryRequiredFieldSource =
+  | "geometry-column"
+  | "request-match"
+  | "recognized-attribute"
+  | "pattern-match"
+  | "missing";
+
+export interface MapNLQueryRequiredField {
+  layerId: string;
+  layerName: string;
+  fieldName: string;
+  role: MapNLQueryRequiredFieldRole;
+  available: boolean;
+  source: MapNLQueryRequiredFieldSource;
+  note: string | null;
+}
+
+export interface MapNLQueryAffectedLayer {
+  id: string;
+  name: string;
+  tableAlias: string;
+  role: MapNLQueryAffectedLayerRole;
+  sourceKind: LayerSourceKind;
+  visible: boolean;
+  featureCount: number | null;
+  geometryType: string;
+  crs: string | null;
+  qaStatus: LayerQaStatus;
+  publicationReadiness: LayerPublicationReadinessStatus;
+  requiredFields: MapNLQueryRequiredField[];
+  missingFields: string[];
+}
+
+export interface MapNLQueryInterpretedIntent {
+  intent: QueryIntent;
+  intentLabel: string;
+  explanation: string;
+  confidence: number;
+  confidenceBand: MapNLQueryConfidenceBand;
+  ambiguityState: MapNLQueryAmbiguityState;
+  ambiguityReasons: string[];
+  assumptions: string[];
+  recognisedLayers: string[];
+  recognisedAttributes: string[];
+  distancesDetected: Array<{ metres: number; originalUnit: string }>;
+  thresholdsDetected: Array<{ operator: string; value: number }>;
+  aggregationFunctions: string[];
+  spatialRelations: string[];
+  requiredLayerCount: number;
+  sourceLayerSelection: MapNLQuerySourceSelectionMode;
+  broadScope: boolean;
+  safeReadOnly: boolean;
+}
 
 export interface MapNLQueryLayer {
   id: string;
@@ -26,6 +86,9 @@ export interface MapNLQueryLayer {
   geometryColumn: string;
   fields: string[];
   crs: string | null;
+  qaStatus: LayerQaStatus;
+  publicationReadiness: LayerPublicationReadinessStatus;
+  evidenceArtifactId: string | null;
   sourceData?: FeatureCollection;
   workerTableName?: string;
 }
@@ -62,11 +125,15 @@ export interface MapNLQueryPreview {
   predicate: string;
   expectedOutputType: string;
   generated: GeneratedSQL;
+  intentPreview: MapNLQueryInterpretedIntent;
   sourceLayers: MapNLQueryLayer[];
+  affectedLayers: MapNLQueryAffectedLayer[];
+  requiredFields: MapNLQueryRequiredField[];
   unavailableLayers: MapNLUnavailableLayer[];
   warnings: string[];
   blockers: string[];
   canRun: boolean;
+  requiresExplicitApply: boolean;
   copyText: string;
 }
 
@@ -106,6 +173,19 @@ const SCOPE_LABELS: Record<MapNLQueryScope, string> = {
 const MODE_LABELS: Record<MapNLQueryMode, string> = {
   live: "Live project data",
   demo: "Explicit demo data",
+};
+
+const INTENT_LABELS: Record<QueryIntent, string> = {
+  proximity: "Proximity",
+  accessibility: "Accessibility",
+  aggregation: "Aggregation",
+  filter: "Attribute filter",
+  hotspot: "Hot spot",
+  ranking: "Ranking",
+  spatial_join: "Spatial join",
+  buffer: "Buffer",
+  containment: "Containment",
+  unknown: "Unknown intent",
 };
 
 const STOP_WORDS = new Set([
@@ -165,19 +245,17 @@ function normalizeSearchText(value: string): string {
     .trim();
 }
 
+function confidenceBand(confidence: number): MapNLQueryConfidenceBand {
+  if (!Number.isFinite(confidence) || confidence <= 0) return "unknown";
+  if (confidence >= 0.7) return "high";
+  if (confidence >= 0.45) return "medium";
+  return "low";
+}
+
 function tokenize(value: string): string[] {
   return normalizeSearchText(value)
     .split(/\s+/)
     .filter((token) => token.length > 1 && !STOP_WORDS.has(token));
-}
-
-function resolveLayerSourceKind(layer: OverlayLayerConfig): LayerSourceKind {
-  if (layer.sourceKind) return layer.sourceKind;
-  if ((layer.group ?? "data") === "analysis" || layer.metadata?.analysisResult) return "derived";
-  if (layer.metadata?.eoSource?.isDemo || layer.metadata?.datasetContext?.datasetId) return "demo";
-  if (layer.metadata?.eoSource || (typeof layer.sourceData === "string" && /^https?:\/\//i.test(layer.sourceData))) return "external";
-  if (layer.sourceData) return "imported";
-  return "project";
 }
 
 function isLayerInScope(layer: OverlayLayerConfig, sourceKind: LayerSourceKind, scope: MapNLQueryScope): boolean {
@@ -214,8 +292,12 @@ function asFeatureCollection(sourceData: OverlaySourceData | undefined): Feature
   };
 }
 
-function collectLayerFields(layer: OverlayLayerConfig, featureCollection: FeatureCollection | null): string[] {
-  const fields = new Set(layer.metadata?.fields ?? []);
+function collectLayerFields(
+  layer: OverlayLayerConfig,
+  featureCollection: FeatureCollection | null,
+  registryFields: readonly string[] = [],
+): string[] {
+  const fields = new Set([...registryFields, ...(layer.metadata?.fields ?? [])]);
   featureCollection?.features.slice(0, 25).forEach((feature) => {
     Object.keys(feature.properties ?? {}).forEach((field) => fields.add(field));
   });
@@ -259,11 +341,12 @@ function classifyQueryableLayer(
   mode: MapNLQueryMode,
   aliases: Map<string, number>,
 ): { queryable?: MapNLQueryLayer; unavailable?: MapNLUnavailableLayer } {
-  const sourceKind = resolveLayerSourceKind(layer);
+  const registry = normalizeLayerRegistryMetadata(layer);
+  const sourceKind = registry.sourceKind;
   if (!isLayerInScope(layer, sourceKind, scope)) {
     return { unavailable: makeUnavailableLayer(layer, sourceKind, "Outside the selected query scope.") };
   }
-  if (layer.queryable === false) {
+  if (!registry.queryable) {
     return { unavailable: makeUnavailableLayer(layer, sourceKind, "Layer is marked non-queryable.") };
   }
   if (mode === "live" && !isLivePermittedSource(sourceKind)) {
@@ -304,9 +387,13 @@ function classifyQueryableLayer(
   const seen = aliases.get(baseAlias) ?? 0;
   aliases.set(baseAlias, seen + 1);
   const tableAlias = seen === 0 ? baseAlias : `${baseAlias}_${seen + 1}`;
-  const geometryColumn = layer.metadata?.columnar?.geometryColumn?.trim() || "geometry";
-  const fields = collectLayerFields(layer, featureCollection);
-  const featureCount = layer.metadata?.featureCount ?? featureCollection?.features.length ?? layer.metadata?.columnar?.rowCount ?? null;
+  const geometryColumn = layer.metadata?.columnar?.geometryColumn?.trim() || registry.schemaSummary.geometryField || "geometry";
+  const fields = collectLayerFields(
+    layer,
+    featureCollection,
+    registry.schemaSummary.fields.map((field) => field.name),
+  );
+  const featureCount = registry.featureCount ?? featureCollection?.features.length ?? layer.metadata?.columnar?.rowCount ?? null;
   const queryable: MapNLQueryLayer = {
     id: layer.id,
     name: layer.name,
@@ -315,10 +402,13 @@ function classifyQueryableLayer(
     visible: layer.visible,
     sourceKind,
     featureCount,
-    geometryType: resolveGeometryType(layer, featureCollection),
+    geometryType: registry.geometrySummary.geometryType || resolveGeometryType(layer, featureCollection),
     geometryColumn,
     fields,
-    crs: resolveCrs(layer),
+    crs: registry.crsSummary.crs ?? resolveCrs(layer),
+    qaStatus: registry.qaStatus,
+    publicationReadiness: registry.publicationReadiness.status,
+    evidenceArtifactId: registry.evidenceArtifactId ?? null,
     ...(featureCollection ? { sourceData: featureCollection } : {}),
     ...(workerTableName ? { workerTableName } : {}),
   };
@@ -380,7 +470,12 @@ function selectSourceLayers(
   layers: MapNLQueryLayer[],
   generated: GeneratedSQL,
   desiredCount: number,
-): { selected: MapNLQueryLayer[]; warnings: string[] } {
+): {
+  selected: MapNLQueryLayer[];
+  warnings: string[];
+  selectionMode: MapNLQuerySourceSelectionMode;
+  fallbackLayerIds: string[];
+} {
   const warnings: string[] = [];
   const requestText = normalizeSearchText(request);
   const scored = layers
@@ -394,16 +489,25 @@ function selectSourceLayers(
     .filter((entry) => entry.score > 0)
     .slice(0, desiredCount)
     .map((entry) => entry.layer);
+  const matchedCount = selected.length;
+  const fallbackLayerIds: string[] = [];
 
   if (selected.length < desiredCount) {
     const fallback = layers.filter((layer) => !selected.some((entry) => entry.id === layer.id)).slice(0, desiredCount - selected.length);
     selected.push(...fallback);
+    fallbackLayerIds.push(...fallback.map((layer) => layer.id));
     if (fallback.length > 0) {
       warnings.push("Some source layers were selected by map order because the request did not name enough available layers.");
     }
   }
 
-  return { selected, warnings };
+  const selectionMode: MapNLQuerySourceSelectionMode = fallbackLayerIds.length === 0
+    ? "matched-request"
+    : matchedCount > 0
+      ? "mixed"
+      : "map-order-fallback";
+
+  return { selected, warnings, selectionMode, fallbackLayerIds };
 }
 
 function geometryExpression(alias: string, layer: MapNLQueryLayer): string {
@@ -417,19 +521,75 @@ function projectionForLayer(alias: string, layer: MapNLQueryLayer): string {
   return `${geometryExpression(alias, layer)} AS geometry, ${alias}.* EXCLUDE (${quoteIdent(layer.geometryColumn)})`;
 }
 
-function findField(layer: MapNLQueryLayer, request: string, candidates: string[]): string | null {
+interface MapNLFieldMatch {
+  field: string;
+  source: Exclude<MapNLQueryRequiredFieldSource, "geometry-column" | "missing">;
+}
+
+function findField(
+  layer: MapNLQueryLayer,
+  request: string,
+  candidates: string[],
+  candidateSource: MapNLFieldMatch["source"] = "recognized-attribute",
+): MapNLFieldMatch | null {
   const requestText = normalizeSearchText(request);
   const fields = layer.fields.length > 0 ? layer.fields : candidates;
   for (const field of fields) {
     const normalized = normalizeSearchText(field);
-    if (normalized && requestText.includes(normalized)) return field;
+    if (normalized && requestText.includes(normalized)) return { field, source: "request-match" };
   }
   for (const candidate of candidates) {
     const normalizedCandidate = normalizeSearchText(candidate);
     const field = fields.find((entry) => normalizeSearchText(entry).includes(normalizedCandidate));
-    if (field) return field;
+    if (field) return { field, source: candidateSource };
   }
-  return fields[0] ?? null;
+  return null;
+}
+
+function requiredGeometryField(layer: MapNLQueryLayer, role: MapNLQueryRequiredFieldRole): MapNLQueryRequiredField {
+  return {
+    layerId: layer.id,
+    layerName: layer.name,
+    fieldName: layer.geometryColumn,
+    role,
+    available: true,
+    source: "geometry-column",
+    note: role === "join" ? "Geometry is required for the spatial relationship." : "Geometry is required for map-scoped filtering.",
+  };
+}
+
+function requiredMatchedField(
+  layer: MapNLQueryLayer,
+  match: MapNLFieldMatch,
+  role: MapNLQueryRequiredFieldRole,
+  note: string,
+): MapNLQueryRequiredField {
+  return {
+    layerId: layer.id,
+    layerName: layer.name,
+    fieldName: match.field,
+    role,
+    available: true,
+    source: match.source,
+    note,
+  };
+}
+
+function missingRequiredField(
+  layer: MapNLQueryLayer,
+  fieldName: string,
+  role: MapNLQueryRequiredFieldRole,
+  note: string,
+): MapNLQueryRequiredField {
+  return {
+    layerId: layer.id,
+    layerName: layer.name,
+    fieldName,
+    role,
+    available: false,
+    source: "missing",
+    note,
+  };
 }
 
 function extractDistanceMetres(generated: GeneratedSQL): number {
@@ -490,30 +650,66 @@ function buildSingleLayerSQL(args: {
   layer: MapNLQueryLayer;
   generated: GeneratedSQL;
   context: MapNLQueryContext;
-}): { sql: string; predicate: string; spatialFunctions: string[] } {
+}): {
+  sql: string;
+  predicate: string;
+  spatialFunctions: string[];
+  requiredFields: MapNLQueryRequiredField[];
+  warnings: string[];
+} {
   const alias = "a";
   const threshold = extractThreshold(args.request);
-  const confidenceField = findField(args.layer, args.request, ["confidence", "probability", "score"]);
-  const densityField = findField(args.layer, args.request, ["density", "population_density", "pop_density"]);
-  const treeField = findField(args.layer, args.request, ["tree_cover", "tree_canopy", "tree_canopy_pct", "canopy"]);
+  const requestText = normalizeSearchText(args.request);
+  const confidenceField = findField(args.layer, args.request, ["confidence", "probability", "score"], "pattern-match");
+  const densityField = findField(args.layer, args.request, ["density", "population_density", "pop_density"], "pattern-match");
+  const treeField = findField(args.layer, args.request, ["tree_cover", "tree_canopy", "tree_canopy_pct", "canopy"], "pattern-match");
   const attributeField = confidenceField ?? findField(args.layer, args.request, args.generated.interpretation.recognisedAttributes);
   const whereParts = [buildScopePredicate(args.context, alias, args.layer)];
   const orderParts: string[] = [];
   const predicateParts: string[] = [];
+  const requiredFields: MapNLQueryRequiredField[] = [requiredGeometryField(args.layer, "filter")];
+  const warnings: string[] = [];
 
   if (threshold && attributeField) {
-    whereParts.push(`TRY_CAST(${alias}.${quoteIdent(attributeField)} AS DOUBLE) ${threshold.operator} ${threshold.value}`);
-    predicateParts.push(`${attributeField} ${threshold.operator} ${threshold.value}`);
-  } else if (normalizeSearchText(args.request).includes("high") && densityField) {
-    whereParts.push(`TRY_CAST(${alias}.${quoteIdent(densityField)} AS DOUBLE) IS NOT NULL`);
-    orderParts.push(`TRY_CAST(${alias}.${quoteIdent(densityField)} AS DOUBLE) DESC`);
-    predicateParts.push(`rank high ${densityField}`);
+    whereParts.push(`TRY_CAST(${alias}.${quoteIdent(attributeField.field)} AS DOUBLE) ${threshold.operator} ${threshold.value}`);
+    predicateParts.push(`${attributeField.field} ${threshold.operator} ${threshold.value}`);
+    requiredFields.push(requiredMatchedField(args.layer, attributeField, "filter", `Threshold ${threshold.raw} is applied to this field.`));
+  } else if (threshold) {
+    warnings.push(`Threshold "${threshold.raw}" was detected, but no matching numeric field was confirmed on ${args.layer.name}.`);
+    requiredFields.push(missingRequiredField(
+      args.layer,
+      "numeric attribute for threshold",
+      "filter",
+      "The request includes a threshold, but the layer schema does not expose a matching attribute.",
+    ));
+  } else if (requestText.includes("high") && densityField) {
+    whereParts.push(`TRY_CAST(${alias}.${quoteIdent(densityField.field)} AS DOUBLE) IS NOT NULL`);
+    orderParts.push(`TRY_CAST(${alias}.${quoteIdent(densityField.field)} AS DOUBLE) DESC`);
+    predicateParts.push(`rank high ${densityField.field}`);
+    requiredFields.push(requiredMatchedField(args.layer, densityField, "sort", "High-rank ordering uses this numeric field."));
+  } else if (requestText.includes("density") && !densityField) {
+    warnings.push(`Density was mentioned, but no density-like field was confirmed on ${args.layer.name}.`);
+    requiredFields.push(missingRequiredField(
+      args.layer,
+      "density-like attribute",
+      "sort",
+      "The request mentions density, but no matching field is available in the layer schema.",
+    ));
   }
 
-  if (normalizeSearchText(args.request).includes("low") && treeField && treeField !== densityField) {
-    whereParts.push(`TRY_CAST(${alias}.${quoteIdent(treeField)} AS DOUBLE) IS NOT NULL`);
-    orderParts.push(`TRY_CAST(${alias}.${quoteIdent(treeField)} AS DOUBLE) ASC`);
-    predicateParts.push(`rank low ${treeField}`);
+  if (requestText.includes("low") && treeField && treeField.field !== densityField?.field) {
+    whereParts.push(`TRY_CAST(${alias}.${quoteIdent(treeField.field)} AS DOUBLE) IS NOT NULL`);
+    orderParts.push(`TRY_CAST(${alias}.${quoteIdent(treeField.field)} AS DOUBLE) ASC`);
+    predicateParts.push(`rank low ${treeField.field}`);
+    requiredFields.push(requiredMatchedField(args.layer, treeField, "sort", "Low-rank ordering uses this field."));
+  } else if ((requestText.includes("tree") || requestText.includes("canopy")) && !treeField) {
+    warnings.push(`Tree cover was mentioned, but no tree/canopy field was confirmed on ${args.layer.name}.`);
+    requiredFields.push(missingRequiredField(
+      args.layer,
+      "tree/canopy attribute",
+      "sort",
+      "The request mentions tree cover or canopy, but no matching field is available in the layer schema.",
+    ));
   }
 
   const orderClause = orderParts.length > 0 ? `\nORDER BY ${orderParts.join(", ")}` : "";
@@ -526,6 +722,8 @@ function buildSingleLayerSQL(args: {
     sql,
     predicate: predicateParts.length > 0 ? predicateParts.join("; ") : `Select features from ${args.layer.name}`,
     spatialFunctions: whereParts[0] ? ["ST_Intersects"] : [],
+    requiredFields,
+    warnings,
   };
 }
 
@@ -535,15 +733,29 @@ function buildTwoLayerSQL(args: {
   generated: GeneratedSQL;
   context: MapNLQueryContext;
   request: string;
-}): { sql: string; predicate: string; spatialFunctions: string[] } {
+}): {
+  sql: string;
+  predicate: string;
+  spatialFunctions: string[];
+  requiredFields: MapNLQueryRequiredField[];
+  warnings: string[];
+} {
   const intent = args.generated.parse.intent;
   const requestText = normalizeSearchText(args.request);
   const distance = extractDistanceMetres(args.generated);
   const primaryGeom = geometryExpression("a", args.primary);
   const secondaryGeom = geometryExpression("b", args.secondary);
   const scopePredicate = buildScopePredicate(args.context, "a", args.primary);
+  const requiredFields: MapNLQueryRequiredField[] = [
+    requiredGeometryField(args.primary, "join"),
+    requiredGeometryField(args.secondary, "join"),
+  ];
+  const warnings: string[] = [];
 
   if (intent === "proximity" || requestText.includes("within") || requestText.includes("near")) {
+    if (args.generated.interpretation.distancesDetected.length === 0) {
+      warnings.push("No explicit distance was detected; the preview uses a conservative default of 500 metres.");
+    }
     const sql = [
       `SELECT ${projectionForLayer("a", args.primary)},`,
       `       ST_Distance(${primaryGeom}, ${secondaryGeom}) AS distance_m`,
@@ -556,6 +768,8 @@ function buildTwoLayerSQL(args: {
       sql,
       predicate: `${args.primary.name} within ${distance} metres of ${args.secondary.name}`,
       spatialFunctions: scopePredicate ? ["ST_DWithin", "ST_Distance", "ST_Intersects"] : ["ST_DWithin", "ST_Distance"],
+      requiredFields,
+      warnings,
     };
   }
 
@@ -570,6 +784,8 @@ function buildTwoLayerSQL(args: {
     sql,
     predicate: `${relation} between ${args.primary.name} and ${args.secondary.name}`,
     spatialFunctions: scopePredicate ? [relation, "ST_Intersects"] : [relation],
+    requiredFields,
+    warnings,
   };
 }
 
@@ -581,7 +797,19 @@ function requiredLayerCount(intent: QueryIntent, request: string): number {
 }
 
 function buildPreviewId(request: string, context: MapNLQueryContext): string {
-  const seed = `${context.mode}:${context.scope}:${request}:${context.queryableLayers.map((layer) => layer.id).join(",")}`;
+  const layerSignature = context.queryableLayers
+    .map((layer) => [
+      layer.id,
+      layer.tableAlias,
+      layer.geometryColumn,
+      layer.fields.join("|"),
+      layer.featureCount ?? "-",
+      layer.crs ?? "unknown-crs",
+      layer.qaStatus,
+      layer.publicationReadiness,
+    ].join(":"))
+    .join(",");
+  const seed = `${context.mode}:${context.scope}:${request}:${layerSignature}`;
   let hash = 2166136261;
   for (let index = 0; index < seed.length; index += 1) {
     hash ^= seed.charCodeAt(index);
@@ -590,15 +818,195 @@ function buildPreviewId(request: string, context: MapNLQueryContext): string {
   return `map-nl-query-${(hash >>> 0).toString(16)}`;
 }
 
-function buildCopyText(preview: Pick<MapNLQueryPreview, "request" | "modeLabel" | "scopeLabel" | "sourceLayers" | "sql">): string {
+function uniqueRequiredFields(fields: readonly MapNLQueryRequiredField[]): MapNLQueryRequiredField[] {
+  const seen = new Set<string>();
+  const uniqueFields: MapNLQueryRequiredField[] = [];
+  for (const field of fields) {
+    const key = `${field.layerId}:${field.role}:${field.fieldName}:${field.available}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    uniqueFields.push(field);
+  }
+  return uniqueFields;
+}
+
+function buildAffectedLayers(
+  sourceLayers: readonly MapNLQueryLayer[],
+  requiredFields: readonly MapNLQueryRequiredField[],
+): MapNLQueryAffectedLayer[] {
+  return sourceLayers.map((layer, index) => {
+    const fields = requiredFields.filter((field) => field.layerId === layer.id);
+    return {
+      id: layer.id,
+      name: layer.name,
+      tableAlias: layer.tableAlias,
+      role: index === 0 ? "primary-source" : "secondary-source",
+      sourceKind: layer.sourceKind,
+      visible: layer.visible,
+      featureCount: layer.featureCount,
+      geometryType: layer.geometryType,
+      crs: layer.crs,
+      qaStatus: layer.qaStatus,
+      publicationReadiness: layer.publicationReadiness,
+      requiredFields: fields,
+      missingFields: fields.filter((field) => !field.available).map((field) => field.fieldName),
+    };
+  });
+}
+
+function buildIntentPreview(args: {
+  generated: GeneratedSQL;
+  context: MapNLQueryContext;
+  sourceLayers: readonly MapNLQueryLayer[];
+  warnings: readonly string[];
+  blockers: readonly string[];
+  requiredLayerCount: number;
+  sourceLayerSelection: MapNLQuerySourceSelectionMode;
+  fallbackLayerIds: readonly string[];
+}): MapNLQueryInterpretedIntent {
+  const confidence = args.generated.parse.confidence;
+  const band = confidenceBand(confidence);
+  const ambiguityReasons: string[] = [];
+  const assumptions: string[] = [];
+
+  if (args.generated.parse.intent === "unknown" || band === "unknown" || band === "low") {
+    ambiguityReasons.push("Intent confidence is low; the preview should not be treated as semantic certainty.");
+  }
+  if (args.sourceLayerSelection !== "matched-request") {
+    const fallbackNames = args.sourceLayers
+      .filter((layer) => args.fallbackLayerIds.includes(layer.id))
+      .map((layer) => layer.name);
+    ambiguityReasons.push(
+      fallbackNames.length > 0
+        ? `Layer selection used map order fallback for ${fallbackNames.join(", ")}.`
+        : "Layer selection used map order fallback.",
+    );
+  }
+  if (args.sourceLayers.some((layer) => layer.crs == null)) {
+    assumptions.push("One or more affected layers have unknown CRS metadata; distance semantics depend on the execution backend.");
+  }
+  if (args.context.scope === "project") {
+    assumptions.push("Project scope can include hidden non-external project layers; affected layers must be reviewed before apply.");
+  }
+  if (args.context.mode === "demo") {
+    assumptions.push("Execution is limited to explicitly labelled demo/sample layers.");
+  }
+  if (args.warnings.length > 0) {
+    assumptions.push(...args.warnings.slice(0, 4));
+  }
+
+  const ambiguityState: MapNLQueryAmbiguityState = args.blockers.length > 0
+    ? "blocked"
+    : ambiguityReasons.length > 0
+      ? "ambiguous"
+      : args.warnings.length > 0
+        ? "needs-review"
+        : "clear";
+
+  return {
+    intent: args.generated.parse.intent,
+    intentLabel: INTENT_LABELS[args.generated.parse.intent],
+    explanation: args.generated.parse.explanation,
+    confidence,
+    confidenceBand: band,
+    ambiguityState,
+    ambiguityReasons,
+    assumptions: Array.from(new Set(assumptions.filter((entry) => entry.trim().length > 0))),
+    recognisedLayers: [...args.generated.interpretation.recognisedLayers],
+    recognisedAttributes: [...args.generated.interpretation.recognisedAttributes],
+    distancesDetected: args.generated.interpretation.distancesDetected.map((entry) => ({ ...entry })),
+    thresholdsDetected: args.generated.interpretation.thresholdsDetected.map((entry) => ({ ...entry })),
+    aggregationFunctions: [...args.generated.interpretation.aggregationFunctions],
+    spatialRelations: [...args.generated.interpretation.spatialRelations],
+    requiredLayerCount: args.requiredLayerCount,
+    sourceLayerSelection: args.sourceLayerSelection,
+    broadScope: args.context.scope === "project" || args.sourceLayers.length > 1,
+    safeReadOnly: args.generated.safe,
+  };
+}
+
+function buildCopyText(preview: Pick<MapNLQueryPreview, "request" | "modeLabel" | "scopeLabel" | "sourceLayers" | "requiredFields" | "intentPreview" | "sql">): string {
   return [
     `Request: ${preview.request}`,
+    `Interpreted intent: ${preview.intentPreview.intentLabel} (${preview.intentPreview.confidenceBand}, ${Math.round(preview.intentPreview.confidence * 100)}%)`,
+    `Ambiguity state: ${preview.intentPreview.ambiguityState}`,
     `Mode: ${preview.modeLabel}`,
     `Scope: ${preview.scopeLabel}`,
     `Sources: ${preview.sourceLayers.map((layer) => `${layer.name} (${layer.tableAlias})`).join(", ") || "none"}`,
+    `Required fields: ${preview.requiredFields.map((field) => `${field.layerName}.${field.fieldName}${field.available ? "" : " (missing)"}`).join(", ") || "none"}`,
     "",
     preview.sql,
   ].join("\n");
+}
+
+export function buildMapNLQueryAuditDetails(
+  preview: MapNLQueryPreview,
+  extras: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    previewId: preview.id,
+    request: preview.request,
+    interpretedIntent: preview.intentPreview.intent,
+    interpretedIntentLabel: preview.intentPreview.intentLabel,
+    explanation: preview.intentPreview.explanation,
+    intentConfidence: preview.intentPreview.confidence,
+    confidenceBand: preview.intentPreview.confidenceBand,
+    ambiguityState: preview.intentPreview.ambiguityState,
+    ambiguityReasons: preview.intentPreview.ambiguityReasons,
+    assumptions: preview.intentPreview.assumptions,
+    sourceLayerSelection: preview.intentPreview.sourceLayerSelection,
+    requiredLayerCount: preview.intentPreview.requiredLayerCount,
+    safeReadOnly: preview.intentPreview.safeReadOnly,
+    requiresExplicitApply: preview.requiresExplicitApply,
+    sql: preview.sql,
+    predicate: preview.predicate,
+    scope: preview.scope,
+    scopeLabel: preview.scopeLabel,
+    mode: preview.mode,
+    modeLabel: preview.modeLabel,
+    sourceLayerIds: preview.sourceLayers.map((layer) => layer.id),
+    affectedLayers: preview.affectedLayers.map((layer) => ({
+      id: layer.id,
+      name: layer.name,
+      tableAlias: layer.tableAlias,
+      role: layer.role,
+      sourceKind: layer.sourceKind,
+      visible: layer.visible,
+      featureCount: layer.featureCount,
+      geometryType: layer.geometryType,
+      crs: layer.crs,
+      qaStatus: layer.qaStatus,
+      publicationReadiness: layer.publicationReadiness,
+      requiredFields: layer.requiredFields.map((field) => ({
+        fieldName: field.fieldName,
+        role: field.role,
+        available: field.available,
+        source: field.source,
+        note: field.note,
+      })),
+      missingFields: layer.missingFields,
+    })),
+    requiredFields: preview.requiredFields.map((field) => ({
+      layerId: field.layerId,
+      layerName: field.layerName,
+      fieldName: field.fieldName,
+      role: field.role,
+      available: field.available,
+      source: field.source,
+      note: field.note,
+    })),
+    unavailableLayers: preview.unavailableLayers.map((layer) => ({
+      id: layer.id,
+      name: layer.name,
+      visible: layer.visible,
+      sourceKind: layer.sourceKind,
+      reason: layer.reason,
+    })),
+    warnings: preview.warnings,
+    blockers: preview.blockers,
+    canRun: preview.canRun,
+    ...extras,
+  };
 }
 
 export function generateMapNLQueryPreview(
@@ -609,9 +1017,13 @@ export function generateMapNLQueryPreview(
   const rawGenerated = queryToSQL(trimmedRequest || "show visible layers", { maxResultLimit: DEFAULT_LIMIT });
   const warnings = [...rawGenerated.parse.warnings];
   const blockers: string[] = [];
+  const rawConfidenceBand = confidenceBand(rawGenerated.parse.confidence);
 
   if (trimmedRequest.length === 0) {
     blockers.push("Enter a natural-language map question before generating SQL.");
+  }
+  if (rawGenerated.parse.intent === "unknown" || rawConfidenceBand === "unknown" || rawConfidenceBand === "low") {
+    blockers.push("The query intent is too ambiguous to execute. Rephrase the request with explicit layer names and spatial or attribute criteria.");
   }
   if (context.scope === "selected-aoi" && !context.selectedAoiFeature) {
     blockers.push("Selected AOI scope requires a drawn polygon AOI.");
@@ -639,6 +1051,7 @@ export function generateMapNLQueryPreview(
   let sql = "";
   let predicate = "No executable predicate generated.";
   let spatialFunctions: string[] = [];
+  let requiredFields: MapNLQueryRequiredField[] = [];
   if (sourceLayers.length >= 2 && desiredCount >= 2) {
     const built = buildTwoLayerSQL({
       primary: sourceLayers[0]!,
@@ -650,6 +1063,8 @@ export function generateMapNLQueryPreview(
     sql = built.sql;
     predicate = built.predicate;
     spatialFunctions = built.spatialFunctions;
+    requiredFields = built.requiredFields;
+    warnings.push(...built.warnings);
   } else if (sourceLayers.length >= 1) {
     const built = buildSingleLayerSQL({
       request: trimmedRequest,
@@ -660,6 +1075,8 @@ export function generateMapNLQueryPreview(
     sql = built.sql;
     predicate = built.predicate;
     spatialFunctions = built.spatialFunctions;
+    requiredFields = built.requiredFields;
+    warnings.push(...built.warnings);
   }
 
   if (desiredCount >= 2 && sourceLayers.length < 2) {
@@ -688,6 +1105,19 @@ export function generateMapNLQueryPreview(
   };
 
   const expectedOutputType = sourceLayers[0]?.geometryType ?? "Unknown";
+  const normalizedRequiredFields = uniqueRequiredFields(requiredFields);
+  const uniqueWarnings = Array.from(new Set(warnings.filter((warning) => warning.trim().length > 0)));
+  const uniqueBlockers = Array.from(new Set(blockers.filter((blocker) => blocker.trim().length > 0)));
+  const intentPreview = buildIntentPreview({
+    generated,
+    context,
+    sourceLayers,
+    warnings: uniqueWarnings,
+    blockers: uniqueBlockers,
+    requiredLayerCount: Math.max(1, desiredCount),
+    sourceLayerSelection: selection.selectionMode,
+    fallbackLayerIds: selection.fallbackLayerIds,
+  });
   const previewBase = {
     id: buildPreviewId(trimmedRequest, context),
     request: trimmedRequest,
@@ -699,10 +1129,14 @@ export function generateMapNLQueryPreview(
     predicate,
     expectedOutputType,
     generated,
+    intentPreview,
     sourceLayers,
+    affectedLayers: buildAffectedLayers(sourceLayers, normalizedRequiredFields),
+    requiredFields: normalizedRequiredFields,
     unavailableLayers: context.unavailableLayers,
-    warnings: Array.from(new Set(warnings.filter((warning) => warning.trim().length > 0))),
-    blockers: Array.from(new Set(blockers.filter((blocker) => blocker.trim().length > 0))),
+    warnings: uniqueWarnings,
+    blockers: uniqueBlockers,
+    requiresExplicitApply: true,
   };
   const canRun = previewBase.blockers.length === 0 && generated.safe && sourceLayers.length > 0;
   return {

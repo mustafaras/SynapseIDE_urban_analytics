@@ -21,14 +21,14 @@ Read these before implementing any Map Explorer prompt:
 
 ## Current Status
 
-- Overall status: Dashboard, Education, and Publication Outputs landed. 22 of 30 prompts completed.
-- Current prompt: Prompt 21 - Dashboard, Education, and Publication Outputs completed 2026-05-13.
-- Next recommended prompt: Prompt 22 - Temporal Playback and Scenario Comparison.
+- Overall status: Natural-Language Query Safety and Audit landed. 25 of 30 prompts completed.
+- Current prompt: Prompt 24 - Natural-Language Query Safety and Audit completed 2026-05-13.
+- Next recommended prompt: Prompt 25 - Review Timeline and Audit Trail.
 - Operating pack status: Installed.
 - Next-prompt helper: `scripts/get-next-map-explorer-prompt.ps1`
 - Machine-readable manifest: `DEVELOPMENT_PLANS/MAP_EXPLORER_PROMPT_MANIFEST.json`
-- Last validated repository state: 2026-05-13; Prompt 21 validation passed: focused publication binding/readiness + layer manager tests passed (64/64), `npm run typecheck` passed, `git diff --check` passed for Prompt 21 files with LF-to-CRLF warnings only, and the next-prompt helper resolves Prompt 22.
-- Last known blocker: None for Prompt 20 scope; repo setup blocker remains for the missing centerpanel no-Tailwind script and repo-wide lint has the unrelated UA unused import noted above.
+- Last validated repository state: 2026-05-13; Prompt 24 validation passed: `npm run typecheck` passed, focused Map NL query builder/panel tests passed (10/10), changed-file ESLint returned 0 errors with pre-existing `MapExplorerModal.tsx` warnings, and HTTP smoke returned 200 on `http://127.0.0.1:5173/`.
+- Last known blocker: None for Prompt 23 scope.
 
 ## Agent Operating Pack
 
@@ -77,9 +77,9 @@ This table is the human-readable execution state. The helper script reads it whe
 | 19 | IDE to Map File and Layer Artifact Recognition | completed | 18 | Completed 2026-05-12. Added Map-owned IDE artifact recognition service, reference-only typed payload/result, supported file classification, readiness labels, evidence candidate registration, Synapse bus receiver, App install wiring, and focused tests. |
 | 20 | Report Handoff Structured Evidence | completed | 19 | Completed 2026-05-12. Added structured Map report evidence blocks, report insert structured metadata preservation, drawer evidence-registration action, report evidence artifact binding metadata, and focused report/reporting tests. |
 | 21 | Dashboard, Education, and Publication Outputs | completed | 20 | Completed 2026-05-13. Map dashboard + education output bindings are wired as explicit static actions with truthful live-state labels; dashboard bindings carry data fields, visual encoding, source context, QA, and provenance; education references inherit publication-readiness QA metadata. |
-| 22 | Temporal Playback and Scenario Comparison | pending | 21 | Requires publication output contracts. |
-| 23 | VoxCity 2D/3D Synchronization | pending | 22 | Requires temporal/scenario model. |
-| 24 | Natural-Language Query Safety and Audit | pending | 23 | Requires evidence and QA models. |
+| 22 | Temporal Playback and Scenario Comparison | completed | 21 | Completed 2026-05-13. Temporal playback now registers parameterized map evidence; scenario comparison outputs carry map evidence metadata, stable report/dashboard handoff IDs, QA caveats, and reference-only provenance. |
+| 23 | VoxCity 2D/3D Synchronization | completed | 22 | Completed 2026-05-13. Map-to-VoxCity sync metadata, sample/demo caveats, and reference-only `voxcity-handoff` evidence registration landed for Building Extruder and Sunlight Simulation. |
+| 24 | Natural-Language Query Safety and Audit | completed | 23 | Completed 2026-05-13. |
 | 25 | Review Timeline and Audit Trail | pending | 24 | Requires NL query audit. |
 | 26 | Accessibility and Keyboard Premium | pending | 25 | Requires review timeline. |
 | 27 | Performance, Workers, Memory, and Chunking | pending | 26 | Requires accessibility hardening. |
@@ -1653,6 +1653,8 @@ Append inspected files here as implementation progresses.
 
 | Date | Prompt | Files inspected | Notes |
 | --- | --- | --- | --- |
+| 2026-05-13 | Prompt 23 | `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` Prompt 23; `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md` Track M11 and sections 22.1/22.2; `DEVELOPMENT_PLANS/URBAN_ANALYTICS_DEVELOPMENT_PLAN.md` VoxCity/3D sections; `DEVELOPMENT_PLANS/TRI_MODAL_WORKBENCH_ALIGNMENT_SPEC.md`; `src/services/map/voxCitySelectionService.ts`; `src/services/map/voxCityProjection.ts`; `src/features/urbanAnalytics/voxcity/voxCityDataBridge.ts`; `src/features/urbanAnalytics/voxcity/BuildingViewer.tsx`; `src/features/urbanAnalytics/voxcity/SunlightSimulatorPanel.tsx`; `src/features/urbanAnalytics/context/voxCityEvidenceBuilder.ts`; `src/centerpanel/components/map/mapTypes.ts`; `src/centerpanel/components/map/mapEvidenceArtifacts.ts`; `src/stores/useMapExplorerStore.ts`; focused sync/evidence tests | Prompt 23 narrowed to typed 2D/3D reference metadata and map evidence registration for VoxCity outputs without moving heavy mesh, voxel, CityJSON, or GeoJSON payloads. |
+| 2026-05-13 | Prompt 22 | `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` Prompt 22; `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md` Track M10 and sections 22.3/22.4; `DEVELOPMENT_PLANS/TRI_MODAL_WORKBENCH_ALIGNMENT_SPEC.md` unified evidence lifecycle and ownership rules; `src/centerpanel/components/MapTemporalPlayer.tsx`; `src/centerpanel/Flows/ScenarioComparisonFlow.tsx`; `src/centerpanel/Flows/scenarioComparisonArtifacts.ts`; `src/centerpanel/Flows/scenarioComparisonShared.ts`; `src/centerpanel/components/map/mapTypes.ts`; `src/centerpanel/components/map/mapEvidenceArtifacts.ts`; `src/stores/useMapExplorerStore.ts`; `src/components/map/TemporalSlider.tsx`; `src/components/map/SwipeComparison.tsx`; focused temporal/scenario/evidence tests | Prompt 22 narrowed to typed temporal/scenario evidence metadata and registration at existing playback/publish boundaries without rewriting playback or scenario engines. |
 | 2026-05-12 | Prompt 20 | `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` Prompt 20; `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md` sections 14.6, 21.1, and 21.4; `DEVELOPMENT_PLANS/TRI_MODAL_WORKBENCH_ALIGNMENT_SPEC.md` section 8.5; `src/services/map/MapReportHandoffService.ts`; `src/centerpanel/components/map/MapReportHandoffDrawer.tsx`; `src/services/reporting/types.ts`; `src/services/reporting/storage.ts`; `src/services/reporting/ReportEngine.ts`; `src/services/map/MapExportService.ts`; `src/centerpanel/components/map/mapEvidenceArtifacts.ts`; `src/centerpanel/components/map/mapTypes.ts`; `src/centerpanel/components/MapExplorerModal.tsx`; `src/services/map/MapReviewSessionService.ts`; focused report/reporting tests | Prompt 20 narrowed to structured map report evidence metadata, report insert compatibility, drawer evidence registration, and evidence artifact binding without redesigning the report builder or moving heavy map/render payloads. |
 | 2026-05-12 | Prompt 19 | `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` Prompt 19; `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md` sections 8.6, 19.1, and 19.2; `DEVELOPMENT_PLANS/TRI_MODAL_WORKBENCH_ALIGNMENT_SPEC.md` section 8.2; `DEVELOPMENT_PLANS/SYNAPSE_IDE_IMPLEMENTATION_LEDGER.md` Prompt 21 note; `src/services/map/ideMapHandoff.ts`; `src/services/map/__tests__/ideMapHandoff.test.ts`; `src/services/map/mapToIdeHandoff.ts`; `src/types/synapse-bus.ts`; `src/services/synapseBus.ts`; `src/types/synapse-workspace.ts`; `src/services/commandRegistry.ts`; `src/types/state.ts`; `src/services/map/MapDataImporter.ts`; `src/centerpanel/components/map/mapTypes.ts`; `src/centerpanel/components/map/mapEvidenceArtifacts.ts`; `src/stores/useMapExplorerStore.ts`; `src/App.tsx`; Urban IDE artifact recognition implementation/tests for alignment only | Prompt 19 narrowed to a Map-owned incoming IDE artifact receiver that consumes existing typed bus evidence events, classifies file/artifact references, registers map evidence candidates, and refuses layer materialization without Map validation. |
 | 2026-05-12 | Prompt 18 | `DEVELOPMENT_PLANS/START_HERE_MAP_EXPLORER_AGENT.md`; `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` Prompt 18; `DEVELOPMENT_PLANS/MAP_EXPLORER_PROMPT_MANIFEST.json`; `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md` sections 8.5 and 19; `DEVELOPMENT_PLANS/SYNAPSE_IDE_DEVELOPMENT_PLAN.md`; `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md`; `src/services/editorBridge.ts`; `src/services/editor/bridge.ts`; `src/services/editor/bridgeAdapter.ts`; `src/services/synapseBus.ts`; `src/types/synapse-bus.ts`; `src/services/map/mapToIdeHandoff.ts`; `src/services/map/__tests__/mapToIdeHandoff.test.ts`; `src/centerpanel/components/map/mapTypes.ts`; `src/centerpanel/components/map/mapEvidenceArtifacts.ts`; `src/stores/useMapExplorerStore.ts`; `src/services/map/MapWorkflowService.ts`; `src/services/map/MapExportService.ts`; `src/centerpanel/components/MapExplorerModal.tsx`; `src/centerpanel/components/map/MapLayerManager.tsx`; `src/centerpanel/components/map/MapWorkflowDrawer.tsx`; `src/centerpanel/components/MapExportDialog.tsx`; `src/features/urbanAnalytics/context/codeArtifactRequests.ts`; focused Urban and Map adapter tests | Prompt 18 narrowed to a Map-owned outgoing IDE artifact request service with explicit UI actions, new generated artifact evidence, and reference-only bridge/bus payloads. |
@@ -1683,6 +1685,8 @@ Append changed files here as implementation progresses.
 
 | Date | Prompt | Files changed | Reason |
 | --- | --- | --- | --- |
+| 2026-05-13 | Prompt 23 | `src/centerpanel/components/map/mapTypes.ts`, `src/centerpanel/components/map/mapEvidenceArtifacts.ts`, `src/centerpanel/components/map/index.ts`, `src/services/map/voxCitySelectionService.ts`, `src/services/map/__tests__/voxCitySyncEvidence.test.ts`, `src/features/urbanAnalytics/voxcity/BuildingViewer.tsx`, `src/features/urbanAnalytics/voxcity/SunlightSimulatorPanel.tsx`, `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` | Added typed VoxCity 2D/3D sync metadata, reference-only handoff evidence builder, sample/demo and projection QA caveats, Building/Sunlight registration, layer metadata attachment, focused tests, and ledger handoff. |
+| 2026-05-13 | Prompt 22 | `src/centerpanel/components/map/mapTypes.ts`, `src/centerpanel/components/map/mapEvidenceArtifacts.ts`, `src/centerpanel/components/map/index.ts`, `src/centerpanel/components/MapTemporalPlayer.tsx`, `src/centerpanel/components/__tests__/MapTemporalPlayer.test.tsx`, `src/centerpanel/Flows/scenarioComparisonArtifacts.ts`, `src/centerpanel/Flows/ScenarioComparisonFlow.tsx`, `src/centerpanel/Flows/__tests__/scenarioComparisonArtifacts.test.ts`, `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` | Added reference-only temporal/scenario evidence metadata contracts, builders, component/flow registration, stable report/dashboard handoff IDs, focused tests, and ledger handoff. |
 | 2026-05-12 | Prompt 20 | `src/services/map/MapReportHandoffService.ts`, `src/centerpanel/components/map/MapReportHandoffDrawer.tsx`, `src/centerpanel/components/MapExplorerModal.tsx`, `src/services/reporting/types.ts`, `src/services/reporting/storage.ts`, `src/services/reporting/ReportEngine.ts`, `src/services/map/__tests__/MapReportHandoffService.test.ts`, `src/centerpanel/components/map/__tests__/MapReportHandoffDrawer.test.tsx`, `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` | Added structured Map report evidence blocks, optional reporting structured evidence preservation, drawer evidence-registration action, Map evidence artifact binding metadata, and focused report/reporting coverage. |
 | 2026-05-12 | Prompt 19 | `src/services/map/IdeToMapArtifactRecognitionService.ts`, `src/services/map/__tests__/IdeToMapArtifactRecognitionService.test.ts`, `src/App.tsx`, `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` | Added Map-owned IDE artifact recognition payload/result/readiness contract, supported extension classification, evidence candidate registration, typed bus receiver, App install wiring, and focused validation for no layer materialization without validation. |
 | 2026-05-12 | Prompt 18 | `src/services/map/MapCodeArtifactRequestService.ts`, `src/services/map/__tests__/MapCodeArtifactRequestService.test.ts`, `src/services/editorBridge.ts`, `src/centerpanel/components/MapExplorerModal.tsx`, `src/centerpanel/components/map/MapWorkflowDrawer.tsx`, `src/centerpanel/components/MapExportDialog.tsx`, `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` | Added Map-owned IDE artifact request generation/dispatch, SQL language support, explicit layer/workflow/export IDE actions, Map `ide-code-reference` evidence registration, lightweight Synapse bus artifact events, and focused no-heavy-payload coverage. |
@@ -1712,6 +1716,7 @@ Record every contract that connects Map Explorer with Synapse IDE, Urban Analyti
 
 | Date | Prompt | Contract | Direction | Status | Notes |
 | --- | --- | --- | --- | --- | --- |
+| 2026-05-13 | Prompt 23 | `MapVoxCitySyncMetadata` + `createMapVoxCityHandoffEvidenceArtifact` | Map Explorer / VoxCity outputs -> Map evidence / report / dashboard / IDE references | Implemented Additive Contract | Captures map/output layer IDs, selected feature/building IDs, building/voxel references, source metadata, projection assumptions, viewport/AOI, scenario/run/artifact refs, handoff IDs, QA, caveats, and sample/demo status. Reference-only by design; no mesh, voxel grid, CityJSON, GeoJSON, or sourceData payloads are copied. |
 | 2026-05-12 | Prompt 20 | `MapReportEvidenceBlock` + `MapReportEvidenceBlockPayload` | Map Explorer report handoff → reporting / Map evidence registry | Implemented Additive Contract | Drafts now carry structured composition, viewport/bounds, layer stack, legend metadata, scale/north/attribution, CRS summary, QA, caveats, provenance, citations, evidence IDs, reproducibility references, and snapshot asset references. No rendered image data or raw spatial payloads are embedded. |
 | 2026-05-12 | Prompt 20 | `ReportStructuredEvidenceBlock` + `structuredEvidenceBlocks` / `structuredEvidenceBlockIds` | Map report inserts → reporting service | Implemented Additive Contract | Reporting types/storage/engine preserve optional structured evidence metadata while existing report section blocks remain compatible. |
 | 2026-05-12 | Prompt 20 | Report handoff drawer `onRegisterEvidence` action | Map report drawer → Map evidence registry | Implemented Additive UI Contract | Drawer can explicitly register a structured map evidence artifact without inserting report sections; Insert to report remains readiness-gated. |
@@ -1775,6 +1780,9 @@ Record decisions that future agents must not re-litigate unless the repository p
 
 | Date | Prompt | Decision | Rationale | Status |
 | --- | --- | --- | --- | --- |
+| 2026-05-13 | Prompt 23 | VoxCity 2D/3D handoffs store feature/building/voxel/layer/scenario references and projection assumptions, not 3D payloads or map sourceData. | 2D-to-3D outputs are visually persuasive but scientifically risky; reproducibility needs identity, source, CRS/projection, sample/demo status, and caveats without duplicating heavy geometry or voxel data. | Accepted |
+| 2026-05-13 | Prompt 22 | Temporal playback evidence records frame keys, source fields, playback parameters, and layer references, not frame GeoJSON payloads. | Temporal playback can imply change over time; reproducibility needs parameters and frame identity without duplicating map-owned geometry buffers. | Accepted |
+| 2026-05-13 | Prompt 22 | Scenario comparison evidence is guidance-only and report/dashboard handoff IDs are metadata references until downstream outputs materialize them. | Prevents scenario rankings and static handoff IDs from being mistaken for causal policy findings or live dashboard/report state. | Accepted |
 | 2026-05-12 | Prompt 20 | Structured report evidence blocks preserve map composition metadata and references, but not rendered image data or raw spatial data. | Report/dashboard consumers need auditable evidence context without duplicating map canvas captures, GeoJSON, source buffers, or large tables. | Accepted |
 | 2026-05-12 | Prompt 20 | Report insertion remains gated by publication readiness; registering evidence is allowed as an explicit Map evidence action with QA state preserved. | Evidence registration can document blocked/caveated context, while formal report insertion should not proceed through blockers. | Accepted |
 | 2026-05-12 | Prompt 19 | IDE-originated file paths are evidence references until Map Explorer obtains and validates an importable File/worker/layer handle. | Browser-local paths in IDE events are not readable data handles; treating them as map-ready layers would overstate readiness and violate prompt safety. | Accepted |
@@ -1823,6 +1831,12 @@ Append validation runs here.
 
 | Date | Prompt | Command | Result | Notes |
 | --- | --- | --- | --- | --- |
+| 2026-05-13 | Prompt 23 | `npm run typecheck` | Passed | Full TypeScript project typechecks after VoxCity sync metadata, evidence builder, and component wiring. |
+| 2026-05-13 | Prompt 23 | `npm run test -- src/services/map/__tests__/voxCitySyncEvidence.test.ts src/centerpanel/components/map/__tests__/mapEvidenceArtifacts.test.ts src/services/map/__tests__/MapSyncService.test.ts` | Passed (8/8) | Covers sample/demo labelling, projection assumptions, source/output layer references, no-heavy-payload artifact assertions, and existing sync/evidence regressions. |
+| 2026-05-13 | Prompt 23 | `npm run test:analytics` | Passed (1111/1111) | Covers Urban Analytics/VoxCity affected surface plus engine/data/worker regression subset. |
+| 2026-05-13 | Prompt 23 | `npx eslint` on changed TS/TSX files | Passed | Changed Map/VoxCity/evidence/test files lint clean in quiet mode. |
+| 2026-05-13 | Prompt 23 | `Invoke-WebRequest http://127.0.0.1:5173/` | Passed (HTTP 200) | Existing dev server responded after Prompt 23 changes. |
+| 2026-05-13 | Prompt 23 | `powershell -ExecutionPolicy Bypass -File scripts/get-next-map-explorer-prompt.ps1` | Passed | Helper returned Prompt 24 as the next pending Map Explorer prompt. |
 | 2026-05-02 | Operating Pack Installation | `Get-Content DEVELOPMENT_PLANS\MAP_EXPLORER_PROMPT_MANIFEST.json -Raw \| ConvertFrom-Json` | Passed | Manifest parsed and reported 30 prompts. |
 | 2026-05-02 | Operating Pack Installation | `powershell -ExecutionPolicy Bypass -File scripts\get-next-map-explorer-prompt.ps1` | Passed | Helper returned Prompt 00 as pending. |
 | 2026-05-10 | Prompt 00 | `npm run typecheck` | Passed | Silent exit 0; full TS project typechecks cleanly with current Map Explorer surface. |
@@ -1983,8 +1997,206 @@ Append validation runs here.
   - Prompt 22 - Temporal Playback and Scenario Comparison.
 - Ledger updated: yes
 
+### Prompt 22 - Temporal Playback and Scenario Comparison
+
+- Date: 2026-05-13
+- Agent: Codex (GPT-5)
+- Status: completed
+- Files inspected:
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` (Prompt 22 scope)
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md` sections Track M10, 22.3, and 22.4
+  - `DEVELOPMENT_PLANS/TRI_MODAL_WORKBENCH_ALIGNMENT_SPEC.md` unified evidence lifecycle / ownership rules
+  - `src/centerpanel/components/MapTemporalPlayer.tsx`
+  - `src/centerpanel/Flows/ScenarioComparisonFlow.tsx`
+  - `src/centerpanel/Flows/scenarioComparisonArtifacts.ts`
+  - `src/centerpanel/components/map/mapTypes.ts`
+  - `src/centerpanel/components/map/mapEvidenceArtifacts.ts`
+  - `src/stores/useMapExplorerStore.ts`
+  - focused temporal/scenario/evidence tests
+- Files changed:
+  - `src/centerpanel/components/map/mapTypes.ts`
+  - `src/centerpanel/components/map/mapEvidenceArtifacts.ts`
+  - `src/centerpanel/components/map/index.ts`
+  - `src/centerpanel/components/MapTemporalPlayer.tsx`
+  - `src/centerpanel/components/__tests__/MapTemporalPlayer.test.tsx`
+  - `src/centerpanel/Flows/scenarioComparisonArtifacts.ts`
+  - `src/centerpanel/Flows/ScenarioComparisonFlow.tsx`
+  - `src/centerpanel/Flows/__tests__/scenarioComparisonArtifacts.test.ts`
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md`
+- Behavior implemented:
+  - Added typed `MapTemporalEvidenceMetadata` and `MapScenarioComparisonEvidenceMetadata` contracts with source fields, time range, playback parameters, layer references, QA caveats, uncertainty notes, scenario baseline/candidates/metrics/deltas, output IDs, and static report/dashboard handoff IDs.
+  - Added `createMapTemporalEvidenceArtifact` and `createMapScenarioComparisonEvidenceArtifact` builders that keep evidence reference-only and avoid GeoJSON/sourceData/render payload copying.
+  - Wired `MapTemporalPlayer` to upsert a stable `temporal-state` evidence artifact as frames, current timestep, playback speed, and playback state change.
+  - Wired scenario delta layer publication and completed-run publication to attach scenario comparison metadata, stable evidence artifact IDs, report handoff IDs, dashboard binding IDs, and guidance-only uncertainty/limitation QA.
+  - Preserved existing playback engine and scenario dashboard behavior; no temporal engine rewrite or cross-module ownership change.
+- Spatial evidence/provenance changed:
+  - New temporal playback evidence artifacts record source/layer IDs, current frame reference, playback speed, time field/source fields, caveats, and uncertainty notes.
+  - New scenario comparison evidence artifacts record output layer IDs, run/output IDs, candidate source run refs, metric deltas, and static report/dashboard handoff metadata.
+  - Heavy geometry, raw GeoJSON, rendered map images, and source buffers remain outside evidence artifacts.
+- CRS, geometry, or measurement changed:
+  - No CRS or measurement engine changes. Scenario artifacts explicitly preserve reference-only geometry summaries and do not claim projected measurement readiness.
+- Scientific QA changed:
+  - No QA engine changes. Temporal/scenario evidence now carries warning/caveat states where change/causality or scenario ranking could be over-interpreted.
+- Layer registry or persistence changed:
+  - Additive optional layer metadata fields only: `temporalEvidence` and `scenarioComparison`. No persistence boundary changes.
+- Workflow/export/report changed:
+  - Scenario completed-run outputs now include `mapEvidenceArtifactId`, `reportHandoffId`, and `dashboardBindingId` metadata for downstream report/dashboard consumers.
+- Cross-module contracts changed:
+  - Additive Map evidence contract extensions only: `scenario-comparison` artifact kind plus optional typed temporal/scenario metadata fields.
+  - No direct imports from dashboard/report/Urban/IDE owner state were added; handoffs remain identifiers and metadata.
+- Validation run:
+  - `npm run typecheck` -> Passed.
+  - `npm run test -- src/centerpanel/components/__tests__/MapTemporalPlayer.test.tsx src/centerpanel/Flows/__tests__/scenarioComparisonArtifacts.test.ts src/centerpanel/components/map/__tests__/mapEvidenceArtifacts.test.ts` -> Passed (13/13).
+  - `npx eslint` on changed TS/TSX files -> Passed.
+  - `npm run lint:errors -- <changed files>` -> Failed on unrelated pre-existing `src/features/urbanAnalytics/lib/workflowReadiness.ts:20` unused import because the script runs `eslint .`.
+  - `Invoke-WebRequest http://127.0.0.1:5173/` -> Passed (HTTP 200).
+  - `git diff --check -- <Prompt 22 files>` -> Passed with LF-to-CRLF warnings only.
+- Validation result:
+  - Prompt 22 delta validated and compatible with existing temporal player, scenario comparison, and map evidence registry behavior.
+- Risks or blockers:
+  - Low: Temporal player registers playback state evidence from component state; richer temporal source-layer provenance can be added when a formal temporal layer registry exists.
+  - Low: Scenario report/dashboard handoff IDs are stable metadata references, not proof that a downstream report insert or dashboard widget has already been materialized.
+- Next recommended prompt:
+  - Prompt 23 - VoxCity 2D/3D Synchronization.
+- Ledger updated: yes
+
+### Prompt 23 - VoxCity 2D/3D Synchronization
+
+- Date: 2026-05-13
+- Agent: Codex (GPT-5)
+- Status: completed
+- Files inspected:
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` (Prompt 23 scope)
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md` Track M11 and sections 22.1/22.2
+  - `DEVELOPMENT_PLANS/URBAN_ANALYTICS_DEVELOPMENT_PLAN.md` VoxCity/3D plan sections
+  - `DEVELOPMENT_PLANS/TRI_MODAL_WORKBENCH_ALIGNMENT_SPEC.md` shared artifact rules
+  - `src/services/map/voxCitySelectionService.ts`
+  - `src/services/map/voxCityProjection.ts`
+  - `src/features/urbanAnalytics/voxcity/voxCityDataBridge.ts`
+  - `src/features/urbanAnalytics/voxcity/BuildingViewer.tsx`
+  - `src/features/urbanAnalytics/voxcity/SunlightSimulatorPanel.tsx`
+  - `src/features/urbanAnalytics/context/voxCityEvidenceBuilder.ts`
+  - `src/centerpanel/components/map/mapTypes.ts`
+  - `src/centerpanel/components/map/mapEvidenceArtifacts.ts`
+  - `src/stores/useMapExplorerStore.ts`
+- Files changed:
+  - `src/centerpanel/components/map/mapTypes.ts`
+  - `src/centerpanel/components/map/mapEvidenceArtifacts.ts`
+  - `src/centerpanel/components/map/index.ts`
+  - `src/services/map/voxCitySelectionService.ts`
+  - `src/services/map/__tests__/voxCitySyncEvidence.test.ts`
+  - `src/features/urbanAnalytics/voxcity/BuildingViewer.tsx`
+  - `src/features/urbanAnalytics/voxcity/SunlightSimulatorPanel.tsx`
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md`
+- Behavior implemented:
+  - Added typed `MapVoxCitySyncMetadata` with map layer/output IDs, selected feature/building IDs, building/voxel references, source metadata, projection assumptions, viewport/AOI references, scenario/run/artifact references, handoff IDs, QA, caveats, and sample/demo labeling.
+  - Added `buildMapVoxCitySyncMetadata` in the VoxCity selection service so 2D/3D handoffs can be normalized from selection/source/projection inputs without importing 3D rendering internals.
+  - Added `createMapVoxCityHandoffEvidenceArtifact` to register `voxcity-handoff` evidence artifacts as reference-only map evidence.
+  - Wired Building Extruder and Sunlight Simulation outputs to attach `voxCitySync` layer metadata and upsert map evidence artifacts for each stable run.
+  - Preserved existing 3D rendering, playback, extrusion, sunlight simulation, and map layer publication behavior.
+- Spatial evidence/provenance changed:
+  - New VoxCity handoff evidence records source refs, source/output layer IDs, selected IDs, building/voxel references, scenario/run refs, CRS/projection notes, and QA caveats only.
+  - Heavy meshes, voxel grids, raw GeoJSON/sourceData, CityJSON payloads, feature collections, and rendered imagery are not copied into the evidence artifact.
+- CRS, geometry, or measurement changed:
+  - No measurement engine changes.
+  - Projection metadata is explicit: sample sources use anchored display assumptions; EPSG:4326 sources use passthrough; undeclared CRS remains unknown/warning.
+- Scientific QA changed:
+  - Sample/demo sources now produce warning QA and explicit exploratory-use caveats in map-side VoxCity evidence.
+  - Unknown/assumed projection states stay warning-qualified and do not claim analytical readiness.
+- Layer registry or persistence changed:
+  - Additive optional layer metadata field only: `voxCitySync`.
+  - Map evidence registry remains in-memory/reference-only; no persistence boundary or sourceData storage changes.
+- Workflow/export/report changed:
+  - VoxCity Building Extrusion and Sunlight Simulation map outputs now carry report/dashboard/IDE handoff reference IDs in sync metadata.
+  - Existing completed-run and Urban VoxCity scenario evidence registration remain compatible.
+- Cross-module contracts changed:
+  - Additive Map contract: `MapVoxCitySyncMetadata` and `MapVoxCityHandoffEvidenceArtifactInput`.
+  - Urban VoxCity components call Map-owned evidence builders at output boundaries but do not pass heavy 3D payloads across module boundaries.
+- Validation run:
+  - `npm run typecheck` -> Passed.
+  - `npm run test -- src/services/map/__tests__/voxCitySyncEvidence.test.ts src/centerpanel/components/map/__tests__/mapEvidenceArtifacts.test.ts src/services/map/__tests__/MapSyncService.test.ts` -> Passed (8/8).
+  - `npm run test:analytics` -> Passed (62 files, 1111/1111 tests).
+  - `npx eslint` on changed TS/TSX files -> Passed.
+  - `Invoke-WebRequest http://127.0.0.1:5173/` -> Passed (HTTP 200).
+- Validation result:
+  - Prompt 23 delta validated and compatible with existing VoxCity selection/projection services, Building Viewer, Sunlight Simulation, and map evidence registry behavior.
+- Risks or blockers:
+  - Low: VoxCity sync evidence records current component/run references; richer 3D viewport camera or voxel-grid indexing can be added later if a formal 3D registry appears.
+  - Low: Sample-source map layer IDs use the published output layer when no source layer exists; QA caveats keep sample/demo status explicit.
+- Next recommended prompt:
+  - Prompt 24 - Natural-Language Query Safety and Audit.
+- Ledger updated: yes
+
+### Prompt 24 - Natural-Language Query Safety and Audit
+
+- Date: 2026-05-13
+- Agent: Codex (GPT-5)
+- Status: completed
+- Files inspected:
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` Prompt 24 scope and acceptance criteria.
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md` sections 13.10, 14.7, 18.6, and scientific truthfulness notes.
+  - `DEVELOPMENT_PLANS/TRI_MODAL_WORKBENCH_ALIGNMENT_SPEC.md` safety/truthfulness, event payload, artifact, QA, and non-destructive preview rules.
+  - `src/centerpanel/components/map/MapNLQueryPanel.tsx`
+  - `src/services/map/MapNLQueryBuilder.ts`
+  - `src/services/map/MapReviewSessionService.ts`
+  - `src/centerpanel/components/map/mapTypes.ts`
+  - `src/centerpanel/components/map/mapLayerMetadata.ts`
+  - `src/services/map/MapScientificQA.ts`
+  - `src/centerpanel/components/MapExplorerModal.tsx`
+- Files changed:
+  - `src/services/map/MapNLQueryBuilder.ts`
+  - `src/centerpanel/components/map/MapNLQueryPanel.tsx`
+  - `src/centerpanel/components/MapExplorerModal.tsx`
+  - `src/services/map/__tests__/MapNLQueryBuilder.test.ts`
+  - `src/centerpanel/components/map/__tests__/MapNLQueryPanel.test.tsx`
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md`
+- Behavior implemented:
+  - Added structured NL query interpretation preview metadata: interpreted intent, confidence band, ambiguity state/reasons, assumptions, safe read-only state, source-layer selection mode, affected layers, and required fields.
+  - Layer eligibility and affected-layer summaries now use normalized layer registry metadata, including queryability, CRS, schema fields, QA status, publication readiness, source kind, and evidence artifact references.
+  - Removed the unsafe attribute fallback that could silently apply thresholds to the first available field; missing threshold/density/canopy fields now surface as missing required fields and ambiguity warnings.
+  - Added explicit preview accept/reject controls. Running a query is disabled until the current interpreted preview is accepted; rejected previews do not mutate map state.
+  - Routed accept, reject, blocked execution, applied execution, and failed execution through `query-run` review timeline events with bounded audit details.
+- Spatial evidence/provenance changed:
+  - Existing QueryToSQL result evidence remains registered through `MapEngineAdapter`.
+  - Review timeline query events now include preview IDs, affected layer IDs, required fields, confidence/ambiguity metadata, SQL/predicate, unavailable-layer reasons, warnings, blockers, and whether a map mutation occurred.
+- CRS, geometry, or measurement changed:
+  - No spatial computation engine changes.
+  - CRS and geometry metadata are now shown and audited from the layer registry before query execution; unknown CRS stays explicit.
+- Scientific QA changed:
+  - Affected-layer preview and audit now carry QA status and publication readiness.
+  - Missing schema fields and low-confidence/ambiguous interpretation remain warning/blocker states instead of being converted into readiness claims.
+- Layer registry or persistence changed:
+  - Layer registry metadata is read for NL query scope/preview only.
+  - No persistence schema or heavy payload storage changes.
+- Workflow/export/report changed:
+  - No export/report workflow changes.
+  - Review timeline receives accepted/rejected/applied/failed NL query events for later Prompt 25 audit trail work.
+- Cross-module contracts changed:
+  - Additive Map service contract fields on `MapNLQueryPreview`: intent preview, affected layers, required fields, and explicit-apply flag.
+  - No new cross-module imports or large event payloads.
+- Validation run:
+  - `npm run typecheck` -> Passed.
+  - `npm run test -- src/services/map/__tests__/MapNLQueryBuilder.test.ts src/centerpanel/components/map/__tests__/MapNLQueryPanel.test.tsx` -> Passed (10/10).
+  - `npx eslint src\services\map\MapNLQueryBuilder.ts src\services\map\__tests__\MapNLQueryBuilder.test.ts src\centerpanel\components\map\MapNLQueryPanel.tsx src\centerpanel\components\map\__tests__\MapNLQueryPanel.test.tsx src\centerpanel\components\MapExplorerModal.tsx` -> Passed with 0 errors; existing `MapExplorerModal.tsx` warnings remain.
+  - `Invoke-WebRequest -UseBasicParsing http://127.0.0.1:5173/` -> Passed (HTTP 200).
+  - `powershell -ExecutionPolicy Bypass -File scripts\get-next-map-explorer-prompt.ps1` -> Passed; returned Prompt 25.
+- Validation result:
+  - Prompt 24 delta validated with focused builder tests, panel accept/reject smoke, typecheck, changed-file lint, and local HTTP smoke.
+- Risks or blockers:
+  - Low: NL interpretation remains deterministic/rule-based; the UI and audit trail label confidence and ambiguity, but downstream Prompt 25 can add richer review filtering/search for accepted/rejected query decisions.
+- Next recommended prompt:
+  - Prompt 25 - Review Timeline and Audit Trail.
+- Ledger updated: yes
+
 | 2026-05-13 | Prompt 21 | `npm run typecheck` | Passed | Full TypeScript project typechecks after Prompt 21 education-readiness propagation and modal action metadata updates. |
 | 2026-05-13 | Prompt 21 | `npx vitest run src/services/map/__tests__/MapPublicationOutputBindingService.test.ts src/services/map/__tests__/MapExportService.test.ts src/centerpanel/components/map/__tests__/map-layer-management.test.ts` | Passed (64/64) | Covers static dashboard/education bindings, publication-readiness traceability semantics, and layer-rail eligibility behavior. |
+| 2026-05-13 | Prompt 22 | `npm run typecheck` | Passed | Full TypeScript project typechecks after temporal/scenario evidence metadata and component/flow wiring. |
+| 2026-05-13 | Prompt 22 | `npm run test -- src/centerpanel/components/__tests__/MapTemporalPlayer.test.tsx src/centerpanel/Flows/__tests__/scenarioComparisonArtifacts.test.ts src/centerpanel/components/map/__tests__/mapEvidenceArtifacts.test.ts` | Passed (13/13) | Covers temporal playback evidence registration, scenario comparison evidence/handoff metadata, and existing evidence artifact registry behavior. |
+| 2026-05-13 | Prompt 24 | `npm run typecheck` | Passed | Full TypeScript project typechecks after NL query preview/audit changes. |
+| 2026-05-13 | Prompt 24 | `npm run test -- src/services/map/__tests__/MapNLQueryBuilder.test.ts src/centerpanel/components/map/__tests__/MapNLQueryPanel.test.tsx` | Passed (10/10) | Covers interpretation preview metadata, required fields, ambiguity states, blocked/rejected audit details, and explicit accept-before-run panel behavior. |
+| 2026-05-13 | Prompt 24 | `npx eslint src\services\map\MapNLQueryBuilder.ts src\services\map\__tests__\MapNLQueryBuilder.test.ts src\centerpanel\components\map\MapNLQueryPanel.tsx src\centerpanel\components\map\__tests__\MapNLQueryPanel.test.tsx src\centerpanel\components\MapExplorerModal.tsx` | Passed with warnings | Exit 0; remaining warnings are existing `MapExplorerModal.tsx` sort/no-alert/leaked-render warnings. |
+| 2026-05-13 | Prompt 24 | `Invoke-WebRequest -UseBasicParsing http://127.0.0.1:5173/` | Passed (HTTP 200) | Local dev server responded for map UI smoke baseline. |
+| 2026-05-13 | Prompt 24 | `powershell -ExecutionPolicy Bypass -File scripts\get-next-map-explorer-prompt.ps1` | Passed | Helper now resolves Prompt 25 - Review Timeline and Audit Trail. |
 
 ## Known Risks
 
@@ -1995,6 +2207,7 @@ Append validation runs here.
 | Pending | Pending | CRS and measurement claims can become misleading if metadata is inferred too aggressively. | High | Require explicit unknown/warning states. |
 | Pending | Pending | Cross-module bridges may be partially implemented. | Medium | Use adapters and ledger contract registry. |
 | Pending | Pending | UI polish work may drift into broad redesign. | Medium | Preserve map-first workspace and follow tri-modal alignment spec. |
+| 2026-05-13 | Prompt 23 | VoxCity sync evidence currently references output/source layers and selected IDs; it does not yet carry a formal 3D camera/voxel registry reference beyond lightweight voxel IDs. | Low | Add richer 3D registry references only when VoxCity exposes stable camera/voxel identifiers; keep current evidence reference-only. |
 | 2026-05-10 | Prompt 03 | Existing map/report/export workflows do not yet auto-register every possible map evidence artifact. | Low | Prompt 03 only added model/foundation. Later prompts should call the builders at apply/publish/export/report boundaries. |
 | 2026-05-10 | Prompt 03 | Map evidence registry is currently in-memory only. | Medium | Prompt 04 owns persistence boundaries and project snapshot shape; do not persist heavy payloads. |
 | 2026-05-10 | Prompt 04 | Snapshot v3 restore warnings are available in metadata but not yet surfaced in UI. | Medium | Prompt 05/06 should expose missing/stale layer states in decomposed shell/context strips. |
@@ -2020,6 +2233,9 @@ Append validation runs here.
 | 2026-05-12 | Prompt 20 | Structured evidence blocks are preserved as metadata and generated tables; the report builder does not yet expose a dedicated structured evidence inspector. | Low | Prompt 21 can enrich dashboard/report publication outputs using the preserved `structuredEvidenceBlocks` contract. |
 | 2026-05-12 | Prompt 20 | Report evidence registration action is still orchestrated inside `MapExplorerModal.tsx`. | Low | Keep scope minimal now; extract report commands into a focused hook when a future decomposition prompt authorizes it. |
 | 2026-05-13 | Prompt 21 | Dashboard/education binding orchestration still lives in `MapExplorerModal.tsx`. | Low | Keep current contract-safe behavior; extract prompt-21 handlers into a dedicated command hook during future modal decomposition prompts. |
+| 2026-05-13 | Prompt 22 | Temporal playback evidence currently captures component-level playback state rather than a formal temporal layer registry entry. | Low | Future temporal registry work can add source-layer provenance without changing the Prompt 22 reference-only evidence contract. |
+| 2026-05-13 | Prompt 22 | Scenario report/dashboard handoff IDs are stable metadata references, not proof of downstream materialized report inserts or widgets. | Low | Downstream report/dashboard actions should materialize and register their own artifacts when invoked. |
+| 2026-05-13 | Prompt 24 | NL query interpretation is deterministic/rule-based and should not be treated as semantic certainty. | Low | UI and review events now expose confidence, ambiguity, required fields, affected layers, and explicit accept/reject decisions; Prompt 25 can add richer timeline review filters. |
 
 ## Next Prompt Pointer
 
@@ -2029,7 +2245,7 @@ Start with:
 
 Prompt:
 
-`Prompt 22 - Temporal Playback and Scenario Comparison`
+`Prompt 25 - Review Timeline and Audit Trail`
 
 Optional helper command:
 

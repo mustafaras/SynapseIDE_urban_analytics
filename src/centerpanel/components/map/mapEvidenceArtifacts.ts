@@ -24,6 +24,9 @@ import type {
   MapEvidenceReportReference,
   MapEvidenceScalar,
   MapEvidenceSourceModule,
+  MapScenarioComparisonEvidenceMetadata,
+  MapTemporalEvidenceMetadata,
+  MapVoxCitySyncMetadata,
   OverlayLayerConfig,
 } from "./mapTypes";
 import type {
@@ -144,6 +147,49 @@ export interface MapWorkflowResultEvidenceArtifactInput {
   qa?: Partial<MapEvidenceQA>;
   metadata?: Record<string, MapEvidenceScalar>;
   createdAt?: string;
+}
+
+export interface MapTemporalEvidenceArtifactInput {
+  temporal: MapTemporalEvidenceMetadata;
+  id?: string;
+  title?: string;
+  summary?: string;
+  state?: MapEvidenceArtifactState;
+  sourceLayerIds?: string[];
+  linkedArtifactIds?: string[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface MapScenarioComparisonEvidenceArtifactInput {
+  scenarioComparison: MapScenarioComparisonEvidenceMetadata;
+  id?: string;
+  title?: string;
+  summary?: string;
+  state?: MapEvidenceArtifactState;
+  sourceLayerIds?: string[];
+  linkedLayerIds?: string[];
+  derivedLayerId?: string;
+  linkedRunId?: string;
+  linkedWorkflowId?: string;
+  linkedArtifactIds?: string[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface MapVoxCityHandoffEvidenceArtifactInput {
+  voxCitySync: MapVoxCitySyncMetadata;
+  id?: string;
+  title?: string;
+  summary?: string;
+  state?: MapEvidenceArtifactState;
+  sourceLayerIds?: string[];
+  linkedLayerIds?: string[];
+  derivedLayerId?: string;
+  linkedRunId?: string;
+  linkedArtifactIds?: string[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface MapQAFindingEvidenceArtifactOptions {
@@ -1079,6 +1125,281 @@ export function createMapWorkflowResultEvidenceArtifact(
     metadata: input.metadata,
     createdAt: input.createdAt,
   });
+}
+
+export function createMapTemporalEvidenceArtifact(
+  input: MapTemporalEvidenceArtifactInput,
+): MapEvidenceArtifact {
+  const temporal = input.temporal;
+  const sourceLayerIds = normalizeStringList([
+    ...temporal.layerReferences.sourceLayerIds,
+    ...(input.sourceLayerIds ?? []),
+  ]);
+  const derivedLayerId = optionalId(temporal.layerReferences.derivedLayerId ?? temporal.activeLayerId);
+  const artifact = createMapEvidenceArtifact({
+    id: input.id ?? `map-evidence-temporal-${safeReferencePart(temporal.temporalEvidenceId)}`,
+    kind: "temporal-state",
+    title: input.title ?? `${temporal.layerName ?? temporal.activeLayerId} temporal playback`,
+    summary: input.summary ?? `${temporal.frameCount} frame temporal playback, current frame ${temporal.step.index + 1}.`,
+    state: input.state ?? (temporal.qa.state === "blocked" ? "blocked" : "active"),
+    sourceModule: "map-explorer",
+    sourceId: temporal.temporalEvidenceId,
+    linkedLayerIds: mergeStringLists(
+      [temporal.activeLayerId, temporal.layerReferences.layerId],
+      sourceLayerIds,
+      derivedLayerId ? [derivedLayerId] : [],
+    ),
+    sourceLayerIds,
+    derivedLayerId,
+    linkedArtifactIds: input.linkedArtifactIds,
+    provenance: {
+      sourceModule: "map-explorer",
+      sourceName: temporal.layerName ?? temporal.activeLayerId,
+      sourceKind: "generated",
+      createdAt: input.createdAt,
+      updatedAt: input.updatedAt,
+      sourceLayerIds,
+      derivedLayerId,
+      method: "Temporal playback state capture",
+      notes: [
+        `Time field: ${temporal.timeField ?? "not declared"}.`,
+        `Playback speed: ${temporal.playback.speed}x.`,
+        ...temporal.caveats,
+      ],
+      geometrySummary: {
+        geometryTypes: [],
+        source: "unknown",
+        notes: ["Temporal evidence records playback parameters and layer references only; frame geometry remains in the map source."],
+      },
+    },
+    qa: {
+      state: temporal.qa.state,
+      issueIds: [],
+      issueCount: 0,
+      blockerCount: temporal.qa.state === "blocked" ? 1 : 0,
+      caveats: [...temporal.qa.caveats, ...temporal.qa.uncertaintyNotes],
+    },
+    metadata: {
+      temporalEvidenceId: temporal.temporalEvidenceId,
+      activeLayerId: temporal.activeLayerId,
+      sourceId: temporal.layerReferences.sourceId,
+      layerId: temporal.layerReferences.layerId,
+      mode: temporal.mode,
+      frameCount: temporal.frameCount,
+      currentStepIndex: temporal.step.index,
+      currentStepKey: temporal.step.key ?? null,
+      currentStepLabel: temporal.step.label ?? null,
+      timeRangeStartKey: temporal.timeRange.startKey ?? null,
+      timeRangeEndKey: temporal.timeRange.endKey ?? null,
+      playbackSpeed: temporal.playback.speed,
+      isPlaying: temporal.playback.isPlaying,
+      timeField: temporal.timeField ?? null,
+      sourceFieldCount: temporal.sourceFields.length,
+      caveatCount: temporal.caveats.length,
+    },
+    createdAt: input.createdAt,
+    updatedAt: input.updatedAt,
+  });
+
+  return { ...artifact, temporal };
+}
+
+export function createMapScenarioComparisonEvidenceArtifact(
+  input: MapScenarioComparisonEvidenceArtifactInput,
+): MapEvidenceArtifact {
+  const scenarioComparison = input.scenarioComparison;
+  const sourceLayerIds = normalizeStringList(input.sourceLayerIds);
+  const linkedLayerIds = mergeStringLists(input.linkedLayerIds, scenarioComparison.outputLayerIds, sourceLayerIds);
+  const derivedLayerId = optionalId(input.derivedLayerId ?? scenarioComparison.outputLayerIds[0]);
+  const artifact = createMapEvidenceArtifact({
+    id: input.id ?? `map-evidence-scenario-${safeReferencePart(scenarioComparison.comparisonId)}`,
+    kind: "scenario-comparison",
+    title: input.title ?? `Scenario comparison ${scenarioComparison.baseline.label}`,
+    summary: input.summary ?? `${scenarioComparison.candidates.length} candidate scenario(s), ${scenarioComparison.indicatorsCompared.length} indicator(s), guidance-only interpretation.`,
+    state: input.state ?? "active",
+    sourceModule: "map-explorer",
+    sourceId: scenarioComparison.comparisonId,
+    linkedLayerIds,
+    sourceLayerIds,
+    derivedLayerId,
+    linkedRunId: input.linkedRunId ?? scenarioComparison.runId ?? undefined,
+    linkedWorkflowId: "scenario_comparison",
+    linkedArtifactIds: mergeStringLists(input.linkedArtifactIds, scenarioComparison.evidenceArtifactIds),
+    dashboardBindingId: scenarioComparison.handoff.dashboardBindingId,
+    provenance: {
+      sourceModule: "map-explorer",
+      sourceName: input.title ?? "Scenario comparison",
+      sourceKind: "generated",
+      createdAt: input.createdAt ?? scenarioComparison.createdAt,
+      updatedAt: input.updatedAt,
+      sourceLayerIds,
+      derivedLayerId,
+      workflowId: "scenario_comparison",
+      runId: input.linkedRunId ?? scenarioComparison.runId ?? undefined,
+      method: "Map scenario comparison evidence registration",
+      notes: [
+        `Comparison metric: ${scenarioComparison.comparisonMetric.label}.`,
+        `Policy interpretation mode: ${scenarioComparison.policyInterpretationMode}.`,
+        ...scenarioComparison.uncertaintyNotes,
+      ],
+      geometrySummary: {
+        geometryTypes: ["Polygon"],
+        source: "workflow-summary",
+        notes: ["Scenario comparison evidence keeps output layer ids and metric deltas by reference; raw map geometry remains in layer state."],
+      },
+    },
+    qa: {
+      state: scenarioComparison.uncertaintyNotes.length > 0 || scenarioComparison.limitations.length > 0 ? "warning" : "unchecked",
+      issueIds: [],
+      issueCount: 0,
+      blockerCount: 0,
+      caveats: [...scenarioComparison.uncertaintyNotes, ...scenarioComparison.limitations],
+      checkedAt: scenarioComparison.createdAt,
+    },
+    metadata: {
+      comparisonId: scenarioComparison.comparisonId,
+      baselineLabel: scenarioComparison.baseline.label,
+      candidateCount: scenarioComparison.candidates.length,
+      indicatorCount: scenarioComparison.indicatorsCompared.length,
+      activeScenarioId: scenarioComparison.activeScenarioId,
+      comparisonMetricId: scenarioComparison.comparisonMetric.indicatorId,
+      deltaMode: scenarioComparison.deltaMode,
+      mapOutputCount: scenarioComparison.mapOutputIds.length,
+      chartOutputCount: scenarioComparison.chartOutputIds.length,
+      dataOutputCount: scenarioComparison.dataOutputIds.length,
+      outputLayerCount: scenarioComparison.outputLayerIds.length,
+      sourceRunCount: scenarioComparison.sourceRunIds.length,
+      uncertaintyNoteCount: scenarioComparison.uncertaintyNotes.length,
+      limitationCount: scenarioComparison.limitations.length,
+      policyInterpretationMode: scenarioComparison.policyInterpretationMode,
+      reportHandoffId: scenarioComparison.handoff.reportHandoffId,
+      dashboardBindingId: scenarioComparison.handoff.dashboardBindingId,
+      refreshMode: scenarioComparison.handoff.refreshMode,
+    },
+    createdAt: input.createdAt ?? scenarioComparison.createdAt,
+    updatedAt: input.updatedAt,
+  });
+
+  return { ...artifact, scenarioComparison };
+}
+
+function sourceKindFromVoxCitySync(sync: MapVoxCitySyncMetadata): LayerSourceKind | "generated" {
+  if (sync.source.runtimeMode === "sample" || sync.source.kind === "sample") return "demo";
+  if (sync.source.kind === "cityjson") return "external";
+  if (sync.source.kind === "map-layer") return "project";
+  return "generated";
+}
+
+export function createMapVoxCityHandoffEvidenceArtifact(
+  input: MapVoxCityHandoffEvidenceArtifactInput,
+): MapEvidenceArtifact {
+  const sync = input.voxCitySync;
+  const sourceLayerIds = mergeStringLists(
+    input.sourceLayerIds,
+    sync.source.sourceLayerId ? [sync.source.sourceLayerId] : [],
+    sync.mapLayerId && sync.mapLayerId !== sync.outputLayerId ? [sync.mapLayerId] : [],
+  );
+  const derivedLayerId = optionalId(input.derivedLayerId ?? sync.outputLayerId);
+  const linkedLayerIds = mergeStringLists(
+    input.linkedLayerIds,
+    sync.mapLayerId ? [sync.mapLayerId] : [],
+    sync.outputLayerId ? [sync.outputLayerId] : [],
+    sourceLayerIds,
+    derivedLayerId ? [derivedLayerId] : [],
+  );
+  const artifact = createMapEvidenceArtifact({
+    id: input.id ?? `map-evidence-voxcity-${safeReferencePart(sync.syncId)}`,
+    kind: "voxcity-handoff",
+    title: input.title ?? `${sync.source.title} VoxCity 2D/3D handoff`,
+    summary: input.summary ?? `${sync.source.runtimeMode === "sample" ? "Sample-mode" : "Project"} VoxCity handoff with ${sync.selectedBuildingIds.length} selected building reference(s).`,
+    state: input.state ?? (sync.qa.state === "blocked" ? "blocked" : "active"),
+    sourceModule: "map-explorer",
+    sourceId: sync.syncId,
+    linkedLayerIds,
+    sourceLayerIds,
+    derivedLayerId,
+    linkedRunId: input.linkedRunId ?? sync.linkedRunId,
+    linkedWorkflowId: input.linkedWorkflowId ?? "voxcity_3d",
+    linkedArtifactIds: mergeStringLists(input.linkedArtifactIds, sync.linkedArtifactIds),
+    dashboardBindingId: sync.handoff.dashboardBindingId,
+    ideArtifactId: sync.handoff.ideArtifactId,
+    provenance: {
+      sourceModule: "map-explorer",
+      sourceName: sync.source.title,
+      sourceKind: sourceKindFromVoxCitySync(sync),
+      sourceUrl: sync.source.sourceUrl ?? undefined,
+      createdAt: input.createdAt ?? sync.createdAt,
+      updatedAt: input.updatedAt,
+      sourceLayerIds,
+      derivedLayerId,
+      workflowId: input.linkedWorkflowId ?? "voxcity_3d",
+      runId: input.linkedRunId ?? sync.linkedRunId,
+      method: "VoxCity 2D/3D sync reference registration",
+      crsSummary: {
+        declaredCrs: sync.projection.sourceCrs ?? undefined,
+        displayCrs: sync.projection.targetCrs,
+        sourceLayerCrs: sourceLayerIds.map((layerId) => ({
+          layerId,
+          crs: sync.source.crs,
+        })),
+        missingLayerIds: sync.source.crs ? [] : sourceLayerIds,
+        notes: [
+          `Projection mode: ${sync.projection.mode}.`,
+          ...sync.projection.assumptions,
+        ],
+      },
+      geometrySummary: {
+        geometryTypes: ["Polygon"],
+        featureCount: sync.source.featureCount,
+        ...(sync.source.bbox ? { bounds: sync.source.bbox } : {}),
+        source: "metadata",
+        notes: [
+          "VoxCity evidence stores source, building, voxel, and layer identifiers only; raw geometry, meshes, voxel grids, and feature collections remain in their owning stores.",
+        ],
+      },
+      notes: [
+        `Source reference: ${sync.source.sourceRef}.`,
+        `Scenario reference: ${sync.scenarioId ?? "not declared"}.`,
+        ...sync.caveats,
+      ],
+    },
+    qa: {
+      state: sync.qa.state,
+      issueIds: [],
+      issueCount: 0,
+      blockerCount: sync.qa.state === "blocked" ? 1 : 0,
+      caveats: [...sync.qa.caveats, ...sync.qa.uncertaintyNotes],
+      checkedAt: sync.createdAt,
+    },
+    metadata: {
+      voxCitySyncId: sync.syncId,
+      mapLayerId: sync.mapLayerId,
+      outputLayerId: sync.outputLayerId ?? null,
+      sourceId: sync.source.id,
+      sourceKind: sync.source.kind,
+      runtimeMode: sync.source.runtimeMode,
+      sourceRef: sync.source.sourceRef,
+      sourceFeatureCount: sync.source.featureCount,
+      selectedFeatureCount: sync.selectedFeatureIds.length,
+      selectedBuildingCount: sync.selectedBuildingIds.length,
+      buildingReferenceCount: sync.buildingReferences.length,
+      voxelReferenceCount: sync.voxelReferences.length,
+      scenarioId: sync.scenarioId ?? null,
+      linkedRunId: sync.linkedRunId ?? null,
+      projectionMode: sync.projection.mode,
+      projectionSourceCrs: sync.projection.sourceCrs,
+      projectionTargetCrs: sync.projection.targetCrs,
+      sampleData: sync.qa.sampleData,
+      qaState: sync.qa.state,
+      reportHandoffId: sync.handoff.reportHandoffId,
+      dashboardBindingId: sync.handoff.dashboardBindingId,
+      ideArtifactId: sync.handoff.ideArtifactId,
+    },
+    createdAt: input.createdAt ?? sync.createdAt,
+    updatedAt: input.updatedAt,
+  });
+
+  return { ...artifact, voxCitySync: sync };
 }
 
 export function createMapQAFindingEvidenceArtifact(
