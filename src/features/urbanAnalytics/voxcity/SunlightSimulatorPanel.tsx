@@ -48,6 +48,11 @@ import {
   createAnalysisCompletedRun,
   createAnalysisMapOutput,
 } from "@/services/map/MapEngineAdapter";
+import {
+  buildMapVoxCitySyncMetadata,
+  type BuildMapVoxCitySyncMetadataInput,
+} from "@/services/map/voxCitySelectionService";
+import { createMapVoxCityHandoffEvidenceArtifact } from "@/centerpanel/components/map/mapEvidenceArtifacts";
 
 /* ================================================================== */
 /*  §1  STYLES (Charcoal-Amber design system)                        */
@@ -504,6 +509,42 @@ function buildSunlightNarrative(
   ].join(" ");
 }
 
+const EMPTY_SYNC_SELECTION_IDS: string[] = [];
+
+function optionalAttributeLabel(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : undefined;
+}
+
+function buildBuildingSyncReferences(
+  source: VoxCityResolvedSource,
+  selectedBuildingIds: readonly string[],
+): NonNullable<BuildMapVoxCitySyncMetadataInput["buildingReferences"]> {
+  if (selectedBuildingIds.length === 0) return [];
+  const selectedSet = new Set(selectedBuildingIds);
+  return source.features
+    .filter((feature) => selectedSet.has(feature.id))
+    .slice(0, 80)
+    .map((feature) => {
+      const label = optionalAttributeLabel(feature.attributes.name)
+        ?? optionalAttributeLabel(feature.attributes.label)
+        ?? feature.id;
+      return {
+        buildingId: feature.id,
+        sourceFeatureId: feature.id,
+        label,
+      };
+    });
+}
+
+function resolveSelectedFeatureIds(
+  source: VoxCityResolvedSource,
+  mapSelectedFeatureIds: readonly string[],
+  selectedBuildingIds: readonly string[],
+): string[] {
+  if (mapSelectedFeatureIds.length > 0) return [...mapSelectedFeatureIds].slice(0, 80);
+  return source.metadata.sourceLayerId ? [...selectedBuildingIds].slice(0, 80) : [];
+}
+
 /* ================================================================== */
 /*  §3  Main Panel Component                                          */
 /* ================================================================== */
@@ -529,6 +570,7 @@ const SunlightSimulatorPanel: React.FC = () => {
   const registerEvidenceArtifact = useUrbanContextStore((s) => s.registerEvidenceArtifact);
   const overlayLayers = useMapExplorerStore((s: MapExplorerState) => s.overlayLayers);
   const addOverlayLayer = useMapExplorerStore((s: MapExplorerState) => s.addOverlayLayer);
+  const upsertMapEvidenceArtifact = useMapExplorerStore((s: MapExplorerState) => s.upsertMapEvidenceArtifact);
   const cityJSONObjects = useCityJSONScene((s) => s.objects);
   const cityJSONSummary = useCityJSONScene((s) => s.summary);
   const sunlightHandoff = useVoxCityBridgeStore((s) => s.sunlightHandoff);
@@ -555,6 +597,22 @@ const SunlightSimulatorPanel: React.FC = () => {
     () => availableSources.find((source) => source.metadata.id === activeSourceId) ?? null,
     [activeSourceId, availableSources],
   );
+  const mapCenter = useMapExplorerStore((s: MapExplorerState) => s.center);
+  const mapZoom = useMapExplorerStore((s: MapExplorerState) => s.zoom);
+  const mapBearing = useMapExplorerStore((s: MapExplorerState) => s.bearing);
+  const mapPitch = useMapExplorerStore((s: MapExplorerState) => s.pitch);
+  const activeAoiId = useMapExplorerStore((s: MapExplorerState) => s.activeAoiId);
+  const selectedSourceFeatureIds = useMapExplorerStore((s: MapExplorerState) =>
+    activeSource?.metadata.sourceLayerId
+      ? s.selectedFeatureIds[activeSource.metadata.sourceLayerId] ?? EMPTY_SYNC_SELECTION_IDS
+      : EMPTY_SYNC_SELECTION_IDS,
+  );
+  const mapViewport = useMemo(() => ({
+    center: mapCenter,
+    zoom: mapZoom,
+    bearing: mapBearing,
+    pitch: mapPitch,
+  }), [mapBearing, mapCenter, mapPitch, mapZoom]);
 
   useEffect(() => {
     if (!sunlightHandoff) return;
@@ -634,6 +692,64 @@ const SunlightSimulatorPanel: React.FC = () => {
     });
   }, [activeSource, buildingSummaries, config, result, runIdentity]);
 
+  const sunlightSelectedBuildingIds = useMemo(() => {
+    if (!activeSource || !sunlightHandoff) return [];
+    return sunlightHandoff.source.metadata.id === activeSource.metadata.id
+      ? [...sunlightHandoff.selectedBuildingIds].slice(0, 80)
+      : [];
+  }, [activeSource, sunlightHandoff]);
+
+  const sunlightVoxCitySync = useMemo(() => {
+    if (!activeSource || !sunlightAnalysis || !runIdentity || !result) return null;
+    const { scenarioArtifactId, mapReferenceArtifactId } = buildVoxCityScenarioArtifactIds(
+      runIdentity.runId,
+      "sunlight_exposure",
+    );
+    return buildMapVoxCitySyncMetadata({
+      syncId: `voxcity-sync-sunlight-${runIdentity.runId}`,
+      createdAt: runIdentity.runTimestamp,
+      sourceView: "voxcity-3d",
+      targetView: "map-2d",
+      source: activeSource.metadata,
+      mapLayerId: activeSource.metadata.sourceLayerId ?? null,
+      outputLayerId: sunlightAnalysis.layer.id,
+      selectedFeatureIds: resolveSelectedFeatureIds(activeSource, selectedSourceFeatureIds, sunlightSelectedBuildingIds),
+      selectedBuildingIds: sunlightSelectedBuildingIds,
+      buildingReferences: buildBuildingSyncReferences(activeSource, sunlightSelectedBuildingIds),
+      viewport: mapViewport,
+      aoiId: activeAoiId ?? null,
+      scenarioId: scenarioArtifactId,
+      linkedRunId: runIdentity.runId,
+      linkedArtifactIds: [scenarioArtifactId, mapReferenceArtifactId, sunlightAnalysis.evidenceArtifact.id],
+      handoff: {
+        reportHandoffId: `voxcity-report-sunlight-${runIdentity.runId}`,
+        dashboardBindingId: `voxcity-dashboard-sunlight-${runIdentity.runId}`,
+        ideArtifactId: `voxcity-ide-sunlight-${runIdentity.runId}`,
+      },
+    });
+  }, [
+    activeAoiId,
+    activeSource,
+    mapViewport,
+    result,
+    runIdentity,
+    selectedSourceFeatureIds,
+    sunlightAnalysis,
+    sunlightSelectedBuildingIds,
+  ]);
+
+  const sunlightLayer = useMemo(() => {
+    if (!sunlightAnalysis) return null;
+    if (!sunlightVoxCitySync) return sunlightAnalysis.layer;
+    return {
+      ...sunlightAnalysis.layer,
+      metadata: {
+        ...sunlightAnalysis.layer.metadata,
+        voxCitySync: sunlightVoxCitySync,
+      },
+    };
+  }, [sunlightAnalysis, sunlightVoxCitySync]);
+
   // ---- Run simulation ----
   const handleRun = useCallback(() => {
     if (!activeSource) return;
@@ -692,9 +808,9 @@ const SunlightSimulatorPanel: React.FC = () => {
 
   // ---- Add to Map handler ----
   const handleAddToMap = useCallback(() => {
-    if (!sunlightAnalysis) return;
-    addOverlayLayer(sunlightAnalysis.layer);
-  }, [sunlightAnalysis, addOverlayLayer]);
+    if (!sunlightLayer) return;
+    addOverlayLayer(sunlightLayer);
+  }, [sunlightLayer, addOverlayLayer]);
 
   const handleOrbitControlsRef = useCallback((instance: unknown) => {
     orbitControlsRef.current = instance as OrbitControlsHandle | null;
@@ -784,6 +900,16 @@ const SunlightSimulatorPanel: React.FC = () => {
     if (!sunlightCompletedRun) return;
     upsertCompletedRun(sunlightCompletedRun);
   }, [sunlightCompletedRun, upsertCompletedRun]);
+
+  useEffect(() => {
+    if (!sunlightVoxCitySync) return;
+    upsertMapEvidenceArtifact(createMapVoxCityHandoffEvidenceArtifact({
+      voxCitySync: sunlightVoxCitySync,
+      linkedWorkflowId: "sunlight_sim",
+      title: `${sunlightVoxCitySync.source.title} 2D/3D sunlight handoff`,
+      summary: `Reference-only VoxCity sunlight handoff for ${sunlightVoxCitySync.source.title}; shadow grids, geometry, and 3D payloads remain in their owning stores.`,
+    }));
+  }, [sunlightVoxCitySync, upsertMapEvidenceArtifact]);
 
   useEffect(() => {
     if (!activeSource || !sunlightAnalysis || !runIdentity || !result || !sunlightCompletedRun) {

@@ -170,6 +170,7 @@ import {
   evaluateMapScientificQA,
 } from "../../services/map/MapScientificQA";
 import {
+  buildMapNLQueryAuditDetails,
   buildMapNLQueryContext,
   executeMapNLQueryPreview,
   type MapNLQueryPreview,
@@ -2802,8 +2803,46 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     }
   }, [activeAnalysisResultLayerIds, addOverlayLayer, announce, currentMapBounds, fitToBounds, isRunningQuickHotSpot, openScientificQAPanel, overlayLayers, recordMapReviewEvent, restrictToMapView, scientificQA, setActiveAnalysisResultLayers, upsertCompletedRun, upsertMapEvidenceArtifact]);
 
+  const handleMapNLQueryPreviewDecision = useCallback((preview: MapNLQueryPreview, decision: "accepted" | "rejected") => {
+    recordMapReviewEvent({
+      type: "query-run",
+      status: decision === "accepted" ? "previewed" : "rejected",
+      title: decision === "accepted"
+        ? `Map query preview accepted: ${preview.intentPreview.intentLabel}`
+        : `Map query preview rejected: ${preview.intentPreview.intentLabel}`,
+      summary: decision === "accepted"
+        ? `Analyst accepted an interpreted NL query preview for ${preview.sourceLayers.length} affected layer(s); no map layer has been created yet.`
+        : "Analyst rejected an interpreted NL query preview without mutating map state.",
+      layerIds: preview.sourceLayers.map((layer) => layer.id),
+      actionIds: [preview.id],
+      details: buildMapNLQueryAuditDetails(preview, {
+        decision,
+        mapMutationApplied: false,
+      }),
+    });
+  }, [recordMapReviewEvent]);
+
   const handleRunMapNLQuery = useCallback(async (preview: MapNLQueryPreview) => {
     if (isRunningMapNLQuery) {
+      return;
+    }
+
+    if (!preview.canRun) {
+      const reason = preview.blockers[0] ?? "Map query preview is not executable.";
+      recordMapReviewEvent({
+        type: "query-run",
+        status: "rejected",
+        title: "Map query execution blocked",
+        summary: reason,
+        layerIds: preview.sourceLayers.map((layer) => layer.id),
+        actionIds: [preview.id],
+        details: buildMapNLQueryAuditDetails(preview, {
+          decision: "execution-blocked",
+          mapMutationApplied: false,
+        }),
+      });
+      toastWarning(reason);
+      announce(reason);
       return;
     }
 
@@ -2843,18 +2882,15 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         title: `Map query published: ${result.layer.name}`,
         summary: `${message} Scope: ${preview.scopeLabel}; execution mode: ${preview.modeLabel}.`,
         layerIds: [result.layer.id, ...preview.sourceLayers.map((layer) => layer.id)],
-        details: {
-          request: preview.request,
-          sql: preview.sql,
-          predicate: preview.predicate,
-          scope: preview.scope,
-          mode: preview.mode,
+        actionIds: [preview.id],
+        details: buildMapNLQueryAuditDetails(preview, {
+          decision: "accepted-and-applied",
+          mapMutationApplied: true,
           resultLayerId: result.layer.id,
           featureCount: result.featureCount,
           geometryType: result.geometryType,
           elapsedMs: result.elapsedMs,
-          sourceLayerIds: preview.sourceLayers.map((layer) => layer.id),
-        },
+        }),
       });
       toastSuccess(message);
       announce("Map query completed");
@@ -2867,15 +2903,12 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         title: "Map query failed",
         summary: message,
         layerIds: preview.sourceLayers.map((layer) => layer.id),
-        details: {
-          request: preview.request,
-          sql: preview.sql,
-          predicate: preview.predicate,
-          scope: preview.scope,
-          mode: preview.mode,
-          blockers: preview.blockers,
-          warnings: preview.warnings,
-        },
+        actionIds: [preview.id],
+        details: buildMapNLQueryAuditDetails(preview, {
+          decision: "accepted-but-failed",
+          mapMutationApplied: false,
+          failureReason: message,
+        }),
       });
       toastError(message);
       announce(message);
@@ -5366,6 +5399,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             isRunning={isRunningMapNLQuery}
             lastRunSummary={lastMapNLQuerySummary}
             onRun={handleRunMapNLQuery}
+            onPreviewDecision={handleMapNLQueryPreviewDecision}
             onClose={() => {
               setShowNLQueryPanel(false);
               announce("Map query builder closed");

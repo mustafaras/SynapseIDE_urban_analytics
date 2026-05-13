@@ -110,11 +110,12 @@ async function clickButton(container: HTMLElement, ariaLabel: string) {
 
 beforeEach(() => {
   useMapExplorerStore.setState({
+    ...useMapExplorerStore.getInitialState(),
     currentTimestep: 0,
     isPlaying: false,
     playbackSpeed: 1,
     timeRange: { start: 0, end: 0 },
-  });
+  }, true);
 });
 
 describe("MapTemporalPlayer", () => {
@@ -134,16 +135,34 @@ describe("MapTemporalPlayer", () => {
     expect(container.textContent).toContain("Step 0");
     expect(container.textContent).toContain("1/3");
     expect(map.source.setData).toHaveBeenCalledWith(frames[0]?.data);
+    const initialArtifact = useMapExplorerStore.getState().mapEvidenceArtifacts[0];
+    expect(initialArtifact).toMatchObject({
+      id: "map-evidence-temporal-temporal-temporal-source-temporal-layer",
+      kind: "temporal-state",
+      derivedLayerId: "temporal-layer",
+    });
+    expect(initialArtifact?.temporal?.frameCount).toBe(3);
+    expect(initialArtifact?.temporal?.sourceFields).toContain("value");
+    expect(initialArtifact?.temporal?.reportExportFrameReference).toMatchObject({
+      frameIndex: 0,
+      frameKey: "0",
+    });
+    expect(initialArtifact?.qa.caveats.join(" ")).toContain("statistical change claims");
 
     await clickButton(container, "Step forward");
 
     expect(useMapExplorerStore.getState().currentTimestep).toBe(1);
     expect(container.textContent).toContain("Step 1");
     expect(container.textContent).toContain("2/3");
+    expect(useMapExplorerStore.getState().mapEvidenceArtifacts[0]?.temporal?.step).toMatchObject({
+      index: 1,
+      key: "1",
+    });
 
     await clickButton(container, "Set speed to 2x");
 
     expect(useMapExplorerStore.getState().playbackSpeed).toBe(2);
+    expect(useMapExplorerStore.getState().mapEvidenceArtifacts[0]?.temporal?.playback.speed).toBe(2);
 
     await unmountPlayer(root, container);
   });

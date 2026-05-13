@@ -1,4 +1,9 @@
-import type { OverlayLayerConfig } from '@/centerpanel/components/map/mapTypes';
+import type {
+  MapEvidenceArtifact,
+  MapScenarioComparisonEvidenceMetadata,
+  OverlayLayerConfig,
+} from '@/centerpanel/components/map/mapTypes';
+import { createMapScenarioComparisonEvidenceArtifact } from '@/centerpanel/components/map/mapEvidenceArtifacts';
 import type {
   AnalyticalFlowId,
   CompletedAnalysisRun,
@@ -72,12 +77,25 @@ function scenarioAssumptionList(value: string): string[] {
   return normalized.length > 0 ? [normalized] : [];
 }
 
+function scenarioEvidenceArtifactId(comparisonId: string): string {
+  return `map-evidence-scenario-${slugifyScenarioComparisonOutput(comparisonId)}`;
+}
+
+function scenarioReportHandoffId(comparisonId: string): string {
+  return `map-report-handoff-${slugifyScenarioComparisonOutput(comparisonId)}`;
+}
+
+function scenarioDashboardBindingId(comparisonId: string): string {
+  return `map-dashboard-binding-${slugifyScenarioComparisonOutput(comparisonId)}`;
+}
+
 function buildScenarioComparisonMetadata(
   runId: string,
   createdAt: string,
   form: ScenarioComparisonForm,
   result: ScenarioComparisonResult,
   outputReferences: {
+    artifactIds?: string[];
     mapOutputIds: string[];
     chartOutputIds: string[];
     dataOutputIds: string[];
@@ -167,10 +185,106 @@ function buildScenarioComparisonMetadata(
       'Lever-response relationships are deterministic scenario abstractions and should not be treated as calibrated causal forecasts.',
     ]),
     evidence: {
-      artifactIds: [],
+      artifactIds: outputReferences.artifactIds ?? [],
       mapOutputIds: outputReferences.mapOutputIds,
       chartOutputIds: outputReferences.chartOutputIds,
       dataOutputIds: outputReferences.dataOutputIds,
+    },
+  };
+}
+
+export function buildMapScenarioComparisonEvidenceMetadata(
+  form: ScenarioComparisonForm,
+  result: ScenarioComparisonResult,
+  options?: {
+    runId?: string | null;
+    comparisonId?: string;
+    createdAt?: string;
+    activeScenarioId?: string;
+    activeMetricId?: ScenarioMetricId;
+    deltaMode?: ScenarioDeltaMode;
+    mapOutputIds?: string[];
+    chartOutputIds?: string[];
+    dataOutputIds?: string[];
+    outputLayerIds?: string[];
+    evidenceArtifactIds?: string[];
+    reportHandoffId?: string;
+    dashboardBindingId?: string;
+  },
+): MapScenarioComparisonEvidenceMetadata {
+  const createdAt = options?.createdAt ?? nowIso();
+  const runId = options?.runId ?? null;
+  const comparisonId = options?.comparisonId ?? `${runId ?? 'scenario-comparison-live'}-comparison`;
+  const outputLayerIds = unique(options?.outputLayerIds ?? []);
+  const activeScenarioId = options?.activeScenarioId ?? form.activeScenarioId;
+  const activeMetricId = options?.activeMetricId ?? form.activeMetricId;
+  const metric = result.metricDefinitions.find((entry) => entry.id === activeMetricId) ?? result.metricDefinitions[0]!;
+  const urbanComparison = buildScenarioComparisonMetadata(runId ?? comparisonId, createdAt, form, result, {
+    artifactIds: options?.evidenceArtifactIds ?? [scenarioEvidenceArtifactId(comparisonId)],
+    mapOutputIds: options?.mapOutputIds ?? outputLayerIds,
+    chartOutputIds: options?.chartOutputIds ?? [],
+    dataOutputIds: options?.dataOutputIds ?? [],
+  });
+
+  return {
+    version: 1,
+    comparisonId: urbanComparison.comparisonId === `${runId ?? comparisonId}-comparison`
+      ? comparisonId
+      : urbanComparison.comparisonId,
+    runId,
+    createdAt,
+    baseline: {
+      label: urbanComparison.baseline.label,
+      runId: urbanComparison.baseline.runId,
+      description: urbanComparison.baseline.description,
+    },
+    candidates: urbanComparison.candidateRuns.map((candidate) => ({
+      scenarioId: candidate.scenarioId,
+      scenarioName: candidate.scenarioName,
+      runId: candidate.runId,
+      flowId: candidate.flowId,
+      assumptionCount: candidate.assumptions.length,
+    })),
+    indicatorsCompared: urbanComparison.indicatorsCompared.map((indicator) => ({
+      indicatorId: indicator.indicatorId,
+      label: indicator.label,
+      unit: indicator.unit,
+      direction: indicator.direction,
+    })),
+    activeScenarioId,
+    comparisonMetric: {
+      indicatorId: metric.id,
+      label: metric.label,
+      unit: metric.unit,
+      direction: metric.direction,
+    },
+    deltaMode: options?.deltaMode ?? form.deltaMode,
+    deltas: urbanComparison.deltas.map((delta) => ({
+      scenarioId: delta.scenarioId,
+      indicatorId: delta.indicatorId,
+      baselineValue: delta.baselineValue,
+      candidateValue: delta.candidateValue,
+      absoluteDelta: delta.absoluteDelta,
+      percentDelta: delta.percentDelta,
+      improvementDelta: delta.improvementDelta,
+    })),
+    mapOutputIds: urbanComparison.evidence.mapOutputIds,
+    chartOutputIds: urbanComparison.evidence.chartOutputIds,
+    dataOutputIds: urbanComparison.evidence.dataOutputIds,
+    outputLayerIds,
+    sourceRunIds: unique(form.scenarios.map((scenario) => scenario.sourceRunId).filter((value): value is string => Boolean(value))),
+    evidenceArtifactIds: urbanComparison.evidence.artifactIds,
+    uncertaintyNotes: urbanComparison.uncertaintyNotes,
+    limitations: urbanComparison.limitations,
+    policyInterpretationMode: urbanComparison.policyInterpretation.mode,
+    guidanceSummary: urbanComparison.policyInterpretation.summary,
+    handoff: {
+      reportHandoffId: options?.reportHandoffId ?? scenarioReportHandoffId(comparisonId),
+      dashboardBindingId: options?.dashboardBindingId ?? scenarioDashboardBindingId(comparisonId),
+      reportCompatible: true,
+      dashboardCompatible: true,
+      refreshMode: 'static',
+      liveStateLabel: 'Static scenario comparison evidence; refresh after scenario parameters, metrics, or source runs change.',
     },
   };
 }
@@ -299,6 +413,8 @@ export function buildScenarioDeltaLayer(
   options?: {
     layerId?: string;
     updatedAt?: string;
+    evidenceArtifactId?: string;
+    scenarioComparison?: MapScenarioComparisonEvidenceMetadata;
   },
 ): OverlayLayerConfig {
   const scenario = result.scenarios.find((entry) => entry.scenarioId === scenarioId) ?? result.scenarios[0]!;
@@ -317,6 +433,8 @@ export function buildScenarioDeltaLayer(
       featureCount: featureCollection.features.length,
       geometryType: 'polygon',
       updatedAt: options?.updatedAt ?? nowIso(),
+      ...(options?.evidenceArtifactId ? { evidenceArtifactId: options.evidenceArtifactId } : {}),
+      ...(options?.scenarioComparison ? { scenarioComparison: options.scenarioComparison } : {}),
       fields: [
         'baseline_value',
         'scenario_value',
@@ -327,6 +445,53 @@ export function buildScenarioDeltaLayer(
       ],
     },
   };
+}
+
+export function buildScenarioComparisonMapEvidenceArtifact(
+  form: ScenarioComparisonForm,
+  result: ScenarioComparisonResult,
+  options?: {
+    runId?: string | null;
+    comparisonId?: string;
+    createdAt?: string;
+    activeScenarioId?: string;
+    activeMetricId?: ScenarioMetricId;
+    deltaMode?: ScenarioDeltaMode;
+    mapOutputIds?: string[];
+    chartOutputIds?: string[];
+    dataOutputIds?: string[];
+    outputLayerIds?: string[];
+    sourceLayerIds?: string[];
+    derivedLayerId?: string;
+  },
+): MapEvidenceArtifact {
+  const comparison = buildMapScenarioComparisonEvidenceMetadata(form, result, {
+    runId: options?.runId,
+    comparisonId: options?.comparisonId,
+    createdAt: options?.createdAt,
+    activeScenarioId: options?.activeScenarioId,
+    activeMetricId: options?.activeMetricId,
+    deltaMode: options?.deltaMode,
+    mapOutputIds: options?.mapOutputIds,
+    chartOutputIds: options?.chartOutputIds,
+    dataOutputIds: options?.dataOutputIds,
+    outputLayerIds: options?.outputLayerIds,
+  });
+  const evidenceId = comparison.evidenceArtifactIds[0] ?? scenarioEvidenceArtifactId(comparison.comparisonId);
+  return createMapScenarioComparisonEvidenceArtifact({
+    id: evidenceId,
+    scenarioComparison: {
+      ...comparison,
+      evidenceArtifactIds: unique([evidenceId, ...comparison.evidenceArtifactIds]),
+    },
+    title: form.outputTitle.trim() || 'Scenario comparison evidence',
+    summary: `${comparison.candidates.length} scenario(s) compared against ${comparison.baseline.label}; ${comparison.comparisonMetric.label} is the active map delta metric.`,
+    sourceLayerIds: options?.sourceLayerIds,
+    linkedLayerIds: options?.outputLayerIds,
+    derivedLayerId: options?.derivedLayerId ?? comparison.outputLayerIds[0],
+    linkedRunId: options?.runId ?? undefined,
+    createdAt: options?.createdAt ?? comparison.createdAt,
+  });
 }
 
 export function buildScenarioComparisonCompletedRun(
@@ -343,16 +508,35 @@ export function buildScenarioComparisonCompletedRun(
   const radarOutputId = `${runId}-radar`;
   const parallelOutputId = `${runId}-parallel`;
   const tradeoffOutputId = `${runId}-tradeoff-matrix`;
+  const comparisonId = `${runId}-comparison`;
+  const evidenceArtifactId = scenarioEvidenceArtifactId(comparisonId);
+  const outputLayerId = `${runId}-delta-layer`;
   const activeScenario = result.scenarios.find((scenario) => scenario.scenarioId === form.activeScenarioId) ?? result.scenarios[0]!;
   const activeMetric = result.metricDefinitions.find((metric) => metric.id === form.activeMetricId) ?? result.metricDefinitions[0]!;
+  const mapScenarioEvidence = buildMapScenarioComparisonEvidenceMetadata(form, result, {
+    runId,
+    comparisonId,
+    createdAt: insertedAt,
+    activeScenarioId: activeScenario.scenarioId,
+    activeMetricId: activeMetric.id,
+    deltaMode: form.deltaMode,
+    evidenceArtifactIds: [evidenceArtifactId],
+    mapOutputIds: [mapOutputId],
+    chartOutputIds: [radarOutputId, parallelOutputId],
+    dataOutputIds: [tradeoffOutputId],
+    outputLayerIds: [outputLayerId],
+  });
   const deltaLayer = buildScenarioDeltaLayer(result, activeScenario.scenarioId, activeMetric.id, form.deltaMode, {
-    layerId: `${runId}-delta-layer`,
+    layerId: outputLayerId,
     updatedAt: insertedAt,
+    evidenceArtifactId,
+    scenarioComparison: mapScenarioEvidence,
   });
   const chartData = buildScenarioChartDataExport(result);
   const summary = buildScenarioComparisonSummaryText(form, result);
   const narrative = buildScenarioComparisonNarrativeText(form, result);
   const comparisonMetadata = buildScenarioComparisonMetadata(runId, insertedAt, form, result, {
+    artifactIds: [evidenceArtifactId],
     mapOutputIds: [mapOutputId],
     chartOutputIds: [radarOutputId, parallelOutputId],
     dataOutputIds: [tradeoffOutputId],
@@ -375,6 +559,9 @@ export function buildScenarioComparisonCompletedRun(
         layerName: deltaLayer.name,
         metadata: {
           scenarioComparisonId: comparisonMetadata.comparisonId,
+          mapEvidenceArtifactId: evidenceArtifactId,
+          reportHandoffId: mapScenarioEvidence.handoff.reportHandoffId,
+          dashboardBindingId: mapScenarioEvidence.handoff.dashboardBindingId,
           outputRole: 'map_delta',
           policyInterpretationMode: comparisonMetadata.policyInterpretation.mode,
         },
@@ -392,6 +579,8 @@ export function buildScenarioComparisonCompletedRun(
         data: chartData.radarSeries,
         metadata: {
           scenarioComparisonId: comparisonMetadata.comparisonId,
+          mapEvidenceArtifactId: evidenceArtifactId,
+          dashboardBindingId: mapScenarioEvidence.handoff.dashboardBindingId,
           outputRole: 'chart_radar',
           policyInterpretationMode: comparisonMetadata.policyInterpretation.mode,
         },
@@ -407,6 +596,8 @@ export function buildScenarioComparisonCompletedRun(
         data: chartData.parallelSeries,
         metadata: {
           scenarioComparisonId: comparisonMetadata.comparisonId,
+          mapEvidenceArtifactId: evidenceArtifactId,
+          dashboardBindingId: mapScenarioEvidence.handoff.dashboardBindingId,
           outputRole: 'chart_parallel',
           policyInterpretationMode: comparisonMetadata.policyInterpretation.mode,
         },
@@ -429,6 +620,8 @@ export function buildScenarioComparisonCompletedRun(
         })),
         metadata: {
           scenarioComparisonId: comparisonMetadata.comparisonId,
+          mapEvidenceArtifactId: evidenceArtifactId,
+          reportHandoffId: mapScenarioEvidence.handoff.reportHandoffId,
           outputRole: 'data_tradeoff_matrix',
           policyInterpretationMode: comparisonMetadata.policyInterpretation.mode,
         },

@@ -307,6 +307,9 @@ export interface LayerMetadata {
   publicationReadiness?: LayerPublicationReadiness;
   reproducibilityManifest?: MapReproducibilityManifest;
   evidenceArtifactId?: string;
+  temporalEvidence?: MapTemporalEvidenceMetadata;
+  scenarioComparison?: MapScenarioComparisonEvidenceMetadata;
+  voxCitySync?: MapVoxCitySyncMetadata;
   registry?: LayerRegistryMetadata;
 }
 
@@ -473,6 +476,7 @@ export type MapEvidenceArtifactKind =
   | "external-service"
   | "voxcity-handoff"
   | "temporal-state"
+  | "scenario-comparison"
   | "ide-code-reference";
 
 export type MapEvidenceSourceModule =
@@ -530,6 +534,220 @@ export interface MapEvidenceReportReference {
   reportDraftId?: string;
   snapshotAssetId?: string;
   sectionIds: string[];
+}
+
+export interface MapTemporalEvidenceTimeRange {
+  startIndex: number;
+  endIndex: number;
+  startKey?: string;
+  endKey?: string;
+  startLabel?: string;
+  endLabel?: string;
+}
+
+export interface MapTemporalEvidenceStep {
+  index: number;
+  key?: string;
+  label?: string;
+}
+
+export interface MapTemporalEvidencePlayback {
+  speed: PlaybackSpeed;
+  isPlaying: boolean;
+  frameAdvanceMs: number;
+}
+
+export interface MapTemporalEvidenceLayerReferences {
+  activeLayerId: string;
+  sourceId: string;
+  layerId: string;
+  sourceLayerIds: string[];
+  derivedLayerId?: string;
+}
+
+export interface MapTemporalEvidenceFrameReference {
+  frameIndex: number;
+  sourceId: string;
+  layerId: string;
+  frameKey?: string;
+  frameLabel?: string;
+}
+
+export interface MapTemporalEvidenceQA {
+  state: MapEvidenceQAState;
+  caveats: string[];
+  uncertaintyNotes: string[];
+}
+
+export interface MapTemporalEvidenceMetadata {
+  version: 1;
+  temporalEvidenceId: string;
+  mode: TemporalMode;
+  activeLayerId: string;
+  layerName?: string;
+  frameCount: number;
+  timeRange: MapTemporalEvidenceTimeRange;
+  step: MapTemporalEvidenceStep;
+  sourceFields: string[];
+  timeField?: string;
+  playback: MapTemporalEvidencePlayback;
+  playbackParameters: Record<string, MapEvidenceScalar>;
+  layerReferences: MapTemporalEvidenceLayerReferences;
+  reportExportFrameReference: MapTemporalEvidenceFrameReference;
+  qa: MapTemporalEvidenceQA;
+  caveats: string[];
+}
+
+export interface MapScenarioComparisonCandidateReference {
+  scenarioId: string;
+  scenarioName: string;
+  runId: string | null;
+  flowId: string | null;
+  assumptionCount: number;
+}
+
+export interface MapScenarioComparisonMetricReference {
+  indicatorId: string;
+  label: string;
+  unit?: string;
+  direction?: string;
+}
+
+export interface MapScenarioComparisonMetricDelta {
+  scenarioId: string;
+  indicatorId: string;
+  baselineValue: number;
+  candidateValue: number;
+  absoluteDelta: number;
+  percentDelta: number | null;
+  improvementDelta: number;
+}
+
+export interface MapScenarioComparisonHandoffMetadata {
+  reportHandoffId: string;
+  dashboardBindingId: string;
+  reportCompatible: boolean;
+  dashboardCompatible: boolean;
+  refreshMode: "static";
+  liveStateLabel: string;
+}
+
+export interface MapScenarioComparisonEvidenceMetadata {
+  version: 1;
+  comparisonId: string;
+  runId: string | null;
+  createdAt: string;
+  baseline: {
+    label: string;
+    runId: string | null;
+    description: string | null;
+  };
+  candidates: MapScenarioComparisonCandidateReference[];
+  indicatorsCompared: MapScenarioComparisonMetricReference[];
+  activeScenarioId: string;
+  comparisonMetric: MapScenarioComparisonMetricReference;
+  deltaMode: "absolute" | "percent";
+  deltas: MapScenarioComparisonMetricDelta[];
+  mapOutputIds: string[];
+  chartOutputIds: string[];
+  dataOutputIds: string[];
+  outputLayerIds: string[];
+  sourceRunIds: string[];
+  evidenceArtifactIds: string[];
+  uncertaintyNotes: string[];
+  limitations: string[];
+  policyInterpretationMode: "guidance";
+  guidanceSummary: string;
+  handoff: MapScenarioComparisonHandoffMetadata;
+}
+
+export type MapVoxCitySourceKind = "map-layer" | "cityjson" | "sample" | "handoff" | "unknown";
+
+export type MapVoxCityRuntimeMode = "real" | "sample";
+
+export type MapVoxCityProjectionMode = "anchored" | "passthrough" | "unknown";
+
+export interface MapVoxCitySourceReference {
+  id: string;
+  title: string;
+  kind: MapVoxCitySourceKind;
+  runtimeMode: MapVoxCityRuntimeMode;
+  provider: string;
+  sourceRef: string;
+  sourceLayerId?: string;
+  sourceUpdatedAt?: string | null;
+  sourceUrl?: string | null;
+  crs: string | null;
+  featureCount: number;
+  bbox: [number, number, number, number] | null;
+}
+
+export interface MapVoxCityBuildingReference {
+  buildingId: string;
+  selected: boolean;
+  sourceFeatureId?: string;
+  label?: string;
+  coordinate?: [number, number];
+}
+
+export interface MapVoxCityVoxelReference {
+  voxelId: string;
+  buildingId?: string;
+  gridId?: string;
+  label?: string;
+}
+
+export interface MapVoxCityProjectionReference {
+  mode: MapVoxCityProjectionMode;
+  sourceCrs: string | null;
+  targetCrs: "EPSG:4326";
+  anchor?: {
+    longitude: number;
+    latitude: number;
+  };
+  assumptions: string[];
+}
+
+export interface MapVoxCitySyncQA {
+  state: MapEvidenceQAState;
+  sampleData: boolean;
+  projectionStatus: "known" | "assumed" | "unknown";
+  caveats: string[];
+  uncertaintyNotes: string[];
+}
+
+export interface MapVoxCitySyncHandoffMetadata {
+  reportHandoffId: string;
+  dashboardBindingId: string;
+  ideArtifactId: string;
+  reportCompatible: boolean;
+  dashboardCompatible: boolean;
+  ideCompatible: boolean;
+  refreshMode: "static-reference";
+}
+
+export interface MapVoxCitySyncMetadata {
+  version: 1;
+  syncId: string;
+  createdAt: string;
+  sourceView: "map-2d" | "voxcity-3d";
+  targetView?: "map-2d" | "voxcity-3d";
+  mapLayerId: string | null;
+  outputLayerId?: string;
+  selectedFeatureIds: string[];
+  selectedBuildingIds: string[];
+  buildingReferences: MapVoxCityBuildingReference[];
+  voxelReferences: MapVoxCityVoxelReference[];
+  source: MapVoxCitySourceReference;
+  projection: MapVoxCityProjectionReference;
+  viewport?: ViewportState;
+  aoiId?: string;
+  scenarioId?: string;
+  linkedRunId?: string;
+  linkedArtifactIds: string[];
+  handoff: MapVoxCitySyncHandoffMetadata;
+  qa: MapVoxCitySyncQA;
+  caveats: string[];
 }
 
 export interface MapEvidenceProvenance {
@@ -595,6 +813,9 @@ export interface MapEvidenceArtifact {
   provenance: MapEvidenceProvenance;
   qa: MapEvidenceQA;
   metadata?: Record<string, MapEvidenceScalar>;
+  temporal?: MapTemporalEvidenceMetadata;
+  scenarioComparison?: MapScenarioComparisonEvidenceMetadata;
+  voxCitySync?: MapVoxCitySyncMetadata;
   createdAt: string;
   updatedAt: string;
 }

@@ -16,7 +16,8 @@ import React, {
   useState,
 } from "react";
 import type maplibregl from "maplibre-gl";
-import type { PlaybackSpeed } from "./map/mapTypes";
+import type { MapTemporalEvidenceMetadata, PlaybackSpeed } from "./map/mapTypes";
+import { createMapTemporalEvidenceArtifact } from "./map/mapEvidenceArtifacts";
 import {
   MAP_COLORS,
   MAP_RADIUS,
@@ -71,6 +72,7 @@ export interface MapTemporalPlayerProps {
 /* ================================================================== */
 
 const SPEEDS: PlaybackSpeed[] = [0.5, 1, 2, 4];
+const BASE_FRAME_INTERVAL_MS = 66;
 
 /* ================================================================== */
 /*  Helpers                                                            */
@@ -160,6 +162,26 @@ function humanizeTemporalLabel(label: string | undefined): string {
 function compactTemporalLabel(label: string, maxLength = 30): string {
   if (label.length <= maxLength) return label;
   return `${label.slice(0, maxLength - 3)}...`;
+}
+
+function safeTemporalEvidencePart(value: string): string {
+  return value.trim().replace(/[^a-zA-Z0-9_-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80) || "temporal";
+}
+
+function collectTemporalSourceFields(frames: readonly TemporalFrame[], timeProperty: string): string[] {
+  const fields = new Set<string>();
+  for (const frame of frames) {
+    for (const feature of frame.data.features) {
+      for (const key of Object.keys(feature.properties ?? {})) {
+        if (key.trim()) fields.add(key);
+        if (fields.size >= 24) break;
+      }
+      if (fields.size >= 24) break;
+    }
+    if (fields.size >= 24) break;
+  }
+  if (timeProperty.trim()) fields.add(timeProperty);
+  return [...fields].sort((left, right) => left.localeCompare(right));
 }
 
 const EMPTY_FC: GeoJSON.FeatureCollection = {
@@ -437,6 +459,8 @@ export const MapTemporalPlayer: React.FC<MapTemporalPlayerProps> = ({
   const setIsPlaying = useMapExplorerStore((s: MapExplorerState) => s.setIsPlaying);
   const setPlaybackSpeed = useMapExplorerStore((s: MapExplorerState) => s.setPlaybackSpeed);
   const setTimeRange = useMapExplorerStore((s: MapExplorerState) => s.setTimeRange);
+  const upsertMapEvidenceArtifact = useMapExplorerStore((s: MapExplorerState) => s.upsertMapEvidenceArtifact);
+  const evidenceCreatedAtRef = useRef<string>(new Date().toISOString());
 
   /* Sync time range when frames change */
   useEffect(() => {
@@ -449,6 +473,104 @@ export const MapTemporalPlayer: React.FC<MapTemporalPlayerProps> = ({
   const clampedStep = Math.max(0, Math.min(currentTimestep, totalSteps - 1));
   const currentFrame = resolvedFrames[clampedStep] ?? null;
   const pct = totalSteps > 1 ? (clampedStep / (totalSteps - 1)) * 100 : 0;
+  const sourceFields = useMemo(
+    () => collectTemporalSourceFields(resolvedFrames, timeProperty),
+    [resolvedFrames, timeProperty],
+  );
+
+  const temporalEvidenceMetadata = useMemo<MapTemporalEvidenceMetadata | null>(() => {
+    if (totalSteps === 0) return null;
+    const firstFrame = resolvedFrames[0];
+    const lastFrame = resolvedFrames[totalSteps - 1];
+    const temporalEvidenceId = `temporal-${safeTemporalEvidencePart(sourceId)}-${safeTemporalEvidencePart(layerId)}`;
+    const frameInterval = BASE_FRAME_INTERVAL_MS / playbackSpeed;
+    const caveats = [
+      "Temporal playback evidence records frame references and parameters only; frame geometries remain in the MapLibre source.",
+      "Playback order is derived from frame keys or the declared time property and should be reviewed before causal interpretation.",
+    ];
+
+    const metadata: MapTemporalEvidenceMetadata = {
+      version: 1,
+      temporalEvidenceId,
+      mode: framesProp && framesProp.length > 0 ? "snapshot" : "continuous",
+      activeLayerId: layerId,
+      frameCount: totalSteps,
+      timeRange: {
+        startIndex: 0,
+        endIndex: Math.max(totalSteps - 1, 0),
+        ...(firstFrame?.key ? { startKey: firstFrame.key } : {}),
+        ...(lastFrame?.key ? { endKey: lastFrame.key } : {}),
+        ...(firstFrame?.label ? { startLabel: firstFrame.label } : {}),
+        ...(lastFrame?.label ? { endLabel: lastFrame.label } : {}),
+      },
+      step: {
+        index: clampedStep,
+        ...(currentFrame?.key ? { key: currentFrame.key } : {}),
+        ...(currentFrame?.label ? { label: currentFrame.label } : {}),
+      },
+      sourceFields,
+      ...(timeProperty ? { timeField: timeProperty } : {}),
+      playback: {
+        speed: playbackSpeed,
+        isPlaying,
+        frameAdvanceMs: frameInterval,
+      },
+      playbackParameters: {
+        sourceId,
+        layerId,
+        timeProperty,
+        playbackSpeed,
+        frameAdvanceMs: frameInterval,
+        prefetchFrames: 2,
+      },
+      layerReferences: {
+        activeLayerId: layerId,
+        sourceId,
+        layerId,
+        sourceLayerIds: [],
+      },
+      reportExportFrameReference: {
+        frameIndex: clampedStep,
+        sourceId,
+        layerId,
+        ...(currentFrame?.key ? { frameKey: currentFrame.key } : {}),
+        ...(currentFrame?.label ? { frameLabel: currentFrame.label } : {}),
+      },
+      qa: {
+        state: sourceFields.length > 0 ? "warning" : "unchecked",
+        caveats,
+        uncertaintyNotes: [
+          "Temporal frames are visual playback states; statistical change claims require a separate validated method.",
+        ],
+      },
+      caveats,
+    };
+    if (layerName?.trim()) metadata.layerName = layerName.trim();
+    return metadata;
+  }, [
+    clampedStep,
+    currentFrame?.key,
+    currentFrame?.label,
+    framesProp,
+    isPlaying,
+    layerId,
+    layerName,
+    playbackSpeed,
+    resolvedFrames,
+    sourceFields,
+    sourceId,
+    timeProperty,
+    totalSteps,
+  ]);
+
+  useEffect(() => {
+    if (!visible || !temporalEvidenceMetadata) return;
+    upsertMapEvidenceArtifact(createMapTemporalEvidenceArtifact({
+      temporal: temporalEvidenceMetadata,
+      createdAt: evidenceCreatedAtRef.current,
+      updatedAt: new Date().toISOString(),
+    }));
+  }, [temporalEvidenceMetadata, upsertMapEvidenceArtifact, visible]);
 
   /* ---- Prefetch buffer: keep current + next frame refs ---- */
   const prefetchRef = useRef<{
@@ -569,8 +691,8 @@ export const MapTemporalPlayer: React.FC<MapTemporalPlayerProps> = ({
       return;
     }
 
-    // Target interval: base 66ms (~15 FPS) divided by speed
-    const intervalMs = 66 / playbackSpeed;
+    // Target interval: base ~15 FPS divided by speed
+    const intervalMs = BASE_FRAME_INTERVAL_MS / playbackSpeed;
 
     const tick = (now: number) => {
       const elapsed = now - lastFrameTimeRef.current;

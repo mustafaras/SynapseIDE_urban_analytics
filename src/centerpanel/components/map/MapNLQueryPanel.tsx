@@ -17,6 +17,7 @@ import {
   generateMapNLQueryPreview,
   type MapNLQueryMode,
   type MapNLQueryPreview,
+  type MapNLQueryRequiredField,
   type MapNLQueryScope,
 } from "@/services/map/MapNLQueryBuilder";
 import type { OverlayLayerConfig } from "./mapTypes";
@@ -39,6 +40,8 @@ export interface MapNLQueryPanelRunSummary {
   followUpSuggestions: string[];
 }
 
+export type MapNLQueryPanelPreviewDecision = "accepted" | "rejected";
+
 export interface MapNLQueryPanelProps {
   visible: boolean;
   overlayLayers: OverlayLayerConfig[];
@@ -47,6 +50,7 @@ export interface MapNLQueryPanelProps {
   isRunning: boolean;
   lastRunSummary: MapNLQueryPanelRunSummary | null;
   onRun: (preview: MapNLQueryPreview) => void | Promise<void>;
+  onPreviewDecision?: (preview: MapNLQueryPreview, decision: MapNLQueryPanelPreviewDecision) => void;
   onClose: () => void;
   onAnnounce?: (message: string) => void;
 }
@@ -171,6 +175,15 @@ const statusBand: React.CSSProperties = {
   gap: MAP_SPACING.xs,
 };
 
+const decisionActionsStyle: React.CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  alignItems: "center",
+  justifyContent: "flex-end",
+  gap: MAP_SPACING.xs,
+  minWidth: MAP_SPACING.zero,
+};
+
 function formatMs(value: number): string {
   if (!Number.isFinite(value)) return "0 ms";
   return value >= 1000 ? `${(value / 1000).toFixed(1)} s` : `${Math.round(value)} ms`;
@@ -200,6 +213,41 @@ function renderMetaPill(label: string, tone: "neutral" | "ok" | "warn" = "neutra
   );
 }
 
+function renderRequiredFieldPill(field: MapNLQueryRequiredField): React.ReactNode {
+  const color = field.available ? MAP_COLORS.textSecondary : MAP_COLORS.warning;
+  return (
+    <span
+      key={`${field.layerId}:${field.role}:${field.fieldName}:${field.available}`}
+      title={field.note ?? undefined}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        minHeight: "1.25rem",
+        padding: `${MAP_SPACING.zero} ${MAP_SPACING.xs}`,
+        borderRadius: MAP_RADIUS.sm,
+        border: MAP_STROKES.hairlineSubtle,
+        color,
+        background: MAP_COLORS.bg,
+        fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+        fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+        whiteSpace: "nowrap",
+      }}
+    >
+      {field.role}: {field.fieldName}{field.available ? "" : " missing"}
+    </span>
+  );
+}
+
+function confidenceTone(preview: MapNLQueryPreview): "neutral" | "ok" | "warn" {
+  if (preview.intentPreview.confidenceBand === "high") return "ok";
+  if (preview.intentPreview.confidenceBand === "medium") return "neutral";
+  return "warn";
+}
+
+function ambiguityTone(preview: MapNLQueryPreview): "neutral" | "ok" | "warn" {
+  return preview.intentPreview.ambiguityState === "clear" ? "ok" : "warn";
+}
+
 export const MapNLQueryPanel: React.FC<MapNLQueryPanelProps> = ({
   visible,
   overlayLayers,
@@ -208,6 +256,7 @@ export const MapNLQueryPanel: React.FC<MapNLQueryPanelProps> = ({
   isRunning,
   lastRunSummary,
   onRun,
+  onPreviewDecision,
   onClose,
   onAnnounce,
 }) => {
@@ -215,6 +264,10 @@ export const MapNLQueryPanel: React.FC<MapNLQueryPanelProps> = ({
   const [scope, setScope] = useState<MapNLQueryScope>("visible");
   const [mode, setMode] = useState<MapNLQueryMode>("live");
   const [copied, setCopied] = useState(false);
+  const [previewDecision, setPreviewDecision] = useState<{
+    previewId: string;
+    decision: MapNLQueryPanelPreviewDecision;
+  } | null>(null);
   const panelDrag = useDraggableMapPanel();
 
   const context = useMemo(
@@ -231,6 +284,9 @@ export const MapNLQueryPanel: React.FC<MapNLQueryPanelProps> = ({
     () => generateMapNLQueryPreview(request, context),
     [context, request],
   );
+  const previewAccepted = previewDecision?.previewId === preview.id && previewDecision.decision === "accepted";
+  const previewRejected = previewDecision?.previewId === preview.id && previewDecision.decision === "rejected";
+  const canRunAcceptedPreview = preview.canRun && previewAccepted && !isRunning;
 
   if (!visible) {
     return null;
@@ -245,6 +301,15 @@ export const MapNLQueryPanel: React.FC<MapNLQueryPanelProps> = ({
     } catch {
       onAnnounce?.("Generated map SQL could not be copied");
     }
+  };
+
+  const handlePreviewDecision = (decision: MapNLQueryPanelPreviewDecision) => {
+    if (previewDecision?.previewId === preview.id && previewDecision.decision === decision) {
+      return;
+    }
+    setPreviewDecision({ previewId: preview.id, decision });
+    onPreviewDecision?.(preview, decision);
+    onAnnounce?.(decision === "accepted" ? "Map query preview accepted" : "Map query preview rejected");
   };
 
   return (
@@ -283,9 +348,15 @@ export const MapNLQueryPanel: React.FC<MapNLQueryPanelProps> = ({
         <div style={statusBand}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: MAP_SPACING.sm }}>
             <span style={{ color: MAP_COLORS.text, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
-              {preview.canRun ? "Ready for reviewed execution" : "Review required before execution"}
+              {previewAccepted
+                ? "Preview accepted for execution"
+                : previewRejected
+                  ? "Preview rejected"
+                  : preview.canRun
+                    ? "Preview requires explicit acceptance"
+                    : "Review required before execution"}
             </span>
-            {preview.canRun ? (
+            {previewAccepted ? (
               <CheckCircle2 size={MAP_ICON_SIZES.sm} color={MAP_COLORS.success} aria-hidden="true" />
             ) : (
               <AlertTriangle size={MAP_ICON_SIZES.sm} color={MAP_COLORS.warning} aria-hidden="true" />
@@ -294,6 +365,9 @@ export const MapNLQueryPanel: React.FC<MapNLQueryPanelProps> = ({
           <div style={chipRow}>
             {renderMetaPill(preview.modeLabel, preview.mode === "live" ? "ok" : "warn")}
             {renderMetaPill(preview.scopeLabel)}
+            {renderMetaPill(preview.intentPreview.intentLabel, confidenceTone(preview))}
+            {renderMetaPill(`${Math.round(preview.intentPreview.confidence * 100)}% ${preview.intentPreview.confidenceBand}`, confidenceTone(preview))}
+            {renderMetaPill(`Ambiguity ${preview.intentPreview.ambiguityState}`, ambiguityTone(preview))}
             {renderMetaPill(`${context.queryableLayers.length} executable layer${context.queryableLayers.length === 1 ? "" : "s"}`)}
             {renderMetaPill(`${context.unavailableLayers.length} unavailable`)}
           </div>
@@ -358,28 +432,72 @@ export const MapNLQueryPanel: React.FC<MapNLQueryPanelProps> = ({
         </div>
 
         <div style={sectionStyle}>
+          <div style={sectionTitle}>Interpreted Intent Preview</div>
+          <div style={layerCard}>
+            <div style={{ color: MAP_COLORS.text, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
+              Interpreted as {preview.intentPreview.intentLabel}
+            </div>
+            <div style={mutedText}>{preview.intentPreview.explanation}</div>
+            <div style={chipRow}>
+              {renderMetaPill(preview.intentPreview.sourceLayerSelection)}
+              {renderMetaPill(preview.generated.safe ? "Read-only SQL" : "SQL blocked", preview.generated.safe ? "ok" : "warn")}
+              {renderMetaPill(`${preview.intentPreview.requiredLayerCount} required layer${preview.intentPreview.requiredLayerCount === 1 ? "" : "s"}`)}
+            </div>
+            {preview.intentPreview.recognisedAttributes.length > 0 ? (
+              <div style={mutedText}>
+                Attributes: {preview.intentPreview.recognisedAttributes.join(", ")}
+              </div>
+            ) : null}
+            {preview.intentPreview.ambiguityReasons.length > 0 ? (
+              <div style={{ display: "grid", gap: MAP_SPACING.xs }}>
+                {preview.intentPreview.ambiguityReasons.map((reason) => (
+                  <div key={reason} style={{ ...mutedText, color: MAP_COLORS.warning }}>{reason}</div>
+                ))}
+              </div>
+            ) : null}
+            {preview.intentPreview.assumptions.length > 0 ? (
+              <div style={{ display: "grid", gap: MAP_SPACING.xs }}>
+                {preview.intentPreview.assumptions.map((assumption) => (
+                  <div key={assumption} style={mutedText}>{assumption}</div>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        </div>
+
+        <div style={sectionStyle}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: MAP_SPACING.sm }}>
-            <div style={sectionTitle}>Selected Source Layers</div>
+            <div style={sectionTitle}>Affected Layers and Required Fields</div>
             <Layers size={MAP_ICON_SIZES.sm} color={MAP_COLORS.textMuted} aria-hidden="true" />
           </div>
           {preview.sourceLayers.length > 0 ? (
             <div style={{ display: "grid", gap: MAP_SPACING.sm }}>
-              {preview.sourceLayers.map((layer) => (
-                <div key={layer.id} style={layerCard}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: MAP_SPACING.sm }}>
-                    <span style={{ color: MAP_COLORS.text, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {layer.name}
-                    </span>
-                    {renderMetaPill(layer.tableAlias, layer.tableKind === "worker-table" ? "ok" : "neutral")}
+              {preview.sourceLayers.map((layer) => {
+                const affectedLayer = preview.affectedLayers.find((entry) => entry.id === layer.id);
+                return (
+                  <div key={layer.id} style={layerCard}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: MAP_SPACING.sm }}>
+                      <span style={{ color: MAP_COLORS.text, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {layer.name}
+                      </span>
+                      {renderMetaPill(layer.tableAlias, layer.tableKind === "worker-table" ? "ok" : "neutral")}
+                    </div>
+                    <div style={chipRow}>
+                      {renderMetaPill(layer.geometryType)}
+                      {renderMetaPill(layer.sourceKind)}
+                      {renderMetaPill(`QA ${layer.qaStatus}`, layer.qaStatus === "passed" ? "ok" : layer.qaStatus === "unchecked" ? "neutral" : "warn")}
+                      {renderMetaPill(layer.publicationReadiness, layer.publicationReadiness === "ready" ? "ok" : "warn")}
+                      {layer.featureCount != null ? renderMetaPill(`${layer.featureCount.toLocaleString()} features`) : null}
+                      {layer.crs ? renderMetaPill(layer.crs) : renderMetaPill("CRS unknown", "warn")}
+                    </div>
+                    {affectedLayer?.requiredFields.length ? (
+                      <div style={chipRow}>
+                        {affectedLayer.requiredFields.map((field) => renderRequiredFieldPill(field))}
+                      </div>
+                    ) : null}
                   </div>
-                  <div style={chipRow}>
-                    {renderMetaPill(layer.geometryType)}
-                    {renderMetaPill(layer.sourceKind)}
-                    {layer.featureCount != null ? renderMetaPill(`${layer.featureCount.toLocaleString()} features`) : null}
-                    {layer.crs ? renderMetaPill(layer.crs) : renderMetaPill("CRS unknown", "warn")}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div style={mutedText}>Missing prerequisite: select a queryable GeoJSON, imported, or worker-backed source layer.</div>
@@ -477,27 +595,53 @@ export const MapNLQueryPanel: React.FC<MapNLQueryPanelProps> = ({
 
       <div style={{ ...mapStyles.sidePanelHeader, justifyContent: "space-between" }}>
         <div style={mutedText}>
-          Result layers are added with amber query-highlight styling and execution metadata.
+          Apply creates a derived query result layer; source layers remain unchanged.
         </div>
-        <button
-          type="button"
-          style={{
-            ...mapStyles.sidePanelPrimaryButton,
-            opacity: preview.canRun && !isRunning ? 1 : 0.55,
-            cursor: preview.canRun && !isRunning ? "pointer" : "not-allowed",
-          }}
-          onClick={() => {
-            void onRun(preview);
-          }}
-          disabled={!preview.canRun || isRunning}
-          aria-label="Run reviewed map query"
-          title={preview.canRun
-            ? "Run the reviewed query and add the result as a map layer."
-            : preview.blockers[0] ?? "Missing prerequisite: resolve query blockers and choose an executable source layer."}
-        >
-          <Play size={MAP_ICON_SIZES.sm} aria-hidden="true" />
-          {isRunning ? "Running" : "Run Query"}
-        </button>
+        <div style={decisionActionsStyle}>
+          <button
+            type="button"
+            style={previewRejected ? activeSmallButton : smallButton}
+            onClick={() => handlePreviewDecision("rejected")}
+            disabled={isRunning}
+            aria-label="Reject interpreted map query preview"
+            title="Reject this interpreted preview without changing map state."
+          >
+            <CircleOff size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+            Reject
+          </button>
+          <button
+            type="button"
+            style={previewAccepted ? activeSmallButton : smallButton}
+            onClick={() => handlePreviewDecision("accepted")}
+            disabled={!preview.canRun || isRunning}
+            aria-label="Accept interpreted map query preview"
+            title={preview.canRun ? "Accept this interpreted preview for execution." : preview.blockers[0] ?? "Resolve blockers before accepting this preview."}
+          >
+            <CheckCircle2 size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+            Accept
+          </button>
+          <button
+            type="button"
+            style={{
+              ...mapStyles.sidePanelPrimaryButton,
+              opacity: canRunAcceptedPreview ? 1 : 0.55,
+              cursor: canRunAcceptedPreview ? "pointer" : "not-allowed",
+            }}
+            onClick={() => {
+              void onRun(preview);
+            }}
+            disabled={!canRunAcceptedPreview}
+            aria-label="Run accepted map query"
+            title={canRunAcceptedPreview
+              ? "Run the accepted query and add the result as a map layer."
+              : preview.canRun
+                ? "Accept this interpreted preview before execution."
+                : preview.blockers[0] ?? "Missing prerequisite: resolve query blockers and choose an executable source layer."}
+          >
+            <Play size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+            {isRunning ? "Running" : "Run Query"}
+          </button>
+        </div>
       </div>
     </div>
   );
