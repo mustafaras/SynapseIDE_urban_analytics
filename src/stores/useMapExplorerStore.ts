@@ -26,6 +26,10 @@ import {
   type TemporalTimeRange,
   type ViewportState,
 } from "../centerpanel/components/map/mapTypes";
+import {
+  MAP_LAYER_PANEL_MAX_WIDTH,
+  MAP_LAYER_PANEL_MIN_WIDTH,
+} from "../centerpanel/components/map/mapDocking";
 import { MAP_NUMERIC } from "../centerpanel/components/map/mapTokens";
 import { summarizeOverlayLayer } from "../centerpanel/components/map/mapContextSummary";
 import { withNormalizedLayerRegistryMetadata } from "../centerpanel/components/map/mapLayerMetadata";
@@ -487,8 +491,8 @@ function normalizeLayoutPreferences(input: Partial<MapExplorerLayoutPreferences>
   return {
     layerPanelWidth: clampNumber(
       Number(input?.layerPanelWidth),
-      MAP_NUMERIC.layerPanelWidth - 72,
-      MAP_NUMERIC.layerPanelWidth + 200,
+      MAP_LAYER_PANEL_MIN_WIDTH,
+      MAP_LAYER_PANEL_MAX_WIDTH,
       DEFAULT_LAYOUT_PREFERENCES.layerPanelWidth,
     ),
     rightPanelWidth: clampNumber(

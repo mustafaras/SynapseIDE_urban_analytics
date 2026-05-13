@@ -69,6 +69,16 @@ describe("MapPublicationOutputBindingService", () => {
     expect(binding.dashboardBinding.kind).toBe("map");
     expect(binding.dashboardBinding.traceability?.sourceArtifactId).toBe("map-evidence-access");
     expect(binding.dashboardBinding.traceability?.qaState).toBe("valid");
+    expect(binding.dashboardBinding.traceability?.dataFields).toEqual(["district", "access_score"]);
+    expect(binding.dashboardBinding.traceability?.visualEncodingSummary).toContain("geojson layer");
+    expect(binding.dashboardBinding.traceability?.sourceContextLabel).toContain("Mobility planning team");
+    expect(binding.dataFields).toEqual(["district", "access_score"]);
+    expect(binding.visualEncodingSummary).toContain("geometry Polygon");
+    expect(binding.sourceContext).toMatchObject({
+      sourceName: "Mobility planning team",
+      crsLabel: "CRS EPSG:3857",
+      publicationReadinessStatus: "ready",
+    });
     expect(binding.dashboardBinding.traceability?.provenanceNotes.join(" ")).toContain("lightweight output binding descriptor");
     expect(binding.dashboardBinding.areas[0]).toMatchObject({
       id: "access-layer",
@@ -135,5 +145,35 @@ describe("MapPublicationOutputBindingService", () => {
       explainerId: "getis_ord_gi",
       requestedAt: 1_777_777,
     });
+  });
+
+  it("carries publication-readiness QA into education references while remaining static", () => {
+    const reference = buildMapEducationReference({
+      layer: layer(),
+      publicationReadiness: {
+        id: "pub-readiness-1",
+        status: "blocked",
+        mode: "public-map",
+        checkedAt: createdAt,
+        visibleLayerCount: 1,
+        hasTitle: true,
+        hasLegend: true,
+        hasScaleBar: true,
+        hasNorthArrow: true,
+        hasAttribution: true,
+        qaBlockingIssueCount: 1,
+        caveats: ["CRS QA blocker unresolved"],
+        blockers: [],
+        warnings: [],
+        checks: [],
+        acknowledgedIssueIds: [],
+      },
+      createdAt,
+    });
+
+    expect(reference.bindingMode).toBe("static-reference");
+    expect(reference.isLive).toBe(false);
+    expect(reference.qa.state).toBe("blocked");
+    expect(reference.metadata.publicationReadinessStatus).toBe("blocked");
   });
 });

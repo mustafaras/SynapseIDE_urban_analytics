@@ -1,7 +1,9 @@
 import React from "react";
 import type { MapExplorerMode } from "./mapTypes";
+import { MAP_LAYER_PANEL_MAX_WIDTH, MAP_LAYER_PANEL_MIN_WIDTH } from "./mapDocking";
 import {
   MAP_COLORS,
+  MAP_DIMENSIONS,
   MAP_NUMERIC,
   MAP_SPACING,
   MAP_STROKES,
@@ -108,7 +110,7 @@ function getPanelRailStyle(side: MapPanelRailSide, width: number | string | unde
     ...panelRailBaseStyle,
     top: MAP_SPACING.zero,
     bottom: MAP_SPACING.zero,
-    width: formatCssSize(width, "22.5rem"),
+    width: formatCssSize(width, MAP_DIMENSIONS.layerPanelWidth),
     ...(side === "left"
       ? { left: MAP_SPACING.zero, borderRight: MAP_STROKES.hairlineSubtle }
       : { right: MAP_SPACING.zero, borderLeft: MAP_STROKES.hairlineSubtle }),
@@ -209,8 +211,8 @@ export const MapPanelRail = React.forwardRef<HTMLDivElement, MapPanelRailProps>(
   children,
   width,
   height,
-  minWidth = MAP_NUMERIC.layerPanelWidth - 72,
-  maxWidth = MAP_NUMERIC.layerPanelWidth + 200,
+  minWidth = MAP_LAYER_PANEL_MIN_WIDTH,
+  maxWidth = MAP_LAYER_PANEL_MAX_WIDTH,
   resizable = false,
   onWidthChange,
   ariaLabel,
@@ -255,7 +257,7 @@ export const MapPanelRail = React.forwardRef<HTMLDivElement, MapPanelRailProps>(
       data-map-panel-rail={side}
       style={{
         ...getPanelRailStyle(side, width, height),
-        "--map-layer-panel-width": formatCssSize(width, "22.5rem"),
+        "--map-layer-panel-width": formatCssSize(width, MAP_DIMENSIONS.layerPanelWidth),
         ...style,
       } as React.CSSProperties}
     >

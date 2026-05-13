@@ -21,13 +21,13 @@ Read these before implementing any Map Explorer prompt:
 
 ## Current Status
 
-- Overall status: Report Handoff Structured Evidence landed. 21 of 30 prompts completed.
-- Current prompt: Prompt 20 - Report Handoff Structured Evidence completed 2026-05-12.
-- Next recommended prompt: Prompt 21 - Dashboard, Education, and Publication Outputs.
+- Overall status: Dashboard, Education, and Publication Outputs landed. 22 of 30 prompts completed.
+- Current prompt: Prompt 21 - Dashboard, Education, and Publication Outputs completed 2026-05-13.
+- Next recommended prompt: Prompt 22 - Temporal Playback and Scenario Comparison.
 - Operating pack status: Installed.
 - Next-prompt helper: `scripts/get-next-map-explorer-prompt.ps1`
 - Machine-readable manifest: `DEVELOPMENT_PLANS/MAP_EXPLORER_PROMPT_MANIFEST.json`
-- Last validated repository state: 2026-05-12; Prompt 20 validation passed: focused report handoff tests passed (8/8), focused reporting compatibility tests passed (15/15), `npm run typecheck` passed, focused `npx eslint --quiet` on touched Prompt 20 files passed, `git diff --check -- <Prompt 20 files>` passed with LF-to-CRLF warnings only, VS Code Problems reported no errors for touched Prompt 20 files, and the next-prompt helper returned Prompt 21.
+- Last validated repository state: 2026-05-13; Prompt 21 validation passed: focused publication binding/readiness + layer manager tests passed (64/64), `npm run typecheck` passed, `git diff --check` passed for Prompt 21 files with LF-to-CRLF warnings only, and the next-prompt helper resolves Prompt 22.
 - Last known blocker: None for Prompt 20 scope; repo setup blocker remains for the missing centerpanel no-Tailwind script and repo-wide lint has the unrelated UA unused import noted above.
 
 ## Agent Operating Pack
@@ -76,7 +76,7 @@ This table is the human-readable execution state. The helper script reads it whe
 | 18 | Map to IDE Code and Manifest Artifact Requests | completed | 17 | Completed 2026-05-12. Map-owned IDE artifact request service, explicit layer/workflow/export IDE actions, SQL bridge language support, Map evidence registration, Synapse bus evidence events, and focused no-heavy-payload coverage landed. |
 | 19 | IDE to Map File and Layer Artifact Recognition | completed | 18 | Completed 2026-05-12. Added Map-owned IDE artifact recognition service, reference-only typed payload/result, supported file classification, readiness labels, evidence candidate registration, Synapse bus receiver, App install wiring, and focused tests. |
 | 20 | Report Handoff Structured Evidence | completed | 19 | Completed 2026-05-12. Added structured Map report evidence blocks, report insert structured metadata preservation, drawer evidence-registration action, report evidence artifact binding metadata, and focused report/reporting tests. |
-| 21 | Dashboard, Education, and Publication Outputs | pending | 20 | Requires report handoff. |
+| 21 | Dashboard, Education, and Publication Outputs | completed | 20 | Completed 2026-05-13. Map dashboard + education output bindings are wired as explicit static actions with truthful live-state labels; dashboard bindings carry data fields, visual encoding, source context, QA, and provenance; education references inherit publication-readiness QA metadata. |
 | 22 | Temporal Playback and Scenario Comparison | pending | 21 | Requires publication output contracts. |
 | 23 | VoxCity 2D/3D Synchronization | pending | 22 | Requires temporal/scenario model. |
 | 24 | Natural-Language Query Safety and Audit | pending | 23 | Requires evidence and QA models. |
@@ -1931,6 +1931,61 @@ Append validation runs here.
 | 2026-05-12 | Prompt 20 | VS Code Problems check for touched Prompt 20 files | Passed | `get_errors` reported no errors in touched Prompt 20 service, modal, drawer, reporting, and test files. |
 | 2026-05-12 | Prompt 20 | `powershell -ExecutionPolicy Bypass -File scripts/get-next-map-explorer-prompt.ps1` | Passed | Helper returned `Prompt 21 - Dashboard, Education, and Publication Outputs`. |
 
+### Prompt 21 - Dashboard, Education, and Publication Outputs
+
+- Date: 2026-05-13
+- Agent: GitHub Copilot (GPT-5.3-Codex)
+- Status: completed
+- Files inspected:
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` (Prompt 21 scope)
+  - `src/services/map/MapPublicationOutputBindingService.ts`
+  - `src/services/map/__tests__/MapPublicationOutputBindingService.test.ts`
+  - `src/centerpanel/components/MapExplorerModal.tsx`
+  - `src/centerpanel/components/map/MapLayerManager.tsx`
+  - `src/services/map/MapExportService.ts`
+- Files changed:
+  - `src/services/map/MapPublicationOutputBindingService.ts`
+  - `src/features/dashboard/types.ts`
+  - `src/centerpanel/components/MapExplorerModal.tsx`
+  - `src/services/map/__tests__/MapPublicationOutputBindingService.test.ts`
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md`
+- Behavior implemented:
+  - Added publication-readiness-aware education reference contract input (`publicationReadiness?: MapPublicationReadiness | null`) so education bindings inherit the same truthful QA/readiness state used by publication outputs.
+  - Updated `buildMapEducationReference` to compute QA using publication-readiness when provided and include `publicationReadinessStatus` in output metadata.
+  - Added explicit dashboard binding traceability for source layer IDs, data fields, visual encoding summary, source context label, and publication-readiness status without making the dashboard module own map state.
+  - Added Map-side dashboard descriptor fields for `dataFields`, `visualEncodingSummary`, and `sourceContext` so layer-derived dashboard requests remain inspectable after handoff.
+  - Updated Map layer-rail education action wiring in `MapExplorerModal` to build per-layer public-map readiness, pass it into education reference generation, persist readiness ID in the resulting evidence artifact metadata, and record readiness status in the review timeline event details.
+  - Preserved explicit static labeling (`bindingMode`, `refreshMode`, `isLive`, `liveStateLabel`) for dashboard and education outputs; no live-binding claims were added.
+- Spatial evidence/provenance changed:
+  - Education reference artifacts now carry readiness-derived QA state in addition to existing provenance notes and linked evidence IDs.
+  - Publication output traceability remains lightweight/reference-only (no heavy geometry or rendered payloads in binding metadata).
+- CRS, geometry, or measurement changed:
+  - None.
+- Scientific QA changed:
+  - No QA engine changes. Prompt 21 now propagates existing publication-readiness QA into education-reference output metadata and review events.
+- Layer registry or persistence changed:
+  - None.
+- Workflow/export/report changed:
+  - Publication export/report behavior unchanged; Prompt 21 reinforced downstream QA/provenance metadata parity for dashboard/education outputs.
+- Cross-module contracts changed:
+  - Additive contract extension: `BuildMapEducationReferenceInput.publicationReadiness` in `MapPublicationOutputBindingService`.
+  - Additive optional dashboard traceability fields: `DashboardBindingTraceability.sourceLayerIds`, `dataFields`, `visualEncodingSummary`, `sourceContextLabel`, and `publicationReadinessStatus`.
+  - No direct ownership violations: dashboard and education modules are invoked through existing binding/navigation contracts.
+- Validation run:
+  - `npm run typecheck` → Passed.
+  - `npx vitest run src/services/map/__tests__/MapPublicationOutputBindingService.test.ts src/services/map/__tests__/MapExportService.test.ts src/centerpanel/components/map/__tests__/map-layer-management.test.ts` → Passed (64/64).
+  - `git diff --check -- src/features/dashboard/types.ts src/services/map/MapPublicationOutputBindingService.ts src/centerpanel/components/MapExplorerModal.tsx src/services/map/__tests__/MapPublicationOutputBindingService.test.ts DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` → Passed with LF-to-CRLF warnings only.
+- Validation result:
+  - Prompt 21 delta validated and compatible with existing publication/readiness and layer-action flows.
+- Risks or blockers:
+  - Low: Prompt 21 action orchestration remains inside `MapExplorerModal.tsx`; future decomposition prompts can extract these handlers into dedicated hooks/services.
+- Next recommended prompt:
+  - Prompt 22 - Temporal Playback and Scenario Comparison.
+- Ledger updated: yes
+
+| 2026-05-13 | Prompt 21 | `npm run typecheck` | Passed | Full TypeScript project typechecks after Prompt 21 education-readiness propagation and modal action metadata updates. |
+| 2026-05-13 | Prompt 21 | `npx vitest run src/services/map/__tests__/MapPublicationOutputBindingService.test.ts src/services/map/__tests__/MapExportService.test.ts src/centerpanel/components/map/__tests__/map-layer-management.test.ts` | Passed (64/64) | Covers static dashboard/education bindings, publication-readiness traceability semantics, and layer-rail eligibility behavior. |
+
 ## Known Risks
 
 | Date | Prompt | Risk | Severity | Mitigation |
@@ -1964,6 +2019,7 @@ Append validation runs here.
 | 2026-05-12 | Prompt 19 | Legacy `ideMapHandoff.ts` still contains IDE-command materialization behavior from Synapse IDE Prompt 21. | Low | Prompt 19 added a Map-owned reference receiver without rewriting that IDE command surface; revisit only when a cross-module consolidation prompt authorizes it. |
 | 2026-05-12 | Prompt 20 | Structured evidence blocks are preserved as metadata and generated tables; the report builder does not yet expose a dedicated structured evidence inspector. | Low | Prompt 21 can enrich dashboard/report publication outputs using the preserved `structuredEvidenceBlocks` contract. |
 | 2026-05-12 | Prompt 20 | Report evidence registration action is still orchestrated inside `MapExplorerModal.tsx`. | Low | Keep scope minimal now; extract report commands into a focused hook when a future decomposition prompt authorizes it. |
+| 2026-05-13 | Prompt 21 | Dashboard/education binding orchestration still lives in `MapExplorerModal.tsx`. | Low | Keep current contract-safe behavior; extract prompt-21 handlers into a dedicated command hook during future modal decomposition prompts. |
 
 ## Next Prompt Pointer
 
@@ -1973,7 +2029,7 @@ Start with:
 
 Prompt:
 
-`Prompt 21 - Dashboard, Education, and Publication Outputs`
+`Prompt 22 - Temporal Playback and Scenario Comparison`
 
 Optional helper command:
 

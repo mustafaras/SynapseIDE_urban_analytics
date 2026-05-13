@@ -57,10 +57,21 @@ export interface MapDashboardBinding {
   liveStateLabel: string;
   layerIds: string[];
   sourceLayerIds: string[];
+  dataFields: string[];
+  visualEncodingSummary: string;
+  sourceContext: MapDashboardSourceContext;
   dashboardBinding: DashboardMapBinding;
   qa: MapOutputBindingQA;
   provenance: MapOutputBindingProvenance;
   metadata: Record<string, MapEvidenceScalar>;
+}
+
+export interface MapDashboardSourceContext {
+  label: string;
+  crsLabel: string;
+  publicationReadinessStatus: LayerPublicationReadinessStatus | MapPublicationReadiness["status"];
+  contextId?: string;
+  sourceName?: string;
 }
 
 export interface MapEducationReferenceTarget {
@@ -100,6 +111,7 @@ export interface BuildMapDashboardBindingInput {
 export interface BuildMapEducationReferenceInput {
   layer: OverlayLayerConfig;
   contextSummary?: MapExplorerContextSummary | null;
+  publicationReadiness?: MapPublicationReadiness | null;
   publicationManifest?: MapPublicationManifest | null;
   evidenceArtifacts?: readonly MapEvidenceArtifact[];
   requestedAt?: number;
@@ -260,6 +272,72 @@ function buildProvenance(input: {
   return provenance;
 }
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
+}
+
+function optionalString(value: unknown): string | null {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+}
+
+function collectDashboardDataFields(layer: OverlayLayerConfig): string[] {
+  const registry = normalizeLayerRegistryMetadata(layer);
+  const visualization = asRecord(layer.metadata?.analysisResult?.visualization);
+  const fields = unique([
+    optionalString(visualization?.valueField),
+    optionalString(visualization?.colorField),
+    optionalString(visualization?.weightField),
+    optionalString(visualization?.labelField),
+    ...registry.schemaSummary.fields
+      .filter((field) => field.role !== "geometry")
+      .map((field) => field.name),
+    ...(layer.metadata?.fields ?? []),
+  ]);
+  return fields.slice(0, 16);
+}
+
+function summarizeVisualEncoding(layer: OverlayLayerConfig): string {
+  const registry = normalizeLayerRegistryMetadata(layer);
+  const visualization = asRecord(layer.metadata?.analysisResult?.visualization);
+  const style = asRecord(layer.style);
+  const legendEntries = Array.isArray(style?.legendEntries) ? style.legendEntries.length : 0;
+  const parts = unique([
+    optionalString(visualization?.kind) ? `analysis ${optionalString(visualization?.kind)}` : null,
+    optionalString(visualization?.title),
+    optionalString(visualization?.valueField) ? `value field ${optionalString(visualization?.valueField)}` : null,
+    legendEntries > 0 ? `${legendEntries} legend entries` : null,
+    Object.keys(style ?? {}).length > 0 ? `style keys ${Object.keys(style ?? {}).slice(0, 6).join(", ")}` : null,
+    `${layer.type} layer`,
+    registry.geometrySummary.geometryType ? `geometry ${registry.geometrySummary.geometryType}` : null,
+  ]);
+  return parts.join("; ");
+}
+
+function buildDashboardSourceContext(input: {
+  layer: OverlayLayerConfig;
+  contextSummary?: MapExplorerContextSummary | null;
+  publicationReadiness?: MapPublicationReadiness | null;
+}): MapDashboardSourceContext {
+  const registry = normalizeLayerRegistryMetadata(input.layer);
+  const sourceName = registry.provenance.sourceName ?? registry.licenseAttribution.sourceName ?? registry.provenance.label;
+  const crsLabel = registry.crsSummary.crs ? `CRS ${registry.crsSummary.crs}` : "CRS unknown";
+  const publicationReadinessStatus = input.publicationReadiness?.status ?? registry.publicationReadiness.status;
+  const label = unique([
+    sourceName,
+    input.contextSummary?.contextId ? `context ${input.contextSummary.contextId}` : null,
+    crsLabel,
+    `publication ${publicationReadinessStatus}`,
+  ]).join(" | ");
+
+  return {
+    label,
+    crsLabel,
+    publicationReadinessStatus,
+    ...(input.contextSummary?.contextId ? { contextId: input.contextSummary.contextId } : {}),
+    ...(sourceName ? { sourceName } : {}),
+  };
+}
+
 export function buildMapDashboardBinding(input: BuildMapDashboardBindingInput): MapDashboardBinding {
   const createdAt = isoNow(input.createdAt);
   const registry = normalizeLayerRegistryMetadata(input.layer);
@@ -270,6 +348,13 @@ export function buildMapDashboardBinding(input: BuildMapDashboardBindingInput): 
   const title = `${input.layer.name} map evidence`;
   const summary = `Static dashboard map binding for ${input.layer.name} with ${registry.publicationReadiness.status} publication readiness and ${registry.qaStatus} QA.`;
   const qa = buildOutputQA({ layer: input.layer, publicationReadiness: input.publicationReadiness });
+  const dataFields = collectDashboardDataFields(input.layer);
+  const visualEncodingSummary = summarizeVisualEncoding(input.layer);
+  const sourceContext = buildDashboardSourceContext({
+    layer: input.layer,
+    contextSummary: input.contextSummary,
+    publicationReadiness: input.publicationReadiness,
+  });
   const provenance = buildProvenance({
     layer: input.layer,
     contextSummary: input.contextSummary,
@@ -279,9 +364,14 @@ export function buildMapDashboardBinding(input: BuildMapDashboardBindingInput): 
   const traceability = {
     ...(evidenceArtifactIds[0] ? { sourceArtifactId: evidenceArtifactIds[0] } : {}),
     ...(input.layer.metadata?.analysisResult?.runId ? { sourceRunId: input.layer.metadata.analysisResult.runId } : {}),
+    sourceLayerIds: [input.layer.id],
     refreshMode: "static" as const,
-    scaleLabel: registry.crsSummary.crs ? `CRS ${registry.crsSummary.crs}` : "CRS unknown",
+    scaleLabel: sourceContext.crsLabel,
     uncertaintyLabel: qa.caveats.length > 0 ? `${qa.caveats.length} caveat(s)` : "No QA caveats recorded",
+    sourceContextLabel: sourceContext.label,
+    dataFields,
+    visualEncodingSummary,
+    publicationReadinessStatus: sourceContext.publicationReadinessStatus,
     provenanceNotes: provenance.notes,
     qaState: dashboardQaState,
     qaWarnings: input.publicationReadiness?.warnings.map((check) => check.message) ?? [],
@@ -318,6 +408,9 @@ export function buildMapDashboardBinding(input: BuildMapDashboardBindingInput): 
     liveStateLabel: "Static map binding; refresh manually from Map Explorer after source map state changes.",
     layerIds: [input.layer.id],
     sourceLayerIds: [input.layer.id],
+    dataFields,
+    visualEncodingSummary,
+    sourceContext,
     dashboardBinding,
     qa,
     provenance,
@@ -329,6 +422,10 @@ export function buildMapDashboardBinding(input: BuildMapDashboardBindingInput): 
       layerId: input.layer.id,
       qaState: qa.state,
       publicationReadinessStatus: input.publicationReadiness?.status ?? registry.publicationReadiness.status,
+      sourceContextLabel: sourceContext.label,
+      visualEncodingSummary,
+      dataFields: dataFields.join(", ") || null,
+      dataFieldCount: dataFields.length,
       featureCount,
       evidenceArtifactCount: evidenceArtifactIds.length,
       ...(input.publicationManifest?.manifestId ? { publicationManifestId: input.publicationManifest.manifestId } : {}),
@@ -424,7 +521,7 @@ export function buildMapEducationReference(input: BuildMapEducationReferenceInpu
   const requestedAt = input.requestedAt ?? Date.parse(createdAt);
   const target = resolveEducationTarget(input.layer);
   const evidenceArtifactIds = collectLayerEvidenceArtifactIds(input.layer, input.evidenceArtifacts);
-  const qa = buildOutputQA({ layer: input.layer });
+  const qa = buildOutputQA({ layer: input.layer, publicationReadiness: input.publicationReadiness });
   const provenance = buildProvenance({
     layer: input.layer,
     contextSummary: input.contextSummary,
@@ -468,6 +565,7 @@ export function buildMapEducationReference(input: BuildMapEducationReferenceInpu
       educationPathId: target.pathId,
       ...(target.explainerId ? { educationExplainerId: target.explainerId } : {}),
       qaState: qa.state,
+      publicationReadinessStatus: input.publicationReadiness?.status ?? normalizeLayerRegistryMetadata(input.layer).publicationReadiness.status,
       evidenceArtifactCount: evidenceArtifactIds.length,
       ...(input.publicationManifest?.manifestId ? { publicationManifestId: input.publicationManifest.manifestId } : {}),
     },
