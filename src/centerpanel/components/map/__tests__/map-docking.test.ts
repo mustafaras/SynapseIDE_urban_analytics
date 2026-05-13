@@ -70,7 +70,7 @@ describe("map docking layout", () => {
 
   it("allocates a dedicated right dock lane for the scientific QA panel", () => {
     const layout = getMapDockLayout({
-      containerWidth: 1180,
+      containerWidth: 1220,
       layerPanelRequested: true,
       rightPanel: "scientificQA",
       navigatorStageMode: false,

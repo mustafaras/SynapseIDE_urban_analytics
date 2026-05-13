@@ -77,7 +77,12 @@ import {
 import { registerDashboardBinding } from "@/features/dashboard/dataBindings";
 import { queuePendingDashboardBinding } from "@/features/dashboard/storage";
 import { createOpaqueFloatingPanelStyle, useDraggableMapPanel } from "./map/useDraggableMapPanel";
-import { getActiveRightDockPanel, getMapDockLayout } from "./map/mapDocking";
+import {
+  getActiveRightDockPanel,
+  getMapDockLayout,
+  MAP_LAYER_PANEL_MAX_WIDTH,
+  MAP_LAYER_PANEL_MIN_WIDTH,
+} from "./map/mapDocking";
 import {
   type MapQuickActionId,
   type MapWorkspaceView,
@@ -2616,6 +2621,18 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     );
   }, [flyTo, reducedMotion]);
 
+  const handleFocusLayer = useCallback((layerId: string) => {
+    const layer = overlayLayers.find((entry) => entry.id === layerId);
+    const bounds = layer?.metadata?.bounds ?? layer?.metadata?.geometrySummary?.bounds ?? null;
+    if (!layer || !bounds) {
+      announce("Layer extent metadata is unavailable; cannot focus the map on this layer.");
+      return;
+    }
+
+    fitToBounds(bounds);
+    announce(`Map focused on ${layer.name}`);
+  }, [announce, fitToBounds, overlayLayers]);
+
   const handleHotSpotDispatch = useCallback(async (coordinate: [number, number]) => {
     if (isRunningQuickHotSpot) {
       return;
@@ -3952,9 +3969,18 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       return;
     }
 
+    const layerPublicationReadiness = buildMapPublicationReadiness({
+      mode: "public-map",
+      overlayLayers: [{ ...layer, visible: true }],
+      composition: { ...mapCompositionOptions, title: `${layer.name} education reference` },
+      scientificQA,
+      legendItems: buildMapCompositionLegendItems([{ ...layer, visible: true }]),
+    });
+
     const reference = buildMapEducationReference({
       layer,
       contextSummary,
+      publicationReadiness: layerPublicationReadiness,
       evidenceArtifacts: mapEvidenceArtifacts,
     });
     upsertMapEvidenceArtifact(createMapEvidenceArtifact({
@@ -3984,6 +4010,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         ...reference.metadata,
         bindingVersion: reference.version,
         educationRationale: reference.target.rationale,
+        readinessId: layerPublicationReadiness.id,
       },
       createdAt: new Date(reference.focusRequest.requestedAt).toISOString(),
     }));
@@ -4004,6 +4031,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         isLive: reference.isLive,
         qaState: reference.qa.state,
         evidenceArtifactIds: reference.evidenceArtifactIds,
+        readinessStatus: layerPublicationReadiness.status,
       },
     });
 
@@ -4021,9 +4049,11 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   }, [
     announce,
     contextSummary,
+    mapCompositionOptions,
     mapEvidenceArtifacts,
     overlayLayers,
     recordMapReviewEvent,
+    scientificQA,
     upsertMapEvidenceArtifact,
   ]);
 
@@ -5207,8 +5237,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               side={dockLayout.layerPanelPlacement === "bottom" ? "bottom" : "left"}
               width={dockLayout.layerPanelWidth}
               height="min(24rem, 54%)"
-              minWidth={MAP_NUMERIC.layerPanelWidth - 72}
-              maxWidth={MAP_NUMERIC.layerPanelWidth + 200}
+              minWidth={MAP_LAYER_PANEL_MIN_WIDTH}
+              maxWidth={MAP_LAYER_PANEL_MAX_WIDTH}
               resizable={dockLayout.layerPanelPlacement === "left"}
               onWidthChange={handleLayerPanelWidthChange}
               ariaLabel="Layer and data panel"
@@ -5222,6 +5252,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
                 onRemoveLayer={removeOverlayLayer}
                 onReorderLayers={reorderLayers}
                 onAddLayer={addOverlayLayer}
+                onFocusLayer={handleFocusLayer}
                 onAddLayerToReport={handleLayerReportRequest}
                 onBindLayerToDashboard={handleBindLayerToDashboard}
                 onOpenLayerEducationReference={handleOpenLayerEducationReference}

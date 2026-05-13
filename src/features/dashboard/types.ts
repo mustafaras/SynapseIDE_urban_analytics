@@ -110,9 +110,14 @@ export interface DashboardBindingTraceability {
   sourceArtifactId?: string;
   sourceRunId?: string;
   sourceIndicatorKind?: string;
+  sourceLayerIds?: string[];
   refreshMode?: DashboardBindingRefreshMode;
   scaleLabel?: string;
   uncertaintyLabel?: string;
+  sourceContextLabel?: string;
+  dataFields?: string[];
+  visualEncodingSummary?: string;
+  publicationReadinessStatus?: string;
   provenanceNotes?: string[];
   qaState?: DashboardBindingQAState;
   qaWarnings?: string[];

@@ -5,14 +5,14 @@
   "description": "Browser-based spatial intelligence platform for urban scientists, planners, and GIS analysts",
   "type": "module",
   "scripts": {
-    "start": "node --max-old-space-size=8192 node_modules/vite/bin/vite.js",
+    "start": "node --max-old-space-size=12288 node_modules/vite/bin/vite.js",
     "predev": "node scripts/kill-port.cjs 3000 9231",
-    "dev": "concurrently -n vite,terminal -c cyan,yellow \"node --max-old-space-size=8192 node_modules/vite/bin/vite.js\" \"node server/terminal-server.cjs\"",
-    "dev:vite": "node --max-old-space-size=8192 node_modules/vite/bin/vite.js",
-    "dev:trace": "node --max-old-space-size=8192 node_modules/vite/bin/vite.js",
-    "dev:safe": "node --max-old-space-size=8192 node_modules/vite/bin/vite.js --host 0.0.0.0 --port 3000",
-    "dev:cmd": "node --max-old-space-size=8192 node_modules/vite/bin/vite.js",
-    "build": "node --max-old-space-size=8192 node_modules/vite/bin/vite.js build",
+    "dev": "concurrently -n vite,terminal -c cyan,yellow \"node --max-old-space-size=12288 node_modules/vite/bin/vite.js\" \"node server/terminal-server.cjs\"",
+    "dev:vite": "node --max-old-space-size=12288 node_modules/vite/bin/vite.js",
+    "dev:trace": "node --max-old-space-size=12288 node_modules/vite/bin/vite.js",
+    "dev:safe": "node --max-old-space-size=12288 node_modules/vite/bin/vite.js --host 0.0.0.0 --port 3000",
+    "dev:cmd": "node --max-old-space-size=12288 node_modules/vite/bin/vite.js",
+    "build": "node --max-old-space-size=12288 node_modules/vite/bin/vite.js build",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives",
     "lint:errors": "eslint . --ext ts,tsx --quiet",
@@ -46,7 +46,7 @@
     "perf:budgets:json": "node scripts/check-bundle-budgets.mjs --json",
     "validate:rc": "npm run typecheck && npm run lint:errors && npm run test && npm run build && npm run perf:budgets && npm run test:e2e:ci",
     "terminal-server": "node server/terminal-server.cjs",
-    "dev:full": "concurrently -n vite,terminal -c cyan,yellow \"node --max-old-space-size=8192 node_modules/vite/bin/vite.js\" \"node server/terminal-server.cjs\""
+    "dev:full": "concurrently -n vite,terminal -c cyan,yellow \"node --max-old-space-size=12288 node_modules/vite/bin/vite.js\" \"node server/terminal-server.cjs\""
   },
   "dependencies": {
     "@deck.gl/aggregation-layers": "^9.1.0",

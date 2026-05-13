@@ -42,6 +42,7 @@ export interface MapLayerManagerProps {
   onOpenLayerInIde?: (id: string) => void;
   onBindLayerToDashboard?: (id: string) => void;
   onOpenLayerEducationReference?: (id: string) => void;
+  onFocusLayer?: (id: string) => void;
   activeRerunToken?: string | null;
   onOpenSymbology?: (id: string) => void;
   activeSymbologyLayerId?: string | null;
@@ -108,6 +109,410 @@ const SCIENTIFIC_QA_BADGE_TITLES: Record<LayerScientificQABadge, string> = {
   uncertain_output: "Layer output has scientific caveats.",
 };
 
+const DEMO_LAYER_PACK_ID = "map-explorer-demo-layer-pack";
+const DEMO_LAYER_PACK_TITLE = "Map Explorer Demo Layer Pack";
+const DEMO_LAYER_PROVENANCE = "Synthetic demo sample generated in Map Explorer for UI review. Not observational data.";
+
+interface MutableDemoBounds {
+  minLng: number;
+  minLat: number;
+  maxLng: number;
+  maxLat: number;
+}
+
+function collectCoordinateBounds(value: unknown, bounds: MutableDemoBounds): void {
+  if (!Array.isArray(value)) {
+    return;
+  }
+
+  const [longitude, latitude] = value;
+  if (typeof longitude === "number" && typeof latitude === "number") {
+    bounds.minLng = Math.min(bounds.minLng, longitude);
+    bounds.minLat = Math.min(bounds.minLat, latitude);
+    bounds.maxLng = Math.max(bounds.maxLng, longitude);
+    bounds.maxLat = Math.max(bounds.maxLat, latitude);
+    return;
+  }
+
+  for (const entry of value) {
+    collectCoordinateBounds(entry, bounds);
+  }
+}
+
+function getFeatureCollectionExactBounds(collection: GeoJSON.FeatureCollection): [number, number, number, number] {
+  const bounds: MutableDemoBounds = {
+    minLng: Number.POSITIVE_INFINITY,
+    minLat: Number.POSITIVE_INFINITY,
+    maxLng: Number.NEGATIVE_INFINITY,
+    maxLat: Number.NEGATIVE_INFINITY,
+  };
+
+  for (const feature of collection.features) {
+    collectCoordinateBounds(feature.geometry?.coordinates, bounds);
+  }
+
+  return [
+    Number(bounds.minLng.toFixed(6)),
+    Number(bounds.minLat.toFixed(6)),
+    Number(bounds.maxLng.toFixed(6)),
+    Number(bounds.maxLat.toFixed(6)),
+  ];
+}
+
+function createMapExplorerDemoLayers(createdAt = new Date().toISOString()): OverlayLayerConfig[] {
+  const transitAccessZones = {
+    type: "FeatureCollection",
+    features: [
+      {
+        type: "Feature",
+        id: "block-fatih-01",
+        properties: {
+          block_id: "BLK-001",
+          block_name: "Fatih Station Edge",
+          access_class: "Moderate",
+          access_score: 64,
+          dwellings: 148,
+          demo_note: "synthetic",
+        },
+        geometry: { type: "Polygon", coordinates: [[
+          [28.9608, 41.0116], [28.9662, 41.0123], [28.9668, 41.0089], [28.9615, 41.0082], [28.9608, 41.0116],
+        ]] },
+      },
+      {
+        type: "Feature",
+        id: "block-fatih-02",
+        properties: {
+          block_id: "BLK-002",
+          block_name: "Historic Market Block",
+          access_class: "Low",
+          access_score: 46,
+          dwellings: 96,
+          demo_note: "synthetic",
+        },
+        geometry: { type: "Polygon", coordinates: [[
+          [28.9682, 41.0126], [28.9736, 41.0131], [28.9741, 41.0098], [28.9689, 41.0092], [28.9682, 41.0126],
+        ]] },
+      },
+      {
+        type: "Feature",
+        id: "block-uskudar-01",
+        properties: {
+          block_id: "BLK-003",
+          block_name: "Uskudar Ferry Block",
+          access_class: "High",
+          access_score: 87,
+          dwellings: 172,
+          demo_note: "synthetic",
+        },
+        geometry: { type: "Polygon", coordinates: [[
+          [29.016, 41.025], [29.021, 41.026], [29.022, 41.0225], [29.017, 41.0218], [29.016, 41.025],
+        ]] },
+      },
+      {
+        type: "Feature",
+        id: "block-uskudar-02",
+        properties: {
+          block_id: "BLK-004",
+          block_name: "Mimar Sinan Block",
+          access_class: "Moderate",
+          access_score: 69,
+          dwellings: 121,
+          demo_note: "synthetic",
+        },
+        geometry: { type: "Polygon", coordinates: [[
+          [29.024, 41.023], [29.03, 41.024], [29.0305, 41.0205], [29.025, 41.0198], [29.024, 41.023],
+        ]] },
+      },
+      {
+        type: "Feature",
+        id: "block-kadikoy-01",
+        properties: {
+          block_id: "BLK-005",
+          block_name: "Kadikoy Retail Block",
+          access_class: "High",
+          access_score: 81,
+          dwellings: 188,
+          demo_note: "synthetic",
+        },
+        geometry: { type: "Polygon", coordinates: [[
+          [29.028, 40.992], [29.034, 40.9925], [29.0345, 40.989], [29.0285, 40.9885], [29.028, 40.992],
+        ]] },
+      },
+      {
+        type: "Feature",
+        id: "block-kadikoy-02",
+        properties: {
+          block_id: "BLK-006",
+          block_name: "Moda Transit Walkshed",
+          access_class: "Moderate",
+          access_score: 72,
+          dwellings: 134,
+          demo_note: "synthetic",
+        },
+        geometry: { type: "Polygon", coordinates: [[
+          [29.036, 40.996], [29.042, 40.9965], [29.043, 40.993], [29.037, 40.9925], [29.036, 40.996],
+        ]] },
+      },
+    ],
+  } satisfies GeoJSON.FeatureCollection;
+  const transitBounds = getFeatureCollectionExactBounds(transitAccessZones);
+  const coolingPriorityAreas = {
+    type: "FeatureCollection",
+    features: [
+      {
+        type: "Feature",
+        id: "building-fatih-01",
+        properties: {
+          building_id: "BLD-001",
+          building_name: "Sirkeci Mixed Use 01",
+          use_type: "mixed_use",
+          risk_class: "Very high",
+          heat_exposure: 92,
+          floors: 6,
+          demo_note: "synthetic",
+        },
+        geometry: { type: "Polygon", coordinates: [[
+          [28.9632, 41.0108], [28.9647, 41.0109], [28.9648, 41.0098], [28.9633, 41.0097], [28.9632, 41.0108],
+        ]] },
+      },
+      {
+        type: "Feature",
+        id: "building-fatih-02",
+        properties: {
+          building_id: "BLD-002",
+          building_name: "Sirkeci Residential 02",
+          use_type: "residential",
+          priority: "High",
+          risk_class: "High",
+          heat_exposure: 79,
+          floors: 5,
+          demo_note: "synthetic",
+        },
+        geometry: { type: "Polygon", coordinates: [[
+          [28.9655, 41.0115], [28.9671, 41.0116], [28.9672, 41.0105], [28.9657, 41.0104], [28.9655, 41.0115],
+        ]] },
+      },
+      {
+        type: "Feature",
+        id: "building-uskudar-01",
+        properties: {
+          building_id: "BLD-003",
+          building_name: "Uskudar Civic 01",
+          use_type: "civic",
+          risk_class: "Moderate",
+          heat_exposure: 63,
+          floors: 4,
+          demo_note: "synthetic",
+        },
+        geometry: { type: "Polygon", coordinates: [[
+          [29.0181, 41.0244], [29.0196, 41.0247], [29.0199, 41.0235], [29.0184, 41.0232], [29.0181, 41.0244],
+        ]] },
+      },
+      {
+        type: "Feature",
+        id: "building-uskudar-02",
+        properties: {
+          building_id: "BLD-004",
+          building_name: "Uskudar Residential 02",
+          use_type: "residential",
+          risk_class: "Low",
+          heat_exposure: 48,
+          floors: 3,
+          demo_note: "synthetic",
+        },
+        geometry: { type: "Polygon", coordinates: [[
+          [29.0256, 41.0226], [29.027, 41.0228], [29.0272, 41.0217], [29.0258, 41.0215], [29.0256, 41.0226],
+        ]] },
+      },
+      {
+        type: "Feature",
+        id: "building-kadikoy-01",
+        properties: {
+          building_id: "BLD-005",
+          building_name: "Kadikoy Apartment 01",
+          use_type: "residential",
+          risk_class: "High",
+          heat_exposure: 82,
+          floors: 7,
+          demo_note: "synthetic",
+        },
+        geometry: { type: "Polygon", coordinates: [[
+          [29.0305, 40.9921], [29.032, 40.9923], [29.0322, 40.9911], [29.0307, 40.9909], [29.0305, 40.9921],
+        ]] },
+      },
+      {
+        type: "Feature",
+        id: "building-kadikoy-02",
+        properties: {
+          building_id: "BLD-006",
+          building_name: "Kadikoy School 02",
+          use_type: "education",
+          risk_class: "Moderate",
+          heat_exposure: 67,
+          floors: 4,
+          demo_note: "synthetic",
+        },
+        geometry: { type: "Polygon", coordinates: [[
+          [29.0372, 40.9951], [29.0391, 40.9953], [29.0394, 40.9939], [29.0375, 40.9937], [29.0372, 40.9951],
+        ]] },
+      },
+    ],
+  } satisfies GeoJSON.FeatureCollection;
+  const coolingBounds = getFeatureCollectionExactBounds(coolingPriorityAreas);
+  const sharedDataset = {
+    datasetId: DEMO_LAYER_PACK_ID,
+    datasetTitle: DEMO_LAYER_PACK_TITLE,
+    datasetCity: "Istanbul demo blocks and buildings",
+    source: DEMO_LAYER_PROVENANCE,
+    license: "Demo only",
+    crs: "EPSG:4326",
+    updateDate: createdAt,
+    packageLayerCount: 2,
+    packageFeatureCount: 12,
+  };
+  const sharedCaveats = [
+    "Synthetic demo data for interface review only.",
+    "Coordinates are WGS84 display coordinates; do not use for area or distance analysis without projection.",
+  ];
+
+  return [
+    {
+      id: "demo-transit-access-zones",
+      name: "Demo Urban Block Access Index",
+      type: "geojson",
+      visible: true,
+      opacity: 0.7,
+      group: "data",
+      sourceKind: "demo",
+      qaStatus: "warning",
+      queryable: true,
+      sourceData: transitAccessZones,
+      style: {
+        "fill-color": [
+          "match",
+          ["get", "access_class"],
+          "High", "#16A34A",
+          "Moderate", "#F59E0B",
+          "Low", "#EF4444",
+          "#94A3B8",
+        ],
+        "fill-outline-color": "rgba(15, 23, 42, 0.86)",
+        legendEntries: [{ label: "Demo block access index", color: "#F59E0B" }],
+      },
+      provenance: {
+        label: DEMO_LAYER_PROVENANCE,
+        sourceName: DEMO_LAYER_PACK_TITLE,
+        license: "Demo only",
+        attribution: "Synthetic demo data - Map Explorer",
+        generatedAt: createdAt,
+        notes: sharedCaveats,
+      },
+      metadata: {
+        featureCount: 6,
+        geometryType: "Polygon",
+        bounds: transitBounds,
+        fields: ["block_id", "block_name", "access_class", "access_score", "dwellings", "demo_note"],
+        dataVersion: "demo-layer-pack-v1",
+        datasetContext: {
+          ...sharedDataset,
+          layerId: "urban_block_access_index",
+          layerTitle: "Urban Block Access Index",
+          thematicCoverage: ["mobility", "accessibility"],
+          spatialExtent: "Synthetic urban block footprints: Fatih, Uskudar, Kadikoy",
+          schemaSummary: ["block_id", "block_name", "access_class", "access_score", "dwellings", "demo_note"],
+        },
+        crsSummary: { crs: "EPSG:4326", status: "known", source: "explicit", notes: [sharedCaveats[1]!] },
+        geometrySummary: { geometryType: "Polygon", geometryTypes: ["Polygon"], featureCount: 6, source: "explicit", notes: ["Synthetic urban block footprints."], bounds: transitBounds },
+        schemaSummary: {
+          fieldCount: 6,
+          fields: [
+            { name: "block_id", role: "identifier", type: "string" },
+            { name: "block_name", role: "attribute", type: "string" },
+            { name: "access_class", role: "attribute", type: "string" },
+            { name: "access_score", role: "attribute", type: "number" },
+            { name: "dwellings", role: "attribute", type: "number" },
+            { name: "demo_note", role: "attribute", type: "string" },
+          ],
+          source: "explicit",
+          notes: ["Demo schema for UI review."],
+        },
+        licenseAttribution: { license: "Demo only", attribution: "Synthetic demo data - Map Explorer", sourceName: DEMO_LAYER_PACK_TITLE, requiresAttribution: true, source: "explicit", notes: sharedCaveats },
+        publicationReadiness: { status: "ready-with-caveats", missingFields: [], blockingIssueIds: [], caveats: sharedCaveats, checkedAt: createdAt },
+        scientificQA: { status: "warning", issueIds: ["demo-sample-data"], badges: ["sample_data"], checkedAt: createdAt, featureIssueCount: 0, usedWorker: false, caveats: sharedCaveats, signature: "demo-layer-pack-v1" },
+      },
+    },
+    {
+      id: "demo-cooling-sites",
+      name: "Demo Building Heat Exposure",
+      type: "geojson",
+      visible: true,
+      opacity: 0.68,
+      group: "data",
+      sourceKind: "demo",
+      qaStatus: "warning",
+      queryable: true,
+      sourceData: coolingPriorityAreas,
+      style: {
+        "fill-color": [
+          "match",
+          ["get", "risk_class"],
+          "Very high", "#DC2626",
+          "High", "#F97316",
+          "Moderate", "#A855F7",
+          "Low", "#22C55E",
+          "#94A3B8",
+        ],
+        "fill-outline-color": "rgba(15, 23, 42, 0.86)",
+        __labelField: "building_id",
+        __labelSize: 10,
+        legendEntries: [{ label: "Demo building heat exposure", color: "#F97316" }],
+      },
+      provenance: {
+        label: DEMO_LAYER_PROVENANCE,
+        sourceName: DEMO_LAYER_PACK_TITLE,
+        license: "Demo only",
+        attribution: "Synthetic demo data - Map Explorer",
+        generatedAt: createdAt,
+        notes: sharedCaveats,
+      },
+      metadata: {
+        featureCount: 6,
+        geometryType: "Polygon",
+        bounds: coolingBounds,
+        fields: ["building_id", "building_name", "use_type", "risk_class", "heat_exposure", "floors", "demo_note"],
+        dataVersion: "demo-layer-pack-v1",
+        datasetContext: {
+          ...sharedDataset,
+          layerId: "building_heat_exposure",
+          layerTitle: "Building Heat Exposure",
+          thematicCoverage: ["climate_adaptation", "public_realm"],
+          spatialExtent: "Synthetic building footprints: Fatih, Uskudar, Kadikoy",
+          schemaSummary: ["building_id", "building_name", "use_type", "risk_class", "heat_exposure", "floors", "demo_note"],
+        },
+        crsSummary: { crs: "EPSG:4326", status: "known", source: "explicit", notes: [sharedCaveats[1]!] },
+        geometrySummary: { geometryType: "Polygon", geometryTypes: ["Polygon"], featureCount: 6, source: "explicit", notes: ["Synthetic building footprints."], bounds: coolingBounds },
+        schemaSummary: {
+          fieldCount: 7,
+          fields: [
+            { name: "building_id", role: "identifier", type: "string" },
+            { name: "building_name", role: "attribute", type: "string" },
+            { name: "use_type", role: "attribute", type: "string" },
+            { name: "risk_class", role: "attribute", type: "string" },
+            { name: "heat_exposure", role: "attribute", type: "number" },
+            { name: "floors", role: "attribute", type: "number" },
+            { name: "demo_note", role: "attribute", type: "string" },
+          ],
+          source: "explicit",
+          notes: ["Demo schema for UI review."],
+        },
+        licenseAttribution: { license: "Demo only", attribution: "Synthetic demo data - Map Explorer", sourceName: DEMO_LAYER_PACK_TITLE, requiresAttribution: true, source: "explicit", notes: sharedCaveats },
+        publicationReadiness: { status: "ready-with-caveats", missingFields: [], blockingIssueIds: [], caveats: sharedCaveats, checkedAt: createdAt },
+        scientificQA: { status: "warning", issueIds: ["demo-sample-data"], badges: ["sample_data"], checkedAt: createdAt, featureIssueCount: 0, usedWorker: false, caveats: sharedCaveats, signature: "demo-layer-pack-v1" },
+      },
+    },
+  ];
+}
+
 /* ================================================================== */
 /*  Styles                                                             */
 /* ================================================================== */
@@ -171,7 +576,7 @@ const layerRow: React.CSSProperties = {
   ...mapStyles.sidePanelRow,
   display: "grid",
   gridTemplateColumns: "1.5rem minmax(0, 1fr) auto",
-  alignItems: "center",
+  alignItems: "start",
   gap: MAP_SPACING.sm,
   padding: `${MAP_SPACING.sm} ${MAP_SPACING.md}`,
   fontSize: 12,
@@ -210,15 +615,16 @@ const layerNameButton: React.CSSProperties = {
   padding: 0,
   cursor: "pointer",
   minWidth: 0,
+  flex: "1 1 12rem",
+  maxWidth: "100%",
 };
 
 const layerName: React.CSSProperties = {
   color: MAP_COLORS.text,
   fontSize: 12,
   fontFamily: MAP_TYPOGRAPHY.fontFamily,
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap" as const,
+  overflowWrap: "anywhere",
+  whiteSpace: "normal" as const,
   cursor: "pointer",
 };
 
@@ -242,35 +648,37 @@ const analysisMetaText: React.CSSProperties = {
   color: MAP_COLORS.textSecondary,
   fontSize: 10,
   fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap" as const,
+  overflow: "visible",
+  overflowWrap: "anywhere",
+  whiteSpace: "normal" as const,
 };
 
 const analysisSummaryText: React.CSSProperties = {
   color: MAP_COLORS.textMuted,
   fontSize: 10,
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap" as const,
+  lineHeight: 1.35,
+  overflow: "visible",
+  overflowWrap: "anywhere",
+  whiteSpace: "normal" as const,
 };
 
 const layerMetaRow: React.CSSProperties = {
   display: "flex",
-  flexWrap: "nowrap",
+  flexWrap: "wrap",
   gap: MAP_SPACING.xs,
   alignItems: "center",
   minWidth: 0,
-  overflow: "hidden",
+  overflow: "visible",
 };
 
 const layerMetaText: React.CSSProperties = {
   color: MAP_COLORS.textMuted,
   fontSize: 10,
   fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
+  lineHeight: 1.45,
+  overflow: "visible",
+  overflowWrap: "anywhere",
+  whiteSpace: "normal",
 };
 
 const layerControlRow: React.CSSProperties = {
@@ -292,10 +700,10 @@ const layerBadgeBase: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   maxWidth: "8rem",
-  padding: "2px 5px",
+  padding: "1px 3px",
   borderRadius: MAP_RADIUS.sm,
-  border: MAP_STROKES.hairlineSubtle,
-  background: "rgba(255,255,255,0.025)",
+  border: MAP_STROKES.none,
+  background: "transparent",
   color: MAP_COLORS.textSecondary,
   fontSize: 9,
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
@@ -310,94 +718,91 @@ const layerBadgeBase: React.CSSProperties = {
 const layerActionMenu: React.CSSProperties = {
   position: "relative",
   flexShrink: 0,
+  justifySelf: "end",
+  alignSelf: "start",
+  zIndex: 2,
 };
 
 const layerActionSummary: React.CSSProperties = {
   listStyle: "none",
-  background: "transparent",
-  border: `1px solid ${MAP_COLORS.amberBorder}`,
-  color: MAP_COLORS.textSecondary,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  minWidth: 54,
+  background: "rgba(245, 158, 11, 0.1)",
+  border: MAP_STROKES.none,
+  color: MAP_COLORS.amber,
   cursor: "pointer",
   fontSize: 10,
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
-  padding: "2px 6px",
+  padding: "4px 8px",
   lineHeight: 1.2,
   borderRadius: MAP_RADIUS.sm,
   transition: MAP_TRANSITIONS.fast,
 };
 
 const layerActionGrid: React.CSSProperties = {
-  display: "flex",
-  flexWrap: "wrap",
-  gap: 4,
-  marginTop: 6,
-  padding: 6,
-  border: MAP_STROKES.hairlineSubtle,
-  borderRadius: MAP_RADIUS.sm,
-  background: MAP_COLORS.bgPanel,
+  position: "absolute",
+  top: "calc(100% + 6px)",
+  right: 0,
+  display: "grid",
+  gridTemplateColumns: "1fr",
+  gap: 3,
+  marginTop: 0,
+  padding: 7,
+  minWidth: 190,
+  border: "1px solid rgba(255, 255, 255, 0.08)",
+  borderRadius: MAP_RADIUS.md,
+  background: "rgba(10, 13, 18, 0.96)",
+  boxShadow: MAP_SHADOWS.dropdown,
+  backdropFilter: "blur(12px)",
+  zIndex: MAP_Z_INDEX.dropdown,
 };
 
 const layerActionButton: React.CSSProperties = {
-  background: "transparent",
-  border: `1px solid ${MAP_COLORS.amberBorder}`,
-  color: MAP_COLORS.textSecondary,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  width: "100%",
+  background: "rgba(255,255,255,0.035)",
+  border: MAP_STROKES.none,
+  color: MAP_COLORS.text,
   cursor: "pointer",
-  fontSize: 10,
+  fontSize: 11,
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
-  padding: "2px 6px",
-  lineHeight: 1.2,
+  padding: "7px 8px",
+  lineHeight: 1.15,
   borderRadius: MAP_RADIUS.sm,
   transition: MAP_TRANSITIONS.fast,
-  maxWidth: "7.5rem",
+  maxWidth: "100%",
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
+  textAlign: "left" as const,
+};
+
+const layerActionButtonDanger: React.CSSProperties = {
+  color: MAP_COLORS.error,
+  background: "rgba(248, 113, 113, 0.08)",
+};
+
+const layerActionButtonWarning: React.CSSProperties = {
+  color: MAP_COLORS.warning,
+  background: "rgba(251, 191, 36, 0.08)",
 };
 
 const layerActionButtonDisabled: React.CSSProperties = {
-  opacity: 0.52,
+  opacity: 0.9,
   cursor: "not-allowed",
   color: MAP_COLORS.textMuted,
-  border: MAP_STROKES.hairlineSubtle,
-  background: "rgba(255,255,255,0.015)",
-};
-
-const confirmRemoveBtn: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: MAP_SPACING.xs,
-  background: "rgba(248, 113, 113, 0.12)",
-  border: `1px solid ${MAP_COLORS.error}`,
-  borderRadius: MAP_RADIUS.sm,
-  color: MAP_COLORS.error,
-  cursor: "pointer",
-  fontSize: 11,
-  padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
-  lineHeight: 1.2,
-  transition: MAP_TRANSITIONS.fast,
-  flexShrink: 0,
-};
-
-const cancelRemoveBtn: React.CSSProperties = {
-  background: "transparent",
-  border: `1px solid ${MAP_COLORS.amberBorder}`,
-  color: MAP_COLORS.textMuted,
-  cursor: "pointer",
-  fontSize: 10,
-  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
-  padding: "2px 6px",
-  lineHeight: 1.2,
-  borderRadius: MAP_RADIUS.sm,
-  transition: MAP_TRANSITIONS.fast,
-  flexShrink: 0,
+  background: "rgba(255,255,255,0.022)",
 };
 
 const staleChip: React.CSSProperties = {
-  padding: "2px 5px",
+  padding: "1px 3px",
   borderRadius: MAP_RADIUS.sm,
-  border: `1px solid ${MAP_COLORS.amberBorderStrong}`,
-  background: MAP_COLORS.amberDim,
+  border: MAP_STROKES.none,
+  background: "transparent",
   color: MAP_COLORS.amber,
   fontSize: 9,
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
@@ -406,10 +811,10 @@ const staleChip: React.CSSProperties = {
 };
 
 const columnarChip: React.CSSProperties = {
-  padding: "2px 6px",
+  padding: "1px 3px",
   borderRadius: MAP_RADIUS.sm,
-  border: `1px solid rgba(56, 189, 248, 0.45)`,
-  background: "rgba(8, 47, 73, 0.55)",
+  border: MAP_STROKES.none,
+  background: "transparent",
   color: "#7DD3FC",
   fontSize: 9,
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
@@ -418,10 +823,10 @@ const columnarChip: React.CSSProperties = {
 };
 
 const scientificQaChip: React.CSSProperties = {
-  padding: "2px 6px",
+  padding: "1px 3px",
   borderRadius: MAP_RADIUS.sm,
-  border: `1px solid ${MAP_COLORS.amberBorder}`,
-  background: "rgba(255,255,255,0.025)",
+  border: MAP_STROKES.none,
+  background: "transparent",
   color: MAP_COLORS.textSecondary,
   fontSize: 9,
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
@@ -434,15 +839,11 @@ const scientificQaChip: React.CSSProperties = {
 };
 
 const scientificQaChipError: React.CSSProperties = {
-  border: `1px solid ${MAP_COLORS.error}`,
   color: MAP_COLORS.error,
-  background: "rgba(248, 113, 113, 0.1)",
 };
 
 const scientificQaChipWarning: React.CSSProperties = {
-  border: `1px solid ${MAP_COLORS.warning}`,
   color: MAP_COLORS.warning,
-  background: "rgba(251, 191, 36, 0.1)",
 };
 
 const opacitySlider: React.CSSProperties = {
@@ -453,43 +854,6 @@ const opacitySlider: React.CSSProperties = {
   cursor: "pointer",
   flex: 1,
   margin: 0,
-};
-
-const removeBtn: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: MAP_SPACING.xs,
-  background: "transparent",
-  border: `1px solid color-mix(in srgb, ${MAP_COLORS.error} 44%, transparent)`,
-  borderRadius: MAP_RADIUS.sm,
-  color: MAP_COLORS.error,
-  cursor: "pointer",
-  fontSize: 11,
-  padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
-  lineHeight: 1.2,
-  transition: MAP_TRANSITIONS.fast,
-  flexShrink: 0,
-};
-
-const symbologyBtn: React.CSSProperties = {
-  background: "transparent",
-  border: `1px solid ${MAP_COLORS.amberBorder}`,
-  color: MAP_COLORS.textSecondary,
-  cursor: "pointer",
-  fontSize: 10,
-  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
-  padding: "2px 6px",
-  lineHeight: 1.2,
-  borderRadius: MAP_RADIUS.sm,
-  transition: MAP_TRANSITIONS.fast,
-  flexShrink: 0,
-};
-
-const cartographyBtn: React.CSSProperties = {
-  ...symbologyBtn,
-  border: "1px solid rgba(56, 189, 248, 0.42)",
-  color: "#7DD3FC",
 };
 
 const cartographyReviewStrip: React.CSSProperties = {
@@ -530,6 +894,27 @@ const addLayerBtn: React.CSSProperties = {
   margin: `${MAP_SPACING.sm} ${MAP_SPACING.md}`,
   ...mapStyles.sidePanelPrimaryButton,
   textAlign: "center" as const,
+};
+
+const layerFooterActions: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: MAP_SPACING.sm,
+  padding: MAP_SPACING.md,
+  borderTop: MAP_STROKES.hairlineSubtle,
+};
+
+const addManualLayerBtn: React.CSSProperties = {
+  ...addLayerBtn,
+  margin: 0,
+};
+
+const addDemoLayersBtn: React.CSSProperties = {
+  ...addLayerBtn,
+  margin: 0,
+  background: "rgba(56, 189, 248, 0.13)",
+  border: "1px solid rgba(56, 189, 248, 0.38)",
+  color: "#7DD3FC",
 };
 
 const popoverStyle: React.CSSProperties = {
@@ -699,6 +1084,10 @@ function formatBounds(bounds: [number, number, number, number]): string {
   return `[${bounds.map((b) => b.toFixed(4)).join(", ")}]`;
 }
 
+function getLayerBounds(layer: OverlayLayerConfig): [number, number, number, number] | null {
+  return layer.metadata?.bounds ?? layer.metadata?.geometrySummary?.bounds ?? null;
+}
+
 function formatAnalysisTimestamp(timestamp?: string): string {
   if (!timestamp) return "unknown time";
 
@@ -787,12 +1176,27 @@ interface LayerBadgeModel {
   tone: LayerBadgeTone;
 }
 
-type LayerEvidenceActionId = "export" | "urban" | "ide" | "report" | "dashboard" | "education";
+type LayerActionId =
+  | "locate"
+  | "style"
+  | "review"
+  | "export"
+  | "urban"
+  | "ide"
+  | "report"
+  | "dashboard"
+  | "education"
+  | "remove"
+  | "confirm-remove"
+  | "cancel-remove";
+
+type LayerActionTone = "default" | "warning" | "danger";
 
 interface LayerEvidenceActionModel {
-  id: LayerEvidenceActionId;
+  id: LayerActionId;
   label: string;
   title: string;
+  tone?: LayerActionTone;
   disabledReason?: string;
   onSelect?: () => void;
 }
@@ -810,27 +1214,23 @@ function layerBadgeToneStyle(tone: LayerBadgeTone): React.CSSProperties {
   switch (tone) {
     case "good":
       return {
-        border: "1px solid rgba(74, 222, 128, 0.35)",
         color: "#86EFAC",
-        background: "rgba(22, 101, 52, 0.16)",
+        background: "transparent",
       };
     case "warning":
       return {
-        border: `1px solid ${MAP_COLORS.warning}`,
         color: MAP_COLORS.warning,
-        background: "rgba(251, 191, 36, 0.1)",
+        background: "transparent",
       };
     case "error":
       return {
-        border: `1px solid ${MAP_COLORS.error}`,
         color: MAP_COLORS.error,
-        background: "rgba(248, 113, 113, 0.1)",
+        background: "transparent",
       };
     case "info":
       return {
-        border: "1px solid rgba(56, 189, 248, 0.42)",
         color: "#7DD3FC",
-        background: "rgba(8, 47, 73, 0.32)",
+        background: "transparent",
       };
     case "neutral":
     default:
@@ -900,56 +1300,59 @@ function buildLayerBadges(layer: OverlayLayerConfig): LayerBadgeModel[] {
     ? registry.crsSummary.crs ?? "CRS known"
     : "CRS missing";
   const publicationLabel = `Publication ${PUBLICATION_READINESS_LABELS[registry.publicationReadiness.status].toLowerCase()}`;
-
-  return [
+  const badges: LayerBadgeModel[] = [
     {
       id: "source",
       label: SOURCE_KIND_LABELS[registry.sourceKind],
       title: `Source kind: ${SOURCE_KIND_LABELS[registry.sourceKind]}. Provenance: ${registry.provenance.label}`,
       tone: registry.sourceKind === "external" ? "info" : registry.sourceKind === "demo" ? "warning" : "neutral",
     },
-    {
+  ];
+
+  if (isDerived) {
+    badges.push({
       id: "derived",
       label: isDerived ? (layer.metadata?.analysisResult?.stale ? "Derived stale" : "Derived") : "Source layer",
-      title: isDerived
-        ? "Derived layer with recorded analysis lineage."
-        : "Source layer, not derived from a map analysis run.",
+      title: "Derived layer with recorded analysis lineage.",
       tone: layer.metadata?.analysisResult?.stale ? "warning" : isDerived ? "info" : "neutral",
-    },
-    {
+    });
+  }
+
+  if (registry.qaStatus === "warning" || registry.qaStatus === "error") {
+    badges.push({
       id: "qa",
       label: QA_STATUS_LABELS[registry.qaStatus],
       title: `Scientific QA status: ${QA_STATUS_LABELS[registry.qaStatus]}.`,
       tone: qaBadgeTone(registry.qaStatus),
-    },
-    {
+    });
+  }
+
+  if (registry.crsSummary.status !== "known") {
+    badges.push({
       id: "crs",
       label: crsLabel,
       title: registry.crsSummary.notes.length > 0
         ? registry.crsSummary.notes.join(" ")
         : `CRS: ${crsLabel}.`,
       tone: registry.crsSummary.status === "known" ? "good" : "error",
-    },
-    {
-      id: "queryable",
-      label: registry.queryable ? "Queryable" : "Not queryable",
-      title: registry.queryable
-        ? "Layer supports feature-level map queries."
-        : "Layer cannot be queried from the map registry.",
-      tone: registry.queryable ? "good" : "warning",
-    },
-    {
+    });
+  }
+
+  if (registry.publicationReadiness.status === "needs-review" || registry.publicationReadiness.status === "blocked") {
+    badges.push({
       id: "publication",
       label: publicationLabel,
       title: buildPublicationGateReason(layer) ?? (registry.publicationReadiness.caveats.join(" ") || "Layer metadata is publication-ready."),
       tone: publicationBadgeTone(registry.publicationReadiness.status),
-    },
-  ];
+    });
+  }
+
+  return badges;
 }
 
 function createLayerAction(
   layer: OverlayLayerConfig,
-  id: LayerEvidenceActionId,
+  id: LayerActionId,
   label: string,
   callback: ((id: string) => void) | undefined,
   disabledReason: string | null,
@@ -1042,11 +1445,18 @@ const LayerBadge: React.FC<{ badge: LayerBadgeModel }> = ({ badge }) => (
 interface LayerActionMenuProps {
   layerName: string;
   actions: LayerEvidenceActionModel[];
+  forceOpen?: boolean;
   onAnnounce?: (msg: string) => void;
 }
 
-const LayerActionMenu: React.FC<LayerActionMenuProps> = ({ layerName, actions, onAnnounce }) => (
-  <details style={layerActionMenu}>
+function layerActionToneStyle(tone: LayerActionTone | undefined): React.CSSProperties {
+  if (tone === "danger") return layerActionButtonDanger;
+  if (tone === "warning") return layerActionButtonWarning;
+  return {};
+}
+
+const LayerActionMenu: React.FC<LayerActionMenuProps> = ({ layerName, actions, forceOpen = false, onAnnounce }) => (
+  <details style={layerActionMenu} {...(forceOpen ? { open: true } : {})}>
     <summary style={layerActionSummary} aria-label={`Layer actions for ${layerName}`} title="Layer evidence actions">
       Actions
     </summary>
@@ -1058,7 +1468,11 @@ const LayerActionMenu: React.FC<LayerActionMenuProps> = ({ layerName, actions, o
           <button
             key={action.id}
             type="button"
-            style={{ ...layerActionButton, ...(disabled ? layerActionButtonDisabled : {}) }}
+            style={{
+              ...layerActionButton,
+              ...layerActionToneStyle(action.tone),
+              ...(disabled ? layerActionButtonDisabled : {}),
+            }}
             disabled={disabled}
             title={title}
             aria-label={disabled ? `${action.label}: ${title}` : `${action.label} ${layerName}`}
@@ -1577,6 +1991,8 @@ interface LayerRowProps {
   onOpenLayerInIde?: (id: string) => void;
   onAddLayerToReport?: (id: string) => void;
   onBindLayerToDashboard?: (id: string) => void;
+  onOpenLayerEducationReference?: (id: string) => void;
+  onFocusLayer?: (id: string) => void;
   isSymbologyActive?: boolean;
   isRemovePending: boolean;
   cartographyRecommendationCount?: number;
@@ -1604,6 +2020,7 @@ const LayerRow: React.FC<LayerRowProps> = ({
   onOpenLayerInIde,
   onAddLayerToReport,
   onBindLayerToDashboard,
+  onFocusLayer,
   onOpenLayerEducationReference,
   isSymbologyActive = false,
   isRemovePending,
@@ -1626,6 +2043,7 @@ const LayerRow: React.FC<LayerRowProps> = ({
   const crs = resolveLayerCrs(layer);
   const registry = normalizeLayerRegistryMetadata(layer);
   const featureCount = registry.featureCount;
+  const layerBounds = getLayerBounds(layer);
   const layerBadges = buildLayerBadges(layer);
   const evidenceActions = buildLayerEvidenceActions(layer, {
     ...(onExportLayer ? { onExportLayer } : {}),
@@ -1635,6 +2053,58 @@ const LayerRow: React.FC<LayerRowProps> = ({
     ...(onBindLayerToDashboard ? { onBindLayerToDashboard } : {}),
     ...(onOpenLayerEducationReference ? { onOpenLayerEducationReference } : {}),
   });
+  const utilityActions: LayerEvidenceActionModel[] = [
+    ...(onFocusLayer && layerBounds
+      ? [{
+          id: "locate" as const,
+          label: "Locate",
+          title: `Zoom to extent ${formatBounds(layerBounds)}`,
+          onSelect: () => onFocusLayer(layer.id),
+        }]
+      : []),
+    ...(onOpenSymbology
+      ? [{
+          id: "style" as const,
+          label: isSymbologyActive ? "Style active" : "Style",
+          title: "Open symbology panel",
+          tone: isSymbologyActive ? "warning" as const : "default" as const,
+          onSelect: () => onOpenSymbology(layer.id),
+        }]
+      : []),
+    ...(onReviewCartography
+      ? [{
+          id: "review" as const,
+          label: cartographyRecommendationCount > 0 ? `Review ${cartographyRecommendationCount}` : "Review",
+          title: "Review symbology",
+          tone: cartographyRecommendationCount > 0 ? "warning" as const : "default" as const,
+          onSelect: () => onReviewCartography(layer.id),
+        }]
+      : []),
+  ];
+  const removalActions: LayerEvidenceActionModel[] = isRemovePending
+    ? [
+        {
+          id: "confirm-remove",
+          label: "Confirm delete",
+          title: "Confirm layer removal",
+          tone: "danger",
+          onSelect: () => onRemove(layer.id),
+        },
+        {
+          id: "cancel-remove",
+          label: "Cancel",
+          title: "Cancel layer removal",
+          onSelect: () => onCancelRemove(layer.id),
+        },
+      ]
+    : [{
+        id: "remove",
+        label: "Delete",
+        title: "Remove layer",
+        tone: "danger",
+        onSelect: () => onRequestRemove(layer.id),
+      }];
+  const rowActions = [...utilityActions, ...evidenceActions, ...removalActions];
   const importFormat = formatImportSourceLabel(layer.metadata?.importFormat);
   const detailSummary = [
     SOURCE_KIND_LABELS[sourceKind],
@@ -1738,52 +2208,6 @@ const LayerRow: React.FC<LayerRowProps> = ({
         </div>
 
         <div style={layerControlRow}>
-          {onOpenSymbology ? (
-            <button
-              type="button"
-              style={{
-                ...symbologyBtn,
-                color: isSymbologyActive ? MAP_COLORS.amber : MAP_COLORS.textSecondary,
-                border: `1px solid ${isSymbologyActive ? MAP_COLORS.amberBorderStrong : MAP_COLORS.amberBorder}`,
-                background: isSymbologyActive ? MAP_COLORS.amberDim : "transparent",
-              }}
-              onClick={(event) => {
-                event.stopPropagation();
-                onOpenSymbology(layer.id);
-              }}
-              aria-label={`Open symbology panel for ${layer.name}`}
-              title="Symbology"
-            >
-              Style
-            </button>
-          ) : null}
-
-          {onReviewCartography ? (
-            <button
-              type="button"
-              style={{
-                ...cartographyBtn,
-                border: `1px solid ${cartographyRecommendationCount > 0 ? MAP_COLORS.warning : "rgba(56, 189, 248, 0.42)"}`,
-                color: cartographyRecommendationCount > 0 ? MAP_COLORS.warning : "#7DD3FC",
-                background: cartographyRecommendationCount > 0 ? "rgba(251, 191, 36, 0.1)" : "transparent",
-              }}
-              onClick={(event) => {
-                event.stopPropagation();
-                onReviewCartography(layer.id);
-              }}
-              aria-label={`Review symbology for ${layer.name}`}
-              title="Review symbology"
-            >
-              Review{cartographyRecommendationCount > 0 ? ` ${cartographyRecommendationCount}` : ""}
-            </button>
-          ) : null}
-
-          <LayerActionMenu
-            layerName={layer.name}
-            actions={evidenceActions}
-            {...(onAnnounce ? { onAnnounce } : {})}
-          />
-
           <input
             type="range"
             min={0}
@@ -1796,35 +2220,12 @@ const LayerRow: React.FC<LayerRowProps> = ({
           />
         </div>
       </div>
-
-      {/* Remove button */}
-      <button
-        type="button"
-        style={isRemovePending ? confirmRemoveBtn : removeBtn}
-        onClick={() => {
-          if (isRemovePending) {
-            onRemove(layer.id);
-            return;
-          }
-          onRequestRemove(layer.id);
-        }}
-        aria-label={isRemovePending ? `Confirm remove layer ${layer.name}` : `Remove layer ${layer.name}`}
-        title={isRemovePending ? "Confirm removal" : "Remove layer"}
-      >
-        <IconClose size={11} />
-        {isRemovePending ? "Confirm" : "Delete"}
-      </button>
-      {isRemovePending ? (
-        <button
-          type="button"
-          style={cancelRemoveBtn}
-          onClick={() => onCancelRemove(layer.id)}
-          aria-label={`Cancel remove layer ${layer.name}`}
-          title="Cancel removal"
-        >
-          Cancel
-        </button>
-      ) : null}
+      <LayerActionMenu
+        layerName={layer.name}
+        actions={rowActions}
+        forceOpen={isRemovePending}
+        {...(onAnnounce ? { onAnnounce } : {})}
+      />
     </div>
   );
 };
@@ -1847,6 +2248,7 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
   onOpenLayerInIde,
   onBindLayerToDashboard,
   onOpenLayerEducationReference,
+  onFocusLayer,
   activeRerunToken = null,
   onOpenSymbology,
   activeSymbologyLayerId = null,
@@ -2000,6 +2402,13 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
   const handleAddLayer = useCallback((layer: OverlayLayerConfig) => {
     onAddLayer(layer);
     onAnnounce?.(`Layer "${layer.name}" added`);
+  }, [onAddLayer, onAnnounce]);
+
+  const handleAddDemoLayers = useCallback(() => {
+    for (const layer of createMapExplorerDemoLayers()) {
+      onAddLayer(layer);
+    }
+    onAnnounce?.("Two demo layers added or refreshed");
   }, [onAddLayer, onAnnounce]);
 
   /* ---- Toggle visibility with announcement ---- */
@@ -2194,6 +2603,7 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
                     {...(onAddLayerToReport ? { onAddLayerToReport } : {})}
                     {...(onBindLayerToDashboard ? { onBindLayerToDashboard } : {})}
                     {...(onOpenLayerEducationReference ? { onOpenLayerEducationReference } : {})}
+                    {...(onFocusLayer ? { onFocusLayer } : {})}
                     {...(onAnnounce ? { onAnnounce } : {})}
                     isDragging={dragId === layer.id}
                     onDragStart={handleDragStart}
@@ -2213,15 +2623,26 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
         ))}
       </div>
 
-      {/* Add Layer button */}
-      <button
-        type="button"
-        style={addLayerBtn}
-        onClick={() => setShowAddDialog(true)}
-        aria-label="Add a new layer"
-      >
-        Add Layer
-      </button>
+      {/* Add layer actions */}
+      <div style={layerFooterActions}>
+        <button
+          type="button"
+          style={addManualLayerBtn}
+          onClick={() => setShowAddDialog(true)}
+          aria-label="Add a new layer"
+        >
+          Add Layer
+        </button>
+        <button
+          type="button"
+          style={addDemoLayersBtn}
+          onClick={handleAddDemoLayers}
+          aria-label="Add two demo layers"
+          title="Add two explicitly labelled demo layers for map review"
+        >
+          Add Demo Layers
+        </button>
+      </div>
 
       {/* Metadata popover */}
       {popoverLayer ? (

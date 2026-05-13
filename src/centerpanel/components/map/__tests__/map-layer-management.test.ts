@@ -449,6 +449,177 @@ describe("MapLayerManager component", () => {
     expect(html).toContain("Delete");
   });
 
+  it("renders the demo layer footer action", async () => {
+    const mod = await import("../MapLayerManager");
+    const html = renderToStaticMarkup(
+      React.createElement(mod.MapLayerManager, {
+        overlayLayers: [],
+        activeBaseLayerName: "Dark Matter",
+        onToggleVisibility: () => undefined,
+        onSetOpacity: () => undefined,
+        onRemoveLayer: () => undefined,
+        onReorderLayers: () => undefined,
+        onAddLayer: () => undefined,
+      }),
+    );
+
+    expect(html).toContain("Add Demo Layers");
+    expect(html).toContain("Add Layer");
+  });
+
+  it("renders a locate control for layers with extent metadata", async () => {
+    const mod = await import("../MapLayerManager");
+    const focusedLayerIds: string[] = [];
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        React.createElement(mod.MapLayerManager, {
+          overlayLayers: [{
+            id: "bounded-layer",
+            name: "Bounded Layer",
+            type: "geojson",
+            visible: true,
+            opacity: 1,
+            group: "data",
+            metadata: {
+              featureCount: 1,
+              geometryType: "Point",
+              bounds: [28.925, 40.962, 29.064, 41.052],
+            },
+          } satisfies OverlayLayerConfig],
+          activeBaseLayerName: "Dark Matter",
+          onToggleVisibility: () => undefined,
+          onSetOpacity: () => undefined,
+          onRemoveLayer: () => undefined,
+          onReorderLayers: () => undefined,
+          onAddLayer: () => undefined,
+          onFocusLayer: (id: string) => {
+            focusedLayerIds.push(id);
+          },
+        }),
+      );
+    });
+
+    const locateButton = container.querySelector('[aria-label="Locate Bounded Layer"]');
+    expect(locateButton).not.toBeNull();
+    expect(locateButton?.getAttribute("title")).toContain("[28.9250, 40.9620, 29.0640, 41.0520]");
+
+    await act(async () => {
+      locateButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(focusedLayerIds).toEqual(["bounded-layer"]);
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it("adds the demo layer pack from the layer panel footer", async () => {
+    const mod = await import("../MapLayerManager");
+    const addedLayers: OverlayLayerConfig[] = [];
+    const announcements: string[] = [];
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        React.createElement(mod.MapLayerManager, {
+          overlayLayers: [],
+          activeBaseLayerName: "Dark Matter",
+          onToggleVisibility: () => undefined,
+          onSetOpacity: () => undefined,
+          onRemoveLayer: () => undefined,
+          onReorderLayers: () => undefined,
+          onAddLayer: (layer: OverlayLayerConfig) => {
+            addedLayers.push(layer);
+          },
+          onAnnounce: (message: string) => {
+            announcements.push(message);
+          },
+        }),
+      );
+    });
+
+    const calculateBoundsFromSourceData = (sourceData: OverlayLayerConfig["sourceData"]) => {
+      const bounds = {
+        minLng: Number.POSITIVE_INFINITY,
+        minLat: Number.POSITIVE_INFINITY,
+        maxLng: Number.NEGATIVE_INFINITY,
+        maxLat: Number.NEGATIVE_INFINITY,
+      };
+      const collectBounds = (value: unknown) => {
+        if (!Array.isArray(value)) {
+          return;
+        }
+        const [longitude, latitude] = value;
+        if (typeof longitude === "number" && typeof latitude === "number") {
+          bounds.minLng = Math.min(bounds.minLng, longitude);
+          bounds.minLat = Math.min(bounds.minLat, latitude);
+          bounds.maxLng = Math.max(bounds.maxLng, longitude);
+          bounds.maxLat = Math.max(bounds.maxLat, latitude);
+          return;
+        }
+        for (const entry of value) {
+          collectBounds(entry);
+        }
+      };
+      if (typeof sourceData !== "object" || sourceData == null || !("type" in sourceData)) {
+        return null;
+      }
+      if (sourceData.type === "FeatureCollection") {
+        for (const feature of sourceData.features) {
+          if (feature.geometry && "coordinates" in feature.geometry) {
+            collectBounds(feature.geometry.coordinates);
+          }
+        }
+      }
+      return [bounds.minLng, bounds.minLat, bounds.maxLng, bounds.maxLat];
+    };
+
+    const demoButton = container.querySelector('[aria-label="Add two demo layers"]');
+    expect(demoButton).not.toBeNull();
+
+    await act(async () => {
+      demoButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(addedLayers.map((layer) => layer.id)).toEqual([
+      "demo-transit-access-zones",
+      "demo-cooling-sites",
+    ]);
+    expect(addedLayers.map((layer) => layer.name)).toEqual([
+      "Demo Urban Block Access Index",
+      "Demo Building Heat Exposure",
+    ]);
+    expect(addedLayers.map((layer) => layer.metadata?.bounds)).toEqual([
+      [28.9608, 40.9885, 29.043, 41.026],
+      [28.9632, 40.9909, 29.0394, 41.0247],
+    ]);
+    for (const layer of addedLayers) {
+      expect(layer.sourceKind).toBe("demo");
+      expect(layer.qaStatus).toBe("warning");
+      expect(layer.queryable).toBe(true);
+      expect(layer.metadata?.geometryType).toBe("Polygon");
+      expect(layer.metadata?.bounds).toEqual(calculateBoundsFromSourceData(layer.sourceData));
+      expect(layer.metadata?.geometrySummary?.bounds).toEqual(layer.metadata?.bounds);
+      expect(layer.metadata?.scientificQA?.badges).toContain("sample_data");
+      expect(layer.metadata?.publicationReadiness?.caveats.join(" ")).toContain("Synthetic demo data");
+      expect(layer.provenance?.label).toContain("Not observational data");
+    }
+    expect(announcements).toContain("Two demo layers added or refreshed");
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
   it("renders analysis provenance and stale status in analysis result rows", async () => {
     const mod = await import("../MapLayerManager");
     const layer: OverlayLayerConfig = {
@@ -536,9 +707,7 @@ describe("MapLayerManager component", () => {
     );
 
     expect(html).toContain("External");
-    expect(html).toContain("Source layer");
     expect(html).toContain("QA warning");
-    expect(html).toContain("Queryable");
     expect(html).toContain("Publication needs review");
     expect(html).toContain("queryable");
     expect(html).toContain("EPSG:3857");
@@ -591,7 +760,6 @@ describe("MapLayerManager component", () => {
       }),
     );
 
-    expect(html).toContain("Publication ready");
     expect(html).toContain("data-layer-action=\"export\"");
     expect(html).toContain("Publication export is not connected from the layer rail yet.");
     expect(html).toContain("Urban Analytics handoff is not connected from the layer rail yet.");
@@ -813,7 +981,7 @@ describe("MapLayerManager component", () => {
       );
     });
 
-    const deleteButton = container.querySelector('[aria-label="Remove layer Singapore - Neighborhood Atlas"]');
+    const deleteButton = container.querySelector('[aria-label="Delete Singapore - Neighborhood Atlas"]');
     expect(deleteButton).not.toBeNull();
 
     await act(async () => {
@@ -822,7 +990,7 @@ describe("MapLayerManager component", () => {
 
     expect(removedIds).toEqual([]);
 
-    const cancelButton = container.querySelector('[aria-label="Cancel remove layer Singapore - Neighborhood Atlas"]');
+    const cancelButton = container.querySelector('[aria-label="Cancel Singapore - Neighborhood Atlas"]');
     expect(cancelButton).not.toBeNull();
 
     await act(async () => {
@@ -831,14 +999,14 @@ describe("MapLayerManager component", () => {
 
     expect(removedIds).toEqual([]);
 
-    const armedDeleteButton = container.querySelector('[aria-label="Remove layer Singapore - Neighborhood Atlas"]');
+    const armedDeleteButton = container.querySelector('[aria-label="Delete Singapore - Neighborhood Atlas"]');
     expect(armedDeleteButton).not.toBeNull();
 
     await act(async () => {
       armedDeleteButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
-    const confirmButton = container.querySelector('[aria-label="Confirm remove layer Singapore - Neighborhood Atlas"]');
+    const confirmButton = container.querySelector('[aria-label="Confirm delete Singapore - Neighborhood Atlas"]');
     expect(confirmButton).not.toBeNull();
 
     await act(async () => {
