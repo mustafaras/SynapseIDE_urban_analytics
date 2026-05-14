@@ -340,7 +340,12 @@ function EventRow({
   const canAcknowledge = event.status === "recorded" || event.status === "proposed" || event.status === "previewed";
 
   return (
-    <article style={eventRowStyle} data-testid="map-review-timeline-event">
+    <article
+      style={eventRowStyle}
+      data-testid="map-review-timeline-event"
+      role="listitem"
+      aria-label={`${event.title}. ${STATUS_LABELS[event.status]}. ${event.summary}`}
+    >
       <div style={eventTopLineStyle}>
         <div style={{ minWidth: MAP_SPACING.zero }}>
           <div style={eventTitleStyle}>{event.title}</div>
@@ -366,6 +371,7 @@ function EventRow({
             type="button"
             style={actionButtonStyle}
             onClick={() => onUpdateEventStatus(event.id, "acknowledged", "Reviewed in map timeline")}
+            aria-label={`Acknowledge timeline event ${event.title}`}
           >
             <CheckCircle2 size={MAP_ICON_SIZES.sm} aria-hidden="true" />
             Acknowledge
@@ -510,7 +516,12 @@ export const MapReviewTimelinePanel: React.FC<MapReviewTimelinePanelProps> = ({
         </label>
       </section>
 
-      <div style={eventListStyle}>
+      <div
+        style={eventListStyle}
+        role="list"
+        aria-live="polite"
+        aria-label={`Review timeline events, ${filteredEvents.length} shown`}
+      >
         {filteredEvents.length > 0 ? (
           filteredEvents.map((event) => (
             <EventRow
@@ -533,6 +544,7 @@ export const MapReviewTimelinePanel: React.FC<MapReviewTimelinePanelProps> = ({
           <button
             type="button"
             style={actionButtonStyle}
+            aria-label="Mark current scientific QA state as reviewed"
             onClick={() => {
               onRecordEvent({
                 type: "qa-event",
@@ -555,7 +567,7 @@ export const MapReviewTimelinePanel: React.FC<MapReviewTimelinePanelProps> = ({
             <CheckCircle2 size={MAP_ICON_SIZES.sm} aria-hidden="true" />
             Mark QA reviewed
           </button>
-          <button type="button" style={actionButtonStyle} onClick={onClearSession}>
+          <button type="button" style={actionButtonStyle} onClick={onClearSession} aria-label="Start a new review timeline session">
             <RotateCcw size={MAP_ICON_SIZES.sm} aria-hidden="true" />
             New session
           </button>
@@ -564,6 +576,7 @@ export const MapReviewTimelinePanel: React.FC<MapReviewTimelinePanelProps> = ({
           <button
             type="button"
             style={actionButtonStyle}
+            aria-label="Export review timeline as JSON"
             onClick={() => {
               triggerMapReviewSessionDownload(session, "json");
               onAnnounce?.("Review timeline exported as JSON");
@@ -575,6 +588,7 @@ export const MapReviewTimelinePanel: React.FC<MapReviewTimelinePanelProps> = ({
           <button
             type="button"
             style={actionButtonStyle}
+            aria-label="Export review timeline as Markdown"
             onClick={() => {
               triggerMapReviewSessionDownload(session, "markdown");
               onAnnounce?.("Review timeline exported as Markdown");

@@ -25,6 +25,7 @@ export interface MapCanvasProps {
   pins: MapPin[];
   interactiveLayerIds?: string[];
   reducedMotion?: boolean;
+  preserveDrawingBuffer?: boolean;
   /**
    * Optional initial viewport for the map at construction time.
    *
@@ -221,6 +222,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
   pins,
   interactiveLayerIds = [],
   reducedMotion = false,
+  preserveDrawingBuffer = false,
   initialViewport,
   viewportMode = 'shared',
   onCursorMove,
@@ -238,6 +240,9 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
   const popupRef = useRef<maplibregl.Popup | null>(null);
   const pinModeRef = useRef(pinMode);
   const interactiveLayerIdsRef = useRef<string[]>(interactiveLayerIds);
+  const cursorMoveRef = useRef(onCursorMove);
+  const pendingCursorRef = useRef<{ lng: number; lat: number } | null>(null);
+  const cursorFrameRef = useRef<number | null>(null);
   const featureReportRequestRef = useRef<MapCanvasProps["onFeatureReportRequest"]>(onFeatureReportRequest);
   const initialBaseLayerRef = useRef<BaseLayerId | null>(baseLayer);
   const initialViewportRef = useRef<Partial<ViewportState> | undefined>(initialViewport);
@@ -256,6 +261,10 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
   useEffect(() => {
     interactiveLayerIdsRef.current = interactiveLayerIds;
   }, [interactiveLayerIds]);
+
+  useEffect(() => {
+    cursorMoveRef.current = onCursorMove;
+  }, [onCursorMove]);
 
   useEffect(() => {
     featureReportRequestRef.current = onFeatureReportRequest;
@@ -288,7 +297,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
       bearing,
       pitch,
       attributionControl: false,
-      preserveDrawingBuffer: true,
+      preserveDrawingBuffer,
       ...(reducedMotion ? { fadeDuration: 0 } : {}),
     });
 
@@ -314,9 +323,18 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
     map.on("error", handleMapError);
 
     map.on("mousemove", (e) => {
-      onCursorMove({
+      pendingCursorRef.current = {
         lng: +e.lngLat.lng.toFixed(6),
         lat: +e.lngLat.lat.toFixed(6),
+      };
+      if (cursorFrameRef.current != null) return;
+      cursorFrameRef.current = window.requestAnimationFrame(() => {
+        cursorFrameRef.current = null;
+        const pendingCursor = pendingCursorRef.current;
+        pendingCursorRef.current = null;
+        if (pendingCursor) {
+          cursorMoveRef.current(pendingCursor);
+        }
       });
     });
 
@@ -416,6 +434,11 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
 
       tearingDownRef.current = true;
       mapRef.current = null;
+      if (cursorFrameRef.current != null) {
+        window.cancelAnimationFrame(cursorFrameRef.current);
+        cursorFrameRef.current = null;
+      }
+      pendingCursorRef.current = null;
       markersRef.current.forEach((m) => m.remove());
       markersRef.current = [];
       popupRef.current?.remove();
@@ -429,7 +452,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
       }
       onMapDestroy();
     };
-  }, []);
+  }, [preserveDrawingBuffer]);
 
   /* ---- Switch base layer ---- */
   useEffect(() => {
@@ -468,6 +491,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
       id={id}
       role="application"
       aria-label="Interactive map canvas — use Arrow keys to pan, +/− to zoom, R to reset view"
+      aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight + - R"
       aria-roledescription="map"
       data-map-keyboard-scope="true"
       style={{ position: "absolute", inset: MAP_SPACING.zero }}

@@ -15,6 +15,7 @@
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type maplibregl from "maplibre-gl";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -249,6 +250,112 @@ describe("useMapKeyboardControls", () => {
       pitch: 0,
     });
     expect(map.flyTo).not.toHaveBeenCalled();
+  });
+});
+
+describe("MapCanvasKeyboardFallbackControls", () => {
+  it("renders named pan, zoom, reset, and focus controls", async () => {
+    const { MapCanvasKeyboardFallbackControls } = await import("../MapCanvasKeyboardFallbackControls");
+    const panBy = vi.fn();
+    const zoomTo = vi.fn();
+    const getZoom = vi.fn(() => 10);
+    const flyTo = vi.fn();
+    const jumpTo = vi.fn();
+    const onAnnounce = vi.fn();
+    const map = {
+      panBy,
+      zoomTo,
+      getZoom,
+      flyTo,
+      jumpTo,
+    } as unknown as maplibregl.Map;
+    const mapRef = { current: map } as React.RefObject<maplibregl.Map | null>;
+    const canvas = document.createElement("div");
+    canvas.id = "fallback-map";
+    canvas.tabIndex = 0;
+    document.body.appendChild(canvas);
+
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const root = createRoot(host);
+    roots.push(root);
+
+    await act(async () => {
+      root.render(React.createElement(MapCanvasKeyboardFallbackControls, {
+        mapRef,
+        mapElementId: "fallback-map",
+        reducedMotion: true,
+        defaultCenter: [29, 41],
+        defaultZoom: 10,
+        onAnnounce,
+      }));
+    });
+
+    const panNorth = host.querySelector('button[aria-label="Pan map north"]') as HTMLButtonElement;
+    const zoomIn = host.querySelector('button[aria-label="Zoom map in"]') as HTMLButtonElement;
+    const reset = host.querySelector('button[aria-label="Reset map view"]') as HTMLButtonElement;
+    const focusCanvas = host.querySelector('button[aria-label="Focus interactive map canvas"]') as HTMLButtonElement;
+
+    expect(panNorth).toBeTruthy();
+    expect(zoomIn).toBeTruthy();
+    expect(reset).toBeTruthy();
+    expect(focusCanvas).toBeTruthy();
+
+    await act(async () => {
+      panNorth.click();
+      zoomIn.click();
+      reset.click();
+      focusCanvas.click();
+    });
+
+    expect(panBy).toHaveBeenCalledWith([0, -100], { animate: false });
+    expect(zoomTo).toHaveBeenCalledWith(11, { animate: false });
+    expect(jumpTo).toHaveBeenCalledWith({
+      center: [29, 41],
+      zoom: 10,
+      bearing: 0,
+      pitch: 0,
+    });
+    expect(flyTo).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(canvas);
+    expect(onAnnounce).toHaveBeenCalledWith("Interactive map canvas focused");
+  });
+});
+
+describe("MapPanelRail keyboard resizing", () => {
+  it("resizes a left rail with arrow keys", async () => {
+    const { MapPanelRail } = await import("../MapWorkspaceShell");
+    const onWidthChange = vi.fn();
+
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const root = createRoot(host);
+    roots.push(root);
+
+    await act(async () => {
+      root.render(React.createElement(
+        MapPanelRail,
+        {
+          side: "left",
+          width: 320,
+          minWidth: 280,
+          maxWidth: 520,
+          resizable: true,
+          onWidthChange,
+          ariaLabel: "Layer and data panel",
+        },
+        React.createElement("button", { type: "button" }, "Layer control"),
+      ));
+    });
+
+    const resizeHandle = host.querySelector('[role="separator"]') as HTMLDivElement;
+    expect(resizeHandle.getAttribute("aria-valuenow")).toBe("320");
+
+    resizeHandle.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true }));
+    expect(onWidthChange).toHaveBeenCalledWith(332);
+
+    resizeHandle.dispatchEvent(new KeyboardEvent("keydown", { key: "Home", bubbles: true, cancelable: true }));
+    expect(onWidthChange).toHaveBeenCalledWith(280);
   });
 });
 

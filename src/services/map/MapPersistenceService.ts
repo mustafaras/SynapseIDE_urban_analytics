@@ -313,6 +313,98 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
+function estimateJsonSerializedBytes(value: unknown, limit = Number.POSITIVE_INFINITY): number {
+  const seen = new WeakSet<object>();
+  let totalBytes = 0;
+
+  const addBytes = (bytes: number): boolean => {
+    totalBytes += bytes;
+    return totalBytes > limit;
+  };
+
+  const visit = (entry: unknown): void => {
+    if (totalBytes > limit) return;
+
+    if (entry === null) {
+      addBytes(4);
+      return;
+    }
+
+    switch (typeof entry) {
+      case "string":
+        addBytes(byteLength(entry) + 2);
+        return;
+      case "number":
+      case "boolean":
+        addBytes(String(entry).length);
+        return;
+      case "undefined":
+      case "function":
+      case "symbol":
+        addBytes(4);
+        return;
+      case "object":
+        break;
+      default:
+        addBytes(4);
+        return;
+    }
+
+    if (Array.isArray(entry)) {
+      if (addBytes(2)) return;
+      entry.forEach((item, index) => {
+        if (index > 0) addBytes(1);
+        visit(item);
+      });
+      return;
+    }
+
+    if (entry && typeof entry === "object") {
+      if (seen.has(entry)) {
+        addBytes(4);
+        return;
+      }
+      seen.add(entry);
+      const entries = Object.entries(entry).filter(([, item]) => typeof item !== "undefined");
+      if (addBytes(2)) return;
+      entries.forEach(([key, item], index) => {
+        if (index > 0) addBytes(1);
+        addBytes(byteLength(key) + 3);
+        visit(item);
+      });
+    }
+  };
+
+  visit(value);
+  return totalBytes;
+}
+
+function isLikelyInlineGeoJsonText(value: string): boolean {
+  const trimmedStart = value.trimStart();
+  if (trimmedStart.startsWith("{") || trimmedStart.startsWith("[")) return true;
+  return /FeatureCollection|"type"\s*:\s*"Feature"|"coordinates"\s*:|"features"\s*:/i.test(
+    trimmedStart.slice(0, 512),
+  );
+}
+
+function oversizedLayerRestoreWarnings(): string[] {
+  return [
+    "Layer source data exceeded the inline snapshot limit and was not persisted; reload the source layer before treating it as available.",
+  ];
+}
+
+function metadataOnlyStaleLayer(base: PersistedOverlayLayer): PersistedOverlayLayer {
+  const metadataBase = { ...base };
+  delete metadataBase.sourceData;
+  delete metadataBase.sourceRef;
+  return {
+    ...metadataBase,
+    sourcePersistence: "metadata",
+    restoreState: "stale-reference",
+    restoreWarnings: oversizedLayerRestoreWarnings(),
+  };
+}
+
 function sanitizeProjectId(projectId: string): string {
   const trimmed = projectId.trim();
   if (trimmed.length === 0) {
@@ -886,8 +978,16 @@ function serializeLayerForPersistence(layer: OverlayLayerConfig): PersistedOverl
   }
 
   if (typeof layer.sourceData === "string") {
+    if (byteLength(layer.sourceData) > INLINE_LAYER_DATA_LIMIT_BYTES && isLikelyInlineGeoJsonText(layer.sourceData)) {
+      return metadataOnlyStaleLayer(base);
+    }
+
     const inlineCollection = parseInlineGeoJSONSource(layer.sourceData);
     if (inlineCollection) {
+      if (estimateJsonSerializedBytes(inlineCollection, INLINE_LAYER_DATA_LIMIT_BYTES + 1) > INLINE_LAYER_DATA_LIMIT_BYTES) {
+        return metadataOnlyStaleLayer(base);
+      }
+
       return {
         ...base,
         sourceData: cloneJson(inlineCollection),
@@ -907,17 +1007,14 @@ function serializeLayerForPersistence(layer: OverlayLayerConfig): PersistedOverl
     };
   }
 
+  if (estimateJsonSerializedBytes(layer.sourceData, INLINE_LAYER_DATA_LIMIT_BYTES + 1) > INLINE_LAYER_DATA_LIMIT_BYTES) {
+    return metadataOnlyStaleLayer(base);
+  }
+
   const clonedSource = cloneJson(layer.sourceData as FeatureCollection | Feature | Geometry);
   const serializedSource = JSON.stringify(clonedSource);
   if (byteLength(serializedSource) > INLINE_LAYER_DATA_LIMIT_BYTES) {
-    return {
-      ...base,
-      sourcePersistence: "metadata",
-      restoreState: "stale-reference",
-      restoreWarnings: [
-        "Layer source data exceeded the inline snapshot limit and was not persisted; reload the source layer before treating it as available.",
-      ],
-    };
+    return metadataOnlyStaleLayer(base);
   }
 
   return {

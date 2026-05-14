@@ -1,6 +1,9 @@
 export { MapCanvas } from "./MapCanvas";
 export type { MapCanvasProps } from "./MapCanvas";
 
+export { MapCanvasKeyboardFallbackControls } from "./MapCanvasKeyboardFallbackControls";
+export type { MapCanvasKeyboardFallbackControlsProps } from "./MapCanvasKeyboardFallbackControls";
+
 export { MapToolbar } from "./MapToolbar";
 export type { MapToolbarProps } from "./MapToolbar";
 

@@ -514,7 +514,12 @@ export const ScientificQAPanel: React.FC<ScientificQAPanelProps> = ({
         </button>
       </div>
 
-      <div style={statusBand} role="status">
+      <div
+        style={statusBand}
+        role="status"
+        aria-live="polite"
+        aria-label={`${summary.title}. ${summary.copy}. ${blockerCount} blocker${blockerCount === 1 ? "" : "s"} and ${warningCount} warning${warningCount === 1 ? "" : "s"}.`}
+      >
         {qaState?.status === "passed" ? (
           <BadgeCheck size={MAP_ICON_SIZES.md} color={summary.color} aria-hidden="true" />
         ) : (
@@ -626,6 +631,7 @@ export const ScientificQAPanel: React.FC<ScientificQAPanelProps> = ({
                 return (
                   <article
                     key={issue.id}
+                    aria-label={`${SEVERITY_LABELS[issue.severity]} QA issue: ${issue.title}. ${issue.explanation}`}
                     style={{
                       ...issueCardBase,
                       border: `1px solid ${issue.severity === "info" ? MAP_COLORS.amberBorder : color}`,
@@ -658,6 +664,7 @@ export const ScientificQAPanel: React.FC<ScientificQAPanelProps> = ({
                       }}
                       aria-expanded={expanded}
                       aria-controls={`scientific-qa-details-${issue.id}`}
+                      aria-label={`${expanded ? "Hide" : "Show"} details for QA issue ${issue.title}`}
                     >
                       <span>Show details</span>
                       {expanded ? (

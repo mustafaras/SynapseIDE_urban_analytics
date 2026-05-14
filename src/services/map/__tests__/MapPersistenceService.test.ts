@@ -622,6 +622,36 @@ describe("MapPersistenceService", () => {
     expect(restoredLayers[0]?.metadata?.persistence?.restoreWarnings[0]).toContain("exceeded the inline snapshot limit");
   });
 
+  it("keeps oversized inline GeoJSON strings out of snapshots before parsing them", async () => {
+    const oversizedInlineGeoJson = JSON.stringify({
+      type: "FeatureCollection",
+      features: [{
+        type: "Feature",
+        geometry: { type: "Point", coordinates: [29, 41] },
+        properties: { payload: "x".repeat(1_100_000) },
+      }],
+    });
+
+    const saveResult = await saveProjectMapState({
+      projectId: "proj_large_inline_string_layer",
+      activeBaseLayer: "dark",
+      viewport: makeViewport(),
+      pins: [],
+      drawnFeatures: [],
+      overlayLayers: [{
+        ...makeOverlayLayer(),
+        id: "overlay-large-inline-string",
+        name: "Large inline string layer",
+        sourceData: oversizedInlineGeoJson,
+      }],
+    });
+
+    expect(saveResult.persistedFeatureCount).toBe(0);
+    expect(saveResult.metadataOnlyLayerCount).toBe(1);
+    expect(saveResult.snapshot.overlayLayers[0]?.sourceData).toBeUndefined();
+    expect(Object.values(localStore).join("\n")).not.toContain("x".repeat(1_000));
+  });
+
   it("restores external URL layers as references that require reload", async () => {
     await saveProjectMapState({
       projectId: "proj_external_layer",

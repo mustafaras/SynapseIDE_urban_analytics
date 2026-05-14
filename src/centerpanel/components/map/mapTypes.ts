@@ -247,6 +247,22 @@ export interface LayerPublicationReadiness {
   checkedAt?: string;
 }
 
+export type LayerRenderMode = "full" | "preview";
+
+export interface LayerRenderBudgetMetadata {
+  mode: LayerRenderMode;
+  featureCount: number;
+  coordinateCount: number;
+  propertyFieldCount: number;
+  estimatedRenderBytes: number;
+  renderFeatureLimit: number;
+  renderCoordinateLimit: number;
+  estimatedRenderByteLimit: number;
+  previewFeatureCount?: number;
+  previewCoordinateCount?: number;
+  warnings: string[];
+}
+
 export interface MapLayerReadinessSummary {
   layerId: string;
   status: LayerPublicationReadinessStatus;
@@ -310,6 +326,7 @@ export interface LayerMetadata {
   temporalEvidence?: MapTemporalEvidenceMetadata;
   scenarioComparison?: MapScenarioComparisonEvidenceMetadata;
   voxCitySync?: MapVoxCitySyncMetadata;
+  rendering?: LayerRenderBudgetMetadata;
   registry?: LayerRegistryMetadata;
 }
 
@@ -901,6 +918,8 @@ export type MapToolId = "select" | "pin" | "draw" | "measure" | "annotate" | nul
 
 export const MAP_BOOKMARK_LIMIT = 50;
 export const MAP_ANNOTATION_LIMIT = 200;
+export const MAP_COPILOT_PROPOSAL_LIMIT = 50;
+export const MAP_COPILOT_AUDIT_TRAIL_LIMIT = 200;
 
 export const MAP_ANNOTATION_COLOR_PALETTE = [
   "#F59E0B",

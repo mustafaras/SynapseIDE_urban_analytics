@@ -463,7 +463,8 @@ describe("MapLayerManager component", () => {
       }),
     );
 
-    expect(html).toContain("Add Demo Layers");
+    expect(html).toContain("Add Demo Pack");
+    expect(html).toContain("Load OSM Reference");
     expect(html).toContain("Add Layer");
   });
 
@@ -582,37 +583,60 @@ describe("MapLayerManager component", () => {
       return [bounds.minLng, bounds.minLat, bounds.maxLng, bounds.maxLat];
     };
 
-    const demoButton = container.querySelector('[aria-label="Add two demo layers"]');
+    const demoButton = container.querySelector(
+      '[aria-label="Add demo street, block, and building layers for three Istanbul AOIs"]',
+    );
     expect(demoButton).not.toBeNull();
 
     await act(async () => {
       demoButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
+    // 3 AOIs × {streets, blocks, buildings} = 9 layers in deterministic order.
+    expect(addedLayers).toHaveLength(9);
     expect(addedLayers.map((layer) => layer.id)).toEqual([
-      "demo-transit-access-zones",
-      "demo-cooling-sites",
+      "demo-uskudar-streets",
+      "demo-uskudar-blocks",
+      "demo-uskudar-buildings",
+      "demo-fatih-streets",
+      "demo-fatih-blocks",
+      "demo-fatih-buildings",
+      "demo-kadikoy-streets",
+      "demo-kadikoy-blocks",
+      "demo-kadikoy-buildings",
     ]);
     expect(addedLayers.map((layer) => layer.name)).toEqual([
-      "Demo Urban Block Access Index",
-      "Demo Building Heat Exposure",
-    ]);
-    expect(addedLayers.map((layer) => layer.metadata?.bounds)).toEqual([
-      [28.9608, 40.9885, 29.043, 41.026],
-      [28.9632, 40.9909, 29.0394, 41.0247],
+      "Üsküdar Demo Streets",
+      "Üsküdar Demo Blocks",
+      "Üsküdar Demo Buildings",
+      "Fatih Demo Streets",
+      "Fatih Demo Blocks",
+      "Fatih Demo Buildings",
+      "Kadıköy Demo Streets",
+      "Kadıköy Demo Blocks",
+      "Kadıköy Demo Buildings",
     ]);
     for (const layer of addedLayers) {
       expect(layer.sourceKind).toBe("demo");
       expect(layer.qaStatus).toBe("warning");
       expect(layer.queryable).toBe(true);
-      expect(layer.metadata?.geometryType).toBe("Polygon");
+      const expectedGeometry = layer.id.endsWith("-streets") ? "LineString" : "Polygon";
+      expect(layer.metadata?.geometryType).toBe(expectedGeometry);
       expect(layer.metadata?.bounds).toEqual(calculateBoundsFromSourceData(layer.sourceData));
       expect(layer.metadata?.geometrySummary?.bounds).toEqual(layer.metadata?.bounds);
       expect(layer.metadata?.scientificQA?.badges).toContain("sample_data");
       expect(layer.metadata?.publicationReadiness?.caveats.join(" ")).toContain("Synthetic demo data");
       expect(layer.provenance?.label).toContain("Not observational data");
     }
-    expect(announcements).toContain("Two demo layers added or refreshed");
+    expect(
+      announcements.some((message) => /9 demo layers added or refreshed/.test(message)),
+    ).toBe(true);
+
+    // OSM reference button is exposed alongside the demo pack button.
+    const osmButton = container.querySelector(
+      '[aria-label="Load OpenStreetMap building reference for demo AOIs"]',
+    );
+    expect(osmButton).not.toBeNull();
 
     await act(async () => {
       root.unmount();
@@ -1051,7 +1075,10 @@ describe("useLayerSync hook", () => {
       visible: true,
       opacity: 1,
       metadata: { geometryType: "Point" },
-      sourceData: { type: "FeatureCollection", features: [] },
+      sourceData: {
+        type: "FeatureCollection",
+        features: [{ type: "Feature", geometry: { type: "Point", coordinates: [29, 41] }, properties: { name: "A" } }],
+      },
     };
 
     function TestLayerSync({ layers }: { layers: OverlayLayerConfig[] }) {
@@ -1071,6 +1098,7 @@ describe("useLayerSync hook", () => {
     expect(mockMap.addLayer).toHaveBeenCalledWith(
       expect.objectContaining({ id: "sync-points", type: "circle" }),
     );
+    expect((mockMap.getSource("sync-points") as { data?: GeoJSON.FeatureCollection }).data?.features).toHaveLength(1);
 
     await act(async () => {
       root.render(React.createElement(TestLayerSync, {
@@ -1080,6 +1108,15 @@ describe("useLayerSync hook", () => {
 
     expect(mockMap.setLayoutProperty).toHaveBeenCalledWith("sync-points", "visibility", "none");
     expect(mockMap.setPaintProperty).toHaveBeenCalledWith("sync-points", "circle-opacity", 0.4);
+    expect((mockMap.getSource("sync-points") as { data?: GeoJSON.FeatureCollection }).data?.features).toHaveLength(0);
+
+    await act(async () => {
+      root.render(React.createElement(TestLayerSync, {
+        layers: [{ ...baseLayer, visible: true, opacity: 0.4 }],
+      }));
+    });
+
+    expect((mockMap.getSource("sync-points") as { data?: GeoJSON.FeatureCollection }).data?.features).toHaveLength(1);
 
     await act(async () => {
       root.render(React.createElement(TestLayerSync, { layers: [] }));

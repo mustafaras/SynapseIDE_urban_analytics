@@ -11,6 +11,7 @@ import {
   MAP_STROKES,
   MAP_TYPOGRAPHY,
   MAP_Z_INDEX,
+  mapStyles,
 } from "./mapTokens";
 
 interface MapReportHandoffDrawerProps {
@@ -396,6 +397,33 @@ export const MapReportHandoffDrawer: React.FC<MapReportHandoffDrawerProps> = ({
     event.preventDefault();
   }, [maxWidth, minWidth, onWidthChange, presentation, width]);
 
+  const handleResizeKeyDown = React.useCallback<React.KeyboardEventHandler<HTMLDivElement>>((event) => {
+    if (presentation !== "right-rail" || !onWidthChange) {
+      return;
+    }
+
+    const currentWidth = width ?? 430;
+    const step = event.shiftKey ? 32 : 12;
+    let nextWidth: number | null = null;
+
+    if (event.key === "ArrowLeft") {
+      nextWidth = currentWidth + step;
+    } else if (event.key === "ArrowRight") {
+      nextWidth = currentWidth - step;
+    } else if (event.key === "Home") {
+      nextWidth = minWidth;
+    } else if (event.key === "End") {
+      nextWidth = maxWidth;
+    }
+
+    if (nextWidth == null) {
+      return;
+    }
+
+    event.preventDefault();
+    onWidthChange(clampPanelWidth(nextWidth, minWidth, maxWidth));
+  }, [maxWidth, minWidth, onWidthChange, presentation, width]);
+
   if (!draft) return null;
 
   const publicationReadiness = draft.publicationReadiness;
@@ -403,6 +431,14 @@ export const MapReportHandoffDrawer: React.FC<MapReportHandoffDrawerProps> = ({
   const readinessFindings = publicationReadiness.blockers.length > 0
     ? publicationReadiness.blockers
     : publicationReadiness.warnings;
+  const readinessStatusId = "map-report-readiness-status";
+  const snapshotStatusId = "map-report-snapshot-status";
+  const publicationBlockedMessage = isPublicationBlocked
+    ? "Resolve publication readiness blockers before downloading a formal PDF or inserting this report item."
+    : "Publication readiness is not blocking report actions.";
+  const snapshotBusyMessage = isGeneratingSnapshot
+    ? "Snapshot actions are unavailable while the current map preview is rendering."
+    : "Snapshot actions are available.";
 
   return (
     <aside
@@ -416,10 +452,16 @@ export const MapReportHandoffDrawer: React.FC<MapReportHandoffDrawerProps> = ({
           role="separator"
           aria-orientation="vertical"
           aria-label="Resize report handoff panel"
+          aria-valuemin={minWidth}
+          aria-valuemax={maxWidth}
+          aria-valuenow={width ?? 430}
+          aria-valuetext={`${width ?? 430} pixels`}
+          tabIndex={0}
           style={resizeHandleStyle}
           onPointerDown={handleResizePointerDown}
+          onKeyDown={handleResizeKeyDown}
           data-testid="map-report-panel-resize-handle"
-          title="Drag to resize report handoff panel"
+          title="Drag or use arrow keys to resize report handoff panel"
         />
       ) : null}
       <header style={headerStyle}>
@@ -489,7 +531,13 @@ export const MapReportHandoffDrawer: React.FC<MapReportHandoffDrawerProps> = ({
 
       <div style={bodyStyle}>
         <section style={sectionStyle} aria-label="Publication readiness">
-          <div style={readinessPanelStyle}>
+          <div
+            id={readinessStatusId}
+            style={readinessPanelStyle}
+            role="status"
+            aria-live="polite"
+            aria-label={`Publication readiness ${publicationReadiness.status.replace(/-/g, " ")}. ${publicationBlockedMessage}`}
+          >
             <div style={readinessHeaderStyle}>
               <div style={sectionTitleStyle}>Publication readiness</div>
               <span style={{ ...readinessBadgeStyle, ...getReadinessBadgeColor(publicationReadiness.status) }}>
@@ -507,6 +555,7 @@ export const MapReportHandoffDrawer: React.FC<MapReportHandoffDrawerProps> = ({
               </ul>
             ) : null}
           </div>
+          <span id={snapshotStatusId} style={mapStyles.srOnly}>{snapshotBusyMessage}</span>
         </section>
 
         <section style={sectionStyle} aria-label="Map snapshot preview">
@@ -576,7 +625,14 @@ export const MapReportHandoffDrawer: React.FC<MapReportHandoffDrawerProps> = ({
       </div>
 
       <footer style={footerStyle}>
-        <button type="button" style={secondaryButtonStyle} onClick={onRefreshSnapshot} disabled={isGeneratingSnapshot}>
+        <button
+          type="button"
+          style={secondaryButtonStyle}
+          onClick={onRefreshSnapshot}
+          disabled={isGeneratingSnapshot}
+          aria-describedby={snapshotStatusId}
+          title={snapshotBusyMessage}
+        >
           {isGeneratingSnapshot ? "Rendering..." : "Refresh snapshot"}
         </button>
         <div style={footerActionStyle}>
@@ -585,6 +641,7 @@ export const MapReportHandoffDrawer: React.FC<MapReportHandoffDrawerProps> = ({
             style={secondaryButtonStyle}
             onClick={onRegisterEvidence}
             disabled={isGeneratingSnapshot}
+            aria-describedby={snapshotStatusId}
             title="Register the structured map evidence block with QA, provenance, caveats, and snapshot references."
           >
             Register evidence
@@ -594,6 +651,7 @@ export const MapReportHandoffDrawer: React.FC<MapReportHandoffDrawerProps> = ({
             style={{ ...secondaryButtonStyle, ...(isPublicationBlocked ? disabledActionStyle : {}) }}
             onClick={onDownloadPdf}
             disabled={isGeneratingSnapshot || isExportingPdf || isPublicationBlocked}
+            aria-describedby={`${readinessStatusId} ${snapshotStatusId}`}
             title={isPublicationBlocked ? "Resolve publication readiness blockers before downloading a formal PDF." : undefined}
           >
             {isExportingPdf ? "Exporting A0..." : isPublicationBlocked ? "PDF blocked" : "Download A0 PDF"}
@@ -603,6 +661,7 @@ export const MapReportHandoffDrawer: React.FC<MapReportHandoffDrawerProps> = ({
             style={{ ...primaryButtonStyle, ...(isPublicationBlocked ? disabledActionStyle : {}) }}
             onClick={onInsert}
             disabled={isPublicationBlocked}
+            aria-describedby={readinessStatusId}
             title={isPublicationBlocked ? "Resolve publication readiness blockers before inserting this report item." : undefined}
           >
             {isPublicationBlocked ? "Insert blocked" : "Insert to report"}

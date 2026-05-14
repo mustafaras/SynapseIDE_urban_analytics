@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0.0",
-  "updatedAt": "2026-05-14",
+  "updatedAt": "2026-05-14T10:40:00.000Z",
   "purpose": "Small, machine-readable task pointer for token-minimized agent startup. Keep this file short and update it when the active durable work changes.",
   "startupFiles": [
     "DEVELOPMENT_PLANS/CONTEXT_MIN.md",
@@ -21,14 +21,16 @@
       "helper": "scripts/get-next-map-explorer-prompt.ps1",
       "status": "next_prompt_found",
       "nextPrompt": {
-        "id": "26",
-        "title": "Accessibility and Keyboard Premium",
-        "heading": "## Prompt 26 - Accessibility and Keyboard Premium",
-        "primaryOutcome": "Professional keyboard-first map UX",
+        "id": "29",
+        "title": "Final Premium Polish and Handoff",
+        "heading": "## Prompt 29 - Final Premium Polish and Handoff",
+        "primaryOutcome": "Complete Map Explorer readiness package",
         "validation": [
           "typecheck",
-          "map-accessibility-tests",
-          "manual-keyboard-smoke"
+          "lint",
+          "unit-tests",
+          "build",
+          "map-e2e-smoke-if-available"
         ]
       },
       "ledgerPath": "DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md",

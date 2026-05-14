@@ -8,6 +8,7 @@ import {
   exportMapReviewSessionJson,
   exportMapReviewSessionMarkdown,
   filterMapReviewTimelineEvents,
+  MAP_REVIEW_SESSION_EVENT_LIMIT,
 } from "../MapReviewSessionService";
 
 const fixedCreatedAt = "2026-05-02T10:00:00.000Z";
@@ -199,5 +200,27 @@ describe("MapReviewSessionService", () => {
     expect(markdown).toContain("Audit Category: export-report-handoff");
     expect(markdown).toContain("Evidence Artifact IDs: map-evidence-layer-parcels");
     expect(markdown).toContain("Report Item IDs: map-handoff-corridor, map-handoff-corridor-section");
+  });
+
+  it("caps the timeline at MAP_REVIEW_SESSION_EVENT_LIMIT and keeps the most recent events", () => {
+    let session = createMapReviewSession({ createdAt: fixedCreatedAt });
+    const overflow = 25;
+    const totalAppends = MAP_REVIEW_SESSION_EVENT_LIMIT + overflow;
+
+    for (let index = 0; index < totalAppends; index += 1) {
+      const isoTimestamp = new Date(Date.UTC(2026, 4, 2, 10, 0, index)).toISOString();
+      session = appendMapReviewEvent(session, {
+        type: "qa-event",
+        status: "recorded",
+        timestamp: isoTimestamp,
+        title: `Event ${index}`,
+        summary: `synthetic event ${index}`,
+      });
+    }
+
+    expect(session.events.length).toBe(MAP_REVIEW_SESSION_EVENT_LIMIT);
+    expect(session.events.at(-1)?.title).toBe(`Event ${totalAppends - 1}`);
+    // Oldest synthetic events should have been dropped first.
+    expect(session.events.some((event) => event.title === "Event 0")).toBe(false);
   });
 });

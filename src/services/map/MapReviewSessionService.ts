@@ -213,14 +213,14 @@ function collectEvidenceArtifactIdsFromValue(value: unknown, depth = 0): string[
     return [];
   }
   if (Array.isArray(value)) {
-    return value.flatMap((entry) => collectEvidenceArtifactIdsFromValue(entry, depth + 1));
+    return value.slice(0, 64).flatMap((entry) => collectEvidenceArtifactIdsFromValue(entry, depth + 1));
   }
   if (!isPlainRecord(value)) {
     return [];
   }
 
   const ids: string[] = [];
-  for (const [key, entry] of Object.entries(value)) {
+  for (const [key, entry] of Object.entries(value).slice(0, 64)) {
     const normalizedKey = key.toLowerCase();
     if (normalizedKey.includes("evidenceartifactid")) {
       if (typeof entry === "string") {

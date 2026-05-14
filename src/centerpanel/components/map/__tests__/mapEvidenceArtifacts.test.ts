@@ -1,9 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { DrawnFeature, OverlayLayerConfig } from "../mapTypes";
+import type { DrawnFeature, MapEvidenceArtifact, OverlayLayerConfig } from "../mapTypes";
 import {
   createMapAoiEvidenceArtifact,
   createMapLayerEvidenceArtifact,
   createMapWorkflowResultEvidenceArtifact,
+  MAX_MAP_EVIDENCE_ARTIFACTS,
+  upsertMapEvidenceArtifact,
 } from "../mapEvidenceArtifacts";
 import { evaluateMapScientificQASync } from "../../../../services/map/MapScientificQA";
 import {
@@ -209,5 +211,26 @@ describe("map evidence artifact helpers", () => {
     expect(selectMapEvidenceArtifactsForAoi("aoi-1")(state)).toHaveLength(1);
     expect(selectMapEvidenceArtifactsForWorkflow("buffer-workflow")(state)).toHaveLength(1);
     expect(selectMapEvidenceArtifactsForSource("map-explorer")(state)).toHaveLength(1);
+  });
+
+  it("caps the evidence registry at MAX_MAP_EVIDENCE_ARTIFACTS and keeps the most recent entry first", () => {
+    const overflow = 15;
+    let registry: MapEvidenceArtifact[] = [];
+
+    for (let index = 0; index < MAX_MAP_EVIDENCE_ARTIFACTS + overflow; index += 1) {
+      const artifact = createMapWorkflowResultEvidenceArtifact({
+        title: `Buffered batch ${index}`,
+        workflowId: `buffer-workflow-${index}`,
+        runId: `run-${index}`,
+        sourceLayerIds: [`source-${index}`],
+        derivedLayerId: `derived-${index}`,
+        createdAt: new Date(Date.UTC(2026, 4, 10, 8, index)).toISOString(),
+      });
+      registry = upsertMapEvidenceArtifact(registry, artifact);
+    }
+
+    expect(registry).toHaveLength(MAX_MAP_EVIDENCE_ARTIFACTS);
+    expect(registry[0]?.title).toBe(`Buffered batch ${MAX_MAP_EVIDENCE_ARTIFACTS + overflow - 1}`);
+    expect(registry.some((entry) => entry.title === "Buffered batch 0")).toBe(false);
   });
 });

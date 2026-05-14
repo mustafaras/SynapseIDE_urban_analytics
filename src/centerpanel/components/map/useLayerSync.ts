@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type maplibregl from "maplibre-gl";
-import { normalizeGeoJSONSourceData } from "@/services/map/MapDataImporter";
+import { normalizeGeoJSONSourceDataForRender } from "@/services/map/MapDataImporter";
 import { normalizeXyzTileUrlTemplate } from "@/services/map/ExternalTileUrlTemplates";
 import type { OverlayLayerConfig } from "./mapTypes";
 import { MAP_COLORS } from "./mapTokens";
@@ -19,6 +19,7 @@ const COMPANION_CIRCLE_COLOR_STYLE_KEY = "__companionCircleColor";
 const COMPANION_CIRCLE_OPACITY_STYLE_KEY = "__companionCircleOpacity";
 const COMPANION_CIRCLE_STROKE_COLOR_STYLE_KEY = "__companionCircleStrokeColor";
 const COMPANION_CIRCLE_STROKE_WIDTH_STYLE_KEY = "__companionCircleStrokeWidth";
+const EMPTY_FEATURE_COLLECTION: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
 
 function labelLayerId(layerId: string): string {
   return `${layerId}__labels`;
@@ -129,6 +130,20 @@ function isGeoJSONBackedLayer(layer: OverlayLayerConfig): boolean {
   return layer.type === "geojson" || layer.type === "heatmap";
 }
 
+function resolveGeoJSONRenderData(
+  layer: OverlayLayerConfig,
+): GeoJSON.FeatureCollection | GeoJSON.Feature | GeoJSON.Geometry | string {
+  if (!layer.visible) {
+    return EMPTY_FEATURE_COLLECTION;
+  }
+  return (normalizeGeoJSONSourceDataForRender(layer.sourceData) as
+    | GeoJSON.FeatureCollection
+    | GeoJSON.Feature
+    | GeoJSON.Geometry
+    | string
+    | undefined) ?? EMPTY_FEATURE_COLLECTION;
+}
+
 function getManagedLayerIds(layer: OverlayLayerConfig): string[] {
   const ids = [layer.id];
   if (getInternalStyleValue(layer.style, COMPANION_CIRCLE_STYLE_KEY)) {
@@ -230,7 +245,7 @@ function addManagedLayer(map: maplibregl.Map, layer: OverlayLayerConfig): void {
   } else {
     map.addSource(layer.id, {
       type: "geojson",
-      data: normalizeGeoJSONSourceData(layer.sourceData) ?? { type: "FeatureCollection", features: [] },
+      data: resolveGeoJSONRenderData(layer),
     });
   }
 
@@ -343,18 +358,10 @@ export function useLayerSync(
 
       /* Existing layer — diff and update properties */
       if (prevLayer) {
-        if (prevLayer.sourceData !== layer.sourceData && isGeoJSONBackedLayer(layer)) {
+        if ((prevLayer.sourceData !== layer.sourceData || prevLayer.visible !== layer.visible) && isGeoJSONBackedLayer(layer)) {
           try {
             const source = map.getSource(layer.id) as maplibregl.GeoJSONSource | undefined;
-            source?.setData(
-              (normalizeGeoJSONSourceData(layer.sourceData) as
-                | GeoJSON.FeatureCollection
-                | GeoJSON.Feature
-                | GeoJSON.Geometry
-                | string
-                | undefined) ??
-                { type: "FeatureCollection", features: [] },
-            );
+            source?.setData(resolveGeoJSONRenderData(layer));
           } catch { /* ignore */ }
         }
 

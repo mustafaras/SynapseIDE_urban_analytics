@@ -5,7 +5,10 @@ import type {
 } from "@/services/map/MapCartographyAdvisor";
 import type { LayerGroupId, LayerPublicationReadinessStatus, LayerQaStatus, LayerScientificQABadge, LayerSourceKind, OverlayLayerConfig } from "./mapTypes";
 import { CartographyRecommendationList } from "./CartographyRecommendationList";
+import { createMapExplorerDemoLayerPack, getDemoAoiBoundsList } from "./demoDataPacks";
 import { normalizeLayerRegistryMetadata } from "./mapLayerMetadata";
+import { createOsmBuildingsLayerConfig } from "@/services/map/ExternalServiceConnector";
+import { executeOverpassBuildingsAsync } from "@/services/map/ExternalServiceQueue";
 import {
   MAP_COLORS,
   MAP_DIMENSIONS,
@@ -109,409 +112,10 @@ const SCIENTIFIC_QA_BADGE_TITLES: Record<LayerScientificQABadge, string> = {
   uncertain_output: "Layer output has scientific caveats.",
 };
 
-const DEMO_LAYER_PACK_ID = "map-explorer-demo-layer-pack";
-const DEMO_LAYER_PACK_TITLE = "Map Explorer Demo Layer Pack";
-const DEMO_LAYER_PROVENANCE = "Synthetic demo sample generated in Map Explorer for UI review. Not observational data.";
-
-interface MutableDemoBounds {
-  minLng: number;
-  minLat: number;
-  maxLng: number;
-  maxLat: number;
-}
-
-function collectCoordinateBounds(value: unknown, bounds: MutableDemoBounds): void {
-  if (!Array.isArray(value)) {
-    return;
-  }
-
-  const [longitude, latitude] = value;
-  if (typeof longitude === "number" && typeof latitude === "number") {
-    bounds.minLng = Math.min(bounds.minLng, longitude);
-    bounds.minLat = Math.min(bounds.minLat, latitude);
-    bounds.maxLng = Math.max(bounds.maxLng, longitude);
-    bounds.maxLat = Math.max(bounds.maxLat, latitude);
-    return;
-  }
-
-  for (const entry of value) {
-    collectCoordinateBounds(entry, bounds);
-  }
-}
-
-function getFeatureCollectionExactBounds(collection: GeoJSON.FeatureCollection): [number, number, number, number] {
-  const bounds: MutableDemoBounds = {
-    minLng: Number.POSITIVE_INFINITY,
-    minLat: Number.POSITIVE_INFINITY,
-    maxLng: Number.NEGATIVE_INFINITY,
-    maxLat: Number.NEGATIVE_INFINITY,
-  };
-
-  for (const feature of collection.features) {
-    collectCoordinateBounds(feature.geometry?.coordinates, bounds);
-  }
-
-  return [
-    Number(bounds.minLng.toFixed(6)),
-    Number(bounds.minLat.toFixed(6)),
-    Number(bounds.maxLng.toFixed(6)),
-    Number(bounds.maxLat.toFixed(6)),
-  ];
-}
-
 function createMapExplorerDemoLayers(createdAt = new Date().toISOString()): OverlayLayerConfig[] {
-  const transitAccessZones = {
-    type: "FeatureCollection",
-    features: [
-      {
-        type: "Feature",
-        id: "block-fatih-01",
-        properties: {
-          block_id: "BLK-001",
-          block_name: "Fatih Station Edge",
-          access_class: "Moderate",
-          access_score: 64,
-          dwellings: 148,
-          demo_note: "synthetic",
-        },
-        geometry: { type: "Polygon", coordinates: [[
-          [28.9608, 41.0116], [28.9662, 41.0123], [28.9668, 41.0089], [28.9615, 41.0082], [28.9608, 41.0116],
-        ]] },
-      },
-      {
-        type: "Feature",
-        id: "block-fatih-02",
-        properties: {
-          block_id: "BLK-002",
-          block_name: "Historic Market Block",
-          access_class: "Low",
-          access_score: 46,
-          dwellings: 96,
-          demo_note: "synthetic",
-        },
-        geometry: { type: "Polygon", coordinates: [[
-          [28.9682, 41.0126], [28.9736, 41.0131], [28.9741, 41.0098], [28.9689, 41.0092], [28.9682, 41.0126],
-        ]] },
-      },
-      {
-        type: "Feature",
-        id: "block-uskudar-01",
-        properties: {
-          block_id: "BLK-003",
-          block_name: "Uskudar Ferry Block",
-          access_class: "High",
-          access_score: 87,
-          dwellings: 172,
-          demo_note: "synthetic",
-        },
-        geometry: { type: "Polygon", coordinates: [[
-          [29.016, 41.025], [29.021, 41.026], [29.022, 41.0225], [29.017, 41.0218], [29.016, 41.025],
-        ]] },
-      },
-      {
-        type: "Feature",
-        id: "block-uskudar-02",
-        properties: {
-          block_id: "BLK-004",
-          block_name: "Mimar Sinan Block",
-          access_class: "Moderate",
-          access_score: 69,
-          dwellings: 121,
-          demo_note: "synthetic",
-        },
-        geometry: { type: "Polygon", coordinates: [[
-          [29.024, 41.023], [29.03, 41.024], [29.0305, 41.0205], [29.025, 41.0198], [29.024, 41.023],
-        ]] },
-      },
-      {
-        type: "Feature",
-        id: "block-kadikoy-01",
-        properties: {
-          block_id: "BLK-005",
-          block_name: "Kadikoy Retail Block",
-          access_class: "High",
-          access_score: 81,
-          dwellings: 188,
-          demo_note: "synthetic",
-        },
-        geometry: { type: "Polygon", coordinates: [[
-          [29.028, 40.992], [29.034, 40.9925], [29.0345, 40.989], [29.0285, 40.9885], [29.028, 40.992],
-        ]] },
-      },
-      {
-        type: "Feature",
-        id: "block-kadikoy-02",
-        properties: {
-          block_id: "BLK-006",
-          block_name: "Moda Transit Walkshed",
-          access_class: "Moderate",
-          access_score: 72,
-          dwellings: 134,
-          demo_note: "synthetic",
-        },
-        geometry: { type: "Polygon", coordinates: [[
-          [29.036, 40.996], [29.042, 40.9965], [29.043, 40.993], [29.037, 40.9925], [29.036, 40.996],
-        ]] },
-      },
-    ],
-  } satisfies GeoJSON.FeatureCollection;
-  const transitBounds = getFeatureCollectionExactBounds(transitAccessZones);
-  const coolingPriorityAreas = {
-    type: "FeatureCollection",
-    features: [
-      {
-        type: "Feature",
-        id: "building-fatih-01",
-        properties: {
-          building_id: "BLD-001",
-          building_name: "Sirkeci Mixed Use 01",
-          use_type: "mixed_use",
-          risk_class: "Very high",
-          heat_exposure: 92,
-          floors: 6,
-          demo_note: "synthetic",
-        },
-        geometry: { type: "Polygon", coordinates: [[
-          [28.9632, 41.0108], [28.9647, 41.0109], [28.9648, 41.0098], [28.9633, 41.0097], [28.9632, 41.0108],
-        ]] },
-      },
-      {
-        type: "Feature",
-        id: "building-fatih-02",
-        properties: {
-          building_id: "BLD-002",
-          building_name: "Sirkeci Residential 02",
-          use_type: "residential",
-          priority: "High",
-          risk_class: "High",
-          heat_exposure: 79,
-          floors: 5,
-          demo_note: "synthetic",
-        },
-        geometry: { type: "Polygon", coordinates: [[
-          [28.9655, 41.0115], [28.9671, 41.0116], [28.9672, 41.0105], [28.9657, 41.0104], [28.9655, 41.0115],
-        ]] },
-      },
-      {
-        type: "Feature",
-        id: "building-uskudar-01",
-        properties: {
-          building_id: "BLD-003",
-          building_name: "Uskudar Civic 01",
-          use_type: "civic",
-          risk_class: "Moderate",
-          heat_exposure: 63,
-          floors: 4,
-          demo_note: "synthetic",
-        },
-        geometry: { type: "Polygon", coordinates: [[
-          [29.0181, 41.0244], [29.0196, 41.0247], [29.0199, 41.0235], [29.0184, 41.0232], [29.0181, 41.0244],
-        ]] },
-      },
-      {
-        type: "Feature",
-        id: "building-uskudar-02",
-        properties: {
-          building_id: "BLD-004",
-          building_name: "Uskudar Residential 02",
-          use_type: "residential",
-          risk_class: "Low",
-          heat_exposure: 48,
-          floors: 3,
-          demo_note: "synthetic",
-        },
-        geometry: { type: "Polygon", coordinates: [[
-          [29.0256, 41.0226], [29.027, 41.0228], [29.0272, 41.0217], [29.0258, 41.0215], [29.0256, 41.0226],
-        ]] },
-      },
-      {
-        type: "Feature",
-        id: "building-kadikoy-01",
-        properties: {
-          building_id: "BLD-005",
-          building_name: "Kadikoy Apartment 01",
-          use_type: "residential",
-          risk_class: "High",
-          heat_exposure: 82,
-          floors: 7,
-          demo_note: "synthetic",
-        },
-        geometry: { type: "Polygon", coordinates: [[
-          [29.0305, 40.9921], [29.032, 40.9923], [29.0322, 40.9911], [29.0307, 40.9909], [29.0305, 40.9921],
-        ]] },
-      },
-      {
-        type: "Feature",
-        id: "building-kadikoy-02",
-        properties: {
-          building_id: "BLD-006",
-          building_name: "Kadikoy School 02",
-          use_type: "education",
-          risk_class: "Moderate",
-          heat_exposure: 67,
-          floors: 4,
-          demo_note: "synthetic",
-        },
-        geometry: { type: "Polygon", coordinates: [[
-          [29.0372, 40.9951], [29.0391, 40.9953], [29.0394, 40.9939], [29.0375, 40.9937], [29.0372, 40.9951],
-        ]] },
-      },
-    ],
-  } satisfies GeoJSON.FeatureCollection;
-  const coolingBounds = getFeatureCollectionExactBounds(coolingPriorityAreas);
-  const sharedDataset = {
-    datasetId: DEMO_LAYER_PACK_ID,
-    datasetTitle: DEMO_LAYER_PACK_TITLE,
-    datasetCity: "Istanbul demo blocks and buildings",
-    source: DEMO_LAYER_PROVENANCE,
-    license: "Demo only",
-    crs: "EPSG:4326",
-    updateDate: createdAt,
-    packageLayerCount: 2,
-    packageFeatureCount: 12,
-  };
-  const sharedCaveats = [
-    "Synthetic demo data for interface review only.",
-    "Coordinates are WGS84 display coordinates; do not use for area or distance analysis without projection.",
-  ];
-
-  return [
-    {
-      id: "demo-transit-access-zones",
-      name: "Demo Urban Block Access Index",
-      type: "geojson",
-      visible: true,
-      opacity: 0.7,
-      group: "data",
-      sourceKind: "demo",
-      qaStatus: "warning",
-      queryable: true,
-      sourceData: transitAccessZones,
-      style: {
-        "fill-color": [
-          "match",
-          ["get", "access_class"],
-          "High", "#16A34A",
-          "Moderate", "#F59E0B",
-          "Low", "#EF4444",
-          "#94A3B8",
-        ],
-        "fill-outline-color": "rgba(15, 23, 42, 0.86)",
-        legendEntries: [{ label: "Demo block access index", color: "#F59E0B" }],
-      },
-      provenance: {
-        label: DEMO_LAYER_PROVENANCE,
-        sourceName: DEMO_LAYER_PACK_TITLE,
-        license: "Demo only",
-        attribution: "Synthetic demo data - Map Explorer",
-        generatedAt: createdAt,
-        notes: sharedCaveats,
-      },
-      metadata: {
-        featureCount: 6,
-        geometryType: "Polygon",
-        bounds: transitBounds,
-        fields: ["block_id", "block_name", "access_class", "access_score", "dwellings", "demo_note"],
-        dataVersion: "demo-layer-pack-v1",
-        datasetContext: {
-          ...sharedDataset,
-          layerId: "urban_block_access_index",
-          layerTitle: "Urban Block Access Index",
-          thematicCoverage: ["mobility", "accessibility"],
-          spatialExtent: "Synthetic urban block footprints: Fatih, Uskudar, Kadikoy",
-          schemaSummary: ["block_id", "block_name", "access_class", "access_score", "dwellings", "demo_note"],
-        },
-        crsSummary: { crs: "EPSG:4326", status: "known", source: "explicit", notes: [sharedCaveats[1]!] },
-        geometrySummary: { geometryType: "Polygon", geometryTypes: ["Polygon"], featureCount: 6, source: "explicit", notes: ["Synthetic urban block footprints."], bounds: transitBounds },
-        schemaSummary: {
-          fieldCount: 6,
-          fields: [
-            { name: "block_id", role: "identifier", type: "string" },
-            { name: "block_name", role: "attribute", type: "string" },
-            { name: "access_class", role: "attribute", type: "string" },
-            { name: "access_score", role: "attribute", type: "number" },
-            { name: "dwellings", role: "attribute", type: "number" },
-            { name: "demo_note", role: "attribute", type: "string" },
-          ],
-          source: "explicit",
-          notes: ["Demo schema for UI review."],
-        },
-        licenseAttribution: { license: "Demo only", attribution: "Synthetic demo data - Map Explorer", sourceName: DEMO_LAYER_PACK_TITLE, requiresAttribution: true, source: "explicit", notes: sharedCaveats },
-        publicationReadiness: { status: "ready-with-caveats", missingFields: [], blockingIssueIds: [], caveats: sharedCaveats, checkedAt: createdAt },
-        scientificQA: { status: "warning", issueIds: ["demo-sample-data"], badges: ["sample_data"], checkedAt: createdAt, featureIssueCount: 0, usedWorker: false, caveats: sharedCaveats, signature: "demo-layer-pack-v1" },
-      },
-    },
-    {
-      id: "demo-cooling-sites",
-      name: "Demo Building Heat Exposure",
-      type: "geojson",
-      visible: true,
-      opacity: 0.68,
-      group: "data",
-      sourceKind: "demo",
-      qaStatus: "warning",
-      queryable: true,
-      sourceData: coolingPriorityAreas,
-      style: {
-        "fill-color": [
-          "match",
-          ["get", "risk_class"],
-          "Very high", "#DC2626",
-          "High", "#F97316",
-          "Moderate", "#A855F7",
-          "Low", "#22C55E",
-          "#94A3B8",
-        ],
-        "fill-outline-color": "rgba(15, 23, 42, 0.86)",
-        __labelField: "building_id",
-        __labelSize: 10,
-        legendEntries: [{ label: "Demo building heat exposure", color: "#F97316" }],
-      },
-      provenance: {
-        label: DEMO_LAYER_PROVENANCE,
-        sourceName: DEMO_LAYER_PACK_TITLE,
-        license: "Demo only",
-        attribution: "Synthetic demo data - Map Explorer",
-        generatedAt: createdAt,
-        notes: sharedCaveats,
-      },
-      metadata: {
-        featureCount: 6,
-        geometryType: "Polygon",
-        bounds: coolingBounds,
-        fields: ["building_id", "building_name", "use_type", "risk_class", "heat_exposure", "floors", "demo_note"],
-        dataVersion: "demo-layer-pack-v1",
-        datasetContext: {
-          ...sharedDataset,
-          layerId: "building_heat_exposure",
-          layerTitle: "Building Heat Exposure",
-          thematicCoverage: ["climate_adaptation", "public_realm"],
-          spatialExtent: "Synthetic building footprints: Fatih, Uskudar, Kadikoy",
-          schemaSummary: ["building_id", "building_name", "use_type", "risk_class", "heat_exposure", "floors", "demo_note"],
-        },
-        crsSummary: { crs: "EPSG:4326", status: "known", source: "explicit", notes: [sharedCaveats[1]!] },
-        geometrySummary: { geometryType: "Polygon", geometryTypes: ["Polygon"], featureCount: 6, source: "explicit", notes: ["Synthetic building footprints."], bounds: coolingBounds },
-        schemaSummary: {
-          fieldCount: 7,
-          fields: [
-            { name: "building_id", role: "identifier", type: "string" },
-            { name: "building_name", role: "attribute", type: "string" },
-            { name: "use_type", role: "attribute", type: "string" },
-            { name: "risk_class", role: "attribute", type: "string" },
-            { name: "heat_exposure", role: "attribute", type: "number" },
-            { name: "floors", role: "attribute", type: "number" },
-            { name: "demo_note", role: "attribute", type: "string" },
-          ],
-          source: "explicit",
-          notes: ["Demo schema for UI review."],
-        },
-        licenseAttribution: { license: "Demo only", attribution: "Synthetic demo data - Map Explorer", sourceName: DEMO_LAYER_PACK_TITLE, requiresAttribution: true, source: "explicit", notes: sharedCaveats },
-        publicationReadiness: { status: "ready-with-caveats", missingFields: [], blockingIssueIds: [], caveats: sharedCaveats, checkedAt: createdAt },
-        scientificQA: { status: "warning", issueIds: ["demo-sample-data"], badges: ["sample_data"], checkedAt: createdAt, featureIssueCount: 0, usedWorker: false, caveats: sharedCaveats, signature: "demo-layer-pack-v1" },
-      },
-    },
-  ];
+  return createMapExplorerDemoLayerPack(createdAt);
 }
+
 
 /* ================================================================== */
 /*  Styles                                                             */
@@ -1178,6 +782,8 @@ interface LayerBadgeModel {
 
 type LayerActionId =
   | "locate"
+  | "move-up"
+  | "move-down"
   | "style"
   | "review"
   | "export"
@@ -1475,6 +1081,8 @@ const LayerActionMenu: React.FC<LayerActionMenuProps> = ({ layerName, actions, f
             }}
             disabled={disabled}
             title={title}
+            role="menuitem"
+            aria-disabled={disabled || undefined}
             aria-label={disabled ? `${action.label}: ${title}` : `${action.label} ${layerName}`}
             data-layer-action={action.id}
             {...(action.disabledReason ? { "data-disabled-reason": action.disabledReason } : {})}
@@ -1557,6 +1165,9 @@ const MetadataPopover: React.FC<MetadataPopoverProps> = ({
           onClick={() => reportAction.onSelect?.()}
           disabled={Boolean(reportAction.disabledReason || !reportAction.onSelect)}
           title={reportAction.disabledReason ?? "Add this layer to the report handoff draft."}
+          aria-label={reportAction.disabledReason
+            ? `Add ${layer.name} to report unavailable: ${reportAction.disabledReason}`
+            : `Add ${layer.name} to report`}
         >
           Add to report
         </button>
@@ -1834,6 +1445,9 @@ const MetadataPopover: React.FC<MetadataPopoverProps> = ({
               onClick={() => onReRunAnalysisLayer(layer.id, analysisResult.rerunToken)}
               disabled={!analysisResult.rerunToken || isRerunning}
               title={analysisResult.rerunToken ? "Re-run this analysis with the recorded method and source layer." : "Missing prerequisite: this analysis result has no rerun token."}
+              aria-label={analysisResult.rerunToken
+                ? `Re-run analysis for ${layer.name}`
+                : `Re-run analysis for ${layer.name} unavailable: missing rerun token`}
             >
               {isRerunning ? "Re-running..." : "Re-run"}
             </button>
@@ -1993,6 +1607,9 @@ interface LayerRowProps {
   onBindLayerToDashboard?: (id: string) => void;
   onOpenLayerEducationReference?: (id: string) => void;
   onFocusLayer?: (id: string) => void;
+  onMoveLayer: (id: string, direction: "up" | "down") => void;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
   isSymbologyActive?: boolean;
   isRemovePending: boolean;
   cartographyRecommendationCount?: number;
@@ -2021,6 +1638,9 @@ const LayerRow: React.FC<LayerRowProps> = ({
   onAddLayerToReport,
   onBindLayerToDashboard,
   onFocusLayer,
+  onMoveLayer,
+  canMoveUp,
+  canMoveDown,
   onOpenLayerEducationReference,
   isSymbologyActive = false,
   isRemovePending,
@@ -2062,6 +1682,22 @@ const LayerRow: React.FC<LayerRowProps> = ({
           onSelect: () => onFocusLayer(layer.id),
         }]
       : []),
+    {
+      id: "move-up" as const,
+      label: "Move up",
+      title: "Move this layer higher in the drawing order.",
+      ...(canMoveUp
+        ? { onSelect: () => onMoveLayer(layer.id, "up") }
+        : { disabledReason: "Layer is already at the top of the drawing order." }),
+    },
+    {
+      id: "move-down" as const,
+      label: "Move down",
+      title: "Move this layer lower in the drawing order.",
+      ...(canMoveDown
+        ? { onSelect: () => onMoveLayer(layer.id, "down") }
+        : { disabledReason: "Layer is already at the bottom of the drawing order." }),
+    },
     ...(onOpenSymbology
       ? [{
           id: "style" as const,
@@ -2392,6 +2028,26 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
     setDragId(null);
   }, []);
 
+  const handleMoveLayer = useCallback((id: string, direction: "up" | "down") => {
+    const ids = overlayLayers.map((layer) => layer.id);
+    const fromIdx = ids.indexOf(id);
+    if (fromIdx < 0) return;
+
+    const toIdx = direction === "up" ? fromIdx - 1 : fromIdx + 1;
+    const layer = overlayLayers[fromIdx];
+    if (toIdx < 0 || toIdx >= ids.length) {
+      onAnnounce?.(`${layer?.name ?? "Layer"} is already at the ${direction === "up" ? "top" : "bottom"} of the drawing order`);
+      return;
+    }
+
+    const reordered = [...ids];
+    const [moved] = reordered.splice(fromIdx, 1);
+    if (!moved) return;
+    reordered.splice(toIdx, 0, moved);
+    onReorderLayers(reordered);
+    onAnnounce?.(`${layer?.name ?? "Layer"} moved ${direction} in the layer stack`);
+  }, [onAnnounce, onReorderLayers, overlayLayers]);
+
   /* ---- Popover ---- */
   const handleNameClick = useCallback((id: string, top: number) => {
     setPopoverLayerId((prev) => (prev === id ? null : id));
@@ -2405,11 +2061,138 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
   }, [onAddLayer, onAnnounce]);
 
   const handleAddDemoLayers = useCallback(() => {
-    for (const layer of createMapExplorerDemoLayers()) {
+    const layers = createMapExplorerDemoLayers();
+    for (const layer of layers) {
       onAddLayer(layer);
     }
-    onAnnounce?.("Two demo layers added or refreshed");
+    onAnnounce?.(
+      `${layers.length} demo layers added or refreshed (synthetic streets, blocks, and buildings for 3 Istanbul AOIs).`,
+    );
   }, [onAddLayer, onAnnounce]);
+
+  const [osmReferenceBusy, setOsmReferenceBusy] = useState(false);
+  const handleLoadOsmReference = useCallback(async () => {
+    if (osmReferenceBusy) return;
+    setOsmReferenceBusy(true);
+
+    // Memory + render guardrails for dense Istanbul AOIs. Without these, dense
+    // historic fabric (Fatih center) returns thousands of building polygons
+    // which, when combined with structured-clone across the worker boundary,
+    // Zustand state copy, and MapLibre source upload, can blow past the V8
+    // heap allocation ceiling ("allocation size overflow") and pin the main
+    // thread for many seconds.
+    const MAX_FEATURES_PER_AOI = 1500;
+    const OSM_BBOX_SHRINK = 0.5; // request only the inner 50% of the demo AOI
+
+    const shrinkBounds = (
+      bounds: [number, number, number, number],
+    ): [number, number, number, number] => {
+      const [minLng, minLat, maxLng, maxLat] = bounds;
+      const centerLng = (minLng + maxLng) / 2;
+      const centerLat = (minLat + maxLat) / 2;
+      const halfLng = ((maxLng - minLng) * OSM_BBOX_SHRINK) / 2;
+      const halfLat = ((maxLat - minLat) * OSM_BBOX_SHRINK) / 2;
+      return [
+        Number((centerLng - halfLng).toFixed(6)),
+        Number((centerLat - halfLat).toFixed(6)),
+        Number((centerLng + halfLng).toFixed(6)),
+        Number((centerLat + halfLat).toFixed(6)),
+      ];
+    };
+
+    const aoiBoundsList = getDemoAoiBoundsList();
+    onAnnounce?.(
+      `Loading OpenStreetMap building reference for ${aoiBoundsList.length} demo AOIs (inner ${Math.round(OSM_BBOX_SHRINK * 100)}% of each AOI, capped at ${MAX_FEATURES_PER_AOI.toLocaleString()} features per AOI). Layers land hidden — toggle in the layer rail to view.`,
+    );
+
+    // Yield to the browser between AOIs so MapLibre and React can paint and
+    // settle their state. Three dense Istanbul AOIs in a tight loop would
+    // otherwise pin the main thread for several seconds.
+    const yieldToBrowser = (): Promise<void> =>
+      new Promise<void>((resolve) => {
+        if (typeof requestAnimationFrame === "function") {
+          requestAnimationFrame(() => resolve());
+        } else {
+          setTimeout(resolve, 16);
+        }
+      });
+
+    let addedAois = 0;
+    let totalFeatures = 0;
+    let truncatedAois = 0;
+    const failures: string[] = [];
+
+    for (const aoi of aoiBoundsList) {
+      onAnnounce?.(`${aoi.district}: fetching OSM building footprints…`);
+      try {
+        const fetchBounds = shrinkBounds(aoi.bounds);
+        const handle = executeOverpassBuildingsAsync(fetchBounds);
+        const result = await handle.promise;
+        const fetchedFeatures = result.featureCollection.features;
+        const totalCount = fetchedFeatures.length;
+        const wasTruncated = totalCount > MAX_FEATURES_PER_AOI;
+        const keptFeatures = wasTruncated
+          ? fetchedFeatures.slice(0, MAX_FEATURES_PER_AOI)
+          : fetchedFeatures;
+        const cappedResult = wasTruncated
+          ? {
+              ...result,
+              featureCollection: {
+                ...result.featureCollection,
+                features: keptFeatures,
+              },
+            }
+          : result;
+        const baseLayer = createOsmBuildingsLayerConfig(cappedResult);
+        totalFeatures += keptFeatures.length;
+        if (wasTruncated) truncatedAois += 1;
+        const truncationNotes = wasTruncated
+          ? [
+              `Truncated to first ${MAX_FEATURES_PER_AOI.toLocaleString()} of ${totalCount.toLocaleString()} OSM buildings to keep map rendering responsive.`,
+              `Fetched from the inner ${Math.round(OSM_BBOX_SHRINK * 100)}% of the demo AOI bounds to bound payload size.`,
+            ]
+          : [`Fetched from the inner ${Math.round(OSM_BBOX_SHRINK * 100)}% of the demo AOI bounds to bound payload size.`];
+        // Add the layer hidden by default. Three dense OSM responses landing
+        // visible at the same time forces MapLibre to upload + style every
+        // feature at once, which causes the perceived freeze. Hidden layers
+        // are parsed but not rendered, and the user can opt them in per AOI.
+        onAddLayer({
+          ...baseLayer,
+          id: `${baseLayer.id}-${aoi.id}`,
+          name: `${aoi.district} OSM Buildings (reference)`,
+          visible: false,
+          provenance: {
+            ...(baseLayer.provenance ?? {}),
+            notes: [
+              ...(baseLayer.provenance?.notes ?? []),
+              ...truncationNotes,
+            ],
+          },
+        });
+        addedAois += 1;
+        const cacheNote = result.cacheHit ? " from 10-minute cache" : "";
+        const truncationLabel = wasTruncated
+          ? `${MAX_FEATURES_PER_AOI.toLocaleString()} of ${totalCount.toLocaleString()} buildings (truncated for performance)`
+          : `${keptFeatures.length.toLocaleString()} building${keptFeatures.length === 1 ? "" : "s"}`;
+        onAnnounce?.(
+          `${aoi.district}: ${truncationLabel}${cacheNote} ready. Toggle visible in the layer rail when needed.`,
+        );
+        await yieldToBrowser();
+      } catch (error) {
+        failures.push(`${aoi.district}: ${error instanceof Error ? error.message : "fetch failed"}`);
+      }
+    }
+    setOsmReferenceBusy(false);
+    if (addedAois > 0) {
+      const truncationSummary = truncatedAois > 0
+        ? ` ${truncatedAois} AOI${truncatedAois > 1 ? "s" : ""} truncated.`
+        : "";
+      const summary = `Loaded OSM reference for ${addedAois} AOI${addedAois > 1 ? "s" : ""} (${totalFeatures.toLocaleString()} feature${totalFeatures === 1 ? "" : "s"} total, hidden by default).${truncationSummary}`;
+      onAnnounce?.(failures.length === 0 ? summary : `${summary} ${failures.length} failed.`);
+    } else {
+      onAnnounce?.(`OSM reference load failed for all demo AOIs (${failures[0] ?? "no detail"}).`);
+    }
+  }, [onAddLayer, onAnnounce, osmReferenceBusy]);
 
   /* ---- Toggle visibility with announcement ---- */
   const handleToggle = useCallback((id: string) => {
@@ -2584,38 +2367,46 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
               <>
                 <div style={groupHeader}>{GROUP_LABELS[groupId]}</div>
                 {grouped[groupId].map((layer) => (
-                  <LayerRow
-                    key={layer.id}
-                    layer={layer}
-                    onToggleVisibility={handleToggle}
-                    onSetOpacity={onSetOpacity}
-                    onRemove={handleRemove}
-                    onRequestRemove={handleRequestRemove}
-                    onCancelRemove={handleCancelRemove}
-                    onNameClick={handleNameClick}
-                    isSymbologyActive={activeSymbologyLayerId === layer.id}
-                    isRemovePending={pendingRemoveLayerId === layer.id}
-                    cartographyRecommendationCount={cartographyRecommendationCountByLayer.get(layer.id) ?? 0}
-                    {...(cartographyReviewState ? { onReviewCartography: handleOpenCartographyReview } : {})}
-                    {...(onExportLayer ? { onExportLayer } : {})}
-                    {...(onSendLayerToUrban ? { onSendLayerToUrban } : {})}
-                    {...(onOpenLayerInIde ? { onOpenLayerInIde } : {})}
-                    {...(onAddLayerToReport ? { onAddLayerToReport } : {})}
-                    {...(onBindLayerToDashboard ? { onBindLayerToDashboard } : {})}
-                    {...(onOpenLayerEducationReference ? { onOpenLayerEducationReference } : {})}
-                    {...(onFocusLayer ? { onFocusLayer } : {})}
-                    {...(onAnnounce ? { onAnnounce } : {})}
-                    isDragging={dragId === layer.id}
-                    onDragStart={handleDragStart}
-                    onDragOver={handleDragOver}
-                    onDrop={handleDrop}
-                    onDragEnd={handleDragEnd}
-                    {...(onOpenSymbology &&
-                      layer.type === "geojson" &&
-                      (layer.metadata?.geometryType?.toLowerCase() ?? "").includes("point")
-                        ? { onOpenSymbology }
-                        : {})}
-                  />
+                  (() => {
+                    const layerIndex = overlayLayers.findIndex((entry) => entry.id === layer.id);
+                    return (
+                      <LayerRow
+                        key={layer.id}
+                        layer={layer}
+                        onToggleVisibility={handleToggle}
+                        onSetOpacity={onSetOpacity}
+                        onRemove={handleRemove}
+                        onRequestRemove={handleRequestRemove}
+                        onCancelRemove={handleCancelRemove}
+                        onNameClick={handleNameClick}
+                        onMoveLayer={handleMoveLayer}
+                        canMoveUp={layerIndex > 0}
+                        canMoveDown={layerIndex >= 0 && layerIndex < overlayLayers.length - 1}
+                        isSymbologyActive={activeSymbologyLayerId === layer.id}
+                        isRemovePending={pendingRemoveLayerId === layer.id}
+                        cartographyRecommendationCount={cartographyRecommendationCountByLayer.get(layer.id) ?? 0}
+                        {...(cartographyReviewState ? { onReviewCartography: handleOpenCartographyReview } : {})}
+                        {...(onExportLayer ? { onExportLayer } : {})}
+                        {...(onSendLayerToUrban ? { onSendLayerToUrban } : {})}
+                        {...(onOpenLayerInIde ? { onOpenLayerInIde } : {})}
+                        {...(onAddLayerToReport ? { onAddLayerToReport } : {})}
+                        {...(onBindLayerToDashboard ? { onBindLayerToDashboard } : {})}
+                        {...(onOpenLayerEducationReference ? { onOpenLayerEducationReference } : {})}
+                        {...(onFocusLayer ? { onFocusLayer } : {})}
+                        {...(onAnnounce ? { onAnnounce } : {})}
+                        isDragging={dragId === layer.id}
+                        onDragStart={handleDragStart}
+                        onDragOver={handleDragOver}
+                        onDrop={handleDrop}
+                        onDragEnd={handleDragEnd}
+                        {...(onOpenSymbology &&
+                          layer.type === "geojson" &&
+                          (layer.metadata?.geometryType?.toLowerCase() ?? "").includes("point")
+                            ? { onOpenSymbology }
+                            : {})}
+                      />
+                    );
+                  })()
                 ))}
               </>
             ) : null}
@@ -2637,10 +2428,21 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
           type="button"
           style={addDemoLayersBtn}
           onClick={handleAddDemoLayers}
-          aria-label="Add two demo layers"
-          title="Add two explicitly labelled demo layers for map review"
+          aria-label="Add demo street, block, and building layers for three Istanbul AOIs"
+          title="Adds 9 synthetic demo layers (streets, blocks, buildings) across Üsküdar, Fatih, and Kadıköy for engine and UI review"
         >
-          Add Demo Layers
+          Add Demo Pack
+        </button>
+        <button
+          type="button"
+          style={addDemoLayersBtn}
+          onClick={() => { void handleLoadOsmReference(); }}
+          disabled={osmReferenceBusy}
+          aria-label="Load OpenStreetMap building reference for demo AOIs"
+          aria-busy={osmReferenceBusy}
+          title="Fetches live OSM building footprints for the three demo AOIs via Overpass. Network required; results land hidden — toggle visible in the layer rail to view. Falls back to cache when available."
+        >
+          {osmReferenceBusy ? "Loading OSM…" : "Load OSM Reference"}
         </button>
       </div>
 

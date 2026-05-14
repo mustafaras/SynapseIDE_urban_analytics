@@ -1105,9 +1105,11 @@ function ToolbarCommandButton({
         onAfterClick?.();
       }}
       title={command.title}
-      aria-label={command.title}
+      aria-label={disabled ? `${command.title}. Unavailable in the current map state.` : command.title}
       aria-pressed={active || undefined}
+      aria-disabled={disabled || undefined}
       disabled={disabled}
+      role={menuItem ? "menuitem" : undefined}
       {...toolbarButtonInteraction(active, disabled)}
     >
       <Icon size={MAP_ICON_SIZES.sm} strokeWidth={1.8} color={color} aria-hidden="true" />
@@ -1325,7 +1327,9 @@ function CommandPalette({
                 onClose();
               }}
               role="option"
+              aria-label={command.disabled ? `${command.label}. ${command.title}. Unavailable in the current map state.` : `${command.label}. ${command.title}`}
               aria-selected={command.active || undefined}
+              aria-disabled={command.disabled || undefined}
               disabled={command.disabled}
             >
               {React.createElement(command.icon, { size: MAP_ICON_SIZES.sm, strokeWidth: 1.8, "aria-hidden": true })}
