@@ -534,6 +534,7 @@ describe("MapPersistenceService", () => {
         title: "QA warning recorded",
         summary: "CRS warning attached to imported parcels.",
         layerIds: ["overlay-1"],
+        evidenceArtifactIds: ["map-evidence-layer-overlay-1"],
         qaIssueIds: ["qa-1"],
         reportItemIds: ["report-insert-1"],
       },
@@ -577,7 +578,9 @@ describe("MapPersistenceService", () => {
     expect(saveResult.snapshot.reviewTimeline).toMatchObject({
       sessionId: "review-session-1",
       eventIds: ["review-event-1"],
+      auditCategories: ["qa-run"],
       layerIds: ["overlay-1"],
+      evidenceArtifactIds: ["map-evidence-layer-overlay-1"],
       qaIssueIds: ["qa-1"],
       reportItemIds: ["report-insert-1"],
     });

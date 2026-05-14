@@ -53,7 +53,7 @@ Use DEVELOPMENT_PLANS/START_HERE_URBAN_ANALYTICS_AGENT.md. Run scripts/get-next-
 
 Before editing source files for any prompt, complete this checklist in order:
 
-1. Run `powershell -ExecutionPolicy Bypass -File scripts/get-next-urban-analytics-prompt.ps1` when available.
+1. Run `.\scripts\get-next-urban-analytics-prompt.ps1 -Json` after setting process execution policy when needed.
 2. Confirm the helper result matches `URBAN_ANALYTICS_IMPLEMENTATION_LEDGER.md` Current Status and Next Prompt Pointer.
 3. Read the Prompt Status Register and verify every dependency is `completed` or `skipped_with_reason`.
 4. Read the latest completed prompt entries that directly affect the active prompt. For example, Prompt 04 must read Prompt 02 and Prompt 03 entries because evidence artifacts depend on the context store and persistence decisions.
@@ -137,7 +137,8 @@ The machine-readable prompt catalog is:
 The next prompt helper is:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/get-next-urban-analytics-prompt.ps1
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+.\scripts\get-next-urban-analytics-prompt.ps1 -Json
 ```
 
 The helper reads the ledger's Prompt Status Register. The ledger remains the execution source of truth.

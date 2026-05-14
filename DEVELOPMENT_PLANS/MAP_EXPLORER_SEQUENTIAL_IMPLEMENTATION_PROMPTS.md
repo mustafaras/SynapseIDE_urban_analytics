@@ -34,7 +34,8 @@ The machine-readable prompt catalog is:
 The next prompt helper is:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/get-next-map-explorer-prompt.ps1
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+.\scripts\get-next-map-explorer-prompt.ps1 -Json
 ```
 
 The helper reads the ledger's Prompt Status Register. The ledger remains the execution source of truth.

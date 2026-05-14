@@ -121,9 +121,10 @@ foreach($module in $modules){
 ```
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts\get-next-synapse-ide-prompt.ps1
-powershell -ExecutionPolicy Bypass -File scripts\get-next-map-explorer-prompt.ps1
-powershell -ExecutionPolicy Bypass -File scripts\get-next-urban-analytics-prompt.ps1
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+.\scripts\get-next-synapse-ide-prompt.ps1 -Json
+.\scripts\get-next-map-explorer-prompt.ps1 -Json
+.\scripts\get-next-urban-analytics-prompt.ps1 -Json
 ```
 
 ```powershell

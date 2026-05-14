@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import type { OverlayLayerConfig } from "./mapTypes";
 import type {
+  MapReviewAuditCategory,
   MapReviewTimelineEvent,
   MapReviewTimelineEventInput,
   MapReviewTimelineEventStatus,
@@ -19,6 +20,7 @@ import type {
 } from "@/services/map/MapReviewSessionService";
 import {
   filterMapReviewTimelineEvents,
+  MAP_REVIEW_AUDIT_CATEGORIES,
   MAP_REVIEW_EVENT_STATUSES,
   MAP_REVIEW_EVENT_TYPES,
   triggerMapReviewSessionDownload,
@@ -60,6 +62,24 @@ const EVENT_TYPE_LABELS: Record<MapReviewTimelineEventType, string> = {
   annotation: "Annotation",
   bookmark: "Bookmark",
   "action-status": "Action status",
+};
+
+const AUDIT_CATEGORY_LABELS: Record<MapReviewAuditCategory, string> = {
+  "session-snapshot": "Session snapshot",
+  "layer-import": "Layer import",
+  "layer-derived": "Layer derived",
+  "layer-registry": "Layer registry",
+  "qa-run": "QA run",
+  "workflow-preview": "Workflow preview",
+  "workflow-apply": "Workflow apply",
+  "export-report-handoff": "Export/report",
+  "urban-sync": "Urban sync",
+  "ide-sync": "IDE sync",
+  "nl-query-decision": "NL query",
+  "voxcity-2d-3d-handoff": "2D/3D handoff",
+  "cartography-review": "Cartography review",
+  "annotation-bookmark": "Annotation/bookmark",
+  "action-audit": "Action audit",
 };
 
 const STATUS_LABELS: Record<MapReviewTimelineEventStatus, string> = {
@@ -324,7 +344,9 @@ function EventRow({
       <div style={eventTopLineStyle}>
         <div style={{ minWidth: MAP_SPACING.zero }}>
           <div style={eventTitleStyle}>{event.title}</div>
-          <div style={metaStyle}>{formatTimestamp(event.timestamp)} / {EVENT_TYPE_LABELS[event.type]}</div>
+          <div style={metaStyle}>
+            {formatTimestamp(event.timestamp)} / {EVENT_TYPE_LABELS[event.type]} / {AUDIT_CATEGORY_LABELS[event.category]}
+          </div>
         </div>
         <span style={{ ...badgeStyle, color: statusColor, border: `1px solid ${statusColor}` }}>
           {STATUS_LABELS[event.status]}
@@ -333,6 +355,7 @@ function EventRow({
       <div style={eventSummaryStyle}>{event.summary}</div>
       <div style={idWrapStyle} aria-label="Timeline event references">
         {compactIds(layerLabels).map((label) => <span key={`layer-${label}`} style={badgeStyle}>{label}</span>)}
+        {compactIds(event.evidenceArtifactIds).map((id) => <span key={`evidence-${id}`} style={badgeStyle}>Evidence {id}</span>)}
         {compactIds(event.reportItemIds).map((id) => <span key={`report-${id}`} style={badgeStyle}>Report {id}</span>)}
         {compactIds(event.qaIssueIds).map((id) => <span key={`qa-${id}`} style={badgeStyle}>QA {id}</span>)}
         {compactIds(event.recommendationIds).map((id) => <span key={`rec-${id}`} style={badgeStyle}>Rec {id}</span>)}
@@ -371,8 +394,10 @@ export const MapReviewTimelinePanel: React.FC<MapReviewTimelinePanelProps> = ({
 }) => {
   const panelDrag = useDraggableMapPanel();
   const [typeFilter, setTypeFilter] = useState<MapReviewTimelineEventType | "all">("all");
+  const [categoryFilter, setCategoryFilter] = useState<MapReviewAuditCategory | "all">("all");
   const [statusFilter, setStatusFilter] = useState<MapReviewTimelineEventStatus | "all">("all");
   const [layerFilter, setLayerFilter] = useState<string | "all">("all");
+  const [evidenceFilter, setEvidenceFilter] = useState<string | "all">("all");
   const [startDate, setStartDate] = useState<string | null>(null);
   const [endDate, setEndDate] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -384,19 +409,26 @@ export const MapReviewTimelinePanel: React.FC<MapReviewTimelinePanelProps> = ({
   const filteredEvents = useMemo(
     () => filterMapReviewTimelineEvents(session, {
       type: typeFilter,
+      category: categoryFilter,
       status: statusFilter,
       layerId: layerFilter,
+      evidenceArtifactId: evidenceFilter,
       startDate,
       endDate,
       query,
     }),
-    [endDate, layerFilter, query, session, startDate, statusFilter, typeFilter],
+    [categoryFilter, endDate, evidenceFilter, layerFilter, query, session, startDate, statusFilter, typeFilter],
   );
 
   const filteredLayerOptions = useMemo(() => {
     const ids = new Set(session.events.flatMap((event) => event.layerIds));
     return overlayLayers.filter((layer) => ids.has(layer.id));
   }, [overlayLayers, session.events]);
+
+  const filteredEvidenceOptions = useMemo(
+    () => Array.from(new Set(session.events.flatMap((event) => event.evidenceArtifactIds))).sort(),
+    [session.events],
+  );
 
   if (!visible) return null;
 
@@ -435,6 +467,15 @@ export const MapReviewTimelinePanel: React.FC<MapReviewTimelinePanelProps> = ({
           </select>
         </label>
         <label style={labelStyle}>
+          Audit category
+          <select style={inputStyle} value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value as MapReviewAuditCategory | "all")}>
+            <option value="all">All audit categories</option>
+            {MAP_REVIEW_AUDIT_CATEGORIES.map((category) => (
+              <option key={category} value={category}>{AUDIT_CATEGORY_LABELS[category]}</option>
+            ))}
+          </select>
+        </label>
+        <label style={labelStyle}>
           Status
           <select style={inputStyle} value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as MapReviewTimelineEventStatus | "all")}>
             <option value="all">All statuses</option>
@@ -449,8 +490,15 @@ export const MapReviewTimelinePanel: React.FC<MapReviewTimelinePanelProps> = ({
           </select>
         </label>
         <label style={labelStyle}>
+          Evidence
+          <select style={inputStyle} value={evidenceFilter} onChange={(event) => setEvidenceFilter(event.target.value)}>
+            <option value="all">All evidence artifacts</option>
+            {filteredEvidenceOptions.map((id) => <option key={id} value={id}>{id}</option>)}
+          </select>
+        </label>
+        <label style={labelStyle}>
           Search
-          <input style={inputStyle} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Title, layer, report, QA" />
+          <input style={inputStyle} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Title, layer, report, QA, evidence" />
         </label>
         <label style={labelStyle}>
           Start time
@@ -488,6 +536,7 @@ export const MapReviewTimelinePanel: React.FC<MapReviewTimelinePanelProps> = ({
             onClick={() => {
               onRecordEvent({
                 type: "qa-event",
+                category: "qa-run",
                 status: "acknowledged",
                 title: activeQaIssues.length > 0 ? "QA caveats acknowledged" : "QA state reviewed",
                 summary: activeQaIssues.length > 0

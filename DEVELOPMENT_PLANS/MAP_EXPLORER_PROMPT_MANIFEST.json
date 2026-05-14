@@ -9,6 +9,11 @@
     "blocked",
     "skipped_with_reason"
   ],
+  "minimalContextDocuments": [
+    "DEVELOPMENT_PLANS/CONTEXT_MIN.md",
+    "DEVELOPMENT_PLANS/CURRENT_TASK.json",
+    "DEVELOPMENT_PLANS/MODULE_INDEX.json"
+  ],
   "canonicalDocuments": [
     "DEVELOPMENT_PLANS/START_HERE_MAP_EXPLORER_AGENT.md",
     "DEVELOPMENT_PLANS/AGENT_AMNESIA_PREVENTION_PROTOCOL.md",
@@ -25,7 +30,8 @@
   "nextPromptHelper": "scripts/get-next-map-explorer-prompt.ps1",
   "defaults": {
     "requiredPreflight": [
-      "Read the canonical documents.",
+      "Read the token-minimized context documents first.",
+      "Search canonical documents only for the active prompt id, heading, status row, or named section.",
       "Read the active prompt block.",
       "Inspect every file named by the prompt.",
       "Verify prior prompt status from the ledger.",

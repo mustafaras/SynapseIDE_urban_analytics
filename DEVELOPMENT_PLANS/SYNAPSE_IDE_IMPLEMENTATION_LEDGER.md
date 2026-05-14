@@ -68,11 +68,12 @@ Read these before implementing any Synapse IDE prompt:
 Use this pack for every future Synapse IDE implementation session:
 
 1. Start from `DEVELOPMENT_PLANS/START_HERE_SYNAPSE_IDE_AGENT.md`.
-2. Run `powershell -ExecutionPolicy Bypass -File scripts/get-next-synapse-ide-prompt.ps1` when script execution is available.
-3. Read the returned prompt block in `DEVELOPMENT_PLANS/SYNAPSE_IDE_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md`.
-4. Implement only that prompt unless the user explicitly asks for a different prompt.
-5. Finish with `DEVELOPMENT_PLANS/SYNAPSE_IDE_AGENT_HANDOFF_TEMPLATE.md`.
-6. Update this ledger before final response.
+2. Read `DEVELOPMENT_PLANS/CONTEXT_MIN.md` and `DEVELOPMENT_PLANS/CURRENT_TASK.json`.
+3. Run `.\scripts\get-next-synapse-ide-prompt.ps1 -Json` after setting process execution policy when needed.
+4. Search for the returned prompt block in `DEVELOPMENT_PLANS/SYNAPSE_IDE_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md`.
+5. Implement only that prompt unless the user explicitly asks for a different prompt.
+6. Finish with `DEVELOPMENT_PLANS/SYNAPSE_IDE_AGENT_HANDOFF_TEMPLATE.md`.
+7. Update this ledger before final response.
 
 Valid prompt statuses:
 
@@ -558,7 +559,8 @@ Prompt:
 Optional helper command:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/get-next-synapse-ide-prompt.ps1
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+.\scripts\get-next-synapse-ide-prompt.ps1 -Json
 ```
 
 ## Ledger Update Checklist

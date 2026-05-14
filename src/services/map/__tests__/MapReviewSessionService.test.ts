@@ -37,6 +37,7 @@ function makeLayer(id: string, visible = true): OverlayLayerConfig {
     metadata: {
       featureCount: 1,
       geometryType: "Point",
+      evidenceArtifactId: `map-evidence-layer-${id}`,
       fields: ["score"],
       datasetContext: {
         crs: "EPSG:4326",
@@ -74,6 +75,8 @@ describe("MapReviewSessionService", () => {
 
     expect(session.events).toHaveLength(1);
     expect(session.metadata.eventCounts.snapshot).toBe(1);
+    expect(session.metadata.categoryCounts["session-snapshot"]).toBe(1);
+    expect(session.metadata.evidenceArtifactIds).toEqual(["map-evidence-layer-parcels", "map-evidence-layer-stops"]);
     expect(snapshot.layerSummaries[0]).toEqual({
       layerId: "parcels",
       name: "Policy parcels",
@@ -83,6 +86,7 @@ describe("MapReviewSessionService", () => {
       qaStatus: "passed",
       featureCount: 1,
       geometryType: "Point",
+      evidenceArtifactId: "map-evidence-layer-parcels",
     });
     expect(JSON.stringify(session)).not.toContain("FeatureCollection");
   });
@@ -98,6 +102,7 @@ describe("MapReviewSessionService", () => {
       summary: "Published parcel buffer result after analyst reviewed SQL.",
       layerIds: ["parcels", "query-result"],
       details: {
+        evidenceArtifactId: "map-evidence-query-buffer",
         sql: "select * from parcels",
         oversizedPreview: Array.from({ length: 40 }, (_, index) => ({ index })),
       },
@@ -113,7 +118,9 @@ describe("MapReviewSessionService", () => {
     });
 
     expect(filterMapReviewTimelineEvents(session, { type: "query-run" })).toHaveLength(1);
+    expect(filterMapReviewTimelineEvents(session, { category: "nl-query-decision" })).toHaveLength(1);
     expect(filterMapReviewTimelineEvents(session, { layerId: "stops" })).toHaveLength(1);
+    expect(filterMapReviewTimelineEvents(session, { evidenceArtifactId: "map-evidence-query-buffer" })).toHaveLength(1);
     expect(filterMapReviewTimelineEvents(session, { status: "applied" })).toHaveLength(1);
     expect(filterMapReviewTimelineEvents(session, { startDate: "2026-05-02T10:06:00.000Z" })).toHaveLength(1);
     expect(filterMapReviewTimelineEvents(session, { query: "reviewed sql" })).toHaveLength(1);
@@ -136,6 +143,7 @@ describe("MapReviewSessionService", () => {
         qaStatus: "passed",
         queryable: true,
         featureCount: 1,
+        evidenceArtifactId: "map-evidence-layer-parcels",
       }],
       previousLayers: [{
         layerId: "parcels",
@@ -148,11 +156,14 @@ describe("MapReviewSessionService", () => {
         qaStatus: "passed",
         queryable: true,
         featureCount: 1,
+        evidenceArtifactId: "map-evidence-layer-parcels",
       }],
     }, makeSnapshot());
 
     expect(event.type).toBe("layer-change");
+    expect(event.category).toBe("layer-import");
     expect(event.layerIds).toEqual(["parcels"]);
+    expect(event.evidenceArtifactIds).toEqual(["map-evidence-layer-parcels"]);
     expect(event.title).toContain("Policy parcels");
   });
 
@@ -169,11 +180,12 @@ describe("MapReviewSessionService", () => {
       title: "Report handoff inserted: Corridor evidence",
       summary: "Inserted report section with layer references and caveats.",
       layerIds: ["parcels"],
+      evidenceArtifactIds: ["map-evidence-layer-parcels"],
       reportItemIds: ["map-handoff-corridor", "map-handoff-corridor-section"],
     });
 
     const json = exportMapReviewSessionJson(session);
-    const parsed = JSON.parse(json) as { events: Array<{ title: string }> };
+    const parsed = JSON.parse(json) as { events: Array<{ category: string; evidenceArtifactIds: string[]; title: string }> };
     const markdown = exportMapReviewSessionMarkdown(session);
 
     expect(exportMapReviewSessionJson(session)).toBe(json);
@@ -182,6 +194,10 @@ describe("MapReviewSessionService", () => {
       "Report handoff inserted: Corridor evidence",
     ]);
     expect(markdown).toContain("# Map review session");
+    expect(parsed.events[1]?.category).toBe("export-report-handoff");
+    expect(parsed.events[1]?.evidenceArtifactIds).toEqual(["map-evidence-layer-parcels"]);
+    expect(markdown).toContain("Audit Category: export-report-handoff");
+    expect(markdown).toContain("Evidence Artifact IDs: map-evidence-layer-parcels");
     expect(markdown).toContain("Report Item IDs: map-handoff-corridor, map-handoff-corridor-section");
   });
 });

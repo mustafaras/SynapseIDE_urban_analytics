@@ -12,7 +12,7 @@ import type { MapScientificQAState } from "./MapScientificQA";
 import type { PendingReportInsert } from "@/services/reporting/types";
 import { downloadText } from "@/centerpanel/lib/download";
 
-export const MAP_REVIEW_SESSION_VERSION = 1;
+export const MAP_REVIEW_SESSION_VERSION = 2;
 export const MAP_REVIEW_SESSION_EVENT_LIMIT = 400;
 
 export type MapReviewTimelineEventType =
@@ -39,6 +39,23 @@ export type MapReviewTimelineEventStatus =
   | "resolved"
   | "failed";
 
+export type MapReviewAuditCategory =
+  | "session-snapshot"
+  | "layer-import"
+  | "layer-derived"
+  | "layer-registry"
+  | "qa-run"
+  | "workflow-preview"
+  | "workflow-apply"
+  | "export-report-handoff"
+  | "urban-sync"
+  | "ide-sync"
+  | "nl-query-decision"
+  | "voxcity-2d-3d-handoff"
+  | "cartography-review"
+  | "annotation-bookmark"
+  | "action-audit";
+
 export type MapReviewDetailValue =
   | string
   | number
@@ -58,6 +75,7 @@ export interface MapReviewLayerSnapshotSummary {
   qaStatus: string | null;
   featureCount: number | null;
   geometryType: string | null;
+  evidenceArtifactId: string | null;
 }
 
 export interface MapReviewSelectedFeatureSummary {
@@ -89,11 +107,13 @@ export interface MapReviewTimelineEvent {
   id: string;
   version: number;
   type: MapReviewTimelineEventType;
+  category: MapReviewAuditCategory;
   status: MapReviewTimelineEventStatus;
   timestamp: string;
   title: string;
   summary: string;
   layerIds: string[];
+  evidenceArtifactIds: string[];
   reportItemIds: string[];
   qaIssueIds: string[];
   recommendationIds: string[];
@@ -108,11 +128,13 @@ export interface MapReviewTimelineEvent {
 export interface MapReviewTimelineEventInput {
   id?: string;
   type: MapReviewTimelineEventType;
+  category?: MapReviewAuditCategory;
   status?: MapReviewTimelineEventStatus;
   timestamp?: string;
   title: string;
   summary: string;
   layerIds?: string[];
+  evidenceArtifactIds?: string[];
   reportItemIds?: string[];
   qaIssueIds?: string[];
   recommendationIds?: string[];
@@ -136,7 +158,9 @@ export interface MapReviewSession {
     generatedBy: "MapReviewSessionService";
     eventLimit: number;
     eventCounts: Record<MapReviewTimelineEventType, number>;
+    categoryCounts: Record<MapReviewAuditCategory, number>;
     statusCounts: Record<MapReviewTimelineEventStatus, number>;
+    evidenceArtifactIds: string[];
   };
 }
 
@@ -150,8 +174,10 @@ export interface MapReviewSessionInput {
 
 export interface MapReviewTimelineFilters {
   type?: MapReviewTimelineEventType | "all";
+  category?: MapReviewAuditCategory | "all";
   status?: MapReviewTimelineEventStatus | "all";
   layerId?: string | "all";
+  evidenceArtifactId?: string | "all";
   reportItemId?: string | "all";
   startDate?: string | null;
   endDate?: string | null;
@@ -171,8 +197,49 @@ function sanitizeIdPart(value: string): string {
     .slice(0, 80) || "item";
 }
 
-function uniqueStrings(values: readonly string[] | undefined, limit = 48): string[] {
-  return Array.from(new Set((values ?? []).map(String).map((value) => value.trim()).filter(Boolean))).slice(0, limit);
+function uniqueStrings(values: readonly (string | null | undefined)[] | undefined, limit = 48): string[] {
+  return Array.from(
+    new Set(
+      (values ?? [])
+        .filter((value): value is string => typeof value === "string")
+        .map((value) => value.trim())
+        .filter(Boolean),
+    ),
+  ).slice(0, limit);
+}
+
+function collectEvidenceArtifactIdsFromValue(value: unknown, depth = 0): string[] {
+  if (depth > 5 || value == null) {
+    return [];
+  }
+  if (Array.isArray(value)) {
+    return value.flatMap((entry) => collectEvidenceArtifactIdsFromValue(entry, depth + 1));
+  }
+  if (!isPlainRecord(value)) {
+    return [];
+  }
+
+  const ids: string[] = [];
+  for (const [key, entry] of Object.entries(value)) {
+    const normalizedKey = key.toLowerCase();
+    if (normalizedKey.includes("evidenceartifactid")) {
+      if (typeof entry === "string") {
+        ids.push(entry);
+      } else if (Array.isArray(entry)) {
+        ids.push(...entry.filter((item): item is string => typeof item === "string"));
+      }
+    }
+    ids.push(...collectEvidenceArtifactIdsFromValue(entry, depth + 1));
+  }
+  return ids;
+}
+
+function collectEvidenceArtifactIdsFromSnapshot(snapshot?: MapReviewContextSnapshot): string[] {
+  return uniqueStrings(snapshot?.layerSummaries.map((layer) => layer.evidenceArtifactId));
+}
+
+function getOverlayLayerEvidenceArtifactId(layer: OverlayLayerConfig): string | null {
+  return layer.metadata?.evidenceArtifactId ?? layer.metadata?.analysisResult?.evidenceArtifactId ?? layer.metadata?.registry?.evidenceArtifactId ?? null;
 }
 
 function truncateText(value: string, limit = 600): string {
@@ -249,6 +316,10 @@ function countBy<T extends string>(values: readonly T[], catalog: readonly T[]):
   return counts;
 }
 
+function includesAny(haystack: string, needles: readonly string[]): boolean {
+  return needles.some((needle) => haystack.includes(needle));
+}
+
 export const MAP_REVIEW_EVENT_TYPES: readonly MapReviewTimelineEventType[] = [
   "snapshot",
   "layer-change",
@@ -275,12 +346,92 @@ export const MAP_REVIEW_EVENT_STATUSES: readonly MapReviewTimelineEventStatus[] 
   "failed",
 ] as const;
 
+export const MAP_REVIEW_AUDIT_CATEGORIES: readonly MapReviewAuditCategory[] = [
+  "session-snapshot",
+  "layer-import",
+  "layer-derived",
+  "layer-registry",
+  "qa-run",
+  "workflow-preview",
+  "workflow-apply",
+  "export-report-handoff",
+  "urban-sync",
+  "ide-sync",
+  "nl-query-decision",
+  "voxcity-2d-3d-handoff",
+  "cartography-review",
+  "annotation-bookmark",
+  "action-audit",
+] as const;
+
+function inferAuditCategory(input: MapReviewTimelineEventInput): MapReviewAuditCategory {
+  if (input.category) {
+    return input.category;
+  }
+
+  const status = input.status ?? "recorded";
+  const detailsText = input.details ? stableStringify(input.details).toLowerCase() : "";
+  const haystack = `${input.type} ${input.title} ${input.summary} ${status} ${detailsText}`.toLowerCase();
+
+  if (includesAny(haystack, ["voxcity", "voxel", "2d/3d", "3d handoff", "vox city"])) {
+    return "voxcity-2d-3d-handoff";
+  }
+  if (input.type === "snapshot") {
+    return "session-snapshot";
+  }
+  if (input.type === "qa-event") {
+    return "qa-run";
+  }
+  if (input.type === "query-run") {
+    return "nl-query-decision";
+  }
+  if (input.type === "report-handoff") {
+    return "export-report-handoff";
+  }
+  if (input.type === "annotation" || input.type === "bookmark") {
+    return "annotation-bookmark";
+  }
+  if (input.type === "workflow-action") {
+    return status === "previewed" || status === "proposed" ? "workflow-preview" : "workflow-apply";
+  }
+  if (input.type === "analysis-dispatch") {
+    if (includesAny(haystack, ["urban", "analytics modal", "urban analytics"])) {
+      return "urban-sync";
+    }
+    return status === "previewed" || status === "proposed" ? "workflow-preview" : "workflow-apply";
+  }
+  if (input.type === "layer-change") {
+    if (includesAny(haystack, ["import", "external service", "service layer", "upload"])) {
+      return "layer-import";
+    }
+    if (includesAny(haystack, ["derived", "analysis result", "workflow output", "buffer", "classification"])) {
+      return "layer-derived";
+    }
+    return "layer-registry";
+  }
+  if (input.type === "recommendation") {
+    return includesAny(haystack, ["cartograph", "style", "palette", "legend"]) ? "cartography-review" : "action-audit";
+  }
+  if (input.type === "action-status") {
+    if (includesAny(haystack, ["urban", "analytics modal", "urban analytics"])) {
+      return "urban-sync";
+    }
+    if (includesAny(haystack, ["ide", "synapse", "code artifact", "editor"])) {
+      return "ide-sync";
+    }
+  }
+
+  return "action-audit";
+}
+
 function sessionMetadata(events: readonly MapReviewTimelineEvent[]): MapReviewSession["metadata"] {
   return {
     generatedBy: "MapReviewSessionService",
     eventLimit: MAP_REVIEW_SESSION_EVENT_LIMIT,
     eventCounts: countBy(events.map((event) => event.type), MAP_REVIEW_EVENT_TYPES),
+    categoryCounts: countBy(events.map((event) => event.category), MAP_REVIEW_AUDIT_CATEGORIES),
     statusCounts: countBy(events.map((event) => event.status), MAP_REVIEW_EVENT_STATUSES),
+    evidenceArtifactIds: uniqueStrings(events.flatMap((event) => event.evidenceArtifactIds), 200),
   };
 }
 
@@ -291,6 +442,14 @@ function sortEvents(events: readonly MapReviewTimelineEvent[]): MapReviewTimelin
 export function createMapReviewEvent(input: MapReviewTimelineEventInput): MapReviewTimelineEvent {
   const timestamp = input.timestamp ?? nowIso();
   const layerIds = uniqueStrings(input.layerIds);
+  const evidenceArtifactIds = uniqueStrings(
+    [
+      ...(input.evidenceArtifactIds ?? []),
+      ...collectEvidenceArtifactIdsFromValue(input.details),
+      ...collectEvidenceArtifactIdsFromSnapshot(input.snapshot),
+    ],
+    80,
+  );
   const reportItemIds = uniqueStrings(input.reportItemIds);
   const qaIssueIds = uniqueStrings(input.qaIssueIds);
   const recommendationIds = uniqueStrings(input.recommendationIds);
@@ -298,11 +457,13 @@ export function createMapReviewEvent(input: MapReviewTimelineEventInput): MapRev
     id: input.id ?? createEventId({ ...input, timestamp, layerIds, reportItemIds, qaIssueIds, recommendationIds }),
     version: MAP_REVIEW_SESSION_VERSION,
     type: input.type,
+    category: inferAuditCategory(input),
     status: input.status ?? "recorded",
     timestamp,
     title: truncateText(input.title, 140),
     summary: truncateText(input.summary, 500),
     layerIds,
+    evidenceArtifactIds,
     reportItemIds,
     qaIssueIds,
     recommendationIds,
@@ -415,6 +576,7 @@ export function buildMapReviewContextSnapshot(input: {
       qaStatus: layer.metadata?.scientificQA?.status ?? layer.qaStatus ?? null,
       featureCount: layer.metadata?.featureCount ?? null,
       geometryType: layer.metadata?.geometryType ?? null,
+      evidenceArtifactId: getOverlayLayerEvidenceArtifactId(layer),
     })),
     selectedFeatures: Object.entries(input.selectedFeatureIds ?? {})
       .filter(([, ids]) => ids.length > 0)
@@ -437,17 +599,38 @@ export function buildLayerRegistryReviewEvent(
     : null;
   const operationLabel = detail.operation.replace(/-/g, " ");
   const layerIds = detail.layerId ? [detail.layerId] : detail.layers.map((entry) => entry.layerId);
+  const sourceKind = layer?.sourceKind?.toLowerCase() ?? "";
+  const evidenceArtifactIds = uniqueStrings(
+    [
+      layer?.evidenceArtifactId,
+      ...(detail.layerId
+        ? [
+          ...detail.layers.filter((entry) => entry.layerId === detail.layerId).map((entry) => entry.evidenceArtifactId),
+          ...detail.previousLayers.filter((entry) => entry.layerId === detail.layerId).map((entry) => entry.evidenceArtifactId),
+        ]
+        : detail.layers.map((entry) => entry.evidenceArtifactId)),
+    ],
+    80,
+  );
+  const category: MapReviewAuditCategory = sourceKind.includes("import") || sourceKind.includes("external")
+    ? "layer-import"
+    : sourceKind.includes("derived") || sourceKind.includes("analysis") || layer?.group === "analysis"
+      ? "layer-derived"
+      : "layer-registry";
   return {
     type: "layer-change",
+    category,
     status: "recorded",
     timestamp: detail.timestamp,
     title: layer ? `Layer ${operationLabel}: ${layer.name}` : `Layer stack ${operationLabel}`,
     summary: `Layer registry ${operationLabel} recorded with ${detail.layers.filter((entry) => entry.visible).length} visible layer(s) out of ${detail.layers.length}.`,
     layerIds,
+    evidenceArtifactIds,
     snapshot,
     details: {
       operation: detail.operation,
       affectedLayerName: layer?.name ?? null,
+      auditCategory: category,
       visibleLayerCount: detail.layers.filter((entry) => entry.visible).length,
       totalLayerCount: detail.layers.length,
     },
@@ -463,6 +646,7 @@ export function buildScientificQAReviewEvent(
   const status: MapReviewTimelineEventStatus = qa.status === "passed" ? "resolved" : "recorded";
   return {
     type: "qa-event",
+    category: "qa-run",
     status,
     timestamp: qa.checkedAt,
     title: qa.status === "passed" ? "Scientific QA passed" : "Scientific QA caveats recorded",
@@ -491,6 +675,7 @@ export function buildRecommendationReviewEvent(
   const topRecommendations = state.recommendations.slice(0, 8);
   return {
     type: "recommendation",
+    category: "cartography-review",
     status: "proposed",
     title: "Recommended next steps refreshed",
     summary: `${state.recommendations.length} explainable recommendation(s) generated from visible layers, selection, QA status, and map intent.`,
@@ -514,6 +699,7 @@ export function buildRecommendationActionReviewEvent(
 ): MapReviewTimelineEventInput {
   return {
     type: "recommendation",
+    category: "cartography-review",
     status: "applied",
     title: `Recommendation action: ${recommendation.title}`,
     summary: `${recommendation.actionLabel} was selected. Expected output: ${recommendation.expectedOutput}`,
@@ -538,13 +724,25 @@ export function buildReportHandoffReviewEvent(
   const layerIds = draft.references
     .map((reference) => reference.layerId)
     .filter((layerId): layerId is string => Boolean(layerId));
+  const evidenceArtifactIds = uniqueStrings(
+    [
+      ...draft.evidenceBlock.artifactIds,
+      ...draft.evidenceBlock.payload.provenance.evidenceArtifactIds,
+      ...draft.references.map((reference) =>
+        typeof reference.metadata.evidenceArtifactId === "string" ? reference.metadata.evidenceArtifactId : null,
+      ),
+    ],
+    80,
+  );
   return {
     type: "report-handoff",
+    category: "export-report-handoff",
     status: "applied",
     timestamp: draft.createdAt,
     title: `Report handoff inserted: ${draft.title}`,
     summary: `${insert.sections.length} report section(s) were inserted with ${draft.references.length} structured map reference(s), ${draft.citations.length} citation(s), and ${draft.caveats.length} caveat(s).`,
     layerIds,
+    evidenceArtifactIds,
     reportItemIds: [draft.id, insert.id, ...insert.sections.map((section) => section.id)],
     snapshot,
     details: {
@@ -569,8 +767,16 @@ export function filterMapReviewTimelineEvents(
   const endTime = filters.endDate ? new Date(filters.endDate).getTime() : null;
   return sortEvents(session.events).filter((event) => {
     if (filters.type && filters.type !== "all" && event.type !== filters.type) return false;
+    if (filters.category && filters.category !== "all" && event.category !== filters.category) return false;
     if (filters.status && filters.status !== "all" && event.status !== filters.status) return false;
     if (filters.layerId && filters.layerId !== "all" && !event.layerIds.includes(filters.layerId)) return false;
+    if (
+      filters.evidenceArtifactId &&
+      filters.evidenceArtifactId !== "all" &&
+      !event.evidenceArtifactIds.includes(filters.evidenceArtifactId)
+    ) {
+      return false;
+    }
     if (filters.reportItemId && filters.reportItemId !== "all" && !event.reportItemIds.includes(filters.reportItemId)) return false;
     const eventTime = new Date(event.timestamp).getTime();
     if (startTime != null && Number.isFinite(startTime) && eventTime < startTime) return false;
@@ -580,11 +786,16 @@ export function filterMapReviewTimelineEvents(
       event.title,
       event.summary,
       event.type,
+      event.category,
       event.status,
       ...event.layerIds,
+      ...event.evidenceArtifactIds,
       ...event.reportItemIds,
       ...event.qaIssueIds,
       ...event.recommendationIds,
+      ...event.actionIds,
+      ...event.annotationIds,
+      ...event.bookmarkIds,
     ].join(" ").toLowerCase();
     return haystack.includes(query);
   });
@@ -637,6 +848,9 @@ export function exportMapReviewSessionMarkdown(session: MapReviewSession): strin
     ...MAP_REVIEW_EVENT_TYPES
       .filter((type) => session.metadata.eventCounts[type] > 0)
       .map((type) => `- ${type}: ${session.metadata.eventCounts[type]}`),
+    ...MAP_REVIEW_AUDIT_CATEGORIES
+      .filter((category) => session.metadata.categoryCounts[category] > 0)
+      .map((category) => `- ${category}: ${session.metadata.categoryCounts[category]}`),
     "",
     "## Timeline",
     "",
@@ -647,9 +861,11 @@ export function exportMapReviewSessionMarkdown(session: MapReviewSession): strin
       `### ${formatEventTime(event.timestamp)} - ${event.title}`,
       "",
       `- Type: ${event.type}`,
+      `- Audit Category: ${event.category}`,
       `- Status: ${event.status}`,
       `- Summary: ${event.summary}`,
       `- Layer IDs: ${formatList(event.layerIds)}`,
+      `- Evidence Artifact IDs: ${formatList(event.evidenceArtifactIds)}`,
       `- Report Item IDs: ${formatList(event.reportItemIds)}`,
       `- QA Issue IDs: ${formatList(event.qaIssueIds)}`,
       `- Recommendation IDs: ${formatList(event.recommendationIds)}`,

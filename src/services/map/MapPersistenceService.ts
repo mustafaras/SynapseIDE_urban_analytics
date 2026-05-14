@@ -40,7 +40,8 @@ import {
   parseGeoJSONText,
   parseInlineGeoJSONSource,
 } from "./MapDataImporter";
-import type { MapReviewSession } from "./MapReviewSessionService";
+import { MAP_REVIEW_AUDIT_CATEGORIES } from "./MapReviewSessionService";
+import type { MapReviewAuditCategory, MapReviewSession } from "./MapReviewSessionService";
 import type {
   MapScientificQAIssueSeverity,
   MapScientificQAState,
@@ -123,7 +124,9 @@ export interface MapProjectReviewTimelineReference {
   updatedAt: string;
   eventCount: number;
   eventIds: string[];
+  auditCategories: MapReviewAuditCategory[];
   layerIds: string[];
+  evidenceArtifactIds: string[];
   qaIssueIds: string[];
   reportItemIds: string[];
 }
@@ -692,13 +695,16 @@ function normalizeReviewTimelineReference(value: unknown): MapProjectReviewTimel
   const sessionId = typeof value.sessionId === "string" && value.sessionId.trim().length > 0 ? value.sessionId.trim() : null;
   if (!sessionId) return null;
   const eventIds = normalizeStringList(value.eventIds);
+  const validAuditCategories = new Set<string>(MAP_REVIEW_AUDIT_CATEGORIES);
   return {
     sessionId,
     title: typeof value.title === "string" && value.title.trim().length > 0 ? value.title.trim() : "Map review session",
     updatedAt: typeof value.updatedAt === "string" ? value.updatedAt : new Date(0).toISOString(),
     eventCount: Number.isFinite(Number(value.eventCount)) ? Math.max(0, Math.floor(Number(value.eventCount))) : eventIds.length,
     eventIds,
+    auditCategories: normalizeStringList(value.auditCategories).filter((category): category is MapReviewAuditCategory => validAuditCategories.has(category)),
     layerIds: normalizeStringList(value.layerIds),
+    evidenceArtifactIds: normalizeStringList(value.evidenceArtifactIds),
     qaIssueIds: normalizeStringList(value.qaIssueIds),
     reportItemIds: normalizeStringList(value.reportItemIds),
   };
@@ -942,14 +948,18 @@ function buildReviewTimelineReference(
   reviewSession: MapReviewSession | null | undefined,
 ): MapProjectReviewTimelineReference | null {
   if (!reviewSession) return null;
+  const auditCategories = new Set<MapReviewAuditCategory>();
   const layerIds = new Set<string>();
+  const evidenceArtifactIds = new Set<string>();
   const qaIssueIds = new Set<string>();
   const reportItemIds = new Set<string>();
   const eventIds: string[] = [];
 
   for (const event of reviewSession.events) {
     eventIds.push(event.id);
+    auditCategories.add(event.category);
     for (const layerId of event.layerIds) layerIds.add(layerId);
+    for (const evidenceArtifactId of event.evidenceArtifactIds) evidenceArtifactIds.add(evidenceArtifactId);
     for (const issueId of event.qaIssueIds) qaIssueIds.add(issueId);
     for (const reportId of event.reportItemIds) reportItemIds.add(reportId);
   }
@@ -960,7 +970,9 @@ function buildReviewTimelineReference(
     updatedAt: reviewSession.updatedAt,
     eventCount: reviewSession.events.length,
     eventIds,
+    auditCategories: [...auditCategories],
     layerIds: [...layerIds],
+    evidenceArtifactIds: [...evidenceArtifactIds],
     qaIssueIds: [...qaIssueIds],
     reportItemIds: [...reportItemIds],
   };

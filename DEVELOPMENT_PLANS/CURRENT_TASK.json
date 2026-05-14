@@ -1,0 +1,62 @@
+{
+  "schemaVersion": "1.0.0",
+  "updatedAt": "2026-05-14",
+  "purpose": "Small, machine-readable task pointer for token-minimized agent startup. Keep this file short and update it when the active durable work changes.",
+  "startupFiles": [
+    "DEVELOPMENT_PLANS/CONTEXT_MIN.md",
+    "DEVELOPMENT_PLANS/CURRENT_TASK.json"
+  ],
+  "modules": {
+    "urbanAnalytics": {
+      "displayName": "Urban Analytics",
+      "helper": "scripts/get-next-urban-analytics-prompt.ps1",
+      "status": "all_completed",
+      "nextPrompt": null,
+      "ledgerPath": "DEVELOPMENT_PLANS/URBAN_ANALYTICS_IMPLEMENTATION_LEDGER.md",
+      "promptFilePath": "DEVELOPMENT_PLANS/URBAN_ANALYTICS_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md",
+      "manifestPath": "DEVELOPMENT_PLANS/URBAN_ANALYTICS_PROMPT_MANIFEST.json"
+    },
+    "mapExplorer": {
+      "displayName": "Map Explorer",
+      "helper": "scripts/get-next-map-explorer-prompt.ps1",
+      "status": "next_prompt_found",
+      "nextPrompt": {
+        "id": "26",
+        "title": "Accessibility and Keyboard Premium",
+        "heading": "## Prompt 26 - Accessibility and Keyboard Premium",
+        "primaryOutcome": "Professional keyboard-first map UX",
+        "validation": [
+          "typecheck",
+          "map-accessibility-tests",
+          "manual-keyboard-smoke"
+        ]
+      },
+      "ledgerPath": "DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md",
+      "promptFilePath": "DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md",
+      "manifestPath": "DEVELOPMENT_PLANS/MAP_EXPLORER_PROMPT_MANIFEST.json"
+    },
+    "synapseIde": {
+      "displayName": "Synapse IDE",
+      "helper": "scripts/get-next-synapse-ide-prompt.ps1",
+      "status": "all_completed",
+      "nextPrompt": null,
+      "ledgerPath": "DEVELOPMENT_PLANS/SYNAPSE_IDE_IMPLEMENTATION_LEDGER.md",
+      "promptFilePath": "DEVELOPMENT_PLANS/SYNAPSE_IDE_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md",
+      "manifestPath": "DEVELOPMENT_PLANS/SYNAPSE_IDE_PROMPT_MANIFEST.json"
+    }
+  },
+  "largeContextFiles": [
+    "DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md",
+    "DEVELOPMENT_PLANS/SYNAPSE_IDE_IMPLEMENTATION_LEDGER.md",
+    "DEVELOPMENT_PLANS/URBAN_ANALYTICS_DEVELOPMENT_PLAN.md",
+    "DEVELOPMENT_PLANS/URBAN_ANALYTICS_IMPLEMENTATION_LEDGER.md",
+    "src/centerpanel/components/MapExplorerModal.tsx",
+    "src/components/editor/MonacoEditor.tsx",
+    "src/services/map/MapEngineAdapter.ts"
+  ],
+  "lookupRules": [
+    "Use rg for exact prompt ids, headings, component names, exported symbols, and status rows.",
+    "Open line windows around matches instead of full large files.",
+    "Refresh this file after prompt status changes."
+  ]
+}

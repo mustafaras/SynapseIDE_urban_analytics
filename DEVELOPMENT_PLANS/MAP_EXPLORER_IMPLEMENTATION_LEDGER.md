@@ -21,25 +21,26 @@ Read these before implementing any Map Explorer prompt:
 
 ## Current Status
 
-- Overall status: Natural-Language Query Safety and Audit landed. 25 of 30 prompts completed.
-- Current prompt: Prompt 24 - Natural-Language Query Safety and Audit completed 2026-05-13.
-- Next recommended prompt: Prompt 25 - Review Timeline and Audit Trail.
+- Overall status: Review Timeline and Audit Trail landed. 26 of 30 prompts completed.
+- Current prompt: Prompt 25 - Review Timeline and Audit Trail completed 2026-05-14.
+- Next recommended prompt: Prompt 26 - Accessibility and Keyboard Premium.
 - Operating pack status: Installed.
 - Next-prompt helper: `scripts/get-next-map-explorer-prompt.ps1`
 - Machine-readable manifest: `DEVELOPMENT_PLANS/MAP_EXPLORER_PROMPT_MANIFEST.json`
-- Last validated repository state: 2026-05-13; Prompt 24 validation passed: `npm run typecheck` passed, focused Map NL query builder/panel tests passed (10/10), changed-file ESLint returned 0 errors with pre-existing `MapExplorerModal.tsx` warnings, and HTTP smoke returned 200 on `http://127.0.0.1:5173/`.
-- Last known blocker: None for Prompt 23 scope.
+- Last validated repository state: 2026-05-14; Prompt 25 validation passed: `npm run typecheck` passed and focused Map review/persistence tests passed (15/15).
+- Last known blocker: None for Prompt 25 scope.
 
 ## Agent Operating Pack
 
 Use this pack for every future Map Explorer implementation session:
 
 1. Start from `DEVELOPMENT_PLANS/START_HERE_MAP_EXPLORER_AGENT.md`.
-2. Run `powershell -ExecutionPolicy Bypass -File scripts/get-next-map-explorer-prompt.ps1` when script execution is available.
-3. Read the returned prompt block in `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md`.
-4. Implement only that prompt unless the user explicitly asks for a different prompt.
-5. Finish with `DEVELOPMENT_PLANS/MAP_EXPLORER_AGENT_HANDOFF_TEMPLATE.md`.
-6. Update this ledger before final response.
+2. Read `DEVELOPMENT_PLANS/CONTEXT_MIN.md` and `DEVELOPMENT_PLANS/CURRENT_TASK.json`.
+3. Run `.\scripts\get-next-map-explorer-prompt.ps1 -Json` after setting process execution policy when needed.
+4. Search for the returned prompt block in `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md`.
+5. Implement only that prompt unless the user explicitly asks for a different prompt.
+6. Finish with `DEVELOPMENT_PLANS/MAP_EXPLORER_AGENT_HANDOFF_TEMPLATE.md`.
+7. Update this ledger before final response.
 
 Valid prompt statuses:
 
@@ -80,7 +81,7 @@ This table is the human-readable execution state. The helper script reads it whe
 | 22 | Temporal Playback and Scenario Comparison | completed | 21 | Completed 2026-05-13. Temporal playback now registers parameterized map evidence; scenario comparison outputs carry map evidence metadata, stable report/dashboard handoff IDs, QA caveats, and reference-only provenance. |
 | 23 | VoxCity 2D/3D Synchronization | completed | 22 | Completed 2026-05-13. Map-to-VoxCity sync metadata, sample/demo caveats, and reference-only `voxcity-handoff` evidence registration landed for Building Extruder and Sunlight Simulation. |
 | 24 | Natural-Language Query Safety and Audit | completed | 23 | Completed 2026-05-13. |
-| 25 | Review Timeline and Audit Trail | pending | 24 | Requires NL query audit. |
+| 25 | Review Timeline and Audit Trail | completed | 24 | Completed 2026-05-14. |
 | 26 | Accessibility and Keyboard Premium | pending | 25 | Requires review timeline. |
 | 27 | Performance, Workers, Memory, and Chunking | pending | 26 | Requires accessibility hardening. |
 | 28 | QA Harness and E2E Validation | pending | 27 | Requires performance hardening. |
@@ -1653,6 +1654,7 @@ Append inspected files here as implementation progresses.
 
 | Date | Prompt | Files inspected | Notes |
 | --- | --- | --- | --- |
+| 2026-05-14 | Prompt 23 revalidation | `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` Prompt 23; `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` Prompt 23 status/log; `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md` Track M11 and sections 22.1/22.2; `DEVELOPMENT_PLANS/URBAN_ANALYTICS_DEVELOPMENT_PLAN.md` VoxCity/3D sections; `DEVELOPMENT_PLANS/TRI_MODAL_WORKBENCH_ALIGNMENT_SPEC.md` artifact/ownership sections; `src/services/map/voxCitySelectionService.ts`; `src/services/map/voxCityProjection.ts`; `src/centerpanel/components/map/mapTypes.ts`; `src/centerpanel/components/map/mapEvidenceArtifacts.ts`; `src/features/urbanAnalytics/voxcity/BuildingViewer.tsx`; `src/features/urbanAnalytics/voxcity/SunlightSimulatorPanel.tsx`; `src/features/urbanAnalytics/context/voxCityEvidenceBuilder.ts`; `src/services/map/__tests__/voxCitySyncEvidence.test.ts` | Revalidated existing Prompt 23 implementation after explicit user request. No product code changes were needed; live repo still satisfies typed 2D/3D sync metadata, sample/demo labeling, reference-only evidence, and no-heavy-payload constraints. |
 | 2026-05-13 | Prompt 23 | `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` Prompt 23; `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md` Track M11 and sections 22.1/22.2; `DEVELOPMENT_PLANS/URBAN_ANALYTICS_DEVELOPMENT_PLAN.md` VoxCity/3D sections; `DEVELOPMENT_PLANS/TRI_MODAL_WORKBENCH_ALIGNMENT_SPEC.md`; `src/services/map/voxCitySelectionService.ts`; `src/services/map/voxCityProjection.ts`; `src/features/urbanAnalytics/voxcity/voxCityDataBridge.ts`; `src/features/urbanAnalytics/voxcity/BuildingViewer.tsx`; `src/features/urbanAnalytics/voxcity/SunlightSimulatorPanel.tsx`; `src/features/urbanAnalytics/context/voxCityEvidenceBuilder.ts`; `src/centerpanel/components/map/mapTypes.ts`; `src/centerpanel/components/map/mapEvidenceArtifacts.ts`; `src/stores/useMapExplorerStore.ts`; focused sync/evidence tests | Prompt 23 narrowed to typed 2D/3D reference metadata and map evidence registration for VoxCity outputs without moving heavy mesh, voxel, CityJSON, or GeoJSON payloads. |
 | 2026-05-13 | Prompt 22 | `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` Prompt 22; `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md` Track M10 and sections 22.3/22.4; `DEVELOPMENT_PLANS/TRI_MODAL_WORKBENCH_ALIGNMENT_SPEC.md` unified evidence lifecycle and ownership rules; `src/centerpanel/components/MapTemporalPlayer.tsx`; `src/centerpanel/Flows/ScenarioComparisonFlow.tsx`; `src/centerpanel/Flows/scenarioComparisonArtifacts.ts`; `src/centerpanel/Flows/scenarioComparisonShared.ts`; `src/centerpanel/components/map/mapTypes.ts`; `src/centerpanel/components/map/mapEvidenceArtifacts.ts`; `src/stores/useMapExplorerStore.ts`; `src/components/map/TemporalSlider.tsx`; `src/components/map/SwipeComparison.tsx`; focused temporal/scenario/evidence tests | Prompt 22 narrowed to typed temporal/scenario evidence metadata and registration at existing playback/publish boundaries without rewriting playback or scenario engines. |
 | 2026-05-12 | Prompt 20 | `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` Prompt 20; `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md` sections 14.6, 21.1, and 21.4; `DEVELOPMENT_PLANS/TRI_MODAL_WORKBENCH_ALIGNMENT_SPEC.md` section 8.5; `src/services/map/MapReportHandoffService.ts`; `src/centerpanel/components/map/MapReportHandoffDrawer.tsx`; `src/services/reporting/types.ts`; `src/services/reporting/storage.ts`; `src/services/reporting/ReportEngine.ts`; `src/services/map/MapExportService.ts`; `src/centerpanel/components/map/mapEvidenceArtifacts.ts`; `src/centerpanel/components/map/mapTypes.ts`; `src/centerpanel/components/MapExplorerModal.tsx`; `src/services/map/MapReviewSessionService.ts`; focused report/reporting tests | Prompt 20 narrowed to structured map report evidence metadata, report insert compatibility, drawer evidence registration, and evidence artifact binding without redesigning the report builder or moving heavy map/render payloads. |
@@ -1831,6 +1833,10 @@ Append validation runs here.
 
 | Date | Prompt | Command | Result | Notes |
 | --- | --- | --- | --- | --- |
+| 2026-05-14 | Prompt 23 revalidation | `npm ci` | Passed | Restored missing local `node_modules` so project-local Vitest validation could run; no package manifest edits were made. |
+| 2026-05-14 | Prompt 23 revalidation | `npm run typecheck` | Passed | Repository typecheck command completed after Prompt 23 revalidation. |
+| 2026-05-14 | Prompt 23 revalidation | `npm run test -- src/services/map/__tests__/voxCitySyncEvidence.test.ts src/centerpanel/components/map/__tests__/mapEvidenceArtifacts.test.ts src/services/map/__tests__/MapSyncService.test.ts` | Passed (8/8) | Confirms sample/demo labels, projection assumptions, source/output layer references, reference-only evidence artifacts, and sync/evidence regressions. |
+| 2026-05-14 | Prompt 23 revalidation | `npm run test:analytics` | Passed (62 files, 1111/1111) | Confirms Urban Analytics/VoxCity affected surface plus engine/data/worker regression subset after dependency restoration. |
 | 2026-05-13 | Prompt 23 | `npm run typecheck` | Passed | Full TypeScript project typechecks after VoxCity sync metadata, evidence builder, and component wiring. |
 | 2026-05-13 | Prompt 23 | `npm run test -- src/services/map/__tests__/voxCitySyncEvidence.test.ts src/centerpanel/components/map/__tests__/mapEvidenceArtifacts.test.ts src/services/map/__tests__/MapSyncService.test.ts` | Passed (8/8) | Covers sample/demo labelling, projection assumptions, source/output layer references, no-heavy-payload artifact assertions, and existing sync/evidence regressions. |
 | 2026-05-13 | Prompt 23 | `npm run test:analytics` | Passed (1111/1111) | Covers Urban Analytics/VoxCity affected surface plus engine/data/worker regression subset. |
@@ -2188,6 +2194,65 @@ Append validation runs here.
   - Prompt 25 - Review Timeline and Audit Trail.
 - Ledger updated: yes
 
+### Prompt 25 - Review Timeline and Audit Trail
+
+- Date: 2026-05-14
+- Agent: Codex (GPT-5)
+- Status: completed
+- Files inspected:
+  - `DEVELOPMENT_PLANS/CONTEXT_MIN.md`
+  - `DEVELOPMENT_PLANS/CURRENT_TASK.json`
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` Prompt 25 block.
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md` targeted sections 10.4, 13.9, 14.7, and 17.4.
+  - `DEVELOPMENT_PLANS/TRI_MODAL_WORKBENCH_ALIGNMENT_SPEC.md` targeted audit/provenance payload rules.
+  - `src/services/map/MapReviewSessionService.ts`
+  - `src/centerpanel/components/map/MapReviewTimelinePanel.tsx`
+  - `src/stores/useMapExplorerStore.ts`
+  - `src/services/map/MapPersistenceService.ts`
+  - `src/services/map/MapReportHandoffService.ts`
+  - `src/services/map/MapExportService.ts`
+  - `src/centerpanel/components/map/mapTypes.ts`
+- Files changed:
+  - `src/services/map/MapReviewSessionService.ts`
+  - `src/centerpanel/components/map/MapReviewTimelinePanel.tsx`
+  - `src/services/map/MapPersistenceService.ts`
+  - `src/services/map/__tests__/MapReviewSessionService.test.ts`
+  - `src/services/map/__tests__/MapPersistenceService.test.ts`
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md`
+- Behavior implemented:
+  - Added first-class `MapReviewAuditCategory` values for layer import, layer derived, QA run, workflow preview/apply, export/report handoff, Urban/IDE sync, NL query decisions, 2D/3D handoffs, cartography review, annotations/bookmarks, and generic action audit.
+  - Review timeline events now carry audit category, bounded evidence artifact IDs, status, timestamp, summary, layer/report/QA/recommendation/action references, and sanitized details.
+  - Timeline filtering now supports audit category and evidence artifact IDs, and text search covers evidence/action/bookmark/annotation references.
+  - Timeline rows and Markdown export now display audit category and evidence artifact IDs.
+  - Project snapshot review timeline references now preserve event IDs, audit categories, evidence artifact IDs, layer IDs, QA issue IDs, and report item IDs without storing event payloads.
+- Spatial evidence/provenance changed:
+  - Map review snapshots now include per-layer evidence artifact IDs from lightweight layer metadata/registry/analysis-result metadata.
+  - Layer registry and report handoff review events now link to evidence artifact IDs when available.
+  - No heavy GeoJSON, voxel, mesh, raw table, or feature payloads were added to review entries.
+- CRS, geometry, or measurement changed:
+  - None.
+- Scientific QA changed:
+  - QA review events are categorized as `qa-run`; QA IDs remain lightweight references.
+- Layer registry or persistence changed:
+  - Layer registry review event builder now classifies layer import/derived/registry actions and carries evidence artifact IDs.
+  - Project persistence reference schema now includes review audit categories and evidence artifact IDs only.
+- Workflow/export/report changed:
+  - Workflow/recommendation/NL/report events can be categorized and filtered in the review timeline.
+  - Report handoff review events derive evidence references from structured report evidence blocks and structured references.
+- Cross-module contracts changed:
+  - Additive Map-owned review timeline fields: `category`, `evidenceArtifactIds`, category/evidence filters, and snapshot review references.
+  - No new cross-module imports or payload ownership changes.
+- Validation run:
+  - `npm exec -- vitest run src/services/map/__tests__/MapReviewSessionService.test.ts src/services/map/__tests__/MapPersistenceService.test.ts` -> Passed (15/15).
+  - `npm run typecheck` -> Passed.
+- Validation result:
+  - Prompt 25 service, persistence reference, and type contracts validated. Manual visual timeline smoke was not run because no dev server/UI interaction was required after the targeted service/UI changes.
+- Risks or blockers:
+  - Low: Existing orchestration still records many review events from `MapExplorerModal.tsx`; future decomposition can move those command recordings into focused hooks without changing the new event schema.
+- Next recommended prompt:
+  - Prompt 26 - Accessibility and Keyboard Premium.
+- Ledger updated: yes
+
 | 2026-05-13 | Prompt 21 | `npm run typecheck` | Passed | Full TypeScript project typechecks after Prompt 21 education-readiness propagation and modal action metadata updates. |
 | 2026-05-13 | Prompt 21 | `npx vitest run src/services/map/__tests__/MapPublicationOutputBindingService.test.ts src/services/map/__tests__/MapExportService.test.ts src/centerpanel/components/map/__tests__/map-layer-management.test.ts` | Passed (64/64) | Covers static dashboard/education bindings, publication-readiness traceability semantics, and layer-rail eligibility behavior. |
 | 2026-05-13 | Prompt 22 | `npm run typecheck` | Passed | Full TypeScript project typechecks after temporal/scenario evidence metadata and component/flow wiring. |
@@ -2197,6 +2262,9 @@ Append validation runs here.
 | 2026-05-13 | Prompt 24 | `npx eslint src\services\map\MapNLQueryBuilder.ts src\services\map\__tests__\MapNLQueryBuilder.test.ts src\centerpanel\components\map\MapNLQueryPanel.tsx src\centerpanel\components\map\__tests__\MapNLQueryPanel.test.tsx src\centerpanel\components\MapExplorerModal.tsx` | Passed with warnings | Exit 0; remaining warnings are existing `MapExplorerModal.tsx` sort/no-alert/leaked-render warnings. |
 | 2026-05-13 | Prompt 24 | `Invoke-WebRequest -UseBasicParsing http://127.0.0.1:5173/` | Passed (HTTP 200) | Local dev server responded for map UI smoke baseline. |
 | 2026-05-13 | Prompt 24 | `powershell -ExecutionPolicy Bypass -File scripts\get-next-map-explorer-prompt.ps1` | Passed | Helper now resolves Prompt 25 - Review Timeline and Audit Trail. |
+| 2026-05-14 | Prompt 25 | `npm exec -- vitest run src/services/map/__tests__/MapReviewSessionService.test.ts src/services/map/__tests__/MapPersistenceService.test.ts` | Passed (15/15) | Covers audit categories, evidence artifact references, filtering, Markdown/JSON export, and lightweight project snapshot review references. |
+| 2026-05-14 | Prompt 25 | `npm run typecheck` | Passed | Full TypeScript project typechecks after review timeline audit schema and panel filter changes. |
+| 2026-05-14 | Prompt 25 | `pwsh -NoProfile -ExecutionPolicy Bypass -File .\scripts\get-next-map-explorer-prompt.ps1 -Json` | Passed | Helper now resolves Prompt 26 - Accessibility and Keyboard Premium. |
 
 ## Known Risks
 
@@ -2236,6 +2304,7 @@ Append validation runs here.
 | 2026-05-13 | Prompt 22 | Temporal playback evidence currently captures component-level playback state rather than a formal temporal layer registry entry. | Low | Future temporal registry work can add source-layer provenance without changing the Prompt 22 reference-only evidence contract. |
 | 2026-05-13 | Prompt 22 | Scenario report/dashboard handoff IDs are stable metadata references, not proof of downstream materialized report inserts or widgets. | Low | Downstream report/dashboard actions should materialize and register their own artifacts when invoked. |
 | 2026-05-13 | Prompt 24 | NL query interpretation is deterministic/rule-based and should not be treated as semantic certainty. | Low | UI and review events now expose confidence, ambiguity, required fields, affected layers, and explicit accept/reject decisions; Prompt 25 can add richer timeline review filters. |
+| 2026-05-14 | Prompt 25 | Review event orchestration is still partly centralized in `MapExplorerModal.tsx`. | Low | The new review event schema is additive; future command-hook decomposition can reuse it without moving heavy payloads through audit entries. |
 
 ## Next Prompt Pointer
 
@@ -2245,12 +2314,13 @@ Start with:
 
 Prompt:
 
-`Prompt 25 - Review Timeline and Audit Trail`
+`Prompt 26 - Accessibility and Keyboard Premium`
 
 Optional helper command:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/get-next-map-explorer-prompt.ps1
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+.\scripts\get-next-map-explorer-prompt.ps1 -Json
 ```
 
 ## Ledger Update Checklist

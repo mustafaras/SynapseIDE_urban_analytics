@@ -28,6 +28,15 @@ if (-not (Test-Path -LiteralPath $LedgerPath)) {
 $manifest = Get-Content -LiteralPath $ManifestPath -Raw | ConvertFrom-Json
 $ledger = Get-Content -LiteralPath $LedgerPath -Raw
 
+$minimalContextDocuments = @(
+  "DEVELOPMENT_PLANS/CONTEXT_MIN.md",
+  "DEVELOPMENT_PLANS/CURRENT_TASK.json"
+)
+
+if ($manifest.PSObject.Properties.Name -contains "minimalContextDocuments") {
+  $minimalContextDocuments = @($manifest.minimalContextDocuments)
+}
+
 $validDoneStatuses = @("completed", "skipped_with_reason")
 $ledgerStatuses = @{}
 
@@ -84,6 +93,7 @@ if (-not $next) {
     status = "all_completed"
     message = "All Synapse IDE prompts are completed or skipped with reason."
     nextPrompt = $null
+    minimalContextDocuments = $minimalContextDocuments
   }
 } else {
   $nextStatus = Get-StatusForPrompt -Prompt $next
@@ -102,7 +112,9 @@ if (-not $next) {
       primaryOutcome = $next.primaryOutcome
       validation = $next.validation
     }
+    minimalContextDocuments = $minimalContextDocuments
     canonicalDocuments = $manifest.canonicalDocuments
+    canonicalAccess = "Search these files only for the active prompt id, heading, status row, or named section. Do not read them fully by default."
   }
 }
 
@@ -123,7 +135,9 @@ Write-Host ("  Prompt file: {0}" -f $result.nextPrompt.promptFilePath)
 Write-Host ("  Heading: {0}" -f $result.nextPrompt.promptHeading)
 Write-Host ("  Ledger: {0}" -f $result.nextPrompt.ledgerPath)
 Write-Host ""
-Write-Host "Required canonical documents:"
-foreach ($doc in $result.canonicalDocuments) {
+Write-Host "Minimal startup documents:"
+foreach ($doc in $result.minimalContextDocuments) {
   Write-Host ("  - {0}" -f $doc)
 }
+Write-Host ""
+Write-Host "Canonical documents are authoritative but should be searched, not read fully by default."
