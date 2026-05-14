@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import type maplibregl from "maplibre-gl";
-import { normalizeGeoJSONSourceDataForRender } from "@/services/map/MapDataImporter";
+import {
+  normalizeGeoJSONSourceDataForRender,
+  type GeoJSONRenderNormalizationOptions,
+} from "@/services/map/MapDataImporter";
 import { normalizeXyzTileUrlTemplate } from "@/services/map/ExternalTileUrlTemplates";
 import type { OverlayLayerConfig } from "./mapTypes";
 import { MAP_COLORS } from "./mapTokens";
@@ -49,6 +52,31 @@ function getInternalStyleValue<T>(
   key: string,
 ): T | undefined {
   return style?.[key] as T | undefined;
+}
+
+function collectExpressionPropertyKeys(value: unknown, output: Set<string>): void {
+  if (!Array.isArray(value)) return;
+  if (value[0] === "get" && typeof value[1] === "string") {
+    output.add(value[1]);
+  }
+  for (const entry of value) {
+    collectExpressionPropertyKeys(entry, output);
+  }
+}
+
+function buildRenderNormalizationOptions(layer: OverlayLayerConfig): GeoJSONRenderNormalizationOptions {
+  const preservePropertyKeys = new Set<string>();
+  const labelField = getInternalStyleValue<string>(layer.style, LABEL_FIELD_STYLE_KEY);
+  if (labelField) preservePropertyKeys.add(labelField);
+
+  const classificationField = typeof layer.style?.classificationField === "string"
+    ? layer.style.classificationField
+    : null;
+  if (classificationField) preservePropertyKeys.add(classificationField);
+
+  Object.values(layer.style ?? {}).forEach((value) => collectExpressionPropertyKeys(value, preservePropertyKeys));
+
+  return { preservePropertyKeys: Array.from(preservePropertyKeys) };
 }
 
 /* ================================================================== */
@@ -136,7 +164,7 @@ function resolveGeoJSONRenderData(
   if (!layer.visible) {
     return EMPTY_FEATURE_COLLECTION;
   }
-  return (normalizeGeoJSONSourceDataForRender(layer.sourceData) as
+  return (normalizeGeoJSONSourceDataForRender(layer.sourceData, buildRenderNormalizationOptions(layer)) as
     | GeoJSON.FeatureCollection
     | GeoJSON.Feature
     | GeoJSON.Geometry

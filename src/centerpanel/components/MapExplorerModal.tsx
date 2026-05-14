@@ -4915,6 +4915,12 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     pins.length === 0 &&
     drawnFeatures.length === 0 &&
     overlayLayers.filter((layer) => layer.visible).length === 0;
+  const exportDisabledReason = exportDisabled
+    ? "Add pins, drawings, or visible overlay layers before exporting GeoJSON."
+    : undefined;
+  const reportDisabledReason = isGeneratingReportHandoffSnapshot
+    ? "The current map report snapshot is still rendering."
+    : undefined;
   const persistenceDisabled = !selectedProjectId;
 
   return createPortal(
@@ -5081,7 +5087,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               isImporting={isImporting}
               importProgress={importProgress?.percent ?? null}
               exportDisabled={exportDisabled}
+              exportDisabledReason={exportDisabledReason}
               reportDisabled={isGeneratingReportHandoffSnapshot}
+              reportDisabledReason={reportDisabledReason}
               isExportingImage={isExportingMapImage}
               isSavingProject={isSavingProject}
               isLoadingProject={isLoadingProject}

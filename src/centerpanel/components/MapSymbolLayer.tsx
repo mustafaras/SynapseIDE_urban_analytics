@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import type maplibregl from "maplibre-gl";
+import { normalizeGeoJSONSourceDataForRender } from "@/services/map/MapDataImporter";
 import { COLOR_RAMPS, type ColorRampName, getColorRampColors } from "../../utils/colorRamps";
 import { MAP_COLORS, MAP_RADIUS, MAP_TYPOGRAPHY } from "./map/mapTokens";
 import type { OverlayLayerConfig } from "./map/mapTypes";
@@ -230,10 +231,13 @@ export const MapSymbolLayer: React.FC<MapSymbolLayerProps> = ({
       mode === "graduated" && graduatedState.result
         ? graduatedState.result.classifiedCollection
         : decoratedCollection;
+    const renderPointSourceData = (normalizeGeoJSONSourceDataForRender(pointSourceData, {
+      preservePropertyKeys: [valueField, colorField, SYMBOL_CLASS_FIELD],
+    }) as GeoJSON.FeatureCollection | undefined) ?? { type: "FeatureCollection", features: [] };
 
     map.addSource(sourceId, {
       type: "geojson",
-      data: pointSourceData,
+      data: renderPointSourceData,
       cluster: clusteringEnabled,
       clusterMaxZoom,
       clusterRadius: 52,

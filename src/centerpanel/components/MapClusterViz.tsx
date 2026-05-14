@@ -7,6 +7,7 @@ import {
   attachSpatialStatsRerun,
   createSpatialStatsCompletedRun,
 } from "@/services/map/MapEngineAdapter";
+import { normalizeGeoJSONSourceDataForRender } from "@/services/map/MapDataImporter";
 import {
   createSpatialStatsExecutionIdentity,
   type SpatialStatsContiguityMethod,
@@ -555,7 +556,17 @@ export const MapClusterViz: React.FC<MapClusterVizProps> = ({
       if (!source || !map.getLayer(activeResultLayer.id)) {
         return;
       }
-      source.setData(renderedLisa.decoratedCollection);
+      source.setData(
+        (normalizeGeoJSONSourceDataForRender(renderedLisa.decoratedCollection, {
+          preservePropertyKeys: [
+            LISA_CLUSTER_FIELD,
+            LISA_CLUSTER_LABEL_FIELD,
+            LISA_FEATURE_ID_FIELD,
+            LISA_LOCAL_I_FIELD,
+            LISA_P_VALUE_FIELD,
+          ],
+        }) as GeoJSON.FeatureCollection | undefined) ?? { type: "FeatureCollection", features: [] },
+      );
       applyLisaPaint(map, activeResultLayer.id);
     };
 

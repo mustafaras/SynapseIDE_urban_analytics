@@ -11,9 +11,6 @@ import { useFileExplorerStore, useFileOperations } from '../../stores/fileExplor
 const MonacoEditor = React.lazy(() =>
   import('../editor/MonacoEditor').then(m => ({ default: m.MonacoEditor }))
 );
-const MapExplorerModal = React.lazy(() =>
-  import('@/centerpanel/components/MapExplorerModal').then(m => ({ default: m.MapExplorerModal }))
-);
 import { SynapseCoreAIPanel } from '../ai/panel/SynapseCoreAIPanel';
 import { flags } from '../../config/flags';
 import { FileExplorer } from '../file-explorer/FileExplorer';
@@ -155,8 +152,6 @@ export const EnhancedIDE: React.FC = () => {
 
   const { addFile: addFileNode, clearFiles } = useFileOperations();
   const fileTree = useFileExplorerStore(s => s.files);
-  const isMapOpen = useMapExplorerStore(s => s.isOpen);
-  const closeMap = useMapExplorerStore(s => s.close);
 
 
   const { closeAllTabs } = useTabActions();
@@ -1836,18 +1831,6 @@ export const EnhancedIDE: React.FC = () => {
             <IdeMapHandoffDemo />
           </div>
         )}
-
-        {isMapOpen ? (
-          <Suspense
-            fallback={(
-              <div style={{ position: 'fixed', top: 12, right: 12, zIndex: 11000, color: '#F59E0B' }}>
-                Loading Map Explorer...
-              </div>
-            )}
-          >
-            <MapExplorerModal open={isMapOpen} onClose={closeMap} />
-          </Suspense>
-        ) : null}
 
         {}
         <CommandPalette

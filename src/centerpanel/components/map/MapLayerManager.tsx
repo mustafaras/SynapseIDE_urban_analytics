@@ -495,30 +495,35 @@ const cartographyReviewActions: React.CSSProperties = {
 };
 
 const addLayerBtn: React.CSSProperties = {
-  margin: `${MAP_SPACING.sm} ${MAP_SPACING.md}`,
-  ...mapStyles.sidePanelPrimaryButton,
+  ...mapStyles.sidePanelActionButton,
+  width: "100%",
+  minWidth: 0,
+  minHeight: "2rem",
+  padding: `${MAP_SPACING.xs} ${MAP_SPACING.xs}`,
+  border: "1px solid rgba(229, 231, 235, 0.18)",
+  background: "linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.025))",
+  color: MAP_COLORS.text,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+  lineHeight: 1.15,
   textAlign: "center" as const,
+  whiteSpace: "normal" as const,
+  overflowWrap: "anywhere" as const,
 };
 
 const layerFooterActions: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "1fr 1fr",
-  gap: MAP_SPACING.sm,
-  padding: MAP_SPACING.md,
+  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+  gap: MAP_SPACING.xs,
+  padding: `${MAP_SPACING.sm} ${MAP_SPACING.md}`,
   borderTop: MAP_STROKES.hairlineSubtle,
 };
 
 const addManualLayerBtn: React.CSSProperties = {
   ...addLayerBtn,
-  margin: 0,
 };
 
 const addDemoLayersBtn: React.CSSProperties = {
   ...addLayerBtn,
-  margin: 0,
-  background: "rgba(56, 189, 248, 0.13)",
-  border: "1px solid rgba(56, 189, 248, 0.38)",
-  color: "#7DD3FC",
 };
 
 const popoverStyle: React.CSSProperties = {

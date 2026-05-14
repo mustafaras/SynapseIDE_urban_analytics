@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0.0",
-  "updatedAt": "2026-05-14T10:40:00.000Z",
+  "updatedAt": "2026-05-14T11:13:17.526Z",
   "purpose": "Small, machine-readable task pointer for token-minimized agent startup. Keep this file short and update it when the active durable work changes.",
   "startupFiles": [
     "DEVELOPMENT_PLANS/CONTEXT_MIN.md",
@@ -19,20 +19,8 @@
     "mapExplorer": {
       "displayName": "Map Explorer",
       "helper": "scripts/get-next-map-explorer-prompt.ps1",
-      "status": "next_prompt_found",
-      "nextPrompt": {
-        "id": "29",
-        "title": "Final Premium Polish and Handoff",
-        "heading": "## Prompt 29 - Final Premium Polish and Handoff",
-        "primaryOutcome": "Complete Map Explorer readiness package",
-        "validation": [
-          "typecheck",
-          "lint",
-          "unit-tests",
-          "build",
-          "map-e2e-smoke-if-available"
-        ]
-      },
+      "status": "all_completed",
+      "nextPrompt": null,
       "ledgerPath": "DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md",
       "promptFilePath": "DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md",
       "manifestPath": "DEVELOPMENT_PLANS/MAP_EXPLORER_PROMPT_MANIFEST.json"
