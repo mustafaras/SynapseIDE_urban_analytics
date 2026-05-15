@@ -154,19 +154,27 @@ export const getTheme = (themeName: keyof typeof themes): Theme => {
 export const createCSSVariables = (theme: Theme) => {
   return {
 
-    '--color-background': theme.colors.background,
-    '--color-surface': theme.colors.surface,
-    '--color-text': theme.colors.text,
-    '--color-text-secondary': theme.colors.textSecondary,
-    '--color-border': theme.colors.border,
-    '--color-primary': theme.colors.primary,
-    '--color-accent': theme.colors.accent,
+    // Prompt 06: provider compatibility path mapped to semantic synapse tokens.
+    '--color-background': 'var(--syn-surface-workbench)',
+    '--color-surface': 'var(--syn-surface-panel)',
+    '--color-surface-alt': 'var(--syn-surface-navigation)',
+    '--color-overlay': 'var(--syn-surface-overlay)',
+    '--color-text': 'var(--syn-text-default)',
+    '--color-text-primary': 'var(--syn-text-default)',
+    '--color-text-secondary': 'var(--syn-text-secondary)',
+    '--color-text-muted': 'var(--syn-text-muted)',
+    '--color-border': 'var(--syn-border-default)',
+    '--color-border-subtle': 'var(--syn-border-subtle)',
+    '--color-border-strong': 'var(--syn-border-strong)',
+    '--color-border-focus': 'var(--syn-border-focus)',
+    '--color-primary': 'var(--syn-interaction-active)',
+    '--color-accent': 'var(--syn-accent-attention)',
 
 
-    '--color-success': theme.colors.success,
-    '--color-warning': theme.colors.warning,
-    '--color-error': theme.colors.error,
-    '--color-info': theme.colors.info,
+    '--color-success': 'var(--syn-status-valid)',
+    '--color-warning': 'var(--syn-status-warning)',
+    '--color-error': 'var(--syn-status-error)',
+    '--color-info': 'var(--syn-status-info)',
 
 
     '--glass-background': theme.colors.glass,

@@ -75,15 +75,28 @@ export class ErrorBoundary extends Component<Props, State> {
                 alignItems: 'center',
                 justifyContent: 'center',
                 marginBottom: '1.5rem',
-                color: 'var(--color-error)',
+                color: 'var(--syn-status-error)',
               }}
             >
               <AlertTriangle size={48} />
             </div>
 
+            <p
+              style={{
+                margin: '0 0 0.5rem',
+                fontSize: 'var(--font-size-xs)',
+                fontWeight: 'var(--font-weight-semibold)',
+                letterSpacing: '0.04em',
+                textTransform: 'uppercase',
+                color: 'var(--syn-status-error)',
+              }}
+            >
+              Error
+            </p>
+
             <h2
               style={{
-                color: 'var(--color-text)',
+                color: 'var(--syn-text-default)',
                 marginBottom: '1rem',
                 fontSize: 'var(--font-size-lg)',
                 fontWeight: 'var(--font-weight-semibold)',
@@ -94,7 +107,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
             <p
               style={{
-                color: 'var(--color-text-secondary)',
+                color: 'var(--syn-text-secondary)',
                 marginBottom: '2rem',
                 lineHeight: 'var(--line-height-relaxed)',
               }}
@@ -107,10 +120,10 @@ export class ErrorBoundary extends Component<Props, State> {
                 style={{
                   marginBottom: '2rem',
                   textAlign: 'left',
-                  background: 'var(--color-surface)',
+                  background: 'var(--syn-surface-elevated)',
                   padding: '1rem',
                   borderRadius: 'var(--border-radius-md)',
-                  border: '1px solid var(--color-border)',
+                  border: '1px solid var(--syn-border-default)',
                 }}
               >
                 <summary
@@ -118,7 +131,7 @@ export class ErrorBoundary extends Component<Props, State> {
                     cursor: 'pointer',
                     marginBottom: '1rem',
                     fontWeight: 'var(--font-weight-medium)',
-                    color: 'var(--color-text)',
+                    color: 'var(--syn-text-default)',
                   }}
                 >
                   Error Details (Development)
@@ -126,7 +139,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 <pre
                   style={{
                     fontSize: 'var(--font-size-sm)',
-                    color: 'var(--color-text-secondary)',
+                    color: 'var(--syn-text-secondary)',
                     whiteSpace: 'pre-wrap',
                     wordBreak: 'break-word',
                   }}
@@ -147,9 +160,9 @@ export class ErrorBoundary extends Component<Props, State> {
                 alignItems: 'center',
                 gap: '0.5rem',
                 padding: '0.75rem 1.5rem',
-                background: 'var(--color-primary)',
-                color: 'white',
-                border: 'none',
+                background: 'var(--syn-interaction-active)',
+                color: 'var(--syn-text-inverse)',
+                border: '1px solid var(--syn-border-active)',
                 borderRadius: 'var(--border-radius-md)',
                 fontSize: 'var(--font-size-md)',
                 fontWeight: 'var(--font-weight-medium)',
@@ -157,11 +170,11 @@ export class ErrorBoundary extends Component<Props, State> {
                 transition: 'all var(--duration-medium) var(--syn-easing-bauhaus)',
               }}
               onMouseEnter={e => {
-                e.currentTarget.style.background = 'var(--color-accent)';
+                e.currentTarget.style.background = 'var(--syn-interaction-selected)';
                 e.currentTarget.style.transform = 'translateY(-1px)';
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.background = 'var(--color-primary)';
+                e.currentTarget.style.background = 'var(--syn-interaction-active)';
                 e.currentTarget.style.transform = 'translateY(0)';
               }}
             >

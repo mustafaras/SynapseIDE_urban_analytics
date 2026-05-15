@@ -98,15 +98,15 @@ function DeferredPanelFallback({ label }: { label: string }): React.ReactElement
 				display: "flex",
 				alignItems: "center",
 				gap: 10,
-				color: "rgba(248, 250, 252, 0.88)",
-				background: "rgba(15, 23, 42, 0.42)",
-				border: "1px solid rgba(245, 158, 11, 0.16)",
+				color: "var(--syn-text-secondary)",
+				background: "var(--syn-surface-elevated)",
+				border: "1px solid var(--syn-border-default)",
 				borderRadius: 12,
 			}}
 		>
 			<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-				<circle cx="12" cy="12" r="9" fill="none" stroke="rgba(245, 158, 11, 0.22)" strokeWidth="3" />
-				<path d="M12 3a9 9 0 0 1 9 9" fill="none" stroke="#F59E0B" strokeLinecap="round" strokeWidth="3">
+				<circle cx="12" cy="12" r="9" fill="none" stroke="var(--syn-border-subtle)" strokeWidth="3" />
+				<path d="M12 3a9 9 0 0 1 9 9" fill="none" stroke="var(--syn-interaction-active)" strokeLinecap="round" strokeWidth="3">
 					<animateTransform
 						attributeName="transform"
 						type="rotate"

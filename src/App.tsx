@@ -51,7 +51,7 @@ function ModalLoadingFallback({ label, testId }: { label: string; testId: string
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'rgba(10, 14, 23, 0.72)',
+        background: 'var(--syn-surface-overlay)',
         backdropFilter: 'blur(10px)',
       }}
     >
@@ -62,15 +62,15 @@ function ModalLoadingFallback({ label, testId }: { label: string; testId: string
           gap: 12,
           padding: '16px 20px',
           borderRadius: 14,
-          background: 'rgba(15, 23, 42, 0.88)',
-          border: '1px solid rgba(245, 158, 11, 0.28)',
-          color: '#F8FAFC',
-          boxShadow: '0 18px 44px rgba(15, 23, 42, 0.28)',
+          background: 'var(--syn-surface-elevated)',
+          border: '1px solid var(--syn-border-default)',
+          color: 'var(--syn-text-default)',
+          boxShadow: 'var(--shadow-overlay)',
         }}
       >
         <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-          <circle cx="12" cy="12" r="9" fill="none" stroke="rgba(245, 158, 11, 0.22)" strokeWidth="3" />
-          <path d="M12 3a9 9 0 0 1 9 9" fill="none" stroke="#F59E0B" strokeLinecap="round" strokeWidth="3">
+          <circle cx="12" cy="12" r="9" fill="none" stroke="var(--syn-border-strong)" strokeWidth="3" />
+          <path d="M12 3a9 9 0 0 1 9 9" fill="none" stroke="var(--syn-interaction-active)" strokeLinecap="round" strokeWidth="3">
             <animateTransform
               attributeName="transform"
               type="rotate"
@@ -162,7 +162,7 @@ const DemoPage: React.FC<DemoPageProps> = ({ onOpenAnalytics }) => {
         minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',
-        background: 'var(--color-background)',
+        background: 'var(--app-shell-bg)',
         fontFamily: 'var(--font-family-primary)',
         transition: 'all 300ms var(--timing-function-global)',
       }}
@@ -176,7 +176,7 @@ const DemoPage: React.FC<DemoPageProps> = ({ onOpenAnalytics }) => {
           background: 'var(--glass-background)',
           backdropFilter: 'var(--blur-glass)',
           WebkitBackdropFilter: 'var(--blur-glass)',
-          borderBottom: '1px solid var(--color-border)',
+          borderBottom: '1px solid var(--app-shell-border)',
         }}
       >
         <div
@@ -239,12 +239,12 @@ const DemoPage: React.FC<DemoPageProps> = ({ onOpenAnalytics }) => {
 
       {}
       <section
-        style={{
-          background: `linear-gradient(135deg,
-            var(--color-background) 0%,
-            var(--color-primary)05 50%,
-            var(--color-background) 100%)`,
-          borderBottom: '1px solid var(--color-border)',
+      style={{
+        background: `linear-gradient(135deg,
+            var(--app-shell-bg) 0%,
+            color-mix(in srgb, var(--syn-interaction-active) 6%, var(--app-shell-bg)) 50%,
+            var(--app-shell-bg) 100%)`,
+          borderBottom: '1px solid var(--app-shell-border)',
           position: 'relative',
           overflow: 'hidden',
         }}
@@ -540,7 +540,7 @@ const DemoPage: React.FC<DemoPageProps> = ({ onOpenAnalytics }) => {
       <main
         style={{
           flex: 1,
-          background: 'var(--color-background)',
+          background: 'var(--app-shell-bg)',
           transition: 'all 300ms var(--timing-function-global)',
           padding: 'var(--spacing-xl) 0',
         }}
@@ -869,7 +869,7 @@ const DemoPage: React.FC<DemoPageProps> = ({ onOpenAnalytics }) => {
         style={{
           marginTop: 'auto',
           background: 'var(--glass-background)',
-          borderTop: '1px solid var(--color-border)',
+          borderTop: '1px solid var(--app-shell-border)',
           backdropFilter: 'var(--blur-glass)',
           WebkitBackdropFilter: 'var(--blur-glass)',
         }}
@@ -938,12 +938,12 @@ const DemoPage: React.FC<DemoPageProps> = ({ onOpenAnalytics }) => {
           </div>
 
           <div
-            style={{
-              paddingTop: 'var(--spacing-md)',
-              borderTop: '1px solid var(--color-border)',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
+              style={{
+                paddingTop: 'var(--spacing-md)',
+                borderTop: '1px solid var(--app-shell-border)',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
               gap: 'var(--spacing-sm)',
             }}
           >
@@ -1190,7 +1190,7 @@ const MainApp: React.FC<MainAppProps> = ({ onOpenAnalytics }) => {
             width: 500,
     // Design-tier modal (toasts 10080 / popovers 10060 / tooltips 10070 still win).
     zIndex: 10050,
-            background: 'var(--color-background)',
+            background: 'var(--app-shell-surface)',
             boxShadow: 'var(--shadow-lg)',
             display: 'flex',
             flexDirection: 'column',

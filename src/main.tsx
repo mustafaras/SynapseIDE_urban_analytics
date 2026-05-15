@@ -34,7 +34,7 @@ const rootElement = document.getElementById('root');
 if (!rootElement) {
  console.error(' ROOT ELEMENT NOT FOUND!');
  document.body.innerHTML =
- '<h1 style="color: var(--color-error, #EF4444); font-size: 2rem; text-align: center; margin: 2rem; padding: 1.5rem; border: 1px solid var(--color-border, #2A2A2A); background: var(--color-background-secondary, #121212);">ERROR: Root element not found!</h1>';
+ '<h1 style="color: var(--syn-status-error, #f87171); font-size: 2rem; text-align: center; margin: 2rem; padding: 1.5rem; border: 1px solid var(--syn-border-default, #343a44); background: var(--syn-surface-panel, #232832);">ERROR: Root element not found!</h1>';
 } else {
  try {
  installGlobalRejectionHandler();
@@ -73,7 +73,7 @@ if (!rootElement) {
  console.error(' Error rendering app:', error);
  const errorMessage = error instanceof Error ? error.message : String(error);
  const errorStack = error instanceof Error ? error.stack : String(error);
- document.body.innerHTML = `<h1 style="color: var(--color-error, #EF4444); font-size: 1.5rem; text-align: center; margin: 2rem; padding: 2rem; border: 2px solid var(--color-error, #EF4444); background: var(--color-background-secondary, #121212);">ERROR: ${errorMessage}</h1>`;
- document.body.innerHTML += `<pre style="color: var(--color-text, #FAFAF9); text-align: left; margin: 2rem; padding: 1rem; border: 1px solid var(--color-border, #2A2A2A); background: var(--color-surface, #1A1A1A);">${errorStack}</pre>`;
+ document.body.innerHTML = `<h1 style="color: var(--syn-status-error, #f87171); font-size: 1.5rem; text-align: center; margin: 2rem; padding: 2rem; border: 2px solid var(--syn-status-error, #f87171); background: var(--syn-surface-panel, #232832);">ERROR: ${errorMessage}</h1>`;
+ document.body.innerHTML += `<pre style="color: var(--syn-text-default, #d7dce5); text-align: left; margin: 2rem; padding: 1rem; border: 1px solid var(--syn-border-default, #343a44); background: var(--syn-surface-elevated, #2b3038);">${errorStack}</pre>`;
  }
 }

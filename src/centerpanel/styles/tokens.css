@@ -1,18 +1,18 @@
 ﻿
 :root {
 
-  --bg: var(--syn-bg-root);
-  --surface: var(--syn-bg-surface-1);
-  --surface-2: var(--syn-bg-surface-2);
+  --bg: var(--syn-surface-workbench);
+  --surface: var(--syn-surface-panel);
+  --surface-2: var(--syn-surface-editor);
 
 
-  --text: var(--syn-text-primary);
+  --text: var(--syn-text-default);
   --muted: var(--syn-text-muted);
 
 
-  --accent: var(--syn-accent-primary);
-  --accent-hover: var(--syn-accent-primary-hover);
-  --accent-pressed: var(--syn-accent-primary-pressed);
+  --accent: var(--syn-interaction-active);
+  --accent-hover: var(--syn-interaction-selected);
+  --accent-pressed: var(--syn-interaction-selected);
   --danger: var(--syn-danger);
   --ok: var(--syn-success);
   --info: var(--syn-info);
@@ -89,7 +89,7 @@
 
 :root {
 
-  --hdr-bg: rgba(12, 15, 20, 0.72);
+  --hdr-bg: color-mix(in srgb, var(--syn-surface-navigation) 90%, transparent);
   --hdr-blur: 12px;
   --hdr-saturate: 120%;
   --hdr-divider: color-mix(in srgb, var(--ui-card-border), #ffffff 8%);
@@ -99,8 +99,8 @@
   --hdr-height: 56px;
 
 
-  --accentSignal: var(--syn-accent-primary);
-  --accentGold: var(--syn-accent-primary-hover);
+  --accentSignal: var(--syn-interaction-active);
+  --accentGold: var(--syn-status-warning);
 
 
   --risk-low:  var(--syn-success);
@@ -116,7 +116,7 @@
 
 
   --tab-active-underline: var(--accentSignal);
-  --tab-hover-underline:  rgba(245, 158, 11, 0.4);
+  --tab-hover-underline:  color-mix(in srgb, var(--syn-interaction-active) 45%, transparent);
 
 
   --status-rail-h: 6px;
@@ -229,7 +229,7 @@
   --ui-radius:  8px;
 
 
-  --ui-focus-ring-color: var(--np-focus, var(--syn-accent-primary));
+  --ui-focus-ring-color: var(--np-focus, var(--syn-interaction-focus-ring));
   --ui-focus-ring-w:     2px;
 
   --ui-focus-ring-shadow:
@@ -256,7 +256,7 @@
   --ui-input-h: 32px;
   --ui-radius:  8px;
 
-  --ui-focus-ring-color: var(--np-focus, var(--syn-accent-primary));
+  --ui-focus-ring-color: var(--np-focus, var(--syn-interaction-focus-ring));
   --ui-focus-ring-w:     2px;
   --ui-focus-ring-shadow:
     var(--np-focus-ring, 0 0 0 var(--ui-focus-ring-w) color-mix(in srgb, var(--ui-focus-ring-color), transparent 68%));
@@ -294,14 +294,14 @@
 
   --tab-underline-h:     2px;
   --tab-underline-gap:   6px;
-  --tab-underline-color: var(--ui-text-hi);
-  --tab-underline-hover: color-mix(in srgb, var(--ui-text-hi), transparent 30%);
+  --tab-underline-color: var(--syn-interaction-active);
+  --tab-underline-hover: color-mix(in srgb, var(--syn-interaction-active), transparent 30%);
   --tab-underline-inactive: color-mix(in srgb, var(--ui-muted), transparent 25%);
 
 
-  --tab-fg:        var(--ui-text);
-  --tab-fg-active: var(--ui-text-hi);
-  --tab-fg-hover:  color-mix(in srgb, var(--ui-text-hi), transparent 20%);
+  --tab-fg:        var(--syn-text-secondary);
+  --tab-fg-active: var(--syn-text-default);
+  --tab-fg-hover:  var(--syn-text-default);
 
 
   --tab-focus-ring-color: var(--ui-focus-ring-color);
@@ -310,8 +310,8 @@
 
 .theme-dark, [data-theme="dark"] {
 
-  --tab-underline-color: var(--ui-text-hi);
-  --tab-underline-hover: color-mix(in srgb, var(--ui-text-hi), transparent 28%);
+  --tab-underline-color: var(--syn-interaction-active);
+  --tab-underline-hover: color-mix(in srgb, var(--syn-interaction-active), transparent 28%);
   --tab-underline-inactive: color-mix(in srgb, var(--ui-muted), transparent 22%);
   --status-rail-bg: color-mix(in srgb, var(--ui-card-bg), #ffffff 8%);
   --status-rail-hairline: color-mix(in srgb, var(--ui-card-border), #ffffff 16%);
@@ -340,8 +340,8 @@
   --ui-meta-gap:       var(--cp-vgap-xs);
 
 
-  --ui-meta-link:       color-mix(in srgb, var(--syn-accent-primary), var(--ui-text) 40%);
-  --ui-meta-link-hover: color-mix(in srgb, var(--syn-accent-primary), #ffffff 15%);
+  --ui-meta-link:       color-mix(in srgb, var(--syn-interaction-active), var(--ui-text) 40%);
+  --ui-meta-link-hover: color-mix(in srgb, var(--syn-interaction-active), #ffffff 15%);
   --ui-meta-code-bg:    color-mix(in srgb, var(--ui-card-bg), #ffffff 3%);
   --ui-meta-code-fg:    var(--ui-text);
 
@@ -351,8 +351,8 @@
 
 .theme-dark, [data-theme="dark"] {
   --ui-disclaimer-fg:   color-mix(in srgb, var(--ui-text), #000000 0%);
-  --ui-meta-link:       color-mix(in srgb, var(--syn-accent-primary), var(--ui-text) 35%);
-  --ui-meta-link-hover: color-mix(in srgb, var(--syn-accent-primary), #ffffff 8%);
+  --ui-meta-link:       color-mix(in srgb, var(--syn-interaction-active), var(--ui-text) 35%);
+  --ui-meta-link-hover: color-mix(in srgb, var(--syn-interaction-active), #ffffff 8%);
 }
 
 
@@ -548,11 +548,11 @@
   --ui-callout-gap:      var(--cp-vgap-sm);
 
 
-  --ui-callout-info-bg:     color-mix(in srgb, var(--syn-accent-primary), var(--ui-card-bg) 90%);
-  --ui-callout-info-accent: var(--syn-accent-primary);
+  --ui-callout-info-bg:     color-mix(in srgb, var(--syn-interaction-active), var(--ui-card-bg) 90%);
+  --ui-callout-info-accent: var(--syn-interaction-active);
 
   --ui-callout-note-bg:     color-mix(in srgb, var(--ui-card-bg), #ffffff 3%);
-  --ui-callout-note-accent: color-mix(in srgb, var(--ui-text), var(--syn-accent-primary) 20%);
+  --ui-callout-note-accent: color-mix(in srgb, var(--ui-text), var(--syn-interaction-active) 20%);
 
   --ui-callout-warn-bg:     color-mix(in srgb, var(--ui-risk-mod), var(--ui-card-bg) 90%);
   --ui-callout-warn-accent: var(--ui-risk-mod);
@@ -574,7 +574,7 @@
 
 .theme-dark, [data-theme="dark"] {
 
-  --ui-callout-info-bg:     color-mix(in srgb, var(--syn-accent-primary), var(--ui-card-bg) 88%);
+  --ui-callout-info-bg:     color-mix(in srgb, var(--syn-interaction-active), var(--ui-card-bg) 88%);
   --ui-callout-warn-bg:     color-mix(in srgb, var(--ui-risk-mod), var(--ui-card-bg) 88%);
   --ui-callout-danger-bg:   color-mix(in srgb, var(--ui-risk-high), var(--ui-card-bg) 85%);
   --ui-callout-success-bg:  color-mix(in srgb, var(--ui-risk-low), var(--ui-card-bg) 88%);

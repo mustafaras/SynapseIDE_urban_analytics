@@ -39,7 +39,7 @@ const LoadingContainer = styled.div<{ fullScreen?: boolean }>`
     left: 0;
     right: 0;
     bottom: 0;
-    background: var(--assistant-bg);
+    background: var(--syn-surface-overlay);
     backdrop-filter: var(--glass-backdrop-filter);
     z-index: 10080;
   `}
@@ -47,7 +47,7 @@ const LoadingContainer = styled.div<{ fullScreen?: boolean }>`
 
 const SpinnerWrapper = styled.div<{ size: 'sm' | 'md' | 'lg' }>`
   animation: ${spin} 1s linear infinite;
-  color: var(--assistant-primary);
+  color: var(--syn-interaction-active);
   filter: drop-shadow(var(--assistant-shadow-hover));
   transition: all var(--duration-normal) var(--easing-bauhaus);
 
@@ -90,7 +90,7 @@ const DotsContainer = styled.div`
 const Dot = styled.div<{ delay: number }>`
   width: 0.5rem;
   height: 0.5rem;
-  background: var(--assistant-primary);
+  background: var(--syn-interaction-active);
   border-radius: 50%;
   animation: ${pulse} 1.4s ease-in-out infinite;
   animation-delay: ${props => props.delay}s;
@@ -109,9 +109,9 @@ const SkeletonLine = styled.div<{ width?: string }>`
   height: 1rem;
   background: linear-gradient(
     90deg,
-    var(--assistant-bg) 25%,
-    var(--theme-glass) 50%,
-    var(--assistant-bg) 75%
+    var(--syn-surface-panel) 25%,
+    var(--syn-surface-hover) 50%,
+    var(--syn-surface-panel) 75%
   );
   background-size: 200% 100%;
   border-radius: var(--border-radius-sm);
@@ -130,14 +130,14 @@ const SkeletonLine = styled.div<{ width?: string }>`
 `;
 
 const LoadingMessage = styled.p<{ size: 'sm' | 'md' | 'lg' }>`
-  color: var(--color-text-secondary);
+  color: var(--syn-text-secondary);
   margin: 0;
   text-align: center;
-  background: var(--assistant-bg);
+  background: var(--syn-surface-elevated);
   backdrop-filter: var(--glass-backdrop-filter);
   padding: var(--spacing-xs) var(--spacing-sm);
   border-radius: var(--radius-sm);
-  border: 1px solid var(--glass-border);
+  border: 1px solid var(--syn-border-default);
   box-shadow: var(--assistant-shadow-hover);
 
   ${props => {
@@ -243,10 +243,12 @@ const ThemeAwareOverlay: FC<{ size: 'sm' | 'md' | 'lg'; message?: string }> = ({
     <div
       data-theme={themeName}
       style={{
-        background: 'var(--assistant-bg)',
+        background: 'var(--syn-surface-elevated)',
         backdropFilter: 'var(--glass-backdrop-filter)',
-        border: '1px solid var(--glass-border)',
+        border: '1px solid var(--syn-border-default)',
         boxShadow: 'var(--assistant-shadow-hover)',
+        color: 'var(--syn-text-default)',
+        borderRadius: '10px',
         padding: '1rem',
       }}
     >

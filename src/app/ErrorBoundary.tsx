@@ -27,8 +27,8 @@ export class AppErrorBoundary extends React.Component<React.PropsWithChildren> {
             placeItems: 'center',
             minHeight: '100vh',
             padding: '24px',
-            background: 'var(--syn-bg-root)',
-            color: 'var(--syn-text-primary)',
+            background: 'var(--syn-surface-workbench)',
+            color: 'var(--syn-text-default)',
           }}
         >
           <div
@@ -37,13 +37,28 @@ export class AppErrorBoundary extends React.Component<React.PropsWithChildren> {
               width: 'min(560px, 100%)',
               border: '1px solid var(--syn-border-default)',
               borderRadius: '16px',
-              background: 'var(--syn-bg-surface-1)',
+              background: 'var(--syn-surface-panel)',
               boxShadow: 'var(--shadow-lg)',
               padding: '20px',
             }}
           >
-            <h2 style={{ margin: 0, fontSize: '18px', lineHeight: 1.4 }}>Something went wrong</h2>
-            <p style={{ margin: '10px 0 0', color: 'var(--syn-text-muted)', lineHeight: 1.6 }}>
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                marginBottom: '10px',
+                color: 'var(--syn-status-error)',
+                fontSize: '12px',
+                fontWeight: 600,
+                letterSpacing: '0.04em',
+                textTransform: 'uppercase',
+              }}
+            >
+              Error
+            </div>
+            <h2 style={{ margin: 0, fontSize: '18px', lineHeight: 1.4, color: 'var(--syn-text-default)' }}>Something went wrong</h2>
+            <p style={{ margin: '10px 0 0', color: 'var(--syn-text-secondary)', lineHeight: 1.6 }}>
               The app hit an unexpected error. You can refresh to recover.
             </p>
             <button
@@ -51,9 +66,9 @@ export class AppErrorBoundary extends React.Component<React.PropsWithChildren> {
               onClick={() => window.location.reload()}
               style={{
                 marginTop: '16px',
-                border: '1px solid var(--syn-accent-primary)',
-                background: 'var(--syn-accent-primary)',
-                color: '#121212',
+                border: '1px solid var(--syn-border-active)',
+                background: 'var(--syn-interaction-active)',
+                color: 'var(--syn-text-inverse)',
                 borderRadius: '10px',
                 padding: '8px 12px',
                 fontWeight: 600,

@@ -90,14 +90,14 @@ export const TestHarness: React.FC = () => {
         right: 16,
         bottom: 16,
         zIndex: 9999,
-        background: 'var(--glass-background, rgba(20,20,20,0.6))',
+        background: 'var(--syn-surface-elevated)',
         backdropFilter: 'blur(10px)',
         WebkitBackdropFilter: 'blur(10px)',
-        border: '1px solid var(--color-border, rgba(255,255,255,0.1))',
+        border: '1px solid var(--syn-border-default)',
         borderRadius: 12,
         padding: 12,
         width: 360,
-        color: 'var(--color-text, #fff)',
+        color: 'var(--syn-text-default)',
         boxShadow: 'var(--shadow-lg)',
       }}
       aria-live="polite"
@@ -112,9 +112,9 @@ export const TestHarness: React.FC = () => {
           style={{
             padding: '6px 10px',
             borderRadius: 8,
-            border: '1px solid var(--color-border, rgba(255,255,255,0.15))',
-            background: running ? 'rgba(255,255,255,0.08)' : 'rgba(245,158,11,0.15)',
-            color: '#fff',
+            border: '1px solid var(--syn-border-default)',
+            background: running ? 'var(--syn-interaction-disabled)' : 'var(--syn-interaction-active)',
+            color: running ? 'var(--syn-text-disabled)' : 'var(--syn-text-inverse)',
             cursor: running ? 'not-allowed' : 'pointer',
           }}
         >
@@ -124,7 +124,7 @@ export const TestHarness: React.FC = () => {
 
       {results ? <div style={{ marginTop: 8, fontSize: 12 }}>
           <div style={{ marginBottom: 6 }}>
-            <span style={{ color: failCount ? '#FCA5A5' : '#4ADE80' }}>
+            <span style={{ color: failCount ? 'var(--syn-status-error)' : 'var(--syn-status-valid)' }}>
               {passCount} passed, {failCount} failed
             </span>
           </div>
@@ -134,11 +134,11 @@ export const TestHarness: React.FC = () => {
             {results.map(r => (
               <li
                 key={r.name}
-                style={{ padding: '6px 0', borderTop: '1px dashed rgba(255,255,255,0.1)' }}
+                style={{ padding: '6px 0', borderTop: '1px dashed var(--syn-border-subtle)' }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                   <span>{r.name}</span>
-                  <span style={{ color: r.ok ? '#4ADE80' : '#FCA5A5' }}>
+                  <span style={{ color: r.ok ? 'var(--syn-status-valid)' : 'var(--syn-status-error)' }}>
                     {r.ok ? 'PASS' : 'FAIL'} · {r.durationMs.toFixed(1)}ms
                   </span>
                 </div>
@@ -147,10 +147,11 @@ export const TestHarness: React.FC = () => {
                     style={{
                       marginTop: 6,
                       whiteSpace: 'pre-wrap',
-                      background: 'rgba(0,0,0,0.3)',
+                      background: 'var(--syn-surface-workbench)',
                       padding: 8,
                       borderRadius: 8,
-                      border: '1px solid rgba(255,255,255,0.08)',
+                      border: '1px solid var(--syn-border-default)',
+                      color: 'var(--syn-text-secondary)',
                     }}
                   >
                     {r.error}

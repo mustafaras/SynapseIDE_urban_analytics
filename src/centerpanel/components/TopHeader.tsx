@@ -116,24 +116,24 @@ const TopHeader: React.FC<TopHeaderProps> = ({ tabs, activeTab, onTabChange, ses
       <svg className={hdr.neuralHeader} viewBox="0 0 1400 60" preserveAspectRatio="none" aria-hidden="true">
         <defs>
           <radialGradient id="nodeGlow1" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#FCD34D" stopOpacity="1"/>
-            <stop offset="50%" stopColor="#F59E0B" stopOpacity="0.7"/>
-            <stop offset="100%" stopColor="#F59E0B" stopOpacity="0"/>
+            <stop offset="0%" stopColor="var(--syn-interaction-selected)" stopOpacity="1"/>
+            <stop offset="50%" stopColor="var(--syn-interaction-active)" stopOpacity="0.7"/>
+            <stop offset="100%" stopColor="var(--syn-interaction-active)" stopOpacity="0"/>
           </radialGradient>
           <radialGradient id="nodeGlow2" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#FBBF24" stopOpacity="0.95"/>
-            <stop offset="50%" stopColor="#FCD34D" stopOpacity="0.5"/>
-            <stop offset="100%" stopColor="#F59E0B" stopOpacity="0"/>
+            <stop offset="0%" stopColor="var(--syn-interaction-selected)" stopOpacity="0.95"/>
+            <stop offset="50%" stopColor="var(--syn-interaction-selected)" stopOpacity="0.5"/>
+            <stop offset="100%" stopColor="var(--syn-interaction-active)" stopOpacity="0"/>
           </radialGradient>
           <radialGradient id="nodeGlow3" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#F59E0B" stopOpacity="0.85"/>
-            <stop offset="50%" stopColor="#B45309" stopOpacity="0.4"/>
-            <stop offset="100%" stopColor="#F59E0B" stopOpacity="0"/>
+            <stop offset="0%" stopColor="var(--syn-interaction-active)" stopOpacity="0.85"/>
+            <stop offset="50%" stopColor="var(--syn-interaction-selected)" stopOpacity="0.4"/>
+            <stop offset="100%" stopColor="var(--syn-interaction-active)" stopOpacity="0"/>
           </radialGradient>
           <linearGradient id="lineGlow" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#F59E0B" stopOpacity="0.3"/>
-            <stop offset="50%" stopColor="#FCD34D" stopOpacity="0.7"/>
-            <stop offset="100%" stopColor="#F59E0B" stopOpacity="0.3"/>
+            <stop offset="0%" stopColor="var(--syn-interaction-active)" stopOpacity="0.3"/>
+            <stop offset="50%" stopColor="var(--syn-interaction-selected)" stopOpacity="0.7"/>
+            <stop offset="100%" stopColor="var(--syn-interaction-active)" stopOpacity="0.3"/>
           </linearGradient>
         </defs>
         
@@ -358,23 +358,23 @@ const TopHeader: React.FC<TopHeaderProps> = ({ tabs, activeTab, onTabChange, ses
             <svg className={hdr.neuralBg} viewBox="0 0 80 80" aria-hidden="true">
               <defs>
                 <radialGradient id="neuralGlow" cx="50%" cy="50%" r="50%">
-                  <stop offset="0%" stopColor="#F59E0B" stopOpacity="0.4"/>
-                  <stop offset="100%" stopColor="#FCD34D" stopOpacity="0"/>
+                  <stop offset="0%" stopColor="var(--syn-interaction-active)" stopOpacity="0.4"/>
+                  <stop offset="100%" stopColor="var(--syn-interaction-selected)" stopOpacity="0"/>
                 </radialGradient>
               </defs>
-              <circle cx="15" cy="20" r="2" fill="#F59E0B" opacity="0.6">
+              <circle cx="15" cy="20" r="2" fill="var(--syn-interaction-active)" opacity="0.6">
                 <animate attributeName="opacity" values="0.3;0.8;0.3" dur="2s" repeatCount="indefinite"/>
               </circle>
-              <circle cx="65" cy="25" r="2" fill="#FCD34D" opacity="0.6">
+              <circle cx="65" cy="25" r="2" fill="var(--syn-interaction-selected)" opacity="0.6">
                 <animate attributeName="opacity" values="0.8;0.3;0.8" dur="2.5s" repeatCount="indefinite"/>
               </circle>
-              <circle cx="40" cy="40" r="3" fill="#F59E0B" opacity="0.8">
+              <circle cx="40" cy="40" r="3" fill="var(--syn-interaction-active)" opacity="0.8">
                 <animate attributeName="r" values="2.5;3.5;2.5" dur="1.5s" repeatCount="indefinite"/>
               </circle>
-              <circle cx="25" cy="60" r="2" fill="#FCD34D" opacity="0.6">
+              <circle cx="25" cy="60" r="2" fill="var(--syn-interaction-selected)" opacity="0.6">
                 <animate attributeName="opacity" values="0.4;0.9;0.4" dur="3s" repeatCount="indefinite"/>
               </circle>
-              <circle cx="55" cy="55" r="2" fill="#F59E0B" opacity="0.6">
+              <circle cx="55" cy="55" r="2" fill="var(--syn-interaction-active)" opacity="0.6">
                 <animate attributeName="opacity" values="0.6;0.3;0.6" dur="2.2s" repeatCount="indefinite"/>
               </circle>
               <line x1="15" y1="20" x2="40" y2="40" stroke="url(#neuralGlow)" strokeWidth="1" opacity="0.3">

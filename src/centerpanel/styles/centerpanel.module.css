@@ -5,8 +5,8 @@
 	display: grid;
 	grid-template-rows: auto 1fr auto;
 	container-type: inline-size;
-	background: var(--bg);
-	color: var(--text);
+	background: var(--syn-surface-workbench);
+	color: var(--syn-text-default);
 	font-family: var(--font-mono);
 }
 
@@ -17,7 +17,7 @@
 	gap: 6px;
 	min-height: var(--hdr-height, 56px);
 	padding: 6px var(--cp-hpad);
-	background: var(--hdr-bg, var(--surface));
+	background: var(--hdr-bg, var(--syn-surface-navigation));
 	-webkit-backdrop-filter: saturate(var(--hdr-saturate,120%)) blur(var(--hdr-blur,12px));
 	backdrop-filter: saturate(var(--hdr-saturate,120%)) blur(var(--hdr-blur,12px));
 	border-bottom: 0;
@@ -37,9 +37,9 @@
 .scoreChip {
 	display:inline-flex; align-items:center; gap:6px;
 	padding: 4px 8px; border-radius: 10px;
-	background: var(--syn-accent-bg);
-	border: 1px solid var(--syn-accent-border);
-	color: var(--syn-text-accent); font-weight: 600; font-size: 12px;
+	background: var(--syn-warning-bg);
+	border: 1px solid var(--syn-warning-border);
+	color: var(--syn-text-warning); font-weight: 600; font-size: 12px;
 }
 
 .saveChip {
@@ -79,25 +79,25 @@
 .outline, .main, .rightDock { min-width: 0; min-height: 0; }
 
 .outline {
-	background: var(--surface);
+	background: var(--syn-surface-panel);
 	border-radius: var(--radius);
 	box-shadow: var(--shadow-1);
 	padding: 10px;
 	overflow: auto;
-	border: 1px solid var(--syn-overlay-whisper);
+	border: 1px solid var(--syn-border-default);
 }
 
 
 .outlineTight { padding-left: 0; padding-right: 0; }
 
 .main {
-	background: var(--surface-2);
+	background: var(--syn-surface-editor);
 	border-radius: var(--radius);
 	box-shadow: var(--shadow-1);
 
 	padding: 12px var(--cp-hpad);
 	overflow: auto;
-	border: 1px solid var(--syn-overlay-whisper);
+	border: 1px solid var(--syn-border-default);
 }
 
 
@@ -114,12 +114,12 @@
 :where(.outline, .main, .rightDock) { border-top: none !important; }
 
 .rightDock {
-	background: var(--surface);
+	background: var(--syn-surface-panel);
 	border-radius: var(--radius);
 	box-shadow: var(--shadow-1);
 	padding: 10px;
 	overflow: auto;
-	border: 1px solid var(--syn-overlay-whisper);
+	border: 1px solid var(--syn-border-default);
 }
 
 .footer {
@@ -127,8 +127,8 @@
 	align-items: center;
 	justify-content: space-between;
 	padding: 8px 14px;
-	background: var(--surface);
-	border-top: 1px solid var(--syn-overlay-whisper);
+	background: var(--syn-surface-navigation);
+	border-top: 1px solid var(--syn-border-default);
 }
 
 .kbd {
@@ -136,8 +136,8 @@
 	font-size: 12px;
 	padding: 2px 6px;
 	border-radius: 6px;
-	background: var(--syn-overlay-subtle);
-	border: 1px solid var(--syn-overlay-medium);
+	background: var(--syn-surface-hover);
+	border: 1px solid var(--syn-border-subtle);
 }
 
 
@@ -150,8 +150,8 @@
 	left: 12px;
 	top: 12px;
 	z-index: 10;
-	background: var(--accent);
-	color: var(--syn-text-primary);
+	background: var(--syn-interaction-active);
+	color: var(--syn-text-inverse);
 	padding: 8px 10px;
 	border-radius: 8px;
 }
@@ -161,10 +161,10 @@
 .tab {
   font-family: var(--font-mono);
   font-size: 12px; padding: 6px 10px; border-radius: 8px;
-  background: var(--syn-overlay-whisper); border:1px solid var(--syn-overlay-medium);
-  color: var(--text); cursor: pointer;
+  background: var(--syn-surface-elevated); border:1px solid var(--syn-border-subtle);
+  color: var(--syn-text-secondary); cursor: pointer;
 }
-.tabActive { background: var(--syn-accent-bg); border-color: var(--syn-accent-border); color:var(--syn-text-accent); }
+.tabActive { background: var(--syn-interaction-selected); border-color: var(--syn-border-active); color:var(--syn-text-default); }
 .hidden { visibility: hidden; }
 
 
@@ -234,15 +234,15 @@
 	line-height: 16px;
 	padding: 4px 8px;
 	border-radius: 8px;
-	background: var(--syn-overlay-whisper);
-	border: 1px solid var(--syn-overlay-medium);
+	background: var(--syn-surface-elevated);
+	border: 1px solid var(--syn-border-subtle);
 	min-width: 64px;
 	text-align: center;
 	color: var(--tab-fg, var(--text));
 }
 .timerBtnStart { background: var(--ui-btn-bg); color: var(--ui-btn-fg); }
 .timerBtnStop  { background: var(--syn-danger-bg); color:var(--syn-text-error); border-color: var(--syn-danger-border); }
-.timerBtnReset { background: var(--syn-overlay-whisper); color: var(--muted); border-color: var(--syn-overlay-medium); }
+.timerBtnReset { background: var(--syn-surface-hover); color: var(--muted); border-color: var(--syn-border-subtle); }
 
 .tabBtn {
 	position: relative;
@@ -259,11 +259,11 @@
 }
 
 .tabBtn:hover {
-	color: var(--tab-fg-hover, var(--syn-text-primary));
+	color: var(--tab-fg-hover, var(--syn-text-default));
 }
 
 .tabBtn[aria-selected="true"] {
-	color: var(--tab-fg-active, var(--syn-text-primary));
+	color: var(--tab-fg-active, var(--syn-text-default));
 }
 
 .tabBtn[aria-selected="true"]::after {
@@ -278,7 +278,7 @@
 }
 
 .tabBtn:focus-visible {
-	outline: 2px solid var(--tab-active-underline);
+	outline: 2px solid var(--syn-interaction-focus-ring);
 	outline-offset: 2px;
 }
 
@@ -294,12 +294,12 @@
 	font-size: 16px;
 	font-weight: 600;
 	letter-spacing: -0.2px;
-	color: var(--hdr-title-fg, var(--syn-text-primary));
+	color: var(--hdr-title-fg, var(--syn-text-default));
 }
 
 
 @media (prefers-reduced-transparency: reduce) {
-	.header { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--surface); }
+	.header { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--syn-surface-navigation); }
 }
 
 
@@ -307,7 +307,7 @@
 	--railW: 300px;
 	--railGutter: 10px;
 	--panelRadius: 12px;
-	--panelBorder: 1px solid var(--syn-overlay-light);
+	--panelBorder: 1px solid var(--syn-border-subtle);
 	--muted: var(--syn-text-muted);
 }
 
@@ -428,7 +428,7 @@
 
 .mainDarker {
 
-	--cp-canvas-bg: var(--syn-bg-root);
+	--cp-canvas-bg: var(--syn-surface-workbench);
 }
 
 

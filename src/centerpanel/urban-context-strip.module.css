@@ -5,8 +5,8 @@
   top: var(--strip-top, calc(var(--topbarHeight, 0px) + var(--projectHeaderHeight, 44px)));
   z-index: 90;
 
-  background-color: var(--surface, var(--syn-bg-surface-1));
-  border-bottom: 1px solid var(--syn-overlay-whisper);
+  background-color: var(--syn-surface-panel);
+  border-bottom: 1px solid var(--syn-border-default);
   padding-top: 6px;
   padding-bottom: 6px;
   padding-left: var(--note-h-gutter);
@@ -24,12 +24,12 @@
 
 
 .stripWrap[data-tone="in-header"] {
-  background: var(--syn-bg-root);
+  background: var(--syn-surface-navigation);
 
   padding-left: 0;
   padding-right: 0;
 
-  border-bottom: 1px solid var(--syn-overlay-whisper);
+  border-bottom: 1px solid var(--syn-border-default);
 }
 
 .tabRow {
@@ -50,9 +50,10 @@
   font-size: var(--chrome-font-size-xs);
   line-height: 1.2;
 
-  border: 1px solid var(--pill-border-color);
+  border: 1px solid var(--syn-border-subtle);
   border-radius: var(--pill-radius);
-  background: var(--pill-bg);
+  background: var(--syn-surface-elevated);
+  color: var(--syn-text-secondary);
 
   padding: 4px 8px;
   min-height: 20px;
@@ -65,9 +66,14 @@
   white-space: nowrap;
 }
 .tabPill[aria-selected="true"] {
-  background: var(--syn-overlay-medium);
-  color: var(--syn-text-primary);
-  border-color: var(--syn-overlay-strong);
+  background: var(--syn-interaction-selected);
+  color: var(--syn-text-default);
+  border-color: var(--syn-border-active);
+}
+
+.tabPill:focus-visible {
+  outline: 2px solid var(--syn-interaction-focus-ring);
+  outline-offset: 2px;
 }
 
 .kvRow {
@@ -89,9 +95,9 @@
   gap: 6px;
   padding: 2px 8px;
   border-radius: var(--pill-radius);
-  border: 1px solid var(--pill-border-color);
-  background-color: var(--pill-bg);
-  color: var(--syn-text-primary);
+  border: 1px solid var(--syn-border-subtle);
+  background-color: var(--syn-surface-elevated);
+  color: var(--syn-text-default);
   font-family: var(--font-mono);
   font-size: var(--chrome-font-size-xs);
   line-height: 1.2;
@@ -102,7 +108,7 @@
 .kvPill[data-severity="med"] {
   background-color: var(--risk-med-bg);
   color: var(--risk-med-fg);
-  border-color: var(--syn-accent-border);
+  border-color: var(--syn-warning-border);
 }
 .kvPill[data-severity="high"] {
   background-color: var(--risk-high-bg);
@@ -114,9 +120,9 @@
   font-size: var(--chrome-font-size-xs);
   line-height: 1.2;
 
-  border: 1px solid var(--pill-border-color);
+  border: 1px solid var(--syn-border-subtle);
   border-radius: var(--pill-radius);
-  background: var(--pill-bg);
+  background: var(--syn-surface-elevated);
 
   padding: 2px 8px;
   min-height: 20px;
@@ -125,20 +131,25 @@
   align-items: center;
   white-space: nowrap;
   cursor: default;
-  color: var(--syn-text-primary);
+  color: var(--syn-text-default);
   text-decoration: none;
 }
 .metricPill[data-severity="med"] {
   background-color: var(--risk-med-bg);
   color: var(--risk-med-fg);
-  border-color: var(--syn-accent-border);
+  border-color: var(--syn-warning-border);
 }
 .metricPill[data-severity="high"] {
   background-color: var(--risk-high-bg);
   color: var(--risk-high-fg);
   border-color: var(--syn-danger-border);
 }
-.kvLabel { opacity: 0.75; }
+.metricPill:focus-visible {
+  outline: 2px solid var(--syn-interaction-focus-ring);
+  outline-offset: 2px;
+}
+
+.kvLabel { color: var(--syn-text-secondary); opacity: 1; }
 .kvValue { font-weight: 600; }
 
 .actionRow {
@@ -160,9 +171,10 @@
   font-size: var(--chrome-font-size-xs);
   line-height: 1.2;
 
-  border: 1px solid var(--pill-border-color);
+  border: 1px solid var(--syn-border-subtle);
   border-radius: var(--pill-radius);
-  background: var(--pill-bg);
+  background: var(--syn-surface-elevated);
+  color: var(--syn-text-secondary);
 
   padding: 4px 8px;
   min-height: 20px;

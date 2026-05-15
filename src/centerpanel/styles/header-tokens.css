@@ -4,42 +4,43 @@
 
 
 
-  --hdr-surface-base: rgba(12, 12, 12, 0.88);
-  --hdr-surface-elevated: rgba(18, 18, 18, 0.92);
-  --hdr-surface-overlay: var(--syn-overlay-whisper);
+  --hdr-surface-base: var(--syn-surface-navigation);
+  --hdr-surface-elevated: var(--syn-surface-elevated);
+  --hdr-surface-overlay: var(--syn-surface-overlay);
 
 
-  --hdr-text-primary: var(--syn-text-primary);
-  --hdr-text-secondary: rgba(255, 255, 255, 0.75);
-  --hdr-text-tertiary: rgba(255, 255, 255, 0.50);
-  --hdr-text-disabled: rgba(255, 255, 255, 0.35);
+  --hdr-text-primary: var(--syn-text-default);
+  --hdr-text-secondary: var(--syn-text-secondary);
+  --hdr-text-tertiary: var(--syn-text-muted);
+  --hdr-text-disabled: var(--syn-text-disabled);
 
 
-  --hdr-border-subtle: var(--syn-overlay-subtle);
-  --hdr-border-default: var(--syn-overlay-light);
-  --hdr-border-strong: rgba(255, 255, 255, 0.20);
+  --hdr-border-subtle: var(--syn-border-subtle);
+  --hdr-border-default: var(--syn-border-default);
+  --hdr-border-strong: var(--syn-border-strong);
 
 
-  --hdr-accent-primary: var(--syn-accent-primary);
-  --hdr-accent-primary-hover: var(--syn-focus-ring);
-  --hdr-accent-primary-active: var(--syn-accent-primary-hover);
-  --hdr-accent-secondary: var(--syn-info);
+  --hdr-accent-primary: var(--syn-interaction-active);
+  --hdr-accent-primary-hover: var(--syn-interaction-focus-ring);
+  --hdr-accent-primary-active: var(--syn-interaction-selected);
+  --hdr-accent-primary-rgb: 55, 148, 255;
+  --hdr-accent-secondary: var(--syn-status-info);
 
 
-  --hdr-focus-ring: var(--syn-accent-primary);
+  --hdr-focus-ring: var(--syn-interaction-focus-ring);
   --hdr-focus-ring-offset: 2px;
-  --hdr-focus-glow: var(--syn-accent-border);
+  --hdr-focus-glow: color-mix(in srgb, var(--syn-interaction-focus-ring), transparent 60%);
 
 
-  --hdr-state-success: var(--syn-success);
-  --hdr-state-warning: var(--syn-warning);
-  --hdr-state-error: var(--syn-danger);
-  --hdr-state-info: var(--syn-info);
+  --hdr-state-success: var(--syn-status-valid);
+  --hdr-state-warning: var(--syn-status-warning);
+  --hdr-state-error: var(--syn-status-error);
+  --hdr-state-info: var(--syn-status-info);
 
 
-  --hdr-interactive-hover: var(--syn-overlay-subtle);
-  --hdr-interactive-active: var(--syn-overlay-light);
-  --hdr-interactive-selected: var(--syn-accent-bg-hover);
+  --hdr-interactive-hover: var(--syn-interaction-hover);
+  --hdr-interactive-active: var(--syn-interaction-selected);
+  --hdr-interactive-selected: color-mix(in srgb, var(--syn-interaction-active) 16%, transparent);
 
 
 
@@ -111,7 +112,7 @@
 
   --hdr-shadow-focus: 0 0 0 var(--hdr-focus-ring-offset) var(--hdr-focus-ring),
                       0 0 0 calc(var(--hdr-focus-ring-offset) + 2px) var(--hdr-focus-glow);
-  --hdr-shadow-glow: 0 0 16px var(--syn-accent-glow);
+  --hdr-shadow-glow: 0 0 16px color-mix(in srgb, var(--syn-interaction-active) 45%, transparent);
 
 
 

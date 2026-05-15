@@ -8,51 +8,126 @@ export const GlobalSynapseStyles = createGlobalStyle`
   --syn-bg-surface-2:#1A1A1A;
   --syn-bg-elevated:#202020;
 
-  --syn-bg-900: var(--syn-bg-root);
-  --syn-surface-800: var(--syn-bg-surface-1);
-  --syn-overlay: rgba(255,255,255,0.04);
-  --syn-border-default:#2A2A2A;
-  --syn-border-strong:#3A3A3A;
+  /* ── VS Code-inspired primitive palette (non-breaking additions) ── */
+  --syn-vscode-bg-root: #1e1f24;
+  --syn-vscode-bg-activity: #24272f;
+  --syn-vscode-bg-sidebar: #252a31;
+  --syn-vscode-bg-editor: #1f232a;
+  --syn-vscode-bg-panel: #232832;
+  --syn-vscode-bg-elevated: #2b3038;
+  --syn-vscode-bg-input: #1a1f26;
+  --syn-vscode-bg-hover: #303642;
+  --syn-vscode-border-subtle: #343a44;
+  --syn-vscode-border-strong: #4a5260;
+  --syn-vscode-text-primary: #d7dce5;
+  --syn-vscode-text-secondary: #a4adbb;
+  --syn-vscode-text-muted: #778190;
+  --syn-vscode-accent-blue: #3794ff;
+  --syn-vscode-accent-blue-soft: #1f4f7f;
+  --syn-vscode-attention-amber: #d6a84f;
+  --syn-vscode-attention-amber-soft: #4a3a1e;
+
+  --syn-vscode-status-valid: #4ec27d;
+  --syn-vscode-status-warning: #d6a84f;
+  --syn-vscode-status-error: #f87171;
+  --syn-vscode-status-info: #6aa9ff;
+  --syn-vscode-status-blocked: #f87171;
+  --syn-vscode-status-stale: #9aa3b2;
+  --syn-vscode-status-unknown: #858b96;
+  --syn-vscode-status-demo: #c084fc;
+  --syn-vscode-status-running: #6aa9ff;
+  --syn-vscode-status-pending: #a4adbb;
+
+  /* ── Prompt 05 semantic alias layer ── */
+  --syn-surface-workbench: var(--syn-vscode-bg-root);
+  --syn-surface-navigation: var(--syn-vscode-bg-sidebar);
+  --syn-surface-panel: var(--syn-vscode-bg-panel);
+  --syn-surface-editor: var(--syn-vscode-bg-editor);
+  --syn-surface-elevated: var(--syn-vscode-bg-elevated);
+  --syn-surface-input: var(--syn-vscode-bg-input);
+  --syn-surface-hover: var(--syn-vscode-bg-hover);
+  --syn-surface-overlay: rgba(12,15,20,0.78);
+
+  --syn-text-default: var(--syn-vscode-text-primary);
+  --syn-text-secondary: var(--syn-vscode-text-secondary);
+  --syn-text-muted: var(--syn-vscode-text-muted);
+  --syn-text-disabled: #6f7785;
+  --syn-text-inverse: #0f1218;
+  --syn-text-link: var(--syn-vscode-accent-blue);
+  --syn-text-link-hover: #66adff;
+
+  --syn-border-default: var(--syn-vscode-border-subtle);
+  --syn-border-subtle: var(--syn-vscode-border-subtle);
+  --syn-border-strong: var(--syn-vscode-border-strong);
+  --syn-border-active: var(--syn-vscode-accent-blue);
+  --syn-border-focus: var(--syn-vscode-accent-blue);
+
+  --syn-interaction-hover: var(--syn-vscode-bg-hover);
+  --syn-interaction-selected: var(--syn-vscode-accent-blue-soft);
+  --syn-interaction-active: var(--syn-vscode-accent-blue);
+  --syn-interaction-focus-ring: var(--syn-vscode-accent-blue);
+  --syn-interaction-disabled: rgba(119,129,144,0.36);
+
+  --syn-status-valid: var(--syn-vscode-status-valid);
+  --syn-status-warning: var(--syn-vscode-status-warning);
+  --syn-status-error: var(--syn-vscode-status-error);
+  --syn-status-info: var(--syn-vscode-status-info);
+  --syn-status-blocked: var(--syn-vscode-status-blocked);
+  --syn-status-stale: var(--syn-vscode-status-stale);
+  --syn-status-unknown: var(--syn-vscode-status-unknown);
+  --syn-status-demo: var(--syn-vscode-status-demo);
+  --syn-status-running: var(--syn-vscode-status-running);
+  --syn-status-pending: var(--syn-vscode-status-pending);
+
+  /* ── Legacy --syn-* compatibility aliases ── */
+  --syn-bg-root: var(--syn-surface-workbench);
+  --syn-bg-surface-1: var(--syn-surface-panel);
+  --syn-bg-surface-2: var(--syn-surface-navigation);
+  --syn-bg-elevated: var(--syn-surface-elevated);
+  --syn-bg-900: var(--syn-surface-workbench);
+  --syn-surface-800: var(--syn-surface-panel);
+  --syn-overlay: var(--syn-surface-overlay);
   --syn-border-700: var(--syn-border-default);
+  --syn-focus-ring: var(--syn-interaction-focus-ring);
 
   --syn-accent-primary:#F59E0B;
   --syn-accent-primary-hover:#D97706;
   --syn-accent-primary-pressed:#B45309;
   --syn-accent-soft-bg:#2A1C08;
-  --syn-focus-ring:#FBBF24;
+  --syn-accent-interactive: var(--syn-interaction-active);
+  --syn-accent-interactive-soft: var(--syn-interaction-selected);
+  --syn-accent-attention: var(--syn-vscode-attention-amber);
+  --syn-focus-ring-blue: var(--syn-interaction-focus-ring);
 
   --syn-gold-500: var(--syn-accent-primary);
   --syn-gold-300: var(--syn-accent-primary-hover);
 
-  --syn-text-primary:#FAFAF9;
-  --syn-text-secondary:#D6D3D1;
-  --syn-text-muted:#A8A29E;
-  --syn-text-disabled:#8C8579;
-  --syn-text-100: var(--syn-text-primary);
+  --syn-text-primary: var(--syn-text-default);
+  --syn-text-100: var(--syn-text-default);
   --syn-text-400: var(--syn-text-muted);
 
-  --syn-danger-400:#EF4444;
-  --syn-success-400:#22C55E;
-  --syn-warning-400:#F59E0B;
-  --syn-info-400:#FCD34D;
+  --syn-danger-400: var(--syn-status-error);
+  --syn-success-400: var(--syn-status-valid);
+  --syn-warning-400: var(--syn-status-warning);
+  --syn-info-400: var(--syn-status-info);
 
   /* ── Status color variants (base / hover / pressed / bg) ── */
-  --syn-success: #22C55E;
+  --syn-success: var(--syn-status-valid);
   --syn-success-hover: #16A34A;
   --syn-success-pressed: #15803D;
   --syn-success-bg: rgba(34,197,94,0.12);
 
-  --syn-danger: #EF4444;
+  --syn-danger: var(--syn-status-error);
   --syn-danger-hover: #DC2626;
   --syn-danger-pressed: #B91C1C;
   --syn-danger-bg: rgba(239,68,68,0.12);
 
-  --syn-warning: #F59E0B;
+  --syn-warning: var(--syn-status-warning);
   --syn-warning-hover: #D97706;
   --syn-warning-pressed: #B45309;
   --syn-warning-bg: rgba(245,158,11,0.12);
 
-  --syn-info: #FCD34D;
+  --syn-info: var(--syn-status-info);
   --syn-info-hover: #FBBF24;
   --syn-info-pressed: #F59E0B;
   --syn-info-bg: rgba(252,211,77,0.12);
@@ -72,8 +147,6 @@ export const GlobalSynapseStyles = createGlobalStyle`
   /* ── Typography color tokens ── */
   --syn-text-accent: #FDE68A;
   --syn-text-on-accent: #000000;
-  --syn-text-link: #F59E0B;
-  --syn-text-link-hover: #FBBF24;
 
   --syn-chart-1:#F59E0B;
   --syn-chart-2:#FB923C;
@@ -84,7 +157,7 @@ export const GlobalSynapseStyles = createGlobalStyle`
   --syn-chart-neutral:#A8A29E;
 
   --syn-shadow-soft: rgba(0,0,0,0.3);
-  --syn-border-highlight: rgba(245,158,11,0.4);
+  --syn-border-highlight: var(--syn-border-focus);
   --syn-glow-subtle: 0 0 6px rgba(245,158,11,0.28);
 
   /* ── Opacity scale (10 steps) ── */
@@ -150,25 +223,25 @@ export const GlobalSynapseStyles = createGlobalStyle`
   --syn-easing-bounce: cubic-bezier(0.68,-0.55,0.265,1.55);
 
 
-  --color-bg-app: var(--syn-bg-root);
-  --color-bg-surface: var(--syn-bg-surface-1);
-  --color-bg-surface-alt: var(--syn-bg-surface-2);
-  --color-bg-overlay: var(--syn-overlay);
+  --color-bg-app: var(--syn-surface-workbench);
+  --color-bg-surface: var(--syn-surface-panel);
+  --color-bg-surface-alt: var(--syn-surface-navigation);
+  --color-bg-overlay: var(--syn-surface-overlay);
   --color-bg-inverse: #FAFAF9;
 
-  --color-text-primary: var(--syn-text-primary);
+  --color-text-primary: var(--syn-text-default);
   --color-text-secondary: var(--syn-text-secondary);
   --color-text-muted: var(--syn-text-muted);
-  --color-text-accent: var(--syn-accent-primary);
-  --color-text-inverse: #0F0F0F;
-  --color-text-danger: var(--syn-danger);
-  --color-text-success: var(--syn-success);
-  --color-text-warning: var(--syn-warning);
+  --color-text-accent: var(--syn-interaction-active);
+  --color-text-inverse: var(--syn-text-inverse);
+  --color-text-danger: var(--syn-status-error);
+  --color-text-success: var(--syn-status-valid);
+  --color-text-warning: var(--syn-status-warning);
 
-  --color-border-subtle: var(--syn-border-default);
+  --color-border-subtle: var(--syn-border-subtle);
   --color-border-default: var(--syn-border-default);
   --color-border-strong: var(--syn-border-strong);
-  --color-border-focus: var(--syn-border-highlight);
+  --color-border-focus: var(--syn-border-focus);
 
   --color-accent-primary: var(--syn-accent-primary);
   --color-accent-primary-hover: var(--syn-accent-primary-hover);
@@ -176,10 +249,10 @@ export const GlobalSynapseStyles = createGlobalStyle`
   --color-accent-primary-soft: var(--syn-accent-soft-bg);
   --color-accent-primary-subtle: var(--syn-accent-bg-hover);
 
-  --color-status-success: var(--syn-success);
-  --color-status-warning: var(--syn-warning);
-  --color-status-danger: var(--syn-danger);
-  --color-status-info: var(--syn-info);
+  --color-status-success: var(--syn-status-valid);
+  --color-status-warning: var(--syn-status-warning);
+  --color-status-danger: var(--syn-status-error);
+  --color-status-info: var(--syn-status-info);
 
   --radius-sm: 6px;
   --radius-md: 10px;
@@ -206,7 +279,7 @@ export const GlobalSynapseStyles = createGlobalStyle`
   --shadow-md: 0 4px 14px rgba(0,0,0,0.40);
   --shadow-lg: 0 10px 24px rgba(0,0,0,0.45);
   --shadow-overlay: 0 0 0 1px rgba(255,255,255,0.04), 0 4px 28px rgba(0,0,0,0.55);
-  --shadow-focus: 0 0 0 3px rgba(245,158,11,0.35);
+  --shadow-focus: 0 0 0 3px rgba(55,148,255,0.35);
   --shadow-glow: 0 0 10px -2px rgba(245,158,11,0.5);
   --syn-shadow-card: 0 4px 14px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.06);
 
@@ -249,12 +322,12 @@ export const GlobalSynapseStyles = createGlobalStyle`
 
   /* ── Selection highlight ── */
   ::selection {
-    background: rgba(245,158,11,0.35);
-    color: #FAFAF9;
+    background: color-mix(in srgb, var(--syn-interaction-active) 38%, transparent);
+    color: var(--syn-text-default);
   }
   ::-moz-selection {
-    background: rgba(245,158,11,0.35);
-    color: #FAFAF9;
+    background: color-mix(in srgb, var(--syn-interaction-active) 38%, transparent);
+    color: var(--syn-text-default);
   }
 
   /* ── Global smooth interactive transitions ── */

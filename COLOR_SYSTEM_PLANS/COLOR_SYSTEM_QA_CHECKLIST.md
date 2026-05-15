@@ -37,6 +37,32 @@
 - Warning is not a decorative accent.
 - Data visualization colors do not silently imply UI status.
 
+## Token Regression Guard (Prompt 07)
+
+Run this lightweight report before and after color-focused prompts:
+
+- Full source report: `npm run color:guard`
+- Changed-files report: `npm run color:guard:changed`
+
+Guard behavior:
+
+- Scans only `src/**/*.{ts,tsx,css}`.
+- Excludes allowlisted token-source files.
+- Excludes allowlisted data-visualization palette files.
+- Excludes test/fixture surfaces (`__tests__`, `__mocks__`, `.test.*`, `.spec.*`, fixtures).
+- Reports findings only and exits `0` by default (non-blocking).
+
+Allowed hard-coded color categories (do not treat as immediate migration failures):
+
+1. `token-source`: canonical token-definition files.
+2. `data-visualization`: analytical palettes, cartographic renderers, legends.
+3. `test-fixture`: test and mock surfaces.
+4. `fallback`: temporary `var(--token, fallback)` compatibility values while migrations are in progress.
+
+Non-goal for Prompt 07:
+
+- Do not wire this guard into CI failure gates until inventory and migration maturity are explicitly declared in later prompts.
+
 ## Ledger QA Entry Template
 
 ```md

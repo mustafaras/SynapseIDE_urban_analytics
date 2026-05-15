@@ -26,6 +26,8 @@
     "clean": "rimraf dist .turbo .cache coverage",
     "guardrails:ci": "node -e \"import('./dist/services/ai/guardrails/redact.js').then(m=>{const t=process.env.GUARD_SAMPLE||'';const r=m.redact(t);if(r.warnings.length){console.log(r.warnings.join('\\n'));process.exit(1)}else{console.log('OK')}})\"",
     "lint:no-tailwind-centerpanel": "powershell -ExecutionPolicy Bypass -File scripts/check-no-tailwind-centerpanel.ps1",
+    "color:guard": "node scripts/check-color-regression.mjs",
+    "color:guard:changed": "node scripts/check-color-regression.mjs --changed",
     "deadcode": "ts-prune -p tsconfig.json",
     "deadcode:json": "ts-prune -p tsconfig.json --json > .deadcode.json",
     "deadcode:knip": "knip --reporter json > .knip-report.json",

@@ -121,9 +121,9 @@ export const GlobalStyles = createGlobalStyle`
   .neural-glass-card-final :focus-visible,
   [data-component="neural-glass-card-final"]:focus-visible,
   [data-component="neural-glass-card-final"] :focus-visible {
-    outline: var(--focus-ring, 2px solid var(--syn-focus-ring, #F59E0B)) !important;
+    outline: var(--focus-ring, 2px solid var(--syn-interaction-focus-ring, #3794ff)) !important;
     outline-offset: var(--focus-ring-offset, 2px) !important;
-    box-shadow: var(--shadow-focus, 0 0 0 3px rgba(245, 158, 11, 0.35)) !important;
+    box-shadow: var(--shadow-focus, 0 0 0 3px rgba(55, 148, 255, 0.35)) !important;
   }
 
 
@@ -259,8 +259,8 @@ export const GlobalStyles = createGlobalStyle`
 
   body {
 
-    background: var(--color-background);
-    color: var(--color-text);
+    background: var(--app-shell-bg, var(--syn-surface-workbench));
+    color: var(--app-shell-text, var(--syn-text-default));
 
   font-family: var(--font-code);
     font-size: var(--font-size-md);
@@ -335,9 +335,9 @@ export const GlobalStyles = createGlobalStyle`
     width: 100%;
     height: 100%;
     background:
-      radial-gradient(circle at 25% 25%, var(--color-primary)03 0%, transparent 50%),
-      radial-gradient(circle at 75% 75%, var(--color-accent)03 0%, transparent 50%),
-      linear-gradient(135deg, transparent 0%, var(--color-primary)01 50%, transparent 100%);
+      radial-gradient(circle at 25% 25%, var(--syn-overlay-whisper) 0%, transparent 50%),
+      radial-gradient(circle at 75% 75%, var(--syn-overlay-whisper) 0%, transparent 50%),
+      linear-gradient(135deg, transparent 0%, var(--syn-overlay-whisper) 50%, transparent 100%);
     pointer-events: none;
     z-index: var(--z-hide);
     transition: background var(--duration-medium) var(--syn-easing-bauhaus);
@@ -399,8 +399,8 @@ export const GlobalStyles = createGlobalStyle`
 
 
   .preview-surface {
-    background: var(--color-background);
-    border-left: 1px solid var(--color-border);
+    background: var(--syn-surface-workbench);
+    border-left: 1px solid var(--syn-border-default);
     backdrop-filter: var(--blur-glass, blur(10px));
     -webkit-backdrop-filter: var(--blur-glass, blur(10px));
   }
@@ -412,8 +412,8 @@ export const GlobalStyles = createGlobalStyle`
     justify-content: center;
     gap: 6px;
     padding: 4px 6px;
-    background: var(--color-panel, rgba(20,20,20,0.6));
-    border-bottom: 1px solid var(--color-border);
+    background: var(--syn-surface-panel);
+    border-bottom: 1px solid var(--syn-border-default);
     position: sticky;
     top: 0;
     z-index: 2;
@@ -427,9 +427,9 @@ export const GlobalStyles = createGlobalStyle`
     align-items: center;
     gap: 4px;
     padding: 4px 8px;
-    background: var(--button-background, #00000066);
-    color: var(--color-text);
-    border: 1px solid var(--color-border);
+    background: var(--syn-surface-elevated);
+    color: var(--syn-text-default);
+    border: 1px solid var(--syn-border-default);
     border-radius: 8px;
     cursor: pointer;
     font: inherit;
@@ -442,18 +442,18 @@ export const GlobalStyles = createGlobalStyle`
     filter: brightness(1.1);
   }
   .syn-preview-toolbar .ptb-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-  .syn-preview-toolbar .ptb-sep { width: 1px; height: 24px; background: var(--color-border); margin: 0 2px; }
+  .syn-preview-toolbar .ptb-sep { width: 1px; height: 24px; background: var(--syn-border-default); margin: 0 2px; }
   .syn-preview-toolbar .ptb-segment { display: inline-flex; gap: 4px; }
-  .syn-preview-toolbar .ptb-seg.is-active { outline: 2px solid var(--color-accent); outline-offset: 0; }
+  .syn-preview-toolbar .ptb-seg.is-active { outline: 2px solid var(--syn-interaction-active); outline-offset: 0; }
   .syn-preview-toolbar .ptb-toggle input { position: absolute; opacity: 0; pointer-events: none; }
   .syn-preview-toolbar .ptb-toggle-ui { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; }
   .syn-preview-toolbar .ptb-text { display: inline-block; }
   .syn-preview-toolbar .ptb-select { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; }
   .syn-preview-toolbar .ptb-select select {
     appearance: none;
-    background: var(--button-background, #00000066);
-    color: var(--color-text);
-    border: 1px solid var(--color-border);
+    background: var(--syn-surface-elevated);
+    color: var(--syn-text-default);
+    border: 1px solid var(--syn-border-default);
     border-radius: 8px;
     padding: 4px 8px;
     margin-left: 6px;
@@ -764,14 +764,14 @@ export const GlobalStyles = createGlobalStyle`
 
 
   ::selection {
-    background: var(--color-primary);
-    color: var(--color-background);
+    background: color-mix(in srgb, var(--syn-interaction-active) 38%, transparent);
+    color: var(--syn-text-default);
     text-shadow: none;
   }
 
   ::-moz-selection {
-    background: var(--color-primary);
-    color: var(--color-background);
+    background: color-mix(in srgb, var(--syn-interaction-active) 38%, transparent);
+    color: var(--syn-text-default);
     text-shadow: none;
   }
 
@@ -782,38 +782,37 @@ export const GlobalStyles = createGlobalStyle`
   }
 
   ::-webkit-scrollbar-track {
-    background: var(--color-background);
+    background: var(--syn-surface-workbench);
     border-radius: var(--border-radius-md);
   }
 
   ::-webkit-scrollbar-thumb {
-    background: var(--glass-background);
-    backdrop-filter: var(--glass-backdrop-filter);
-    border: 1px solid var(--glass-border);
+    background: var(--syn-surface-elevated);
+    border: 1px solid var(--syn-border-default);
     border-radius: var(--border-radius-md);
     box-shadow: var(--shadow-xs);
     transition: all var(--duration-fast) var(--syn-easing-bauhaus);
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: var(--hover-background);
-    border-color: var(--hover-border);
+    background: var(--syn-surface-hover);
+    border-color: var(--syn-border-strong);
     box-shadow: var(--shadow-sm);
   }
 
   ::-webkit-scrollbar-thumb:active {
-    background: var(--active-background);
-    border-color: var(--active-border);
+    background: var(--syn-surface-panel);
+    border-color: var(--syn-border-strong);
   }
 
   ::-webkit-scrollbar-corner {
-    background: var(--color-background);
+    background: var(--syn-surface-workbench);
   }
 
 
   * {
     scrollbar-width: thin;
-    scrollbar-color: var(--glass-background) var(--color-background);
+    scrollbar-color: var(--syn-border-strong) var(--syn-surface-workbench);
   }
 
 
@@ -1234,8 +1233,8 @@ export const GlobalStyles = createGlobalStyle`
     }
 
     ::selection {
-      background: var(--color-primary);
-      color: var(--color-background);
+      background: var(--syn-interaction-active);
+      color: var(--syn-text-default);
     }
   }
 
@@ -1258,27 +1257,27 @@ export const GlobalStyles = createGlobalStyle`
   .theme-dark {
     body::before {
       background:
-        radial-gradient(circle at 25% 25%, var(--color-primary)05 0%, transparent 50%),
-        radial-gradient(circle at 75% 75%, var(--color-accent)05 0%, transparent 50%),
-        linear-gradient(135deg, transparent 0%, var(--color-primary)02 50%, transparent 100%);
+        radial-gradient(circle at 25% 25%, color-mix(in srgb, var(--syn-interaction-active) 12%, transparent) 0%, transparent 50%),
+        radial-gradient(circle at 75% 75%, color-mix(in srgb, var(--syn-interaction-active) 8%, transparent) 0%, transparent 50%),
+        linear-gradient(135deg, transparent 0%, color-mix(in srgb, var(--syn-interaction-active) 6%, transparent) 50%, transparent 100%);
     }
   }
 
   .theme-neutral {
     body::before {
       background:
-        radial-gradient(circle at 25% 25%, var(--color-primary)04 0%, transparent 50%),
-        radial-gradient(circle at 75% 75%, var(--color-accent)04 0%, transparent 50%),
-        linear-gradient(135deg, transparent 0%, var(--color-primary)015 50%, transparent 100%);
+        radial-gradient(circle at 25% 25%, color-mix(in srgb, var(--syn-interaction-active) 10%, transparent) 0%, transparent 50%),
+        radial-gradient(circle at 75% 75%, color-mix(in srgb, var(--syn-interaction-active) 7%, transparent) 0%, transparent 50%),
+        linear-gradient(135deg, transparent 0%, color-mix(in srgb, var(--syn-interaction-active) 5%, transparent) 50%, transparent 100%);
     }
   }
 
   .theme-light {
     body::before {
       background:
-        radial-gradient(circle at 25% 25%, var(--color-primary)03 0%, transparent 50%),
-        radial-gradient(circle at 75% 75%, var(--color-accent)03 0%, transparent 50%),
-        linear-gradient(135deg, transparent 0%, var(--color-primary)01 50%, transparent 100%);
+        radial-gradient(circle at 25% 25%, color-mix(in srgb, var(--syn-interaction-active) 9%, transparent) 0%, transparent 50%),
+        radial-gradient(circle at 75% 75%, color-mix(in srgb, var(--syn-interaction-active) 6%, transparent) 0%, transparent 50%),
+        linear-gradient(135deg, transparent 0%, color-mix(in srgb, var(--syn-interaction-active) 4%, transparent) 50%, transparent 100%);
     }
   }
 
