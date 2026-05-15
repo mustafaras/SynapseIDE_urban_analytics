@@ -98,14 +98,26 @@ These rules are enforced by the domain and must not be violated silently:
 
 ## Development Plans System (Ongoing Structured Work)
 
-The `DEVELOPMENT_PLANS/` folder is the **durable memory system** for multi-session agent work. Always consult it before editing Urban Analytics, Map Explorer, or Synapse IDE features.
+The `DEVELOPMENT_PLANS/` folder is the **durable memory system** for multi-session agent work. It is intentionally large, so agents must use the token-minimized entry path before opening any full ledger or plan.
 
-Before archive, handoff, or new planning-pack work, read `DEVELOPMENT_PLANS/README.md` and `DEVELOPMENT_PLANS/ARCHIVE_READINESS.md`. The current local branch may be stale relative to `origin/master`; ledgers on the reconciled branch remain the execution source of truth.
+### Token-Minimized Startup
+
+Before editing Urban Analytics, Map Explorer, or Synapse IDE features:
+
+1. Read [`DEVELOPMENT_PLANS/CONTEXT_MIN.md`](DEVELOPMENT_PLANS/CONTEXT_MIN.md).
+2. Read [`DEVELOPMENT_PLANS/CURRENT_TASK.json`](DEVELOPMENT_PLANS/CURRENT_TASK.json).
+3. Run the relevant next-prompt helper with `-Json`.
+4. Use `rg` to pull only the active prompt block, status row, or named section from large files.
+5. Open a full ledger, full development plan, or full sequential prompt file only when targeted search is insufficient.
+
+Large files remain authoritative; they are not default startup context.
 
 | File | Role |
 |---|---|
-| [`DEVELOPMENT_PLANS/README.md`](DEVELOPMENT_PLANS/README.md) | Current plan-pack index, archive status, and branch-divergence warning |
-| [`DEVELOPMENT_PLANS/ARCHIVE_READINESS.md`](DEVELOPMENT_PLANS/ARCHIVE_READINESS.md) | Archive gate, source-of-truth status, and conflict notes |
+| [`DEVELOPMENT_PLANS/CONTEXT_MIN.md`](DEVELOPMENT_PLANS/CONTEXT_MIN.md) | **First-read context budget** — concise startup protocol, authority order, current module state |
+| [`DEVELOPMENT_PLANS/CURRENT_TASK.json`](DEVELOPMENT_PLANS/CURRENT_TASK.json) | **Machine-readable task pointer** — current prompt status and active file paths |
+| [`DEVELOPMENT_PLANS/MODULE_INDEX.json`](DEVELOPMENT_PLANS/MODULE_INDEX.json) | Compact module ownership and validation map |
+| [`DEVELOPMENT_PLANS/LARGE_FILE_INDEX.md`](DEVELOPMENT_PLANS/LARGE_FILE_INDEX.md) | Large-file access guide; search first, line-window second |
 | [`DEVELOPMENT_PLANS/URBAN_ANALYTICS_IMPLEMENTATION_LEDGER.md`](DEVELOPMENT_PLANS/URBAN_ANALYTICS_IMPLEMENTATION_LEDGER.md) | **Execution source of truth** — prompt status, files changed, validation history, risks |
 | [`DEVELOPMENT_PLANS/URBAN_ANALYTICS_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md`](DEVELOPMENT_PLANS/URBAN_ANALYTICS_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md) | Ordered prompt ladder — scope, acceptance criteria, stop conditions |
 | [`DEVELOPMENT_PLANS/URBAN_ANALYTICS_PROMPT_MANIFEST.json`](DEVELOPMENT_PLANS/URBAN_ANALYTICS_PROMPT_MANIFEST.json) | Machine-readable prompt catalog |
@@ -115,10 +127,11 @@ Before archive, handoff, or new planning-pack work, read `DEVELOPMENT_PLANS/READ
 
 To find the next pending prompt:
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/get-next-urban-analytics-prompt.ps1
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+.\scripts\get-next-urban-analytics-prompt.ps1 -Json
 ```
 
-**Priority order when documents disagree**: Ledger > Live repository > Manifest > Sequential prompts > Development plan > Alignment spec > Chat history (non-authoritative).
+**Priority order when documents disagree**: Live repository > relevant ledger status/search hit > Manifest > targeted sequential prompt block > targeted development plan section > Alignment spec > Chat history (non-authoritative).
 
 ---
 

@@ -21,25 +21,26 @@ Read these before implementing any Map Explorer prompt:
 
 ## Current Status
 
-- Overall status: Natural-Language Query Safety and Audit landed. 25 of 30 prompts completed.
-- Current prompt: Prompt 24 - Natural-Language Query Safety and Audit completed 2026-05-13.
-- Next recommended prompt: Prompt 25 - Review Timeline and Audit Trail.
+- Overall status: Map Explorer prompt ladder complete. 30 of 30 prompts completed.
+- Current prompt: Prompt 29 - Final Premium Polish and Handoff completed 2026-05-14.
+- Next recommended prompt: None. Resume only for user-requested polish, bug fixes, or a new Map Explorer operating pack.
 - Operating pack status: Installed.
 - Next-prompt helper: `scripts/get-next-map-explorer-prompt.ps1`
 - Machine-readable manifest: `DEVELOPMENT_PLANS/MAP_EXPLORER_PROMPT_MANIFEST.json`
-- Last validated repository state: 2026-05-13; Prompt 24 validation passed: `npm run typecheck` passed, focused Map NL query builder/panel tests passed (10/10), changed-file ESLint returned 0 errors with pre-existing `MapExplorerModal.tsx` warnings, and HTTP smoke returned 200 on `http://127.0.0.1:5173/`.
-- Last known blocker: None for Prompt 23 scope.
+- Last validated repository state: 2026-05-14; Prompt 29 validation passed: `npm run typecheck`, focused toolbar and dispatch tests, full Map Explorer service/component/store/dispatch sweep (536 passed / 2 skipped across 43 files), `npm run build`, and Playwright smoke (13/13). `npm run lint:errors` remains blocked only by an unrelated pre-existing Urban Analytics unused import in `src/features/urbanAnalytics/lib/workflowReadiness.ts`.
+- Last known blocker: None in Map Explorer scope. Full-repo lint still has the unrelated Urban Analytics unused import noted above.
 
 ## Agent Operating Pack
 
 Use this pack for every future Map Explorer implementation session:
 
 1. Start from `DEVELOPMENT_PLANS/START_HERE_MAP_EXPLORER_AGENT.md`.
-2. Run `powershell -ExecutionPolicy Bypass -File scripts/get-next-map-explorer-prompt.ps1` when script execution is available.
-3. Read the returned prompt block in `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md`.
-4. Implement only that prompt unless the user explicitly asks for a different prompt.
-5. Finish with `DEVELOPMENT_PLANS/MAP_EXPLORER_AGENT_HANDOFF_TEMPLATE.md`.
-6. Update this ledger before final response.
+2. Read `DEVELOPMENT_PLANS/CONTEXT_MIN.md` and `DEVELOPMENT_PLANS/CURRENT_TASK.json`.
+3. Run `.\scripts\get-next-map-explorer-prompt.ps1 -Json` after setting process execution policy when needed.
+4. Search for the returned prompt block in `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md`.
+5. Implement only that prompt unless the user explicitly asks for a different prompt.
+6. Finish with `DEVELOPMENT_PLANS/MAP_EXPLORER_AGENT_HANDOFF_TEMPLATE.md`.
+7. Update this ledger before final response.
 
 Valid prompt statuses:
 
@@ -80,11 +81,11 @@ This table is the human-readable execution state. The helper script reads it whe
 | 22 | Temporal Playback and Scenario Comparison | completed | 21 | Completed 2026-05-13. Temporal playback now registers parameterized map evidence; scenario comparison outputs carry map evidence metadata, stable report/dashboard handoff IDs, QA caveats, and reference-only provenance. |
 | 23 | VoxCity 2D/3D Synchronization | completed | 22 | Completed 2026-05-13. Map-to-VoxCity sync metadata, sample/demo caveats, and reference-only `voxcity-handoff` evidence registration landed for Building Extruder and Sunlight Simulation. |
 | 24 | Natural-Language Query Safety and Audit | completed | 23 | Completed 2026-05-13. |
-| 25 | Review Timeline and Audit Trail | pending | 24 | Requires NL query audit. |
-| 26 | Accessibility and Keyboard Premium | pending | 25 | Requires review timeline. |
-| 27 | Performance, Workers, Memory, and Chunking | pending | 26 | Requires accessibility hardening. |
-| 28 | QA Harness and E2E Validation | pending | 27 | Requires performance hardening. |
-| 29 | Final Premium Polish and Handoff | pending | 28 | Final Map Explorer readiness pass. |
+| 25 | Review Timeline and Audit Trail | completed | 24 | Completed 2026-05-14. |
+| 26 | Accessibility and Keyboard Premium | completed | 25 | Completed 2026-05-14. Keyboard fallback controls, focus ring hardening, accessible blocked states, drawer/rail resize keyboard support, layer move actions, and a11y smoke validation landed. |
+| 27 | Performance, Workers, Memory, and Chunking | completed | 26 | Completed 2026-05-14. Bounded copilot proposal/audit registries; audit confirmed evidence registry, review timeline, import previews, and worker pool are already bounded; layer summaries remain feature-free; worker/external service failures degrade truthfully. |
+| 28 | QA Harness and E2E Validation | completed | 27 | Completed 2026-05-14. Added bound tests for review-session event cap and map evidence registry cap; published `MAP_EXPLORER_MANUAL_QA_CHECKLIST.md` covering all 10 plan §25.3 journeys, accessibility, performance, and theme coherence; full Map test suite green (479/481, 2 pre-existing skips). |
+| 29 | Final Premium Polish and Handoff | completed | 28 | Completed 2026-05-14. Final premium polish, bounded render/export states, single global modal host, validation, and durable handoff recorded. |
 
 ## Non-Negotiable Operating Rules
 
@@ -99,6 +100,51 @@ This table is the human-readable execution state. The helper script reads it whe
 - Do not finish without updating this ledger.
 
 ## Prompt Execution Log
+
+### Demo data pack v2 (out-of-sequence user request)
+
+- Date: 2026-05-14
+- Agent: Claude (Opus 4.7)
+- Status: completed
+- Trigger: User request — replace the two demo rectangles with realistic street/block/building demo data across three Istanbul AOIs so the calculation engines have a meaningful substrate.
+- Files added:
+  - `src/centerpanel/components/map/demoDataPacks.ts` (new) — generator for 9 demo layers (3 AOIs × {streets, blocks, buildings}) with profile-driven attributes that feed LISA, Gi*, regression, network, and VoxCity engines.
+- Files changed:
+  - `src/centerpanel/components/map/MapLayerManager.tsx` — replaced the inline two-rectangle factory with the new pack import; added a "Load OSM Reference" button that calls existing `executeOverpassBuildingsAsync` for each demo AOI's bounds.
+  - `src/centerpanel/components/map/__tests__/map-layer-management.test.ts` — updated demo footer assertions for 9 layers (streets/blocks/buildings × Üsküdar/Fatih/Kadıköy) and the new OSM reference button.
+- Implementation notes:
+  - Each AOI: 6 streets (LineString) + 4 blocks (Polygon) + 12 buildings (Polygon) = 22 features. Total 66 features across 9 layers.
+  - Streets carry `road_class`, `lanes`, `length_m`, `oneway`, `aoi_id` (feeds network engine).
+  - Blocks carry `access_class`, `access_score`, `dwellings`, `mixed_use_ratio`, `built_year_avg`, `area_m2` (feeds spatial-stats hotspot/LISA on `access_score`, regression on `dwellings ~ access_score + mixed_use_ratio`).
+  - Buildings carry `use_type`, `floors`, `height_m`, `heat_exposure`, `risk_class`, `year_built`, `footprint_area_m2`, `block_id` (feeds VoxCity 3D extrude, spatial-stats hotspot on `heat_exposure`).
+  - Profiles per AOI: `historic-high-heat` (Fatih), `mid-rise-moderate` (Üsküdar), `grid-low-heat` (Kadıköy) — deterministic attribute distributions for stable tests and realistic spatial gradients.
+  - All layers keep `sourceKind: "demo"`, `qaStatus: "warning"`, `sample_data` badge, `ready-with-caveats` publication readiness; legacy `signature: "demo-layer-pack-v1"` upgraded to `signature: "${DEMO_PACK_ID}/${aoi.id}/${kind}"`.
+  - OSM reference path is the existing `ExternalServiceConnector.createOsmBuildingsLayerConfig`; the button iterates demo AOIs and adds one OSM-derived layer per AOI with truthful `© OpenStreetMap contributors / ODbL` provenance. No bundled fixtures.
+  - Deleted ~350 lines of inline hand-coded demo geometry from `MapLayerManager.tsx` — moved into the new typed factory.
+- Spatial evidence/provenance changed:
+  - Demo layers now have richer schema and explicit `aoi_id` cross-reference; `block_id` on buildings makes block→building joins possible.
+- CRS/geometry/measurement changed:
+  - None of the existing CRS handling. Demo geometry remains EPSG:4326; caveats explicitly warn that area/distance must project.
+- Scientific QA changed:
+  - QA model is unchanged; the new layers still trigger the `sample_data` badge and the demo-mixed-with-project caveat.
+- Layer registry/persistence changed:
+  - None.
+- Workflow/export/report changed:
+  - None.
+- Cross-module contracts changed:
+  - None. OSM reference uses existing connector contract.
+- Validation run:
+  - `npm run typecheck` -> Passed.
+  - `npx eslint src/centerpanel/components/map/demoDataPacks.ts src/centerpanel/components/map/MapLayerManager.tsx` -> Passed (0 errors, 0 warnings).
+  - `npm run test -- src/centerpanel/components/map/__tests__/map-layer-management.test.ts` -> Passed (45/45).
+  - `npm run test -- src/services/map src/centerpanel/components/map` -> Passed (479 passed / 2 pre-existing skips across 41 files).
+- Validation result:
+  - Demo pack v2 ships with full type-, lint-, and test-coverage. Engines now have a multi-AOI substrate that exercises LineString and Polygon paths.
+- Risks or blockers:
+  - Low: OSM reference button depends on Overpass uptime and the user's network; failure path emits a truthful announcement and leaves the demo layers intact.
+- Next recommended prompt:
+  - Resume Prompt 29 - Final Premium Polish and Handoff (helper returns 29).
+- Ledger updated: yes
 
 ### Prompt 00 - Memory Bootstrapping and Repository Baseline
 
@@ -1653,6 +1699,7 @@ Append inspected files here as implementation progresses.
 
 | Date | Prompt | Files inspected | Notes |
 | --- | --- | --- | --- |
+| 2026-05-14 | Prompt 23 revalidation | `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` Prompt 23; `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` Prompt 23 status/log; `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md` Track M11 and sections 22.1/22.2; `DEVELOPMENT_PLANS/URBAN_ANALYTICS_DEVELOPMENT_PLAN.md` VoxCity/3D sections; `DEVELOPMENT_PLANS/TRI_MODAL_WORKBENCH_ALIGNMENT_SPEC.md` artifact/ownership sections; `src/services/map/voxCitySelectionService.ts`; `src/services/map/voxCityProjection.ts`; `src/centerpanel/components/map/mapTypes.ts`; `src/centerpanel/components/map/mapEvidenceArtifacts.ts`; `src/features/urbanAnalytics/voxcity/BuildingViewer.tsx`; `src/features/urbanAnalytics/voxcity/SunlightSimulatorPanel.tsx`; `src/features/urbanAnalytics/context/voxCityEvidenceBuilder.ts`; `src/services/map/__tests__/voxCitySyncEvidence.test.ts` | Revalidated existing Prompt 23 implementation after explicit user request. No product code changes were needed; live repo still satisfies typed 2D/3D sync metadata, sample/demo labeling, reference-only evidence, and no-heavy-payload constraints. |
 | 2026-05-13 | Prompt 23 | `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` Prompt 23; `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md` Track M11 and sections 22.1/22.2; `DEVELOPMENT_PLANS/URBAN_ANALYTICS_DEVELOPMENT_PLAN.md` VoxCity/3D sections; `DEVELOPMENT_PLANS/TRI_MODAL_WORKBENCH_ALIGNMENT_SPEC.md`; `src/services/map/voxCitySelectionService.ts`; `src/services/map/voxCityProjection.ts`; `src/features/urbanAnalytics/voxcity/voxCityDataBridge.ts`; `src/features/urbanAnalytics/voxcity/BuildingViewer.tsx`; `src/features/urbanAnalytics/voxcity/SunlightSimulatorPanel.tsx`; `src/features/urbanAnalytics/context/voxCityEvidenceBuilder.ts`; `src/centerpanel/components/map/mapTypes.ts`; `src/centerpanel/components/map/mapEvidenceArtifacts.ts`; `src/stores/useMapExplorerStore.ts`; focused sync/evidence tests | Prompt 23 narrowed to typed 2D/3D reference metadata and map evidence registration for VoxCity outputs without moving heavy mesh, voxel, CityJSON, or GeoJSON payloads. |
 | 2026-05-13 | Prompt 22 | `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` Prompt 22; `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md` Track M10 and sections 22.3/22.4; `DEVELOPMENT_PLANS/TRI_MODAL_WORKBENCH_ALIGNMENT_SPEC.md` unified evidence lifecycle and ownership rules; `src/centerpanel/components/MapTemporalPlayer.tsx`; `src/centerpanel/Flows/ScenarioComparisonFlow.tsx`; `src/centerpanel/Flows/scenarioComparisonArtifacts.ts`; `src/centerpanel/Flows/scenarioComparisonShared.ts`; `src/centerpanel/components/map/mapTypes.ts`; `src/centerpanel/components/map/mapEvidenceArtifacts.ts`; `src/stores/useMapExplorerStore.ts`; `src/components/map/TemporalSlider.tsx`; `src/components/map/SwipeComparison.tsx`; focused temporal/scenario/evidence tests | Prompt 22 narrowed to typed temporal/scenario evidence metadata and registration at existing playback/publish boundaries without rewriting playback or scenario engines. |
 | 2026-05-12 | Prompt 20 | `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` Prompt 20; `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md` sections 14.6, 21.1, and 21.4; `DEVELOPMENT_PLANS/TRI_MODAL_WORKBENCH_ALIGNMENT_SPEC.md` section 8.5; `src/services/map/MapReportHandoffService.ts`; `src/centerpanel/components/map/MapReportHandoffDrawer.tsx`; `src/services/reporting/types.ts`; `src/services/reporting/storage.ts`; `src/services/reporting/ReportEngine.ts`; `src/services/map/MapExportService.ts`; `src/centerpanel/components/map/mapEvidenceArtifacts.ts`; `src/centerpanel/components/map/mapTypes.ts`; `src/centerpanel/components/MapExplorerModal.tsx`; `src/services/map/MapReviewSessionService.ts`; focused report/reporting tests | Prompt 20 narrowed to structured map report evidence metadata, report insert compatibility, drawer evidence registration, and evidence artifact binding without redesigning the report builder or moving heavy map/render payloads. |
@@ -1831,6 +1878,10 @@ Append validation runs here.
 
 | Date | Prompt | Command | Result | Notes |
 | --- | --- | --- | --- | --- |
+| 2026-05-14 | Prompt 23 revalidation | `npm ci` | Passed | Restored missing local `node_modules` so project-local Vitest validation could run; no package manifest edits were made. |
+| 2026-05-14 | Prompt 23 revalidation | `npm run typecheck` | Passed | Repository typecheck command completed after Prompt 23 revalidation. |
+| 2026-05-14 | Prompt 23 revalidation | `npm run test -- src/services/map/__tests__/voxCitySyncEvidence.test.ts src/centerpanel/components/map/__tests__/mapEvidenceArtifacts.test.ts src/services/map/__tests__/MapSyncService.test.ts` | Passed (8/8) | Confirms sample/demo labels, projection assumptions, source/output layer references, reference-only evidence artifacts, and sync/evidence regressions. |
+| 2026-05-14 | Prompt 23 revalidation | `npm run test:analytics` | Passed (62 files, 1111/1111) | Confirms Urban Analytics/VoxCity affected surface plus engine/data/worker regression subset after dependency restoration. |
 | 2026-05-13 | Prompt 23 | `npm run typecheck` | Passed | Full TypeScript project typechecks after VoxCity sync metadata, evidence builder, and component wiring. |
 | 2026-05-13 | Prompt 23 | `npm run test -- src/services/map/__tests__/voxCitySyncEvidence.test.ts src/centerpanel/components/map/__tests__/mapEvidenceArtifacts.test.ts src/services/map/__tests__/MapSyncService.test.ts` | Passed (8/8) | Covers sample/demo labelling, projection assumptions, source/output layer references, no-heavy-payload artifact assertions, and existing sync/evidence regressions. |
 | 2026-05-13 | Prompt 23 | `npm run test:analytics` | Passed (1111/1111) | Covers Urban Analytics/VoxCity affected surface plus engine/data/worker regression subset. |
@@ -2188,6 +2239,135 @@ Append validation runs here.
   - Prompt 25 - Review Timeline and Audit Trail.
 - Ledger updated: yes
 
+### Prompt 25 - Review Timeline and Audit Trail
+
+- Date: 2026-05-14
+- Agent: Codex (GPT-5)
+- Status: completed
+- Files inspected:
+  - `DEVELOPMENT_PLANS/CONTEXT_MIN.md`
+  - `DEVELOPMENT_PLANS/CURRENT_TASK.json`
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` Prompt 25 block.
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md` targeted sections 10.4, 13.9, 14.7, and 17.4.
+  - `DEVELOPMENT_PLANS/TRI_MODAL_WORKBENCH_ALIGNMENT_SPEC.md` targeted audit/provenance payload rules.
+  - `src/services/map/MapReviewSessionService.ts`
+  - `src/centerpanel/components/map/MapReviewTimelinePanel.tsx`
+  - `src/stores/useMapExplorerStore.ts`
+  - `src/services/map/MapPersistenceService.ts`
+  - `src/services/map/MapReportHandoffService.ts`
+  - `src/services/map/MapExportService.ts`
+  - `src/centerpanel/components/map/mapTypes.ts`
+- Files changed:
+  - `src/services/map/MapReviewSessionService.ts`
+  - `src/centerpanel/components/map/MapReviewTimelinePanel.tsx`
+  - `src/services/map/MapPersistenceService.ts`
+  - `src/services/map/__tests__/MapReviewSessionService.test.ts`
+  - `src/services/map/__tests__/MapPersistenceService.test.ts`
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md`
+- Behavior implemented:
+  - Added first-class `MapReviewAuditCategory` values for layer import, layer derived, QA run, workflow preview/apply, export/report handoff, Urban/IDE sync, NL query decisions, 2D/3D handoffs, cartography review, annotations/bookmarks, and generic action audit.
+  - Review timeline events now carry audit category, bounded evidence artifact IDs, status, timestamp, summary, layer/report/QA/recommendation/action references, and sanitized details.
+  - Timeline filtering now supports audit category and evidence artifact IDs, and text search covers evidence/action/bookmark/annotation references.
+  - Timeline rows and Markdown export now display audit category and evidence artifact IDs.
+  - Project snapshot review timeline references now preserve event IDs, audit categories, evidence artifact IDs, layer IDs, QA issue IDs, and report item IDs without storing event payloads.
+- Spatial evidence/provenance changed:
+  - Map review snapshots now include per-layer evidence artifact IDs from lightweight layer metadata/registry/analysis-result metadata.
+  - Layer registry and report handoff review events now link to evidence artifact IDs when available.
+  - No heavy GeoJSON, voxel, mesh, raw table, or feature payloads were added to review entries.
+- CRS, geometry, or measurement changed:
+  - None.
+- Scientific QA changed:
+  - QA review events are categorized as `qa-run`; QA IDs remain lightweight references.
+- Layer registry or persistence changed:
+  - Layer registry review event builder now classifies layer import/derived/registry actions and carries evidence artifact IDs.
+  - Project persistence reference schema now includes review audit categories and evidence artifact IDs only.
+- Workflow/export/report changed:
+  - Workflow/recommendation/NL/report events can be categorized and filtered in the review timeline.
+  - Report handoff review events derive evidence references from structured report evidence blocks and structured references.
+- Cross-module contracts changed:
+  - Additive Map-owned review timeline fields: `category`, `evidenceArtifactIds`, category/evidence filters, and snapshot review references.
+  - No new cross-module imports or payload ownership changes.
+- Validation run:
+  - `npm exec -- vitest run src/services/map/__tests__/MapReviewSessionService.test.ts src/services/map/__tests__/MapPersistenceService.test.ts` -> Passed (15/15).
+  - `npm run typecheck` -> Passed.
+- Validation result:
+  - Prompt 25 service, persistence reference, and type contracts validated. Manual visual timeline smoke was not run because no dev server/UI interaction was required after the targeted service/UI changes.
+- Risks or blockers:
+  - Low: Existing orchestration still records many review events from `MapExplorerModal.tsx`; future decomposition can move those command recordings into focused hooks without changing the new event schema.
+- Next recommended prompt:
+  - Prompt 26 - Accessibility and Keyboard Premium.
+- Ledger updated: yes
+
+### Prompt 26 - Accessibility and Keyboard Premium
+
+- Date: 2026-05-14
+- Agent: Codex (GPT-5)
+- Status: completed
+- Files inspected:
+  - `DEVELOPMENT_PLANS/CONTEXT_MIN.md`
+  - `DEVELOPMENT_PLANS/CURRENT_TASK.json`
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` Prompt 26 block.
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md` section 24.
+  - `DEVELOPMENT_PLANS/TRI_MODAL_WORKBENCH_ALIGNMENT_SPEC.md` Accessibility and Keyboard Alignment.
+  - `src/centerpanel/components/MapExplorerModal.tsx`
+  - `src/centerpanel/components/map/MapWorkspaceShell.tsx`
+  - `src/centerpanel/components/map/MapToolbar.tsx`
+  - `src/centerpanel/components/map/MapLayerManager.tsx`
+  - `src/centerpanel/components/map/ScientificQAPanel.tsx`
+  - `src/centerpanel/components/map/MapWorkflowDrawer.tsx`
+  - `src/centerpanel/components/map/MapReportHandoffDrawer.tsx`
+  - `src/centerpanel/components/map/MapReviewTimelinePanel.tsx`
+  - `src/centerpanel/components/map/MapCanvas.tsx`
+  - `src/centerpanel/components/map/useMapKeyboardControls.ts`
+  - `src/centerpanel/components/map/useFocusTrap.ts`
+  - `src/centerpanel/components/map/__tests__/map-accessibility.test.ts`
+- Files changed:
+  - `src/centerpanel/components/MapExplorerModal.tsx`
+  - `src/centerpanel/components/map/MapCanvas.tsx`
+  - `src/centerpanel/components/map/MapCanvasKeyboardFallbackControls.tsx`
+  - `src/centerpanel/components/map/MapLayerManager.tsx`
+  - `src/centerpanel/components/map/MapReportHandoffDrawer.tsx`
+  - `src/centerpanel/components/map/MapReviewTimelinePanel.tsx`
+  - `src/centerpanel/components/map/MapToolbar.tsx`
+  - `src/centerpanel/components/map/MapWorkflowDrawer.tsx`
+  - `src/centerpanel/components/map/MapWorkspaceShell.tsx`
+  - `src/centerpanel/components/map/ScientificQAPanel.tsx`
+  - `src/centerpanel/components/map/__tests__/map-accessibility.test.ts`
+  - `src/centerpanel/components/map/index.ts`
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md`
+  - `DEVELOPMENT_PLANS/CURRENT_TASK.json`
+- Implementation notes:
+  - Added explicit Map canvas fallback controls for pan, zoom, reset, and map-canvas focus without creating a separate shortcut system.
+  - Hardened skip-link map focus behavior and aligned visible focus rings inside the Map Explorer shell with shared focus tokens.
+  - Added keyboard resizing for the layer rail, workflow drawer rail, and report handoff rail.
+  - Added layer move up/down actions as a keyboard-accessible alternative to drag/drop ordering.
+  - Added accessible labels, status text, and disabled-state descriptions for toolbar commands, QA blockers, workflow apply, report readiness, snapshot actions, and review timeline actions.
+- Spatial evidence/provenance changed:
+  - None.
+- CRS/geometry/measurement changed:
+  - None.
+- Scientific QA changed:
+  - UI accessibility only; QA issue state semantics are unchanged.
+- Layer registry/persistence changed:
+  - None.
+- Workflow/export/report changed:
+  - Accessibility labels, status regions, and `aria-describedby` wiring only; no payload or schema changes.
+- Cross-module contracts changed:
+  - None.
+- Validation run:
+  - `npm run typecheck` -> Passed.
+  - `npm run test -- src/centerpanel/components/map/__tests__/map-accessibility.test.ts` -> Passed (29/29).
+  - `npm run test -- src/centerpanel/components/map/__tests__/map-layer-management.test.ts src/centerpanel/components/map/__tests__/MapReportHandoffDrawer.test.tsx src/centerpanel/components/map/__tests__/map-components.test.ts` -> Passed (105/105).
+  - `node scripts/kill-port.cjs 4173; npm run test:e2e:a11y -- --grep "map modal exposes"` -> Passed. Earlier reused-server smoke caught the skip-link focus path; after hardening focus and restarting port 4173, the smoke passed.
+  - `.\scripts\get-next-map-explorer-prompt.ps1 -Json` -> Passed; returned Prompt 27.
+- Validation result:
+  - Prompt 26 accessibility and keyboard behavior validated through typecheck, focused unit/accessibility tests, targeted component regressions, and Playwright keyboard/a11y smoke.
+- Risks or blockers:
+  - Low: Native MapLibre controls remain library-owned; explicit fallback controls now provide keyboard alternatives for pan, zoom, reset, and focus.
+- Next recommended prompt:
+  - Prompt 27 - Performance, Workers, Memory, and Chunking.
+- Ledger updated: yes
+
 | 2026-05-13 | Prompt 21 | `npm run typecheck` | Passed | Full TypeScript project typechecks after Prompt 21 education-readiness propagation and modal action metadata updates. |
 | 2026-05-13 | Prompt 21 | `npx vitest run src/services/map/__tests__/MapPublicationOutputBindingService.test.ts src/services/map/__tests__/MapExportService.test.ts src/centerpanel/components/map/__tests__/map-layer-management.test.ts` | Passed (64/64) | Covers static dashboard/education bindings, publication-readiness traceability semantics, and layer-rail eligibility behavior. |
 | 2026-05-13 | Prompt 22 | `npm run typecheck` | Passed | Full TypeScript project typechecks after temporal/scenario evidence metadata and component/flow wiring. |
@@ -2197,6 +2377,253 @@ Append validation runs here.
 | 2026-05-13 | Prompt 24 | `npx eslint src\services\map\MapNLQueryBuilder.ts src\services\map\__tests__\MapNLQueryBuilder.test.ts src\centerpanel\components\map\MapNLQueryPanel.tsx src\centerpanel\components\map\__tests__\MapNLQueryPanel.test.tsx src\centerpanel\components\MapExplorerModal.tsx` | Passed with warnings | Exit 0; remaining warnings are existing `MapExplorerModal.tsx` sort/no-alert/leaked-render warnings. |
 | 2026-05-13 | Prompt 24 | `Invoke-WebRequest -UseBasicParsing http://127.0.0.1:5173/` | Passed (HTTP 200) | Local dev server responded for map UI smoke baseline. |
 | 2026-05-13 | Prompt 24 | `powershell -ExecutionPolicy Bypass -File scripts\get-next-map-explorer-prompt.ps1` | Passed | Helper now resolves Prompt 25 - Review Timeline and Audit Trail. |
+| 2026-05-14 | Prompt 25 | `npm exec -- vitest run src/services/map/__tests__/MapReviewSessionService.test.ts src/services/map/__tests__/MapPersistenceService.test.ts` | Passed (15/15) | Covers audit categories, evidence artifact references, filtering, Markdown/JSON export, and lightweight project snapshot review references. |
+| 2026-05-14 | Prompt 25 | `npm run typecheck` | Passed | Full TypeScript project typechecks after review timeline audit schema and panel filter changes. |
+| 2026-05-14 | Prompt 25 | `pwsh -NoProfile -ExecutionPolicy Bypass -File .\scripts\get-next-map-explorer-prompt.ps1 -Json` | Passed | Helper now resolves Prompt 26 - Accessibility and Keyboard Premium. |
+| 2026-05-14 | Prompt 26 | `npm run typecheck` | Passed | Full project typechecks after accessibility/keyboard changes. |
+| 2026-05-14 | Prompt 26 | `npm run test -- src/centerpanel/components/map/__tests__/map-accessibility.test.ts` | Passed (29/29) | Covers focus trap, map keyboard scope, fallback canvas controls, rail keyboard resize, and import contracts. |
+| 2026-05-14 | Prompt 26 | `npm run test -- src/centerpanel/components/map/__tests__/map-layer-management.test.ts src/centerpanel/components/map/__tests__/MapReportHandoffDrawer.test.tsx src/centerpanel/components/map/__tests__/map-components.test.ts` | Passed (105/105) | Covers layer manager, report handoff drawer, and map component regressions after a11y changes. |
+| 2026-05-14 | Prompt 26 | `node scripts/kill-port.cjs 4173; npm run test:e2e:a11y -- --grep "map modal exposes"` | Passed | Fresh-server Playwright smoke validated skip navigation, map canvas focus, ArrowRight/+ /R keyboard controls, axe check, and Escape close. |
+| 2026-05-14 | Prompt 26 | `.\scripts\get-next-map-explorer-prompt.ps1 -Json` | Passed | Helper now resolves Prompt 27 - Performance, Workers, Memory, and Chunking. |
+| 2026-05-14 | Prompt 27 | `npm run typecheck` | Passed | Full project typechecks after bounding copilot proposal and audit-trail registries. |
+| 2026-05-14 | Prompt 27 | `npm run test -- src/stores/__tests__/useMapExplorerStore.test.ts` | Passed (51/51) | Includes new long-lived-session bound test for `copilotActionProposals` and `copilotAuditTrail`. |
+| 2026-05-14 | Prompt 27 | `npm run test -- src/centerpanel/components/map/__tests__/map-accessibility.test.ts src/centerpanel/components/map/__tests__/map-layer-management.test.ts` | Passed (74/74) | Regression check of map accessibility and layer-manager behavior after store changes. |
+| 2026-05-14 | Prompt 27 | `pwsh -NoProfile -ExecutionPolicy Bypass -File .\scripts\get-next-map-explorer-prompt.ps1 -Json` | Passed | Helper now resolves Prompt 28 - QA Harness and E2E Validation. |
+| 2026-05-14 | Prompt 28 | `npm run typecheck` | Passed | Full project typechecks after adding focused bound tests and the manual QA checklist doc. |
+| 2026-05-14 | Prompt 28 | `npm run test -- src/services/map/__tests__/MapReviewSessionService.test.ts src/centerpanel/components/map/__tests__/mapEvidenceArtifacts.test.ts` | Passed (10/10) | Covers new MAP_REVIEW_SESSION_EVENT_LIMIT cap test and MAX_MAP_EVIDENCE_ARTIFACTS cap test. |
+| 2026-05-14 | Prompt 28 | `npm run test -- src/services/map src/centerpanel/components/map` | Passed (479 passed / 2 skipped across 41 files) | Full Map Explorer service + component test sweep after Prompt 28 additions. |
+| 2026-05-14 | Prompt 28 | `pwsh -NoProfile -ExecutionPolicy Bypass -File .\scripts\get-next-map-explorer-prompt.ps1 -Json` | Passed | Helper now resolves Prompt 29 - Final Premium Polish and Handoff. |
+| 2026-05-14 | Prompt 29 targeted polish | `npm run typecheck` | Passed | Full project typechecks after layer footer action visual polish. |
+| 2026-05-14 | Prompt 29 targeted polish | `npx vitest run src/centerpanel/components/map/__tests__/map-layer-management.test.ts` | Passed (45/45) | Covers layer manager regressions after converting the three add/source buttons to a single-row monochrome treatment. |
+| 2026-05-14 | Prompt 29 | `npx vitest run src/centerpanel/components/map/__tests__/MapToolbar.external-services.test.tsx` | Passed (4/4) | Verifies toolbar external-service/export command availability and disabled-reason behavior after final polish. |
+| 2026-05-14 | Prompt 29 | `npx vitest run src/centerpanel/components/__tests__/MapExplorerModal.dispatch.test.tsx --testTimeout=15000` | Passed (1/1) | Dispatch fixture now includes the required evidence artifact contract and validates completed-run publication. |
+| 2026-05-14 | Prompt 29 | `npm run test -- src/services/map src/centerpanel/components/map src/stores/__tests__/useMapExplorerStore.test.ts src/centerpanel/components/__tests__/MapExplorerModal.dispatch.test.tsx` | Passed (536 passed / 2 skipped across 43 files) | Full Map Explorer service/component/store/dispatch sweep after allocation guardrails, toolbar polish, and modal-host unification. |
+| 2026-05-14 | Prompt 29 | `npm run typecheck` | Passed | Full TypeScript project typechecks after final host, toolbar preference, and test fixture changes. |
+| 2026-05-14 | Prompt 29 | `npm run lint:errors` | Failed (unrelated) | Only failure is the pre-existing Urban Analytics unused import: `src/features/urbanAnalytics/lib/workflowReadiness.ts:20` `UrbanMethodValidityEnvelope`. No changed Map Explorer files reported lint errors. |
+| 2026-05-14 | Prompt 29 | `npm run build` | Passed | Production build completed after single global Map Explorer host and final polish changes. |
+| 2026-05-14 | Prompt 29 | `npm run test:e2e:smoke` | Passed (13/13) | Playwright smoke passes after eliminating duplicate Map Explorer modal hosts that could hide the dialog from the accessibility tree. |
+| 2026-05-14 | Prompt 29 | `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force; .\scripts\get-next-map-explorer-prompt.ps1 -Json` | Passed | Helper reports `status: all_completed` and `nextPrompt: null`. |
+
+### Prompt 29 Targeted Layer Footer Polish (user request)
+
+- Date: 2026-05-14
+- Agent: GitHub Copilot
+- Status: completed as a targeted user-requested polish item; full Prompt 29 handoff remains pending.
+- Trigger: User requested the Add Layer, Add Demo Pack, and Load OSM Reference buttons be side-by-side with premium monochrome colors.
+- Files inspected:
+  - `DEVELOPMENT_PLANS/CONTEXT_MIN.md`
+  - `DEVELOPMENT_PLANS/CURRENT_TASK.json`
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` Prompt 29 selection
+  - `src/centerpanel/components/map/MapLayerManager.tsx`
+  - `src/centerpanel/components/map/mapTokens.ts`
+- Files changed:
+  - `src/centerpanel/components/map/MapLayerManager.tsx`
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md`
+- Behavior implemented:
+  - Layer footer add/source actions now render as three equal columns in one row.
+  - Removed the mixed amber/blue treatment from the three actions and replaced it with a shared restrained neutral monochrome button style.
+  - Added compact sizing, stable width constraints, and safe text wrapping so the OSM label does not force a second row.
+- Spatial evidence/provenance changed:
+  - None.
+- CRS/geometry/measurement changed:
+  - None.
+- Scientific QA changed:
+  - None.
+- Layer registry/persistence changed:
+  - None.
+- Workflow/export/report changed:
+  - None.
+- Cross-module contracts changed:
+  - None.
+- Validation run:
+  - `npm run typecheck` -> Passed.
+  - `npx vitest run src/centerpanel/components/map/__tests__/map-layer-management.test.ts` -> Passed (45/45).
+- Validation result:
+  - Targeted UI polish is type-safe and layer manager regression tests remain green.
+- Risks or blockers:
+  - Full Prompt 29 final readiness/handoff was not executed in this targeted change.
+- Next recommended prompt:
+  - Prompt 29 - Final Premium Polish and Handoff.
+- Ledger updated: yes
+
+### Prompt 29 - Final Premium Polish and Handoff
+
+- Date: 2026-05-14
+- Agent: GitHub Copilot
+- Status: completed
+- Trigger: User requested final Prompt 29 application and a perfect handoff after Map Explorer performance/allocation fixes, toolbar polish, and no-function-loss constraints.
+- Files inspected:
+  - `DEVELOPMENT_PLANS/CONTEXT_MIN.md`
+  - `DEVELOPMENT_PLANS/CURRENT_TASK.json`
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` Prompt 29 block
+  - `src/centerpanel/components/MapExplorerModal.tsx`
+  - `src/centerpanel/components/map/MapToolbar.tsx`
+  - `src/centerpanel/components/map/MapLayerManager.tsx`
+  - `src/centerpanel/components/map/useLayerSync.ts`
+  - `src/services/map/MapDataImporter.ts`
+  - `src/services/map/MapEngineAdapter.ts`
+  - `src/stores/useFlowStore.ts`
+  - `src/App.tsx`, `src/components/ide/EnhancedIDE.tsx`, `src/centerpanel/CenterPanelShell.tsx`
+  - `src/centerpanel/components/__tests__/MapExplorerModal.dispatch.test.tsx`
+  - `src/centerpanel/components/map/__tests__/MapToolbar.external-services.test.tsx`
+  - `e2e/release-candidate-ui.spec.ts`
+- Files changed:
+  - `src/App.tsx` — added the single global `MapExplorerHost` so every Map Explorer `open()` call shares one modal portal.
+  - `src/components/ide/EnhancedIDE.tsx` — removed the duplicate IDE-local Map Explorer modal host while preserving existing commands that call `useMapExplorerStore.getState().open()`.
+  - `src/centerpanel/CenterPanelShell.tsx` — removed the duplicate CenterPanel-local Map Explorer modal host while preserving keyboard toggle and layer/run synchronization.
+  - `src/centerpanel/components/MapExplorerModal.tsx` — wired export/report disabled reasons into the toolbar and preserved dispatch/evidence publication paths.
+  - `src/centerpanel/components/map/MapToolbar.tsx` — added explicit disabled reasons, disabled GeoJSON export discoverability, command-palette unavailable reasons, and persisted density via Zustand.
+  - `src/stores/useMapToolbarPreferencesStore.ts` — new persisted Zustand toolbar preference store replacing direct toolbar `localStorage` usage.
+  - `src/centerpanel/components/map/MapLayerManager.tsx` — final single-row premium monochrome layer footer action polish.
+  - `src/services/map/MapDataImporter.ts` — render-safe GeoJSON property/value budgets and normalization helpers for allocation-safe display payloads.
+  - `src/centerpanel/components/map/useLayerSync.ts` — layer-source normalization and hidden-layer empty-source handling to reduce MapLibre allocation pressure.
+  - `src/centerpanel/components/MapChoroplethLayer.tsx`, `MapClusterViz.tsx`, `MapHeatmapLayer.tsx`, `MapHotSpotViz.tsx`, `MapSymbolLayer.tsx` — direct visualization paths now use render-safe GeoJSON normalization before MapLibre `setData`.
+  - `src/services/map/__tests__/MapDataIO.test.ts` — coverage for render-safe GeoJSON normalization/property budgets.
+  - `src/centerpanel/components/map/__tests__/MapToolbar.external-services.test.tsx` — updated toolbar disabled/export behavior assertions.
+  - `src/centerpanel/components/__tests__/MapExplorerModal.dispatch.test.tsx` — fixture now satisfies the required evidence artifact adapter contract and has an integration-test timeout matching the async dispatch path.
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md` and `DEVELOPMENT_PLANS/CURRENT_TASK.json` — durable completion state.
+- Behavior implemented:
+  - Map Explorer now keeps export/report/import commands discoverable with exact unavailable reasons instead of silent dead controls.
+  - Toolbar density persistence is handled by Zustand `persist`, not direct `localStorage` access.
+  - Add Layer, Add Demo Pack, and Load OSM Reference render as a stable three-column premium monochrome footer row.
+  - Render paths for imported and direct visualization GeoJSON are bounded before MapLibre receives them, reducing allocation-size overflow risk without disabling layer functionality.
+  - Hidden GeoJSON/heatmap layers use empty render sources instead of feeding hidden heavy payloads to the renderer.
+  - Map Explorer modal hosting is centralized at App level; IDE and embedded CenterPanel surfaces still open the same modal through the existing store, but duplicate portals no longer race each other with `aria-hidden`.
+- Spatial evidence/provenance changed:
+  - No new evidence semantics. Dispatch tests were aligned to the existing required `SpatialStatsAdapterResult.evidenceArtifact` contract.
+- CRS/geometry/measurement changed:
+  - No analytical CRS or measurement behavior changed. Render normalization is display-only and does not claim projected analytical readiness.
+- Scientific QA changed:
+  - No QA scoring semantics changed; disabled reasons and command availability are truthful UI affordances only.
+- Layer registry/persistence changed:
+  - Toolbar UI preference persistence added under `synapse-map-toolbar-preferences` via Zustand.
+  - Layer source rendering is bounded for display; raw/imported layer capabilities are not intentionally disabled.
+- Workflow/export/report changed:
+  - Export/report actions now surface precise disabled reasons. Completed-run dispatch publication remains evidence-backed and was revalidated.
+- Cross-module contracts changed:
+  - Map Explorer modal presentation is now a single App-level host shared by IDE, Urban Analytics, and CenterPanel callers through `useMapExplorerStore`. No heavy geometry or raw data crosses module boundaries.
+- Validation run:
+  - `npx vitest run src/centerpanel/components/map/__tests__/MapToolbar.external-services.test.tsx` -> Passed (4/4).
+  - `npx vitest run src/centerpanel/components/__tests__/MapExplorerModal.dispatch.test.tsx --testTimeout=15000` -> Passed (1/1).
+  - `npm run test -- src/services/map src/centerpanel/components/map src/stores/__tests__/useMapExplorerStore.test.ts src/centerpanel/components/__tests__/MapExplorerModal.dispatch.test.tsx` -> Passed (536 passed / 2 skipped across 43 files).
+  - `npm run typecheck` -> Passed.
+  - `npm run lint:errors` -> Failed only on unrelated pre-existing Urban Analytics lint (`src/features/urbanAnalytics/lib/workflowReadiness.ts:20` unused `UrbanMethodValidityEnvelope`).
+  - `npm run build` -> Passed.
+  - `npm run test:e2e:smoke` -> Passed (13/13).
+  - `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force; .\scripts\get-next-map-explorer-prompt.ps1 -Json` -> Passed (`status: all_completed`, `nextPrompt: null`).
+- Validation result:
+  - Prompt 29 Map Explorer readiness is complete. Typecheck, focused tests, full Map Explorer sweep, production build, and Playwright smoke are green; full-repo lint has only the unrelated Urban Analytics blocker.
+- Risks or blockers:
+  - Low: full-repo `lint:errors` remains blocked by an unrelated Urban Analytics unused import outside this prompt scope.
+  - Low: render-safe normalization intentionally budgets display properties/values; analytical workflows must continue to use validated source metadata and engine outputs, not render-trimmed display payloads.
+- Next recommended prompt:
+  - None. Map Explorer operating pack is complete; future work should be user-requested bug fixes, polish, or a new operating-pack cycle.
+- Ledger updated: yes
+
+### Prompt 28 - QA Harness and E2E Validation
+
+- Date: 2026-05-14
+- Agent: Claude (Opus 4.7)
+- Status: completed
+- Files inspected:
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md` section 25 (test matrix).
+  - `DEVELOPMENT_PLANS/TRI_MODAL_WORKBENCH_ALIGNMENT_SPEC.md` section 15 (Cross-Plan Acceptance Criteria).
+  - `package.json` scripts.
+  - `src/services/map/__tests__/*` (24 existing service tests).
+  - `src/centerpanel/components/map/__tests__/*` (17 existing component/util tests).
+  - `e2e/*` Playwright specs (26 specs).
+  - `src/services/map/MapReviewSessionService.ts` (event-limit constant).
+  - `src/centerpanel/components/map/mapEvidenceArtifacts.ts` (registry cap constant).
+- Files changed:
+  - `src/services/map/__tests__/MapReviewSessionService.test.ts` (added cap test for MAP_REVIEW_SESSION_EVENT_LIMIT).
+  - `src/centerpanel/components/map/__tests__/mapEvidenceArtifacts.test.ts` (added cap test for MAX_MAP_EVIDENCE_ARTIFACTS).
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_MANUAL_QA_CHECKLIST.md` (new manual QA checklist).
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md`
+  - `DEVELOPMENT_PLANS/CURRENT_TASK.json`
+- Implementation notes:
+  - Verified existing unit/component test coverage already spans every Prompt 28 §25.1 and §25.2 row: context selectors, evidence builders, sync bridge, map store, workflow service, engine adapter, export service, report handoff, IDE artifacts, layer manager, QA panel, workflow drawer, report handoff drawer, NL query panel, review timeline panel.
+  - Filled the two true drift-risk gaps with focused bound tests: review session event cap (400) and map evidence registry cap (200). Pending entries and current bounds are validated as untouched.
+  - Did not add brittle snapshot tests for visual polish (per prompt scope rule).
+  - Published `MAP_EXPLORER_MANUAL_QA_CHECKLIST.md` covering all 10 §25.3 E2E journeys plus accessibility, performance/memory bounds, and theme coherence; canonical validation command set is enumerated so future agents know exactly what to run.
+- Spatial evidence/provenance changed:
+  - None.
+- CRS/geometry/measurement changed:
+  - None.
+- Scientific QA changed:
+  - None.
+- Layer registry/persistence changed:
+  - None.
+- Workflow/export/report changed:
+  - None.
+- Cross-module contracts changed:
+  - None.
+- Validation run:
+  - `npm run typecheck` -> Passed.
+  - `npm run test -- src/services/map/__tests__/MapReviewSessionService.test.ts src/centerpanel/components/map/__tests__/mapEvidenceArtifacts.test.ts` -> Passed (10/10).
+  - `npm run test -- src/services/map src/centerpanel/components/map` -> Passed (479 passed / 2 pre-existing skips across 41 files).
+- Validation result:
+  - Prompt 28 QA harness expanded with two bound tests covering durable registry caps, a comprehensive manual QA checklist for non-E2E visual paths, and a full Map suite regression sweep.
+- Risks or blockers:
+  - Low: Playwright E2E was not executed in this prompt (no full dev server boot here); manual QA checklist explicitly enumerates the Playwright commands future agents should run.
+- Next recommended prompt:
+  - Prompt 29 - Final Premium Polish and Handoff.
+- Ledger updated: yes
+
+### Prompt 27 - Performance, Workers, Memory, and Chunking
+
+- Date: 2026-05-14
+- Agent: Claude (Opus 4.7)
+- Status: completed
+- Files inspected:
+  - `DEVELOPMENT_PLANS/CONTEXT_MIN.md`
+  - `DEVELOPMENT_PLANS/CURRENT_TASK.json`
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` Prompt 27 block.
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_DEVELOPMENT_PLAN.md` sections 12 M12 and 23.
+  - `src/stores/useMapExplorerStore.ts`
+  - `src/services/map/MapScientificQA.worker.ts`
+  - `src/services/map/SpatialStatsExecutionQueue.ts`
+  - `src/services/map/ExternalServiceQueue.ts`
+  - `src/workers/pool/BackgroundWorkerPool.ts`
+  - `src/services/map/MapDataImporter.ts`
+  - `src/services/data/pipeline/columnarIO.ts`
+  - `src/centerpanel/components/map/mapContextSummary.ts`
+  - `src/centerpanel/components/map/mapEvidenceArtifacts.ts`
+  - `src/services/map/MapReviewSessionService.ts`
+- Files changed:
+  - `src/centerpanel/components/map/mapTypes.ts` (added `MAP_COPILOT_PROPOSAL_LIMIT` and `MAP_COPILOT_AUDIT_TRAIL_LIMIT`).
+  - `src/stores/useMapExplorerStore.ts` (bounded `copilotActionProposals` and `copilotAuditTrail` via `trimCopilotProposals` / `trimCopilotAuditTrail`).
+  - `src/stores/__tests__/useMapExplorerStore.test.ts` (added long-lived session bound test).
+  - `DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md`
+  - `DEVELOPMENT_PLANS/CURRENT_TASK.json`
+- Implementation notes:
+  - Audit confirmed evidence registry (`MAX_MAP_EVIDENCE_ARTIFACTS = 200`), review timeline (`MAP_REVIEW_SESSION_EVENT_LIMIT = 400`), bookmarks/annotations, and CSV/columnar import previews (`PREVIEW_ROW_LIMIT = 5`) are already bounded.
+  - The only unbounded copilot registries (`copilotActionProposals`, `copilotAuditTrail`) are now bounded at 50 proposals (pending entries always preserved; oldest resolved entries dropped first) and 200 audit entries.
+  - `summarizeOverlayLayer` already emits flat summaries with no `features` payload; layer registry events carry summaries only.
+  - Worker and external service failure paths already degrade truthfully: `BackgroundWorkerPool` recycles slots on error/timeout and rejects the handle promise; `ExternalServiceQueue` falls back to inline execution when `Worker` is unavailable and reuses cached results.
+  - No speculative rerender micro-optimizations introduced; existing Zustand selectors and `setScientificQA` signature short-circuit already prevent redundant updates.
+- Spatial evidence/provenance changed:
+  - None.
+- CRS/geometry/measurement changed:
+  - None.
+- Scientific QA changed:
+  - None.
+- Layer registry/persistence changed:
+  - None; copilot registries are not persisted, so existing `partialize` schema is unchanged.
+- Workflow/export/report changed:
+  - None.
+- Cross-module contracts changed:
+  - None.
+- Validation run:
+  - `npm run typecheck` -> Passed.
+  - `npm run test -- src/stores/__tests__/useMapExplorerStore.test.ts` -> Passed (51/51).
+  - `npm run test -- src/centerpanel/components/map/__tests__/map-accessibility.test.ts src/centerpanel/components/map/__tests__/map-layer-management.test.ts` -> Passed (74/74).
+- Validation result:
+  - Prompt 27 performance/memory hardening validated via typecheck and focused store, accessibility, and layer-management tests covering the new copilot registry bounds.
+- Risks or blockers:
+  - Low: copilot proposal type permits arbitrary `[key: string]: unknown` payloads, so dependent-layer stale recovery cannot be inferred safely from the registry; existing `markDependentAnalysisLayersStale` continues to cover analysis-result staleness for overlay layers.
+- Next recommended prompt:
+  - Prompt 28 (next from helper).
+- Ledger updated: yes
 
 ## Known Risks
 
@@ -2236,6 +2663,7 @@ Append validation runs here.
 | 2026-05-13 | Prompt 22 | Temporal playback evidence currently captures component-level playback state rather than a formal temporal layer registry entry. | Low | Future temporal registry work can add source-layer provenance without changing the Prompt 22 reference-only evidence contract. |
 | 2026-05-13 | Prompt 22 | Scenario report/dashboard handoff IDs are stable metadata references, not proof of downstream materialized report inserts or widgets. | Low | Downstream report/dashboard actions should materialize and register their own artifacts when invoked. |
 | 2026-05-13 | Prompt 24 | NL query interpretation is deterministic/rule-based and should not be treated as semantic certainty. | Low | UI and review events now expose confidence, ambiguity, required fields, affected layers, and explicit accept/reject decisions; Prompt 25 can add richer timeline review filters. |
+| 2026-05-14 | Prompt 25 | Review event orchestration is still partly centralized in `MapExplorerModal.tsx`. | Low | The new review event schema is additive; future command-hook decomposition can reuse it without moving heavy payloads through audit entries. |
 
 ## Next Prompt Pointer
 
@@ -2245,13 +2673,16 @@ Start with:
 
 Prompt:
 
-`Prompt 25 - Review Timeline and Audit Trail`
+`None - Map Explorer operating pack completed through Prompt 29 on 2026-05-14.`
 
 Optional helper command:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/get-next-map-explorer-prompt.ps1
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+.\scripts\get-next-map-explorer-prompt.ps1 -Json
 ```
+
+Expected helper result after Prompt 29 completion: no pending Map Explorer prompt. Use a new prompt pack or user-directed task for future work.
 
 ## Ledger Update Checklist
 

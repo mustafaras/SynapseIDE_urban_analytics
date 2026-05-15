@@ -11,9 +11,6 @@ import { useFileExplorerStore, useFileOperations } from '../../stores/fileExplor
 const MonacoEditor = React.lazy(() =>
   import('../editor/MonacoEditor').then(m => ({ default: m.MonacoEditor }))
 );
-const MapExplorerModal = React.lazy(() =>
-  import('@/centerpanel/components/MapExplorerModal').then(m => ({ default: m.MapExplorerModal }))
-);
 import { SynapseCoreAIPanel } from '../ai/panel/SynapseCoreAIPanel';
 import { flags } from '../../config/flags';
 import { FileExplorer } from '../file-explorer/FileExplorer';
@@ -155,8 +152,6 @@ export const EnhancedIDE: React.FC = () => {
 
   const { addFile: addFileNode, clearFiles } = useFileOperations();
   const fileTree = useFileExplorerStore(s => s.files);
-  const isMapOpen = useMapExplorerStore(s => s.isOpen);
-  const closeMap = useMapExplorerStore(s => s.close);
 
 
   const { closeAllTabs } = useTabActions();
@@ -1837,26 +1832,6 @@ export const EnhancedIDE: React.FC = () => {
           </div>
         )}
 
-        {isMapOpen ? (
-          <Suspense
-            fallback={(
-              <div
-                style={{
-                  position: 'fixed',
-                  top: 12,
-                  right: 12,
-                  zIndex: 11000,
-                  color: 'var(--syn-interaction-active)',
-                }}
-              >
-                Loading Map Explorer...
-              </div>
-            )}
-          >
-            <MapExplorerModal open={isMapOpen} onClose={closeMap} />
-          </Suspense>
-        ) : null}
-
         {}
         <CommandPalette
           isOpen={isCmdOpen}
@@ -1935,9 +1910,9 @@ export const EnhancedIDE: React.FC = () => {
                 width: 10,
                 cursor: 'col-resize',
                 background:
-                  'color-mix(in srgb, var(--syn-interaction-active) 12%, var(--syn-surface-panel) 88%)',
-                borderLeft: '1px solid var(--syn-border-subtle)',
-                borderRight: '1px solid var(--syn-border-subtle)',
+                  'var(--syn-gradient-glass-amber)',
+                borderLeft: '1px solid rgba(255,255,255,0.08)',
+                borderRight: '1px solid rgba(255,255,255,0.08)',
                 backdropFilter: 'blur(4px)',
                 boxShadow: 'var(--syn-shadow-card)',
                 transition: 'background 0.25s var(--syn-easing-bauhaus)',
@@ -1945,11 +1920,11 @@ export const EnhancedIDE: React.FC = () => {
               }}
               onMouseEnter={e => {
                 e.currentTarget.style.background =
-                  'color-mix(in srgb, var(--syn-interaction-active) 16%, var(--syn-surface-panel) 84%)';
+                  'var(--syn-gradient-glass-amber)';
               }}
               onMouseLeave={e => {
                 e.currentTarget.style.background =
-                  'color-mix(in srgb, var(--syn-interaction-active) 12%, var(--syn-surface-panel) 88%)';
+                  'var(--syn-gradient-glass-amber)';
               }}
             />
             {}
