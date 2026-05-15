@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Color System Palette Preview</title>
+  <style>
+    :root {
+      --bg: #1b1f26;
+      --panel: #222833;
+      --panel-2: #272f3b;
+      --border: #364050;
+      --text: #d7dce5;
+      --muted: #9aa4b4;
+      --accent: #3794ff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+      background: radial-gradient(circle at 10% -20%, #2a3140, transparent 40%),
+                  radial-gradient(circle at 90% 0%, #332a1f, transparent 35%),
+                  var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 28px;
+    }
+
+    .shell {
+      max-width: 1400px;
+      margin: 0 auto;
+      border: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01));
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 18px 44px rgba(0, 0, 0, 0.4);
+    }
+
+    .header {
+      padding: 18px 22px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.01);
+    }
+
+    .title {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .subtitle {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 18px;
+      padding: 18px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .card {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--panel);
+      overflow: hidden;
+    }
+
+    .card h2 {
+      margin: 0;
+      padding: 12px 14px;
+      font-size: 14px;
+      font-weight: 700;
+      border-bottom: 1px solid var(--border);
+      color: #cfe0ff;
+      background: linear-gradient(90deg, rgba(55, 148, 255, 0.14), transparent 55%);
+    }
+
+    .swatches {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      padding: 12px;
+    }
+
+    .swatch {
+      display: grid;
+      grid-template-columns: 62px 1fr;
+      gap: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      background: var(--panel-2);
+      overflow: hidden;
+      min-height: 56px;
+    }
+
+    .chip {
+      border-right: 1px solid rgba(255, 255, 255, 0.08);
+      min-height: 56px;
+    }
+
+    .meta {
+      padding: 8px 8px 8px 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 3px;
+    }
+
+    .token {
+      font-size: 12px;
+      line-height: 1.2;
+      color: #e6ecf8;
+      word-break: break-word;
+      font-weight: 600;
+    }
+
+    .hex {
+      color: #b2bdcf;
+      font-size: 11px;
+      letter-spacing: 0.02em;
+    }
+
+    .usage {
+      color: #8e9ab0;
+      font-size: 11px;
+    }
+
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 12px 16px;
+      color: #98a5bb;
+      font-size: 12px;
+      background: rgba(255, 255, 255, 0.01);
+    }
+
+    @media (max-width: 1080px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="header">
+      <h1 class="title">Urban Analytics Workbench Color Palette</h1>
+      <p class="subtitle">VS Code-inspired dark workbench palette. UI chrome/status colors are separate from analytical data palettes.</p>
+    </section>
+
+    <section class="grid">
+      <article class="card">
+        <h2>Surface And Text Primitives</h2>
+        <div class="swatches">
+          <div class="swatch"><div class="chip" style="background:#1e1f24"></div><div class="meta"><div class="token">--syn-vscode-bg-root</div><div class="hex">#1E1F24</div><div class="usage">App root background</div></div></div>
+          <div class="swatch"><div class="chip" style="background:#24272f"></div><div class="meta"><div class="token">--syn-vscode-bg-activity</div><div class="hex">#24272F</div><div class="usage">Activity rail chrome</div></div></div>
+          <div class="swatch"><div class="chip" style="background:#252a31"></div><div class="meta"><div class="token">--syn-vscode-bg-sidebar</div><div class="hex">#252A31</div><div class="usage">Sidebars and tree views</div></div></div>
+          <div class="swatch"><div class="chip" style="background:#1f232a"></div><div class="meta"><div class="token">--syn-vscode-bg-editor</div><div class="hex">#1F232A</div><div class="usage">Editor and map work area</div></div></div>
+          <div class="swatch"><div class="chip" style="background:#232832"></div><div class="meta"><div class="token">--syn-vscode-bg-panel</div><div class="hex">#232832</div><div class="usage">Bottom and right panels</div></div></div>
+          <div class="swatch"><div class="chip" style="background:#2b3038"></div><div class="meta"><div class="token">--syn-vscode-bg-elevated</div><div class="hex">#2B3038</div><div class="usage">Menus and overlays</div></div></div>
+          <div class="swatch"><div class="chip" style="background:#d7dce5"></div><div class="meta"><div class="token">--syn-vscode-text-primary</div><div class="hex">#D7DCE5</div><div class="usage">Primary text</div></div></div>
+          <div class="swatch"><div class="chip" style="background:#a4adbb"></div><div class="meta"><div class="token">--syn-vscode-text-secondary</div><div class="hex">#A4ADBB</div><div class="usage">Secondary text</div></div></div>
+        </div>
+      </article>
+
+      <article class="card">
+        <h2>Interactive And Attention Accents</h2>
+        <div class="swatches">
+          <div class="swatch"><div class="chip" style="background:#3794ff"></div><div class="meta"><div class="token">--syn-vscode-accent-blue</div><div class="hex">#3794FF</div><div class="usage">Active, selected, focus</div></div></div>
+          <div class="swatch"><div class="chip" style="background:#1f4f7f"></div><div class="meta"><div class="token">--syn-vscode-accent-blue-soft</div><div class="hex">#1F4F7F</div><div class="usage">Soft selected fill</div></div></div>
+          <div class="swatch"><div class="chip" style="background:#d6a84f"></div><div class="meta"><div class="token">--syn-vscode-attention-amber</div><div class="hex">#D6A84F</div><div class="usage">Warning and provenance</div></div></div>
+          <div class="swatch"><div class="chip" style="background:#4a3a1e"></div><div class="meta"><div class="token">--syn-vscode-attention-amber-soft</div><div class="hex">#4A3A1E</div><div class="usage">Soft attention background</div></div></div>
+          <div class="swatch"><div class="chip" style="background:#343a44"></div><div class="meta"><div class="token">--syn-vscode-border-subtle</div><div class="hex">#343A44</div><div class="usage">Thin separators</div></div></div>
+          <div class="swatch"><div class="chip" style="background:#4a5260"></div><div class="meta"><div class="token">--syn-vscode-border-strong</div><div class="hex">#4A5260</div><div class="usage">Active borders</div></div></div>
+        </div>
+      </article>
+
+      <article class="card">
+        <h2>Status Semantics</h2>
+        <div class="swatches">
+          <div class="swatch"><div class="chip" style="background:#4ec27d"></div><div class="meta"><div class="token">--syn-status-valid</div><div class="hex">#4EC27D</div><div class="usage">Ready and valid only</div></div></div>
+          <div class="swatch"><div class="chip" style="background:#d6a84f"></div><div class="meta"><div class="token">--syn-status-warning</div><div class="hex">#D6A84F</div><div class="usage">Warning and review</div></div></div>
+          <div class="swatch"><div class="chip" style="background:#f87171"></div><div class="meta"><div class="token">--syn-status-error</div><div class="hex">#F87171</div><div class="usage">Error and invalid</div></div></div>
+          <div class="swatch"><div class="chip" style="background:#6aa9ff"></div><div class="meta"><div class="token">--syn-status-info</div><div class="hex">#6AA9FF</div><div class="usage">Informational states</div></div></div>
+          <div class="swatch"><div class="chip" style="background:#9aa3b2"></div><div class="meta"><div class="token">--syn-status-stale</div><div class="hex">#9AA3B2</div><div class="usage">Stale and outdated</div></div></div>
+          <div class="swatch"><div class="chip" style="background:#858b96"></div><div class="meta"><div class="token">--syn-status-unknown</div><div class="hex">#858B96</div><div class="usage">Unknown and unverified</div></div></div>
+          <div class="swatch"><div class="chip" style="background:#c084fc"></div><div class="meta"><div class="token">--syn-status-demo</div><div class="hex">#C084FC</div><div class="usage">Demo and synthetic only</div></div></div>
+          <div class="swatch"><div class="chip" style="background:#a4adbb"></div><div class="meta"><div class="token">--syn-status-pending</div><div class="hex">#A4ADBB</div><div class="usage">Pending and waiting</div></div></div>
+        </div>
+      </article>
+
+      <article class="card">
+        <h2>Data Visualization Families</h2>
+        <div class="swatches">
+          <div class="swatch"><div class="chip" style="background:#24324a"></div><div class="meta"><div class="token">Sequential 1</div><div class="hex">#24324A</div><div class="usage">Low intensity bins</div></div></div>
+          <div class="swatch"><div class="chip" style="background:#2f4f7a"></div><div class="meta"><div class="token">Sequential 2</div><div class="hex">#2F4F7A</div><div class="usage">Mid-low bins</div></div></div>
+          <div class="swatch"><div class="chip" style="background:#3b74b2"></div><div class="meta"><div class="token">Sequential 3</div><div class="hex">#3B74B2</div><div class="usage">Mid bins</div></div></div>
+          <div class="swatch"><div class="chip" style="background:#64a5e8"></div><div class="meta"><div class="token">Sequential 4</div><div class="hex">#64A5E8</div><div class="usage">Mid-high bins</div></div></div>
+          <div class="swatch"><div class="chip" style="background:#a9d0f5"></div><div class="meta"><div class="token">Sequential 5</div><div class="hex">#A9D0F5</div><div class="usage">High bins</div></div></div>
+          <div class="swatch"><div class="chip" style="background:#2f4f7a"></div><div class="meta"><div class="token">Diverging Low</div><div class="hex">#2F4F7A</div><div class="usage">Below center</div></div></div>
+          <div class="swatch"><div class="chip" style="background:#697586"></div><div class="meta"><div class="token">Diverging Mid</div><div class="hex">#697586</div><div class="usage">Center band</div></div></div>
+          <div class="swatch"><div class="chip" style="background:#d6a84f"></div><div class="meta"><div class="token">Diverging High</div><div class="hex">#D6A84F</div><div class="usage">Above center</div></div></div>
+        </div>
+      </article>
+    </section>
+
+    <section class="footer">
+      Generated from COLOR_SYSTEM_PLANS operating pack. Use semantic tokens in components and keep analytical palettes independent from UI chrome statuses.
+    </section>
+  </main>
+</body>
+</html>

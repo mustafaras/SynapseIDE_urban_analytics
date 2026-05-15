@@ -36,6 +36,8 @@ npm run validate:rc      # full RC gate
 The `DEVELOPMENT_PLANS/` folder is durable memory. Source-of-truth order:
 **Ledger > live repo > manifest > sequential prompts > development plan > alignment spec**
 
+For archive or handoff work, start with [DEVELOPMENT_PLANS/README.md](DEVELOPMENT_PLANS/README.md) and [DEVELOPMENT_PLANS/ARCHIVE_READINESS.md](DEVELOPMENT_PLANS/ARCHIVE_READINESS.md). The local branch can be stale relative to `origin/master`; reconcile branch state before moving archived plans.
+
 Single entry point per module:
 - [DEVELOPMENT_PLANS/START_HERE_URBAN_ANALYTICS_AGENT.md](DEVELOPMENT_PLANS/START_HERE_URBAN_ANALYTICS_AGENT.md)
 - [DEVELOPMENT_PLANS/START_HERE_MAP_EXPLORER_AGENT.md](DEVELOPMENT_PLANS/START_HERE_MAP_EXPLORER_AGENT.md)

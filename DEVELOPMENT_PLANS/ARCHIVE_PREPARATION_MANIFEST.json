@@ -1,0 +1,63 @@
+{
+  "schemaVersion": "1.0.0",
+  "auditDate": "2026-05-14",
+  "archiveState": "prepared_not_moved",
+  "reasonNotMoved": "Current local master is stale/diverged from origin/master and dry merge-tree reports conflicts in Map Explorer files.",
+  "sourceOfTruth": {
+    "preferredBranch": "origin/master",
+    "preferredCommit": "024f3e95803ea87c68971c171662d26199a88cb1",
+    "localBranch": "master",
+    "localCommit": "d312c6a02c8c1c0c04fe460034cff9b8404463f9",
+    "observedDivergence": "master...origin/master [ahead 4, behind 8]"
+  },
+  "moduleStatus": {
+    "urbanAnalytics": {
+      "status": "complete",
+      "evidence": "Local helper reports all Urban Analytics prompts are completed or skipped with reason; origin/master ledger records all 30 prompts complete."
+    },
+    "synapseIde": {
+      "status": "complete",
+      "evidence": "Local helper reports all Synapse IDE prompts are completed or skipped with reason; origin/master ledger records all 30 prompts complete."
+    },
+    "mapExplorer": {
+      "status": "complete_on_origin_master_stale_locally",
+      "localHelper": "Prompt 25 - Review Timeline and Audit Trail",
+      "remoteLedger": "Map Explorer prompt ladder complete. 30 of 30 prompts completed.",
+      "remoteHelperRecordedResult": "status: all_completed; nextPrompt: null"
+    }
+  },
+  "knownConflictFiles": [
+    "DEVELOPMENT_PLANS/MAP_EXPLORER_IMPLEMENTATION_LEDGER.md",
+    "src/App.tsx",
+    "src/centerpanel/components/MapExplorerModal.tsx",
+    "src/centerpanel/components/map/MapLayerManager.tsx",
+    "src/centerpanel/components/map/MapReportHandoffDrawer.tsx",
+    "src/centerpanel/components/map/MapWorkspaceShell.tsx",
+    "src/centerpanel/components/map/__tests__/map-layer-management.test.ts",
+    "src/centerpanel/components/map/index.ts",
+    "src/centerpanel/components/map/mapTypes.ts",
+    "src/stores/useMapExplorerStore.ts"
+  ],
+  "archiveTarget": "DEVELOPMENT_PLANS/archive/tri-modal-operating-pack-2026-05-14/",
+  "archiveTargetPlaceholder": "DEVELOPMENT_PLANS/archive/tri-modal-operating-pack-2026-05-14/README.md",
+  "preArchiveActions": [
+    "Reconcile local master with origin/master without dropping local work.",
+    "Resolve Map Explorer conflicts using origin/master ledger completion as the preferred execution record unless live code proves otherwise.",
+    "Run scripts/get-next-urban-analytics-prompt.ps1, scripts/get-next-synapse-ide-prompt.ps1, and scripts/get-next-map-explorer-prompt.ps1 on the reconciled branch.",
+    "Confirm all helpers report no pending prompts or all_completed.",
+    "Move completed tri-modal operating-pack files into the archive target.",
+    "Leave root README/start stubs that point future agents to the archive target and to COLOR_SYSTEM_PLANS for new color work."
+  ],
+  "rootFilesToKeepAfterArchive": [
+    "DEVELOPMENT_PLANS/README.md",
+    "DEVELOPMENT_PLANS/ARCHIVE_READINESS.md",
+    "DEVELOPMENT_PLANS/ARCHIVE_PREPARATION_MANIFEST.json",
+    "DEVELOPMENT_PLANS/ARCHIVE_PREPARATION_CHECKLIST.md",
+    "DEVELOPMENT_PLANS/archive/README.md"
+  ],
+  "nextPlanningPack": {
+    "name": "Color System Plans",
+    "entry": "COLOR_SYSTEM_PLANS/START_HERE_COLOR_SYSTEM_AGENT.md",
+    "status": "installed_not_implemented"
+  }
+}

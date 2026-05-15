@@ -100,8 +100,12 @@ These rules are enforced by the domain and must not be violated silently:
 
 The `DEVELOPMENT_PLANS/` folder is the **durable memory system** for multi-session agent work. Always consult it before editing Urban Analytics, Map Explorer, or Synapse IDE features.
 
+Before archive, handoff, or new planning-pack work, read `DEVELOPMENT_PLANS/README.md` and `DEVELOPMENT_PLANS/ARCHIVE_READINESS.md`. The current local branch may be stale relative to `origin/master`; ledgers on the reconciled branch remain the execution source of truth.
+
 | File | Role |
 |---|---|
+| [`DEVELOPMENT_PLANS/README.md`](DEVELOPMENT_PLANS/README.md) | Current plan-pack index, archive status, and branch-divergence warning |
+| [`DEVELOPMENT_PLANS/ARCHIVE_READINESS.md`](DEVELOPMENT_PLANS/ARCHIVE_READINESS.md) | Archive gate, source-of-truth status, and conflict notes |
 | [`DEVELOPMENT_PLANS/URBAN_ANALYTICS_IMPLEMENTATION_LEDGER.md`](DEVELOPMENT_PLANS/URBAN_ANALYTICS_IMPLEMENTATION_LEDGER.md) | **Execution source of truth** — prompt status, files changed, validation history, risks |
 | [`DEVELOPMENT_PLANS/URBAN_ANALYTICS_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md`](DEVELOPMENT_PLANS/URBAN_ANALYTICS_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md) | Ordered prompt ladder — scope, acceptance criteria, stop conditions |
 | [`DEVELOPMENT_PLANS/URBAN_ANALYTICS_PROMPT_MANIFEST.json`](DEVELOPMENT_PLANS/URBAN_ANALYTICS_PROMPT_MANIFEST.json) | Machine-readable prompt catalog |
