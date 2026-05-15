@@ -443,6 +443,34 @@ export const MapWorkflowDrawer: React.FC<MapWorkflowDrawerProps> = ({
     event.preventDefault();
   }, [maxWidth, minWidth, onWidthChange, presentation, width]);
 
+  const handleResizeKeyDown = React.useCallback<React.KeyboardEventHandler<HTMLDivElement>>((event) => {
+    if (presentation !== "right-rail" || !onWidthChange) {
+      return;
+    }
+
+    const currentWidth = width ?? 430;
+    const step = event.shiftKey ? 32 : 12;
+    let nextWidth: number | null = null;
+
+    if (event.key === "ArrowLeft") {
+      nextWidth = currentWidth + step;
+    } else if (event.key === "ArrowRight") {
+      nextWidth = currentWidth - step;
+    } else if (event.key === "Home") {
+      nextWidth = minWidth;
+    } else if (event.key === "End") {
+      nextWidth = maxWidth;
+    }
+
+    if (nextWidth == null) {
+      return;
+    }
+
+    event.preventDefault();
+    onWidthChange(clampPanelWidth(nextWidth, minWidth, maxWidth));
+    onAnnounce?.(`Workflow panel resized to ${clampPanelWidth(nextWidth, minWidth, maxWidth)} pixels`);
+  }, [maxWidth, minWidth, onAnnounce, onWidthChange, presentation, width]);
+
   useEffect(() => {
     if (!visible || !initialDraftRequest) {
       return;
@@ -507,6 +535,12 @@ export const MapWorkflowDrawer: React.FC<MapWorkflowDrawerProps> = ({
     onSaveReport?.(result.reportItem);
     onAnnounce?.(`${result.reportItem.title} saved as report item.`);
   };
+  const applyStatusId = "map-workflow-apply-status";
+  const applyStatusText = preview.canApply
+    ? "Ready to apply; derived layer will register with provenance and QA."
+    : preview.nextRequiredStep
+      ? `Missing prerequisite: complete ${MAP_WORKFLOW_STEP_LABELS[preview.nextRequiredStep]}.`
+      : "Missing prerequisite: configure workflow inputs.";
 
   return (
     <div
@@ -521,10 +555,16 @@ export const MapWorkflowDrawer: React.FC<MapWorkflowDrawerProps> = ({
           role="separator"
           aria-orientation="vertical"
           aria-label="Resize workflow analysis panel"
+          aria-valuemin={minWidth}
+          aria-valuemax={maxWidth}
+          aria-valuenow={width ?? 430}
+          aria-valuetext={`${width ?? 430} pixels`}
+          tabIndex={0}
           style={workflowResizeHandleStyle}
           onPointerDown={handleResizePointerDown}
+          onKeyDown={handleResizeKeyDown}
           data-testid="map-workflow-panel-resize-handle"
-          title="Drag to resize workflow analysis panel"
+          title="Drag or use arrow keys to resize workflow analysis panel"
         />
       ) : null}
       <div
@@ -566,6 +606,7 @@ export const MapWorkflowDrawer: React.FC<MapWorkflowDrawerProps> = ({
                   style={active ? tileButtonActive : tileButtonBase}
                   onClick={() => setKind(option.kind)}
                   aria-pressed={active}
+                  aria-label={`${option.label}: ${option.description}`}
                 >
                   <div style={{ display: "flex", gap: MAP_SPACING.xs, alignItems: "center" }}>
                     {option.icon}
@@ -714,14 +755,12 @@ export const MapWorkflowDrawer: React.FC<MapWorkflowDrawerProps> = ({
         }}
       >
         <div
+          id={applyStatusId}
           style={{ color: MAP_COLORS.textMuted, fontSize: MAP_TYPOGRAPHY.fontSize.xs }}
+          role="status"
           aria-live="polite"
         >
-          {preview.canApply
-            ? "Ready to apply — derived layer will register with provenance and QA."
-            : preview.nextRequiredStep
-              ? `Next required: ${MAP_WORKFLOW_STEP_LABELS[preview.nextRequiredStep]}`
-              : "Configure inputs to continue."}
+          {applyStatusText}
         </div>
         <button
           type="button"
@@ -732,7 +771,8 @@ export const MapWorkflowDrawer: React.FC<MapWorkflowDrawerProps> = ({
           }}
           onClick={handleApply}
           disabled={!preview.canApply}
-          aria-label="Apply spatial workflow"
+          aria-describedby={applyStatusId}
+          aria-label={preview.canApply ? "Apply spatial workflow" : `Apply spatial workflow blocked: ${applyStatusText}`}
           title={preview.canApply
             ? "Apply the configured workflow and register provenance, QA, and report metadata."
             : preview.nextRequiredStep
@@ -901,6 +941,9 @@ const AOIEditor: React.FC<EditorParams & { draft: MapWorkflowAOIDraft }> = ({ dr
                 onClick={() => updateDraft({ source: sourceKind })}
                 title={disabledReason ?? undefined}
                 aria-pressed={active}
+                aria-label={disabledReason
+                  ? `${MAP_WORKFLOW_AOI_SOURCE_LABELS[sourceKind]} unavailable: ${disabledReason}`
+                  : `Use ${MAP_WORKFLOW_AOI_SOURCE_LABELS[sourceKind]} as AOI source`}
               >
                 <strong>{MAP_WORKFLOW_AOI_SOURCE_LABELS[sourceKind]}</strong>
                 {disabledReason ? (
@@ -975,6 +1018,9 @@ const BufferEditor: React.FC<EditorParams & { draft: MapWorkflowBufferDraft }> =
             disabled={context.selectedFeatures.length === 0}
             onClick={() => updateDraft({ sourceMode: "selected-features", sourceLayerId: null })}
             aria-pressed={sourceMode === "selected-features"}
+            aria-label={context.selectedFeatures.length === 0
+              ? "Selected features buffer source unavailable: select one or more map features."
+              : `Use ${context.selectedFeatures.length.toLocaleString()} selected feature(s) as buffer source`}
             title={context.selectedFeatures.length === 0 ? "Select map features before buffering a selection" : undefined}
           >
             <strong>Selected features</strong>
@@ -1182,6 +1228,7 @@ const UnionEditor: React.FC<EditorParams & { draft: MapWorkflowUnionDraft }> = (
             style={selectStyle}
             value={draft.dissolve ? "yes" : "no"}
             onChange={(event) => updateDraft({ dissolve: event.target.value === "yes" })}
+            aria-label="Dissolve union overlap"
           >
             <option value="yes">Yes (one combined polygon)</option>
             <option value="no">No (keep each feature)</option>

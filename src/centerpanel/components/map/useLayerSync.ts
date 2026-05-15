@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import type maplibregl from "maplibre-gl";
-import { normalizeGeoJSONSourceData } from "@/services/map/MapDataImporter";
+import {
+  normalizeGeoJSONSourceDataForRender,
+  type GeoJSONRenderNormalizationOptions,
+} from "@/services/map/MapDataImporter";
 import { normalizeXyzTileUrlTemplate } from "@/services/map/ExternalTileUrlTemplates";
 import type { OverlayLayerConfig } from "./mapTypes";
 import { MAP_COLORS } from "./mapTokens";
@@ -19,6 +22,7 @@ const COMPANION_CIRCLE_COLOR_STYLE_KEY = "__companionCircleColor";
 const COMPANION_CIRCLE_OPACITY_STYLE_KEY = "__companionCircleOpacity";
 const COMPANION_CIRCLE_STROKE_COLOR_STYLE_KEY = "__companionCircleStrokeColor";
 const COMPANION_CIRCLE_STROKE_WIDTH_STYLE_KEY = "__companionCircleStrokeWidth";
+const EMPTY_FEATURE_COLLECTION: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
 
 function labelLayerId(layerId: string): string {
   return `${layerId}__labels`;
@@ -48,6 +52,31 @@ function getInternalStyleValue<T>(
   key: string,
 ): T | undefined {
   return style?.[key] as T | undefined;
+}
+
+function collectExpressionPropertyKeys(value: unknown, output: Set<string>): void {
+  if (!Array.isArray(value)) return;
+  if (value[0] === "get" && typeof value[1] === "string") {
+    output.add(value[1]);
+  }
+  for (const entry of value) {
+    collectExpressionPropertyKeys(entry, output);
+  }
+}
+
+function buildRenderNormalizationOptions(layer: OverlayLayerConfig): GeoJSONRenderNormalizationOptions {
+  const preservePropertyKeys = new Set<string>();
+  const labelField = getInternalStyleValue<string>(layer.style, LABEL_FIELD_STYLE_KEY);
+  if (labelField) preservePropertyKeys.add(labelField);
+
+  const classificationField = typeof layer.style?.classificationField === "string"
+    ? layer.style.classificationField
+    : null;
+  if (classificationField) preservePropertyKeys.add(classificationField);
+
+  Object.values(layer.style ?? {}).forEach((value) => collectExpressionPropertyKeys(value, preservePropertyKeys));
+
+  return { preservePropertyKeys: Array.from(preservePropertyKeys) };
 }
 
 /* ================================================================== */
@@ -127,6 +156,20 @@ function opacityKey(mlType: string): string {
 
 function isGeoJSONBackedLayer(layer: OverlayLayerConfig): boolean {
   return layer.type === "geojson" || layer.type === "heatmap";
+}
+
+function resolveGeoJSONRenderData(
+  layer: OverlayLayerConfig,
+): GeoJSON.FeatureCollection | GeoJSON.Feature | GeoJSON.Geometry | string {
+  if (!layer.visible) {
+    return EMPTY_FEATURE_COLLECTION;
+  }
+  return (normalizeGeoJSONSourceDataForRender(layer.sourceData, buildRenderNormalizationOptions(layer)) as
+    | GeoJSON.FeatureCollection
+    | GeoJSON.Feature
+    | GeoJSON.Geometry
+    | string
+    | undefined) ?? EMPTY_FEATURE_COLLECTION;
 }
 
 function getManagedLayerIds(layer: OverlayLayerConfig): string[] {
@@ -230,7 +273,7 @@ function addManagedLayer(map: maplibregl.Map, layer: OverlayLayerConfig): void {
   } else {
     map.addSource(layer.id, {
       type: "geojson",
-      data: normalizeGeoJSONSourceData(layer.sourceData) ?? { type: "FeatureCollection", features: [] },
+      data: resolveGeoJSONRenderData(layer),
     });
   }
 
@@ -343,18 +386,10 @@ export function useLayerSync(
 
       /* Existing layer — diff and update properties */
       if (prevLayer) {
-        if (prevLayer.sourceData !== layer.sourceData && isGeoJSONBackedLayer(layer)) {
+        if ((prevLayer.sourceData !== layer.sourceData || prevLayer.visible !== layer.visible) && isGeoJSONBackedLayer(layer)) {
           try {
             const source = map.getSource(layer.id) as maplibregl.GeoJSONSource | undefined;
-            source?.setData(
-              (normalizeGeoJSONSourceData(layer.sourceData) as
-                | GeoJSON.FeatureCollection
-                | GeoJSON.Feature
-                | GeoJSON.Geometry
-                | string
-                | undefined) ??
-                { type: "FeatureCollection", features: [] },
-            );
+            source?.setData(resolveGeoJSONRenderData(layer));
           } catch { /* ignore */ }
         }
 

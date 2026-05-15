@@ -7,6 +7,7 @@ import type {
   LayerCrsSummary,
   LayerLicenseAttributionSummary,
   LayerMetadata,
+  LayerRenderBudgetMetadata,
   LayerScientificQAMetadata,
   OverlayGeometryType,
   OverlayLayerConfig,
@@ -27,6 +28,12 @@ import {
 export const MAX_IMPORT_FILE_SIZE_BYTES = 50 * 1024 * 1024;
 export const MAX_GEOJSON_FILE_SIZE_BYTES = MAX_IMPORT_FILE_SIZE_BYTES;
 export const IMPORT_PROGRESS_THRESHOLD_BYTES = 1 * 1024 * 1024;
+export const MAP_GEOJSON_RENDER_FEATURE_BUDGET = 30_000;
+export const MAP_GEOJSON_RENDER_COORDINATE_BUDGET = 150_000;
+export const MAP_GEOJSON_RENDER_MEMORY_BUDGET_BYTES = 64 * 1024 * 1024;
+export const MAP_GEOJSON_DEEP_TOPOLOGY_COORDINATE_BUDGET = 250_000;
+export const MAP_GEOJSON_RENDER_PROPERTY_FIELD_BUDGET = 24;
+export const MAP_GEOJSON_RENDER_PROPERTY_VALUE_CHAR_BUDGET = 160;
 export const MAP_IMPORT_ACCEPT_ATTRIBUTE = [
   ".geojson",
   ".json",
@@ -55,6 +62,32 @@ export const MAP_IMPORT_ACCEPT_ATTRIBUTE = [
 
 const LATITUDE_COLUMN_PRIORITY = ["latitude", "lat", "y"] as const;
 const LONGITUDE_COLUMN_PRIORITY = ["longitude", "lng", "lon", "x"] as const;
+const ESTIMATED_BYTES_PER_FEATURE = 256;
+const ESTIMATED_BYTES_PER_COORDINATE = 32;
+const ESTIMATED_BYTES_PER_PROPERTY_CELL = 48;
+const PREFERRED_RENDER_PROPERTY_KEYS = [
+  "id",
+  "name",
+  "label",
+  "title",
+  "category",
+  "class",
+  "type",
+  "value",
+  "score",
+  "density",
+  "population",
+  "detection_class",
+  "land_cover_class",
+  "cluster_label",
+  "query_intent",
+];
+
+export interface GeoJSONRenderNormalizationOptions {
+  preservePropertyKeys?: readonly string[];
+  propertyFieldLimit?: number;
+  propertyValueCharLimit?: number;
+}
 
 export type MapImportFileKind = "geojson" | "csv" | "arrow" | "geoparquet" | "kml" | "kmz" | "gpx";
 
@@ -401,12 +434,34 @@ function validateGeometryStructure(geometry: Geometry, context: string): void {
   }
 }
 
-function validateTopology(geometry: Geometry, context: string): void {
+function countTopologyCoordinateArray(input: unknown): number {
+  if (!Array.isArray(input) || input.length === 0) return 0;
+  if (typeof input[0] === "number") return 1;
+  return input.reduce((coordinateCount, entry) => coordinateCount + countTopologyCoordinateArray(entry), 0);
+}
+
+function countTopologyGeometryCoordinates(geometry: Geometry): number {
   if (geometry.type === "GeometryCollection") {
-    geometry.geometries.forEach((child, index) =>
-      validateTopology(child, `${context} GeometryCollection geometry ${index + 1}`),
+    return geometry.geometries.reduce(
+      (coordinateCount, childGeometry) => coordinateCount + countTopologyGeometryCoordinates(childGeometry),
+      0,
     );
-    return;
+  }
+  return countTopologyCoordinateArray((geometry as Exclude<Geometry, GeoJSON.GeometryCollection>).coordinates);
+}
+
+function validateTopology(geometry: Geometry, context: string): boolean {
+  if (countTopologyGeometryCoordinates(geometry) > MAP_GEOJSON_DEEP_TOPOLOGY_COORDINATE_BUDGET) {
+    return false;
+  }
+
+  if (geometry.type === "GeometryCollection") {
+    let allChecked = true;
+    geometry.geometries.forEach((child, index) => {
+      const childChecked = validateTopology(child, `${context} GeometryCollection geometry ${index + 1}`);
+      allChecked = allChecked && childChecked;
+    });
+    return allChecked;
   }
 
   if (geometry.type === "Polygon" || geometry.type === "MultiPolygon") {
@@ -419,6 +474,8 @@ function validateTopology(geometry: Geometry, context: string): void {
   if (!booleanValid(geometry)) {
     throw new MapDataImportError(`${context} is not a valid GeoJSON geometry.`);
   }
+
+  return true;
 }
 
 function normalizeFeature(feature: Feature, index?: number): Feature {
@@ -473,14 +530,26 @@ export function normalizeGeoJSONInput(input: unknown): FeatureCollection {
   };
 }
 
-export function validateFeatureCollection(featureCollection: FeatureCollection): void {
+export interface FeatureCollectionValidationSummary {
+  topologyCheckedFeatureCount: number;
+  topologyDeferredFeatureCount: number;
+}
+
+export function validateFeatureCollection(featureCollection: FeatureCollection): FeatureCollectionValidationSummary {
+  let topologyCheckedFeatureCount = 0;
+  let topologyDeferredFeatureCount = 0;
   featureCollection.features.forEach((feature, index) => {
     if (!feature.geometry) {
       throw new MapDataImportError(`Feature ${index + 1} has null geometry, which is not supported.`);
     }
     validateGeometryStructure(feature.geometry, `Feature ${index + 1}`);
-    validateTopology(feature.geometry, `Feature ${index + 1}`);
+    if (validateTopology(feature.geometry, `Feature ${index + 1}`)) {
+      topologyCheckedFeatureCount += 1;
+    } else {
+      topologyDeferredFeatureCount += 1;
+    }
   });
+  return { topologyCheckedFeatureCount, topologyDeferredFeatureCount };
 }
 
 function collectGeometryTypeLabels(featureCollection: FeatureCollection): Set<string> {
@@ -524,78 +593,293 @@ function geometryLabelFromHint(hint: OverlayGeometryType): string {
   }
 }
 
-function appendCoords(
-  coords: GeoJSON.Position | GeoJSON.Position[] | GeoJSON.Position[][] | GeoJSON.Position[][][],
-  bucket: Array<[number, number]>,
-): void {
-  if (!Array.isArray(coords) || coords.length === 0) return;
-  if (typeof coords[0] === "number") {
-    bucket.push([coords[0], coords[1]] as [number, number]);
-    return;
+function visitCoordinateArray(input: unknown, visitor: (longitude: number, latitude: number) => void): number {
+  if (!Array.isArray(input) || input.length === 0) return 0;
+  if (typeof input[0] === "number") {
+    const longitude = input[0];
+    const latitude = input[1];
+    if (typeof longitude === "number" && typeof latitude === "number" && Number.isFinite(longitude) && Number.isFinite(latitude)) {
+      visitor(longitude, latitude);
+      return 1;
+    }
+    return 0;
   }
-  (coords as Array<GeoJSON.Position | GeoJSON.Position[] | GeoJSON.Position[][]>).forEach((entry) =>
-    appendCoords(entry as GeoJSON.Position | GeoJSON.Position[] | GeoJSON.Position[][], bucket),
+
+  let coordinateCount = 0;
+  for (const entry of input) {
+    coordinateCount += visitCoordinateArray(entry, visitor);
+  }
+  return coordinateCount;
+}
+
+function visitGeometryCoordinates(geometry: Geometry | null | undefined, visitor: (longitude: number, latitude: number) => void): number {
+  if (!geometry) return 0;
+  if (geometry.type === "GeometryCollection") {
+    return geometry.geometries.reduce(
+      (coordinateCount, childGeometry) => coordinateCount + visitGeometryCoordinates(childGeometry, visitor),
+      0,
+    );
+  }
+  return visitCoordinateArray(
+    (geometry as Exclude<Geometry, GeoJSON.GeometryCollection>).coordinates,
+    visitor,
   );
+}
+
+function countGeometryCoordinates(geometry: Geometry | null | undefined): number {
+  return visitGeometryCoordinates(geometry, () => undefined);
+}
+
+function estimateStringBytes(value: string): number {
+  return value.length * 2;
+}
+
+function estimatePropertyValueBytes(value: unknown): number {
+  if (value == null) return 4;
+  if (typeof value === "string") return estimateStringBytes(value);
+  if (typeof value === "number" || typeof value === "boolean") return String(value).length;
+  if (Array.isArray(value)) return Math.min(16_384, 16 + value.length * 32);
+  if (typeof value === "object") return Math.min(16_384, 64 + Object.keys(value).length * 64);
+  return String(value).length;
+}
+
+function estimateFeaturePropertyBytes(feature: Feature): number {
+  return Object.entries(feature.properties ?? {}).reduce(
+    (totalBytes, [key, value]) => totalBytes + estimateStringBytes(key) + estimatePropertyValueBytes(value) + ESTIMATED_BYTES_PER_PROPERTY_CELL,
+    0,
+  );
+}
+
+function normalizeRenderPropertyValue(value: unknown, valueCharLimit: number): string | number | boolean | null {
+  if (value == null) return null;
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    return value.length > valueCharLimit ? `${value.slice(0, valueCharLimit)}...` : value;
+  }
+  if (Array.isArray(value)) return `[${value.length} values]`;
+  if (typeof value === "object") return "{...}";
+  return String(value).slice(0, valueCharLimit);
+}
+
+function buildRenderProperties(
+  properties: GeoJsonProperties | undefined,
+  options: GeoJSONRenderNormalizationOptions,
+): GeoJsonProperties {
+  if (!properties) return null;
+
+  const valueCharLimit = Math.max(32, options.propertyValueCharLimit ?? MAP_GEOJSON_RENDER_PROPERTY_VALUE_CHAR_BUDGET);
+  const fieldLimit = Math.max(1, options.propertyFieldLimit ?? MAP_GEOJSON_RENDER_PROPERTY_FIELD_BUDGET);
+  const preserveKeys = new Set([
+    ...PREFERRED_RENDER_PROPERTY_KEYS,
+    ...(options.preservePropertyKeys ?? []),
+  ].filter((key) => key.trim().length > 0));
+  const entries = Object.entries(properties);
+  const selectedEntries: Array<[string, unknown]> = [];
+  const usedKeys = new Set<string>();
+
+  for (const [key, value] of entries) {
+    if (!preserveKeys.has(key)) continue;
+    selectedEntries.push([key, value]);
+    usedKeys.add(key);
+  }
+
+  for (const [key, value] of entries) {
+    if (selectedEntries.length >= fieldLimit) break;
+    if (usedKeys.has(key)) continue;
+    selectedEntries.push([key, value]);
+    usedKeys.add(key);
+  }
+
+  return Object.fromEntries(
+    selectedEntries.map(([key, value]) => [key, normalizeRenderPropertyValue(value, valueCharLimit)]),
+  ) as GeoJsonProperties;
+}
+
+function buildRenderFeature(feature: Feature, geometry: Geometry | null, options: GeoJSONRenderNormalizationOptions): Feature {
+  return {
+    type: "Feature",
+    ...(feature.id != null ? { id: feature.id } : {}),
+    ...(feature.bbox ? { bbox: feature.bbox } : {}),
+    geometry,
+    properties: buildRenderProperties(feature.properties, options),
+  };
+}
+
+export function buildFeatureCollectionRenderProfile(featureCollection: FeatureCollection): LayerRenderBudgetMetadata {
+  const fieldNames = new Set<string>();
+  let coordinateCount = 0;
+  let propertyBytes = 0;
+
+  for (const feature of featureCollection.features) {
+    coordinateCount += countGeometryCoordinates(feature.geometry);
+    const properties = feature.properties ?? {};
+    propertyBytes += estimateFeaturePropertyBytes(feature);
+    Object.keys(properties).forEach((fieldName) => fieldNames.add(fieldName));
+  }
+
+  const featureCount = featureCollection.features.length;
+  const estimatedRenderBytes = Math.round(
+    featureCount * ESTIMATED_BYTES_PER_FEATURE
+      + coordinateCount * ESTIMATED_BYTES_PER_COORDINATE
+      + propertyBytes,
+  );
+  const warnings: string[] = [];
+  if (featureCount > MAP_GEOJSON_RENDER_FEATURE_BUDGET) {
+    warnings.push(`Feature count ${featureCount.toLocaleString()} exceeds the interactive render budget of ${MAP_GEOJSON_RENDER_FEATURE_BUDGET.toLocaleString()}.`);
+  }
+  if (coordinateCount > MAP_GEOJSON_RENDER_COORDINATE_BUDGET) {
+    warnings.push(`Coordinate count ${coordinateCount.toLocaleString()} exceeds the interactive render budget of ${MAP_GEOJSON_RENDER_COORDINATE_BUDGET.toLocaleString()}.`);
+  }
+  if (estimatedRenderBytes > MAP_GEOJSON_RENDER_MEMORY_BUDGET_BYTES) {
+    warnings.push(`Estimated render memory ${Math.round(estimatedRenderBytes / 1024 / 1024).toLocaleString()} MB exceeds the browser render budget of ${Math.round(MAP_GEOJSON_RENDER_MEMORY_BUDGET_BYTES / 1024 / 1024).toLocaleString()} MB.`);
+  }
+
+  return {
+    mode: warnings.length > 0 ? "preview" : "full",
+    featureCount,
+    coordinateCount,
+    propertyFieldCount: fieldNames.size,
+    estimatedRenderBytes,
+    renderFeatureLimit: MAP_GEOJSON_RENDER_FEATURE_BUDGET,
+    renderCoordinateLimit: MAP_GEOJSON_RENDER_COORDINATE_BUDGET,
+    estimatedRenderByteLimit: MAP_GEOJSON_RENDER_MEMORY_BUDGET_BYTES,
+    warnings,
+  };
+}
+
+function samplePositions(positions: GeoJSON.Position[], stride: number, minLength: number): GeoJSON.Position[] {
+  if (stride <= 1 || positions.length <= minLength) return positions;
+  const lastIndex = positions.length - 1;
+  const sampled = positions.filter((_, index) => index === 0 || index === lastIndex || index % stride === 0);
+  if (sampled.length >= minLength) return sampled;
+  return positions.slice(0, minLength);
+}
+
+function sampleRingPositions(ring: GeoJSON.Position[], stride: number): GeoJSON.Position[] {
+  if (stride <= 1 || ring.length <= 4) return ring;
+  const closed = ring.length > 1 && positionsEqual(ring[0] as GeoJSON.Position, ring[ring.length - 1] as GeoJSON.Position);
+  const openRing = closed ? ring.slice(0, -1) : ring;
+  const sampledOpenRing = samplePositions(openRing, stride, 3);
+  const first = sampledOpenRing[0];
+  if (!first) return ring;
+  const closedRing = [...sampledOpenRing, [...first] as GeoJSON.Position];
+  return closedRing.length >= 4 ? closedRing : ring.slice(0, 4);
+}
+
+function simplifyGeometryForRender(geometry: Geometry | null, coordinateStride: number): Geometry | null {
+  if (!geometry || coordinateStride <= 1) return geometry;
+
+  switch (geometry.type) {
+    case "Point":
+      return geometry;
+    case "MultiPoint":
+      return { ...geometry, coordinates: samplePositions(geometry.coordinates, coordinateStride, 1) };
+    case "LineString":
+      return { ...geometry, coordinates: samplePositions(geometry.coordinates, coordinateStride, 2) };
+    case "MultiLineString":
+      return {
+        ...geometry,
+        coordinates: geometry.coordinates.map((line) => samplePositions(line, coordinateStride, 2)),
+      };
+    case "Polygon":
+      return {
+        ...geometry,
+        coordinates: geometry.coordinates.map((ring) => sampleRingPositions(ring, coordinateStride)),
+      };
+    case "MultiPolygon":
+      return {
+        ...geometry,
+        coordinates: geometry.coordinates.map((polygon) =>
+          polygon.map((ring) => sampleRingPositions(ring, coordinateStride)),
+        ),
+      };
+    case "GeometryCollection":
+      return {
+        ...geometry,
+        geometries: geometry.geometries.map((childGeometry) => simplifyGeometryForRender(childGeometry, coordinateStride) ?? childGeometry),
+      };
+    default:
+      return geometry;
+  }
+}
+
+export function createRenderSafeFeatureCollection(
+  featureCollection: FeatureCollection,
+  options: GeoJSONRenderNormalizationOptions = {},
+): FeatureCollection {
+  const profile = buildFeatureCollectionRenderProfile(featureCollection);
+  if (profile.mode === "full") return featureCollection;
+
+  const featureStride = Math.max(1, Math.ceil(profile.featureCount / MAP_GEOJSON_RENDER_FEATURE_BUDGET));
+  const coordinateStride = Math.max(1, Math.ceil(profile.coordinateCount / MAP_GEOJSON_RENDER_COORDINATE_BUDGET));
+  const previewFeatures: Feature[] = [];
+  let previewCoordinateCount = 0;
+
+  for (let featureIndex = 0; featureIndex < featureCollection.features.length; featureIndex += featureStride) {
+    const feature = featureCollection.features[featureIndex];
+    if (!feature) continue;
+    const geometry = simplifyGeometryForRender(feature.geometry, coordinateStride);
+    const featureCoordinateCount = countGeometryCoordinates(geometry);
+    if (
+      previewFeatures.length > 0
+      && previewCoordinateCount + featureCoordinateCount > MAP_GEOJSON_RENDER_COORDINATE_BUDGET
+    ) {
+      continue;
+    }
+    previewFeatures.push(buildRenderFeature(feature, geometry, options));
+    previewCoordinateCount += featureCoordinateCount;
+    if (
+      previewFeatures.length >= MAP_GEOJSON_RENDER_FEATURE_BUDGET
+      || previewCoordinateCount >= MAP_GEOJSON_RENDER_COORDINATE_BUDGET
+    ) {
+      break;
+    }
+  }
+
+  if (previewFeatures.length === 0 && featureCollection.features[0]) {
+    const feature = featureCollection.features[0];
+    const geometry = simplifyGeometryForRender(feature.geometry, Math.max(coordinateStride, 2));
+    previewFeatures.push(buildRenderFeature(feature, geometry, options));
+  }
+
+  return {
+    ...featureCollection,
+    features: previewFeatures,
+  };
+}
+
+function isFeatureCollection(value: unknown): value is FeatureCollection {
+  return isObject(value) && value.type === "FeatureCollection" && Array.isArray((value as FeatureCollection).features);
+}
+
+export function normalizeGeoJSONSourceDataForRender(
+  sourceData: string | FeatureCollection | Feature | Geometry | undefined,
+  options: GeoJSONRenderNormalizationOptions = {},
+): string | FeatureCollection | Feature | Geometry | undefined {
+  const normalized = normalizeGeoJSONSourceData(sourceData);
+  return isFeatureCollection(normalized) ? createRenderSafeFeatureCollection(normalized, options) : normalized;
 }
 
 export function getFeatureCollectionBounds(
   featureCollection: FeatureCollection,
 ): [number, number, number, number] | undefined {
-  const coords: Array<[number, number]> = [];
-  featureCollection.features.forEach((feature) => {
-    if (!feature.geometry) return;
-    switch (feature.geometry.type) {
-      case "Point":
-      case "MultiPoint":
-      case "LineString":
-      case "MultiLineString":
-      case "Polygon":
-      case "MultiPolygon":
-        appendCoords(
-          (feature.geometry as
-            | GeoJSON.Point
-            | GeoJSON.MultiPoint
-            | GeoJSON.LineString
-            | GeoJSON.MultiLineString
-            | GeoJSON.Polygon
-            | GeoJSON.MultiPolygon).coordinates,
-          coords,
-        );
-        break;
-      case "GeometryCollection":
-        feature.geometry.geometries.forEach((geometry) => {
-          if (geometry.type !== "GeometryCollection") {
-            appendCoords(
-              (geometry as
-                | GeoJSON.Point
-                | GeoJSON.MultiPoint
-                | GeoJSON.LineString
-                | GeoJSON.MultiLineString
-                | GeoJSON.Polygon
-                | GeoJSON.MultiPolygon).coordinates,
-              coords,
-            );
-          }
-        });
-        break;
-      default:
-        break;
-    }
-  });
-
-  if (coords.length === 0) return undefined;
-
   let minLng = Number.POSITIVE_INFINITY;
   let minLat = Number.POSITIVE_INFINITY;
   let maxLng = Number.NEGATIVE_INFINITY;
   let maxLat = Number.NEGATIVE_INFINITY;
+  let coordinateCount = 0;
 
-  coords.forEach(([lng, lat]) => {
-    minLng = Math.min(minLng, lng);
-    minLat = Math.min(minLat, lat);
-    maxLng = Math.max(maxLng, lng);
-    maxLat = Math.max(maxLat, lat);
+  featureCollection.features.forEach((feature) => {
+    coordinateCount += visitGeometryCoordinates(feature.geometry, (longitude, latitude) => {
+      minLng = Math.min(minLng, longitude);
+      minLat = Math.min(minLat, latitude);
+      maxLng = Math.max(maxLng, longitude);
+      maxLat = Math.max(maxLat, latitude);
+    });
   });
+
+  if (coordinateCount === 0) return undefined;
 
   return [minLng, minLat, maxLng, maxLat];
 }
@@ -605,6 +889,7 @@ export function buildFeatureCollectionMetadata(featureCollection: FeatureCollect
   const hint = geometryHintFromLabels(labels);
   const fields = new Set<string>();
   const bounds = getFeatureCollectionBounds(featureCollection);
+  const rendering = buildFeatureCollectionRenderProfile(featureCollection);
   featureCollection.features.forEach((feature) => {
     Object.keys(feature.properties ?? {}).forEach((key) => fields.add(key));
   });
@@ -630,6 +915,7 @@ export function buildFeatureCollectionMetadata(featureCollection: FeatureCollect
       source: "feature-collection",
       notes: fieldList.length > 0 ? [] : ["Feature collection has no attribute fields."],
     },
+    rendering,
     ...(bounds ? { bounds } : {}),
   };
 }
@@ -688,7 +974,9 @@ export async function resolveGeoJSONSourceToFeatureCollection(
     return parseGeoJSONText(raw);
   }
 
-  return parseGeoJSONText(JSON.stringify(sourceData));
+  const featureCollection = normalizeGeoJSONInput(sourceData);
+  validateFeatureCollection(featureCollection);
+  return featureCollection;
 }
 
 function assertImportFileSize(file: File): void {
@@ -797,6 +1085,8 @@ function buildImportedLayer(
 ): ImportedGeoJSONLayer {
   const layerId = createLayerId();
   const importedAt = nowIsoTimestamp();
+  const featureMetadata = buildFeatureCollectionMetadata(featureCollection);
+  const rendering = featureMetadata.rendering ?? buildFeatureCollectionRenderProfile(featureCollection);
   const declaredCrs = metadataOverrides?.crsSummary?.crs ?? metadataOverrides?.columnar?.crs;
   const totalRecords = summaryOverrides?.totalRecords;
   const skippedRecordCount = summaryOverrides?.skippedRecordCount;
@@ -810,8 +1100,14 @@ function buildImportedLayer(
     ...(skippedRecordCount != null ? { skippedRecordCount } : {}),
     workerTransferStatus,
   });
+  if (rendering.mode === "preview") {
+    caveats.push("Layer exceeds the interactive browser render budget; the map canvas uses a bounded visual preview while the original source remains available for metadata, export, and worker-backed analysis.");
+  }
+  if (rendering.coordinateCount > MAP_GEOJSON_DEEP_TOPOLOGY_COORDINATE_BUDGET) {
+    caveats.push("Deep topology QA was deferred for this large geometry set; structural GeoJSON validation completed, and detailed topology review should run in a worker-backed QA pass before publication.");
+  }
   const metadata = {
-    ...buildFeatureCollectionMetadata(featureCollection),
+    ...featureMetadata,
     importFormat: sourceType,
     updatedAt: importedAt,
     dataVersion: importedAt,

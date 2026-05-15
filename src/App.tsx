@@ -37,6 +37,10 @@ import { useUrbanStore } from './features/urbanAnalytics/store';
 import { ChunkLoadBoundary, lazyWithRetry } from '@/utils/lazyWithRetry';
 
 const UrbanAnalyticsModal = lazyWithRetry(() => import('@/features/urbanAnalytics/UrbanAnalyticsModal'));
+const MapExplorerModal = lazyWithRetry(async () => {
+  const module = await import('@/centerpanel/components/MapExplorerModal');
+  return { default: module.MapExplorerModal };
+});
 
 function ModalLoadingFallback({ label, testId }: { label: string; testId: string }) {
   return (
@@ -84,6 +88,46 @@ function ModalLoadingFallback({ label, testId }: { label: string; testId: string
         <span>{label}</span>
       </div>
     </div>
+  );
+}
+
+function MapExplorerLoadingFallback(): React.ReactElement {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      style={{
+        position: 'fixed',
+        top: 12,
+        right: 12,
+        zIndex: 11000,
+        color: '#F59E0B',
+        fontSize: 12,
+      }}
+    >
+      Loading Map Explorer...
+    </div>
+  );
+}
+
+function MapExplorerHost(): React.ReactElement | null {
+  const isMapOpen = useMapExplorerStore((state) => state.isOpen);
+  const closeMap = useMapExplorerStore((state) => state.close);
+
+  if (!isMapOpen) {
+    return null;
+  }
+
+  return (
+    <ChunkLoadBoundary
+      compact
+      title="Map Explorer unavailable"
+      message="The Map Explorer did not load. Retry after the dev server reconnects, or reload the app if it persists."
+    >
+      <Suspense fallback={<MapExplorerLoadingFallback />}>
+        <MapExplorerModal open={isMapOpen} onClose={closeMap} />
+      </Suspense>
+    </ChunkLoadBoundary>
   );
 }
 
@@ -1344,6 +1388,8 @@ function App() {
                   </Suspense>
                 </ChunkLoadBoundary>
               ) : null}
+
+              <MapExplorerHost />
 
               {}
               {}

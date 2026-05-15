@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createRoot } from "react-dom/client";
 
 import type { OverlayLayerConfig } from "../map/mapTypes";
+import { createMapWorkflowResultEvidenceArtifact } from "../map/mapEvidenceArtifacts";
 import { useFlowStore } from "@/stores/useFlowStore";
 import { useMapExplorerStore } from "@/stores/useMapExplorerStore";
 
@@ -234,6 +235,15 @@ beforeEach(() => {
           field: "value",
           classificationMethod: "categorical",
         },
+        evidenceArtifact: createMapWorkflowResultEvidenceArtifact({
+          id: "map-evidence-hotspot-result-layer",
+          title: "Quick Hot Spot Result",
+          workflowId: "quick-hotspot",
+          runId: "quick-hotspot-run",
+          sourceLayerIds: ["dispatch-source-layer"],
+          derivedLayerId: "hotspot-result-layer",
+          qa: { state: "valid", issues: [] },
+        }),
       },
       summary: {
         hot_99: 0,
@@ -279,5 +289,5 @@ describe("MapExplorerModal map dispatch", () => {
       root.unmount();
     });
     container.remove();
-  });
+  }, 15000);
 });

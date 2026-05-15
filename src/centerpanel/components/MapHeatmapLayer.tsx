@@ -12,6 +12,7 @@ import {
   type NumericFieldInfo,
   toFiniteNumber,
 } from "./map/symbologyUtils";
+import { normalizeGeoJSONSourceDataForRender } from "@/services/map/MapDataImporter";
 
 export interface MapHeatmapLayerProps {
   mapRef: React.RefObject<maplibregl.Map | null>;
@@ -218,12 +219,16 @@ export const MapHeatmapLayer: React.FC<MapHeatmapLayerProps> = ({
           9,
         ];
 
+    const renderCollection = (normalizeGeoJSONSourceDataForRender(decoratedCollection, {
+      preservePropertyKeys: weightField === "uniform" ? [] : [weightField],
+    }) as GeoJSON.FeatureCollection | undefined) ?? { type: "FeatureCollection", features: [] };
+
     if (map.getSource(sourceId)) {
-      (map.getSource(sourceId) as maplibregl.GeoJSONSource).setData(decoratedCollection);
+      (map.getSource(sourceId) as maplibregl.GeoJSONSource).setData(renderCollection);
     } else {
       map.addSource(sourceId, {
         type: "geojson",
-        data: decoratedCollection,
+        data: renderCollection,
       });
     }
 

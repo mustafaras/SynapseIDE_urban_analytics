@@ -5,13 +5,16 @@ import { describe, expect, it } from "vitest";
 import type { FeatureCollection } from "geojson";
 import {
   buildFeatureCollectionMetadata,
+  createRenderSafeFeatureCollection,
   completeCsvImport,
   createCsvImportSession,
   detectImportFileType,
   getFeatureCollectionBounds,
   importGeoJSONFile,
+  MAP_GEOJSON_RENDER_FEATURE_BUDGET,
   MapDataImportError,
   normalizeGeoJSONInput,
+  normalizeGeoJSONSourceDataForRender,
   parseGeoJSONText,
   parseGPXText,
   parseKMLText,
@@ -134,6 +137,68 @@ describe("MapDataImporter", () => {
       fieldCount: 3,
       source: "feature-collection",
     });
+    expect(metadata.rendering).toMatchObject({
+      mode: "full",
+      featureCount: 2,
+      propertyFieldCount: 3,
+    });
+  });
+
+  it("keeps full imported source data while creating a bounded MapLibre render preview", () => {
+    const featureCount = MAP_GEOJSON_RENDER_FEATURE_BUDGET + 10;
+    const collection: FeatureCollection = {
+      type: "FeatureCollection",
+      features: Array.from({ length: featureCount }, (_, index) => ({
+        type: "Feature" as const,
+        geometry: { type: "Point" as const, coordinates: [29 + index * 0.000001, 41] },
+        properties: { id: index, category: index % 2 === 0 ? "even" : "odd" },
+      })),
+    };
+
+    const metadata = buildFeatureCollectionMetadata(collection);
+    const preview = createRenderSafeFeatureCollection(collection);
+    const normalizedPreview = normalizeGeoJSONSourceDataForRender(collection) as FeatureCollection;
+
+    expect(collection.features).toHaveLength(featureCount);
+    expect(metadata.rendering).toMatchObject({
+      mode: "preview",
+      featureCount,
+      propertyFieldCount: 2,
+    });
+    expect(preview.features.length).toBeLessThanOrEqual(MAP_GEOJSON_RENDER_FEATURE_BUDGET);
+    expect(normalizedPreview.features.length).toBe(preview.features.length);
+  });
+
+  it("trims oversized feature properties in render previews without mutating the source collection", () => {
+    const largePayload = "x".repeat(1_000);
+    const collection: FeatureCollection = {
+      type: "FeatureCollection",
+      features: [{
+        type: "Feature",
+        geometry: { type: "Point", coordinates: [29, 41] },
+        properties: {
+          name: "Heavy feature",
+          styleValue: 42,
+          payload: largePayload,
+        },
+      }, ...Array.from({ length: MAP_GEOJSON_RENDER_FEATURE_BUDGET }, (_, index) => ({
+        type: "Feature" as const,
+        geometry: { type: "Point" as const, coordinates: [29 + index * 0.000001, 41] },
+        properties: { id: index },
+      }))],
+    };
+
+    const preview = createRenderSafeFeatureCollection(collection, {
+      preservePropertyKeys: ["styleValue"],
+    });
+
+    expect(collection.features[0]?.properties?.payload).toBe(largePayload);
+    expect(preview.features.length).toBeLessThanOrEqual(MAP_GEOJSON_RENDER_FEATURE_BUDGET);
+    expect(preview.features[0]?.properties).toMatchObject({
+      name: "Heavy feature",
+      styleValue: 42,
+    });
+    expect(String(preview.features[0]?.properties?.payload).length).toBeLessThan(200);
   });
 
   it("returns undefined bounds for an empty collection", () => {

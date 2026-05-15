@@ -506,6 +506,36 @@ describe("useMapExplorerStore", () => {
       applyCopilotActionProposal("prop-2");
       expect(useMapExplorerStore.getState().pendingCopilotActionCount).toBe(0);
     });
+
+    it("bounds copilot proposal history and audit trail for long-lived sessions", () => {
+      const {
+        queueCopilotActionProposal,
+        applyCopilotActionProposal,
+      } = useMapExplorerStore.getState();
+
+      for (let index = 0; index < 320; index += 1) {
+        const proposalId = `prop-bounded-${index}`;
+        queueCopilotActionProposal({
+          id: proposalId,
+          kind: "toggleLayer",
+          title: `Toggle ${index}`,
+          rationale: "",
+          expectedEffect: "",
+          riskLevel: "low",
+          previewPayload: { kind: "toggleLayer", layerId: `layer-${index}`, visible: true },
+          applyPayload: { kind: "toggleLayer", layerId: `layer-${index}`, visible: true },
+          evidence: [],
+        });
+        applyCopilotActionProposal(proposalId);
+      }
+
+      const state = useMapExplorerStore.getState();
+      expect(state.copilotActionProposals.length).toBeLessThanOrEqual(50);
+      expect(state.copilotAuditTrail.length).toBeLessThanOrEqual(200);
+      // most-recent proposal is preserved
+      expect(state.copilotActionProposals.at(-1)?.id).toBe("prop-bounded-319");
+      expect(state.copilotAuditTrail.at(-1)?.proposalId).toBe("prop-bounded-319");
+    });
   });
 
   /* ---- Persistence ---- */

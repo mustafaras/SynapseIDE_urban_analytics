@@ -8,7 +8,7 @@ import {
   tableToIPC,
   vectorFromArray,
 } from "apache-arrow";
-import type { Feature, FeatureCollection, GeoJsonProperties, Geometry } from "geojson";
+import type { Feature, FeatureCollection, GeoJsonProperties, Geometry, Position } from "geojson";
 import parquetWasmUrl from "parquet-wasm/esm/parquet_wasm_bg.wasm?url";
 
 const PREVIEW_ROW_LIMIT = 5;
@@ -1000,11 +1000,49 @@ function computeDataQuality(
   return { score, grade, completeness, validity, attributeFieldCount, geometryFieldCount, sparseFields, constantFields };
 }
 
+function countGeometryPositionsForEstimate(geometry: Geometry | null | undefined): number {
+  if (!geometry) return 0;
+  switch (geometry.type) {
+    case "Point":
+      return 1;
+    case "MultiPoint":
+    case "LineString":
+      return geometry.coordinates.length;
+    case "MultiLineString":
+    case "Polygon":
+      return geometry.coordinates.reduce((total, line) => total + line.length, 0);
+    case "MultiPolygon":
+      return geometry.coordinates.reduce(
+        (total, polygon) => total + polygon.reduce((polygonTotal, ring) => polygonTotal + ring.length, 0),
+        0,
+      );
+    case "GeometryCollection":
+      return geometry.geometries.reduce(
+        (total, childGeometry) => total + countGeometryPositionsForEstimate(childGeometry),
+        0,
+      );
+    default:
+      return 0;
+  }
+}
+
+function estimateFeatureCollectionGeoJsonBytes(featureCollection: FeatureCollection): number {
+  const collectionOverheadBytes = 48;
+  return featureCollection.features.reduce((totalBytes, feature) => {
+    const geometryCoordinateBytes = countGeometryPositionsForEstimate(feature.geometry) * 34;
+    const propertyBytes = Object.entries(feature.properties ?? {}).reduce((propertyTotal, [key, value]) => {
+      const valueLength = value == null ? 4 : typeof value === "string" ? value.length : String(value).length;
+      return propertyTotal + key.length + valueLength + 8;
+    }, 0);
+    return totalBytes + 96 + geometryCoordinateBytes + propertyBytes;
+  }, collectionOverheadBytes);
+}
+
 function computeSizeComparison(
   featureCollection: FeatureCollection,
   columnarBytes: number,
 ): ColumnarSizeComparison {
-  const estimatedGeoJsonBytes = new TextEncoder().encode(JSON.stringify(featureCollection)).byteLength;
+  const estimatedGeoJsonBytes = estimateFeatureCollectionGeoJsonBytes(featureCollection);
   const compressionRatio = estimatedGeoJsonBytes > 0 ? columnarBytes / estimatedGeoJsonBytes : 1;
   const savingsPercent = Math.max(0, Math.round((1 - compressionRatio) * 100));
   return { columnarBytes, estimatedGeoJsonBytes, compressionRatio, savingsPercent };
@@ -1097,24 +1135,38 @@ function buildGeoParquetMetadata(collection: FeatureCollection, geometryColumnNa
   )).sort((left, right) => left.localeCompare(right));
 
   const bbox = (() => {
-    const coords: [number, number][] = [];
+    let minLongitude = Number.POSITIVE_INFINITY;
+    let minLatitude = Number.POSITIVE_INFINITY;
+    let maxLongitude = Number.NEGATIVE_INFINITY;
+    let maxLatitude = Number.NEGATIVE_INFINITY;
+    let coordinateCount = 0;
+    const includePosition = (position: Position): void => {
+      const longitude = position[0];
+      const latitude = position[1];
+      if (!Number.isFinite(longitude) || !Number.isFinite(latitude)) return;
+      minLongitude = Math.min(minLongitude, longitude);
+      minLatitude = Math.min(minLatitude, latitude);
+      maxLongitude = Math.max(maxLongitude, longitude);
+      maxLatitude = Math.max(maxLatitude, latitude);
+      coordinateCount += 1;
+    };
     collection.features.forEach((feature) => {
       const geometry = feature.geometry;
       if (!geometry) return;
       switch (geometry.type) {
         case "Point":
-          coords.push([geometry.coordinates[0], geometry.coordinates[1]]);
+          includePosition(geometry.coordinates);
           break;
         case "MultiPoint":
         case "LineString":
-          geometry.coordinates.forEach((position) => coords.push([position[0], position[1]]));
+          geometry.coordinates.forEach(includePosition);
           break;
         case "MultiLineString":
         case "Polygon":
-          geometry.coordinates.forEach((line) => line.forEach((position) => coords.push([position[0], position[1]])));
+          geometry.coordinates.forEach((line) => line.forEach(includePosition));
           break;
         case "MultiPolygon":
-          geometry.coordinates.forEach((polygon) => polygon.forEach((ring) => ring.forEach((position) => coords.push([position[0], position[1]]))));
+          geometry.coordinates.forEach((polygon) => polygon.forEach((ring) => ring.forEach(includePosition)));
           break;
         case "GeometryCollection":
           geometry.geometries.forEach((child) => {
@@ -1124,8 +1176,8 @@ function buildGeoParquetMetadata(collection: FeatureCollection, geometryColumnNa
             }, geometryColumnName, crs);
             const childBbox = ((childCollection.columns as Record<string, unknown>)[geometryColumnName] as Record<string, unknown> | undefined)?.bbox;
             if (Array.isArray(childBbox) && childBbox.length === 4) {
-              coords.push([Number(childBbox[0]), Number(childBbox[1])]);
-              coords.push([Number(childBbox[2]), Number(childBbox[3])]);
+              includePosition([Number(childBbox[0]), Number(childBbox[1])]);
+              includePosition([Number(childBbox[2]), Number(childBbox[3])]);
             }
           });
           break;
@@ -1134,15 +1186,8 @@ function buildGeoParquetMetadata(collection: FeatureCollection, geometryColumnNa
       }
     });
 
-    if (coords.length === 0) return undefined;
-    const longitudes = coords.map(([longitude]) => longitude);
-    const latitudes = coords.map(([, latitude]) => latitude);
-    return [
-      Math.min(...longitudes),
-      Math.min(...latitudes),
-      Math.max(...longitudes),
-      Math.max(...latitudes),
-    ] as [number, number, number, number];
+    if (coordinateCount === 0) return undefined;
+    return [minLongitude, minLatitude, maxLongitude, maxLatitude] as [number, number, number, number];
   })();
 
   return {

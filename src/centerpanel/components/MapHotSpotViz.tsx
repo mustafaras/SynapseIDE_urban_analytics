@@ -6,6 +6,7 @@ import {
   attachSpatialStatsRerun,
   createSpatialStatsCompletedRun,
 } from "@/services/map/MapEngineAdapter";
+import { normalizeGeoJSONSourceDataForRender } from "@/services/map/MapDataImporter";
 import {
   createSpatialStatsExecutionIdentity,
   type SpatialStatsContiguityMethod,
@@ -469,7 +470,18 @@ export const MapHotSpotViz: React.FC<MapHotSpotVizProps> = ({
       if (!source || !map.getLayer(activeResultLayer.id)) {
         return;
       }
-      source.setData(renderedHotSpot.decoratedCollection);
+      source.setData(
+        (normalizeGeoJSONSourceDataForRender(renderedHotSpot.decoratedCollection, {
+          preservePropertyKeys: [
+            HOT_SPOT_CATEGORY_FIELD,
+            HOT_SPOT_CATEGORY_LABEL_FIELD,
+            HOT_SPOT_FEATURE_ID_FIELD,
+            HOT_SPOT_GI_FIELD,
+            HOT_SPOT_P_VALUE_FIELD,
+            HOT_SPOT_Z_SCORE_FIELD,
+          ],
+        }) as GeoJSON.FeatureCollection | undefined) ?? { type: "FeatureCollection", features: [] },
+      );
       applyHotSpotPaint(map, activeResultLayer.id);
     };
 

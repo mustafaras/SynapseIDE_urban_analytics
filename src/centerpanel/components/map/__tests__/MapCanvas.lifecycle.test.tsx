@@ -10,7 +10,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const mapMockState = vi.hoisted(() => {
   return {
     abortPreventDefault: vi.fn(),
-    instances: [] as Array<{ emit: (type: string, event: { error?: unknown; sourceId?: string; status?: number }) => void }>,
+    instances: [] as Array<{
+      emit: (type: string, event: { error?: unknown; sourceId?: string; status?: number }) => void;
+      options?: { preserveDrawingBuffer?: boolean };
+    }>,
   };
 });
 
@@ -18,8 +21,9 @@ vi.mock("maplibre-gl", () => {
   class MockMap {
     private listeners = new Map<string, Array<(event: { error?: unknown; preventDefault?: () => void }) => void>>();
 
-    constructor() {
+    constructor(options?: { preserveDrawingBuffer?: boolean }) {
       mapMockState.instances.push({
+        options,
         emit: (type, event) => {
           for (const handler of this.listeners.get(type) ?? []) {
             handler(event);
@@ -108,6 +112,65 @@ describe("MapCanvas lifecycle", () => {
     mapMockState.abortPreventDefault.mockReset();
     mapMockState.instances = [];
     document.body.innerHTML = "";
+  });
+
+  it("keeps the WebGL drawing buffer disabled by default", async () => {
+    const { MapCanvas } = await import("../MapCanvas");
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <MapCanvas
+          baseLayer="dark"
+          pinMode={false}
+          pins={[]}
+          onCursorMove={() => undefined}
+          onZoomChange={() => undefined}
+          onViewportChange={() => undefined}
+          onMapClick={() => undefined}
+          onMapReady={() => undefined}
+          onMapDestroy={() => undefined}
+        />,
+      );
+    });
+
+    expect(mapMockState.instances[0]?.options?.preserveDrawingBuffer).toBe(false);
+
+    await act(async () => {
+      root.unmount();
+    });
+  });
+
+  it("enables the WebGL drawing buffer for capture mode", async () => {
+    const { MapCanvas } = await import("../MapCanvas");
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <MapCanvas
+          baseLayer="dark"
+          pinMode={false}
+          pins={[]}
+          preserveDrawingBuffer
+          onCursorMove={() => undefined}
+          onZoomChange={() => undefined}
+          onViewportChange={() => undefined}
+          onMapClick={() => undefined}
+          onMapReady={() => undefined}
+          onMapDestroy={() => undefined}
+        />,
+      );
+    });
+
+    expect(mapMockState.instances[0]?.options?.preserveDrawingBuffer).toBe(true);
+
+    await act(async () => {
+      root.unmount();
+    });
   });
 
   it("suppresses abort-like MapLibre errors during teardown", async () => {

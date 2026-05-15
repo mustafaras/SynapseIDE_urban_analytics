@@ -1,0 +1,78 @@
+{
+  "schemaVersion": "1.0.0",
+  "purpose": "Compact ownership and lookup map for token-minimized agent work.",
+  "modules": {
+    "urbanAnalytics": {
+      "owns": [
+        "analysis context",
+        "method catalog",
+        "indicators",
+        "evidence artifacts",
+        "data fitness",
+        "method validity",
+        "workflow run manifests"
+      ],
+      "primaryPaths": [
+        "src/features/urbanAnalytics/",
+        "src/features/urbanAnalytics/lib/types.ts",
+        "src/features/urbanAnalytics/useUrbanContextStore.ts",
+        "src/features/urbanAnalytics/context/evidenceArtifacts.ts",
+        "src/features/urbanAnalytics/lib/methodValidity.ts",
+        "src/features/urbanAnalytics/lib/dataFitness.ts"
+      ],
+      "validation": [
+        "npm run typecheck",
+        "npm run test:analytics"
+      ]
+    },
+    "mapExplorer": {
+      "owns": [
+        "viewport",
+        "layer rendering",
+        "geometry",
+        "feature selection",
+        "map export and QA services"
+      ],
+      "primaryPaths": [
+        "src/stores/useMapExplorerStore.ts",
+        "src/services/map/",
+        "src/centerpanel/components/MapExplorerModal.tsx",
+        "src/centerpanel/components/map/"
+      ],
+      "validation": [
+        "npm run typecheck",
+        "targeted map tests when available"
+      ]
+    },
+    "synapseIde": {
+      "owns": [
+        "editor state",
+        "file buffers",
+        "terminal",
+        "AI chat",
+        "IDE shell"
+      ],
+      "primaryPaths": [
+        "src/stores/appStore.ts",
+        "src/stores/editorStore.ts",
+        "src/components/editor/MonacoEditor.tsx",
+        "src/components/ide/EnhancedIDE.tsx",
+        "src/services/editorBridge.ts"
+      ],
+      "validation": [
+        "npm run typecheck",
+        "targeted IDE/editor tests when available"
+      ]
+    }
+  },
+  "bridges": [
+    "src/stores/usePanelBridgeStore.ts",
+    "src/services/editorBridge.ts",
+    "src/services/map/MapEngineAdapter.ts"
+  ],
+  "doNotUseForState": [
+    "Redux",
+    "Context API for app state",
+    "generic UI events carrying raw datasets or heavy geometry"
+  ]
+}

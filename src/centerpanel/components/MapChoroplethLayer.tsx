@@ -1,7 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import { DESIGN_TOKENS } from "@/constants/design";
-import { resolveGeoJSONSourceToFeatureCollection } from "../../services/map/MapDataImporter";
+import {
+  normalizeGeoJSONSourceDataForRender,
+  resolveGeoJSONSourceToFeatureCollection,
+} from "../../services/map/MapDataImporter";
 import {
   type ClassificationMethod,
   type ClassificationResult,
@@ -513,7 +516,11 @@ export const MapChoroplethLayer: React.FC<MapChoroplethLayerProps> = ({
     try {
       const source = map.getSource(originalState.layerId) as maplibregl.GeoJSONSource | undefined;
       if (source && originalState.sourceData != null) {
-        source.setData(originalState.sourceData as string | GeoJSON.GeoJSON);
+        source.setData(
+          (normalizeGeoJSONSourceDataForRender(originalState.sourceData, {
+            preservePropertyKeys: [selectedField],
+          }) as string | GeoJSON.GeoJSON | undefined) ?? { type: "FeatureCollection", features: [] },
+        );
       }
     } catch {
       /* source already removed */
@@ -541,7 +548,7 @@ export const MapChoroplethLayer: React.FC<MapChoroplethLayerProps> = ({
 
     map.getCanvas().style.cursor = "";
     originalLayerStateRef.current = null;
-  }, [mapRef]);
+  }, [mapRef, selectedField]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -566,7 +573,17 @@ export const MapChoroplethLayer: React.FC<MapChoroplethLayerProps> = ({
       };
     }
 
-    source.setData(classificationState.computation.classifiedCollection);
+    source.setData(
+      (normalizeGeoJSONSourceDataForRender(classificationState.computation.classifiedCollection, {
+        preservePropertyKeys: [
+          selectedField,
+          CHOROPLETH_CLASS_FIELD,
+          CHOROPLETH_CLASS_LABEL_FIELD,
+          CHOROPLETH_VALUE_FIELD,
+          CHOROPLETH_FEATURE_ID_FIELD,
+        ],
+      }) as GeoJSON.GeoJSON | undefined) ?? { type: "FeatureCollection", features: [] },
+    );
     map.setPaintProperty(
       activeLayer.id,
       "fill-color",

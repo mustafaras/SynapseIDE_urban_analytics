@@ -42,6 +42,10 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import BackgroundTasksControl from "../BackgroundTasksControl";
+import {
+  useMapToolbarPreferencesStore,
+  type MapToolbarDensityPreference,
+} from "../../../stores/useMapToolbarPreferencesStore";
 import type { DrawToolId, LayerQaStatus, MeasureToolId } from "./mapTypes";
 import type { MapWorkspaceView } from "./mapExperience";
 import {
@@ -127,7 +131,9 @@ export interface MapToolbarProps {
   isImporting?: boolean;
   importProgress?: number | null;
   exportDisabled?: boolean;
+  exportDisabledReason?: string | undefined;
   reportDisabled?: boolean;
+  reportDisabledReason?: string | undefined;
   isExportingImage?: boolean;
   isSavingProject?: boolean;
   isLoadingProject?: boolean;
@@ -136,7 +142,7 @@ export interface MapToolbarProps {
 
 type CommandTone = "default" | "accent" | "danger" | "success" | "warning";
 type ToolbarRole = "explore" | "analyze" | "publish";
-type ToolbarDensity = "compact" | "comfortable" | "expert";
+type ToolbarDensity = MapToolbarDensityPreference;
 type ToolbarBreakpoint = "mobile" | "tablet" | "desktop";
 type OverflowGroupId = "tools" | "export" | "advanced";
 
@@ -153,6 +159,7 @@ interface ToolbarCommand {
   priority: number;
   active?: boolean;
   disabled?: boolean;
+  disabledReason?: string | undefined;
   badge?: number | string | null;
   tone?: CommandTone;
   contextBoost?: "empty" | "point" | "polygon" | "aoi" | "quality" | "query" | undefined;
@@ -208,7 +215,9 @@ interface BuildToolbarCommandsArgs extends Required<Pick<
   | "showMeasurePanel"
   | "isImporting"
   | "exportDisabled"
+  | "exportDisabledReason"
   | "reportDisabled"
+  | "reportDisabledReason"
   | "isExportingImage"
   | "isSavingProject"
   | "isLoadingProject"
@@ -286,8 +295,6 @@ const OVERFLOW_META: Record<OverflowGroupId, { label: string; title: string; ico
     icon: Settings2,
   },
 };
-
-const TOOLBAR_DENSITY_STORAGE_KEY = "synapse-map-toolbar-density";
 
 /* ================================================================== */
 /*  Styles                                                             */
@@ -563,15 +570,6 @@ function getDefaultRole(workspaceView: MapWorkspaceView): ToolbarRole {
   return "explore";
 }
 
-function readStoredDensity(): ToolbarDensity {
-  if (typeof window === "undefined") return "expert";
-  const stored = window.localStorage.getItem(TOOLBAR_DENSITY_STORAGE_KEY);
-  if (stored === "compact" || stored === "comfortable" || stored === "expert") {
-    return stored;
-  }
-  return "expert";
-}
-
 function getBreakpoint(width: number): ToolbarBreakpoint {
   if (width < 720) return "mobile";
   if (width < 1120) return "tablet";
@@ -620,6 +618,15 @@ function getCommandStatus(command: ToolbarCommand): { label: string; tone: Comma
   if (command.disabled) return { label: "Unavailable", tone: "warning" };
   if (command.active) return { label: "Active", tone: "accent" };
   return { label: "Ready", tone: "default" };
+}
+
+function getCommandUnavailableReason(command: ToolbarCommand): string {
+  return command.disabledReason ?? "Unavailable in the current map state.";
+}
+
+function getCommandAccessibleTitle(command: ToolbarCommand): string {
+  if (!command.disabled) return command.title;
+  return `${command.title}. ${getCommandUnavailableReason(command)}`;
 }
 
 function buildToolbarCommands(args: BuildToolbarCommandsArgs): ToolbarCommand[] {
@@ -678,6 +685,7 @@ function buildToolbarCommands(args: BuildToolbarCommandsArgs): ToolbarCommand[] 
     overflowGroup: "tools",
     priority: hasLayers ? 88 : 125,
     disabled: args.isImporting,
+    disabledReason: "An import is already running.",
     badge: args.isImporting && args.importProgress != null ? `${Math.round(args.importProgress)}%` : null,
     contextBoost: "empty",
     navigator: true,
@@ -1018,6 +1026,7 @@ function buildToolbarCommands(args: BuildToolbarCommandsArgs): ToolbarCommand[] 
     overflowGroup: "export",
     priority: args.isSavingProject ? 115 : 87,
     disabled: args.isSavingProject,
+    disabledReason: "The current map project save is already in progress.",
     contextBoost: "empty",
     navigator: true,
   });
@@ -1034,6 +1043,7 @@ function buildToolbarCommands(args: BuildToolbarCommandsArgs): ToolbarCommand[] 
     overflowGroup: "export",
     priority: args.isLoadingProject || !hasLayers ? 92 : 64,
     disabled: args.isLoadingProject,
+    disabledReason: "A saved map project is already loading.",
     contextBoost: "empty",
     navigator: true,
   });
@@ -1050,6 +1060,7 @@ function buildToolbarCommands(args: BuildToolbarCommandsArgs): ToolbarCommand[] 
     overflowGroup: "export",
     priority: args.isExportingImage ? 113 : 78,
     disabled: args.isExportingImage,
+    disabledReason: "The current map image export is still rendering.",
   });
 
   add(args.onAddToReportClick && {
@@ -1064,10 +1075,11 @@ function buildToolbarCommands(args: BuildToolbarCommandsArgs): ToolbarCommand[] 
     overflowGroup: "export",
     priority: 81,
     disabled: args.reportDisabled,
+    disabledReason: args.reportDisabledReason ?? "The current map report snapshot is still rendering.",
     navigator: true,
   });
 
-  add(args.onExportClick && !args.exportDisabled && {
+  add(args.onExportClick && {
     id: "export-geojson",
     label: "GeoJSON",
     shortLabel: "GeoJSON",
@@ -1078,6 +1090,8 @@ function buildToolbarCommands(args: BuildToolbarCommandsArgs): ToolbarCommand[] 
     roles: ["publish", "explore"],
     overflowGroup: "export",
     priority: hasVisibleLayers ? 83 : 58,
+    disabled: args.exportDisabled,
+    disabledReason: args.exportDisabledReason ?? "Add pins, drawings, or visible overlay layers before exporting GeoJSON.",
   });
 
   return commands;
@@ -1094,6 +1108,7 @@ function ToolbarCommandButton({
   const active = Boolean(command.active);
   const disabled = Boolean(command.disabled);
   const color = active ? MAP_COLORS.amber : toneColor(command.tone ?? "default");
+  const accessibleTitle = getCommandAccessibleTitle(command);
 
   return (
     <button
@@ -1104,10 +1119,12 @@ function ToolbarCommandButton({
         command.onClick();
         onAfterClick?.();
       }}
-      title={command.title}
-      aria-label={command.title}
+      title={accessibleTitle}
+      aria-label={accessibleTitle}
       aria-pressed={active || undefined}
+      aria-disabled={disabled || undefined}
       disabled={disabled}
+      role={menuItem ? "menuitem" : undefined}
       {...toolbarButtonInteraction(active, disabled)}
     >
       <Icon size={MAP_ICON_SIZES.sm} strokeWidth={1.8} color={color} aria-hidden="true" />
@@ -1306,12 +1323,13 @@ function CommandPalette({
           ) : filteredCommands.map((command) => (
             (() => {
               const status = getCommandStatus(command);
+              const accessibleTitle = getCommandAccessibleTitle(command);
               return (
             <button
               key={command.id}
               type="button"
               style={{
-                ...commandButtonStyle(Boolean(command.active), false, command.tone, "comfortable", true),
+                ...commandButtonStyle(Boolean(command.active), Boolean(command.disabled), command.tone, "comfortable", true),
                 maxWidth: "100%",
                 minHeight: "3rem",
                 display: "grid",
@@ -1324,8 +1342,11 @@ function CommandPalette({
                 command.onClick();
                 onClose();
               }}
+              title={accessibleTitle}
               role="option"
+              aria-label={command.disabled ? `${command.label}. ${accessibleTitle}` : `${command.label}. ${command.title}`}
               aria-selected={command.active || undefined}
+              aria-disabled={command.disabled || undefined}
               disabled={command.disabled}
             >
               {React.createElement(command.icon, { size: MAP_ICON_SIZES.sm, strokeWidth: 1.8, "aria-hidden": true })}
@@ -1334,7 +1355,7 @@ function CommandPalette({
                   {command.label}
                 </span>
                 <span style={{ color: MAP_COLORS.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {command.title}
+                  {command.disabled ? accessibleTitle : command.title}
                 </span>
               </span>
               <span style={{ display: "grid", justifyItems: "end", gap: "0.125rem" }}>
@@ -1432,7 +1453,9 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
   isImporting = false,
   importProgress = null,
   exportDisabled = false,
+  exportDisabledReason = undefined,
   reportDisabled = false,
+  reportDisabledReason = undefined,
   isExportingImage = false,
   isSavingProject = false,
   isLoadingProject = false,
@@ -1440,7 +1463,8 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
 }) => {
   const toolbarRef = React.useRef<HTMLDivElement | null>(null);
   const [toolbarWidth, setToolbarWidth] = React.useState(1280);
-  const [density, setDensity] = React.useState<ToolbarDensity>(readStoredDensity);
+  const density = useMapToolbarPreferencesStore((state) => state.density);
+  const setDensity = useMapToolbarPreferencesStore((state) => state.setDensity);
   const [toolbarRole, setToolbarRole] = React.useState<ToolbarRole>(() => getDefaultRole(workspaceView));
   const [openMenu, setOpenMenu] = React.useState<OverflowGroupId | null>(null);
   const [paletteOpen, setPaletteOpen] = React.useState(false);
@@ -1448,11 +1472,6 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
   React.useEffect(() => {
     setToolbarRole(getDefaultRole(workspaceView));
   }, [workspaceView]);
-
-  React.useEffect(() => {
-    if (typeof window === "undefined") return;
-    window.localStorage.setItem(TOOLBAR_DENSITY_STORAGE_KEY, density);
-  }, [density]);
 
   React.useEffect(() => {
     const element = toolbarRef.current;
@@ -1550,7 +1569,9 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       isImporting,
       importProgress,
       exportDisabled,
+      exportDisabledReason,
       reportDisabled,
+      reportDisabledReason,
       isExportingImage,
       isSavingProject,
       isLoadingProject,
@@ -1564,6 +1585,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       annotationMode,
       drawnFeatureCount,
       exportDisabled,
+      exportDisabledReason,
       hasSelectedAoi,
       importProgress,
       isExportingImage,
@@ -1604,6 +1626,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       pinMode,
       restrictToMapView,
       reportDisabled,
+      reportDisabledReason,
       reviewEventCount,
       scientificQABlockerCount,
       scientificQAIssueCount,

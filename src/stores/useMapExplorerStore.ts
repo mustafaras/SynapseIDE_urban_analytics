@@ -6,6 +6,8 @@ import {
   type DrawToolId,
   MAP_ANNOTATION_LIMIT,
   MAP_BOOKMARK_LIMIT,
+  MAP_COPILOT_AUDIT_TRAIL_LIMIT,
+  MAP_COPILOT_PROPOSAL_LIMIT,
   MAP_LAYER_REGISTRY_EVENT,
   type MapAnnotation,
   type MapAnnotationProperties,
@@ -764,6 +766,41 @@ function countPendingCopilotActions(proposals: MapCopilotActionProposal[]): numb
   return proposals.filter((proposal) => proposal.status === "proposed" || proposal.status === "preview").length;
 }
 
+/**
+ * Bound copilot proposal history so long-lived sessions cannot grow without limit.
+ * Pending entries (proposed/preview) are always kept; resolved entries (applied/rejected)
+ * are trimmed oldest-first to fit within MAP_COPILOT_PROPOSAL_LIMIT.
+ */
+function trimCopilotProposals(proposals: MapCopilotActionProposal[]): MapCopilotActionProposal[] {
+  if (proposals.length <= MAP_COPILOT_PROPOSAL_LIMIT) return proposals;
+  const pendingCount = proposals.reduce(
+    (count, proposal) =>
+      proposal.status === "proposed" || proposal.status === "preview" ? count + 1 : count,
+    0,
+  );
+  let resolvedToDrop = Math.max(
+    0,
+    Math.min(proposals.length - MAP_COPILOT_PROPOSAL_LIMIT, proposals.length - pendingCount),
+  );
+  if (resolvedToDrop === 0) return proposals;
+  const result: MapCopilotActionProposal[] = [];
+  for (const proposal of proposals) {
+    const isResolved = proposal.status === "applied" || proposal.status === "rejected";
+    if (isResolved && resolvedToDrop > 0) {
+      resolvedToDrop -= 1;
+      continue;
+    }
+    result.push(proposal);
+  }
+  return result;
+}
+
+function trimCopilotAuditTrail(trail: MapCopilotAuditEntry[]): MapCopilotAuditEntry[] {
+  return trail.length > MAP_COPILOT_AUDIT_TRAIL_LIMIT
+    ? trail.slice(-MAP_COPILOT_AUDIT_TRAIL_LIMIT)
+    : trail;
+}
+
 function createCopilotAuditEntry(
   proposalId: string,
   action: MapCopilotActionStatus,
@@ -1184,9 +1221,11 @@ export const useMapExplorerStore = create<MapExplorerState>()(
             queuedAt,
           };
           const exists = state.copilotActionProposals.some((entry) => entry.id === proposal.id);
-          const copilotActionProposals = exists
-            ? state.copilotActionProposals.map((entry) => entry.id === proposal.id ? nextProposal : entry)
-            : [...state.copilotActionProposals, nextProposal];
+          const copilotActionProposals = trimCopilotProposals(
+            exists
+              ? state.copilotActionProposals.map((entry) => entry.id === proposal.id ? nextProposal : entry)
+              : [...state.copilotActionProposals, nextProposal],
+          );
           return {
             copilotActionProposals,
             pendingCopilotActionCount: countPendingCopilotActions(copilotActionProposals),
@@ -1208,28 +1247,38 @@ export const useMapExplorerStore = create<MapExplorerState>()(
       applyCopilotActionProposal: (id: string) =>
         set((state: MapExplorerState) => {
           const timestamp = nowIsoTimestamp();
-          const copilotActionProposals = state.copilotActionProposals.map((proposal) =>
-            proposal.id === id && proposal.status !== "applied"
-              ? { ...proposal, status: "applied" as const, appliedAt: timestamp }
-              : proposal,
+          const copilotActionProposals = trimCopilotProposals(
+            state.copilotActionProposals.map((proposal) =>
+              proposal.id === id && proposal.status !== "applied"
+                ? { ...proposal, status: "applied" as const, appliedAt: timestamp }
+                : proposal,
+            ),
           );
           return {
             copilotActionProposals,
-            copilotAuditTrail: [...state.copilotAuditTrail, createCopilotAuditEntry(id, "applied")],
+            copilotAuditTrail: trimCopilotAuditTrail([
+              ...state.copilotAuditTrail,
+              createCopilotAuditEntry(id, "applied"),
+            ]),
             pendingCopilotActionCount: countPendingCopilotActions(copilotActionProposals),
           };
         }),
       rejectCopilotActionProposal: (id: string) =>
         set((state: MapExplorerState) => {
           const timestamp = nowIsoTimestamp();
-          const copilotActionProposals = state.copilotActionProposals.map((proposal) =>
-            proposal.id === id && proposal.status !== "rejected"
-              ? { ...proposal, status: "rejected" as const, rejectedAt: timestamp }
-              : proposal,
+          const copilotActionProposals = trimCopilotProposals(
+            state.copilotActionProposals.map((proposal) =>
+              proposal.id === id && proposal.status !== "rejected"
+                ? { ...proposal, status: "rejected" as const, rejectedAt: timestamp }
+                : proposal,
+            ),
           );
           return {
             copilotActionProposals,
-            copilotAuditTrail: [...state.copilotAuditTrail, createCopilotAuditEntry(id, "rejected")],
+            copilotAuditTrail: trimCopilotAuditTrail([
+              ...state.copilotAuditTrail,
+              createCopilotAuditEntry(id, "rejected"),
+            ]),
             pendingCopilotActionCount: countPendingCopilotActions(copilotActionProposals),
           };
         }),

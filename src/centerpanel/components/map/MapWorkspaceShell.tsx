@@ -94,6 +94,17 @@ const bottomTimelineSlotStyle: React.CSSProperties = {
   borderTop: MAP_STROKES.none,
 };
 
+const workspaceFocusCss = `
+[data-map-explorer-shell="true"] :focus-visible {
+  outline: 2px solid var(--syn-focus-ring, ${MAP_COLORS.amber}) !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.16) !important;
+}
+[data-map-explorer-shell="true"] [role="separator"]:focus-visible {
+  background: rgba(245, 158, 11, 0.18) !important;
+}
+`;
+
 function getPanelRailStyle(side: MapPanelRailSide, width: number | string | undefined, height: number | string | undefined): React.CSSProperties {
   if (side === "bottom") {
     return {
@@ -203,6 +214,7 @@ export const MapWorkspaceShell: React.FC<MapWorkspaceShellProps> = ({
         data-map-explorer-shell="true"
         data-map-explorer-mode={mode}
       >
+        <style>{workspaceFocusCss}</style>
         {children}
       </div>
     </div>
@@ -250,6 +262,33 @@ export const MapPanelRail = React.forwardRef<HTMLDivElement, MapPanelRailProps>(
     event.preventDefault();
   }, [maxWidth, minWidth, onWidthChange, resizable, side, width]);
 
+  const handleResizeKeyDown = React.useCallback<React.KeyboardEventHandler<HTMLDivElement>>((event) => {
+    if (!resizable || side === "bottom" || !onWidthChange) {
+      return;
+    }
+
+    const currentWidth = typeof width === "number" ? width : MAP_NUMERIC.layerPanelWidth;
+    const step = event.shiftKey ? 32 : 12;
+    let nextWidth: number | null = null;
+
+    if (event.key === "ArrowLeft") {
+      nextWidth = side === "left" ? currentWidth - step : currentWidth + step;
+    } else if (event.key === "ArrowRight") {
+      nextWidth = side === "left" ? currentWidth + step : currentWidth - step;
+    } else if (event.key === "Home") {
+      nextWidth = minWidth;
+    } else if (event.key === "End") {
+      nextWidth = maxWidth;
+    }
+
+    if (nextWidth == null) {
+      return;
+    }
+
+    event.preventDefault();
+    onWidthChange(clampPanelWidth(nextWidth, minWidth, maxWidth));
+  }, [maxWidth, minWidth, onWidthChange, resizable, side, width]);
+
   return (
     <aside
       {...props}
@@ -270,11 +309,16 @@ export const MapPanelRail = React.forwardRef<HTMLDivElement, MapPanelRailProps>(
           role="separator"
           aria-orientation="vertical"
           aria-label={`Resize ${ariaLabel.toLowerCase()}`}
+          aria-valuemin={minWidth}
+          aria-valuemax={maxWidth}
+          aria-valuenow={typeof width === "number" ? width : MAP_NUMERIC.layerPanelWidth}
+          aria-valuetext={`${typeof width === "number" ? width : MAP_NUMERIC.layerPanelWidth} pixels`}
           tabIndex={0}
           style={getResizeHandleStyle(side)}
           onPointerDown={handlePointerDown}
+          onKeyDown={handleResizeKeyDown}
           data-testid="map-panel-resize-handle"
-          title={`Drag to resize ${ariaLabel.toLowerCase()}`}
+          title={`Drag or use arrow keys to resize ${ariaLabel.toLowerCase()}`}
         />
       ) : null}
     </aside>

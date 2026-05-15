@@ -9,27 +9,26 @@ The agent must not rely on chat memory. It must recover context from durable doc
 ## One-Line Agent Instruction
 
 ```text
-Read this file, read every required document listed below, run or manually follow the next-prompt discovery process, execute the next incomplete Urban Analytics implementation prompt, validate narrowly, update the ledger, and finish with the handoff template.
+Read this file, read the token-minimized startup files, run or manually follow the next-prompt discovery process, use targeted search for the active Urban Analytics prompt, validate narrowly, update the ledger, and finish with the handoff template.
 ```
 
-## Required Reading Order
+## Token-Minimized Reading Order
 
 Read these files in this exact order before editing code:
 
-1. `DEVELOPMENT_PLANS/AGENT_AMNESIA_PREVENTION_PROTOCOL.md`
-2. `DEVELOPMENT_PLANS/TRI_MODAL_WORKBENCH_ALIGNMENT_SPEC.md`
-3. `DEVELOPMENT_PLANS/URBAN_ANALYTICS_DEVELOPMENT_PLAN.md`
-4. `DEVELOPMENT_PLANS/URBAN_ANALYTICS_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md`
-5. `DEVELOPMENT_PLANS/URBAN_ANALYTICS_PROMPT_MANIFEST.json`
-6. `DEVELOPMENT_PLANS/URBAN_ANALYTICS_IMPLEMENTATION_LEDGER.md`
-7. `DEVELOPMENT_PLANS/URBAN_ANALYTICS_AGENT_HANDOFF_TEMPLATE.md`
+1. `DEVELOPMENT_PLANS/CONTEXT_MIN.md`
+2. `DEVELOPMENT_PLANS/CURRENT_TASK.json`
+3. `DEVELOPMENT_PLANS/MODULE_INDEX.json` only if ownership is unclear
+4. The active prompt block from `DEVELOPMENT_PLANS/URBAN_ANALYTICS_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md`, found by heading or prompt id
+5. The active prompt status/log rows from `DEVELOPMENT_PLANS/URBAN_ANALYTICS_IMPLEMENTATION_LEDGER.md`, found by prompt id
 
 ## Next Prompt Discovery
 
 Preferred method:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/get-next-urban-analytics-prompt.ps1
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+.\scripts\get-next-urban-analytics-prompt.ps1 -Json
 ```
 
 If script execution is unavailable, manually inspect:
@@ -54,7 +53,7 @@ No other status value is valid.
 Before editing:
 
 1. Confirm the next prompt ID and title.
-2. Read the full prompt block in `URBAN_ANALYTICS_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md`.
+2. Read only the active prompt block in `URBAN_ANALYTICS_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md`.
 3. Inspect every required file named by the prompt.
 4. Check for existing user changes if version control metadata is available.
 5. Update the ledger status to `in_progress` if you are allowed to edit docs during implementation.
@@ -100,6 +99,7 @@ This operating pack is semi-automated:
 - The ledger records real execution state.
 - The helper script identifies the next prompt.
 - The handoff template standardizes memory transfer.
+- The token-minimized context files prevent full-plan reads during startup.
 
 It does not execute product implementation by itself. An agent must still read, implement, validate, and update the ledger.
 

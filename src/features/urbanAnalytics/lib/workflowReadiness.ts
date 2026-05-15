@@ -17,7 +17,6 @@ import type {
   UrbanAnalysisContext,
   UrbanDataFitnessProfile,
   UrbanDataFitnessStatus,
-  UrbanMethodValidityEnvelope,
   UrbanWorkflowReadinessIssue,
   UrbanWorkflowReadinessResult,
   UrbanWorkflowReadinessStatus,

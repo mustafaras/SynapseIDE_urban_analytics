@@ -73,10 +73,6 @@ const FlowHost = lazyWithRetry(() => import("./Flows/FlowHost"));
 const FlowsRail = lazyWithRetry(() => import("./Flows/FlowsRail"));
 const ToolsProjectList = lazyWithRetry(() => import("./Tools/ToolsProjectList"));
 const ToolsActionPanel = lazyWithRetry(() => import("./Tools/ToolsActionPanel"));
-const MapExplorerModal = lazyWithRetry(async () => {
-	const module = await import("./components/MapExplorerModal");
-	return { default: module.MapExplorerModal };
-});
 const DashboardBuilder = lazyWithRetry(async () => {
 	const module = await import("@/features/dashboard/DashboardBuilder");
 	return { default: module.DashboardBuilder };
@@ -200,8 +196,6 @@ const CenterPanelShell: React.FC<CenterPanelShellProps> = ({
 	}, []);
 
 
-	const isMapOpen = useMapExplorerStore(s => s.isOpen);
-	const closeMap = useMapExplorerStore(s => s.close);
 	const toggleMap = useMapExplorerStore(s => s.toggle);
 	const overlayLayers = useMapExplorerStore(s => s.overlayLayers);
 	const addOverlayLayer = useMapExplorerStore(s => s.addOverlayLayer);
@@ -481,12 +475,6 @@ const CenterPanelShell: React.FC<CenterPanelShellProps> = ({
 
 						{}
 					</div>
-	            {}
-	            {isMapOpen ? renderDeferredPanel(
-					<MapExplorerModal open={isMapOpen} onClose={closeMap} />,
-					"Map Explorer unavailable",
-					"The Map Explorer did not load. Retry after the dev server reconnects, or reload the app if it persists.",
-				) : null}
 	            </ProjectRegistryProvider>
 
 				{}

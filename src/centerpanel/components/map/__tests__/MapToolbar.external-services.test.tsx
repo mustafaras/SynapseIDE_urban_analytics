@@ -120,7 +120,7 @@ describe("MapToolbar external services", () => {
     expect(onImportClick).toHaveBeenCalledTimes(1);
   });
 
-  it("does not render dead export controls without data or callbacks", () => {
+  it("does not render dead export controls without callbacks and explains disabled export", () => {
     const noCallbackHtml = renderToStaticMarkup(
       <MapToolbar
         pinMode={false}
@@ -144,6 +144,7 @@ describe("MapToolbar external services", () => {
         exportDisabled
       />,
     );
-    expect(noDataHtml).not.toContain("Export visible map data as GeoJSON");
+    expect(noDataHtml).toContain("Export visible map data as GeoJSON");
+    expect(noDataHtml).toContain("Add pins, drawings, or visible overlay layers before exporting GeoJSON.");
   });
 });

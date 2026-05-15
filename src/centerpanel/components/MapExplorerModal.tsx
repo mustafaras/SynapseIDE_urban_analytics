@@ -28,6 +28,7 @@ import {
   mapStyles,
 } from "./map/mapTokens";
 import { MapCanvas, type MapFeatureReportRequest } from "./map/MapCanvas";
+import { MapCanvasKeyboardFallbackControls } from "./map/MapCanvasKeyboardFallbackControls";
 import { MapToolbar } from "./map/MapToolbar";
 import { MapLayerPanel } from "./map/MapLayerPanel";
 import { MapLayerManager } from "./map/MapLayerManager";
@@ -52,7 +53,7 @@ import { MapServiceDialog, type MapServiceDialogProgressDetail } from "./MapServ
 import { MapBookmarkBar } from "./MapBookmarkBar";
 import { MapAnnotationLayer } from "./MapAnnotationLayer";
 import { MapSearchBar } from "./map/MapSearchBar";
-import { MapStatusBar } from "./map/MapStatusBar";
+import { MapStatusBar, type MapStatusBarProps } from "./map/MapStatusBar";
 import { MapPinSidebar } from "./map/MapPinSidebar";
 import {
   MapBottomTimeline,
@@ -660,6 +661,38 @@ function feedbackAccent(tone: DispatchFeedbackTone): string {
   }
 }
 
+function waitForMapCanvasCaptureMode(): Promise<void> {
+  if (typeof window === "undefined") return Promise.resolve();
+  return new Promise((resolve) => {
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => resolve());
+    });
+  });
+}
+
+const MAP_RENDER_ERROR_NOTICE_COOLDOWN_MS = 60_000;
+const MAP_QUOTA_WARNING_NOTICE_COOLDOWN_MS = 5 * 60_000;
+const MAP_AUTOSAVE_ERROR_NOTICE_COOLDOWN_MS = 2 * 60_000;
+
+type MapCursorCoordinates = { lng: number; lat: number };
+
+interface MapStatusBarCursorHandle {
+  setCursor: (cursor: MapCursorCoordinates | null) => void;
+}
+
+type MapStatusBarWithCursorProps = Omit<MapStatusBarProps, "cursor">;
+
+const MapStatusBarWithCursor = React.forwardRef<MapStatusBarCursorHandle, MapStatusBarWithCursorProps>(
+  (props, ref) => {
+    const [cursor, setCursor] = useState<MapCursorCoordinates | null>(null);
+
+    React.useImperativeHandle(ref, () => ({ setCursor }), []);
+
+    return <MapStatusBar {...props} cursor={cursor} />;
+  },
+);
+MapStatusBarWithCursor.displayName = "MapStatusBarWithCursor";
+
 /* ================================================================== */
 /*  Component — Shell (portal, overlay, layout grid)                   */
 /* ================================================================== */
@@ -685,6 +718,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const lastReviewRecommendationSignatureRef = useRef<string | null>(null);
   const recordedCopilotProposalIdsRef = useRef<Set<string>>(new Set());
   const recordedCopilotAuditIdsRef = useRef<Set<string>>(new Set());
+  const cursorRef = useRef<{ lng: number; lat: number } | null>(null);
+  const statusCursorRef = useRef<MapStatusBarCursorHandle | null>(null);
   const symbologyPanelDrag = useDraggableMapPanel();
   const mapCanvasId = "map-explorer-canvas";
 
@@ -794,7 +829,6 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
 
   /* ---- Transient local state (not persisted) ---- */
   const [workspaceView, setWorkspaceView] = useState<MapWorkspaceView>(initialWorkspaceView);
-  const [cursor, setCursor] = useState<{ lng: number; lat: number } | null>(null);
   const [showSidebar, setShowSidebar] = useState(false);
   const [showLayerPanel, setShowLayerPanel] = useState(true);
   const [showChoroplethPanel, setShowChoroplethPanel] = useState(false);
@@ -1336,12 +1370,30 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
   const [rerunningAnalysisToken, setRerunningAnalysisToken] = useState<string | null>(null);
   const [selectedTemporalLayerId, setSelectedTemporalLayerId] = useState<string | null>(null);
-  const quotaWarningShownRef = useRef<string | null>(null);
+  const quotaWarningShownRef = useRef<{ key: string; timestamp: number } | null>(null);
+  const lastProjectSaveErrorRef = useRef<{ key: string; timestamp: number } | null>(null);
+  const lastAutoSaveTriggerRef = useRef<{
+    activeBaseLayer: typeof activeBaseLayer;
+    annotations: typeof annotations;
+    bearing: typeof bearing;
+    bookmarks: typeof bookmarks;
+    center: typeof center;
+    drawnFeatures: typeof drawnFeatures;
+    overlayLayers: typeof overlayLayers;
+    pins: typeof pins;
+    pitch: typeof pitch;
+    selectedProjectId: typeof selectedProjectId;
+    zoom: typeof zoom;
+  } | null>(null);
   const isRestoringProjectRef = useRef(false);
   const previousProjectIdRef = useRef<string | null>(selectedProjectId);
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const pinMode = activeTool === "pin";
+  const mapCanvasCaptureMode = showMapExportDialog
+    || isGeneratingReportHandoffSnapshot
+    || isExportingReportHandoffPdf
+    || isExportingMapImage;
   const annotationMode = activeTool === "annotate";
   const selectedPointSymbologyLayer = pointSymbologyLayerId
     ? overlayLayers.find((layer) => layer.id === pointSymbologyLayerId) ?? null
@@ -1456,6 +1508,15 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     setWorkspaceView(view);
     announce(`Map workspace switched to ${view}`);
   }, [announce]);
+
+  const focusInteractiveMapCanvas = useCallback(() => {
+    const focusCanvas = () => {
+      document.getElementById(mapCanvasId)?.focus({ preventScroll: true });
+    };
+    focusCanvas();
+    window.requestAnimationFrame(focusCanvas);
+    announce("Interactive map canvas focused");
+  }, [announce, mapCanvasId]);
 
   useEffect(() => {
     if (workspaceView !== "analyze") {
@@ -1719,7 +1780,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
 
   /* ---- Map event callbacks ---- */
   const handleCursorMove = useCallback((coords: { lng: number; lat: number }) => {
-    setCursor(coords);
+    cursorRef.current = coords;
+    statusCursorRef.current?.setCursor(coords);
   }, []);
 
   const handleZoomChange = useCallback((z: number) => {
@@ -1800,7 +1862,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const handleMapRenderError = useCallback((message: string) => {
     const now = Date.now();
     const previous = lastMapRenderErrorRef.current;
-    if (previous?.message === message && now - previous.timestamp < 8_000) {
+    if (previous?.message === message && now - previous.timestamp < MAP_RENDER_ERROR_NOTICE_COOLDOWN_MS) {
       return;
     }
 
@@ -3222,9 +3284,14 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       setLastSavedAt(result.snapshot.savedAt);
 
       if (result.quota.warning) {
-        const warningKey = `${projectId}:${Math.floor(result.quota.projectedPercentUsed * 100)}`;
-        if (quotaWarningShownRef.current !== warningKey) {
-          quotaWarningShownRef.current = warningKey;
+        const now = Date.now();
+        const warningKey = `${projectId}:${Math.floor(result.quota.projectedPercentUsed * 10)}`;
+        const previousWarning = quotaWarningShownRef.current;
+        const shouldShowQuotaWarning = !previousWarning
+          || previousWarning.key !== warningKey
+          || (!options?.silent && now - previousWarning.timestamp > MAP_QUOTA_WARNING_NOTICE_COOLDOWN_MS);
+        if (shouldShowQuotaWarning) {
+          quotaWarningShownRef.current = { key: warningKey, timestamp: now };
           toastWarning(
             `Map storage is ${Math.round(result.quota.projectedPercentUsed * 100)}% full. Further saves may fail soon.`,
           );
@@ -3255,8 +3322,22 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       return true;
     } catch (error) {
       const message = error instanceof Error ? error.message : "Project map save failed.";
-      toastError(message);
-      announce(`Project save failed: ${message}`);
+      const now = Date.now();
+      const errorKey = `${projectId}:${message}`;
+      const previousError = lastProjectSaveErrorRef.current;
+      const shouldNotify = !options?.silent
+        || !previousError
+        || previousError.key !== errorKey
+        || now - previousError.timestamp > MAP_AUTOSAVE_ERROR_NOTICE_COOLDOWN_MS;
+      if (shouldNotify) {
+        lastProjectSaveErrorRef.current = { key: errorKey, timestamp: now };
+        if (options?.silent) {
+          toastWarning(message);
+        } else {
+          toastError(message);
+        }
+        announce(`Project save failed: ${message}`);
+      }
       return false;
     } finally {
       setIsSavingProject(false);
@@ -3386,6 +3467,37 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     ) {
       return undefined;
     }
+
+    const nextAutoSaveTrigger = {
+      activeBaseLayer,
+      annotations,
+      bearing,
+      bookmarks,
+      center,
+      drawnFeatures,
+      overlayLayers,
+      pins,
+      pitch,
+      selectedProjectId,
+      zoom,
+    };
+    const previousAutoSaveTrigger = lastAutoSaveTriggerRef.current;
+    if (
+      previousAutoSaveTrigger?.activeBaseLayer === nextAutoSaveTrigger.activeBaseLayer &&
+      previousAutoSaveTrigger.annotations === nextAutoSaveTrigger.annotations &&
+      previousAutoSaveTrigger.bearing === nextAutoSaveTrigger.bearing &&
+      previousAutoSaveTrigger.bookmarks === nextAutoSaveTrigger.bookmarks &&
+      previousAutoSaveTrigger.center === nextAutoSaveTrigger.center &&
+      previousAutoSaveTrigger.drawnFeatures === nextAutoSaveTrigger.drawnFeatures &&
+      previousAutoSaveTrigger.overlayLayers === nextAutoSaveTrigger.overlayLayers &&
+      previousAutoSaveTrigger.pins === nextAutoSaveTrigger.pins &&
+      previousAutoSaveTrigger.pitch === nextAutoSaveTrigger.pitch &&
+      previousAutoSaveTrigger.selectedProjectId === nextAutoSaveTrigger.selectedProjectId &&
+      previousAutoSaveTrigger.zoom === nextAutoSaveTrigger.zoom
+    ) {
+      return undefined;
+    }
+    lastAutoSaveTriggerRef.current = nextAutoSaveTrigger;
 
     if (autoSaveTimerRef.current) {
       clearTimeout(autoSaveTimerRef.current);
@@ -3819,8 +3931,13 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
 
     setIsGeneratingReportHandoffSnapshot(true);
     try {
-      const composition = buildReportHandoffComposition(source, options, map);
-      const result = await renderMapExportPreview(map, {
+      await waitForMapCanvasCaptureMode();
+      const captureMap = mapInstanceRef.current;
+      if (!captureMap) {
+        throw new Error("Map canvas is not ready for report snapshot capture.");
+      }
+      const composition = buildReportHandoffComposition(source, options, captureMap);
+      const result = await renderMapExportPreview(captureMap, {
         resolution: "screen",
         composition,
         overlayLayers: visiblePublicationLayers,
@@ -3833,7 +3950,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         height: result.height,
         legendItems,
         scaleBarLabel: scaleBarSpec?.label ?? null,
-        northArrowBearing: map.getBearing(),
+        northArrowBearing: captureMap.getBearing(),
         attributionText,
       });
     } catch (error) {
@@ -4356,7 +4473,12 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
 
     setIsExportingReportHandoffPdf(true);
     try {
-      const result = await exportMapOnlyA0LandscapePdf(map, {
+      await waitForMapCanvasCaptureMode();
+      const captureMap = mapInstanceRef.current;
+      if (!captureMap) {
+        throw new Error("Map canvas is not ready for A0 export.");
+      }
+      const result = await exportMapOnlyA0LandscapePdf(captureMap, {
         mapFit: reportHandoffOptions.snapshotFit,
         title: reportHandoffSource?.title ?? reportHandoffDraft?.title ?? "Current map evidence",
         overlayLayers: visiblePublicationLayers,
@@ -4617,7 +4739,12 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
 
     setIsExportingMapImage(true);
     try {
-      const result = await exportMapPublication(map, {
+      await waitForMapCanvasCaptureMode();
+      const captureMap = mapInstanceRef.current;
+      if (!captureMap) {
+        throw new Error("Map canvas is not ready for export.");
+      }
+      const result = await exportMapPublication(captureMap, {
         composition: mapCompositionOptions,
         overlayLayers: visiblePublicationLayers,
         scientificQA,
@@ -4672,21 +4799,22 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       return undefined;
     }
 
-    const map = mapInstanceRef.current;
-    if (!map) {
-      setMapExportPreviewUrl(null);
-      return undefined;
-    }
-
     let cancelled = false;
     const timerId = window.setTimeout(() => {
       setIsGeneratingMapExportPreview(true);
-      void renderMapExportPreview(map, {
-        resolution: "screen",
-        composition: mapCompositionOptions,
-        overlayLayers: visiblePublicationLayers,
-        maxPreviewWidth: 520,
-      })
+      void waitForMapCanvasCaptureMode()
+        .then(() => {
+          const captureMap = mapInstanceRef.current;
+          if (!captureMap) {
+            throw new Error("Map canvas is not ready for export preview.");
+          }
+          return renderMapExportPreview(captureMap, {
+            resolution: "screen",
+            composition: mapCompositionOptions,
+            overlayLayers: visiblePublicationLayers,
+            maxPreviewWidth: 520,
+          });
+        })
         .then((result) => {
           if (cancelled) return;
           setMapExportPreviewUrl(result.dataUrl);
@@ -4787,6 +4915,12 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     pins.length === 0 &&
     drawnFeatures.length === 0 &&
     overlayLayers.filter((layer) => layer.visible).length === 0;
+  const exportDisabledReason = exportDisabled
+    ? "Add pins, drawings, or visible overlay layers before exporting GeoJSON."
+    : undefined;
+  const reportDisabledReason = isGeneratingReportHandoffSnapshot
+    ? "The current map report snapshot is still rendering."
+    : undefined;
   const persistenceDisabled = !selectedProjectId;
 
   return createPortal(
@@ -4816,7 +4950,14 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
           aria-label="Skip to interactive map canvas"
           onClick={(event) => {
             event.preventDefault();
-            document.getElementById(mapCanvasId)?.focus();
+            focusInteractiveMapCanvas();
+          }}
+          onKeyDown={(event) => {
+            if (event.key !== "Enter" && event.key !== " ") {
+              return;
+            }
+            event.preventDefault();
+            focusInteractiveMapCanvas();
           }}
           onFocus={(e) => {
             /* Make visible on focus */
@@ -4946,7 +5087,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               isImporting={isImporting}
               importProgress={importProgress?.percent ?? null}
               exportDisabled={exportDisabled}
+              exportDisabledReason={exportDisabledReason}
               reportDisabled={isGeneratingReportHandoffSnapshot}
+              reportDisabledReason={reportDisabledReason}
               isExportingImage={isExportingMapImage}
               isSavingProject={isSavingProject}
               isLoadingProject={isLoadingProject}
@@ -5323,6 +5466,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             pins={pins}
             interactiveLayerIds={interactiveAnalysisLayerIds}
             reducedMotion={reducedMotion}
+            preserveDrawingBuffer={mapCanvasCaptureMode}
             onCursorMove={handleCursorMove}
             onZoomChange={handleZoomChange}
             onViewportChange={handleViewportChange}
@@ -5331,6 +5475,15 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             onMapDestroy={handleMapDestroy}
             onRenderError={handleMapRenderError}
             onFeatureReportRequest={handleFeatureReportRequest}
+          />
+
+          <MapCanvasKeyboardFallbackControls
+            mapRef={mapInstanceRef}
+            mapElementId={mapCanvasId}
+            reducedMotion={reducedMotion}
+            defaultCenter={[29.0, 41.0]}
+            defaultZoom={10}
+            onAnnounce={announce}
           />
 
           <MapReportHandoffDrawer
@@ -5730,8 +5883,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
 
         <MapBottomTimeline timelineSlot={bottomTimelineSlot} data-testid="map-bottom-timeline">
           <div ref={statusBarRef}>
-            <MapStatusBar
-              cursor={cursor}
+            <MapStatusBarWithCursor
+              ref={statusCursorRef}
               zoom={zoom}
               projectId={selectedProjectId}
               workspaceLabel={workspaceView}
