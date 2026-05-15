@@ -14,9 +14,11 @@ import { showToast } from '@/ui/toast/api';
 
 const Wrap = styled.div`
   display: grid;
-  grid-template-columns: 220px 1fr;
-  gap: 10px;
-  min-height: 420px;
+  grid-template-columns: 180px 1fr;
+  gap: 16px;
+  height: 560px;
+  min-height: 560px;
+  max-height: 560px;
   font-family: var(--font-mono, var(--font-code, 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace));
 
 
@@ -25,17 +27,19 @@ const Wrap = styled.div`
   --bgOverlay: rgba(255,255,255,0.04);
   --textPrimary: #FAFAF9;
   --textSecondary: #A8A29E;
-  --textAccent: #F59E0B;
-  --goldSoft: #D97706;
-  --goldMuted: #B45309;
+  /* Primary chrome accent redirected to VS Code blue per color system contract.
+     gold and textAccent names retained for source compatibility. */
+  --textAccent: var(--syn-interaction-active);
+  --goldSoft: #2c7fd9;
+  --goldMuted: #1f6abc;
   --mutedNeutralAccent: #A8A29E;
   --borderSoft: rgba(255,255,255,0.06);
   --success: #22C55E;
   --warning: #F59E0B;
   --error: #EF4444;
   --softShadow: rgba(0,0,0,0.3);
-  --borderHighlight: rgba(245,158,11,0.4);
-  --glowSubtle: 0 0 6px rgba(245,158,11,0.3);
+  --borderHighlight: rgba(55,148,255,0.4);
+  --glowSubtle: 0 0 6px rgba(55,148,255,0.3);
 
 
   color: var(--textPrimary);
@@ -44,52 +48,54 @@ const Wrap = styled.div`
 const Nav = styled.nav`
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 10px;
-  background: var(--bgSecondary);
-  border: 1px solid var(--borderSoft);
-  border-radius: 10px;
-  font-family: var(--font-mono, var(--font-code, 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace));
+  gap: 2px;
+  padding: 4px 0;
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--syn-border-subtle);
+  padding-right: 8px;
+  font-family: inherit;
 `;
 
 const NavBtn = styled.button<{ $active?: boolean }>`
   text-align: left;
   padding: 8px 12px;
-  border-radius: 10px;
-  border: 1px solid ${({ $active }) => $active ? 'var(--borderHighlight)' : 'var(--borderSoft)'};
-  background: ${({ $active }) => $active ? 'var(--syn-gradient-glass-amber)' : 'rgba(255,255,255,0.04)'};
-  color: ${({ $active }) => $active ? '#FAFAF9' : 'var(--textPrimary)'};
-  font-size: 12px;
-  letter-spacing: 0.4px;
-  font-family: var(--font-mono, var(--font-code, 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace));
+  border-radius: 4px;
+  border: none;
+  background: ${({ $active }) => $active ? 'var(--syn-interaction-hover)' : 'transparent'};
+  color: ${({ $active }) => $active ? 'var(--syn-text-default)' : 'var(--syn-text-secondary)'};
+  font-size: 13px;
+  letter-spacing: 0;
+  font-family: inherit;
   cursor: pointer;
   position: relative;
-  transition: background 140ms var(--syn-easing-bauhaus), border-color 140ms var(--syn-easing-bauhaus), color 140ms var(--syn-easing-bauhaus), box-shadow 140ms var(--syn-easing-bauhaus);
-  &:hover { border-color: var(--borderHighlight); background: ${({ $active }) => $active ? 'var(--syn-gradient-glass-amber)' : 'rgba(255,255,255,0.07)'}; }
-  &:focus-visible { outline: 2px solid var(--textAccent); outline-offset: 2px; box-shadow: var(--shadow-focus); }
-  &[aria-selected='true']::after { content: ''; position: absolute; inset: -1px; border-radius: 11px; pointer-events: none; box-shadow: var(--shadow-focus), var(--syn-glow-subtle); }
+  transition: background 120ms ease, color 120ms ease;
+  &:hover { background: var(--syn-interaction-hover); color: var(--syn-text-default); }
+  &:focus-visible { outline: none; }
 `;
 
 const PanelShell = styled.section`
-  background: var(--syn-gradient-elevated);
-  border: 1px solid var(--borderSoft);
-  border-radius: 14px;
-  padding: 14px 16px 16px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 4px 4px 4px 0;
   display: flex;
   flex-direction: column;
   gap: 10px;
   font-family: inherit;
   position: relative;
-  box-shadow: 0 4px 18px -6px var(--syn-depth-strong, rgba(0,0,0,0.48)), 0 0 0 1px var(--syn-overlay-whisper, rgba(255,255,255,0.04));
+  box-shadow: none;
   overflow: hidden;
-  &:before { content:''; position:absolute; inset:0; pointer-events:none; background:radial-gradient(circle at 92% 8%, rgba(245,158,11,0.15), transparent 55%); }
+  min-height: 0;
 `;
 
 const TabsContentWrap = styled.div`
   display:flex;
   flex-direction:column;
   gap:0;
-  min-height:360px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 `;
 
 const TabPanel = styled.div<{ $active?: boolean }>`
@@ -111,21 +117,20 @@ const Label = styled.div`
 
 const Input = styled.input`
   width: 100%;
-  padding: 8px 10px;
-  background: rgba(255,255,255,0.045);
-  border: 1px solid var(--borderSoft);
-  border-radius: 8px;
-  color: var(--textPrimary);
-  font-family: var(--font-mono, var(--font-code, 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace));
-  font-size: 12px;
-  transition: border-color 120ms var(--syn-easing-bauhaus), background 120ms var(--syn-easing-bauhaus), box-shadow 120ms var(--syn-easing-bauhaus);
-  &:hover { border-color: var(--borderHighlight); }
-  &:focus-visible { outline: none; border-color: var(--borderHighlight); box-shadow: var(--shadow-focus); background: rgba(255,255,255,0.07); }
+  padding: 6px 10px;
+  background: var(--syn-surface-input);
+  border: 1px solid var(--syn-border-subtle);
+  border-radius: 2px;
+  color: var(--syn-text-default);
+  font-family: inherit;
+  font-size: 13px;
+  transition: border-color 120ms ease;
+  &:hover { border-color: var(--syn-border-default); }
+  &:focus-visible { outline: none; border-color: var(--syn-border-focus); }
 `;
 
 const KeyInput = styled(Input)<{ $invalid?: boolean }>`
-  border-color: ${({ $invalid }) => $invalid ? 'var(--error)' : 'var(--borderSoft)'};
-  box-shadow: ${({ $invalid }) => $invalid ? '0 0 0 2px rgba(239,68,68,0.25)' : 'none'};
+  border-color: ${({ $invalid }) => $invalid ? 'var(--syn-status-error)' : 'var(--syn-border-subtle)'};
   max-width: 420px;
 `;
 
@@ -185,16 +190,16 @@ const KeyRowNew: React.FC<KeyRowNewProps> = (props) => {
           style={{ maxWidth: '100%' }}
         />
       </div>
-      <div style={{ display: 'flex', gap: 6, background: 'rgba(255,255,255,0.05)', border: '1px solid var(--borderSoft)', padding: '3px 6px', borderRadius: 10 }}>
-        <IconButton style={{ width: 32, height: 32 }} onClick={() => { void onToggleShow(); }} aria-label={show ? 'Hide' : 'Show'} title={show ? 'Hide' : 'Show'}>
+      <div style={{ display: 'flex', gap: 4, background: 'transparent', border: 'none', padding: 0, borderRadius: 0 }}>
+        <IconButton style={{ width: 28, height: 28 }} onClick={() => { void onToggleShow(); }} aria-label={show ? 'Hide' : 'Show'} title={show ? 'Hide' : 'Show'}>
           {show ? <Icon.EyeOff /> : <Icon.Eye />}
         </IconButton>
-        {!!hasSaved && !value && <IconButton style={{ width: 32, height: 32 }} onClick={onClear} aria-label="Clear" title="Clear">✕</IconButton>}
-        <IconButton style={{ width: 32, height: 32 }} onClick={onTest} aria-label="Test" title="Test">
+        {!!hasSaved && !value && <IconButton style={{ width: 28, height: 28 }} onClick={onClear} aria-label="Clear" title="Clear">✕</IconButton>}
+        <IconButton style={{ width: 28, height: 28 }} onClick={onTest} aria-label="Test" title="Test">
           <Icon.Flask />
         </IconButton>
       </div>
-      <div style={{ display: 'flex', justifyContent: 'flex-start' }}><span style={{ fontSize: 11, padding: '2px 6px', borderRadius: 6, background: 'rgba(255,255,255,0.06)', border: '1px solid var(--borderSoft)', color: status === 'Verified' ? 'var(--success)' : status === 'Invalid' ? 'var(--error)' : status === 'Rate-limited' ? 'var(--warning)' : 'var(--textSecondary)', lineHeight: 1 }}>{status}</span></div>
+      <div style={{ display: 'flex', justifyContent: 'flex-start' }}><span style={{ fontSize: 11, padding: '2px 6px', borderRadius: 2, background: 'transparent', border: 'none', color: status === 'Verified' ? 'var(--syn-status-valid)' : status === 'Invalid' ? 'var(--syn-status-error)' : status === 'Rate-limited' ? 'var(--syn-status-warning)' : 'var(--syn-text-muted)', lineHeight: 1 }}>{status}</span></div>
       {!!invalid && <div style={{ gridColumn: '2 / 5', fontSize: 11, color: 'var(--error)' }}>Invalid key format.</div>}
     </div>
   );
@@ -209,29 +214,27 @@ const Actions = styled.div`
 `;
 
 const Button = styled.button`
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid var(--borderSoft);
-  background: var(--syn-gradient-glass-subtle);
-  color: var(--textPrimary);
+  padding: 6px 12px;
+  border-radius: 2px;
+  border: none;
+  background: var(--syn-interaction-hover);
+  color: var(--syn-text-default);
   font-size: 12px;
-  font-family: var(--font-mono, var(--font-code, 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace));
+  font-family: inherit;
   cursor: pointer;
-  transition: background 140ms var(--syn-easing-bauhaus), border-color 140ms var(--syn-easing-bauhaus), box-shadow 140ms var(--syn-easing-bauhaus);
-  &:hover { border-color: var(--borderHighlight); background: linear-gradient(145deg, rgba(255,255,255,0.10), rgba(255,255,255,0.05)); }
-  &:active { background: var(--syn-gradient-glass); }
-  &:focus-visible { outline: 2px solid var(--textAccent); outline-offset: 2px; }
+  transition: background 120ms ease;
+  &:hover { background: color-mix(in srgb, var(--syn-text-default) 10%, var(--syn-interaction-hover)); }
+  &:focus-visible { outline: 1px solid var(--syn-interaction-focus-ring); outline-offset: -1px; }
   &:disabled { opacity: 0.45; cursor: not-allowed; }
 `;
 
 const Primary = styled(Button)`
-  background: var(--syn-gradient-glass-amber);
-  border-color: rgba(245,158,11,0.45);
-  color: var(--syn-text-primary, #FAFAF9);
-  box-shadow: var(--shadow-focus), var(--shadow-glow);
-  &:hover { background: var(--syn-gradient-glass-amber); }
-  &:active { filter:brightness(0.95); }
-  &:disabled { box-shadow:none; }
+  background: var(--syn-interaction-active);
+  border: none;
+  color: var(--syn-text-inverse);
+  &:hover { background: color-mix(in srgb, var(--syn-text-default) 14%, var(--syn-interaction-active)); }
+  &:active { filter: brightness(0.92); }
+  &:disabled { opacity: 0.45; }
 `;
 
 const Title = styled.h3`
@@ -271,15 +274,18 @@ const RadioPill = styled.label<{ $active?: boolean }>`
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 6px 12px;
-  height: 34px;
-  min-width: 110px;
-  border: 1px solid var(--borderSoft);
-  border-radius: 999px;
-  background: ${({ $active }) => $active ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.05)'};
-  box-shadow: ${({ $active }) => $active ? 'var(--glowSubtle)' : 'none'};
+  padding: 4px 12px;
+  height: 28px;
+  min-width: 90px;
+  border: none;
+  border-radius: 2px;
+  background: ${({ $active }) => $active ? 'color-mix(in srgb, var(--syn-interaction-active) 18%, transparent)' : 'transparent'};
+  color: ${({ $active }) => $active ? 'var(--syn-interaction-active)' : 'var(--syn-text-secondary)'};
+  box-shadow: none;
   cursor: pointer;
-  text-transform: uppercase;
+  transition: background 120ms ease, color 120ms ease;
+  &:hover { background: ${({ $active }) => $active ? 'color-mix(in srgb, var(--syn-interaction-active) 24%, transparent)' : 'var(--syn-interaction-hover)'}; color: var(--syn-text-default); }
+  text-transform: none;
   font-size: 12px;
   letter-spacing: 0.4px;
 `;
@@ -665,42 +671,43 @@ export const SettingsModal: React.FC<{ open: boolean; onClose: () => void }> = (
   return (
     <Modal isOpen={open} onClose={onClose} title="Settings" size="palette" variant="palette" className="settings-modal-palette">
       <style>{`
-        .settings-modal-palette { --settings-accent:#F59E0B; }
-        .settings-modal-palette ${''}
-        .settings-modal-palette [data-nav] { width:252px; flex-shrink:0; display:flex; flex-direction:column; gap:8px; padding:4px 0 8px; }
-        .settings-modal-palette [data-nav] button { text-align:left; padding:10px 14px; border-radius:6px; font-size:13px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); color:#A8A29E; cursor:pointer; transition:background .15s,border-color .15s,color .15s; }
-        .settings-modal-palette [data-nav] button:hover { background:rgba(255,255,255,0.08); }
-        .settings-modal-palette [data-nav] button[aria-selected='true'] { background:rgba(245,158,11,0.16); color:#D6D3D1; border-color:rgba(245,158,11,0.45); box-shadow:inset 2px 0 0 0 var(--syn-accent-primary, #F59E0B); }
-        .settings-modal-palette [data-nav] button:focus-visible { outline:2px solid #F59E0B; outline-offset:2px; }
-        .settings-modal-palette .panel-shell { position:relative; flex:1; min-width:0; }
-        .settings-modal-palette .panel-shell > * { background:transparent; }
-        .settings-modal-palette .tab-panel { display:none; }
-        .settings-modal-palette .tab-panel[data-active='true'] { display:block; }
-        .settings-modal-palette h3.settings-section-title { font-size:14px; font-weight:600; margin:0 0 4px; color:#D6D3D1; }
-        .settings-modal-palette .settings-divider { border:0; border-top:1px solid rgba(255,255,255,0.06); margin:8px 0 16px; }
+        .settings-modal-palette { --settings-accent: var(--syn-interaction-active); }
+        .settings-modal-palette [data-nav] { width: 100%; flex-shrink: 0; display: flex; flex-direction: column; gap: 1px; padding: 4px 0; }
+        .settings-modal-palette [data-nav] button { text-align: left; padding: 6px 12px; border-radius: 4px; font-size: 13px; background: transparent; border: none; color: var(--syn-text-secondary); cursor: pointer; transition: background .12s ease, color .12s ease; }
+        .settings-modal-palette [data-nav] button:hover { background: var(--syn-interaction-hover); color: var(--syn-text-default); }
+        .settings-modal-palette [data-nav] button[aria-selected='true'] { background: var(--syn-interaction-hover); color: var(--syn-text-default); }
+        .settings-modal-palette [data-nav] button:focus-visible { outline: 1px solid var(--syn-interaction-focus-ring); outline-offset: -1px; }
+        .settings-modal-palette .panel-shell { position: relative; flex: 1; min-width: 0; }
+        .settings-modal-palette .panel-shell > * { background: transparent; }
+        .settings-modal-palette .tab-panel { display: none; }
+        .settings-modal-palette .tab-panel[data-active='true'] { display: block; }
+        .settings-modal-palette h3.settings-section-title { font-size: 13px; font-weight: 600; margin: 0 0 4px; color: var(--syn-text-default); }
+        .settings-modal-palette .settings-divider { border: 0; border-top: 1px solid var(--syn-border-subtle); margin: 6px 0 12px; }
         .settings-modal-palette input[type='text'],
         .settings-modal-palette input[type='password'],
         .settings-modal-palette select,
-        .settings-modal-palette textarea { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:6px; color:#D6D3D1; font-size:14px; padding:0 14px; min-height:46px; font-family:inherit; }
-        .settings-modal-palette textarea { padding:12px 14px; min-height:120px; resize:vertical; }
-        .settings-modal-palette input:focus, .settings-modal-palette select:focus, .settings-modal-palette textarea:focus { outline:2px solid #F59E0B; outline-offset:2px; border-color:#F59E0B; background:rgba(245,158,11,0.10); }
-        .settings-modal-palette .tag-button { font-size:11px; padding:4px 8px; border-radius:6px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.05); cursor:pointer; letter-spacing:.5px; }
-        .settings-modal-palette .tag-button[data-active='true'] { background:rgba(245,158,11,0.25); border-color:rgba(245,158,11,0.5); }
-        .settings-modal-palette .tag-button:focus-visible { outline:2px solid #F59E0B; outline-offset:2px; }
-        .settings-modal-palette .provider-segment { display:inline-flex; align-items:center; gap:6px; padding:6px 12px; font-size:12px; border-radius:6px; cursor:pointer; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.07); }
-        .settings-modal-palette .provider-segment[data-active='true'] { background:rgba(245,158,11,0.16); border-color:rgba(245,158,11,0.5); color:#D6D3D1; }
-        .settings-modal-palette .provider-segment:hover { background:rgba(255,255,255,0.09); }
-        .settings-modal-palette .provider-segment:focus-visible { outline:2px solid #F59E0B; outline-offset:2px; }
-        .settings-modal-palette .footer-bar { position:sticky; bottom:0; left:0; right:0; padding:16px 0 0; margin-top:24px; background:linear-gradient(180deg, rgba(18,18,18,0) 0%, rgba(18,18,18,0.85) 40%, #121212 70%); }
-        .settings-modal-palette .footer-bar-inner { border-top:1px solid rgba(255,255,255,0.06); padding-top:16px; display:flex; flex-wrap:wrap; gap:12px; justify-content:flex-end; }
-        .settings-modal-palette .footer-btn { padding:10px 18px; min-height:40px; border-radius:6px; font-size:13px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.06); color:#D6D3D1; cursor:pointer; }
-        .settings-modal-palette .footer-btn.primary { background:rgba(245,158,11,0.16); border-color:rgba(245,158,11,0.5); }
-        .settings-modal-palette .footer-btn.danger { background:rgba(239,68,68,0.16); border-color:rgba(239,68,68,0.55); color:#FAFAF9; }
-        .settings-modal-palette .footer-btn:hover { background:rgba(255,255,255,0.10); }
-        .settings-modal-palette .footer-btn.primary:hover { background:rgba(245,158,11,0.22); }
-        .settings-modal-palette .footer-btn.danger:hover { background:rgba(239,68,68,0.22); }
-        .settings-modal-palette .footer-btn:focus-visible { outline:2px solid #F59E0B; outline-offset:2px; }
-        .settings-modal-palette .footer-btn:disabled { opacity:.4; cursor:not-allowed; }
+        .settings-modal-palette textarea { background: var(--syn-surface-input); border: 1px solid var(--syn-border-subtle); border-radius: 2px; color: var(--syn-text-default); font-size: 13px; padding: 0 10px; min-height: 28px; font-family: inherit; transition: border-color .12s ease; }
+        .settings-modal-palette textarea { padding: 8px 10px; min-height: 80px; resize: vertical; }
+        .settings-modal-palette input:focus, .settings-modal-palette select:focus, .settings-modal-palette textarea:focus { outline: none; border-color: var(--syn-border-focus); }
+        .settings-modal-palette input:hover, .settings-modal-palette select:hover, .settings-modal-palette textarea:hover { border-color: var(--syn-border-default); }
+        .settings-modal-palette .tag-button { font-size: 11px; padding: 2px 8px; border-radius: 2px; border: none; background: transparent; color: var(--syn-text-muted); cursor: pointer; letter-spacing: 0; transition: background .12s ease, color .12s ease; }
+        .settings-modal-palette .tag-button:hover { background: var(--syn-interaction-hover); color: var(--syn-text-default); }
+        .settings-modal-palette .tag-button[data-active='true'] { background: color-mix(in srgb, var(--syn-interaction-active) 22%, transparent); color: var(--syn-interaction-active); }
+        .settings-modal-palette .tag-button:focus-visible { outline: 1px solid var(--syn-interaction-focus-ring); outline-offset: -1px; }
+        .settings-modal-palette .provider-segment { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; font-size: 12px; border-radius: 2px; cursor: pointer; background: transparent; border: none; color: var(--syn-text-secondary); transition: background .12s ease, color .12s ease; }
+        .settings-modal-palette .provider-segment[data-active='true'] { background: color-mix(in srgb, var(--syn-interaction-active) 18%, transparent); color: var(--syn-interaction-active); }
+        .settings-modal-palette .provider-segment:hover { background: var(--syn-interaction-hover); color: var(--syn-text-default); }
+        .settings-modal-palette .provider-segment:focus-visible { outline: 1px solid var(--syn-interaction-focus-ring); outline-offset: -1px; }
+        .settings-modal-palette .footer-bar { position: sticky; bottom: 0; left: 0; right: 0; padding: 12px 0 0; margin-top: 16px; background: linear-gradient(180deg, rgba(18,18,18,0) 0%, var(--syn-surface-workbench) 60%); }
+        .settings-modal-palette .footer-bar-inner { border-top: 1px solid var(--syn-border-subtle); padding-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+        .settings-modal-palette .footer-btn { padding: 6px 14px; min-height: 28px; border-radius: 2px; font-size: 13px; border: none; background: var(--syn-interaction-hover); color: var(--syn-text-default); cursor: pointer; transition: background .12s ease; }
+        .settings-modal-palette .footer-btn.primary { background: var(--syn-interaction-active); color: var(--syn-text-inverse); }
+        .settings-modal-palette .footer-btn.danger { background: var(--syn-status-error); color: var(--syn-text-inverse); }
+        .settings-modal-palette .footer-btn:hover { background: color-mix(in srgb, var(--syn-text-default) 10%, var(--syn-interaction-hover)); }
+        .settings-modal-palette .footer-btn.primary:hover { background: color-mix(in srgb, var(--syn-text-default) 14%, var(--syn-interaction-active)); color: var(--syn-text-inverse); }
+        .settings-modal-palette .footer-btn.danger:hover { background: color-mix(in srgb, var(--syn-text-default) 14%, var(--syn-status-error)); color: var(--syn-text-inverse); }
+        .settings-modal-palette .footer-btn:focus-visible { outline: 1px solid var(--syn-interaction-focus-ring); outline-offset: -1px; }
+        .settings-modal-palette .footer-btn:disabled { opacity: .4; cursor: not-allowed; }
       `}</style>
       <Wrap style={open ? undefined : { visibility:'hidden', pointerEvents:'none' }}>
         <Nav role="tablist" aria-orientation="vertical" onKeyDown={onKeyNav} data-nav>
@@ -729,7 +736,7 @@ export const SettingsModal: React.FC<{ open: boolean; onClose: () => void }> = (
                   <Label>Provider</Label>
                   <div style={{ display:'flex', gap:6, flexWrap:'wrap', maxWidth:480 }} role='radiogroup' aria-label='AI Provider'>
                     {providerOptions.map(opt => (
-                      <label key={opt.value} style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'4px 10px', border:'1px solid var(--borderSoft)', borderRadius:20, cursor:'pointer', background: uProvider===opt.value ? 'rgba(245,158,11,0.15)':'rgba(255,255,255,0.05)' }}>
+                      <label key={opt.value} style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'4px 10px', border:'none', borderRadius:20, cursor:'pointer', background: uProvider===opt.value ? 'color-mix(in srgb, var(--syn-interaction-active) 16%, transparent)':'transparent', color: uProvider===opt.value ? 'var(--syn-interaction-active)':'var(--syn-text-secondary)' }}>
                         <input style={{ display:'none' }} type='radio' name='ai-prov' value={opt.value} checked={uProvider===opt.value} onChange={() => { void onChangeProvider(opt.value); }} />
                         <span style={{ fontSize:11 }}>{opt.label}</span>
                       </label>
@@ -750,9 +757,9 @@ export const SettingsModal: React.FC<{ open: boolean; onClose: () => void }> = (
                     <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
                       {['reasoning','embed','audio','vision','legacy','chat'].map(tag => {
                         const active = tagFilters.includes(tag);
-                        return <button key={tag} onClick={() => setTagFilters(f => active ? f.filter(t=>t!==tag) : [...f, tag])} style={{ fontSize:9, padding:'4px 6px', borderRadius:6, border:'1px solid var(--borderSoft)', background: active ? 'rgba(245,158,11,0.25)' : 'rgba(255,255,255,0.05)', cursor:'pointer', letterSpacing:0.5 }}>{tag}</button>;
+                        return <button key={tag} onClick={() => setTagFilters(f => active ? f.filter(t=>t!==tag) : [...f, tag])} style={{ fontSize:9, padding:'4px 6px', borderRadius:6, border:'none', background: active ? 'color-mix(in srgb, var(--syn-interaction-active) 20%, transparent)' : 'transparent', color: active ? 'var(--syn-interaction-active)' : 'var(--syn-text-secondary)', cursor:'pointer', letterSpacing:0.5 }}>{tag}</button>;
                       })}
-                      {!!tagFilters.length && <button onClick={()=>setTagFilters([])} style={{ fontSize:9, padding:'4px 6px', borderRadius:6, border:'1px solid var(--borderSoft)', background:'rgba(255,255,255,0.05)', cursor:'pointer' }}>reset</button>}
+                      {!!tagFilters.length && <button onClick={()=>setTagFilters([])} style={{ fontSize:9, padding:'4px 6px', borderRadius:6, border:'none', background:'transparent', color:'var(--syn-text-secondary)', cursor:'pointer' }}>reset</button>}
                     </div>
                     <div
                       role='listbox'
@@ -812,11 +819,11 @@ export const SettingsModal: React.FC<{ open: boolean; onClose: () => void }> = (
                                 onClick={() => onChangeModel(m)}
                                 onMouseEnter={() => setModelCursor(idx)}
                                 style={{
-                                  textAlign:'left', width:'100%', padding:'6px 10px',
-                                  background:isSelected ? 'var(--syn-gradient-glass-amber)' : (isActive ? 'rgba(255,255,255,0.08)' : 'transparent'),
-                                  border:`1px solid ${  isSelected ? 'var(--borderHighlight)' : (isActive ? 'rgba(255,255,255,0.12)' : 'transparent')}`,
-                                  borderRadius:8, cursor:'pointer', color:'var(--textPrimary)', fontSize:11, lineHeight:1.2,
-                                  display:'flex', justifyContent:'space-between', alignItems:'center', outline:isActive ? '1px solid rgba(245,158,11,0.35)' : 'none'
+                                  textAlign:'left', width:'100%', padding:'4px 10px',
+                                  background:isSelected ? 'color-mix(in srgb, var(--syn-interaction-active) 22%, transparent)' : (isActive ? 'var(--syn-interaction-hover)' : 'transparent'),
+                                  border:'none',
+                                  borderRadius: 2, cursor:'pointer', color: isSelected ? 'var(--syn-interaction-active)' : 'var(--syn-text-secondary)', fontSize: 12, lineHeight: 1.4,
+                                  display:'flex', justifyContent:'space-between', alignItems:'center', outline:'none', minHeight: 22
                                 }}
                                 title={`${m}\nFamily: ${meta.family}${meta.ctx?`\nCtx≈${meta.ctx}`:''}\nTags: ${meta.tags.join(', ')}`}
                               >
@@ -833,11 +840,11 @@ export const SettingsModal: React.FC<{ open: boolean; onClose: () => void }> = (
                                     onClick={(ev) => { ev.stopPropagation(); toggleFavorite(uProvider as any, m); }}
                                     onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); ev.stopPropagation(); toggleFavorite(uProvider as any, m); } }}
                                     title={fav?'Unfavorite':'Favorite'}
-                                    style={{ border:'none', background:'transparent', color: fav? '#F59E0B':'#A8A29E', cursor:'pointer', padding:0, fontSize:12, lineHeight:1 }}
+                                    style={{ border:'none', background:'transparent', color: fav? 'var(--syn-interaction-active)':'var(--syn-text-muted)', cursor:'pointer', padding:0, fontSize:12, lineHeight:1 }}
                                   >★</span>
-                                  {meta.tags.filter(t=>t!=='chat').slice(0,2).map(t => <span key={t} style={{ fontSize:8, padding:'2px 4px', background:'rgba(255,255,255,0.07)', borderRadius:4, textTransform:'uppercase', letterSpacing:0.5 }}>{t}</span>)}
-                                  {!!fav && <span style={{ fontSize:8, padding:'2px 4px', background:'rgba(245, 158, 11,0.18)', borderRadius:4 }}>fav</span>}
-                                  {!!isDynamic && <span style={{ fontSize:8, padding:'2px 4px', background:'var(--syn-accent-bg, rgba(245,158,11,0.12))', borderRadius:4 }}>dyn</span>}
+                                  {meta.tags.filter(t=>t!=='chat').slice(0,2).map(t => <span key={t} style={{ fontSize:8, padding:'2px 4px', background:'var(--syn-interaction-hover)', borderRadius:4, textTransform:'uppercase', letterSpacing:0.5, color:'var(--syn-text-muted)' }}>{t}</span>)}
+                                  {!!fav && <span style={{ fontSize:8, padding:'2px 4px', background:'color-mix(in srgb, var(--syn-interaction-active) 18%, transparent)', borderRadius:4, color:'var(--syn-interaction-active)' }}>fav</span>}
+                                  {!!isDynamic && <span style={{ fontSize:8, padding:'2px 4px', background:'var(--syn-accent-bg)', borderRadius:4, color:'var(--syn-interaction-active)' }}>dyn</span>}
                                 </span>
                               </button>
                             );

@@ -10,10 +10,15 @@ const Select = styled.select`
   padding: 6px 8px;
   border-radius: 8px;
   font-size: 12px;
-  border: 1px solid var(--color-border, rgba(255,255,255,0.12));
-  background: var(--color-surface, rgba(255,255,255,0.04));
-  color: var(--color-text, #fff);
+  border: 1px solid var(--syn-border-subtle, #343a44);
+  background: var(--syn-surface-input, #1a1f26);
+  color: var(--syn-text-default, #d7dce5);
   font-family: inherit;
+
+  &:focus-visible {
+    outline: 2px solid var(--syn-interaction-focus-ring, #3794ff);
+    outline-offset: 2px;
+  }
 `;
 
 const Label = styled.label`
@@ -26,7 +31,7 @@ const Label = styled.label`
 
 const Hint = styled.div`
   font-size: 11px;
-  color: var(--color-text-secondary, rgba(255,255,255,0.65));
+  color: var(--syn-text-secondary, #a4adbb);
   font-family: inherit;
 `;
 

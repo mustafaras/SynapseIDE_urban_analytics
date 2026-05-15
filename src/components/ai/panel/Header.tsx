@@ -27,11 +27,11 @@ export const PanelHeader: React.FC = () => {
     return `${providerLabel} • ${fam}`;
   }, [provider, model]);
 
-  const statusColor = effectiveState === 'verified' ? 'var(--syn-success, #22C55E)'
-    : effectiveState === 'missing' ? 'var(--syn-danger, #EF4444)'
-    : effectiveState === 'invalid' ? 'var(--syn-warning, #F59E0B)'
-    : effectiveState === 'rate-limited' ? '#F59E0B'
-    : 'var(--syn-text-muted, #A8A29E)';
+  const statusColor = effectiveState === 'verified' ? 'var(--syn-status-valid, #4ec27d)'
+    : effectiveState === 'missing' ? 'var(--syn-status-blocked, #f87171)'
+    : effectiveState === 'invalid' ? 'var(--syn-status-error, #f87171)'
+    : effectiveState === 'rate-limited' ? 'var(--syn-status-warning, #d6a84f)'
+    : 'var(--syn-status-unknown, #858b96)';
   const [now, setNow] = useState<number>(Date.now());
 
   useEffect(() => {
@@ -69,7 +69,7 @@ export const PanelHeader: React.FC = () => {
             <Subtitle style={{ display:'flex', alignItems:'center', gap:6 }}>
               <span>Powered by {poweredBy}</span>
               {effectiveState === 'rate-limited' && retrySecs > 0 && (
-                <span style={{ fontSize:9, color:'#F59E0B', letterSpacing:0.5 }} title={`Rate limited • retry in ${retrySecs}s`}>{retrySecs}s</span>
+                <span style={{ fontSize:9, color:'var(--syn-status-warning, #d6a84f)', letterSpacing:0.5 }} title={`Rate limited • retry in ${retrySecs}s`}>{retrySecs}s</span>
               )}
               <button
                 onClick={() => { void refreshKeyStatus(); }}
@@ -90,9 +90,9 @@ export const PanelHeader: React.FC = () => {
           fontSize: 15,
           fontWeight: 700,
           letterSpacing: '0.5px',
-          background: 'linear-gradient(90deg, var(--ai-gold-soft, #FBBF24) 0%, var(--ai-gold, #F59E0B) 100%)',
-          WebkitBackgroundClip: 'text',
-          color: 'transparent',
+          background: 'none',
+          WebkitBackgroundClip: 'initial',
+          color: 'var(--syn-text-secondary, #a4adbb)',
           display: 'inline-block',
           whiteSpace: 'nowrap'
         }}

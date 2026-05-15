@@ -19,6 +19,7 @@
   width: 100%;
   min-width: 720px;
   max-width: 1040px;
+  height: 720px;
   max-height: 84vh;
   overflow-y: auto;
   font-size: 12px;
@@ -48,10 +49,16 @@
   padding: 8px 12px;
   min-height: 40px;
   border-radius: 6px;
-  border: 1px solid var(--ai-stroke, var(--syn-overlay-subtle));
+  border: none;
   color: var(--ai-fg-primary, var(--syn-text-secondary));
   cursor: pointer;
   font-size: 13px;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.closeBtn:hover {
+  background: var(--syn-interaction-hover);
+  color: var(--syn-text-default);
 }
 
 .row {
@@ -120,24 +127,30 @@
 
 .hintError {
   font-size: 12px;
-  color: var(--syn-danger);
+  color: var(--syn-status-error, #f87171);
 }
 
 .hintWarning {
   font-size: 12px;
-  color: var(--syn-warning);
+  color: var(--syn-status-warning, #d6a84f);
 }
 
 .btn {
   padding: 8px 16px;
   min-height: 40px;
   border-radius: 6px;
-  background: var(--syn-overlay-whisper);
-  border: 1px solid var(--ai-stroke, var(--syn-overlay-subtle));
+  background: transparent;
+  border: none;
   color: var(--ai-fg-primary, var(--syn-text-secondary));
   cursor: pointer;
   font-size: 13px;
   line-height: 1.2;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--syn-interaction-hover);
+  color: var(--syn-text-default);
 }
 
 .btn:disabled {
@@ -190,7 +203,7 @@
 }
 
 .errorMessage {
-  color: var(--syn-danger);
+  color: var(--syn-status-error, #f87171);
 }
 
 .footer {
@@ -226,12 +239,17 @@
   padding: 8px 16px;
   min-height: 40px;
   border-radius: 6px;
-  background: var(--syn-accent-bg-hover);
-  border: 1px solid var(--ai-accent, var(--syn-accent-primary));
-  color: var(--ai-fg-primary, var(--syn-text-secondary));
+  background: color-mix(in srgb, var(--syn-interaction-active) 16%, transparent);
+  border: none;
+  color: var(--syn-interaction-active);
   cursor: pointer;
   font-size: 13px;
   line-height: 1.2;
+  transition: background 140ms ease;
+}
+
+.btnSaveClose:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--syn-interaction-active) 24%, transparent);
 }
 
 .btnSaveClose:disabled {
@@ -243,10 +261,16 @@
   min-height: 40px;
   border-radius: 6px;
   background: transparent;
-  border: 1px solid var(--ai-stroke, var(--syn-overlay-subtle));
+  border: none;
   color: var(--ai-fg-primary, var(--syn-text-secondary));
   cursor: pointer;
   font-size: 13px;
   line-height: 1.2;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.btnCancel:hover {
+  background: var(--syn-interaction-hover);
+  color: var(--syn-text-default);
 }
 

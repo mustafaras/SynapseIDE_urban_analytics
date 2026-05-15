@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Modal } from '../molecules/Modal';
-import { SYNAPSE_COLORS, SYNAPSE_TYPO, withAlpha } from '../../ui/theme/synapseTheme';
+import { SYNAPSE_TYPO } from '../../ui/theme/synapseTheme';
 import styled from 'styled-components';
 import { type Command as Cmd, fuzzyFilter, listCommands } from '../../services/commandRegistry';
 import { useFileExplorerStore } from '../../stores/fileExplorerStore';
@@ -27,9 +27,10 @@ type SymbolResult = {
 
 
 const PaletteRoot = styled.div`
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
   gap: 16px;
+  height: clamp(360px, calc(100vh - 280px), 520px);
 `;
 const ModeRow = styled.div`
   display: flex;
@@ -43,7 +44,7 @@ const ModeChip = styled.button<{ $active: boolean }>`
   font-size: 14px;
   line-height: 1.2;
   background: transparent;
-  color: ${({ $active }) => ($active ? '#F5F5F4' : SYNAPSE_COLORS.textSecondary)};
+  color: ${({ $active }) => ($active ? 'var(--syn-text-default, #d7dce5)' : 'var(--syn-text-secondary, #a4adbb)')};
   border: none;
   cursor: pointer;
   min-height: 40px;
@@ -59,26 +60,31 @@ const ModeChip = styled.button<{ $active: boolean }>`
     bottom: 0;
     height: 2px;
     border-radius: 999px;
-    background: ${({ $active }) => ($active ? '#F59E0B' : 'transparent')};
+    background: ${({ $active }) => ($active ? 'var(--syn-interaction-active, #3794ff)' : 'transparent')};
     opacity: ${({ $active }) => ($active ? 1 : 0)};
     transform: translateY(1px);
     transition: opacity 140ms var(--syn-easing-bauhaus), background 140ms var(--syn-easing-bauhaus);
   }
-  &:hover { color: #F5F5F4; }
-  &:focus-visible { outline: none; color: #F5F5F4; }
+  &:hover { color: var(--syn-text-default, #d7dce5); }
+  &:focus-visible {
+    outline: none;
+    color: var(--syn-text-default, #d7dce5);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--syn-interaction-focus-ring, #3794ff) 55%, transparent);
+  }
 `;
 const InputWrapper = styled.div`
   position: relative;
   display: flex;
   align-items: center;
-  background: ${withAlpha('#ffffff', 0.03)};
+  background: color-mix(in srgb, var(--syn-surface-hover, #303642) 60%, transparent);
   border: none;
   border-radius: 6px;
   padding: 0 12px;
   height: 46px;
   transition: background 160ms var(--syn-easing-bauhaus);
   &:focus-within {
-    background: ${withAlpha('#F59E0B', 0.06)};
+    background: color-mix(in srgb, var(--syn-interaction-active, #3794ff) 10%, var(--syn-surface-input, #1a1f26));
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--syn-interaction-focus-ring, #3794ff) 58%, transparent);
   }
 `;
 const SearchInput = styled.input`
@@ -86,23 +92,24 @@ const SearchInput = styled.input`
   background: transparent;
   border: none;
   outline: none;
-  color: #D6D3D1;
+  color: var(--syn-text-default, #d7dce5);
   font-family: ${SYNAPSE_TYPO.fontFamily};
   font-size: 14px;
   line-height: 1.4;
-  &::placeholder { color: ${withAlpha('#D6D3D1', 0.45)}; }
+  &::placeholder { color: color-mix(in srgb, var(--syn-text-muted, #778190) 72%, transparent); }
 `;
 const HintBar = styled.div`
   display: flex;
   gap: 24px;
   font-size: 12px;
-  color: #A8A29E;
+  color: var(--syn-text-secondary, #a4adbb);
   padding: 0 2px;
 `;
 const ResultsViewport = styled.div`
+  position: relative;
   display: grid;
   gap: 10px;
-  max-height: 56vh;
+  min-height: 0;
   overflow: auto;
   padding-right: 4px;
 `;
@@ -111,7 +118,7 @@ const GroupHeading = styled.div`
   font-weight: 600;
   letter-spacing: 0.5px;
   text-transform: uppercase;
-  color: ${withAlpha('#A8A29E', 0.9)};
+  color: color-mix(in srgb, var(--syn-text-secondary, #a4adbb) 90%, transparent);
   padding: 4px 2px 0;
 `;
 const ResultButton = styled.button<{ $active: boolean; $dense?: boolean; $disabled?: boolean }>`
@@ -122,23 +129,32 @@ const ResultButton = styled.button<{ $active: boolean; $dense?: boolean; $disabl
   opacity: ${({ $disabled }) => ($disabled ? 0.48 : 1)};
   cursor: ${({ $disabled }) => ($disabled ? 'not-allowed' : 'pointer')};
   background: ${({ $active }) =>
-    $active ? withAlpha('#F59E0B', 0.08) : 'transparent'};
-  color: #D6D3D1;
+    $active ? 'color-mix(in srgb, var(--syn-interaction-active, #3794ff) 12%, transparent)' : 'transparent'};
+  color: var(--syn-text-default, #d7dce5);
   font-family: ${SYNAPSE_TYPO.fontFamily};
   display: grid;
   gap: 4px;
-  cursor: pointer;
   min-height: 52px;
   transition: background 120ms var(--syn-easing-bauhaus), color 120ms var(--syn-easing-bauhaus);
-  &:hover { background: ${({ $active }) => ($active ? withAlpha('#F59E0B', 0.12) : withAlpha('#ffffff', 0.03))}; }
-  &:focus-visible { outline: none; background: ${({ $active }) => ($active ? withAlpha('#F59E0B', 0.12) : withAlpha('#ffffff', 0.04))}; }
+  &:hover {
+    background: ${({ $active }) => ($active
+      ? 'color-mix(in srgb, var(--syn-interaction-active, #3794ff) 16%, transparent)'
+      : 'color-mix(in srgb, var(--syn-surface-hover, #303642) 68%, transparent)')};
+  }
+  &:focus-visible {
+    outline: none;
+    background: ${({ $active }) => ($active
+      ? 'color-mix(in srgb, var(--syn-interaction-active, #3794ff) 18%, transparent)'
+      : 'color-mix(in srgb, var(--syn-interaction-active, #3794ff) 8%, transparent)')};
+    box-shadow: inset 2px 0 0 var(--syn-interaction-active, #3794ff), 0 0 0 1px color-mix(in srgb, var(--syn-interaction-focus-ring, #3794ff) 55%, transparent);
+  }
 `;
 const ResultMeta = styled.small`
-  color: #A8A29E;
+  color: var(--syn-text-secondary, #a4adbb);
   font-size: 12px;
 `;
 const NoResults = styled.div`
-  color: #A8A29E;
+  color: var(--syn-text-muted, #778190);
   font-size: 13px;
   padding: 12px 4px;
 `;
@@ -147,7 +163,7 @@ const FooterBar = styled.div`
   flex-wrap: wrap;
   gap: 20px;
   font-size: 12px;
-  color: #A8A29E;
+  color: var(--syn-text-secondary, #a4adbb);
   padding-top: 12px;
   margin-top: 4px;
 `;
@@ -199,7 +215,7 @@ function highlight(text: string, query: string) {
   return (
     <>
       {before}
-  <mark style={{ background: withAlpha('#F59E0B', 0.25), color: SYNAPSE_COLORS.textPrimary }}>
+  <mark style={{ background: 'color-mix(in srgb, var(--syn-status-info, #6aa9ff) 28%, transparent)', color: 'var(--syn-text-default, #d7dce5)' }}>
         {mid}
       </mark>
       {after}
@@ -696,7 +712,7 @@ export const CommandPalette: React.FC<{
                   >
                     <span>{highlight(cmd.label, qStripped)}</span>
                     {disabled && cmd.reason
-                      ? <ResultMeta style={{ color: '#F87171' }}>{cmd.reason}</ResultMeta>
+                      ? <ResultMeta style={{ color: 'var(--syn-status-error, #f87171)' }}>{cmd.reason}</ResultMeta>
                       : cmd.shortcut
                         ? <ResultMeta>{cmd.shortcut}</ResultMeta>
                         : null}

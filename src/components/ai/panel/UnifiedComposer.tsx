@@ -151,11 +151,11 @@ const UnifiedComposer: React.FC<UnifiedComposerProps> = ({
   }, [provider, openaiKey, anthropicKey, geminiKey, keyOk]);
 
   const statusColor = (st: Status): string => {
-    if (st === 'ok') return 'var(--syn-success, #22C55E)';
-    if (st === 'invalid') return 'var(--syn-danger, #EF4444)';
-    if (st === 'rate') return '#F59E0B';
-    if (st === 'verifying') return '#F59E0B';
-    return 'var(--syn-text-muted, #A8A29E)';
+    if (st === 'ok') return 'var(--syn-status-valid, #4ec27d)';
+    if (st === 'invalid') return 'var(--syn-status-error, #f87171)';
+    if (st === 'rate') return 'var(--syn-status-warning, #d6a84f)';
+    if (st === 'verifying') return 'var(--syn-status-running, #6aa9ff)';
+    return 'var(--syn-text-muted, #778190)';
   };
   const statusLabel = (st: Status): string => {
     if (provider === 'ollama') return 'Local (no key)';
@@ -432,7 +432,7 @@ const UnifiedComposer: React.FC<UnifiedComposerProps> = ({
         left: 0,
         right: 0,
         bottom: 0,
-        background: 'rgba(0, 0, 0, 0.6)',
+        background: 'var(--syn-surface-overlay, rgba(12,15,20,0.78))',
         zIndex: 10000,
         display: 'flex',
         alignItems: 'center',

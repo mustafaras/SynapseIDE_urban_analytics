@@ -567,8 +567,14 @@ const PanelStatusStrip: React.FC<{ sessionTokens: number }> = ({ sessionTokens }
   const state: string = keyStatus?.state || 'unknown';
   const retryIn = state === 'rate-limited' && keyStatus?.retryAt ? Math.max(0, keyStatus.retryAt - now) : 0;
   const retrySecs = Math.ceil(retryIn/1000);
-  const palette: Record<string,string> = { verified:'var(--syn-success, #22C55E)', invalid:'var(--syn-warning, #F59E0B)', 'rate-limited':'#F59E0B', missing:'var(--syn-danger, #EF4444)', unknown:'var(--syn-text-muted, #A8A29E)' };
-  const color = palette[state] || 'var(--syn-text-muted, #A8A29E)';
+  const palette: Record<string,string> = {
+    verified: 'var(--syn-status-valid, #4ec27d)',
+    invalid: 'var(--syn-status-error, #f87171)',
+    'rate-limited': 'var(--syn-status-warning, #d6a84f)',
+    missing: 'var(--syn-status-blocked, #f87171)',
+    unknown: 'var(--syn-status-unknown, #858b96)',
+  };
+  const color = palette[state] || 'var(--syn-status-unknown, #858b96)';
   const last = keyStatus?.checkedAt ? new Date(keyStatus.checkedAt).toLocaleTimeString() : '—';
 
 
@@ -581,7 +587,7 @@ const PanelStatusStrip: React.FC<{ sessionTokens: number }> = ({ sessionTokens }
           {meta ? <MiniTag text={(meta.family && meta.family !== model) ? meta.family : 'family'} subtle /> : null}
           {meta ? meta.tags?.slice(0, isNarrow ? 1 : 3).map(t => <MiniTag key={t} text={t} />) : null}
           <KeyMetaGroup>
-            <KeyDot style={{ background: color, boxShadow: `0 0 4px ${color}55` }} title={`Key: ${state}`} />
+            <KeyDot style={{ background: color }} title={`Key: ${state}`} />
             {!isNarrow && <span className="syn-label">Key {state.replace('-', ' ')}</span>}
             {retrySecs > 0 && <span className="syn-retry" aria-live="polite">retry in {retrySecs}s</span>}
             {!isNarrow && <span className="syn-last">last {last}</span>}
@@ -650,7 +656,7 @@ const KeyMetaGroup = styled.div`
   align-items: center;
   gap: 6px;
   .syn-label { opacity: .7; }
-  .syn-retry { font-size: 10px; color: var(--color-status-warning, #F59E0B); }
+  .syn-retry { font-size: 10px; color: var(--syn-status-warning, #d6a84f); }
   .syn-last { font-size: 10px; opacity: .55; }
 `;
 
@@ -673,12 +679,12 @@ const StatusBtn = styled.button`
   border: none;
   border-radius: 6px;
   background: transparent;
-  color: var(--color-text-secondary, #ddd);
+  color: var(--syn-text-secondary, #a4adbb);
   cursor: pointer;
   line-height: 1.2;
   transition: background 140ms var(--syn-easing-bauhaus), color 140ms var(--syn-easing-bauhaus);
-  &:hover { background: rgba(255,255,255,0.05); }
-  &:focus-visible { outline: none; box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-accent-primary, #f59e0b) 55%, transparent); }
+  &:hover { background: color-mix(in srgb, var(--syn-surface-hover, #303642) 64%, transparent); }
+  &:focus-visible { outline: none; box-shadow: 0 0 0 1px color-mix(in srgb, var(--syn-interaction-focus-ring, #3794ff) 55%, transparent); }
 `;
 
 const StatusDetails = styled.div`
@@ -731,7 +737,7 @@ const MiniTagBase = styled.span<{ $subtle: boolean }>`
   font-size: 9px;
   padding: 2px 6px;
   border-radius: 6px;
-  background: ${({ $subtle }) => $subtle ? 'transparent' : 'rgba(255,255,255,0.04)'};
+  background: ${({ $subtle }) => $subtle ? 'transparent' : 'color-mix(in srgb, var(--syn-surface-hover, #303642) 52%, transparent)'};
   border: none;
   letter-spacing: .5px;
   text-transform: uppercase;
@@ -775,7 +781,7 @@ const InfoBarWrap = styled.div`
   align-items: center;
   .msg { opacity: .8; }
   button { margin-left: auto; font-size: 11px; opacity: .8; background: transparent; border: none; color: inherit; cursor: pointer; }
-  button:focus-visible { outline: 2px solid var(--color-accent-primary, #f59e0b); outline-offset: 2px; }
+  button:focus-visible { outline: 2px solid var(--syn-interaction-focus-ring, #3794ff); outline-offset: 2px; }
 `;
 const InfoBar: React.FC<InfoBarProps> = ({ from, to, onClose }) => (
   <InfoBarWrap aria-live="polite">
@@ -788,7 +794,7 @@ const InfoBar: React.FC<InfoBarProps> = ({ from, to, onClose }) => (
 interface ErrorCardProps { message: string; onSwitch: () => void; onOpenLogs: () => void }
 const ErrorCardWrap = styled.div`
   border: none;
-  background: color-mix(in oklab, var(--color-status-danger, #ff4d4d), transparent 92%);
+  background: color-mix(in srgb, var(--syn-status-error, #f87171) 8%, transparent);
   padding: 10px 10px 8px;
   border-radius: 6px;
   font-size: 12px;
@@ -808,7 +814,7 @@ const ErrorActionBtn = styled.button`
   color: inherit;
   cursor: pointer;
   font-size: 12px;
-  &:focus-visible { outline: none; box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-accent-primary, #f59e0b) 55%, transparent); }
+  &:focus-visible { outline: none; box-shadow: 0 0 0 1px color-mix(in srgb, var(--syn-interaction-focus-ring, #3794ff) 55%, transparent); }
 `;
 const ErrorCard: React.FC<ErrorCardProps> = ({ message, onSwitch, onOpenLogs }) => (
   <ErrorCardWrap role="alert">
@@ -936,7 +942,7 @@ const CtxBadge = styled.span`
   border-radius: 4px;
   background: transparent;
   border: none;
-  color: #F59E0B;
+  color: var(--syn-status-info, #6aa9ff);
   letter-spacing: .3px;
 `;
 
@@ -945,14 +951,14 @@ const CtxToggleBtn = styled.button<{ $active: boolean }>`
   padding: 1px 5px;
   border-radius: 4px;
   border: none;
-  background: ${({ $active }) => $active ? 'rgba(245,158,11,0.08)' : 'transparent'};
-  color: ${({ $active }) => $active ? '#F59E0B' : 'var(--color-text-secondary, #888)'};
+  background: ${({ $active }) => $active ? 'color-mix(in srgb, var(--syn-interaction-active, #3794ff) 10%, transparent)' : 'transparent'};
+  color: ${({ $active }) => $active ? 'var(--syn-interaction-active, #3794ff)' : 'var(--syn-text-secondary, #a4adbb)'};
   cursor: pointer;
   letter-spacing: .3px;
   transition: background 120ms, color 120ms;
-  &:hover { background: rgba(245,158,11,0.08); }
+  &:hover { background: color-mix(in srgb, var(--syn-interaction-active, #3794ff) 10%, transparent); }
   &:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 1px color-mix(in srgb, var(--ai-gold, #F59E0B) 55%, transparent);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--syn-interaction-focus-ring, #3794ff) 55%, transparent);
   }
 `;

@@ -7,10 +7,10 @@ This ledger is the execution source of truth for the color-system operating pack
 ## Current Status
 
 - Operating pack status: revised for small-agent execution on 2026-05-14.
-- Implementation status: started; Prompts 00-15 and 17 completed on 2026-05-15.
+- Implementation status: started; Prompts 00-17 completed on 2026-05-15.
 - Prompt count: 38 prompts, `00` through `37`.
-- Current prompt: Prompt 16 - Command Palette Search And AI Panel.
-- Next prompt: Prompt 16 - Command Palette Search And AI Panel.
+- Current prompt: Prompt 18 - Map Toolbar Search Pins And Controls.
+- Next prompt: Prompt 18 - Map Toolbar Search Pins And Controls.
 - Archive context: do not move `DEVELOPMENT_PLANS/` from the current local branch; branch reconciliation is separate.
 - Initial migration principle: token infrastructure first, shared shell second, module surfaces third, QA last.
 
@@ -49,7 +49,7 @@ This ledger is the execution source of truth for the color-system operating pack
 | 13 | Synapse File Explorer And File Badges | completed | 12 | Completed 2026-05-15; file tree states, badges, icon color categories, and destructive explorer actions aligned to semantic tokens. |
 | 14 | Editor Tabs Monaco Outline And Search | completed | 13 | Completed 2026-05-15; editor tabs, Monaco context shell, outline/search chrome, and diagnostics summary accents aligned to semantic interaction/status tokens. |
 | 15 | Terminal Bottom Panel Tasks And Problems | completed | 14 | Completed 2026-05-15; terminal/bottom-panel/problems surfaces aligned to semantic status/interaction tokens with quiet dark terminal chrome preserved. |
-| 16 | Command Palette Search And AI Panel | pending | 15 | Migrate palette, search, AI surfaces. |
+| 16 | Command Palette Search And AI Panel | completed | 15 | Completed 2026-05-15; command/search/AI/apply surfaces aligned to semantic interaction/status tokens. |
 | 17 | Map Explorer Shell And Canvas Chrome | completed | 16 | Completed 2026-05-15 out of sequence by user request; map shell/canvas chrome de-emphasized with semantic status tones preserved. |
 | 18 | Map Toolbar Search Pins And Controls | pending | 17 | Migrate map controls and focus states. |
 | 19 | Map Layer Manager And Layer Rows | pending | 18 | Migrate layers, badges, row states. |
@@ -73,6 +73,423 @@ This ledger is the execution source of truth for the color-system operating pack
 | 37 | Final Color System Handoff | pending | 36 | Close the color operating pack. |
 
 ## Prompt Execution Log
+
+### Settings Toggle + Slider + Fold Header Gray-Blue Pass - 2026-05-15
+
+- Status: completed.
+- Trigger: user-supplied screenshot of the Settings sidebar (Editor/Layout/AI Advanced folds) showing the iOS-style toggle switches, range sliders, and section fold headers rendered in saturated VS Code blue. Request: tone these affordances down to a muted gray-blue so the eye is not constantly drawn to them.
+- Files inspected:
+  - `src/components/ide/styles/ideShell.css` (toggle + range + fold-summary blocks)
+  - `src/components/ide/ShellPlaceholderPane.tsx` (Toggle component — markup only, no color literals)
+- Files changed:
+  - `src/components/ide/styles/ideShell.css`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+- Fixes applied:
+  - **Toggle track (`.syn-settings__toggle-track`)**: removed `1px solid var(--ide-border)` border; off-state background went from `--ide-bg-control` to a quiet `color-mix(--syn-text-muted 22%, transparent)` — a softer gray bed. Checked-state background went from saturated `var(--ide-accent)` (which now resolves to bright VS Code blue `#3794ff`) to a desaturated `color-mix(--syn-interaction-active 48%, --syn-text-muted 52%)` — the muted blue-gray the user asked for. Border-color on checked state cleared to transparent for a flush pill.
+  - **Toggle thumb (`.syn-settings__toggle-thumb`)**: size 10 → 12 (a touch more presence in the same 16h track), off-state color softened to an 80/20 muted-default mix, checked-state color simplified to `--syn-text-default` (warm white, not pure `#fff`). Translate distance 15 → 14 to match the new thumb size.
+  - **Toggle focus ring**: 2px outline → 1px `--syn-interaction-focus-ring` (matches the rest of the VS Code idiom).
+  - **Range slider thumb (`.syn-settings__range::-webkit-slider-thumb` + `::-moz-range-thumb`)**: fill went from `--ide-accent` to the same `color-mix(--syn-interaction-active 60%, --syn-text-muted 40%)` muted gray-blue. Thumb border now references `--ide-bg-panel` for a clean ring against the sidebar. Hover scale animation removed (`transform: none`); instead the thumb subtly brightens via background `color-mix(--syn-interaction-active 78%, --syn-text-muted 22%)`.
+  - **Fold-summary open state (`.syn-side-pane__fold[open] .syn-side-pane__fold-summary` + `.syn-settings__fold[open] .syn-settings__fold-summary`)**: open-fold text color went from saturated `var(--syn-interaction-active)` to `color-mix(--syn-interaction-active 60%, --syn-text-muted 40%)`. The `::after` `-`/`+` toggle marker was using bare `var(--ide-accent)` — now matches the same muted mix, so the open-fold caret is no longer the loudest pixel on the panel.
+- Accessibility/status-truth notes:
+  - Toggle still clearly communicates state via both track color (muted gray-blue vs gray) AND thumb position; not color-only.
+  - Slider thumb still visibly distinct from the dark track; muted blue-gray with a panel-color ring keeps it legible.
+  - Focus rings preserved on toggle, slider, fold-summary.
+- Cross-module contract changes: none.
+- Validation: `npm run typecheck` passed.
+- Known risks: none.
+- Next recommended prompt: Prompt 18 - Map Toolbar Search Pins And Controls.
+
+### Left Activity Rail + File Explorer VS Code Minimal Pass - 2026-05-15
+
+- Status: completed.
+- Trigger: user-supplied screenshot of the left activity rail (settings/files/outline/search/history/map/buildings) showing a still-loud blue tinted card around the active Files icon, plus the File Explorer header with a search input frame, an active toolbar button that read as a solid blue plate, and decorative chrome (radial corner glow, shimmer sweep on hover, animated icon scaling). Request: VS Code aesthetic, gray-blue tones for toggle/active states, no frames or fills around button or card chrome, eyes-friendly elegance.
+- Root cause diagnosis:
+  - `ideShell.css` activity-button class painted hover/active with `color-mix(--syn-interaction-active 12-14%)` background AND an `inset 0 0 0 1px color-mix(--syn-interaction-active 30-38%)` ring AND a `position:absolute` 2px left bar with a `0 0 8px` blue glow box-shadow — three layered blue cues for one state. The button itself had `border-radius: 6px` so the tinted plate rendered as a card.
+  - Sidebar panel had `background-image: radial-gradient(ellipse at top left, blue 10%)` — that's the ambient blue glow leak top-left.
+  - Side-pane action buttons had a `::after` shimmer sweep animation translating a 28% blue linear gradient across them on hover — distracting in a quiet workbench.
+  - Activity button `svg` had a spring-eased `transform: scale(1.18)` on hover and `scale(1.08)` on active — animations the user reads as loud.
+  - Activity badge: solid blue fill + `1px solid var(--syn-border-strong)` border + drop-shadow.
+  - Active editor tab indicator: 2px gradient stripe with a `0 0 10px blue 48%` glow box-shadow.
+  - `FileExplorerHeader.tsx`: `container` had `border: 1px solid COLORS.border` (= `#3A3A3A`) + `box-shadow: 0 0 0 1px var(--syn-bg-root)` (double-frame). `topRow` had its own `borderBottom`. `searchInput` was 32px high with 6px radius and a focus state that added a `0 0 0 1px goldPrimary` halo. `actionButton` was 32×32, 6px radius. `primaryButton` (the active folder-open icon) used `color-mix(--syn-interaction-active 14%, transparent)` background — at the small button size it read as a solid blue plate.
+- Files inspected:
+  - `src/components/ide/ActivityRail.tsx`
+  - `src/components/ide/styles/ideShell.css`
+  - `src/components/file-explorer/FileExplorerHeader.tsx`
+- Files changed:
+  - `src/components/ide/styles/ideShell.css`
+  - `src/components/file-explorer/FileExplorerHeader.tsx`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+- Fixes applied — VS Code activity bar idiom:
+  - `.synapse-ide-shell__activity-rail`: gap 1px → 0, padding `6px 3px → 6px 0` so each button spans the rail full-width (VS Code shape).
+  - `.synapse-ide-shell__activity-button`: width 36px → 100%, height 32px → 36px, `border-radius: 6px → 0` (no rounded plate). Inactive `color` muted to 80% mix of `--syn-text-muted`. Background `transparent` everywhere.
+  - Hover state: removed the blue-tinted background and the inset blue ring; only the icon color brightens to `--syn-text-default`. Box-shadow `none`.
+  - Active state: removed the blue-tinted background and the inset blue ring; only the icon color brightens to `--syn-text-default`. The 2px left accent bar still draws via `::before` but at `left: 0` (flush against the rail), without the blue glow box-shadow, and its color desaturated to `color-mix(--syn-interaction-active 72%, --syn-text-muted 28%)` for the gray-blue tone the user asked for.
+  - Focus-visible: 2px outline → 1px `--syn-interaction-focus-ring` inset (VS Code idiom).
+  - Activity badge: removed 1px border + drop-shadow + bold weight; color desaturated to the same gray-blue mix; dot size 8px → 6px.
+  - Sidebar panel ambient radial gradient (`color-mix(--syn-interaction-active 10%)` top-left) removed (`background-image: none`).
+  - Side-pane action button shimmer `::after` sweep removed (`content: none`).
+  - Activity button `svg` scale animations on hover/active removed (`transition: none; transform: none`); the VS Code activity bar is quiet, not animated.
+  - Active editor tab indicator: 2px gradient → 1px solid hairline at the same gray-blue mix; glow `box-shadow` removed; spans the full tab width (`left: 0; right: 0`) instead of 14% inset.
+- Fixes applied — File Explorer header (VS Code sidebar idiom):
+  - `container`: removed `1px solid COLORS.border`, removed `borderBottom`, removed the `0 0 0 1px var(--syn-bg-root)` halo box-shadow, background `#000 → transparent`. Container `minHeight: 100 → 88`. Text color recoloured to `var(--syn-text-default)` instead of `goldPrimary` (now blue) to keep the title quiet.
+  - `topRow`: height 44 → 38, padding 0 16 → 0 12, `borderBottom: 1px solid COLORS.borderSubtle → none` (the panel border lives one level up).
+  - `brandSection`: font-weight semibold → medium, font-size base → 11px with uppercase + 0.04em letter-spacing — the classic VS Code "EXPLORER" group header.
+  - `searchInput`: height 32 → 26, `border-radius: 6 → 2`, background `#0d0d0d → var(--syn-surface-input)`, border `1px solid #2A2A2A → 1px solid var(--syn-border-subtle)`, focus state border `--syn-border-focus` (no halo). Padding tightened.
+  - `clearButton`: removed hover scale + boxShadow halo; `border-radius: 50% → 2px`, smaller hit area, hover only changes background to `--syn-interaction-hover`.
+  - `actionsRow`: removed top gradient + `borderTop`, padding tightened to `4px 8px 6px`, gap `8px → 2px`.
+  - `actionDivider`: height 20 → 14, margin tightened, opacity 0.6 for a quieter hairline.
+  - `actionButton`: size 32×32 → 24×24, `border-radius: 6 → 2`, default color `textSecondary → --syn-text-muted`, hover background `--syn-interaction-hover` only (no border), focus 1px inset outline.
+  - `primaryButton` (the visible active toolbar button): the 14% blue-tint plate replaced with a **transparent background + gray-blue icon color** (`color-mix(--syn-interaction-active 78%, --syn-text-muted 22%)`); hover adds `--syn-interaction-hover` background and pulls the icon to the full `--syn-interaction-active` color. The button now reads as the same shape as its siblings, only the icon color signals the toggled state — exactly the VS Code idiom.
+- Accessibility/status-truth notes:
+  - All buttons retain visible focus indicators (1px inset outline, the VS Code idiom).
+  - Active state is communicated via: (a) left accent bar (activity rail), (b) icon color shift (file explorer toolbar), (c) accent text color (sidebar group headers). No state relies solely on a fill or an animation.
+  - aria-pressed/aria-selected attributes preserved; semantics unchanged.
+- Cross-module contract changes: none.
+- Validation:
+  - `npm run typecheck` passed.
+- Known risks: none introduced; the rail width var (`--ide-shell-activity-rail-width`) is unchanged, so layout flow stays identical.
+- Next recommended prompt: Prompt 18 - Map Toolbar Search Pins And Controls.
+
+### IDE Panel Hairlines + Settings Modal VS Code Redesign - 2026-05-15
+
+- Status: completed.
+- Trigger: user reported (a) thick blue divider lines between IDE shell regions (top header strip, left activity rail, bottom panel frame, bottom tabs) that felt loud and uncomfortable; (b) Settings modal layout looked cluttered with overlapping focus ring, heavy nav card, oversized inputs and pill buttons, lacking the quiet VS Code premium aesthetic. Single-pass instruction to apply both fixes.
+- Root cause diagnosis:
+  - `src/components/ide/styles/ideShell.css` defined a "Workbench Edge Hierarchy" block that mixed `var(--syn-border-active)` (= blue `#3794ff`) at 22-55% strength into every panel separator AND layered blue interaction-active glow `box-shadow`s on header/left-zone/bottom-panel-frame. These produced the loud blue lines. VS Code's actual design uses near-invisible neutral hairlines (`--vscode-panel-border` ≈ `#181818`) for panel separators; accent blue is reserved for focus/selected affordances.
+  - Settings modal had multiple compounding heavy chrome layers:
+    * `Nav` styled-component: dark `--bgSecondary` card with `1px solid var(--borderSoft)` and `border-radius: 10px` — visible card-in-card frame.
+    * `NavBtn` aria-selected state added a wrapping `::after` pseudo-element with `box-shadow: var(--shadow-focus), var(--syn-glow-subtle)` — the prominent blue rounded ring around "General" in the screenshot.
+    * `NavBtn` focus-visible used `outline: 2px + box-shadow: var(--shadow-focus)` stacked on top of the active background — double-rendered focus.
+    * `Input`/`KeyInput`/inline inputs used `border-radius: 8px`, padded heights of 46px, hover/focus glows — far from VS Code field density.
+    * `Button` (Refresh, Import JSON, Reset) used `var(--syn-gradient-glass-subtle)` gradient + `1px solid` borders.
+    * `RadioPill` (provider segment) had `border-radius: 999px` capsules and uppercase tracking — overpowered the workspace style.
+    * Model row items used `border-radius: 8px` and 16% blue tint — looked like cards stacked in a column.
+    * Inline `<style>` block: `.settings-modal-palette` inputs had `min-height: 46px`, `border-radius: 6px`, `padding: 0 14px`, oversized for the data density VS Code uses. Footer buttons had `min-height: 40px` and primary used translucent tint instead of solid VS Code primary fill.
+    * `Wrap` grid was `220px 1fr` but inner `[data-nav]` had `width: 252px` — the nav overflowed and shrank the content column oddly.
+- Files inspected:
+  - `src/components/ide/styles/ideShell.css`
+  - `src/components/settings/SettingsModal.tsx`
+- Files changed:
+  - `src/components/ide/styles/ideShell.css`
+  - `src/components/settings/SettingsModal.tsx`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+- Fixes applied:
+  - **IDE shell hairlines (Workbench Edge Hierarchy block)**:
+    * `.synapse-ide-shell__header`: `--header-border` collapsed from `42% blue mix` to `1px solid var(--syn-border-subtle)`; layered blue + drop-shadow box-shadows removed (`box-shadow: none`).
+    * `.synapse-ide-shell__left-zone`: right border mix → flat `var(--syn-border-subtle)`; double blue glow `box-shadow` chain removed.
+    * `.synapse-ide-shell__activity-rail`: 22% blue mix → `var(--syn-border-subtle)`.
+    * `.synapse-ide-shell__sidebar-panel` `border-top`: 30% blue mix → `var(--syn-border-subtle)`.
+    * `.synapse-ide-shell__resizer`: 36% blue mix → `var(--syn-border-subtle)`.
+    * `.synapse-ide-shell__bottom-panel-frame` `border-top`: 55% blue mix → `var(--syn-border-subtle)`; blue glow `box-shadow` removed.
+    * `.synapse-ide-shell__bottom-tabs` `border-bottom-color`: 26% blue mix → `var(--syn-border-subtle)`.
+    * Comment header rewritten to document the new policy: ultra-subtle neutral hairlines for panel separators; accent blue is reserved for focused/selected affordances only.
+  - **Settings modal — VS Code redesign**:
+    * `Wrap` grid retuned to `180px 1fr`, `gap: 16px`, fixed `height: 560px` (slightly shorter for a tighter feel; modal stays fixed across tab switches).
+    * `Nav` lost its dark background card and `1px solid` border + `border-radius: 10px`. Now a transparent column with a single `border-right: 1px solid var(--syn-border-subtle)` hairline separating it from the panel — VS Code's classic two-pane settings layout. Internal gap `6px → 2px` for compactness.
+    * `NavBtn` `aria-selected::after` glow ring removed entirely; `focus-visible` no longer stacks outline + box-shadow. Active state now simply `background: var(--syn-interaction-hover)` with `color: var(--syn-text-default)`. Border-radius `8px → 4px`. Padding tightened. Font-size `12px → 13px` (VS Code body size). No uppercase letter-spacing.
+    * `Input`/`KeyInput`: `border-radius: 8px → 2px`, padding `8px 10px → 6px 10px`, background swapped from `rgba(255,255,255,0.045)` to semantic `var(--syn-surface-input)`, border to `var(--syn-border-subtle)`, hover border to `var(--syn-border-default)`, focus border to `var(--syn-border-focus)`. No `box-shadow` glow, no `2px solid outline`. Font-size aligned to 13px. KeyInput error state simplified to red border, no red box-shadow.
+    * `Button` rewritten: gradient + 1px solid → flat `var(--syn-interaction-hover)` background with no border, `border-radius: 2px`, hover adds 10% text tint, focus uses a 1px inset outline (the VS Code idiom).
+    * `Primary` rewritten: translucent blue tint → solid `var(--syn-interaction-active)` background with `var(--syn-text-inverse)` text — proper VS Code primary button. Hover adds 14% text mix.
+    * `RadioPill`: 999px capsules → `border-radius: 2px`; height `34px → 28px`; min-width `110px → 90px`; uppercase + letter-spacing removed; hover state added. Provider segments now feel like a VS Code segmented control.
+    * Model row inline style: `border-radius: 8px → 2px`; selected state now 22% blue tint with blue text (matches VS Code list selection); active (hovered) state stays as neutral interaction-hover; height tightened to `minHeight: 22`. Padding `6px 10px → 4px 10px`. font-size `11 → 12`.
+    * Inner `<style>` block: nav buttons `border-radius: 6px → 4px`, padding `10px 14px → 6px 12px`; inputs/selects/textareas `border-radius: 6px → 2px`, `min-height: 46 → 28`, padding `0 14px → 0 10px`; focus rules dropped the `2px outline + offset` stack in favor of a single `border-color: var(--syn-border-focus)`. Tag buttons `padding: 4px 8px → 2px 8px`, `border-radius: 6px → 2px`, default background `var(--syn-interaction-hover) → transparent`, hover background then becomes `var(--syn-interaction-hover)`. Provider segments matched. Footer primary now solid blue VS Code style; danger uses solid `--syn-status-error` fill.
+    * KeyRow status pill: removed `1px solid` border + `rgba(255,255,255,0.06)` background — now plain semantic color text.
+    * KeyRow icon button container: removed gradient background + 1px border + `border-radius: 10px` outer pill; icons sit flat. Each icon button collapsed `32×32 → 28×28`.
+- Accessibility/status-truth notes:
+  - Focus state preserved via inset 1px outline (VS Code idiom) — no state relies on color alone, all controls remain keyboard-navigable with a visible focus indicator.
+  - Status semantics intact: success → `--syn-status-valid`, error → `--syn-status-error`, warning → `--syn-status-warning`, info → `--syn-status-info`. Demo/unknown unchanged.
+  - Selected/active model rows differentiated from hovered/active cursor by both background (22% blue vs neutral) AND color (blue accent vs default).
+- Data visualization notes: no map/chart palette touched.
+- Scientific integrity notes: no evidence provenance, CRS, fitness, or readiness semantics changed.
+- Cross-module contract changes: none.
+- Validation:
+  - `npm run typecheck` passed.
+  - All ideShell.css edge-hierarchy declarations now resolve to neutral `--syn-border-subtle` hairlines instead of blue mixes.
+- Known risks:
+  - The fixed `height: 560px` Settings modal may push tab content into the internal scroll on very small viewports; modal's outer `max-height: 80vh` (from `palette` Modal variant) still applies so the modal will not exceed viewport.
+  - Some Settings sub-sections still have ad-hoc inline styles that this pass did not visit (deep Appearance preview, dataset library card, ratings widget); their borders/fills remain as previously authored and can be visited in a follow-up if any heavy chrome resurfaces.
+- Next recommended prompt: Prompt 18 - Map Toolbar Search Pins And Controls.
+
+### Settings Parse Fix + Fixed Modal Size + AI Resize Handle - 2026-05-15
+
+- Status: completed.
+- Trigger: user reported (a) Vite oxc PARSE_ERROR at `SettingsModal.tsx:29` blocking app boot, (b) Settings modal resized when switching tabs, (c) AI panel settings modal needed the same fixed-size + premium minimal treatment, (d) a faint amber vertical line still visible on the left edge of the AI panel.
+- Root cause diagnosis:
+  - The previous re-skin pass added a block comment containing backticks (`` `gold*` / `textAccent` names retained ... ``) inside a **styled-components tagged template literal** in `SettingsModal.tsx`. Backticks inside a tagged template literal terminate the literal, producing a parse error at the next token.
+  - `Settings` modal had `min-height: 420px` on `Wrap` and `min-height: 360px` on `TabsContentWrap` but no fixed height, so different tabs (varying content) made the modal grow/shrink.
+  - The AI panel resize handle in `EnhancedIDE.tsx` (10px-wide bar at `left: -2px`) was filled with `var(--syn-gradient-glass-amber)` — the actual visible amber stripe on the left edge of the AI panel.
+  - `AiSettingsModal.module.css` `.panel` used `max-height: 84vh` without a fixed height; buttons (`.btn`, `.btnCancel`, `.btnSaveClose`, `.closeBtn`) had `1px solid` borders against the no-frames preference.
+- Files inspected:
+  - `src/components/settings/SettingsModal.tsx`
+  - `src/components/molecules/Modal.tsx`
+  - `src/components/ide/EnhancedIDE.tsx` (AI dock + resize handle region)
+  - `src/components/ai/settings/AiSettingsModal.module.css`
+  - `src/components/ai/panel/styles.ts` (PanelRoot — already clean)
+- Files changed:
+  - `src/components/settings/SettingsModal.tsx`
+  - `src/components/ide/EnhancedIDE.tsx`
+  - `src/components/ai/settings/AiSettingsModal.module.css`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+- Fixes applied:
+  - **Parse error**: replaced the backticks inside the `SettingsModal.tsx` palette block comment with plain text ("gold and textAccent names retained for source compatibility"). The styled-components template literal now parses cleanly under Vite's oxc transformer.
+  - **Fixed Settings modal size**: `Wrap` now `height: 620px; min-height: 620px; max-height: 620px;` so switching General/Providers/Appearance/Advanced/Local Models never resizes the modal. `TabsContentWrap` now `flex: 1; min-height: 0; overflow-y: auto;` so the long Advanced tab scrolls internally without pushing the modal taller. `PanelShell` now `overflow: hidden; min-height: 0;` to participate cleanly in the flex column.
+  - **AI panel amber line**: the resize handle's `background: var(--syn-gradient-glass-amber)` removed in favor of a transparent base + 1px subtle `var(--syn-border-subtle)` left edge; hover now lifts to a 18% blue tint via `color-mix(var(--syn-interaction-active) ...)`. The white sub-borders and amber-on-hover handlers were dropped. Backdrop-filter and box-shadow removed. Width trimmed 10px → 6px for a slimmer, premium divider.
+  - **AI Settings modal**: `.panel` now `height: 720px; max-height: 84vh;` so the modal is fixed-size and scrolls internally. `.btn`, `.closeBtn`, `.btnCancel` lost their `1px solid` borders; default background made transparent; hover state uses `var(--syn-interaction-hover)` for the chrome buttons. `.btnSaveClose` migrated from `border: 1px solid var(--ai-accent)` + amber-tinted bg to a flat 16% blue tint with no border; hover lifts to 24%.
+- Accessibility/status-truth notes:
+  - All buttons retain visible focus rings via the existing IDE focus-visible rules.
+  - Save vs Cancel still semantically distinct: primary action uses blue tint, cancel uses neutral; no state relies on color alone.
+- Cross-module contract changes: none.
+- Validation:
+  - `npm run typecheck` passed.
+  - Vite oxc parser error at `SettingsModal.tsx:29` should no longer trigger; the offending backticks are removed.
+- Known risks:
+  - Fixed modal height (620px Settings / 720px AI Settings) may be tighter than 84vh on very small viewports; CSS still caps via the surrounding Modal's `max-height: 80vh` for Settings and `max-height: 84vh` for AI Settings, so the inner content area shrinks gracefully on small screens.
+- Next recommended prompt: Prompt 18 - Map Toolbar Search Pins And Controls.
+
+### File Explorer + Settings Modal Premium Minimal Pass - 2026-05-15
+
+- Status: completed.
+- Trigger: user-supplied screenshots showing (a) amber-tinted folder icon button in the File Explorer toolbar, (b) a strong amber radial-gradient backdrop, amber-bordered Export button, amber tab outlines, and amber-rgba field/segment chrome in the Settings modal, (c) request to remove unnecessary borders and border-fills around buttons/cards in favor of a premium minimal aesthetic aligned with the blue chrome accent.
+- Root cause diagnosis:
+  - `src/components/file-explorer/FileExplorerHeader.tsx` declared its own local `COLORS.goldPrimary = '#F59E0B'` constant and inline-styled the toolbar action buttons with `linear-gradient(180deg, rgba(245,158,11,0.22), rgba(245,158,11,0.12))`, amber border-rgbas, and amber focus outlines — bypassing the shared semantic token chain.
+  - `src/components/settings/SettingsModal.tsx` declared local CSS variables (`--textAccent: #F59E0B`, `--goldSoft`, `--goldMuted`, `--borderHighlight: rgba(245,158,11,0.4)`, `--glowSubtle`) and embedded a styled `<style>` block that hard-coded 25+ amber rgba literals and `#F59E0B` outlines across the modal palette. `PanelShell` had a `:before` radial gradient `radial-gradient(circle at 92% 8%, rgba(245,158,11,0.15), transparent 55%)` producing the visible amber backdrop. `Primary` styled-component used `--syn-gradient-glass-amber` directly.
+  - `src/components/file-explorer/EmptyState.tsx` and `src/components/file-explorer/NewFileModal.tsx` had additional amber chrome inline styles.
+- Files inspected:
+  - `src/components/file-explorer/FileExplorerHeader.tsx`
+  - `src/components/file-explorer/EmptyState.tsx`
+  - `src/components/file-explorer/NewFileModal.tsx`
+  - `src/components/file-explorer/FileExplorer.tsx`
+  - `src/components/settings/SettingsModal.tsx`
+  - `src/components/molecules/` (modal wrappers)
+- Files changed:
+  - `src/components/file-explorer/FileExplorerHeader.tsx`
+  - `src/components/file-explorer/EmptyState.tsx`
+  - `src/components/file-explorer/NewFileModal.tsx`
+  - `src/components/settings/SettingsModal.tsx`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+- Token migration highlights (premium minimal aesthetic):
+  - **FileExplorerHeader.tsx**:
+    - Local `COLORS.goldPrimary/Secondary/Hover` constants redirected to `var(--syn-interaction-active)` and `color-mix` blue derivatives (key names retained for source compatibility).
+    - `actionButton` lost its `linear-gradient(180deg, #111111, #0b0b0b)` fill, `1px solid rgba(255,255,255,0.11)` border, and `0 1px 0 inset / 0 0 0 1px outer` box-shadow — now transparent background, no border, no shadow. Hover uses `var(--syn-interaction-hover)` only. Focus ring uses `--syn-interaction-focus-ring`.
+    - `primaryButton` (the active folder icon button shown in screenshot) lost its amber gradient + amber border + `#ffd48a` hover color; now a flat `color-mix(in srgb, var(--syn-interaction-active) 14%, transparent)` background, no border, blue text. Hover lifts to 22% blue tint with no transform/shadow.
+    - `actionDivider` simplified from amber rgba gradient to neutral `var(--syn-border-subtle)`. Border-top of action bar uses semantic border.
+    - Export status indicator: success/error/info now map to `--syn-status-valid/error/info` instead of `#22C55E/#EF4444/#F59E0B` raw literals.
+  - **SettingsModal.tsx**:
+    - CSS-in-JS palette block: `--textAccent`, `--goldSoft`, `--goldMuted`, `--borderHighlight`, `--glowSubtle` all redirected to blue values (key names retained).
+    - `NavBtn` styled-component: removed conditional `1px solid` border (was `var(--borderHighlight)` for active and `var(--borderSoft)` for inactive); active background swapped from `var(--syn-gradient-glass-amber)` to `color-mix(in srgb, var(--syn-interaction-active) 14%, transparent)`. No border, only an inset 2px blue accent rail for active. Hover uses `var(--syn-interaction-hover)`.
+    - `PanelShell` styled-component: removed dark `var(--syn-gradient-elevated)` background, removed `1px solid var(--borderSoft)` border, removed `border-radius: 14px`, removed elevation `box-shadow`, **removed the `:before` radial amber gradient pseudo-element**. Panel is now a transparent flex container — no card-in-card frame.
+    - `Primary` (Export-button) styled-component: amber gradient + amber border + glow shadow → flat `color-mix(in srgb, var(--syn-interaction-active) 16%, transparent)` background, no border, no shadow, blue text. Hover at 24% blue.
+    - Provider segment (`segmented control`): removed `1px solid var(--borderSoft)`; active state uses 16% blue tint with no border, inactive transparent.
+    - Inner `<style>` block (`.settings-modal-palette ...`): all 15+ amber rgba/`#F59E0B` literals redirected to `var(--syn-interaction-active)`/`color-mix`. Tab nav buttons: no border, only inset 2px blue accent rail for active. Inputs/selects: focus border uses `--syn-border-focus`, no amber fill. Tag buttons, provider segments, footer buttons: no borders, hover via `--syn-interaction-hover`.
+    - Inline JSX inline styles for provider radio chips, tag filters, favorite stars, model rows, "fav"/"dyn" badges: all migrated from amber rgba/`#F59E0B` to blue token chain.
+  - **EmptyState.tsx**: removed `var(--syn-gradient-glass-amber)` circle background, removed amber `Folder` icon color (now `var(--syn-text-muted)`), Create button now flat blue tint, no border, no transform on hover.
+  - **NewFileModal.tsx**: bulk-replaced amber chrome rgba literals (`rgba(245,158,11, 0.05/0.10/0.15)`) and `#f59e0b` chrome color/borderColor with `color-mix(in srgb, var(--syn-interaction-active) ...%, transparent)` and `var(--syn-interaction-active)`. `primaryButton` amber gradient replaced with blue tint. Inset header amber rgba shadow replaced with blue rgba. Note: the `LANGUAGE_CATEGORIES` `color` fields (`#F59E0B`/`#22C55E`/`#D97706`/`#7C3AED`/`#0EA5E9`) intentionally retained as language-category identity palette per data-palette contract.
+- Premium minimal pass details:
+  - Removed `1px solid` borders from: settings nav buttons, settings provider segments, settings tag/filter buttons, settings footer buttons, file explorer action buttons, file explorer primary button, file explorer empty-state CTA.
+  - Removed border-fill backgrounds (gradients/elevated dark fills) from: file explorer action buttons, settings panel shell, settings nav, empty state circle.
+  - Active state communicated through subtle blue tint background (12-22% mix) and an inset 2px blue accent rail for nav rows, never through heavy borders.
+- Accessibility/status-truth notes:
+  - All focus rings still rendered (via `--syn-interaction-focus-ring`); no states rely on color alone (icons + text labels preserved).
+  - `--warning` and `--syn-status-warning` retained as amber for genuine warning semantics. `--syn-status-error` / `valid` / `info` / `running` / `pending` mapping preserved.
+  - Export status indicator now distinguishes valid/error/info semantically instead of conflating "default" with amber warning.
+- Data visualization notes: `LANGUAGE_CATEGORIES` color identifiers preserved as content/identity palette.
+- Scientific integrity notes: no evidence provenance, CRS, fitness, or readiness semantics changed.
+- Cross-module contract changes: none.
+- Validation:
+  - `npm run typecheck` passed.
+  - Targeted grep for `F59E0B|FBBF24|D97706|245,?\s*158,?\s*11|gradient-amber` in `SettingsModal.tsx` and `FileExplorerHeader.tsx` returned only the intentional `--warning: #F59E0B` semantic token.
+- Known risks: visual screenshot smoke not re-run; the user will validate via dev server reload.
+- Next recommended prompt: Prompt 18 - Map Toolbar Search Pins And Controls.
+
+### Prompts 00-15 Root Amber Cascade Fix - 2026-05-15
+
+- Status: completed.
+- Trigger: user-reported visible amber/gold leftovers in the IDE shell, header, tab bar, activity rail, AI panel header, and global top bar — despite ledger reporting Prompts 00-15 complete.
+- Root cause diagnosis: the semantic CSS variable layer was added in Prompts 04-05, but the legacy primary chrome accent (`--syn-accent-primary` and its hover/pressed/soft/border/bg/glow rgba siblings) was never redirected. All compatibility aliases (`--syn-gold-500`, `--ai-gold`, `--color-accent-primary`, `--brand-primary`, `--ide-accent`, `--focus-ring`) cascade from these literal amber values, plus a fixed-position `[data-global-gold-bar]` element rendered an animated amber gradient across the very top of the IDE shell. The JS counterpart `SYNAPSE_COLORS` (`goldPrimary`, `accentNeutral`, `hover`, `selected`, `borderHighlight`, `glowSubtle`, `textAccent`) and `SYNAPSE_ACCENT.gold*` / `SYNAPSE_FOCUS.ring` constants were also still amber, leaking via `Header.tsx`, `IdeThemeScope.tsx`, `Button`, `Input`, and any consumer importing from `@/ui/theme/synapseTheme`.
+- Files inspected:
+  - `src/theme/GlobalSynapseStyles.ts`
+  - `src/theme/synapse.ts`
+  - `src/ui/theme/synapseTheme.ts`
+  - `src/ui/theme/ideProScope.css`
+  - `src/components/ide/EnhancedIDE.tsx`
+  - `src/components/ide/Header.tsx`
+  - `src/components/ide/IdeThemeScope.tsx`
+  - `src/components/StatusBar/StatusBar.tsx`
+  - `src/components/StatusBar/statusTheme.ts`
+  - `src/components/ai/panel/*`
+- Files changed:
+  - `src/theme/GlobalSynapseStyles.ts`
+  - `src/ui/theme/synapseTheme.ts`
+  - `src/ui/theme/ideProScope.css`
+  - `src/components/ide/EnhancedIDE.tsx`
+  - `src/components/ide/IdeThemeScope.tsx`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+- Token migration highlights (cascade fixes):
+  - `--syn-accent-primary` redirected from `#F59E0B` to `var(--syn-interaction-active)` (blue `#3794ff`). Hover/pressed siblings now `#2c7fd9` / `#1f6abc`. Soft bg now references `--syn-vscode-accent-blue-soft`. This single change cascades through `--syn-gold-500`, `--syn-gold-300`, `--color-accent-primary`, `--ai-gold`, `--brand-primary`, `--ide-accent`, and every styled-component consuming the chain.
+  - `--syn-accent-bg`, `--syn-accent-bg-hover`, `--syn-accent-bg-strong`, `--syn-accent-border`, `--syn-accent-glow` migrated from amber rgba to `rgba(55,148,255, *)`. Amber retained under new `--syn-attention-*` siblings for explicit attention surfaces.
+  - `--syn-glow-subtle` shadow color updated to blue rgba.
+  - `ideProScope.css`: `--ide-bg-active`, `--ide-bg-rail-active`, `--ide-focus-ring`, `--ide-focus-shadow`, `--focus-ring`, and the hover outline rgba on `.theme-ide-pro .ctx-pro-item` all migrated from amber rgbas to blue rgbas. Focus ring fallback `#FBBF24` replaced with `#3794ff`.
+  - `synapseTheme.ts` `SYNAPSE_COLORS`: `textAccent`, `goldPrimary`, `goldSecondary`, `goldHover`, `accentNeutral`, `accentNeutralHover`, `hover`, `selected`, `borderHighlight`, `glowSubtle` all redirected to blue values. Source-level `gold*` key names retained for source compatibility; documented as redirected per color system contract.
+  - `synapseTheme.ts` `SYNAPSE_ACCENT.{gold,goldHover,goldActive,goldMuted}` redirected to blue tones; `SYNAPSE_FOCUS.ring` now `#3794ff`; `focusOutline()` helper now references `SYNAPSE_FOCUS.ring` instead of legacy `goldPrimary`.
+  - `IdeThemeScope.tsx`: documented that `brandPrimary`/`brandAccent` flow through the redirected `goldPrimary`/`goldHover` values, so styled-component themes resolve to blue chrome automatically.
+  - `EnhancedIDE.tsx`: the fixed-position `[data-global-gold-bar]` (z-index 999999) animated amber gradient rewritten with blue (`#3794ff` / `#5aa9ff` / `#2c7fd9`) keyframes and rgba radial glows. Four `synapseGlitch` keyframe `drop-shadow` amber rgbas, plus the placeholder backdrop radial-gradient amber tint, also migrated to blue rgbas.
+- Accessibility/status-truth notes:
+  - Status semantics preserved: `--syn-status-warning` (still amber), `--syn-warning-bg`, `--syn-warning-border`, `--syn-text-warning`, `--syn-gradient-amber*` decorative tokens, and `SYNAPSE_COLORS.warning` remain amber for genuine attention/warning/caveat surfaces. Demo/unknown/stale status colors unchanged. The fix narrows amber to attention semantics and frees the chrome accent to be blue.
+  - The `gold*` source identifiers (in `SYNAPSE_COLORS`, `SYNAPSE_ACCENT`, `data-global-gold-bar`) were intentionally not renamed to avoid touching unrelated import sites; values were redirected with code comments documenting the new semantic intent.
+- Data visualization notes:
+  - `--syn-chart-*` palette unchanged.
+  - Map/chart/data palettes untouched.
+  - Prism syntax tokens in `src/components/ai/panel/code-lang.ts` (e.g. `diff: '#F59E0B'`) intentionally retained as code-content palette per the color system data-palette contract.
+- Scientific integrity notes: no evidence provenance, CRS, fitness, method validity, or readiness semantics changed.
+- Cross-module contract changes: none.
+- Validation:
+  - `npm run typecheck` passed.
+- Known risks:
+  - Decorative `--syn-gradient-amber*` tokens still resolve to amber and are consumed by branding surfaces (Welcome modal, Hero, NeuralBackground, file explorer empty state, etc.). These are intentional brand decoration outside the workbench chrome and were not migrated in this pass; can be tackled in Prompt 32 cleanup if the user wants the brand identity blue too.
+  - Visual screenshot smoke not re-run.
+- Next recommended prompt: Prompt 18 - Map Toolbar Search Pins And Controls.
+
+### Prompts 00-15 Re-Audit Pass - 2026-05-15
+
+- Status: completed.
+- Trigger: user-directed re-execution of Prompts 00 through 15 as a fresh audit pass, with prior completed work treated as baseline per ledger source-of-truth ordering.
+- Scope:
+  - Re-verify token infrastructure (Prompts 00-07) is intact and consumed correctly.
+  - Re-verify shell/utility/center/status/IDE/file-explorer/editor/terminal migrations (Prompts 08-15) hold under the active token contract.
+  - Close any genuinely raw (non-fallback) color literals remaining inside Prompt 08-15 surface scope.
+- Files inspected:
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_AGENT_PROTOCOL.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_TOKEN_REFERENCE.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+  - `src/centerpanel/components/map/MapWorkspaceCockpit.module.css`
+  - `src/centerpanel/components/BackgroundTasksControl.module.css`
+  - `scripts/check-color-regression.mjs` (output review only)
+- Files changed:
+  - `src/centerpanel/components/map/MapWorkspaceCockpit.module.css`
+  - `src/centerpanel/components/BackgroundTasksControl.module.css`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+- Token migration highlights:
+  - `MapWorkspaceCockpit.module.css`: replaced four raw cockpit text literals (`#fafaf9`, `#f5f5f4`, `rgba(250, 250, 249, 0.58)`, `rgba(250, 250, 249, 0.56)`) with `var(--syn-text-default)` / `var(--syn-text-secondary)`. Decorative shadow and translucent overlay rgba values retained as intentional non-chrome effects.
+  - `BackgroundTasksControl.module.css`: replaced status-state literals (`#cbd5e1`, `#86efac`, `#fca5a5`, `#d6d3d1` plus their rgba backgrounds) with the local `--tasks-*` aliases backed by `--syn-status-pending|valid|error|stale`. Status semantics are now fully token-resolved.
+- Re-audit findings (no change required):
+  - Prompts 00-07 infrastructure: `--syn-vscode-*` primitives, `--syn-surface/text/border/interaction/status-*` semantic layer, legacy `--color-*` / `--glass-*` / `--ai-*` compatibility aliases, and `AppThemeProvider` mapping are all live in `src/theme/GlobalSynapseStyles.ts`, `src/theme/synapse.ts`, and provider paths. No drift detected.
+  - Prompts 08-15 surface migrations: `CommandPalette.tsx`, `GlobalSearch.tsx`, AI panel/composer/key/status/quick-action components, file explorer, editor tabs, terminal/bottom panel, and status bar already resolve through semantic tokens. Remaining color-guard hits are documented `var(--syn-token, #fallback)` patterns, primitive token-source declarations, syntax/code/data palettes, or out-of-scope future-prompt surfaces.
+- Accessibility/status-truth notes:
+  - Cockpit metric value and label now follow the dark-workbench text contrast contract via semantic tokens.
+  - Background task status states (queued/completed/failed/cancelled) remain semantically distinguishable through `--syn-status-*` rather than ad-hoc tints; demo/unknown still never share valid styling.
+- Data visualization notes: no map renderer, layer symbology, chart palette, or analytical data palette touched.
+- Scientific integrity notes: no evidence provenance, CRS, fitness, method validity, or readiness semantics changed.
+- Cross-module contract changes: none.
+- Validation:
+  - `npm run typecheck` passed.
+  - `npm run color:guard:changed` reviewed; remaining literals are intentional fallbacks, primitives, content palettes, or scoped to pending prompts (18-37).
+- Known risks: none introduced; full screenshot smoke not re-run for this audit (CLI-validated pass).
+- Next recommended prompt: Prompt 18 - Map Toolbar Search Pins And Controls.
+
+### Prompt 17 / Prompt 10 Audit Follow-Up - Map Cockpit And Background Tasks Chrome - 2026-05-15
+
+- Status: completed.
+- Trigger: user-requested audit of completed color prompts plus the Command Palette modal sizing follow-up.
+- Scope:
+  - Stabilize Command Palette modal body height so Files/Tabs/Symbols/Commands mode changes do not resize the modal.
+  - Reconcile color prompt ledger/register/manifest/validation records for prompts 00-17.
+  - Close high-confidence leftover amber chrome gaps in completed Prompt 17/Prompt 10 scope.
+- Files inspected:
+  - `COLOR_SYSTEM_PLANS/START_HERE_COLOR_SYSTEM_AGENT.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_AGENT_PROTOCOL.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_UNIT_MATRIX.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_PROMPT_MANIFEST.json`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_AGENT_HANDOFF_TEMPLATE.md`
+  - `src/components/ide/CommandPalette.tsx`
+  - `src/components/molecules/Modal.tsx`
+  - `src/centerpanel/components/map/MapWorkspaceCockpit.module.css`
+  - `src/centerpanel/components/BackgroundTasksControl.module.css`
+- Files changed:
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_PROMPT_MANIFEST.json`
+  - `src/components/ide/CommandPalette.tsx`
+  - `src/centerpanel/components/map/MapWorkspaceCockpit.module.css`
+  - `src/centerpanel/components/BackgroundTasksControl.module.css`
+- Fixes applied:
+  - `CommandPalette.tsx` now uses a fixed responsive grid body height and an internal scrolling result viewport, keeping modal dimensions stable across mode/tab changes.
+  - `COLOR_SYSTEM_PROMPT_MANIFEST.json` now marks prompts 00-17 as `completed` and leaves prompts 18-37 `pending`, matching the ledger source of truth.
+  - Ledger validation history and bottom next pointer now align with Prompt 18.
+  - `MapWorkspaceCockpit.module.css` removed the high-confidence amber/gold chrome leftovers from the Prompt 17 map shell/cockpit surface; generic chrome now uses `--syn-interaction-active`, while valid/warning/running/blocked states use explicit status tokens.
+  - `BackgroundTasksControl.module.css` removed the high-confidence amber/gold chrome leftovers from the shared background task control; running, pending, completed, failed, and cancelled states remain semantically distinct.
+- Accessibility/status-truth notes:
+  - Command Palette keyboard/result state remains visible; only the layout container changed.
+  - Map cockpit and task-control status labels remain textual; status color mappings were moved to semantic tokens rather than flattened to one accent.
+  - Targeted amber scan for `MapWorkspaceCockpit.module.css` and `BackgroundTasksControl.module.css` passed after cleanup.
+- Data visualization notes:
+  - No map renderer, layer symbology, chart palette, or analytical data palette was changed.
+- Scientific integrity notes: No scientific evidence, CRS, data fitness, method validity, readiness semantics, or GIS calculations changed.
+- Cross-module contract changes: None.
+- Validation:
+  - `npm run typecheck` passed.
+  - Prompt audit script passed: sequential prompt headings, manifest prompt count, and ledger register count are all 38; prompts 00-17 are completed; prompts 18-37 are pending; execution logs and validation rows are present for 00-17; current/next/bottom pointer all target Prompt 18.
+  - `npm run color:guard:changed` passed in non-blocking report mode; remaining findings are dominated by token fallbacks, syntax/code colors, retained content palettes, and future-prompt cleanup scope.
+  - Targeted grep for legacy amber/gold literals in `MapWorkspaceCockpit.module.css` and `BackgroundTasksControl.module.css` returned no matches.
+- Known risks:
+  - Full visual screenshot smoke was not run; this was a CLI validation pass.
+  - Color guard still reports broader changed-file literals by design; Prompt 32 remains the planned broad cleanup pass.
+- Next recommended prompt: Prompt 18 - Map Toolbar Search Pins And Controls.
+
+### Prompt 16 - Command Palette Search And AI Panel - 2026-05-15
+
+- Status: completed.
+- Scope: tokenize command palette, global search refinements, AI composer/panel chrome, AI status strips, API-key/config surfaces, apply preview, conflict/risk warnings, and apply/revert-adjacent code-action chrome without changing prompt construction or apply-plan behavior.
+- Files inspected:
+  - `COLOR_SYSTEM_PLANS/START_HERE_COLOR_SYSTEM_AGENT.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_AGENT_PROTOCOL.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_UNIT_MATRIX.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_ALIGNMENT_SPEC.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_TOKEN_REFERENCE.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+  - `src/components/ide/CommandPalette.tsx`
+  - `src/components/ide/GlobalSearch.tsx`
+  - `src/components/ai/`
+  - `src/components/ai/apply/ApplyPlanPreview.tsx`
+  - `src/utils/ai/apply/`
+- Files changed:
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_TOKEN_REFERENCE.md`
+  - `src/components/ide/CommandPalette.tsx`
+  - `src/components/ide/GlobalSearch.tsx`
+  - `src/components/ai/apply/ApplyPlanPreview.tsx`
+  - `src/components/ai/panel/Header.tsx`
+  - `src/components/ai/panel/KeyDebug.tsx`
+  - `src/components/ai/panel/KeysModal.tsx`
+  - `src/components/ai/panel/MessageItem.tsx`
+  - `src/components/ai/panel/ModelSelect.tsx`
+  - `src/components/ai/panel/ProviderSelect.tsx`
+  - `src/components/ai/panel/QuickActions.tsx`
+  - `src/components/ai/panel/StatusBadge.tsx`
+  - `src/components/ai/panel/SynapseCoreAIPanel.tsx`
+  - `src/components/ai/panel/UnifiedComposer.tsx`
+  - `src/components/ai/panel/styles.ts`
+  - `src/components/ai/settings/AiSettingsModal.module.css`
+- Token migration highlights:
+  - `CommandPalette.tsx` now uses `--syn-interaction-active`, `--syn-interaction-focus-ring`, `--syn-status-info`, and semantic text/surface tokens for mode tabs, input focus, selected rows, match highlights, and disabled command reasons.
+  - `GlobalSearch.tsx` now uses semantic search fallback tokens, blue active/focus markers, info-family match highlights, and an info-toned open-file dot instead of success styling.
+  - AI panel chrome in `styles.ts`, provider/model controls, key modal, status badge, and status strips now map surfaces/focus/actions to semantic surface/interaction tokens instead of amber-first aliases.
+  - API key states now map verified/missing/invalid/rate-limited/unknown to `valid`/`blocked`/`error`/`warning`/`unknown`, and verifying states to `running`.
+  - `ApplyPlanPreview.tsx` now separates primary apply/selection interaction from risk/conflict semantics: create/update/replace use valid/info/warning, high-risk/conflict uses error, and medium/destructive caution uses warning.
+  - Prompt 16 mapping was documented in `COLOR_SYSTEM_TOKEN_REFERENCE.md`.
+- Accessibility/status-truth notes:
+  - Palette and search selected/focused rows have visible fill/edge/focus rings, not only text-color changes.
+  - 2026-05-15 follow-up: `CommandPalette.tsx` now uses a fixed responsive palette body height with an internal scrolling results viewport, so switching Files/Tabs/Symbols/Commands no longer resizes the modal.
+  - AI warnings, conflict confirmations, key status, disabled command reasons, and apply risk banners retain explicit text, icons, aria labels, or titles.
+  - Missing/invalid/rate-limited AI key states no longer share success styling.
+- Remaining hard-coded colors retained (with rationale):
+  - Prism syntax token colors in `src/components/ai/panel/styles.ts` and language identity colors in `src/components/ai/panel/code-lang.ts` remain as code/content palette values, not shared UI chrome/status tokens.
+  - Existing `--ai-gold` local alias remains defined as a compatibility alias but now resolves to `--syn-interaction-active`/`--syn-status-info` in the migrated AI panel surface.
+- Validation:
+  - `npm run typecheck` passed.
+  - Targeted tests were not run because no prompt construction, apply-plan logic, or behavior code changed.
+- Next recommended prompt: Prompt 18 - Map Toolbar Search Pins And Controls.
 
 ### Prompt 17 - Map Explorer Shell And Canvas Chrome - 2026-05-15
 
@@ -835,6 +1252,18 @@ This ledger is the execution source of truth for the color-system operating pack
 
 | Date | Scope | Command | Result | Notes |
 | --- | --- | --- | --- | --- |
+| 2026-05-15 | Prompt 00-17 audit consistency script | custom Node audit over sequential prompts, manifest, and ledger | Passed | 38 prompt headings, 38 manifest records, 38 register rows; prompts 00-17 completed; prompts 18-37 pending; logs and validation rows present; all pointers target Prompt 18. |
+| 2026-05-15 | Prompt 17/10 audit cleanup TypeScript validation | `npm run typecheck` | Passed | Command Palette stable modal sizing plus map cockpit/background-task CSS cleanup compiles without TypeScript errors. |
+| 2026-05-15 | Prompt 17/10 targeted amber scan | `rg` scan for legacy amber/gold literals in `MapWorkspaceCockpit.module.css` and `BackgroundTasksControl.module.css` | Passed | No legacy `#f59e0b`, `#fbbf24`, `#fde68a`, `#d97706`, or matching RGB amber literals remain in the two cleanup files. |
+| 2026-05-15 | Prompt 17/10 changed-file color guard | `npm run color:guard:changed` | Passed (report mode) | Non-blocking guard scanned 17 changed files and reported 749 findings, dominated by token fallbacks, retained syntax/content colors, and future cleanup scope; no blocker introduced. |
+| 2026-05-15 | Prompt 16 palette sizing follow-up | `npm run typecheck` | Passed | Command palette body height is now stable across Files/Tabs/Symbols/Commands mode changes; results scroll inside the fixed viewport. |
+| 2026-05-15 | Prompt 17 TypeScript validation | `npm run typecheck` | Passed | Map shell/canvas chrome semantic token migration compiles; map visual smoke was not run in this CLI-only pass. |
+| 2026-05-15 | Prompt 16 TypeScript validation | `npm run typecheck` | Passed | Command palette, global search, AI panel/composer/status, and apply preview semantic token migration compiles cleanly. |
+| 2026-05-15 | Prompt 15 TypeScript validation | `npm run typecheck` | Passed | Terminal, bottom panel, tasks, output, problems, and xterm surface token migration compiles cleanly. |
+| 2026-05-15 | Prompt 14 TypeScript validation | `npm run typecheck` | Passed | Editor tabs, Monaco context shell, outline/search chrome, and diagnostics summary token migration compiles cleanly. |
+| 2026-05-15 | Prompt 13 TypeScript validation | `npm run typecheck` | Passed | File explorer rows, badges, file icon categories, and destructive explorer action token migration compiles cleanly. |
+| 2026-05-15 | Prompt 12 TypeScript validation | `npm run typecheck` | Passed | IDE shell, header, activity rail, and placeholder pane token migration compiles cleanly. |
+| 2026-05-15 | Prompt 11 TypeScript validation | `npm run typecheck` | Passed | Shared status bar and system chrome semantic status migration compiles cleanly. |
 | 2026-05-15 | Prompt 10 TypeScript validation | `npm run typecheck` | Passed | Center-panel shell semantic token migration compiles across shell/header/strip surfaces. |
 | 2026-05-15 | Prompt 10 changed-file lint | `npx eslint src/centerpanel/CenterPanelShell.tsx src/centerpanel/UrbanContextStrip.tsx --quiet` | Passed | Changed TSX files lint clean; no behavior-level lint regressions. |
 | 2026-05-15 | Prompt 10 Tailwind changed-file scan | `rg --pcre2` pattern scan across touched center-panel files | Passed | No Tailwind utility class patterns found in touched files. |
@@ -872,4 +1301,4 @@ This ledger is the execution source of truth for the color-system operating pack
 
 ## Next Pointer
 
-Prompt 11 - Shared Status Bar And System Chrome Migration.
+Prompt 18 - Map Toolbar Search Pins And Controls.

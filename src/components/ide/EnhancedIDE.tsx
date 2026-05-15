@@ -1230,25 +1230,25 @@ export const EnhancedIDE: React.FC = () => {
             }
             91% {
               transform: translate(-2px, 0px) skew(-1deg);
-              filter: drop-shadow(0 3px 10px rgba(245, 158, 11, 0.3))
+              filter: drop-shadow(0 3px 10px rgba(55, 148, 255, 0.3))
                       drop-shadow(2px 0px 0px rgba(255, 0, 100, 0.4))
                       drop-shadow(-2px 0px 0px rgba(0, 255, 255, 0.4));
             }
             92% {
               transform: translate(2px, 1px) skew(1deg);
-              filter: drop-shadow(0 3px 10px rgba(245, 158, 11, 0.3))
+              filter: drop-shadow(0 3px 10px rgba(55, 148, 255, 0.3))
                       drop-shadow(2px 0px 0px rgba(255, 0, 100, 0.4))
                       drop-shadow(-2px 0px 0px rgba(0, 255, 255, 0.4));
             }
             93% {
               transform: translate(-1px, -1px) skew(-0.5deg);
-              filter: drop-shadow(0 3px 10px rgba(245, 158, 11, 0.3))
+              filter: drop-shadow(0 3px 10px rgba(55, 148, 255, 0.3))
                       drop-shadow(1px 0px 0px rgba(255, 0, 100, 0.6))
                       drop-shadow(-1px 0px 0px rgba(0, 255, 255, 0.6));
             }
             94% {
               transform: translate(1px, 0px) skew(0.5deg);
-              filter: drop-shadow(0 3px 10px rgba(245, 158, 11, 0.3))
+              filter: drop-shadow(0 3px 10px rgba(55, 148, 255, 0.3))
                       drop-shadow(1px 0px 0px rgba(255, 0, 100, 0.4))
                       drop-shadow(-1px 0px 0px rgba(0, 255, 255, 0.4));
             }
@@ -1262,9 +1262,10 @@ export const EnhancedIDE: React.FC = () => {
           @keyframes unifiedGoldFlow { 0%{background-position:0% 0%;} 50%{background-position:100% 0%;} 100%{background-position:0% 0%;} }
           @keyframes unifiedGoldPulse { 0%,100%{opacity:1; filter:brightness(1);} 40%{opacity:.9; filter:brightness(1.08);} 60%{opacity:.95; filter:brightness(1.12);} }
           @keyframes unifiedGoldGlimmer { 0%{opacity:.45; transform:translateX(-4%);} 30%{opacity:.85;} 55%{opacity:.5;} 70%{opacity:.8;} 100%{opacity:.45; transform:translateX(4%);} }
+          /* data-attribute name retained for compatibility; colors redirected to VS Code blue chrome accent. */
           [data-global-gold-bar]{position:fixed;top:0;left:0;right:0;height:2px;z-index:999999;pointer-events:none;}
-          [data-global-gold-bar]::before{content:"";position:absolute;inset:0;background:linear-gradient(120deg,#1A1A1A 0%,#2A2A2A 12%,#F59E0B 28%,#fbbf24 44%,#FBBF24 60%,#D97706 76%,#2A2A2A 88%,#1A1A1A 100%);background-size:280% 100%;animation:unifiedGoldFlow 7s linear infinite, unifiedGoldPulse 5s ease-in-out infinite;box-shadow:var(--shadow-glow), var(--syn-glow-subtle);}
-          [data-global-gold-bar]::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 18% 50%,rgba(251,191,36,0.50),rgba(251,191,36,0) 55%),radial-gradient(circle at 68% 50%,rgba(245,158,11,0.40),rgba(245,158,11,0) 60%),linear-gradient(90deg,rgba(255,255,255,0.18),rgba(255,255,255,0) 35%,rgba(255,255,255,0.28) 50%,rgba(255,255,255,0) 65%,rgba(255,255,255,0.18));mix-blend-mode:screen;filter:blur(2.5px) brightness(1.15);animation: unifiedGoldGlimmer 9s cubic-bezier(.55,.1,.45,.9) infinite;}
+          [data-global-gold-bar]::before{content:"";position:absolute;inset:0;background:linear-gradient(120deg,#1A1A1A 0%,#2A2A2A 12%,#3794ff 28%,#5aa9ff 44%,#5aa9ff 60%,#2c7fd9 76%,#2A2A2A 88%,#1A1A1A 100%);background-size:280% 100%;animation:unifiedGoldFlow 7s linear infinite, unifiedGoldPulse 5s ease-in-out infinite;box-shadow:var(--shadow-glow), var(--syn-glow-subtle);}
+          [data-global-gold-bar]::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 18% 50%,rgba(90,169,255,0.50),rgba(90,169,255,0) 55%),radial-gradient(circle at 68% 50%,rgba(55,148,255,0.40),rgba(55,148,255,0) 60%),linear-gradient(90deg,rgba(255,255,255,0.18),rgba(255,255,255,0) 35%,rgba(255,255,255,0.28) 50%,rgba(255,255,255,0) 65%,rgba(255,255,255,0.18));mix-blend-mode:screen;filter:blur(2.5px) brightness(1.15);animation: unifiedGoldGlimmer 9s cubic-bezier(.55,.1,.45,.9) infinite;}
           @media (prefers-reduced-motion:reduce){[data-global-gold-bar]::before,[data-global-gold-bar]::after{animation:none!important;background-position:0 0;}}
         `}
       </style>
@@ -1477,7 +1478,7 @@ export const EnhancedIDE: React.FC = () => {
                   position: 'relative',
                   overflow: 'hidden',
                   background:
-                    'radial-gradient(ellipse at center, rgba(245, 158, 11, 0.02) 0%, rgba(0, 0, 0, 0.05) 70%)',
+                    'radial-gradient(ellipse at center, rgba(55, 148, 255, 0.02) 0%, rgba(0, 0, 0, 0.05) 70%)',
                   backdropFilter: 'blur(1px)',
                   transform: 'translateY(-150px)',
                 }}
@@ -1907,24 +1908,22 @@ export const EnhancedIDE: React.FC = () => {
                 left: -2,
                 top: 0,
                 bottom: 0,
-                width: 10,
+                width: 6,
                 cursor: 'col-resize',
-                background:
-                  'var(--syn-gradient-glass-amber)',
-                borderLeft: '1px solid rgba(255,255,255,0.08)',
-                borderRight: '1px solid rgba(255,255,255,0.08)',
-                backdropFilter: 'blur(4px)',
-                boxShadow: 'var(--syn-shadow-card)',
-                transition: 'background 0.25s var(--syn-easing-bauhaus)',
+                background: 'transparent',
+                borderLeft: '1px solid var(--syn-border-subtle)',
+                borderRight: 'none',
+                backdropFilter: 'none',
+                boxShadow: 'none',
+                transition: 'background 0.18s ease',
                 zIndex: 10040,
               }}
               onMouseEnter={e => {
                 e.currentTarget.style.background =
-                  'var(--syn-gradient-glass-amber)';
+                  'color-mix(in srgb, var(--syn-interaction-active) 18%, transparent)';
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.background =
-                  'var(--syn-gradient-glass-amber)';
+                e.currentTarget.style.background = 'transparent';
               }}
             />
             {}

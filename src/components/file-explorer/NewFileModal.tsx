@@ -543,7 +543,7 @@ const NewFileModal: React.FC<NewFileModalProps> = ({
       boxShadow: `
         0 12px 32px rgba(0, 0, 0, 0.5),
         0 4px 16px rgba(0, 0, 0, 0.3),
-        inset 0 1px 0 rgba(245, 158, 11, 0.1)`,
+        inset 0 1px 0 rgba(55, 148, 255, 0.1)`,
       color: '#D6D3D1',
       fontFamily: '"JetBrains Mono", "Fira Code", "Consolas", monospace',
       transform: isOpen ? 'scale(1) translateY(0)' : 'scale(0.9) translateY(20px)',
@@ -558,13 +558,13 @@ const NewFileModal: React.FC<NewFileModalProps> = ({
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      background: 'rgba(245, 158, 11, 0.05)',
+      background: 'color-mix(in srgb, var(--syn-interaction-active) 6%, transparent)',
     },
 
     title: {
       fontSize: '18px',
       fontWeight: 600,
-  color: '#f59e0b',
+  color: 'var(--syn-interaction-active)',
       display: 'flex',
       alignItems: 'center',
       gap: '10px',
@@ -583,8 +583,8 @@ const NewFileModal: React.FC<NewFileModalProps> = ({
       justifyContent: 'center',
       transition: 'var(--syn-transition-medium)',
       '&:hover': {
-        background: 'rgba(245, 158, 11, 0.15)',
-  color: '#f59e0b',
+        background: 'color-mix(in srgb, var(--syn-interaction-active) 16%, transparent)',
+  color: 'var(--syn-interaction-active)',
       },
     },
 
@@ -607,8 +607,8 @@ const NewFileModal: React.FC<NewFileModalProps> = ({
     navStep: {
       padding: '4px 8px',
       borderRadius: '4px',
-      background: 'rgba(245, 158, 11, 0.1)',
-  color: '#f59e0b',
+      background: 'color-mix(in srgb, var(--syn-interaction-active) 12%, transparent)',
+  color: 'var(--syn-interaction-active)',
     },
 
     navArrow: {
@@ -631,8 +631,8 @@ const NewFileModal: React.FC<NewFileModalProps> = ({
       transition: 'var(--syn-transition-medium)',
       '&:hover': {
         background:
-          'linear-gradient(145deg, rgba(245, 158, 11, 0.1) 0%, rgba(37, 37, 37, 0.9) 100%)',
-  borderColor: '#f59e0b',
+          'linear-gradient(145deg, rgba(55, 148, 255, 0.1) 0%, rgba(37, 37, 37, 0.9) 100%)',
+  borderColor: 'var(--syn-interaction-active)',
         transform: 'translateY(-2px)',
       },
     },
@@ -669,8 +669,8 @@ const NewFileModal: React.FC<NewFileModalProps> = ({
       cursor: 'pointer',
       transition: 'var(--syn-transition-medium)',
       '&:hover': {
-        background: 'rgba(245, 158, 11, 0.1)',
-  borderColor: '#f59e0b',
+        background: 'color-mix(in srgb, var(--syn-interaction-active) 12%, transparent)',
+  borderColor: 'var(--syn-interaction-active)',
       },
     },
 
@@ -701,8 +701,8 @@ const NewFileModal: React.FC<NewFileModalProps> = ({
       cursor: 'pointer',
       transition: 'var(--syn-transition-medium)',
       '&:hover': {
-        background: 'rgba(245, 158, 11, 0.1)',
-  borderColor: '#f59e0b',
+        background: 'color-mix(in srgb, var(--syn-interaction-active) 12%, transparent)',
+  borderColor: 'var(--syn-interaction-active)',
       },
     },
 
@@ -718,7 +718,7 @@ const NewFileModal: React.FC<NewFileModalProps> = ({
       outline: 'none',
       transition: 'border-color 0.2s var(--syn-easing-bauhaus)',
       '&:focus': {
-  borderColor: '#f59e0b',
+  borderColor: 'var(--syn-interaction-active)',
       },
     },
 
@@ -742,17 +742,17 @@ const NewFileModal: React.FC<NewFileModalProps> = ({
       cursor: 'pointer',
       transition: 'var(--syn-transition-medium)',
       '&:hover': {
-        background: 'rgba(245, 158, 11, 0.1)',
-  borderColor: '#f59e0b',
+        background: 'color-mix(in srgb, var(--syn-interaction-active) 12%, transparent)',
+  borderColor: 'var(--syn-interaction-active)',
       },
     },
 
     primaryButton: {
-  background: 'var(--syn-gradient-amber)',
-      color: '#1a1a1a',
+  background: 'color-mix(in srgb, var(--syn-interaction-active) 18%, transparent)',
+      color: 'var(--syn-interaction-active)',
       fontWeight: 600,
       '&:hover': {
-  background: 'var(--syn-gradient-amber-light)',
+  background: 'color-mix(in srgb, var(--syn-interaction-active) 28%, transparent)',
         transform: 'translateY(-1px)',
       },
     },

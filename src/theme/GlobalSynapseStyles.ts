@@ -90,10 +90,12 @@ export const GlobalSynapseStyles = createGlobalStyle`
   --syn-border-700: var(--syn-border-default);
   --syn-focus-ring: var(--syn-interaction-focus-ring);
 
-  --syn-accent-primary:#F59E0B;
-  --syn-accent-primary-hover:#D97706;
-  --syn-accent-primary-pressed:#B45309;
-  --syn-accent-soft-bg:#2A1C08;
+  /* Primary chrome accent redirected to VS Code blue per color system contract.
+     Legacy amber retained as --syn-accent-attention for explicit attention/warning surfaces. */
+  --syn-accent-primary: var(--syn-interaction-active);
+  --syn-accent-primary-hover: #2c7fd9;
+  --syn-accent-primary-pressed: #1f6abc;
+  --syn-accent-soft-bg: var(--syn-vscode-accent-blue-soft);
   --syn-accent-interactive: var(--syn-interaction-active);
   --syn-accent-interactive-soft: var(--syn-interaction-selected);
   --syn-accent-attention: var(--syn-vscode-attention-amber);
@@ -158,7 +160,7 @@ export const GlobalSynapseStyles = createGlobalStyle`
 
   --syn-shadow-soft: rgba(0,0,0,0.3);
   --syn-border-highlight: var(--syn-border-focus);
-  --syn-glow-subtle: 0 0 6px rgba(245,158,11,0.28);
+  --syn-glow-subtle: 0 0 6px rgba(55,148,255,0.28);
 
   /* ── Opacity scale (10 steps) ── */
   --syn-alpha-2: 0.02;
@@ -172,12 +174,18 @@ export const GlobalSynapseStyles = createGlobalStyle`
   --syn-alpha-64: 0.64;
   --syn-alpha-80: 0.80;
 
-  /* ── Amber accent at various opacities ── */
-  --syn-accent-bg: rgba(245,158,11, 0.12);
-  --syn-accent-bg-hover: rgba(245,158,11, 0.16);
-  --syn-accent-bg-strong: rgba(245,158,11, 0.24);
-  --syn-accent-border: rgba(245,158,11, 0.48);
-  --syn-accent-glow: rgba(245,158,11, 0.32);
+  /* ── Primary chrome accent tints (blue, per color system contract). Amber retained under --syn-attention-* below. ── */
+  --syn-accent-bg: rgba(55,148,255, 0.12);
+  --syn-accent-bg-hover: rgba(55,148,255, 0.16);
+  --syn-accent-bg-strong: rgba(55,148,255, 0.24);
+  --syn-accent-border: rgba(55,148,255, 0.48);
+  --syn-accent-glow: rgba(55,148,255, 0.32);
+
+  /* ── Attention amber retained for explicit attention/warning surfaces only ── */
+  --syn-attention-bg: rgba(245,158,11, 0.12);
+  --syn-attention-bg-hover: rgba(245,158,11, 0.16);
+  --syn-attention-border: rgba(245,158,11, 0.48);
+  --syn-attention-glow: rgba(245,158,11, 0.32);
 
   /* ── White overlay at various opacities ── */
   --syn-overlay-whisper: rgba(255,255,255, 0.04);

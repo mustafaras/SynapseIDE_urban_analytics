@@ -17,75 +17,65 @@ export const EmptyState: React.FC<EmptyStateProps> = ({ onNewFile }) => {
         gap: '16px',
       }}
     >
-      {}
       <div
         style={{
           fontSize: '48px',
-          opacity: 0.3,
-          background: 'var(--syn-gradient-glass-amber)',
-          borderRadius: '50%',
+          opacity: 0.45,
+          background: 'transparent',
           padding: '20px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
         }}
       >
-  <Folder size={48} color="#F59E0B" />
+        <Folder size={48} color="var(--syn-text-muted)" />
       </div>
 
-      {}
       <div>
         <p
           style={{
             margin: '0 0 8px 0',
-            color: 'rgba(255, 255, 255, 0.6)',
+            color: 'var(--syn-text-secondary)',
             fontSize: '14px',
-            fontWeight: '500',
+            fontWeight: 500,
           }}
         >
-          No files found
+          No files in this workspace
         </p>
         <p
           style={{
             margin: '0 0 20px 0',
             fontSize: '12px',
-            opacity: 0.7,
-            color: 'rgba(255, 255, 255, 0.4)',
+            color: 'var(--syn-text-muted)',
           }}
         >
           Create your first file to get started
         </p>
       </div>
 
-      {}
       <button
         onClick={onNewFile}
         style={{
-          padding: '10px 16px',
-          background: 'var(--syn-gradient-glass-amber)',
-          border: '1px solid rgba(245, 158, 11, 0.3)',
+          padding: '8px 14px',
+          background: 'color-mix(in srgb, var(--syn-interaction-active) 14%, transparent)',
+          border: 'none',
           borderRadius: '6px',
-          color: '#F59E0B',
+          color: 'var(--syn-interaction-active)',
           fontSize: '13px',
-          fontWeight: '500',
+          fontWeight: 500,
           cursor: 'pointer',
-          display: 'flex',
+          display: 'inline-flex',
           alignItems: 'center',
           gap: '8px',
-          transition: 'var(--syn-transition-medium)',
-          backdropFilter: 'blur(10px)',
+          transition: 'background 140ms ease, color 140ms ease',
         }}
         onMouseEnter={e => {
           e.currentTarget.style.background =
-            'linear-gradient(135deg, rgba(245, 158, 11, 0.3), rgba(245, 158, 11, 0.15))';
-          e.currentTarget.style.borderColor = 'rgba(245, 158, 11, 0.5)';
-          e.currentTarget.style.transform = 'translateY(-2px)';
+            'color-mix(in srgb, var(--syn-interaction-active) 22%, transparent)';
         }}
         onMouseLeave={e => {
           e.currentTarget.style.background =
-            'linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(245, 158, 11, 0.1))';
-          e.currentTarget.style.borderColor = 'rgba(245, 158, 11, 0.3)';
-          e.currentTarget.style.transform = 'translateY(0)';
+            'color-mix(in srgb, var(--syn-interaction-active) 14%, transparent)';
         }}
       >
         <Plus size={16} />

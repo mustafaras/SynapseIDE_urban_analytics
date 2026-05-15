@@ -250,6 +250,38 @@ Notes:
 1. Monaco syntax token theme mappings are intentionally unchanged in Prompt 14.
 2. Search match highlights use the info family to avoid ambiguity with warning/error diagnostics.
 
+## Prompt 16 Command Palette Search And AI Panel Semantic Mapping
+
+Prompt 16 migrates command palette, global search refinements, AI composer chrome, AI status strips, apply preview, and warning/conflict surfaces to semantic tokens without changing prompt construction or apply-plan behavior.
+
+### Palette And Search Interaction Mapping
+
+| Surface | Token |
+| --- | --- |
+| Palette/search input surface | `--syn-surface-input`, `--syn-surface-hover` mixed fills |
+| Active mode/scope marker | `--syn-interaction-active` |
+| Selected result row | `--syn-interaction-active` mixed fill + active edge |
+| Keyboard focus ring | `--syn-interaction-focus-ring` |
+| Disabled command reason | `--syn-status-error` |
+| Match highlight | `--syn-status-info` mixed mark background |
+
+### AI And Apply Preview Mapping
+
+| AI / Apply Surface | Token |
+| --- | --- |
+| Composer input focus and primary apply/send controls | `--syn-interaction-active` |
+| AI panel surfaces, overlays, code-block chrome | `--syn-surface-panel`, `--syn-surface-overlay`, `--syn-surface-editor`, `--syn-border-subtle` |
+| API key verified / missing / invalid / rate-limited / unknown | `--syn-status-valid` / `--syn-status-blocked` / `--syn-status-error` / `--syn-status-warning` / `--syn-status-unknown` |
+| Verifying/generating/running AI state | `--syn-status-running` |
+| Apply preview create / replace / update actions | `--syn-status-valid` / `--syn-status-warning` / `--syn-status-info` |
+| Apply preview conflicts and high-risk warnings | `--syn-status-error` with explicit labels/icons |
+| Medium-risk or destructive-caution surfaces | `--syn-status-warning` with explicit labels/icons |
+
+Notes:
+
+1. AI warnings and conflicts retain text labels, icons, aria labels, or visible status text; color is never the only signal.
+2. Prism syntax colors and language-dot colors are retained as code/content palette values rather than UI chrome tokens.
+
 ## Canonical Semantic Set
 
 These semantic names are the canonical targets for migration prompts.

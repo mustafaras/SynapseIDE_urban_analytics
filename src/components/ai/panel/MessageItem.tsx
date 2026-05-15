@@ -80,7 +80,7 @@ const MessageItemComp: React.FC<MessageItemProps> = ({ index: _index, message, s
             fontSize: 9,
             letterSpacing: '0.9px',
             textTransform: 'uppercase',
-            color: 'rgba(245,158,11,0.5)',
+            color: 'var(--syn-text-muted, #778190)',
             fontWeight: 700,
             fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif',
             userSelect: 'none',

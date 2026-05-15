@@ -9,9 +9,13 @@ const Badge = styled.span<{ kind: 'ok'|'warn' }>`
   border-radius: 8px;
   font-size: 11px;
   line-height: 1;
-  background: ${p => p.kind === 'ok' ? 'var(--syn-primary-700,var(--syn-accent-primary))' : 'rgba(255,255,255,0.08)'};
-  color: ${p => p.kind === 'ok' ? '#fff' : 'var(--color-text-secondary, rgba(255,255,255,0.75))'};
-  border: 1px solid var(--color-border, rgba(255,255,255,0.12));
+  background: ${p => p.kind === 'ok'
+    ? 'color-mix(in srgb, var(--syn-status-valid, #4ec27d) 18%, transparent)'
+    : 'color-mix(in srgb, var(--syn-status-warning, #d6a84f) 16%, transparent)'};
+  color: ${p => p.kind === 'ok' ? 'var(--syn-status-valid, #4ec27d)' : 'var(--syn-status-warning, #d6a84f)'};
+  border: 1px solid ${p => p.kind === 'ok'
+    ? 'color-mix(in srgb, var(--syn-status-valid, #4ec27d) 38%, transparent)'
+    : 'color-mix(in srgb, var(--syn-status-warning, #d6a84f) 38%, transparent)'};
 `;
 
 export const StatusBadge: React.FC = () => {

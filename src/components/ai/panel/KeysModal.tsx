@@ -4,20 +4,20 @@ import { useSettingsStore } from '@/store/useSettingsStore';
 import { showToast } from '@/ui/toast/api';
 
 
-const GOLD = '#F59E0B';
-const GOLD_HOVER = '#FBBF24';
-const BG = '#000000';
-const BG_ALT = '#121212';
-const BORDER = '#2A2A2A';
-const BORDER_SOFT = '#2A2A2A';
-const TEXT = GOLD;
-const TEXT_MUTED = '#A8A29E';
-const TEXT_FAINT = '#8C8579';
+const ACCENT = 'var(--syn-interaction-active, #3794ff)';
+const ACCENT_HOVER = 'var(--syn-status-info, #6aa9ff)';
+const BG = 'var(--syn-surface-panel, #232832)';
+const BG_ALT = 'var(--syn-surface-input, #1a1f26)';
+const BORDER = 'var(--syn-border-subtle, #343a44)';
+const BORDER_SOFT = 'var(--syn-border-subtle, #343a44)';
+const TEXT = 'var(--syn-text-default, #d7dce5)';
+const TEXT_MUTED = 'var(--syn-text-secondary, #a4adbb)';
+const TEXT_FAINT = 'var(--syn-text-muted, #778190)';
 
-const focusRing = () => `0 0 0 2px var(--syn-accent-glow, rgba(245,158,11,0.32))`;
+const focusRing = () => `0 0 0 2px color-mix(in srgb, var(--syn-interaction-focus-ring, #3794ff) 50%, transparent)`;
 
 const Backdrop = styled.div`
-  position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+  position: fixed; inset: 0; background: var(--syn-surface-overlay, rgba(12,15,20,0.78));
   display: flex; align-items: center; justify-content: center; z-index: 2200;
   font-family: var(--font-mono, var(--font-code, "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace));
 `;
@@ -27,18 +27,18 @@ const Dialog = styled.div`
   border: 1px solid ${BORDER};
   font-family: inherit;
   color: ${TEXT};
-  box-shadow: 0 0 0 1px var(--syn-bg-root);
+  box-shadow: 0 0 0 1px var(--syn-surface-workbench, #1e1f24);
 `;
 const Tabs = styled.div` display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; `;
 const TabBtn = styled.button<{ $active?: boolean }>`
   padding: 6px 12px; border-radius: 7px; font-size: 12px; cursor: pointer; line-height:1.2;
-  background: ${p => p.$active ? GOLD : BG_ALT};
-  color: ${p => p.$active ? '#000' : TEXT_MUTED};
-  border: 1px solid ${p => p.$active ? GOLD : BORDER_SOFT};
+  background: ${p => p.$active ? ACCENT : BG_ALT};
+  color: ${p => p.$active ? 'var(--syn-text-inverse, #0f1218)' : TEXT_MUTED};
+  border: 1px solid ${p => p.$active ? ACCENT : BORDER_SOFT};
   font-family: inherit; font-weight: 500; letter-spacing:.3px;
   transition: background .18s var(--syn-easing-bauhaus), color .18s var(--syn-easing-bauhaus), border-color .18s var(--syn-easing-bauhaus), transform .18s var(--syn-easing-bauhaus);
   position: relative;
-  &:hover { background: ${p => p.$active ? GOLD_HOVER : '#1A1A1A'}; color: ${p => p.$active ? '#000' : GOLD}; }
+  &:hover { background: ${p => p.$active ? ACCENT_HOVER : 'var(--syn-surface-hover, #303642)'}; color: ${p => p.$active ? 'var(--syn-text-inverse, #0f1218)' : ACCENT}; }
   &:focus-visible { outline: none; box-shadow: ${focusRing()}; }
   &:active { transform: translateY(1px); }
 `;
@@ -52,25 +52,25 @@ const Input = styled.input`
   background: ${BG_ALT}; color: ${TEXT}; font-family: inherit; font-size:12px;
   outline: none; transition: border-color .18s var(--syn-easing-bauhaus), background .18s var(--syn-easing-bauhaus), box-shadow .18s var(--syn-easing-bauhaus);
   &::placeholder { color:${TEXT_FAINT}; }
-  &:focus { border-color: ${GOLD}; background:#1A1A1A; box-shadow:var(--shadow-focus); }
+  &:focus { border-color: ${ACCENT}; background: var(--syn-surface-elevated, #2b3038); box-shadow: ${focusRing()}; }
   &:disabled { opacity:.5; cursor:not-allowed; }
 `;
 const Actions = styled.div` display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; `;
 const ActionBtn = styled.button<{ $primary?: boolean }>`
   min-width: 90px; height:34px; padding:0 16px; border-radius:7px; font-size:12px; cursor:pointer; font-family:inherit; font-weight:500; letter-spacing:.4px;
-  background: ${p=>p.$primary?GOLD:BG_ALT};
-  color: ${p=>p.$primary?'#000':TEXT_MUTED};
-  border:1px solid ${p=>p.$primary?GOLD:BORDER_SOFT};
+  background: ${p=>p.$primary?ACCENT:BG_ALT};
+  color: ${p=>p.$primary?'var(--syn-text-inverse, #0f1218)':TEXT_MUTED};
+  border:1px solid ${p=>p.$primary?ACCENT:BORDER_SOFT};
   display:flex; align-items:center; justify-content:center; gap:6px;
   transition: background .2s var(--syn-easing-bauhaus), color .2s var(--syn-easing-bauhaus), border-color .2s var(--syn-easing-bauhaus), transform .15s var(--syn-easing-bauhaus);
-  &:hover { background:${p=>p.$primary?GOLD_HOVER:'#1A1A1A'}; color:${p=>p.$primary?'#000':GOLD}; }
+  &:hover { background:${p=>p.$primary?ACCENT_HOVER:'var(--syn-surface-hover, #303642)'}; color:${p=>p.$primary?'var(--syn-text-inverse, #0f1218)':ACCENT}; }
   &:focus-visible { outline:none; box-shadow:${focusRing()}; }
   &:active { transform:translateY(1px); }
 `;
 const ToggleBtn = styled.button`
-  padding:6px 10px; border-radius:7px; font-size:11px; cursor:pointer; font-family:inherit; background:#121212; color:${TEXT_MUTED}; border:1px solid ${BORDER_SOFT};
+  padding:6px 10px; border-radius:7px; font-size:11px; cursor:pointer; font-family:inherit; background:${BG_ALT}; color:${TEXT_MUTED}; border:1px solid ${BORDER_SOFT};
   transition: background .18s, color .18s, border-color .18s;
-  &:hover { background:#1A1A1A; color:${GOLD}; border-color:${GOLD}; }
+  &:hover { background:var(--syn-surface-hover, #303642); color:${ACCENT}; border-color:${ACCENT}; }
   &:focus-visible { outline:none; box-shadow:${focusRing()}; }
 `;
 

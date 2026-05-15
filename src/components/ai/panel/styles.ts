@@ -11,19 +11,19 @@ export const PanelRoot = styled.aside`
   gap: 0;
   height: 100%;
 
-  background: var(--ai-surface, var(--color-bg-inverse, #000));
+  background: var(--ai-surface, var(--syn-surface-panel, #232832));
   border-left: none;
-  color: var(--color-text-primary, #FAFAF9);
+  color: var(--syn-text-default, #d7dce5);
   font-family: var(--font-code, "JetBrains Mono", "Coder", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace);
   box-shadow: none;
 
-  --ai-black: var(--ai-surface, #000000);
-  --ai-black-alt: var(--ai-surface-alt, #121212);
-  --ai-border: var(--ai-border, #2A2A2A);
-  --ai-border-strong: var(--ai-border-strong, #2A2A2A);
-  --ai-gold: var(--ai-gold, #F59E0B);
-  --ai-gold-soft: var(--ai-gold-soft, #FBBF24);
-  --ai-text-secondary: var(--ai-text-secondary, #A8A29E);
+  --ai-black: var(--ai-surface, var(--syn-surface-panel, #232832));
+  --ai-black-alt: var(--ai-surface-alt, var(--syn-surface-elevated, #2b3038));
+  --ai-border: var(--syn-border-subtle, #343a44);
+  --ai-border-strong: var(--syn-border-strong, #4a5260);
+  --ai-gold: var(--syn-interaction-active, #3794ff);
+  --ai-gold-soft: var(--syn-status-info, #6aa9ff);
+  --ai-text-secondary: var(--syn-text-secondary, #a4adbb);
   & button,
   & select,
   & input,
@@ -32,7 +32,7 @@ export const PanelRoot = styled.aside`
 
 export const Section = styled.section`
   padding: 12px 14px;
-  color: var(--color-text, var(--text-1));
+  color: var(--syn-text-default, #d7dce5);
 `;
 
 export const HeaderRow = styled(Section)`
@@ -60,13 +60,13 @@ export const Title = styled.div`
   font-size: 15px;
   font-weight: 700;
   letter-spacing: 0.5px;
-  color: var(--ai-gold-soft, var(--color-accent-primary-hover, #FBBF24));
+  color: var(--syn-text-default, #d7dce5);
 `;
 
 export const Subtitle = styled.div`
   font-size: 11px;
   font-weight: 500;
-  color: var(--ai-text-secondary, var(--color-text-secondary, #A8A29E));
+  color: var(--ai-text-secondary, var(--syn-text-secondary, #a4adbb));
   letter-spacing: 0.3px;
 `;
 
@@ -95,7 +95,7 @@ export const BrandIcon = styled.div`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(245,158,11,0.08);
+  background: color-mix(in srgb, var(--syn-interaction-active, #3794ff) 12%, transparent);
   &::after {
     content: '';
     position: absolute;
@@ -104,12 +104,12 @@ export const BrandIcon = styled.div`
     left: 10px;
     top: 10px;
     border-radius: 50%;
-  background: var(--ai-gold, #f59e0b);
+  background: var(--ai-gold, #3794ff);
     box-shadow:
-  10px 0 0 0 var(--ai-gold, #f59e0b),
-  0 10px 0 0 var(--ai-gold, #f59e0b),
-  10px 10px 0 0 var(--ai-gold, #f59e0b);
-  filter: drop-shadow(0 0 3px rgba(245,158,11,0.35));
+  10px 0 0 0 var(--ai-gold, #3794ff),
+  0 10px 0 0 var(--ai-gold, #3794ff),
+  10px 10px 0 0 var(--ai-gold, #3794ff);
+  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--syn-interaction-active, #3794ff) 35%, transparent));
   }
 `;
 
@@ -144,9 +144,9 @@ export const GhostButton = styled.button`
   padding: 6px 10px;
   border-radius: 8px;
   font-size: 12px;
-  border: 1px solid var(--color-border-subtle, rgba(255,255,255,0.12));
-  background: var(--color-bg-surface-alt, rgba(255,255,255,0.04));
-  color: var(--color-text-secondary, rgba(255,255,255,0.65));
+  border: 1px solid var(--syn-border-subtle, #343a44);
+  background: color-mix(in srgb, var(--syn-surface-elevated, #2b3038) 72%, transparent);
+  color: var(--syn-text-secondary, #a4adbb);
   cursor: not-allowed;
 `;
 
@@ -154,7 +154,7 @@ export const ScrollArea = styled(Section)`
   flex: 1;
   overflow: auto;
   padding: 12px 14px 8px;
-  color: var(--color-text-secondary, rgba(255,255,255,0.65));
+  color: var(--syn-text-secondary, #a4adbb);
 `;
 
 export const EmptyState = styled.div`
@@ -181,24 +181,24 @@ export const TextArea = styled.textarea`
   resize: none;
   border-radius: 8px;
   border: none;
-  background: var(--color-bg-surface-alt, rgba(255,255,255,0.04));
-  color: var(--color-text-primary, #FAFAF9);
+  background: color-mix(in srgb, var(--syn-surface-elevated, #2b3038) 72%, transparent);
+  color: var(--syn-text-default, #d7dce5);
   padding: 10px 12px;
   font-family: var(--font-code, "JetBrains Mono", "Coder", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace);
   font-size: 12px;
   line-height: 1.5;
   outline: none;
-  &::placeholder { color: var(--color-text-muted, #8C8579); }
-  &:focus { background: color-mix(in srgb, var(--ai-gold, var(--color-accent-primary, #F59E0B)) 8%, var(--color-bg-surface-alt, rgba(255,255,255,0.04))); }
+  &::placeholder { color: var(--syn-text-muted, #778190); }
+  &:focus { background: color-mix(in srgb, var(--syn-interaction-active, #3794ff) 8%, var(--syn-surface-elevated, #2b3038)); }
   &:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 1px color-mix(in srgb, var(--ai-gold, #F59E0B) 55%, transparent);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--syn-interaction-focus-ring, #3794ff) 55%, transparent);
   }
 `;
 
 export const Hint = styled.div`
   font-size: 11px;
-  color: var(--color-text-secondary, rgba(255,255,255,0.65));
+  color: var(--syn-text-secondary, #a4adbb);
 `;
 
 export const RightSide = styled.div`
@@ -211,7 +211,7 @@ export const ActionButton = styled.button`
   appearance: none;
   border: none;
   background: transparent;
-  color: var(--color-text-primary, #FAFAF9);
+  color: var(--syn-text-default, #d7dce5);
   height: 30px;
   padding: 0 12px;
   border-radius: 6px;
@@ -221,22 +221,22 @@ export const ActionButton = styled.button`
   gap: 6px;
   cursor: pointer;
   transition: background 100ms, color 100ms;
-  &:hover { background: rgba(255,255,255,0.06); }
+  &:hover { background: color-mix(in srgb, var(--syn-surface-hover, #303642) 70%, transparent); }
   &:disabled { opacity: 0.45; cursor: not-allowed; }
-  &:focus-visible { outline: none; box-shadow: 0 0 0 1px color-mix(in srgb, var(--ai-gold, #F59E0B) 55%, transparent); }
+  &:focus-visible { outline: none; box-shadow: 0 0 0 1px color-mix(in srgb, var(--syn-interaction-focus-ring, #3794ff) 55%, transparent); }
 `;
 
 export const SendButton = styled(ActionButton)`
-  background: var(--ai-gold, #F59E0B);
-  color: #121212;
+  background: var(--syn-interaction-active, #3794ff);
+  color: var(--syn-text-inverse, #0f1218);
   font-weight: 600;
-  &:hover { background: var(--ai-gold-soft, #FBBF24); }
+  &:hover { background: var(--syn-status-info, #6aa9ff); }
 `;
 
 export const StopButton = styled(ActionButton)`
-  background: rgba(185,28,28,0.7);
-  color: #fff;
-  &:hover { background: rgba(185,28,28,0.9); }
+  background: color-mix(in srgb, var(--syn-status-error, #f87171) 70%, transparent);
+  color: var(--syn-text-default, #d7dce5);
+  &:hover { background: color-mix(in srgb, var(--syn-status-error, #f87171) 88%, transparent); }
 `;
 
 export const MetaRow = styled.div`
@@ -257,9 +257,9 @@ export const JumpToLatestButton = styled.button`
   right: 12px;
   bottom: 12px;
   appearance: none;
-  border: 1px solid color-mix(in oklab, var(--brand-primary, #f59e0b), transparent 70%);
-  background: color-mix(in oklab, var(--brand-primary, #f59e0b), transparent 85%);
-  color: var(--color-text, #fff);
+  border: 1px solid color-mix(in srgb, var(--syn-interaction-active, #3794ff) 36%, transparent);
+  background: color-mix(in srgb, var(--syn-interaction-active, #3794ff) 15%, var(--syn-surface-elevated, #2b3038));
+  color: var(--syn-text-default, #d7dce5);
   border-radius: 9999px;
   padding: 8px 10px;
   box-shadow: var(--shadow-lg);
@@ -275,7 +275,7 @@ export const JumpToLatestButton = styled.button`
   }
 
   &:focus-visible {
-  outline: 2px solid color-mix(in oklab, var(--brand-primary, #f59e0b), transparent 30%);
+  outline: 2px solid color-mix(in srgb, var(--syn-interaction-focus-ring, #3794ff) 70%, transparent);
     outline-offset: 2px;
   }
 `;
@@ -291,13 +291,13 @@ export const Bubble = styled.div<{ $variant: 'user' | 'assistant' }>`
   line-height: 1.6;
 
   ${({ $variant }) => $variant === 'user' ? `
-    /* User: pill with amber-tint, right-aligned tail */
+    /* User: compact interaction-tinted pill, right-aligned tail */
     max-width: 100%;
     padding: 8px 12px;
     border-radius: 10px 10px 2px 10px;
-    background: rgba(245,158,11,0.08);
+    background: color-mix(in srgb, var(--syn-interaction-active, #3794ff) 10%, transparent);
     font-size: 12.5px;
-    color: rgba(250,250,249,0.92);
+    color: var(--syn-text-default, #d7dce5);
     letter-spacing: 0.1px;
   ` : `
     /* Assistant: transparent, full width, clean prose */
@@ -306,7 +306,7 @@ export const Bubble = styled.div<{ $variant: 'user' | 'assistant' }>`
     border-radius: 0;
     background: transparent;
     font-size: 13px;
-    color: var(--color-text-primary, #FAFAF9);
+    color: var(--syn-text-default, #d7dce5);
     letter-spacing: 0.12px;
   `}
 `;
@@ -330,39 +330,39 @@ export const MarkdownRoot = styled.div`
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Helvetica, Arial, sans-serif;
   font-size: 13px;
   line-height: 1.65;
-  color: var(--color-text-primary, #FAFAF9);
+  color: var(--syn-text-default, #d7dce5);
 
   p { margin: 0 0 9px; }
   p:last-child { margin-bottom: 0; }
   ul, ol { margin: 0 0 9px 20px; padding: 0; }
   li { margin: 3px 0; }
-  a { color: #F59E0B; text-decoration: none; opacity: 0.9; &:hover { opacity: 1; text-decoration: underline; } }
+  a { color: var(--syn-text-link, #3794ff); text-decoration: none; opacity: 0.9; &:hover { opacity: 1; text-decoration: underline; } }
 
   /* Inline code stays monospace */
   :not(pre) > code {
     font-family: var(--font-code, 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace);
     font-size: 11.5px;
-    background: rgba(255,255,255,0.07);
-    color: #F59E0B;
+    background: color-mix(in srgb, var(--syn-surface-hover, #303642) 70%, transparent);
+    color: var(--syn-status-info, #6aa9ff);
     padding: 1px 5px;
     border-radius: 3px;
     ${codeInline()}
   }
 
   h1, h2, h3, h4 { margin: 14px 0 5px; font-weight: 600; letter-spacing: -0.2px; }
-  h1 { font-size: 15px; color: #FAFAF9; ${heading(1)} }
-  h2 { font-size: 14px; color: #FAFAF9; ${heading(2)} }
-  h3 { font-size: 13px; color: rgba(250,250,249,0.88); ${heading(3)} }
-  h4, h5, h6 { font-size: 12px; color: rgba(250,250,249,0.75); ${text('body')}; font-weight: 600; }
+  h1 { font-size: 15px; color: var(--syn-text-default, #d7dce5); ${heading(1)} }
+  h2 { font-size: 14px; color: var(--syn-text-default, #d7dce5); ${heading(2)} }
+  h3 { font-size: 13px; color: var(--syn-text-secondary, #a4adbb); ${heading(3)} }
+  h4, h5, h6 { font-size: 12px; color: var(--syn-text-secondary, #a4adbb); ${text('body')}; font-weight: 600; }
 
-  strong { font-weight: 600; color: #FAFAF9; }
-  em { color: rgba(250,250,249,0.78); }
-  hr { border: none; border-top: 1px solid rgba(255,255,255,0.07); margin: 10px 0; }
+  strong { font-weight: 600; color: var(--syn-text-default, #d7dce5); }
+  em { color: var(--syn-text-secondary, #a4adbb); }
+  hr { border: none; border-top: 1px solid var(--syn-border-subtle, #343a44); margin: 10px 0; }
   blockquote {
-    border-left: 2px solid rgba(245,158,11,0.5);
+    border-left: 2px solid color-mix(in srgb, var(--syn-status-warning, #d6a84f) 58%, transparent);
     margin: 6px 0;
     padding-left: 10px;
-    color: rgba(250,250,249,0.6);
+    color: var(--syn-text-secondary, #a4adbb);
     font-style: italic;
   }
 `;
@@ -382,8 +382,8 @@ export const CodeBlockRoot = styled.div`
   margin: 12px 0 4px;
   border-radius: 8px;
   overflow: hidden;
-  background: #1e1e1e;      /* VS Code Dark+ body */
-  border: 1px solid rgba(255,255,255,0.06);
+  background: var(--syn-surface-editor, #1f232a);
+  border: 1px solid var(--syn-border-subtle, #343a44);
   font-family: var(--font-code, 'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
 
   /* ── Prism token colours (VS Code Dark+ palette) ── */
@@ -424,10 +424,10 @@ export const CodeBlockRoot = styled.div`
     overflow-x: auto;
     padding: 0;
     scrollbar-width: thin;
-    scrollbar-color: rgba(255,255,255,0.12) transparent;
+    scrollbar-color: color-mix(in srgb, var(--syn-text-muted, #778190) 28%, transparent) transparent;
     &::-webkit-scrollbar { height: 4px; }
     &::-webkit-scrollbar-track { background: transparent; }
-    &::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 2px; }
+    &::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--syn-text-muted, #778190) 28%, transparent); border-radius: 2px; }
   }
   code {
     display: block;
@@ -445,8 +445,8 @@ export const CodeHeader = styled.div`
   align-items: center;
   gap: 8px;
   padding: 8px 10px 8px 14px;
-  background: #252526;    /* VS Code Dark+ titlebar */
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  background: var(--syn-surface-elevated, #2b3038);
+  border-bottom: 1px solid var(--syn-border-subtle, #343a44);
   min-height: 36px;
 `;
 
@@ -463,7 +463,7 @@ export const LangLabel = styled.span`
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Helvetica, Arial, sans-serif;
   font-size: 11.5px;
   font-weight: 500;
-  color: #858585;   /* muted gray, like VS Code breadcrumb */
+  color: var(--syn-text-muted, #778190);
   letter-spacing: 0.1px;
   user-select: none;
   flex-shrink: 0;
@@ -472,7 +472,7 @@ export const LangLabel = styled.span`
 export const CodeFilePath = styled.span`
   font-family: var(--font-code, 'JetBrains Mono', ui-monospace, monospace);
   font-size: 10.5px;
-  color: rgba(255,255,255,0.25);
+  color: color-mix(in srgb, var(--syn-text-muted, #778190) 55%, transparent);
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -499,14 +499,14 @@ export const CodeActionBtn = styled.button`
   border: none;
   border-radius: 4px;
   background: transparent;
-  color: rgba(255,255,255,0.4);
+  color: var(--syn-text-muted, #778190);
   cursor: pointer;
   transition: background 80ms, color 80ms;
   flex-shrink: 0;
-  &:hover         { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.85); }
-  &[data-ok=true] { color: #3fb950; }
+  &:hover         { background: color-mix(in srgb, var(--syn-surface-hover, #303642) 70%, transparent); color: var(--syn-text-default, #d7dce5); }
+  &[data-ok=true] { color: var(--syn-status-valid, #4ec27d); }
   &:disabled      { opacity: 0.3; cursor: not-allowed; }
-  &:focus-visible { outline: 1px solid rgba(255,255,255,0.3); outline-offset: 1px; }
+  &:focus-visible { outline: 1px solid var(--syn-interaction-focus-ring, #3794ff); outline-offset: 1px; }
 `;
 
 /* "Copy code" primary button — text + icon, always visible */
@@ -515,26 +515,26 @@ export const CopyCodeBtn = styled.button`
   align-items: center;
   gap: 5px;
   padding: 3px 9px;
-  border: 1px solid rgba(255,255,255,0.1);
+  border: 1px solid var(--syn-border-subtle, #343a44);
   border-radius: 4px;
-  background: rgba(255,255,255,0.04);
-  color: #858585;
+  background: color-mix(in srgb, var(--syn-surface-hover, #303642) 48%, transparent);
+  color: var(--syn-text-muted, #778190);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Helvetica, Arial, sans-serif;
   font-size: 11px;
   cursor: pointer;
   transition: background 80ms, color 80ms, border-color 80ms;
   white-space: nowrap;
   flex-shrink: 0;
-  &:hover         { background: rgba(255,255,255,0.08); color: #d4d4d4; border-color: rgba(255,255,255,0.18); }
-  &[data-ok=true] { color: #3fb950; border-color: rgba(63,185,80,0.3); background: rgba(63,185,80,0.06); }
-  &:focus-visible { outline: 1px solid rgba(255,255,255,0.3); outline-offset: 1px; }
+  &:hover         { background: color-mix(in srgb, var(--syn-surface-hover, #303642) 72%, transparent); color: var(--syn-text-default, #d7dce5); border-color: var(--syn-border-default, #343a44); }
+  &[data-ok=true] { color: var(--syn-status-valid, #4ec27d); border-color: color-mix(in srgb, var(--syn-status-valid, #4ec27d) 35%, transparent); background: color-mix(in srgb, var(--syn-status-valid, #4ec27d) 8%, transparent); }
+  &:focus-visible { outline: 1px solid var(--syn-interaction-focus-ring, #3794ff); outline-offset: 1px; }
 `;
 
 /* Thin vertical separator between action groups */
 export const CodeActionSep = styled.span`
   width: 1px;
   height: 14px;
-  background: rgba(255,255,255,0.1);
+  background: var(--syn-border-subtle, #343a44);
   margin: 0 3px;
   flex-shrink: 0;
 `;
@@ -546,21 +546,21 @@ export const CodeBody = styled.div`
   overflow-x: auto;
   padding: 12px 0 14px;
   scrollbar-width: thin;
-  scrollbar-color: rgba(255,255,255,0.1) transparent;
+  scrollbar-color: color-mix(in srgb, var(--syn-text-muted, #778190) 24%, transparent) transparent;
   &::-webkit-scrollbar { height: 4px; }
-  &::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+  &::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--syn-text-muted, #778190) 24%, transparent); border-radius: 2px; }
 `;
 
 export const LineNumbers = styled.div`
   padding: 0 12px 0 14px;
   text-align: right;
   user-select: none;
-  color: rgba(255,255,255,0.18);
+  color: color-mix(in srgb, var(--syn-text-muted, #778190) 42%, transparent);
   font-family: var(--font-code, 'JetBrains Mono', ui-monospace, monospace);
   font-size: 12px;
   line-height: 1.6;
   white-space: pre;
-  border-right: 1px solid rgba(255,255,255,0.05);
+  border-right: 1px solid var(--syn-border-subtle, #343a44);
   min-width: 32px;
 `;
 
@@ -597,16 +597,16 @@ export const MiniInput = styled.input`
   padding: 0 8px;
   border-radius: 5px;
   border: none;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
+  border-bottom: 1px solid var(--syn-border-subtle, #343a44);
   background: transparent;
-  color: var(--color-text-primary, #fff);
+  color: var(--syn-text-default, #d7dce5);
   font-size: 12px;
   outline: none;
-  &:focus { border-bottom-color: var(--ai-gold, #F59E0B); }
+  &:focus { border-bottom-color: var(--syn-border-focus, #3794ff); }
   &:focus-visible {
-    outline: var(--ide-focus-width, 2px) solid var(--ide-focus-ring, var(--ai-gold, #F59E0B));
+    outline: var(--ide-focus-width, 2px) solid var(--ide-focus-ring, var(--syn-interaction-focus-ring, #3794ff));
     outline-offset: var(--ide-focus-offset, 2px);
-    box-shadow: var(--ide-focus-shadow, 0 0 0 3px rgba(245, 158, 11, 0.35));
+    box-shadow: var(--ide-focus-shadow, 0 0 0 3px color-mix(in srgb, var(--syn-interaction-focus-ring, #3794ff) 35%, transparent));
   }
 `;
 
@@ -615,26 +615,26 @@ export const MiniSelect = styled.select`
   padding: 0 8px;
   border-radius: 5px;
   border: none;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
+  border-bottom: 1px solid var(--syn-border-subtle, #343a44);
   background: transparent;
-  color: var(--color-text-primary, #fff);
+  color: var(--syn-text-default, #d7dce5);
   font-size: 12px;
   &:focus-visible {
-    outline: var(--ide-focus-width, 2px) solid var(--ide-focus-ring, var(--ai-gold, #F59E0B));
+    outline: var(--ide-focus-width, 2px) solid var(--ide-focus-ring, var(--syn-interaction-focus-ring, #3794ff));
     outline-offset: var(--ide-focus-offset, 2px);
-    box-shadow: var(--ide-focus-shadow, 0 0 0 3px rgba(245, 158, 11, 0.35));
+    box-shadow: var(--ide-focus-shadow, 0 0 0 3px color-mix(in srgb, var(--syn-interaction-focus-ring, #3794ff) 35%, transparent));
   }
 `;
 
 export const MiniSlider = styled.input.attrs({ type: 'range' })`
   height: 28px;
-  accent-color: var(--brand-primary, #f59e0b);
+  accent-color: var(--syn-interaction-active, #3794ff);
 `;
 
 export const MiniToggle = styled.input.attrs({ type: 'checkbox' })`
   height: 16px;
   width: 32px;
-  accent-color: var(--brand-primary, #f59e0b);
+  accent-color: var(--syn-interaction-active, #3794ff);
 `;
 
 export const MiniButton = styled.button`
@@ -642,12 +642,12 @@ export const MiniButton = styled.button`
   padding: 0 8px;
   border-radius: 5px;
   border: none;
-  background: rgba(255,255,255,0.05);
-  color: var(--color-text-primary, #fff);
+  background: color-mix(in srgb, var(--syn-surface-hover, #303642) 60%, transparent);
+  color: var(--syn-text-default, #d7dce5);
   font-size: 12px;
   cursor: pointer;
-  &:hover { background: rgba(255,255,255,0.09); }
-  &:focus-visible { outline: 2px solid color-mix(in oklab, var(--brand-primary, #f59e0b), transparent 30%); outline-offset: 2px; }
+  &:hover { background: color-mix(in srgb, var(--syn-surface-hover, #303642) 82%, transparent); }
+  &:focus-visible { outline: 2px solid color-mix(in srgb, var(--syn-interaction-focus-ring, #3794ff) 70%, transparent); outline-offset: 2px; }
 `;
 
 
@@ -660,17 +660,17 @@ export const IconButton = styled.button`
   border-radius: 6px;
   border: none;
   background: transparent;
-  color: var(--color-text-secondary, #A8A29E);
+  color: var(--syn-text-secondary, #a4adbb);
   cursor: pointer;
   transition: background 100ms, color 100ms;
-  &:hover { background: rgba(255,255,255,0.06); color: var(--ai-gold, #F59E0B); }
+  &:hover { background: color-mix(in srgb, var(--syn-surface-hover, #303642) 70%, transparent); color: var(--syn-interaction-active, #3794ff); }
   &:disabled { opacity: 0.35; cursor: not-allowed; }
-  &:focus-visible { outline: 2px solid var(--ai-gold, #F59E0B); outline-offset: 2px; }
+  &:focus-visible { outline: 2px solid var(--syn-interaction-focus-ring, #3794ff); outline-offset: 2px; }
 `;
 
 export const Badge = styled.span`
   font-size: 11px;
-  color: var(--color-text-secondary, rgba(255,255,255,0.65));
+  color: var(--syn-text-secondary, #a4adbb);
 `;
 
 
@@ -680,8 +680,8 @@ export const ErrorBannerRoot = styled.div`
   align-items: center;
   gap: 8px;
   padding: 7px 10px;
-  border-left: 2px solid var(--color-error, #EF4444);
-  background: rgba(239,68,68,0.06);
+  border-left: 2px solid var(--syn-status-error, #f87171);
+  background: color-mix(in srgb, var(--syn-status-error, #f87171) 8%, transparent);
   border-radius: 0 4px 4px 0;
 `;
 export const ErrorIcon = styled.span`
@@ -691,14 +691,14 @@ export const ErrorIcon = styled.span`
   width: 18px;
   height: 18px;
   border-radius: 9999px;
-  background: color-mix(in oklab, var(--color-error, #EF4444), transparent 70%);
-  color: var(--color-error, #EF4444);
+  background: color-mix(in srgb, var(--syn-status-error, #f87171) 30%, transparent);
+  color: var(--syn-status-error, #f87171);
   font-size: 12px;
   line-height: 1;
 `;
 export const ErrorText = styled.div`
   font-size: 12px;
-  color: var(--color-text, #fff);
+  color: var(--syn-text-default, #d7dce5);
 `;
 export const ErrorActions = styled.div`
   display: inline-flex;
@@ -709,9 +709,9 @@ export const ErrorActions = styled.div`
 export const DebugTrayRoot = styled.div`
   margin: 6px 0 0;
   padding: 6px 8px;
-  border: 1px dashed var(--color-border, rgba(255,255,255,0.12));
+  border: 1px dashed var(--syn-border-subtle, #343a44);
   border-radius: 8px;
-  color: var(--color-text-secondary, rgba(255,255,255,0.75));
+  color: var(--syn-text-secondary, #a4adbb);
   font-size: 11px;
 `;
 export const DebugRow = styled.div`

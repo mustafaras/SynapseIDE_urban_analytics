@@ -4,6 +4,16 @@
    ------------------------------------------------------------- */
 
 .panel {
+  --cockpit-accent: var(--syn-interaction-active);
+  --cockpit-info: var(--syn-status-info);
+  --cockpit-valid: var(--syn-status-valid);
+  --cockpit-warning: var(--syn-status-warning);
+  --cockpit-running: var(--syn-status-running);
+  --cockpit-blocked: var(--syn-status-blocked);
+  --cockpit-text: var(--syn-text-default);
+  --cockpit-text-secondary: var(--syn-text-secondary);
+  --cockpit-text-muted: var(--syn-text-muted);
+  --cockpit-text-inverse: var(--syn-text-inverse);
   position: relative;
   width: 100%;
   height: 100%;
@@ -11,13 +21,13 @@
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr);
   overflow: hidden;
-  border: 1px solid rgba(245, 158, 11, 0.22);
+  border: 1px solid color-mix(in srgb, var(--cockpit-accent) 22%, transparent);
   border-radius: 8px;
   background:
-    linear-gradient(180deg, rgba(18, 17, 15, 0.96), rgba(8, 8, 7, 0.94)),
-    radial-gradient(circle at top left, rgba(245, 158, 11, 0.08), transparent 34%);
+    linear-gradient(180deg, color-mix(in srgb, var(--syn-surface-panel) 96%, transparent), color-mix(in srgb, var(--syn-surface-workbench) 94%, transparent)),
+    radial-gradient(circle at top left, color-mix(in srgb, var(--cockpit-accent) 8%, transparent), transparent 34%);
   box-shadow: 0 24px 72px rgba(0, 0, 0, 0.46);
-  color: #e7e5e4;
+  color: var(--cockpit-text);
   font-family: var(--font-brand, Inter, system-ui, sans-serif);
   isolation: isolate;
 }
@@ -32,8 +42,8 @@
   align-items: center;
   gap: 16px;
   padding: 14px 16px;
-  border-bottom: 1px solid rgba(245, 158, 11, 0.14);
-  background: linear-gradient(90deg, rgba(245, 158, 11, 0.045), rgba(255, 255, 255, 0.012));
+  border-bottom: 1px solid color-mix(in srgb, var(--cockpit-accent) 14%, transparent);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--cockpit-accent) 5%, transparent), rgba(255, 255, 255, 0.012));
 }
 
 .commandIdentity,
@@ -64,7 +74,7 @@
   border-radius: 0;
   border: 0;
   background: transparent;
-  color: #f59e0b;
+  color: var(--cockpit-accent);
   flex: 0 0 auto;
 }
 
@@ -76,7 +86,7 @@
 }
 
 .brandKicker {
-  color: rgba(245, 158, 11, 0.82);
+  color: color-mix(in srgb, var(--cockpit-accent) 82%, transparent);
   font-family: var(--font-mono, "JetBrains Mono", monospace);
   font-size: 10px;
   font-weight: 700;
@@ -86,7 +96,7 @@
 }
 
 .brandTitle {
-  color: #fafaf9;
+  color: var(--cockpit-text);
   font-size: 18px;
   font-weight: 700;
   line-height: 1.1;
@@ -108,7 +118,7 @@
 
 .toneBadge {
   padding: 0 0 0 10px;
-  border-left: 1px solid rgba(245, 158, 11, 0.22);
+  border-left: 1px solid color-mix(in srgb, var(--cockpit-accent) 22%, transparent);
   border-radius: 0;
   font-size: 10px;
   font-weight: 700;
@@ -118,7 +128,7 @@
 }
 
 .statusBadgeFoundational {
-  color: #fbbf24;
+  color: var(--cockpit-warning);
   background: transparent;
   border-top: 0;
   border-right: 0;
@@ -126,7 +136,7 @@
 }
 
 .statusBadgeOperational {
-  color: #4ade80;
+  color: var(--cockpit-valid);
   background: transparent;
   border-top: 0;
   border-right: 0;
@@ -134,7 +144,7 @@
 }
 
 .statusBadgeDelivery {
-  color: #93c5fd;
+  color: var(--cockpit-info);
   background: transparent;
   border-top: 0;
   border-right: 0;
@@ -152,13 +162,13 @@
   padding: 0;
   border-radius: 0;
   background: transparent;
-  color: rgba(250, 250, 249, 0.58);
+  color: var(--syn-text-secondary);
   font-size: 10px;
   white-space: nowrap;
 }
 
 .metaChipWarn {
-  color: #fbbf24;
+  color: var(--cockpit-warning);
   background: transparent;
 }
 
@@ -181,7 +191,7 @@
 }
 
 .commandReadinessTop strong {
-  color: #f59e0b;
+  color: var(--cockpit-accent);
   font-size: 12px;
 }
 
@@ -197,7 +207,7 @@
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #f59e0b, #22c55e);
+  background: linear-gradient(90deg, var(--cockpit-running), var(--cockpit-valid));
   pointer-events: none;
   transition: width 180ms ease;
 }
@@ -209,14 +219,14 @@
   min-height: 50px;
   min-width: 0;
   padding: 9px 12px;
-  border: 1px solid rgba(245, 158, 11, 0.38);
+  border: 1px solid color-mix(in srgb, var(--cockpit-accent) 38%, transparent);
   border-radius: 8px;
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.94), rgba(217, 119, 6, 0.94));
-  color: #171412;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--cockpit-accent) 94%, transparent), color-mix(in srgb, var(--cockpit-info) 82%, var(--cockpit-accent)));
+  color: var(--cockpit-text-inverse);
   cursor: pointer;
   font: inherit;
   text-align: left;
-  box-shadow: 0 10px 26px rgba(245, 158, 11, 0.16);
+  box-shadow: 0 10px 26px color-mix(in srgb, var(--cockpit-accent) 16%, transparent);
 }
 
 .primaryCommand:hover {
@@ -269,8 +279,8 @@
   grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 0;
   padding: 10px 14px 9px;
-  border-bottom: 1px solid rgba(245, 158, 11, 0.12);
-  background: linear-gradient(180deg, rgba(245, 158, 11, 0.03), rgba(255, 255, 255, 0));
+  border-bottom: 1px solid color-mix(in srgb, var(--cockpit-accent) 12%, transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--cockpit-accent) 3%, transparent), rgba(255, 255, 255, 0));
 }
 
 .contextCell {
@@ -280,7 +290,7 @@
   gap: 7px;
   min-width: 0;
   padding: 2px 10px;
-  border-left: 1px solid rgba(245, 158, 11, 0.08);
+  border-left: 1px solid color-mix(in srgb, var(--cockpit-accent) 8%, transparent);
 }
 
 .contextStrip > :first-child {
@@ -298,7 +308,7 @@
   justify-content: center;
   width: 22px;
   height: 22px;
-  color: var(--signal-color, #f59e0b);
+  color: var(--signal-color, var(--cockpit-accent));
   background: transparent;
 }
 
@@ -311,7 +321,7 @@
 
 .contextCellLabel {
   overflow: hidden;
-  color: rgba(245, 158, 11, 0.84);
+  color: color-mix(in srgb, var(--cockpit-accent) 84%, transparent);
   font-size: 8px;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -323,7 +333,7 @@
 
 .contextCellCopy strong {
   overflow: hidden;
-  color: #fafaf9;
+  color: var(--cockpit-text);
   font-size: 10px;
   font-weight: 800;
   line-height: 1.2;
@@ -349,7 +359,7 @@
   height: 100%;
   padding: 16px;
   overflow: auto;
-  border-right: 1px solid rgba(245, 158, 11, 0.06);
+  border-right: 1px solid color-mix(in srgb, var(--cockpit-accent) 6%, transparent);
 }
 
 .pane:last-child {
@@ -374,7 +384,7 @@
 .integrationPane {
   grid-area: integration;
   height: auto;
-  border-top: 1px solid rgba(245, 158, 11, 0.1);
+  border-top: 1px solid color-mix(in srgb, var(--cockpit-accent) 10%, transparent);
   border-right: 0;
 }
 
@@ -388,7 +398,7 @@
 
 .pane::-webkit-scrollbar-thumb {
   border-radius: 999px;
-  background: rgba(245, 158, 11, 0.18);
+  background: color-mix(in srgb, var(--cockpit-accent) 18%, transparent);
 }
 
 .sectionHeading,
@@ -397,7 +407,7 @@
   gap: 10px;
   margin-bottom: 12px;
   padding-bottom: 9px;
-  border-bottom: 1px solid rgba(245, 158, 11, 0.16);
+  border-bottom: 1px solid color-mix(in srgb, var(--cockpit-accent) 16%, transparent);
 }
 
 .sectionHeading > span:first-child,
@@ -405,7 +415,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: rgba(245, 158, 11, 0.86);
+  color: color-mix(in srgb, var(--cockpit-accent) 86%, transparent);
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -443,7 +453,7 @@
 }
 
 .metricValue {
-  color: #fafaf9;
+  color: var(--syn-text-default);
   font-family: var(--font-mono, "JetBrains Mono", monospace);
   font-size: 20px;
   font-weight: 800;
@@ -451,7 +461,7 @@
 }
 
 .metricLabel {
-  color: rgba(250, 250, 249, 0.56);
+  color: var(--syn-text-secondary);
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.06em;
@@ -513,17 +523,17 @@
 }
 
 .signalReady {
-  --signal-color: #4ade80;
+  --signal-color: var(--cockpit-valid);
   --signal-bg: transparent;
 }
 
 .signalAttention {
-  --signal-color: #f59e0b;
+  --signal-color: var(--cockpit-warning);
   --signal-bg: transparent;
 }
 
 .signalNeutral {
-  --signal-color: #7dd3fc;
+  --signal-color: var(--cockpit-info);
   --signal-bg: transparent;
 }
 
@@ -535,8 +545,8 @@
   align-items: center;
   justify-content: center;
   border-radius: 0;
-  background: var(--signal-bg, rgba(245, 158, 11, 0.08));
-  color: var(--signal-color, #f59e0b);
+  background: var(--signal-bg, color-mix(in srgb, var(--cockpit-accent) 8%, transparent));
+  color: var(--signal-color, var(--cockpit-accent));
 }
 
 .signalIcon,
@@ -560,7 +570,7 @@
 .quickBtnCopy strong,
 .modeBtnCopy strong {
   overflow: hidden;
-  color: #f5f5f4;
+  color: var(--syn-text-default);
   font-size: 12px;
   font-weight: 800;
   line-height: 1.15;
@@ -582,7 +592,7 @@
 
 .signalValue,
 .integrationValue {
-  color: var(--signal-color, #f59e0b);
+  color: var(--signal-color, var(--cockpit-accent));
   font-size: 11px;
   font-weight: 800;
   white-space: nowrap;
@@ -592,14 +602,14 @@
   margin-top: 14px;
   padding: 12px 0 0;
   border: 0;
-  border-top: 1px solid rgba(245, 158, 11, 0.12);
+  border-top: 1px solid color-mix(in srgb, var(--cockpit-accent) 12%, transparent);
   border-radius: 0;
   background: transparent;
 }
 
 .focusBandTop {
   gap: 8px;
-  color: #f59e0b;
+  color: var(--cockpit-accent);
   font-size: 12px;
   font-weight: 800;
 }
@@ -631,27 +641,27 @@
   border: 1px solid rgba(255, 255, 255, 0.075);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.025);
-  color: #e7e5e4;
+  color: var(--cockpit-text);
   cursor: pointer;
   font: inherit;
   text-align: left;
 }
 
 .modeBtn:hover {
-  border-color: rgba(245, 158, 11, 0.24);
-  background: rgba(245, 158, 11, 0.055);
+  border-color: color-mix(in srgb, var(--cockpit-accent) 24%, transparent);
+  background: color-mix(in srgb, var(--cockpit-accent) 6%, transparent);
 }
 
 .modeBtnActive {
-  border-color: rgba(245, 158, 11, 0.42);
-  background: linear-gradient(90deg, rgba(245, 158, 11, 0.12), rgba(245, 158, 11, 0.035));
+  border-color: color-mix(in srgb, var(--cockpit-accent) 42%, transparent);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--cockpit-accent) 12%, transparent), color-mix(in srgb, var(--cockpit-accent) 4%, transparent));
 }
 
 .modeBtnIcon {
   width: 32px;
   height: 32px;
-  --signal-color: #f59e0b;
-  --signal-bg: rgba(245, 158, 11, 0.1);
+  --signal-color: var(--cockpit-accent);
+  --signal-bg: color-mix(in srgb, var(--cockpit-accent) 10%, transparent);
 }
 
 .sequenceHeader {
@@ -697,7 +707,7 @@
 
 .sequenceCopy strong {
   overflow: hidden;
-  color: #f5f5f4;
+  color: var(--cockpit-text);
   font-size: 12px;
   line-height: 1.2;
   text-overflow: ellipsis;
@@ -725,13 +735,13 @@
 
 .sequenceStepComplete .sequenceIndex,
 .sequenceStepComplete .sequenceStatus {
-  color: #4ade80;
+  color: var(--cockpit-valid);
   background: transparent;
 }
 
 .sequenceStepCurrent .sequenceIndex,
 .sequenceStepCurrent .sequenceStatus {
-  color: #f59e0b;
+  color: var(--cockpit-running);
   background: transparent;
 }
 
@@ -743,14 +753,14 @@
 .recommendedBand {
   padding: 0 0 12px;
   border: 0;
-  border-bottom: 1px solid rgba(245, 158, 11, 0.12);
+  border-bottom: 1px solid color-mix(in srgb, var(--cockpit-accent) 12%, transparent);
   border-radius: 0;
   background: transparent;
 }
 
 .recommendedEyebrow {
   display: block;
-  color: #f59e0b;
+  color: var(--cockpit-accent);
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -762,7 +772,7 @@
 .recommendedBand strong {
   display: block;
   overflow: hidden;
-  color: #fafaf9;
+  color: var(--cockpit-text);
   font-size: 15px;
   font-weight: 800;
   line-height: 1.2;
@@ -776,7 +786,7 @@
   gap: 10px;
   margin-top: 12px;
   padding: 12px 0 0;
-  border-top: 1px solid rgba(245, 158, 11, 0.12);
+  border-top: 1px solid color-mix(in srgb, var(--cockpit-accent) 12%, transparent);
 }
 
 .analysisRecommendationHeader {
@@ -784,7 +794,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  color: rgba(245, 158, 11, 0.86);
+  color: color-mix(in srgb, var(--cockpit-accent) 86%, transparent);
   font-family: var(--font-mono, "JetBrains Mono", monospace);
   font-size: 10px;
   font-weight: 800;
@@ -804,7 +814,7 @@
 }
 
 .analysisRecommendationItem {
-  --recommendation-tone: #f59e0b;
+  --recommendation-tone: var(--cockpit-warning);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -821,19 +831,19 @@
 }
 
 .analysisRecommendationBlocked {
-  --recommendation-tone: #f97316;
+  --recommendation-tone: var(--cockpit-blocked);
 }
 
 .analysisRecommendationHigh {
-  --recommendation-tone: #f59e0b;
+  --recommendation-tone: var(--cockpit-warning);
 }
 
 .analysisRecommendationMedium {
-  --recommendation-tone: #7dd3fc;
+  --recommendation-tone: var(--cockpit-info);
 }
 
 .analysisRecommendationLow {
-  --recommendation-tone: #a7f3d0;
+  --recommendation-tone: var(--cockpit-valid);
 }
 
 .analysisRecommendationTopline {
@@ -846,7 +856,7 @@
 
 .analysisRecommendationTopline strong {
   overflow: hidden;
-  color: #fafaf9;
+  color: var(--cockpit-text);
   font-size: 13px;
   font-weight: 800;
   line-height: 1.2;
@@ -877,15 +887,15 @@
 }
 
 .analysisReadinessReady {
-  color: #a7f3d0;
+  color: var(--cockpit-valid);
 }
 
 .analysisReadinessNeedsReview {
-  color: #fbbf24;
+  color: var(--cockpit-warning);
 }
 
 .analysisReadinessBlocked {
-  color: #fb923c;
+  color: var(--cockpit-blocked);
 }
 
 .analysisRecommendationRationale {
@@ -921,11 +931,11 @@
 }
 
 .analysisReasonWarning {
-  color: rgba(251, 191, 36, 0.82);
+  color: color-mix(in srgb, var(--cockpit-warning) 82%, transparent);
 }
 
 .analysisReasonBlocker {
-  color: rgba(251, 146, 60, 0.9);
+  color: color-mix(in srgb, var(--cockpit-blocked) 90%, transparent);
 }
 
 .analysisRecommendationMetaGrid {
@@ -946,7 +956,7 @@
 }
 
 .analysisRecommendationMetaGrid b {
-  color: rgba(245, 158, 11, 0.78);
+  color: color-mix(in srgb, var(--cockpit-accent) 78%, transparent);
   font-family: var(--font-mono, "JetBrains Mono", monospace);
   font-size: 9px;
   font-weight: 800;
@@ -981,10 +991,10 @@
   min-height: 30px;
   flex: 0 0 auto;
   padding: 6px 9px;
-  border: 1px solid rgba(245, 158, 11, 0.36);
+  border: 1px solid color-mix(in srgb, var(--cockpit-accent) 36%, transparent);
   border-radius: 6px;
-  background: rgba(245, 158, 11, 0.1);
-  color: #fbbf24;
+  background: color-mix(in srgb, var(--cockpit-accent) 10%, transparent);
+  color: var(--cockpit-accent);
   cursor: pointer;
   font: inherit;
   font-size: 10px;
@@ -993,9 +1003,9 @@
 }
 
 .analysisRecommendationAction:hover:not(:disabled) {
-  border-color: rgba(245, 158, 11, 0.58);
-  background: rgba(245, 158, 11, 0.16);
-  color: #fde68a;
+  border-color: color-mix(in srgb, var(--cockpit-accent) 58%, transparent);
+  background: color-mix(in srgb, var(--cockpit-accent) 16%, transparent);
+  color: var(--cockpit-info);
 }
 
 .analysisRecommendationAction:disabled {
@@ -1012,7 +1022,7 @@
 }
 
 .analysisRecommendationEmpty strong {
-  color: #fafaf9;
+  color: var(--cockpit-text);
   font-size: 12px;
   line-height: 1.2;
 }
@@ -1050,29 +1060,29 @@
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.022);
-  color: #e7e5e4;
+  color: var(--cockpit-text);
   cursor: pointer;
   font: inherit;
   text-align: left;
 }
 
 .quickBtn:hover {
-  border-color: rgba(245, 158, 11, 0.22);
-  background: rgba(245, 158, 11, 0.052);
+  border-color: color-mix(in srgb, var(--cockpit-accent) 22%, transparent);
+  background: color-mix(in srgb, var(--cockpit-accent) 5%, transparent);
 }
 
 .quickBtnIcon {
   width: 30px;
   height: 30px;
-  --signal-color: #f59e0b;
-  --signal-bg: rgba(245, 158, 11, 0.1);
+  --signal-color: var(--cockpit-accent);
+  --signal-bg: color-mix(in srgb, var(--cockpit-accent) 10%, transparent);
 }
 
 .statusStrip {
   gap: 8px;
   min-width: 0;
   padding: 6px 11px;
-  border-top: 1px solid rgba(245, 158, 11, 0.1);
+  border-top: 1px solid color-mix(in srgb, var(--cockpit-accent) 10%, transparent);
   background: transparent;
 }
 
@@ -1080,7 +1090,7 @@
 .statusHotkey {
   flex: 0 0 auto;
   gap: 5px;
-  color: rgba(245, 158, 11, 0.82);
+  color: color-mix(in srgb, var(--cockpit-accent) 82%, transparent);
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.06em;
@@ -1116,7 +1126,7 @@
   .flowPane,
   .integrationPane {
     grid-column: 1 / -1;
-    border-top: 1px solid rgba(245, 158, 11, 0.1);
+    border-top: 1px solid color-mix(in srgb, var(--cockpit-accent) 10%, transparent);
   }
 
   .quickActionGrid {
@@ -1148,7 +1158,7 @@
   .pane,
   .integrationPane {
     border-right: 0;
-    border-top: 1px solid rgba(245, 158, 11, 0.1);
+    border-top: 1px solid color-mix(in srgb, var(--cockpit-accent) 10%, transparent);
   }
 
   .metricRibbon,
@@ -1206,7 +1216,7 @@
   }
 
   .flowPane {
-    border-right: 1px solid rgba(245, 158, 11, 0.06);
+    border-right: 1px solid color-mix(in srgb, var(--cockpit-accent) 6%, transparent);
   }
 
   .integrationPane {

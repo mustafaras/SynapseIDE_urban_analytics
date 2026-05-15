@@ -12,7 +12,7 @@ const ideTheme = {
     text: SYNAPSE_COLORS.textPrimary,
     textSecondary: SYNAPSE_COLORS.textSecondary,
     border: SYNAPSE_ELEVATION.border,
-    brandPrimary: SYNAPSE_COLORS.goldPrimary,
+    brandPrimary: SYNAPSE_COLORS.goldPrimary, /* redirected to blue via synapseTheme.ts */
     brandAccent: SYNAPSE_COLORS.goldHover,
   },
   elevation: {

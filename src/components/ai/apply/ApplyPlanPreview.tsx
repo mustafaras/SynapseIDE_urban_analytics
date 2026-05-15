@@ -202,7 +202,7 @@ const PreviewRoot = styled.div`
   padding: 0;
   font-family: var(--font-mono);
   font-size: 12px;
-  color: var(--color-text, #E5E5E5);
+  color: var(--syn-text-default, #d7dce5);
 `;
 
 const HeaderRow = styled.div`
@@ -222,7 +222,7 @@ const TitleGroup = styled.div`
 const Title = styled.span`
   font-weight: 600;
   font-size: 13px;
-  color: #F59E0B;
+  color: var(--syn-text-default, #d7dce5);
 `;
 
 const Subtitle = styled.span`
@@ -249,23 +249,28 @@ const Button = styled.button`
     opacity: 0.5;
     cursor: not-allowed;
   }
+
+  &:focus-visible {
+    outline: 2px solid var(--syn-interaction-focus-ring, #3794ff);
+    outline-offset: 2px;
+  }
 `;
 
 const CancelBtn = styled(Button)`
   background: transparent;
-  color: var(--color-text, #E5E5E5);
+  color: var(--syn-text-default, #d7dce5);
 
   &:not(:disabled):hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: color-mix(in srgb, var(--syn-surface-hover, #303642) 64%, transparent);
   }
 `;
 
 const ApplyBtn = styled(Button)`
-  background: rgba(245, 158, 11, 0.08);
-  color: #F59E0B;
+  background: color-mix(in srgb, var(--syn-interaction-active, #3794ff) 12%, transparent);
+  color: var(--syn-interaction-active, #3794ff);
 
   &:not(:disabled):hover {
-    background: rgba(245, 158, 11, 0.14);
+    background: color-mix(in srgb, var(--syn-interaction-active, #3794ff) 18%, transparent);
   }
 `;
 
@@ -278,15 +283,15 @@ const RiskBanner = styled.div<{ $level: 'high' | 'medium' }>`
   border-radius: 3px;
   font-size: 11px;
   font-weight: 500;
-  background: ${props => props.$level === 'high' 
-    ? 'rgba(239, 68, 68, 0.1)' 
-    : 'rgba(245, 158, 11, 0.1)'};
+  background: ${props => props.$level === 'high'
+    ? 'color-mix(in srgb, var(--syn-status-error, #f87171) 12%, transparent)'
+    : 'color-mix(in srgb, var(--syn-status-warning, #d6a84f) 12%, transparent)'};
   border: none;
-  color: ${props => props.$level === 'high' ? '#EF4444' : '#F59E0B'};
+  color: ${props => props.$level === 'high' ? 'var(--syn-status-error, #f87171)' : 'var(--syn-status-warning, #d6a84f)'};
 `;
 
 const ConflictSection = styled.div`
-  background: rgba(239, 68, 68, 0.05);
+  background: color-mix(in srgb, var(--syn-status-error, #f87171) 7%, transparent);
   border: none;
   border-radius: 3px;
   padding: 6px;
@@ -299,12 +304,12 @@ const ConflictLabel = styled.div`
   gap: 4px;
   font-size: 11px;
   font-weight: 600;
-  color: #EF4444;
+  color: var(--syn-status-error, #f87171);
   margin-bottom: 4px;
 `;
 
 const ConflictItem = styled.div`
-  background: rgba(0, 0, 0, 0.18);
+  background: color-mix(in srgb, var(--syn-surface-workbench, #1e1f24) 72%, transparent);
   border-left: none;
   padding: 4px 6px;
   margin: 2px 0;
@@ -313,7 +318,7 @@ const ConflictItem = styled.div`
 
 const ConflictPath = styled.div`
   font-weight: 500;
-  color: #FCA5A5;
+  color: var(--syn-status-error, #f87171);
   word-break: break-all;
 `;
 
@@ -321,7 +326,7 @@ const ConflictMsg = styled.div`
   font-size: 9px;
   opacity: 0.7;
   margin-top: 1px;
-  color: #FEC2C2;
+  color: color-mix(in srgb, var(--syn-status-error, #f87171) 72%, var(--syn-text-default, #d7dce5));
 `;
 
 const ConfirmPrompt = styled.div`
@@ -330,7 +335,7 @@ const ConfirmPrompt = styled.div`
   gap: 6px;
   padding: 6px;
   margin-top: 4px;
-  background: rgba(0, 0, 0, 0.12);
+  background: color-mix(in srgb, var(--syn-surface-workbench, #1e1f24) 56%, transparent);
   border-radius: 2px;
   font-size: 10px;
 
@@ -345,7 +350,7 @@ const ConfirmCheckbox = styled.input`
   width: 14px;
   height: 14px;
   cursor: pointer;
-  accent-color: #F59E0B;
+  accent-color: var(--syn-status-error, #f87171);
 `;
 
 const FileList = styled.div`
@@ -363,16 +368,16 @@ const FileList = styled.div`
     border-radius: 3px;
   }
   &::-webkit-scrollbar-thumb {
-    background: rgba(245, 158, 11, 0.2);
+    background: color-mix(in srgb, var(--syn-text-muted, #778190) 24%, transparent);
     border-radius: 3px;
     &:hover {
-      background: rgba(245, 158, 11, 0.4);
+      background: color-mix(in srgb, var(--syn-text-muted, #778190) 42%, transparent);
     }
   }
 `;
 
 const FileCard = styled.div<{ $hasConflict?: boolean; $isDiff?: boolean; $isDestructive?: boolean }>`
-  background: ${props => (props.$hasConflict ? 'rgba(239, 68, 68, 0.04)' : 'transparent')};
+  background: ${props => (props.$hasConflict ? 'color-mix(in srgb, var(--syn-status-error, #f87171) 6%, transparent)' : 'transparent')};
   border: none;
   border-radius: 3px;
   overflow: hidden;
@@ -383,11 +388,11 @@ const FileHeader = styled.div`
   justify-content: space-between;
   align-items: center;
   padding: 5px 6px;
-  background: rgba(255, 255, 255, 0.02);
+  background: color-mix(in srgb, var(--syn-surface-hover, #303642) 36%, transparent);
   cursor: pointer;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.04);
+    background: color-mix(in srgb, var(--syn-surface-hover, #303642) 58%, transparent);
   }
 `;
 
@@ -403,7 +408,7 @@ const AcceptCheckbox = styled.input`
   width: 14px;
   height: 14px;
   cursor: pointer;
-  accent-color: #F59E0B;
+  accent-color: var(--syn-interaction-active, #3794ff);
 
   &:disabled {
     opacity: 0.5;
@@ -415,10 +420,10 @@ const FilePathSpan = styled.span<{ $action: string }>`
   font-weight: ${props => (props.$action === 'create' ? 500 : 400)};
   color: ${props =>
     props.$action === 'create'
-      ? '#4ADE80'
+      ? 'var(--syn-status-valid, #4ec27d)'
       : props.$action === 'replace'
-        ? '#F59E0B'
-        : '#60A5FA'};
+        ? 'var(--syn-status-warning, #d6a84f)'
+        : 'var(--syn-status-info, #6aa9ff)'};
   word-break: break-all;
   flex: 1;
   min-width: 0;
@@ -431,16 +436,16 @@ const ActionBadge = styled.span<{ $action: string }>`
   border-radius: 2px;
   background: ${props =>
     props.$action === 'create'
-      ? 'rgba(74, 222, 128, 0.15)'
+      ? 'color-mix(in srgb, var(--syn-status-valid, #4ec27d) 15%, transparent)'
       : props.$action === 'replace'
-        ? 'rgba(245, 158, 11, 0.15)'
-        : 'rgba(96, 165, 250, 0.15)'};
+        ? 'color-mix(in srgb, var(--syn-status-warning, #d6a84f) 15%, transparent)'
+        : 'color-mix(in srgb, var(--syn-status-info, #6aa9ff) 15%, transparent)'};
   color: ${props =>
     props.$action === 'create'
-      ? '#4ADE80'
+      ? 'var(--syn-status-valid, #4ec27d)'
       : props.$action === 'replace'
-        ? '#F59E0B'
-        : '#60A5FA'};
+        ? 'var(--syn-status-warning, #d6a84f)'
+        : 'var(--syn-status-info, #6aa9ff)'};
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.3px;
@@ -449,7 +454,7 @@ const ActionBadge = styled.span<{ $action: string }>`
 
 const DestructiveWarning = styled.span`
   font-size: 12px;
-  color: #F59E0B;
+  color: var(--syn-status-warning, #d6a84f);
 `;
 
 const ExpandBtn = styled.button`
@@ -457,13 +462,13 @@ const ExpandBtn = styled.button`
   border: none;
   padding: 2px;
   cursor: pointer;
-  color: rgba(245, 158, 11, 0.6);
+  color: color-mix(in srgb, var(--syn-interaction-active, #3794ff) 68%, transparent);
   display: flex;
   align-items: center;
   transition: color 120ms;
 
   &:hover {
-    color: #F59E0B;
+    color: var(--syn-interaction-active, #3794ff);
   }
 
   &:disabled {
@@ -487,14 +492,14 @@ const DiffHunk = styled.div`
 `;
 
 const DiffBefore = styled.div`
-  background: rgba(239, 68, 68, 0.04);
+  background: color-mix(in srgb, var(--syn-status-error, #f87171) 6%, transparent);
   border: none;
   border-radius: 2px;
   padding: 3px;
 `;
 
 const DiffAfter = styled.div`
-  background: rgba(74, 222, 128, 0.04);
+  background: color-mix(in srgb, var(--syn-status-valid, #4ec27d) 6%, transparent);
   border: none;
   border-radius: 2px;
   padding: 3px;
@@ -516,7 +521,7 @@ const DiffLine = styled.div`
     height: 3px;
   }
   &::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
+    background: color-mix(in srgb, var(--syn-text-muted, #778190) 24%, transparent);
   }
 `;
 

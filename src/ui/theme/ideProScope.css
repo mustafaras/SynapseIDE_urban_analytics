@@ -10,9 +10,9 @@
   --color-border: var(--syn-border-default, #2A2A2A);
   --color-divider: var(--syn-overlay-subtle, rgba(255, 255, 255, 0.08));
 
-  --brand-primary: var(--syn-accent-primary, #F59E0B);
-  --brand-accent: var(--syn-accent-primary-hover, #D97706);
-  --brand-primary-pressed: var(--syn-accent-primary-pressed, #B45309);
+  --brand-primary: var(--syn-accent-primary, #3794ff);
+  --brand-accent: var(--syn-accent-primary-hover, #2c7fd9);
+  --brand-primary-pressed: var(--syn-accent-primary-pressed, #1f6abc);
 
   --ide-bg-canvas: var(--color-bg-primary);
   --ide-bg-panel: var(--color-bg-secondary);
@@ -20,9 +20,9 @@
   --ide-bg-popover: #0D0D0D;
   --ide-bg-control: var(--color-glass-01);
   --ide-bg-control-hover: rgba(255, 255, 255, 0.07);
-  --ide-bg-active: rgba(245, 158, 11, 0.14);
+  --ide-bg-active: rgba(55, 148, 255, 0.14);
   --ide-bg-rail: var(--color-bg-secondary);
-  --ide-bg-rail-active: rgba(245, 158, 11, 0.12);
+  --ide-bg-rail-active: rgba(55, 148, 255, 0.12);
 
   --ide-text-primary: var(--color-text-high);
   --ide-text-secondary: var(--color-text-med);
@@ -37,10 +37,10 @@
   --ide-accent: var(--brand-primary);
   --ide-accent-hover: var(--brand-accent);
   --ide-accent-pressed: var(--brand-primary-pressed);
-  --ide-focus-ring: var(--syn-focus-ring, #FBBF24);
+  --ide-focus-ring: var(--syn-interaction-focus-ring, #3794ff);
   --ide-focus-width: 2px;
   --ide-focus-offset: 2px;
-  --ide-focus-shadow: var(--shadow-focus, 0 0 0 3px rgba(245, 158, 11, 0.35));
+  --ide-focus-shadow: var(--shadow-focus, 0 0 0 3px rgba(55, 148, 255, 0.35));
 
   --ide-radius-xs: 4px;
   --ide-radius-sm: 6px;
@@ -131,7 +131,7 @@
   --focus-outer: var(--ide-focus-width);
   --focus-inner: 1px;
   --focus-color: var(--ide-focus-ring);
-  --focus-ring: rgba(245, 158, 11, 0.6);
+  --focus-ring: rgba(55, 148, 255, 0.6);
   --focus-ring-width: var(--ide-focus-width);
   --divider: var(--ide-divider);
 
@@ -204,7 +204,7 @@
 .theme-ide-pro .ctx-pro-item:hover,
 .theme-ide-pro .ctx-pro-item:focus-visible {
   background: var(--ide-bg-active);
-  outline: var(--ide-focus-width) solid rgba(245, 158, 11, 0.35);
+  outline: var(--ide-focus-width) solid rgba(55, 148, 255, 0.35);
   outline-offset: var(--ide-focus-offset);
 }
 

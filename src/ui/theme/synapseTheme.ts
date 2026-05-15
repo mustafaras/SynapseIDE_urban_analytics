@@ -16,21 +16,23 @@ export const SYNAPSE_COLORS = {
 
   textSecondary: '#D6D3D1',
 
-  textAccent: '#F59E0B',
+  textAccent: '#3794ff',
 
   textTertiary: '#A8A29E',
 
 
-  goldPrimary: '#F59E0B',
+  /* `gold*` names retained for source compatibility; values redirected to VS Code blue
+     per color system contract. Use SYNAPSE_STATUS.caveat / SYNAPSE_COLORS.warning for amber attention. */
+  goldPrimary: '#3794ff',
 
-  goldSecondary: '#D97706',
+  goldSecondary: '#2c7fd9',
 
-  goldHover: '#B45309',
+  goldHover: '#1f6abc',
 
 
-  accentNeutral: '#F59E0B',
+  accentNeutral: '#3794ff',
 
-  accentNeutralHover: '#D97706',
+  accentNeutralHover: '#2c7fd9',
 
 
   success: '#22C55E',
@@ -42,9 +44,9 @@ export const SYNAPSE_COLORS = {
 
   borderSubtle: '#2A2A2A',
 
-  hover: 'rgba(245, 158, 11, 0.12)',
+  hover: 'rgba(55, 148, 255, 0.12)',
 
-  selected: 'rgba(245, 158, 11, 0.2)',
+  selected: 'rgba(55, 148, 255, 0.2)',
 
   divider: 'rgba(255, 255, 255, 0.08)',
 
@@ -53,8 +55,8 @@ export const SYNAPSE_COLORS = {
   shadowSoft: '0 1px 3px rgba(0, 0, 0, 0.3)',
   shadowElevated: '0 2px 6px rgba(0, 0, 0, 0.2)',
   shadowModal: '0 3px 12px rgba(0, 0, 0, 0.25)',
-  borderHighlight: 'rgba(245, 158, 11, 0.5)',
-  glowSubtle: '0 0 6px rgba(245, 158, 11, 0.38)',
+  borderHighlight: 'rgba(55, 148, 255, 0.5)',
+  glowSubtle: '0 0 6px rgba(55, 148, 255, 0.38)',
 } as const;
 
 
@@ -104,7 +106,7 @@ export function withAlpha(hex: string, a: number): string {
 
 
 export function focusOutline(): string {
-  return `2px solid ${SYNAPSE_COLORS.goldPrimary}`;
+  return `2px solid ${SYNAPSE_FOCUS.ring}`;
 }
 
 
@@ -148,15 +150,17 @@ export const SYNAPSE_ELEVATION = {
   shadowLg: 'var(--shadow-lg)'
 } as const;
 
+/* SYNAPSE_ACCENT keys retain `gold*` names for source compatibility but resolve to
+   VS Code blue chrome accent per color system contract. */
 export const SYNAPSE_ACCENT = {
-  gold: '#F59E0B',
-  goldHover: '#D97706',
-  goldActive: '#B45309',
-  goldMuted: withAlpha('#F59E0B', 0.25),
+  gold: '#3794ff',
+  goldHover: '#2c7fd9',
+  goldActive: '#1f6abc',
+  goldMuted: withAlpha('#3794ff', 0.25),
 } as const;
 
 export const SYNAPSE_FOCUS = {
-  ring: '#FBBF24',
+  ring: '#3794ff',
   ringOffset: '#000000',
   width: '2px',
   radius: '12px',

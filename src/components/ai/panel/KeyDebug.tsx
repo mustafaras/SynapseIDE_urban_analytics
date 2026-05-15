@@ -80,7 +80,7 @@ export const KeyDebug: React.FC = () => {
       <div>defaults.provider={ai.defaults.provider} model={ai.defaults.model}</div>
       <div>effective.provider={eff.provider} model={eff.model}</div>
   {(uProv !== ai.defaults.provider || uModel !== ai.defaults.model) && (
-        <div style={{ color:'#F59E0B' }}>WARN legacy defaults out of sync with unified</div>
+        <div style={{ color:'var(--syn-status-warning, #d6a84f)' }}>WARN legacy defaults out of sync with unified</div>
       )}
       <button style={{ marginTop:4, fontSize:10 }} onClick={testAuth}>Auth Test</button>
       {!!authTest && <div>authTest: {authTest}</div>}
