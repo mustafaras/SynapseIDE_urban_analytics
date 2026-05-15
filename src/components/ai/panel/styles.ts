@@ -12,7 +12,7 @@ export const PanelRoot = styled.aside`
   height: 100%;
 
   background: var(--ai-surface, var(--color-bg-inverse, #000));
-  border-left: 1px solid var(--ai-border, var(--color-border-subtle, #1a1a1a));
+  border-left: none;
   color: var(--color-text-primary, #FAFAF9);
   font-family: var(--font-code, "JetBrains Mono", "Coder", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace);
   box-shadow: none;
@@ -43,8 +43,8 @@ export const HeaderRow = styled(Section)`
   gap: 10px;
   min-height: 56px;
   padding: 10px 16px;
-  border-bottom: 1px solid var(--ai-border, var(--color-border-subtle, #1a1a1a));
-  background: var(--ai-surface, var(--color-bg-inverse, #000));
+  border-bottom: none;
+  background: transparent;
 `;
 
 export const TitleWrap = styled.div`
@@ -124,7 +124,7 @@ export const ControlsRow = styled(Section)`
   display: flex;
   align-items: center;
   gap: 8px;
-  border-bottom: 1px dashed var(--color-border, rgba(255,255,255,0.08));
+  border-bottom: none;
 `;
 
 
@@ -134,8 +134,8 @@ export const QuickActionsBar = styled(Section)`
   justify-content: space-between;
   gap: 10px;
   padding: 6px 10px 4px;
-  background: var(--ai-surface, var(--color-bg-inverse, #000));
-  border-top: 1px solid var(--ai-border, #121212);
+  background: transparent;
+  border-top: none;
   border-bottom: none;
 `;
 
@@ -170,7 +170,7 @@ export const ComposerContainer = styled(Section)`
   position: relative;
   z-index: 5;
   margin-top: auto;
-  background: var(--ai-surface, var(--color-bg-inverse, #000));
+  background: transparent;
   border-top: none;
 `;
 
@@ -180,8 +180,8 @@ export const TextArea = styled.textarea`
   max-height: 160px;
   resize: none;
   border-radius: 8px;
-  border: 1px solid var(--ai-border-strong, #2A2A2A);
-  background: var(--ai-surface-alt, var(--color-bg-surface-alt, #121212));
+  border: none;
+  background: var(--color-bg-surface-alt, rgba(255,255,255,0.04));
   color: var(--color-text-primary, #FAFAF9);
   padding: 10px 12px;
   font-family: var(--font-code, "JetBrains Mono", "Coder", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace);
@@ -189,11 +189,10 @@ export const TextArea = styled.textarea`
   line-height: 1.5;
   outline: none;
   &::placeholder { color: var(--color-text-muted, #8C8579); }
-  &:focus { border-color: var(--ai-gold, var(--color-accent-primary, #F59E0B)); box-shadow: 0 0 0 1px var(--ai-gold, var(--color-accent-primary, #F59E0B)); }
+  &:focus { background: color-mix(in srgb, var(--ai-gold, var(--color-accent-primary, #F59E0B)) 8%, var(--color-bg-surface-alt, rgba(255,255,255,0.04))); }
   &:focus-visible {
-    outline: var(--ide-focus-width, 2px) solid var(--ide-focus-ring, var(--ai-gold, #F59E0B));
-    outline-offset: var(--ide-focus-offset, 2px);
-    box-shadow: var(--ide-focus-shadow, 0 0 0 3px rgba(245, 158, 11, 0.35));
+    outline: none;
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--ai-gold, #F59E0B) 55%, transparent);
   }
 `;
 
@@ -211,7 +210,7 @@ export const RightSide = styled.div`
 export const ActionButton = styled.button`
   appearance: none;
   border: none;
-  background: rgba(255,255,255,0.05);
+  background: transparent;
   color: var(--color-text-primary, #FAFAF9);
   height: 30px;
   padding: 0 12px;
@@ -221,10 +220,10 @@ export const ActionButton = styled.button`
   align-items: center;
   gap: 6px;
   cursor: pointer;
-  transition: background 100ms;
-  &:hover { background: rgba(255,255,255,0.09); }
+  transition: background 100ms, color 100ms;
+  &:hover { background: rgba(255,255,255,0.06); }
   &:disabled { opacity: 0.45; cursor: not-allowed; }
-  &:focus-visible { outline: 2px solid var(--ai-gold, #F59E0B); outline-offset: 2px; }
+  &:focus-visible { outline: none; box-shadow: 0 0 0 1px color-mix(in srgb, var(--ai-gold, #F59E0B) 55%, transparent); }
 `;
 
 export const SendButton = styled(ActionButton)`

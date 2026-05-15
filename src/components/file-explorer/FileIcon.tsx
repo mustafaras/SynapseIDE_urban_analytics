@@ -45,18 +45,18 @@ const getFileIcon = (filename: string, isFolder: boolean = false) => {
 const getFileIconColor = (filename: string, isFolder: boolean = false) => {
   const kind = getExplorerFileKind(filename, isFolder);
 
-  if (kind === 'folder') return '#F59E0B';
-  if (kind === 'geo-vector' || kind === 'geo-package' || kind === 'shape-main') return '#2DD4BF';
-  if (kind === 'shape-sidecar') return '#14B8A6';
-  if (kind === 'table') return '#60A5FA';
-  if (kind === 'script' || kind === 'notebook' || kind === 'query') return '#FBBF24';
-  if (kind === 'config' || kind === 'json') return '#8C8579';
-  if (kind === 'database') return '#A8A29E';
-  if (kind === 'archive') return '#8C8579';
-  if (kind === 'image') return '#FDE68A';
-  if (kind === 'media') return '#D6D3D1';
-  if (kind === 'text') return '#A8A29E';
-  return '#A8A29E';
+  if (kind === 'folder') return 'var(--syn-status-warning)';
+  if (kind === 'geo-vector' || kind === 'geo-package' || kind === 'shape-main') return 'var(--syn-status-valid)';
+  if (kind === 'shape-sidecar') return 'var(--syn-status-info)';
+  if (kind === 'table') return 'var(--syn-status-info)';
+  if (kind === 'script' || kind === 'notebook' || kind === 'query') return 'var(--syn-interaction-active)';
+  if (kind === 'config' || kind === 'json') return 'var(--syn-text-secondary)';
+  if (kind === 'database') return 'var(--syn-text-secondary)';
+  if (kind === 'archive') return 'var(--syn-text-muted)';
+  if (kind === 'image') return 'var(--syn-status-demo)';
+  if (kind === 'media') return 'var(--syn-status-demo)';
+  if (kind === 'text') return 'var(--syn-text-secondary)';
+  return 'var(--syn-text-muted)';
 };
 
 export const FileIcon: React.FC<FileIconProps> = ({

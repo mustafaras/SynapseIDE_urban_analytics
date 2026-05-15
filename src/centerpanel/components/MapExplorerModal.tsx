@@ -309,9 +309,9 @@ const workflowPreviewHudStyle: React.CSSProperties = {
   minWidth: "min(26rem, calc(100% - 2rem))",
   maxWidth: "34rem",
   padding: `${MAP_SPACING.sm} ${MAP_SPACING.md}`,
-  border: MAP_STROKES.hairlineStrong,
+  border: "1px solid var(--syn-border-strong, rgba(148, 163, 184, 0.48))",
   borderRadius: MAP_RADIUS.sm,
-  background: MAP_COLORS.bgPanel,
+  background: "var(--syn-surface-panel, rgba(15, 20, 28, 0.92))",
   color: MAP_COLORS.textSecondary,
   boxShadow: MAP_STROKES.none,
   fontFamily: MAP_TYPOGRAPHY.fontFamily,
@@ -324,7 +324,7 @@ const workflowDividerStyle: React.CSSProperties = {
   top: MAP_SPACING.zero,
   bottom: MAP_SPACING.zero,
   width: MAP_DIMENSIONS.separatorWidth,
-  background: MAP_COLORS.amber,
+  background: "var(--syn-status-info, #38bdf8)",
   boxShadow: MAP_STROKES.none,
   pointerEvents: "none",
   zIndex: MAP_NUMERIC.sidebarZIndex - 1,
@@ -353,7 +353,7 @@ const comparisonLegendSwatchStyle: React.CSSProperties = {
   border: MAP_STROKES.hairlineSubtle,
 };
 
-const comparisonLayerBColor = "#38bdf8";
+const comparisonLayerBColor = "var(--syn-status-pending, #a78bfa)";
 
 const WorkflowPreviewOverlay: React.FC<{ preview: MapWorkflowPreview | null }> = ({ preview }) => {
   if (!preview) {
@@ -377,7 +377,7 @@ const WorkflowPreviewOverlay: React.FC<{ preview: MapWorkflowPreview | null }> =
         />
       ) : null}
       <div style={workflowPreviewHudStyle} data-testid="map-workflow-preview-hud" aria-live="polite">
-        <strong style={{ color: MAP_COLORS.amber }}>
+        <strong style={{ color: "var(--syn-text-primary, rgba(244, 247, 255, 0.94))" }}>
           {comparison ? "Comparison preview" : "Workflow preview layer"}
         </strong>
         {comparison ? (
@@ -391,7 +391,7 @@ const WorkflowPreviewOverlay: React.FC<{ preview: MapWorkflowPreview | null }> =
             </span>
             <div style={comparisonLegendStyle} data-testid="map-comparison-legend" aria-label="Synchronized comparison legend">
               <span style={comparisonLegendItemStyle} title={comparison.layerAName}>
-                <span style={{ ...comparisonLegendSwatchStyle, background: MAP_COLORS.amber }} aria-hidden="true" />
+                <span style={{ ...comparisonLegendSwatchStyle, background: "var(--syn-status-info, #38bdf8)" }} aria-hidden="true" />
                 <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>A · {comparison.layerAName}</span>
               </span>
               <span style={comparisonLegendItemStyle} title={comparison.layerBName}>
@@ -456,7 +456,7 @@ const commandHeaderStyle: React.CSSProperties = {
   overflowX: "visible",
   overflowY: "visible",
   background: MAP_COLORS.bgHeader,
-  boxShadow: `inset 0 -1px 0 ${MAP_COLORS.amberHairline}`,
+  boxShadow: "inset 0 -1px 0 var(--syn-border-subtle, rgba(148, 163, 184, 0.32))",
 };
 
 const commandHeaderTitleStyle: React.CSSProperties = {
@@ -481,7 +481,7 @@ const commandHeaderCloseButton: React.CSSProperties = {
   flex: "0 0 auto",
   width: "1.75rem",
   height: "1.75rem",
-  border: MAP_STROKES.hairlineSubtle,
+  border: "1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.32))",
   borderRadius: MAP_RADIUS.sm,
   background: MAP_COLORS.transparent,
 };
@@ -4999,7 +4999,12 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         >
           {isDragActive ? (
             <div
-              style={mapStyles.dragOverlay}
+              style={{
+                ...mapStyles.dragOverlay,
+                border: "2px dashed var(--syn-border-active, rgba(56, 189, 248, 0.6))",
+                background: "var(--syn-surface-overlay, rgba(8, 12, 18, 0.68))",
+                color: "var(--syn-text-secondary, rgba(203, 213, 225, 0.92))",
+              }}
               aria-hidden="true"
             >
               Drop GeoJSON, CSV, Arrow, GeoParquet, KML, KMZ, or GPX to import
@@ -5070,9 +5075,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
                 gap: 6,
                 padding: "12px 14px",
                 borderRadius: 10,
-                border: `1px solid ${feedbackAccent(dispatchFeedback.tone)}`,
-                background: "rgba(13, 13, 13, 0.9)",
-                boxShadow: "0 24px 48px rgba(0,0,0,0.28)",
+                border: "1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.36))",
+                background: "var(--syn-surface-panel, rgba(12, 16, 24, 0.9))",
+                boxShadow: "0 10px 24px rgba(0,0,0,0.24)",
                 zIndex: 20,
               }}
               role="status"
@@ -5081,7 +5086,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               <span style={{ color: feedbackAccent(dispatchFeedback.tone), fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>
                 {dispatchFeedback.title}
               </span>
-              <span style={{ color: "rgba(255,255,255,0.92)", fontSize: 12, lineHeight: 1.45 }}>
+              <span style={{ color: "var(--syn-text-primary, rgba(244, 247, 255, 0.94))", fontSize: 12, lineHeight: 1.45 }}>
                 {dispatchFeedback.description}
               </span>
             </div>
@@ -5099,18 +5104,18 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
                 gap: 10,
                 padding: "12px 14px",
                 borderRadius: 10,
-                border: "1px solid rgba(245, 158, 11, 0.5)",
-                background: "rgba(10, 10, 10, 0.94)",
-                boxShadow: "0 22px 44px rgba(0,0,0,0.32)",
+                border: "1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.34))",
+                background: "var(--syn-surface-panel, rgba(12, 16, 24, 0.92))",
+                boxShadow: "0 10px 24px rgba(0,0,0,0.24)",
                 zIndex: 20,
               }}
             >
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
                 <div>
-                  <div style={{ color: "#fbbf24", fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                  <div style={{ color: "var(--syn-status-info, #38bdf8)", fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>
                     Quick Statistics
                   </div>
-                  <div style={{ color: "rgba(255,255,255,0.92)", fontSize: 13, fontWeight: 600 }}>
+                  <div style={{ color: "var(--syn-text-primary, rgba(244, 247, 255, 0.94))", fontSize: 13, fontWeight: 600 }}>
                     Selected feature summary
                   </div>
                 </div>
@@ -5124,17 +5129,17 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
                 </button>
               </div>
               {selectionStatsSummary.map((summary) => (
-                <div key={summary.layerId} style={{ display: "grid", gap: 8, paddingTop: 4, borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-                  <div style={{ color: "rgba(255,255,255,0.92)", fontSize: 12, fontWeight: 600 }}>
+                <div key={summary.layerId} style={{ display: "grid", gap: 8, paddingTop: 4, borderTop: "1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.3))" }}>
+                  <div style={{ color: "var(--syn-text-primary, rgba(244, 247, 255, 0.94))", fontSize: 12, fontWeight: 600 }}>
                     {summary.layerName} · {summary.selectedFeatureCount.toLocaleString()} selected
                   </div>
                   {summary.numericFields.length === 0 ? (
-                    <div style={{ color: "rgba(255,255,255,0.62)", fontSize: 12 }}>
+                    <div style={{ color: "var(--syn-text-muted, rgba(148, 163, 184, 0.88))", fontSize: 12 }}>
                       Missing prerequisite: selected features need numeric attributes before summary statistics can be computed.
                     </div>
                   ) : summary.numericFields.slice(0, 4).map((field) => (
-                    <div key={field.field} style={{ display: "grid", gap: 2, fontSize: 11, color: "rgba(255,255,255,0.78)" }}>
-                      <strong style={{ color: "#fbbf24", fontWeight: 600 }}>{field.field}</strong>
+                    <div key={field.field} style={{ display: "grid", gap: 2, fontSize: 11, color: "var(--syn-text-secondary, rgba(203, 213, 225, 0.9))" }}>
+                      <strong style={{ color: "var(--syn-status-info, #38bdf8)", fontWeight: 600 }}>{field.field}</strong>
                       <span>min {field.min.toFixed(2)} · max {field.max.toFixed(2)} · mean {field.mean.toFixed(2)} · median {field.median.toFixed(2)}</span>
                     </div>
                   ))}
@@ -5150,7 +5155,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
                 inset: 0,
                 display: "grid",
                 placeItems: "center",
-                background: "rgba(0,0,0,0.42)",
+                background: "rgba(0, 0, 0, 0.34)",
                 zIndex: 22,
               }}
             >
@@ -5162,9 +5167,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
                   gap: 14,
                   padding: "18px 18px 16px",
                   borderRadius: 12,
-                  border: "1px solid rgba(245, 158, 11, 0.52)",
-                  background: "rgba(11, 11, 11, 0.96)",
-                  boxShadow: "0 28px 60px rgba(0,0,0,0.38)",
+                  border: "1px solid var(--syn-border-strong, rgba(148, 163, 184, 0.42))",
+                  background: "var(--syn-surface-panel, rgba(12, 16, 24, 0.94))",
+                  boxShadow: "0 14px 28px rgba(0,0,0,0.28)",
                 }}
                 role="dialog"
                 aria-modal="true"
@@ -5172,10 +5177,10 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               >
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
                   <div>
-                    <div style={{ color: "#fbbf24", fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                    <div style={{ color: "var(--syn-status-info, #38bdf8)", fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>
                       Analyze This Area
                     </div>
-                    <div style={{ color: "rgba(255,255,255,0.92)", fontSize: 15, fontWeight: 600 }}>
+                    <div style={{ color: "var(--syn-text-primary, rgba(244, 247, 255, 0.94))", fontSize: 15, fontWeight: 600 }}>
                       Route {flowDispatchAoi.label.toLowerCase()} into a workflow
                     </div>
                   </div>
@@ -5188,7 +5193,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
                     <IconClose size={MAP_ICON_SIZES.sm} />
                   </button>
                 </div>
-                <div style={{ color: "rgba(255,255,255,0.68)", fontSize: 12, lineHeight: 1.5 }}>
+                <div style={{ color: "var(--syn-text-muted, rgba(148, 163, 184, 0.9))", fontSize: 12, lineHeight: 1.5 }}>
                   The selected workflow will open in CenterPanel with this AOI attached as map-dispatch input{restrictToMapView && currentMapBounds ? " and the current view preserved as a spatial filter" : ""}.
                 </div>
                 <div style={{ display: "grid", gap: 10 }}>

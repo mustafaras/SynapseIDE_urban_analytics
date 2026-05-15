@@ -196,10 +196,10 @@ const PreviewRoot = styled.div`
   display: flex;
   flex-direction: column;
   gap: 1px;
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(245, 158, 11, 0.15);
-  border-radius: 5px;
-  padding: 8px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
   font-family: var(--font-mono);
   font-size: 12px;
   color: var(--color-text, #E5E5E5);
@@ -209,8 +209,8 @@ const HeaderRow = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 6px 8px;
-  border-bottom: 1px solid rgba(245, 158, 11, 0.12);
+  padding: 0 0 6px;
+  border-bottom: none;
 `;
 
 const TitleGroup = styled.div`
@@ -236,9 +236,9 @@ const HeaderBtns = styled.div`
 `;
 
 const Button = styled.button`
-  padding: 4px 12px;
+  padding: 4px 10px;
   border-radius: 3px;
-  border: 1px solid;
+  border: none;
   font-size: 11px;
   font-family: inherit;
   cursor: pointer;
@@ -252,23 +252,20 @@ const Button = styled.button`
 `;
 
 const CancelBtn = styled(Button)`
-  border-color: rgba(255, 255, 255, 0.1);
   background: transparent;
   color: var(--color-text, #E5E5E5);
 
   &:not(:disabled):hover {
-    border-color: rgba(255, 255, 255, 0.2);
     background: rgba(255, 255, 255, 0.05);
   }
 `;
 
 const ApplyBtn = styled(Button)`
-  border-color: #F59E0B;
-  background: rgba(245, 158, 11, 0.12);
+  background: rgba(245, 158, 11, 0.08);
   color: #F59E0B;
 
   &:not(:disabled):hover {
-    background: rgba(245, 158, 11, 0.2);
+    background: rgba(245, 158, 11, 0.14);
   }
 `;
 
@@ -284,15 +281,13 @@ const RiskBanner = styled.div<{ $level: 'high' | 'medium' }>`
   background: ${props => props.$level === 'high' 
     ? 'rgba(239, 68, 68, 0.1)' 
     : 'rgba(245, 158, 11, 0.1)'};
-  border: 1px solid ${props => props.$level === 'high' 
-    ? 'rgba(239, 68, 68, 0.2)' 
-    : 'rgba(245, 158, 11, 0.2)'};
+  border: none;
   color: ${props => props.$level === 'high' ? '#EF4444' : '#F59E0B'};
 `;
 
 const ConflictSection = styled.div`
-  background: rgba(239, 68, 68, 0.08);
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  background: rgba(239, 68, 68, 0.05);
+  border: none;
   border-radius: 3px;
   padding: 6px;
   margin: 4px 0;
@@ -309,8 +304,8 @@ const ConflictLabel = styled.div`
 `;
 
 const ConflictItem = styled.div`
-  background: rgba(0, 0, 0, 0.3);
-  border-left: 2px solid #EF4444;
+  background: rgba(0, 0, 0, 0.18);
+  border-left: none;
   padding: 4px 6px;
   margin: 2px 0;
   font-size: 10px;
@@ -335,7 +330,7 @@ const ConfirmPrompt = styled.div`
   gap: 6px;
   padding: 6px;
   margin-top: 4px;
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.12);
   border-radius: 2px;
   font-size: 10px;
 
@@ -364,7 +359,7 @@ const FileList = styled.div`
     width: 6px;
   }
   &::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.2);
+    background: transparent;
     border-radius: 3px;
   }
   &::-webkit-scrollbar-thumb {
@@ -377,8 +372,8 @@ const FileList = styled.div`
 `;
 
 const FileCard = styled.div<{ $hasConflict?: boolean; $isDiff?: boolean; $isDestructive?: boolean }>`
-  background: ${props => (props.$hasConflict ? 'rgba(239, 68, 68, 0.06)' : 'rgba(0, 0, 0, 0.2)')};
-  border: 1px solid ${props => (props.$hasConflict ? 'rgba(239, 68, 68, 0.15)' : props.$isDestructive ? 'rgba(245, 158, 11, 0.15)' : 'rgba(245, 158, 11, 0.1)')};
+  background: ${props => (props.$hasConflict ? 'rgba(239, 68, 68, 0.04)' : 'transparent')};
+  border: none;
   border-radius: 3px;
   overflow: hidden;
 `;
@@ -388,11 +383,11 @@ const FileHeader = styled.div`
   justify-content: space-between;
   align-items: center;
   padding: 5px 6px;
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(255, 255, 255, 0.02);
   cursor: pointer;
 
   &:hover {
-    background: rgba(0, 0, 0, 0.4);
+    background: rgba(255, 255, 255, 0.04);
   }
 `;
 
@@ -478,8 +473,8 @@ const ExpandBtn = styled.button`
 `;
 
 const DiffSection = styled.div`
-  background: rgba(0, 0, 0, 0.2);
-  border-top: 1px solid rgba(245, 158, 11, 0.08);
+  background: transparent;
+  border-top: none;
   padding: 4px;
 `;
 
@@ -492,15 +487,15 @@ const DiffHunk = styled.div`
 `;
 
 const DiffBefore = styled.div`
-  background: rgba(239, 68, 68, 0.08);
-  border: 1px solid rgba(239, 68, 68, 0.15);
+  background: rgba(239, 68, 68, 0.04);
+  border: none;
   border-radius: 2px;
   padding: 3px;
 `;
 
 const DiffAfter = styled.div`
-  background: rgba(74, 222, 128, 0.08);
-  border: 1px solid rgba(74, 222, 128, 0.15);
+  background: rgba(74, 222, 128, 0.04);
+  border: none;
   border-radius: 2px;
   padding: 3px;
 `;

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Modal } from '../molecules/Modal';
-import { SYNAPSE_COLORS, SYNAPSE_TYPO, withAlpha } from '../../ui/theme/synapseTheme';
+import { SYNAPSE_TYPO } from '../../ui/theme/synapseTheme';
 import styled from 'styled-components';
 import { useEditorStore, useTabActions } from '../../stores/editorStore';
 import { indexDocs, queryDocs } from '../../services/search';
@@ -19,15 +19,14 @@ const InputWrapper = styled.div`
   position: relative;
   display: flex;
   align-items: center;
-  background: ${withAlpha('#ffffff', 0.04)};
-  border: 1px solid rgba(255,255,255,0.08);
+  background: var(--syn-surface-hover, rgba(255,255,255,0.03));
+  border: none;
   border-radius: 6px;
   padding: 0 12px;
   height: 46px;
-  transition: background 160ms var(--syn-easing-bauhaus), border-color 160ms var(--syn-easing-bauhaus);
+  transition: background 160ms var(--syn-easing-bauhaus);
   &:focus-within {
-    background: ${withAlpha('#F59E0B', 0.08)};
-    border-color: ${withAlpha('#F59E0B', 0.6)};
+    background: color-mix(in srgb, var(--syn-interaction-active, #3b82f6) 10%, transparent);
   }
 `;
 
@@ -36,11 +35,11 @@ const SearchInput = styled.input`
   background: transparent;
   border: none;
   outline: none;
-  color: #D6D3D1;
+  color: var(--syn-text-primary, #d6d3d1);
   font-family: ${SYNAPSE_TYPO.fontFamily};
   font-size: 14px;
   line-height: 1.4;
-  &::placeholder { color: ${withAlpha('#D6D3D1', 0.45)}; }
+  &::placeholder { color: var(--syn-text-muted, #a8a29e); }
 `;
 
 const ScopeTabs = styled.div`
@@ -55,12 +54,12 @@ const ScopeBtn = styled.button<{ $active: boolean }>`
   font-size: 11px;
   font-weight: 500;
   cursor: pointer;
-  border: 1px solid ${({ $active }) => ($active ? withAlpha('#F59E0B', 0.55) : 'rgba(255,255,255,0.10)')};
-  background: ${({ $active }) => ($active ? withAlpha('#F59E0B', 0.14) : 'transparent')};
-  color: ${({ $active }) => ($active ? '#F59E0B' : '#A8A29E')};
-  transition: background 120ms, border-color 120ms, color 120ms;
-  &:hover { background: ${({ $active }) => ($active ? withAlpha('#F59E0B', 0.20) : withAlpha('#ffffff', 0.05))}; }
-  &:focus-visible { outline: 2px solid #F59E0B; outline-offset: 2px; }
+  border: none;
+  background: transparent;
+  color: ${({ $active }) => ($active ? 'var(--syn-text-primary, #f5f5f4)' : 'var(--syn-text-muted, #a8a29e)')};
+  transition: color 120ms, opacity 120ms;
+  &:hover { color: var(--syn-text-primary, #f5f5f4); opacity: 1; }
+  &:focus-visible { outline: none; color: var(--syn-text-primary, #f5f5f4); }
 `;
 
 const Results = styled.div`
@@ -79,33 +78,33 @@ const SectionHeader = styled.div`
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #57534E;
+  color: var(--syn-text-muted, #57534e);
   padding: 10px 4px 4px;
   user-select: none;
 `;
 
 const ResultRow = styled.button`
   text-align: left;
-  padding: 8px 12px;
+  padding: 9px 10px;
   border-radius: 5px;
   cursor: pointer;
-  border: 1px solid rgba(255,255,255,0.06);
-  background: ${withAlpha('#ffffff', 0.02)};
-  color: #D6D3D1;
+  border: none;
+  background: transparent;
+  color: var(--syn-text-secondary, #d6d3d1);
   font-family: ${SYNAPSE_TYPO.fontFamily};
   display: flex;
   flex-direction: column;
   gap: 3px;
   width: 100%;
-  transition: background 100ms, border-color 100ms;
-  &:hover { background: ${withAlpha('#ffffff', 0.05)}; border-color: rgba(255,255,255,0.10); }
-  &:focus-visible { outline: 2px solid #F59E0B; outline-offset: 2px; }
+  transition: background 100ms;
+  &:hover { background: var(--syn-surface-hover, rgba(255,255,255,0.04)); }
+  &:focus-visible { outline: none; background: color-mix(in srgb, var(--syn-interaction-active, #3b82f6) 8%, transparent); }
 `;
 
 const RowTitle = styled.div`
   font-size: 13px;
   font-weight: 500;
-  color: #E7E5E4;
+  color: var(--syn-text-primary, #e7e5e4);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -113,7 +112,7 @@ const RowTitle = styled.div`
 
 const RowPath = styled.div`
   font-size: 11px;
-  color: #78716C;
+  color: var(--syn-text-muted, #78716c);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -121,7 +120,7 @@ const RowPath = styled.div`
 
 const RowPreview = styled.div`
   font-size: 12px;
-  color: #A8A29E;
+  color: var(--syn-text-secondary, #a8a29e);
   white-space: pre-wrap;
   word-break: break-all;
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
@@ -129,7 +128,7 @@ const RowPreview = styled.div`
 
 const LineNum = styled.span`
   font-size: 11px;
-  color: #57534E;
+  color: var(--syn-text-muted, #57534e);
   min-width: 32px;
   flex-shrink: 0;
 `;
@@ -139,23 +138,22 @@ const OpenDot = styled.span`
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #22C55E;
+  background: var(--syn-status-valid, #22c55e);
   flex-shrink: 0;
 `;
 
 const BadgeInline = styled.span<{ $color: string }>`
   font-size: 10px;
   font-weight: 600;
-  padding: 1px 5px;
+  padding: 0;
   border-radius: 3px;
-  background: ${({ $color }) => withAlpha($color, 0.18)};
+  background: transparent;
   color: ${({ $color }) => $color};
-  border: 1px solid ${({ $color }) => withAlpha($color, 0.35)};
 `;
 
 const Empty = styled.div`
   font-size: 13px;
-  color: #57534E;
+  color: var(--syn-text-muted, #57534e);
   padding: 14px 4px;
   text-align: center;
 `;
@@ -203,7 +201,13 @@ function Highlight({ text, idx, len, q }: { text: string; idx: number; len: numb
   return (
     <>
       {text.slice(0, idx)}
-      <mark style={{ background: 'rgba(245,158,11,0.28)', color: SYNAPSE_COLORS.textPrimary, borderRadius: 2 }}>
+      <mark
+        style={{
+          background: 'color-mix(in srgb, var(--syn-status-info, #3b82f6) 28%, transparent)',
+          color: 'var(--syn-text-primary, #f5f5f4)',
+          borderRadius: 2,
+        }}
+      >
         {text.slice(idx, idx + len)}
       </mark>
       {text.slice(idx + len)}
@@ -216,11 +220,11 @@ function Highlight({ text, idx, len, q }: { text: string; idx: number; len: numb
 function ArtifactBadges({ status }: { status: FileSemanticStatus }) {
   return (
     <>
-      {status.generated ? <BadgeInline $color="#F59E0B">gen</BadgeInline> : null}
-      {status.analysisOutput ? <BadgeInline $color="#14B8A6">analysis</BadgeInline> : null}
-      {status.mapLayerCandidate ? <BadgeInline $color="#3B82F6">map layer</BadgeInline> : null}
-      {status.scenarioArtifact ? <BadgeInline $color="#8B5CF6">scenario</BadgeInline> : null}
-      {status.synced ? <BadgeInline $color="#22C55E">synced</BadgeInline> : null}
+      {status.generated ? <BadgeInline $color="var(--syn-status-warning, #f59e0b)">gen</BadgeInline> : null}
+      {status.analysisOutput ? <BadgeInline $color="var(--syn-status-info, #3b82f6)">analysis</BadgeInline> : null}
+      {status.mapLayerCandidate ? <BadgeInline $color="var(--syn-status-info, #3b82f6)">map layer</BadgeInline> : null}
+      {status.scenarioArtifact ? <BadgeInline $color="var(--syn-status-unknown, #8b5cf6)">scenario</BadgeInline> : null}
+      {status.synced ? <BadgeInline $color="var(--syn-status-valid, #22c55e)">synced</BadgeInline> : null}
     </>
   );
 }
@@ -458,7 +462,7 @@ export const GlobalSearch: React.FC<{ isOpen: boolean; onClose: () => void }> = 
                       <div key={`cg-${path}`} style={{ display: 'flex', flexDirection: 'column', gap: 1, marginBottom: 4 }}>
                         <div style={{
                           fontSize: 11, fontFamily: SYNAPSE_TYPO.fontFamily,
-                          color: '#78716C', padding: '2px 12px', fontWeight: 600,
+                          color: 'var(--syn-text-muted, #78716C)', padding: '2px 12px', fontWeight: 600,
                           display: 'flex', alignItems: 'center', gap: 6,
                         }}>
                           {rows[0].isOpen ? <OpenDot title="Open in editor" /> : null}

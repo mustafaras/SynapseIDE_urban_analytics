@@ -7,10 +7,10 @@ This ledger is the execution source of truth for the color-system operating pack
 ## Current Status
 
 - Operating pack status: revised for small-agent execution on 2026-05-14.
-- Implementation status: started; Prompts 00-12 completed on 2026-05-15.
+- Implementation status: started; Prompts 00-15 and 17 completed on 2026-05-15.
 - Prompt count: 38 prompts, `00` through `37`.
-- Current prompt: Prompt 13 - Synapse File Explorer And File Badges.
-- Next prompt: Prompt 13 - Synapse File Explorer And File Badges.
+- Current prompt: Prompt 16 - Command Palette Search And AI Panel.
+- Next prompt: Prompt 16 - Command Palette Search And AI Panel.
 - Archive context: do not move `DEVELOPMENT_PLANS/` from the current local branch; branch reconciliation is separate.
 - Initial migration principle: token infrastructure first, shared shell second, module surfaces third, QA last.
 
@@ -46,11 +46,11 @@ This ledger is the execution source of truth for the color-system operating pack
 | 10 | Center Panel Shell Migration | completed | 09 | Completed 2026-05-15; shell surfaces, separators, focus rings, and active markers aligned to semantic blue-interaction tokens. |
 | 11 | Shared Status Bar And System Chrome Migration | completed | 10 | Completed 2026-05-15; status bar chrome and system status badges mapped to semantic surface/status tokens. |
 | 12 | Synapse IDE Shell And Header Migration | completed | 11 | Completed 2026-05-15; shell/header/activity rail and placeholder panes aligned to semantic blue interaction + truthful status tokens. |
-| 13 | Synapse File Explorer And File Badges | pending | 12 | Migrate file tree and file badges. |
-| 14 | Editor Tabs Monaco Outline And Search | pending | 13 | Migrate editor-adjacent chrome. |
-| 15 | Terminal Bottom Panel Tasks And Problems | pending | 14 | Migrate terminal and diagnostics surfaces. |
+| 13 | Synapse File Explorer And File Badges | completed | 12 | Completed 2026-05-15; file tree states, badges, icon color categories, and destructive explorer actions aligned to semantic tokens. |
+| 14 | Editor Tabs Monaco Outline And Search | completed | 13 | Completed 2026-05-15; editor tabs, Monaco context shell, outline/search chrome, and diagnostics summary accents aligned to semantic interaction/status tokens. |
+| 15 | Terminal Bottom Panel Tasks And Problems | completed | 14 | Completed 2026-05-15; terminal/bottom-panel/problems surfaces aligned to semantic status/interaction tokens with quiet dark terminal chrome preserved. |
 | 16 | Command Palette Search And AI Panel | pending | 15 | Migrate palette, search, AI surfaces. |
-| 17 | Map Explorer Shell And Canvas Chrome | pending | 16 | Migrate map shell/canvas chrome. |
+| 17 | Map Explorer Shell And Canvas Chrome | completed | 16 | Completed 2026-05-15 out of sequence by user request; map shell/canvas chrome de-emphasized with semantic status tones preserved. |
 | 18 | Map Toolbar Search Pins And Controls | pending | 17 | Migrate map controls and focus states. |
 | 19 | Map Layer Manager And Layer Rows | pending | 18 | Migrate layers, badges, row states. |
 | 20 | Map Drawers QA NL Query Review And Report | pending | 19 | Migrate high-risk map drawers. |
@@ -73,6 +73,154 @@ This ledger is the execution source of truth for the color-system operating pack
 | 37 | Final Color System Handoff | pending | 36 | Close the color operating pack. |
 
 ## Prompt Execution Log
+
+### Prompt 17 - Map Explorer Shell And Canvas Chrome - 2026-05-15
+
+- Status: completed.
+- Scope: align Map Explorer shell, cockpit status, and canvas overlay chrome to semantic surface/status tokens while keeping the basemap dominant and preserving QA/CRS/publication messaging.
+- Files inspected:
+  - `src/centerpanel/components/MapExplorerModal.tsx`
+  - `src/centerpanel/components/map/MapWorkspaceShell.tsx`
+  - `src/centerpanel/components/map/MapCanvas.tsx`
+  - `src/centerpanel/components/map/MapStatusBar.tsx`
+  - `src/centerpanel/components/map/mapTokens.ts`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+- Files changed:
+  - `src/centerpanel/components/MapExplorerModal.tsx`
+  - `src/centerpanel/components/map/MapWorkspaceShell.tsx`
+  - `src/centerpanel/components/map/MapCanvas.tsx`
+  - `src/centerpanel/components/map/MapStatusBar.tsx`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+- Token migration highlights:
+  - Workflow preview HUD/divider and command-header chrome in `MapExplorerModal.tsx` now use semantic surface/border/info tokens instead of amber-led shell accents.
+  - Drag-and-drop import overlay and map feedback/statistics/dispatch cards were flattened to quieter semantic panel surfaces with reduced shadow depth to avoid heavy card-in-card visual competition.
+  - `MapWorkspaceShell.tsx` panel rail and timeline separators were moved from amber-derived strokes to neutral semantic border tiers so chrome recedes behind map symbology.
+  - `MapCanvas.tsx` pin marker and feature popup action chrome now use semantic info/interaction tokens and neutral panel text hierarchy.
+  - `MapStatusBar.tsx` now differentiates `info`, `warning`, `error`, `running`, `pending`, `valid`, and `stale` values via semantic status tones while preserving explicit labels and spinner/non-color cues.
+- Acceptance-criteria notes:
+  - Map remains the primary visual surface because shell overlays are lower-contrast and less ornate.
+  - Chrome accents no longer compete with arbitrary layer symbology through broad amber usage.
+- Validation:
+  - `npm run typecheck` passed.
+  - Map visual smoke: not run in this CLI-only pass (no interactive browser validation performed).
+- Sequencing note:
+  - Prompt 17 was executed before Prompt 16 due to explicit user direction.
+- Next recommended prompt: Prompt 16 - Command Palette Search And AI Panel.
+
+### Prompt 15 - Terminal Bottom Panel Tasks And Problems - 2026-05-15
+
+- Status: completed.
+- Scope: tokenize bottom panel chrome, task-state colors, problems-pane severity/focus surfaces, and terminal/xterm connection chrome while preserving terminal behavior and readability.
+- Files inspected:
+  - `src/components/ide/BottomPanel.tsx`
+  - `src/components/ide/styles/ideShell.css`
+  - `src/components/editor/ProblemsPane.tsx`
+  - `src/components/editor/problemsPane.css`
+  - `src/components/terminal/components/Terminal.tsx`
+  - `src/components/terminal/components/XTermTerminal.tsx`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+- Files changed:
+  - `src/components/ide/styles/ideShell.css`
+  - `src/components/editor/problemsPane.css`
+  - `src/components/terminal/components/Terminal.tsx`
+  - `src/components/terminal/components/XTermTerminal.tsx`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+- Token migration highlights:
+  - Bottom-panel task states now map queued/success/error/cancelled to semantic status tokens (`pending`, `valid`, `error`, `stale`) instead of mixed legacy fallbacks.
+  - Bottom-panel frame animated glow pulse was removed and replaced with a restrained static semantic edge treatment for a quieter terminal host.
+  - Problems pane header chips/source labels were flattened to transparent chrome with semantic severity/status colors retained, and focus ring updated to semantic focus border token.
+  - Terminal host chrome in `Terminal.tsx` moved from amber-heavy literals to semantic surface/text/border/interaction tokens while preserving all controls and resize behavior.
+  - Xterm terminal theme in `XTermTerminal.tsx` was retuned to a dark, quiet, VS Code-like palette with blue interaction accents; cursor visibility and contrast were preserved.
+- Accessibility/status-truth notes:
+  - Task and diagnostic states remain non-color dependent via explicit text labels and icons (`queued`, `running`, `success`, `error`, `cancelled`; severity labels + icons in problems rows).
+  - Terminal connection badge keeps explicit status text (`Connecting`, `Disconnected`, `Error`) and retry affordance.
+- Remaining hard-coded colors retained (with rationale):
+  - Xterm ANSI palette literals remain explicit in `XTermTerminal.tsx` because xterm canvas theming requires concrete color values and these are data-plane rendering values rather than generic shell chrome tokens.
+- Validation:
+  - `npm run typecheck` passed.
+  - `npx eslint src/components/terminal/components/Terminal.tsx src/components/terminal/components/XTermTerminal.tsx src/components/ide/styles/ideShell.css src/components/editor/problemsPane.css --quiet` passed.
+- Next recommended prompt: Prompt 16 - Command Palette Search And AI Panel.
+
+### Prompt 14 - Editor Tabs Monaco Outline And Search - 2026-05-15
+
+- Status: completed.
+- Scope: migrate editor-adjacent surfaces to semantic tokens: editor tab state accents, Monaco context/breadcrumb shell chrome, outline interaction accents, global search rows/highlights, and diagnostics summary severity colors.
+- Files inspected:
+  - `src/components/ide/Header.tsx`
+  - `src/components/editor/monacoSurface.css`
+  - `src/components/editor/OutlinePane.tsx`
+  - `src/components/ide/GlobalSearch.tsx`
+  - `src/components/editor/ProblemsPane.tsx`
+  - `src/components/editor/problemsPane.css`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_TOKEN_REFERENCE.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+- Files changed:
+  - `src/components/ide/Header.tsx`
+  - `src/components/editor/monacoSurface.css`
+  - `src/components/editor/OutlinePane.tsx`
+  - `src/components/ide/GlobalSearch.tsx`
+  - `src/components/editor/problemsPane.css`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_TOKEN_REFERENCE.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+- Token migration highlights:
+  - Editor tab dirty and pinned indicators in `Header.tsx` now resolve to semantic status/interaction tokens (`--syn-status-warning`, `--syn-interaction-active`, `--syn-text-muted`) instead of legacy accent-neutral coupling.
+  - Monaco context-bar/chip/action chrome in `monacoSurface.css` now uses semantic interaction/status tokens with color-mix overlays; breadcrumb shell no longer depends on amber-biased accent defaults.
+  - `OutlinePane.tsx` interaction accents moved to semantic interaction/border tokens for hover and focus clarity.
+  - `GlobalSearch.tsx` hard-coded surface/text/border colors replaced with semantic tokens; search match highlight changed to info-family token mix so it remains distinct from warning/error diagnostics.
+  - `problemsPane.css` diagnostics summary and row severity colors now map to semantic status families (`error`, `warning`, `info`, `stale`).
+- Monaco syntax-theme constraint:
+  - No Monaco syntax token map changes were applied in Prompt 14; only editor-adjacent shell/chrome surfaces were migrated.
+- Remaining hard-coded colors retained (with rationale):
+  - `src/components/editor/MonacoEditor.tsx` preview-specific embedded HTML/CSS snippets retain local literal colors for content rendering demos and language preview output; these are non-shell content visuals and are deferred to later cleanup prompts.
+- Acceptance-criteria notes:
+  - Editor chrome now follows semantic token families for tabs, outline, search, and diagnostics summary.
+  - Syntax highlighting readability remains unchanged because Monaco syntax theme mappings were not altered.
+- Validation:
+  - `npm run typecheck` passed.
+  - `npx eslint src/components/ide/Header.tsx src/components/editor/OutlinePane.tsx src/components/ide/GlobalSearch.tsx --quiet` passed.
+- Next recommended prompt: Prompt 15 - Terminal Bottom Panel Tasks And Problems.
+
+### Prompt 13 - Synapse File Explorer And File Badges - 2026-05-15
+
+- Status: completed.
+- Scope: tokenize file-tree row states, semantic badges, drag/drop affordances, file icon color categories, and destructive context-menu styling without behavior changes.
+- Files inspected:
+  - `src/components/file-explorer/FileExplorer.tsx`
+  - `src/components/file-explorer/FileIcon.tsx`
+  - `src/components/file-explorer/fileSemantics.ts`
+  - `src/components/file-explorer/items.css`
+  - `src/components/file-explorer/ContextMenu.tsx`
+  - `src/components/file-explorer/contextMenu.css`
+  - `src/constants/app.ts`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_TOKEN_REFERENCE.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+- Files changed:
+  - `src/components/file-explorer/FileExplorer.tsx`
+  - `src/components/file-explorer/FileIcon.tsx`
+  - `src/components/file-explorer/items.css`
+  - `src/components/file-explorer/ContextMenu.tsx`
+  - `src/components/file-explorer/contextMenu.css`
+  - `src/constants/app.ts`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_TOKEN_REFERENCE.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+- Token migration highlights:
+  - Explorer row hover/selected/focus and drag/drop valid-invalid states now resolve to semantic interaction/status tokens instead of amber literals.
+  - Semantic file badges (`neutral`, `info`, `success`, `warning`) now map to semantic status token families.
+  - File icon coloring in `FileIcon.tsx` moved from hard-coded hex values to stable semantic category tokens.
+  - `FILE_TYPES` color definitions in `src/constants/app.ts` are now semantic token categories, documenting stable icon-color intent by file type.
+  - Context menu destructive actions retain explicit danger semantics while using semantic error/interaction tokens for hover/focus feedback.
+- Remaining hard-coded colors retained (with rationale):
+  - `src/components/file-explorer/FileExplorer.tsx` keeps some neutral black overlay/shadow rgba values for depth/backdrop behavior in modal layering; these are non-status chrome shadows and do not encode readiness/state truthfulness.
+  - `src/components/file-explorer/FileExplorerHeader.tsx` contains legacy hard-coded colors in advanced header/export UI not required to satisfy Prompt 13 row/badge/icon scope; scheduled for subsequent cleanup prompts.
+- Acceptance-criteria notes:
+  - File explorer remains compact and scannable; selected and focused states are distinct.
+  - File type colors are now tokenized and documented in `COLOR_SYSTEM_TOKEN_REFERENCE.md`.
+  - No file explorer command/workflow behavior changed.
+- Validation:
+  - `npm run typecheck` passed.
+  - `npx eslint src/components/file-explorer/FileExplorer.tsx src/components/file-explorer/FileIcon.tsx src/components/file-explorer/ContextMenu.tsx src/constants/app.ts --quiet` passed.
+- Next recommended prompt: Prompt 14 - Editor Tabs Monaco Outline And Search.
 
 ### Prompt 12 - Synapse IDE Shell And Header Migration - 2026-05-15
 

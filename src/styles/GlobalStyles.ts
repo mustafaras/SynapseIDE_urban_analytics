@@ -388,21 +388,21 @@ export const GlobalStyles = createGlobalStyle`
     position: relative;
     user-select: none;
     padding: 0 2px;
-    background: linear-gradient(180deg, var(--color-accent)40, var(--color-accent)20, var(--color-accent)40);
-    box-shadow: 0 0 8px var(--color-accent)20;
+    background: transparent;
+    box-shadow: none;
     transition: all var(--duration-medium) var(--syn-easing-bauhaus);
   }
   .split-resizer:hover {
-    background: linear-gradient(180deg, var(--color-accent)60, var(--color-accent)40, var(--color-accent)60);
-    box-shadow: 0 0 12px var(--color-accent)40;
+    background: color-mix(in srgb, var(--syn-interaction-hover, rgba(255, 255, 255, 0.06)) 60%, transparent);
+    box-shadow: none;
   }
 
 
   .preview-surface {
-    background: var(--syn-surface-workbench);
-    border-left: 1px solid var(--syn-border-default);
-    backdrop-filter: var(--blur-glass, blur(10px));
-    -webkit-backdrop-filter: var(--blur-glass, blur(10px));
+    background: transparent;
+    border-left: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 
 

@@ -54,6 +54,9 @@ function clampPanelWidth(width: number, minWidth: number, maxWidth: number): num
   return Math.max(minWidth, Math.min(maxWidth, width));
 }
 
+const MAP_CHROME_BORDER_SUBTLE = "1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.32))";
+const MAP_CHROME_BORDER_STRONG = "1px solid var(--syn-border-strong, rgba(148, 163, 184, 0.48))";
+
 const panelRailBaseStyle: React.CSSProperties = {
   position: "absolute",
   zIndex: MAP_Z_INDEX.sidebar,
@@ -83,7 +86,7 @@ const bottomTimelineShellStyle: React.CSSProperties = {
   minWidth: MAP_SPACING.zero,
   display: "grid",
   background: MAP_COLORS.bgPanel,
-  borderTop: MAP_STROKES.hairlineSubtle,
+  borderTop: MAP_CHROME_BORDER_SUBTLE,
 };
 
 const bottomTimelineSlotStyle: React.CSSProperties = {
@@ -101,7 +104,7 @@ function getPanelRailStyle(side: MapPanelRailSide, width: number | string | unde
       height: formatCssSize(height, "min(24rem, 52%)"),
       width: "auto",
       maxHeight: "min(30rem, 68%)",
-      borderTop: MAP_STROKES.hairlineStrong,
+      borderTop: MAP_CHROME_BORDER_STRONG,
       borderRight: MAP_STROKES.none,
     };
   }
@@ -112,8 +115,8 @@ function getPanelRailStyle(side: MapPanelRailSide, width: number | string | unde
     bottom: MAP_SPACING.zero,
     width: formatCssSize(width, MAP_DIMENSIONS.layerPanelWidth),
     ...(side === "left"
-      ? { left: MAP_SPACING.zero, borderRight: MAP_STROKES.hairlineSubtle }
-      : { right: MAP_SPACING.zero, borderLeft: MAP_STROKES.hairlineSubtle }),
+      ? { left: MAP_SPACING.zero, borderRight: MAP_CHROME_BORDER_SUBTLE }
+      : { right: MAP_SPACING.zero, borderLeft: MAP_CHROME_BORDER_SUBTLE }),
   };
 }
 

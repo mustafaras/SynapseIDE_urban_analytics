@@ -2387,13 +2387,11 @@ export const MonacoEditor: React.FC<MonacoEditorProps> = ({
           display: 'flex',
           flexDirection: 'column',
           background: SYNAPSE_COLORS.bgDark,
-          borderRight: isPreviewVisible ? '2px solid transparent' : 'none',
-          borderImage: isPreviewVisible
-            ? `linear-gradient(180deg, ${SYNAPSE_COLORS.goldPrimary}99, ${SYNAPSE_COLORS.goldPrimary}4D, ${SYNAPSE_COLORS.goldPrimary}99) 1`
-            : 'none',
+          borderRight: 'none',
+          borderImage: 'none',
           position: 'relative',
           minWidth: '150px',
-          boxShadow: isPreviewVisible ? 'var(--shadow-md)' : 'none',
+          boxShadow: 'none',
         }}
       >
         {}

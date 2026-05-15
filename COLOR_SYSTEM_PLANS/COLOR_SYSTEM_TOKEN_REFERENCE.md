@@ -174,6 +174,82 @@ Prompt 12 migrates IDE shell chrome and header interactions to semantic workbenc
 1. Development-only showcase/diagnostic visuals in `EnhancedIDE.tsx` keep literals because they are non-production and out of shell migration scope.
 2. Existing status fallback literals (success/error defaults) remain as safety fallbacks where semantic vars might be unavailable; primary path resolves to semantic tokens.
 
+## Prompt 13 File Explorer And File Badge Semantic Mapping
+
+Prompt 13 migrates file-tree row states, semantic badges, drag/drop affordances, and file-type icon categories.
+
+### File Tree Interaction Mapping
+
+| Explorer State | Token |
+| --- | --- |
+| Row hover | `--syn-interaction-active` mixed over transparent |
+| Row selected | `--syn-interaction-active` mixed fill + active edge |
+| Keyboard focus ring | `--syn-interaction-focus-ring` |
+| Valid drop target | `--syn-interaction-active` mixed dashed outline |
+| Invalid drop target | `--syn-status-error` mixed dashed outline |
+
+### Semantic Badge Tone Mapping
+
+| Badge Tone | Token |
+| --- | --- |
+| `neutral` | `--syn-status-unknown` |
+| `info` | `--syn-status-info` |
+| `success` | `--syn-status-valid` |
+| `warning` | `--syn-status-warning` |
+
+### File Type Stable Categories (from `FILE_TYPES`)
+
+| Category | Token |
+| --- | --- |
+| Folder | `--syn-status-warning` |
+| Code/script family | `--syn-interaction-active` |
+| GIS/geo files | `--syn-status-valid` / `--syn-status-info` |
+| Config/text/archive/unknown | `--syn-text-secondary`, `--syn-text-muted`, `--syn-status-unknown` |
+| Media/image | `--syn-status-demo` |
+
+## Prompt 14 Editor Tabs Monaco Outline And Search Semantic Mapping
+
+Prompt 14 migrates editor-adjacent chrome (tab state indicators, Monaco context/breadcrumb shell, outline controls, search results, and diagnostics summary accents) to semantic interaction/status tokens while preserving syntax readability.
+
+### Editor Tab State Mapping
+
+| Editor Tab State | Token |
+| --- | --- |
+| Active tab text and marker | `--syn-interaction-active` |
+| Active tab surface tint | `--syn-interaction-active` mixed fill |
+| Pinned indicator | `--syn-interaction-active` when active, `--syn-text-muted` otherwise |
+| Dirty indicator dot | `--syn-status-warning` |
+
+### Monaco Context And Breadcrumb Mapping
+
+| Monaco Surface | Token |
+| --- | --- |
+| Context bar emphasis | `--syn-surface-editor` mixed with `--syn-interaction-active` |
+| File icon accent | `--syn-interaction-active` |
+| Context chips (default) | `--syn-surface-hover` + `--syn-text-secondary` + `--syn-border-subtle` |
+| Dirty / clean / large chips | `--syn-status-warning` / `--syn-status-valid` / `--syn-status-caveat` |
+
+### Outline And Search Mapping
+
+| Surface | Token |
+| --- | --- |
+| Outline kicker and interactive focus | `--syn-interaction-active`, `--syn-border-active` |
+| Search scope active state | `--syn-interaction-active` + `--syn-border-active` |
+| Search result row hover/focus | `--syn-surface-hover`, `--syn-interaction-focus-ring` |
+| Search match highlight (distinct from warning/error) | `--syn-status-info` mixed mark background |
+
+### Diagnostics Summary Mapping
+
+| Diagnostics Surface | Token |
+| --- | --- |
+| Problems summary error/warning/info | `--syn-status-error` / `--syn-status-warning` / `--syn-status-info` |
+| Source state stale marker | `--syn-status-stale` |
+
+Notes:
+
+1. Monaco syntax token theme mappings are intentionally unchanged in Prompt 14.
+2. Search match highlights use the info family to avoid ambiguity with warning/error diagnostics.
+
 ## Canonical Semantic Set
 
 These semantic names are the canonical targets for migration prompts.

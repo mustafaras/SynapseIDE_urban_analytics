@@ -208,31 +208,35 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
         height: 32,
         gap: '10px',
         cursor: 'pointer',
-        color: menuItem.danger ? '#FF6B6B' : 'var(--text-primary,#FAFAF9)',
+        color: menuItem.danger ? 'var(--syn-status-error)' : 'var(--syn-text-default)',
         transition: 'var(--syn-transition-medium)',
         userSelect: 'none',
             }}
             onMouseEnter={e => {
               e.currentTarget.style.background = menuItem.danger
-                ? 'rgba(255, 107, 107, 0.1)'
-                : 'color-mix(in oklab, var(--brand-primary), transparent 88%)';
-              e.currentTarget.style.color = menuItem.danger ? '#FF8A8A' : 'var(--brand-primary)';
+                ? 'color-mix(in srgb, var(--syn-status-error) 12%, transparent)'
+                : 'color-mix(in srgb, var(--syn-interaction-active) 12%, transparent)';
+              e.currentTarget.style.color = menuItem.danger
+                ? 'color-mix(in srgb, var(--syn-status-error) 86%, var(--syn-text-default) 14%)'
+                : 'var(--syn-interaction-active)';
             }}
             onMouseLeave={e => {
               e.currentTarget.style.background = 'transparent';
-              e.currentTarget.style.color = menuItem.danger ? '#FF6B6B' : 'var(--color-text-high)';
+              e.currentTarget.style.color = menuItem.danger ? 'var(--syn-status-error)' : 'var(--syn-text-default)';
             }}
             onFocus={e => {
               e.currentTarget.style.background = menuItem.danger
-                ? 'rgba(255, 107, 107, 0.1)'
-                : 'color-mix(in oklab, var(--brand-primary), transparent 88%)';
-              e.currentTarget.style.color = menuItem.danger ? '#FF8A8A' : 'var(--brand-primary)';
-              e.currentTarget.style.outline = '2px solid var(--focus-color)';
+                ? 'color-mix(in srgb, var(--syn-status-error) 12%, transparent)'
+                : 'color-mix(in srgb, var(--syn-interaction-active) 12%, transparent)';
+              e.currentTarget.style.color = menuItem.danger
+                ? 'color-mix(in srgb, var(--syn-status-error) 86%, var(--syn-text-default) 14%)'
+                : 'var(--syn-interaction-active)';
+              e.currentTarget.style.outline = '2px solid var(--syn-interaction-focus-ring)';
               e.currentTarget.style.outlineOffset = '2px';
             }}
             onBlur={e => {
               e.currentTarget.style.background = 'transparent';
-              e.currentTarget.style.color = menuItem.danger ? '#FF6B6B' : 'var(--color-text-high)';
+              e.currentTarget.style.color = menuItem.danger ? 'var(--syn-status-error)' : 'var(--syn-text-default)';
               e.currentTarget.style.outline = 'none';
             }}
             onKeyDown={e => {
@@ -260,7 +264,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
                 style={{
                   fontSize: '11px',
                   opacity: 0.6,
-                  color: 'var(--color-text-low)',
+                  color: 'var(--syn-text-muted)',
                 }}
               >
                 {menuItem.shortcut}

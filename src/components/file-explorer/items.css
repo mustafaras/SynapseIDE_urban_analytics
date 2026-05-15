@@ -11,7 +11,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--ide-accent, #F59E0B);
+  color: var(--syn-interaction-active);
   opacity: 0;
   transition: opacity 120ms var(--syn-easing-bauhaus);
 }
@@ -29,11 +29,11 @@
 }
 
 .fe-drop-target-valid {
-  outline: 1px dashed color-mix(in srgb, var(--ide-accent, #F59E0B) 50%, transparent);
+  outline: 1px dashed color-mix(in srgb, var(--syn-interaction-active) 50%, transparent);
   outline-offset: 2px;
 }
 
 .fe-drop-target-invalid {
-  outline: 1px dashed rgba(239, 68, 68, 0.5);
+  outline: 1px dashed color-mix(in srgb, var(--syn-status-error) 50%, transparent);
   outline-offset: 2px;
 }

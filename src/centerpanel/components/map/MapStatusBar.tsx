@@ -3,7 +3,6 @@ import type { LayerQaStatus, MeasureUnit } from "./mapTypes";
 import {
   MAP_COLORS,
   MAP_SPACING,
-  MAP_STROKES,
   MAP_TRANSITIONS,
   MAP_TYPOGRAPHY,
 } from "./mapTokens";
@@ -47,7 +46,7 @@ const statusBar: React.CSSProperties = {
   gap: MAP_SPACING.sm,
   padding: `${MAP_SPACING.xs} ${MAP_SPACING.md}`,
   background: MAP_COLORS.bgPanel,
-  borderTop: MAP_STROKES.hairline,
+  borderTop: "1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.32))",
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
   fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
   color: MAP_COLORS.textMuted,
@@ -81,7 +80,7 @@ const statusItem: React.CSSProperties = {
 };
 
 const separatorStyle: React.CSSProperties = {
-  color: MAP_COLORS.amberHairline,
+  color: "var(--syn-border-subtle, rgba(148, 163, 184, 0.56))",
   flexShrink: 0,
 };
 
@@ -102,7 +101,7 @@ const busyValueStyle: React.CSSProperties = {
 const spinnerStyle: React.CSSProperties = {
   width: "0.75rem",
   height: "0.75rem",
-  color: MAP_COLORS.amber,
+  color: "var(--syn-status-running, #60a5fa)",
   flexShrink: 0,
 };
 
@@ -116,6 +115,20 @@ type StatusItem = {
   value: string;
   maxWidth?: string;
   busy?: boolean;
+  tone?: StatusTone;
+};
+
+type StatusTone = "neutral" | "info" | "warning" | "error" | "valid" | "running" | "pending" | "stale";
+
+const STATUS_TONE_COLOR: Record<StatusTone, string> = {
+  neutral: "var(--syn-text-secondary, rgba(203, 213, 225, 0.92))",
+  info: "var(--syn-status-info, #38bdf8)",
+  warning: "var(--syn-status-warning, #f59e0b)",
+  error: "var(--syn-status-error, #ef4444)",
+  valid: "var(--syn-status-valid, #22c55e)",
+  running: "var(--syn-status-running, #60a5fa)",
+  pending: "var(--syn-status-pending, #a78bfa)",
+  stale: "var(--syn-status-stale, #94a3b8)",
 };
 
 function StatusSpinner(): React.ReactElement {
@@ -179,6 +192,43 @@ function formatQaLabel(status: LayerQaStatus, issueCount: number, blockerCount: 
   return "unchecked";
 }
 
+function qaTone(status: LayerQaStatus, issueCount: number, blockerCount: number): StatusTone {
+  if (blockerCount > 0 || status === "error") {
+    return "error";
+  }
+  if (issueCount > 0 || status === "warning") {
+    return "warning";
+  }
+  if (status === "passed") {
+    return "valid";
+  }
+  return "stale";
+}
+
+function saveTone(isLoading: boolean, isSaving: boolean, lastSavedAt?: string | null): StatusTone {
+  if (isLoading) {
+    return "pending";
+  }
+  if (isSaving) {
+    return "running";
+  }
+  return lastSavedAt ? "valid" : "stale";
+}
+
+function syncTone(syncStatus: string): StatusTone {
+  const normalized = syncStatus.toLowerCase();
+  if (normalized.includes("error") || normalized.includes("fail") || normalized.includes("offline")) {
+    return "error";
+  }
+  if (normalized.includes("pending") || normalized.includes("wait")) {
+    return "pending";
+  }
+  if (normalized.includes("sync") || normalized.includes("linked") || normalized.includes("connected")) {
+    return "info";
+  }
+  return "stale";
+}
+
 /* ================================================================== */
 /*  Component                                                          */
 /* ================================================================== */
@@ -218,6 +268,9 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
   const projectLabel = formatProjectLabel(projectId);
   const geometryLabel = `${drawnFeatureCount} draw / ${measurementCount} meas / ${pinCount} pin`;
   const qaLabel = formatQaLabel(qaStatus, qaIssueCount, qaBlockerCount);
+  const qaValueTone = qaTone(qaStatus, qaIssueCount, qaBlockerCount);
+  const syncValueTone = syncTone(syncLabel);
+  const saveValueTone = saveTone(isLoading, isSaving, lastSavedAt);
   const statusItems: StatusItem[] = [
     { label: "Zoom", value: zoom.toFixed(1) },
     ...(cursor != null ? [{ label: "Cursor", value: `${cursor.lat.toFixed(5)}, ${cursor.lng.toFixed(5)}`, maxWidth: "12rem" }] : []),
@@ -225,13 +278,13 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
     { label: "Mode", value: workspaceLabel ?? "explore" },
     { label: "Layers", value: `${visibleLayerCount}/${layerCount}` },
     { label: "Select", value: `${selectedFeatureCount}` },
-    { label: "AOI", value: hasActiveAoi ? "active" : "none" },
+    { label: "AOI", value: hasActiveAoi ? "active" : "none", tone: hasActiveAoi ? "info" : "stale" },
     { label: "Marks", value: geometryLabel },
     { label: "Units", value: measureUnit === "metric" ? "metric" : "imperial" },
-    { label: "CRS", value: crs },
-    { label: "QA", value: qaLabel },
-    { label: "Sync", value: syncLabel },
-    { label: "Saved", value: saveLabel, busy: isSaving || isLoading },
+    { label: "CRS", value: crs, tone: "info" },
+    { label: "QA", value: qaLabel, tone: qaValueTone },
+    { label: "Sync", value: syncLabel, tone: syncValueTone },
+    { label: "Saved", value: saveLabel, busy: isSaving || isLoading, tone: saveValueTone },
   ];
 
   return (
@@ -242,7 +295,12 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
             {index > 0 ? <span style={separatorStyle}>/</span> : null}
             <span style={{ ...statusItem, maxWidth: item.maxWidth }}>
               <b style={labelStyle}>{item.label}</b>
-              <span style={item.busy ? busyValueStyle : valueStyle}>
+              <span
+                style={{
+                  ...(item.busy ? busyValueStyle : valueStyle),
+                  color: item.tone ? STATUS_TONE_COLOR[item.tone] : valueStyle.color,
+                }}
+              >
                 :
                 {item.busy ? <StatusSpinner /> : null}
                 {item.value}

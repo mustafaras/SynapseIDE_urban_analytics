@@ -245,22 +245,18 @@
   height: 20px;
   padding: 0 8px;
   border-radius: var(--ide-radius-pill);
-  border: 1px solid var(--ide-status-needs-context-border);
-  background: var(--ide-status-needs-context-bg);
+  border: none;
+  background: transparent;
   color: var(--ide-status-needs-context-text);
   font: 600 11px/1 var(--font-code);
   white-space: nowrap;
 }
 
 .synapse-ide-shell__handoff-chip[data-state="ready"] {
-  border-color: var(--ide-status-ready-border);
-  background: var(--ide-status-ready-bg);
   color: var(--ide-status-ready-text);
 }
 
 .synapse-ide-shell__handoff-chip[data-state="draft"] {
-  border-color: var(--ide-status-draft-border);
-  background: var(--ide-status-draft-bg);
   color: var(--ide-status-draft-text);
 }
 
@@ -333,7 +329,7 @@
   overflow: hidden;
   border-top: 1px solid var(--ide-border-subtle);
   background: var(--ide-bg-panel);
-  box-shadow: var(--ide-shadow-md);
+  box-shadow: none;
 }
 
 .synapse-ide-shell__bottom-resizer {
@@ -382,7 +378,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid transparent;
+  border: none;
   border-radius: var(--ide-radius-sm);
   background: transparent;
   color: var(--ide-text-muted);
@@ -400,21 +396,19 @@
 .synapse-ide-shell__bottom-close:hover,
 .synapse-ide-shell__bottom-close:focus-visible {
   color: var(--ide-text-primary);
-  border-color: var(--ide-border-subtle);
-  background: var(--ide-bg-control-hover);
+  background: transparent;
 }
 
 .synapse-ide-shell__bottom-tab:focus-visible,
 .synapse-ide-shell__bottom-close:focus-visible {
-  outline: var(--ide-focus-width, 2px) solid var(--ide-focus-ring, var(--ide-accent));
-  outline-offset: var(--ide-focus-offset, 2px);
-  box-shadow: var(--ide-focus-shadow, 0 0 0 3px color-mix(in srgb, var(--syn-border-focus) 45%, transparent));
+  outline: none;
+  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--syn-border-focus, #60a5fa) 75%, transparent);
 }
 
 .synapse-ide-shell__bottom-tab[data-active="true"] {
   color: var(--syn-interaction-active);
-  border-color: var(--syn-border-active);
-  background: var(--ide-bg-control);
+  background: transparent;
+  box-shadow: inset 0 -1px 0 var(--syn-border-active);
 }
 
 .synapse-ide-shell__bottom-tab span {
@@ -425,9 +419,9 @@
   justify-content: center;
   padding: 0 4px;
   border-radius: var(--ide-radius-pill);
-  background: var(--ide-status-caveat-bg);
-  border: 1px solid var(--ide-status-caveat-border);
-  color: var(--ide-status-caveat-text);
+  background: transparent;
+  border: none;
+  color: var(--syn-status-info, var(--ide-status-caveat-text));
   font-size: 9px;
 }
 
@@ -534,11 +528,11 @@
 }
 
 .synapse-ide-bottom-tasks__state--idle      { color: var(--ide-text-muted); }
-.synapse-ide-bottom-tasks__state--queued    { color: var(--ide-text-secondary); }
+.synapse-ide-bottom-tasks__state--queued    { color: var(--syn-status-pending, var(--ide-text-secondary)); }
 .synapse-ide-bottom-tasks__state--running   { color: var(--syn-status-running); }
-.synapse-ide-bottom-tasks__state--success   { color: var(--ide-status-ok-text, #4ade80); }
-.synapse-ide-bottom-tasks__state--error     { color: var(--ide-status-error-text, #f87171); }
-.synapse-ide-bottom-tasks__state--cancelled { color: var(--ide-text-muted); }
+.synapse-ide-bottom-tasks__state--success   { color: var(--syn-status-valid, var(--ide-status-ok-text, #4ade80)); }
+.synapse-ide-bottom-tasks__state--error     { color: var(--syn-status-error, var(--ide-status-error-text, #f87171)); }
+.synapse-ide-bottom-tasks__state--cancelled { color: var(--syn-status-stale, var(--ide-text-muted)); }
 
 .synapse-ide-bottom-tasks__note {
   font: 11px/1.5 var(--font-code);
@@ -935,30 +929,10 @@
   border-right-color: color-mix(in srgb, var(--syn-border-active) 36%, var(--syn-border-subtle) 64%);
 }
 
-/* 6 ∙ Bottom panel frame — second-tier active + animated glow pulse */
-@keyframes syn-shell-edge-pulse {
-  0%, 100% {
-    box-shadow:
-      0 -1px 0 color-mix(in srgb, var(--syn-interaction-active) 20%, transparent),
-      0 -8px 28px rgba(0, 0, 0, 0.52);
-  }
-  50% {
-    box-shadow:
-      0 -2px 0 color-mix(in srgb, var(--syn-interaction-active) 34%, transparent),
-      0 -10px 32px rgba(0, 0, 0, 0.52),
-      0 -3px 16px color-mix(in srgb, var(--syn-interaction-active) 20%, transparent);
-  }
-}
-
 .synapse-ide-shell__bottom-panel-frame {
   border-top: 1px solid color-mix(in srgb, var(--syn-border-active) 55%, var(--syn-border-subtle) 45%);
-  animation: syn-shell-edge-pulse 6s ease-in-out infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .synapse-ide-shell__bottom-panel-frame {
-    animation: none;
-  }
+  animation: none;
+  box-shadow: 0 -1px 0 color-mix(in srgb, var(--syn-interaction-active) 18%, transparent);
 }
 
 /* 7 ∙ Bottom tabs strip — ultra-subtle active bottom hairline */

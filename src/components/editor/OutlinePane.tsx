@@ -48,7 +48,7 @@ const Title = styled.h2`
 `;
 
 const Kicker = styled.div`
-  color: var(--ide-accent);
+  color: var(--syn-interaction-active, var(--ide-accent));
   font: 700 10px/1 var(--font-code);
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -60,7 +60,6 @@ const InputWrap = styled.label`
   align-items: center;
   gap: 6px;
   padding: 0 8px;
-  border: 1px solid var(--ide-border-subtle);
   border-radius: var(--ide-radius-sm);
   background: var(--ide-bg-control);
   color: var(--ide-text-muted);
@@ -93,7 +92,6 @@ const SourcePill = styled.span`
   flex: 0 0 auto;
   padding: 2px 6px;
   border-radius: var(--ide-radius-pill);
-  border: 1px solid var(--ide-border-subtle);
   background: var(--ide-bg-control);
   color: var(--ide-text-secondary);
   text-transform: uppercase;
@@ -114,7 +112,7 @@ const SymbolButton = styled.button<{ $depth: number }>`
   align-items: center;
   gap: 8px;
   padding: 4px 6px 4px ${({ $depth }) => 6 + $depth * 12}px;
-  border: 1px solid transparent;
+  border: none;
   border-radius: var(--ide-radius-sm);
   background: transparent;
   color: var(--ide-text-secondary);
@@ -125,8 +123,7 @@ const SymbolButton = styled.button<{ $depth: number }>`
   &:hover,
   &:focus-visible {
     color: var(--ide-text-primary);
-    border-color: var(--ide-border-subtle);
-    background: var(--ide-bg-control-hover);
+    background: color-mix(in srgb, var(--syn-interaction-hover, var(--ide-bg-control-hover)) 75%, transparent);
     outline: none;
   }
 `;

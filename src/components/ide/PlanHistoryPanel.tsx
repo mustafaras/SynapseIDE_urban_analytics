@@ -29,8 +29,8 @@ const Root = styled.div`
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: var(--syn-bg, #111);
-  color: var(--syn-text, #e5e5e5);
+  background: transparent;
+  color: var(--syn-text-primary, #d4d4d4);
   font-size: 12px;
   overflow: hidden;
 `;
@@ -39,7 +39,7 @@ const Toolbar = styled.div`
   display: flex;
   align-items: center;
   padding: 6px 12px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid var(--syn-border-subtle, rgba(255,255,255,0.06));
   gap: 8px;
   flex-shrink: 0;
 `;
@@ -48,7 +48,7 @@ const ToolbarTitle = styled.span`
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.4px;
-  color: rgba(255,255,255,0.45);
+  color: var(--syn-text-muted, rgba(255,255,255,0.45));
   text-transform: uppercase;
   flex: 1;
 `;
@@ -58,15 +58,15 @@ const ToolbarBtn = styled.button`
   align-items: center;
   gap: 4px;
   padding: 3px 8px;
-  border: 1px solid rgba(255,255,255,0.08);
+  border: none;
   border-radius: 4px;
   background: transparent;
-  color: rgba(255,255,255,0.4);
+  color: var(--syn-text-muted, rgba(255,255,255,0.4));
   font-size: 11px;
   cursor: pointer;
   transition: background 80ms, color 80ms;
-  &:hover { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.75); }
-  &:focus-visible { outline: 1px solid rgba(255,255,255,0.3); }
+  &:hover { color: var(--syn-text-primary, #d4d4d4); }
+  &:focus-visible { outline: 1px solid color-mix(in srgb, var(--syn-border-focus, #60a5fa) 55%, transparent); }
 `;
 
 const List = styled.div`
@@ -84,15 +84,15 @@ const EmptyState = styled.div`
   gap: 6px;
   height: 100%;
   min-height: 80px;
-  color: rgba(255,255,255,0.25);
+  color: var(--syn-text-muted, rgba(255,255,255,0.25));
   font-size: 12px;
   padding: 24px;
   text-align: center;
-  strong { color: rgba(255,255,255,0.35); display: block; margin-bottom: 2px; }
+  strong { color: var(--syn-text-secondary, rgba(255,255,255,0.35)); display: block; margin-bottom: 2px; }
 `;
 
 const RecordRow = styled.div<{ $status: string }>`
-  border-bottom: 1px solid rgba(255,255,255,0.04);
+  border-bottom: 1px solid var(--syn-border-subtle, rgba(255,255,255,0.04));
   &:last-child { border-bottom: none; }
 `;
 
@@ -108,14 +108,14 @@ const RecordHeader = styled.button<{ $expanded: boolean }>`
   text-align: left;
   color: inherit;
   transition: background 80ms;
-  &:hover { background: rgba(255,255,255,0.04); }
-  &:focus-visible { outline: 1px solid rgba(255,255,255,0.2); outline-offset: -1px; }
+  &:hover { background: color-mix(in srgb, var(--syn-interaction-hover, rgba(255,255,255,0.04)) 70%, transparent); }
+  &:focus-visible { outline: 1px solid color-mix(in srgb, var(--syn-border-focus, #60a5fa) 55%, transparent); outline-offset: -1px; }
 `;
 
 const Chevron = styled.span`
   margin-top: 1px;
   flex-shrink: 0;
-  color: rgba(255,255,255,0.25);
+  color: var(--syn-text-muted, rgba(255,255,255,0.25));
 `;
 
 const RecordMeta = styled.div`
@@ -150,7 +150,7 @@ const StatusBadge = styled.span<{ $status: string }>`
     if ($status === 'partially_applied') return '#f59e0b';
     if ($status === 'failed') return '#f85149';
     if ($status === 'reverted') return '#79a0e8';
-    return 'rgba(255,255,255,0.4)';
+    return 'var(--syn-text-muted, rgba(255,255,255,0.4))';
   }};
 `;
 
@@ -168,7 +168,7 @@ const ConflictBadge = styled.span`
 const SourcePrompt = styled.div`
   margin-top: 3px;
   font-size: 11.5px;
-  color: rgba(255,255,255,0.55);
+  color: var(--syn-text-secondary, rgba(255,255,255,0.55));
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -177,12 +177,12 @@ const SourcePrompt = styled.div`
 const RecordTimestamp = styled.div`
   margin-top: 2px;
   font-size: 10.5px;
-  color: rgba(255,255,255,0.22);
+  color: var(--syn-text-muted, rgba(255,255,255,0.22));
 `;
 
 const FileStat = styled.span`
   font-size: 10.5px;
-  color: rgba(255,255,255,0.3);
+  color: var(--syn-text-muted, rgba(255,255,255,0.3));
 `;
 
 const RevertBtn = styled.button`
@@ -191,17 +191,17 @@ const RevertBtn = styled.button`
   align-items: center;
   gap: 4px;
   padding: 3px 8px;
-  border: 1px solid rgba(100,120,200,0.3);
+  border: 1px solid color-mix(in srgb, var(--syn-status-info, #60a5fa) 35%, transparent);
   border-radius: 4px;
-  background: rgba(100,120,200,0.08);
-  color: #79a0e8;
+  background: transparent;
+  color: var(--syn-status-info, #79a0e8);
   font-size: 10.5px;
   cursor: pointer;
   margin-top: 2px;
   transition: background 80ms, color 80ms;
-  &:hover { background: rgba(100,120,200,0.16); color: #aac0f5; border-color: rgba(100,120,200,0.5); }
+  &:hover { background: color-mix(in srgb, var(--syn-status-info, #60a5fa) 10%, transparent); color: var(--syn-text-primary, #d4d4d4); border-color: color-mix(in srgb, var(--syn-status-info, #60a5fa) 55%, transparent); }
   &:disabled { opacity: 0.35; cursor: not-allowed; }
-  &:focus-visible { outline: 1px solid rgba(100,120,200,0.5); }
+  &:focus-visible { outline: 1px solid color-mix(in srgb, var(--syn-border-focus, #60a5fa) 55%, transparent); }
 `;
 
 const FileList = styled.div`
@@ -216,7 +216,7 @@ const FileEntry = styled.div`
   align-items: center;
   gap: 6px;
   font-size: 11px;
-  color: rgba(255,255,255,0.55);
+  color: var(--syn-text-secondary, rgba(255,255,255,0.55));
   line-height: 1.4;
 `;
 
@@ -228,13 +228,13 @@ const ActionTag = styled.span<{ $action: string }>`
   text-transform: uppercase;
   letter-spacing: 0.3px;
   background: ${({ $action }) =>
-    $action === 'create' ? 'rgba(63,185,80,0.12)' :
-    $action === 'replace' ? 'rgba(100,150,255,0.12)' :
-    'rgba(255,255,255,0.06)'};
+    $action === 'create' ? 'color-mix(in srgb, var(--syn-status-valid, #3fb950) 12%, transparent)' :
+    $action === 'replace' ? 'color-mix(in srgb, var(--syn-status-info, #60a5fa) 12%, transparent)' :
+    'color-mix(in srgb, var(--syn-text-muted, #8b949e) 12%, transparent)'};
   color: ${({ $action }) =>
-    $action === 'create' ? '#3fb950' :
-    $action === 'replace' ? '#79a0e8' :
-    'rgba(255,255,255,0.4)'};
+    $action === 'create' ? 'var(--syn-status-valid, #3fb950)' :
+    $action === 'replace' ? 'var(--syn-status-info, #79a0e8)' :
+    'var(--syn-text-muted, rgba(255,255,255,0.4))'};
 `;
 
 const RevertDot = styled.span<{ $available: boolean }>`
@@ -242,7 +242,7 @@ const RevertDot = styled.span<{ $available: boolean }>`
   height: 5px;
   border-radius: 50%;
   flex-shrink: 0;
-  background: ${({ $available }) => $available ? '#79a0e8' : 'rgba(255,255,255,0.1)'};
+  background: ${({ $available }) => $available ? 'var(--syn-status-info, #79a0e8)' : 'color-mix(in srgb, var(--syn-text-muted, #8b949e) 22%, transparent)'};
   title: ${({ $available }) => $available ? 'Revertable' : 'No snapshot'};
 `;
 
@@ -252,12 +252,12 @@ const ConflictList = styled.div`
 
 const ConflictEntry = styled.div`
   font-size: 11px;
-  color: #f85149;
+  color: var(--syn-status-error, #f85149);
   padding: 2px 0;
   display: flex;
   gap: 6px;
   align-items: flex-start;
-  &::before { content: '!'; flex-shrink: 0; font-weight: 700; }
+  &::before { content: '!'; flex-shrink: 0; font-weight: 700; color: var(--syn-status-error, #f85149); }
 `;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

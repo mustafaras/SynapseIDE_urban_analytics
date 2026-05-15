@@ -38,38 +38,47 @@ const ModeRow = styled.div`
 `;
 const ModeChip = styled.button<{ $active: boolean }>`
   position: relative;
-  padding: 6px 12px;
+  padding: 6px 4px 8px;
   border-radius: 4px;
   font-size: 14px;
   line-height: 1.2;
-  background: ${({ $active }) => ($active ? withAlpha('#F59E0B', 0.14) : 'transparent')};
-  color: ${({ $active }) => ($active ? '#D6D3D1' : SYNAPSE_COLORS.textSecondary)};
+  background: transparent;
+  color: ${({ $active }) => ($active ? '#F5F5F4' : SYNAPSE_COLORS.textSecondary)};
   border: none;
-  border-bottom: 2px solid
-    ${({ $active }) => ($active ? '#F59E0B' : 'transparent')};
   cursor: pointer;
   min-height: 40px;
   display: inline-flex;
   align-items: center;
   font-weight: 500;
-  transition: background 140ms var(--syn-easing-bauhaus), color 140ms var(--syn-easing-bauhaus), border-color 140ms var(--syn-easing-bauhaus);
-  &:hover { background: ${({ $active }) => ($active ? withAlpha('#F59E0B', 0.20) : withAlpha('#ffffff', 0.05))}; }
-  &:focus-visible { outline: 2px solid #F59E0B; outline-offset: 2px; }
+  transition: color 140ms var(--syn-easing-bauhaus), opacity 140ms var(--syn-easing-bauhaus);
+  &::after {
+    content: '';
+    position: absolute;
+    left: 4px;
+    right: 4px;
+    bottom: 0;
+    height: 2px;
+    border-radius: 999px;
+    background: ${({ $active }) => ($active ? '#F59E0B' : 'transparent')};
+    opacity: ${({ $active }) => ($active ? 1 : 0)};
+    transform: translateY(1px);
+    transition: opacity 140ms var(--syn-easing-bauhaus), background 140ms var(--syn-easing-bauhaus);
+  }
+  &:hover { color: #F5F5F4; }
+  &:focus-visible { outline: none; color: #F5F5F4; }
 `;
 const InputWrapper = styled.div`
   position: relative;
   display: flex;
   align-items: center;
-  background: ${withAlpha('#ffffff', 0.04)};
-  border: 1px solid rgba(255,255,255,0.08);
+  background: ${withAlpha('#ffffff', 0.03)};
+  border: none;
   border-radius: 6px;
   padding: 0 12px;
   height: 46px;
-  transition: border-color 160ms var(--syn-easing-bauhaus), background 160ms var(--syn-easing-bauhaus);
+  transition: background 160ms var(--syn-easing-bauhaus);
   &:focus-within {
-    border-color: var(--ide-focus-ring, ${withAlpha('#F59E0B', 0.6)});
-    background: ${withAlpha('#F59E0B', 0.08)};
-    box-shadow: var(--ide-focus-shadow, 0 0 0 3px rgba(245, 158, 11, 0.35));
+    background: ${withAlpha('#F59E0B', 0.06)};
   }
 `;
 const SearchInput = styled.input`
@@ -107,23 +116,22 @@ const GroupHeading = styled.div`
 `;
 const ResultButton = styled.button<{ $active: boolean; $dense?: boolean; $disabled?: boolean }>`
   text-align: left;
-  padding: 12px 14px;
+  padding: 11px 10px;
   border-radius: 6px;
-  border: 1px solid
-    ${({ $active }) => ($active ? withAlpha('#F59E0B', 0.50) : 'rgba(255,255,255,0.08)')};
+  border: none;
   opacity: ${({ $disabled }) => ($disabled ? 0.48 : 1)};
   cursor: ${({ $disabled }) => ($disabled ? 'not-allowed' : 'pointer')};
   background: ${({ $active }) =>
-    $active ? withAlpha('#F59E0B', 0.16) : withAlpha('#ffffff', 0.02)};
+    $active ? withAlpha('#F59E0B', 0.08) : 'transparent'};
   color: #D6D3D1;
   font-family: ${SYNAPSE_TYPO.fontFamily};
   display: grid;
   gap: 4px;
   cursor: pointer;
   min-height: 52px;
-  transition: background 120ms var(--syn-easing-bauhaus), border-color 120ms var(--syn-easing-bauhaus), color 120ms var(--syn-easing-bauhaus);
-  &:hover { background: ${({ $active }) => ($active ? withAlpha('#F59E0B', 0.20) : withAlpha('#ffffff', 0.05))}; }
-  &:focus-visible { outline: 2px solid #F59E0B; outline-offset: 2px; }
+  transition: background 120ms var(--syn-easing-bauhaus), color 120ms var(--syn-easing-bauhaus);
+  &:hover { background: ${({ $active }) => ($active ? withAlpha('#F59E0B', 0.12) : withAlpha('#ffffff', 0.03))}; }
+  &:focus-visible { outline: none; background: ${({ $active }) => ($active ? withAlpha('#F59E0B', 0.12) : withAlpha('#ffffff', 0.04))}; }
 `;
 const ResultMeta = styled.small`
   color: #A8A29E;
@@ -141,7 +149,6 @@ const FooterBar = styled.div`
   font-size: 12px;
   color: #A8A29E;
   padding-top: 12px;
-  border-top: 1px solid rgba(255,255,255,0.06);
   margin-top: 4px;
 `;
 

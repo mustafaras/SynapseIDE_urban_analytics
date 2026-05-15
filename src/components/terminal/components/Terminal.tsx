@@ -165,12 +165,12 @@ export const Terminal: React.FC<TerminalProps> = ({
  style={{
  height: `${effectiveHeight}px`,
 
- background: '#000000',
+ background: 'var(--syn-surface-workbench, #0f1115)',
  backdropFilter: 'none',
- border: '1px solid rgba(245,158,11,0.14)',
+ border: '1px solid var(--syn-border-subtle, rgba(255,255,255,0.08))',
  borderBottom: 'none',
- borderTop: '1px solid rgba(245,158,11,0.22)',
- color: '#F0E4C0',
+ borderTop: '1px solid color-mix(in srgb, var(--syn-border-active, #60a5fa) 42%, transparent)',
+ color: 'var(--syn-text-primary, #d4d4d4)',
  fontFamily: 'JetBrains Mono, Fira Code, Consolas, Monaco, monospace',
  fontSize: '13px',
  overflow: 'hidden',
@@ -181,7 +181,7 @@ export const Terminal: React.FC<TerminalProps> = ({
  left: fileExplorerWidth && fileExplorerWidth > 0 ? `${fileExplorerWidth}px` : 0,
  right: aiAssistantWidth ? `${aiAssistantWidth}px` : 0,
  zIndex: 2147483647,
- boxShadow: 'var(--shadow-md)',
+ boxShadow: 'none',
  flexShrink: 0,
  display: 'flex',
  flexDirection: 'column',
@@ -222,17 +222,17 @@ export const Terminal: React.FC<TerminalProps> = ({
  height: 5,
  cursor: 'row-resize',
  zIndex: 10,
- background: 'rgba(245,158,11,0.22)',
+ background: 'color-mix(in srgb, var(--syn-interaction-active, #60a5fa) 22%, transparent)',
  transition: 'background 0.15s',
  }}
- onMouseEnter={e => { e.currentTarget.style.background = 'rgba(245,158,11,0.55)'; }}
- onMouseLeave={e => { e.currentTarget.style.background = 'rgba(245,158,11,0.22)'; }}
+ onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--syn-interaction-active, #60a5fa) 40%, transparent)'; }}
+ onMouseLeave={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--syn-interaction-active, #60a5fa) 22%, transparent)'; }}
  />
  {}
  <div
  style={{
- background: '#000000',
- borderBottom: '1px solid rgba(245,158,11,0.18)',
+ background: 'var(--syn-surface-panel, #121212)',
+ borderBottom: '1px solid var(--syn-border-subtle, rgba(255,255,255,0.08))',
  padding: '8px 16px',
  display: 'flex',
  alignItems: 'center',
@@ -247,16 +247,16 @@ export const Terminal: React.FC<TerminalProps> = ({
  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
  <div
  style={{
- background: '#1d1d1d',
+ background: 'var(--syn-surface-elevated, #1a1d24)',
  borderRadius: '50%',
  width: '8px',
  height: '8px',
  }}
  />
- <TerminalIcon size={16} color="#F59E0B" />
+ <TerminalIcon size={16} color="var(--syn-interaction-active, #60a5fa)" />
  <span
  style={{
- color: '#F59E0B',
+ color: 'var(--syn-text-primary, #d4d4d4)',
  fontWeight: 600,
  fontSize: '13px',
  letterSpacing: '.5px',
@@ -290,10 +290,10 @@ export const Terminal: React.FC<TerminalProps> = ({
  aria-label="Terminal shell"
  className="terminal-shell-select"
  style={{
- background: '#0d0d0d',
- border: '1px solid #2A2A2A',
+ background: 'var(--syn-surface-editor, #111827)',
+ border: '1px solid var(--syn-border-subtle, rgba(255,255,255,0.12))',
  borderRadius: '6px',
- color: '#F59E0B',
+ color: 'var(--syn-text-secondary, #b4b4b4)',
  fontSize: '12px',
  fontWeight: 500,
  padding: '6px 24px 6px 10px',
@@ -312,8 +312,8 @@ export const Terminal: React.FC<TerminalProps> = ({
  textOverflow: 'ellipsis',
  whiteSpace: 'nowrap',
  }}
- onMouseEnter={e => { e.currentTarget.style.background = '#1A1A1A'; e.currentTarget.style.borderColor = '#3A3A3A'; }}
- onMouseLeave={e => { e.currentTarget.style.background = '#0d0d0d'; e.currentTarget.style.borderColor = '#2A2A2A'; }}
+ onMouseEnter={e => { e.currentTarget.style.background = 'var(--syn-surface-elevated, #1a1d24)'; e.currentTarget.style.borderColor = 'var(--syn-border-default, rgba(255,255,255,0.2))'; }}
+ onMouseLeave={e => { e.currentTarget.style.background = 'var(--syn-surface-editor, #111827)'; e.currentTarget.style.borderColor = 'var(--syn-border-subtle, rgba(255,255,255,0.12))'; }}
  >
  {Object.entries(SHELL_CONFIGS).map(([key, config]) => (
  <option key={key} value={key} className="terminal-shell-option">
@@ -329,7 +329,7 @@ export const Terminal: React.FC<TerminalProps> = ({
  right: '8px',
  top: '50%',
  transform: 'translateY(-50%)',
- color: '#F59E0B',
+ color: 'var(--syn-text-muted, #8b949e)',
  pointerEvents: 'none',
  fontSize: '10px',
  opacity: 0.8,
@@ -353,7 +353,7 @@ export const Terminal: React.FC<TerminalProps> = ({
  style={{
  background: 'transparent',
  border: 'none',
- color: '#8C8579',
+ color: 'var(--syn-text-muted, #8b949e)',
  cursor: 'pointer',
  padding: '4px',
  borderRadius: '4px',
@@ -362,11 +362,11 @@ export const Terminal: React.FC<TerminalProps> = ({
  transition: 'var(--syn-transition-medium)',
  }}
  onMouseEnter={e => {
- e.currentTarget.style.color = '#F59E0B';
- e.currentTarget.style.background = '#1A1A1A';
+ e.currentTarget.style.color = 'var(--syn-text-primary, #d4d4d4)';
+ e.currentTarget.style.background = 'color-mix(in srgb, var(--syn-interaction-hover, rgba(255,255,255,0.08)) 70%, transparent)';
  }}
  onMouseLeave={e => {
- e.currentTarget.style.color = '#8C8579';
+ e.currentTarget.style.color = 'var(--syn-text-muted, #8b949e)';
  e.currentTarget.style.background = 'transparent';
  }}
  >
@@ -385,7 +385,7 @@ export const Terminal: React.FC<TerminalProps> = ({
  style={{
  background: 'transparent',
  border: 'none',
- color: '#8C8579',
+ color: 'var(--syn-text-muted, #8b949e)',
  cursor: 'pointer',
  padding: '4px',
  borderRadius: '4px',
@@ -394,11 +394,11 @@ export const Terminal: React.FC<TerminalProps> = ({
  transition: 'var(--syn-transition-medium)',
  }}
  onMouseEnter={e => {
- e.currentTarget.style.color = '#F59E0B';
- e.currentTarget.style.background = '#1A1A1A';
+ e.currentTarget.style.color = 'var(--syn-text-primary, #d4d4d4)';
+ e.currentTarget.style.background = 'color-mix(in srgb, var(--syn-interaction-hover, rgba(255,255,255,0.08)) 70%, transparent)';
  }}
  onMouseLeave={e => {
- e.currentTarget.style.color = '#8C8579';
+ e.currentTarget.style.color = 'var(--syn-text-muted, #8b949e)';
  e.currentTarget.style.background = 'transparent';
  }}
  >
@@ -419,7 +419,7 @@ export const Terminal: React.FC<TerminalProps> = ({
  style={{
  background: 'transparent',
  border: 'none',
- color: '#8C8579',
+ color: 'var(--syn-text-muted, #8b949e)',
  cursor: 'pointer',
  padding: '4px',
  borderRadius: '4px',
@@ -428,11 +428,11 @@ export const Terminal: React.FC<TerminalProps> = ({
  transition: 'var(--syn-transition-medium)',
  }}
  onMouseEnter={e => {
- e.currentTarget.style.color = '#EF4444';
- e.currentTarget.style.background = 'rgba(239,68,68,0.12)';
+ e.currentTarget.style.color = 'var(--syn-status-error, #ef4444)';
+ e.currentTarget.style.background = 'color-mix(in srgb, var(--syn-status-error, #ef4444) 18%, transparent)';
  }}
  onMouseLeave={e => {
- e.currentTarget.style.color = '#8C8579';
+ e.currentTarget.style.color = 'var(--syn-text-muted, #8b949e)';
  e.currentTarget.style.background = 'transparent';
  }}
  >
@@ -460,9 +460,9 @@ export const Terminal: React.FC<TerminalProps> = ({
 
 
  .syn-terminal-container {
- --terminal-focus-ring-color: var(--focus-ring, rgba(245, 158, 11, 0.68));
- --terminal-focus-ring-width: var(--focus-ring-width, 2px);
- --terminal-focus-shadow: var(--shadow-focus, 0 0 0 3px rgba(245, 158, 11, 0.35));
+ --terminal-focus-ring-color: var(--syn-border-focus, rgba(96, 165, 250, 0.85));
+ --terminal-focus-ring-width: var(--ide-focus-width, 1px);
+ --terminal-focus-shadow: var(--ide-focus-shadow, 0 0 0 2px color-mix(in srgb, var(--syn-border-focus, #60a5fa) 38%, transparent));
  }
 
 
@@ -502,7 +502,7 @@ export const Terminal: React.FC<TerminalProps> = ({
  }
 
  .terminal-shell-select:focus {
- border-color: rgba(245, 158, 11, 0.4) !important;
+ border-color: color-mix(in srgb, var(--syn-border-active, #60a5fa) 55%, transparent) !important;
  }
 
  .terminal-shell-select:focus-visible {
@@ -519,8 +519,8 @@ export const Terminal: React.FC<TerminalProps> = ({
 
 
  .terminal-shell-select option {
- background: #0d0d0d !important;
- color: #F59E0B !important;
+ background: var(--syn-surface-editor, #111827) !important;
+ color: var(--syn-text-secondary, #b4b4b4) !important;
  padding: 12px 16px !important;
  border: none !important;
  font-weight: 500 !important;
@@ -529,15 +529,15 @@ export const Terminal: React.FC<TerminalProps> = ({
  }
 
  .terminal-shell-select option:hover {
- background: #1A1A1A !important;
- color: #F59E0B !important;
+ background: var(--syn-surface-elevated, #1a1d24) !important;
+ color: var(--syn-text-primary, #d4d4d4) !important;
  border: none !important;
  }
 
  .terminal-shell-select option:checked,
  .terminal-shell-select option:selected {
- background: #121212 !important;
- color: #F59E0B !important;
+ background: color-mix(in srgb, var(--syn-interaction-selected, rgba(96,165,250,0.18)) 55%, var(--syn-surface-panel, #121212)) !important;
+ color: var(--syn-text-primary, #d4d4d4) !important;
  font-weight: 600 !important;
  border: none !important;
  }
@@ -547,7 +547,7 @@ export const Terminal: React.FC<TerminalProps> = ({
  .syn-terminal-container,
  .syn-terminal-container * {
  scrollbar-width: thin;
- scrollbar-color: rgba(245,158,11, 0.4) transparent;
+ scrollbar-color: color-mix(in srgb, var(--syn-interaction-active, #60a5fa) 42%, transparent) transparent;
  }
  .syn-terminal-container::-webkit-scrollbar,
  .syn-terminal-container *::-webkit-scrollbar {
@@ -556,12 +556,12 @@ export const Terminal: React.FC<TerminalProps> = ({
  }
  .syn-terminal-container::-webkit-scrollbar-thumb,
  .syn-terminal-container *::-webkit-scrollbar-thumb {
- background: rgba(245,158,11, 0.4);
+ background: color-mix(in srgb, var(--syn-interaction-active, #60a5fa) 42%, transparent);
  border-radius: 4px;
  }
  .syn-terminal-container::-webkit-scrollbar-thumb:hover,
  .syn-terminal-container *::-webkit-scrollbar-thumb:hover {
- background: rgba(245,158,11, 0.6);
+ background: color-mix(in srgb, var(--syn-interaction-active, #60a5fa) 62%, transparent);
  }
  .syn-terminal-container::-webkit-scrollbar-track,
  .syn-terminal-container *::-webkit-scrollbar-track {
@@ -571,35 +571,35 @@ export const Terminal: React.FC<TerminalProps> = ({
 
  @-moz-document url-prefix() {
  .terminal-shell-select {
- background: #0d0d0d !important;
- color: #F59E0B !important;
- border: 1px solid #2A2A2A !important;
+ background: var(--syn-surface-editor, #111827) !important;
+ color: var(--syn-text-secondary, #b4b4b4) !important;
+ border: 1px solid var(--syn-border-subtle, rgba(255,255,255,0.12)) !important;
  }
 
  .terminal-shell-select option {
- background: #0d0d0d !important;
- color: #F59E0B !important;
+ background: var(--syn-surface-editor, #111827) !important;
+ color: var(--syn-text-secondary, #b4b4b4) !important;
  border: none !important;
  box-shadow: none !important;
  }
 
  .terminal-shell-select option:hover,
  .terminal-shell-select option:focus {
- background: #1A1A1A !important;
- color: #F59E0B !important;
+ background: var(--syn-surface-elevated, #1a1d24) !important;
+ color: var(--syn-text-primary, #d4d4d4) !important;
  border: none !important;
  box-shadow: none !important;
  }
 
  .terminal-shell-select option:checked {
- background: #121212 !important;
- color: #F59E0B !important;
+ background: color-mix(in srgb, var(--syn-interaction-selected, rgba(96,165,250,0.18)) 55%, var(--syn-surface-panel, #121212)) !important;
+ color: var(--syn-text-primary, #d4d4d4) !important;
  border: none !important;
  box-shadow: none !important;
  }
 
  .terminal-shell-select:focus {
- border: 1px solid rgba(245, 158, 11, 0.48) !important;
+ border: 1px solid color-mix(in srgb, var(--syn-border-active, #60a5fa) 55%, transparent) !important;
  }
 
  .terminal-shell-select:focus-visible {
@@ -613,14 +613,14 @@ export const Terminal: React.FC<TerminalProps> = ({
 
  @media screen and (-webkit-min-device-pixel-ratio:0) {
  .terminal-shell-select {
- background: #0d0d0d !important;
- border: 1px solid #2A2A2A !important;
+ background: var(--syn-surface-editor, #111827) !important;
+ border: 1px solid var(--syn-border-subtle, rgba(255,255,255,0.12)) !important;
  -webkit-appearance: none !important;
  appearance: none !important;
  }
 
  .terminal-shell-select:focus {
- border-color: rgba(245, 158, 11, 0.48) !important;
+ border-color: color-mix(in srgb, var(--syn-border-active, #60a5fa) 55%, transparent) !important;
  }
 
  .terminal-shell-select:focus-visible {
@@ -631,8 +631,8 @@ export const Terminal: React.FC<TerminalProps> = ({
  }
 
  .terminal-shell-select option {
- background: #0d0d0d !important;
- color: #F59E0B !important;
+ background: var(--syn-surface-editor, #111827) !important;
+ color: var(--syn-text-secondary, #b4b4b4) !important;
  border: none !important;
  box-shadow: none !important;
  }
@@ -672,12 +672,12 @@ export const Terminal: React.FC<TerminalProps> = ({
  }
 
  .terminal-shell-select::-webkit-scrollbar-thumb {
- background: rgba(245,158,11, 0.4);
+ background: color-mix(in srgb, var(--syn-interaction-active, #60a5fa) 42%, transparent);
  border-radius: 4px;
  }
 
  .terminal-shell-select::-webkit-scrollbar-thumb:hover {
- background: rgba(245,158,11, 0.6);
+ background: color-mix(in srgb, var(--syn-interaction-active, #60a5fa) 62%, transparent);
  }
 
 

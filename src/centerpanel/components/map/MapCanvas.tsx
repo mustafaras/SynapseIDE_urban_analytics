@@ -83,7 +83,7 @@ function createPinElement(label: string): HTMLDivElement {
   el.style.width = MAP_DIMENSIONS.pinMarkerSize;
   el.style.height = MAP_DIMENSIONS.pinMarkerSize;
   el.style.borderRadius = MAP_RADIUS.full;
-  el.style.background = MAP_COLORS.amber;
+  el.style.background = "var(--syn-status-info, #38bdf8)";
   el.style.border = MAP_STROKES.marker;
   el.style.boxShadow = MAP_SHADOWS.marker;
   el.style.cursor = "pointer";
@@ -170,9 +170,9 @@ function buildFeaturePopupHtml(properties: Record<string, unknown> | undefined):
 
   return `
     <div style="min-width:${MAP_DIMENSIONS.searchWidth};max-width:${MAP_DIMENSIONS.pinSidebarWidth};padding:${MAP_SPACING.sm};font-family:${MAP_TYPOGRAPHY.fontFamily}">
-      <div style="font-size:${MAP_TYPOGRAPHY.fontSize.sm};font-weight:${MAP_TYPOGRAPHY.fontWeight.bold};color:${MAP_COLORS.amber};margin-bottom:${MAP_SPACING.sm}">${escapeHtml(title)}</div>
+      <div style="font-size:${MAP_TYPOGRAPHY.fontSize.sm};font-weight:${MAP_TYPOGRAPHY.fontWeight.bold};color:var(--syn-text-primary, ${MAP_COLORS.text});margin-bottom:${MAP_SPACING.sm}">${escapeHtml(title)}</div>
       <div>${rows}</div>
-      <button type="button" data-map-feature-report="true" style="margin-top:${MAP_SPACING.sm};width:100%;border:${MAP_STROKES.hairlineStrong};border-radius:${MAP_RADIUS.sm};background:rgba(245,158,11,0.14);color:${MAP_COLORS.amber};font-size:${MAP_TYPOGRAPHY.fontSize.xs};font-weight:${MAP_TYPOGRAPHY.fontWeight.semibold};padding:${MAP_SPACING.xs} ${MAP_SPACING.sm};cursor:pointer">Add to report</button>
+      <button type="button" data-map-feature-report="true" style="margin-top:${MAP_SPACING.sm};width:100%;border:1px solid var(--syn-border-strong, rgba(148, 163, 184, 0.5));border-radius:${MAP_RADIUS.sm};background:var(--syn-interaction-hover, rgba(56, 189, 248, 0.14));color:var(--syn-text-primary, ${MAP_COLORS.text});font-size:${MAP_TYPOGRAPHY.fontSize.xs};font-weight:${MAP_TYPOGRAPHY.fontWeight.semibold};padding:${MAP_SPACING.xs} ${MAP_SPACING.sm};cursor:pointer">Add to report</button>
     </div>`;
 }
 

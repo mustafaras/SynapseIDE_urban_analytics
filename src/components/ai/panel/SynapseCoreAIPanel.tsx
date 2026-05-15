@@ -606,9 +606,6 @@ const PanelStatusStrip: React.FC<{ sessionTokens: number }> = ({ sessionTokens }
 };
 
 
-const sharedPanelBorder = 'var(--color-border-subtle, var(--syn-overlay-whisper))';
-const subtleBgGrad = 'linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.04))';
-
 const DebugTrayWrap = styled.div`
   padding: 0 14px 8px;
 `;
@@ -624,8 +621,8 @@ const PhaseStrip = styled.div`
 `;
 
 const StatusStripRoot = styled.div`
-  border-bottom: 1px solid ${sharedPanelBorder};
-  background: ${subtleBgGrad};
+  border-bottom: none;
+  background: transparent;
   padding: 4px 10px 6px;
   font-size: 11px;
   font-family: var(--font-mono);
@@ -673,15 +670,15 @@ const ActionBtnRow = styled.div`
 const StatusBtn = styled.button`
   font-size: 11px;
   padding: 2px 7px;
-  border: 1px solid var(--color-border-default, rgba(255,255,255,0.09));
+  border: none;
   border-radius: 6px;
-  background: var(--color-bg-surface-alt, rgba(255,255,255,0.05));
+  background: transparent;
   color: var(--color-text-secondary, #ddd);
   cursor: pointer;
   line-height: 1.2;
-  transition: background 140ms var(--syn-easing-bauhaus), color 140ms var(--syn-easing-bauhaus), border-color 140ms var(--syn-easing-bauhaus);
-  &:hover { background: var(--color-bg-surface, rgba(255,255,255,0.08)); }
-  &:focus-visible { outline: 2px solid var(--color-accent-primary, #f59e0b); outline-offset: 2px; }
+  transition: background 140ms var(--syn-easing-bauhaus), color 140ms var(--syn-easing-bauhaus);
+  &:hover { background: rgba(255,255,255,0.05); }
+  &:focus-visible { outline: none; box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-accent-primary, #f59e0b) 55%, transparent); }
 `;
 
 const StatusDetails = styled.div`
@@ -705,9 +702,9 @@ const StatusPillWrap = styled.div`
   align-items: center;
   gap: 6px;
   padding: 4px 10px;
-  border: 1px solid var(--color-border-default, rgba(255,255,255,0.08));
+  border: none;
   border-radius: 20px;
-  background: var(--color-bg-surface-alt, rgba(255,255,255,0.04));
+  background: transparent;
   max-width: 220px;
 `;
 const StatusPillLabel = styled.span`
@@ -734,8 +731,8 @@ const MiniTagBase = styled.span<{ $subtle: boolean }>`
   font-size: 9px;
   padding: 2px 6px;
   border-radius: 6px;
-  background: ${({ $subtle }) => $subtle ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.08)'};
-  border: 1px solid var(--color-border-subtle, #FFFFFF12);
+  background: ${({ $subtle }) => $subtle ? 'transparent' : 'rgba(255,255,255,0.04)'};
+  border: none;
   letter-spacing: .5px;
   text-transform: uppercase;
   opacity: ${({ $subtle }) => $subtle ? 0.6 : 0.9};
@@ -769,8 +766,8 @@ const InfoStat: React.FC<{ label: string; value: string }> = ({ label, value }) 
 
 interface InfoBarProps { from?: string | null | undefined; to?: string | null | undefined; onClose?: () => void }
 const InfoBarWrap = styled.div`
-  border-bottom: 1px solid var(--color-border-subtle, var(--color-border, rgba(255,255,255,0.08)));
-  background: linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.04));
+  border-bottom: none;
+  background: transparent;
   padding: 6px 10px;
   font-size: 11px;
   display: flex;
@@ -790,10 +787,10 @@ const InfoBar: React.FC<InfoBarProps> = ({ from, to, onClose }) => (
 
 interface ErrorCardProps { message: string; onSwitch: () => void; onOpenLogs: () => void }
 const ErrorCardWrap = styled.div`
-  border: 1px solid var(--color-border-default, var(--color-border, rgba(255,255,255,0.08)));
-  background: color-mix(in oklab, var(--color-status-danger, #ff4d4d), transparent 88%);
-  padding: 12px;
-  border-radius: 8px;
+  border: none;
+  background: color-mix(in oklab, var(--color-status-danger, #ff4d4d), transparent 92%);
+  padding: 10px 10px 8px;
+  border-radius: 6px;
   font-size: 12px;
   margin: 8px;
   display: flex;
@@ -806,12 +803,12 @@ const ErrorCardWrap = styled.div`
 const ErrorActionBtn = styled.button`
   padding: 6px 10px;
   border-radius: 6px;
-  border: 1px solid var(--color-border-default, var(--color-border, rgba(255,255,255,0.12)));
+  border: none;
   background: transparent;
   color: inherit;
   cursor: pointer;
   font-size: 12px;
-  &:focus-visible { outline: 2px solid var(--color-accent-primary, #f59e0b); outline-offset: 2px; }
+  &:focus-visible { outline: none; box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-accent-primary, #f59e0b) 55%, transparent); }
 `;
 const ErrorCard: React.FC<ErrorCardProps> = ({ message, onSwitch, onOpenLogs }) => (
   <ErrorCardWrap role="alert">
@@ -898,11 +895,11 @@ const ContextPreviewStrip: React.FC<{ ctxRef: React.MutableRefObject<BuiltContex
 };
 
 const CtxStrip = styled.div`
-  border-bottom: 1px solid rgba(245,158,11,0.10);
+  border-bottom: none;
   padding: 4px 10px 5px;
   font-size: 10px;
   font-family: var(--font-mono);
-  background: rgba(245,158,11,0.03);
+  background: transparent;
 `;
 
 const CtxRow = styled.div`
@@ -937,8 +934,8 @@ const CtxBadge = styled.span`
   font-size: 9px;
   padding: 1px 5px;
   border-radius: 4px;
-  background: rgba(245,158,11,0.12);
-  border: 1px solid rgba(245,158,11,0.22);
+  background: transparent;
+  border: none;
   color: #F59E0B;
   letter-spacing: .3px;
 `;
@@ -947,16 +944,15 @@ const CtxToggleBtn = styled.button<{ $active: boolean }>`
   font-size: 9px;
   padding: 1px 5px;
   border-radius: 4px;
-  border: 1px solid ${({ $active }) => $active ? 'rgba(245,158,11,0.55)' : 'rgba(255,255,255,0.09)'};
-  background: ${({ $active }) => $active ? 'rgba(245,158,11,0.15)' : 'transparent'};
+  border: none;
+  background: ${({ $active }) => $active ? 'rgba(245,158,11,0.08)' : 'transparent'};
   color: ${({ $active }) => $active ? '#F59E0B' : 'var(--color-text-secondary, #888)'};
   cursor: pointer;
   letter-spacing: .3px;
-  transition: background 120ms, border-color 120ms, color 120ms;
-  &:hover { background: rgba(245,158,11,0.10); border-color: rgba(245,158,11,0.35); }
+  transition: background 120ms, color 120ms;
+  &:hover { background: rgba(245,158,11,0.08); }
   &:focus-visible {
-    outline: var(--ide-focus-width, 2px) solid var(--ide-focus-ring, var(--ai-gold, #F59E0B));
-    outline-offset: var(--ide-focus-offset, 2px);
-    box-shadow: var(--ide-focus-shadow, 0 0 0 3px rgba(245, 158, 11, 0.35));
+    outline: none;
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--ai-gold, #F59E0B) 55%, transparent);
   }
 `;

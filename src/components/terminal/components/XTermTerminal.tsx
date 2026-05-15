@@ -19,28 +19,28 @@ interface XTermTerminalProps {
 }
 
 const XTERM_THEME = {
-  background: '#000000',
-  foreground: '#F0E4C0',          // warm amber-cream text
-  cursor: '#F59E0B',
-  cursorAccent: '#000000',
-  selectionBackground: 'rgba(245,158,11,0.30)',
-  selectionForeground: '#000000',
-  black: '#0a0a0a',
+  background: '#0f1115',
+  foreground: '#d4d4d4',
+  cursor: '#60a5fa',
+  cursorAccent: '#0f1115',
+  selectionBackground: 'rgba(96,165,250,0.28)',
+  selectionForeground: '#d4d4d4',
+  black: '#111318',
   red: '#EF4444',
   green: '#4ADE80',
-  yellow: '#F59E0B',              // amber as yellow
+  yellow: '#EAB308',
   blue: '#60A5FA',
   magenta: '#C084FC',
   cyan: '#22D3EE',
-  white: '#F0E4C0',               // warm white = amber-cream
+  white: '#d4d4d4',
   brightBlack: '#3D3D3D',
   brightRed: '#F87171',
   brightGreen: '#86EFAC',
-  brightYellow: '#FCD34D',        // bright amber
+  brightYellow: '#FDE047',
   brightBlue: '#93C5FD',
   brightMagenta: '#D8B4FE',
   brightCyan: '#67E8F9',
-  brightWhite: '#FEFCE8',         // near-white with amber warmth
+  brightWhite: '#f3f4f6',
 };
 
 export const XTermTerminal: React.FC<XTermTerminalProps> = ({
@@ -231,12 +231,12 @@ export const XTermTerminal: React.FC<XTermTerminalProps> = ({
             display: 'flex',
             alignItems: 'center',
             gap: 6,
-            background: 'rgba(13,13,13,0.88)',
-            border: `1px solid ${connState === 'error' ? '#EF4444' : '#F59E0B'}`,
+            background: 'color-mix(in srgb, var(--syn-surface-panel, #121212) 90%, transparent)',
+            border: `1px solid ${connState === 'error' ? 'var(--syn-status-error, #ef4444)' : 'var(--syn-status-info, #60a5fa)'}`,
             borderRadius: 6,
             padding: '4px 10px',
             fontSize: 11,
-            color: connState === 'error' ? '#EF4444' : '#F59E0B',
+            color: connState === 'error' ? 'var(--syn-status-error, #ef4444)' : 'var(--syn-status-info, #60a5fa)',
             pointerEvents: 'all',
           }}
         >
@@ -245,9 +245,9 @@ export const XTermTerminal: React.FC<XTermTerminalProps> = ({
               width: 7,
               height: 7,
               borderRadius: '50%',
-              background: connState === 'connecting' ? '#F59E0B'
-                : connState === 'error' ? '#EF4444'
-                : '#A8A29E',
+              background: connState === 'connecting' ? 'var(--syn-status-running, #38bdf8)'
+                : connState === 'error' ? 'var(--syn-status-error, #ef4444)'
+                : 'var(--syn-text-muted, #8b949e)',
               animation: connState === 'connecting' ? 'pulse 1.2s ease-in-out infinite' : 'none',
               display: 'inline-block',
               flexShrink: 0,
@@ -284,7 +284,7 @@ export const XTermTerminal: React.FC<XTermTerminalProps> = ({
           padding: '6px 10px',
           overflow: 'hidden',
           minHeight: 0,
-          background: '#000000',
+          background: '#0f1115',
         }}
       />
 
@@ -293,18 +293,18 @@ export const XTermTerminal: React.FC<XTermTerminalProps> = ({
           0%, 100% { opacity: 1; }
           50% { opacity: 0.3; }
         }
-        .xterm { height: 100%; background: #000000; }
-        .xterm-screen { background: #000000; }
-        .xterm-viewport { overflow-y: auto !important; background: #000000 !important; }
+        .xterm { height: 100%; background: #0f1115; }
+        .xterm-screen { background: #0f1115; }
+        .xterm-viewport { overflow-y: auto !important; background: #0f1115 !important; }
         .xterm-viewport::-webkit-scrollbar { width: 8px; }
         .xterm-viewport::-webkit-scrollbar-thumb {
-          background: rgba(245,158,11,0.45);
+          background: rgba(96,165,250,0.42);
           border-radius: 4px;
         }
         .xterm-viewport::-webkit-scrollbar-thumb:hover {
-          background: rgba(245,158,11,0.70);
+          background: rgba(96,165,250,0.62);
         }
-        .xterm-viewport::-webkit-scrollbar-track { background: #0a0a0a; }
+        .xterm-viewport::-webkit-scrollbar-track { background: #0b0f14; }
       `}</style>
     </div>
   );

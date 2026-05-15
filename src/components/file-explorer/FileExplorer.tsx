@@ -50,35 +50,35 @@ const useDebounce = (value: string, delay: number) => {
 
 const REFINED_COLORS = {
 
- bgDark: '#121212',
- bgSecondary: '#1A1A1A',
- bgTertiary: '#252525',
+ bgDark: 'var(--syn-surface-navigation)',
+ bgSecondary: 'var(--syn-surface-panel)',
+ bgTertiary: 'var(--syn-surface-elevated)',
 
 
- textPrimary: '#E8E8E8',
- textSecondary: '#D6D3D1',
- textTertiary: '#6B7280',
+ textPrimary: 'var(--syn-text-default)',
+ textSecondary: 'var(--syn-text-secondary)',
+ textTertiary: 'var(--syn-text-muted)',
 
 
- goldPrimary: '#F59E0B',
- goldSecondary: '#D97706',
- goldHover: '#B45309',
+ goldPrimary: 'var(--syn-interaction-active)',
+ goldSecondary: 'color-mix(in srgb, var(--syn-interaction-active) 78%, var(--syn-surface-workbench) 22%)',
+ goldHover: 'color-mix(in srgb, var(--syn-interaction-active) 88%, var(--syn-text-default) 12%)',
 
 
- accentNeutral: '#A8A29E',
- accentNeutralHover: '#D6D3D1',
+ accentNeutral: 'var(--syn-text-muted)',
+ accentNeutralHover: 'var(--syn-text-secondary)',
 
 
- success: '#22C55E',
- warning: '#F59E0B',
- error: '#EF4444',
+ success: 'var(--syn-status-valid)',
+ warning: 'var(--syn-status-warning)',
+ error: 'var(--syn-status-error)',
 
 
- border: 'rgba(255, 255, 255, 0.06)',
- borderSubtle: 'rgba(255, 255, 255, 0.04)',
- hover: 'rgba(245, 158, 11, 0.10)',
- selected: 'rgba(245, 158, 11, 0.18)',
- divider: 'rgba(255, 255, 255, 0.08)',
+ border: 'var(--syn-border-default)',
+ borderSubtle: 'var(--syn-border-subtle)',
+ hover: 'color-mix(in srgb, var(--syn-interaction-active) 12%, transparent)',
+ selected: 'color-mix(in srgb, var(--syn-interaction-active) 20%, transparent)',
+ divider: 'color-mix(in srgb, var(--syn-border-subtle) 85%, transparent)',
 
 
  shadowSoft: '0 1px 3px rgba(0, 0, 0, 0.2)',
@@ -224,11 +224,11 @@ const injectRefinedAnimationStyles = () => {
  background: transparent;
  }
  25% {
- background: rgba(194, 167, 110, 0.15);
+ background: color-mix(in srgb, var(--syn-interaction-active) 15%, transparent);
  transform: scale(1.02);
  }
  50% {
- background: rgba(194, 167, 110, 0.2);
+ background: color-mix(in srgb, var(--syn-interaction-active) 20%, transparent);
  transform: scale(1.01);
  }
  100% {
@@ -272,7 +272,7 @@ const injectRefinedAnimationStyles = () => {
 
  .refined-scrollbar {
  scrollbar-width: thin;
- scrollbar-color: rgba(245,158,11, 0.4) transparent;
+ scrollbar-color: color-mix(in srgb, var(--syn-interaction-active) 42%, transparent) transparent;
  }
 
  .refined-scrollbar::-webkit-scrollbar {
@@ -285,12 +285,12 @@ const injectRefinedAnimationStyles = () => {
  }
 
  .refined-scrollbar::-webkit-scrollbar-thumb {
- background: rgba(245,158,11, 0.4);
+ background: color-mix(in srgb, var(--syn-interaction-active) 42%, transparent);
  border-radius: 4px;
  }
 
  .refined-scrollbar::-webkit-scrollbar-thumb:hover {
- background: rgba(245,158,11, 0.6);
+ background: color-mix(in srgb, var(--syn-interaction-active) 62%, transparent);
  }
 
 
@@ -305,7 +305,7 @@ const injectRefinedAnimationStyles = () => {
  left: 0;
  width: 0%;
  height: 1px;
- background: #F59E0B;
+ background: var(--syn-interaction-active);
  transition: width 0.2s var(--syn-easing-bauhaus);
  }
 
@@ -318,9 +318,9 @@ const injectRefinedAnimationStyles = () => {
  pointer-events: none;
  padding: 4px 8px;
  border-radius: 6px;
- background: rgba(32,32,32,0.9);
- border: 1px solid rgba(255,255,255,0.08);
- color: #E8E8E8;
+ background: color-mix(in srgb, var(--syn-surface-elevated) 92%, var(--syn-surface-workbench) 8%);
+ border: 1px solid var(--syn-border-default);
+ color: var(--syn-text-default);
  display: inline-flex;
  align-items: center;
  gap: 6px;
@@ -342,8 +342,8 @@ const injectRefinedAnimationStyles = () => {
 
  .drop-target-valid {
  position: relative;
- background: rgba(194, 167, 110, 0.08) !important;
- border: 1px dashed rgba(194, 167, 110, 0.6) !important;
+ background: color-mix(in srgb, var(--syn-interaction-active) 10%, transparent) !important;
+ border: 1px dashed color-mix(in srgb, var(--syn-interaction-active) 60%, transparent) !important;
  border-radius: 6px !important;
  transform: scale(1.02);
  transition: transform 150ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -355,8 +355,8 @@ const injectRefinedAnimationStyles = () => {
  }
 
  .drop-target-invalid {
- background: rgba(239, 68, 68, 0.06) !important;
- border: 1px dashed rgba(239, 68, 68, 0.45) !important;
+ background: color-mix(in srgb, var(--syn-status-error) 10%, transparent) !important;
+ border: 1px dashed color-mix(in srgb, var(--syn-status-error) 46%, transparent) !important;
  border-radius: 6px !important;
  animation: refinedShake 0.35s ease-in-out;
  }
@@ -367,8 +367,8 @@ const injectRefinedAnimationStyles = () => {
  right: 16px;
  bottom: 16px;
  background: var(--syn-gradient-elevated);
- border: 1px solid rgba(255,255,255,0.08);
- color: #E8E8E8;
+ border: 1px solid var(--syn-border-default);
+ color: var(--syn-text-default);
  padding: 10px 12px;
  border-radius: 10px;
  box-shadow: var(--shadow-lg);
@@ -608,8 +608,8 @@ const useRefinedStyles = (sidebarWidth: number = 375) => {
  ...(isHovered && !isSelected
  ? {
  background: REFINED_COLORS.hover,
- border: `1px solid ${REFINED_COLORS.goldPrimary}40`,
- outline: `1px solid ${REFINED_COLORS.goldPrimary}60`,
+ border: `1px solid color-mix(in srgb, ${REFINED_COLORS.goldPrimary} 40%, transparent)`,
+ outline: `1px solid color-mix(in srgb, ${REFINED_COLORS.goldPrimary} 60%, transparent)`,
  outlineOffset: '1px',
  }
  : {}),
@@ -683,24 +683,24 @@ const useRefinedStyles = (sidebarWidth: number = 375) => {
  fileBadge: (tone: SemanticBadgeTone) => {
  const toneColors: Record<SemanticBadgeTone, { text: string; bg: string; border: string }> = {
  neutral: {
- text: '#A8A29E',
- bg: 'rgba(168, 162, 158, 0.12)',
- border: 'rgba(168, 162, 158, 0.35)',
+ text: 'var(--syn-status-unknown)',
+ bg: 'color-mix(in srgb, var(--syn-status-unknown) 14%, transparent)',
+ border: 'color-mix(in srgb, var(--syn-status-unknown) 36%, transparent)',
  },
  info: {
- text: '#67E8F9',
- bg: 'rgba(6, 182, 212, 0.14)',
- border: 'rgba(34, 211, 238, 0.4)',
+ text: 'var(--syn-status-info)',
+ bg: 'color-mix(in srgb, var(--syn-status-info) 14%, transparent)',
+ border: 'color-mix(in srgb, var(--syn-status-info) 40%, transparent)',
  },
  success: {
- text: '#86EFAC',
- bg: 'rgba(34, 197, 94, 0.14)',
- border: 'rgba(34, 197, 94, 0.38)',
+ text: 'var(--syn-status-valid)',
+ bg: 'color-mix(in srgb, var(--syn-status-valid) 14%, transparent)',
+ border: 'color-mix(in srgb, var(--syn-status-valid) 38%, transparent)',
  },
  warning: {
- text: '#FBBF24',
- bg: 'rgba(245, 158, 11, 0.16)',
- border: 'rgba(245, 158, 11, 0.45)',
+ text: 'var(--syn-status-warning)',
+ bg: 'color-mix(in srgb, var(--syn-status-warning) 16%, transparent)',
+ border: 'color-mix(in srgb, var(--syn-status-warning) 45%, transparent)',
  },
  };
 
@@ -743,7 +743,7 @@ const useRefinedStyles = (sidebarWidth: number = 375) => {
  zIndex: 2147483646,
  minWidth: '200px',
  background: `linear-gradient(145deg, ${REFINED_COLORS.bgSecondary} 0%, ${REFINED_COLORS.bgDark} 100%)`,
- border: `1px solid ${REFINED_COLORS.goldPrimary}20`,
+ border: `1px solid color-mix(in srgb, ${REFINED_COLORS.goldPrimary} 20%, transparent)`,
  borderRadius: '12px',
  padding: '8px',
  boxShadow: '0 16px 48px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.35)',
@@ -806,7 +806,7 @@ const useRefinedStyles = (sidebarWidth: number = 375) => {
 
  modal: {
  background: `linear-gradient(160deg, ${REFINED_COLORS.bgSecondary} 0%, ${REFINED_COLORS.bgDark} 100%)`,
- border: `1px solid ${REFINED_COLORS.goldPrimary}26`,
+ border: `1px solid color-mix(in srgb, ${REFINED_COLORS.goldPrimary} 26%, transparent)`,
  borderRadius: '14px',
  padding: '20px 22px',
  width: '420px',
@@ -942,13 +942,13 @@ const useRefinedStyles = (sidebarWidth: number = 375) => {
  variant === 'primary'
  ? `1px solid ${REFINED_COLORS.goldPrimary}`
  : variant === 'danger'
- ? '1px solid rgba(239,68,68,0.65)'
+ ? '1px solid color-mix(in srgb, var(--syn-status-error) 65%, transparent)'
  : `1px solid ${REFINED_COLORS.border}`,
  background:
  variant === 'primary'
  ? `linear-gradient(135deg, ${REFINED_COLORS.goldPrimary} 0%, ${REFINED_COLORS.goldSecondary} 100%)`
  : variant === 'danger'
- ? 'linear-gradient(135deg, #EF4444 0%, #B91C1C 100%)'
+ ? 'linear-gradient(135deg, var(--syn-status-error) 0%, color-mix(in srgb, var(--syn-status-error) 72%, black 28%) 100%)'
  : 'transparent',
  color:
  variant === 'primary' || variant === 'danger'
@@ -957,9 +957,9 @@ const useRefinedStyles = (sidebarWidth: number = 375) => {
  transition: getRefinedTransition('all'),
  boxShadow:
  variant === 'primary'
- ? `0 2px 8px ${REFINED_COLORS.goldPrimary}30`
+ ? `0 2px 8px color-mix(in srgb, ${REFINED_COLORS.goldPrimary} 30%, transparent)`
  : variant === 'danger'
- ? '0 2px 8px rgba(239,68,68,0.25)'
+ ? '0 2px 8px color-mix(in srgb, var(--syn-status-error) 25%, transparent)'
  : 'none',
  }),
 
@@ -1913,7 +1913,7 @@ export const FileExplorer: React.FC<FileExplorerProps> = memo(
 
  ...(draggedNode && node.type === 'folder' && isValidTarget && !isDragOver
  ? {
- outline: `1px dashed ${REFINED_COLORS.goldPrimary}40`,
+ outline: `1px dashed color-mix(in srgb, ${REFINED_COLORS.goldPrimary} 40%, transparent)`,
  outlineOffset: '2px',
  }
  : {}),
@@ -2361,9 +2361,9 @@ export const FileExplorer: React.FC<FileExplorerProps> = memo(
  marginTop: '10px',
  padding: '8px 10px',
  borderRadius: 6,
- background: 'rgba(245,158,11,0.10)',
- border: '1px solid rgba(245,158,11,0.30)',
- color: REFINED_COLORS.goldPrimary,
+ background: 'color-mix(in srgb, var(--syn-status-warning) 10%, transparent)',
+ border: '1px solid color-mix(in srgb, var(--syn-status-warning) 30%, transparent)',
+ color: 'var(--syn-status-warning)',
  fontSize: IDE_TYPOGRAPHY.fontSize.small,
  fontFamily: IDE_TYPOGRAPHY.fontFamily,
  lineHeight: 1.45,

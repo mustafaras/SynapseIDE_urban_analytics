@@ -609,7 +609,6 @@ export const Header: React.FC<HeaderProps> = ({
                     t.id === (activeTabId ?? '')
                       ? 'color-mix(in srgb, var(--syn-interaction-active) 18%, transparent)'
                       : 'transparent',
-                  border: `1px solid transparent`,
                   position: 'relative',
                   maxWidth: 220,
                   overflow: 'hidden',
@@ -635,7 +634,11 @@ export const Header: React.FC<HeaderProps> = ({
                     width={12}
                     height={12}
                     viewBox="0 0 24 24"
-                    fill={withAlpha(SYNAPSE_COLORS.textSecondary, 0.9)}
+                    fill={
+                      t.id === (activeTabId ?? '')
+                        ? 'var(--syn-interaction-active)'
+                        : 'var(--syn-text-muted)'
+                    }
                     aria-hidden
                     style={{ marginRight: 2 }}
                   >
@@ -650,7 +653,7 @@ export const Header: React.FC<HeaderProps> = ({
                       width: 6,
                       height: 6,
                       borderRadius: '50%',
-                      background: SYNAPSE_COLORS.accentNeutral,
+                      background: 'var(--syn-status-warning)',
                     }}
                   />
                 ) : null}
@@ -860,7 +863,6 @@ export const Header: React.FC<HeaderProps> = ({
                   lineHeight: '14px',
                   minWidth: 14,
                   textAlign: 'center',
-                  border: '1px solid var(--syn-depth-medium)',
                 }}
               >
                 {dirtyCount > 9 ? '9+' : dirtyCount}
@@ -1163,8 +1165,7 @@ const ProjectStatusPill: React.FC<{ status: ProjectStatus }> = ({ status }) => {
         height: 24,
         paddingInline: 8,
         borderRadius: 999,
-        background: c.bg,
-        border: `1px solid ${c.bd}`,
+        background: 'transparent',
         color: c.fg,
         fontFamily: SYNAPSE_TYPO.fontFamily,
         fontSize: 11,
@@ -1345,7 +1346,6 @@ function ctxItem(): React.CSSProperties {
     padding: '8px 10px',
     background: 'transparent',
     color: SYNAPSE_COLORS.textPrimary,
-    borderBottom: '1px solid var(--syn-overlay-whisper)',
     fontFamily: SYNAPSE_TYPO.fontFamily,
     fontSize: 13,
     width: '100%',
@@ -1378,7 +1378,7 @@ const TypeAhead: React.FC<{
           width: '100%',
           padding: '8px 10px',
           borderRadius: 8,
-          border: `1px solid ${SYNAPSE_COLORS.border}`,
+          border: 'none',
           background: 'var(--syn-overlay-whisper)',
           color: SYNAPSE_COLORS.textPrimary,
           fontFamily: SYNAPSE_TYPO.fontFamily,
@@ -1400,7 +1400,7 @@ const TypeAhead: React.FC<{
               marginBottom: 4,
               color: SYNAPSE_COLORS.textPrimary,
               background: 'transparent',
-              border: `1px solid ${'var(--syn-overlay-whisper)'}`,
+              border: 'none',
             }}
           >
             {t.name}
@@ -1429,7 +1429,7 @@ const TypeAhead: React.FC<{
                 padding: '4px 8px',
                 borderRadius: 6,
                 fontSize: 11,
-                border: `1px solid ${currentDensity === d ? withAlpha(SYNAPSE_COLORS.goldPrimary, 0.5) : 'var(--syn-overlay-subtle)'}`,
+                border: 'none',
                 background:
                   currentDensity === d
                     ? 'color-mix(in srgb, var(--syn-interaction-active) 14%, transparent)'

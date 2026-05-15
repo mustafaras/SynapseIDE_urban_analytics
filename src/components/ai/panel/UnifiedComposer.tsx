@@ -437,13 +437,13 @@ const UnifiedComposer: React.FC<UnifiedComposerProps> = ({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '20px',
+        padding: '12px',
       }}>
         <div style={{
-          background: 'rgba(10, 10, 10, 0.95)',
-          border: '1px solid rgba(245, 158, 11, 0.2)',
-          borderRadius: '6px',
-          maxWidth: '600px',
+          background: 'transparent',
+          border: 'none',
+          borderRadius: '0',
+          maxWidth: '680px',
           width: '100%',
           maxHeight: '80vh',
           display: 'flex',
