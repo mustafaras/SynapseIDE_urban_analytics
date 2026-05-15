@@ -28,7 +28,10 @@
       "PowerShell(.\\\\scripts\\\\get-next-map-explorer-prompt.ps1 -Json)",
       "PowerShell(pwsh -NoProfile -ExecutionPolicy Bypass -File .\\\\scripts\\\\get-next-map-explorer-prompt.ps1 -Json)",
       "Bash(sed -i '117,471d' src/centerpanel/components/map/MapLayerManager.tsx)",
-      "Bash(sed -n '113,125p' src/centerpanel/components/map/MapLayerManager.tsx)"
+      "Bash(sed -n '113,125p' src/centerpanel/components/map/MapLayerManager.tsx)",
+      "Bash(npx vite-node *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
     ],
     "deny": [
       "Read(side_UA.mp4)",
