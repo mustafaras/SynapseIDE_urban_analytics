@@ -90,11 +90,23 @@ const PROJECT_STATUS_LABEL: Record<ProjectStatus['kind'], string> = {
 const projectStatusColor = (kind: ProjectStatus['kind']) => {
   switch (kind) {
     case 'running':
-      return { fg: 'var(--ide-status-needs-context-text, #FBBF24)', bg: 'rgba(251,191,36,0.14)', bd: 'rgba(251,191,36,0.45)' };
+      return {
+        fg: 'var(--syn-status-running)',
+        bg: 'color-mix(in srgb, var(--syn-status-running) 20%, var(--syn-surface-panel) 80%)',
+        bd: 'color-mix(in srgb, var(--syn-status-running) 45%, var(--syn-border-subtle) 55%)',
+      };
     case 'dirty':
-      return { fg: SYNAPSE_COLORS.goldPrimary, bg: withAlpha(SYNAPSE_COLORS.goldPrimary, 0.12), bd: withAlpha(SYNAPSE_COLORS.goldPrimary, 0.42) };
+      return {
+        fg: 'var(--syn-status-warning)',
+        bg: 'color-mix(in srgb, var(--syn-status-warning) 18%, var(--syn-surface-panel) 82%)',
+        bd: 'color-mix(in srgb, var(--syn-status-warning) 42%, var(--syn-border-subtle) 58%)',
+      };
     case 'offline':
-      return { fg: 'var(--syn-text-secondary)', bg: 'rgba(255,255,255,0.04)', bd: 'rgba(255,255,255,0.16)' };
+      return {
+        fg: 'var(--syn-text-secondary)',
+        bg: 'var(--syn-surface-hover)',
+        bd: 'var(--syn-border-subtle)',
+      };
     case 'error':
       return { fg: 'var(--syn-danger)', bg: 'var(--syn-danger-bg)', bd: 'var(--syn-danger-border)' };
     default:
@@ -105,7 +117,7 @@ const projectStatusColor = (kind: ProjectStatus['kind']) => {
 const taskStateColor = (state: TaskState) => {
   switch (state) {
     case 'running':
-      return SYNAPSE_COLORS.goldPrimary;
+      return 'var(--syn-status-running)';
     case 'success':
       return 'var(--ide-status-ready-text, #34D399)';
     case 'error':
@@ -419,7 +431,7 @@ export const Header: React.FC<HeaderProps> = ({
             width="18"
             height="18"
             viewBox="0 0 24 24"
-            fill={SYNAPSE_COLORS.goldPrimary}
+            fill="var(--syn-interaction-active)"
             aria-hidden="true"
           >
             <circle cx="6" cy="6" r="2" />
@@ -438,11 +450,12 @@ export const Header: React.FC<HeaderProps> = ({
               fontWeight: 600,
               lineHeight: 1.2,
               whiteSpace: 'nowrap',
-              background: 'var(--syn-gradient-amber-light)',
+              background:
+                'linear-gradient(135deg, var(--syn-text-default) 0%, var(--syn-interaction-active) 65%, var(--syn-text-default) 100%)',
               WebkitBackgroundClip: 'text',
               backgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
-              color: 'var(--syn-focus-ring)',
+              color: 'var(--syn-interaction-active)',
               display: 'inline-block',
             }}
           >
@@ -590,11 +603,11 @@ export const Header: React.FC<HeaderProps> = ({
                   fontWeight: t.id === (activeTabId ?? '') ? 600 : 500,
                   color:
                     t.id === (activeTabId ?? '')
-                      ? SYNAPSE_COLORS.textAccent
+                      ? 'var(--syn-interaction-active)'
                       : SYNAPSE_COLORS.textSecondary,
                   background:
                     t.id === (activeTabId ?? '')
-                      ? withAlpha(SYNAPSE_COLORS.goldPrimary, 0.1)
+                      ? 'color-mix(in srgb, var(--syn-interaction-active) 18%, transparent)'
                       : 'transparent',
                   border: `1px solid transparent`,
                   position: 'relative',
@@ -612,7 +625,7 @@ export const Header: React.FC<HeaderProps> = ({
                       top: 6,
                       bottom: 6,
                       width: 2,
-                      background: withAlpha(SYNAPSE_COLORS.goldPrimary, 0.9),
+                      background: 'var(--syn-interaction-active)',
                       borderRadius: 2,
                     }}
                   />
@@ -1119,7 +1132,7 @@ export const Header: React.FC<HeaderProps> = ({
         header button:focus-visible,
         header [role="tab"]:focus-visible,
         .syn-header-tabs-filter:focus-visible{
-          outline: var(--ide-focus-width, 2px) solid var(--ide-focus-ring, var(--syn-focus-ring, #FBBF24));
+          outline: var(--ide-focus-width, 2px) solid var(--ide-focus-ring, var(--syn-interaction-focus-ring));
           outline-offset: var(--ide-focus-offset, 2px);
           box-shadow: var(--ide-focus-shadow, var(--shadow-focus));
         }
@@ -1249,9 +1262,9 @@ function chevStyle(): React.CSSProperties {
     display: 'grid',
     placeItems: 'center',
     borderRadius: 8,
-    border: `1px solid ${SYNAPSE_COLORS.border}`,
+    border: 'none',
     color: SYNAPSE_COLORS.textPrimary,
-    background: 'var(--syn-overlay-whisper)',
+    background: 'transparent',
     flexShrink: 0,
   };
 }
@@ -1261,9 +1274,9 @@ function ghostBtn(active: boolean): React.CSSProperties {
     height: 32,
     width: 36,
     borderRadius: 10,
-    border: `1px solid ${active ? withAlpha(SYNAPSE_COLORS.goldPrimary, 0.5) : 'var(--syn-overlay-light)'}`,
-    background: active ? 'var(--syn-gradient-glass-amber)' : 'var(--syn-overlay-whisper)',
-    color: active ? SYNAPSE_COLORS.textAccent : 'var(--syn-text-secondary)',
+    border: 'none',
+    background: 'transparent',
+    color: active ? 'var(--syn-interaction-active)' : 'var(--syn-text-secondary)',
     display: 'grid',
     placeItems: 'center',
     flexShrink: 0,
@@ -1275,9 +1288,9 @@ function primaryBtn(densityScale: number): React.CSSProperties {
     height: 32 * densityScale,
     padding: `0 ${Math.round(12 * densityScale)}px`,
     borderRadius: 10,
-    border: '1px solid var(--syn-accent-border)',
-    background: 'var(--syn-gradient-glass-amber)',
-    color: 'var(--syn-accent-primary)',
+    border: 'none',
+    background: 'transparent',
+    color: 'var(--syn-interaction-active)',
     fontWeight: 600,
     fontSize: 13,
     display: 'inline-flex',
@@ -1292,8 +1305,8 @@ function dangerBtn(densityScale: number): React.CSSProperties {
     height: 32 * densityScale,
     padding: `0 ${Math.round(12 * densityScale)}px`,
     borderRadius: 10,
-    border: '1px solid var(--syn-danger-border)',
-    background: 'var(--syn-danger-bg)',
+    border: 'none',
+    background: 'transparent',
     color: 'var(--syn-danger)',
     fontWeight: 600,
     fontSize: 13,
@@ -1309,9 +1322,9 @@ function analyticsBtn(): React.CSSProperties {
     height: 34,
     padding: '0 14px',
     borderRadius: 10,
-    border: '1px solid var(--syn-accent-border)',
-    background: 'linear-gradient(135deg, rgba(245,158,11,0.12) 0%, rgba(217,119,6,0.18) 100%)',
-    color: 'var(--syn-accent-primary)',
+    border: 'none',
+    background: 'transparent',
+    color: 'var(--syn-interaction-active)',
     fontWeight: 600,
     fontSize: 13,
     fontFamily: SYNAPSE_TYPO.fontFamily,
@@ -1320,7 +1333,7 @@ function analyticsBtn(): React.CSSProperties {
     gap: 8,
     cursor: 'pointer',
     letterSpacing: '-0.01em',
-    boxShadow: '0 0 12px rgba(245,158,11,0.15), inset 0 1px 0 rgba(255,255,255,0.06)',
+    boxShadow: 'none',
     transition: 'all 0.2s ease',
     flexShrink: 0,
   };
@@ -1419,10 +1432,10 @@ const TypeAhead: React.FC<{
                 border: `1px solid ${currentDensity === d ? withAlpha(SYNAPSE_COLORS.goldPrimary, 0.5) : 'var(--syn-overlay-subtle)'}`,
                 background:
                   currentDensity === d
-                    ? withAlpha(SYNAPSE_COLORS.goldPrimary, 0.12)
+                    ? 'color-mix(in srgb, var(--syn-interaction-active) 14%, transparent)'
                     : 'transparent',
                 color:
-                  currentDensity === d ? SYNAPSE_COLORS.textAccent : SYNAPSE_COLORS.textSecondary,
+                  currentDensity === d ? 'var(--syn-interaction-active)' : SYNAPSE_COLORS.textSecondary,
               }}
             >
               {d}

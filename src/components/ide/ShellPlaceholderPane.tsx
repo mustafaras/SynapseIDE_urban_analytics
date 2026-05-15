@@ -100,7 +100,7 @@ function MapBridgePane() {
           <span className="syn-side-pane__chip">Candidates {mapCandidates.length}</span>
           <span
             className="syn-side-pane__chip"
-            style={{ color: mapOnline ? 'var(--ide-amber)' : 'var(--ide-text-muted)' }}
+            style={{ color: mapOnline ? 'var(--syn-status-valid)' : 'var(--ide-text-muted)' }}
             title={mapOnline ? 'Map Explorer is online' : 'Map Explorer has not synced yet'}
           >
             {mapOnline ? 'Explorer Online' : 'Explorer Offline'}
@@ -166,7 +166,7 @@ function UrbanBridgePane({ onOpenUrban }: { onOpenUrban?: () => void }) {
           <span className="syn-side-pane__chip">Artifacts {scenarioFiles.length}</span>
           <span
             className="syn-side-pane__chip"
-            style={{ color: urbanOnline ? 'var(--ide-amber)' : 'var(--ide-text-muted)' }}
+            style={{ color: urbanOnline ? 'var(--syn-status-valid)' : 'var(--ide-text-muted)' }}
             title={urbanOnline ? 'Urban Analytics is online' : 'Urban Analytics has not synced yet'}
           >
             {urbanOnline ? 'UA Online' : 'UA Offline'}

@@ -7,10 +7,10 @@ This ledger is the execution source of truth for the color-system operating pack
 ## Current Status
 
 - Operating pack status: revised for small-agent execution on 2026-05-14.
-- Implementation status: started; Prompts 00-10 completed on 2026-05-15.
+- Implementation status: started; Prompts 00-12 completed on 2026-05-15.
 - Prompt count: 38 prompts, `00` through `37`.
-- Current prompt: Prompt 11 - Shared Status Bar And System Chrome Migration.
-- Next prompt: Prompt 11 - Shared Status Bar And System Chrome Migration.
+- Current prompt: Prompt 13 - Synapse File Explorer And File Badges.
+- Next prompt: Prompt 13 - Synapse File Explorer And File Badges.
 - Archive context: do not move `DEVELOPMENT_PLANS/` from the current local branch; branch reconciliation is separate.
 - Initial migration principle: token infrastructure first, shared shell second, module surfaces third, QA last.
 
@@ -44,8 +44,8 @@ This ledger is the execution source of truth for the color-system operating pack
 | 08 | App Root And Global Surface Migration | completed | 07 | Completed 2026-05-15; root shell, global selection, and scrollbar surfaces aligned to semantic app-shell/syn tokens. |
 | 09 | Error Loading And Utility Surface Migration | completed | 08 | Completed 2026-05-15; utility and emergency surfaces migrated to semantic tokens with status clarity preserved. |
 | 10 | Center Panel Shell Migration | completed | 09 | Completed 2026-05-15; shell surfaces, separators, focus rings, and active markers aligned to semantic blue-interaction tokens. |
-| 11 | Shared Status Bar And System Chrome Migration | pending | 10 | Migrate shared status/system chrome. |
-| 12 | Synapse IDE Shell And Header Migration | pending | 11 | Migrate IDE workbench shell. |
+| 11 | Shared Status Bar And System Chrome Migration | completed | 10 | Completed 2026-05-15; status bar chrome and system status badges mapped to semantic surface/status tokens. |
+| 12 | Synapse IDE Shell And Header Migration | completed | 11 | Completed 2026-05-15; shell/header/activity rail and placeholder panes aligned to semantic blue interaction + truthful status tokens. |
 | 13 | Synapse File Explorer And File Badges | pending | 12 | Migrate file tree and file badges. |
 | 14 | Editor Tabs Monaco Outline And Search | pending | 13 | Migrate editor-adjacent chrome. |
 | 15 | Terminal Bottom Panel Tasks And Problems | pending | 14 | Migrate terminal and diagnostics surfaces. |
@@ -73,6 +73,70 @@ This ledger is the execution source of truth for the color-system operating pack
 | 37 | Final Color System Handoff | pending | 36 | Close the color operating pack. |
 
 ## Prompt Execution Log
+
+### Prompt 12 - Synapse IDE Shell And Header Migration - 2026-05-15
+
+- Status: completed.
+- Scope: migrate IDE shell, header, activity rail, right-dock boundary, and placeholder panes to semantic workbench tokens with blue interaction emphasis.
+- Files inspected:
+  - `src/components/ide/EnhancedIDE.tsx`
+  - `src/components/ide/Header.tsx`
+  - `src/components/ide/ShellPlaceholderPane.tsx`
+  - `src/components/ide/styles/ideShell.css`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_TOKEN_REFERENCE.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+- Files changed:
+  - `src/components/ide/EnhancedIDE.tsx`
+  - `src/components/ide/Header.tsx`
+  - `src/components/ide/ShellPlaceholderPane.tsx`
+  - `src/components/ide/styles/ideShell.css`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_TOKEN_REFERENCE.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+- Token migration highlights:
+  - Header active-tab fills, focused controls, and CTA accents now use semantic interaction tokens (`--syn-interaction-active`, `--syn-border-active`, `--syn-interaction-focus-ring`) instead of amber-heavy fills.
+  - Shell activity rail hover/active states, badges, resizer hovers, and bottom-tab active/focus boundaries moved from hard-coded amber rgba values to semantic interaction/surface/border tokens.
+  - Side-pane chips and bridge online status badges now communicate truthful readiness via semantic status tokens (`--syn-status-valid`, `--syn-status-running`, `--syn-status-warning`, `--syn-status-demo`, `--syn-status-info`).
+  - Right-dock resize handle in `EnhancedIDE.tsx` now uses semantic panel/border/interaction tokens and no longer depends on amber glass gradients.
+  - Legacy prompt path `src/components/ide/ideShell.css` was reconciled to actual file `src/components/ide/styles/ideShell.css`.
+- Remaining hard-coded colors retained (with rationale):
+  - `src/components/ide/EnhancedIDE.tsx` dev-only Prompt 21 demo/ornamental blocks retain literal colors in non-production diagnostics and showcase effects; not part of shell migration scope.
+  - `src/components/ide/styles/ideShell.css` keeps fallback literals inside existing status vars (for example success/error fallback values) as resilience defaults when semantic status tokens are unavailable.
+  - `src/components/ide/Header.tsx` keeps typed `SYNAPSE_COLORS` usages for non-status text/border constants where already mapped to semantic aliases through theme bridge; no direct amber-only literal remains in migrated shell/header controls.
+- Acceptance-criteria notes:
+  - IDE shell now follows VS Code-like dark workbench semantics with blue active/focus emphasis and restrained panel boundaries.
+  - No command, bridge, or workflow logic changed.
+- Validation:
+  - `npm run typecheck` passed.
+  - `npx eslint src/components/ide/EnhancedIDE.tsx src/components/ide/Header.tsx src/components/ide/ShellPlaceholderPane.tsx --quiet` passed.
+- Next recommended prompt: Prompt 13 - Synapse File Explorer And File Badges.
+
+### Prompt 11 - Shared Status Bar And System Chrome Migration - 2026-05-15
+
+- Status: completed.
+- Scope: migrate shared status bar chrome and top-level status/system indicators away from neutral amber and hard-coded literals to semantic surface/status tokens.
+- Files inspected:
+  - `src/components/StatusBar/statusTheme.ts`
+  - `src/components/StatusBar/StatusBar.tsx`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_TOKEN_REFERENCE.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+- Files changed:
+  - `src/components/StatusBar/statusTheme.ts`
+  - `src/components/StatusBar/StatusBar.tsx`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_TOKEN_REFERENCE.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+- Token migration highlights:
+  - `statusTheme.ts` now resolves status-bar chrome through semantic surface/text/border tokens and explicit semantic status channels (`info`, `warning`, `error`, `running`, `pending`, `stale`, `valid`).
+  - `alpha()` now supports semantic CSS variables through `color-mix(...)`, allowing compact status chips and menu chrome to use tokenized translucent states without hard-coded hex fallbacks.
+  - `StatusBar.tsx` container surface, top border, hover/focus affordances, and scrollbar chrome were migrated from amber/rgba literals to semantic tokens.
+  - Diagnostic chips (`error`, `warning`, `info`) now derive fill/border/text from semantic status tokens instead of fixed `rgba(...)` values.
+  - Runtime/system indicator states now distinguish `running`, `pending`, and `stale` in AI, streaming, spatial-index, collaboration, live-server, and connectivity chips while preserving labels/icons.
+- Acceptance-criteria notes:
+  - Neutral informational status no longer relies on unrelated amber; info defaults to `--syn-status-info`.
+  - Semantic status colors are documented in `COLOR_SYSTEM_TOKEN_REFERENCE.md` under `Prompt 11 Status Bar Semantic Mapping`.
+- Product behavior changes: none (status/chrome styling only).
+- Validation:
+  - `npm run typecheck` passed.
+- Next recommended prompt: Prompt 12 - Synapse IDE Shell And Header Migration.
 
 ### Prompt 10 - Center Panel Shell Migration - 2026-05-15
 

@@ -112,6 +112,68 @@ Prompt 05 maps product semantics to primitives and keeps legacy aliases resolvin
 | `--syn-danger-400`, `--syn-success-400`, `--syn-warning-400`, `--syn-info-400` | Semantic status tokens |
 | `--color-bg-*`, `--color-text-*`, `--color-border-*`, `--color-status-*` | Semantic surface/text/border/status families |
 
+## Prompt 11 Status Bar Semantic Mapping
+
+Prompt 11 migrates the shared status bar and top-level system indicators to semantic status tokens.
+
+### Status Bar Chrome
+
+| Surface / Role | Token |
+| --- | --- |
+| Status bar background | `--syn-surface-navigation` |
+| Top border / subtle separators | `--syn-border-subtle` |
+| Focus outline | `--syn-border-focus` |
+| Hover emphasis | `--syn-interaction-hover` |
+
+### Status Indicator Mapping
+
+| Indicator State | Token |
+| --- | --- |
+| `info` | `--syn-status-info` |
+| `warning` | `--syn-status-warning` |
+| `error` | `--syn-status-error` |
+| `running` | `--syn-status-running` |
+| `pending` | `--syn-status-pending` |
+| `stale` | `--syn-status-stale` |
+| `valid` | `--syn-status-valid` |
+
+Notes:
+
+1. Neutral informational status no longer uses amber; `info` is blue (`--syn-status-info`).
+2. Compact status labels retain text/icon pairing; color is not the only status signal.
+3. Amber remains constrained to warning semantics.
+
+## Prompt 12 IDE Shell And Header Semantic Mapping
+
+Prompt 12 migrates IDE shell chrome and header interactions to semantic workbench/status tokens.
+
+### Shell Region Mapping
+
+| Shell Region | Token Direction |
+| --- | --- |
+| Activity rail hover/active surfaces | `--syn-interaction-active` mixed over transparent/surface layers |
+| Activity rail active indicator | `--syn-interaction-active` |
+| Activity badges | `--syn-interaction-active` + `--syn-text-inverse` + `--syn-border-strong` |
+| Left/right boundary separators | `--syn-border-subtle`, `--syn-border-active` |
+| Bottom panel active tab/focus | `--syn-interaction-active`, `--syn-border-active`, `--syn-border-focus` |
+| Resizer hover and right-dock handle | `--syn-interaction-active` mixed with `--syn-surface-panel` |
+| Side-pane category badges | Semantic status tokens (`--syn-status-info`, `--syn-status-demo`, `--syn-status-valid`, `--syn-status-warning`) |
+
+### Header Interaction Mapping
+
+| Header Element | Token |
+| --- | --- |
+| Active tab text | `--syn-interaction-active` |
+| Active tab fill | `color-mix` with `--syn-interaction-active` |
+| Toggle active border/fill | `--syn-border-active` + `--syn-interaction-active` mixed surfaces |
+| Focus ring fallback | `--syn-interaction-focus-ring` |
+| Primary action gradient | `--syn-interaction-active` blended with semantic shell surfaces |
+
+### Prompt 12 Retained Literal Categories
+
+1. Development-only showcase/diagnostic visuals in `EnhancedIDE.tsx` keep literals because they are non-production and out of shell migration scope.
+2. Existing status fallback literals (success/error defaults) remain as safety fallbacks where semantic vars might be unavailable; primary path resolves to semantic tokens.
+
 ## Canonical Semantic Set
 
 These semantic names are the canonical targets for migration prompts.

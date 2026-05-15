@@ -31,8 +31,8 @@ import { alpha, SB_COLORS, sbFont } from './statusTheme';
 
 const containerStyle: React.CSSProperties = {
   height: '30px',
-  background: 'rgba(16,14,10,0.97)',
-  borderTop: '2px solid var(--syn-accent-primary, #F59E0B)',
+  background: SB_COLORS.bgPrimary,
+  borderTop: `1px solid ${SB_COLORS.borderSoft}`,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'space-between',
@@ -48,7 +48,7 @@ const containerStyle: React.CSSProperties = {
   right: 0,
   zIndex: 9999,
   overflow: 'hidden',
-  boxShadow: '0 -1px 0 rgba(245,158,11,0.2), 0 -6px 20px rgba(0,0,0,0.55)',
+  boxShadow: `0 -1px 0 ${SB_COLORS.borderSoft}, 0 -6px 20px rgba(0,0,0,0.55)`,
   backdropFilter: 'blur(6px)',
   WebkitBackdropFilter: 'blur(6px)',
 };
@@ -68,8 +68,8 @@ const chipBase: React.CSSProperties = {
 };
 
 const chipHoverOn = (e: React.MouseEvent<HTMLElement>) => {
-  e.currentTarget.style.background = String(alpha('#ffffff', 0.08));
-  e.currentTarget.style.borderColor = String(alpha('#ffffff', 0.08));
+  e.currentTarget.style.background = String(alpha('var(--syn-interaction-hover)', 0.65));
+  e.currentTarget.style.borderColor = String(alpha(SB_COLORS.borderSoft, 0.7));
   e.currentTarget.style.boxShadow = 'none';
 };
 const chipHoverOff = (e: React.MouseEvent<HTMLElement>) => {
@@ -107,7 +107,7 @@ const statusTextItem: React.CSSProperties = {
   borderRadius: 0,
 };
 const neutralHoverOn = (e: React.MouseEvent<HTMLElement>) => {
-  e.currentTarget.style.background = String(alpha(SB_COLORS.goldSoft, 0.08));
+  e.currentTarget.style.background = String(alpha('var(--syn-interaction-hover)', 0.65));
 };
 const neutralHoverOff = (e: React.MouseEvent<HTMLElement>) => {
   e.currentTarget.style.background = 'transparent';
@@ -117,32 +117,27 @@ function formatBackendLabel(backend: 'wasm' | 'javascript'): string {
   return backend === 'wasm' ? 'WASM' : 'JS';
 }
 
-const diagChipStyle = (kind: 'error' | 'warning' | 'info'): React.CSSProperties => ({
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '4px',
-  padding: '2px 7px',
-  background:
+const diagChipStyle = (kind: 'error' | 'warning' | 'info'): React.CSSProperties => {
+  const tone =
     kind === 'error'
-      ? 'rgba(248,113,113,0.14)'
+      ? SB_COLORS.error
       : kind === 'warning'
-        ? 'rgba(245,158,11,0.14)'
-        : 'rgba(255,255,255,0.06)',
-  border: `1px solid ${
-    kind === 'error'
-      ? 'rgba(248,113,113,0.38)'
-      : kind === 'warning'
-        ? 'rgba(245,158,11,0.38)'
-        : 'rgba(255,255,255,0.14)'
-  }`,
-  borderRadius: '3px',
-  color:
-    kind === 'error' ? SB_COLORS.error
-    : kind === 'warning' ? SB_COLORS.warning
-    : SB_COLORS.textSecondary,
-  cursor: 'pointer',
-  transition: 'background 0.15s',
-});
+        ? SB_COLORS.warning
+        : SB_COLORS.info;
+
+  return {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '4px',
+    padding: '2px 7px',
+    background: alpha(tone, 0.2),
+    border: `1px solid ${alpha(tone, 0.45)}`,
+    borderRadius: '3px',
+    color: tone,
+    cursor: 'pointer',
+    transition: 'background 0.15s',
+  };
+};
 
 const netChipStyle = (online: boolean): React.CSSProperties => ({
   display: 'flex',
@@ -154,7 +149,7 @@ const netChipStyle = (online: boolean): React.CSSProperties => ({
   background: 'transparent',
   border: '1px solid transparent',
   borderRadius: '0px',
-  color: online ? SB_COLORS.textSecondary : SB_COLORS.warning,
+  color: online ? SB_COLORS.textSecondary : SB_COLORS.stale,
 });
 
 const collabChipStyle = (state: 'connected' | 'paused' | 'reconnecting' | 'offline'): React.CSSProperties => ({
@@ -166,7 +161,14 @@ const collabChipStyle = (state: 'connected' | 'paused' | 'reconnecting' | 'offli
   background: 'transparent',
   border: '1px solid transparent',
   borderRadius: '0px',
-  color: state === 'paused' ? SB_COLORS.warning : SB_COLORS.textSecondary,
+  color:
+    state === 'connected'
+      ? SB_COLORS.success
+      : state === 'paused'
+        ? SB_COLORS.pending
+        : state === 'reconnecting'
+          ? SB_COLORS.running
+          : SB_COLORS.stale,
 });
 
 
@@ -338,8 +340,8 @@ export const StatusBar: React.FC<StatusBarProps> = ({
         <div
           style={{
             ...chipBase,
-            background: 'rgba(245,158,11,0.12)',
-            border: '1px solid rgba(245,158,11,0.32)',
+            background: alpha(SB_COLORS.info, 0.18),
+            border: `1px solid ${alpha(SB_COLORS.info, 0.42)}`,
             borderRadius: '3px',
             padding: '2px 8px',
           }}
@@ -525,7 +527,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
             {aiState === 'thinking' ? (
               <Loader2
                 size={12}
-                color={SB_COLORS.goldSoft}
+                color={SB_COLORS.running}
                 style={{ animation: 'spin 1s linear infinite' }}
               />
             ) : aiState === 'responded' ? (
@@ -539,7 +541,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
                   height: 8,
                   borderRadius: 0,
                   display: 'inline-block',
-                  background: SB_COLORS.goldSoft,
+                  background: SB_COLORS.pending,
                 }}
               />
             )}
@@ -657,7 +659,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
                 {gState === 'inferring' || gState === 'loading' ? (
                   <Loader2
                     size={11}
-                    color={SB_COLORS.goldSoft}
+                    color={SB_COLORS.running}
                     style={{ animation: 'spin 1s linear infinite' }}
                   />
                 ) : gState === 'ready' ? (
@@ -703,9 +705,9 @@ export const StatusBar: React.FC<StatusBarProps> = ({
                 }}
               >
                 {streamState === 'connecting' || streamState === 'streaming' ? (
-                  <Loader2 size={11} color={SB_COLORS.goldSoft} style={{ animation: 'spin 1s linear infinite' }} />
+                  <Loader2 size={11} color={SB_COLORS.running} style={{ animation: 'spin 1s linear infinite' }} />
                 ) : streamState === 'paused' ? (
-                  <MessageSquare size={11} color={SB_COLORS.warning} />
+                  <MessageSquare size={11} color={SB_COLORS.stale} />
                 ) : streamState === 'error' ? (
                   <AlertTriangle size={11} color={SB_COLORS.error} />
                 ) : (
@@ -749,11 +751,11 @@ export const StatusBar: React.FC<StatusBarProps> = ({
                 }}
               >
                 {runtimeState === 'building' || runtimeState === 'querying' ? (
-                  <Loader2 size={11} color={SB_COLORS.goldSoft} style={{ animation: 'spin 1s linear infinite' }} />
+                  <Loader2 size={11} color={SB_COLORS.running} style={{ animation: 'spin 1s linear infinite' }} />
                 ) : runtimeState === 'ready' ? (
-                  <MapPin size={11} color={runtimeBackend === 'wasm' ? SB_COLORS.success : SB_COLORS.goldSoft} />
+                  <MapPin size={11} color={runtimeBackend === 'wasm' ? SB_COLORS.success : SB_COLORS.pending} />
                 ) : runtimeState === 'fallback' ? (
-                  <AlertTriangle size={11} color={SB_COLORS.warning} />
+                  <AlertTriangle size={11} color={SB_COLORS.stale} />
                 ) : runtimeState === 'error' ? (
                   <XCircle size={11} color={SB_COLORS.error} />
                 ) : (
@@ -1234,11 +1236,11 @@ export const StatusBar: React.FC<StatusBarProps> = ({
         >
           <Activity
             size={12}
-            color={isLiveServerDisplay ? SB_COLORS.textAccent : SB_COLORS.textSecondary}
+            color={isLiveServerDisplay ? SB_COLORS.running : SB_COLORS.textSecondary}
           />
           <span
             style={{
-              color: isLiveServerDisplay ? SB_COLORS.textAccent : SB_COLORS.textSecondary,
+              color: isLiveServerDisplay ? SB_COLORS.running : SB_COLORS.textSecondary,
               fontSize: '10px',
               fontWeight: 'bold',
             }}
@@ -1260,7 +1262,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
           )}
           <span
             style={{
-              color: onlineDisplay ? SB_COLORS.success : SB_COLORS.error,
+              color: onlineDisplay ? SB_COLORS.success : SB_COLORS.stale,
               fontWeight: 'bold',
             }}
           >
@@ -1280,8 +1282,10 @@ export const StatusBar: React.FC<StatusBarProps> = ({
                 collaborationDisplay.state === 'connected'
                   ? SB_COLORS.success
                   : collaborationDisplay.state === 'paused'
-                    ? SB_COLORS.warning
-                    : SB_COLORS.textSecondary
+                    ? SB_COLORS.pending
+                    : collaborationDisplay.state === 'reconnecting'
+                      ? SB_COLORS.running
+                      : SB_COLORS.stale
               }
             />
             <span
@@ -1290,15 +1294,17 @@ export const StatusBar: React.FC<StatusBarProps> = ({
                   collaborationDisplay.state === 'connected'
                     ? SB_COLORS.success
                     : collaborationDisplay.state === 'paused'
-                      ? SB_COLORS.warning
-                      : SB_COLORS.textSecondary,
+                      ? SB_COLORS.pending
+                      : collaborationDisplay.state === 'reconnecting'
+                        ? SB_COLORS.running
+                        : SB_COLORS.stale,
                 fontWeight: 'bold',
               }}
             >
               COLLAB {collaborationDisplay.collaborators}
             </span>
             {collaborationDisplay.pendingChanges > 0 ? (
-              <span style={{ color: SB_COLORS.warning, fontWeight: 'bold' }}>
+              <span style={{ color: SB_COLORS.pending, fontWeight: 'bold' }}>
                 +{collaborationDisplay.pendingChanges}
               </span>
             ) : null}
@@ -1344,11 +1350,11 @@ export const StatusBar: React.FC<StatusBarProps> = ({
   @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .status-bar { animation: slideIn 0.3s ease-out; }
         .status-bar::-webkit-scrollbar { height: 2px; }
-  .status-bar::-webkit-scrollbar-track { background: rgba(245,158,11, 0.08); }
-  .status-bar::-webkit-scrollbar-thumb { background: rgba(245,158,11, 0.4); border-radius: 0; }
-  .status-bar::-webkit-scrollbar-thumb:hover { background: rgba(245,158,11, 0.6); }
+        .status-bar::-webkit-scrollbar-track { background: ${alpha(SB_COLORS.borderSoft, 0.35)}; }
+        .status-bar::-webkit-scrollbar-thumb { background: ${alpha(SB_COLORS.info, 0.55)}; border-radius: 0; }
+        .status-bar::-webkit-scrollbar-thumb:hover { background: ${alpha(SB_COLORS.info, 0.75)}; }
         @media (max-width: 768px) { .status-bar { padding: 0 8px; font-size: 10px; } }
-  @media (prefers-contrast: high) { .status-bar { background: ${SB_COLORS.bgPrimary} !important; border-top: 2px solid ${SB_COLORS.textAccent} !important; color: #FFFFFF !important; } }
+        @media (prefers-contrast: high) { .status-bar { background: ${SB_COLORS.bgPrimary} !important; border-top: 2px solid ${SB_COLORS.borderHighlight} !important; color: ${SB_COLORS.textPrimary} !important; } }
         @media (prefers-reduced-motion: reduce) { .status-bar, .status-bar * { animation: none !important; transition: none !important; } }
       `}</style>
     </div>

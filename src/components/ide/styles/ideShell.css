@@ -87,8 +87,8 @@
 
 .synapse-ide-shell__activity-button:hover {
   color: var(--ide-text-primary);
-  background: rgba(245, 158, 11, 0.08);
-  box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.14);
+  background: color-mix(in srgb, var(--syn-interaction-active) 12%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--syn-interaction-active) 30%, transparent);
 }
 
 .synapse-ide-shell__activity-button:focus-visible {
@@ -98,9 +98,9 @@
 }
 
 .synapse-ide-shell__activity-button[data-active="true"] {
-  color: var(--ide-accent);
-  background: rgba(245, 158, 11, 0.11);
-  box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.2);
+  color: var(--syn-interaction-active);
+  background: color-mix(in srgb, var(--syn-interaction-active) 14%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--syn-interaction-active) 38%, transparent);
 }
 
 .synapse-ide-shell__activity-button[data-active="true"]::before {
@@ -111,8 +111,8 @@
   bottom: 25%;
   width: 2px;
   border-radius: 0 2px 2px 0;
-  background: var(--ide-accent);
-  box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
+  background: var(--syn-interaction-active);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--syn-interaction-active) 55%, transparent);
 }
 
 .synapse-ide-shell__activity-label {
@@ -136,9 +136,9 @@
   right: 3px;
   padding: 0 3px;
   border-radius: 999px;
-  background: rgba(245, 158, 11, 0.94);
-  border: 1px solid rgba(12, 11, 8, 0.9);
-  color: #1a1202;
+  background: var(--syn-interaction-active);
+  border: 1px solid var(--syn-border-strong);
+  color: var(--syn-text-inverse);
   font: 800 8px/1 var(--font-code);
   letter-spacing: 0.1px;
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.42);
@@ -149,8 +149,8 @@
   width: 8px;
   height: 8px;
   padding: 0;
-  background: #f59e0b;
-  border-color: rgba(0, 0, 0, 0.88);
+  background: var(--syn-interaction-active);
+  border-color: var(--syn-border-strong);
 }
 
 .synapse-ide-shell__activity-badge[data-kind="count"] {
@@ -187,7 +187,7 @@
 }
 
 .synapse-ide-shell__resizer:hover {
-  background: var(--syn-gradient-glass-amber);
+  background: color-mix(in srgb, var(--syn-interaction-active) 14%, var(--syn-surface-panel));
 }
 
 .synapse-ide-shell__resize-preview {
@@ -195,12 +195,12 @@
   top: 8px;
   right: -2px;
   transform: translateX(100%);
-  background: rgba(0, 0, 0, 0.75);
+  background: color-mix(in srgb, var(--syn-surface-elevated) 90%, var(--syn-surface-workbench) 10%);
   padding: 4px 8px;
   border-radius: var(--ide-radius-sm);
   font: 600 11px/1.2 var(--font-code);
-  color: #FDE68A;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--syn-text-default);
+  border: 1px solid var(--syn-border-default);
   box-shadow: var(--ide-shadow-md);
   pointer-events: none;
   white-space: nowrap;
@@ -348,7 +348,7 @@
 }
 
 .synapse-ide-shell__bottom-resizer:hover {
-  background: var(--syn-gradient-glass-amber);
+  background: color-mix(in srgb, var(--syn-interaction-active) 14%, var(--syn-surface-panel));
 }
 
 .synapse-ide-shell__bottom-tabs {
@@ -408,12 +408,12 @@
 .synapse-ide-shell__bottom-close:focus-visible {
   outline: var(--ide-focus-width, 2px) solid var(--ide-focus-ring, var(--ide-accent));
   outline-offset: var(--ide-focus-offset, 2px);
-  box-shadow: var(--ide-focus-shadow, 0 0 0 3px rgba(245, 158, 11, 0.35));
+  box-shadow: var(--ide-focus-shadow, 0 0 0 3px color-mix(in srgb, var(--syn-border-focus) 45%, transparent));
 }
 
 .synapse-ide-shell__bottom-tab[data-active="true"] {
-  color: var(--ide-accent);
-  border-color: rgba(245, 158, 11, 0.32);
+  color: var(--syn-interaction-active);
+  border-color: var(--syn-border-active);
   background: var(--ide-bg-control);
 }
 
@@ -535,7 +535,7 @@
 
 .synapse-ide-bottom-tasks__state--idle      { color: var(--ide-text-muted); }
 .synapse-ide-bottom-tasks__state--queued    { color: var(--ide-text-secondary); }
-.synapse-ide-bottom-tasks__state--running   { color: var(--ide-accent); }
+.synapse-ide-bottom-tasks__state--running   { color: var(--syn-status-running); }
 .synapse-ide-bottom-tasks__state--success   { color: var(--ide-status-ok-text, #4ade80); }
 .synapse-ide-bottom-tasks__state--error     { color: var(--ide-status-error-text, #f87171); }
 .synapse-ide-bottom-tasks__state--cancelled { color: var(--ide-text-muted); }
@@ -570,7 +570,7 @@
 }
 
 .syn-side-pane__header-kicker {
-  color: var(--ide-accent);
+  color: var(--syn-interaction-active);
   font: 700 10px/1 var(--font-code);
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -694,9 +694,9 @@
   align-items: center;
   justify-content: center;
   border-radius: var(--ide-radius-md);
-  background: rgba(245,158,11,0.08);
-  border: 1px solid rgba(245,158,11,0.18);
-  color: var(--ide-accent);
+  background: color-mix(in srgb, var(--syn-interaction-active) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--syn-interaction-active) 35%, transparent);
+  color: var(--syn-interaction-active);
   margin-bottom: 2px;
 }
 
@@ -717,9 +717,9 @@
   height: 30px;
   padding: 0 14px;
   border-radius: var(--ide-radius-md);
-  border: 1px solid rgba(245,158,11,0.45);
-  background: rgba(245,158,11,0.1);
-  color: var(--ide-accent);
+  border: 1px solid var(--syn-border-active);
+  background: color-mix(in srgb, var(--syn-interaction-active) 13%, transparent);
+  color: var(--syn-interaction-active);
   cursor: pointer;
   font: 700 11px/1 var(--font-code);
   letter-spacing: 0.04em;
@@ -727,12 +727,12 @@
 }
 
 .syn-side-pane__action-btn:hover {
-  background: rgba(245,158,11,0.18);
-  border-color: rgba(245,158,11,0.7);
+  background: color-mix(in srgb, var(--syn-interaction-active) 20%, transparent);
+  border-color: color-mix(in srgb, var(--syn-interaction-active) 78%, var(--syn-border-active) 22%);
 }
 
 .syn-side-pane__action-btn:focus-visible {
-  outline: 2px solid var(--ide-accent);
+  outline: 2px solid var(--syn-interaction-focus-ring);
   outline-offset: 2px;
 }
 
@@ -775,15 +775,15 @@
   background: transparent;
 }
 .synapse-ide-scope *::-webkit-scrollbar-thumb {
-  background: rgba(245, 158, 11, 0.22);
+  background: color-mix(in srgb, var(--syn-interaction-active) 28%, transparent);
   border-radius: 2px;
 }
 .synapse-ide-scope *::-webkit-scrollbar-thumb:hover {
-  background: rgba(245, 158, 11, 0.52);
+  background: color-mix(in srgb, var(--syn-interaction-active) 56%, transparent);
 }
 .synapse-ide-scope * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(245, 158, 11, 0.22) transparent;
+  scrollbar-color: color-mix(in srgb, var(--syn-interaction-active) 28%, transparent) transparent;
 }
 
 /* 2 ∙ Side-pane rows — amber left accent bar, scaleY animated */
@@ -798,8 +798,8 @@
   top: 0;
   bottom: 0;
   width: 2px;
-  background: rgba(245, 158, 11, 0.75);
-  box-shadow: 0 0 6px rgba(245, 158, 11, 0.4);
+  background: color-mix(in srgb, var(--syn-interaction-active) 78%, transparent);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--syn-interaction-active) 42%, transparent);
   transform: scaleY(0);
   transform-origin: center;
   transition: transform 0.18s cubic-bezier(0.4, 0, 0.2, 1);
@@ -831,12 +831,12 @@
   border-radius: 2px 2px 0 0;
   background: linear-gradient(
     90deg,
-    rgba(245, 158, 11, 0) 0%,
-    rgba(245, 158, 11, 0.92) 28%,
-    rgba(245, 158, 11, 0.92) 72%,
-    rgba(245, 158, 11, 0) 100%
+    color-mix(in srgb, var(--syn-interaction-active) 0%, transparent) 0%,
+    color-mix(in srgb, var(--syn-interaction-active) 92%, transparent) 28%,
+    color-mix(in srgb, var(--syn-interaction-active) 92%, transparent) 72%,
+    color-mix(in srgb, var(--syn-interaction-active) 0%, transparent) 100%
   );
-  box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--syn-interaction-active) 48%, transparent);
   pointer-events: none;
 }
 
@@ -844,7 +844,7 @@
 .synapse-ide-shell__sidebar-panel {
   background-image: radial-gradient(
     ellipse at top left,
-    rgba(245, 158, 11, 0.04) 0%,
+    color-mix(in srgb, var(--syn-interaction-active) 10%, transparent) 0%,
     transparent 52%
   );
 }
@@ -864,7 +864,7 @@
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(245, 158, 11, 0.22) 50%,
+    color-mix(in srgb, var(--syn-interaction-active) 28%, transparent) 50%,
     transparent 100%
   );
   transition: left 0.45s ease;
@@ -879,7 +879,7 @@
   transition: color 0.15s ease;
 }
 .syn-side-pane__fold[open] .syn-side-pane__fold-summary {
-  color: var(--ide-accent);
+  color: var(--syn-interaction-active);
 }
 .syn-side-pane__fold:not([open]) .syn-side-pane__fold-summary:hover {
   color: var(--ide-text-primary);
@@ -887,7 +887,7 @@
 
 /* 8 ∙ Settings folds — same accent treatment */
 .syn-settings__fold[open] .syn-settings__fold-summary {
-  color: var(--ide-accent);
+  color: var(--syn-interaction-active);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -899,60 +899,60 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   Amber Fault Line — premium accent border system
+   Workbench Edge Hierarchy — semantic border emphasis system
    Hierarchy (strongest → subtlest):
      status-bar → bottom-panel-frame → header → left-zone → side-pane-header
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* 1 ∙ Header — whisper amber bottom edge */
+/* 1 ∙ Header — whisper active edge */
 .synapse-ide-shell__header {
-  --header-border: 1px solid rgba(245, 158, 11, 0.35);
+  --header-border: 1px solid color-mix(in srgb, var(--syn-border-active) 42%, var(--syn-border-subtle) 58%);
   box-shadow:
-    0 1px 0 rgba(245, 158, 11, 0.1),
+    0 1px 0 color-mix(in srgb, var(--syn-interaction-active) 20%, transparent),
     0 4px 18px rgba(0, 0, 0, 0.32);
 }
 
-/* 2 ∙ Left zone — amber right-edge glow */
+/* 2 ∙ Left zone — active right-edge glow */
 .synapse-ide-shell__left-zone {
-  border-right-color: rgba(245, 158, 11, 0.26);
+  border-right-color: color-mix(in srgb, var(--syn-border-active) 36%, var(--syn-border-subtle) 64%);
   box-shadow:
-    1px 0 0 rgba(245, 158, 11, 0.1),
-    2px 0 14px rgba(245, 158, 11, 0.05);
+    1px 0 0 color-mix(in srgb, var(--syn-interaction-active) 16%, transparent),
+    2px 0 14px color-mix(in srgb, var(--syn-interaction-active) 12%, transparent);
 }
 
-/* 3 ∙ Activity rail inner divider — lighter amber tint */
+/* 3 ∙ Activity rail inner divider — lighter active tint */
 .synapse-ide-shell__activity-rail {
-  border-right-color: rgba(245, 158, 11, 0.16);
+  border-right-color: color-mix(in srgb, var(--syn-border-active) 22%, var(--syn-border-subtle) 78%);
 }
 
-/* 4 ∙ Sidebar panel — amber top edge shimmer */
+/* 4 ∙ Sidebar panel — active top edge shimmer */
 .synapse-ide-shell__sidebar-panel {
-  border-top: 1px solid rgba(245, 158, 11, 0.22);
+  border-top: 1px solid color-mix(in srgb, var(--syn-border-active) 30%, var(--syn-border-subtle) 70%);
 }
 
-/* 5 ∙ Resizer — amber right accent */
+/* 5 ∙ Resizer — active right accent */
 .synapse-ide-shell__resizer {
-  border-right-color: rgba(245, 158, 11, 0.24);
+  border-right-color: color-mix(in srgb, var(--syn-border-active) 36%, var(--syn-border-subtle) 64%);
 }
 
-/* 6 ∙ Bottom panel frame — second-tier amber + animated glow pulse */
-@keyframes syn-amber-pulse {
+/* 6 ∙ Bottom panel frame — second-tier active + animated glow pulse */
+@keyframes syn-shell-edge-pulse {
   0%, 100% {
     box-shadow:
-      0 -1px 0 rgba(245, 158, 11, 0.12),
+      0 -1px 0 color-mix(in srgb, var(--syn-interaction-active) 20%, transparent),
       0 -8px 28px rgba(0, 0, 0, 0.52);
   }
   50% {
     box-shadow:
-      0 -2px 0 rgba(245, 158, 11, 0.26),
+      0 -2px 0 color-mix(in srgb, var(--syn-interaction-active) 34%, transparent),
       0 -10px 32px rgba(0, 0, 0, 0.52),
-      0 -3px 16px rgba(245, 158, 11, 0.11);
+      0 -3px 16px color-mix(in srgb, var(--syn-interaction-active) 20%, transparent);
   }
 }
 
 .synapse-ide-shell__bottom-panel-frame {
-  border-top: 1px solid rgba(245, 158, 11, 0.52);
-  animation: syn-amber-pulse 6s ease-in-out infinite;
+  border-top: 1px solid color-mix(in srgb, var(--syn-border-active) 55%, var(--syn-border-subtle) 45%);
+  animation: syn-shell-edge-pulse 6s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -961,12 +961,12 @@
   }
 }
 
-/* 7 ∙ Bottom tabs strip — ultra-subtle amber bottom hairline */
+/* 7 ∙ Bottom tabs strip — ultra-subtle active bottom hairline */
 .synapse-ide-shell__bottom-tabs {
-  border-bottom-color: rgba(245, 158, 11, 0.2);
+  border-bottom-color: color-mix(in srgb, var(--syn-border-active) 26%, var(--syn-border-subtle) 74%);
 }
 
-/* 8 ∙ Side pane headers — 2 px amber left accent bar */
+/* 8 ∙ Side pane headers — 2 px active left accent bar */
 .syn-side-pane__header {
   position: relative;
 }
@@ -981,12 +981,12 @@
   border-radius: 0 2px 2px 0;
   background: linear-gradient(
     180deg,
-    rgba(245, 158, 11, 0)    0%,
-    rgba(245, 158, 11, 0.72) 30%,
-    rgba(245, 158, 11, 0.72) 70%,
-    rgba(245, 158, 11, 0)   100%
+    color-mix(in srgb, var(--syn-interaction-active) 0%, transparent) 0%,
+    color-mix(in srgb, var(--syn-interaction-active) 72%, transparent) 30%,
+    color-mix(in srgb, var(--syn-interaction-active) 72%, transparent) 70%,
+    color-mix(in srgb, var(--syn-interaction-active) 0%, transparent) 100%
   );
-  box-shadow: 0 0 6px rgba(245, 158, 11, 0.38);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--syn-interaction-active) 40%, transparent);
 }
 
 .syn-side-pane__row-content {
@@ -1061,27 +1061,27 @@
 }
 
 .syn-side-pane__badge[data-color="blue"] {
-  background: rgba(59,130,246,0.15);
-  color: #60A5FA;
-  border: 1px solid rgba(59,130,246,0.3);
+  background: color-mix(in srgb, var(--syn-status-info) 16%, transparent);
+  color: var(--syn-status-info);
+  border: 1px solid color-mix(in srgb, var(--syn-status-info) 38%, transparent);
 }
 
 .syn-side-pane__badge[data-color="purple"] {
-  background: rgba(139,92,246,0.15);
-  color: #A78BFA;
-  border: 1px solid rgba(139,92,246,0.3);
+  background: color-mix(in srgb, var(--syn-status-demo) 16%, transparent);
+  color: var(--syn-status-demo);
+  border: 1px solid color-mix(in srgb, var(--syn-status-demo) 38%, transparent);
 }
 
 .syn-side-pane__badge[data-color="teal"] {
-  background: rgba(20,184,166,0.15);
-  color: #2DD4BF;
-  border: 1px solid rgba(20,184,166,0.3);
+  background: color-mix(in srgb, var(--syn-status-valid) 16%, transparent);
+  color: var(--syn-status-valid);
+  border: 1px solid color-mix(in srgb, var(--syn-status-valid) 38%, transparent);
 }
 
 .syn-side-pane__badge[data-color="amber"] {
-  background: rgba(245,158,11,0.12);
-  color: var(--ide-accent);
-  border: 1px solid rgba(245,158,11,0.28);
+  background: color-mix(in srgb, var(--syn-status-warning) 16%, transparent);
+  color: var(--syn-status-warning);
+  border: 1px solid color-mix(in srgb, var(--syn-status-warning) 38%, transparent);
 }
 
 .syn-side-pane__divider {

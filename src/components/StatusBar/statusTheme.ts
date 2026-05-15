@@ -1,26 +1,34 @@
 export const SB_COLORS = {
 
-  bgPrimary: 'var(--syn-bg-surface-2, #1A1A1A)',
-  bgSecondary: 'var(--syn-bg-elevated, #202020)',
-  bgOverlay: 'var(--syn-overlay-whisper)',
-  textPrimary: 'var(--syn-text-primary, #FAFAF9)',
-  textSecondary: 'var(--syn-text-secondary, #D6D3D1)',
-  textAccent: 'var(--syn-accent-primary, #F59E0B)',
-  goldSoft: 'var(--syn-accent-primary, #F59E0B)',
-  goldMuted: 'var(--syn-accent-primary-pressed)',
-  mutedNeutral: 'var(--syn-text-muted)',
-  borderSoft: 'rgba(255, 255, 255, 0.12)',
-  success: '#4ADE80',
-  warning: 'var(--syn-accent-primary, #F59E0B)',
-  error: '#F87171',
+  bgPrimary: 'var(--syn-surface-navigation, #252A31)',
+  bgSecondary: 'var(--syn-surface-elevated, #2B3038)',
+  bgOverlay: 'var(--syn-surface-overlay)',
+  textPrimary: 'var(--syn-text-default, #D7DCE5)',
+  textSecondary: 'var(--syn-text-secondary, #A4ADBB)',
+  textAccent: 'var(--syn-status-info, #6AA9FF)',
+  goldSoft: 'var(--syn-status-info, #6AA9FF)',
+  goldMuted: 'var(--syn-status-pending, #A4ADBB)',
+  mutedNeutral: 'var(--syn-text-muted, #778190)',
+  borderSoft: 'var(--syn-border-subtle, #343A44)',
+  success: 'var(--syn-status-valid, #4EC27D)',
+  warning: 'var(--syn-status-warning, #D6A84F)',
+  error: 'var(--syn-status-error, #F87171)',
+  info: 'var(--syn-status-info, #6AA9FF)',
+  running: 'var(--syn-status-running, #6AA9FF)',
+  pending: 'var(--syn-status-pending, #A4ADBB)',
+  stale: 'var(--syn-status-stale, #9AA3B2)',
   softShadow: 'var(--syn-depth-subtle)',
-  borderHighlight: 'var(--syn-accent-primary, #F59E0B)',
+  borderHighlight: 'var(--syn-border-focus, #3794FF)',
   glowSubtle: 'none',
 } as const;
 
 export const sbFont = 'JetBrains Mono, Fira Code, SF Mono, Consolas, monospace';
 export const alpha = (hex: string, a: number) => {
-  if (!hex || !hex.startsWith('#')) return hex;
+  if (!hex) return hex;
+  const alphaClamped = Math.max(0, Math.min(1, a));
+  if (!hex.startsWith('#')) {
+    return `color-mix(in srgb, ${hex} ${Math.round(alphaClamped * 100)}%, transparent)`;
+  }
   const h = hex.replace('#', '');
   const to255 = (str: string) => parseInt(str, 16);
   let r = 0,
@@ -35,6 +43,5 @@ export const alpha = (hex: string, a: number) => {
     g = to255(h.substring(2, 4));
     b = to255(h.substring(4, 6));
   }
-  const alphaClamped = Math.max(0, Math.min(1, a));
   return `rgba(${r}, ${g}, ${b}, ${alphaClamped})`;
 };

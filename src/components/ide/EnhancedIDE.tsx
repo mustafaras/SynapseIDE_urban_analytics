@@ -1840,7 +1840,15 @@ export const EnhancedIDE: React.FC = () => {
         {isMapOpen ? (
           <Suspense
             fallback={(
-              <div style={{ position: 'fixed', top: 12, right: 12, zIndex: 11000, color: '#F59E0B' }}>
+              <div
+                style={{
+                  position: 'fixed',
+                  top: 12,
+                  right: 12,
+                  zIndex: 11000,
+                  color: 'var(--syn-interaction-active)',
+                }}
+              >
                 Loading Map Explorer...
               </div>
             )}
@@ -1927,9 +1935,9 @@ export const EnhancedIDE: React.FC = () => {
                 width: 10,
                 cursor: 'col-resize',
                 background:
-                  'var(--syn-gradient-glass-amber)',
-                borderLeft: '1px solid rgba(255,255,255,0.08)',
-                borderRight: '1px solid rgba(255,255,255,0.08)',
+                  'color-mix(in srgb, var(--syn-interaction-active) 12%, var(--syn-surface-panel) 88%)',
+                borderLeft: '1px solid var(--syn-border-subtle)',
+                borderRight: '1px solid var(--syn-border-subtle)',
                 backdropFilter: 'blur(4px)',
                 boxShadow: 'var(--syn-shadow-card)',
                 transition: 'background 0.25s var(--syn-easing-bauhaus)',
@@ -1937,11 +1945,11 @@ export const EnhancedIDE: React.FC = () => {
               }}
               onMouseEnter={e => {
                 e.currentTarget.style.background =
-                  'var(--syn-gradient-glass-amber)';
+                  'color-mix(in srgb, var(--syn-interaction-active) 16%, var(--syn-surface-panel) 84%)';
               }}
               onMouseLeave={e => {
                 e.currentTarget.style.background =
-                  'var(--syn-gradient-glass-amber)';
+                  'color-mix(in srgb, var(--syn-interaction-active) 12%, var(--syn-surface-panel) 88%)';
               }}
             />
             {}
