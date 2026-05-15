@@ -168,10 +168,10 @@ export const Header: React.FC<HeaderProps> = ({
     [density]
   );
 
-  const headerHeight = Math.round((density === 'compact' ? 56 : 64) * densityScale);
-  const padInline = Math.round(16 * densityScale);
-  const gap = Math.round(12 * densityScale);
-  const groupGap = Math.round(8 * densityScale);
+  const headerHeight = Math.round((density === 'compact' ? 36 : 40) * densityScale);
+  const padInline = Math.round(12 * densityScale);
+  const gap = Math.round(10 * densityScale);
+  const groupGap = Math.round(6 * densityScale);
 
   const taskStates = useTaskStates();
   const online = useOnlineState();
@@ -379,9 +379,10 @@ export const Header: React.FC<HeaderProps> = ({
 
   const groupDivider: React.CSSProperties = {
     width: 1,
-    alignSelf: 'stretch',
+    height: 16,
+    alignSelf: 'center',
     marginInline: Math.round(groupGap / 2),
-    background: 'var(--syn-overlay-light, rgba(255,255,255,0.08))',
+    background: 'var(--syn-border-subtle)',
   };
 
   return (
@@ -396,11 +397,9 @@ export const Header: React.FC<HeaderProps> = ({
         alignItems: 'center',
         paddingInline: padInline,
         gap,
-        background: 'var(--header-bg, var(--syn-gradient-elevated))',
-        backdropFilter: 'blur(8px)',
-        WebkitBackdropFilter: 'blur(8px)',
-        borderBottom: 'var(--header-border, 1px solid var(--syn-overlay-light))',
-        boxShadow: 'var(--header-shadow, var(--shadow-lg))',
+        background: 'var(--syn-surface-navigation)',
+        borderBottom: '1px solid var(--syn-border-subtle)',
+        boxShadow: 'none',
         position: 'relative',
         zIndex: 10020,
         userSelect: 'none',
@@ -418,20 +417,17 @@ export const Header: React.FC<HeaderProps> = ({
         <div
           aria-hidden="true"
           style={{
-            width: 40,
-            height: 40,
-            borderRadius: 10,
+            width: 22,
+            height: 22,
             display: 'grid',
             placeItems: 'center',
-            background: 'var(--syn-gradient-card)',
-            border: '1px solid var(--syn-accent-border)',
           }}
         >
           <svg
-            width="18"
-            height="18"
+            width="22"
+            height="22"
             viewBox="0 0 24 24"
-            fill="var(--syn-interaction-active)"
+            fill="var(--syn-text-secondary)"
             aria-hidden="true"
           >
             <circle cx="6" cy="6" r="2" />
@@ -441,22 +437,16 @@ export const Header: React.FC<HeaderProps> = ({
             <circle cx="12" cy="12" r="2.2" />
           </svg>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0 }}>
           <div
             style={{
               fontFamily: SYNAPSE_TYPO.fontFamily,
-              fontSize: '16px',
-              letterSpacing: '-0.01em',
-              fontWeight: 600,
-              lineHeight: 1.2,
+              fontSize: '13px',
+              letterSpacing: 0,
+              fontWeight: 500,
+              lineHeight: 1,
               whiteSpace: 'nowrap',
-              background:
-                'linear-gradient(135deg, var(--syn-text-default) 0%, var(--syn-interaction-active) 65%, var(--syn-text-default) 100%)',
-              WebkitBackgroundClip: 'text',
-              backgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              color: 'var(--syn-interaction-active)',
-              display: 'inline-block',
+              color: 'var(--syn-text-default)',
             }}
           >
             Synapse_IDE
@@ -466,15 +456,15 @@ export const Header: React.FC<HeaderProps> = ({
             style={{
               fontFamily: SYNAPSE_TYPO.fontFamily,
               fontSize: '11px',
-              fontWeight: 500,
-              color: labelMuted,
+              fontWeight: 400,
+              color: 'var(--syn-text-muted)',
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
-              maxWidth: 220,
+              maxWidth: 200,
             }}
           >
-            AI‑Assisted IDE for Beginners
+            AI‑Assisted IDE
           </div>
         </div>
 
@@ -593,22 +583,23 @@ export const Header: React.FC<HeaderProps> = ({
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: 8,
-                  padding: '8px 14px',
-                  borderRadius: 8,
+                  gap: 6,
+                  padding: '4px 10px',
+                  height: 26,
+                  borderRadius: 0,
+                  borderBottom: t.id === (activeTabId ?? '')
+                    ? '1px solid var(--syn-interaction-active)'
+                    : '1px solid transparent',
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
                   fontFamily: SYNAPSE_TYPO.fontFamily,
-                  fontSize: 13,
-                  fontWeight: t.id === (activeTabId ?? '') ? 600 : 500,
+                  fontSize: 12,
+                  fontWeight: 500,
                   color:
                     t.id === (activeTabId ?? '')
-                      ? 'var(--syn-interaction-active)'
-                      : SYNAPSE_COLORS.textSecondary,
-                  background:
-                    t.id === (activeTabId ?? '')
-                      ? 'color-mix(in srgb, var(--syn-interaction-active) 18%, transparent)'
-                      : 'transparent',
+                      ? 'var(--syn-text-default)'
+                      : 'var(--syn-text-muted)',
+                  background: 'transparent',
                   position: 'relative',
                   maxWidth: 220,
                   overflow: 'hidden',
@@ -1258,84 +1249,87 @@ const TaskStateLabel: React.FC<{ state: TaskState }> = ({ state }) => {
 
 function chevStyle(): React.CSSProperties {
   return {
-    height: 30,
-    width: 30,
+    height: 24,
+    width: 24,
     display: 'grid',
     placeItems: 'center',
-    borderRadius: 8,
+    borderRadius: 4,
     border: 'none',
-    color: SYNAPSE_COLORS.textPrimary,
+    color: 'var(--syn-text-secondary)',
     background: 'transparent',
+    cursor: 'pointer',
     flexShrink: 0,
   };
 }
 
 function ghostBtn(active: boolean): React.CSSProperties {
   return {
-    height: 32,
-    width: 36,
-    borderRadius: 10,
+    height: 24,
+    width: 28,
+    borderRadius: 4,
     border: 'none',
-    background: 'transparent',
+    background: active ? 'var(--syn-interaction-hover)' : 'transparent',
     color: active ? 'var(--syn-interaction-active)' : 'var(--syn-text-secondary)',
     display: 'grid',
     placeItems: 'center',
+    cursor: 'pointer',
     flexShrink: 0,
   };
 }
 
 function primaryBtn(densityScale: number): React.CSSProperties {
   return {
-    height: 32 * densityScale,
-    padding: `0 ${Math.round(12 * densityScale)}px`,
-    borderRadius: 10,
+    height: Math.round(24 * densityScale),
+    padding: `0 ${Math.round(8 * densityScale)}px`,
+    borderRadius: 4,
     border: 'none',
     background: 'transparent',
     color: 'var(--syn-interaction-active)',
-    fontWeight: 600,
-    fontSize: 13,
+    fontWeight: 500,
+    fontSize: 12,
     display: 'inline-flex',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
+    cursor: 'pointer',
     flexShrink: 0,
   };
 }
 
 function dangerBtn(densityScale: number): React.CSSProperties {
   return {
-    height: 32 * densityScale,
-    padding: `0 ${Math.round(12 * densityScale)}px`,
-    borderRadius: 10,
+    height: Math.round(24 * densityScale),
+    padding: `0 ${Math.round(8 * densityScale)}px`,
+    borderRadius: 4,
     border: 'none',
     background: 'transparent',
-    color: 'var(--syn-danger)',
-    fontWeight: 600,
-    fontSize: 13,
+    color: 'var(--syn-status-error)',
+    fontWeight: 500,
+    fontSize: 12,
     display: 'inline-flex',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
+    cursor: 'pointer',
     flexShrink: 0,
   };
 }
 
 function analyticsBtn(): React.CSSProperties {
   return {
-    height: 34,
-    padding: '0 14px',
-    borderRadius: 10,
-    border: 'none',
+    height: 24,
+    padding: '0 10px',
+    borderRadius: 4,
+    border: '1px solid var(--syn-border-subtle)',
     background: 'transparent',
     color: 'var(--syn-interaction-active)',
-    fontWeight: 600,
-    fontSize: 13,
+    fontWeight: 500,
+    fontSize: 12,
     fontFamily: SYNAPSE_TYPO.fontFamily,
     display: 'inline-flex',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
     cursor: 'pointer',
-    letterSpacing: '-0.01em',
-    boxShadow: 'none',
-    transition: 'all 0.2s ease',
+    letterSpacing: 0,
+    transition: 'background 0.15s ease',
     flexShrink: 0,
   };
 }

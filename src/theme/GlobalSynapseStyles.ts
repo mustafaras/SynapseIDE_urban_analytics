@@ -370,52 +370,62 @@ export const GlobalSynapseStyles = createGlobalStyle`
   .hairline { border: 1px solid var(--syn-border-700); }
 
 
-  /* ── Scrollbar (Webkit) ── */
-  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  /* ── Scrollbar (Webkit) — VS Code minimal ── */
+  ::-webkit-scrollbar { width: 10px; height: 10px; background: transparent; }
   ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-corner { background: transparent; }
   ::-webkit-scrollbar-thumb {
-    background: var(--syn-border-default);
-    border-radius: 8px;
-    border: 2px solid transparent;
+    background: color-mix(in srgb, var(--syn-text-muted, #778190) 22%, transparent);
+    border: 3px solid transparent;
+    border-radius: 6px;
     background-clip: content-box;
+    transition: background-color 0.15s ease;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: var(--syn-border-strong);
+    background: color-mix(in srgb, var(--syn-text-muted, #778190) 55%, transparent);
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:active {
+    background: color-mix(in srgb, var(--syn-text-secondary, #a4adbb) 70%, transparent);
     background-clip: content-box;
   }
   /* ── Scrollbar (Firefox) ── */
   * {
     scrollbar-width: thin;
-    scrollbar-color: var(--syn-border-default) transparent;
+    scrollbar-color: color-mix(in srgb, var(--syn-text-muted, #778190) 32%, transparent) transparent;
   }
 
   /* ── Scrollbar Utility Variants ── */
 
   /* Default: subtle neutral */
-  .syn-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
+  .syn-scrollbar::-webkit-scrollbar { width: 10px; height: 10px; }
   .syn-scrollbar::-webkit-scrollbar-track { background: transparent; }
   .syn-scrollbar::-webkit-scrollbar-thumb {
-    background: var(--syn-border-default);
-    border-radius: 4px;
+    background: color-mix(in srgb, var(--syn-text-muted, #778190) 22%, transparent);
+    border: 3px solid transparent;
+    border-radius: 6px;
+    background-clip: content-box;
   }
   .syn-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: var(--syn-border-strong);
+    background: color-mix(in srgb, var(--syn-text-muted, #778190) 55%, transparent);
+    background-clip: content-box;
   }
 
-  /* Accent: amber-tinted */
-  .syn-scrollbar-accent::-webkit-scrollbar { width: 8px; height: 8px; }
-  .syn-scrollbar-accent::-webkit-scrollbar-track {
-    background: linear-gradient(180deg, transparent, rgba(245,158,11,0.04) 50%, transparent);
-  }
+  /* Accent: interactive-tinted */
+  .syn-scrollbar-accent::-webkit-scrollbar { width: 10px; height: 10px; }
+  .syn-scrollbar-accent::-webkit-scrollbar-track { background: transparent; }
   .syn-scrollbar-accent::-webkit-scrollbar-thumb {
-    background: rgba(245,158,11, 0.4);
-    border-radius: 4px;
+    background: color-mix(in srgb, var(--syn-interaction-active, #3794ff) 26%, transparent);
+    border: 3px solid transparent;
+    border-radius: 6px;
+    background-clip: content-box;
   }
   .syn-scrollbar-accent::-webkit-scrollbar-thumb:hover {
-    background: rgba(245,158,11, 0.6);
+    background: color-mix(in srgb, var(--syn-interaction-active, #3794ff) 55%, transparent);
+    background-clip: content-box;
   }
   .syn-scrollbar-accent {
-    scrollbar-color: rgba(245,158,11, 0.4) transparent;
+    scrollbar-color: color-mix(in srgb, var(--syn-interaction-active, #3794ff) 32%, transparent) transparent;
   }
 
   /* Hidden: no scrollbar */

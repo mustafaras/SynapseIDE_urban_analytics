@@ -96,6 +96,23 @@ const TabsContentWrap = styled.div`
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  padding-right: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--syn-text-muted) 28%, transparent) transparent;
+  &::-webkit-scrollbar { width: 10px; height: 10px; background: transparent; }
+  &::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-corner { background: transparent; }
+  &::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--syn-text-muted) 22%, transparent);
+    border: 3px solid transparent;
+    background-clip: content-box;
+    border-radius: 6px;
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in srgb, var(--syn-text-muted) 55%, transparent);
+    background-clip: content-box;
+  }
 `;
 
 const TabPanel = styled.div<{ $active?: boolean }>`
@@ -731,19 +748,42 @@ export const SettingsModal: React.FC<{ open: boolean; onClose: () => void }> = (
               <Title id={tab==='general'?panelLabelId:undefined}>General</Title>
               <Divider />
               <Hint>Unified AI configuration. Provider & model selection stays consistent across panels. Dynamic models appear after keys are set.</Hint>
-              <div style={{ display:'flex', flexWrap:'wrap', gap:12, marginTop:8 }}>
-                <div style={{ display:'grid', gap:6 }}>
-                  <Label>Provider</Label>
-                  <div style={{ display:'flex', gap:6, flexWrap:'wrap', maxWidth:480 }} role='radiogroup' aria-label='AI Provider'>
-                    {providerOptions.map(opt => (
-                      <label key={opt.value} style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'4px 10px', border:'none', borderRadius:20, cursor:'pointer', background: uProvider===opt.value ? 'color-mix(in srgb, var(--syn-interaction-active) 16%, transparent)':'transparent', color: uProvider===opt.value ? 'var(--syn-interaction-active)':'var(--syn-text-secondary)' }}>
-                        <input style={{ display:'none' }} type='radio' name='ai-prov' value={opt.value} checked={uProvider===opt.value} onChange={() => { void onChangeProvider(opt.value); }} />
-                        <span style={{ fontSize:11 }}>{opt.label}</span>
-                      </label>
-                    ))}
+              <div style={{ display:'flex', flexDirection:'column', gap:14, marginTop:8 }}>
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, flexWrap:'wrap' }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:10, minWidth:0 }}>
+                    <Label style={{ minWidth:64 }}>Provider</Label>
+                    <div role='radiogroup' aria-label='AI Provider' style={{ display:'inline-flex', flexWrap:'wrap', padding:2, gap:2, background:'var(--syn-surface-input)', border:'1px solid var(--syn-border-subtle)', borderRadius:4 }}>
+                      {providerOptions.map(opt => {
+                        const active = uProvider===opt.value;
+                        return (
+                          <button
+                            key={opt.value}
+                            type='button'
+                            role='radio'
+                            aria-checked={active}
+                            onClick={() => { void onChangeProvider(opt.value); }}
+                            style={{
+                              display:'inline-flex', alignItems:'center', justifyContent:'center',
+                              height:22, padding:'0 10px',
+                              border:'none', borderRadius:2, cursor:'pointer',
+                              fontSize:11, fontWeight: active ? 600 : 500, lineHeight:1,
+                              background: active ? 'var(--syn-interaction-active)' : 'transparent',
+                              color: active ? 'var(--syn-text-inverse)' : 'var(--syn-text-secondary)',
+                              transition: 'background .12s ease, color .12s ease',
+                            }}
+                            onMouseEnter={e => { if (!active) { e.currentTarget.style.background='var(--syn-interaction-hover)'; e.currentTarget.style.color='var(--syn-text-default)'; } }}
+                            onMouseLeave={e => { if (!active) { e.currentTarget.style.background='transparent'; e.currentTarget.style.color='var(--syn-text-secondary)'; } }}
+                          >{opt.label}</button>
+                        );
+                      })}
+                    </div>
                   </div>
+                  <label style={{ display:'inline-flex', alignItems:'center', gap:8, fontSize:12, color:'var(--syn-text-secondary)' }} title={!caps.jsonMode ? 'Not supported by this provider' : ''}>
+                    <input type='checkbox' disabled={!caps.jsonMode} checked={!!caps.jsonMode && uSampling.json_mode} onChange={e => setUSampling({ json_mode: e.target.checked })} />
+                    <span style={{ opacity: caps.jsonMode?1:0.5 }}>JSON Mode</span>
+                  </label>
                 </div>
-                <div style={{ display:'grid', gap:6, minWidth:260, maxWidth:360 }}>
+                <div style={{ display:'grid', gap:6, minWidth:0 }}>
                   <Label>Model</Label>
                   <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
                     <input
@@ -751,7 +791,7 @@ export const SettingsModal: React.FC<{ open: boolean; onClose: () => void }> = (
                       placeholder={`Search ${uModels.length} models…`}
                       value={modelSearch}
                       onChange={e => setModelSearch(e.target.value)}
-                      style={{ padding:'6px 8px', background:'rgba(255,255,255,0.04)', border:'1px solid var(--borderSoft)', borderRadius:8, color:'var(--textPrimary)', fontSize:12 }}
+                      style={{ padding:'6px 10px', background:'var(--syn-surface-input)', border:'1px solid var(--syn-border-subtle)', borderRadius:2, color:'var(--syn-text-default)', fontSize:12, outline:'none' }}
                       aria-label='Filter models'
                     />
                     <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
@@ -775,13 +815,13 @@ export const SettingsModal: React.FC<{ open: boolean; onClose: () => void }> = (
                       style={{
                         maxHeight:260,
                         overflowY:'auto',
-                        padding:4,
+                        padding:2,
                         display:'flex',
                         flexDirection:'column',
-                        gap:4,
-                        background:'rgba(255,255,255,0.04)',
-                        border:'1px solid var(--borderSoft)',
-                        borderRadius:8,
+                        gap:0,
+                        background:'var(--syn-surface-input)',
+                        border:'1px solid var(--syn-border-subtle)',
+                        borderRadius:2,
                         position:'relative'
                       }}
                       ref={listRef}
@@ -853,29 +893,22 @@ export const SettingsModal: React.FC<{ open: boolean; onClose: () => void }> = (
                         ];
                       })()}
                     </div>
-                    <div style={{ fontSize:10, opacity:0.55, padding:'4px 6px' }}>{uModels.length} total • {favorites.length} favorites</div>
-                    <div style={{ fontSize:10, color:'var(--textSecondary)' }}>
-                      {favorites.length>0 && <span style={{ marginRight:8 }}>Fav first: {favorites.slice(0,3).join(', ')}{favorites.length>3?'…':''}</span>}
-                      {uModels.length ? `${uModels.length} models${dynamicExtra?` (${dynamicExtra} dynamic)`:''}` : 'No models'}
-                    </div>
-                    <div style={{ display:'flex', gap:6 }}>
-                      <button onClick={() => { void refreshUModels(uProvider as any); }} style={{ marginTop:0, fontSize:10, padding:'4px 8px', border:'1px solid var(--borderSoft)', borderRadius:6, background:'rgba(255,255,255,0.05)', cursor:'pointer' }}>Refresh</button>
-                      {!!modelSearch && <button onClick={() => setModelSearch('')} style={{ marginTop:0, fontSize:10, padding:'4px 8px', border:'1px solid var(--borderSoft)', borderRadius:6, background:'rgba(255,255,255,0.05)', cursor:'pointer' }}>Clear</button>}
+                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, paddingTop:2 }}>
+                      <div style={{ fontSize:11, color:'var(--syn-text-muted)', minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                        {uModels.length ? `${uModels.length} models${dynamicExtra?` · ${dynamicExtra} dynamic`:''}${favorites.length?` · ${favorites.length} ★`:''}` : 'No models'}
+                      </div>
+                      <div style={{ display:'flex', gap:6, flexShrink:0 }}>
+                        <button onClick={() => { void refreshUModels(uProvider as any); }} style={{ fontSize:11, padding:'3px 10px', border:'1px solid var(--syn-border-subtle)', borderRadius:2, background:'var(--syn-surface-elevated)', color:'var(--syn-text-default)', cursor:'pointer' }}>Refresh</button>
+                        {!!modelSearch && <button onClick={() => setModelSearch('')} style={{ fontSize:11, padding:'3px 10px', border:'1px solid var(--syn-border-subtle)', borderRadius:2, background:'var(--syn-surface-elevated)', color:'var(--syn-text-default)', cursor:'pointer' }}>Clear</button>}
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div style={{ display:'grid', gap:6 }}>
-                  <Label>JSON Mode</Label>
-                  <label style={{ display:'inline-flex', alignItems:'center', gap:6, fontSize:12 }} title={!caps.jsonMode ? 'Not supported by this provider' : ''}>
-                    <input type='checkbox' disabled={!caps.jsonMode} checked={!!caps.jsonMode && uSampling.json_mode} onChange={e => setUSampling({ json_mode: e.target.checked })} />
-                    <span style={{ opacity: caps.jsonMode?1:0.5 }}>Enable</span>
-                  </label>
                 </div>
               </div>
               <Divider />
               <div style={{ display:'grid', gap:10 }}>
                 <Label>System Prompt</Label>
-                <textarea placeholder='System prompt…' value={localSysPrompt} onChange={e => { setLocalSysPrompt(e.target.value); }} style={{ minHeight:70, resize:'vertical', padding:'8px 10px', background:'rgba(255,255,255,0.04)', border:'1px solid var(--borderSoft)', borderRadius:8, color:'var(--textPrimary)', fontSize:12 }} />
+                <textarea placeholder='System prompt…' value={localSysPrompt} onChange={e => { setLocalSysPrompt(e.target.value); }} style={{ minHeight:80, resize:'vertical', padding:'8px 10px', background:'var(--syn-surface-input)', border:'1px solid var(--syn-border-subtle)', borderRadius:2, color:'var(--syn-text-default)', fontSize:12, fontFamily:'inherit', outline:'none' }} />
                 <div style={{ display:'flex', gap:18, flexWrap:'wrap', alignItems:'flex-start' }}>
                   <div style={{ display:'grid', gap:4 }}>
                     <Label>Temperature <span style={{ fontSize:10, opacity:0.6 }}>({uSampling.temperature.toFixed(2)})</span></Label>
@@ -887,7 +920,7 @@ export const SettingsModal: React.FC<{ open: boolean; onClose: () => void }> = (
                   </div>
                   <div style={{ display:'grid', gap:4 }}>
                     <Label>Max Tokens</Label>
-                    <input type='number' placeholder={caps.tokenLimit?`≤ ${caps.tokenLimit}`:'max tokens'} value={uSampling.max_tokens ?? ''} onChange={e => { const v = e.target.value.trim()===''?undefined:clampMaxTok(Number(e.target.value)||0); setUSampling({ max_tokens: v }); }} style={{ width:120, padding:'6px 8px', background:'rgba(255,255,255,0.04)', border:'1px solid var(--borderSoft)', borderRadius:8, color:'var(--textPrimary)', fontSize:12 }} />
+                    <input type='number' placeholder={caps.tokenLimit?`≤ ${caps.tokenLimit}`:'max tokens'} value={uSampling.max_tokens ?? ''} onChange={e => { const v = e.target.value.trim()===''?undefined:clampMaxTok(Number(e.target.value)||0); setUSampling({ max_tokens: v }); }} style={{ width:140, padding:'6px 10px', background:'var(--syn-surface-input)', border:'1px solid var(--syn-border-subtle)', borderRadius:2, color:'var(--syn-text-default)', fontSize:12, outline:'none' }} />
                   </div>
                 </div>
                 <div style={{ fontSize:10, color:'var(--textSecondary)', marginTop:4 }}>

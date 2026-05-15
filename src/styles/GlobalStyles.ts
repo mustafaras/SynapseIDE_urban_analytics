@@ -777,42 +777,42 @@ export const GlobalStyles = createGlobalStyle`
 
 
   ::-webkit-scrollbar {
-    width: 12px;
-    height: 12px;
+    width: 10px;
+    height: 10px;
+    background: transparent;
   }
 
   ::-webkit-scrollbar-track {
-    background: var(--syn-surface-workbench);
-    border-radius: var(--border-radius-md);
+    background: transparent;
   }
 
   ::-webkit-scrollbar-thumb {
-    background: var(--syn-surface-elevated);
-    border: 1px solid var(--syn-border-default);
-    border-radius: var(--border-radius-md);
-    box-shadow: var(--shadow-xs);
-    transition: all var(--duration-fast) var(--syn-easing-bauhaus);
+    background: color-mix(in srgb, var(--syn-text-muted) 22%, transparent);
+    border: 3px solid transparent;
+    border-radius: 6px;
+    background-clip: content-box;
+    box-shadow: none;
+    transition: background-color 0.15s ease;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: var(--syn-surface-hover);
-    border-color: var(--syn-border-strong);
-    box-shadow: var(--shadow-sm);
+    background: color-mix(in srgb, var(--syn-text-muted) 55%, transparent);
+    background-clip: content-box;
   }
 
   ::-webkit-scrollbar-thumb:active {
-    background: var(--syn-surface-panel);
-    border-color: var(--syn-border-strong);
+    background: color-mix(in srgb, var(--syn-text-secondary) 70%, transparent);
+    background-clip: content-box;
   }
 
   ::-webkit-scrollbar-corner {
-    background: var(--syn-surface-workbench);
+    background: transparent;
   }
 
 
   * {
     scrollbar-width: thin;
-    scrollbar-color: var(--syn-border-strong) var(--syn-surface-workbench);
+    scrollbar-color: color-mix(in srgb, var(--syn-text-muted) 32%, transparent) transparent;
   }
 
 
@@ -1211,6 +1211,10 @@ export const GlobalStyles = createGlobalStyle`
     ::-webkit-scrollbar {
       width: 8px;
       height: 8px;
+    }
+    ::-webkit-scrollbar-thumb {
+      border-width: 2px;
+      border-radius: 4px;
     }
   }
 

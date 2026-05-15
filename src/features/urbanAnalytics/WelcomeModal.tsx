@@ -1131,14 +1131,18 @@ const WelcomeModal: React.FC<WelcomeModalProps> = ({ open, onClose }) => {
           flex-direction: column;
           gap: 48px;
         }
-        .welcome-content::-webkit-scrollbar { width: 8px; }
+        .welcome-content { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--syn-text-muted) 28%, transparent) transparent; }
+        .welcome-content::-webkit-scrollbar { width: 10px; }
         .welcome-content::-webkit-scrollbar-track { background: transparent; }
         .welcome-content::-webkit-scrollbar-thumb {
-          background: rgba(245,158,11, 0.4);
-          border-radius: 4px;
+          background: color-mix(in srgb, var(--syn-text-muted) 22%, transparent);
+          border: 3px solid transparent;
+          background-clip: content-box;
+          border-radius: 6px;
         }
         .welcome-content::-webkit-scrollbar-thumb:hover {
-          background: rgba(245,158,11, 0.6);
+          background: color-mix(in srgb, var(--syn-text-muted) 55%, transparent);
+          background-clip: content-box;
         }
 
         .welcome-section {

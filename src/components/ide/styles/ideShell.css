@@ -175,19 +175,27 @@
 }
 
 .synapse-ide-shell__resizer {
-  flex: 0 0 var(--ide-shell-resizer-width);
-  width: var(--ide-shell-resizer-width);
+  flex: 0 0 1px;
+  width: 1px;
   cursor: col-resize;
-  background: var(--syn-gradient-glass);
-  border-right: 1px solid var(--ide-border-subtle);
-  box-shadow: var(--ide-shadow-sm);
+  background: var(--syn-border-subtle);
+  border: none;
+  box-shadow: none;
   position: relative;
   z-index: 8;
   user-select: none;
+  transition: background 0.15s ease;
+}
+
+.synapse-ide-shell__resizer::before {
+  content: '';
+  position: absolute;
+  inset: 0 -3px;
+  cursor: col-resize;
 }
 
 .synapse-ide-shell__resizer:hover {
-  background: color-mix(in srgb, var(--syn-interaction-active) 14%, var(--syn-surface-panel));
+  background: var(--syn-interaction-active);
 }
 
 .synapse-ide-shell__resize-preview {

@@ -1477,10 +1477,7 @@ export const EnhancedIDE: React.FC = () => {
                   flexDirection: 'column',
                   position: 'relative',
                   overflow: 'hidden',
-                  background:
-                    'radial-gradient(ellipse at center, rgba(55, 148, 255, 0.02) 0%, rgba(0, 0, 0, 0.05) 70%)',
-                  backdropFilter: 'blur(1px)',
-                  transform: 'translateY(-150px)',
+                  background: 'var(--syn-surface-editor)',
                 }}
               >
                 {}
@@ -1489,7 +1486,7 @@ export const EnhancedIDE: React.FC = () => {
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    gap: '32px',
+                    gap: '24px',
                     zIndex: 10,
                     position: 'relative',
                   }}
@@ -1506,25 +1503,16 @@ export const EnhancedIDE: React.FC = () => {
                     {}
                     <div
                       style={{
-                        width: '120px',
-                        height: '120px',
-                        background: `linear-gradient(135deg, ${withAlpha(SYNAPSE_COLORS.bgSecondary, 0.95)}, ${withAlpha(SYNAPSE_COLORS.bgDark, 0.92)})`,
-                        backdropFilter: 'blur(20px)',
-                        border: `2px solid ${withAlpha(SYNAPSE_COLORS.goldPrimary, 0.55)}`,
-                        borderRadius: '24px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        boxShadow: `var(--syn-shadow-card)`,
-                        position: 'relative',
-                        overflow: 'hidden',
-                        transition: 'var(--syn-transition-slow)',
                       }}
                     >
                       {}
                       <div
                         style={{
-                          color: SYNAPSE_COLORS.textAccent,
+                          color: '#292d33',
+                          opacity: 1,
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -1534,8 +1522,8 @@ export const EnhancedIDE: React.FC = () => {
                           viewBox="0 0 48 48"
                           fill="none"
                           xmlns="http://www.w3.org/2000/svg"
-                          width="56"
-                          height="56"
+                          width="205"
+                          height="205"
                         >
                           {}
                           <circle cx="12" cy="12" r="4" fill="currentColor" opacity="0.9" />
@@ -1625,33 +1613,32 @@ export const EnhancedIDE: React.FC = () => {
                     <h2
                       style={{
                         margin: 0,
-                        fontSize: '32px',
-                        fontWeight: '700',
-                        fontFamily: '"JetBrains Mono", "Fira Code", monospace',
-                        color: SYNAPSE_COLORS.textAccent,
-                        letterSpacing: '0.5px',
-                        lineHeight: '1.2',
+                        fontSize: '26px',
+                        fontWeight: 300,
+                        fontFamily: 'inherit',
+                        color: 'var(--syn-text-default)',
+                        letterSpacing: '-0.01em',
+                        lineHeight: 1.3,
                       }}
                     >
-                      Welcome to Synapse
+                      Synapse
                     </h2>
 
                     <p
                       style={{
                         margin: 0,
-                        fontSize: '16px',
-                        color: SYNAPSE_COLORS.textSecondary,
-                        fontWeight: '400',
-                        lineHeight: '1.6',
-                        letterSpacing: '0.2px',
+                        fontSize: '13px',
+                        color: 'var(--syn-text-secondary)',
+                        fontWeight: 400,
+                        lineHeight: 1.6,
                       }}
                     >
-                      Intelligent Coding Workspace for Everyone
+                      Intelligent coding workspace
                       <br />
                       <span
                         style={{
-                          color: withAlpha(SYNAPSE_COLORS.textSecondary, 0.7),
-                          fontSize: '14px',
+                          color: 'var(--syn-text-muted)',
+                          fontSize: '12px',
                         }}
                       >
                         Create a new file or open an existing project to start coding
@@ -1671,43 +1658,29 @@ export const EnhancedIDE: React.FC = () => {
                     <button
                       onClick={handleNewFile}
                       style={{
-                        background: `linear-gradient(135deg, ${SYNAPSE_COLORS.goldPrimary}, ${SYNAPSE_COLORS.goldSecondary})`,
-                        border: `2px solid ${withAlpha(SYNAPSE_COLORS.goldPrimary, 0.8)}`,
-                        color: '#000',
-                        padding: '16px 32px',
-                        borderRadius: '16px',
+                        background: 'var(--syn-interaction-active)',
+                        border: '1px solid var(--syn-interaction-active)',
+                        color: 'var(--syn-text-inverse)',
+                        padding: '6px 16px',
+                        borderRadius: '2px',
                         cursor: 'pointer',
-                        fontSize: '16px',
-                        fontWeight: '700',
-                        fontFamily: '"JetBrains Mono", monospace',
+                        fontSize: '13px',
+                        fontWeight: 500,
+                        fontFamily: 'inherit',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '12px',
-                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                        boxShadow: `0 4px 16px ${withAlpha(SYNAPSE_COLORS.goldPrimary, 0.3)}`,
-                        letterSpacing: '0.5px',
-                        transform: 'translateY(0)',
-                        position: 'relative',
-                        overflow: 'hidden',
+                        gap: '8px',
+                        transition: 'background 0.15s ease',
+                        letterSpacing: 0,
                       }}
                       onMouseEnter={e => {
-                        e.currentTarget.style.transform = 'translateY(-2px) scale(1.02)';
-                        e.currentTarget.style.boxShadow = `0 6px 20px ${withAlpha(SYNAPSE_COLORS.goldPrimary, 0.4)}`;
-                        e.currentTarget.style.background = `linear-gradient(135deg, ${SYNAPSE_COLORS.goldPrimary}, ${SYNAPSE_COLORS.goldPrimary})`;
+                        e.currentTarget.style.background = 'color-mix(in srgb, var(--syn-interaction-active) 88%, white)';
                       }}
                       onMouseLeave={e => {
-                        e.currentTarget.style.transform = 'translateY(0) scale(1)';
-                        e.currentTarget.style.boxShadow = `0 4px 16px ${withAlpha(SYNAPSE_COLORS.goldPrimary, 0.3)}`;
-                        e.currentTarget.style.background = `linear-gradient(135deg, ${SYNAPSE_COLORS.goldPrimary}, ${SYNAPSE_COLORS.goldSecondary})`;
-                      }}
-                      onMouseDown={e => {
-                        e.currentTarget.style.transform = 'translateY(-1px) scale(1.01)';
-                      }}
-                      onMouseUp={e => {
-                        e.currentTarget.style.transform = 'translateY(-2px) scale(1.02)';
+                        e.currentTarget.style.background = 'var(--syn-interaction-active)';
                       }}
                     >
-                      <Plus size={20} strokeWidth={2.5} />
+                      <Plus size={14} strokeWidth={2} />
                       Create New File
                     </button>
 
@@ -1715,36 +1688,29 @@ export const EnhancedIDE: React.FC = () => {
                     <button
                       onClick={handleOpenProject}
                       style={{
-                        background: `linear-gradient(135deg, ${SYNAPSE_COLORS.bgOverlay}, ${withAlpha('#FFFFFF', 0.05)})`,
-                        border: `2px solid ${SYNAPSE_COLORS.border}`,
-                        color: SYNAPSE_COLORS.textPrimary,
-                        padding: '16px 24px',
-                        borderRadius: '16px',
+                        background: 'transparent',
+                        border: '1px solid var(--syn-border-subtle)',
+                        color: 'var(--syn-text-default)',
+                        padding: '6px 14px',
+                        borderRadius: '2px',
                         cursor: 'pointer',
-                        fontSize: '14px',
-                        fontWeight: '600',
+                        fontSize: '13px',
+                        fontWeight: 500,
                         display: 'flex',
                         alignItems: 'center',
                         gap: '8px',
-                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                        boxShadow: `0 4px 16px ${SYNAPSE_COLORS.softShadow}`,
-                        letterSpacing: '0.3px',
-                        backdropFilter: 'blur(10px)',
+                        transition: 'background 0.15s ease, border-color 0.15s ease',
                       }}
                       onMouseEnter={e => {
-                        e.currentTarget.style.transform = 'translateY(-2px)';
-                        e.currentTarget.style.background = `linear-gradient(135deg, ${withAlpha('#FFFFFF', 0.12)}, ${withAlpha('#FFFFFF', 0.08)})`;
-                        e.currentTarget.style.borderColor = `${SYNAPSE_COLORS.borderHighlight}`;
-                        e.currentTarget.style.boxShadow = `0 6px 20px ${SYNAPSE_COLORS.softShadow}`;
+                        e.currentTarget.style.background = 'var(--syn-surface-hover)';
+                        e.currentTarget.style.borderColor = 'var(--syn-border-default)';
                       }}
                       onMouseLeave={e => {
-                        e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.background = `linear-gradient(135deg, ${SYNAPSE_COLORS.bgOverlay}, ${withAlpha('#FFFFFF', 0.05)})`;
-                        e.currentTarget.style.borderColor = `${SYNAPSE_COLORS.border}`;
-                        e.currentTarget.style.boxShadow = `0 4px 16px ${SYNAPSE_COLORS.softShadow}`;
+                        e.currentTarget.style.background = 'transparent';
+                        e.currentTarget.style.borderColor = 'var(--syn-border-subtle)';
                       }}
                     >
-                      <Folder size={16} />
+                      <Folder size={14} />
                       Open Project
                     </button>
                   </div>
@@ -1762,19 +1728,20 @@ export const EnhancedIDE: React.FC = () => {
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '8px',
+                        gap: '6px',
                         fontSize: '12px',
-                        color: withAlpha(SYNAPSE_COLORS.textSecondary, 0.6),
-                        fontFamily: '"JetBrains Mono", monospace',
+                        color: 'var(--syn-text-muted)',
                       }}
                     >
                       <span
                         style={{
-                          background: 'rgba(255, 255, 255, 0.1)',
-                          padding: '4px 8px',
-                          borderRadius: '4px',
+                          background: 'var(--syn-surface-elevated)',
+                          border: '1px solid var(--syn-border-subtle)',
+                          padding: '1px 6px',
+                          borderRadius: '3px',
                           fontSize: '11px',
-                          fontWeight: '600',
+                          fontWeight: 500,
+                          color: 'var(--syn-text-secondary)',
                         }}
                       >
                         Ctrl+N
@@ -1785,19 +1752,20 @@ export const EnhancedIDE: React.FC = () => {
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '8px',
+                        gap: '6px',
                         fontSize: '12px',
-                        color: withAlpha(SYNAPSE_COLORS.textSecondary, 0.6),
-                        fontFamily: '"JetBrains Mono", monospace',
+                        color: 'var(--syn-text-muted)',
                       }}
                     >
                       <span
                         style={{
-                          background: 'rgba(255, 255, 255, 0.1)',
-                          padding: '4px 8px',
-                          borderRadius: '4px',
+                          background: 'var(--syn-surface-elevated)',
+                          border: '1px solid var(--syn-border-subtle)',
+                          padding: '1px 6px',
+                          borderRadius: '3px',
                           fontSize: '11px',
-                          fontWeight: '600',
+                          fontWeight: 500,
+                          color: 'var(--syn-text-secondary)',
                         }}
                       >
                         Ctrl+O
