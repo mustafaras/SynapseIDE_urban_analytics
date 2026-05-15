@@ -6,13 +6,13 @@ This ledger is the execution source of truth for the color-system operating pack
 
 ## Current Status
 
-- Operating pack status: revised for small-agent execution on 2026-05-14.
-- Implementation status: started; Prompts 00-17 completed on 2026-05-15.
-- Prompt count: 38 prompts, `00` through `37`.
-- Current prompt: Prompt 18 - Map Toolbar Search Pins And Controls.
-- Next prompt: Prompt 18 - Map Toolbar Search Pins And Controls.
+- Operating pack status: reprioritized for two-part amber-removal execution on 2026-05-15.
+- Historical implementation status: old broad Prompts 00-17 completed on 2026-05-15; old pending Prompts 18-37 are superseded by active prompts A01-B10.
+- Active prompt count: 20 prompts, `A01` through `A10` and `B01` through `B10`.
+- Current prompt: Prompt A02 - Urban Analytics Modal Shell, Backdrop, Header, And Welcome.
+- Next prompt: Prompt A02 - Urban Analytics Modal Shell, Backdrop, Header, And Welcome.
 - Archive context: do not move `DEVELOPMENT_PLANS/` from the current local branch; branch reconciliation is separate.
-- Initial migration principle: token infrastructure first, shared shell second, module surfaces third, QA last.
+- Active migration principle: Urban Analytics modal first, Map Explorer second; no amber UI/default styling, no unnecessary card frames, no filled button plates.
 
 ## Canonical Documents
 
@@ -33,46 +33,223 @@ This ledger is the execution source of truth for the color-system operating pack
 
 | ID | Prompt | Status | Depends On | Notes |
 | --- | --- | --- | --- | --- |
-| 00 | Operating Pack Rebaseline | completed | None | Completed 2026-05-15; color pack boundary and divergence warning confirmed. |
-| 01 | Style Topology Inventory | completed | 00 | Completed 2026-05-15; topology table and conflict inventory recorded. |
-| 02 | Hard-Coded Color Inventory | completed | 01 | Completed 2026-05-15; grouped risk inventory and top 20 migration targets recorded. |
-| 03 | Token Taxonomy And Naming Contract | completed | 02 | Completed 2026-05-15; canonical naming layers, forbidden usage rules, and alias/deprecation contract finalized. |
-| 04 | VS Code Primitive Palette Layer | completed | 03 | Completed 2026-05-15; non-breaking `--syn-vscode-*` primitives added to CSS and TS token layers. |
-| 05 | Semantic Token Alias Layer | completed | 04 | Completed 2026-05-15; semantic alias layer added to CSS vars, theme bridge, and app shell aliases. |
-| 06 | Theme Provider Compatibility Pass | completed | 05 | Completed 2026-05-15; provider CSS variable outputs aligned to semantic token layer without persistence-behavior changes. |
-| 07 | Token Regression Guard Plan | completed | 06 | Completed 2026-05-15; non-blocking hard-coded color guard script and QA guidance added. |
-| 08 | App Root And Global Surface Migration | completed | 07 | Completed 2026-05-15; root shell, global selection, and scrollbar surfaces aligned to semantic app-shell/syn tokens. |
-| 09 | Error Loading And Utility Surface Migration | completed | 08 | Completed 2026-05-15; utility and emergency surfaces migrated to semantic tokens with status clarity preserved. |
-| 10 | Center Panel Shell Migration | completed | 09 | Completed 2026-05-15; shell surfaces, separators, focus rings, and active markers aligned to semantic blue-interaction tokens. |
-| 11 | Shared Status Bar And System Chrome Migration | completed | 10 | Completed 2026-05-15; status bar chrome and system status badges mapped to semantic surface/status tokens. |
-| 12 | Synapse IDE Shell And Header Migration | completed | 11 | Completed 2026-05-15; shell/header/activity rail and placeholder panes aligned to semantic blue interaction + truthful status tokens. |
-| 13 | Synapse File Explorer And File Badges | completed | 12 | Completed 2026-05-15; file tree states, badges, icon color categories, and destructive explorer actions aligned to semantic tokens. |
-| 14 | Editor Tabs Monaco Outline And Search | completed | 13 | Completed 2026-05-15; editor tabs, Monaco context shell, outline/search chrome, and diagnostics summary accents aligned to semantic interaction/status tokens. |
-| 15 | Terminal Bottom Panel Tasks And Problems | completed | 14 | Completed 2026-05-15; terminal/bottom-panel/problems surfaces aligned to semantic status/interaction tokens with quiet dark terminal chrome preserved. |
-| 16 | Command Palette Search And AI Panel | completed | 15 | Completed 2026-05-15; command/search/AI/apply surfaces aligned to semantic interaction/status tokens. |
-| 17 | Map Explorer Shell And Canvas Chrome | completed | 16 | Completed 2026-05-15 out of sequence by user request; map shell/canvas chrome de-emphasized with semantic status tones preserved. |
-| 18 | Map Toolbar Search Pins And Controls | pending | 17 | Migrate map controls and focus states. |
-| 19 | Map Layer Manager And Layer Rows | pending | 18 | Migrate layers, badges, row states. |
-| 20 | Map Drawers QA NL Query Review And Report | pending | 19 | Migrate high-risk map drawers. |
-| 21 | Map Data Visualization Palette Boundary | pending | 20 | Separate map data colors from UI tokens. |
-| 22 | Urban Analytics Shell And Navigation | pending | 21 | Migrate UA shell/navigation. |
-| 23 | Urban Analytics Method Catalog And Workflow States | pending | 22 | Migrate method/workflow capability states. |
-| 24 | Urban Analytics Evidence Data Fitness And Provenance | pending | 23 | Migrate evidence/data-fitness states. |
-| 25 | Urban Analytics VoxCity And 3D Surfaces | pending | 24 | Migrate VoxCity/3D controls and caveats. |
-| 26 | Dashboard Education Reporting And Guide Surfaces | pending | 25 | Migrate supporting surfaces. |
-| 27 | Analytical Palette Helpers And Cartography Engine | pending | 26 | Document and align analytical palettes. |
-| 28 | Interaction Focus And Disabled State Sweep | pending | 27 | Sweep focus/hover/disabled states. |
-| 29 | Status Truthfulness Sweep | pending | 28 | Sweep semantic status correctness. |
-| 30 | Contrast Baseline And Token Math | pending | 29 | Record contrast evidence. |
-| 31 | Screenshot Baseline Harness | pending | 30 | Add or document screenshot review. |
-| 32 | Hard-Coded Color Cleanup Pass One | pending | 31 | Reduce high-impact chrome literals. |
-| 33 | CSS Modules Consistency Sweep | pending | 32 | Normalize CSS Module token usage. |
-| 34 | Styled Components And Inline Style Sweep | pending | 33 | Normalize styled/inline chrome colors. |
-| 35 | Documentation And Developer Guidance Update | pending | 34 | Update developer guidance. |
-| 36 | Full Color QA Gate | pending | 35 | Run and record broad color QA. |
-| 37 | Final Color System Handoff | pending | 36 | Close the color operating pack. |
+| A01 | Urban Analytics Amber Inventory And Scope Lock | completed | None | UA amber/card/button inventory recorded; next prompt is A02. |
+| A02 | Urban Analytics Modal Shell, Backdrop, Header, And Welcome | pending | A01 | Remove amber shell/welcome chrome and make the modal VS Code-like. |
+| A03 | Urban Analytics Rail, Command Bar, Search, Tabs, And Bottom Actions | pending | A02 | Migrate UA controls to compact unfilled non-amber interactions. |
+| A04 | Urban Analytics Method Catalog, Cards, Filters, And Indicator Panel | pending | A03 | Remove amber/card-heavy method and indicator surfaces. |
+| A05 | Urban Analytics Right Panel Dossier And Generated HTML | pending | A04 | Remove amber from dossier and generated report/print HTML. |
+| A06 | Urban Analytics Evidence, Data Fitness, Method Validity, And Workflow Status | pending | A05 | Preserve scientific truthfulness with non-amber status surfaces. |
+| A07 | Urban Analytics VoxCity, 3D, Scenario, And Simulation Panels | pending | A06 | Remove amber from VoxCity and simulation controls/panels. |
+| A08 | Urban Analytics Python, Package, Script Template, And Data Bridge Panels | pending | A07 | Remove amber from UA utility/Python-adjacent surfaces. |
+| A09 | Urban Analytics Final Amber Cleanup, Layout Polish, And Visual QA | pending | A08 | Final UA scan, card/button cleanup, focus and visual QA. |
+| A10 | Urban Analytics Handoff And Part 2 Gate | pending | A09 | Close Part 1 and unblock Map Explorer. |
+| B01 | Map Explorer Amber Inventory And Token Boundary | pending | A10 | Inventory complete Map Explorer amber scope and separate UI/data colors. |
+| B02 | Map Tokens And Shared Map Style Primitives | pending | B01 | Remove amber from central map UI tokens. |
+| B03 | Map Explorer Modal, Shell, Cockpit, Canvas Chrome, And Status Bar | pending | B02 | Remove amber shell/canvas chrome while keeping map primary. |
+| B04 | Map Toolbar, Search, Pins, Context Menus, And Keyboard Controls | pending | B03 | Migrate map controls to unfilled non-amber interactions. |
+| B05 | Map Layer Manager, Layer Panel, Rows, Badges, And Selection States | pending | B04 | Remove amber from layers, badges, toggles, rows, and selection. |
+| B06 | Map Drawers, Scientific QA, NL Query, Review Timeline, And Report Handoff | pending | B05 | Remove amber from high-risk QA/query/report drawer surfaces. |
+| B07 | Map Import, Export, Service, Drawing, Measurement, Temporal, And Dialog Surfaces | pending | B06 | Remove amber from secondary map tools and dialogs. |
+| B08 | Map Visualization Defaults, Symbology, Cartography Services, And Exports | pending | B07 | Remove amber default/demo/generated map colors and update assertions. |
+| B09 | Map Explorer Final Amber Cleanup, Tests, Accessibility, And Visual QA | pending | B08 | Final Map scan, card/button cleanup, focus and visual QA. |
+| B10 | Final Color System Handoff | pending | B09 | Close the active two-part color operating pack. |
 
 ## Prompt Execution Log
+
+### Active Two-Part Prompt Reprioritization - 2026-05-15
+
+- Status: completed.
+- Trigger: user requested the `COLOR_SYSTEM_PLANS` documents and sequential prompts be updated so the work removes unnecessary card frames and button fills, follows premium VS Code-style layouts, and is split into two priority parts: first the complete Urban Analytics modal amber removal, then the complete Map Explorer amber removal.
+- Files inspected:
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_PROMPT_MANIFEST.json`
+  - `COLOR_SYSTEM_PLANS/README.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_DEVELOPMENT_PLAN.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_ALIGNMENT_SPEC.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_UNIT_MATRIX.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_AGENT_PROTOCOL.md`
+  - `COLOR_SYSTEM_PLANS/START_HERE_COLOR_SYSTEM_AGENT.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_QA_CHECKLIST.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_TOKEN_REFERENCE.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+- Files changed:
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_PROMPT_MANIFEST.json`
+  - `COLOR_SYSTEM_PLANS/README.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_DEVELOPMENT_PLAN.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_ALIGNMENT_SPEC.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_UNIT_MATRIX.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_AGENT_PROTOCOL.md`
+  - `COLOR_SYSTEM_PLANS/START_HERE_COLOR_SYSTEM_AGENT.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_QA_CHECKLIST.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_TOKEN_REFERENCE.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+- Changes applied:
+  - Superseded the old broad 38-prompt future order with an active 20-prompt order: `A01`-`A10` for Urban Analytics modal, then `B01`-`B10` for Map Explorer.
+  - Added a strict active-scope amber ban for UI/default/demo styling in Urban Analytics modal and Map Explorer.
+  - Added explicit card-frame and filled-button cleanup requirements to the prompt ladder, protocol, QA checklist, and alignment spec.
+  - Updated the manifest, README, development plan, unit matrix, QA checklist, token reference override, current status, prompt register, and next pointer.
+- Product behavior changes: none; documentation and execution-pack update only.
+- Scientific integrity notes: No scientific evidence, CRS, data fitness, method validity, map behavior, or readiness semantics changed.
+- Cross-module contract changes: None.
+- Validation: manifest JSON parse passed; sequential prompt heading count is 20; active ledger register row count is 20; `git diff --check -- COLOR_SYSTEM_PLANS` reported only line-ending normalization warnings.
+- Known risks: Historical execution log entries still mention old Prompt 18 as their next recommendation because they are immutable history from the previous prompt ladder. The active current status and register now point to `A01`.
+- Next recommended prompt: Prompt A01 - Urban Analytics Amber Inventory And Scope Lock.
+
+### Prompt A01 - Urban Analytics Amber Inventory And Scope Lock
+
+- Date: 2026-05-15.
+- Agent: Codex.
+- Status: completed.
+- Started from:
+  - Launcher: `COLOR_SYSTEM_PLANS/START_HERE_COLOR_SYSTEM_AGENT.md`
+  - Protocol: `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_AGENT_PROTOCOL.md`
+  - Unit matrix: `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_UNIT_MATRIX.md`
+  - Token reference: `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_TOKEN_REFERENCE.md`
+  - Ledger: `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+  - Prompt block: `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` / Prompt A01
+  - Urban module rules: `.github/instructions/urban-analytics.instructions.md`
+- Files inspected:
+  - `COLOR_SYSTEM_PLANS/README.md`
+  - `COLOR_SYSTEM_PLANS/START_HERE_COLOR_SYSTEM_AGENT.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_AGENT_PROTOCOL.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_UNIT_MATRIX.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_ALIGNMENT_SPEC.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_TOKEN_REFERENCE.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_AGENT_HANDOFF_TEMPLATE.md`
+  - `.github/instructions/urban-analytics.instructions.md`
+  - `src/features/urbanAnalytics/UrbanAnalyticsModal.tsx`
+  - `src/features/urbanAnalytics/WelcomeModal.tsx`
+  - `src/features/urbanAnalytics/icons.tsx`
+  - `src/features/urbanAnalytics/StudyAreaPicker.module.css`
+  - `src/features/urbanAnalytics/rightPanelFourBlock.css`
+  - `src/features/urbanAnalytics/RightPanelFourBlock.tsx`
+  - `src/features/urbanAnalytics/rightPanelUtils.ts`
+  - `src/features/urbanAnalytics/evidence/urbanEvidenceTray.css`
+  - `src/features/urbanAnalytics/indicators/IndicatorCatalogPanel.module.css`
+  - `src/features/urbanAnalytics/rail/rail.css`
+  - `src/features/urbanAnalytics/rail/RailContainer.tsx`
+  - `src/features/urbanAnalytics/context/studyAreaSelection.ts`
+  - `src/features/urbanAnalytics/voxcity/BuildingViewer.tsx`
+  - `src/features/urbanAnalytics/voxcity/CityJSONViewer.tsx`
+  - `src/features/urbanAnalytics/voxcity/SunlightSimulatorPanel.tsx`
+  - `src/features/urbanAnalytics/voxcity/buildingTypes.ts`
+  - `src/features/urbanAnalytics/seeds/dataEngineering.ts`
+  - `src/features/urbanAnalytics/seeds/gisMethods.ts`
+  - `src/features/urbanAnalytics/seeds/interventionDesign.ts`
+  - `src/features/urbanAnalytics/seeds/monitoringReporting.ts`
+  - `src/features/urbanAnalytics/seeds/policyImplementation.ts`
+  - `src/features/urbanAnalytics/seeds/thematicAnalysis.ts`
+  - `src/features/urbanAnalytics/seeds/typologyClassification.ts`
+  - `src/features/urbanAnalytics/seeds/vulnerability.ts`
+  - `src/features/urbanAnalytics/python/templates/accessibility_analysis.ts`
+  - `src/features/urbanAnalytics/python/templates/spatial_autocorrelation.ts`
+  - `src/features/urbanAnalytics/__tests__/mapEvidencePublisher.test.ts`
+- Files changed:
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+- Tokens added: none.
+- Tokens consumed: none.
+- Tokens aliased or deprecated: none.
+- Product code changed: none.
+- Hard-coded colors removed: none; A01 is inventory-only.
+- Amber scan before:
+  - Command: `rg -n "#F59E0B|#FBBF24|#FDE68A|#D97706|#B45309|#92400E|245\\s*,\\s*158\\s*,\\s*11|251\\s*,\\s*191\\s*,\\s*36|217\\s*,\\s*119\\s*,\\s*6|amber|gold|yellow|orange|gradient-amber|--syn-status-warning" src/features/urbanAnalytics -g "*.ts" -g "*.tsx" -g "*.css"`
+  - Result: 198 standard-scan hits across 22 files.
+  - File counts: `WelcomeModal.tsx` 74; `SunlightSimulatorPanel.tsx` 26; `UrbanAnalyticsModal.tsx` 21; `urbanEvidenceTray.css` 15; `StudyAreaPicker.module.css` 11; `BuildingViewer.tsx` 11; `CityJSONViewer.tsx` 7; `monitoringReporting.ts` 6; `rail.css` 5; `rightPanelUtils.ts` 4; `policyImplementation.ts` 3; `rightPanelFourBlock.css` 2; `typologyClassification.ts` 2; `thematicAnalysis.ts` 2; `buildingTypes.ts` 2; one hit each in `icons.tsx`, `gisMethods.ts`, `interventionDesign.ts`, `dataEngineering.ts`, `vulnerability.ts`, `accessibility_analysis.ts`, and `spatial_autocorrelation.ts`.
+- Amber scan after:
+  - Command: same Standard Amber Scan command.
+  - Result: unchanged 198 standard-scan hits across 22 files, as expected for documentation-only A01.
+- Targeted supplemental scan:
+  - Command: `rg --count -i "#f59e0b|#fbbf24|#fde68a|#d97706|#b45309|#92400e|245\\s*,?\\s*158\\s*,?\\s*11|251\\s*,?\\s*191\\s*,?\\s*36|217\\s*,?\\s*119\\s*,?\\s*6|amber|gold|yellow|orange|gradient-amber|--syn-status-warning" src/features/urbanAnalytics -g "*.ts" -g "*.tsx" -g "*.css"`
+  - Result: 247 broader inventory hits across 25 files. This found lower-case hex, space-separated `rgb(245 158 11 / ...)`, and proper-noun/content hits that the standard scan does not capture.
+- Scoped inventory and owner categories:
+  - `src/features/urbanAnalytics/UrbanAnalyticsModal.tsx`: `modal-chrome`, `button-control`, `status-semantic`. Hits include brand glow keyframes, area input amber fill/focus, brand pill gradient/text shadow, warning/stale chips, root amber variables, amber focus rings, and the top accent strip. Planned prompts: A02 for shell/header/brand, A03 for controls, A06 for warning/stale chips, A09 for final scan cleanup.
+  - `src/features/urbanAnalytics/WelcomeModal.tsx`: `modal-chrome`, `button-control`, `card-frame`. Hits include SVG amber stops and animated stop colors, hero radial fills, external-link amber text/underlines, modal border/glow, ambient blobs, particles, animated wave strips, rings, grid lines, icon drop shadows, `--syn-gradient-amber-*` usage, amber feature cards, stat cards, timeline icons, footer, and primary CTA fills. Planned prompt: A02.
+  - `src/features/urbanAnalytics/icons.tsx`: `retain-with-reason`. Comment-only "charcoal-amber" text; not rendered UI. Planned prompt: A02/A09 cleanup if zero-scan requires comment removal.
+  - `src/features/urbanAnalytics/StudyAreaPicker.module.css`: `button-control`, `modal-chrome`, `card-frame`. Hits include trigger pill, unset state, coordinate text, search focus, primary button fill, selected result row, map selection border/glow, and HUD amber value text. Planned prompts: A03 for picker/search/controls, A09 for final modal scan.
+  - `src/features/urbanAnalytics/rail/rail.css`: `button-control`, `modal-chrome`. Hits include rail amber defaults, top line gradient, focus ring, title gradient, active chips/tags/groups, active item rail, favorite toggle, selected row, and count/chip active states through `--rail-accent`. Planned prompt: A03.
+  - `src/features/urbanAnalytics/rail/RailContainer.tsx`: `status-semantic`. `demo_mode` capability color uses amber. Planned prompt: A06 unless A03 centralizes rail status color first.
+  - `src/features/urbanAnalytics/rightPanelFourBlock.css`: `button-control`, `card-frame`, `status-semantic`, `generated-html`. Standard scan catches amber focus rings; supplemental scan catches lower-case amber tabs, badges, SDG badge, warning truth state, prompt intent/title accents, data block title accents, filled action buttons, dashed flow-link button, and print amber. Planned prompts: A04 for right-panel surface/card/control restyle, A05 for generated/print HTML, A06 for warning/status truth states.
+  - `src/features/urbanAnalytics/RightPanelFourBlock.tsx`: `retain-with-reason`. No amber literal found, but it renders the right-panel button, tab, prompt-card, data-block, dossier, and print/report surfaces styled by `rightPanelFourBlock.css` and `rightPanelUtils.ts`. Planned prompts: A04/A05.
+  - `src/features/urbanAnalytics/rightPanelUtils.ts`: `generated-html`. Hits are report/print HTML h1-h4 and table header colors. Planned prompt: A05.
+  - `src/features/urbanAnalytics/evidence/urbanEvidenceTray.css`: `button-control`, `status-semantic`, `card-frame`. Hits include tray toggle, filter on state, selected rows and right-rail rail, empty/side button, warning chip, and icon focus ring. Planned prompt: A06.
+  - `src/features/urbanAnalytics/indicators/IndicatorCatalogPanel.module.css`: `card-frame`, `button-control`. Standard scan misses most values, but targeted inspection found amber-like borders/backgrounds/radials and filled controls in `introCard`, `definitionCard`, `computeCard`, `bottomCard`, `bandPanel`, search card, filter chips, active chips, compute button, catalog/active cards, hero/detail panel, band/component/history cards, error/success/result panels, and empty state. Planned prompt: A04.
+  - `src/features/urbanAnalytics/context/studyAreaSelection.ts`: `data-content`. Default study-area layer stroke/fill uses lower-case amber. Planned prompt: A09 final UA cleanup, with care not to change map ownership contracts.
+  - `src/features/urbanAnalytics/voxcity/BuildingViewer.tsx`: `button-control`, `status-semantic`, `visualization-ramp`, `modal-chrome`. Hits include label color, active button fill, selected building color, thematic legend ramp, selected building info title, viewport sync badge, Add to Map filled button, sample-mode label, loading text, and progress bar. Planned prompt: A07.
+  - `src/features/urbanAnalytics/voxcity/CityJSONViewer.tsx`: `button-control`, `modal-chrome`. Hits include label color, active button fill, drag/drop active outline/background, loading text, and progress bar. Planned prompt: A07.
+  - `src/features/urbanAnalytics/voxcity/SunlightSimulatorPanel.tsx`: `button-control`, `status-semantic`, `visualization-ramp`, `data-content`. Hits include label/title accents, active button fill, cumulative heatmap yellow language, sample-mode label, running overlay/progress, empty-state instructional emphasis, legend header/ramp, timeline slider `accentColor`, sunlit-fraction result chips, Add to Map button, and "How to use" emphasis. Planned prompt: A07.
+  - `src/features/urbanAnalytics/voxcity/buildingTypes.ts`: `visualization-ramp`. Default thematic ramp contains amber/orange stops. Planned prompt: A07, documenting any retained analytical palette only if unavoidable.
+  - `src/features/urbanAnalytics/seeds/gisMethods.ts`: `data-content`, `visualization-ramp`, plus `retain-with-reason` for `Goldberg` citation. Prompt code uses amber map buffers and point colors. Planned prompt: A08.
+  - `src/features/urbanAnalytics/seeds/interventionDesign.ts`: `data-content`, `visualization-ramp`. Prompt code uses amber bar chart. Planned prompt: A08.
+  - `src/features/urbanAnalytics/seeds/policyImplementation.ts`: `data-content`, `visualization-ramp`, plus `retain-with-reason` for `LEED Gold` label. Prompt code uses amber compliance bars, Gantt short-term color, and responsible stakeholder category color. Planned prompt: A08.
+  - `src/features/urbanAnalytics/seeds/monitoringReporting.ts`: `data-content`, `visualization-ramp`, `generated-html`, plus `retain-with-reason` for `Chambers` citation. Prompt code uses amber radar, Mermaid node fill, unserved orange points, scorecard bars, and waffle palette. Planned prompt: A08.
+  - `src/features/urbanAnalytics/seeds/thematicAnalysis.ts`: `data-content`, `visualization-ramp`, plus `retain-with-reason` for `Chambers` citation. Prompt code uses amber line plot. Planned prompt: A08.
+  - `src/features/urbanAnalytics/seeds/typologyClassification.ts`: `data-content`, `visualization-ramp`. Prompt code uses amber feature-importance and timeline charts. Planned prompt: A08.
+  - `src/features/urbanAnalytics/seeds/dataEngineering.ts`: `data-content`, `generated-html`, plus `retain-with-reason` for traffic-light "green/amber/red" methodology and `Goldberg` citation. Prompt code uses `AMBER` fitness text and amber generated metric HTML. Planned prompt: A08, preserving explicit data-fitness truthfulness.
+  - `src/features/urbanAnalytics/seeds/vulnerability.ts`: `data-content`, `visualization-ramp`. Text describes WHO green/yellow/red threshold classification. Planned prompt: A08 only if visible modal/code-demo output needs recoloring; otherwise retain with scientific classification reason.
+  - `src/features/urbanAnalytics/python/templates/accessibility_analysis.ts`: `visualization-ramp`. Template uses red-yellow-green ramp language. Planned prompt: A08 with data-palette documentation.
+  - `src/features/urbanAnalytics/python/templates/spatial_autocorrelation.ts`: `visualization-ramp`. Template uses orange HL class. Planned prompt: A08 with data-palette documentation.
+  - `src/features/urbanAnalytics/__tests__/mapEvidencePublisher.test.ts`: `test-fixture`. Lower-case amber fixture fill color. Planned prompt: A09 or the prompt that changes the corresponding default.
+- Heavy card frames and nested surfaces to migrate:
+  - `WelcomeModal.tsx`: modal container with 32px radius, amber border/glow, hero ambient layers, feature cards, stat cards, command/timeline/footer surfaces, and filled primary CTA.
+  - `IndicatorCatalogPanel.module.css`: large 14-22px radius card stack (`introCard`, `definitionCard`, `computeCard`, `bottomCard`, `bandPanel`, `catalogCard`, `activeCard`, `componentCard`, `historyItem`, `resultPanel`) with amber-tinted borders/backgrounds.
+  - `rightPanelFourBlock.css`: nested `rp-data-block`, `rp-prompt-card`, `rp-fitness-score span`, manifest/code panels, footer action strip, filled `rp-btn--action`, filled `rp-btn--accent`, and dashed amber `rp-btn--flow-link`.
+  - `urbanEvidenceTray.css`: tray shell shadow, filled toggle/filter states, selected row amber rail, warning chips, and amber focus ring.
+  - `StudyAreaPicker.module.css`: framed search/picker overlay, filled primary controls, selected-result fill, and glowing map selection rectangle.
+  - `rail/rail.css`: pill chip frames, active group/item filled surfaces, active inset rails, focus rings, and favorite selected fills.
+  - `voxcity/*.tsx`: inline filled active buttons, status badges, progress bars, overlays, empty-state emphasis, and Add to Map buttons.
+- Decorative amber gradient/glow/animated-strip inventory:
+  - `UrbanAnalyticsModal.tsx`: `ua-brand-glow`, `ua-area-glow`, `ua-brand-shell`, `ua-brand-core`, `--brand-fx`, `--ua-focus-ring*`, and `.accentline`.
+  - `WelcomeModal.tsx`: SVG animated gradients, radial hero fills, ambient blobs, particles, wave strips, pulse rings, amber grid, hero icon drop shadows, stat glow animation, amber glass gradients, and CTA glow.
+  - `rail/rail.css`: `--rail-topline`, title gradient, active chip gradients, active item gradient and rail.
+  - `rightPanelFourBlock.css` and `urbanEvidenceTray.css`: amber focus rings and active/selected rail shadows.
+- File-by-file migration order:
+  1. A02: `UrbanAnalyticsModal.tsx`, `WelcomeModal.tsx`, `icons.tsx` shell/welcome chrome.
+  2. A03: `rail/rail.css`, `rail/RailContainer.tsx`, `StudyAreaPicker.module.css`, control/search/tab surfaces inside `UrbanAnalyticsModal.tsx`.
+  3. A04: `IndicatorCatalogPanel.module.css`, `RightPanelFourBlock.tsx`, `rightPanelFourBlock.css` catalog and right-panel UI surfaces.
+  4. A05: `rightPanelUtils.ts`, generated/print/report styling, and right-panel generated HTML paths.
+  5. A06: `evidence/urbanEvidenceTray.css`, data-fitness/method-validity/status chips in `UrbanAnalyticsModal.tsx`, `RightPanelFourBlock.tsx`, and `RailContainer.tsx`.
+  6. A07: `voxcity/BuildingViewer.tsx`, `voxcity/CityJSONViewer.tsx`, `voxcity/SunlightSimulatorPanel.tsx`, `voxcity/buildingTypes.ts`.
+  7. A08: `seeds/*.ts` and `python/templates/*.ts` code-demo, generated-output, and data-palette defaults.
+  8. A09: final full UA scan, `context/studyAreaSelection.ts`, affected tests, retained comment/proper-noun cleanup decisions, visual QA.
+- Hard-coded colors retained with reason:
+  - All source hits are retained for A01 because this prompt is inventory-only.
+  - Proper nouns and domain labels such as `Goldberg`, `Chambers`, and `LEED Gold` are content, not UI chrome.
+  - Scientific/data-classification language such as green/amber/red or red/yellow/green remains flagged for later prompt-level data-palette review, not silently removed.
+- Card frames removed or retained with reason: none removed; all listed above retained for planned A02-A09 migrations.
+- Button fills removed or retained with reason: none removed; all listed above retained for planned A02-A09 migrations.
+- UX changes: none.
+- Accessibility and contrast notes:
+  - No visual changes in A01.
+  - A02-A09 must preserve visible focus and avoid replacing amber with low-contrast gray-only states.
+  - Warning, stale, demo, residual-gap, blocked, unknown, and deferred states need explicit text/icon/aria context and non-amber styling.
+- Data visualization notes:
+  - Amber/yellow/orange used as data ramps in seeds, Python templates, VoxCity thematic ramps, and sunlight exposure legends must be migrated or explicitly documented as data-palette exceptions by A07/A08.
+  - Default/demo/generated map/chart colors should not remain amber under the active contract.
+- Scientific integrity notes: No scientific evidence, CRS, data fitness, method validity, or readiness semantics changed.
+- Cross-module contract changes: None.
+- Validation commands:
+  - `git status --short`
+  - Standard Urban Analytics amber scan before and after.
+  - Supplemental targeted scan for lower-case/rgb-space/proper-noun inventory.
+- Validation results:
+  - Worktree was already dirty before A01; source modifications were present in unrelated files and `src/features/urbanAnalytics/WelcomeModal.tsx`.
+  - Standard scan before: 198 hits across 22 files.
+  - Standard scan after: unchanged 198 hits across 22 files.
+  - Supplemental scan: 247 hits across 25 files.
+  - Typecheck/tests not run because A01 is documentation-only and product code was not changed.
+- Screenshots or manual visual evidence: not required for A01.
+- Known risks:
+  - The standard scan is case-sensitive and misses lower-case amber hex plus `rgb(245 158 11 / ...)`; later prompts should use both the required standard scan and a supplemental case-insensitive scan before marking zero-scan readiness.
+  - Local branch divergence remains a known repo risk, but A01 did not require resolving it.
+  - Existing worktree has user/pre-existing modifications; later implementation prompts must avoid reverting them.
+- Blockers: none.
+- Decisions made:
+  - Treat A01 as documentation/inventory-only despite the user's "apply" wording, because the active prompt explicitly says not to change product code.
+  - Move active pointer to A02 after recording the inventory.
+- Next recommended prompt: Prompt A02 - Urban Analytics Modal Shell, Backdrop, Header, And Welcome.
+- Ledger updated: yes.
 
 ### Settings Toggle + Slider + Fold Header Gray-Blue Pass - 2026-05-15
 
@@ -1252,6 +1429,7 @@ This ledger is the execution source of truth for the color-system operating pack
 
 | Date | Scope | Command | Result | Notes |
 | --- | --- | --- | --- | --- |
+| 2026-05-15 | Active two-part prompt pack validation | `node -e "const fs=require('fs'); const p='COLOR_SYSTEM_PLANS/COLOR_SYSTEM_PROMPT_MANIFEST.json'; const j=JSON.parse(fs.readFileSync(p,'utf8')); console.log(j.prompts.length); console.log(j.prompts[0].id, j.prompts.at(-1).id);"` plus `Select-String` heading/register counts | Passed | Manifest parses with 20 active prompts from A01 to B10; sequential prompt headings count 20; active ledger register rows count 20. |
 | 2026-05-15 | Prompt 00-17 audit consistency script | custom Node audit over sequential prompts, manifest, and ledger | Passed | 38 prompt headings, 38 manifest records, 38 register rows; prompts 00-17 completed; prompts 18-37 pending; logs and validation rows present; all pointers target Prompt 18. |
 | 2026-05-15 | Prompt 17/10 audit cleanup TypeScript validation | `npm run typecheck` | Passed | Command Palette stable modal sizing plus map cockpit/background-task CSS cleanup compiles without TypeScript errors. |
 | 2026-05-15 | Prompt 17/10 targeted amber scan | `rg` scan for legacy amber/gold literals in `MapWorkspaceCockpit.module.css` and `BackgroundTasksControl.module.css` | Passed | No legacy `#f59e0b`, `#fbbf24`, `#fde68a`, `#d97706`, or matching RGB amber literals remain in the two cleanup files. |
@@ -1292,13 +1470,14 @@ This ledger is the execution source of truth for the color-system operating pack
 
 | Date | Risk | Severity | Mitigation |
 | --- | --- | --- | --- |
+| 2026-05-15 | Historical log entries still reference old Prompt 18 as next prompt. | Low | Treat entries before "Active Two-Part Prompt Reprioritization" as immutable history; use Current Status, Prompt Status Register, and Next Pointer for active execution. |
 | 2026-05-15 | `lint:no-tailwind-centerpanel` is currently not runnable in this execution environment (`powershell` executable unavailable and referenced script missing from `scripts/`). | Medium | Keep manual changed-file Tailwind scans in prompt validations; restore/align script path in a tooling-focused follow-up. |
 | 2026-05-15 | Theme preference is read from both `theme` (ThemeContext) and `synapse.theme.mode` (flags) keys, which can drift if toggled by separate surfaces. | Medium | Keep behavior unchanged for compatibility; track for dedicated persistence unification outside color prompts. |
 | 2026-05-14 | Local branch is diverged from `origin/master`. | High | Do not move archive files during color prompts. |
 | 2026-05-14 | Existing theme system has multiple token/provider paths. | High | Inventory first; add aliases before migration. |
-| 2026-05-14 | Amber is overused in existing tokens. | Medium | Blue becomes interactive; amber becomes attention. |
+| 2026-05-14 | Amber is overused in existing tokens. | Medium | Historical global tokens may remain for compatibility; active Urban Analytics modal and Map Explorer UI/default styling must remove amber entirely. |
 | 2026-05-14 | Small agents may over-edit. | High | One prompt per agent and strict stop conditions. |
 
 ## Next Pointer
 
-Prompt 18 - Map Toolbar Search Pins And Controls.
+Prompt A02 - Urban Analytics Modal Shell, Backdrop, Header, And Welcome.

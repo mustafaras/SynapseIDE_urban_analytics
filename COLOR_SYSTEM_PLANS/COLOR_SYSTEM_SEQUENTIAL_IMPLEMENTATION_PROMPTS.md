@@ -2,11 +2,21 @@
 
 ## Purpose
 
-This file is the executable prompt ladder for applying the VS Code-inspired color system across the whole application. It is designed for small, low-context agents: each prompt is intentionally narrow, names the unit to inspect, defines allowed edits, and ends with concrete validation and ledger requirements.
+This is the active prompt ladder for the next color-system workstream. It supersedes the old broad 38-prompt rollout for future execution. The previous token infrastructure and shared shell work remain historical baseline; the active priority is now intentionally narrower and stricter:
 
-## Operating Rule
+1. Part 1 removes amber from the complete Urban Analytics modal experience and restyles it as a compact premium VS Code-like workbench surface.
+2. Part 2 removes amber from the complete Map Explorer experience and restyles it with the same premium VS Code-like discipline.
 
-Execute prompts in order unless `COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md` explicitly marks a prompt complete or skipped with reason. Do not batch prompts unless the user explicitly asks for a batch.
+Each prompt is written for a small agent: narrow scope, exact search targets, allowed edits, acceptance criteria, validation, and ledger requirements.
+
+## Active Priority Order
+
+Do not run Map Explorer prompts until all Urban Analytics prompts are completed or explicitly skipped with reason.
+
+| Part | Prompt IDs | Scope | Outcome |
+| --- | --- | --- | --- |
+| Part 1 | `A01`-`A10` | Only `src/features/urbanAnalytics/**` and directly rendered Urban Analytics modal content | Amber-free Urban Analytics modal with VS Code-like premium density, neutral workbench surfaces, thin separators, and unfilled controls |
+| Part 2 | `B01`-`B10` | Map Explorer UI, map component tokens, map services that emit default colors, and related map tests | Amber-free Map Explorer with map-first workbench chrome, unfilled controls, neutral panel hierarchy, and non-amber data defaults |
 
 ## Required Reading For Every Prompt
 
@@ -15,8 +25,24 @@ Before editing for any prompt, read:
 1. `COLOR_SYSTEM_PLANS/START_HERE_COLOR_SYSTEM_AGENT.md`
 2. `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_AGENT_PROTOCOL.md`
 3. `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_UNIT_MATRIX.md`
-4. The active prompt block in this file
-5. The current status section of `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+4. `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_TOKEN_REFERENCE.md`
+5. The active prompt block in this file
+6. The current status section of `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+
+For any prompt touching `src/features/urbanAnalytics/**`, also read `.github/instructions/urban-analytics.instructions.md` before editing.
+
+## Global Visual Contract
+
+The active workstream has a stricter rule than the earlier general color plan:
+
+- No amber/gold/yellow/orange chrome in Urban Analytics modal or Map Explorer surfaces.
+- No `#F59E0B`, `#FBBF24`, `#FDE68A`, `#D97706`, `#B45309`, `#92400E`, `rgb(245 158 11 / ...)`, `rgba(245,158,11,...)`, `MAP_COLORS.amber*`, `--syn-gradient-amber*`, or amber/gold named aliases in the active scope unless a prompt explicitly documents a non-UI data-palette exception.
+- Do not use `--syn-status-warning` in these two modules if it renders amber. Preserve warning meaning with explicit text, icons, disabled reasons, and non-amber status styling.
+- Use VS Code-like workbench tokens: `--syn-surface-*`, `--syn-text-*`, `--syn-border-*`, `--syn-interaction-*`, and non-amber `--syn-status-*` tokens.
+- Default buttons are transparent or neutral. Hover uses `--syn-interaction-hover`; active state uses icon/text color, a 1-2px rail, underline, or hairline. Avoid filled rounded button plates.
+- Replace unnecessary card frames with panel rows, group headers, split gutters, thin separators, and compact spacing.
+- Avoid card-in-card styling, large border radii, glow, decorative gradients, shimmer, animated background strips, marketing hero treatments, and idle placeholder panels.
+- Keep feature behavior, data contracts, GIS calculations, persistence, evidence semantics, method validity, and readiness logic unchanged.
 
 ## Global Stop Conditions
 
@@ -24,707 +50,693 @@ Stop and report if:
 
 - The task requires resolving the local `master` / `origin/master` branch divergence.
 - The task would move or archive `DEVELOPMENT_PLANS/`.
-- Product behavior, GIS calculations, evidence provenance, or module ownership would need to change.
-- Color changes could make demo, unknown, stale, blocked, or invalid output appear ready.
-- Required validation cannot run and no manual substitute is possible.
+- Product behavior, GIS calculations, evidence provenance, method validity, data-fitness interpretation, or module ownership would need to change.
+- A color change would make demo, unknown, stale, blocked, invalid, residual-gap, or deferred output appear ready.
+- Contrast, focus visibility, or keyboard reachability cannot be preserved without broader product redesign.
+- Required validation cannot run and no manual substitute can be recorded.
+
+## Standard Amber Scan
+
+Run the relevant scan before and after any implementation prompt. Document every remaining hit in the ledger.
+
+Urban Analytics:
+
+```powershell
+rg -n "#F59E0B|#FBBF24|#FDE68A|#D97706|#B45309|#92400E|245\\s*,\\s*158\\s*,\\s*11|251\\s*,\\s*191\\s*,\\s*36|217\\s*,\\s*119\\s*,\\s*6|amber|gold|yellow|orange|gradient-amber|--syn-status-warning" src/features/urbanAnalytics -g "*.ts" -g "*.tsx" -g "*.css"
+```
+
+Map Explorer:
+
+```powershell
+rg -n "#F59E0B|#FBBF24|#FDE68A|#D97706|#B45309|#92400E|245\\s*,\\s*158\\s*,\\s*11|251\\s*,\\s*191\\s*,\\s*36|217\\s*,\\s*119\\s*,\\s*6|amber|gold|yellow|orange|gradient-amber|--syn-status-warning|MAP_COLORS\\.amber" src/centerpanel/components src/services/map src/stores/useMapExplorerStore.ts -g "*.ts" -g "*.tsx" -g "*.css"
+```
 
 ---
 
-## Prompt 00 - Operating Pack Rebaseline
+# Part 1 - Urban Analytics Modal First
+
+## Prompt A01 - Urban Analytics Amber Inventory And Scope Lock
 
 ### Objective
 
-Rebaseline the color-system pack after archive-prep work and confirm the next prompt is safe to execute.
+Build the exact amber-removal inventory for the complete Urban Analytics modal before changing code.
+
+### Scope
+
+- `src/features/urbanAnalytics/**`
+- Directly rendered Urban Analytics modal content, including modal shell, welcome/onboarding modal, right panel dossier, evidence tray, indicators, Python utilities, and VoxCity/3D controls.
 
 ### Required Files
 
-- `COLOR_SYSTEM_PLANS/README.md`
-- `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_AGENT_PROTOCOL.md`
 - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_UNIT_MATRIX.md`
-- `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
-- `DEVELOPMENT_PLANS/ARCHIVE_READINESS.md`
+- `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_TOKEN_REFERENCE.md`
+- `src/features/urbanAnalytics/UrbanAnalyticsModal.tsx`
+- `src/features/urbanAnalytics/WelcomeModal.tsx`
+- `src/features/urbanAnalytics/rightPanelFourBlock.css`
+- `src/features/urbanAnalytics/RightPanelFourBlock.tsx`
+- `src/features/urbanAnalytics/evidence/urbanEvidenceTray.css`
+- `src/features/urbanAnalytics/indicators/IndicatorCatalogPanel.module.css`
+- `src/features/urbanAnalytics/voxcity/*.tsx`
 
 ### Tasks
 
-1. Confirm this color pack is separate from the tri-modal archive preparation.
-2. Confirm the local branch divergence warning is recorded.
-3. Confirm every color prompt status is `pending` unless already executed.
-4. Record the initial migration principle: token infrastructure first, shared shell second, module surfaces third, QA last.
+1. Run the Standard Amber Scan for Urban Analytics.
+2. Group each hit as `modal-chrome`, `button-control`, `card-frame`, `status-semantic`, `generated-html`, `data-content`, `visualization-ramp`, `test-fixture`, or `retain-with-reason`.
+3. Identify every heavy card frame, nested card surface, filled button, decorative amber gradient, glow, SVG amber stop, amber animated strip, and amber focus/active state.
+4. Record a file-by-file migration order in the ledger.
+5. Do not change product code in this prompt unless the user explicitly asks for a batch.
 
 ### Acceptance Criteria
 
-- Ledger says Prompt 00 is complete.
-- Next pointer is Prompt 01.
+- Ledger contains a scoped Urban Analytics amber inventory.
+- Every amber hit has an owner category and a planned prompt.
+- The next prompt is `A02`.
 - No product code changed.
 
 ### Validation
 
 - Documentation-only validation.
-- Run JSON parse only if manifest changed.
+- Record the exact scan command and hit summary in the ledger.
 
 ---
 
-## Prompt 01 - Style Topology Inventory
+## Prompt A02 - Urban Analytics Modal Shell, Backdrop, Header, And Welcome
 
 ### Objective
 
-Inventory the live style architecture so later agents do not invent a parallel theme system.
+Remove amber and decorative card chrome from the modal shell, backdrop, top header, loading/empty shell, and welcome/onboarding modal.
+
+### Primary Files
+
+- `src/features/urbanAnalytics/UrbanAnalyticsModal.tsx`
+- `src/features/urbanAnalytics/WelcomeModal.tsx`
+- `src/features/urbanAnalytics/icons.tsx` if comments or icon colors leak amber semantics
+
+### Tasks
+
+1. Replace amber title gradients, SVG stops, radial glows, animated strips, and top bars with neutral workbench surfaces and blue-gray interaction accents.
+2. Remove marketing-style hero treatment from the welcome modal. Preserve content, but make the first viewport read like a dense workbench onboarding panel, not a brand landing page.
+3. Convert shell surfaces to `--syn-surface-workbench`, `--syn-surface-panel`, `--syn-surface-elevated`, `--syn-border-subtle`, and `--syn-text-*`.
+4. Replace heavy modal cards with flat panels, hairline separators, compact section headers, and scrollable panes.
+5. Replace filled icon buttons with transparent icon buttons. Active/focus state should be icon/text color, 1px inset outline, or a small rail only.
+6. Keep all modal open/close behavior, z-index intent, keyboard behavior, and rendered content unchanged.
+
+### Acceptance Criteria
+
+- No amber/gold/yellow/orange visual chrome remains in `UrbanAnalyticsModal.tsx` or `WelcomeModal.tsx`.
+- Welcome modal no longer uses amber decorative gradients, radial orbs, animated brand stripes, amber CTA fills, or feature-card amber hover fills.
+- Modal shell reads as a VS Code-like dark workbench: compact, panelized, neutral, and premium.
+- Buttons are not filled rounded plates unless the action is truly primary; primary action uses restrained blue interaction styling, not amber.
+
+### Validation
+
+- `npm run typecheck`
+- `npm run test:analytics`
+- Re-run the Urban Analytics Standard Amber Scan and document remaining hits.
+
+---
+
+## Prompt A03 - Urban Analytics Rail, Command Bar, Search, Tabs, And Bottom Actions
+
+### Objective
+
+Restyle the modal's navigation rail, command/search row, tab-like controls, icon buttons, chips, and bottom action bar to VS Code-like compact controls without amber or heavy fills.
+
+### Primary Files
+
+- `src/features/urbanAnalytics/UrbanAnalyticsModal.tsx`
+- `src/features/urbanAnalytics/rail/rail.css`
+- `src/features/urbanAnalytics/rail/RailContainer.tsx`
+- Any CSS blocks embedded in `UrbanAnalyticsModal.tsx`
+
+### Tasks
+
+1. Convert rail buttons from rounded filled cards to VS Code-like rows or rail items.
+2. Active rail state should use a thin left marker, text/icon color, or subtle selected surface. Do not use amber fill or bordered plates.
+3. Search and command-bar controls should use compact input styling: `--syn-surface-input`, `--syn-border-subtle`, `--syn-border-focus`, and 2-4px radius.
+4. Replace `btnpill`, `iconbtn`, tag chips, scale/flow/run chips, and bottom action buttons with neutral defaults and blue focus/active cues.
+5. Preserve visible non-color labels for scale, flow, layer, run, data fitness, context sync, and evidence status.
+6. Remove unnecessary button borders, glows, and card-like fills while keeping hit targets usable.
+
+### Acceptance Criteria
+
+- Rail, command bar, search, chips, and bottom actions contain no amber literals or amber aliases.
+- Active navigation does not render as a filled amber/blue card; it uses a restrained VS Code indicator.
+- Status chips still expose labels or aria text and do not imply readiness incorrectly.
+- Layout remains dense and stable with no text overlap at compact widths.
+
+### Validation
+
+- `npm run typecheck`
+- `npm run test:analytics`
+- Re-run the Urban Analytics Standard Amber Scan and record residual hits.
+
+---
+
+## Prompt A04 - Urban Analytics Method Catalog, Cards, Filters, And Indicator Panel
+
+### Objective
+
+Remove amber and unnecessary card frames from the method library, card listings, section hierarchy, filters, tags, and indicator catalog.
+
+### Primary Files
+
+- `src/features/urbanAnalytics/store.ts`
+- `src/features/urbanAnalytics/rightPanelRegistry.ts`
+- `src/features/urbanAnalytics/RightPanelFourBlock.tsx` if card shell markup is shared
+- `src/features/urbanAnalytics/rightPanelFourBlock.css`
+- `src/features/urbanAnalytics/indicators/IndicatorCatalogPanel.tsx`
+- `src/features/urbanAnalytics/indicators/IndicatorCatalogPanel.module.css`
+
+### Tasks
+
+1. Convert method cards and indicator rows from boxed cards to dense list rows where possible.
+2. If repeated cards must remain, use radius <= 4px, neutral background, single subtle border or no border, and no nested frame.
+3. Replace amber tag, SDG badge, selected-card, hover, and focus styling with semantic neutral/blue-gray tokens.
+4. Capability statuses must remain explicit: `implemented`, `demo_mode`, `residual_gap`, `environment_dependent`, `deferred`.
+5. `demo_mode`, `residual_gap`, `environment_dependent`, `deferred`, and unknown states must not share valid/success styling.
+6. Do not edit seed scientific content except color literals used only for visible UI examples or code-demo chart styling identified in A01.
+
+### Acceptance Criteria
+
+- Method/indicator surfaces no longer use amber as neutral emphasis, card highlight, icon color, tag color, or active state.
+- No card-in-card frame remains in the catalog/detail transition.
+- Status labels remain truthful and accessible without relying on color alone.
+- Any retained color literals are documented as data/content examples, not UI chrome.
+
+### Validation
+
+- `npm run typecheck`
+- `npm run test:analytics`
+- Targeted tests for indicator/catalog files if changed.
+- Re-run the Urban Analytics Standard Amber Scan.
+
+---
+
+## Prompt A05 - Urban Analytics Right Panel Dossier And Generated HTML
+
+### Objective
+
+Make the right-panel dossier and generated report/print HTML amber-free and visually aligned with the modal workbench.
+
+### Primary Files
+
+- `src/features/urbanAnalytics/RightPanelFourBlock.tsx`
+- `src/features/urbanAnalytics/rightPanelFourBlock.css`
+- `src/features/urbanAnalytics/rightPanelUtils.ts`
+
+### Tasks
+
+1. Replace amber headings, links, table headers, SDG badges, prompt cards, and export-page styles with semantic blue/neutral workbench tokens.
+2. Flatten `.rp-prompt-card`, `.rp-panel`, badges, tables, and generated HTML blocks where they currently look like nested cards.
+3. Ensure generated print/export HTML remains readable in dark and print contexts without amber headers.
+4. Preserve dossier assembly, evidence matching, Python scaffold dispatch, related flow mapping, and card metadata behavior.
+5. Replace amber emphasized inline text with `--syn-text-link`, `--syn-interaction-active`, `--syn-status-info`, or neutral text depending on meaning.
+
+### Acceptance Criteria
+
+- `rightPanelFourBlock.css` and `rightPanelUtils.ts` contain no amber UI styling.
+- Generated HTML no longer uses amber headings, links, or table headers.
+- Right panel appears as one coherent inspector surface rather than stacked decorative cards.
+- Evidence, citation, data-fitness, and method-validity warnings remain explicit in text.
+
+### Validation
+
+- `npm run typecheck`
+- `npm run test:analytics`
+- Re-run the Urban Analytics Standard Amber Scan.
+
+---
+
+## Prompt A06 - Urban Analytics Evidence, Data Fitness, Method Validity, And Workflow Status
+
+### Objective
+
+Remove amber from evidence/provenance/status surfaces without weakening scientific truthfulness.
+
+### Primary Files
+
+- `src/features/urbanAnalytics/evidence/UrbanEvidenceTray.tsx`
+- `src/features/urbanAnalytics/evidence/urbanEvidenceTray.css`
+- `src/features/urbanAnalytics/context/evidenceArtifacts.ts`
+- `src/features/urbanAnalytics/context/dataFitness.ts`
+- `src/features/urbanAnalytics/context/methodValidity.ts`
+- `src/features/urbanAnalytics/lib/dataFitness.ts`
+- `src/features/urbanAnalytics/lib/methodValidity.ts`
+- `src/features/urbanAnalytics/lib/workflowReadiness.ts`
+
+### Tasks
+
+1. Replace amber warning/provenance styling with non-amber status treatments that still read as caveat, blocked, stale, unknown, or info.
+2. Do not change evidence artifact creation, immutability, QA state, max artifact enforcement, scoring logic, or validity envelopes.
+3. `score: null` remains unknown. Unknown must not look valid.
+4. Demo/synthetic/residual-gap/environment-dependent/deferred states must keep explicit labels and must not share success styling.
+5. Evidence tray rows should be compact inspector rows with separators, not nested colored cards.
+6. If a status previously used amber only for attention, replace with text/icon plus neutral or blue-gray treatment.
+
+### Acceptance Criteria
+
+- No amber remains in evidence tray, data-fitness UI, method-validity UI, or workflow readiness chrome.
+- Scientific status labels remain more explicit, not less explicit.
+- No evidence artifact is mutated or deleted as part of styling work.
+- Tests covering evidence/data fitness/method validity still pass.
+
+### Validation
+
+- `npm run typecheck`
+- `npm run test:analytics`
+- Targeted vitest files if touched: evidence, data fitness, method validity, workflow readiness.
+- Re-run the Urban Analytics Standard Amber Scan.
+
+---
+
+## Prompt A07 - Urban Analytics VoxCity, 3D, Scenario, And Simulation Panels
+
+### Objective
+
+Remove amber from VoxCity controls, 3D viewers, sunlight simulation, scenario comparison, overlays, sliders, legends, and simulation result panels.
+
+### Primary Files
+
+- `src/features/urbanAnalytics/voxcity/VoxCityControls.tsx`
+- `src/features/urbanAnalytics/voxcity/VoxCityViewer.tsx`
+- `src/features/urbanAnalytics/voxcity/CityJSONViewer.tsx`
+- `src/features/urbanAnalytics/voxcity/BuildingViewer.tsx`
+- `src/features/urbanAnalytics/voxcity/SimulationOverlay.tsx`
+- `src/features/urbanAnalytics/voxcity/ScenarioCompare.tsx`
+- `src/features/urbanAnalytics/voxcity/SunlightSimulator.tsx`
+- `src/features/urbanAnalytics/voxcity/SunlightSimulatorPanel.tsx`
+
+### Tasks
+
+1. Replace amber slider `accentColor`, button fills, panel headings, instructional bold text, selected ramp borders, and add-to-map controls.
+2. Keep 3D canvas backgrounds dark and quiet; do not introduce decorative overlays or frame cards.
+3. Use blue-gray active/focus controls and semantic status tokens for blocked/error/unknown/running.
+4. Simulation legends and ramps may keep analytical color meaning only if they are not amber UI chrome. Prefer non-amber sequential palettes when these are demo defaults.
+5. Verify canvas-adjacent UI does not overlap or resize unexpectedly at compact modal widths.
+6. Preserve all simulation, loading, scene hook, data bridge, and map handoff logic.
+
+### Acceptance Criteria
+
+- VoxCity and simulation UI no longer uses amber as control, heading, selected, focus, or instruction color.
+- Demo/sample state remains labeled and visually distinct.
+- Controls read as compact workbench inspectors, not separate dark cards.
+- Any retained visualization color ramp is documented as data, not UI chrome.
+
+### Validation
+
+- `npm run typecheck`
+- `npm run test:analytics`
+- Run VoxCity targeted tests if touched.
+- Manual or Playwright screenshot smoke if canvas-adjacent layout changes.
+- Re-run the Urban Analytics Standard Amber Scan.
+
+---
+
+## Prompt A08 - Urban Analytics Python, Package, Script Template, And Data Bridge Panels
+
+### Objective
+
+Remove amber and card-heavy styling from Urban Analytics Python/package/data-bridge surfaces rendered inside or launched from the modal.
+
+### Primary Files
+
+- `src/features/urbanAnalytics/python/PackageManager.tsx`
+- `src/features/urbanAnalytics/python/PythonEnvironmentManager.tsx`
+- `src/features/urbanAnalytics/python/DataBridge.ts`
+- `src/features/urbanAnalytics/python/ScriptTemplates.tsx`
+- `src/features/urbanAnalytics/python/templates/**/*.ts`
+
+### Tasks
+
+1. Replace amber status/control styling in Python environment, package, and script-template UI.
+2. Keep code-template content behavior unchanged; only change visible color examples if they use amber as default plot styling and are part of modal content.
+3. Use neutral surfaces, compact rows, thin separators, and transparent controls.
+4. Package/install/running/error states must remain explicit with text and non-amber status colors.
+5. Do not change Python execution, package installation, template generation, or data bridge contracts.
+
+### Acceptance Criteria
+
+- Python-related Urban Analytics UI has no amber/gold styling.
+- Code examples do not default to amber for charts unless a documented scientific palette reason exists.
+- Controls match the rest of the Urban Analytics modal density.
+
+### Validation
+
+- `npm run typecheck`
+- `npm run test:analytics`
+- Re-run the Urban Analytics Standard Amber Scan.
+
+---
+
+## Prompt A09 - Urban Analytics Final Amber Cleanup, Layout Polish, And Visual QA
+
+### Objective
+
+Perform the final Urban Analytics modal sweep for amber, unnecessary card frames, filled buttons, layout density, focus visibility, and text fit.
+
+### Scope
+
+- All `src/features/urbanAnalytics/**` runtime UI files.
+- Tests only where assertions need token/name updates.
+
+### Tasks
+
+1. Re-run the Urban Analytics Standard Amber Scan and eliminate every UI amber hit.
+2. Run a targeted scan for heavy chrome: `boxShadow`, `radial-gradient`, `linear-gradient`, `borderRadius: 10`, `border-radius:10px`, `border-radius: 999`, filled button backgrounds, and nested card classes.
+3. Remove decorative gradients, card-in-card frames, and button fills that survived earlier prompts.
+4. Check compact modal widths for text overflow, overlapping controls, and unstable toolbar/chip dimensions.
+5. Confirm focus-visible states exist for rail, search, tabs, action buttons, close buttons, filters, sliders, and copy/export controls.
+6. Update tests or snapshots only when styling token names changed.
+
+### Acceptance Criteria
+
+- Urban Analytics modal is amber-free except documented non-UI data-palette exceptions.
+- All major modal surfaces use VS Code-like premium layout: dense inspector rows, neutral panel hierarchy, thin separators, transparent controls, restrained blue interaction.
+- No demo/unknown/stale/blocked/deferred/residual-gap/environment-dependent state looks valid.
+- Ledger includes screenshot/manual QA notes.
+
+### Validation
+
+- `npm run typecheck`
+- `npm run test:analytics`
+- `npm run color:guard:changed` if available.
+- Manual screenshot review or Playwright smoke for the modal if a dev server is available.
+
+---
+
+## Prompt A10 - Urban Analytics Handoff And Part 2 Gate
+
+### Objective
+
+Close Part 1 and make it safe to start Map Explorer.
 
 ### Required Files
 
-- `src/theme/GlobalSynapseStyles.ts`
-- `src/theme/synapse.ts`
-- `src/styles/theme.ts`
-- `src/styles/GlobalStyles.ts`
-- `src/styles/ui.css`
-- `src/app/AppThemeProvider.tsx`
-- `src/contexts/ThemeContext.tsx`
-- `src/constants/design.ts`
-- `src/constants/app.ts`
-
-### Tasks
-
-1. Identify each source of global tokens and which one writes CSS variables.
-2. Identify legacy `--color-*`, `--glass-*`, and `--syn-*` aliases.
-3. Identify styled-components theme consumers and CSS Modules consumers.
-4. Record conflicts, duplicate tokens, and the current amber-heavy bias.
-5. Update the ledger with a style topology table.
-
-### Acceptance Criteria
-
-- Ledger has a topology summary with exact files.
-- No token is renamed yet.
-- No product code changed unless a typo in docs is fixed.
-
-### Validation
-
-- Documentation-only validation.
-
----
-
-## Prompt 02 - Hard-Coded Color Inventory
-
-### Objective
-
-Create the first precise inventory of hard-coded colors and categorize risk.
-
-### Required Search Scope
-
-- `src/**/*.{css,ts,tsx}`
-- Exclude `coverage/`, `dist/`, generated files, and package lock files.
-
-### Tasks
-
-1. Search for hex, `rgb()`, `rgba()`, `hsl()`, named color literals, gradients, and CSS variable fallbacks.
-2. Group findings by unit from `COLOR_SYSTEM_UNIT_MATRIX.md`.
-3. Mark each finding as one of: `token-source`, `component-chrome`, `status-semantic`, `data-visualization`, `fallback`, `test-fixture`, `ignore-with-reason`.
-4. Identify dangerous colors: success-looking demo states, warning colors used as neutral accents, UI warning/error reused in charts without semantic meaning.
-5. Record the top 20 highest-impact migration targets in the ledger.
-
-### Acceptance Criteria
-
-- Ledger includes grouped counts and top migration targets.
-- No code changed.
-
-### Validation
-
-- Documentation-only validation.
-
----
-
-## Prompt 03 - Token Taxonomy And Naming Contract
-
-### Objective
-
-Finalize the primitive, semantic, component alias, status, and data-palette token taxonomy before any UI migration.
-
-### Required Files
-
-- `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_TOKEN_REFERENCE.md`
-- `src/theme/GlobalSynapseStyles.ts`
-- `src/theme/synapse.ts`
-- `src/styles/theme.ts`
-
-### Tasks
-
-1. Define the canonical naming layers: primitive, semantic, component alias, status, and data palette.
-2. Define which existing tokens are kept as compatibility aliases.
-3. Define forbidden direct usages for components, such as primitives in feature UI.
-4. Define deprecation notes for old amber-first names without deleting them yet.
-5. Update token reference and ledger.
-
-### Acceptance Criteria
-
-- Token reference gives exact token naming rules.
-- Agents can tell which token family to use for any component.
-- No product code migration yet.
-
-### Validation
-
-- Documentation-only validation.
-
----
-
-## Prompt 04 - VS Code Primitive Palette Layer
-
-### Objective
-
-Add the VS Code-inspired primitive palette as non-breaking variables.
-
-### Primary Files
-
-- `src/theme/GlobalSynapseStyles.ts`
-- `src/theme/synapse.ts`
-- `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_TOKEN_REFERENCE.md`
-
-### Allowed Edits
-
-- Add `--syn-vscode-*` primitive variables.
-- Add TypeScript raw palette constants if consistent with `src/theme/synapse.ts`.
-- Do not replace existing `--syn-*` consumers yet.
-
-### Tasks
-
-1. Add primitive background/surface/text/border/accent/status values from the token reference.
-2. Keep amber available as `attention`, not as the only accent.
-3. Add blue interactive primitives.
-4. Add demo, unknown, stale, and blocked primitives.
-5. Update ledger with exact tokens added.
-
-### Acceptance Criteria
-
-- Existing UI still compiles.
-- Old tokens remain defined.
-- New primitives are documented.
-
-### Validation
-
-- `npm run typecheck` if TypeScript token files changed.
-- Otherwise documentation/CSS parse confidence plus ledger record.
-
----
-
-## Prompt 05 - Semantic Token Alias Layer
-
-### Objective
-
-Create semantic aliases that map product meaning to the new primitives while preserving legacy aliases.
-
-### Primary Files
-
-- `src/theme/GlobalSynapseStyles.ts`
-- `src/theme/synapse.ts`
-- `src/app/AppThemeProvider.tsx`
-- `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_TOKEN_REFERENCE.md`
-
-### Tasks
-
-1. Add semantic surface tokens: workbench, navigation, panel, editor, elevated, input, overlay.
-2. Add semantic text tokens: default, secondary, muted, disabled, inverse, link.
-3. Add semantic border tokens: default, subtle, strong, active, focus.
-4. Add interaction tokens: hover, selected, active, focus ring, disabled.
-5. Add status tokens: valid, warning, error, info, blocked, stale, unknown, demo, running, pending.
-6. Add compatibility aliases from old `--color-*` and `--syn-*` where safe.
-
-### Acceptance Criteria
-
-- Components can consume semantic tokens without knowing primitive values.
-- Legacy tokens still resolve.
-- Token reference reflects aliases.
-
-### Validation
-
-- `npm run typecheck` if TS changed.
-- Manual app load if feasible.
-
----
-
-## Prompt 06 - Theme Provider Compatibility Pass
-
-### Objective
-
-Ensure both theme provider paths expose the same color semantics without changing persistence behavior.
-
-### Primary Files
-
-- `src/app/AppThemeProvider.tsx`
-- `src/contexts/ThemeContext.tsx`
-- `src/styles/theme.ts`
-- `src/config/flags.ts`
-
-### Tasks
-
-1. Map new semantic tokens into provider-created CSS variables.
-2. Keep existing `theme`, `synapse.theme.mode`, and `auto` behavior intact.
-3. Do not add direct `localStorage` calls beyond existing code.
-4. Record any existing direct persistence issue as a risk, not a color migration blocker.
-5. Add ledger notes for which provider path owns which variables.
-
-### Acceptance Criteria
-
-- No theme mode disappears.
-- Existing tests/typecheck are not broken.
-- Agents know which provider to touch next.
-
-### Validation
-
-- `npm run typecheck`.
-
----
-
-## Prompt 07 - Token Regression Guard Plan
-
-### Objective
-
-Add or document a lightweight guard so future agents can detect newly introduced hard-coded chrome colors.
-
-### Primary Files
-
-- `scripts/` only if adding a script is low-risk.
+- `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+- `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_PROMPT_MANIFEST.json`
 - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_QA_CHECKLIST.md`
-- `package.json` only if adding a script is explicitly safe.
+- `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_AGENT_HANDOFF_TEMPLATE.md`
 
 ### Tasks
 
-1. Prefer documentation if a script would be too broad.
-2. If adding a script, scan only source files and ignore data palettes/tests by allowlist.
-3. Document allowed hard-coded color categories.
-4. Do not fail CI until the inventory is mature.
+1. Confirm prompts `A01`-`A09` are completed or skipped with reason.
+2. Record remaining Urban Analytics amber hits, if any, with exact retain reason.
+3. Record validation history: `typecheck`, `test:analytics`, scans, and visual QA.
+4. Confirm no source changes outside `src/features/urbanAnalytics/**` were required for Part 1 unless documented.
+5. Set the next prompt to `B01 - Map Explorer Amber Inventory And Token Boundary`.
 
 ### Acceptance Criteria
 
-- Future agents know how to find new hard-coded colors.
-- No false CI blocker is introduced.
+- Ledger marks Part 1 complete.
+- Manifest status matches the ledger.
+- No unresolved Urban Analytics amber UI debt remains.
+- Map Explorer work is explicitly unblocked.
 
 ### Validation
 
-- Run the script if one is added.
-- Otherwise documentation-only validation.
+- JSON parse for manifest if changed.
+- Documentation-only validation otherwise.
 
 ---
 
-## Prompt 08 - App Root And Global Surface Migration
+# Part 2 - Map Explorer Second
+
+## Prompt B01 - Map Explorer Amber Inventory And Token Boundary
 
 ### Objective
 
-Apply semantic surface/text/border tokens to the root app surfaces.
+Build the exact amber-removal inventory for the complete Map Explorer before changing code.
+
+### Scope
+
+- `src/centerpanel/components/MapExplorerModal.tsx`
+- `src/centerpanel/components/map/**`
+- `src/centerpanel/components/Map*` files that render Map Explorer surfaces
+- `src/services/map/**` files that emit default colors, legends, exports, or generated map content
+- `src/stores/useMapExplorerStore.ts`
+- Related map tests where color assertions exist
+
+### Tasks
+
+1. Run the Standard Amber Scan for Map Explorer.
+2. Group hits as `map-ui-token`, `modal-chrome`, `control-button`, `layer-row`, `drawer-status`, `export-generated-content`, `map-default-style`, `data-palette`, `test-fixture`, or `retain-with-reason`.
+3. Identify all `MAP_COLORS.amber*`, `MAP_STROKES.*` amber hairlines, `MAP_COLORS.amberDim`, amber active states, and amber default layer styles.
+4. Separate UI chrome from real data visualization palettes. UI and default/demo colors must be amber-free; any retained analytical palette must be documented.
+5. Record a file-by-file migration order in the ledger.
+6. Do not change product code in this prompt unless the user explicitly asks for a batch.
+
+### Acceptance Criteria
+
+- Ledger contains a complete Map Explorer amber inventory.
+- `mapTokens.ts` central amber dependencies are identified before component-level work.
+- The next prompt is `B02`.
+- No product code changed.
+
+### Validation
+
+- Documentation-only validation.
+- Record the exact scan command and hit summary in the ledger.
+
+---
+
+## Prompt B02 - Map Tokens And Shared Map Style Primitives
+
+### Objective
+
+Remove amber from shared Map Explorer tokens so downstream components can migrate consistently.
 
 ### Primary Files
 
-- `src/app/AppThemeProvider.tsx`
-- `src/app/AppRoot.tsx`
-- `src/App.tsx`
-- `src/main.tsx`
-- `src/styles/GlobalStyles.ts`
-- `src/styles/ui.css`
+- `src/centerpanel/components/map/mapTokens.ts`
+- `src/centerpanel/components/map/__tests__/map-components.test.ts`
+- `src/constants/design.ts` only if map-specific token aliases must be re-pointed without breaking other modules
 
 ### Tasks
 
-1. Replace root background and body text values with semantic tokens.
-2. Align global selection color with blue interactive accent, not amber unless attention is intended.
-3. Keep scrollbar and overlay colors restrained.
-4. Preserve font and spacing behavior.
-5. Update ledger with before/after token usage.
+1. Replace `MAP_COLORS.amber*` UI aliases with non-amber names and values, such as interaction, focus, selected, info, caveat, or neutral aliases.
+2. Convert `MAP_STROKES.hairline`, `hairlineStrong`, `hairlineSubtle`, and dashed strokes away from amber borders.
+3. Default active/selected/focus tokens should use `--syn-interaction-active`, `--syn-border-focus`, `--syn-interaction-hover`, and neutral separators.
+4. Keep map data-palette helpers separate from UI chrome. Do not route symbology through UI status tokens.
+5. Update tests that explicitly assert amber token values to assert the new semantic map token contract.
+6. Keep old exported names only as temporary compatibility aliases if needed, but they must no longer render amber and must be marked deprecated in comments.
 
 ### Acceptance Criteria
 
-- Root shell reads as VS Code-like dark charcoal.
-- No layout movement.
-- No module-specific surface is migrated here.
+- `mapTokens.ts` no longer exposes amber as the primary map UI accent.
+- Map styles, strokes, modal headers, tabs, and active buttons can consume non-amber shared tokens.
+- Tests no longer encode amber as the expected Map Explorer accent.
 
 ### Validation
 
-- `npm run typecheck` if TS touched.
-- Manual shell load if feasible.
+- `npm run typecheck`
+- Targeted map token tests if available.
+- Re-run the Map Explorer Standard Amber Scan and record central-token residuals.
 
 ---
 
-## Prompt 09 - Error Loading And Utility Surface Migration
+## Prompt B03 - Map Explorer Modal, Shell, Cockpit, Canvas Chrome, And Status Bar
 
 ### Objective
 
-Tokenize emergency and utility surfaces without reducing clarity.
-
-### Primary Files
-
-- `src/app/ErrorBoundary.tsx`
-- `src/components/utilities/Loading.tsx`
-- `src/components/utilities/ErrorBoundary.tsx`
-- `src/components/utilities/TestHarness.tsx`
-
-### Tasks
-
-1. Replace hard-coded text, border, and surface colors with semantic tokens.
-2. Keep danger states visibly dangerous with labels and accessible contrast.
-3. Keep test harness pass/fail colors semantic and readable.
-4. Record intentionally retained fixture colors if any.
-
-### Acceptance Criteria
-
-- Error and test states remain obvious.
-- No behavior changes.
-
-### Validation
-
-- `npm run typecheck`.
-
----
-
-## Prompt 10 - Center Panel Shell Migration
-
-### Objective
-
-Align the center panel shell with workbench semantic tokens.
-
-### Primary Files
-
-- `src/centerpanel/CenterPanelShell.tsx`
-- `src/centerpanel/*.module.css`
-- `src/centerpanel/UrbanContextStrip.tsx`
-- `src/centerpanel/urban-context-strip.module.css`
-
-### Tasks
-
-1. Tokenize shell background, panel surfaces, separators, focus rings, and compact status text.
-2. Preserve dense layout and avoid new cards or decorative chrome.
-3. Ensure active tab or active section uses blue interactive markers.
-4. Preserve amber only for attention/provenance/warning.
-
-### Acceptance Criteria
-
-- Center shell uses semantic tokens.
-- No Tailwind introduced.
-- No center panel workflow changes.
-
-### Validation
-
-- `npm run typecheck` if TS touched.
-- Changed-file lint when practical.
-
----
-
-## Prompt 11 - Shared Status Bar And System Chrome Migration
-
-### Objective
-
-Normalize top-level status surfaces, badges, and system indicators.
-
-### Primary Files
-
-- `src/components/StatusBar/statusTheme.ts`
-- `src/components/StatusBar/StatusBar.tsx`
-- Shared status/badge helpers discovered by Prompt 02.
-
-### Tasks
-
-1. Map status bar colors to semantic surface/status tokens.
-2. Distinguish info, warning, error, running, pending, and stale.
-3. Ensure compact status labels remain readable.
-4. Preserve non-color labels or icons.
-
-### Acceptance Criteria
-
-- Status bar no longer uses unrelated amber for neutral info.
-- Semantic status colors are documented.
-
-### Validation
-
-- `npm run typecheck`.
-
----
-
-## Prompt 12 - Synapse IDE Shell And Header Migration
-
-### Objective
-
-Migrate the IDE shell, header, activity rail, and placeholder panes to VS Code-like workbench tokens.
-
-### Primary Files
-
-- `src/components/ide/EnhancedIDE.tsx`
-- `src/components/ide/ideShell.css`
-- `src/components/ide/Header.tsx`
-- `src/components/ide/ShellPlaceholderPane.tsx`
-
-### Tasks
-
-1. Tokenize shell regions: activity rail, side bar, editor host, right panel, bottom panel boundaries.
-2. Use blue for active/focus, not broad amber fills.
-3. Keep truthful online/offline/sync statuses.
-4. Avoid card-in-card styling in shell regions.
-5. Record any remaining hard-coded colors with reasons.
-
-### Acceptance Criteria
-
-- IDE shell visually matches the VS Code-inspired target.
-- No command or bridge behavior changes.
-
-### Validation
-
-- `npm run typecheck`.
-- Changed-file lint when practical.
-
----
-
-## Prompt 13 - Synapse File Explorer And File Badges
-
-### Objective
-
-Tokenize file explorer rows, GIS-aware badges, file icons, and destructive states.
-
-### Primary Files
-
-- `src/components/file-explorer/`
-- `src/stores/fileExplorerStore.ts` only if needed for tests or fixtures.
-- `src/constants/app.ts`
-
-### Tasks
-
-1. Tokenize tree background, hover, selected, focus, drag/drop, and muted metadata.
-2. Review file-type colors in `src/constants/app.ts` and map them to stable token categories.
-3. Preserve generated artifact warnings and destructive operation danger styling.
-4. Ensure selected file and focused file are distinguishable.
-
-### Acceptance Criteria
-
-- File explorer remains compact and scannable.
-- File type colors are documented or tokenized.
-
-### Validation
-
-- `npm run typecheck`.
-- Existing file explorer tests if behavior code changes.
-
----
-
-## Prompt 14 - Editor Tabs Monaco Outline And Search
-
-### Objective
-
-Align editor-adjacent surfaces with the token system while preserving code readability.
-
-### Primary Files
-
-- `src/components/editor/`
-- Monaco wrapper files discovered in Prompt 02.
-- `src/components/ide/GlobalSearch.tsx`
-- Outline/symbol components.
-
-### Tasks
-
-1. Tokenize editor tab active/inactive/dirty/pinned states.
-2. Tokenize breadcrumbs, outline, search results, match highlights, and diagnostics summary colors.
-3. Do not change Monaco syntax theme unless a dedicated token mapping exists.
-4. Keep search match highlighting distinct from warning/error.
-
-### Acceptance Criteria
-
-- Editor chrome follows semantic tokens.
-- Syntax highlighting remains readable.
-
-### Validation
-
-- `npm run typecheck`.
-
----
-
-## Prompt 15 - Terminal Bottom Panel Tasks And Problems
-
-### Objective
-
-Tokenize terminal, tasks, output, problems, and bottom panel states.
-
-### Primary Files
-
-- `src/components/terminal/`
-- `src/components/ide/BottomPanel.tsx`
-- `src/components/editor/ProblemsPane.tsx`
-- Related CSS files.
-
-### Tasks
-
-1. Keep terminal background dark and quiet.
-2. Tokenize task states: queued, running, success, error, cancelled.
-3. Tokenize diagnostics severity without relying on color alone.
-4. Preserve xterm theme readability and cursor visibility.
-
-### Acceptance Criteria
-
-- Problems and terminal states remain accessible.
-- No terminal connection behavior changes.
-
-### Validation
-
-- `npm run typecheck`.
-- Terminal/component tests if touched logic exists.
-
----
-
-## Prompt 16 - Command Palette Search And AI Panel
-
-### Objective
-
-Tokenize command palette, global search, AI composer, context strips, apply preview, and warnings.
-
-### Primary Files
-
-- `src/components/ide/CommandPalette.tsx`
-- `src/components/ide/GlobalSearch.tsx`
-- `src/components/ai/`
-- `src/utils/ai/apply/` UI-facing components.
-
-### Tasks
-
-1. Tokenize palette input, grouped results, selected row, disabled reason, and focus states.
-2. Tokenize AI context, diagnostics, evidence, conflict, and apply/revert states.
-3. Keep generated-code and uncertainty warnings explicit.
-4. Do not change prompt construction or apply-plan behavior.
-
-### Acceptance Criteria
-
-- AI warnings remain truthful and prominent.
-- Palette keyboard state remains visible.
-
-### Validation
-
-- `npm run typecheck`.
-- Targeted tests only if logic changes.
-
----
-
-## Prompt 17 - Map Explorer Shell And Canvas Chrome
-
-### Objective
-
-Align Map Explorer shell, cockpit, and canvas chrome while keeping the map visually primary.
+Restyle the Map Explorer shell and canvas chrome as a map-first VS Code-like workbench without amber, glow, or heavy panel cards.
 
 ### Primary Files
 
 - `src/centerpanel/components/MapExplorerModal.tsx`
 - `src/centerpanel/components/map/MapWorkspaceShell.tsx`
+- `src/centerpanel/components/map/MapWorkspaceCockpit.tsx`
+- `src/centerpanel/components/map/MapWorkspaceCockpit.module.css`
 - `src/centerpanel/components/map/MapCanvas.tsx`
 - `src/centerpanel/components/map/MapStatusBar.tsx`
+- `src/centerpanel/components/map/MapCanvasKeyboardFallbackControls.tsx`
 
 ### Tasks
 
-1. Tokenize map shell surfaces, separators, cockpit status, and canvas overlays.
-2. Keep map controls legible over basemaps.
-3. Avoid decorative overlays, glow, or heavy cards.
-4. Preserve QA/CRS/publication readiness text.
+1. Remove amber shell accents, map header emphasis, workflow preview amber lines, canvas overlay amber borders, and focus fallback amber.
+2. Replace panel-card chrome with thin separators, map-first transparent overlays, and compact inspector rows.
+3. Keep map content visually primary; controls must recede behind basemap/layer symbology.
+4. Status bar states must remain explicit with labels for info, warning/caveat, error, running, pending, valid, and stale. Use non-amber rendering for warnings/caveats.
+5. Remove decorative gradients and glow. Use neutral panels and restrained blue/gray-blue focus.
+6. Preserve map lifecycle, layer sync, viewport, keyboard fallback, and cockpit behavior.
 
 ### Acceptance Criteria
 
-- Map remains the largest and clearest visual surface.
-- Chrome colors do not compete with layer symbology.
+- Shell, cockpit, canvas overlays, and status bar contain no amber UI chrome.
+- No button or panel reads as a decorative card unless it frames an actual floating tool.
+- Map status remains truthful and text-backed.
+- Map remains primary in desktop and compact layouts.
 
 ### Validation
 
-- `npm run typecheck`.
-- Map visual smoke if practical.
+- `npm run typecheck`
+- Targeted map lifecycle/accessibility tests if touched.
+- Manual or Playwright visual smoke if dev server is available.
+- Re-run the Map Explorer Standard Amber Scan.
 
 ---
 
-## Prompt 18 - Map Toolbar Search Pins And Controls
+## Prompt B04 - Map Toolbar, Search, Pins, Context Menus, And Keyboard Controls
 
 ### Objective
 
-Tokenize interactive map controls and their keyboard/focus states.
+Remove amber and filled button styling from Map Explorer controls, search, pins, menus, and keyboard/fallback control surfaces.
 
 ### Primary Files
 
 - `src/centerpanel/components/map/MapToolbar.tsx`
 - `src/centerpanel/components/map/MapSearchBar.tsx`
 - `src/centerpanel/components/map/MapPinSidebar.tsx`
+- `src/centerpanel/components/MapContextMenu.tsx`
+- `src/centerpanel/components/MapBookmarkBar.tsx`
 - `src/centerpanel/components/map/MapCanvasKeyboardFallbackControls.tsx`
+- `src/centerpanel/components/map/contextMenuUtils.ts`
 
 ### Tasks
 
-1. Tokenize icon button default, hover, active, disabled, and focus states.
-2. Ensure selected basemap/tool state is visible without only color.
-3. Preserve accessible names and keyboard fallbacks.
-4. Keep amber rare: warnings or provenance only.
+1. Convert toolbar buttons to VS Code-like icon buttons: transparent default, neutral hover, blue/gray-blue active icon or rail, visible focus ring.
+2. Remove amber hover/focus/active backgrounds from search results, pin rows, context actions, bookmark controls, and keyboard controls.
+3. Replace filled rounded controls with compact 24-32px controls where the existing layout supports it.
+4. Preserve tooltips, aria labels, disabled reasons, shortcut text, and command behavior.
+5. Do not change map commands, search result resolution, pin persistence, or context menu action routing.
 
 ### Acceptance Criteria
 
-- All toolbar controls have visible focus and selected states.
-- No map command behavior changes.
+- Controls have no amber styling and no unnecessary filled button plates.
+- Active state is legible through icon/text/rail/focus, not a large filled card.
+- Keyboard focus remains visible and consistent.
+- Text fits inside controls at compact widths.
 
 ### Validation
 
-- `npm run typecheck`.
-- Map accessibility tests if touched.
+- `npm run typecheck`
+- Map toolbar/search/accessibility tests if touched.
+- Re-run the Map Explorer Standard Amber Scan.
 
 ---
 
-## Prompt 19 - Map Layer Manager And Layer Rows
+## Prompt B05 - Map Layer Manager, Layer Panel, Rows, Badges, And Selection States
 
 ### Objective
 
-Tokenize layer manager rows, badges, action buttons, and layer metadata states.
+Remove amber from layer management and replace card-like layer rows with dense, truthful inspector rows.
 
 ### Primary Files
 
 - `src/centerpanel/components/map/MapLayerManager.tsx`
 - `src/centerpanel/components/map/MapLayerPanel.tsx`
-- `src/centerpanel/components/map/mapTypes.ts` only if status color metadata is typed.
+- `src/centerpanel/components/map/mapLayerMetadata.ts`
+- `src/centerpanel/components/map/useLayerSync.ts`
+- `src/centerpanel/components/map/__tests__/map-layer-management.test.ts`
 
 ### Tasks
 
-1. Tokenize row hover, selected, disabled, hidden, stale, derived, and queryable states.
-2. Tokenize source, CRS, QA, readiness, evidence, and demo badges.
-3. Ensure delete/destructive actions use danger tokens and labels.
-4. Keep layer swatches tied to symbology, not shell status colors.
+1. Replace active layer amber fill/border/text with non-amber selected-row styling.
+2. Replace layer checkbox/range `accentColor` amber with blue-gray interaction tokens.
+3. Remove amber delete/dropdown/popup borders and heavy panel shadows where they read as cards.
+4. Disabled, stale, hidden, invalid, unsynced, selected, and published states must remain explicit with labels, icons, or tooltips.
+5. Do not change layer store behavior, order, visibility logic, style metadata, or sync semantics.
+6. Update tests that expect amber layer defaults or token names.
 
 ### Acceptance Criteria
 
-- Layer rows are scan-friendly and truthful.
-- Unknown metadata is visibly unknown, not ready.
+- Layer rows, badges, toggles, dropdowns, and active states are amber-free.
+- Row surfaces are compact and separator-led rather than card-led.
+- State truthfulness is preserved without color-only communication.
 
 ### Validation
 
-- `npm run typecheck`.
-- Layer-manager tests if behavior code changes.
+- `npm run typecheck`
+- Targeted layer management tests.
+- Re-run the Map Explorer Standard Amber Scan.
 
 ---
 
-## Prompt 20 - Map Drawers QA NL Query Review And Report
+## Prompt B06 - Map Drawers, Scientific QA, NL Query, Review Timeline, And Report Handoff
 
 ### Objective
 
-Tokenize Map Explorer drawers and high-risk scientific status surfaces.
+Remove amber from high-risk Map Explorer drawers while preserving QA, CRS, publication readiness, query safety, review, and report status semantics.
 
 ### Primary Files
 
+- `src/centerpanel/components/map/MapWorkflowDrawer.tsx`
 - `src/centerpanel/components/map/ScientificQAPanel.tsx`
 - `src/centerpanel/components/map/MapNLQueryPanel.tsx`
 - `src/centerpanel/components/map/MapReviewTimelinePanel.tsx`
-- `src/centerpanel/components/map/MapWorkflowDrawer.tsx`
 - `src/centerpanel/components/map/MapReportHandoffDrawer.tsx`
+- `src/centerpanel/components/map/CartographyRecommendationList.tsx`
 
 ### Tasks
 
-1. Tokenize QA severity, blockers, warnings, unknowns, stale findings, and publication readiness.
-2. Keep NL query accepted/rejected/applied/failed states explicit.
-3. Tokenize timeline events by semantic category without hiding text labels.
-4. Keep report handoff caveats, citations, and reproducibility blocks readable.
+1. Replace amber warning/caveat backgrounds, left borders, links, drawer titles, recommendation highlights, and report-readiness badges.
+2. Use explicit labels and non-amber status tones for `blocked`, `ready-with-caveats`, `needs-review`, `unknown`, `stale`, and `info`.
+3. Flatten drawer content: remove nested cards where list rows, sections, and thin separators are sufficient.
+4. Keep QA, CRS, NL-query safety, review timeline, report handoff, and cartography recommendation logic unchanged.
+5. Ensure report/action buttons are transparent or restrained blue, not filled amber plates.
+6. Preserve text labels and aria naming for scientific status surfaces.
 
 ### Acceptance Criteria
 
-- Scientific risk states cannot be mistaken for ready states.
-- Drawer density remains professional.
+- Drawer surfaces contain no amber UI styling.
+- Warning/caveat semantics remain stronger than neutral text through labels, icons, and non-amber status treatment.
+- Drawers look like VS Code inspectors, not card stacks.
+- No scientific readiness state is weakened or misrepresented.
 
 ### Validation
 
-- `npm run typecheck`.
-- Focused Map drawer tests if changed.
+- `npm run typecheck`
+- Targeted tests for NL query, report handoff, QA, and recommendations if touched.
+- Re-run the Map Explorer Standard Amber Scan.
 
 ---
 
-## Prompt 21 - Map Data Visualization Palette Boundary
+## Prompt B07 - Map Import, Export, Service, Drawing, Measurement, Temporal, And Dialog Surfaces
 
 ### Objective
 
-Separate map data colors from UI chrome/status colors.
+Remove amber from secondary Map Explorer tools and generated/export-adjacent UI without changing import/export or analysis behavior.
+
+### Primary Files
+
+- `src/centerpanel/components/MapDataImportHubDialog.tsx`
+- `src/centerpanel/components/MapCsvImportDialog.tsx`
+- `src/centerpanel/components/MapColumnarImportDialog.tsx`
+- `src/centerpanel/components/MapDataExportDialog.tsx`
+- `src/centerpanel/components/MapExportDialog.tsx`
+- `src/centerpanel/components/MapServiceDialog.tsx`
+- `src/centerpanel/components/MapDrawingManager.tsx`
+- `src/centerpanel/components/MapMeasurementTool.tsx`
+- `src/centerpanel/components/MapTemporalPlayer.tsx`
+- `src/centerpanel/components/MapVoxCityOverlay.tsx`
+
+### Tasks
+
+1. Remove amber dialog titles, primary buttons, tab fills, progress/status chips, form focus rings, and generated preview chrome.
+2. Convert dialogs to compact workbench modal styling: neutral panels, thin borders, dense form rows, restrained focus.
+3. Ensure export and report statuses distinguish valid/error/info/blocked/stale without amber warning fill.
+4. Preserve file parsing, import validation, export services, drawing tools, measurement CRS warnings, temporal playback, and VoxCity overlay behavior.
+5. Replace any amber generated preview marker only if it is UI chrome or default/demo styling; document real data-palette exceptions.
+
+### Acceptance Criteria
+
+- Map tool dialogs and secondary tools are amber-free in UI chrome.
+- Dialog buttons no longer use decorative filled amber plates.
+- CRS/measurement/export warnings remain explicit with text and non-amber status treatment.
+
+### Validation
+
+- `npm run typecheck`
+- Targeted component/service tests if touched.
+- Re-run the Map Explorer Standard Amber Scan.
+
+---
+
+## Prompt B08 - Map Visualization Defaults, Symbology, Cartography Services, And Exports
+
+### Objective
+
+Remove amber as a default/demo/generated map color while preserving legitimate analytical palette separation.
 
 ### Primary Files
 
@@ -733,523 +745,115 @@ Separate map data colors from UI chrome/status colors.
 - `src/centerpanel/components/MapSymbolLayer.tsx`
 - `src/centerpanel/components/MapClusterViz.tsx`
 - `src/centerpanel/components/MapHotSpotViz.tsx`
-- `src/centerpanel/components/MapTemporalPlayer.tsx`
-- `src/utils/colorRamps.ts`
+- `src/centerpanel/components/MapEmergingHotSpotViz.tsx`
+- `src/centerpanel/components/map/heatmapStyleUtils.ts`
+- `src/centerpanel/components/map/symbologyUtils.ts`
+- `src/centerpanel/components/map/spatialStatsVizUtils.ts`
+- `src/centerpanel/components/map/symbolStyleUtils.ts`
+- `src/centerpanel/components/map/demoDataPacks.ts`
+- `src/services/map/MapEngineAdapter.ts`
+- `src/services/map/MapCartographyAdvisor.ts`
+- `src/services/map/MapPersistenceService.ts`
+- `src/services/map/MapExportService.ts`
+- `src/services/map/ExternalServiceConnector.ts`
 
 ### Tasks
 
-1. Inventory map renderer palettes and legend colors.
-2. Document which colors are data palettes and should not be replaced by UI tokens.
-3. Add or map dedicated data palette tokens only if useful.
-4. Ensure no-data/unknown/uncertainty are labeled and not only gray.
+1. Replace amber default layer colors, fallback style colors, demo pack colors, generated export compass/crosshair accents, and Query-to-SQL default layer colors.
+2. Use non-amber defaults such as blue, cyan, teal, violet, slate, or documented data-ramp colors that do not collide with UI status meanings.
+3. Do not conflate data visualization palettes with UI chrome tokens. Data colors may be literals or helper palettes when they represent symbology.
+4. If an external palette contains a yellow/orange stop for analytical reasons, document it as a data-palette exception and ensure it is not named amber/gold or used as UI chrome.
+5. Update service and renderer tests that explicitly expect `#F59E0B` defaults.
+6. Preserve geometry handling, CRS handling, export output structure, data persistence, and rendering logic.
 
 ### Acceptance Criteria
 
-- Data palette boundaries are recorded in token reference or ledger.
-- UI warning/error colors are not reused for unrelated data categories.
+- No default/demo/generated Map Explorer style uses amber.
+- Tests no longer describe Query-to-SQL or layer defaults as amber.
+- Data palette exceptions are documented with purpose and are visually distinct from UI status colors.
+- UI status colors remain separate from map symbology.
 
 ### Validation
 
-- `npm run typecheck` if TS changed.
-- `npm run test -- src/utils/__tests__/colorRamps.test.ts` if color ramp helpers changed.
+- `npm run typecheck`
+- Targeted map service/renderer tests touched by color defaults.
+- Re-run the Map Explorer Standard Amber Scan and classify any data-palette residuals.
 
 ---
 
-## Prompt 22 - Urban Analytics Shell And Navigation
+## Prompt B09 - Map Explorer Final Amber Cleanup, Tests, Accessibility, And Visual QA
 
 ### Objective
 
-Align Urban Analytics modal shell and navigation with semantic tokens.
+Perform the final Map Explorer sweep for amber, unnecessary card frames, filled controls, layout density, focus visibility, data-palette boundaries, and test drift.
 
-### Required Instruction
+### Scope
 
-Before editing `src/features/urbanAnalytics/**`, read `.github/instructions/urban-analytics.instructions.md`.
-
-### Primary Files
-
-- `src/features/urbanAnalytics/`
-- Relevant CSS Modules in the Urban Analytics tree.
+- All Map Explorer runtime UI files.
+- Map services that generate visible colors.
+- Related tests with color assertions.
 
 ### Tasks
 
-1. Tokenize modal surfaces, navigation, tabs, compact headings, and separators.
-2. Preserve minimal premium density.
-3. Do not change analytical context or evidence logic.
-4. Record every touched UA file in the ledger.
+1. Re-run the Map Explorer Standard Amber Scan and eliminate every UI/default amber hit.
+2. Run targeted scans for `boxShadow`, `radial-gradient`, `linear-gradient`, `borderRadius: 10`, `border-radius: 999`, filled button backgrounds, and `MAP_COLORS.amber`.
+3. Remove unnecessary card frames and button fills while keeping genuine floating tools framed enough to read over the map.
+4. Check map desktop and compact layouts for control overlap, text overflow, focus visibility, and map content occlusion.
+5. Verify all drawers, dialogs, layer rows, search results, toolbar controls, and status surfaces preserve labels or aria names.
+6. Update tests and docs only where token names or expected non-amber defaults changed.
 
 ### Acceptance Criteria
 
-- UA shell aligns with shared workbench tokens.
-- No evidence semantics changed.
+- Map Explorer is amber-free except documented analytical palette exceptions.
+- Map UI uses VS Code-like premium layout: map-first, quiet chrome, neutral hairlines, compact controls, restrained blue-gray interaction.
+- No map readiness/QA/CRS/publication status is made less explicit.
+- Ledger includes screenshot/manual QA notes.
 
 ### Validation
 
-- `npm run typecheck`.
-- `npm run test:analytics` if any UA file changes.
+- `npm run typecheck`
+- Targeted map tests for changed files.
+- `npm run color:guard:changed` if available.
+- Manual screenshot review or Playwright smoke if a dev server is available.
 
 ---
 
-## Prompt 23 - Urban Analytics Method Catalog And Workflow States
+## Prompt B10 - Final Color System Handoff
 
 ### Objective
 
-Tokenize method catalog, workflow, capability, and recommendation states.
-
-### Primary Files
-
-- `src/features/urbanAnalytics/seeds/`
-- Method catalog/workflow components discovered by Prompt 02.
-- `src/features/urbanAnalytics/lib/methodValidity.ts`
-
-### Tasks
-
-1. Distinguish `implemented`, `demo_mode`, `residual_gap`, `environment_dependent`, and `deferred` visually and textually.
-2. Ensure demo mode cannot look like implemented/ready.
-3. Tokenize workflow running/pending/blocked/success states.
-4. Preserve method validity envelope semantics.
-
-### Acceptance Criteria
-
-- Capability statuses are explicit and accessible.
-- No method formulas or validity logic changed.
-
-### Validation
-
-- `npm run typecheck`.
-- `npm run test:analytics`.
-
----
-
-## Prompt 24 - Urban Analytics Evidence Data Fitness And Provenance
-
-### Objective
-
-Tokenize evidence artifacts, data fitness, provenance, QA, and uncertainty states.
-
-### Primary Files
-
-- `src/features/urbanAnalytics/context/`
-- `src/features/urbanAnalytics/lib/dataFitness.ts`
-- Evidence and data fitness UI components discovered by Prompt 02.
-
-### Tasks
-
-1. Treat `score: null` as unknown visually and textually.
-2. Tokenize stale, invalid, warning, blocked, unknown, and valid evidence states.
-3. Preserve artifact immutability and QA-state semantics.
-4. Record scientific integrity notes in the ledger.
-
-### Acceptance Criteria
-
-- Unknown data fitness never appears ready.
-- Evidence provenance remains explicit.
-
-### Validation
-
-- `npm run typecheck`.
-- `npm run test:analytics`.
-
----
-
-## Prompt 25 - Urban Analytics VoxCity And 3D Surfaces
-
-### Objective
-
-Tokenize 3D/VoxCity adjacent controls and sample/demo labels without affecting rendering logic.
-
-### Primary Files
-
-- `src/features/urbanAnalytics/voxcity/`
-- Related 3D controls and panels.
-
-### Tasks
-
-1. Tokenize panel chrome, overlays, legends, and warnings.
-2. Keep sample/demo caveats visible.
-3. Do not change Three.js scene logic or simulation calculations.
-4. Plan screenshot verification if a canvas is touched.
-
-### Acceptance Criteria
-
-- 3D controls align with the workbench palette.
-- Demo/sample mode stays explicit.
-
-### Validation
-
-- `npm run typecheck`.
-- `npm run test:analytics` if UA logic touched.
-- Screenshot smoke if 3D scene styling changes.
-
----
-
-## Prompt 26 - Dashboard Education Reporting And Guide Surfaces
-
-### Objective
-
-Tokenize supporting surfaces outside the main IDE/Map/UA modules.
-
-### Primary Files
-
-- `src/features/dashboard/`
-- `src/services/reporting/` UI-facing files
-- `src/centerpanel/Guide/`
-- `src/centerpanel/Tools/`
-- `src/components/templates/`
-
-### Tasks
-
-1. Tokenize chart containers, report caveats, education references, guide rails, and tool panels.
-2. Keep report/publication readiness and caveats explicit.
-3. Avoid marketing-style hero or decorative card treatments.
-4. Record any retained illustrative colors.
-
-### Acceptance Criteria
-
-- Supporting surfaces align with workbench chrome.
-- Data/chart colors remain separate from UI status colors.
-
-### Validation
-
-- `npm run typecheck`.
-- Targeted tests only if behavior changes.
-
----
-
-## Prompt 27 - Analytical Palette Helpers And Cartography Engine
-
-### Objective
-
-Document and, where safe, token-align analytical palette helpers without breaking cartographic semantics.
-
-### Primary Files
-
-- `src/utils/colorRamps.ts`
-- `src/engine/carto/ColorBrewerIntegration.ts`
-- `src/engine/carto/SymbologyManager.ts`
-- `src/engine/carto/ClassificationSchemes.ts`
-- `src/engine/carto/BivariateChoropleth.ts`
-
-### Tasks
-
-1. Define sequential, diverging, categorical, residual, uncertainty, and no-data palettes.
-2. Preserve established cartographic palette behavior unless a bug is found.
-3. Add comments or docs for why data colors are separate from chrome colors.
-4. Add tests only for helper behavior, not visual snapshots.
-
-### Acceptance Criteria
-
-- Analytical palettes are documented and test-safe.
-- UI status colors are not used accidentally as arbitrary data categories.
-
-### Validation
-
-- `npm run test -- src/utils/__tests__/colorRamps.test.ts` if helpers change.
-- `npm run typecheck`.
-
----
-
-## Prompt 28 - Interaction Focus And Disabled State Sweep
-
-### Objective
-
-Normalize focus, hover, selected, active, disabled, drag, and loading states across migrated units.
-
-### Primary Files
-
-- Shared CSS/token files.
-- Components changed by prompts 08 through 27.
-
-### Tasks
-
-1. Audit focus ring visibility on keyboard navigation.
-2. Audit selected vs focused vs hover states.
-3. Audit disabled controls and loading states for readability.
-4. Ensure no state relies on color alone.
-5. Update QA checklist with findings.
-
-### Acceptance Criteria
-
-- Focus never disappears.
-- Disabled text remains readable enough for context.
-- Active states are consistent.
-
-### Validation
-
-- Keyboard smoke.
-- `npm run typecheck` if files changed.
-
----
-
-## Prompt 29 - Status Truthfulness Sweep
-
-### Objective
-
-Audit every semantic status color for truthfulness and accessibility.
-
-### Primary Files
-
-- Status/badge components discovered by Prompt 02.
-- Map QA/publication surfaces.
-- UA evidence/method validity surfaces.
-- IDE diagnostics/apply surfaces.
-
-### Tasks
-
-1. Verify success is used only for valid/complete/ready states.
-2. Verify warning, blocked, stale, unknown, demo, and error are distinct.
-3. Verify each status has text or accessible naming.
-4. Record violations and fix scoped cases.
-
-### Acceptance Criteria
-
-- Demo and unknown never appear as valid.
-- Warning is not used as a generic decorative accent.
-
-### Validation
-
-- `npm run typecheck` if files changed.
-- Targeted tests if status-rendering logic changed.
-
----
-
-## Prompt 30 - Contrast Baseline And Token Math
-
-### Objective
-
-Record contrast results for core text, surfaces, focus rings, and status badges.
-
-### Primary Files
-
-- `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_QA_CHECKLIST.md`
-- Optional helper script only if low-risk.
-
-### Tasks
-
-1. Check core token pairs manually or with a small helper.
-2. Record pass/fail for primary, secondary, muted, disabled, inverse text.
-3. Record focus ring contrast on core surfaces.
-4. Record status badge text/fill/border combinations.
-5. If failures remain, create prompt-specific follow-ups in the ledger.
-
-### Acceptance Criteria
-
-- QA checklist contains contrast evidence.
-- Remaining failures are explicit.
-
-### Validation
-
-- Run helper if added.
-- Documentation-only validation otherwise.
-
----
-
-## Prompt 31 - Screenshot Baseline Harness
-
-### Objective
-
-Create or document repeatable screenshot checks for representative color surfaces.
-
-### Primary Files
-
-- `e2e/` if adding stable Playwright coverage.
-- `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_QA_CHECKLIST.md`
-- `docs/implementation/` if a manual checklist is preferred.
-
-### Tasks
-
-1. Prefer stable smoke screenshots over brittle full-page snapshots.
-2. Cover shell, IDE, terminal, command palette, Map Explorer, Urban Analytics, and status surfaces.
-3. Record viewport sizes and required local server command.
-4. Avoid adding tests that fail because of dynamic map tiles or animations.
-
-### Acceptance Criteria
-
-- Future agents can reproduce screenshot review.
-- Any automated tests are stable and scoped.
-
-### Validation
-
-- Run Playwright only if the dev server/test setup is ready.
-- Otherwise record manual screenshot instructions.
-
----
-
-## Prompt 32 - Hard-Coded Color Cleanup Pass One
-
-### Objective
-
-Remove remaining high-impact hard-coded chrome colors after the main unit migrations.
-
-### Primary Files
-
-- Top 20 migration targets from Prompt 02.
-
-### Tasks
-
-1. Re-run the hard-coded color inventory.
-2. Fix only component chrome colors, not data palettes or fixtures.
-3. Record retained literals with categories and reasons.
-4. Avoid churn in low-risk tests or docs.
-
-### Acceptance Criteria
-
-- High-impact chrome literals are reduced.
-- Retained colors are intentional.
-
-### Validation
-
-- `npm run typecheck` if TS/TSX changed.
-- Changed-file lint when practical.
-
----
-
-## Prompt 33 - CSS Modules Consistency Sweep
-
-### Objective
-
-Ensure CSS Modules use semantic tokens consistently and camelCase JSX references are preserved.
-
-### Primary Files
-
-- `src/**/*.module.css`
-- JSX/TSX files importing touched CSS Modules.
-
-### Tasks
-
-1. Replace module-local hard-coded chrome colors with semantic tokens.
-2. Preserve kebab-case CSS class names and existing JSX access style.
-3. Do not rename classes unless necessary.
-4. Keep component dimensions stable.
-
-### Acceptance Criteria
-
-- CSS Modules follow token naming.
-- No class reference breakage.
-
-### Validation
-
-- `npm run typecheck` if TSX references changed.
-- Changed-file lint when practical.
-
----
-
-## Prompt 34 - Styled Components And Inline Style Sweep
-
-### Objective
-
-Tokenize styled-components and inline style color literals that remain after module sweeps.
-
-### Primary Files
-
-- `src/**/*.{ts,tsx}` files identified by Prompt 02.
-
-### Tasks
-
-1. Replace inline chrome color literals with semantic tokens.
-2. Preserve inline data visualization colors unless categorized for a data palette migration.
-3. Keep style object structure stable.
-4. Avoid introducing broad helper abstractions.
-
-### Acceptance Criteria
-
-- Inline chrome literals are reduced.
-- Data palette literals are intentionally retained or moved to palette helpers.
-
-### Validation
-
-- `npm run typecheck`.
-
----
-
-## Prompt 35 - Documentation And Developer Guidance Update
-
-### Objective
-
-Update developer-facing docs so future code uses the new color system correctly.
-
-### Primary Files
-
-- `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_TOKEN_REFERENCE.md`
-- `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_QA_CHECKLIST.md`
-- `AGENTS.md` only if a short rule is needed.
-- `CLAUDE.md` only if a short rule is needed.
-
-### Tasks
-
-1. Document token usage examples for CSS Modules, styled-components, and inline styles.
-2. Document status color rules and data visualization separation.
-3. Document validation commands by module.
-4. Keep root agent docs short; detailed guidance belongs in this folder.
-
-### Acceptance Criteria
-
-- New agents can choose the right token without guessing.
-- Docs do not duplicate huge prompt content unnecessarily.
-
-### Validation
-
-- Documentation-only validation.
-
----
-
-## Prompt 36 - Full Color QA Gate
-
-### Objective
-
-Run the broad color QA gate and record final pass/fail evidence.
-
-### Primary Files
-
-- `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_QA_CHECKLIST.md`
-- `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
-
-### Tasks
-
-1. Run typecheck.
-2. Run relevant changed-file lint or `npm run lint:errors` if practical.
-3. Run module tests required by touched areas.
-4. Run screenshot or manual visual smoke.
-5. Record failures as related or pre-existing.
-
-### Acceptance Criteria
-
-- QA checklist has final evidence.
-- Ledger has exact commands and results.
-
-### Validation
-
-- Broadest practical validation set.
-
----
-
-## Prompt 37 - Final Color System Handoff
-
-### Objective
-
-Close the color-system operating pack with durable handoff instructions.
+Close the two-part color-system workstream.
 
 ### Required Files
 
 - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
-- `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_AGENT_HANDOFF_TEMPLATE.md`
 - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_PROMPT_MANIFEST.json`
-- `COLOR_SYSTEM_PLANS/README.md`
+- `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_QA_CHECKLIST.md`
+- `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_AGENT_HANDOFF_TEMPLATE.md`
+- `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_TOKEN_REFERENCE.md` if final token notes changed
 
 ### Tasks
 
-1. Confirm every prompt is completed or skipped with reason.
-2. Confirm final token names and compatibility aliases are documented.
-3. Confirm known deferred migrations and retained literals are recorded.
-4. Confirm QA evidence is recorded.
-5. Mark the color operating pack complete.
+1. Confirm prompts `A01`-`A10` and `B01`-`B09` are completed or skipped with reason.
+2. Record remaining amber hits by exact file and category. UI/default amber debt should be zero.
+3. Record validation history: typecheck, analytics tests, targeted map tests, scans, color guard, and visual QA.
+4. Confirm all retained color literals are either token-source, test-fixture, or documented data-palette/content exceptions.
+5. Confirm no GIS calculations, evidence semantics, method validity, workflow readiness, map persistence, or cross-module contracts changed.
+6. Update manifest statuses to match the ledger and mark the workstream complete.
 
 ### Acceptance Criteria
 
-- No pending prompts remain unless explicitly skipped with reason.
-- Future color work has a clear source of truth.
-- Final response can summarize status without relying on chat memory.
+- Ledger and manifest agree.
+- Urban Analytics modal is amber-free and premium VS Code-like.
+- Map Explorer is amber-free and premium VS Code-like.
+- No unnecessary card frames or button fills remain in the active scope.
+- Final handoff lists no unresolved blocker.
 
 ### Validation
 
 - JSON parse for manifest.
-- Broadest practical validation if product files changed.
+- Broadest practical validation if product files changed:
+  - `npm run typecheck`
+  - `npm run test:analytics`
+  - targeted map tests changed by Part 2
+  - screenshot/manual QA evidence

@@ -2,7 +2,17 @@
 
 ## Status
 
-Execution authority through Prompt 05. This document defines the canonical token taxonomy and semantic alias contract before broad UI migration prompts.
+Execution authority through the historical token baseline and the active two-part workstream. This document defines the canonical token taxonomy and semantic alias contract.
+
+## Active Scope Override - Urban Analytics Modal And Map Explorer
+
+The active `A01`-`B10` prompts apply a stricter rule than the original broad color plan:
+
+- Urban Analytics modal and Map Explorer must not render amber/gold/yellow/orange UI chrome.
+- Do not use amber for active, selected, focus, button fill, hover fill, card border, card background, title/link emphasis, decorative gradient, glow, or default/demo/generated map/chart color.
+- `--syn-vscode-attention-amber`, `--syn-vscode-attention-amber-soft`, `--syn-status-warning`, `--syn-gradient-amber*`, historical `--syn-gold-*`, and `MAP_COLORS.amber*` may remain as compatibility/history outside the active UI scopes, but active-scope components must not consume them for rendered UI chrome.
+- Warning/caveat meaning must remain explicit through text, icons, aria names, disabled reasons, and non-amber status styling.
+- Use `--syn-interaction-active`, `--syn-interaction-hover`, `--syn-interaction-selected`, `--syn-interaction-focus-ring`, `--syn-border-focus`, `--syn-status-info`, `--syn-status-error`, `--syn-status-stale`, `--syn-status-unknown`, and `--syn-status-demo` according to meaning.
 
 ## Canonical Naming Layers
 

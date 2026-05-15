@@ -25,6 +25,10 @@ Every agent implementing a color-system prompt must reflect this handoff in `COL
 - Tokens aliased or deprecated:
 - Hard-coded colors removed:
 - Hard-coded colors retained with reason:
+- Amber scan before:
+- Amber scan after:
+- Card frames removed or retained with reason:
+- Button fills removed or retained with reason:
 - UX changes:
 - Accessibility and contrast notes:
 - Data visualization notes:

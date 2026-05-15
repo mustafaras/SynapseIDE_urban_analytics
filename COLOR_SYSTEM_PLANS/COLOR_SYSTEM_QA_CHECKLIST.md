@@ -3,29 +3,77 @@
 ## Required For Every Visual Prompt
 
 - Record surfaces inspected.
+- Record whether amber/gold/yellow/orange UI chrome remains.
+- Record whether unnecessary card frames or filled button plates remain.
 - Record whether focus is visible.
 - Record whether status still has text/icon/aria support.
 - Record whether hard-coded colors were removed, retained, or deferred.
 - Record validation commands and results.
 
+## Active Amber Checklist
+
+Run the prompt-specific amber scan before and after edits.
+
+Fail the prompt if any active-scope UI/default hit remains for:
+
+- `#F59E0B`
+- `#FBBF24`
+- `#FDE68A`
+- `#D97706`
+- `#B45309`
+- `#92400E`
+- `rgba(245,158,11,...)`, `rgb(245 158 11 / ...)`, or equivalent spaced variants
+- `amber`, `gold`, `yellow`, `orange`, `gradient-amber`
+- `MAP_COLORS.amber*`
+- `--syn-status-warning` where it renders amber in Urban Analytics modal or Map Explorer
+
+Allowed residual categories must be documented:
+
+1. `token-source`: canonical token-definition files outside active UI scope.
+2. `data-palette`: analytical map/chart palette with documented purpose.
+3. `test-fixture`: tests or mocks that intentionally verify legacy import/export compatibility.
+4. `content-example`: code example where the color is user-visible but intentionally preserved with a documented analytical reason.
+
+## Chrome Checklist
+
+- Default buttons are transparent or neutral.
+- Active buttons do not render as large filled rounded plates.
+- Focus-visible state is present and non-amber.
+- No card-in-card composition.
+- Repeated rows use separators or neutral panels before decorative cards.
+- Border radius stays compact, generally 2-4px for controls and <= 8px for true repeated cards.
+- No decorative radial gradients, glow, shimmer, animated strips, or marketing hero treatments.
+- Text fits inside toolbar buttons, badges, chips, tabs, and compact panels.
+
 ## Contrast Checklist
 
-- Primary text on workbench, navigation, editor, panel, elevated, and input surfaces.
-- Secondary and muted text on panel and navigation surfaces.
-- Disabled text in buttons, tabs, layer rows, file rows, and command palette.
-- Focus ring on workbench, panel, input, and map overlay surfaces.
-- Status badges for valid, warning, error, info, blocked, stale, unknown, demo, running, pending.
+- Primary text on workbench, navigation, editor, panel, elevated, input, drawer, and map overlay surfaces.
+- Secondary and muted text on panel, navigation, modal, drawer, and map overlay surfaces.
+- Disabled text in buttons, tabs, layer rows, method rows, file rows, and command/search surfaces.
+- Focus ring on workbench, panel, input, modal, drawer, and map overlay surfaces.
+- Status badges for valid, error, info, blocked, stale, unknown, demo, running, pending, and caveat/warning semantics.
 
 ## Screenshot Checklist
 
-- Root workbench shell.
-- Synapse IDE with file explorer, editor, terminal, and problems panel.
-- Command palette and global search.
-- AI composer and apply/review state.
-- Map Explorer with canvas, toolbar, layer rail, QA panel, NL query, review timeline, report drawer.
-- Urban Analytics modal with method catalog, evidence, data fitness, and workflow status.
-- Dashboard/reporting/guide surfaces if touched.
+Part 1 - Urban Analytics modal:
+
+- Main modal shell with rail, command/search, middle content, right panel, and bottom action bar.
+- Welcome/onboarding modal.
+- Method catalog and indicator catalog.
+- Right panel dossier and generated report/print preview if practical.
+- Evidence tray, data fitness, method validity, workflow status.
+- VoxCity/3D controls, simulation panel, scenario comparison.
 - Compact viewport for text overflow and focus visibility.
+
+Part 2 - Map Explorer:
+
+- Map Explorer shell with canvas, cockpit, status bar, and overlays.
+- Toolbar, search, pin sidebar, context menu, keyboard controls.
+- Layer manager and layer panel.
+- Scientific QA, NL query, workflow drawer, review timeline, report handoff.
+- Import/export/service/drawing/measurement/temporal dialogs and tools.
+- Data/default symbology examples if colors changed.
+- Compact viewport for map-control overlap and focus visibility.
 
 ## Status Truthfulness Checklist
 
@@ -34,12 +82,14 @@
 - Unknown uses unknown styling and explicit label.
 - Stale uses stale styling and explicit label.
 - Blocked uses blocked/error-adjacent styling and explicit reason.
-- Warning is not a decorative accent.
+- Warning/caveat semantics are not decorative and are not amber in active scopes.
 - Data visualization colors do not silently imply UI status.
+- `score: null` remains unknown.
+- CRS and publication readiness warnings remain explicit.
 
-## Token Regression Guard (Prompt 07)
+## Token Regression Guard
 
-Run this lightweight report before and after color-focused prompts:
+Run this lightweight report when available:
 
 - Full source report: `npm run color:guard`
 - Changed-files report: `npm run color:guard:changed`
@@ -50,18 +100,7 @@ Guard behavior:
 - Excludes allowlisted token-source files.
 - Excludes allowlisted data-visualization palette files.
 - Excludes test/fixture surfaces (`__tests__`, `__mocks__`, `.test.*`, `.spec.*`, fixtures).
-- Reports findings only and exits `0` by default (non-blocking).
-
-Allowed hard-coded color categories (do not treat as immediate migration failures):
-
-1. `token-source`: canonical token-definition files.
-2. `data-visualization`: analytical palettes, cartographic renderers, legends.
-3. `test-fixture`: test and mock surfaces.
-4. `fallback`: temporary `var(--token, fallback)` compatibility values while migrations are in progress.
-
-Non-goal for Prompt 07:
-
-- Do not wire this guard into CI failure gates until inventory and migration maturity are explicitly declared in later prompts.
+- Reports findings only and exits `0` by default unless the project changes the guard behavior.
 
 ## Ledger QA Entry Template
 
@@ -71,6 +110,9 @@ Non-goal for Prompt 07:
 - Prompt:
 - Surfaces checked:
 - Viewports:
+- Amber scan:
+- Card/frame cleanup notes:
+- Button/control cleanup notes:
 - Contrast notes:
 - Focus notes:
 - Status truthfulness notes:
