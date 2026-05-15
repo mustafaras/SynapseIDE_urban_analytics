@@ -18,6 +18,11 @@ interface TerminalProps {
  className?: string;
  aiAssistantWidth?: number;
  fileExplorerWidth?: number;
+ /**
+  * When true, the Terminal's built-in header (label + shell selector + buttons)
+  * is hidden so the host can render a unified single-row header instead.
+  */
+ headerless?: boolean;
 }
 
 
@@ -39,6 +44,7 @@ export const Terminal: React.FC<TerminalProps> = ({
  className = '',
  aiAssistantWidth = 500,
  fileExplorerWidth = 300,
+ headerless = false,
 }) => {
  const [currentShell, setCurrentShell] = useState<ShellType>(shell);
  const [xtermKey, setXtermKey] = useState(0); // bump to reconnect xterm
@@ -229,7 +235,7 @@ export const Terminal: React.FC<TerminalProps> = ({
  onMouseLeave={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--syn-interaction-active, #60a5fa) 22%, transparent)'; }}
  />
  {}
- <div
+ {!headerless && <div
  style={{
  background: 'var(--syn-surface-panel, #121212)',
  borderBottom: '1px solid var(--syn-border-subtle, rgba(255,255,255,0.08))',
@@ -439,7 +445,7 @@ export const Terminal: React.FC<TerminalProps> = ({
  <X size={14} />
  </button> : null}
  </div>
- </div>
+ </div>}
 
  {}
  {!isUltraCompact && (

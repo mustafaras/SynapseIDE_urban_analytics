@@ -12,9 +12,10 @@
  * - Output and Plan History have truthful empty states until producers are wired.
  */
 
-import React, { type KeyboardEvent, useRef } from 'react';
-import { X } from 'lucide-react';
+import React, { type KeyboardEvent, useRef, useState } from 'react';
+import { RotateCcw, X } from 'lucide-react';
 import { Terminal } from '../terminal/components/Terminal';
+import { SHELL_CONFIGS, type ShellType } from '../terminal/types/shellTypes';
 import { ProblemsPane } from '../editor/ProblemsPane';
 import { getTaskRecord, type TaskKind, useTaskStates } from '../../services/tasksBridge';
 import type { IdeBottomPanelTab } from '@/types/state';
@@ -143,6 +144,8 @@ export const BottomPanel: React.FC<BottomPanelProps> = ({
   onTerminalClose,
 }) => {
   const tabButtonRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const [terminalShell, setTerminalShell] = useState<ShellType>('powershell');
+  const [terminalKey, setTerminalKey] = useState(0);
 
   // ARIA tablist keyboard pattern: ArrowLeft / ArrowRight cycle focus + activation.
   const handleTabKeyDown = (e: KeyboardEvent<HTMLButtonElement>, idx: number) => {
@@ -221,15 +224,60 @@ export const BottomPanel: React.FC<BottomPanelProps> = ({
               );
             })}
           </div>
-          <button
-            type="button"
-            className="synapse-ide-shell__bottom-close"
-            aria-label="Close bottom panel"
-            title="Close bottom panel"
-            onClick={onClose}
-          >
-            <X size={14} aria-hidden="true" />
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 'auto' }}>
+            {activeTab === 'terminal' ? (
+              <>
+                <select
+                  value={terminalShell}
+                  onChange={e => setTerminalShell(e.target.value as ShellType)}
+                  aria-label="Terminal shell"
+                  style={{
+                    height: 22,
+                    background: 'var(--syn-surface-input)',
+                    border: '1px solid var(--syn-border-subtle)',
+                    borderRadius: 2,
+                    color: 'var(--syn-text-default)',
+                    fontSize: 11,
+                    fontFamily: 'inherit',
+                    padding: '0 22px 0 8px',
+                    cursor: 'pointer',
+                    appearance: 'none',
+                    WebkitAppearance: 'none',
+                    MozAppearance: 'none',
+                    outline: 'none',
+                    backgroundImage:
+                      'linear-gradient(45deg, transparent 50%, var(--syn-text-muted) 50%), linear-gradient(135deg, var(--syn-text-muted) 50%, transparent 50%)',
+                    backgroundPosition:
+                      'calc(100% - 12px) 50%, calc(100% - 7px) 50%',
+                    backgroundSize: '5px 5px, 5px 5px',
+                    backgroundRepeat: 'no-repeat',
+                  }}
+                >
+                  {Object.entries(SHELL_CONFIGS).map(([key, cfg]) => (
+                    <option key={key} value={key}>{cfg.name}</option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className="synapse-ide-shell__bottom-close"
+                  aria-label="New terminal session"
+                  title="New session (reconnect)"
+                  onClick={() => setTerminalKey(k => k + 1)}
+                >
+                  <RotateCcw size={13} aria-hidden="true" />
+                </button>
+              </>
+            ) : null}
+            <button
+              type="button"
+              className="synapse-ide-shell__bottom-close"
+              aria-label="Close bottom panel"
+              title="Close bottom panel"
+              onClick={onClose}
+            >
+              <X size={14} aria-hidden="true" />
+            </button>
+          </div>
         </header>
 
         {/* ── tab content ── */}
@@ -242,8 +290,10 @@ export const BottomPanel: React.FC<BottomPanelProps> = ({
               style={{ position: 'absolute', inset: 0 }}
             >
               <Terminal
+                key={`bottom-term-${terminalShell}-${terminalKey}`}
                 className="synapse-ide-shell__terminal-pane"
-                shell="powershell"
+                shell={terminalShell}
+                headerless
                 height={Math.max(80, height - 36)}
                 onClose={onTerminalClose}
                 aiAssistantWidth={0}
