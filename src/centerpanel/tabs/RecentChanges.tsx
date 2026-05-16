@@ -24,8 +24,24 @@ const SLOT_TITLES: Record<SlotKey, string> = {
   vitals: "Vitals / Results",
 };
 
-function formatWhen(ms: number): string {
+function formatExactWhen(ms: number): string {
+  if (!Number.isFinite(ms)) return "Unknown time";
   return new Date(ms).toLocaleString();
+}
+
+function formatRelativeWhen(ms: number): string {
+  if (!Number.isFinite(ms)) return "unknown";
+  const diff = Date.now() - ms;
+  if (diff < 0) return "just now";
+  const seconds = Math.floor(diff / 1000);
+  if (seconds < 45) return "just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(ms).toLocaleDateString();
 }
 
 function formatSourceModeLabel(mode: "real" | "demo" | "mixed" | "unknown"): string {
@@ -110,9 +126,13 @@ export function RecentChanges(props: {
           Save a snapshot, save the report, or complete an analytical run to populate review history for this project.
         </div>
       ) : (
-        recentItems.map((item) => (
+        recentItems.map((item) => {
+          const changedAtMs = Date.parse(item.changedAt);
+          return (
           <div key={item.id} className={styles.recentChangeRow}>
-            <span className={styles.recentChangeTime}>{formatWhen(Date.parse(item.changedAt))}</span>
+            <span className={styles.recentChangeTime} title={formatExactWhen(changedAtMs)}>
+              {formatRelativeWhen(changedAtMs)}
+            </span>
             <div className={styles.recentChangePreview}>
               <strong>{item.title}</strong>
               {` · ${formatSourceModeLabel(item.sourceMode)} · ${item.description}`}
@@ -127,7 +147,8 @@ export function RecentChanges(props: {
               )}
             </div>
           </div>
-        ))
+          );
+        })
       )}
     </section>
   );

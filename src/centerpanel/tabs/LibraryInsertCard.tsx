@@ -120,7 +120,7 @@ const LibraryInsertCard: React.FC<{
   if (relevant.length === 0) return null;
 
   return (
-    <div className={styles.railCard} role="group" aria-label="Library Insert">
+    <div className={`${styles.railCard} ${styles.libraryRailCard}`} role="group" aria-label="Library Insert">
       <div className={styles.railTitleRow}>
         <div className={styles.railTitle}>
           From Methods Library
@@ -136,95 +136,40 @@ const LibraryInsertCard: React.FC<{
       </div>
 
       <div className={styles.railBody} hidden={!isOpen}>
-        <div
-          style={{
-            fontSize: '0.66rem',
-            color: 'rgba(255,255,255,0.45)',
-            padding: '0 2px 6px',
-            lineHeight: 1.35,
-          }}
-        >
+        <div className={styles.libraryInsertHelp}>
           Cards matching the active "{activeSlot}" section. Click to insert, or view in right panel.
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+        <div className={styles.libraryInsertList}>
           {relevant.map((card) => {
             const isInserted = justInserted === card.id;
             return (
               <div
                 key={card.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: 6,
-                  padding: '5px 6px',
-                  borderRadius: 6,
-                  border: '1px solid rgba(255,255,255,0.06)',
-                  background: isInserted
-                    ? 'rgba(245,158,11,0.1)'
-                    : 'rgba(255,255,255,0.02)',
-                  transition: 'background 200ms ease',
-                }}
+                className={`${styles.libraryInsertRow} ${isInserted ? styles.libraryInsertRowInserted : ''}`}
               >
-                <div style={{ flex: 1, minWidth: 0 }}>
+                <div className={styles.libraryInsertMeta}>
                   <button
                     onClick={() => {
                       try {
                         selectCard(card.id);
                       } catch { /* noop */ }
                     }}
-                    style={{
-                      display: 'block',
-                      fontSize: '0.7rem',
-                      fontWeight: 600,
-                      color: 'rgba(250,250,249,0.85)',
-                      background: 'none',
-                      border: 'none',
-                      padding: 0,
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      lineHeight: 1.3,
-                      fontFamily: 'inherit',
-                    }}
+                    className={styles.libraryInsertTitleButton}
                     title={`View "${card.title}" in the right panel`}
+                    type="button"
                   >
                     {card.title}
                   </button>
-                  <div
-                    style={{
-                      fontSize: '0.62rem',
-                      color: 'rgba(255,255,255,0.35)',
-                      lineHeight: 1.3,
-                      marginTop: 1,
-                      display: '-webkit-box',
-                      WebkitLineClamp: 1,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden',
-                    }}
-                  >
+                  <div className={styles.libraryInsertSummary}>
                     {card.summary.length > 80 ? `${card.summary.slice(0, 80)  }...` : card.summary}
                   </div>
                 </div>
                 <button
                   onClick={() => handleInsert(card)}
                   disabled={!canEdit}
-                  style={{
-                    flexShrink: 0,
-                    fontSize: '0.6rem',
-                    fontWeight: 600,
-                    padding: '3px 8px',
-                    borderRadius: 5,
-                    border: '1px solid rgba(245,158,11,0.3)',
-                    background: isInserted
-                      ? 'rgba(245,158,11,0.2)'
-                      : 'rgba(245,158,11,0.08)',
-                    color: isInserted ? '#F59E0B' : 'rgba(245,158,11,0.8)',
-                    cursor: canEdit ? 'pointer' : 'default',
-                    opacity: canEdit ? 1 : 0.4,
-                    fontFamily: 'inherit',
-                    whiteSpace: 'nowrap',
-                    transition: 'all 150ms ease',
-                  }}
+                  className={`${styles.btnSm} ${styles.libraryInsertButton} ${isInserted ? styles.libraryInsertButtonInserted : ''}`}
                   title={`Insert ${card.title} content into ${activeSlot}`}
+                  type="button"
                 >
                   {isInserted ? 'Inserted' : 'Insert'}
                 </button>

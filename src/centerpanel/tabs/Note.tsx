@@ -869,30 +869,27 @@ const Note: React.FC = () => {
           }
         />
 
-        <ReportBuilderPanel />
-
-        {}
-        <div className={styles.slotTabs} role="tablist" aria-label="Report sections">
-          {(["objective","methodology","findings","recommendations","dataRefs","limitations"] as SlotKey[]).map(s => (
-            <button
-              key={s}
-              role="tab"
-              aria-selected={openSlot === s}
-              className={styles.slotTab}
-              data-active={openSlot === s}
-              onClick={() => selectTab(s)}
-              type="button"
-              title={SLOT_TITLES[s]}
-            >
-              {SLOT_TITLES[s]}
-            </button>
-          ))}
-        </div>
-
-
-        {}
         <div className={styles.mainAndDockWrap}>
           <div className={styles.mainColumn}>
+            <ReportBuilderPanel />
+
+            <div className={styles.slotTabs} role="tablist" aria-label="Report sections">
+              {(["objective","methodology","findings","recommendations","dataRefs","limitations"] as SlotKey[]).map(s => (
+                <button
+                  key={s}
+                  role="tab"
+                  aria-selected={openSlot === s}
+                  className={styles.slotTab}
+                  data-active={openSlot === s}
+                  onClick={() => selectTab(s)}
+                  type="button"
+                  title={SLOT_TITLES[s]}
+                >
+                  {SLOT_TITLES[s]}
+                </button>
+              ))}
+            </div>
+
           {(() => {
             const slotsArr: NoteSectionSlot[] = (["objective","methodology","findings","recommendations","dataRefs","limitations"] as SlotKey[]).map((slot) => {
               const isOpen = openSlot === slot;
@@ -1055,26 +1052,26 @@ const Note: React.FC = () => {
         />
           </div>
 
-          {isCollaborativeProject && project?.id ? (
-            <aside className={styles.dockWrap}>
-              <CollaborationSessionOverview
-                scopeId={`note:${project.id}`}
-                title="Shared Note Session"
-                description="Track section focus, queued sync state, and open review threads while documenting analytical findings."
-                participants={notePresence}
-                emptyState="Open the same project note in another tab to validate live section focus and collaborative commentary."
-              />
-              <CollaborationCommentSidebar
-                scopeId={`note:${project.id}`}
-                title="Note Threads"
-                subtitle="Resolve comments, reply inline, and keep anchored review context per note section."
-                defaultAnchorLabel={SLOT_TITLES[active] ?? active}
-              />
-            </aside>
-          ) : null}
-
           {}
         </div>
+
+        {isCollaborativeProject && project?.id ? (
+          <section className={styles.collaborationSection} aria-label="Note collaboration">
+            <CollaborationSessionOverview
+              scopeId={`note:${project.id}`}
+              title="Shared Note Session"
+              description="Track section focus, queued sync state, and open review threads while documenting analytical findings."
+              participants={notePresence}
+              emptyState="Open the same project note in another tab to validate live section focus and collaborative commentary."
+            />
+            <CollaborationCommentSidebar
+              scopeId={`note:${project.id}`}
+              title="Note Threads"
+              subtitle="Resolve comments, reply inline, and keep anchored review context per note section."
+              defaultAnchorLabel={SLOT_TITLES[active] ?? active}
+            />
+          </section>
+        ) : null}
         </div>
           </div>
         </div>

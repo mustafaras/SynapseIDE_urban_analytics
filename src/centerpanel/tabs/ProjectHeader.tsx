@@ -41,18 +41,12 @@ export default function ProjectHeader(props: ProjectHeaderProps) {
     belowNode,
   } = props;
 
-  const alertStyle: React.CSSProperties | undefined = safetyAlertText
-    ? {
-        backgroundColor:
-          safetyAlertSeverity === "high"
-            ? "var(--risk-high-bg)"
-            : "var(--risk-med-bg)",
-        color:
-          safetyAlertSeverity === "high"
-            ? "var(--risk-high-fg)"
-            : "var(--risk-med-fg)",
-      }
-    : undefined;
+  const alertClassName = [
+    styles.projectHeaderAlert,
+    safetyAlertSeverity === "high"
+      ? styles.projectHeaderAlertHigh
+      : styles.projectHeaderAlertMed,
+  ].filter(Boolean).join(" ");
 
 
   const rootRef = React.useRef<HTMLDivElement | null>(null);
@@ -110,7 +104,7 @@ export default function ProjectHeader(props: ProjectHeaderProps) {
       </div>
 
       {!!safetyAlertText && (
-        <div className={styles.projectHeaderAlert} style={alertStyle} role="alert" aria-live="polite">
+        <div className={alertClassName} role="alert" aria-live="polite">
           {String(safetyAlertText)}
         </div>
       )}
