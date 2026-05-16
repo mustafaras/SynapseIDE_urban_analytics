@@ -26,13 +26,14 @@
   align-items: center;
   justify-content: center;
   min-width: 20px;
-  height: 20px;
+  height: 18px;
   padding: 0 6px;
-  border-radius: 999px;
-  font-size: 12px;
+  border-radius: 3px;
+  font-size: 11px;
   line-height: 1;
-  background: rgba(245, 158, 11, 0.18);
-  border: 1px solid rgba(245, 158, 11, 0.30);
+  background: color-mix(in srgb, var(--syn-interaction-active) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--syn-interaction-active) 28%, var(--syn-border-subtle));
+  color: var(--syn-interaction-active);
 }
 
 .toolsRow { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
@@ -44,7 +45,7 @@
   background: var(--cp-surface, #121212);
   color: var(--cp-ink, #D6D3D1);
 }
-.search:focus { outline: 2px solid rgba(245, 158, 11, 0.45); outline-offset: 2px; }
+.search:focus { outline: 2px solid color-mix(in srgb, var(--syn-interaction-focus-ring) 55%, transparent); outline-offset: 2px; }
 .chips { display: flex; align-items: center; gap: 6px; }
 .chip { white-space: nowrap; }
 .chip[data-active="true"] { background: rgba(255,255,255,.12); color: #fff; border-color: rgba(255,255,255,.28); }
@@ -57,12 +58,59 @@
 .row { display: grid; grid-template-columns: 4px 1fr auto; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 10px; border: 0; background: transparent; }
 .row:hover { background: rgba(255,255,255,.06); }
 .row[data-active="true"] { box-shadow: var(--shadow-focus) inset; }
-.accent { width: 4px; height: 18px; border-radius: 2px; background: rgba(245,158,11,.55); margin-left: 2px; }
-.rowBtn { text-align: left; padding: 6px 6px; border-radius: 6px; border: 1px solid transparent; background: transparent; color: inherit; }
-.rowBtn:focus-visible { outline: 2px solid var(--cp-focus, #F59E0B); outline-offset: 2px; }
+.accent { width: 2px; height: 18px; border-radius: 1px; background: var(--syn-interaction-active); margin-left: 2px; }
+.rowBtn { text-align: left; padding: 5px 6px; border-radius: 3px; border: 1px solid transparent; background: transparent; color: inherit; }
+.rowBtn:focus-visible { outline: 2px solid var(--syn-interaction-focus-ring, #3794ff); outline-offset: 2px; }
 
 .key { font-weight: 500; }
 .quick { display: inline-flex; gap: 6px; justify-content: flex-end; }
+
+
+/* V2 rail follows the same flat inspector discipline as the default rail. */
+.root,
+.card {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.root {
+  padding: 0 !important;
+}
+
+.header,
+.card {
+  border-bottom: 1px solid var(--syn-border-subtle) !important;
+  padding: 8px 10px !important;
+}
+
+.row {
+  grid-template-columns: 2px minmax(0, 1fr) auto !important;
+  min-height: 24px !important;
+  padding: 4px 8px !important;
+  border-radius: 0 !important;
+}
+
+.rowBtn {
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+}
+
+.sep {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  padding: 9px 8px 3px !important;
+}
+
+.chip {
+  height: auto !important;
+  min-height: 22px !important;
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+  text-align: center !important;
+}
 
 .qBtn {
   height: 22px;
@@ -92,3 +140,27 @@
 .card::before { content: none; }
 .card + .card { margin-top: 6px; }
 .cardTitle { display:flex; align-items:center; justify-content:space-between; gap:6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: rgba(255,255,255,.9); padding-bottom: 6px; margin-bottom: 8px; border-bottom: 1px dashed rgba(255,255,255,.12); }
+
+.card + .card {
+  margin-top: 0 !important;
+}
+
+.cardTitle {
+  border-bottom: 0 !important;
+  margin-bottom: 4px !important;
+  padding-bottom: 0 !important;
+  color: var(--syn-text-muted) !important;
+}
+
+.qBtn {
+  border-radius: 3px !important;
+  background: transparent !important;
+  border-color: transparent !important;
+  color: var(--syn-text-secondary) !important;
+}
+
+.qBtn:hover {
+  background: var(--syn-interaction-hover) !important;
+  border-color: var(--syn-border-subtle) !important;
+  color: var(--syn-text-default) !important;
+}

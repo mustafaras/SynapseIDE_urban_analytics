@@ -563,13 +563,481 @@ gdf.plot(column="risk_quintile", categorical=True, legend=True,
 };
 
 /* ------------------------------------------------------------------ */
+/*  Guide 6 - Urban Morphology: Spacematrix                           */
+/* ------------------------------------------------------------------ */
+
+const spacematrixMorphology: MethodologyGuide = {
+  id: "guide_spacematrix_morphology",
+  title: "Spacematrix Urban Morphology",
+  category: "Urban Morphology",
+  abstract:
+    "Spacematrix is a quantitative urban morphology framework that classifies blocks, plots, " +
+    "or neighbourhoods by combining density and built-form indicators. The core variables are " +
+    "floor-space index (FSI/FAR), ground-space index (GSI), open-space ratio (OSR), network " +
+    "density, building height, and land-use mix. Unlike a single density metric, Spacematrix " +
+    "distinguishes compact perimeter blocks, towers-in-the-park, low-rise sprawl, and dense " +
+    "historic fabrics that may share similar FAR values but produce very different street-level " +
+    "conditions. It is useful for comparing urban fabric types, identifying infill capacity, " +
+    "and evaluating whether proposed development matches the morphological logic of its context.",
+
+  methodology: [
+    "1. Select the analysis unit: urban block, cadastral parcel, neighbourhood polygon, or regular grid. Blocks are preferred when street-facing morphology matters.",
+    "2. Prepare building footprints with height or floor-count attributes. If only floor count is available, convert to approximate height using local floor-to-floor assumptions and record the assumption explicitly.",
+    "3. Project all geometries to a local projected CRS before calculating area, perimeter, compactness, or distance. Never compute morphology metrics in EPSG:4326.",
+    "4. Compute built footprint area per unit and total unit area. GSI = built footprint area / unit area.",
+    "5. Estimate gross floor area. If floor count is available, gross floor area = footprint area x floor count. If height is available, floors = height / assumed floor height. FSI/FAR = gross floor area / unit area.",
+    "6. Compute OSR = (unit area - built footprint area) / gross floor area. OSR captures the amount of open space per unit of floor area.",
+    "7. Add network-context variables: street length per hectare, intersection density, block perimeter, and frontage ratio. These distinguish fine-grained fabric from large superblocks.",
+    "8. Classify morphology using rule-based thresholds or clustering (k-means/GMM) on standardised FSI, GSI, OSR, height, and network density. Review clusters visually before naming typologies.",
+  ],
+
+  assumptions: [
+    "Building footprint and height data are complete enough to estimate built volume.",
+    "The selected spatial unit is meaningful for urban form; parcel, block, and grid analyses answer different questions.",
+    "Gross floor area estimates from height/floor-count are approximations unless verified against cadastral floor-area data.",
+    "Morphological typologies are context-specific and should be calibrated to local planning practice.",
+  ],
+
+  limitations: [
+    "OSM building heights and levels are incomplete in many cities; LiDAR or cadastral data is preferable.",
+    "FSI and GSI do not directly measure facade quality, active frontage, shade, or public realm performance.",
+    "Mixed-use intensity and population density may not correlate with built density where vacancy or under-occupancy is high.",
+    "Cluster labels can look precise but remain interpretive; always inspect representative geometries.",
+  ],
+
+  dataRequirements: [
+    "Building footprints with height, floor count, or gross floor area attributes.",
+    "Analysis units: blocks, parcels, neighbourhoods, or a regular projected grid.",
+    "Street centerlines for network density and block delineation.",
+    "Projected CRS suitable for local area and length calculations.",
+  ],
+
+  pythonExample: `import geopandas as gpd
+import pandas as pd
+
+blocks = gpd.read_file("blocks.geojson").to_crs(32633)
+buildings = gpd.read_file("buildings.geojson").to_crs(blocks.crs)
+
+# Approximate floors from height when explicit floor count is missing.
+buildings["floors"] = buildings["levels"].fillna(buildings["height_m"] / 3.2)
+buildings["footprint_m2"] = buildings.geometry.area
+buildings["gfa_m2"] = buildings["footprint_m2"] * buildings["floors"].clip(lower=1)
+
+joined = gpd.overlay(buildings, blocks[["block_id", "geometry"]], how="intersection")
+joined["intersect_footprint_m2"] = joined.geometry.area
+joined["intersect_gfa_m2"] = joined["intersect_footprint_m2"] * joined["floors"].clip(lower=1)
+
+agg = joined.groupby("block_id").agg(
+    built_m2=("intersect_footprint_m2", "sum"),
+    gfa_m2=("intersect_gfa_m2", "sum"),
+    mean_height=("height_m", "mean"),
+).reset_index()
+
+out = blocks.merge(agg, on="block_id", how="left").fillna({"built_m2": 0, "gfa_m2": 0})
+out["area_m2"] = out.geometry.area
+out["gsi"] = out["built_m2"] / out["area_m2"]
+out["fsi"] = out["gfa_m2"] / out["area_m2"]
+out["osr"] = (out["area_m2"] - out["built_m2"]) / out["gfa_m2"].replace(0, pd.NA)
+out.to_file("spacematrix_blocks.gpkg", layer="blocks", driver="GPKG")`,
+
+  interpretation:
+    "High FSI with moderate GSI often indicates compact mid-rise or perimeter-block fabric; high FSI with low GSI " +
+    "indicates towers or slabs; low FSI with low GSI indicates low-density open development. Interpret OSR together " +
+    "with GSI: a high open-space ratio may signal generous courtyards, but it can also indicate underbuilt land. " +
+    "Always report the analysis unit, projected CRS, height/floor assumptions, and whether gross floor area is measured " +
+    "or estimated.",
+
+  references: [
+    "Berghauser Pont, M. & Haupt, P. (2010) Spacematrix: Space, Density and Urban Form. NAi Publishers.",
+    "Oliveira, V. (2016) Urban Morphology: An Introduction to the Study of the Physical Form of Cities. Springer.",
+    "Fleischmann, M. et al. (2022) Methodological foundation of a numerical taxonomy of urban form. Environment and Planning B, 49(4), 1283-1299.",
+  ],
+
+  relatedIndicators: ["floor_space_index", "ground_space_index", "open_space_ratio", "intersection_density"],
+  sdgAlignment: ["SDG 11.3 \u2014 Inclusive and Sustainable Urbanization"],
+};
+
+/* ------------------------------------------------------------------ */
+/*  Guide 7 - Transport Planning: GTFS Accessibility                  */
+/* ------------------------------------------------------------------ */
+
+const gtfsAccessibility: MethodologyGuide = {
+  id: "guide_gtfs_transit_accessibility",
+  title: "GTFS Transit Accessibility",
+  category: "Transport Planning",
+  abstract:
+    "GTFS-based accessibility analysis measures what people can reach by public transport within " +
+    "a given time budget. Unlike static stop buffers, schedule-aware accessibility accounts for " +
+    "departure time, waiting time, transfers, walking access, route frequency, and service calendars. " +
+    "The most common outputs are cumulative-opportunity measures (jobs, schools, clinics, parks " +
+    "reachable within 30/45/60 minutes), travel-time matrices, and isochrone maps. This method is " +
+    "central to equity analysis because it connects transport supply to actual destinations and " +
+    "population groups.",
+
+  methodology: [
+    "1. Acquire a valid GTFS feed, destination opportunities, population origins, and a walkable street network. Validate feed dates and service calendars before analysis.",
+    "2. Choose origin units such as census block centroids, residential parcels, or a hex grid. Snap origins and stops to a walk network, not Euclidean distance.",
+    "3. Select representative departure windows. Morning peak, midday, evening, and weekend analyses often produce different accessibility surfaces.",
+    "4. Build a multimodal router or use a routing engine such as R5, OpenTripPlanner, r5py, or Conveyal. Include walking access/egress and transfer penalties.",
+    "5. Compute travel-time matrices from every origin to every destination opportunity for each departure window.",
+    "6. Calculate cumulative opportunities: count opportunities reachable within a threshold, such as jobs within 45 minutes or clinics within 30 minutes.",
+    "7. Calculate gravity accessibility if destination attractiveness and time decay are known: A_i = sum_j O_j f(c_ij), where f(c) is a travel-time decay function.",
+    "8. Map accessibility and compare by income, race/ethnicity, age, disability, or car ownership groups. Report both absolute accessibility and accessibility gaps.",
+  ],
+
+  assumptions: [
+    "The GTFS feed accurately represents scheduled service on the analysed date.",
+    "Walking access speed, transfer penalties, and maximum walking distance are realistic for the target population.",
+    "Opportunity datasets represent real usable destinations, not just geocoded points.",
+    "Census centroids are acceptable proxies for residential origins at the chosen spatial scale.",
+  ],
+
+  limitations: [
+    "Static GTFS does not include real-time delays, crowding, cancelled trips, or vehicle capacity.",
+    "Stop buffers overstate access when pedestrian barriers exist; network walking is required.",
+    "Accessibility thresholds are policy choices and should be tested for sensitivity.",
+    "Centroid-based origins can misrepresent large rural tracts or irregular urban parcels.",
+  ],
+
+  dataRequirements: [
+    "GTFS schedule feed with valid calendar, routes, trips, stop_times, and stops files.",
+    "Street network suitable for walking access and egress.",
+    "Destination opportunity layer: jobs, schools, clinics, grocery stores, or parks.",
+    "Population/equity attributes for origins when analysing distributional outcomes.",
+    "Projected CRS for walking distances and origin/destination geometry QA.",
+  ],
+
+  pythonExample: `import geopandas as gpd
+import pandas as pd
+
+# This example assumes a travel-time matrix generated by r5py/OTP/R5.
+# Columns: origin_id, destination_id, travel_time_min
+ttm = pd.read_parquet("transit_travel_time_matrix.parquet")
+dest = gpd.read_file("jobs_by_destination.geojson")[["destination_id", "jobs"]]
+origins = gpd.read_file("origin_hexes.geojson")
+
+reachable = (
+    ttm[ttm["travel_time_min"] <= 45]
+    .merge(dest, on="destination_id", how="left")
+    .groupby("origin_id")["jobs"]
+    .sum()
+    .rename("jobs_45min_transit")
+    .reset_index()
+)
+
+out = origins.merge(reachable, on="origin_id", how="left")
+out["jobs_45min_transit"] = out["jobs_45min_transit"].fillna(0)
+out.to_file("transit_accessibility_45min.gpkg", layer="origins", driver="GPKG")`,
+
+  interpretation:
+    "A high cumulative-opportunity score means an origin can reach many destinations within the chosen time budget. " +
+    "Do not interpret it as service quality alone: high accessibility can result from dense destinations, frequent " +
+    "service, or both. Compare peak and off-peak results to detect temporal inequity, and report accessibility gaps " +
+    "between demographic groups rather than only citywide averages.",
+
+  references: [
+    "Hansen, W.G. (1959) How Accessibility Shapes Land Use. Journal of the American Institute of Planners, 25(2), 73-76.",
+    "Owen, A. & Levinson, D. (2015) Modeling the commute mode share of transit using continuous accessibility to jobs. Transportation Research Part A, 74, 110-122.",
+    "Conway, M.W., Byrd, A. & van Eggermond, M. (2018) Accounting for uncertainty and variation in accessibility metrics for public transport sketch planning. Journal of Transport and Land Use, 11(1), 541-558.",
+  ],
+
+  relatedIndicators: ["jobs_access_45min_transit", "transit_service_frequency", "accessibility_gap", "fifteen_min_city"],
+  sdgAlignment: ["SDG 11.2 \u2014 Sustainable Transport", "SDG 10 \u2014 Reduced Inequalities"],
+};
+
+/* ------------------------------------------------------------------ */
+/*  Guide 8 - Socioeconomic: Displacement Risk                        */
+/* ------------------------------------------------------------------ */
+
+const displacementRiskIndex: MethodologyGuide = {
+  id: "guide_displacement_risk_index",
+  title: "Displacement Risk Index",
+  category: "Socioeconomic",
+  abstract:
+    "A displacement risk index identifies neighbourhoods where vulnerable households are exposed " +
+    "to rising housing-market pressure and have limited capacity to remain in place. It combines " +
+    "sensitivity indicators such as renter share, poverty, rent burden, low income, linguistic " +
+    "isolation, and historic marginalisation with pressure indicators such as rent growth, sale " +
+    "price appreciation, building permits, transit investment, and demographic turnover. The result " +
+    "is not a causal proof of displacement; it is a screening tool for prioritising anti-displacement " +
+    "policy, tenant protection, affordable housing acquisition, and community benefit agreements.",
+
+  methodology: [
+    "1. Define the spatial unit, usually census tracts, block groups, or neighbourhoods. Keep the unit stable across time when analysing trends.",
+    "2. Compile sensitivity indicators: renter share, rent burden, low-income households, poverty, disability, elderly residents, households without vehicles, and linguistic isolation.",
+    "3. Compile market-pressure indicators: rent growth, assessed value growth, sale price growth, permit intensity, new-build share, and proximity to new transit or major public investment.",
+    "4. Compile demographic-change indicators: change in educational attainment, income, race/ethnicity composition, household size, and tenure.",
+    "5. Normalise each indicator to [0, 1] using percentile ranks or robust min-max scaling. Invert indicators where lower values imply higher risk.",
+    "6. Compute component scores: vulnerability, market pressure, and demographic change. Use transparent weights or principal component analysis; document the choice.",
+    "7. Combine the components into a risk index and classify into quantiles. Report decomposed component maps next to the composite score.",
+    "8. Validate qualitatively with local knowledge, eviction filings, tenant hotline data, or community organisation feedback when available.",
+  ],
+
+  assumptions: [
+    "Census and housing market indicators are timely enough to represent current risk.",
+    "The selected indicators reflect local displacement mechanisms; no universal indicator set fits every city.",
+    "Composite scoring is a screening method, not a causal model of household moves.",
+    "Data suppression, margins of error, and boundary changes are handled explicitly.",
+  ],
+
+  limitations: [
+    "Displacement is often hidden; households may move before appearing in administrative data.",
+    "ACS margins of error can be large for small areas and should be propagated or flagged.",
+    "Market datasets may omit informal rental markets or non-arms-length transactions.",
+    "Composite risk categories can stigmatise areas if communicated without policy context.",
+  ],
+
+  dataRequirements: [
+    "Census or survey socioeconomic indicators with margins of error where available.",
+    "Rent, sale price, assessed value, permit, eviction, or complaint datasets.",
+    "Stable boundaries or crosswalks for time-series comparison.",
+    "Local projected CRS for spatial joins to transit stations, permits, and investment areas.",
+  ],
+
+  pythonExample: `import geopandas as gpd
+import pandas as pd
+from sklearn.preprocessing import RobustScaler
+
+tracts = gpd.read_file("tracts_displacement_inputs.geojson")
+
+vulnerability_cols = ["pct_renter", "pct_rent_burdened", "pct_low_income", "pct_limited_english"]
+pressure_cols = ["rent_growth_5yr", "permit_units_per_acre", "sale_price_growth_5yr"]
+change_cols = ["income_growth_5yr", "bachelor_degree_growth_5yr"]
+
+def robust_01(frame, cols):
+    scaled = RobustScaler().fit_transform(frame[cols].fillna(frame[cols].median()))
+    out = pd.DataFrame(scaled, columns=cols, index=frame.index)
+    return out.rank(pct=True)
+
+tracts["vulnerability"] = robust_01(tracts, vulnerability_cols).mean(axis=1)
+tracts["market_pressure"] = robust_01(tracts, pressure_cols).mean(axis=1)
+tracts["demographic_change"] = robust_01(tracts, change_cols).mean(axis=1)
+
+tracts["displacement_risk"] = (
+    0.45 * tracts["vulnerability"] +
+    0.40 * tracts["market_pressure"] +
+    0.15 * tracts["demographic_change"]
+)
+tracts["risk_class"] = pd.qcut(tracts["displacement_risk"], 5, labels=[
+    "Very Low", "Low", "Moderate", "High", "Very High"])
+tracts.to_file("displacement_risk.gpkg", layer="tracts", driver="GPKG")`,
+
+  interpretation:
+    "High-risk areas are places where vulnerable households and market pressure overlap. A high market-pressure " +
+    "score with low vulnerability may indicate reinvestment without immediate displacement risk; high vulnerability " +
+    "with low pressure may indicate chronic housing stress rather than imminent displacement. Always show component " +
+    "scores and uncertainty, and avoid presenting the index as a prediction of individual household outcomes.",
+
+  references: [
+    "Bates, L.K. (2013) Gentrification and Displacement Study: Implementing an Equitable Inclusive Development Strategy in the Context of Gentrification. City of Portland.",
+    "Zuk, M. et al. (2018) Gentrification, Displacement, and the Role of Public Investment. Journal of Planning Literature, 33(1), 31-44.",
+    "Chapple, K. & Zuk, M. (2016) Forewarned: The Use of Neighborhood Early Warning Systems for Gentrification and Displacement. Cityscape, 18(3), 109-130.",
+  ],
+
+  relatedIndicators: ["displacement_risk", "rent_burden", "housing_affordability", "eviction_rate"],
+  sdgAlignment: ["SDG 11.1 \u2014 Adequate, Safe and Affordable Housing", "SDG 10 \u2014 Reduced Inequalities"],
+};
+
+/* ------------------------------------------------------------------ */
+/*  Guide 9 - 3D & Simulation: Solar Access                           */
+/* ------------------------------------------------------------------ */
+
+const solarAccess3D: MethodologyGuide = {
+  id: "guide_3d_solar_access",
+  title: "3D Solar Access and Shadow Simulation",
+  category: "3D & Simulation",
+  abstract:
+    "3D solar access analysis estimates how building massing, terrain, and street geometry affect " +
+    "direct sun exposure, shadow duration, and photovoltaic potential. It is used for daylight " +
+    "ordinances, public-space comfort, winter solar access protection, rooftop PV screening, and " +
+    "massing-option comparison. The method requires georeferenced 3D geometry and time-aware solar " +
+    "position calculations. For planning use, outputs are usually sun-hours maps, shadow-frequency " +
+    "rasters, facade exposure summaries, and rooftop irradiance rankings.",
+
+  methodology: [
+    "1. Prepare 3D geometry: buildings as LoD1/LoD2 solids, roof surfaces, terrain, and public-space polygons. Ensure all geometry is valid and in a projected CRS.",
+    "2. Select analysis dates and times. Common choices are solstices/equinoxes, local ordinance dates, or hourly annual simulations.",
+    "3. Compute solar position for each timestamp using latitude, longitude, timezone, and atmospheric assumptions.",
+    "4. For shadow analysis, cast rays from sun direction against the 3D scene and record whether each ground or facade sample point is occluded.",
+    "5. For rooftop PV screening, compute incident irradiance per roof plane using slope, aspect, horizon obstruction, and weather/clear-sky assumptions.",
+    "6. Aggregate results: annual sun-hours, winter sun-hours, percent time shaded, or kWh/m2/year by surface.",
+    "7. Compare scenarios: existing condition, proposed massing, and mitigation alternatives. Report deltas, not only absolute maps.",
+    "8. Validate visually at a few timestamps with rendered shadow scenes before trusting aggregate outputs.",
+  ],
+
+  assumptions: [
+    "Building heights and roof geometries are accurate enough for shadow casting.",
+    "Solar position calculations use the correct local timezone and coordinate reference.",
+    "Vegetation, temporary structures, and facade articulation may be omitted unless explicitly modelled.",
+    "Weather assumptions determine whether results represent geometric sun access or actual irradiance.",
+  ],
+
+  limitations: [
+    "LoD1 block models over-simplify roof forms and can misestimate rooftop solar potential.",
+    "Annual ray tracing can be computationally expensive for large districts; sampling strategy matters.",
+    "Shadow results are sensitive to small height errors near dense urban canyons.",
+    "Comfort outcomes also depend on wind, air temperature, humidity, and material albedo, not sun exposure alone.",
+  ],
+
+  dataRequirements: [
+    "3D building geometry: CityGML, 3D Tiles, OBJ, glTF, multipatch, or extruded footprints with height.",
+    "Terrain model when slope or horizon obstruction is material.",
+    "Study-area location, timezone, analysis timestamps, and weather/irradiance data if estimating PV potential.",
+    "Projected CRS for geometry processing; WGS84 latitude/longitude only for solar-position input.",
+  ],
+
+  pythonExample: `import geopandas as gpd
+import pandas as pd
+import pvlib
+
+# Simplified rooftop-screening example using roof plane metadata.
+roofs = gpd.read_file("roof_planes.geojson").to_crs(32633)
+lat, lon = 41.387, 2.168
+times = pd.date_range("2024-01-01", "2024-12-31 23:00", freq="1h", tz="Europe/Madrid")
+
+solar_position = pvlib.solarposition.get_solarposition(times, lat, lon)
+clearsky = pvlib.location.Location(lat, lon, tz="Europe/Madrid").get_clearsky(times)
+
+def plane_irradiance(row):
+    poa = pvlib.irradiance.get_total_irradiance(
+        surface_tilt=row["tilt_deg"],
+        surface_azimuth=row["azimuth_deg"],
+        solar_zenith=solar_position["apparent_zenith"],
+        solar_azimuth=solar_position["azimuth"],
+        dni=clearsky["dni"],
+        ghi=clearsky["ghi"],
+        dhi=clearsky["dhi"],
+    )
+    return float(poa["poa_global"].sum() / 1000)  # kWh/m2/year, no shading
+
+roofs["clear_sky_kwh_m2"] = roofs.apply(plane_irradiance, axis=1)
+roofs.to_file("roof_solar_screening.gpkg", layer="roofs", driver="GPKG")`,
+
+  interpretation:
+    "A rooftop or public-space area with high geometric sun-hours is a candidate for PV, daylight access, or winter " +
+    "comfort, but it is not automatically suitable: structural constraints, ownership, glare, heat stress, and heritage " +
+    "rules may dominate. For planning review, compare proposed and baseline scenarios and report the affected area, " +
+    "duration, and time of year. Clearly separate geometric sun access from weather-adjusted irradiance.",
+
+  references: [
+    "Reda, I. & Andreas, A. (2004) Solar position algorithm for solar radiation applications. Solar Energy, 76(5), 577-589.",
+    "Reinhart, C.F. & Wienold, J. (2011) The daylighting dashboard: A simulation-based design analysis for daylit spaces. Building and Environment, 46(2), 386-396.",
+    "Jakubiec, J.A. & Reinhart, C.F. (2013) A method for predicting city-wide electricity gains from photovoltaic panels. Solar Energy, 93, 127-143.",
+  ],
+
+  relatedIndicators: ["solar_access_hours", "shadow_duration", "pv_potential", "outdoor_thermal_comfort"],
+  sdgAlignment: ["SDG 7 \u2014 Affordable and Clean Energy", "SDG 11.7 \u2014 Public Open Space"],
+};
+
+/* ------------------------------------------------------------------ */
+/*  Guide 10 - Data Engineering: Spatial ETL QA                       */
+/* ------------------------------------------------------------------ */
+
+const spatialDataEngineeringQA: MethodologyGuide = {
+  id: "guide_spatial_data_engineering_qa",
+  title: "Reproducible Spatial ETL and QA",
+  category: "Data Engineering",
+  abstract:
+    "Reproducible spatial ETL converts raw urban datasets into analysis-ready layers while preserving " +
+    "provenance, CRS integrity, geometry validity, and quality diagnostics. A professional pipeline does " +
+    "not simply load a shapefile and proceed; it records source URLs, acquisition dates, licenses, field " +
+    "mappings, CRS transformations, geometry repairs, null handling, duplicate detection, and QA outcomes. " +
+    "This guide defines a minimum scientific data-engineering workflow for urban analytics so downstream " +
+    "indicators can be audited and regenerated.",
+
+  methodology: [
+    "1. Register the source: name, publisher, URL, acquisition date, license, spatial/temporal coverage, update cadence, and known limitations.",
+    "2. Read raw data into a staging layer without destructive edits. Store original files or immutable checksums.",
+    "3. Validate CRS. If CRS is missing, do not guess silently; infer only with documented evidence or mark the dataset as blocked.",
+    "4. Reproject to an analysis CRS appropriate for area/distance operations. Keep WGS84 copies only for web display and interchange.",
+    "5. Validate geometry: empty geometries, invalid rings, self-intersections, mixed geometry types, duplicate IDs, and impossible extents.",
+    "6. Standardise fields using a typed schema: names, units, categorical domains, nullability, and numeric ranges.",
+    "7. Compute QA metrics: feature count, null rates, geometry validity rate, duplicate rate, spatial coverage ratio, date freshness, and schema conformance.",
+    "8. Emit an analysis-ready layer plus a manifest that records source metadata, transformations, QA scores, warnings, and blocking issues.",
+  ],
+
+  assumptions: [
+    "Raw data can be retained or re-fetched so the pipeline is reproducible.",
+    "CRS, license, and acquisition metadata are considered first-class data, not optional documentation.",
+    "QA warnings are propagated to analytical methods instead of being hidden in preprocessing.",
+    "Geometry repair is conservative and logged; it is not treated as a silent clean-up step.",
+  ],
+
+  limitations: [
+    "Automated geometry repair can change topology; critical datasets require manual spot checks.",
+    "Schema validation cannot prove semantic correctness, only structural consistency.",
+    "Open-data portals may change files without versioned URLs; checksums help detect drift.",
+    "A high QA score does not mean the dataset is analytically fit for every method.",
+  ],
+
+  dataRequirements: [
+    "Raw source files or API endpoints plus license and acquisition metadata.",
+    "Declared schema for required fields, units, domains, and nullability.",
+    "Target projected CRS for analytical calculations and WGS84 export profile for web maps.",
+    "Persistent manifest storage for checksums, transformations, and QA outcomes.",
+  ],
+
+  pythonExample: `import hashlib
+import json
+import geopandas as gpd
+
+raw_path = "raw/parcels.geojson"
+target_crs = 26918
+
+with open(raw_path, "rb") as f:
+    checksum = hashlib.sha256(f.read()).hexdigest()
+
+gdf = gpd.read_file(raw_path)
+qa = {
+    "source": "City parcel open data",
+    "checksum_sha256": checksum,
+    "feature_count_raw": int(len(gdf)),
+    "declared_crs": str(gdf.crs),
+    "warnings": [],
+}
+
+if gdf.crs is None:
+    qa["warnings"].append("Missing CRS: pipeline blocked until CRS is verified.")
+else:
+    gdf = gdf.to_crs(target_crs)
+    gdf["geometry_valid"] = gdf.geometry.is_valid
+    qa["geometry_valid_rate"] = float(gdf["geometry_valid"].mean())
+    qa["null_rate_parcel_id"] = float(gdf["parcel_id"].isna().mean())
+    qa["duplicate_parcel_id"] = int(gdf["parcel_id"].duplicated().sum())
+    gdf.to_file("processed/parcels_analysis.gpkg", layer="parcels", driver="GPKG")
+
+with open("processed/parcels_manifest.json", "w", encoding="utf-8") as f:
+    json.dump(qa, f, indent=2)`,
+
+  interpretation:
+    "A spatial ETL layer is analysis-ready only when its CRS, schema, geometry validity, and provenance are explicit. " +
+    "If CRS metadata is unknown, area and distance methods should be blocked. If source freshness or spatial coverage " +
+    "is weak, downstream indicators should carry a data-fitness warning instead of being presented as authoritative. " +
+    "The manifest is part of the scientific output because it makes the analytical chain reproducible.",
+
+  references: [
+    "Wilson, G. et al. (2017) Good enough practices in scientific computing. PLOS Computational Biology, 13(6), e1005510.",
+    "Pebesma, E. (2018) Simple Features for R: Standardized Support for Spatial Vector Data. The R Journal, 10(1), 439-446.",
+    "Open Geospatial Consortium (2011) OpenGIS Implementation Standard for Geographic information - Simple feature access.",
+  ],
+
+  relatedIndicators: ["data_fitness_score", "crs_validity", "geometry_validity_rate", "provenance_completeness"],
+  sdgAlignment: ["SDG 11.3 \u2014 Inclusive and Sustainable Urbanization", "SDG 17.18 \u2014 Data Availability"],
+};
+
+/* ------------------------------------------------------------------ */
 /*  Exported collection                                                */
 /* ------------------------------------------------------------------ */
 
 export const METHODOLOGY_GUIDES: MethodologyGuide[] = [
   moransI,
   walkScore,
-  ndviSentinel2,
   streetNetworkOSMnx,
+  ndviSentinel2,
+  spacematrixMorphology,
+  gtfsAccessibility,
   multiHazardVulnerability,
+  displacementRiskIndex,
+  solarAccess3D,
+  spatialDataEngineeringQA,
 ];

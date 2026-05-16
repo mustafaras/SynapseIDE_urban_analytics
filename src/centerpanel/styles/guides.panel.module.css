@@ -28,8 +28,8 @@
 
 
 .headTools :where(button)[data-active="true"] {
-  border-color: var(--accentSignal);
-  box-shadow: 0 0 0 1px var(--accentSignal) inset;
-  color: #fff;
-  background: rgba(245,158,11,0.18);
+  border-color: var(--syn-interaction-active);
+  box-shadow: inset 0 -2px 0 var(--syn-interaction-active);
+  color: var(--syn-text-default);
+  background: color-mix(in srgb, var(--syn-interaction-active) 12%, transparent);
 }

@@ -1,9 +1,12 @@
 
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Copy, Plus } from "lucide-react";
 import { buildSegments } from "./outlineHighlight";
 import styles from "../styles/guides.module.css";
 import { MAIN_SCROLL_ROOT_ID } from "../sections";
+import { CategoryIcon } from "./categoryIcon";
+import { type GuideRailState, subscribeGuideRailState } from "./guideRailBridge";
 
 import noteStyles from "../styles/note.module.css";
 
@@ -33,10 +36,14 @@ export default function OutlineRail({
   const railRef = useRef<HTMLDivElement | null>(null);
   const regionRef = useRef<HTMLElement | null>(null);
   const [autoItems, setAutoItems] = useState<Item[]>([]);
+  const [syncedRail, setSyncedRail] = useState<GuideRailState | null>(null);
   const [autoActive, setAutoActive] = useState<string | null>(null);
   const ioRef = useRef<IntersectionObserver | null>(null);
   const [focusIndex, setFocusIndex] = useState<number>(-1);
 
+  useEffect(() => {
+    return subscribeGuideRailState(setSyncedRail);
+  }, []);
 
   useEffect(() => {
     if (items) return;
@@ -80,8 +87,10 @@ export default function OutlineRail({
     return () => { cancelAnimationFrame(raf); ioRef.current?.disconnect(); };
   }, [items]);
 
-  const list = items ?? autoItems;
+  const list = items ?? syncedRail?.items ?? autoItems;
   const active = activeId ?? autoActive;
+  const railMode = items ? "Custom" : syncedRail?.mode ?? "All";
+  const railQuery = items ? highlight : syncedRail?.query ?? highlight;
 
   const cssEscape = (s: string) => {
 
@@ -139,7 +148,7 @@ export default function OutlineRail({
 
   const itemsWithKeywords: RowItem[] = useMemo(() => {
     return list.map((it) => {
-      const raw = it.title.includes("—") ? it.title.split("—")[0] : it.title.split("-", 1)[0];
+      const raw = it.title.includes("—") ? it.title.split("—")[0] : it.title;
       const keyword = (raw || it.title).trim();
       return { ...it, keyword, __type: "item" } as RowItem;
     });
@@ -151,13 +160,20 @@ export default function OutlineRail({
     let lastCat = "";
     for (const it of itemsWithKeywords) {
       const cat = it.category || "";
-      if (cat && cat !== lastCat) { out.push({ __type: "sep", category: cat }); lastCat = cat; }
+      if (railMode === "All" && cat && cat !== lastCat) { out.push({ __type: "sep", category: cat }); lastCat = cat; }
       out.push(it);
     }
     return out;
-  }, [itemsWithKeywords]);
+  }, [itemsWithKeywords, railMode]);
 
   const itemRows = useMemo(() => rows.filter(r => (r as any).__type === "item") as RowItem[], [rows]);
+  const categoryCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const item of itemRows) {
+      counts.set(item.category, (counts.get(item.category) ?? 0) + 1);
+    }
+    return counts;
+  }, [itemRows]);
 
 
   useEffect(() => {
@@ -201,15 +217,26 @@ export default function OutlineRail({
   return (
     <div ref={railRef as any} className={styles.rail} aria-label="Guide keywords" role="listbox">
       <div className={styles.railHeader} aria-level={2}>
-        Index
+        <span className={styles.railHeaderTitle}>Index</span>
         <span className={styles.railHeaderCount}>{itemRows.length}</span>
       </div>
+      <div className={styles.railScopeBar} data-mode={railMode === "All" ? "all" : "scoped"}>
+        <span className={styles.railScopeKicker}>{railMode === "All" ? "Catalog" : "Scoped tab"}</span>
+        <span className={styles.railScopeValue}>{railMode === "All" ? "All method guides" : railMode}</span>
+        <span className={styles.railScopeMeta}>
+          {railQuery ? `Search: ${railQuery}` : `${itemRows.length} visible`}
+        </span>
+      </div>
+      {itemRows.length === 0 && (
+        <div className={styles.railEmpty}>No index entries match the active Methods filter.</div>
+      )}
       {rows.map((row, i) => {
         if ((row as RowSep).__type === "sep") {
           const sep = row as RowSep;
           return (
             <div key={`sep-${i}`} className={styles.railSep} role="separator" aria-label={sep.category}>
-              {sep.category}
+              <span>{sep.category}</span>
+              <span className={styles.railSepCount}>{categoryCounts.get(sep.category) ?? 0}</span>
             </div>
           );
         }
@@ -231,9 +258,11 @@ export default function OutlineRail({
             onFocus={() => setFocusIndex(idx)}
           >
             <div className={styles.railAccent} />
-            <div className={styles.railKey}>
+            <div className={styles.railKey} style={{ display: "inline-flex", alignItems: "flex-start", gap: 6, minWidth: 0 }}>
+              <span className={styles.railOrdinal}>{String(idx + 1).padStart(2, "0")}</span>
+              <CategoryIcon category={it.category} size={12} />
               <span className={styles.railKeyInner}>
-                {buildSegments(it.keyword, highlight).map((s, j) => s.hi ? (
+                {buildSegments(it.keyword, railQuery).map((s, j) => s.hi ? (
                   <span key={j} className={styles.hl}>{s.text}</span>
                 ) : (
                   <span key={j}>{s.text}</span>
@@ -247,7 +276,7 @@ export default function OutlineRail({
                 aria-label={`Copy ${it.title}`}
                 onClick={(e) => { e.stopPropagation(); doCopy(it.id); }}
               >
-                <svg className={styles.railIcon} width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16 1H4a2 2 0 0 0-2 2v12h2V3h12V1ZM20 5H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm0 16H8V7h12v14Z"/></svg>
+                <Copy size={12} />
                 <span className={styles.srOnly}>Copy</span>
               </button>
               <button
@@ -256,7 +285,7 @@ export default function OutlineRail({
                 aria-label={`Insert ${it.title}`}
                 onClick={(e) => { e.stopPropagation(); doInsert(it.id); }}
               >
-                <svg className={styles.railIcon} width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a1 1 0 0 1 1 1v8h8a1 1 0 1 1 0 2h-8v8a1 1 0 1 1-2 0v-8H3a1 1 0 1 1 0-2h8V3a1 1 0 0 1 1-1Z"/></svg>
+                <Plus size={12} />
                 <span className={styles.srOnly}>Insert</span>
               </button>
             </div>
