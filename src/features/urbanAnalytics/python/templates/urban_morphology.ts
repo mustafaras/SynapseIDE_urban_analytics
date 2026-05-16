@@ -186,8 +186,8 @@ radar_vals_closed = radar_vals + [radar_vals[0]]
 angles_closed = angles + [angles[0]]
 
 fig3, ax3 = plt.subplots(figsize=(7, 7), subplot_kw=dict(polar=True))
-ax3.fill(angles_closed, radar_vals_closed, alpha=0.25, color="#f5a623")
-ax3.plot(angles_closed, radar_vals_closed, "o-", color="#f5a623", linewidth=2)
+ax3.fill(angles_closed, radar_vals_closed, alpha=0.25, color="#3794ff")
+ax3.plot(angles_closed, radar_vals_closed, "o-", color="#3794ff", linewidth=2)
 ax3.set_xticks(angles)
 ax3.set_xticklabels(radar_metrics, fontsize=9)
 ax3.set_ylim(0, 1)

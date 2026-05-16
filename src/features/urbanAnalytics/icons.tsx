@@ -2,7 +2,7 @@
  * Urban Analytics Workbench — Icon Set
  *
  * 24×24 viewBox, stroke-based (currentColor), 2px stroke width,
- * clean geometric style matching the charcoal-amber design system.
+ * clean geometric style matching the charcoal workbench design system.
  */
 
 import React from 'react';

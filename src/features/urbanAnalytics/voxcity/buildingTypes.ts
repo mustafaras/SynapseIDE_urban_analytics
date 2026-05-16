@@ -126,10 +126,16 @@ export interface ThematicStyle {
   readonly ramp: readonly ColorStop[];
 }
 
+/**
+ * Default thematic ramp — non-amber sequential analytical palette.
+ * Cool→warm (teal→blue→purple→red) keeps increasing-intensity semantic
+ * without using amber as data chrome. Documented as data palette per the
+ * VS Code workbench color system rules; not a UI accent.
+ */
 export const DEFAULT_THEMATIC_RAMP: readonly ColorStop[] = [
-  { value: 0, color: [0.18, 0.55, 0.34] },   // teal-green
-  { value: 0.33, color: [0.96, 0.76, 0.07] }, // amber
-  { value: 0.66, color: [0.93, 0.42, 0.13] }, // orange
+  { value: 0, color: [0.18, 0.55, 0.45] },    // teal-green
+  { value: 0.33, color: [0.22, 0.58, 1.00] }, // workbench blue
+  { value: 0.66, color: [0.55, 0.35, 0.85] }, // violet
   { value: 1, color: [0.84, 0.15, 0.16] },    // red
 ];
 

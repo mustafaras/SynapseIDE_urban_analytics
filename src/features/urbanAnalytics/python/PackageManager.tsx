@@ -149,11 +149,11 @@ const containerStyle: React.CSSProperties = {
 };
 
 const titleStyle: React.CSSProperties = {
-  fontWeight: 600,
+  fontWeight: 700,
   fontSize: 12,
   textTransform: "uppercase",
   letterSpacing: "0.06em",
-  color: "#f5a623",
+  color: "#a4adbb",
 };
 
 const headerRow: React.CSSProperties = {
@@ -166,21 +166,22 @@ const headerRow: React.CSSProperties = {
 
 const pillBtn = (active: boolean): React.CSSProperties => ({
   padding: "3px 10px",
-  borderRadius: 4,
-  border: active ? "1px solid #f5a623" : "1px solid #333",
-  background: active ? "#f5a62322" : "#262626",
-  color: active ? "#f5a623" : "#aaa",
+  borderRadius: 3,
+  border: active ? "1px solid transparent" : "1px solid transparent",
+  background: "transparent",
+  color: active ? "#3794ff" : "#a4adbb",
   cursor: "pointer",
   fontSize: 11,
   fontWeight: active ? 600 : 400,
+  boxShadow: active ? "inset 0 -1px 0 #3794ff" : "none",
 });
 
 const actionBtn: React.CSSProperties = {
   padding: "5px 14px",
-  borderRadius: 5,
-  border: "none",
-  background: "#f5a623",
-  color: "#1a1a1a",
+  borderRadius: 3,
+  border: "1px solid #3794ff",
+  background: "transparent",
+  color: "#3794ff",
   cursor: "pointer",
   fontSize: 12,
   fontWeight: 600,

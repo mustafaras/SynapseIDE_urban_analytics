@@ -142,7 +142,9 @@ print(nodes["classification"].value_counts().to_string())
 print("\\nStep 6: Generating walkability map...")
 os.makedirs(PARAMS["output_dir"], exist_ok=True)
 
-# Custom color ramp: red → yellow → green
+# Diverging walkability ramp: bad (red) → moderate (yellow/amber midpoints) → good (green).
+# Documented as analytical data palette, not UI chrome. The amber/yellow stops are
+# meaningful midpoints in the standard walkability rating scale (Walk Score 0-100).
 cmap = LinearSegmentedColormap.from_list(
     "walkability", ["#d32f2f", "#ff9800", "#fdd835", "#66bb6a", "#1b5e20"]
 )

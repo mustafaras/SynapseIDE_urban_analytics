@@ -100,9 +100,9 @@ const CATEGORY_COLORS: Record<TemplateCategory, string> = {
   accessibility: "#2979ff",
   morphology: "#ab47bc",
   remote_sensing: "#66bb6a",
-  network: "#ff7043",
+  network: "#ec407a",
   statistics: "#26c6da",
-  visualization: "#ffa726",
+  visualization: "#7986cb",
 };
 
 /* ------------------------------------------------------------------ */
@@ -124,11 +124,11 @@ const containerStyle: React.CSSProperties = {
 };
 
 const titleStyle: React.CSSProperties = {
-  fontWeight: 600,
+  fontWeight: 700,
   fontSize: 12,
   textTransform: "uppercase",
   letterSpacing: "0.06em",
-  color: "#f5a623",
+  color: "#a4adbb",
 };
 
 const filterRow: React.CSSProperties = {
@@ -159,10 +159,10 @@ const cardStyle: React.CSSProperties = {
 
 const insertBtn: React.CSSProperties = {
   padding: "4px 12px",
-  borderRadius: 4,
-  border: "none",
-  background: "#f5a623",
-  color: "#1a1a1a",
+  borderRadius: 3,
+  border: "1px solid #3794ff",
+  background: "transparent",
+  color: "#3794ff",
   cursor: "pointer",
   fontSize: 12,
   fontWeight: 600,
@@ -229,7 +229,7 @@ export default function ScriptTemplates({ className, style }: ScriptTemplatesPro
       <div style={filterRow}>
         <button
           type="button"
-          style={pillBtn(activeCategory === "all", "#f5a623")}
+          style={pillBtn(activeCategory === "all", "#3794ff")}
           onClick={() => setActiveCategory("all")}
         >
           All

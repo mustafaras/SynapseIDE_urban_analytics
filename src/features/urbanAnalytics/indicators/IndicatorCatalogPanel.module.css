@@ -1,7 +1,8 @@
 .catalogShell {
   display: grid;
-  grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.4fr);
-  gap: 18px;
+  grid-template-columns: minmax(300px, 0.86fr) minmax(0, 1.4fr);
+  gap: 0;
+  min-height: 0;
 }
 
 .browserPane,
@@ -11,24 +12,35 @@
 
 .browserPane {
   display: grid;
-  gap: 14px;
+  align-content: start;
+  gap: 10px;
+  padding-right: 14px;
+  border-right: 1px solid var(--syn-border-subtle);
+}
+
+.detailPane {
+  display: grid;
+  gap: 12px;
+  padding-left: 14px;
 }
 
 .introCard,
 .definitionCard,
 .computeCard,
 .bottomCard,
-.bandPanel {
-  border: 1px solid color-mix(in srgb, var(--syn-border-strong) 58%, #f1c36d 42%);
-  border-radius: 18px;
-  background:
-    linear-gradient(160deg, rgba(22, 19, 15, 0.94), rgba(34, 28, 21, 0.9)),
-    radial-gradient(circle at top right, rgba(222, 167, 82, 0.18), transparent 52%);
-  box-shadow: 0 18px 34px rgba(9, 6, 2, 0.24);
+.bandPanel,
+.detailHero {
+  border: 1px solid var(--syn-border-subtle);
+  border-radius: 4px;
+  background: var(--syn-surface-panel);
+  box-shadow: none;
 }
 
 .introCard {
-  padding: 18px;
+  padding: 12px 0 14px;
+  border-width: 0 0 1px;
+  border-radius: 0;
+  background: transparent;
 }
 
 .kicker,
@@ -38,25 +50,26 @@
 .inputUnit,
 .resultMeta,
 .cardGroup {
-  color: #cda767;
-  font-size: 11px;
-  letter-spacing: 0.14em;
+  color: var(--syn-text-muted);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .introTitle,
 .detailTitle {
-  margin: 6px 0 10px;
-  color: var(--syn-text-primary);
-  line-height: 1.08;
+  margin: 4px 0 8px;
+  color: var(--syn-text-default);
+  line-height: 1.14;
 }
 
 .introTitle {
-  font-size: 1.45rem;
+  font-size: 1rem;
 }
 
 .detailTitle {
-  font-size: 1.8rem;
+  font-size: 1.28rem;
 }
 
 .introText,
@@ -72,37 +85,46 @@
 .emptyState,
 .sectionHeader p {
   color: var(--syn-text-secondary);
-  line-height: 1.55;
+  line-height: 1.48;
 }
 
 .searchField {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 14px;
-  border-radius: 14px;
-  border: 1px solid color-mix(in srgb, var(--syn-border-strong) 64%, #f0bc67 36%);
-  background: rgba(21, 17, 13, 0.92);
-  color: var(--syn-text-secondary);
+  gap: 8px;
+  min-height: 30px;
+  padding: 0 9px;
+  border: 1px solid var(--syn-border-subtle);
+  border-radius: 3px;
+  background: var(--syn-surface-input);
+  color: var(--syn-text-muted);
+}
+
+.searchField:focus-within {
+  border-color: var(--syn-border-focus);
+  box-shadow: 0 0 0 1px var(--syn-border-focus);
 }
 
 .searchField input {
   width: 100%;
+  min-width: 0;
   border: 0;
   outline: 0;
   background: transparent;
-  color: var(--syn-text-primary);
+  color: var(--syn-text-default);
   font: inherit;
 }
 
 .searchField input::placeholder {
-  color: color-mix(in srgb, var(--syn-text-muted) 78%, #d0a257 22%);
+  color: var(--syn-text-muted);
 }
 
 .filterRow {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 4px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--syn-border-subtle);
 }
 
 .filterChip,
@@ -110,37 +132,43 @@
 .flowButton,
 .actionButton,
 .computeButton {
+  min-height: 28px;
   border: 1px solid transparent;
-  border-radius: 999px;
-  padding: 9px 12px;
+  border-radius: 3px;
+  padding: 5px 8px;
+  background: transparent;
+  color: var(--syn-text-secondary);
   font: inherit;
   cursor: pointer;
-  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
-}
-
-.filterChip,
-.flowButton,
-.actionButton {
-  background: rgba(33, 28, 22, 0.92);
-  color: var(--syn-text-secondary);
-  border-color: rgba(221, 178, 102, 0.18);
-}
-
-.activeChip,
-.computeButton {
-  background: linear-gradient(135deg, rgba(216, 153, 61, 0.94), rgba(182, 112, 53, 0.92));
-  color: #1b140d;
-  border-color: rgba(255, 221, 170, 0.55);
+  transition: background 140ms ease, border-color 140ms ease, color 140ms ease, box-shadow 140ms ease;
 }
 
 .filterChip:hover,
 .activeChip:hover,
 .flowButton:hover,
 .actionButton:hover,
-.computeButton:hover,
-.catalogCard:hover,
-.activeCard:hover {
-  transform: translateY(-1px);
+.computeButton:hover {
+  background: var(--syn-interaction-hover);
+  color: var(--syn-text-default);
+}
+
+.activeChip {
+  color: var(--syn-interaction-active);
+  box-shadow: inset 0 -1px 0 var(--syn-interaction-active);
+}
+
+.filterChip:focus-visible,
+.activeChip:focus-visible,
+.flowButton:focus-visible,
+.actionButton:focus-visible,
+.computeButton:focus-visible,
+.catalogCard:focus-visible,
+.activeCard:focus-visible,
+.referenceLink:focus-visible,
+.inputField input:focus-visible {
+  outline: none;
+  border-color: var(--syn-border-focus);
+  box-shadow: 0 0 0 1px var(--syn-border-focus);
 }
 
 .resultMeta {
@@ -151,28 +179,34 @@
 
 .cardList {
   display: grid;
-  gap: 10px;
   max-height: 860px;
   overflow: auto;
-  padding-right: 4px;
+  border-top: 1px solid var(--syn-border-subtle);
 }
 
 .catalogCard,
 .activeCard {
   display: grid;
-  gap: 10px;
-  text-align: left;
+  gap: 6px;
   width: 100%;
-  padding: 14px;
-  border-radius: 16px;
-  border: 1px solid rgba(226, 182, 103, 0.18);
-  background: linear-gradient(155deg, rgba(25, 20, 15, 0.96), rgba(37, 30, 23, 0.88));
+  padding: 10px 8px 10px 10px;
+  border: 0;
+  border-bottom: 1px solid var(--syn-border-subtle);
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
   cursor: pointer;
+  text-align: left;
+}
+
+.catalogCard:hover,
+.activeCard:hover {
+  background: var(--syn-interaction-hover);
 }
 
 .activeCard {
-  border-color: rgba(245, 182, 73, 0.72);
-  box-shadow: inset 0 0 0 1px rgba(252, 215, 156, 0.24);
+  background: color-mix(in srgb, var(--syn-interaction-active) 8%, transparent);
+  box-shadow: inset 2px 0 0 var(--syn-interaction-active);
 }
 
 .cardHeaderRow,
@@ -186,44 +220,42 @@
   gap: 12px;
 }
 
+.cardHeaderRow,
+.cardFooter {
+  align-items: baseline;
+}
+
 .cardTitle,
 .metricValue,
-.resultValue {
-  color: var(--syn-text-primary);
+.resultValue,
+.bandCard strong,
+.componentCard strong,
+.historyItem strong {
+  color: var(--syn-text-default);
 }
 
 .cardTitle {
-  font-weight: 600;
+  font-weight: 650;
 }
 
 .cardUnit,
 .cardValue,
 .metricClassification {
-  color: #f0c16f;
-  font-size: 0.9rem;
-}
-
-.detailPane {
-  display: grid;
-  gap: 16px;
+  color: var(--syn-text-secondary);
+  font-size: 0.88rem;
 }
 
 .detailHero {
-  padding: 20px;
-  border-radius: 22px;
-  background:
-    radial-gradient(circle at top left, rgba(223, 163, 75, 0.2), transparent 34%),
-    linear-gradient(155deg, rgba(31, 24, 18, 0.98), rgba(19, 16, 12, 0.94));
-  border: 1px solid rgba(239, 183, 97, 0.24);
+  padding: 14px;
 }
 
 .traceabilityStrip {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 0;
-  margin-top: 16px;
-  border-top: 1px solid rgba(239, 183, 97, 0.16);
-  border-bottom: 1px solid rgba(239, 183, 97, 0.1);
+  margin-top: 14px;
+  border-top: 1px solid var(--syn-border-subtle);
+  border-bottom: 1px solid var(--syn-border-subtle);
 }
 
 .traceabilityItem {
@@ -235,8 +267,8 @@
   align-items: center;
   column-gap: 8px;
   min-width: 0;
-  padding: 10px 12px;
-  border-right: 1px solid rgba(239, 183, 97, 0.1);
+  padding: 9px 10px;
+  border-right: 1px solid var(--syn-border-subtle);
 }
 
 .traceabilityItem:last-child {
@@ -245,14 +277,14 @@
 
 .traceabilityItem svg {
   grid-area: icon;
-  color: #f0c16f;
+  color: var(--syn-interaction-active);
 }
 
 .traceabilityItem span {
   grid-area: label;
-  color: #cda767;
+  color: var(--syn-text-muted);
   font-size: 10px;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
@@ -260,7 +292,7 @@
   grid-area: value;
   min-width: 0;
   overflow: hidden;
-  color: var(--syn-text-primary);
+  color: var(--syn-text-default);
   font-size: 0.82rem;
   font-weight: 600;
   text-overflow: ellipsis;
@@ -276,7 +308,7 @@
 
 .metricValue,
 .resultValue {
-  font-size: 1.5rem;
+  font-size: 1.36rem;
   font-weight: 700;
 }
 
@@ -284,7 +316,7 @@
 .computeGrid,
 .bottomGrid {
   display: grid;
-  gap: 16px;
+  gap: 12px;
 }
 
 .definitionGrid,
@@ -300,46 +332,51 @@
 .computeCard,
 .bottomCard,
 .bandPanel {
-  padding: 18px;
+  padding: 14px;
 }
 
 .formulaBlock {
   display: block;
-  margin: 10px 0 12px;
-  padding: 14px;
-  border-radius: 14px;
-  background: rgba(15, 12, 9, 0.78);
-  color: #f6d193;
+  margin: 8px 0 10px;
+  padding: 10px;
+  border: 1px solid var(--syn-border-subtle);
+  border-radius: 3px;
+  background: var(--syn-surface-input);
+  color: var(--syn-text-default);
   white-space: normal;
-  font-size: 0.98rem;
+  font-size: 0.95rem;
 }
 
 .traceabilityNotes {
   display: grid;
-  gap: 7px;
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid rgba(239, 183, 97, 0.12);
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--syn-border-subtle);
   color: var(--syn-text-secondary);
   font-size: 0.88rem;
-  line-height: 1.45;
+  line-height: 1.42;
 }
 
 .sourceNote {
   margin: 10px 0 0;
   padding-top: 10px;
-  border-top: 1px solid rgba(239, 183, 97, 0.12);
+  border-top: 1px solid var(--syn-border-subtle);
   color: var(--syn-text-muted);
   font-size: 0.88rem;
-  line-height: 1.45;
+  line-height: 1.42;
 }
 
 .referenceLink {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: #f1bc63;
+  color: var(--syn-text-link);
   text-decoration: none;
+}
+
+.referenceLink:hover {
+  text-decoration: underline;
 }
 
 .bandList,
@@ -349,12 +386,12 @@
 .guidanceList,
 .formGrid {
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .bandList {
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  margin-top: 12px;
+  margin-top: 10px;
 }
 
 .bandCard,
@@ -362,20 +399,25 @@
 .historyItem {
   display: grid;
   gap: 4px;
-  padding: 12px;
-  border-radius: 14px;
-  background: rgba(14, 11, 8, 0.56);
-  border: 1px solid rgba(234, 186, 99, 0.14);
+  padding: 9px 0;
+  border-top: 1px solid var(--syn-border-subtle);
+  background: transparent;
+}
+
+.bandCard:first-child,
+.componentCard:first-child,
+.historyItem:first-child {
+  border-top: 0;
 }
 
 .sectionHeader {
   align-items: center;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 
 .sectionHeader h4 {
-  margin: 0 0 6px;
-  color: var(--syn-text-primary);
+  margin: 0 0 4px;
+  color: var(--syn-text-default);
 }
 
 .computeButton,
@@ -387,7 +429,14 @@
 }
 
 .computeButton {
-  min-width: 172px;
+  min-width: 160px;
+  color: var(--syn-interaction-active);
+  box-shadow: inset 0 -1px 0 var(--syn-interaction-active);
+}
+
+.actionButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
 }
 
 .formGrid {
@@ -397,53 +446,55 @@
 .inputField {
   display: grid;
   gap: 6px;
-  padding: 12px;
-  border-radius: 14px;
-  background: rgba(16, 13, 10, 0.6);
-  border: 1px solid rgba(239, 188, 108, 0.12);
+  padding: 9px 0;
+  border-top: 1px solid var(--syn-border-subtle);
+}
+
+.inputField:first-child {
+  border-top: 0;
 }
 
 .inputLabel {
-  color: var(--syn-text-primary);
+  color: var(--syn-text-default);
   font-weight: 600;
 }
 
 .inputField input {
   width: 100%;
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid rgba(229, 184, 108, 0.16);
-  background: rgba(12, 10, 8, 0.88);
-  color: var(--syn-text-primary);
+  min-height: 30px;
+  padding: 0 9px;
+  border: 1px solid var(--syn-border-subtle);
+  border-radius: 3px;
+  background: var(--syn-surface-input);
+  color: var(--syn-text-default);
   font: inherit;
 }
 
 .errorBox,
 .successBox {
   margin-top: 12px;
-  padding: 12px 14px;
-  border-radius: 12px;
+  padding: 10px 12px;
+  border-radius: 3px;
 }
 
 .errorBox {
-  background: rgba(149, 58, 44, 0.22);
-  border: 1px solid rgba(232, 118, 96, 0.24);
-  color: #f0b5ab;
+  background: color-mix(in srgb, var(--syn-status-error) 11%, transparent);
+  border: 1px solid color-mix(in srgb, var(--syn-status-error) 42%, transparent);
+  color: var(--syn-status-error);
 }
 
 .successBox {
-  background: rgba(88, 108, 53, 0.22);
-  border: 1px solid rgba(193, 205, 122, 0.22);
-  color: #dce5a9;
+  background: color-mix(in srgb, var(--syn-status-valid) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--syn-status-valid) 36%, transparent);
+  color: var(--syn-status-valid);
 }
 
 .resultPanel {
   display: grid;
   gap: 10px;
-  padding: 14px;
-  border-radius: 16px;
-  background: rgba(12, 10, 8, 0.74);
-  border: 1px solid rgba(231, 180, 96, 0.16);
+  padding: 10px 0 0;
+  border-top: 1px solid var(--syn-border-subtle);
+  background: transparent;
 }
 
 .resultMetaRow {
@@ -461,17 +512,17 @@
 }
 
 .guidanceList {
-  margin: 10px 0 0;
+  margin: 8px 0 0;
   padding-left: 18px;
   color: var(--syn-text-secondary);
 }
 
 .emptyState,
 .emptyHistory {
-  padding: 18px;
-  border-radius: 14px;
-  background: rgba(18, 14, 11, 0.9);
-  border: 1px solid rgba(230, 182, 96, 0.16);
+  padding: 14px;
+  border: 1px solid var(--syn-border-subtle);
+  border-radius: 4px;
+  background: var(--syn-surface-panel);
 }
 
 @media (max-width: 1280px) {
@@ -480,6 +531,18 @@
   .computeGrid,
   .bottomGrid {
     grid-template-columns: 1fr;
+  }
+
+  .browserPane {
+    padding-right: 0;
+    padding-bottom: 14px;
+    border-right: 0;
+    border-bottom: 1px solid var(--syn-border-subtle);
+  }
+
+  .detailPane {
+    padding-left: 0;
+    padding-top: 14px;
   }
 
   .statusColumn {
@@ -514,7 +577,7 @@
 
   .traceabilityItem {
     border-right: 0;
-    border-bottom: 1px solid rgba(239, 183, 97, 0.1);
+    border-bottom: 1px solid var(--syn-border-subtle);
   }
 
   .traceabilityItem:last-child {

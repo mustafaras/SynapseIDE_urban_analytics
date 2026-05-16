@@ -1,8 +1,7 @@
 /* ─────────────────────────────────────────────────────────────
    Urban Analytics Workbench — Left Rail Stylesheet
-   Charcoal-amber design system with amber accent for
-   the urban analytics domain.  Urban analytics rail styles
-   with --rail-accent set to amber (#F59E0B).
+   Compact VS Code-like workbench rail with neutral rows,
+   semantic status labels, and restrained interaction cues.
    ───────────────────────────────────────────────────────────── */
 
 .urban-rail {
@@ -10,34 +9,34 @@
   --rail-w: 485px;
   --rail-gap: 10px;
   --rail-pad: 12px 12px 14px;
-  --rail-radius: 14px;
-  --rail-divider: var(--rail-line, rgba(255,255,255,0.12));
-  --rail-shadow: 0 6px 24px rgba(0,0,0,0.25);
-  --rail-focus: 0 0 0 2px rgba(245,158,11,0.45);
-  --rail-topline: linear-gradient(90deg, #F59E0B 0%, #D97706 100%);
+  --rail-radius: 0;
+  --rail-divider: var(--syn-border-subtle);
+  --rail-shadow: none;
+  --rail-focus: 0 0 0 1px var(--syn-border-focus);
+  --rail-topline: var(--syn-interaction-active);
 
   /* ── colour tokens ── */
-  --rail-accent:         var(--accent, #F59E0B);
-  --rail-fg:             var(--fg, #fff);
-  --rail-fg-muted:       var(--muted, rgba(255,255,255,0.75));
-  --rail-bg:             var(--panel-elevated, var(--bg, rgba(0,0,0,0.35)));
-  --rail-line:           var(--line, rgba(255,255,255,0.12));
-  --rail-line-soft:      color-mix(in oklab, var(--rail-line), transparent 20%);
-  --rail-chip-bg:        var(--chip-bg, rgba(255,255,255,0.06));
-  --rail-hover:          color-mix(in oklab, var(--rail-accent), transparent 95%);
-  --rail-selected:       color-mix(in oklab, var(--rail-accent), transparent 92%);
-  --rail-focus-ring:     var(--rail-accent);
+  --rail-accent:         var(--syn-interaction-active);
+  --rail-fg:             var(--syn-text-default);
+  --rail-fg-muted:       var(--syn-text-muted);
+  --rail-bg:             var(--syn-surface-navigation);
+  --rail-line:           var(--syn-border-subtle);
+  --rail-line-soft:      var(--syn-border-subtle);
+  --rail-chip-bg:        transparent;
+  --rail-hover:          var(--syn-interaction-hover);
+  --rail-selected:       color-mix(in srgb, var(--syn-interaction-active) 9%, transparent);
+  --rail-focus-ring:     var(--syn-border-focus);
 
   /* ── priority / risk ── */
-  --rail-risk-fg:        var(--risk-fg, #fff);
-  --rail-risk-bg:        var(--risk-bg, color-mix(in oklab, #EF4444, transparent 82%));
-  --rail-risk-border:    var(--risk-border, color-mix(in oklab, #EF4444, transparent 70%));
+  --rail-risk-fg:        var(--syn-status-error);
+  --rail-risk-bg:        color-mix(in srgb, var(--syn-status-error) 10%, transparent);
+  --rail-risk-border:    color-mix(in srgb, var(--syn-status-error) 42%, transparent);
 
   /* ── spacing ── */
   --rail-space-1: var(--space-1, 4px);
   --rail-space-2: var(--space-2, 8px);
   --rail-space-3: var(--space-3, 12px);
-  --rail-radius-2: var(--radius-2, 8px);
+  --rail-radius-2: 3px;
 
   /* ── scrollbar ── */
   --rail-scrollbar-thumb: color-mix(in oklab, var(--rail-fg), transparent 85%);
@@ -52,19 +51,6 @@
 }
 
 /* ── light mode ── */
-@media (prefers-color-scheme: light) {
-  .urban-rail {
-    --rail-fg:        var(--fg, #111);
-    --rail-fg-muted:  var(--muted, rgba(0,0,0,0.6));
-    --rail-bg:        var(--panel-elevated, var(--bg, #fff));
-    --rail-line:      var(--line, rgba(0,0,0,0.12));
-    --rail-line-soft: color-mix(in oklab, var(--rail-line), transparent 20%);
-    --rail-chip-bg:   var(--chip-bg, rgba(0,0,0,0.04));
-    --rail-hover:     color-mix(in oklab, var(--rail-accent), transparent 93%);
-    --rail-selected:  color-mix(in oklab, var(--rail-accent), transparent 88%);
-  }
-}
-
 /* ── forced-colors / high-contrast ── */
 @media (forced-colors: active) {
   .urban-rail {
@@ -84,7 +70,7 @@
    ───────────────────────────────────────────────────────────── */
 
 .urban-rail__header {
-  padding: 12px 12px 8px;
+  padding: 10px 10px 8px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -93,12 +79,10 @@
   top: 0;
   z-index: 2;
   background: var(--rail-bg);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
 }
 
 .urban-rail__topline {
-  height: 2px;
+  height: 1px;
   width: 100%;
   background: var(--rail-topline);
   border-radius: 1px;
@@ -110,35 +94,31 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  padding: 0 4px;
+  padding: 0 2px;
 }
 
 .urban-rail__title {
   margin: 0 0 4px;
-  font-size: 18px;
-  font-weight: 650;
-  letter-spacing: 0.6px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0;
   color: var(--rail-fg);
   line-height: 1.15;
 }
 
 .urban-rail__titleMain {
-  background: linear-gradient(92deg, var(--rail-accent) 0%, color-mix(in oklab, var(--rail-accent), var(--rail-fg) 55%) 55%, var(--rail-fg) 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  text-shadow: 0 0 16px color-mix(in oklab, var(--rail-accent), transparent 65%), 0 0 2px color-mix(in oklab, var(--rail-fg), transparent 75%);
+  color: var(--rail-accent);
 }
 
 .urban-rail__titleMain::after {
   content: '';
   display: block;
-  height: 2px;
+  height: 1px;
   margin-top: 3px;
-  width: 40%;
-  background: var(--rail-topline);
-  border-radius: 2px;
-  opacity: 0.6;
+  width: 32px;
+  background: var(--rail-accent);
+  border-radius: 0;
+  opacity: 0.85;
 }
 
 .urban-rail__subtitle {
@@ -170,11 +150,11 @@
 .urban-rail__sectionSelect {
   flex: 1;
   min-width: 0;
-  height: 30px;
+  height: 26px;
   padding: 0 8px;
   border-radius: var(--rail-radius-2);
   border: 1px solid var(--rail-line);
-  background: var(--rail-chip-bg);
+  background: var(--syn-surface-input);
   color: var(--rail-fg);
   font-size: 12px;
 }
@@ -185,10 +165,12 @@
 }
 
 .urban-rail__count {
-  background: var(--rail-chip-bg);
-  border-radius: 999px;
-  padding: 2px 6px;
+  background: transparent;
+  border: 1px solid var(--rail-line);
+  border-radius: 3px;
+  padding: 1px 6px;
   font-size: 10px;
+  color: var(--rail-fg-muted);
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -205,10 +187,10 @@
 
 .urban-rail__filtersInline .inline-btn {
   font-size: 11px;
-  padding: 3px 8px;
-  border-radius: 999px;
-  border: 1px solid var(--rail-line);
-  background: var(--rail-chip-bg);
+  padding: 3px 7px;
+  border-radius: 3px;
+  border: 1px solid transparent;
+  background: transparent;
   cursor: pointer;
   color: var(--rail-fg-muted);
   transition: background 0.15s, border-color 0.15s;
@@ -217,6 +199,7 @@
 .urban-rail__filtersInline .inline-btn:hover {
   background: var(--rail-hover);
   border-color: var(--rail-line);
+  color: var(--rail-fg);
 }
 
 .urban-rail__filtersInline .inline-btn:focus-visible {
@@ -246,10 +229,10 @@
 
 .urban-rail__tagsMini .mini-chip {
   font-size: 11px;
-  padding: 3px 8px;
-  border-radius: 999px;
-  border: 1px solid var(--rail-line);
-  background: var(--rail-chip-bg);
+  padding: 3px 7px;
+  border-radius: 3px;
+  border: 1px solid transparent;
+  background: transparent;
   cursor: pointer;
   color: var(--rail-fg);
   transition: background 0.15s, border-color 0.15s;
@@ -261,9 +244,10 @@
 }
 
 .urban-rail__tagsMini .mini-chip.on {
-  background: linear-gradient(180deg, color-mix(in oklab, var(--rail-accent), transparent 75%), transparent);
-  border-color: var(--rail-accent);
-  box-shadow: 0 0 0 1px color-mix(in oklab, var(--rail-accent), transparent 40%) inset;
+  background: transparent;
+  border-color: transparent;
+  color: var(--rail-accent);
+  box-shadow: inset 0 -1px 0 var(--rail-accent);
 }
 
 .urban-rail__tagsMini .mini-chip:focus-visible {
@@ -301,20 +285,18 @@
   grid-template-columns: 1fr auto;
   gap: 8px;
   align-items: center;
-  padding: 8px 10px;
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
+  padding: 7px 10px;
   border-bottom: 1px solid var(--rail-line);
   background: var(--rail-bg);
 }
 
 .urban-search__input {
   width: 100%;
-  height: 34px;
-  padding: 0 12px;
-  border-radius: 8px;
+  height: 28px;
+  padding: 0 9px;
+  border-radius: 3px;
   border: 1px solid var(--rail-line);
-  background: color-mix(in oklab, var(--rail-fg), transparent 97%);
+  background: var(--syn-surface-input);
   color: inherit;
   font-size: 13px;
   caret-color: var(--rail-accent);
@@ -329,13 +311,14 @@
 .urban-search__input:focus-visible {
   outline: none;
   box-shadow: var(--rail-focus);
+  border-color: var(--rail-focus-ring);
 }
 
 .urban-search__clear {
-  height: 28px;
+  height: 26px;
   padding: 0 8px;
-  border-radius: 999px;
-  border: 1px solid var(--rail-line);
+  border-radius: 3px;
+  border: 1px solid transparent;
   background: transparent;
   cursor: pointer;
   color: var(--rail-fg);
@@ -381,7 +364,7 @@
 
 .urban-rail__divider {
   height: 1px;
-  background: linear-gradient(90deg, var(--rail-divider), transparent);
+  background: var(--rail-divider);
   margin: 4px 2px 2px;
 }
 
@@ -416,7 +399,7 @@
    ───────────────────────────────────────────────────────────── */
 
 .urban-rail__group {
-  margin-bottom: 6px;
+  margin-bottom: 3px;
 }
 
 .urban-rail__groupBtn {
@@ -425,10 +408,10 @@
   font-weight: 600;
   font-size: 12.5px;
   letter-spacing: 0.2px;
-  background: linear-gradient(135deg, color-mix(in oklab, var(--rail-fg), transparent 96%), color-mix(in oklab, var(--rail-fg), transparent 98%));
-  border: 1px solid var(--rail-line-soft);
-  padding: 8px 10px 8px 8px;
-  border-radius: 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  padding: 6px 8px;
+  border-radius: 3px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -439,13 +422,15 @@
 
 .urban-rail__groupBtn:hover {
   background: var(--rail-hover);
-  border-color: color-mix(in oklab, var(--rail-accent), transparent 70%);
-  box-shadow: 0 0 0 1px color-mix(in oklab, var(--rail-accent), transparent 88%);
+  border-color: var(--rail-line);
+  box-shadow: none;
 }
 
 .urban-rail__groupBtn.is-open {
-  border-color: color-mix(in oklab, var(--rail-accent), transparent 75%);
-  background: linear-gradient(135deg, color-mix(in oklab, var(--rail-accent), transparent 93%), color-mix(in oklab, var(--rail-accent), transparent 97%));
+  border-color: transparent;
+  background: transparent;
+  color: var(--rail-fg);
+  box-shadow: inset 2px 0 0 var(--rail-accent);
 }
 
 .urban-rail__groupBtn.is-empty {
@@ -499,17 +484,18 @@
 }
 
 .urban-rail__subDot {
-  width: 4px;
+  width: 3px;
   height: 4px;
-  border-radius: 50%;
+  border-radius: 0;
   background: var(--rail-accent);
   flex-shrink: 0;
   opacity: 0.7;
 }
 
 .urban-rail__subCount {
-  background: var(--rail-chip-bg);
-  border-radius: 999px;
+  background: transparent;
+  border: 1px solid var(--rail-line);
+  border-radius: 3px;
   padding: 1px 5px;
   font-size: 10px;
   font-weight: 500;
@@ -534,7 +520,7 @@
   display: flex;
   align-items: flex-start;
   gap: 4px;
-  border-radius: 8px;
+  border-radius: 3px;
   background: transparent;
   border: 1px solid transparent;
   transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
@@ -542,12 +528,12 @@
 
 .urban-rail__item:hover {
   background: var(--rail-hover);
-  border-color: var(--rail-line-soft);
+  border-color: transparent;
 }
 
 .urban-rail__item.is-active {
-  background: linear-gradient(90deg, color-mix(in oklab, var(--rail-accent), transparent 82%), color-mix(in oklab, var(--rail-accent), transparent 94%));
-  border-color: color-mix(in oklab, var(--rail-accent), transparent 55%);
+  background: var(--rail-selected);
+  border-color: transparent;
   box-shadow: inset 2px 0 0 var(--rail-accent);
 }
 
@@ -576,7 +562,7 @@
 }
 
 .urban-rail__itemBtn:hover {
-  background: var(--rail-hover);
+  background: transparent;
 }
 
 .urban-rail__itemBtn:focus-visible {
@@ -589,10 +575,10 @@
    ───────────────────────────────────────────────────────────── */
 
 .urban-rail__favBtn {
-  border: 1px solid var(--rail-line);
-  background: var(--rail-chip-bg);
+  border: 1px solid transparent;
+  background: transparent;
   color: var(--rail-fg-muted);
-  border-radius: 6px;
+  border-radius: 3px;
   cursor: pointer;
   font-size: 13px;
   display: inline-flex;
@@ -604,9 +590,10 @@
 }
 
 .urban-rail__favBtn[aria-pressed='true'] {
-  background: color-mix(in oklab, var(--rail-accent), transparent 85%);
-  border-color: var(--rail-accent);
+  background: transparent;
+  border-color: transparent;
   color: var(--rail-accent);
+  box-shadow: inset 0 -1px 0 var(--rail-accent);
 }
 
 .urban-rail__favBtn:focus-visible {
@@ -623,7 +610,7 @@
   font-size: 10px;
   line-height: 1;
   padding: 2px 6px;
-  border-radius: 6px;
+  border-radius: 3px;
   border: 1px solid var(--rail-line);
   background: var(--rail-chip-bg);
   color: var(--rail-fg-muted);
@@ -636,7 +623,7 @@
   min-width: 22px;
   height: 20px;
   padding: 0 6px;
-  border-radius: 999px;
+  border-radius: 3px;
   font-size: 11px;
   font-weight: 600;
   line-height: 20px;
@@ -649,8 +636,9 @@
 
 .rail-badge.has-items {
   color: var(--rail-accent);
-  border-color: color-mix(in oklab, var(--rail-accent), transparent 70%);
-  background: color-mix(in oklab, var(--rail-accent), transparent 90%);
+  border-color: transparent;
+  background: transparent;
+  box-shadow: inset 0 -1px 0 var(--rail-accent);
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -704,8 +692,8 @@
 /* Affordance counts — datasets/tools/citations */
 .rail-item-afford {
   font-size: 9.5px;
-  color: var(--rail-accent);
-  opacity: 0.55;
+  color: var(--rail-fg-muted);
+  opacity: 0.72;
   letter-spacing: 0.2px;
   flex-shrink: 0;
   white-space: nowrap;
@@ -728,10 +716,10 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 10px;
-  border-radius: 8px;
-  border: 1px solid var(--rail-line-soft);
-  background: var(--rail-chip-bg);
+  padding: 6px 8px;
+  border-radius: 3px;
+  border: 1px solid transparent;
+  background: transparent;
   cursor: pointer;
   color: var(--rail-fg);
   font-weight: 600;
@@ -806,6 +794,7 @@
 
 .urban-list__row[aria-current='true'] {
   background: var(--rail-selected);
+  box-shadow: inset 2px 0 0 var(--rail-accent);
 }
 
 .urban-list__main {
@@ -840,12 +829,12 @@
    ───────────────────────────────────────────────────────────── */
 
 .urban-rail__footer {
-  padding: 8px 12px;
+  padding: 7px 10px;
   font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.3px;
   border-top: 1px solid var(--rail-line);
-  background: color-mix(in oklab, var(--rail-fg), transparent 98%);
+  background: var(--rail-bg);
   color: var(--rail-fg-muted);
 }
 
@@ -863,7 +852,7 @@
   padding: var(--rail-pad);
   flex-shrink: 0;
   border-radius: var(--rail-radius);
-  box-shadow: var(--rail-shadow), 1px 0 0 var(--rail-line-soft), 0 0 0 1px color-mix(in oklab, var(--rail-bg), var(--rail-fg) 6%);
+  box-shadow: var(--rail-shadow), 1px 0 0 var(--rail-line-soft);
   z-index: 10;
 }
 
@@ -926,7 +915,8 @@
 
 .skel {
   background: var(--rail-chip-bg);
-  border-radius: 8px;
+  border: 1px solid var(--rail-line);
+  border-radius: 3px;
   animation: skel-pulse 1.4s ease-in-out infinite;
 }
 
@@ -938,7 +928,7 @@
 .skel-chip {
   width: 56px;
   height: 24px;
-  border-radius: 999px;
+  border-radius: 3px;
 }
 
 .skel-sections {
@@ -969,7 +959,7 @@
 .skel-badge {
   width: 40px;
   height: 16px;
-  border-radius: 999px;
+  border-radius: 3px;
 }
 
 .skel-leaflist {
@@ -980,7 +970,7 @@
 
 .skel-leaf {
   height: 36px;
-  border-radius: 8px;
+  border-radius: 3px;
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -990,11 +980,11 @@
 .urban-chip {
   display: inline-flex;
   align-items: center;
-  height: 28px;
-  padding: 0 10px;
-  border-radius: 999px;
-  border: 1px solid var(--rail-line);
-  background: var(--rail-chip-bg);
+  height: 26px;
+  padding: 0 8px;
+  border-radius: 3px;
+  border: 1px solid transparent;
+  background: transparent;
   font-size: 12px;
   line-height: 1;
   cursor: pointer;
@@ -1012,9 +1002,10 @@
 
 .urban-chip.is-on,
 .urban-chip.is-selected {
-  background: linear-gradient(180deg, color-mix(in oklab, var(--rail-accent), transparent 75%), transparent);
-  border-color: var(--rail-accent);
-  box-shadow: 0 0 0 1px color-mix(in oklab, var(--rail-accent), transparent 40%) inset;
+  background: transparent;
+  border-color: transparent;
+  color: var(--rail-accent);
+  box-shadow: inset 0 -1px 0 var(--rail-accent);
   opacity: 1;
 }
 
@@ -1102,13 +1093,15 @@
 /* Inline-btn — active variant (has meta filters applied) */
 .inline-btn.active {
   color: var(--rail-accent);
-  border-color: color-mix(in oklab, var(--rail-accent), transparent 50%);
+  border-color: transparent;
+  box-shadow: inset 0 -1px 0 var(--rail-accent);
 }
 
 /* meta-ctx chip — highlights active project scale */
 .mini-chip.meta-ctx {
-  border-color: color-mix(in oklab, var(--rail-accent), transparent 40%);
+  border-color: transparent;
   color: var(--rail-accent);
+  box-shadow: inset 0 -1px 0 var(--rail-accent);
 }
 
 /* Context hint strip */
@@ -1130,7 +1123,7 @@
 
 /* residual_gap — subtle red tint */
 .urban-rail__item.is-warning .urban-rail__itemTitle {
-  color: color-mix(in oklab, #ef4444, var(--rail-fg) 55%);
+  color: color-mix(in srgb, var(--syn-status-error) 60%, var(--rail-fg));
 }
 
 /* deferred — heavily muted */
@@ -1148,12 +1141,42 @@
   font-weight: 600;
   letter-spacing: 0.3px;
   color: var(--rail-accent);
-  background: color-mix(in oklab, var(--rail-accent), transparent 85%);
-  border: 1px solid color-mix(in oklab, var(--rail-accent), transparent 60%);
+  background: transparent;
+  border: 1px solid var(--rail-line);
   border-radius: 3px;
   padding: 0 3px;
   white-space: nowrap;
   flex-shrink: 0;
+}
+
+.urban-rail__favInline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 3px;
+  border: 1px solid transparent;
+  color: var(--rail-fg-muted);
+  font-size: var(--fav-size, 18px);
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+}
+
+.urban-rail__favInline:hover {
+  background: var(--rail-hover);
+  color: var(--rail-fg);
+}
+
+.urban-rail__favInline.is-on {
+  color: var(--rail-accent);
+  box-shadow: inset 0 -1px 0 var(--rail-accent);
+}
+
+.urban-rail__favInline:focus-visible {
+  outline: none;
+  box-shadow: var(--rail-focus);
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -211,8 +211,8 @@ function buildStudyAreaAoiFeature(
       label,
       createdAt: new Date().toISOString(),
       style: {
-        strokeColor: '#f59e0b',
-        fillColor: '#f59e0b',
+        strokeColor: '#3794ff',
+        fillColor: '#3794ff',
         strokeWidth: 2,
         fillOpacity: 0.12,
       },

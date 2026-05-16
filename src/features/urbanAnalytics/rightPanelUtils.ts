@@ -118,20 +118,52 @@ export function generatePageDoc(innerHtml: string, title = 'Urban Analytics Prev
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: #000000; color: #FAFAF9;
+      background: #1e1f24; color: #d7dce5;
       padding: 32px; line-height: 1.6;
     }
-    h1, h2, h3, h4 { color: #F59E0B; margin-bottom: 8px; }
-    a { color: #FCD34D; }
-    code { background: #1A1A1A; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
-    pre { background: #1A1A1A; padding: 16px; border-radius: 8px; overflow-x: auto; margin: 12px 0; }
+    h1, h2, h3, h4 {
+      color: #d7dce5; margin-bottom: 8px;
+      font-weight: 600; letter-spacing: 0.01em;
+    }
+    h1 { font-size: 22px; }
+    h2 { font-size: 18px; }
+    h3 { font-size: 15px; text-transform: uppercase; letter-spacing: 0.04em; color: #a4adbb; }
+    h4 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; color: #a4adbb; }
+    p { margin-bottom: 10px; color: #a4adbb; }
+    a { color: #3794ff; text-decoration: none; border-bottom: 1px solid transparent; }
+    a:hover { border-bottom-color: #3794ff; }
+    code { background: #1a1f26; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; color: #d7dce5; }
+    pre {
+      background: #1a1f26; padding: 16px; border-radius: 4px;
+      border: 1px solid #343a44; overflow-x: auto; margin: 12px 0; color: #d7dce5;
+    }
     table { border-collapse: collapse; width: 100%; margin: 12px 0; }
-    th, td { border: 1px solid #3A3A3A; padding: 8px 12px; text-align: left; }
-    th { background: #1A1A1A; color: #F59E0B; }
+    th, td {
+      border-bottom: 1px solid #343a44;
+      padding: 8px 12px; text-align: left; vertical-align: top;
+    }
+    th {
+      background: transparent; color: #d7dce5;
+      font-weight: 600; text-transform: uppercase;
+      font-size: 11px; letter-spacing: 0.04em;
+      border-bottom: 1px solid #343a44;
+    }
+    ul, ol { margin: 0 0 10px 18px; color: #a4adbb; }
+    li { margin-bottom: 4px; }
+    blockquote {
+      border-left: 2px solid #3794ff; padding: 4px 0 4px 12px;
+      margin: 10px 0; color: #a4adbb;
+    }
     @media print {
-      body { background: #fff; color: #111; }
-      h1, h2, h3, h4 { color: #D97706; }
-      th { background: #f5f5f4; color: #D97706; }
+      body { background: #ffffff; color: #111111; }
+      h1, h2 { color: #111111; }
+      h3, h4 { color: #444444; }
+      p, ul, ol, li { color: #222222; }
+      a { color: #1a4f8a; border-bottom-color: transparent; }
+      code, pre { background: #f5f5f4; color: #111111; border-color: #d4d4d4; }
+      th { background: transparent; color: #111111; border-bottom-color: #888888; }
+      td { border-bottom-color: #d4d4d4; }
+      blockquote { border-left-color: #1a4f8a; color: #444444; }
     }
   </style>
 </head>

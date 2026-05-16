@@ -78,11 +78,11 @@ function savePersist(next: PersistedState) {
 // ---------------------------------------------------------------------------
 
 const CAP_STATUS_CONFIG: Record<UrbanMethodCapabilityStatus, { color: string; label: string }> = {
-  implemented:           { color: '#22c55e', label: 'implemented' },
-  demo_mode:             { color: '#f59e0b', label: 'demo' },
-  residual_gap:          { color: '#ef4444', label: 'gap' },
-  environment_dependent: { color: '#38bdf8', label: 'env-dep' },
-  deferred:              { color: 'rgba(255,255,255,0.28)', label: 'deferred' },
+  implemented:           { color: 'var(--syn-status-valid)', label: 'implemented' },
+  demo_mode:             { color: 'var(--syn-status-demo)', label: 'demo' },
+  residual_gap:          { color: 'var(--syn-status-error)', label: 'gap' },
+  environment_dependent: { color: 'var(--syn-status-info)', label: 'env-dep' },
+  deferred:              { color: 'var(--syn-status-stale)', label: 'deferred' },
 };
 
 const MATURITY_SHORT: Record<UrbanMethodMaturityLevel, string | null> = {
@@ -1375,7 +1375,8 @@ const FavoriteStar: React.FC<FavoriteStarProps> = React.memo(
       aria-pressed={on}
       aria-label={label ?? (on ? 'Remove favorite' : 'Add favorite')}
       data-testid="favorite-star"
-      style={{ fontSize: size, cursor: 'pointer', userSelect: 'none', lineHeight: 1 }}
+      className={`urban-rail__favInline${on ? ' is-on' : ''}`}
+      style={{ '--fav-size': `${size}px` } as React.CSSProperties}
       onClick={(e) => { e.stopPropagation(); onToggle(); }}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {

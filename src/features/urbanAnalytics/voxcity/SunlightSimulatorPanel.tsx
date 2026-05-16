@@ -55,7 +55,7 @@ import {
 import { createMapVoxCityHandoffEvidenceArtifact } from "@/centerpanel/components/map/mapEvidenceArtifacts";
 
 /* ================================================================== */
-/*  §1  STYLES (Charcoal-Amber design system)                        */
+/*  §1  STYLES (VS Code workbench: charcoal + blue accents)           */
 /* ================================================================== */
 
 const PANEL: React.CSSProperties = {
@@ -98,10 +98,10 @@ const TOOLBAR: React.CSSProperties = {
 
 const LABEL: React.CSSProperties = {
   fontSize: "11px",
-  fontWeight: 600,
+  fontWeight: 700,
   textTransform: "uppercase" as const,
   letterSpacing: "0.06em",
-  color: "#F59E0B",
+  color: "#a4adbb",
 };
 
 const BTN: React.CSSProperties = {
@@ -117,9 +117,10 @@ const BTN: React.CSSProperties = {
 
 const BTN_ACTIVE: React.CSSProperties = {
   ...BTN,
-  background: "#F59E0B",
-  color: "#1a1a1a",
-  borderColor: "#F59E0B",
+  background: "transparent",
+  color: "#3794ff",
+  borderColor: "transparent",
+  boxShadow: "inset 0 -1px 0 #3794ff",
   fontWeight: 600,
 };
 
@@ -166,7 +167,7 @@ const SECTION_TITLE: React.CSSProperties = {
   fontWeight: 700,
   textTransform: "uppercase" as const,
   letterSpacing: "0.08em",
-  color: "#F59E0B",
+  color: "#a4adbb",
   marginBottom: "6px",
   borderBottom: "1px solid #333",
   paddingBottom: "4px",
@@ -214,9 +215,9 @@ const TABLE: React.CSSProperties = {
 const TH: React.CSSProperties = {
   textAlign: "left" as const,
   padding: "4px 6px",
-  borderBottom: "1px solid #333",
-  color: "#F59E0B",
-  fontWeight: 600,
+  borderBottom: "1px solid #343a44",
+  color: "#a4adbb",
+  fontWeight: 700,
   fontSize: "10px",
   textTransform: "uppercase" as const,
   letterSpacing: "0.05em",
@@ -269,7 +270,7 @@ const STAT_CARD: React.CSSProperties = {
 const STAT_VALUE: React.CSSProperties = {
   fontSize: "16px",
   fontWeight: 700,
-  color: "#F59E0B",
+  color: "#3794ff",
   lineHeight: 1.1,
 };
 
@@ -1108,7 +1109,7 @@ const SunlightSimulatorPanel: React.FC = () => {
 
           {activeSource && (
             <div style={SOURCE_INFO_BOX} data-testid="sunlight-source-metadata">
-              <div style={{ color: activeSource.metadata.runtimeMode === "sample" ? "#F59E0B" : "#22C55E", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              <div style={{ color: activeSource.metadata.runtimeMode === "sample" ? "#3794ff" : "#22C55E", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
                 {activeSource.metadata.runtimeMode === "sample" ? "Sample Mode Active" : "Project Data Active"}
               </div>
               <div><span style={{ color: "#A8A29E" }}>Source:</span> {activeSource.metadata.title}</div>
@@ -1132,7 +1133,7 @@ const SunlightSimulatorPanel: React.FC = () => {
           {/* Loading overlay */}
           {status === "running" && (
             <div style={OVERLAY}>
-              <span style={{ color: "#F59E0B", fontWeight: 600, fontSize: "14px" }}>
+              <span style={{ color: "#3794ff", fontWeight: 600, fontSize: "14px" }}>
                 Computing shadow accumulation…
               </span>
               <div style={PROGRESS_BG}>
@@ -1140,7 +1141,7 @@ const SunlightSimulatorPanel: React.FC = () => {
                   style={{
                     width: `${Math.round(progress * 100)}%`,
                     height: "100%",
-                    background: "linear-gradient(90deg, #D97706, #F59E0B)",
+                    background: "#3794ff",
                     borderRadius: "3px",
                     transition: "width 0.2s",
                   }}
@@ -1155,13 +1156,13 @@ const SunlightSimulatorPanel: React.FC = () => {
           {/* Empty state — before first run */}
           {!result && status !== "running" && status !== "error" && (
             <div style={EMPTY_STATE}>
-              <span style={{ color: "#F59E0B", fontWeight: 700, fontSize: "16px" }}>
+              <span style={{ color: "#d7dce5", fontWeight: 700, fontSize: "16px" }}>
                 Sunlight & Solar Exposure Simulator
               </span>
               <span style={{ color: "#D6D3D1", fontSize: "12px", lineHeight: 1.6, maxWidth: "380px" }}>
                 Analyse shadow accumulation and solar exposure hours across an urban neighbourhood.
                 Configure the date range, time window, and simulation interval in the sidebar,
-                then click <b style={{ color: "#F59E0B" }}>Run Simulation</b>.
+                then click <b style={{ color: "#3794ff" }}>Run Simulation</b>.
               </span>
               <span style={{ color: "#A8A29E", fontSize: "11px", lineHeight: 1.5, maxWidth: "360px" }}>
                 {buildings.length} building{buildings.length === 1 ? "" : "s"} loaded from {activeSource?.metadata.runtimeMode === "sample" ? "sample mode" : "the active project source"} • Grid resolution: 2 m • Deterministic output
@@ -1172,11 +1173,19 @@ const SunlightSimulatorPanel: React.FC = () => {
           {/* Color legend for overlay */}
           {result != null && (
             <div style={LEGEND_BAR}>
-              <span style={{ fontSize: "10px", fontWeight: 600, color: "#F59E0B", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+              <span style={{ fontSize: "10px", fontWeight: 600, color: "#a4adbb", textTransform: "uppercase", letterSpacing: "0.06em" }}>
                 {overlayMode === "cumulative" ? "Exposure Legend" : "Shadow Legend"}
               </span>
               {overlayMode === "cumulative" ? (
                 <>
+                  {/*
+                    Analytical heatmap legend (data ramp, not UI chrome).
+                    Mirrors the cumulative-exposure shader at §3 (low exposure → blue,
+                    high exposure → warm/amber). Per the workbench color rules,
+                    retained because it documents the actual data semantics rendered
+                    on the 3D ground plane; replacing it would misrepresent the
+                    overlay the user sees.
+                  */}
                   <div style={{ display: "flex", height: "8px", borderRadius: "2px", overflow: "hidden" }}>
                     <div style={{ flex: 1, background: "rgb(0,0,180)" }} />
                     <div style={{ flex: 1, background: "rgb(80,60,140)" }} />
@@ -1189,6 +1198,9 @@ const SunlightSimulatorPanel: React.FC = () => {
                   </div>
                 </>
               ) : (
+                /* Per-frame shadow legend — data swatches mirror the shader output
+                   (sunlit = warm yellow, shadow = deep blue). Retained as data,
+                   not UI chrome. */
                 <div style={{ display: "flex", gap: "10px", fontSize: "10px" }}>
                   <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
                     <span style={{ width: 10, height: 10, borderRadius: 2, background: "rgb(20,20,60)", display: "inline-block" }}/>
@@ -1206,7 +1218,7 @@ const SunlightSimulatorPanel: React.FC = () => {
           {/* Frame info box */}
           {result != null && (
             <div style={INFO_BOX}>
-              <div style={{ fontWeight: 700, color: "#F59E0B", fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: "4px" }}>
+              <div style={{ fontWeight: 700, color: "#a4adbb", fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: "4px" }}>
                 {overlayMode === "cumulative" ? "Cumulative Results" : "Animation Frame"}
               </div>
               <div><b>Frame:</b> {animationFrame + 1} / {result.sampleCount}</div>
@@ -1242,7 +1254,7 @@ const SunlightSimulatorPanel: React.FC = () => {
                 padding: "4px 10px",
               }}
             >
-              <span style={{ fontSize: "9px", color: "#F59E0B", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", whiteSpace: "nowrap" }}>
+              <span style={{ fontSize: "9px", color: "#a4adbb", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", whiteSpace: "nowrap" }}>
                 Timeline
               </span>
               <input
@@ -1254,7 +1266,7 @@ const SunlightSimulatorPanel: React.FC = () => {
                   setAnimationPlaying(false);
                   setAnimationFrame(Number(e.target.value));
                 }}
-                style={{ flex: 1, accentColor: "#F59E0B" }}
+                style={{ flex: 1, accentColor: "#3794ff" }}
                 title="Drag to scrub through the shadow animation timeline"
                 aria-label="Animation frame scrubber"
               />
@@ -1487,8 +1499,8 @@ const SunlightSimulatorPanel: React.FC = () => {
                               borderRadius: "3px",
                               fontSize: "10px",
                               fontWeight: 600,
-                              background: s.sunlitFraction > 0.7 ? "rgba(245,158,11,0.2)" : s.sunlitFraction > 0.3 ? "rgba(245,158,11,0.1)" : "rgba(239,68,68,0.15)",
-                              color: s.sunlitFraction > 0.7 ? "#F59E0B" : s.sunlitFraction > 0.3 ? "#D6D3D1" : "#EF4444",
+                              background: s.sunlitFraction > 0.7 ? "rgba(34,197,94,0.18)" : s.sunlitFraction > 0.3 ? "rgba(255,255,255,0.06)" : "rgba(239,68,68,0.15)",
+                              color: s.sunlitFraction > 0.7 ? "#22C55E" : s.sunlitFraction > 0.3 ? "#D6D3D1" : "#EF4444",
                             }}>
                               {(s.sunlitFraction * 100).toFixed(0)}%
                             </span>
@@ -1519,7 +1531,7 @@ const SunlightSimulatorPanel: React.FC = () => {
                   <button type="button" style={BTN} onClick={handleExportBuildings} title="Export per-building exposure statistics as JSON" aria-label="Export exposure data JSON">
                     Exposure (JSON)
                   </button>
-                  <button type="button" style={{ ...BTN, background: "#78350F", borderColor: "#F59E0B" }} onClick={handleAddToMap} title="Add solar exposure results as a map overlay layer" aria-label="Add solar exposure to map">
+                  <button type="button" style={{ ...BTN, background: "transparent", borderColor: "#3794ff", color: "#3794ff" }} onClick={handleAddToMap} title="Add solar exposure results as a map overlay layer" aria-label="Add solar exposure to map">
                     Add to Map
                   </button>
                 </div>
@@ -1531,12 +1543,12 @@ const SunlightSimulatorPanel: React.FC = () => {
               <div style={{ fontSize: "12px", color: "#A8A29E", lineHeight: 1.6, marginTop: "8px", background: "#1f1f1f", borderRadius: "6px", padding: "12px", border: "1px solid #333" }}>
                 <div style={{ fontWeight: 700, color: "#D6D3D1", marginBottom: "6px" }}>How to use</div>
                 <ol style={{ margin: 0, paddingLeft: "18px" }}>
-                  <li style={{ marginBottom: "4px" }}>Confirm the active <b style={{ color: "#F59E0B" }}>source</b> in the toolbar or consume a Building Viewer handoff.</li>
-                  <li style={{ marginBottom: "4px" }}>Adjust <b style={{ color: "#F59E0B" }}>location</b> and <b style={{ color: "#F59E0B" }}>date range</b> above.</li>
-                  <li style={{ marginBottom: "4px" }}>Choose a <b style={{ color: "#F59E0B" }}>time window</b> (start/end hour) and <b style={{ color: "#F59E0B" }}>interval</b>.</li>
-                  <li style={{ marginBottom: "4px" }}>Click <b style={{ color: "#F59E0B" }}>Run Simulation</b> in the toolbar.</li>
-                  <li style={{ marginBottom: "4px" }}>Use <b style={{ color: "#F59E0B" }}>Play</b> to animate shadows through the day.</li>
-                  <li>Switch to <b style={{ color: "#F59E0B" }}>Cumulative</b> to see total exposure.</li>
+                  <li style={{ marginBottom: "4px" }}>Confirm the active <b style={{ color: "#3794ff" }}>source</b> in the toolbar or consume a Building Viewer handoff.</li>
+                  <li style={{ marginBottom: "4px" }}>Adjust <b style={{ color: "#3794ff" }}>location</b> and <b style={{ color: "#3794ff" }}>date range</b> above.</li>
+                  <li style={{ marginBottom: "4px" }}>Choose a <b style={{ color: "#3794ff" }}>time window</b> (start/end hour) and <b style={{ color: "#3794ff" }}>interval</b>.</li>
+                  <li style={{ marginBottom: "4px" }}>Click <b style={{ color: "#3794ff" }}>Run Simulation</b> in the toolbar.</li>
+                  <li style={{ marginBottom: "4px" }}>Use <b style={{ color: "#3794ff" }}>Play</b> to animate shadows through the day.</li>
+                  <li>Switch to <b style={{ color: "#3794ff" }}>Cumulative</b> to see total exposure.</li>
                 </ol>
                 <div style={{ marginTop: "8px", fontSize: "11px", color: "#78716C" }}>
                   {buildings.length} building{buildings.length === 1 ? "" : "s"} loaded from {activeSource?.metadata.runtimeMode === "sample" ? "sample mode" : activeSource?.metadata.provider ?? "the current source"}. All computations are deterministic.

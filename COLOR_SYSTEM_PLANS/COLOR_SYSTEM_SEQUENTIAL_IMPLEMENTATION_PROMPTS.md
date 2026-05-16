@@ -5,18 +5,20 @@
 This is the active prompt ladder for the next color-system workstream. It supersedes the old broad 38-prompt rollout for future execution. The previous token infrastructure and shared shell work remain historical baseline; the active priority is now intentionally narrower and stricter:
 
 1. Part 1 removes amber from the complete Urban Analytics modal experience and restyles it as a compact premium VS Code-like workbench surface.
-2. Part 2 removes amber from the complete Map Explorer experience and restyles it with the same premium VS Code-like discipline.
+2. Part 2 removes amber from the entire Center Panel shell + every tab interior (Projects, New Project, Methods, Education entry, Report/Note, Workflows, Dashboard entry, Toolbox) excluding the Map Explorer files reserved for Part 3, and restyles every tab with the same VS Code premium discipline while preserving existing atmospheric header animations and ambient background motion.
+3. Part 3 removes amber from the complete Map Explorer experience and restyles it with the same premium VS Code-like discipline.
 
 Each prompt is written for a small agent: narrow scope, exact search targets, allowed edits, acceptance criteria, validation, and ledger requirements.
 
 ## Active Priority Order
 
-Do not run Map Explorer prompts until all Urban Analytics prompts are completed or explicitly skipped with reason.
+Run parts strictly in order. Do not start Center Panel Workbench prompts until Part 1 is complete or explicitly skipped with reason. Do not start Map Explorer prompts until Part 2 is complete or explicitly skipped with reason.
 
 | Part | Prompt IDs | Scope | Outcome |
 | --- | --- | --- | --- |
 | Part 1 | `A01`-`A10` | Only `src/features/urbanAnalytics/**` and directly rendered Urban Analytics modal content | Amber-free Urban Analytics modal with VS Code-like premium density, neutral workbench surfaces, thin separators, and unfilled controls |
-| Part 2 | `B01`-`B10` | Map Explorer UI, map component tokens, map services that emit default colors, and related map tests | Amber-free Map Explorer with map-first workbench chrome, unfilled controls, neutral panel hierarchy, and non-amber data defaults |
+| Part 2 | `C01`-`C10` | Center Panel shell, top tab bar, status rail, and the eight tab contents (Projects, New Project, Methods, Education entry, Report/Note, Workflows/Flows, Dashboard entry, Toolbox) excluding `src/centerpanel/components/map/**` and the `Map*` files reserved for Part 3 | Amber-free Center Panel with VS Code-like premium layout: dense inspector rows, flat panel hierarchy, hairline separators, transparent controls, restrained blue interaction across every tab |
+| Part 3 | `B01`-`B10` | Map Explorer UI, map component tokens, map services that emit default colors, and related map tests | Amber-free Map Explorer with map-first workbench chrome, unfilled controls, neutral panel hierarchy, and non-amber data defaults |
 
 ## Required Reading For Every Prompt
 
@@ -65,7 +67,19 @@ Urban Analytics:
 rg -n "#F59E0B|#FBBF24|#FDE68A|#D97706|#B45309|#92400E|245\\s*,\\s*158\\s*,\\s*11|251\\s*,\\s*191\\s*,\\s*36|217\\s*,\\s*119\\s*,\\s*6|amber|gold|yellow|orange|gradient-amber|--syn-status-warning" src/features/urbanAnalytics -g "*.ts" -g "*.tsx" -g "*.css"
 ```
 
-Map Explorer:
+Center Panel (Part 2 — non-Map Explorer):
+
+```powershell
+rg -n "#F59E0B|#FBBF24|#FDE68A|#D97706|#B45309|#92400E|245\\s*,\\s*158\\s*,\\s*11|251\\s*,\\s*191\\s*,\\s*36|217\\s*,\\s*119\\s*,\\s*6|amber|gold|yellow|orange|gradient-amber|--syn-status-warning" src/centerpanel -g "*.ts" -g "*.tsx" -g "*.css" -g "!components/map/**" -g "!components/Map*.tsx"
+```
+
+Center Panel Heavy-Chrome Scan (Part 2):
+
+```powershell
+rg -n "border-radius:\\s*(?:1[0-9]|[2-9][0-9]|999|50%)|borderRadius:\\s*(?:1[0-9]|[2-9][0-9]|999)|radial-gradient|linear-gradient|box-shadow:\\s*0\\s+\\d+px|--ui-card-bg|--ui-card-border|--ui-tag-|--ui-pill-" src/centerpanel -g "*.ts" -g "*.tsx" -g "*.css" -g "!components/map/**" -g "!components/Map*.tsx"
+```
+
+Map Explorer (Part 3):
 
 ```powershell
 rg -n "#F59E0B|#FBBF24|#FDE68A|#D97706|#B45309|#92400E|245\\s*,\\s*158\\s*,\\s*11|251\\s*,\\s*191\\s*,\\s*36|217\\s*,\\s*119\\s*,\\s*6|amber|gold|yellow|orange|gradient-amber|--syn-status-warning|MAP_COLORS\\.amber" src/centerpanel/components src/services/map src/stores/useMapExplorerStore.ts -g "*.ts" -g "*.tsx" -g "*.css"
@@ -429,7 +443,7 @@ Perform the final Urban Analytics modal sweep for amber, unnecessary card frames
 
 ### Objective
 
-Close Part 1 and make it safe to start Map Explorer.
+Close Part 1 and make it safe to start Part 2 (Center Panel Workbench).
 
 ### Required Files
 
@@ -444,14 +458,14 @@ Close Part 1 and make it safe to start Map Explorer.
 2. Record remaining Urban Analytics amber hits, if any, with exact retain reason.
 3. Record validation history: `typecheck`, `test:analytics`, scans, and visual QA.
 4. Confirm no source changes outside `src/features/urbanAnalytics/**` were required for Part 1 unless documented.
-5. Set the next prompt to `B01 - Map Explorer Amber Inventory And Token Boundary`.
+5. Set the next prompt to `C01 - Center Panel Workbench Inventory And Scope Lock`.
 
 ### Acceptance Criteria
 
 - Ledger marks Part 1 complete.
 - Manifest status matches the ledger.
 - No unresolved Urban Analytics amber UI debt remains.
-- Map Explorer work is explicitly unblocked.
+- Part 2 (Center Panel Workbench) work is explicitly unblocked.
 
 ### Validation
 
@@ -459,8 +473,549 @@ Close Part 1 and make it safe to start Map Explorer.
 - Documentation-only validation otherwise.
 
 ---
+![1778871737098](image/COLOR_SYSTEM_SEQUENTIAL_IMPLEMENTATION_PROMPTS/1778871737098.png)
 
-# Part 2 - Map Explorer Second
+# Part 2 - Center Panel Workbench Second
+
+The Center Panel hosts the eight tabs the user works in (Projects, New Project, Methods, Education entry, Report/Note, Workflows, Dashboard entry, Toolbox) plus the shared shell — top tab bar, status rail, urban context strip, outline nav, background tasks, engine capabilities, and overflow surfaces. Part 1 finished the Urban Analytics modal; Part 2 finishes the rest of the Center Panel before Part 3 starts on the Map Explorer. The user-flagged New Project screenshot is the canonical example of the kind of card-in-card stacking and legacy local-token chrome these prompts must remove.
+
+## Scope Boundaries For Part 2
+
+In scope:
+
+- `src/centerpanel/CenterPanelShell.tsx`, `src/centerpanel/SessionPersistence.tsx`, `src/centerpanel/UrbanContextStrip.tsx`, `src/centerpanel/OutlineNav.tsx`, `src/centerpanel/sections.ts`.
+- `src/centerpanel/components/*` excluding any file under `src/centerpanel/components/map/**` and the `Map*.tsx` map-explorer files reserved for Part 3.
+- `src/centerpanel/registry-ui/**` (Projects tab + New Project tab).
+- `src/centerpanel/Guide/**` and `src/centerpanel/nav/**` (Methods tab).
+- `src/centerpanel/tabs/**` (Report/Note tab).
+- `src/centerpanel/Flows/**` (Workflows tab).
+- `src/centerpanel/Tools/**` (Toolbox tab).
+- `src/centerpanel/rail/**`.
+- `src/centerpanel/styles/*.css` and `src/centerpanel/styles/*.module.css`.
+- `src/centerpanel/registry/**` only when state-shape changes affect default colors or status semantics that bleed into UI.
+- Tests inside `src/centerpanel/**/__tests__/**` only when assertions need token/name updates.
+
+Out of scope (covered elsewhere):
+
+- `src/centerpanel/components/map/**` and any `src/centerpanel/components/Map*.tsx` map-explorer file → Part 3 (`B01`-`B10`).
+- `src/features/urbanAnalytics/**` → Part 1 (already completed).
+- `src/features/education/**` Education module internals → only the Center Panel entry frame is in scope; the Education feature itself stays as documented external work.
+- `src/features/dashboard/**` Dashboard builder internals → only the Center Panel entry frame is in scope; the Dashboard feature stays as documented external work.
+
+## Center Panel Visual Contract Additions (Part 2 Only)
+
+The Global Visual Contract at the top of this file applies in full. In addition, for the Center Panel specifically:
+
+- Replace legacy local tokens (`--ui-card-bg`, `--ui-card-border`, `--ui-pill-*`, `--ui-tag-*`, and similar found in `registry-ui/newProject.module.css` and adjacent files) with the workbench `--syn-surface-*`, `--syn-border-*`, and `--syn-text-*` families.
+- **Preserve existing atmospheric header animations and ambient background motion** (subtle particle/glow drifts, slow gradient shifts, the live "session timer + connected" pulse, animated TASKS counter, etc.). Migrate only the color stops/values inside those animations from amber/gold/yellow tones to the workbench charcoal + restrained blue palette. Do not remove the animations themselves, do not flatten the header into a static bar, do not strip the "premium ambient feel" — only de-amber the colors used inside the animations.
+- Tab CONTENTS were not migrated in the historical baseline. Part 2 finishes the tab interiors, not the top tab bar's existing motion language unless an active prompt explicitly says so.
+- `MAIN_SCROLL_ROOT_ID`, lazy-load shells, `ChunkLoadBoundary`, and `Suspense` fallbacks must keep working. No behavior changes to lazy import wiring, panel bridge syncs, or tab-switch state.
+- Tabs render under `CenterPanelShell` and may re-mount on tab switch; keep first-paint cheap (no large gradients or shadow stacks added; existing ones must be migrated, not amplified).
+- Card-in-card stacking is the primary anti-pattern to remove. A single tab surface should read as one workbench inspector with group headers + hairline separators, not three nested filled cards inside one panel.
+
+---
+
+## Prompt C01 - Center Panel Workbench Inventory And Scope Lock
+
+### Objective
+
+Build the exact amber-removal and card-removal inventory for the entire Center Panel surface (excluding the Map Explorer scope reserved for Part 3) before changing code.
+
+### Scope
+
+- All Part 2 in-scope paths listed above.
+
+### Required Files
+
+- `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_UNIT_MATRIX.md`
+- `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_TOKEN_REFERENCE.md`
+- `src/centerpanel/CenterPanelShell.tsx`
+- `src/centerpanel/components/TopHeader.tsx`
+- `src/centerpanel/components/CenterPanelTabFrame.tsx`
+- `src/centerpanel/components/StatusRail.tsx`
+- `src/centerpanel/components/BackgroundTasksControl.tsx`
+- `src/centerpanel/components/OverflowMenu.tsx`
+- `src/centerpanel/components/EngineCapabilitiesPanel.tsx`
+- `src/centerpanel/components/NarrativeGenerationPanel.tsx`
+- `src/centerpanel/components/ObjectDetectorPanel.tsx`
+- `src/centerpanel/UrbanContextStrip.tsx`
+- `src/centerpanel/registry-ui/Registry.tsx`
+- `src/centerpanel/registry-ui/NewProjectPage.tsx`
+- `src/centerpanel/registry-ui/newProject.module.css`
+- `src/centerpanel/registry-ui/ProjectSummaryCard.tsx`
+- `src/centerpanel/registry-ui/SessionCard.tsx`
+- `src/centerpanel/registry-ui/IndicatorsCard.tsx`
+- `src/centerpanel/registry-ui/ConsultantAI.tsx`
+- `src/centerpanel/Guide/MethodsView.tsx`
+- `src/centerpanel/Guide/GuideViewV2.tsx`
+- `src/centerpanel/Guide/OutlineRailV2.tsx`
+- `src/centerpanel/tabs/Note.tsx`
+- `src/centerpanel/tabs/NoteEditor.tsx`
+- `src/centerpanel/tabs/NoteSections.tsx`
+- `src/centerpanel/tabs/ProjectHeader.tsx`
+- `src/centerpanel/Flows/FlowHost.tsx`
+- `src/centerpanel/Flows/FlowsRail.tsx`
+- `src/centerpanel/Flows/FlowTile.tsx`
+- `src/centerpanel/Flows/StepPills.tsx`
+- `src/centerpanel/Flows/WorkflowCockpit.tsx`
+- `src/centerpanel/Tools/ToolsProjectList.tsx`
+- `src/centerpanel/Tools/ToolsActionPanel.tsx`
+- `src/centerpanel/Tools/ConsultonPanel.tsx`
+- `src/centerpanel/Tools/components/CapabilitiesOverviewPanel.tsx`
+- `src/centerpanel/styles/centerpanel.module.css`
+- `src/centerpanel/styles/header-new.module.css`
+- `src/centerpanel/styles/header-tokens.css`
+- `src/centerpanel/styles/radical-tabs.module.css`
+- `src/centerpanel/styles/registry.module.css`
+- `src/centerpanel/styles/guides.module.css`
+- `src/centerpanel/styles/guides.panel.module.css`
+- `src/centerpanel/styles/guides.rail.module.css`
+- `src/centerpanel/styles/navtree.module.css`
+- `src/centerpanel/styles/note.module.css`
+- `src/centerpanel/styles/project-header.module.css`
+- `src/centerpanel/styles/flows.module.css`
+- `src/centerpanel/styles/tools.module.css`
+- `src/centerpanel/styles/tools.left.module.css`
+- `src/centerpanel/styles/tokens.css`
+- `src/centerpanel/styles/a11y.module.css`
+- `src/centerpanel/rail/DraftSnapshotCard.tsx`
+- `src/centerpanel/rail/WorkspaceInfoCard.tsx`
+- `src/centerpanel/rail/rail.module.css`
+
+### Tasks
+
+1. Run the Center Panel Standard Amber Scan and the Center Panel Heavy-Chrome Scan.
+2. Group each amber hit as `shell-chrome`, `tab-bar`, `status-rail`, `card-frame`, `button-control`, `form-control`, `status-semantic`, `header-animation`, `data-content`, `legacy-token-alias`, `test-fixture`, or `retain-with-reason`.
+3. Group each heavy-chrome hit as `nested-card`, `decorative-gradient`, `oversized-radius`, `decorative-shadow`, `filled-button-plate`, `legacy-local-token` (e.g. `--ui-card-bg`, `--ui-card-border`, `--ui-pill-*`, `--ui-tag-*`), or `ambient-motion-keep` (animations that must be preserved with only their color stops migrated).
+4. Inventory all legacy `--ui-*` token islands — files that use these non-`--syn-*` aliases — and list them so C02-C09 can re-point them to workbench tokens.
+5. Inventory all card-in-card stacking on each tab; the New Project tab in particular has three nested cards inside one panel, which the user flagged as the canonical example.
+6. Inventory atmospheric/ambient header animations and the live status indicators (session timer, LIVE pulse, CONNECTED chip, TASKS counter): list every animated element + its color stops so C02 can migrate stops without removing motion.
+7. Record a tab-by-tab migration order in the ledger (Shell → Projects → New Project → Methods → Report/Note → Workflows → Toolbox → cross-cutting → final QA).
+8. Do not change product code in this prompt unless the user explicitly asks for a batch.
+
+### Acceptance Criteria
+
+- Ledger contains a tab-scoped Center Panel amber + heavy-chrome inventory.
+- Every amber hit and every heavy-chrome hit has an owner category and a planned C-prompt.
+- Header animations to preserve are explicitly enumerated with their current color stops and target stops.
+- The next prompt is `C02`.
+- No product code changed.
+
+### Validation
+
+- Documentation-only validation.
+- Record both scan commands and full hit summaries in the ledger.
+
+---
+
+## Prompt C02 - Center Panel Shell, Top Header, Tab Frame, Status Rail, Tokens, And Header Animations
+
+### Objective
+
+Migrate the Center Panel shared shell, shared tokens, and the top header chrome so every tab inherits the workbench palette and density automatically. Preserve all existing atmospheric header animations and ambient background motion — only their color stops migrate from amber/gold to the workbench palette.
+
+### Primary Files
+
+- `src/centerpanel/CenterPanelShell.tsx`
+- `src/centerpanel/components/TopHeader.tsx`
+- `src/centerpanel/components/CenterPanelTabFrame.tsx`
+- `src/centerpanel/components/StatusRail.tsx`
+- `src/centerpanel/components/BackgroundTasksControl.tsx`
+- `src/centerpanel/components/OverflowMenu.tsx`
+- `src/centerpanel/styles/tokens.css`
+- `src/centerpanel/styles/centerpanel.module.css`
+- `src/centerpanel/styles/header-tokens.css`
+- `src/centerpanel/styles/header-new.module.css`
+- `src/centerpanel/styles/radical-tabs.module.css`
+- `src/centerpanel/styles/a11y.module.css`
+
+### Tasks
+
+1. Replace legacy local tokens (`--ui-card-bg`, `--ui-card-border`, `--ui-pill-*`, `--ui-tag-*`, etc.) declared in `tokens.css` / `header-tokens.css` with re-points to the workbench `--syn-surface-*`, `--syn-border-*`, `--syn-text-*`, `--syn-interaction-*`, and `--syn-status-*` families.
+2. **Preserve every header animation enumerated in the C01 inventory.** Migrate only the color stops inside `@keyframes`, gradient stops, glow rgba alphas, and animated SVG fills from amber/gold/yellow tones to charcoal + restrained blue (`#3794ff`, `#a4adbb`, `color-mix(... var(--syn-interaction-active) X%, transparent)`). Do not delete the keyframes, do not shorten durations, do not remove `animation:` declarations, do not flatten the header into a static bar.
+3. The live status indicators on the right side of the top header (session timer, `LIVE` pulse, `CONNECTED` chip, `TASKS X QUEUED` counter) must keep their existing motion (pulse, fade, tick) but their tint must use `--syn-status-valid` / `--syn-status-info` / `--syn-text-muted` rather than amber.
+4. Migrate the deferred-panel `Suspense` fallback inline style in `CenterPanelShell.tsx` from raw `border-radius: 12` + `--syn-surface-elevated` literal styling to a hairline-bordered compact loading row (radius ≤ 4px, transparent background, blue progress accent).
+5. Top tab bar (`radical-tabs.module.css`) active/hover states: blue underline + restrained surface tint; never amber; never a filled card pill. Keep tab-switch transitions if they already exist; remigrate amber transition colors only.
+6. Overflow menu, status rail, and background tasks control: transparent default, neutral hover (`--syn-interaction-hover`), explicit text labels for every state. Animated task spinners keep their motion but migrate any amber stroke to `--syn-interaction-active`.
+7. Tab-frame `Suspense` fallback should not introduce a card frame larger than the eventual content; keep first-paint visually quiet.
+8. Preserve `MAIN_SCROLL_ROOT_ID`, tab switch behavior, lazy-load wiring, `ChunkLoadBoundary`, focus restoration, keyboard navigation, and `usePanelBridgeStore` syncs.
+
+### Acceptance Criteria
+
+- Center Panel shell, top header (with motion intact), tab bar, status rail, and overflow controls are amber-free.
+- Every animated element listed in the C01 inventory still animates with the same timing and shape; only its color values migrated.
+- Legacy `--ui-*` token aliases either resolve to `--syn-*` workbench values or are deleted.
+- Tab switch latency is unchanged or improved.
+- No tab content visual changes from this prompt yet — those are C03-C08.
+
+### Validation
+
+- `npm run typecheck`
+- `npm run test:analytics` (smoke; not in scope but must still pass)
+- Targeted vitest for `src/centerpanel/components/__tests__/*` if styling assertions exist.
+- Manual visual verification that header animations still play after the migration (record the keyframes touched in the ledger as evidence).
+- Re-run the Center Panel Standard Amber Scan and Heavy-Chrome Scan.
+
+---
+
+## Prompt C03 - Projects Tab — Registry Layout, Cards, Session, Indicator, And AI Surfaces
+
+### Objective
+
+Convert the Projects tab from boxed-card stacks to a dense workbench inspector layout with VS Code-like row hierarchy.
+
+### Primary Files
+
+- `src/centerpanel/registry-ui/Registry.tsx`
+- `src/centerpanel/registry-ui/ProjectSummaryCard.tsx`
+- `src/centerpanel/registry-ui/SessionCard.tsx`
+- `src/centerpanel/registry-ui/IndicatorsCard.tsx`
+- `src/centerpanel/registry-ui/ConsultantAI.tsx`
+- `src/centerpanel/registry-ui/consultantAI.module.css`
+- `src/centerpanel/styles/registry.module.css`
+- `src/centerpanel/rail/DraftSnapshotCard.tsx`
+- `src/centerpanel/rail/WorkspaceInfoCard.tsx`
+- `src/centerpanel/rail/rail.module.css`
+
+### Tasks
+
+1. Convert the project card grid from filled-card-with-border tiles to dense list rows or thin-bordered tiles with `--syn-border-subtle` and no nested card frames.
+2. Replace amber/gold/yellow status accents on indicator chips, session badges, and AI hint cards with `--syn-status-info` / `--syn-status-valid` / `--syn-status-error` per meaning. Demo/unknown/stale states must remain explicit text.
+3. Flatten right-rail draft snapshot and workspace info from card surfaces to grouped sections separated by `--syn-border-subtle` hairlines.
+4. Replace filled "Open" / "Resume" / "Archive" button plates with transparent ghost buttons; primary affordance uses blue underline or icon+text.
+5. Keep project registry behavior, session persistence, indicator binding, and ConsultantAI message wiring unchanged.
+6. Update tests only where token names are asserted.
+
+### Acceptance Criteria
+
+- Projects tab reads as a workbench inspector grid: dense rows, hairline separators, transparent controls.
+- No nested cards, no amber chrome, no filled action button plates.
+- Selected/active project row uses blue left rail or text/icon color, not an amber filled card.
+- Empty states use muted text plus icon, not a hero card.
+
+### Validation
+
+- `npm run typecheck`
+- Targeted vitest for `registry-ui/**/__tests__/*` if present.
+- Re-run the Center Panel Standard Amber Scan.
+
+---
+
+## Prompt C04 - New Project Tab — Form Layout, Field Stacks, Tag Pills, Submit Bar
+
+### Objective
+
+Rebuild the New Project intake page as a single-surface dense intake form rather than three nested cards stacked inside one panel. This is the canonical fix for the user-flagged screenshot.
+
+### Primary Files
+
+- `src/centerpanel/registry-ui/NewProjectPage.tsx`
+- `src/centerpanel/registry-ui/newProject.module.css`
+- `src/centerpanel/styles/registry.module.css` (only if shared form tokens move there)
+- `src/stores/useNewProjectDraftStore.ts` (read-only; do not change behavior)
+
+### Tasks
+
+1. Remove the three nested `.card` wrappers (Project Identity, Spatial Configuration, Thematic Tags) and replace them with one `intakePage` surface broken by group headers, `--syn-border-subtle` hairlines, and dense field rows.
+2. Migrate `--ui-card-bg` / `--ui-card-border` literal fallbacks to `--syn-surface-panel` / `--syn-border-subtle`. Remove the `rgba(0,0,0,0.18)` and `rgba(255,255,255,0.08)` literal fallbacks.
+3. Field labels: `--syn-text-muted` uppercase 11px with 0.04em letter-spacing, matching the rest of the workbench.
+4. Inputs and selects: `--syn-surface-input` background, `--syn-border-subtle` border, `--syn-border-focus` on focus, 3px radius. Replace any larger radii (8-12px) with 3-4px.
+5. Tag pills: remove filled rounded plates; compact pill with transparent background, `--syn-border-subtle` border, `--syn-text-secondary` text; selected uses `color-mix(in srgb, var(--syn-interaction-active) 12%, transparent)` background and `--syn-interaction-active` text + 1px border.
+6. Submit bar: "Reset" stays as a transparent ghost button; "Create Project" uses blue text + 1px blue border on transparent (no amber, no filled plate). Disabled state preserves explicit aria-disabled.
+7. Left intro card ("New Project" hero + bullet list): flatten into a quiet section with muted text; no card frame.
+8. BBox numeric inputs: align in a 2×2 grid (or 4-up at wide widths) with consistent label widths and tabular numerics; no per-field card wrapper.
+9. Preserve `useNewProjectDraftStore` reads/writes, validation, `handleCreate`, `reset`, and tag toggle behavior verbatim.
+
+### Acceptance Criteria
+
+- New Project tab reads as one coherent intake form, not three stacked cards.
+- All inputs, selects, tag pills, and submit controls match the workbench tokens.
+- No `rgba(0,0,0,0.18)` or `rgba(255,255,255,0.08)` literal surfaces remain.
+- Form values still bind to the draft store; "Create Project" still creates the project; "Reset" still clears the draft.
+- Layout fits at 720-1200px modal width without overlap or text overflow.
+
+### Validation
+
+- `npm run typecheck`
+- Targeted vitest for any `useNewProjectDraftStore` test.
+- Manual visual verification of the New Project tab at 720, 960, and 1200px widths if a dev server is available.
+- Re-run the Center Panel Standard Amber Scan.
+
+---
+
+## Prompt C05 - Methods/Guide Tab — Methods View, Outline Rail, Guide Cards, And Command Bar
+
+### Objective
+
+Migrate the Methods/Guide tab to dense workbench inspector layout with VS Code-like outline rail and quiet guide content.
+
+### Primary Files
+
+- `src/centerpanel/Guide/MethodsView.tsx`
+- `src/centerpanel/Guide/GuideViewV2.tsx`
+- `src/centerpanel/Guide/GuideView.tsx`
+- `src/centerpanel/Guide/OutlineRailV2.tsx`
+- `src/centerpanel/Guide/OutlineRail.tsx`
+- `src/centerpanel/Guide/GuideCard.tsx`
+- `src/centerpanel/Guide/GuideCommandBar.tsx`
+- `src/centerpanel/Guide/GuideMacros.tsx`
+- `src/centerpanel/nav/GuideTree.tsx`
+- `src/centerpanel/styles/guides.module.css`
+- `src/centerpanel/styles/guides.panel.module.css`
+- `src/centerpanel/styles/guides.rail.module.css`
+- `src/centerpanel/styles/navtree.module.css`
+
+### Tasks
+
+1. Migrate outline rail (`OutlineRailV2.tsx`, `navtree.module.css`) to dense rows with thin selected-row tint and no card-style outline; active item uses blue left rail (2px) + blue text.
+2. Replace amber expand/collapse caret accents and amber group-active tint with neutral muted icons and `color-mix(... var(--syn-interaction-active) 12%)` row background.
+3. Convert guide cards (`GuideCard.tsx`) from rounded filled cards to flat panels separated by `--syn-border-subtle` rules; keep section headers uppercase muted.
+4. Command bar (`GuideCommandBar.tsx`): compact input + transparent inline action buttons; no amber active state, no filled primary plate.
+5. Guide macros (`GuideMacros.tsx`): replace any amber/gold "tip"/"note" badges with `--syn-status-info` blue badges plus explicit text.
+6. Preserve guide selection state, outline scroll-spy, command palette routing, and macro injection behavior.
+
+### Acceptance Criteria
+
+- Methods/Guide tab is amber-free and uses workbench tokens.
+- Outline rail reads as a VS Code file tree, not card stacks.
+- Guide content uses flat sections with hairline separators; no nested cards.
+- Command bar matches the workbench input and action discipline.
+
+### Validation
+
+- `npm run typecheck`
+- Targeted vitest for any Guide tests.
+- Re-run the Center Panel Standard Amber Scan.
+
+---
+
+## Prompt C06 - Report/Note Tab — Note Editor, Project Header, Sections, Footer, Library Insert
+
+### Objective
+
+Migrate the Report/Note tab (rich notebook editor) to workbench discipline without breaking the slot/format/library bridges.
+
+### Primary Files
+
+- `src/centerpanel/tabs/Note.tsx`
+- `src/centerpanel/tabs/NoteEditor.tsx`
+- `src/centerpanel/tabs/NoteSections.tsx`
+- `src/centerpanel/tabs/NoteFooterBar.tsx`
+- `src/centerpanel/tabs/ProjectHeader.tsx`
+- `src/centerpanel/tabs/RecentChanges.tsx`
+- `src/centerpanel/tabs/SlotEditorContentBridge.tsx`
+- `src/centerpanel/tabs/SlotEditorFormatBar.tsx`
+- `src/centerpanel/tabs/LibraryInsertCard.tsx`
+- `src/centerpanel/styles/note.module.css`
+- `src/centerpanel/styles/project-header.module.css`
+
+### Tasks
+
+1. Project header (`ProjectHeader.tsx`, `project-header.module.css`): flatten any amber/gold accent and large radii into a quiet workbench header strip with muted metadata row. If the header itself has ambient motion (similar to the top tab bar), preserve it and migrate stops only.
+2. Note editor (`NoteEditor.tsx`, `note.module.css`): editor surface uses `--syn-surface-editor` / `--syn-surface-input`; format bar uses transparent icon buttons with blue active state; no filled "save"/"insert" amber plates.
+3. Note sections (`NoteSections.tsx`): section headers uppercase muted, hairline separators, no nested card frames per section.
+4. Library insert card (`LibraryInsertCard.tsx`): replace any amber emphasis with `--syn-status-info` or `--syn-text-link`; flatten card chrome.
+5. Footer bar (`NoteFooterBar.tsx`): match `MapStatusBar` / `UrbanContextStrip` discipline — compact, hairline top border, muted text, no amber.
+6. Recent changes (`RecentChanges.tsx`): dense rows with relative timestamps; no card per change.
+7. Preserve Note persistence, slot editor bridge contracts, format bar actions, and library insert dispatch.
+
+### Acceptance Criteria
+
+- Report/Note tab is amber-free and uses workbench tokens.
+- Editor surface, format bar, and section headers match VS Code-like density.
+- Library insert and recent changes do not appear as nested cards.
+- Persistence and slot/format bridges unchanged.
+
+### Validation
+
+- `npm run typecheck`
+- Targeted vitest for `src/centerpanel/tabs/__tests__/Note.test.tsx`.
+- Re-run the Center Panel Standard Amber Scan.
+
+---
+
+## Prompt C07 - Workflows Tab — Flow Host, Flows Rail, Tiles, Step Pills, Cockpit, And Per-Flow Surfaces
+
+### Objective
+
+Migrate the Workflows tab and the per-flow shells to dense workbench inspector layout while preserving every flow's data contract.
+
+### Primary Files
+
+- `src/centerpanel/Flows/FlowHost.tsx`
+- `src/centerpanel/Flows/FlowsRail.tsx`
+- `src/centerpanel/Flows/FlowLibraryCard.tsx`
+- `src/centerpanel/Flows/FlowTile.tsx`
+- `src/centerpanel/Flows/StepPills.tsx`
+- `src/centerpanel/Flows/WorkflowCockpit.tsx`
+- `src/centerpanel/Flows/ReadOnlyRunView.tsx`
+- `src/centerpanel/Flows/AnalyticalRunReviewFlow.tsx`
+- `src/centerpanel/Flows/rail/CompletedRunsCard.tsx`
+- `src/centerpanel/Flows/rail/CrossPanelActions.tsx`
+- `src/centerpanel/Flows/rail/RelatedMethodsCard.tsx`
+- `src/centerpanel/Flows/rail/SuggestedCard.tsx`
+- `src/centerpanel/Flows/shells/CompletedRunReviewShell.tsx`
+- `src/centerpanel/styles/flows.module.css`
+- Per-flow files only when they render amber/gold UI chrome (e.g. `AccessibilityFlow.tsx`, `CompositeIndicatorFlow.tsx`, `FacilityOptimisationFlow.tsx`, `SystemDynamicsFlow.tsx`, `VulnerabilityFlow.tsx`, `SiteSuitabilityFlow.tsx`, etc.).
+
+### Tasks
+
+1. Flow library tiles (`FlowLibraryCard.tsx`, `FlowTile.tsx`): convert from filled tiles with amber/gold accents to compact tiles with hairline border and blue selected state.
+2. Step pills (`StepPills.tsx`): replace amber active step with blue underline + blue text; completed step is `--syn-status-valid`; pending is muted.
+3. Workflow cockpit (`WorkflowCockpit.tsx`): control bar transparent icon buttons; no filled "Run"/"Stop"/"Save" amber plates; running state uses `--syn-status-info` plus explicit text. Preserve any running-state spinner motion; migrate its stroke color only.
+4. Flows rail right-side cards (`CompletedRunsCard`, `RelatedMethodsCard`, `SuggestedCard`, `CrossPanelActions`): flatten to dense sections with hairlines; no card-in-card.
+5. Read-only run view + completed-run review shell: workbench inspector layout; status badges semantic non-amber.
+6. Per-flow files: scan and remove amber UI chrome only; preserve every flow's analytical data contracts, validity envelopes, and status semantics. Demo/unknown/blocked states remain explicit.
+7. Preserve `useFlowStore`, `useFlowsUIStore`, flow registration, run dispatch, and map dispatch behavior.
+
+### Acceptance Criteria
+
+- Workflows tab is amber-free and uses workbench tokens.
+- Flow tiles, step pills, cockpit controls, and rail cards match VS Code-like density.
+- Per-flow chrome is non-amber; analytical palettes stay separate and documented.
+- Run state semantics (running/completed/blocked/error) remain truthful and text-backed.
+
+### Validation
+
+- `npm run typecheck`
+- Targeted vitest for `src/centerpanel/Flows/__tests__/*` (e.g. `AccessibilityFlow.map-dispatch.test.tsx`, `CellularAutomataFlow.test.tsx`).
+- Re-run the Center Panel Standard Amber Scan.
+
+---
+
+## Prompt C08 - Toolbox Tab — Project List, Action Panel, Capability/Lab/Consulton Panels, Export Bar
+
+### Objective
+
+Migrate the Toolbox tab and its action/capability surfaces to dense workbench discipline without changing tool execution or recipe contracts.
+
+### Primary Files
+
+- `src/centerpanel/Tools/ToolsProjectList.tsx`
+- `src/centerpanel/Tools/ToolsActionPanel.tsx`
+- `src/centerpanel/Tools/ConsultonPanel.tsx`
+- `src/centerpanel/Tools/ConsultonDiff.tsx`
+- `src/centerpanel/Tools/ConsultonSessions.ts`
+- `src/centerpanel/Tools/ExportBar.tsx`
+- `src/centerpanel/Tools/PreviewPanel.tsx`
+- `src/centerpanel/Tools/components/CapabilitiesOverviewPanel.tsx`
+- `src/centerpanel/Tools/components/CoverageDiagnosticsPanel.tsx`
+- `src/centerpanel/Tools/components/EOConnectorPanel.tsx`
+- `src/centerpanel/Tools/components/GeoAILab.tsx`
+- `src/centerpanel/Tools/components/SpatialIndexLab.tsx`
+- `src/centerpanel/Tools/components/StreamingLab.tsx`
+- `src/centerpanel/styles/tools.module.css`
+- `src/centerpanel/styles/tools.left.module.css`
+
+### Tasks
+
+1. Tools project list and action panel: dense rows with hairline separators; no card-per-tool stack; selected tool uses blue left rail.
+2. Capability overview, coverage diagnostics, EO connector, GeoAI lab, spatial index lab, streaming lab: convert each panel to a workbench inspector section. Capability badges use semantic non-amber tokens; demo/unsupported/blocked states remain explicit.
+3. Consulton panel + diff: chat/transcript surface with quiet message rows; user/assistant distinguished by left rail color, not amber bubbles.
+4. Export bar: transparent action buttons grouped by hairline divider; no filled amber primary plate.
+5. Preview panel: flat preview surface with hairline border; no decorative gradient or oversized radius (unless that gradient is part of an inventoried preserved animation).
+6. Preserve every tool's recipe, capability check, EO/streaming/spatial-index dispatch, `ConsultonSessions` persistence, and export behavior.
+
+### Acceptance Criteria
+
+- Toolbox tab is amber-free and uses workbench tokens.
+- Capability/lab/consulton/export surfaces match VS Code-like density.
+- No nested cards or amber chrome remain.
+- Tool contracts unchanged.
+
+### Validation
+
+- `npm run typecheck`
+- Targeted vitest for `src/centerpanel/Tools/__tests__/*` and `src/centerpanel/Tools/components/__tests__/*`.
+- Re-run the Center Panel Standard Amber Scan.
+
+---
+
+## Prompt C09 - Cross-Cutting Surfaces — Urban Context Strip, Outline Nav, Background Tasks, Engine Capabilities, Narrative, Object Detector
+
+### Objective
+
+Migrate the cross-tab Center Panel surfaces that float above or alongside the active tab content.
+
+### Primary Files
+
+- `src/centerpanel/UrbanContextStrip.tsx`
+- `src/centerpanel/urban-context-strip.module.css`
+- `src/centerpanel/OutlineNav.tsx`
+- `src/centerpanel/components/BackgroundTasksControl.tsx`
+- `src/centerpanel/components/EngineCapabilitiesPanel.tsx`
+- `src/centerpanel/components/NarrativeGenerationPanel.tsx`
+- `src/centerpanel/components/ObjectDetectorPanel.tsx`
+- `src/centerpanel/components/StatusRail.tsx` if not finalized in C02
+
+### Tasks
+
+1. Urban context strip: dense single-row surface, hairline borders, muted metadata, blue active context chip. Remove any amber pill or gold accent. Preserve any context-change pulse animation; migrate its color stops only.
+2. Outline nav: align with the Methods outline rail discipline; no amber tree highlights.
+3. Background tasks control: compact inline status surface with semantic non-amber states (running=blue, completed=green, blocked/error=red, queued=muted). Filled amber spinner background must be transparent with blue progress accent. Preserve spinner motion.
+4. Engine capabilities panel: dense capability rows; supported/demo/missing states explicit and non-amber.
+5. Narrative generation panel: quiet workbench surface; primary action transparent + blue text.
+6. Object detector panel: same discipline; active detection state non-amber + explicit text.
+7. Preserve cross-panel context syncs, task progress dispatch, capability checks, narrative generation, and object detector lifecycle.
+
+### Acceptance Criteria
+
+- All cross-cutting surfaces are amber-free and use workbench tokens.
+- Status semantics are explicit and text-backed.
+- No nested cards remain in cross-cutting surfaces.
+- All preserved animations from the C01 inventory still play.
+
+### Validation
+
+- `npm run typecheck`
+- Targeted vitest for any `__tests__` covering these panels (e.g. `ObjectDetectorPanel.test.tsx`).
+- Re-run the Center Panel Standard Amber Scan.
+
+---
+
+## Prompt C10 - Center Panel Final Cleanup, Visual QA, And Part 3 Gate
+
+### Objective
+
+Final Center Panel sweep — close Part 2 and unblock Part 3 (Map Explorer).
+
+### Scope
+
+- All Part 2 in-scope paths.
+- Tests only where assertions need token/name updates.
+
+### Tasks
+
+1. Re-run the Center Panel Standard Amber Scan and Heavy-Chrome Scan; eliminate every UI hit.
+2. Confirm no card-in-card stacks survive on any tab; confirm no decorative gradients/shadows/oversized radii survive beyond the inventoried preserved-animation set.
+3. Confirm every inventoried preserved header animation still plays (manual or recorded test) with migrated color stops.
+4. Check tab-switch behavior and lazy-fallback latency at 720, 960, 1200, and 1440px widths.
+5. Confirm focus-visible states exist for top tab bar, status rail, all tab content's inputs, buttons, sliders, filters, and copy/export controls.
+6. Confirm no demo/unknown/stale/blocked/deferred state looks valid across any tab.
+7. Update `COLOR_SYSTEM_PROMPT_MANIFEST.json` C-prompt statuses to `completed` (or `skipped_with_reason` with rationale).
+8. Update `COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md` with the Part 2 close summary and the Part 3 unblock note.
+9. Set the next prompt to `B01 - Map Explorer Amber Inventory And Token Boundary`.
+
+### Acceptance Criteria
+
+- Center Panel is amber-free and uses VS Code-like premium layout across every tab.
+- Manifest and ledger agree.
+- Map Explorer (Part 3) is explicitly unblocked.
+- No unresolved Center Panel amber UI debt remains.
+- Ledger includes screenshot/manual QA notes covering at minimum Projects, New Project, Methods, Report, Workflows, and Toolbox tabs.
+
+### Validation
+
+- `npm run typecheck`
+- `npm run test:analytics`
+- Targeted Center Panel vitest files touched by Part 2.
+- Manual or Playwright screenshot smoke for at least the Projects, New Project, Methods, Report, Workflows, and Toolbox tabs at 960px and 1280px widths.
+- Re-run the Center Panel Standard Amber Scan and Heavy-Chrome Scan.
+- JSON parse for the manifest after status updates.
+
+---
+
+# Part 3 - Map Explorer Third
 
 ## Prompt B01 - Map Explorer Amber Inventory And Token Boundary
 
@@ -822,7 +1377,7 @@ Perform the final Map Explorer sweep for amber, unnecessary card frames, filled 
 
 ### Objective
 
-Close the two-part color-system workstream.
+Close the three-part color-system workstream.
 
 ### Required Files
 
@@ -834,7 +1389,7 @@ Close the two-part color-system workstream.
 
 ### Tasks
 
-1. Confirm prompts `A01`-`A10` and `B01`-`B09` are completed or skipped with reason.
+1. Confirm prompts `A01`-`A10`, `C01`-`C10`, and `B01`-`B09` are completed or skipped with reason.
 2. Record remaining amber hits by exact file and category. UI/default amber debt should be zero.
 3. Record validation history: typecheck, analytics tests, targeted map tests, scans, color guard, and visual QA.
 4. Confirm all retained color literals are either token-source, test-fixture, or documented data-palette/content exceptions.
@@ -845,6 +1400,7 @@ Close the two-part color-system workstream.
 
 - Ledger and manifest agree.
 - Urban Analytics modal is amber-free and premium VS Code-like.
+- Center Panel (all tabs + shell + header animations) is amber-free and premium VS Code-like, with preserved ambient motion intact.
 - Map Explorer is amber-free and premium VS Code-like.
 - No unnecessary card frames or button fills remain in the active scope.
 - Final handoff lists no unresolved blocker.
@@ -855,5 +1411,6 @@ Close the two-part color-system workstream.
 - Broadest practical validation if product files changed:
   - `npm run typecheck`
   - `npm run test:analytics`
-  - targeted map tests changed by Part 2
+  - targeted Center Panel tests changed by Part 2
+  - targeted map tests changed by Part 3
   - screenshot/manual QA evidence

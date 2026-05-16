@@ -54,7 +54,7 @@ import {
 import { createMapVoxCityHandoffEvidenceArtifact } from "@/centerpanel/components/map/mapEvidenceArtifacts";
 
 /* ================================================================== */
-/* §1 STYLES (Charcoal-Amber design system) */
+/* §1 STYLES (VS Code workbench: charcoal + blue accents) */
 /* ================================================================== */
 
 const PANEL: React.CSSProperties = {
@@ -96,10 +96,10 @@ const TOOLBAR: React.CSSProperties = {
 
 const LABEL: React.CSSProperties = {
  fontSize: "11px",
- fontWeight: 600,
+ fontWeight: 700,
  textTransform: "uppercase" as const,
  letterSpacing: "0.06em",
- color: "#F59E0B",
+ color: "#a4adbb",
 };
 
 const BTN: React.CSSProperties = {
@@ -115,9 +115,10 @@ const BTN: React.CSSProperties = {
 
 const BTN_ACTIVE: React.CSSProperties = {
  ...BTN,
- background: "#F59E0B",
- color: "#1a1a1a",
- borderColor: "#F59E0B",
+ background: "transparent",
+ color: "#3794ff",
+ borderColor: "transparent",
+ boxShadow: "inset 0 -1px 0 #3794ff",
  fontWeight: 600,
 };
 
@@ -268,7 +269,7 @@ function BuildingMesh({
  }, [building]);
 
  const color = useMemo(() => {
- if (selected) return "#F59E0B";
+ if (selected) return "#3794ff";
  if (thematic) {
  const val = Number(building.attributes[thematic.attributeKey]);
  if (Number.isFinite(val)) {
@@ -694,7 +695,7 @@ function ThematicSidebar({
  <div style={{
  height: "14px",
  borderRadius: "4px",
- background: `linear-gradient(to right, rgb(46,140,87), rgb(245,194,18), rgb(237,107,33), rgb(214,38,41))`,
+ background: `linear-gradient(to right, rgb(46,140,115), rgb(56,148,255), rgb(140,89,217), rgb(214,38,41))`,
  }} />
 
  <div style={{ display: "flex", gap: "8px" }}>
@@ -728,7 +729,7 @@ function SelectedBuildingInfo() {
 
  return (
  <div style={INFO_BOX}>
- <div style={{ fontWeight: 600, color: "#F59E0B", marginBottom: "4px" }}>{building.id}</div>
+ <div style={{ fontWeight: 600, color: "#3794ff", marginBottom: "4px" }}>{building.id}</div>
  <div>Height: {building.height.toFixed(1)}m ({building.heightSource})</div>
  <div>Area: {building.area.toFixed(1)} m²</div>
  {Object.entries(building.attributes).slice(0, 6).map(([k, v]) => (
@@ -1285,9 +1286,9 @@ export default function BuildingViewer() {
  <span
   style={{
    ...SYNC_BADGE,
-   borderColor: viewportSyncEnabled ? "rgba(245,158,11,0.35)" : "#333",
-   background: viewportSyncEnabled ? "rgba(245,158,11,0.14)" : "rgba(38,38,38,0.92)",
-   color: viewportSyncEnabled ? "#FCD34D" : "#A8A29E",
+   borderColor: viewportSyncEnabled ? "rgba(55,148,255,0.42)" : "#333",
+   background: viewportSyncEnabled ? "rgba(55,148,255,0.14)" : "rgba(38,38,38,0.92)",
+   color: viewportSyncEnabled ? "#3794ff" : "#A8A29E",
   }}
   data-testid="voxcity-sync-status"
  >
@@ -1389,7 +1390,7 @@ export default function BuildingViewer() {
  {extrusionAnalysis && result && result.buildings.length > 0 && (
  <button
  type="button"
- style={{ ...BTN, background: "#78350F", borderColor: "#F59E0B" }}
+ style={{ ...BTN, background: "transparent", borderColor: "#3794ff", color: "#3794ff" }}
  onClick={handleAddToMap}
  title="Add building footprints as a map overlay layer"
  >
@@ -1437,7 +1438,7 @@ export default function BuildingViewer() {
 
  {activeSource && (
  <div style={SOURCE_INFO_BOX} data-testid="voxcity-source-metadata">
- <div style={{ color: activeSource.metadata.runtimeMode === "sample" ? "#F59E0B" : "#22C55E", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+ <div style={{ color: activeSource.metadata.runtimeMode === "sample" ? "#3794ff" : "#22C55E", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
  {activeSource.metadata.runtimeMode === "sample" ? "Sample Mode Active" : "Project Data Active"}
  </div>
  <div><span style={{ color: "#A8A29E" }}>Source:</span> {activeSource.metadata.title}</div>
@@ -1459,7 +1460,7 @@ export default function BuildingViewer() {
  {/* Loading overlay */}
  {loading && (
  <div style={OVERLAY}>
- <div style={{ color: "#F59E0B", fontSize: "14px", fontWeight: 600 }}>
+ <div style={{ color: "#3794ff", fontSize: "14px", fontWeight: 600 }}>
  Extruding buildings…
  </div>
  <div style={PROGRESS_BAR_BG}>
@@ -1467,7 +1468,7 @@ export default function BuildingViewer() {
  style={{
  height: "100%",
  borderRadius: "3px",
- background: "#F59E0B",
+ background: "#3794ff",
  width: `${Math.round(progress * 100)}%`,
  transition: "width 0.2s ease",
  }}

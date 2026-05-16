@@ -32,11 +32,11 @@ const containerStyle: React.CSSProperties = {
 };
 
 const sectionTitle: React.CSSProperties = {
-  fontWeight: 600,
+  fontWeight: 700,
   fontSize: "11px",
   textTransform: "uppercase",
   letterSpacing: "0.06em",
-  color: "#f5a623",
+  color: "#a4adbb",
   margin: "4px 0 2px",
 };
 
@@ -48,24 +48,26 @@ const rowStyle: React.CSSProperties = {
 
 const sliderStyle: React.CSSProperties = {
   flex: 1,
-  accentColor: "#f5a623",
+  accentColor: "#3794ff",
 };
 
 const btnStyle: React.CSSProperties = {
   padding: "4px 10px",
-  borderRadius: "4px",
-  border: "1px solid #333",
-  background: "#262626",
-  color: "#e0e0e0",
+  borderRadius: "3px",
+  border: "1px solid transparent",
+  background: "transparent",
+  color: "#a4adbb",
   cursor: "pointer",
   fontSize: "12px",
 };
 
 const activeBtnStyle: React.CSSProperties = {
   ...btnStyle,
-  background: "#f5a623",
-  color: "#1a1a1a",
-  borderColor: "#f5a623",
+  background: "transparent",
+  color: "#3794ff",
+  borderColor: "transparent",
+  boxShadow: "inset 0 -1px 0 #3794ff",
+  fontWeight: 600,
 };
 
 /* ------------------------------------------------------------------ */

@@ -116,11 +116,11 @@ const headerStyle: React.CSSProperties = {
 };
 
 const titleStyle: React.CSSProperties = {
-  fontWeight: 600,
+  fontWeight: 700,
   fontSize: 12,
   textTransform: "uppercase",
   letterSpacing: "0.06em",
-  color: "#f5a623",
+  color: "#a4adbb",
 };
 
 const refreshBtn: React.CSSProperties = {
@@ -146,8 +146,8 @@ const envRow: React.CSSProperties = {
 
 const activeRow: React.CSSProperties = {
   ...envRow,
-  background: "#2a2410",
-  border: "1px solid #f5a62366",
+  background: "rgba(55, 148, 255, 0.10)",
+  border: "1px solid rgba(55, 148, 255, 0.42)",
 };
 
 const badge: React.CSSProperties = {

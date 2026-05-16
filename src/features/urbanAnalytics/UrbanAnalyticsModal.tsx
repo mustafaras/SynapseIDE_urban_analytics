@@ -100,14 +100,14 @@ function useToast() {
  left: '50%',
  bottom: 24,
  transform: 'translateX(-50%)',
- background: 'rgba(0,0,0,.85)',
- color: '#fff',
+      background: 'var(--syn-surface-overlay)',
+      color: 'var(--syn-text-default)',
  padding: '8px 12px',
  borderRadius: 10,
  fontSize: 12,
  // Toast tier matches Toaster.css .ai-toaster-layer (10080).
  zIndex: 10080,
- border: '1px solid rgba(255,255,255,.15)',
+      border: '1px solid var(--syn-border-subtle)',
  }}
  >
  {msg}
@@ -122,23 +122,6 @@ function useToast() {
 // ---------------------------------------------------------------------------
 
 const URBAN_CMD_CSS = `
-@keyframes ua-brand-shimmer {
- 0% { background-position: 0% center; }
- 100% { background-position: 200% center; }
-}
-@keyframes ua-brand-glow {
- 0%,100% { box-shadow: 0 0 0 rgba(251,191,36,0); }
- 50% { box-shadow: 0 0 12px rgba(251,191,36,0.18); }
-}
-@keyframes ua-brand-sheen {
- 0% { opacity: 0.5; transform: translateX(-8px); }
- 50% { opacity: 1; transform: translateX(0); }
- 100% { opacity: 0.5; transform: translateX(8px); }
-}
-@keyframes ua-area-glow {
- 0%,100% { box-shadow: 0 0 0 0 rgba(245,158,11,0); }
- 50% { box-shadow: 0 0 8px 2px rgba(245,158,11,0.18); }
-}
 @keyframes ua-area-pulse {
  0%,100% { opacity: 1; }
  50% { opacity: 0.7; }
@@ -148,7 +131,7 @@ const URBAN_CMD_CSS = `
  to { opacity: 1; transform: translateY(0); }
 }
 .ua-area-set {
- animation: ua-area-glow 3s ease-in-out infinite;
+ box-shadow: inset 2px 0 0 var(--syn-interaction-active);
 }
 .ua-area-unset {
  animation: ua-area-pulse 2.5s ease-in-out infinite;
@@ -157,8 +140,8 @@ const URBAN_CMD_CSS = `
  display: inline-flex;
  align-items: center;
  gap: 3px;
- padding: 1px 6px;
- border-radius: 999px;
+ padding: 2px 6px;
+ border-radius: 3px;
  font-size: 10px;
  white-space: nowrap;
  font-family: var(--codefont);
@@ -168,66 +151,58 @@ const URBAN_CMD_CSS = `
 .ua-chip:hover { opacity: 0.8; }
 .ua-area-input {
  animation: ua-slide-in 0.12s ease;
- background: rgba(245,158,11,0.08);
- border: 1px solid rgba(245,158,11,0.35);
- border-radius: 5px;
+ background: var(--syn-surface-input);
+ border: 1px solid var(--syn-border-subtle);
+ border-radius: 3px;
  padding: 2px 8px;
  font-size: 12px;
  font-family: var(--codefont);
- color: #FAFAF9;
+ color: var(--syn-text-default);
  outline: none;
  width: 220px;
  transition: border-color 0.15s, box-shadow 0.15s;
 }
 .ua-area-input:focus {
- border-color: rgba(245,158,11,0.7);
- box-shadow: 0 0 0 2px rgba(245,158,11,0.12);
+ border-color: var(--syn-border-focus);
+ box-shadow: 0 0 0 1px var(--syn-border-focus);
 }
 .ua-iconbtn {
- background: none;
- border: none;
+ background: transparent;
+ border: 1px solid transparent;
  cursor: pointer;
  display: flex;
  align-items: center;
  justify-content: center;
- border-radius: 6px;
- transition: background 0.12s, opacity 0.12s;
+ border-radius: 3px;
+ transition: background 0.12s, border-color 0.12s, color 0.12s, opacity 0.12s;
  opacity: 0.7;
 }
-.ua-iconbtn:hover { background: rgba(255,255,255,0.08); opacity: 1; }
+.ua-iconbtn:hover { background: var(--syn-interaction-hover); border-color: var(--syn-border-subtle); opacity: 1; }
 .ua-iconbtn:focus-visible { outline: none; box-shadow: var(--ua-focus-ring-offset); opacity: 1; }
 .ua-brand-shell {
  display: inline-flex;
  align-items: center;
- gap: 8px;
- padding: 2px 10px;
- border: 1px solid rgba(251,191,36,0.22);
- border-radius: 999px;
- background: linear-gradient(90deg, rgba(251,191,36,0.12) 0%, rgba(245,158,11,0.06) 55%, rgba(217,119,6,0.12) 100%);
- animation: ua-brand-glow 3.2s ease-in-out infinite;
+ gap: 6px;
+ padding: 0;
+ border: 0;
+ border-radius: 0;
+ background: transparent;
 }
 .ua-brand-core {
- font-weight: 800;
+ font-weight: 700;
  font-size: 11px;
  letter-spacing: .11em;
  text-transform: uppercase;
- background: linear-gradient(90deg,#fde68a 0%,#fbbf24 28%,#f59e0b 52%,#fbbf24 72%,#fde68a 100%);
- background-size: 240% auto;
- -webkit-background-clip: text;
- color: transparent;
+ color: var(--syn-text-default);
  white-space: nowrap;
- animation: ua-brand-shimmer 4s linear infinite;
 }
 .ua-brand-core::after {
  content: '  //  UAW v1.6';
- color: rgba(255,255,255,0.66);
- -webkit-background-clip: initial;
+ color: var(--syn-text-muted);
  font-size: 9px;
- font-weight: 700;
+ font-weight: 600;
  letter-spacing: .16em;
  margin-left: 8px;
- text-shadow: 0 0 8px rgba(251,191,36,0.28);
- animation: ua-brand-sheen 2.8s ease-in-out infinite;
 }
 `;
 
@@ -262,6 +237,7 @@ function UrbanCommandBar({
  ): React.CSSProperties => ({
  border: `1px solid ${border}`, background: bg, color,
  });
+ const neutralChip = chipStyle('var(--syn-border-subtle)', 'transparent', 'var(--syn-text-secondary)');
 
  return (
  <header
@@ -275,9 +251,8 @@ function UrbanCommandBar({
  alignItems: 'center',
  gap: 0,
  padding: 0,
- background: 'linear-gradient(180deg, rgba(14,12,10,0.97) 0%, rgba(10,9,8,0.97) 100%)',
- borderBottom: '1px solid rgba(255,255,255,0.07)',
- backdropFilter: 'blur(14px) saturate(160%)',
+ background: 'var(--syn-surface-navigation)',
+ borderBottom: '1px solid var(--syn-border-subtle)',
  minHeight: 42,
  overflow: 'visible',
  }}
@@ -290,11 +265,11 @@ function UrbanCommandBar({
  alignItems: 'center',
  gap: 10,
  padding: '0 14px',
- borderRight: '1px solid rgba(255,255,255,0.07)',
+ borderRight: '1px solid var(--syn-border-subtle)',
  height: 42,
  flexShrink: 0,
  }}>
- <span style={{ fontSize: 11, color: 'rgba(251,191,36,0.85)', opacity: 0.9 }}>◈</span>
+ <span style={{ fontSize: 11, color: 'var(--syn-interaction-active)', opacity: 0.9 }}>◈</span>
  <span className="ua-brand-shell">
  <span className="ua-brand-core">Urban Analytics Workbench</span>
  </span>
@@ -306,7 +281,7 @@ function UrbanCommandBar({
  alignItems: 'center',
  gap: 6,
  padding: '0 12px',
- borderRight: '1px solid rgba(255,255,255,0.07)',
+ borderRight: '1px solid var(--syn-border-subtle)',
  height: 42,
  flexShrink: 0,
  position: 'relative',
@@ -321,10 +296,10 @@ function UrbanCommandBar({
  gap: 8,
  padding: '0 12px',
  height: 42,
- borderRight: '1px solid rgba(255,255,255,0.07)',
+ borderRight: '1px solid var(--syn-border-subtle)',
  minWidth: 0,
  }}>
- <span style={{ fontSize: 12, opacity: 0.3 }}>⌕</span>
+ <span style={{ fontSize: 12, color: 'var(--syn-text-muted)' }}>⌕</span>
  <input
  ref={searchRef}
  type="search"
@@ -337,7 +312,7 @@ function UrbanCommandBar({
  background: 'transparent',
  border: 'none',
  fontSize: 12,
- color: '#e5e5e5',
+ color: 'var(--syn-text-default)',
  outline: 'none',
  minWidth: 0,
  fontFamily: 'var(--codefont)',
@@ -364,57 +339,57 @@ function UrbanCommandBar({
  gap: 4,
  padding: '0 10px',
  height: 42,
- borderRight: '1px solid rgba(255,255,255,0.07)',
+ borderRight: '1px solid var(--syn-border-subtle)',
  flexShrink: 0,
  maxWidth: 340,
  overflow: 'hidden',
  }}
  >
  {scale ? (
- <span className="ua-chip" style={chipStyle('rgba(255,255,255,0.10)','rgba(255,255,255,0.05)','rgba(255,255,255,0.6)')} title={`Active scale: ${scale}`} role="status">
- <span style={{ opacity: 0.5 }} aria-hidden="true">sc:</span>{scale}
+ <span className="ua-chip" style={neutralChip} title={`Active scale: ${scale}`} role="status">
+ <span style={{ color: 'var(--syn-text-muted)' }} aria-hidden="true">scale:</span>{scale}
  </span>
  ) : null}
  {flowId ? (
- <span className="ua-chip" style={chipStyle('rgba(255,255,255,0.10)','rgba(255,255,255,0.05)','rgba(255,255,255,0.6)')} title={`Active workflow: ${flowId.replace(/_/g, ' ')}`} role="status">
- <span style={{ opacity: 0.5 }} aria-hidden="true">fl:</span>{flowId.replace(/_/g,' ')}
+ <span className="ua-chip" style={neutralChip} title={`Active workflow: ${flowId.replace(/_/g, ' ')}`} role="status">
+ <span style={{ color: 'var(--syn-text-muted)' }} aria-hidden="true">flow:</span>{flowId.replace(/_/g,' ')}
  </span>
  ) : null}
  {layerCount > 0 ? (
- <span className="ua-chip" style={chipStyle('rgba(255,255,255,0.10)','rgba(255,255,255,0.05)','rgba(255,255,255,0.6)')} title={`${layerCount} active layer${layerCount === 1 ? '' : 's'}`} role="status">
- <span style={{ opacity: 0.5 }} aria-hidden="true">ly:</span>{layerCount}
+ <span className="ua-chip" style={neutralChip} title={`${layerCount} active layer${layerCount === 1 ? '' : 's'}`} role="status">
+ <span style={{ color: 'var(--syn-text-muted)' }} aria-hidden="true">layers:</span>{layerCount}
  </span>
  ) : null}
  {runLabel ? (
- <span className="ua-chip" style={chipStyle('rgba(255,255,255,0.10)','rgba(255,255,255,0.05)','rgba(255,255,255,0.6)')} title={`Active run: ${runId}`} role="status">
- <span style={{ opacity: 0.5 }} aria-hidden="true">run:</span>{runLabel}
+ <span className="ua-chip" style={neutralChip} title={`Active run: ${runId}`} role="status">
+ <span style={{ color: 'var(--syn-text-muted)' }} aria-hidden="true">run:</span>{runLabel}
  </span>
  ) : null}
  {artifactCount > 0 ? (
- <span className="ua-chip" style={chipStyle('rgba(74,222,128,0.25)','rgba(34,197,94,0.08)','#4ade80')} title={`${artifactCount} evidence artifact${artifactCount === 1 ? '' : 's'}`} role="status">
- {artifactCount} ev
+ <span className="ua-chip" style={chipStyle('color-mix(in srgb, var(--syn-status-valid) 34%, transparent)','transparent','var(--syn-status-valid)')} title={`${artifactCount} evidence artifact${artifactCount === 1 ? '' : 's'}`} role="status">
+ <span style={{ color: 'var(--syn-text-muted)' }} aria-hidden="true">evidence:</span>{artifactCount}
  </span>
  ) : null}
  {fitnessStatus === 'ready' ? (
- <span className="ua-chip" style={chipStyle('rgba(74,222,128,0.3)','rgba(34,197,94,0.10)','#4ade80')} title="Data fitness: ready" role="status">fit <span aria-hidden="true">✓</span><span className="visually-hidden">ready</span></span>
+ <span className="ua-chip" style={chipStyle('color-mix(in srgb, var(--syn-status-valid) 34%, transparent)','transparent','var(--syn-status-valid)')} title="Data fitness: ready" role="status">fitness: <span aria-hidden="true">ready ✓</span><span className="visually-hidden">ready</span></span>
  ) : null}
  {fitnessStatus === 'warning' ? (
- <span className="ua-chip" style={chipStyle('rgba(245,158,11,0.35)','rgba(245,158,11,0.10)','#fbbf24')} title="Data fitness: warning" role="status">fit <span aria-hidden="true">!</span><span className="visually-hidden">warning</span></span>
+ <span className="ua-chip" style={chipStyle('color-mix(in srgb, var(--syn-status-info) 35%, transparent)','transparent','var(--syn-status-info)')} title="Data fitness: warning" role="status">fitness: <span aria-hidden="true">warning !</span><span className="visually-hidden">warning</span></span>
  ) : null}
  {fitnessStatus === 'blocked' ? (
- <span className="ua-chip" style={chipStyle('rgba(248,113,113,0.3)','rgba(239,68,68,0.10)','#f87171')} title="Data fitness: blocked" role="status">fit <span aria-hidden="true">✗</span><span className="visually-hidden">blocked</span></span>
+ <span className="ua-chip" style={chipStyle('color-mix(in srgb, var(--syn-status-error) 34%, transparent)','transparent','var(--syn-status-error)')} title="Data fitness: blocked" role="status">fitness: <span aria-hidden="true">blocked ✗</span><span className="visually-hidden">blocked</span></span>
  ) : null}
  {syncState === 'synced' && !hasRestoreWarnings ? (
- <span className="ua-chip" style={chipStyle('rgba(74,222,128,0.25)','rgba(34,197,94,0.07)','#4ade80')} title="Context synced" role="status"><span aria-hidden="true">⟳</span><span className="visually-hidden">Context synced</span></span>
+ <span className="ua-chip" style={chipStyle('color-mix(in srgb, var(--syn-status-valid) 30%, transparent)','transparent','var(--syn-status-valid)')} title="Context synced" role="status">sync: <span aria-hidden="true">synced</span><span className="visually-hidden">Context synced</span></span>
  ) : null}
  {hasRestoreWarnings ? (
  <span
  className="ua-chip"
  title={restoreWarnings.map((w) => w.message).join(' | ')}
- style={chipStyle('rgba(245,158,11,0.35)','rgba(245,158,11,0.10)','#fbbf24')}
+ style={chipStyle('color-mix(in srgb, var(--syn-status-stale) 45%, transparent)','transparent','var(--syn-status-stale)')}
  role="status"
  >
- {restoreWarningCount} stale
+ stale: {restoreWarningCount}
  </span>
  ) : null}
  </div>
@@ -434,7 +409,7 @@ function UrbanCommandBar({
  className="ua-iconbtn iconbtn--close"
  aria-label="Close urban analytics"
  onClick={onClose}
- style={{ width: 26, height: 26, borderRadius: 8, color: 'rgba(255,255,255,0.55)', fontSize: 13 }}
+ style={{ width: 26, height: 26, color: 'var(--syn-text-secondary)', fontSize: 13 }}
  >✕</button>
  </div>
  </header>
@@ -767,14 +742,14 @@ export default function UrbanAnalyticsModal({ open, onClose }: UrbanAnalyticsMod
  style={{
  position: 'fixed',
  inset: 0,
- background: '#000000',
- color: '#FAFAF9',
+ background: 'var(--syn-surface-workbench)',
+ color: 'var(--syn-text-default)',
  // Sits one tier below the shared modal level (10050) so Map Explorer
  // and other modal-tier overlays opened FROM Urban Analytics layer above.
  // Toasts (10080), tooltips (10070), popovers (10060) still win.
  zIndex: 10049,
  display: 'grid',
- gridTemplateRows: 'auto 1fr 68px',
+ gridTemplateRows: 'auto 1fr 52px',
  fontFamily: 'var(--codefont)',
  animation: isClosing
  ? 'urbanModalFadeOut 0.3s ease-out forwards'
@@ -923,16 +898,15 @@ const MODAL_CSS = `
 }
 
 :root {
- --bg:#000000; --panel:#000000; --panel-2:#121212;
- --text:#FAFAF9; --muted:rgba(250,250,249,.65);
- --line:rgba(255,255,255,.10);
- --accent:#F59E0B; --accent-weak:rgba(245,158,11,.14);
- --amber:#ffb547; --amber-weak:rgba(255,181,71,.14);
- --accent-rgb:245,158,11;
- --brand-fx:linear-gradient(90deg,#fbbf24 0%,#F59E0B 40%,#d97706 60%,#fbbf24 100%);
+ --bg:var(--syn-surface-workbench); --panel:var(--syn-surface-panel); --panel-2:var(--syn-surface-elevated);
+ --text:var(--syn-text-default); --muted:var(--syn-text-muted);
+ --line:var(--syn-border-subtle);
+ --accent:var(--syn-interaction-active); --accent-weak:color-mix(in srgb, var(--syn-interaction-active) 14%, transparent);
+ --accent-rgb:55,148,255;
+ --brand-fx:none;
  --codefont: "JetBrains Mono","Fira Code",ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
- --ua-focus-ring: 0 0 0 2px rgba(245,158,11,0.65);
- --ua-focus-ring-offset: 0 0 0 1px rgba(0,0,0,0.9), 0 0 0 3px rgba(245,158,11,0.5);
+ --ua-focus-ring: 0 0 0 1px var(--syn-border-focus);
+ --ua-focus-ring-offset: 0 0 0 1px var(--syn-surface-workbench), 0 0 0 2px var(--syn-border-focus);
 }
 
 .urban-v2, .urban-v2 * { box-sizing:border-box; }
@@ -954,7 +928,8 @@ const MODAL_CSS = `
  z-index: 1;
  height: 100%;
  overflow-y: auto;
- background: #000000 !important;
+ background: var(--syn-surface-navigation) !important;
+ border-right: 1px solid var(--syn-border-subtle);
 }
 
 .urban-v2 .midCol {
@@ -979,41 +954,40 @@ const MODAL_CSS = `
  max-width: var(--right-w);
  width: var(--right-w);
  overflow-y: auto;
- background: #000000 !important;
- border-left: 1px solid rgba(255,255,255,0.06);
+ background: var(--syn-surface-panel) !important;
+ border-left: 1px solid var(--syn-border-subtle);
 }
 
 /* Accent line */
 .accentline {
  position: fixed; top:0; left:0; right:0; height:2px; z-index:2147483648;
  pointer-events: none;
- background: repeating-linear-gradient(90deg,rgba(245,158,11,1)0 90px,rgba(217,119,6,1)90px 180px,rgba(245,158,11,1)180px 270px);
- background-size: 540px 100%;
+ background: var(--syn-interaction-active);
 }
 
 /* Rail */
 .rail { padding:12px; overflow-y:auto; background:var(--panel); }
-.railbtn { width:100%; text-align:left; padding:8px 10px; border-radius:10px; border:1px solid var(--line); background:rgba(255,255,255,.04); color:var(--text); cursor:pointer; font-size:13px; font-family: var(--codefont); }
-.railbtn:hover { background:rgba(255,255,255,.08); }
-.railbtn.is-on { background:var(--accent-weak); border-color:var(--accent); }
-.railbtn--child { font-size:12.5px; padding:6px 10px; background:rgba(255,255,255,.03); }
-.railbtn--child.is-on { background:var(--accent-weak); }
+.railbtn { width:100%; text-align:left; padding:8px 10px; border-radius:3px; border:1px solid transparent; background:transparent; color:var(--text); cursor:pointer; font-size:13px; font-family: var(--codefont); }
+.railbtn:hover { background:var(--syn-interaction-hover); }
+.railbtn.is-on { background:transparent; border-color:transparent; color:var(--accent); box-shadow:inset 2px 0 0 var(--accent); }
+.railbtn--child { font-size:12.5px; padding:6px 10px; background:transparent; }
+.railbtn--child.is-on { background:transparent; color:var(--accent); box-shadow:inset 2px 0 0 var(--accent); }
 .rail__empty { font-size:12px; opacity:.6; }
 
 /* Bottom bar */
-.bottombar { border-top:1px solid var(--line); background:linear-gradient(180deg, rgba(18,18,18,0.88) 0%, rgba(12,12,12,0.88) 100%); display:flex; align-items:center; justify-content:center; padding:10px 12px; }
+.bottombar { border-top:1px solid var(--line); background:var(--syn-surface-navigation); display:flex; align-items:center; justify-content:center; padding:8px 12px; }
 .btnline { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-.btnpill { display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border-radius:14px; border:1px solid var(--line); background:rgba(255,255,255,.06); color:var(--text); font-size:13px; cursor:pointer; font-family: var(--codefont); }
-.btnpill:hover { background:rgba(255,255,255,.10); }
-.btnpill--accent { background:rgba(255,210,74,.15); color:#ffd24a; border-color:rgba(255,210,74,.45); }
+.btnpill { display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:3px; border:1px solid transparent; background:transparent; color:var(--syn-text-secondary); font-size:12px; cursor:pointer; font-family: var(--codefont); }
+.btnpill:hover { background:var(--syn-interaction-hover); color:var(--syn-text-default); }
+.btnpill--accent { color:var(--syn-interaction-active); border-color:transparent; background:transparent; box-shadow:inset 0 -1px 0 var(--syn-border-active); }
 
 /* Icon button */
-.iconbtn { width:28px; height:28px; border-radius:10px; display:inline-flex; align-items:center; justify-content:center; border:1px solid var(--line); background:rgba(255,255,255,.06); color:var(--text); cursor:pointer; }
-.iconbtn:hover { background:rgba(255,255,255,.10); }
+.iconbtn { width:28px; height:28px; border-radius:3px; display:inline-flex; align-items:center; justify-content:center; border:1px solid transparent; background:transparent; color:var(--text); cursor:pointer; }
+.iconbtn:hover { background:var(--syn-interaction-hover); border-color:var(--syn-border-subtle); }
 .iconbtn--close { margin-left:4px; }
 
 /* Tag */
-.tag { font-size:11.5px; padding:3px 8px; border-radius:999px; border:1px solid rgba(255,255,255,.14); background:rgba(30,31,36,1); }
+.tag { font-size:11.5px; padding:3px 8px; border-radius:3px; border:1px solid var(--syn-border-subtle); background:var(--syn-surface-elevated); }
 
 /* Library */
 .library { border-left:1px solid var(--line); border-right:1px solid var(--line); }
@@ -1022,8 +996,8 @@ const MODAL_CSS = `
 .rp-panel { background: var(--panel); }
 
 /* Search in command bar */
-.neuro-commandbar .search { flex:1; position:relative; display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); padding:4px 10px; border-radius:10px; }
-.neuro-commandbar .search input { flex:1; background:transparent; border:none; font-size:13px; color:#fff; outline:none; min-width:0; font-family: var(--codefont); }
+.neuro-commandbar .search { flex:1; position:relative; display:flex; align-items:center; gap:6px; background:var(--syn-surface-input); border:1px solid var(--syn-border-subtle); padding:4px 10px; border-radius:3px; }
+.neuro-commandbar .search input { flex:1; background:transparent; border:none; font-size:13px; color:var(--syn-text-default); outline:none; min-width:0; font-family: var(--codefont); }
 
 /* Responsive */
 @media (max-width:1024px) {

@@ -140,7 +140,7 @@ const labelStyle: React.CSSProperties = {
   padding: "2px 10px",
   borderRadius: 4,
   background: "rgba(26,26,26,0.85)",
-  color: "#f5a623",
+  color: "#3794ff",
   fontWeight: 600,
   fontSize: "12px",
   fontFamily: "var(--font-mono, monospace)",

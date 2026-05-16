@@ -95,7 +95,7 @@ const sectionTitle: React.CSSProperties = {
   fontSize: "11px",
   textTransform: "uppercase",
   letterSpacing: "0.06em",
-  color: "#f5a623",
+  color: "#a4adbb",
 };
 
 const rampBtnStyle: React.CSSProperties = {
@@ -187,7 +187,7 @@ export default function SimulationOverlay({ className, style }: SimulationOverla
             style={{
               ...rampBtnStyle,
               background: rampGradient(name),
-              borderColor: colorRamp === name ? "#f5a623" : "transparent",
+              borderColor: colorRamp === name ? "#3794ff" : "transparent",
             }}
           />
         ))}
@@ -204,7 +204,7 @@ export default function SimulationOverlay({ className, style }: SimulationOverla
           step={(simulation.max - simulation.min) / 100 || 0.01}
           value={valueRange[0]}
           onChange={onMinChange}
-          style={{ flex: 1, accentColor: "#f5a623" }}
+          style={{ flex: 1, accentColor: "#3794ff" }}
         />
         <span style={{ width: 44, fontSize: "11px", textAlign: "right" }}>{valueRange[0].toFixed(1)}</span>
       </div>
@@ -217,7 +217,7 @@ export default function SimulationOverlay({ className, style }: SimulationOverla
           step={(simulation.max - simulation.min) / 100 || 0.01}
           value={valueRange[1]}
           onChange={onMaxChange}
-          style={{ flex: 1, accentColor: "#f5a623" }}
+          style={{ flex: 1, accentColor: "#3794ff" }}
         />
         <span style={{ width: 44, fontSize: "11px", textAlign: "right" }}>{valueRange[1].toFixed(1)}</span>
       </div>

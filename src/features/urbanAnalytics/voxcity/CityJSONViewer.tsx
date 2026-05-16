@@ -9,7 +9,7 @@
  * - Object click → attribute query panel
  * - Semantic surface visibility toggles
  *
- * Follows Charcoal-Amber design system.
+ * Follows the VS Code workbench token system (charcoal + blue accents).
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
@@ -22,7 +22,7 @@ import { SAMPLE_CITYJSON_STRING } from "./sampleCityJSON";
 import { DEFAULT_SEMANTIC_COLORS, type ParsedCityObject, type SemanticSurfaceType } from "./cityJsonTypes";
 
 /* ================================================================== */
-/* §1 STYLES (Charcoal-Amber) */
+/* §1 STYLES (VS Code workbench: charcoal + blue accents) */
 /* ================================================================== */
 
 const PANEL: React.CSSProperties = {
@@ -58,10 +58,10 @@ const TOOLBAR: React.CSSProperties = {
 
 const LABEL: React.CSSProperties = {
  fontSize: "11px",
- fontWeight: 600,
+ fontWeight: 700,
  textTransform: "uppercase",
  letterSpacing: "0.06em",
- color: "#F59E0B",
+ color: "#a4adbb",
 };
 
 const BTN: React.CSSProperties = {
@@ -77,9 +77,10 @@ const BTN: React.CSSProperties = {
 
 const BTN_ACTIVE: React.CSSProperties = {
  ...BTN,
- background: "#F59E0B",
- color: "#1a1a1a",
- borderColor: "#F59E0B",
+ background: "transparent",
+ color: "#3794ff",
+ borderColor: "transparent",
+ boxShadow: "inset 0 -1px 0 #3794ff",
  fontWeight: 600,
 };
 
@@ -146,8 +147,8 @@ const DROP_ZONE: React.CSSProperties = {
 
 const DROP_ZONE_ACTIVE: React.CSSProperties = {
  ...DROP_ZONE,
- background: "rgba(245, 158, 11, 0.08)",
- outline: "2px dashed #F59E0B",
+ background: "rgba(55, 148, 255, 0.10)",
+ outline: "2px dashed #3794ff",
  outlineOffset: "-12px",
 };
 
@@ -188,7 +189,7 @@ function ObjectMesh({ obj, surfaceVisibility, selected, onSelect }: ObjectMeshPr
  geo.setIndex(new THREE.BufferAttribute(surface.indices, 1));
 
  const color = selected
- ? new THREE.Color(0.96, 0.62, 0.04)
+ ? new THREE.Color(0.22, 0.58, 1.0)
  : getSemanticColor(surface.semanticType);
 
  return (
@@ -611,7 +612,7 @@ export default function CityJSONViewer() {
  {/* Loading overlay */}
  {loading && (
  <div style={OVERLAY}>
- <div style={{ fontSize: "14px", color: "#F59E0B" }}>
+ <div style={{ fontSize: "14px", color: "#3794ff" }}>
  {progressPhase || "Loading…"}
  </div>
  <div style={PROGRESS_BAR_BG}>
@@ -620,7 +621,7 @@ export default function CityJSONViewer() {
  width: `${progressFrac * 100}%`,
  height: "100%",
  borderRadius: "3px",
- background: "#F59E0B",
+ background: "#3794ff",
  transition: "width 0.2s ease",
  }}
  />

@@ -147,7 +147,7 @@ fig, ax = plt.subplots(figsize=(8, 8))
 z = (y - y.mean()) / y.std()
 lag = np.array([np.sum(w.weights[i] * z[list(w.neighbors[i])]) for i in range(len(z))])
 
-colors_scatter = ["#bdbdbd", "#d32f2f", "#64b5f6", "#1565c0", "#ff7043"]
+colors_scatter = ["#bdbdbd", "#d32f2f", "#64b5f6", "#1565c0", "#fb8072"]
 c = [colors_scatter[int(clusters[i])] for i in range(len(z))]
 
 ax.scatter(z, lag, c=c, s=20, alpha=0.7, edgecolors="none")
@@ -157,7 +157,7 @@ ax.axvline(0, color="#444", linewidth=0.5)
 # Regression line
 slope = moran.I
 x_line = np.linspace(z.min(), z.max(), 100)
-ax.plot(x_line, slope * x_line, color="#f5a623", linewidth=2,
+ax.plot(x_line, slope * x_line, color="#3794ff", linewidth=2,
         label=f"Moran's I = {moran.I:.4f}")
 ax.set_xlabel(f"Standardized {var_col}")
 ax.set_ylabel(f"Spatial Lag of {var_col}")
@@ -174,7 +174,7 @@ cluster_colors = {
     1: "#d32f2f",  # HH — red
     2: "#64b5f6",  # LH — light blue
     3: "#1565c0",  # LL — dark blue
-    4: "#ff7043",  # HL — orange
+    4: "#fb8072",  # HL — light red (PySAL splot LISA convention; documented data palette, not UI chrome)
 }
 
 fig2, ax2 = plt.subplots(figsize=(12, 10))

@@ -300,7 +300,7 @@ describe('publishUrbanRunOutputsToMap', () => {
     const run = makeRun('r1', [
       makeMapOutput('output-1', {
         style: {
-          fillColor: '#f59e0b',
+          fillColor: '#3794ff',
           legendEntries: [{ value: 'high', label: 'High need', color: '#ef4444', count: 12 }],
         },
         engineBridge: {
