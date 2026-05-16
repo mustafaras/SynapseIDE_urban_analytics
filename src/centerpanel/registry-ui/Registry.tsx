@@ -222,8 +222,8 @@ function QuickReferenceSection({ projectTags }: { projectTags: string[] }) {
         fontFamily: 'inherit',
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.background = 'rgba(245,158,11,0.06)';
-        e.currentTarget.style.borderColor = 'rgba(245,158,11,0.2)';
+        e.currentTarget.style.background = 'var(--syn-interaction-hover, rgba(55,148,255,0.06))';
+        e.currentTarget.style.borderColor = 'var(--syn-border-active, rgba(55,148,255,0.25))';
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.background = 'rgba(255,255,255,0.02)';
@@ -257,7 +257,7 @@ function QuickReferenceSection({ projectTags }: { projectTags: string[] }) {
     <>
       {recentCards.length > 0 && (
         <div className={styles.section}>
-          <div className={styles.sectionTitle} style={{ color: 'var(--syn-accent-primary, #F59E0B)' }}>
+          <div className={styles.sectionTitle} style={{ color: 'var(--syn-interaction-active, #3794ff)' }}>
             Recently Viewed
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -270,7 +270,7 @@ function QuickReferenceSection({ projectTags }: { projectTags: string[] }) {
 
       {tagMatches.length > 0 && (
         <div className={styles.section}>
-          <div className={styles.sectionTitle} style={{ color: 'var(--syn-accent-primary, #F59E0B)' }}>
+          <div className={styles.sectionTitle} style={{ color: 'var(--syn-interaction-active, #3794ff)' }}>
             Relevant Methods
           </div>
           <div

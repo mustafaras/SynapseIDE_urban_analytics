@@ -90,19 +90,21 @@ function DeferredPanelFallback({ label }: { label: string }): React.ReactElement
 			role="status"
 			aria-live="polite"
 			style={{
-				padding: 16,
+				padding: "6px 10px",
 				display: "flex",
 				alignItems: "center",
-				gap: 10,
+				gap: 8,
 				color: "var(--syn-text-secondary)",
-				background: "var(--syn-surface-elevated)",
-				border: "1px solid var(--syn-border-default)",
-				borderRadius: 12,
+				background: "transparent",
+				borderTop: "1px solid var(--syn-border-subtle)",
+				borderBottom: "1px solid var(--syn-border-subtle)",
+				borderRadius: 3,
+				font: "12px var(--font-mono)",
 			}}
 		>
-			<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-				<circle cx="12" cy="12" r="9" fill="none" stroke="var(--syn-border-subtle)" strokeWidth="3" />
-				<path d="M12 3a9 9 0 0 1 9 9" fill="none" stroke="var(--syn-interaction-active)" strokeLinecap="round" strokeWidth="3">
+			<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
+				<circle cx="12" cy="12" r="9" fill="none" stroke="var(--syn-border-subtle)" strokeWidth="2.5" />
+				<path d="M12 3a9 9 0 0 1 9 9" fill="none" stroke="var(--syn-interaction-active)" strokeLinecap="round" strokeWidth="2.5">
 					<animateTransform
 						attributeName="transform"
 						type="rotate"

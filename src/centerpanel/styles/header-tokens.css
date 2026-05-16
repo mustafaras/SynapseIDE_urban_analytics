@@ -33,7 +33,9 @@
 
 
   --hdr-state-success: var(--syn-status-valid);
-  --hdr-state-warning: var(--syn-status-warning);
+  /* Warning state intentionally non-amber for the Center Panel: blue running/info tint preserves the
+     attention pulse without the gold cast the legacy --syn-status-warning would inject. */
+  --hdr-state-warning: var(--syn-status-running);
   --hdr-state-error: var(--syn-status-error);
   --hdr-state-info: var(--syn-status-info);
 

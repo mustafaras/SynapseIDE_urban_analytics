@@ -460,3 +460,95 @@
 @media (prefers-reduced-motion: reduce) {
 	.railIndicator, .railSeg { transition: none !important; }
 }
+
+
+/* Final workbench structural pass: center panel rails and canvas are layout
+   regions, not rounded cards. */
+:root {
+	--railW: 224px;
+	--radius: 0px;
+	--shadow-1: none;
+}
+
+.shell {
+	padding-left: 0 !important;
+	padding-right: 0 !important;
+	overflow: hidden !important;
+}
+
+.body {
+	grid-template-columns: minmax(204px, 224px) minmax(0, 1fr) minmax(260px, 320px) !important;
+	gap: 0 !important;
+	padding: 0 !important;
+	background: var(--syn-surface-workbench) !important;
+	height: calc(100vh - var(--hdr-height, 56px)) !important;
+	min-height: 0 !important;
+}
+
+.bodyNoRightDock {
+	grid-template-columns: minmax(204px, 224px) minmax(0, 1fr) !important;
+}
+
+.outline,
+.main,
+.rightDock,
+.dock {
+	border-radius: 0 !important;
+	box-shadow: none !important;
+}
+
+.outline,
+.rightDock,
+.dock {
+	position: sticky;
+	top: 0;
+	align-self: stretch;
+	max-height: calc(100vh - var(--hdr-height));
+	background: var(--syn-surface-navigation) !important;
+	border: 0 !important;
+	padding: 0 !important;
+	overflow: auto;
+	scrollbar-width: thin;
+}
+
+.outline {
+	width: auto !important;
+	min-width: 0 !important;
+	max-width: none !important;
+	border-right: 1px solid var(--syn-border-subtle) !important;
+}
+
+.rightDock,
+.dock {
+	border-left: 1px solid var(--syn-border-subtle) !important;
+}
+
+.main {
+	min-width: 0;
+	background: var(--syn-surface-editor) !important;
+	border: 0 !important;
+	padding: 0 !important;
+	overflow: auto;
+}
+
+.main > .panelEnter {
+	min-height: 100%;
+}
+
+@media (max-width: 1024px) {
+	.body,
+	.bodyNoRightDock {
+		grid-template-columns: minmax(0, 1fr) !important;
+	}
+
+	.outline,
+	.rightDock,
+	.dock {
+		position: relative;
+		top: auto;
+		max-height: 240px;
+		border-right: 0 !important;
+		border-left: 0 !important;
+		border-bottom: 1px solid var(--syn-border-subtle) !important;
+	}
+}

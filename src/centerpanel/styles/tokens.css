@@ -100,7 +100,7 @@
 
 
   --accentSignal: var(--syn-interaction-active);
-  --accentGold: var(--syn-status-warning);
+  --accentGold: var(--syn-text-muted);
 
 
   --risk-low:  var(--syn-success);

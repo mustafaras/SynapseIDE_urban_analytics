@@ -76,26 +76,33 @@ export default function NewProjectPage() {
     else addTag(t);
   };
 
+  const canCreate = name.trim().length > 0;
+
   return (
-    <div className={styles.intakePage}>
+    <form
+      className={styles.intakePage}
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (canCreate) handleCreate();
+      }}
+      aria-label="New project intake"
+    >
       {/* Project Identity */}
-      <section className={styles.card}>
-        <header className={styles.cardHeader}>
-          <div className={styles.cardTitle}>Project Identity</div>
-          <div className={styles.cardSub}>Define the study area name and description.</div>
+      <section className={styles.group} aria-labelledby="np-group-identity">
+        <header className={styles.groupHeader}>
+          <div className={styles.groupTitle} id="np-group-identity">Project Identity</div>
+          <div className={styles.groupSub}>Name and describe the study area.</div>
         </header>
-        <div className={styles.cardBody}>
-          <div className={styles.rowGrid}>
-            <div className={styles.fieldGroup} style={{ gridColumn: 'span 2' }}>
-              <label className={styles.fieldLabel} htmlFor="np-name">Project Name</label>
-              <input
-                id="np-name"
-                className={styles.fieldInput}
-                value={name}
-                onChange={(e) => setName((e.target as HTMLInputElement).value)}
-                placeholder="e.g. Barcelona Superblocks Analysis"
-              />
-            </div>
+        <div className={styles.groupBody}>
+          <div className={styles.fieldGroup}>
+            <label className={styles.fieldLabel} htmlFor="np-name">Project Name</label>
+            <input
+              id="np-name"
+              className={styles.fieldInput}
+              value={name}
+              onChange={(e) => setName((e.target as HTMLInputElement).value)}
+              placeholder="e.g. Barcelona Superblocks Analysis"
+            />
           </div>
           <div className={styles.fieldGroup}>
             <label className={styles.fieldLabel} htmlFor="np-desc">Description</label>
@@ -111,12 +118,12 @@ export default function NewProjectPage() {
       </section>
 
       {/* Spatial Configuration */}
-      <section className={styles.card}>
-        <header className={styles.cardHeader}>
-          <div className={styles.cardTitle}>Spatial Configuration</div>
-          <div className={styles.cardSub}>Set the analysis scale, coordinate system, and bounding box.</div>
+      <section className={styles.group} aria-labelledby="np-group-spatial">
+        <header className={styles.groupHeader}>
+          <div className={styles.groupTitle} id="np-group-spatial">Spatial Configuration</div>
+          <div className={styles.groupSub}>Scale, coordinate system, and bounding box.</div>
         </header>
-        <div className={styles.cardBody}>
+        <div className={styles.groupBody}>
           <div className={styles.rowGrid}>
             <div className={styles.fieldGroup}>
               <label className={styles.fieldLabel} htmlFor="np-scale">Scale</label>
@@ -146,12 +153,12 @@ export default function NewProjectPage() {
             </div>
           </div>
 
-          {/* Bounding Box */}
-          <div className={styles.rowGrid}>
+          <div className={styles.bboxGrid}>
             {(['West', 'South', 'East', 'North'] as const).map((label, i) => (
               <div key={label} className={styles.fieldGroup}>
-                <label className={styles.fieldLabel}>{label}</label>
+                <label className={styles.fieldLabel} htmlFor={`np-bbox-${label.toLowerCase()}`}>{label}</label>
                 <input
+                  id={`np-bbox-${label.toLowerCase()}`}
                   className={styles.fieldInput}
                   type="number"
                   step="any"
@@ -166,38 +173,48 @@ export default function NewProjectPage() {
       </section>
 
       {/* Tags */}
-      <section className={styles.card}>
-        <header className={styles.cardHeader}>
-          <div className={styles.cardTitle}>Thematic Tags</div>
-          <div className={styles.cardSub}>Select tags to classify the project domain.</div>
+      <section className={styles.group} aria-labelledby="np-group-tags">
+        <header className={styles.groupHeader}>
+          <div className={styles.groupTitle} id="np-group-tags">Thematic Tags</div>
+          <div className={styles.groupSub}>Classify the project domain.</div>
         </header>
-        <div className={styles.cardBody}>
-          <div className={styles.chipRow}>
-            {COMMON_TAGS.map((t) => (
-              <button
-                key={t}
-                className={`${styles.riskChip} ${tags.includes(t) ? styles.riskChipActive : ''}`}
-                onClick={() => toggleTag(t)}
-              >
-                {t.replace(/_/g, ' ')}
-              </button>
-            ))}
+        <div className={styles.groupBody}>
+          <div className={styles.chipRow} role="group" aria-label="Thematic tags">
+            {COMMON_TAGS.map((t) => {
+              const selected = tags.includes(t);
+              return (
+                <button
+                  key={t}
+                  type="button"
+                  className={`${styles.riskChip} ${selected ? styles.riskChipActive : ''}`}
+                  aria-pressed={selected}
+                  onClick={() => toggleTag(t)}
+                >
+                  {t.replace(/_/g, ' ')}
+                </button>
+              );
+            })}
           </div>
           {tags.length > 0 && (
-            <div style={{ fontSize: 11, opacity: 0.6 }}>
+            <div className={styles.selectionMeta}>
               Selected: {tags.map((t) => t.replace(/_/g, ' ')).join(', ')}
             </div>
           )}
         </div>
       </section>
 
-      {/* Actions */}
-      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-        <button className={styles.btnSecondary} onClick={reset}>Reset</button>
-        <button className={styles.btnPrimary} onClick={handleCreate} disabled={!name.trim()}>
+      {/* Submit bar */}
+      <div className={styles.submitBar}>
+        <button type="button" className={styles.btnSecondary} onClick={reset}>Reset</button>
+        <button
+          type="submit"
+          className={styles.btnPrimary}
+          disabled={!canCreate}
+          aria-disabled={!canCreate}
+        >
           Create Project
         </button>
       </div>
-    </div>
+    </form>
   );
 }

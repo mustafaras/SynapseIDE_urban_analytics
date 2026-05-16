@@ -242,22 +242,23 @@
 .workspaceCard {
   display: grid;
   gap: 10px;
-  padding: 16px;
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.82), rgba(15, 23, 42, 0.68));
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
+  padding: 12px 14px;
+  background: transparent;
+  border: 1px solid var(--syn-border-subtle);
+  border-radius: 4px;
 }
 
 .workspaceCardAccent {
-  background: linear-gradient(180deg, rgba(245, 158, 11, 0.12), rgba(15, 23, 42, 0.78));
-  border-color: rgba(245, 158, 11, 0.22);
+  background: color-mix(in srgb, var(--syn-interaction-active) 6%, transparent);
+  border-color: color-mix(in srgb, var(--syn-interaction-active) 28%, var(--syn-border-subtle));
 }
 
 .workspaceTitle {
-  color: var(--syn-accent-primary, #F59E0B);
-  font-size: 0.85rem;
-  font-weight: 700;
-  letter-spacing: 0.03em;
+  color: var(--syn-text-default);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .workspaceDescription {
@@ -310,12 +311,12 @@
 
 
 .snapshotCard {
-  background: var(--ui-card-bg);
-  border: 1px solid var(--ui-card-border);
-  border-radius: var(--ui-radius);
-  box-shadow: var(--ui-card-shadow);
+  background: transparent;
+  border: 1px solid var(--syn-border-subtle);
+  border-radius: 4px;
+  box-shadow: none;
   padding: 10px 12px;
-  color: var(--ui-text);
+  color: var(--syn-text-default);
   display: flex;
   flex-direction: column;
   gap: var(--cp-vgap-xs);
@@ -550,4 +551,69 @@
     box-shadow: none !important;
   }
   .callout::before { background: var(--hc-outline) !important; }
+}
+
+
+/* Shared center-panel rails: informational rail content should read like an
+   inspector, not a stack of cards. */
+.leftRailRoot {
+  gap: 0;
+  padding: 0;
+}
+
+.workspaceCard,
+.snapshotCard,
+.callout {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--syn-border-subtle);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.workspaceCard,
+.snapshotCard {
+  padding: 10px 12px;
+}
+
+.workspaceCardAccent {
+  background: transparent;
+  border-color: var(--syn-border-subtle);
+  box-shadow: inset 2px 0 0 var(--syn-interaction-active);
+}
+
+.workspaceTitle,
+.snapshotTitle,
+.snapshotName,
+.snapshotSectionLabel {
+  overflow-wrap: anywhere;
+}
+
+.workspaceDescription,
+.workspaceList,
+.snapshotProjectRef,
+.snapshotSafetyNote,
+.snapshotEmpty {
+  color: var(--syn-text-muted);
+}
+
+.workspaceList {
+  display: grid;
+  gap: 4px;
+  padding-left: 16px;
+}
+
+.snapshotHeader {
+  border-bottom: 1px solid var(--syn-border-subtle);
+}
+
+.snapshotSection {
+  border-top: 1px solid var(--syn-border-subtle);
+}
+
+.microLabel,
+.pill,
+.cardSub,
+.snapshotRiskBadge {
+  border-radius: 3px;
 }

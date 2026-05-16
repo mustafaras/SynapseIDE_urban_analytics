@@ -95,7 +95,7 @@ export default function ProjectSummaryCard({ project }: { project: ProjectRecord
                   style={{
                     width: `${project.dataCompleteness ?? 0}%`,
                     height: '100%',
-                    background: 'var(--color-accent, #f59e0b)',
+                    background: 'var(--syn-interaction-active, #3794ff)',
                     borderRadius: 3,
                   }}
                 />

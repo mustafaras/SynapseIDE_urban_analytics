@@ -1,51 +1,104 @@
-/* Shared form/card styles for registry UI components */
+/* Single-surface workbench intake form. No nested cards.
+   Group headers + hairlines split sections; dense rows, compact controls. */
 
+/* ── Page surface ── */
 .intakePage {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 16px;
-  max-width: 720px;
+  gap: 0;
+  padding: 12px 14px 16px;
+  max-width: 1200px;
+  background: transparent;
+  color: var(--syn-text-default);
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
 }
 
-/* ── Card ── */
+/* ── Group: replaces nested .card stacks ── */
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--syn-border-subtle);
+}
+.group:last-of-type {
+  border-bottom: none;
+}
+.groupHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.groupTitle {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--syn-text-secondary);
+}
+.groupSub {
+  font-size: 11px;
+  color: var(--syn-text-muted);
+  line-height: 1.4;
+}
+.groupBody {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ── Legacy card classes kept flat for non-Projects-tab consumers
+   (ProjectSummaryCard, SessionCard, IndicatorsCard). No nesting effect. ── */
 .card {
-  background: var(--ui-card-bg, rgba(0,0,0,0.18));
-  border: 1px solid var(--ui-card-border, rgba(255,255,255,0.08));
-  border-radius: 8px;
+  background: transparent;
+  border: 1px solid var(--syn-border-subtle);
+  border-radius: 3px;
   overflow: hidden;
 }
 .cardHeader {
-  padding: 12px 16px 8px;
+  padding: 10px 12px 6px;
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 .cardTitle {
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 600;
-  color: rgba(255,255,255,0.92);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--syn-text-secondary);
   display: flex;
   align-items: center;
   gap: 8px;
 }
 .cardSub {
   font-size: 11px;
-  color: rgba(255,255,255,0.5);
+  color: var(--syn-text-muted);
   line-height: 1.4;
 }
 .cardBody {
-  padding: 0 16px 16px;
+  padding: 0 12px 12px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
-/* ── Row grid ── */
+/* ── Row grids ── */
 .rowGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+.bboxGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+@media (max-width: 720px) {
+  .bboxGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 /* ── Field ── */
@@ -53,139 +106,199 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
 }
 .fieldLabel {
   font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.03em;
-  color: rgba(255,255,255,0.6);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--syn-text-muted);
 }
 .fieldInput,
 .fieldSelect,
 .fieldTextarea {
-  background: rgba(0,0,0,0.25);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 6px;
-  color: rgba(255,255,255,0.9);
+  background: var(--syn-surface-input, var(--syn-surface-elevated));
+  border: 1px solid var(--syn-border-subtle);
+  border-radius: 3px;
+  color: var(--syn-text-default);
   font-size: 12px;
-  padding: 6px 8px;
+  font-family: inherit;
+  padding: 5px 8px;
   outline: none;
-  transition: border-color 0.15s;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+.fieldInput::placeholder,
+.fieldTextarea::placeholder {
+  color: var(--syn-text-muted);
+  opacity: 0.6;
+}
+.fieldInput:hover,
+.fieldSelect:hover,
+.fieldTextarea:hover {
+  border-color: var(--syn-border-default);
 }
 .fieldInput:focus,
 .fieldSelect:focus,
 .fieldTextarea:focus {
-  border-color: rgba(255,255,255,0.3);
+  border-color: var(--syn-border-focus, var(--syn-interaction-focus-ring));
+  background: var(--syn-surface-editor, var(--syn-surface-input));
+}
+.fieldInput[type="number"] {
+  font-variant-numeric: tabular-nums;
 }
 .fieldTextarea {
   min-height: 72px;
   resize: vertical;
+  line-height: 1.5;
 }
 .fieldError {
-  border-color: var(--syn-danger, #e55);
+  border-color: var(--syn-danger);
 }
 .errorText {
   font-size: 11px;
-  color: var(--syn-danger, #e55);
+  color: var(--syn-text-error, var(--syn-danger));
 }
 
-/* ── Chip row ── */
+/* ── Tag chip row ── */
 .chipRow {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 4px;
 }
 .riskChip {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 2px 8px;
-  border-radius: 4px;
+  padding: 3px 8px;
+  border-radius: 3px;
   font-size: 11px;
   font-weight: 500;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.1);
+  font-family: inherit;
+  background: transparent;
+  color: var(--syn-text-secondary);
+  border: 1px solid var(--syn-border-subtle);
   cursor: pointer;
-  transition: background 0.12s, border-color 0.12s;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
 }
 .riskChip:hover {
-  background: rgba(255,255,255,0.1);
+  background: var(--syn-interaction-hover);
+  color: var(--syn-text-default);
+  border-color: var(--syn-border-default);
 }
 .riskChipActive {
-  background: rgba(255,255,255,0.14);
-  border-color: rgba(255,255,255,0.25);
+  background: color-mix(in srgb, var(--syn-interaction-active) 12%, transparent);
+  color: var(--syn-interaction-active);
+  border-color: var(--syn-interaction-active);
+}
+.riskChipActive:hover {
+  background: color-mix(in srgb, var(--syn-interaction-active) 18%, transparent);
+  color: var(--syn-interaction-active);
+  border-color: var(--syn-interaction-active);
 }
 
-/* ── Buttons ── */
+/* ── Selection summary line ── */
+.selectionMeta {
+  font-size: 11px;
+  color: var(--syn-text-muted);
+  line-height: 1.4;
+}
+
+/* ── Submit bar ── */
+.submitBar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  padding-top: 12px;
+  margin-top: 4px;
+  border-top: 1px solid var(--syn-border-subtle);
+}
+
+/* ── Buttons (ghost defaults, blue for primary action) ── */
 .btnPrimary {
-  background: rgba(255,255,255,0.1);
-  border: 1px solid rgba(255,255,255,0.15);
-  border-radius: 6px;
-  color: rgba(255,255,255,0.9);
+  background: transparent;
+  border: 1px solid var(--syn-interaction-active);
+  border-radius: 3px;
+  color: var(--syn-interaction-active);
   font-size: 12px;
-  font-weight: 500;
-  padding: 6px 14px;
+  font-weight: 600;
+  font-family: inherit;
+  padding: 5px 12px;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  transition: background 0.12s ease;
 }
 .btnPrimary:hover {
-  background: rgba(255,255,255,0.16);
-  border-color: rgba(255,255,255,0.25);
+  background: color-mix(in srgb, var(--syn-interaction-active) 10%, transparent);
 }
-.btnPrimary:disabled {
+.btnPrimary:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--syn-interaction-focus-ring) 60%, transparent);
+}
+.btnPrimary:disabled,
+.btnPrimary[aria-disabled="true"] {
   opacity: 0.4;
   cursor: not-allowed;
 }
 .btnSecondary {
   background: transparent;
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 6px;
-  color: rgba(255,255,255,0.7);
+  border: 1px solid transparent;
+  border-radius: 3px;
+  color: var(--syn-text-secondary);
   font-size: 12px;
-  padding: 6px 14px;
+  font-family: inherit;
+  padding: 5px 12px;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
 }
 .btnSecondary:hover {
-  background: rgba(255,255,255,0.06);
+  background: var(--syn-interaction-hover);
+  color: var(--syn-text-default);
+  border-color: var(--syn-border-subtle);
+}
+.btnSecondary:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--syn-interaction-focus-ring) 60%, transparent);
 }
 
-/* ── AI block ── */
+/* ── AI / advisory blocks (used by SessionCard, IndicatorsCard) ── */
 .aiBlock {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 6px;
+  background: transparent;
+  border: 1px solid var(--syn-border-subtle);
+  border-radius: 3px;
   padding: 10px 12px;
 }
 .aiBlockHeader {
   font-size: 11px;
   font-weight: 600;
-  color: rgba(255,255,255,0.7);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--syn-text-secondary);
   margin-bottom: 2px;
 }
 .aiBlockSub {
   font-size: 10px;
-  color: rgba(255,255,255,0.4);
+  color: var(--syn-text-muted);
   margin-bottom: 6px;
 }
 .aiBlockText {
   font-size: 12px;
-  color: rgba(255,255,255,0.75);
+  color: var(--syn-text-default);
   line-height: 1.5;
 }
 .aiBlockMeta {
   font-size: 10px;
-  color: rgba(255,255,255,0.4);
+  color: var(--syn-text-muted);
 }
 
-/* ── Advisory ── */
+/* ── Advisory (info-toned, no amber) ── */
 .advisory {
-  background: rgba(255,180,0,0.08);
-  border: 1px solid rgba(255,180,0,0.15);
-  border-radius: 6px;
+  background: color-mix(in srgb, var(--syn-status-info) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--syn-status-info) 30%, var(--syn-border-subtle));
+  border-radius: 3px;
   padding: 8px 12px;
   font-size: 11px;
-  color: rgba(255,220,100,0.85);
+  color: var(--syn-text-default);
 }
 
 /* ── Count badge ── */
@@ -196,22 +309,23 @@
   min-width: 18px;
   height: 18px;
   padding: 0 5px;
-  border-radius: 9px;
-  background: rgba(255,255,255,0.12);
+  border-radius: 3px;
+  background: var(--syn-surface-elevated);
+  border: 1px solid var(--syn-border-subtle);
   font-size: 10px;
   font-weight: 600;
-  color: rgba(255,255,255,0.8);
+  color: var(--syn-text-secondary);
 }
 
 /* ── Task list ── */
 .taskListWrapper {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 0;
 }
 .taskListEmpty {
   font-size: 11px;
-  color: rgba(255,255,255,0.4);
+  color: var(--syn-text-muted);
   padding: 8px 0;
 }
 .taskRow {
@@ -219,7 +333,10 @@
   align-items: flex-start;
   gap: 8px;
   padding: 6px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.04);
+  border-bottom: 1px solid var(--syn-border-subtle);
+}
+.taskRow:last-child {
+  border-bottom: none;
 }
 .taskRowMain {
   flex: 1;
@@ -233,45 +350,66 @@
 }
 .taskText {
   font-size: 12px;
-  color: rgba(255,255,255,0.85);
+  color: var(--syn-text-default);
   line-height: 1.4;
 }
 .taskDue {
   font-size: 10px;
-  color: rgba(255,255,255,0.45);
+  color: var(--syn-text-muted);
 }
 .taskBadge {
   display: inline-block;
   padding: 1px 6px;
-  border-radius: 4px;
+  border-radius: 3px;
   font-size: 10px;
   font-weight: 500;
-  background: rgba(255,255,255,0.08);
-  color: rgba(255,255,255,0.7);
+  background: transparent;
+  border: 1px solid var(--syn-border-subtle);
+  color: var(--syn-text-secondary);
 }
-.taskBadgeSafety   { background: rgba(255,60,60,0.12); color: rgba(255,120,120,0.9); }
-.taskBadgeLegal    { background: rgba(255,180,0,0.12);  color: rgba(255,200,80,0.9); }
-.taskBadgeMonitoring { background: rgba(80,160,255,0.12); color: rgba(130,190,255,0.9); }
-.taskBadgeFollowup { background: rgba(100,220,100,0.12); color: rgba(140,230,140,0.9); }
-.taskBadgeUncat    { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.55); }
+.taskBadgeSafety {
+  background: color-mix(in srgb, var(--syn-danger) 12%, transparent);
+  border-color: color-mix(in srgb, var(--syn-danger) 35%, transparent);
+  color: var(--syn-text-error, var(--syn-danger));
+}
+.taskBadgeLegal {
+  background: color-mix(in srgb, var(--syn-status-info) 12%, transparent);
+  border-color: color-mix(in srgb, var(--syn-status-info) 35%, transparent);
+  color: var(--syn-status-info);
+}
+.taskBadgeMonitoring {
+  background: color-mix(in srgb, var(--syn-interaction-active) 12%, transparent);
+  border-color: color-mix(in srgb, var(--syn-interaction-active) 35%, transparent);
+  color: var(--syn-interaction-active);
+}
+.taskBadgeFollowup {
+  background: color-mix(in srgb, var(--syn-success) 12%, transparent);
+  border-color: color-mix(in srgb, var(--syn-success) 35%, transparent);
+  color: var(--syn-text-success, var(--syn-success));
+}
+.taskBadgeUncat {
+  background: transparent;
+  border-color: var(--syn-border-subtle);
+  color: var(--syn-text-muted);
+}
 
 /* ── Save footer ── */
 .saveFooterOuter {
   position: sticky;
   bottom: 0;
   z-index: 10;
-  background: var(--syn-bg-root, #111);
-  border-top: 1px solid rgba(255,255,255,0.08);
+  background: var(--syn-surface-workbench, var(--syn-bg-root));
+  border-top: 1px solid var(--syn-border-subtle);
 }
 .saveFooterInner {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 16px;
+  padding: 10px 14px;
 }
 .footerMeta {
   font-size: 11px;
-  color: rgba(255,255,255,0.5);
+  color: var(--syn-text-muted);
   margin-left: auto;
 }
 
