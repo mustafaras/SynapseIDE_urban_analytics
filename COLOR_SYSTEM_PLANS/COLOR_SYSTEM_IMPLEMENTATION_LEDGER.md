@@ -7,12 +7,12 @@ This ledger is the execution source of truth for the color-system operating pack
 ## Current Status
 
 - Operating pack status: reprioritized for two-part amber-removal execution on 2026-05-15.
-- Historical implementation status: old broad Prompts 00-17 completed on 2026-05-15; old pending Prompts 18-37 are superseded by active prompts A01-B10.
-- Active prompt count: 20 prompts, `A01` through `A10` and `B01` through `B10`.
-- Current prompt: Part 1 (Urban Analytics) closed; Part 2 (Center Panel Workbench, C01-C10) inserted between Part 1 and Map Explorer per 2026-05-16 user directive; Prompt C01 - Center Panel Workbench Inventory And Scope Lock is the next active prompt.
-- Next prompt: Prompt C01 - Center Panel Workbench Inventory And Scope Lock.
+- Historical implementation status: old broad Prompts 00-17 completed on 2026-05-15; old pending Prompts 18-37 are superseded by active prompts A01-A10, C01-C10, and B01-B10.
+- Active prompt count: 30 prompts: `A01` through `A10`, `C01` through `C10`, and `B01` through `B10`.
+- Current prompt: Part 1 (Urban Analytics) closed; Part 2 (Center Panel Workbench, C01-C10) underway; Prompts C01-C07 completed on 2026-05-16; next active prompt is C08 - Toolbox Tab — Project List, Action Panel, Capability/Lab/Consulton Panels, Export Bar.
+- Next prompt: Prompt C08 - Toolbox Tab — Project List, Action Panel, Capability/Lab/Consulton Panels, Export Bar.
 - Part 1 status: COMPLETE. All 10 active prompts (A01-A10) completed. Urban Analytics modal is amber-free except for documented analytical/scientific retentions.
-- Part 2 status: PENDING. New 10-prompt ladder (C01-C10) covers Center Panel shell + all eight tab interiors + ambient header animations preservation; runs before the Map Explorer track.
+- Part 2 status: UNDERWAY. New 10-prompt ladder (C01-C10) covers Center Panel shell + all eight tab interiors + ambient header animations preservation; runs before the Map Explorer track.
 - Part 3 status: BLOCKED on C10. Map Explorer prompts renumbered to Part 3 (IDs preserved as B01-B10); B01 dependsOn now C10 in the manifest.
 - Archive context: do not move `DEVELOPMENT_PLANS/` from the current local branch; branch reconciliation is separate.
 - Active migration principle: Urban Analytics modal first, Map Explorer second; no amber UI/default styling, no unnecessary card frames, no filled button plates.
@@ -46,13 +46,13 @@ This ledger is the execution source of truth for the color-system operating pack
 | A08 | Urban Analytics Python, Package, Script Template, And Data Bridge Panels | completed | A07 | Python env/package/script-template UI migrated to charcoal+blue; Python templates' default amber single-color plots swapped for blue, LISA HL color shifted to PySAL convention; walkability diverging ramp retained with documentation. |
 | A09 | Urban Analytics Final Amber Cleanup, Layout Polish, And Visual QA | completed | A08 | Final UA sweep: study-area default, test fixture, all remaining seed/template Python plot defaults, and the BuildingViewer ramp preview migrated. Only documented analytical heatmap swatch and AMBER scientific traffic-light label remain. |
 | A10 | Urban Analytics Handoff And Part 2 Gate | completed | A09 | Part 1 closed; manifest statuses synced to completed. Note: at A10 close the next pointer was B01; on 2026-05-16 a new Part 2 (C01-C10) was inserted between A10 and B01 per user directive, so the next active prompt is now C01 and Map Explorer became Part 3. |
-| C01 | Center Panel Workbench Inventory And Scope Lock | pending | A10 | Tab-scoped Center Panel amber + heavy-chrome inventory; document preserved-animation set. |
-| C02 | Center Panel Shell, Top Header, Tab Frame, Status Rail, Tokens, And Header Animations | pending | C01 | Migrate shell + tokens; preserve atmospheric header animations, migrate color stops only. |
-| C03 | Projects Tab — Registry Layout, Cards, Session, Indicator, And AI Surfaces | pending | C02 | Dense workbench inspector grid; no nested cards. |
-| C04 | New Project Tab — Form Layout, Field Stacks, Tag Pills, Submit Bar | pending | C03 | Single-surface dense intake form; canonical card-stack fix from the user screenshot. |
-| C05 | Methods/Guide Tab — Methods View, Outline Rail, Guide Cards, And Command Bar | pending | C04 | VS Code outline rail discipline; flat guide content. |
-| C06 | Report/Note Tab — Note Editor, Project Header, Sections, Footer, Library Insert | pending | C05 | Workbench notebook editor without nested cards. |
-| C07 | Workflows Tab — Flow Host, Flows Rail, Tiles, Step Pills, Cockpit, And Per-Flow Surfaces | pending | C06 | Dense flow inspector; semantic non-amber run states. |
+| C01 | Center Panel Workbench Inventory And Scope Lock | completed | A10 | Tab-scoped Center Panel amber + heavy-chrome inventory; 122 in-scope amber hits across 26 files and 389 in-scope heavy-chrome hits across 31 files; legacy `--ui-*` token island and preserved-animation set documented; next prompt is C02. |
+| C02 | Center Panel Shell, Top Header, Tab Frame, Status Rail, Tokens, And Header Animations | completed | C01 | Shell + tokens + header re-pointed to workbench palette; `--accentGold` re-pointed to `--syn-text-muted`, `--hdr-state-warning` re-pointed to `--syn-status-running` (non-amber), `.logoCore` amber gradient replaced with charcoal-to-blue, `a11y.focusRing` fallback de-ambered, `DeferredPanelFallback` reshaped to hairline loading row. All 13 keyframes (ambientGlow, dataFlow, neuralPulse, neuralRotate, logoShine, logoPulseAnim, logoRingAnim, pulse, gradientFlow, hologramScan, dataStreamPulse, badgePulse, timerPulse, dotPulse, panelFadeIn, cpFadeSlide) preserved with same timings. C02 target files scan clean; next prompt is C03. |
+| C03 | Projects Tab — Registry Layout, Cards, Session, Indicator, And AI Surfaces | completed | C02 | Registry left rail, project table, detail view, and rail snapshot/workspace cards flattened to transparent 4px-radius surfaces with hairline borders. Amber removed from Registry CardChip hover, "Recently Viewed"/"Relevant Methods" titles, ProjectSummaryCard completeness bar, and WorkspaceCard accent. Selected project row uses 2px blue inset left rail instead of filled amber outline. All three `.primaryBtn` definitions converted to transparent ghost buttons with blue text + hairline hover border. C03 target files scan clean; next prompt is C04. |
+| C04 | New Project Tab — Form Layout, Field Stacks, Tag Pills, Submit Bar | completed | C03 | Three nested `.card` sections collapsed into single `<form>` surface with three `.group` blocks separated by `--syn-border-subtle` hairlines. `newProject.module.css` fully rewritten to workbench tokens (no more `rgba(0,0,0,0.18)` / `rgba(255,255,255,0.08)` / `rgba(255,180,0,...)` literals). Inputs use `--syn-surface-input` + 3px radius, tag chips use blue 12% mix on active, primary button is transparent with 1px blue border + blue text + 10% mix on hover, secondary is ghost. BBox laid out as dedicated 4-column grid (collapses to 2 at ≤720px). `aria-pressed`, `aria-disabled`, `type="submit"`, and form-level Enter-to-submit added; draft store wiring untouched. C04 target files scan clean; next prompt is C05. |
+| C05 | Methods/Guide Tab — Methods View, Outline Rail, Guide Cards, And Command Bar | completed | C04 | All amber literals removed from `navtree.module.css`, `guides.rail.module.css`, and `guides.panel.module.css`. Outline tree active row uses 12%/18% blue mix + 2px inset blue left rail. Follow-up pass per user screenshot: appended Workbench Flatness Override block to `guides.module.css` that neutralizes all decorative `::before/::after` rail accents (rainbow nth-child gimmick, animated underline bars, sticky-gradient bg), flattens `.railSep` to plain uppercase muted labels (no pill), removes the rainbow rail accents, flattens chip filter row to 3px hairline pills, flattens `.block`/`.preview` filled boxes to 2px left-rail quotes, flattens `.macroBtn`/`.secActionBtn`/`.iconBtn` to ghost discipline. Section/card/macro/sticky headers all switched to transparent + bottom hairline. Result: Methods tab now matches the dense workbench discipline of Projects/New Project tabs. C05 target files scan clean; next prompt is C06. |
+| C06 | Report/Note Tab — Note Editor, Project Header, Sections, Footer, Library Insert | completed | C05 | Report/Note tab migrated to flat workbench notebook discipline: header strip, rail groups, sections, format bar, library insert, recent changes, footer, and report builder shell are amber-clean with square/hairline chrome. Follow-up passes moved the report builder into the main/dock workbench layout, flattened the collaboration dock, and restored a full-width stacked report flow with Live Preview at the bottom; next prompt is C07. |
+| C07 | Workflows Tab — Flow Host, Flows Rail, Tiles, Step Pills, Cockpit, And Per-Flow Surfaces | completed | C06 | Flow shell, tiles, rail cards, cockpit controls, scenario/composite/system surfaces, and `flows.module.css` overrides migrated to dense hairline workbench chrome. Primary C07 scan has no amber UI hits; remaining Flow hits are analytical/data palette values documented in the C07 log. Next prompt is C08. |
 | C08 | Toolbox Tab — Project List, Action Panel, Capability/Lab/Consulton Panels, Export Bar | pending | C07 | Workbench inspector sections for labs and consulton. |
 | C09 | Cross-Cutting Surfaces — Urban Context Strip, Outline Nav, Background Tasks, Engine Capabilities, Narrative, Object Detector | pending | C08 | Cross-tab surfaces migrated; preserved animations still play. |
 | C10 | Center Panel Final Cleanup, Visual QA, And Part 3 Gate | pending | C09 | Close Part 2 and unblock Map Explorer (B01). |
@@ -1029,7 +1029,463 @@ No edits required outside `src/features/urbanAnalytics/**` for Part 1.
 - Next recommended prompt: Prompt C01 - Center Panel Workbench Inventory And Scope Lock.
 - Ledger updated: yes.
 
-### Settings Toggle + Slider + Fold Header Gray-Blue Pass - 2026-05-15
+### Prompt C01 - Center Panel Workbench Inventory And Scope Lock - 2026-05-16
+
+- Date: 2026-05-16.
+- Agent: Claude Opus 4.7.
+- Status: completed.
+- Started from:
+  - Launcher: `COLOR_SYSTEM_PLANS/START_HERE_COLOR_SYSTEM_AGENT.md`
+  - Protocol: `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_AGENT_PROTOCOL.md`
+  - Unit matrix: `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_UNIT_MATRIX.md`
+  - Token reference: `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_TOKEN_REFERENCE.md`
+  - Ledger: `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+  - Prompt block: `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` / Prompt C01
+- Files inspected (Part 2 in-scope; map files excluded):
+  - Shell + cross-cutting: `src/centerpanel/CenterPanelShell.tsx`, `src/centerpanel/components/TopHeader.tsx`, `src/centerpanel/components/CenterPanelTabFrame.tsx`, `src/centerpanel/components/StatusRail.tsx`, `src/centerpanel/components/BackgroundTasksControl.tsx`, `src/centerpanel/components/OverflowMenu.tsx`, `src/centerpanel/components/EngineCapabilitiesPanel.tsx`, `src/centerpanel/components/NarrativeGenerationPanel.tsx`, `src/centerpanel/components/ObjectDetectorPanel.tsx`, `src/centerpanel/UrbanContextStrip.tsx`.
+  - Registry / New Project: `src/centerpanel/registry-ui/Registry.tsx`, `src/centerpanel/registry-ui/NewProjectPage.tsx`, `src/centerpanel/registry-ui/newProject.module.css`, `src/centerpanel/registry-ui/ProjectSummaryCard.tsx`, `src/centerpanel/registry-ui/SessionCard.tsx`, `src/centerpanel/registry-ui/IndicatorsCard.tsx`, `src/centerpanel/registry-ui/ConsultantAI.tsx`.
+  - Methods / Guide: `src/centerpanel/Guide/MethodsView.tsx`, `src/centerpanel/Guide/GuideViewV2.tsx`, `src/centerpanel/Guide/OutlineRailV2.tsx`.
+  - Report / Note: `src/centerpanel/tabs/Note.tsx`, `src/centerpanel/tabs/NoteEditor.tsx`, `src/centerpanel/tabs/NoteSections.tsx`, `src/centerpanel/tabs/ProjectHeader.tsx`, `src/centerpanel/tabs/LibraryInsertCard.tsx`.
+  - Flows: `src/centerpanel/Flows/FlowHost.tsx`, `src/centerpanel/Flows/FlowsRail.tsx`, `src/centerpanel/Flows/FlowTile.tsx`, `src/centerpanel/Flows/StepPills.tsx`, `src/centerpanel/Flows/WorkflowCockpit.tsx`, `src/centerpanel/Flows/CompositeIndicatorFlow.tsx`, `src/centerpanel/Flows/FacilityOptimisationFlow.tsx`, `src/centerpanel/Flows/SystemDynamicsFlow.tsx`, `src/centerpanel/Flows/CellularAutomataFlow.tsx`, `src/centerpanel/Flows/ScenarioComparisonFlow.tsx`, `src/centerpanel/Flows/rail/RelatedMethodsCard.tsx`, `src/centerpanel/Flows/scenarioComparisonArtifacts.ts`.
+  - Tools: `src/centerpanel/Tools/ToolsProjectList.tsx`, `src/centerpanel/Tools/ToolsActionPanel.tsx`, `src/centerpanel/Tools/ConsultonPanel.tsx`, `src/centerpanel/Tools/PreviewPanel.tsx`, `src/centerpanel/Tools/components/CapabilitiesOverviewPanel.tsx`, `src/centerpanel/Tools/components/EOConnectorPanel.tsx`, `src/centerpanel/Tools/components/GeoAILab.tsx`, `src/centerpanel/Tools/components/StreamingLab.tsx`, `src/centerpanel/Tools/components/SpatialIndexLab.tsx`, `src/centerpanel/Tools/components/CoverageDiagnosticsPanel.tsx`.
+  - Rail: `src/centerpanel/rail/DraftSnapshotCard.tsx`, `src/centerpanel/rail/WorkspaceInfoCard.tsx`, `src/centerpanel/rail/rail.module.css`.
+  - Styles: `src/centerpanel/styles/centerpanel.module.css`, `src/centerpanel/styles/header-new.module.css`, `src/centerpanel/styles/header-tokens.css`, `src/centerpanel/styles/radical-tabs.module.css`, `src/centerpanel/styles/registry.module.css`, `src/centerpanel/styles/guides.module.css`, `src/centerpanel/styles/guides.panel.module.css`, `src/centerpanel/styles/guides.rail.module.css`, `src/centerpanel/styles/navtree.module.css`, `src/centerpanel/styles/note.module.css`, `src/centerpanel/styles/project-header.module.css`, `src/centerpanel/styles/flows.module.css`, `src/centerpanel/styles/tools.module.css`, `src/centerpanel/styles/tools.left.module.css`, `src/centerpanel/styles/tokens.css`, `src/centerpanel/styles/a11y.module.css`.
+- Files changed:
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+- Tokens added: none.
+- Tokens consumed: none.
+- Tokens aliased or deprecated: none.
+- Product code changed: none. C01 is inventory-only per acceptance criteria.
+- Hard-coded colors removed: none.
+- Center Panel Standard Amber Scan (Part 2):
+  - Command: `rg -n "#F59E0B|#FBBF24|#FDE68A|#D97706|#B45309|#92400E|245\s*,\s*158\s*,\s*11|251\s*,\s*191\s*,\s*36|217\s*,\s*119\s*,\s*6|amber|gold|yellow|orange|gradient-amber|--syn-status-warning" src/centerpanel -g "*.ts" -g "*.tsx" -g "*.css" -g "!components/map/**" -g "!components/Map*.tsx"`
+  - Raw ripgrep result: 67 files matched (includes Part 3 map files because the negation glob does not strip already-walked `src/centerpanel/components/Map*.tsx` and `src/centerpanel/components/map/**` paths on this Windows shell). In-scope subset after post-hoc filtering: 122 hits across 26 files.
+  - In-scope per-file counts (Part 2 only): `components/NarrativeGenerationPanel.tsx` 19; `styles/tools.left.module.css` 19; `components/ObjectDetectorPanel.tsx` 15; `components/EngineCapabilitiesPanel.tsx` 9; `Flows/SystemDynamicsFlow.tsx` 8; `tabs/LibraryInsertCard.tsx` 5; `styles/flows.module.css` 5; `styles/guides.rail.module.css` 5; `registry-ui/Registry.tsx` 4; `Flows/CompositeIndicatorFlow.tsx` 4; `Flows/FlowHost.tsx` 4; `rail/rail.module.css` 3; `styles/navtree.module.css` 3; `Tools/PreviewPanel.tsx` 3; `Flows/FacilityOptimisationFlow.tsx` 3; `Flows/rail/RelatedMethodsCard.tsx` 3; `Flows/FlowsRail.tsx` 1; `Flows/scenarioComparisonArtifacts.ts` 1; `Tools/components/EOConnectorPanel.tsx` 1; `styles/a11y.module.css` 1; `styles/header-new.module.css` 1; `styles/header-tokens.css` 1; `styles/tokens.css` 1; `styles/tools.module.css` 1; `styles/project-header.module.css` 1; `styles/guides.panel.module.css` 1.
+- Center Panel Heavy-Chrome Scan (Part 2):
+  - Command: `rg -n "border-radius:\s*(?:1[0-9]|[2-9][0-9]|999|50%)|borderRadius:\s*(?:1[0-9]|[2-9][0-9]|999)|radial-gradient|linear-gradient|box-shadow:\s*0\s+\d+px|--ui-card-bg|--ui-card-border|--ui-tag-|--ui-pill-" src/centerpanel -g "*.ts" -g "*.tsx" -g "*.css" -g "!components/map/**" -g "!components/Map*.tsx"`
+  - Raw ripgrep result: 43 files matched (includes map files for the same negation-glob reason). In-scope subset after post-hoc filtering: 389 hits across 31 files.
+  - In-scope per-file counts (Part 2 only): `styles/tools.module.css` 124; `styles/guides.module.css` 39; `styles/note.module.css` 35; `styles/tokens.css` 35; `styles/flows.module.css` 26; `rail/rail.module.css` 18; `styles/registry.module.css` 15; `styles/header-new.module.css` 14; `components/BackgroundTasksControl.module.css` 13; `styles/tools.left.module.css` 11; `Flows/CompositeIndicatorFlow.tsx` 9; `Flows/SystemDynamicsFlow.tsx` 8; `Flows/FacilityOptimisationFlow.tsx` 7; `Tools/components/GeoAILab.tsx` 4; `Tools/components/CoverageDiagnosticsPanel.tsx` 3; `styles/guides.rail.module.css` 3; `Flows/CellularAutomataFlow.tsx` 2; `Flows/ScenarioComparisonFlow.tsx` 2; `Tools/components/StreamingLab.tsx` 2; `Tools/components/SpatialIndexLab.tsx` 2; `Tools/PreviewPanel.tsx` 2; `registry-ui/Registry.tsx` 2; `registry-ui/newProject.module.css` 2; `styles/centerpanel.module.css` 2; `styles/guides.panel.module.css` 2; `styles/radical-tabs.module.css` 2; `CenterPanelShell.tsx` 1; `Flows/WorkflowCockpit.tsx` 1; `Tools/components/EOConnectorPanel.tsx` 1; `lib/exporters.ts` 1; `styles/navtree.module.css` 1.
+- Owner-category grouping (amber hits):
+  - `shell-chrome`: `styles/centerpanel.module.css` (`cpFadeSlide` tint), `CenterPanelShell.tsx` (linear-gradient panel transition). Planned prompt: C02.
+  - `tab-bar`: `styles/radical-tabs.module.css` (tab indicator gradients) → kept under C02 motion-preserve rule for the existing top-tab motion language; only color stops migrated, not the motion.
+  - `status-rail`: `styles/centerpanel.module.css` status accents and `components/StatusRail.tsx` (no inline amber) — chrome lives in `centerpanel.module.css`. Planned prompt: C02.
+  - `card-frame`: `rail/rail.module.css` (callout/snapshot/workspace card hover ring + accent gutters), `registry-ui/Registry.tsx` (`sectionTitle` amber fallback), `registry-ui/newProject.module.css` (`.card` legacy local-token frame), `styles/note.module.css` (note section frame), `styles/registry.module.css` (status pills/cards), `styles/guides.module.css` (guide cards). Planned prompts: C03 (Projects), C04 (New Project), C05 (Methods/Guide), C06 (Note), C07 (Flows), C08 (Toolbox), C09 (Rail).
+  - `button-control`: `components/EngineCapabilitiesPanel.tsx` (category chips, "All" active state, status dot fallback `available ? #34D399 : #F59E0B`), `Tools/PreviewPanel.tsx`, `Tools/components/EOConnectorPanel.tsx`, `Flows/FlowsRail.tsx`, `Flows/FlowHost.tsx`, `Flows/rail/RelatedMethodsCard.tsx`. Planned prompts: C07 (Flows), C08 (Toolbox), C09 (cross-cutting controls).
+  - `form-control`: `registry-ui/Registry.tsx` `.sectionTitle` and `newProject.module.css` form labels using `--ui-text-hi`. Planned prompts: C03/C04.
+  - `status-semantic`: `--syn-status-warning` references in `styles/a11y.module.css`, `styles/header-tokens.css`, `styles/header-new.module.css`, `styles/tokens.css`, `styles/tools.module.css`, `styles/project-header.module.css`, `styles/navtree.module.css`, `styles/guides.panel.module.css`, `styles/guides.rail.module.css`, `styles/flows.module.css`, `tabs/LibraryInsertCard.tsx`. Per global contract, warning meaning is preserved through explicit text/icon + non-amber chrome. Planned prompts: C02 (shell), C05 (guide), C06 (note + library insert), C07 (flows), C09 (cross-cutting).
+  - `header-animation`: see preserved-animation list below. Color stops within `@keyframes` blocks in `styles/header-new.module.css` (search/AI panel/composer/timer/dot/badge pulses) currently mix amber tints. Planned prompt: C02 — migrate stops only, do not strip motion.
+  - `data-content`: `Flows/SystemDynamicsFlow.tsx` (population series color `#F59E0B`, flow-link kind dot `#F59E0B`, cross-hair `#FDE68A`), `Flows/CompositeIndicatorFlow.tsx`, `Flows/FacilityOptimisationFlow.tsx`, `Flows/scenarioComparisonArtifacts.ts`, `components/NarrativeGenerationPanel.tsx` (warning headings, citation tags, mode toggle), `components/ObjectDetectorPanel.tsx` (solar_panel category, demo mode, confidence display, table accents, demo dot fill), `components/EngineCapabilitiesPanel.tsx` (`GeoAI & ML` category accent), `tabs/LibraryInsertCard.tsx` (warning chip). Planned prompts: C07 (Flows), C09 (Narrative/ObjectDetector/EngineCapabilities), C06 (Library insert). Visualization-ramp content may retain analytical color only if documented as data, not UI chrome.
+  - `legacy-token-alias`: `--ui-card-bg`, `--ui-card-border`, `--ui-text`, `--ui-muted`, `--ui-callout-*`, `--ui-risk-*`, `--ui-radius`, `--ui-focus-ring-*`, `--ui-meta-*`, `--ui-label-*`, `--ui-accent-*`, `--ui-gap-*`, `--ui-stack-gap-*`, `--ui-hairline`, `--ui-input-h`, `--ui-density-scale`, `--ui-layer-*`. Defined in `styles/tokens.css` (134 references) and consumed by `tools.module.css` (484), `flows.module.css` (227), `guides.module.css` (148), `note.module.css` (135), `registry.module.css` (125), `rail/rail.module.css` (90), `centerpanel.module.css` (19), `Tools/components/GeoAILab.tsx` (7), `Tools/components/StreamingLab.tsx` (2), `Tools/components/SpatialIndexLab.tsx` (2), `Tools/components/CoverageDiagnosticsPanel.tsx` (2), `guides.panel.module.css` (2), `header-new.module.css` (2), `registry-ui/newProject.module.css` (2). C02 re-points the token-source definitions in `styles/tokens.css`, then C03-C09 migrate consumers per tab.
+  - `test-fixture`: none in-scope (the only `__tests__` hits land under `components/map/__tests__/` which is Part 3).
+  - `retain-with-reason`: `styles/header-tokens.css:32` `--hdr-focus-glow` value is a `color-mix` over `--syn-interaction-focus-ring` (blue base, no amber input) — flagged only by the literal `glow` substring. Retain.
+- Owner-category grouping (heavy-chrome hits):
+  - `nested-card`: `registry-ui/NewProjectPage.tsx` lines 82-192 stack three `.card` sections (`Project Identity`, `Spatial Configuration`, `Thematic Tags`) inside the same `.intakePage` parent — this is the canonical card-in-card stack flagged by the user. Planned prompt: C04 (replace with one workbench inspector + group headers + hairline separators). Additional nested cards live in `rail/rail.module.css` (`.card` inside `.section` inside `.calloutInfo`), `styles/guides.module.css` (guide cards nested inside `.guidesPanel`), `styles/flows.module.css` (flow tiles inside `.flowsRail` + cockpit cards inside `.workflowCockpit`), `styles/note.module.css` (section cards inside `.noteEditor`), `styles/tools.module.css` (action panels inside `.toolsPanel`), `styles/registry.module.css` (summary/session/indicator cards). Planned prompts: C03/C05/C06/C07/C08/C09.
+  - `decorative-gradient`: `styles/tools.module.css` (heaviest, 124 hits dominated by `linear-gradient`/`radial-gradient` backgrounds on action panels and capability blocks); `styles/guides.module.css` (39); `styles/note.module.css` (35); `styles/tokens.css` (35 — many are gradient token aliases, not raw chrome); `styles/flows.module.css` (26); `rail/rail.module.css` (18); `styles/registry.module.css` (15); `styles/header-new.module.css` (14, see ambient-motion-keep); `components/BackgroundTasksControl.module.css` (13); `styles/tools.left.module.css` (11); flow components (`CompositeIndicatorFlow` 9, `SystemDynamicsFlow` 8, `FacilityOptimisationFlow` 7). Planned prompts: C02-C09.
+  - `oversized-radius`: `registry-ui/Registry.tsx` (`border-radius: 999`), several flow chips (`SystemDynamicsFlow.tsx`), `CenterPanelShell.tsx` rounded pill, registry/note rounded chips. Planned prompts: C02-C09.
+  - `decorative-shadow`: pattern `box-shadow: 0 \d+px` appears in `header-new.module.css` (badge/timer/pill shadows), `tools.module.css`, `note.module.css`, `flows.module.css`, `registry.module.css`. Planned prompts: C02-C08.
+  - `filled-button-plate`: `components/EngineCapabilitiesPanel.tsx`, `components/NarrativeGenerationPanel.tsx`, `components/ObjectDetectorPanel.tsx`, `Tools/PreviewPanel.tsx`, `Flows/CompositeIndicatorFlow.tsx`, `Flows/FacilityOptimisationFlow.tsx`. Planned prompts: C07/C08/C09.
+  - `legacy-local-token`: see `legacy-token-alias` above — `--ui-card-bg`, `--ui-card-border`, `--ui-tag-*`, `--ui-pill-*` family is concentrated in `styles/tokens.css` (source) and consumed by the 14 modules listed above. Planned prompt: C02 re-points definitions, C03-C09 migrate consumers per tab.
+  - `ambient-motion-keep`: see preserved-animation list below.
+- Preserved animations (must keep motion; migrate color stops only — C02 owner):
+  - File: `src/centerpanel/styles/header-new.module.css`.
+  - `@keyframes ambientGlow` (line 87) — drives ambient header background glow drift (8s ease-in-out infinite, line 63). Currently uses `--syn-glow-subtle` and color-mix on `--syn-interaction-active`; verify resolved value is not amber on C02 entry, otherwise migrate stops to charcoal+restrained-blue.
+  - `@keyframes dataFlow` (line 92) — slow gradient/particle drift (20s linear infinite, line 82). Color stops to migrate.
+  - `@keyframes neuralPulse` (line 177) — neural avatar pulse (2.5s ease-in-out infinite, line 172). Stops to migrate.
+  - `@keyframes neuralRotate` (line 210) — neural ring rotation (20s linear infinite, line 207). Stops to migrate.
+  - `@keyframes logoShine` (line 250 wrapper), `logoPulseAnim` (line 260 wrapper), `logoRingAnim` (line 270 wrapper) — logo shine/pulse/ring stack. Stops to migrate.
+  - `@keyframes pulse` (line 306) — `CONNECTED` chip pulse (2s cubic-bezier infinite, line 297). Stops to migrate.
+  - `@keyframes gradientFlow` (line 373) — animated linear-gradient flow (3s linear infinite, line 369). Stops to migrate.
+  - `@keyframes hologramScan` (line 393) — scan line motion (2s linear infinite, line 390). Stops to migrate.
+  - `@keyframes dataStreamPulse` (line 419) — data-stream stripe pulse (1.5s ease-in-out infinite, line 415). Stops to migrate.
+  - `@keyframes badgePulse` (line 487) — TASKS / status badge pulse (3s ease-in-out infinite, line 484). Stops to migrate (currently mixes amber-tinted glow inputs).
+  - `@keyframes timerPulse` (line 901) — session timer numeric pulse (1600ms ease-in-out infinite, line 898). Stops to migrate.
+  - `@keyframes dotPulse` (line 937) — LIVE dot pulse (1400ms ease-in-out infinite, line 934). Stops to migrate.
+  - `@keyframes panelFadeIn` (line 1036) — overflow panel fade-in (line 1033). No color stops; pure transform/opacity — keep as-is.
+  - File: `src/centerpanel/styles/centerpanel.module.css` — `@keyframes cpFadeSlide` (line 107) drives tab-switch fade-slide (180ms ease, line 105). Transform/opacity only; keep as-is. `[data-reduce-motion]` override (line 111) preserved.
+  - C02 acceptance: every animation listed above must still play at the end of C02; only the color stops/values inside the keyframes and on the animated elements may be changed.
+- Canonical card-in-card example (user-flagged):
+  - File: `src/centerpanel/registry-ui/NewProjectPage.tsx`.
+  - Sections rendered by `intakePage` (line 82 onward): `.card > .cardHeader (title + sub) + .cardBody` repeated three times — `Project Identity` (82-111), `Spatial Configuration` (114-166), `Thematic Tags` (169-192). Each `.card` uses `--ui-card-bg` + `--ui-card-border` from `newProject.module.css` lines 12-16. C04 must collapse this to a single workbench inspector surface with group headers + hairline separators per the Part 2 visual contract.
+- Tab-by-tab migration order (locked):
+  1. C02 — Shell + tokens (`CenterPanelShell.tsx`, `TopHeader.tsx`, `CenterPanelTabFrame.tsx`, `StatusRail.tsx`, `BackgroundTasksControl.tsx`, `OverflowMenu.tsx`, `UrbanContextStrip.tsx`, `styles/centerpanel.module.css`, `styles/header-new.module.css`, `styles/header-tokens.css`, `styles/radical-tabs.module.css`, `styles/tokens.css`, `styles/a11y.module.css`). Re-point the `--ui-*` token source so downstream tabs inherit workbench tokens.
+  2. C03 — Projects tab (`registry-ui/Registry.tsx`, `ProjectSummaryCard.tsx`, `SessionCard.tsx`, `IndicatorsCard.tsx`, `ConsultantAI.tsx`, `styles/registry.module.css`).
+  3. C04 — New Project tab (`registry-ui/NewProjectPage.tsx`, `registry-ui/newProject.module.css`). Collapse three `.card` sections into one workbench inspector.
+  4. C05 — Methods / Guide tab (`Guide/MethodsView.tsx`, `Guide/GuideViewV2.tsx`, `Guide/OutlineRailV2.tsx`, `nav/**`, `styles/guides.module.css`, `styles/guides.panel.module.css`, `styles/guides.rail.module.css`, `styles/navtree.module.css`).
+  5. C06 — Report / Note tab (`tabs/Note.tsx`, `tabs/NoteEditor.tsx`, `tabs/NoteSections.tsx`, `tabs/ProjectHeader.tsx`, `tabs/LibraryInsertCard.tsx`, `styles/note.module.css`, `styles/project-header.module.css`).
+  6. C07 — Workflows tab (`Flows/FlowHost.tsx`, `Flows/FlowsRail.tsx`, `Flows/FlowTile.tsx`, `Flows/StepPills.tsx`, `Flows/WorkflowCockpit.tsx`, `Flows/CompositeIndicatorFlow.tsx`, `Flows/FacilityOptimisationFlow.tsx`, `Flows/SystemDynamicsFlow.tsx`, `Flows/CellularAutomataFlow.tsx`, `Flows/ScenarioComparisonFlow.tsx`, `Flows/rail/RelatedMethodsCard.tsx`, `Flows/scenarioComparisonArtifacts.ts`, `styles/flows.module.css`).
+  7. C08 — Toolbox tab (`Tools/ToolsProjectList.tsx`, `Tools/ToolsActionPanel.tsx`, `Tools/ConsultonPanel.tsx`, `Tools/PreviewPanel.tsx`, `Tools/components/CapabilitiesOverviewPanel.tsx`, `Tools/components/EOConnectorPanel.tsx`, `Tools/components/GeoAILab.tsx`, `Tools/components/StreamingLab.tsx`, `Tools/components/SpatialIndexLab.tsx`, `Tools/components/CoverageDiagnosticsPanel.tsx`, `styles/tools.module.css`, `styles/tools.left.module.css`).
+  8. C09 — Cross-cutting (`UrbanContextStrip.tsx`, `OutlineNav.tsx`, `BackgroundTasksControl.tsx`, `EngineCapabilitiesPanel.tsx`, `NarrativeGenerationPanel.tsx`, `ObjectDetectorPanel.tsx`, `rail/DraftSnapshotCard.tsx`, `rail/WorkspaceInfoCard.tsx`, `rail/rail.module.css`).
+  9. C10 — Final QA + Part 3 gate.
+- Validation:
+  - Documentation-only. Both Center Panel scans executed; per-file counts recorded above.
+  - No product code changed; no tokens added/removed; no behavior changes.
+- Known risks (recorded for C02-C10):
+  - Negation-glob ordering: `-g "!components/map/**"` is unreliable on this Windows shell because PowerShell expands the glob before ripgrep sees it. C02-C10 should run scans with absolute paths and a single quoted `-g` pattern, or filter results post-hoc as C01 did. Recorded in Known Risks below.
+  - `--ui-*` token island is large (1300+ references across 14 modules). C02 must re-point the source values in `styles/tokens.css` carefully — flipping them to workbench tokens will propagate immediately to every C03-C09 consumer before those prompts run, which is desired but means each subsequent C-prompt must re-scan its own files after C02 lands and only migrate residual amber/heavy-chrome that did not auto-resolve from the token-source flip.
+- Next recommended prompt: Prompt C02 - Center Panel Shell, Top Header, Tab Frame, Status Rail, Tokens, And Header Animations.
+
+### Prompt C02 - Center Panel Shell, Top Header, Tab Frame, Status Rail, Tokens, And Header Animations - 2026-05-16
+
+- Date: 2026-05-16.
+- Agent: Claude Opus 4.7.
+- Status: completed.
+- Started from:
+  - Launcher: `COLOR_SYSTEM_PLANS/START_HERE_COLOR_SYSTEM_AGENT.md`
+  - Protocol: `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_AGENT_PROTOCOL.md`
+  - Token reference: `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_TOKEN_REFERENCE.md`
+  - Ledger: `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+  - Prompt block: `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` / Prompt C02
+  - C01 inventory: included preserved-animation list, `--ui-*` token island map, and category groupings.
+- Files inspected (C02 primary scope):
+  - `src/centerpanel/CenterPanelShell.tsx`
+  - `src/centerpanel/components/TopHeader.tsx`
+  - `src/centerpanel/components/CenterPanelTabFrame.tsx`
+  - `src/centerpanel/components/StatusRail.tsx`
+  - `src/centerpanel/components/BackgroundTasksControl.tsx`
+  - `src/centerpanel/components/BackgroundTasksControl.module.css`
+  - `src/centerpanel/components/OverflowMenu.tsx`
+  - `src/centerpanel/styles/tokens.css`
+  - `src/centerpanel/styles/centerpanel.module.css`
+  - `src/centerpanel/styles/header-tokens.css`
+  - `src/centerpanel/styles/header-new.module.css`
+  - `src/centerpanel/styles/radical-tabs.module.css`
+  - `src/centerpanel/styles/a11y.module.css`
+- Files changed:
+  - `src/centerpanel/CenterPanelShell.tsx` — `DeferredPanelFallback` reshaped from filled `border-radius: 12` + `--syn-surface-elevated` card to compact hairline loading row (radius 3px, transparent background, top/bottom 1px borders, 14×14 spinner, 12px mono font).
+  - `src/centerpanel/styles/tokens.css` — line 103 `--accentGold: var(--syn-status-warning)` → `var(--syn-text-muted)` to remove the last gold alias from the Center Panel token source (no in-scope consumers; pre-emptive cleanup).
+  - `src/centerpanel/styles/header-tokens.css` — line 36 `--hdr-state-warning: var(--syn-status-warning)` → `var(--syn-status-running)` so the system-status indicator dot (`status_processing` in `header-new.module.css:296`) keeps its 2s `pulse` animation but draws as restrained blue instead of amber. Inline comment records the rationale.
+  - `src/centerpanel/styles/header-new.module.css` — `.logoCore` background changed from `var(--syn-gradient-amber)` to `linear-gradient(135deg, color-mix(--syn-interaction-selected 70%, --syn-interaction-active), --syn-interaction-active)`. Same shape, same `logoShine` 4s animation, same inset highlights — just the amber color stops swapped for charcoal-to-blue.
+  - `src/centerpanel/styles/a11y.module.css` — line 15 `.focusRing` outline fallback `#F59E0B` → `var(--syn-interaction-focus-ring, #3794ff)` so any element relying on the focus-ring fallback gets blue, not amber.
+- Tokens added: none.
+- Tokens consumed: `--syn-interaction-active`, `--syn-interaction-selected`, `--syn-interaction-focus-ring`, `--syn-status-running`, `--syn-text-muted`, `--syn-border-subtle`, `--syn-text-secondary` (all pre-existing workbench tokens).
+- Tokens aliased/re-pointed: `--accentGold` → `--syn-text-muted` (was `--syn-status-warning`); `--hdr-state-warning` → `--syn-status-running` (was `--syn-status-warning`).
+- Tokens deleted: none — kept `--accentGold` alias as a re-pointed bridge so any downstream consumer outside the C02 surface continues to resolve cleanly.
+- Animations preserved (verified by file inspection, not removed):
+  - `header-new.module.css`: `ambientGlow` 8s ease-in-out (line 87), `dataFlow` 20s linear (line 92), `neuralPulse` 2.5s ease-in-out (line 177), `neuralRotate` 20s linear (line 210), `logoShine` 4s ease-in-out (line 250), `logoPulseAnim` 2s ease-in-out (line 260), `logoRingAnim` 3s ease-in-out (line 270), `pulse` 2s cubic-bezier (line 297) — now drives non-amber `status_processing` dot, `gradientFlow` 3s linear (line 369), `hologramScan` 2s linear (line 390), `dataStreamPulse` 1.5s ease-in-out (line 415), `badgePulse` 3s ease-in-out (line 484), `timerPulse` 1600ms ease-in-out (line 898), `dotPulse` 1400ms ease-in-out (line 934), `panelFadeIn` 200ms (line 1033).
+  - `centerpanel.module.css`: `cpFadeSlide` 180ms ease (line 105) preserved; `[data-reduce-motion]` override intact (line 111).
+  - Color stops migrated: only `.logoCore` (amber gradient → charcoal+blue gradient) and `status_processing` (`--hdr-state-warning` rebind from amber to `--syn-status-running`). All other animated elements (SVG neural nodes/links in `TopHeader.tsx`, `.copilot` brand gradient, `.timeBtn` running state, `.sessionBadge` glow) already used `--syn-interaction-active`/`--syn-interaction-selected`/`--syn-status-info` and required no stop changes.
+- Shell behavior preserved: `MAIN_SCROLL_ROOT_ID` import + `id="cp3-main-scroll-root"` unchanged in `CenterPanelTabFrame.tsx`; lazy import wiring via `lazyWithRetry` + `ChunkLoadBoundary` + `Suspense` fallback contract unchanged (only the fallback's inline style changed, not its render shape); tab-switch state and panel bridge syncs (`usePanelBridgeStore.setActiveTab/setActiveFlowId`) unchanged; keyboard navigation (`handleTablistKeyDown`, number-key tab jump) untouched.
+- Tab bar (`radical-tabs.module.css`): inspected, found no amber. Existing decorative segment header gradient uses neutral white-alpha; not a regression target for C02 (will be revisited in C05/C09 if heavy-chrome cleanup is desired).
+- Overflow menu / status rail / background tasks: `BackgroundTasksControl.module.css` already uses the `--syn-status-running/pending/valid/error/stale` family and a blue `--tasks-accent`; no amber to migrate. Status rail (`centerpanel.module.css` lines 435-462) uses `--status-seg-*` derived from `--ui-risk-*`, which resolve to `--syn-success`/`--syn-warning`/`--ui-risk-high` (orange, not amber); kept as semantic risk colors. Overflow menu uses `--hdr-*` family tokens which all resolve to `--syn-*` workbench values.
+- Amber scan before (C02 primary files only):
+  - Command: `rg -n "#F59E0B|#FBBF24|#FDE68A|#D97706|#B45309|#92400E|amber|gold|yellow|orange|gradient-amber|--syn-status-warning" <C02 primary file list>`
+  - Result: 4 hits across 4 files — `tokens.css:103` (`--accentGold`), `header-tokens.css:36` (`--hdr-state-warning`), `header-new.module.css:245` (`.logoCore` amber gradient), `a11y.module.css:15` (`#F59E0B` focus fallback).
+- Amber scan after (C02 primary files only):
+  - Same command.
+  - Result: 2 hits, both inside the explanatory comment added at `header-tokens.css:36-37` documenting why the warning state was re-pointed (the words "amber" and "gold" appear in the comment text). Zero amber rendered chrome remains in C02 scope.
+- Heavy-chrome scan after (C02 primary files only): `CenterPanelShell.tsx` dropped from 1 → 0 (deferred fallback `borderRadius: 12` → `3`); other primary files' heavy-chrome footprints unchanged (none are amber-coupled).
+- Validation:
+  - `npm run typecheck` → passed (no TypeScript errors).
+  - `npm run test:analytics` → passed: 62 test files, 1111 tests, 36.12s runtime.
+  - Targeted vitest for `src/centerpanel/components/__tests__/*` not separately run — the directory contains only Map Explorer (Part 3) test files; no C02 component-level test fixtures exist.
+  - Manual visual verification: keyframe blocks remained in `header-new.module.css` at the same line offsets as the C01 inventory; only color stops changed. `[data-reduce-motion]` override at `centerpanel.module.css:111` still gates motion.
+- Known risks: re-pointing `--hdr-state-warning` away from `--syn-status-warning` means any consumer that imported the header-token alias expecting an amber attention tint will now render in blue. The only in-scope consumer is `status_processing` (the small logo dot during simulated "processing" state), which is intended — the rest of the application reads `--syn-status-warning` directly and is unaffected.
+- Next recommended prompt: Prompt C03 - Projects Tab — Registry Layout, Cards, Session, Indicator, And AI Surfaces.
+
+### Prompt C03 - Projects Tab — Registry Layout, Cards, Session, Indicator, And AI Surfaces - 2026-05-16
+
+- Date: 2026-05-16.
+- Agent: Claude Opus 4.7.
+- Status: completed.
+- Started from: standard color-system operating pack + C01 inventory.
+- Files inspected: `src/centerpanel/registry-ui/Registry.tsx`, `ProjectSummaryCard.tsx`, `SessionCard.tsx`, `IndicatorsCard.tsx`, `ConsultantAI.tsx`, `consultantAI.module.css`, `src/centerpanel/styles/registry.module.css`, `src/centerpanel/rail/DraftSnapshotCard.tsx`, `WorkspaceInfoCard.tsx`, `rail.module.css`.
+- Files changed:
+  - `src/centerpanel/registry-ui/Registry.tsx` — CardChip hover handler swapped from `rgba(245,158,11,...)` amber to `--syn-interaction-hover` + `--syn-border-active`. "Recently Viewed" and "Relevant Methods" section titles re-pointed from `var(--syn-accent-primary, #F59E0B)` to `var(--syn-interaction-active, #3794ff)` (2 occurrences via `replace_all`).
+  - `src/centerpanel/registry-ui/ProjectSummaryCard.tsx` — Data Completeness bar fill `var(--color-accent, #f59e0b)` → `var(--syn-interaction-active, #3794ff)`.
+  - `src/centerpanel/styles/registry.module.css` — `.section` filled `--syn-overlay-whisper` bg + 12px radius → transparent + `--syn-border-subtle` + 4px radius. `.tableCard` same treatment. `.row:hover` → `--syn-interaction-hover`. `.row[aria-selected]` filled amber-tinted `--syn-accent-bg` + outline → transparent with 2px inset blue left rail (`box-shadow: inset 2px 0 0 var(--syn-interaction-active)`) and `--syn-text-default`. Duplicate `:where(.section, .tableCard)` block also flattened (no decorative shadow, 4px radius). All three `.primaryBtn` definitions converted to ghost: transparent bg, no fixed border, blue (`--syn-interaction-active`) text, hairline border + `--syn-interaction-hover` on hover, 4px radius. `.leftRail .section::before` left-rail marker narrowed from 4px to 2px and radius reduced from 12px to 4px to match the new flat-section shape. `.leftRail .section:nth-of-type(1)` and `(3)` rail-accent re-pointed from `--syn-accent-primary` to `--syn-interaction-active` (the other 3 stay on success/danger/info as semantic anchors).
+  - `src/centerpanel/rail/rail.module.css` — `.workspaceCard` decorative `linear-gradient` filled bg + 12px radius → transparent + 4px hairline border. `.workspaceCardAccent` amber gradient (`rgba(245,158,11,0.12)` + amber border) → 6% blue-tinted bg with blue-mixed border. `.workspaceTitle` color `var(--syn-accent-primary, #F59E0B)` → `--syn-text-default`, font sized down, uppercase. `.snapshotCard` final-cascade override flattened: transparent bg, `--syn-border-subtle`, 4px radius, no box-shadow, `--syn-text-default` text.
+  - `SessionCard.tsx`, `IndicatorsCard.tsx`, `ConsultantAI.tsx`, `consultantAI.module.css`, `DraftSnapshotCard.tsx`, `WorkspaceInfoCard.tsx` — no amber found in scan; no changes required. These files render through `newProject.module.css` (C04 scope) or already-neutral `consultantAI.module.css`.
+- Tokens added: none.
+- Tokens consumed: `--syn-interaction-active`, `--syn-interaction-hover`, `--syn-border-active`, `--syn-border-subtle`, `--syn-text-default`.
+- Product code changed: only inline-style amber literals and CSS chrome; no project registry behavior, session persistence, indicator binding, ConsultantAI wiring, or collaboration presence logic touched.
+- Heavy-chrome reduction: registry `.section` and `.tableCard` radii from 12px → 4px; primaryBtn radius from 8px → 4px; rail `.workspaceCard` from 12px → 4px; `.snapshotCard` final cascade from `--ui-radius` (8px) → 4px; selected-row visual replaced filled rounded plate with 2px blue inset rail; primary CTAs no longer rendered as filled rounded plates.
+- Amber scan after (C03 primary files only): 0 hits. Pre-migration there were 4 amber hits in `Registry.tsx`, 1 in `ProjectSummaryCard.tsx`, 3 in `rail/rail.module.css` (8 total); all removed.
+- Validation:
+  - `npm run typecheck` → passed.
+  - Targeted vitest for `registry-ui/**/__tests__/*` — directory does not exist (no test fixtures to run).
+  - `test:analytics` not re-run (no behavioral change; C02 already proved the full suite green and C03 edits are CSS + cosmetic style-prop only).
+- Known risks: `--ui-card-bg` / `--ui-card-border` are still referenced inside `registry.module.css` and `rail.module.css` (`.metaKbd`, `.cardSub`, `.snapshotCard` middle-cascade override, `.callout`, `.microLabel`, `.pill`, etc.) — these resolve to neutral charcoal in the current token chain and do not render amber, so they are not C03 regressions; the `--ui-*` token island is a structural concern reserved for the broader cross-tab cleanup in C09/C10.
+- Next recommended prompt: Prompt C04 - New Project Tab — Form Layout, Field Stacks, Tag Pills, Submit Bar.
+
+### Prompt C04 - New Project Tab — Form Layout, Field Stacks, Tag Pills, Submit Bar - 2026-05-16
+
+- Date: 2026-05-16.
+- Agent: Claude Opus 4.7.
+- Status: completed.
+- Files inspected: `src/centerpanel/registry-ui/NewProjectPage.tsx`, `src/centerpanel/registry-ui/newProject.module.css`, `src/stores/useNewProjectDraftStore.ts` (read-only).
+- Files changed:
+  - `src/centerpanel/registry-ui/NewProjectPage.tsx` — replaced three `<section className={styles.card}>` blocks with three `<section className={styles.group}>` blocks inside a single `<form>` parent. Each group: `groupHeader` (title + sub on the same baseline row), `groupBody` (dense field rows). BBox inputs moved from `rowGrid` to a dedicated `bboxGrid` (4 columns at ≥720px, 2 at narrow). Tag chips gained `type="button"` + `aria-pressed`. Form supports Enter-to-submit; primary button gets `type="submit"` + `aria-disabled` mirroring `disabled`. `canCreate` derived constant centralizes the validation gate.
+  - `src/centerpanel/registry-ui/newProject.module.css` — full rewrite (~310 lines). Removed all `rgba(0,0,0,0.18)`, `rgba(255,255,255,0.08)`, `rgba(255,255,255,0.1)`, `rgba(255,255,255,0.14)` literal surfaces. Added `.group/.groupHeader/.groupTitle/.groupSub/.groupBody/.bboxGrid/.submitBar/.selectionMeta` for the new structure. Kept `.card/.cardHeader/.cardTitle/.cardSub/.cardBody` classes as legacy flat hairline shells so non-Projects-tab consumers (`ProjectSummaryCard`, `SessionCard`, `IndicatorsCard`) still render without nested filled chrome. `.fieldInput/.fieldSelect/.fieldTextarea` migrated to `--syn-surface-input` background, `--syn-border-subtle` border, `--syn-border-focus` focus, 3px radius, tabular-nums for numeric inputs. `.riskChip` now transparent + `--syn-border-subtle`, hover lifts to `--syn-interaction-hover`; `.riskChipActive` uses 12% blue mix + 1px `--syn-interaction-active` border + blue text. `.btnPrimary` rebuilt as transparent + 1px `--syn-interaction-active` border + blue text + 10% blue-tint hover (no filled plate). `.btnSecondary` becomes a transparent ghost with neutral hover surface. `.advisory` re-toned from amber-orange to `--syn-status-info` (blue) mix. `.taskBadgeLegal` re-pointed from amber to `--syn-status-info`; other task-badge tones migrated to semantic syn tokens. `.saveFooterOuter`, `.aiBlock`, `.countBadge` re-pointed to workbench tokens.
+- Tokens consumed: `--syn-text-default`, `--syn-text-secondary`, `--syn-text-muted`, `--syn-text-error`, `--syn-text-success`, `--syn-border-subtle`, `--syn-border-default`, `--syn-border-focus`, `--syn-surface-input`, `--syn-surface-elevated`, `--syn-surface-workbench`, `--syn-interaction-active`, `--syn-interaction-hover`, `--syn-interaction-focus-ring`, `--syn-status-info`, `--syn-success`, `--syn-danger`. No new tokens added.
+- Behavior preserved: `useNewProjectDraftStore` reads (`name/description/scale/crs/bbox/tags`), writes (`setName/setDescription/setScale/setCrs/setBbox/addTag/removeTag`), `toDraft()`, `reset()`, `actions.addProject` call shape, `updateBbox` parsing, and `toggleTag` add/remove flow are untouched. Validation gate (`name.trim().length > 0`) preserved as `canCreate`.
+- Amber scan after (C04 primary files only): 0 functional hits (one literal "amber" string remains inside an explanatory comment in `newProject.module.css`).
+- Heavy-chrome reduction: 3 nested `.card` panels → 1 surface with 3 hairline-separated groups. Field radii 6-8px → 3px. Button radii 6px → 3px. All decorative `rgba` filled surfaces removed. Card-in-card stack flagged by user is gone.
+- Validation:
+  - `npm run typecheck` → passed.
+  - Targeted vitest: no `useNewProjectDraftStore` or `NewProjectPage` test files exist; nothing to run.
+- Known risks: `.card/.cardHeader/.cardTitle/.cardSub/.cardBody/.rowGrid/.fieldGroup/.fieldLabel/.riskChip/.aiBlock` classes are still imported by `ProjectSummaryCard.tsx`, `SessionCard.tsx`, and `IndicatorsCard.tsx`. The class names are preserved but their visual treatment is now flat (transparent + hairline + 3px radius), so those components will render in the new workbench style if surfaced — no breakage, just consistent flat chrome.
+- Next recommended prompt: Prompt C05 - Methods/Guide Tab — Methods View, Outline Rail, Guide Cards, And Command Bar.
+
+### Prompt C05 - Methods/Guide Tab — Methods View, Outline Rail, Guide Cards, And Command Bar - 2026-05-16
+
+- Date: 2026-05-16.
+- Agent: Claude Opus 4.7.
+- Status: completed.
+- Files inspected: `src/centerpanel/Guide/MethodsView.tsx`, `GuideViewV2.tsx`, `GuideView.tsx`, `OutlineRailV2.tsx`, `OutlineRail.tsx`, `GuideCard.tsx`, `GuideCommandBar.tsx`, `GuideMacros.tsx`, `src/centerpanel/nav/GuideTree.tsx`, `src/centerpanel/styles/guides.module.css`, `guides.panel.module.css`, `guides.rail.module.css`, `navtree.module.css`. All 8 Guide TSX files plus `GuideTree.tsx` scanned for amber → 0 hits (no inline amber, no MAP_COLORS references). All amber lives in 3 CSS modules.
+- Files changed:
+  - `src/centerpanel/styles/navtree.module.css` — `.item` flattened from 12px filled border to 3px transparent hairline with hover lifting to `--syn-interaction-hover`. `.active` row migrated from amber bg (`rgba(245,158,11,.10)`) + amber border (`rgba(245,158,11,.55)`) + amber text (`#FDE68A`) to 12% blue mix bg + 2px inset blue left rail + `--syn-interaction-active` text. `.active:hover` deepened to 18% blue mix.
+  - `src/centerpanel/styles/guides.rail.module.css` — `.count` badge amber bg+border (`rgba(245,158,11,0.18)` / `0.30`) → blue mix 14%/28% with `--syn-interaction-active` text; radius 999px → 3px. `.search:focus` amber outline (`rgba(245,158,11,0.45)`) → 55% `--syn-interaction-focus-ring` mix. `.accent` amber bar (`rgba(245,158,11,.55)`) → solid `--syn-interaction-active`, width 4px → 2px (VS Code rail proportion). `.rowBtn:focus-visible` fallback `#F59E0B` → `var(--syn-interaction-focus-ring, #3794ff)`.
+  - `src/centerpanel/styles/guides.panel.module.css` — `.headTools button[data-active]` amber filled bg (`rgba(245,158,11,0.18)`) → 12% blue mix + inset blue 2px bottom underline (VS Code tab discipline), text `--syn-text-default`.
+  - `src/centerpanel/styles/guides.module.css` — `.topHeader` 12px-radius filled card → transparent + hairline bottom border. `.card` 12px-radius filled card → transparent + hairline bottom border + 0 radius. `:where(.card, .section)` duplicate decorative-shadow cascade neutralized (transparent, no shadow, no border, 0 radius). `.commandBar` 12px-radius filled sticky bar → transparent + hairline bottom border + 0 radius, padding tightened. `.rail` final cascade override flattened from `--ui-card-bg` + `--ui-card-shadow` + `--ui-radius` to transparent + 1px right hairline + 0 radius + no shadow (preserves earlier `.rail` definitions in cascade for non-overridden properties).
+- Tokens consumed: `--syn-interaction-active`, `--syn-interaction-hover`, `--syn-interaction-focus-ring`, `--syn-border-subtle`, `--syn-text-default`, `--syn-text-secondary`, `--syn-surface-workbench`. No new tokens added.
+- Behavior preserved: outline scroll-spy (`useScrollSpy.ts`), guide selection, command palette routing, macro injection, and outline highlight logic untouched — CSS-only edits.
+- Heavy-chrome reduction: `.topHeader`, `.card`, `.commandBar`, `.rail` final cascade no longer render as 12px filled cards with decorative shadows; they read as flat sections separated by hairlines. Active outline-tree row uses a 2px blue rail instead of a filled bordered plate.
+- Amber scan after (C05 primary files only): 0 hits across 8 TSX + 1 GuideTree.tsx + 4 CSS modules. Pre-migration there were 8 amber literal hits across the 3 CSS modules; all removed.
+- Validation:
+  - `npm run typecheck` → passed.
+  - Targeted vitest for Guide tests — none exist in `src/centerpanel/Guide/`.
+- Known risks: `.commandBar` still references `--syn-bg-root` via `--syn-surface-workbench` fallback; on theme switch the bg should follow workbench surface, but legacy fallback covers the case. Many `--ui-*` token references remain inside `guides.module.css` (chip/section accents). These resolve to neutral workbench values today and are scheduled for systemic cleanup in C09/C10 — not C05 regressions.
+- Next recommended prompt: Prompt C06 - Report/Note Tab — Note Editor, Project Header, Sections, Footer, Library Insert.
+
+### Prompt C05 Second Follow-Up — Methods Tab Layout Consolidation + React Icons - 2026-05-16
+
+- Date: 2026-05-16.
+- Agent: Claude Opus 4.7.
+- Status: completed.
+- Trigger: user-supplied second screenshot showed the Methods tab still rendering TWO indexes side-by-side (the shell-supplied `OutlineRail` in the far-left column AND `MethodsView`'s own internal `<OutlineRail />` inside the main panel). Plus emoji unicode (🌎/🌐/🛰️/🏗️/🚌/🌳/💰/🎮/🗄️) in category labels and a sprawling top header that bloated vertical space. User feedback: "ortanın solunda çok gereksiz boşluk oluyor index ile methodoloji guide ı birleştirerek ve emoji iconlar yerine react iconlar kullanarak çok daha pro ve premium bir tasarım vs code estetiğiyle".
+- Files changed:
+  - `src/centerpanel/Guide/categoryIcon.tsx` — NEW. Maps each `GUIDE_CATEGORIES` key to a lucide-react icon component (BarChart3, Globe2, Satellite, Building2, Bus, Trees, Wallet, Box, Database), with FileText fallback. Exports `<CategoryIcon category={...} size={...} />`.
+  - `src/centerpanel/Guide/MethodsView.tsx` — full rewrite. Removed the inner `<OutlineRail />` and the wrapper flex layout entirely. The view is now a single scrollable column: compact top header (title chip + search + horizontally-scrollable chip strip) followed by guide cards. The shell-supplied `OutlineRail` in the left column is the sole index, eliminating the duplicate. Category emojis in card titles and chip labels replaced with `<CategoryIcon />`. Section body padding tightened from `4px 12px 10px` to `4px 0 8px` so the section content aligns with the card border.
+  - `src/centerpanel/Guide/OutlineRail.tsx` — replaced the inline copy/insert SVG paths with `lucide-react` `Copy`/`Plus` icons (same as `OutlineRailV2`). Added `<CategoryIcon category={it.category} size={12} />` next to each rail row's title so the index now shows a per-category React icon instead of relying on emoji prefixes scraped from card titles. Wrapped the title text in an inline-flex layout with overflow ellipsis to keep rows compact.
+  - `src/centerpanel/styles/guides.module.css` — appended a compact `.topHeader` override: 3-column grid (title | search | chips), horizontal-only chip scroll (no wrap, no scrollbar), 6px vertical padding, uppercase title chip, all `!important` to win against the legacy cascade. `.chips` row now stays a single line regardless of category count.
+- Tokens consumed: existing workbench tokens only. No new tokens.
+- Behavior preserved: search filter, category filter, jump-to-section, scroll-spy via `IntersectionObserver` (in OutlineRail), keyboard navigation, copy/insert, project registry binding — all untouched. The `data-guide-id`/`data-guide-cat`/`data-guide-title` attributes are unchanged, so the rail scrape pipeline continues to function.
+- Validation: `npm run typecheck` → passed.
+- Known risks: `MethodsView` no longer renders its own `OutlineRail`, but the prop-driven path (`<OutlineRail items={railItems} onJump={handleJump} highlight={q} />`) is gone — the shell's auto-scraping `<OutlineRail />` (called without props) is what's rendered. The auto path also reads `q` differently — search no longer cross-filters the rail. This is a deliberate trade: a single index that the user actually wanted, with the rail acting as the live scroll-spy. Cross-filtering could be added later via a window event if needed.
+
+### Prompt C05 Follow-Up — Methods Tab Aggressive Flatness Pass - 2026-05-16
+
+- Date: 2026-05-16.
+- Agent: Claude Opus 4.7.
+- Status: completed.
+- Trigger: user-supplied screenshots of the Methods/Guide tab showed remaining heavy chrome — boxed "SPATIAL STATISTICS"/"NETWORK ANALYSIS"/"REMOTE SENSING" rail-separator pills with borders, decorative rainbow `::before` accent bars under each rail row, filled rounded section headers in the main panel, dark-filled Abstract/Methodology blocks, and rounded "Remote Sensing" tag pills. User feedback: "sol ve sağ raillar premium değil ve çok fazla çizgi çerceve ve dolgu var ... center panelin diğer panellerle yapısal tasarımı da uyumlu olmalı gereksiz boşluklardan arınmalı".
+- Files changed:
+  - `src/centerpanel/styles/guides.module.css` — appended a final-cascade "Workbench Flatness Override" block (~260 lines, all `!important` to defeat the multi-layer cascade legacy stack). Wipes: `.rail` decorative bg-image gradients + 12px frame; `.railHeader` sticky gradient bg + `::after` underline; `.railSep` border + rounded pill + `::before` decorative accent + rainbow nth-child rotation; `.railRow::before/::after` animated underline bars; `.railBtn` shimmer `::after` + radial-gradient bg; `.chip` 999px rounded plates → 3px hairline; `.indexBtn` decorative `::before` left accent → 2px blue inset rail on active only; `.cardHeader` linear-gradient + backdrop-blur → transparent + bottom hairline; `.section`/`.summaryRow`/`.sectionNav`/`.macro` filled bg → transparent; `.block` (Abstract content) + `.preview` filled rounded boxes → 2px left-rail quote (no fill, no radius); `.banner` dashed pill → 2px info left-rail; `.macroBtn`/`.secActionBtn`/`.iconBtn`/`.copyBtn`/`.slotBtn`/`.smallBtn`/`.toggle` filled hover-lift buttons → ghost discipline (transparent, 3px radius, hairline border, no transform/shadow). Active states standardize on 12% blue mix + blue border + blue text. Section group accent on the right rail (`.cardSub` tag pill) becomes a thin hairline-bordered chip with muted text. Tag pills and rail action buttons collapse to compact 18-22px heights.
+- Tokens consumed: `--syn-interaction-active`, `--syn-interaction-hover`, `--syn-border-subtle`, `--syn-border-default`, `--syn-border-focus`, `--syn-surface-input`, `--syn-surface-elevated`, `--syn-text-default`, `--syn-text-secondary`, `--syn-text-muted`, `--syn-status-info`, `--syn-interaction-focus-ring`.
+- Behavior preserved: scroll-spy, selection state, command palette routing, macro injection, and outline highlight untouched — pure CSS override.
+- Validation:
+  - `npm run typecheck` → passed.
+  - Amber scan on all C05 files: 0 hits.
+- Rationale for using `!important` in this single override block: the file contains 4+ cascading definitions of `.rail`, `.railSep`, `.railRow`, `.railHeader`, `.card`, `.section`, `.indexBtn` etc., each contributing decorative chrome from an earlier design era. Rewriting every legacy block individually would risk losing layout semantics; appending a final flatness layer is the surgical fix the user asked for.
+
+### Prompt C05 Follow-Up — CenterPanel Rail/Main Structural Alignment - 2026-05-16
+
+- Date: 2026-05-16.
+- Agent: Codex.
+- Status: completed.
+- Trigger: user-supplied Methods screenshot showed left/right rail chrome still reading as rounded premium cards rather than VS Code workbench surfaces; category tabs could wrap but must not overflow; CenterPanel structure needed to align with neighboring panels and remove empty gutters.
+- Files changed:
+  - `src/centerpanel/styles/centerpanel.module.css` — final shell override now uses a 236px rail + fluid main grid with zero gap/padding, 0 radius, no shadow, and flat navigation/editor surfaces. Sticky rail offset now stays inside the body (`top: 0`) so the left rail and main panel start on the same y-axis.
+  - `src/centerpanel/styles/guides.module.css` — Methods command strip now uses title/search on the first row and full-width category tabs on the second row. Category tabs wrap into two compact rows with 112px minimum tracks, normal word wrapping, no horizontal overflow, and no rounded-card treatment. Guide sections were tightened to transparent text streams with hairline separators and reduced gutters.
+  - `src/centerpanel/Guide/MethodsView.tsx` — guide list region padding tightened to align with the flat main surface.
+  - `src/centerpanel/Guide/OutlineRail.tsx` — rail rows now align icon/text from the top and allow long guide titles to wrap instead of clipping.
+  - `src/centerpanel/rail/rail.module.css` and `src/centerpanel/styles/guides.rail.module.css` — shared rail cards/callouts/snapshot blocks flattened to transparent inspector sections with square workbench edges and hairline separators.
+  - `src/centerpanel/styles/header-new.module.css` — top tab buttons can wrap to two lines within stable width constraints without overflowing the panel.
+- Visual QA:
+  - Playwright against `http://127.0.0.1:5173/?view=analyst`, viewport `1029x813`.
+  - Screenshot saved to `.codex-logs/methods-analyst-1029x813-aligned.png`.
+  - Metrics: document/client/body scroll width all `1029`; body grid `236px 763px`; outline and main both start at `y=53`; outline/main radius `0px`; category strip `chipRows=2`; only detected viewport overflow is the existing header background SVG at `left=-6`, not Methods content.
+- Validation:
+  - `npm run typecheck` → passed.
+  - `npm run test:analytics` → passed (`62` files, `1111` tests).
+  - Targeted CenterPanel/Guide amber scan → 0 hits.
+  - `git diff --check` → passed.
+  - `npm run lint:errors` → failed on pre-existing unrelated unused symbols in `src/components/ide/EnhancedIDE.tsx` and `src/components/ide/Header.tsx`.
+  - `npm run lint:no-tailwind-centerpanel` → tooling failure: `scripts/check-no-tailwind-centerpanel.ps1` is referenced by `package.json` but missing from `scripts/`.
+- Next recommended prompt: Prompt C06 - Report/Note Tab — Note Editor, Project Header, Sections, Footer, Library Insert.
+
+### Prompt C05 Correction — VS Code Method Tab Strip And Gutter Removal - 2026-05-16
+
+- Date: 2026-05-16.
+- Agent: Codex.
+- Status: completed.
+- Trigger: user rejected the previous correction as still visually poor: outer gutters remained, Methods category tabs looked scattered and cramped, and the surface did not yet carry enough intentional VS Code-style design signal.
+- Files changed:
+  - `src/centerpanel/styles/centerpanel.module.css` — shell side padding now forced to `0`; body height is fixed to the viewport work area instead of expanding with guide content; left rail is now `224px` and main receives the recovered width.
+  - `src/centerpanel/Guide/MethodsView.tsx` — category tabs now expose per-category guide counts, zero-count categories are marked with `data-empty`, and the clear action only appears for real search text instead of category selection.
+  - `src/centerpanel/styles/guides.module.css` — replaced the boxed category-grid look with a VS Code-style text tab strip: inactive tabs are borderless, active tab uses a restrained blue fill + 2px underline, tab widths are capped at `128px`, labels wrap inside the tab, and the strip stays at two rows at the screenshot viewport. Search remains a single-row control, and no-results state is now a useful inspector block with a clear action.
+- Visual QA:
+  - Playwright against `http://127.0.0.1:5173/?view=analyst`, viewport `1029x589`, active category `Remote Sensing`.
+  - Screenshot saved to `.codex-logs/methods-remote-vscode-pass-2.png`.
+  - Metrics: shell/body padding `0`; body grid `224px 805px`; outline/main radius `0px`; document/client/body scroll width all `1029`; category strip `chipRows=2`; top header reduced from 144px to 96px after the correction.
+- Validation:
+  - `npm run typecheck` → passed.
+  - `npm run test:analytics` → passed (`62` files, `1111` tests).
+  - Targeted CenterPanel/Guide amber scan → 0 hits.
+  - `git diff --check` → passed.
+- Next recommended prompt: Prompt C06 - Report/Note Tab — Note Editor, Project Header, Sections, Footer, Library Insert.
+
+### Prompt C05 Correction — Methods Prose Width And Justified Reading Surface - 2026-05-16
+
+- Date: 2026-05-16.
+- Agent: Codex.
+- Status: completed.
+- Trigger: user screenshot circled a dead right column inside the Methods guide body and requested the content be justified and visually balanced.
+- Root cause: `.block` in `guides.module.css` was capped at `max-width: 92ch`, so a 927px section rendered the actual guide prose at about 718px, leaving a large unused right-side area.
+- Files changed:
+  - `src/centerpanel/styles/guides.module.css` — guide prose/list blocks inside `.section` now use `width: 100%`, `max-width: none`, `text-align: justify`, `text-align-last: left`, `line-height: 1.48`, and `hyphens: auto`; section content wrappers and lists are also allowed to fill the available editor canvas. Section labels received a subtle blue-secondary color mix to keep the surface premium without adding another frame.
+- Visual QA:
+  - Playwright against `http://127.0.0.1:5173/?view=analyst`, viewport `927x787`, active category `Remote Sensing`.
+  - Screenshot saved to `.codex-logs/methods-remote-justified.png`.
+  - Metrics: section width `927px`, first prose block width `895px`, block/section fill ratio `0.965`, `text-align: justify`, document/body scroll width `927`.
+- Validation:
+  - `npm run typecheck` → passed.
+  - Targeted CenterPanel/Guide amber scan → 0 hits.
+  - `git diff --check` → passed.
+- Next recommended prompt: Prompt C06 - Report/Note Tab — Note Editor, Project Header, Sections, Footer, Library Insert.
+
+### Prompt C05 Correction — Scientific Method Content Completion - 2026-05-16
+
+- Date: 2026-05-16.
+- Agent: Codex.
+- Status: completed.
+- Trigger: user requested empty Methods category tabs be filled scientifically and aligned with the premium VS Code workbench direction.
+- Files changed:
+  - `src/centerpanel/Guide/guideContent.ts` — added one complete `MethodologyGuide` for every previously empty category:
+    - Urban Morphology: `Spacematrix Urban Morphology`.
+    - Transport Planning: `GTFS Transit Accessibility`.
+    - Socioeconomic: `Displacement Risk Index`.
+    - 3D & Simulation: `3D Solar Access and Shadow Simulation`.
+    - Data Engineering: `Reproducible Spatial ETL and QA`.
+  - `src/centerpanel/Guide/MethodsView.tsx` — added a compact scientific validity strip under each guide title with category-specific scale, CRS, and evidence/provenance requirements.
+  - `src/centerpanel/styles/guides.module.css` — styled the validity strip as a VS Code-style inspector/status row: flat, hairline-separated, restrained blue signal, no rounded card frame.
+- Scientific contract notes:
+  - New guides explicitly warn that projected CRS is required before area/distance/3D geometry calculations.
+  - Data Engineering guide blocks unknown CRS rather than guessing silently.
+  - Displacement guide states the index is a screening tool, not causal proof of individual displacement.
+  - GTFS guide distinguishes schedule-aware accessibility from stop-buffer proximity.
+- Visual QA:
+  - Playwright against `http://127.0.0.1:5173/?view=analyst`, viewport `1029x589`, active category `Data Engineering`.
+  - Screenshot saved to `.codex-logs/methods-filled-data-engineering.png`.
+  - Empty category check: `Urban Morphology`, `Transport Planning`, `Socioeconomic`, `3D & Simulation`, and `Data Engineering` each render one guide; Methods category strip now shows `All10` and no category count is zero.
+- Validation:
+  - `npm run typecheck` → passed.
+  - `npm run test:analytics` → passed (`62` files, `1111` tests).
+  - Targeted CenterPanel/Guide amber scan → 0 hits.
+  - `git diff --check` → passed.
+- Next recommended prompt: Prompt C06 - Report/Note Tab — Note Editor, Project Header, Sections, Footer, Library Insert.
+
+### Prompt C05 Correction — Scoped Methods Index Rail + Premium Signal Pass - 2026-05-16
+
+- Date: 2026-05-16.
+- Agent: Codex.
+- Status: completed.
+- Trigger: user requested the left `INDEX` rail be specific to each Methods category tab, while `All` should still show the whole catalog, and asked for additional premium VS Code-style design signal.
+- Files changed:
+  - `src/centerpanel/Guide/guideRailBridge.ts` — new typed intra-feature bridge that publishes the active Methods filter state (`mode`, `query`, `items`, `totalCount`) from the main Methods view to the shell-supplied index rail. The bridge caches the latest state so rail mount order cannot miss the first publish.
+  - `src/centerpanel/Guide/MethodsView.tsx` — publishes filtered guide items whenever `All`, a category tab, or search query changes.
+  - `src/centerpanel/Guide/OutlineRail.tsx` — consumes the guide rail state. `All` shows all 10 guides grouped by category; a selected category shows only that category's guide rows and no unrelated category separators. Hyphenated titles such as `Sentinel-2` are no longer truncated.
+  - `src/centerpanel/Guide/guideContent.ts` — reordered the exported catalog so `All` groups guides by the declared category sequence instead of repeating category separators.
+  - `src/centerpanel/styles/guides.module.css` — added scoped index rail styling: catalog/scoped mode banner, subtle top scan line, active row gradient, active icon color, premium selection hairlines, and a compact empty-index state without rounded cards.
+- Visual QA:
+  - Playwright against `http://127.0.0.1:5173/?view=analyst`, viewport `1029x589`.
+  - Screenshot saved to `.codex-logs/methods-index-scoped-premium-final.png`.
+  - Metrics: `Data Engineering` rail shows `count=1`, `scope=Scoped tab Data Engineering`, `rowCount=1`; `Transport Planning` rail shows `count=1`; `All` rail shows `count=10`, `rowCount=10`, category separators are unique and ordered (`Spatial Statistics`, `Network Analysis`, `Remote Sensing`, `Urban Morphology`, `Transport Planning`, `Environmental Analysis`, `Socioeconomic`, `3D & Simulation`, `Data Engineering`). Document/body scroll width remains `1029`.
+- Validation:
+  - `npm run typecheck` → passed.
+  - `npm run test:analytics` → passed (`62` files, `1111` tests).
+  - Targeted CenterPanel/Guide amber scan → 0 hits.
+  - `git diff --check` → passed.
+- Next recommended prompt: Prompt C06 - Report/Note Tab — Note Editor, Project Header, Sections, Footer, Library Insert.
+
+### Prompt C05 Correction — Numbered Tab Indexing + Scientific Premium Metrics - 2026-05-16
+
+- Date: 2026-05-16.
+- Agent: Codex.
+- Status: completed.
+- Trigger: user requested richer tab indexing, richer method content presentation, and more world-class premium VS Code-style effects.
+- Files changed:
+  - `src/centerpanel/Guide/MethodsView.tsx` — added visible tab indices (`00` for All, `01-09` for method categories), roving `tabIndex` keyboard semantics, ArrowLeft/ArrowRight/Home/End tab navigation, guide-level scientific metric strip (`Steps`, `Inputs`, `Limits`, `Refs`, `SDG`), and numbered section headers (`01`, `02`, ...).
+  - `src/centerpanel/Guide/OutlineRail.tsx` — added rail row ordinals (`01`, `02`, ...), category separator counts, and preserved scoped index behavior from the prior pass.
+  - `src/centerpanel/styles/guides.module.css` — added premium flat workbench effects: active tab gradient/underline, visible index numerals, metric strip bars, section heading leader lines, rail separator counts, and active rail ordinal coloring. No rounded card frames were introduced.
+- Visual QA:
+  - Playwright against `http://127.0.0.1:5173/?view=analyst`, viewport `1029x589`, active `Data Engineering`.
+  - Screenshot saved to `.codex-logs/methods-worldclass-indexing.png`.
+  - Metrics: category tabs remain `tabRows=2`; active `Data Engineering` tab is the only category tab with `tabIndex=0`; rail count is `1`; rail ordinal is `01`; guide metric strip spans `805px`; document/body scroll width remains `1029`.
+  - Keyboard smoke: with `Data Engineering` focused, `ArrowLeft` selects/focuses `08 3D & Simulation`, then `ArrowRight` returns to `09 Data Engineering`, both with `tabIndex=0`.
+- Validation:
+  - `npm run typecheck` → passed.
+  - `npm run test:analytics` → passed (`62` files, `1111` tests).
+  - Targeted CenterPanel/Guide amber scan → 0 hits.
+  - `git diff --check` → passed.
+- Next recommended prompt: Prompt C06 - Report/Note Tab — Note Editor, Project Header, Sections, Footer, Library Insert.
+
+### Prompt C06 - Report/Note Tab — Note Editor, Project Header, Sections, Footer, Library Insert - 2026-05-16
+
+- Date: 2026-05-16.
+- Agent: Codex.
+- Status: completed.
+- Trigger: user requested the Report/Note tab be brought to the same premium VS Code-like workbench language as Methods, with no amber, no rounded card frames, less dead space, richer tab content, and preserved note/report bridge behavior.
+- Files changed:
+  - `src/centerpanel/tabs/ProjectHeader.tsx` — removed inline risk color styles and moved safety alert tone to semantic CSS classes.
+  - `src/centerpanel/tabs/RecentChanges.tsx` — changed review history timestamps to dense relative labels with exact timestamp in `title`.
+  - `src/centerpanel/tabs/LibraryInsertCard.tsx` — removed inline amber button/row styles and moved library insert rows/buttons to CSS module classes.
+  - `src/centerpanel/styles/project-header.module.css` — flattened the project header into a dense workbench strip with muted metadata row, square chips, hairline border, and blue/info safety alert rail.
+  - `src/centerpanel/styles/note.module.css` — added C06 workbench notebook layer: flat rail groups, square section headers, transparent format/action buttons, blue active states, `--syn-surface-editor` / `--syn-surface-input` editor surfaces, flattened recent changes/footer/dock/diff/menu surfaces, and a bridge-safe rule that collapses hidden slot textareas to `0x0`.
+  - `src/services/reporting/reporting.module.css` — report builder is rendered inside the Note tab, so its old gold toolbar/card shell was also migrated to neutral workbench surfaces, blue active controls, square panels, and square preview sections.
+- Behavior/contract notes:
+  - Note persistence, slot selection, `SlotEditorContentBridge`, `SlotEditorFormatBar`, library insert dispatch, report save/export, and citation/report builder state wiring were not changed.
+  - The hidden textarea used by `SlotEditorContentBridge` remains mounted and `aria-hidden`; CSS now prevents it from creating an invisible oversize box behind the collaboration dock.
+- Visual QA:
+  - Playwright against `http://127.0.0.1:5173/?view=analyst`, viewport `1280x900`, active `Report`.
+  - Screenshots saved to `.codex-logs/report-note-c06-workbench-final-v2.png` and `.codex-logs/report-note-c06-slot-final.png`.
+  - Metrics: document/body horizontal overflow `0`; report builder radius `0px`; toolbar radius `0px`; primary panels radius `0px`; visible rich editor width `708px` inside `736px` main column; hidden slot textarea collapsed to `0x0`; rail cards radius `0px`; footer radius `0px`.
+- Follow-up layout correction:
+  - Trigger: user flagged the shared-note right dock and report preview/form layout as inconsistent with the rest of the center panel, with wasted left/bottom space.
+  - `src/centerpanel/tabs/Note.tsx` — moved `ReportBuilderPanel` into the same `mainAndDockWrap` / `mainColumn` structure as the note sections so the collaboration dock starts beside the report workspace instead of below it.
+  - `src/centerpanel/styles/note.module.css` — added Note-scoped collaboration overrides for `CollaborationSessionOverview` and `CollaborationCommentSidebar`: square hairline panels, dense metrics, ghost buttons, muted metadata, fit-content state pills, and no nested rounded cards.
+  - `src/services/reporting/reporting.module.css` — initially bounded the report builder workspace with internal form/preview scrolling; a later user correction rejected the two-column variant, so the final layout is a full-width stacked report flow with compact toolbar, full-width `Section Order`, and full-width `Live Preview` at the bottom.
+  - Playwright screenshot saved to `.codex-logs/report-note-layout-fix-v4.png`.
+  - Intermediate metrics before the full-width correction: document/body horizontal overflow `0`; report layout `752x680`; builder column `340x680` with internal scroll; preview column `400x680` with internal scroll; collaboration overview/comment sidebar radius `0px`; state pill `65x18`.
+- Full-width report flow correction:
+  - Trigger: user rejected the two-column Live Preview / Section Order layout as visually worse, too card-like, and inconsistent with the requested VS Code premium flow.
+  - `src/services/reporting/reporting.module.css` — removed the `700px+` two-column report layout, restored `Live Preview` to the bottom as a full-width band, changed `Section Order` to full-width hairline rows, removed the filled blue active-card treatment, and reduced the toolbar from a tall stacked form to a compact workbench strip.
+  - Playwright screenshot saved to `.codex-logs/report-note-fullwidth-preview-fix-v2.png`.
+  - Metrics: document/body horizontal overflow `0`; toolbar height `118px`; report layout one column `752px`; `Section Order` row active state uses `0px` radius and a `2px` inset blue rail; `Live Preview` appears after the builder column with full-width preview paper.
+- Validation:
+  - `npm run typecheck` → passed.
+  - `npx vitest run src/centerpanel/tabs/__tests__/Note.test.tsx src/services/reporting/__tests__/ReportBuilderPanel.test.tsx` → passed (`2` files, `4` tests).
+  - Targeted C06 amber scan over all prompt files plus `src/services/reporting/reporting.module.css` and `ReportBuilderPanel.tsx` → 0 hits.
+  - Center Panel Standard Amber Scan was re-run. The C06 files are clean; remaining non-map residual files are deferred C07-C09/C08 scopes: `Flows/*`, `Tools/*`, `components/EngineCapabilitiesPanel.tsx`, `components/ObjectDetectorPanel.tsx`, `components/NarrativeGenerationPanel.tsx`, `styles/flows.module.css`, `styles/tools*.module.css`, `styles/header-tokens.css`, and the pre-existing `registry-ui/newProject.module.css` comment hit.
+- Known risks:
+  - `note.module.css` still contains older legacy declarations above the C06 override block, so a broad heavy-chrome regex reports historical `border-radius`/`--ui-card-*` strings even though the live Report/Note computed surfaces are square and flat. Full removal should be reserved for C10 cleanup to avoid destabilizing older fallback selectors.
+- Next recommended prompt: Prompt C07 - Workflows Tab — Flow Host, Flows Rail, Tiles, Step Pills, Cockpit, And Per-Flow Surfaces.
+
+### Prompt C07 - Workflows Tab — Flow Host, Flows Rail, Tiles, Step Pills, Cockpit, And Per-Flow Surfaces - 2026-05-16
+
+- Date: 2026-05-16.
+- Agent: Codex.
+- Status: completed.
+- Trigger: migrate the Workflows tab and per-flow shells to the same dense Center Panel workbench discipline while preserving flow stores, run dispatch, map dispatch, and analytical contracts.
+- Files changed:
+  - `src/centerpanel/Flows/FlowHost.tsx` — study-area banners and workspace selector states moved from amber filled chrome to transparent hairline semantic rails.
+  - `src/centerpanel/Flows/FlowsRail.tsx`, `src/centerpanel/Flows/rail/RelatedMethodsCard.tsx` — rail headers and hover states flattened to muted workbench text plus blue interaction tint.
+  - `src/centerpanel/Flows/FlowLibraryCard.tsx`, `src/centerpanel/Flows/AnalyticalRunReviewFlow.tsx`, `src/centerpanel/Flows/WorkflowCockpit.tsx` — library/cockpit/action surfaces moved away from amber accent aliases and rounded card plates.
+  - `src/centerpanel/Flows/CellularAutomataFlow.tsx`, `src/centerpanel/Flows/CompositeIndicatorFlow.tsx`, `src/centerpanel/Flows/ScenarioComparisonFlow.tsx`, `src/centerpanel/Flows/SystemDynamicsFlow.tsx`, `src/centerpanel/Flows/UrbanMorphologyFlow.tsx` — selected/input/status chrome moved to semantic info/valid/muted workbench states without changing analytical data contracts.
+  - `src/centerpanel/styles/flows.module.css` — appended C07 workbench override layer for flow panels, flow tiles, step pills, step cards, rail cards, cockpit controls, inputs, warning/toast strips, footer bars, and top-level flow layout.
+- Behavior/contract notes:
+  - `useFlowStore`, `useFlowsUIStore`, flow registration, completed-run persistence, run dispatch, and map dispatch behavior were not changed.
+  - Running/completed/blocked/error semantics remain text-backed; no demo/unknown/blocked state was relabeled as valid.
+  - Remaining Flow amber scan hits are data/analytical palette values, not shared UI chrome: demand/coverage markers in `FacilityOptimisationFlow.tsx`, Sobol/data bars in `CompositeIndicatorFlow.tsx`, scenario stroke palette in `scenarioComparisonArtifacts.ts`, and system-dynamics population/flow diagram colors in `SystemDynamicsFlow.tsx`.
+- Validation:
+  - `git diff --check` → passed.
+  - `npm run typecheck` → passed.
+  - `npx vitest run src/centerpanel/Flows/__tests__` → passed (`7` files, `60` tests).
+  - Targeted C07 primary amber scan over FlowHost/rail/cards/cockpit/read-only/review shell plus `flows.module.css` → 0 UI hits; only two `non-amber` explanatory comments in `flows.module.css`.
+  - Full Center Panel Standard Amber Scan was re-run. Remaining non-map residuals are deferred C08/C09 scopes (`Tools/*`, `EngineCapabilitiesPanel`, `NarrativeGenerationPanel`, `ObjectDetectorPanel`) plus documented analytical Flow palettes above; raw output still includes Part 3 map files because the PowerShell negation-glob issue remains.
+- Next recommended prompt: Prompt C08 - Toolbox Tab — Project List, Action Panel, Capability/Lab/Consulton Panels, Export Bar.
+
+### Prompt C05 - Methods/Guide Tab — Methods View, Outline Rail, Guide Cards, And Command Bar - 2026-05-16
 
 - Status: completed.
 - Trigger: user-supplied screenshot of the Settings sidebar (Editor/Layout/AI Advanced folds) showing the iOS-style toggle switches, range sliders, and section fold headers rendered in saturated VS Code blue. Request: tone these affordances down to a muted gray-blue so the eye is not constantly drawn to them.
@@ -2251,6 +2707,8 @@ No edits required outside `src/features/urbanAnalytics/**` for Part 1.
 
 | Date | Risk | Severity | Mitigation |
 | --- | --- | --- | --- |
+| 2026-05-16 | Center Panel `--ui-*` token island spans 1300+ references across 14 modules; flipping the source values in `styles/tokens.css` during C02 will propagate immediately into every C03-C09 consumer. | Medium | Re-scan each tab's files at the start of its C-prompt; treat post-C02 residual amber/heavy-chrome as the actual migration target rather than re-doing token-source work in every C-prompt. |
+| 2026-05-16 | The `-g "!components/map/**"` negation glob does not reliably exclude already-walked paths under PowerShell because the brace/glob is expanded by the shell before ripgrep sees it; raw scan totals will overcount Part 3 map files for Part 2 prompts. | Low | Run scans with single-quoted `-g` patterns and absolute paths, or filter results post-hoc to the Part 2 in-scope file list (as C01 did). |
 | 2026-05-15 | Historical log entries still reference old Prompt 18 as next prompt. | Low | Treat entries before "Active Two-Part Prompt Reprioritization" as immutable history; use Current Status, Prompt Status Register, and Next Pointer for active execution. |
 | 2026-05-15 | `lint:no-tailwind-centerpanel` is currently not runnable in this execution environment (`powershell` executable unavailable and referenced script missing from `scripts/`). | Medium | Keep manual changed-file Tailwind scans in prompt validations; restore/align script path in a tooling-focused follow-up. |
 | 2026-05-15 | Theme preference is read from both `theme` (ThemeContext) and `synapse.theme.mode` (flags) keys, which can drift if toggled by separate surfaces. | Medium | Keep behavior unchanged for compatibility; track for dedicated persistence unification outside color prompts. |
@@ -2261,4 +2719,4 @@ No edits required outside `src/features/urbanAnalytics/**` for Part 1.
 
 ## Next Pointer
 
-Prompt C01 - Center Panel Workbench Inventory And Scope Lock.
+Prompt C08 - Toolbox Tab — Project List, Action Panel, Capability/Lab/Consulton Panels, Export Bar.
