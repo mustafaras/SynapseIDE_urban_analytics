@@ -771,7 +771,7 @@ const SystemDynamicsFlow: React.FC = () => {
                 type="button"
                 className={styles.outlineBtn}
                 onClick={() => updateForm('activeDiagram', 'stock_flow')}
-                style={{ borderColor: currentDiagram === 'stock_flow' ? 'var(--syn-accent-primary)' : undefined }}
+                style={{ borderColor: currentDiagram === 'stock_flow' ? 'var(--syn-status-info)' : undefined }}
               >
                 Stock-and-flow
               </button>
@@ -852,7 +852,7 @@ const SystemDynamicsFlow: React.FC = () => {
                 type="button"
                 className={styles.outlineBtn}
                 onClick={() => updateForm('activeDiagram', 'causal_loop')}
-                style={{ borderColor: currentDiagram === 'causal_loop' ? 'var(--syn-accent-primary)' : undefined }}
+                style={{ borderColor: currentDiagram === 'causal_loop' ? 'var(--syn-status-info)' : undefined }}
               >
                 Causal loop diagram
               </button>

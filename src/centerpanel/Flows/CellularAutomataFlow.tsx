@@ -620,7 +620,7 @@ const CellularAutomataFlow: React.FC = () => {
                     border: "1px solid var(--syn-overlay-light)",
                     borderRadius: 8,
                     background: form.calibrationSteps.includes(Number(state.step))
-                      ? "var(--syn-accent-bg)"
+                      ? "color-mix(in srgb, var(--syn-status-info) 8%, transparent)"
                       : "transparent",
                   }}
                 >

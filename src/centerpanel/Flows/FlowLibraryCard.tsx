@@ -102,7 +102,7 @@ const FlowLibraryCard: React.FC<{
           type="button"
           className={flowCss.outlineBtn}
           onClick={() => setJourneyFilter("all")}
-          style={{ borderColor: journeyFilter === "all" ? "var(--syn-accent-primary)" : undefined }}
+          style={{ borderColor: journeyFilter === "all" ? "var(--syn-status-info)" : undefined }}
         >
           All journeys
         </button>
@@ -112,7 +112,7 @@ const FlowLibraryCard: React.FC<{
             type="button"
             className={flowCss.outlineBtn}
             onClick={() => setJourneyFilter(journey.id)}
-            style={{ borderColor: journeyFilter === journey.id ? "var(--syn-accent-primary)" : undefined }}
+            style={{ borderColor: journeyFilter === journey.id ? "var(--syn-status-info)" : undefined }}
           >
             {journey.label}
           </button>

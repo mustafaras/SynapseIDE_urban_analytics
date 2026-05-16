@@ -272,13 +272,17 @@ const StageValidationStrip: React.FC<{ validations: StageValidation[]; currentSt
             style={{
               padding: "10px 12px",
               textAlign: "left",
-              borderColor: active ? "var(--syn-accent-primary)" : validation.valid ? "rgba(34,197,94,0.4)" : "rgba(245,158,11,0.35)",
-              background: active ? "rgba(59,130,246,0.12)" : validation.valid ? "rgba(34,197,94,0.08)" : "rgba(245,158,11,0.08)",
+              borderColor: active
+                ? "var(--syn-status-info)"
+                : validation.valid
+                ? "color-mix(in srgb, var(--syn-status-valid, var(--syn-success)) 40%, transparent)"
+                : "var(--syn-border-subtle, rgba(255,255,255,0.12))",
+              background: active ? "color-mix(in srgb, var(--syn-status-info) 8%, transparent)" : "transparent",
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", marginBottom: 4 }}>
               <span style={{ fontSize: 12, fontWeight: 700, color: "var(--syn-text-primary)" }}>{validation.label}</span>
-              <span style={{ fontSize: 10, fontWeight: 700, color: validation.valid ? "#22C55E" : "#F59E0B", textTransform: "uppercase" }}>{validation.valid ? "Ready" : "Needs input"}</span>
+              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", color: validation.valid ? "var(--syn-status-valid, var(--syn-success))" : "var(--syn-text-muted, rgba(255,255,255,0.55))", textTransform: "uppercase" }}>{validation.valid ? "Ready" : "Needs input"}</span>
             </div>
             <div className={styles.formHint}>{validation.detail}</div>
           </button>
@@ -541,7 +545,7 @@ const CompositeIndicatorFlow: React.FC = () => {
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10 }}>
                   {DEMO_DATASET.indicators.map((indicator) => {
                     const selected = form.selectedIndicatorIds.includes(indicator.id);
-                    return <label key={indicator.id} className={styles.checkboxRow} style={{ alignItems: "flex-start", padding: "10px 12px", border: "1px solid var(--syn-overlay-light)", borderRadius: 10, background: selected ? "var(--syn-accent-bg)" : "var(--syn-overlay-whisper)" }}><input type="checkbox" checked={selected} onChange={() => toggleIndicator(indicator.id)} /><span><strong>{indicator.label}</strong><span className={styles.formHint} style={{ display: "block" }}>{indicator.group ?? "Ungrouped"} | {indicator.direction === "positive" ? "Higher is better" : "Lower is better"}</span><span className={styles.formHint} style={{ display: "block" }}>Missing units: {indicatorMissingCounts[indicator.id] ?? 0}</span></span></label>;
+                    return <label key={indicator.id} className={styles.checkboxRow} style={{ alignItems: "flex-start", padding: "10px 12px", border: "1px solid var(--syn-overlay-light)", borderRadius: 10, background: selected ? "color-mix(in srgb, var(--syn-status-info) 8%, transparent)" : "transparent" }}><input type="checkbox" checked={selected} onChange={() => toggleIndicator(indicator.id)} /><span><strong>{indicator.label}</strong><span className={styles.formHint} style={{ display: "block" }}>{indicator.group ?? "Ungrouped"} | {indicator.direction === "positive" ? "Higher is better" : "Lower is better"}</span><span className={styles.formHint} style={{ display: "block" }}>Missing units: {indicatorMissingCounts[indicator.id] ?? 0}</span></span></label>;
                   })}
                 </div>
               </div>
@@ -550,7 +554,7 @@ const CompositeIndicatorFlow: React.FC = () => {
             {step === 1 ? <>
               <div className={styles.formSection}>
                 <div className={styles.formLabel}>Missing-data handling</div>
-                {(["mean", "median", "listwise_delete"] as CompositeImputationMethod[]).map((method) => <label key={method} className={styles.checkboxRow} style={{ padding: "10px 12px", border: "1px solid var(--syn-overlay-light)", borderRadius: 10, background: form.imputationMethod === method ? "var(--syn-accent-bg)" : "var(--syn-overlay-whisper)", marginBottom: 8 }}><input type="radio" checked={form.imputationMethod === method} onChange={() => updateForm("imputationMethod", method)} /><span><strong>{method.replace(/_/g, " ")}</strong></span></label>)}
+                {(["mean", "median", "listwise_delete"] as CompositeImputationMethod[]).map((method) => <label key={method} className={styles.checkboxRow} style={{ padding: "10px 12px", border: "1px solid var(--syn-overlay-light)", borderRadius: 10, background: form.imputationMethod === method ? "color-mix(in srgb, var(--syn-status-info) 8%, transparent)" : "transparent", marginBottom: 8 }}><input type="radio" checked={form.imputationMethod === method} onChange={() => updateForm("imputationMethod", method)} /><span><strong>{method.replace(/_/g, " ")}</strong></span></label>)}
               </div>
               <div className={styles.readonlyBlock}>Selected indicators: {selectedIndicators.map((indicator) => `${indicator.label} (${indicatorMissingCounts[indicator.id] ?? 0} missing)`).join(", ") || "none"}</div>
               {previewResult ? <div className={styles.readonlyBlock} style={{ marginTop: 12 }}>Usable units {previewResult.datasetSummary.unitCount} of {previewResult.datasetSummary.originalUnitCount}; imputed cells {previewResult.datasetSummary.imputedCellCount}; removed units {previewResult.datasetSummary.removedUnitCount}.</div> : null}
@@ -559,7 +563,7 @@ const CompositeIndicatorFlow: React.FC = () => {
             {step === 2 ? <>
               <div className={styles.formSection}>
                 <div className={styles.formLabel}>Normalization method</div>
-                {(["min_max", "z_score", "rank", "percentile", "distance_to_reference"] as CompositeNormalizationMethod[]).map((method) => <label key={method} className={styles.checkboxRow} style={{ padding: "10px 12px", border: "1px solid var(--syn-overlay-light)", borderRadius: 10, background: form.normalizationMethod === method ? "var(--syn-accent-bg)" : "var(--syn-overlay-whisper)", marginBottom: 8 }}><input type="radio" checked={form.normalizationMethod === method} onChange={() => updateForm("normalizationMethod", method)} /><span><strong>{method.replace(/_/g, " ")}</strong></span></label>)}
+                {(["min_max", "z_score", "rank", "percentile", "distance_to_reference"] as CompositeNormalizationMethod[]).map((method) => <label key={method} className={styles.checkboxRow} style={{ padding: "10px 12px", border: "1px solid var(--syn-overlay-light)", borderRadius: 10, background: form.normalizationMethod === method ? "color-mix(in srgb, var(--syn-status-info) 8%, transparent)" : "transparent", marginBottom: 8 }}><input type="radio" checked={form.normalizationMethod === method} onChange={() => updateForm("normalizationMethod", method)} /><span><strong>{method.replace(/_/g, " ")}</strong></span></label>)}
               </div>
               {form.normalizationMethod === "distance_to_reference" ? <div className={styles.formSection}><div className={styles.formLabel}>Reference values</div><div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10 }}>{selectedIndicators.map((indicator) => <label key={indicator.id} className={styles.formLabel}>{indicator.label}<input type="number" className={styles.textInput} value={form.referenceValues[indicator.id] ?? indicator.referenceValue ?? 0} onChange={(event) => updateRecordField("referenceValues", indicator.id, Number(event.target.value))} style={{ marginTop: 6 }} /></label>)}</div></div> : null}
               {previewResult ? <div className={styles.readonlyBlock}>Normalisation diagnostics ready for {previewResult.diagnostics.length} indicators.</div> : null}
@@ -568,7 +572,7 @@ const CompositeIndicatorFlow: React.FC = () => {
             {step === 3 ? <>
               <div className={styles.formSection}>
                 <div className={styles.formLabel}>Weighting interface</div>
-                {(["equal", "expert", "pca_derived", "ahp", "budget_allocation"] as CompositeWeightingMethod[]).map((method) => <label key={method} className={styles.checkboxRow} style={{ padding: "10px 12px", border: "1px solid var(--syn-overlay-light)", borderRadius: 10, background: form.weightingMethod === method ? "var(--syn-accent-bg)" : "var(--syn-overlay-whisper)", marginBottom: 8 }}><input type="radio" checked={form.weightingMethod === method} onChange={() => updateForm("weightingMethod", method)} /><span><strong>{method.replace(/_/g, " ")}</strong></span></label>)}
+                {(["equal", "expert", "pca_derived", "ahp", "budget_allocation"] as CompositeWeightingMethod[]).map((method) => <label key={method} className={styles.checkboxRow} style={{ padding: "10px 12px", border: "1px solid var(--syn-overlay-light)", borderRadius: 10, background: form.weightingMethod === method ? "color-mix(in srgb, var(--syn-status-info) 8%, transparent)" : "transparent", marginBottom: 8 }}><input type="radio" checked={form.weightingMethod === method} onChange={() => updateForm("weightingMethod", method)} /><span><strong>{method.replace(/_/g, " ")}</strong></span></label>)}
               </div>
               {form.weightingMethod === "expert" ? <div className={styles.formSection}><div className={styles.formLabel}>Manual slider weights</div>{selectedIndicators.map((indicator) => <label key={indicator.id} className={styles.formLabel}>{indicator.label}<div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 6 }}><input type="range" min={0} max={100} step={1} value={form.expertWeights[indicator.id] ?? 0} onChange={(event) => updateRecordField("expertWeights", indicator.id, Number(event.target.value))} style={{ flex: 1 }} /><span style={{ minWidth: 40, textAlign: "right" }}>{Math.round(form.expertWeights[indicator.id] ?? 0)}</span></div></label>)}</div> : null}
               {form.weightingMethod === "budget_allocation" ? <div className={styles.formSection}><div className={styles.formLabel}>Budget tokens</div><div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10 }}>{selectedIndicators.map((indicator) => <label key={indicator.id} className={styles.formLabel}>{indicator.label}<input type="number" className={styles.textInput} min={0} step={5} value={form.budgetAllocation[indicator.id] ?? 0} onChange={(event) => updateRecordField("budgetAllocation", indicator.id, Number(event.target.value))} style={{ marginTop: 6 }} /></label>)}</div></div> : null}
@@ -577,7 +581,7 @@ const CompositeIndicatorFlow: React.FC = () => {
             </> : null}
 
             {step === 4 ? <>
-              <div className={styles.formSection}><div className={styles.formLabel}>Aggregation selector</div>{(["additive", "geometric"] as CompositeAggregationMethod[]).map((method) => <label key={method} className={styles.checkboxRow} style={{ padding: "10px 12px", border: "1px solid var(--syn-overlay-light)", borderRadius: 10, background: form.aggregationMethod === method ? "var(--syn-accent-bg)" : "var(--syn-overlay-whisper)", marginBottom: 8 }}><input type="radio" checked={form.aggregationMethod === method} onChange={() => updateForm("aggregationMethod", method)} /><span><strong>{method}</strong></span></label>)}</div>
+              <div className={styles.formSection}><div className={styles.formLabel}>Aggregation selector</div>{(["additive", "geometric"] as CompositeAggregationMethod[]).map((method) => <label key={method} className={styles.checkboxRow} style={{ padding: "10px 12px", border: "1px solid var(--syn-overlay-light)", borderRadius: 10, background: form.aggregationMethod === method ? "color-mix(in srgb, var(--syn-status-info) 8%, transparent)" : "transparent", marginBottom: 8 }}><input type="radio" checked={form.aggregationMethod === method} onChange={() => updateForm("aggregationMethod", method)} /><span><strong>{method}</strong></span></label>)}</div>
               {form.aggregationMethod === "geometric" ? <div className={styles.formSection}><div className={styles.formLabel}>Geometric floor</div><input type="range" min={0.0001} max={0.02} step={0.0001} aria-label="Geometric floor" value={form.geometricFloor} onChange={(event) => updateForm("geometricFloor", Number(event.target.value))} style={{ width: "100%" }} /><div className={styles.formHint}>{form.geometricFloor.toExponential(2)}</div></div> : null}
               {previewResult ? <div className={styles.readonlyBlock}>Top unit {previewResult.units[0]?.label ?? "n/a"} ({formatMetric(previewResult.units[0]?.scorePercent)}). Bottom unit {previewResult.units[previewResult.units.length - 1]?.label ?? "n/a"} ({formatMetric(previewResult.units[previewResult.units.length - 1]?.scorePercent)}).</div> : null}
             </> : null}

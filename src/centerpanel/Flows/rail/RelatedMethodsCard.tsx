@@ -128,10 +128,11 @@ const RelatedMethodsCard: React.FC<{
       <div className={flowCss.railCardHeader}>
         <div
           style={{
-            fontSize: '0.78rem',
+            fontSize: '10.5px',
             fontWeight: 700,
-            color: 'var(--syn-accent-primary, #F59E0B)',
-            letterSpacing: '0.03em',
+            color: 'var(--syn-text-muted, rgba(255,255,255,0.55))',
+            letterSpacing: '0.10em',
+            textTransform: 'uppercase',
           }}
         >
           Related Methods
@@ -179,12 +180,12 @@ const RelatedMethodsCard: React.FC<{
               fontFamily: 'inherit',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(245,158,11,0.08)';
-              e.currentTarget.style.borderColor = 'rgba(245,158,11,0.25)';
+              e.currentTarget.style.background = 'color-mix(in srgb, var(--syn-status-info) 10%, transparent)';
+              e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--syn-status-info) 35%, transparent)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.borderColor = 'var(--syn-border-subtle, rgba(255,255,255,0.10))';
             }}
             title={`View "${card.title}" in the right panel`}
           >

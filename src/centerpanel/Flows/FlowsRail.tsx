@@ -126,10 +126,11 @@ const FlowsRail: React.FC<{
         <div className={flowCss.railCardHeader}>
           <div
             style={{
-              fontSize: "0.78rem",
+              fontSize: "10.5px",
               fontWeight: 700,
-              color: "var(--syn-accent-primary, #F59E0B)",
-              letterSpacing: "0.03em",
+              color: "var(--syn-text-muted, rgba(255,255,255,0.55))",
+              letterSpacing: "0.10em",
+              textTransform: "uppercase",
             }}
           >
             GeoAI & Reporting

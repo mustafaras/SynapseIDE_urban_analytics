@@ -608,7 +608,7 @@ const UrbanMorphologyFlow: React.FC = () => {
                   <label
                     key={indicator.id}
                     className={styles.readonlyBlock}
-                    style={{ display: "grid", gap: 6, cursor: "pointer", borderColor: checked ? "var(--syn-accent-primary)" : undefined }}
+                    style={{ display: "grid", gap: 6, cursor: "pointer", borderColor: checked ? "var(--syn-status-info)" : undefined }}
                   >
                     <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <input
@@ -725,7 +725,7 @@ const UrbanMorphologyFlow: React.FC = () => {
                   readiness.status === "blocked"
                     ? "var(--syn-danger-border)"
                     : readiness.status === "warning" || readiness.status === "demo_only"
-                      ? "var(--syn-accent-primary)"
+                      ? "var(--syn-status-info)"
                       : undefined,
               }}
             >

@@ -178,15 +178,15 @@ function StudyAreaBanner() {
             alignItems: "center",
             gap: 8,
             padding: "6px 12px",
-            borderRadius: 6,
-            background: "rgba(245,158,11,0.08)",
-            border: "1px solid rgba(245,158,11,0.25)",
+            borderRadius: 0,
+            background: "transparent",
+            borderLeft: "2px solid color-mix(in srgb, var(--syn-status-info) 55%, transparent)",
           }}
         >
           <span style={{ fontSize: 10, opacity: 0.55, textTransform: "uppercase", letterSpacing: "0.06em", fontFamily: "var(--codefont)" }}>
             Analysis area
           </span>
-          <span style={{ fontSize: 13, fontWeight: 700, color: "#fbbf24", fontFamily: "var(--codefont)" }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--syn-text-link, var(--syn-status-info))", fontFamily: "var(--codefont)" }}>
             {studyAreaName}
           </span>
           {studyAreaBounds && (
@@ -228,12 +228,12 @@ function StudyAreaBanner() {
           alignItems: "center",
           gap: 8,
           padding: "7px 12px",
-          borderRadius: 6,
-          background: "rgba(245,158,11,0.06)",
-          border: "1px solid rgba(245,158,11,0.22)",
+          borderRadius: 0,
+          background: "transparent",
+          borderLeft: "2px solid color-mix(in srgb, var(--syn-status-danger, var(--syn-danger)) 55%, transparent)",
         }}
       >
-        <span style={{ fontSize: 11, color: "#fbbf24", opacity: 0.85, fontFamily: "var(--codefont)" }}>
+        <span style={{ fontSize: 11, color: "var(--syn-status-danger, var(--syn-danger))", opacity: 0.95, fontFamily: "var(--codefont)" }}>
           ⚠ No study area defined
         </span>
         <span style={{ fontSize: 11, opacity: 0.55, fontFamily: "var(--codefont)" }}>
@@ -320,7 +320,7 @@ const FlowHost: React.FC<FlowHostProps> = ({ activeFlowId }) => {
             type="button"
             className={styles.outlineBtn}
             onClick={() => setWorkspaceView("navigator")}
-            style={{ borderColor: workspaceView === "navigator" ? "var(--syn-accent-primary)" : undefined }}
+            style={{ borderColor: workspaceView === "navigator" ? "var(--syn-status-info)" : undefined }}
           >
             Navigator
           </button>
@@ -328,7 +328,7 @@ const FlowHost: React.FC<FlowHostProps> = ({ activeFlowId }) => {
             type="button"
             className={styles.outlineBtn}
             onClick={() => setWorkspaceView("active")}
-            style={{ borderColor: workspaceView === "active" ? "var(--syn-accent-primary)" : undefined }}
+            style={{ borderColor: workspaceView === "active" ? "var(--syn-status-info)" : undefined }}
           >
             Active Workflow
           </button>
@@ -339,7 +339,7 @@ const FlowHost: React.FC<FlowHostProps> = ({ activeFlowId }) => {
               activateFlow("scenario_comparison");
               setWorkspaceView("dashboard");
             }}
-            style={{ borderColor: workspaceView === "dashboard" ? "var(--syn-accent-primary)" : undefined }}
+            style={{ borderColor: workspaceView === "dashboard" ? "var(--syn-status-info)" : undefined }}
           >
             Scenario Dashboard
           </button>

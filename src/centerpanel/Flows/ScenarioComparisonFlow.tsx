@@ -519,10 +519,12 @@ const ScenarioComparisonFlow: React.FC = () => {
                   <div
                     key={scenario.id}
                     style={{
-                      border: "1px solid var(--syn-overlay-light)",
-                      borderRadius: 8,
-                      padding: 12,
-                      background: scenario.id === form.activeScenarioId ? "var(--syn-accent-bg)" : "var(--syn-overlay-whisper)",
+                      border: 0,
+                      borderBottom: "1px solid color-mix(in srgb, var(--syn-border-subtle, rgba(255,255,255,0.10)) 55%, transparent)",
+                      borderLeft: scenario.id === form.activeScenarioId ? "2px solid var(--syn-status-info)" : "2px solid transparent",
+                      borderRadius: 0,
+                      padding: "10px 12px",
+                      background: scenario.id === form.activeScenarioId ? "color-mix(in srgb, var(--syn-status-info) 8%, transparent)" : "transparent",
                       display: "flex",
                       flexDirection: "column",
                       gap: 10,
@@ -539,11 +541,15 @@ const ScenarioComparisonFlow: React.FC = () => {
                       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                         {scenario.sourceRunId ? (
                           <span style={{
-                            padding: "2px 8px",
-                            borderRadius: 999,
-                            border: "1px solid var(--syn-accent-border)",
-                            background: "var(--syn-depth-subtle)",
+                            padding: "0 6px",
+                            borderRadius: 0,
+                            border: 0,
+                            background: "transparent",
+                            color: "var(--syn-text-link, var(--syn-status-info))",
                             fontSize: 10,
+                            fontWeight: 700,
+                            letterSpacing: "0.08em",
+                            textTransform: "uppercase",
                             fontFamily: "var(--font-mono, ui-monospace, Menlo, monospace)",
                           }}>
                             Imported
@@ -663,10 +669,10 @@ const ScenarioComparisonFlow: React.FC = () => {
                 <label
                   key={metric.id}
                   style={{
-                    border: `1px solid ${form.selectedMetricIds.includes(metric.id) ? "var(--syn-accent-primary)" : "var(--syn-overlay-light)"}`,
-                    borderRadius: 8,
-                    padding: 12,
-                    background: form.selectedMetricIds.includes(metric.id) ? "var(--syn-accent-bg)" : "var(--syn-overlay-whisper)",
+                    border: `1px solid ${form.selectedMetricIds.includes(metric.id) ? "var(--syn-status-info)" : "var(--syn-border-subtle, rgba(255,255,255,0.12))"}`,
+                    borderRadius: 0,
+                    padding: "10px 12px",
+                    background: form.selectedMetricIds.includes(metric.id) ? "color-mix(in srgb, var(--syn-status-info) 8%, transparent)" : "transparent",
                     display: "flex",
                     flexDirection: "column",
                     gap: 8,

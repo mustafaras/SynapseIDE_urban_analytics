@@ -207,7 +207,7 @@ const AnalyticalRunReviewFlow: React.FC = () => {
  cursor: "pointer",
  background:
  form.selectedRunId === run.runId
- ? "var(--syn-accent-bg)"
+ ? "color-mix(in srgb, var(--syn-status-info) 8%, transparent)"
  : undefined,
  }}
  >

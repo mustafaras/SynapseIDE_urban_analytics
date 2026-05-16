@@ -33,34 +33,39 @@ const journeyGridStyle: React.CSSProperties = {
 };
 
 const journeyCardStyle: React.CSSProperties = {
-  border: "1px solid var(--syn-overlay-light)",
-  borderRadius: 8,
-  padding: 12,
-  background: "var(--syn-overlay-whisper)",
-  display: "flex",
-  flexDirection: "column",
-  gap: 10,
-};
-
-const flowCardStyle: React.CSSProperties = {
-  border: "1px solid var(--syn-overlay-light)",
-  borderRadius: 8,
-  padding: 12,
-  background: "var(--syn-overlay-whisper)",
+  border: 0,
+  borderTop: "1px solid var(--syn-border-subtle, rgba(255,255,255,0.10))",
+  borderRadius: 0,
+  padding: "10px 0 12px",
+  background: "transparent",
   display: "flex",
   flexDirection: "column",
   gap: 8,
+};
+
+const flowCardStyle: React.CSSProperties = {
+  border: 0,
+  borderBottom: "1px solid color-mix(in srgb, var(--syn-border-subtle, rgba(255,255,255,0.10)) 55%, transparent)",
+  borderRadius: 0,
+  padding: "10px 0 12px",
+  background: "transparent",
+  display: "flex",
+  flexDirection: "column",
+  gap: 6,
 };
 
 const chipStyle: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   gap: 6,
-  padding: "2px 8px",
-  borderRadius: 999,
-  border: "1px solid var(--syn-overlay-medium)",
-  background: "var(--syn-depth-subtle)",
+  padding: "0 6px",
+  borderRadius: 0,
+  border: 0,
+  background: "transparent",
   fontSize: 10,
+  fontWeight: 700,
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
   color: "var(--syn-text-muted)",
   fontFamily: "var(--font-mono, ui-monospace, Menlo, monospace)",
 };
@@ -146,7 +151,8 @@ const WorkflowCockpit: React.FC<WorkflowCockpitProps> = ({
                         className={styles.outlineBtn}
                         onClick={() => onSelectFlow(flowId)}
                         style={{
-                          borderColor: flowId === activeFlowId ? "var(--syn-accent-primary)" : undefined,
+                          borderColor: flowId === activeFlowId ? "var(--syn-status-info)" : undefined,
+                          color: flowId === activeFlowId ? "var(--syn-text-link, var(--syn-status-info))" : undefined,
                         }}
                       >
                         {meta.prompt} - {meta.quickUse}

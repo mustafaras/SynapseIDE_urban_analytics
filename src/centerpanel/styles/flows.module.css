@@ -1792,8 +1792,8 @@ textarea:-webkit-autofill {
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .textInput:focus-visible {
-  border-color: var(--ui-input-focus-color, #F59E0B);
-  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.18);
+  border-color: color-mix(in srgb, var(--syn-status-info) 60%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--syn-status-info) 35%, transparent);
   outline: none;
 }
 .textInput::placeholder {
@@ -1805,19 +1805,21 @@ textarea:-webkit-autofill {
   align-items: center;
   justify-content: center;
   gap: 0.35rem;
-  padding: 0.4rem 0.75rem;
+  padding: 4px 9px;
+  min-height: 24px;
   font-size: 11px;
   font-family: inherit;
-  font-weight: 500;
-  color: var(--syn-accent, #F59E0B);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--syn-text-link, var(--syn-status-info));
   background: transparent;
-  border: 1px solid var(--syn-accent, #F59E0B);
-  border-radius: 5px;
+  border: 1px solid color-mix(in srgb, var(--syn-status-info) 55%, transparent);
+  border-radius: 0;
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease;
 }
 .outlineBtn:hover:not(:disabled) {
-  background: rgba(245, 158, 11, 0.10);
+  background: color-mix(in srgb, var(--syn-status-info) 12%, transparent);
 }
 .outlineBtn:disabled {
   opacity: 0.4;
@@ -1844,4 +1846,474 @@ textarea:-webkit-autofill {
 .crossPanelBar .outlineBtn {
   font-size: 0.72rem;
   padding: 0.3rem 0.75rem;
+}
+
+/* ============================================================ */
+/* C07 — Workflows Tab Workbench Discipline Override            */
+/* Hairline-only, single-surface, semantic non-amber, dense.    */
+/* Matches Methods/Report (C05/C06) VS Code premium dilini.     */
+/* ============================================================ */
+
+.panel {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--syn-border-subtle, rgba(255, 255, 255, 0.10));
+  border-radius: 0;
+  box-shadow: none;
+  padding: 12px 14px 14px;
+}
+
+.flowHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 0 6px;
+  margin: 0 0 10px;
+  border-bottom: 1px solid color-mix(in srgb, var(--syn-border-subtle, rgba(255, 255, 255, 0.10)) 55%, transparent);
+}
+
+.flowTitleRow {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.flowTitleMain,
+.flowTitle {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--syn-text-muted, rgba(255, 255, 255, 0.55));
+  line-height: 1;
+}
+
+.flowTitleMeta,
+.flowSubtitle {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--syn-text-muted, rgba(255, 255, 255, 0.45));
+  line-height: 1.45;
+}
+
+/* Flow library tiles — hairline + blue rail on active */
+.flowLibraryCard {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--syn-border-subtle, rgba(255, 255, 255, 0.10));
+  border-radius: 0;
+  padding: 10px 12px 12px;
+  gap: 8px;
+}
+
+.flowLibraryTitle {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--syn-text-muted, rgba(255, 255, 255, 0.55));
+}
+
+.flowLibrarySubtitle,
+.flowLibraryGroupHint {
+  font-size: 11px;
+  color: var(--syn-text-muted, rgba(255, 255, 255, 0.45));
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.flowLibraryGroupLabel {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--syn-text-muted, rgba(255, 255, 255, 0.50));
+}
+
+.flowTile,
+.flowTileActive,
+.flowTileLocked {
+  position: relative;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--syn-border-subtle, rgba(255, 255, 255, 0.10)) 55%, transparent);
+  padding: 8px 10px 8px 14px;
+  gap: 3px;
+  transition: background 80ms linear;
+}
+
+.flowTile:hover,
+.flowTileActive:hover {
+  background: color-mix(in srgb, var(--syn-text-primary, #fff) 4%, transparent);
+}
+
+.flowTileActive {
+  background: color-mix(in srgb, var(--syn-status-info) 8%, transparent);
+}
+
+.flowTileActive::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 2px;
+  background: var(--syn-status-info);
+}
+
+.flowTileTitle {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--syn-text-primary);
+  letter-spacing: 0;
+}
+
+.flowTileActive .flowTileTitle {
+  color: var(--syn-text-link, var(--syn-status-info));
+}
+
+.flowTileLockBadge {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 0;
+  background: transparent;
+  color: var(--syn-text-muted, rgba(255, 255, 255, 0.42));
+  padding: 0;
+}
+
+.flowTileAnalysisFocus {
+  font-size: 10.5px;
+  color: var(--syn-text-secondary, rgba(255, 255, 255, 0.72));
+}
+
+.flowTileBoundaryLine {
+  font-size: 9.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--syn-text-muted, rgba(255, 255, 255, 0.42));
+}
+
+.flowLibraryDisclaimer {
+  border-top: 1px solid color-mix(in srgb, var(--syn-border-subtle, rgba(255, 255, 255, 0.10)) 55%, transparent);
+  color: var(--syn-text-muted, rgba(255, 255, 255, 0.42));
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+
+/* Step pills — VS Code tab strip with blue underline */
+.stepPills,
+.stepPillsRow,
+.steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  margin: 0 0 12px;
+  border-bottom: 1px solid var(--syn-border-subtle, rgba(255, 255, 255, 0.10));
+}
+
+.stepPill,
+.step {
+  all: unset;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px 7px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--syn-text-muted, rgba(255, 255, 255, 0.50));
+  cursor: pointer;
+  transition: color 100ms linear, background 80ms linear;
+}
+
+.stepPill:hover,
+.step:hover {
+  color: var(--syn-text-primary);
+  background: color-mix(in srgb, var(--syn-text-primary, #fff) 3%, transparent);
+  border-color: transparent;
+}
+
+.stepPill:focus-visible,
+.step:focus-visible {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--syn-status-info) 50%, transparent);
+}
+
+.stepPillActive,
+.stepActive {
+  background: transparent;
+  border: 0;
+  color: var(--syn-text-link, var(--syn-status-info));
+}
+
+.stepPillActive::after,
+.stepActive::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 -1px 0;
+  height: 2px;
+  background: var(--syn-status-info);
+}
+
+.stepIndex {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid var(--syn-border-subtle, rgba(255, 255, 255, 0.18));
+  background: transparent;
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--syn-text-muted, rgba(255, 255, 255, 0.55));
+}
+
+.stepPillActive .stepIndex,
+.stepActive .stepIndex {
+  background: transparent;
+  border-color: color-mix(in srgb, var(--syn-status-info) 65%, transparent);
+  color: var(--syn-text-link, var(--syn-status-info));
+}
+
+.stepLabel {
+  letter-spacing: 0;
+}
+
+/* Step content cards / panels — no card-in-card, hairline only */
+.stepCard,
+.stepContentCard {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--syn-border-subtle, rgba(255, 255, 255, 0.10)) 55%, transparent);
+  border-radius: 0;
+  padding: 12px 0 14px;
+  gap: 10px;
+}
+
+.stepCardTitle {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--syn-text-muted, rgba(255, 255, 255, 0.55));
+}
+
+/* Rail cards — flatten to dense hairline sections */
+.railStack,
+.flowsRail {
+  gap: 0;
+}
+
+.railCard {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--syn-border-subtle, rgba(255, 255, 255, 0.10));
+  border-radius: 0;
+  box-shadow: none;
+  padding: 10px 12px 12px;
+  gap: 6px;
+}
+
+.railCardHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 0 4px;
+  border-bottom: 1px solid color-mix(in srgb, var(--syn-border-subtle, rgba(255, 255, 255, 0.10)) 50%, transparent);
+  margin-bottom: 6px;
+}
+
+.railCardTitle {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--syn-text-muted, rgba(255, 255, 255, 0.55));
+}
+
+.railCardSub {
+  font-size: 10.5px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--syn-text-muted, rgba(255, 255, 255, 0.42));
+}
+
+.snapshotCard {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--syn-border-subtle, rgba(255, 255, 255, 0.10)) 55%, transparent);
+  border-left: 2px solid color-mix(in srgb, var(--syn-status-info) 55%, transparent);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 8px 10px 10px;
+}
+
+.snapshotCard:hover {
+  background: color-mix(in srgb, var(--syn-text-primary, #fff) 3%, transparent);
+}
+
+/* Cockpit / primary action buttons — VS Code command bar */
+.btnPrimary,
+.btn,
+.btnActive,
+.insertOutcomeButton {
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--syn-status-info) 55%, transparent);
+  border-radius: 0;
+  color: var(--syn-text-link, var(--syn-status-info));
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 4px 9px;
+  min-height: 24px;
+  line-height: 1;
+  box-shadow: none;
+  cursor: pointer;
+  transition: background 80ms linear;
+}
+
+.btnPrimary:hover,
+.btn:hover,
+.btnActive:hover,
+.insertOutcomeButton:hover {
+  background: color-mix(in srgb, var(--syn-status-info) 12%, transparent);
+}
+
+.btnGhost {
+  background: transparent;
+  border: 1px solid var(--syn-border-subtle, rgba(255, 255, 255, 0.18));
+  border-radius: 0;
+  color: var(--syn-text-secondary, rgba(255, 255, 255, 0.78));
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 4px 9px;
+  min-height: 24px;
+  line-height: 1;
+}
+
+.btnGhost:hover:not([disabled]) {
+  background: color-mix(in srgb, var(--syn-text-primary, #fff) 5%, transparent);
+  color: var(--syn-text-primary);
+  border-color: var(--syn-border-subtle, rgba(255, 255, 255, 0.25));
+}
+
+.total {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  color: var(--syn-text-link, var(--syn-status-info));
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+
+/* Inputs / selects — match Methods/Report 28px discipline */
+.input,
+.select,
+.selectInput,
+.textInput,
+.rowInput textarea {
+  height: 28px;
+  background: var(--syn-surface-input, rgba(4, 6, 10, 0.82));
+  border: 1px solid var(--syn-border-subtle, rgba(255, 255, 255, 0.12));
+  border-radius: 0;
+  padding: 0 9px;
+  font-size: 12px;
+  line-height: 26px;
+  color: var(--syn-text-primary);
+}
+
+.rowInput textarea {
+  height: auto;
+  min-height: 64px;
+  padding: 6px 9px;
+  line-height: 1.5;
+}
+
+.input:focus,
+.select:focus,
+.selectInput:focus,
+.textInput:focus,
+.rowInput textarea:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--syn-status-info) 60%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--syn-status-info) 35%, transparent);
+}
+
+.rowLabel {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--syn-text-muted, rgba(255, 255, 255, 0.50));
+}
+
+.hint,
+.scaleNote,
+.disclaimer {
+  font-size: 10.5px;
+  color: var(--syn-text-muted, rgba(255, 255, 255, 0.45));
+  letter-spacing: 0;
+}
+
+/* Status / warn / toast — semantic non-amber, hairline */
+.warn,
+.warnBlock {
+  background: transparent;
+  border: 0;
+  border-left: 2px solid var(--syn-status-danger, var(--syn-danger));
+  border-radius: 0;
+  color: var(--syn-text-primary);
+  padding: 8px 10px;
+}
+
+.warn::before {
+  border: 1px solid var(--syn-status-danger, var(--syn-danger));
+  color: var(--syn-status-danger, var(--syn-danger));
+}
+
+.insertToast {
+  background: transparent;
+  border: 0;
+  border-left: 2px solid var(--syn-status-valid, var(--syn-success));
+  border-radius: 0;
+  color: var(--syn-text-secondary, rgba(255, 255, 255, 0.78));
+  padding: 4px 10px;
+  font-size: 11px;
+}
+
+/* Cross-panel action bar */
+.crossPanelBar {
+  background: transparent;
+  border-top: 1px solid var(--syn-border-subtle, rgba(255, 255, 255, 0.10));
+  padding: 8px 14px;
+}
+
+.flowFooter {
+  border-top: 1px solid var(--syn-border-subtle, rgba(255, 255, 255, 0.10));
+  padding: 8px 14px;
+}
+
+/* Top-level layout — single surface across flow shell */
+.flowWrap {
+  gap: 0;
+  background: var(--syn-surface-editor, var(--syn-bg-root));
+}
+
+.flowShellOuter {
+  gap: 0;
+}
+
+.flowBodyArea {
+  gap: 0;
 }
