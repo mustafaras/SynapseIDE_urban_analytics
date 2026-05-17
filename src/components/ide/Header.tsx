@@ -366,7 +366,6 @@ export const Header: React.FC<HeaderProps> = ({
     return () => window.removeEventListener('keydown', onKey, true);
   }, [onOpenCommandPalette, onGlobalSearch]);
 
-  const labelMuted = withAlpha(SYNAPSE_COLORS.textSecondary, 0.6);
   const [ctxOpenId, setCtxOpenId] = useState<string | null>(null);
   const ctxRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {

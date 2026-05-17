@@ -15,7 +15,6 @@ import { SynapseCoreAIPanel } from '../ai/panel/SynapseCoreAIPanel';
 import { flags } from '../../config/flags';
 import { FileExplorer } from '../file-explorer/FileExplorer';
 import NewFileModal from '../file-explorer/NewFileModal';
-import { SYNAPSE_COLORS, withAlpha } from '../../ui/theme/synapseTheme';
 import { Folder, Plus } from 'lucide-react';
 import { OutlinePane } from '../editor/OutlinePane';
 import { BEGINNER_ASSISTANT_ENABLED } from '../../features/beginnerAssistant';

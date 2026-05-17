@@ -9,8 +9,8 @@ This ledger is the execution source of truth for the color-system operating pack
 - Operating pack status: reprioritized for two-part amber-removal execution on 2026-05-15.
 - Historical implementation status: old broad Prompts 00-17 completed on 2026-05-15; old pending Prompts 18-37 are superseded by active prompts A01-A10, C01-C10, and B01-B10.
 - Active prompt count: 30 prompts: `A01` through `A10`, `C01` through `C10`, and `B01` through `B10`.
-- Current prompt: Part 1 (Urban Analytics) closed; Part 2 (Center Panel Workbench, C01-C10) underway; Prompts C01-C07 completed on 2026-05-16; next active prompt is C08 - Toolbox Tab — Project List, Action Panel, Capability/Lab/Consulton Panels, Export Bar.
-- Next prompt: Prompt C08 - Toolbox Tab — Project List, Action Panel, Capability/Lab/Consulton Panels, Export Bar.
+- Current prompt: Part 1 (Urban Analytics) closed; Part 2 (Center Panel Workbench, C01-C10) underway; Prompts C01-C08 completed; next active prompt is C09 - Cross-Cutting Surfaces — Urban Context Strip, Outline Nav, Background Tasks, Engine Capabilities, Narrative, Object Detector.
+- Next prompt: Prompt C09 - Cross-Cutting Surfaces — Urban Context Strip, Outline Nav, Background Tasks, Engine Capabilities, Narrative, Object Detector.
 - Part 1 status: COMPLETE. All 10 active prompts (A01-A10) completed. Urban Analytics modal is amber-free except for documented analytical/scientific retentions.
 - Part 2 status: UNDERWAY. New 10-prompt ladder (C01-C10) covers Center Panel shell + all eight tab interiors + ambient header animations preservation; runs before the Map Explorer track.
 - Part 3 status: BLOCKED on C10. Map Explorer prompts renumbered to Part 3 (IDs preserved as B01-B10); B01 dependsOn now C10 in the manifest.
@@ -53,7 +53,7 @@ This ledger is the execution source of truth for the color-system operating pack
 | C05 | Methods/Guide Tab — Methods View, Outline Rail, Guide Cards, And Command Bar | completed | C04 | All amber literals removed from `navtree.module.css`, `guides.rail.module.css`, and `guides.panel.module.css`. Outline tree active row uses 12%/18% blue mix + 2px inset blue left rail. Follow-up pass per user screenshot: appended Workbench Flatness Override block to `guides.module.css` that neutralizes all decorative `::before/::after` rail accents (rainbow nth-child gimmick, animated underline bars, sticky-gradient bg), flattens `.railSep` to plain uppercase muted labels (no pill), removes the rainbow rail accents, flattens chip filter row to 3px hairline pills, flattens `.block`/`.preview` filled boxes to 2px left-rail quotes, flattens `.macroBtn`/`.secActionBtn`/`.iconBtn` to ghost discipline. Section/card/macro/sticky headers all switched to transparent + bottom hairline. Result: Methods tab now matches the dense workbench discipline of Projects/New Project tabs. C05 target files scan clean; next prompt is C06. |
 | C06 | Report/Note Tab — Note Editor, Project Header, Sections, Footer, Library Insert | completed | C05 | Report/Note tab migrated to flat workbench notebook discipline: header strip, rail groups, sections, format bar, library insert, recent changes, footer, and report builder shell are amber-clean with square/hairline chrome. Follow-up passes moved the report builder into the main/dock workbench layout, flattened the collaboration dock, and restored a full-width stacked report flow with Live Preview at the bottom; next prompt is C07. |
 | C07 | Workflows Tab — Flow Host, Flows Rail, Tiles, Step Pills, Cockpit, And Per-Flow Surfaces | completed | C06 | Flow shell, tiles, rail cards, cockpit controls, scenario/composite/system surfaces, and `flows.module.css` overrides migrated to dense hairline workbench chrome. Primary C07 scan has no amber UI hits; remaining Flow hits are analytical/data palette values documented in the C07 log. Next prompt is C08. |
-| C08 | Toolbox Tab — Project List, Action Panel, Capability/Lab/Consulton Panels, Export Bar | pending | C07 | Workbench inspector sections for labs and consulton. |
+| C08 | Toolbox Tab — Project List, Action Panel, Capability/Lab/Consulton Panels, Export Bar | completed | C07 | Toolbox tab migrated to dense workbench discipline: `tools.module.css` and `tools.left.module.css` both received a C08 override layer that neutralizes every amber/gold/yellow class and gradient (themeAmber, panelAmber, pillAmber, calloutAmber, cardTitleAmber, barThemeAmber, statCard amber gradient, riskChip tier-3 amber, glass-amber backgrounds) to semantic non-amber tokens. Panels flattened to single-surface hairline sections, buttons converted to ghost/hairline discipline, inputs to compact 3px workbench fields, EO connector badges re-keyed to status-error/stale/demo/info/valid, PreviewPanel iframe scrollbar de-ambered to neutral muted thumb. JSX class wiring left untouched (per C07 precedent). Next prompt is C09. |
 | C09 | Cross-Cutting Surfaces — Urban Context Strip, Outline Nav, Background Tasks, Engine Capabilities, Narrative, Object Detector | pending | C08 | Cross-tab surfaces migrated; preserved animations still play. |
 | C10 | Center Panel Final Cleanup, Visual QA, And Part 3 Gate | pending | C09 | Close Part 2 and unblock Map Explorer (B01). |
 | B01 | Map Explorer Amber Inventory And Token Boundary | pending | C10 | Inventory complete Map Explorer amber scope and separate UI/data colors. Dependency moved from A10 → C10 on 2026-05-16. |
@@ -2717,6 +2717,126 @@ No edits required outside `src/features/urbanAnalytics/**` for Part 1.
 | 2026-05-14 | Amber is overused in existing tokens. | Medium | Historical global tokens may remain for compatibility; active Urban Analytics modal and Map Explorer UI/default styling must remove amber entirely. |
 | 2026-05-14 | Small agents may over-edit. | High | One prompt per agent and strict stop conditions. |
 
+### Prompt C08 - Toolbox Tab — Project List, Action Panel, Capability/Lab/Consulton Panels, Export Bar - 2026-05-17
+
+- Files inspected:
+  - `src/centerpanel/Tools/ToolsProjectList.tsx`
+  - `src/centerpanel/Tools/ToolsActionPanel.tsx`
+  - `src/centerpanel/Tools/ConsultonPanel.tsx`
+  - `src/centerpanel/Tools/ConsultonDiff.tsx`
+  - `src/centerpanel/Tools/ConsultonSessions.ts`
+  - `src/centerpanel/Tools/ExportBar.tsx`
+  - `src/centerpanel/Tools/PreviewPanel.tsx`
+  - `src/centerpanel/Tools/components/CapabilitiesOverviewPanel.tsx`
+  - `src/centerpanel/Tools/components/CoverageDiagnosticsPanel.tsx`
+  - `src/centerpanel/Tools/components/EOConnectorPanel.tsx`
+  - `src/centerpanel/Tools/components/GeoAILab.tsx`
+  - `src/centerpanel/Tools/components/SpatialIndexLab.tsx`
+  - `src/centerpanel/Tools/components/StreamingLab.tsx`
+  - `src/centerpanel/styles/tools.module.css`
+  - `src/centerpanel/styles/tools.left.module.css`
+
+- Files changed:
+  - `src/centerpanel/styles/tools.module.css` — appended C08 workbench override layer. Neutralizes amber theme/panel/pill/callout/title classes (`themeAmber`, `panelAmber`, `pillAmber`, `calloutAmber`, `cardTitleAmber`, `barThemeAmber`, `warn`) to semantic non-amber tokens. Panels flattened to single-surface hairline sections (no card-in-card frames). Cardtitle migrated to uppercase mono workbench label with dashed underline. Pills converted to flat 3px hairline chips; primary live-region pill uses blue info accent. Buttons flipped to ghost discipline with 10% blue hover. Segmented control de-gradiented; selected pip uses `--syn-vscode-accent-blue-soft` + inset blue underline. Inputs reflowed to compact 3px workbench fields with visible focus ring. Empty state de-gradiented to flat dashed hairline. Divider flattened from gradient to plain 1px hairline. ExportBar amber theme neutralized to transparent toolbar with top hairline. `accentLow/accentMod/accentHigh` retained as 2px inset blue rails. Reduced-motion respected.
+  - `src/centerpanel/styles/tools.left.module.css` — appended C08 workbench override layer. StatCards flattened to hairline bottom-border rows; `data-type="total"` uses blue accent, `data-type="pinned"` uses status-valid green. RiskChips re-keyed: tier 0/1 muted, tier 2 info-blue, tier 3 (high/blocked) uses `--syn-status-error` with 10% red tint and 40% red border. All `var(--syn-gradient-amber)` and `var(--syn-gradient-glass-amber)` consumers visually neutralized.
+  - `src/centerpanel/Tools/PreviewPanel.tsx` — iframe injected scrollbar style migrated from `rgba(245,158,11,0.70)` amber thumb to neutral muted `rgba(119,129,144,0.32)` thumb (with hover at 0.55). Track is now transparent, thumb is 10px (was 12px) with 6px radius. Print media still hides the scrollbar.
+  - `src/centerpanel/Tools/components/EOConnectorPanel.tsx` — `badgeStyle()` palette re-keyed from amber tier values (`#FCD34D`, `#FBBF24`) to semantic status tokens: `failed → --syn-status-error`, `credential-missing → --syn-status-stale`, `demo → --syn-status-demo`, `loading → --syn-status-info`, ready → `--syn-status-valid`. Badge shape switched from 999 radius pill to 3px workbench chip; font-family is now `var(--font-mono)`, weight 600, 0.06em letter-spacing, with a 1px tint-matched border. Status meaning still text-backed via uppercase label.
+
+- Tokens added: none new — consumed existing `--syn-vscode-bg-editor`, `--syn-vscode-bg-panel`, `--syn-vscode-bg-input`, `--syn-vscode-accent-blue`, `--syn-vscode-accent-blue-soft`, `--syn-vscode-border-subtle`, `--syn-vscode-text-primary`, `--syn-vscode-text-secondary`, `--syn-vscode-text-muted`, `--syn-status-error`, `--syn-status-valid`, `--syn-status-info`, `--syn-status-stale`, `--syn-status-demo`, `--font-mono`.
+
+- Hard-coded colors removed: amber gradient backgrounds on `.statCard`, `.riskChip[data-risk="3"]`, glass-amber drops on inspector panels. Inline amber gradient stops (`#FCD34D`, `#FBBF24`) in EOConnectorPanel badges. Amber iframe scrollbar in PreviewPanel.
+
+- Hard-coded colors retained: none in the active C08 Toolbox source set after the 2026-05-17 follow-up. Legacy class names such as `themeAmber`, `panelAmber`, `pillAmber`, `cardTitleAmber`, and `barThemeAmber` remain as JSX/CSS contract names only; their rendered values are semantic non-amber tokens.
+
+- Card frames removed: tools inspector `.panel` and `.panelAmber` flattened from filled rounded plates to bottom-hairline single-surface sections. `cardTitle*` converted from filled-plate labels to dashed-underline uppercase mono labels.
+
+- Filled buttons removed: tools `.btn`, `.btnIcon`, `.toolbar .btn` flipped to transparent ghost with 10% blue hover. ExportBar `barThemeAmber` neutralized.
+
+- Accessibility & contrast notes: status badge meaning preserved via uppercase text labels (`FAILED`, `CREDENTIAL-MISSING`, `DEMO`, `LOADING`, ready labels); color is supplementary. Risk tier 3 still uses red for severity-truthful contrast. Focus ring is 1px inset blue (visible against editor surface, matches C02-C07 pattern). Reduced-motion media query respected on segmented buttons and primary buttons.
+
+- Data visualization notes: only UI chrome changed; tool execution recipes, capability checks, EO/streaming/spatial-index dispatch, ConsultonSessions persistence, and export behavior untouched. Risk tier values still come from upstream data, only the visual representation flipped.
+
+- Scientific integrity notes: demo/credential-missing/blocked states remain explicit through text labels and dedicated status tokens (`--syn-status-demo`, `--syn-status-stale`, `--syn-status-error`). None of these were re-keyed to the success color.
+
+- Cross-module contract changes: none. Tool registration, recipe contracts, and panel registration untouched.
+
+- Validation:
+  - `npm run typecheck` → clean (no new errors).
+  - `npx vitest run src/centerpanel/Tools` → 3 files passed, 11 tests passed (CoverageDiagnosticsPanel, EOConnectorPanel, GeoAILab).
+  - Targeted C08 amber scan over `src/centerpanel/Tools/**`: remaining hits are (1) legacy class name strings (`themeAmber`, `panelAmber`, `pillAmber`, `cardTitleAmber`, `barThemeAmber`) in JSX which are now visually non-amber via the override layer (preserved per C07 precedent to avoid touching JSX wiring), and (2) two explanatory comments in `EOConnectorPanel.tsx` explicitly documenting the absence of amber. No remaining amber UI chrome renders.
+
+- Known risks: legacy `*Amber` class names still exist as compatibility identifiers. Future cleanup can rename these classes after all C-track panels are closed, but the current rendered Toolbox chrome and source color values are non-amber.
+
+- Next recommended prompt: Prompt C09 - Cross-Cutting Surfaces — Urban Context Strip, Outline Nav, Background Tasks, Engine Capabilities, Narrative, Object Detector.
+
+### Prompt C07 Follow-up - Workflow Tab Polish And Residual Color Cleanup - 2026-05-17
+
+- Trigger: user requested a direct Workflows tab pass for premium VS Code-style density, motion effects, and cleanup of remaining amber-like workflow remnants.
+- Files inspected: `COLOR_SYSTEM_PLANS/*` operating pack entries, C07 prompt block, C07 ledger entry, and Workflows files under `src/centerpanel/Flows/**` plus `src/centerpanel/styles/flows.module.css`.
+- Files changed:
+  - `src/centerpanel/styles/flows.module.css` — converted legacy `--syn-accent-*` consumers in the Workflows scope to semantic blue/status tokens, added completed/suggested/read-only/related-method dense workbench rows, added reduced-motion-safe micro animations for panel reveal, active rail, and step underline.
+  - `src/centerpanel/Flows/StepPills.tsx` — added completed-step classing so completed steps can render through `--syn-status-valid` while active remains blue underline/text.
+  - `src/centerpanel/Flows/rail/RelatedMethodsCard.tsx` — moved related-method row chrome from inline card styles to CSS module workbench rows.
+  - `src/centerpanel/Flows/FlowHost.tsx` — changed unset study-area status rail from legacy danger alias to semantic `--syn-status-error`.
+  - `src/centerpanel/Flows/AccessibilityFlow.tsx`, `CellularAutomataFlow.tsx`, `CompositeIndicatorFlow.tsx`, `FacilityOptimisationFlow.tsx`, `SystemDynamicsFlow.tsx`, `scenarioComparisonArtifacts.ts` — re-keyed default/demo workflow visualization palettes from amber/orange/yellow stops to blue/violet/teal non-amber data colors without changing calculations or dispatch contracts.
+- Tokens added: none. Used existing `--syn-status-info`, `--syn-status-valid`, `--syn-status-error`, `--syn-status-stale`, `--syn-text-*`, `--syn-border-*`, and `--syn-surface-*`.
+- Contract notes: `useFlowStore`, `useFlowsUIStore`, flow registration, run dispatch, completed-run review, and map dispatch behavior unchanged. Demo/blocked/unknown/readiness text remains explicit.
+- Validation:
+  - `npm run typecheck` -> passed.
+  - `npx vitest run src/centerpanel/Flows/__tests__/AccessibilityFlow.map-dispatch.test.tsx src/centerpanel/Flows/__tests__/CellularAutomataFlow.test.tsx src/centerpanel/Flows/__tests__/scenarioComparisonArtifacts.test.ts` -> passed, 3 files / 7 tests.
+  - `npx vitest run src/centerpanel/Flows/__tests__` -> passed, 7 files / 60 tests.
+  - `git diff --check` -> passed.
+  - Case-insensitive targeted Workflows color scan over `src/centerpanel/Flows` and `src/centerpanel/styles/flows.module.css` -> 0 hits.
+  - Center Panel Standard Amber Scan still reports out-of-scope Map Explorer paths due the documented PowerShell negation-glob issue plus deferred C09 cross-cutting surfaces (`EngineCapabilitiesPanel`, `NarrativeGenerationPanel`, `ObjectDetectorPanel`) and legacy C08 source comments/rules in `tools*`; no Workflows hits remain.
+
+### Prompt C07 Follow-up 2 - Workflow Overflow, Navigator Density, Embedded Hot Spot Chrome - 2026-05-17
+
+- Trigger: user provided screenshots showing horizontal overflow in Active Workflow, residual amber on the embedded Emerging Hot Spot panel, and uneven Navigator spacing.
+- Files changed:
+  - `src/centerpanel/Flows/EmergingHotSpotFlow.tsx` — removed fixed 760/680px minimum-height shell and moved the embedded map panel into a responsive workflow frame.
+  - `src/centerpanel/components/MapEmergingHotSpotViz.tsx` — fixed embedded `left: 50%` inheritance from the floating map panel, added `left: 0`, `maxWidth: 100%`, `overflowX: hidden`, non-amber workbench chrome, blue semantic range/control accents, transparent run button, and responsive auto-fit grids.
+  - `src/centerpanel/Flows/FlowHost.tsx` — replaced workspace mode buttons with tab-like VS Code workbench tabs using `data-active`.
+  - `src/centerpanel/Flows/WorkflowCockpit.tsx` — replaced irregular inline button grids/cards with dense command rows, journey columns, and compact feature-map rows backed by CSS module classes.
+  - `src/centerpanel/styles/flows.module.css` — added overflow containment for Workflows surfaces, compact workspace tabs, Navigator command/journey/feature styles, embedded workflow frame sizing, and reduced-motion coverage.
+  - `src/centerpanel/components/EngineCapabilitiesPanel.tsx` — re-keyed the Workflows rail capability panel away from amber constants and flattened it to a hairline inspector section.
+- Contract notes: workflow selection, `useFlowsUIStore`, `useFlowStore`, map dispatch, hot spot execution, completed run persistence, and legend/data semantics unchanged. Hot/cold analytical result legend colors remain data output colors, not UI chrome.
+- Validation:
+  - `npm run typecheck` -> passed.
+  - `npx vitest run src/centerpanel/Flows/__tests__ src/centerpanel/components/__tests__/MapEmergingHotSpotViz.test.tsx` -> passed, 8 files / 61 tests.
+  - Case-insensitive targeted Workflows color scan over `src/centerpanel/Flows`, `src/centerpanel/styles/flows.module.css`, `MapEmergingHotSpotViz.tsx`, and `EngineCapabilitiesPanel.tsx` -> 0 hits.
+
+### Center Panel Copy Cleanup - User-Facing Prompt Terminology - 2026-05-17
+
+- Trigger: user requested removing "Prompt" wording from Center Panel text.
+- Files changed:
+  - `src/centerpanel/Flows/workflowExperience.ts`, `FlowLibraryCard.tsx`, `FlowHost.tsx`, `WorkflowCockpit.tsx`, `rail/SuggestedCard.tsx` — replaced visible prompt-number labels and prompt wording with workflow/method labels.
+  - `src/centerpanel/Tools/ToolsActionPanel.tsx`, `ConsultonPanel.tsx`, `components/GeoAILab.tsx` — replaced user-facing Prompt labels with Request, query, or advanced-indicator language.
+  - `src/centerpanel/styles/flows.module.css`, `src/centerpanel/styles/tools.module.css` — renamed prompt-oriented presentation classes used by touched UI surfaces to label/request naming.
+  - `src/centerpanel/components/MapTemporalPlayer.tsx`, `src/centerpanel/components/map/MapWorkflowDrawer.tsx`, `src/centerpanel/components/map/mapTypes.ts`, and map test titles/comments — removed leftover prompt-number wording from non-product text.
+- Contract notes: technical API/browser identifiers such as `window.prompt`, `systemPrompt`, `userPrompt`, and persisted Consulton/audit field names remain because they are implementation contracts, not rendered Center Panel copy.
+- Validation:
+  - `npm run typecheck` -> passed.
+  - `npx vitest run src/centerpanel/Flows/__tests__ src/centerpanel/Tools src/centerpanel/Tools/components/__tests__` -> passed, 10 files / 71 tests.
+  - `git diff --check` -> passed.
+
+### Prompt C08 Follow-up - Toolbox Indexing, Tab Motion, Source Amber Cleanup - 2026-05-17
+
+- Trigger: user requested the same premium VS Code workbench discipline for the final Toolbox tab, with perfect indexing and premium transition animations across tab content.
+- Files changed:
+  - `src/centerpanel/Tools/ToolsActionPanel.tsx` — replaced the duplicated hard-coded top navigation with a single `TOOLBOX_INDEX` source, added `Reporting Builder` to the navigable index, removed duplicate visible `Index` labels, added active-section tracking via `IntersectionObserver`, and converted every Toolbox section to a focusable indexed section with `data-toolbox-section`.
+  - `src/centerpanel/Tools/ToolsProjectList.tsx` — added `aria-current` to selected project rows so the left rail selection participates in the shared Center Panel selected-state styling.
+  - `src/centerpanel/components/CenterPanelTabFrame.tsx` — added `data-tab-rail` and `data-tab-content` hooks so every Center Panel tab can share a consistent premium rail/content transition.
+  - `src/centerpanel/styles/tools.module.css` — added C08 follow-up motion/index layer: sticky dense Toolbox section index, active blue underline animation, section reveal animation, horizontal overflow containment, wrapped index buttons, responsive panel padding, and reduced-motion fallbacks. Removed remaining Toolbox-scope `--syn-accent-primary` and hard-coded amber/yellow fallbacks by mapping them to `--syn-vscode-accent-blue`, `--syn-status-info`, or semantic warning/status tokens.
+  - `src/centerpanel/styles/tools.left.module.css` — added dense rail row reveal, selected blue left rail, hover/focus transitions, no-shift action buttons, non-amber pinned status styling, and source cleanup for old amber stat/chip/risk/pin values.
+  - `src/centerpanel/styles/centerpanel.module.css` — added shared rail/content/accent sweep transitions for all Center Panel tab surfaces and removed negative letter-spacing in the touched header/title rules.
+- Contract notes: tool recipes, capability checks, EO/GeoAI/Spatial Index/Streaming dispatch, `ConsultonSessions`, export behavior, and registry state selection remain unchanged.
+- Validation:
+  - `npm run typecheck` -> passed.
+  - `npx vitest run src/centerpanel/Tools src/centerpanel/Tools/components/__tests__` -> passed, 3 files / 11 tests.
+  - `git diff --check` -> passed.
+  - Targeted Toolbox amber/source scan over `ToolsActionPanel.tsx`, `ToolsProjectList.tsx`, `tools.module.css`, and `tools.left.module.css` for hard-coded amber/yellow values and `--syn-accent-primary` -> 0 hits.
+  - Local dev server check `http://127.0.0.1:3000` -> 200.
+
 ## Next Pointer
 
-Prompt C08 - Toolbox Tab — Project List, Action Panel, Capability/Lab/Consulton Panels, Export Bar.
+Prompt C09 - Cross-Cutting Surfaces — Urban Context Strip, Outline Nav, Background Tasks, Engine Capabilities, Narrative, Object Detector.
