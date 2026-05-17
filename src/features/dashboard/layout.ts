@@ -95,7 +95,7 @@ export function createWidget(type: DashboardWidgetType, overrides?: Partial<Dash
   const config: DashboardWidgetConfig = {
     title: DEFAULT_WIDGET_TITLES[type],
     style: {
-      accentColor: "#f59e0b",
+      accentColor: "#3794ff",
       chartVariant: "bar",
       density: "comfortable",
       textAlign: "left",
@@ -212,7 +212,7 @@ export function validateDashboardWidgets(
 export function normalizeDashboardDocument(document: DashboardDocument): DashboardDocument {
   const normalizedWidgets = document.widgets.reduce<DashboardWidget[]>((accumulator, widget) => {
     const style = {
-      accentColor: widget.config?.style?.accentColor ?? "#f59e0b",
+      accentColor: widget.config?.style?.accentColor ?? "#3794ff",
       ...(widget.config?.style?.background === undefined ? {} : { background: widget.config.style.background }),
       chartVariant: widget.config?.style?.chartVariant ?? "bar",
       density: widget.config?.style?.density ?? "comfortable",

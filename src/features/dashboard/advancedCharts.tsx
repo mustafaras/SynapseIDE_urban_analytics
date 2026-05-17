@@ -1,4 +1,5 @@
 import React, { useId, useRef, useState } from "react";
+import dashboardStyles from "./dashboard.module.css";
 
 export type AdvancedChartType =
   | "parallel_coordinates"
@@ -203,7 +204,7 @@ export type AdvancedChartData =
 // ---------- Sample data ----------
 
 const DISTRICT_LABELS = ["Central Core", "East Works", "Harbour", "Northgate", "West Ridge", "Southfield"];
-const PALETTE = ["#f59e0b", "#38bdf8", "#a78bfa", "#34d399", "#f472b6", "#fbbf24"];
+const PALETTE = ["#3794ff", "#38bdf8", "#a78bfa", "#34d399", "#f472b6", "#22d3ee"];
 
 export const ADVANCED_CHART_SAMPLES: Record<AdvancedChartType, AdvancedChartData> = {
   parallel_coordinates: {
@@ -1027,7 +1028,7 @@ export const AdvancedChart: React.FC<AdvancedChartProps> = ({
   data,
   title,
   subtitle,
-  accent = "#f59e0b",
+  accent = "#3794ff",
   showLegend = true,
   compact = false,
 }) => {
@@ -1308,26 +1309,33 @@ export const AdvancedChartGallery: React.FC<AdvancedChartGalleryProps> = ({ onSe
             onClick={() => setFilter(f.id)}
             aria-pressed={filter === f.id}
             style={{
-              padding: "4px 10px",
-              borderRadius: 999,
-              border: `1px solid ${filter === f.id ? "#f59e0b" : "rgba(148,163,184,0.3)"}`,
-              background: filter === f.id ? "rgba(245,158,11,0.15)" : "transparent",
-              color: filter === f.id ? "#fbbf24" : "#cbd5e1",
-              fontSize: 11,
+              position: "relative",
+              padding: "3px 8px",
+              borderRadius: 3,
+              border: 0,
+              background:
+                filter === f.id
+                  ? "color-mix(in srgb, var(--syn-text-primary) 4%, transparent)"
+                  : "transparent",
+              boxShadow:
+                filter === f.id
+                  ? "inset 0 -1px 0 0 color-mix(in srgb, var(--syn-interaction-active) 60%, transparent)"
+                  : "none",
+              color: filter === f.id ? "var(--syn-text-primary)" : "var(--syn-text-secondary)",
+              fontFamily:
+                "ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace",
+              fontSize: 10,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
               cursor: "pointer",
+              transition: "background-color .14s ease, color .14s ease",
             }}
           >
             {f.label}
           </button>
         ))}
       </div>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
-          gap: 10,
-        }}
-      >
+      <div className={dashboardStyles.chartPickerGrid}>
         {visible.map((meta) => (
           <button
             key={meta.type}
@@ -1344,25 +1352,64 @@ export const AdvancedChartGallery: React.FC<AdvancedChartGalleryProps> = ({ onSe
             onClick={() => onSelect(meta.type)}
             aria-label={`Add ${meta.label}`}
             style={{
+              position: "relative",
               textAlign: "left",
               padding: 10,
-              borderRadius: 10,
-              border: `1px solid ${activeType === meta.type ? "#f59e0b" : "rgba(148,163,184,0.25)"}`,
-              background: activeType === meta.type ? "rgba(245,158,11,0.08)" : "rgba(15,23,42,0.55)",
-              color: "#e2e8f0",
+              borderRadius: 3,
+              border: 0,
+              boxShadow:
+                activeType === meta.type
+                  ? "inset 2px 0 0 0 var(--syn-interaction-active), inset 0 0 0 1px color-mix(in srgb, var(--syn-interaction-active) 35%, transparent)"
+                  : "inset 0 0 0 1px var(--syn-border-subtle)",
+              background:
+                activeType === meta.type
+                  ? "color-mix(in srgb, var(--syn-interaction-active) 5%, var(--syn-bg-root, #0d1117))"
+                  : "var(--syn-bg-root, #0d1117)",
+              color: "var(--syn-text-primary)",
               cursor: "grab",
               display: "grid",
               gap: 6,
+              transition: "background-color .16s ease, box-shadow .16s ease",
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
-              <strong style={{ fontSize: 12 }}>{meta.label}</strong>
-              <span style={{ fontSize: 10, color: "#94a3b8" }}>{meta.familyLabel}</span>
+              <strong style={{ fontSize: 12, fontWeight: 500, color: "var(--syn-text-primary)" }}>{meta.label}</strong>
+              <span
+                style={{
+                  fontFamily:
+                    "ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace",
+                  fontSize: 9.5,
+                  color: "var(--syn-text-secondary)",
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  opacity: 0.6,
+                }}
+              >
+                {meta.familyLabel}
+              </span>
             </div>
-            <div style={{ height: 96, borderRadius: 8, overflow: "hidden", background: "rgba(2,6,23,0.55)", border: "1px solid rgba(148,163,184,0.15)" }}>
-              <AdvancedChart type={meta.type} compact showLegend={false} accent="#f59e0b" />
+            <div
+              style={{
+                aspectRatio: "16 / 9",
+                minHeight: 220,
+                borderRadius: 2,
+                overflow: "hidden",
+                background: "color-mix(in srgb, var(--syn-text-primary) 1.5%, transparent)",
+                border: "1px solid var(--syn-border-subtle)",
+              }}
+            >
+              <AdvancedChart type={meta.type} showLegend accent="#3794ff" />
             </div>
-            <div style={{ fontSize: 11, color: "#94a3b8", lineHeight: 1.3 }}>{meta.description}</div>
+            <div
+              style={{
+                fontSize: 11,
+                color: "var(--syn-text-secondary)",
+                opacity: 0.78,
+                lineHeight: 1.45,
+              }}
+            >
+              {meta.description}
+            </div>
           </button>
         ))}
       </div>

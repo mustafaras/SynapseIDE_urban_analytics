@@ -37,7 +37,7 @@ function statusColor(status: string): string {
     case "critical":
       return "#f87171";
     case "watch":
-      return "#fbbf24";
+      return "#3794ff";
     default:
       return "#60a5fa";
   }
@@ -90,7 +90,7 @@ function renderMap(binding: DashboardMapBinding): string {
   return `
     <div class="map-grid">
       ${binding.areas.map((area) => `
-        <div class="map-cell" style="background:rgba(245,158,11,${Math.max(0.18, area.value / max)}); border-color:${statusColor(area.status)};">
+        <div class="map-cell" style="background:rgba(55,148,255,${Math.max(0.18, area.value / max)}); border-color:${statusColor(area.status)};">
           <strong>${escapeHtml(area.label)}</strong>
           <span>${escapeHtml(area.formattedValue)}</span>
         </div>
@@ -190,12 +190,12 @@ export function buildDashboardEmbedHtml(document: DashboardDocument): string {
       .widget header { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
       .widget h2 { margin: 0; font-size: 15px; }
       .widget p { margin: 0; color: #bfd0e4; }
-      .meta-chip { border: 1px solid rgba(245,158,11,0.26); color: #fbbf24; border-radius: 999px; padding: 4px 8px; font-size: 11px; }
+      .meta-chip { border: 1px solid rgba(55,148,255,0.26); color: #3794ff; border-radius: 999px; padding: 4px 8px; font-size: 11px; }
       .metric-value { font-size: 34px; font-weight: 700; letter-spacing: -0.03em; }
       .metric-meta, .row, .compare-row { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
       .stack { display: flex; flex-direction: column; gap: 10px; }
       .bar-track, .compare-bar { height: 10px; border-radius: 999px; background: rgba(148,163,184,0.14); overflow: hidden; }
-      .bar-fill, .compare-fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+      .bar-fill, .compare-fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, #3794ff, #3794ff); }
       .compare-fill.secondary { background: linear-gradient(90deg, #38bdf8, #60a5fa); }
       table { width: 100%; border-collapse: collapse; font-size: 12px; }
       th, td { padding: 8px 10px; border-bottom: 1px solid rgba(148,163,184,0.14); text-align: left; }
@@ -203,7 +203,7 @@ export function buildDashboardEmbedHtml(document: DashboardDocument): string {
       .map-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
       .map-cell { min-height: 72px; border-radius: 14px; border: 1px solid rgba(148,163,184,0.18); padding: 10px; display: flex; flex-direction: column; justify-content: space-between; gap: 8px; }
       .highlight-list { display: flex; gap: 8px; flex-wrap: wrap; }
-      .pill { border-radius: 999px; padding: 4px 9px; background: rgba(245,158,11,0.12); color: #fbbf24; font-size: 11px; }
+      .pill { border-radius: 999px; padding: 4px 9px; background: rgba(55,148,255,0.12); color: #3794ff; font-size: 11px; }
       .sparkline-row { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; align-items: end; min-height: 54px; }
       .sparkline-bar { display: block; background: linear-gradient(180deg, #38bdf8, #0ea5e9); border-radius: 999px 999px 4px 4px; min-height: 12px; }
       .muted { color: #93a6bd; font-size: 12px; }

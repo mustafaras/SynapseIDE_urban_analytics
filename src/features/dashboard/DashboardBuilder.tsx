@@ -53,6 +53,7 @@ import {
   upsertDashboardDocument,
 } from "./storage";
 import { DashboardWidgetContent } from "./DashboardWidgetContent";
+import { useDashboardUIStore } from "./uiStore";
 import type {
   DashboardDocument,
   DashboardLibraryState,
@@ -68,21 +69,16 @@ type DragPayload =
   | { source: "library"; widgetType: DashboardWidgetType; advancedChartType?: AdvancedChartType }
   | { source: "canvas"; widgetId: string };
 
-const cardStyle: React.CSSProperties = {
-  border: "1px solid var(--syn-overlay-light)",
-  borderRadius: 14,
-  background: "linear-gradient(180deg, rgba(15,23,42,0.88), rgba(15,23,42,0.72))",
-  boxShadow: "0 18px 34px rgba(2,6,23,0.24)",
-  padding: 12,
-};
-
 const widgetShellStyle: React.CSSProperties = {
-  ...cardStyle,
   display: "flex",
   flexDirection: "column",
-  gap: 12,
+  gap: 10,
   minHeight: 0,
   overflow: "hidden",
+  padding: 10,
+  borderRadius: 0,
+  border: 0,
+  background: "var(--syn-bg-root, #0d1117)",
 };
 
 function formatWidgetLabel(type: DashboardWidgetType): string {
@@ -226,8 +222,14 @@ export const DashboardBuilder: React.FC<DashboardBuilderProps> = ({
   );
 
   const canvasRows = useMemo(() => {
-    const contentRows = Math.max(...activeDashboard.widgets.map((widget) => widget.layout.y + widget.layout.h), 0);
-    return Math.max(8, contentRows + 2);
+    const contentRows = Math.max(
+      ...activeDashboard.widgets.map((widget) => widget.layout.y + widget.layout.h),
+      0,
+    );
+    // Dynamic: just enough rows to hold every widget plus a single buffer row
+    // for snap-drop affordance. Floors at 2 so the canvas is never collapsed
+    // to zero when the dashboard is empty.
+    return Math.max(2, contentRows + 1);
   }, [activeDashboard.widgets]);
 
   useEffect(() => {
@@ -238,6 +240,12 @@ export const DashboardBuilder: React.FC<DashboardBuilderProps> = ({
   useEffect(() => {
     persistDashboardLibrary(libraryState);
   }, [libraryState]);
+
+  useEffect(() => {
+    const store = useDashboardUIStore.getState();
+    store.setActiveDashboardId(activeDashboard.id);
+    store.setSelectedWidgetId(selectedWidgetId);
+  }, [activeDashboard.id, selectedWidgetId]);
 
   useEffect(() => {
     if (!collaboration || !dashboardScopeId) {
@@ -315,12 +323,20 @@ export const DashboardBuilder: React.FC<DashboardBuilderProps> = ({
     if (!selectedWidget) {
       return;
     }
+    deleteWidgetById(selectedWidget.id, selectedWidget.config.title);
+  }
+
+  function deleteWidgetById(widgetId: string, label?: string): void {
+    const target = activeDashboard.widgets.find((widget) => widget.id === widgetId);
+    const removedTitle = label ?? target?.config.title ?? "widget";
     updateActiveDashboard((dashboard) => ({
       ...dashboard,
-      widgets: dashboard.widgets.filter((widget) => widget.id !== selectedWidget.id),
+      widgets: dashboard.widgets.filter((widget) => widget.id !== widgetId),
     }));
-    setSelectedWidgetId(null);
-    announce(`Removed ${selectedWidget.config.title}.`);
+    if (selectedWidgetId === widgetId) {
+      setSelectedWidgetId(null);
+    }
+    announce(`Removed ${removedTitle}.`);
   }
 
   function addWidget(
@@ -340,7 +356,7 @@ export const DashboardBuilder: React.FC<DashboardBuilderProps> = ({
           ? getDashboardBinding(bindingId)?.label
           : undefined;
       const style = {
-        accentColor: "#f59e0b",
+        accentColor: "var(--syn-interaction-active)",
         chartVariant: "bar" as const,
         density: "comfortable" as const,
         textAlign: "left" as const,
@@ -389,7 +405,7 @@ export const DashboardBuilder: React.FC<DashboardBuilderProps> = ({
           bindingId,
           subtitle: binding.description,
           style: {
-            accentColor: "#f59e0b",
+            accentColor: "var(--syn-interaction-active)",
             chartVariant: binding.kind === "series" ? "line" : "bar",
             density: "comfortable",
             textAlign: "left",
@@ -602,7 +618,7 @@ export const DashboardBuilder: React.FC<DashboardBuilderProps> = ({
         </div>
       </header>
 
-      <div aria-live="polite" style={{ ...cardStyle, padding: 10, fontSize: 12, color: "var(--syn-text-muted)" }}>
+      <div aria-live="polite" className={styles.statusStrip}>
         {statusMessage}
       </div>
 
@@ -700,7 +716,7 @@ export const DashboardBuilder: React.FC<DashboardBuilderProps> = ({
                 <button
                   key={entry.type}
                   type="button"
-                  className={flowStyles.outlineBtn}
+                  className={styles.listItem}
                   draggable
                   onClick={() => addWidget(entry.type)}
                   onDragStart={(event) => {
@@ -709,13 +725,12 @@ export const DashboardBuilder: React.FC<DashboardBuilderProps> = ({
                   }}
                   onDragEnd={() => setDragHover(null)}
                   aria-label={entry.dragLabel}
-                  style={{ justifyContent: "space-between" }}
                 >
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                    <GripVertical size={14} />
+                    <GripVertical size={12} style={{ opacity: 0.55 }} />
                     {entry.label}
                   </span>
-                  <span style={{ color: "var(--syn-text-muted)", fontSize: 11 }}>{entry.defaultLayout.w}x{entry.defaultLayout.h}</span>
+                  <span className={styles.listMeta}>{entry.defaultLayout.w}×{entry.defaultLayout.h}</span>
                 </button>
               ))}
             </div>
@@ -727,28 +742,27 @@ export const DashboardBuilder: React.FC<DashboardBuilderProps> = ({
           <div className={flowStyles.stepContentCard}>
             <div className={flowStyles.stepCardTitle}>Saved Layouts</div>
             <div className={styles.list}>
-              {sortedDashboards.map((dashboard) => (
-                <button
-                  key={dashboard.id}
-                  type="button"
-                  className={flowStyles.outlineBtn}
-                  onClick={() => {
-                    setRestoreCandidateId(dashboard.id);
-                    if (dashboardCollaboration) {
-                      dashboardCollaboration.setActiveDashboardId(dashboard.id);
-                    } else {
-                      updateLibrary((previous) => ({ ...previous, activeDashboardId: dashboard.id }));
-                    }
-                  }}
-                  style={{
-                    borderColor: dashboard.id === activeDashboard.id ? "var(--syn-accent-primary)" : undefined,
-                    justifyContent: "space-between",
-                  }}
-                >
-                  <span>{dashboard.name}</span>
-                  <span style={{ color: "var(--syn-text-muted)", fontSize: 11 }}>{dashboard.widgets.length} widgets</span>
-                </button>
-              ))}
+              {sortedDashboards.map((dashboard) => {
+                const active = dashboard.id === activeDashboard.id;
+                return (
+                  <button
+                    key={dashboard.id}
+                    type="button"
+                    className={`${styles.listItem} ${active ? styles.listItemActive : ""}`.trim()}
+                    onClick={() => {
+                      setRestoreCandidateId(dashboard.id);
+                      if (dashboardCollaboration) {
+                        dashboardCollaboration.setActiveDashboardId(dashboard.id);
+                      } else {
+                        updateLibrary((previous) => ({ ...previous, activeDashboardId: dashboard.id }));
+                      }
+                    }}
+                  >
+                    <span>{dashboard.name}</span>
+                    <span className={styles.listMeta}>{dashboard.widgets.length}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </aside>
@@ -770,11 +784,12 @@ export const DashboardBuilder: React.FC<DashboardBuilderProps> = ({
             onDrop={handleCanvasDrop}
             onDragLeave={() => setDragHover(null)}
             style={{
-              ...cardStyle,
               padding: 14,
               display: "grid",
               gap: 14,
-              background: "radial-gradient(circle at top right, rgba(56,189,248,0.12), transparent 32%), linear-gradient(180deg, rgba(15,23,42,0.95), rgba(15,23,42,0.88))",
+              borderRadius: 3,
+              border: "1px solid var(--syn-border-subtle)",
+              background: "transparent",
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", flexWrap: "wrap" }}>
@@ -808,10 +823,14 @@ export const DashboardBuilder: React.FC<DashboardBuilderProps> = ({
                     style={{
                       gridColumn: x + 1,
                       gridRow: y + 1,
-                      borderRadius: 12,
-                      border: isHover ? "1px solid rgba(56,189,248,0.8)" : "1px dashed rgba(148,163,184,0.16)",
-                      background: isHover ? "rgba(56,189,248,0.10)" : "rgba(255,255,255,0.02)",
-                      transition: "background 120ms ease, border-color 120ms ease",
+                      borderRadius: 2,
+                      border: isHover
+                        ? "1px solid color-mix(in srgb, var(--syn-interaction-active) 55%, transparent)"
+                        : "1px dashed color-mix(in srgb, var(--syn-text-secondary) 12%, transparent)",
+                      background: isHover
+                        ? "color-mix(in srgb, var(--syn-interaction-active) 8%, transparent)"
+                        : "transparent",
+                      transition: "background 140ms ease, border-color 140ms ease",
                     }}
                   />
                 );
@@ -827,12 +846,21 @@ export const DashboardBuilder: React.FC<DashboardBuilderProps> = ({
                     data-widget-binding-id={widget.config.bindingId ?? undefined}
                     data-widget-id={widget.id}
                     data-widget-type={widget.type}
+                    className={`${styles.widgetTile} ${selectedWidgetId === widget.id ? styles.widgetTileSelected : ""}`.trim()}
                     style={{
                       ...widgetShellStyle,
                       gridColumn: `${widget.layout.x + 1} / span ${widget.layout.w}`,
                       gridRow: `${widget.layout.y + 1} / span ${widget.layout.h}`,
                       zIndex: 2,
-                      borderColor: selectedWidgetId === widget.id ? "var(--syn-accent-primary)" : "var(--syn-overlay-light)",
+                      boxShadow:
+                        selectedWidgetId === widget.id
+                          ? "inset 2px 0 0 0 var(--syn-interaction-active), inset 0 0 0 1px color-mix(in srgb, var(--syn-interaction-active) 28%, transparent)"
+                          : "inset 0 0 0 1px var(--syn-border-subtle)",
+                      background:
+                        selectedWidgetId === widget.id
+                          ? "color-mix(in srgb, var(--syn-interaction-active) 5%, var(--syn-bg-root, #0d1117))"
+                          : "var(--syn-bg-root, #0d1117)",
+                      transition: "background 160ms ease, box-shadow 160ms ease",
                     }}
                   >
                     <header style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
@@ -850,12 +878,16 @@ export const DashboardBuilder: React.FC<DashboardBuilderProps> = ({
                           display: "grid",
                           gap: 4,
                           padding: 0,
+                          height: "auto",
+                          minHeight: 0,
                           background: "transparent",
                           border: "none",
                           boxShadow: "none",
                           textAlign: "left",
                           justifyItems: "start",
                           cursor: "move",
+                          flex: "1 1 auto",
+                          minWidth: 0,
                         }}
                         aria-label={`Select ${widget.config.title}`}
                       >
@@ -868,11 +900,17 @@ export const DashboardBuilder: React.FC<DashboardBuilderProps> = ({
                       <div style={{ display: "inline-flex", flexWrap: "wrap", gap: 6, justifyContent: "flex-end" }}>
                         <span
                           style={{
-                            borderRadius: 999,
-                            padding: "4px 8px",
-                            border: "1px solid rgba(245,158,11,0.24)",
-                            color: "#fbbf24",
-                            fontSize: 11,
+                            borderRadius: 2,
+                            padding: "2px 6px",
+                            border: 0,
+                            background: "color-mix(in srgb, var(--syn-text-primary) 3.5%, transparent)",
+                            color: "color-mix(in srgb, var(--syn-text-secondary) 85%, transparent)",
+                            fontFamily:
+                              "ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace",
+                            fontSize: 9.5,
+                            fontWeight: 500,
+                            letterSpacing: "0.08em",
+                            textTransform: "uppercase",
                           }}
                         >
                           {formatWidgetLabel(widget.type)}
@@ -883,14 +921,17 @@ export const DashboardBuilder: React.FC<DashboardBuilderProps> = ({
                             style={{
                               display: "inline-flex",
                               alignItems: "center",
-                              gap: 6,
-                              borderRadius: 999,
-                              padding: "4px 8px",
-                              border: `1px solid ${presence.color}`,
-                              color: "#f8fafc",
-                              background: "rgba(15,23,42,0.7)",
-                              fontSize: 10,
-                              fontWeight: 700,
+                              gap: 5,
+                              borderRadius: 2,
+                              padding: "2px 6px",
+                              border: 0,
+                              boxShadow: `inset 0 0 0 1px ${presence.color}`,
+                              color: "var(--syn-text-primary)",
+                              background: "transparent",
+                              fontFamily:
+                                "ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace",
+                              fontSize: 9,
+                              fontWeight: 500,
                               textTransform: "uppercase",
                               letterSpacing: "0.08em",
                             }}
@@ -906,6 +947,18 @@ export const DashboardBuilder: React.FC<DashboardBuilderProps> = ({
                             {presence.name}
                           </span>
                         ))}
+                        <button
+                          type="button"
+                          className={styles.widgetRemoveButton}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            deleteWidgetById(widget.id, widget.config.title);
+                          }}
+                          aria-label={`Remove ${widget.config.title}`}
+                          title="Remove widget"
+                        >
+                          <Trash2 size={11} aria-hidden="true" />
+                        </button>
                       </div>
                     </header>
                     <div style={{ minHeight: 0, flex: 1, overflow: "hidden" }}>
@@ -1003,7 +1056,7 @@ export const DashboardBuilder: React.FC<DashboardBuilderProps> = ({
                     <input
                       className={flowStyles.input}
                       type="color"
-                      value={selectedWidget.config.style?.accentColor ?? "#f59e0b"}
+                      value={selectedWidget.config.style?.accentColor ?? "#3794ff"}
                       onChange={(event) => updateWidgetConfig(selectedWidget.id, (widget) => ({
                         ...widget,
                         config: {
@@ -1177,38 +1230,65 @@ export const DashboardBuilder: React.FC<DashboardBuilderProps> = ({
                 </div>
               </div>
             ) : (
-              <div className={styles.list}>
-                <div className={flowStyles.formHint}>
-                  Select a widget to edit its binding, labels, and style. When nothing is selected, this panel shows dashboard-level summaries.
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <div className={styles.note}>
+                  Select a widget to edit its binding, labels, and style.
                 </div>
-                <div style={{ ...cardStyle, padding: 10 }}>
-                  <div className={flowStyles.formLabel}>Widget mix</div>
-                  <div style={{ display: "grid", gap: 8, marginTop: 8 }}>
-                    {widgetCountSummary(activeDashboard).map((entry) => (
-                      <div key={entry.label} style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 12 }}>
-                        <span>{entry.label}</span>
-                        <strong>{entry.count}</strong>
-                      </div>
-                    ))}
-                    {activeDashboard.widgets.length === 0 ? (
-                      <div style={{ color: "var(--syn-text-muted)", fontSize: 12 }}>Add a widget from the library to start composing the dashboard.</div>
-                    ) : null}
-                  </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <span
+                    style={{
+                      fontFamily:
+                        "ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace",
+                      fontSize: 9.5,
+                      letterSpacing: "0.12em",
+                      textTransform: "uppercase",
+                      color: "var(--syn-text-secondary)",
+                      opacity: 0.55,
+                    }}
+                  >
+                    Widget mix
+                  </span>
+                  {activeDashboard.widgets.length === 0 ? (
+                    <div className={styles.note}>Add a widget from the library to start composing the dashboard.</div>
+                  ) : (
+                    <div className={styles.compactList}>
+                      {widgetCountSummary(activeDashboard).map((entry) => (
+                        <div key={entry.label} className={styles.compactRow}>
+                          <span className={styles.compactLabel}>{entry.label}</span>
+                          <span className={styles.compactValue}>{entry.count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <div style={{ ...cardStyle, padding: 10 }}>
-                  <div className={flowStyles.formLabel}>Template-ready bindings</div>
-                  <div style={{ display: "grid", gap: 6, marginTop: 8 }}>
-                    {activeDashboard.templateId ? listBindingsForTemplate(activeDashboard.templateId).slice(0, 6).map((binding) => (
-                      <div key={binding.id} style={{ fontSize: 12 }}>
-                        <strong>{binding.label}</strong>
-                        <div style={{ color: "var(--syn-text-muted)" }}>{binding.kind}</div>
-                      </div>
-                    )) : (
-                      <div style={{ color: "var(--syn-text-muted)", fontSize: 12 }}>
-                        Custom dashboards can reuse any binding from the widget inspector.
-                      </div>
-                    )}
-                  </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <span
+                    style={{
+                      fontFamily:
+                        "ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace",
+                      fontSize: 9.5,
+                      letterSpacing: "0.12em",
+                      textTransform: "uppercase",
+                      color: "var(--syn-text-secondary)",
+                      opacity: 0.55,
+                    }}
+                  >
+                    Template-ready bindings
+                  </span>
+                  {activeDashboard.templateId ? (
+                    <div className={styles.compactList}>
+                      {listBindingsForTemplate(activeDashboard.templateId).slice(0, 6).map((binding) => (
+                        <div key={binding.id} className={styles.compactRow}>
+                          <span className={styles.compactLabel}>{binding.label}</span>
+                          <span className={styles.compactValue}>{binding.kind}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className={styles.note}>Custom dashboards can reuse any binding from the widget inspector.</div>
+                  )}
                 </div>
               </div>
             )}

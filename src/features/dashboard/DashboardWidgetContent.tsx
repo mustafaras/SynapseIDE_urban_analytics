@@ -20,7 +20,7 @@ function statusColor(status: string): string {
     case "critical":
       return "#f87171";
     case "watch":
-      return "#fbbf24";
+      return "var(--syn-interaction-active, #3794ff)";
     default:
       return "#60a5fa";
   }
@@ -31,7 +31,7 @@ function densityPadding(density?: string): number {
 }
 
 function chartAccent(widget: DashboardWidget): string {
-  return widget.config.style?.accentColor ?? "#f59e0b";
+  return widget.config.style?.accentColor ?? "var(--syn-interaction-active, #3794ff)";
 }
 
 function renderTraceability(binding: DashboardBinding): React.ReactNode {
@@ -144,8 +144,8 @@ function renderMap(binding: DashboardMapBinding): React.ReactNode {
           key={area.id}
           className={contentStyles.mapArea}
           style={{
-            borderColor: statusColor(area.status),
-            background: `linear-gradient(180deg, rgba(245,158,11,${Math.max(0.18, area.value / max)}), rgba(15,23,42,0.65))`,
+            boxShadow: `inset 2px 0 0 0 ${statusColor(area.status)}`,
+            background: `color-mix(in srgb, rgba(55,148,255,${Math.max(0.06, area.value / max * 0.18)}), var(--syn-bg-root, #0d1117))`,
           }}
         >
           <strong className={contentStyles.mapAreaLabel}>{area.label}</strong>

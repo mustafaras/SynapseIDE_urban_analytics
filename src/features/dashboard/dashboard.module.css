@@ -1,90 +1,666 @@
+/* =========================================================================
+   Dashboard Builder — VS Code workbench discipline
+   • Single-column flow, hairline matrices, no amber, no card-in-card chrome
+   ========================================================================= */
+
 .workspace {
-  display: grid;
-  gap: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  color: var(--syn-text-primary);
+  padding: 0;
 }
 
+.workspace > * {
+  padding: 16px 22px;
+  border-bottom: 1px solid var(--syn-border-subtle);
+  animation: dbSectionIn .28s cubic-bezier(.2,.7,.2,1) both;
+}
+.workspace > *:last-child { border-bottom: 0; }
+.workspace > *:nth-child(1) { animation-delay: 0ms; }
+.workspace > *:nth-child(2) { animation-delay: 30ms; }
+.workspace > *:nth-child(3) { animation-delay: 60ms; }
+.workspace > *:nth-child(4) { animation-delay: 90ms; }
+.workspace > *:nth-child(5) { animation-delay: 120ms; }
+.workspace > *:nth-child(6) { animation-delay: 150ms; }
+.workspace > *:nth-child(7) { animation-delay: 180ms; }
+
+@keyframes dbSectionIn {
+  from { opacity: 0; transform: translateY(-2px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* -------------------------------------------------------------------------
+   Hero
+   ------------------------------------------------------------------------- */
 .hero {
   display: flex;
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
+  padding: 22px 22px 18px;
+  border-bottom: 1px solid var(--syn-border-subtle);
+  background: transparent;
+  border-radius: 0;
+  border-top: 0;
+  border-left: 0;
+  border-right: 0;
 }
 
+/* -------------------------------------------------------------------------
+   Toolbar
+   ------------------------------------------------------------------------- */
 .toolbar {
   display: flex;
-  gap: 8px;
+  gap: 12px;
   flex-wrap: wrap;
   align-items: center;
 }
 
 .toolbarGroup {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
   align-items: center;
 }
 
+/* -------------------------------------------------------------------------
+   Status strip (live area)
+   ------------------------------------------------------------------------- */
+.statusStrip {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  color: var(--syn-text-secondary);
+  opacity: 0.78;
+  padding: 8px 12px;
+  border-radius: 3px;
+  border: 1px solid var(--syn-border-subtle);
+  background: color-mix(in srgb, var(--syn-text-primary) 1.5%, transparent);
+}
+
+/* -------------------------------------------------------------------------
+   Inner shell → single column flow (vertical stack)
+   ------------------------------------------------------------------------- */
 .shell {
-  display: grid;
-  grid-template-columns: 280px minmax(0, 1fr) 320px;
-  gap: 16px;
-  min-height: 720px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+  padding: 0;
 }
 
 .sidebar,
-.inspector {
-  min-width: 0;
-}
-
+.inspector,
 .canvasWrap {
   min-width: 0;
-}
-
-.templateGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: 12px;
 }
 
-.templateCard {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 12px;
-  border-radius: 14px;
-  border: 1px solid var(--syn-overlay-light);
-  background: linear-gradient(180deg, rgba(245, 158, 11, 0.08), rgba(15, 23, 42, 0.7));
-}
-
-.list {
+/* -------------------------------------------------------------------------
+   Section card → flat hairline surface (replaces stepContentCard styling)
+   ------------------------------------------------------------------------- */
+.sectionCard {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  padding: 14px 16px;
+  border-radius: 3px;
+  border: 1px solid var(--syn-border-subtle);
+  background: color-mix(in srgb, var(--syn-text-primary) 1.5%, transparent);
 }
 
-.note {
+.sectionTitle {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  color: var(--syn-text-primary);
+}
+
+.sectionEyebrow {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--syn-text-secondary);
+  opacity: 0.55;
+}
+
+/* -------------------------------------------------------------------------
+   Template grid — hairline matrix
+   ------------------------------------------------------------------------- */
+.templateGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1px;
+  background: var(--syn-border-subtle);
+  border: 1px solid var(--syn-border-subtle);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.templateCard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 0;
+  border: 0;
+  background: var(--syn-bg-root, #0d1117);
+  transition: background-color .18s ease;
+}
+.templateCard::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 2px;
+  background: transparent;
+  transition: background-color .22s ease;
+}
+.templateCard:hover {
+  background: color-mix(in srgb, var(--syn-text-primary) 3%, var(--syn-bg-root, #0d1117));
+}
+.templateCard:hover::before {
+  background: color-mix(in srgb, var(--syn-interaction-active) 35%, transparent);
+}
+
+/* -------------------------------------------------------------------------
+   List (widget library, saved layouts, inspector items)
+   ------------------------------------------------------------------------- */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--syn-border-subtle);
+  border: 1px solid var(--syn-border-subtle);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.listItem {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 0;
+  border: 0;
+  background: var(--syn-bg-root, #0d1117);
+  color: var(--syn-text-primary);
   font-size: 12px;
-  color: var(--syn-text-muted);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color .16s ease, padding-left .18s ease;
+  font: inherit;
+}
+.listItem::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 2px;
+  background: transparent;
+  transition: background-color .22s ease;
+}
+.listItem:hover {
+  background: color-mix(in srgb, var(--syn-text-primary) 2.5%, var(--syn-bg-root, #0d1117));
+  padding-left: 14px;
+}
+.listItem:hover::before {
+  background: color-mix(in srgb, var(--syn-interaction-active) 30%, transparent);
+}
+.listItemActive {
+  background: color-mix(in srgb, var(--syn-interaction-active) 5%, var(--syn-bg-root, #0d1117));
+}
+.listItemActive::before { background: var(--syn-interaction-active); }
+
+.listMeta {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.04em;
+  color: var(--syn-text-secondary);
+  opacity: 0.6;
+  font-feature-settings: "tnum";
+  white-space: nowrap;
 }
 
-@media (max-width: 1380px) {
-  .shell {
-    grid-template-columns: 240px minmax(0, 1fr);
-  }
+/* -------------------------------------------------------------------------
+   Note text
+   ------------------------------------------------------------------------- */
+.note {
+  font-size: 11.5px;
+  color: var(--syn-text-secondary);
+  opacity: 0.78;
+  line-height: 1.5;
+}
 
-  .inspector {
-    grid-column: 1 / -1;
+.note strong {
+  color: var(--syn-text-primary);
+  font-weight: 500;
+}
+
+/* -------------------------------------------------------------------------
+   Canvas surface
+   ------------------------------------------------------------------------- */
+.canvasSurface {
+  display: grid;
+  gap: 1px;
+  padding: 1px;
+  border-radius: 3px;
+  border: 1px solid var(--syn-border-subtle);
+  background: var(--syn-border-subtle);
+  min-height: 320px;
+  position: relative;
+  transition: border-color .2s ease;
+}
+.canvasSurface[data-drop-active="true"] {
+  border-color: color-mix(in srgb, var(--syn-interaction-active) 55%, transparent);
+}
+
+.canvasDropHint {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 10px;
+  color: var(--syn-text-secondary);
+  opacity: 0.5;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+/* -------------------------------------------------------------------------
+   Widget tile (replaces cardStyle / widgetShellStyle inline objects)
+   ------------------------------------------------------------------------- */
+.widgetTile {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 0;
+  border: 0;
+  background: var(--syn-bg-root, #0d1117);
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+  transition: background-color .18s ease;
+}
+.widgetTile::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 2px;
+  background: transparent;
+  transition: background-color .22s ease;
+}
+.widgetTile:hover {
+  background: color-mix(in srgb, var(--syn-text-primary) 3%, var(--syn-bg-root, #0d1117));
+}
+.widgetTile:hover::before {
+  background: color-mix(in srgb, var(--syn-interaction-active) 35%, transparent);
+}
+.widgetTileSelected {
+  background: color-mix(in srgb, var(--syn-interaction-active) 5%, var(--syn-bg-root, #0d1117));
+}
+.widgetTileSelected::before { background: var(--syn-interaction-active); }
+
+/* -------------------------------------------------------------------------
+   Widget remove button (inline X on each widget card header)
+   ------------------------------------------------------------------------- */
+.workspace .widgetRemoveButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px !important;
+  height: 18px !important;
+  min-height: 18px !important;
+  padding: 0 !important;
+  gap: 0;
+  border-radius: 2px;
+  border: 0 !important;
+  background: transparent;
+  color: var(--syn-text-secondary);
+  cursor: pointer;
+  opacity: 0;
+  transform: translateX(-2px);
+  transition:
+    opacity .16s ease,
+    transform .18s cubic-bezier(.2,.7,.2,1),
+    color .14s ease,
+    background-color .14s ease;
+}
+.workspace .widgetTile:hover .widgetRemoveButton,
+.workspace .widgetRemoveButton:focus-visible {
+  opacity: 0.85;
+  transform: translateX(0);
+}
+.workspace .widgetRemoveButton:hover {
+  opacity: 1;
+  color: var(--syn-text-error, #f87171);
+  background: color-mix(in srgb, var(--syn-text-error, #f87171) 12%, transparent);
+  border-color: transparent !important;
+}
+.workspace .widgetRemoveButton:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--syn-text-error, #f87171) 55%, transparent);
+}
+
+/* While the parent widget is selected we keep the X visible so users can
+   always reach the remove action without hovering. */
+.workspace .widgetTileSelected .widgetRemoveButton {
+  opacity: 0.85;
+  transform: translateX(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .widgetRemoveButton {
+    transition: none;
+    transform: none;
+    opacity: 0.7;
   }
 }
 
-@media (max-width: 980px) {
-  .shell {
-    grid-template-columns: 1fr;
-  }
+/* -------------------------------------------------------------------------
+   Inspector panel — same flat surface
+   ------------------------------------------------------------------------- */
+.inspectorEmpty {
+  padding: 20px 16px;
+  font-size: 12px;
+  color: var(--syn-text-secondary);
+  opacity: 0.65;
+  text-align: center;
+  border: 1px dashed var(--syn-border-subtle);
+  border-radius: 3px;
+  background: transparent;
+}
 
-  .sidebar,
-  .inspector,
-  .canvasWrap {
-    grid-column: 1;
-  }
+/* -------------------------------------------------------------------------
+   Drag overlay marker (snap preview)
+   ------------------------------------------------------------------------- */
+.dragMarker {
+  pointer-events: none;
+  border: 1px dashed color-mix(in srgb, var(--syn-interaction-active) 50%, transparent);
+  background: color-mix(in srgb, var(--syn-interaction-active) 6%, transparent);
+  border-radius: 3px;
+  animation: dbDragPulse 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes dbDragPulse {
+  from { opacity: 0.45; }
+  to   { opacity: 0.85; }
+}
+
+/* -------------------------------------------------------------------------
+   Reduced motion
+   ------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .workspace > *,
+  .templateCard,
+  .templateCard::before,
+  .listItem,
+  .listItem::before,
+  .widgetTile,
+  .widgetTile::before,
+  .dragMarker { animation: none; transition: none; }
+}
+
+/* -------------------------------------------------------------------------
+   Override heavy chrome of legacy stepContentCard / flow card wrappers when
+   they appear inside the dashboard workspace, so every section reads as a
+   flat hairline surface — single source of truth for radius/background/edge.
+   ------------------------------------------------------------------------- */
+.workspace :global([class*="stepContentCard"]) {
+  border-radius: 3px !important;
+  border: 1px solid var(--syn-border-subtle) !important;
+  background: color-mix(in srgb, var(--syn-text-primary) 1.5%, transparent) !important;
+  box-shadow: none !important;
+  padding: 12px 14px !important;
+}
+.workspace :global([class*="stepCardTitle"]) {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace !important;
+  font-size: 10px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+  color: var(--syn-text-secondary) !important;
+  opacity: 0.65 !important;
+  margin-bottom: 6px !important;
+}
+
+/* Collaboration overview / comments / presence strip — flatten when used in
+   dashboard scope. The presence strip in particular has a heavy rounded
+   "shared dashboard room" pill that needs to read like a flat hairline. */
+.workspace :global([class*="sessionOverview"]),
+.workspace :global([class*="commentSidebar"]),
+.workspace :global([class*="presenceStrip"]),
+.workspace :global([class*="inlinePresenceStrip"]) {
+  border-radius: 3px !important;
+  border: 1px solid var(--syn-border-subtle) !important;
+  background: color-mix(in srgb, var(--syn-text-primary) 1.5%, transparent) !important;
+  box-shadow: none !important;
+}
+.workspace :global([class*="presenceStripHeader"]) {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace !important;
+  font-size: 10px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+  color: var(--syn-text-secondary) !important;
+  opacity: 0.65 !important;
+}
+.workspace :global([class*="presenceItem"]) {
+  border-radius: 2px !important;
+  border: 0 !important;
+  background: color-mix(in srgb, var(--syn-text-primary) 3%, transparent) !important;
+}
+.workspace :global([class*="presenceEmpty"]) {
+  font-size: 11.5px !important;
+  color: var(--syn-text-secondary) !important;
+  opacity: 0.7 !important;
+}
+.workspace :global([class*="avatar"]) {
+  border-radius: 2px !important;
+}
+.workspace :global([class*="metricCard"]),
+.workspace :global([class*="activityCard"]) {
+  border-radius: 0 !important;
+  border: 0 !important;
+  background: var(--syn-bg-root, #0d1117) !important;
+  box-shadow: none !important;
+}
+.workspace :global([class*="metricGrid"]),
+.workspace :global([class*="activityList"]) {
+  gap: 1px !important;
+  background: var(--syn-border-subtle) !important;
+  border: 1px solid var(--syn-border-subtle) !important;
+  border-radius: 3px !important;
+  overflow: hidden !important;
+}
+.workspace :global([class*="statePill"]),
+.workspace :global([class*="primaryButton"]),
+.workspace :global([class*="smallButton"]) {
+  border-radius: 2px !important;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace !important;
+  font-size: 9.5px !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  font-weight: 500 !important;
+}
+
+/* Flat toolbar control discipline — applied ONLY to inputs/buttons inside
+   `.toolbar` and `.toolbarGroup` so chart picker tiles, list items, widget
+   shells (which set their own height/padding) are not collapsed. */
+.toolbar button,
+.toolbarGroup button {
+  height: 24px;
+  min-height: 24px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--syn-text-secondary);
+  border: 1px solid var(--syn-border-subtle);
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  cursor: pointer;
+  box-shadow: none;
+  transition: background-color .14s ease, color .14s ease, border-color .14s ease, box-shadow .14s ease;
+}
+.toolbar button:hover:not([disabled]):not(:disabled),
+.toolbarGroup button:hover:not([disabled]):not(:disabled) {
+  background: color-mix(in srgb, var(--syn-text-primary) 4%, transparent);
+  color: var(--syn-text-primary);
+  border-color: color-mix(in srgb, var(--syn-text-primary) 14%, var(--syn-border-subtle));
+}
+.toolbar button:focus-visible,
+.toolbarGroup button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--syn-interaction-active) 45%, transparent);
+}
+.toolbar button[disabled],
+.toolbarGroup button[disabled],
+.toolbar button:disabled,
+.toolbarGroup button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.toolbar input,
+.toolbar select,
+.toolbarGroup input,
+.toolbarGroup select {
+  height: 24px;
+  min-height: 24px;
+  padding: 0 8px;
+  border-radius: 3px;
+  border: 1px solid var(--syn-border-subtle);
+  background: color-mix(in srgb, var(--syn-text-primary) 2%, transparent);
+  color: var(--syn-text-primary);
+  font-size: 11.5px;
+  font-weight: 500;
+  font-family: inherit;
+  letter-spacing: 0.02em;
+  box-shadow: none;
+  transition: border-color .14s ease, background-color .14s ease;
+}
+.toolbar input:focus,
+.toolbar select:focus,
+.toolbarGroup input:focus,
+.toolbarGroup select:focus {
+  outline: none;
+  border-color: var(--syn-interaction-active);
+}
+
+/* Inspector + sidebar form controls — flat hairline, dense rows.
+   Note: we do NOT touch height/padding here so list items and tiles can keep
+   their own intrinsic sizes. */
+.inspector input,
+.inspector select,
+.inspector textarea,
+.sidebar input,
+.sidebar select,
+.sidebar textarea {
+  border-radius: 3px;
+  border: 1px solid var(--syn-border-subtle);
+  background: color-mix(in srgb, var(--syn-text-primary) 2%, transparent);
+  color: var(--syn-text-primary);
+  font-size: 11.5px;
+  font-family: inherit;
+  letter-spacing: 0.02em;
+  box-shadow: none;
+  padding: 6px 8px;
+  transition: border-color .14s ease, background-color .14s ease;
+}
+.inspector input:focus,
+.inspector select:focus,
+.inspector textarea:focus,
+.sidebar input:focus,
+.sidebar select:focus,
+.sidebar textarea:focus {
+  outline: none;
+  border-color: var(--syn-interaction-active);
+}
+
+/* Compact action buttons inside inspector — only when they live as direct
+   children of the inspector aside, NOT inside list/tile/chart-picker. */
+.inspector > [class*="stepContentCard"] > div > button,
+.inspector > [class*="stepContentCard"] button {
+  border-radius: 3px;
+  border: 1px solid var(--syn-border-subtle);
+  background: transparent;
+  color: var(--syn-text-secondary);
+  font-size: 11.5px;
+  font-family: inherit;
+  padding: 0 8px;
+  height: 24px;
+  min-height: 24px;
+  cursor: pointer;
+  transition: background-color .14s ease, color .14s ease;
+}
+.inspector > [class*="stepContentCard"] button:hover {
+  background: color-mix(in srgb, var(--syn-text-primary) 4%, transparent);
+  color: var(--syn-text-primary);
+}
+
+/* Compact inspector list — dense rows for widget mix / bindings */
+.compactList {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--syn-border-subtle);
+  border: 1px solid var(--syn-border-subtle);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.compactRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 10px;
+  background: var(--syn-bg-root, #0d1117);
+  font-size: 11.5px;
+  color: var(--syn-text-primary);
+  transition: background-color .14s ease;
+}
+.compactRow:hover {
+  background: color-mix(in srgb, var(--syn-text-primary) 2.5%, var(--syn-bg-root, #0d1117));
+}
+.compactLabel {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.02em;
+  color: var(--syn-text-secondary);
+}
+.compactValue {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 10.5px;
+  font-feature-settings: "tnum";
+  color: var(--syn-text-primary);
+}
+
+/* -------------------------------------------------------------------------
+   Advanced chart picker — 2-col large preview grid
+   ------------------------------------------------------------------------- */
+.chartPickerGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+@media (max-width: 880px) {
+  .chartPickerGrid { grid-template-columns: 1fr; }
+}
+
+/* -------------------------------------------------------------------------
+   Compact viewport
+   ------------------------------------------------------------------------- */
+@media (max-width: 720px) {
+  .workspace > * { padding: 14px 14px; }
+  .toolbar { gap: 10px; }
 }
