@@ -108,26 +108,33 @@ function formatCompression(metadata: COGMetadata): string {
 }
 
 function badgeStyle(source: Pick<EOSourceRecord, "runtimeState">): React.CSSProperties {
+  // Semantic non-amber palette per C08: failed → error, credential-missing → stale,
+  // demo → demo (purple), loading → info, default (ready) → valid.
+  // The runtimeState label remains the source of truth for status meaning;
+  // colors only encode tier without amber.
   const palette = source.runtimeState === "failed"
-    ? { fg: "#FCA5A5", bg: "rgba(127,29,29,0.35)" }
+    ? { fg: "var(--syn-status-error, #f87171)", bg: "color-mix(in srgb, var(--syn-status-error, #f87171) 14%, transparent)", border: "color-mix(in srgb, var(--syn-status-error, #f87171) 40%, transparent)" }
     : source.runtimeState === "credential-missing"
-      ? { fg: "#FCD34D", bg: "rgba(120,53,15,0.35)" }
+      ? { fg: "var(--syn-status-stale, #9aa3b2)", bg: "color-mix(in srgb, var(--syn-status-stale, #9aa3b2) 12%, transparent)", border: "color-mix(in srgb, var(--syn-status-stale, #9aa3b2) 40%, transparent)" }
       : source.runtimeState === "demo"
-        ? { fg: "#FBBF24", bg: "rgba(120,53,15,0.28)" }
+        ? { fg: "var(--syn-status-demo, #c084fc)", bg: "color-mix(in srgb, var(--syn-status-demo, #c084fc) 12%, transparent)", border: "color-mix(in srgb, var(--syn-status-demo, #c084fc) 38%, transparent)" }
         : source.runtimeState === "loading"
-          ? { fg: "#93C5FD", bg: "rgba(30,64,175,0.28)" }
-          : { fg: "#86EFAC", bg: "rgba(21,128,61,0.25)" };
+          ? { fg: "var(--syn-status-info, #6aa9ff)", bg: "color-mix(in srgb, var(--syn-status-info, #6aa9ff) 12%, transparent)", border: "color-mix(in srgb, var(--syn-status-info, #6aa9ff) 38%, transparent)" }
+          : { fg: "var(--syn-status-valid, #4ec27d)", bg: "color-mix(in srgb, var(--syn-status-valid, #4ec27d) 12%, transparent)", border: "color-mix(in srgb, var(--syn-status-valid, #4ec27d) 38%, transparent)" };
 
   return {
     display: "inline-flex",
     alignItems: "center",
-    padding: "3px 8px",
-    borderRadius: 999,
-    fontSize: 11,
-    letterSpacing: "0.04em",
+    padding: "2px 7px",
+    borderRadius: 3,
+    fontSize: 10.5,
+    fontFamily: "var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace)",
+    fontWeight: 600,
+    letterSpacing: "0.06em",
     textTransform: "uppercase",
     color: palette.fg,
     background: palette.bg,
+    border: `1px solid ${palette.border}`,
   };
 }
 

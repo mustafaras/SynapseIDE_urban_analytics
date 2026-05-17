@@ -478,6 +478,7 @@ const ToolsProjectList: React.FC = () => {
                 className={`${lcss.item} ${selected ? lcss.itemActive : ""}`}
                 data-risk={prioNum}
                 id={`tools-project-${p.id}`}
+                aria-current={selected ? "true" : undefined}
               >
                 <div
                   className={lcss.itemMain}
@@ -588,6 +589,7 @@ const ToolsProjectList: React.FC = () => {
                 className={`${lcss.item} ${selected ? lcss.itemActive : ""}`}
                 data-risk={prioNum}
                 id={`tools-project-${p.id}`}
+                aria-current={selected ? "true" : undefined}
               >
                 <div
                   className={lcss.itemMain}

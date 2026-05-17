@@ -491,7 +491,7 @@ function buildQueryNarrative(params: {
 
   return [
     `${formatQueryModeLabel(params.mode)} query executed through the sandboxed spatial SQL engine.`,
-    `Prompt: ${params.prompt}.`,
+    `Request: ${params.prompt}.`,
     `Interpretation: ${params.result.parse.explanation}`,
     `Referenced tables: ${params.result.referencedLayers.join(", ") || "none"}.`,
     `Available tables at execution: ${datasetSummary || "none"}.`,
@@ -521,7 +521,7 @@ function buildQueryDataOutputs(params: {
       format: "geoai-query-metadata",
       rows: 1,
       columns: [
-        "prompt",
+        "request",
         "interpretation_summary",
         "generated_sql",
         "runtime_mode",
@@ -536,7 +536,7 @@ function buildQueryDataOutputs(params: {
         "elapsed_ms",
       ],
       preview: [sanitizePreviewRow({
-        prompt: params.prompt,
+        request: params.prompt,
         interpretation_summary: params.result.parse.explanation,
         generated_sql: params.result.sql,
         runtime_mode: params.mode,

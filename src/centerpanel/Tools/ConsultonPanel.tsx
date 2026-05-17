@@ -215,7 +215,7 @@ const TokenBudget: React.FC<{ prompt: string; appState: any; policy: DeidPolicy;
         </div>
       </div>
       <div className={styles.budgetDetails}>
-        <span className={styles.meta}>Prompt ≈ {promptTokens}</span>
+        <span className={styles.meta}>Request ≈ {promptTokens}</span>
         <span className={styles.meta}>Context ≈ {contextTokens}</span>
       </div>
     </div>
@@ -1215,7 +1215,7 @@ const ConsultonPanel: React.FC<Props> = ({ modelLabel = "GPT-4o" }) => {
         actions = (<div className={styles.statusActions}>{btn("Retry", onRetry, false)}</div>);
       } else if (k === "bad_request") {
         cls += ` ${styles.statusInfo}`;
-        body = <>The request was invalid. Adjust your prompt or reduce context size and retry.</>;
+        body = <>The request was invalid. Adjust your request text or reduce context size and retry.</>;
         actions = (<div className={styles.statusActions}>{btn("Retry", onRetry, false)}</div>);
       } else if (k === "aborted") {
         cls += ` ${styles.statusInfo}`;
@@ -1264,7 +1264,7 @@ const ConsultonPanel: React.FC<Props> = ({ modelLabel = "GPT-4o" }) => {
   {}
       {}
       <a href={`#${outputRegionId}`} className={styles.skipLink}>Skip to output</a>
-      <a href="#consult-prompt" className={styles.skipLink}>Skip to prompt</a>
+      <a href="#consult-prompt" className={styles.skipLink}>Skip to request</a>
 
       {}
       <div className={styles.srOnly} role="status" aria-live="polite" aria-atomic="true">
@@ -1345,8 +1345,8 @@ const ConsultonPanel: React.FC<Props> = ({ modelLabel = "GPT-4o" }) => {
       </div>
 
       {}
-      <div className={styles.consultEditor} role="region" aria-label="Prompt editor">
-        <label htmlFor="consult-prompt" className={styles.srOnly}>Prompt</label>
+      <div className={styles.consultEditor} role="region" aria-label="Request editor">
+        <label htmlFor="consult-prompt" className={styles.srOnly}>Request</label>
         <textarea
           id="consult-prompt"
           ref={taRef}
@@ -1411,7 +1411,7 @@ const ConsultonPanel: React.FC<Props> = ({ modelLabel = "GPT-4o" }) => {
             className={`${styles.btn} ${styles.btnIcon}`}
             onClick={handleResume}
             disabled={streaming || !lastRunSnapRef.current || backoffMs > 0}
-            aria-label="Resume last consultation with the same prompt and context"
+            aria-label="Resume last consultation with the same request and context"
             title="Resume"
           >
             <RefreshIcon /><span className={styles.srOnly}>Resume</span>
@@ -1673,10 +1673,10 @@ const ConsultonPanel: React.FC<Props> = ({ modelLabel = "GPT-4o" }) => {
             </div>
           </div>
           <ul className={styles.historyList}>
-            {history.length === 0 && <li className={`${styles.muted}`}>No prompts yet.</li>}
+            {history.length === 0 && <li className={`${styles.muted}`}>No requests yet.</li>}
             {history.map((h, i) => (
               <li key={`${h.ts  }:${  i}`} className={styles.historyItem}>
-                <div className={styles.historyPrompt} title={h.prompt}>{h.prompt}</div>
+                <div className={styles.historyRequest} title={h.prompt}>{h.prompt}</div>
                 <div className={styles.historyMeta}>
                   <span className={styles.policyPill}>{h.policy}</span>
                   <span className={styles.meta}>{new Date(h.ts).toLocaleTimeString()}</span>
@@ -1712,7 +1712,7 @@ const ConsultonPanel: React.FC<Props> = ({ modelLabel = "GPT-4o" }) => {
               {audits.length === 0 && <li className={styles.muted}>No runs yet.</li>}
               {audits.slice(0, 7).map(r => (
                 <li key={r.id} className={styles.historyItem}>
-                  <div className={styles.historyPrompt}>
+                  <div className={styles.historyRequest}>
                     <strong>{r.model}</strong> • {r.outcome ?? "running"} • {r.durationMs ? `${Math.round(r.durationMs)}ms` : "…"}
                   </div>
                   <div className={styles.historyMeta}>
@@ -1904,7 +1904,7 @@ const ConsultonPanel: React.FC<Props> = ({ modelLabel = "GPT-4o" }) => {
                   <span>Share anonymous diagnostics</span>
                 </label>
                 <span className={styles.meta}>
-                  Stores timings & token estimates locally. No prompts, outputs, or project data.
+                  Stores timings & token estimates locally. No request text, outputs, or project data.
                 </span>
               </div>
             </div>
@@ -1934,7 +1934,7 @@ const ConsultonPanel: React.FC<Props> = ({ modelLabel = "GPT-4o" }) => {
             </div>
             <div className={styles.group}>
               <div className={styles.groupTitle}>Token Estimates (approx.)</div>
-              <div className={styles.fieldRow}><span className={styles.label}>Prompt</span><span>~{auditSel.tokensPromptEst ?? 0}</span></div>
+              <div className={styles.fieldRow}><span className={styles.label}>Request</span><span>~{auditSel.tokensPromptEst ?? 0}</span></div>
               <div className={styles.fieldRow}><span className={styles.label}>Context</span><span>~{auditSel.tokensContextEst ?? 0}</span></div>
               <div className={styles.fieldRow}><span className={styles.label}>Output</span><span>~{auditSel.tokensOutputEst ?? 0}</span></div>
               <div className={styles.fieldRow}><span className={styles.label}>Chunks</span><span>{auditSel.chunks ?? 0}</span></div>

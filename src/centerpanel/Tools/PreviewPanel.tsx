@@ -94,22 +94,23 @@ function injectPrettyScrollbarCss(docHtml: string): string {
 
   html { scrollbar-width: thin; }
 
-  body { scrollbar-color: rgba(245,158,11,0.70) transparent; }
+  body { scrollbar-color: rgba(119,129,144,0.45) transparent; }
 
 
-  body::-webkit-scrollbar { width: 12px; height: 12px; }
+  body::-webkit-scrollbar { width: 10px; height: 10px; }
   body::-webkit-scrollbar-track {
-    background: var(--syn-gradient-glass-subtle);
-    border-radius: 10px;
+    background: transparent;
+    border-radius: 6px;
   }
   body::-webkit-scrollbar-thumb {
-    background: var(--syn-gradient-amber);
-    border-radius: 10px;
-    border: 3px solid transparent;
+    background: rgba(119,129,144,0.32);
+    border-radius: 6px;
+    border: 2px solid transparent;
     background-clip: content-box;
   }
   body::-webkit-scrollbar-thumb:hover {
-    background: var(--syn-gradient-amber-light);
+    background: rgba(119,129,144,0.55);
+    background-clip: content-box;
   }
   @media print {
 

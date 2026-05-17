@@ -53,6 +53,24 @@ const ID_SPATIAL_INDEX = "tools-spatial-index" as const;
 const ID_STREAMING = "tools-streaming" as const;
 const ID_COVERAGE = "tools-coverage" as const;
 const ID_INDICATORS = "tools-indicators" as const;
+const ID_REPORTING = "tools-reporting" as const;
+
+const TOOLBOX_INDEX = [
+  { id: ID_CAPABILITIES, label: "Capabilities Overview", shortLabel: "Capabilities", testId: "tools-nav-capabilities" },
+  { id: ID_EO, label: "EO Connectors", shortLabel: "EO", testId: "tools-nav-eo" },
+  { id: ID_GEOAI, label: "GeoAI Lab", shortLabel: "GeoAI", testId: "tools-nav-geoai" },
+  { id: ID_SPATIAL_INDEX, label: "Spatial Index Lab", shortLabel: "Spatial Index", testId: "tools-nav-index" },
+  { id: ID_STREAMING, label: "Streaming Runtime", shortLabel: "Streaming", testId: "tools-nav-streaming" },
+  { id: ID_COVERAGE, label: "Analytical QA Coverage", shortLabel: "QA", testId: "tools-nav-coverage" },
+  { id: ID_REPORTING, label: "Reporting Builder", shortLabel: "Report", testId: "tools-nav-reporting" },
+  { id: ID_INDICATORS, label: "Indicator Catalog", shortLabel: "Indicators", testId: "tools-nav-indicators" },
+  { id: ID_SCOPE, label: "Export Scope", shortLabel: "Scope", testId: "tools-nav-scope" },
+  { id: ID_PREVIEW, label: "Preview & Validation", shortLabel: "Preview", testId: "tools-nav-preview" },
+  { id: ID_CONSULTON, label: "Consulton AI", shortLabel: "Consult", testId: "tools-nav-consult" },
+  { id: ID_EXPORT, label: "Export", shortLabel: "Export", testId: "tools-nav-export" },
+] as const;
+
+type ToolboxSectionId = (typeof TOOLBOX_INDEX)[number]["id"];
 
 type ScopeKind = "session" | "project" | "cohort";
 type DeidPreset = "none" | "limited" | "safe";
@@ -133,6 +151,9 @@ function scrollToId(id: string) {
   } catch {
     el.scrollIntoView();
   }
+  if (el instanceof HTMLElement) {
+    window.setTimeout(() => el.focus({ preventScroll: true }), 220);
+  }
 }
 
 export default function ToolsActionPanel({ indicatorFocusRequest = null }: ToolsActionPanelProps) {
@@ -142,6 +163,7 @@ export default function ToolsActionPanel({ indicatorFocusRequest = null }: Tools
   const selectedSessionId = state.selectedSessionId;
   const projects = state.projects ?? [];
   const activeProject: ProjectRecord | undefined = projects.find(p => p.id === selectedProjectId);
+  const [activeSection, setActiveSection] = useState<ToolboxSectionId>(ID_CAPABILITIES);
 
 
   const aliasOrName = sx(activeProject?.name);
@@ -181,6 +203,45 @@ export default function ToolsActionPanel({ indicatorFocusRequest = null }: Tools
     }
   }, [indicatorFocusRequest?.requestedAt]);
 
+  useEffect(() => {
+    if (typeof IntersectionObserver === "undefined") return;
+
+    const root = document.getElementById("cp3-main-scroll-root");
+    const sections = TOOLBOX_INDEX
+      .map((item) => document.getElementById(item.id))
+      .filter((el): el is HTMLElement => Boolean(el));
+
+    if (sections.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => {
+            const ratioDelta = b.intersectionRatio - a.intersectionRatio;
+            return ratioDelta !== 0 ? ratioDelta : a.boundingClientRect.top - b.boundingClientRect.top;
+          })[0];
+
+        if (visible) {
+          setActiveSection(visible.target.id as ToolboxSectionId);
+        }
+      },
+      {
+        root,
+        rootMargin: "-12% 0px -68% 0px",
+        threshold: [0, 0.15, 0.35, 0.6],
+      },
+    );
+
+    sections.forEach((section) => observer.observe(section));
+    return () => observer.disconnect();
+  }, []);
+
+  const handleIndexSelect = (id: ToolboxSectionId) => {
+    setActiveSection(id);
+    scrollToId(id);
+  };
+
 
   const hasActiveSession = Boolean(selectedSessionId) || (sessions?.length ?? 0) > 0;
   const hasActiveProject = Boolean(activeProject);
@@ -215,6 +276,7 @@ export default function ToolsActionPanel({ indicatorFocusRequest = null }: Tools
       role="main"
       aria-labelledby="tools-title"
       data-testid="tools-center"
+      data-active-section={activeSection}
 
     >
       {}
@@ -225,6 +287,7 @@ export default function ToolsActionPanel({ indicatorFocusRequest = null }: Tools
         <a className={styles.skipLink} href={`#${ID_GEOAI}`}>Skip to GeoAI Lab</a>
         <a className={styles.skipLink} href={`#${ID_STREAMING}`}>Skip to Streaming Runtime</a>
         <a className={styles.skipLink} href={`#${ID_COVERAGE}`}>Skip to QA coverage</a>
+        <a className={styles.skipLink} href={`#${ID_REPORTING}`}>Skip to Reporting Builder</a>
         <a className={styles.skipLink} href={`#${ID_INDICATORS}`}>Skip to Indicator Catalog</a>
         <a className={styles.skipLink} href={`#${ID_SCOPE}`}>Skip to Export scope</a>
         <a className={styles.skipLink} href={`#${ID_PREVIEW}`}>Skip to Preview</a>
@@ -238,131 +301,22 @@ export default function ToolsActionPanel({ indicatorFocusRequest = null }: Tools
         {}
         <div className={styles.hstack} style={{ marginTop: 8 }}>
           <div className={styles.seg} role="tablist" aria-label="Tools sections">
-            {}
-            <button
-              type="button"
-              role="tab"
-              className={styles.segBtn}
-              aria-selected="false"
-              onClick={() => scrollToId(ID_EO)}
-              data-testid="tools-nav-eo"
-            >
-              EO
-            </button>
-
-            <button
-              type="button"
-              role="tab"
-              className={styles.segBtn}
-              aria-selected="false"
-              onClick={() => scrollToId(ID_SCOPE)}
-              data-testid="tools-nav-scope"
-            >
-              Scope
-            </button>
-
-            <button
-              type="button"
-              role="tab"
-              className={styles.segBtn}
-              aria-selected="false"
-              onClick={() => scrollToId(ID_CAPABILITIES)}
-              data-testid="tools-nav-capabilities"
-            >
-              Index
-            </button>
-
-            {}
-            <button
-              type="button"
-              role="tab"
-              className={styles.segBtn}
-              aria-selected="false"
-              onClick={() => scrollToId(ID_PREVIEW)}
-              data-testid="tools-nav-preview"
-            >
-              Preview
-            </button>
-
-            {}
-            <button
-              type="button"
-              role="tab"
-              className={styles.segBtn}
-              aria-selected="false"
-              onClick={() => scrollToId(ID_GEOAI)}
-              data-testid="tools-nav-geoai"
-            >
-              GeoAI
-            </button>
-
-            <button
-              type="button"
-              role="tab"
-              className={styles.segBtn}
-              aria-selected="false"
-              onClick={() => scrollToId(ID_SPATIAL_INDEX)}
-              data-testid="tools-nav-index"
-            >
-              Index
-            </button>
-
-            <button
-              type="button"
-              role="tab"
-              className={styles.segBtn}
-              aria-selected="false"
-              onClick={() => scrollToId(ID_STREAMING)}
-              data-testid="tools-nav-streaming"
-            >
-              Streaming
-            </button>
-
-            <button
-              type="button"
-              role="tab"
-              className={styles.segBtn}
-              aria-selected="false"
-              onClick={() => scrollToId(ID_COVERAGE)}
-              data-testid="tools-nav-coverage"
-            >
-              QA
-            </button>
-
-            <button
-              type="button"
-              role="tab"
-              className={styles.segBtn}
-              aria-selected="false"
-              onClick={() => scrollToId(ID_INDICATORS)}
-              data-testid="tools-nav-indicators"
-            >
-              Indicators
-            </button>
-
-            <button
-              type="button"
-              role="tab"
-              className={styles.segBtn}
-              aria-selected="false"
-              onClick={() => scrollToId(ID_CONSULTON)}
-              data-testid="tools-nav-consult"
-              title={flags.consultonAI ? undefined : "(flag off in this env; forced visible for demo)"}
-            >
-              Consult
-            </button>
-
-            {}
-            <button
-              type="button"
-              role="tab"
-              className={styles.segBtn}
-              aria-selected="false"
-              onClick={() => scrollToId(ID_EXPORT)}
-              data-testid="tools-nav-export"
-            >
-              Export
-            </button>
+            {TOOLBOX_INDEX.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                role="tab"
+                className={styles.segBtn}
+                aria-selected={activeSection === item.id}
+                aria-controls={item.id}
+                data-active={activeSection === item.id ? "true" : undefined}
+                onClick={() => handleIndexSelect(item.id)}
+                data-testid={item.testId}
+                title={item.id === ID_CONSULTON && !flags.consultonAI ? "(flag off in this env; forced visible for demo)" : item.label}
+              >
+                {item.shortLabel}
+              </button>
+            ))}
           </div>
         </div>
         {}
@@ -374,6 +328,7 @@ export default function ToolsActionPanel({ indicatorFocusRequest = null }: Tools
         aria-labelledby="capabilities-heading"
         tabIndex={-1}
         data-testid="tools-card-capabilities"
+        data-toolbox-section="true"
       >
         <h2 id="capabilities-heading" className={styles.srOnly}>Release candidate capabilities overview</h2>
         <div className={`${styles.cardHeader} ${styles.cardHeaderV2}`}>
@@ -396,7 +351,7 @@ export default function ToolsActionPanel({ indicatorFocusRequest = null }: Tools
         aria-labelledby="eo-heading"
         tabIndex={-1}
         data-testid="tools-card-eo"
-        style={{ marginTop: 14 }}
+        data-toolbox-section="true"
       >
         <h2 id="eo-heading" className={styles.srOnly}>Earth observation source registry and connector workflows</h2>
         <div className={`${styles.cardHeader} ${styles.cardHeaderV2}`}>
@@ -418,8 +373,8 @@ export default function ToolsActionPanel({ indicatorFocusRequest = null }: Tools
         className={`${styles.panel} ${styles.panelAmber}`}
         aria-labelledby="geoai-heading"
         tabIndex={-1}
-        style={{ marginTop: 14 }}
         data-testid="tools-card-geoai"
+        data-toolbox-section="true"
       >
         <h2 id="geoai-heading" className={styles.srOnly}>GeoAI runtime and publishing workflows</h2>
         <div className={`${styles.cardHeader} ${styles.cardHeaderV2}`}>
@@ -442,7 +397,7 @@ export default function ToolsActionPanel({ indicatorFocusRequest = null }: Tools
         aria-labelledby="spatial-index-heading"
         tabIndex={-1}
         data-testid="tools-card-spatial-index"
-        style={{ marginTop: 14 }}
+        data-toolbox-section="true"
       >
         <h2 id="spatial-index-heading" className={styles.srOnly}>Spatial index acceleration</h2>
         <div className={`${styles.cardHeader} ${styles.cardHeaderV2}`}>
@@ -465,7 +420,7 @@ export default function ToolsActionPanel({ indicatorFocusRequest = null }: Tools
         aria-labelledby="streaming-heading"
         tabIndex={-1}
         data-testid="tools-card-streaming"
-        style={{ marginTop: 14 }}
+        data-toolbox-section="true"
       >
         <h2 id="streaming-heading" className={styles.srOnly}>Streaming telemetry runtime</h2>
         <div className={`${styles.cardHeader} ${styles.cardHeaderV2}`}>
@@ -488,7 +443,7 @@ export default function ToolsActionPanel({ indicatorFocusRequest = null }: Tools
         aria-labelledby="coverage-diagnostics-heading"
         tabIndex={-1}
         data-testid="tools-card-coverage"
-        style={{ marginTop: 14 }}
+        data-toolbox-section="true"
       >
         <h2 id="coverage-diagnostics-heading" className={styles.srOnly}>Analytical QA coverage</h2>
         <div className={`${styles.cardHeader} ${styles.cardHeaderV2}`}>
@@ -506,10 +461,14 @@ export default function ToolsActionPanel({ indicatorFocusRequest = null }: Tools
       </section>
 
       <section
+        id={ID_REPORTING}
         className={`${styles.panel} ${styles.panelAmber}`}
-        aria-label="Reporting builder"
-        style={{ marginTop: 14 }}
+        aria-labelledby="reporting-heading"
+        tabIndex={-1}
+        data-testid="tools-card-reporting"
+        data-toolbox-section="true"
       >
+        <h2 id="reporting-heading" className={styles.srOnly}>Reporting builder</h2>
         <div className={`${styles.cardHeader} ${styles.cardHeaderV2}`}>
           <div className={`${styles.cardTitle} ${styles.cardTitleV2} ${styles.cardTitleAmber}`}>Reporting Builder</div>
           <div className={`${styles.cardSub} ${styles.cardSubV2}`}>Structured reports, citations, and exports</div>
@@ -536,12 +495,12 @@ export default function ToolsActionPanel({ indicatorFocusRequest = null }: Tools
         aria-labelledby="indicator-catalog-heading"
         tabIndex={-1}
         data-testid="tools-card-indicators"
-        style={{ marginTop: 14 }}
+        data-toolbox-section="true"
       >
         <h2 id="indicator-catalog-heading" className={styles.srOnly}>Indicator catalog</h2>
         <div className={`${styles.cardHeader} ${styles.cardHeaderV2}`}>
           <div className={`${styles.cardTitle} ${styles.cardTitleV2} ${styles.cardTitleAmber}`}>Indicator Catalog</div>
-          <div className={`${styles.cardSub} ${styles.cardSubV2}`}>Compute, explain, and route Prompt 36 indicators into dashboards and reports</div>
+          <div className={`${styles.cardSub} ${styles.cardSubV2}`}>Compute, explain, and route advanced indicators into dashboards and reports</div>
         </div>
         <div className={styles.meta} style={{ marginTop: 10, marginBottom: 14 }}>
           The Toolbox now exposes the Section 11 additional indicator library with formula-level documentation, structured inputs, and direct actions for dashboard, report, and education workflows.
@@ -560,6 +519,7 @@ export default function ToolsActionPanel({ indicatorFocusRequest = null }: Tools
         aria-labelledby="scope-heading"
         tabIndex={-1}
         data-testid="tools-card-scope"
+        data-toolbox-section="true"
       >
         <h2 id="scope-heading" className={styles.srOnly}>Export scope</h2>
         <div className={`${styles.cardHeader} ${styles.cardHeaderV2}`}>
@@ -703,6 +663,7 @@ export default function ToolsActionPanel({ indicatorFocusRequest = null }: Tools
         aria-describedby="preview-desc"
         tabIndex={-1}
         data-testid="tools-card-preview"
+        data-toolbox-section="true"
       >
         <h2 id="preview-heading" className={styles.srOnly}>Preview &amp; Validation</h2>
         <p id="preview-desc" className={styles.srOnly}>Use Arrow keys to switch preview tabs. Tab to enter tab panel content.</p>
@@ -722,7 +683,9 @@ export default function ToolsActionPanel({ indicatorFocusRequest = null }: Tools
         id={ID_CONSULTON}
         className={`${styles.panel} ${styles.accentMod} ${styles.panelAmber}`}
         aria-labelledby="consulton-heading"
+        tabIndex={-1}
         data-testid="tools-card-consulton"
+        data-toolbox-section="true"
       >
         <h2 id="consulton-heading" className={styles.srOnly}>Consulton AI</h2>
         <ChunkLoadBoundary compact title="Consulton unavailable" message="Reload the toolbox if the consult surface fails to load.">
@@ -739,6 +702,7 @@ export default function ToolsActionPanel({ indicatorFocusRequest = null }: Tools
         aria-labelledby="export-heading"
         tabIndex={-1}
         data-testid="tools-card-export"
+        data-toolbox-section="true"
       >
         <h2 id="export-heading" className={styles.srOnly}>Export</h2>
         <div className={`${styles.cardHeader} ${styles.cardHeaderV2}`}>
