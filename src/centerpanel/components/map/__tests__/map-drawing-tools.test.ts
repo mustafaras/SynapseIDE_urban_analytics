@@ -1,5 +1,5 @@
 /**
- * Unit tests for Map Explorer Drawing & Sketching Tools — Prompt 05
+ * Unit tests for Map Explorer Drawing & Sketching Tools
  *
  * Tests verify:
  *   1. drawingHelpers — geodesic circle, haversine distance, GeoJSON factories, snap helper
@@ -444,7 +444,7 @@ describe("useMapExplorerStore — drawing actions", () => {
       properties: { label: "Temp", createdAt: "" },
     });
     // Verify drawnFeatures exist in state but the persist config
-    // only partializes specific keys (tested in prompt 02)
+    // only partializes specific keys (covered in persistence tests)
     expect(useMapExplorerStore.getState().drawnFeatures).toHaveLength(1);
   });
 });

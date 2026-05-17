@@ -12,7 +12,7 @@ import {
 } from "../spatialStatsVizUtils";
 
 describe("spatialStatsVizUtils", () => {
-  it("normalizes LISA cluster values from prompt and engine contracts", () => {
+  it("normalizes LISA cluster values from legacy and engine contracts", () => {
     expect(normalizeLisaClusterType("HH")).toBe("HH");
     expect(normalizeLisaClusterType("not-significant")).toBe("NS");
     expect(normalizeLisaClusterType("NS")).toBe("NS");

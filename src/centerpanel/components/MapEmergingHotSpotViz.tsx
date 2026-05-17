@@ -17,18 +17,27 @@ import { useFlowStore } from "@/stores/useFlowStore";
 import { isBackgroundTaskCancelledError } from "@/workers/pool";
 import { toastError, toastInfo, toastSuccess } from "@/ui/toast/api";
 import type { OverlayLayerConfig } from "./map/mapTypes";
-import {
-  MAP_COLORS,
-  MAP_RADIUS,
-  MAP_SHADOWS,
-  MAP_TYPOGRAPHY,
-} from "./map/mapTokens";
+import { MAP_TYPOGRAPHY } from "./map/mapTokens";
 import { createOpaqueFloatingPanelStyle, useDraggableMapPanel } from "./map/useDraggableMapPanel";
 import { collectNumericFields, resolveFeatureCollection } from "./map/symbologyUtils";
 import { IconClose, IconMeasure } from "./map/MapIcons";
 
 const PANEL_WIDTH = 420;
 const DEFAULT_TIME_FIELD_COUNT = 4;
+
+const WORKBENCH_CHROME = {
+  accent: "var(--syn-status-info, #38bdf8)",
+  accentSoft: "color-mix(in srgb, var(--syn-status-info, #38bdf8) 9%, transparent)",
+  accentBorder: "color-mix(in srgb, var(--syn-status-info, #38bdf8) 42%, transparent)",
+  accentBorderStrong: "color-mix(in srgb, var(--syn-status-info, #38bdf8) 62%, transparent)",
+  border: "var(--syn-border-subtle, rgba(255,255,255,0.12))",
+  borderFaint: "color-mix(in srgb, var(--syn-border-subtle, rgba(255,255,255,0.12)) 55%, transparent)",
+  panel: "var(--syn-surface-editor, #1f1f1f)",
+  surface: "color-mix(in srgb, var(--syn-surface-input, #111827) 72%, transparent)",
+  text: "var(--syn-text-primary, rgba(255,255,255,0.92))",
+  textSecondary: "var(--syn-text-secondary, rgba(255,255,255,0.72))",
+  textMuted: "var(--syn-text-muted, rgba(255,255,255,0.48))",
+} as const;
 
 type NumericFieldInfo = ReturnType<typeof collectNumericFields>[number];
 
@@ -61,6 +70,10 @@ interface MapEmergingHotSpotVizProps {
 
 const panelStyle: React.CSSProperties = {
   ...createOpaqueFloatingPanelStyle(PANEL_WIDTH),
+  background: WORKBENCH_CHROME.panel,
+  border: `1px solid ${WORKBENCH_CHROME.border}`,
+  borderRadius: 0,
+  boxShadow: "none",
 };
 
 const panelHeaderStyle: React.CSSProperties = {
@@ -68,16 +81,19 @@ const panelHeaderStyle: React.CSSProperties = {
   alignItems: "center",
   justifyContent: "space-between",
   gap: 12,
-  padding: "12px 14px",
-  borderBottom: `1px solid ${MAP_COLORS.amberBorder}`,
-  color: MAP_COLORS.text,
+  minWidth: 0,
+  padding: "10px 12px",
+  borderBottom: `1px solid ${WORKBENCH_CHROME.borderFaint}`,
+  color: WORKBENCH_CHROME.text,
 };
 
 const panelBodyStyle: React.CSSProperties = {
   display: "flex",
   flexDirection: "column",
-  gap: 14,
-  padding: "14px",
+  gap: 12,
+  minWidth: 0,
+  padding: "12px",
+  overflowX: "hidden",
   overflowY: "auto",
 };
 
@@ -88,7 +104,7 @@ const sectionStyle: React.CSSProperties = {
 };
 
 const labelStyle: React.CSSProperties = {
-  color: MAP_COLORS.textSecondary,
+  color: WORKBENCH_CHROME.textSecondary,
   fontSize: 11,
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
   textTransform: "uppercase",
@@ -97,19 +113,20 @@ const labelStyle: React.CSSProperties = {
 
 const selectStyle: React.CSSProperties = {
   width: "100%",
+  minWidth: 0,
   minHeight: 34,
   padding: "7px 10px",
-  borderRadius: MAP_RADIUS.sm,
-  border: `1px solid ${MAP_COLORS.amberBorder}`,
-  background: "rgba(12,12,12,0.88)",
-  color: MAP_COLORS.text,
+  borderRadius: 0,
+  border: `1px solid ${WORKBENCH_CHROME.borderFaint}`,
+  background: WORKBENCH_CHROME.surface,
+  color: WORKBENCH_CHROME.text,
   fontSize: 12,
   fontFamily: MAP_TYPOGRAPHY.fontFamily,
   outline: "none",
 };
 
 const helperTextStyle: React.CSSProperties = {
-  color: MAP_COLORS.textMuted,
+  color: WORKBENCH_CHROME.textMuted,
   fontSize: 11,
   lineHeight: 1.5,
 };
@@ -117,10 +134,10 @@ const helperTextStyle: React.CSSProperties = {
 const primaryButtonStyle: React.CSSProperties = {
   minHeight: 36,
   padding: "8px 12px",
-  borderRadius: MAP_RADIUS.sm,
-  border: `1px solid ${MAP_COLORS.amber}`,
-  background: MAP_COLORS.amber,
-  color: MAP_COLORS.bg,
+  borderRadius: 0,
+  border: `1px solid ${WORKBENCH_CHROME.accentBorderStrong}`,
+  background: WORKBENCH_CHROME.accentSoft,
+  color: WORKBENCH_CHROME.accent,
   cursor: "pointer",
   fontSize: 12,
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
@@ -129,10 +146,10 @@ const primaryButtonStyle: React.CSSProperties = {
 const secondaryButtonStyle: React.CSSProperties = {
   minHeight: 34,
   padding: "7px 12px",
-  borderRadius: MAP_RADIUS.sm,
-  border: `1px solid ${MAP_COLORS.amberBorder}`,
-  background: "rgba(255,255,255,0.03)",
-  color: MAP_COLORS.text,
+  borderRadius: 0,
+  border: `1px solid ${WORKBENCH_CHROME.borderFaint}`,
+  background: "transparent",
+  color: WORKBENCH_CHROME.textSecondary,
   cursor: "pointer",
   fontSize: 12,
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
@@ -140,7 +157,7 @@ const secondaryButtonStyle: React.CSSProperties = {
 
 const checkboxGridStyle: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  gridTemplateColumns: "repeat(auto-fit, minmax(min(170px, 100%), 1fr))",
   gap: 8,
 };
 
@@ -149,9 +166,10 @@ const timeFieldCardStyle: React.CSSProperties = {
   alignItems: "center",
   gap: 8,
   padding: "8px 10px",
-  borderRadius: MAP_RADIUS.sm,
-  border: `1px solid ${MAP_COLORS.amberBorder}`,
-  background: "rgba(255,255,255,0.03)",
+  minWidth: 0,
+  borderRadius: 0,
+  border: `1px solid ${WORKBENCH_CHROME.borderFaint}`,
+  background: "transparent",
 };
 
 const legendRowStyle: React.CSSProperties = {
@@ -160,9 +178,10 @@ const legendRowStyle: React.CSSProperties = {
   gap: 10,
   alignItems: "center",
   padding: "8px 10px",
-  borderRadius: MAP_RADIUS.sm,
-  border: `1px solid ${MAP_COLORS.amberBorder}`,
-  background: "rgba(255,255,255,0.02)",
+  minWidth: 0,
+  borderRadius: 0,
+  border: `1px solid ${WORKBENCH_CHROME.borderFaint}`,
+  background: "transparent",
 };
 
 function isPolygonLayerCandidate(layer: OverlayLayerConfig): boolean {
@@ -466,14 +485,18 @@ export const MapEmergingHotSpotViz: React.FC<MapEmergingHotSpotVizProps> = ({
     ? {
         ...panelStyle,
         position: "relative",
+        left: 0,
         top: "auto",
         right: "auto",
+        bottom: "auto",
+        transform: "none",
         width: "100%",
-        maxWidth: "none",
+        minWidth: 0,
+        maxWidth: "100%",
         maxHeight: "none",
         height: "100%",
         minHeight: 0,
-        boxShadow: MAP_SHADOWS.dropdown,
+        overflowX: "hidden",
         zIndex: "auto",
       }
     : {
@@ -510,7 +533,7 @@ export const MapEmergingHotSpotViz: React.FC<MapEmergingHotSpotVizProps> = ({
               display: "inline-flex",
               alignItems: "center",
               gap: 8,
-              color: MAP_COLORS.amber,
+              color: WORKBENCH_CHROME.accent,
               fontSize: 12,
               fontFamily: MAP_TYPOGRAPHY.fontFamilyBrand,
               fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
@@ -521,7 +544,7 @@ export const MapEmergingHotSpotViz: React.FC<MapEmergingHotSpotVizProps> = ({
             <IconMeasure size={13} />
             Emerging Hot Spots
           </div>
-          <div style={{ marginTop: 4, color: MAP_COLORS.textSecondary, fontSize: 11 }}>
+          <div style={{ marginTop: 4, color: WORKBENCH_CHROME.textMuted, fontSize: 11 }}>
             Run per-step Gi* across multiple numeric fields, classify the temporal pattern, and publish a playback-ready result with saved legend metadata.
           </div>
         </div>
@@ -541,12 +564,12 @@ export const MapEmergingHotSpotViz: React.FC<MapEmergingHotSpotVizProps> = ({
             onClick={onClose}
             aria-label="Close emerging hot spot panel"
             style={{
-              border: `1px solid ${MAP_COLORS.amberBorder}`,
+              border: `1px solid ${WORKBENCH_CHROME.borderFaint}`,
               background: "transparent",
-              color: MAP_COLORS.textSecondary,
+              color: WORKBENCH_CHROME.textSecondary,
               width: 28,
               height: 28,
-              borderRadius: MAP_RADIUS.sm,
+              borderRadius: 0,
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
@@ -563,17 +586,18 @@ export const MapEmergingHotSpotViz: React.FC<MapEmergingHotSpotVizProps> = ({
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "minmax(0, 1.5fr) minmax(220px, 1fr)",
+              gridTemplateColumns: "repeat(auto-fit, minmax(min(230px, 100%), 1fr))",
               gap: 12,
-              padding: "12px 14px",
-              borderRadius: MAP_RADIUS.sm,
-              border: `1px solid ${MAP_COLORS.amberBorder}`,
-              background: "linear-gradient(135deg, rgba(245,158,11,0.12), rgba(255,255,255,0.02))",
+              minWidth: 0,
+              padding: "10px 12px",
+              borderRadius: 0,
+              border: `1px solid ${WORKBENCH_CHROME.accentBorder}`,
+              background: WORKBENCH_CHROME.accentSoft,
             }}
           >
             <div>
               <div style={labelStyle}>Workflow Entry</div>
-              <div style={{ color: MAP_COLORS.text, fontSize: 13, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
+              <div style={{ color: WORKBENCH_CHROME.text, fontSize: 13, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
                 Run temporal Gi* without toolbar hunting
               </div>
               <div style={helperTextStyle}>
@@ -628,7 +652,7 @@ export const MapEmergingHotSpotViz: React.FC<MapEmergingHotSpotVizProps> = ({
         <div style={sectionStyle}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
             <div style={labelStyle}>Temporal Fields</div>
-            <div style={{ color: MAP_COLORS.amber, fontSize: 12, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
+            <div style={{ color: WORKBENCH_CHROME.accent, fontSize: 12, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
               {selectedTimeFields.length} selected
             </div>
           </div>
@@ -645,8 +669,8 @@ export const MapEmergingHotSpotViz: React.FC<MapEmergingHotSpotVizProps> = ({
                     key={field.name}
                     style={{
                       ...timeFieldCardStyle,
-                      border: `1px solid ${checked ? MAP_COLORS.amberBorderStrong : MAP_COLORS.amberBorder}`,
-                      background: checked ? MAP_COLORS.amberDim : timeFieldCardStyle.background,
+                      border: `1px solid ${checked ? WORKBENCH_CHROME.accentBorderStrong : WORKBENCH_CHROME.borderFaint}`,
+                      background: checked ? WORKBENCH_CHROME.accentSoft : timeFieldCardStyle.background,
                     }}
                   >
                     <input
@@ -657,7 +681,7 @@ export const MapEmergingHotSpotViz: React.FC<MapEmergingHotSpotVizProps> = ({
                     />
                     <span
                       style={{
-                        color: MAP_COLORS.text,
+                        color: WORKBENCH_CHROME.text,
                         fontSize: 12,
                         fontFamily: MAP_TYPOGRAPHY.fontFamily,
                         overflow: "hidden",
@@ -683,7 +707,7 @@ export const MapEmergingHotSpotViz: React.FC<MapEmergingHotSpotVizProps> = ({
           ) : null}
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(190px, 100%), 1fr))", gap: 12, minWidth: 0 }}>
           <div style={sectionStyle}>
             <label htmlFor="emerging-hotspot-weights-method" style={labelStyle}>
               Weights
@@ -720,7 +744,7 @@ export const MapEmergingHotSpotViz: React.FC<MapEmergingHotSpotVizProps> = ({
             <label htmlFor="emerging-hotspot-threshold" style={labelStyle}>
               Significance Filter
             </label>
-            <span style={{ color: MAP_COLORS.amber, fontSize: 12, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
+            <span style={{ color: WORKBENCH_CHROME.accent, fontSize: 12, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
               {significanceThreshold.toFixed(3)}
             </span>
           </div>
@@ -732,7 +756,7 @@ export const MapEmergingHotSpotViz: React.FC<MapEmergingHotSpotVizProps> = ({
             step={0.001}
             value={significanceThreshold}
             onChange={(event) => setSignificanceThreshold(Number(event.target.value))}
-            style={{ width: "100%", accentColor: MAP_COLORS.amber }}
+            style={{ width: "100%", minWidth: 0, accentColor: WORKBENCH_CHROME.accent }}
           />
         </div>
 
@@ -770,31 +794,32 @@ export const MapEmergingHotSpotViz: React.FC<MapEmergingHotSpotVizProps> = ({
               data-testid="emerging-hotspot-last-run"
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                gridTemplateColumns: "repeat(auto-fit, minmax(min(150px, 100%), 1fr))",
                 gap: 10,
                 padding: "10px 12px",
-                borderRadius: MAP_RADIUS.sm,
-                border: `1px solid ${MAP_COLORS.amberBorder}`,
-                background: "rgba(255,255,255,0.03)",
+                minWidth: 0,
+                borderRadius: 0,
+                border: `1px solid ${WORKBENCH_CHROME.borderFaint}`,
+                background: "transparent",
               }}
             >
               <div>
                 <div style={labelStyle}>Last Result</div>
-                <div style={{ color: MAP_COLORS.text, fontSize: 13, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
+                <div style={{ color: WORKBENCH_CHROME.text, fontSize: 13, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
                   {lastRun.layerName}
                 </div>
                 <div style={helperTextStyle}>{formatTimestamp(lastRun.insertedAt)}</div>
               </div>
               <div>
                 <div style={labelStyle}>Features</div>
-                <div style={{ color: MAP_COLORS.text, fontSize: 13, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
+                <div style={{ color: WORKBENCH_CHROME.text, fontSize: 13, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
                   {lastRun.validFeatureCount.toLocaleString()} included
                 </div>
                 <div style={helperTextStyle}>{lastRun.skippedFeatureCount.toLocaleString()} skipped</div>
               </div>
               <div>
                 <div style={labelStyle}>Frames</div>
-                <div style={{ color: MAP_COLORS.text, fontSize: 13, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
+                <div style={{ color: WORKBENCH_CHROME.text, fontSize: 13, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
                   {lastRun.timeStepCount.toLocaleString()} time steps
                 </div>
                 <div style={helperTextStyle}>{lastRun.unclassifiedCount.toLocaleString()} unclassified</div>
@@ -817,12 +842,12 @@ export const MapEmergingHotSpotViz: React.FC<MapEmergingHotSpotVizProps> = ({
                     aria-hidden="true"
                   />
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ color: MAP_COLORS.text, fontSize: 12, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
+                    <div style={{ color: WORKBENCH_CHROME.text, fontSize: 12, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
                       {entry.label}
                     </div>
                     <div style={helperTextStyle}>{entry.description}</div>
                   </div>
-                  <span style={{ color: MAP_COLORS.textSecondary, fontSize: 12 }}>
+                  <span style={{ color: WORKBENCH_CHROME.textSecondary, fontSize: 12 }}>
                     {lastRun.summary[entry.category].toLocaleString()}
                   </span>
                 </div>

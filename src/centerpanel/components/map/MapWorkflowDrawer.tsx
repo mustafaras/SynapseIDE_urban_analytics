@@ -1,7 +1,7 @@
 /* ================================================================== */
 /*  MapWorkflowDrawer                                                  */
 /*                                                                     */
-/*  Prompt 31 — UI surface for the AOI / Buffer / Intersect / Diff /  */
+/*  UI surface for the AOI / Buffer / Intersect / Diff /              */
 /*  Union / Comparison guided workflows backed by MapWorkflowService.  */
 /*                                                                    */
 /*  - Stepper: source → operation → parameters → preview → apply →   */

@@ -112,7 +112,7 @@ function createMockMap() {
   return { map, sources, layers };
 }
 
-describe("Prompt 23 map store", () => {
+describe("Map bookmarks and annotations store", () => {
   beforeEach(resetMapStore);
 
   it("saves and restores bookmarks with exact viewport and visible layers", () => {
@@ -204,7 +204,7 @@ describe("Prompt 23 map store", () => {
   });
 });
 
-describe("Prompt 23 UI surfaces", () => {
+describe("Map bookmarks and annotations UI surfaces", () => {
   it("renders saved-view chips and annotation toolbar command", () => {
     const bookmarkHtml = renderToStaticMarkup(
       <MapBookmarkBar

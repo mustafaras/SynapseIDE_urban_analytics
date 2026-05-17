@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 /**
- * Unit tests for Map Explorer Layer Management — Prompt 04
+ * Unit tests for Map Explorer Layer Management
  *
  * Tests verify:
  *   1. mapTypes — new OverlayLayerConfig, LayerMetadata, LayerGroupId, OverlayGeometryType types
@@ -1294,7 +1294,7 @@ describe("MapToolbar — layer panel toggle props", () => {
 /*  6. Barrel exports — new components and types                       */
 /* ================================================================== */
 
-describe("barrel exports — Prompt 04 additions", () => {
+describe("barrel exports — layer-management additions", () => {
   it("exports MapLayerManager", async () => {
     const barrel = await import("../index");
     expect(barrel.MapLayerManager).toBeDefined();

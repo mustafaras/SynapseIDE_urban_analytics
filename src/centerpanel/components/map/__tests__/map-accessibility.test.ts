@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 /**
- * Accessibility tests for Map Explorer — Prompt 03
+ * Accessibility tests for Map Explorer
  *
  * Tests verify:
  *   1. Focus trap hook — Tab cycling, activation, restore

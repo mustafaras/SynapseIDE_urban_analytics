@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 /**
- * Unit tests for Map Explorer sub-components — Prompt 01
+ * Unit tests for Map Explorer sub-components
  *
  * Tests verify:
  *   1. Shared types & constants (mapTypes)
@@ -329,7 +329,7 @@ describe("component modules are individually importable", () => {
 /*  6. Component rendering                                             */
 /* ------------------------------------------------------------------ */
 
-describe("Prompt 01 components render without errors", () => {
+describe("Map Explorer components render without errors", () => {
   it("renders MapWorkspaceShell", async () => {
     const { MapWorkspaceShell } = await import("../MapWorkspaceShell");
     const html = renderToStaticMarkup(
@@ -364,7 +364,7 @@ describe("Prompt 01 components render without errors", () => {
     expect(html).toContain("Embedded shell child");
   });
 
-  it("renders Prompt 35 layout primitives with stable diagnostics", async () => {
+  it("renders layout primitives with stable diagnostics", async () => {
     const { MapBottomTimeline, MapCanvasRegion, MapPanelRail } = await import("../MapWorkspaceShell");
     const html = renderToStaticMarkup(
       React.createElement(React.Fragment, null,
@@ -829,7 +829,7 @@ describe("Prompt 01 components render without errors", () => {
 
 });
 
-describe("MapExplorerModal Prompt 01 shell contract", () => {
+describe("MapExplorerModal shell contract", () => {
   it("supports the remaining modal extension slot props", () => {
     const props: MapExplorerModalProps = {
       open: true,

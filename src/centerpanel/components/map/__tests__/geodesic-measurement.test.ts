@@ -1,5 +1,5 @@
 /**
- * Unit tests for Geodesic Measurement Tools — Prompt 06
+ * Unit tests for Geodesic Measurement Tools
  *
  * Tests verify:
  *   1. geodesic.ts — haversine, polyline, area, bearing, midpoint, formatting

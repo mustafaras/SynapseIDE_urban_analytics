@@ -1,6 +1,6 @@
 /* ================================================================== */
 /*  MapTemporalPlayer — Time-series animation & playback controls      */
-/*  Prompt 15: Temporal Animation & Time-Series Playback               */
+/*  Temporal Animation & Time-Series Playback                          */
 /*                                                                     */
 /*  Renders a glassmorphic player bar at the bottom of the map with    */
 /*  a timeline scrubber, playback controls, speed selector, and a      */

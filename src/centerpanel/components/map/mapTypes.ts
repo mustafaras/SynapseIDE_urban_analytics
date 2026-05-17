@@ -913,7 +913,7 @@ export interface OverlayLayerConfig {
 export type MapToolId = "select" | "pin" | "draw" | "measure" | "annotate" | null;
 
 /* ================================================================== */
-/*  Bookmarks and annotations (Prompt 23)                              */
+/*  Bookmarks and annotations                                          */
 /* ================================================================== */
 
 export const MAP_BOOKMARK_LIMIT = 50;
@@ -964,14 +964,14 @@ export interface MapAnnotation extends GeoJSON.Feature<GeoJSON.Point, MapAnnotat
 }
 
 /* ================================================================== */
-/*  Drawing types (Prompt 05)                                          */
+/*  Drawing types                                                      */
 /* ================================================================== */
 
 /** Drawing sub-tool identifiers */
 export type DrawToolId = "point" | "linestring" | "polygon" | "rectangle" | "circle";
 
 /* ================================================================== */
-/*  Measurement types (Prompt 06)                                      */
+/*  Measurement types                                                  */
 /* ================================================================== */
 
 /** Measurement sub-tool identifiers */
@@ -1065,7 +1065,7 @@ export interface PendingFitBoundsRequestInput {
 }
 
 /* ================================================================== */
-/*  Temporal player types (Prompt 15)                                  */
+/*  Temporal player types                                              */
 /* ================================================================== */
 
 /** Supported playback speed multipliers */
