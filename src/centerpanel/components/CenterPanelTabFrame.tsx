@@ -35,6 +35,8 @@ export function CenterPanelTabFrame({
         className={`${styles.outline} ${outlineClassName ?? ""} noPrint ${styles.panelEnter}`.trim()}
         aria-label={outlineAriaLabel}
         data-testid="cp-outline"
+        data-tab-rail="true"
+        data-active-tab={activeTab}
       >
         {railContent}
       </nav>
@@ -45,6 +47,8 @@ export function CenterPanelTabFrame({
           id={resolvedPanelId}
           role="tabpanel"
           aria-labelledby={getTabId(activeTab)}
+          data-tab-content="true"
+          data-active-tab={activeTab}
         >
           {mainContent}
         </section>

@@ -17,11 +17,17 @@ export default function WorkspaceInfoCard({
   return (
     <aside className={railStyles.leftRailRoot}>
       <div className={`${railStyles.workspaceCard} ${accent ? railStyles.workspaceCardAccent : ""}`.trim()}>
-        <div className={railStyles.workspaceTitle}>{title}</div>
+        <div className={railStyles.workspaceTitleRow}>
+          <span className={railStyles.workspaceTitle}>{title}</span>
+          {accent ? <span className={railStyles.workspaceAccentDot} aria-hidden="true" /> : null}
+        </div>
         <p className={railStyles.workspaceDescription}>{description}</p>
         <ul className={railStyles.workspaceList}>
           {bullets.map((bullet) => (
-            <li key={bullet}>{bullet}</li>
+            <li key={bullet}>
+              <span className={railStyles.workspaceBulletMark} aria-hidden="true">›</span>
+              <span>{bullet}</span>
+            </li>
           ))}
         </ul>
       </div>

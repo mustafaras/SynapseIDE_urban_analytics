@@ -212,22 +212,24 @@ function QuickReferenceSection({ projectTags }: { projectTags: string[] }) {
         display: 'block',
         width: '100%',
         textAlign: 'left',
-        padding: '5px 8px',
-        borderRadius: 6,
-        border: '1px solid rgba(255,255,255,0.06)',
-        background: 'rgba(255,255,255,0.02)',
+        padding: '4px 8px',
+        borderRadius: 3,
+        border: '1px solid transparent',
+        background: 'transparent',
         color: '#FAFAF9',
         cursor: 'pointer',
-        transition: 'background 120ms ease, border-color 120ms ease',
+        transition: 'background 140ms ease, transform 140ms cubic-bezier(.2,.7,.2,1), box-shadow 180ms ease',
         fontFamily: 'inherit',
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.background = 'var(--syn-interaction-hover, rgba(55,148,255,0.06))';
-        e.currentTarget.style.borderColor = 'var(--syn-border-active, rgba(55,148,255,0.25))';
+        e.currentTarget.style.background = 'color-mix(in srgb, var(--syn-text-primary) 5%, transparent)';
+        e.currentTarget.style.transform = 'translateX(2px)';
+        e.currentTarget.style.boxShadow = 'inset 2px 0 0 var(--syn-interaction-active)';
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.background = 'rgba(255,255,255,0.02)';
-        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)';
+        e.currentTarget.style.background = 'transparent';
+        e.currentTarget.style.transform = 'translateX(0)';
+        e.currentTarget.style.boxShadow = 'none';
       }}
       title={`View "${card.title}" in the right panel`}
     >

@@ -81,6 +81,14 @@ const EducationModule = lazyWithRetry(async () => {
 	const module = await import("@/features/education/EducationModule");
 	return { default: module.EducationModule };
 });
+const EducationLeftRail = lazyWithRetry(async () => {
+	const module = await import("@/features/education/EducationLeftRail");
+	return { default: module.EducationLeftRail };
+});
+const DashboardLeftRail = lazyWithRetry(async () => {
+	const module = await import("@/features/dashboard/DashboardLeftRail");
+	return { default: module.DashboardLeftRail };
+});
 
 function DeferredPanelFallback({ label }: { label: string }): React.ReactElement {
 	return (
@@ -359,21 +367,10 @@ const CenterPanelShell: React.FC<CenterPanelShellProps> = ({
 								activeTab={activeTab}
 								outlineAriaLabel="Education left rail"
 								panelId="panel-education"
-								railContent={(
-									<WorkspaceInfoCard
-										title="Education Workspace"
-										description="Structured learning paths for graduate planning studios, now paired with rubric-based exercises, targeted hints, persistent scoring, and methodology explainers tied to live tools."
-										bullets={[
-											"Browse all eight planning education paths",
-											"Launch category-filtered exercise studios with inspectable rubrics and feedback",
-											"Inspect six pre-loaded teaching city datasets with schema metadata",
-											"Track module completion and self-rated confidence",
-											"Review assigned, completed, and mastered exercise history without leaving Center Panel",
-											"Open formulas, assumptions, and misuse warnings in context",
-											"Review cohort-level instructor signals without leaving Center Panel",
-										]}
-										accent
-									/>
+								railContent={renderDeferredPanel(
+									<EducationLeftRail />,
+									"Education rail unavailable",
+									"The education left rail did not load. Retry after the dev server reconnects, or reload the app if it persists.",
 								)}
 								mainContent={renderDeferredPanel(
 									<EducationModule focusRequest={educationFocusRequest} />,
@@ -447,17 +444,10 @@ const CenterPanelShell: React.FC<CenterPanelShellProps> = ({
 								activeTab={activeTab}
 								outlineAriaLabel="Dashboard builder rail"
 								panelId="panel-dashboard"
-								railContent={(
-									<WorkspaceInfoCard
-										title="Dashboard Builder"
-										description="Build presentation-ready municipal dashboards with reusable widgets, saveable layouts, and export outputs for PDF, PNG, and embeddable HTML."
-										bullets={[
-											"Drag widgets into a snap-to-grid canvas",
-											"Load city profile, SDG, risk, equity, and neighbourhood templates",
-											"Save, restore, rename, and export dashboards from one workspace",
-										]}
-										accent
-									/>
+								railContent={renderDeferredPanel(
+									<DashboardLeftRail />,
+									"Dashboard rail unavailable",
+									"The dashboard left rail did not load. Retry after the dev server reconnects, or reload the app if it persists.",
 								)}
 								mainContent={renderDeferredPanel(
 									<DashboardBuilder pendingBindingRequest={dashboardBindingRequest} />,

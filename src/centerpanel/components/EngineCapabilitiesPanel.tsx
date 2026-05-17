@@ -2,7 +2,7 @@
  * EngineCapabilitiesPanel — UI surface for all implemented analytical engines.
  *
  * Displayable in the Analysis section to give users visibility into
- * every engine and tool available from Prompts 01-13.
+ * every engine and tool available in the workbench.
  */
 
 import React, { useState } from 'react';
@@ -199,7 +199,7 @@ const CATEGORY_META: Record<string, { icon: string; accent: string }> = {
   'Spatial Statistics': { icon: 'SS', accent: '#60A5FA' },
   'Multivariate':      { icon: 'MV', accent: '#A78BFA' },
   'Data Connectors':   { icon: 'DC', accent: '#34D399' },
-  'GeoAI & ML':        { icon: 'AI', accent: '#F59E0B' },
+  'GeoAI & ML':        { icon: 'AI', accent: '#38BDF8' },
   'Analytical Flows':  { icon: 'AF', accent: '#FB7185' },
 };
 
@@ -223,20 +223,22 @@ export const EngineCapabilitiesPanel: React.FC = () => {
   return (
     <section
       style={{
-        background: '#1a1a1a',
+        background: 'transparent',
         borderRadius: 0,
-        padding: '1.25rem',
-        border: '1px solid rgba(245, 158, 11, 0.2)',
+        padding: '0.65rem 0.75rem 0.8rem',
+        border: 0,
+        borderBottom: '1px solid var(--syn-border-subtle, rgba(255,255,255,0.10))',
       }}
     >
-      <header style={{ marginBottom: '1rem' }}>
+      <header style={{ marginBottom: '0.65rem' }}>
         <h3
           style={{
-            color: '#F59E0B',
-            fontSize: '0.95rem',
+            color: 'var(--syn-text-muted, rgba(255,255,255,0.55))',
+            fontSize: '0.68rem',
             fontWeight: 700,
             margin: 0,
-            letterSpacing: '0.03em',
+            letterSpacing: '0.10em',
+            textTransform: 'uppercase',
           }}
         >
           Engine Capabilities
@@ -244,7 +246,7 @@ export const EngineCapabilitiesPanel: React.FC = () => {
         <p
           style={{
             color: 'rgba(255,255,255,0.5)',
-            fontSize: '0.75rem',
+            fontSize: '0.68rem',
             margin: '0.25rem 0 0 0',
           }}
         >
@@ -264,12 +266,12 @@ export const EngineCapabilitiesPanel: React.FC = () => {
         <button
           onClick={() => setActiveCategory(null)}
           style={{
-            padding: '0.25rem 0.6rem',
-            fontSize: '0.7rem',
+            padding: '0.2rem 0.5rem',
+            fontSize: '0.68rem',
             fontWeight: 600,
-            border: `1px solid ${!activeCategory ? '#F59E0B' : 'rgba(255,255,255,0.15)'}`,
-            background: !activeCategory ? 'rgba(245,158,11,0.15)' : 'transparent',
-            color: !activeCategory ? '#F59E0B' : 'rgba(255,255,255,0.6)',
+            border: `1px solid ${!activeCategory ? 'color-mix(in srgb, var(--syn-status-info, #38BDF8) 58%, transparent)' : 'rgba(255,255,255,0.15)'}`,
+            background: !activeCategory ? 'color-mix(in srgb, var(--syn-status-info, #38BDF8) 9%, transparent)' : 'transparent',
+            color: !activeCategory ? 'var(--syn-text-link, var(--syn-status-info, #38BDF8))' : 'rgba(255,255,255,0.6)',
             cursor: 'pointer',
             borderRadius: 0,
           }}
@@ -309,7 +311,7 @@ export const EngineCapabilitiesPanel: React.FC = () => {
             <h4
               style={{
                 color: meta.accent,
-                fontSize: '0.8rem',
+                fontSize: '0.72rem',
                 fontWeight: 600,
                 margin: '0 0 0.5rem 0',
                 borderBottom: `1px solid ${meta.accent}33`,
@@ -323,9 +325,10 @@ export const EngineCapabilitiesPanel: React.FC = () => {
                 <div
                   key={cap.id}
                   style={{
-                    padding: '0.5rem 0.65rem',
-                    background: 'rgba(255,255,255,0.03)',
-                    border: '1px solid rgba(255,255,255,0.08)',
+                    padding: '0.45rem 0.35rem 0.5rem',
+                    background: 'transparent',
+                    border: 0,
+                    borderBottom: '1px solid rgba(255,255,255,0.08)',
                     borderRadius: 0,
                     display: 'flex',
                     justifyContent: 'space-between',
@@ -353,9 +356,9 @@ export const EngineCapabilitiesPanel: React.FC = () => {
                       fontSize: '0.6rem',
                       fontWeight: 700,
                       padding: '0.15rem 0.4rem',
-                      background: cap.status === 'available' ? 'rgba(52,211,153,0.15)' : 'rgba(245,158,11,0.15)',
-                      color: cap.status === 'available' ? '#34D399' : '#F59E0B',
-                      border: `1px solid ${cap.status === 'available' ? 'rgba(52,211,153,0.3)' : 'rgba(245,158,11,0.3)'}`,
+                      background: cap.status === 'available' ? 'rgba(52,211,153,0.12)' : 'color-mix(in srgb, var(--syn-status-info, #38BDF8) 10%, transparent)',
+                      color: cap.status === 'available' ? '#34D399' : 'var(--syn-text-link, var(--syn-status-info, #38BDF8))',
+                      border: `1px solid ${cap.status === 'available' ? 'rgba(52,211,153,0.3)' : 'color-mix(in srgb, var(--syn-status-info, #38BDF8) 38%, transparent)'}`,
                       textTransform: 'uppercase',
                       letterSpacing: '0.04em',
                       whiteSpace: 'nowrap',

@@ -1,14 +1,21 @@
 
 .shell {
 	height: 100%;
-	min-height: 100%;
-	display: grid;
-	grid-template-rows: auto 1fr auto;
+	max-height: 100%;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
 	container-type: inline-size;
 	background: var(--syn-surface-workbench);
 	color: var(--syn-text-default);
 	font-family: var(--font-mono);
+	overflow: hidden;
+	border-bottom: 0;
 }
+.shell > a:first-child { flex: 0 0 auto; }
+.shell > header,
+.shell > .header { flex: 0 0 auto; }
+.shell > footer { flex: 0 0 auto; }
 
 .header {
 	display: flex;
@@ -51,11 +58,14 @@
 }
 
 .body {
+	flex: 1 1 0;
+	min-height: 0;
 	display: grid;
 	grid-template-columns: var(--railW, 240px) minmax(0, 1fr) 360px;
 	gap: var(--gap-3);
-	padding: 4px var(--gap-3) var(--gap-3);
+	padding: 4px var(--gap-3) 0;
 	overflow: hidden;
+	border-bottom: 1px solid var(--syn-border-subtle);
 }
 
 
@@ -76,7 +86,12 @@
 }
 
 
-.outline, .main, .rightDock { min-width: 0; min-height: 0; }
+.outline, .main, .rightDock {
+	min-width: 0;
+	min-height: 0;
+	max-height: 100%;
+	height: 100%;
+}
 
 .outline {
 	background: var(--syn-surface-panel);
@@ -293,7 +308,7 @@
 	font-family: var(--font-mono);
 	font-size: 16px;
 	font-weight: 600;
-	letter-spacing: -0.2px;
+	letter-spacing: 0;
 	color: var(--hdr-title-fg, var(--syn-text-default));
 }
 
@@ -551,4 +566,260 @@
 		border-left: 0 !important;
 		border-bottom: 1px solid var(--syn-border-subtle) !important;
 	}
+}
+
+/* ============================================================
+   VS Code aesthetic refinement layer — Report-tab-derived
+   Applies to every center panel tab via .outline (rail) and
+   .main (content) descendant selectors.
+   ============================================================ */
+
+/* Thin VS Code scrollbar inside rails + main */
+.outline,
+.main,
+.rightDock,
+.dock {
+	scrollbar-width: thin;
+	scrollbar-color: var(--syn-border-strong, rgba(255,255,255,0.16)) transparent;
+}
+.outline::-webkit-scrollbar,
+.main::-webkit-scrollbar,
+.rightDock::-webkit-scrollbar,
+.dock::-webkit-scrollbar { width: 10px; height: 10px; }
+.outline::-webkit-scrollbar-track,
+.main::-webkit-scrollbar-track,
+.rightDock::-webkit-scrollbar-track,
+.dock::-webkit-scrollbar-track { background: transparent; }
+.outline::-webkit-scrollbar-thumb,
+.main::-webkit-scrollbar-thumb,
+.rightDock::-webkit-scrollbar-thumb,
+.dock::-webkit-scrollbar-thumb {
+	background: color-mix(in srgb, var(--syn-text-muted, #778190) 28%, transparent);
+	border: 2px solid transparent;
+	background-clip: padding-box;
+	border-radius: 6px;
+}
+.outline:hover::-webkit-scrollbar-thumb,
+.main:hover::-webkit-scrollbar-thumb,
+.rightDock:hover::-webkit-scrollbar-thumb,
+.dock:hover::-webkit-scrollbar-thumb {
+	background: color-mix(in srgb, var(--syn-text-muted, #778190) 48%, transparent);
+	background-clip: padding-box;
+}
+.outline::-webkit-scrollbar-corner,
+.main::-webkit-scrollbar-corner { background: transparent; }
+
+/* Subtle rail panel surface to differentiate from editor (VS Code sidebar tone) */
+.outline { background: var(--syn-vscode-bg-sidebar, var(--syn-surface-navigation)) !important; }
+.main    { background: var(--syn-vscode-bg-editor, var(--syn-surface-editor)) !important; }
+
+/* Animated entry curve — gentler & more VS Code-like */
+.panelEnter {
+	animation: cpFadeSlide 240ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+@keyframes cpFadeSlide {
+	from { opacity: 0; transform: translateY(6px); }
+	to   { opacity: 1; transform: none; }
+}
+
+/* Top accent line on the active panel (subtle VS Code chrome cue) */
+.main > .panelEnter::before {
+	content: "";
+	position: sticky;
+	top: 0;
+	left: 0;
+	right: 0;
+	display: block;
+	height: 1px;
+	background: linear-gradient(90deg,
+		transparent 0%,
+		color-mix(in srgb, var(--syn-vscode-accent-blue, #3794ff) 55%, transparent) 18%,
+		color-mix(in srgb, var(--syn-vscode-accent-blue, #3794ff) 30%, transparent) 50%,
+		color-mix(in srgb, var(--syn-vscode-accent-blue, #3794ff) 10%, transparent) 82%,
+		transparent 100%);
+	z-index: 2;
+	pointer-events: none;
+	margin: 0 0 -1px 0;
+}
+[data-reduce-motion] .main > .panelEnter::before { background: transparent; }
+
+/* Universal focus ring for interactive elements inside center panel — VS Code accent */
+.outline :where(button, [role="button"], [role="tab"], a, input, select, textarea):focus-visible,
+.main    :where(button, [role="button"], [role="tab"], a, input, select, textarea):focus-visible,
+.rightDock :where(button, [role="button"], [role="tab"], a, input, select, textarea):focus-visible {
+	outline: 1px solid var(--syn-vscode-accent-blue, #3794ff);
+	outline-offset: -1px;
+	border-radius: 2px;
+}
+
+/* Selection / interaction-active polish */
+.outline :where(button, [role="button"], a):hover,
+.main    :where(button, [role="button"], a):hover,
+.rightDock :where(button, [role="button"], a):hover {
+	transition: background 80ms ease, color 80ms ease, border-color 80ms ease;
+}
+
+/* Selected items get the VS Code accent-blue-soft tint */
+.outline :where([aria-selected="true"], [aria-current="true"], [aria-current="page"], .isActive, [data-active="true"]) {
+	background: var(--syn-vscode-accent-blue-soft, color-mix(in srgb, var(--syn-vscode-accent-blue, #3794ff) 22%, transparent)) !important;
+	color: var(--syn-vscode-text-primary, var(--syn-text-default)) !important;
+}
+
+/* VS Code-style hairline section divider helper (used by descendant content) */
+.outline hr,
+.main hr,
+.rightDock hr {
+	border: 0;
+	height: 1px;
+	background: var(--syn-vscode-border-subtle, var(--syn-border-subtle, rgba(255,255,255,0.10)));
+	margin: 10px 0;
+}
+
+/* Universal "kbd" polish for inline shortcut chips */
+.outline :where(kbd),
+.main    :where(kbd),
+.rightDock :where(kbd) {
+	display: inline-flex;
+	align-items: center;
+	padding: 1px 5px;
+	margin: 0 2px;
+	font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+	font-size: 10.5px;
+	line-height: 1.4;
+	color: var(--syn-vscode-text-muted, var(--syn-text-muted));
+	background: color-mix(in srgb, var(--syn-vscode-bg-elevated, #2b3038) 70%, transparent);
+	border: 1px solid var(--syn-vscode-border-subtle, rgba(255,255,255,0.10));
+	border-radius: 3px;
+	letter-spacing: 0.04em;
+	font-variant-numeric: tabular-nums;
+}
+
+/* Code/inline-mono chips */
+.outline :where(code),
+.main    :where(code) {
+	font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+	font-size: 0.92em;
+	color: var(--syn-vscode-text-secondary, var(--syn-text-secondary));
+	background: color-mix(in srgb, var(--syn-vscode-bg-elevated, #2b3038) 55%, transparent);
+	padding: 0 4px;
+	border-radius: 2px;
+}
+
+/* Section headers — uppercase, letter-spaced, monospace (Report rail pattern) */
+.outline :where(h1, h2, h3, h4, h5, h6) {
+	font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--syn-vscode-text-secondary, var(--syn-text-secondary));
+	margin: 14px 0 6px;
+}
+.main :where(h1, h2, h3) {
+	font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+	font-weight: 600;
+	letter-spacing: 0;
+	color: var(--syn-vscode-text-primary, var(--syn-text-default));
+}
+.main :where(h4, h5, h6) {
+	font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+	font-size: 11.5px;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--syn-vscode-text-secondary, var(--syn-text-secondary));
+}
+
+/* Selection highlight — VS Code accent */
+.main ::selection,
+.outline ::selection,
+.rightDock ::selection {
+	background: color-mix(in srgb, var(--syn-vscode-accent-blue, #3794ff) 38%, transparent);
+	color: var(--syn-vscode-text-primary, var(--syn-text-default));
+}
+
+/* Live region polish: subtle pulse on data-state changes */
+.main [data-state="loading"]::after {
+	content: "";
+	display: inline-block;
+	width: 8px;
+	height: 8px;
+	margin-left: 6px;
+	border-radius: 50%;
+	background: var(--syn-vscode-accent-blue, #3794ff);
+	animation: cpPulseDot 1.3s ease-out infinite;
+	vertical-align: middle;
+}
+@keyframes cpPulseDot {
+	0%, 100% { transform: scale(0.8); opacity: 0.55; }
+	50%      { transform: scale(1.15); opacity: 1; }
+}
+[data-reduce-motion] .main [data-state="loading"]::after { animation: none; }
+
+/* Premium tab transitions shared by every Center Panel workspace. */
+@keyframes cpTabContentIn {
+	from {
+		opacity: 0;
+		transform: translateY(5px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@keyframes cpTabRailIn {
+	from {
+		opacity: 0;
+		transform: translateX(-5px);
+	}
+	to {
+		opacity: 1;
+		transform: translateX(0);
+	}
+}
+
+@keyframes cpAccentSweep {
+	from {
+		opacity: 0;
+		transform: scaleX(0.2);
+	}
+	to {
+		opacity: 1;
+		transform: scaleX(1);
+	}
+}
+
+.outline[data-tab-rail="true"] {
+	animation: cpTabRailIn 190ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+}
+
+.main > [data-tab-content="true"] {
+	min-width: 0;
+	animation: cpTabContentIn 210ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+}
+
+.main > [data-tab-content="true"]::before {
+	transform-origin: left center;
+	animation: cpAccentSweep 240ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+}
+
+.main > [data-tab-content="true"] > * {
+	min-width: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.outline[data-tab-rail="true"],
+	.main > [data-tab-content="true"],
+	.main > [data-tab-content="true"]::before {
+		animation: none !important;
+		transform: none !important;
+	}
+}
+
+[data-reduce-motion] .outline[data-tab-rail="true"],
+[data-reduce-motion] .main > [data-tab-content="true"],
+[data-reduce-motion] .main > [data-tab-content="true"]::before {
+	animation: none !important;
+	transform: none !important;
 }
