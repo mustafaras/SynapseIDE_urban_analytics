@@ -51,6 +51,13 @@ export default function StepPills({ steps, currentIndex, onSelect, getPanelId, g
     >
       {steps.map((s, i) => {
         const active = i === activeIdx;
+        const completed = i < activeIdx;
+        const className = [
+          styles.stepPill,
+          active ? styles.stepPillActive : "",
+          completed ? styles.stepPillComplete : "",
+        ].filter(Boolean).join(" ");
+
         return (
           <button
             key={s.key}
@@ -59,7 +66,7 @@ export default function StepPills({ steps, currentIndex, onSelect, getPanelId, g
             id={ids[i]?.tabId}
             aria-controls={ids[i]?.panelId}
             tabIndex={active ? 0 : -1}
-            className={active ? `${styles.stepPill} ${styles.stepPillActive}` : styles.stepPill}
+            className={className}
             onClick={() => onSelect(i)}
             ref={(el) => { btnRefs.current[i] = el; }}
             type="button"

@@ -148,14 +148,7 @@ const RelatedMethodsCard: React.FC<{
         </div>
       </div>
 
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 4,
-          padding: '6px 10px 10px',
-        }}
-      >
+      <div className={flowCss.relatedMethodList}>
         {related.map((card) => (
           <button
             key={card.id}
@@ -165,51 +158,13 @@ const RelatedMethodsCard: React.FC<{
                 usePanelBridgeStore.getState().recordInsertedCard(card.id);
               } catch { /* noop */ }
             }}
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 2,
-              padding: '7px 10px',
-              borderRadius: 8,
-              border: '1px solid rgba(255,255,255,0.08)',
-              background: 'rgba(255,255,255,0.03)',
-              color: '#FAFAF9',
-              cursor: 'pointer',
-              textAlign: 'left',
-              transition: 'background 120ms ease, border-color 120ms ease',
-              fontFamily: 'inherit',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'color-mix(in srgb, var(--syn-status-info) 10%, transparent)';
-              e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--syn-status-info) 35%, transparent)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent';
-              e.currentTarget.style.borderColor = 'var(--syn-border-subtle, rgba(255,255,255,0.10))';
-            }}
+            className={flowCss.relatedMethodButton}
             title={`View "${card.title}" in the right panel`}
           >
-            <span
-              style={{
-                fontSize: '0.74rem',
-                fontWeight: 600,
-                color: 'rgba(250,250,249,0.9)',
-                lineHeight: 1.3,
-              }}
-            >
+            <span className={flowCss.relatedMethodTitle}>
               {card.title}
             </span>
-            <span
-              style={{
-                fontSize: '0.66rem',
-                color: 'rgba(255,255,255,0.4)',
-                lineHeight: 1.35,
-                display: '-webkit-box',
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: 'vertical',
-                overflow: 'hidden',
-              }}
-            >
+            <span className={flowCss.relatedMethodSummary}>
               {card.summary.length > 100
                 ? `${card.summary.slice(0, 100)}...`
                 : card.summary}

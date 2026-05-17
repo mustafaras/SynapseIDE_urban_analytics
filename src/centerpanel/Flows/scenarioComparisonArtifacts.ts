@@ -298,7 +298,7 @@ export function slugifyScenarioComparisonOutput(value: string): string {
 }
 
 export function scenarioStroke(index: number): string {
-  const palette = ['#F59E0B', '#38BDF8', '#22C55E', '#F97316', '#E879F9'];
+  const palette = ['#38BDF8', '#22C55E', '#A78BFA', '#14B8A6', '#E879F9'];
   return palette[index % palette.length] ?? palette[0]!;
 }
 

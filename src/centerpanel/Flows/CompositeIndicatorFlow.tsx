@@ -260,7 +260,7 @@ function buildUncertaintyCsv(result: CompositeIndicatorResult): string {
 const StageValidationStrip: React.FC<{ validations: StageValidation[]; currentStep: number; onSelect: (index: number) => void; }> = ({ validations, currentStep, onSelect }) => (
   <div className={styles.formSection} style={{ marginTop: 12 }}>
     <div className={styles.formLabel}>Stage validation</div>
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 8 }}>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 8 }}>
       {validations.map((validation, index) => {
         const active = index === currentStep;
         return (
@@ -272,6 +272,12 @@ const StageValidationStrip: React.FC<{ validations: StageValidation[]; currentSt
             style={{
               padding: "10px 12px",
               textAlign: "left",
+              display: "flex",
+              flexDirection: "column",
+              gap: 6,
+              minWidth: 0,
+              height: "auto",
+              whiteSpace: "normal",
               borderColor: active
                 ? "var(--syn-status-info)"
                 : validation.valid
@@ -280,11 +286,11 @@ const StageValidationStrip: React.FC<{ validations: StageValidation[]; currentSt
               background: active ? "color-mix(in srgb, var(--syn-status-info) 8%, transparent)" : "transparent",
             }}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", marginBottom: 4 }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: "var(--syn-text-primary)" }}>{validation.label}</span>
-              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", color: validation.valid ? "var(--syn-status-valid, var(--syn-success))" : "var(--syn-text-muted, rgba(255,255,255,0.55))", textTransform: "uppercase" }}>{validation.valid ? "Ready" : "Needs input"}</span>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center", flexWrap: "wrap", width: "100%" }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "var(--syn-text-primary)", minWidth: 0, overflowWrap: "anywhere" }}>{validation.label}</span>
+              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", color: validation.valid ? "var(--syn-status-valid, var(--syn-success))" : "var(--syn-text-muted, rgba(255,255,255,0.55))", textTransform: "uppercase", flexShrink: 0 }}>{validation.valid ? "Ready" : "Needs input"}</span>
             </div>
-            <div className={styles.formHint}>{validation.detail}</div>
+            <div className={styles.formHint} style={{ width: "100%", overflowWrap: "anywhere", whiteSpace: "normal", lineHeight: 1.4 }}>{validation.detail}</div>
           </button>
         );
       })}
@@ -340,7 +346,7 @@ const ConfidenceBands: React.FC<{ result: CompositeIndicatorResult }> = ({ resul
   })}</div>;
 };
 
-const SobolBars: React.FC<{ result: CompositeIndicatorResult }> = ({ result }) => <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{result.sensitivity.sobolStyle.slice(0, 6).map((entry) => <div key={entry.indicatorId}><div style={{ display: "flex", justifyContent: "space-between", gap: 10, marginBottom: 4 }}><span style={{ fontSize: 12, color: "var(--syn-text-primary)" }}>{entry.label}</span><span className={styles.formHint}>{formatMetric(entry.firstOrderIndex, 3)} / {formatMetric(entry.totalEffectProxy, 3)}</span></div><div style={{ height: 10, borderRadius: 999, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}><div style={{ width: `${entry.totalEffectProxy * 100}%`, height: "100%", borderRadius: 999, background: "linear-gradient(90deg, #F59E0B, #EF4444)" }} /></div></div>)}</div>;
+const SobolBars: React.FC<{ result: CompositeIndicatorResult }> = ({ result }) => <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{result.sensitivity.sobolStyle.slice(0, 6).map((entry) => <div key={entry.indicatorId}><div style={{ display: "flex", justifyContent: "space-between", gap: 10, marginBottom: 4 }}><span style={{ fontSize: 12, color: "var(--syn-text-primary)" }}>{entry.label}</span><span className={styles.formHint}>{formatMetric(entry.firstOrderIndex, 3)} / {formatMetric(entry.totalEffectProxy, 3)}</span></div><div style={{ height: 10, borderRadius: 999, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}><div style={{ width: `${entry.totalEffectProxy * 100}%`, height: "100%", borderRadius: 999, background: "linear-gradient(90deg, #38BDF8, #A78BFA)" }} /></div></div>)}</div>;
 
 const CompositeIndicatorFlow: React.FC = () => {
   const [step, setStep] = useState(0);

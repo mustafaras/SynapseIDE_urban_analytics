@@ -63,10 +63,10 @@ const STOCK_META: Array<{
   color: string;
   valueFormatter: (value: number) => string;
 }> = [
-  { id: 'population', label: 'Population', unit: 'residents', color: '#F59E0B', valueFormatter: formatInteger },
+  { id: 'population', label: 'Population', unit: 'residents', color: '#A78BFA', valueFormatter: formatInteger },
   { id: 'housing', label: 'Housing', unit: 'dwellings', color: '#38BDF8', valueFormatter: formatInteger },
   { id: 'employment', label: 'Employment', unit: 'jobs', color: '#22C55E', valueFormatter: formatInteger },
-  { id: 'transport_capacity', label: 'Transport Capacity', unit: 'capacity units', color: '#F97316', valueFormatter: formatInteger },
+  { id: 'transport_capacity', label: 'Transport Capacity', unit: 'capacity units', color: '#14B8A6', valueFormatter: formatInteger },
   { id: 'green_space', label: 'Green Space', unit: 'hectares', color: '#84CC16', valueFormatter: formatDecimal },
 ];
 
@@ -331,7 +331,7 @@ const StockFlowDiagramView: React.FC<{
       <rect x={0} y={0} width={diagram.width} height={diagram.height} rx={18} fill="rgba(255,255,255,0.02)" />
       {diagram.feedbackArcs.map((arc) => (
         <g key={arc.id}>
-          <path d={arc.path} fill="none" stroke={arc.type === 'reinforcing' ? 'rgba(56,189,248,0.65)' : 'rgba(245,158,11,0.65)'} strokeWidth={2} strokeDasharray="6 5" />
+          <path d={arc.path} fill="none" stroke={arc.type === 'reinforcing' ? 'rgba(56,189,248,0.65)' : 'rgba(167,139,250,0.65)'} strokeWidth={2} strokeDasharray="6 5" />
           <text x={arc.labelPoint.x} y={arc.labelPoint.y} textAnchor="middle" style={{ fill: '#E7E5E4', fontSize: 11 }}>
             {arc.label}
           </text>
@@ -354,9 +354,9 @@ const StockFlowDiagramView: React.FC<{
             />
             {link.valve ? (
               <g transform={`translate(${link.valve.x} ${link.valve.y})`}>
-                <circle r={8} fill="rgba(15,23,42,0.95)" stroke="rgba(245,158,11,0.85)" strokeWidth={2} />
-                <line x1={-4} y1={0} x2={4} y2={0} stroke="#FDE68A" strokeWidth={1.5} />
-                <line x1={0} y1={-4} x2={0} y2={4} stroke="#FDE68A" strokeWidth={1.5} />
+                <circle r={8} fill="rgba(15,23,42,0.95)" stroke="rgba(56,189,248,0.85)" strokeWidth={2} />
+                <line x1={-4} y1={0} x2={4} y2={0} stroke="#BFDBFE" strokeWidth={1.5} />
+                <line x1={0} y1={-4} x2={0} y2={4} stroke="#BFDBFE" strokeWidth={1.5} />
               </g>
             ) : null}
             <text
@@ -377,7 +377,7 @@ const StockFlowDiagramView: React.FC<{
             height={node.height}
             rx={node.kind === 'stock' ? 12 : 10}
             fill={node.kind === 'stock' ? 'rgba(15,23,42,0.88)' : 'rgba(120,113,108,0.2)'}
-            stroke={node.kind === 'stock' ? 'rgba(245,158,11,0.8)' : 'rgba(255,255,255,0.24)'}
+            stroke={node.kind === 'stock' ? 'rgba(56,189,248,0.8)' : 'rgba(255,255,255,0.24)'}
           />
           <text x={node.width / 2} y={node.height / 2 - 2} textAnchor="middle" style={{ fill: '#FAFAF9', fontSize: 12, fontWeight: 700 }}>
             {node.label}
@@ -433,7 +433,7 @@ const CausalLoopDiagramView: React.FC<{
           ? 'rgba(255,255,255,0.24)'
           : node.group === 'pressure'
             ? 'rgba(56,189,248,0.65)'
-            : 'rgba(245,158,11,0.8)';
+            : 'rgba(167,139,250,0.8)';
         return (
           <g key={node.id} transform={`translate(${node.x} ${node.y})`}>
             <circle r={34} fill={fill} stroke={stroke} strokeWidth={2} />
@@ -466,7 +466,7 @@ const LinkLegend: React.FC<{ links: SystemDynamicsDiagramLink[] }> = ({ links })
           color: 'var(--syn-text-muted)',
         }}
       >
-        <span style={{ width: 10, height: 10, borderRadius: 999, background: link.kind === 'flow' ? '#F59E0B' : (link.polarity === 'negative' ? '#F87171' : '#34D399') }} />
+        <span style={{ width: 10, height: 10, borderRadius: 999, background: link.kind === 'flow' ? '#38BDF8' : (link.polarity === 'negative' ? '#F87171' : '#34D399') }} />
         {link.label}
       </span>
     ))}

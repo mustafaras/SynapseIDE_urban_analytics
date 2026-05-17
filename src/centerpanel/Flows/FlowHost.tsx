@@ -156,7 +156,7 @@ const PlaceholderFlow: React.FC<{ title: string; icon: string }> = ({ title, ico
 );
 
 // ---------------------------------------------------------------------------
-// StudyAreaBanner — shows current study area or prompts user to set one
+// StudyAreaBanner — shows current study area or asks the user to set one
 // Rendered before every active workflow so the analysis location is always
 // visible and can be changed without leaving the workflow surface.
 // ---------------------------------------------------------------------------
@@ -230,10 +230,10 @@ function StudyAreaBanner() {
           padding: "7px 12px",
           borderRadius: 0,
           background: "transparent",
-          borderLeft: "2px solid color-mix(in srgb, var(--syn-status-danger, var(--syn-danger)) 55%, transparent)",
+          borderLeft: "2px solid color-mix(in srgb, var(--syn-status-error, var(--syn-danger)) 55%, transparent)",
         }}
       >
-        <span style={{ fontSize: 11, color: "var(--syn-status-danger, var(--syn-danger))", opacity: 0.95, fontFamily: "var(--codefont)" }}>
+        <span style={{ fontSize: 11, color: "var(--syn-status-error, var(--syn-danger))", opacity: 0.95, fontFamily: "var(--codefont)" }}>
           ⚠ No study area defined
         </span>
         <span style={{ fontSize: 11, opacity: 0.55, fontFamily: "var(--codefont)" }}>
@@ -308,38 +308,38 @@ const FlowHost: React.FC<FlowHostProps> = ({ activeFlowId }) => {
         <header className={styles.flowHeader}>
           <div className={styles.flowTitleRow}>
             <div className={styles.flowTitleMain}>Workflow Workspace</div>
-            <div className={styles.flowTitleMeta}>Discover, run, and compare Prompt 01-25 capabilities</div>
+            <div className={styles.flowTitleMeta}>Discover, run, and compare workflow capabilities</div>
           </div>
           <div className={styles.flowSubtitle}>
-            Navigator explains where each capability fits. Active Workflow opens the selected flow. Scenario Dashboard exposes the Prompt 23 comparison surface as a dedicated module, while System Dynamics and Emerging Hot Spot Analysis extend the simulation and spatiotemporal evidence surfaces with execution-grade workflow entry points.
+            Navigator explains where each capability fits. Active Workflow opens the selected flow. Scenario Dashboard exposes the comparison surface as a dedicated module, while System Dynamics and Emerging Hot Spot Analysis extend the simulation and spatiotemporal evidence surfaces with execution-grade workflow entry points.
           </div>
         </header>
 
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <div className={styles.workflowWorkspaceTabs}>
           <button
             type="button"
-            className={styles.outlineBtn}
+            className={styles.workflowWorkspaceTab}
             onClick={() => setWorkspaceView("navigator")}
-            style={{ borderColor: workspaceView === "navigator" ? "var(--syn-status-info)" : undefined }}
+            data-active={workspaceView === "navigator" ? "true" : undefined}
           >
             Navigator
           </button>
           <button
             type="button"
-            className={styles.outlineBtn}
+            className={styles.workflowWorkspaceTab}
             onClick={() => setWorkspaceView("active")}
-            style={{ borderColor: workspaceView === "active" ? "var(--syn-status-info)" : undefined }}
+            data-active={workspaceView === "active" ? "true" : undefined}
           >
             Active Workflow
           </button>
           <button
             type="button"
-            className={styles.outlineBtn}
+            className={styles.workflowWorkspaceTab}
             onClick={() => {
               activateFlow("scenario_comparison");
               setWorkspaceView("dashboard");
             }}
-            style={{ borderColor: workspaceView === "dashboard" ? "var(--syn-status-info)" : undefined }}
+            data-active={workspaceView === "dashboard" ? "true" : undefined}
           >
             Scenario Dashboard
           </button>

@@ -14,62 +14,6 @@ interface WorkflowCockpitProps {
   onOpenScenarioDashboard?: () => void;
 }
 
-const buttonGridStyle: React.CSSProperties = {
-  display: "flex",
-  flexWrap: "wrap",
-  gap: 8,
-};
-
-const flowCardGridStyle: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-  gap: 10,
-};
-
-const journeyGridStyle: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))",
-  gap: 10,
-};
-
-const journeyCardStyle: React.CSSProperties = {
-  border: 0,
-  borderTop: "1px solid var(--syn-border-subtle, rgba(255,255,255,0.10))",
-  borderRadius: 0,
-  padding: "10px 0 12px",
-  background: "transparent",
-  display: "flex",
-  flexDirection: "column",
-  gap: 8,
-};
-
-const flowCardStyle: React.CSSProperties = {
-  border: 0,
-  borderBottom: "1px solid color-mix(in srgb, var(--syn-border-subtle, rgba(255,255,255,0.10)) 55%, transparent)",
-  borderRadius: 0,
-  padding: "10px 0 12px",
-  background: "transparent",
-  display: "flex",
-  flexDirection: "column",
-  gap: 6,
-};
-
-const chipStyle: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 6,
-  padding: "0 6px",
-  borderRadius: 0,
-  border: 0,
-  background: "transparent",
-  fontSize: 10,
-  fontWeight: 700,
-  letterSpacing: "0.08em",
-  textTransform: "uppercase",
-  color: "var(--syn-text-muted)",
-  fontFamily: "var(--font-mono, ui-monospace, Menlo, monospace)",
-};
-
 const WorkflowCockpit: React.FC<WorkflowCockpitProps> = ({
   activeFlowId,
   onSelectFlow,
@@ -90,11 +34,11 @@ const WorkflowCockpit: React.FC<WorkflowCockpitProps> = ({
   );
 
   return (
-    <section className={styles.panel}>
+    <section className={`${styles.panel} ${styles.workflowCockpit}`}>
       <header className={styles.flowHeader}>
         <div className={styles.flowTitleRow}>
           <div className={styles.flowTitleMain}>Flow Cockpit</div>
-          <div className={styles.flowTitleMeta}>Prompt 15-25 navigation layer</div>
+          <div className={styles.flowTitleMeta}>Workflow navigation layer</div>
         </div>
         <div className={styles.flowSubtitle}>
           If the workbench feels dense, use this cockpit first. It explains what each feature is for,
@@ -104,27 +48,29 @@ const WorkflowCockpit: React.FC<WorkflowCockpitProps> = ({
 
       <div className={styles.stepContentCard}>
         <div className={styles.stepCardTitle}>Recommended operating sequence</div>
-        <div className={styles.formHint}>
-          1. Build an interpretable evidence layer. 2. Move into 3D or simulation only when the project question requires it.
-          3. Finish in Scenario Comparison when you need to brief trade-offs across intervention packages.
+        <div className={styles.workflowCommandIntro}>
+          Build an interpretable evidence layer, move into 3D or simulation only when the project question requires it,
+          and finish in Scenario Comparison when trade-offs must be briefed across intervention packages.
         </div>
-        <div style={buttonGridStyle}>
+        <div className={styles.workflowCommandList}>
           {recommendedFlows.map((flowId) => {
             const meta = WORKFLOW_EXPERIENCE[flowId];
             return (
               <button
                 key={flowId}
                 type="button"
-                className={styles.outlineBtn}
+                className={styles.workflowCommandButton}
                 onClick={() => onSelectFlow(flowId)}
               >
-                {meta?.prompt ?? "Flow"} - {meta?.quickUse ?? flowId}
+                <span className={styles.workflowCommandLabel}>{meta?.label ?? "Flow"}</span>
+                <span className={styles.workflowCommandText}>{meta?.quickUse ?? flowId}</span>
               </button>
             );
           })}
           {onOpenScenarioDashboard ? (
-            <button type="button" className={styles.outlineBtn} onClick={onOpenScenarioDashboard}>
-              Open Scenario Dashboard
+            <button type="button" className={styles.workflowCommandButton} onClick={onOpenScenarioDashboard}>
+              <span className={styles.workflowCommandLabel}>Dashboard</span>
+              <span className={styles.workflowCommandText}>Open Scenario Dashboard</span>
             </button>
           ) : null}
         </div>
@@ -132,74 +78,80 @@ const WorkflowCockpit: React.FC<WorkflowCockpitProps> = ({
 
       <div className={styles.stepContentCard}>
         <div className={styles.stepCardTitle}>Journey map</div>
-        <div style={journeyGridStyle}>
+        <div className={styles.workflowJourneyGrid}>
           {WORKFLOW_JOURNEYS.map((journey) => {
             const flowIds = orderedFlowIds.filter((flowId) => WORKFLOW_EXPERIENCE[flowId]?.journey === journey.id);
             return (
-              <div key={journey.id} style={journeyCardStyle}>
-                <div>
+              <section key={journey.id} className={styles.workflowJourneySection}>
+                <header className={styles.workflowJourneyHeader}>
                   <div className={styles.formLabel}>{journey.label}</div>
                   <div className={styles.formHint}>{journey.hint}</div>
-                </div>
-                <div style={buttonGridStyle}>
+                </header>
+                <div className={styles.workflowJourneyList}>
                   {flowIds.map((flowId) => {
                     const meta = WORKFLOW_EXPERIENCE[flowId]!;
                     return (
                       <button
                         key={flowId}
                         type="button"
-                        className={styles.outlineBtn}
+                        className={styles.workflowJourneyButton}
                         onClick={() => onSelectFlow(flowId)}
-                        style={{
-                          borderColor: flowId === activeFlowId ? "var(--syn-status-info)" : undefined,
-                          color: flowId === activeFlowId ? "var(--syn-text-link, var(--syn-status-info))" : undefined,
-                        }}
+                        data-active={flowId === activeFlowId ? "true" : undefined}
                       >
-                        {meta.prompt} - {meta.quickUse}
+                        <span className={styles.workflowButtonLabel}>{meta.label}</span>
+                        <span className={styles.workflowButtonUse}>{meta.quickUse}</span>
                       </button>
                     );
                   })}
                 </div>
-              </div>
+              </section>
             );
           })}
         </div>
       </div>
 
       <div className={styles.stepContentCard}>
-        <div className={styles.stepCardTitle}>Prompt 15-25 feature map</div>
-        <div style={flowCardGridStyle}>
+        <div className={styles.stepCardTitle}>Workflow feature map</div>
+        <div className={styles.workflowFeatureMap}>
           {orderedFlowIds.map((flowId) => {
             const meta = WORKFLOW_EXPERIENCE[flowId]!;
             const runCount = completedRuns.filter((run) => run.flowId === flowId).length;
             return (
-              <div key={flowId} style={flowCardStyle}>
-                <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
-                  <div className={styles.formLabel}>{flowId === activeFlowId ? `${meta.prompt} · Active` : meta.prompt}</div>
-                  <span style={chipStyle}>{meta.complexity}</span>
+              <article
+                key={flowId}
+                className={styles.workflowFeatureRow}
+                data-active={flowId === activeFlowId ? "true" : undefined}
+              >
+                <div className={styles.workflowFeatureHeader}>
+                  <div className={styles.workflowFeatureLabel}>
+                    {flowId === activeFlowId ? `${meta.label} - Active` : meta.label}
+                  </div>
+                  <span className={styles.workflowFeatureChip}>{meta.complexity}</span>
                 </div>
-                <div className={styles.formHint}>{meta.quickUse}</div>
-                <div style={{ fontSize: 11, color: "var(--syn-text-primary)" }}>
+                <div className={styles.workflowFeatureUse}>{meta.quickUse}</div>
+                <div className={styles.workflowFeatureDetail}>
                   <strong>Inputs:</strong> {meta.inputs}
                 </div>
-                <div style={{ fontSize: 11, color: "var(--syn-text-primary)" }}>
+                <div className={styles.workflowFeatureDetail}>
                   <strong>Outputs:</strong> {meta.outputs}
                 </div>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                  <span style={chipStyle}>{runCount > 0 ? `${runCount} saved run${runCount > 1 ? "s" : ""}` : "Ready to run"}</span>
-                  <span style={chipStyle}>{meta.journey.replace(/_/g, " ")}</span>
+                <div className={styles.workflowFeatureMetaRow}>
+                  <span className={styles.workflowFeatureChip}>
+                    {runCount > 0 ? `${runCount} saved run${runCount > 1 ? "s" : ""}` : "Ready to run"}
+                  </span>
+                  <span className={styles.workflowFeatureChip}>{meta.journey.replace(/_/g, " ")}</span>
                 </div>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  <button type="button" className={styles.outlineBtn} onClick={() => onSelectFlow(flowId)}>
+                <div className={styles.workflowFeatureActions}>
+                  <button type="button" className={styles.workflowInlineAction} onClick={() => onSelectFlow(flowId)}>
                     Open workflow
                   </button>
                   {flowId === "scenario_comparison" && onOpenScenarioDashboard ? (
-                    <button type="button" className={styles.outlineBtn} onClick={onOpenScenarioDashboard}>
+                    <button type="button" className={styles.workflowInlineAction} onClick={onOpenScenarioDashboard}>
                       Open dashboard
                     </button>
                   ) : null}
                 </div>
-              </div>
+              </article>
             );
           })}
         </div>

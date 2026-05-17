@@ -67,7 +67,7 @@ const FlowLibraryCard: React.FC<{
         item.analysisFocus,
         item.boundary,
         ...(item.whatYouDocument ?? []),
-        experience?.prompt,
+        experience?.label,
         experience?.quickUse,
         experience?.inputs,
         experience?.outputs,
@@ -92,7 +92,7 @@ const FlowLibraryCard: React.FC<{
       <input
         type="search"
         className={flowCss.textInput}
-        placeholder="Find a workflow, prompt, or output"
+        placeholder="Find a workflow, method, or output"
         value={query}
         onChange={(event) => setQuery(event.target.value)}
       />
@@ -143,7 +143,7 @@ const FlowLibraryCard: React.FC<{
                   item={item}
                   isActive={item.flowId === activeFlowId}
                   onSelect={() => onSelectFlow(item.flowId)}
-                  metaLine={experience ? `${experience.prompt} | ${experience.journey.replace(/_/g, " ")} | ${experience.complexity}` : undefined}
+                  metaLine={experience ? `${experience.label} | ${experience.journey.replace(/_/g, " ")} | ${experience.complexity}` : undefined}
                   statusLine={runCount > 0 ? `${runCount} saved run${runCount > 1 ? "s" : ""}` : experience?.outputs}
                 />
               );

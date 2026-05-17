@@ -43,7 +43,7 @@ const SuggestedCard: React.FC = () => {
       </div>
 
       <div className={styles.suggestedDisclaimer}>
-        These prompts highlight documentation pathways for communication and quality monitoring. They are not policy directives or
+        These suggestions highlight documentation pathways for communication and quality monitoring. They are not policy directives or
         binding recommendations.
       </div>
     </div>

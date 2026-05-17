@@ -159,7 +159,7 @@ function buildRunNarrative(
 
 function buildDifferenceLegend(): Array<{ label: string; color: string }> {
   return [
-    { label: "Persistent / matched urban", color: "#f59e0b" },
+    { label: "Persistent / matched urban", color: "#38BDF8" },
     { label: "False alarm", color: "#14b8a6" },
     { label: "Missed observed growth", color: "#ef4444" },
     { label: "Non-urban", color: "#1f2937" },
@@ -167,7 +167,7 @@ function buildDifferenceLegend(): Array<{ label: string; color: string }> {
 }
 
 function getCellColor(state: CellularAutomataState, index: number): string {
-  return (state.values[index] ?? 0) >= 0.5 ? "#f59e0b" : "#111827";
+  return (state.values[index] ?? 0) >= 0.5 ? "#38BDF8" : "#111827";
 }
 
 function getDifferenceColor(predicted: CellularAutomataState, observed: CellularAutomataState, index: number): string {
@@ -175,7 +175,7 @@ function getDifferenceColor(predicted: CellularAutomataState, observed: Cellular
   const observedUrban = (observed.values[index] ?? 0) >= 0.5;
 
   if (predictedUrban && observedUrban) {
-    return "#f59e0b";
+    return "#38BDF8";
   }
   if (predictedUrban && !observedUrban) {
     return "#14b8a6";

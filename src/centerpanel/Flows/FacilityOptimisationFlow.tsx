@@ -227,8 +227,8 @@ const CandidateDemandPreview: React.FC<{
           const point = projectPoint(demand.lng, demand.lat, bounds, width, height);
           const assignment = assignments.get(demand.id);
           const fill = result
-            ? assignment?.covered ? "#F59E0B" : "#EF4444"
-            : demand.equityGroup === "low_income" ? "#F97316" : "#CBD5E1";
+            ? assignment?.covered ? "#38BDF8" : "#EF4444"
+            : demand.equityGroup === "low_income" ? "#A78BFA" : "#CBD5E1";
           return (
             <circle
               key={demand.id}
@@ -262,8 +262,8 @@ const CandidateDemandPreview: React.FC<{
       </svg>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
         {[
-          { label: "Demand", color: result ? "#F59E0B" : "#CBD5E1" },
-          { label: "Low-income demand", color: "#F97316" },
+          { label: "Demand", color: result ? "#38BDF8" : "#CBD5E1" },
+          { label: "Low-income demand", color: "#A78BFA" },
           { label: "Candidate site", color: "#94A3B8" },
           { label: "Selected facility", color: "#22C55E" },
           { label: "Uncovered demand", color: "#EF4444" },
@@ -792,7 +792,7 @@ const FacilityOptimisationFlow: React.FC = () => {
                               width: `${group.coverageRatio * 100}%`,
                               height: "100%",
                               background: group.group === "low_income"
-                                ? "linear-gradient(90deg, #F97316, #F59E0B)"
+                                ? "linear-gradient(90deg, #A78BFA, #38BDF8)"
                                 : "linear-gradient(90deg, #0EA5E9, #22C55E)",
                             }}
                           />

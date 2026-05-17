@@ -19,7 +19,7 @@ export interface WorkflowJourneyMeta {
 }
 
 export interface WorkflowExperienceMeta {
-  prompt: string;
+  label: string;
   journey: WorkflowJourneyId;
   quickUse: string;
   inputs: string;
@@ -60,7 +60,7 @@ export const WORKFLOW_JOURNEYS: WorkflowJourneyMeta[] = [
 
 export const WORKFLOW_EXPERIENCE: Partial<Record<FlowId, WorkflowExperienceMeta>> = {
   site_suitability: {
-    prompt: "Core",
+    label: "Core",
     journey: "foundation",
     quickUse: "Rank sites when you need a fast, criteria-based development suitability surface.",
     inputs: "Criteria, layers, weights, and constraint masks.",
@@ -69,7 +69,7 @@ export const WORKFLOW_EXPERIENCE: Partial<Record<FlowId, WorkflowExperienceMeta>
     order: 1,
   },
   accessibility: {
-    prompt: "Core",
+    label: "Core",
     journey: "foundation",
     quickUse: "Measure who can reach which services under chosen travel modes and thresholds.",
     inputs: "Travel mode, thresholds, POIs, and optional equity groups.",
@@ -78,7 +78,7 @@ export const WORKFLOW_EXPERIENCE: Partial<Record<FlowId, WorkflowExperienceMeta>
     order: 2,
   },
   vulnerability: {
-    prompt: "Core",
+    label: "Core",
     journey: "indicator_risk",
     quickUse: "Assemble exposure, sensitivity, and capacity into a defensible risk picture.",
     inputs: "Hazard layers and social or environmental indicators.",
@@ -87,7 +87,7 @@ export const WORKFLOW_EXPERIENCE: Partial<Record<FlowId, WorkflowExperienceMeta>
     order: 3,
   },
   urban_morphology: {
-    prompt: "Prompt 35",
+    label: "Morphology",
     journey: "foundation",
     quickUse: "Group districts into evidence-based morphotypes before moving into scenario or equity workflows.",
     inputs: "Selected morphology indicators, optional population weighting, k, and seed.",
@@ -96,7 +96,7 @@ export const WORKFLOW_EXPERIENCE: Partial<Record<FlowId, WorkflowExperienceMeta>
     order: 4,
   },
   indicator_composite: {
-    prompt: "Prompt 22",
+    label: "Index Builder",
     journey: "indicator_risk",
     quickUse: "Build a rigorous OECD/JRC-style index with uncertainty and robustness checks.",
     inputs: "Indicators, imputation, normalization, weighting, and aggregation choices.",
@@ -105,7 +105,7 @@ export const WORKFLOW_EXPERIENCE: Partial<Record<FlowId, WorkflowExperienceMeta>
     order: 4,
   },
   equity_audit: {
-    prompt: "Prompt 10",
+    label: "Equity Audit",
     journey: "indicator_risk",
     quickUse: "Audit how benefits and burdens are distributed across groups and places.",
     inputs: "Demographics, amenities or hazards, and a disparity measure.",
@@ -114,7 +114,7 @@ export const WORKFLOW_EXPERIENCE: Partial<Record<FlowId, WorkflowExperienceMeta>
     order: 5,
   },
   change_detection: {
-    prompt: "Prompt 10",
+    label: "Change Detection",
     journey: "indicator_risk",
     quickUse: "Track where land-use or environmental conditions changed between two moments.",
     inputs: "T0/T1 layers, thresholds, and change-class definitions.",
@@ -123,7 +123,7 @@ export const WORKFLOW_EXPERIENCE: Partial<Record<FlowId, WorkflowExperienceMeta>
     order: 6,
   },
   emerging_hot_spot: {
-    prompt: "Prompt 25",
+    label: "Temporal Cluster",
     journey: "indicator_risk",
     quickUse: "Detect which districts are intensifying, persistent, diminishing, or sporadic hot or cold spots across time.",
     inputs: "Polygon layer, ordered numeric time fields, contiguity choice, and significance filter.",
@@ -132,7 +132,7 @@ export const WORKFLOW_EXPERIENCE: Partial<Record<FlowId, WorkflowExperienceMeta>
     order: 7,
   },
   object_detection: {
-    prompt: "Prompt 18",
+    label: "Object Detection",
     journey: "indicator_risk",
     quickUse: "Screen imagery for urban objects, inspect what was retained, then publish the result into Map Explorer and Run Review.",
     inputs: "Scene imagery, target classes, and retained-confidence threshold.",
@@ -141,7 +141,7 @@ export const WORKFLOW_EXPERIENCE: Partial<Record<FlowId, WorkflowExperienceMeta>
     order: 8,
   },
   voxcity_3d: {
-    prompt: "Prompt 15",
+    label: "3D Context",
     journey: "three_d",
     quickUse: "Turn building footprints into an explorable 3D context before detailed modelling.",
     inputs: "Footprints and optional height attributes.",
@@ -150,7 +150,7 @@ export const WORKFLOW_EXPERIENCE: Partial<Record<FlowId, WorkflowExperienceMeta>
     order: 9,
   },
   cityjson_loader: {
-    prompt: "Prompt 16",
+    label: "CityJSON",
     journey: "three_d",
     quickUse: "Inspect semantic city objects when a project already has CityJSON data.",
     inputs: "CityJSON v2 file and object attributes.",
@@ -159,7 +159,7 @@ export const WORKFLOW_EXPERIENCE: Partial<Record<FlowId, WorkflowExperienceMeta>
     order: 10,
   },
   sunlight_sim: {
-    prompt: "Prompt 17",
+    label: "Solar Exposure",
     journey: "three_d",
     quickUse: "Evaluate shadow movement and solar exposure at neighbourhood scale.",
     inputs: "3D building data, date range, time window, and interval.",
@@ -168,7 +168,7 @@ export const WORKFLOW_EXPERIENCE: Partial<Record<FlowId, WorkflowExperienceMeta>
     order: 11,
   },
   urban_growth_ca: {
-    prompt: "Prompt 20",
+    label: "Growth Simulation",
     journey: "simulation",
     quickUse: "Generate plausible urban expansion scenarios using constraints and suitability.",
     inputs: "Historical land-use states, suitability surfaces, and constraints.",
@@ -177,7 +177,7 @@ export const WORKFLOW_EXPERIENCE: Partial<Record<FlowId, WorkflowExperienceMeta>
     order: 12,
   },
   facility_optimisation: {
-    prompt: "Prompt 21",
+    label: "Facility Siting",
     journey: "simulation",
     quickUse: "Test efficiency versus equity trade-offs in facility siting.",
     inputs: "Candidate sites, demand points, model choice, and equity controls.",
@@ -186,7 +186,7 @@ export const WORKFLOW_EXPERIENCE: Partial<Record<FlowId, WorkflowExperienceMeta>
     order: 13,
   },
   system_dynamics: {
-    prompt: "Prompt 24",
+    label: "System Dynamics",
     journey: "simulation",
     quickUse: "Explore how housing, jobs, transit, and green protection reshape long-run urban dynamics.",
     inputs: "Policy lever sliders, simulation horizon, and the teaching baseline stocks.",
@@ -195,7 +195,7 @@ export const WORKFLOW_EXPERIENCE: Partial<Record<FlowId, WorkflowExperienceMeta>
     order: 14,
   },
   scenario_comparison: {
-    prompt: "Prompt 23",
+    label: "Scenario Comparison",
     journey: "decision",
     quickUse: "Compare 2-4 intervention packages using delta maps, charts, and Pareto logic.",
     inputs: "Baseline, scenario levers, aligned indicators, and completed scenario runs if available.",
@@ -204,7 +204,7 @@ export const WORKFLOW_EXPERIENCE: Partial<Record<FlowId, WorkflowExperienceMeta>
     order: 15,
   },
   review: {
-    prompt: "Prompt 10",
+    label: "Run Review",
     journey: "decision",
     quickUse: "Review completed analytical runs and move them into reporting without rerunning.",
     inputs: "Saved run outputs and reviewer notes.",

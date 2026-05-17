@@ -60,23 +60,23 @@ function createAccessibilityMapLayer(result: AccessibilityDemoResult, requestId:
  const metadata = buildFeatureCollectionMetadata(geojson);
  const geometryType = metadata.geometryType?.toLowerCase() ?? "";
  const style = geometryType.includes("line")
-	? {
-	 "line-color": "#f59e0b",
+	 ? {
+	 "line-color": "#38BDF8",
 	 "line-width": 3,
 	 "line-opacity": 0.9,
 	}
 	: geometryType.includes("point")
 	 ? {
-		"circle-color": "#f59e0b",
+		"circle-color": "#38BDF8",
 		"circle-radius": 6,
 		"circle-opacity": 0.9,
 		"circle-stroke-color": "#111827",
 		"circle-stroke-width": 1.5,
 	 }
 	 : {
-		"fill-color": "#f59e0b",
+		"fill-color": "#38BDF8",
 		"fill-opacity": 0.22,
-		"fill-outline-color": "#fbbf24",
+		"fill-outline-color": "#7DD3FC",
 	 };
 
  return {

@@ -1,6 +1,7 @@
 import React from "react";
 
 import { MapEmergingHotSpotViz } from "../components/MapEmergingHotSpotViz";
+import styles from "../styles/flows.module.css";
 import CrossPanelActions from "./rail/CrossPanelActions";
 import { useMapExplorerStore } from "@/stores/useMapExplorerStore";
 
@@ -8,16 +9,8 @@ const EmergingHotSpotFlow: React.FC = () => {
   const overlayLayers = useMapExplorerStore((state) => state.overlayLayers);
 
   return (
-    <section
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 12,
-        height: "auto",
-        minHeight: "760px",
-      }}
-    >
-      <div style={{ flex: 1, minHeight: "680px" }}>
+    <section className={styles.embeddedWorkflowSurface}>
+      <div className={styles.embeddedWorkflowVizFrame}>
         <MapEmergingHotSpotViz
           overlayLayers={overlayLayers}
           visible
