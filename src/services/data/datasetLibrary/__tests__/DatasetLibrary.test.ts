@@ -25,7 +25,7 @@ describe("Teaching dataset library", () => {
     });
   });
 
-  it("publishes the six planned city packs", () => {
+  it("publishes the planned city packs", () => {
     const library = getTeachingDatasetLibrary();
     expect(library.map((entry) => entry.city)).toEqual([
       "New York City",
@@ -34,6 +34,8 @@ describe("Teaching dataset library", () => {
       "Istanbul",
       "Singapore",
       "Melbourne",
+      "Tokyo",
+      "Amsterdam",
     ]);
   });
 

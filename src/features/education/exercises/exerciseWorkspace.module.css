@@ -1,35 +1,64 @@
+/* =========================================================================
+   Exercise Workspace — VS Code workbench discipline
+   • Single-column flow, hairline matrix lists
+   • Calm typography, monospace caps for chrome, sans for content
+   • Hover/active telegraphed by blue rail + minimal tint
+   ========================================================================= */
+
 .root {
-  display: grid;
-  gap: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 
+.root > * {
+  padding: 16px 22px;
+  border-bottom: 1px solid var(--syn-border-subtle);
+  animation: exSectionIn .28s cubic-bezier(.2,.7,.2,1) both;
+}
+.root > *:last-child { border-bottom: 0; }
+.root > *:nth-child(1) { animation-delay: 0ms; }
+.root > *:nth-child(2) { animation-delay: 40ms; }
+.root > *:nth-child(3) { animation-delay: 80ms; }
+.root > *:nth-child(4) { animation-delay: 120ms; }
+
+@keyframes exSectionIn {
+  from { opacity: 0; transform: translateY(-2px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* -------------------------------------------------------------------------
+   Banner — flat, single column on every viewport
+   ------------------------------------------------------------------------- */
 .banner {
-  display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.9fr);
-  gap: 16px;
-  padding: 18px;
-  border-radius: 20px;
-  border: 1px solid rgba(245, 158, 11, 0.24);
-  background:
-    radial-gradient(circle at 85% 12%, rgba(14, 165, 233, 0.16), transparent 28%),
-    radial-gradient(circle at 15% 0%, rgba(245, 158, 11, 0.18), transparent 34%),
-    linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.82));
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 0;
+  border-radius: 0;
+  border: 0;
+  background: transparent;
 }
 
 .eyebrow,
 .catalogEyebrow,
 .playerEyebrow {
-  color: var(--syn-accent-primary);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  color: var(--syn-text-secondary);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
+  opacity: 0.55;
 }
 
 .title {
-  margin: 4px 0 0;
-  font-size: clamp(24px, 2.3vw, 34px);
-  line-height: 1.08;
+  margin: 2px 0 0;
+  font-size: clamp(18px, 1.6vw, 22px);
+  font-weight: 500;
+  line-height: 1.32;
+  letter-spacing: -0.005em;
+  color: var(--syn-text-primary);
 }
 
 .lead,
@@ -45,45 +74,70 @@
 .optionDescription,
 .validationText,
 .feedbackSuccess {
-  color: var(--syn-text-muted);
+  color: var(--syn-text-secondary);
   line-height: 1.55;
+  font-size: 12.5px;
+  opacity: 0.85;
 }
 
+/* -------------------------------------------------------------------------
+   Stat grids — hairline matrix
+   ------------------------------------------------------------------------- */
 .bannerStats,
 .dashboardStats {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 1px;
+  background: var(--syn-border-subtle);
+  border: 1px solid var(--syn-border-subtle);
+  border-radius: 3px;
+  overflow: hidden;
 }
 
 .statCard,
 .dashboardCard {
-  display: grid;
-  gap: 4px;
-  padding: 12px 14px;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 0;
+  border: 0;
+  background: var(--syn-bg-root, #0d1117);
+  transition: background-color .18s ease;
+}
+.statCard:hover,
+.dashboardCard:hover {
+  background: color-mix(in srgb, var(--syn-text-primary) 2.5%, var(--syn-bg-root, #0d1117));
 }
 
 .statLabel,
 .catalogCount,
 .playerScoreLabel,
 .latestScoreLabel {
-  font-size: 11px;
-  color: var(--syn-text-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 9.5px;
+  color: var(--syn-text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.12em;
+  opacity: 0.55;
+  line-height: 1.25;
 }
 
 .statValue,
 .dashboardValue,
 .playerScoreValue,
 .latestScoreValue {
-  font-size: 22px;
-  font-weight: 700;
+  font-size: 18px;
+  font-weight: 500;
+  font-feature-settings: "tnum";
+  color: var(--syn-text-primary);
+  letter-spacing: -0.01em;
+  line-height: 1.1;
 }
 
+/* -------------------------------------------------------------------------
+   Filter bar
+   ------------------------------------------------------------------------- */
 .filterBar {
   display: flex;
   gap: 12px;
@@ -93,48 +147,74 @@
 
 .categoryRow {
   display: flex;
-  gap: 8px;
+  gap: 4px;
   flex-wrap: wrap;
 }
 
 .categoryChip {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(15, 23, 42, 0.68);
-  color: var(--syn-text-muted);
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 3px;
+  border: 0;
+  background: transparent;
+  color: color-mix(in srgb, var(--syn-text-secondary) 75%, transparent);
   cursor: pointer;
-  transition: border-color 140ms ease, background 140ms ease, color 140ms ease;
+  font-size: 11px;
+  line-height: 1.4;
+  transition: color .16s ease, background-color .16s ease;
 }
+.categoryChip::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--syn-text-primary);
+  opacity: 0;
+  transition: opacity .16s ease;
+  pointer-events: none;
+}
+.categoryChip:hover { color: var(--syn-text-primary); }
+.categoryChip:hover::before { opacity: 0.03; }
 
-.categoryChip:hover,
 .categoryChipActive {
-  border-color: rgba(245, 158, 11, 0.4);
-  background: rgba(245, 158, 11, 0.12);
   color: var(--syn-text-primary);
+  background: color-mix(in srgb, var(--syn-text-primary) 4%, transparent);
+  box-shadow: inset 0 -1px 0 0 color-mix(in srgb, var(--syn-interaction-active) 60%, transparent);
 }
 
 .categoryCount {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 20px;
-  padding: 0 6px;
-  height: 20px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  font-size: 11px;
+  min-width: 16px;
+  padding: 0 4px;
+  height: 14px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--syn-text-primary) 5%, transparent);
+  border: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--syn-text-secondary);
+  text-transform: none;
 }
 
+/* -------------------------------------------------------------------------
+   Layout → single column
+   ------------------------------------------------------------------------- */
 .layout {
-  display: grid;
-  grid-template-columns: minmax(320px, 0.88fr) minmax(0, 1.5fr);
+  display: flex;
+  flex-direction: column;
   gap: 16px;
 }
 
+/* -------------------------------------------------------------------------
+   Panels — flat hairline-bounded surfaces
+   ------------------------------------------------------------------------- */
 .catalogPanel,
 .playerPanel,
 .dashboardPanel,
@@ -144,17 +224,25 @@
 .historyPanel,
 .scenarioCard,
 .emptyState {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 12px;
-  padding: 16px;
-  border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(15, 23, 42, 0.82);
-  box-shadow: 0 18px 40px rgba(2, 6, 23, 0.2);
+  padding: 14px 16px;
+  border-radius: 3px;
+  border: 1px solid var(--syn-border-subtle);
+  background: color-mix(in srgb, var(--syn-text-primary) 1.5%, transparent);
+  box-shadow: none;
+}
+
+.playerPanel,
+.dashboardPanel,
+.scenarioCard {
+  background: color-mix(in srgb, var(--syn-interaction-active) 3%, transparent);
 }
 
 .mainColumn {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 16px;
 }
 
@@ -167,6 +255,8 @@
   justify-content: space-between;
   gap: 12px;
   align-items: flex-start;
+  padding-bottom: 8px;
+  border-bottom: 1px solid color-mix(in srgb, var(--syn-border-subtle) 60%, transparent);
 }
 
 .panelTitle,
@@ -176,299 +266,450 @@
 .scenarioTitle,
 .subTitle,
 .emptyTitle {
-  font-size: 17px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 600;
   color: var(--syn-text-primary);
+  letter-spacing: -0.005em;
 }
 
+/* -------------------------------------------------------------------------
+   Catalog list — hairline matrix of exercise rows
+   ------------------------------------------------------------------------- */
 .catalogList,
 .categorySummaryList,
 .historyList {
-  display: grid;
-  gap: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--syn-border-subtle);
+  border: 1px solid var(--syn-border-subtle);
+  border-radius: 3px;
+  overflow: hidden;
 }
 
 .catalogCard {
-  display: grid;
-  gap: 10px;
-  padding: 14px;
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 0;
+  border: 0;
+  background: var(--syn-bg-root, #0d1117);
+  transition: background-color .18s ease;
+}
+.catalogCard::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 2px;
+  background: transparent;
+  transition: background-color .22s ease;
+}
+.catalogCard:hover {
+  background: color-mix(in srgb, var(--syn-text-primary) 2.5%, var(--syn-bg-root, #0d1117));
+}
+.catalogCard:hover::before {
+  background: color-mix(in srgb, var(--syn-interaction-active) 30%, transparent);
 }
 
 .catalogCardActive {
-  border-color: rgba(245, 158, 11, 0.45);
-  background:
-    radial-gradient(circle at top right, rgba(245, 158, 11, 0.12), transparent 32%),
-    linear-gradient(180deg, rgba(245, 158, 11, 0.08), rgba(255, 255, 255, 0.03));
+  background: color-mix(in srgb, var(--syn-interaction-active) 5%, var(--syn-bg-root, #0d1117));
+}
+.catalogCardActive::before {
+  background: var(--syn-interaction-active);
 }
 
+/* -------------------------------------------------------------------------
+   Badges / chips — flat, monospace, dot-semantic
+   ------------------------------------------------------------------------- */
 .statusBadge,
 .contextChip,
 .masteryChip,
 .reviewChip,
-.rubricPoints,
-.catalogCount {
+.rubricPoints {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  padding: 4px 10px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  font-size: 11px;
-  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 2px;
+  border: 0;
+  background: color-mix(in srgb, var(--syn-text-primary) 3.5%, transparent);
+  color: color-mix(in srgb, var(--syn-text-secondary) 85%, transparent);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1.5;
 }
 
-.statusnot_assigned {
-  color: #cbd5e1;
-  background: rgba(148, 163, 184, 0.12);
+.statusBadge {
+  position: relative;
+  padding-left: 14px;
+}
+.statusBadge::before {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 50%;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  transform: translateY(-50%);
+  opacity: 0.8;
+  background: color-mix(in srgb, var(--syn-text-secondary) 60%, transparent);
 }
 
-.statusassigned {
-  color: #fbbf24;
-  background: rgba(245, 158, 11, 0.12);
+.statusnot_assigned { color: color-mix(in srgb, var(--syn-text-secondary) 85%, transparent); }
+.statusnot_assigned::before { background: color-mix(in srgb, var(--syn-text-secondary) 50%, transparent); }
+
+.statusassigned { color: var(--syn-text-primary); }
+.statusassigned::before { background: var(--syn-interaction-active); }
+
+.statusin_progress { color: var(--syn-text-primary); }
+.statusin_progress::before { background: color-mix(in srgb, var(--syn-interaction-active) 80%, #0ea5e9 20%); }
+
+.statuscompleted { color: var(--syn-text-primary); }
+.statuscompleted::before { background: var(--syn-status-valid, #22c55e); }
+
+.masteryChip {
+  color: var(--syn-text-primary);
+  background: color-mix(in srgb, var(--syn-status-valid, #22c55e) 10%, transparent);
 }
 
-.statusin_progress {
-  color: #7dd3fc;
-  background: rgba(14, 165, 233, 0.12);
-}
-
-.statuscompleted {
-  color: #86efac;
-  background: rgba(34, 197, 94, 0.12);
+.reviewChip {
+  color: var(--syn-text-primary);
+  background: color-mix(in srgb, var(--syn-interaction-active) 10%, transparent);
 }
 
 .catalogMeta,
 .pathContextRow,
 .feedbackTags {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
-  color: var(--syn-text-muted);
-  font-size: 12px;
+  color: var(--syn-text-secondary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.02em;
+  opacity: 0.75;
 }
 
 .catalogActions,
 .playerActions,
 .feedbackGrid {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
-.playerPanel,
-.dashboardPanel {
-  background:
-    radial-gradient(circle at top right, rgba(14, 165, 233, 0.08), transparent 22%),
-    linear-gradient(180deg, rgba(15, 23, 42, 0.88), rgba(15, 23, 42, 0.8));
-}
-
 .playerScoreCard {
-  display: grid;
-  justify-items: end;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
   gap: 4px;
 }
 
-.masteryChip {
-  color: #86efac;
-  background: rgba(34, 197, 94, 0.14);
-}
-
-.reviewChip {
-  color: #fbbf24;
-  background: rgba(245, 158, 11, 0.14);
-}
-
-.scenarioCard {
-  background:
-    radial-gradient(circle at top right, rgba(245, 158, 11, 0.12), transparent 32%),
-    rgba(255, 255, 255, 0.03);
-}
-
+/* -------------------------------------------------------------------------
+   Rubric grid
+   ------------------------------------------------------------------------- */
 .instructionsBlock,
 .rubricPanel,
 .inputPanel,
 .historyPanel {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 12px;
 }
 
 .instructionsList,
 .feedbackList,
 .hintList {
-  display: grid;
-  gap: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   margin: 0;
-  padding-left: 18px;
+  padding-left: 16px;
   line-height: 1.55;
+  font-size: 12.5px;
+  color: var(--syn-text-primary);
 }
 
 .rubricGrid,
 .inputGrid {
   display: grid;
-  gap: 10px;
+  gap: 1px;
+  background: var(--syn-border-subtle);
+  border: 1px solid var(--syn-border-subtle);
+  border-radius: 3px;
+  overflow: hidden;
 }
 
 .rubricGrid {
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+.inputGrid {
+  grid-template-columns: 1fr;
 }
 
 .rubricCard,
 .fieldCard,
 .categorySummaryCard {
-  display: grid;
-  gap: 8px;
-  padding: 12px;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 0;
+  border: 0;
+  background: var(--syn-bg-root, #0d1117);
+  transition: background-color .16s ease;
+  position: relative;
+}
+.rubricCard:hover,
+.fieldCard:hover,
+.categorySummaryCard:hover {
+  background: color-mix(in srgb, var(--syn-text-primary) 2.5%, var(--syn-bg-root, #0d1117));
 }
 
 .rubricCardPassed {
-  border-color: rgba(34, 197, 94, 0.35);
+  background: color-mix(in srgb, var(--syn-status-valid, #22c55e) 5%, var(--syn-bg-root, #0d1117));
+}
+.rubricCardPassed::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 2px;
+  background: var(--syn-status-valid, #22c55e);
 }
 
 .fieldLabel {
-  font-size: 13px;
-  font-weight: 700;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--syn-text-secondary);
+  opacity: 0.7;
 }
 
 .textArea {
   min-height: 110px;
   resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
 }
 
+/* -------------------------------------------------------------------------
+   Option list — radio rows
+   ------------------------------------------------------------------------- */
 .optionList {
-  display: grid;
-  gap: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--syn-border-subtle);
+  border: 1px solid var(--syn-border-subtle);
+  border-radius: 3px;
+  overflow: hidden;
 }
 
 .optionCard {
+  position: relative;
   display: grid;
-  grid-template-columns: 18px 1fr;
+  grid-template-columns: 16px 1fr;
   gap: 10px;
   align-items: start;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
+  padding: 9px 12px;
+  border-radius: 0;
+  border: 0;
+  background: var(--syn-bg-root, #0d1117);
+  transition: background-color .16s ease;
+}
+.optionCard::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 2px;
+  background: transparent;
+  transition: background-color .2s ease;
+}
+.optionCard:hover {
+  background: color-mix(in srgb, var(--syn-text-primary) 2.5%, var(--syn-bg-root, #0d1117));
 }
 
 .optionCardChecked {
-  border-color: rgba(245, 158, 11, 0.35);
-  background: rgba(245, 158, 11, 0.08);
+  background: color-mix(in srgb, var(--syn-interaction-active) 5%, var(--syn-bg-root, #0d1117));
+}
+.optionCardChecked::before {
+  background: var(--syn-interaction-active);
 }
 
 .optionDescription {
   display: block;
   margin-top: 2px;
-  font-size: 12px;
+  font-size: 11.5px;
+  opacity: 0.85;
 }
 
+/* -------------------------------------------------------------------------
+   Submit button — accent fill, no gradient
+   ------------------------------------------------------------------------- */
 .submitButton {
   border: 0;
-  padding: 10px 16px;
-  border-radius: 999px;
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.94), rgba(234, 88, 12, 0.92));
-  color: #0f172a;
-  font-weight: 800;
+  padding: 0 14px;
+  height: 28px;
+  border-radius: 3px;
+  background: var(--syn-interaction-active);
+  color: #fff;
+  font-weight: 500;
+  font-size: 12px;
+  letter-spacing: 0.01em;
   cursor: pointer;
+  transition: filter .14s ease, transform .14s ease;
 }
-
+.submitButton:hover {
+  filter: brightness(1.08);
+}
+.submitButton:active {
+  transform: translateY(1px);
+}
 .submitButton:disabled {
   cursor: not-allowed;
-  opacity: 0.5;
+  opacity: 0.45;
 }
 
 .feedbackGrid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
 }
 
 .hintItem,
 .feedbackList li {
   color: var(--syn-text-primary);
+  font-size: 12.5px;
 }
 
 .feedbackSuccess {
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid rgba(34, 197, 94, 0.24);
-  background: rgba(34, 197, 94, 0.08);
-  color: #bbf7d0;
+  padding: 8px 12px;
+  border-radius: 3px;
+  border: 0;
+  background: color-mix(in srgb, var(--syn-status-valid, #22c55e) 8%, transparent);
+  color: var(--syn-text-primary);
+  position: relative;
+  padding-left: 14px;
+}
+.feedbackSuccess::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 2px;
+  background: var(--syn-status-valid, #22c55e);
 }
 
+/* -------------------------------------------------------------------------
+   Progress rail — thin
+   ------------------------------------------------------------------------- */
 .progressRail {
   width: 100%;
-  height: 10px;
-  border-radius: 999px;
+  height: 2px;
+  border-radius: 0;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--syn-border-subtle);
 }
 
 .progressFill {
   height: 100%;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #0ea5e9, #22c55e, #f59e0b);
+  border-radius: 0;
+  background: var(--syn-interaction-active);
+  transition: width .35s cubic-bezier(.2,.7,.2,1);
 }
 
+/* -------------------------------------------------------------------------
+   History rows
+   ------------------------------------------------------------------------- */
 .historyItem {
+  position: relative;
   display: flex;
   justify-content: space-between;
   gap: 12px;
   align-items: center;
-  padding: 12px;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
+  padding: 10px 12px;
+  border-radius: 0;
+  border: 0;
+  background: var(--syn-bg-root, #0d1117);
   color: inherit;
   text-align: left;
   cursor: pointer;
+  font: inherit;
+  transition: background-color .16s ease;
+}
+.historyItem::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 2px;
+  background: transparent;
+  transition: background-color .22s ease;
+}
+.historyItem:hover {
+  background: color-mix(in srgb, var(--syn-text-primary) 2.5%, var(--syn-bg-root, #0d1117));
+}
+.historyItem:hover::before {
+  background: color-mix(in srgb, var(--syn-interaction-active) 35%, transparent);
 }
 
 .historyScore {
-  font-size: 18px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 500;
+  font-feature-settings: "tnum";
+  color: var(--syn-text-primary);
 }
 
+/* -------------------------------------------------------------------------
+   Empty state
+   ------------------------------------------------------------------------- */
 .emptyState {
-  place-items: center;
+  align-items: center;
   text-align: center;
-  min-height: 220px;
+  min-height: 180px;
+  justify-content: center;
 }
 
 .emptyText {
-  color: var(--syn-text-muted);
+  color: var(--syn-text-secondary);
+  font-size: 12.5px;
+  opacity: 0.8;
 }
 
-@media (max-width: 1240px) {
-  .layout,
-  .banner,
-  .feedbackGrid {
-    grid-template-columns: 1fr;
-  }
+@media (prefers-reduced-motion: reduce) {
+  .root > *,
+  .catalogCard,
+  .catalogCard::before,
+  .optionCard,
+  .optionCard::before,
+  .historyItem,
+  .historyItem::before,
+  .categoryChip,
+  .categoryChip::before,
+  .progressFill,
+  .submitButton,
+  .statCard,
+  .dashboardCard,
+  .rubricCard,
+  .fieldCard,
+  .categorySummaryCard { animation: none; transition: none; }
 }
 
-@media (max-width: 800px) {
+@media (max-width: 900px) {
+  .root > * { padding: 14px 14px; }
   .bannerStats,
-  .dashboardStats {
-    grid-template-columns: 1fr 1fr;
-  }
+  .dashboardStats { grid-template-columns: 1fr 1fr; }
+}
 
+@media (max-width: 640px) {
   .catalogActions,
-  .playerActions {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
+  .playerActions { flex-direction: column; align-items: stretch; }
   .historyItem,
   .catalogCardTop,
   .panelHeaderRow,
-  .latestScoreRow {
-    flex-direction: column;
-    align-items: flex-start;
-  }
+  .latestScoreRow { flex-direction: column; align-items: flex-start; }
 }

@@ -1,123 +1,271 @@
+/* =========================================================================
+   Education Module — VS Code workbench discipline
+   • No amber, no gradient fills, no card-in-card chrome
+   • Single-column flow with hairline section breaks
+   • Hover/focus telegraphed via animation, not heavy color
+   ========================================================================= */
+
 .root {
-  display: grid;
-  gap: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
   color: var(--syn-text-primary);
+  padding: 0;
 }
 
+/* Each top-level child becomes a quiet section separated by a hairline,
+   instead of every block being a rounded card. */
+.root > * {
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--syn-border-subtle);
+  animation: eduSectionIn .32s cubic-bezier(.2,.7,.2,1) both;
+}
+.root > *:last-child { border-bottom: 0; }
+.root > *:nth-child(1) { animation-delay: 0ms; }
+.root > *:nth-child(2) { animation-delay: 40ms; }
+.root > *:nth-child(3) { animation-delay: 80ms; }
+.root > *:nth-child(4) { animation-delay: 120ms; }
+
+@keyframes eduSectionIn {
+  from { opacity: 0; transform: translateY(-2px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* -------------------------------------------------------------------------
+   Hero — flat, no gradient, no border
+   ------------------------------------------------------------------------- */
 .hero {
-  display: grid;
-  gap: 12px;
-  padding: 18px;
-  border-radius: 16px;
-  border: 1px solid rgba(245, 158, 11, 0.24);
-  background:
-    radial-gradient(circle at top right, rgba(245, 158, 11, 0.18), transparent 36%),
-    linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.74));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 22px 22px 24px;
+  border-radius: 0;
+  border: 0;
+  background: transparent;
 }
 
 .eyebrow {
-  color: var(--syn-accent-primary);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  color: var(--syn-text-secondary);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
+  opacity: 0.55;
 }
 
 .heroTitle {
-  font-size: clamp(24px, 2.6vw, 34px);
-  font-weight: 700;
-  line-height: 1.08;
+  font-size: clamp(18px, 1.6vw, 22px);
+  font-weight: 500;
+  line-height: 1.32;
+  letter-spacing: -0.005em;
+  color: var(--syn-text-primary);
+  max-width: 78ch;
 }
 
 .heroText {
-  max-width: 82ch;
-  color: var(--syn-text-muted);
-  line-height: 1.6;
+  max-width: 78ch;
+  color: var(--syn-text-secondary);
+  line-height: 1.55;
+  font-size: 12.5px;
+  opacity: 0.85;
 }
 
+/* -------------------------------------------------------------------------
+   KPI strip — dense workbench tiles, no card frames
+   ------------------------------------------------------------------------- */
 .kpiGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 1px;
+  margin-top: 14px;
+  background: var(--syn-border-subtle);
+  border: 1px solid var(--syn-border-subtle);
+  border-radius: 3px;
+  overflow: hidden;
 }
 
 .kpiCard {
-  display: grid;
-  gap: 4px;
-  padding: 12px 14px;
-  border-radius: 12px;
-  border: 1px solid var(--syn-overlay-light);
-  background: rgba(255, 255, 255, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 0;
+  border: 0;
+  background: var(--syn-bg-root, #0d1117);
+  transition: background-color .18s ease;
+}
+.kpiCard:hover {
+  background: color-mix(in srgb, var(--syn-text-primary) 2.5%, var(--syn-bg-root, #0d1117));
 }
 
 .kpiLabel {
-  font-size: 11px;
-  color: var(--syn-text-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 9.5px;
+  color: var(--syn-text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.12em;
+  opacity: 0.55;
+  line-height: 1.25;
 }
 
 .kpiValue {
-  font-size: 22px;
-  font-weight: 700;
+  font-size: 18px;
+  font-weight: 500;
+  font-feature-settings: "tnum";
+  letter-spacing: -0.01em;
+  color: var(--syn-text-primary);
+  line-height: 1.1;
 }
 
+/* -------------------------------------------------------------------------
+   Toolbar — input row + view switch, flat
+   ------------------------------------------------------------------------- */
 .toolbar {
   display: flex;
-  gap: 12px;
+  gap: 16px;
   flex-wrap: wrap;
-  align-items: end;
+  align-items: flex-end;
+  padding: 14px 22px 16px;
 }
 
+/* -------------------------------------------------------------------------
+   View switch — VS Code tab strip (underline, not pill)
+   ------------------------------------------------------------------------- */
 .viewSwitch {
   display: inline-flex;
-  gap: 8px;
-  padding: 4px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--syn-overlay-light);
+  gap: 0;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--syn-border-subtle);
+  margin-left: auto;
+  align-self: stretch;
+  align-items: flex-end;
 }
 
 .viewButton {
+  position: relative;
   border: 0;
-  padding: 8px 14px;
-  border-radius: 999px;
+  padding: 8px 14px 10px;
+  border-radius: 0;
   background: transparent;
-  color: var(--syn-text-muted);
-  font-weight: 600;
+  color: var(--syn-text-secondary);
+  font-weight: 500;
+  font-size: 12px;
   cursor: pointer;
+  letter-spacing: 0.01em;
+  transition: color .16s ease, background-color .16s ease;
+}
+.viewButton::after {
+  content: "";
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: -1px;
+  height: 1px;
+  background: var(--syn-interaction-active);
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform .22s cubic-bezier(.2,.7,.2,1);
+}
+.viewButton:hover {
+  color: var(--syn-text-primary);
+  background: color-mix(in srgb, var(--syn-text-primary) 2.5%, transparent);
+}
+.viewButton:hover::after {
+  transform: scaleX(0.4);
+  background: color-mix(in srgb, var(--syn-interaction-active) 45%, transparent);
 }
 
 .viewButtonActive {
-  background: rgba(245, 158, 11, 0.18);
-  color: var(--syn-accent-primary);
+  color: var(--syn-text-primary);
+  background: transparent;
+}
+.viewButtonActive::after {
+  transform: scaleX(1);
+  background: var(--syn-interaction-active);
+}
+.viewButtonActive:hover::after {
+  transform: scaleX(1);
+  background: var(--syn-interaction-active);
 }
 
+/* -------------------------------------------------------------------------
+   Path browser grid — flat tiles, hairline outline, blue active edge
+   ------------------------------------------------------------------------- */
 .pathGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-auto-rows: 1fr;
+  gap: 1px;
+  margin-top: 12px;
+  background: var(--syn-border-subtle);
+  border: 1px solid var(--syn-border-subtle);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+@media (max-width: 1280px) {
+  .pathGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 960px) {
+  .pathGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 640px) {
+  .pathGrid { grid-template-columns: 1fr; }
 }
 
 .pathCard {
-  display: grid;
+  position: relative;
+  display: flex;
+  flex-direction: column;
   gap: 10px;
-  padding: 14px;
-  border-radius: 14px;
-  border: 1px solid var(--syn-overlay-light);
-  background: rgba(15, 23, 42, 0.7);
+  padding: 14px 14px 12px;
+  border-radius: 0;
+  border: 0;
+  background: var(--syn-bg-root, #0d1117);
   text-align: left;
   cursor: pointer;
+  color: inherit;
+  transition: background-color .18s ease;
+  font: inherit;
+  height: 100%;
+  min-height: 0;
+}
+.pathCard > .chipRow:last-child {
+  margin-top: auto;
+}
+.pathCard::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 2px;
+  background: transparent;
+  transition: background-color .22s ease;
+}
+.pathCard:hover {
+  background: color-mix(in srgb, var(--syn-text-primary) 3%, var(--syn-bg-root, #0d1117));
+}
+.pathCard:hover::before {
+  background: color-mix(in srgb, var(--syn-interaction-active) 35%, transparent);
 }
 
 .pathCardActive {
-  border-color: rgba(245, 158, 11, 0.55);
-  background: linear-gradient(180deg, rgba(245, 158, 11, 0.12), rgba(15, 23, 42, 0.84));
+  background: color-mix(in srgb, var(--syn-interaction-active) 5%, var(--syn-bg-root, #0d1117));
+}
+.pathCardActive::before {
+  background: var(--syn-interaction-active);
+}
+.pathCardActive:hover {
+  background: color-mix(in srgb, var(--syn-interaction-active) 7%, var(--syn-bg-root, #0d1117));
 }
 
 .pathCardLocked {
-  opacity: 0.72;
+  opacity: 0.55;
 }
+.pathCardLocked:hover { opacity: 0.7; }
 
 .pathTitleRow {
   display: flex;
@@ -127,105 +275,231 @@
 }
 
 .pathTitle {
-  font-size: 16px;
-  font-weight: 700;
-  line-height: 1.25;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: -0.005em;
+  color: var(--syn-text-primary);
 }
 
 .muted {
-  color: var(--syn-text-muted);
+  color: var(--syn-text-secondary);
+  font-size: 11.5px;
+  line-height: 1.5;
+  opacity: 0.78;
 }
 
+/* -------------------------------------------------------------------------
+   Progress bars — VS Code-thin
+   ------------------------------------------------------------------------- */
 .progressBar {
   width: 100%;
-  height: 10px;
-  border-radius: 999px;
+  height: 2px;
+  border-radius: 0;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--syn-border-subtle);
 }
 
 .progressFill {
   height: 100%;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #f59e0b, #22c55e);
+  border-radius: 0;
+  background: var(--syn-interaction-active);
+  transition: width .35s cubic-bezier(.2,.7,.2,1);
 }
 
+/* -------------------------------------------------------------------------
+   Chips — flat, no border, monospace caps
+   ------------------------------------------------------------------------- */
 .chipRow {
   display: flex;
-  gap: 8px;
+  gap: 4px;
   flex-wrap: wrap;
 }
 
 .chip {
-  padding: 4px 9px;
-  border-radius: 999px;
-  border: 1px solid var(--syn-overlay-light);
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--syn-text-muted);
-  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border-radius: 2px;
+  border: 0;
+  background: color-mix(in srgb, var(--syn-text-primary) 3.5%, transparent);
+  color: color-mix(in srgb, var(--syn-text-secondary) 85%, transparent);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1.5;
+  transition: background-color .16s ease, color .16s ease;
 }
 
+/* -------------------------------------------------------------------------
+   Detail layout — single column (premium readability)
+   ------------------------------------------------------------------------- */
 .detailGrid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.7fr) minmax(320px, 0.9fr);
-  gap: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
 }
 
 .detailPanel,
 .sidePanel,
 .explainerCard,
 .instructorPanel {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 12px;
-  padding: 16px;
-  border-radius: 16px;
-  border: 1px solid var(--syn-overlay-light);
-  background: rgba(15, 23, 42, 0.78);
+  padding: 18px 22px;
+  border-radius: 0;
+  border: 0;
+  border-bottom: 1px solid var(--syn-border-subtle);
+  background: transparent;
 }
+.instructorPanel { border-bottom: 0; }
 
+/* -------------------------------------------------------------------------
+   Section titles — sans serif, calm
+   ------------------------------------------------------------------------- */
 .sectionTitle {
-  font-size: 17px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  color: var(--syn-text-primary);
+  margin: 0;
 }
 
 .subSectionTitle {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--syn-text-primary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--syn-text-secondary);
+  opacity: 0.6;
+  margin: 0;
 }
 
+/* -------------------------------------------------------------------------
+   Dependency map — quiet svg surface
+   ------------------------------------------------------------------------- */
 .dependencyWrap {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 8px;
-  padding: 12px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 12px 0 4px;
+  border-radius: 0;
+  border: 0;
+  background: transparent;
+}
+
+.dependencyHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 4px;
+}
+
+.dependencyHint {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--syn-text-secondary);
+  opacity: 0.55;
+}
+
+.dependencyScroll {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 6px 0 4px;
+  border-top: 1px solid var(--syn-border-subtle);
+  border-bottom: 1px solid var(--syn-border-subtle);
+  background:
+    linear-gradient(90deg, var(--syn-border-subtle) 0, transparent 1px) 0 0 / 200px 100%;
+  background-attachment: local;
 }
 
 .dependencySvg {
-  width: 100%;
-  min-height: 160px;
-  overflow: visible;
+  display: block;
+  min-height: 100px;
 }
 
+.depEdge {
+  transition: stroke .22s ease, stroke-width .22s ease;
+}
+.depNode .depNodeRect {
+  transition: fill .18s ease, stroke .18s ease;
+}
+.depNode:hover .depNodeRect {
+  fill: color-mix(in srgb, var(--syn-interaction-active) 6%, var(--syn-bg-root, #0d1117));
+  stroke: color-mix(in srgb, var(--syn-interaction-active) 55%, transparent);
+}
+
+@keyframes depDashFlow {
+  to { stroke-dashoffset: -16; }
+}
+
+/* -------------------------------------------------------------------------
+   Module cards — flat rows, blue rail on hover/select
+   ------------------------------------------------------------------------- */
 .moduleList {
-  display: grid;
-  gap: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--syn-border-subtle);
+  border: 1px solid var(--syn-border-subtle);
+  border-radius: 3px;
+  overflow: hidden;
 }
 
 .moduleCard {
-  display: grid;
+  position: relative;
+  display: flex;
+  flex-direction: column;
   gap: 10px;
-  padding: 14px;
-  border-radius: 14px;
-  border: 1px solid var(--syn-overlay-light);
-  background: rgba(255, 255, 255, 0.03);
+  padding: 14px 16px;
+  border-radius: 0;
+  border: 0;
+  background: var(--syn-bg-root, #0d1117);
+  transition: background-color .18s ease;
+  animation: eduRowIn .26s cubic-bezier(.2,.7,.2,1) both;
+}
+.moduleCard::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 2px;
+  background: transparent;
+  transition: background-color .22s ease;
+}
+.moduleCard:hover {
+  background: color-mix(in srgb, var(--syn-text-primary) 2.5%, var(--syn-bg-root, #0d1117));
+}
+.moduleCard:hover::before {
+  background: color-mix(in srgb, var(--syn-interaction-active) 30%, transparent);
 }
 
 .moduleCardLocked {
-  border-style: dashed;
-  background: rgba(148, 163, 184, 0.05);
+  opacity: 0.6;
+}
+.moduleCardLocked::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent 0 6px,
+    color-mix(in srgb, var(--syn-text-secondary) 4%, transparent) 6px 7px
+  );
+  pointer-events: none;
+}
+
+@keyframes eduRowIn {
+  from { opacity: 0; transform: translateY(-1px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .moduleHeader {
@@ -236,85 +510,100 @@
 }
 
 .moduleTitle {
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  color: var(--syn-text-primary);
+  line-height: 1.3;
 }
 
 .moduleMeta {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   flex-wrap: wrap;
-  color: var(--syn-text-muted);
-  font-size: 12px;
+  color: var(--syn-text-secondary);
+  font-size: 11px;
+  opacity: 0.75;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  letter-spacing: 0.02em;
 }
 
 .smallActionRow {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
+/* -------------------------------------------------------------------------
+   Status & difficulty badges — flat, monospace, semantic via dot color
+   ------------------------------------------------------------------------- */
 .statusBadge,
 .difficultyBadge {
-  padding: 4px 8px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 700;
+  position: relative;
+  padding: 2px 6px 2px 14px;
+  border-radius: 2px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 9.5px;
+  font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border: 1px solid transparent;
+  letter-spacing: 0.1em;
+  border: 0;
+  background: color-mix(in srgb, var(--syn-text-primary) 3.5%, transparent);
+  color: color-mix(in srgb, var(--syn-text-secondary) 88%, transparent);
+  transition: background-color .16s ease;
+}
+.statusBadge::before,
+.difficultyBadge::before {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 50%;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  transform: translateY(-50%);
+  background: currentColor;
+  opacity: 0.7;
 }
 
-.statusNotStarted {
-  background: rgba(148, 163, 184, 0.12);
-  border-color: rgba(148, 163, 184, 0.24);
-  color: #cbd5e1;
-}
+.statusNotStarted::before { background: color-mix(in srgb, var(--syn-text-secondary) 60%, transparent); }
+.statusInProgress::before { background: var(--syn-interaction-active); }
+.statusCompleted::before  { background: var(--syn-status-valid, #22c55e); }
 
-.statusInProgress {
-  background: rgba(59, 130, 246, 0.12);
-  border-color: rgba(59, 130, 246, 0.3);
-  color: #93c5fd;
-}
+.difficultySupport::before  { background: color-mix(in srgb, var(--syn-interaction-active) 80%, transparent); }
+.difficultyStandard::before { background: color-mix(in srgb, var(--syn-text-secondary) 70%, transparent); }
+.difficultyStretch::before  { background: color-mix(in srgb, #a855f7 75%, transparent); }
 
-.statusCompleted {
-  background: rgba(34, 197, 94, 0.12);
-  border-color: rgba(34, 197, 94, 0.3);
-  color: #86efac;
-}
-
-.difficultySupport {
-  background: rgba(14, 165, 233, 0.12);
-  border-color: rgba(14, 165, 233, 0.3);
-  color: #7dd3fc;
-}
-
-.difficultyStandard {
-  background: rgba(245, 158, 11, 0.12);
-  border-color: rgba(245, 158, 11, 0.3);
-  color: #fbbf24;
-}
-
-.difficultyStretch {
-  background: rgba(168, 85, 247, 0.12);
-  border-color: rgba(168, 85, 247, 0.3);
-  color: #d8b4fe;
-}
-
+/* -------------------------------------------------------------------------
+   Control groups
+   ------------------------------------------------------------------------- */
 .controlGroup {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid color-mix(in srgb, var(--syn-border-subtle) 60%, transparent);
 }
 
+.controlGroup input[type="range"] {
+  width: 100%;
+  accent-color: var(--syn-interaction-active);
+  height: 4px;
+}
+
+/* -------------------------------------------------------------------------
+   Practice exercise panel — embedded flat list, no amber gradient
+   ------------------------------------------------------------------------- */
 .exerciseLinkPanel {
-  display: grid;
-  gap: 10px;
-  padding: 12px;
-  border-radius: 14px;
-  border: 1px solid rgba(245, 158, 11, 0.18);
-  background:
-    radial-gradient(circle at top right, rgba(245, 158, 11, 0.1), transparent 28%),
-    rgba(255, 255, 255, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 0 4px;
+  border-radius: 0;
+  border: 0;
+  border-top: 1px solid color-mix(in srgb, var(--syn-border-subtle) 60%, transparent);
+  background: transparent;
+  margin-top: 4px;
 }
 
 .exerciseLinkHeader {
@@ -325,55 +614,125 @@
 }
 
 .exerciseLinkList {
-  display: grid;
-  gap: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--syn-border-subtle);
+  border: 1px solid var(--syn-border-subtle);
+  border-radius: 3px;
+  overflow: hidden;
 }
 
 .exerciseLinkButton {
-  display: grid;
-  gap: 6px;
-  padding: 12px;
-  border-radius: 12px;
-  border: 1px solid var(--syn-overlay-light);
-  background: rgba(15, 23, 42, 0.72);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 0;
+  border: 0;
+  background: var(--syn-bg-root, #0d1117);
   color: inherit;
   text-align: left;
   cursor: pointer;
+  font: inherit;
+  transition: background-color .16s ease, padding-left .18s ease;
 }
-
+.exerciseLinkButton::before {
+  content: "›";
+  position: absolute;
+  left: 4px;
+  top: 10px;
+  color: var(--syn-interaction-active);
+  font-family: ui-monospace, monospace;
+  opacity: 0;
+  transition: opacity .18s ease, transform .18s ease;
+  transform: translateX(-4px);
+}
 .exerciseLinkButton:hover {
-  border-color: rgba(245, 158, 11, 0.34);
-  background: rgba(245, 158, 11, 0.08);
+  background: color-mix(in srgb, var(--syn-text-primary) 3%, var(--syn-bg-root, #0d1117));
+  padding-left: 16px;
+}
+.exerciseLinkButton:hover::before {
+  opacity: 1;
+  transform: translateX(0);
+}
+.exerciseLinkButton strong {
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--syn-text-primary);
 }
 
 .exerciseLinkMeta {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   flex-wrap: wrap;
-  color: var(--syn-text-muted);
-  font-size: 12px;
+  color: var(--syn-text-secondary);
+  font-size: 10.5px;
+  opacity: 0.7;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
+/* -------------------------------------------------------------------------
+   Methodology library
+   ------------------------------------------------------------------------- */
 .libraryList {
-  display: grid;
-  gap: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--syn-border-subtle);
+  border: 1px solid var(--syn-border-subtle);
+  border-radius: 3px;
+  overflow: hidden;
 }
 
 .libraryButton {
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid var(--syn-overlay-light);
-  background: rgba(255, 255, 255, 0.03);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 9px 12px;
+  border-radius: 0;
+  border: 0;
+  background: var(--syn-bg-root, #0d1117);
   color: inherit;
   text-align: left;
   cursor: pointer;
+  font: inherit;
+  transition: background-color .16s ease;
+}
+.libraryButton::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 2px;
+  background: transparent;
+  transition: background-color .2s ease;
+}
+.libraryButton:hover {
+  background: color-mix(in srgb, var(--syn-text-primary) 2.5%, var(--syn-bg-root, #0d1117));
+}
+.libraryButton:hover::before {
+  background: color-mix(in srgb, var(--syn-interaction-active) 35%, transparent);
+}
+.libraryButton strong {
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--syn-text-primary);
 }
 
 .libraryButtonActive {
-  border-color: rgba(245, 158, 11, 0.5);
-  background: rgba(245, 158, 11, 0.1);
+  background: color-mix(in srgb, var(--syn-interaction-active) 5%, var(--syn-bg-root, #0d1117));
+}
+.libraryButtonActive::before {
+  background: var(--syn-interaction-active);
 }
 
+/* -------------------------------------------------------------------------
+   Explainer / formula
+   ------------------------------------------------------------------------- */
 .explainerHeader {
   display: flex;
   justify-content: space-between;
@@ -382,43 +741,62 @@
 }
 
 .formulaBlock {
-  display: grid;
-  gap: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid rgba(245, 158, 11, 0.2);
-  background: rgba(255, 255, 255, 0.03);
+  border-radius: 3px;
+  border: 0;
+  background: color-mix(in srgb, var(--syn-text-primary) 3%, transparent);
   overflow-x: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--syn-text-primary);
 }
 
 .formulaLabel {
-  font-size: 11px;
-  color: var(--syn-text-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 9.5px;
+  color: var(--syn-text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.12em;
+  opacity: 0.55;
 }
 
 .listPlain {
   margin: 0;
-  padding-left: 18px;
-  color: var(--syn-text-muted);
+  padding-left: 16px;
+  color: var(--syn-text-secondary);
   line-height: 1.55;
+  font-size: 12px;
+  opacity: 0.85;
 }
 
 .inlineInfoButton {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  border: 1px solid rgba(245, 158, 11, 0.25);
-  background: rgba(245, 158, 11, 0.08);
-  color: var(--syn-accent-primary);
-  font-size: 12px;
-  font-weight: 700;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 2px;
+  border: 0;
+  background: color-mix(in srgb, var(--syn-interaction-active) 8%, transparent);
+  color: var(--syn-interaction-active);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   cursor: pointer;
+  transition: background-color .16s ease;
+}
+.inlineInfoButton:hover {
+  background: color-mix(in srgb, var(--syn-interaction-active) 14%, transparent);
 }
 
+/* -------------------------------------------------------------------------
+   Modal — quiet workbench panel
+   ------------------------------------------------------------------------- */
 .modalBackdrop {
   position: fixed;
   inset: 0;
@@ -426,18 +804,28 @@
   display: grid;
   place-items: center;
   padding: 24px;
-  background: rgba(2, 6, 23, 0.72);
+  background: color-mix(in srgb, var(--syn-bg-root, #0a0e14) 82%, transparent);
+  backdrop-filter: blur(2px);
+  animation: eduFadeIn .18s ease both;
 }
+
+@keyframes eduFadeIn { from { opacity: 0; } to { opacity: 1; } }
 
 .modalPanel {
   width: min(980px, 100%);
   max-height: 88vh;
   overflow: auto;
-  border-radius: 18px;
-  border: 1px solid rgba(245, 158, 11, 0.24);
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(15, 23, 42, 0.92));
-  padding: 18px;
-  box-shadow: 0 24px 60px rgba(2, 6, 23, 0.42);
+  border-radius: 4px;
+  border: 1px solid var(--syn-border-subtle);
+  background: var(--syn-bg-root, #0d1117);
+  padding: 18px 22px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.38);
+  animation: eduPanelIn .22s cubic-bezier(.2,.7,.2,1) both;
+}
+
+@keyframes eduPanelIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .modalHeader {
@@ -446,68 +834,141 @@
   gap: 12px;
   align-items: flex-start;
   margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--syn-border-subtle);
 }
 
 .closeButton {
   border: 0;
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--syn-text-primary);
-  width: 36px;
-  height: 36px;
-  border-radius: 999px;
+  background: transparent;
+  color: var(--syn-text-secondary);
+  width: 24px;
+  height: 24px;
+  border-radius: 3px;
   cursor: pointer;
+  transition: background-color .14s ease, color .14s ease;
+}
+.closeButton:hover {
+  background: color-mix(in srgb, var(--syn-text-primary) 6%, transparent);
+  color: var(--syn-text-primary);
 }
 
+/* -------------------------------------------------------------------------
+   Instructor grid → single column flow
+   ------------------------------------------------------------------------- */
 .instructorGrid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
   gap: 16px;
 }
 
 .bars {
-  display: grid;
-  gap: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .barRow {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 4px;
+  font-size: 11.5px;
 }
 
 .barRail {
-  height: 10px;
-  border-radius: 999px;
+  height: 2px;
+  border-radius: 0;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--syn-border-subtle);
 }
 
 .barFill {
   height: 100%;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #0ea5e9, #f59e0b);
+  border-radius: 0;
+  background: var(--syn-interaction-active);
+  transition: width .35s cubic-bezier(.2,.7,.2,1);
 }
 
 .studentList {
-  display: grid;
-  gap: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--syn-border-subtle);
+  border: 1px solid var(--syn-border-subtle);
+  border-radius: 3px;
+  overflow: hidden;
 }
 
 .studentCard {
-  display: grid;
-  gap: 8px;
-  padding: 12px;
-  border-radius: 12px;
-  border: 1px solid var(--syn-overlay-light);
-  background: rgba(255, 255, 255, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 0;
+  border: 0;
+  background: var(--syn-bg-root, #0d1117);
+  transition: background-color .16s ease;
+}
+.studentCard:hover {
+  background: color-mix(in srgb, var(--syn-text-primary) 2.5%, var(--syn-bg-root, #0d1117));
+}
+.studentCard strong {
+  font-weight: 500;
+  font-size: 12.5px;
+  color: var(--syn-text-primary);
 }
 
-@media (max-width: 1100px) {
-  .detailGrid,
-  .instructorGrid {
-    grid-template-columns: 1fr;
-  }
+/* -------------------------------------------------------------------------
+   Loading fallback (replaces inline amber styles)
+   ------------------------------------------------------------------------- */
+.loadingFallback {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 3px;
+  border: 0;
+  background: color-mix(in srgb, var(--syn-text-primary) 3%, transparent);
+  color: var(--syn-text-secondary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
 
-  .exerciseLinkHeader {
-    flex-direction: column;
+/* -------------------------------------------------------------------------
+   Reduced motion
+   ------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .root > *,
+  .moduleCard {
+    animation: none;
   }
+  .pathCard,
+  .pathCard::before,
+  .moduleCard,
+  .moduleCard::before,
+  .libraryButton,
+  .libraryButton::before,
+  .exerciseLinkButton,
+  .exerciseLinkButton::before,
+  .progressFill,
+  .barFill,
+  .viewButton,
+  .viewButton::after,
+  .studentCard,
+  .kpiCard {
+    transition: none;
+  }
+}
+
+/* -------------------------------------------------------------------------
+   Compact viewport — already single column; just tighten toolbar
+   ------------------------------------------------------------------------- */
+@media (max-width: 720px) {
+  .root > * { padding: 14px 14px; }
+  .toolbar { padding: 12px 14px; gap: 10px; }
+  .viewSwitch { margin-left: 0; width: 100%; overflow-x: auto; }
+  .pathGrid { grid-template-columns: 1fr; }
+  .moduleHeader { flex-direction: column; }
 }

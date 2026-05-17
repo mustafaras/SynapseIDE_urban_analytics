@@ -22,6 +22,7 @@ import { METHODOLOGY_EXPLAINERS } from "./methodologyData";
 import { MethodologyExplainerCard, MethodologyInfoButton } from "./MethodologyExplainer";
 import { dispatchCenterPanelNavigation } from "./navigation";
 import { loadEducationProgressState, persistEducationProgressState } from "./storage";
+import { useEducationUIStore } from "./uiStore";
 import { getTeachingDatasetLibrary, loadTeachingDatasetIntoMapWorkspace, type TeachingDatasetId } from "../../services/data/datasetLibrary";
 import { toastError, toastSuccess } from "../../ui/toast/api";
 import { ChunkLoadBoundary, lazyWithRetry } from "@/utils/lazyWithRetry";
@@ -51,20 +52,11 @@ function EducationSectionFallback({ label, testId }: { label: string; testId: st
       data-testid={testId}
       role="status"
       aria-live="polite"
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-        padding: "18px 20px",
-        borderRadius: 16,
-        border: "1px solid rgba(245, 158, 11, 0.18)",
-        background: "rgba(15, 23, 42, 0.46)",
-        color: "rgba(248, 250, 252, 0.9)",
-      }}
+      className={styles.loadingFallback}
     >
-      <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-        <circle cx="12" cy="12" r="9" fill="none" stroke="rgba(245, 158, 11, 0.22)" strokeWidth="3" />
-        <path d="M12 3a9 9 0 0 1 9 9" fill="none" stroke="#F59E0B" strokeLinecap="round" strokeWidth="3">
+      <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="9" fill="none" stroke="color-mix(in srgb, var(--syn-text-secondary) 25%, transparent)" strokeWidth="2.5" />
+        <path d="M12 3a9 9 0 0 1 9 9" fill="none" stroke="var(--syn-interaction-active)" strokeLinecap="round" strokeWidth="2.5">
           <animateTransform
             attributeName="transform"
             type="rotate"
@@ -125,56 +117,174 @@ function PathDependencyMap({
   path: LearningPath;
   progressState: EducationProgressState;
 }): React.ReactElement {
-  const positions = path.modules.map((module, index) => {
-    const depth = module.prerequisiteModuleIds.length === 0 ? 0 : index;
-    return {
-      module,
-      x: 48 + depth * 28,
-      y: 34 + index * 62,
-    };
+  // Compute longest-path depth for each module → assigns horizontal column.
+  const moduleById = new Map(path.modules.map((m) => [m.id, m]));
+  const depthCache = new Map<string, number>();
+  const computeDepth = (id: string, visited = new Set<string>()): number => {
+    if (depthCache.has(id)) return depthCache.get(id)!;
+    if (visited.has(id)) return 0;
+    visited.add(id);
+    const mod = moduleById.get(id);
+    if (!mod || mod.prerequisiteModuleIds.length === 0) {
+      depthCache.set(id, 0);
+      return 0;
+    }
+    const max = Math.max(
+      ...mod.prerequisiteModuleIds.map((pid) => computeDepth(pid, visited) + 1),
+    );
+    depthCache.set(id, max);
+    return max;
+  };
+
+  const enriched = path.modules.map((module, index) => ({
+    module,
+    index,
+    depth: computeDepth(module.id),
+  }));
+
+  // Group by depth column.
+  const columns = new Map<number, typeof enriched>();
+  for (const entry of enriched) {
+    const list = columns.get(entry.depth) ?? [];
+    list.push(entry);
+    columns.set(entry.depth, list);
+  }
+  const sortedCols = Array.from(columns.entries()).sort(([a], [b]) => a - b);
+
+  const colW = 200;
+  const rowH = 56;
+  const padX = 24;
+  const padY = 24;
+  const nodeW = 168;
+  const nodeH = 38;
+
+  const positions = new Map<string, { x: number; y: number; col: number; row: number }>();
+  sortedCols.forEach(([col, entries]) => {
+    entries.forEach((entry, row) => {
+      positions.set(entry.module.id, {
+        x: padX + col * colW,
+        y: padY + row * rowH,
+        col,
+        row,
+      });
+    });
   });
 
-  const height = Math.max(180, positions.length * 62 + 20);
-  const positionMap = new Map(positions.map((entry) => [entry.module.id, entry]));
+  const maxCol = sortedCols.length > 0 ? sortedCols[sortedCols.length - 1]![0] : 0;
+  const maxRow = Math.max(...sortedCols.map(([, entries]) => entries.length));
+  const width = padX * 2 + (maxCol + 1) * colW + nodeW;
+  const height = padY * 2 + maxRow * rowH;
 
   return (
     <div className={styles.dependencyWrap}>
-      <div className={styles.subSectionTitle}>Prerequisite dependency map</div>
-      <svg viewBox={`0 0 860 ${height}`} className={styles.dependencySvg} role="img" aria-label={`${path.title} dependency map`}>
-        {positions.flatMap((entry) =>
-          entry.module.prerequisiteModuleIds.map((prerequisiteId) => {
-            const prerequisite = positionMap.get(prerequisiteId);
-            if (!prerequisite) {
-              return null;
-            }
-            return (
+      <div className={styles.dependencyHeader}>
+        <span className={styles.subSectionTitle}>Prerequisite dependency map</span>
+        <span className={styles.dependencyHint}>Horizontal flow · left-to-right prerequisite chain</span>
+      </div>
+      <div className={styles.dependencyScroll}>
+        <svg
+          viewBox={`0 0 ${width} ${height}`}
+          width={width}
+          height={height}
+          className={styles.dependencySvg}
+          role="img"
+          aria-label={`${path.title} dependency map`}
+        >
+          <defs>
+            <marker
+              id={`dep-arrow-${path.id}`}
+              viewBox="0 0 8 8"
+              refX="6"
+              refY="4"
+              markerWidth="6"
+              markerHeight="6"
+              orient="auto-start-reverse"
+            >
               <path
-                key={`${prerequisiteId}-${entry.module.id}`}
-                d={`M ${prerequisite.x + 18} ${prerequisite.y + 18} C ${prerequisite.x + 90} ${prerequisite.y + 18}, ${entry.x - 20} ${entry.y + 18}, ${entry.x} ${entry.y + 18}`}
-                fill="none"
-                stroke="rgba(245,158,11,0.35)"
-                strokeWidth={2}
+                d="M0,1 L6,4 L0,7 Z"
+                fill="color-mix(in srgb, var(--syn-interaction-active) 65%, transparent)"
               />
+            </marker>
+          </defs>
+
+          {/* edges */}
+          {enriched.flatMap((entry) =>
+            entry.module.prerequisiteModuleIds.map((prerequisiteId, edgeIdx) => {
+              const from = positions.get(prerequisiteId);
+              const to = positions.get(entry.module.id);
+              if (!from || !to) return null;
+              const x1 = from.x + nodeW;
+              const y1 = from.y + nodeH / 2;
+              const x2 = to.x;
+              const y2 = to.y + nodeH / 2;
+              const mx = (x1 + x2) / 2;
+              return (
+                <path
+                  key={`edge-${prerequisiteId}-${entry.module.id}-${edgeIdx}`}
+                  className={styles.depEdge}
+                  d={`M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`}
+                  fill="none"
+                  stroke="color-mix(in srgb, var(--syn-interaction-active) 38%, transparent)"
+                  strokeWidth={1.2}
+                  markerEnd={`url(#dep-arrow-${path.id})`}
+                />
+              );
+            }),
+          )}
+
+          {/* nodes */}
+          {enriched.map((entry) => {
+            const pos = positions.get(entry.module.id)!;
+            const progress = progressState.moduleProgress[entry.module.id];
+            const status = progress?.status ?? "not_started";
+            const dotFill =
+              status === "completed"
+                ? "var(--syn-status-valid, #22c55e)"
+                : status === "in_progress"
+                  ? "var(--syn-interaction-active, #3794ff)"
+                  : "color-mix(in srgb, var(--syn-text-secondary) 35%, transparent)";
+            const truncated =
+              entry.module.title.length > 22
+                ? `${entry.module.title.slice(0, 21)}…`
+                : entry.module.title;
+            return (
+              <g key={entry.module.id} className={styles.depNode}>
+                <rect
+                  x={pos.x}
+                  y={pos.y}
+                  width={nodeW}
+                  height={nodeH}
+                  rx={3}
+                  fill="var(--syn-bg-root, #0d1117)"
+                  stroke="var(--syn-border-subtle)"
+                  strokeWidth={1}
+                  className={styles.depNodeRect}
+                />
+                <circle cx={pos.x + 14} cy={pos.y + nodeH / 2} r={4} fill={dotFill} />
+                <text
+                  x={pos.x + 26}
+                  y={pos.y + nodeH / 2 - 4}
+                  fill="var(--syn-text-secondary)"
+                  fontSize={8.5}
+                  fontFamily="ui-monospace, monospace"
+                  letterSpacing="0.1em"
+                >
+                  {`M${String(entry.index + 1).padStart(2, "0")}`}
+                </text>
+                <text
+                  x={pos.x + 26}
+                  y={pos.y + nodeH / 2 + 9}
+                  fill="var(--syn-text-primary)"
+                  fontSize={11}
+                  fontWeight={500}
+                >
+                  {truncated}
+                </text>
+              </g>
             );
-          }),
-        )}
-        {positions.map((entry, index) => {
-          const progress = progressState.moduleProgress[entry.module.id];
-          const status = progress?.status ?? "not_started";
-          const fill = status === "completed" ? "#22c55e" : status === "in_progress" ? "#3b82f6" : "#475569";
-          return (
-            <g key={entry.module.id}>
-              <circle cx={entry.x} cy={entry.y} r={18} fill={fill} opacity={0.95} />
-              <text x={entry.x} y={entry.y + 4} textAnchor="middle" fill="#f8fafc" fontSize={11} fontWeight={700}>
-                {index + 1}
-              </text>
-              <text x={entry.x + 32} y={entry.y + 4} fill="#e2e8f0" fontSize={13} fontWeight={600}>
-                {entry.module.title}
-              </text>
-            </g>
-          );
-        })}
-      </svg>
+          })}
+        </svg>
+      </div>
     </div>
   );
 }
@@ -287,6 +397,13 @@ export const EducationModule: React.FC<EducationModuleProps> = ({ focusRequest }
   useEffect(() => {
     persistEducationProgressState(progressState);
   }, [progressState]);
+
+  useEffect(() => {
+    const store = useEducationUIStore.getState();
+    store.setView(view);
+    store.setSelectedPathId(selectedPathId);
+    store.setSelectedExplainerId(selectedExplainerId);
+  }, [view, selectedPathId, selectedExplainerId]);
 
   useEffect(() => {
     if (!focusRequest?.requestedAt) {

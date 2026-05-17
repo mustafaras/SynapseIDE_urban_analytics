@@ -79,8 +79,8 @@ function DatasetExtentThumbnail({ dataset }: { dataset: TeachingDatasetPackage }
       <svg viewBox="0 0 120 80" width="100%" height="160" preserveAspectRatio="none">
         <defs>
           <linearGradient id={`thumb-bg-${dataset.id}`} x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="rgba(245,158,11,0.26)" />
-            <stop offset="100%" stopColor="rgba(17,24,39,0.12)" />
+            <stop offset="0%" stopColor="color-mix(in srgb, var(--syn-interaction-active) 18%, transparent)" />
+            <stop offset="100%" stopColor="color-mix(in srgb, var(--syn-bg-root, #0d1117) 60%, transparent)" />
           </linearGradient>
         </defs>
         <rect x="0" y="0" width="120" height="80" fill={`url(#thumb-bg-${dataset.id})`} />
@@ -108,7 +108,7 @@ function DatasetExtentThumbnail({ dataset }: { dataset: TeachingDatasetPackage }
               key={String(feature.properties?.corridor_id ?? Math.random())}
               d={linePath(feature.geometry.coordinates as number[][], bounds)}
               fill="none"
-              stroke="rgba(245,158,11,0.85)"
+              stroke="color-mix(in srgb, var(--syn-interaction-active) 75%, transparent)"
               strokeWidth="2"
               strokeLinecap="round"
             />

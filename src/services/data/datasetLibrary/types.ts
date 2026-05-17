@@ -7,7 +7,9 @@ export type TeachingDatasetId =
   | "barcelona"
   | "istanbul"
   | "singapore"
-  | "melbourne";
+  | "melbourne"
+  | "tokyo"
+  | "amsterdam";
 
 export type TeachingDatasetTheme =
   | "mobility"
