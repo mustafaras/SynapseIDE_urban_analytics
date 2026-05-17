@@ -626,6 +626,57 @@ export default function UrbanAnalyticsModal({ open, onClose }: UrbanAnalyticsMod
  show('Inserted to editor (copied)');
  }, [buildPayload, show]);
 
+ // --- additional status-bar actions ---
+ const exportCard = useCallback(() => {
+ if (!selectedCard) { show('No card selected to export'); return; }
+ try {
+ const blob = new Blob([JSON.stringify(selectedCard, null, 2)], { type: 'application/json' });
+ const url = URL.createObjectURL(blob);
+ const link = document.createElement('a');
+ link.href = url;
+ link.download = `${(selectedCard.id || 'card').replace(/[^a-z0-9_-]+/gi, '-')}.json`;
+ document.body.appendChild(link);
+ link.click();
+ document.body.removeChild(link);
+ setTimeout(() => URL.revokeObjectURL(url), 1000);
+ show('Exported card JSON');
+ } catch { show('Export failed'); }
+ }, [selectedCard, show]);
+
+ const shareLink = useCallback(async () => {
+ const id = selectedCard?.id;
+ const url = id
+ ? `${window.location.origin}${window.location.pathname}#urban=${encodeURIComponent(id)}`
+ : window.location.href;
+ try { await navigator.clipboard.writeText(url); show('Share link copied'); }
+ catch { show('Could not copy link'); }
+ }, [selectedCard, show]);
+
+ const openRecent = useCallback(() => {
+ window.dispatchEvent(new CustomEvent('synapse:urban:open-recent'));
+ show('Recent items');
+ }, [show]);
+
+ const refreshRecs = useCallback(() => {
+ window.dispatchEvent(new CustomEvent('synapse:urban:refresh-recs'));
+ show('Refreshing recommendations…');
+ }, [show]);
+
+ const openShortcuts = useCallback(() => {
+ window.dispatchEvent(new CustomEvent('synapse:open-shortcuts', { detail: { source: 'urban' } }));
+ show('Keyboard shortcuts');
+ }, [show]);
+
+ const toggleTheme = useCallback(() => {
+ window.dispatchEvent(new CustomEvent('synapse:theme:toggle'));
+ show('Theme toggled');
+ }, [show]);
+
+ const openCompare = useCallback(() => {
+ window.dispatchEvent(new CustomEvent('synapse:urban:compare', { detail: { cardId: selectedCard?.id ?? null } }));
+ show('Compare mode');
+ }, [selectedCard, show]);
+
  // --- backdrop click ---
  const backdropClick = useCallback(
  (e: React.MouseEvent<HTMLDivElement>) => {
@@ -686,17 +737,19 @@ export default function UrbanAnalyticsModal({ open, onClose }: UrbanAnalyticsMod
  }, 1500);
  }
 
+ // --- platform detection (used by status bar + key handler) ---
+ const isMac = useMemo(() => typeof navigator !== 'undefined' && navigator.platform.toLowerCase().includes('mac'), []);
+
  const onModalKeyDown = useCallback(
  (e: React.KeyboardEvent) => {
  const k = e.key.toLowerCase();
- const isMac = navigator.platform.toLowerCase().includes('mac');
  const mod = isMac ? e.metaKey : e.ctrlKey;
  if (k === 'escape') return;
  if (mod && k === 'enter') { e.preventDefault(); sendToChat(); announce('Sent to Chat'); }
  if (e.altKey && k === 'enter') { e.preventDefault(); insertToEditor(); announce('Inserted to Editor'); }
  if (mod && e.shiftKey && k === 'c') { e.preventDefault(); copyOut(); announce('Copied'); }
  },
- [sendToChat, insertToEditor, copyOut],
+ [isMac, sendToChat, insertToEditor, copyOut],
  );
 
  // --- map explorer ---
@@ -748,8 +801,11 @@ export default function UrbanAnalyticsModal({ open, onClose }: UrbanAnalyticsMod
  // and other modal-tier overlays opened FROM Urban Analytics layer above.
  // Toasts (10080), tooltips (10070), popovers (10060) still win.
  zIndex: 10049,
- display: 'grid',
- gridTemplateRows: 'auto 1fr 52px',
+ display: 'flex',
+ flexDirection: 'column',
+ height: '100vh',
+ maxHeight: '100vh',
+ overflow: 'hidden',
  fontFamily: 'var(--codefont)',
  animation: isClosing
  ? 'urbanModalFadeOut 0.3s ease-out forwards'
@@ -801,7 +857,8 @@ export default function UrbanAnalyticsModal({ open, onClose }: UrbanAnalyticsMod
  <section
  className="urban-shell"
  style={{
- gridRow: 2,
+ flex: '1 1 auto',
+ minHeight: 0,
  position: 'relative',
  ['--left-w' as string]: '500px',
  ['--right-w' as string]: '600px',
@@ -821,8 +878,8 @@ export default function UrbanAnalyticsModal({ open, onClose }: UrbanAnalyticsMod
  </div>
 
  {/* Center Panel */}
- <div className="midCol" aria-hidden={false} style={{ pointerEvents: 'auto', overflow: 'hidden' }}>
- <div style={{ height: '100%', overflow: 'auto' }}>
+ <div className="midCol" aria-hidden={false} style={{ pointerEvents: 'auto', overflow: 'hidden', minHeight: 0 }}>
+ <div style={{ height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
  <CenterPanelShell
  title="Urban Analytics"
  subtitle="Spatial Intelligence Platform — Methods & Analysis"
@@ -832,8 +889,8 @@ export default function UrbanAnalyticsModal({ open, onClose }: UrbanAnalyticsMod
  </div>
 
  {/* Right Panel */}
- <aside className="rightPane" style={{ position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
- <div style={{ flex: '1 1 auto', minHeight: 0, overflow: 'hidden', paddingBottom: 42 }}>
+ <aside className="rightPane" style={{ position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+ <div style={{ flex: '1 1 auto', minHeight: 0, overflow: 'auto', paddingBottom: 16 }}>
  <ChunkLoadBoundary
  title="Right panel unavailable"
  message="The detail panel could not be loaded. Retry after the dev server reconnects, or reload the app if the issue persists."
@@ -851,25 +908,30 @@ export default function UrbanAnalyticsModal({ open, onClose }: UrbanAnalyticsMod
  </aside>
  </section>
 
- {/* Bottom action bar */}
- <div role="toolbar" aria-label="Actions" className="bottombar urban-actions" ref={actionsRef} style={{ gridRow: 3 }}>
- <div className="btnline">
- <button className="btnpill" onClick={sendToChat}><IconSend aria-hidden="true" /> <span>Send to Chat</span></button>
- <button className="btnpill" onClick={insertToEditor}><IconCode aria-hidden="true" /> <span>Insert to Editor</span></button>
- <button className="btnpill" onClick={copyOut}><IconCopy aria-hidden="true" /> <span>Copy</span></button>
- {selected ? (
- <button
- className={`btnpill ${selected.id && favoritesMap[selected.id] ? 'btnpill--accent' : ''}`}
- onClick={() => toggleFavorite(selected.id)}
- aria-pressed={!!(selected.id && favoritesMap[selected.id])}
- title="Favorite"
- >
- ★ <span>{selected.id && favoritesMap[selected.id] ? 'Unstar' : 'Star'}</span>
- </button>
- ) : null}
- <button className="btnpill" onClick={() => window.print()}><IconPrint aria-hidden="true" /> <span>Print</span></button>
- </div>
- </div>
+ {/* Bottom status bar — premium VS Code style, color-coded actions */}
+ <StatusBar
+ selected={selected}
+ favoritesMap={favoritesMap}
+ filteredCount={filtered.length}
+ totalCount={LIBRARY.length}
+ isMac={isMac}
+ onSendToChat={sendToChat}
+ onInsertToEditor={insertToEditor}
+ onCopy={copyOut}
+ onExport={exportCard}
+ onShare={shareLink}
+ onCompare={openCompare}
+ onToggleFavorite={toggleFavorite}
+ onPrint={() => window.print()}
+ onFocusSearch={() => searchRef.current?.focus()}
+ onOpenRecent={openRecent}
+ onRefresh={refreshRecs}
+ onOpenShortcuts={openShortcuts}
+ onToggleTheme={toggleTheme}
+ onClose={() => setOpen(false)}
+ onToggleMap={toggleMap}
+ actionsRef={actionsRef}
+ />
  <Toast />
 
  {/* Utility styles */}
@@ -881,6 +943,152 @@ export default function UrbanAnalyticsModal({ open, onClose }: UrbanAnalyticsMod
  );
 
  return createPortal(node, document.body);
+}
+
+interface StatusBarProps {
+ selected: Card | null;
+ favoritesMap: Record<string, boolean>;
+ filteredCount: number;
+ totalCount: number;
+ isMac: boolean;
+ onSendToChat: () => void;
+ onInsertToEditor: () => void;
+ onCopy: () => void;
+ onExport: () => void;
+ onShare: () => void;
+ onCompare: () => void;
+ onToggleFavorite: (id: string) => void;
+ onPrint: () => void;
+ onFocusSearch: () => void;
+ onOpenRecent: () => void;
+ onRefresh: () => void;
+ onOpenShortcuts: () => void;
+ onToggleTheme: () => void;
+ onClose: () => void;
+ onToggleMap: () => void;
+ actionsRef: React.RefObject<HTMLDivElement | null>;
+}
+
+function StatusBar({ selected, favoritesMap, filteredCount, totalCount, isMac, onSendToChat, onInsertToEditor, onCopy, onExport, onShare, onCompare, onToggleFavorite, onPrint, onFocusSearch, onOpenRecent, onRefresh, onOpenShortcuts, onToggleTheme, onClose, onToggleMap, actionsRef }: StatusBarProps): React.ReactElement {
+ const [now, setNow] = useState(() => new Date());
+ useEffect(() => {
+ const id = window.setInterval(() => setNow(new Date()), 1000 * 30);
+ return () => window.clearInterval(id);
+ }, []);
+ const timeLabel = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+ const isFavorited = !!(selected?.id && favoritesMap[selected.id]);
+ const mod = isMac ? '⌘' : 'Ctrl';
+ const cardCategory = (selected as unknown as { category?: string; group?: string } | null)?.category
+   ?? (selected as unknown as { category?: string; group?: string } | null)?.group
+   ?? null;
+
+ return (
+ <div role="toolbar" aria-label="Actions" className="ua-statusbar" ref={actionsRef} style={{ flex: '0 0 auto' }}>
+ {/* LEFT: live status + context + telemetry */}
+ <div className="ua-sb__left">
+ <span className={`ua-sb__dot ${selected ? 'ua-sb__dot--live' : 'ua-sb__dot--idle'}`} aria-hidden="true" />
+ {selected ? (
+ <>
+ <span className="ua-sb__ctx" title={selected.title}>{selected.title}</span>
+ {cardCategory ? <span className="ua-sb__sep" aria-hidden="true">·</span> : null}
+ {cardCategory ? <span className="ua-sb__meta">{cardCategory}</span> : null}
+ {isFavorited ? <span className="ua-sb__chip ua-sb__chip--warn" title="Favorited">★ STARRED</span> : null}
+ </>
+ ) : (
+ <span className="ua-sb__ctx ua-sb__ctx--muted">No selection</span>
+ )}
+ <span className="ua-sb__divider" aria-hidden="true" />
+ <span className="ua-sb__badge ua-sb__badge--info" title={`${filteredCount} of ${totalCount} cards visible`}>
+ <span className="ua-sb__badgeDot" aria-hidden="true" />
+ {filteredCount}<span style={{ opacity: 0.5 }}>/{totalCount}</span>
+ </span>
+ </div>
+
+ {/* CENTER: primary color-coded actions */}
+ <div className="ua-sb__center">
+ <button className="ua-sb__btn ua-sb__btn--info" onClick={onSendToChat} title={`Send to Chat (${mod}+Enter)`}>
+ <IconSend aria-hidden="true" />
+ <span className="ua-sb__label">Send to Chat</span>
+ <kbd className="ua-sb__kbd">{mod}↵</kbd>
+ </button>
+ <button className="ua-sb__btn ua-sb__btn--violet" onClick={onInsertToEditor} title="Insert to Editor (Alt+Enter)">
+ <IconCode aria-hidden="true" />
+ <span className="ua-sb__label">Insert</span>
+ <kbd className="ua-sb__kbd">⌥↵</kbd>
+ </button>
+ <button className="ua-sb__btn ua-sb__btn--cyan" onClick={onCopy} title={`Copy (${mod}+Shift+C)`}>
+ <IconCopy aria-hidden="true" />
+ <span className="ua-sb__label">Copy</span>
+ <kbd className="ua-sb__kbd">{mod}⇧C</kbd>
+ </button>
+ <button className="ua-sb__btn ua-sb__btn--success" onClick={onExport} title={`Export card JSON (${mod}+E)`}>
+ <span className="ua-sb__icoSym" aria-hidden="true">↓</span>
+ <span className="ua-sb__label">Export</span>
+ <kbd className="ua-sb__kbd">{mod}E</kbd>
+ </button>
+ <button className="ua-sb__btn ua-sb__btn--teal" onClick={onShare} title={`Copy share link (${mod}+L)`}>
+ <span className="ua-sb__icoSym" aria-hidden="true">↗</span>
+ <span className="ua-sb__label">Share</span>
+ <kbd className="ua-sb__kbd">{mod}L</kbd>
+ </button>
+
+ <span className="ua-sb__divider" aria-hidden="true" />
+
+ {/* Icon-only quick toggles */}
+ {selected ? (
+ <button
+ className={`ua-sb__btn ua-sb__btn--icon ua-sb__btn--warn ${isFavorited ? 'is-active' : ''}`}
+ onClick={() => onToggleFavorite(selected.id)}
+ aria-pressed={isFavorited}
+ title={isFavorited ? 'Unstar' : 'Star this card'}
+ >
+ <span aria-hidden="true">★</span>
+ </button>
+ ) : null}
+ <button className="ua-sb__btn ua-sb__btn--icon ua-sb__btn--pink" onClick={onCompare} title="Compare with another card">
+ <span aria-hidden="true">⇄</span>
+ </button>
+ <button className="ua-sb__btn ua-sb__btn--icon ua-sb__btn--info" onClick={onToggleMap} title={`Toggle Map (${mod}+Shift+M)`}>
+ <span aria-hidden="true">⌖</span>
+ </button>
+ <button className="ua-sb__btn ua-sb__btn--icon" onClick={onPrint} title="Print">
+ <IconPrint aria-hidden="true" />
+ </button>
+ </div>
+
+ {/* RIGHT: utilities + telemetry + close */}
+ <div className="ua-sb__right">
+ <button className="ua-sb__btn ua-sb__btn--ghost" onClick={onFocusSearch} title={`Focus Search (${mod}+K)`}>
+ <span className="ua-sb__icoSym" aria-hidden="true">⌕</span>
+ <span className="ua-sb__label">Search</span>
+ <kbd className="ua-sb__kbd">{mod}K</kbd>
+ </button>
+ <button className="ua-sb__btn ua-sb__btn--icon" onClick={onOpenRecent} title={`Recent items (${mod}+P)`}>
+ <span aria-hidden="true">◷</span>
+ </button>
+ <button className="ua-sb__btn ua-sb__btn--icon" onClick={onRefresh} title={`Refresh recommendations (${mod}+R)`}>
+ <span aria-hidden="true">↻</span>
+ </button>
+ <button className="ua-sb__btn ua-sb__btn--icon" onClick={onToggleTheme} title="Toggle theme">
+ <span aria-hidden="true">◐</span>
+ </button>
+ <button className="ua-sb__btn ua-sb__btn--icon" onClick={onOpenShortcuts} title={`Keyboard shortcuts (${mod}+/)`}>
+ <span aria-hidden="true">?</span>
+ </button>
+
+ <span className="ua-sb__divider" aria-hidden="true" />
+
+ <span className="ua-sb__hint ua-sb__hint--accent" title="Urban Analytics workbench">UA</span>
+ <span className="ua-sb__hint ua-sb__hint--mono" title="Local time">{timeLabel}</span>
+
+ <span className="ua-sb__divider" aria-hidden="true" />
+
+ <button className="ua-sb__btn ua-sb__btn--icon ua-sb__btn--danger" onClick={onClose} title="Close (Esc)">
+ <span aria-hidden="true">✕</span>
+ </button>
+ </div>
+ </div>
+ );
 }
 
 // ---------------------------------------------------------------------------
@@ -974,12 +1182,355 @@ const MODAL_CSS = `
 .railbtn--child.is-on { background:transparent; color:var(--accent); box-shadow:inset 2px 0 0 var(--accent); }
 .rail__empty { font-size:12px; opacity:.6; }
 
-/* Bottom bar */
-.bottombar { border-top:1px solid var(--line); background:var(--syn-surface-navigation); display:flex; align-items:center; justify-content:center; padding:8px 12px; }
+/* ============================================================
+   UA Status Bar — premium VS Code style, color-coded actions
+   ============================================================ */
+.ua-statusbar {
+ /* color tokens local to status bar — fallbacks make it work regardless of theme */
+ --uasb-info:   #4c9aff;
+ --uasb-violet: #a78bfa;
+ --uasb-cyan:   #22d3ee;
+ --uasb-teal:   #2dd4bf;
+ --uasb-success:#22c55e;
+ --uasb-warn:   #f59e0b;
+ --uasb-pink:   #ec4899;
+ --uasb-danger: #ef4444;
+ --uasb-accent: var(--syn-status-info, #4c9aff);
+
+ border-top: 1px solid color-mix(in srgb, var(--uasb-accent) 35%, var(--syn-border-default, rgba(255,255,255,0.18)));
+ background:
+   linear-gradient(180deg,
+     color-mix(in srgb, var(--syn-surface-navigation) 90%, #000),
+     color-mix(in srgb, var(--syn-surface-navigation) 78%, #000)
+   );
+ display: grid;
+ grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+ align-items: stretch;
+ padding: 0 calc(0px + env(safe-area-inset-bottom, 0px));
+ min-height: 26px;
+ height: 26px;
+ box-sizing: border-box;
+ font-size: 11px;
+ line-height: 1;
+ color: var(--syn-text-secondary);
+ user-select: none;
+ font-family: var(--codefont);
+ position: relative;
+ box-shadow: 0 -2px 12px -4px color-mix(in srgb, var(--uasb-accent) 25%, transparent);
+}
+.ua-statusbar::before {
+ content: "";
+ position: absolute;
+ left: 0;
+ right: 0;
+ top: 0;
+ height: 1px;
+ background: linear-gradient(90deg,
+   transparent 0%,
+   color-mix(in srgb, var(--uasb-info) 50%, transparent) 20%,
+   color-mix(in srgb, var(--uasb-violet) 60%, transparent) 40%,
+   color-mix(in srgb, var(--uasb-success) 60%, transparent) 60%,
+   color-mix(in srgb, var(--uasb-warn) 50%, transparent) 80%,
+   transparent 100%
+ );
+ pointer-events: none;
+}
+.ua-sb__left, .ua-sb__center, .ua-sb__right {
+ display: flex;
+ align-items: center;
+ height: 100%;
+ min-width: 0;
+}
+.ua-sb__left { justify-content: flex-start; gap: 4px; padding-left: 6px; }
+.ua-sb__center { justify-content: center; gap: 0; }
+.ua-sb__right { justify-content: flex-end; gap: 2px; padding-right: 2px; }
+
+/* Live status dot — pulse animation when active */
+.ua-sb__dot {
+ width: 6px;
+ height: 6px;
+ border-radius: 50%;
+ background: var(--syn-text-tertiary, #6c7080);
+ flex-shrink: 0;
+ margin-right: 4px;
+ transition: background 200ms ease, box-shadow 200ms ease;
+}
+.ua-sb__dot--live {
+ background: var(--uasb-success);
+ box-shadow: 0 0 4px color-mix(in srgb, var(--uasb-success) 80%, transparent);
+ animation: uaSbPulse 2.2s ease-out infinite;
+}
+@keyframes uaSbPulse {
+ 0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--uasb-success) 60%, transparent), 0 0 4px var(--uasb-success); }
+ 70%  { box-shadow: 0 0 0 6px color-mix(in srgb, var(--uasb-success) 0%, transparent), 0 0 4px var(--uasb-success); }
+ 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--uasb-success) 0%, transparent), 0 0 4px var(--uasb-success); }
+}
+.ua-sb__dot--idle { background: var(--syn-text-tertiary, #6c7080); }
+
+/* Context label — selected card title */
+.ua-sb__ctx {
+ font-size: 11px;
+ font-weight: 500;
+ color: var(--syn-text-default);
+ overflow: hidden;
+ text-overflow: ellipsis;
+ white-space: nowrap;
+ max-width: 320px;
+ letter-spacing: 0.01em;
+}
+.ua-sb__ctx--muted { color: var(--syn-text-tertiary, #6c7080); font-style: italic; font-weight: 400; }
+
+.ua-sb__sep {
+ color: var(--syn-text-tertiary, #6c7080);
+ opacity: 0.5;
+ padding: 0 4px;
+ font-size: 10px;
+}
+.ua-sb__meta {
+ font-size: 10.5px;
+ color: var(--syn-text-secondary);
+ font-weight: 400;
+ white-space: nowrap;
+ font-variant-numeric: tabular-nums;
+}
+.ua-sb__chip {
+ display: inline-flex;
+ align-items: center;
+ padding: 0 6px;
+ height: 16px;
+ margin-left: 4px;
+ border-radius: 3px;
+ font-size: 9.5px;
+ line-height: 1;
+ white-space: nowrap;
+ letter-spacing: 0.08em;
+ font-weight: 700;
+ text-transform: uppercase;
+}
+.ua-sb__chip--warn {
+ background: color-mix(in srgb, var(--uasb-warn) 22%, transparent);
+ color: var(--uasb-warn);
+ border: 1px solid color-mix(in srgb, var(--uasb-warn) 40%, transparent);
+}
+
+/* Count badge in left section */
+.ua-sb__badge {
+ display: inline-flex;
+ align-items: center;
+ gap: 4px;
+ padding: 0 7px;
+ height: 17px;
+ border-radius: 3px;
+ font-size: 10.5px;
+ line-height: 1;
+ font-weight: 600;
+ font-variant-numeric: tabular-nums;
+ white-space: nowrap;
+ letter-spacing: 0.02em;
+}
+.ua-sb__badge--info {
+ background: color-mix(in srgb, var(--uasb-info) 16%, transparent);
+ color: var(--uasb-info);
+ border: 1px solid color-mix(in srgb, var(--uasb-info) 35%, transparent);
+}
+.ua-sb__badgeDot {
+ width: 5px;
+ height: 5px;
+ border-radius: 50%;
+ background: currentColor;
+ flex-shrink: 0;
+ box-shadow: 0 0 4px currentColor;
+}
+
+/* Buttons — flat with per-action accent colors, hover fill + glow */
+.ua-sb__btn {
+ --btn-accent: var(--syn-text-secondary);
+ display: inline-flex;
+ align-items: center;
+ gap: 4px;
+ padding: 0 9px;
+ height: 100%;
+ border: 0;
+ background: transparent;
+ color: var(--syn-text-secondary);
+ font-size: 11px;
+ font-family: var(--codefont);
+ font-weight: 500;
+ line-height: 1;
+ cursor: pointer;
+ white-space: nowrap;
+ transition: background 100ms ease, color 100ms ease, box-shadow 120ms ease, transform 60ms ease;
+ border-radius: 0;
+ position: relative;
+}
+.ua-sb__btn:hover:not(:disabled) {
+ background: color-mix(in srgb, var(--btn-accent) 18%, transparent);
+ color: var(--btn-accent);
+}
+.ua-sb__btn:active:not(:disabled) {
+ background: color-mix(in srgb, var(--btn-accent) 30%, transparent);
+ transform: translateY(0.5px);
+}
+.ua-sb__btn:focus-visible {
+ outline: none;
+ box-shadow: inset 0 -2px 0 var(--btn-accent);
+}
+.ua-sb__btn svg { width: 12px; height: 12px; flex-shrink: 0; opacity: 0.85; }
+.ua-sb__btn:hover svg { opacity: 1; }
+.ua-sb__btn:hover svg, .ua-sb__btn:hover .ua-sb__icoSym { color: var(--btn-accent); }
+.ua-sb__icoSym {
+ display: inline-flex;
+ align-items: center;
+ justify-content: center;
+ font-size: 13px;
+ line-height: 1;
+ font-weight: 700;
+ width: 12px;
+}
+
+/* Bottom underline on hover for labeled buttons */
+.ua-sb__btn:not(.ua-sb__btn--icon)::after {
+ content: "";
+ position: absolute;
+ left: 4px;
+ right: 4px;
+ bottom: 0;
+ height: 2px;
+ background: var(--btn-accent);
+ opacity: 0;
+ transform: scaleX(0.4);
+ transform-origin: center;
+ transition: opacity 140ms ease, transform 140ms ease;
+}
+.ua-sb__btn:not(.ua-sb__btn--icon):hover::after {
+ opacity: 0.9;
+ transform: scaleX(1);
+}
+
+/* Color variants — each action group gets a semantic accent */
+.ua-sb__btn--info     { --btn-accent: var(--uasb-info); }
+.ua-sb__btn--violet   { --btn-accent: var(--uasb-violet); }
+.ua-sb__btn--cyan     { --btn-accent: var(--uasb-cyan); }
+.ua-sb__btn--teal     { --btn-accent: var(--uasb-teal); }
+.ua-sb__btn--success  { --btn-accent: var(--uasb-success); }
+.ua-sb__btn--warn     { --btn-accent: var(--uasb-warn); }
+.ua-sb__btn--pink     { --btn-accent: var(--uasb-pink); }
+.ua-sb__btn--danger   { --btn-accent: var(--uasb-danger); }
+
+/* Tint the icon by default for color-variant labeled buttons */
+.ua-sb__btn--info svg, .ua-sb__btn--info .ua-sb__icoSym         { color: var(--uasb-info); opacity: 1; }
+.ua-sb__btn--violet svg, .ua-sb__btn--violet .ua-sb__icoSym     { color: var(--uasb-violet); opacity: 1; }
+.ua-sb__btn--cyan svg, .ua-sb__btn--cyan .ua-sb__icoSym         { color: var(--uasb-cyan); opacity: 1; }
+.ua-sb__btn--teal svg, .ua-sb__btn--teal .ua-sb__icoSym         { color: var(--uasb-teal); opacity: 1; }
+.ua-sb__btn--success svg, .ua-sb__btn--success .ua-sb__icoSym   { color: var(--uasb-success); opacity: 1; }
+
+/* Icon buttons (no label, no underline animation) */
+.ua-sb__btn--icon {
+ padding: 0 7px;
+ min-width: 26px;
+ justify-content: center;
+ font-size: 13px;
+ font-weight: 700;
+}
+
+/* Active state (e.g. starred) */
+.ua-sb__btn.is-active {
+ color: var(--uasb-warn);
+ background: color-mix(in srgb, var(--uasb-warn) 18%, transparent);
+}
+.ua-sb__btn.is-active::after { opacity: 1; transform: scaleX(1); background: var(--uasb-warn); }
+
+.ua-sb__btn--ghost { color: var(--syn-text-tertiary, #6c7080); }
+.ua-sb__btn--ghost:hover { color: var(--syn-text-default); background: var(--syn-interaction-hover, rgba(255,255,255,0.10)); }
+
+.ua-sb__btn--danger:hover { background: color-mix(in srgb, var(--uasb-danger) 25%, transparent); color: #fff; }
+
+.ua-sb__label { font-weight: 500; letter-spacing: 0.01em; }
+
+/* Keyboard shortcut chips */
+.ua-sb__kbd {
+ display: inline-flex;
+ align-items: center;
+ padding: 1px 4px;
+ margin-left: 3px;
+ font-family: var(--codefont);
+ font-size: 9.5px;
+ line-height: 1;
+ color: var(--syn-text-tertiary, #6c7080);
+ background: color-mix(in srgb, var(--syn-surface-elevated, #1a1a1a) 70%, transparent);
+ border: 1px solid var(--syn-border-subtle, rgba(255,255,255,0.10));
+ border-radius: 2px;
+ letter-spacing: 0.04em;
+ font-variant-numeric: tabular-nums;
+ transition: color 80ms ease, border-color 80ms ease, background 80ms ease;
+}
+.ua-sb__btn:hover .ua-sb__kbd {
+ color: var(--syn-text-default);
+ border-color: var(--syn-border-default, rgba(255,255,255,0.18));
+ background: color-mix(in srgb, var(--syn-surface-elevated, #1a1a1a) 90%, transparent);
+}
+
+.ua-sb__divider {
+ width: 1px;
+ height: 12px;
+ margin: 0 4px;
+ background: var(--syn-border-subtle, rgba(255,255,255,0.10));
+ align-self: center;
+ flex-shrink: 0;
+}
+
+.ua-sb__hint {
+ display: inline-flex;
+ align-items: center;
+ padding: 0 5px;
+ height: 16px;
+ font-size: 9.5px;
+ font-weight: 700;
+ letter-spacing: 0.06em;
+ color: var(--syn-text-tertiary, #6c7080);
+ text-transform: uppercase;
+ cursor: default;
+ transition: color 80ms ease;
+}
+.ua-sb__hint:hover { color: var(--syn-text-secondary); }
+.ua-sb__hint--mono {
+ font-variant-numeric: tabular-nums;
+ text-transform: none;
+ letter-spacing: 0.02em;
+ color: var(--syn-text-secondary);
+}
+.ua-sb__hint--accent {
+ color: var(--uasb-accent);
+ background: color-mix(in srgb, var(--uasb-accent) 14%, transparent);
+ border: 1px solid color-mix(in srgb, var(--uasb-accent) 28%, transparent);
+ border-radius: 3px;
+ padding: 0 6px;
+ height: 16px;
+}
+
+/* Legacy compatibility (Toast etc.) */
 .btnline { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
 .btnpill { display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:3px; border:1px solid transparent; background:transparent; color:var(--syn-text-secondary); font-size:12px; cursor:pointer; font-family: var(--codefont); }
 .btnpill:hover { background:var(--syn-interaction-hover); color:var(--syn-text-default); }
-.btnpill--accent { color:var(--syn-interaction-active); border-color:transparent; background:transparent; box-shadow:inset 0 -1px 0 var(--syn-border-active); }
+
+/* Responsive */
+@media (max-width: 1200px) {
+ .ua-sb__btn--ghost .ua-sb__label { display: none; }
+}
+@media (max-width: 1024px) {
+ .ua-sb__label { display: none; }
+ .ua-sb__btn { padding: 0 5px; }
+ .ua-sb__hint:not(.ua-sb__hint--mono) { display: none; }
+}
+@media (max-width: 820px) {
+ .ua-sb__kbd { display: none; }
+ .ua-sb__ctx { max-width: 140px; }
+ .ua-sb__meta { display: none; }
+}
+@media (max-width: 640px) {
+ .ua-sb__left .ua-sb__ctx { display: none; }
+ .ua-sb__hint--mono { display: none; }
+}
 
 /* Icon button */
 .iconbtn { width:28px; height:28px; border-radius:3px; display:inline-flex; align-items:center; justify-content:center; border:1px solid transparent; background:transparent; color:var(--text); cursor:pointer; }
@@ -1029,7 +1580,7 @@ const MODAL_CSS = `
 }
 
 @media print {
- .bottombar, .iconbtn, .accentline { display: none !important; }
+ .bottombar, .ua-statusbar, .iconbtn, .accentline { display: none !important; }
  body { color:#000 !important; }
 }
 `;
