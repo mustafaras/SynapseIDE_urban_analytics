@@ -105,7 +105,13 @@ export function CollaborationHeaderControls(): React.ReactElement | null {
 
   return (
     <div className={styles.headerControls}>
-      <button type="button" className={styles.headerButton} onClick={() => setIsOpen((current) => !current)}>
+      <button
+        type="button"
+        className={styles.headerButton}
+        onClick={() => setIsOpen((current) => !current)}
+        aria-label={`Collaboration — ${participants.length} live, ${stateLabel}`}
+        title={`${participants.length} live · ${stateLabel}`}
+      >
         <span className={styles.headerButtonStack}>
           {visibleParticipants.map((presence) => (
             <span key={presence.clientId} className={styles.headerAvatar} style={{ background: presence.color }}>
@@ -113,13 +119,12 @@ export function CollaborationHeaderControls(): React.ReactElement | null {
             </span>
           ))}
         </span>
-        <span className={styles.headerButtonLabel}>
+        <span className={styles.headerButtonLabel} aria-hidden="true">
           <Users size={14} />
-          {participants.length} live
+          {participants.length}
         </span>
-        <span className={styles.headerButtonState} data-state={stateLabel}>
+        <span className={styles.headerButtonState} data-state={stateLabel} aria-hidden="true">
           {icon}
-          {stateLabel}
         </span>
       </button>
 

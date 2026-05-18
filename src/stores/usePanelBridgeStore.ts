@@ -37,6 +37,37 @@ const SLOT_TAG_MAP: Record<string, string[]> = {
   limitations: ['spatial_stats'],
 };
 
+const WORKSPACE_LAYOUT_STORAGE_KEY = 'centerPanel.workspaceLayoutExpanded';
+const LEGACY_TOOLBOX_LAYOUT_STORAGE_KEY = 'tools.toolboxLayoutExpanded';
+
+function readStoredWorkspaceLayoutExpanded(): boolean {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  try {
+    const stored = window.localStorage.getItem(WORKSPACE_LAYOUT_STORAGE_KEY);
+    if (stored === 'true' || stored === 'false') {
+      return stored === 'true';
+    }
+
+    return window.localStorage.getItem(LEGACY_TOOLBOX_LAYOUT_STORAGE_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+function writeStoredWorkspaceLayoutExpanded(value: boolean): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(WORKSPACE_LAYOUT_STORAGE_KEY, String(value));
+    window.localStorage.setItem(LEGACY_TOOLBOX_LAYOUT_STORAGE_KEY, String(value));
+  } catch {}
+}
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -58,12 +89,24 @@ export interface PanelBridgeState {
   /** Whether the mini context card is visible in center panel */
   contextCardVisible: boolean;
 
+  /** User-controlled Center Panel workspace width mode */
+  workspaceLayoutExpanded: boolean;
+
+  /** @deprecated Use workspaceLayoutExpanded. Kept for old Toolbox callers. */
+  toolboxLayoutExpanded: boolean;
+
   // Actions
   setActiveTab: (tab: string) => void;
   setActiveFlowId: (flowId: string | null) => void;
   setActiveReportSlot: (slot: string | null) => void;
   recordInsertedCard: (cardId: string) => void;
   setContextCardVisible: (v: boolean) => void;
+  setWorkspaceLayoutExpanded: (v: boolean) => void;
+  toggleWorkspaceLayoutExpanded: () => void;
+  /** @deprecated Use setWorkspaceLayoutExpanded. */
+  setToolboxLayoutExpanded: (v: boolean) => void;
+  /** @deprecated Use toggleWorkspaceLayoutExpanded. */
+  toggleToolboxLayoutExpanded: () => void;
   getContextTags: () => string[];
 }
 
@@ -78,6 +121,8 @@ export const usePanelBridgeStore = create<PanelBridgeState>((set, get) => ({
   contextTags: [],
   insertedCardIds: [],
   contextCardVisible: true,
+  workspaceLayoutExpanded: readStoredWorkspaceLayoutExpanded(),
+  toolboxLayoutExpanded: readStoredWorkspaceLayoutExpanded(),
 
   setActiveTab: (tab) => {
     const tags = tab === 'Workflows'
@@ -105,6 +150,28 @@ export const usePanelBridgeStore = create<PanelBridgeState>((set, get) => ({
   },
 
   setContextCardVisible: (v) => set({ contextCardVisible: v }),
+
+  setWorkspaceLayoutExpanded: (v) => {
+    writeStoredWorkspaceLayoutExpanded(v);
+    set({ workspaceLayoutExpanded: v, toolboxLayoutExpanded: v });
+  },
+
+  toggleWorkspaceLayoutExpanded: () => {
+    const next = !get().workspaceLayoutExpanded;
+    writeStoredWorkspaceLayoutExpanded(next);
+    set({ workspaceLayoutExpanded: next, toolboxLayoutExpanded: next });
+  },
+
+  setToolboxLayoutExpanded: (v) => {
+    writeStoredWorkspaceLayoutExpanded(v);
+    set({ workspaceLayoutExpanded: v, toolboxLayoutExpanded: v });
+  },
+
+  toggleToolboxLayoutExpanded: () => {
+    const next = !get().workspaceLayoutExpanded;
+    writeStoredWorkspaceLayoutExpanded(next);
+    set({ workspaceLayoutExpanded: next, toolboxLayoutExpanded: next });
+  },
 
   getContextTags: () => get().contextTags,
 }));

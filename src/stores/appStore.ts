@@ -49,7 +49,7 @@ const defaultLayout: AppLayout = {
   rightPanelWidth: 400,
   terminalVisible: true,
 
-  terminalHeight: 320,
+  terminalHeight: 224,
   aiChatVisible: true,
   aiAssistantWidth: 500,
   aiAssistantHeight: 420,
@@ -402,15 +402,27 @@ export const useAppStore = create<AppStore>()(
     })),
     {
       name: 'enhanced-ide-app-state',
-      version: 3,
-      migrate: (persistedState: unknown) => {
+      version: 4,
+      migrate: (persistedState: unknown, version: number) => {
         const state = (persistedState && typeof persistedState === 'object')
           ? (persistedState as PersistedAppState)
           : {};
 
+        // v3 → v4: reset terminal height so users pick up the new compact default.
+        const incomingLayout = state.layout && typeof state.layout === 'object'
+          ? { ...state.layout }
+          : state.layout;
+        if (version < 4 && incomingLayout && typeof incomingLayout === 'object') {
+          delete (incomingLayout as { terminalHeight?: number }).terminalHeight;
+          const bp = (incomingLayout as { bottomPanel?: { height?: number } }).bottomPanel;
+          if (bp && typeof bp === 'object') {
+            delete bp.height;
+          }
+        }
+
         return {
           ...state,
-          layout: normalizeLayout(state.layout),
+          layout: normalizeLayout(incomingLayout),
           ...(state.user
             ? {
                 user: {

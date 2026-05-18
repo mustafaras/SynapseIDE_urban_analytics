@@ -105,6 +105,437 @@ function diagnosticPathCandidates(path: string) {
   return [...candidates].filter(Boolean);
 }
 
+// ---------------------------------------------------------------------------
+// Welcome / empty-editor screen — premium animated intro
+// ---------------------------------------------------------------------------
+const SYN_WELCOME_CSS = `
+.syn-welcome {
+  flex: 1;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 38%, color-mix(in srgb, var(--syn-interaction-active) 9%, transparent) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 40% at 50% 95%, color-mix(in srgb, var(--syn-interaction-selected) 5%, transparent) 0%, transparent 60%),
+    var(--syn-surface-editor);
+  isolation: isolate;
+}
+
+/* Ambient SVG layer */
+.syn-welcome__ambient {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.85;
+  animation: syn-welcome-fade-in 1.2s cubic-bezier(.16, 1, .3, 1) both;
+}
+
+/* Faint grid floor */
+.syn-welcome__grid {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--syn-interaction-active) 4%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--syn-interaction-active) 4%, transparent) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse 60% 50% at 50% 50%, #000 30%, transparent 90%);
+  -webkit-mask-image: radial-gradient(ellipse 60% 50% at 50% 50%, #000 30%, transparent 90%);
+  opacity: 0.55;
+  animation: syn-welcome-grid-drift 30s linear infinite;
+}
+
+@keyframes syn-welcome-grid-drift {
+  from { background-position: 0 0, 0 0; }
+  to   { background-position: 56px 0, 0 56px; }
+}
+
+/* Center stage */
+.syn-welcome__stage {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 26px;
+  padding: 32px 24px;
+  max-width: 560px;
+}
+.syn-welcome__stage > * {
+  animation: syn-welcome-stage-in 600ms cubic-bezier(.16, 1, .3, 1) both;
+}
+.syn-welcome__stage > *:nth-child(1) { animation-delay: 60ms; }
+.syn-welcome__stage > *:nth-child(2) { animation-delay: 220ms; }
+.syn-welcome__stage > *:nth-child(3) { animation-delay: 360ms; }
+.syn-welcome__stage > *:nth-child(4) { animation-delay: 480ms; }
+
+@keyframes syn-welcome-stage-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes syn-welcome-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 0.85; }
+}
+
+/* Logo cluster */
+.syn-welcome__logoWrap {
+  position: relative;
+  width: 220px;
+  height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.syn-welcome__logo {
+  position: relative;
+  z-index: 3;
+  width: 180px;
+  height: 180px;
+  filter: drop-shadow(0 0 24px color-mix(in srgb, var(--syn-interaction-active) 32%, transparent));
+}
+
+/* Pulsing nodes — staggered */
+.syn-welcome__node {
+  transform-origin: center;
+  transform-box: fill-box;
+  animation: syn-welcome-node-pulse 2.6s ease-in-out infinite;
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--syn-interaction-active) 60%, transparent));
+}
+.syn-welcome__node--nw { animation-delay: 0ms;    }
+.syn-welcome__node--ne { animation-delay: 650ms;  }
+.syn-welcome__node--se { animation-delay: 1300ms; }
+.syn-welcome__node--sw { animation-delay: 1950ms; }
+@keyframes syn-welcome-node-pulse {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50%      { opacity: 1;    transform: scale(1.18); }
+}
+
+/* Core pulse */
+.syn-welcome__core {
+  transform-origin: center;
+  transform-box: fill-box;
+  animation: syn-welcome-core-pulse 2.4s ease-in-out infinite;
+  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--syn-interaction-selected) 65%, transparent));
+}
+@keyframes syn-welcome-core-pulse {
+  0%, 100% { transform: scale(1);    opacity: 1; }
+  50%      { transform: scale(1.12); opacity: 0.92; }
+}
+
+/* Spokes flicker */
+.syn-welcome__spokes {
+  animation: syn-welcome-spoke-flicker 3.6s ease-in-out infinite;
+}
+@keyframes syn-welcome-spoke-flicker {
+  0%, 100% { opacity: 1;    }
+  45%      { opacity: 0.75; }
+  55%      { opacity: 0.95; }
+}
+
+/* Ring rotations on outer rings */
+.syn-welcome__ring {
+  transform-origin: 24px 24px;
+}
+.syn-welcome__ring--inner { animation: syn-welcome-ring-spin 22s linear infinite; }
+.syn-welcome__ring--outer { animation: syn-welcome-ring-spin 36s linear infinite reverse; }
+@keyframes syn-welcome-ring-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* Decorative orbits around the logo */
+.syn-welcome__orbit {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border: 1px solid color-mix(in srgb, var(--syn-interaction-active) 22%, transparent);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.syn-welcome__orbit::after {
+  content: "";
+  position: absolute;
+  top: -3px;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--syn-interaction-active);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--syn-interaction-active) 80%, transparent);
+  transform: translateX(-50%);
+}
+.syn-welcome__orbit--md {
+  width: 200px;
+  height: 200px;
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--syn-interaction-active) 14%, transparent);
+  animation: syn-welcome-orbit-spin 14s linear infinite;
+}
+.syn-welcome__orbit--lg {
+  width: 240px;
+  height: 240px;
+  animation: syn-welcome-orbit-spin 26s linear infinite reverse;
+}
+@keyframes syn-welcome-orbit-spin {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to   { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* Outer halo behind the logo */
+.syn-welcome__halo {
+  position: absolute;
+  inset: -30px;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--syn-interaction-active) 18%, transparent) 0%, transparent 65%);
+  filter: blur(8px);
+  pointer-events: none;
+  animation: syn-welcome-halo-breathe 5s ease-in-out infinite;
+  z-index: 0;
+}
+@keyframes syn-welcome-halo-breathe {
+  0%, 100% { opacity: 0.55; transform: scale(1);    }
+  50%      { opacity: 0.85; transform: scale(1.04); }
+}
+
+/* Copy block */
+.syn-welcome__copy {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 460px;
+}
+.syn-welcome__eyebrow {
+  display: inline-flex;
+  align-self: center;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  font-family: var(--hdr-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  color: color-mix(in srgb, var(--syn-interaction-active) 85%, var(--syn-text-secondary));
+  background: color-mix(in srgb, var(--syn-interaction-active) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--syn-interaction-active) 22%, transparent);
+  border-radius: 999px;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #ffffff 5%, transparent);
+}
+.syn-welcome__pulseDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--syn-interaction-active);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--syn-interaction-active) 80%, transparent);
+  animation: syn-welcome-dot-blink 2s ease-in-out infinite;
+}
+@keyframes syn-welcome-dot-blink {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.45; transform: scale(0.85); }
+}
+.syn-welcome__title {
+  margin: 0;
+  font-size: 44px;
+  font-weight: 200;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--syn-text-default);
+}
+.syn-welcome__titleShine {
+  background: linear-gradient(
+    100deg,
+    var(--syn-text-default) 0%,
+    var(--syn-text-default) 38%,
+    color-mix(in srgb, var(--syn-interaction-selected) 80%, var(--syn-text-default)) 50%,
+    var(--syn-text-default) 62%,
+    var(--syn-text-default) 100%
+  );
+  background-size: 300% 100%;
+  background-position: 100% 50%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: syn-welcome-shine 4.4s cubic-bezier(.4, 0, .2, 1) infinite;
+}
+@keyframes syn-welcome-shine {
+  0%, 18% { background-position: 100% 50%; }
+  72%, 100% { background-position: 0% 50%; }
+}
+.syn-welcome__lead {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--syn-text-secondary);
+  font-weight: 400;
+}
+.syn-welcome__hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--syn-text-muted);
+}
+
+/* Action buttons */
+.syn-welcome__actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 4px;
+}
+.syn-welcome__btn {
+  position: relative;
+  overflow: hidden;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+  padding: 0;
+  border: 1px solid transparent;
+  transition:
+    background-color 160ms cubic-bezier(.2, .7, .2, 1),
+    border-color 160ms cubic-bezier(.2, .7, .2, 1),
+    color 160ms cubic-bezier(.2, .7, .2, 1),
+    box-shadow 220ms cubic-bezier(.2, .7, .2, 1),
+    transform 160ms cubic-bezier(.2, .7, .2, 1);
+}
+.syn-welcome__btnInner {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+}
+.syn-welcome__btn::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inline-size: 42%;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, #ffffff 26%, transparent), transparent);
+  opacity: 0;
+  transform: translateX(-120%);
+  pointer-events: none;
+}
+.syn-welcome__btn:hover {
+  transform: translateY(-1px);
+}
+.syn-welcome__btn:hover::after {
+  opacity: 1;
+  animation: syn-welcome-btn-sweep 620ms ease-out both;
+}
+.syn-welcome__btn:active { transform: translateY(0); }
+.syn-welcome__btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 1px var(--syn-border-focus), 0 0 0 3px color-mix(in srgb, var(--syn-interaction-active) 28%, transparent);
+}
+@keyframes syn-welcome-btn-sweep {
+  from { transform: translateX(-120%); }
+  to   { transform: translateX(160%); }
+}
+
+.syn-welcome__btn--primary {
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--syn-interaction-active) 96%, #ffffff) 0%,
+    var(--syn-interaction-active) 100%);
+  color: var(--syn-text-inverse, #ffffff);
+  border-color: color-mix(in srgb, var(--syn-interaction-active) 80%, #ffffff);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, #ffffff 14%, transparent) inset,
+    0 6px 16px -6px color-mix(in srgb, var(--syn-interaction-active) 60%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--syn-interaction-active) 28%, transparent);
+}
+.syn-welcome__btn--primary:hover {
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--syn-interaction-active) 88%, #ffffff) 0%,
+    var(--syn-interaction-active) 100%);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, #ffffff 18%, transparent) inset,
+    0 10px 24px -8px color-mix(in srgb, var(--syn-interaction-active) 70%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--syn-interaction-active) 40%, transparent),
+    0 0 18px color-mix(in srgb, var(--syn-interaction-active) 38%, transparent);
+}
+
+.syn-welcome__btn--ghost {
+  background: color-mix(in srgb, var(--syn-surface-elevated) 60%, transparent);
+  color: var(--syn-text-default);
+  border-color: var(--syn-border-subtle);
+}
+.syn-welcome__btn--ghost:hover {
+  background: color-mix(in srgb, var(--syn-interaction-active) 10%, var(--syn-surface-elevated));
+  border-color: color-mix(in srgb, var(--syn-interaction-active) 34%, var(--syn-border-subtle));
+  color: var(--syn-text-default);
+}
+
+/* Shortcuts row */
+.syn-welcome__shortcuts {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 6px;
+  padding: 6px 12px;
+  background: color-mix(in srgb, var(--syn-surface-elevated) 40%, transparent);
+  border: 1px solid var(--syn-border-subtle);
+  border-radius: 999px;
+  opacity: 0.85;
+}
+.syn-welcome__shortcut {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--syn-text-muted);
+}
+.syn-welcome__kbd {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 6px;
+  background: color-mix(in srgb, var(--syn-surface-input) 88%, var(--syn-surface-editor));
+  border: 1px solid var(--syn-border-subtle);
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  font-family: var(--hdr-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--syn-text-secondary);
+  line-height: 1;
+}
+.syn-welcome__kbdPlus {
+  color: var(--syn-text-muted);
+  font-size: 10px;
+  margin: 0 1px;
+}
+.syn-welcome__kbdLabel {
+  margin-left: 4px;
+  color: var(--syn-text-muted);
+}
+.syn-welcome__shortcutSep {
+  color: var(--syn-text-muted);
+  opacity: 0.5;
+  font-size: 11px;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .syn-welcome *,
+  .syn-welcome *::before,
+  .syn-welcome *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+  .syn-welcome__grid { animation: none; }
+}
+`;
+
 export const EnhancedIDE: React.FC = () => {
   const layout = useAppStore(s => s.layout);
   const isLoading = useAppStore(s => s.isLoading);
@@ -1465,311 +1896,199 @@ export const EnhancedIDE: React.FC = () => {
             ) : (
               <div
                 id="synapse-editor-region"
-                className="synapse-ide-shell__editor-region"
+                className="synapse-ide-shell__editor-region syn-welcome"
                 data-region="empty-editor"
-                style={{
-                  flex: 1,
-                  height: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexDirection: 'column',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  background: 'var(--syn-surface-editor)',
-                }}
               >
-                {}
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '24px',
-                    zIndex: 10,
-                    position: 'relative',
-                  }}
-                >
-                  {}
-                  <div
-                    style={{
-                      position: 'relative',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    {}
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
+                <style>{SYN_WELCOME_CSS}</style>
+
+                {/* Ambient neural network backdrop */}
+                <svg className="syn-welcome__ambient" viewBox="0 0 1400 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+                  <defs>
+                    <radialGradient id="synWelcomeGlow" cx="50%" cy="50%" r="50%">
+                      <stop offset="0%" stopColor="var(--syn-interaction-active)" stopOpacity="0.55" />
+                      <stop offset="100%" stopColor="var(--syn-interaction-active)" stopOpacity="0" />
+                    </radialGradient>
+                    <linearGradient id="synWelcomeLine" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor="var(--syn-interaction-active)" stopOpacity="0.18" />
+                      <stop offset="50%" stopColor="var(--syn-interaction-selected)" stopOpacity="0.55" />
+                      <stop offset="100%" stopColor="var(--syn-interaction-active)" stopOpacity="0.18" />
+                    </linearGradient>
+                  </defs>
+                  {/* Background radial glow */}
+                  <circle cx="700" cy="400" r="380" fill="url(#synWelcomeGlow)" opacity="0.6" />
+                  {/* Distant nodes layer */}
+                  <g opacity="0.35">
+                    <circle cx="160" cy="180" r="2.5" fill="var(--syn-interaction-active)">
+                      <animate attributeName="opacity" values="0.2;0.7;0.2" dur="4.2s" repeatCount="indefinite" />
+                    </circle>
+                    <circle cx="320" cy="540" r="2" fill="var(--syn-interaction-selected)">
+                      <animate attributeName="opacity" values="0.3;0.6;0.3" dur="3.6s" repeatCount="indefinite" />
+                    </circle>
+                    <circle cx="1180" cy="220" r="2.8" fill="var(--syn-interaction-active)">
+                      <animate attributeName="opacity" values="0.25;0.65;0.25" dur="4.8s" repeatCount="indefinite" />
+                    </circle>
+                    <circle cx="1080" cy="600" r="2.2" fill="var(--syn-interaction-selected)">
+                      <animate attributeName="opacity" values="0.2;0.55;0.2" dur="3.9s" repeatCount="indefinite" />
+                    </circle>
+                    <circle cx="540" cy="120" r="1.8" fill="var(--syn-interaction-active)">
+                      <animate attributeName="opacity" values="0.3;0.7;0.3" dur="4.4s" repeatCount="indefinite" />
+                    </circle>
+                    <circle cx="900" cy="700" r="2.4" fill="var(--syn-interaction-selected)">
+                      <animate attributeName="opacity" values="0.25;0.6;0.25" dur="3.7s" repeatCount="indefinite" />
+                    </circle>
+                    <line x1="160" y1="180" x2="320" y2="540" stroke="url(#synWelcomeLine)" strokeWidth="0.6">
+                      <animate attributeName="opacity" values="0.08;0.35;0.08" dur="6s" repeatCount="indefinite" />
+                    </line>
+                    <line x1="1180" y1="220" x2="900" y2="700" stroke="url(#synWelcomeLine)" strokeWidth="0.6">
+                      <animate attributeName="opacity" values="0.08;0.3;0.08" dur="6.5s" repeatCount="indefinite" />
+                    </line>
+                    <line x1="540" y1="120" x2="1080" y2="600" stroke="url(#synWelcomeLine)" strokeWidth="0.5">
+                      <animate attributeName="opacity" values="0.05;0.28;0.05" dur="7.2s" repeatCount="indefinite" />
+                    </line>
+                  </g>
+                  {/* Mid-distance nodes layer */}
+                  <g opacity="0.55">
+                    <circle cx="380" cy="280" r="2" fill="var(--syn-interaction-active)">
+                      <animate attributeName="opacity" values="0.4;0.9;0.4" dur="2.2s" repeatCount="indefinite" />
+                    </circle>
+                    <circle cx="1020" cy="320" r="2.2" fill="var(--syn-interaction-selected)">
+                      <animate attributeName="opacity" values="0.45;0.95;0.45" dur="2.5s" repeatCount="indefinite" />
+                    </circle>
+                    <circle cx="280" cy="440" r="1.8" fill="var(--syn-interaction-active)">
+                      <animate attributeName="opacity" values="0.5;0.9;0.5" dur="1.9s" repeatCount="indefinite" />
+                    </circle>
+                    <circle cx="1120" cy="460" r="2.1" fill="var(--syn-interaction-selected)">
+                      <animate attributeName="opacity" values="0.4;0.85;0.4" dur="2.4s" repeatCount="indefinite" />
+                    </circle>
+                  </g>
+                </svg>
+
+                {/* Subtle grid floor */}
+                <div className="syn-welcome__grid" aria-hidden="true" />
+
+                {/* Center stack */}
+                <div className="syn-welcome__stage">
+
+                  {/* Animated logo cluster */}
+                  <div className="syn-welcome__logoWrap" aria-hidden="true">
+                    {/* Outer orbits */}
+                    <div className="syn-welcome__orbit syn-welcome__orbit--lg" />
+                    <div className="syn-welcome__orbit syn-welcome__orbit--md" />
+                    {/* Logo SVG with per-node animations */}
+                    <svg
+                      className="syn-welcome__logo"
+                      viewBox="0 0 48 48"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
                     >
-                      {}
-                      <div
-                        style={{
-                          color: '#292d33',
-                          opacity: 1,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        <svg
-                          viewBox="0 0 48 48"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="205"
-                          height="205"
-                        >
-                          {}
-                          <circle cx="12" cy="12" r="4" fill="currentColor" opacity="0.9" />
-                          <circle cx="36" cy="12" r="4" fill="currentColor" opacity="0.9" />
-                          <circle cx="12" cy="36" r="4" fill="currentColor" opacity="0.9" />
-                          <circle cx="36" cy="36" r="4" fill="currentColor" opacity="0.9" />
-                          <circle cx="24" cy="24" r="5" fill="currentColor" />
+                      <defs>
+                        <radialGradient id="synWelcomeCoreGrad" cx="50%" cy="50%" r="50%">
+                          <stop offset="0%" stopColor="var(--syn-interaction-selected)" stopOpacity="1" />
+                          <stop offset="100%" stopColor="var(--syn-interaction-active)" stopOpacity="0.7" />
+                        </radialGradient>
+                        <linearGradient id="synWelcomeEdge" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stopColor="var(--syn-interaction-active)" stopOpacity="0.9" />
+                          <stop offset="100%" stopColor="var(--syn-interaction-selected)" stopOpacity="0.6" />
+                        </linearGradient>
+                      </defs>
 
-                          {}
-                          <path
-                            d="M16 14L20 22"
-                            stroke="currentColor"
-                            strokeWidth="2.5"
-                            strokeLinecap="round"
-                            opacity="0.8"
-                          />
-                          <path
-                            d="M32 14L28 22"
-                            stroke="currentColor"
-                            strokeWidth="2.5"
-                            strokeLinecap="round"
-                            opacity="0.8"
-                          />
-                          <path
-                            d="M16 34L20 26"
-                            stroke="currentColor"
-                            strokeWidth="2.5"
-                            strokeLinecap="round"
-                            opacity="0.8"
-                          />
-                          <path
-                            d="M32 34L28 26"
-                            stroke="currentColor"
-                            strokeWidth="2.5"
-                            strokeLinecap="round"
-                            opacity="0.8"
-                          />
-                          <path
-                            d="M16 16L32 32"
-                            stroke="currentColor"
-                            strokeWidth="1.5"
-                            strokeLinecap="round"
-                            opacity="0.4"
-                          />
-                          <path
-                            d="M32 16L16 32"
-                            stroke="currentColor"
-                            strokeWidth="1.5"
-                            strokeLinecap="round"
-                            opacity="0.4"
-                          />
+                      {/* Spokes (slightly pulsing) */}
+                      <g className="syn-welcome__spokes" stroke="url(#synWelcomeEdge)" strokeWidth="2.4" strokeLinecap="round">
+                        <path d="M16 14L20 22" opacity="0.85" />
+                        <path d="M32 14L28 22" opacity="0.85" />
+                        <path d="M16 34L20 26" opacity="0.85" />
+                        <path d="M32 34L28 26" opacity="0.85" />
+                      </g>
 
-                          {}
-                          <circle
-                            cx="24"
-                            cy="24"
-                            r="12"
-                            stroke="currentColor"
-                            strokeWidth="1"
-                            fill="none"
-                            opacity="0.3"
-                          />
-                          <circle
-                            cx="24"
-                            cy="24"
-                            r="18"
-                            stroke="currentColor"
-                            strokeWidth="0.5"
-                            fill="none"
-                            opacity="0.2"
-                          />
-                        </svg>
-                      </div>
-                    </div>
+                      {/* Diagonal cross strokes */}
+                      <g stroke="var(--syn-interaction-active)" strokeWidth="1.4" strokeLinecap="round" opacity="0.35">
+                        <path d="M16 16L32 32" />
+                        <path d="M32 16L16 32" />
+                      </g>
+
+                      {/* Outer concentric rings */}
+                      <circle cx="24" cy="24" r="12" stroke="var(--syn-interaction-active)" strokeWidth="0.9" fill="none" opacity="0.35" className="syn-welcome__ring syn-welcome__ring--inner" />
+                      <circle cx="24" cy="24" r="18" stroke="var(--syn-interaction-active)" strokeWidth="0.5" fill="none" opacity="0.22" className="syn-welcome__ring syn-welcome__ring--outer" />
+
+                      {/* Corner nodes (staggered pulse) */}
+                      <circle className="syn-welcome__node syn-welcome__node--nw" cx="12" cy="12" r="3.6" fill="var(--syn-interaction-active)" />
+                      <circle className="syn-welcome__node syn-welcome__node--ne" cx="36" cy="12" r="3.6" fill="var(--syn-interaction-active)" />
+                      <circle className="syn-welcome__node syn-welcome__node--sw" cx="12" cy="36" r="3.6" fill="var(--syn-interaction-active)" />
+                      <circle className="syn-welcome__node syn-welcome__node--se" cx="36" cy="36" r="3.6" fill="var(--syn-interaction-active)" />
+
+                      {/* Core */}
+                      <circle className="syn-welcome__core" cx="24" cy="24" r="5" fill="url(#synWelcomeCoreGrad)" />
+                      <circle cx="24" cy="24" r="5" fill="none" stroke="var(--syn-interaction-selected)" strokeWidth="0.6" opacity="0.8">
+                        <animate attributeName="r" values="5;7.5;5" dur="2.4s" repeatCount="indefinite" />
+                        <animate attributeName="opacity" values="0.8;0;0.8" dur="2.4s" repeatCount="indefinite" />
+                      </circle>
+                    </svg>
+
+                    {/* Outer accent halo */}
+                    <div className="syn-welcome__halo" />
                   </div>
 
-                  {}
-                  <div
-                    style={{
-                      textAlign: 'center',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '16px',
-                      maxWidth: '420px',
-                    }}
-                  >
-                    <h2
-                      style={{
-                        margin: 0,
-                        fontSize: '26px',
-                        fontWeight: 300,
-                        fontFamily: 'inherit',
-                        color: 'var(--syn-text-default)',
-                        letterSpacing: '-0.01em',
-                        lineHeight: 1.3,
-                      }}
-                    >
-                      Synapse
+                  {/* Headline */}
+                  <div className="syn-welcome__copy">
+                    <div className="syn-welcome__eyebrow">
+                      <span className="syn-welcome__pulseDot" /> AI-ASSISTED · INTELLIGENT WORKSPACE
+                    </div>
+                    <h2 className="syn-welcome__title">
+                      <span className="syn-welcome__titleShine">Synapse_IDE</span>
                     </h2>
-
-                    <p
-                      style={{
-                        margin: 0,
-                        fontSize: '13px',
-                        color: 'var(--syn-text-secondary)',
-                        fontWeight: 400,
-                        lineHeight: 1.6,
-                      }}
-                    >
-                      Intelligent coding workspace
-                      <br />
-                      <span
-                        style={{
-                          color: 'var(--syn-text-muted)',
-                          fontSize: '12px',
-                        }}
-                      >
-                        Create a new file or open an existing project to start coding
-                      </span>
+                    <p className="syn-welcome__lead">
+                      A premium coding workspace with embedded AI, spatial intelligence, and live collaboration.
+                    </p>
+                    <p className="syn-welcome__hint">
+                      Create a new file or open an existing project to start coding.
                     </p>
                   </div>
 
-                  {}
-                  <div
-                    style={{
-                      display: 'flex',
-                      gap: '16px',
-                      alignItems: 'center',
-                    }}
-                  >
-                    {}
+                  {/* Action buttons */}
+                  <div className="syn-welcome__actions">
                     <button
+                      type="button"
                       onClick={handleNewFile}
-                      style={{
-                        background: 'var(--syn-interaction-active)',
-                        border: '1px solid var(--syn-interaction-active)',
-                        color: 'var(--syn-text-inverse)',
-                        padding: '6px 16px',
-                        borderRadius: '2px',
-                        cursor: 'pointer',
-                        fontSize: '13px',
-                        fontWeight: 500,
-                        fontFamily: 'inherit',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        transition: 'background 0.15s ease',
-                        letterSpacing: 0,
-                      }}
-                      onMouseEnter={e => {
-                        e.currentTarget.style.background = 'color-mix(in srgb, var(--syn-interaction-active) 88%, white)';
-                      }}
-                      onMouseLeave={e => {
-                        e.currentTarget.style.background = 'var(--syn-interaction-active)';
-                      }}
+                      className="syn-welcome__btn syn-welcome__btn--primary"
                     >
-                      <Plus size={14} strokeWidth={2} />
-                      Create New File
+                      <span className="syn-welcome__btnInner">
+                        <Plus size={14} strokeWidth={2.5} />
+                        Create New File
+                      </span>
                     </button>
-
-                    {}
                     <button
+                      type="button"
                       onClick={handleOpenProject}
-                      style={{
-                        background: 'transparent',
-                        border: '1px solid var(--syn-border-subtle)',
-                        color: 'var(--syn-text-default)',
-                        padding: '6px 14px',
-                        borderRadius: '2px',
-                        cursor: 'pointer',
-                        fontSize: '13px',
-                        fontWeight: 500,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        transition: 'background 0.15s ease, border-color 0.15s ease',
-                      }}
-                      onMouseEnter={e => {
-                        e.currentTarget.style.background = 'var(--syn-surface-hover)';
-                        e.currentTarget.style.borderColor = 'var(--syn-border-default)';
-                      }}
-                      onMouseLeave={e => {
-                        e.currentTarget.style.background = 'transparent';
-                        e.currentTarget.style.borderColor = 'var(--syn-border-subtle)';
-                      }}
+                      className="syn-welcome__btn syn-welcome__btn--ghost"
                     >
-                      <Folder size={14} />
-                      Open Project
+                      <span className="syn-welcome__btnInner">
+                        <Folder size={14} />
+                        Open Project
+                      </span>
                     </button>
                   </div>
 
-                  {}
-                  <div
-                    style={{
-                      display: 'flex',
-                      gap: '24px',
-                      marginTop: '16px',
-                      opacity: 0.6,
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        fontSize: '12px',
-                        color: 'var(--syn-text-muted)',
-                      }}
-                    >
-                      <span
-                        style={{
-                          background: 'var(--syn-surface-elevated)',
-                          border: '1px solid var(--syn-border-subtle)',
-                          padding: '1px 6px',
-                          borderRadius: '3px',
-                          fontSize: '11px',
-                          fontWeight: 500,
-                          color: 'var(--syn-text-secondary)',
-                        }}
-                      >
-                        Ctrl+N
-                      </span>
-                      New File
+                  {/* Shortcut row */}
+                  <div className="syn-welcome__shortcuts">
+                    <div className="syn-welcome__shortcut">
+                      <kbd className="syn-welcome__kbd">Ctrl</kbd>
+                      <span className="syn-welcome__kbdPlus">+</span>
+                      <kbd className="syn-welcome__kbd">N</kbd>
+                      <span className="syn-welcome__kbdLabel">New File</span>
                     </div>
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        fontSize: '12px',
-                        color: 'var(--syn-text-muted)',
-                      }}
-                    >
-                      <span
-                        style={{
-                          background: 'var(--syn-surface-elevated)',
-                          border: '1px solid var(--syn-border-subtle)',
-                          padding: '1px 6px',
-                          borderRadius: '3px',
-                          fontSize: '11px',
-                          fontWeight: 500,
-                          color: 'var(--syn-text-secondary)',
-                        }}
-                      >
-                        Ctrl+O
-                      </span>
-                      Open File
+                    <span className="syn-welcome__shortcutSep" aria-hidden="true">·</span>
+                    <div className="syn-welcome__shortcut">
+                      <kbd className="syn-welcome__kbd">Ctrl</kbd>
+                      <span className="syn-welcome__kbdPlus">+</span>
+                      <kbd className="syn-welcome__kbd">O</kbd>
+                      <span className="syn-welcome__kbdLabel">Open File</span>
+                    </div>
+                    <span className="syn-welcome__shortcutSep" aria-hidden="true">·</span>
+                    <div className="syn-welcome__shortcut">
+                      <kbd className="syn-welcome__kbd">Ctrl</kbd>
+                      <span className="syn-welcome__kbdPlus">+</span>
+                      <kbd className="syn-welcome__kbd">K</kbd>
+                      <span className="syn-welcome__kbdLabel">Command Palette</span>
                     </div>
                   </div>
                 </div>
