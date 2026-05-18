@@ -31,7 +31,8 @@
       "Bash(sed -n '113,125p' src/centerpanel/components/map/MapLayerManager.tsx)",
       "Bash(npx vite-node *)",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(powershell -NoProfile -Command \"\\(Get-Content -Raw -Encoding utf8 'src/features/urbanAnalytics/rightPanelFourBlock.css'\\) -replace '--rp-font-sans', '--rp-font-body' | Set-Content -Encoding utf8 -NoNewline 'src/features/urbanAnalytics/rightPanelFourBlock.css'\")"
     ],
     "deny": [
       "Read(side_UA.mp4)",
