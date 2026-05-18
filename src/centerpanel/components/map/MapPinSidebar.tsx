@@ -144,7 +144,7 @@ export const MapPinSidebar: React.FC<MapPinSidebarProps> = ({
             const label = p.label ?? p.id;
             return (
               <div key={p.id} style={pinCard} role="listitem">
-                <span style={{ color: MAP_COLORS.amber, display: "inline-flex", alignItems: "center" }}>
+                <span style={{ color: MAP_COLORS.interaction, display: "inline-flex", alignItems: "center" }}>
                   <IconPin size={MAP_ICON_SIZES.sm} />
                 </span>
                 <span style={{ minWidth: MAP_SPACING.zero, display: "grid", gap: MAP_SPACING.xs }}>

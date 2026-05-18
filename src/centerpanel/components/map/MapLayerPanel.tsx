@@ -93,10 +93,10 @@ const compactBaseMenu: React.CSSProperties = {
   display: "grid",
   gap: "0.125rem",
   padding: MAP_SPACING.xs,
-  borderRadius: MAP_RADIUS.md,
+  borderRadius: MAP_RADIUS.sm,
   border: MAP_STROKES.hairlineStrong,
   background: MAP_COLORS.bgPanel,
-  boxShadow: MAP_SHADOWS.dropdown,
+  boxShadow: MAP_SHADOWS.none,
 };
 
 const compactBaseItem: React.CSSProperties = {
@@ -176,9 +176,10 @@ export const MapLayerPanel: React.FC<MapLayerPanelProps> = ({
                   aria-checked={active}
                   style={{
                     ...compactBaseItem,
-                    background: active ? MAP_COLORS.amberSubtle : MAP_COLORS.transparent,
-                    color: active ? MAP_COLORS.amber : MAP_COLORS.textSecondary,
-                    border: `1px solid ${active ? MAP_COLORS.amberBorderStrong : "transparent"}`,
+                    background: active ? MAP_COLORS.selectedSubtle : MAP_COLORS.transparent,
+                    color: active ? MAP_COLORS.interaction : MAP_COLORS.textSecondary,
+                    border: `1px solid ${active ? MAP_COLORS.focus : "transparent"}`,
+                    boxShadow: active ? `inset 2px 0 0 ${MAP_COLORS.interaction}` : "none",
                   }}
                   onClick={() => {
                     onSetLayer(key);

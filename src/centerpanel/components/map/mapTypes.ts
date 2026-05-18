@@ -922,7 +922,7 @@ export const MAP_COPILOT_PROPOSAL_LIMIT = 50;
 export const MAP_COPILOT_AUDIT_TRAIL_LIMIT = 200;
 
 export const MAP_ANNOTATION_COLOR_PALETTE = [
-  "#F59E0B",
+  "#3794ff",
   "#F9FAFB",
   "#22C55E",
   "#38BDF8",

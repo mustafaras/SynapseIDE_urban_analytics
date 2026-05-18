@@ -118,12 +118,11 @@ type StatusItem = {
   tone?: StatusTone;
 };
 
-type StatusTone = "neutral" | "info" | "warning" | "error" | "valid" | "running" | "pending" | "stale";
+type StatusTone = "neutral" | "info" | "error" | "valid" | "running" | "pending" | "stale";
 
 const STATUS_TONE_COLOR: Record<StatusTone, string> = {
   neutral: "var(--syn-text-secondary, rgba(203, 213, 225, 0.92))",
   info: "var(--syn-status-info, #38bdf8)",
-  warning: "var(--syn-status-warning, #f59e0b)",
   error: "var(--syn-status-error, #ef4444)",
   valid: "var(--syn-status-valid, #22c55e)",
   running: "var(--syn-status-running, #60a5fa)",
@@ -197,7 +196,7 @@ function qaTone(status: LayerQaStatus, issueCount: number, blockerCount: number)
     return "error";
   }
   if (issueCount > 0 || status === "warning") {
-    return "warning";
+    return issueCount > 0 ? "info" : "stale";
   }
   if (status === "passed") {
     return "valid";

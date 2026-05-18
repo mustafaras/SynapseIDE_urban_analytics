@@ -96,12 +96,17 @@ const bottomTimelineSlotStyle: React.CSSProperties = {
 
 const workspaceFocusCss = `
 [data-map-explorer-shell="true"] :focus-visible {
-  outline: 2px solid var(--syn-focus-ring, ${MAP_COLORS.amber}) !important;
+  outline: 2px solid var(--syn-border-focus, var(--syn-interaction-focus-ring, #3794ff)) !important;
   outline-offset: 2px !important;
-  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.16) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--syn-interaction-focus-ring, #3794ff) 28%, transparent) !important;
 }
+[data-map-explorer-shell="true"] [role="separator"] {
+  border-inline: 1px solid transparent;
+}
+[data-map-explorer-shell="true"] [role="separator"]:hover,
 [data-map-explorer-shell="true"] [role="separator"]:focus-visible {
-  background: rgba(245, 158, 11, 0.18) !important;
+  background: color-mix(in srgb, var(--syn-interaction-active, #3794ff) 12%, transparent) !important;
+  border-inline-color: var(--syn-border-focus, #3794ff) !important;
 }
 `;
 

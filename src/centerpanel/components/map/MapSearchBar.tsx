@@ -42,8 +42,8 @@ interface NominatimSearchResult {
 const searchInput: React.CSSProperties = {
   padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
   borderRadius: MAP_RADIUS.sm,
-  border: MAP_STROKES.hairline,
-  background: MAP_COLORS.bgPanel,
+  border: MAP_STROKES.hairlineSubtle,
+  background: "var(--syn-surface-input, #1a1f26)",
   color: MAP_COLORS.text,
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
   width: MAP_DIMENSIONS.searchWidth,
@@ -56,12 +56,12 @@ const dropdownContainer: React.CSSProperties = {
   left: MAP_SPACING.zero,
   zIndex: MAP_Z_INDEX.dropdown,
   background: MAP_COLORS.bgPanel,
-  border: MAP_STROKES.hairline,
-  borderRadius: MAP_RADIUS.md,
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.sm,
   overflow: "hidden",
   maxWidth: MAP_DIMENSIONS.searchMaxWidth,
   minWidth: MAP_DIMENSIONS.searchWidth,
-  boxShadow: MAP_SHADOWS.dropdown,
+  boxShadow: MAP_SHADOWS.none,
   marginTop: MAP_SPACING.xs,
 };
 
@@ -152,6 +152,16 @@ export const MapSearchBar: React.FC<MapSearchBarProps> = ({ onFlyTo, onResultCou
         onKeyDown={(e) => {
           if (e.key === "Enter") handleSearch();
         }}
+        onFocus={(e) => {
+          e.currentTarget.style.borderColor = MAP_COLORS.focus;
+          e.currentTarget.style.outline = `2px solid ${MAP_COLORS.focus}`;
+          e.currentTarget.style.outlineOffset = "2px";
+        }}
+        onBlur={(e) => {
+          e.currentTarget.style.borderColor = MAP_COLORS.hairlineSubtle;
+          e.currentTarget.style.outline = "";
+          e.currentTarget.style.outlineOffset = "";
+        }}
         aria-label="Search location (Enter to search)"
         aria-autocomplete="list"
         aria-controls={results.length > 0 ? "map-search-results" : undefined}
@@ -184,7 +194,7 @@ export const MapSearchBar: React.FC<MapSearchBarProps> = ({ onFlyTo, onResultCou
               onClick={() => selectResult(r)}
               onMouseEnter={(e) => {
                 (e.currentTarget as HTMLButtonElement).style.background =
-                  MAP_COLORS.amberDim;
+                  MAP_COLORS.selectedSubtle;
               }}
               onMouseLeave={(e) => {
                 (e.currentTarget as HTMLButtonElement).style.background =

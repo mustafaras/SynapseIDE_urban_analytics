@@ -138,7 +138,7 @@ const panelCollapsed: React.CSSProperties = {
 const toggleBtn: React.CSSProperties = {
   background: MAP_COLORS.transparent,
   border: MAP_STROKES.none,
-  color: MAP_COLORS.amber,
+  color: MAP_COLORS.interaction,
   cursor: "pointer",
   padding: `${MAP_SPACING.sm} ${MAP_SPACING.xs}`,
   fontSize: MAP_TYPOGRAPHY.fontSize.sm,
@@ -190,7 +190,7 @@ const layerRow: React.CSSProperties = {
 const layerRowDragging: React.CSSProperties = {
   ...layerRow,
   opacity: 0.5,
-  background: MAP_COLORS.amberDim,
+  background: MAP_COLORS.neutralSubtle,
 };
 
 const visibilityBtn: React.CSSProperties = {
@@ -333,9 +333,9 @@ const layerActionSummary: React.CSSProperties = {
   alignItems: "center",
   justifyContent: "center",
   minWidth: 54,
-  background: "rgba(245, 158, 11, 0.1)",
-  border: MAP_STROKES.none,
-  color: MAP_COLORS.amber,
+  background: MAP_COLORS.transparent,
+  border: MAP_STROKES.hairlineSubtle,
+  color: MAP_COLORS.interaction,
   cursor: "pointer",
   fontSize: 10,
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
@@ -355,11 +355,10 @@ const layerActionGrid: React.CSSProperties = {
   marginTop: 0,
   padding: 7,
   minWidth: 190,
-  border: "1px solid rgba(255, 255, 255, 0.08)",
-  borderRadius: MAP_RADIUS.md,
-  background: "rgba(10, 13, 18, 0.96)",
-  boxShadow: MAP_SHADOWS.dropdown,
-  backdropFilter: "blur(12px)",
+  border: MAP_STROKES.hairlineStrong,
+  borderRadius: MAP_RADIUS.sm,
+  background: MAP_COLORS.bgPanel,
+  boxShadow: MAP_SHADOWS.none,
   zIndex: MAP_Z_INDEX.dropdown,
 };
 
@@ -368,8 +367,8 @@ const layerActionButton: React.CSSProperties = {
   alignItems: "center",
   justifyContent: "space-between",
   width: "100%",
-  background: "rgba(255,255,255,0.035)",
-  border: MAP_STROKES.none,
+  background: MAP_COLORS.transparent,
+  border: MAP_STROKES.hairlineSubtle,
   color: MAP_COLORS.text,
   cursor: "pointer",
   fontSize: 11,
@@ -392,7 +391,7 @@ const layerActionButtonDanger: React.CSSProperties = {
 
 const layerActionButtonWarning: React.CSSProperties = {
   color: MAP_COLORS.warning,
-  background: "rgba(251, 191, 36, 0.08)",
+  background: MAP_COLORS.transparent,
 };
 
 const layerActionButtonDisabled: React.CSSProperties = {
@@ -407,7 +406,7 @@ const staleChip: React.CSSProperties = {
   borderRadius: MAP_RADIUS.sm,
   border: MAP_STROKES.none,
   background: "transparent",
-  color: MAP_COLORS.amber,
+  color: MAP_COLORS.warning,
   fontSize: 9,
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
   letterSpacing: 0.4,
@@ -454,7 +453,7 @@ const opacitySlider: React.CSSProperties = {
   width: "100%",
   minWidth: 72,
   height: 4,
-  accentColor: MAP_COLORS.amber,
+  accentColor: MAP_COLORS.interaction,
   cursor: "pointer",
   flex: 1,
   margin: 0,
@@ -500,9 +499,9 @@ const addLayerBtn: React.CSSProperties = {
   minWidth: 0,
   minHeight: "2rem",
   padding: `${MAP_SPACING.xs} ${MAP_SPACING.xs}`,
-  border: "1px solid rgba(229, 231, 235, 0.18)",
-  background: "linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.025))",
-  color: MAP_COLORS.text,
+  border: MAP_STROKES.hairlineSubtle,
+  background: MAP_COLORS.transparent,
+  color: MAP_COLORS.interaction,
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
   lineHeight: 1.15,
   textAlign: "center" as const,
@@ -530,9 +529,9 @@ const popoverStyle: React.CSSProperties = {
   position: "absolute",
   left: `calc(var(--map-layer-panel-width, ${MAP_DIMENSIONS.layerPanelWidth}) + ${MAP_SPACING.sm})`,
   background: MAP_COLORS.bgPanel,
-  border: `1px solid ${MAP_COLORS.amberBorderStrong}`,
-  borderRadius: MAP_RADIUS.md,
-  boxShadow: MAP_SHADOWS.dropdown,
+  border: MAP_STROKES.hairlineStrong,
+  borderRadius: MAP_RADIUS.sm,
+  boxShadow: MAP_SHADOWS.none,
   padding: MAP_SPACING.md,
   zIndex: MAP_Z_INDEX.dropdown,
   width: 300,
@@ -555,9 +554,9 @@ const dialogOverlayStyle: React.CSSProperties = {
 
 const dialogStyle: React.CSSProperties = {
   background: MAP_COLORS.bgPanel,
-  border: `1px solid ${MAP_COLORS.amberBorderStrong}`,
-  borderRadius: MAP_RADIUS.md,
-  boxShadow: MAP_SHADOWS.dropdown,
+  border: MAP_STROKES.hairlineStrong,
+  borderRadius: MAP_RADIUS.sm,
+  boxShadow: MAP_SHADOWS.none,
   padding: MAP_SPACING.lg,
   width: 340,
   maxWidth: "90%",
@@ -567,8 +566,8 @@ const inputStyle: React.CSSProperties = {
   width: "100%",
   padding: `6px ${MAP_SPACING.sm}`,
   borderRadius: MAP_RADIUS.sm,
-  border: `1px solid ${MAP_COLORS.amberBorder}`,
-  background: MAP_COLORS.bg,
+  border: MAP_STROKES.hairlineSubtle,
+  background: "var(--syn-surface-input, #1a1f26)",
   color: MAP_COLORS.text,
   fontSize: 12,
   fontFamily: MAP_TYPOGRAPHY.fontFamily,
@@ -599,7 +598,7 @@ const dialogBtnRow: React.CSSProperties = {
 const dialogBtn: React.CSSProperties = {
   padding: "5px 14px",
   borderRadius: MAP_RADIUS.sm,
-  border: `1px solid ${MAP_COLORS.amberBorder}`,
+  border: MAP_STROKES.hairlineSubtle,
   background: "transparent",
   color: MAP_COLORS.textSecondary,
   fontSize: 12,
@@ -610,9 +609,9 @@ const dialogBtn: React.CSSProperties = {
 
 const dialogBtnPrimary: React.CSSProperties = {
   ...dialogBtn,
-  background: MAP_COLORS.amberDim,
-  color: MAP_COLORS.amber,
-  border: `1px solid ${MAP_COLORS.amberBorderStrong}`,
+  background: MAP_COLORS.transparent,
+  color: MAP_COLORS.interaction,
+  border: `1px solid ${MAP_COLORS.focus}`,
 };
 
 const emptyGroupMsg: React.CSSProperties = {
@@ -625,7 +624,7 @@ const emptyGroupMsg: React.CSSProperties = {
 const analysisSectionTitle: React.CSSProperties = {
   marginTop: 10,
   marginBottom: 6,
-  color: MAP_COLORS.amber,
+  color: MAP_COLORS.interaction,
   fontSize: 11,
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
 };
@@ -656,9 +655,9 @@ const rerunBtn: React.CSSProperties = {
   width: "100%",
   padding: "6px 10px",
   borderRadius: MAP_RADIUS.sm,
-  border: `1px solid ${MAP_COLORS.amberBorderStrong}`,
-  background: MAP_COLORS.amberDim,
-  color: MAP_COLORS.amber,
+  border: `1px solid ${MAP_COLORS.focus}`,
+  background: MAP_COLORS.transparent,
+  color: MAP_COLORS.interaction,
   cursor: "pointer",
   fontSize: 11,
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
@@ -1156,7 +1155,7 @@ const MetadataPopover: React.FC<MetadataPopoverProps> = ({
       role="tooltip"
       aria-label={`Metadata for ${layer.name}`}
     >
-      <div style={{ fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold, color: MAP_COLORS.amber, marginBottom: 8 }}>
+      <div style={{ fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold, color: MAP_COLORS.interaction, marginBottom: 8 }}>
         {layer.name}
       </div>
       {onAddLayerToReport && reportAction ? (
@@ -1789,7 +1788,7 @@ const LayerRow: React.FC<LayerRowProps> = ({
         aria-label={`${layer.visible ? "Hide" : "Show"} layer ${layer.name}`}
         aria-pressed={layer.visible}
       >
-        <span style={{ color: layer.visible ? MAP_COLORS.amber : MAP_COLORS.textMuted, display: "inline-flex", alignItems: "center" }}>
+        <span style={{ color: layer.visible ? MAP_COLORS.interaction : MAP_COLORS.textMuted, display: "inline-flex", alignItems: "center" }}>
           {layer.visible ? <IconEyeOpen size={13} /> : <IconEyeClosed size={13} />}
         </span>
       </button>

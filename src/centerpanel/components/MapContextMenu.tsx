@@ -57,11 +57,11 @@ const menuStyle: React.CSSProperties = {
   minWidth: 260,
   maxWidth: 320,
   padding: DESIGN_TOKENS.spacing.sm,
-  background: DESIGN_TOKENS.glassmorphism.background.dark,
-  border: `1px solid ${MAP_COLORS.amberBorderStrong}`,
-  borderRadius: MAP_RADIUS.md,
+  background: MAP_COLORS.bgPanel,
+  border: `1px solid ${MAP_COLORS.hairlineStrong}`,
+  borderRadius: MAP_RADIUS.sm,
   backdropFilter: DESIGN_TOKENS.glassmorphism.backdrop.glassDark,
-  boxShadow: MAP_SHADOWS.dropdown,
+  boxShadow: MAP_SHADOWS.none,
   color: MAP_COLORS.text,
   zIndex: MAP_Z_INDEX.importProgress + 2,
 };
@@ -69,7 +69,7 @@ const menuStyle: React.CSSProperties = {
 const menuHeaderStyle: React.CSSProperties = {
   padding: `0 0 ${DESIGN_TOKENS.spacing.sm} 0`,
   marginBottom: DESIGN_TOKENS.spacing.xs,
-  borderBottom: `1px solid ${MAP_COLORS.amberBorder}`,
+  borderBottom: `1px solid ${MAP_COLORS.hairline}`,
 };
 
 const menuButtonStyle: React.CSSProperties = {
@@ -93,10 +93,10 @@ const popupShellStyle: Partial<CSSStyleDeclaration> = {
   minWidth: "220px",
   maxWidth: "300px",
   padding: `${DESIGN_TOKENS.spacing.sm} ${DESIGN_TOKENS.spacing.md}`,
-  background: "rgba(17,17,17,0.96)",
-  border: `1px solid ${MAP_COLORS.amberBorderStrong}`,
-  borderRadius: MAP_RADIUS.md,
-  boxShadow: MAP_SHADOWS.dropdown,
+  background: "var(--syn-surface-panel, rgba(17,17,17,0.96))",
+  border: `1px solid ${MAP_COLORS.hairlineStrong}`,
+  borderRadius: MAP_RADIUS.sm,
+  boxShadow: MAP_SHADOWS.none,
   color: MAP_COLORS.text,
   fontFamily: MAP_TYPOGRAPHY.fontFamily,
 };
@@ -107,7 +107,7 @@ function createPopupContent(title: string, lines: string[], coordinate: LngLat):
 
   const titleEl = document.createElement("div");
   titleEl.textContent = title;
-  titleEl.style.color = MAP_COLORS.amber;
+  titleEl.style.color = MAP_COLORS.interaction;
   titleEl.style.fontWeight = String(MAP_TYPOGRAPHY.fontWeight.semibold);
   titleEl.style.marginBottom = DESIGN_TOKENS.spacing.xs;
   shell.appendChild(titleEl);
@@ -610,7 +610,7 @@ export const MapContextMenu: React.FC<MapContextMenuProps> = ({
       <div style={menuHeaderStyle}>
         <div
           style={{
-            color: MAP_COLORS.amber,
+            color: MAP_COLORS.interaction,
             fontFamily: MAP_TYPOGRAPHY.fontFamilyBrand,
             fontSize: MAP_TYPOGRAPHY.fontSize.sm,
             fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
@@ -649,16 +649,16 @@ export const MapContextMenu: React.FC<MapContextMenuProps> = ({
               void action.onSelect();
             }}
             onMouseEnter={(event) => {
-              event.currentTarget.style.background = MAP_COLORS.amberBtnBg;
-              event.currentTarget.style.borderColor = MAP_COLORS.amberBtnBorder;
+              event.currentTarget.style.background = MAP_COLORS.selectedSubtle;
+              event.currentTarget.style.borderColor = MAP_COLORS.focus;
             }}
             onMouseLeave={(event) => {
               event.currentTarget.style.background = "transparent";
               event.currentTarget.style.borderColor = "transparent";
             }}
             onFocus={(event) => {
-              event.currentTarget.style.background = MAP_COLORS.amberBtnBg;
-              event.currentTarget.style.borderColor = MAP_COLORS.amberBtnBorder;
+              event.currentTarget.style.background = MAP_COLORS.selectedSubtle;
+              event.currentTarget.style.borderColor = MAP_COLORS.focus;
             }}
             onBlur={(event) => {
               event.currentTarget.style.background = "transparent";
@@ -666,7 +666,7 @@ export const MapContextMenu: React.FC<MapContextMenuProps> = ({
             }}
             aria-label={`${action.label}. ${action.description}`}
           >
-            <span style={{ color: MAP_COLORS.amber, paddingTop: 1 }}>
+            <span style={{ color: MAP_COLORS.interaction, paddingTop: 1 }}>
               <Icon size={14} />
             </span>
             <span>

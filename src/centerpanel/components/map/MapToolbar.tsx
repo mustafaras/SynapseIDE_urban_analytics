@@ -357,10 +357,10 @@ const toolbarBadge: React.CSSProperties = {
   minWidth: "0.875rem",
   height: "0.875rem",
   padding: `${MAP_SPACING.zero} 0.1875rem`,
-  borderRadius: MAP_RADIUS.full,
-  background: MAP_COLORS.amberSubtle,
+  borderRadius: MAP_RADIUS.sm,
+  background: MAP_COLORS.selectedSubtle,
   border: MAP_STROKES.none,
-  color: MAP_COLORS.amber,
+  color: MAP_COLORS.interaction,
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
@@ -380,7 +380,7 @@ const overflowMenuStyle: React.CSSProperties = {
   border: MAP_STROKES.hairlineSubtle,
   borderRadius: MAP_RADIUS.md,
   background: MAP_COLORS.bgPanel,
-  boxShadow: MAP_SHADOWS.dropdown,
+  boxShadow: MAP_SHADOWS.none,
   display: "grid",
   gap: "0.125rem",
 };
@@ -406,7 +406,7 @@ const paletteStyle: React.CSSProperties = {
   borderRadius: MAP_RADIUS.md,
   background: MAP_COLORS.bgPanel,
   color: MAP_COLORS.text,
-  boxShadow: MAP_SHADOWS.modal,
+  boxShadow: MAP_SHADOWS.none,
   overflow: "hidden",
 };
 
@@ -452,7 +452,7 @@ const segmentedControlStyle: React.CSSProperties = {
   padding: "0.125rem",
 };
 
-const toolbarFocusOutline = `2px solid ${MAP_COLORS.amberBorderStrong}`;
+const toolbarFocusOutline = `2px solid ${MAP_COLORS.focus}`;
 
 function toneColor(tone: CommandTone): string {
   switch (tone) {
@@ -463,7 +463,7 @@ function toneColor(tone: CommandTone): string {
     case "warning":
       return MAP_COLORS.warning;
     case "accent":
-      return MAP_COLORS.amber;
+      return MAP_COLORS.interaction;
     default:
       return MAP_COLORS.textSecondary;
   }
@@ -476,7 +476,7 @@ function commandButtonStyle(
   density: ToolbarDensity = "expert",
   menuItem = false,
 ): React.CSSProperties {
-  const color = active ? MAP_COLORS.amber : toneColor(tone);
+  const color = active ? MAP_COLORS.interaction : toneColor(tone);
   const height = menuItem ? "2.125rem" : density === "comfortable" ? "1.95rem" : "1.7rem";
   const paddingX = menuItem ? MAP_SPACING.sm : density === "comfortable" ? MAP_SPACING.sm : MAP_SPACING.xs;
   const maxWidth = menuItem ? "100%" : density === "comfortable" ? "7.25rem" : density === "compact" ? "5.9rem" : "5.25rem";
@@ -490,8 +490,8 @@ function commandButtonStyle(
     maxWidth,
     padding: `${MAP_SPACING.zero} ${paddingX}`,
     borderRadius: MAP_RADIUS.sm,
-    border: active ? `1px solid ${MAP_COLORS.amberBorderStrong}` : "1px solid transparent",
-    background: active ? MAP_COLORS.amberSubtle : MAP_COLORS.transparent,
+    border: active ? `1px solid ${MAP_COLORS.focus}` : "1px solid transparent",
+    background: active ? MAP_COLORS.selectedSubtle : MAP_COLORS.transparent,
     color,
     fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
     fontSize: MAP_TYPOGRAPHY.fontSize.xs,
@@ -501,7 +501,7 @@ function commandButtonStyle(
     cursor: disabled ? "not-allowed" : "pointer",
     opacity: disabled ? 0.55 : 1,
     transition: MAP_TRANSITIONS.fast,
-    boxShadow: "none",
+    boxShadow: active ? `inset 2px 0 0 ${MAP_COLORS.interaction}` : "none",
   };
 }
 
@@ -512,8 +512,8 @@ function toolbarButtonInteraction(
   return {
     onMouseEnter: (event) => {
       if (active || disabled) return;
-      event.currentTarget.style.background = MAP_COLORS.amberDim;
-      event.currentTarget.style.color = MAP_COLORS.amber;
+      event.currentTarget.style.background = MAP_COLORS.neutralSubtle;
+      event.currentTarget.style.color = MAP_COLORS.interaction;
     },
     onMouseLeave: (event) => {
       if (active || disabled) return;
@@ -540,13 +540,14 @@ function roleButtonStyle(active: boolean): React.CSSProperties {
     padding: `0 ${MAP_SPACING.xs}`,
     border: MAP_STROKES.none,
     borderRadius: MAP_RADIUS.sm,
-    background: active ? MAP_COLORS.amberSubtle : MAP_COLORS.transparent,
-    color: active ? MAP_COLORS.amber : MAP_COLORS.textMuted,
+    background: active ? MAP_COLORS.selectedSubtle : MAP_COLORS.transparent,
+    color: active ? MAP_COLORS.interaction : MAP_COLORS.textMuted,
     fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
     fontSize: MAP_TYPOGRAPHY.fontSize.xs,
     fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
     cursor: "pointer",
     textTransform: "uppercase",
+    boxShadow: active ? `inset 0 -2px 0 ${MAP_COLORS.interaction}` : "none",
   };
 }
 
@@ -1107,7 +1108,7 @@ function ToolbarCommandButton({
   const label = density === "comfortable" || menuItem ? command.label : command.shortLabel;
   const active = Boolean(command.active);
   const disabled = Boolean(command.disabled);
-  const color = active ? MAP_COLORS.amber : toneColor(command.tone ?? "default");
+  const color = active ? MAP_COLORS.interaction : toneColor(command.tone ?? "default");
   const accessibleTitle = getCommandAccessibleTitle(command);
 
   return (
@@ -1368,7 +1369,7 @@ function CommandPalette({
                       {command.shortcut}
                     </span>
                   ) : null}
-                  <span style={{ ...toolbarBadge, color: toneColor(status.tone), background: status.tone === "default" ? MAP_COLORS.bg : MAP_COLORS.amberSubtle }}>
+                  <span style={{ ...toolbarBadge, color: toneColor(status.tone), background: status.tone === "default" ? MAP_COLORS.bg : MAP_COLORS.selectedSubtle }}>
                     {command.badge != null && command.badge !== 0 ? command.badge : status.label}
                   </span>
                 </span>

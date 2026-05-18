@@ -7,7 +7,6 @@ import {
   MAP_DIMENSIONS,
   MAP_NUMERIC,
   MAP_RADIUS,
-  MAP_SHADOWS,
   MAP_SPACING,
   MAP_STROKES,
   MAP_TYPOGRAPHY,
@@ -86,7 +85,6 @@ function createPinElement(label: string): HTMLDivElement {
   el.style.borderRadius = MAP_RADIUS.full;
   el.style.background = "var(--syn-status-info, #38bdf8)";
   el.style.border = MAP_STROKES.marker;
-  el.style.boxShadow = MAP_SHADOWS.marker;
   el.style.cursor = "pointer";
   el.title = label;
   return el;
@@ -162,7 +160,7 @@ function buildFeaturePopupHtml(properties: Record<string, unknown> | undefined):
     .slice(0, 12)
     .map(([key, value]) => {
       return `
-        <div style="display:grid;grid-template-columns:auto 1fr;gap:${MAP_SPACING.sm};padding:${MAP_SPACING.xs} 0;border-top:${MAP_STROKES.hairlineSubtle}">
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:${MAP_SPACING.sm};padding:${MAP_SPACING.xs} 0;border-top:1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.32))">
           <span style="font-size:${MAP_TYPOGRAPHY.fontSize.xs};color:${MAP_COLORS.textMuted};text-transform:uppercase;letter-spacing:${MAP_TYPOGRAPHY.letterSpacing.caps}">${escapeHtml(humanizePropertyKey(key))}</span>
           <span style="font-size:${MAP_TYPOGRAPHY.fontSize.xs};color:${MAP_COLORS.textSecondary};text-align:right">${escapeHtml(formatPopupValue(value))}</span>
         </div>`;

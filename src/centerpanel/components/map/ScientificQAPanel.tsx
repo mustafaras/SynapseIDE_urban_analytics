@@ -139,6 +139,8 @@ const statusBand: React.CSSProperties = {
   gridTemplateColumns: "1.5rem minmax(0, 1fr)",
   alignItems: "start",
   gap: MAP_SPACING.sm,
+  background: MAP_COLORS.transparent,
+  borderBottom: MAP_STROKES.hairlineSubtle,
 };
 
 const statusTitle: React.CSSProperties = {
@@ -206,9 +208,10 @@ const categoryRowStyle: React.CSSProperties = {
   display: "grid",
   gap: MAP_SPACING.xs,
   padding: MAP_SPACING.sm,
-  border: MAP_STROKES.hairlineSubtle,
-  borderRadius: MAP_RADIUS.sm,
-  background: "rgba(255,255,255,0.02)",
+  border: MAP_STROKES.none,
+  borderBottom: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.none,
+  background: MAP_COLORS.transparent,
   minWidth: MAP_SPACING.zero,
 };
 
@@ -230,9 +233,10 @@ const issueCardBase: React.CSSProperties = {
   display: "grid",
   gap: MAP_SPACING.sm,
   padding: MAP_SPACING.sm,
-  border: MAP_STROKES.hairlineSubtle,
-  borderRadius: MAP_RADIUS.sm,
-  background: "rgba(255,255,255,0.025)",
+  border: MAP_STROKES.none,
+  borderBottom: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.none,
+  background: MAP_COLORS.transparent,
   minWidth: MAP_SPACING.zero,
 };
 
@@ -270,8 +274,8 @@ const fixStyle: React.CSSProperties = {
   ...issueCopy,
   color: MAP_COLORS.text,
   padding: MAP_SPACING.sm,
-  borderLeft: `2px solid ${MAP_COLORS.amberBorderStrong}`,
-  background: MAP_COLORS.amberSubtle,
+  borderLeft: `2px solid ${MAP_COLORS.interaction}`,
+  background: MAP_COLORS.transparent,
 };
 
 const detailButton: React.CSSProperties = {
@@ -634,7 +638,9 @@ export const ScientificQAPanel: React.FC<ScientificQAPanelProps> = ({
                     aria-label={`${SEVERITY_LABELS[issue.severity]} QA issue: ${issue.title}. ${issue.explanation}`}
                     style={{
                       ...issueCardBase,
-                      border: `1px solid ${issue.severity === "info" ? MAP_COLORS.amberBorder : color}`,
+                      border: MAP_STROKES.none,
+                      borderBottom: MAP_STROKES.hairlineSubtle,
+                      borderLeft: `2px solid ${color}`,
                     }}
                   >
                     <div style={issueTopLine}>

@@ -87,19 +87,24 @@ describe("mapTypes", () => {
 /* ------------------------------------------------------------------ */
 
 describe("mapTokens — colors", () => {
-  it("amber matches DESIGN_TOKENS.colors.primary[500]", () => {
-    expect(MAP_COLORS.amber).toBe(DESIGN_TOKENS.colors.primary[500]);
+  it("interaction maps to the map workbench interaction alias", () => {
+    expect(MAP_COLORS.interaction).toBe(DESIGN_TOKENS.mapExplorer.colors.interaction);
   });
 
-  it("error matches DESIGN_TOKENS.colors.semantic.error", () => {
-    expect(MAP_COLORS.error).toBe(DESIGN_TOKENS.colors.semantic.error);
+  it("legacy amber compatibility alias resolves to non-amber interaction", () => {
+    expect(MAP_COLORS.amber).toBe(MAP_COLORS.interaction);
+    expect(MAP_COLORS.amber).not.toBe(DESIGN_TOKENS.colors.primary[500]);
+  });
+
+  it("error uses the semantic status error token", () => {
+    expect(MAP_COLORS.error).toContain("--syn-status-error");
   });
 
   it("has all required color keys", () => {
     const required = [
-      "bg", "bgPanel", "amber", "amberDim", "amberBorder",
-      "amberBorderStrong", "text", "textSecondary", "textMuted",
-      "error", "white", "overlayBg",
+      "bg", "bgPanel", "interaction", "interactionSubtle", "selectedSubtle",
+      "focus", "hairline", "hairlineStrong", "caveatText", "text",
+      "textSecondary", "textMuted", "error", "white", "overlayBg", "amber",
     ];
     for (const key of required) {
       expect(MAP_COLORS).toHaveProperty(key);
@@ -113,22 +118,22 @@ describe("mapTokens — border radius", () => {
     expect(MAP_RADIUS.sm).toBe(DESIGN_TOKENS.borderRadius.hover);
   });
 
-  it("md maps to DESIGN_TOKENS.borderRadius.md", () => {
-    expect(MAP_RADIUS.md).toBe(DESIGN_TOKENS.borderRadius.md);
+  it("md maps to compact workbench radius", () => {
+    expect(MAP_RADIUS.md).toBe(DESIGN_TOKENS.borderRadius.sm);
   });
 
-  it("lg maps to DESIGN_TOKENS.borderRadius.lg", () => {
-    expect(MAP_RADIUS.lg).toBe(DESIGN_TOKENS.borderRadius.lg);
+  it("lg maps to compact workbench radius", () => {
+    expect(MAP_RADIUS.lg).toBe(DESIGN_TOKENS.borderRadius.sm);
   });
 });
 
 describe("mapTokens — shadows", () => {
-  it("modal uses DESIGN_TOKENS.shadows.xl", () => {
-    expect(MAP_SHADOWS.modal).toBe(DESIGN_TOKENS.shadows.xl);
+  it("modal uses no decorative shadow", () => {
+    expect(MAP_SHADOWS.modal).toBe(MAP_SHADOWS.none);
   });
 
-  it("dropdown uses DESIGN_TOKENS.shadows.lg", () => {
-    expect(MAP_SHADOWS.dropdown).toBe(DESIGN_TOKENS.shadows.lg);
+  it("dropdown keeps a restrained floating overlay shadow", () => {
+    expect(MAP_SHADOWS.dropdown).toContain("rgba(0, 0, 0, 0.28)");
   });
 
   it("marker uses DESIGN_TOKENS.shadows.sm", () => {
@@ -208,8 +213,8 @@ describe("mapStyles — pre-composed objects", () => {
     expect(mapStyles.header.background).toBe(DESIGN_TOKENS.mapExplorer.colors.charcoalHeader);
   });
 
-  it("title uses amber from tokens", () => {
-    expect(mapStyles.title.color).toBe(MAP_COLORS.amber);
+  it("title uses the interaction token", () => {
+    expect(mapStyles.title.color).toBe(MAP_COLORS.interaction);
   });
 
   it("btn uses token-based border radius", () => {
@@ -220,8 +225,8 @@ describe("mapStyles — pre-composed objects", () => {
     expect(mapStyles.btn.transition).toBe(MAP_TRANSITIONS.fast);
   });
 
-  it("btnActive uses amber dim background", () => {
-    expect(mapStyles.btnActive.background).toBe(MAP_COLORS.amberDim);
+  it("btnActive uses selected subtle background", () => {
+    expect(mapStyles.btnActive.background).toBe(MAP_COLORS.selectedSubtle);
   });
 
   it("closeBtn uses charcoal panel background", () => {
@@ -607,7 +612,7 @@ describe("Map Explorer components render without errors", () => {
       },
       style: {
         "circle-radius": 8,
-        "circle-color": "#F59E0B",
+        "circle-color": "#3794ff",
       },
       metadata: {
         featureCount: 640,

@@ -104,6 +104,7 @@ const sequenceStatusLabel = {
 const signalToneClassName = {
   ready: styles.signalReady,
   attention: styles.signalAttention,
+  blocked: styles.signalBlocked,
   neutral: styles.signalNeutral,
 } as const;
 
@@ -352,7 +353,7 @@ export const MapWorkspaceCockpit: React.FC<MapWorkspaceCockpitProps> = ({
         value: qaValue,
         detail: qaDetail,
         Icon: Shield,
-        tone: qaBlockerCount > 0 || qaIssueCount > 0 ? "attention" : contextSummary.qa.status === "passed" ? "ready" : "neutral",
+        tone: qaBlockerCount > 0 ? "blocked" : qaIssueCount > 0 ? "attention" : contextSummary.qa.status === "passed" ? "ready" : "neutral",
       },
       {
         id: "workflow",
@@ -368,7 +369,7 @@ export const MapWorkspaceCockpit: React.FC<MapWorkspaceCockpitProps> = ({
         value: exportValue,
         detail: exportDetail,
         Icon: FileOutput,
-        tone: visiblePublicationLayerCount > 0 && qaBlockerCount === 0 ? "ready" : visiblePublicationLayerCount > 0 || qaBlockerCount > 0 ? "attention" : "neutral",
+        tone: qaBlockerCount > 0 ? "blocked" : visiblePublicationLayerCount > 0 ? "ready" : "neutral",
       },
       {
         id: "sync",

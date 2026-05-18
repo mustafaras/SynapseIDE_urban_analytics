@@ -21,7 +21,7 @@ import { useMapExplorerStore } from "../../../../stores/useMapExplorerStore";
 
 const annotationStyle: MapAnnotationStyleSettings = {
   fontSize: 16,
-  color: "#F59E0B",
+  color: "#3794ff",
   bold: true,
   italic: false,
   rotation: 0,

@@ -101,7 +101,7 @@ const menuStyle: React.CSSProperties = {
   borderRadius: MAP_RADIUS.md,
   border: MAP_STROKES.hairlineStrong,
   background: MAP_COLORS.bgPanel,
-  boxShadow: MAP_SHADOWS.dropdown,
+  boxShadow: MAP_SHADOWS.none,
 };
 
 const menuItemStyle: React.CSSProperties = {
@@ -163,7 +163,7 @@ const compactMenuStyle: React.CSSProperties = {
   borderRadius: MAP_RADIUS.md,
   border: MAP_STROKES.hairlineStrong,
   background: MAP_COLORS.bgPanel,
-  boxShadow: MAP_SHADOWS.dropdown,
+  boxShadow: MAP_SHADOWS.none,
 };
 
 const compactMenuHeaderStyle: React.CSSProperties = {
@@ -209,12 +209,12 @@ const compactCountBadgeStyle: React.CSSProperties = {
   minWidth: "0.875rem",
   height: "0.875rem",
   padding: "0 0.25rem",
-  borderRadius: MAP_RADIUS.full,
+  borderRadius: MAP_RADIUS.sm,
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
-  background: MAP_COLORS.amberSubtle,
-  color: MAP_COLORS.amber,
+  background: MAP_COLORS.selectedSubtle,
+  color: MAP_COLORS.interaction,
   fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
@@ -347,7 +347,7 @@ export const MapBookmarkBar: React.FC<MapBookmarkBarProps> = ({
             <button
               type="button"
               role="menuitem"
-              style={{ ...menuItemStyle, border: MAP_STROKES.none, background: MAP_COLORS.amberSubtle, color: MAP_COLORS.amber }}
+              style={{ ...menuItemStyle, border: MAP_STROKES.hairlineSubtle, background: MAP_COLORS.transparent, color: MAP_COLORS.interaction }}
               onClick={handleSave}
               disabled={bookmarks.length >= maxBookmarks}
             >
@@ -477,8 +477,8 @@ export const MapBookmarkBar: React.FC<MapBookmarkBarProps> = ({
                 maxWidth: "7rem",
                 minHeight: "1.5rem",
                 padding: `${MAP_SPACING.zero} ${MAP_SPACING.xs}`,
-                border: MAP_STROKES.none,
-                background: MAP_COLORS.amberSubtle,
+                border: MAP_STROKES.hairlineSubtle,
+                background: MAP_COLORS.transparent,
                 fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
               } satisfies React.CSSProperties : null),
             }}

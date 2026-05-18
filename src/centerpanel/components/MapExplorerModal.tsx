@@ -314,7 +314,6 @@ const workflowPreviewHudStyle: React.CSSProperties = {
   borderRadius: MAP_RADIUS.sm,
   background: "var(--syn-surface-panel, rgba(15, 20, 28, 0.92))",
   color: MAP_COLORS.textSecondary,
-  boxShadow: MAP_STROKES.none,
   fontFamily: MAP_TYPOGRAPHY.fontFamily,
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
   pointerEvents: "none",
@@ -326,7 +325,6 @@ const workflowDividerStyle: React.CSSProperties = {
   bottom: MAP_SPACING.zero,
   width: MAP_DIMENSIONS.separatorWidth,
   background: "var(--syn-status-info, #38bdf8)",
-  boxShadow: MAP_STROKES.none,
   pointerEvents: "none",
   zIndex: MAP_NUMERIC.sidebarZIndex - 1,
 };
@@ -351,7 +349,7 @@ const comparisonLegendSwatchStyle: React.CSSProperties = {
   width: "0.75rem",
   height: "0.75rem",
   borderRadius: MAP_RADIUS.xs,
-  border: MAP_STROKES.hairlineSubtle,
+  border: "1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.32))",
 };
 
 const comparisonLayerBColor = "var(--syn-status-pending, #a78bfa)";
@@ -457,7 +455,7 @@ const commandHeaderStyle: React.CSSProperties = {
   overflowX: "visible",
   overflowY: "visible",
   background: MAP_COLORS.bgHeader,
-  boxShadow: "inset 0 -1px 0 var(--syn-border-subtle, rgba(148, 163, 184, 0.32))",
+  borderBottom: "1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.32))",
 };
 
 const commandHeaderTitleStyle: React.CSSProperties = {
@@ -651,13 +649,13 @@ function resolveFlowDispatchAoiCandidate(
 function feedbackAccent(tone: DispatchFeedbackTone): string {
   switch (tone) {
     case "success":
-      return "#34d399";
+      return "var(--syn-status-valid, #34d399)";
     case "error":
-      return "#f87171";
+      return "var(--syn-status-error, #f87171)";
     case "busy":
-      return "#f59e0b";
+      return "var(--syn-status-running, #60a5fa)";
     default:
-      return "#fbbf24";
+      return "var(--syn-status-info, #38bdf8)";
   }
 }
 
@@ -706,6 +704,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
 }) => {
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
   const suppressViewportSyncPublishRef = useRef(false);
+  const suppressViewportSyncTimerRef = useRef<number | null>(null);
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const dragCounterRef = useRef(0);
   const lastMapRenderErrorRef = useRef<{ message: string; timestamp: number } | null>(null);
@@ -1212,6 +1211,13 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       }
 
       suppressViewportSyncPublishRef.current = true;
+      if (suppressViewportSyncTimerRef.current !== null) {
+        window.clearTimeout(suppressViewportSyncTimerRef.current);
+      }
+      suppressViewportSyncTimerRef.current = window.setTimeout(() => {
+        suppressViewportSyncPublishRef.current = false;
+        suppressViewportSyncTimerRef.current = null;
+      }, reducedMotion ? 80 : 280);
       setViewport({
         center: event.center,
         zoom: event.zoom,
@@ -1795,9 +1801,6 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     ) => {
       setViewport(v);
       const shouldPublishViewportSync = viewportSyncEnabled && !suppressViewportSyncPublishRef.current;
-      if (suppressViewportSyncPublishRef.current) {
-        suppressViewportSyncPublishRef.current = false;
-      }
 
       /* Once the user actively pans/zooms the main canvas, an in-flight
          explicit fit request from a prior open cycle is no longer relevant
@@ -5144,7 +5147,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             <div
               style={{
                 ...mapStyles.dragOverlay,
-                border: "2px dashed var(--syn-border-active, rgba(56, 189, 248, 0.6))",
+                border: "1px solid var(--syn-border-active, rgba(56, 189, 248, 0.6))",
                 background: "var(--syn-surface-overlay, rgba(8, 12, 18, 0.68))",
                 color: "var(--syn-text-secondary, rgba(203, 213, 225, 0.92))",
               }}
@@ -5217,10 +5220,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
                 display: "grid",
                 gap: 6,
                 padding: "12px 14px",
-                borderRadius: 10,
+                borderRadius: MAP_RADIUS.sm,
                 border: "1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.36))",
                 background: "var(--syn-surface-panel, rgba(12, 16, 24, 0.9))",
-                boxShadow: "0 10px 24px rgba(0,0,0,0.24)",
                 zIndex: 20,
               }}
               role="status"
@@ -5246,10 +5248,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
                 display: "grid",
                 gap: 10,
                 padding: "12px 14px",
-                borderRadius: 10,
+                borderRadius: MAP_RADIUS.sm,
                 border: "1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.34))",
                 background: "var(--syn-surface-panel, rgba(12, 16, 24, 0.92))",
-                boxShadow: "0 10px 24px rgba(0,0,0,0.24)",
                 zIndex: 20,
               }}
             >
@@ -5309,10 +5310,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
                   display: "grid",
                   gap: 14,
                   padding: "18px 18px 16px",
-                  borderRadius: 12,
+                  borderRadius: MAP_RADIUS.sm,
                   border: "1px solid var(--syn-border-strong, rgba(148, 163, 184, 0.42))",
                   background: "var(--syn-surface-panel, rgba(12, 16, 24, 0.94))",
-                  boxShadow: "0 14px 28px rgba(0,0,0,0.28)",
                 }}
                 role="dialog"
                 aria-modal="true"
@@ -5348,16 +5348,16 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
                         display: "grid",
                         gap: 4,
                         padding: "12px 14px",
-                        borderRadius: 10,
-                        border: "1px solid rgba(255,255,255,0.12)",
-                        background: "rgba(255,255,255,0.03)",
-                        color: "rgba(255,255,255,0.92)",
+                        borderRadius: MAP_RADIUS.sm,
+                        border: "1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.32))",
+                        background: MAP_COLORS.transparent,
+                        color: "var(--syn-text-secondary, rgba(203, 213, 225, 0.92))",
                         textAlign: "left",
                         cursor: "pointer",
                       }}
                       onClick={() => handleDispatchFlowSelection(flow.id)}
                     >
-                      <span style={{ color: "#fbbf24", fontSize: 13, fontWeight: 600 }}>{flow.label}</span>
+                      <span style={{ color: "var(--syn-interaction-active, #3794ff)", fontSize: 13, fontWeight: 600 }}>{flow.label}</span>
                       <span style={{ color: "rgba(255,255,255,0.64)", fontSize: 12, lineHeight: 1.45 }}>{flow.description}</span>
                     </button>
                   ))}

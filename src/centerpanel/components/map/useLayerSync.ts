@@ -118,16 +118,16 @@ function buildPaint(
     case "circle":
       base["circle-opacity"] = opacity;
       if (!base["circle-radius"]) base["circle-radius"] = 6;
-      if (!base["circle-color"]) base["circle-color"] = MAP_COLORS.amber;
+      if (!base["circle-color"]) base["circle-color"] = MAP_COLORS.interaction;
       break;
     case "line":
       base["line-opacity"] = opacity;
-      if (!base["line-color"]) base["line-color"] = MAP_COLORS.amber;
+      if (!base["line-color"]) base["line-color"] = MAP_COLORS.interaction;
       if (!base["line-width"]) base["line-width"] = 2;
       break;
     case "fill":
       base["fill-opacity"] = opacity * 0.6;
-      if (!base["fill-color"]) base["fill-color"] = MAP_COLORS.amber;
+      if (!base["fill-color"]) base["fill-color"] = MAP_COLORS.interaction;
       break;
     case "heatmap":
       base["heatmap-opacity"] = opacity;
