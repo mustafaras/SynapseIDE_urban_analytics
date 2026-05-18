@@ -1,4 +1,5 @@
 import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { Download, FileText, Map as MapIcon, Search, ShieldCheck, Workflow } from "lucide-react";
 import styles from "../styles/tools.module.css";
 
 
@@ -9,6 +10,8 @@ import type { Filter, ProjectFilter, ProjectRecord } from "../registry/types";
 import type { DeidPolicy } from "./lib/assemble";
 import { flags } from "../../config/flags";
 import type { IndicatorCatalogFocusRequest } from "@/features/urbanAnalytics/indicators/types";
+import { useMapExplorerStore } from "@/stores/useMapExplorerStore";
+import { usePanelBridgeStore } from "@/stores/usePanelBridgeStore";
 import { ChunkLoadBoundary, lazyWithRetry } from "@/utils/lazyWithRetry";
 
 const PreviewPanel = lazyWithRetry(() => import("./PreviewPanel"), { recoveryPath: "/" });
@@ -159,6 +162,8 @@ function scrollToId(id: string) {
 export default function ToolsActionPanel({ indicatorFocusRequest = null }: ToolsActionPanelProps) {
 
   const { state } = useProjectRegistry();
+  const openMapExplorer = useMapExplorerStore((mapState) => mapState.open);
+  const workspaceLayoutExpanded = usePanelBridgeStore((bridgeState) => bridgeState.workspaceLayoutExpanded);
   const selectedProjectId = state.selectedProjectId;
   const selectedSessionId = state.selectedSessionId;
   const projects = state.projects ?? [];
@@ -192,6 +197,8 @@ export default function ToolsActionPanel({ indicatorFocusRequest = null }: Tools
     return raw === "none" || raw === "limited" || raw === "safe" ? raw : "limited";
   });
   const [consent, setConsent] = useState<boolean>(() => localStorage.getItem(LS.consent) === "true");
+  const [sectionQuery, setSectionQuery] = useState("");
+  const sectionSearchRef = useRef<HTMLInputElement | null>(null);
 
 
   useEffect(() => { localStorage.setItem(LS.scope, scope); }, [scope]);
@@ -202,6 +209,19 @@ export default function ToolsActionPanel({ indicatorFocusRequest = null }: Tools
       scrollToId(ID_INDICATORS);
     }
   }, [indicatorFocusRequest?.requestedAt]);
+
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        sectionSearchRef.current?.focus();
+        sectionSearchRef.current?.select();
+      }
+    };
+
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, []);
 
   useEffect(() => {
     if (typeof IntersectionObserver === "undefined") return;
@@ -240,6 +260,34 @@ export default function ToolsActionPanel({ indicatorFocusRequest = null }: Tools
   const handleIndexSelect = (id: ToolboxSectionId) => {
     setActiveSection(id);
     scrollToId(id);
+  };
+
+  const visibleIndex = useMemo(() => {
+    const needle = sectionQuery.trim().toLowerCase();
+    if (!needle) {
+      return TOOLBOX_INDEX;
+    }
+
+    return TOOLBOX_INDEX.filter((item) => (
+      item.label.toLowerCase().includes(needle) ||
+      item.shortLabel.toLowerCase().includes(needle) ||
+      item.id.toLowerCase().includes(needle)
+    ));
+  }, [sectionQuery]);
+
+  const activeSectionMeta = TOOLBOX_INDEX.find((item) => item.id === activeSection) ?? TOOLBOX_INDEX[0];
+
+  const handleSectionSearchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter" && visibleIndex[0]) {
+      event.preventDefault();
+      handleIndexSelect(visibleIndex[0].id);
+    }
+
+    if (event.key === "Escape") {
+      event.preventDefault();
+      setSectionQuery("");
+      sectionSearchRef.current?.focus();
+    }
   };
 
 
@@ -298,10 +346,103 @@ export default function ToolsActionPanel({ indicatorFocusRequest = null }: Tools
         <div id="tools-title" className={styles.cardTitle}>Tools</div>
         <div className={styles.cardSub}>Center actions &amp; exports</div>
 
-        {}
+        <div className={styles.toolboxCommandBar} aria-label="Toolbox command center">
+          <div className={styles.toolboxContextBlock}>
+            <div className={styles.toolboxContextTitle}>{activeSectionMeta.shortLabel}</div>
+            <div className={styles.toolboxContextMeta}>
+              {activeProject ? `${aliasOrName} · ${scale}` : "No active project"} · {scopeCountSummary}
+            </div>
+          </div>
+
+          <div className={styles.toolboxStatusGrid} aria-label="Toolbox status summary">
+            <div className={styles.toolboxStatusItem}>
+              <span className={styles.toolboxStatusLabel}>Project</span>
+              <span className={styles.toolboxStatusValue}>{hasActiveProject ? "selected" : "missing"}</span>
+            </div>
+            <div className={styles.toolboxStatusItem}>
+              <span className={styles.toolboxStatusLabel}>Cohort</span>
+              <span className={styles.toolboxStatusValue}>{cohortCount}/{totalCount}</span>
+            </div>
+            <div className={styles.toolboxStatusItem}>
+              <span className={styles.toolboxStatusLabel}>De-ID</span>
+              <span className={styles.toolboxStatusValue}>{deid}</span>
+            </div>
+            <div className={styles.toolboxStatusItem}>
+              <span className={styles.toolboxStatusLabel}>Layout</span>
+              <span className={styles.toolboxStatusValue}>{workspaceLayoutExpanded ? "wide" : "standard"}</span>
+            </div>
+            <div className={styles.toolboxStatusItem}>
+              <span className={styles.toolboxStatusLabel}>Consent</span>
+              <span className={styles.toolboxStatusValue}>{consent ? "set" : "optional"}</span>
+            </div>
+          </div>
+
+          <div className={styles.toolboxQuickActions} aria-label="Toolbox quick actions">
+            <button
+              type="button"
+              className={styles.toolboxCommandButton}
+              onClick={() => openMapExplorer()}
+              title="Open Map Explorer"
+            >
+              <MapIcon size={14} aria-hidden="true" />
+              <span>Map</span>
+            </button>
+            <button
+              type="button"
+              className={styles.toolboxCommandButton}
+              onClick={() => window.dispatchEvent(new CustomEvent("synapse:navigate", { detail: { tab: "Workflows" } }))}
+              title="Open Workflow Library"
+            >
+              <Workflow size={14} aria-hidden="true" />
+              <span>Workflows</span>
+            </button>
+            <button
+              type="button"
+              className={styles.toolboxCommandButton}
+              onClick={() => window.dispatchEvent(new CustomEvent("synapse:navigate", { detail: { tab: "Report" } }))}
+              title="Open Report Builder"
+            >
+              <FileText size={14} aria-hidden="true" />
+              <span>Report</span>
+            </button>
+            <button
+              type="button"
+              className={styles.toolboxCommandButton}
+              onClick={() => handleIndexSelect(ID_PREVIEW)}
+              title="Jump to Preview & Validation"
+            >
+              <ShieldCheck size={14} aria-hidden="true" />
+              <span>Preview</span>
+            </button>
+            <button
+              type="button"
+              className={styles.toolboxCommandButton}
+              onClick={() => handleIndexSelect(ID_EXPORT)}
+              title="Jump to Export"
+            >
+              <Download size={14} aria-hidden="true" />
+              <span>Export</span>
+            </button>
+          </div>
+        </div>
+
+        <label className={styles.toolboxSearchWrap}>
+          <Search className={styles.toolboxSearchIcon} size={14} aria-hidden="true" />
+          <input
+            ref={sectionSearchRef}
+            className={styles.toolboxSectionSearch}
+            value={sectionQuery}
+            onChange={(event) => setSectionQuery(event.target.value)}
+            onKeyDown={handleSectionSearchKeyDown}
+            aria-label="Search Toolbox sections"
+            placeholder="Search toolbox sections... Ctrl+K"
+          />
+          <span className={styles.toolboxSectionCount}>{visibleIndex.length}/{TOOLBOX_INDEX.length}</span>
+        </label>
+
         <div className={styles.hstack} style={{ marginTop: 8 }}>
           <div className={styles.seg} role="tablist" aria-label="Tools sections">
-            {TOOLBOX_INDEX.map((item) => (
+            {visibleIndex.length > 0 ? visibleIndex.map((item) => (
               <button
                 key={item.id}
                 type="button"
@@ -316,7 +457,9 @@ export default function ToolsActionPanel({ indicatorFocusRequest = null }: Tools
               >
                 {item.shortLabel}
               </button>
-            ))}
+            )) : (
+              <span className={styles.toolboxNoMatches} role="status">No matching section</span>
+            )}
           </div>
         </div>
         {}

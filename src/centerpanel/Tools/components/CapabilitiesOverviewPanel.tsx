@@ -76,22 +76,22 @@ export default function CapabilitiesOverviewPanel({
   }, []);
 
   return (
-    <div style={{ display: "grid", gap: 14 }} data-testid="tools-capabilities-overview">
-      <div className={`${styles.callout} ${styles.calloutInfo}`}>
-        <div className={styles.calloutHeader}>
-          <div className={styles.calloutTitle}>Release candidate feature index</div>
-          <div className={styles.calloutMeta}>
+    <div className={styles.capabilityOverview} data-testid="tools-capabilities-overview">
+      <div className={styles.capabilityIntro}>
+        <div className={styles.capabilityHeader}>
+          <div className={styles.capabilityTitle}>Release candidate feature index</div>
+          <div className={styles.capabilityMeta}>
             {WORKSPACE_TABS.length} tabs · {FLOW_LIBRARY_ITEMS.length} workflows · {TOOL_SURFACES.length} toolbox surfaces
           </div>
         </div>
-        <div className={styles.calloutBody} style={{ display: "grid", gap: 10 }}>
-          <div className={styles.meta}>
+        <div className={styles.capabilityBody}>
+          <div className={styles.capabilityDescription}>
             Use this index to reach every major release surface without relying on internal route knowledge. It is the operator-facing overview for visual verification, smoke checks, and guided walkthroughs.
           </div>
-          <div className={styles.hstack} style={{ flexWrap: "wrap", gap: 8 }}>
+          <div className={styles.capabilityCommandRow}>
             <button
               type="button"
-              className={styles.segBtn}
+              className={styles.capabilityCommand}
               data-testid="capabilities-open-map-explorer"
               onClick={() => openMapExplorer()}
             >
@@ -99,7 +99,7 @@ export default function CapabilitiesOverviewPanel({
             </button>
             <button
               type="button"
-              className={styles.segBtn}
+              className={styles.capabilityCommand}
               data-testid="capabilities-open-report"
               onClick={() => openTab("Report")}
             >
@@ -107,7 +107,7 @@ export default function CapabilitiesOverviewPanel({
             </button>
             <button
               type="button"
-              className={styles.segBtn}
+              className={styles.capabilityCommand}
               data-testid="capabilities-open-workflows"
               onClick={() => openTab("Workflows")}
             >
@@ -115,7 +115,7 @@ export default function CapabilitiesOverviewPanel({
             </button>
             <button
               type="button"
-              className={styles.segBtn}
+              className={styles.capabilityCommand}
               data-testid="capabilities-open-toolbox-geoai"
               onClick={() => onOpenToolSurface("tools-geoai")}
             >
@@ -125,27 +125,22 @@ export default function CapabilitiesOverviewPanel({
         </div>
       </div>
 
-      <section className={`${styles.callout} ${styles.calloutInfo}`} aria-label="Workspace tabs">
-        <div className={styles.calloutHeader}>
-          <div className={styles.calloutTitle}>Workspace tabs</div>
-          <div className={styles.calloutMeta}>Top-level surfaces available from the center-panel header</div>
+      <section className={styles.capabilitySection} aria-label="Workspace tabs">
+        <div className={styles.capabilityHeader}>
+          <div className={styles.capabilityTitle}>Workspace tabs</div>
+          <div className={styles.capabilityMeta}>Top-level surfaces available from the center-panel header</div>
         </div>
-        <div className={styles.calloutBody} style={{ display: "grid", gap: 10 }}>
+        <div className={styles.capabilityMatrix}>
           {WORKSPACE_TABS.map((entry) => (
             <div
               key={entry.tab}
-              style={{
-                display: "grid",
-                gridTemplateColumns: "minmax(140px, 180px) minmax(0, 1fr) auto",
-                gap: 10,
-                alignItems: "center",
-              }}
+              className={styles.capabilityRow}
             >
-              <div className={styles.textStronger}>{entry.tab}</div>
-              <div className={styles.meta}>{entry.summary}</div>
+              <div className={styles.capabilityName}>{entry.tab}</div>
+              <div className={styles.capabilitySummary}>{entry.summary}</div>
               <button
                 type="button"
-                className={styles.segBtn}
+                className={styles.capabilityAction}
                 data-testid={`capabilities-tab-${entry.tab.toLowerCase().replace(/\s+/g, "-")}`}
                 onClick={() => openTab(entry.tab)}
               >
@@ -156,27 +151,22 @@ export default function CapabilitiesOverviewPanel({
         </div>
       </section>
 
-      <section className={`${styles.callout} ${styles.calloutInfo}`} aria-label="Toolbox surfaces">
-        <div className={styles.calloutHeader}>
-          <div className={styles.calloutTitle}>Toolbox surfaces</div>
-          <div className={styles.calloutMeta}>Runtime, validation, and export sections available inside Toolbox</div>
+      <section className={styles.capabilitySection} aria-label="Toolbox surfaces">
+        <div className={styles.capabilityHeader}>
+          <div className={styles.capabilityTitle}>Toolbox surfaces</div>
+          <div className={styles.capabilityMeta}>Runtime, validation, and export sections available inside Toolbox</div>
         </div>
-        <div className={styles.calloutBody} style={{ display: "grid", gap: 10 }}>
+        <div className={styles.capabilityMatrix}>
           {TOOL_SURFACES.map((surface) => (
             <div
               key={surface.id}
-              style={{
-                display: "grid",
-                gridTemplateColumns: "minmax(160px, 200px) minmax(0, 1fr) auto",
-                gap: 10,
-                alignItems: "center",
-              }}
+              className={styles.capabilityRow}
             >
-              <div className={styles.textStronger}>{surface.label}</div>
-              <div className={styles.meta}>{surface.summary}</div>
+              <div className={styles.capabilityName}>{surface.label}</div>
+              <div className={styles.capabilitySummary}>{surface.summary}</div>
               <button
                 type="button"
-                className={styles.segBtn}
+                className={styles.capabilityAction}
                 data-testid={`capabilities-tool-${surface.id.replace(/^tools-/, "")}`}
                 onClick={() => onOpenToolSurface(surface.id)}
               >
@@ -187,30 +177,25 @@ export default function CapabilitiesOverviewPanel({
         </div>
       </section>
 
-      <section className={`${styles.callout} ${styles.calloutInfo}`} aria-label="Analytical workflows">
-        <div className={styles.calloutHeader}>
-          <div className={styles.calloutTitle}>Analytical workflows</div>
-          <div className={styles.calloutMeta}>Direct launch paths into the release workflow library</div>
+      <section className={styles.capabilitySection} aria-label="Analytical workflows">
+        <div className={styles.capabilityHeader}>
+          <div className={styles.capabilityTitle}>Analytical workflows</div>
+          <div className={styles.capabilityMeta}>Direct launch paths into the release workflow library</div>
         </div>
-        <div className={styles.calloutBody} style={{ display: "grid", gap: 12 }}>
+        <div className={styles.capabilityMatrix}>
           {groupedFlows.map((group) => (
-            <div key={group.category} style={{ display: "grid", gap: 8 }}>
-              <div className={styles.textStronger}>{group.label}</div>
+            <div key={group.category} className={styles.capabilityGroup}>
+              <div className={styles.capabilityGroupTitle}>{group.label}</div>
               {group.items.map((item) => (
                 <div
                   key={item.flowId}
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "minmax(220px, 260px) minmax(0, 1fr) auto",
-                    gap: 10,
-                    alignItems: "center",
-                  }}
+                  className={styles.capabilityRow}
                 >
-                  <div className={styles.textStronger}>{item.title}</div>
-                  <div className={styles.meta}>{item.analysisFocus}</div>
+                  <div className={styles.capabilityName}>{item.title}</div>
+                  <div className={styles.capabilitySummary}>{item.analysisFocus}</div>
                   <button
                     type="button"
-                    className={styles.segBtn}
+                    className={styles.capabilityAction}
                     data-testid={`capabilities-flow-${item.flowId}`}
                     onClick={() => openFlow(item.flowId)}
                   >

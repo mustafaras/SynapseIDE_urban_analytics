@@ -210,6 +210,7 @@ const CenterPanelShell: React.FC<CenterPanelShellProps> = ({
 	const overlayLayers = useMapExplorerStore(s => s.overlayLayers);
 	const addOverlayLayer = useMapExplorerStore(s => s.addOverlayLayer);
 	const completedRuns = useFlowStore(s => s.completedRuns);
+	const workspaceLayoutExpanded = usePanelBridgeStore(s => s.workspaceLayoutExpanded);
 
 	useEffect(() => {
 		if (completedRuns.length === 0) {
@@ -286,7 +287,13 @@ const CenterPanelShell: React.FC<CenterPanelShellProps> = ({
 
 		return (
 			<CollaborationProvider>
-				<section className={styles.shell} data-access-mode={mode} aria-label="Center panel area" data-reduce-motion={reduceMotion ? true : undefined}>
+				<section
+					className={styles.shell}
+					data-access-mode={mode}
+					data-workspace-layout={workspaceLayoutExpanded ? "expanded" : "standard"}
+					aria-label="Center panel area"
+					data-reduce-motion={reduceMotion ? true : undefined}
+				>
 		<a href={`#${MAIN_SCROLL_ROOT_ID}`} className={a11y.skipLink}>Skip to main content</a>
 
 	            {}

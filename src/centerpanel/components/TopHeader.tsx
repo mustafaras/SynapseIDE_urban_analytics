@@ -1,11 +1,13 @@
 ﻿import React, { useEffect, useMemo, useRef, useState } from "react";
 import { LuActivity, LuBookOpen, LuDatabase, LuFileEdit, LuLayoutDashboard, LuShield, LuUserPlus, LuWorkflow, LuWrench } from "react-icons/lu";
+import { Maximize2, Minimize2 } from "lucide-react";
 import hdr from "../styles/header-new.module.css";
 import { fmtClock } from "../lib/persist";
 import StatusRail from "./StatusRail";
 import OverflowMenu from "./OverflowMenu";
 import { logEvent } from "@/utils/telemetry";
 import BackgroundTasksControl from "./BackgroundTasksControl";
+import { usePanelBridgeStore } from "@/stores/usePanelBridgeStore";
 
 export interface TopHeaderProps {
   tabs: string[];
@@ -45,6 +47,8 @@ const TopHeader: React.FC<TopHeaderProps> = ({ tabs, activeTab, onTabChange, ses
   const didMountRef = useRef(false);
   const [systemStatus, setSystemStatus] = useState<'healthy' | 'processing' | 'idle'>('idle');
   const [animateTransition, setAnimateTransition] = useState(false);
+  const workspaceLayoutExpanded = usePanelBridgeStore((state) => state.workspaceLayoutExpanded);
+  const toggleWorkspaceLayout = usePanelBridgeStore((state) => state.toggleWorkspaceLayoutExpanded);
   const handleTablistKeyDown: React.KeyboardEventHandler<HTMLDivElement> = (e) => {
     if (e.altKey || e.metaKey || e.ctrlKey) return;
     switch (e.key) {
@@ -459,6 +463,18 @@ const TopHeader: React.FC<TopHeaderProps> = ({ tabs, activeTab, onTabChange, ses
 
         <div className={hdr.right} aria-label="Session controls">
           {children}
+          <button
+            type="button"
+            className={hdr.workspaceModeButton}
+            data-state={workspaceLayoutExpanded ? "active" : undefined}
+            aria-pressed={workspaceLayoutExpanded}
+            aria-label={workspaceLayoutExpanded ? "Switch workspace to standard width" : "Expand workspace to wide layout"}
+            title={workspaceLayoutExpanded ? "Wide layout — click to use standard width" : "Standard layout — click to expand"}
+            onClick={toggleWorkspaceLayout}
+            style={{ minWidth: "auto", padding: "0 6px" }}
+          >
+            {workspaceLayoutExpanded ? <Minimize2 size={13} aria-hidden="true" /> : <Maximize2 size={13} aria-hidden="true" />}
+          </button>
           <BackgroundTasksControl />
           {}
           {}

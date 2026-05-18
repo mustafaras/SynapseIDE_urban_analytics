@@ -1,4 +1,5 @@
 import React from "react";
+import { Download, Search, Star, X } from "lucide-react";
 import lcss from "../styles/tools.left.module.css";
 import tcss from "../styles/tools.module.css";
 import a11y from "../styles/a11y.module.css";
@@ -371,25 +372,24 @@ const ToolsProjectList: React.FC = () => {
       </div>
 
       {}
-  <div className={lcss.controls} style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '12px 5px' }}>
-  {}
-        <div className={lcss.searchRow} style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%' }}>
+      <div className={lcss.controls}>
+        {}
+        <div className={lcss.searchRow}>
           <div
             className={lcss.searchWrap}
             ref={searchWrapRef}
-            style={{ flex: '1 1 auto', position: 'relative', width: '100%' }}
           >
+            <Search className={lcss.searchIcon} size={14} aria-hidden="true" />
             <input
               className={lcss.searchInput}
               value={query}
               onChange={(e) => setSearchDebounced(e.target.value)}
-              placeholder="Search by name, ID, or use filters..."
+              placeholder="Search project, ID, tag"
               aria-label="Search projects by name or ID"
               ref={searchRef}
               id="tools-left-search"
               aria-controls="tools-project-listbox"
               title="Search projects"
-              style={{ width: '100%' }}
               onKeyDown={(e) => {
                 if (e.key === "Escape") {
                   e.preventDefault();
@@ -411,13 +411,13 @@ const ToolsProjectList: React.FC = () => {
                   searchRef.current?.focus();
                 }}
               >
-                ×
+                <X size={13} aria-hidden="true" />
               </button>
             ) : null}
           </div>
 
           {}
-          <div className={lcss.selectWrap} style={{ flex: '0 0 auto', minWidth: '100px' }}>
+          <div className={lcss.selectWrap}>
             <select
               className={`${tcss.select} ${lcss.selectNative}`}
               aria-label="Sort projects"
@@ -491,7 +491,9 @@ const ToolsProjectList: React.FC = () => {
                     <span className={lcss.itemName}>
                       {getAlias(p) || p.name || "Unnamed"}
                       {isPinned ? (
-                        <span className={lcss.pinBadge} aria-label="Pinned" title="Pinned">★</span>
+                        <span className={lcss.pinBadge} aria-label="Pinned" title="Pinned">
+                          <Star size={11} fill="currentColor" aria-hidden="true" />
+                        </span>
                       ) : null}
                     </span>
                     <span className={lcss.itemMeta}>#{p.id}</span>
@@ -512,42 +514,12 @@ const ToolsProjectList: React.FC = () => {
                   <div className={lcss.actions}>
                     <button
                       className={lcss.iconBtn}
-                      aria-label="Open chart"
-                      title="Open chart"
-                      aria-keyshortcuts="Enter"
-                      onClick={(e) => { e.stopPropagation(); openChart(p.id); }}
-                    >
-                      ⤴
-                    </button>
-                    <button
-                      className={lcss.iconBtn}
                       aria-label="Export last session"
                       title="Export last session"
                       aria-keyshortcuts="E"
                       onClick={(e) => { e.stopPropagation(); exportLastSession(p.id); }}
                     >
-                      ⬇
-                    </button>
-                    <button
-                      className={lcss.iconBtn}
-                      aria-label="Copy ID"
-                      title="Copy ID"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const text = String(p.id);
-                        const write = navigator.clipboard?.writeText?.(text);
-                        if (write && typeof write.then === "function") {
-                          write.catch(() => {});
-                        } else {
-                          try {
-                            const ta = document.createElement("textarea");
-                            ta.value = text; document.body.appendChild(ta); ta.select();
-                            document.execCommand("copy"); document.body.removeChild(ta);
-                          } catch {}
-                        }
-                      }}
-                    >
-                      ⎘
+                      <Download size={13} aria-hidden="true" />
                     </button>
                     <button
                       type="button"
@@ -558,7 +530,7 @@ const ToolsProjectList: React.FC = () => {
                       aria-keyshortcuts="P"
                       onClick={(e) => { e.stopPropagation(); togglePin(String(p.id)); }}
                     >
-                      {isPinned ? "★" : "☆"}
+                      <Star size={13} fill={isPinned ? "currentColor" : "none"} aria-hidden="true" />
                     </button>
                   </div>
                 </div>
@@ -603,7 +575,9 @@ const ToolsProjectList: React.FC = () => {
                     <span className={lcss.itemName}>
                       {getAlias(p) || p.name || "Unnamed"}
                       {isPinned ? (
-                        <span className={lcss.pinBadge} aria-label="Pinned" title="Pinned">★</span>
+                        <span className={lcss.pinBadge} aria-label="Pinned" title="Pinned">
+                          <Star size={11} fill="currentColor" aria-hidden="true" />
+                        </span>
                       ) : null}
                     </span>
                     <span className={lcss.itemMeta}>#{p.id}</span>
@@ -624,42 +598,12 @@ const ToolsProjectList: React.FC = () => {
                   <div className={lcss.actions}>
                     <button
                       className={lcss.iconBtn}
-                      aria-label="Open chart"
-                      title="Open chart"
-                      aria-keyshortcuts="Enter"
-                      onClick={(e) => { e.stopPropagation(); openChart(p.id); }}
-                    >
-                      ⤴
-                    </button>
-                    <button
-                      className={lcss.iconBtn}
                       aria-label="Export last session"
                       title="Export last session"
                       aria-keyshortcuts="E"
                       onClick={(e) => { e.stopPropagation(); exportLastSession(p.id); }}
                     >
-                      ⬇
-                    </button>
-                    <button
-                      className={lcss.iconBtn}
-                      aria-label="Copy ID"
-                      title="Copy ID"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const text = String(p.id);
-                        const write = navigator.clipboard?.writeText?.(text);
-                        if (write && typeof write.then === "function") {
-                          write.catch(() => {});
-                        } else {
-                          try {
-                            const ta = document.createElement("textarea");
-                            ta.value = text; document.body.appendChild(ta); ta.select();
-                            document.execCommand("copy"); document.body.removeChild(ta);
-                          } catch {}
-                        }
-                      }}
-                    >
-                      ⎘
+                      <Download size={13} aria-hidden="true" />
                     </button>
                     <button
                       type="button"
@@ -670,7 +614,7 @@ const ToolsProjectList: React.FC = () => {
                       aria-keyshortcuts="P"
                       onClick={(e) => { e.stopPropagation(); togglePin(String(p.id)); }}
                     >
-                      {isPinned ? "★" : "☆"}
+                      <Star size={13} fill={isPinned ? "currentColor" : "none"} aria-hidden="true" />
                     </button>
                   </div>
                 </div>

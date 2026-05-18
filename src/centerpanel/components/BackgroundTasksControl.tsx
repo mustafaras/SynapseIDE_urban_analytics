@@ -264,19 +264,18 @@ export const BackgroundTasksControl: React.FC<BackgroundTasksControlProps> = ({ 
         aria-haspopup="dialog"
         aria-expanded={isPanelOwner}
         aria-label={`Open background task panel — ${activeCount} active and ${queuedCount} queued`}
-        title="Background tasks"
+        title={
+          activeCount > 0 && runningAverage != null
+            ? `Background tasks — ${activeCount} active (${runningAverage}%), ${queuedCount} queued`
+            : `Background tasks — ${activeCount} active, ${queuedCount} queued`
+        }
         data-testid="background-task-button"
       >
         <span className={styles.buttonLabel}>
           {activeCount > 0 ? <LoaderCircle size={14} /> : <ListOrdered size={14} />}
-          {compact ? <span className={styles.srOnly}>Tasks</span> : "Tasks"}
+          <span className={styles.srOnly}>Tasks</span>
         </span>
         <span className={styles.badge}>{activeCount + queuedCount}</span>
-        {compact ? null : (
-          <span className={styles.buttonMeta}>
-            {activeCount > 0 && runningAverage != null ? `${runningAverage}% active` : `${queuedCount} queued`}
-          </span>
-        )}
       </button>
 
       {isPanelOwner && anchorRect && typeof document !== 'undefined'

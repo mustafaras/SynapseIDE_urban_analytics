@@ -3338,3 +3338,571 @@ textarea:-webkit-autofill {
     transform: none !important;
   }
 }
+
+/* ============================================================ */
+/* Toolbox premium full-width workbench pass                     */
+/* Flattens stacked cards into inspector bands and dense rows.   */
+/* ============================================================ */
+
+.toolsCenter {
+  background: var(--syn-vscode-bg-editor, var(--syn-surface-editor)) !important;
+  color: var(--syn-vscode-text-primary, var(--syn-text-default)) !important;
+  container-type: inline-size;
+  font-size: 12.5px;
+}
+
+.toolsCenter > [data-testid="tools-header"] {
+  display: grid !important;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 4px 12px;
+  align-items: center;
+  padding: 10px 14px 8px !important;
+  background: color-mix(in srgb, var(--syn-vscode-bg-editor, #1f232a) 94%, black 6%) !important;
+}
+
+.toolsCenter > [data-testid="tools-header"] > .cardTitle {
+  margin: 0 !important;
+}
+
+.toolsCenter > [data-testid="tools-header"] > .cardSub {
+  justify-self: start;
+}
+
+.toolsCenter > [data-testid="tools-header"] > .hstack {
+  grid-column: 1 / -1;
+  margin-top: 4px !important;
+}
+
+.toolsCenter > [data-testid="tools-header"] > .toolboxCommandBar,
+.toolsCenter > [data-testid="tools-header"] > .toolboxSearchWrap {
+  grid-column: 1 / -1;
+}
+
+.toolsCenter [data-testid="tools-header"] .seg {
+  border: 0 !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+}
+
+.toolsCenter [data-testid="tools-header"] .segBtn {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--syn-vscode-text-secondary, var(--syn-text-secondary)) !important;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-size: 10.5px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.toolsCenter [data-toolbox-section="true"],
+.toolsCenter .panel,
+.toolsCenter .panelAmber {
+  inline-size: 100%;
+  margin: 0 !important;
+  padding: 16px 18px !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--syn-vscode-border-subtle, var(--syn-border-subtle)) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.toolsCenter [data-toolbox-section="true"] > .cardHeader,
+.toolsCenter .cardHeaderV2 {
+  padding: 0 0 8px !important;
+  margin: 0 0 10px !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--syn-vscode-border-subtle, var(--syn-border-subtle)) !important;
+  background: transparent !important;
+}
+
+.toolsCenter .cardTitle,
+.toolsCenter .cardTitleV2,
+.toolsCenter .cardTitleAmber {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 8px;
+  color: var(--syn-vscode-text-primary, var(--syn-text-default)) !important;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace) !important;
+  font-size: 11px !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+}
+
+.toolsCenter .cardTitleAmber::before {
+  inline-size: 2px !important;
+  block-size: 12px !important;
+  border-radius: 0 !important;
+  background: var(--syn-vscode-accent-blue, #3794ff) !important;
+}
+
+.toolsCenter .cardSub,
+.toolsCenter .cardSubV2,
+.toolsCenter .meta {
+  color: var(--syn-vscode-text-muted, var(--syn-text-muted)) !important;
+}
+
+.toolsCenter .meta {
+  max-inline-size: none !important;
+  line-height: 1.45;
+}
+
+.toolsCenter .callout {
+  border: 0 !important;
+  border-top: 1px solid var(--syn-vscode-border-subtle, var(--syn-border-subtle)) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 10px 0 !important;
+}
+
+.toolsCenter .callout::before {
+  display: none !important;
+}
+
+.toolsCenter .segBtn,
+.toolsCenter .btn,
+.toolsCenter .btnGhost,
+.toolsCenter .btnIcon {
+  border-radius: 3px !important;
+}
+
+.capabilityOverview {
+  display: grid;
+  gap: 0;
+}
+
+.capabilityIntro,
+.capabilitySection {
+  display: grid;
+  gap: 10px;
+  padding: 0 0 14px;
+  border-bottom: 1px solid var(--syn-vscode-border-subtle, var(--syn-border-subtle));
+}
+
+.capabilitySection {
+  padding-top: 14px;
+}
+
+.capabilityHeader {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: baseline;
+}
+
+.capabilityTitle,
+.capabilityGroupTitle {
+  color: var(--syn-vscode-text-secondary, var(--syn-text-secondary));
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.capabilityMeta,
+.capabilityDescription,
+.capabilitySummary {
+  color: var(--syn-vscode-text-muted, var(--syn-text-muted));
+  line-height: 1.45;
+}
+
+.capabilityMeta {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+
+.capabilityBody {
+  display: grid;
+  gap: 10px;
+}
+
+.capabilityCommandRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  border-top: 1px solid var(--syn-vscode-border-subtle, var(--syn-border-subtle));
+  border-bottom: 1px solid var(--syn-vscode-border-subtle, var(--syn-border-subtle));
+}
+
+.capabilityCommand,
+.capabilityAction {
+  min-block-size: 30px;
+  border: 0;
+  border-right: 1px solid var(--syn-vscode-border-subtle, var(--syn-border-subtle));
+  background: transparent;
+  color: var(--syn-vscode-text-secondary, var(--syn-text-secondary));
+  cursor: pointer;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition: background-color 120ms ease, color 120ms ease, box-shadow 120ms ease;
+}
+
+.capabilityCommand {
+  padding: 0 12px;
+}
+
+.capabilityAction {
+  justify-self: end;
+  min-inline-size: 56px;
+  padding: 0 8px;
+  border-left: 1px solid var(--syn-vscode-border-subtle, var(--syn-border-subtle));
+}
+
+.capabilityCommand:hover,
+.capabilityAction:hover {
+  background: color-mix(in srgb, var(--syn-vscode-accent-blue, #3794ff) 9%, transparent);
+  color: var(--syn-vscode-text-primary, var(--syn-text-default));
+  box-shadow: inset 0 -1px 0 var(--syn-vscode-accent-blue, #3794ff);
+}
+
+.capabilityCommand:focus-visible,
+.capabilityAction:focus-visible {
+  outline: 1px solid var(--syn-vscode-accent-blue, #3794ff);
+  outline-offset: -1px;
+}
+
+.capabilityMatrix {
+  display: grid;
+  border-top: 1px solid var(--syn-vscode-border-subtle, var(--syn-border-subtle));
+}
+
+.capabilityGroup {
+  display: grid;
+  gap: 0;
+}
+
+.capabilityGroup + .capabilityGroup {
+  border-top: 1px solid var(--syn-vscode-border-subtle, var(--syn-border-subtle));
+}
+
+.capabilityGroupTitle {
+  padding: 10px 0 7px;
+  color: var(--syn-vscode-accent-blue, var(--syn-text-link));
+}
+
+.capabilityRow {
+  display: grid;
+  grid-template-columns: minmax(160px, 0.28fr) minmax(0, 1fr) minmax(58px, auto);
+  gap: 12px;
+  align-items: center;
+  min-block-size: 40px;
+  border-bottom: 1px solid var(--syn-vscode-border-subtle, var(--syn-border-subtle));
+  transition: background-color 120ms ease;
+}
+
+.capabilityRow:hover {
+  background: color-mix(in srgb, var(--syn-vscode-accent-blue, #3794ff) 5%, transparent);
+}
+
+.capabilityName {
+  min-inline-size: 0;
+  overflow: hidden;
+  color: var(--syn-vscode-text-primary, var(--syn-text-default));
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-size: 13px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+}
+
+.capabilitySummary {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ============================================================ */
+/* Toolbox command center — searchable, action-oriented surface  */
+/* ============================================================ */
+
+@keyframes toolboxCommandIn {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes toolboxActionSweep {
+  from {
+    transform: translateX(-110%);
+  }
+  to {
+    transform: translateX(110%);
+  }
+}
+
+.toolboxCommandBar {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.9fr) minmax(300px, 1.4fr) minmax(320px, 1.2fr);
+  gap: 10px;
+  align-items: stretch;
+  margin-block-start: 8px;
+  padding: 8px;
+  border-top: 1px solid var(--syn-vscode-border-subtle, var(--syn-border-subtle));
+  border-bottom: 1px solid var(--syn-vscode-border-subtle, var(--syn-border-subtle));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--syn-vscode-bg-sidebar, #252a32) 54%, transparent), transparent);
+  animation: toolboxCommandIn 180ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+}
+
+.toolboxContextBlock,
+.toolboxStatusItem {
+  display: grid;
+  align-content: center;
+  min-block-size: 42px;
+  padding-inline: 10px;
+  border-left: 2px solid var(--syn-vscode-accent-blue, #3794ff);
+  background: color-mix(in srgb, var(--syn-vscode-accent-blue, #3794ff) 5%, transparent);
+}
+
+.toolboxContextTitle {
+  overflow: hidden;
+  color: var(--syn-vscode-text-primary, var(--syn-text-default));
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.toolboxContextMeta {
+  overflow: hidden;
+  color: var(--syn-vscode-text-muted, var(--syn-text-muted));
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-size: 10.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.toolboxStatusGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 1px;
+  border: 1px solid var(--syn-vscode-border-subtle, var(--syn-border-subtle));
+  background: var(--syn-vscode-border-subtle, var(--syn-border-subtle));
+}
+
+.toolboxStatusItem {
+  min-block-size: 42px;
+  border-left: 0;
+  background: color-mix(in srgb, var(--syn-vscode-bg-editor, #1f232a) 92%, black 8%);
+}
+
+.toolboxStatusLabel,
+.toolboxStatusValue,
+.toolboxSectionCount,
+.toolboxNoMatches {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+}
+
+.toolboxStatusLabel {
+  color: var(--syn-vscode-text-muted, var(--syn-text-muted));
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.toolboxStatusValue {
+  overflow: hidden;
+  color: var(--syn-vscode-text-secondary, var(--syn-text-secondary));
+  font-size: 11px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.toolboxQuickActions {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 1px;
+  border: 1px solid var(--syn-vscode-border-subtle, var(--syn-border-subtle));
+  background: var(--syn-vscode-border-subtle, var(--syn-border-subtle));
+}
+
+.toolboxCommandButton {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-block-size: 42px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  background: color-mix(in srgb, var(--syn-vscode-bg-editor, #1f232a) 94%, black 6%);
+  color: var(--syn-vscode-text-secondary, var(--syn-text-secondary));
+  cursor: pointer;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  transition:
+    background-color 130ms ease,
+    color 130ms ease,
+    transform 130ms ease;
+}
+
+.toolboxCommandButton::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inline-size: 38%;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--syn-vscode-accent-blue, #3794ff) 22%, transparent), transparent);
+  opacity: 0;
+  transform: translateX(-110%);
+  pointer-events: none;
+}
+
+.toolboxCommandButton:hover {
+  background: color-mix(in srgb, var(--syn-vscode-accent-blue, #3794ff) 11%, var(--syn-vscode-bg-editor, #1f232a));
+  color: var(--syn-vscode-text-primary, var(--syn-text-default));
+  transform: translateY(-1px);
+}
+
+.toolboxCommandButtonActive {
+  background: color-mix(in srgb, var(--syn-vscode-accent-blue, #3794ff) 15%, var(--syn-vscode-bg-editor, #1f232a));
+  color: var(--syn-vscode-text-primary, var(--syn-text-default));
+  box-shadow: inset 0 -2px 0 var(--syn-vscode-accent-blue, #3794ff);
+}
+
+.toolboxCommandButton:hover::after {
+  opacity: 1;
+  animation: toolboxActionSweep 520ms ease-out both;
+}
+
+.toolboxCommandButton:active {
+  transform: translateY(0);
+}
+
+.toolboxCommandButton svg {
+  color: var(--syn-vscode-accent-blue, #3794ff);
+}
+
+.toolboxSearchWrap {
+  position: relative;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  gap: 6px;
+  align-items: center;
+  min-block-size: 30px;
+  margin-block-start: 2px;
+  padding: 0 8px;
+  border: 1px solid var(--syn-vscode-border-subtle, var(--syn-border-subtle));
+  background: var(--syn-vscode-bg-input, color-mix(in srgb, var(--syn-vscode-bg-editor, #1f232a) 86%, black 14%));
+}
+
+.toolboxSearchIcon {
+  color: var(--syn-vscode-text-muted, var(--syn-text-muted));
+}
+
+.toolboxSectionSearch {
+  inline-size: 100%;
+  block-size: 28px;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  outline: 0 !important;
+  color: var(--syn-vscode-text-primary, var(--syn-text-default));
+}
+
+.toolboxSectionSearch::placeholder {
+  color: var(--syn-vscode-text-muted, var(--syn-text-muted));
+}
+
+.toolboxSearchWrap:focus-within {
+  border-color: var(--syn-vscode-accent-blue, #3794ff);
+  box-shadow: inset 0 -1px 0 var(--syn-vscode-accent-blue, #3794ff);
+}
+
+.toolboxSectionCount {
+  color: var(--syn-vscode-text-muted, var(--syn-text-muted));
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.toolboxNoMatches {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 25px;
+  padding-inline: 8px;
+  color: var(--syn-vscode-text-muted, var(--syn-text-muted));
+  font-size: 10.5px;
+}
+
+@media (max-width: 900px) {
+  .toolboxCommandBar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .toolboxStatusGrid,
+  .toolboxQuickActions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .capabilityHeader,
+  .capabilityRow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .capabilityMeta {
+    white-space: normal;
+  }
+
+  .capabilityAction {
+    justify-self: start;
+    border-left: 0;
+  }
+}
+
+@container (max-width: 760px) {
+  .toolboxCommandBar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .toolboxStatusGrid,
+  .toolboxQuickActions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .toolboxCommandButton {
+    justify-content: flex-start;
+    padding-inline: 10px;
+  }
+}
+
+@container (max-width: 460px) {
+  .toolboxStatusGrid,
+  .toolboxQuickActions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .toolboxStatusGrid,
+  .toolboxQuickActions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toolboxCommandBar,
+  .toolboxCommandButton,
+  .toolboxCommandButton::after {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+}

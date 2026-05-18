@@ -920,3 +920,286 @@
     transform: none !important;
   }
 }
+
+/* ============================================================ */
+/* Toolbox rail premium density pass — no vertical text, fewer  */
+/* actions, stable VS Code-style rows.                          */
+/* ============================================================ */
+
+.wrap {
+  block-size: 100%;
+  background: var(--syn-vscode-bg-sidebar, var(--syn-surface-navigation)) !important;
+  color: var(--syn-vscode-text-primary, var(--syn-text-default)) !important;
+  overflow: hidden !important;
+}
+
+.headerTop {
+  min-block-size: 44px !important;
+  padding: 10px 12px !important;
+  background: var(--syn-vscode-bg-sidebar, var(--syn-surface-navigation)) !important;
+}
+
+.headerTitle {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace) !important;
+  font-size: 12px !important;
+  letter-spacing: 0.08em !important;
+}
+
+.headerStats {
+  gap: 6px !important;
+  min-inline-size: 0 !important;
+}
+
+.statCard {
+  padding: 0 !important;
+  border-bottom: 0 !important;
+}
+
+.statLabel {
+  max-inline-size: 42px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.controls {
+  padding: 10px 12px !important;
+  background: color-mix(in srgb, var(--syn-vscode-bg-sidebar, #252a31) 88%, black 12%) !important;
+}
+
+.searchRow {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px !important;
+  background: transparent !important;
+  border: 0 !important;
+}
+
+.searchWrap {
+  position: relative !important;
+  inline-size: 100% !important;
+  padding: 0 !important;
+}
+
+.searchWrap::before {
+  display: none !important;
+}
+
+.searchIcon {
+  position: absolute;
+  inset-inline-start: 10px;
+  inset-block-start: 50%;
+  transform: translateY(-50%);
+  color: var(--syn-vscode-text-muted, var(--syn-text-muted));
+  pointer-events: none;
+  z-index: 2;
+}
+
+.searchInput {
+  block-size: 32px !important;
+  inline-size: 100% !important;
+  padding: 0 32px !important;
+  border: 1px solid var(--syn-vscode-border-subtle, var(--syn-border-subtle)) !important;
+  border-radius: 3px !important;
+  background: var(--syn-vscode-bg-input, var(--syn-surface-input)) !important;
+  color: var(--syn-vscode-text-primary, var(--syn-text-default)) !important;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace) !important;
+  font-size: 11.5px !important;
+}
+
+.searchInput:focus {
+  border-color: var(--syn-vscode-accent-blue, var(--syn-border-focus)) !important;
+  box-shadow: 0 0 0 1px var(--syn-vscode-accent-blue, var(--syn-border-focus)) !important;
+}
+
+.clearBtn {
+  inset-inline-end: 6px !important;
+  inline-size: 22px !important;
+  block-size: 22px !important;
+  border-radius: 3px !important;
+  background: transparent !important;
+  border-color: transparent !important;
+}
+
+.clearBtn:hover {
+  background: color-mix(in srgb, var(--syn-vscode-accent-blue, #3794ff) 10%, transparent) !important;
+  border-color: color-mix(in srgb, var(--syn-vscode-accent-blue, #3794ff) 28%, transparent) !important;
+}
+
+.selectWrap {
+  inline-size: 100% !important;
+  min-inline-size: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+.selectWrap::after {
+  inset-inline-end: 10px !important;
+}
+
+.selectNative {
+  block-size: 28px !important;
+  border-radius: 3px !important;
+  background: transparent !important;
+  color: var(--syn-vscode-text-secondary, var(--syn-text-secondary)) !important;
+  font-size: 11px !important;
+}
+
+.chipRow {
+  padding: 8px 12px !important;
+  gap: 4px !important;
+  background: transparent !important;
+}
+
+.chip,
+.chipPinned {
+  block-size: 24px !important;
+  line-height: 22px !important;
+  padding: 0 8px !important;
+  border-radius: 3px !important;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace) !important;
+  font-size: 10.5px !important;
+}
+
+.list {
+  flex: 1 1 auto !important;
+  min-block-size: 0 !important;
+  overflow-y: auto !important;
+  padding: 2px 0 10px !important;
+  background: transparent !important;
+}
+
+.item {
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  gap: 8px !important;
+  min-block-size: 70px;
+  padding: 9px 10px 9px 12px !important;
+  margin: 0 !important;
+  border-bottom: 1px solid var(--syn-vscode-border-subtle, var(--syn-border-subtle)) !important;
+}
+
+.item:hover {
+  background: color-mix(in srgb, var(--syn-vscode-accent-blue, #3794ff) 7%, transparent) !important;
+}
+
+.itemActive::before,
+.item[aria-current="true"]::before {
+  left: 0 !important;
+  right: auto !important;
+  top: 7px !important;
+  bottom: 7px !important;
+  width: 2px !important;
+  height: auto !important;
+  border-radius: 0 2px 2px 0 !important;
+  background: var(--syn-vscode-accent-blue, #3794ff) !important;
+}
+
+.itemMain {
+  min-inline-size: 0 !important;
+  gap: 5px !important;
+}
+
+.itemTopRow {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(42px, auto);
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.itemSubRow {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 3px !important;
+}
+
+.itemName,
+.itemMeta,
+.itemTopRow > .itemMeta,
+.itemSubRow > .itemMeta {
+  min-inline-size: 0 !important;
+  overflow: hidden !important;
+  overflow-wrap: normal !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  word-break: normal !important;
+}
+
+.itemName {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--syn-vscode-text-primary, var(--syn-text-default)) !important;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace) !important;
+  font-size: 11.5px !important;
+}
+
+.itemMeta {
+  color: var(--syn-vscode-text-muted, var(--syn-text-muted)) !important;
+  opacity: 1 !important;
+  text-align: left !important;
+}
+
+.itemTopRow > .itemMeta {
+  max-inline-size: 76px;
+  text-align: right !important;
+}
+
+.itemRight {
+  min-inline-size: 28px !important;
+  gap: 6px !important;
+}
+
+.actions {
+  display: inline-flex !important;
+  gap: 2px !important;
+  opacity: 0.62 !important;
+  pointer-events: auto !important;
+  transform: none !important;
+}
+
+.item:hover .actions,
+.item:focus-within .actions,
+.itemActive .actions,
+.item[aria-current="true"] .actions {
+  opacity: 1 !important;
+}
+
+.iconBtn,
+.pinBtn {
+  inline-size: 24px !important;
+  block-size: 24px !important;
+  min-inline-size: 24px !important;
+  min-block-size: 24px !important;
+  padding: 0 !important;
+  border-radius: 3px !important;
+  border: 1px solid transparent !important;
+  background: transparent !important;
+  color: var(--syn-vscode-text-muted, var(--syn-text-muted)) !important;
+}
+
+.iconBtn:hover,
+.pinBtn:hover {
+  background: color-mix(in srgb, var(--syn-vscode-accent-blue, #3794ff) 10%, transparent) !important;
+  border-color: color-mix(in srgb, var(--syn-vscode-accent-blue, #3794ff) 34%, transparent) !important;
+  color: var(--syn-vscode-accent-blue, #3794ff) !important;
+}
+
+.pinBadge {
+  display: inline-flex !important;
+  margin-left: 0 !important;
+  color: var(--syn-status-valid, var(--syn-vscode-status-valid, #4ec27d)) !important;
+  background: transparent !important;
+  border: 0 !important;
+}
+
+.iconBtnOn {
+  color: var(--syn-status-valid, var(--syn-vscode-status-valid, #4ec27d)) !important;
+}
+
+.riskChip {
+  max-inline-size: 72px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

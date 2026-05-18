@@ -50,12 +50,42 @@ const DEFAULT_OVERLAP = 96;
 const DEFAULT_NMS_IOU = 0.45;
 
 const PANEL: React.CSSProperties = {
-  background: '#1a1a1a',
-  border: '1px solid rgba(245, 158, 11, 0.2)',
+  background: 'var(--syn-surface-panel)',
+  border: '1px solid var(--syn-border-subtle)',
+  borderRadius: 3,
   padding: '1.25rem',
-  color: '#e5e5e5',
+  color: 'var(--syn-text-default)',
   fontSize: '0.78rem',
   lineHeight: 1.4,
+  fontFamily: 'var(--codefont, "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace)',
+};
+
+const SUBLABEL: React.CSSProperties = {
+  fontSize: '10px',
+  letterSpacing: '0.14em',
+  textTransform: 'uppercase',
+  color: 'var(--syn-text-secondary)',
+  opacity: 0.55,
+  fontWeight: 500,
+};
+
+const INPUT_BASE: React.CSSProperties = {
+  width: '100%',
+  height: 30,
+  boxSizing: 'border-box',
+  background: 'var(--syn-surface-input)',
+  color: 'var(--syn-text-default)',
+  border: '1px solid var(--syn-border-subtle)',
+  borderRadius: 3,
+  padding: '0 9px',
+  fontFamily: 'inherit',
+  fontSize: '12px',
+  lineHeight: '28px',
+  outline: 'none',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+  overflow: 'hidden',
+  transition: 'border-color 140ms ease, background-color 140ms ease',
 };
 
 function formatModeLabel(mode: ObjectDetectionExecutionMode): string {
@@ -238,53 +268,55 @@ export const ObjectDetectorPanel: React.FC = () => {
 
   return (
     <section style={PANEL} aria-labelledby="obj-detector-heading" data-testid="object-detector-panel">
-      <header style={{ marginBottom: '0.75rem' }}>
+      <header style={{ marginBottom: '0.85rem' }}>
         <h3
           id="obj-detector-heading"
-          style={{ color: '#F59E0B', margin: 0, fontSize: '0.95rem', fontWeight: 700, letterSpacing: '0.03em' }}
+          style={{ color: 'var(--syn-text-default)', margin: 0, fontSize: '0.92rem', fontWeight: 600, letterSpacing: '0.01em' }}
         >
           YOLO-Nano Urban Object Detection
         </h3>
-        <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.72rem', margin: '0.25rem 0 0 0' }}>
+        <p style={{ color: 'var(--syn-text-muted)', fontSize: '0.72rem', margin: '0.3rem 0 0 0', lineHeight: 1.55 }}>
           Run a real browser-managed detector against imported or EO raster sources when a model is configured,
           or switch to the explicitly labeled Demo mode synthetic fallback.
         </p>
       </header>
 
-      <div style={{ marginBottom: '0.75rem', display: 'grid', gap: 8 }}>
+      <div style={{ marginBottom: '0.85rem', display: 'grid', gap: 10 }}>
         <div
           style={{
-            border: '1px solid rgba(245, 158, 11, 0.22)',
-            background: 'rgba(245, 158, 11, 0.06)',
-            padding: '0.55rem 0.65rem',
+            border: '1px solid var(--syn-border-subtle)',
+            borderRadius: 3,
+            background: 'transparent',
+            padding: '0.6rem 0.7rem',
+            boxShadow: 'inset 0 -1px 0 0 color-mix(in srgb, var(--syn-interaction-active) 38%, transparent)',
           }}
         >
-          <div data-testid="object-detector-mode" style={{ color: '#F59E0B', fontSize: '0.72rem', fontWeight: 700 }}>
+          <div data-testid="object-detector-mode" style={{ color: 'var(--syn-interaction-active)', fontSize: '10px', fontWeight: 500, letterSpacing: '0.14em', textTransform: 'uppercase', opacity: 0.85 }}>
             {formatModeLabel(executionMode)} · {formatSourceModeLabel(selectedSource.provenance.isDemo)}
           </div>
-          <div data-testid="object-detector-model-status" style={{ color: 'rgba(255,255,255,0.72)', fontSize: '0.72rem', marginTop: 4 }}>
+          <div data-testid="object-detector-model-status" style={{ color: 'var(--syn-text-secondary)', fontSize: '0.72rem', marginTop: 4 }}>
             {executionMode === 'real-model'
               ? detector.runtimeConfig.configured
                 ? `${detector.runtimeConfig.label} · ${formatBackendLabel(detector.runtimeConfig.preferredBackend)}`
                 : detector.runtimeConfig.missingSourceReason
               : 'Demo mode keeps the synthetic inferrer explicit and never presents it as a real model-backed run.'}
           </div>
-          <div data-testid="object-detector-readiness" style={{ color: readiness.ready ? '#34D399' : '#FCA5A5', fontSize: '0.7rem', marginTop: 4 }}>
+          <div data-testid="object-detector-readiness" style={{ color: readiness.ready ? 'var(--syn-status-valid)' : 'var(--syn-status-error)', fontSize: '0.7rem', marginTop: 4 }}>
             {readiness.ready
               ? `Ready to run on ${selectedSource.title}.`
               : readiness.reason ?? 'The selected object detection configuration is not ready.'}
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-          <label style={{ display: 'grid', gap: 4 }}>
-            <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.55)' }}>Raster source</span>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <label style={{ display: 'grid', gap: 5 }}>
+            <span style={SUBLABEL}>Raster source</span>
             <select
               data-testid="object-detector-source-select"
               value={sourceId}
               onChange={(event) => setSourceId(event.target.value)}
               disabled={status === 'running'}
-              style={{ background: '#101010', color: '#e5e5e5', border: '1px solid rgba(255,255,255,0.15)', padding: '0.4rem' }}
+              style={INPUT_BASE}
             >
               {sources.map((source) => (
                 <option key={source.id} value={source.id}>
@@ -293,14 +325,14 @@ export const ObjectDetectorPanel: React.FC = () => {
               ))}
             </select>
           </label>
-          <label style={{ display: 'grid', gap: 4 }}>
-            <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.55)' }}>Execution mode</span>
+          <label style={{ display: 'grid', gap: 5 }}>
+            <span style={SUBLABEL}>Execution mode</span>
             <select
               data-testid="object-detector-mode-select"
               value={executionMode}
               onChange={(event) => setExecutionMode(event.target.value as ObjectDetectionExecutionMode)}
               disabled={status === 'running'}
-              style={{ background: '#101010', color: '#e5e5e5', border: '1px solid rgba(255,255,255,0.15)', padding: '0.4rem' }}
+              style={INPUT_BASE}
             >
               <option value="real-model">Real model</option>
               <option value="demo-mode">Demo mode</option>
@@ -310,8 +342,8 @@ export const ObjectDetectorPanel: React.FC = () => {
       </div>
 
       {/* Class selection */}
-      <fieldset style={{ border: '1px solid rgba(255,255,255,0.08)', padding: '0.5rem 0.65rem', marginBottom: '0.6rem' }}>
-        <legend style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.5)', padding: '0 0.3rem' }}>
+      <fieldset style={{ border: '1px solid var(--syn-border-subtle)', borderRadius: 3, padding: '0.55rem 0.7rem', marginBottom: '0.7rem' }}>
+        <legend style={{ ...SUBLABEL, padding: '0 0.4rem' }}>
           Target classes
         </legend>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem 1rem' }}>
@@ -344,9 +376,10 @@ export const ObjectDetectorPanel: React.FC = () => {
       </fieldset>
 
       {/* Confidence slider */}
-      <div style={{ marginBottom: '0.75rem' }}>
-        <label htmlFor="obj-detector-conf" style={{ display: 'block', fontSize: '0.72rem', color: 'rgba(255,255,255,0.55)', marginBottom: 4 }}>
-          Minimum confidence to retain a detection: <span style={{ color: '#F59E0B', fontWeight: 600 }}>{confidence.toFixed(2)}</span>
+      <div style={{ marginBottom: '0.85rem' }}>
+        <label htmlFor="obj-detector-conf" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.72rem', color: 'var(--syn-text-secondary)', marginBottom: 6 }}>
+          <span>Minimum confidence to retain a detection</span>
+          <span style={{ color: 'var(--syn-interaction-active)', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{confidence.toFixed(2)}</span>
         </label>
         <input
           id="obj-detector-conf"
@@ -358,13 +391,13 @@ export const ObjectDetectorPanel: React.FC = () => {
           value={confidence}
           onChange={(e) => setConfidence(parseFloat(e.target.value))}
           disabled={status === 'running'}
-          style={{ width: '100%' }}
+          style={{ width: '100%', accentColor: 'var(--syn-interaction-active)' }}
         />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: '0.75rem' }}>
-        <label style={{ display: 'grid', gap: 4 }}>
-          <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.55)' }}>Tile overlap (px)</span>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: '0.85rem' }}>
+        <label style={{ display: 'grid', gap: 5 }}>
+          <span style={SUBLABEL}>Tile overlap (px)</span>
           <input
             data-testid="object-detector-overlap"
             type="number"
@@ -374,11 +407,11 @@ export const ObjectDetectorPanel: React.FC = () => {
             value={overlap}
             onChange={(event) => setOverlap(Math.max(0, Number.parseInt(event.target.value || '0', 10) || 0))}
             disabled={status === 'running'}
-            style={{ background: '#101010', color: '#e5e5e5', border: '1px solid rgba(255,255,255,0.15)', padding: '0.4rem' }}
+            style={INPUT_BASE}
           />
         </label>
-        <label style={{ display: 'grid', gap: 4 }}>
-          <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.55)' }}>NMS IoU threshold</span>
+        <label style={{ display: 'grid', gap: 5 }}>
+          <span style={SUBLABEL}>NMS IoU threshold</span>
           <input
             data-testid="object-detector-iou"
             type="number"
@@ -388,27 +421,34 @@ export const ObjectDetectorPanel: React.FC = () => {
             value={iouThreshold}
             onChange={(event) => setIouThreshold(Number.parseFloat(event.target.value || `${DEFAULT_NMS_IOU}`) || DEFAULT_NMS_IOU)}
             disabled={status === 'running'}
-            style={{ background: '#101010', color: '#e5e5e5', border: '1px solid rgba(255,255,255,0.15)', padding: '0.4rem' }}
+            style={INPUT_BASE}
           />
         </label>
       </div>
 
       {/* Launch / cancel */}
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: '0.75rem' }}>
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: '0.85rem' }}>
         <button
           type="button"
           onClick={runDetection}
           data-testid="object-detector-run"
           disabled={status === 'running' || selectedClasses.size === 0 || !readiness.ready}
           style={{
-            padding: '0.4rem 0.9rem',
-            background: 'rgba(245,158,11,0.15)',
-            color: '#F59E0B',
-            border: '1px solid rgba(245,158,11,0.5)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            height: 28,
+            padding: '0 12px',
+            background: 'color-mix(in srgb, var(--syn-interaction-active) 8%, transparent)',
+            color: 'var(--syn-text-default)',
+            border: '1px solid transparent',
+            boxShadow: 'inset 0 -1px 0 0 color-mix(in srgb, var(--syn-interaction-active) 60%, transparent)',
+            fontFamily: 'inherit',
             fontSize: '0.76rem',
-            fontWeight: 600,
+            fontWeight: 500,
             cursor: status === 'running' || selectedClasses.size === 0 || !readiness.ready ? 'not-allowed' : 'pointer',
-            borderRadius: 0,
+            borderRadius: 3,
+            opacity: status === 'running' || selectedClasses.size === 0 || !readiness.ready ? 0.5 : 1,
+            transition: 'background-color 140ms ease, box-shadow 140ms ease',
           }}
         >
           {status === 'running' ? 'Running Detection…' : `Start ${formatModeLabel(executionMode)} Run`}
@@ -419,13 +459,18 @@ export const ObjectDetectorPanel: React.FC = () => {
             onClick={cancel}
             data-testid="object-detector-cancel"
             style={{
-              padding: '0.4rem 0.75rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              height: 28,
+              padding: '0 10px',
               background: 'transparent',
-              color: 'rgba(255,255,255,0.7)',
-              border: '1px solid rgba(255,255,255,0.2)',
+              color: 'var(--syn-text-secondary)',
+              border: '1px solid transparent',
+              fontFamily: 'inherit',
               fontSize: '0.74rem',
               cursor: 'pointer',
-              borderRadius: 0,
+              borderRadius: 3,
+              transition: 'background-color 140ms ease, color 140ms ease',
             }}
           >
             Cancel
@@ -435,8 +480,8 @@ export const ObjectDetectorPanel: React.FC = () => {
 
       {/* Progress */}
       {!!progress && (
-        <div style={{ marginBottom: '0.75rem' }} aria-live="polite">
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'rgba(255,255,255,0.55)', marginBottom: 4 }}>
+        <div style={{ marginBottom: '0.85rem' }} aria-live="polite">
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--syn-text-muted)', marginBottom: 5, fontVariantNumeric: 'tabular-nums' }}>
             <span>
               Tile {progress.processedTiles}/{progress.totalTiles}
             </span>
@@ -444,7 +489,7 @@ export const ObjectDetectorPanel: React.FC = () => {
               {progress.rawDetections} raw candidates · {progressPct}%
             </span>
           </div>
-          <div style={{ height: 6, background: 'rgba(255,255,255,0.08)', borderRadius: 0 }}>
+          <div style={{ height: 4, background: 'color-mix(in srgb, var(--syn-text-muted) 18%, transparent)', borderRadius: 2, overflow: 'hidden' }}>
             <div
               role="progressbar"
               aria-valuenow={progressPct}
@@ -453,8 +498,8 @@ export const ObjectDetectorPanel: React.FC = () => {
               style={{
                 width: `${progressPct}%`,
                 height: '100%',
-                background: '#F59E0B',
-                transition: 'width 0.12s linear',
+                background: 'var(--syn-interaction-active)',
+                transition: 'width 180ms cubic-bezier(.2,.7,.2,1)',
               }}
             />
           </div>
@@ -462,7 +507,7 @@ export const ObjectDetectorPanel: React.FC = () => {
       )}
 
       {!!error && (
-        <div data-testid="object-detector-error" style={{ color: '#FB7185', fontSize: '0.72rem', marginBottom: '0.5rem' }} role="alert">
+        <div data-testid="object-detector-error" style={{ color: 'var(--syn-status-error)', fontSize: '0.72rem', marginBottom: '0.6rem' }} role="alert">
           {error}
         </div>
       )}
@@ -471,12 +516,14 @@ export const ObjectDetectorPanel: React.FC = () => {
         <div
           data-testid="object-detector-notice"
           style={{
-            color: '#34D399',
+            color: 'var(--syn-status-valid)',
             fontSize: '0.72rem',
-            marginBottom: '0.75rem',
-            border: '1px solid rgba(52,211,153,0.28)',
-            background: 'rgba(16,185,129,0.08)',
-            padding: '0.5rem 0.65rem',
+            marginBottom: '0.85rem',
+            border: '1px solid var(--syn-border-subtle)',
+            borderRadius: 3,
+            background: 'transparent',
+            boxShadow: 'inset 0 -1px 0 0 color-mix(in srgb, var(--syn-status-valid) 50%, transparent)',
+            padding: '0.5rem 0.7rem',
           }}
           role="status"
         >
@@ -485,25 +532,31 @@ export const ObjectDetectorPanel: React.FC = () => {
       )}
 
       {!!result && (
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: '0.75rem' }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: '0.85rem', alignItems: 'center' }}>
           <button
             type="button"
             onClick={openMap}
             data-testid="object-detector-open-map"
             style={{
-              padding: '0.4rem 0.9rem',
-              background: 'rgba(96,165,250,0.12)',
-              color: '#93C5FD',
-              border: '1px solid rgba(96,165,250,0.35)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              height: 26,
+              padding: '0 10px',
+              background: 'color-mix(in srgb, var(--syn-interaction-active) 6%, transparent)',
+              color: 'var(--syn-text-default)',
+              border: '1px solid transparent',
+              boxShadow: 'inset 0 -1px 0 0 color-mix(in srgb, var(--syn-interaction-active) 60%, transparent)',
+              fontFamily: 'inherit',
               fontSize: '0.74rem',
-              fontWeight: 600,
+              fontWeight: 500,
               cursor: 'pointer',
-              borderRadius: 0,
+              borderRadius: 3,
+              transition: 'background-color 140ms ease',
             }}
           >
             Open Published Layer
           </button>
-          <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)', alignSelf: 'center' }}>
+          <div style={{ fontSize: '0.7rem', color: 'var(--syn-text-muted)' }}>
             Every completed run updates Map Explorer and Completed Run Review with the published layer, chart summary, detection preview table, and run metadata record.
           </div>
         </div>
@@ -515,10 +568,11 @@ export const ObjectDetectorPanel: React.FC = () => {
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-            gap: 8,
+            gap: 10,
             marginBottom: '0.85rem',
-            border: '1px solid rgba(255,255,255,0.08)',
-            padding: '0.55rem 0.65rem',
+            border: '1px solid var(--syn-border-subtle)',
+            borderRadius: 3,
+            padding: '0.6rem 0.7rem',
           }}
         >
           <MetricCard label="Execution mode" value={formatModeLabel(result.metadata.executionMode)} />
@@ -550,7 +604,7 @@ export const ObjectDetectorPanel: React.FC = () => {
       )}
 
       {!!result && result.detection.detections.length === 0 && (
-        <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.5)' }}>
+        <p style={{ fontSize: '0.72rem', color: 'var(--syn-text-muted)' }}>
           No objects were retained at this threshold. Lower the confidence filter or widen the class set to inspect weaker candidates.
         </p>
       )}
@@ -562,8 +616,8 @@ export default ObjectDetectorPanel;
 
 const MetricCard: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <div>
-    <div style={{ fontSize: '0.66rem', color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>{label}</div>
-    <div style={{ fontSize: '0.72rem', color: '#f5f5f5' }}>{value}</div>
+    <div style={{ fontSize: 10, color: 'var(--syn-text-secondary)', marginBottom: 3, letterSpacing: '0.14em', textTransform: 'uppercase', opacity: 0.55, fontWeight: 500 }}>{label}</div>
+    <div style={{ fontSize: '0.72rem', color: 'var(--syn-text-default)' }}>{value}</div>
   </div>
 );
 
@@ -599,8 +653,9 @@ const DetectionMap: React.FC<{
     <div
       aria-label="Detection preview map"
       style={{
-        background: '#0d0d0d',
-        border: '1px solid rgba(245,158,11,0.25)',
+        background: 'var(--syn-surface-editor, #0d0d0d)',
+        border: '1px solid var(--syn-border-subtle)',
+        borderRadius: 3,
         position: 'relative',
       }}
     >
@@ -643,7 +698,8 @@ const DetectionMap: React.FC<{
           bottom: 4,
           right: 6,
           fontSize: '0.62rem',
-          color: 'rgba(255,255,255,0.35)',
+          color: 'var(--syn-text-muted)',
+          opacity: 0.7,
           pointerEvents: 'none',
         }}
       >
@@ -657,26 +713,26 @@ const DetectionSummaryTable: React.FC<{ counts: Map<string, number> }> = ({ coun
   const rows = Array.from(counts.entries()).sort((a, b) => b[1] - a[1]);
   const total = rows.reduce((s, [, n]) => s + n, 0);
   return (
-    <div style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
-      <div style={{ padding: '4px 8px', fontSize: '0.68rem', color: 'rgba(255,255,255,0.5)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+    <div style={{ border: '1px solid var(--syn-border-subtle)', borderRadius: 3 }}>
+      <div style={{ padding: '5px 9px', fontSize: 10, color: 'var(--syn-text-secondary)', letterSpacing: '0.14em', textTransform: 'uppercase', opacity: 0.55, fontWeight: 500, borderBottom: '1px solid var(--syn-border-subtle)' }}>
         Detected classes · {total} retained
       </div>
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.72rem' }}>
         <tbody>
           {rows.length === 0 && (
             <tr>
-              <td style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.4)' }}>No retained classes</td>
+              <td style={{ padding: '6px 9px', color: 'var(--syn-text-muted)' }}>No retained classes</td>
             </tr>
           )}
           {rows.map(([cls, count]) => {
             const color = CLASS_COLORS[cls as UrbanObjectClass] ?? '#D6D3D1';
             return (
               <tr key={cls}>
-                <td style={{ padding: '4px 8px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <td style={{ padding: '4px 9px', display: 'flex', alignItems: 'center', gap: 6, color: 'var(--syn-text-secondary)' }}>
                   <span style={{ width: 8, height: 8, background: color, display: 'inline-block', borderRadius: 2 }} />
                   {CLASS_LABELS[cls as UrbanObjectClass] ?? cls}
                 </td>
-                <td style={{ padding: '4px 8px', textAlign: 'right', fontFamily: 'monospace', color: '#F59E0B' }}>
+                <td style={{ padding: '4px 9px', textAlign: 'right', color: 'var(--syn-text-default)', fontVariantNumeric: 'tabular-nums' }}>
                   {count}
                 </td>
               </tr>
@@ -691,14 +747,14 @@ const DetectionSummaryTable: React.FC<{ counts: Map<string, number> }> = ({ coun
 const DetectionInspector: React.FC<{ detection: DetectedObject }> = ({ detection }) => {
   const [w, s, e, n] = detection.bbox;
   return (
-    <div style={{ border: '1px solid rgba(245,158,11,0.3)', padding: '6px 8px', fontSize: '0.7rem', background: 'rgba(245,158,11,0.05)' }}>
-      <div style={{ color: '#F59E0B', fontWeight: 600, marginBottom: 3 }}>
+    <div style={{ border: '1px solid var(--syn-border-subtle)', borderRadius: 3, padding: '6px 9px', fontSize: '0.7rem', background: 'transparent', boxShadow: 'inset 0 -1px 0 0 color-mix(in srgb, var(--syn-interaction-active) 50%, transparent)' }}>
+      <div style={{ color: 'var(--syn-interaction-active)', fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 500, opacity: 0.85, marginBottom: 4 }}>
         Selected detection · {CLASS_LABELS[detection.className as UrbanObjectClass] ?? detection.className}
       </div>
-      <div style={{ color: 'rgba(255,255,255,0.6)' }}>
-        Confidence: <strong style={{ color: '#FAFAF9' }}>{detection.confidence.toFixed(3)}</strong>
+      <div style={{ color: 'var(--syn-text-secondary)' }}>
+        Confidence: <strong style={{ color: 'var(--syn-text-default)', fontVariantNumeric: 'tabular-nums' }}>{detection.confidence.toFixed(3)}</strong>
       </div>
-      <div style={{ color: 'rgba(255,255,255,0.6)', marginTop: 3 }}>
+      <div style={{ color: 'var(--syn-text-secondary)', marginTop: 4, fontVariantNumeric: 'tabular-nums' }}>
         <div>W: {w.toFixed(6)}°</div>
         <div>S: {s.toFixed(6)}°</div>
         <div>E: {e.toFixed(6)}°</div>

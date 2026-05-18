@@ -823,3 +823,137 @@
 	animation: none !important;
 	transform: none !important;
 }
+
+/* Cross-tab workbench motion pass — every top-level Center Panel tab gets
+   the same editor-like activation, hover, and selected-row language. */
+@keyframes cpWorkbenchBlockIn {
+	from {
+		opacity: 0;
+		transform: translateY(4px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@keyframes cpRailActiveBar {
+	from {
+		opacity: 0;
+		transform: scaleY(0.35);
+	}
+	to {
+		opacity: 1;
+		transform: scaleY(1);
+	}
+}
+
+@keyframes cpContentGlowSweep {
+	from {
+		opacity: 0;
+		transform: translateX(-16px);
+	}
+	to {
+		opacity: 1;
+		transform: translateX(0);
+	}
+}
+
+.outline[data-tab-rail="true"],
+.main > [data-tab-content="true"] {
+	--cp-motion-curve: cubic-bezier(0.2, 0.75, 0.25, 1);
+}
+
+.outline[data-tab-rail="true"] :where(button, [role="button"], [role="tab"], a, summary),
+.main > [data-tab-content="true"] :where(button, [role="button"], [role="tab"], a, summary),
+.rightDock :where(button, [role="button"], [role="tab"], a, summary) {
+	transition:
+		background-color 120ms ease,
+		border-color 120ms ease,
+		color 120ms ease,
+		box-shadow 120ms ease,
+		transform 120ms var(--cp-motion-curve);
+}
+
+.outline[data-tab-rail="true"] :where(button, [role="button"], [role="tab"], a, summary):hover,
+.rightDock :where(button, [role="button"], [role="tab"], a, summary):hover {
+	transform: translateX(1px);
+}
+
+.main > [data-tab-content="true"] :where(button, [role="button"], [role="tab"], a, summary):hover {
+	transform: translateY(-1px);
+}
+
+.main > [data-tab-content="true"] :where(button, [role="button"], [role="tab"], a, summary):active,
+.outline[data-tab-rail="true"] :where(button, [role="button"], [role="tab"], a, summary):active {
+	transform: translateY(0);
+}
+
+.outline[data-tab-rail="true"] :where([aria-selected="true"], [aria-current="true"], [aria-current="page"], [data-active="true"], .isActive, .active) {
+	position: relative;
+}
+
+.outline[data-tab-rail="true"] :where([aria-selected="true"], [aria-current="true"], [aria-current="page"], [data-active="true"], .isActive, .active)::before {
+	content: "";
+	position: absolute;
+	inset-block: 5px;
+	inset-inline-start: 0;
+	inline-size: 2px;
+	border-radius: 0;
+	background: var(--syn-vscode-accent-blue, #3794ff);
+	transform-origin: center;
+	animation: cpRailActiveBar 170ms var(--cp-motion-curve) both;
+}
+
+.main > [data-tab-content="true"] > :where(div, section, article) {
+	animation: cpWorkbenchBlockIn 220ms var(--cp-motion-curve) both;
+}
+
+.main > [data-tab-content="true"] :where(.panel, .card, section, article)[data-active="true"],
+.main > [data-tab-content="true"] :where(.panel, .card, section, article):focus-within {
+	box-shadow: inset 2px 0 0 color-mix(in srgb, var(--syn-vscode-accent-blue, #3794ff) 72%, transparent);
+}
+
+.main > [data-tab-content="true"] :where(.panel, .card, section, article)::before {
+	transition:
+		opacity 160ms ease,
+		transform 160ms var(--cp-motion-curve);
+}
+
+.main > [data-tab-content="true"]:focus-within::after {
+	content: "";
+	position: sticky;
+	top: 1px;
+	display: block;
+	block-size: 1px;
+	margin-block-start: -1px;
+	background: linear-gradient(90deg,
+		color-mix(in srgb, var(--syn-vscode-accent-blue, #3794ff) 72%, transparent),
+		transparent 42%);
+	pointer-events: none;
+	animation: cpContentGlowSweep 220ms var(--cp-motion-curve) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.outline[data-tab-rail="true"] :where(button, [role="button"], [role="tab"], a, summary),
+	.main > [data-tab-content="true"] :where(button, [role="button"], [role="tab"], a, summary),
+	.rightDock :where(button, [role="button"], [role="tab"], a, summary),
+	.main > [data-tab-content="true"] > :where(div, section, article),
+	.main > [data-tab-content="true"]:focus-within::after,
+	.outline[data-tab-rail="true"] :where([aria-selected="true"], [aria-current="true"], [aria-current="page"], [data-active="true"], .isActive, .active)::before {
+		animation: none !important;
+		transition: none !important;
+		transform: none !important;
+	}
+}
+
+[data-reduce-motion] .outline[data-tab-rail="true"] :where(button, [role="button"], [role="tab"], a, summary),
+[data-reduce-motion] .main > [data-tab-content="true"] :where(button, [role="button"], [role="tab"], a, summary),
+[data-reduce-motion] .rightDock :where(button, [role="button"], [role="tab"], a, summary),
+[data-reduce-motion] .main > [data-tab-content="true"] > :where(div, section, article),
+[data-reduce-motion] .main > [data-tab-content="true"]:focus-within::after,
+[data-reduce-motion] .outline[data-tab-rail="true"] :where([aria-selected="true"], [aria-current="true"], [aria-current="page"], [data-active="true"], .isActive, .active)::before {
+	animation: none !important;
+	transition: none !important;
+	transform: none !important;
+}

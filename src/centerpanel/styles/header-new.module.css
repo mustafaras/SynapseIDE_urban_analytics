@@ -27,6 +27,7 @@
 
 
   contain: layout paint style;
+  container-type: inline-size;
   will-change: transform, opacity;
   transform: translateZ(0);
 
@@ -110,7 +111,7 @@
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   grid-template-areas: "brand tabs tools";
   align-items: center;
   gap: clamp(4px, 0.6vw, 8px);
@@ -119,7 +120,7 @@
 
 @media (max-width: 1180px) {
   .row {
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     gap: var(--hdr-space-2);
   }
 }
@@ -142,6 +143,35 @@
       "brand"
       "tabs"
       "tools";
+  }
+}
+
+@container (max-width: 760px) {
+  .row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "brand tools"
+      "tabs tabs";
+    align-content: center;
+    row-gap: 2px;
+    min-height: var(--hdr-height);
+    padding-block: 2px;
+  }
+
+  .brand {
+    overflow: hidden;
+  }
+
+  .right {
+    justify-self: end;
+    max-width: 100%;
+  }
+
+  .tabsWrap {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    justify-content: flex-start;
   }
 }
 
@@ -527,11 +557,13 @@
 
 .tabsWrap {
   grid-area: tabs;
+  justify-self: center;
   display: flex;
   align-items: center;
-  justify-content: stretch;
+  justify-content: center;
   gap: 1px;
   min-width: 0;
+  max-width: 100%;
   padding-inline: 2px;
   overflow-x: auto;
   overflow-y: hidden;
@@ -725,23 +757,25 @@
 }
 
 
-/* Tabs may wrap to a second row; they must never depend on hidden overflow. */
+/* Header tabs stay single-line like editor tabs; narrow hosts scroll instead of
+   forcing labels into vertical fragments. */
 .tabsWrap {
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-content: center;
-  row-gap: 2px;
-  overflow: visible;
+  row-gap: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .tab {
-  flex: 1 1 84px;
-  min-width: 72px;
-  max-width: 118px;
+  flex: 0 0 auto;
+  min-width: max-content;
+  max-width: none;
   height: auto;
   min-height: 24px;
-  padding: 3px 6px;
+  padding: 3px 8px;
   border-radius: 3px;
-  white-space: normal;
+  white-space: nowrap;
   line-height: 1.1;
 }
 
@@ -749,17 +783,93 @@
   min-width: 0;
   justify-content: center;
   text-align: center;
+  white-space: nowrap;
 }
 
 .tabLabelFull,
 .tabLabelShort {
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
+  word-break: normal;
+  white-space: nowrap;
+}
+
+@keyframes headerTabUnderlineIn {
+  from {
+    opacity: 0;
+    transform: scaleX(0.25);
+  }
+  to {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+@keyframes headerTabActivationPulse {
+  0% {
+    box-shadow:
+      inset 0 -2px 0 color-mix(in srgb, var(--syn-interaction-active) 92%, transparent),
+      inset 0 0 0 999px transparent;
+  }
+  55% {
+    box-shadow:
+      inset 0 -2px 0 color-mix(in srgb, var(--syn-interaction-active) 100%, transparent),
+      inset 0 0 0 999px color-mix(in srgb, var(--syn-interaction-active) 7%, transparent);
+  }
+  100% {
+    box-shadow:
+      inset 0 -2px 0 color-mix(in srgb, var(--syn-interaction-active) 92%, transparent),
+      inset 0 0 0 999px transparent;
+  }
+}
+
+.tab::after {
+  content: "";
+  position: absolute;
+  inset-inline: 8px;
+  inset-block-end: 1px;
+  block-size: 2px;
+  border-radius: 0;
+  background: var(--syn-interaction-active);
+  opacity: 0;
+  transform: scaleX(0.25);
+  transform-origin: left center;
+  pointer-events: none;
+  transition:
+    opacity var(--hdr-transition-fast) var(--hdr-ease-default),
+    transform var(--hdr-transition-fast) var(--hdr-ease-out);
+}
+
+.tab:hover::after {
+  opacity: 0.42;
+  transform: scaleX(0.72);
+}
+
+.tab[data-state="active"],
+.tab[aria-selected="true"] {
+  animation: headerTabActivationPulse 260ms var(--hdr-ease-out) both;
+}
+
+.tab[data-state="active"]::after,
+.tab[aria-selected="true"]::after {
+  opacity: 1;
+  transform: scaleX(1);
+  animation: headerTabUnderlineIn 180ms var(--hdr-ease-out) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab,
+  .tab::after {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
 }
 
 
 
 .right {
   grid-area: tools;
+  justify-self: end;
   display: none;
   align-items: center;
   justify-content: flex-end;
@@ -771,6 +881,90 @@
 
 
 .headerShowRight .right { display: flex; }
+
+.workspaceModeButton {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: max-content;
+  height: calc(var(--hdr-control-height) - 4px);
+  padding: 0 8px;
+  overflow: hidden;
+  border: 1px solid var(--syn-vscode-border-subtle, var(--hdr-border-subtle));
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--syn-vscode-bg-editor, #1f232a) 84%, transparent);
+  color: var(--syn-vscode-text-secondary, var(--hdr-text-secondary));
+  cursor: pointer;
+  font-family: var(--hdr-font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  transition:
+    background-color var(--hdr-transition-fast) var(--hdr-ease-default),
+    border-color var(--hdr-transition-fast) var(--hdr-ease-default),
+    color var(--hdr-transition-fast) var(--hdr-ease-default),
+    transform var(--hdr-transition-fast) var(--hdr-ease-out),
+    box-shadow var(--hdr-transition-fast) var(--hdr-ease-default);
+}
+
+.workspaceModeButton::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inline-size: 40%;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--syn-interaction-active) 20%, transparent), transparent);
+  opacity: 0;
+  transform: translateX(-120%);
+  pointer-events: none;
+}
+
+.workspaceModeButton:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--syn-interaction-active) 42%, var(--hdr-border-subtle));
+  background: color-mix(in srgb, var(--syn-interaction-active) 10%, transparent);
+  color: var(--syn-vscode-text-primary, var(--hdr-text-primary));
+}
+
+.workspaceModeButton:hover::after {
+  opacity: 1;
+  animation: workspaceModeSweep 520ms ease-out both;
+}
+
+.workspaceModeButton:active {
+  transform: translateY(0);
+}
+
+.workspaceModeButton[data-state="active"] {
+  color: var(--syn-vscode-text-primary, var(--hdr-text-primary));
+  background: color-mix(in srgb, var(--syn-interaction-active) 14%, transparent);
+  border-color: color-mix(in srgb, var(--syn-interaction-active) 48%, var(--hdr-border-subtle));
+  box-shadow: inset 0 -2px 0 var(--syn-interaction-active);
+}
+
+.workspaceModeButton svg {
+  color: var(--syn-interaction-active);
+}
+
+.workspaceModeLabel {
+  white-space: nowrap;
+}
+
+@keyframes workspaceModeSweep {
+  from { transform: translateX(-120%); }
+  to { transform: translateX(160%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workspaceModeButton,
+  .workspaceModeButton::after {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+}
 
 
 .moreWrap { display: none; }
