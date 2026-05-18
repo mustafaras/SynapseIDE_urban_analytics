@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This is the single entry file for any agent implementing the active two-part color-system workstream.
+This is the single entry file for any agent implementing the active three-part color-system workstream.
 
 ## One-Line Instruction
 
@@ -13,9 +13,10 @@ Read the color protocol, read the active unit matrix, select the first incomplet
 ## Active Priority
 
 1. Complete `A01`-`A10`: Urban Analytics modal.
-2. Then complete `B01`-`B10`: Map Explorer.
+2. Then complete `C01`-`C10`: Center Panel Workbench excluding Map Explorer files.
+3. Then complete `B01`-`B15`: Map Explorer.
 
-Do not start a `B` prompt while any `A` prompt remains pending, in progress, or blocked unless the user explicitly instructs a targeted deviation.
+Do not start a `C` prompt while any `A` prompt remains pending, in progress, or blocked unless the user explicitly instructs a targeted deviation. Do not start a `B` prompt while any `C` prompt remains pending, in progress, or blocked unless the user explicitly instructs a targeted deviation.
 
 ## Required Reading Order
 
@@ -44,7 +45,7 @@ Manual method:
 Current active next prompt:
 
 ```text
-A01 - Urban Analytics Amber Inventory And Scope Lock
+C09 - Cross-Cutting Surfaces — Urban Context Strip, Outline Nav, Background Tasks, Engine Capabilities, Narrative, Object Detector
 ```
 
 ## Valid Prompt Status Values

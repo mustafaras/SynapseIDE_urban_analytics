@@ -25,7 +25,7 @@ Fail the prompt if any active-scope UI/default hit remains for:
 - `rgba(245,158,11,...)`, `rgb(245 158 11 / ...)`, or equivalent spaced variants
 - `amber`, `gold`, `yellow`, `orange`, `gradient-amber`
 - `MAP_COLORS.amber*`
-- `--syn-status-warning` where it renders amber in Urban Analytics modal or Map Explorer
+- `--syn-status-warning` where it renders amber in Urban Analytics modal, Center Panel, or Map Explorer
 
 Allowed residual categories must be documented:
 
@@ -65,7 +65,19 @@ Part 1 - Urban Analytics modal:
 - VoxCity/3D controls, simulation panel, scenario comparison.
 - Compact viewport for text overflow and focus visibility.
 
-Part 2 - Map Explorer:
+Part 2 - Center Panel Workbench:
+
+- Center Panel shell, top tab bar, status rail, and preserved header animations.
+- Projects tab registry, project detail, session/indicator/AI surfaces.
+- New Project tab intake form, field stacks, tag pills, and submit bar.
+- Methods/Guide tab outline rail, guide content, command bars, and preserved tab rhythm.
+- Report/Note tab editor, project header, library insert, preview, and footer.
+- Workflows tab rail, tiles, step pills, cockpit, and per-flow surfaces.
+- Toolbox tab project list, action panels, capability/lab/consulton/export surfaces.
+- Cross-cutting urban context strip, outline nav, background tasks, engine capabilities, narrative, and object detector surfaces.
+- Compact viewport for tab overflow, row density, focus visibility, and text clipping.
+
+Part 3 - Map Explorer:
 
 - Map Explorer shell with canvas, cockpit, status bar, and overlays.
 - Toolbar, search, pin sidebar, context menu, keyboard controls.

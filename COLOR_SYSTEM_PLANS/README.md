@@ -2,20 +2,21 @@
 
 ## Purpose
 
-This folder is the durable operating pack for the active two-part color-system workstream. The goal is no longer a broad app-wide sweep. The active goal is:
+This folder is the durable operating pack for the active three-part color-system workstream. The goal is no longer a broad app-wide sweep. The active goal is:
 
 1. Make the complete Urban Analytics modal amber-free and premium VS Code-like.
-2. Then make the complete Map Explorer amber-free and premium VS Code-like.
+2. Then make the complete Center Panel Workbench amber-free and premium VS Code-like while preserving the existing ambient header animations.
+3. Then make the complete Map Explorer amber-free and premium VS Code-like, aligned to the completed Center Panel workbench language.
 
 The work is color, chrome, and layout-density scoped. It must not change workflows, GIS calculations, persistence, evidence semantics, method validity, map layer behavior, or cross-module contracts.
 
 ## Current Status
 
-- Pack status: reprioritized on 2026-05-15 for a two-part amber-removal workstream.
+- Pack status: reprioritized on 2026-05-15 for a three-part amber-removal workstream; Map Explorer Part 3 expanded to B01-B15 on 2026-05-18 after code-reading Center Panel and Map Explorer surfaces.
 - Historical baseline: old broad Prompts `00` through `17` were completed on 2026-05-15 and remain token/shared-shell baseline.
-- Active prompt count: 20 prompts, `A01` through `A10` and `B01` through `B10`.
-- Active priority: Part 1 Urban Analytics modal first, Part 2 Map Explorer second.
-- Current prompt: `A01 - Urban Analytics Amber Inventory And Scope Lock`.
+- Active prompt count: 35 prompts, `A01` through `A10`, `C01` through `C10`, and `B01` through `B15`.
+- Active priority: Part 1 Urban Analytics modal first, Part 2 Center Panel Workbench second, Part 3 Map Explorer third.
+- Current prompt: `C09 - Cross-Cutting Surfaces — Urban Context Strip, Outline Nav, Background Tasks, Engine Capabilities, Narrative, Object Detector`.
 - Visual anchor: premium VS Code dark workbench discipline: quiet charcoal surfaces, blue/gray-blue interaction, dense rows, thin separators, transparent controls.
 - Archive context: `DEVELOPMENT_PLANS/` archive preparation is separate. The local branch is stale/diverged from `origin/master`; do not move tri-modal plan files during color work.
 
@@ -46,13 +47,13 @@ COLOR_SYSTEM_PLANS/START_HERE_COLOR_SYSTEM_AGENT.md
 
 | File | Role |
 | --- | --- |
-| `START_HERE_COLOR_SYSTEM_AGENT.md` | Single entry point for two-part color agents |
+| `START_HERE_COLOR_SYSTEM_AGENT.md` | Single entry point for three-part color agents |
 | `COLOR_SYSTEM_AGENT_PROTOCOL.md` | Small-agent execution rules and stop conditions |
-| `COLOR_SYSTEM_UNIT_MATRIX.md` | Active Urban Analytics and Map Explorer unit map |
+| `COLOR_SYSTEM_UNIT_MATRIX.md` | Active Urban Analytics, Center Panel, and Map Explorer unit map |
 | `COLOR_SYSTEM_ALIGNMENT_SPEC.md` | Product, scientific, visual, and amber-removal rules |
-| `COLOR_SYSTEM_DEVELOPMENT_PLAN.md` | Strategy, two-part phases, and completion criteria |
+| `COLOR_SYSTEM_DEVELOPMENT_PLAN.md` | Strategy, three-part phases, and completion criteria |
 | `COLOR_SYSTEM_TOKEN_REFERENCE.md` | Token taxonomy, palette, aliases, status rules |
-| `COLOR_SYSTEM_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` | Active `A01`-`B10` implementation prompts |
+| `COLOR_SYSTEM_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` | Active `A01`-`A10`, `C01`-`C10`, and `B01`-`B15` implementation prompts |
 | `COLOR_SYSTEM_PROMPT_MANIFEST.json` | Machine-readable prompt catalog |
 | `COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md` | Execution source of truth |
 | `COLOR_SYSTEM_QA_CHECKLIST.md` | Amber, contrast, screenshot, and status QA gate |
@@ -62,7 +63,7 @@ COLOR_SYSTEM_PLANS/START_HERE_COLOR_SYSTEM_AGENT.md
 
 - Base: charcoal VS Code-like workbench surfaces.
 - Interactive accent: blue/gray-blue for focus, active navigation, selected rows, and editor-like affordances.
-- Amber: not allowed in Urban Analytics modal or Map Explorer UI/default/demo styling.
+- Amber: not allowed in Urban Analytics modal, Center Panel, or Map Explorer UI/default/demo styling.
 - Status colors: valid, error, info, blocked, stale, unknown, demo, running, pending. Warning/caveat states in active scopes must use explicit text/icon plus non-amber styling.
 - Analytical palettes: separate from UI chrome. Amber-like palette stops require a documented data reason and must not be used as UI/default/demo accent.
 
@@ -82,7 +83,7 @@ The repo currently has multiple color systems:
 - `src/styles/theme.ts` defines older `Theme` objects and `createCSSVariables`.
 - `src/contexts/ThemeContext.tsx` writes theme variables and persists theme mode.
 - `src/app/AppThemeProvider.tsx` wraps the app in `GlobalSynapseStyles` and `synapseTheme`.
-- Urban Analytics and Map Explorer still contain hard-coded amber/gold literals, amber aliases, and card-heavy inline styles.
+- Urban Analytics, Center Panel, and Map Explorer historically contained hard-coded amber/gold literals, amber aliases, and card-heavy inline styles. Use the ledger for completed/pending state.
 
 ## Execution Rule
 

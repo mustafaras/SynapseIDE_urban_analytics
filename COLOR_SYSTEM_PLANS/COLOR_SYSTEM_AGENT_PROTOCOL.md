@@ -2,14 +2,15 @@
 
 ## Purpose
 
-This protocol makes the active two-part color-system plan executable by small, low-context agents. Each agent should take exactly one active prompt from the sequential prompt file, read only the required context for that prompt, make narrowly scoped changes, validate, update the ledger, and stop.
+This protocol makes the active three-part color-system plan executable by small, low-context agents. Each agent should take exactly one active prompt from the sequential prompt file, read only the required context for that prompt, make narrowly scoped changes, validate, update the ledger, and stop.
 
 ## Active Workstream
 
 1. Part 1: `A01`-`A10`, complete Urban Analytics modal amber removal and premium VS Code-like restyle.
-2. Part 2: `B01`-`B10`, complete Map Explorer amber removal and premium VS Code-like restyle.
+2. Part 2: `C01`-`C10`, complete Center Panel Workbench amber removal and premium VS Code-like restyle, excluding Map Explorer files.
+3. Part 3: `B01`-`B15`, complete Map Explorer amber removal and premium VS Code-like restyle aligned to the completed Center Panel design language.
 
-Do not start Part 2 until Part 1 is completed or explicitly skipped with reason.
+Do not start Part 2 until Part 1 is completed or explicitly skipped with reason. Do not start Part 3 until Part 2 is completed or explicitly skipped with reason.
 
 ## Non-Negotiable Rules
 
@@ -22,7 +23,7 @@ Do not start Part 2 until Part 1 is completed or explicitly skipped with reason.
 7. Do not remove legacy global tokens unless all known consumers are migrated or a compatibility alias is documented.
 8. Do not run broad formatting on unrelated files.
 9. Do not move `DEVELOPMENT_PLANS/` during color work.
-10. In Urban Analytics modal and Map Explorer, remove amber/gold/yellow/orange UI chrome, amber active states, amber button fills, amber card borders, amber glows, and amber default/demo/generated colors.
+10. In Urban Analytics modal, Center Panel, and Map Explorer, remove amber/gold/yellow/orange UI chrome, amber active states, amber button fills, amber card borders, amber glows, and amber default/demo/generated colors.
 
 ## Premium VS Code Chrome Rules
 

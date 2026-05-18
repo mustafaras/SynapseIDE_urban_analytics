@@ -2,7 +2,7 @@
 
 ## Authority
 
-This spec governs the active two-part color and chrome workstream. It does not override module ownership, scientific/GIS rules, evidence immutability, accessibility requirements, or branch/archive guidance.
+This spec governs the active three-part color and chrome workstream. It does not override module ownership, scientific/GIS rules, evidence immutability, accessibility requirements, or branch/archive guidance.
 
 Priority order when documents disagree:
 
@@ -22,14 +22,14 @@ The target is a premium VS Code-inspired dark workbench:
 - Transparent or neutral default buttons instead of filled rounded plates.
 - Blue/gray-blue interaction accent for active, selected, focus, editor-like affordances, and links.
 - Muted text hierarchy and compact density.
-- No amber/gold/yellow/orange UI chrome in Urban Analytics modal or Map Explorer.
+- No amber/gold/yellow/orange UI chrome in Urban Analytics modal, Center Panel, or Map Explorer.
 - No decorative gradients, glow blobs, shimmer, animated strips, marketing hero treatment, or card-in-card compositions.
 
 ## Active Amber Rule
 
 The earlier broad-plan allowance for amber attention does not apply inside the active scopes.
 
-Urban Analytics modal and Map Explorer must not use amber as:
+Urban Analytics modal, Center Panel, and Map Explorer must not use amber as:
 
 - Brand emphasis.
 - Active/focus/selected state.
@@ -61,9 +61,17 @@ Urban Analytics:
 - `score: null` in data fitness means unknown.
 - Replace card-heavy method/evidence/dossier surfaces with inspector rows, panels, and separators where possible.
 
-Map Explorer:
+Center Panel:
 
 - Part 2 starts only after Part 1 is completed or skipped with reason.
+- Exclude Map Explorer files; they are reserved for Part 3.
+- Preserve existing atmospheric header animations and migrate only amber color stops, glows, or fills.
+- Match the code-derived workbench discipline: single surfaces, dense rows, hairline separators, compact fields, transparent controls, and restrained blue interaction.
+- Do not make cross-cutting status, task, engine, capability, demo, stale, or blocked states look ready.
+
+Map Explorer:
+
+- Part 3 starts only after Part 2 is completed or skipped with reason.
 - Keep map content primary.
 - Keep QA, CRS, publication readiness, blocked, unknown, stale, and caveat states explicit.
 - Do not let map symbology consume UI status colors accidentally.
@@ -88,4 +96,4 @@ Shared Shell:
 
 ## Completion Definition
 
-The active color workstream is complete when all 20 prompts `A01`-`B10` are completed or skipped with reason, Urban Analytics modal and Map Explorer are amber-free in UI/default styling, retained literals are documented, QA evidence exists, and the final handoff marks no unresolved blocker.
+The active color workstream is complete when all 35 prompts (`A01`-`A10`, `C01`-`C10`, and `B01`-`B15`) are completed or skipped with reason, Urban Analytics modal, Center Panel, and Map Explorer are amber-free in UI/default styling, retained literals are documented, QA evidence exists, and the final handoff marks no unresolved blocker.

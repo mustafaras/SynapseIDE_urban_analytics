@@ -18,7 +18,7 @@ Run parts strictly in order. Do not start Center Panel Workbench prompts until P
 | --- | --- | --- | --- |
 | Part 1 | `A01`-`A10` | Only `src/features/urbanAnalytics/**` and directly rendered Urban Analytics modal content | Amber-free Urban Analytics modal with VS Code-like premium density, neutral workbench surfaces, thin separators, and unfilled controls |
 | Part 2 | `C01`-`C10` | Center Panel shell, top tab bar, status rail, and the eight tab contents (Projects, New Project, Methods, Education entry, Report/Note, Workflows/Flows, Dashboard entry, Toolbox) excluding `src/centerpanel/components/map/**` and the `Map*` files reserved for Part 3 | Amber-free Center Panel with VS Code-like premium layout: dense inspector rows, flat panel hierarchy, hairline separators, transparent controls, restrained blue interaction across every tab |
-| Part 3 | `B01`-`B10` | Map Explorer UI, map component tokens, map services that emit default colors, and related map tests | Amber-free Map Explorer with map-first workbench chrome, unfilled controls, neutral panel hierarchy, and non-amber data defaults |
+| Part 3 | `B01`-`B15` | Map Explorer UI, map component tokens, map services that emit default colors, generated/export content, map-store defaults, and related map tests | Amber-free Map Explorer with map-first workbench chrome aligned to the completed Center Panel design: single-surface inspectors, hairline separators, compact ghost controls, restrained blue interaction, and non-amber data defaults |
 
 ## Required Reading For Every Prompt
 
@@ -497,7 +497,7 @@ In scope:
 
 Out of scope (covered elsewhere):
 
-- `src/centerpanel/components/map/**` and any `src/centerpanel/components/Map*.tsx` map-explorer file → Part 3 (`B01`-`B10`).
+- `src/centerpanel/components/map/**` and any `src/centerpanel/components/Map*.tsx` map-explorer file → Part 3 (`B01`-`B15`).
 - `src/features/urbanAnalytics/**` → Part 1 (already completed).
 - `src/features/education/**` Education module internals → only the Center Panel entry frame is in scope; the Education feature itself stays as documented external work.
 - `src/features/dashboard/**` Dashboard builder internals → only the Center Panel entry frame is in scope; the Dashboard feature stays as documented external work.
@@ -1017,164 +1017,293 @@ Final Center Panel sweep — close Part 2 and unblock Part 3 (Map Explorer).
 
 # Part 3 - Map Explorer Third
 
-## Prompt B01 - Map Explorer Amber Inventory And Token Boundary
+Part 3 must now inherit the completed Center Panel workbench language from code, not from abstract intent. The Center Panel migration established these concrete implementation patterns:
+
+- Single-surface groups: `newProject.module.css` uses `.intakePage`, `.group`, `.groupHeader`, `.groupTitle`, and `--syn-border-subtle` separators instead of nested cards.
+- Compact controls: inputs/selects/buttons use `--syn-surface-input`, `--syn-border-subtle`, `--syn-border-focus`, 3px radius, 11-12px type, transparent defaults, and blue text/border for primary actions.
+- Dense rows: `registry.module.css` uses table/list rows with `border-bottom: 1px solid var(--syn-border-subtle)`, selected rows with a 2px blue left rail or inset rail, and no filled card highlight.
+- Outline/inspector rhythm: Guide, Note, Flow, and Tool surfaces use uppercase muted group labels, hairline section breaks, transparent panels, ghost buttons, and `color-mix(... var(--syn-interaction-active) 8-18%, transparent)` for active tint.
+- Preserved motion rule: ambient header motion is preserved only when already present and useful. Map Explorer should not add new decorative animation; existing map/canvas/spinner motion may stay if color stops migrate.
+- Status truthfulness: warning/caveat/demo/unknown/stale/blocked states must keep explicit text, aria labels, icons, disabled reasons, or tooltips. In the Map Explorer active scope, do not render caveat/warning with amber or `--syn-status-warning` if it resolves amber.
+
+Map Explorer currently differs from that Center Panel code. `mapTokens.ts` still declares a `Charcoal-Amber Palette`, `DESIGN_TOKENS.mapExplorer.colors` still owns amber aliases, `MAP_STROKES` are amber hairlines, `MapWorkspaceShell.tsx` focus fallback is amber, `MapDataImportHubDialog.tsx` has amber hero gradients and filled primary buttons, `useMapExplorerStore.ts` defaults annotations to `#F59E0B`, and map services/tests encode amber generated defaults. The B prompts below are therefore intentionally narrower and more numerous than the old B01-B10 ladder.
+
+## Part 3 Scope Boundaries
+
+In scope:
+
+- `src/centerpanel/components/MapExplorerModal.tsx`.
+- `src/centerpanel/components/map/**`.
+- `src/centerpanel/components/Map*.tsx` files that render Map Explorer surfaces, dialogs, tools, generated previews, layer renderers, or export UI.
+- `src/services/map/**` files that emit default colors, generated map content, legends, export graphics, query result styles, or persistence defaults.
+- `src/stores/useMapExplorerStore.ts` only for visible default map/annotation colors and persisted style defaults.
+- `src/constants/design.ts` only for map-specific token aliases required by `mapTokens.ts`; do not globally redesign `DESIGN_TOKENS`.
+- Related tests in `src/centerpanel/components/map/__tests__/**`, `src/centerpanel/components/__tests__/**`, `src/services/map/__tests__/**`, and `src/stores/**/__tests__/**` when assertions encode amber or renamed map token contracts.
+
+Out of scope:
+
+- Center Panel non-map tabs already covered by C prompts.
+- Urban Analytics source except documented map handoff defaults already closed in Part 1.
+- GIS calculations, CRS handling, geometry parsing, layer persistence logic, map-store behavior, evidence semantics, QA readiness logic, workflow dispatch contracts, NL-query safety logic, and report handoff semantics.
+- Global theme/token rewrites outside a map-specific compatibility alias.
+
+## Map Explorer Workbench Contract From Center Panel Code
+
+- Root/shell surfaces: `--syn-surface-workbench`, `--syn-surface-panel`, `--syn-surface-editor`, `--syn-surface-overlay`; no charcoal-only literal islands unless needed for map canvas overlay legibility.
+- Borders: `--syn-border-subtle` for hairlines, `--syn-border-default` for stronger separators, `--syn-border-focus` for focus. Radius target is 0-4px for rows, fields, chips, buttons, popovers, and drawers; only genuine floating map tools may use up to 6px when readability over the basemap requires it.
+- Text: `--syn-text-default`, `--syn-text-secondary`, `--syn-text-muted`, `--syn-text-link`; uppercase group labels use 10-11px, 0.04-0.08em letter spacing.
+- Interaction: default controls transparent; hover uses `--syn-interaction-hover`; active/selected uses blue icon/text, 1-2px rail, underline, or `color-mix(in srgb, var(--syn-interaction-active) 8-14%, transparent)`. Avoid filled rounded plates.
+- Inputs: `--syn-surface-input`, `--syn-border-subtle`, `--syn-border-focus`, 3px radius, tabular numeric values where coordinates/zoom/opacity are displayed.
+- Panels/drawers: one coherent inspector surface with grouped rows and hairlines. Do not nest cards inside drawers. For map overlays, keep the map visually primary and use transparent or near-transparent chrome.
+- Status: use `--syn-status-info`, `--syn-status-valid`, `--syn-status-error`, `--syn-status-blocked`, `--syn-status-stale`, `--syn-status-unknown`, `--syn-status-demo`, `--syn-status-running`, and `--syn-status-pending`. Caveat/warning states use explicit text plus non-amber info/stale/error treatment according to severity.
+- Data palettes: map symbology may use literal data colors or helper palettes, but UI chrome, defaults, demo data, generated exports, and Query-to-SQL outputs must not default to amber/gold/yellow/orange.
+
+## Map Explorer Heavy-Chrome Scan
+
+Run this alongside the Standard Amber Scan when a B prompt touches UI chrome:
+
+```powershell
+rg -n "borderRadius:\\s*(?:['\"]?(?:1[0-9]|[2-9][0-9])px|MAP_RADIUS\\.(?:md|lg|glass|full)|999|50%)|border-radius:\\s*(?:1[0-9]|[2-9][0-9]|999|50%)|radial-gradient|linear-gradient|boxShadow|box-shadow:\\s*0\\s+\\d+px|MAP_SHADOWS\\.(?:modal|dropdown|panel)|DESIGN_TOKENS\\.gradients|DESIGN_TOKENS\\.shadows\\.(?:glow|premium)|background:\\s*MAP_COLORS\\.amber|MAP_COLORS\\.amber|MAP_STROKES\\.(?:hairline|hairlineStrong|hairlineSubtle|dashedStrong)" src/centerpanel/components src/services/map src/stores/useMapExplorerStore.ts -g "*.ts" -g "*.tsx" -g "*.css"
+```
+
+---
+
+## Prompt B01 - Map Explorer Amber Inventory And Center Panel Alignment Lock
 
 ### Objective
 
-Build the exact amber-removal inventory for the complete Map Explorer before changing code.
+Build the exact amber-removal, heavy-chrome, and Center Panel alignment inventory for the complete Map Explorer before changing product code.
 
 ### Scope
 
-- `src/centerpanel/components/MapExplorerModal.tsx`
-- `src/centerpanel/components/map/**`
-- `src/centerpanel/components/Map*` files that render Map Explorer surfaces
-- `src/services/map/**` files that emit default colors, legends, exports, or generated map content
-- `src/stores/useMapExplorerStore.ts`
-- Related map tests where color assertions exist
+- All Part 3 in-scope paths.
+- Documentation updates in `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md` only.
+
+### Required Files
+
+- `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_UNIT_MATRIX.md`
+- `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_TOKEN_REFERENCE.md`
+- Current Center Panel design anchors:
+  - `src/centerpanel/registry-ui/newProject.module.css`
+  - `src/centerpanel/styles/registry.module.css`
+  - `src/centerpanel/styles/guides.module.css`
+  - `src/centerpanel/styles/note.module.css`
+  - `src/centerpanel/styles/flows.module.css`
+  - `src/centerpanel/styles/tools.module.css`
+- Map Explorer anchors:
+  - `src/constants/design.ts`
+  - `src/centerpanel/components/map/mapTokens.ts`
+  - `src/centerpanel/components/MapExplorerModal.tsx`
+  - `src/centerpanel/components/map/MapWorkspaceShell.tsx`
+  - `src/centerpanel/components/map/MapWorkspaceCockpit.module.css`
+  - `src/centerpanel/components/map/MapToolbar.tsx`
+  - `src/centerpanel/components/map/MapLayerManager.tsx`
+  - `src/centerpanel/components/map/MapStatusBar.tsx`
+  - `src/centerpanel/components/MapDataImportHubDialog.tsx`
+  - `src/stores/useMapExplorerStore.ts`
 
 ### Tasks
 
-1. Run the Standard Amber Scan for Map Explorer.
-2. Group hits as `map-ui-token`, `modal-chrome`, `control-button`, `layer-row`, `drawer-status`, `export-generated-content`, `map-default-style`, `data-palette`, `test-fixture`, or `retain-with-reason`.
-3. Identify all `MAP_COLORS.amber*`, `MAP_STROKES.*` amber hairlines, `MAP_COLORS.amberDim`, amber active states, and amber default layer styles.
-4. Separate UI chrome from real data visualization palettes. UI and default/demo colors must be amber-free; any retained analytical palette must be documented.
-5. Record a file-by-file migration order in the ledger.
-6. Do not change product code in this prompt unless the user explicitly asks for a batch.
+1. Run the Standard Amber Scan for Map Explorer exactly as written near the top of this file.
+2. Run the Map Explorer Heavy-Chrome Scan above.
+3. Group every amber hit as `map-ui-token`, `modal-chrome`, `cockpit-chrome`, `toolbar-control`, `search-pin-bookmark-control`, `layer-row`, `drawer-status`, `dialog-form-control`, `interactive-tool-default`, `generated-export-content`, `map-default-style`, `data-palette`, `store-default`, `test-fixture`, or `retain-with-reason`.
+4. Group every heavy-chrome hit as `token-source`, `floating-tool-frame`, `nested-card`, `decorative-gradient`, `oversized-radius`, `decorative-shadow`, `filled-button-plate`, `generated-preview-frame`, `map-canvas-overlay-keep`, or `retain-with-reason`.
+5. Inventory all `MAP_COLORS.amber*`, `MAP_STROKES.*` amber hairlines, `MAP_RADIUS.md/lg/glass/full` UI uses, `MAP_SHADOWS.dropdown/panel/modal` UI uses, `DESIGN_TOKENS.mapExplorer.colors.amber*`, `DESIGN_TOKENS.colors.primary[500]` map consumers, and `--syn-status-warning` map consumers.
+6. Inventory default/demo/generated color emitters separately from analytical data palettes. Include `useMapExplorerStore.ts` annotation defaults, `demoDataPacks.ts`, `heatmapStyleUtils.ts`, `symbolStyleUtils.ts`, `MapEngineAdapter.ts`, `MapCartographyAdvisor.ts`, `MapPersistenceService.ts`, `MapExportService.ts`, `ExternalServiceConnector.ts`, and `MapNLQueryBuilder.ts` if scan hits are present.
+7. For each major surface, record the Center Panel pattern it must imitate: single surface groups, dense rows, 3px fields, ghost buttons, blue left rail, hairline separators, transparent overlays, or non-amber status rows.
+8. Record a file-by-file migration order in the ledger matching B02-B15.
+9. Do not change product code in this prompt unless the user explicitly asks for a batch.
 
 ### Acceptance Criteria
 
-- Ledger contains a complete Map Explorer amber inventory.
-- `mapTokens.ts` central amber dependencies are identified before component-level work.
+- Ledger contains a complete Map Explorer amber and heavy-chrome inventory.
+- `mapTokens.ts` and `src/constants/design.ts` map-specific amber dependencies are identified before component-level work.
+- UI/default/demo/generated colors are separated from real data visualization palettes.
+- Every hit has an owner category and a planned B prompt.
 - The next prompt is `B02`.
 - No product code changed.
 
 ### Validation
 
 - Documentation-only validation.
-- Record the exact scan command and hit summary in the ledger.
+- Record the exact scan commands, hit counts, retained categories, and next prompt in the ledger.
 
 ---
 
-## Prompt B02 - Map Tokens And Shared Map Style Primitives
+## Prompt B02 - Map Tokens, Style Primitives, And Compatibility Aliases
 
 ### Objective
 
-Remove amber from shared Map Explorer tokens so downstream components can migrate consistently.
+Remove amber from shared Map Explorer token primitives and `mapStyles` so downstream components inherit the Center Panel workbench palette before component-level cleanup.
 
 ### Primary Files
 
 - `src/centerpanel/components/map/mapTokens.ts`
+- `src/constants/design.ts` only for map-specific `DESIGN_TOKENS.mapExplorer` aliases or compatibility values.
 - `src/centerpanel/components/map/__tests__/map-components.test.ts`
-- `src/constants/design.ts` only if map-specific token aliases must be re-pointed without breaking other modules
 
 ### Tasks
 
-1. Replace `MAP_COLORS.amber*` UI aliases with non-amber names and values, such as interaction, focus, selected, info, caveat, or neutral aliases.
-2. Convert `MAP_STROKES.hairline`, `hairlineStrong`, `hairlineSubtle`, and dashed strokes away from amber borders.
-3. Default active/selected/focus tokens should use `--syn-interaction-active`, `--syn-border-focus`, `--syn-interaction-hover`, and neutral separators.
-4. Keep map data-palette helpers separate from UI chrome. Do not route symbology through UI status tokens.
-5. Update tests that explicitly assert amber token values to assert the new semantic map token contract.
-6. Keep old exported names only as temporary compatibility aliases if needed, but they must no longer render amber and must be marked deprecated in comments.
+1. Rename the `Charcoal-Amber Palette` comment and map UI alias taxonomy to non-amber semantic names: `interaction`, `interactionSoft`, `interactionSubtle`, `selected`, `selectedSubtle`, `focus`, `hairline`, `hairlineStrong`, `hairlineSubtle`, `caveat`, `caveatText`, `neutral`, or similar.
+2. Re-point `MAP_COLORS.bg`, `bgPanel`, `bgHeader`, and `bgWorkspace` to `var(--syn-surface-*)` strings where possible; keep literal fallback only when the token must work in generated non-DOM contexts and document the reason.
+3. Replace `MAP_COLORS.amber*` primary aliases with non-amber values based on `--syn-interaction-active`, `--syn-interaction-hover`, `--syn-border-subtle`, `--syn-border-focus`, and neutral text tokens.
+4. Keep old `MAP_COLORS.amber*` export names only as temporary compatibility aliases if required by many callers, but make them resolve to non-amber values and mark them deprecated in a short comment. Do not leave any alias rendering amber.
+5. Convert `MAP_STROKES.hairline`, `hairlineStrong`, `hairlineSubtle`, and `dashedStrong` to neutral/blue workbench borders. `marker` may remain white if it frames a map marker over the basemap.
+6. Convert `MAP_RADIUS` and `MAP_SHADOWS` use contracts: default map UI controls and rows should consume 0-4px radius and no shadow; `dropdown/panel` shadow should be restrained or `none` unless a floating tool needs legibility over the map.
+7. Rewrite `mapStyles.title`, `btn`, `btnActive`, `workspaceBar`, `workspaceLabel`, `extensionSlotNotice`, `bottomTimelineNotice`, `dragOverlay`, `importProgress`, `layerPanelOpenButton`, `sidePanelTitle`, `sidePanelPrimaryButton`, `sidePanelSearchInput`, and related shared styles to the Center Panel discipline: transparent defaults, 3px controls, muted uppercase labels, hairline separators, and restrained blue active state.
+8. Do not route map symbology through UI status tokens. Add separate `MAP_DATA_COLORS` or helper comments only if needed to clarify data-palette separation.
+9. Update `map-components.test.ts` so tests assert semantic map token behavior, not amber values or amber names as desired accent.
 
 ### Acceptance Criteria
 
 - `mapTokens.ts` no longer exposes amber as the primary map UI accent.
-- Map styles, strokes, modal headers, tabs, and active buttons can consume non-amber shared tokens.
+- Any retained `amber*` compatibility alias is non-amber, documented as deprecated, and scheduled for removal after B14 if still referenced.
+- Shared `mapStyles` render Center Panel-like workbench chrome by default: neutral hairlines, compact controls, transparent active surfaces, blue interaction.
 - Tests no longer encode amber as the expected Map Explorer accent.
+- No map data palette is accidentally tied to UI status/chrome tokens.
 
 ### Validation
 
 - `npm run typecheck`
-- Targeted map token tests if available.
-- Re-run the Map Explorer Standard Amber Scan and record central-token residuals.
+- Targeted token test: run the smallest command that covers `src/centerpanel/components/map/__tests__/map-components.test.ts`.
+- Re-run the Map Explorer Standard Amber Scan and Heavy-Chrome Scan; record central-token residuals and compatibility aliases in the ledger.
 
 ---
 
-## Prompt B03 - Map Explorer Modal, Shell, Cockpit, Canvas Chrome, And Status Bar
+## Prompt B03 - Map Shell, Modal, Docking Rails, Canvas Chrome, Focus, And Status Bar
 
 ### Objective
 
-Restyle the Map Explorer shell and canvas chrome as a map-first VS Code-like workbench without amber, glow, or heavy panel cards.
+Restyle the Map Explorer modal shell, embedded shell, docking rails, canvas-adjacent chrome, focus CSS, and status bar as a map-first workbench surface aligned with the completed Center Panel shell.
 
 ### Primary Files
 
 - `src/centerpanel/components/MapExplorerModal.tsx`
 - `src/centerpanel/components/map/MapWorkspaceShell.tsx`
-- `src/centerpanel/components/map/MapWorkspaceCockpit.tsx`
-- `src/centerpanel/components/map/MapWorkspaceCockpit.module.css`
 - `src/centerpanel/components/map/MapCanvas.tsx`
 - `src/centerpanel/components/map/MapStatusBar.tsx`
 - `src/centerpanel/components/map/MapCanvasKeyboardFallbackControls.tsx`
+- `src/centerpanel/components/map/mapDocking.ts` only if docking dimensions/metadata expose chrome defaults.
+- `src/centerpanel/components/map/__tests__/MapCanvas.lifecycle.test.tsx`
+- `src/centerpanel/components/map/__tests__/map-docking.test.ts`
+- `src/centerpanel/components/map/__tests__/map-accessibility.test.ts`
 
 ### Tasks
 
-1. Remove amber shell accents, map header emphasis, workflow preview amber lines, canvas overlay amber borders, and focus fallback amber.
-2. Replace panel-card chrome with thin separators, map-first transparent overlays, and compact inspector rows.
-3. Keep map content visually primary; controls must recede behind basemap/layer symbology.
-4. Status bar states must remain explicit with labels for info, warning/caveat, error, running, pending, valid, and stale. Use non-amber rendering for warnings/caveats.
-5. Remove decorative gradients and glow. Use neutral panels and restrained blue/gray-blue focus.
-6. Preserve map lifecycle, layer sync, viewport, keyboard fallback, and cockpit behavior.
+1. Replace `MapWorkspaceShell.tsx` amber focus fallback (`MAP_COLORS.amber`, `rgba(245,158,11,...)`) with `--syn-border-focus` / `--syn-interaction-focus-ring` and a blue `color-mix` focus shadow.
+2. Convert modal and embedded surfaces to `--syn-surface-workbench` and `--syn-surface-panel` with no decorative glow, no amber overlay, and no large rounded modal card frame.
+3. Docking rails should read like Center Panel inspectors: neutral side rails, `--syn-border-subtle` separators, transparent backgrounds, no card-in-card, no amber rail handles. Resize handles keep hit target size but show focus/hover with blue hairline only.
+4. Canvas fallback controls and keyboard controls should be compact overlay tools with transparent/default neutral backgrounds, 3-4px radius, visible focus, and no amber border/fill. Preserve keyboard semantics and aria labels.
+5. Status bar warning/caveat rendering must not use `--syn-status-warning` if it is amber. In `MapStatusBar.tsx`, map QA caveats to explicit text plus non-amber `info` or `stale` treatment; blocked/error remains error; valid remains valid.
+6. Keep map content primary: controls recede behind basemap/layer symbology, no page-like card framing around the canvas, no hero/header treatment.
+7. Preserve modal open/close behavior, focus trap behavior, aria-modal intent, viewport lifecycle, layer sync, map lifecycle, keyboard fallback, and docking state.
 
 ### Acceptance Criteria
 
-- Shell, cockpit, canvas overlays, and status bar contain no amber UI chrome.
-- No button or panel reads as a decorative card unless it frames an actual floating tool.
-- Map status remains truthful and text-backed.
-- Map remains primary in desktop and compact layouts.
+- Shell, docking rails, focus-visible states, keyboard controls, canvas overlays, and status bar contain no amber UI chrome.
+- Status bar labels still expose project, layers, cursor, zoom, CRS, QA, sync, save/load, and AOI state without relying on color alone.
+- No map readiness/QA/caveat state is made to look ready.
+- Map remains visually primary in modal and embedded modes.
 
 ### Validation
 
 - `npm run typecheck`
-- Targeted map lifecycle/accessibility tests if touched.
-- Manual or Playwright visual smoke if dev server is available.
-- Re-run the Map Explorer Standard Amber Scan.
+- Targeted tests for map lifecycle/docking/accessibility if affected.
+- Manual or Playwright visual smoke if a dev server is available: modal mode, embedded mode, compact width, keyboard focus traversal.
+- Re-run the Map Explorer Standard Amber Scan and Heavy-Chrome Scan for B03 files.
 
 ---
 
-## Prompt B04 - Map Toolbar, Search, Pins, Context Menus, And Keyboard Controls
+## Prompt B04 - Map Command Cockpit, Workspace Bars, Timeline, And Progress Surfaces
 
 ### Objective
 
-Remove amber and filled button styling from Map Explorer controls, search, pins, menus, and keyboard/fallback control surfaces.
+Migrate the Map Workspace cockpit and workspace command surfaces to the same dense Center Panel workbench language while preserving the command model and operational status truthfulness.
+
+### Primary Files
+
+- `src/centerpanel/components/map/MapWorkspaceCockpit.tsx`
+- `src/centerpanel/components/map/MapWorkspaceCockpit.module.css`
+- `src/centerpanel/components/map/MapWorkspaceShell.tsx` only for workspace bar/timeline slots not completed in B03.
+- `src/centerpanel/components/map/mapExperience.ts`
+- `src/centerpanel/components/map/mapContextSummary.ts`
+- `src/centerpanel/components/map/__tests__/map-workspace-experience.test.ts`
+- `src/centerpanel/components/map/__tests__/mapContextSummary.test.ts`
+
+### Tasks
+
+1. Replace cockpit decorative gradients, radial accent washes, heavy shadows, and filled primary command plates with flat inspector panes, hairline separators, transparent buttons, and blue text/border affordance.
+2. Keep the cockpit layout operational and dense: context cells, signal rows, sequence rows, mode buttons, recommended bands, integration rows, and quick action grids should look like Center Panel row groups, not dashboard cards.
+3. Change `--cockpit-warning` away from `--syn-status-warning` if that resolves amber. Caveat/warning/attention rows use explicit text plus `--syn-status-info`, `--syn-status-stale`, or `--syn-status-error` according to severity.
+4. Active mode buttons use blue left rail, underline, or subtle 8-12% blue tint. Avoid filled card states and large rounded plates.
+5. Running/progress surfaces keep motion and progress semantics but use blue/valid status colors and neutral tracks. Do not introduce decorative animation.
+6. Workspace bars, extension slots, bottom timeline notices, import progress strips, and drag overlays should use Center Panel group labels, neutral surfaces, and thin separators; no amber progress fill or dashed amber drop zone.
+7. Preserve workspace view selection, quick action command wiring, context summary text, command disabled reasons, and all existing aria labels.
+
+### Acceptance Criteria
+
+- Cockpit and workspace bars are amber-free and visually match the completed Center Panel: dense rows, flat panes, muted uppercase labels, hairlines, ghost controls.
+- Existing command/status behavior and disabled reasons are unchanged.
+- Warning/caveat statuses remain explicit and do not render as ready/valid.
+- No new heavy gradients, glows, or shadow stacks are introduced.
+
+### Validation
+
+- `npm run typecheck`
+- Targeted workspace/context tests if changed.
+- Manual visual smoke for the cockpit at 960px, 1280px, and compact modal width if a dev server is available.
+- Re-run the Map Explorer Standard Amber Scan and Heavy-Chrome Scan for B04 files.
+
+---
+
+## Prompt B05 - Toolbar, Search, Pins, Bookmarks, Context Menus, And Map Explorer Entry Button
+
+### Objective
+
+Remove amber and filled-button styling from the command toolbar, location search, pin/sidebar surfaces, bookmark controls, context menus, and the Map Explorer launch button.
 
 ### Primary Files
 
 - `src/centerpanel/components/map/MapToolbar.tsx`
 - `src/centerpanel/components/map/MapSearchBar.tsx`
 - `src/centerpanel/components/map/MapPinSidebar.tsx`
-- `src/centerpanel/components/MapContextMenu.tsx`
 - `src/centerpanel/components/MapBookmarkBar.tsx`
-- `src/centerpanel/components/map/MapCanvasKeyboardFallbackControls.tsx`
+- `src/centerpanel/components/MapContextMenu.tsx`
 - `src/centerpanel/components/map/contextMenuUtils.ts`
+- `src/centerpanel/components/MapExplorerButton.tsx`
+- `src/centerpanel/components/map/__tests__/MapToolbar.external-services.test.tsx`
+- `src/centerpanel/components/map/__tests__/map-context-menu.test.ts`
+- `src/centerpanel/components/map/__tests__/map-bookmarks-annotations.test.tsx`
 
 ### Tasks
 
-1. Convert toolbar buttons to VS Code-like icon buttons: transparent default, neutral hover, blue/gray-blue active icon or rail, visible focus ring.
-2. Remove amber hover/focus/active backgrounds from search results, pin rows, context actions, bookmark controls, and keyboard controls.
-3. Replace filled rounded controls with compact 24-32px controls where the existing layout supports it.
-4. Preserve tooltips, aria labels, disabled reasons, shortcut text, and command behavior.
-5. Do not change map commands, search result resolution, pin persistence, or context menu action routing.
+1. Convert toolbar command buttons to Center Panel icon-button discipline: transparent default, 24-32px stable dimensions where possible, neutral hover, blue icon/text or 2px rail for active state, visible focus ring.
+2. Remove amber from `toneColor`, active command styles, focus outlines, status badges, hover handlers, menu items, and toolbar overflow surfaces. `warning` command tone should remain text-backed and non-amber.
+3. Search input and results should match Center Panel compact input/list patterns: `--syn-surface-input`, `--syn-border-subtle`, `--syn-border-focus`, 3px radius, row hover via neutral/blue tint, no amber result hover.
+4. Pin rows, bookmark rows, context action rows, and launcher button should be dense row controls, not mini cards. Selected/active state uses blue rail/text; destructive actions use error token with explicit label.
+5. Preserve tooltips, aria labels, disabled reasons, shortcuts, command routing, pin persistence, bookmark limit behavior, context menu positioning, and search result selection.
+6. Update tests only when expected token names or non-amber defaults change.
 
 ### Acceptance Criteria
 
-- Controls have no amber styling and no unnecessary filled button plates.
+- Toolbar/search/pin/bookmark/context controls contain no amber UI styling.
+- No filled rounded button plates remain for routine map commands.
 - Active state is legible through icon/text/rail/focus, not a large filled card.
-- Keyboard focus remains visible and consistent.
-- Text fits inside controls at compact widths.
+- Keyboard focus remains visible, and control text fits at compact widths.
 
 ### Validation
 
 - `npm run typecheck`
-- Map toolbar/search/accessibility tests if touched.
-- Re-run the Map Explorer Standard Amber Scan.
+- Targeted toolbar/search/bookmark/context/accessibility tests if touched.
+- Re-run the Map Explorer Standard Amber Scan for B05 files.
 
 ---
 
-## Prompt B05 - Map Layer Manager, Layer Panel, Rows, Badges, And Selection States
+## Prompt B06 - Layer Manager, Layer Panel, Registry Rows, Badges, Popovers, And Sync States
 
 ### Objective
 
-Remove amber from layer management and replace card-like layer rows with dense, truthful inspector rows.
+Convert layer management from amber-tinted control cards to dense, truthful workbench inspector rows without altering layer store behavior or sync semantics.
 
 ### Primary Files
 
@@ -1186,112 +1315,249 @@ Remove amber from layer management and replace card-like layer rows with dense, 
 
 ### Tasks
 
-1. Replace active layer amber fill/border/text with non-amber selected-row styling.
-2. Replace layer checkbox/range `accentColor` amber with blue-gray interaction tokens.
-3. Remove amber delete/dropdown/popup borders and heavy panel shadows where they read as cards.
-4. Disabled, stale, hidden, invalid, unsynced, selected, and published states must remain explicit with labels, icons, or tooltips.
-5. Do not change layer store behavior, order, visibility logic, style metadata, or sync semantics.
-6. Update tests that expect amber layer defaults or token names.
+1. Replace active layer, visible layer, stale layer, symbology-active, cartography-review, and selected base-layer amber states with blue rail/text, neutral row backgrounds, or semantic non-amber status chips.
+2. Replace layer opacity/range `accentColor` amber with `--syn-interaction-active` or an equivalent non-amber token.
+3. Flatten layer rows into Center Panel table/list rhythm: no card border per layer, no amber row fills, no heavy shadows; use hairline row separators and compact metadata/badge rails.
+4. Popovers, action menus, dialog mini-forms, add-layer controls, manual layer forms, and demo layer controls should use 3px workbench fields, transparent/ghost buttons, and neutral `--syn-border-subtle` borders.
+5. Badges for demo, external, stale, QA warning, invalid, hidden, unsynced, selected, published, queryable, and derived states must keep explicit text/tooltips. Demo/stale/caveat states must not share valid/success styling.
+6. Preserve layer order, visibility, opacity, registry metadata normalization, publication readiness computation, layer sync, map dispatch, drag behavior, and context menus.
+7. Update tests that expect amber layer defaults, active layer styles, or old token names.
 
 ### Acceptance Criteria
 
-- Layer rows, badges, toggles, dropdowns, and active states are amber-free.
+- Layer rows, badges, toggles, popovers, dropdowns, active states, and layer panel base-style buttons are amber-free.
 - Row surfaces are compact and separator-led rather than card-led.
-- State truthfulness is preserved without color-only communication.
+- State truthfulness is preserved through text/tooltips/labels, not color alone.
+- Layer behavior, registry metadata, sync semantics, and order/visibility logic are unchanged.
 
 ### Validation
 
 - `npm run typecheck`
 - Targeted layer management tests.
-- Re-run the Map Explorer Standard Amber Scan.
+- Re-run the Map Explorer Standard Amber Scan and Heavy-Chrome Scan for B06 files.
 
 ---
 
-## Prompt B06 - Map Drawers, Scientific QA, NL Query, Review Timeline, And Report Handoff
+## Prompt B07 - Scientific QA, Readiness, Evidence, And Status Semantics
 
 ### Objective
 
-Remove amber from high-risk Map Explorer drawers while preserving QA, CRS, publication readiness, query safety, review, and report status semantics.
+Remove amber from scientific QA and readiness status surfaces while preserving CRS safety, evidence provenance, publication readiness, and blocked/caveat truthfulness.
 
 ### Primary Files
 
-- `src/centerpanel/components/map/MapWorkflowDrawer.tsx`
 - `src/centerpanel/components/map/ScientificQAPanel.tsx`
-- `src/centerpanel/components/map/MapNLQueryPanel.tsx`
-- `src/centerpanel/components/map/MapReviewTimelinePanel.tsx`
-- `src/centerpanel/components/map/MapReportHandoffDrawer.tsx`
-- `src/centerpanel/components/map/CartographyRecommendationList.tsx`
+- `src/centerpanel/components/map/mapEvidenceArtifacts.ts`
+- `src/centerpanel/components/map/mapLayerMetadata.ts`
+- `src/centerpanel/components/map/mapTypes.ts` only if default visible color literals are present; do not rename domain status types.
+- `src/services/map/MapScientificQA.ts`
+- `src/services/map/MapScientificQA.worker.ts`
+- `src/services/map/MapPublicationOutputBindingService.ts`
+- `src/services/map/__tests__/MapScientificQA.test.ts`
+- `src/services/map/__tests__/MapPublicationOutputBindingService.test.ts`
+- `src/centerpanel/components/map/__tests__/mapEvidenceArtifacts.test.ts`
 
 ### Tasks
 
-1. Replace amber warning/caveat backgrounds, left borders, links, drawer titles, recommendation highlights, and report-readiness badges.
-2. Use explicit labels and non-amber status tones for `blocked`, `ready-with-caveats`, `needs-review`, `unknown`, `stale`, and `info`.
-3. Flatten drawer content: remove nested cards where list rows, sections, and thin separators are sufficient.
-4. Keep QA, CRS, NL-query safety, review timeline, report handoff, and cartography recommendation logic unchanged.
-5. Ensure report/action buttons are transparent or restrained blue, not filled amber plates.
-6. Preserve text labels and aria naming for scientific status surfaces.
+1. Replace amber warning/caveat panels, left borders, issue highlights, QA summary accents, and readiness chips with non-amber status treatments.
+2. Keep status labels and domain values (`warning`, `ready-with-caveats`, `needs-review`, `blocked`, `unknown`, `unchecked`, `passed`) unchanged unless a test assertion only names color. Do not rename scientific statuses to avoid downstream contract drift.
+3. Map visual tones as: blocked/error -> error; passed/ready -> valid; running -> running/info; unchecked/unknown -> unknown/stale; warning/caveat/needs-review -> explicit text plus info/stale treatment, never amber.
+4. Flatten QA panels into inspector sections: muted uppercase group labels, rows separated by hairlines, transparent backgrounds, compact badges.
+5. Do not change CRS validation, worker execution, QA issue generation, evidence artifact creation, evidence QA state, max artifact behavior, or publication output binding logic.
+6. Update tests only for style/token expectations, not scientific status logic.
 
 ### Acceptance Criteria
 
-- Drawer surfaces contain no amber UI styling.
-- Warning/caveat semantics remain stronger than neutral text through labels, icons, and non-amber status treatment.
-- Drawers look like VS Code inspectors, not card stacks.
-- No scientific readiness state is weakened or misrepresented.
+- Scientific QA and readiness UI no longer uses amber, gold, yellow, or `--syn-status-warning` as rendered chrome.
+- Caveats and warnings remain more explicit than neutral text through labels, icons, counts, aria text, or disabled reasons.
+- No scientific readiness state is weakened or made to look valid.
+- Evidence and QA behavior are unchanged.
 
 ### Validation
 
 - `npm run typecheck`
-- Targeted tests for NL query, report handoff, QA, and recommendations if touched.
-- Re-run the Map Explorer Standard Amber Scan.
+- Targeted QA/evidence/publication tests if touched.
+- Re-run the Map Explorer Standard Amber Scan for B07 files.
 
 ---
 
-## Prompt B07 - Map Import, Export, Service, Drawing, Measurement, Temporal, And Dialog Surfaces
+## Prompt B08 - Workflow Drawer, NL Query, Review Timeline, Cartography Recommendations, And Report Handoff Drawer
 
 ### Objective
 
-Remove amber from secondary Map Explorer tools and generated/export-adjacent UI without changing import/export or analysis behavior.
+Migrate the high-risk map drawers and recommendation surfaces to dense Center Panel inspector chrome without changing workflow, NL-query safety, review, cartography, or report handoff logic.
+
+### Primary Files
+
+- `src/centerpanel/components/map/MapWorkflowDrawer.tsx`
+- `src/centerpanel/components/map/MapNLQueryPanel.tsx`
+- `src/centerpanel/components/map/MapReviewTimelinePanel.tsx`
+- `src/centerpanel/components/map/MapReportHandoffDrawer.tsx`
+- `src/centerpanel/components/map/CartographyRecommendationList.tsx`
+- `src/services/map/MapWorkflowService.ts`
+- `src/services/map/MapNLQueryBuilder.ts` only for generated default styles; deeper service defaults are B13 if broad.
+- `src/services/map/MapReviewSessionService.ts`
+- `src/services/map/MapReportHandoffService.ts`
+- `src/services/map/MapCartographyAdvisor.ts` only for UI recommendation display defaults; broader generated colors are B13.
+- Targeted tests for the above files.
+
+### Tasks
+
+1. Replace amber drawer titles, recommendation highlights, report-readiness badges, caveat strips, prompt panels, links, and left borders with Center Panel workbench tokens.
+2. Drawers should be one coherent inspector surface: header hairline, option rows, body sections, sticky footer if needed, no nested cards unless a live preview/frame genuinely needs containment.
+3. Report handoff and export readiness states distinguish `ready`, `ready-with-caveats`, `needs-review`, `blocked`, `unknown`, and `stale` with explicit text plus non-amber status styling.
+4. NL-query blockers/warnings must remain text-backed. Query safety and schema field availability must not be softened visually.
+5. Cartography recommendations should use row severity labels/icons and blue/neutral selection affordances, not amber recommendation cards.
+6. Preserve workflow preview/apply logic, NL-query preview execution, review event lifecycle, recommendation application, report draft generation, evidence registration, PDF/download/insert actions, drawer sizing, and aria naming.
+
+### Acceptance Criteria
+
+- Workflow/NL/review/report/cartography drawers contain no amber UI styling.
+- Drawers look like VS Code inspectors: dense rows, muted group labels, hairline separators, ghost controls.
+- Warning/caveat/readiness semantics remain explicit and cannot be mistaken for ready/valid.
+- Service contracts and generated draft data are unchanged except non-amber visible defaults if local to these surfaces.
+
+### Validation
+
+- `npm run typecheck`
+- Targeted NL query, workflow, review timeline, report handoff, and cartography tests if touched.
+- Re-run the Map Explorer Standard Amber Scan and Heavy-Chrome Scan for B08 files.
+
+---
+
+## Prompt B09 - Import, CSV, Columnar, External Service, And Dataset Dialogs
+
+### Objective
+
+Remove amber and card-heavy styling from map import and external service dialogs while preserving parsing, validation, dataset loading, and service connection behavior.
 
 ### Primary Files
 
 - `src/centerpanel/components/MapDataImportHubDialog.tsx`
 - `src/centerpanel/components/MapCsvImportDialog.tsx`
 - `src/centerpanel/components/MapColumnarImportDialog.tsx`
-- `src/centerpanel/components/MapDataExportDialog.tsx`
-- `src/centerpanel/components/MapExportDialog.tsx`
 - `src/centerpanel/components/MapServiceDialog.tsx`
-- `src/centerpanel/components/MapDrawingManager.tsx`
-- `src/centerpanel/components/MapMeasurementTool.tsx`
-- `src/centerpanel/components/MapTemporalPlayer.tsx`
-- `src/centerpanel/components/MapVoxCityOverlay.tsx`
+- `src/services/map/MapDataImporter.ts`
+- `src/services/map/ExternalServiceConnector.ts` only for generated/default visible layer colors; broad defaults are B13.
+- `src/services/map/__tests__/MapDataIO.test.ts`
+- `src/services/map/__tests__/ExternalServiceConnector.test.ts`
 
 ### Tasks
 
-1. Remove amber dialog titles, primary buttons, tab fills, progress/status chips, form focus rings, and generated preview chrome.
-2. Convert dialogs to compact workbench modal styling: neutral panels, thin borders, dense form rows, restrained focus.
-3. Ensure export and report statuses distinguish valid/error/info/blocked/stale without amber warning fill.
-4. Preserve file parsing, import validation, export services, drawing tools, measurement CRS warnings, temporal playback, and VoxCity overlay behavior.
-5. Replace any amber generated preview marker only if it is UI chrome or default/demo styling; document real data-palette exceptions.
+1. Remove amber hero/header gradients, filled primary import buttons, amber badges, table headers, row preview fills, form focus rings, progress chips, and local format cards.
+2. Convert dialogs to compact workbench modals: neutral panel surface, 3-4px radius, hairline header/footer, dense form rows, muted uppercase labels, scrollable body, transparent/ghost secondary controls, and restrained blue primary action.
+3. Replace local format cards with row/list sections or thin-bordered tiles only when scanability requires them; avoid card-in-card stacking.
+4. CSV and columnar preview tables use Center Panel table rhythm: sticky muted header, hairline row separators, tabular numerics, no amber header background.
+5. Quality scores, import readiness, CRS metadata, worker-transfer state, external-service errors, and loading/progress states remain explicit through text/icons/status labels.
+6. Preserve file parsing, schema preview, quality scoring, worker transfer, local file browse, curated dataset loading, external service URL handling, progress callbacks, and error handling.
 
 ### Acceptance Criteria
 
-- Map tool dialogs and secondary tools are amber-free in UI chrome.
+- Import and service dialogs are amber-free and visually aligned with New Project/Toolbox workbench form discipline.
 - Dialog buttons no longer use decorative filled amber plates.
-- CRS/measurement/export warnings remain explicit with text and non-amber status treatment.
+- Preview tables and format lists do not create nested card stacks.
+- Import/readiness statuses remain truthful and accessible.
 
 ### Validation
 
 - `npm run typecheck`
-- Targeted component/service tests if touched.
-- Re-run the Map Explorer Standard Amber Scan.
+- Targeted import/service tests if touched.
+- Manual dialog smoke for import hub, CSV, columnar, and external service flows if a dev server is available.
+- Re-run the Map Explorer Standard Amber Scan and Heavy-Chrome Scan for B09 files.
 
 ---
 
-## Prompt B08 - Map Visualization Defaults, Symbology, Cartography Services, And Exports
+## Prompt B10 - Export, Publication, Composition, Snapshot Preview, And Generated Output Chrome
 
 ### Objective
 
-Remove amber as a default/demo/generated map color while preserving legitimate analytical palette separation.
+Remove amber from export/publication UI and generated preview/output chrome without changing export structure, PDF generation, publication readiness, or report package content.
+
+### Primary Files
+
+- `src/centerpanel/components/MapDataExportDialog.tsx`
+- `src/centerpanel/components/MapExportDialog.tsx`
+- `src/centerpanel/components/MapCompositionLayout.tsx`
+- `src/services/map/MapExportService.ts`
+- `src/services/map/MapDataExporter.ts`
+- `src/services/map/MapReportHandoffService.ts` only if generated snapshot/readiness colors are local.
+- `src/services/map/__tests__/MapExportService.test.ts`
+- `src/services/map/__tests__/MapReportHandoffService.test.ts`
+
+### Tasks
+
+1. Remove amber export dialog titles, tab/format fills, primary button plates, readiness chips, table headers, comparison cards, generated preview borders, and print/export HTML/SVG accents.
+2. Generated map decorations such as compass, north arrow, crosshair, crop/registration marks, snapshot frames, and PDF/SVG helper graphics must use non-amber neutral/blue values unless they are actual layer symbology.
+3. Publication readiness colors distinguish `ready`, `ready-with-caveats`, `needs-review`, `blocked`, `stale`, and `unknown` with non-amber text-backed status treatment.
+4. Export modals and composition controls follow Center Panel form discipline: single surface, hairline header/footer, 3px controls, transparent defaults, blue primary outline/text, compact table rows.
+5. Do not change export output schema, manifest structure, PDF layout dimensions, file download behavior, report handoff payloads, evidence QA mapping, or data serialization.
+6. Update tests that expect `#F59E0B`, amber compass/crosshair output, amber medium-density fixtures, or amber readiness chrome.
+
+### Acceptance Criteria
+
+- Export dialogs and generated export-adjacent chrome are amber-free.
+- Generated output still distinguishes map decorations from data symbology and remains readable in dark/print contexts.
+- Readiness caveats remain explicit and non-ambiguous.
+- Export/report tests no longer encode amber defaults.
+
+### Validation
+
+- `npm run typecheck`
+- Targeted export/report handoff tests.
+- Manual export-preview smoke if a dev server is available.
+- Re-run the Map Explorer Standard Amber Scan for B10 files.
+
+---
+
+## Prompt B11 - Drawing, Measurement, Annotation, Temporal, VoxCity Overlay, And Store Defaults
+
+### Objective
+
+Remove amber from interactive map tool defaults and panels while preserving drawing, measurement, annotation, temporal playback, VoxCity overlay, and persisted map-store behavior.
+
+### Primary Files
+
+- `src/centerpanel/components/MapDrawingManager.tsx`
+- `src/centerpanel/components/MapMeasurementTool.tsx`
+- `src/centerpanel/components/MapAnnotationLayer.tsx`
+- `src/centerpanel/components/MapTemporalPlayer.tsx`
+- `src/centerpanel/components/MapVoxCityOverlay.tsx`
+- `src/stores/useMapExplorerStore.ts`
+- `src/centerpanel/components/map/__tests__/map-drawing-tools.test.ts`
+- `src/centerpanel/components/map/__tests__/geodesic-measurement.test.ts`
+- `src/centerpanel/components/map/__tests__/map-bookmarks-annotations.test.tsx`
+- `src/stores/__tests__/useMapExplorerStore.test.ts` if present and affected.
+
+### Tasks
+
+1. Replace drawing, measurement, annotation, and temporal tool control chrome with workbench ghost controls, 3px fields, hairline sections, and blue active cues.
+2. Replace map style defaults that use `MAP_COLORS.amber` for draw fills/lines/circles, measurement outlines, annotation text/line defaults, selected annotation focus, temporal active state, and VoxCity overlay controls.
+3. Update `DEFAULT_ANNOTATION_SETTINGS.color` in `useMapExplorerStore.ts` from amber to a non-amber default. Treat this as a visible map style default, not a logic change. Preserve persisted-store migration behavior.
+4. Measurement CRS warnings must remain explicit with text and non-amber status treatment; never soften geodesic/projection caveats.
+5. Keep data-editing and geometry behavior unchanged: draw modes, feature IDs, measurements, annotation CRUD, leader lines, temporal playback, VoxCity footprint handoff, and map layer integration.
+6. Update annotation/drawing/store tests that assert old amber defaults.
+
+### Acceptance Criteria
+
+- Drawing, measurement, annotation, temporal, VoxCity overlay, and store-provided visible defaults are amber-free.
+- Interactive tools remain legible over the map without heavy cards or filled amber controls.
+- CRS/measurement caveats remain explicit and accessible.
+- Persisted state shape and tool behavior are unchanged.
+
+### Validation
+
+- `npm run typecheck`
+- Targeted drawing, measurement, annotation, and store tests if affected.
+- Manual smoke for draw/select/measure/annotation focus if a dev server is available.
+- Re-run the Map Explorer Standard Amber Scan for B11 files.
+
+---
+
+## Prompt B12 - Visualization Panels, Symbology Utilities, Demo Packs, And Renderer Defaults
+
+### Objective
+
+Remove amber as a default/demo/generated visualization color from renderer panels and symbology utilities while keeping analytical palettes separate from UI chrome.
 
 ### Primary Files
 
@@ -1306,37 +1572,76 @@ Remove amber as a default/demo/generated map color while preserving legitimate a
 - `src/centerpanel/components/map/spatialStatsVizUtils.ts`
 - `src/centerpanel/components/map/symbolStyleUtils.ts`
 - `src/centerpanel/components/map/demoDataPacks.ts`
-- `src/services/map/MapEngineAdapter.ts`
-- `src/services/map/MapCartographyAdvisor.ts`
-- `src/services/map/MapPersistenceService.ts`
-- `src/services/map/MapExportService.ts`
-- `src/services/map/ExternalServiceConnector.ts`
+- Renderer and symbology tests under `src/centerpanel/components/map/__tests__/**`.
 
 ### Tasks
 
-1. Replace amber default layer colors, fallback style colors, demo pack colors, generated export compass/crosshair accents, and Query-to-SQL default layer colors.
-2. Use non-amber defaults such as blue, cyan, teal, violet, slate, or documented data-ramp colors that do not collide with UI status meanings.
-3. Do not conflate data visualization palettes with UI chrome tokens. Data colors may be literals or helper palettes when they represent symbology.
-4. If an external palette contains a yellow/orange stop for analytical reasons, document it as a data-palette exception and ensure it is not named amber/gold or used as UI chrome.
-5. Update service and renderer tests that explicitly expect `#F59E0B` defaults.
-6. Preserve geometry handling, CRS handling, export output structure, data persistence, and rendering logic.
+1. Replace amber UI chrome in visualization panels: panel headings, controls, sliders, ramp buttons, selected ramp state, legend toggles, table/list row active state, empty states, and add-to-map actions.
+2. Replace amber default/fallback symbology values in renderer helpers and layer style utilities. Use non-amber defaults such as blue, cyan, teal, violet, slate, or documented data-ramp colors.
+3. Replace demo pack amber colors and labels such as `Primary (demo)` / `Moderate access (demo)` when they use amber as a default/demo output. Preserve demo labeling truthfully.
+4. Heatmap/hotspot ramps may keep non-UI analytical sequential/diverging colors only if documented. Any yellow/orange stop must be justified as data-palette, not UI/default/demo chrome, and must not be named amber/gold.
+5. Visualization panels should match Center Panel density: flat inspector sections, no amber card borders, compact 3px controls, hairline table/list rows, transparent buttons.
+6. Preserve data classification logic, geometry handling, spatial stats rendering, symbology expression building, layer output shape, and legend behavior.
+7. Update tests that expect amber renderer defaults or amber demo data.
 
 ### Acceptance Criteria
 
-- No default/demo/generated Map Explorer style uses amber.
-- Tests no longer describe Query-to-SQL or layer defaults as amber.
-- Data palette exceptions are documented with purpose and are visually distinct from UI status colors.
-- UI status colors remain separate from map symbology.
+- Renderer panels and default/demo symbology are amber-free except documented analytical palette exceptions.
+- Data palette exceptions list palette purpose, classification type, legend behavior, no-data treatment, and why the color cannot be confused with UI warning/status.
+- UI status/chrome tokens remain separate from map symbology.
+- Rendering and symbology tests reflect the new non-amber defaults.
 
 ### Validation
 
 - `npm run typecheck`
-- Targeted map service/renderer tests touched by color defaults.
-- Re-run the Map Explorer Standard Amber Scan and classify any data-palette residuals.
+- Targeted symbology/spatial stats/renderer tests.
+- Re-run the Map Explorer Standard Amber Scan and classify any residual data-palette hits.
 
 ---
 
-## Prompt B09 - Map Explorer Final Amber Cleanup, Tests, Accessibility, And Visual QA
+## Prompt B13 - Map Services, Query Defaults, Cartography Advisor, Persistence, External Connectors, And Engine Outputs
+
+### Objective
+
+Remove amber from service-level default/generated map colors and tests without changing map analysis, persistence, export, or external service contracts.
+
+### Primary Files
+
+- `src/services/map/MapEngineAdapter.ts`
+- `src/services/map/MapCartographyAdvisor.ts`
+- `src/services/map/MapPersistenceService.ts`
+- `src/services/map/MapNLQueryBuilder.ts`
+- `src/services/map/ExternalServiceConnector.ts`
+- `src/services/map/MapAnalysisDispatcher.ts` if default visible layer styles appear in scans.
+- `src/services/map/MapWorkflowService.ts` if preview layer colors appear in scans.
+- `src/services/map/MapToUrbanContextAdapter.ts` and `UrbanToMapMethodRequestAdapter.ts` only if scan hits show visible map defaults.
+- Related tests in `src/services/map/__tests__/**`.
+
+### Tasks
+
+1. Replace Query-to-SQL result layer amber defaults, analysis output highlight colors, generated color ramps, cartography advisor fallbacks, persistence restore fallback colors, external connector preview colors, and workflow preview layer colors.
+2. Choose non-amber defaults that stay visually distinct from status colors and basemap styles. Prefer blue/cyan/teal/violet/slate defaults and documented data palettes for analytical ramps.
+3. Do not change geometry handling, CRS handling, bounds restriction, completed run creation, analysis rerun metadata, persisted snapshot shape, external service request behavior, or NL-query audit metadata.
+4. Avoid routing generated map symbology through UI status tokens. Use service-local data palette constants or renderer helper palettes where appropriate.
+5. Update tests that describe or assert amber defaults, including Query-to-SQL layer tests, cartography advisor tests, persistence fallback tests, export/report tests if not handled in B10, and external service tests.
+6. Document any retained yellow/orange analytical palette as `data-palette` in the ledger with purpose and non-UI justification.
+
+### Acceptance Criteria
+
+- No service-level default/demo/generated map output uses amber unless documented as a true analytical data-palette exception.
+- Tests no longer name Query-to-SQL or map service defaults as amber.
+- UI chrome/status tokens are not used as symbology defaults.
+- Map service contracts, persistence, analysis output shape, and export structure are unchanged.
+
+### Validation
+
+- `npm run typecheck`
+- Targeted map service tests for changed files.
+- Re-run the Map Explorer Standard Amber Scan and classify all residual service hits.
+
+---
+
+## Prompt B14 - Map Explorer Final Cleanup, Test Drift, Accessibility, Heavy Chrome, And Visual QA
 
 ### Objective
 
@@ -1344,25 +1649,29 @@ Perform the final Map Explorer sweep for amber, unnecessary card frames, filled 
 
 ### Scope
 
-- All Map Explorer runtime UI files.
+- All Part 3 runtime UI files.
 - Map services that generate visible colors.
+- Store defaults that render visible map/annotation styles.
 - Related tests with color assertions.
 
 ### Tasks
 
-1. Re-run the Map Explorer Standard Amber Scan and eliminate every UI/default amber hit.
-2. Run targeted scans for `boxShadow`, `radial-gradient`, `linear-gradient`, `borderRadius: 10`, `border-radius: 999`, filled button backgrounds, and `MAP_COLORS.amber`.
-3. Remove unnecessary card frames and button fills while keeping genuine floating tools framed enough to read over the map.
-4. Check map desktop and compact layouts for control overlap, text overflow, focus visibility, and map content occlusion.
-5. Verify all drawers, dialogs, layer rows, search results, toolbar controls, and status surfaces preserve labels or aria names.
-6. Update tests and docs only where token names or expected non-amber defaults changed.
+1. Re-run the Map Explorer Standard Amber Scan and eliminate every UI/default/demo/generated amber hit.
+2. Re-run the Map Explorer Heavy-Chrome Scan and eliminate unnecessary card frames, oversized radii, decorative gradients, decorative shadows, filled button plates, and lingering `MAP_COLORS.amber*` / amber `MAP_STROKES` compatibility usages.
+3. Confirm all retained color literals are one of: token-source outside active render path, test fixture with explicit non-UI reason, or documented analytical data-palette exception.
+4. Check map desktop and compact layouts for control overlap, text overflow, focus visibility, drawer sizing, popover clipping, map content occlusion, and stable toolbar dimensions at 720, 960, 1280, and 1440px widths if a dev server is available.
+5. Verify keyboard reachability and focus-visible states for toolbar, search, bookmarks, context menus, layer rows, layer action menus, drawers, dialogs, sliders, range inputs, export controls, draw/measure/annotation controls, and close buttons.
+6. Confirm status truthfulness across `ready`, `ready-with-caveats`, `needs-review`, `blocked`, `unknown`, `stale`, `unchecked`, `warning`, `error`, `running`, and `demo` states. No caveat/unknown/stale/blocked/demo state should look valid.
+7. Run targeted map tests touched across B02-B13 and update snapshots/assertions only for legitimate token/default changes.
+8. Record manual or Playwright screenshot notes in the ledger covering shell, cockpit, toolbar/search, layer manager, QA/report drawers, import/export dialogs, drawing/measurement, and at least one renderer panel.
 
 ### Acceptance Criteria
 
 - Map Explorer is amber-free except documented analytical palette exceptions.
-- Map UI uses VS Code-like premium layout: map-first, quiet chrome, neutral hairlines, compact controls, restrained blue-gray interaction.
-- No map readiness/QA/CRS/publication status is made less explicit.
-- Ledger includes screenshot/manual QA notes.
+- Map UI matches the completed Center Panel workbench discipline: map-first surface, flat inspectors, neutral hairlines, compact controls, transparent defaults, restrained blue interaction.
+- No map readiness/QA/CRS/publication/report state is made less explicit.
+- Related tests pass or residual failures are documented as unrelated existing failures.
+- Ledger includes screenshot/manual QA notes and residual scan classifications.
 
 ### Validation
 
@@ -1370,14 +1679,15 @@ Perform the final Map Explorer sweep for amber, unnecessary card frames, filled 
 - Targeted map tests for changed files.
 - `npm run color:guard:changed` if available.
 - Manual screenshot review or Playwright smoke if a dev server is available.
+- Final Map Explorer Standard Amber Scan and Heavy-Chrome Scan.
 
 ---
 
-## Prompt B10 - Final Color System Handoff
+## Prompt B15 - Final Color System Handoff
 
 ### Objective
 
-Close the three-part color-system workstream.
+Close the three-part color-system workstream after Urban Analytics, Center Panel, and Map Explorer have all completed their amber-removal and workbench-restyle gates.
 
 ### Required Files
 
@@ -1385,24 +1695,26 @@ Close the three-part color-system workstream.
 - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_PROMPT_MANIFEST.json`
 - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_QA_CHECKLIST.md`
 - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_AGENT_HANDOFF_TEMPLATE.md`
-- `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_TOKEN_REFERENCE.md` if final token notes changed
+- `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_TOKEN_REFERENCE.md` if final token notes changed.
+- `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_UNIT_MATRIX.md` if prompt count or ownership notes changed outside this file.
 
 ### Tasks
 
-1. Confirm prompts `A01`-`A10`, `C01`-`C10`, and `B01`-`B09` are completed or skipped with reason.
-2. Record remaining amber hits by exact file and category. UI/default amber debt should be zero.
-3. Record validation history: typecheck, analytics tests, targeted map tests, scans, color guard, and visual QA.
-4. Confirm all retained color literals are either token-source, test-fixture, or documented data-palette/content exceptions.
-5. Confirm no GIS calculations, evidence semantics, method validity, workflow readiness, map persistence, or cross-module contracts changed.
-6. Update manifest statuses to match the ledger and mark the workstream complete.
+1. Confirm prompts `A01`-`A10`, `C01`-`C10`, and `B01`-`B14` are completed or skipped with reason.
+2. Record remaining amber hits by exact file and category. UI/default/demo/generated amber debt should be zero.
+3. Record validation history: typecheck, analytics tests, targeted Center Panel tests, targeted map tests, scans, color guard, and visual QA.
+4. Confirm all retained color literals are either token-source outside active scope, test fixture with explicit reason, or documented data-palette/content exceptions.
+5. Confirm no GIS calculations, CRS behavior, evidence semantics, method validity, workflow readiness, map persistence, map service contracts, QA logic, NL-query safety, or report handoff contracts changed.
+6. Update manifest statuses to match the ledger and mark the workstream complete. If B prompt count changed from earlier `B01`-`B10`, ensure manifest, ledger status register, unit matrix notes, and QA checklist references are synchronized.
+7. Record final handoff notes using `COLOR_SYSTEM_AGENT_HANDOFF_TEMPLATE.md`.
 
 ### Acceptance Criteria
 
 - Ledger and manifest agree.
 - Urban Analytics modal is amber-free and premium VS Code-like.
 - Center Panel (all tabs + shell + header animations) is amber-free and premium VS Code-like, with preserved ambient motion intact.
-- Map Explorer is amber-free and premium VS Code-like.
-- No unnecessary card frames or button fills remain in the active scope.
+- Map Explorer is amber-free and premium VS Code-like, aligned to the completed Center Panel code language.
+- No unnecessary card frames, oversized radii, decorative amber gradients, amber data defaults, or filled button plates remain in the active scope.
 - Final handoff lists no unresolved blocker.
 
 ### Validation

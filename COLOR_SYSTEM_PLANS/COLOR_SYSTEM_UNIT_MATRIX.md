@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This matrix maps the active two-part color migration into small units. The sequential prompts reference these units so small agents can work without reading the entire repository.
+This matrix maps the active three-part color migration into small units. The sequential prompts reference these units so small agents can work without reading the entire repository.
 
 ## Historical Baseline
 
@@ -28,20 +28,40 @@ The previous broad color work completed token infrastructure and several shared 
 | UA Python And Utility Panels | `src/features/urbanAnalytics/python/*`, `src/features/urbanAnalytics/python/templates/*` | Remove amber package/status/template UI and code-demo default chart amber when visible in modal content. |
 | UA Tests | `src/features/urbanAnalytics/**/__tests__/*`, `src/features/urbanAnalytics/indicators/__tests__/*`, `src/features/urbanAnalytics/voxcity/__tests__/*` | Update only assertions affected by token/name/default-color changes. |
 
-## Part 2 - Map Explorer Units
+## Part 2 - Center Panel Workbench Units
 
 | Unit | Primary Files | Notes |
 | --- | --- | --- |
-| Map Amber Inventory | `src/centerpanel/components/MapExplorerModal.tsx`, `src/centerpanel/components/map/**`, `src/centerpanel/components/Map*`, `src/services/map/**`, `src/stores/useMapExplorerStore.ts` | B01 only. Separate UI chrome from data-palette exceptions. |
-| Map Tokens | `src/centerpanel/components/map/mapTokens.ts`, `src/centerpanel/components/map/__tests__/map-components.test.ts`, `src/constants/design.ts` if needed | Remove amber from shared map UI aliases before component migration. |
-| Map Shell And Canvas | `src/centerpanel/components/MapExplorerModal.tsx`, `src/centerpanel/components/map/MapWorkspaceShell.tsx`, `MapWorkspaceCockpit.tsx`, `MapWorkspaceCockpit.module.css`, `MapCanvas.tsx`, `MapStatusBar.tsx`, `MapCanvasKeyboardFallbackControls.tsx` | Map-first, neutral, compact, no amber focus fallback. |
-| Map Toolbar/Search/Pins | `src/centerpanel/components/map/MapToolbar.tsx`, `MapSearchBar.tsx`, `MapPinSidebar.tsx`, `src/centerpanel/components/MapContextMenu.tsx`, `MapBookmarkBar.tsx`, `contextMenuUtils.ts` | Transparent controls, no filled amber/blue card plates. |
-| Layer Manager | `src/centerpanel/components/map/MapLayerManager.tsx`, `MapLayerPanel.tsx`, `mapLayerMetadata.ts`, `useLayerSync.ts` | Active rows, badges, toggles, dropdowns, and sync states must be amber-free and explicit. |
-| Map Drawers | `MapWorkflowDrawer.tsx`, `MapReportHandoffDrawer.tsx`, `ScientificQAPanel.tsx`, `MapNLQueryPanel.tsx`, `MapReviewTimelinePanel.tsx`, `CartographyRecommendationList.tsx` | QA, readiness, NL safety, review, and report colors are high-risk. |
-| Map Dialogs And Tools | `MapDataImportHubDialog.tsx`, `MapCsvImportDialog.tsx`, `MapColumnarImportDialog.tsx`, `MapDataExportDialog.tsx`, `MapExportDialog.tsx`, `MapServiceDialog.tsx`, `MapDrawingManager.tsx`, `MapMeasurementTool.tsx`, `MapTemporalPlayer.tsx`, `MapVoxCityOverlay.tsx` | Remove amber form focus, tabs, primary buttons, progress/status chips. |
-| Map Renderers And Data Defaults | `MapChoroplethLayer.tsx`, `MapHeatmapLayer.tsx`, `MapSymbolLayer.tsx`, `MapClusterViz.tsx`, `MapHotSpotViz.tsx`, `MapEmergingHotSpotViz.tsx`, `map/heatmapStyleUtils.ts`, `symbologyUtils.ts`, `spatialStatsVizUtils.ts`, `symbolStyleUtils.ts`, `demoDataPacks.ts` | No amber as default/demo/generated style. Document analytical palette exceptions. |
-| Map Services And Exports | `src/services/map/MapEngineAdapter.ts`, `MapCartographyAdvisor.ts`, `MapPersistenceService.ts`, `MapExportService.ts`, `ExternalServiceConnector.ts`, `MapNLQueryBuilder.ts` | Default/generated color outputs must be non-amber unless documented as data palette. |
-| Map Tests | `src/centerpanel/components/map/__tests__/*`, `src/centerpanel/components/__tests__/*`, `src/services/map/__tests__/*`, `src/stores/__tests__/useMapExplorerStore.test.ts` | Update only assertions affected by token/name/default-color changes. |
+| Center Panel Inventory | `src/centerpanel/**` excluding Map Explorer files | C01 only. Group amber and heavy-chrome hits before editing. Preserve existing ambient header animations. |
+| Center Panel Shell And Header | `src/centerpanel/CenterPanel.tsx`, shell/status/header styles, shared center-panel tokens | C02. Remove amber shell chrome while preserving header/keyframe behavior. |
+| Projects Tab | `src/centerpanel/registry-ui/**`, `src/centerpanel/styles/registry.module.css`, project/session/indicator/AI surfaces | C03. Dense project registry rows, not card stacks. |
+| New Project Tab | `src/centerpanel/registry-ui/newProject.*` | C04. Canonical single-surface intake form with 3px fields and transparent controls. |
+| Methods/Guide Tab | `src/centerpanel/styles/guides*.css`, guide/method outline surfaces | C05. VS Code outline rail + flat guide content. |
+| Report/Note Tab | `src/centerpanel/styles/note.module.css`, report builder/note/editor surfaces | C06. Workbench notebook/editor discipline. |
+| Workflows Tab | `src/centerpanel/styles/flows.module.css`, flow host/rail/tile/cockpit surfaces | C07. Dense workflow inspectors with non-amber status semantics. |
+| Toolbox Tab | `src/centerpanel/styles/tools*.css`, toolbox/lab/capability/consulton/export surfaces | C08. Dense toolbox inspectors; capability/demo/error states stay explicit. |
+| Cross-Cutting Surfaces | Urban context strip, outline nav, background tasks, engine capabilities, narrative, object detector | C09. Cross-tab surfaces and preserved animations. |
+| Center Panel Final QA | All Center Panel non-map files touched by C01-C09 | C10. Final amber/heavy-chrome cleanup and Part 3 gate. |
+
+## Part 3 - Map Explorer Units
+
+| Unit | Primary Files | Notes |
+| --- | --- | --- |
+| Map Inventory And Alignment | `src/centerpanel/components/MapExplorerModal.tsx`, `src/centerpanel/components/map/**`, `src/centerpanel/components/Map*`, `src/services/map/**`, `src/stores/useMapExplorerStore.ts`, Center Panel CSS anchors | B01 only. Separate UI chrome, heavy chrome, default/demo/generated colors, and analytical data-palette exceptions; lock Center Panel code-derived design rules. |
+| Map Tokens And Primitives | `src/centerpanel/components/map/mapTokens.ts`, `src/constants/design.ts`, `src/centerpanel/components/map/__tests__/map-components.test.ts` | B02. Remove amber from shared map UI aliases, strokes, shared styles, radius/shadow contracts, and compatibility aliases before component migration. |
+| Map Shell, Modal, Docking, Canvas, Status | `MapExplorerModal.tsx`, `MapWorkspaceShell.tsx`, `MapCanvas.tsx`, `MapStatusBar.tsx`, `MapCanvasKeyboardFallbackControls.tsx`, `mapDocking.ts` | B03. Map-first shell/docking/focus/status chrome; no amber focus fallback or card shell. |
+| Map Cockpit And Workspace Bars | `MapWorkspaceCockpit.tsx`, `MapWorkspaceCockpit.module.css`, `MapWorkspaceShell.tsx`, `mapExperience.ts`, `mapContextSummary.ts` | B04. Dense cockpit/workspace operational surfaces; remove decorative gradients, amber warning variables, heavy shadows, and filled plates. |
+| Toolbar, Search, Pins, Bookmarks, Context Menus | `MapToolbar.tsx`, `MapSearchBar.tsx`, `MapPinSidebar.tsx`, `MapBookmarkBar.tsx`, `MapContextMenu.tsx`, `contextMenuUtils.ts`, `MapExplorerButton.tsx` | B05. Compact transparent controls, blue rails/tints, no amber hover/active/focus. |
+| Layer Manager And Layer Panel | `MapLayerManager.tsx`, `MapLayerPanel.tsx`, `mapLayerMetadata.ts`, `useLayerSync.ts` | B06. Dense layer rows, explicit badges, non-amber sync/selection/popover states. |
+| Scientific QA And Readiness | `ScientificQAPanel.tsx`, `mapEvidenceArtifacts.ts`, `mapLayerMetadata.ts`, `MapScientificQA*`, `MapPublicationOutputBindingService.ts` | B07. Preserve CRS/evidence/readiness truthfulness while removing amber warning/caveat chrome. |
+| Workflow, Query, Review, Cartography, Report Drawers | `MapWorkflowDrawer.tsx`, `MapNLQueryPanel.tsx`, `MapReviewTimelinePanel.tsx`, `MapReportHandoffDrawer.tsx`, `CartographyRecommendationList.tsx`, related services | B08. High-risk drawers use inspector rows and text-backed non-amber status. |
+| Import And Service Dialogs | `MapDataImportHubDialog.tsx`, `MapCsvImportDialog.tsx`, `MapColumnarImportDialog.tsx`, `MapServiceDialog.tsx`, `MapDataImporter.ts`, `ExternalServiceConnector.ts` | B09. Compact workbench dialogs, no amber hero gradients, filled import buttons, or amber preview headers. |
+| Export And Generated Output | `MapDataExportDialog.tsx`, `MapExportDialog.tsx`, `MapCompositionLayout.tsx`, `MapExportService.ts`, `MapDataExporter.ts`, `MapReportHandoffService.ts` | B10. Export/publication UI and generated SVG/PDF/preview chrome must be amber-free. |
+| Interactive Tools And Store Defaults | `MapDrawingManager.tsx`, `MapMeasurementTool.tsx`, `MapAnnotationLayer.tsx`, `MapTemporalPlayer.tsx`, `MapVoxCityOverlay.tsx`, `src/stores/useMapExplorerStore.ts` | B11. Remove amber drawing/measurement/annotation defaults, including visible persisted annotation defaults. |
+| Visualization Panels And Renderer Defaults | `MapChoroplethLayer.tsx`, `MapHeatmapLayer.tsx`, `MapSymbolLayer.tsx`, `MapClusterViz.tsx`, `MapHotSpotViz.tsx`, `MapEmergingHotSpotViz.tsx`, renderer utilities, `demoDataPacks.ts` | B12. No amber default/demo/generated renderer colors except documented analytical data-palette exceptions. |
+| Map Services And Engine Outputs | `MapEngineAdapter.ts`, `MapCartographyAdvisor.ts`, `MapPersistenceService.ts`, `MapNLQueryBuilder.ts`, `ExternalServiceConnector.ts`, analysis/workflow adapters if scan hits appear | B13. Non-amber service-level generated/default colors; contracts and schemas unchanged. |
+| Map Final QA | All Map Explorer files touched by B02-B13 and related tests | B14. Final amber/heavy-chrome scan, accessibility/focus, compact-layout, and visual QA. |
+| Final Color Handoff | `COLOR_SYSTEM_PLANS/**` operating-pack files | B15. Ledger/manifest/QA/handoff sync after A, C, and B implementation prompts close. |
 
 ## Validation Units
 

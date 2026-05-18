@@ -6,16 +6,16 @@ This ledger is the execution source of truth for the color-system operating pack
 
 ## Current Status
 
-- Operating pack status: reprioritized for two-part amber-removal execution on 2026-05-15.
-- Historical implementation status: old broad Prompts 00-17 completed on 2026-05-15; old pending Prompts 18-37 are superseded by active prompts A01-A10, C01-C10, and B01-B10.
-- Active prompt count: 30 prompts: `A01` through `A10`, `C01` through `C10`, and `B01` through `B10`.
-- Current prompt: Part 1 (Urban Analytics) closed; Part 2 (Center Panel Workbench, C01-C10) underway; Prompts C01-C08 completed; next active prompt is C09 - Cross-Cutting Surfaces — Urban Context Strip, Outline Nav, Background Tasks, Engine Capabilities, Narrative, Object Detector.
-- Next prompt: Prompt C09 - Cross-Cutting Surfaces — Urban Context Strip, Outline Nav, Background Tasks, Engine Capabilities, Narrative, Object Detector.
+- Operating pack status: reprioritized for three-part amber-removal and premium workbench restyle execution on 2026-05-15; Map Explorer Part 3 prompt ladder expanded on 2026-05-18 after code-reading the completed Center Panel design language and current Map Explorer amber/chrome dependencies.
+- Historical implementation status: old broad Prompts 00-17 completed on 2026-05-15; old pending Prompts 18-37 are superseded by active prompts A01-A10, C01-C10, and B01-B15.
+- Active prompt count: 35 prompts: `A01` through `A10`, `C01` through `C10`, and `B01` through `B15`.
+- Current prompt: Part 1 (Urban Analytics) closed; Part 2 (Center Panel Workbench, C01-C10) underway; Prompts C01-C08 completed. Prompts B01-B07 were completed on 2026-05-18 as user-directed targeted Map Explorer deviations before C09/C10 close; B01 was documentation-only, and B02-B07 changed product code.
+- Next prompt: Normal operating-pack order remains Prompt C09 - Cross-Cutting Surfaces — Urban Context Strip, Outline Nav, Background Tasks, Engine Capabilities, Narrative, Object Detector. If continuing the user-selected Map Explorer track, the next Map Explorer prompt is B08 - Workflow Drawer, NL Query, Review Timeline, Cartography Recommendations, And Report Handoff Drawer, but product-code implementation remains gated by the Part 2 close unless the user explicitly continues the deviation.
 - Part 1 status: COMPLETE. All 10 active prompts (A01-A10) completed. Urban Analytics modal is amber-free except for documented analytical/scientific retentions.
 - Part 2 status: UNDERWAY. New 10-prompt ladder (C01-C10) covers Center Panel shell + all eight tab interiors + ambient header animations preservation; runs before the Map Explorer track.
-- Part 3 status: BLOCKED on C10. Map Explorer prompts renumbered to Part 3 (IDs preserved as B01-B10); B01 dependsOn now C10 in the manifest.
+- Part 3 status: BLOCKED on C10 for normal product-code implementation. Map Explorer prompts are Part 3 and now run as B01-B15; B01 dependsOn C10 in the manifest, but B01-B07 were completed early by explicit user direction.
 - Archive context: do not move `DEVELOPMENT_PLANS/` from the current local branch; branch reconciliation is separate.
-- Active migration principle: Urban Analytics modal first, Map Explorer second; no amber UI/default styling, no unnecessary card frames, no filled button plates.
+- Active migration principle: Urban Analytics modal first, Center Panel Workbench second, Map Explorer third; no amber UI/default styling, no unnecessary card frames, no filled button plates.
 
 ## Canonical Documents
 
@@ -56,18 +56,839 @@ This ledger is the execution source of truth for the color-system operating pack
 | C08 | Toolbox Tab — Project List, Action Panel, Capability/Lab/Consulton Panels, Export Bar | completed | C07 | Toolbox tab migrated to dense workbench discipline: `tools.module.css` and `tools.left.module.css` both received a C08 override layer that neutralizes every amber/gold/yellow class and gradient (themeAmber, panelAmber, pillAmber, calloutAmber, cardTitleAmber, barThemeAmber, statCard amber gradient, riskChip tier-3 amber, glass-amber backgrounds) to semantic non-amber tokens. Panels flattened to single-surface hairline sections, buttons converted to ghost/hairline discipline, inputs to compact 3px workbench fields, EO connector badges re-keyed to status-error/stale/demo/info/valid, PreviewPanel iframe scrollbar de-ambered to neutral muted thumb. JSX class wiring left untouched (per C07 precedent). Next prompt is C09. |
 | C09 | Cross-Cutting Surfaces — Urban Context Strip, Outline Nav, Background Tasks, Engine Capabilities, Narrative, Object Detector | pending | C08 | Cross-tab surfaces migrated; preserved animations still play. |
 | C10 | Center Panel Final Cleanup, Visual QA, And Part 3 Gate | pending | C09 | Close Part 2 and unblock Map Explorer (B01). |
-| B01 | Map Explorer Amber Inventory And Token Boundary | pending | C10 | Inventory complete Map Explorer amber scope and separate UI/data colors. Dependency moved from A10 → C10 on 2026-05-16. |
-| B02 | Map Tokens And Shared Map Style Primitives | pending | B01 | Remove amber from central map UI tokens. |
-| B03 | Map Explorer Modal, Shell, Cockpit, Canvas Chrome, And Status Bar | pending | B02 | Remove amber shell/canvas chrome while keeping map primary. |
-| B04 | Map Toolbar, Search, Pins, Context Menus, And Keyboard Controls | pending | B03 | Migrate map controls to unfilled non-amber interactions. |
-| B05 | Map Layer Manager, Layer Panel, Rows, Badges, And Selection States | pending | B04 | Remove amber from layers, badges, toggles, rows, and selection. |
-| B06 | Map Drawers, Scientific QA, NL Query, Review Timeline, And Report Handoff | pending | B05 | Remove amber from high-risk QA/query/report drawer surfaces. |
-| B07 | Map Import, Export, Service, Drawing, Measurement, Temporal, And Dialog Surfaces | pending | B06 | Remove amber from secondary map tools and dialogs. |
-| B08 | Map Visualization Defaults, Symbology, Cartography Services, And Exports | pending | B07 | Remove amber default/demo/generated map colors and update assertions. |
-| B09 | Map Explorer Final Amber Cleanup, Tests, Accessibility, And Visual QA | pending | B08 | Final Map scan, card/button cleanup, focus and visual QA. |
-| B10 | Final Color System Handoff | pending | B09 | Close the active two-part color operating pack. |
+| B01 | Map Explorer Amber Inventory And Center Panel Alignment Lock | completed | C10 | Completed 2026-05-18 as user-directed targeted deviation before C09/C10 close; documentation-only inventory. Standard scan: 446 lines / 57 files. Heavy-chrome scan: 585 lines / 45 files. Product code unchanged; B02 is the next Map Explorer prompt. |
+| B02 | Map Tokens, Style Primitives, And Compatibility Aliases | completed | B01 | Completed 2026-05-18 as user-directed targeted deviation before C09/C10 close; central map tokens moved to non-amber workbench semantic aliases, deprecated amber compatibility aliases retained with non-amber values, shared `mapStyles` no longer consume amber aliases directly, and token tests updated. Post-audit target scan reduced from 87 to 53 standard hits and 102 to 69 heavy hits. |
+| B03 | Map Shell, Modal, Docking Rails, Canvas Chrome, Focus, And Status Bar | completed | B02 | Completed 2026-05-18 as user-directed targeted deviation before C09/C10 close; focus fallback, resize handle, status bar QA caveat tone, keyboard fallback controls, canvas marker shadow, and modal canvas-overlay chrome migrated to non-amber workbench tokens. Target scans reduced from 7/13 to 0/0; current broad Map Explorer scan after B01-B03 audit is 405/539. |
+| B04 | Map Command Cockpit, Workspace Bars, Timeline, And Progress Surfaces | completed | B03 | Completed 2026-05-18 as user-directed targeted deviation before C09/C10 close; cockpit gradients/shadows/filled plates removed, caveat tones moved off `--syn-status-warning`, progress/drag surfaces de-ambered, and B04 target scans are clean. |
+| B05 | Toolbar, Search, Pins, Bookmarks, Context Menus, And Map Explorer Entry Button | completed | B04 | Completed 2026-05-18 as user-directed targeted deviation before C09/C10 close; toolbar/search/pin/bookmark/context/launcher chrome migrated to compact unfilled non-amber interactions and target scans are clean. |
+| B06 | Layer Manager, Layer Panel, Registry Rows, Badges, Popovers, And Sync States | completed | B05 | Completed 2026-05-18 as user-directed targeted deviation before C09/C10 close; layer rows, badges, menus, base-layer states, slider accent, and sync defaults migrated to compact non-amber workbench styling. |
+| B07 | Scientific QA, Readiness, Evidence, And Status Semantics | completed | B06 | Completed 2026-05-18 as user-directed targeted deviation before C09/C10 close; QA/readiness/evidence chrome and annotation default palette are non-amber while scientific status/domain values remain unchanged. |
+| B08 | Workflow Drawer, NL Query, Review Timeline, Cartography Recommendations, And Report Handoff Drawer | pending | B07 | Remove amber from high-risk workflow/query/review/cartography/report drawer surfaces. |
+| B09 | Import, CSV, Columnar, External Service, And Dataset Dialogs | pending | B08 | Remove amber and card-heavy styling from import, CSV, columnar, service, and dataset dialogs. |
+| B10 | Export, Publication, Composition, Snapshot Preview, And Generated Output Chrome | pending | B09 | Remove amber from export/publication UI and generated preview/output chrome. |
+| B11 | Drawing, Measurement, Annotation, Temporal, VoxCity Overlay, And Store Defaults | pending | B10 | Remove amber from interactive map tools and visible map-store defaults. |
+| B12 | Visualization Panels, Symbology Utilities, Demo Packs, And Renderer Defaults | pending | B11 | Remove amber default/demo/generated renderer colors while documenting analytical data-palette exceptions. |
+| B13 | Map Services, Query Defaults, Cartography Advisor, Persistence, External Connectors, And Engine Outputs | pending | B12 | Remove amber from service-level generated/default map outputs and related assertions. |
+| B14 | Map Explorer Final Cleanup, Test Drift, Accessibility, Heavy Chrome, And Visual QA | pending | B13 | Final Map scan, heavy-chrome cleanup, test drift, focus/accessibility, and visual QA. |
+| B15 | Final Color System Handoff | pending | B14 | Close the active three-part color operating pack after A01-A10, C01-C10, and B01-B14 are completed or skipped with reason. |
 
 ## Prompt Execution Log
+
+### Prompt B01 - Map Explorer Amber Inventory And Center Panel Alignment Lock
+
+- Date: 2026-05-18.
+- Agent: GitHub Copilot.
+- Status: completed.
+- Trigger: user selected the B01 prompt block and requested "go apply be perfect and premium".
+- Execution mode: user-directed targeted deviation. The manifest still gates Part 3 behind C10, and C09/C10 remain pending in the normal order; this B01 pass was documentation-only inventory and did not start Map Explorer product-code implementation.
+- Started from:
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` / Prompt B01
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+  - Current Map Explorer code under `src/centerpanel/components/map/**`, `src/centerpanel/components/Map*.tsx`, `src/services/map/**`, and `src/stores/useMapExplorerStore.ts`
+- Files inspected:
+  - `src/centerpanel/components/map/mapTokens.ts`
+  - `src/constants/design.ts`
+  - `src/centerpanel/components/map/MapWorkspaceShell.tsx`
+  - `src/centerpanel/components/map/MapWorkspaceCockpit.module.css`
+  - `src/centerpanel/components/map/MapToolbar.tsx`
+  - `src/centerpanel/components/map/MapLayerManager.tsx`
+  - `src/centerpanel/components/map/MapLayerPanel.tsx`
+  - `src/centerpanel/components/map/MapStatusBar.tsx`
+  - `src/centerpanel/components/map/MapSearchBar.tsx`
+  - `src/centerpanel/components/map/MapWorkflowDrawer.tsx`
+  - `src/centerpanel/components/map/MapNLQueryPanel.tsx`
+  - `src/centerpanel/components/map/MapReviewTimelinePanel.tsx`
+  - `src/centerpanel/components/map/CartographyRecommendationList.tsx`
+  - `src/centerpanel/components/map/MapReportHandoffDrawer.tsx`
+  - `src/centerpanel/components/map/demoDataPacks.ts`
+  - `src/centerpanel/components/map/heatmapStyleUtils.ts`
+  - `src/centerpanel/components/map/symbolStyleUtils.ts`
+  - `src/centerpanel/components/MapDataImportHubDialog.tsx`
+  - `src/centerpanel/components/MapCsvImportDialog.tsx`
+  - `src/centerpanel/components/MapColumnarImportDialog.tsx`
+  - `src/centerpanel/components/MapServiceDialog.tsx`
+  - `src/centerpanel/components/MapDataExportDialog.tsx`
+  - `src/centerpanel/components/MapExportDialog.tsx`
+  - `src/centerpanel/components/MapCompositionLayout.tsx`
+  - `src/centerpanel/components/MapBookmarkBar.tsx`
+  - `src/centerpanel/components/MapContextMenu.tsx`
+  - `src/centerpanel/components/MapDrawingManager.tsx`
+  - `src/centerpanel/components/MapMeasurementTool.tsx`
+  - `src/centerpanel/components/MapAnnotationLayer.tsx`
+  - `src/centerpanel/components/MapTemporalPlayer.tsx`
+  - `src/centerpanel/components/MapVoxCityOverlay.tsx`
+  - `src/centerpanel/components/MapChoroplethLayer.tsx`
+  - `src/centerpanel/components/MapHeatmapLayer.tsx`
+  - `src/centerpanel/components/MapSymbolLayer.tsx`
+  - `src/centerpanel/components/MapClusterViz.tsx`
+  - `src/centerpanel/components/MapHotSpotViz.tsx`
+  - `src/services/map/ExternalServiceConnector.ts`
+  - `src/services/map/MapCartographyAdvisor.ts`
+  - `src/services/map/MapEngineAdapter.ts`
+  - `src/services/map/MapExportService.ts`
+  - `src/services/map/MapPersistenceService.ts`
+  - `src/stores/useMapExplorerStore.ts`
+- Files changed:
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+- Transient utilities: `tmp/b01-scan-count.cjs` was created only to avoid shell-escaping errors while counting scan matches, then deleted before closeout.
+- Product behavior changes: none.
+- Product code changed: none.
+- Hard-coded colors removed: none; B01 is inventory-only.
+- Standard Map Explorer amber scan:
+  - Command: `rg -n "#F59E0B|#FBBF24|#FDE68A|#D97706|#B45309|#92400E|245\\s*,\\s*158\\s*,\\s*11|251\\s*,\\s*191\\s*,\\s*36|217\\s*,\\s*119\\s*,\\s*6|amber|gold|yellow|orange|gradient-amber|--syn-status-warning|MAP_COLORS\\.amber" src/centerpanel/components src/services/map src/stores/useMapExplorerStore.ts -g "*.ts" -g "*.tsx" -g "*.css"`
+  - Result: 446 matching lines across 57 files.
+  - Top file counts: `map/mapTokens.ts` 43; `MapColumnarImportDialog.tsx` 36; `MapVoxCityOverlay.tsx` 34; `map/MapLayerManager.tsx` 20; `NarrativeGenerationPanel.tsx` 19; `MapCsvImportDialog.tsx` 18; `MapChoroplethLayer.tsx` 16; `MapClusterViz.tsx` 16; `MapHotSpotViz.tsx` 15; `MapServiceDialog.tsx` 15; `map/MapToolbar.tsx` 13; `MapDataExportDialog.tsx` 13; `MapTemporalPlayer.tsx` 13; `MapDataImportHubDialog.tsx` 11; `MapCartographyAdvisor.ts` 11; `MapExportService.ts` 11; `MapContextMenu.tsx` 10; `MapExportDialog.tsx` 10.
+- Heavy-chrome scan:
+  - Command: `rg -n "borderRadius:\\s*(?:['\"]?(?:1[0-9]|[2-9][0-9])px|MAP_RADIUS\\.(?:md|lg|glass|full)|999|50%)|border-radius:\\s*(?:1[0-9]|[2-9][0-9]|999|50%)|radial-gradient|linear-gradient|boxShadow|box-shadow:\\s*0\\s+\\d+px|MAP_SHADOWS\\.(?:modal|dropdown|panel)|DESIGN_TOKENS\\.gradients|DESIGN_TOKENS\\.shadows\\.(?:glow|premium)|background:\\s*MAP_COLORS\\.amber|MAP_COLORS\\.amber|MAP_STROKES\\.(?:hairline|hairlineStrong|hairlineSubtle|dashedStrong)" src/centerpanel/components src/services/map src/stores/useMapExplorerStore.ts -g "*.ts" -g "*.tsx" -g "*.css"`
+  - Result: 585 matching lines across 45 files.
+  - Top file counts: `map/mapTokens.ts` 68; `MapColumnarImportDialog.tsx` 35; `map/MapLayerManager.tsx` 28; `MapVoxCityOverlay.tsx` 28; `map/MapToolbar.tsx` 27; `map/MapReportHandoffDrawer.tsx` 23; `MapServiceDialog.tsx` 23; `MapChoroplethLayer.tsx` 21; `MapTemporalPlayer.tsx` 20; `MapBookmarkBar.tsx` 19; `MapCsvImportDialog.tsx` 19; `MapClusterViz.tsx` 17; `MapHotSpotViz.tsx` 16; `MapDataExportDialog.tsx` 15; `MapExportDialog.tsx` 15.
+- Inventory categories and planned owners:
+  - `B02` central tokens/style primitives: `map/mapTokens.ts`, `src/constants/design.ts`, `MAP_COLORS.amber*`, amber `MAP_STROKES`, oversized `MAP_RADIUS` aliases, amber shared `mapStyles`, compatibility aliases, and downstream token consumers.
+  - `B03` shell/modal/docking/canvas/status: `MapExplorerModal.tsx`, `map/MapWorkspaceShell.tsx`, `map/MapWorkspaceCockpit.module.css`, `map/MapStatusBar.tsx`, `map/MapCanvas.tsx`, canvas keyboard fallback controls, docking/rail focus states, and modal-level shadow/radius/gradient chrome.
+  - `B04` cockpit/workspace bars/timeline/progress: `MapVoxCityOverlay.tsx`, `MapTemporalPlayer.tsx`, cockpit/workspace progress controls, command-bar chrome, timeline controls, and persistent workspace bars that currently carry amber or rounded filled plates.
+  - `B05` toolbar/search/pins/bookmarks/context/entry: `map/MapToolbar.tsx`, `map/MapSearchBar.tsx`, `map/MapPinSidebar.tsx`, `MapBookmarkBar.tsx`, `MapContextMenu.tsx`, and `MapExplorerButton.tsx`.
+  - `B06` layers/badges/popovers/sync: `map/MapLayerManager.tsx`, `map/MapLayerPanel.tsx`, `map/useLayerSync.ts`, layer row badges, selected rails, sync indicators, registry rows, and layer popovers.
+  - `B07` scientific QA/readiness/evidence/status: `map/ScientificQAPanel.tsx`, readiness/warning/caveat treatments, CRS/evidence/status rows, and QA labels that must stay explicit without amber attention styling.
+  - `B08` workflow/query/review/cartography/report drawers: `map/MapWorkflowDrawer.tsx`, `map/MapNLQueryPanel.tsx`, `map/MapReviewTimelinePanel.tsx`, `map/CartographyRecommendationList.tsx`, and `map/MapReportHandoffDrawer.tsx`.
+  - `B09` import/CSV/columnar/service dialogs: `MapDataImportHubDialog.tsx`, `MapCsvImportDialog.tsx`, `MapColumnarImportDialog.tsx`, `MapServiceDialog.tsx`, and external dataset/service dialog chrome.
+  - `B10` export/publication/composition/generated chrome: `MapDataExportDialog.tsx`, `MapExportDialog.tsx`, `MapCompositionLayout.tsx`, snapshot/publication preview chrome, and `MapExportService.ts` generated output styling.
+  - `B11` drawing/measurement/annotation/temporal/store defaults: `MapDrawingManager.tsx`, `MapMeasurementTool.tsx`, `MapAnnotationLayer.tsx`, `MapTemporalPlayer.tsx`, `MapVoxCityOverlay.tsx`, and `DEFAULT_ANNOTATION_SETTINGS.color` in `useMapExplorerStore.ts`.
+  - `B12` visualization/symbology/demo/renderers: `MapChoroplethLayer.tsx`, `MapHeatmapLayer.tsx`, `MapSymbolLayer.tsx`, `MapClusterViz.tsx`, `MapHotSpotViz.tsx`, `MapEmergingHotSpotViz.tsx`, `map/demoDataPacks.ts`, `map/heatmapStyleUtils.ts`, and `map/symbolStyleUtils.ts`.
+  - `B13` services/query/persistence/connectors/engine outputs: `ExternalServiceConnector.ts`, `MapCartographyAdvisor.ts`, `MapEngineAdapter.ts`, `MapPersistenceService.ts`, service-level generated defaults, generated legend colors, and related tests.
+  - `B14` final QA: repeat standard amber scan, heavy-chrome scan, test drift review, accessibility/focus review, compact viewport visual QA, and documented data-palette retentions.
+  - `B15` final handoff: close the three-part operating pack after A01-A10, C01-C10, and B01-B14 are completed or explicitly skipped with reason.
+- Targeted token/default/generated emitters found:
+  - `map/demoDataPacks.ts`: demo labels and generated demo colors use `#F59E0B` / `#FBBF24`; treat as demo renderer defaults, not protected analytical evidence.
+  - `map/heatmapStyleUtils.ts` and `map/symbolStyleUtils.ts`: hot ramp/fallback `MAP_COLORS.amber` values feed default renderer output.
+  - `ExternalServiceConnector.ts`, `MapCartographyAdvisor.ts`, `MapEngineAdapter.ts`, `MapExportService.ts`, and `MapPersistenceService.ts`: service-level fallbacks, generated legends, export graphics, and persistence defaults include amber values and belong to B13/B10.
+  - `useMapExplorerStore.ts`: `DEFAULT_ANNOTATION_SETTINGS.color` is visible UI/store default and belongs to B11.
+- Out-of-scope scan noise:
+  - `NarrativeGenerationPanel.tsx`, `ObjectDetectorPanel.tsx`, and `BackgroundTasksControl.module.css` appeared because the B01 command scans broad `src/centerpanel/components`. They are Center Panel cross-cutting surfaces and remain C09-owned unless they are later wired through a Map Explorer `Map*` surface.
+  - Test files are not product chrome, but assertions/fixtures must move with their owning prompt if a visible default or generated output changes.
+- Center Panel alignment lock for B02-B15:
+  - Use single-surface workbench inspectors, hairline separators, compact 3px controls, transparent/ghost command buttons, blue active rails/tints, muted uppercase labels, and stable icon-sized controls.
+  - Do not introduce decorative cards, nested cards, oversized rounded plates, amber fills, amber focus rings, or amber warning chips.
+  - Warnings/caveats/stale/unknown/demo/deferred states must remain more explicit, not less explicit, using text/icon/aria plus neutral, blue-gray, or semantic non-amber tokens.
+  - Keep UI/default/demo/generated chrome separate from legitimate map data palettes; any retained analytical ramp must be documented as data, not UI styling.
+- Scientific integrity notes: No GIS calculations, CRS requirements, evidence artifact semantics, readiness logic, method validity, map persistence contracts, service contracts, NL-query safety, or report handoff contracts changed. Future B prompts must not compute area/distance in EPSG:4326 and must not relabel demo/synthetic output as real analysis.
+- Validation commands:
+  - Standard Map Explorer amber scan.
+  - Heavy-chrome Map Explorer scan.
+  - Temporary Node counter for exact file/line counts, then deletion of the counter file.
+- Validation results:
+  - Standard scan: 446 matching lines across 57 files.
+  - Heavy-chrome scan: 585 matching lines across 45 files.
+  - Typecheck/tests not run because B01 is documentation-only and product code was not changed.
+- Known risks:
+  - The broad B01 scan intentionally includes some non-map Center Panel files. Those are classified out of Part 3 scope above so B02-B15 do not steal C09 ownership.
+  - Several amber values live in service-generated outputs and tests, so final zero-scan work cannot stop at component CSS/TSX.
+  - Because this was a user-directed deviation before C09/C10, future agents must read both the normal current-status order and this B01 log before deciding whether to continue Center Panel cleanup or Map Explorer B02.
+- Blockers: none for B01 inventory.
+- Decisions made:
+  - Treat B01 as documentation/inventory-only because the prompt forbids product-code changes unless a later implementation batch is requested.
+  - Mark B01 completed while leaving C09/C10 pending and visible in the normal order.
+- Next recommended prompt in normal order: Prompt C09 - Cross-Cutting Surfaces — Urban Context Strip, Outline Nav, Background Tasks, Engine Capabilities, Narrative, Object Detector.
+- Next Map Explorer prompt if the user continues the targeted Part 3 track: Prompt B02 - Map Tokens, Style Primitives, And Compatibility Aliases.
+- Ledger updated: yes.
+
+### Prompt B02 - Map Tokens, Style Primitives, And Compatibility Aliases
+
+- Date: 2026-05-18.
+- Agent: GitHub Copilot.
+- Status: completed.
+- Trigger: user selected Prompt B02 and requested "go applu be perfect and premium".
+- Execution mode: user-directed targeted Map Explorer implementation deviation. C09/C10 remain pending in the normal Center Panel order; this pass continued the B01-targeted Map Explorer track only.
+- Started from:
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` / Prompt B02
+  - B01 inventory in this ledger
+  - Current code in `src/centerpanel/components/map/mapTokens.ts`, `src/constants/design.ts`, and `src/centerpanel/components/map/__tests__/map-components.test.ts`
+- Files changed:
+  - `src/constants/design.ts`
+  - `src/centerpanel/components/map/mapTokens.ts`
+  - `src/centerpanel/components/map/__tests__/map-components.test.ts`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_PROMPT_MANIFEST.json`
+- Product behavior changes:
+  - Central Map Explorer UI primitives now resolve to VS Code-style workbench semantics: charcoal surfaces, neutral hairlines, blue interaction/focus/selection aliases, and non-amber caveat/status text.
+  - Shared `mapStyles` no longer use `MAP_COLORS.amber*` for visible chrome; title, active buttons, selection panels, drag borders, progress bars, warning/caveat text, and shared shell surfaces now consume `interaction`, `selectedSubtle`, `focus`, `hairline`, `dashed`, `caveat`, or `caveatText` aliases.
+  - `MAP_RADIUS.md`, `MAP_RADIUS.lg`, and `MAP_RADIUS.glass` were compacted to the shared small workbench radius. `MAP_RADIUS.full` remains for inherently circular markers/icons.
+  - `MAP_SHADOWS.modal` and `MAP_SHADOWS.panel` now resolve to `none`; dropdown retains a restrained black overlay shadow for floating menus.
+  - `MAP_STROKES` now points to neutral/blue hairline aliases instead of amber borders.
+- Tokens added/consumed:
+  - Added map-specific semantic aliases in `DESIGN_TOKENS.mapExplorer.colors`: `interaction`, `interactionSoft`, `interactionSubtle`, `selected`, `selectedSubtle`, `focus`, `hairline`, `hairlineStrong`, `hairlineSubtle`, `dashed`, `caveat`, `caveatText`, `neutral`, and `neutralSubtle`.
+  - `MAP_COLORS` now exposes those aliases as first-class keys for downstream B03-B14 cleanup.
+- Compatibility aliases:
+  - Deprecated `MAP_COLORS.amber*` and `DESIGN_TOKENS.mapExplorer.colors.amber*` names were retained for existing B03-B14 callers.
+  - Every retained map compatibility alias resolves to non-amber blue/neutral workbench values.
+  - The only remaining `amber*` hits in `mapTokens.ts` are those compatibility alias names, not amber values or amber direct consumers.
+- Hard-coded colors removed or avoided:
+  - Removed amber as the desired central Map Explorer interaction color.
+  - Replaced map-specific amber/cream surfaces with `--syn-surface-*`, `--syn-text-*`, `--syn-border-*`, `--syn-interaction-*`, and `--syn-status-*` var aliases with stable fallbacks.
+  - Kept global amber palette/gradient families in `src/constants/design.ts` unchanged because B02 explicitly limits `design.ts` edits to the map-specific `DESIGN_TOKENS.mapExplorer` bridge.
+- Tests updated:
+  - `map-components.test.ts` now asserts `MAP_COLORS.interaction` as the desired map interaction token.
+  - The legacy `MAP_COLORS.amber` compatibility alias is asserted to equal `MAP_COLORS.interaction` and not equal global `DESIGN_TOKENS.colors.primary[500]`.
+  - Radius, shadow, active button, title, and semantic error token assertions now match the compact non-amber workbench primitive contract.
+  - Post-audit cleanup replaced the remaining amber test layer fixture color with the blue interaction literal so B02 tests no longer carry amber as sample Map Explorer chrome.
+- Targeted B02 pre-edit scan:
+  - Standard target scan: 87 matching lines across `design.ts`, `mapTokens.ts`, and `map-components.test.ts`.
+  - Heavy target scan: 102 matching lines across the same target files.
+- Targeted B02 post-edit/post-audit scan:
+  - Standard target scan: 53 matching lines across 3 files.
+  - Top file counts: `src/constants/design.ts` 35; `src/centerpanel/components/map/mapTokens.ts` 14; `src/centerpanel/components/map/__tests__/map-components.test.ts` 4.
+  - Heavy target scan: 69 matching lines across 3 files.
+  - Top file counts: `src/centerpanel/components/map/mapTokens.ts` 36; `src/constants/design.ts` 28; `src/centerpanel/components/map/__tests__/map-components.test.ts` 5.
+- Broad Map Explorer post-edit scan:
+  - Standard Map Explorer scan: 413 matching lines across 57 files, down from B01 baseline 446.
+  - Heavy-chrome Map Explorer scan: 552 matching lines across 45 files, down from B01 baseline 585.
+  - Remaining broad hits are mostly downstream B03-B14 component/service owners plus known C09-owned non-map Center Panel files from the intentionally broad scan path.
+- Residual classification:
+  - `src/centerpanel/components/map/mapTokens.ts`: residual standard hits are deprecated compatibility alias names whose values are non-amber.
+  - `src/constants/design.ts`: residual amber hits are global palette/gradient/status families outside B02 scope plus map-specific deprecated alias names that now point to blue/neutral values.
+  - `src/centerpanel/components/map/__tests__/map-components.test.ts`: residual hits intentionally assert compatibility alias behavior and the alias is no longer equal to the global amber primary token.
+  - Residual heavy hits in `mapTokens.ts` include deliberate shared hairline stroke aliases and circular marker/icon radius usage; downstream component heavy chrome remains assigned to B03-B14.
+- Validation commands:
+  - `npm --prefix "C:\Users\m_ras\Desktop\SynapseIDE_urban_analytics" run typecheck`
+  - `npm --prefix "C:\Users\m_ras\Desktop\SynapseIDE_urban_analytics" exec -- vitest --root "C:\Users\m_ras\Desktop\SynapseIDE_urban_analytics" run src/centerpanel/components/map/__tests__/map-components.test.ts`
+  - Target and broad Standard Amber / Heavy-Chrome scans via PowerShell `Select-String` because `rg` was not available in the terminal PATH.
+- Validation results:
+  - Typecheck: passed.
+  - Targeted token/component test: passed, 60 tests; post-audit combined B02+B03 target suite passed, 101 tests.
+  - `get_errors` on all three changed product/test files: no errors.
+- Scientific integrity notes: No GIS calculations, CRS requirements, evidence behavior, readiness semantics, persistence contracts, map service contracts, geometry handling, or analytical renderer classifications were changed.
+- Known risks:
+  - Downstream B03-B14 files still reference deprecated `MAP_COLORS.amber*` alias names; the values are now non-amber, but component code still needs follow-up cleanup for naming clarity and local heavy chrome.
+  - Global amber tokens in `src/constants/design.ts` remain intentionally untouched until a prompt explicitly owns global color-system redesign.
+- Blockers: none for B02.
+- Next recommended prompt in normal order: Prompt C09 - Cross-Cutting Surfaces — Urban Context Strip, Outline Nav, Background Tasks, Engine Capabilities, Narrative, Object Detector.
+- Next Map Explorer prompt if the user continues the targeted Part 3 track: Prompt B03 - Map Shell, Modal, Docking Rails, Canvas Chrome, Focus, And Status Bar.
+- Ledger updated: yes.
+
+### Prompt B03 - Map Shell, Modal, Docking Rails, Canvas Chrome, Focus, And Status Bar
+
+- Date: 2026-05-18.
+- Agent: GitHub Copilot.
+- Status: completed.
+- Trigger: user selected Prompt B03 and requested "go apply be perfect and premium".
+- Execution mode: user-directed targeted Map Explorer implementation deviation. C09/C10 remain pending in the normal Center Panel order; this pass continued the B01-targeted Map Explorer track only.
+- Started from:
+  - Launcher: `COLOR_SYSTEM_PLANS/START_HERE_COLOR_SYSTEM_AGENT.md`
+  - Protocol: `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_AGENT_PROTOCOL.md`
+  - Unit matrix: `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_UNIT_MATRIX.md`
+  - Manifest: `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_PROMPT_MANIFEST.json`
+  - Ledger: `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+  - Active prompt block: `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` / Prompt B03
+- Files inspected:
+  - `src/centerpanel/components/MapExplorerModal.tsx`
+  - `src/centerpanel/components/map/MapWorkspaceShell.tsx`
+  - `src/centerpanel/components/map/MapCanvas.tsx`
+  - `src/centerpanel/components/map/MapStatusBar.tsx`
+  - `src/centerpanel/components/map/MapCanvasKeyboardFallbackControls.tsx`
+  - `src/centerpanel/components/map/mapDocking.ts`
+  - `src/centerpanel/components/map/mapTokens.ts`
+  - `src/centerpanel/components/map/__tests__/MapCanvas.lifecycle.test.tsx`
+  - `src/centerpanel/components/map/__tests__/map-docking.test.ts`
+  - `src/centerpanel/components/map/__tests__/map-accessibility.test.ts`
+- Files changed:
+  - `src/centerpanel/components/MapExplorerModal.tsx`
+  - `src/centerpanel/components/map/MapWorkspaceShell.tsx`
+  - `src/centerpanel/components/map/MapCanvas.tsx`
+  - `src/centerpanel/components/map/MapStatusBar.tsx`
+  - `src/centerpanel/components/map/MapCanvasKeyboardFallbackControls.tsx`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_PROMPT_MANIFEST.json`
+- Tokens added: none.
+- Tokens consumed:
+  - `--syn-border-focus`
+  - `--syn-interaction-focus-ring`
+  - `--syn-interaction-active`
+  - `--syn-border-subtle`
+  - `--syn-surface-overlay`
+  - `--syn-surface-panel`
+  - `--syn-status-info`
+  - `--syn-status-running`
+  - `--syn-status-valid`
+  - `--syn-status-error`
+  - `--syn-status-stale`
+- Tokens aliased or deprecated: none in B03. B02 compatibility aliases remain in place for downstream B04-B14 callers.
+- Product behavior changes:
+  - `MapWorkspaceShell.tsx` focus-visible CSS no longer falls back to `MAP_COLORS.amber` or `rgba(245, 158, 11, ...)`; it uses `--syn-border-focus` / `--syn-interaction-focus-ring` with blue `color-mix` shadow.
+  - Resize separators keep their hit target and keyboard resizing behavior but hover/focus with transparent blue hairline treatment.
+  - `MapStatusBar.tsx` no longer maps QA caveats/warnings to `--syn-status-warning`; blocked/error stays error, passed stays valid, issue/caveat states use explicit text plus info/stale tone.
+  - `MapCanvasKeyboardFallbackControls.tsx` now renders as a compact transparent overlay with `--syn-surface-overlay`, subtle neutral border, 3-4px radius, no dropdown shadow, and transparent icon buttons.
+  - `MapCanvas.tsx` removed decorative marker shadow and replaced popup row border alias usage with direct workbench hairline styling.
+  - `MapExplorerModal.tsx` canvas-adjacent feedback/statistics/workflow selector overlays were flattened to 4px workbench panels with no shadow stack, non-amber feedback accents, neutral row buttons, and blue flow labels.
+- Hard-coded colors removed:
+  - `#f59e0b` and `#fbbf24` feedback/default accents in `MapExplorerModal.tsx`.
+  - `#fbbf24` workflow label text in the map AOI workflow selector.
+  - `rgba(245, 158, 11, 0.16)` focus shadow and `rgba(245, 158, 11, 0.18)` separator focus background in `MapWorkspaceShell.tsx`.
+  - `--syn-status-warning` / `#f59e0b` status tone mapping in `MapStatusBar.tsx`.
+- Hard-coded colors retained with reason:
+  - Non-amber token fallbacks such as `#3794ff`, `#38bdf8`, `#60a5fa`, `#34d399`, `#f87171`, and neutral rgba surface/border fallbacks are retained as CSS variable fallbacks for runtime resilience.
+  - Map canvas marker background remains `var(--syn-status-info, #38bdf8)` as a visible non-amber marker default, not a UI warning/status caveat.
+- Amber scan before:
+  - B03 target Standard Amber scan: 7 matching lines across 3 files.
+  - File counts: `src/centerpanel/components/map/MapWorkspaceShell.tsx` 3; `src/centerpanel/components/MapExplorerModal.tsx` 3; `src/centerpanel/components/map/MapStatusBar.tsx` 1.
+- Amber scan after:
+  - B03 target Standard Amber scan: 0 matching lines across 0 files.
+  - Broad Map Explorer Standard Amber scan: 405 matching lines across 54 files after B01-B03 audit cleanup, down from B02's 413 across 57 files.
+- Heavy-chrome scan before:
+  - B03 target Heavy-Chrome scan: 13 matching lines across 4 files.
+  - File counts: `src/centerpanel/components/MapExplorerModal.tsx` 7; `src/centerpanel/components/map/MapCanvasKeyboardFallbackControls.tsx` 3; `src/centerpanel/components/map/MapCanvas.tsx` 2; `src/centerpanel/components/map/MapWorkspaceShell.tsx` 1.
+- Heavy-chrome scan after:
+  - B03 target Heavy-Chrome scan: 0 matching lines across 0 files.
+  - Broad Map Explorer Heavy-Chrome scan: 539 matching lines across 41 files, down from B02's 552 across 45 files.
+- Card frames removed or retained with reason:
+  - Removed large 10-12px rounded canvas overlay frames in B03 target modal overlays by switching them to `MAP_RADIUS.sm` and no shadow.
+  - Retained the actual workflow selector dialog structure and feedback/statistics overlay structure because they are functional map overlays; only chrome was flattened.
+- Button fills removed or retained with reason:
+  - Workflow selector buttons now use transparent backgrounds, neutral hairline borders, and blue text labels.
+  - Keyboard fallback control buttons now use transparent backgrounds and neutral hairline borders.
+- UX changes:
+  - Map shell focus/resize affordances now align with Center Panel blue focus discipline.
+  - Status bar caveats remain text-backed (`issues`, `caveats`) without amber warning coloring.
+  - Canvas overlays recede visually behind map content with no decorative card shadow stack.
+- Accessibility and contrast notes:
+  - Focus-visible remains explicit on shell descendants using outline plus blue focus halo.
+  - Resize separators keep `role="separator"`, keyboard handling, `aria-valuemin`, `aria-valuemax`, `aria-valuenow`, and `aria-valuetext` unchanged.
+  - Keyboard fallback control aria labels and announcements were preserved.
+  - Status bar still uses `role="status"` and exposes project, mode, layers, cursor, zoom, CRS, QA, sync, saved, AOI, marks, units, and auto-save state as text.
+- Data visualization notes:
+  - No analytical map palettes, legends, renderer ramps, or symbology defaults changed.
+- Scientific integrity notes: No scientific evidence, CRS, data fitness, method validity, or readiness semantics changed.
+- Cross-module contract changes: None.
+- Validation commands:
+  - `npm --prefix "C:\Users\m_ras\Desktop\SynapseIDE_urban_analytics" run typecheck`
+  - `npm --prefix "C:\Users\m_ras\Desktop\SynapseIDE_urban_analytics" exec -- vitest --root "C:\Users\m_ras\Desktop\SynapseIDE_urban_analytics" run src/centerpanel/components/map/__tests__/MapCanvas.lifecycle.test.tsx src/centerpanel/components/map/__tests__/map-docking.test.ts src/centerpanel/components/map/__tests__/map-accessibility.test.ts`
+  - B03 target and broad Map Explorer Standard Amber / Heavy-Chrome scans via PowerShell `Select-String` because `rg` was not available in the terminal PATH.
+  - Manifest JSON parse.
+- Validation results:
+  - Typecheck: passed.
+  - Targeted lifecycle/docking/accessibility tests: passed, 41 tests across 3 files; post-audit combined B02+B03 target suite passed, 101 tests across 4 files.
+  - `get_errors` on changed product files: no errors.
+  - B03 target Standard Amber scan: 0.
+  - B03 target Heavy-Chrome scan: 0.
+- Screenshots or manual visual evidence:
+  - Not captured. Local dev server check at `http://localhost:5173` timed out, so the optional visual smoke was not available in this session.
+- Known risks:
+  - Broad Map Explorer scans still include downstream B04-B14 owners and intentionally broad C09-owned non-map Center Panel files (`NarrativeGenerationPanel.tsx`, `BackgroundTasksControl.module.css`) from the scan path.
+  - Visual smoke remains a follow-up when a dev server is available.
+- Blockers: none for B03.
+- Decisions made:
+  - Keep B03 scoped to shell/focus/status/canvas-adjacent chrome and avoid cockpit, toolbar, layer, dialog, service, renderer, or store-default cleanup reserved for B04-B14.
+- Next recommended prompt in normal order: Prompt C09 - Cross-Cutting Surfaces — Urban Context Strip, Outline Nav, Background Tasks, Engine Capabilities, Narrative, Object Detector.
+- Next Map Explorer prompt if the user continues the targeted Part 3 track: Prompt B04 - Map Command Cockpit, Workspace Bars, Timeline, And Progress Surfaces.
+- Ledger updated: yes.
+
+### Prompt B04 - Map Command Cockpit, Workspace Bars, Timeline, And Progress Surfaces
+
+- Date: 2026-05-18.
+- Agent: Codex.
+- Status: completed.
+- Trigger: user selected Prompt B04 and requested "go apply and be perfect".
+- Execution mode: user-directed targeted Map Explorer implementation deviation. C09/C10 remain pending in the normal Center Panel order; this pass continued the B01-B03 targeted Map Explorer track only.
+- Started from:
+  - Launcher: `COLOR_SYSTEM_PLANS/START_HERE_COLOR_SYSTEM_AGENT.md`
+  - Protocol: `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_AGENT_PROTOCOL.md`
+  - Unit matrix: `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_UNIT_MATRIX.md`
+  - Alignment spec: `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_ALIGNMENT_SPEC.md`
+  - Token reference: `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_TOKEN_REFERENCE.md`
+  - Manifest: `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_PROMPT_MANIFEST.json`
+  - Ledger: `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+  - Active prompt block: `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` / Prompt B04
+- Files inspected:
+  - `DEVELOPMENT_PLANS/CONTEXT_MIN.md`
+  - `DEVELOPMENT_PLANS/CURRENT_TASK.json`
+  - `COLOR_SYSTEM_PLANS/README.md`
+  - `COLOR_SYSTEM_PLANS/START_HERE_COLOR_SYSTEM_AGENT.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_AGENT_PROTOCOL.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_UNIT_MATRIX.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_ALIGNMENT_SPEC.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_TOKEN_REFERENCE.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_PROMPT_MANIFEST.json`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_QA_CHECKLIST.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_AGENT_HANDOFF_TEMPLATE.md`
+  - `src/centerpanel/components/map/MapWorkspaceCockpit.tsx`
+  - `src/centerpanel/components/map/MapWorkspaceCockpit.module.css`
+  - `src/centerpanel/components/map/MapWorkspaceShell.tsx`
+  - `src/centerpanel/components/map/mapExperience.ts`
+  - `src/centerpanel/components/map/mapContextSummary.ts`
+  - `src/centerpanel/components/map/mapTokens.ts`
+  - `src/centerpanel/components/MapExplorerModal.tsx`
+  - `src/centerpanel/components/map/__tests__/map-workspace-experience.test.ts`
+  - `src/centerpanel/components/map/__tests__/mapContextSummary.test.ts`
+  - `src/centerpanel/components/map/__tests__/map-components.test.ts`
+- Files changed:
+  - `src/centerpanel/components/map/MapWorkspaceCockpit.tsx`
+  - `src/centerpanel/components/map/MapWorkspaceCockpit.module.css`
+  - `src/centerpanel/components/map/mapTokens.ts`
+  - `src/centerpanel/components/MapExplorerModal.tsx`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_PROMPT_MANIFEST.json`
+- Tokens added: none.
+- Tokens consumed:
+  - `--syn-surface-panel`
+  - `--syn-surface-input`
+  - `--syn-surface-overlay`
+  - `--syn-border-subtle`
+  - `--syn-border-active`
+  - `--syn-interaction-active`
+  - `--syn-status-info`
+  - `--syn-status-valid`
+  - `--syn-status-running`
+  - `--syn-status-stale`
+  - `--syn-status-blocked`
+- Tokens aliased or deprecated: none added. B02 `MAP_COLORS.amber*` compatibility aliases remain non-amber and documented for downstream B05-B14 cleanup.
+- Product behavior changes:
+  - `MapWorkspaceCockpit.module.css` no longer renders the cockpit with decorative linear/radial gradients, heavy shadow, filled primary command plate, amber warning token, or filled active mode plate.
+  - Primary command and quick actions now render as transparent/ghost controls with blue text and hairline/tint hover affordances.
+  - Active mode buttons use a compact blue left rail plus a subtle 10% blue tint.
+  - Readiness progress uses a neutral track and blue running fill with the same width/progress semantics.
+  - Caveat/attention tones now use stale/info/error families: foundational/stale/meta caveats use `--syn-status-stale`, blocked QA/export uses `--syn-status-blocked`, recommendation high/blocked uses blocked/error treatment, and low attention uses info.
+  - Drag overlay border in `MapExplorerModal.tsx` changed from dashed blue to a 1px solid active border; `mapStyles.dragOverlay` no longer consumes the dashed strong stroke and uses the overlay surface.
+  - Import progress track in `mapTokens.ts` moved away from pill radius to the compact map radius while keeping the blue progress fill.
+- Hard-coded colors removed:
+  - No amber hard-coded color literals were present in B04 product files after B03. B04 removed the `--syn-status-warning` cockpit dependency and removed gradient/shadow chrome.
+- Hard-coded colors retained with reason:
+  - Existing non-amber CSS variable fallbacks such as `#3794ff`, `#38bdf8`, `#4ec27d`, `#f87171`, and neutral rgba fallbacks remain for runtime resilience and do not encode amber UI chrome.
+  - `mapTokens.ts` still defines deprecated `MAP_COLORS.amber*` alias names from B02; the values are non-amber compatibility aliases and are scheduled for cleanup by later Map Explorer prompts.
+- Amber scan before:
+  - B04 target Standard Amber scan: 1 matching line in `src/centerpanel/components/map/MapWorkspaceCockpit.module.css` (`--cockpit-warning: var(--syn-status-warning)`).
+- Amber scan after:
+  - B04 target Standard Amber scan over `MapWorkspaceCockpit.tsx`, `MapWorkspaceCockpit.module.css`, `MapWorkspaceShell.tsx`, `mapExperience.ts`, `mapContextSummary.ts`, `MapExplorerModal.tsx`, and the two B04 tests: 0 matching lines.
+  - Additional `mapTokens.ts` audit still finds B02 deprecated `amber*` compatibility alias names only; their values are non-amber.
+- Heavy-chrome scan before:
+  - B04 target Heavy-Chrome scan: 11 matching lines in `MapWorkspaceCockpit.module.css` for linear/radial gradients, heavy box shadows, pill radius, and filled active/primary/progress gradients.
+- Heavy-chrome scan after:
+  - B04 target Heavy-Chrome scan over `MapWorkspaceCockpit.tsx`, `MapWorkspaceCockpit.module.css`, `MapWorkspaceShell.tsx`, `mapExperience.ts`, `mapContextSummary.ts`, `MapExplorerModal.tsx`, and the two B04 tests: 0 matching lines.
+  - Additional focused `mapTokens.ts` audit shows only the retained `MAP_STROKES.dashedStrong` definition; B04 drag overlay no longer consumes it.
+- Card frames removed or retained with reason:
+  - Cockpit panel switched to a flat `--syn-surface-panel` inspector with neutral border and no shadow stack.
+  - Analysis recommendation cards became separated rows with a 2px semantic left rail instead of filled card blocks.
+  - Mode buttons retain compact button frames because they are workspace selection controls; active state is a left rail/tint, not a filled plate.
+- Button fills removed or retained with reason:
+  - Recommended primary command changed from filled blue gradient to transparent blue hairline command.
+  - Quick action tiles changed to row-like ghost controls with top hairlines.
+  - Recommendation action buttons changed to transparent blue-bordered controls.
+- UX changes:
+  - Cockpit reads like the completed Center Panel: dense context strip, single-surface panes, muted uppercase labels, thin separators, and blue/neutral affordances.
+  - Workspace drag/progress surfaces are non-amber and less decorative while preserving status/progress text and aria semantics.
+- Accessibility and contrast notes:
+  - Existing aria labels for cockpit, context strip, recommended action, quick actions, recommendation reasons, and recommendation action buttons were preserved.
+  - `aria-pressed` mode selection and command disabled wiring were not changed.
+  - Blocked QA/export states gained a distinct non-amber blocked/error tone instead of sharing the generic caveat tone.
+- Data visualization notes:
+  - No analytical map palettes, legends, renderer ramps, symbology defaults, or generated map output colors changed.
+- Scientific integrity notes: No scientific evidence, CRS, data fitness, method validity, or readiness semantics changed.
+- Cross-module contract changes: None.
+- Validation commands:
+  - `npm run typecheck`
+  - `npm exec -- vitest run src/centerpanel/components/map/__tests__/map-workspace-experience.test.ts src/centerpanel/components/map/__tests__/mapContextSummary.test.ts src/centerpanel/components/map/__tests__/map-components.test.ts`
+  - B04 target Map Explorer Standard Amber Scan with `rg`.
+  - B04 target Map Explorer Heavy-Chrome Scan with `rg`.
+  - Playwright visual smoke via a one-off `node` script using Chromium against `http://127.0.0.1:3000`.
+- Validation results:
+  - Typecheck: passed.
+  - Targeted workspace/context/component tests: passed, 77 tests across 3 files.
+  - B04 target Standard Amber scan: 0.
+  - B04 target Heavy-Chrome scan: 0.
+  - Visual smoke: passed at 1280x860, 960x760, and 720x760 compact; cockpit visible with 10 command buttons and nonblank text in all three viewports.
+- Screenshots or manual visual evidence:
+  - `tmp/b04-cockpit-1280.png`
+  - `tmp/b04-cockpit-960.png`
+  - `tmp/b04-cockpit-compact.png`
+  - Dev server started at `http://127.0.0.1:3000` by `npm run dev`; this repo's dev script serves Vite on port 3000 and terminal server on 9231.
+- Known risks:
+  - The dev script terminated pre-existing listeners on ports 3000 and 9231 before starting the current server, per the repo's `predev` command.
+  - Normal operating-pack order still has C09/C10 pending; B04 was completed only because the user explicitly continued the targeted Map Explorer track.
+  - Broad Map Explorer scans still include downstream B05-B14 owners and B02 deprecated `amber*` compatibility names.
+- Blockers: none for B04.
+- Decisions made:
+  - Left `mapExperience.ts` and `mapContextSummary.ts` behavior unchanged after inspection because they hold command/readiness/context contracts rather than chrome.
+  - Kept B04 focused on rendered cockpit/workspace chrome and did not touch GIS calculations, persistence, evidence, layer rendering, or data-palette defaults.
+- Next recommended prompt in normal order: Prompt C09 - Cross-Cutting Surfaces — Urban Context Strip, Outline Nav, Background Tasks, Engine Capabilities, Narrative, Object Detector.
+- Next Map Explorer prompt if the user continues the targeted Part 3 track: Prompt B06 - Layer Manager, Layer Panel, Registry Rows, Badges, Popovers, And Sync States.
+- Ledger updated: yes.
+
+### Prompt B05 - Toolbar, Search, Pins, Bookmarks, Context Menus, And Map Explorer Entry Button
+
+- Date: 2026-05-18.
+- Agent: GitHub Copilot.
+- Status: completed.
+- Trigger: user selected the B05 prompt block and requested "go apply be perfect and vs code premium".
+- Execution mode: user-directed targeted deviation. The manifest still gates normal Part 3 product-code implementation behind C10, and C09/C10 remain pending in the normal operating-pack order; this B05 pass was completed because the user explicitly continued the Map Explorer track.
+- Started from:
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` / Prompt B05
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_PROMPT_MANIFEST.json`
+  - `DEVELOPMENT_PLANS/CONTEXT_MIN.md`
+  - `DEVELOPMENT_PLANS/CURRENT_TASK.json`
+  - `scripts/get-next-map-explorer-prompt.ps1 -Json`
+- Files inspected:
+  - `src/centerpanel/components/map/MapToolbar.tsx`
+  - `src/centerpanel/components/map/MapSearchBar.tsx`
+  - `src/centerpanel/components/map/MapPinSidebar.tsx`
+  - `src/centerpanel/components/MapBookmarkBar.tsx`
+  - `src/centerpanel/components/MapContextMenu.tsx`
+  - `src/centerpanel/components/map/contextMenuUtils.ts`
+  - `src/centerpanel/components/MapExplorerButton.tsx`
+  - `src/centerpanel/components/map/__tests__/MapToolbar.external-services.test.tsx`
+  - `src/centerpanel/components/map/__tests__/map-context-menu.test.ts`
+  - `src/centerpanel/components/map/__tests__/map-bookmarks-annotations.test.tsx`
+- Files changed:
+  - `src/centerpanel/components/map/MapToolbar.tsx`
+  - `src/centerpanel/components/map/MapSearchBar.tsx`
+  - `src/centerpanel/components/map/MapPinSidebar.tsx`
+  - `src/centerpanel/components/MapBookmarkBar.tsx`
+  - `src/centerpanel/components/MapContextMenu.tsx`
+  - `src/centerpanel/components/MapExplorerButton.tsx`
+  - `src/centerpanel/components/map/__tests__/map-bookmarks-annotations.test.tsx`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_PROMPT_MANIFEST.json`
+- Tokens added: none.
+- Tokens consumed:
+  - `--syn-surface-input`
+  - `--syn-surface-panel`
+  - `--syn-border-subtle`
+  - `--syn-border-focus`
+  - `--syn-interaction-active`
+  - `--syn-status-info`
+  - `--syn-status-valid`
+  - `--syn-status-error`
+- Tokens aliased or deprecated: none added. B02 `MAP_COLORS.amber*` compatibility aliases remain non-amber in `mapTokens.ts`, but B05 target files no longer consume those alias names.
+- Product behavior changes:
+  - Toolbar badges, command buttons, command palette status pills, role switches, focus outlines, and hover handlers now use interaction blue, neutral hover, compact hairlines, and active rail/underline affordances instead of amber-tinted filled states.
+  - Location search input and result dropdown use compact input/panel tokens, 3px-radius workbench chrome, neutral hairlines, no shadow stack, and blue/neutral result hover.
+  - Pin sidebar icon tone moved from amber alias to interaction blue while preserving row text, labels, and list semantics.
+  - Bookmark menu/chip controls moved off amber aliases; save/current-view controls and inline active chips are transparent hairline controls with blue text.
+  - Context menu and popup shells moved from glass/amber border/dropdown shadow styling to flat panel surfaces, hairline borders, no shadow stack, and blue hover/focus affordances.
+  - Map Explorer launcher button moved from filled amber plate to a transparent hairline ghost button with blue text/icon and visible blue keyboard focus.
+- Command and state behavior preserved:
+  - Toolbar command routing, role selection, overflow, disabled titles, shortcut text, command palette filtering, status labels, and aria labels unchanged.
+  - Search result selection and `onFlyTo` wiring unchanged.
+  - Pin persistence and bookmark limit behavior unchanged.
+  - Context menu positioning, keyboard navigation, disabled action labels, popup creation, and menu action callbacks unchanged.
+- Hard-coded colors removed:
+  - B05 target `#F59E0B` test fixture was changed to a non-amber blue annotation default.
+  - No B05 target files now contain amber literal names, amber hex literals, amber RGB literals, `--syn-status-warning`, or `MAP_COLORS.amber*` consumption.
+- Hard-coded colors retained with reason:
+  - Existing non-amber CSS variable fallbacks such as `#1a1f26`, `#3794ff`, and neutral rgba fallbacks remain for runtime resilience.
+- Amber scan before:
+  - B05 target Standard Amber scan found hits in `MapToolbar.tsx`, `MapSearchBar.tsx`, `MapPinSidebar.tsx`, `MapBookmarkBar.tsx`, `MapContextMenu.tsx`, `MapExplorerButton.tsx`, and `map-bookmarks-annotations.test.tsx`.
+- Amber scan after:
+  - B05 target Standard Amber scan over all primary B05 files and targeted tests: 0 matching lines.
+  - Focused alias scan for `amberBtn`, `amberSubtle`, `amberDim`, `amberBorder`, `MAP_COLORS.amber`, `#F59E0B`, and `--syn-status-warning`: 0 matching lines.
+- Heavy-chrome scan after:
+  - B05 focused heavy-chrome scan for `MAP_SHADOWS.dropdown`, `MAP_SHADOWS.modal`, gradients, drop shadows, glow strings, and `0 0` shadow patterns over changed B05 product files: 0 matching lines.
+- Card frames removed or retained with reason:
+  - Toolbar overflow, search dropdown, bookmark menus, context menus, and launcher now read as flat workbench panes/rows with thin separators.
+  - Compact controls retain small button frames only where needed for keyboard focus and command hit targets.
+- Button fills removed or retained with reason:
+  - Routine toolbar, bookmark, context, and launcher controls no longer use filled amber/primary plates.
+  - Active command states retain a subtle blue tint plus 2px rail/underline so selection remains visible without large filled cards.
+- Accessibility and contrast notes:
+  - Existing aria labels and titles were preserved.
+  - Launcher and toolbar focus rings remain visible with `MAP_COLORS.focus`.
+  - Disabled states remain dimmed and do not present as ready/valid.
+- Data visualization notes:
+  - No analytical renderer palette, map layer style ramp, legend scale, or GIS output default changed.
+- Scientific integrity notes: No scientific evidence, CRS, data fitness, method validity, workflow readiness, geometry, or analytical status semantics changed.
+- Cross-module contract changes: None.
+- Validation commands:
+  - `npm run typecheck`
+  - `npm exec -- vitest run src/centerpanel/components/map/__tests__/MapToolbar.external-services.test.tsx src/centerpanel/components/map/__tests__/map-context-menu.test.ts src/centerpanel/components/map/__tests__/map-bookmarks-annotations.test.tsx`
+  - B05 target Map Explorer Standard Amber Scan with `rg`.
+  - B05 focused heavy-chrome/alias scan with `rg`.
+  - Playwright visual smoke via a one-off `node` script using Chromium against `http://127.0.0.1:3000/?view=analyst`, opening Map Explorer with `Ctrl+Shift+M`.
+- Validation results:
+  - Typecheck: passed.
+  - Targeted toolbar/context/bookmark tests: passed, 14 tests across 3 files.
+  - B05 target Standard Amber scan: 0.
+  - B05 focused heavy-chrome/alias scan: 0.
+  - Visual smoke: passed at 1280x860, 960x760, and 720x760 compact; `Search location` visible, Map Explorer text visible, 74 command controls detected, and 0 amberish controls found in each viewport.
+- Screenshots or manual visual evidence:
+  - `tmp/b05-map-controls-1280.png`
+  - `tmp/b05-map-controls-960.png`
+  - `tmp/b05-map-controls-compact.png`
+- Known risks:
+  - Normal operating-pack order still has C09/C10 pending; B05 was completed only because the user explicitly continued the targeted Map Explorer track.
+  - Broad Map Explorer scans still include downstream B06-B14 owners and B02 deprecated `amber*` compatibility names outside this prompt scope.
+- Blockers: none for B05.
+- Decisions made:
+  - Left `contextMenuUtils.ts` unchanged after inspection because it only owns positioning/coordinate utilities and did not contain B05 visual chrome.
+  - Kept warning command semantics text-backed and non-amber via existing map warning/caveat token mapping; did not relabel warnings as ready/valid.
+  - Did not touch GIS services, stores, renderer defaults, persistence, or external connector behavior.
+- Next recommended prompt in normal order: Prompt C09 - Cross-Cutting Surfaces — Urban Context Strip, Outline Nav, Background Tasks, Engine Capabilities, Narrative, Object Detector.
+- Next Map Explorer prompt if the user continues the targeted Part 3 track: Prompt B06 - Layer Manager, Layer Panel, Registry Rows, Badges, Popovers, And Sync States.
+- Ledger updated: yes.
+
+### Prompt B06 - Layer Manager, Layer Panel, Registry Rows, Badges, Popovers, And Sync States
+
+- Date: 2026-05-18.
+- Agent: GitHub Copilot.
+- Status: completed.
+- Trigger: user selected the B06 prompt block and requested "goo apply be perfect and premium".
+- Execution mode: user-directed targeted deviation. The manifest still gates normal Part 3 product-code implementation behind C10, and C09/C10 remain pending in the normal operating-pack order; this B06 pass was completed because the user explicitly continued the Map Explorer track.
+- Started from:
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` / Prompt B06
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_PROMPT_MANIFEST.json`
+  - `DEVELOPMENT_PLANS/CONTEXT_MIN.md`
+  - `DEVELOPMENT_PLANS/CURRENT_TASK.json`
+  - `scripts/get-next-map-explorer-prompt.ps1 -Json`
+- Files inspected:
+  - `src/centerpanel/components/map/MapLayerManager.tsx`
+  - `src/centerpanel/components/map/MapLayerPanel.tsx`
+  - `src/centerpanel/components/map/mapLayerMetadata.ts`
+  - `src/centerpanel/components/map/useLayerSync.ts`
+  - `src/centerpanel/components/map/__tests__/map-layer-management.test.ts`
+- Files changed:
+  - `src/centerpanel/components/map/MapLayerManager.tsx`
+  - `src/centerpanel/components/map/MapLayerPanel.tsx`
+  - `src/centerpanel/components/map/useLayerSync.ts`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_PROMPT_MANIFEST.json`
+- Files left unchanged after inspection:
+  - `src/centerpanel/components/map/mapLayerMetadata.ts`
+  - `src/centerpanel/components/map/__tests__/map-layer-management.test.ts`
+- Tokens added: none.
+- Tokens consumed:
+  - `--syn-surface-input`
+  - `--syn-surface-panel`
+  - `--syn-border-subtle`
+  - `--syn-interaction-active`
+  - `--syn-border-focus`
+  - `--syn-status-info`
+  - `--syn-status-error`
+- Tokens aliased or deprecated: none added. B02 `MAP_COLORS.amber*` compatibility aliases remain non-amber in `mapTokens.ts`, but B06 target files no longer consume those alias names.
+- Product behavior changes:
+  - Layer panel toggle, visible-layer icon, stale chip, metadata headings, rerun/report controls, add-layer controls, action summary, and selected base-layer state now use interaction blue, neutral backgrounds, hairline borders, and compact rail affordances instead of amber aliases or amber fills.
+  - Layer action menu, metadata popover, and add-layer dialog no longer use dropdown shadows, amber borders, blur-backed popover chrome, or gradient button fills.
+  - Layer opacity slider `accentColor` now uses `MAP_COLORS.interaction`.
+  - Default MapLibre render fallback colors in `useLayerSync.ts` moved from amber alias to interaction blue for circle, line, and fill layers.
+- Command and state behavior preserved:
+  - Layer order, drag/drop, visibility toggles, opacity updates, layer removal confirmation, add-layer creation, demo/OSM controls, metadata popover, cartography review strip, layer evidence actions, base-layer selection, and layer sync logic were not altered.
+  - Registry metadata normalization and publication readiness computation were left unchanged.
+- State truthfulness notes:
+  - Demo/source/derived/QA/publication/CRS badges keep explicit text and tooltip/title strings.
+  - Demo, stale, caveat, QA warning, invalid, blocked, hidden, unsynced, selected, published, queryable, and derived labels remain text-backed; warning/caveat states were not relabeled as ready/valid.
+- Hard-coded colors removed:
+  - B06 target files no longer contain amber literal names, amber hex literals, amber RGB literals, `--syn-status-warning`, or `MAP_COLORS.amber*` consumption.
+- Hard-coded colors retained with reason:
+  - Non-amber status/detail colors such as `#86EFAC`, `#7DD3FC`, `#1a1f26`, and red error rgba remain for explicit valid/info/input/error semantics.
+  - Analytical legend swatches in metadata popover remain data-driven from `analysisResult.visualization.legendEntries`.
+- Amber scan before:
+  - B06 target Standard Amber scan found hits in `MapLayerManager.tsx`, `MapLayerPanel.tsx`, and `useLayerSync.ts`.
+- Amber scan after:
+  - B06 target Standard Amber scan over all primary B06 files and the targeted test: 0 matching lines.
+- Heavy-chrome scan before:
+  - B06 target Heavy-Chrome scan found dropdown shadows, a button gradient, blur-backed action menu chrome, amber RGB fills, and amber slider `accentColor`.
+- Heavy-chrome scan after:
+  - B06 focused Heavy-Chrome scan for dropdown/modal shadows, gradients, drop shadows, blur-backed action menu chrome, and amber RGB fills: 0 matching lines.
+  - Remaining `boxShadow` usage is the allowed 2px inset blue rail for active base-layer state.
+- Card frames removed or retained with reason:
+  - Layer rows remain separator-led through `mapStyles.sidePanelRow`; no per-layer card border or heavy shadow was introduced.
+  - Action menu buttons retain compact hairline frames for keyboard targets and menu scannability.
+- Button fills removed or retained with reason:
+  - Routine layer, add, rerun, action, and base-layer controls are transparent/ghost controls with blue text or focus border.
+  - Destructive layer actions retain explicit `Delete` / `Confirm delete` labels and error token styling.
+- Accessibility and contrast notes:
+  - Existing aria labels, disabled reasons, titles, `aria-pressed`, `aria-selected`, `role=option`, `role=menu`, and menu item labels were preserved.
+  - Active/selected base-layer state is conveyed by `aria-checked`, blue text/border, and a 2px left rail.
+- Data visualization notes:
+  - Only non-analytical fallback renderer defaults changed from amber to interaction blue. Existing data-driven legend entries and explicit layer style paint properties are preserved.
+- Scientific integrity notes: No scientific evidence, CRS metadata, data fitness, layer registry metadata, QA state, publication readiness logic, geometry normalization, or analytical status semantics changed.
+- Cross-module contract changes: None.
+- Validation commands:
+  - `npm run typecheck`
+  - `npm exec -- vitest run src/centerpanel/components/map/__tests__/map-layer-management.test.ts`
+  - B06 target Map Explorer Standard Amber Scan with `rg`.
+  - B06 focused Heavy-Chrome Scan with `rg`.
+  - Playwright visual smoke via a one-off `node` script using Chromium against `http://127.0.0.1:3000/?view=analyst`, seeding one GeoJSON layer through `window.e2e.seedGeoJSONLayer`, opening Map Explorer with `Ctrl+Shift+M`, and checking the layer manager across three viewports.
+- Validation results:
+  - Typecheck: passed.
+  - Targeted layer-management tests: passed, 45 tests across 1 file.
+  - B06 target Standard Amber scan: 0.
+  - B06 focused Heavy-Chrome scan: 0.
+  - Visual smoke: passed at 1280x860, 960x760, and 720x760 compact; seeded layer row, base selector, and add-layer control visible; 88 controls detected; 0 amberish B06 layer controls found in each viewport. A global non-B06 toast dismiss button was observed and excluded from the layer-control scoped count.
+- Screenshots or manual visual evidence:
+  - `tmp/b06-layer-manager-1280.png`
+  - `tmp/b06-layer-manager-960.png`
+  - `tmp/b06-layer-manager-compact.png`
+- Known risks:
+  - Normal operating-pack order still has C09/C10 pending; B06 was completed only because the user explicitly continued the targeted Map Explorer track.
+  - Broad Map Explorer scans still include downstream B07-B14 owners and B02 deprecated `amber*` compatibility names outside this prompt scope.
+- Blockers: none for B06.
+- Decisions made:
+  - Left `mapLayerMetadata.ts` unchanged because it owns metadata normalization/readiness semantics and had no B06 chrome issues.
+  - Left `map-layer-management.test.ts` unchanged because behavioral expectations still passed after visual token changes.
+  - Kept `MAP_COLORS.warning` for warning/caveat text because the token is non-amber in the current map token system and preserves explicit warning semantics without valid/success styling.
+- Next recommended prompt in normal order: Prompt C09 - Cross-Cutting Surfaces — Urban Context Strip, Outline Nav, Background Tasks, Engine Capabilities, Narrative, Object Detector.
+- Next Map Explorer prompt if the user continues the targeted Part 3 track: Prompt B07 - Scientific QA, Readiness, Evidence, And Status Semantics.
+- Ledger updated: yes.
+
+### Prompt B07 - Scientific QA, Readiness, Evidence, And Status Semantics
+
+- Date: 2026-05-18.
+- Agent: GitHub Copilot.
+- Status: completed.
+- Trigger: user selected the B07 prompt block and requested "go apply be perfect and premium", with an explicit request to ensure B07 and earlier applied prompts are visible in the UI.
+- Execution mode: user-directed targeted deviation. The manifest still gates normal Part 3 product-code implementation behind C10, and C09/C10 remain pending in the normal operating-pack order; this B07 pass was completed because the user explicitly continued the Map Explorer track.
+- Started from:
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` / Prompt B07
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_PROMPT_MANIFEST.json`
+  - `DEVELOPMENT_PLANS/CONTEXT_MIN.md`
+  - `DEVELOPMENT_PLANS/CURRENT_TASK.json`
+  - `scripts/get-next-map-explorer-prompt.ps1 -Json`
+- Files inspected:
+  - `src/centerpanel/components/map/ScientificQAPanel.tsx`
+  - `src/centerpanel/components/map/mapEvidenceArtifacts.ts`
+  - `src/centerpanel/components/map/mapLayerMetadata.ts`
+  - `src/centerpanel/components/map/mapTypes.ts`
+  - `src/services/map/MapScientificQA.ts`
+  - `src/services/map/MapScientificQA.worker.ts`
+  - `src/services/map/MapPublicationOutputBindingService.ts`
+  - `src/services/map/__tests__/MapScientificQA.test.ts`
+  - `src/services/map/__tests__/MapPublicationOutputBindingService.test.ts`
+  - `src/centerpanel/components/map/__tests__/mapEvidenceArtifacts.test.ts`
+- Files changed:
+  - `src/centerpanel/components/map/ScientificQAPanel.tsx`
+  - `src/centerpanel/components/map/mapTypes.ts`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_PROMPT_MANIFEST.json`
+- Files left unchanged after inspection:
+  - `src/centerpanel/components/map/mapEvidenceArtifacts.ts`
+  - `src/centerpanel/components/map/mapLayerMetadata.ts`
+  - `src/services/map/MapScientificQA.ts`
+  - `src/services/map/MapScientificQA.worker.ts`
+  - `src/services/map/MapPublicationOutputBindingService.ts`
+  - B07 targeted QA/evidence/publication tests.
+- Product behavior changes:
+  - Scientific QA summary/domain/issue surfaces are now flat inspector rows with transparent panes, hairline separators, and blue/info/error/valid/stale status rails instead of amber warning chrome.
+  - QA issue fix guidance now uses a blue interaction rail and transparent background instead of an amber caveat fill.
+  - The default annotation palette first swatch moved from amber to interaction blue so new visible annotation defaults do not reintroduce amber.
+- Command and state behavior preserved:
+  - CRS validation, scientific QA issue generation, worker execution, evidence artifact creation, evidence QA state, max artifact behavior, publication output binding, status strings, aria labels, and blocked/caveat domain values were not changed.
+  - Domain status values such as `warning`, `ready-with-caveats`, `needs-review`, `blocked`, `unknown`, `unchecked`, and `passed` remain unchanged.
+- State truthfulness notes:
+  - Blocked/error remains error-styled; passed/ready remains valid-styled; running remains info/running-styled; unchecked/unknown remains stale/unknown-styled.
+  - Warning/caveat/needs-review remain explicit through text, counts, issue titles, aria text, and blue/info/stale treatments rather than valid/success styling.
+- Hard-coded colors removed:
+  - B07 target files no longer contain amber literal names, amber hex literals, amber RGB literals, `--syn-status-warning`, or `MAP_COLORS.amber*` rendered chrome.
+- Hard-coded colors retained with reason:
+  - Non-amber blue/valid/error/status colors remain for semantic readiness and QA status communication.
+- Amber scan before:
+  - B07 target scan found amber consumption in `ScientificQAPanel.tsx` and the default visible annotation palette in `mapTypes.ts`.
+- Amber scan after:
+  - B07 target Standard Amber Scan: 0 matching lines.
+  - B04-B07 combined target Standard Amber Scan: 0 matching lines.
+- Heavy-chrome scan after:
+  - B07 focused Heavy-Chrome Scan: 0 matching lines.
+  - B04-B07 refined target Heavy-Chrome Scan: 0 hits after filtering explicit `MAP_SHADOWS.none` and allowed 2px blue inset active rails.
+- Card frames removed or retained with reason:
+  - QA category rows and issue rows are separator-led inspector rows, not mini cards.
+  - Resize/panel shell behavior remains in the shared panel component and was not changed by B07.
+- Button fills removed or retained with reason:
+  - No B07 command wiring was changed. Existing QA detail/close controls retain transparent/ghost treatment from shared map styles.
+- Accessibility and contrast notes:
+  - Existing aria labels for the Scientific QA side panel, summary, issue articles, detail toggles, and close/resize controls were preserved.
+  - Warning/caveat issue articles keep explicit severity wording in `aria-label`.
+- Scientific integrity notes:
+  - No scientific readiness state was weakened or made to look valid.
+  - No evidence provenance, CRS safety, publication readiness, worker, or binding logic changed.
+- Cross-module contract changes: None.
+- Validation commands:
+  - `npm run typecheck`
+  - `npm exec -- vitest run src/services/map/__tests__/MapScientificQA.test.ts src/services/map/__tests__/MapPublicationOutputBindingService.test.ts src/centerpanel/components/map/__tests__/mapEvidenceArtifacts.test.ts`
+  - `npm exec -- vitest run src/centerpanel/components/map/__tests__/map-bookmarks-annotations.test.tsx`
+  - B07 target Map Explorer Standard Amber Scan with `rg`.
+  - B07 focused Heavy-Chrome Scan with `rg`.
+  - B04-B07 combined target Standard Amber Scan with `rg`.
+  - B04-B07 refined target Heavy-Chrome Scan with `rg`.
+  - Playwright visual smoke via a one-off `node` script using Chromium against `http://127.0.0.1:3000/?view=analyst`, opening Map Explorer with `Ctrl+Shift+M`, using `window.e2e.seedGeoJSONLayer` for a CRS-caveat layer, and checking B04 cockpit plus B05 toolbar/search, B06 layer row, and B07 QA panel across three viewports.
+- Validation results:
+  - Typecheck: passed.
+  - Targeted QA/evidence/publication tests: passed, 16 tests across 3 files.
+  - Targeted bookmark/annotation regression test: passed, 5 tests across 1 file.
+  - B07 target Standard Amber Scan: 0.
+  - B07 focused Heavy-Chrome Scan: 0.
+  - B04-B07 combined target Standard Amber Scan: 0.
+  - B04-B07 refined target Heavy-Chrome Scan: 0 relevant hits; only explicit no-shadow and allowed blue inset rail matches were filtered.
+  - Visual smoke: passed at 1280x900, 960x820, and 430x760. Cockpit, search, command buttons, seeded layer row, and Scientific QA side/bottom panel were visible; computed visible amber samples for cockpit/workspace surfaces were 0 at all three widths.
+- Screenshots or manual visual evidence:
+  - `tmp/b07-b04-cockpit-1280.png`
+  - `tmp/b07-b04-cockpit-960.png`
+  - `tmp/b07-b04-cockpit-compact.png`
+  - `tmp/b07-b06-layer-1280.png`
+  - `tmp/b07-b06-layer-960.png`
+  - `tmp/b07-b06-layer-compact.png`
+  - `tmp/b07-b05-b07-visible-1280.png`
+  - `tmp/b07-b05-b07-visible-960.png`
+  - `tmp/b07-b05-b07-visible-compact.png`
+- Known risks:
+  - Normal operating-pack order still has C09/C10 pending; B07 was completed only because the user explicitly continued the targeted Map Explorer track.
+  - Broad Map Explorer scans still include downstream B08-B14 owners and B02 deprecated `amber*` compatibility names outside this prompt scope.
+- Blockers: none for B07.
+- Decisions made:
+  - Left scientific service, worker, evidence, publication binding, and metadata files unchanged because their behavior and domain contracts were already correct and only rendered chrome needed migration.
+  - Kept scientific status/domain value names intact and changed only visual treatment.
+  - Used interaction blue for the default annotation swatch because annotations are visible map defaults and should not reintroduce amber.
+- Next recommended prompt in normal order: Prompt C09 - Cross-Cutting Surfaces — Urban Context Strip, Outline Nav, Background Tasks, Engine Capabilities, Narrative, Object Detector.
+- Next Map Explorer prompt if the user continues the targeted Part 3 track: Prompt B08 - Workflow Drawer, NL Query, Review Timeline, Cartography Recommendations, And Report Handoff Drawer.
+- Ledger updated: yes.
+
+### Map Explorer Prompt Ladder Redesign - 2026-05-18
+
+- Status: completed.
+- Trigger: user requested Map Explorer prompts be updated by reading the new Center Panel design from code, allowing prompt count to grow, and making the implementation prompts detailed, professional, and aligned with premium VS Code styling.
+- Files inspected:
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_PROMPT_MANIFEST.json`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_UNIT_MATRIX.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_QA_CHECKLIST.md`
+  - `src/centerpanel/registry-ui/newProject.module.css`
+  - `src/centerpanel/styles/registry.module.css`
+  - `src/centerpanel/styles/guides.module.css`
+  - `src/centerpanel/styles/note.module.css`
+  - `src/centerpanel/styles/flows.module.css`
+  - `src/centerpanel/styles/tools.module.css`
+  - `src/centerpanel/components/map/mapTokens.ts`
+  - `src/constants/design.ts`
+  - `src/centerpanel/components/map/MapWorkspaceShell.tsx`
+  - `src/centerpanel/components/map/MapWorkspaceCockpit.module.css`
+  - `src/centerpanel/components/map/MapToolbar.tsx`
+  - `src/centerpanel/components/map/MapLayerManager.tsx`
+  - `src/centerpanel/components/map/MapStatusBar.tsx`
+  - `src/centerpanel/components/MapDataImportHubDialog.tsx`
+  - `src/stores/useMapExplorerStore.ts`
+- Files changed:
+  - `COLOR_SYSTEM_PLANS/README.md`
+  - `COLOR_SYSTEM_PLANS/START_HERE_COLOR_SYSTEM_AGENT.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_AGENT_PROTOCOL.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_DEVELOPMENT_PLAN.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_ALIGNMENT_SPEC.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_TOKEN_REFERENCE.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_PROMPT_MANIFEST.json`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_UNIT_MATRIX.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_QA_CHECKLIST.md`
+- Changes applied:
+  - Expanded Map Explorer Part 3 from `B01`-`B10` to `B01`-`B15` so tokens, shell, cockpit, toolbar/search, layers, QA/readiness, high-risk drawers, import dialogs, export/generated chrome, interactive tools/store defaults, renderer defaults, services, final QA, and final handoff have separate execution gates.
+  - Added a Center Panel code-derived Map Explorer workbench contract: single-surface inspectors, hairline separators, compact 3px controls, transparent/ghost buttons, blue interaction rails/tints, non-amber status semantics, and explicit data-palette separation.
+  - Added a Map Explorer Heavy-Chrome Scan for oversized radii, decorative gradients, shadows, filled plates, amber `MAP_COLORS`, and amber `MAP_STROKES`.
+  - Synchronized the manifest to 35 prompts and moved final handoff from B10 to B15.
+  - Synced C08 manifest status to completed to match this ledger.
+  - Synced active operating-pack entry/protocol/plan/spec/token/QA/unit-matrix wording from the older two-part `A/B01-B10` framing to the active three-part `A01-A10`, `C01-C10`, `B01-B15` framing.
+- Product behavior changes: none; documentation and execution-pack update only.
+- Scientific integrity notes: No GIS calculations, CRS behavior, evidence semantics, method validity, workflow readiness, map persistence, map service contracts, QA logic, NL-query safety, or report handoff contracts changed.
+- Cross-module contract changes: None.
+- Validation: manifest JSON parse passed; manifest prompt count is 35; B prompt count is 15 (`B01`-`B15`); markdown diagnostics for `COLOR_SYSTEM_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` reported no errors.
+- Next recommended prompt remains: Prompt C09 - Cross-Cutting Surfaces — Urban Context Strip, Outline Nav, Background Tasks, Engine Capabilities, Narrative, Object Detector.
 
 ### Active Two-Part Prompt Reprioritization - 2026-05-15
 
@@ -2836,6 +3657,73 @@ No edits required outside `src/features/urbanAnalytics/**` for Part 1.
   - `git diff --check` -> passed.
   - Targeted Toolbox amber/source scan over `ToolsActionPanel.tsx`, `ToolsProjectList.tsx`, `tools.module.css`, and `tools.left.module.css` for hard-coded amber/yellow values and `--syn-accent-primary` -> 0 hits.
   - Local dev server check `http://127.0.0.1:3000` -> 200.
+
+### Prompt C08 Follow-up 2 - Toolbox Rail, Full-Width Layout, Indicator Density, VoxCity Camera Stability - 2026-05-18
+
+- Trigger: user provided screenshots showing Toolbox project rail vertical text/wrapped IDs, scattered project action buttons, Toolbox content still reading as card-heavy rather than full-width VS Code workbench, Indicator Catalog card/font scale mismatch, and VoxCity 3D view reset while rotating or changing view.
+- Files inspected:
+  - `src/features/urbanAnalytics/voxcity/BuildingViewer.tsx`
+  - `src/services/map/MapSyncService.ts`
+  - `src/centerpanel/components/MapExplorerModal.tsx`
+  - `src/centerpanel/Tools/ToolsProjectList.tsx`
+  - `src/centerpanel/Tools/ToolsActionPanel.tsx`
+  - `src/centerpanel/Tools/components/CapabilitiesOverviewPanel.tsx`
+  - `src/centerpanel/styles/tools.module.css`
+  - `src/centerpanel/styles/tools.left.module.css`
+  - `src/features/urbanAnalytics/indicators/IndicatorCatalogPanel.module.css`
+- Files changed:
+  - `src/features/urbanAnalytics/voxcity/BuildingViewer.tsx` — removed `OrbitControls` key/target prop remount path and changed auto-fit to a scene-signature guard so user orbit state is not reset by ordinary React rerenders.
+  - `src/centerpanel/components/MapExplorerModal.tsx` — extended 2D/3D sync suppression through the map ease duration so 3D-origin viewport sync does not echo back as a map-origin reset loop.
+  - `src/centerpanel/Tools/ToolsProjectList.tsx` — replaced text glyph buttons with `lucide-react` icons, reduced row actions to export + pin, kept row click/keyboard selection as the primary project action, and added a Search icon in the compact search field.
+  - `src/centerpanel/Tools/components/CapabilitiesOverviewPanel.tsx` — replaced inline card/callout rows with full-width capability matrix classes for workspace tabs, toolbox surfaces, and workflows.
+  - `src/centerpanel/styles/tools.left.module.css` — added premium rail override: compact search/sort, no vertical text (`text-overflow: ellipsis`, no `overflow-wrap:anywhere`), stable selected left rail, always-stable two-icon action area, and dense hairline row rhythm.
+  - `src/centerpanel/styles/tools.module.css` — added full-width Toolbox workbench override: sticky header command index, inspector-band panels, flattened callouts, and capability matrix styles with blue hover/underline motion.
+  - `src/centerpanel/styles/header-new.module.css` — replaced header tab label wrapping with single-line scroll behavior and added container-query fallback so narrow embedded Center Panel headers put tabs on a full-width second row instead of breaking labels vertically.
+  - `src/features/urbanAnalytics/indicators/IndicatorCatalogPanel.module.css` — reduced oversized metric/detail/card typography, flattened card surfaces, tightened traceability/formula/band grids, and preserved responsive single-column fallbacks.
+- Tokens added: none. Used existing VS Code semantic tokens and `lucide-react` icons already present in dependencies.
+- Hard-coded colors removed: none newly targeted; this was layout, density, and interaction stability work. No new amber/yellow/orange UI chrome added.
+- Card/button notes: Toolbox main content now renders as full-width inspector bands and capability rows rather than repeated framed cards. Project rail buttons reduced from four row actions to two functional icon controls, with primary row selection moved to the row body.
+- Accessibility & contrast notes: project selection remains keyboard reachable; export and pin retain `aria-label`, `aria-pressed`, and keyboard shortcut metadata. Focus outlines continue to use blue semantic focus.
+- Scientific/data notes: no GIS calculations, evidence artifact semantics, indicator formulas, data fitness, method validity, or workflow contracts changed. Demo/sample VoxCity labeling remains explicit.
+- Cross-module contract changes: none. 2D/3D sync contract preserved; suppression only prevents echo-loop publication during a synced ease animation.
+- Validation:
+  - `git diff --check` -> passed.
+  - `npm run typecheck` -> passed.
+  - Initial `npm --prefix ... run test:analytics` attempt failed because Vitest cwd stayed at `C:/Users/m_ras`, breaking `@/*` alias resolution; rerun from the repo directory was required.
+  - `npm run test:analytics` from `C:/Users/m_ras/Desktop/SynapseIDE_urban_analytics` -> passed, 62 files / 1111 tests.
+  - `npm run lint:errors` -> passed.
+  - Playwright smoke at `http://127.0.0.1:3000` opened Urban Analytics -> Toolbox, confirmed Toolbox surfaces and Indicator Catalog render, no vertical tab-label candidates, and no console issues after filtering the terminal WebSocket reconnect warning.
+
+### Prompt C08 Follow-up 3 - Toolbox Command Center, Wide Mode, Cross-Tab Motion - 2026-05-18
+
+- Trigger: user requested a more functional Toolbox plus VS Code-style animations, transitions, and styling across all tabs.
+- Files inspected:
+  - `src/centerpanel/Tools/ToolsActionPanel.tsx`
+  - `src/centerpanel/CenterPanelShell.tsx`
+  - `src/centerpanel/styles/tools.module.css`
+  - `src/centerpanel/styles/centerpanel.module.css`
+  - `src/centerpanel/styles/header-new.module.css`
+  - `src/features/urbanAnalytics/UrbanAnalyticsModal.tsx`
+  - `src/stores/usePanelBridgeStore.ts`
+  - `DEVELOPMENT_PLANS/CONTEXT_MIN.md`, `DEVELOPMENT_PLANS/CURRENT_TASK.json`
+  - `.github/instructions/urban-analytics.instructions.md`
+- Files changed:
+  - `src/centerpanel/Tools/ToolsActionPanel.tsx` — added a searchable Toolbox command center with active-section/project/scope context, status counters, Ctrl+K section search, workspace layout status, and functional quick actions for Map Explorer, Workflows, Report, Preview, and Export.
+  - `src/centerpanel/styles/tools.module.css` — styled the command center as a dense VS Code workbench toolbar with hairline grids, icon command buttons, active wide-mode styling, action-sweep hover motion, section search, container-query responsive behavior, and reduced-motion fallbacks.
+  - `src/centerpanel/CenterPanelShell.tsx` — exposes the current workspace layout mode as a Center Panel shell data attribute so every tab can share the same mode-aware transition/styling surface.
+  - `src/centerpanel/styles/centerpanel.module.css` — added shared cross-tab motion: rail/content reveal, hover lift/slide, active rail accents, focus-within top glow, and reduced-motion coverage across every Center Panel tab.
+  - `src/centerpanel/styles/header-new.module.css` — added animated active tab underline and activation pulse while preserving single-line scroll behavior.
+  - `src/features/urbanAnalytics/UrbanAnalyticsModal.tsx` — moved the `Wide Off` / `Wide On` control into the global Urban Analytics command bar and connected it to all Center Panel tabs: off keeps the standard outer widths; on applies balanced compact outer rails so the active tab gains usable center space without taking over the whole screen.
+  - `src/stores/usePanelBridgeStore.ts` — upgraded the layout preference to persisted `workspaceLayoutExpanded` state with setter/toggle actions backed by `localStorage`, while reading/writing the legacy Toolbox key for compatibility.
+- Tokens added: none. Used existing VS Code semantic tokens and existing `lucide-react` icon dependency.
+- Contract notes: no GIS calculations, data fitness, method validity, evidence artifact, map rendering, editor buffer, or workflow execution contracts changed. Map Explorer opening uses the existing `useMapExplorerStore.open` action.
+- Accessibility notes: section search has an explicit label and keyboard handling; quick actions are real buttons with title text; reduced-motion rules are included for new animations.
+- Validation:
+  - `npm run typecheck` -> passed.
+  - `npm run lint:errors` -> passed.
+  - `npm run test:analytics` -> passed, 62 files / 1111 tests.
+  - `git diff --check` -> passed.
+  - Playwright smoke at `http://127.0.0.1:3000` opened Urban Analytics, confirmed `Wide Off` standard layout (outer left 500px, center 340px, right 600px at 1440px viewport), clicked the global `Wide Off` command-bar button, confirmed `Wide On` balanced layout across Projects, Workflows, and Toolbox (outer left 280px, center 740px, right 420px), persisted storage change, command center quick actions, and no console issues after filtering the terminal WebSocket reconnect warning.
 
 ## Next Pointer
 
