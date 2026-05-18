@@ -584,3 +584,161 @@
     border-bottom: 0;
   }
 }
+
+/* Toolbox/Workbench polish — denser cards and calmer type scale. */
+.catalogShell {
+  grid-template-columns: minmax(280px, 0.74fr) minmax(0, 1.5fr);
+  font-size: 12.5px;
+}
+
+.browserPane {
+  gap: 8px;
+  padding-right: 12px;
+}
+
+.detailPane {
+  gap: 10px;
+  padding-left: 12px;
+}
+
+.introCard,
+.detailHero,
+.definitionCard,
+.computeCard,
+.bottomCard,
+.bandPanel,
+.emptyState,
+.emptyHistory {
+  border-radius: 0;
+  background: transparent;
+}
+
+.detailHero,
+.definitionCard,
+.computeCard,
+.bottomCard,
+.bandPanel {
+  padding: 12px 0;
+  border-width: 0 0 1px;
+}
+
+.detailHero {
+  border-top: 1px solid var(--syn-border-subtle);
+}
+
+.introTitle {
+  font-size: 0.95rem;
+}
+
+.detailTitle {
+  font-size: 1.08rem;
+  line-height: 1.22;
+}
+
+.detailSummary,
+.definitionBody,
+.resultSummary,
+.educationNote,
+.cardSummary,
+.inputHelp,
+.bandCard span,
+.historyItem span,
+.emptyHistory,
+.emptyState,
+.sectionHeader p {
+  line-height: 1.42;
+}
+
+.cardList {
+  max-height: 720px;
+}
+
+.catalogCard,
+.activeCard {
+  gap: 5px;
+  padding: 9px 8px 9px 10px;
+}
+
+.cardTitle {
+  font-size: 0.82rem;
+}
+
+.cardUnit,
+.cardValue,
+.metricClassification {
+  font-size: 0.78rem;
+}
+
+.metricValue,
+.resultValue {
+  font-size: 1.05rem;
+  line-height: 1.18;
+}
+
+.statusColumn {
+  min-width: 180px;
+}
+
+.traceabilityStrip {
+  grid-template-columns: repeat(auto-fit, minmax(126px, 1fr));
+  margin-top: 12px;
+}
+
+.traceabilityItem {
+  min-height: 48px;
+  padding: 8px 9px;
+}
+
+.traceabilityItem strong {
+  font-size: 0.76rem;
+}
+
+.definitionGrid,
+.computeGrid,
+.bottomGrid {
+  gap: 10px;
+}
+
+.formulaBlock {
+  margin: 7px 0 9px;
+  padding: 8px 9px;
+  font-size: 0.82rem;
+}
+
+.bandList {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 6px;
+}
+
+.bandCard,
+.componentCard,
+.historyItem {
+  padding: 8px 0;
+}
+
+.bandCard strong,
+.componentCard strong,
+.historyItem strong {
+  font-size: 0.86rem;
+}
+
+.sectionHeader {
+  margin-bottom: 9px;
+}
+
+@media (max-width: 1280px) {
+  .catalogShell,
+  .definitionGrid,
+  .computeGrid,
+  .bottomGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .browserPane {
+    padding-right: 0;
+  }
+
+  .detailPane {
+    padding-left: 0;
+  }
+}

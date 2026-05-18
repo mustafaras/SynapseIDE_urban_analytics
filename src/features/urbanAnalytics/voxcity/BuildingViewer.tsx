@@ -1058,11 +1058,6 @@ export default function BuildingViewer() {
  return () => { cancelled = true; };
  }, [activeSource, features, lod, heightStrategy]); // eslint-disable-line react-hooks/exhaustive-deps
 
- useEffect(() => {
-  if (!result || result.buildings.length === 0) return;
-  setFitRevision((value) => value + 1);
- }, [result]);
-
  // Height attribute keys from the strategy
  const heightKeys = useMemo(() => {
  const allKeys = new Set<string>([
@@ -1094,6 +1089,32 @@ export default function BuildingViewer() {
   [result],
  );
 
+ const autoFitSceneKey = useMemo(() => {
+  if (!activeSource || !result || !sceneBounds || result.buildings.length === 0) {
+   return null;
+  }
+
+  return [
+   activeSource.metadata.id,
+   result.lod,
+   result.buildings.length,
+   result.skipped.length,
+   Number(sceneBounds.minX.toFixed(3)),
+   Number(sceneBounds.maxX.toFixed(3)),
+   Number(sceneBounds.minZ.toFixed(3)),
+   Number(sceneBounds.maxZ.toFixed(3)),
+   Number(sceneBounds.maxY.toFixed(3)),
+  ].join("|");
+ }, [activeSource, result, sceneBounds]);
+
+ const lastAutoFitSceneKeyRef = useRef<string | null>(null);
+ useEffect(() => {
+  if (!autoFitSceneKey) return;
+  if (lastAutoFitSceneKeyRef.current === autoFitSceneKey) return;
+  lastAutoFitSceneKeyRef.current = autoFitSceneKey;
+  setFitRevision((value) => value + 1);
+ }, [autoFitSceneKey]);
+
  const handleOrbitControlsRef = useCallback((instance: unknown) => {
   orbitControlsRef.current = instance as OrbitControlsHandle | null;
  }, []);
@@ -1101,11 +1122,6 @@ export default function BuildingViewer() {
  const fitBounds = useMemo(() => {
   if (!sceneBounds) return null;
   return sceneBounds;
- }, [sceneBounds]);
-
- const fitTarget = useMemo(() => {
-  if (!sceneBounds) return null;
-  return resolveSceneTarget(sceneBounds);
  }, [sceneBounds]);
 
  const extrusionCompletedRun = useMemo(() => {
@@ -1423,12 +1439,10 @@ export default function BuildingViewer() {
  {fitBounds ? <CameraFit bounds={fitBounds} controlsRef={orbitControlsRef} fitRevision={fitRevision} /> : null}
  <ViewportSyncBridge controlsRef={orbitControlsRef} sceneBounds={sceneBounds} />
  <OrbitControls
- key={fitTarget ? `orbit-fit-${fitTarget.x.toFixed(3)}-${fitTarget.y.toFixed(3)}-${fitTarget.z.toFixed(3)}` : "orbit-default"}
  ref={handleOrbitControlsRef}
  makeDefault
  enableDamping
  dampingFactor={0.12}
- target={fitTarget ? [fitTarget.x, fitTarget.y, fitTarget.z] : [0, 0, 0]}
  minDistance={5}
  maxDistance={3000}
  maxPolarAngle={Math.PI * 0.48}

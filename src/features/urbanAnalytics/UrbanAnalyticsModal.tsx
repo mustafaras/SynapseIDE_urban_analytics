@@ -24,8 +24,10 @@ import React, {
  useState,
 } from 'react';
 import { createPortal } from 'react-dom';
+import { Maximize2, Minimize2 } from 'lucide-react';
 import { MapExplorerButton } from '@/centerpanel/components/MapExplorerButton';
 import { type MapExplorerState, useMapExplorerStore } from '@/stores/useMapExplorerStore';
+import { usePanelBridgeStore } from '@/stores/usePanelBridgeStore';
 
 import {
  __setUrbanLibrary,
@@ -179,6 +181,65 @@ const URBAN_CMD_CSS = `
 }
 .ua-iconbtn:hover { background: var(--syn-interaction-hover); border-color: var(--syn-border-subtle); opacity: 1; }
 .ua-iconbtn:focus-visible { outline: none; box-shadow: var(--ua-focus-ring-offset); opacity: 1; }
+.ua-layout-toggle {
+ position: relative;
+ display: inline-flex;
+ align-items: center;
+ justify-content: center;
+ gap: 0;
+ height: 26px;
+ width: 26px;
+ padding: 0;
+ overflow: hidden;
+ border: 1px solid var(--syn-border-subtle);
+ border-radius: 3px;
+ background: color-mix(in srgb, var(--syn-surface-editor) 72%, transparent);
+ color: var(--syn-text-secondary);
+ cursor: pointer;
+ font-family: var(--codefont);
+ font-size: 10px;
+ font-weight: 700;
+ letter-spacing: .06em;
+ text-transform: uppercase;
+ transition: background .14s cubic-bezier(.2,.75,.25,1), border-color .14s cubic-bezier(.2,.75,.25,1), color .14s cubic-bezier(.2,.75,.25,1), transform .14s cubic-bezier(.2,.75,.25,1), box-shadow .14s cubic-bezier(.2,.75,.25,1);
+}
+.ua-layout-toggle::after {
+ content: "";
+ position: absolute;
+ inset-block: 0;
+ inline-size: 42%;
+ background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--syn-interaction-active) 20%, transparent), transparent);
+ opacity: 0;
+ transform: translateX(-120%);
+ pointer-events: none;
+}
+.ua-layout-toggle:hover {
+ transform: translateY(-1px);
+ background: color-mix(in srgb, var(--syn-interaction-active) 10%, transparent);
+ border-color: color-mix(in srgb, var(--syn-interaction-active) 42%, var(--syn-border-subtle));
+ color: var(--syn-text-default);
+}
+.ua-layout-toggle:hover::after { opacity: 1; animation: ua-layout-sweep .52s ease-out both; }
+.ua-layout-toggle.is-on {
+ background: color-mix(in srgb, var(--syn-interaction-active) 14%, transparent);
+ border-color: color-mix(in srgb, var(--syn-interaction-active) 48%, var(--syn-border-subtle));
+ color: var(--syn-text-default);
+ box-shadow: inset 0 -2px 0 var(--syn-interaction-active);
+}
+.ua-layout-toggle svg { color: var(--syn-interaction-active); flex: 0 0 auto; }
+.ua-layout-toggle:focus-visible { outline: none; box-shadow: var(--ua-focus-ring-offset); }
+@keyframes ua-layout-sweep {
+ from { transform: translateX(-120%); }
+ to { transform: translateX(160%); }
+}
+@media (prefers-reduced-motion: reduce) {
+ .ua-layout-toggle,
+ .ua-layout-toggle::after {
+  animation: none !important;
+  transition: none !important;
+  transform: none !important;
+ }
+}
 .ua-brand-shell {
  display: inline-flex;
  align-items: center;
@@ -212,6 +273,8 @@ interface UrbanCommandBarProps {
  filteredCount: number;
  searchRef: React.RefObject<HTMLInputElement>;
  onOpenMap: () => void;
+ workspaceLayoutExpanded: boolean;
+ onToggleWorkspaceLayout: () => void;
  onClose: () => void;
 }
 
@@ -221,6 +284,8 @@ function UrbanCommandBar({
  filteredCount,
  searchRef,
  onOpenMap,
+ workspaceLayoutExpanded,
+ onToggleWorkspaceLayout,
  onClose,
 }: UrbanCommandBarProps) {
  const {
@@ -404,6 +469,15 @@ function UrbanCommandBar({
  height: 42,
  flexShrink: 0,
  }}>
+ <button
+ className={`ua-layout-toggle ${workspaceLayoutExpanded ? 'is-on' : ''}`}
+ aria-label={workspaceLayoutExpanded ? 'Switch workspace to standard width' : 'Expand workspace to wide layout'}
+ aria-pressed={workspaceLayoutExpanded}
+ title={workspaceLayoutExpanded ? 'Wide layout — click to use standard width' : 'Standard layout — click to expand'}
+ onClick={onToggleWorkspaceLayout}
+ >
+ {workspaceLayoutExpanded ? <Minimize2 size={13} aria-hidden="true" /> : <Maximize2 size={13} aria-hidden="true" />}
+ </button>
  <MapExplorerButton onOpen={onOpenMap} />
  <button
  className="ua-iconbtn iconbtn--close"
@@ -465,6 +539,10 @@ export default function UrbanAnalyticsModal({ open, onClose }: UrbanAnalyticsMod
  // --- selection ---
  const selectedId = useSelectedCardId();
  const selectedCard = useUrbanStore(selectSelectedCard) as Card | null;
+ const activeCenterTab = usePanelBridgeStore((state) => state.activeTab);
+ const workspaceLayoutExpanded = usePanelBridgeStore((state) => state.workspaceLayoutExpanded);
+ const toggleWorkspaceLayoutExpanded = usePanelBridgeStore((state) => state.toggleWorkspaceLayoutExpanded);
+ const compactToolboxShell = workspaceLayoutExpanded;
 
  // --- favorites ---
  const favoritesRaw = useUrbanStore((s) => s.favorites);
@@ -843,6 +921,8 @@ export default function UrbanAnalyticsModal({ open, onClose }: UrbanAnalyticsMod
  filteredCount={filtered.length}
  searchRef={searchRef}
  onOpenMap={openMap}
+ workspaceLayoutExpanded={workspaceLayoutExpanded}
+ onToggleWorkspaceLayout={toggleWorkspaceLayoutExpanded}
  onClose={() => setOpen(false)}
  />
  {/* Status */}
@@ -856,12 +936,14 @@ export default function UrbanAnalyticsModal({ open, onClose }: UrbanAnalyticsMod
  {/* 3-column layout */}
  <section
  className="urban-shell"
+ data-center-tab={activeCenterTab}
+ data-workspace-layout={compactToolboxShell ? 'expanded' : undefined}
  style={{
  flex: '1 1 auto',
  minHeight: 0,
  position: 'relative',
- ['--left-w' as string]: '500px',
- ['--right-w' as string]: '600px',
+ ['--left-w' as string]: compactToolboxShell ? '280px' : '500px',
+ ['--right-w' as string]: compactToolboxShell ? '420px' : '600px',
  }}
  >
  {/* Left Rail */}
@@ -890,7 +972,7 @@ export default function UrbanAnalyticsModal({ open, onClose }: UrbanAnalyticsMod
 
  {/* Right Panel */}
  <aside className="rightPane" style={{ position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
- <div style={{ flex: '1 1 auto', minHeight: 0, overflow: 'auto', paddingBottom: 16 }}>
+ <div className="rightPane__content" style={{ flex: '1 1 auto', minHeight: 0, overflow: 'auto' }}>
  <ChunkLoadBoundary
  title="Right panel unavailable"
  message="The detail panel could not be loaded. Retry after the dev server reconnects, or reload the app if the issue persists."
@@ -1128,6 +1210,7 @@ const MODAL_CSS = `
  max-width: 100vw;
  overflow-x: hidden;
  height: 100%;
+ transition: grid-template-columns 180ms cubic-bezier(.2,.75,.25,1);
 }
 
 .urban-v2 .leftRail {
@@ -1161,9 +1244,43 @@ const MODAL_CSS = `
  min-width: var(--right-w);
  max-width: var(--right-w);
  width: var(--right-w);
- overflow-y: auto;
  background: var(--syn-surface-panel) !important;
  border-left: 1px solid var(--syn-border-subtle);
+}
+
+.urban-v2 .rightPane__content {
+ scrollbar-width: thin;
+ scrollbar-color: color-mix(in srgb, var(--syn-text-muted) 28%, transparent) transparent;
+}
+.urban-v2 .rightPane__content::-webkit-scrollbar {
+ width: 10px;
+}
+.urban-v2 .rightPane__content::-webkit-scrollbar-track {
+ background: transparent;
+}
+.urban-v2 .rightPane__content::-webkit-scrollbar-thumb {
+ background: color-mix(in srgb, var(--syn-text-muted) 22%, transparent);
+ border: 2px solid transparent;
+ background-clip: padding-box;
+ border-radius: 6px;
+}
+.urban-v2 .rightPane__content::-webkit-scrollbar-thumb:hover {
+ background: color-mix(in srgb, var(--syn-text-muted) 38%, transparent);
+ background-clip: padding-box;
+}
+
+.urban-v2 .urban-shell[data-workspace-layout="expanded"] .leftRail,
+.urban-v2 .urban-shell[data-workspace-layout="expanded"] .rightPane {
+ transition:
+  width 180ms cubic-bezier(.2,.75,.25,1),
+  min-width 180ms cubic-bezier(.2,.75,.25,1),
+  max-width 180ms cubic-bezier(.2,.75,.25,1);
+}
+
+.urban-v2 .urban-shell[data-workspace-layout="expanded"] .midCol {
+ box-shadow:
+  inset 1px 0 0 var(--syn-border-subtle),
+  inset -1px 0 0 var(--syn-border-subtle);
 }
 
 /* Accent line */
