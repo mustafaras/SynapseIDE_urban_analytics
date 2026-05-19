@@ -6,6 +6,7 @@ import {
   MAP_RADIUS,
   MAP_SHADOWS,
   MAP_SPACING,
+  MAP_STROKES,
   MAP_TYPOGRAPHY,
 } from "./map/mapTokens";
 
@@ -36,20 +37,19 @@ const dialogStyle: React.CSSProperties = {
   gridTemplateRows: "auto 1fr",
   overflow: "hidden",
   background: MAP_COLORS.bgPanel,
-  border: `1px solid ${MAP_COLORS.amberBorderStrong}`,
-  borderRadius: MAP_RADIUS.md,
-  boxShadow: MAP_SHADOWS.dropdown,
+  border: MAP_STROKES.hairlineStrong,
+  borderRadius: MAP_RADIUS.sm,
+  boxShadow: MAP_SHADOWS.panel,
   color: MAP_COLORS.text,
   fontFamily: MAP_TYPOGRAPHY.fontFamily,
 };
 
 const headerStyle: React.CSSProperties = {
   display: "grid",
-  gap: 14,
-  padding: MAP_SPACING.lg,
-  borderBottom: `1px solid ${MAP_COLORS.amberBorder}`,
-  background:
-    "radial-gradient(circle at top right, rgba(245,158,11,0.16), transparent 28%), linear-gradient(180deg, rgba(15,23,42,0.9), rgba(15,23,42,0.82))",
+  gap: MAP_SPACING.md,
+  padding: MAP_SPACING.md,
+  borderBottom: MAP_STROKES.hairlineSubtle,
+  background: MAP_COLORS.bgPanel,
 };
 
 const actionStripStyle: React.CSSProperties = {
@@ -61,20 +61,20 @@ const actionStripStyle: React.CSSProperties = {
 };
 
 const primaryButtonStyle: React.CSSProperties = {
-  border: 0,
+  border: `1px solid ${MAP_COLORS.focus}`,
   borderRadius: MAP_RADIUS.sm,
-  padding: "10px 14px",
+  padding: "8px 12px",
   cursor: "pointer",
   fontSize: 12,
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
-  background: "linear-gradient(90deg, rgba(245,158,11,0.94), rgba(217,119,6,0.98))",
-  color: "#111827",
+  background: MAP_COLORS.interactionSubtle,
+  color: MAP_COLORS.interaction,
 };
 
 const secondaryButtonStyle: React.CSSProperties = {
-  border: `1px solid ${MAP_COLORS.amberBorder}`,
+  border: MAP_STROKES.hairlineSubtle,
   borderRadius: MAP_RADIUS.sm,
-  padding: "10px 14px",
+  padding: "8px 12px",
   cursor: "pointer",
   fontSize: 12,
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
@@ -84,9 +84,9 @@ const secondaryButtonStyle: React.CSSProperties = {
 
 const bodyStyle: React.CSSProperties = {
   overflow: "auto",
-  padding: MAP_SPACING.lg,
+  padding: MAP_SPACING.md,
   display: "grid",
-  gap: MAP_SPACING.lg,
+  gap: MAP_SPACING.md,
 };
 
 const localFormatSectionStyle: React.CSSProperties = {
@@ -94,34 +94,30 @@ const localFormatSectionStyle: React.CSSProperties = {
   gap: 12,
 };
 
-const localFormatGridStyle: React.CSSProperties = {
+const localFormatListStyle: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-  gap: 10,
-};
-
-const localFormatCardStyle: React.CSSProperties = {
-  display: "grid",
-  gap: 6,
-  padding: 12,
+  border: MAP_STROKES.hairlineSubtle,
   borderRadius: MAP_RADIUS.sm,
-  border: `1px solid ${MAP_COLORS.amberBorder}`,
-  background: "rgba(15,23,42,0.55)",
+  overflow: "hidden",
+  background: MAP_COLORS.bg,
 };
 
-const localFormatBadgeStyle: React.CSSProperties = {
+const localFormatRowStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "minmax(6rem, 0.26fr) minmax(7rem, 0.3fr) minmax(0, 1fr)",
+  gap: MAP_SPACING.sm,
+  alignItems: "start",
+  padding: `${MAP_SPACING.sm} ${MAP_SPACING.md}`,
+  borderBottom: MAP_STROKES.hairlineSubtle,
+};
+
+const localFormatLabelStyle: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
-  justifyContent: "center",
-  width: "fit-content",
-  padding: "4px 8px",
-  borderRadius: 999,
-  border: `1px solid ${MAP_COLORS.amberBorderStrong}`,
-  background: MAP_COLORS.amberDim,
-  color: MAP_COLORS.amber,
+  color: MAP_COLORS.text,
   fontSize: 10,
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
-  letterSpacing: 0.5,
+  letterSpacing: 0,
   textTransform: "uppercase",
 };
 
@@ -179,7 +175,7 @@ export const MapDataImportHubDialog: React.FC<MapDataImportHubDialogProps> = ({
           <div>
             <div
               style={{
-                color: MAP_COLORS.amber,
+                color: MAP_COLORS.text,
                 fontFamily: MAP_TYPOGRAPHY.fontFamilyBrand,
                 fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
                 fontSize: 15,
@@ -211,7 +207,7 @@ export const MapDataImportHubDialog: React.FC<MapDataImportHubDialogProps> = ({
         <div style={bodyStyle}>
           <div style={localFormatSectionStyle}>
             <div>
-              <div style={{ color: MAP_COLORS.amber, fontSize: 12, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold, marginBottom: 6 }}>
+              <div style={{ color: MAP_COLORS.textMuted, fontSize: 12, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold, marginBottom: 6, textTransform: "uppercase" }}>
                 Local Format Matrix
               </div>
               <div style={{ color: MAP_COLORS.textSecondary, fontSize: 12, lineHeight: 1.55 }}>
@@ -219,10 +215,10 @@ export const MapDataImportHubDialog: React.FC<MapDataImportHubDialogProps> = ({
               </div>
             </div>
 
-            <div style={localFormatGridStyle}>
+            <div style={localFormatListStyle}>
               {LOCAL_FORMATS.map((format) => (
-                <div key={format.label} style={localFormatCardStyle}>
-                  <span style={localFormatBadgeStyle}>{format.label}</span>
+                <div key={format.label} style={localFormatRowStyle}>
+                  <span style={localFormatLabelStyle}>{format.label}</span>
                   <div style={{ color: MAP_COLORS.textSecondary, fontSize: 11, fontFamily: MAP_TYPOGRAPHY.fontFamilyMono }}>
                     {format.extensions}
                   </div>

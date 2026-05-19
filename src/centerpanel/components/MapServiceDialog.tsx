@@ -62,8 +62,8 @@ const dialog: React.CSSProperties = {
   gridTemplateRows: "auto auto minmax(0, 1fr)",
   background: MAP_COLORS.bgPanel,
   border: MAP_STROKES.hairlineStrong,
-  borderRadius: MAP_RADIUS.md,
-  boxShadow: MAP_SHADOWS.dropdown,
+  borderRadius: MAP_RADIUS.sm,
+  boxShadow: MAP_SHADOWS.panel,
   overflow: "hidden",
 };
 
@@ -72,7 +72,7 @@ const header: React.CSSProperties = {
   alignItems: "center",
   justifyContent: "space-between",
   gap: MAP_SPACING.md,
-  padding: `${MAP_SPACING.md} ${MAP_SPACING.lg}`,
+  padding: MAP_SPACING.md,
   borderBottom: MAP_STROKES.hairlineSubtle,
 };
 
@@ -107,24 +107,24 @@ const tabs: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: MAP_SPACING.xs,
-  padding: `${MAP_SPACING.sm} ${MAP_SPACING.lg}`,
+  padding: `${MAP_SPACING.sm} ${MAP_SPACING.md}`,
   borderBottom: MAP_STROKES.hairlineSubtle,
   overflowX: "auto",
 };
 
 const tabButton = (active: boolean): React.CSSProperties => ({
   ...mapStyles.btn,
-  borderColor: active ? MAP_COLORS.amberBorderStrong : MAP_COLORS.amberBorder,
-  background: active ? MAP_COLORS.amberDim : MAP_COLORS.transparent,
-  color: active ? MAP_COLORS.amber : MAP_COLORS.textSecondary,
+  borderColor: active ? MAP_COLORS.focus : MAP_COLORS.hairlineSubtle,
+  background: active ? MAP_COLORS.selectedSubtle : MAP_COLORS.transparent,
+  color: active ? MAP_COLORS.interaction : MAP_COLORS.textSecondary,
   whiteSpace: "nowrap",
 });
 
 const body: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit, minmax(min(280px, 100%), 1fr))",
-  gap: MAP_SPACING.lg,
-  padding: MAP_SPACING.lg,
+  gap: MAP_SPACING.md,
+  padding: MAP_SPACING.md,
   overflow: "auto",
 };
 
@@ -173,7 +173,7 @@ const actionRow: React.CSSProperties = {
 const primaryButton: React.CSSProperties = {
   ...mapStyles.btnActive,
   minHeight: "2rem",
-  borderColor: MAP_COLORS.amberBorderStrong,
+  borderColor: MAP_COLORS.focus,
 };
 
 const secondaryButton: React.CSSProperties = {
@@ -188,13 +188,13 @@ const layerList: React.CSSProperties = {
   overflowY: "auto",
 };
 
-const layerCard = (selected = false): React.CSSProperties => ({
+const layerRow = (selected = false): React.CSSProperties => ({
   display: "grid",
   gap: MAP_SPACING.xs,
   padding: MAP_SPACING.sm,
   borderRadius: MAP_RADIUS.sm,
-  border: selected ? `1px solid ${MAP_COLORS.amberBorderStrong}` : MAP_STROKES.hairlineSubtle,
-  background: selected ? MAP_COLORS.amberDim : "rgba(255,255,255,0.025)",
+  border: selected ? `1px solid ${MAP_COLORS.focus}` : MAP_STROKES.hairlineSubtle,
+  background: selected ? MAP_COLORS.selectedSubtle : MAP_COLORS.bg,
   color: MAP_COLORS.text,
   textAlign: "left",
   cursor: "pointer",
@@ -211,9 +211,9 @@ const statusPanel: React.CSSProperties = {
   gap: MAP_SPACING.sm,
   alignContent: "start",
   padding: MAP_SPACING.md,
-  borderRadius: MAP_RADIUS.md,
+  borderRadius: MAP_RADIUS.sm,
   border: MAP_STROKES.hairlineSubtle,
-  background: "rgba(255,255,255,0.025)",
+  background: MAP_COLORS.bg,
 };
 
 const errorText: React.CSSProperties = {
@@ -547,11 +547,11 @@ export const MapServiceDialog: React.FC<MapServiceDialogProps> = ({
           <button
             key={key}
             type="button"
-            style={layerCard(isSelected)}
+            style={layerRow(isSelected)}
             onClick={() => onSelect(key)}
             aria-pressed={isSelected}
           >
-            <strong style={{ color: isSelected ? MAP_COLORS.amber : MAP_COLORS.text }}>{layer.title || layer.name}</strong>
+            <strong style={{ color: isSelected ? MAP_COLORS.interaction : MAP_COLORS.text }}>{layer.title || layer.name}</strong>
             <span style={metaLine}>{layer.name}</span>
             {layer.abstract ? <span style={metaLine}>{layer.abstract.slice(0, 180)}</span> : null}
             <span style={metaLine}>CRS: {layer.availableCrs.length ? layer.availableCrs.join(", ") : "not advertised"}</span>
@@ -571,7 +571,7 @@ export const MapServiceDialog: React.FC<MapServiceDialogProps> = ({
             <div style={section}>
               <label style={label} htmlFor="external-wms-url">WMS / WMTS capabilities URL</label>
               <input id="external-wms-url" style={input} value={wmsUrl} onChange={(event) => setWmsUrl(event.target.value)} placeholder="https://example.org/geoserver/wms" />
-              {serviceUrlWarnings(wmsUrl).map((warning) => <div key={warning} style={{ ...metaLine, color: MAP_COLORS.amber }}>{warning}</div>)}
+              {serviceUrlWarnings(wmsUrl).map((warning) => <div key={warning} style={{ ...metaLine, color: MAP_COLORS.caveatText }}>{warning}</div>)}
               <div style={actionRow}>
                 <button type="button" style={primaryButton} onClick={handleConnectWms} disabled={!wmsUrl.trim() || Boolean(busyLabel)}>Fetch capabilities</button>
                 <button type="button" style={secondaryButton} onClick={handleAddWmsLayers} disabled={selectedWmsInfos.length === 0}>Add selected rasters ({selectedWmsInfos.length})</button>
@@ -597,7 +597,7 @@ export const MapServiceDialog: React.FC<MapServiceDialogProps> = ({
             <div style={section}>
               <label style={label} htmlFor="external-wfs-url">WFS capabilities URL</label>
               <input id="external-wfs-url" style={input} value={wfsUrl} onChange={(event) => setWfsUrl(event.target.value)} placeholder="https://example.org/geoserver/wfs" />
-              {serviceUrlWarnings(wfsUrl).map((warning) => <div key={warning} style={{ ...metaLine, color: MAP_COLORS.amber }}>{warning}</div>)}
+              {serviceUrlWarnings(wfsUrl).map((warning) => <div key={warning} style={{ ...metaLine, color: MAP_COLORS.caveatText }}>{warning}</div>)}
               <div style={actionRow}>
                 <button type="button" style={primaryButton} onClick={handleConnectWfs} disabled={!wfsUrl.trim() || Boolean(busyLabel)}>Fetch capabilities</button>
                 <button type="button" style={secondaryButton} onClick={handleAddWfsLayer} disabled={!selectedWfsInfo || !bounds}>Fetch selected features</button>
@@ -618,7 +618,7 @@ export const MapServiceDialog: React.FC<MapServiceDialogProps> = ({
               <span style={label}>Common presets</span>
               <div style={layerList}>
                 {XYZ_PRESETS.map((preset) => (
-                  <button key={preset.id} type="button" style={layerCard(false)} onClick={() => handleAddXyz(preset)}>
+                  <button key={preset.id} type="button" style={layerRow(false)} onClick={() => handleAddXyz(preset)}>
                     <strong>{preset.name}</strong>
                     <span style={metaLine}>{preset.urlTemplate}</span>
                     <span style={metaLine}>{preset.attribution}</span>
@@ -631,7 +631,7 @@ export const MapServiceDialog: React.FC<MapServiceDialogProps> = ({
               <input id="external-xyz-name" style={input} value={xyzName} onChange={(event) => setXyzName(event.target.value)} />
               <label style={label} htmlFor="external-xyz-url">URL template</label>
               <input id="external-xyz-url" style={input} value={xyzUrl} onChange={(event) => setXyzUrl(event.target.value)} placeholder="https://example.com/{z}/{x}/{y}.png" />
-              {serviceUrlWarnings(xyzUrl).map((warning) => <div key={warning} style={{ ...metaLine, color: MAP_COLORS.amber }}>{warning}</div>)}
+              {serviceUrlWarnings(xyzUrl).map((warning) => <div key={warning} style={{ ...metaLine, color: MAP_COLORS.caveatText }}>{warning}</div>)}
               <button type="button" style={primaryButton} onClick={() => handleAddXyz()} disabled={!xyzName.trim() || !xyzUrl.trim()}>Add custom XYZ</button>
             </div>
           </div>
@@ -664,7 +664,7 @@ export const MapServiceDialog: React.FC<MapServiceDialogProps> = ({
             <div style={section}>
               <label style={label} htmlFor="external-cityjson-url">Remote CityJSON URL</label>
               <input id="external-cityjson-url" style={input} value={cityJsonUrl} onChange={(event) => setCityJsonUrl(event.target.value)} placeholder="https://example.org/city-model.cityjson" />
-              {serviceUrlWarnings(cityJsonUrl).map((warning) => <div key={warning} style={{ ...metaLine, color: MAP_COLORS.amber }}>{warning}</div>)}
+              {serviceUrlWarnings(cityJsonUrl).map((warning) => <div key={warning} style={{ ...metaLine, color: MAP_COLORS.caveatText }}>{warning}</div>)}
               <button type="button" style={primaryButton} onClick={handleLoadCityJson} disabled={!cityJsonUrl.trim() || Boolean(busyLabel)}>Load CityJSON URL</button>
             </div>
           </div>
@@ -682,7 +682,7 @@ export const MapServiceDialog: React.FC<MapServiceDialogProps> = ({
               {externalLayers.length === 0 ? (
                 <div style={metaLine}>No external layers are connected yet. Add WMS, WFS, XYZ, OSM, or CityJSON sources from the tabs above.</div>
               ) : externalLayers.map((layer) => (
-                <div key={layer.id} style={layerCard(false)}>
+                <div key={layer.id} style={layerRow(false)}>
                   <strong>{layer.name}</strong>
                   <span style={metaLine}>{layer.provenance?.label ?? "External source"}</span>
                   <span style={metaLine}>Status: active · {layer.type} · {layer.metadata?.featureCount ?? 0} features</span>
@@ -707,12 +707,12 @@ export const MapServiceDialog: React.FC<MapServiceDialogProps> = ({
   const renderStatusPanel = (panelTitle: string, description: string) => (
     <aside style={statusPanel} aria-label={`${panelTitle} status`}>
       <div style={titleRow}>
-        <DatabaseZap size={15} color={MAP_COLORS.amber} />
-        <strong style={{ color: MAP_COLORS.amber, fontSize: MAP_TYPOGRAPHY.fontSize.sm }}>{panelTitle}</strong>
+        <DatabaseZap size={15} color={MAP_COLORS.interaction} />
+        <strong style={{ color: MAP_COLORS.text, fontSize: MAP_TYPOGRAPHY.fontSize.sm }}>{panelTitle}</strong>
       </div>
       <div style={metaLine}>{description}</div>
       <div style={metaLine}>Timeout policy: 10 seconds for capabilities and service metadata; Overpass runs as a cancelable background task.</div>
-      {busyLabel ? <div style={{ ...metaLine, color: MAP_COLORS.amber }}>Working: {busyLabel}</div> : null}
+      {busyLabel ? <div style={{ ...metaLine, color: MAP_COLORS.interaction }}>Working: {busyLabel}</div> : null}
       {error ? <div style={errorText}>{error}</div> : null}
     </aside>
   );
@@ -722,7 +722,7 @@ export const MapServiceDialog: React.FC<MapServiceDialogProps> = ({
       <section style={dialog} role="dialog" aria-modal="true" aria-label="External map services" data-testid="map-service-dialog">
         <header style={header}>
           <div style={titleRow}>
-            <Globe2 size={18} color={MAP_COLORS.amber} />
+            <Globe2 size={18} color={MAP_COLORS.interaction} />
             <div>
               <div style={title}>External Map Services</div>
               <div style={subtitle}>WMS, WMTS, WFS, XYZ tiles, OSM buildings, and remote CityJSON sources.</div>

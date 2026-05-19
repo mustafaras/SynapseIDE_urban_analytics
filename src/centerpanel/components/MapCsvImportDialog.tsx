@@ -5,6 +5,7 @@ import {
   MAP_RADIUS,
   MAP_SHADOWS,
   MAP_SPACING,
+  MAP_STROKES,
   MAP_TYPOGRAPHY,
 } from "./map/mapTokens";
 
@@ -37,22 +38,25 @@ const dialogStyle: React.CSSProperties = {
   display: "flex",
   flexDirection: "column",
   background: MAP_COLORS.bgPanel,
-  border: `1px solid ${MAP_COLORS.amberBorderStrong}`,
-  borderRadius: MAP_RADIUS.md,
-  boxShadow: MAP_SHADOWS.dropdown,
+  border: MAP_STROKES.hairlineStrong,
+  borderRadius: MAP_RADIUS.sm,
+  boxShadow: MAP_SHADOWS.panel,
   color: MAP_COLORS.text,
   fontFamily: MAP_TYPOGRAPHY.fontFamily,
 };
 
 const sectionStyle: React.CSSProperties = {
-  padding: MAP_SPACING.lg,
+  padding: MAP_SPACING.md,
 };
 
 const labelStyle: React.CSSProperties = {
   display: "block",
-  color: MAP_COLORS.textSecondary,
+  color: MAP_COLORS.textMuted,
   fontSize: 11,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+  letterSpacing: 0,
   marginBottom: 4,
+  textTransform: "uppercase",
 };
 
 const inputStyle: React.CSSProperties = {
@@ -60,7 +64,7 @@ const inputStyle: React.CSSProperties = {
   padding: `7px ${MAP_SPACING.sm}`,
   background: MAP_COLORS.bg,
   color: MAP_COLORS.text,
-  border: `1px solid ${MAP_COLORS.amberBorder}`,
+  border: MAP_STROKES.hairlineSubtle,
   borderRadius: MAP_RADIUS.sm,
   boxSizing: "border-box",
   fontSize: 12,
@@ -69,7 +73,7 @@ const inputStyle: React.CSSProperties = {
 const buttonStyle: React.CSSProperties = {
   padding: "6px 14px",
   borderRadius: MAP_RADIUS.sm,
-  border: `1px solid ${MAP_COLORS.amberBorder}`,
+  border: MAP_STROKES.hairlineSubtle,
   background: "transparent",
   color: MAP_COLORS.textSecondary,
   cursor: "pointer",
@@ -78,9 +82,9 @@ const buttonStyle: React.CSSProperties = {
 
 const primaryButtonStyle: React.CSSProperties = {
   ...buttonStyle,
-  background: MAP_COLORS.amberDim,
-  borderColor: MAP_COLORS.amberBorderStrong,
-  color: MAP_COLORS.amber,
+  background: MAP_COLORS.interactionSubtle,
+  borderColor: MAP_COLORS.focus,
+  color: MAP_COLORS.interaction,
 };
 
 export const MapCsvImportDialog: React.FC<MapCsvImportDialogProps> = ({
@@ -113,12 +117,12 @@ export const MapCsvImportDialog: React.FC<MapCsvImportDialogProps> = ({
           style={{
             ...sectionStyle,
             paddingBottom: MAP_SPACING.md,
-            borderBottom: `1px solid ${MAP_COLORS.amberBorder}`,
+            borderBottom: MAP_STROKES.hairlineSubtle,
           }}
         >
           <div
             style={{
-              color: MAP_COLORS.amber,
+              color: MAP_COLORS.text,
               fontFamily: MAP_TYPOGRAPHY.fontFamilyBrand,
               fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
               fontSize: 14,
@@ -140,7 +144,7 @@ export const MapCsvImportDialog: React.FC<MapCsvImportDialogProps> = ({
             display: "grid",
             gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
             gap: MAP_SPACING.md,
-            borderBottom: `1px solid ${MAP_COLORS.amberBorder}`,
+            borderBottom: MAP_STROKES.hairlineSubtle,
           }}
         >
           <label style={labelStyle}>
@@ -189,10 +193,11 @@ export const MapCsvImportDialog: React.FC<MapCsvImportDialogProps> = ({
         <div style={{ ...sectionStyle, overflow: "auto", flex: 1 }}>
           <div
             style={{
-              color: MAP_COLORS.textSecondary,
+              color: MAP_COLORS.textMuted,
               fontSize: 12,
               fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
               marginBottom: 10,
+              textTransform: "uppercase",
             }}
           >
             Preview (first 5 rows)
@@ -200,7 +205,7 @@ export const MapCsvImportDialog: React.FC<MapCsvImportDialogProps> = ({
 
           <div
             style={{
-              border: `1px solid ${MAP_COLORS.amberBorder}`,
+              border: MAP_STROKES.hairlineSubtle,
               borderRadius: MAP_RADIUS.sm,
               overflow: "hidden",
               background: MAP_COLORS.bg,
@@ -214,15 +219,16 @@ export const MapCsvImportDialog: React.FC<MapCsvImportDialogProps> = ({
               }}
             >
               <thead>
-                <tr style={{ background: "rgba(245,158,11,0.08)" }}>
+                <tr style={{ background: MAP_COLORS.bgHeader }}>
                   <th
                     style={{
                       padding: "8px 10px",
                       textAlign: "left",
-                      color: MAP_COLORS.amber,
-                      borderBottom: `1px solid ${MAP_COLORS.amberBorder}`,
+                      color: MAP_COLORS.textMuted,
+                      borderBottom: MAP_STROKES.hairlineSubtle,
                       position: "sticky",
                       top: 0,
+                      textTransform: "uppercase",
                     }}
                   >
                     Row
@@ -233,11 +239,12 @@ export const MapCsvImportDialog: React.FC<MapCsvImportDialogProps> = ({
                       style={{
                         padding: "8px 10px",
                         textAlign: "left",
-                        color: MAP_COLORS.amber,
-                        borderBottom: `1px solid ${MAP_COLORS.amberBorder}`,
+                        color: MAP_COLORS.textMuted,
+                        borderBottom: MAP_STROKES.hairlineSubtle,
                         minWidth: 120,
                         position: "sticky",
                         top: 0,
+                        textTransform: "uppercase",
                       }}
                     >
                       {header}
@@ -252,7 +259,7 @@ export const MapCsvImportDialog: React.FC<MapCsvImportDialogProps> = ({
                       style={{
                         padding: "8px 10px",
                         color: MAP_COLORS.textMuted,
-                        borderBottom: `1px solid ${MAP_COLORS.amberBorder}`,
+                        borderBottom: MAP_STROKES.hairlineSubtle,
                         fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
                       }}
                     >
@@ -264,7 +271,7 @@ export const MapCsvImportDialog: React.FC<MapCsvImportDialogProps> = ({
                         style={{
                           padding: "8px 10px",
                           color: MAP_COLORS.textSecondary,
-                          borderBottom: `1px solid ${MAP_COLORS.amberBorder}`,
+                          borderBottom: MAP_STROKES.hairlineSubtle,
                           verticalAlign: "top",
                         }}
                       >
@@ -288,7 +295,7 @@ export const MapCsvImportDialog: React.FC<MapCsvImportDialogProps> = ({
           style={{
             ...sectionStyle,
             paddingTop: MAP_SPACING.md,
-            borderTop: `1px solid ${MAP_COLORS.amberBorder}`,
+            borderTop: MAP_STROKES.hairlineSubtle,
             display: "flex",
             justifyContent: "flex-end",
             gap: 8,
