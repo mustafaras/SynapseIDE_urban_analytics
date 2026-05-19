@@ -9,11 +9,11 @@ This ledger is the execution source of truth for the color-system operating pack
 - Operating pack status: reprioritized for three-part amber-removal and premium workbench restyle execution on 2026-05-15; Map Explorer Part 3 prompt ladder expanded on 2026-05-18 after code-reading the completed Center Panel design language and current Map Explorer amber/chrome dependencies.
 - Historical implementation status: old broad Prompts 00-17 completed on 2026-05-15; old pending Prompts 18-37 are superseded by active prompts A01-A10, C01-C10, and B01-B15.
 - Active prompt count: 35 prompts: `A01` through `A10`, `C01` through `C10`, and `B01` through `B15`.
-- Current prompt: Part 1 (Urban Analytics) closed; Part 2 (Center Panel Workbench, C01-C10) underway; Prompts C01-C08 completed. Prompts B01-B07 were completed on 2026-05-18 as user-directed targeted Map Explorer deviations before C09/C10 close; B01 was documentation-only, and B02-B07 changed product code.
-- Next prompt: Normal operating-pack order remains Prompt C09 - Cross-Cutting Surfaces — Urban Context Strip, Outline Nav, Background Tasks, Engine Capabilities, Narrative, Object Detector. If continuing the user-selected Map Explorer track, the next Map Explorer prompt is B08 - Workflow Drawer, NL Query, Review Timeline, Cartography Recommendations, And Report Handoff Drawer, but product-code implementation remains gated by the Part 2 close unless the user explicitly continues the deviation.
+- Current prompt: Part 1 (Urban Analytics) closed; Part 2 (Center Panel Workbench, C01-C10) underway; Prompts C01-C08 completed. Prompts B01-B09 were completed on 2026-05-18/2026-05-19 as user-directed targeted Map Explorer deviations before C09/C10 close; B01 was documentation-only, and B02-B09 changed product code.
+- Next prompt: Normal operating-pack order remains Prompt C09 - Cross-Cutting Surfaces — Urban Context Strip, Outline Nav, Background Tasks, Engine Capabilities, Narrative, Object Detector. If continuing the user-selected Map Explorer track, the next Map Explorer prompt is B10 - Export, Publication, Composition, Snapshot Preview, And Generated Output Chrome, but product-code implementation remains gated by the Part 2 close unless the user explicitly continues the deviation.
 - Part 1 status: COMPLETE. All 10 active prompts (A01-A10) completed. Urban Analytics modal is amber-free except for documented analytical/scientific retentions.
 - Part 2 status: UNDERWAY. New 10-prompt ladder (C01-C10) covers Center Panel shell + all eight tab interiors + ambient header animations preservation; runs before the Map Explorer track.
-- Part 3 status: BLOCKED on C10 for normal product-code implementation. Map Explorer prompts are Part 3 and now run as B01-B15; B01 dependsOn C10 in the manifest, but B01-B07 were completed early by explicit user direction.
+- Part 3 status: BLOCKED on C10 for normal product-code implementation. Map Explorer prompts are Part 3 and now run as B01-B15; B01 dependsOn C10 in the manifest, but B01-B09 were completed early by explicit user direction.
 - Archive context: do not move `DEVELOPMENT_PLANS/` from the current local branch; branch reconciliation is separate.
 - Active migration principle: Urban Analytics modal first, Center Panel Workbench second, Map Explorer third; no amber UI/default styling, no unnecessary card frames, no filled button plates.
 
@@ -63,8 +63,8 @@ This ledger is the execution source of truth for the color-system operating pack
 | B05 | Toolbar, Search, Pins, Bookmarks, Context Menus, And Map Explorer Entry Button | completed | B04 | Completed 2026-05-18 as user-directed targeted deviation before C09/C10 close; toolbar/search/pin/bookmark/context/launcher chrome migrated to compact unfilled non-amber interactions and target scans are clean. |
 | B06 | Layer Manager, Layer Panel, Registry Rows, Badges, Popovers, And Sync States | completed | B05 | Completed 2026-05-18 as user-directed targeted deviation before C09/C10 close; layer rows, badges, menus, base-layer states, slider accent, and sync defaults migrated to compact non-amber workbench styling. |
 | B07 | Scientific QA, Readiness, Evidence, And Status Semantics | completed | B06 | Completed 2026-05-18 as user-directed targeted deviation before C09/C10 close; QA/readiness/evidence chrome and annotation default palette are non-amber while scientific status/domain values remain unchanged. |
-| B08 | Workflow Drawer, NL Query, Review Timeline, Cartography Recommendations, And Report Handoff Drawer | pending | B07 | Remove amber from high-risk workflow/query/review/cartography/report drawer surfaces. |
-| B09 | Import, CSV, Columnar, External Service, And Dataset Dialogs | pending | B08 | Remove amber and card-heavy styling from import, CSV, columnar, service, and dataset dialogs. |
+| B08 | Workflow Drawer, NL Query, Review Timeline, Cartography Recommendations, And Report Handoff Drawer | completed | B07 | Completed 2026-05-19 as user-directed targeted deviation; workflow/NL/review/report/cartography drawer chrome migrated to non-amber inspector styling, readiness/caveat semantics remain explicit, and target scans/tests pass. |
+| B09 | Import, CSV, Columnar, External Service, And Dataset Dialogs | completed | B08 | Completed 2026-05-19 as user-directed targeted deviation; import hub, CSV mapping, columnar schema preview, and external-service dialogs migrated to compact non-amber workbench styling while parsing/service behavior stayed intact. |
 | B10 | Export, Publication, Composition, Snapshot Preview, And Generated Output Chrome | pending | B09 | Remove amber from export/publication UI and generated preview/output chrome. |
 | B11 | Drawing, Measurement, Annotation, Temporal, VoxCity Overlay, And Store Defaults | pending | B10 | Remove amber from interactive map tools and visible map-store defaults. |
 | B12 | Visualization Panels, Symbology Utilities, Demo Packs, And Renderer Defaults | pending | B11 | Remove amber default/demo/generated renderer colors while documenting analytical data-palette exceptions. |
@@ -838,6 +838,198 @@ This ledger is the execution source of truth for the color-system operating pack
   - Used interaction blue for the default annotation swatch because annotations are visible map defaults and should not reintroduce amber.
 - Next recommended prompt in normal order: Prompt C09 - Cross-Cutting Surfaces — Urban Context Strip, Outline Nav, Background Tasks, Engine Capabilities, Narrative, Object Detector.
 - Next Map Explorer prompt if the user continues the targeted Part 3 track: Prompt B08 - Workflow Drawer, NL Query, Review Timeline, Cartography Recommendations, And Report Handoff Drawer.
+- Ledger updated: yes.
+
+### Prompt B08 - Workflow Drawer, NL Query, Review Timeline, Cartography Recommendations, And Report Handoff Drawer
+
+- Date: 2026-05-19.
+- Agent: Codex.
+- Status: completed.
+- Trigger: user selected the B08 prompt block and requested "go apply be perfect and premium".
+- Execution mode: user-directed targeted deviation. The manifest still gates normal Part 3 product-code implementation behind C10, and C09/C10 remain pending in the normal operating-pack order; this B08 pass was completed because the user explicitly continued the Map Explorer track.
+- Started from:
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` / Prompt B08
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_PROMPT_MANIFEST.json`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_AGENT_PROTOCOL.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_TOKEN_REFERENCE.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_UNIT_MATRIX.md`
+- Files inspected:
+  - `src/centerpanel/components/map/MapWorkflowDrawer.tsx`
+  - `src/centerpanel/components/map/MapNLQueryPanel.tsx`
+  - `src/centerpanel/components/map/MapReviewTimelinePanel.tsx`
+  - `src/centerpanel/components/map/MapReportHandoffDrawer.tsx`
+  - `src/centerpanel/components/map/CartographyRecommendationList.tsx`
+  - `src/centerpanel/components/map/mapTokens.ts`
+  - `src/services/map/MapWorkflowService.ts`
+  - `src/services/map/MapNLQueryBuilder.ts`
+  - `src/services/map/MapReviewSessionService.ts`
+  - `src/services/map/MapReportHandoffService.ts`
+  - `src/services/map/MapCartographyAdvisor.ts`
+  - Targeted B08 tests under `src/services/map/__tests__/` and `src/centerpanel/components/map/__tests__/`.
+- Files changed:
+  - `src/centerpanel/components/map/MapWorkflowDrawer.tsx`
+  - `src/centerpanel/components/map/MapNLQueryPanel.tsx`
+  - `src/centerpanel/components/map/MapReviewTimelinePanel.tsx`
+  - `src/centerpanel/components/map/MapReportHandoffDrawer.tsx`
+  - `src/centerpanel/components/map/CartographyRecommendationList.tsx`
+  - `src/services/map/MapCartographyAdvisor.ts`
+  - `src/services/map/MapNLQueryBuilder.ts`
+  - `src/services/map/__tests__/MapNLQueryBuilder.test.ts`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_PROMPT_MANIFEST.json`
+- Product behavior changes:
+  - Active workflow tiles, step pills, and NL query segmented controls now use workbench interaction blue/selected-subtle affordances instead of amber aliases.
+  - Workflow blockers and NL query missing required fields/blockers now use explicit error status text while warnings/caveats remain text-backed and non-valid.
+  - Review timeline header title moved to neutral text; event lifecycle/status logic is unchanged.
+  - Report handoff drawer title, option rows, selects, readiness panel, footer buttons, and primary insert action now use neutral/interaction tokens instead of amber fill or amber text.
+  - Report handoff readiness badge styling defensively distinguishes `ready`, `ready-with-caveats`, `needs-review`, `blocked`, `stale`, and unknown statuses with text plus non-amber status color treatment.
+  - Cartography recommendations now render as dense inspector rows with neutral suggested-fix separators, compact severity labels, and blue interaction links/actions instead of amber recommendation cards.
+  - NL Query result-layer default output color moved from amber to workbench blue through `MapNLQueryBuilder` so this B08 execution path no longer receives the broader `MapEngineAdapter` amber highlight default.
+  - Cartography advisor visible fallback/preview colors for empty legends, dense point style fallback, heatmap parameter intensity, and missing heatmap legend defaults moved to non-amber blue/teal values.
+- Command and state behavior preserved:
+  - Workflow preview/apply/save-report/script actions, draft state, drawer sizing, resize aria, and report generation stayed intact.
+  - NL query preview generation, explicit accept/reject gate, SQL safety, schema field availability, preview execution, audit details, and follow-up suggestions stayed intact.
+  - Review event filtering, acknowledgement, clear-session, JSON/Markdown export, and lifecycle status values stayed intact.
+  - Cartography recommendation generation, proposal application, undo/dismiss/show-details callbacks, and broader thematic ramp selection remain intact.
+  - Report draft generation, evidence registration, PDF/download/insert actions, snapshot refresh, options, citations, caveats, reproducibility, and aria naming stayed intact.
+- State truthfulness notes:
+  - Blocked/unsafe/missing prerequisites are still explicit in text and are not styled as valid/ready.
+  - Caveats, warnings, stale, unknown, and needs-review states remain distinct from ready/valid states.
+  - Demo/sample/readiness domain strings were not renamed or softened.
+- Hard-coded colors removed:
+  - B08 target files no longer contain amber hex literals, amber RGB literals, `--syn-status-warning`, or `MAP_COLORS.amber*` active-scope consumption.
+  - `MapNLQueryBuilder` no longer returns `#F59E0B` for the B08 NL-query result layer path.
+  - `MapCartographyAdvisor` no longer uses `#F59E0B` or the amber/orange heatmap fallback palette for B08-visible preview defaults.
+- Hard-coded colors retained with reason:
+  - Non-amber concrete map-output colors such as `#3794FF`, `#38BDF8`, and teal/blue heatmap preview colors are retained because map style payloads require concrete color strings rather than CSS tokens.
+  - Broader data-ramp decisions such as `YlOrRd` remain B13/B12-owned service/data-palette scope unless explicitly requested; B08 only changed visible local fallback/default preview colors.
+- Amber scan before:
+  - B08 target scan found active amber aliases/literals in workflow active pills/tiles, NL active segmented controls, review title, report title/buttons/readiness badge, cartography recommendation styling/link, and cartography/NL-query visible defaults.
+- Amber scan after:
+  - B08 target Standard Amber Scan: 0 matching lines (`rg` returned no matches).
+- Heavy-chrome scan after:
+  - B08 target Heavy-Chrome Scan reviewed. Remaining matches are expected domain/status/recommendation terms, non-amber blue/green/red concrete map/status colors, and service type names; no actionable amber fill, amber left rail, amber readiness badge, or decorative drawer chrome remains in B08 scope.
+- Card frames removed or retained with reason:
+  - Recommendation suggested-fix callouts were flattened from amber mini-card styling to neutral separator rows.
+  - Report readiness remains a bounded status group because it is an explicit live status region; styling is neutral/compact.
+  - Snapshot preview remains framed because it is a live preview/image containment surface.
+- Button fills removed or retained with reason:
+  - Report and cartography primary actions now use ghost/hairline interaction-blue treatment.
+  - Existing shared side-panel primary buttons remain outside B08-specific behavior where inherited from shared map styles.
+- Accessibility and contrast notes:
+  - Existing aria labels, dialog labels, live status IDs, resize handles, accept/reject labels, and report readiness descriptions were preserved.
+  - Status styling is accompanied by explicit text counts, labels, blockers, warnings, and caveats.
+- Scientific/GIS integrity notes:
+  - No CRS, evidence provenance, data-fitness, QA, method validity, workflow geometry, or report evidence contract changed.
+  - No demo/synthetic output was made to look publication-ready.
+- Cross-module contract changes: None.
+- Validation commands:
+  - `npm ci`
+  - `npm run typecheck`
+  - `npm run test -- src/services/map/__tests__/MapWorkflowService.test.ts src/services/map/__tests__/MapNLQueryBuilder.test.ts src/services/map/__tests__/MapReviewSessionService.test.ts src/services/map/__tests__/MapReportHandoffService.test.ts src/services/map/__tests__/MapCartographyAdvisor.test.ts src/centerpanel/components/map/__tests__/MapReportHandoffDrawer.test.tsx src/centerpanel/components/map/__tests__/MapNLQueryPanel.test.tsx`
+  - B08 target Map Explorer Standard Amber Scan with `rg`.
+  - B08 target Map Explorer Heavy-Chrome Scan with `rg`.
+- Validation results:
+  - `npm ci`: passed; installed local dependencies from lockfile because the checkout initially had no `node_modules` and `vitest` was unavailable to `npm run test`.
+  - Typecheck: passed.
+  - Targeted B08 tests: passed, 31 tests across 7 files.
+  - B08 target Standard Amber Scan: 0.
+  - B08 target Heavy-Chrome Scan: reviewed with no actionable B08 amber/heavy-chrome regressions.
+- Known risks:
+  - Normal operating-pack order still has C09/C10 pending; B08 was completed only because the user explicitly continued the targeted Map Explorer track.
+  - Broad Map Explorer scans still include downstream B09-B15 owners and B02 deprecated `amber*` compatibility names outside this prompt scope.
+  - `MapEngineAdapter` still contains broader amber generated-output defaults owned by B13; the B08 NL-query execution path now locally overrides the result-layer color.
+- Blockers: none for B08.
+- Decisions made:
+  - Kept service contracts and domain status values unchanged; only visible local style/default payloads were changed.
+  - Used error styling for blockers/missing fields and blue/info styling for caveats/needs-review to avoid implying readiness.
+  - Did not broadly rewrite data-ramp recommendations because the prompt reserves broader generated colors for B13/B12.
+- Next recommended prompt in normal order: Prompt C09 - Cross-Cutting Surfaces — Urban Context Strip, Outline Nav, Background Tasks, Engine Capabilities, Narrative, Object Detector.
+- Next Map Explorer prompt if the user continues the targeted Part 3 track: Prompt B09 - Import, CSV, Columnar, External Service, And Dataset Dialogs.
+- Ledger updated: yes.
+
+### Prompt B09 - Import, CSV, Columnar, External Service, And Dataset Dialogs
+
+- Date: 2026-05-19.
+- Agent: Codex.
+- Status: completed.
+- Trigger: user selected the B09 prompt block and requested "go apply be perfect".
+- Execution mode: user-directed targeted deviation. C09/C10 remain pending in the normal operating-pack order; this B09 pass was completed because the user explicitly continued the Map Explorer track.
+- Started from:
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` / Prompt B09
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_PROMPT_MANIFEST.json`
+  - Existing B08-completed Map Explorer workbench token style.
+- Files inspected:
+  - `src/centerpanel/components/MapDataImportHubDialog.tsx`
+  - `src/centerpanel/components/MapCsvImportDialog.tsx`
+  - `src/centerpanel/components/MapColumnarImportDialog.tsx`
+  - `src/centerpanel/components/MapServiceDialog.tsx`
+  - `src/services/map/MapDataImporter.ts`
+  - `src/services/map/ExternalServiceConnector.ts`
+  - `src/services/map/__tests__/MapDataIO.test.ts`
+  - `src/services/map/__tests__/ExternalServiceConnector.test.ts`
+  - `src/centerpanel/components/__tests__/MapServiceDialog.test.tsx`
+  - Existing import E2E specs used for smoke context.
+- Files changed:
+  - `src/centerpanel/components/MapDataImportHubDialog.tsx`
+  - `src/centerpanel/components/MapCsvImportDialog.tsx`
+  - `src/centerpanel/components/MapColumnarImportDialog.tsx`
+  - `src/centerpanel/components/MapServiceDialog.tsx`
+  - `src/services/map/ExternalServiceConnector.ts`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_PROMPT_MANIFEST.json`
+- Product behavior changes:
+  - Import hub shell/header/body/footer now uses compact neutral panel chrome, 3-4px-radius hairlines, ghost secondary buttons, and restrained blue primary browse action.
+  - Local file format cards were replaced with dense row/list sections so the hub no longer creates nested card stacks.
+  - CSV coordinate mapping dialog now uses muted uppercase labels, neutral workbench inputs, hairline form sections, and sticky neutral preview table headers without amber fills or focus rings.
+  - Columnar schema preview dialog now uses compact summary cells, neutral table rhythm, explicit non-amber quality/readiness/status labels, and token-backed status backgrounds.
+  - External service dialog tabs, layer rows, warning copy, busy status, manager rows, and add actions now use neutral/blue workbench styling instead of amber selected rows, warning panels, or decorative cards.
+  - The local visible OSM buildings default in `ExternalServiceConnector` moved from amber/orange building colors to blue/teal/violet/pink values for this B09 service-dialog path.
+- Command and state behavior preserved:
+  - File browse, curated dataset loading, CSV header/coordinate detection, schema preview, import readiness text, quality scoring, worker-transfer status, URL validation warnings, service progress callbacks, and service-layer add/remove callbacks were left wired to the existing handlers.
+  - Service contracts, import parser contracts, and generated draft/import data were not broadened beyond the B09-visible default color adjustment.
+- State truthfulness notes:
+  - Quality scores, CRS metadata, worker transfer, import readiness, validation caveats, and external-service warnings remain explicit text/status labels.
+  - Warnings and caveats are non-amber but still visually distinct and not styled as ready/valid.
+- Hard-coded colors removed:
+  - B09 target files no longer contain amber hex literals, amber RGB literals, `--syn-status-warning`, or `MAP_COLORS.amber*` active-scope consumption.
+  - `ExternalServiceConnector` OSM building layer default removed `#F59E0B`, orange/red continuation colors, and the amber outline color from the B09-visible service default.
+- Hard-coded colors retained with reason:
+  - Non-amber concrete colors in external map style payloads are retained because MapLibre/deck style data needs concrete color strings rather than CSS token variables.
+  - Broader generated-output and analytical palette defaults remain B10/B12/B13-owned unless directly visible in this prompt scope.
+- Amber scan after:
+  - B09 target Standard Amber Scan: 0 matching lines (`rg` returned no matches).
+- Heavy-chrome scan after:
+  - B09 target Heavy-Chrome Scan reviewed with no actionable amber/heavy-chrome regressions in the changed files.
+- Browser smoke:
+  - Against the existing dev server at `http://127.0.0.1:3000`, a Playwright smoke opened Map Explorer, the spatial data import hub, the CSV coordinate mapping dialog, the Arrow schema preview dialog, and the external map services dialog. It verified CSV detection/preview text, columnar worker-transfer/schema labels, and WMS/CityJSON service tabs.
+- Validation commands:
+  - `npm run typecheck`
+  - `npm run test -- src/services/map/__tests__/MapDataIO.test.ts src/services/map/__tests__/ExternalServiceConnector.test.ts`
+  - `npm run test -- src/centerpanel/components/__tests__/MapServiceDialog.test.tsx`
+  - B09 target Map Explorer Standard Amber Scan with `rg`.
+  - B09 target Map Explorer Heavy-Chrome Scan with `rg`.
+  - Manual/browser dialog smoke through Playwright against port 3000.
+- Validation results:
+  - Typecheck: passed.
+  - Targeted B09 service/import tests: passed, 38 passed and 2 skipped across 2 files.
+  - `MapServiceDialog` render test: passed.
+  - B09 target Standard Amber Scan: 0.
+  - B09 target Heavy-Chrome Scan: reviewed with no actionable B09 amber/heavy-chrome regressions.
+  - Browser dialog smoke: passed.
+- Known risks:
+  - Normal operating-pack order still has C09/C10 pending; B09 was completed only because the user explicitly continued the targeted Map Explorer track.
+  - Broad existing Playwright import specs (`e2e/map-csv-kml-gpx-import.spec.ts` and `e2e/map-columnar-io.spec.ts`) were attempted but exceeded the shell timeout during full import-completion/toast assertions. A narrower B09 dialog smoke passed. A follow-up CSV commit smoke also hung during import completion, which appears behavior-adjacent and outside the chrome-only files changed here, so it is documented rather than patched in B09.
+  - Downstream export/generated-output amber defaults remain B10/B13-owned.
+- Blockers: none for B09.
+- Decisions made:
+  - Kept parser/service contracts unchanged and limited service color changes to the local visible B09 external-service default.
+  - Preserved explicit warning/caveat/readiness text while moving visual emphasis to neutral/blue/status tokens.
+  - Did not flatten live preview/table containment where bounded frames are needed for scanability.
+- Next recommended prompt in normal order: Prompt C09 - Cross-Cutting Surfaces — Urban Context Strip, Outline Nav, Background Tasks, Engine Capabilities, Narrative, Object Detector.
+- Next Map Explorer prompt if the user continues the targeted Part 3 track: Prompt B10 - Export, Publication, Composition, Snapshot Preview, And Generated Output Chrome.
 - Ledger updated: yes.
 
 ### Map Explorer Prompt Ladder Redesign - 2026-05-18
