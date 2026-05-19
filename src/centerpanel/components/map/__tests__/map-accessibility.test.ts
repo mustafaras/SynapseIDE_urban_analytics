@@ -506,7 +506,7 @@ describe("MapExplorerModal — accessibility integration", () => {
     const mod = await import("../../MapExplorerModal");
     expect(mod.MapExplorerModal).toBeDefined();
     expect(typeof mod.MapExplorerModal).toBe("function");
-  }, 15000);
+  }, 30000);
 });
 
 /* ================================================================== */

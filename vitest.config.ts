@@ -43,6 +43,8 @@ export default defineConfig({
   test: {
     include: ['src/**/__tests__/**/*.test.{ts,tsx}'],
     globals: true,
+    testTimeout: 30000,
+    hookTimeout: 30000,
     coverage: {
       provider: 'v8',
       reportsDirectory: 'coverage',

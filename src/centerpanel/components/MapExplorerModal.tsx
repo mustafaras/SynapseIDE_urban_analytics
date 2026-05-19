@@ -23,7 +23,6 @@ import {
   MAP_NUMERIC,
   MAP_RADIUS,
   MAP_SPACING,
-  MAP_STROKES,
   MAP_TYPOGRAPHY,
   mapStyles,
 } from "./map/mapTokens";

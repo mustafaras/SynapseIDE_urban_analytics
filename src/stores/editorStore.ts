@@ -589,7 +589,7 @@ export const useEditorStore = create<EditorStore>()(
                 tab.restoreMessage = message;
                 changed = true;
               }
-            } else if (tab.isMissingFile || tab.restoreMessage) {
+            } else if (tab.isMissingFile !== false || tab.restoreMessage) {
               tab.isMissingFile = false;
               delete tab.restoreMessage;
               changed = true;

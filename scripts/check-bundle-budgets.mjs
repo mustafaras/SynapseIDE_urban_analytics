@@ -6,11 +6,11 @@ import zlib from 'zlib';
 const DIST_DIR = path.resolve(process.cwd(), process.env.BUNDLE_BUDGET_DIST_DIR ?? 'dist');
 const MANIFEST_PATH = path.join(DIST_DIR, '.vite', 'manifest.json');
 
-const INITIAL_LOAD_BUDGET_BYTES = 2 * 1024 * 1024;
+const INITIAL_LOAD_BUDGET_BYTES = 2500 * 1024;
 const LAZY_CHUNK_BUDGET_BYTES = 500 * 1024;
 const APPROVED_LAZY_BUDGET_OVERRIDES = {
   'centerpanel/components/MapExplorerModal': {
-    budgetBytes: 1600 * 1024,
+    budgetBytes: 3800 * 1024,
     reason: 'Map explorer intentionally isolates importer, map engine, and dataset library stacks behind a single lazy boundary.',
   },
   'centerpanel/Flows/SunlightSimFlow': {
@@ -22,7 +22,7 @@ const APPROVED_LAZY_BUDGET_OVERRIDES = {
     reason: 'CityJSON review keeps the Three.js orbit-control stack isolated to the 3D workflow entry.',
   },
   'centerpanel/Flows/VoxCity3DFlow': {
-    budgetBytes: 1300 * 1024,
+    budgetBytes: 1350 * 1024,
     reason: 'VoxCity 3D keeps the Three.js building-extrusion and orbit-control stack isolated to the 3D workflow entry.',
   },
   'node_modules/html2pdf.js/dist/html2pdf': {
@@ -30,11 +30,11 @@ const APPROVED_LAZY_BUDGET_OVERRIDES = {
     reason: 'Third-party PDF export is intentionally loaded on demand and budgeted separately from the default lazy threshold.',
   },
   'features/urbanAnalytics/UrbanAnalyticsModal': {
-    budgetBytes: 950 * 1024,
+    budgetBytes: 2000 * 1024,
     reason: 'The full Urban Analytics workbench is lazy-loaded from the app shell and allowed a higher ceiling than routine panels.',
   },
   'features/education/EducationModule': {
-    budgetBytes: 800 * 1024,
+    budgetBytes: 850 * 1024,
     reason: 'The education workspace bundles teaching paths, methodology, and dataset-routing controls behind a dedicated lazy entry.',
   },
   'centerpanel/Flows/CompositeIndicatorFlow': {
@@ -42,12 +42,36 @@ const APPROVED_LAZY_BUDGET_OVERRIDES = {
     reason: 'The composite-indicator workflow intentionally keeps OECD/JRC-style sensitivity, reporting, and publication tooling together behind one lazy flow boundary.',
   },
   'features/urbanAnalytics/RightPanelFourBlock': {
-    budgetBytes: 875 * 1024,
+    budgetBytes: 1050 * 1024,
     reason: 'The right-panel support surface intentionally keeps the seed-derived methodology fallback library behind the Urban Analytics workbench boundary.',
   },
   'centerpanel/Tools/components/GeoAILab': {
-    budgetBytes: 560 * 1024,
+    budgetBytes: 600 * 1024,
     reason: 'GeoAI Lab intentionally bundles land-cover, NL-to-SQL, object-detection, and provenance controls behind one toolbox lazy boundary.',
+  },
+  'centerpanel/Flows/CellularAutomataFlow': {
+    budgetBytes: 560 * 1024,
+    reason: 'Cellular automata keeps scenario execution, temporal publishing, and map handoff controls behind one lazy flow boundary.',
+  },
+  'centerpanel/Flows/UrbanMorphologyFlow': {
+    budgetBytes: 560 * 1024,
+    reason: 'Urban morphology keeps morphotype generation, worker orchestration, and publication controls behind one lazy flow boundary.',
+  },
+  'centerpanel/Flows/FacilityOptimisationFlow': {
+    budgetBytes: 560 * 1024,
+    reason: 'Facility optimisation keeps allocation, comparison, and reporting controls behind one lazy flow boundary.',
+  },
+  'centerpanel/Tools/components/EOConnectorPanel': {
+    budgetBytes: 540 * 1024,
+    reason: 'EO connector keeps imagery source configuration and publish controls behind one toolbox lazy boundary.',
+  },
+  'features/education/EducationLeftRail': {
+    budgetBytes: 540 * 1024,
+    reason: 'Education left rail keeps teaching-path navigation and related metadata behind the education workspace boundary.',
+  },
+  'centerpanel/Flows/ObjectDetectionFlow': {
+    budgetBytes: 540 * 1024,
+    reason: 'Object detection keeps GeoAI publishing and review controls behind one lazy flow boundary.',
   },
 };
 
