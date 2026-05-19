@@ -206,7 +206,7 @@ describe("MapNLQueryBuilder", () => {
     expect(audit.affectedLayers).toEqual(expect.any(Array));
   });
 
-  it("creates an amber QueryToSQL result layer with execution metadata", async () => {
+  it("creates a workbench-blue QueryToSQL result layer with execution metadata", async () => {
     const context = buildMapNLQueryContext([
       layer("parcels", "Parcels", parcels),
       layer("transit", "Transit Stops", transitStops),
@@ -227,7 +227,7 @@ describe("MapNLQueryBuilder", () => {
 
     expect(loadedAliases).toEqual(["parcels", "transit_stops"]);
     expect(result.layer.name).toContain("NL Query:");
-    expect(result.layer.style?.["fill-color"]).toBe("#F59E0B");
+    expect(result.layer.style?.["fill-color"]).toBe("#3794FF");
     expect(result.layer.metadata?.analysisResult?.engine).toBe("QueryToSQL");
     expect(result.layer.metadata?.analysisResult?.inputParameters.scope).toBe("visible");
     expect(result.layer.metadata?.analysisResult?.sourceLayerIds).toEqual(["parcels", "transit"]);

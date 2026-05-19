@@ -245,8 +245,9 @@ const stepPillBase: React.CSSProperties = {
 const stepPillCurrent: React.CSSProperties = {
   ...stepPillBase,
   border: MAP_STROKES.hairlineStrong,
-  color: MAP_COLORS.amber,
-  background: MAP_COLORS.amberDim,
+  color: MAP_COLORS.interaction,
+  background: MAP_COLORS.selectedSubtle,
+  boxShadow: `inset 2px 0 0 ${MAP_COLORS.interaction}`,
 };
 
 const stepPillCompleted: React.CSSProperties = {
@@ -257,8 +258,8 @@ const stepPillCompleted: React.CSSProperties = {
 
 const stepPillBlocked: React.CSSProperties = {
   ...stepPillBase,
-  border: `1px solid ${MAP_COLORS.warning}`,
-  color: MAP_COLORS.warning,
+  border: `1px solid ${MAP_COLORS.error}`,
+  color: MAP_COLORS.error,
 };
 
 const optionRow: React.CSSProperties = {
@@ -285,8 +286,9 @@ const tileButtonBase: React.CSSProperties = {
 const tileButtonActive: React.CSSProperties = {
   ...tileButtonBase,
   border: MAP_STROKES.hairlineStrong,
-  background: MAP_COLORS.amberDim,
-  color: MAP_COLORS.amber,
+  background: MAP_COLORS.selectedSubtle,
+  color: MAP_COLORS.interaction,
+  boxShadow: `inset 2px 0 0 ${MAP_COLORS.interaction}`,
 };
 
 const tileButtonDisabled: React.CSSProperties = {
@@ -367,7 +369,7 @@ const issueLine = (severity: "blocker" | "warning" | "info"): React.CSSPropertie
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
   color:
     severity === "blocker"
-      ? MAP_COLORS.warning
+      ? MAP_COLORS.error
       : severity === "warning"
         ? MAP_COLORS.warning
         : MAP_COLORS.textSecondary,

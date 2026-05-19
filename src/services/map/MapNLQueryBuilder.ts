@@ -162,6 +162,8 @@ export interface BuildMapNLQueryContextOptions {
 
 const DEFAULT_LIMIT = 500;
 const SAFE_ALIAS_RE = /^[a-z_][a-z0-9_]*$/;
+const MAP_NL_QUERY_RESULT_COLOR = "#3794FF";
+const MAP_NL_QUERY_RESULT_HALO_COLOR = "#111827";
 
 const SCOPE_LABELS: Record<MapNLQueryScope, string> = {
   visible: "Visible layers",
@@ -1164,6 +1166,38 @@ function executionScopeForPreview(preview: MapNLQueryPreview): "live-project-dat
   return "live-project-data";
 }
 
+function buildMapNLQueryResultStyle(
+  baseStyle: OverlayLayerConfig["style"] | undefined,
+  geometryType: string | undefined,
+): Record<string, unknown> {
+  const style: Record<string, unknown> = { ...(baseStyle ?? {}) };
+  const normalizedType = geometryType?.toLowerCase() ?? "";
+
+  if (normalizedType.includes("point")) {
+    return {
+      ...style,
+      "circle-color": MAP_NL_QUERY_RESULT_COLOR,
+      "circle-radius": 7,
+      "circle-stroke-color": MAP_NL_QUERY_RESULT_HALO_COLOR,
+      "circle-stroke-width": 1,
+    };
+  }
+
+  if (normalizedType.includes("line")) {
+    return {
+      ...style,
+      "line-color": MAP_NL_QUERY_RESULT_COLOR,
+      "line-width": 3,
+    };
+  }
+
+  return {
+    ...style,
+    "fill-color": MAP_NL_QUERY_RESULT_COLOR,
+    "fill-outline-color": MAP_NL_QUERY_RESULT_COLOR,
+  };
+}
+
 export function buildMapNLFollowUpSuggestions(featureCount: number, geometryType: string): string[] {
   const type = geometryType.toLowerCase();
   if (featureCount === 0) {
@@ -1247,6 +1281,7 @@ export async function executeMapNLQueryPreview(
   const layer: OverlayLayerConfig = {
     ...adapterResult.layer,
     name: `NL Query: ${preview.request.slice(0, 48) || "Map result"}`,
+    style: buildMapNLQueryResultStyle(adapterResult.layer.style, metadata.geometryType ?? preview.expectedOutputType),
     metadata: {
       ...(adapterResult.layer.metadata ?? {}),
       ...(typeof metadata.featureCount === "number" ? { featureCount: metadata.featureCount } : {}),

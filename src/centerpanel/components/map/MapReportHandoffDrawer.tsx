@@ -38,7 +38,7 @@ const drawerBaseStyle: React.CSSProperties = {
   overflow: "hidden",
   borderRadius: MAP_RADIUS.lg,
   border: MAP_STROKES.hairline,
-  background: "rgba(13,13,13,0.96)",
+  background: MAP_COLORS.bgPanel,
   boxShadow: MAP_SHADOWS.panel,
   color: MAP_COLORS.text,
   zIndex: MAP_Z_INDEX.symbologyPanel + 8,
@@ -121,14 +121,14 @@ const eyebrowStyle: React.CSSProperties = {
 
 const titleStyle: React.CSSProperties = {
   margin: 0,
-  color: MAP_COLORS.amber,
+  color: MAP_COLORS.text,
   fontSize: MAP_TYPOGRAPHY.fontSize.md,
   lineHeight: 1.2,
 };
 
 const iconButtonStyle: React.CSSProperties = {
   border: MAP_STROKES.hairlineSubtle,
-  background: "rgba(255,255,255,0.04)",
+  background: MAP_COLORS.transparent,
   color: MAP_COLORS.textSecondary,
   borderRadius: MAP_RADIUS.sm,
   width: 30,
@@ -152,7 +152,7 @@ const optionLabelStyle: React.CSSProperties = {
   padding: "7px 8px",
   borderRadius: MAP_RADIUS.sm,
   border: MAP_STROKES.hairlineSubtle,
-  background: "rgba(255,255,255,0.025)",
+  background: MAP_COLORS.bg,
   color: MAP_COLORS.textSecondary,
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
   lineHeight: 1.2,
@@ -179,7 +179,7 @@ const selectStyle: React.CSSProperties = {
   width: "100%",
   borderRadius: MAP_RADIUS.sm,
   border: MAP_STROKES.hairlineSubtle,
-  background: "rgba(255,255,255,0.035)",
+  background: MAP_COLORS.bg,
   color: MAP_COLORS.text,
   padding: "7px 8px",
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
@@ -187,9 +187,9 @@ const selectStyle: React.CSSProperties = {
 
 const bodyStyle: React.CSSProperties = {
   overflowY: "auto",
-  padding: MAP_SPACING.md,
+  padding: MAP_SPACING.sm,
   display: "grid",
-  gap: MAP_SPACING.md,
+  gap: MAP_SPACING.sm,
 };
 
 const sectionStyle: React.CSSProperties = {
@@ -220,9 +220,9 @@ const readinessPanelStyle: React.CSSProperties = {
   display: "grid",
   gap: MAP_SPACING.sm,
   padding: MAP_SPACING.sm,
-  borderRadius: MAP_RADIUS.md,
+  borderRadius: MAP_RADIUS.sm,
   border: MAP_STROKES.hairlineSubtle,
-  background: "rgba(255,255,255,0.035)",
+  background: MAP_COLORS.bg,
 };
 
 const readinessHeaderStyle: React.CSSProperties = {
@@ -318,7 +318,7 @@ const footerActionStyle: React.CSSProperties = {
 
 const secondaryButtonStyle: React.CSSProperties = {
   border: MAP_STROKES.hairlineSubtle,
-  background: "rgba(255,255,255,0.04)",
+  background: MAP_COLORS.transparent,
   color: MAP_COLORS.textSecondary,
   borderRadius: MAP_RADIUS.sm,
   padding: "8px 10px",
@@ -329,9 +329,9 @@ const secondaryButtonStyle: React.CSSProperties = {
 
 const primaryButtonStyle: React.CSSProperties = {
   ...secondaryButtonStyle,
-  background: "rgba(245,158,11,0.18)",
-  border: MAP_STROKES.hairlineStrong,
-  color: MAP_COLORS.amber,
+  background: MAP_COLORS.interactionSubtle,
+  border: `1px solid ${MAP_COLORS.focus}`,
+  color: MAP_COLORS.interaction,
 };
 
 const disabledActionStyle: React.CSSProperties = {
@@ -349,9 +349,40 @@ function toggleOption(
 }
 
 function getReadinessBadgeColor(status: MapReportHandoffDraft["publicationReadiness"]["status"]): React.CSSProperties {
-  if (status === "blocked") return { color: "#fca5a5", background: "rgba(248,113,113,0.12)", borderColor: "rgba(248,113,113,0.34)" };
-  if (status === "ready-with-caveats") return { color: MAP_COLORS.amber, background: "rgba(245,158,11,0.12)", borderColor: "rgba(245,158,11,0.34)" };
-  return { color: "#86efac", background: "rgba(34,197,94,0.1)", borderColor: "rgba(34,197,94,0.28)" };
+  const statusKey: string = status;
+  if (statusKey === "ready") {
+    return {
+      color: MAP_COLORS.success,
+      background: "color-mix(in srgb, var(--syn-status-valid, #4ec27d) 12%, transparent)",
+      borderColor: "color-mix(in srgb, var(--syn-status-valid, #4ec27d) 34%, transparent)",
+    };
+  }
+  if (statusKey === "blocked") {
+    return {
+      color: MAP_COLORS.error,
+      background: "color-mix(in srgb, var(--syn-status-error, #f87171) 12%, transparent)",
+      borderColor: "color-mix(in srgb, var(--syn-status-error, #f87171) 34%, transparent)",
+    };
+  }
+  if (statusKey === "ready-with-caveats" || statusKey === "needs-review") {
+    return {
+      color: MAP_COLORS.caveatText,
+      background: MAP_COLORS.caveat,
+      borderColor: MAP_COLORS.focus,
+    };
+  }
+  if (statusKey === "stale") {
+    return {
+      color: "var(--syn-status-stale, #9aa3b2)",
+      background: MAP_COLORS.neutralSubtle,
+      borderColor: MAP_COLORS.hairline,
+    };
+  }
+  return {
+    color: "var(--syn-status-unknown, #858b96)",
+    background: MAP_COLORS.neutralSubtle,
+    borderColor: MAP_COLORS.hairlineSubtle,
+  };
 }
 
 export const MapReportHandoffDrawer: React.FC<MapReportHandoffDrawerProps> = ({

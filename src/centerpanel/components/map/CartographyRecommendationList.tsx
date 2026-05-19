@@ -68,7 +68,7 @@ const cardStyle: React.CSSProperties = {
   padding: MAP_SPACING.sm,
   border: MAP_STROKES.hairlineSubtle,
   borderRadius: MAP_RADIUS.sm,
-  background: MAP_COLORS.bgPanel,
+  background: MAP_COLORS.bg,
   minWidth: MAP_SPACING.zero,
 };
 
@@ -106,9 +106,9 @@ const bodyTextStyle: React.CSSProperties = {
 const fixStyle: React.CSSProperties = {
   ...bodyTextStyle,
   color: MAP_COLORS.text,
-  padding: MAP_SPACING.sm,
-  borderLeft: `2px solid ${MAP_COLORS.amberBorderStrong}`,
-  background: MAP_COLORS.amberSubtle,
+  padding: `${MAP_SPACING.xs} 0 0`,
+  borderTop: MAP_STROKES.hairlineSubtle,
+  background: MAP_COLORS.transparent,
 };
 
 const severityPillStyle: React.CSSProperties = {
@@ -116,7 +116,7 @@ const severityPillStyle: React.CSSProperties = {
   alignItems: "center",
   minHeight: "1.25rem",
   padding: `0 ${MAP_SPACING.sm}`,
-  borderRadius: MAP_RADIUS.full,
+  borderRadius: MAP_RADIUS.sm,
   fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
@@ -182,9 +182,9 @@ const buttonStyle: React.CSSProperties = {
 
 const primaryButtonStyle: React.CSSProperties = {
   ...buttonStyle,
-  color: MAP_COLORS.amber,
-  border: MAP_STROKES.hairlineStrong,
-  background: MAP_COLORS.amberSubtle,
+  color: MAP_COLORS.interaction,
+  border: `1px solid ${MAP_COLORS.focus}`,
+  background: MAP_COLORS.interactionSubtle,
 };
 
 const detailsStyle: React.CSSProperties = {
@@ -353,7 +353,7 @@ export const CartographyRecommendationList: React.FC<CartographyRecommendationLi
               <div style={detailsStyle}>
                 <div style={{ display: "flex", alignItems: "center", gap: MAP_SPACING.xs, marginBottom: MAP_SPACING.xs }}>
                   <Info size={MAP_ICON_SIZES.xs} />
-                  <a href={recommendation.detailUrl} style={{ color: MAP_COLORS.amber }}>
+                  <a href={recommendation.detailUrl} style={{ color: MAP_COLORS.interaction }}>
                     Scientific detail
                   </a>
                 </div>

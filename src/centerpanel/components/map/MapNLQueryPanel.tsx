@@ -133,8 +133,8 @@ const smallButton: React.CSSProperties = {
 const activeSmallButton: React.CSSProperties = {
   ...smallButton,
   border: MAP_STROKES.hairlineStrong,
-  background: MAP_COLORS.amberDim,
-  color: MAP_COLORS.amber,
+  background: MAP_COLORS.selectedSubtle,
+  color: MAP_COLORS.interaction,
 };
 
 const layerCard: React.CSSProperties = {
@@ -214,7 +214,7 @@ function renderMetaPill(label: string, tone: "neutral" | "ok" | "warn" = "neutra
 }
 
 function renderRequiredFieldPill(field: MapNLQueryRequiredField): React.ReactNode {
-  const color = field.available ? MAP_COLORS.textSecondary : MAP_COLORS.warning;
+  const color = field.available ? MAP_COLORS.textSecondary : MAP_COLORS.error;
   return (
     <span
       key={`${field.layerId}:${field.role}:${field.fieldName}:${field.available}`}
@@ -533,7 +533,7 @@ export const MapNLQueryPanel: React.FC<MapNLQueryPanelProps> = ({
           <div style={sectionStyle}>
             <div style={sectionTitle}>Execution Notes</div>
             {preview.blockers.map((blocker) => (
-              <div key={blocker} style={{ display: "grid", gridTemplateColumns: "1rem minmax(0, 1fr)", gap: MAP_SPACING.sm, color: MAP_COLORS.warning }}>
+              <div key={blocker} style={{ display: "grid", gridTemplateColumns: "1rem minmax(0, 1fr)", gap: MAP_SPACING.sm, color: MAP_COLORS.error }}>
                 <CircleOff size={MAP_ICON_SIZES.sm} aria-hidden="true" />
                 <span style={{ fontSize: MAP_TYPOGRAPHY.fontSize.xs, lineHeight: MAP_TYPOGRAPHY.lineHeight.normal }}>{blocker}</span>
               </div>

@@ -136,7 +136,7 @@ const titleStyle: React.CSSProperties = {
   alignItems: "center",
   gap: MAP_SPACING.sm,
   margin: 0,
-  color: MAP_COLORS.amber,
+  color: MAP_COLORS.text,
   fontSize: MAP_TYPOGRAPHY.fontSize.md,
   lineHeight: MAP_TYPOGRAPHY.lineHeight.tight,
 };

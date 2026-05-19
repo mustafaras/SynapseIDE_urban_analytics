@@ -20,6 +20,9 @@ export const MAP_CARTOGRAPHY_ADVISOR_VERSION = 1;
 export const DEFAULT_CARTOGRAPHY_CLASS_COUNT = 5;
 export const DENSE_POINT_FEATURE_THRESHOLD = 500;
 export const DENSE_POINT_DEGREES_DENSITY_THRESHOLD = 2_000;
+const CARTOGRAPHY_PREVIEW_FALLBACK_COLOR = "#3794FF";
+const CARTOGRAPHY_PREVIEW_SECONDARY_COLOR = "#38BDF8";
+const CARTOGRAPHY_HEATMAP_LEGEND_COLORS = ["#0F172A", "#1D4ED8", "#0891B2", "#14B8A6", "#A7F3D0"] as const;
 
 export type MapCartographySeverity = "info" | "warning" | "error";
 
@@ -559,7 +562,7 @@ function existingLegend(layer: OverlayLayerConfig): MapCartographyLegendPreviewI
     return explicit
       .map((entry, index): MapCartographyLegendPreviewItem | null => {
         if (!isObject(entry)) return null;
-        const color = colorFromUnknown(entry.color ?? entry.fill ?? entry.fillColor ?? entry.stroke) ?? "#F59E0B";
+        const color = colorFromUnknown(entry.color ?? entry.fill ?? entry.fillColor ?? entry.stroke) ?? CARTOGRAPHY_PREVIEW_FALLBACK_COLOR;
         const label = typeof entry.label === "string"
           ? entry.label
           : typeof entry.name === "string"
@@ -576,7 +579,7 @@ function existingLegend(layer: OverlayLayerConfig): MapCartographyLegendPreviewI
   if (Array.isArray(analysisLegend)) {
     return analysisLegend.map((entry, index) => ({
       label: entry.label || `Class ${index + 1}`,
-      color: colorFromUnknown(entry.color) ?? "#F59E0B",
+      color: colorFromUnknown(entry.color) ?? CARTOGRAPHY_PREVIEW_FALLBACK_COLOR,
       secondaryLabel: layer.name,
     }));
   }
@@ -592,7 +595,7 @@ function existingLegend(layer: OverlayLayerConfig): MapCartographyLegendPreviewI
 
   return [{
     label: layer.name,
-    color: "#F59E0B",
+    color: CARTOGRAPHY_PREVIEW_FALLBACK_COLOR,
     secondaryLabel: layer.metadata?.geometryType ?? layer.type,
   }];
 }
@@ -621,7 +624,7 @@ function buildClassificationLegend(
     classification,
     legend: classification.classes.map((entry, index) => ({
       label: entry.label,
-      color: colors[index] ?? colors[colors.length - 1] ?? "#F59E0B",
+      color: colors[index] ?? colors[colors.length - 1] ?? CARTOGRAPHY_PREVIEW_FALLBACK_COLOR,
       secondaryLabel: `${field} / ${effectiveMethod}`,
     })),
   };
@@ -635,11 +638,11 @@ function buildStepExpression(
   const expression: unknown[] = [
     "step",
     ["to-number", ["get", field], classification.min],
-    colors[0] ?? "#F59E0B",
+    colors[0] ?? CARTOGRAPHY_PREVIEW_FALLBACK_COLOR,
   ];
 
   classification.classes.slice(0, -1).forEach((entry, index) => {
-    expression.push(entry.max, colors[index + 1] ?? colors[colors.length - 1] ?? "#F59E0B");
+    expression.push(entry.max, colors[index + 1] ?? colors[colors.length - 1] ?? CARTOGRAPHY_PREVIEW_FALLBACK_COLOR);
   });
 
   return expression;
@@ -840,10 +843,10 @@ function createColorRecommendation(
       legend = classificationLegend;
       stylePatch[colorKey] = buildStepExpression(numericField.field, classification, colors);
     } else {
-      stylePatch[colorKey] = colors[colors.length - 1] ?? "#F59E0B";
+      stylePatch[colorKey] = colors[colors.length - 1] ?? CARTOGRAPHY_PREVIEW_FALLBACK_COLOR;
     }
   } else {
-    stylePatch[colorKey] = colors[colors.length - 1] ?? "#F59E0B";
+    stylePatch[colorKey] = colors[colors.length - 1] ?? CARTOGRAPHY_PREVIEW_FALLBACK_COLOR;
   }
 
   stylePatch.legendEntries = legend.map((entry) => ({
@@ -905,7 +908,7 @@ function createSymbolDensityRecommendation(
   const before = existingLegend(layer);
   const after = [{
     label: `${radius}px points / ${Math.round(opacity * 100)}% opacity`,
-    color: colorFromUnknown(layer.style?.["circle-color"] ?? layer.style?.circleColor) ?? "#F59E0B",
+    color: colorFromUnknown(layer.style?.["circle-color"] ?? layer.style?.circleColor) ?? CARTOGRAPHY_PREVIEW_FALLBACK_COLOR,
     secondaryLabel: "Dense point style",
   }];
 
@@ -963,7 +966,7 @@ function createHeatmapRecommendation(
 
   const after = [
     { label: `Radius ${recommendedRadius}px`, color: "#22C55E", secondaryLabel: "Heatmap scale" },
-    { label: `Intensity ${recommendedIntensity}`, color: "#F59E0B", secondaryLabel: "Heatmap scale" },
+    { label: `Intensity ${recommendedIntensity}`, color: CARTOGRAPHY_PREVIEW_SECONDARY_COLOR, secondaryLabel: "Heatmap scale" },
   ];
 
   return {
@@ -1066,7 +1069,7 @@ function createLegendRecommendation(
   }
 
   const colors = layer.type === "heatmap"
-    ? ["#2b0a3d", "#8b1e3f", "#d9480f", "#f59e0b", "#fef3c7"]
+    ? CARTOGRAPHY_HEATMAP_LEGEND_COLORS
     : getColorRampColors("YlOrRd", DEFAULT_CARTOGRAPHY_CLASS_COUNT);
   const legend = numericField
     ? buildClassificationLegend(
