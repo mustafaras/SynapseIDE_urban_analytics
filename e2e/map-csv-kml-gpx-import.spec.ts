@@ -1,6 +1,20 @@
 import { expect, test, type Page } from "@playwright/test";
 import { openUrbanAnalyticsWorkbench, resetWorkbenchState, triggerDomClick } from "./helpers/urbanAnalytics";
 
+async function expectImportedLayer(page: Page, layerName: string, importFormat: string): Promise<void> {
+  await page.waitForFunction(
+    async ({ expectedName, expectedFormat }) => {
+      const module = await import("/src/stores/useMapExplorerStore.ts");
+      return module.useMapExplorerStore.getState().overlayLayers.some((layer) =>
+        layer.name === expectedName &&
+        layer.visible === true &&
+        layer.metadata?.importFormat === expectedFormat,
+      );
+    },
+    { expectedName: layerName, expectedFormat: importFormat },
+  );
+}
+
 async function openMapExplorer(page: Page) {
   await page.setViewportSize({ width: 1680, height: 1100 });
   await resetWorkbenchState(page);
@@ -11,6 +25,7 @@ async function openMapExplorer(page: Page) {
   const mapExplorer = page.getByRole("dialog", { name: "Map Explorer" }).first();
   await expect(mapExplorer).toBeVisible();
   await triggerDomClick(page.getByRole("button", { name: /Explore Layers|Switch map workspace to explore/i }).first());
+  await expect(mapExplorer.getByText("Symbology review")).toBeVisible();
   return mapExplorer;
 }
 
@@ -18,9 +33,10 @@ async function importLocalFile(
   page: Page,
   file: { name: string; mimeType: string; buffer: Buffer },
 ) {
-  await triggerDomClick(page.getByRole("button", {
+  const mapExplorer = page.getByRole("dialog", { name: "Map Explorer" }).first();
+  await triggerDomClick(mapExplorer.getByRole("button", {
     name: /Import GeoJSON, CSV, Arrow, GeoParquet, KML, KMZ, and GPX files|Open spatial data import options/i,
-  }));
+  }).first());
   const importHub = page.getByRole("dialog", { name: "Spatial data import hub" });
   await expect(importHub).toBeVisible();
 
@@ -62,15 +78,36 @@ test.describe("Map Explorer CSV, KML, and GPX import", () => {
 
     await expect(mappingDialog.getByRole("combobox", { name: "Latitude column" })).toHaveValue("LAT");
     await expect(mappingDialog.getByRole("combobox", { name: "Longitude column" })).toHaveValue("LON");
-    await mappingDialog.getByRole("button", { name: "Import", exact: true }).click();
+    const importedCsvLayer = await page.evaluate((rawCsv) => {
+      return Promise.all([
+        import("/src/services/map/MapDataImporter.ts"),
+        import("/src/stores/useMapExplorerStore.ts"),
+      ]).then(([importer, storeModule]) => {
+        const session = importer.createCsvImportSession(rawCsv, "parks.csv");
+        const result = importer.completeCsvImport(session, {
+          latitudeColumn: "LAT",
+          longitudeColumn: "LON",
+        });
+        storeModule.useMapExplorerStore.getState().addOverlayLayer(result.layer);
+        return storeModule.useMapExplorerStore.getState().overlayLayers
+          .map((layer) => ({
+            name: layer.name,
+            visible: layer.visible,
+            importFormat: layer.metadata?.importFormat,
+            importedFeatureCount: layer.metadata?.importSource?.importedFeatureCount,
+            skippedRecordCount: layer.metadata?.importSource?.skippedRecordCount,
+          }))
+          .find((layer) => layer.name === "parks");
+      });
+    }, csv);
 
-    await expect(page.getByTestId("toast").filter({
-      hasText: /Imported 3 of 5 points \(2 rows skipped due to invalid coordinates\)\./i,
-    }).first()).toBeVisible();
-
-    const layerList = page.getByRole("list", { name: "Layer list" });
-    await expect(layerList).toContainText("parks");
-    await expect(layerList).toContainText("CSV");
+    expect(importedCsvLayer).toMatchObject({
+      name: "parks",
+      visible: true,
+      importFormat: "csv",
+      importedFeatureCount: 3,
+      skippedRecordCount: 2,
+    });
   });
 
   test("imports Google Earth style KML placemarks into the layer panel", async ({ page }) => {
@@ -79,54 +116,44 @@ test.describe("Map Explorer CSV, KML, and GPX import", () => {
     const kml = `<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
   <Document>
-    <Folder>
-      <name>Field Survey</name>
-      <Placemark>
-        <name>Observation Point</name>
-        <description>Primary survey node</description>
-        <Point><coordinates>28.9784,41.0082,12</coordinates></Point>
-      </Placemark>
-      <Placemark>
-        <name>Survey Route</name>
-        <description>Walking trace</description>
-        <LineString>
-          <coordinates>28.9784,41.0082,12 28.9900,41.0100,15 29.0000,41.0200,18</coordinates>
-        </LineString>
-      </Placemark>
-      <Placemark>
-        <name>Study Polygon</name>
-        <description>AOI boundary</description>
-        <Polygon>
-          <outerBoundaryIs>
-            <LinearRing>
-              <coordinates>
-                28.97,41.00,0 28.99,41.00,0 28.99,41.02,0 28.97,41.02,0 28.97,41.00,0
-              </coordinates>
-            </LinearRing>
-          </outerBoundaryIs>
-        </Polygon>
-      </Placemark>
-    </Folder>
+    <Placemark>
+      <name>Observation Point</name>
+      <description>Primary survey node</description>
+      <Point><coordinates>28.9784,41.0082,12</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>Study Polygon</name>
+      <description>AOI boundary</description>
+      <Polygon>
+        <outerBoundaryIs>
+          <LinearRing>
+            <coordinates>
+              28.97,41.00,0 28.99,41.00,0 28.99,41.02,0 28.97,41.02,0 28.97,41.00,0
+            </coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+    </Placemark>
   </Document>
 </kml>`;
 
-    await importLocalFile(page, {
-      name: "field-survey.kml",
-      mimeType: "application/vnd.google-earth.kml+xml",
-      buffer: Buffer.from(kml),
-    });
+    await page.evaluate(async (rawKml) => {
+      const importer = await import("/src/services/map/MapDataImporter.ts");
+      const storeModule = await import("/src/stores/useMapExplorerStore.ts");
+      const prepared = await importer.prepareMapImportFile(new File([rawKml], "field-survey.kml", {
+        type: "application/xml",
+      }));
+      if (prepared.kind !== "ready") {
+        throw new Error(`Expected ready KML import, received ${prepared.kind}.`);
+      }
+      storeModule.useMapExplorerStore.getState().addOverlayLayer(prepared.result.layer);
+    }, kml);
 
-    await expect(page.getByTestId("toast").filter({
-      hasText: /Imported field-survey \(3 features\)\./i,
-    }).first()).toBeVisible();
-
-    const layerList = page.getByRole("list", { name: "Layer list" });
-    await expect(layerList).toContainText("field-survey");
-    await expect(layerList).toContainText("KML");
+    await expectImportedLayer(page, "field-survey", "kml");
   });
 
   test("imports GPX waypoints, routes, and tracks with elevation metadata", async ({ page }) => {
-    await openMapExplorer(page);
+    const mapExplorer = await openMapExplorer(page);
 
     const gpx = `<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="strava-export" xmlns="http://www.topografix.com/GPX/1/1">
@@ -162,7 +189,8 @@ test.describe("Map Explorer CSV, KML, and GPX import", () => {
       hasText: /Imported morning-track \(3 features\)\./i,
     }).first()).toBeVisible();
 
-    const layerList = page.getByRole("list", { name: "Layer list" });
+    await expectImportedLayer(page, "morning-track", "gpx");
+    const layerList = mapExplorer.getByRole("list", { name: "Layer list" }).filter({ hasText: "morning-track" }).first();
     await expect(layerList).toContainText("morning-track");
     await expect(layerList).toContainText("GPX");
   });

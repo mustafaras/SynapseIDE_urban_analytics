@@ -45,9 +45,9 @@ async function seedTemporalLayer(page: import("@playwright/test").Page): Promise
       sourceKind: "derived",
       sourceData: temporalFrames[0].data,
       style: {
-        fillColor: "#f59e0b",
+        fillColor: "#3794ff",
         fillOpacity: 0.48,
-        strokeColor: "#fbbf24",
+        strokeColor: "#38bdf8",
       },
       metadata: {
         geometryType: "Polygon",

@@ -126,6 +126,58 @@ const neuralCards = [
   },
 ];
 
+const HOME_ACCENT_GRADIENT_TEXT =
+  'linear-gradient(90deg, #dbeafe 0%, #93c5fd 38%, #5aa9ff 68%, #3794ff 100%)';
+const HOME_ACCENT_GRADIENT_GLOW =
+  'linear-gradient(270deg, #e5edf7 0%, #93c5fd 42%, #3794ff 100%)';
+const HOME_ACCENT_GRADIENT_STRONG =
+  'linear-gradient(270deg, #cbd5e1 0%, #5aa9ff 42%, #2563eb 100%)';
+const HOME_ACCENT_GRADIENT_LIGHT =
+  'linear-gradient(270deg, #e2e8f0 0%, #93c5fd 48%, #3794ff 100%)';
+const HOME_ACCENT_GRADIENT_BORDER =
+  'linear-gradient(90deg, rgba(148,163,184,0) 0%, #93c5fd 44%, #3794ff 58%, rgba(148,163,184,0) 100%)';
+const HOME_GLITCH_SHADOW_STRONG = `
+  -2px 0 #5aa9ff,
+  2px 0 #93c5fd,
+  0 0 10px #3794ff,
+  0 0 20px #93c5fd
+`;
+const HOME_GLITCH_SHADOW_DARK = `
+  -2px 0 #5aa9ff,
+  2px 0 #2563eb,
+  0 0 10px #3794ff,
+  0 0 20px #2563eb
+`;
+const HOME_GLITCH_SHADOW_COMPACT = `
+  1px 1px #5aa9ff,
+  -1px -1px #93c5fd,
+  0 0 5px #3794ff
+`;
+const HOME_GLITCH_SHADOW_COMPACT_DARK = `
+  1px 1px #5aa9ff,
+  -1px -1px #2563eb,
+  0 0 5px #3794ff
+`;
+
+function getHomeTitleGradient(themeName: string): string {
+  switch (themeName) {
+    case 'light':
+      return HOME_ACCENT_GRADIENT_GLOW;
+    case 'dark':
+      return HOME_ACCENT_GRADIENT_STRONG;
+    case 'neutral':
+      return HOME_ACCENT_GRADIENT_LIGHT;
+    default:
+      return 'linear-gradient(270deg, var(--color-primary), var(--color-accent), var(--color-primary))';
+  }
+}
+
+function getHomeLineGradient(themeName: string): string {
+  if (themeName === 'dark') return HOME_ACCENT_GRADIENT_STRONG;
+  if (themeName === 'neutral') return HOME_ACCENT_GRADIENT_LIGHT;
+  return HOME_ACCENT_GRADIENT_BORDER;
+}
+
 const PageContainer = styled.div<{ $theme: any }>`
   min-height: 100vh;
   background: transparent;
@@ -251,7 +303,7 @@ const MainGrid = styled.div`
     [data-homepage-logo] .homepage-tagline .tagline-rest {
       font-size: clamp(1.1rem,2vw,2rem);
       font-weight: 700;
-      background: var(--syn-gradient-amber-text);
+      background: ${HOME_ACCENT_GRADIENT_TEXT};
       background-size: 200% 200%;
       animation: taglineGradient 8s ease-in-out infinite;
       -webkit-background-clip: text;
@@ -345,16 +397,7 @@ const BrandTitle = styled.h1<{ $theme?: any }>`
 
     const themeName = theme.name || 'light';
 
-    switch (themeName) {
-      case 'light':
-        return `var(--syn-gradient-amber-glow)`;
-      case 'dark':
-        return `var(--syn-gradient-amber-strong)`;
-      case 'neutral':
-  return `var(--syn-gradient-amber-light)`;
-      default:
-        return 'linear-gradient(270deg, var(--color-primary), var(--color-accent), var(--color-primary))';
-    }
+    return getHomeTitleGradient(themeName);
   }};
   background-size: 400% 400%;
   animation: gradientShift 4s ease infinite;
@@ -410,32 +453,13 @@ const BrandTitle = styled.h1<{ $theme?: any }>`
 
         switch (themeName) {
           case 'light':
-            return `
-              -2px 0 #F59E0B,
-              2px 0 #FBBF24,
-              0 0 10px #F59E0B,
-              0 0 20px #FBBF24
-            `;
+            return HOME_GLITCH_SHADOW_STRONG;
           case 'dark':
-            return `
-              -2px 0 #F59E0B,
-              2px 0 #D97706,
-              0 0 10px #F59E0B,
-              0 0 20px #D97706
-            `;
+            return HOME_GLITCH_SHADOW_DARK;
           case 'neutral':
-            return `
-              -2px 0 #F59E0B,
-              2px 0 #FBBF24,
-              0 0 10px #F59E0B,
-              0 0 20px #FBBF24
-            `;
+            return HOME_GLITCH_SHADOW_STRONG;
           default:
-            return `
-              -2px 0 #F59E0B,
-              2px 0 #FBBF24,
-              0 0 10px #F59E0B
-            `;
+            return HOME_GLITCH_SHADOW_STRONG;
         }
       }};
     }
@@ -457,28 +481,13 @@ const BrandTitle = styled.h1<{ $theme?: any }>`
 
         switch (themeName) {
           case 'light':
-            return `
-              1px 1px #F59E0B,
-              -1px -1px #FBBF24,
-              0 0 5px #F59E0B
-            `;
+            return HOME_GLITCH_SHADOW_COMPACT;
           case 'dark':
-            return `
-              1px 1px #F59E0B,
-              -1px -1px #D97706,
-              0 0 5px #F59E0B
-            `;
+            return HOME_GLITCH_SHADOW_COMPACT_DARK;
           case 'neutral':
-            return `
-              1px 1px #F59E0B,
-              -1px -1px #FBBF24,
-              0 0 5px #F59E0B
-            `;
+            return HOME_GLITCH_SHADOW_COMPACT;
           default:
-            return `
-              1px 1px #F59E0B,
-              -1px -1px #FBBF24
-            `;
+            return HOME_GLITCH_SHADOW_COMPACT;
         }
       }};
     }
@@ -647,12 +656,7 @@ const glitchLine = keyframes`
 const GlitchLine = styled.div<{ $themeName: string; $animate: boolean }>`
   width: 110vw;
   height: 2px;
-  background: ${({ $themeName }) =>
-    $themeName === 'dark'
-      ? 'var(--syn-gradient-amber-strong)'
-      : $themeName === 'neutral'
-    ? 'var(--syn-gradient-amber-light)'
-      : 'var(--syn-gradient-amber-border)'};
+  background: ${({ $themeName }) => getHomeLineGradient($themeName)};
   margin: 0px 0 6px 0;
   position: relative;
   left: -12%;
@@ -834,5 +838,4 @@ const SynapseHomepage: React.FC<SynapseHomepageProps> = ({
 };
 
 export default SynapseHomepage;
-
 

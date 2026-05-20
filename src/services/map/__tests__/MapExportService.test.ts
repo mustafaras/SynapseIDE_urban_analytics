@@ -183,7 +183,7 @@ describe("MapExportService", () => {
         style: {
           legendEntries: [
             { label: "High density", color: "#EF4444" },
-            { label: "Medium density", color: "#F59E0B" },
+            { label: "Medium density", color: "#3794FF" },
           ],
         },
       },

@@ -115,7 +115,7 @@ const PhaseIndicator = styled.div`
 
  .progress-fill {
  height: 100%;
- background: var(--syn-gradient-amber-border);
+ background: linear-gradient(90deg, rgba(148,163,184,0.25), #3794ff, #93c5fd);
  border-radius: 1px;
  transition: width 0.1s var(--syn-easing-bauhaus);
  }
@@ -868,11 +868,11 @@ const NeuralBackground: React.FC = () => {
  switch (targetTheme) {
  case 'light':
  return {
- node: 'rgba(245, 158, 11, 0.8)',
- nodePulse: 'rgba(245, 158, 11, 1.0)',
- connection: 'rgba(245, 158, 11, 0.4)',
- connectionActive: 'rgba(245, 158, 11, 0.7)',
- gradient1: 'rgba(245, 158, 11, 0.05)',
+ node: 'rgba(55, 148, 255, 0.8)',
+ nodePulse: 'rgba(147, 197, 253, 1.0)',
+ connection: 'rgba(55, 148, 255, 0.4)',
+ connectionActive: 'rgba(90, 169, 255, 0.7)',
+ gradient1: 'rgba(55, 148, 255, 0.05)',
  gradient2: 'rgba(96, 165, 250, 0.03)',
  };
  case 'dark':
@@ -887,20 +887,20 @@ const NeuralBackground: React.FC = () => {
  case 'neutral':
  return {
 
- node: 'rgba(245, 158, 11, 0.9)',
- nodePulse: 'rgba(245, 158, 11, 1.0)',
- connection: 'rgba(245, 158, 11, 0.50)',
- connectionActive: 'rgba(245, 158, 11, 0.80)',
- gradient1: 'rgba(245, 158, 11, 0.06)',
- gradient2: 'rgba(245, 158, 11, 0.03)',
+ node: 'rgba(147, 197, 253, 0.9)',
+ nodePulse: 'rgba(55, 148, 255, 1.0)',
+ connection: 'rgba(55, 148, 255, 0.50)',
+ connectionActive: 'rgba(147, 197, 253, 0.80)',
+ gradient1: 'rgba(55, 148, 255, 0.06)',
+ gradient2: 'rgba(147, 197, 253, 0.03)',
  };
  default:
  return {
- node: 'rgba(245, 158, 11, 0.6)',
- nodePulse: 'rgba(245, 158, 11, 1.0)',
- connection: 'rgba(245, 158, 11, 0.25)',
- connectionActive: 'rgba(245, 158, 11, 0.5)',
- gradient1: 'rgba(245, 158, 11, 0.1)',
+ node: 'rgba(55, 148, 255, 0.6)',
+ nodePulse: 'rgba(147, 197, 253, 1.0)',
+ connection: 'rgba(55, 148, 255, 0.25)',
+ connectionActive: 'rgba(90, 169, 255, 0.5)',
+ gradient1: 'rgba(55, 148, 255, 0.1)',
  gradient2: 'rgba(96, 165, 250, 0.1)',
  };
  }

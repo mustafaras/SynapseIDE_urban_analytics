@@ -88,7 +88,7 @@ const panelHeaderStyle: React.CSSProperties = {
   justifyContent: "space-between",
   gap: 12,
   padding: "12px 14px",
-  borderBottom: `1px solid ${MAP_COLORS.amberBorder}`,
+  borderBottom: `1px solid ${MAP_COLORS.hairline}`,
   color: MAP_COLORS.text,
 };
 
@@ -119,7 +119,7 @@ const selectStyle: React.CSSProperties = {
   minHeight: 34,
   padding: "7px 10px",
   borderRadius: MAP_RADIUS.sm,
-  border: `1px solid ${MAP_COLORS.amberBorder}`,
+  border: `1px solid ${MAP_COLORS.hairline}`,
   background: "rgba(12,12,12,0.88)",
   color: MAP_COLORS.text,
   fontSize: 12,
@@ -139,7 +139,7 @@ const legendButtonStyle: React.CSSProperties = {
   width: "100%",
   padding: "8px 10px",
   borderRadius: MAP_RADIUS.sm,
-  border: `1px solid ${MAP_COLORS.amberBorder}`,
+  border: `1px solid ${MAP_COLORS.hairline}`,
   background: "rgba(255,255,255,0.02)",
   color: MAP_COLORS.text,
   textAlign: "left",
@@ -153,7 +153,7 @@ const tooltipStyle: React.CSSProperties = {
   maxWidth: 260,
   padding: "8px 10px",
   background: "rgba(13,13,13,0.94)",
-  border: `1px solid ${MAP_COLORS.amberBorderStrong}`,
+  border: `1px solid ${MAP_COLORS.focus}`,
   borderRadius: MAP_RADIUS.sm,
   boxShadow: MAP_SHADOWS.dropdown,
   color: MAP_COLORS.text,
@@ -234,7 +234,7 @@ function buildPopupContent(feature: GeoJSON.Feature, featureId: string): HTMLDiv
   shell.style.maxWidth = "340px";
   shell.style.padding = "10px 12px";
   shell.style.background = "rgba(13,13,13,0.96)";
-  shell.style.border = `1px solid ${MAP_COLORS.amberBorderStrong}`;
+  shell.style.border = `1px solid ${MAP_COLORS.focus}`;
   shell.style.borderRadius = MAP_RADIUS.md;
   shell.style.color = MAP_COLORS.text;
   shell.style.fontFamily = MAP_TYPOGRAPHY.fontFamily;
@@ -242,7 +242,7 @@ function buildPopupContent(feature: GeoJSON.Feature, featureId: string): HTMLDiv
 
   const header = document.createElement("div");
   header.textContent = featureId;
-  header.style.color = MAP_COLORS.amber;
+  header.style.color = MAP_COLORS.interaction;
   header.style.fontSize = "12px";
   header.style.fontWeight = String(MAP_TYPOGRAPHY.fontWeight.semibold);
   header.style.marginBottom = "8px";
@@ -479,7 +479,7 @@ export const MapChoroplethLayer: React.FC<MapChoroplethLayerProps> = ({
           classification,
           legendClasses: classification.classes.map((entry, index) => ({
             ...entry,
-            color: activeColors[index] ?? activeColors[activeColors.length - 1] ?? MAP_COLORS.amber,
+            color: activeColors[index] ?? activeColors[activeColors.length - 1] ?? MAP_COLORS.interaction,
           })),
           totalFeatureCount: resolvedLayer.featureCollection.features.length,
           numericFeatureCount: validValues.length,
@@ -800,11 +800,11 @@ export const MapChoroplethLayer: React.FC<MapChoroplethLayerProps> = ({
       <div style={{ ...panelStyle, ...panelPositionStyle }} role="dialog" aria-label="Choropleth configuration">
         <div style={{ ...panelHeaderStyle, ...dragHandleStyle }} {...dragHandleProps}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <IconLayers size={14} color={MAP_COLORS.amber} />
+            <IconLayers size={14} color={MAP_COLORS.interaction} />
             <div>
               <div
                 style={{
-                  color: MAP_COLORS.amber,
+                  color: MAP_COLORS.interaction,
                   fontSize: 12,
                   fontFamily: MAP_TYPOGRAPHY.fontFamilyBrand,
                   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
@@ -823,7 +823,7 @@ export const MapChoroplethLayer: React.FC<MapChoroplethLayerProps> = ({
           <button
             type="button"
             style={{
-              border: `1px solid ${MAP_COLORS.amberBorder}`,
+              border: `1px solid ${MAP_COLORS.hairline}`,
               background: "transparent",
               color: MAP_COLORS.textSecondary,
               width: 28,
@@ -995,9 +995,9 @@ export const MapChoroplethLayer: React.FC<MapChoroplethLayerProps> = ({
                             gap: 6,
                             padding: "8px 10px",
                             borderRadius: MAP_RADIUS.sm,
-                            border: `1px solid ${isActive ? MAP_COLORS.amberBorderStrong : MAP_COLORS.amberBorder}`,
-                            background: isActive ? MAP_COLORS.amberDim : "rgba(255,255,255,0.02)",
-                            color: isActive ? MAP_COLORS.amber : MAP_COLORS.text,
+                            border: `1px solid ${isActive ? MAP_COLORS.focus : MAP_COLORS.hairline}`,
+                            background: isActive ? MAP_COLORS.selectedSubtle : "rgba(255,255,255,0.02)",
+                            color: isActive ? MAP_COLORS.interaction : MAP_COLORS.text,
                             cursor: "pointer",
                             textAlign: "left",
                           }}
@@ -1077,8 +1077,8 @@ export const MapChoroplethLayer: React.FC<MapChoroplethLayerProps> = ({
                             onClick={() => setIsolatedClassIndex((current) => (current === entry.index ? null : entry.index))}
                             style={{
                               ...legendButtonStyle,
-                              border: `1px solid ${isActive ? MAP_COLORS.amberBorderStrong : MAP_COLORS.amberBorder}`,
-                              background: isActive ? MAP_COLORS.amberDim : legendButtonStyle.background,
+                              border: `1px solid ${isActive ? MAP_COLORS.focus : MAP_COLORS.hairline}`,
+                              background: isActive ? MAP_COLORS.selectedSubtle : legendButtonStyle.background,
                             }}
                             aria-pressed={isActive}
                           >
@@ -1137,7 +1137,7 @@ export const MapChoroplethLayer: React.FC<MapChoroplethLayerProps> = ({
           }}
           aria-hidden="true"
         >
-          <div style={{ color: MAP_COLORS.amber, fontSize: 11, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
+          <div style={{ color: MAP_COLORS.interaction, fontSize: 11, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
             {hoverState.featureId}
           </div>
           <div style={{ color: MAP_COLORS.text, fontSize: 13, marginTop: 2 }}>

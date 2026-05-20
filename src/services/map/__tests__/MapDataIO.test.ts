@@ -19,6 +19,7 @@ import {
   parseGPXText,
   parseKMLText,
   parseKMZArrayBuffer,
+  prepareMapImportFile,
   validateFeatureCollection,
 } from "../MapDataImporter";
 import {
@@ -386,6 +387,58 @@ describe("MapDataImporter", () => {
       description: "Primary survey node",
     });
     expect(collection.features[1].geometry?.type).toBe("Polygon");
+  });
+
+  it("prepares foldered KML imports with mixed geometry placemarks", async () => {
+    const kml = `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <Folder>
+      <name>Field Survey</name>
+      <Placemark>
+        <name>Observation Point</name>
+        <description>Primary survey node</description>
+        <Point><coordinates>28.9784,41.0082,12</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <name>Survey Route</name>
+        <description>Walking trace</description>
+        <LineString>
+          <coordinates>28.9784,41.0082,12 28.9900,41.0100,15 29.0000,41.0200,18</coordinates>
+        </LineString>
+      </Placemark>
+      <Placemark>
+        <name>Study Polygon</name>
+        <description>AOI boundary</description>
+        <Polygon>
+          <outerBoundaryIs>
+            <LinearRing>
+              <coordinates>
+                28.97,41.00,0 28.99,41.00,0 28.99,41.02,0 28.97,41.02,0 28.97,41.00,0
+              </coordinates>
+            </LinearRing>
+          </outerBoundaryIs>
+        </Polygon>
+      </Placemark>
+    </Folder>
+  </Document>
+</kml>`;
+
+    const prepared = await prepareMapImportFile(new File([kml], "field-survey.kml", {
+      type: "application/vnd.google-earth.kml+xml",
+    }));
+
+    expect(prepared.kind).toBe("ready");
+    if (prepared.kind !== "ready") {
+      throw new Error("Expected KML to prepare as a ready layer.");
+    }
+    expect(prepared.result.layer.name).toBe("field-survey");
+    expect(prepared.result.layer.metadata?.importFormat).toBe("kml");
+    expect(prepared.result.featureCollection.features.map((feature) => feature.geometry?.type)).toEqual([
+      "Point",
+      "LineString",
+      "Polygon",
+    ]);
   });
 
   it("parses GPX waypoints, routes, and tracks with elevation metadata", () => {

@@ -48,9 +48,9 @@ async function seedReportLayer(page: Page): Promise<void> {
         ],
       },
       style: {
-        fillColor: "#f59e0b",
+        fillColor: "#3794ff",
         fillOpacity: 0.36,
-        strokeColor: "#fbbf24",
+        strokeColor: "#38bdf8",
       },
       metadata: {
         geometryType: "Polygon",

@@ -313,6 +313,10 @@ type JsPdfConstructor = new (options: {
 const DEFAULT_PREVIEW_WIDTH = 360;
 export const MAP_PUBLICATION_MANIFEST_VERSION = 1;
 const DOM_CAPTURE_BACKGROUND = "rgba(13,13,13,0.001)";
+const EXPORT_DECORATION_ACCENT = "#3794FF";
+const EXPORT_DECORATION_ACCENT_SOFT = "rgba(55,148,255,0.35)";
+const EXPORT_DECORATION_ACCENT_SUBTLE = "rgba(55,148,255,0.25)";
+const EXPORT_DECORATION_ACCENT_BORDER = "rgba(55,148,255,0.4)";
 const TITLE_BAND_CSS_HEIGHT = 60;
 const SCALE_BAR_MAX_WIDTH_CSS = 160;
 const SCALE_BAR_MARGIN_CSS = 24;
@@ -334,7 +338,7 @@ export const A0_SHEET_LAYOUT_MM = {
 export const A0_LEGEND_PANEL_MM = { width: 155, height: 68 } as const;
 export const A0_NORTH_ARROW_PANEL_MM = { width: 26, height: 26 } as const;
 const DEFAULT_LAYER_COLORS: Record<OverlayLayerConfig["type"], string> = {
-  geojson: "#F59E0B",
+  geojson: "#3794FF",
   heatmap: "#EF4444",
   "raster-tile": "#38BDF8",
   "vector-tile": "#A78BFA",
@@ -1201,16 +1205,17 @@ async function rasterizeElement(
 }
 
 function createNorthArrowSvg(size: number): string {
-  const amber = escapeXml(MAP_COLORS.amber);
+  const accent = escapeXml(EXPORT_DECORATION_ACCENT);
   const text = escapeXml(MAP_COLORS.text);
   const fontFamily = escapeXml(MAP_TYPOGRAPHY.fontFamilyBrand);
+  const accentBorder = escapeXml(EXPORT_DECORATION_ACCENT_BORDER);
   return [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 64 64">`,
-    '<circle cx="32" cy="32" r="30" fill="rgba(13,13,13,0.82)" stroke="rgba(245,158,11,0.4)" stroke-width="2"/>',
+    `<circle cx="32" cy="32" r="30" fill="rgba(13,13,13,0.82)" stroke="${accentBorder}" stroke-width="2"/>`,
     `<text x="32" y="16" text-anchor="middle" fill="${text}" font-size="11" font-family="${fontFamily}" font-weight="600">N</text>`,
-    `<path d="M32 17 L39 38 L32 33 L25 38 Z" fill="${amber}" stroke="${amber}" stroke-linejoin="round"/>`,
+    `<path d="M32 17 L39 38 L32 33 L25 38 Z" fill="${accent}" stroke="${accent}" stroke-linejoin="round"/>`,
     `<path d="M32 47 L25 30 L32 35 L39 30 Z" fill="rgba(255,255,255,0.22)" stroke="rgba(255,255,255,0.22)" stroke-linejoin="round"/>`,
-    `<path d="M32 18 L32 48" stroke="${amber}" stroke-width="2.5" stroke-linecap="round"/>`,
+    `<path d="M32 18 L32 48" stroke="${accent}" stroke-width="2.5" stroke-linecap="round"/>`,
     "</svg>",
   ].join("");
 }
@@ -1312,7 +1317,7 @@ function drawScaleBar(
 
   context.save();
   context.fillStyle = "rgba(13,13,13,0.82)";
-  context.strokeStyle = "rgba(245,158,11,0.35)";
+  context.strokeStyle = EXPORT_DECORATION_ACCENT_SOFT;
   context.lineWidth = Math.max(1, Math.round(pixelScale));
   drawRoundedRect(context, panelX, panelY, panelWidth, panelHeight, Math.round(8 * pixelScale));
   context.fill();
@@ -1590,7 +1595,7 @@ function drawPublicationNorthArrow(
   context.closePath();
   context.fill();
   if (options.northArrowStyle === "compass") {
-    context.strokeStyle = "#F59E0B";
+    context.strokeStyle = EXPORT_DECORATION_ACCENT;
     context.beginPath();
     context.moveTo(-size * 0.32, 0);
     context.lineTo(size * 0.32, 0);
@@ -2146,8 +2151,8 @@ function buildPublicationSvg(
     chunks.push(`<g transform="translate(${centerX} ${centerY}) rotate(${-map.getBearing()})">`);
     chunks.push(`<circle cx="0" cy="0" r="${size / 2}" fill="rgba(255,255,255,0.9)" stroke="rgba(17,24,39,0.35)"/>`);
     if (composition.northArrowStyle === "compass") {
-      chunks.push(`<line x1="${-size * 0.32}" y1="0" x2="${size * 0.32}" y2="0" stroke="#F59E0B" stroke-width="${Math.max(1, Math.round(1.5 * scale))}"/>`);
-      chunks.push(`<line x1="0" y1="${-size * 0.32}" x2="0" y2="${size * 0.32}" stroke="#F59E0B" stroke-width="${Math.max(1, Math.round(1.5 * scale))}"/>`);
+      chunks.push(`<line x1="${-size * 0.32}" y1="0" x2="${size * 0.32}" y2="0" stroke="${EXPORT_DECORATION_ACCENT}" stroke-width="${Math.max(1, Math.round(1.5 * scale))}"/>`);
+      chunks.push(`<line x1="0" y1="${-size * 0.32}" x2="0" y2="${size * 0.32}" stroke="${EXPORT_DECORATION_ACCENT}" stroke-width="${Math.max(1, Math.round(1.5 * scale))}"/>`);
     }
     chunks.push(`<path d="M 0 ${-size * 0.36} L ${size * 0.18} ${size * 0.22} L 0 ${size * 0.1} L ${-size * 0.18} ${size * 0.22} Z" fill="#111827"/>`);
     chunks.push(`</g><text x="${centerX}" y="${origin.y + Math.round(12 * scale)}" text-anchor="middle" font-family="${escapeXml(MAP_TYPOGRAPHY.fontFamilyBrand)}" font-size="${Math.round(10 * scale)}" font-weight="700" fill="#111827">N</text>`);
@@ -2472,14 +2477,14 @@ async function renderComposite(
   if (titleBandHeight > 0) {
     context.fillStyle = "rgba(13,13,13,0.96)";
     context.fillRect(0, 0, canvas.width, titleBandHeight);
-    context.strokeStyle = "rgba(245,158,11,0.25)";
+    context.strokeStyle = EXPORT_DECORATION_ACCENT_SUBTLE;
     context.lineWidth = Math.max(1, Math.round(pixelScale));
     context.beginPath();
     context.moveTo(0, titleBandHeight - context.lineWidth);
     context.lineTo(canvas.width, titleBandHeight - context.lineWidth);
     context.stroke();
 
-    context.fillStyle = MAP_COLORS.amber;
+    context.fillStyle = EXPORT_DECORATION_ACCENT;
     context.font = `${Math.max(16, Math.round(22 * pixelScale))}px ${MAP_TYPOGRAPHY.fontFamilyBrand}`;
     context.textBaseline = "middle";
     context.fillText(

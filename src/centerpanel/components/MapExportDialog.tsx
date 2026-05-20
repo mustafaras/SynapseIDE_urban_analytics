@@ -7,6 +7,7 @@ import {
   MAP_RADIUS,
   MAP_SHADOWS,
   MAP_SPACING,
+  MAP_STROKES,
   MAP_TYPOGRAPHY,
 } from "./map/mapTokens";
 
@@ -56,13 +57,13 @@ const dialogStyle: React.CSSProperties = {
 
 const sectionStyle: React.CSSProperties = {
   background: "rgba(13,13,13,0.82)",
-  border: `1px solid ${MAP_COLORS.amberBorder}`,
-  borderRadius: MAP_RADIUS.md,
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.sm,
   padding: 16,
 };
 
 const headingStyle: React.CSSProperties = {
-  color: MAP_COLORS.amber,
+  color: MAP_COLORS.text,
   fontFamily: MAP_TYPOGRAPHY.fontFamilyBrand,
   fontSize: 14,
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
@@ -78,9 +79,9 @@ const previewShell: React.CSSProperties = {
 
 const previewFrame: React.CSSProperties = {
   minHeight: 360,
-  background: "linear-gradient(180deg, rgba(23,23,23,0.95), rgba(13,13,13,0.98))",
-  border: `1px solid ${MAP_COLORS.amberBorder}`,
-  borderRadius: MAP_RADIUS.md,
+  background: MAP_COLORS.bg,
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.sm,
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
@@ -97,7 +98,7 @@ const buttonRow: React.CSSProperties = {
 const buttonStyle: React.CSSProperties = {
   padding: "8px 14px",
   borderRadius: MAP_RADIUS.sm,
-  border: `1px solid ${MAP_COLORS.amberBorder}`,
+  border: MAP_STROKES.hairlineSubtle,
   background: "transparent",
   color: MAP_COLORS.textSecondary,
   cursor: "pointer",
@@ -106,9 +107,9 @@ const buttonStyle: React.CSSProperties = {
 
 const primaryButtonStyle: React.CSSProperties = {
   ...buttonStyle,
-  background: MAP_COLORS.amberDim,
-  borderColor: MAP_COLORS.amberBorderStrong,
-  color: MAP_COLORS.amber,
+  background: MAP_COLORS.interactionSubtle,
+  borderColor: MAP_COLORS.focus,
+  color: MAP_COLORS.interaction,
 };
 
 const disabledButtonStyle: React.CSSProperties = {
@@ -121,7 +122,7 @@ const readinessStyle: React.CSSProperties = {
   gap: 8,
   marginTop: 16,
   paddingTop: 14,
-  borderTop: `1px solid ${MAP_COLORS.amberBorder}`,
+  borderTop: MAP_STROKES.hairlineSubtle,
 };
 
 const readinessHeaderStyle: React.CSSProperties = {
@@ -133,7 +134,7 @@ const readinessHeaderStyle: React.CSSProperties = {
 
 const readinessBadgeStyle: React.CSSProperties = {
   borderRadius: MAP_RADIUS.sm,
-  border: `1px solid ${MAP_COLORS.amberBorder}`,
+  border: MAP_STROKES.hairlineSubtle,
   padding: "4px 7px",
   fontSize: 10,
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
@@ -150,10 +151,15 @@ const readinessListStyle: React.CSSProperties = {
   lineHeight: 1.42,
 };
 
-function getReadinessBadgeTone(status: MapPublicationReadiness["status"]): React.CSSProperties {
-  if (status === "blocked") return { color: "#fca5a5", background: "rgba(248,113,113,0.12)", borderColor: "rgba(248,113,113,0.34)" };
-  if (status === "ready-with-caveats") return { color: MAP_COLORS.amber, background: "rgba(245,158,11,0.12)", borderColor: "rgba(245,158,11,0.34)" };
-  return { color: "#86efac", background: "rgba(34,197,94,0.1)", borderColor: "rgba(34,197,94,0.28)" };
+type VisibleReadinessStatus = MapPublicationReadiness["status"] | "needs-review" | "stale" | "unknown";
+
+function getReadinessBadgeTone(status: VisibleReadinessStatus): React.CSSProperties {
+  if (status === "blocked") return { color: MAP_COLORS.error, background: "rgba(248,113,113,0.12)", borderColor: "rgba(248,113,113,0.34)" };
+  if (status === "ready-with-caveats") return { color: MAP_COLORS.caveatText, background: MAP_COLORS.caveat, borderColor: MAP_COLORS.focus };
+  if (status === "ready") return { color: MAP_COLORS.success, background: "rgba(34,197,94,0.1)", borderColor: "rgba(34,197,94,0.28)" };
+  if (status === "needs-review") return { color: MAP_COLORS.interaction, background: MAP_COLORS.interactionSubtle, borderColor: MAP_COLORS.focus };
+  if (status === "stale") return { color: MAP_COLORS.textMuted, background: MAP_COLORS.neutralSubtle, borderColor: MAP_COLORS.hairlineStrong };
+  return { color: MAP_COLORS.textSecondary, background: MAP_COLORS.neutralSubtle, borderColor: MAP_COLORS.hairlineStrong };
 }
 
 export const MapExportDialog: React.FC<MapExportDialogProps> = ({

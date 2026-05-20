@@ -221,7 +221,7 @@ function makeAnnotation(): MapAnnotation {
     properties: {
       text: "Policy note",
       fontSize: 18,
-      color: "#F59E0B",
+      color: "#A855F7",
       bold: true,
       italic: false,
       rotation: 0,

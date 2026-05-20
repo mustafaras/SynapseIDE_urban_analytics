@@ -11,7 +11,7 @@
   line-height: 1.08;
   text-align: center;
   margin: 0 0 1.75rem 0;
-  background: var(--syn-gradient-amber-text);
+  background: linear-gradient(90deg, #dbeafe 0%, #93c5fd 38%, #5aa9ff 68%, #3794ff 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;

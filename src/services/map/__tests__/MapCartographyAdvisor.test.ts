@@ -69,7 +69,7 @@ function pointLayer(count: number): OverlayLayerConfig {
     sourceData: collection,
     style: {
       "circle-radius": 9,
-      "circle-color": "#F59E0B",
+      "circle-color": "#3794FF",
     },
     metadata: {
       featureCount: count,
@@ -116,7 +116,7 @@ describe("MapCartographyAdvisor", () => {
 
   it("creates legend and classification proposals for thematic polygon layers", () => {
     const layer = polygonLayer([1, 2, 3, 4, 5, 6, 7, 8, 9, 1000], {
-      "fill-color": "#F59E0B",
+      "fill-color": "#3794FF",
     });
     const review = generateMapCartographyReview([layer], {
       now: new Date("2026-05-01T00:00:00.000Z"),

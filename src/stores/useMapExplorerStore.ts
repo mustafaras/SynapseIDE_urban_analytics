@@ -81,7 +81,7 @@ const DEFAULT_LAYOUT_PREFERENCES: MapExplorerLayoutPreferences = {
 
 const DEFAULT_ANNOTATION_SETTINGS: MapAnnotationStyleSettings = {
   fontSize: 16,
-  color: "#F59E0B",
+  color: "#3794ff",
   bold: true,
   italic: false,
   rotation: 0,
@@ -603,7 +603,16 @@ function emitMapLayerRegistryChange(
     ...(layerId ? { layerId } : {}),
   };
 
-  globalThis.dispatchEvent(new CustomEvent(MAP_LAYER_REGISTRY_EVENT, { detail }));
+  const dispatch = () => {
+    globalThis.dispatchEvent(new CustomEvent(MAP_LAYER_REGISTRY_EVENT, { detail }));
+  };
+
+  if (typeof globalThis.setTimeout === "function") {
+    globalThis.setTimeout(dispatch, 0);
+    return;
+  }
+
+  dispatch();
 }
 
 function markDependentAnalysisLayersStale(

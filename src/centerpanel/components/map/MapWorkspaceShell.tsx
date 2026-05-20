@@ -94,6 +94,14 @@ const bottomTimelineSlotStyle: React.CSSProperties = {
   borderTop: MAP_STROKES.none,
 };
 
+const mapExplorerA11yVars = {
+  "--syn-text-muted": "#95a1af",
+  "--syn-interaction-active": "#69b6ff",
+  "--syn-interaction-focus-ring": "#69b6ff",
+  "--syn-border-focus": "#69b6ff",
+  "--syn-text-link": "#69b6ff",
+} as React.CSSProperties;
+
 const workspaceFocusCss = `
 [data-map-explorer-shell="true"] :focus-visible {
   outline: 2px solid var(--syn-border-focus, var(--syn-interaction-focus-ring, #3794ff)) !important;
@@ -213,7 +221,10 @@ export const MapWorkspaceShell: React.FC<MapWorkspaceShellProps> = ({
       data-map-workspace-shell={isModal ? "modal" : "embedded"}
     >
       <div
-        style={isModal ? mapStyles.modal : mapStyles.embeddedSurface}
+        style={{
+          ...(isModal ? mapStyles.modal : mapStyles.embeddedSurface),
+          ...mapExplorerA11yVars,
+        }}
         ref={shellRef}
         className="MapWorkspaceShell__surface"
         data-map-explorer-shell="true"

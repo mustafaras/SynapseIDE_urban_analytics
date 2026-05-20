@@ -9,11 +9,17 @@ function createGeoJsonFixture() {
       {
         type: "Feature",
         geometry: {
-          type: "Point",
-          coordinates: [28.9784, 41.0082],
+          type: "Polygon",
+          coordinates: [[
+            [28.972, 41.004],
+            [28.98, 41.004],
+            [28.98, 41.012],
+            [28.972, 41.012],
+            [28.972, 41.004],
+          ]],
         },
         properties: {
-          name: "Observation Point",
+          name: "Observation Area",
           category: "survey",
         },
       },
@@ -154,7 +160,7 @@ test.describe("Map Explorer context menu and GeoJSON I/O", () => {
     await expect(layerList).toContainText("study-area");
 
     await triggerDomClick(mapExplorer.getByRole("button", { name: "Save, load, and export map outputs" }));
-    await triggerDomClick(page.getByRole("menu", { name: "Export commands" }).getByRole("button", {
+    await triggerDomClick(page.getByRole("menu", { name: "Export commands" }).getByRole("menuitem", {
       name: "Export visible map data as GeoJSON",
     }));
 

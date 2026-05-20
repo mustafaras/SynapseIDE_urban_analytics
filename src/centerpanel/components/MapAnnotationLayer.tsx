@@ -76,7 +76,7 @@ const panelTitleStyle: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   gap: MAP_SPACING.xs,
-  color: MAP_COLORS.amber,
+  color: MAP_COLORS.interaction,
   fontSize: MAP_TYPOGRAPHY.fontSize.sm,
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
 };
@@ -114,7 +114,7 @@ const swatchStyle = (color: string, active: boolean): React.CSSProperties => ({
   border: active ? MAP_STROKES.hairlineStrong : MAP_STROKES.hairlineSubtle,
   background: color,
   cursor: "pointer",
-  boxShadow: active ? `0 0 0 1px ${MAP_COLORS.amber}` : MAP_SHADOWS.none,
+  boxShadow: active ? `0 0 0 1px ${MAP_COLORS.focus}` : MAP_SHADOWS.none,
 });
 
 const inlineLabelStyle: React.CSSProperties = {
@@ -220,7 +220,7 @@ function ensureAnnotationLayers(map: maplibregl.Map): void {
         type: "line",
         source: ANNOTATION_LEADER_SOURCE_ID,
         paint: {
-          "line-color": ["coalesce", ["get", "color"], MAP_COLORS.amber],
+          "line-color": ["coalesce", ["get", "color"], MAP_COLORS.interaction],
           "line-opacity": 0.82,
           "line-width": 1.25,
           "line-dasharray": [2, 2],
@@ -241,8 +241,8 @@ function ensureAnnotationLayers(map: maplibregl.Map): void {
         filter: ["==", ["get", "__annotationId"], ""],
         paint: {
           "circle-radius": 9,
-          "circle-color": "rgba(245, 158, 11, 0.16)",
-          "circle-stroke-color": MAP_COLORS.amber,
+          "circle-color": "rgba(55, 148, 255, 0.16)",
+          "circle-stroke-color": MAP_COLORS.interaction,
           "circle-stroke-width": 1.5,
         },
       } as maplibregl.LayerSpecification);
@@ -271,7 +271,7 @@ function ensureAnnotationLayers(map: maplibregl.Map): void {
           "text-ignore-placement": true,
         } as unknown as maplibregl.SymbolLayerSpecification["layout"],
         paint: {
-          "text-color": ["coalesce", ["get", "color"], MAP_COLORS.amber],
+          "text-color": ["coalesce", ["get", "color"], MAP_COLORS.interaction],
           "text-halo-color": ["case", ["==", ["get", "hasBackground"], true], "rgba(12, 12, 12, 0.92)", "rgba(12, 12, 12, 0)"],
           "text-halo-width": ["case", ["==", ["get", "hasBackground"], true], 3.5, 0],
           "text-opacity": 1,

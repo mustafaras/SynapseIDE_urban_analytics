@@ -276,7 +276,7 @@ function buildPopupHtml(
 
   return `
     <div style="min-width:240px;max-width:340px;padding:12px 14px;font-family:${MAP_TYPOGRAPHY.fontFamily};color:${MAP_COLORS.text};background:rgba(13,13,13,0.96);border-radius:${MAP_RADIUS.md}px;">
-      <div style="font-size:11px;color:${MAP_COLORS.amber};letter-spacing:0.06em;text-transform:uppercase;font-weight:${MAP_TYPOGRAPHY.fontWeight.semibold};margin-bottom:2px;">VoxCity</div>
+      <div style="font-size:11px;color:${MAP_COLORS.interaction};letter-spacing:0.06em;text-transform:uppercase;font-weight:${MAP_TYPOGRAPHY.fontWeight.semibold};margin-bottom:2px;">VoxCity</div>
       <div style="font-size:14px;color:${MAP_COLORS.text};font-weight:${MAP_TYPOGRAPHY.fontWeight.bold};margin-bottom:${subtitle ? "2px" : "8px"};">${escapeHtml(title)}</div>
       ${subtitle ? `<div style="font-size:11px;color:${MAP_COLORS.textSecondary};margin-bottom:8px;">${escapeHtml(subtitle)}</div>` : ""}
       <div>${rows}</div>
@@ -348,7 +348,7 @@ const panelHeaderStyle: React.CSSProperties = {
   justifyContent: "space-between",
   gap: 12,
   padding: "12px 14px",
-  borderBottom: `1px solid ${MAP_COLORS.amberBorder}`,
+  borderBottom: `1px solid ${MAP_COLORS.hairline}`,
   color: MAP_COLORS.text,
 };
 
@@ -393,7 +393,7 @@ const segmentBtn: React.CSSProperties = {
   gap: 6,
   padding: "8px 6px",
   borderRadius: MAP_RADIUS.sm,
-  border: `1px solid ${MAP_COLORS.amberBorder}`,
+  border: `1px solid ${MAP_COLORS.hairline}`,
   background: "rgba(255,255,255,0.02)",
   color: MAP_COLORS.textSecondary,
   fontSize: 11,
@@ -405,9 +405,9 @@ const segmentBtn: React.CSSProperties = {
 
 const segmentBtnActive: React.CSSProperties = {
   ...segmentBtn,
-  background: MAP_COLORS.amberDim,
-  color: MAP_COLORS.amber,
-  borderColor: MAP_COLORS.amberBorderStrong,
+  background: MAP_COLORS.selectedSubtle,
+  color: MAP_COLORS.interaction,
+  borderColor: MAP_COLORS.focus,
 };
 
 const sliderRow: React.CSSProperties = {
@@ -418,7 +418,7 @@ const sliderRow: React.CSSProperties = {
 
 const slider: React.CSSProperties = {
   flex: 1,
-  accentColor: MAP_COLORS.amber,
+  accentColor: MAP_COLORS.interaction,
 };
 
 const closeBtn: React.CSSProperties = {
@@ -440,7 +440,7 @@ const toggleBtn: React.CSSProperties = {
   gap: 10,
   padding: "8px 10px",
   borderRadius: MAP_RADIUS.sm,
-  border: `1px solid ${MAP_COLORS.amberBorder}`,
+  border: `1px solid ${MAP_COLORS.hairline}`,
   background: "rgba(255,255,255,0.02)",
   color: MAP_COLORS.text,
   fontSize: 12,
@@ -449,9 +449,9 @@ const toggleBtn: React.CSSProperties = {
 
 const toggleBtnActive: React.CSSProperties = {
   ...toggleBtn,
-  background: MAP_COLORS.amberDim,
-  borderColor: MAP_COLORS.amberBorderStrong,
-  color: MAP_COLORS.amber,
+  background: MAP_COLORS.selectedSubtle,
+  borderColor: MAP_COLORS.focus,
+  color: MAP_COLORS.interaction,
 };
 
 const legendChip: React.CSSProperties = {
@@ -460,7 +460,7 @@ const legendChip: React.CSSProperties = {
   gap: 6,
   padding: "4px 8px",
   borderRadius: 999,
-  border: `1px solid ${MAP_COLORS.amberBorder}`,
+  border: `1px solid ${MAP_COLORS.hairline}`,
   background: "rgba(255,255,255,0.02)",
   fontSize: 11,
   color: MAP_COLORS.textSecondary,
@@ -485,13 +485,13 @@ const statBlock: React.CSSProperties = {
   gap: 3,
   padding: "8px 10px",
   borderRadius: MAP_RADIUS.sm,
-  border: `1px solid ${MAP_COLORS.amberBorder}`,
+  border: `1px solid ${MAP_COLORS.hairline}`,
   background: "rgba(255,255,255,0.02)",
 };
 
 const statValue: React.CSSProperties = {
   fontSize: 14,
-  color: MAP_COLORS.amber,
+  color: MAP_COLORS.interaction,
   fontWeight: MAP_TYPOGRAPHY.fontWeight.bold,
   fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
 };
@@ -759,7 +759,7 @@ export const MapVoxCityOverlay: React.FC<MapVoxCityOverlayProps> = ({
           type: "line",
           source: FOOTPRINT_SOURCE_ID,
           paint: {
-            "line-color": MAP_COLORS.amber,
+            "line-color": MAP_COLORS.interaction,
             "line-width": 0.6,
             "line-opacity": 0.75,
           },
@@ -772,7 +772,7 @@ export const MapVoxCityOverlay: React.FC<MapVoxCityOverlayProps> = ({
           type: "line",
           source: FOOTPRINT_SOURCE_ID,
           paint: {
-            "line-color": "#F59E0B",
+            "line-color": "#3794ff",
             "line-width": 3,
             "line-opacity": [
               "case",
@@ -1114,7 +1114,7 @@ export const MapVoxCityOverlay: React.FC<MapVoxCityOverlayProps> = ({
         contentEl.style.padding = "0";
         contentEl.style.borderRadius = String(MAP_RADIUS.md);
         contentEl.style.boxShadow = MAP_SHADOWS.dropdown;
-        contentEl.style.border = `1px solid ${MAP_COLORS.amberBorderStrong}`;
+        contentEl.style.border = `1px solid ${MAP_COLORS.focus}`;
       }
       const tipTopEl = popupEl?.querySelector(".maplibregl-popup-anchor-top .maplibregl-popup-tip");
       const tipBottomEl = popupEl?.querySelector(".maplibregl-popup-anchor-bottom .maplibregl-popup-tip");
@@ -1122,7 +1122,7 @@ export const MapVoxCityOverlay: React.FC<MapVoxCityOverlayProps> = ({
       if (tipBottomEl instanceof HTMLElement) tipBottomEl.style.borderTopColor = "rgba(13,13,13,0.96)";
       const closeBtnEl = popupEl?.querySelector(".maplibregl-popup-close-button");
       if (closeBtnEl instanceof HTMLElement) {
-        closeBtnEl.style.color = MAP_COLORS.amber;
+        closeBtnEl.style.color = MAP_COLORS.interaction;
         closeBtnEl.style.fontSize = "16px";
         closeBtnEl.style.padding = "2px 8px";
         closeBtnEl.style.right = "4px";
@@ -1407,7 +1407,7 @@ export const MapVoxCityOverlay: React.FC<MapVoxCityOverlayProps> = ({
     width: "100%",
     minHeight: 30,
     borderRadius: MAP_RADIUS.sm,
-    border: `1px solid ${MAP_COLORS.amberBorder}`,
+    border: `1px solid ${MAP_COLORS.hairline}`,
     background: MAP_COLORS.bgPanel,
     color: MAP_COLORS.text,
     fontSize: 11,
@@ -1427,9 +1427,9 @@ export const MapVoxCityOverlay: React.FC<MapVoxCityOverlayProps> = ({
     >
       <div style={{ ...panelHeaderStyle, ...dragHandleStyle }} {...dragHandleProps}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <Building2 size={16} color={MAP_COLORS.amber} />
+          <Building2 size={16} color={MAP_COLORS.interaction} />
           <div>
-            <div style={{ ...labelStyle, color: MAP_COLORS.amber, fontSize: 10 }}>VoxCity Overlay</div>
+            <div style={{ ...labelStyle, color: MAP_COLORS.interaction, fontSize: 10 }}>VoxCity Overlay</div>
             <div style={{ fontSize: 13, fontWeight: MAP_TYPOGRAPHY.fontWeight.bold, color: MAP_COLORS.text }}>
               Building Footprints &amp; CityJSON
             </div>
@@ -1454,11 +1454,11 @@ export const MapVoxCityOverlay: React.FC<MapVoxCityOverlayProps> = ({
             gap: 6,
             padding: "10px 12px",
             borderRadius: MAP_RADIUS.sm,
-            border: `1px solid ${MAP_COLORS.amberBorder}`,
-            background: "rgba(245,158,11,0.08)",
+            border: `1px solid ${MAP_COLORS.hairline}`,
+            background: MAP_COLORS.interactionSubtle,
           }}
         >
-          <span style={{ ...labelStyle, color: MAP_COLORS.amber }}>Building Source</span>
+          <span style={{ ...labelStyle, color: MAP_COLORS.interaction }}>Building Source</span>
           <div style={segmentRow}>
             {(["demo", "active-layer", "osm"] as VoxCityOverlaySourceMode[]).map((mode) => (
               <button
@@ -1533,7 +1533,7 @@ export const MapVoxCityOverlay: React.FC<MapVoxCityOverlayProps> = ({
               ? `Anchor: ${anchor.latitude.toFixed(5)}, ${anchor.longitude.toFixed(5)}`
               : `Provenance: ${footprintSourceProvenance}`}
           </span>
-          {sourceStatus ? <span style={{ fontSize: 10, color: MAP_COLORS.amber }}>{sourceStatus}</span> : null}
+          {sourceStatus ? <span style={{ fontSize: 10, color: MAP_COLORS.textSecondary }}>{sourceStatus}</span> : null}
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             {sourceMode === "demo" ? (
               <button
@@ -1757,11 +1757,11 @@ export const MapVoxCityOverlay: React.FC<MapVoxCityOverlayProps> = ({
               ...sectionStyle,
               padding: 10,
               borderRadius: MAP_RADIUS.sm,
-              border: `1px solid ${MAP_COLORS.amberBorderStrong}`,
-              background: MAP_COLORS.amberDim,
+              border: `1px solid ${MAP_COLORS.focus}`,
+              background: MAP_COLORS.selectedSubtle,
             }}
           >
-            <span style={{ ...labelStyle, color: MAP_COLORS.amber }}>Linked Selection</span>
+            <span style={{ ...labelStyle, color: MAP_COLORS.interaction }}>Linked Selection</span>
             <span style={{ fontSize: 12, color: MAP_COLORS.text, fontFamily: MAP_TYPOGRAPHY.fontFamilyMono }}>
               {selectedBuildingId}
             </span>

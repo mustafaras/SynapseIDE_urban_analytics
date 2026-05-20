@@ -182,7 +182,7 @@
 .commandReadinessTop {
   justify-content: space-between;
   gap: 10px;
-  color: rgba(250, 250, 249, 0.56);
+  color: var(--cockpit-text-muted);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -344,7 +344,7 @@
 
 .contextCellCopy span:last-child {
   overflow: hidden;
-  color: rgba(250, 250, 249, 0.5);
+  color: var(--cockpit-text-muted);
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -428,7 +428,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: rgba(250, 250, 249, 0.52);
+  color: var(--cockpit-text-muted);
   font-size: 10px;
   font-weight: 700;
 }
@@ -473,7 +473,7 @@
 .metricSub {
   overflow: hidden;
   max-width: 100%;
-  color: rgba(250, 250, 249, 0.38);
+  color: var(--cockpit-text-muted);
   font-family: var(--font-mono, "JetBrains Mono", monospace);
   font-size: 9px;
   line-height: 1.25;
@@ -520,7 +520,7 @@
 .signalAttention,
 .signalBlocked,
 .signalNeutral {
-  --signal-color: rgba(250, 250, 249, 0.56);
+  --signal-color: var(--cockpit-text-muted);
   --signal-bg: transparent;
 }
 
@@ -590,7 +590,7 @@
 .quickBtnCopy span,
 .modeBtnCopy span {
   overflow: hidden;
-  color: rgba(250, 250, 249, 0.52);
+  color: var(--cockpit-text-muted);
   font-size: 10px;
   line-height: 1.35;
   text-overflow: ellipsis;
@@ -625,7 +625,7 @@
 .recommendedBand p {
   margin: 6px 0 0;
   overflow: hidden;
-  color: rgba(250, 250, 249, 0.62);
+  color: var(--cockpit-text-secondary);
   font-size: 11px;
   line-height: 1.45;
   text-overflow: clip;
@@ -702,7 +702,7 @@
   height: 26px;
   border-radius: 0;
   background: transparent;
-  color: rgba(250, 250, 249, 0.54);
+  color: var(--cockpit-text-muted);
   font-family: var(--font-mono, "JetBrains Mono", monospace);
   font-size: 11px;
   font-weight: 800;
@@ -726,7 +726,7 @@
 
 .sequenceCopy span {
   overflow: hidden;
-  color: rgba(250, 250, 249, 0.44);
+  color: var(--cockpit-text-muted);
   font-size: 10px;
   line-height: 1.35;
   text-overflow: ellipsis;
@@ -756,7 +756,7 @@
 }
 
 .sequenceStepUpcoming .sequenceStatus {
-  color: rgba(250, 250, 249, 0.38);
+  color: var(--cockpit-text-muted);
   background: transparent;
 }
 
@@ -888,7 +888,7 @@
 
 .analysisRecommendationReadiness {
   justify-self: end;
-  color: rgba(250, 250, 249, 0.58);
+  color: var(--cockpit-text-muted);
   font-family: var(--font-mono, "JetBrains Mono", monospace);
   font-size: 9px;
   font-weight: 800;
@@ -925,7 +925,7 @@
 }
 
 .analysisRecommendationReason {
-  color: rgba(250, 250, 249, 0.48);
+  color: var(--cockpit-text-muted);
   font-family: var(--font-mono, "JetBrains Mono", monospace);
   font-size: 9px;
   font-weight: 700;
@@ -962,7 +962,7 @@
   grid-template-columns: 1fr;
   gap: 3px;
   min-width: 0;
-  color: rgba(250, 250, 249, 0.52);
+  color: var(--cockpit-text-muted);
   font-size: 10px;
   line-height: 1.35;
 }
@@ -987,7 +987,7 @@
 
 .analysisRecommendationFooter > span {
   overflow: hidden;
-  color: rgba(250, 250, 249, 0.42);
+  color: var(--cockpit-text-muted);
   font-family: var(--font-mono, "JetBrains Mono", monospace);
   font-size: 9px;
   line-height: 1.25;
@@ -1040,7 +1040,7 @@
 }
 
 .analysisRecommendationEmpty span {
-  color: rgba(250, 250, 249, 0.52);
+  color: var(--cockpit-text-muted);
   font-size: 11px;
   line-height: 1.4;
 }
@@ -1114,7 +1114,7 @@
   flex: 1;
   min-width: 0;
   overflow: hidden;
-  color: rgba(250, 250, 249, 0.46);
+  color: var(--cockpit-text-muted);
   font-size: 9px;
   line-height: 1.3;
   text-overflow: ellipsis;

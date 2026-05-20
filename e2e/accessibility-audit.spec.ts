@@ -77,8 +77,8 @@ test.describe("Prompt 40 shell focus hardening @a11y", () => {
     await expectVisibleFocusIndicator(page);
 
     await page.keyboard.press("Tab");
-    const clearTerminalButton = page.getByRole("button", { name: /Clear terminal/i });
-    await expect(clearTerminalButton).toBeFocused();
+    const newTerminalButton = page.getByRole("button", { name: /New terminal session/i });
+    await expect(newTerminalButton).toBeFocused();
     await expectVisibleFocusIndicator(page);
     await expectNoAxeViolations(page, ".syn-terminal-container");
 
@@ -88,7 +88,7 @@ test.describe("Prompt 40 shell focus hardening @a11y", () => {
     await expectVisibleFocusIndicator(page);
 
     await page.keyboard.press("Tab");
-    await expect(clearTerminalButton).toBeFocused();
+    await expect(newTerminalButton).toBeFocused();
     await expectVisibleFocusIndicator(page);
   });
 

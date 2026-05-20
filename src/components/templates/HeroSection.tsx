@@ -26,7 +26,7 @@ const LaunchButtonStyled = styled.button<{ $theme: unknown; $themeName: string }
   -webkit-backdrop-filter: blur(20px);
   border: 1.5px solid
     ${({ $themeName }) =>
-      $themeName === 'light' ? 'rgba(245, 158, 11, 0.85)' : 'rgba(255, 255, 255, 0.2)'};
+      $themeName === 'light' ? 'rgba(55, 148, 255, 0.85)' : 'rgba(255, 255, 255, 0.2)'};
   border-radius: 50px;
 
 
@@ -49,7 +49,7 @@ const LaunchButtonStyled = styled.button<{ $theme: unknown; $themeName: string }
     box-shadow: none !important;
     text-shadow: none !important;
     border-color: ${({ $themeName }) =>
-      $themeName === 'light' ? 'rgba(245, 158, 11, 1)' : 'rgba(255, 255, 255, 0.3)'};
+      $themeName === 'light' ? 'rgba(55, 148, 255, 1)' : 'rgba(255, 255, 255, 0.3)'};
     transform: translateY(-4px) scale(1.05);
   }
 

@@ -3639,7 +3639,10 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       metadata.staleAt = externalService.staleAt ?? null;
     }
 
-    const artifact = createMapLayerEvidenceArtifact(layer, {
+    const { sourceData: _sourceData, ...evidenceLayer } = layer;
+    void _sourceData;
+
+    const artifact = createMapLayerEvidenceArtifact(evidenceLayer, {
       sourceModule,
       metadata,
     });
@@ -3715,24 +3718,39 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       }
     }
 
-    const evidenceArtifact = registerLayerEvidenceCandidate(layerForEvidence, "map-explorer");
-    recordMapReviewEvent({
-      type: "layer-change",
-      status: "recorded",
-      title: `Import evidence registered: ${result.layer.name}`,
-      summary: `${result.summary.sourceType.toUpperCase()} import added as a QA-aware evidence candidate with CRS ${layerForEvidence.metadata?.crsSummary?.crs ?? "unknown"}.`,
-      layerIds: [result.layer.id],
-      actionIds: [evidenceArtifact.id],
-      details: {
-        evidenceArtifactId: evidenceArtifact.id,
-        sourceType: result.summary.sourceType,
-        featureCount: result.summary.importedFeatureCount,
-        skippedRecordCount: result.summary.skippedRecordCount ?? 0,
-        workerTransferReady,
-        crsStatus: layerForEvidence.metadata?.crsSummary?.status ?? "unknown",
-        licenseStatus: layerForEvidence.metadata?.licenseAttribution?.license ?? "unknown",
-      },
-    });
+    const recordImportEvidence = () => {
+      try {
+        const evidenceArtifact = registerLayerEvidenceCandidate(layerForEvidence, "map-explorer");
+        recordMapReviewEvent({
+          type: "layer-change",
+          category: "layer-import",
+          status: "recorded",
+          title: `Import evidence registered: ${result.layer.name}`,
+          summary: `${result.summary.sourceType.toUpperCase()} import added as a QA-aware evidence candidate with CRS ${layerForEvidence.metadata?.crsSummary?.crs ?? "unknown"}.`,
+          layerIds: [result.layer.id],
+          evidenceArtifactIds: [evidenceArtifact.id],
+          actionIds: [evidenceArtifact.id],
+          details: {
+            evidenceArtifactId: evidenceArtifact.id,
+            sourceType: result.summary.sourceType,
+            featureCount: result.summary.importedFeatureCount,
+            skippedRecordCount: result.summary.skippedRecordCount ?? 0,
+            workerTransferReady,
+            crsStatus: layerForEvidence.metadata?.crsSummary?.status ?? "unknown",
+            licenseStatus: layerForEvidence.metadata?.licenseAttribution?.license ?? "unknown",
+          },
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Evidence registration failed.";
+        toastWarning(`Imported ${result.layer.name}, but evidence registration could not be completed: ${message}`);
+      }
+    };
+
+    if (typeof globalThis.setTimeout === "function") {
+      globalThis.setTimeout(recordImportEvidence, 0);
+    } else {
+      recordImportEvidence();
+    }
 
     if (summary?.sourceType === "csv" && summary.totalRecords != null) {
       const skipped = summary.skippedRecordCount ?? 0;
@@ -3835,6 +3853,13 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     if (!pendingCsvImport) return;
 
     try {
+      await new Promise<void>((resolve) => {
+        if (typeof globalThis.setTimeout === "function") {
+          globalThis.setTimeout(resolve, 0);
+          return;
+        }
+        resolve();
+      });
       const result = completeCsvImport(pendingCsvImport, {
         latitudeColumn: csvLatitudeColumn,
         longitudeColumn: csvLongitudeColumn,

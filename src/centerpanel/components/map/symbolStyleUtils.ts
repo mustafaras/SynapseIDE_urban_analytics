@@ -68,7 +68,7 @@ export function buildAttributeColorExpression(
   colors: string[],
 ): unknown {
   if (minValue === maxValue) {
-    return colors[colors.length - 1] ?? MAP_COLORS.amber;
+    return colors[colors.length - 1] ?? MAP_COLORS.interaction;
   }
 
   const expression: unknown[] = [
@@ -156,7 +156,7 @@ export function buildGraduatedSymbolCollection(
       max: entry.max,
       label: entry.label,
       radius: sizes[index] ?? maxRadius,
-      color: colors[index] ?? colors[colors.length - 1] ?? MAP_COLORS.amber,
+      color: colors[index] ?? colors[colors.length - 1] ?? MAP_COLORS.interaction,
       count: entry.count,
     })),
   };

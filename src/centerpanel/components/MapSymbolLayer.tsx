@@ -49,7 +49,7 @@ const selectStyle: React.CSSProperties = {
   minHeight: 34,
   padding: "7px 10px",
   borderRadius: MAP_RADIUS.sm,
-  border: `1px solid ${MAP_COLORS.amberBorder}`,
+  border: `1px solid ${MAP_COLORS.hairline}`,
   background: "rgba(12,12,12,0.88)",
   color: MAP_COLORS.text,
   fontSize: 12,
@@ -59,7 +59,7 @@ const selectStyle: React.CSSProperties = {
 
 const rangeInputStyle: React.CSSProperties = {
   width: "100%",
-  accentColor: MAP_COLORS.amber,
+  accentColor: MAP_COLORS.interaction,
 };
 
 function symbolSourceId(layerId: string): string {
@@ -118,7 +118,7 @@ export const MapSymbolLayer: React.FC<MapSymbolLayerProps> = ({
   const [maxRadius, setMaxRadius] = useState(24);
   const [opacity, setOpacity] = useState(0.72);
   const [colorMode, setColorMode] = useState<ColorMode>("single");
-  const [singleColor, setSingleColor] = useState("#f59e0b");
+  const [singleColor, setSingleColor] = useState("#3794ff");
   const [colorField, setColorField] = useState("");
   const [colorRamp, setColorRamp] = useState<ColorRampName>("YlOrRd");
   const [clusteringEnabled, setClusteringEnabled] = useState(false);
@@ -304,7 +304,7 @@ export const MapSymbolLayer: React.FC<MapSymbolLayerProps> = ({
         source: sourceId,
         filter: ["has", "point_count"],
         paint: {
-          "circle-color": "rgba(245,158,11,0.4)",
+          "circle-color": "rgba(55,148,255,0.4)",
           "circle-stroke-color": "rgba(255,255,255,0.4)",
           "circle-stroke-width": 1,
           "circle-radius": [
@@ -462,7 +462,7 @@ export const MapSymbolLayer: React.FC<MapSymbolLayerProps> = ({
                 style={{
                   width: 52,
                   height: 34,
-                  border: `1px solid ${MAP_COLORS.amberBorder}`,
+                  border: `1px solid ${MAP_COLORS.hairline}`,
                   borderRadius: MAP_RADIUS.sm,
                   background: "transparent",
                 }}
@@ -577,7 +577,7 @@ export const MapSymbolLayer: React.FC<MapSymbolLayerProps> = ({
           type="checkbox"
           checked={clusteringEnabled}
           onChange={(event) => setClusteringEnabled(event.target.checked)}
-          style={{ accentColor: MAP_COLORS.amber }}
+          style={{ accentColor: MAP_COLORS.interaction }}
         />
         Cluster points at low zoom
       </label>
@@ -620,7 +620,7 @@ export const MapSymbolLayer: React.FC<MapSymbolLayerProps> = ({
                   alignItems: "center",
                   padding: "8px 10px",
                   borderRadius: MAP_RADIUS.sm,
-                  border: `1px solid ${MAP_COLORS.amberBorder}`,
+                  border: `1px solid ${MAP_COLORS.hairline}`,
                   background: "rgba(255,255,255,0.02)",
                 }}
               >

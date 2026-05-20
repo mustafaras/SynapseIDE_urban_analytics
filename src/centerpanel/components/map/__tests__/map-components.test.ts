@@ -91,11 +91,6 @@ describe("mapTokens — colors", () => {
     expect(MAP_COLORS.interaction).toBe(DESIGN_TOKENS.mapExplorer.colors.interaction);
   });
 
-  it("legacy amber compatibility alias resolves to non-amber interaction", () => {
-    expect(MAP_COLORS.amber).toBe(MAP_COLORS.interaction);
-    expect(MAP_COLORS.amber).not.toBe(DESIGN_TOKENS.colors.primary[500]);
-  });
-
   it("error uses the semantic status error token", () => {
     expect(MAP_COLORS.error).toContain("--syn-status-error");
   });
@@ -104,7 +99,7 @@ describe("mapTokens — colors", () => {
     const required = [
       "bg", "bgPanel", "interaction", "interactionSubtle", "selectedSubtle",
       "focus", "hairline", "hairlineStrong", "caveatText", "text",
-      "textSecondary", "textMuted", "error", "white", "overlayBg", "amber",
+      "textSecondary", "textMuted", "error", "white", "overlayBg",
     ];
     for (const key of required) {
       expect(MAP_COLORS).toHaveProperty(key);

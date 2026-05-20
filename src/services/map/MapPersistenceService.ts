@@ -488,7 +488,7 @@ function normalizeAnnotationStyle(input: unknown): MapAnnotationStyleSettings {
   const source = isObject(input) ? input : {};
   return {
     fontSize: clampNumber(source.fontSize, 12, 36, 16),
-    color: typeof source.color === "string" && source.color.trim().length > 0 ? source.color : "#F59E0B",
+    color: typeof source.color === "string" && source.color.trim().length > 0 ? source.color : "#3794ff",
     bold: typeof source.bold === "boolean" ? source.bold : true,
     italic: typeof source.italic === "boolean" ? source.italic : false,
     rotation: clampNumber(source.rotation, -180, 180, 0),

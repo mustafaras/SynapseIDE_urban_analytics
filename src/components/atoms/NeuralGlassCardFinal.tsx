@@ -7,12 +7,12 @@ import { useTheme } from '../../contexts/ThemeContext';
 const glitchLight = keyframes`
   0%, 100% {
     transform: translate(0);
-    border-color: rgba(245, 158, 11, 0.2);
-    box-shadow: var(--shadow-lg), 0 0 20px rgba(245, 158, 11, 0.05);
+    border-color: rgba(55, 148, 255, 0.2);
+    box-shadow: var(--shadow-lg), 0 0 20px rgba(55, 148, 255, 0.05);
   }
   10% {
     transform: translate(-1px, 0.5px);
-    border-color: rgba(245, 158, 11, 0.4);
+    border-color: rgba(55, 148, 255, 0.4);
   }
   20% {
     transform: translate(-0.5px, -0.5px);
@@ -24,7 +24,7 @@ const glitchLight = keyframes`
   }
   40% {
     transform: translate(1px, -0.5px);
-    border-color: rgba(245, 158, 11, 0.3);
+    border-color: rgba(55, 148, 255, 0.3);
   }
   50% {
     transform: translate(-0.5px, 0.5px);
@@ -32,7 +32,7 @@ const glitchLight = keyframes`
   }
   60% {
     transform: translate(0.5px, 0.5px);
-    border-color: rgba(245, 158, 11, 0.3);
+    border-color: rgba(55, 148, 255, 0.3);
   }
   70% {
     transform: translate(-1px, 0.5px);
@@ -40,7 +40,7 @@ const glitchLight = keyframes`
   }
   80% {
     transform: translate(1px, -1px);
-    border-color: rgba(245, 158, 11, 0.4);
+    border-color: rgba(55, 148, 255, 0.4);
   }
   90% {
     transform: translate(0.5px, -0.5px);
@@ -96,18 +96,18 @@ const glitchNeutral = keyframes`
 
   0%, 100% {
     transform: translate(0);
-    border-color: rgba(245, 158, 11, 0.25);
-    box-shadow: var(--shadow-lg), 0 0 20px rgba(245, 158, 11, 0.12);
+    border-color: rgba(55, 148, 255, 0.25);
+    box-shadow: var(--shadow-lg), 0 0 20px rgba(55, 148, 255, 0.12);
   }
-  10% { transform: translate(-1px, 0.5px); border-color: rgba(245, 158, 11, 0.45); }
-  20% { transform: translate(-0.5px, -0.5px); border-color: rgba(245, 158, 11, 0.35); }
-  30% { transform: translate(0.5px, 1px); border-color: rgba(245, 158, 11, 0.40); }
-  40% { transform: translate(1px, -0.5px); border-color: rgba(245, 158, 11, 0.38); }
-  50% { transform: translate(-0.5px, 0.5px); border-color: rgba(245, 158, 11, 0.48); }
-  60% { transform: translate(0.5px, 0.5px); border-color: rgba(245, 158, 11, 0.38); }
-  70% { transform: translate(-1px, 0.5px); border-color: rgba(245, 158, 11, 0.42); }
-  80% { transform: translate(1px, -1px); border-color: rgba(245, 158, 11, 0.50); }
-  90% { transform: translate(0.5px, -0.5px); border-color: rgba(245, 158, 11, 0.40); }
+  10% { transform: translate(-1px, 0.5px); border-color: rgba(55, 148, 255, 0.45); }
+  20% { transform: translate(-0.5px, -0.5px); border-color: rgba(55, 148, 255, 0.35); }
+  30% { transform: translate(0.5px, 1px); border-color: rgba(55, 148, 255, 0.40); }
+  40% { transform: translate(1px, -0.5px); border-color: rgba(55, 148, 255, 0.38); }
+  50% { transform: translate(-0.5px, 0.5px); border-color: rgba(55, 148, 255, 0.48); }
+  60% { transform: translate(0.5px, 0.5px); border-color: rgba(55, 148, 255, 0.38); }
+  70% { transform: translate(-1px, 0.5px); border-color: rgba(55, 148, 255, 0.42); }
+  80% { transform: translate(1px, -1px); border-color: rgba(55, 148, 255, 0.50); }
+  90% { transform: translate(0.5px, -0.5px); border-color: rgba(55, 148, 255, 0.40); }
 `;
 
 
@@ -152,30 +152,30 @@ const getThemeStyles = (theme: string) => {
   switch (theme) {
     case 'light':
       return {
-        iconColor: '#F59E0B',
-        iconBackground: 'rgba(245, 158, 11, 0.18)',
-        titleColor: '#F59E0B',
+        iconColor: '#3794FF',
+        iconBackground: 'rgba(55, 148, 255, 0.18)',
+        titleColor: '#3794FF',
         descriptionColor: '#2A2A2A',
       };
     case 'dark':
       return {
-        iconColor: '#D97706',
-        iconBackground: 'rgba(217, 119, 6, 0.2)',
-        titleColor: '#D97706',
+        iconColor: '#5AA9FF',
+        iconBackground: 'rgba(90, 169, 255, 0.2)',
+        titleColor: '#5AA9FF',
         descriptionColor: '#CBD5E1',
       };
     case 'neutral':
       return {
-        iconColor: '#F59E0B',
-        iconBackground: 'rgba(245, 158, 11, 0.2)',
-        titleColor: '#F59E0B',
+        iconColor: '#93C5FD',
+        iconBackground: 'rgba(55, 148, 255, 0.2)',
+        titleColor: '#93C5FD',
         descriptionColor: '#F8FAFC',
       };
     default:
       return {
-        iconColor: '#F59E0B',
-        iconBackground: 'rgba(245, 158, 11, 0.18)',
-        titleColor: '#F59E0B',
+        iconColor: '#3794FF',
+        iconBackground: 'rgba(55, 148, 255, 0.18)',
+        titleColor: '#3794FF',
         descriptionColor: '#2A2A2A',
       };
   }
@@ -206,13 +206,13 @@ const CardContainer = styled(motion.div)<{ $themeName: string; $isGlitching: boo
     ${({ $themeName }) => {
       switch ($themeName) {
         case 'light':
-          return 'rgba(245, 158, 11, 0.45)';
+          return 'rgba(55, 148, 255, 0.45)';
         case 'dark':
           return 'rgba(99, 102, 241, 0.55)';
         case 'neutral':
-          return 'rgba(245, 158, 11, 0.55)';
+          return 'rgba(147, 197, 253, 0.55)';
         default:
-          return 'rgba(245, 158, 11, 0.45)';
+          return 'rgba(55, 148, 255, 0.45)';
       }
     }};
 
@@ -220,13 +220,13 @@ const CardContainer = styled(motion.div)<{ $themeName: string; $isGlitching: boo
   box-shadow: ${({ $themeName }) => {
     switch ($themeName) {
       case 'light':
-        return '0 8px 32px 0 rgba(146, 64, 14, 0.18), 0 0 32px 4px rgba(245, 158, 11, 0.18), 0 0 0 4px rgba(245,158,11,0.10)';
+        return '0 8px 32px 0 rgba(15, 23, 42, 0.18), 0 0 32px 4px rgba(55, 148, 255, 0.18), 0 0 0 4px rgba(55,148,255,0.10)';
       case 'dark':
         return '0 8px 32px 0 rgba(0, 0, 0, 0.45), 0 0 32px 4px rgba(99, 102, 241, 0.22), 0 0 0 4px rgba(99,102,241,0.13)';
       case 'neutral':
-        return '0 8px 32px 0 rgba(0, 0, 0, 0.25), 0 0 32px 4px rgba(245, 158, 11, 0.22), 0 0 0 4px rgba(245,158,11,0.12)';
+        return '0 8px 32px 0 rgba(0, 0, 0, 0.25), 0 0 32px 4px rgba(55, 148, 255, 0.22), 0 0 0 4px rgba(55,148,255,0.12)';
       default:
-        return '0 8px 32px 0 rgba(146, 64, 14, 0.18), 0 0 32px 4px rgba(245, 158, 11, 0.18)';
+        return '0 8px 32px 0 rgba(15, 23, 42, 0.18), 0 0 32px 4px rgba(55, 148, 255, 0.18)';
     }
   }};
 
@@ -242,25 +242,25 @@ const CardContainer = styled(motion.div)<{ $themeName: string; $isGlitching: boo
     box-shadow: ${({ $themeName }) => {
       switch ($themeName) {
         case 'light':
-          return '0 0 12px 6px rgba(245,158,11,0.12), 0 0 0 2px rgba(245,158,11,0.18)';
+          return '0 0 12px 6px rgba(55,148,255,0.12), 0 0 0 2px rgba(55,148,255,0.18)';
         case 'dark':
           return '0 0 12px 6px rgba(99,102,241,0.12), 0 0 0 2px rgba(99,102,241,0.18)';
         case 'neutral':
-          return '0 0 12px 6px rgba(245,158,11,0.18), 0 0 0 2px rgba(245,158,11,0.25)';
+          return '0 0 12px 6px rgba(55,148,255,0.18), 0 0 0 2px rgba(147,197,253,0.25)';
         default:
-          return '0 0 12px 6px rgba(245,158,11,0.12)';
+          return '0 0 12px 6px rgba(55,148,255,0.12)';
       }
     }};
     background: ${({ $themeName }) => {
       switch ($themeName) {
         case 'light':
-          return 'var(--syn-gradient-glass-amber)';
+          return 'linear-gradient(120deg, rgba(55,148,255,0.18) 0%, rgba(148,163,184,0.10) 100%)';
         case 'dark':
           return 'linear-gradient(120deg, rgba(99,102,241,0.18) 0%, rgba(0,0,0,0.10) 100%)';
         case 'neutral':
-          return 'var(--syn-gradient-glass-amber)';
+          return 'linear-gradient(120deg, rgba(55,148,255,0.18) 0%, rgba(148,163,184,0.10) 100%)';
         default:
-          return 'var(--syn-gradient-glass-amber)';
+          return 'linear-gradient(120deg, rgba(55,148,255,0.18) 0%, rgba(148,163,184,0.10) 100%)';
       }
     }};
     opacity: 0.95;
@@ -326,20 +326,20 @@ const CardContainer = styled(motion.div)<{ $themeName: string; $isGlitching: boo
   }
 
   &:focus-visible {
-    outline: var(--focus-ring, 2px solid var(--syn-focus-ring, #F59E0B));
+    outline: var(--focus-ring, 2px solid var(--syn-focus-ring, #3794ff));
     outline-offset: var(--focus-ring-offset, 4px);
     box-shadow:
       var(--shadow-focus),
       ${({ $themeName }) => {
         switch ($themeName) {
           case 'light':
-            return '0 8px 32px 0 rgba(146, 64, 14, 0.18), 0 0 32px 4px rgba(245, 158, 11, 0.18), 0 0 0 4px rgba(245,158,11,0.10)';
+            return '0 8px 32px 0 rgba(15, 23, 42, 0.18), 0 0 32px 4px rgba(55, 148, 255, 0.18), 0 0 0 4px rgba(55,148,255,0.10)';
           case 'dark':
             return '0 8px 32px 0 rgba(0, 0, 0, 0.45), 0 0 32px 4px rgba(99, 102, 241, 0.22), 0 0 0 4px rgba(99,102,241,0.13)';
           case 'neutral':
-            return '0 8px 32px 0 rgba(0, 0, 0, 0.25), 0 0 32px 4px rgba(245, 158, 11, 0.22), 0 0 0 4px rgba(245,158,11,0.12)';
+            return '0 8px 32px 0 rgba(0, 0, 0, 0.25), 0 0 32px 4px rgba(55, 148, 255, 0.22), 0 0 0 4px rgba(55,148,255,0.12)';
           default:
-            return '0 8px 32px 0 rgba(146, 64, 14, 0.18), 0 0 32px 4px rgba(245, 158, 11, 0.18)';
+            return '0 8px 32px 0 rgba(15, 23, 42, 0.18), 0 0 32px 4px rgba(55, 148, 255, 0.18)';
         }
       }};
   }

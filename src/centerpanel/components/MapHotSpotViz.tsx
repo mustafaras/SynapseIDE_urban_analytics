@@ -85,7 +85,7 @@ const panelHeaderStyle: React.CSSProperties = {
   justifyContent: "space-between",
   gap: 12,
   padding: "12px 14px",
-  borderBottom: `1px solid ${MAP_COLORS.amberBorder}`,
+  borderBottom: `1px solid ${MAP_COLORS.hairline}`,
   color: MAP_COLORS.text,
 };
 
@@ -116,7 +116,7 @@ const selectStyle: React.CSSProperties = {
   minHeight: 34,
   padding: "7px 10px",
   borderRadius: MAP_RADIUS.sm,
-  border: `1px solid ${MAP_COLORS.amberBorder}`,
+  border: `1px solid ${MAP_COLORS.hairline}`,
   background: "rgba(12,12,12,0.88)",
   color: MAP_COLORS.text,
   fontSize: 12,
@@ -126,7 +126,7 @@ const selectStyle: React.CSSProperties = {
 
 const rangeInputStyle: React.CSSProperties = {
   width: "100%",
-  accentColor: MAP_COLORS.amber,
+  accentColor: MAP_COLORS.interaction,
 };
 
 const helperTextStyle: React.CSSProperties = {
@@ -139,9 +139,9 @@ const primaryButtonStyle: React.CSSProperties = {
   minHeight: 36,
   padding: "8px 12px",
   borderRadius: MAP_RADIUS.sm,
-  border: `1px solid ${MAP_COLORS.amber}`,
-  background: MAP_COLORS.amber,
-  color: MAP_COLORS.bg,
+  border: `1px solid ${MAP_COLORS.focus}`,
+  background: MAP_COLORS.selectedSubtle,
+  color: MAP_COLORS.interaction,
   cursor: "pointer",
   fontSize: 12,
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
@@ -153,7 +153,7 @@ const summaryCardStyle: React.CSSProperties = {
   gap: 10,
   padding: "10px 12px",
   borderRadius: MAP_RADIUS.sm,
-  border: `1px solid ${MAP_COLORS.amberBorder}`,
+  border: `1px solid ${MAP_COLORS.hairline}`,
   background: "rgba(255,255,255,0.03)",
 };
 
@@ -164,7 +164,7 @@ const legendRowStyle: React.CSSProperties = {
   alignItems: "center",
   padding: "7px 9px",
   borderRadius: MAP_RADIUS.sm,
-  border: `1px solid ${MAP_COLORS.amberBorder}`,
+  border: `1px solid ${MAP_COLORS.hairline}`,
   background: "rgba(255,255,255,0.02)",
   color: MAP_COLORS.text,
   fontSize: 12,
@@ -176,7 +176,7 @@ const mapTooltipStyle: React.CSSProperties = {
   maxWidth: 270,
   padding: "9px 10px",
   borderRadius: MAP_RADIUS.sm,
-  border: `1px solid ${MAP_COLORS.amberBorderStrong}`,
+  border: `1px solid ${MAP_COLORS.focus}`,
   background: "rgba(10,10,10,0.92)",
   boxShadow: MAP_SHADOWS.dropdown,
   color: MAP_COLORS.text,
@@ -682,7 +682,7 @@ export const MapHotSpotViz: React.FC<MapHotSpotVizProps> = ({
               display: "inline-flex",
               alignItems: "center",
               gap: 8,
-              color: MAP_COLORS.amber,
+              color: MAP_COLORS.interaction,
               fontSize: 12,
               fontFamily: MAP_TYPOGRAPHY.fontFamilyBrand,
               fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
@@ -703,7 +703,7 @@ export const MapHotSpotViz: React.FC<MapHotSpotVizProps> = ({
           onClick={onClose}
           aria-label="Close Getis-Ord Gi-star panel"
           style={{
-            border: `1px solid ${MAP_COLORS.amberBorder}`,
+            border: `1px solid ${MAP_COLORS.hairline}`,
             background: "transparent",
             color: MAP_COLORS.textSecondary,
             width: 28,
@@ -725,7 +725,7 @@ export const MapHotSpotViz: React.FC<MapHotSpotVizProps> = ({
             ...sectionStyle,
             padding: "10px 12px",
             borderRadius: MAP_RADIUS.sm,
-            border: `1px solid ${MAP_COLORS.amberBorder}`,
+            border: `1px solid ${MAP_COLORS.hairline}`,
             background: "rgba(255,255,255,0.025)",
           }}
         >
@@ -759,7 +759,7 @@ export const MapHotSpotViz: React.FC<MapHotSpotVizProps> = ({
               <label htmlFor="hotspot-render-threshold" style={labelStyle}>
                 Confidence Filter
               </label>
-              <span style={{ color: MAP_COLORS.amber, fontSize: 12, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
+              <span style={{ color: MAP_COLORS.interaction, fontSize: 12, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
                 p ≤ {rendererThreshold.toFixed(3)}
               </span>
             </div>
@@ -895,7 +895,7 @@ export const MapHotSpotViz: React.FC<MapHotSpotVizProps> = ({
             <label htmlFor="hotspot-threshold" style={labelStyle}>
               Significance Filter
             </label>
-            <span style={{ color: MAP_COLORS.amber, fontSize: 12, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
+            <span style={{ color: MAP_COLORS.interaction, fontSize: 12, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
               {significanceThreshold.toFixed(3)}
             </span>
           </div>
@@ -976,7 +976,7 @@ export const MapHotSpotViz: React.FC<MapHotSpotVizProps> = ({
                     alignItems: "center",
                     padding: "8px 10px",
                     borderRadius: MAP_RADIUS.sm,
-                    border: `1px solid ${MAP_COLORS.amberBorder}`,
+                    border: `1px solid ${MAP_COLORS.hairline}`,
                     background: "rgba(255,255,255,0.02)",
                     color: MAP_COLORS.text,
                     fontSize: 12,
@@ -1001,7 +1001,7 @@ export const MapHotSpotViz: React.FC<MapHotSpotVizProps> = ({
         role="tooltip"
         aria-label="Gi-star feature hover details"
       >
-        <div style={{ color: MAP_COLORS.amber, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
+        <div style={{ color: MAP_COLORS.interaction, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
           {hoverState.featureId}
         </div>
         <div>Category: {hoverState.categoryLabel}</div>

@@ -44,7 +44,7 @@ function layer(): OverlayLayerConfig {
       license: "ODC-BY",
     },
     style: {
-      color: "#f59e0b",
+      color: "#3794ff",
       legendEntries: [{ label: "High", color: "#ef4444" }],
     },
     metadata: {

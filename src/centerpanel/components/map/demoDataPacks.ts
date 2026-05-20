@@ -544,9 +544,9 @@ const STREET_STYLE = {
     "match",
     ["get", "road_class"],
     "primary",
-    "#F59E0B",
+    "#3B82F6",
     "secondary",
-    "#FACC15",
+    "#38BDF8",
     "residential",
     "#94A3B8",
     "#94A3B8",
@@ -561,8 +561,8 @@ const STREET_STYLE = {
     1.2,
   ],
   legendEntries: [
-    { label: "Primary (demo)", color: "#F59E0B" },
-    { label: "Secondary (demo)", color: "#FACC15" },
+    { label: "Primary (demo)", color: "#3B82F6" },
+    { label: "Secondary (demo)", color: "#38BDF8" },
     { label: "Residential (demo)", color: "#94A3B8" },
   ],
 } as const;
@@ -574,7 +574,7 @@ const BLOCK_STYLE = {
     "High",
     "#16A34A",
     "Moderate",
-    "#F59E0B",
+    "#0EA5E9",
     "Low",
     "#EF4444",
     "#94A3B8",
@@ -583,7 +583,7 @@ const BLOCK_STYLE = {
   "fill-outline-color": "rgba(15, 23, 42, 0.85)",
   legendEntries: [
     { label: "High access (demo)", color: "#16A34A" },
-    { label: "Moderate access (demo)", color: "#F59E0B" },
+    { label: "Moderate access (demo)", color: "#0EA5E9" },
     { label: "Low access (demo)", color: "#EF4444" },
   ],
 } as const;

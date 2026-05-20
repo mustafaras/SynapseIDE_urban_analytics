@@ -5,6 +5,7 @@ import {
   MAP_RADIUS,
   MAP_SHADOWS,
   MAP_SPACING,
+  MAP_STROKES,
   MAP_TYPOGRAPHY,
 } from "./map/mapTokens";
 
@@ -38,9 +39,9 @@ const dialogStyle: React.CSSProperties = {
   width: 360,
   maxWidth: "92vw",
   background: MAP_COLORS.bgPanel,
-  border: `1px solid ${MAP_COLORS.amberBorderStrong}`,
-  borderRadius: MAP_RADIUS.md,
-  boxShadow: MAP_SHADOWS.dropdown,
+  border: MAP_STROKES.hairlineStrong,
+  borderRadius: MAP_RADIUS.sm,
+  boxShadow: MAP_SHADOWS.panel,
   padding: MAP_SPACING.lg,
   color: MAP_COLORS.text,
   fontFamily: MAP_TYPOGRAPHY.fontFamily,
@@ -58,7 +59,7 @@ const inputStyle: React.CSSProperties = {
   padding: `7px ${MAP_SPACING.sm}`,
   background: MAP_COLORS.bg,
   color: MAP_COLORS.text,
-  border: `1px solid ${MAP_COLORS.amberBorder}`,
+  border: MAP_STROKES.hairlineSubtle,
   borderRadius: MAP_RADIUS.sm,
   boxSizing: "border-box",
   fontSize: 12,
@@ -84,7 +85,7 @@ const buttonRowStyle: React.CSSProperties = {
 const buttonStyle: React.CSSProperties = {
   padding: "6px 14px",
   borderRadius: MAP_RADIUS.sm,
-  border: `1px solid ${MAP_COLORS.amberBorder}`,
+  border: MAP_STROKES.hairlineSubtle,
   background: "transparent",
   color: MAP_COLORS.textSecondary,
   cursor: "pointer",
@@ -93,9 +94,9 @@ const buttonStyle: React.CSSProperties = {
 
 const primaryButtonStyle: React.CSSProperties = {
   ...buttonStyle,
-  background: MAP_COLORS.amberDim,
-  borderColor: MAP_COLORS.amberBorderStrong,
-  color: MAP_COLORS.amber,
+  background: MAP_COLORS.interactionSubtle,
+  borderColor: MAP_COLORS.focus,
+  color: MAP_COLORS.interaction,
 };
 
 export const MapDataExportDialog: React.FC<MapDataExportDialogProps> = ({
@@ -125,7 +126,7 @@ export const MapDataExportDialog: React.FC<MapDataExportDialogProps> = ({
       <div style={dialogStyle} role="dialog" aria-modal="true" aria-label="Spatial data export options">
         <div
           style={{
-            color: MAP_COLORS.amber,
+            color: MAP_COLORS.text,
             fontFamily: MAP_TYPOGRAPHY.fontFamilyBrand,
             fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
             fontSize: 14,
@@ -199,15 +200,15 @@ export const MapDataExportDialog: React.FC<MapDataExportDialogProps> = ({
             : "GeoParquet preserves binary columnar geometry, writes spatial metadata, and keeps the original coordinate precision."}
         </div>
 
-        <div style={{ display: "grid", gap: 6, padding: 10, marginTop: 10, borderRadius: MAP_RADIUS.sm, border: `1px solid ${MAP_COLORS.amberBorder}`, background: "rgba(15,23,42,0.55)", fontSize: 11 }}>
-          <div style={{ color: MAP_COLORS.amber, fontSize: 10, textTransform: "uppercase", letterSpacing: 0.4, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>Format Comparison</div>
+        <div style={{ display: "grid", gap: 6, padding: 10, marginTop: 10, borderRadius: MAP_RADIUS.sm, border: MAP_STROKES.hairlineSubtle, background: MAP_COLORS.bg, fontSize: 11 }}>
+          <div style={{ color: MAP_COLORS.textMuted, fontSize: 10, textTransform: "uppercase", letterSpacing: MAP_TYPOGRAPHY.letterSpacing.caps, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>Format Comparison</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
-            <div style={{ padding: "6px 8px", borderRadius: MAP_RADIUS.sm, border: `1px solid ${isGeoJson ? MAP_COLORS.amberBorderStrong : MAP_COLORS.amberBorder}`, background: isGeoJson ? MAP_COLORS.amberDim : "transparent" }}>
-              <div style={{ color: isGeoJson ? MAP_COLORS.amber : MAP_COLORS.textMuted, fontSize: 11, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>GeoJSON</div>
+            <div style={{ padding: "6px 8px", borderRadius: MAP_RADIUS.sm, border: isGeoJson ? `1px solid ${MAP_COLORS.focus}` : MAP_STROKES.hairlineSubtle, background: isGeoJson ? MAP_COLORS.selectedSubtle : "transparent" }}>
+              <div style={{ color: isGeoJson ? MAP_COLORS.interaction : MAP_COLORS.textMuted, fontSize: 11, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>GeoJSON</div>
               <div style={{ color: MAP_COLORS.textSecondary, fontSize: 10, lineHeight: 1.4, marginTop: 2 }}>Human-readable, universal compatibility, larger file size</div>
             </div>
-            <div style={{ padding: "6px 8px", borderRadius: MAP_RADIUS.sm, border: `1px solid ${!isGeoJson ? MAP_COLORS.amberBorderStrong : MAP_COLORS.amberBorder}`, background: !isGeoJson ? MAP_COLORS.amberDim : "transparent" }}>
-              <div style={{ color: !isGeoJson ? MAP_COLORS.amber : MAP_COLORS.textMuted, fontSize: 11, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>GeoParquet</div>
+            <div style={{ padding: "6px 8px", borderRadius: MAP_RADIUS.sm, border: !isGeoJson ? `1px solid ${MAP_COLORS.focus}` : MAP_STROKES.hairlineSubtle, background: !isGeoJson ? MAP_COLORS.selectedSubtle : "transparent" }}>
+              <div style={{ color: !isGeoJson ? MAP_COLORS.interaction : MAP_COLORS.textMuted, fontSize: 11, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>GeoParquet</div>
               <div style={{ color: MAP_COLORS.textSecondary, fontSize: 10, lineHeight: 1.4, marginTop: 2 }}>Binary columnar, WKB geometry, 40–70% smaller, spatial metadata</div>
             </div>
           </div>

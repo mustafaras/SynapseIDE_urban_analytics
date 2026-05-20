@@ -40,7 +40,7 @@ const selectStyle: React.CSSProperties = {
   minHeight: 34,
   padding: "7px 10px",
   borderRadius: MAP_RADIUS.sm,
-  border: `1px solid ${MAP_COLORS.amberBorder}`,
+  border: `1px solid ${MAP_COLORS.hairline}`,
   background: "rgba(12,12,12,0.88)",
   color: MAP_COLORS.text,
   fontSize: 12,
@@ -50,7 +50,7 @@ const selectStyle: React.CSSProperties = {
 
 const rangeInputStyle: React.CSSProperties = {
   width: "100%",
-  accentColor: MAP_COLORS.amber,
+  accentColor: MAP_COLORS.interaction,
 };
 
 function heatmapSourceId(layerId: string): string {
@@ -421,7 +421,7 @@ export const MapHeatmapLayer: React.FC<MapHeatmapLayerProps> = ({
           type="checkbox"
           checked={dynamicRadius}
           onChange={(event) => setDynamicRadius(event.target.checked)}
-          style={{ accentColor: MAP_COLORS.amber }}
+          style={{ accentColor: MAP_COLORS.interaction }}
         />
         Scale heatmap radius with zoom
       </label>

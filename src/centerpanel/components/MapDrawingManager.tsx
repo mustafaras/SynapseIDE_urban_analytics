@@ -375,7 +375,7 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
           source: DRAW_SOURCE,
           filter: ["==", "$type", "Polygon"],
           paint: {
-            "fill-color": MAP_COLORS.amber,
+            "fill-color": MAP_COLORS.interaction,
             "fill-opacity": 0.15,
           },
         });
@@ -384,7 +384,7 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
           type: "line",
           source: DRAW_SOURCE,
           paint: {
-            "line-color": MAP_COLORS.amber,
+            "line-color": MAP_COLORS.interaction,
             "line-width": 2,
             "line-dasharray": [2, 2],
           },
@@ -396,7 +396,7 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
           filter: ["==", "$type", "Point"],
           paint: {
             "circle-radius": 5,
-            "circle-color": MAP_COLORS.amber,
+            "circle-color": MAP_COLORS.interaction,
             "circle-stroke-color": MAP_COLORS.white,
             "circle-stroke-width": 2,
           },
@@ -413,7 +413,7 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
           source: GHOST_SOURCE,
           filter: ["==", "$type", "Polygon"],
           paint: {
-            "fill-color": MAP_COLORS.amber,
+            "fill-color": MAP_COLORS.interaction,
             "fill-opacity": 0.08,
           },
         });
@@ -422,7 +422,7 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
           type: "line",
           source: GHOST_SOURCE,
           paint: {
-            "line-color": MAP_COLORS.amber,
+            "line-color": MAP_COLORS.interaction,
             "line-width": 1.5,
             "line-dasharray": [4, 4],
           },
@@ -434,7 +434,7 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
           filter: ["all", ["==", "$type", "Point"], ["!=", "_snap", true]],
           paint: {
             "circle-radius": 4,
-            "circle-color": MAP_COLORS.amber,
+            "circle-color": MAP_COLORS.interaction,
             "circle-stroke-color": MAP_COLORS.bg,
             "circle-stroke-width": 1.5,
           },
@@ -447,7 +447,7 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
           paint: {
             "circle-radius": 7,
             "circle-color": MAP_COLORS.bg,
-            "circle-stroke-color": MAP_COLORS.amber,
+            "circle-stroke-color": MAP_COLORS.interaction,
             "circle-stroke-width": 2.5,
           },
         });
@@ -1197,7 +1197,7 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
               aria-selected={f.id === selectedFeatureId}
               aria-label={`${f.properties.label} — ${f.geometry.type}`}
             >
-              <span style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", color: f.id === selectedFeatureId ? MAP_COLORS.amber : MAP_COLORS.textMuted }}>
+              <span style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", color: f.id === selectedFeatureId ? MAP_COLORS.interaction : MAP_COLORS.textMuted }}>
                 {f.geometry.type === "Point" ? <IconPoint size={MAP_ICON_SIZES.sm} /> : f.geometry.type === "LineString" ? <IconLine size={MAP_ICON_SIZES.sm} /> : f.geometry.type === "Polygon" ? <IconPolygon size={MAP_ICON_SIZES.sm} /> : <IconUnknown size={MAP_ICON_SIZES.sm} />}
               </span>
               <span style={{ minWidth: MAP_SPACING.zero, display: "grid", gap: MAP_SPACING.xs }}>
@@ -1206,7 +1206,7 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                     whiteSpace: "nowrap",
-                    color: f.id === selectedFeatureId ? MAP_COLORS.amber : MAP_COLORS.text,
+                    color: f.id === selectedFeatureId ? MAP_COLORS.interaction : MAP_COLORS.text,
                     fontWeight: f.id === selectedFeatureId ? MAP_TYPOGRAPHY.fontWeight.semibold : MAP_TYPOGRAPHY.fontWeight.medium,
                   }}
                 >

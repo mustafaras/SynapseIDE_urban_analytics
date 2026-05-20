@@ -27,10 +27,10 @@ import type { ReportCitationRecord } from '@/services/reporting/types';
 /* ── Tokens ──────────────────────────────────────────── */
 
 const PANEL: React.CSSProperties = {
-  background: '#1a1a1a',
-  border: '1px solid rgba(245, 158, 11, 0.2)',
+  background: 'var(--syn-surface-panel, #1a1a1a)',
+  border: '1px solid var(--syn-border-subtle, rgba(255,255,255,0.08))',
   padding: '1.25rem',
-  color: '#e5e5e5',
+  color: 'var(--syn-text-default, #e5e5e5)',
   fontSize: '0.78rem',
   lineHeight: 1.45,
 };
@@ -128,7 +128,7 @@ export const NarrativeGenerationPanel: React.FC<NarrativeGenerationPanelProps> =
       <header style={{ marginBottom: '0.75rem' }}>
         <h3
           id="narrative-heading"
-          style={{ color: '#F59E0B', margin: 0, fontSize: '0.95rem', fontWeight: 700, letterSpacing: '0.03em' }}
+          style={{ color: 'var(--syn-text-default, #fafaf9)', margin: 0, fontSize: '0.95rem', fontWeight: 700, letterSpacing: '0.03em' }}
         >
           Analytical Narrative Drafting
         </h3>
@@ -161,9 +161,9 @@ export const NarrativeGenerationPanel: React.FC<NarrativeGenerationPanelProps> =
               onClick={generate}
               style={{
                 padding: '0.4rem 0.9rem',
-                background: 'rgba(245,158,11,0.15)',
-                color: '#F59E0B',
-                border: '1px solid rgba(245,158,11,0.5)',
+                background: 'transparent',
+                color: 'var(--syn-interaction-active, #3794ff)',
+                border: '1px solid var(--syn-border-focus, #3794ff)',
                 fontSize: '0.76rem',
                 fontWeight: 600,
                 cursor: 'pointer',
@@ -206,10 +206,10 @@ export const NarrativeGenerationPanel: React.FC<NarrativeGenerationPanelProps> =
             <>
               {report.warnings.length > 0 && (
                 <div style={{ marginBottom: '0.5rem' }}>
-                  <div style={{ color: '#F59E0B', fontSize: '0.7rem', fontWeight: 600, marginBottom: 4 }}>
+                  <div style={{ color: 'var(--syn-status-info, #6aa9ff)', fontSize: '0.7rem', fontWeight: 600, marginBottom: 4 }}>
                     Generation notes
                   </div>
-                  <ul style={{ margin: '0 0 0 1rem', color: '#F59E0B', fontSize: '0.72rem' }}>
+                  <ul style={{ margin: '0 0 0 1rem', color: 'var(--syn-status-info, #6aa9ff)', fontSize: '0.72rem' }}>
                     {report.warnings.map((w, i) => (
                       <li key={i}>{w}</li>
                     ))}
@@ -248,7 +248,7 @@ export const NarrativeGenerationPanel: React.FC<NarrativeGenerationPanelProps> =
                   <ul style={{ margin: 0, paddingLeft: '1.1rem', fontSize: '0.72rem', color: 'rgba(255,255,255,0.7)' }}>
                     {report.citations.map((c) => (
                       <li key={c.id}>
-                        <strong style={{ color: '#F59E0B' }}>[{c.label}]</strong> {c.reference}
+                        <strong style={{ color: 'var(--syn-text-link, #3794ff)' }}>[{c.label}]</strong> {c.reference}
                       </li>
                     ))}
                   </ul>
@@ -313,9 +313,9 @@ const ToneSelector: React.FC<{ tone: NarrativeTone; onChange: (t: NarrativeTone)
                 padding: '0.25rem 0.65rem',
                 fontSize: '0.7rem',
                 fontWeight: 600,
-                background: active ? 'rgba(245,158,11,0.15)' : 'transparent',
-                color: active ? '#F59E0B' : 'rgba(255,255,255,0.6)',
-                border: `1px solid ${active ? '#F59E0B' : 'rgba(255,255,255,0.15)'}`,
+                background: active ? 'color-mix(in srgb, var(--syn-interaction-active, #3794ff) 14%, transparent)' : 'transparent',
+                color: active ? 'var(--syn-interaction-active, #3794ff)' : 'rgba(255,255,255,0.6)',
+                border: `1px solid ${active ? 'var(--syn-border-focus, #3794ff)' : 'rgba(255,255,255,0.15)'}`,
                 cursor: 'pointer',
                 borderRadius: 0,
               }}
@@ -335,7 +335,7 @@ const ToneSelector: React.FC<{ tone: NarrativeTone; onChange: (t: NarrativeTone)
           color: 'rgba(255,255,255,0.7)',
         }}
       >
-        <div style={{ color: '#F59E0B', fontWeight: 600, marginBottom: 2 }}>
+        <div style={{ color: 'var(--syn-text-default, #fafaf9)', fontWeight: 600, marginBottom: 2 }}>
           Voice: {descriptor.label} · <span style={{ color: 'rgba(255,255,255,0.5)', fontWeight: 400 }}>{descriptor.audience}</span>
         </div>
         <div style={{ fontStyle: 'italic', marginBottom: 3 }}>&ldquo;{descriptor.preview}&rdquo;</div>
@@ -430,7 +430,7 @@ const NarrativeSectionCard: React.FC<{
             width: '100%',
             background: '#0d0d0d',
             color: '#FAFAF9',
-            border: '1px solid rgba(245,158,11,0.3)',
+            border: '1px solid var(--syn-border-focus, #3794ff)',
             padding: '6px 8px',
             fontSize: '0.75rem',
             fontFamily: 'inherit',
@@ -445,7 +445,7 @@ const NarrativeSectionCard: React.FC<{
       )}
 
       {section.warnings && section.warnings.length > 0 ? (
-        <ul style={{ margin: '6px 0 0 1rem', color: '#F59E0B', fontSize: '0.68rem' }}>
+        <ul style={{ margin: '6px 0 0 1rem', color: 'var(--syn-status-info, #6aa9ff)', fontSize: '0.68rem' }}>
           {section.warnings.map((w, i) => (
             <li key={i}>{w}</li>
           ))}
@@ -475,8 +475,8 @@ function renderWithAnchors(section: NarrativeSection): React.ReactNode {
         key={`${anchor.citationId}-${i}`}
         title={`Citation: ${anchor.citationId}`}
         style={{
-          background: 'rgba(245,158,11,0.2)',
-          color: '#F59E0B',
+          background: 'color-mix(in srgb, var(--syn-status-info, #6aa9ff) 22%, transparent)',
+          color: 'var(--syn-text-link, #3794ff)',
           padding: '0 3px',
           borderRadius: 2,
           fontWeight: 600,
@@ -505,9 +505,9 @@ const SectionButton: React.FC<{
       padding: '2px 8px',
       fontSize: '0.66rem',
       fontWeight: 600,
-      background: active ? 'rgba(245,158,11,0.18)' : 'transparent',
-      color: active ? '#F59E0B' : 'rgba(255,255,255,0.7)',
-      border: `1px solid ${active ? 'rgba(245,158,11,0.5)' : 'rgba(255,255,255,0.15)'}`,
+      background: active ? 'color-mix(in srgb, var(--syn-interaction-active, #3794ff) 16%, transparent)' : 'transparent',
+      color: active ? 'var(--syn-interaction-active, #3794ff)' : 'rgba(255,255,255,0.7)',
+      border: `1px solid ${active ? 'var(--syn-border-focus, #3794ff)' : 'rgba(255,255,255,0.15)'}`,
       cursor: 'pointer',
       borderRadius: 0,
     }}

@@ -300,7 +300,7 @@ const controlBtnStyle: React.CSSProperties = {
 
 const controlBtnActiveStyle: React.CSSProperties = {
   ...controlBtnStyle,
-  color: MAP_COLORS.amber,
+  color: MAP_COLORS.interaction,
 };
 
 const controlBtnDisabledStyle: React.CSSProperties = {
@@ -323,7 +323,7 @@ const playerLabelStyle: React.CSSProperties = {
 };
 
 const playerKickerStyle: React.CSSProperties = {
-  color: MAP_COLORS.amberSoft,
+  color: MAP_COLORS.interaction,
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
   letterSpacing: MAP_TYPOGRAPHY.letterSpacing.caps,
   textTransform: "uppercase",
@@ -337,7 +337,7 @@ const playerValueStyle: React.CSSProperties = {
 };
 
 const mutedDividerStyle: React.CSSProperties = {
-  color: MAP_COLORS.amberHairline,
+  color: MAP_COLORS.textMuted,
   flexShrink: 0,
 };
 
@@ -361,8 +361,8 @@ const speedBtnStyle: React.CSSProperties = {
 
 const speedBtnActiveStyle: React.CSSProperties = {
   ...speedBtnStyle,
-  borderBottom: `1px solid ${MAP_COLORS.amber}`,
-  color: MAP_COLORS.amber,
+  borderBottom: `1px solid ${MAP_COLORS.interaction}`,
+  color: MAP_COLORS.interaction,
 };
 
 const scrubberShellStyle: React.CSSProperties = {
@@ -376,7 +376,7 @@ const scrubberShellStyle: React.CSSProperties = {
 const scrubberTrackStyle: React.CSSProperties = {
   position: "relative",
   height: MAP_SPACING.xs,
-  background: MAP_COLORS.amberHairline,
+  background: MAP_COLORS.hairlineSubtle,
   borderRadius: MAP_RADIUS.full,
   cursor: "pointer",
   touchAction: "none",
@@ -388,7 +388,7 @@ const scrubberFillStyle = (pct: number): React.CSSProperties => ({
   top: 0,
   height: "100%",
   width: `${pct}%`,
-  background: MAP_COLORS.amber,
+  background: MAP_COLORS.interaction,
   borderRadius: MAP_RADIUS.full,
   pointerEvents: "none",
   transition: "none",
@@ -402,7 +402,7 @@ const scrubberThumbStyle = (pct: number): React.CSSProperties => ({
   width: MAP_SPACING.sm,
   height: MAP_SPACING.sm,
   borderRadius: "50%",
-  background: MAP_COLORS.amber,
+  background: MAP_COLORS.interaction,
   border: MAP_STROKES.none,
   boxShadow: MAP_STROKES.none,
   pointerEvents: "none",
@@ -616,7 +616,7 @@ export const MapTemporalPlayer: React.FC<MapTemporalPlayerProps> = ({
             source: sourceId,
             paint: {
               "circle-radius": 5,
-              "circle-color": MAP_COLORS.amber,
+              "circle-color": MAP_COLORS.interaction,
               "circle-opacity": 0.85,
             },
           });
@@ -630,7 +630,7 @@ export const MapTemporalPlayer: React.FC<MapTemporalPlayerProps> = ({
             type: "line",
             source: sourceId,
             paint: {
-              "line-color": MAP_COLORS.amber,
+              "line-color": MAP_COLORS.interaction,
               "line-width": 2,
               "line-opacity": 0.85,
             },
@@ -642,9 +642,9 @@ export const MapTemporalPlayer: React.FC<MapTemporalPlayerProps> = ({
             type: "fill",
             source: sourceId,
             paint: {
-              "fill-color": MAP_COLORS.amber,
+              "fill-color": MAP_COLORS.interaction,
               "fill-opacity": 0.4,
-              "fill-outline-color": MAP_COLORS.amber,
+              "fill-outline-color": MAP_COLORS.interaction,
             },
           });
           createdLayerRef.current = true;
@@ -961,7 +961,7 @@ export const MapTemporalPlayer: React.FC<MapTemporalPlayerProps> = ({
           <span style={{ ...scrubberTickTextStyle, textAlign: "left" }} title={humanizeTemporalLabel(resolvedFrames[0]?.label)}>
             {firstFrameLabel}
           </span>
-          <span style={{ ...scrubberTickTextStyle, color: MAP_COLORS.amberSoft }} title={fullFrameLabel}>
+          <span style={{ ...scrubberTickTextStyle, color: MAP_COLORS.interaction }} title={fullFrameLabel}>
             {clampedStep + 1}/{totalSteps}
           </span>
           <span style={{ ...scrubberTickTextStyle, textAlign: "right" }} title={humanizeTemporalLabel(resolvedFrames[totalSteps - 1]?.label)}>

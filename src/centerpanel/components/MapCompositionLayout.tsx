@@ -13,6 +13,7 @@ import {
   MAP_COLORS,
   MAP_RADIUS,
   MAP_SPACING,
+  MAP_STROKES,
   MAP_TYPOGRAPHY,
 } from "./map/mapTokens";
 
@@ -24,14 +25,14 @@ export interface MapCompositionLayoutProps {
 }
 
 const sectionStyle: React.CSSProperties = {
-  borderTop: `1px solid ${MAP_COLORS.amberBorder}`,
+  borderTop: MAP_STROKES.hairlineSubtle,
   paddingTop: MAP_SPACING.md,
   marginTop: MAP_SPACING.md,
 };
 
 const headingStyle: React.CSSProperties = {
   margin: 0,
-  color: MAP_COLORS.amber,
+  color: MAP_COLORS.text,
   fontFamily: MAP_TYPOGRAPHY.fontFamilyBrand,
   fontSize: MAP_TYPOGRAPHY.fontSize.sm,
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
@@ -54,7 +55,7 @@ const inputStyle: React.CSSProperties = {
   width: "100%",
   boxSizing: "border-box",
   borderRadius: MAP_RADIUS.sm,
-  border: `1px solid ${MAP_COLORS.amberBorder}`,
+  border: MAP_STROKES.hairlineSubtle,
   background: "rgba(23,23,23,0.95)",
   color: MAP_COLORS.text,
   padding: "7px 9px",
@@ -74,7 +75,7 @@ const frameStyle: React.CSSProperties = {
   aspectRatio: "210 / 297",
   minHeight: 310,
   borderRadius: MAP_RADIUS.sm,
-  border: `1px dashed ${MAP_COLORS.amberBorderStrong}`,
+  border: `1px dashed ${MAP_COLORS.focus}`,
   background: "linear-gradient(180deg, #f8fafc, #e5e7eb)",
   overflow: "hidden",
   color: "#111827",
@@ -93,7 +94,7 @@ const mapFrameStyle: React.CSSProperties = {
   top: "20%",
   bottom: "13%",
   border: "1px dashed rgba(17,24,39,0.55)",
-  background: "linear-gradient(135deg, rgba(56,189,248,0.18), rgba(245,158,11,0.12))",
+  background: "linear-gradient(135deg, rgba(56,189,248,0.18), rgba(55,148,255,0.12))",
 };
 
 const miniLabelStyle: React.CSSProperties = {

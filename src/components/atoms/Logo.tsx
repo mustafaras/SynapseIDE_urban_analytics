@@ -2,10 +2,10 @@ import React from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 
 const Logo: React.FC<{ size?: number }> = ({ size = 80 }) => {
-  const { theme, themeName } = useTheme();
+  const { themeName } = useTheme();
 
-  const gradientPrimary = themeName === 'neutral' ? '#F59E0B' : theme.colors.primary;
-  const gradientAccent = themeName === 'neutral' ? '#D97706' : theme.colors.accent;
+  const gradientPrimary = themeName === 'neutral' ? '#93C5FD' : '#3794FF';
+  const gradientAccent = themeName === 'neutral' ? '#3794FF' : '#5AA9FF';
   return (
     <svg
       width={size}

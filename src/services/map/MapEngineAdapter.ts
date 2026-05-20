@@ -673,7 +673,7 @@ function buildDetectionStyle(
 }
 
 function buildQueryHighlightStyle(geometryType?: string): Record<string, unknown> {
-  const highlight = "#F59E0B";
+  const highlight = "#3794ff";
   const hint = normalizeGeometryHint(geometryType);
 
   if (hint === "point") {
@@ -706,7 +706,7 @@ function buildTemporalStyle(
   colorRamp: ColorRampName = TEMPORAL_DEFAULT_COLOR_RAMP,
 ): Record<string, unknown> {
   if (!valueField || minValue == null || maxValue == null) {
-    return buildColorStyle(geometryType, getColorRampColors(colorRamp, 5)[4] ?? "#F59E0B");
+    return buildColorStyle(geometryType, getColorRampColors(colorRamp, 5)[4] ?? "#3794ff");
   }
 
   return buildColorStyle(

@@ -33,7 +33,7 @@ function layer(overrides: Partial<OverlayLayerConfig> = {}): OverlayLayerConfig 
       generatedAt: "2025-01-03T00:00:00.000Z",
     },
     style: {
-      color: "#f59e0b",
+      color: "#3794ff",
       legendEntries: [
         { label: "Low", color: "#22c55e" },
         { label: "High", color: "#ef4444" },
