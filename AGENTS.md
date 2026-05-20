@@ -96,42 +96,26 @@ These rules are enforced by the domain and must not be violated silently:
 
 ---
 
-## Development Plans System (Ongoing Structured Work)
+## Development Plans Archive
 
-The `DEVELOPMENT_PLANS/` folder is the **durable memory system** for multi-session agent work. It is intentionally large, so agents must use the token-minimized entry path before opening any full ledger or plan.
+The previous `DEVELOPMENT_PLANS/` operating pack is complete. The root planning folder has been removed; the historical ledgers, manifests, prompt ladders, and alignment documents live here:
 
-### Token-Minimized Startup
-
-Before editing Urban Analytics, Map Explorer, or Synapse IDE features:
-
-1. Read [`DEVELOPMENT_PLANS/CONTEXT_MIN.md`](DEVELOPMENT_PLANS/CONTEXT_MIN.md).
-2. Read [`DEVELOPMENT_PLANS/CURRENT_TASK.json`](DEVELOPMENT_PLANS/CURRENT_TASK.json).
-3. Run the relevant next-prompt helper with `-Json`.
-4. Use `rg` to pull only the active prompt block, status row, or named section from large files.
-5. Open a full ledger, full development plan, or full sequential prompt file only when targeted search is insufficient.
-
-Large files remain authoritative; they are not default startup context.
-
-| File | Role |
-|---|---|
-| [`DEVELOPMENT_PLANS/CONTEXT_MIN.md`](DEVELOPMENT_PLANS/CONTEXT_MIN.md) | **First-read context budget** — concise startup protocol, authority order, current module state |
-| [`DEVELOPMENT_PLANS/CURRENT_TASK.json`](DEVELOPMENT_PLANS/CURRENT_TASK.json) | **Machine-readable task pointer** — current prompt status and active file paths |
-| [`DEVELOPMENT_PLANS/MODULE_INDEX.json`](DEVELOPMENT_PLANS/MODULE_INDEX.json) | Compact module ownership and validation map |
-| [`DEVELOPMENT_PLANS/LARGE_FILE_INDEX.md`](DEVELOPMENT_PLANS/LARGE_FILE_INDEX.md) | Large-file access guide; search first, line-window second |
-| [`DEVELOPMENT_PLANS/URBAN_ANALYTICS_IMPLEMENTATION_LEDGER.md`](DEVELOPMENT_PLANS/URBAN_ANALYTICS_IMPLEMENTATION_LEDGER.md) | **Execution source of truth** — prompt status, files changed, validation history, risks |
-| [`DEVELOPMENT_PLANS/URBAN_ANALYTICS_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md`](DEVELOPMENT_PLANS/URBAN_ANALYTICS_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md) | Ordered prompt ladder — scope, acceptance criteria, stop conditions |
-| [`DEVELOPMENT_PLANS/URBAN_ANALYTICS_PROMPT_MANIFEST.json`](DEVELOPMENT_PLANS/URBAN_ANALYTICS_PROMPT_MANIFEST.json) | Machine-readable prompt catalog |
-| [`DEVELOPMENT_PLANS/TRI_MODAL_WORKBENCH_ALIGNMENT_SPEC.md`](DEVELOPMENT_PLANS/TRI_MODAL_WORKBENCH_ALIGNMENT_SPEC.md) | Cross-module product authority |
-| [`DEVELOPMENT_PLANS/START_HERE_URBAN_ANALYTICS_AGENT.md`](DEVELOPMENT_PLANS/START_HERE_URBAN_ANALYTICS_AGENT.md) | Single entry point for any Urban Analytics session |
-| [`DEVELOPMENT_PLANS/AGENT_AMNESIA_PREVENTION_PROTOCOL.md`](DEVELOPMENT_PLANS/AGENT_AMNESIA_PREVENTION_PROTOCOL.md) | Protocol for durable memory handoff between sessions |
-
-To find the next pending prompt:
-```powershell
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
-.\scripts\get-next-urban-analytics-prompt.ps1 -Json
+```text
+docs/archive/development-plans/tri-modal-operating-pack-2026-05-20/
 ```
 
-**Priority order when documents disagree**: Live repository > relevant ledger status/search hit > Manifest > targeted sequential prompt block > targeted development plan section > Alignment spec > Chat history (non-authoritative).
+Before using any archived Urban Analytics, Map Explorer, or Synapse IDE plan material, read:
+
+1. [`docs/archive/development-plans/tri-modal-operating-pack-2026-05-20/README.md`](docs/archive/development-plans/tri-modal-operating-pack-2026-05-20/README.md)
+2. [`docs/archive/development-plans/tri-modal-operating-pack-2026-05-20/ARCHIVE_INDEX.md`](docs/archive/development-plans/tri-modal-operating-pack-2026-05-20/ARCHIVE_INDEX.md)
+
+Completion status at archive time:
+
+- Urban Analytics: `all_completed`
+- Map Explorer: `all_completed`
+- Synapse IDE: `all_completed`
+
+Archived material is historical reference only. New structured work should start from a new operating pack or a user-directed task, not by continuing the archived prompt ladders.
 
 ---
 

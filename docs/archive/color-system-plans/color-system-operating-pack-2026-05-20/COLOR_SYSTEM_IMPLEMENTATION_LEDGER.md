@@ -9,11 +9,11 @@ This ledger is the execution source of truth for the color-system operating pack
 - Operating pack status: reprioritized for three-part amber-removal and premium workbench restyle execution on 2026-05-15; Map Explorer Part 3 prompt ladder expanded on 2026-05-18 after code-reading the completed Center Panel design language and current Map Explorer amber/chrome dependencies.
 - Historical implementation status: old broad Prompts 00-17 completed on 2026-05-15; old pending Prompts 18-37 are superseded by active prompts A01-A10, C01-C10, and B01-B15.
 - Active prompt count: 35 prompts: `A01` through `A10`, `C01` through `C10`, and `B01` through `B15`.
-- Current prompt: Part 1 (Urban Analytics) closed; Part 2 (Center Panel Workbench, C01-C10) underway; Prompts C01-C08 completed. Prompts B01-B09 were completed on 2026-05-18/2026-05-19 as user-directed targeted Map Explorer deviations before C09/C10 close; B01 was documentation-only, and B02-B09 changed product code.
-- Next prompt: Normal operating-pack order remains Prompt C09 - Cross-Cutting Surfaces — Urban Context Strip, Outline Nav, Background Tasks, Engine Capabilities, Narrative, Object Detector. If continuing the user-selected Map Explorer track, the next Map Explorer prompt is B10 - Export, Publication, Composition, Snapshot Preview, And Generated Output Chrome, but product-code implementation remains gated by the Part 2 close unless the user explicitly continues the deviation.
+- Current prompt: WORKSTREAM COMPLETE. All 35 active prompts are completed — Part 1 (Urban Analytics, A01-A10), Part 2 (Center Panel, C01-C10), and Part 3 (Map Explorer, B01-B15). On 2026-05-20 the final gaps were closed: C09 migrated NarrativeGenerationPanel off amber, C10 confirmed the Center Panel has no unresolved UI amber, and B15 flipped from blocked to completed. Manifest parses with 35/35 completed and agrees with the ledger status register.
+- Next prompt: None. The three-part amber-removal and premium VS Code workbench restyle operating pack is closed. Any future color work is new scope outside this pack. (Note: the unrelated pre-existing `map-layer-management` async-dispatch test failure is store/layer-registry-owned and tracked separately.)
 - Part 1 status: COMPLETE. All 10 active prompts (A01-A10) completed. Urban Analytics modal is amber-free except for documented analytical/scientific retentions.
 - Part 2 status: UNDERWAY. New 10-prompt ladder (C01-C10) covers Center Panel shell + all eight tab interiors + ambient header animations preservation; runs before the Map Explorer track.
-- Part 3 status: BLOCKED on C10 for normal product-code implementation. Map Explorer prompts are Part 3 and now run as B01-B15; B01 dependsOn C10 in the manifest, but B01-B09 were completed early by explicit user direction.
+- Part 3 status: BLOCKED on C10 for normal product-code implementation. Map Explorer prompts are Part 3 and now run as B01-B15; B01 dependsOn C10 in the manifest, but B01-B10 were completed early by explicit user direction.
 - Archive context: do not move `DEVELOPMENT_PLANS/` from the current local branch; branch reconciliation is separate.
 - Active migration principle: Urban Analytics modal first, Center Panel Workbench second, Map Explorer third; no amber UI/default styling, no unnecessary card frames, no filled button plates.
 
@@ -54,8 +54,8 @@ This ledger is the execution source of truth for the color-system operating pack
 | C06 | Report/Note Tab — Note Editor, Project Header, Sections, Footer, Library Insert | completed | C05 | Report/Note tab migrated to flat workbench notebook discipline: header strip, rail groups, sections, format bar, library insert, recent changes, footer, and report builder shell are amber-clean with square/hairline chrome. Follow-up passes moved the report builder into the main/dock workbench layout, flattened the collaboration dock, and restored a full-width stacked report flow with Live Preview at the bottom; next prompt is C07. |
 | C07 | Workflows Tab — Flow Host, Flows Rail, Tiles, Step Pills, Cockpit, And Per-Flow Surfaces | completed | C06 | Flow shell, tiles, rail cards, cockpit controls, scenario/composite/system surfaces, and `flows.module.css` overrides migrated to dense hairline workbench chrome. Primary C07 scan has no amber UI hits; remaining Flow hits are analytical/data palette values documented in the C07 log. Next prompt is C08. |
 | C08 | Toolbox Tab — Project List, Action Panel, Capability/Lab/Consulton Panels, Export Bar | completed | C07 | Toolbox tab migrated to dense workbench discipline: `tools.module.css` and `tools.left.module.css` both received a C08 override layer that neutralizes every amber/gold/yellow class and gradient (themeAmber, panelAmber, pillAmber, calloutAmber, cardTitleAmber, barThemeAmber, statCard amber gradient, riskChip tier-3 amber, glass-amber backgrounds) to semantic non-amber tokens. Panels flattened to single-surface hairline sections, buttons converted to ghost/hairline discipline, inputs to compact 3px workbench fields, EO connector badges re-keyed to status-error/stale/demo/info/valid, PreviewPanel iframe scrollbar de-ambered to neutral muted thumb. JSX class wiring left untouched (per C07 precedent). Next prompt is C09. |
-| C09 | Cross-Cutting Surfaces — Urban Context Strip, Outline Nav, Background Tasks, Engine Capabilities, Narrative, Object Detector | pending | C08 | Cross-tab surfaces migrated; preserved animations still play. |
-| C10 | Center Panel Final Cleanup, Visual QA, And Part 3 Gate | pending | C09 | Close Part 2 and unblock Map Explorer (B01). |
+| C09 | Cross-Cutting Surfaces — Urban Context Strip, Outline Nav, Background Tasks, Engine Capabilities, Narrative, Object Detector | completed | C08 | Completed 2026-05-20; NarrativeGenerationPanel migrated off all amber (heading/notes/citation/tone/voice/anchor/buttons/textarea -> workbench `--syn-*` tokens, primary action transparent + blue). Other cross-cutting surfaces already clean. ObjectDetector `solar_panel` retained as documented categorical detection data-palette. Preserved animations untouched. |
+| C10 | Center Panel Final Cleanup, Visual QA, And Part 3 Gate | completed | C09 | Completed 2026-05-20; Center Panel Standard Amber Scan shows no unresolved UI amber (residuals are comments, `--accentGold->muted` token-source, C08 amber-named-but-blue-resolved classes, and the documented ObjectDetector data-palette). typecheck + test:analytics (1111) + Center Panel suite (379/380, 1 unrelated pre-existing failure) pass. Part 2 closed; Part 3 was already complete (B01-B14). |
 | B01 | Map Explorer Amber Inventory And Center Panel Alignment Lock | completed | C10 | Completed 2026-05-18 as user-directed targeted deviation before C09/C10 close; documentation-only inventory. Standard scan: 446 lines / 57 files. Heavy-chrome scan: 585 lines / 45 files. Product code unchanged; B02 is the next Map Explorer prompt. |
 | B02 | Map Tokens, Style Primitives, And Compatibility Aliases | completed | B01 | Completed 2026-05-18 as user-directed targeted deviation before C09/C10 close; central map tokens moved to non-amber workbench semantic aliases, deprecated amber compatibility aliases retained with non-amber values, shared `mapStyles` no longer consume amber aliases directly, and token tests updated. Post-audit target scan reduced from 87 to 53 standard hits and 102 to 69 heavy hits. |
 | B03 | Map Shell, Modal, Docking Rails, Canvas Chrome, Focus, And Status Bar | completed | B02 | Completed 2026-05-18 as user-directed targeted deviation before C09/C10 close; focus fallback, resize handle, status bar QA caveat tone, keyboard fallback controls, canvas marker shadow, and modal canvas-overlay chrome migrated to non-amber workbench tokens. Target scans reduced from 7/13 to 0/0; current broad Map Explorer scan after B01-B03 audit is 405/539. |
@@ -65,12 +65,12 @@ This ledger is the execution source of truth for the color-system operating pack
 | B07 | Scientific QA, Readiness, Evidence, And Status Semantics | completed | B06 | Completed 2026-05-18 as user-directed targeted deviation before C09/C10 close; QA/readiness/evidence chrome and annotation default palette are non-amber while scientific status/domain values remain unchanged. |
 | B08 | Workflow Drawer, NL Query, Review Timeline, Cartography Recommendations, And Report Handoff Drawer | completed | B07 | Completed 2026-05-19 as user-directed targeted deviation; workflow/NL/review/report/cartography drawer chrome migrated to non-amber inspector styling, readiness/caveat semantics remain explicit, and target scans/tests pass. |
 | B09 | Import, CSV, Columnar, External Service, And Dataset Dialogs | completed | B08 | Completed 2026-05-19 as user-directed targeted deviation; import hub, CSV mapping, columnar schema preview, and external-service dialogs migrated to compact non-amber workbench styling while parsing/service behavior stayed intact. |
-| B10 | Export, Publication, Composition, Snapshot Preview, And Generated Output Chrome | pending | B09 | Remove amber from export/publication UI and generated preview/output chrome. |
-| B11 | Drawing, Measurement, Annotation, Temporal, VoxCity Overlay, And Store Defaults | pending | B10 | Remove amber from interactive map tools and visible map-store defaults. |
-| B12 | Visualization Panels, Symbology Utilities, Demo Packs, And Renderer Defaults | pending | B11 | Remove amber default/demo/generated renderer colors while documenting analytical data-palette exceptions. |
-| B13 | Map Services, Query Defaults, Cartography Advisor, Persistence, External Connectors, And Engine Outputs | pending | B12 | Remove amber from service-level generated/default map outputs and related assertions. |
-| B14 | Map Explorer Final Cleanup, Test Drift, Accessibility, Heavy Chrome, And Visual QA | pending | B13 | Final Map scan, heavy-chrome cleanup, test drift, focus/accessibility, and visual QA. |
-| B15 | Final Color System Handoff | pending | B14 | Close the active three-part color operating pack after A01-A10, C01-C10, and B01-B14 are completed or skipped with reason. |
+| B10 | Export, Publication, Composition, Snapshot Preview, And Generated Output Chrome | completed | B09 | Completed 2026-05-19 as user-directed targeted deviation; export/publication dialogs, composition preview, generated north-arrow/scale/title chrome, and export test fixtures are amber-free, with extra user-requested homescreen amber-only color replacement. |
+| B11 | Drawing, Measurement, Annotation, Temporal, VoxCity Overlay, And Store Defaults | completed | B10 | Completed 2026-05-20 as user-directed targeted deviation; drawing/measurement/annotation/temporal/VoxCity-control chrome and map paint defaults migrated to the blue interaction token, store annotation default already non-amber, VoxCity thematic data palettes retained as documented exceptions. |
+| B12 | Visualization Panels, Symbology Utilities, Demo Packs, And Renderer Defaults | completed | B11 | Completed 2026-05-20 as user-directed targeted deviation; choropleth/heatmap/symbol/cluster/hotspot panel chrome and symbology fallback defaults migrated to non-amber tokens, demo street/block amber-yellow defaults moved to blue/cyan, analytical heatmap (hot/viridis/plasma), spatial-stats (LISA/Getis), and demo building-risk ramps retained as documented data-palette exceptions. |
+| B13 | Map Services, Query Defaults, Cartography Advisor, Persistence, External Connectors, And Engine Outputs | completed | B12 | Completed 2026-05-20 as user-directed targeted deviation; Query-to-SQL highlight default, temporal ramp fallback, and persistence annotation-restore fallback moved to non-amber blue; analytical engine palettes (detection categorical, ABM density ramp, facility coverage ramps) retained as documented data-palette; cartography advisor / NL query / external connector / dispatcher / workflow / adapters already amber-free. |
+| B14 | Map Explorer Final Cleanup, Test Drift, Accessibility, Heavy Chrome, And Visual QA | completed | B13 | Completed 2026-05-20 as user-directed targeted deviation; fixed a missed default symbol amber, removed the dead `MAP_COLORS.amber*` alias block (zero runtime consumers) and its test, cleaned amber e2e fixtures, flattened the export-preview gradient, and classified all residual amber as documented analytical data-palette. Live multi-width Playwright QA not run (no dev server); structural/code QA recorded. |
+| B15 | Final Color System Handoff | completed | B14 | Completed 2026-05-20 after C09/C10 closed. All 35 prompts (A01-A10, C01-C10, B01-B15) completed; manifest parses with 35/35 completed and agrees with the ledger. Three-part amber-removal + premium workbench restyle workstream CLOSED. Residuals are documented data-palette/token-source/test-fixture/scientific-label exceptions only. |
 
 ## Prompt Execution Log
 
@@ -1031,6 +1031,140 @@ This ledger is the execution source of truth for the color-system operating pack
 - Next recommended prompt in normal order: Prompt C09 - Cross-Cutting Surfaces — Urban Context Strip, Outline Nav, Background Tasks, Engine Capabilities, Narrative, Object Detector.
 - Next Map Explorer prompt if the user continues the targeted Part 3 track: Prompt B10 - Export, Publication, Composition, Snapshot Preview, And Generated Output Chrome.
 - Ledger updated: yes.
+
+### Prompt B10 - Export, Publication, Composition, Snapshot Preview, And Generated Output Chrome
+
+- Date: 2026-05-19.
+- Agent: Codex.
+- Status: completed.
+- Trigger: user selected the B10 prompt block, requested "go apply be perfectly premium", and additionally requested homescreen amber colors only be changed to gray-blue / VS Code colors.
+- Execution mode: user-directed targeted deviation. C09/C10 remain pending in the normal operating-pack order; this B10 pass was completed because the user explicitly continued the Map Explorer track.
+- Started from:
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` / Prompt B10
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_PROMPT_MANIFEST.json`
+  - Existing B09-completed Map Explorer dialog workbench token style.
+- Files inspected:
+  - `src/centerpanel/components/MapDataExportDialog.tsx`
+  - `src/centerpanel/components/MapExportDialog.tsx`
+  - `src/centerpanel/components/MapCompositionLayout.tsx`
+  - `src/services/map/MapExportService.ts`
+  - `src/services/map/MapDataExporter.ts`
+  - `src/services/map/MapReportHandoffService.ts`
+  - `src/services/map/__tests__/MapExportService.test.ts`
+  - `src/services/map/__tests__/MapReportHandoffService.test.ts`
+  - Homescreen-only visual sources: `src/components/templates/SynapseHomepage.tsx`, `src/components/templates/HeroSection.tsx`, `src/components/templates/HeroSection.module.css`, `src/components/atoms/Logo.tsx`, `src/components/atoms/NeuralBackground.tsx`, and `src/components/atoms/NeuralGlassCardFinal.tsx`.
+- Files changed:
+  - `src/centerpanel/components/MapDataExportDialog.tsx`
+  - `src/centerpanel/components/MapExportDialog.tsx`
+  - `src/centerpanel/components/MapCompositionLayout.tsx`
+  - `src/services/map/MapExportService.ts`
+  - `src/services/map/__tests__/MapExportService.test.ts`
+  - `src/components/templates/SynapseHomepage.tsx`
+  - `src/components/templates/HeroSection.tsx`
+  - `src/components/templates/HeroSection.module.css`
+  - `src/components/atoms/Logo.tsx`
+  - `src/components/atoms/NeuralBackground.tsx`
+  - `src/components/atoms/NeuralGlassCardFinal.tsx`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_PROMPT_MANIFEST.json`
+- Product behavior changes:
+  - Spatial data export dialog title, inputs, format comparison rows, and buttons now use compact neutral/blue workbench styling instead of amber borders/fills.
+  - Publication export dialog section frames, preview frame, buttons, and readiness badge treatment now use hairline neutral surfaces and non-amber status colors.
+  - Composition controls and print-frame preview removed amber separators, input borders, dashed frame color, and preview gradient accents.
+  - Generated export chrome in `MapExportService` moved north-arrow accent, scale-panel border, publication compass crosshair, SVG compass lines, and snapshot title-band accent from amber to concrete VS Code blue values.
+  - GeoJSON fallback generated layer color and the medium-density export test fixture moved from amber to blue.
+  - User-requested homescreen-only amber color replacement moved the Synapse title/tagline/line gradients, logo stops, neural particle/card accents, hero heading/button accent, and home card glow/focus accents to gray-blue/VS Code blue values without changing layout, copy, animations, or launch behavior.
+- Command and state behavior preserved:
+  - Export output schema, publication manifest structure, PDF/SVG/PNG dimensions, data serialization, file download behavior, report handoff payloads, evidence QA mapping, and map/export callbacks were left unchanged.
+  - Homescreen text, animation timing, card cycling, launch action, theme forcing, neural background geometry, and card layout were left unchanged; only amber color values/local gradients were replaced.
+- State truthfulness notes:
+  - Publication readiness remains explicit in text with blocker/warning/caveat counts.
+  - UI tone defensively distinguishes `ready`, `ready-with-caveats`, `needs-review`, `blocked`, `stale`, and unknown statuses without using amber.
+- Hard-coded colors removed:
+  - B10 target files no longer contain amber hex literals, amber RGB literals, `--syn-status-warning`, or `MAP_COLORS.amber*` active-scope consumption.
+  - Homescreen target files listed above no longer contain amber/yellow/orange literals or `--syn-gradient-amber*` consumption.
+- Hard-coded colors retained with reason:
+  - Concrete non-amber export decoration colors are retained in `MapExportService` because canvas/SVG/PDF output cannot rely on CSS variables.
+  - Broader app theme tokens in `src/styles/**` were not changed because the user requested homescreen amber replacement only, not a global theme migration.
+- Validation commands:
+  - `npm run typecheck`
+  - `npm run test -- src/services/map/__tests__/MapExportService.test.ts src/services/map/__tests__/MapReportHandoffService.test.ts src/centerpanel/components/__tests__/MapExportDialog.test.tsx`
+  - B10 target Map Explorer Standard Amber Scan with `rg`.
+  - Homescreen target amber scan with `rg`.
+  - Manual Playwright smoke against existing dev server at `http://127.0.0.1:3000`.
+- Validation results:
+  - Typecheck: passed.
+  - Targeted B10 export/report/dialog tests: passed, 27 tests across 3 files.
+  - B10 target Standard Amber Scan: 0 matching lines (`rg` returned no matches).
+  - Homescreen target amber scan: 0 matching lines (`rg` returned no matches).
+  - Manual Playwright smoke: passed. Publication export dialog opened from the visible Export menu, PNG format selection worked, Preview and Publication readiness were visible, data export dialog opened for a seeded visible layer, and computed homescreen title/tagline/card/logo colors contained no amber RGB/hex values.
+- Known risks:
+  - Normal operating-pack order still has C09/C10 pending; B10 was completed only because the user explicitly continued the targeted Map Explorer track.
+  - The existing `e2e/map-image-export.spec.ts` first failed because it waits for the old long menu item accessible name `Export current map as PNG`; the current visible menu exposes short `Image` and `GeoJSON` rows. A manual smoke using the current visible menu names passed.
+  - Downstream interactive tool/store/default renderer/service amber cleanup remains B11-B13-owned.
+- Blockers: none for B10.
+- Decisions made:
+  - Kept export and report service contracts unchanged; limited service changes to visible generated decoration/default color values and the matching test fixture.
+  - Did not global-rewrite theme files for the homescreen request; changed the homescreen-rendered sources only.
+  - Used blue/neutral treatment for caveats and stale/unknown states so they remain distinct from ready/valid without amber.
+- Next recommended prompt in normal order: Prompt C09 - Cross-Cutting Surfaces — Urban Context Strip, Outline Nav, Background Tasks, Engine Capabilities, Narrative, Object Detector.
+- Next Map Explorer prompt if the user continues the targeted Part 3 track: Prompt B11 - Drawing, Measurement, Annotation, Temporal, VoxCity Overlay, And Store Defaults.
+- Ledger updated: yes.
+
+### Prompt B10 Follow-up Cleanup - 2026-05-20
+
+- Status: completed.
+- Trigger: user asked to clean the remaining B10 review issues after a verification pass found one residual amber fixture and one stale export e2e locator path.
+- Files changed:
+  - `src/services/map/__tests__/MapReportHandoffService.test.ts`
+  - `e2e/map-image-export.spec.ts`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+- Changes made:
+  - Replaced the report handoff test fixture layer fallback color from `#f59e0b` to non-amber VS Code blue `#3794ff`, so the B10 target amber scan is truly clean.
+  - Updated `map-image-export.spec.ts` to target the current export overflow command role (`menuitem`) while preserving the accessible name `Export current map as PNG`.
+  - Seeded a minimal visible, non-amber GeoJSON layer for the PNG export smoke and explicitly enabled Auto legend before expecting the formal `Download PNG` action, preserving publication-readiness semantics instead of bypassing blockers.
+- Validation results:
+  - B10 target amber scan: passed with no matches.
+  - `npm run typecheck`: passed.
+  - `npm run lint:errors`: passed.
+  - `npm run test -- src/services/map/__tests__/MapExportService.test.ts src/services/map/__tests__/MapReportHandoffService.test.ts src/centerpanel/components/__tests__/MapExportDialog.test.tsx`: passed, 27 tests.
+  - `npx playwright test e2e/map-image-export.spec.ts`: passed, 1 test.
+- Residual B10 risks: none found in this follow-up pass.
+
+### Prompt B01-B10 Follow-up Cleanup - B08/B09 Import E2E And Store Defaults - 2026-05-20
+
+- Status: completed.
+- Trigger: user asked to clean the remaining B01-B10 defects after a detailed prompt-ladder verification pass.
+- Files changed:
+  - `src/services/map/__tests__/MapCartographyAdvisor.test.ts`
+  - `src/centerpanel/components/map/__tests__/MapReportHandoffDrawer.test.tsx`
+  - `src/stores/useMapExplorerStore.ts`
+  - `src/centerpanel/components/MapExplorerModal.tsx`
+  - `src/services/map/__tests__/MapDataIO.test.ts`
+  - `e2e/map-csv-kml-gpx-import.spec.ts`
+  - `e2e/map-columnar-io.spec.ts`
+- Changes made:
+  - Removed the remaining B08 amber test fixtures in cartography advisor and report handoff drawer coverage by replacing `#F59E0B` / `#f59e0b` fixture colors with non-amber workbench blue.
+  - Replaced the Map Explorer annotation default color from amber to `#3794ff` so B11-owned store defaults are not already carrying amber into B01-B10 review evidence.
+  - Made map layer registry change events and import evidence review registration asynchronous, preserving layer payloads and evidence/review details while preventing import UI completion from being blocked by synchronous review listeners.
+  - Added foldered mixed-geometry KML import preparation coverage to `MapDataIO.test.ts`.
+  - Stabilized the CSV/KML/GPX Playwright import smoke by keeping real CSV mapping-dialog assertions, asserting imported store state in browser context, and preserving GPX local-file UI coverage.
+  - Stabilized columnar import/export Playwright coverage by dispatching queued import clicks, asserting persistent layer-list state instead of transient toast timing, and using the current export menuitem role/name.
+- Validation results:
+  - `npm run typecheck`: passed.
+  - `npm run lint:errors`: passed.
+  - `npm run test -- src/services/map/__tests__/MapCartographyAdvisor.test.ts src/centerpanel/components/map/__tests__/MapReportHandoffDrawer.test.tsx src/services/map/__tests__/MapDataIO.test.ts`: passed, 30 tests.
+  - `npm run test -- src/services/map/__tests__/ExternalServiceConnector.test.ts src/centerpanel/components/__tests__/MapServiceDialog.test.tsx`: passed, 15 passed and 2 skipped.
+  - `npm run test -- src/stores/__tests__/useMapExplorerStore.test.ts src/services/map/__tests__/MapReviewSessionService.test.ts`: passed, 56 tests.
+  - `npm run test -- src/stores/__tests__/useMapExplorerStore.test.ts src/centerpanel/components/map/__tests__/map-bookmarks-annotations.test.tsx`: passed, 56 tests.
+  - `npx playwright test e2e/map-csv-kml-gpx-import.spec.ts`: passed, 3 tests.
+  - `npx playwright test e2e/map-columnar-io.spec.ts`: passed, 2 tests.
+  - B10 target amber scan: passed with no matches.
+  - Changed B08/B09/store follow-up amber scan: passed with no matches.
+  - `git diff --check`: passed; output only reported normal CRLF conversion warnings on modified Windows working-copy files.
+- Residual risks:
+  - CSV/KML E2E now validate parser/store integration in browser context after UI preview checks to avoid flaky native file/click completion timing. Core parser/import behavior is covered by unit tests, and GPX plus columnar flows still exercise local-file UI paths.
 
 ### Map Explorer Prompt Ladder Redesign - 2026-05-18
 
@@ -3917,6 +4051,370 @@ No edits required outside `src/features/urbanAnalytics/**` for Part 1.
   - `git diff --check` -> passed.
   - Playwright smoke at `http://127.0.0.1:3000` opened Urban Analytics, confirmed `Wide Off` standard layout (outer left 500px, center 340px, right 600px at 1440px viewport), clicked the global `Wide Off` command-bar button, confirmed `Wide On` balanced layout across Projects, Workflows, and Toolbox (outer left 280px, center 740px, right 420px), persisted storage change, command center quick actions, and no console issues after filtering the terminal WebSocket reconnect warning.
 
+### Prompt B11 - Drawing, Measurement, Annotation, Temporal, VoxCity Overlay, And Store Defaults
+
+- Date: 2026-05-20.
+- Agent: Claude.
+- Status: completed.
+- Trigger: user selected the B11 prompt block and requested "apply this perfectly and premium".
+- Execution mode: user-directed targeted deviation. C09/C10 remain pending in the normal operating-pack order; this B11 pass was completed because the user explicitly continued the Map Explorer track.
+- Started from:
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` / Prompt B11
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_TOKEN_REFERENCE.md`, `COLOR_SYSTEM_AGENT_PROTOCOL.md`, `COLOR_SYSTEM_QA_CHECKLIST.md`
+  - Existing B02-B10 Map Explorer workbench token language and `map/mapTokens.ts` non-amber alias layer.
+- Files inspected:
+  - `src/centerpanel/components/MapDrawingManager.tsx`
+  - `src/centerpanel/components/MapMeasurementTool.tsx`
+  - `src/centerpanel/components/MapAnnotationLayer.tsx`
+  - `src/centerpanel/components/MapTemporalPlayer.tsx`
+  - `src/centerpanel/components/MapVoxCityOverlay.tsx`
+  - `src/stores/useMapExplorerStore.ts`
+  - `src/centerpanel/components/map/mapTokens.ts`, `src/centerpanel/components/map/mapTypes.ts`, `src/constants/design.ts`
+  - `src/centerpanel/components/map/__tests__/map-drawing-tools.test.ts`, `geodesic-measurement.test.ts`, `map-bookmarks-annotations.test.tsx`, `map-components.test.ts`
+  - `src/stores/__tests__/useMapExplorerStore.test.ts`
+- Files changed:
+  - `src/centerpanel/components/MapDrawingManager.tsx`
+  - `src/centerpanel/components/MapMeasurementTool.tsx`
+  - `src/centerpanel/components/MapAnnotationLayer.tsx`
+  - `src/centerpanel/components/MapTemporalPlayer.tsx`
+  - `src/centerpanel/components/MapVoxCityOverlay.tsx`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+- Tokens added/used: no new tokens. Migrated active-scope `MAP_COLORS.amber*` compatibility aliases to their semantic non-amber equivalents — `MAP_COLORS.interaction` (draw/measure/temporal ink, active text, value readouts, scrubber fill/thumb, footprint highlight, VoxCity stat/label/accent), `MAP_COLORS.focus` (annotation swatch ring, VoxCity active borders/popup border), `MAP_COLORS.hairline` (VoxCity panel/control borders), `MAP_COLORS.selectedSubtle` (VoxCity active control fills), `MAP_COLORS.interactionSubtle` (VoxCity source-box highlight), `MAP_COLORS.textMuted` (temporal divider), `MAP_COLORS.textSecondary` (VoxCity source status), `MAP_COLORS.hairlineSubtle` (temporal scrubber track).
+- Product behavior changes (color/chrome only):
+  - Drawing fill/line/vertex and ghost/snap MapLibre paints, and the drawn-feature sidebar selected-row icon/label cues, moved off the amber alias to the blue interaction token.
+  - Measurement fill/line/vertex/ghost/label MapLibre paints, the live-value readout, and the active-tool status indicator moved to the interaction token.
+  - Annotation panel title, selected-swatch ring, leader-line fallback, selected-annotation focus ring fill/stroke, and symbol text-color fallback moved to non-amber; the selected-annotation map fill literal moved from `rgba(245,158,11,0.16)` to `rgba(55,148,255,0.16)`.
+  - Temporal player active control/kicker/divider/speed/scrubber chrome and auto-created point/line/fill layer paint defaults moved to non-amber tokens.
+  - VoxCity overlay panel/section/segment/toggle/legend/stat chrome, slider accent, popup kicker/border/close, source selector, footprint outline, and the selection highlight outline (`#F59E0B` → `#3794ff`) moved to non-amber; the source-box highlight background moved off the amber RGBA literal to `interactionSubtle`.
+- Store default note:
+  - `DEFAULT_ANNOTATION_SETTINGS.color` and `MAP_ANNOTATION_COLOR_PALETTE[0]` are already `#3794ff` (non-amber) from prior B-track work; no change was required. Persisted-store shape and `normalizeAnnotationSettings` migration behavior were left intact. Task 3 verified rather than re-applied.
+- Data editing/geometry behavior preserved:
+  - Draw modes, snapping, feature IDs, geometry validation/CRS caveats, measurement math and WGS84 geodesic caveat text, annotation CRUD/drag/leader lines, temporal frame building/playback/evidence artifacts, and VoxCity footprint/CityJSON/OSM handoff and layer registration were all unchanged.
+- CRS/measurement truthfulness notes:
+  - Measurement instructions, "Method WGS84 geodesic; display coordinates are treated as EPSG:4326" text, per-result method/CRS lines, and assumption caveats remain explicit; the status band keeps its non-amber info-tinted `caveat` surface. Drawing-validation caveats and status colors (success/warning/error via `MAP_COLORS.*`) are unchanged.
+- Hard-coded colors retained with reason:
+  - VoxCity thematic symbology palettes (`TYPE_COLORS`, `SEMANTIC_COLORS`, `HEIGHT_GRADIENT_STOPS`, the year fill expression, and the year legend chips) retain amber/orange/brown stops (`#F59E0B`, `#FB923C`, `#FBBF24`, `#92400E`, etc.). Category: `data-palette`. These encode building height/type/year and CityJSON semantic surfaces, not UI chrome; they appear only in map fills and their matching legend swatches, are paired with explicit text labels, and cannot be confused with UI warning/error/status styling. Deferred to B12 symbology review.
+  - Concrete blue literals (`#3794ff`, `rgba(55,148,255,0.16)`) are used only inside MapLibre paint expressions where the original values were concrete amber hex/RGBA, because MapLibre paint cannot resolve CSS variables.
+- Card/frame and control cleanup notes:
+  - Removed all amber filled-plate active states; VoxCity active segment/toggle controls now use a subtle blue tint (`selectedSubtle`) + focus border + interaction text, and the linked-selection box uses the same subtle treatment. No new card-in-card frames were introduced; layout/density left as-is per scope.
+- Validation commands:
+  - `npm run typecheck`
+  - `npx vitest run` for `map-drawing-tools.test.ts`, `geodesic-measurement.test.ts`, `map-bookmarks-annotations.test.tsx`, `map-components.test.ts`
+  - `npx vitest run src/stores/__tests__/useMapExplorerStore.test.ts`
+  - B11 target Standard Amber Scan with `rg` (token/keyword + amber hex/RGBA).
+- Validation results:
+  - Typecheck: passed.
+  - Drawing/measurement/annotation/map-component tests: passed, 164 tests across 4 files.
+  - Store tests: passed, 51 tests.
+  - Standard Amber Scan: 0 amber token/keyword hits; 7 remaining amber hex literals are the documented VoxCity `data-palette` thematic stops listed above.
+- Tests updated: none. The targeted test files asserted no amber defaults (the only color assertion, `#3794ff`, already matched), so no fixture drift was required.
+- Known risks:
+  - Normal operating-pack order still has C09/C10 pending; B11 was completed only because the user explicitly continued the targeted Map Explorer track.
+  - VoxCity thematic palette amber/orange retention is intentional and B12-owned; if B12 reclassifies any stop, the legend swatches must move with it.
+- Blockers: none for B11.
+- Decisions made:
+  - Treated `MAP_COLORS.amber*` rename as the value-preserving migration path (each alias already resolves to the blue interaction family), keeping rendered behavior identical while clearing the amber token name from active scope.
+  - Kept VoxCity attribute symbology and CityJSON semantic colors as documented data-palette exceptions rather than forcing them into UI chrome tokens.
+- Next recommended prompt in normal order: Prompt C09 - Cross-Cutting Surfaces — Urban Context Strip, Outline Nav, Background Tasks, Engine Capabilities, Narrative, Object Detector.
+- Next Map Explorer prompt if the user continues the targeted Part 3 track: Prompt B12 - Visualization Panels, Symbology Utilities, Demo Packs, And Renderer Defaults.
+- Ledger updated: yes.
+
+### Prompt B12 - Visualization Panels, Symbology Utilities, Demo Packs, And Renderer Defaults
+
+- Date: 2026-05-20.
+- Agent: Claude.
+- Status: completed.
+- Trigger: user selected the B12 prompt block and requested "go apply be perfectly premium, never miss anything".
+- Execution mode: user-directed targeted deviation. C09/C10 remain pending in the normal operating-pack order; this B12 pass was completed because the user explicitly continued the Map Explorer track.
+- Started from:
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` / Prompt B12
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`, `COLOR_SYSTEM_TOKEN_REFERENCE.md`, `COLOR_SYSTEM_AGENT_PROTOCOL.md`, `COLOR_SYSTEM_QA_CHECKLIST.md`
+  - Existing B02-B11 Map Explorer workbench token language and `map/mapTokens.ts` non-amber alias layer.
+- Files inspected:
+  - `src/centerpanel/components/MapChoroplethLayer.tsx`, `MapHeatmapLayer.tsx`, `MapSymbolLayer.tsx`, `MapClusterViz.tsx`, `MapHotSpotViz.tsx`, `MapEmergingHotSpotViz.tsx`
+  - `src/centerpanel/components/map/heatmapStyleUtils.ts`, `symbologyUtils.ts`, `spatialStatsVizUtils.ts`, `symbolStyleUtils.ts`, `demoDataPacks.ts`
+  - `src/centerpanel/components/map/__tests__/symbology-utils.test.ts`, `spatial-stats-viz.test.ts`, `map-components.test.ts`, `map-layer-management.test.ts`
+- Files changed:
+  - `src/centerpanel/components/MapChoroplethLayer.tsx`
+  - `src/centerpanel/components/MapHeatmapLayer.tsx`
+  - `src/centerpanel/components/MapSymbolLayer.tsx`
+  - `src/centerpanel/components/MapClusterViz.tsx`
+  - `src/centerpanel/components/MapHotSpotViz.tsx`
+  - `src/centerpanel/components/map/symbolStyleUtils.ts`
+  - `src/centerpanel/components/map/demoDataPacks.ts`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+- Files inspected but unchanged (no amber UI/default or only documented data-palette):
+  - `MapEmergingHotSpotViz.tsx` and `symbologyUtils.ts`: no amber UI chrome or default color literals.
+  - `heatmapStyleUtils.ts` and `spatialStatsVizUtils.ts`: analytical ramps only (documented data-palette retentions below).
+- Tokens added/used: no new tokens. Migrated active-scope `MAP_COLORS.amber*` compatibility aliases to semantic non-amber equivalents — `MAP_COLORS.interaction` (panel headers, active ramp/legend text, accent sliders, symbology fallback defaults, legend swatch fallbacks), `MAP_COLORS.focus` (active ramp/legend borders, tooltip borders, primary-action border), `MAP_COLORS.hairline` (panel/section/select/legend/summary borders), `MAP_COLORS.selectedSubtle` (active ramp/legend fills and the converted primary-action fill).
+- Product behavior changes (color/chrome only):
+  - Choropleth panel header/select/legend/tooltip chrome, active ramp/legend selected state, classification-popup shell, and legend swatch fallback moved off amber aliases to the blue interaction/focus/hairline/selectedSubtle tokens.
+  - Heatmap, Symbol, Cluster, and HotSpot panel borders, range-slider accent colors, summary/legend cards, and map tooltip borders moved to non-amber tokens.
+  - Cluster and HotSpot "Add to map" primary buttons were converted from a solid filled amber plate to a subtle blue ghost-primary (focus border + `selectedSubtle` fill + interaction text), removing the heavy filled plate per the premium chrome rules.
+  - Symbol clustering default circle fill literal moved from `rgba(245,158,11,0.4)` to `rgba(55,148,255,0.4)`.
+  - `symbolStyleUtils.buildAttributeColorExpression` and `buildGraduatedSymbolCollection` legend fallback colors moved from `MAP_COLORS.amber` to `MAP_COLORS.interaction`.
+  - Demo pack street class default symbology moved primary `#F59E0B`→`#3B82F6` and secondary `#FACC15`→`#38BDF8`; demo block access class moved Moderate `#F59E0B`→`#0EA5E9` (cyan). Matching legend entry colors moved with them; the truthful `(demo)` labels were preserved unchanged.
+- Data classification / rendering behavior preserved:
+  - Choropleth classification methods, ramp application, legend construction, and tooltip queries; heatmap density expression and gradient selection; symbol proportional/graduated classification, radius expressions, and legend output; cluster aggregation and step expressions; Getis-Ord hot-spot category mapping and paint application; spatial-stats decoration; symbology expression builders; and demo layer config shapes were all unchanged. Only color values/tokens changed.
+- Data palette exceptions retained (documented):
+  - `heatmapStyleUtils.HEATMAP_GRADIENTS` — sequential heatmap ramps named `hot`, `cool`, `viridis`, `plasma`. Purpose: continuous heatmap density encoding. Classification: sequential interpolation on `heatmap-density` (0→1). Legend: gradient swatch in the heatmap panel. No-data: density 0 maps to transparent `rgba(0,0,0,0)`. The `hot` ramp's `#f59e0b`/`#fef3c7`, `viridis` `#fde725`, and `plasma` `#f89441`/`#f0f921` warm/yellow stops are perceptual colormap stops, never named amber/gold, and appear only as map heat density and the matching legend gradient — they cannot be confused with UI warning/status chrome.
+  - `spatialStatsVizUtils` LISA cluster colors (`HH`/`HL`/`LH`/`LL`/`NS`) and Getis-Ord Gi* significance ramp (`hot-99..cold-99` with `not-significant` `#FFFFBF`). Purpose: canonical LISA/Getis cluster and significance encodings (ColorBrewer RdBu/RdYlBu family). Classification: categorical cluster type / diverging significance bands. Legend: cluster/confidence legend rows. No-data / not-significant: explicit `NS` gray and pale-yellow midpoint. The salmon `#F4A582` and pale-yellow `#FFFFBF` are the standard diverging midpoints, not UI chrome, and are paired with explicit category text.
+  - `demoDataPacks.BUILDING_STYLE` risk ramp (`Very high` red `#DC2626`, `High` orange `#F97316`, `Moderate` violet `#A855F7`, `Low` green `#22C55E`). Purpose: demo building heat/risk class encoding. Classification: categorical risk classes. Legend: `(demo)`-labeled legend entries. No-data: slate `#94A3B8` fallback. The orange `#F97316` is a high-risk data stop in a categorical risk scheme with explicit demo labels; it is not named amber, is not flagged by the standard amber-scan hex list, and is map symbology rather than panel/default chrome. Red/green here are data risk encodings, not UI status tokens.
+- Hard-coded colors retained with reason:
+  - Concrete blue literals (`rgba(55,148,255,0.4)`, demo `#3B82F6`/`#38BDF8`/`#0EA5E9`) are used inside MapLibre paint/demo symbology where values must be concrete (MapLibre paint cannot resolve CSS variables, and demo packs are static data fixtures).
+- UI vs data separation:
+  - Panel chrome now uses only semantic interaction/focus/hairline/surface tokens; analytical map symbology (ramps, cluster/significance palettes, demo data colors) remains in separate data-palette literals. No status semantic token is used as a generic chrome accent and no data-palette color styles chrome.
+- Validation commands:
+  - `npm run typecheck`
+  - `npx vitest run` for `symbology-utils.test.ts`, `spatial-stats-viz.test.ts`, `map-components.test.ts` (targeted) and the full `src/centerpanel/components/map/__tests__` directory
+  - `npm run lint:errors`
+  - B12 target Standard Amber Scan with `rg` (token/keyword + amber hex list).
+- Validation results:
+  - Typecheck: passed.
+  - Lint (errors-only): passed.
+  - Targeted symbology/spatial-stats/component tests: passed, 70 tests across 3 files.
+  - Full map `__tests__` run: 292 passed, 1 failed — `map-layer-management.test.ts > publishes lightweight layer registry events for store changes`. This failure is pre-existing and unrelated to B12: it is caused by the working-tree change in `useMapExplorerStore.ts` (made before B12) that moved `emitMapLayerRegistryChange` to an async `setTimeout(dispatch, 0)`, while the test asserts synchronously. Verified by `git stash`: the test passes on the clean tree and fails only with the pre-existing store modification restored. No B12 file touches the store or its event dispatch.
+  - B12 target Standard Amber Scan: 0 amber token/keyword/standard-hex hits; remaining warm/yellow/orange hexes are the documented data-palette ramps above.
+- Tests updated: none. No targeted test asserted amber renderer defaults or amber demo data (the only color assertion in scope, `MAP_COLORS.amber === MAP_COLORS.interaction`, still holds because the alias is retained in `mapTokens.ts`).
+- Known risks:
+  - Normal operating-pack order still has C09/C10 pending; B12 was completed only because the user explicitly continued the targeted Map Explorer track.
+  - Pre-existing `map-layer-management` async-dispatch test failure documented above is owned by the store/layer-registry feature, not B12; it should be reconciled by the store/test owner (likely sync-vs-async dispatch alignment), not under a color-only prompt.
+  - Demo building-risk orange and the analytical heatmap/spatial-stats warm stops are intentional data-palette retentions; if a later QA reclassifies any of them, the matching legend swatches must move with them.
+- Blockers: none for B12.
+- Decisions made:
+  - Treated `MAP_COLORS.amber*` rename as the value-preserving migration path (each alias already resolves to the blue interaction family), clearing the amber token name from active scope with zero rendered-color change for chrome.
+  - Replaced demo street/block amber-yellow defaults with categorical non-amber data colors while preserving the `(demo)` truthful labels; kept the demo building-risk ramp and analytical heatmap/spatial-stats ramps as documented data-palette exceptions rather than forcing them into UI tokens.
+  - Did not modify the store async-dispatch behavior or its test under this color-only prompt; flagged it for the owning feature instead.
+- Next recommended prompt in normal order: Prompt C09 - Cross-Cutting Surfaces — Urban Context Strip, Outline Nav, Background Tasks, Engine Capabilities, Narrative, Object Detector.
+- Next Map Explorer prompt if the user continues the targeted Part 3 track: Prompt B13 - Services, Query, Persistence, Connectors, And Engine Outputs.
+- Ledger updated: yes.
+
+### Prompt B13 - Map Services, Query Defaults, Cartography Advisor, Persistence, External Connectors, And Engine Outputs
+
+- Date: 2026-05-20.
+- Agent: Claude.
+- Status: completed.
+- Trigger: user selected the B13 prompt block and requested "go apply be perfect and premium".
+- Execution mode: user-directed targeted deviation. C09/C10 remain pending in the normal operating-pack order; this B13 pass was completed because the user explicitly continued the Map Explorer track.
+- Started from:
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md` / Prompt B13
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`, `COLOR_SYSTEM_AGENT_PROTOCOL.md`, `COLOR_SYSTEM_QA_CHECKLIST.md`
+- Files inspected:
+  - `src/services/map/MapEngineAdapter.ts`, `MapCartographyAdvisor.ts`, `MapPersistenceService.ts`, `MapNLQueryBuilder.ts`, `ExternalServiceConnector.ts`, `MapAnalysisDispatcher.ts`, `MapWorkflowService.ts`, `MapToUrbanContextAdapter.ts`, `UrbanToMapMethodRequestAdapter.ts`
+  - `src/services/map/__tests__/MapEngineAdapter.test.ts`, `MapPersistenceService.test.ts`, `MapCartographyAdvisor.test.ts`, `MapNLQueryBuilder.test.ts`
+- Files changed:
+  - `src/services/map/MapEngineAdapter.ts`
+  - `src/services/map/MapPersistenceService.ts`
+  - `src/services/map/__tests__/MapPersistenceService.test.ts`
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+- Files inspected but unchanged (already amber-free at service level):
+  - `MapCartographyAdvisor.ts`, `MapNLQueryBuilder.ts`, `ExternalServiceConnector.ts` (B09-migrated OSM defaults), `MapAnalysisDispatcher.ts`, `MapWorkflowService.ts`, `MapToUrbanContextAdapter.ts`, `UrbanToMapMethodRequestAdapter.ts`: no amber UI/default/generated map color literals.
+- Product behavior changes (color/default only):
+  - `buildQueryHighlightStyle` Query-to-SQL result highlight default moved from `#F59E0B` to `#3794ff` (blue); applies to point circle, line, and polygon highlight variants.
+  - `buildTemporalStyle` defensive fallback color (used only when the temporal ramp lookup returns fewer than five stops) moved from `?? "#F59E0B"` to `?? "#3794ff"`. The temporal ramp itself (`TEMPORAL_DEFAULT_COLOR_RAMP = "YlOrRd"` via `getColorRampColors`) is unchanged.
+  - `MapPersistenceService.normalizeAnnotationStyle` annotation-restore fallback color moved from `#F59E0B` to `#3794ff`, matching the B11 store `DEFAULT_ANNOTATION_SETTINGS.color` so restored annotations without a stored color land on the same non-amber default.
+- Test change:
+  - `MapPersistenceService.test.ts` `makeAnnotation()` fixture annotation color moved from `#F59E0B` to non-amber `#A855F7` (violet). This fixture exercises bookmark/annotation round-trip persistence with a non-default custom color; the test asserts annotation text/structure, not the color value, so the change keeps a meaningful non-default round-trip without amber.
+- Contracts preserved (no logic change):
+  - Geometry/CRS handling, bounds restriction, completed-run creation, analysis rerun metadata, persisted snapshot shape, external service request behavior, and NL-query audit metadata were all left unchanged. Only default/highlight/fallback color values changed; analysis output shape, visualization `kind` values, and engine identities are untouched (verified by passing round-trip tests for query-highlight and facility-allocation outputs).
+- Data palette exceptions retained (documented):
+  - `MapEngineAdapter.DETECTION_COLOR_PALETTE` (line ~143). Purpose: categorical color assignment for object-detection classes. Classification: categorical (one color per detected class, cycled by index). Legend: detection layer legend / per-class label chips. No-data: `NO_DATA_COLOR` `#525252` used elsewhere for unclassified. The `#F59E0B` (and `#F97316`) entries are two of ten perceptually-distinct categorical hues, never named amber/gold, used only as map class fills with labels — they cannot be confused with UI warning/status chrome.
+  - `MapEngineAdapter.buildAbmHeatmapStyle` density ramp (line ~734): `rgba(37,99,235,0)→#2563EB→#10B981→#F59E0B→#DC2626`. Purpose: ABM agent-density heatmap. Classification: sequential interpolation on `heatmap-density` (0→1). Legend: heatmap density legend. No-data: density 0 → transparent. The `#F59E0B` is the high-mid perceptual stop of a cool→warm density colormap, map symbology only.
+  - `MapEngineAdapter.buildFacilityCatchmentStyle` ramp (line ~754): `["#1F2937","#0EA5E9","#10B981","#F59E0B"]`. Purpose: facility catchment coverage. Classification: sequential interpolation on coverage field 0→1. Legend: catchment coverage legend. No-data: default outline / unstyled features. `#F59E0B` is the high-coverage endpoint of a dark→cool→warm sequential ramp.
+  - `MapEngineAdapter.buildFacilitySiteStyle` ramp (line ~765): `["#64748B","#0EA5E9","#F59E0B"]`. Purpose: facility site coverage. Classification: sequential interpolation on coverage field 0→1. Legend: site coverage legend. No-data: outline default. `#F59E0B` is the high-coverage endpoint of a slate→sky→warm sequential ramp.
+  - All four are analytical map symbology that encode class/magnitude, are not routed through UI status tokens, and are paired with map legends — distinct from chrome/status meaning.
+- Hard-coded colors removed: Query-to-SQL highlight default, temporal fallback default, persistence annotation-restore fallback default, and the persistence test annotation fixture color no longer use `#F59E0B`.
+- Hard-coded colors retained with reason: `#3794ff` non-amber defaults are concrete because they feed MapLibre paint styles / persisted defaults that cannot resolve CSS variables; the four analytical ramps above are documented data-palette retentions.
+- UI vs data separation: default/highlight/fallback colors now use the workbench non-amber blue (`#3794ff`), while analytical engine palettes remain service-local data-palette literals. No UI status token is used as a symbology default and no analytical palette color is used as chrome.
+- Validation commands:
+  - `npm run typecheck`
+  - `npx vitest run` for `MapEngineAdapter.test.ts`, `MapPersistenceService.test.ts`, `MapCartographyAdvisor.test.ts`, `MapNLQueryBuilder.test.ts`
+  - `npm run lint:errors`
+  - B13 target Standard Amber Scan with `rg` (token/keyword + amber hex list).
+- Validation results:
+  - Typecheck: passed.
+  - Lint (errors-only): passed.
+  - Targeted service tests: passed, 45 tests across 4 files.
+  - B13 target Standard Amber Scan: 0 amber default/highlight/fallback/test hits remain; 4 residual `#F59E0B` hits in `MapEngineAdapter.ts` (lines ~143, ~734, ~754, ~765) are the documented analytical data-palette retentions above.
+- Known risks:
+  - Normal operating-pack order still has C09/C10 pending; B13 was completed only because the user explicitly continued the targeted Map Explorer track.
+  - The pre-existing `map-layer-management.test.ts > publishes lightweight layer registry events` async-dispatch failure noted under B12 is unrelated to B13 and still owned by the store/layer-registry feature.
+  - The retained analytical engine ramps keep warm/amber stops by design; if B14 final QA reclassifies any, the matching legends must move with them.
+- Blockers: none for B13.
+- Decisions made:
+  - Replaced amber only where it was a fixed default/highlight/fallback (not encoding data), and retained amber where it is a perceptual stop in an analytical class/magnitude palette, documented as data-palette per Task 6.
+  - Aligned the persistence annotation-restore fallback with the B11 store default `#3794ff` for consistent non-amber restore behavior.
+  - Did not alter analysis/persistence/export/external-service contracts or the canonical `YlOrRd` temporal ramp; changed only color literals.
+- Next recommended prompt in normal order: Prompt C09 - Cross-Cutting Surfaces — Urban Context Strip, Outline Nav, Background Tasks, Engine Capabilities, Narrative, Object Detector.
+- Next Map Explorer prompt if the user continues the targeted Part 3 track: Prompt B14 - Final QA.
+- Ledger updated: yes.
+
+### Prompt B14 - Map Explorer Final Cleanup, Test Drift, Accessibility, Heavy Chrome, And Visual QA
+
+- Date: 2026-05-20.
+- Agent: Claude.
+- Status: completed.
+- Trigger: user selected the B14 prompt block and requested "go apply be perfect and premium".
+- Execution mode: user-directed targeted deviation. C09/C10 remain pending in the normal operating-pack order; this B14 pass was completed because the user explicitly continued the Map Explorer track. B14 closes the Part 3 amber-removal/restyle sweep.
+- Scope swept: all Map Explorer runtime UI (`src/centerpanel/components/Map*.tsx`, `src/centerpanel/components/map/**`), map services (`src/services/map/**`), store map/annotation defaults (`src/stores/useMapExplorerStore.ts`), related unit tests, and Map Explorer e2e fixtures.
+- Files changed:
+  - `src/centerpanel/components/MapSymbolLayer.tsx` — default single-symbol color state moved from `#f59e0b` to `#3794ff` (a genuine UI default amber missed by B12 because it was a lowercase literal in `useState`).
+  - `src/centerpanel/components/MapExportDialog.tsx` — flattened the export `previewFrame` decorative dark gradient (`linear-gradient(180deg, rgba(23,23,23,…), rgba(13,13,13,…))`) to a flat neutral `MAP_COLORS.bg` surface (heavy-chrome cleanup).
+  - `src/centerpanel/components/map/mapTokens.ts` — removed the entire deprecated `MAP_COLORS.amber*` compatibility alias block (`amber`, `amberSoft`, `amberDark`, `amberDim`, `amberSubtle`, `amberHairline`, `amberBorder`, `amberBorderStrong`, `amberBtnBg`, `amberBtnBgHover`, `amberBtnBorderHover`, `amberBtnBorder`, `amberDashed`). These were the B02-B14 migration bridge and now have zero runtime consumers, so the sunset comment was honored and the dead aliases deleted.
+  - `src/centerpanel/components/map/__tests__/map-components.test.ts` — removed the now-obsolete "legacy amber compatibility alias" test and dropped `"amber"` from the required `MAP_COLORS` key list.
+  - `e2e/map-modal-layout.spec.ts`, `e2e/map-report-handoff.spec.ts`, `e2e/map-temporal-player.spec.ts` — replaced amber layer fixture colors (`fillColor #f59e0b`, `strokeColor #fbbf24`) with non-amber blue (`#3794ff` / `#38bdf8`); these fixtures do not assert color, so behavior is unchanged.
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`.
+- Heavy-chrome scan results:
+  - Decorative gradients: only one workbench-chrome gradient found (export preview frame) — flattened. The `MapCompositionLayout` A4 print-page preview gradients (`linear-gradient(180deg,#f8fafc,#e5e7eb)` paper sheet and `linear-gradient(135deg, rgba(56,189,248,…), rgba(55,148,255,…))` map-area placeholder) are retained as content representations of the printed export artifact (aspect-ratio 210/297), not workbench chrome, and use non-amber neutral/blue.
+  - Glows/shimmer/animation: none added; the only `animation: none !important` is the reduced-motion override in `MapExplorerModal`. The `MapTemporalPlayer` floating time-label uses a neutral black elevation shadow (`0 10px 28px rgba(0,0,0,0.28)`), not a colored glow.
+  - Border radii: `borderRadius: 999` / `50%` hits are legend/ramp swatch pills and the temporal scrubber thumb (circular handle), not card frames; control/card radii remain compact via `MAP_RADIUS`.
+  - Filled plates / `inset` rails: remaining `boxShadow: inset 2px 0 0 interaction` are the recommended thin active-rail cues (selected rows/tabs/drawer headers), not filled amber plates. Filled plates were already converted to ghost/subtle in B11-B12.
+  - Lingering `MAP_COLORS.amber*` / amber `MAP_STROKES`: zero runtime consumers confirmed by full `src` + `e2e` scan before removal; aliases deleted; `MAP_STROKES` has no amber members.
+- Residual color-literal classification (all retained literals fall into permitted categories):
+  - Documented analytical `data-palette` (map symbology, legend-paired, never named amber, not UI status):
+    - `MapVoxCityOverlay.tsx` `TYPE_COLORS`/`SEMANTIC_COLORS`/`HEIGHT_GRADIENT_STOPS`/year legend (`#F59E0B`, `#FBBF24`, `#92400E`, …) — building attribute/CityJSON-semantic encodings (B11).
+    - `map/heatmapStyleUtils.ts` `HEATMAP_GRADIENTS.hot` colormap (B12).
+    - `map/spatialStatsVizUtils.ts` LISA cluster + Getis-Ord significance ramps incl. `#FFFFBF`/`#F4A582` (B12; not standard-scan hexes).
+    - `demoDataPacks.ts` building-risk ramp orange `#F97316` (B12).
+    - `MapEngineAdapter.ts` `DETECTION_COLOR_PALETTE` categorical + `buildAbmHeatmapStyle`/`buildFacilityCatchmentStyle`/`buildFacilitySiteStyle` ramps (B13).
+  - `token-source` outside active render path: none remaining (the amber aliases were the only such case and are now deleted).
+  - `test-fixture`: none remaining with amber — the persistence annotation fixture (B13) and the three e2e layer fixtures (B14) were moved to non-amber.
+- Status truthfulness (task 6) verified by code review (carried from B11-B13, unchanged here): drawing geometry validation still maps `valid`→success, `warning`/`unknown`→caveat, `blocked`→error with explicit text labels; measurement CRS/geodesic caveats remain explicit non-amber `caveat` surfaces; QA/report/publication-readiness states retain explicit text + non-amber status styling; demo/stale/unknown/blocked never render with `valid` styling. No readiness/QA/CRS/publication/report state was made less explicit.
+- Accessibility/focus (task 5) verified by code review: toolbar/search/bookmark/context-menu/layer-row/drawer/dialog/slider/draw-measure-annotation/close controls remain real focusable elements with aria labels and the workbench focus token (`MAP_COLORS.focus` / `--syn-interaction-focus-ring`); no focus affordance was removed during color migration.
+- Validation commands:
+  - `npm run typecheck`
+  - `npx vitest run src/centerpanel/components/map/__tests__ src/services/map/__tests__`
+  - `npm run color:guard:changed`
+  - `npm run lint:errors`
+  - Final Map Explorer Standard Amber Scan and Heavy-Chrome Scan with `rg`.
+- Validation results:
+  - Typecheck: passed (alias removal introduced no broken references — confirms zero consumers).
+  - Lint (errors-only): passed.
+  - Map + service test run: 484 passed, 2 skipped, 1 failed. The single failure is the pre-existing, unrelated `map-layer-management.test.ts > publishes lightweight layer registry events for store changes` — caused by the working-tree `useMapExplorerStore.emitMapLayerRegistryChange` async `setTimeout(0)` dispatch (introduced before this color track) versus the test's synchronous assertion. Per task 7 this is not a token/default change, so the assertion was not modified; documented as an unrelated existing failure (consistent with B12/B13). All color/default/token-touched tests pass.
+  - `color:guard:changed`: report-only (exit 0); listed only non-amber literals (blue `#3794ff`/`#5aa9ff`/`#93c5fd`, status red/green, neutral black/white, and `var()` tokens) across changed files — no amber.
+  - Final Standard Amber Scan: 0 UI/default/demo/generated amber hits in runtime/services/store, 0 amber hits in unit tests and Map Explorer e2e specs; only the documented analytical `data-palette` literals above remain.
+  - Final Heavy-Chrome Scan: no decorative gradients/glows/shimmer/oversized-card-radii/filled-amber-plates in Map Explorer chrome (print-page preview retained as content).
+- Visual QA (tasks 4 and 8): live multi-width Playwright/manual screenshot QA at 720/960/1280/1440px was NOT performed because no dev server was available in this environment. This is explicitly recorded as the one acceptance item left unverified visually; structural/code-level QA (control structure, focus tokens, status styling, density tokens) was completed in lieu. Recommend a follow-up dev-server screenshot pass over shell, cockpit, toolbar/search, layer manager, QA/report drawers, import/export dialogs, drawing/measurement, and a renderer panel before publication sign-off.
+- Known risks:
+  - Normal operating-pack order still has C09/C10 pending; the full B02-B14 Map Explorer track ran as an explicit user-directed deviation.
+  - Pre-existing `map-layer-management` async-dispatch test failure remains owned by the store/layer-registry feature (sync-vs-async dispatch alignment), not the color track.
+  - Live visual QA across the four target widths is outstanding (no dev server).
+- Blockers: none for B14.
+- Decisions made:
+  - Removed the dead `MAP_COLORS.amber*` aliases (rather than retaining them as token-source) because the sunset comment scheduled them for B14 and a full-repo scan confirmed zero runtime consumers; updated the single referencing test accordingly.
+  - Flattened only the export-preview workbench gradient; retained the A4 print-page preview gradients as export-artifact content.
+  - Left the unrelated store async-dispatch test failure untouched and documented it, per the rule to only update assertions for legitimate token/default changes.
+- Map Explorer Part 3 (B01-B14) amber-removal and premium workbench restyle is complete.
+- Next recommended prompt in normal order: Prompt C09 - Cross-Cutting Surfaces — Urban Context Strip, Outline Nav, Background Tasks, Engine Capabilities, Narrative, Object Detector.
+- Ledger updated: yes.
+
+### Prompt B15 - Final Color System Handoff
+
+- Date: 2026-05-20.
+- Agent: Claude.
+- Status: blocked (handoff recorded; full three-part closure blocked on C09/C10).
+- Started from:
+  - Launcher: `COLOR_SYSTEM_PLANS/START_HERE_COLOR_SYSTEM_AGENT.md`
+  - Protocol: `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_AGENT_PROTOCOL.md`
+  - Manifest: `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_PROMPT_MANIFEST.json`
+  - Ledger: `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md`
+  - Handoff template: `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_AGENT_HANDOFF_TEMPLATE.md`
+- Trigger: user selected the B15 prompt block and requested "go apply perfectly".
+- Why B15 is recorded as blocked rather than completed:
+  - B15 task 1 requires `A01-A10`, `C01-C10`, and `B01-B14` to be completed or skipped-with-reason. `C09` and `C10` are genuinely `pending` (not skipped). Marking the workstream complete would violate status truthfulness, so B15 closure is held until Part 2 finishes.
+- Prompt status confirmation (task 1):
+  - Part 1 — `A01`-`A10`: all completed.
+  - Part 2 — `C01`-`C08`: completed. `C09`: pending. `C10`: pending.
+  - Part 3 — `B01`-`B14`: all completed. `B15`: blocked (this entry).
+- Manifest sync performed (task 6):
+  - `COLOR_SYSTEM_PROMPT_MANIFEST.json`: `B11`, `B12`, `B13`, `B14` flipped from `pending` to `completed` to match the ledger; `B15` set to `blocked` with a `blockedReason` field naming the C09/C10 dependency. Final tally: 32 completed, 2 pending (`C09`, `C10`), 1 blocked (`B15`). Manifest now agrees with the ledger status register.
+- Files changed in B15:
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_PROMPT_MANIFEST.json` (status sync + B15 blocked reason).
+  - `COLOR_SYSTEM_PLANS/COLOR_SYSTEM_IMPLEMENTATION_LEDGER.md` (this handoff, register row, current status).
+  - No product/source files changed in B15.
+- Remaining amber hits by file and category (task 2):
+  - UI/default/demo/generated amber debt in Part 1 (Urban Analytics modal): 0 (closed at A09/A10; only documented analytical heatmap swatch + the explicit AMBER scientific traffic-light label retained, both documented).
+  - UI/default/demo/generated amber debt in Part 3 (Map Explorer): 0. Residual literals are documented analytical `data-palette` exceptions only — `MapVoxCityOverlay.tsx` (type/semantic/height/year building encodings), `map/heatmapStyleUtils.ts` (`hot` colormap), `map/spatialStatsVizUtils.ts` (LISA/Getis ramps), `demoDataPacks.ts` (building-risk ramp), `MapEngineAdapter.ts` (detection categorical + ABM/facility coverage ramps).
+  - OUTSTANDING UI amber debt in Part 2 (Center Panel C09/C10 scope, not yet migrated): `src/centerpanel/components/NarrativeGenerationPanel.tsx` = 11 hits; `src/centerpanel/components/ObjectDetectorPanel.tsx` = 1 hit. These are C09-owned cross-cutting surfaces and are the primary reason the workstream is not closeable.
+- Retained color-literal classification (task 4): all retained literals are one of — token-source outside active render path (none remaining in Map Explorer after the B14 alias deletion), test fixture with explicit reason, or documented analytical `data-palette`/`content` exception. The Part 2 Narrative/ObjectDetector hits are NOT in an allowed category yet; they are open debt for C09.
+- Scientific integrity notes: No scientific evidence, CRS, data fitness, method validity, or readiness semantics changed in B15 (documentation/manifest only). Across B02-B14, GIS calculations, CRS handling, evidence semantics, method validity, workflow readiness, map persistence shape, map service contracts, QA logic, NL-query safety, and report-handoff contracts were preserved (task 5).
+- Cross-module contract changes: None.
+- Validation history (task 3):
+  - Part 1 (A-track): typecheck + `test:analytics` + UA amber scans recorded per A02-A10 entries.
+  - Part 2 (C-track, C01-C08): typecheck + targeted Center Panel tests + center-panel amber/heavy-chrome scans recorded per C02-C08 entries.
+  - Part 3 (B-track, B01-B14): typecheck (passed at each step), targeted map/service tests (drawing/measurement/annotation/store, symbology/spatial-stats/components, engine/persistence/cartography/NL-query), `lint:errors` (passed), `color:guard:changed` (report-only, no amber), and Standard Amber + Heavy-Chrome scans (clean except documented data-palette). Latest full map+service run: 484 passed, 2 skipped, 1 pre-existing unrelated failure.
+  - B15 validation: `node` JSON parse of the manifest succeeded (35 prompts; tally 32 completed / 2 pending / 1 blocked).
+- Known risks / unresolved items (task acceptance "no unresolved blocker" is NOT yet met):
+  - BLOCKER for full closure: Part 2 `C09` and `C10` are pending; Center Panel is not yet fully amber-free (Narrative/ObjectDetector panels). The three-part workstream cannot be declared complete until these close.
+  - Pre-existing unrelated test failure: `map-layer-management.test.ts > publishes lightweight layer registry events for store changes`, caused by the working-tree `useMapExplorerStore.emitMapLayerRegistryChange` async `setTimeout` dispatch versus a synchronous assertion; owned by the store/layer-registry feature, not the color track.
+  - Live multi-width Playwright/visual QA across 720/960/1280/1440px was not performed in this environment (no dev server); recommended before publication sign-off for both Center Panel and Map Explorer.
+- Decisions made:
+  - Did not fabricate workstream completion; recorded B15 as blocked and synced the manifest to the true state, per the status-truthfulness rule.
+  - Closed and documented the Map Explorer Part 3 handoff (B01-B14) since that track is genuinely complete and amber-free.
+- Next recommended prompt: Prompt C09 - Cross-Cutting Surfaces (then C10), after which B15 can flip blocked -> completed and the three-part workstream can be formally closed.
+- Ledger updated: yes.
+
+### Prompt C09 - Cross-Cutting Surfaces (Closeout) - 2026-05-20
+
+- Date: 2026-05-20.
+- Agent: Claude.
+- Status: completed.
+- Trigger: user directed closing all remaining gaps and ending the workstream.
+- Files inspected: `src/centerpanel/UrbanContextStrip.tsx`, `src/centerpanel/urban-context-strip.module.css`, `src/centerpanel/OutlineNav.tsx`, `src/centerpanel/components/BackgroundTasksControl.tsx` (+ `.module.css`), `src/centerpanel/components/EngineCapabilitiesPanel.tsx`, `src/centerpanel/components/NarrativeGenerationPanel.tsx`, `src/centerpanel/components/ObjectDetectorPanel.tsx`, `src/centerpanel/components/StatusRail.tsx`.
+- Files changed: `src/centerpanel/components/NarrativeGenerationPanel.tsx`.
+- What changed: NarrativeGenerationPanel was the only cross-cutting surface still carrying amber (11 inline `#F59E0B` / `rgba(245,158,11,*)` UI values). Migrated to workbench `--syn-*` tokens:
+  - Panel shell -> `--syn-surface-panel` bg + `--syn-border-subtle` border + `--syn-text-default` text.
+  - Heading and voice-descriptor title -> `--syn-text-default`.
+  - Primary "Draft Narrative" button -> transparent bg + `--syn-interaction-active` text + `--syn-border-focus` border (per C09 task 5: transparent + blue text).
+  - Generation-notes + section-warning text -> `--syn-status-info` (non-amber caveat, explicit text preserved).
+  - Citation label + citation anchor highlight -> `--syn-text-link` with an info-tinted `color-mix` mark.
+  - Tone-selector active radio and SectionButton active state -> `color-mix(... --syn-interaction-active 14-16%, transparent)` fill + `--syn-interaction-active` text + `--syn-border-focus` border.
+  - Editing textarea focus border -> `--syn-border-focus`.
+- Hard-coded colors retained with reason: `ObjectDetectorPanel.tsx` `CLASS_COLORS.solar_panel = '#F59E0B'`. Category: `data-palette` (categorical object-detection class encoding, paired with `CLASS_LABELS`, used as detection overlay symbology; amber is semantically apt for solar and is not UI chrome). Consistent with the retained B11 VoxCity `TYPE_COLORS` and B13 `DETECTION_COLOR_PALETTE`.
+- Status truthfulness: generation/section warnings keep explicit "Generation notes"/list text with non-amber info styling; accepted/rejected status dots keep green/rose; no caveat/unknown state made to look valid.
+- Accessibility: tone radios keep `role="radio"`/`aria-checked`; buttons remain real focusable controls; focus border token applied to the edit field. No animation existed to preserve here.
+- Validation: `npm run typecheck` passed; `ObjectDetectorPanel.test.tsx` passed (4); C09 surface re-scan shows 0 UI amber (only the documented ObjectDetector data-palette color).
+- Cross-module contract changes: None. Narrative generation, citation building, pending-insert dispatch, and section accept/reject/edit logic untouched (color-only).
+- Next: C10.
+
+### Prompt C10 - Center Panel Final Cleanup, Visual QA, And Part 3 Gate (Closeout) - 2026-05-20
+
+- Date: 2026-05-20.
+- Agent: Claude.
+- Status: completed.
+- Standard Amber Scan (Part 2, Center Panel excl. map): no unresolved UI amber. All remaining hits are permitted categories:
+  - Comments only: `header-tokens.css`, `newProject.module.css`, `tools.left.module.css`, `EOConnectorPanel.tsx` (describe the non-amber approach).
+  - Token-source non-amber: `tokens.css` `--accentGold: var(--syn-text-muted)`.
+  - Amber-named-but-blue-resolved classes (C08 accepted approach, JSX untouched): `tools.module.css` / `tools.left.module.css` `.themeAmber`/`.panelAmber`/`.cardTitleAmber`/`.pillAmber`/`.barThemeAmber` re-pointed to `var(--syn-vscode-accent-blue)`; consumed by `ToolsActionPanel.tsx` and `ExportBar.tsx` class names.
+  - Documented `data-palette`: `ObjectDetectorPanel.tsx` `CLASS_COLORS.solar_panel`.
+- Heavy-Chrome: no decorative amber gradients, no new card-in-card, no filled amber plates introduced; NarrativeGenerationPanel primary action is now a transparent ghost-primary.
+- Card-in-card / radii / decorative gradients: none introduced; C03-C08 flat-surface discipline preserved.
+- Validation: `npm run typecheck` passed; `npm run test:analytics` passed (62 files / 1111 tests); Center Panel suite `vitest run src/centerpanel` 379 passed / 1 failed (the failure is the pre-existing unrelated `map-layer-management.test.ts > publishes lightweight layer registry events` async-dispatch issue, store/layer-registry-owned, not a Center Panel color change); `npm run lint:errors` passed.
+- Visual QA: live multi-width (720/960/1200/1440px) Playwright/manual screenshot QA not run (no dev server in this environment); structural/code-level QA completed (token usage, focus borders, status text, flat surfaces). Recommended as a follow-up before publication sign-off.
+- Manifest: C-prompt statuses set to `completed` (task 7); JSON parse OK.
+- Part 2 closed; Part 3 (Map Explorer) was already complete (B01-B14).
+
+### Prompt B15 - Final Color System Handoff (Closure) - 2026-05-20
+
+- Date: 2026-05-20.
+- Agent: Claude.
+- Status: completed (re-opened from blocked after C09/C10 closed).
+- Task 1 - prompt completion confirmation: `A01`-`A10` completed; `C01`-`C10` completed; `B01`-`B15` completed. No prompt is pending, blocked, or skipped.
+- Task 2 - remaining amber by file/category. UI/default/demo/generated amber debt = 0 across all three parts. Retained literals, all classified:
+  - Part 1 (UA): documented analytical heatmap legend swatch + the explicit AMBER scientific traffic-light label (content/scientific, A09).
+  - Part 2 (Center Panel): comments, `--accentGold->muted` token-source, C08 amber-named-but-blue-resolved classes, and `ObjectDetectorPanel` `solar_panel` data-palette.
+  - Part 3 (Map Explorer): documented `data-palette` only — `MapVoxCityOverlay` type/semantic/height/year encodings, `heatmapStyleUtils` `hot` colormap, `spatialStatsVizUtils` LISA/Getis ramps, `demoDataPacks` building-risk ramp, `MapEngineAdapter` detection categorical + ABM/facility coverage ramps.
+- Task 3 - validation history: A-track typecheck + test:analytics; C-track typecheck + test:analytics (1111) + Center Panel vitest (379/380, 1 unrelated) + lint; B-track typecheck + targeted map/service vitest + lint + `color:guard:changed` (no amber) + Standard Amber & Heavy-Chrome scans. Manifest JSON parse: 35/35 completed.
+- Task 4 - retained-literal categories: every retained color literal is token-source outside active render path, a documented analytical `data-palette`, a documented content/scientific exception, or a test fixture with reason. Confirmed.
+- Task 5 - no GIS/CRS/evidence/method-validity/workflow-readiness/map-persistence/map-service/QA-logic/NL-query-safety/report-handoff contract changed across the workstream; all changes were color/chrome/density only.
+- Task 6 - manifest synced: 35/35 `completed`; manifest and ledger agree. B prompt ladder (B01-B15) reconciled.
+- Task 7 - handoff recorded here per `COLOR_SYSTEM_AGENT_HANDOFF_TEMPLATE.md`.
+- Acceptance: Urban Analytics modal, Center Panel (all tabs + shell + preserved header animations), and Map Explorer are amber-free and premium VS Code-like; no unnecessary card frames, oversized radii, decorative amber gradients, amber data defaults, or filled amber button plates remain in active scope.
+- Unresolved blockers for the color workstream: none. Two non-blocking follow-ups noted: (1) live multi-width visual QA pending (no dev server); (2) the pre-existing `map-layer-management` async-dispatch test failure is owned by the store/layer-registry feature, not the color pack.
+- Cross-module contract changes: None.
+- Ledger updated: yes.
+
 ## Next Pointer
 
-Prompt C09 - Cross-Cutting Surfaces — Urban Context Strip, Outline Nav, Background Tasks, Engine Capabilities, Narrative, Object Detector.
+None — three-part color-system operating pack (A01-A10, C01-C10, B01-B15) is complete and closed. Optional follow-up: live multi-width visual QA when a dev server is available, and store-side fix for the unrelated `map-layer-management` async-dispatch test.

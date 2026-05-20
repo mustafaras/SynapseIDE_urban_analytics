@@ -31,19 +31,20 @@ npm run test:e2e         # Playwright (needs dev server)
 npm run validate:rc      # full RC gate
 ```
 
-## Multi-session work — read before editing UA / Map / IDE
+## Multi-session work — archived UA / Map / IDE pack
 
-The `DEVELOPMENT_PLANS/` folder is durable memory. Source-of-truth order:
-**Ledger > live repo > manifest > sequential prompts > development plan > alignment spec**
+The previous `DEVELOPMENT_PLANS/` operating pack is complete. The root planning folder has been removed; historical ledgers, manifests, prompt ladders, and alignment documents live here:
 
-For archive or handoff work, start with [DEVELOPMENT_PLANS/README.md](DEVELOPMENT_PLANS/README.md) and [DEVELOPMENT_PLANS/ARCHIVE_READINESS.md](DEVELOPMENT_PLANS/ARCHIVE_READINESS.md). The local branch can be stale relative to `origin/master`; reconcile branch state before moving archived plans.
+```text
+docs/archive/development-plans/tri-modal-operating-pack-2026-05-20/
+```
 
-Single entry point per module:
-- [DEVELOPMENT_PLANS/START_HERE_URBAN_ANALYTICS_AGENT.md](DEVELOPMENT_PLANS/START_HERE_URBAN_ANALYTICS_AGENT.md)
-- [DEVELOPMENT_PLANS/START_HERE_MAP_EXPLORER_AGENT.md](DEVELOPMENT_PLANS/START_HERE_MAP_EXPLORER_AGENT.md)
-- [DEVELOPMENT_PLANS/START_HERE_SYNAPSE_IDE_AGENT.md](DEVELOPMENT_PLANS/START_HERE_SYNAPSE_IDE_AGENT.md)
+Completion status at archive time:
+- Urban Analytics: `all_completed`
+- Map Explorer: `all_completed`
+- Synapse IDE: `all_completed`
 
-Ledger files are large (200+ KB). Read only the section you need (use Read with `offset`/`limit`), not the whole file. Spawn an Explore subagent for cross-ledger searches so the main context stays clean.
+For archive lookup, start with [README.md](docs/archive/development-plans/tri-modal-operating-pack-2026-05-20/README.md) and [ARCHIVE_INDEX.md](docs/archive/development-plans/tri-modal-operating-pack-2026-05-20/ARCHIVE_INDEX.md). Treat the archived pack as historical reference only; new structured work should begin from a new operating pack or a user-directed task.
 
 ## Token-economy guidelines for this repo
 
