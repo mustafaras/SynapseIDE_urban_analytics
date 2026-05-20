@@ -603,16 +603,7 @@ function emitMapLayerRegistryChange(
     ...(layerId ? { layerId } : {}),
   };
 
-  const dispatch = () => {
-    globalThis.dispatchEvent(new CustomEvent(MAP_LAYER_REGISTRY_EVENT, { detail }));
-  };
-
-  if (typeof globalThis.setTimeout === "function") {
-    globalThis.setTimeout(dispatch, 0);
-    return;
-  }
-
-  dispatch();
+  globalThis.dispatchEvent(new CustomEvent(MAP_LAYER_REGISTRY_EVENT, { detail }));
 }
 
 function markDependentAnalysisLayersStale(
