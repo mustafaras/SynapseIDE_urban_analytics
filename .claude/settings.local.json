@@ -8,7 +8,12 @@
       "Bash(grep -E \"\\\\.test\\\\.tsx?$\")",
       "Read(//tmp/**)",
       "Bash(grep -E \"\\\\.ts$|\\\\.tsx$\")",
-      "Bash(node node_modules/.bin/vitest run src/features/urbanAnalytics)"
+      "Bash(node node_modules/.bin/vitest run src/features/urbanAnalytics)",
+      "PowerShell(if \\(Test-Path \"C:/Program Files/Git/mingw64/etc/ssl/certs/ca-bundle.crt\"\\) { \"ca-bundle EXISTS, bytes=\" + \\(Get-Item \"C:/Program Files/Git/mingw64/etc/ssl/certs/ca-bundle.crt\"\\).Length } else { \"ca-bundle MISSING\" }; \"---where sslBackend set---\"; git config --show-origin --get http.sslBackend)",
+      "PowerShell(git -c http.sslBackend=schannel push origin master 2>&1)",
+      "PowerShell(git fetch origin --quiet 2>&1)",
+      "PowerShell(git config --global http.sslBackend schannel; \"set to: \" + \\(git config --global --get http.sslBackend\\); git fetch origin --quiet; \"fetch exit: $LASTEXITCODE\"; git status -sb | Select-Object -First 1)",
+      "Bash(gh run *)"
     ]
   }
 }
