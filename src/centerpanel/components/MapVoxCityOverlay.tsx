@@ -38,6 +38,7 @@ import {
   MAP_RADIUS,
   MAP_SHADOWS,
   MAP_TYPOGRAPHY,
+  resolveMapPaintColor,
 } from "./map/mapTokens";
 import { createOpaqueFloatingPanelStyle, useDraggableMapPanel } from "./map/useDraggableMapPanel";
 import type { LayerGroupId, OverlayLayerConfig } from "./map/mapTypes";
@@ -759,7 +760,7 @@ export const MapVoxCityOverlay: React.FC<MapVoxCityOverlayProps> = ({
           type: "line",
           source: FOOTPRINT_SOURCE_ID,
           paint: {
-            "line-color": MAP_COLORS.interaction,
+            "line-color": resolveMapPaintColor(MAP_COLORS.interaction),
             "line-width": 0.6,
             "line-opacity": 0.75,
           },

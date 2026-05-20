@@ -28,6 +28,7 @@ import {
   MAP_STROKES,
   MAP_TYPOGRAPHY,
   mapStyles,
+  resolveMapPaintColor,
 } from "./map/mapTokens";
 import { createOpaqueFloatingPanelStyle, useDraggableMapPanel } from "./map/useDraggableMapPanel";
 import { IconArea, IconClose, IconMeasure, IconRuler } from "./map/MapIcons";
@@ -449,6 +450,11 @@ export const MapMeasurementTool: React.FC<MapMeasurementToolProps> = ({
       return;
     }
 
+    // MapLibre paint props cannot parse CSS var()/color-mix(); resolve first.
+    const accentColor = resolveMapPaintColor(MAP_COLORS.interaction);
+    const labelColor = resolveMapPaintColor(MAP_COLORS.text);
+    const vertexStrokeColor = resolveMapPaintColor(MAP_COLORS.white);
+
     try {
       if (!map.getSource(MEASURE_SOURCE)) {
         map.addSource(MEASURE_SOURCE, {
@@ -462,7 +468,7 @@ export const MapMeasurementTool: React.FC<MapMeasurementToolProps> = ({
           source: MEASURE_SOURCE,
           filter: ["==", ["get", "_kind"], "area"],
           paint: {
-            "fill-color": MAP_COLORS.interaction,
+            "fill-color": accentColor,
             "fill-opacity": 0.12,
           },
         });
@@ -473,7 +479,7 @@ export const MapMeasurementTool: React.FC<MapMeasurementToolProps> = ({
           source: MEASURE_SOURCE,
           filter: ["==", ["get", "_kind"], "path"],
           paint: {
-            "line-color": MAP_COLORS.interaction,
+            "line-color": accentColor,
             "line-width": 2,
             "line-dasharray": [6, 4],
           },
@@ -486,8 +492,8 @@ export const MapMeasurementTool: React.FC<MapMeasurementToolProps> = ({
           filter: ["==", ["get", "_kind"], "vertex"],
           paint: {
             "circle-radius": 4,
-            "circle-color": MAP_COLORS.interaction,
-            "circle-stroke-color": MAP_COLORS.white,
+            "circle-color": accentColor,
+            "circle-stroke-color": vertexStrokeColor,
             "circle-stroke-width": 1.5,
           },
         });
@@ -504,7 +510,7 @@ export const MapMeasurementTool: React.FC<MapMeasurementToolProps> = ({
             "text-allow-overlap": true,
           },
           paint: {
-            "text-color": MAP_COLORS.text,
+            "text-color": labelColor,
             "text-halo-color": "rgba(0, 0, 0, 0.84)",
             "text-halo-width": 1.5,
           },
@@ -523,7 +529,7 @@ export const MapMeasurementTool: React.FC<MapMeasurementToolProps> = ({
           source: GHOST_MEASURE_SOURCE,
           filter: ["==", ["get", "_kind"], "area"],
           paint: {
-            "fill-color": MAP_COLORS.interaction,
+            "fill-color": accentColor,
             "fill-opacity": 0.08,
           },
         });
@@ -534,7 +540,7 @@ export const MapMeasurementTool: React.FC<MapMeasurementToolProps> = ({
           source: GHOST_MEASURE_SOURCE,
           filter: ["==", ["get", "_kind"], "path"],
           paint: {
-            "line-color": MAP_COLORS.interaction,
+            "line-color": accentColor,
             "line-width": 1.75,
             "line-dasharray": [4, 4],
           },
@@ -547,8 +553,8 @@ export const MapMeasurementTool: React.FC<MapMeasurementToolProps> = ({
           filter: ["==", ["get", "_kind"], "vertex"],
           paint: {
             "circle-radius": 4,
-            "circle-color": MAP_COLORS.interaction,
-            "circle-stroke-color": MAP_COLORS.white,
+            "circle-color": accentColor,
+            "circle-stroke-color": vertexStrokeColor,
             "circle-stroke-width": 1.25,
           },
         });
@@ -565,7 +571,7 @@ export const MapMeasurementTool: React.FC<MapMeasurementToolProps> = ({
             "text-allow-overlap": true,
           },
           paint: {
-            "text-color": MAP_COLORS.interaction,
+            "text-color": accentColor,
             "text-halo-color": "rgba(0, 0, 0, 0.86)",
             "text-halo-width": 1.5,
           },

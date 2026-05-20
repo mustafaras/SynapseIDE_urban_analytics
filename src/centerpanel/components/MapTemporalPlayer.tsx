@@ -25,6 +25,7 @@ import {
   MAP_STROKES,
   MAP_TRANSITIONS,
   MAP_TYPOGRAPHY,
+  resolveMapPaintColor,
 } from "./map/mapTokens";
 import { type MapExplorerState, useMapExplorerStore } from "../../stores/useMapExplorerStore";
 
@@ -597,6 +598,8 @@ export const MapTemporalPlayer: React.FC<MapTemporalPlayerProps> = ({
 
   const ensureSourceAndLayer = useCallback(() => {
     if (!map) return;
+    // MapLibre paint props cannot parse CSS var()/color-mix(); resolve first.
+    const accentColor = resolveMapPaintColor(MAP_COLORS.interaction);
     try {
       if (!map.getSource(sourceId)) {
         map.addSource(sourceId, {
@@ -616,7 +619,7 @@ export const MapTemporalPlayer: React.FC<MapTemporalPlayerProps> = ({
             source: sourceId,
             paint: {
               "circle-radius": 5,
-              "circle-color": MAP_COLORS.interaction,
+              "circle-color": accentColor,
               "circle-opacity": 0.85,
             },
           });
@@ -630,7 +633,7 @@ export const MapTemporalPlayer: React.FC<MapTemporalPlayerProps> = ({
             type: "line",
             source: sourceId,
             paint: {
-              "line-color": MAP_COLORS.interaction,
+              "line-color": accentColor,
               "line-width": 2,
               "line-opacity": 0.85,
             },
@@ -642,9 +645,9 @@ export const MapTemporalPlayer: React.FC<MapTemporalPlayerProps> = ({
             type: "fill",
             source: sourceId,
             paint: {
-              "fill-color": MAP_COLORS.interaction,
+              "fill-color": accentColor,
               "fill-opacity": 0.4,
-              "fill-outline-color": MAP_COLORS.interaction,
+              "fill-outline-color": accentColor,
             },
           });
           createdLayerRef.current = true;

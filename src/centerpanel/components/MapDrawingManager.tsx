@@ -36,6 +36,7 @@ import {
   MAP_STROKES,
   MAP_TYPOGRAPHY,
   mapStyles,
+  resolveMapPaintColor,
 } from "./map/mapTokens";
 import { createOpaqueFloatingPanelStyle, useDraggableMapPanel } from "./map/useDraggableMapPanel";
 
@@ -363,6 +364,10 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
 
   const ensureSources = useCallback((map: maplibregl.Map) => {
     if (!isMapAlive(map)) return;
+    // MapLibre paint props cannot parse CSS var()/color-mix(); resolve first.
+    const accentColor = resolveMapPaintColor(MAP_COLORS.interaction);
+    const vertexStrokeColor = resolveMapPaintColor(MAP_COLORS.white);
+    const bgColor = resolveMapPaintColor(MAP_COLORS.bg);
     try {
       if (!map.getSource(DRAW_SOURCE)) {
         map.addSource(DRAW_SOURCE, {
@@ -375,7 +380,7 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
           source: DRAW_SOURCE,
           filter: ["==", "$type", "Polygon"],
           paint: {
-            "fill-color": MAP_COLORS.interaction,
+            "fill-color": accentColor,
             "fill-opacity": 0.15,
           },
         });
@@ -384,7 +389,7 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
           type: "line",
           source: DRAW_SOURCE,
           paint: {
-            "line-color": MAP_COLORS.interaction,
+            "line-color": accentColor,
             "line-width": 2,
             "line-dasharray": [2, 2],
           },
@@ -396,8 +401,8 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
           filter: ["==", "$type", "Point"],
           paint: {
             "circle-radius": 5,
-            "circle-color": MAP_COLORS.interaction,
-            "circle-stroke-color": MAP_COLORS.white,
+            "circle-color": accentColor,
+            "circle-stroke-color": vertexStrokeColor,
             "circle-stroke-width": 2,
           },
         });
@@ -413,7 +418,7 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
           source: GHOST_SOURCE,
           filter: ["==", "$type", "Polygon"],
           paint: {
-            "fill-color": MAP_COLORS.interaction,
+            "fill-color": accentColor,
             "fill-opacity": 0.08,
           },
         });
@@ -422,7 +427,7 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
           type: "line",
           source: GHOST_SOURCE,
           paint: {
-            "line-color": MAP_COLORS.interaction,
+            "line-color": accentColor,
             "line-width": 1.5,
             "line-dasharray": [4, 4],
           },
@@ -434,8 +439,8 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
           filter: ["all", ["==", "$type", "Point"], ["!=", "_snap", true]],
           paint: {
             "circle-radius": 4,
-            "circle-color": MAP_COLORS.interaction,
-            "circle-stroke-color": MAP_COLORS.bg,
+            "circle-color": accentColor,
+            "circle-stroke-color": bgColor,
             "circle-stroke-width": 1.5,
           },
         });
@@ -446,8 +451,8 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
           filter: ["all", ["==", "$type", "Point"], ["==", "_snap", true]],
           paint: {
             "circle-radius": 7,
-            "circle-color": MAP_COLORS.bg,
-            "circle-stroke-color": MAP_COLORS.interaction,
+            "circle-color": bgColor,
+            "circle-stroke-color": accentColor,
             "circle-stroke-width": 2.5,
           },
         });

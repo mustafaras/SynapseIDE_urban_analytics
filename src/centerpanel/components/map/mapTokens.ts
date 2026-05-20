@@ -39,6 +39,43 @@ export const MAP_COLORS = {
   transparent: mapToken.colors.transparent,
 } as const;
 
+/* ----------------------------------------------------------------- */
+/*  MapLibre-safe color resolution                                    */
+/*  MapLibre GL paint properties (fill-color, line-color, …) cannot   */
+/*  parse CSS `var(...)` or `color-mix(...)` expressions, which is     */
+/*  what most MAP_COLORS tokens are. Resolve them to a concrete        */
+/*  rgb()/rgba() string via the browser before handing them to the    */
+/*  map. Falls back to the raw value when no DOM is available.         */
+/* ----------------------------------------------------------------- */
+let colorProbe: HTMLSpanElement | null = null;
+const resolvedColorCache = new Map<string, string>();
+
+export function resolveMapPaintColor(value: string): string {
+  if (!value || (!value.includes("var(") && !value.includes("color-mix("))) {
+    return value;
+  }
+  if (typeof document === "undefined" || typeof getComputedStyle !== "function") {
+    return value;
+  }
+  const cached = resolvedColorCache.get(value);
+  if (cached !== undefined) return cached;
+  try {
+    if (!colorProbe) {
+      colorProbe = document.createElement("span");
+      colorProbe.style.display = "none";
+      document.body.appendChild(colorProbe);
+    }
+    colorProbe.style.color = "";
+    colorProbe.style.color = value;
+    const resolved = getComputedStyle(colorProbe).color;
+    const out = resolved && resolved.trim() !== "" ? resolved : value;
+    resolvedColorCache.set(value, out);
+    return out;
+  } catch {
+    return value;
+  }
+}
+
 /* ---- Border Radius ---- */
 export const MAP_RADIUS = {
   none: DESIGN_TOKENS.borderRadius.geometric,

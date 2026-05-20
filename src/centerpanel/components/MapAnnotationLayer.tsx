@@ -18,6 +18,7 @@ import {
   MAP_TYPOGRAPHY,
   MAP_Z_INDEX,
   mapStyles,
+  resolveMapPaintColor,
 } from "./map/mapTokens";
 
 const ANNOTATION_SOURCE_ID = "synapse-map-annotations-src";
@@ -207,6 +208,9 @@ function queryAnnotationAtPoint(map: maplibregl.Map, point: maplibregl.PointLike
 function ensureAnnotationLayers(map: maplibregl.Map): void {
   if (!isMapAlive(map) || !isStyleReady(map)) return;
 
+  // MapLibre paint props cannot parse CSS var()/color-mix(); resolve first.
+  const accentColor = resolveMapPaintColor(MAP_COLORS.interaction);
+
   try {
     if (!map.getSource(ANNOTATION_LEADER_SOURCE_ID)) {
       map.addSource(ANNOTATION_LEADER_SOURCE_ID, {
@@ -220,7 +224,7 @@ function ensureAnnotationLayers(map: maplibregl.Map): void {
         type: "line",
         source: ANNOTATION_LEADER_SOURCE_ID,
         paint: {
-          "line-color": ["coalesce", ["get", "color"], MAP_COLORS.interaction],
+          "line-color": ["coalesce", ["get", "color"], accentColor],
           "line-opacity": 0.82,
           "line-width": 1.25,
           "line-dasharray": [2, 2],
@@ -242,7 +246,7 @@ function ensureAnnotationLayers(map: maplibregl.Map): void {
         paint: {
           "circle-radius": 9,
           "circle-color": "rgba(55, 148, 255, 0.16)",
-          "circle-stroke-color": MAP_COLORS.interaction,
+          "circle-stroke-color": accentColor,
           "circle-stroke-width": 1.5,
         },
       } as maplibregl.LayerSpecification);
@@ -271,7 +275,7 @@ function ensureAnnotationLayers(map: maplibregl.Map): void {
           "text-ignore-placement": true,
         } as unknown as maplibregl.SymbolLayerSpecification["layout"],
         paint: {
-          "text-color": ["coalesce", ["get", "color"], MAP_COLORS.interaction],
+          "text-color": ["coalesce", ["get", "color"], accentColor],
           "text-halo-color": ["case", ["==", ["get", "hasBackground"], true], "rgba(12, 12, 12, 0.92)", "rgba(12, 12, 12, 0)"],
           "text-halo-width": ["case", ["==", ["get", "hasBackground"], true], 3.5, 0],
           "text-opacity": 1,
