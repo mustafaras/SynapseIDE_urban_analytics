@@ -30,7 +30,7 @@ test.describe("Prompt 41 lazy-loading regressions @smoke", () => {
 
     const welcomeDialog = page.getByRole("dialog", { name: "Welcome to Urban Analytics Workbench" });
     await expect(welcomeDialog).toBeVisible();
-    await welcomeDialog.getByRole("button", { name: /Got it, Let's Start/i }).click();
+    await welcomeDialog.getByRole("button", { name: /Start Workbench/i }).click();
 
     await expect(page.getByTestId("urban-analytics-modal-loading")).toBeVisible();
     await expect(page.getByRole("dialog", { name: "Urban Analytics Workbench" })).toBeVisible();
