@@ -1035,7 +1035,18 @@ const MainApp: React.FC<MainAppProps> = ({ onOpenAnalytics }) => {
 
   useEffect(() => {
 
-    initializeSampleData();
+    const shouldSeedSampleData = (() => {
+      try {
+        const sp = new URLSearchParams(window.location.search);
+        return sp.get('sampleData') === '1' || flags.e2e;
+      } catch {
+        return flags.e2e;
+      }
+    })();
+
+    if (shouldSeedSampleData) {
+      initializeSampleData();
+    }
 
     const handleNavigateToHome = (event: CustomEvent) => {
  console.log(' Received home navigation event from:', event.detail?.source);

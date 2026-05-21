@@ -210,7 +210,7 @@ describe('editorStore — Prompt 05 tab model', () => {
     localStorage.setItem(
       PERSISTED_KEY,
       JSON.stringify({
-        version: 2,
+        version: 3,
         state: {
           tabs: persistedTabs,
           activeTabId: 'tab:src/b.ts:abc:002',
@@ -238,7 +238,7 @@ describe('editorStore — Prompt 05 tab model', () => {
     localStorage.setItem(
       PERSISTED_KEY,
       JSON.stringify({
-        version: 2,
+        version: 3,
         state: {
           tabs: [
             {

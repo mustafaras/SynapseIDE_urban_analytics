@@ -64,7 +64,7 @@ export const MAX_HISTORY_CONTENT_CHARS = 512 * 1024;
 export const MAX_PERSISTED_TABS = 60;
 
 const PERSISTED_KEY = 'enhanced-ide-editor-state';
-const PERSISTED_VERSION = 2;
+const PERSISTED_VERSION = 3;
 
 const nowIso = () => new Date().toISOString();
 
@@ -627,6 +627,14 @@ export const useEditorStore = create<EditorStore>()(
         ),
       }),
       migrate: (persisted: unknown, fromVersion) => {
+        if (fromVersion < 3) {
+          return {
+            tabs: [],
+            activeTabId: null,
+            history: {},
+          } satisfies Partial<EditorStore>;
+        }
+
         // v1 → v2: previously the partialize wrote `isActive: false` for every tab and
         // omitted `activeTabId`. We now persist `activeTabId` directly; for old payloads
         // we infer it (no-op safe default).
