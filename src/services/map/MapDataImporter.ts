@@ -1978,7 +1978,9 @@ export function profileCsvImportSession(session: CsvImportSession, mapping?: Csv
     sourceName: session.fileName,
     supportStatus: "supported",
     canCommit: Boolean(resolvedMapping && rowCounts && rowCounts.importedFeatureCount > 0),
-    profileStrategy: "sampled",
+    // Counts every already-parsed session row for an exact skipped-row total; this is a
+    // full pass over the in-memory session, not a bounded sample, so report it truthfully.
+    profileStrategy: "full-parse",
     featureCount: rowCounts?.importedFeatureCount ?? null,
     totalRecords: session.totalRows,
     ...(rowCounts ? { skippedRecordCount: rowCounts.skippedRecordCount } : {}),
