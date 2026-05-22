@@ -8,13 +8,12 @@ Single source of execution state + the resume point for any chat (especially a f
 
 ## ▶ Resume in a new chat (do this first)
 
-0. Start from the merged local baseline where Map Explorer Prompt 1 and the
-   WelcomeModal orbital redesign coexist. As of 2026-05-22, local branches
-   `fix/welcome-modal-orbital-cockpit`, `gis/p01-baseline`, and
-   `gis/map-explorer-production-prompts` are intentionally aligned to the same
-   merged head. Do not resume Prompt 2+ from the older `4d47df5` base unless
-   you first merge/cherry-pick the WelcomeModal redesign commit (`aa0be7d`) and
-   Prompt 1 baseline.
+0. Start from the latest completed GIS prompt branch, not the older prompt-pack
+   base. For Prompt 3+, use `gis/p02-decompose` (or the active
+   `gis/map-explorer-production-prompts` branch once advanced to the same head).
+   The WelcomeModal orbital redesign commit (`aa0be7d`) must remain in ancestry;
+   do not resume from the older `4d47df5` base unless you first merge/cherry-pick
+   the WelcomeModal redesign and the completed Prompt 1–2 baseline.
 1. Open [15_AGENT_EXECUTION_PROMPTS.md](15_AGENT_EXECUTION_PROMPTS.md) → read the **"⚠️ Cold-start protocol (anti-amnesia)"** section and copy its **BOOT BLOCK**.
 2. Read the **Status** table below; pick the lowest-numbered prompt that is `TODO` (respecting the dependency graph in the prompt file's "Sequencing Cheat Sheet").
 3. Paste the BOOT BLOCK, then paste that prompt, into the new chat.
