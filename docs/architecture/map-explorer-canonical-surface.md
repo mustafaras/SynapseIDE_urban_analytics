@@ -159,7 +159,7 @@ This ADR records that decision and freezes a trusted baseline. It introduces
 
 | File / folder | Role | Disposition |
 | --- | --- | --- |
-| `google/**` (provider, map view, places, directions, street view, hooks, utils) | Google Maps integration family. | deprecate (canonical surface is MapLibre; no new deps) |
+| `google/**` (all 8 files: `GoogleMapsProvider.tsx`, `GoogleMapView.tsx`, `GooglePlacesSearch.tsx`, `GoogleDirections.tsx`, `StreetViewPanel.tsx`, `hooks/useGoogleMapsAPI.ts`, `utils/apiKeyManager.ts`, `utils/googleToGeoJSON.ts`, plus the `google/`, `google/hooks/`, `google/layers/`, `google/utils/` barrels) | Google Maps integration family. | deprecate (canonical surface is MapLibre; no new deps) |
 | `MapContainer.tsx` | Alternate map container. | deprecate (superseded by `MapCanvas` + `MapWorkspaceShell`) |
 | `MapControls.tsx` | Alternate map controls. | deprecate (superseded by `MapToolbar`) |
 | `LayerManager.tsx` | Alternate layer manager. | deprecate (superseded by `MapLayerManager`) |
