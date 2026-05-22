@@ -99,7 +99,9 @@ import { useMapCommandHandlers } from "./useMapCommandHandlers";
 import { useMapExplorerLifecycle } from "./useMapExplorerLifecycle";
 import { useMapLayerRuntime } from "./useMapLayerRuntime";
 import { useMapPanelLayout } from "./useMapPanelLayout";
+import { useMapReportController } from "./useMapReportController";
 import { useMapUrbanBridgeController } from "./useMapUrbanBridgeController";
+import { useMapWorkflowController } from "./useMapWorkflowController";
 import { IconClose, IconLayers } from "../MapIcons";
 import { usePrefersReducedMotion } from "../../../../hooks/usePrefersReducedMotion";
 import {
@@ -181,7 +183,6 @@ import {
   buildMapWorkflowContext,
   buildMapWorkflowPreviewLayer,
   type MapWorkflowApplyResult,
-  type MapWorkflowGeocodedPlace,
   type MapWorkflowPreview,
   type MapWorkflowReportItem,
 } from "../../../../services/map/MapWorkflowService";
@@ -200,7 +201,6 @@ import {
 import {
   buildUrbanToMapMethodRequestPreview,
   type UrbanToMapMethodRequest,
-  type UrbanToMapWorkflowDraftRequest,
 } from "../../../../services/map/UrbanToMapMethodRequestAdapter";
 import {
   generateMapAnalysisRecommendations,
@@ -216,7 +216,6 @@ import {
   enqueueMapReportHandoff,
   type MapReportHandoffOptions,
   type MapReportHandoffSource,
-  type MapReportSnapshotInput,
 } from "../../../../services/map/MapReportHandoffService";
 import {
   buildLayerRegistryReviewEvent,
@@ -839,12 +838,18 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const [showVoxCityOverlay, setShowVoxCityOverlay] = useState(false);
   const [showScientificQAPanel, setShowScientificQAPanel] = useState(false);
   const [showNLQueryPanel, setShowNLQueryPanel] = useState(false);
-  const [showWorkflowDrawer, setShowWorkflowDrawer] = useState(false);
+  const {
+    showWorkflowDrawer,
+    setShowWorkflowDrawer,
+    workflowPreview,
+    setWorkflowPreview,
+    urbanWorkflowDraftRequest,
+    setUrbanWorkflowDraftRequest,
+    workflowGeocodedPlace,
+    setWorkflowGeocodedPlace,
+    setWorkflowReportItems,
+  } = useMapWorkflowController();
   const [showReviewTimeline, setShowReviewTimeline] = useState(false);
-  const [workflowPreview, setWorkflowPreview] = useState<MapWorkflowPreview | null>(null);
-  const [urbanWorkflowDraftRequest, setUrbanWorkflowDraftRequest] = useState<UrbanToMapWorkflowDraftRequest | null>(null);
-  const [workflowGeocodedPlace, setWorkflowGeocodedPlace] = useState<MapWorkflowGeocodedPlace | null>(null);
-  const [_workflowReportItems, setWorkflowReportItems] = useState<MapWorkflowReportItem[]>([]);
   const [showExternalServiceDialog, setShowExternalServiceDialog] = useState(false);
   const [pointSymbologyLayerId, setPointSymbologyLayerId] = useState<string | null>(null);
   const [pointSymbologyMode, setPointSymbologyMode] = useState<SymbolMode | "heatmap">("heatmap");
@@ -1237,11 +1242,18 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       });
     });
   }, [open, reducedMotion, setViewport]);
-  const [reportHandoffSource, setReportHandoffSource] = useState<MapReportHandoffSource | null>(null);
-  const [reportHandoffOptions, setReportHandoffOptions] = useState(DEFAULT_MAP_REPORT_HANDOFF_OPTIONS);
-  const [reportHandoffSnapshot, setReportHandoffSnapshot] = useState<MapReportSnapshotInput | null>(null);
-  const [isGeneratingReportHandoffSnapshot, setIsGeneratingReportHandoffSnapshot] = useState(false);
-  const [isExportingReportHandoffPdf, setIsExportingReportHandoffPdf] = useState(false);
+  const {
+    reportHandoffSource,
+    setReportHandoffSource,
+    reportHandoffOptions,
+    setReportHandoffOptions,
+    reportHandoffSnapshot,
+    setReportHandoffSnapshot,
+    isGeneratingReportHandoffSnapshot,
+    setIsGeneratingReportHandoffSnapshot,
+    isExportingReportHandoffPdf,
+    setIsExportingReportHandoffPdf,
+  } = useMapReportController();
   const {
     dockLayout,
     effectiveShowSidebar,
