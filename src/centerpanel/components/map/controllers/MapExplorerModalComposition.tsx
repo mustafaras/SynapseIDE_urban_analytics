@@ -139,6 +139,7 @@ import {
   triggerMapPublicationDownload,
 } from "../../../../services/map/MapExportService";
 import {
+  clearPersistedMapProjectSnapshots,
   getRestorableOverlayLayers,
   loadProjectMapState,
   saveProjectMapState,
@@ -759,6 +760,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const setViewport = useMapExplorerStore((s) => s.setViewport);
   const restoreProjectState = useMapExplorerStore((s) => s.restoreProjectState);
   const clearProjectContent = useMapExplorerStore((s) => s.clearProjectContent);
+  const replaceOverlayLayers = useMapExplorerStore((s) => s.replaceOverlayLayers);
   const currentMapBounds = useMapExplorerStore((s) => s.currentMapBounds);
   const setCurrentMapBounds = useMapExplorerStore((s) => s.setCurrentMapBounds);
   const contextSummary = useMapExplorerStore(selectMapExplorerContextSummary);
@@ -802,6 +804,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const selectedFeatureId = useMapExplorerStore((s) => s.selectedFeatureId);
   const selectedFeatureIds = useMapExplorerStore((s) => s.selectedFeatureIds);
   const setSelectedFeatureId = useMapExplorerStore((s) => s.setSelectedFeatureId);
+  const clearSelectedFeatures = useMapExplorerStore((s) => s.clearSelectedFeatures);
   const activeAoiId = useMapExplorerStore((s) => s.activeAoiId);
 
   /* ---- Measurement store selectors ---- */
@@ -3342,6 +3345,53 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     selectedProjectId,
   ]);
 
+  const handleClearLayerCache = useCallback(() => {
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+      autoSaveTimerRef.current = null;
+    }
+
+    const activeLayerCount = overlayLayers.length;
+    const removedProjectSnapshots = clearPersistedMapProjectSnapshots();
+
+    if (activeLayerCount > 0) {
+      replaceOverlayLayers([]);
+    }
+    clearSelectedFeatures();
+    setActiveAnalysisResultLayers([]);
+    setScientificQA(null);
+    setPointSymbologyLayerId(null);
+    setSelectionStatsSummary(null);
+    setWorkflowPreview(null);
+    setUrbanWorkflowDraftRequest(null);
+    setCartographyUndoStack([]);
+    setDismissedCartographyRecommendationIds(new Set());
+    setLastSavedAt(null);
+    lastAutoSaveTriggerRef.current = null;
+
+    const layerLabel = activeLayerCount === 1 ? "layer" : "layers";
+    const snapshotLabel = removedProjectSnapshots === 1 ? "snapshot" : "snapshots";
+    const message = activeLayerCount === 0 && removedProjectSnapshots === 0
+      ? "Map Explorer layer cache is already clean."
+      : `Cleared ${activeLayerCount.toLocaleString()} active ${layerLabel} and ${removedProjectSnapshots.toLocaleString()} cached project map ${snapshotLabel}.`;
+
+    if (activeLayerCount === 0 && removedProjectSnapshots === 0) {
+      toastInfo(message);
+    } else {
+      toastSuccess(message);
+    }
+    announce(message);
+  }, [
+    announce,
+    clearSelectedFeatures,
+    overlayLayers.length,
+    replaceOverlayLayers,
+    setActiveAnalysisResultLayers,
+    setScientificQA,
+    setUrbanWorkflowDraftRequest,
+    setWorkflowPreview,
+  ]);
+
   const handleProjectSaveRef = useRef(handleProjectSave);
   const handleProjectLoadRef = useRef(handleProjectLoad);
 
@@ -5395,6 +5445,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
                 onOpenLayerEducationReference={handleOpenLayerEducationReference}
                 onSendLayerToUrban={handleSendLayerToUrban}
                 onOpenLayerInIde={handleOpenLayerInIde}
+                onClearLayerCache={handleClearLayerCache}
                 onReRunAnalysisLayer={handleReRunAnalysisLayer}
                 activeRerunToken={rerunningAnalysisToken}
                 onOpenSymbology={handleOpenPointSymbology}

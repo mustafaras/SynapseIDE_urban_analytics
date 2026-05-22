@@ -46,6 +46,7 @@ export interface MapLayerManagerProps {
   onBindLayerToDashboard?: (id: string) => void;
   onOpenLayerEducationReference?: (id: string) => void;
   onFocusLayer?: (id: string) => void;
+  onClearLayerCache?: () => void;
   activeRerunToken?: string | null;
   onOpenSymbology?: (id: string) => void;
   activeSymbologyLayerId?: string | null;
@@ -511,7 +512,7 @@ const addLayerBtn: React.CSSProperties = {
 
 const layerFooterActions: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
   gap: MAP_SPACING.xs,
   padding: `${MAP_SPACING.sm} ${MAP_SPACING.md}`,
   borderTop: MAP_STROKES.hairlineSubtle,
@@ -523,6 +524,16 @@ const addManualLayerBtn: React.CSSProperties = {
 
 const addDemoLayersBtn: React.CSSProperties = {
   ...addLayerBtn,
+};
+
+const clearLayerCacheBtn: React.CSSProperties = {
+  ...addLayerBtn,
+  color: MAP_COLORS.warning,
+};
+
+const clearLayerCacheConfirmBtn: React.CSSProperties = {
+  ...clearLayerCacheBtn,
+  border: `1px solid ${MAP_COLORS.warning}`,
 };
 
 const popoverStyle: React.CSSProperties = {
@@ -1889,6 +1900,7 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
   onBindLayerToDashboard,
   onOpenLayerEducationReference,
   onFocusLayer,
+  onClearLayerCache,
   activeRerunToken = null,
   onOpenSymbology,
   activeSymbologyLayerId = null,
@@ -1911,6 +1923,7 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
   const [cartographyPanelOpen, setCartographyPanelOpen] = useState(false);
   const [cartographyLayerFilterId, setCartographyLayerFilterId] = useState<string | null>(null);
   const [pendingRemoveLayerId, setPendingRemoveLayerId] = useState<string | null>(null);
+  const [pendingClearLayerCache, setPendingClearLayerCache] = useState(false);
   const hasSearch = query.trim().length > 0;
 
   const filteredOverlayLayers = useMemo(() => {
@@ -2237,6 +2250,21 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
     onAnnounce?.(`Layer "${layer?.name ?? id}" removed`);
   }, [onRemoveLayer, overlayLayers, onAnnounce]);
 
+  const handleClearLayerCacheClick = useCallback(() => {
+    if (!onClearLayerCache) {
+      return;
+    }
+
+    if (!pendingClearLayerCache) {
+      setPendingClearLayerCache(true);
+      onAnnounce?.("Confirm clearing Map Explorer layer cache.");
+      return;
+    }
+
+    onClearLayerCache();
+    setPendingClearLayerCache(false);
+  }, [onAnnounce, onClearLayerCache, pendingClearLayerCache]);
+
   /* ---- Popover layer data ---- */
   const popoverLayer = popoverLayerId
     ? overlayLayers.find((l) => l.id === popoverLayerId) ?? null
@@ -2448,6 +2476,20 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
         >
           {osmReferenceBusy ? "Loading OSM…" : "Load OSM Reference"}
         </button>
+        {onClearLayerCache ? (
+          <button
+            type="button"
+            style={pendingClearLayerCache ? clearLayerCacheConfirmBtn : clearLayerCacheBtn}
+            onClick={handleClearLayerCacheClick}
+            aria-label={pendingClearLayerCache
+              ? "Confirm clearing Map Explorer layers and project map cache"
+              : "Clear Map Explorer layer cache"}
+            data-testid="map-layer-cache-clear-button"
+            title="Removes active overlay layers and cached project map snapshots. Urban evidence, reports, and unrelated browser storage are not deleted."
+          >
+            {pendingClearLayerCache ? "Confirm Clear" : "Clear Cache"}
+          </button>
+        ) : null}
       </div>
 
       {/* Metadata popover */}
