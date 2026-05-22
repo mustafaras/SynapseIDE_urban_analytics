@@ -425,7 +425,11 @@ describe("MapLayerManager component", () => {
       visible: true,
       opacity: 1,
       group: "data",
+      sourceKind: "imported",
       metadata: {
+        sourceId: "source-population-grid",
+        sourceStorageMode: "inline-small",
+        sourceRestoreStatus: "restored",
         geometryType: "polygon",
         fields: ["population", "density"],
       },
@@ -446,6 +450,7 @@ describe("MapLayerManager component", () => {
     expect(html).toContain("Search layers...");
     expect(html).toContain("1/1 visible");
     expect(html).toContain("Population Grid");
+    expect(html).toContain("Imported / restored");
     expect(html).toContain("Delete");
   });
 

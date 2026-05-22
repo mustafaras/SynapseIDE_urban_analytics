@@ -3,12 +3,15 @@ import { booleanValid } from "@turf/boolean-valid";
 import { kinks } from "@turf/kinks";
 import type { Feature, FeatureCollection, GeoJsonProperties, Geometry } from "geojson";
 import type {
+  ExternalServiceLayerMetadata,
   ImportLayerSourceMetadata,
   LayerCrsSummary,
   LayerLicenseAttributionSummary,
   LayerMetadata,
   LayerRenderBudgetMetadata,
+  LayerSchemaSummary,
   LayerScientificQAMetadata,
+  LayerSourceKind,
   OverlayGeometryType,
   OverlayLayerConfig,
 } from "../../centerpanel/components/map/mapTypes";
@@ -24,6 +27,12 @@ import {
   type GeoParquetMetadataSummary,
   prepareColumnarDatasetImport,
 } from "../data/pipeline";
+import type { SourceFormat, SourceHandle } from "./contracts/gisContracts";
+import {
+  applySourceHandleToLayer,
+  createImportSourceHandle,
+  MAP_SOURCE_INLINE_STORAGE_LIMIT_BYTES,
+} from "./sources/MapSourceRegistry";
 
 export const MAX_IMPORT_FILE_SIZE_BYTES = 50 * 1024 * 1024;
 export const MAX_GEOJSON_FILE_SIZE_BYTES = MAX_IMPORT_FILE_SIZE_BYTES;
@@ -46,6 +55,11 @@ export const MAP_IMPORT_ACCEPT_ATTRIBUTE = [
   ".kml",
   ".kmz",
   ".gpx",
+  ".fgb",
+  ".flatgeobuf",
+  ".pmtiles",
+  ".tif",
+  ".tiff",
   "application/geo+json",
   "application/json",
   "text/csv",
@@ -56,6 +70,7 @@ export const MAP_IMPORT_ACCEPT_ATTRIBUTE = [
   "application/vnd.google-earth.kml+xml",
   "application/vnd.google-earth.kmz",
   "application/gpx+xml",
+  "image/tiff",
   "application/xml",
   "text/xml",
 ].join(",");
@@ -91,6 +106,10 @@ export interface GeoJSONRenderNormalizationOptions {
 
 export type MapImportFileKind = "geojson" | "csv" | "arrow" | "geoparquet" | "kml" | "kmz" | "gpx";
 
+export type SourceProfileSupportStatus = "supported" | "partial" | "unsupported";
+
+export type SourceProfileStrategy = "full-parse" | "sampled" | "metadata-only" | "deferred";
+
 export interface MapImportProgress {
   loaded: number;
   total: number;
@@ -107,9 +126,33 @@ export interface ImportedLayerSummary {
   skippedRecordCount?: number;
 }
 
+export interface SourceProfile {
+  sourceHandle: SourceHandle;
+  format: SourceFormat;
+  sourceName: string;
+  supportStatus: SourceProfileSupportStatus;
+  canCommit: boolean;
+  profileStrategy: SourceProfileStrategy;
+  featureCount: number | null;
+  totalRecords?: number;
+  skippedRecordCount?: number;
+  sizeBytes?: number;
+  estimatedMemoryBytes?: number;
+  extent?: [number, number, number, number];
+  workerReady: boolean;
+  crsSummary: LayerCrsSummary;
+  schemaSummary?: LayerSchemaSummary;
+  license: string | null;
+  attribution: string | null;
+  caveats: string[];
+  profiledAt: string;
+}
+
 export interface ImportedGeoJSONLayer {
   featureCollection: FeatureCollection;
   layer: OverlayLayerConfig;
+  sourceHandle: SourceHandle;
+  sourceProfile: SourceProfile;
   summary?: ImportedLayerSummary;
 }
 
@@ -125,6 +168,7 @@ export interface CsvImportSession {
   headers: string[];
   rows: string[][];
   delimiter: string;
+  sourceSizeBytes: number;
   totalRows: number;
   previewRows: CsvPreviewRow[];
   latitudeCandidates: string[];
@@ -175,6 +219,10 @@ export type PreparedMapImportResult =
   | {
       kind: "columnar";
       session: ColumnarImportSession;
+    }
+  | {
+      kind: "profile";
+      profile: SourceProfile;
     };
 
 export class MapDataImportError extends Error {
@@ -251,6 +299,197 @@ function buildImportCrsSummary(sourceType: MapImportFileKind, declaredCrs?: stri
     status: "unknown",
     source: "import-source",
     notes: ["Imported file did not provide CRS metadata; CRS remains unknown until explicitly verified."],
+  };
+}
+
+function buildProfileCrsSummary(input: {
+  format: SourceFormat;
+  declaredCrs?: string | null;
+  source?: LayerCrsSummary["source"];
+}): LayerCrsSummary {
+  if (typeof input.declaredCrs === "string" && input.declaredCrs.trim().length > 0) {
+    const crs = input.declaredCrs.trim();
+    return {
+      crs,
+      status: "known",
+      source: input.source ?? "import-source",
+      notes: [`Source profile declares CRS ${crs}; verify suitability before analytical measurement.`],
+    };
+  }
+
+  if (input.declaredCrs === null) {
+    return {
+      crs: null,
+      status: "missing",
+      source: input.source ?? "import-source",
+      notes: ["Source profile explicitly has no declared CRS metadata."],
+    };
+  }
+
+  return {
+    crs: null,
+    status: "unknown",
+    source: input.source ?? "import-source",
+    notes: [`${input.format.toUpperCase()} source profile did not provide CRS metadata.`],
+  };
+}
+
+function sourceProfileSupportStatus(format: SourceFormat): SourceProfileSupportStatus {
+  switch (format) {
+    case "geojson":
+    case "csv":
+    case "arrow":
+    case "geoparquet":
+    case "kml":
+    case "kmz":
+    case "gpx":
+      return "supported";
+    case "flatgeobuf":
+    case "pmtiles":
+    case "wms":
+    case "wfs":
+    case "xyz":
+    case "geotiff":
+      return "partial";
+    default:
+      return "unsupported";
+  }
+}
+
+function sourceProfileCanCommit(format: SourceFormat): boolean {
+  return sourceProfileSupportStatus(format) === "supported";
+}
+
+function sourceProfileStrategy(format: SourceFormat, supportStatus: SourceProfileSupportStatus): SourceProfileStrategy {
+  if (supportStatus !== "supported") return "metadata-only";
+  if (format === "arrow" || format === "geoparquet") return "sampled";
+  return "full-parse";
+}
+
+function shouldMarkWorkerReady(input: {
+  featureCount: number | null;
+  sizeBytes?: number;
+  estimatedMemoryBytes?: number;
+  format: SourceFormat;
+  supportStatus: SourceProfileSupportStatus;
+}): boolean {
+  if (input.format === "arrow" || input.format === "geoparquet") return true;
+  if (input.supportStatus === "partial" && (input.format === "flatgeobuf" || input.format === "pmtiles" || input.format === "geotiff")) {
+    return true;
+  }
+  if ((input.featureCount ?? 0) > MAP_GEOJSON_RENDER_FEATURE_BUDGET) return true;
+  if ((input.sizeBytes ?? 0) > MAP_SOURCE_INLINE_STORAGE_LIMIT_BYTES) return true;
+  if ((input.estimatedMemoryBytes ?? 0) > MAP_GEOJSON_RENDER_MEMORY_BUDGET_BYTES) return true;
+  return false;
+}
+
+function createProfileLayer(input: {
+  idPrefix?: string;
+  sourceName: string;
+  kind: LayerSourceKind;
+  format: SourceFormat;
+  crsSummary: LayerCrsSummary;
+  featureCount: number | null;
+  schemaSummary?: LayerSchemaSummary;
+  extent?: [number, number, number, number];
+  caveats: readonly string[];
+  license?: string | null;
+  attribution?: string | null;
+  profiledAt: string;
+}): OverlayLayerConfig {
+  const layerId = createLayerId(input.idPrefix ?? "profile");
+  const metadata: LayerMetadata = {
+    updatedAt: input.profiledAt,
+    crsSummary: input.crsSummary,
+    ...(sourceProfileCanCommit(input.format) ? { importFormat: input.format as ImportLayerSourceMetadata["format"] } : {}),
+    ...(input.featureCount != null ? { featureCount: input.featureCount } : {}),
+    ...(input.schemaSummary ? { schemaSummary: input.schemaSummary } : {}),
+    ...(input.extent ? { bounds: input.extent } : {}),
+    licenseAttribution: {
+      license: input.license ?? null,
+      attribution: input.attribution ?? null,
+      sourceName: input.sourceName,
+      requiresAttribution: Boolean(input.attribution),
+      source: input.license || input.attribution ? "import-source" : "unknown",
+      notes: input.license || input.attribution
+        ? ["License or attribution was read from source profile metadata."]
+        : ["License and attribution are unknown from this source profile."],
+    },
+  };
+
+  return {
+    id: layerId,
+    name: stripExtension(input.sourceName),
+    type: "geojson",
+    visible: false,
+    opacity: 1,
+    sourceKind: input.kind,
+    qaStatus: input.caveats.length > 0 ? "warning" : "unchecked",
+    provenance: {
+      label: `${input.format.toUpperCase()} source profile`,
+      sourceName: input.sourceName,
+      method: "Browser source profiling",
+      generatedAt: input.profiledAt,
+      notes: [...input.caveats],
+    },
+    metadata,
+    group: "data",
+  };
+}
+
+function createSourceProfile(input: {
+  sourceHandle: SourceHandle;
+  format: SourceFormat;
+  sourceName: string;
+  supportStatus?: SourceProfileSupportStatus;
+  canCommit?: boolean;
+  profileStrategy?: SourceProfileStrategy;
+  featureCount?: number | null;
+  totalRecords?: number;
+  skippedRecordCount?: number;
+  sizeBytes?: number;
+  estimatedMemoryBytes?: number;
+  extent?: [number, number, number, number];
+  workerReady?: boolean;
+  caveats?: readonly string[];
+}): SourceProfile {
+  const supportStatus = input.supportStatus ?? sourceProfileSupportStatus(input.format);
+  const sizeBytes = input.sizeBytes ?? input.sourceHandle.sizeBytes;
+  const featureCount = input.featureCount ?? input.sourceHandle.featureCount;
+  const workerReady = input.workerReady ?? shouldMarkWorkerReady({
+    featureCount,
+    ...(sizeBytes != null ? { sizeBytes } : {}),
+    ...(input.estimatedMemoryBytes != null ? { estimatedMemoryBytes: input.estimatedMemoryBytes } : {}),
+    format: input.format,
+    supportStatus,
+  });
+  const caveats = uniqueTextList([
+    ...(input.caveats ?? []),
+    ...input.sourceHandle.caveats,
+    ...(workerReady ? ["Source is suitable for worker-backed import or analysis when committed."] : []),
+    ...(supportStatus === "partial" ? ["This format can be profiled now; full commit support is handled by a later import hardening slice."] : []),
+  ]);
+
+  return {
+    sourceHandle: input.sourceHandle,
+    format: input.format,
+    sourceName: input.sourceName,
+    supportStatus,
+    canCommit: input.canCommit ?? sourceProfileCanCommit(input.format),
+    profileStrategy: input.profileStrategy ?? sourceProfileStrategy(input.format, supportStatus),
+    featureCount,
+    ...(input.totalRecords != null ? { totalRecords: input.totalRecords } : {}),
+    ...(input.skippedRecordCount != null ? { skippedRecordCount: input.skippedRecordCount } : {}),
+    ...(sizeBytes != null ? { sizeBytes } : {}),
+    ...(input.estimatedMemoryBytes != null ? { estimatedMemoryBytes: input.estimatedMemoryBytes } : {}),
+    ...(input.extent ? { extent: input.extent } : {}),
+    workerReady,
+    crsSummary: input.sourceHandle.crsSummary,
+    ...(input.sourceHandle.schemaSummary ? { schemaSummary: input.sourceHandle.schemaSummary } : {}),
+    license: input.sourceHandle.license ?? null,
+    attribution: input.sourceHandle.attribution ?? null,
+    caveats,
+    profiledAt: input.sourceHandle.profiledAt,
   };
 }
 
@@ -994,6 +1233,27 @@ function assertGeoJSONFile(file: File): void {
 }
 
 export function detectImportFileType(file: File): MapImportFileKind {
+  const format = detectSourceProfileFormat(file);
+  if (isMapImportFileKind(format)) {
+    return format;
+  }
+
+  throw new MapDataImportError(
+    "Unsupported file type. Please choose GeoJSON, CSV, Arrow, GeoParquet, KML, KMZ, or GPX.",
+  );
+}
+
+function isMapImportFileKind(format: SourceFormat): format is MapImportFileKind {
+  return format === "geojson" ||
+    format === "csv" ||
+    format === "arrow" ||
+    format === "geoparquet" ||
+    format === "kml" ||
+    format === "kmz" ||
+    format === "gpx";
+}
+
+export function detectSourceProfileFormat(file: File): SourceFormat {
   const extension = getFileExtension(file.name);
   const mime = file.type.toLowerCase();
 
@@ -1018,9 +1278,18 @@ export function detectImportFileType(file: File): MapImportFileKind {
   if (extension === "gpx" || mime.includes("gpx")) {
     return "gpx";
   }
+  if (extension === "fgb" || extension === "flatgeobuf") {
+    return "flatgeobuf";
+  }
+  if (extension === "pmtiles") {
+    return "pmtiles";
+  }
+  if (extension === "tif" || extension === "tiff" || mime === "image/tiff" || mime.includes("geotiff")) {
+    return "geotiff";
+  }
 
   throw new MapDataImportError(
-    "Unsupported file type. Please choose GeoJSON, CSV, Arrow, GeoParquet, KML, KMZ, or GPX.",
+    "Unsupported file type. Please choose GeoJSON, CSV, Arrow, GeoParquet, KML, KMZ, GPX, FlatGeobuf, PMTiles, or GeoTIFF.",
   );
 }
 
@@ -1082,6 +1351,10 @@ function buildImportedLayer(
   sourceType: MapImportFileKind,
   summaryOverrides?: Partial<ImportedLayerSummary>,
   metadataOverrides?: Partial<LayerMetadata>,
+  sourceHandleOptions?: {
+    sourceSizeBytes?: number;
+    sourceRef?: string;
+  },
 ): ImportedGeoJSONLayer {
   const layerId = createLayerId();
   const importedAt = nowIsoTimestamp();
@@ -1117,6 +1390,7 @@ function buildImportedLayer(
       sourceName: fileName,
       importedAt,
       importedFeatureCount,
+      ...(sourceHandleOptions?.sourceSizeBytes != null ? { fileSizeBytes: sourceHandleOptions.sourceSizeBytes } : {}),
       ...(totalRecords != null ? { totalRecords } : {}),
       ...(skippedRecordCount != null ? { skippedRecordCount } : {}),
       ...(declaredCrs ? { declaredCrs } : {}),
@@ -1143,7 +1417,7 @@ function buildImportedLayer(
     ...metadataOverrides,
   };
 
-  const layer = withNormalizedLayerRegistryMetadata({
+  const baseLayer: OverlayLayerConfig = {
     id: layerId,
     name: stripExtension(fileName),
     type: "geojson",
@@ -1163,11 +1437,55 @@ function buildImportedLayer(
     },
     metadata,
     group: "data",
+  };
+
+  const sourceHandle = createImportSourceHandle({
+    layer: baseLayer,
+    format: sourceType,
+    ...(sourceHandleOptions?.sourceSizeBytes != null ? { sourceSizeBytes: sourceHandleOptions.sourceSizeBytes } : {}),
+    ...(sourceHandleOptions?.sourceRef ? { sourceRef: sourceHandleOptions.sourceRef } : {}),
+  });
+
+  const metadataWithSource = {
+    ...metadata,
+    sourceId: sourceHandle.sourceId,
+    sourceStorageMode: sourceHandle.storageMode,
+    sourceRestoreStatus: sourceHandle.restoreStatus,
+    importSource: {
+      ...metadata.importSource,
+      sourceId: sourceHandle.sourceId,
+      ...(sourceHandle.sizeBytes != null ? { fileSizeBytes: sourceHandle.sizeBytes } : {}),
+    },
+  } satisfies LayerMetadata;
+
+  const layer = withNormalizedLayerRegistryMetadata(
+    applySourceHandleToLayer({
+      ...baseLayer,
+      metadata: metadataWithSource,
+    }, sourceHandle),
+  );
+
+  const sourceProfile = createSourceProfile({
+    sourceHandle,
+    format: sourceType,
+    sourceName: fileName,
+    supportStatus: "supported",
+    canCommit: true,
+    profileStrategy: sourceType === "arrow" || sourceType === "geoparquet" ? "sampled" : "full-parse",
+    featureCount: importedFeatureCount,
+    ...(totalRecords != null ? { totalRecords } : {}),
+    ...(skippedRecordCount != null ? { skippedRecordCount } : {}),
+    ...(sourceHandle.sizeBytes != null ? { sizeBytes: sourceHandle.sizeBytes } : {}),
+    estimatedMemoryBytes: rendering.estimatedRenderBytes,
+    ...(metadataWithSource.bounds ? { extent: metadataWithSource.bounds } : {}),
+    caveats,
   });
 
   return {
     featureCollection,
     layer,
+    sourceHandle,
+    sourceProfile,
     summary: {
       sourceType,
       importedFeatureCount: featureCollection.features.length,
@@ -1209,6 +1527,9 @@ function createColumnarImportSession(fileName: string, artifact: ColumnarImportA
     },
     {
       columnar: buildColumnarMetadata(artifact),
+    },
+    {
+      sourceSizeBytes: artifact.transferSizeBytes,
     },
   );
 
@@ -1431,6 +1752,7 @@ export function createCsvImportSession(raw: string, fileName: string): CsvImport
     headers,
     rows,
     delimiter,
+    sourceSizeBytes: estimateStringBytes(raw),
     totalRows: rows.length,
     previewRows,
     latitudeCandidates: detection.latitudeCandidates,
@@ -1516,7 +1838,322 @@ export function completeCsvImport(
     totalRecords: session.totalRows,
     skippedRecordCount,
     importedFeatureCount: features.length,
+  }, undefined, {
+    sourceSizeBytes: session.sourceSizeBytes,
   });
+}
+
+export type SourceProfileInput =
+  | {
+      kind: "feature-collection";
+      sourceName: string;
+      featureCollection: FeatureCollection;
+      format?: SourceFormat;
+      declaredCrs?: string | null;
+      sizeBytes?: number;
+      license?: string | null;
+      attribution?: string | null;
+      caveats?: readonly string[];
+    }
+  | {
+      kind: "csv";
+      sourceName: string;
+      raw: string;
+      mapping?: CsvImportMapping;
+    }
+  | {
+      kind: "csv-session";
+      session: CsvImportSession;
+      mapping?: CsvImportMapping;
+    }
+  | {
+      kind: "imported-layer";
+      result: ImportedGeoJSONLayer;
+    }
+  | {
+      kind: "external-service";
+      sourceName?: string;
+      metadata: ExternalServiceLayerMetadata;
+    }
+  | {
+      kind: "file-metadata";
+      sourceName: string;
+      format: SourceFormat;
+      sizeBytes?: number;
+      sourceRef?: string;
+      declaredCrs?: string | null;
+      supportStatus?: SourceProfileSupportStatus;
+      caveats?: readonly string[];
+    };
+
+function effectiveCsvMapping(session: CsvImportSession, mapping?: CsvImportMapping): CsvImportMapping | null {
+  const latitudeColumn = mapping?.latitudeColumn ?? session.suggestedLatitudeColumn;
+  const longitudeColumn = mapping?.longitudeColumn ?? session.suggestedLongitudeColumn;
+  if (!latitudeColumn || !longitudeColumn || latitudeColumn === longitudeColumn) return null;
+  if (!session.headers.includes(latitudeColumn) || !session.headers.includes(longitudeColumn)) return null;
+  return { latitudeColumn, longitudeColumn };
+}
+
+function countCsvSpatialRows(session: CsvImportSession, mapping: CsvImportMapping): {
+  importedFeatureCount: number;
+  skippedRecordCount: number;
+} {
+  const latitudeIndex = session.headers.indexOf(mapping.latitudeColumn);
+  const longitudeIndex = session.headers.indexOf(mapping.longitudeColumn);
+  let importedFeatureCount = 0;
+  let skippedRecordCount = 0;
+
+  for (const row of session.rows) {
+    const latitudeRaw = (row[latitudeIndex] ?? "").trim();
+    const longitudeRaw = (row[longitudeIndex] ?? "").trim();
+    const latitude = Number(latitudeRaw);
+    const longitude = Number(longitudeRaw);
+    if (
+      latitudeRaw.length === 0 ||
+      longitudeRaw.length === 0 ||
+      !Number.isFinite(latitude) ||
+      !Number.isFinite(longitude)
+    ) {
+      skippedRecordCount += 1;
+      continue;
+    }
+    importedFeatureCount += 1;
+  }
+
+  return { importedFeatureCount, skippedRecordCount };
+}
+
+function buildCsvProfileSchemaSummary(session: CsvImportSession, mapping: CsvImportMapping | null): LayerSchemaSummary {
+  return {
+    fieldCount: session.headers.length,
+    fields: session.headers.map((name) => ({
+      name,
+      role: mapping && (name === mapping.latitudeColumn || name === mapping.longitudeColumn) ? "geometry" : "attribute",
+      type: "string",
+      nullable: true,
+    })),
+    source: "import-source",
+    notes: ["CSV schema was inferred from the header row before commit."],
+  };
+}
+
+export function profileCsvImportSession(session: CsvImportSession, mapping?: CsvImportMapping): SourceProfile {
+  const resolvedMapping = effectiveCsvMapping(session, mapping);
+  const rowCounts = resolvedMapping ? countCsvSpatialRows(session, resolvedMapping) : null;
+  const crsSummary = buildProfileCrsSummary({ format: "csv" });
+  const schemaSummary = buildCsvProfileSchemaSummary(session, resolvedMapping);
+  const profiledAt = nowIsoTimestamp();
+  const caveats = uniqueTextList([
+    "CSV point geometry will be derived from latitude/longitude columns; verify coordinate semantics before analysis.",
+    "CSV import does not declare CRS metadata; CRS remains unknown until reviewed.",
+    "Local CSV import does not declare license or attribution metadata.",
+    ...(resolvedMapping ? [] : ["Choose distinct latitude and longitude columns before commit."]),
+    ...(rowCounts && rowCounts.skippedRecordCount > 0
+      ? [`${rowCounts.skippedRecordCount.toLocaleString()} skipped rows will be excluded because coordinates are missing or invalid.`]
+      : []),
+  ]);
+  const layer = createProfileLayer({
+    idPrefix: "csv-profile",
+    sourceName: session.fileName,
+    kind: "imported",
+    format: "csv",
+    crsSummary,
+    featureCount: rowCounts?.importedFeatureCount ?? null,
+    schemaSummary,
+    caveats,
+    profiledAt,
+  });
+  const sourceHandle = createImportSourceHandle({
+    layer,
+    format: "csv",
+    sourceSizeBytes: session.sourceSizeBytes,
+    caveats,
+    profiledAt,
+  });
+  sourceHandle.crsSummary = crsSummary;
+
+  return createSourceProfile({
+    sourceHandle,
+    format: "csv",
+    sourceName: session.fileName,
+    supportStatus: "supported",
+    canCommit: Boolean(resolvedMapping && rowCounts && rowCounts.importedFeatureCount > 0),
+    profileStrategy: "sampled",
+    featureCount: rowCounts?.importedFeatureCount ?? null,
+    totalRecords: session.totalRows,
+    ...(rowCounts ? { skippedRecordCount: rowCounts.skippedRecordCount } : {}),
+    sizeBytes: session.sourceSizeBytes,
+    estimatedMemoryBytes: Math.max(session.sourceSizeBytes, session.totalRows * ESTIMATED_BYTES_PER_FEATURE),
+    caveats,
+  });
+}
+
+function profileFeatureCollectionSource(input: Extract<SourceProfileInput, { kind: "feature-collection" }>): SourceProfile {
+  const format = input.format ?? "geojson";
+  const featureMetadata = buildFeatureCollectionMetadata(input.featureCollection);
+  const rendering = featureMetadata.rendering ?? buildFeatureCollectionRenderProfile(input.featureCollection);
+  const crsSummary = buildProfileCrsSummary({ format, declaredCrs: input.declaredCrs });
+  const profiledAt = nowIsoTimestamp();
+  const sizeBytes = input.sizeBytes ?? rendering.estimatedRenderBytes;
+  const caveats = uniqueTextList([
+    ...(input.caveats ?? []),
+    ...(input.featureCollection.features.length === 0 ? ["Source profile contains no features to commit."] : []),
+    ...(crsSummary.status === "known" ? [] : [crsSummary.status === "missing" ? "Source CRS metadata is missing." : "Source CRS metadata is unknown." ]),
+    ...(input.license || input.attribution ? [] : ["License and attribution are unknown for this source profile."]),
+    ...rendering.warnings,
+  ]);
+  const layer = createProfileLayer({
+    idPrefix: "source-profile",
+    sourceName: input.sourceName,
+    kind: "imported",
+    format,
+    crsSummary,
+    featureCount: input.featureCollection.features.length,
+    ...(featureMetadata.schemaSummary ? { schemaSummary: featureMetadata.schemaSummary } : {}),
+    ...(featureMetadata.bounds ? { extent: featureMetadata.bounds } : {}),
+    caveats,
+    ...(input.license != null ? { license: input.license } : {}),
+    ...(input.attribution != null ? { attribution: input.attribution } : {}),
+    profiledAt,
+  });
+  const sourceHandle = createImportSourceHandle({
+    layer,
+    format,
+    sourceSizeBytes: sizeBytes,
+    caveats,
+    profiledAt,
+  });
+  sourceHandle.crsSummary = crsSummary;
+
+  return createSourceProfile({
+    sourceHandle,
+    format,
+    sourceName: input.sourceName,
+    supportStatus: sourceProfileSupportStatus(format),
+    canCommit: sourceProfileCanCommit(format) && input.featureCollection.features.length > 0,
+    profileStrategy: "full-parse",
+    featureCount: input.featureCollection.features.length,
+    sizeBytes,
+    estimatedMemoryBytes: rendering.estimatedRenderBytes,
+    ...(featureMetadata.bounds ? { extent: featureMetadata.bounds } : {}),
+    caveats,
+  });
+}
+
+function externalServiceFormat(kind: ExternalServiceLayerMetadata["kind"]): SourceFormat {
+  switch (kind) {
+    case "wms":
+      return "wms";
+    case "wfs":
+      return "wfs";
+    case "xyz":
+    case "wmts":
+    case "overpass":
+    case "cityjson":
+    default:
+      return "xyz";
+  }
+}
+
+function profileExternalServiceSource(input: Extract<SourceProfileInput, { kind: "external-service" }>): SourceProfile {
+  const format = externalServiceFormat(input.metadata.kind);
+  const sourceName = input.sourceName ?? input.metadata.title ?? input.metadata.layerName ?? input.metadata.endpoint;
+  const profiledAt = nowIsoTimestamp();
+  const crsSummary = buildProfileCrsSummary({
+    format,
+    declaredCrs: input.metadata.crs,
+    source: "external-service",
+  });
+  const caveats = uniqueTextList([
+    ...(input.metadata.caveats ?? []),
+    ...(input.metadata.dependencyStatus === "offline" ? [input.metadata.offlineReason ?? "External service is offline or unreachable."] : []),
+    "External service source is environment-dependent; validate CORS, credentials, and provider availability before publication.",
+  ]);
+  const sourceHandle: SourceHandle = {
+    sourceId: `source-profile-${format}-${sanitizeSourceName(sourceName)}`,
+    kind: "external",
+    storageMode: "external-service",
+    restoreStatus: input.metadata.dependencyStatus === "offline" ? "unavailable" : "external-reference",
+    format,
+    crsSummary,
+    featureCount: null,
+    sourceRef: input.metadata.endpoint,
+    caveats,
+    profiledAt,
+  };
+  if (input.metadata.license) sourceHandle.license = input.metadata.license;
+  if (input.metadata.attribution) sourceHandle.attribution = input.metadata.attribution;
+
+  return createSourceProfile({
+    sourceHandle,
+    format,
+    sourceName,
+    supportStatus: "partial",
+    canCommit: input.metadata.dependencyStatus !== "offline",
+    profileStrategy: "metadata-only",
+    featureCount: null,
+    ...(input.metadata.bounds ? { extent: input.metadata.bounds } : {}),
+    workerReady: false,
+    caveats,
+  });
+}
+
+function profileFileMetadataSource(input: Extract<SourceProfileInput, { kind: "file-metadata" }>): SourceProfile {
+  const supportStatus = input.supportStatus ?? sourceProfileSupportStatus(input.format);
+  const profiledAt = nowIsoTimestamp();
+  const crsSummary = buildProfileCrsSummary({ format: input.format, declaredCrs: input.declaredCrs });
+  const caveats = uniqueTextList([
+    ...(input.caveats ?? []),
+    ...(supportStatus === "supported" ? [] : [`${input.format.toUpperCase()} profiling is metadata-only in this slice; full import is not committed yet.`]),
+    ...(crsSummary.status === "known" ? [] : ["CRS is not available from file metadata preflight."]),
+  ]);
+  const sourceHandle: SourceHandle = {
+    sourceId: `source-profile-${input.format}-${sanitizeSourceName(input.sourceName)}`,
+    kind: "imported",
+    storageMode: input.sourceRef ? "url-refetch" : "metadata-only",
+    restoreStatus: input.sourceRef ? "external-reference" : "metadata-only",
+    format: input.format,
+    crsSummary,
+    featureCount: null,
+    caveats,
+    profiledAt,
+  };
+  if (input.sizeBytes != null) sourceHandle.sizeBytes = input.sizeBytes;
+  if (input.sourceRef) sourceHandle.sourceRef = input.sourceRef;
+
+  return createSourceProfile({
+    sourceHandle,
+    format: input.format,
+    sourceName: input.sourceName,
+    supportStatus,
+    canCommit: false,
+    profileStrategy: "metadata-only",
+    featureCount: null,
+    ...(input.sizeBytes != null ? { sizeBytes: input.sizeBytes } : {}),
+    caveats,
+  });
+}
+
+export function profileSource(input: SourceProfileInput): SourceProfile {
+  switch (input.kind) {
+    case "feature-collection":
+      return profileFeatureCollectionSource(input);
+    case "csv":
+      return profileCsvImportSession(createCsvImportSession(input.raw, input.sourceName), input.mapping);
+    case "csv-session":
+      return profileCsvImportSession(input.session, input.mapping);
+    case "imported-layer":
+      return input.result.sourceProfile;
+    case "external-service":
+      return profileExternalServiceSource(input);
+    case "file-metadata":
+    default:
+      return profileFileMetadataSource(input);
+  }
+}
+
+function sanitizeSourceName(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 72) || "source";
 }
 
 function requireDomParser(): DOMParser {
@@ -1857,7 +2494,9 @@ export async function importGeoJSONFile(
   assertGeoJSONFile(file);
   const raw = await readFileAsText(file, options?.onProgress);
   const featureCollection = parseGeoJSONText(raw);
-  return buildImportedLayer(file.name, featureCollection, "geojson");
+  return buildImportedLayer(file.name, featureCollection, "geojson", undefined, undefined, {
+    sourceSizeBytes: file.size,
+  });
 }
 
 export async function prepareMapImportFile(
@@ -1866,8 +2505,23 @@ export async function prepareMapImportFile(
     onProgress?: (progress: MapImportProgress) => void;
   },
 ): Promise<PreparedMapImportResult> {
+  const sourceFormat = detectSourceProfileFormat(file);
+
+  if (!isMapImportFileKind(sourceFormat)) {
+    return {
+      kind: "profile",
+      profile: profileSource({
+        kind: "file-metadata",
+        sourceName: file.name,
+        format: sourceFormat,
+        sizeBytes: file.size,
+        supportStatus: sourceProfileSupportStatus(sourceFormat),
+      }),
+    };
+  }
+
   assertImportFileSize(file);
-  const fileType = detectImportFileType(file);
+  const fileType = sourceFormat;
 
   if (fileType === "geojson") {
     return {
@@ -1919,7 +2573,9 @@ export async function prepareMapImportFile(
     const featureCollection = await parseKMZArrayBuffer(data);
     return {
       kind: "ready",
-      result: buildImportedLayer(file.name, featureCollection, "kmz"),
+      result: buildImportedLayer(file.name, featureCollection, "kmz", undefined, undefined, {
+        sourceSizeBytes: file.size,
+      }),
     };
   }
 
@@ -1929,6 +2585,8 @@ export async function prepareMapImportFile(
 
   return {
     kind: "ready",
-    result: buildImportedLayer(file.name, featureCollection, fileType),
+    result: buildImportedLayer(file.name, featureCollection, fileType, undefined, undefined, {
+      sourceSizeBytes: file.size,
+    }),
   };
 }

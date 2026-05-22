@@ -3,6 +3,7 @@ import type {
   MapCartographyRecommendation,
   MapCartographyReviewState,
 } from "@/services/map/MapCartographyAdvisor";
+import type { SourceRestoreStatus } from "@/services/map/contracts/gisContracts";
 import type { LayerGroupId, LayerPublicationReadinessStatus, LayerQaStatus, LayerScientificQABadge, LayerSourceKind, OverlayLayerConfig } from "./mapTypes";
 import { CartographyRecommendationList } from "./CartographyRecommendationList";
 import { createMapExplorerDemoLayerPack, getDemoAoiBoundsList } from "./demoDataPacks";
@@ -88,6 +89,14 @@ const QA_STATUS_LABELS: Record<LayerQaStatus, string> = {
   passed: "QA passed",
   warning: "QA warning",
   error: "QA error",
+};
+
+const SOURCE_RESTORE_STATUS_LABELS: Record<SourceRestoreStatus, string> = {
+  restored: "restored",
+  recoverable: "recoverable",
+  unavailable: "unavailable",
+  "external-reference": "external ref",
+  "metadata-only": "metadata only",
 };
 
 const PUBLICATION_READINESS_LABELS: Record<LayerPublicationReadinessStatus, string> = {
@@ -304,7 +313,7 @@ const layerBadgeRail: React.CSSProperties = {
 const layerBadgeBase: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
-  maxWidth: "8rem",
+  maxWidth: "11rem",
   padding: "1px 3px",
   borderRadius: MAP_RADIUS.sm,
   border: MAP_STROKES.none,
@@ -699,6 +708,32 @@ function resolveLayerProvenanceLabel(layer: OverlayLayerConfig): string {
   return normalizeLayerRegistryMetadata(layer).provenance.label;
 }
 
+function resolveLayerSourceRestoreStatus(layer: OverlayLayerConfig): SourceRestoreStatus | null {
+  const explicit = layer.metadata?.sourceRestoreStatus ?? layer.metadata?.persistence?.sourceRestoreStatus;
+  if (explicit) return explicit;
+
+  switch (layer.metadata?.persistence?.restoreState) {
+    case "restored":
+      return "restored";
+    case "external-reference":
+      return "external-reference";
+    case "metadata-only":
+      return "metadata-only";
+    case "stale-reference":
+      return "unavailable";
+    default:
+      return null;
+  }
+}
+
+function sourceRestoreBadgeTone(status: SourceRestoreStatus | null, sourceKind: LayerSourceKind): LayerBadgeTone {
+  if (status === "restored") return sourceKind === "demo" ? "warning" : "good";
+  if (status === "recoverable" || status === "metadata-only") return "warning";
+  if (status === "unavailable") return "error";
+  if (status === "external-reference") return "info";
+  return sourceKind === "external" ? "info" : sourceKind === "demo" ? "warning" : "neutral";
+}
+
 function formatBounds(bounds: [number, number, number, number]): string {
   return `[${bounds.map((b) => b.toFixed(4)).join(", ")}]`;
 }
@@ -917,6 +952,8 @@ function buildPublicationGateReason(layer: OverlayLayerConfig): string | null {
 function buildLayerBadges(layer: OverlayLayerConfig): LayerBadgeModel[] {
   const registry = normalizeLayerRegistryMetadata(layer);
   const isDerived = registry.sourceKind === "derived" || Boolean(layer.metadata?.analysisResult);
+  const sourceRestoreStatus = resolveLayerSourceRestoreStatus(layer);
+  const sourceRestoreLabel = sourceRestoreStatus ? SOURCE_RESTORE_STATUS_LABELS[sourceRestoreStatus] : null;
   const crsLabel = registry.crsSummary.status === "known"
     ? registry.crsSummary.crs ?? "CRS known"
     : "CRS missing";
@@ -924,9 +961,13 @@ function buildLayerBadges(layer: OverlayLayerConfig): LayerBadgeModel[] {
   const badges: LayerBadgeModel[] = [
     {
       id: "source",
-      label: SOURCE_KIND_LABELS[registry.sourceKind],
-      title: `Source kind: ${SOURCE_KIND_LABELS[registry.sourceKind]}. Provenance: ${registry.provenance.label}`,
-      tone: registry.sourceKind === "external" ? "info" : registry.sourceKind === "demo" ? "warning" : "neutral",
+      label: sourceRestoreLabel
+        ? `${SOURCE_KIND_LABELS[registry.sourceKind]} / ${sourceRestoreLabel}`
+        : SOURCE_KIND_LABELS[registry.sourceKind],
+      title: sourceRestoreStatus
+        ? `Source kind: ${SOURCE_KIND_LABELS[registry.sourceKind]}. Restore status: ${SOURCE_RESTORE_STATUS_LABELS[sourceRestoreStatus]}. Provenance: ${registry.provenance.label}`
+        : `Source kind: ${SOURCE_KIND_LABELS[registry.sourceKind]}. Provenance: ${registry.provenance.label}`,
+      tone: sourceRestoreBadgeTone(sourceRestoreStatus, registry.sourceKind),
     },
   ];
 
@@ -1757,8 +1798,10 @@ const LayerRow: React.FC<LayerRowProps> = ({
       }];
   const rowActions = [...utilityActions, ...evidenceActions, ...removalActions];
   const importFormat = formatImportSourceLabel(layer.metadata?.importFormat);
+  const restoreStatus = resolveLayerSourceRestoreStatus(layer);
   const detailSummary = [
     SOURCE_KIND_LABELS[sourceKind],
+    restoreStatus ? SOURCE_RESTORE_STATUS_LABELS[restoreStatus] : null,
     importFormat,
     qaStatus === "unchecked" ? null : QA_STATUS_LABELS[qaStatus],
     scientificQA?.featureIssueCount ? `${scientificQA.featureIssueCount.toLocaleString()} QA feature issue(s)` : null,
@@ -1954,6 +1997,11 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
         layer.metadata?.columnar?.format,
         layer.metadata?.columnar?.geometryColumn,
         layer.metadata?.columnar?.workerTableName,
+        layer.metadata?.sourceId,
+        layer.metadata?.sourceStorageMode,
+        layer.metadata?.sourceRestoreStatus,
+        layer.metadata?.persistence?.sourceRestoreStatus,
+        layer.metadata?.persistence?.restoreState,
         layer.metadata?.columnar?.crs,
         layer.metadata?.analysisResult?.engine,
         layer.metadata?.analysisResult?.parameterSummary,

@@ -9,6 +9,7 @@ import type {
   OverlayLayerConfig,
   ViewportState,
 } from "../../../centerpanel/components/map/mapTypes";
+import type { SourceHandle } from "../contracts/gisContracts";
 import type { MapScientificQAState } from "../MapScientificQA";
 import {
   appendMapReviewEvent,
@@ -287,6 +288,27 @@ function makeLargeOverlayLayer(): OverlayLayerConfig {
         },
       ],
     },
+  };
+}
+
+function makeSourceHandle(sourceId: string, overrides?: Partial<SourceHandle>): SourceHandle {
+  return {
+    sourceId,
+    kind: "imported",
+    storageMode: "metadata-only",
+    restoreStatus: "restored",
+    format: "geojson",
+    crsSummary: {
+      crs: "EPSG:3857",
+      status: "known",
+      source: "dataset-context",
+      notes: [],
+    },
+    featureCount: 1,
+    sizeBytes: 1_200_000,
+    caveats: ["Large source is not embedded in lightweight state."],
+    profiledAt: "2026-05-22T00:00:00.000Z",
+    ...overrides,
   };
 }
 
@@ -639,6 +661,66 @@ describe("MapPersistenceService", () => {
       snapshotVersion: 3,
     });
     expect(restoredLayers[0]?.metadata?.persistence?.restoreWarnings[0]).toContain("exceeded the inline snapshot limit");
+  });
+
+  it("persists source handles as metadata only and resolves missing handles as unavailable", async () => {
+    const sourceId = "source-large-parcels";
+    const layerWithSource = {
+      ...makeLargeOverlayLayer(),
+      metadata: {
+        ...makeLargeOverlayLayer().metadata,
+        sourceId,
+        sourceStorageMode: "metadata-only" as const,
+        sourceRestoreStatus: "restored" as const,
+      },
+    } satisfies OverlayLayerConfig;
+
+    const saveResult = await saveProjectMapState({
+      projectId: "proj_source_handles",
+      activeBaseLayer: "dark",
+      viewport: makeViewport(),
+      pins: [],
+      drawnFeatures: [],
+      overlayLayers: [layerWithSource],
+      sourceHandles: [
+        {
+          ...makeSourceHandle(sourceId),
+          sourceData: { type: "FeatureCollection", features: [] },
+        } as SourceHandle & { sourceData: unknown },
+      ],
+    });
+
+    expect(saveResult.snapshot.sourceHandles).toHaveLength(1);
+    expect(JSON.stringify(saveResult.snapshot.sourceHandles)).not.toContain("sourceData");
+    expect(saveResult.snapshot.sourceHandles[0]).toMatchObject({
+      sourceId,
+      storageMode: "metadata-only",
+      restoreStatus: "unavailable",
+    });
+
+    const loadResult = await loadProjectMapState("proj_source_handles");
+    const restoredLayers = getRestorableOverlayLayers(loadResult.snapshot!);
+    expect(restoredLayers[0]?.metadata?.sourceRestoreStatus).toBe("unavailable");
+    expect(restoredLayers[0]?.metadata?.persistence).toMatchObject({
+      sourceId,
+      sourcePersistence: "metadata",
+      restoreState: "stale-reference",
+      sourceRestoreStatus: "unavailable",
+    });
+
+    const raw = localStorage.getItem("synapse.map.project.persistence.v1.proj_source_handles");
+    expect(raw).toBeTruthy();
+    const parsed = JSON.parse(raw!);
+    parsed.sourceHandles = [];
+    localStorage.setItem("synapse.map.project.persistence.v1.proj_source_handles_missing", JSON.stringify({
+      ...parsed,
+      projectId: "proj_source_handles_missing",
+    }));
+
+    const missingHandleResult = await loadProjectMapState("proj_source_handles_missing");
+    const missingHandleLayers = getRestorableOverlayLayers(missingHandleResult.snapshot!);
+    expect(missingHandleLayers[0]?.metadata?.sourceRestoreStatus).toBe("unavailable");
+    expect(missingHandleLayers[0]?.metadata?.persistence?.restoreWarnings[0]).toContain("unavailable");
   });
 
   it("keeps oversized inline GeoJSON strings out of snapshots before parsing them", async () => {

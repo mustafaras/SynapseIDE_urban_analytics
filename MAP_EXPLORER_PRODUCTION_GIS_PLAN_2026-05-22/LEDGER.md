@@ -9,7 +9,7 @@ Single source of execution state + the resume point for any chat (especially a f
 ## ▶ Resume in a new chat (do this first)
 
 0. Start from the latest completed GIS prompt branch, not the older prompt-pack
-   base. For Prompt 3+, use `gis/p02-decompose` (or the active
+  base. For Prompt 5+, use `gis/p04-source-registry` once committed (or the active
    `gis/map-explorer-production-prompts` branch once advanced to the same head).
    The WelcomeModal orbital redesign commit (`aa0be7d`) must remain in ancestry;
    do not resume from the older `4d47df5` base unless you first merge/cherry-pick
@@ -31,9 +31,9 @@ Legend: `[x]` done · `[~]` in progress · `[ ]` TODO · `[!]` blocked (see Done
 - [x] 0 — Bootstrap: contracts + fixtures + conventions ✅ verified
 - [x] 1 — Baseline inventory + canonical-surface ADR ✅ verified
 - [x] 2 — Decompose `MapExplorerModal.tsx` ✅ verified
-- [ ] 3 — Store slices + selectors
-- [ ] 4 — `MapSourceRegistry` V1
-- [ ] 5 — Import preflight + profiling + support matrix
+- [x] 3 — Store slices + selectors ✅ verified
+- [x] 4 — `MapSourceRegistry` V1 ✅ verified
+- [x] 5 — Import preflight + profiling + support matrix ✅ verified
 - [ ] 6 — `MapProjectionService` + `ExecutionCrsPlanner`
 - [ ] 7 — `CrsPreflight` gate
 - [ ] 8 — CRS correction UI + projection suggestion
@@ -116,6 +116,9 @@ Legend: `[x]` done · `[~]` in progress · `[ ]` TODO · `[!]` blocked (see Done
 
 | Date | Prompt | Branch | Commit(s) | Proof |
 | --- | --- | --- | --- | --- |
+| 2026-05-22 | 5 — Import preflight + profiling + support matrix | `gis/p05-profiling` | pending user commit | `SourceProfile` profiling added for ready imports, CSV row quality, large/empty/missing-CRS cases, external services, and profile-only partial formats; new preflight dialog gates ready imports before commit; CSV/columnar dialogs now show preflight facts; support matrix documented; `npm run typecheck` clean; `npm run lint:errors` clean; `npx vitest run src/services/map` 202 passed / 2 skipped (25 files); `npx vitest run src/centerpanel/components/map/__tests__/map-import-preflight.test.tsx` 2/2 passed; `npx playwright test e2e/map-csv-kml-gpx-import.spec.ts` 3/3 passed |
+| 2026-05-22 | 4 — `MapSourceRegistry` V1 | `gis/p04-source-registry` | pending user commit | `MapSourceRegistry` service added with `SourceHandle` CRUD + storage/restore mapping; imports now create source handles and `metadata.sourceId`; source handles persist as sanitized metadata in Zustand and project snapshots; restore resolves unavailable/recoverable/restored into layer metadata; layer manager shows `kind / restore status`; `npm run typecheck` clean; `npm run lint:errors` clean; `npx vitest run src/services/map src/stores` 338 passed / 2 skipped (34 files); `npx vitest run src/centerpanel/components/map/__tests__/map-layer-management.test.ts` 46/46 passed |
+| 2026-05-22 | 3 — Store slices + selectors | `gis/p03-slices` | pending user commit | Store slice policy modules added under `src/stores/mapExplorer/`; persistence boundary extracted and documented; fine-grained selectors added and used by the modal composition; `npm run typecheck` clean; `npm run lint:errors` clean; `npx vitest run src/stores` 137/137 (9 files) incl. heavy `fcLarge(1000)` `sourceData` persistence guard + selector stability tests |
 | 2026-05-22 | 2 — Decompose `MapExplorerModal.tsx` into controller hooks | `gis/p02-decompose` | `633d1ad..04d7b62` | Public `MapExplorerModal.tsx` reduced 6006 → 2 lines; implementation moved to `map/controllers/MapExplorerModalComposition.tsx`; controller hooks added for lifecycle, layer runtime, command routing, panel layout, Urban bridge, report state, workflow state; `npm run typecheck` clean; `npm run lint:errors` clean; `npx vitest run src/centerpanel/components/map src/stores` 443/443 (35 files); Playwright map layout smoke `npx playwright test e2e/map-modal-layout.spec.ts -g "keeps map, layer rail, and bottom status visible on desktop"` passed |
 | 2026-05-22 | 1 — Baseline inventory + canonical-surface ADR | `gis/p01-baseline` | `b37e239` | ADR `docs/architecture/map-explorer-canonical-surface.md` committed (both-family inventory + Prompt 2 target list); linked from `docs/architecture/README.md`; `npm run typecheck` clean; `npm run lint:errors` clean; `npx vitest run src/centerpanel/components/map` 302/302 (19 files) incl. new `map-explorer-canonical-baseline.test.tsx` (modal mount/unmount + store layer add→remove) |
 | 2026-05-22 | 0 — Bootstrap | `gis/map-explorer-production-prompts` | `4ae627d` | `npm run typecheck` clean; `gisFixtures.test.ts` 8/8 pass |
@@ -134,6 +137,22 @@ Artifacts created so far:
 - `src/centerpanel/components/map/controllers/useMapUrbanBridgeController.ts` (+ test; Prompt 2)
 - `src/centerpanel/components/map/controllers/useMapReportController.ts` (+ test; Prompt 2)
 - `src/centerpanel/components/map/controllers/useMapWorkflowController.ts` (+ test; Prompt 2)
+- `src/stores/mapExplorer/slices/` (slice persistence policies for viewport, layers, sources, selection, AOI, QA, evidence, review, temporal, layout, bridge; Prompt 3)
+- `src/stores/mapExplorer/slicePolicy.ts` (canonical slice order + persisted/transient/heavy-geometry key exports; Prompt 3)
+- `src/stores/mapExplorer/persistence.ts` (`partializeMapExplorerState` persisted boundary; Prompt 3)
+- `src/stores/mapExplorer/selectors.ts` (fine-grained memoized Map Explorer selectors; Prompt 3)
+- `src/stores/__tests__/useMapExplorerStore.test.ts` (Prompt 3 persistence + selector invariants)
+- `src/services/map/sources/MapSourceRegistry.ts` (`SourceHandle` CRUD, persistence mapping, restore resolution; Prompt 4)
+- `src/services/map/__tests__/MapSourceRegistry.test.ts` (source registry CRUD/mapping/sanitization proof; Prompt 4)
+- `src/services/map/MapDataImporter.ts` now emits imported layer `sourceHandle`s and source metadata references; Prompt 4
+- `src/services/map/MapPersistenceService.ts` now snapshots sanitized `sourceHandles` and resolves layer restore status from handles; Prompt 4
+- `docs/map-source-support-matrix.md` (format support matrix + truthfulness rules; Prompt 5)
+- `src/centerpanel/components/map/MapImportPreviewDialog.tsx` (source preflight dialog for ready/profile-only imports; Prompt 5)
+- `src/centerpanel/components/map/__tests__/map-import-preflight.test.tsx` (component proof for CSV and ready-source preflight facts; Prompt 5)
+- `src/services/map/MapDataImporter.ts` now exposes `SourceProfile`, `profileSource`, `profileCsvImportSession`, and profile-only results for partial formats; Prompt 5
+- `src/centerpanel/components/MapCsvImportDialog.tsx` and `src/centerpanel/components/MapColumnarImportDialog.tsx` now render source preflight facts before commit; Prompt 5
+- `src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx` now pauses ready local imports on source preflight confirmation; Prompt 5
+- `e2e/map-csv-kml-gpx-import.spec.ts` asserts CSV skipped-row/CRS preflight and ready-import confirmation flow; Prompt 5
 
 ---
 
@@ -146,6 +165,12 @@ Artifacts created so far:
 5. If you discovered a repo fact that contradicts the prompt (path moved, type renamed), note it under "Drift notes" so the next chat doesn't repeat the surprise.
 
 ## Drift notes
+
+- Prompt 3: `docs/architecture/map-explorer-state-and-actions.md` already existed, so it was extended with the slice/persistence table rather than created from scratch. No source-handle state was added yet; the `sources` slice is an explicit reserved boundary for Prompt 4 so the public store API remains unchanged. Existing `partialize` already omitted `overlayLayers`; Prompt 3 moved the persistence boundary into `mapExplorer/persistence.ts` and added an `fcLarge(1000)` `sourceData` guard test.
+
+- Prompt 4: Prompt 3 was still uncommitted when Prompt 4 started, so `gis/p04-source-registry` was created carrying the validated Prompt 3 working tree forward. No commit was made because the user did not explicitly request one. Existing `LayerRestoreState` lacks `recoverable`/`unavailable`, so Prompt 4 stores canonical `SourceRestoreStatus` in layer metadata while mapping to existing `metadata-only` / `stale-reference` persistence states for backward-compatible snapshots.
+
+- Prompt 5: Prompt 3/4 were still uncommitted when Prompt 5 started, so `gis/p05-profiling` carries the validated Prompt 3/4 working tree forward. Existing CSV and columnar import dialogs were already pre-commit review surfaces; Prompt 5 extends them with source profiles instead of routing them through the new generic preview dialog. FlatGeobuf, PMTiles, GeoTIFF, and external services are profiled truthfully as partial/profile-only until later capability-depth prompts implement full commit/render paths.
 
 - Branch safety: Prompt 1 was merged into the WelcomeModal redesign branch after
   the branch switch exposed that the older GIS prompt base did not contain

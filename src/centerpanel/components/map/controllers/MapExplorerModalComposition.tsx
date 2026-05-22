@@ -48,6 +48,7 @@ import { MapExportDialog } from "../../MapExportDialog";
 import { MapCsvImportDialog } from "../../MapCsvImportDialog";
 import { MapColumnarImportDialog } from "../../MapColumnarImportDialog";
 import { MapDataImportHubDialog } from "../../MapDataImportHubDialog";
+import { MapImportPreviewDialog } from "../MapImportPreviewDialog";
 import { MapServiceDialog, type MapServiceDialogProgressDetail } from "../../MapServiceDialog";
 import { MapBookmarkBar } from "../../MapBookmarkBar";
 import { MapAnnotationLayer } from "../../MapAnnotationLayer";
@@ -86,7 +87,14 @@ import {
   type MapWorkspaceView,
 } from "../mapExperience";
 import { selectMapExplorerContextSummary } from "../mapContextSummary";
-import { useMapExplorerStore } from "../../../../stores/useMapExplorerStore";
+import {
+  selectLayoutPreferences,
+  selectMapBearing,
+  selectMapCenter,
+  selectMapPitch,
+  selectMapZoom,
+  useMapExplorerStore,
+} from "../../../../stores/useMapExplorerStore";
 import { useAppStore } from "../../../../stores/appStore";
 import { useFlowStore } from "../../../../stores/useFlowStore";
 import { useProjectRegistryOptional } from "../../../registry/state";
@@ -239,6 +247,7 @@ import { isBackgroundTaskCancelledError } from "../../../../workers/pool";
 type CsvImportSession = import("../../../../services/map/MapDataImporter").CsvImportSession;
 type ColumnarImportSession = import("../../../../services/map/MapDataImporter").ColumnarImportSession;
 type ImportedGeoJSONLayer = import("../../../../services/map/MapDataImporter").ImportedGeoJSONLayer;
+type SourceProfile = import("../../../../services/map/MapDataImporter").SourceProfile;
 type MapProjectSnapshot = import("../../../../services/map/MapPersistenceService").MapProjectSnapshot;
 type MapOutput = import("../../../../features/urbanAnalytics/lib/types").MapOutput;
 type NumericFieldInfo = import("../symbologyUtils").NumericFieldInfo;
@@ -753,10 +762,10 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const setSelectedAnnotationId = useMapExplorerStore((s) => s.setSelectedAnnotationId);
   const activeTool = useMapExplorerStore((s) => s.activeTool);
   const setActiveTool = useMapExplorerStore((s) => s.setActiveTool);
-  const center = useMapExplorerStore((s) => s.center);
-  const zoom = useMapExplorerStore((s) => s.zoom);
-  const bearing = useMapExplorerStore((s) => s.bearing);
-  const pitch = useMapExplorerStore((s) => s.pitch);
+  const center = useMapExplorerStore(selectMapCenter);
+  const zoom = useMapExplorerStore(selectMapZoom);
+  const bearing = useMapExplorerStore(selectMapBearing);
+  const pitch = useMapExplorerStore(selectMapPitch);
   const setViewport = useMapExplorerStore((s) => s.setViewport);
   const restoreProjectState = useMapExplorerStore((s) => s.restoreProjectState);
   const clearProjectContent = useMapExplorerStore((s) => s.clearProjectContent);
@@ -777,9 +786,12 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const clearMapReviewSession = useMapExplorerStore((s) => s.clearMapReviewSession);
   const mapEvidenceArtifacts = useMapExplorerStore((s) => s.mapEvidenceArtifacts);
   const upsertMapEvidenceArtifact = useMapExplorerStore((s) => s.upsertMapEvidenceArtifact);
+  const sourceHandles = useMapExplorerStore((s) => s.sourceHandles);
+  const upsertSourceHandle = useMapExplorerStore((s) => s.upsertSourceHandle);
+  const clearSourceHandles = useMapExplorerStore((s) => s.clearSourceHandles);
   const copilotActionProposals = useMapExplorerStore((s) => s.copilotActionProposals);
   const copilotAuditTrail = useMapExplorerStore((s) => s.copilotAuditTrail);
-  const layoutPreferences = useMapExplorerStore((s) => s.layoutPreferences);
+  const layoutPreferences = useMapExplorerStore(selectLayoutPreferences);
   const setLayoutPreferences = useMapExplorerStore((s) => s.setLayoutPreferences);
 
   /* ---- Overlay layer store selectors ---- */
@@ -1356,6 +1368,10 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const [showImportProgress, setShowImportProgress] = useState(false);
   const [importLabel, setImportLabel] = useState<string | null>(null);
   const [isDragActive, setIsDragActive] = useState(false);
+  const [pendingImportPreview, setPendingImportPreview] = useState<{
+    profile: SourceProfile;
+    result?: ImportedGeoJSONLayer;
+  } | null>(null);
   const [pendingCsvImport, setPendingCsvImport] = useState<CsvImportSession | null>(null);
   const [pendingColumnarImport, setPendingColumnarImport] = useState<ColumnarImportSession | null>(null);
   const [csvLatitudeColumn, setCsvLatitudeColumn] = useState("");
@@ -1397,6 +1413,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     pins: typeof pins;
     pitch: typeof pitch;
     selectedProjectId: typeof selectedProjectId;
+    sourceHandles: typeof sourceHandles;
     zoom: typeof zoom;
   } | null>(null);
   const isRestoringProjectRef = useRef(false);
@@ -3148,6 +3165,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       annotations: snapshot.annotations,
       drawnFeatures: snapshot.drawnFeatures,
       overlayLayers: getRestorableOverlayLayers(snapshot),
+      sourceHandles: snapshot.sourceHandles,
       measurements: [],
       skipViewport: skipViewportRestore,
     });
@@ -3207,6 +3225,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         annotations,
         drawnFeatures,
         overlayLayers,
+        sourceHandles,
       });
 
       setLastSavedAt(result.snapshot.savedAt);
@@ -3281,6 +3300,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     pins,
     recordMapReviewEvent,
     selectedProjectId,
+    sourceHandles,
   ]);
 
   const handleProjectLoad = useCallback(async (projectIdOverride?: string | null, options?: {
@@ -3357,6 +3377,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     if (activeLayerCount > 0) {
       replaceOverlayLayers([]);
     }
+    clearSourceHandles();
     clearSelectedFeatures();
     setActiveAnalysisResultLayers([]);
     setScientificQA(null);
@@ -3384,6 +3405,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   }, [
     announce,
     clearSelectedFeatures,
+    clearSourceHandles,
     overlayLayers.length,
     replaceOverlayLayers,
     setActiveAnalysisResultLayers,
@@ -3454,6 +3476,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       pins,
       pitch,
       selectedProjectId,
+      sourceHandles,
       zoom,
     };
     const previousAutoSaveTrigger = lastAutoSaveTriggerRef.current;
@@ -3468,6 +3491,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       previousAutoSaveTrigger.pins === nextAutoSaveTrigger.pins &&
       previousAutoSaveTrigger.pitch === nextAutoSaveTrigger.pitch &&
       previousAutoSaveTrigger.selectedProjectId === nextAutoSaveTrigger.selectedProjectId &&
+      previousAutoSaveTrigger.sourceHandles === nextAutoSaveTrigger.sourceHandles &&
       previousAutoSaveTrigger.zoom === nextAutoSaveTrigger.zoom
     ) {
       return undefined;
@@ -3507,6 +3531,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     pitch,
     pins,
     selectedProjectId,
+    sourceHandles,
     zoom,
   ]);
 
@@ -3585,6 +3610,10 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     setPendingColumnarImport(null);
   }, []);
 
+  const clearPendingImportPreview = useCallback(() => {
+    setPendingImportPreview(null);
+  }, []);
+
   const registerLayerEvidenceCandidate = useCallback((
     layer: OverlayLayerConfig,
     sourceModule: "map-explorer" | "external-service",
@@ -3627,6 +3656,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     result: ImportedGeoJSONLayer,
     columnarSession?: ColumnarImportSession,
   ) => {
+    upsertSourceHandle(result.sourceHandle);
     addOverlayLayer(result.layer);
     let layerForEvidence: OverlayLayerConfig = result.layer;
 
@@ -3648,6 +3678,18 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
 
       if (result.layer.metadata?.importSource && result.layer.metadata.scientificQA) {
         const workerTransferStatus = workerTransferReady ? "ready" : "failed";
+        upsertSourceHandle({
+          ...result.sourceHandle,
+          restoreStatus: workerTransferReady ? "recoverable" : "unavailable",
+          workerTableName: columnarSession.workerTableName,
+          sourceRef: columnarSession.workerTableName,
+          caveats: Array.from(new Set([
+            ...result.sourceHandle.caveats,
+            ...(workerTransferReady
+              ? ["Columnar worker transfer is ready for local analytical previews."]
+              : ["Columnar worker transfer failed; source must be re-imported before worker-backed analysis."]),
+          ])),
+        });
         const workerIssueId = `import-worker-${workerTransferStatus}-${result.layer.id}`;
         const existingQa = result.layer.metadata.scientificQA;
         const caveats = Array.from(new Set([
@@ -3671,12 +3713,25 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         } satisfies NonNullable<OverlayLayerConfig["metadata"]>["scientificQA"];
         const metadata = {
           ...result.layer.metadata,
+          sourceRestoreStatus: workerTransferReady ? "recoverable" : "unavailable",
           importSource: {
             ...result.layer.metadata.importSource,
             workerTransferStatus,
             workerTableName: columnarSession.workerTableName,
             caveats,
           },
+          ...(result.layer.metadata.persistence
+            ? {
+                persistence: {
+                  ...result.layer.metadata.persistence,
+                  sourceRestoreStatus: workerTransferReady ? "recoverable" as const : "unavailable" as const,
+                  restoreState: workerTransferReady ? "metadata-only" as const : "stale-reference" as const,
+                  restoreWarnings: workerTransferReady
+                    ? result.layer.metadata.persistence.restoreWarnings
+                    : ["Columnar worker transfer failed; source must be re-imported before worker-backed analysis."],
+                },
+              }
+            : {}),
           scientificQA,
         } satisfies NonNullable<OverlayLayerConfig["metadata"]>;
         layerForEvidence = {
@@ -3747,7 +3802,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     }
 
     announce(`Imported layer ${result.layer.name}`);
-  }, [addOverlayLayer, announce, fitToBounds, recordMapReviewEvent, registerLayerEvidenceCandidate, updateLayerMetadata]);
+  }, [addOverlayLayer, announce, fitToBounds, recordMapReviewEvent, registerLayerEvidenceCandidate, updateLayerMetadata, upsertSourceHandle]);
 
   const handleExternalServiceLayerReady = useCallback((layer: OverlayLayerConfig) => {
     addOverlayLayer(layer);
@@ -3777,6 +3832,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     const nextFile = files ? Array.from(files)[0] : null;
     if (!nextFile) return;
 
+    clearPendingImportPreview();
     clearPendingCsvImport();
     clearPendingColumnarImport();
     setIsImporting(true);
@@ -3812,7 +3868,17 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         return;
       }
 
-      await handleImportedLayerReady(prepared.result);
+      if (prepared.kind === "profile") {
+        setPendingImportPreview({ profile: prepared.profile });
+        announce(`${prepared.profile.format.toUpperCase()} source profiled. Review source quality before import.`);
+        return;
+      }
+
+      setPendingImportPreview({
+        profile: prepared.result.sourceProfile,
+        result: prepared.result,
+      });
+      announce(`${(prepared.result.summary?.sourceType ?? prepared.result.sourceProfile.format).toUpperCase()} source profiled. Review source quality to finish import.`);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Spatial import failed.";
       toastError(message);
@@ -3820,7 +3886,20 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     } finally {
       resetImportUi();
     }
-  }, [announce, clearPendingColumnarImport, clearPendingCsvImport, handleImportedLayerReady, resetImportUi]);
+  }, [announce, clearPendingColumnarImport, clearPendingCsvImport, clearPendingImportPreview, resetImportUi]);
+
+  const handleImportPreviewConfirm = useCallback(async () => {
+    if (!pendingImportPreview?.result) return;
+
+    try {
+      await handleImportedLayerReady(pendingImportPreview.result);
+      clearPendingImportPreview();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Spatial import failed.";
+      toastError(message);
+      announce(`Import failed: ${message}`);
+    }
+  }, [announce, clearPendingImportPreview, handleImportedLayerReady, pendingImportPreview]);
 
   const handleCsvImportConfirm = useCallback(async () => {
     if (!pendingCsvImport) return;
@@ -5959,6 +6038,15 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
           onClose={() => setShowImportHub(false)}
           onBrowseLocalFiles={handleBrowseLocalFiles}
           onLoadDataset={handleTeachingDatasetImport}
+        />
+
+        <MapImportPreviewDialog
+          open={pendingImportPreview != null}
+          profile={pendingImportPreview?.profile ?? null}
+          onClose={clearPendingImportPreview}
+          onImport={pendingImportPreview?.result ? () => {
+            void handleImportPreviewConfirm();
+          } : undefined}
         />
 
         <MapCsvImportDialog

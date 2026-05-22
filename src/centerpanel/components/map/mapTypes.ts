@@ -138,6 +138,7 @@ export interface ImportLayerSourceMetadata {
   format: "geojson" | "csv" | "arrow" | "geoparquet" | "kml" | "kmz" | "gpx";
   fileName: string;
   sourceName: string;
+  sourceId?: string;
   importedAt: string;
   importedFeatureCount: number;
   totalRecords?: number;
@@ -177,6 +178,9 @@ export interface LayerPersistenceMetadata {
   sourcePersistence: LayerPersistenceSource;
   restoreState: LayerRestoreState;
   restoreWarnings: string[];
+  sourceId?: string;
+  sourceStorageMode?: import("@/services/map/contracts/gisContracts").SourceStorageMode;
+  sourceRestoreStatus?: import("@/services/map/contracts/gisContracts").SourceRestoreStatus;
   sourceRef?: string;
 }
 
@@ -316,6 +320,9 @@ export interface LayerMetadata {
   scientificQA?: LayerScientificQAMetadata;
   cartographyReview?: LayerCartographyReviewMetadata;
   persistence?: LayerPersistenceMetadata;
+  sourceId?: string;
+  sourceStorageMode?: import("@/services/map/contracts/gisContracts").SourceStorageMode;
+  sourceRestoreStatus?: import("@/services/map/contracts/gisContracts").SourceRestoreStatus;
   schemaSummary?: LayerSchemaSummary;
   crsSummary?: LayerCrsSummary;
   geometrySummary?: LayerGeometrySummary;

@@ -234,6 +234,7 @@ export const MapColumnarImportDialog: React.FC<MapColumnarImportDialogProps> = (
   if (!open || !session) return null;
 
   const formatLabelText = session.format === "geoparquet" ? "GeoParquet" : "Arrow";
+  const sourceProfile = session.result.sourceProfile;
   const geometryDescriptor = session.geometryColumn
     ? `${session.geometryColumn} (${formatLabel(session.geometryEncoding)})`
     : session.longitudeColumn && session.latitudeColumn
@@ -333,6 +334,16 @@ export const MapColumnarImportDialog: React.FC<MapColumnarImportDialogProps> = (
             </div>
             <span style={{ color: MAP_COLORS.textSecondary, fontSize: 11 }}>
               {Math.round(session.quality.completeness * 100)}% complete • {Math.round(session.quality.validity * 100)}% valid
+            </span>
+          </div>
+
+          <div style={summaryCellStyle}>
+            <span style={{ color: MAP_COLORS.textMuted, fontSize: 10, textTransform: "uppercase", letterSpacing: 0 }}>Source Preflight</span>
+            <span style={{ color: sourceProfile.crsSummary.status === "known" ? MAP_COLORS.success : MAP_COLORS.caveatText, fontSize: 14, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
+              {sourceProfile.crsSummary.crs ?? `CRS ${sourceProfile.crsSummary.status}`}
+            </span>
+            <span style={{ color: sourceProfile.workerReady ? MAP_COLORS.success : MAP_COLORS.textSecondary, fontSize: 11 }}>
+              Worker {sourceProfile.workerReady ? "ready" : "not required"}; {sourceProfile.skippedRecordCount ?? session.skippedRowCount} skipped rows
             </span>
           </div>
 
