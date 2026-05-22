@@ -23,7 +23,7 @@ Legend: `[x]` done · `[~]` in progress · `[ ]` TODO · `[!]` blocked (see Done
 
 **Track A — Foundation**
 - [x] 0 — Bootstrap: contracts + fixtures + conventions ✅ verified
-- [ ] 1 — Baseline inventory + canonical-surface ADR
+- [x] 1 — Baseline inventory + canonical-surface ADR ✅ verified
 - [ ] 2 — Decompose `MapExplorerModal.tsx`
 - [ ] 3 — Store slices + selectors
 - [ ] 4 — `MapSourceRegistry` V1
@@ -110,12 +110,15 @@ Legend: `[x]` done · `[~]` in progress · `[ ]` TODO · `[!]` blocked (see Done
 
 | Date | Prompt | Branch | Commit(s) | Proof |
 | --- | --- | --- | --- | --- |
+| 2026-05-22 | 1 — Baseline inventory + canonical-surface ADR | `gis/p01-baseline` | `03121ce` | ADR `docs/architecture/map-explorer-canonical-surface.md` committed (both-family inventory + Prompt 2 target list); linked from `docs/architecture/README.md`; `npm run typecheck` clean; `npm run lint:errors` clean; `npx vitest run src/centerpanel/components/map` 302/302 (19 files) incl. new `map-explorer-canonical-baseline.test.tsx` (modal mount/unmount + store layer add→remove) |
 | 2026-05-22 | 0 — Bootstrap | `gis/map-explorer-production-prompts` | `4ae627d` | `npm run typecheck` clean; `gisFixtures.test.ts` 8/8 pass |
 | 2026-05-22 | (pack) plan + prompt ladder v4 | `gis/map-explorer-production-prompts` | `f620aae`, `93dce2c` | 16-doc pack + v4 prompts + cold-start protocol committed |
 
 Artifacts created so far:
 - `src/services/map/contracts/gisContracts.ts` (shared type contracts)
 - `src/centerpanel/components/map/__tests__/fixtures/gisFixtures.ts` (+ `gisFixtures.test.ts`)
+- `docs/architecture/map-explorer-canonical-surface.md` (canonical-surface ADR + both-family inventory; Prompt 1)
+- `src/centerpanel/components/map/__tests__/map-explorer-canonical-baseline.test.tsx` (baseline smoke; Prompt 1)
 
 ---
 
@@ -129,7 +132,15 @@ Artifacts created so far:
 
 ## Drift notes
 
-- (none yet) — record here when a prompt's assumption no longer matches the repo.
+- Prompt 1: no drift. The two map families and the named reuse candidates
+  (`BuildingLayer`, `VoxelLayer`, `ScaleBar`, `MapLegend`, `utils/projections.ts`,
+  `DrawingTools`) all exist as the prompt describes. Smoke for "store layer
+  add→remove" and "Urban handoff entry point fires" already existed
+  (`map-layer-management.test.ts`, `studyAreaSelection.test.ts`), so only the
+  missing "modal mount/unmount" smoke was added (combined with the add→remove
+  Proof) — per the prompt's "only where missing" instruction. The canonical
+  `MapExplorerModal` lives at `src/centerpanel/components/MapExplorerModal.tsx`
+  (one level above the `map/` folder) and returns `null` when `open={false}`.
 
 ---
 
