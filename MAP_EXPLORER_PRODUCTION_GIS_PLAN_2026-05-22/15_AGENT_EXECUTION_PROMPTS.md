@@ -11,6 +11,66 @@ Run prompts in order. Paste one per agent turn. Verify Proof + Validate before t
 
 ---
 
+## ⚠️ Cold-start protocol (anti-amnesia) — READ THIS
+
+A fresh chat has **no memory** of this conversation. A single prompt below is **not self-sufficient on its own** — its standing context (Agent Contract, Repo Reality Notes, type contracts, fixtures, script matrix) lives once at the top of this file, and prompts use shorthand (`Read first: 00, 01`, `Contract: SourceHandle`, `fixture fcLarge`). So pasting only "Prompt N" into a new chat **will** cause amnesia problems.
+
+**To run any prompt safely in a new chat, paste the BOOT BLOCK below first, then the prompt.** The boot block makes the agent re-derive all context from the repo before acting.
+
+### BOOT BLOCK (copy verbatim, then paste the prompt under it)
+
+```text
+You are implementing ONE prompt from the Map Explorer Production GIS prompt ladder.
+Before doing anything, READ these files in this repo and obey them (do not skip):
+
+1. MAP_EXPLORER_PRODUCTION_GIS_PLAN_2026-05-22/15_AGENT_EXECUTION_PROMPTS.md
+   — read its sections "Repo Reality Notes", "Script reality", "Shared Test
+     Fixtures", "Canonical Type Contracts", and "Agent Contract v2" in full.
+2. CLAUDE.md and AGENTS.md (repo conventions; these OVERRIDE defaults).
+3. The docs my prompt names in "Read first" — they are files in
+   MAP_EXPLORER_PRODUCTION_GIS_PLAN_2026-05-22/, e.g. `00` =
+   00_TOKEN_FRIENDLY_CONTEXT.md, `01` = 01_CURRENT_STATE_AUDIT.md, `04` =
+   04_IMPLEMENTATION_ROADMAP.md, etc.
+4. If my prompt says "Contract: X", import X from
+   src/services/map/contracts/gisContracts.ts (do not redefine it).
+5. If my prompt names a fixture (fcPointsWGS84, fcMissingCrs, fcLarge, …), it is
+   in src/centerpanel/components/map/__tests__/fixtures/gisFixtures.ts.
+
+Then, BEFORE writing code:
+- Check the "Sequencing Cheat Sheet" hard-dependencies for my prompt number.
+  If a prerequisite artifact (service/file/type from an earlier prompt) does NOT
+  exist in the repo yet, STOP and tell me which prerequisite is missing instead
+  of guessing or stubbing it.
+- Create a checkpoint branch `git switch -c gis/p<NN>-<slug>`.
+
+Non-negotiables (full list in "Agent Contract v2"):
+- Map Explorer owns rendering/layers/geometry; Urban Analytics owns evidence/
+  method validity; never cross module boundaries.
+- No Tailwind in src/centerpanel/ (CSS Modules / mapStyles tokens only); no
+  hard-coded hex. State = Zustand + persist only; never persist heavy geometry.
+- CRS: never planar area/distance in EPSG:4326 — project or block.
+- exactOptionalPropertyTypes + verbatimModuleSyntax are ON (use `import type`,
+  conditional spreads). Map tests run via `npx vitest run <path>` (NOT
+  test:analytics, which excludes map). Touch ONLY files my prompt names; do NOT
+  touch the dirty worktree (WelcomeModal.tsx, welcome-modal-redesign/).
+- Deliver the prompt's stated "Visible effect + Proof"; finish with the prompt's
+  "Validate" commands green. If you cannot make typecheck/tests pass within this
+  slice, revert your changes and report the blocker — never weaken a test.
+
+My prompt follows:
+---
+<PASTE PROMPT N HERE>
+```
+
+### Two ways to avoid amnesia
+- **Token-light (recommended):** paste the BOOT BLOCK + the single prompt. The agent reads only what it needs.
+- **Zero-effort:** paste this whole file once at the start of the chat, then say "do Prompt N". Heavier on tokens but fully self-contained.
+
+### Why this works
+Every prompt names its `Read first` docs, its `Contract:` types (now real files committed to the repo), its fixtures (committed), its `Depends on:`/dependency graph, its `Checkpoint`, and its `Validate` commands. The boot block forces the cold agent to load all of that from the repo — so it reconstructs the same context this conversation had. The contracts + fixtures being **committed code** (Prompt 0, verified) is itself an anti-amnesia measure: later prompts import stable shapes instead of re-inventing them per chat.
+
+---
+
 ## Repo Reality Notes (read once — prevents false assumptions)
 
 The code is **more mature than the plan docs imply**. Confirm before "creating" anything:
