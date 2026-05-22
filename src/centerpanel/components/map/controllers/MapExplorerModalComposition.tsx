@@ -92,12 +92,12 @@ import { useMapExplorerStore } from "../../../../stores/useMapExplorerStore";
 import { useAppStore } from "../../../../stores/appStore";
 import { useFlowStore } from "../../../../stores/useFlowStore";
 import { useProjectRegistryOptional } from "../../../registry/state";
-import { useFocusTrap } from "../useFocusTrap";
 import { useMapKeyboardControls } from "../useMapKeyboardControls";
 import { useAnnouncer } from "../useAnnouncer";
 import { useMapAoiDispatch } from "../useMapAoiDispatch";
 import { useLayerSync } from "../useLayerSync";
 import { useMapPanelCommands } from "../useMapPanelCommands";
+import { useMapExplorerLifecycle } from "./useMapExplorerLifecycle";
 import { useMapLayerRuntime } from "./useMapLayerRuntime";
 import { IconClose, IconLayers } from "../MapIcons";
 import { usePrefersReducedMotion } from "../../../../hooks/usePrefersReducedMotion";
@@ -723,7 +723,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const mapCanvasId = "map-explorer-canvas";
 
   /* ---- Accessibility hooks ---- */
-  const { trapRef, activate: activateTrap } = useFocusTrap(open);
+  const { trapRef } = useMapExplorerLifecycle({ open, onClose });
   const { announce, AnnouncerRegion } = useAnnouncer();
   const reducedMotion = usePrefersReducedMotion();
 
@@ -1633,26 +1633,6 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       cancelled = true;
     };
   }, [activeAnalysisInputLayerIds, activeAnalysisResultLayerIds, open, overlayLayers, setScientificQA, zoom]);
-
-  /* ---- Focus trap activation ---- */
-  useEffect(() => {
-    if (open) {
-      /* Short delay so portal DOM is painted before querying focusables */
-      const id = setTimeout(activateTrap, 50);
-      return () => clearTimeout(id);
-    }
-    return undefined;
-  }, [open, activateTrap]);
-
-  /* ---- Escape to close ---- */
-  useEffect(() => {
-    if (!open) return undefined;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
 
   /* ---- Urban Analytics publish → fit bounds (legacy event compatibility) ---- */
   useEffect(() => {
