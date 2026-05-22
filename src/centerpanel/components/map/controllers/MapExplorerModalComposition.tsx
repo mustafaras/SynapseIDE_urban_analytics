@@ -1628,32 +1628,42 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       return undefined;
     }
 
-    const sequence = scientificQASequenceRef.current + 1;
-    scientificQASequenceRef.current = sequence;
     let cancelled = false;
 
-    void evaluateMapScientificQA(overlayLayers, {
-      viewportZoom: zoom,
-      activeAnalysisInputLayerIds,
-      comparisonLayerIds: activeAnalysisResultLayerIds,
-    })
-      .then((qa) => {
-        if (!cancelled && scientificQASequenceRef.current === sequence) {
-          setScientificQA(qa);
-        }
+    // Debounce QA evaluation. `zoom` is both an effect dependency and an input to the
+    // per-layer QA cache signature, so a camera move (e.g. the fit-to-bounds animation
+    // after an import) would otherwise re-run a full QA pass on every frame. For some
+    // layers the result never settles within a single animation, producing a re-render
+    // storm that starves the main thread. Coalescing rapid zoom/layer changes into a
+    // single evaluation after the view settles keeps QA correct without the thrash.
+    const timer = setTimeout(() => {
+      const sequence = scientificQASequenceRef.current + 1;
+      scientificQASequenceRef.current = sequence;
+
+      void evaluateMapScientificQA(overlayLayers, {
+        viewportZoom: zoom,
+        activeAnalysisInputLayerIds,
+        comparisonLayerIds: activeAnalysisResultLayerIds,
       })
-      .catch((error) => {
-        if (cancelled) {
-          return;
-        }
-        const message = error instanceof Error
-          ? error.message
-          : "Scientific QA could not complete for the current map state.";
-        toastWarning(message);
-      });
+        .then((qa) => {
+          if (!cancelled && scientificQASequenceRef.current === sequence) {
+            setScientificQA(qa);
+          }
+        })
+        .catch((error) => {
+          if (cancelled) {
+            return;
+          }
+          const message = error instanceof Error
+            ? error.message
+            : "Scientific QA could not complete for the current map state.";
+          toastWarning(message);
+        });
+    }, 250);
 
     return () => {
       cancelled = true;
+      clearTimeout(timer);
     };
   }, [activeAnalysisInputLayerIds, activeAnalysisResultLayerIds, open, overlayLayers, setScientificQA, zoom]);
 
