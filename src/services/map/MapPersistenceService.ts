@@ -294,6 +294,27 @@ function storageKey(projectId: string): string {
   return `${STORAGE_PREFIX}${encodeURIComponent(projectId)}`;
 }
 
+export function clearPersistedMapProjectSnapshots(): number {
+  if (typeof localStorage === "undefined") {
+    syncedProjects.clear();
+    return 0;
+  }
+
+  const keysToRemove: string[] = [];
+  for (let index = 0; index < localStorage.length; index += 1) {
+    const key = localStorage.key(index);
+    if (key?.startsWith(STORAGE_PREFIX)) {
+      keysToRemove.push(key);
+    }
+  }
+
+  for (const key of keysToRemove) {
+    localStorage.removeItem(key);
+  }
+  syncedProjects.clear();
+  return keysToRemove.length;
+}
+
 function getBrowserStorage(): Storage {
   if (typeof localStorage === "undefined") {
     throw new MapPersistenceError("Project map persistence requires browser local storage.");

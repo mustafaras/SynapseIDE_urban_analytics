@@ -162,6 +162,7 @@ vi.mock("@/engine/spatial-db", () => ({
 }));
 
 import {
+  clearPersistedMapProjectSnapshots,
   getRestorableOverlayLayers,
   loadProjectMapState,
   MapPersistenceError,
@@ -429,6 +430,24 @@ describe("MapPersistenceService", () => {
     expect(west.snapshot?.pins.map((pin) => pin.id)).toEqual(["west-pin"]);
     expect(east.spatialTableName).toBe("map_project_proj_east");
     expect(west.spatialTableName).toBe("map_project_proj_west");
+  });
+
+  it("clears only persisted map project snapshots", async () => {
+    await saveProjectMapState({
+      projectId: "proj_clear_a",
+      activeBaseLayer: "dark",
+      viewport: makeViewport(),
+      pins: [],
+      drawnFeatures: [],
+      overlayLayers: [makeOverlayLayer()],
+    });
+    localStorage.setItem("unrelated-key", "keep");
+
+    const removed = clearPersistedMapProjectSnapshots();
+
+    expect(removed).toBe(1);
+    expect(localStorage.getItem("unrelated-key")).toBe("keep");
+    expect((await loadProjectMapState("proj_clear_a")).snapshot).toBeNull();
   });
 
   it("normalizes stringified inline GeoJSON layers into restorable inline sources", async () => {

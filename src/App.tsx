@@ -31,6 +31,7 @@ import { useSettingsStore } from '@/store/useSettingsStore';
 import { useSynapseWorkspaceStore } from '@/stores/useSynapseWorkspaceStore';
 import { installMapToIdeReceiver } from '@/services/map/mapToIdeHandoff';
 import { installIdeToMapArtifactReceiver } from '@/services/map/IdeToMapArtifactRecognitionService';
+import { clearPersistedMapProjectSnapshots } from '@/services/map/MapPersistenceService';
 import { installUrbanToIdeReceiver } from '@/services/analytics/urbanToIdeHandoff';
 import { installUrbanIdeArtifactReceiver } from '@/features/urbanAnalytics/context/ideArtifactRecognition';
 import { useUrbanStore } from './features/urbanAnalytics/store';
@@ -1303,6 +1304,26 @@ function App() {
   //    buffers or taking ownership of IDE state.
   useEffect(() => {
     installUrbanIdeArtifactReceiver();
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('clearMapExplorerCache') !== '1') {
+      return;
+    }
+
+    const removedProjectSnapshots = clearPersistedMapProjectSnapshots();
+    useMapExplorerStore.getState().clearProjectContent();
+    void useMapExplorerStore.persist.clearStorage();
+
+    params.delete('clearMapExplorerCache');
+    const nextSearch = params.toString();
+    const nextUrl = `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ''}${window.location.hash}`;
+    window.history.replaceState(window.history.state, '', nextUrl);
+
+    console.info(
+      `[Map Explorer] Cleared active map layers and ${removedProjectSnapshots} persisted map project snapshot${removedProjectSnapshots === 1 ? '' : 's'}.`,
+    );
   }, []);
 
 
