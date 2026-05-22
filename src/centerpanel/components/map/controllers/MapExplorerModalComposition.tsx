@@ -98,6 +98,7 @@ import { useAnnouncer } from "../useAnnouncer";
 import { useMapAoiDispatch } from "../useMapAoiDispatch";
 import { useLayerSync } from "../useLayerSync";
 import { useMapPanelCommands } from "../useMapPanelCommands";
+import { useMapLayerRuntime } from "./useMapLayerRuntime";
 import { IconClose, IconLayers } from "../MapIcons";
 import { usePrefersReducedMotion } from "../../../../hooks/usePrefersReducedMotion";
 import {
@@ -781,13 +782,15 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const setLayoutPreferences = useMapExplorerStore((s) => s.setLayoutPreferences);
 
   /* ---- Overlay layer store selectors ---- */
-  const overlayLayers = useMapExplorerStore((s) => s.overlayLayers);
-  const addOverlayLayer = useMapExplorerStore((s) => s.addOverlayLayer);
-  const updateLayerMetadata = useMapExplorerStore((s) => s.updateLayerMetadata);
-  const removeOverlayLayer = useMapExplorerStore((s) => s.removeOverlayLayer);
-  const toggleLayerVisibility = useMapExplorerStore((s) => s.toggleLayerVisibility);
-  const setLayerOpacity = useMapExplorerStore((s) => s.setLayerOpacity);
-  const reorderLayers = useMapExplorerStore((s) => s.reorderLayers);
+  const {
+    overlayLayers,
+    addOverlayLayer,
+    updateLayerMetadata,
+    removeOverlayLayer,
+    toggleLayerVisibility,
+    setLayerOpacity,
+    reorderLayers,
+  } = useMapLayerRuntime();
 
   /* ---- Drawing store selectors ---- */
   const activeDrawTool = useMapExplorerStore((s) => s.activeDrawTool);
