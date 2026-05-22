@@ -97,6 +97,7 @@ import { useAnnouncer } from "../useAnnouncer";
 import { useMapAoiDispatch } from "../useMapAoiDispatch";
 import { useLayerSync } from "../useLayerSync";
 import { useMapPanelCommands } from "../useMapPanelCommands";
+import { useMapCommandHandlers } from "./useMapCommandHandlers";
 import { useMapExplorerLifecycle } from "./useMapExplorerLifecycle";
 import { useMapLayerRuntime } from "./useMapLayerRuntime";
 import { IconClose, IconLayers } from "../MapIcons";
@@ -4917,6 +4918,19 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     });
   }, [closeFloatingRightPanels, setActiveDrawTool, setActiveMeasureTool, setActiveTool]);
 
+  const toolbarCommandHandlers = useMapCommandHandlers({
+    onImport: handleImportRequest,
+    onDataExport: handleExportRequest,
+    onImageExport: handleMapExportRequest,
+    onReportHandoff: handleOpenCurrentMapReportHandoff,
+    onProjectSave: () => {
+      void handleProjectSave();
+    },
+    onProjectLoad: () => {
+      void handleProjectLoad();
+    },
+  });
+
   /* ---- Render ---- */
   if (!open) return null;
 
@@ -5080,20 +5094,16 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               measurementCount={measurements.length}
               showMeasurePanel={effectiveShowMeasurePanel}
               onToggleMeasurePanel={handleToggleMeasurePanel}
-              onImportClick={handleImportRequest}
+              onImportClick={toolbarCommandHandlers.importData}
               onOpenExternalServices={() => {
                 setShowExternalServiceDialog(true);
                 announce("External map services dialog opened");
               }}
-              onImageExportClick={handleMapExportRequest}
-              onAddToReportClick={handleOpenCurrentMapReportHandoff}
-              onExportClick={handleExportRequest}
-              onSaveProjectClick={() => {
-                void handleProjectSave();
-              }}
-              onLoadProjectClick={() => {
-                void handleProjectLoad();
-              }}
+              onImageExportClick={toolbarCommandHandlers.exportImage}
+              onAddToReportClick={toolbarCommandHandlers.openReportHandoff}
+              onExportClick={toolbarCommandHandlers.exportData}
+              onSaveProjectClick={toolbarCommandHandlers.saveProject}
+              onLoadProjectClick={toolbarCommandHandlers.loadProject}
               isImporting={isImporting}
               importProgress={importProgress?.percent ?? null}
               exportDisabled={exportDisabled}
