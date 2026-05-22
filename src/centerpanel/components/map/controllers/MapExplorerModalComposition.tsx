@@ -78,8 +78,6 @@ import { registerDashboardBinding } from "@/features/dashboard/dataBindings";
 import { queuePendingDashboardBinding } from "@/features/dashboard/storage";
 import { createOpaqueFloatingPanelStyle, useDraggableMapPanel } from "../useDraggableMapPanel";
 import {
-  getActiveRightDockPanel,
-  getMapDockLayout,
   MAP_LAYER_PANEL_MAX_WIDTH,
   MAP_LAYER_PANEL_MIN_WIDTH,
 } from "../mapDocking";
@@ -100,6 +98,7 @@ import { useMapPanelCommands } from "../useMapPanelCommands";
 import { useMapCommandHandlers } from "./useMapCommandHandlers";
 import { useMapExplorerLifecycle } from "./useMapExplorerLifecycle";
 import { useMapLayerRuntime } from "./useMapLayerRuntime";
+import { useMapPanelLayout } from "./useMapPanelLayout";
 import { IconClose, IconLayers } from "../MapIcons";
 import { usePrefersReducedMotion } from "../../../../hooks/usePrefersReducedMotion";
 import {
@@ -1243,41 +1242,32 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const [reportHandoffSnapshot, setReportHandoffSnapshot] = useState<MapReportSnapshotInput | null>(null);
   const [isGeneratingReportHandoffSnapshot, setIsGeneratingReportHandoffSnapshot] = useState(false);
   const [isExportingReportHandoffPdf, setIsExportingReportHandoffPdf] = useState(false);
-  const requestedRightDockPanel = reportHandoffSource
-    ? "report"
-    : showScientificQAPanel
-    ? "scientificQA"
-    : showWorkflowDrawer
-      ? "workflow"
-    : getActiveRightDockPanel({
-        showPinSidebar: showSidebar,
-        showDrawPanel,
-        showMeasurePanel,
-      });
-  const dockLayout = useMemo(() => getMapDockLayout({
-    containerWidth: mapContainerWidth,
-    layerPanelRequested: showLayerPanel,
-    rightPanel: requestedRightDockPanel,
-    navigatorStageMode,
-    layerPanelWidth: layoutPreferences.layerPanelWidth,
-    rightPanelWidth: layoutPreferences.rightPanelWidth,
-  }), [
-    layoutPreferences.layerPanelWidth,
-    layoutPreferences.rightPanelWidth,
+  const {
+    dockLayout,
+    effectiveShowSidebar,
+    effectiveShowLayerPanel,
+    effectiveShowDrawPanel,
+    effectiveShowMeasurePanel,
+    effectiveShowScientificQAPanel,
+    effectiveShowNLQueryPanel,
+    effectiveShowWorkflowDrawer,
+    navigatorLeftInset,
+    navigatorRightInset,
+  } = useMapPanelLayout({
     mapContainerWidth,
-    navigatorStageMode,
-    requestedRightDockPanel,
     showLayerPanel,
-  ]);
-  const effectiveShowSidebar = dockLayout.showPinSidebar;
-  const effectiveShowLayerPanel = dockLayout.showLayerPanel;
-  const effectiveShowDrawPanel = dockLayout.showDrawPanel;
-  const effectiveShowMeasurePanel = dockLayout.showMeasurePanel;
-  const effectiveShowScientificQAPanel = showScientificQAPanel && dockLayout.showScientificQAPanel;
-  const effectiveShowNLQueryPanel = showNLQueryPanel && !navigatorStageMode;
-  const effectiveShowWorkflowDrawer = showWorkflowDrawer && dockLayout.showWorkflowPanel;
-  const navigatorLeftInset = navigatorStageMode ? MAP_NAVIGATOR_STAGE_MARGIN : dockLayout.leftInset;
-  const navigatorRightInset = navigatorStageMode ? MAP_NAVIGATOR_STAGE_MARGIN : dockLayout.rightInset;
+    showSidebar,
+    showDrawPanel,
+    showMeasurePanel,
+    showScientificQAPanel,
+    showNLQueryPanel,
+    showWorkflowDrawer,
+    showReviewTimeline,
+    hasReportHandoffSource: Boolean(reportHandoffSource),
+    navigatorStageMode,
+    navigatorStageMargin: MAP_NAVIGATOR_STAGE_MARGIN,
+    layoutPreferences,
+  });
   const {
     closeFloatingRightPanels,
     closeRightDockPanels,
