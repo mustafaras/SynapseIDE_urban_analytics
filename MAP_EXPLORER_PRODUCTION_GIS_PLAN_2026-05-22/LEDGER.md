@@ -31,7 +31,7 @@ Legend: `[x]` done · `[~]` in progress · `[ ]` TODO · `[!]` blocked (see Done
 **Track A — Foundation**
 - [x] 0 — Bootstrap: contracts + fixtures + conventions ✅ verified
 - [x] 1 — Baseline inventory + canonical-surface ADR ✅ verified
-- [ ] 2 — Decompose `MapExplorerModal.tsx`
+- [x] 2 — Decompose `MapExplorerModal.tsx` ✅ verified
 - [ ] 3 — Store slices + selectors
 - [ ] 4 — `MapSourceRegistry` V1
 - [ ] 5 — Import preflight + profiling + support matrix
@@ -117,6 +117,7 @@ Legend: `[x]` done · `[~]` in progress · `[ ]` TODO · `[!]` blocked (see Done
 
 | Date | Prompt | Branch | Commit(s) | Proof |
 | --- | --- | --- | --- | --- |
+| 2026-05-22 | 2 — Decompose `MapExplorerModal.tsx` into controller hooks | `gis/p02-decompose` | `633d1ad..04d7b62` | Public `MapExplorerModal.tsx` reduced 6006 → 2 lines; implementation moved to `map/controllers/MapExplorerModalComposition.tsx`; controller hooks added for lifecycle, layer runtime, command routing, panel layout, Urban bridge, report state, workflow state; `npm run typecheck` clean; `npm run lint:errors` clean; `npx vitest run src/centerpanel/components/map src/stores` 443/443 (35 files); Playwright map layout smoke `npx playwright test e2e/map-modal-layout.spec.ts -g "keeps map, layer rail, and bottom status visible on desktop"` passed |
 | 2026-05-22 | 1 — Baseline inventory + canonical-surface ADR | `gis/p01-baseline` | `b37e239` | ADR `docs/architecture/map-explorer-canonical-surface.md` committed (both-family inventory + Prompt 2 target list); linked from `docs/architecture/README.md`; `npm run typecheck` clean; `npm run lint:errors` clean; `npx vitest run src/centerpanel/components/map` 302/302 (19 files) incl. new `map-explorer-canonical-baseline.test.tsx` (modal mount/unmount + store layer add→remove) |
 | 2026-05-22 | 0 — Bootstrap | `gis/map-explorer-production-prompts` | `4ae627d` | `npm run typecheck` clean; `gisFixtures.test.ts` 8/8 pass |
 | 2026-05-22 | (pack) plan + prompt ladder v4 | `gis/map-explorer-production-prompts` | `f620aae`, `93dce2c` | 16-doc pack + v4 prompts + cold-start protocol committed |
@@ -126,6 +127,14 @@ Artifacts created so far:
 - `src/centerpanel/components/map/__tests__/fixtures/gisFixtures.ts` (+ `gisFixtures.test.ts`)
 - `docs/architecture/map-explorer-canonical-surface.md` (canonical-surface ADR + both-family inventory; Prompt 1)
 - `src/centerpanel/components/map/__tests__/map-explorer-canonical-baseline.test.tsx` (baseline smoke; Prompt 1)
+- `src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx` (moved modal composition; Prompt 2)
+- `src/centerpanel/components/map/controllers/useMapExplorerLifecycle.ts` (+ test; Prompt 2)
+- `src/centerpanel/components/map/controllers/useMapLayerRuntime.ts` (+ test; Prompt 2)
+- `src/centerpanel/components/map/controllers/useMapCommandHandlers.ts` (+ test; Prompt 2)
+- `src/centerpanel/components/map/controllers/useMapPanelLayout.ts` (+ test; Prompt 2)
+- `src/centerpanel/components/map/controllers/useMapUrbanBridgeController.ts` (+ test; Prompt 2)
+- `src/centerpanel/components/map/controllers/useMapReportController.ts` (+ test; Prompt 2)
+- `src/centerpanel/components/map/controllers/useMapWorkflowController.ts` (+ test; Prompt 2)
 
 ---
 
@@ -145,6 +154,12 @@ Artifacts created so far:
   branches `fix/welcome-modal-orbital-cockpit`, `gis/p01-baseline`, and
   `gis/map-explorer-production-prompts` were aligned to the merged head so
   switching among them no longer restores the older WelcomeModal.
+- Prompt 2: public import surface is unchanged (`src/centerpanel/components/MapExplorerModal.tsx`
+  still exports `MapExplorerModal` and `MapExplorerModalProps`), but the heavy
+  composition now lives in `src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx`.
+  The narrower Playwright map layout smoke passed; the broader
+  `e2e/map-explorer-stability.spec.ts` timed out at the helper click before a
+  Map Explorer assertion and was not used as the acceptance smoke for this slice.
 - Prompt 1: no drift. The two map families and the named reuse candidates
   (`BuildingLayer`, `VoxelLayer`, `ScaleBar`, `MapLegend`, `utils/projections.ts`,
   `DrawingTools`) all exist as the prompt describes. Smoke for "store layer
