@@ -99,6 +99,7 @@ import { useMapCommandHandlers } from "./useMapCommandHandlers";
 import { useMapExplorerLifecycle } from "./useMapExplorerLifecycle";
 import { useMapLayerRuntime } from "./useMapLayerRuntime";
 import { useMapPanelLayout } from "./useMapPanelLayout";
+import { useMapUrbanBridgeController } from "./useMapUrbanBridgeController";
 import { IconClose, IconLayers } from "../MapIcons";
 import { usePrefersReducedMotion } from "../../../../hooks/usePrefersReducedMotion";
 import {
@@ -198,7 +199,6 @@ import {
 } from "../../../../services/map/MapPublicationOutputBindingService";
 import {
   buildUrbanToMapMethodRequestPreview,
-  subscribeUrbanToMapMethodRequests,
   type UrbanToMapMethodRequest,
   type UrbanToMapWorkflowDraftRequest,
 } from "../../../../services/map/UrbanToMapMethodRequestAdapter";
@@ -1624,69 +1624,6 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       cancelled = true;
     };
   }, [activeAnalysisInputLayerIds, activeAnalysisResultLayerIds, open, overlayLayers, setScientificQA, zoom]);
-
-  /* ---- Urban Analytics publish → fit bounds (legacy event compatibility) ---- */
-  useEffect(() => {
-    if (!open) return undefined;
-    const handler = (e: Event) => {
-      const { bounds } = (e as CustomEvent<{ bounds: [number, number, number, number] }>).detail;
-      const map = mapInstanceRef.current;
-      if (!map || !bounds) return;
-      const [minLng, minLat, maxLng, maxLat] = bounds;
-      if (minLng === maxLng && minLat === maxLat) {
-        map.easeTo({ center: [minLng, minLat], zoom: Math.max(map.getZoom(), 14), duration: reducedMotion ? 0 : 500, essential: true });
-      } else {
-        map.fitBounds([[minLng, minLat], [maxLng, maxLat]], { padding: 64, duration: reducedMotion ? 0 : 900, essential: true });
-      }
-    };
-    window.addEventListener('synapse:map:fitBounds', handler);
-    return () => window.removeEventListener('synapse:map:fitBounds', handler);
-  }, [open, reducedMotion]);
-
-  /* ---- Typed pending fit-bounds consumer (durable cross-module sync) ---- */
-  /*
-   * Subscribe to `useMapExplorerStore.pendingFitBounds` so a queued
-   * Urban Analytics fit-bounds request is applied as soon as the modal
-   * is open AND the canvas is ready. This handles the ordering case
-   * where the picker opens Map Explorer before the modal mounts and
-   * before the legacy window event listener is attached.
-   */
-  useEffect(() => {
-    if (!open) return undefined;
-
-    const applyPending = () => {
-      const map = mapInstanceRef.current;
-      if (!map) return;
-      const pending = useMapExplorerStore.getState().pendingFitBounds;
-      if (!pending) return;
-      const [minLng, minLat, maxLng, maxLat] = pending.bounds;
-      if (minLng === maxLng && minLat === maxLat) {
-        map.easeTo({
-          center: [minLng, minLat],
-          zoom: Math.max(map.getZoom(), 14),
-          duration: reducedMotion ? 0 : 500,
-          essential: true,
-        });
-      } else {
-        map.fitBounds(
-          [[minLng, minLat], [maxLng, maxLat]],
-          { padding: 64, duration: reducedMotion ? 0 : 900, essential: true },
-        );
-      }
-      useMapExplorerStore.getState().consumePendingFitBounds();
-    };
-
-    // Try once immediately in case there is already a queued request
-    // (e.g. Open Map Explorer queued before the modal mounted).
-    applyPending();
-
-    const unsubscribe = useMapExplorerStore.subscribe((state, previousState) => {
-      if (state.pendingFitBounds !== previousState.pendingFitBounds) {
-        applyPending();
-      }
-    });
-    return unsubscribe;
-  }, [open, reducedMotion]);
 
   /* ---- Keyboard map controls ---- */
   useMapKeyboardControls(mapInstanceRef, {
@@ -4425,12 +4362,12 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     workflowContext,
   ]);
 
-  useEffect(() => {
-    if (!open) {
-      return undefined;
-    }
-    return subscribeUrbanToMapMethodRequests(handleUrbanToMapMethodRequest);
-  }, [handleUrbanToMapMethodRequest, open]);
+  useMapUrbanBridgeController({
+    open,
+    reducedMotion,
+    mapInstanceRef,
+    onUrbanToMapMethodRequest: handleUrbanToMapMethodRequest,
+  });
 
   const handleFeatureReportRequest = useCallback((payload: MapFeatureReportRequest) => {
     const titleValue = [
