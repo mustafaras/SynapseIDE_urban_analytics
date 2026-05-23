@@ -37,7 +37,7 @@ Legend: `[x]` done · `[~]` in progress · `[ ]` TODO · `[!]` blocked (see Done
 - [x] 6 — `MapProjectionService` + `ExecutionCrsPlanner`
 - [x] 7 — `CrsPreflight` gate ✅ verified
 - [x] 8 — CRS correction UI + projection suggestion ✅ verified
-- [ ] 9 — Map command lifecycle (`MapActionExecutor`)
+- [x] 9 — Map command lifecycle (`MapActionExecutor`) ✅ verified
 - [ ] 10 — Layer inspector workbench
 - [ ] 11 — Attribute table + selection sync
 - [ ] 12 — Style editor + legend contract
@@ -116,6 +116,7 @@ Legend: `[x]` done · `[~]` in progress · `[ ]` TODO · `[!]` blocked (see Done
 
 | Date | Prompt | Branch | Commit(s) | Proof |
 | --- | --- | --- | --- | --- |
+| 2026-05-23 | 9 — Map command lifecycle (`MapActionExecutor`) | `gis/p09-command-lifecycle` | `a8b1c21` | `MapActionExecutor` (preview/apply/revert) + `MapActionHistoryService` (history + revert tokens) added; `layer.remove`/`layer.style`/`workflow.apply`/`report.handoff` preflight → `MapCommandResult` (+ `MapReproducibilityManifest` for workflow.apply) + one review-timeline audit event, and blocked commands return `blockers`; layer removal (both layer panels) routes through the executor and the review timeline shows a `map-review-timeline-revert` affordance that restores prior store state and marks the event undone. `npm run typecheck` clean; `npx vitest run src/services/map src/stores src/centerpanel/components/map` 694 passed / 2 skipped (66 files); `lint:errors` + `lint:no-tailwind-centerpanel` clean; Playwright `npx playwright test e2e/map-modal-layout.spec.ts -g "routes layer removal"` 1/1 passed (remove layer → audit row → revert restores the layer). |
 | 2026-05-23 | 8 — CRS correction UI + local projection suggestion | `gis/p08-crs-ui` | `8030bf8` | `DeclareCrsControl` (searchable EPSG catalog + local UTM/equal-area suggestion from `localUtmFor`) added to the layer rail for missing/unknown/user-declared CRS; declaring writes provenance `source:"user-declared"` with a permanent caveat through `buildUserDeclaredCrsSummary` + `resolveOverlayLayerCrsSummary` (status stays a known value so projected work proceeds, but it is never marked verified and the caveat survives every read); badge reads `user-declared (caveat)`; `LayerMetadataSource` gains `"user-declared"`; Urban `dataFitness` now reads the declared CRS but downgrades a user-declared CRS to a caveated `warning` (capped score + `user_declared_crs` issue) so it is never authoritative. `npm run typecheck` clean; `npx vitest run src/services/map src/centerpanel/components/map` 541 passed / 2 skipped (56 files); `npm run test:analytics` 1113 passed (62 files); `lint:errors` + `lint:no-tailwind-centerpanel` clean; Playwright `npx playwright test e2e/map-modal-layout.spec.ts -g "declares a user CRS"` 1/1 passed (declare EPSG:32635 on `fcMissingCrs` → badge `user-declared (caveat)`, caveat persists). |
 | 2026-05-22 | 7 — `CrsPreflight` gate | `gis/p07-crs-preflight` | `fb0e30f` (Prompts 6–7 committed together) | `CrsPreflight` service added for planar/geodesic CRS gates with `declare-crs` / `reproject` remedies and Urban `requiredCrs` conflicts; workflow buffer/intersect/difference/union previews now block planar metric work before geometry computation when CRS is missing, geographic, mixed, or incompatible; measurement and report scale use geodesic preflight caveats; drawer renders `map-workflow-crs-blocked-card` with a remedy button; `npm run typecheck` clean; `npx vitest run src/services/map` 215 passed / 2 skipped (27 files); `npx vitest run src/centerpanel/components/map/__tests__/geodesic-measurement.test.ts` 54 passed; Playwright proof `npx playwright test e2e/map-modal-layout.spec.ts -g "blocks buffer workflows when source CRS is missing"` 1/1 passed with missing CRS buffer blocked and `Declare CRS` visible. |
 | 2026-05-22 | 6 — `MapProjectionService` + `ExecutionCrsPlanner` | `gis/p07-crs-preflight` | `fb0e30f` (Prompts 6–7 committed together) | `MapProjectionService` wraps `proj4` with projected checks, dynamic local UTM, and equal-area helpers; `ExecutionCrsPlanner` returns `sourceCrs/displayCrs/executionCrs/executionKind` and refuses to fabricate execution CRS for missing source metadata; workflow preview manifests now carry execution CRS and the HUD shows an `Execution CRS` chip; `npm run typecheck` clean; `npx vitest run src/services/map` 206 passed / 2 skipped (26 files); Playwright proof `npx playwright test e2e/map-modal-layout.spec.ts -g "shows the execution CRS chip"` 1/1 passed with `Execution CRS EPSG:32635`. |
@@ -179,6 +180,12 @@ Artifacts created so far:
 - `src/centerpanel/components/map/MapLayerManager.tsx` renders the Declare CRS control + `user-declared (caveat)` badge; Prompt 8
 - `src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx` wires `handleDeclareLayerCrs` → `updateLayerMetadata`; Prompt 8
 - `src/features/urbanAnalytics/context/dataFitness.ts` is CRS-provenance aware: reads the declared CRS, flags `crsUserDeclared`, downgrades a user-declared CRS to caveated (`user_declared_crs` issue); Prompt 8
+- `src/services/map/actions/MapActionExecutor.ts` (preview/apply/revert lifecycle for layer.remove/style/workflow.apply/report.handoff; injected `MapActionEffects` boundary; builds the audit review event; Prompt 9)
+- `src/services/map/actions/MapActionHistoryService.ts` (transient, bounded command history + revert tokens; Prompt 9)
+- `src/services/map/__tests__/MapActionExecutor.test.ts` (preview/apply/blocked/revert + history + store-revert proof; Prompt 9)
+- `src/centerpanel/components/map/MapReviewTimelinePanel.tsx` renders a `map-review-timeline-revert` affordance on revertable applied commands via `onRevertCommand`; Prompt 9
+- `src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx` routes both layer-remove paths through `applyMapCommand`, holds a transient action history ref, and wires timeline revert; Prompt 9
+- `e2e/map-modal-layout.spec.ts` asserts remove layer → review-timeline audit row → revert restores the layer; Prompt 9
 
 ---
 
@@ -234,6 +241,20 @@ Artifacts created so far:
   `source:"user-declared"` + a permanent caveat carry the "not verified" truth.
   Note: `localUtmFor` for the Istanbul `fcMissingCrs`/e2e seed centroid is
   EPSG:32635, so the suggested local UTM equals the prompt's declare target.
+
+- Prompt 9: `MapActionExecutor` performs no I/O — it drives an injected
+  `MapActionEffects` boundary (store-backed in the composition, faked in tests),
+  so the store stays the single source of truth and the lifecycle is unit
+  testable. In-app routing wired in this slice: **`layer.remove` through both the
+  `MapLayerPanel` and `MapLayerManager` rails, with full review-timeline revert**
+  (the Proof). The executor fully supports + unit-tests all four kinds, but the
+  in-app callers for `layer.style` / `workflow.apply` / `report.handoff` keep
+  their existing apply paths for now and adopt the executor in their own prompts
+  (style = Prompt 12; workflow already emits a manifest + review event; report is
+  a dialog flow), so `removeReportItem` is a no-op until report routing lands.
+  Repo realities: layer-action buttons render as `role="menuitem"` inside a
+  `<details>` menu (not `button`); review-event correlation uses the command id
+  as the review event `id` (`createMapReviewEvent` honors `input.id`).
 
 ---
 
