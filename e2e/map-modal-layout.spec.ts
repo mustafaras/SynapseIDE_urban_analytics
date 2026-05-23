@@ -381,6 +381,43 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
     await expect(row).not.toContainText("CRS missing");
   });
 
+  test("routes layer removal through the command lifecycle with an audit row and revert", async ({ page }) => {
+    await page.setViewportSize({ width: 1680, height: 1100 });
+    await resetWorkbenchState(page);
+
+    await openMapExplorer(page);
+    await seedWorkflowBufferLayer(page);
+
+    const layerList = page.getByRole("list", { name: "Layer list" });
+    await expect(layerList).toContainText("E2E Istanbul WGS84 Points");
+
+    // Remove the layer through the layer-action menu (Delete -> Confirm delete);
+    // both removal paths are routed through MapActionExecutor.
+    await page.getByLabel("Layer actions for E2E Istanbul WGS84 Points").evaluate((el) => {
+      (el as HTMLElement).closest("details")?.setAttribute("open", "");
+    });
+    await triggerDomClick(page.getByRole("menuitem", { name: "Delete E2E Istanbul WGS84 Points" }));
+    await triggerDomClick(page.getByRole("menuitem", { name: "Confirm delete E2E Istanbul WGS84 Points" }));
+    await expect(layerList).not.toContainText("E2E Istanbul WGS84 Points");
+
+    // Open the review timeline (via the command palette) and assert the audit row + revert affordance.
+    await page.keyboard.press("Control+K");
+    const palette = page.getByRole("dialog", { name: "Map command palette" });
+    await expect(palette).toBeVisible();
+    await palette.getByLabel("Search map commands").fill("review timeline");
+    await triggerDomClick(palette.getByRole("option", { name: /Review/i }).first());
+
+    const revertButton = page.getByTestId("map-review-timeline-revert");
+    await expect(revertButton).toBeVisible();
+    await expect(
+      page.getByTestId("map-review-timeline-event").filter({ hasText: "Removed layer" }).first(),
+    ).toBeVisible();
+
+    // Revert restores the layer to the rail.
+    await triggerDomClick(revertButton);
+    await expect(layerList).toContainText("E2E Istanbul WGS84 Points");
+  });
+
   test("keeps controls usable across laptop and tablet viewport screenshots", async ({ page }, testInfo) => {
     const viewports = [
       { label: "laptop", width: 1366, height: 900, minimumHeight: 520 },

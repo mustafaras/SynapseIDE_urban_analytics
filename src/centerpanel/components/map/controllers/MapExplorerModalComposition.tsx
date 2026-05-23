@@ -18,6 +18,18 @@ import {
 } from "../mapTypes";
 import { buildUserDeclaredCrsSummary } from "../mapLayerMetadata";
 import {
+  applyMapCommand,
+  revertMapCommand,
+  type MapActionEffects,
+} from "@/services/map/actions/MapActionExecutor";
+import {
+  createMapActionHistory,
+  findRevertableEntry,
+  markMapActionReverted,
+  recordMapActionHistoryEntry,
+  type MapActionHistory,
+} from "@/services/map/actions/MapActionHistoryService";
+import {
   MAP_COLORS,
   MAP_DIMENSIONS,
   MAP_ICON_SIZES,
@@ -1159,6 +1171,58 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       snapshot: event.snapshot ?? buildCurrentReviewSnapshot(),
     });
   }, [addMapReviewEvent, buildCurrentReviewSnapshot]);
+
+  // Map command lifecycle (Prompt 9): high-impact actions flow through
+  // MapActionExecutor so each one is preflighted, audited (one review-timeline
+  // event), and revertable. The history (with revert tokens) is transient.
+  const mapActionHistoryRef = useRef<MapActionHistory>(createMapActionHistory());
+
+  const buildMapActionEffects = useCallback((): MapActionEffects => {
+    const readStore = useMapExplorerStore.getState;
+    return {
+      getLayer: (id) => readStore().overlayLayers.find((layer) => layer.id === id) ?? null,
+      getLayerOrder: () => readStore().overlayLayers.map((layer) => layer.id),
+      addLayer: (layer) => readStore().addOverlayLayer(layer),
+      removeLayer: (id) => readStore().removeOverlayLayer(id),
+      setLayerOrder: (orderedIds) => readStore().reorderLayers(orderedIds),
+      setLayerStyle: (id, style) => readStore().updateLayerMetadata(id, { style }),
+      removeReportItem: () => {
+        /* report.handoff is not routed in-app yet; no-op keeps the boundary total. */
+      },
+    };
+  }, []);
+
+  const handleRemoveLayerViaCommand = useCallback((layerId: string) => {
+    const outcome = applyMapCommand({ kind: "layer.remove", layerId }, buildMapActionEffects());
+    recordMapReviewEvent(outcome.reviewEvent);
+    if (outcome.result.status === "applied") {
+      mapActionHistoryRef.current = recordMapActionHistoryEntry(mapActionHistoryRef.current, {
+        commandId: outcome.result.commandId,
+        kind: outcome.result.kind,
+        title: outcome.reviewEvent.title,
+        reviewEventId: outcome.result.reviewEventId ?? outcome.result.commandId,
+        appliedAt: outcome.result.createdAt,
+        revertable: outcome.result.revertable,
+        reverted: false,
+        ...(outcome.revertToken ? { revertToken: outcome.revertToken } : {}),
+      });
+      announce("Removed layer; revert is available in the review timeline.");
+    } else {
+      announce(`Layer removal blocked: ${outcome.preflight.blockers.join(" ")}`);
+    }
+  }, [announce, buildMapActionEffects, recordMapReviewEvent]);
+
+  const handleRevertMapCommand = useCallback((commandId: string) => {
+    const entry = findRevertableEntry(mapActionHistoryRef.current, commandId);
+    if (!entry?.revertToken) {
+      announce("This action can no longer be reverted.");
+      return;
+    }
+    revertMapCommand(entry.revertToken, buildMapActionEffects());
+    mapActionHistoryRef.current = markMapActionReverted(mapActionHistoryRef.current, commandId);
+    updateMapReviewEventStatus(entry.reviewEventId, "undone", "Reverted via command lifecycle");
+    announce(`Reverted: ${entry.title}`);
+  }, [announce, buildMapActionEffects, updateMapReviewEventStatus]);
 
   useEffect(() => {
     if (!open || reviewSession.events.length > 0) {
@@ -5589,7 +5653,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
                 activeBaseLayerName={BASE_STYLES[activeBaseLayer].name}
                 onToggleVisibility={toggleLayerVisibility}
                 onSetOpacity={setLayerOpacity}
-                onRemoveLayer={removeOverlayLayer}
+                onRemoveLayer={handleRemoveLayerViaCommand}
                 onReorderLayers={reorderLayers}
                 onAddLayer={addOverlayLayer}
                 onFocusLayer={handleFocusLayer}
@@ -5673,6 +5737,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               announce("Review timeline closed");
             }}
             onRecordEvent={recordMapReviewEvent}
+            onRevertCommand={handleRevertMapCommand}
             onUpdateEventStatus={(eventId, status, outcome) => {
               updateMapReviewEventStatus(eventId, status, outcome);
               announce(`Timeline event ${status}`);
