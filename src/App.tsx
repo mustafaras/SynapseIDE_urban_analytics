@@ -29,11 +29,6 @@ import { useAppStore } from './stores/appStore';
 import { useMapExplorerStore } from '@/stores/useMapExplorerStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useSynapseWorkspaceStore } from '@/stores/useSynapseWorkspaceStore';
-import { installMapToIdeReceiver } from '@/services/map/mapToIdeHandoff';
-import { installIdeToMapArtifactReceiver } from '@/services/map/IdeToMapArtifactRecognitionService';
-import { clearPersistedMapProjectSnapshots } from '@/services/map/MapPersistenceService';
-import { installUrbanToIdeReceiver } from '@/services/analytics/urbanToIdeHandoff';
-import { installUrbanIdeArtifactReceiver } from '@/features/urbanAnalytics/context/ideArtifactRecognition';
 import { useUrbanStore } from './features/urbanAnalytics/store';
 import { ChunkLoadBoundary, lazyWithRetry } from '@/utils/lazyWithRetry';
 
@@ -1281,14 +1276,26 @@ function App() {
   //    events emitted by Map Explorer so the IDE can register artifacts,
   //    surface provenance, and respond to user-driven open/insert actions.
   useEffect(() => {
-    installMapToIdeReceiver();
+    void import('@/services/map/mapToIdeHandoff')
+      .then(({ installMapToIdeReceiver }) => {
+        installMapToIdeReceiver();
+      })
+      .catch((error) => {
+        console.error('[App] Failed to install Map Explorer → IDE receiver.', error);
+      });
   }, []);
 
   // ── Synapse IDE → Map Explorer receiver (Map Prompt 19): recognizes IDE
   //    file/artifact references as map evidence candidates. Layer state is
   //    not materialized unless Map Explorer has validated the referenced data.
   useEffect(() => {
-    installIdeToMapArtifactReceiver();
+    void import('@/services/map/IdeToMapArtifactRecognitionService')
+      .then(({ installIdeToMapArtifactReceiver }) => {
+        installIdeToMapArtifactReceiver();
+      })
+      .catch((error) => {
+        console.error('[App] Failed to install IDE → Map Explorer artifact receiver.', error);
+      });
   }, []);
 
   // ── Urban Analytics → IDE receiver (Prompt 24): mirrors incoming
@@ -1296,14 +1303,26 @@ function App() {
   //    staged in a pending queue and never auto-inserted; explicit user
   //    consumption through the apply-preview surface is required.
   useEffect(() => {
-    installUrbanToIdeReceiver();
+    void import('@/services/analytics/urbanToIdeHandoff')
+      .then(({ installUrbanToIdeReceiver }) => {
+        installUrbanToIdeReceiver();
+      })
+      .catch((error) => {
+        console.error('[App] Failed to install Urban Analytics → IDE receiver.', error);
+      });
   }, []);
 
   // ── Synapse IDE → Urban Analytics receiver (Prompt 19): recognizes IDE
   //    file/artifact references as Urban evidence without reading editor
   //    buffers or taking ownership of IDE state.
   useEffect(() => {
-    installUrbanIdeArtifactReceiver();
+    void import('@/features/urbanAnalytics/context/ideArtifactRecognition')
+      .then(({ installUrbanIdeArtifactReceiver }) => {
+        installUrbanIdeArtifactReceiver();
+      })
+      .catch((error) => {
+        console.error('[App] Failed to install IDE → Urban Analytics artifact receiver.', error);
+      });
   }, []);
 
   useEffect(() => {
@@ -1312,18 +1331,25 @@ function App() {
       return;
     }
 
-    const removedProjectSnapshots = clearPersistedMapProjectSnapshots();
-    useMapExplorerStore.getState().clearProjectContent();
-    void useMapExplorerStore.persist.clearStorage();
+    void (async () => {
+      try {
+        const { clearPersistedMapProjectSnapshots } = await import('@/services/map/MapPersistenceService');
+        const removedProjectSnapshots = clearPersistedMapProjectSnapshots();
+        useMapExplorerStore.getState().clearProjectContent();
+        void useMapExplorerStore.persist.clearStorage();
 
-    params.delete('clearMapExplorerCache');
-    const nextSearch = params.toString();
-    const nextUrl = `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ''}${window.location.hash}`;
-    window.history.replaceState(window.history.state, '', nextUrl);
+        params.delete('clearMapExplorerCache');
+        const nextSearch = params.toString();
+        const nextUrl = `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ''}${window.location.hash}`;
+        window.history.replaceState(window.history.state, '', nextUrl);
 
-    console.info(
-      `[Map Explorer] Cleared active map layers and ${removedProjectSnapshots} persisted map project snapshot${removedProjectSnapshots === 1 ? '' : 's'}.`,
-    );
+        console.info(
+          `[Map Explorer] Cleared active map layers and ${removedProjectSnapshots} persisted map project snapshot${removedProjectSnapshots === 1 ? '' : 's'}.`,
+        );
+      } catch (error) {
+        console.error('[Map Explorer] Failed to clear persisted map project snapshots.', error);
+      }
+    })();
   }, []);
 
 
