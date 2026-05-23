@@ -34,8 +34,8 @@ Legend: `[x]` done · `[~]` in progress · `[ ]` TODO · `[!]` blocked (see Done
 - [x] 3 — Store slices + selectors ✅ verified
 - [x] 4 — `MapSourceRegistry` V1 ✅ verified
 - [x] 5 — Import preflight + profiling + support matrix ✅ verified (profiling/preflight green; e2e 3/3 green after fixing a real QA re-eval freeze on import — see Done Log + Drift notes)
-- [ ] 6 — `MapProjectionService` + `ExecutionCrsPlanner`
-- [ ] 7 — `CrsPreflight` gate
+- [x] 6 — `MapProjectionService` + `ExecutionCrsPlanner`
+- [x] 7 — `CrsPreflight` gate ✅ verified
 - [ ] 8 — CRS correction UI + projection suggestion
 - [ ] 9 — Map command lifecycle (`MapActionExecutor`)
 - [ ] 10 — Layer inspector workbench
@@ -116,6 +116,8 @@ Legend: `[x]` done · `[~]` in progress · `[ ]` TODO · `[!]` blocked (see Done
 
 | Date | Prompt | Branch | Commit(s) | Proof |
 | --- | --- | --- | --- | --- |
+| 2026-05-22 | 7 — `CrsPreflight` gate | `gis/p07-crs-preflight` | `fb0e30f` (Prompts 6–7 committed together) | `CrsPreflight` service added for planar/geodesic CRS gates with `declare-crs` / `reproject` remedies and Urban `requiredCrs` conflicts; workflow buffer/intersect/difference/union previews now block planar metric work before geometry computation when CRS is missing, geographic, mixed, or incompatible; measurement and report scale use geodesic preflight caveats; drawer renders `map-workflow-crs-blocked-card` with a remedy button; `npm run typecheck` clean; `npx vitest run src/services/map` 215 passed / 2 skipped (27 files); `npx vitest run src/centerpanel/components/map/__tests__/geodesic-measurement.test.ts` 54 passed; Playwright proof `npx playwright test e2e/map-modal-layout.spec.ts -g "blocks buffer workflows when source CRS is missing"` 1/1 passed with missing CRS buffer blocked and `Declare CRS` visible. |
+| 2026-05-22 | 6 — `MapProjectionService` + `ExecutionCrsPlanner` | `gis/p07-crs-preflight` | `fb0e30f` (Prompts 6–7 committed together) | `MapProjectionService` wraps `proj4` with projected checks, dynamic local UTM, and equal-area helpers; `ExecutionCrsPlanner` returns `sourceCrs/displayCrs/executionCrs/executionKind` and refuses to fabricate execution CRS for missing source metadata; workflow preview manifests now carry execution CRS and the HUD shows an `Execution CRS` chip; `npm run typecheck` clean; `npx vitest run src/services/map` 206 passed / 2 skipped (26 files); Playwright proof `npx playwright test e2e/map-modal-layout.spec.ts -g "shows the execution CRS chip"` 1/1 passed with `Execution CRS EPSG:32635`. |
 | 2026-05-22 | 5 — Import preflight + profiling + support matrix | `gis/p05-profiling` | `105e417` (Prompts 3–5 committed together) | `SourceProfile` profiling added for ready imports, CSV row quality, large/empty/missing-CRS cases, external services, and profile-only partial formats; new preflight dialog gates ready imports before commit; CSV/columnar dialogs now show preflight facts; support matrix documented; `npm run typecheck` clean; `npm run lint:errors` clean; `npx vitest run src/services/map` 202 passed / 2 skipped (25 files); `npx vitest run src/centerpanel/components/map/__tests__/map-import-preflight.test.tsx` 2/2 passed; Playwright re-verified 2026-05-22: **all 3/3 import tests pass green** (CSV mandated proof `3 skipped rows` + `CRS unknown`; KML placemarks; GPX) after fixing a real product defect found during re-verification (see Drift notes — Scientific QA re-evaluation storm on import froze the main thread; fixed by debouncing the QA effect). Profiling unit coverage (skipped=3, missing/empty/large/external) all green; `npx vitest run src/services/map src/centerpanel/components/map` 517 passed / 2 skipped (52 files). |
 | 2026-05-22 | 4 — `MapSourceRegistry` V1 | `gis/p05-profiling` | `105e417` (Prompts 3–5 committed together) | `MapSourceRegistry` service added with `SourceHandle` CRUD + storage/restore mapping; imports now create source handles and `metadata.sourceId`; source handles persist as sanitized metadata in Zustand and project snapshots; restore resolves unavailable/recoverable/restored into layer metadata; layer manager shows `kind / restore status`; `npm run typecheck` clean; `npm run lint:errors` clean; `npx vitest run src/services/map src/stores` 338 passed / 2 skipped (34 files); `npx vitest run src/centerpanel/components/map/__tests__/map-layer-management.test.ts` 46/46 passed |
 | 2026-05-22 | 3 — Store slices + selectors | `gis/p05-profiling` | `105e417` (Prompts 3–5 committed together) | Store slice policy modules added under `src/stores/mapExplorer/`; persistence boundary extracted and documented; fine-grained selectors added and used by the modal composition; `npm run typecheck` clean; `npm run lint:errors` clean; `npx vitest run src/stores` 137/137 (9 files) incl. heavy `fcLarge(1000)` `sourceData` persistence guard + selector stability tests |
@@ -153,6 +155,20 @@ Artifacts created so far:
 - `src/centerpanel/components/MapCsvImportDialog.tsx` and `src/centerpanel/components/MapColumnarImportDialog.tsx` now render source preflight facts before commit; Prompt 5
 - `src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx` now pauses ready local imports on source preflight confirmation; Prompt 5
 - `e2e/map-csv-kml-gpx-import.spec.ts` asserts CSV skipped-row/CRS preflight and ready-import confirmation flow; Prompt 5
+- `src/services/map/crs/MapProjectionService.ts` (`proj4` projection wrapper, projected CRS detection, local UTM, equal-area helpers; Prompt 6)
+- `src/services/map/crs/ExecutionCrsPlanner.ts` (execution CRS planner returning `sourceCrs/displayCrs/executionCrs/executionKind`; Prompt 6)
+- `src/services/map/__tests__/ExecutionCrsPlanner.test.ts` (known/geographic/projected/missing CRS planner proof; Prompt 6)
+- `src/services/map/MapWorkflowService.ts` now writes execution CRS planning into workflow preview manifests; Prompt 6
+- `src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx` now renders the workflow preview execution CRS chip; Prompt 6
+- `e2e/map-modal-layout.spec.ts` asserts the workflow preview chip text for Istanbul WGS84 buffer previews; Prompt 6
+- `src/services/map/crs/CrsPreflight.ts` (planar/geodesic CRS gate with remedies and Urban `requiredCrs` conflict blocking; Prompt 7)
+- `src/services/map/__tests__/CrsPreflight.test.ts` (planar WGS84 blocked, projected OK, missing CRS blocked, geodesic caveated, required CRS conflict; Prompt 7)
+- `src/services/map/MapWorkflowService.ts` now preflights buffer/intersect/difference/union before metric geometry computation and carries CRS preflight into manifests/report caveats; Prompt 7
+- `src/centerpanel/components/map/MapWorkflowDrawer.tsx` renders a CRS blocked card and remedy button for workflow blockers; Prompt 7
+- `src/centerpanel/components/MapMeasurementTool.tsx` now surfaces geodesic measurement as a CRS-preflighted display caveat; Prompt 7
+- `src/services/map/MapExportService.ts` now carries geodesic report-scale preflight caveats into scale specs and publication readiness; Prompt 7
+- `src/services/map/UrbanToMapMethodRequestAdapter.ts` now propagates Urban `requiredCrs` into workflow previews; Prompt 7
+- `e2e/map-modal-layout.spec.ts` asserts missing-CRS buffer workflows show the blocked card and `Declare CRS` action; Prompt 7
 
 ---
 
