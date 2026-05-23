@@ -36,7 +36,7 @@ Legend: `[x]` done · `[~]` in progress · `[ ]` TODO · `[!]` blocked (see Done
 - [x] 5 — Import preflight + profiling + support matrix ✅ verified (profiling/preflight green; e2e 3/3 green after fixing a real QA re-eval freeze on import — see Done Log + Drift notes)
 - [x] 6 — `MapProjectionService` + `ExecutionCrsPlanner`
 - [x] 7 — `CrsPreflight` gate ✅ verified
-- [ ] 8 — CRS correction UI + projection suggestion
+- [x] 8 — CRS correction UI + projection suggestion ✅ verified
 - [ ] 9 — Map command lifecycle (`MapActionExecutor`)
 - [ ] 10 — Layer inspector workbench
 - [ ] 11 — Attribute table + selection sync
@@ -116,6 +116,7 @@ Legend: `[x]` done · `[~]` in progress · `[ ]` TODO · `[!]` blocked (see Done
 
 | Date | Prompt | Branch | Commit(s) | Proof |
 | --- | --- | --- | --- | --- |
+| 2026-05-23 | 8 — CRS correction UI + local projection suggestion | `gis/p08-crs-ui` | `8030bf8` | `DeclareCrsControl` (searchable EPSG catalog + local UTM/equal-area suggestion from `localUtmFor`) added to the layer rail for missing/unknown/user-declared CRS; declaring writes provenance `source:"user-declared"` with a permanent caveat through `buildUserDeclaredCrsSummary` + `resolveOverlayLayerCrsSummary` (status stays a known value so projected work proceeds, but it is never marked verified and the caveat survives every read); badge reads `user-declared (caveat)`; `LayerMetadataSource` gains `"user-declared"`; Urban `dataFitness` now reads the declared CRS but downgrades a user-declared CRS to a caveated `warning` (capped score + `user_declared_crs` issue) so it is never authoritative. `npm run typecheck` clean; `npx vitest run src/services/map src/centerpanel/components/map` 541 passed / 2 skipped (56 files); `npm run test:analytics` 1113 passed (62 files); `lint:errors` + `lint:no-tailwind-centerpanel` clean; Playwright `npx playwright test e2e/map-modal-layout.spec.ts -g "declares a user CRS"` 1/1 passed (declare EPSG:32635 on `fcMissingCrs` → badge `user-declared (caveat)`, caveat persists). |
 | 2026-05-22 | 7 — `CrsPreflight` gate | `gis/p07-crs-preflight` | `fb0e30f` (Prompts 6–7 committed together) | `CrsPreflight` service added for planar/geodesic CRS gates with `declare-crs` / `reproject` remedies and Urban `requiredCrs` conflicts; workflow buffer/intersect/difference/union previews now block planar metric work before geometry computation when CRS is missing, geographic, mixed, or incompatible; measurement and report scale use geodesic preflight caveats; drawer renders `map-workflow-crs-blocked-card` with a remedy button; `npm run typecheck` clean; `npx vitest run src/services/map` 215 passed / 2 skipped (27 files); `npx vitest run src/centerpanel/components/map/__tests__/geodesic-measurement.test.ts` 54 passed; Playwright proof `npx playwright test e2e/map-modal-layout.spec.ts -g "blocks buffer workflows when source CRS is missing"` 1/1 passed with missing CRS buffer blocked and `Declare CRS` visible. |
 | 2026-05-22 | 6 — `MapProjectionService` + `ExecutionCrsPlanner` | `gis/p07-crs-preflight` | `fb0e30f` (Prompts 6–7 committed together) | `MapProjectionService` wraps `proj4` with projected checks, dynamic local UTM, and equal-area helpers; `ExecutionCrsPlanner` returns `sourceCrs/displayCrs/executionCrs/executionKind` and refuses to fabricate execution CRS for missing source metadata; workflow preview manifests now carry execution CRS and the HUD shows an `Execution CRS` chip; `npm run typecheck` clean; `npx vitest run src/services/map` 206 passed / 2 skipped (26 files); Playwright proof `npx playwright test e2e/map-modal-layout.spec.ts -g "shows the execution CRS chip"` 1/1 passed with `Execution CRS EPSG:32635`. |
 | 2026-05-22 | 5 — Import preflight + profiling + support matrix | `gis/p05-profiling` | `105e417` (Prompts 3–5 committed together) | `SourceProfile` profiling added for ready imports, CSV row quality, large/empty/missing-CRS cases, external services, and profile-only partial formats; new preflight dialog gates ready imports before commit; CSV/columnar dialogs now show preflight facts; support matrix documented; `npm run typecheck` clean; `npm run lint:errors` clean; `npx vitest run src/services/map` 202 passed / 2 skipped (25 files); `npx vitest run src/centerpanel/components/map/__tests__/map-import-preflight.test.tsx` 2/2 passed; Playwright re-verified 2026-05-22: **all 3/3 import tests pass green** (CSV mandated proof `3 skipped rows` + `CRS unknown`; KML placemarks; GPX) after fixing a real product defect found during re-verification (see Drift notes — Scientific QA re-evaluation storm on import froze the main thread; fixed by debouncing the QA effect). Profiling unit coverage (skipped=3, missing/empty/large/external) all green; `npx vitest run src/services/map src/centerpanel/components/map` 517 passed / 2 skipped (52 files). |
@@ -169,6 +170,15 @@ Artifacts created so far:
 - `src/services/map/MapExportService.ts` now carries geodesic report-scale preflight caveats into scale specs and publication readiness; Prompt 7
 - `src/services/map/UrbanToMapMethodRequestAdapter.ts` now propagates Urban `requiredCrs` into workflow previews; Prompt 7
 - `e2e/map-modal-layout.spec.ts` asserts missing-CRS buffer workflows show the blocked card and `Declare CRS` action; Prompt 7
+- `src/services/map/crs/crsCatalog.ts` (curated EPSG catalog + full WGS 84 UTM grid + search + typed-code parse + extent-based local UTM/equal-area suggestion; Prompt 8)
+- `src/services/map/__tests__/crsCatalog.test.ts` (catalog search/suggestion/parse proof; Prompt 8)
+- `src/centerpanel/components/map/DeclareCrsControl.tsx` (searchable "Declare CRS" control + local suggestion, `mapStyles`/`MAP_*` tokens; Prompt 8)
+- `src/centerpanel/components/map/__tests__/crs-declaration.test.ts` (user-declared resolver/caveat proof on `fcMissingCrs`; Prompt 8)
+- `src/centerpanel/components/map/mapTypes.ts` `LayerMetadataSource` adds `"user-declared"`; Prompt 8
+- `src/centerpanel/components/map/mapLayerMetadata.ts` now exports `USER_DECLARED_CRS_CAVEAT` + `buildUserDeclaredCrsSummary` and preserves user-declared provenance/caveat in `resolveOverlayLayerCrsSummary`; Prompt 8
+- `src/centerpanel/components/map/MapLayerManager.tsx` renders the Declare CRS control + `user-declared (caveat)` badge; Prompt 8
+- `src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx` wires `handleDeclareLayerCrs` → `updateLayerMetadata`; Prompt 8
+- `src/features/urbanAnalytics/context/dataFitness.ts` is CRS-provenance aware: reads the declared CRS, flags `crsUserDeclared`, downgrades a user-declared CRS to caveated (`user_declared_crs` issue); Prompt 8
 
 ---
 
@@ -211,6 +221,19 @@ Artifacts created so far:
   Proof) — per the prompt's "only where missing" instruction. The canonical
   `MapExplorerModal` lives at `src/centerpanel/components/MapExplorerModal.tsx`
   (one level above the `map/` folder) and returns `null` when `open={false}`.
+
+- Prompt 8: the full layer *inspector* workbench is Prompt 10, so the "layer
+  inspector CRS surface" used for declaring is the existing layer rail
+  (`MapLayerManager` row), where the Declare CRS control + the
+  `user-declared (caveat)` badge live. `dataFitness.resolveLayerCrs` previously
+  ignored `metadata.crsSummary`; Prompt 8 makes it read the declared CRS and
+  sets `crsUserDeclared` so a declared CRS is scored as caveated, never
+  authoritative (no module boundary crossed — `dataFitness` already read map
+  layer metadata). The declared CRS keeps `status:"known"` (a known *value*,
+  which unblocks projected metric work in `CrsPreflight`) while provenance
+  `source:"user-declared"` + a permanent caveat carry the "not verified" truth.
+  Note: `localUtmFor` for the Istanbul `fcMissingCrs`/e2e seed centroid is
+  EPSG:32635, so the suggested local UTM equals the prompt's declare target.
 
 ---
 
