@@ -588,8 +588,11 @@ function buildWorkflowPreview(
   if (!kind) {
     return { summary: null, draftRequest: null };
   }
-  const draft = buildWorkflowDraft(kind, request, compatibleLayers, workflowContext);
-  const preview = generateMapWorkflowPreview(draft, workflowContext);
+  const workflowContextWithMethodCrs: MapWorkflowContext = request.requirements?.layer?.requiredCrs
+    ? { ...workflowContext, urbanRequiredCrs: request.requirements.layer.requiredCrs }
+    : workflowContext;
+  const draft = buildWorkflowDraft(kind, request, compatibleLayers, workflowContextWithMethodCrs);
+  const preview = generateMapWorkflowPreview(draft, workflowContextWithMethodCrs);
   return {
     summary: summarizeWorkflowPreview(preview),
     draftRequest: {

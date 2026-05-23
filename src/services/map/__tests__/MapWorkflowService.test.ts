@@ -43,7 +43,12 @@ function featureCollection(features: Feature[]): FeatureCollection {
   return { type: "FeatureCollection", features };
 }
 
-function layer(id: string, collection: FeatureCollection, geometryType = "Polygon"): OverlayLayerConfig {
+function layer(
+  id: string,
+  collection: FeatureCollection,
+  geometryType = "Polygon",
+  crs = "EPSG:32635",
+): OverlayLayerConfig {
   return {
     id,
     name: `Layer ${id}`,
@@ -58,7 +63,13 @@ function layer(id: string, collection: FeatureCollection, geometryType = "Polygo
       featureCount: collection.features.length,
       fields: ["name"],
       datasetContext: {
-        crs: "EPSG:4326",
+        crs,
+      },
+      crsSummary: {
+        crs,
+        status: "known",
+        source: "explicit",
+        notes: ["Unit test fixture CRS."],
       },
     },
   };
@@ -108,7 +119,8 @@ describe("MapWorkflowService", () => {
       name: "Transit stop",
       __selection_layer_id: "transit-stops",
     });
-    const context = buildMapWorkflowContext([], {
+    const sourceLayer = layer("transit-stops", featureCollection([selected]), "Point");
+    const context = buildMapWorkflowContext([sourceLayer], {
       selectedFeatures: [selected],
       selectedLayerIds: ["transit-stops"],
       now: fixedNow,
@@ -132,6 +144,11 @@ describe("MapWorkflowService", () => {
     const applied = applyMapWorkflowPreview(valid, context);
 
     expect(valid.canApply).toBe(true);
+    expect(valid.crsPreflight).toMatchObject({
+      blocked: false,
+      executionKind: "planar",
+      executionCrs: "EPSG:32635",
+    });
     expect(valid.metrics.source_scope).toBe("selected features");
     expect(valid.featureCount).toBe(1);
     expect(valid.manifest.sourceLayerIds).toEqual(["transit-stops"]);
@@ -180,6 +197,86 @@ describe("MapWorkflowService", () => {
       derivedLayerId: applied?.layer.id,
       sourceLayerIds: ["districts", "policy-zone"],
     });
+  });
+
+  it("blocks planar metric workflows when source CRS metadata is missing", () => {
+    const missingCrsLayer = layer(
+      "missing-crs-polygons",
+      featureCollection([
+        polygonFeature("missing", [[0, 0], [1, 0], [1, 1], [0, 1]], { name: "Missing CRS" }),
+      ]),
+      "Polygon",
+      "",
+    );
+    const context = buildMapWorkflowContext([missingCrsLayer], { now: fixedNow });
+    const draft: MapWorkflowBufferDraft = {
+      ...(createDefaultDraft("buffer") as MapWorkflowBufferDraft),
+      sourceLayerId: "missing-crs-polygons",
+      distance: 100,
+      unit: "meters",
+    };
+
+    const preview = generateMapWorkflowPreview(draft, context);
+
+    expect(preview.canApply).toBe(false);
+    expect(preview.featureCollection).toBeNull();
+    expect(preview.crsPreflight).toMatchObject({
+      blocked: true,
+      sourceCrs: null,
+      executionCrs: null,
+      remedy: "declare-crs",
+    });
+    expect(preview.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "crs-declare-crs",
+          severity: "blocker",
+          remedy: "declare-crs",
+        }),
+      ]),
+    );
+    expect(preview.manifest.status).toBe("blocked");
+    expect(preview.manifest.crsSummary.notes.join(" ")).toContain("Declare the CRS before running");
+  });
+
+  it("blocks workflow previews when an Urban method required CRS conflicts with the source CRS", () => {
+    const projectedLayer = layer(
+      "utm-polygons",
+      featureCollection([
+        polygonFeature("projected", [[0, 0], [1, 0], [1, 1], [0, 1]], { name: "Projected polygon" }),
+      ]),
+      "Polygon",
+      "EPSG:32635",
+    );
+    const context = buildMapWorkflowContext([projectedLayer], {
+      now: fixedNow,
+      urbanRequiredCrs: "EPSG:3857",
+    });
+    const draft: MapWorkflowBufferDraft = {
+      ...(createDefaultDraft("buffer") as MapWorkflowBufferDraft),
+      sourceLayerId: "utm-polygons",
+      distance: 100,
+      unit: "meters",
+    };
+
+    const preview = generateMapWorkflowPreview(draft, context);
+
+    expect(preview.canApply).toBe(false);
+    expect(preview.crsPreflight).toMatchObject({
+      blocked: true,
+      remedy: "reproject",
+      sourceCrs: "EPSG:32635",
+    });
+    expect(preview.crsPreflight.reason).toContain("requires EPSG:3857");
+    expect(preview.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "crs-reproject",
+          severity: "blocker",
+          remedy: "reproject",
+        }),
+      ]),
+    );
   });
 
   it("builds comparison preview state and a reportable comparison item", () => {

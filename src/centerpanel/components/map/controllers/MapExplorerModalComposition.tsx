@@ -363,6 +363,31 @@ const comparisonLegendSwatchStyle: React.CSSProperties = {
 
 const comparisonLayerBColor = "var(--syn-status-pending, #a78bfa)";
 
+const workflowPreviewMetaRowStyle: React.CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  alignItems: "center",
+  gap: MAP_SPACING.xs,
+  minWidth: MAP_SPACING.zero,
+};
+
+const workflowExecutionCrsChipStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  width: "fit-content",
+  maxWidth: "100%",
+  padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
+  border: "1px solid currentColor",
+  borderRadius: MAP_RADIUS.sm,
+  color: MAP_COLORS.interaction,
+  background: MAP_COLORS.selectedSubtle,
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+};
+
 const WorkflowPreviewOverlay: React.FC<{ preview: MapWorkflowPreview | null }> = ({ preview }) => {
   if (!preview) {
     return null;
@@ -390,13 +415,16 @@ const WorkflowPreviewOverlay: React.FC<{ preview: MapWorkflowPreview | null }> =
         </strong>
         {comparison ? (
           <>
-            <span>
-              {comparison.layerAName} vs {comparison.layerBName} - {comparison.view}
-              {comparison.view === "blend"
-                ? ` - opacity ${Math.round(comparison.blendOpacityA * 100)}% / ${Math.round(comparison.blendOpacityB * 100)}%`
-                : ` - divider ${Math.round(comparison.swipePosition * 100)}%`}
-              {` - manifest ${shortMapManifestId(preview.manifest.manifestId)}`}
-            </span>
+            <div style={workflowPreviewMetaRowStyle}>
+              <span>
+                {comparison.layerAName} vs {comparison.layerBName} - {comparison.view}
+                {comparison.view === "blend"
+                  ? ` - opacity ${Math.round(comparison.blendOpacityA * 100)}% / ${Math.round(comparison.blendOpacityB * 100)}%`
+                  : ` - divider ${Math.round(comparison.swipePosition * 100)}%`}
+                {` - manifest ${shortMapManifestId(preview.manifest.manifestId)}`}
+              </span>
+              <WorkflowExecutionCrsChip preview={preview} />
+            </div>
             <div style={comparisonLegendStyle} data-testid="map-comparison-legend" aria-label="Synchronized comparison legend">
               <span style={comparisonLegendItemStyle} title={comparison.layerAName}>
                 <span style={{ ...comparisonLegendSwatchStyle, background: "var(--syn-status-info, #38bdf8)" }} aria-hidden="true" />
@@ -409,12 +437,39 @@ const WorkflowPreviewOverlay: React.FC<{ preview: MapWorkflowPreview | null }> =
             </div>
           </>
         ) : (
-          <span>
-            {preview.featureCount.toLocaleString()} preview feature{preview.featureCount === 1 ? "" : "s"} - manifest {shortMapManifestId(preview.manifest.manifestId)}
-          </span>
+          <div style={workflowPreviewMetaRowStyle}>
+            <span>
+              {preview.featureCount.toLocaleString()} preview feature{preview.featureCount === 1 ? "" : "s"} - manifest {shortMapManifestId(preview.manifest.manifestId)}
+            </span>
+            <WorkflowExecutionCrsChip preview={preview} />
+          </div>
         )}
       </div>
     </>
+  );
+};
+
+const WorkflowExecutionCrsChip: React.FC<{ preview: MapWorkflowPreview }> = ({ preview }) => {
+  const summary = preview.manifest.crsSummary;
+  const label = summary.executionCrs
+    ? `Execution CRS ${summary.executionCrs}`
+    : summary.sourceCrs
+      ? "Execution CRS unresolved"
+      : "Execution CRS unknown";
+  const title = [
+    `Source CRS: ${summary.sourceCrs ?? "unknown"}`,
+    `Display CRS: ${summary.displayCrs}`,
+    `Execution kind: ${summary.executionKind ?? "planar"}`,
+  ].join("; ");
+  return (
+    <span
+      style={workflowExecutionCrsChipStyle}
+      data-testid="map-workflow-execution-crs-chip"
+      title={title}
+      aria-label={label}
+    >
+      {label}
+    </span>
   );
 };
 

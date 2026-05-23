@@ -32,6 +32,7 @@ import {
 } from "./map/mapTokens";
 import { createOpaqueFloatingPanelStyle, useDraggableMapPanel } from "./map/useDraggableMapPanel";
 import { IconArea, IconClose, IconMeasure, IconRuler } from "./map/MapIcons";
+import { preflight as preflightCrs } from "@/services/map/crs/CrsPreflight";
 
 const MEASURE_SOURCE = "synapse-measure-src";
 const MEASURE_LINE_LAYER = "synapse-measure-line";
@@ -128,6 +129,16 @@ function getMeasurementInstructions(type: MeasureToolId | null): string {
 }
 
 function buildMeasurementAssumptions(type: MeasureToolId): NonNullable<Measurement["assumptions"]> {
+  const preflight = preflightCrs(
+    {
+      id: `measurement:${type}`,
+      label: type === "measure-area" ? "Area measurement" : "Distance measurement",
+      metric: type === "measure-area" ? "area" : "distance",
+      executionKind: "geodesic",
+    },
+    [],
+    null,
+  );
   return {
     method: "geodesic-wgs84",
     crsBasis: "EPSG:4326",
@@ -136,6 +147,7 @@ function buildMeasurementAssumptions(type: MeasureToolId): NonNullable<Measureme
     areaModel: type === "measure-area" ? "spherical-polygon" : "not-applicable",
     unitBase: "metres",
     caveats: [
+      ...preflight.caveats,
       "Coordinates are captured from the map display as longitude/latitude.",
       "Use projected analytical tools for legal, engineering, or parcel-accurate area claims.",
     ],
@@ -994,6 +1006,9 @@ export const MapMeasurementTool: React.FC<MapMeasurementToolProps> = ({
         <div style={helperTextStyle}>{getMeasurementInstructions(activeMeasureTool)}</div>
         <div style={{ ...helperTextStyle, marginTop: MAP_SPACING.xs }}>
           Method {getMeasurementAssumptionLabel(undefined)}; display coordinates are treated as EPSG:4326.
+        </div>
+        <div style={{ ...helperTextStyle, marginTop: MAP_SPACING.xs }}>
+          CRS preflight allows this as geodesic display measurement only; use projected workflows for analytical metric claims.
         </div>
         {livePreview ? (
           <div style={{ marginTop: MAP_SPACING.sm, display: "grid", gap: MAP_SPACING.xs }}>

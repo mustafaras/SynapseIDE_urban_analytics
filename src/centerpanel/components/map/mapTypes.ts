@@ -360,7 +360,10 @@ export interface MapReproducibilityAoiReference {
 
 export interface MapReproducibilityCrsSummary {
   status: "known" | "mixed" | "missing" | "not-applicable";
+  sourceCrs?: string | null;
   displayCrs: string;
+  executionCrs?: string | null;
+  executionKind?: import("@/services/map/contracts/gisContracts").CrsExecutionKind;
   sourceLayerCrs: Array<{
     layerId: string;
     crs: string | null;

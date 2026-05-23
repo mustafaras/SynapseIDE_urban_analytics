@@ -93,6 +93,102 @@ async function seedComparisonLayers(page: import("@playwright/test").Page): Prom
   });
 }
 
+async function seedWorkflowBufferLayer(page: import("@playwright/test").Page): Promise<void> {
+  await page.evaluate(async () => {
+    const module = await import("/src/stores/useMapExplorerStore.ts");
+    const featureCollection = {
+      type: "FeatureCollection" as const,
+      features: [
+        {
+          type: "Feature" as const,
+          id: "buffer-site-1",
+          geometry: {
+            type: "Point" as const,
+            coordinates: [29.0, 41.0],
+          },
+          properties: { name: "Kadikoy transit stop" },
+        },
+        {
+          type: "Feature" as const,
+          id: "buffer-site-2",
+          geometry: {
+            type: "Point" as const,
+            coordinates: [29.04, 41.02],
+          },
+          properties: { name: "Uskudar transit stop" },
+        },
+      ],
+    };
+
+    module.useMapExplorerStore.getState().addOverlayLayer({
+      id: "e2e-buffer-points",
+      name: "E2E Istanbul WGS84 Points",
+      type: "geojson",
+      visible: true,
+      opacity: 0.86,
+      group: "data",
+      sourceKind: "imported",
+      sourceData: featureCollection,
+      metadata: {
+        geometryType: "Point",
+        featureCount: featureCollection.features.length,
+        fields: ["name"],
+        datasetContext: {
+          crs: "EPSG:4326",
+        },
+        crsSummary: {
+          crs: "EPSG:4326",
+          status: "known",
+          source: "explicit",
+          notes: ["E2E fixture declares WGS84 coordinates for Prompt 6 CRS planning."],
+        },
+      },
+    });
+  });
+}
+
+async function seedWorkflowMissingCrsLayer(page: import("@playwright/test").Page): Promise<void> {
+  await page.evaluate(async () => {
+    const module = await import("/src/stores/useMapExplorerStore.ts");
+    const featureCollection = {
+      type: "FeatureCollection" as const,
+      features: [
+        {
+          type: "Feature" as const,
+          id: "missing-crs-parcel-1",
+          geometry: {
+            type: "Polygon" as const,
+            coordinates: [[
+              [28.98, 41.0],
+              [29.01, 41.0],
+              [29.01, 41.03],
+              [28.98, 41.03],
+              [28.98, 41.0],
+            ]],
+          },
+          properties: { name: "Missing CRS parcel" },
+        },
+      ],
+    };
+
+    module.useMapExplorerStore.getState().addOverlayLayer({
+      id: "e2e-missing-crs-polygons",
+      name: "E2E Missing CRS Polygons",
+      type: "geojson",
+      visible: true,
+      opacity: 0.86,
+      group: "data",
+      sourceKind: "imported",
+      sourceData: featureCollection,
+      metadata: {
+        geometryType: "Polygon",
+        featureCount: featureCollection.features.length,
+        fields: ["name"],
+      },
+    });
+  });
+}
+
 async function openWorkflowDrawer(page: import("@playwright/test").Page) {
   const directWorkflowButton = page.getByRole("button", { name: /Workflow|Open AOI .* Compare workflow drawer/i }).first();
   if (await directWorkflowButton.isVisible().catch(() => false)) {
@@ -221,6 +317,42 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
     await expect(comparisonLegend).toBeVisible();
     await expect(comparisonLegend).toContainText("A · E2E Existing Conditions");
     await expect(comparisonLegend).toContainText("B · E2E Proposed Scenario");
+  });
+
+  test("shows the execution CRS chip on workflow preview", async ({ page }) => {
+    await page.setViewportSize({ width: 1680, height: 1100 });
+    await resetWorkbenchState(page);
+
+    await openMapExplorer(page);
+    await seedWorkflowBufferLayer(page);
+    await expect(page.getByRole("list", { name: "Layer list" })).toContainText("E2E Istanbul WGS84 Points");
+
+    const drawer = await openWorkflowDrawer(page);
+    await triggerDomClick(drawer.getByRole("button", { name: /Buffer: Geodesic ring/i }));
+    await drawer.getByLabel("Layer selector").selectOption("e2e-buffer-points");
+
+    const executionCrsChip = page.getByTestId("map-workflow-execution-crs-chip");
+    await expect(executionCrsChip).toBeVisible();
+    await expect(executionCrsChip).toContainText("Execution CRS EPSG:32635");
+  });
+
+  test("blocks buffer workflows when source CRS is missing", async ({ page }) => {
+    await page.setViewportSize({ width: 1680, height: 1100 });
+    await resetWorkbenchState(page);
+
+    await openMapExplorer(page);
+    await seedWorkflowMissingCrsLayer(page);
+    await expect(page.getByRole("list", { name: "Layer list" })).toContainText("E2E Missing CRS Polygons");
+
+    const drawer = await openWorkflowDrawer(page);
+    await triggerDomClick(drawer.getByRole("button", { name: /Buffer: Geodesic ring/i }));
+    await drawer.getByLabel("Layer selector").selectOption("e2e-missing-crs-polygons");
+
+    const blockedCard = drawer.getByTestId("map-workflow-crs-blocked-card");
+    await expect(blockedCard).toBeVisible();
+    await expect(blockedCard).toContainText("lack CRS metadata");
+    await expect(blockedCard.getByRole("button", { name: /Declare CRS/i })).toBeVisible();
+    await expect(drawer.getByRole("button", { name: /Apply spatial workflow blocked/i })).toBeDisabled();
   });
 
   test("keeps controls usable across laptop and tablet viewport screenshots", async ({ page }, testInfo) => {

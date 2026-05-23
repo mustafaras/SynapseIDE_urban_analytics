@@ -209,6 +209,55 @@ describe("UrbanToMapMethodRequestAdapter", () => {
     expect(preview).not.toHaveProperty("layer");
   });
 
+  it("blocks Urban workflow previews when requiredCrs conflicts with the requested source layer", () => {
+    const preview = buildPreview(
+      methodRequest({
+        requestId: "urban-workflow-crs-conflict",
+        requestedActions: [{ type: "preview-map-workflow", workflowKind: "buffer" }],
+        requirements: {
+          layer: {
+            targetLayerIds: ["districts"],
+            geometryTypes: ["polygon"],
+            requiredFields: ["population"],
+            requiredCrs: "EPSG:3857",
+          },
+          workflow: {
+            kind: "buffer",
+            sourceLayerId: "districts",
+            distanceMeters: 250,
+          },
+        },
+      }),
+      [polygonLayer({
+        metadata: {
+          featureCount: 1,
+          fields: ["district", "population", "observed_at"],
+          crsSummary: { crs: "EPSG:32635", status: "known", source: "explicit", notes: [] },
+          geometrySummary: { geometryType: "Polygon", geometryTypes: ["Polygon"], featureCount: 1, source: "explicit", notes: [] },
+          schemaSummary: {
+            fieldCount: 3,
+            source: "explicit",
+            notes: [],
+            fields: [
+              { name: "district", role: "attribute", type: "string" },
+              { name: "population", role: "attribute", type: "number" },
+              { name: "observed_at", role: "temporal", type: "date" },
+            ],
+          },
+        },
+      })],
+    );
+
+    expect(preview.status).toBe("blocked");
+    expect(preview.compatibleLayers[0]?.reasons.join(" ")).toContain("does not match required CRS EPSG:3857");
+    expect(preview.workflowPreview).toMatchObject({
+      workflow: "buffer",
+      canApply: false,
+      blockerCount: expect.any(Number),
+    });
+    expect(preview.workflowPreview?.blockerCount).toBeGreaterThan(0);
+  });
+
   it("publishes and subscribes to the documented incoming Urban request event", () => {
     const listener = vi.fn();
     const unsubscribe = subscribeUrbanToMapMethodRequests(listener);

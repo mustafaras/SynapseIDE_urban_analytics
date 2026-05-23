@@ -569,6 +569,7 @@ describe("MapMeasurementTool — module export", () => {
     expect(html).toContain("Results");
     expect(html).toContain("Distance active");
     expect(html).toContain("WGS84 geodesic");
+    expect(html).toContain("CRS preflight allows this as geodesic display measurement only");
     expect(html).toContain("1.520 km");
     expect(html).toContain("Copy");
     expect(html).toContain("2024-01-01T00:00:00Z");
