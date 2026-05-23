@@ -50,7 +50,7 @@ interface FileExplorerStore {
 }
 
 
-const sampleFiles: FileNode[] = [
+export const sampleFiles: FileNode[] = [
   {
     id: '1',
     name: 'src',
@@ -307,6 +307,7 @@ const sampleFiles: FileNode[] = [
 
 const generateId = () => `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
+const PERSISTED_VERSION = 1;
 export const MAX_PERSISTED_FILE_CONTENT_CHARS = 256 * 1024;
 export const MAX_PERSISTED_TREE_NODES = 5000;
 export const MAX_EXPANDED_FOLDERS = 2000;
@@ -505,9 +506,9 @@ const filterFiles = (files: FileNode[], query: string): FileNode[] => {
 export const useFileExplorerStore = create<FileExplorerStore>()(
   persist(
     immer((set, get) => ({
-      files: sampleFiles,
+      files: [],
       selectedFiles: [],
-      expandedFolders: ['1'],
+      expandedFolders: [],
       draggedNode: null,
       searchQuery: '',
       sortBy: 'name',
@@ -700,6 +701,19 @@ export const useFileExplorerStore = create<FileExplorerStore>()(
     })),
     {
       name: 'enhanced-ide-file-explorer-state',
+      version: PERSISTED_VERSION,
+      migrate: (persisted: unknown, fromVersion) => {
+        if (fromVersion < PERSISTED_VERSION) {
+          return {
+            files: [],
+            expandedFolders: [],
+            sortBy: 'name',
+            sortOrder: 'asc',
+          } satisfies Partial<FileExplorerStore>;
+        }
+
+        return persisted;
+      },
       partialize: state => ({
         files: prepareFilesForPersistence(state.files),
         expandedFolders: state.expandedFolders.slice(0, MAX_EXPANDED_FOLDERS),
@@ -719,7 +733,10 @@ export const useFileExplorerStore = create<FileExplorerStore>()(
           }
 
 
-          const persisted = data as { state?: Partial<FileExplorerStore> };
+          const persisted = data as { state?: Partial<FileExplorerStore>; version?: number };
+          if (typeof persisted.version !== 'number') {
+            persisted.version = 0;
+          }
           if (Array.isArray(persisted.state?.files)) {
             persisted.state.files = clampFileTree(persisted.state.files).map((file: FileNode) => ({
               ...file,

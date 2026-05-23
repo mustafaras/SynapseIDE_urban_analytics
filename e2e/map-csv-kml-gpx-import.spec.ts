@@ -2,17 +2,10 @@ import { expect, test, type Page } from "@playwright/test";
 import { openUrbanAnalyticsWorkbench, resetWorkbenchState, triggerDomClick } from "./helpers/urbanAnalytics";
 
 async function expectImportedLayer(page: Page, layerName: string, importFormat: string): Promise<void> {
-  await page.waitForFunction(
-    async ({ expectedName, expectedFormat }) => {
-      const module = await import("/src/stores/useMapExplorerStore.ts");
-      return module.useMapExplorerStore.getState().overlayLayers.some((layer) =>
-        layer.name === expectedName &&
-        layer.visible === true &&
-        layer.metadata?.importFormat === expectedFormat,
-      );
-    },
-    { expectedName: layerName, expectedFormat: importFormat },
-  );
+  const mapExplorer = page.getByRole("dialog", { name: "Map Explorer" }).first();
+  const layerList = mapExplorer.getByRole("list", { name: "Layer list" }).filter({ hasText: layerName }).first();
+  await expect(layerList).toContainText(layerName);
+  await expect(layerList).toContainText(importFormat.toUpperCase());
 }
 
 async function openMapExplorer(page: Page) {
@@ -58,6 +51,7 @@ test.describe("Map Explorer CSV, KML, and GPX import", () => {
       "Park C,41.022,invalid,green",
       "Park D,41.030,29.010,blue",
       "Park E,41.040,29.020,yellow",
+      "Park F,not-a-number,29.030,red",
     ].join("\n");
 
     await importLocalFile(page, {
@@ -69,9 +63,11 @@ test.describe("Map Explorer CSV, KML, and GPX import", () => {
     const mappingDialog = page.getByRole("dialog", { name: "CSV coordinate mapping" });
     await expect(mappingDialog).toBeVisible();
     await expect(mappingDialog).toContainText("Import CSV Points");
-    await expect(mappingDialog).toContainText("parks.csv contains 5 data rows");
+    await expect(mappingDialog).toContainText("parks.csv contains 6 data rows");
     await expect(mappingDialog).toContainText("Detected: LAT");
     await expect(mappingDialog).toContainText("Detected: LON");
+    await expect(mappingDialog).toContainText("3 skipped rows");
+    await expect(mappingDialog).toContainText("CRS unknown");
     await expect(mappingDialog).toContainText("Preview (first 5 rows)");
     await expect(mappingDialog).toContainText("Park A");
     await expect(mappingDialog).toContainText("Park E");
@@ -106,7 +102,7 @@ test.describe("Map Explorer CSV, KML, and GPX import", () => {
       visible: true,
       importFormat: "csv",
       importedFeatureCount: 3,
-      skippedRecordCount: 2,
+      skippedRecordCount: 3,
     });
   });
 
@@ -137,17 +133,17 @@ test.describe("Map Explorer CSV, KML, and GPX import", () => {
   </Document>
 </kml>`;
 
-    await page.evaluate(async (rawKml) => {
-      const importer = await import("/src/services/map/MapDataImporter.ts");
-      const storeModule = await import("/src/stores/useMapExplorerStore.ts");
-      const prepared = await importer.prepareMapImportFile(new File([rawKml], "field-survey.kml", {
-        type: "application/xml",
-      }));
-      if (prepared.kind !== "ready") {
-        throw new Error(`Expected ready KML import, received ${prepared.kind}.`);
-      }
-      storeModule.useMapExplorerStore.getState().addOverlayLayer(prepared.result.layer);
-    }, kml);
+    await importLocalFile(page, {
+      name: "field-survey.kml",
+      mimeType: "application/xml",
+      buffer: Buffer.from(kml),
+    });
+
+    const preflightDialog = page.getByRole("dialog", { name: "Import source preflight" });
+    await expect(preflightDialog).toBeVisible();
+    await expect(preflightDialog).toContainText("field-survey.kml");
+    await expect(preflightDialog).toContainText("CRS missing");
+    await triggerDomClick(preflightDialog.getByRole("button", { name: "Import Source" }));
 
     await expectImportedLayer(page, "field-survey", "kml");
   });
@@ -185,9 +181,10 @@ test.describe("Map Explorer CSV, KML, and GPX import", () => {
       buffer: Buffer.from(gpx),
     });
 
-    await expect(page.getByTestId("toast").filter({
-      hasText: /Imported morning-track \(3 features\)\./i,
-    }).first()).toBeVisible();
+    const preflightDialog = page.getByRole("dialog", { name: "Import source preflight" });
+    await expect(preflightDialog).toBeVisible();
+    await expect(preflightDialog).toContainText("CRS missing");
+    await triggerDomClick(preflightDialog.getByRole("button", { name: "Import Source" }));
 
     await expectImportedLayer(page, "morning-track", "gpx");
     const layerList = mapExplorer.getByRole("list", { name: "Layer list" }).filter({ hasText: "morning-track" }).first();

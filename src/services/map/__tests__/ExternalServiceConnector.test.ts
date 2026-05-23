@@ -411,6 +411,11 @@ describe("ExternalServiceConnector", () => {
   });
 });
 
+// Opt-in live smoke tests: they make real network requests to public WMS/XYZ
+// providers, so they are skipped in the default (offline/CI) suite and gated behind
+// an env flag. Run them on demand with `npm run test:external-smoke`
+// (sets RUN_EXTERNAL_SERVICE_SMOKE=1). On a network with a TLS-intercepting proxy
+// these require the proxy CA to be trusted (e.g. NODE_EXTRA_CA_CERTS), just like git.
 const describeLive = process.env.RUN_EXTERNAL_SERVICE_SMOKE === "1" ? describe : describe.skip;
 
 describeLive("ExternalServiceConnector live service smoke tests", () => {

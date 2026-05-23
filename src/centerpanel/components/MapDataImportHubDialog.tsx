@@ -147,6 +147,16 @@ const LOCAL_FORMATS = [
     extensions: ".kml, .kmz, .gpx",
     description: "Interoperability path for field traces, placemarks, and archival map packages.",
   },
+  {
+    label: "FlatGeobuf / PMTiles",
+    extensions: ".fgb, .pmtiles",
+    description: "Metadata preflight with streaming readiness notes; full extent streaming lands in the large-vector slice.",
+  },
+  {
+    label: "GeoTIFF",
+    extensions: ".tif, .tiff",
+    description: "Metadata preflight with raster caveats; render, histogram, and band QA land in the raster slice.",
+  },
 ] as const;
 
 export const MapDataImportHubDialog: React.FC<MapDataImportHubDialogProps> = ({
@@ -185,7 +195,7 @@ export const MapDataImportHubDialog: React.FC<MapDataImportHubDialogProps> = ({
               Spatial Data Import Hub
             </div>
             <div style={{ color: MAP_COLORS.textSecondary, fontSize: 13, lineHeight: 1.55, maxWidth: 900 }}>
-              Load a curated teaching city pack with validated CRS and schema metadata, or continue with a local GeoJSON, CSV, Arrow, GeoParquet, KML, KMZ, or GPX file.
+              Load a curated teaching city pack with validated CRS and schema metadata, or continue with a local spatial file and review its source preflight before commit.
             </div>
           </div>
 
@@ -211,7 +221,7 @@ export const MapDataImportHubDialog: React.FC<MapDataImportHubDialogProps> = ({
                 Local Format Matrix
               </div>
               <div style={{ color: MAP_COLORS.textSecondary, fontSize: 12, lineHeight: 1.55 }}>
-                Columnar formats now surface schema previews, field statistics, quality scores, projected memory load, and worker-transfer readiness before commit.
+                Local files now surface source quality before commit: CRS status, schema, size, skipped rows, license and attribution gaps, and worker readiness.
               </div>
             </div>
 

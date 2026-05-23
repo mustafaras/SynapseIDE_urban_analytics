@@ -13,6 +13,37 @@ Map Explorer state is centered on the map store and the modal shell:
 
 The architectural rule is that map operations must update structured state first, then render UI from that state. Ad hoc DOM-only state is avoided for anything that affects layers, analysis, report handoff, QA, or persistence.
 
+## Store Slice Boundaries
+
+Prompt 3 formalized the store contract under `src/stores/mapExplorer/`. The public hook remains `useMapExplorerStore`, but slice policy modules now define which fields belong to each domain and whether they are persisted or transient.
+
+| Slice | Owns | Persistence policy | Rationale |
+| --- | --- | --- | --- |
+| Viewport | Modal open state, camera, fit-bounds handoff, base layer | Mixed: `center`, `zoom`, `bearing`, `pitch`, and `activeBaseLayer` persist; modal lifecycle and fit-bounds requests are transient | Restore the user's map view without reviving live UI handoffs. |
+| Layers | Overlay layer registry and active analysis result IDs | Mixed: active analysis result IDs persist; `overlayLayers` is transient | Overlay layers may include `sourceData` and large GeoJSON; future source handles restore layer metadata. |
+| Sources | `SourceHandle` metadata, restore status, and source registry actions | Persisted metadata only; raw source bytes, local file handles, worker payloads, and `sourceData` are never persisted in Zustand | Layers reference sources by `metadata.sourceId`; restore status is surfaced on the layer while source payloads stay in import/project/runtime services. |
+| Selection | Selected feature IDs and focused feature | Mixed: `selectedFeatureIds` persists; focused feature ID is transient | Feature IDs are lightweight bridge metadata; focus is live interaction state. |
+| AOI | Active AOI ID and drawn features/tools | Mixed: `activeAoiId` persists; drawn geometries and draw tools are transient | AOI identity is lightweight context; geometry belongs in project/source payloads. |
+| QA | Scientific QA and current map bounds | Transient | QA and bounds can go stale and should be recomputed or restored from evidence. |
+| Evidence | Map evidence artifact registry | Transient | Evidence is immutable analytical output, not mutable local UI persistence. |
+| Review | Review timeline session | Transient | Review history is exported/audited explicitly rather than silently restored. |
+| Temporal | Playback state and measurements | Transient | Playback cursors and measurement geometries are live workspace state. |
+| Layout | Panel widths, pins, bookmarks, annotations, active tool | Mixed: bounded marks and layout preferences persist; active tool/annotation focus is transient | Lightweight restore UX is safe; interaction focus is session-only. |
+| Bridge | Copilot/Urban bridge snapshots, proposals, audit counts | Transient | Bridge payloads must be rebuilt from current typed summaries, not stale localStorage. |
+
+The canonical persisted key list is exported as `MAP_EXPLORER_PERSISTED_STATE_KEYS`; heavy geometry guardrails are exported as `MAP_EXPLORER_HEAVY_GEOMETRY_KEYS`. The persistence helper `partializeMapExplorerState` is the only localStorage boundary for the map store.
+
+Source handles are the exception to the otherwise transient layer registry: `sourceHandles` persist as lightweight `SourceHandle` records only. The source registry service maps canonical storage modes such as `inline-small`, `worker-table`, and `metadata-only` onto the existing layer persistence vocabulary (`inline`, `url`, `metadata`) and maps canonical restore states (`restored`, `recoverable`, `unavailable`) onto the existing layer restore states for backward-compatible snapshots. Persisted handles are sanitized before storage, so a handle that has live geometry in memory is downgraded to `unavailable` unless it has a recoverable worker/cache/url reference.
+
+Heavy geometry keys are explicitly transient:
+
+- `overlayLayers`, because layers can carry `sourceData` with GeoJSON, raster references, or imported source payloads.
+- `drawnFeatures`, because drawn AOIs can contain arbitrary geometries and should travel through project/source export paths.
+- `measurements`, because measurement geometries are live analysis marks.
+- `mapEvidenceArtifacts`, because evidence state is immutable publication output and should be restored through evidence services.
+
+Selectors that return derived arrays are memoized on their owning slice reference. Prefer exported selectors such as `selectVisibleLayerSummaries`, `selectActiveAoi`, and `selectSelectedFeatureCount` over ad hoc whole-store subscriptions when building map panels.
+
 ## Layout Primitives
 
 Prompt 35 introduced explicit layout primitives:

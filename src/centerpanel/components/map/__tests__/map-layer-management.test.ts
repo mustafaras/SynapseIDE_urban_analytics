@@ -425,7 +425,11 @@ describe("MapLayerManager component", () => {
       visible: true,
       opacity: 1,
       group: "data",
+      sourceKind: "imported",
       metadata: {
+        sourceId: "source-population-grid",
+        sourceStorageMode: "inline-small",
+        sourceRestoreStatus: "restored",
         geometryType: "polygon",
         fields: ["population", "density"],
       },
@@ -446,6 +450,7 @@ describe("MapLayerManager component", () => {
     expect(html).toContain("Search layers...");
     expect(html).toContain("1/1 visible");
     expect(html).toContain("Population Grid");
+    expect(html).toContain("Imported / restored");
     expect(html).toContain("Delete");
   });
 
@@ -466,6 +471,62 @@ describe("MapLayerManager component", () => {
     expect(html).toContain("Add Demo Pack");
     expect(html).toContain("Load OSM Reference");
     expect(html).toContain("Add Layer");
+  });
+
+  it("requires confirmation before clearing the layer cache", async () => {
+    const mod = await import("../MapLayerManager");
+    const onClearLayerCache = vi.fn();
+    const announcements: string[] = [];
+    const layer: OverlayLayerConfig = {
+      id: "cached-layer",
+      name: "Cached Layer",
+      type: "geojson",
+      visible: true,
+      opacity: 1,
+      group: "data",
+    };
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        React.createElement(mod.MapLayerManager, {
+          overlayLayers: [layer],
+          activeBaseLayerName: "Dark Matter",
+          onToggleVisibility: () => undefined,
+          onSetOpacity: () => undefined,
+          onRemoveLayer: () => undefined,
+          onReorderLayers: () => undefined,
+          onAddLayer: () => undefined,
+          onClearLayerCache,
+          onAnnounce: (message: string) => announcements.push(message),
+        }),
+      );
+    });
+
+    const firstButton = container.querySelector<HTMLButtonElement>('[data-testid="map-layer-cache-clear-button"]');
+    expect(firstButton?.textContent).toContain("Clear Cache");
+
+    await act(async () => {
+      firstButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    const confirmButton = container.querySelector<HTMLButtonElement>('[data-testid="map-layer-cache-clear-button"]');
+    expect(confirmButton?.textContent).toContain("Confirm Clear");
+    expect(onClearLayerCache).not.toHaveBeenCalled();
+    expect(announcements).toContain("Confirm clearing Map Explorer layer cache.");
+
+    await act(async () => {
+      confirmButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(onClearLayerCache).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
   });
 
   it("renders a locate control for layers with extent metadata", async () => {

@@ -37,6 +37,7 @@
     "test:coverage": "vitest run --coverage src/engine src/features/urbanAnalytics src/services/data src/workers/pool src/centerpanel/Tools/__tests__/CoverageDiagnosticsPanel.test.tsx",
     "test:coverage:publish": "vitest run --coverage src/engine src/features/urbanAnalytics src/services/data src/workers/pool src/centerpanel/Tools/__tests__/CoverageDiagnosticsPanel.test.tsx && node scripts/export-coverage-summary.mjs",
     "test:watch": "vitest watch",
+    "test:external-smoke": "cross-env RUN_EXTERNAL_SERVICE_SMOKE=1 vitest run src/services/map/__tests__/ExternalServiceConnector.test.ts",
     "test:e2e": "playwright test",
     "test:e2e:a11y": "playwright test e2e/accessibility-audit.spec.ts",
     "test:e2e:smoke": "playwright test --grep \"@smoke\"",

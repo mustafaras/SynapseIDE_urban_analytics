@@ -1,5 +1,5 @@
 import React from "react";
-import type { CsvImportSession } from "../../services/map/MapDataImporter";
+import { profileCsvImportSession, type CsvImportSession } from "../../services/map/MapDataImporter";
 import {
   MAP_COLORS,
   MAP_RADIUS,
@@ -87,6 +87,34 @@ const primaryButtonStyle: React.CSSProperties = {
   color: MAP_COLORS.interaction,
 };
 
+const preflightGridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(132px, 1fr))",
+  gap: 0,
+  borderBottom: MAP_STROKES.hairlineSubtle,
+};
+
+const preflightCellStyle: React.CSSProperties = {
+  display: "grid",
+  gap: 4,
+  padding: MAP_SPACING.md,
+  borderRight: MAP_STROKES.hairlineSubtle,
+  borderBottom: MAP_STROKES.hairlineSubtle,
+  background: MAP_COLORS.bg,
+};
+
+function formatBytes(value: number | undefined): string {
+  if (value == null || !Number.isFinite(value) || value <= 0) return "unknown";
+  const units = ["B", "KB", "MB", "GB"];
+  let size = value;
+  let unitIndex = 0;
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024;
+    unitIndex += 1;
+  }
+  return `${size.toFixed(size >= 100 || unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+}
+
 export const MapCsvImportDialog: React.FC<MapCsvImportDialogProps> = ({
   open,
   session,
@@ -98,6 +126,11 @@ export const MapCsvImportDialog: React.FC<MapCsvImportDialogProps> = ({
   onImport,
 }) => {
   if (!open || !session) return null;
+
+  const sourceProfile = profileCsvImportSession(session, {
+    latitudeColumn,
+    longitudeColumn,
+  });
 
   const importDisabled =
     latitudeColumn.length === 0 ||
@@ -188,6 +221,47 @@ export const MapCsvImportDialog: React.FC<MapCsvImportDialogProps> = ({
               </div>
             ) : null}
           </label>
+        </div>
+
+        <div style={preflightGridStyle} aria-label="CSV source preflight">
+          <div style={preflightCellStyle}>
+            <span style={{ color: MAP_COLORS.textMuted, fontSize: 10, textTransform: "uppercase", letterSpacing: 0 }}>Valid Features</span>
+            <span style={{ color: MAP_COLORS.text, fontSize: 16, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
+              {sourceProfile.featureCount?.toLocaleString() ?? "unknown"}
+            </span>
+            <span style={{ color: MAP_COLORS.textSecondary, fontSize: 11 }}>
+              {sourceProfile.totalRecords?.toLocaleString() ?? session.totalRows.toLocaleString()} source rows profiled.
+            </span>
+          </div>
+          <div style={preflightCellStyle}>
+            <span style={{ color: MAP_COLORS.textMuted, fontSize: 10, textTransform: "uppercase", letterSpacing: 0 }}>Skipped Rows</span>
+            <span style={{ color: (sourceProfile.skippedRecordCount ?? 0) > 0 ? MAP_COLORS.caveatText : MAP_COLORS.text, fontSize: 16, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
+              {(sourceProfile.skippedRecordCount ?? 0).toLocaleString()}
+            </span>
+            <span style={{ color: MAP_COLORS.textSecondary, fontSize: 11 }}>
+              {(sourceProfile.skippedRecordCount ?? 0) > 0
+                ? `${(sourceProfile.skippedRecordCount ?? 0).toLocaleString()} skipped rows will be excluded.`
+                : "No skipped rows detected for the current mapping."}
+            </span>
+          </div>
+          <div style={preflightCellStyle}>
+            <span style={{ color: MAP_COLORS.textMuted, fontSize: 10, textTransform: "uppercase", letterSpacing: 0 }}>CRS</span>
+            <span style={{ color: MAP_COLORS.caveatText, fontSize: 14, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
+              CRS {sourceProfile.crsSummary.status}
+            </span>
+            <span style={{ color: MAP_COLORS.textSecondary, fontSize: 11 }}>
+              Coordinate columns do not prove a declared CRS.
+            </span>
+          </div>
+          <div style={preflightCellStyle}>
+            <span style={{ color: MAP_COLORS.textMuted, fontSize: 10, textTransform: "uppercase", letterSpacing: 0 }}>Source Size</span>
+            <span style={{ color: MAP_COLORS.text, fontSize: 14, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
+              {formatBytes(sourceProfile.sizeBytes)}
+            </span>
+            <span style={{ color: sourceProfile.workerReady ? MAP_COLORS.success : MAP_COLORS.textSecondary, fontSize: 11 }}>
+              Worker {sourceProfile.workerReady ? "ready" : "not required"}
+            </span>
+          </div>
         </div>
 
         <div style={{ ...sectionStyle, overflow: "auto", flex: 1 }}>

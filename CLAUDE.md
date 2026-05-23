@@ -46,6 +46,10 @@ Completion status at archive time:
 
 For archive lookup, start with [README.md](docs/archive/development-plans/tri-modal-operating-pack-2026-05-20/README.md) and [ARCHIVE_INDEX.md](docs/archive/development-plans/tri-modal-operating-pack-2026-05-20/ARCHIVE_INDEX.md). Treat the archived pack as historical reference only; new structured work should begin from a new operating pack or a user-directed task.
 
+## Active operating pack — Map Explorer Production GIS (2026-05-22)
+
+If asked to implement a "Prompt N" / "Map Explorer GIS" / "production GIS" task, the active pack is `MAP_EXPLORER_PRODUCTION_GIS_PLAN_2026-05-22/`. **Start with [LEDGER.md](MAP_EXPLORER_PRODUCTION_GIS_PLAN_2026-05-22/LEDGER.md)** — it holds execution state (which prompts are done/next), the cold-start resume steps, and the update protocol. Then read [15_AGENT_EXECUTION_PROMPTS.md](MAP_EXPLORER_PRODUCTION_GIS_PLAN_2026-05-22/15_AGENT_EXECUTION_PROMPTS.md) — specifically its "Cold-start protocol (anti-amnesia)", "Repo Reality Notes", "Agent Contract v2", "Canonical Type Contracts", and "Shared Test Fixtures" sections. After finishing a prompt, update the ledger (status + Done Log) in the same commit. Shared shapes are committed in [`gisContracts.ts`](src/services/map/contracts/gisContracts.ts); shared test fixtures in [gisFixtures.ts](src/centerpanel/components/map/__tests__/fixtures/gisFixtures.ts). Import these rather than re-defining them. Map tests run via `npx vitest run <path>` (not `test:analytics`).
+
 ## Token-economy guidelines for this repo
 
 - Don't `Get-ChildItem -Recurse` from project root — `.venv`/`node_modules` are huge. Use Glob.

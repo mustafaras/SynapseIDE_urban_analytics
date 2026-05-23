@@ -22,6 +22,7 @@
 
 import type { Feature, FeatureCollection, Geometry, MultiPolygon, Polygon } from "geojson";
 import * as turf from "@turf/turf";
+import type { CrsPreflightResult, CrsRemedy } from "@/services/map/contracts/gisContracts";
 import type {
   LayerMetadata,
   LayerProvenance,
@@ -38,6 +39,12 @@ import {
   buildFeatureCollectionMetadata,
   getFeatureCollectionBounds,
 } from "./MapDataImporter";
+import {
+  preflight as preflightCrs,
+  type CrsPreflightLayer,
+  type CrsPreflightMetric,
+  type CrsPreflightOperation,
+} from "./crs/CrsPreflight";
 
 /* ================================================================== */
 /*  Versioning & constants                                             */
@@ -247,6 +254,7 @@ export interface MapWorkflowContext {
   viewportBounds: [number, number, number, number] | null;
   geocodedPlace: MapWorkflowGeocodedPlace | null;
   now?: Date;
+  urbanRequiredCrs?: string | null;
 }
 
 /* ================================================================== */
@@ -260,6 +268,7 @@ export interface MapWorkflowIssue {
   severity: MapWorkflowIssueSeverity;
   code: string;
   message: string;
+  remedy?: CrsRemedy;
 }
 
 export interface MapWorkflowGuidance {
@@ -296,6 +305,7 @@ export interface MapWorkflowPreview {
   canApply: boolean;
   needsWorker: boolean;
   suggestions: MapWorkflowSuggestedAction[];
+  crsPreflight: CrsPreflightResult;
   comparisonState?: MapWorkflowComparisonStatePreview;
 }
 
@@ -346,6 +356,7 @@ export function buildMapWorkflowContext(
     drawnPolygons?: Array<Feature<Polygon | MultiPolygon>>;
     viewportBounds?: [number, number, number, number] | null;
     geocodedPlace?: MapWorkflowGeocodedPlace | null;
+    urbanRequiredCrs?: string | null;
     now?: Date;
   } = {},
 ): MapWorkflowContext {
@@ -358,6 +369,8 @@ export function buildMapWorkflowContext(
     const featureCount = fc?.features.length ?? layer.metadata?.featureCount ?? 0;
     const fields = layer.metadata?.fields ?? [];
     const crs =
+      layer.metadata?.crsSummary?.crs ??
+      layer.metadata?.registry?.crsSummary.crs ??
       layer.metadata?.datasetContext?.crs ??
       layer.metadata?.columnar?.crs ??
       layer.metadata?.externalService?.crs ??
@@ -395,6 +408,7 @@ export function buildMapWorkflowContext(
     drawnPolygons: options.drawnPolygons ?? [],
     viewportBounds: options.viewportBounds ?? null,
     geocodedPlace: options.geocodedPlace ?? null,
+    ...(options.urbanRequiredCrs !== undefined ? { urbanRequiredCrs: options.urbanRequiredCrs } : {}),
     ...(options.now ? { now: options.now } : {}),
   };
 }
@@ -991,6 +1005,15 @@ function previewBuffer(
     : layer
       ? context.layerSourceMap.get(layer.id) ?? null
       : null;
+  const crsPreflight = preflightMapWorkflowOperation({
+    label: "Buffer",
+    metric: "buffer",
+    sourceLayerIds: sourceMode === "selected-features" ? context.selectedLayerIds : layer ? [layer.id] : [],
+    context,
+    sourceGeometry: source,
+  });
+  pushCrsPreflightIssue(crsPreflight, "source", issues);
+
   if (source && meters > 0 && !distanceIssue && issues.every((entry) => entry.severity !== "blocker")) {
     workerNeeded = source.features.length > MAP_WORKFLOW_WORKER_FEATURE_THRESHOLD;
     featureCollection = computeBuffer(source, meters, {
@@ -1060,6 +1083,7 @@ function previewBuffer(
     guidance,
     suggestions,
     needsWorker: workerNeeded,
+    crsPreflight,
     context,
   });
 }
@@ -1087,6 +1111,14 @@ function previewIntersect(
   const layerB = pickLayer(context, draft.layerBId);
 
   validatePolygonPair(draft.layerAId, draft.layerBId, layerA, layerB, issues);
+  const crsPreflight = preflightMapWorkflowOperation({
+    label: "Intersection",
+    metric: "intersection",
+    sourceLayerIds: [draft.layerAId, draft.layerBId].filter((id): id is string => Boolean(id)),
+    context,
+    preferEqualArea: true,
+  });
+  pushCrsPreflightIssue(crsPreflight, "source", issues);
 
   let featureCollection: FeatureCollection | null = null;
   let workerNeeded = false;
@@ -1138,6 +1170,7 @@ function previewIntersect(
     guidance,
     suggestions,
     needsWorker: workerNeeded,
+    crsPreflight,
     context,
   });
 }
@@ -1164,6 +1197,14 @@ function previewDifference(
   const layerA = pickLayer(context, draft.minuendLayerId);
   const layerB = pickLayer(context, draft.subtrahendLayerId);
   validatePolygonPair(draft.minuendLayerId, draft.subtrahendLayerId, layerA, layerB, issues);
+  const crsPreflight = preflightMapWorkflowOperation({
+    label: "Difference",
+    metric: "difference",
+    sourceLayerIds: [draft.minuendLayerId, draft.subtrahendLayerId].filter((id): id is string => Boolean(id)),
+    context,
+    preferEqualArea: true,
+  });
+  pushCrsPreflightIssue(crsPreflight, "source", issues);
 
   let featureCollection: FeatureCollection | null = null;
   let workerNeeded = false;
@@ -1202,6 +1243,7 @@ function previewDifference(
     guidance,
     suggestions,
     needsWorker: workerNeeded,
+    crsPreflight,
     context,
   });
 }
@@ -1228,6 +1270,14 @@ function previewUnion(
   const layerA = pickLayer(context, draft.layerAId);
   const layerB = pickLayer(context, draft.layerBId);
   validatePolygonPair(draft.layerAId, draft.layerBId, layerA, layerB, issues);
+  const crsPreflight = preflightMapWorkflowOperation({
+    label: "Union",
+    metric: "union",
+    sourceLayerIds: [draft.layerAId, draft.layerBId].filter((id): id is string => Boolean(id)),
+    context,
+    preferEqualArea: true,
+  });
+  pushCrsPreflightIssue(crsPreflight, "source", issues);
 
   let featureCollection: FeatureCollection | null = null;
   let workerNeeded = false;
@@ -1267,6 +1317,7 @@ function previewUnion(
     guidance,
     suggestions,
     needsWorker: workerNeeded,
+    crsPreflight,
     context,
   });
 }
@@ -1403,6 +1454,7 @@ function finalizePreview(input: {
   context: MapWorkflowContext;
   needsWorker?: boolean | undefined;
   forceCanApply?: boolean | undefined;
+  crsPreflight?: CrsPreflightResult | undefined;
   comparisonState?: MapWorkflowComparisonStatePreview | undefined;
 }): MapWorkflowPreview {
   const blockers = input.issues.filter((entry) => entry.severity === "blocker");
@@ -1413,6 +1465,15 @@ function finalizePreview(input: {
 
   const nextRequiredStep = blockers[0]?.step ?? null;
   const expectedOutput = buildExpectedOutput(input, featureCount, input.needsWorker);
+  const crsPreflight = input.crsPreflight ?? preflightMapWorkflowOperation({
+    label: describeMethod({ workflow: input.workflow }),
+    metric: input.workflow === "comparison" ? "visual" : "area",
+    sourceLayerIds: collectSourceLayerIds(input.draft, input.context),
+    context: input.context,
+    sourceGeometry: input.featureCollection,
+    executionKind: input.workflow === "comparison" ? "geodesic" : "geodesic",
+    preferEqualArea: input.workflow !== "comparison",
+  });
   const manifest = buildPreviewManifest({
     workflow: input.workflow,
     draft: input.draft,
@@ -1424,6 +1485,7 @@ function finalizePreview(input: {
     expectedOutput,
     needsWorker: Boolean(input.needsWorker),
     canApply,
+    crsPreflight,
   });
 
   return {
@@ -1442,6 +1504,7 @@ function finalizePreview(input: {
     canApply,
     needsWorker: Boolean(input.needsWorker),
     suggestions: input.suggestions,
+    crsPreflight,
     ...(input.comparisonState ? { comparisonState: input.comparisonState } : {}),
   };
 }
@@ -1486,6 +1549,7 @@ function buildPreviewManifest(input: {
   expectedOutput: MapReproducibilityExpectedOutput;
   needsWorker: boolean;
   canApply: boolean;
+  crsPreflight: CrsPreflightResult;
 }): MapReproducibilityManifest {
   const createdAt = nowIso(input.context);
   const sourceLayerIds = collectSourceLayerIds(input.draft, input.context);
@@ -1520,7 +1584,7 @@ function buildPreviewManifest(input: {
     aoiReference: buildAoiReference(input.draft, input.context),
     viewportBounds: input.context.viewportBounds,
     parameters: collectParameters(input.draft),
-    crsSummary: buildManifestCrsSummary(input.context, sourceLayerIds),
+    crsSummary: buildManifestCrsSummary(input.context, sourceLayerIds, input.bounds, input.crsPreflight),
     qaSummary,
     expectedOutput: input.expectedOutput,
     handoffReferences: {
@@ -1597,14 +1661,19 @@ function buildAoiReference(
 function buildManifestCrsSummary(
   context: MapWorkflowContext,
   sourceLayerIds: string[],
+  previewBounds: [number, number, number, number] | null,
+  crsPreflight: CrsPreflightResult,
 ): MapReproducibilityManifest["crsSummary"] {
   if (sourceLayerIds.length === 0) {
     return {
       status: "not-applicable",
-      displayCrs: "EPSG:4326",
+      sourceCrs: crsPreflight.sourceCrs,
+      displayCrs: crsPreflight.displayCrs,
+      executionCrs: crsPreflight.executionCrs,
+      executionKind: crsPreflight.executionKind,
       sourceLayerCrs: [],
       missingLayerIds: [],
-      notes: ["Workflow uses ad-hoc AOI geometry or comparison state without source layer CRS requirements."],
+      notes: buildCrsPreflightNotes(crsPreflight, ["Workflow uses ad-hoc AOI geometry or comparison state without source layer CRS requirements."]),
     };
   }
 
@@ -1629,11 +1698,50 @@ function buildManifestCrsSummary(
 
   return {
     status,
-    displayCrs: "EPSG:4326",
+    sourceCrs: crsPreflight.sourceCrs,
+    displayCrs: crsPreflight.displayCrs,
+    executionCrs: crsPreflight.executionCrs,
+    executionKind: crsPreflight.executionKind,
     sourceLayerCrs,
     missingLayerIds,
-    notes,
+    notes: buildCrsPreflightNotes(crsPreflight, notes),
   };
+}
+
+function getSourceLayerExtent(
+  context: MapWorkflowContext,
+  sourceLayerIds: string[],
+): [number, number, number, number] | null {
+  const extents = sourceLayerIds
+    .map((layerId) => {
+      const source = context.layerSourceMap.get(layerId);
+      return source ? getFeatureCollectionBounds(source) ?? null : null;
+    })
+    .filter((extent): extent is [number, number, number, number] => Boolean(extent));
+
+  if (extents.length === 0) return null;
+  return extents.reduce<[number, number, number, number]>((accumulator, extent) => [
+    Math.min(accumulator[0], extent[0]),
+    Math.min(accumulator[1], extent[1]),
+    Math.max(accumulator[2], extent[2]),
+    Math.max(accumulator[3], extent[3]),
+  ], extents[0]!);
+}
+
+function buildCrsPreflightNotes(preflightResult: CrsPreflightResult, baseNotes: string[]): string[] {
+  const notes = [...baseNotes];
+  if (preflightResult.reason) {
+    notes.push(preflightResult.reason);
+  }
+  notes.push(...preflightResult.caveats);
+  if (preflightResult.executionCrs) {
+    notes.push(`Execution CRS ${preflightResult.executionCrs} selected for ${preflightResult.executionKind} metric work.`);
+  } else if (preflightResult.blocked) {
+    notes.push("Execution CRS is blocked until source CRS metadata is corrected.");
+  } else {
+    notes.push("Execution CRS is not required for this geodesic or visual display operation.");
+  }
+  return notes;
 }
 
 function buildManifestQASummary(
@@ -1713,6 +1821,59 @@ function stableHash(value: string): string {
 
 function assertNever(value: never): never {
   throw new Error(`Unhandled map workflow variant: ${String(value)}`);
+}
+
+function preflightMapWorkflowOperation(input: {
+  label: string;
+  metric: CrsPreflightMetric;
+  sourceLayerIds: string[];
+  context: MapWorkflowContext;
+  sourceGeometry?: FeatureCollection | null | undefined;
+  executionKind?: CrsPreflightResult["executionKind"] | undefined;
+  preferEqualArea?: boolean | undefined;
+  requiredCrs?: string | null | undefined;
+}): CrsPreflightResult {
+  const sourceLayers: CrsPreflightLayer[] = input.sourceLayerIds.length > 0
+    ? input.sourceLayerIds.map((layerId) => {
+        const layer = input.context.layers.find((entry) => entry.id === layerId);
+        return {
+          id: layerId,
+          name: layer?.name ?? layerId,
+          crs: layer?.crs ?? null,
+        };
+      })
+    : input.sourceGeometry && input.metric !== "visual" && input.executionKind !== "geodesic"
+      ? [{ id: "ad-hoc-geometry", name: "Ad-hoc geometry", crs: null }]
+      : [];
+  const requiredCrs = input.requiredCrs ?? input.context.urbanRequiredCrs ?? null;
+  const operation: CrsPreflightOperation = {
+    id: `workflow:${input.metric}`,
+    label: input.label,
+    metric: input.metric,
+    executionKind: input.executionKind ?? "planar",
+    ...(requiredCrs ? { requiredCrs } : {}),
+    ...(input.preferEqualArea !== undefined ? { preferEqualArea: input.preferEqualArea } : {}),
+  };
+  return preflightCrs(
+    operation,
+    sourceLayers,
+    input.sourceGeometry ?? getSourceLayerExtent(input.context, input.sourceLayerIds) ?? input.context.viewportBounds,
+  );
+}
+
+function pushCrsPreflightIssue(
+  crsPreflight: CrsPreflightResult,
+  step: MapWorkflowStepId,
+  issues: MapWorkflowIssue[],
+): void {
+  if (!crsPreflight.blocked) return;
+  issues.push({
+    step,
+    severity: "blocker",
+    code: crsPreflight.remedy ? `crs-${crsPreflight.remedy}` : "crs-preflight-blocked",
+    message: crsPreflight.reason ?? "CRS preflight blocked this metric operation.",
+    ...(crsPreflight.remedy ? { remedy: crsPreflight.remedy } : {}),
+  });
 }
 
 function pickLayer(
@@ -2294,6 +2455,7 @@ function collectCaveats(preview: MapWorkflowPreview): string[] {
   if (preview.needsWorker) {
     caveats.push("Large dataset — production runs should execute in a worker for responsiveness.");
   }
+  caveats.push(...preview.crsPreflight.caveats);
   return caveats;
 }
 

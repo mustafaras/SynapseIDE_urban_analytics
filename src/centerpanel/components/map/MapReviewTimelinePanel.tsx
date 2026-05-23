@@ -47,6 +47,7 @@ export interface MapReviewTimelinePanelProps {
   onRecordEvent: (event: MapReviewTimelineEventInput) => void;
   onUpdateEventStatus: (eventId: string, status: MapReviewTimelineEventStatus, outcome?: string) => void;
   onClearSession: () => void;
+  onRevertCommand?: (commandId: string) => void;
   onAnnounce?: (message: string) => void;
 }
 
@@ -330,13 +331,19 @@ function EventRow({
   event,
   layerLookup,
   onUpdateEventStatus,
+  onRevertCommand,
 }: {
   event: MapReviewTimelineEvent;
   layerLookup: Map<string, string>;
   onUpdateEventStatus: MapReviewTimelinePanelProps["onUpdateEventStatus"];
+  onRevertCommand?: MapReviewTimelinePanelProps["onRevertCommand"];
 }): React.ReactElement {
   const layerLabels = event.layerIds.map((layerId) => layerLookup.get(layerId) ?? layerId);
   const statusColor = eventStatusColor(event.status);
+  const revertCommandId =
+    onRevertCommand && event.undo?.available && event.status === "applied" && typeof event.details.commandId === "string"
+      ? event.details.commandId
+      : null;
   const canAcknowledge = event.status === "recorded" || event.status === "proposed" || event.status === "previewed";
 
   return (
@@ -377,6 +384,18 @@ function EventRow({
             Acknowledge
           </button>
         ) : null}
+        {revertCommandId ? (
+          <button
+            type="button"
+            style={actionButtonStyle}
+            onClick={() => onRevertCommand?.(revertCommandId)}
+            data-testid="map-review-timeline-revert"
+            aria-label={`Revert ${event.title}`}
+          >
+            <RotateCcw size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+            Revert
+          </button>
+        ) : null}
         {event.undo ? (
           <span style={metaStyle}>
             Undo {event.undo.available ? "available" : "unavailable"}{event.undo.outcome ? ` / ${event.undo.outcome}` : ""}
@@ -396,6 +415,7 @@ export const MapReviewTimelinePanel: React.FC<MapReviewTimelinePanelProps> = ({
   onRecordEvent,
   onUpdateEventStatus,
   onClearSession,
+  onRevertCommand,
   onAnnounce,
 }) => {
   const panelDrag = useDraggableMapPanel();
@@ -529,6 +549,7 @@ export const MapReviewTimelinePanel: React.FC<MapReviewTimelinePanelProps> = ({
               event={event}
               layerLookup={layerLookup}
               onUpdateEventStatus={onUpdateEventStatus}
+              {...(onRevertCommand ? { onRevertCommand } : {})}
             />
           ))
         ) : (

@@ -489,6 +489,9 @@ export const MapWorkflowDrawer: React.FC<MapWorkflowDrawerProps> = ({
     () => generateMapWorkflowPreview(draft, context),
     [draft, context],
   );
+  const crsBlocker = preview.issues.find(
+    (issue) => issue.severity === "blocker" && issue.code.startsWith("crs-"),
+  );
 
   useEffect(() => {
     if (!visible) {
@@ -536,6 +539,17 @@ export const MapWorkflowDrawer: React.FC<MapWorkflowDrawerProps> = ({
     if (!result) return;
     onSaveReport?.(result.reportItem);
     onAnnounce?.(`${result.reportItem.title} saved as report item.`);
+  };
+  const announceCrsRemedy = (remedy: NonNullable<MapWorkflowPreview["issues"][number]["remedy"]>) => {
+    const label = formatCrsRemedyLabel(remedy);
+    const instruction = remedy === "declare-crs"
+      ? "Open the layer inspector CRS controls and declare the source CRS before rerunning this workflow."
+      : remedy === "reproject"
+        ? "Reproject the source layer to a suitable projected CRS before rerunning this workflow."
+        : remedy === "use-geodesic"
+          ? "Switch to a geodesic display measurement when an analytical planar result is not required."
+          : "No CRS remedy is required.";
+    onAnnounce?.(`${label}: ${instruction}`);
   };
   const applyStatusId = "map-workflow-apply-status";
   const applyStatusText = preview.canApply
@@ -635,6 +649,34 @@ export const MapWorkflowDrawer: React.FC<MapWorkflowDrawerProps> = ({
             <span>{MAP_WORKFLOW_STEP_LABELS.preview}</span>
             <PreviewBadge preview={preview} />
           </div>
+          {crsBlocker ? (
+            <div
+              style={{
+                ...issueLine("blocker"),
+                padding: MAP_SPACING.sm,
+                border: `1px solid ${MAP_COLORS.error}`,
+                borderRadius: MAP_RADIUS.sm,
+                background: MAP_COLORS.selectedSubtle,
+              }}
+              data-testid="map-workflow-crs-blocked-card"
+            >
+              <CircleOff size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+              <span>
+                <strong style={{ color: MAP_COLORS.text }}>CRS preflight blocked:</strong>{" "}
+                {crsBlocker.message}
+                {crsBlocker.remedy ? (
+                  <button
+                    type="button"
+                    style={{ ...mapStyles.sidePanelActionButton, marginTop: MAP_SPACING.xs, width: "fit-content" }}
+                    onClick={() => crsBlocker.remedy ? announceCrsRemedy(crsBlocker.remedy) : undefined}
+                    aria-label={`${formatCrsRemedyLabel(crsBlocker.remedy)} for blocked CRS preflight`}
+                  >
+                    {formatCrsRemedyLabel(crsBlocker.remedy)}
+                  </button>
+                ) : null}
+              </span>
+            </div>
+          ) : null}
           <div style={metricGrid}>
             {Object.entries(preview.metrics).map(([key, value]) => (
               <div key={key} style={metricCell}>
@@ -700,6 +742,16 @@ export const MapWorkflowDrawer: React.FC<MapWorkflowDrawerProps> = ({
                     {MAP_WORKFLOW_STEP_LABELS[issue.step]}:
                   </strong>{" "}
                   {issue.message}
+                  {issue.remedy ? (
+                    <button
+                      type="button"
+                      style={{ ...mapStyles.sidePanelActionButton, marginTop: MAP_SPACING.xs, width: "fit-content" }}
+                      onClick={() => issue.remedy ? announceCrsRemedy(issue.remedy) : undefined}
+                      aria-label={`${formatCrsRemedyLabel(issue.remedy)} for CRS blocker`}
+                    >
+                      {formatCrsRemedyLabel(issue.remedy)}
+                    </button>
+                  ) : null}
                 </span>
               </div>
             ))}
@@ -891,6 +943,19 @@ function isStepBeforeCurrent(
 
 function shortManifestId(value: string): string {
   return value.length > 22 ? `${value.slice(0, 18)}...` : value;
+}
+
+function formatCrsRemedyLabel(remedy: NonNullable<MapWorkflowPreview["issues"][number]["remedy"]>): string {
+  switch (remedy) {
+    case "declare-crs":
+      return "Declare CRS";
+    case "reproject":
+      return "Reproject";
+    case "use-geodesic":
+      return "Use geodesic";
+    case "none":
+      return "No remedy needed";
+  }
 }
 
 /* ================================================================== */

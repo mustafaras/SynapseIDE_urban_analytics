@@ -38,16 +38,18 @@ import { withNormalizedLayerRegistryMetadata } from "../centerpanel/components/m
 import {
   createMapEvidenceArtifact,
   createMapQAFindingEvidenceArtifact,
-  selectMapEvidenceArtifactsByAoi as filterMapEvidenceArtifactsByAoi,
-  selectMapEvidenceArtifactsByLayer as filterMapEvidenceArtifactsByLayer,
-  selectMapEvidenceArtifactsBySource as filterMapEvidenceArtifactsBySource,
-  selectMapEvidenceArtifactsByWorkflow as filterMapEvidenceArtifactsByWorkflow,
   type MapEvidenceArtifactDraft,
   type MapEvidenceArtifactUpdate,
   patchMapEvidenceArtifact,
   upsertMapEvidenceArtifact as upsertMapEvidenceArtifactInRegistry,
 } from "../centerpanel/components/map/mapEvidenceArtifacts";
 import type { MapScientificQAState } from "../services/map/MapScientificQA";
+import type { SourceHandle } from "../services/map/contracts/gisContracts";
+import {
+  cloneSourceHandle,
+  removeSourceHandle as removeSourceHandleFromList,
+  upsertSourceHandle as upsertSourceHandleInList,
+} from "../services/map/sources/MapSourceRegistry";
 import {
   appendMapReviewEvent,
   createMapReviewSession,
@@ -57,6 +59,14 @@ import {
   type MapReviewTimelineEventStatus,
   updateMapReviewEventStatus as updateMapReviewEventStatusInSession,
 } from "../services/map/MapReviewSessionService";
+import { partializeMapExplorerState, type PersistedMapExplorerState } from "./mapExplorer/persistence";
+import {
+  selectMapEvidenceArtifacts,
+  selectMapEvidenceArtifactsForAoi,
+  selectMapEvidenceArtifactsForLayer,
+  selectMapEvidenceArtifactsForSource,
+  selectMapEvidenceArtifactsForWorkflow,
+} from "./mapExplorer/selectors";
 
 /* ================================================================== */
 /*  Default viewport                                                   */
@@ -256,6 +266,13 @@ export interface MapExplorerState {
   currentMapBoundsUpdatedAt: string | null;
   setCurrentMapBounds: (bounds: [number, number, number, number] | null) => void;
 
+  /* --- Source handles (persisted metadata only) --- */
+  sourceHandles: SourceHandle[];
+  upsertSourceHandle: (handle: SourceHandle) => SourceHandle;
+  removeSourceHandle: (sourceId: string) => void;
+  replaceSourceHandles: (handles: SourceHandle[]) => void;
+  clearSourceHandles: () => void;
+
   /* --- Map evidence artifact registry (NOT persisted) --- */
   mapEvidenceArtifacts: MapEvidenceArtifact[];
   registerMapEvidenceArtifact: (draft: MapEvidenceArtifactDraft) => MapEvidenceArtifact;
@@ -335,6 +352,7 @@ export interface MapExplorerState {
     annotations: MapAnnotation[];
     drawnFeatures: DrawnFeature[];
     overlayLayers: OverlayLayerConfig[];
+    sourceHandles?: SourceHandle[];
     measurements?: Measurement[];
     /**
      * When true, the persisted viewport (center/zoom/bearing/pitch) from
@@ -349,23 +367,6 @@ export interface MapExplorerState {
     activeBaseLayer?: BaseLayerId;
   }) => void;
 }
-
-type PersistedMapExplorerState = Pick<
-  MapExplorerState,
-  | "center"
-  | "zoom"
-  | "bearing"
-  | "pitch"
-  | "activeBaseLayer"
-  | "pins"
-  | "bookmarks"
-  | "annotations"
-  | "annotationToolSettings"
-  | "selectedFeatureIds"
-  | "activeAoiId"
-  | "activeAnalysisResultLayerIds"
-  | "layoutPreferences"
->;
 
 const noopMapExplorerStorage: StateStorage = {
   getItem: () => null,
@@ -1142,6 +1143,23 @@ export const useMapExplorerStore = create<MapExplorerState>()(
           currentMapBoundsUpdatedAt: bounds ? nowIsoTimestamp() : null,
         }),
 
+      /* --- Source handles --- */
+      sourceHandles: [] as SourceHandle[],
+      upsertSourceHandle: (handle: SourceHandle) => {
+        const normalizedHandle = cloneSourceHandle(handle);
+        set((state: MapExplorerState) => ({
+          sourceHandles: upsertSourceHandleInList(state.sourceHandles, normalizedHandle),
+        }));
+        return normalizedHandle;
+      },
+      removeSourceHandle: (sourceId: string) =>
+        set((state: MapExplorerState) => ({
+          sourceHandles: removeSourceHandleFromList(state.sourceHandles, sourceId),
+        })),
+      replaceSourceHandles: (handles: SourceHandle[]) =>
+        set({ sourceHandles: handles.map(cloneSourceHandle) }),
+      clearSourceHandles: () => set({ sourceHandles: [] }),
+
       /* --- Map evidence artifact registry --- */
       mapEvidenceArtifacts: [] as MapEvidenceArtifact[],
       registerMapEvidenceArtifact: (draft: MapEvidenceArtifactDraft) => {
@@ -1391,6 +1409,7 @@ export const useMapExplorerStore = create<MapExplorerState>()(
         annotations = [],
         drawnFeatures,
         overlayLayers,
+        sourceHandles = [],
         measurements,
         skipViewport = false,
       }: Parameters<MapExplorerState["restoreProjectState"]>[0]) =>
@@ -1420,6 +1439,7 @@ export const useMapExplorerStore = create<MapExplorerState>()(
               .slice(0, MAP_ANNOTATION_LIMIT)
               .map((annotation, index) => normalizePersistedAnnotation(annotation, index)),
             overlayLayers: overlayLayers.map((layer) => normalizeOverlayLayerForStore(layer)),
+            sourceHandles: sourceHandles.map(cloneSourceHandle),
             scientificQA: null,
             currentMapBounds: null,
             currentMapBoundsUpdatedAt: null,
@@ -1459,6 +1479,7 @@ export const useMapExplorerStore = create<MapExplorerState>()(
             bookmarks: [],
             annotations: [],
             overlayLayers: [],
+            sourceHandles: [],
             scientificQA: null,
             currentMapBounds: null,
             currentMapBoundsUpdatedAt: null,
@@ -1485,21 +1506,7 @@ export const useMapExplorerStore = create<MapExplorerState>()(
     {
       name: "synapse-map-explorer",
       storage: createJSONStorage<PersistedMapExplorerState>(() => resolveMapExplorerStorage()),
-      partialize: (state) => ({
-        center: state.center,
-        zoom: state.zoom,
-        bearing: state.bearing,
-        pitch: state.pitch,
-        activeBaseLayer: state.activeBaseLayer,
-        pins: state.pins,
-        bookmarks: state.bookmarks,
-        annotations: state.annotations,
-        annotationToolSettings: state.annotationToolSettings,
-        selectedFeatureIds: state.selectedFeatureIds,
-        activeAoiId: state.activeAoiId,
-        activeAnalysisResultLayerIds: state.activeAnalysisResultLayerIds,
-        layoutPreferences: normalizeLayoutPreferences(state.layoutPreferences),
-      }),
+      partialize: (state) => partializeMapExplorerState(state, normalizeLayoutPreferences),
     },
   ),
 );
@@ -1510,29 +1517,38 @@ useMapExplorerStore.subscribe((state, previousState) => {
   }
 });
 
-export function selectMapEvidenceArtifacts(state: MapExplorerState): MapEvidenceArtifact[] {
-  return state.mapEvidenceArtifacts;
-}
-
-export function selectMapEvidenceArtifactsForLayer(layerId: string | null | undefined) {
-  return (state: MapExplorerState): MapEvidenceArtifact[] =>
-    filterMapEvidenceArtifactsByLayer(state.mapEvidenceArtifacts, layerId);
-}
-
-export function selectMapEvidenceArtifactsForAoi(aoiId: string | null | undefined) {
-  return (state: MapExplorerState): MapEvidenceArtifact[] =>
-    filterMapEvidenceArtifactsByAoi(state.mapEvidenceArtifacts, aoiId);
-}
-
-export function selectMapEvidenceArtifactsForWorkflow(workflowId: string | null | undefined) {
-  return (state: MapExplorerState): MapEvidenceArtifact[] =>
-    filterMapEvidenceArtifactsByWorkflow(state.mapEvidenceArtifacts, workflowId);
-}
-
-export function selectMapEvidenceArtifactsForSource(sourceModule: MapEvidenceArtifact["sourceModule"]) {
-  return (state: MapExplorerState): MapEvidenceArtifact[] =>
-    filterMapEvidenceArtifactsBySource(state.mapEvidenceArtifacts, sourceModule);
-}
+export {
+  MAP_EXPLORER_HEAVY_GEOMETRY_KEYS,
+  MAP_EXPLORER_PERSISTED_STATE_KEYS,
+  MAP_EXPLORER_SLICE_ORDER,
+  MAP_EXPLORER_SLICE_POLICIES,
+  MAP_EXPLORER_TRANSIENT_STATE_KEYS,
+  getMapExplorerSlicePolicy,
+  type MapExplorerPersistenceMode,
+  type MapExplorerSliceId,
+  type MapExplorerSlicePolicy,
+} from "./mapExplorer/slicePolicy";
+export {
+  selectActiveAoi,
+  selectLayoutPreferences,
+  selectMapBearing,
+  selectMapCenter,
+  selectMapEvidenceArtifacts,
+  selectMapEvidenceArtifactsForAoi,
+  selectMapEvidenceArtifactsForLayer,
+  selectMapEvidenceArtifactsForSource,
+  selectMapEvidenceArtifactsForWorkflow,
+  selectMapPitch,
+  selectMapViewport,
+  selectMapZoom,
+  selectOverlayLayers,
+  selectSelectedFeatureCount,
+  selectSelectedFeatureLayerIds,
+  selectSourceHandleById,
+  selectSourceHandles,
+  selectVisibleLayerSummaries,
+  selectVisibleOverlayLayers,
+} from "./mapExplorer/selectors";
 
 export function useMapEvidenceArtifacts(): MapEvidenceArtifact[] {
   return useMapExplorerStore(selectMapEvidenceArtifacts);

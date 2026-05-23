@@ -18,7 +18,7 @@ export async function openUrbanAnalyticsWorkbench(page: Page): Promise<Locator> 
 
   const welcomeDialog = page.getByRole("dialog", { name: "Welcome to Urban Analytics Workbench" });
   await expect(welcomeDialog).toBeVisible();
-  await welcomeDialog.getByRole("button", { name: /Got it, Let's Start/i }).click();
+  await welcomeDialog.getByRole("button", { name: /Start Workbench/i }).click();
   await expect(welcomeDialog).toBeHidden();
 
   const urbanModal = page.getByRole("dialog", { name: "Urban Analytics Workbench" });

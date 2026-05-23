@@ -3,8 +3,10 @@ import type {
   MapCartographyRecommendation,
   MapCartographyReviewState,
 } from "@/services/map/MapCartographyAdvisor";
+import type { SourceRestoreStatus } from "@/services/map/contracts/gisContracts";
 import type { LayerGroupId, LayerPublicationReadinessStatus, LayerQaStatus, LayerScientificQABadge, LayerSourceKind, OverlayLayerConfig } from "./mapTypes";
 import { CartographyRecommendationList } from "./CartographyRecommendationList";
+import { DeclareCrsControl } from "./DeclareCrsControl";
 import { createMapExplorerDemoLayerPack, getDemoAoiBoundsList } from "./demoDataPacks";
 import { normalizeLayerRegistryMetadata } from "./mapLayerMetadata";
 import { createOsmBuildingsLayerConfig } from "@/services/map/ExternalServiceConnector";
@@ -43,9 +45,11 @@ export interface MapLayerManagerProps {
   onExportLayer?: (id: string) => void;
   onSendLayerToUrban?: (id: string) => void;
   onOpenLayerInIde?: (id: string) => void;
+  onDeclareLayerCrs?: (id: string, crs: string) => void;
   onBindLayerToDashboard?: (id: string) => void;
   onOpenLayerEducationReference?: (id: string) => void;
   onFocusLayer?: (id: string) => void;
+  onClearLayerCache?: () => void;
   activeRerunToken?: string | null;
   onOpenSymbology?: (id: string) => void;
   activeSymbologyLayerId?: string | null;
@@ -87,6 +91,14 @@ const QA_STATUS_LABELS: Record<LayerQaStatus, string> = {
   passed: "QA passed",
   warning: "QA warning",
   error: "QA error",
+};
+
+const SOURCE_RESTORE_STATUS_LABELS: Record<SourceRestoreStatus, string> = {
+  restored: "restored",
+  recoverable: "recoverable",
+  unavailable: "unavailable",
+  "external-reference": "external ref",
+  "metadata-only": "metadata only",
 };
 
 const PUBLICATION_READINESS_LABELS: Record<LayerPublicationReadinessStatus, string> = {
@@ -303,7 +315,7 @@ const layerBadgeRail: React.CSSProperties = {
 const layerBadgeBase: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
-  maxWidth: "8rem",
+  maxWidth: "11rem",
   padding: "1px 3px",
   borderRadius: MAP_RADIUS.sm,
   border: MAP_STROKES.none,
@@ -511,7 +523,7 @@ const addLayerBtn: React.CSSProperties = {
 
 const layerFooterActions: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
   gap: MAP_SPACING.xs,
   padding: `${MAP_SPACING.sm} ${MAP_SPACING.md}`,
   borderTop: MAP_STROKES.hairlineSubtle,
@@ -523,6 +535,16 @@ const addManualLayerBtn: React.CSSProperties = {
 
 const addDemoLayersBtn: React.CSSProperties = {
   ...addLayerBtn,
+};
+
+const clearLayerCacheBtn: React.CSSProperties = {
+  ...addLayerBtn,
+  color: MAP_COLORS.warning,
+};
+
+const clearLayerCacheConfirmBtn: React.CSSProperties = {
+  ...clearLayerCacheBtn,
+  border: `1px solid ${MAP_COLORS.warning}`,
 };
 
 const popoverStyle: React.CSSProperties = {
@@ -686,6 +708,32 @@ function resolveLayerCrs(layer: OverlayLayerConfig): string {
 
 function resolveLayerProvenanceLabel(layer: OverlayLayerConfig): string {
   return normalizeLayerRegistryMetadata(layer).provenance.label;
+}
+
+function resolveLayerSourceRestoreStatus(layer: OverlayLayerConfig): SourceRestoreStatus | null {
+  const explicit = layer.metadata?.sourceRestoreStatus ?? layer.metadata?.persistence?.sourceRestoreStatus;
+  if (explicit) return explicit;
+
+  switch (layer.metadata?.persistence?.restoreState) {
+    case "restored":
+      return "restored";
+    case "external-reference":
+      return "external-reference";
+    case "metadata-only":
+      return "metadata-only";
+    case "stale-reference":
+      return "unavailable";
+    default:
+      return null;
+  }
+}
+
+function sourceRestoreBadgeTone(status: SourceRestoreStatus | null, sourceKind: LayerSourceKind): LayerBadgeTone {
+  if (status === "restored") return sourceKind === "demo" ? "warning" : "good";
+  if (status === "recoverable" || status === "metadata-only") return "warning";
+  if (status === "unavailable") return "error";
+  if (status === "external-reference") return "info";
+  return sourceKind === "external" ? "info" : sourceKind === "demo" ? "warning" : "neutral";
 }
 
 function formatBounds(bounds: [number, number, number, number]): string {
@@ -906,6 +954,8 @@ function buildPublicationGateReason(layer: OverlayLayerConfig): string | null {
 function buildLayerBadges(layer: OverlayLayerConfig): LayerBadgeModel[] {
   const registry = normalizeLayerRegistryMetadata(layer);
   const isDerived = registry.sourceKind === "derived" || Boolean(layer.metadata?.analysisResult);
+  const sourceRestoreStatus = resolveLayerSourceRestoreStatus(layer);
+  const sourceRestoreLabel = sourceRestoreStatus ? SOURCE_RESTORE_STATUS_LABELS[sourceRestoreStatus] : null;
   const crsLabel = registry.crsSummary.status === "known"
     ? registry.crsSummary.crs ?? "CRS known"
     : "CRS missing";
@@ -913,9 +963,13 @@ function buildLayerBadges(layer: OverlayLayerConfig): LayerBadgeModel[] {
   const badges: LayerBadgeModel[] = [
     {
       id: "source",
-      label: SOURCE_KIND_LABELS[registry.sourceKind],
-      title: `Source kind: ${SOURCE_KIND_LABELS[registry.sourceKind]}. Provenance: ${registry.provenance.label}`,
-      tone: registry.sourceKind === "external" ? "info" : registry.sourceKind === "demo" ? "warning" : "neutral",
+      label: sourceRestoreLabel
+        ? `${SOURCE_KIND_LABELS[registry.sourceKind]} / ${sourceRestoreLabel}`
+        : SOURCE_KIND_LABELS[registry.sourceKind],
+      title: sourceRestoreStatus
+        ? `Source kind: ${SOURCE_KIND_LABELS[registry.sourceKind]}. Restore status: ${SOURCE_RESTORE_STATUS_LABELS[sourceRestoreStatus]}. Provenance: ${registry.provenance.label}`
+        : `Source kind: ${SOURCE_KIND_LABELS[registry.sourceKind]}. Provenance: ${registry.provenance.label}`,
+      tone: sourceRestoreBadgeTone(sourceRestoreStatus, registry.sourceKind),
     },
   ];
 
@@ -937,14 +991,15 @@ function buildLayerBadges(layer: OverlayLayerConfig): LayerBadgeModel[] {
     });
   }
 
-  if (registry.crsSummary.status !== "known") {
+  const crsUserDeclared = registry.crsSummary.source === "user-declared";
+  if (registry.crsSummary.status !== "known" || crsUserDeclared) {
     badges.push({
       id: "crs",
-      label: crsLabel,
+      label: crsUserDeclared ? "user-declared (caveat)" : crsLabel,
       title: registry.crsSummary.notes.length > 0
         ? registry.crsSummary.notes.join(" ")
         : `CRS: ${crsLabel}.`,
-      tone: registry.crsSummary.status === "known" ? "good" : "error",
+      tone: crsUserDeclared ? "warning" : "error",
     });
   }
 
@@ -1607,6 +1662,7 @@ interface LayerRowProps {
   onExportLayer?: (id: string) => void;
   onSendLayerToUrban?: (id: string) => void;
   onOpenLayerInIde?: (id: string) => void;
+  onDeclareLayerCrs?: (id: string, crs: string) => void;
   onAddLayerToReport?: (id: string) => void;
   onBindLayerToDashboard?: (id: string) => void;
   onOpenLayerEducationReference?: (id: string) => void;
@@ -1639,6 +1695,7 @@ const LayerRow: React.FC<LayerRowProps> = ({
   onExportLayer,
   onSendLayerToUrban,
   onOpenLayerInIde,
+  onDeclareLayerCrs,
   onAddLayerToReport,
   onBindLayerToDashboard,
   onFocusLayer,
@@ -1746,8 +1803,10 @@ const LayerRow: React.FC<LayerRowProps> = ({
       }];
   const rowActions = [...utilityActions, ...evidenceActions, ...removalActions];
   const importFormat = formatImportSourceLabel(layer.metadata?.importFormat);
+  const restoreStatus = resolveLayerSourceRestoreStatus(layer);
   const detailSummary = [
     SOURCE_KIND_LABELS[sourceKind],
+    restoreStatus ? SOURCE_RESTORE_STATUS_LABELS[restoreStatus] : null,
     importFormat,
     qaStatus === "unchecked" ? null : QA_STATUS_LABELS[qaStatus],
     scientificQA?.featureIssueCount ? `${scientificQA.featureIssueCount.toLocaleString()} QA feature issue(s)` : null,
@@ -1832,6 +1891,20 @@ const LayerRow: React.FC<LayerRowProps> = ({
           ))}
         </div>
 
+        {onDeclareLayerCrs && (registry.crsSummary.status !== "known" || registry.crsSummary.source === "user-declared") ? (
+          <div style={{ marginTop: MAP_SPACING.xs }}>
+            <DeclareCrsControl
+              layerId={layer.id}
+              layerName={layer.name}
+              currentCrs={registry.crsSummary.crs}
+              isUserDeclared={registry.crsSummary.source === "user-declared"}
+              bounds={layerBounds}
+              onDeclare={onDeclareLayerCrs}
+              {...(onAnnounce ? { onAnnounce } : {})}
+            />
+          </div>
+        ) : null}
+
         {analysisResult ? (
           <div style={layerTextBlock}>
             <span style={analysisMetaText} title={`${analysisResult.engine} at ${formatAnalysisTimestamp(analysisResult.runTimestamp)}`}>
@@ -1886,9 +1959,11 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
   onExportLayer,
   onSendLayerToUrban,
   onOpenLayerInIde,
+  onDeclareLayerCrs,
   onBindLayerToDashboard,
   onOpenLayerEducationReference,
   onFocusLayer,
+  onClearLayerCache,
   activeRerunToken = null,
   onOpenSymbology,
   activeSymbologyLayerId = null,
@@ -1911,6 +1986,7 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
   const [cartographyPanelOpen, setCartographyPanelOpen] = useState(false);
   const [cartographyLayerFilterId, setCartographyLayerFilterId] = useState<string | null>(null);
   const [pendingRemoveLayerId, setPendingRemoveLayerId] = useState<string | null>(null);
+  const [pendingClearLayerCache, setPendingClearLayerCache] = useState(false);
   const hasSearch = query.trim().length > 0;
 
   const filteredOverlayLayers = useMemo(() => {
@@ -1941,6 +2017,11 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
         layer.metadata?.columnar?.format,
         layer.metadata?.columnar?.geometryColumn,
         layer.metadata?.columnar?.workerTableName,
+        layer.metadata?.sourceId,
+        layer.metadata?.sourceStorageMode,
+        layer.metadata?.sourceRestoreStatus,
+        layer.metadata?.persistence?.sourceRestoreStatus,
+        layer.metadata?.persistence?.restoreState,
         layer.metadata?.columnar?.crs,
         layer.metadata?.analysisResult?.engine,
         layer.metadata?.analysisResult?.parameterSummary,
@@ -2237,6 +2318,21 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
     onAnnounce?.(`Layer "${layer?.name ?? id}" removed`);
   }, [onRemoveLayer, overlayLayers, onAnnounce]);
 
+  const handleClearLayerCacheClick = useCallback(() => {
+    if (!onClearLayerCache) {
+      return;
+    }
+
+    if (!pendingClearLayerCache) {
+      setPendingClearLayerCache(true);
+      onAnnounce?.("Confirm clearing Map Explorer layer cache.");
+      return;
+    }
+
+    onClearLayerCache();
+    setPendingClearLayerCache(false);
+  }, [onAnnounce, onClearLayerCache, pendingClearLayerCache]);
+
   /* ---- Popover layer data ---- */
   const popoverLayer = popoverLayerId
     ? overlayLayers.find((l) => l.id === popoverLayerId) ?? null
@@ -2393,6 +2489,7 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
                         {...(onExportLayer ? { onExportLayer } : {})}
                         {...(onSendLayerToUrban ? { onSendLayerToUrban } : {})}
                         {...(onOpenLayerInIde ? { onOpenLayerInIde } : {})}
+                        {...(onDeclareLayerCrs ? { onDeclareLayerCrs } : {})}
                         {...(onAddLayerToReport ? { onAddLayerToReport } : {})}
                         {...(onBindLayerToDashboard ? { onBindLayerToDashboard } : {})}
                         {...(onOpenLayerEducationReference ? { onOpenLayerEducationReference } : {})}
@@ -2448,6 +2545,20 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
         >
           {osmReferenceBusy ? "Loading OSM…" : "Load OSM Reference"}
         </button>
+        {onClearLayerCache ? (
+          <button
+            type="button"
+            style={pendingClearLayerCache ? clearLayerCacheConfirmBtn : clearLayerCacheBtn}
+            onClick={handleClearLayerCacheClick}
+            aria-label={pendingClearLayerCache
+              ? "Confirm clearing Map Explorer layers and project map cache"
+              : "Clear Map Explorer layer cache"}
+            data-testid="map-layer-cache-clear-button"
+            title="Removes active overlay layers and cached project map snapshots. Urban evidence, reports, and unrelated browser storage are not deleted."
+          >
+            {pendingClearLayerCache ? "Confirm Clear" : "Clear Cache"}
+          </button>
+        ) : null}
       </div>
 
       {/* Metadata popover */}

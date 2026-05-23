@@ -138,6 +138,7 @@ export interface ImportLayerSourceMetadata {
   format: "geojson" | "csv" | "arrow" | "geoparquet" | "kml" | "kmz" | "gpx";
   fileName: string;
   sourceName: string;
+  sourceId?: string;
   importedAt: string;
   importedFeatureCount: number;
   totalRecords?: number;
@@ -177,11 +178,15 @@ export interface LayerPersistenceMetadata {
   sourcePersistence: LayerPersistenceSource;
   restoreState: LayerRestoreState;
   restoreWarnings: string[];
+  sourceId?: string;
+  sourceStorageMode?: import("@/services/map/contracts/gisContracts").SourceStorageMode;
+  sourceRestoreStatus?: import("@/services/map/contracts/gisContracts").SourceRestoreStatus;
   sourceRef?: string;
 }
 
 export type LayerMetadataSource =
   | "explicit"
+  | "user-declared"
   | "import-source"
   | "dataset-context"
   | "columnar"
@@ -316,6 +321,9 @@ export interface LayerMetadata {
   scientificQA?: LayerScientificQAMetadata;
   cartographyReview?: LayerCartographyReviewMetadata;
   persistence?: LayerPersistenceMetadata;
+  sourceId?: string;
+  sourceStorageMode?: import("@/services/map/contracts/gisContracts").SourceStorageMode;
+  sourceRestoreStatus?: import("@/services/map/contracts/gisContracts").SourceRestoreStatus;
   schemaSummary?: LayerSchemaSummary;
   crsSummary?: LayerCrsSummary;
   geometrySummary?: LayerGeometrySummary;
@@ -353,7 +361,10 @@ export interface MapReproducibilityAoiReference {
 
 export interface MapReproducibilityCrsSummary {
   status: "known" | "mixed" | "missing" | "not-applicable";
+  sourceCrs?: string | null;
   displayCrs: string;
+  executionCrs?: string | null;
+  executionKind?: import("@/services/map/contracts/gisContracts").CrsExecutionKind;
   sourceLayerCrs: Array<{
     layerId: string;
     crs: string | null;

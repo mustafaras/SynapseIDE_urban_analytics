@@ -47,6 +47,34 @@ function isRemoteSource(sourceData: OverlayLayerConfig["sourceData"]): boolean {
   return typeof sourceData === "string" && /^https?:\/\//i.test(sourceData);
 }
 
+/**
+ * Canonical, permanent caveat attached to every user-declared CRS. A declared
+ * CRS is an analyst assertion, never verified truth — this note must survive
+ * every downstream read (see {@link resolveOverlayLayerCrsSummary}).
+ */
+export const USER_DECLARED_CRS_CAVEAT =
+  "User-declared CRS (caveat): asserted by an analyst, not verified from source metadata. Distance and area results inherit this uncertainty.";
+
+/** Normalize a CRS token the way MapProjectionService does, without importing proj4 side effects into this widely-used module. */
+function normalizeDeclaredCrs(crs: string): string {
+  return crs.trim().toUpperCase().replace(/^EPSG::/, "EPSG:");
+}
+
+/**
+ * Build the canonical summary for a user-declared CRS. The `status` stays a
+ * known *value* (so projected metric work can proceed once declared) while the
+ * provenance is pinned to `"user-declared"` and the permanent caveat is always
+ * present. This never produces a verified/authoritative shape.
+ */
+export function buildUserDeclaredCrsSummary(crs: string): LayerCrsSummary {
+  return {
+    crs: normalizeDeclaredCrs(crs),
+    status: "known",
+    source: "user-declared",
+    notes: [USER_DECLARED_CRS_CAVEAT],
+  };
+}
+
 export function resolveOverlayLayerSourceKind(
   layer: OverlayLayerConfig,
   group: LayerGroupId = layer.group ?? DEFAULT_GROUP,
@@ -188,6 +216,18 @@ export function resolveOverlayLayerProvenance(layer: OverlayLayerConfig): LayerP
 
 export function resolveOverlayLayerCrsSummary(layer: OverlayLayerConfig): LayerCrsSummary {
   const metadata = layer.metadata;
+
+  // A user-declared CRS is a caveated assertion: preserve its provenance and
+  // re-attach the permanent caveat on every read, so it can never be silently
+  // upgraded to an authoritative ("explicit") source downstream.
+  const declared = metadata?.crsSummary;
+  if (declared?.source === "user-declared") {
+    const declaredCrs = compactText(declared.crs);
+    if (declaredCrs) {
+      return buildUserDeclaredCrsSummary(declaredCrs);
+    }
+  }
+
   const crs = compactText(metadata?.crsSummary?.crs)
     ?? compactText(metadata?.importSource?.declaredCrs)
     ?? compactText(metadata?.datasetContext?.crs)

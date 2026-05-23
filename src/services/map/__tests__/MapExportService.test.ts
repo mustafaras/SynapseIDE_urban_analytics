@@ -263,6 +263,12 @@ describe("MapExportService", () => {
     expect(spec).not.toBeNull();
     expect(spec?.distanceMetres).toBeGreaterThan(0);
     expect(spec?.pixelWidthCss).toBeLessThanOrEqual(200);
+    expect(spec?.crsPreflight).toMatchObject({
+      ok: true,
+      blocked: false,
+      executionKind: "geodesic",
+    });
+    expect(spec?.caveats.join(" ")).toContain("geodesic WGS84 map-display positions");
 
     const actualDistance = haversineDistance(
       [0, 0],
@@ -273,6 +279,21 @@ describe("MapExportService", () => {
     expect(
       Math.abs(actualDistance - (spec?.distanceMetres ?? 0)) / (spec?.distanceMetres ?? 1),
     ).toBeLessThanOrEqual(0.01);
+  });
+
+  it("carries a geodesic report-scale caveat into publication readiness", () => {
+    const readiness = buildMapPublicationReadiness({
+      mode: "publication-export",
+      overlayLayers: [publicationLayer()],
+      composition: DEFAULT_MAP_COMPOSITION_OPTIONS,
+      scientificQA: qaState(),
+      legendItems: buildMapCompositionLegendItems([publicationLayer()]),
+      now: fixedReadinessDate,
+    });
+
+    expect(readiness.status).toBe("ready-with-caveats");
+    expect(readiness.warnings.map((check) => check.criterion)).toContain("crs-measurement");
+    expect(readiness.caveats.join(" ")).toContain("geodesic WGS84 map-display positions");
   });
 
   it("blocks formal publication readiness without a visible layer", () => {

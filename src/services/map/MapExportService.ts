@@ -8,6 +8,8 @@ import { normalizeLayerRegistryMetadata } from "@/centerpanel/components/map/map
 import type { MapEvidenceQA, OverlayLayerConfig } from "@/centerpanel/components/map/mapTypes";
 import { haversineDistance } from "@/utils/geodesic";
 import type { MapScientificQAState } from "./MapScientificQA";
+import type { CrsPreflightResult } from "./contracts/gisContracts";
+import { preflight as preflightCrs } from "./crs/CrsPreflight";
 
 export type MapExportResolution = "screen" | "print" | "high";
 export type MapPublicationExportFormat = "png" | "svg" | "pdf";
@@ -264,6 +266,8 @@ export interface ScaleBarSpec {
   measuredDistanceMetres: number;
   pixelWidthCss: number;
   label: string;
+  crsPreflight: CrsPreflightResult;
+  caveats: string[];
 }
 
 interface PublicationRect {
@@ -589,6 +593,19 @@ export function buildMapPublicationReadiness(input: MapPublicationReadinessInput
   const hasScaleBar = !requireScaleBar || composition.includeScaleBar || hasSnapshotScaleBar(input);
   const hasNorthArrow = !requireNorthArrow || composition.includeNorthArrow || hasSnapshotNorthArrow(input);
   const hasAttribution = !requireAttribution || (composition.includeAttribution && attributionText.trim().length > 0);
+  const scaleBarPreflight = hasScaleBar
+    ? preflightCrs(
+        {
+          id: "publication:scale-bar",
+          label: "Publication scale bar",
+          metric: "report-scale",
+          executionKind: "geodesic",
+        },
+        [],
+        null,
+      )
+    : null;
+  const scaleBarCaveats = scaleBarPreflight?.caveats ?? [];
 
   const checks: MapPublicationReadinessCheck[] = [];
   checks.push(readinessCheck({
@@ -685,7 +702,7 @@ export function buildMapPublicationReadiness(input: MapPublicationReadinessInput
     label: "CRS and measurement caveats",
     status: blockingSpatialIssueIds.length > 0
       ? "blocked"
-      : missingCrsLayerIds.length > 0 || geometryNotReadyLayerIds.length > 0 || qaSpatialIssues.length > 0
+      : missingCrsLayerIds.length > 0 || geometryNotReadyLayerIds.length > 0 || qaSpatialIssues.length > 0 || scaleBarCaveats.length > 0
         ? "warning"
         : "pass",
     required: true,
@@ -697,6 +714,8 @@ export function buildMapPublicationReadiness(input: MapPublicationReadinessInput
           ? `${geometryNotReadyLayerIds.length} visible layer${geometryNotReadyLayerIds.length === 1 ? "" : "s"} have unknown or invalid geometry readiness.`
         : qaSpatialIssues.length > 0
           ? "Spatial QA warnings are present and will travel as caveats."
+        : scaleBarCaveats.length > 0
+          ? "Scale bar uses geodesic WGS84 display measurement and will travel as a caveat."
           : "No CRS or measurement publication caveat was detected.",
     affectedLayerIds: uniquePublicationTexts([
       ...missingCrsLayerIds,
@@ -751,6 +770,7 @@ export function buildMapPublicationReadiness(input: MapPublicationReadinessInput
 
   const generatedCaveats = uniquePublicationTexts([
     ...(input.caveats ?? []),
+    ...scaleBarCaveats,
     ...layerReadiness.flatMap(({ layer, registry }) => registry.publicationReadiness.caveats.map((caveat) => `${layer.name}: ${caveat}`)),
     ...layerReadiness.flatMap(({ layer, registry }) => registry.publicationReadiness.missingFields.map((field) => `${layer.name}: missing ${field} metadata.`)),
     ...layerReadiness.flatMap(({ layer, registry }) => registry.readiness.missingFields.map((field) => `${layer.name}: missing ${field} readiness.`)),
@@ -1047,6 +1067,18 @@ export function calculateScaleBarSpec(
   map: Pick<maplibregl.Map, "getContainer" | "unproject">,
   maxWidthCss = SCALE_BAR_MAX_WIDTH_CSS,
 ): ScaleBarSpec | null {
+  const crsPreflight = preflightCrs(
+    {
+      id: "report:scale-bar",
+      label: "Report scale bar",
+      metric: "report-scale",
+      executionKind: "geodesic",
+    },
+    [],
+    null,
+  );
+  if (crsPreflight.blocked) return null;
+
   const rect = map.getContainer().getBoundingClientRect();
   if (rect.width <= 0 || rect.height <= 0) return null;
 
@@ -1069,6 +1101,8 @@ export function calculateScaleBarSpec(
     measuredDistanceMetres,
     pixelWidthCss,
     label: formatScaleBarLabel(distanceMetres),
+    crsPreflight,
+    caveats: crsPreflight.caveats,
   };
 }
 

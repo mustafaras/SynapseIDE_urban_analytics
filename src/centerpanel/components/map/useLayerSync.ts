@@ -6,7 +6,7 @@ import {
 } from "@/services/map/MapDataImporter";
 import { normalizeXyzTileUrlTemplate } from "@/services/map/ExternalTileUrlTemplates";
 import type { OverlayLayerConfig } from "./mapTypes";
-import { MAP_COLORS } from "./mapTokens";
+import { MAP_COLORS, resolveMapPaintColor } from "./mapTokens";
 
 const INTERNAL_STYLE_PREFIX = "__";
 const LABEL_FIELD_STYLE_KEY = "__labelField";
@@ -139,8 +139,30 @@ function buildPaint(
       break;
   }
 
+  // MapLibre paint properties cannot parse CSS var()/color-mix() expressions, which
+  // is exactly what the MAP_COLORS tokens (and some classified styles) are. An
+  // unparseable color makes MapLibre reject the layer paint on every render pass, so
+  // resolve any literal color string to a concrete rgb()/rgba() before handing it over.
+  for (const key of COLOR_PAINT_KEYS) {
+    const value = base[key];
+    if (typeof value === "string") {
+      base[key] = resolveMapPaintColor(value);
+    }
+  }
+
   return base;
 }
+
+/** Paint keys whose values are colors that may carry var()/color-mix() expressions. */
+const COLOR_PAINT_KEYS = [
+  "circle-color",
+  "circle-stroke-color",
+  "line-color",
+  "fill-color",
+  "fill-outline-color",
+  "text-color",
+  "text-halo-color",
+] as const;
 
 /** Opacity paint property key for a given MapLibre layer type */
 function opacityKey(mlType: string): string {

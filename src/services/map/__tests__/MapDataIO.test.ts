@@ -19,9 +19,17 @@ import {
   parseGPXText,
   parseKMLText,
   parseKMZArrayBuffer,
+  profileCsvImportSession,
+  profileSource,
   prepareMapImportFile,
   validateFeatureCollection,
 } from "../MapDataImporter";
+import {
+  csvPointsRaw,
+  externalServiceStub,
+  fcLarge,
+  fcMissingCrs,
+} from "../../../centerpanel/components/map/__tests__/fixtures/gisFixtures";
 import {
   exportDrawingsToFeatureCollection,
   exportMapData,
@@ -252,6 +260,108 @@ describe("MapDataImporter", () => {
     ]));
     expect(result.layer.metadata?.evidenceArtifactId).toBe(`map-evidence-layer-${result.layer.id}`);
     expect(result.layer.metadata?.registry?.evidenceArtifactId).toBe(`map-evidence-layer-${result.layer.id}`);
+    expect(result.sourceHandle).toMatchObject({
+      sourceId: result.layer.metadata?.sourceId,
+      kind: "imported",
+      storageMode: "inline-small",
+      restoreStatus: "restored",
+      featureCount: 1,
+      format: "csv",
+    });
+    expect(result.layer.metadata?.importSource?.sourceId).toBe(result.sourceHandle.sourceId);
+    expect(result.layer.metadata?.persistence).toMatchObject({
+      sourceId: result.sourceHandle.sourceId,
+      sourceRestoreStatus: "restored",
+      restoreState: "restored",
+    });
+  });
+
+  it("profiles CSV skipped rows and CRS caveats before commit", () => {
+    const session = createCsvImportSession(csvPointsRaw, "fixtures.csv");
+    const profile = profileCsvImportSession(session, {
+      latitudeColumn: "lat",
+      longitudeColumn: "lon",
+    });
+
+    expect(profile.format).toBe("csv");
+    expect(profile.totalRecords).toBe(8);
+    expect(profile.skippedRecordCount).toBe(3);
+    expect(profile.featureCount).toBe(5);
+    expect(profile.crsSummary.status).toBe("unknown");
+    expect(profile.sizeBytes).toBeGreaterThan(0);
+    expect(profile.caveats.join(" ")).toMatch(/3 skipped rows/i);
+  });
+
+  it("profiles missing CRS, empty collections, large worker readiness, and external services", () => {
+    const missingCrsProfile = profileSource({
+      kind: "feature-collection",
+      sourceName: "missing-crs.geojson",
+      featureCollection: fcMissingCrs.featureCollection,
+      declaredCrs: fcMissingCrs.declaredCrs,
+    });
+    expect(missingCrsProfile.crsSummary.status).toBe("missing");
+    expect(missingCrsProfile.featureCount).toBe(fcMissingCrs.featureCollection.features.length);
+
+    const emptyProfile = profileSource({
+      kind: "feature-collection",
+      sourceName: "empty.geojson",
+      featureCollection: { type: "FeatureCollection", features: [] },
+      declaredCrs: null,
+    });
+    expect(emptyProfile.featureCount).toBe(0);
+    expect(emptyProfile.canCommit).toBe(false);
+    expect(emptyProfile.caveats.join(" ")).toMatch(/no features/i);
+
+    const largeProfile = profileSource({
+      kind: "feature-collection",
+      sourceName: "large.geojson",
+      featureCollection: fcLarge(MAP_GEOJSON_RENDER_FEATURE_BUDGET + 1),
+    });
+    expect(largeProfile.workerReady).toBe(true);
+    expect(largeProfile.sizeBytes).toBeGreaterThan(0);
+    expect(largeProfile.sourceHandle.storageMode).not.toBe("inline-small");
+
+    const externalProfile = profileSource({
+      kind: "external-service",
+      metadata: externalServiceStub,
+    });
+    expect(externalProfile.format).toBe("wms");
+    expect(externalProfile.supportStatus).toBe("partial");
+    expect(externalProfile.sourceHandle.restoreStatus).toBe("unavailable");
+  });
+
+  it("returns a metadata-only preflight for partial local source formats", async () => {
+    const prepared = await prepareMapImportFile(new File([new Uint8Array([1, 2, 3, 4])], "raster.tif", {
+      type: "image/tiff",
+    }));
+
+    expect(prepared.kind).toBe("profile");
+    if (prepared.kind !== "profile") {
+      throw new Error(`Expected profile-only GeoTIFF preflight, received ${prepared.kind}.`);
+    }
+    expect(prepared.profile.format).toBe("geotiff");
+    expect(prepared.profile.canCommit).toBe(false);
+    expect(prepared.profile.workerReady).toBe(true);
+  });
+
+  it("classifies oversized local imports as non-inline source handles", async () => {
+    const file = new File([JSON.stringify({
+      type: "FeatureCollection",
+      features: [{
+        type: "Feature",
+        geometry: { type: "Point", coordinates: [29, 41] },
+        properties: { payload: "x".repeat(1_100_000) },
+      }],
+    })], "large-source.geojson", { type: "application/geo+json" });
+
+    const result = await importGeoJSONFile(file);
+
+    expect(result.sourceHandle.storageMode).not.toBe("inline-small");
+    expect(result.sourceHandle.storageMode).toBe("metadata-only");
+    expect(result.sourceHandle.sizeBytes).toBeGreaterThan(1_000_000);
+    expect(result.layer.metadata?.sourceId).toBe(result.sourceHandle.sourceId);
+    expect(result.layer.metadata?.sourceStorageMode).toBe("metadata-only");
+    expect(result.layer.metadata?.persistence?.sourcePersistence).toBe("metadata");
   });
 
   it("marks local GeoJSON imports as evidence candidates without inferring CRS certainty", async () => {

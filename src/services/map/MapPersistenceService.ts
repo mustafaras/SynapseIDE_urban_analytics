@@ -46,6 +46,19 @@ import type {
   MapScientificQAIssueSeverity,
   MapScientificQAState,
 } from "./MapScientificQA";
+import type {
+  SourceFormat,
+  SourceHandle,
+  SourceRestoreStatus,
+  SourceStorageMode,
+} from "./contracts/gisContracts";
+import {
+  applySourceHandleToLayer,
+  createUnavailableSourceHandleForLayer,
+  resolveLayerSourceId,
+  resolveSourceHandleForRestore,
+  sanitizeSourceHandlesForPersistence,
+} from "./sources/MapSourceRegistry";
 
 const STORAGE_PREFIX = "synapse.map.project.persistence.v1.";
 const SNAPSHOT_VERSION = 3;
@@ -168,6 +181,7 @@ export const MAP_PROJECT_PERSISTENCE_BOUNDARY: MapProjectPersistenceBoundary = {
     "annotations",
     "drawnFeatures",
     "measurements",
+    "sourceHandles",
     "layerReferences",
     "lightweightOverlayLayerMetadata",
     "evidenceArtifactReferences",
@@ -218,6 +232,7 @@ export interface MapProjectSnapshot {
   drawnFeatures: DrawnFeature[];
   measurements: Measurement[];
   overlayLayers: PersistedOverlayLayer[];
+  sourceHandles: SourceHandle[];
   layerReferences: MapProjectLayerReference[];
   evidenceArtifacts: PersistedMapEvidenceArtifactReference[];
   qaSummary: MapProjectQASnapshot | null;
@@ -245,6 +260,7 @@ export interface SaveProjectMapStateInput {
   annotations?: MapAnnotation[];
   drawnFeatures: DrawnFeature[];
   overlayLayers: OverlayLayerConfig[];
+  sourceHandles?: SourceHandle[];
   layoutPreferences?: MapProjectSnapshotLayoutPreferences;
   measurements?: Measurement[];
   mapEvidenceArtifacts?: MapEvidenceArtifact[];
@@ -292,6 +308,27 @@ export class MapPersistenceError extends Error {
 
 function storageKey(projectId: string): string {
   return `${STORAGE_PREFIX}${encodeURIComponent(projectId)}`;
+}
+
+export function clearPersistedMapProjectSnapshots(): number {
+  if (typeof localStorage === "undefined") {
+    syncedProjects.clear();
+    return 0;
+  }
+
+  const keysToRemove: string[] = [];
+  for (let index = 0; index < localStorage.length; index += 1) {
+    const key = localStorage.key(index);
+    if (key?.startsWith(STORAGE_PREFIX)) {
+      keysToRemove.push(key);
+    }
+  }
+
+  for (const key of keysToRemove) {
+    localStorage.removeItem(key);
+  }
+  syncedProjects.clear();
+  return keysToRemove.length;
 }
 
 function getBrowserStorage(): Storage {
@@ -595,6 +632,131 @@ function normalizeStringList(value: unknown, limit = 200): string[] {
   return ids;
 }
 
+function normalizeSourceStorageMode(value: unknown): SourceStorageMode {
+  switch (value) {
+    case "inline-small":
+    case "indexeddb-local":
+    case "worker-table":
+    case "duckdb-table":
+    case "url-refetch":
+    case "external-service":
+    case "metadata-only":
+      return value;
+    default:
+      return "metadata-only";
+  }
+}
+
+function normalizeSourceRestoreStatus(value: unknown): SourceRestoreStatus {
+  switch (value) {
+    case "restored":
+    case "recoverable":
+    case "unavailable":
+    case "external-reference":
+    case "metadata-only":
+      return value;
+    default:
+      return "unavailable";
+  }
+}
+
+function normalizeSourceFormat(value: unknown): SourceFormat | undefined {
+  switch (value) {
+    case "geojson":
+    case "csv":
+    case "arrow":
+    case "geoparquet":
+    case "kml":
+    case "kmz":
+    case "gpx":
+    case "flatgeobuf":
+    case "pmtiles":
+    case "wms":
+    case "wfs":
+    case "xyz":
+    case "geotiff":
+      return value;
+    default:
+      return undefined;
+  }
+}
+
+function normalizeSourceHandle(value: unknown): SourceHandle | null {
+  if (!isObject(value)) return null;
+  const sourceId = typeof value.sourceId === "string" && value.sourceId.trim().length > 0 ? value.sourceId.trim() : null;
+  if (!sourceId) return null;
+  const crsSource = isObject(value.crsSummary) ? value.crsSummary : {};
+  const schemaSource = isObject(value.schemaSummary) ? value.schemaSummary : null;
+  const fieldSource = schemaSource && Array.isArray(schemaSource.fields) ? schemaSource.fields : [];
+  const format = normalizeSourceFormat(value.format);
+  const sizeBytes = Number(value.sizeBytes);
+  const featureCount = Number(value.featureCount);
+  const handle: SourceHandle = {
+    sourceId,
+    kind:
+      value.kind === "project" ||
+      value.kind === "imported" ||
+      value.kind === "external" ||
+      value.kind === "derived" ||
+      value.kind === "demo"
+        ? value.kind
+        : "project",
+    storageMode: normalizeSourceStorageMode(value.storageMode),
+    restoreStatus: normalizeSourceRestoreStatus(value.restoreStatus),
+    crsSummary: {
+      crs: typeof crsSource.crs === "string" ? crsSource.crs : null,
+      status: crsSource.status === "known" || crsSource.status === "missing" || crsSource.status === "unknown"
+        ? crsSource.status
+        : "unknown",
+      source: typeof crsSource.source === "string" ? crsSource.source as SourceHandle["crsSummary"]["source"] : "unknown",
+      notes: normalizeStringList(crsSource.notes),
+    },
+    featureCount: Number.isFinite(featureCount) ? Math.max(0, Math.floor(featureCount)) : null,
+    caveats: normalizeStringList(value.caveats),
+    profiledAt: typeof value.profiledAt === "string" ? value.profiledAt : new Date(0).toISOString(),
+  };
+
+  if (format) handle.format = format;
+  if (Number.isFinite(sizeBytes) && sizeBytes >= 0) handle.sizeBytes = Math.floor(sizeBytes);
+  if (schemaSource) {
+    handle.schemaSummary = {
+      fieldCount: Number.isFinite(Number(schemaSource.fieldCount)) ? Math.max(0, Math.floor(Number(schemaSource.fieldCount))) : fieldSource.length,
+      fields: fieldSource
+        .filter(isObject)
+        .map((field) => ({
+          name: typeof field.name === "string" ? field.name : "field",
+          role:
+            field.role === "geometry" ||
+            field.role === "attribute" ||
+            field.role === "identifier" ||
+            field.role === "temporal" ||
+            field.role === "unknown"
+              ? field.role
+              : "unknown",
+          ...(typeof field.type === "string" ? { type: field.type } : {}),
+          ...(typeof field.nullable === "boolean" ? { nullable: field.nullable } : {}),
+        })),
+      source: typeof schemaSource.source === "string" ? schemaSource.source as NonNullable<SourceHandle["schemaSummary"]>["source"] : "unknown",
+      notes: normalizeStringList(schemaSource.notes),
+      ...(typeof schemaSource.geometryField === "string" ? { geometryField: schemaSource.geometryField } : {}),
+    };
+  }
+  if (typeof value.license === "string" && value.license.trim()) handle.license = value.license.trim();
+  if (typeof value.attribution === "string" && value.attribution.trim()) handle.attribution = value.attribution.trim();
+  if (typeof value.workerTableName === "string" && value.workerTableName.trim()) handle.workerTableName = value.workerTableName.trim();
+  if (typeof value.sourceRef === "string" && value.sourceRef.trim()) handle.sourceRef = value.sourceRef.trim();
+  return handle;
+}
+
+function normalizeSourceHandles(value: unknown): SourceHandle[] {
+  if (!Array.isArray(value)) return [];
+  return sanitizeSourceHandlesForPersistence(
+    value
+      .map(normalizeSourceHandle)
+      .filter((handle): handle is SourceHandle => handle != null),
+  );
+}
+
 function resolveLayerCrs(metadata: LayerMetadata | undefined): string | undefined {
   const crs = metadata?.datasetContext?.crs
     ?? metadata?.columnar?.crs
@@ -884,6 +1046,7 @@ function migrateSnapshot(projectId: string, raw: unknown): MapProjectSnapshot {
   const overlayLayers = Array.isArray(raw.overlayLayers)
     ? raw.overlayLayers.map(normalizeOverlayLayer)
     : [];
+  const sourceHandles = normalizeSourceHandles(raw.sourceHandles);
   const evidenceArtifacts = normalizeEvidenceArtifactReferences(raw.evidenceArtifacts);
   const layerReferences = Array.isArray(raw.layerReferences)
     ? raw.layerReferences
@@ -933,6 +1096,7 @@ function migrateSnapshot(projectId: string, raw: unknown): MapProjectSnapshot {
     drawnFeatures,
     measurements,
     overlayLayers,
+    sourceHandles,
     layerReferences,
     evidenceArtifacts,
     qaSummary,
@@ -950,7 +1114,7 @@ function migrateSnapshot(projectId: string, raw: unknown): MapProjectSnapshot {
   };
 }
 
-function serializeLayerForPersistence(layer: OverlayLayerConfig): PersistedOverlayLayer {
+function serializeLayerPayloadForPersistence(layer: OverlayLayerConfig): PersistedOverlayLayer {
   const sourceRef = resolveLayerSourceRef(layer);
   const baseSourcePersistence: LayerPersistenceSource = !layer.sourceData && sourceRef ? "url" : "metadata";
   const baseRestoreState = resolveRestoreState(baseSourcePersistence);
@@ -1026,6 +1190,47 @@ function serializeLayerForPersistence(layer: OverlayLayerConfig): PersistedOverl
   };
 }
 
+function sourceHandleMap(handles: readonly SourceHandle[]): Map<string, SourceHandle> {
+  return new Map(handles.map((handle) => [handle.sourceId, handle]));
+}
+
+function applySourceHandleToPersistedLayer(
+  layer: PersistedOverlayLayer,
+  handlesById: ReadonlyMap<string, SourceHandle>,
+  savedAt: string,
+): PersistedOverlayLayer {
+  const sourceId = resolveLayerSourceId(layer);
+  if (!sourceId) return layer;
+
+  const sourceHandle = handlesById.get(sourceId);
+  const resolvedHandle = sourceHandle
+    ? resolveSourceHandleForRestore(sourceHandle, { hasInlineSourceData: Boolean(layer.sourceData) })
+    : createUnavailableSourceHandleForLayer(layer, sourceId, layer.metadata?.updatedAt ?? layer.metadata?.persistence?.savedAt ?? savedAt);
+  const layerWithSource = applySourceHandleToLayer(layer, resolvedHandle, {
+    snapshotVersion: SNAPSHOT_VERSION,
+    savedAt,
+  });
+  const persistence = layerWithSource.metadata?.persistence;
+  if (!persistence) return layer;
+
+  return {
+    ...layer,
+    sourcePersistence: persistence.sourcePersistence,
+    restoreState: persistence.restoreState,
+    restoreWarnings: [...persistence.restoreWarnings],
+    ...(persistence.sourceRef ? { sourceRef: persistence.sourceRef } : {}),
+    metadata: layerWithSource.metadata,
+  };
+}
+
+function serializeLayerForPersistence(
+  layer: OverlayLayerConfig,
+  handlesById: ReadonlyMap<string, SourceHandle>,
+  savedAt: string,
+): PersistedOverlayLayer {
+  return applySourceHandleToPersistedLayer(serializeLayerPayloadForPersistence(layer), handlesById, savedAt);
+}
+
 function buildQASnapshot(qa: MapScientificQAState | null | undefined): MapProjectQASnapshot | null {
   if (!qa) return null;
   const blockerCount = qa.issues.filter((issue) => issue.severity === "blocker" || issue.severity === "error").length;
@@ -1099,7 +1304,10 @@ function buildSnapshotReferences(input: {
 }
 
 function createSnapshot(input: SaveProjectMapStateInput): MapProjectSnapshot {
-  const overlayLayers = input.overlayLayers.map(serializeLayerForPersistence);
+  const savedAt = new Date().toISOString();
+  const sourceHandles = sanitizeSourceHandlesForPersistence(input.sourceHandles ?? []);
+  const handlesById = sourceHandleMap(sourceHandles);
+  const overlayLayers = input.overlayLayers.map((layer) => serializeLayerForPersistence(layer, handlesById, savedAt));
   const evidenceArtifacts = normalizeEvidenceArtifactReferences(input.mapEvidenceArtifacts ?? []);
   const layerReferences = overlayLayers.map((layer) => layerReferenceFromPersistedLayer(layer, evidenceArtifacts));
   const qaSummary = buildQASnapshot(input.scientificQA);
@@ -1107,7 +1315,7 @@ function createSnapshot(input: SaveProjectMapStateInput): MapProjectSnapshot {
   return {
     version: SNAPSHOT_VERSION,
     projectId: sanitizeProjectId(input.projectId),
-    savedAt: new Date().toISOString(),
+    savedAt,
     activeBaseLayer: input.activeBaseLayer,
     viewport: cloneJson(input.viewport),
     ...(input.layoutPreferences ? { layoutPreferences: cloneJson(input.layoutPreferences) } : {}),
@@ -1117,6 +1325,7 @@ function createSnapshot(input: SaveProjectMapStateInput): MapProjectSnapshot {
     drawnFeatures: cloneJson(input.drawnFeatures),
     measurements: cloneJson(input.measurements ?? []),
     overlayLayers,
+    sourceHandles,
     layerReferences,
     evidenceArtifacts,
     qaSummary,
@@ -1273,31 +1482,48 @@ async function ensureSpatialTable(projectId: string, snapshot: MapProjectSnapsho
 }
 
 function restoreOverlayLayers(snapshot: MapProjectSnapshot): OverlayLayerConfig[] {
-  return snapshot.overlayLayers.map((layer): OverlayLayerConfig => ({
-    id: layer.id,
-    name: layer.name,
-    type: layer.type,
-    visible: layer.visible,
-    opacity: layer.opacity,
-    ...(layer.group ? { group: layer.group } : {}),
-    ...(layer.sourceKind ? { sourceKind: layer.sourceKind } : {}),
-    ...(typeof layer.queryable === "boolean" ? { queryable: layer.queryable } : {}),
-    ...(layer.qaStatus ? { qaStatus: layer.qaStatus } : {}),
-    ...(layer.provenance ? { provenance: cloneJson(layer.provenance) } : {}),
-    ...(layer.style ? { style: cloneJson(layer.style) } : {}),
-    metadata: {
-      ...(layer.metadata ? cloneJson(layer.metadata) : {}),
-      persistence: {
-        snapshotVersion: snapshot.version,
-        savedAt: snapshot.savedAt,
-        sourcePersistence: layer.sourcePersistence,
-        restoreState: layer.restoreState,
-        restoreWarnings: [...layer.restoreWarnings],
-        ...(layer.sourceRef ? { sourceRef: layer.sourceRef } : {}),
+  const handlesById = sourceHandleMap(snapshot.sourceHandles);
+  return snapshot.overlayLayers.map((layer): OverlayLayerConfig => {
+    const restoredLayer: OverlayLayerConfig = {
+      id: layer.id,
+      name: layer.name,
+      type: layer.type,
+      visible: layer.visible,
+      opacity: layer.opacity,
+      ...(layer.group ? { group: layer.group } : {}),
+      ...(layer.sourceKind ? { sourceKind: layer.sourceKind } : {}),
+      ...(typeof layer.queryable === "boolean" ? { queryable: layer.queryable } : {}),
+      ...(layer.qaStatus ? { qaStatus: layer.qaStatus } : {}),
+      ...(layer.provenance ? { provenance: cloneJson(layer.provenance) } : {}),
+      ...(layer.style ? { style: cloneJson(layer.style) } : {}),
+      metadata: {
+        ...(layer.metadata ? cloneJson(layer.metadata) : {}),
+        persistence: {
+          snapshotVersion: snapshot.version,
+          savedAt: snapshot.savedAt,
+          sourcePersistence: layer.sourcePersistence,
+          restoreState: layer.restoreState,
+          restoreWarnings: [...layer.restoreWarnings],
+          ...(layer.sourceRef ? { sourceRef: layer.sourceRef } : {}),
+          ...(layer.metadata?.sourceId ? { sourceId: layer.metadata.sourceId } : {}),
+          ...(layer.metadata?.sourceStorageMode ? { sourceStorageMode: layer.metadata.sourceStorageMode } : {}),
+          ...(layer.metadata?.sourceRestoreStatus ? { sourceRestoreStatus: layer.metadata.sourceRestoreStatus } : {}),
+        },
       },
-    },
-    ...(layer.sourceData ? { sourceData: cloneJson(layer.sourceData) } : {}),
-  }));
+      ...(layer.sourceData ? { sourceData: cloneJson(layer.sourceData) } : {}),
+    };
+
+    const sourceId = resolveLayerSourceId(restoredLayer);
+    if (!sourceId) return restoredLayer;
+    const handle = handlesById.get(sourceId);
+    const resolvedHandle = handle
+      ? resolveSourceHandleForRestore(handle, { hasInlineSourceData: Boolean(layer.sourceData) })
+      : createUnavailableSourceHandleForLayer(restoredLayer, sourceId, snapshot.savedAt);
+    return applySourceHandleToLayer(restoredLayer, resolvedHandle, {
+      snapshotVersion: snapshot.version,
+      savedAt: snapshot.savedAt,
+    });
+  });
 }
 
 function buildBoundsPolygonWkt(bounds: [number, number, number, number]): string {

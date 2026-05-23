@@ -93,6 +93,102 @@ async function seedComparisonLayers(page: import("@playwright/test").Page): Prom
   });
 }
 
+async function seedWorkflowBufferLayer(page: import("@playwright/test").Page): Promise<void> {
+  await page.evaluate(async () => {
+    const module = await import("/src/stores/useMapExplorerStore.ts");
+    const featureCollection = {
+      type: "FeatureCollection" as const,
+      features: [
+        {
+          type: "Feature" as const,
+          id: "buffer-site-1",
+          geometry: {
+            type: "Point" as const,
+            coordinates: [29.0, 41.0],
+          },
+          properties: { name: "Kadikoy transit stop" },
+        },
+        {
+          type: "Feature" as const,
+          id: "buffer-site-2",
+          geometry: {
+            type: "Point" as const,
+            coordinates: [29.04, 41.02],
+          },
+          properties: { name: "Uskudar transit stop" },
+        },
+      ],
+    };
+
+    module.useMapExplorerStore.getState().addOverlayLayer({
+      id: "e2e-buffer-points",
+      name: "E2E Istanbul WGS84 Points",
+      type: "geojson",
+      visible: true,
+      opacity: 0.86,
+      group: "data",
+      sourceKind: "imported",
+      sourceData: featureCollection,
+      metadata: {
+        geometryType: "Point",
+        featureCount: featureCollection.features.length,
+        fields: ["name"],
+        datasetContext: {
+          crs: "EPSG:4326",
+        },
+        crsSummary: {
+          crs: "EPSG:4326",
+          status: "known",
+          source: "explicit",
+          notes: ["E2E fixture declares WGS84 coordinates for Prompt 6 CRS planning."],
+        },
+      },
+    });
+  });
+}
+
+async function seedWorkflowMissingCrsLayer(page: import("@playwright/test").Page): Promise<void> {
+  await page.evaluate(async () => {
+    const module = await import("/src/stores/useMapExplorerStore.ts");
+    const featureCollection = {
+      type: "FeatureCollection" as const,
+      features: [
+        {
+          type: "Feature" as const,
+          id: "missing-crs-parcel-1",
+          geometry: {
+            type: "Polygon" as const,
+            coordinates: [[
+              [28.98, 41.0],
+              [29.01, 41.0],
+              [29.01, 41.03],
+              [28.98, 41.03],
+              [28.98, 41.0],
+            ]],
+          },
+          properties: { name: "Missing CRS parcel" },
+        },
+      ],
+    };
+
+    module.useMapExplorerStore.getState().addOverlayLayer({
+      id: "e2e-missing-crs-polygons",
+      name: "E2E Missing CRS Polygons",
+      type: "geojson",
+      visible: true,
+      opacity: 0.86,
+      group: "data",
+      sourceKind: "imported",
+      sourceData: featureCollection,
+      metadata: {
+        geometryType: "Polygon",
+        featureCount: featureCollection.features.length,
+        fields: ["name"],
+      },
+    });
+  });
+}
+
 async function openWorkflowDrawer(page: import("@playwright/test").Page) {
   const directWorkflowButton = page.getByRole("button", { name: /Workflow|Open AOI .* Compare workflow drawer/i }).first();
   if (await directWorkflowButton.isVisible().catch(() => false)) {
@@ -221,6 +317,105 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
     await expect(comparisonLegend).toBeVisible();
     await expect(comparisonLegend).toContainText("A · E2E Existing Conditions");
     await expect(comparisonLegend).toContainText("B · E2E Proposed Scenario");
+  });
+
+  test("shows the execution CRS chip on workflow preview", async ({ page }) => {
+    await page.setViewportSize({ width: 1680, height: 1100 });
+    await resetWorkbenchState(page);
+
+    await openMapExplorer(page);
+    await seedWorkflowBufferLayer(page);
+    await expect(page.getByRole("list", { name: "Layer list" })).toContainText("E2E Istanbul WGS84 Points");
+
+    const drawer = await openWorkflowDrawer(page);
+    await triggerDomClick(drawer.getByRole("button", { name: /Buffer: Geodesic ring/i }));
+    await drawer.getByLabel("Layer selector").selectOption("e2e-buffer-points");
+
+    const executionCrsChip = page.getByTestId("map-workflow-execution-crs-chip");
+    await expect(executionCrsChip).toBeVisible();
+    await expect(executionCrsChip).toContainText("Execution CRS EPSG:32635");
+  });
+
+  test("blocks buffer workflows when source CRS is missing", async ({ page }) => {
+    await page.setViewportSize({ width: 1680, height: 1100 });
+    await resetWorkbenchState(page);
+
+    await openMapExplorer(page);
+    await seedWorkflowMissingCrsLayer(page);
+    await expect(page.getByRole("list", { name: "Layer list" })).toContainText("E2E Missing CRS Polygons");
+
+    const drawer = await openWorkflowDrawer(page);
+    await triggerDomClick(drawer.getByRole("button", { name: /Buffer: Geodesic ring/i }));
+    await drawer.getByLabel("Layer selector").selectOption("e2e-missing-crs-polygons");
+
+    const blockedCard = drawer.getByTestId("map-workflow-crs-blocked-card");
+    await expect(blockedCard).toBeVisible();
+    await expect(blockedCard).toContainText("lack CRS metadata");
+    await expect(blockedCard.getByRole("button", { name: /Declare CRS/i })).toBeVisible();
+    await expect(drawer.getByRole("button", { name: /Apply spatial workflow blocked/i })).toBeDisabled();
+  });
+
+  test("declares a user CRS (caveated) for a missing-CRS layer from the layer rail", async ({ page }) => {
+    await page.setViewportSize({ width: 1680, height: 1100 });
+    await resetWorkbenchState(page);
+
+    await openMapExplorer(page);
+    await seedWorkflowMissingCrsLayer(page);
+
+    const row = page.getByRole("option", { name: /Layer: E2E Missing CRS Polygons/i });
+    await expect(row).toBeVisible();
+    await expect(row).toContainText("CRS missing");
+
+    await triggerDomClick(row.getByTestId("map-declare-crs-trigger"));
+
+    const popover = page.getByTestId("map-declare-crs-popover");
+    await expect(popover).toBeVisible();
+    await expect(popover.getByTestId("map-declare-crs-caveat")).toContainText(/not verified/i);
+
+    await popover.getByTestId("map-declare-crs-search").fill("32635");
+    await triggerDomClick(popover.getByRole("button", { name: /Declare EPSG:32635/i }));
+
+    // The CRS badge now reads "user-declared (caveat)" and the caveat persists in the row.
+    await expect(popover).toBeHidden();
+    await expect(row).toContainText("user-declared (caveat)");
+    await expect(row).not.toContainText("CRS missing");
+  });
+
+  test("routes layer removal through the command lifecycle with an audit row and revert", async ({ page }) => {
+    await page.setViewportSize({ width: 1680, height: 1100 });
+    await resetWorkbenchState(page);
+
+    await openMapExplorer(page);
+    await seedWorkflowBufferLayer(page);
+
+    const layerList = page.getByRole("list", { name: "Layer list" });
+    await expect(layerList).toContainText("E2E Istanbul WGS84 Points");
+
+    // Remove the layer through the layer-action menu (Delete -> Confirm delete);
+    // both removal paths are routed through MapActionExecutor.
+    await page.getByLabel("Layer actions for E2E Istanbul WGS84 Points").evaluate((el) => {
+      (el as HTMLElement).closest("details")?.setAttribute("open", "");
+    });
+    await triggerDomClick(page.getByRole("menuitem", { name: "Delete E2E Istanbul WGS84 Points" }));
+    await triggerDomClick(page.getByRole("menuitem", { name: "Confirm delete E2E Istanbul WGS84 Points" }));
+    await expect(layerList).not.toContainText("E2E Istanbul WGS84 Points");
+
+    // Open the review timeline (via the command palette) and assert the audit row + revert affordance.
+    await page.keyboard.press("Control+K");
+    const palette = page.getByRole("dialog", { name: "Map command palette" });
+    await expect(palette).toBeVisible();
+    await palette.getByLabel("Search map commands").fill("review timeline");
+    await triggerDomClick(palette.getByRole("option", { name: /Review/i }).first());
+
+    const revertButton = page.getByTestId("map-review-timeline-revert");
+    await expect(revertButton).toBeVisible();
+    await expect(
+      page.getByTestId("map-review-timeline-event").filter({ hasText: "Removed layer" }).first(),
+    ).toBeVisible();
+
+    // Revert restores the layer to the rail.
+    await triggerDomClick(revertButton);
+    await expect(layerList).toContainText("E2E Istanbul WGS84 Points");
   });
 
   test("keeps controls usable across laptop and tablet viewport screenshots", async ({ page }, testInfo) => {
