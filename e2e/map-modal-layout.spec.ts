@@ -189,6 +189,51 @@ async function seedWorkflowMissingCrsLayer(page: import("@playwright/test").Page
   });
 }
 
+async function seedAttributeTableLayer(page: import("@playwright/test").Page): Promise<void> {
+  await page.evaluate(async () => {
+    const module = await import("/src/stores/useMapExplorerStore.ts");
+    const featureCollection = {
+      type: "FeatureCollection" as const,
+      features: Array.from({ length: 25 }, (_, index) => {
+        const ring = Math.floor(index / 5);
+        const slot = index % 5;
+        return {
+          type: "Feature" as const,
+          geometry: {
+            type: "Point" as const,
+            coordinates: [29.0 + slot * 0.01, 41.0 + ring * 0.01],
+          },
+          properties: {
+            id: index + 1,
+            name: `site-${index + 1}`,
+            value: (index + 1) * 4,
+            date: `2026-01-${String((index % 28) + 1).padStart(2, "0")}`,
+          },
+        };
+      }),
+    };
+
+    module.useMapExplorerStore.getState().addOverlayLayer({
+      id: "e2e-attribute-points",
+      name: "E2E Attribute Points",
+      type: "geojson",
+      visible: true,
+      opacity: 0.9,
+      group: "data",
+      sourceKind: "imported",
+      queryable: true,
+      sourceData: featureCollection,
+      metadata: {
+        geometryType: "Point",
+        featureCount: featureCollection.features.length,
+        fields: ["id", "name", "value", "date"],
+        bounds: [29.0, 41.0, 29.04, 41.04],
+        crsSummary: { crs: "EPSG:4326", status: "known", source: "explicit", notes: [] },
+      },
+    });
+  });
+}
+
 async function openWorkflowDrawer(page: import("@playwright/test").Page) {
   const directWorkflowButton = page.getByRole("button", { name: /Workflow|Open AOI .* Compare workflow drawer/i }).first();
   if (await directWorkflowButton.isVisible().catch(() => false)) {
@@ -477,6 +522,39 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
     await triggerDomClick(missingRow.getByTestId("map-layer-inspect-trigger"));
     await triggerDomClick(page.getByTestId("map-layer-inspector").getByTestId("map-layer-inspector-tab-crs"));
     await expect(page.getByTestId("map-layer-inspector-panel-crs")).toContainText("missing");
+  });
+
+  test("opens an attribute table and syncs row selection with the map context summary", async ({ page }) => {
+    await page.setViewportSize({ width: 1680, height: 1100 });
+    await resetWorkbenchState(page);
+    await openMapExplorer(page);
+    await seedAttributeTableLayer(page);
+
+    const layerList = page.getByRole("list", { name: "Layer list" });
+    await expect(layerList).toContainText("E2E Attribute Points");
+
+    const row = page.getByRole("option", { name: /Layer: E2E Attribute Points/i });
+    await triggerDomClick(row.getByTestId("map-layer-table-trigger"));
+
+    const table = page.getByTestId("map-attribute-table");
+    await expect(table).toBeVisible();
+    await expect(table.getByTestId("map-attribute-table-count")).toContainText("25 of 25");
+
+    const firstTableRow = table.getByTestId("map-attribute-row").first();
+    await triggerDomClick(firstTableRow);
+    await expect(firstTableRow).toHaveAttribute("aria-selected", "true");
+
+    await expect(page.getByTestId("map-bottom-timeline")).toContainText("Select");
+    await expect(page.getByTestId("map-bottom-timeline")).toContainText("1");
+
+    const selectedFeatureCount = await page.evaluate(async () => {
+      const storeModule = await import("/src/stores/useMapExplorerStore.ts");
+      const summaryModule = await import("/src/centerpanel/components/map/mapContextSummary.ts");
+      return summaryModule.selectMapExplorerContextSummary(
+        storeModule.useMapExplorerStore.getState(),
+      ).selection.totalSelectedFeatures;
+    });
+    expect(selectedFeatureCount).toBe(1);
   });
 
   test("keeps controls usable across laptop and tablet viewport screenshots", async ({ page }, testInfo) => {

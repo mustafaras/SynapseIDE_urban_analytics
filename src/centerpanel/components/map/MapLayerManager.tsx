@@ -47,6 +47,7 @@ export interface MapLayerManagerProps {
   onOpenLayerInIde?: (id: string) => void;
   onDeclareLayerCrs?: (id: string, crs: string) => void;
   onInspectLayer?: (id: string) => void;
+  onOpenAttributeTable?: (id: string) => void;
   onBindLayerToDashboard?: (id: string) => void;
   onOpenLayerEducationReference?: (id: string) => void;
   onFocusLayer?: (id: string) => void;
@@ -311,6 +312,31 @@ const layerBadgeRail: React.CSSProperties = {
   flexWrap: "wrap",
   gap: 4,
   minWidth: 0,
+};
+
+const layerInlineActions: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  flexWrap: "wrap",
+  gap: MAP_SPACING.xs,
+  marginTop: MAP_SPACING.xs,
+};
+
+const layerInlineActionButton: React.CSSProperties = {
+  padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
+  border: MAP_STROKES.hairlineStrong,
+  borderRadius: MAP_RADIUS.sm,
+  background: MAP_COLORS.transparent,
+  color: MAP_COLORS.interaction,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+  cursor: "pointer",
+};
+
+const layerInlineActionButtonDisabled: React.CSSProperties = {
+  color: MAP_COLORS.textMuted,
+  cursor: "not-allowed",
+  opacity: 0.72,
 };
 
 const layerBadgeBase: React.CSSProperties = {
@@ -1665,6 +1691,7 @@ interface LayerRowProps {
   onOpenLayerInIde?: (id: string) => void;
   onDeclareLayerCrs?: (id: string, crs: string) => void;
   onInspectLayer?: (id: string) => void;
+  onOpenAttributeTable?: (id: string) => void;
   onAddLayerToReport?: (id: string) => void;
   onBindLayerToDashboard?: (id: string) => void;
   onOpenLayerEducationReference?: (id: string) => void;
@@ -1699,6 +1726,7 @@ const LayerRow: React.FC<LayerRowProps> = ({
   onOpenLayerInIde,
   onDeclareLayerCrs,
   onInspectLayer,
+  onOpenAttributeTable,
   onAddLayerToReport,
   onBindLayerToDashboard,
   onFocusLayer,
@@ -1894,27 +1922,36 @@ const LayerRow: React.FC<LayerRowProps> = ({
           ))}
         </div>
 
-        {onInspectLayer ? (
-          <button
-            type="button"
-            data-testid="map-layer-inspect-trigger"
-            onClick={() => onInspectLayer(layer.id)}
-            aria-label={`Inspect ${layer.name}`}
-            style={{
-              alignSelf: "flex-start",
-              marginTop: MAP_SPACING.xs,
-              padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
-              border: MAP_STROKES.hairlineStrong,
-              borderRadius: MAP_RADIUS.sm,
-              background: MAP_COLORS.transparent,
-              color: MAP_COLORS.interaction,
-              fontSize: MAP_TYPOGRAPHY.fontSize.xs,
-              fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
-              cursor: "pointer",
-            }}
-          >
-            Inspect
-          </button>
+        {onInspectLayer || onOpenAttributeTable ? (
+          <div style={layerInlineActions}>
+            {onOpenAttributeTable ? (
+              <button
+                type="button"
+                data-testid="map-layer-table-trigger"
+                onClick={() => onOpenAttributeTable(layer.id)}
+                aria-label={`Open attribute table for ${layer.name}`}
+                disabled={!queryable}
+                title={queryable ? `Open attribute table for ${layer.name}` : "Missing prerequisite: layer is not queryable vector data."}
+                style={{
+                  ...layerInlineActionButton,
+                  ...(queryable ? {} : layerInlineActionButtonDisabled),
+                }}
+              >
+                Table
+              </button>
+            ) : null}
+            {onInspectLayer ? (
+              <button
+                type="button"
+                data-testid="map-layer-inspect-trigger"
+                onClick={() => onInspectLayer(layer.id)}
+                aria-label={`Inspect ${layer.name}`}
+                style={layerInlineActionButton}
+              >
+                Inspect
+              </button>
+            ) : null}
+          </div>
         ) : null}
 
         {onDeclareLayerCrs && (registry.crsSummary.status !== "known" || registry.crsSummary.source === "user-declared") ? (
@@ -1987,6 +2024,7 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
   onOpenLayerInIde,
   onDeclareLayerCrs,
   onInspectLayer,
+  onOpenAttributeTable,
   onBindLayerToDashboard,
   onOpenLayerEducationReference,
   onFocusLayer,
@@ -2518,6 +2556,7 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
                         {...(onOpenLayerInIde ? { onOpenLayerInIde } : {})}
                         {...(onDeclareLayerCrs ? { onDeclareLayerCrs } : {})}
                         {...(onInspectLayer ? { onInspectLayer } : {})}
+                        {...(onOpenAttributeTable ? { onOpenAttributeTable } : {})}
                         {...(onAddLayerToReport ? { onAddLayerToReport } : {})}
                         {...(onBindLayerToDashboard ? { onBindLayerToDashboard } : {})}
                         {...(onOpenLayerEducationReference ? { onOpenLayerEducationReference } : {})}

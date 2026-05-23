@@ -39,7 +39,7 @@ Legend: `[x]` done · `[~]` in progress · `[ ]` TODO · `[!]` blocked (see Done
 - [x] 8 — CRS correction UI + projection suggestion ✅ verified
 - [x] 9 — Map command lifecycle (`MapActionExecutor`) ✅ verified
 - [x] 10 — Layer inspector workbench ✅ verified
-- [ ] 11 — Attribute table + selection sync
+- [x] 11 — Attribute table + selection sync ✅ verified (map/type/lint/e2e green; `test:analytics` runner hang noted under Drift notes)
 - [ ] 12 — Style editor + legend contract
 - [ ] 13 — Workerized geometry operations
 - [ ] 14 — AOI + vertex editing
@@ -116,6 +116,7 @@ Legend: `[x]` done · `[~]` in progress · `[ ]` TODO · `[!]` blocked (see Done
 
 | Date | Prompt | Branch | Commit(s) | Proof |
 | --- | --- | --- | --- | --- |
+| 2026-05-23 | 11 — Attribute table + selection sync | `gis/p11-table` | branch commit | `MapAttributeTable` (table/) added for queryable vector layers with sort, multi-column filters, bounded/windowed rows, row select, clear/focus-selected controls, and feature-id resolution aligned with `MapCanvas`; `MapLayerManager` exposes a per-layer `Table` affordance and `MapExplorerModalComposition` routes row selection through the existing selection slice so map highlight/status and `mapContextSummary` update from the same IDs. `npm run typecheck` clean; `npx vitest run src/centerpanel/components/map` clean; targeted `MapAttributeTable` + context tests 16 passed; `lint:no-tailwind-centerpanel`, `lint:errors`, and `color:guard:changed` clean; Playwright `npx playwright test e2e/map-modal-layout.spec.ts -g "opens an attribute table"` 1/1 passed (open table → click row → selected count/context summary = 1). |
 | 2026-05-23 | 10 — Layer inspector workbench | `gis/p10-inspector` | `1b83d8e` | `LayerInspector` (inspector/) added — tabbed Overview / Source(+`SourceHandle`) / Schema / CRS / QA / Style / Lineage / Report fed only from `normalizeLayerRegistryMetadata` + the resolved source handle, rendering `unknown`/`missing` explicitly (no blanks) and never duplicating resolver logic; the Lineage tab links analysis layers to run/manifest/evidence ids; an inline per-row Inspect affordance opens it. `npm run typecheck` clean; `npm run build` clean; `lint:no-tailwind-centerpanel` + `lint:errors` clean; `npx vitest run src/centerpanel/components/map` 326 passed (29 files) incl. 6 inspector tests; Playwright `npx playwright test e2e/map-modal-layout.spec.ts -g "opens a tabbed layer inspector"` 1/1 (known layer Schema lists `value` + CRS `EPSG:4326`; `fcMissingCrs` CRS shows `missing`). |
 | 2026-05-23 | 9 — Map command lifecycle (`MapActionExecutor`) | `gis/p09-command-lifecycle` | `a8b1c21` | `MapActionExecutor` (preview/apply/revert) + `MapActionHistoryService` (history + revert tokens) added; `layer.remove`/`layer.style`/`workflow.apply`/`report.handoff` preflight → `MapCommandResult` (+ `MapReproducibilityManifest` for workflow.apply) + one review-timeline audit event, and blocked commands return `blockers`; layer removal (both panels) and workflow.apply (derived-layer commit) route through the executor and the review timeline shows a `map-review-timeline-revert` affordance that restores prior store state and marks the event undone. `npm run typecheck` clean; `npx vitest run src/services/map src/stores src/centerpanel/components/map` 694 passed / 2 skipped (66 files); `lint:errors` + `lint:no-tailwind-centerpanel` clean; Playwright `npx playwright test e2e/map-modal-layout.spec.ts -g "routes layer removal"` 1/1 passed (remove layer → audit row → revert restores the layer). |
 | 2026-05-23 | 8 — CRS correction UI + local projection suggestion | `gis/p08-crs-ui` | `8030bf8` | `DeclareCrsControl` (searchable EPSG catalog + local UTM/equal-area suggestion from `localUtmFor`) added to the layer rail for missing/unknown/user-declared CRS; declaring writes provenance `source:"user-declared"` with a permanent caveat through `buildUserDeclaredCrsSummary` + `resolveOverlayLayerCrsSummary` (status stays a known value so projected work proceeds, but it is never marked verified and the caveat survives every read); badge reads `user-declared (caveat)`; `LayerMetadataSource` gains `"user-declared"`; Urban `dataFitness` now reads the declared CRS but downgrades a user-declared CRS to a caveated `warning` (capped score + `user_declared_crs` issue) so it is never authoritative. `npm run typecheck` clean; `npx vitest run src/services/map src/centerpanel/components/map` 541 passed / 2 skipped (56 files); `npm run test:analytics` 1113 passed (62 files); `lint:errors` + `lint:no-tailwind-centerpanel` clean; Playwright `npx playwright test e2e/map-modal-layout.spec.ts -g "declares a user CRS"` 1/1 passed (declare EPSG:32635 on `fcMissingCrs` → badge `user-declared (caveat)`, caveat persists). |
@@ -192,6 +193,11 @@ Artifacts created so far:
 - `src/centerpanel/components/map/MapLayerManager.tsx` adds an inline per-row `Inspect` affordance (`onInspectLayer`); Prompt 10
 - `src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx` holds inspector state, resolves the `SourceHandle` by `metadata.sourceId`, and renders `LayerInspector`; Prompt 10
 - `e2e/map-modal-layout.spec.ts` asserts the inspector shows Schema `value` + CRS `EPSG:4326` (known) and CRS `missing` (no-CRS layer); Prompt 10
+- `src/centerpanel/components/map/table/MapAttributeTable.tsx` (virtualized attribute table helpers + UI: sort, filters, row select, focus selected; Prompt 11)
+- `src/centerpanel/components/map/__tests__/MapAttributeTable.test.tsx` (sort/filter, `fcLarge(100_000)` bounded DOM, table → selection slice → `mapContextSummary` proof; Prompt 11)
+- `src/centerpanel/components/map/MapLayerManager.tsx` adds a queryable-layer `Table` affordance (`onOpenAttributeTable`); Prompt 11
+- `src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx` renders `MapAttributeTable`, focuses selected feature bounds, and writes selected IDs through the store selection slice; Prompt 11
+- `e2e/map-modal-layout.spec.ts` asserts table row selection updates selected count and the map context summary; Prompt 11
 
 ---
 
@@ -278,6 +284,17 @@ Artifacts created so far:
   `npm run dev` vite with broken HMR (left over from the pre-fix parse error) was
   reused by Playwright's `reuseExistingServer` and had to be killed so a clean
   dev server started.
+
+- Prompt 11: `MapCanvas` resolves clicked feature ids as `feature.id ??
+  properties.id ?? properties.feature_id ?? properties.detection_id ??
+  properties.cell_id ?? properties.agent_id ?? properties.name ??
+  <layer>-feature`; the attribute table mirrors that order so map-click and
+  row-click selection use the same ids. Full `npm run test:analytics` could not
+  complete in this Windows session: multiple runs stalled in Vitest worker
+  scheduling with no failure output and were stopped; the isolated queued
+  `src/services/data/pipeline/__tests__/columnarIO.test.ts` file passed 9/9
+  when run separately, and Prompt 11 touched no Urban Analytics files. Required
+  map/type/lint/e2e validation for this slice is green.
 
 ---
 

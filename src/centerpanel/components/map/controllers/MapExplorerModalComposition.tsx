@@ -81,6 +81,7 @@ import { MapWorkflowDrawer } from "../MapWorkflowDrawer";
 import { MapReportHandoffDrawer } from "../MapReportHandoffDrawer";
 import { MapReviewTimelinePanel } from "../MapReviewTimelinePanel";
 import { LayerInspector } from "../inspector/LayerInspector";
+import { MapAttributeTable, type AttrFeature } from "../table/MapAttributeTable";
 import { CartographyRecommendationList } from "../CartographyRecommendationList";
 import {
   createMapEvidenceArtifact,
@@ -885,6 +886,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const selectedFeatureId = useMapExplorerStore((s) => s.selectedFeatureId);
   const selectedFeatureIds = useMapExplorerStore((s) => s.selectedFeatureIds);
   const setSelectedFeatureId = useMapExplorerStore((s) => s.setSelectedFeatureId);
+  const setSelectedFeatures = useMapExplorerStore((s) => s.setSelectedFeatures);
   const clearSelectedFeatures = useMapExplorerStore((s) => s.clearSelectedFeatures);
   const activeAoiId = useMapExplorerStore((s) => s.activeAoiId);
 
@@ -940,6 +942,10 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     : null;
   const inspectorSourceHandle = inspectorLayer
     ? sourceHandles.find((handle) => handle.sourceId === inspectorLayer.metadata?.sourceId) ?? null
+    : null;
+  const [attributeTableLayerId, setAttributeTableLayerId] = useState<string | null>(null);
+  const attributeTableLayer = attributeTableLayerId
+    ? overlayLayers.find((entry) => entry.id === attributeTableLayerId) ?? null
     : null;
   const [showExternalServiceDialog, setShowExternalServiceDialog] = useState(false);
   const [pointSymbologyLayerId, setPointSymbologyLayerId] = useState<string | null>(null);
@@ -1236,6 +1242,18 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     setInspectorLayerId(layerId);
     announce("Layer inspector opened");
   }, [announce]);
+
+  const handleOpenAttributeTable = useCallback((layerId: string) => {
+    setAttributeTableLayerId(layerId);
+    announce("Attribute table opened");
+  }, [announce]);
+
+  const handleAttributeTableSelection = useCallback((layerId: string, featureIds: string[]) => {
+    setSelectedFeatures(layerId, featureIds);
+    if (featureIds.length > 0) {
+      setActiveAnalysisResultLayers([layerId]);
+    }
+  }, [setActiveAnalysisResultLayers, setSelectedFeatures]);
 
   useEffect(() => {
     if (!open || reviewSession.events.length > 0) {
@@ -2808,6 +2826,15 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     fitToBounds(bounds);
     announce(`Map focused on ${layer.name}`);
   }, [announce, fitToBounds, overlayLayers]);
+
+  const handleFocusAttributeFeature = useCallback((feature: AttrFeature) => {
+    const bounds = getFeatureBounds(feature);
+    if (!bounds) {
+      announce("Feature extent is unavailable; cannot focus the map on this table row.");
+      return;
+    }
+    fitToBounds(bounds);
+  }, [announce, fitToBounds]);
 
   const handleHotSpotDispatch = useCallback(async (coordinate: [number, number]) => {
     if (isRunningQuickHotSpot) {
@@ -5701,6 +5728,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
                 onSendLayerToUrban={handleSendLayerToUrban}
                 onDeclareLayerCrs={handleDeclareLayerCrs}
                 onInspectLayer={handleInspectLayer}
+                onOpenAttributeTable={handleOpenAttributeTable}
                 onOpenLayerInIde={handleOpenLayerInIde}
                 onClearLayerCache={handleClearLayerCache}
                 onReRunAnalysisLayer={handleReRunAnalysisLayer}
@@ -5774,6 +5802,19 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
                 setInspectorLayerId(null);
                 announce("Layer inspector closed");
               }}
+            />
+          ) : null}
+          {attributeTableLayer ? (
+            <MapAttributeTable
+              layer={attributeTableLayer}
+              selectedIds={selectedFeatureIds[attributeTableLayer.id] ?? []}
+              onSelectFeatures={(featureIds) => handleAttributeTableSelection(attributeTableLayer.id, featureIds)}
+              onFocusFeature={handleFocusAttributeFeature}
+              onClose={() => {
+                setAttributeTableLayerId(null);
+                announce("Attribute table closed");
+              }}
+              onAnnounce={announce}
             />
           ) : null}
           <MapReviewTimelinePanel
