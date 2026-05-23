@@ -1996,7 +1996,28 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     (result: MapWorkflowApplyResult) => {
       setWorkflowPreview(null);
       setUrbanWorkflowDraftRequest(null);
-      addOverlayLayer(result.layer);
+      // Route the derived-layer commit through the command lifecycle so the
+      // workflow apply is auditable and the timeline "Revert" removes the layer.
+      const workflowOutcome = applyMapCommand(
+        {
+          kind: "workflow.apply",
+          workflowId: result.manifest.workflowId,
+          outputLayer: result.layer,
+          canApply: true,
+          manifest: result.manifest,
+        },
+        buildMapActionEffects(),
+      );
+      mapActionHistoryRef.current = recordMapActionHistoryEntry(mapActionHistoryRef.current, {
+        commandId: workflowOutcome.result.commandId,
+        kind: workflowOutcome.result.kind,
+        title: `Workflow applied: ${result.reportItem.title}`,
+        reviewEventId: workflowOutcome.result.reviewEventId ?? workflowOutcome.result.commandId,
+        appliedAt: workflowOutcome.result.createdAt,
+        revertable: workflowOutcome.result.revertable,
+        reverted: false,
+        ...(workflowOutcome.revertToken ? { revertToken: workflowOutcome.revertToken } : {}),
+      });
       const bounds =
         result.layer.metadata?.bounds ??
         (result.preview.featureCollection
@@ -2080,6 +2101,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         createdAt: result.manifest.createdAt,
       }));
       recordMapReviewEvent({
+        id: workflowOutcome.result.commandId,
         type: "workflow-action",
         status: "applied",
         title: `Workflow applied: ${result.reportItem.title}`,
@@ -2092,6 +2114,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
           outcome: "Derived layer can be removed from the layer stack.",
         },
         details: {
+          commandId: workflowOutcome.result.commandId,
+          commandKind: "workflow.apply",
+          revertable: workflowOutcome.result.revertable,
           workflow: result.reportItem.workflow,
           derivedLayerId: result.reportItem.derivedLayerId,
           sourceLayerIds: result.reportItem.sourceLayerIds,
@@ -2110,7 +2135,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       toastSuccess(message);
       announce(message);
     },
-    [addOverlayLayer, announce, recordMapReviewEvent, reducedMotion, setActiveAnalysisResultLayers, upsertMapEvidenceArtifact],
+    [announce, buildMapActionEffects, recordMapReviewEvent, reducedMotion, setActiveAnalysisResultLayers, upsertMapEvidenceArtifact],
   );
 
   const handleSaveWorkflowReport = useCallback(
