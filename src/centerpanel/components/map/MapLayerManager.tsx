@@ -46,6 +46,7 @@ export interface MapLayerManagerProps {
   onSendLayerToUrban?: (id: string) => void;
   onOpenLayerInIde?: (id: string) => void;
   onDeclareLayerCrs?: (id: string, crs: string) => void;
+  onInspectLayer?: (id: string) => void;
   onBindLayerToDashboard?: (id: string) => void;
   onOpenLayerEducationReference?: (id: string) => void;
   onFocusLayer?: (id: string) => void;
@@ -1663,6 +1664,7 @@ interface LayerRowProps {
   onSendLayerToUrban?: (id: string) => void;
   onOpenLayerInIde?: (id: string) => void;
   onDeclareLayerCrs?: (id: string, crs: string) => void;
+  onInspectLayer?: (id: string) => void;
   onAddLayerToReport?: (id: string) => void;
   onBindLayerToDashboard?: (id: string) => void;
   onOpenLayerEducationReference?: (id: string) => void;
@@ -1696,6 +1698,7 @@ const LayerRow: React.FC<LayerRowProps> = ({
   onSendLayerToUrban,
   onOpenLayerInIde,
   onDeclareLayerCrs,
+  onInspectLayer,
   onAddLayerToReport,
   onBindLayerToDashboard,
   onFocusLayer,
@@ -1891,6 +1894,29 @@ const LayerRow: React.FC<LayerRowProps> = ({
           ))}
         </div>
 
+        {onInspectLayer ? (
+          <button
+            type="button"
+            data-testid="map-layer-inspect-trigger"
+            onClick={() => onInspectLayer(layer.id)}
+            aria-label={`Inspect ${layer.name}`}
+            style={{
+              alignSelf: "flex-start",
+              marginTop: MAP_SPACING.xs,
+              padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
+              border: MAP_STROKES.hairlineStrong,
+              borderRadius: MAP_RADIUS.sm,
+              background: MAP_COLORS.transparent,
+              color: MAP_COLORS.interaction,
+              fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+              fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+              cursor: "pointer",
+            }}
+          >
+            Inspect
+          </button>
+        ) : null}
+
         {onDeclareLayerCrs && (registry.crsSummary.status !== "known" || registry.crsSummary.source === "user-declared") ? (
           <div style={{ marginTop: MAP_SPACING.xs }}>
             <DeclareCrsControl
@@ -1960,6 +1986,7 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
   onSendLayerToUrban,
   onOpenLayerInIde,
   onDeclareLayerCrs,
+  onInspectLayer,
   onBindLayerToDashboard,
   onOpenLayerEducationReference,
   onFocusLayer,
@@ -2490,6 +2517,7 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
                         {...(onSendLayerToUrban ? { onSendLayerToUrban } : {})}
                         {...(onOpenLayerInIde ? { onOpenLayerInIde } : {})}
                         {...(onDeclareLayerCrs ? { onDeclareLayerCrs } : {})}
+                        {...(onInspectLayer ? { onInspectLayer } : {})}
                         {...(onAddLayerToReport ? { onAddLayerToReport } : {})}
                         {...(onBindLayerToDashboard ? { onBindLayerToDashboard } : {})}
                         {...(onOpenLayerEducationReference ? { onOpenLayerEducationReference } : {})}

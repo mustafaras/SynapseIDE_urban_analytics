@@ -80,6 +80,7 @@ import { MapNLQueryPanel, type MapNLQueryPanelRunSummary } from "../MapNLQueryPa
 import { MapWorkflowDrawer } from "../MapWorkflowDrawer";
 import { MapReportHandoffDrawer } from "../MapReportHandoffDrawer";
 import { MapReviewTimelinePanel } from "../MapReviewTimelinePanel";
+import { LayerInspector } from "../inspector/LayerInspector";
 import { CartographyRecommendationList } from "../CartographyRecommendationList";
 import {
   createMapEvidenceArtifact,
@@ -933,6 +934,13 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     setWorkflowReportItems,
   } = useMapWorkflowController();
   const [showReviewTimeline, setShowReviewTimeline] = useState(false);
+  const [inspectorLayerId, setInspectorLayerId] = useState<string | null>(null);
+  const inspectorLayer = inspectorLayerId
+    ? overlayLayers.find((entry) => entry.id === inspectorLayerId) ?? null
+    : null;
+  const inspectorSourceHandle = inspectorLayer
+    ? sourceHandles.find((handle) => handle.sourceId === inspectorLayer.metadata?.sourceId) ?? null
+    : null;
   const [showExternalServiceDialog, setShowExternalServiceDialog] = useState(false);
   const [pointSymbologyLayerId, setPointSymbologyLayerId] = useState<string | null>(null);
   const [pointSymbologyMode, setPointSymbologyMode] = useState<SymbolMode | "heatmap">("heatmap");
@@ -1223,6 +1231,11 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     updateMapReviewEventStatus(entry.reviewEventId, "undone", "Reverted via command lifecycle");
     announce(`Reverted: ${entry.title}`);
   }, [announce, buildMapActionEffects, updateMapReviewEventStatus]);
+
+  const handleInspectLayer = useCallback((layerId: string) => {
+    setInspectorLayerId(layerId);
+    announce("Layer inspector opened");
+  }, [announce]);
 
   useEffect(() => {
     if (!open || reviewSession.events.length > 0) {
@@ -5687,6 +5700,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
                 onOpenLayerEducationReference={handleOpenLayerEducationReference}
                 onSendLayerToUrban={handleSendLayerToUrban}
                 onDeclareLayerCrs={handleDeclareLayerCrs}
+                onInspectLayer={handleInspectLayer}
                 onOpenLayerInIde={handleOpenLayerInIde}
                 onClearLayerCache={handleClearLayerCache}
                 onReRunAnalysisLayer={handleReRunAnalysisLayer}
@@ -5752,6 +5766,16 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             onClose={handleCloseReportHandoff}
           />
 
+          {inspectorLayer ? (
+            <LayerInspector
+              layer={inspectorLayer}
+              sourceHandle={inspectorSourceHandle}
+              onClose={() => {
+                setInspectorLayerId(null);
+                announce("Layer inspector closed");
+              }}
+            />
+          ) : null}
           <MapReviewTimelinePanel
             visible={showReviewTimeline && !navigatorStageMode}
             session={reviewSession}
