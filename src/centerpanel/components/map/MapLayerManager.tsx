@@ -6,6 +6,7 @@ import type {
 import type { SourceRestoreStatus } from "@/services/map/contracts/gisContracts";
 import type { LayerGroupId, LayerPublicationReadinessStatus, LayerQaStatus, LayerScientificQABadge, LayerSourceKind, OverlayLayerConfig } from "./mapTypes";
 import { CartographyRecommendationList } from "./CartographyRecommendationList";
+import { DeclareCrsControl } from "./DeclareCrsControl";
 import { createMapExplorerDemoLayerPack, getDemoAoiBoundsList } from "./demoDataPacks";
 import { normalizeLayerRegistryMetadata } from "./mapLayerMetadata";
 import { createOsmBuildingsLayerConfig } from "@/services/map/ExternalServiceConnector";
@@ -44,6 +45,7 @@ export interface MapLayerManagerProps {
   onExportLayer?: (id: string) => void;
   onSendLayerToUrban?: (id: string) => void;
   onOpenLayerInIde?: (id: string) => void;
+  onDeclareLayerCrs?: (id: string, crs: string) => void;
   onBindLayerToDashboard?: (id: string) => void;
   onOpenLayerEducationReference?: (id: string) => void;
   onFocusLayer?: (id: string) => void;
@@ -989,14 +991,15 @@ function buildLayerBadges(layer: OverlayLayerConfig): LayerBadgeModel[] {
     });
   }
 
-  if (registry.crsSummary.status !== "known") {
+  const crsUserDeclared = registry.crsSummary.source === "user-declared";
+  if (registry.crsSummary.status !== "known" || crsUserDeclared) {
     badges.push({
       id: "crs",
-      label: crsLabel,
+      label: crsUserDeclared ? "user-declared (caveat)" : crsLabel,
       title: registry.crsSummary.notes.length > 0
         ? registry.crsSummary.notes.join(" ")
         : `CRS: ${crsLabel}.`,
-      tone: registry.crsSummary.status === "known" ? "good" : "error",
+      tone: crsUserDeclared ? "warning" : "error",
     });
   }
 
@@ -1659,6 +1662,7 @@ interface LayerRowProps {
   onExportLayer?: (id: string) => void;
   onSendLayerToUrban?: (id: string) => void;
   onOpenLayerInIde?: (id: string) => void;
+  onDeclareLayerCrs?: (id: string, crs: string) => void;
   onAddLayerToReport?: (id: string) => void;
   onBindLayerToDashboard?: (id: string) => void;
   onOpenLayerEducationReference?: (id: string) => void;
@@ -1691,6 +1695,7 @@ const LayerRow: React.FC<LayerRowProps> = ({
   onExportLayer,
   onSendLayerToUrban,
   onOpenLayerInIde,
+  onDeclareLayerCrs,
   onAddLayerToReport,
   onBindLayerToDashboard,
   onFocusLayer,
@@ -1886,6 +1891,20 @@ const LayerRow: React.FC<LayerRowProps> = ({
           ))}
         </div>
 
+        {onDeclareLayerCrs && (registry.crsSummary.status !== "known" || registry.crsSummary.source === "user-declared") ? (
+          <div style={{ marginTop: MAP_SPACING.xs }}>
+            <DeclareCrsControl
+              layerId={layer.id}
+              layerName={layer.name}
+              currentCrs={registry.crsSummary.crs}
+              isUserDeclared={registry.crsSummary.source === "user-declared"}
+              bounds={layerBounds}
+              onDeclare={onDeclareLayerCrs}
+              {...(onAnnounce ? { onAnnounce } : {})}
+            />
+          </div>
+        ) : null}
+
         {analysisResult ? (
           <div style={layerTextBlock}>
             <span style={analysisMetaText} title={`${analysisResult.engine} at ${formatAnalysisTimestamp(analysisResult.runTimestamp)}`}>
@@ -1940,6 +1959,7 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
   onExportLayer,
   onSendLayerToUrban,
   onOpenLayerInIde,
+  onDeclareLayerCrs,
   onBindLayerToDashboard,
   onOpenLayerEducationReference,
   onFocusLayer,
@@ -2469,6 +2489,7 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
                         {...(onExportLayer ? { onExportLayer } : {})}
                         {...(onSendLayerToUrban ? { onSendLayerToUrban } : {})}
                         {...(onOpenLayerInIde ? { onOpenLayerInIde } : {})}
+                        {...(onDeclareLayerCrs ? { onDeclareLayerCrs } : {})}
                         {...(onAddLayerToReport ? { onAddLayerToReport } : {})}
                         {...(onBindLayerToDashboard ? { onBindLayerToDashboard } : {})}
                         {...(onOpenLayerEducationReference ? { onOpenLayerEducationReference } : {})}

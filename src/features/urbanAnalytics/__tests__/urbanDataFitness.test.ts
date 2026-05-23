@@ -79,6 +79,49 @@ describe('computeUrbanDataFitnessProfile', () => {
     expect(profile.blockedReasons).toEqual([]);
   });
 
+  it('treats a user-declared CRS as caveated rather than authoritative', () => {
+    const profile = computeUrbanDataFitnessProfile({
+      layers: [completeLayer({ crs: 'EPSG:32635', crsUserDeclared: true })],
+      requiredFields: ['population', 'area_m2'],
+      requiredGeometryTypes: ['polygon'],
+      minimumFeatureCount: 100,
+      analysisScale: 'district',
+      sourceScale: 'district',
+      requiresTemporalCoverage: true,
+      computedAt,
+    });
+
+    const crsIssue = profile.issues.find((issue) => issue.code === 'user_declared_crs');
+    expect(crsIssue).toBeDefined();
+    expect(crsIssue?.message).toContain('user-declared');
+    expect(profile.crsFit).toBe('projected'); // recognized the declared code...
+    expect(profile.status).not.toBe('ready'); // ...but never authoritative-ready
+    expect(profile.score ?? 100).toBeLessThan(100); // the caveat caps the score
+  });
+
+  it('extracts a user-declared CRS as a caveated input from layer metadata', () => {
+    const layer: OverlayLayerConfig = {
+      id: 'declared-layer',
+      name: 'Declared parcels',
+      type: 'geojson',
+      visible: true,
+      opacity: 1,
+      metadata: {
+        geometryType: 'Polygon',
+        crsSummary: {
+          crs: 'EPSG:32635',
+          status: 'known',
+          source: 'user-declared',
+          notes: ['User-declared CRS (caveat).'],
+        },
+      },
+    };
+
+    const input = extractUrbanDataFitnessLayerFromMapLayer(layer);
+    expect(input.crs).toBe('EPSG:32635');
+    expect(input.crsUserDeclared).toBe(true);
+  });
+
   it('blocks invalid geometry carried from map QA metadata', () => {
     const profile = computeUrbanDataFitnessProfile({
       layers: [

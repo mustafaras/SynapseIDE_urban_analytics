@@ -16,6 +16,7 @@ import {
   type MeasureToolId,
   type OverlayLayerConfig,
 } from "../mapTypes";
+import { buildUserDeclaredCrsSummary } from "../mapLayerMetadata";
 import {
   MAP_COLORS,
   MAP_DIMENSIONS,
@@ -4351,6 +4352,14 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     upsertMapEvidenceArtifact,
   ]);
 
+  const handleDeclareLayerCrs = useCallback((layerId: string, crs: string) => {
+    const layer = overlayLayers.find((candidate) => candidate.id === layerId);
+    if (!layer) return;
+    const crsSummary = buildUserDeclaredCrsSummary(crs);
+    updateLayerMetadata(layerId, { metadata: { ...layer.metadata, crsSummary } });
+    announce(`Declared CRS ${crsSummary.crs} for ${layer.name} (user-declared, caveated).`);
+  }, [announce, overlayLayers, updateLayerMetadata]);
+
   const handleSendLayerToUrban = useCallback((layerId: string) => {
     const layer = overlayLayers.find((candidate) => candidate.id === layerId);
     const result = sendMapContextToUrban({
@@ -5588,6 +5597,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
                 onBindLayerToDashboard={handleBindLayerToDashboard}
                 onOpenLayerEducationReference={handleOpenLayerEducationReference}
                 onSendLayerToUrban={handleSendLayerToUrban}
+                onDeclareLayerCrs={handleDeclareLayerCrs}
                 onOpenLayerInIde={handleOpenLayerInIde}
                 onClearLayerCache={handleClearLayerCache}
                 onReRunAnalysisLayer={handleReRunAnalysisLayer}

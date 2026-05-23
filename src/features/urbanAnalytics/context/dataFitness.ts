@@ -40,6 +40,8 @@ export interface UrbanDataFitnessLayerInput {
   name?: string;
   geometryType?: string;
   crs?: string;
+  /** True when `crs` originates from a user declaration (a caveated assertion, not verified). */
+  crsUserDeclared?: boolean;
   fields?: string[];
   featureCount?: number;
   license?: string;
@@ -165,10 +167,12 @@ function geometryFamilyFromText(value: string | undefined): MapScientificQAGeome
 
 function resolveLayerCrs(layer: OverlayLayerConfig): string | undefined {
   return (
+    layer.metadata?.crsSummary?.crs ??
     layer.metadata?.datasetContext?.crs ??
     layer.metadata?.columnar?.crs ??
     layer.metadata?.eoSource?.crs ??
-    layer.metadata?.externalService?.crs
+    layer.metadata?.externalService?.crs ??
+    undefined
   );
 }
 
@@ -206,6 +210,7 @@ export function extractUrbanDataFitnessLayerFromMapLayer(
   if (geometryType) result.geometryType = geometryType;
   const crs = resolveLayerCrs(layer);
   if (crs) result.crs = crs;
+  if (layer.metadata?.crsSummary?.source === 'user-declared') result.crsUserDeclared = true;
   const fields = layer.metadata?.fields?.length ? layer.metadata.fields : fieldsFromGeoJson(layer.sourceData);
   if (fields.length) result.fields = fields;
   const featureCount = resolveLayerFeatureCount(layer);
@@ -414,6 +419,17 @@ function evaluateCrs(
       message: `${crs} is geographic; distance or area methods need projected measurement handling.`,
     });
     return dimension('warning', 'geographic', 75, [`${crs} is documented but geographic.`]);
+  }
+
+  const userDeclaredCrs = layers.some((layer) => layer.crsUserDeclared && Boolean(layer.crs));
+  if (userDeclaredCrs) {
+    addIssue(issues, {
+      code: 'user_declared_crs',
+      category: 'crs',
+      severity: 'warning',
+      message: `CRS ${crs} is user-declared and not verified from source metadata; treat distance and area results as caveated.`,
+    });
+    return dimension('warning', 'projected', 70, [`${crs} is user-declared (caveat); not verified from source metadata.`]);
   }
 
   return dimension('ready', 'projected', 100, [`${crs} is documented.`]);

@@ -355,6 +355,32 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
     await expect(drawer.getByRole("button", { name: /Apply spatial workflow blocked/i })).toBeDisabled();
   });
 
+  test("declares a user CRS (caveated) for a missing-CRS layer from the layer rail", async ({ page }) => {
+    await page.setViewportSize({ width: 1680, height: 1100 });
+    await resetWorkbenchState(page);
+
+    await openMapExplorer(page);
+    await seedWorkflowMissingCrsLayer(page);
+
+    const row = page.getByRole("option", { name: /Layer: E2E Missing CRS Polygons/i });
+    await expect(row).toBeVisible();
+    await expect(row).toContainText("CRS missing");
+
+    await triggerDomClick(row.getByTestId("map-declare-crs-trigger"));
+
+    const popover = page.getByTestId("map-declare-crs-popover");
+    await expect(popover).toBeVisible();
+    await expect(popover.getByTestId("map-declare-crs-caveat")).toContainText(/not verified/i);
+
+    await popover.getByTestId("map-declare-crs-search").fill("32635");
+    await triggerDomClick(popover.getByRole("button", { name: /Declare EPSG:32635/i }));
+
+    // The CRS badge now reads "user-declared (caveat)" and the caveat persists in the row.
+    await expect(popover).toBeHidden();
+    await expect(row).toContainText("user-declared (caveat)");
+    await expect(row).not.toContainText("CRS missing");
+  });
+
   test("keeps controls usable across laptop and tablet viewport screenshots", async ({ page }, testInfo) => {
     const viewports = [
       { label: "laptop", width: 1366, height: 900, minimumHeight: 520 },

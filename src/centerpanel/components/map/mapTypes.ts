@@ -186,6 +186,7 @@ export interface LayerPersistenceMetadata {
 
 export type LayerMetadataSource =
   | "explicit"
+  | "user-declared"
   | "import-source"
   | "dataset-context"
   | "columnar"
