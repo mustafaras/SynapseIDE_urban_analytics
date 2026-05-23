@@ -38,7 +38,7 @@ Legend: `[x]` done · `[~]` in progress · `[ ]` TODO · `[!]` blocked (see Done
 - [x] 7 — `CrsPreflight` gate ✅ verified
 - [x] 8 — CRS correction UI + projection suggestion ✅ verified
 - [x] 9 — Map command lifecycle (`MapActionExecutor`) ✅ verified
-- [ ] 10 — Layer inspector workbench
+- [x] 10 — Layer inspector workbench ✅ verified
 - [ ] 11 — Attribute table + selection sync
 - [ ] 12 — Style editor + legend contract
 - [ ] 13 — Workerized geometry operations
@@ -116,6 +116,7 @@ Legend: `[x]` done · `[~]` in progress · `[ ]` TODO · `[!]` blocked (see Done
 
 | Date | Prompt | Branch | Commit(s) | Proof |
 | --- | --- | --- | --- | --- |
+| 2026-05-23 | 10 — Layer inspector workbench | `gis/p10-inspector` | `1b83d8e` | `LayerInspector` (inspector/) added — tabbed Overview / Source(+`SourceHandle`) / Schema / CRS / QA / Style / Lineage / Report fed only from `normalizeLayerRegistryMetadata` + the resolved source handle, rendering `unknown`/`missing` explicitly (no blanks) and never duplicating resolver logic; the Lineage tab links analysis layers to run/manifest/evidence ids; an inline per-row Inspect affordance opens it. `npm run typecheck` clean; `npm run build` clean; `lint:no-tailwind-centerpanel` + `lint:errors` clean; `npx vitest run src/centerpanel/components/map` 326 passed (29 files) incl. 6 inspector tests; Playwright `npx playwright test e2e/map-modal-layout.spec.ts -g "opens a tabbed layer inspector"` 1/1 (known layer Schema lists `value` + CRS `EPSG:4326`; `fcMissingCrs` CRS shows `missing`). |
 | 2026-05-23 | 9 — Map command lifecycle (`MapActionExecutor`) | `gis/p09-command-lifecycle` | `a8b1c21` | `MapActionExecutor` (preview/apply/revert) + `MapActionHistoryService` (history + revert tokens) added; `layer.remove`/`layer.style`/`workflow.apply`/`report.handoff` preflight → `MapCommandResult` (+ `MapReproducibilityManifest` for workflow.apply) + one review-timeline audit event, and blocked commands return `blockers`; layer removal (both panels) and workflow.apply (derived-layer commit) route through the executor and the review timeline shows a `map-review-timeline-revert` affordance that restores prior store state and marks the event undone. `npm run typecheck` clean; `npx vitest run src/services/map src/stores src/centerpanel/components/map` 694 passed / 2 skipped (66 files); `lint:errors` + `lint:no-tailwind-centerpanel` clean; Playwright `npx playwright test e2e/map-modal-layout.spec.ts -g "routes layer removal"` 1/1 passed (remove layer → audit row → revert restores the layer). |
 | 2026-05-23 | 8 — CRS correction UI + local projection suggestion | `gis/p08-crs-ui` | `8030bf8` | `DeclareCrsControl` (searchable EPSG catalog + local UTM/equal-area suggestion from `localUtmFor`) added to the layer rail for missing/unknown/user-declared CRS; declaring writes provenance `source:"user-declared"` with a permanent caveat through `buildUserDeclaredCrsSummary` + `resolveOverlayLayerCrsSummary` (status stays a known value so projected work proceeds, but it is never marked verified and the caveat survives every read); badge reads `user-declared (caveat)`; `LayerMetadataSource` gains `"user-declared"`; Urban `dataFitness` now reads the declared CRS but downgrades a user-declared CRS to a caveated `warning` (capped score + `user_declared_crs` issue) so it is never authoritative. `npm run typecheck` clean; `npx vitest run src/services/map src/centerpanel/components/map` 541 passed / 2 skipped (56 files); `npm run test:analytics` 1113 passed (62 files); `lint:errors` + `lint:no-tailwind-centerpanel` clean; Playwright `npx playwright test e2e/map-modal-layout.spec.ts -g "declares a user CRS"` 1/1 passed (declare EPSG:32635 on `fcMissingCrs` → badge `user-declared (caveat)`, caveat persists). |
 | 2026-05-22 | 7 — `CrsPreflight` gate | `gis/p07-crs-preflight` | `fb0e30f` (Prompts 6–7 committed together) | `CrsPreflight` service added for planar/geodesic CRS gates with `declare-crs` / `reproject` remedies and Urban `requiredCrs` conflicts; workflow buffer/intersect/difference/union previews now block planar metric work before geometry computation when CRS is missing, geographic, mixed, or incompatible; measurement and report scale use geodesic preflight caveats; drawer renders `map-workflow-crs-blocked-card` with a remedy button; `npm run typecheck` clean; `npx vitest run src/services/map` 215 passed / 2 skipped (27 files); `npx vitest run src/centerpanel/components/map/__tests__/geodesic-measurement.test.ts` 54 passed; Playwright proof `npx playwright test e2e/map-modal-layout.spec.ts -g "blocks buffer workflows when source CRS is missing"` 1/1 passed with missing CRS buffer blocked and `Declare CRS` visible. |
@@ -186,6 +187,11 @@ Artifacts created so far:
 - `src/centerpanel/components/map/MapReviewTimelinePanel.tsx` renders a `map-review-timeline-revert` affordance on revertable applied commands via `onRevertCommand`; Prompt 9
 - `src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx` routes both layer-remove paths through `applyMapCommand`, holds a transient action history ref, and wires timeline revert; Prompt 9
 - `e2e/map-modal-layout.spec.ts` asserts remove layer → review-timeline audit row → revert restores the layer; Prompt 9
+- `src/centerpanel/components/map/inspector/LayerInspector.tsx` (tabbed layer inspector fed from `normalizeLayerRegistryMetadata` + `SourceHandle`; explicit unknown/missing; `initialTab` testability hook; Prompt 10)
+- `src/centerpanel/components/map/__tests__/layer-inspector.test.tsx` (per-tab render proof: schema/CRS known + missing, lineage links present; Prompt 10)
+- `src/centerpanel/components/map/MapLayerManager.tsx` adds an inline per-row `Inspect` affordance (`onInspectLayer`); Prompt 10
+- `src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx` holds inspector state, resolves the `SourceHandle` by `metadata.sourceId`, and renders `LayerInspector`; Prompt 10
+- `e2e/map-modal-layout.spec.ts` asserts the inspector shows Schema `value` + CRS `EPSG:4326` (known) and CRS `missing` (no-CRS layer); Prompt 10
 
 ---
 
@@ -258,6 +264,20 @@ Artifacts created so far:
   Repo realities: layer-action buttons render as `role="menuitem"` inside a
   `<details>` menu (not `button`); review-event correlation uses the command id
   as the review event `id` (`createMapReviewEvent` honors `input.id`).
+
+- Prompt 10: the inspector opens from an inline per-row `Inspect` button in
+  `MapLayerManager` (the layer-name click keeps its existing metadata popover,
+  untouched). It calls `normalizeLayerRegistryMetadata(layer)` and reads raw
+  `metadata.analysisResult`/`scientificQA`/`importFormat` for display only — no
+  resolver logic is duplicated. The `SourceHandle` is resolved in the composition
+  from the store's existing `sourceHandles` by `metadata.sourceId`. Two process
+  lessons worth keeping: (1) an accidental duplicate `const sourceHandles`
+  selector was caught by `npm run build` (rolldown `PARSE_ERROR`) even though
+  `npm run typecheck` did **not** flag the redeclaration — so `build` is now part
+  of the validation gate for composition edits; (2) a stale, separately-started
+  `npm run dev` vite with broken HMR (left over from the pre-fix parse error) was
+  reused by Playwright's `reuseExistingServer` and had to be killed so a clean
+  dev server started.
 
 ---
 

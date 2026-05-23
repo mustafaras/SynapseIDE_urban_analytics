@@ -418,6 +418,67 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
     await expect(layerList).toContainText("E2E Istanbul WGS84 Points");
   });
 
+  test("opens a tabbed layer inspector with schema + CRS, and shows missing CRS explicitly", async ({ page }) => {
+    await page.setViewportSize({ width: 1680, height: 1100 });
+    await resetWorkbenchState(page);
+    await openMapExplorer(page);
+
+    await page.evaluate(async () => {
+      const module = await import("/src/stores/useMapExplorerStore.ts");
+      module.useMapExplorerStore.getState().addOverlayLayer({
+        id: "e2e-inspector-points",
+        name: "E2E Inspector Points",
+        type: "geojson",
+        visible: true,
+        opacity: 0.9,
+        group: "data",
+        sourceKind: "imported",
+        sourceData: { type: "FeatureCollection", features: [] },
+        metadata: {
+          geometryType: "Point",
+          featureCount: 25,
+          fields: ["id", "name", "value", "date"],
+          crsSummary: { crs: "EPSG:4326", status: "known", source: "explicit", notes: [] },
+        },
+      });
+      module.useMapExplorerStore.getState().addOverlayLayer({
+        id: "e2e-inspector-missing",
+        name: "E2E Inspector Missing",
+        type: "geojson",
+        visible: true,
+        opacity: 0.9,
+        group: "data",
+        sourceKind: "imported",
+        sourceData: { type: "FeatureCollection", features: [] },
+        metadata: { geometryType: "Polygon", featureCount: 10 },
+      });
+    });
+
+    const layerList = page.getByRole("list", { name: "Layer list" });
+    await expect(layerList).toContainText("E2E Inspector Points");
+
+    // Inspect the known layer: Schema lists `value`, CRS shows EPSG:4326.
+    const pointsRow = page.getByRole("option", { name: /Layer: E2E Inspector Points/i });
+    await triggerDomClick(pointsRow.getByTestId("map-layer-inspect-trigger"));
+    const inspector = page.getByTestId("map-layer-inspector");
+    await expect(inspector).toBeVisible();
+
+    await triggerDomClick(inspector.getByTestId("map-layer-inspector-tab-schema"));
+    await expect(page.getByTestId("map-layer-inspector-panel-schema")).toContainText("value");
+
+    await triggerDomClick(inspector.getByTestId("map-layer-inspector-tab-crs"));
+    await expect(page.getByTestId("map-layer-inspector-panel-crs")).toContainText("EPSG:4326");
+
+    await triggerDomClick(inspector.getByRole("button", { name: "Close layer inspector" }));
+    await expect(inspector).toBeHidden();
+
+    // The missing-CRS layer shows CRS as `missing`, never a blank.
+    const missingRow = page.getByRole("option", { name: /Layer: E2E Inspector Missing/i });
+    await triggerDomClick(missingRow.getByTestId("map-layer-inspect-trigger"));
+    await triggerDomClick(page.getByTestId("map-layer-inspector").getByTestId("map-layer-inspector-tab-crs"));
+    await expect(page.getByTestId("map-layer-inspector-panel-crs")).toContainText("missing");
+  });
+
   test("keeps controls usable across laptop and tablet viewport screenshots", async ({ page }, testInfo) => {
     const viewports = [
       { label: "laptop", width: 1366, height: 900, minimumHeight: 520 },
