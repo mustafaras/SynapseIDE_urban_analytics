@@ -251,6 +251,38 @@ async function openWorkflowDrawer(page: import("@playwright/test").Page) {
   return drawer;
 }
 
+async function openDrawingsPanel(page: import("@playwright/test").Page): Promise<void> {
+  const panel = page.getByRole("region", { name: "Drawn features" });
+  if (await panel.isVisible().catch(() => false)) return;
+  await page.keyboard.press("Control+K");
+  const palette = page.getByRole("dialog", { name: "Map command palette" });
+  await expect(palette).toBeVisible();
+  await palette.getByLabel("Search map commands").fill("drawings");
+  await triggerDomClick(palette.getByRole("option", { name: /Drawings/i }).first());
+  await expect(panel).toBeVisible();
+}
+
+function projectLngLat(
+  coordinate: [number, number],
+  viewport: { center: [number, number]; zoom: number },
+  canvasBox: { x: number; y: number; width: number; height: number },
+): { x: number; y: number } {
+  const worldSize = 512 * 2 ** viewport.zoom;
+  const project = ([lng, lat]: [number, number]) => {
+    const sin = Math.sin((lat * Math.PI) / 180);
+    return {
+      x: ((lng + 180) / 360) * worldSize,
+      y: (0.5 - Math.log((1 + sin) / (1 - sin)) / (4 * Math.PI)) * worldSize,
+    };
+  };
+  const point = project(coordinate);
+  const center = project(viewport.center);
+  return {
+    x: canvasBox.x + canvasBox.width / 2 + point.x - center.x,
+    y: canvasBox.y + canvasBox.height / 2 + point.y - center.y,
+  };
+}
+
 test.describe("Prompt 35 premium Map Explorer layout", () => {
   test("keeps map, layer rail, and bottom status visible on desktop", async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 1680, height: 1100 });
@@ -424,6 +456,101 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
     await expect(popover).toBeHidden();
     await expect(row).toContainText("user-declared (caveat)");
     await expect(row).not.toContainText("CRS missing");
+  });
+
+  test("builds a viewport AOI and audits a vertex edit with validation status (Prompt 14)", async ({ page }) => {
+    await page.setViewportSize({ width: 1680, height: 1100 });
+    await resetWorkbenchState(page);
+
+    await openMapExplorer(page);
+    const drawer = await openWorkflowDrawer(page);
+    const applyWorkflowButton = drawer.getByRole("button", { name: /Apply spatial workflow|Apply workflow/i });
+    await expect(applyWorkflowButton).toBeEnabled();
+    await triggerDomClick(applyWorkflowButton);
+
+    await expect.poll(async () => page.evaluate(async () => {
+      const module = await import("/src/stores/useMapExplorerStore.ts");
+      const store = module.useMapExplorerStore.getState();
+      return store.drawnFeatures.some((feature) =>
+        feature.properties.label === "Custom AOI" && feature.properties.validation?.status === "valid");
+    })).toBe(true);
+
+    await page.evaluate(async () => {
+      const storeModule = await import("/src/stores/useMapExplorerStore.ts");
+      const validationModule = await import("/src/services/map/DrawnGeometryValidation.ts");
+      const store = storeModule.useMapExplorerStore.getState();
+      const aoi = store.drawnFeatures.find((feature) => feature.properties.label === "Custom AOI");
+      if (!aoi) throw new Error("Viewport AOI drawing was not created.");
+      const geometry = {
+        type: "Polygon" as const,
+        coordinates: [[
+          [29.12, 41.06],
+          [29.22, 41.06],
+          [29.22, 41.16],
+          [29.12, 41.16],
+          [29.12, 41.06],
+        ]],
+      };
+      store.updateDrawnFeature(aoi.id, {
+        geometry,
+        properties: {
+          ...aoi.properties,
+          validation: validationModule.validateDrawnGeometry(geometry),
+        },
+      });
+      store.setActiveAoi(aoi.id);
+      store.setSelectedFeatureId(aoi.id);
+    });
+
+    await triggerDomClick(drawer.getByRole("button", { name: "Close map workflow drawer" }));
+    await openDrawingsPanel(page);
+    await expect(page.getByRole("region", { name: "Drawn features" })).toContainText("Validated");
+
+    const dragTarget = await page.evaluate(async () => {
+      const module = await import("/src/stores/useMapExplorerStore.ts");
+      const store = module.useMapExplorerStore.getState();
+      const aoi = store.drawnFeatures.find((feature) => feature.properties.label === "Custom AOI");
+      if (!aoi || aoi.geometry.type !== "Polygon") throw new Error("Editable AOI polygon was not found.");
+      return {
+        center: store.center,
+        zoom: store.zoom,
+        coordinate: aoi.geometry.coordinates[0][2],
+      };
+    });
+    const canvasBox = await page.locator(".maplibregl-canvas").first().boundingBox();
+    expect(canvasBox).not.toBeNull();
+    const start = projectLngLat(
+      dragTarget.coordinate as [number, number],
+      { center: dragTarget.center as [number, number], zoom: dragTarget.zoom },
+      canvasBox!,
+    );
+    await page.waitForTimeout(100);
+
+    await page.mouse.move(start.x, start.y);
+    await page.mouse.down();
+    await page.mouse.move(start.x + 34, start.y - 18, { steps: 6 });
+    await page.mouse.up();
+
+    await expect.poll(async () => page.evaluate(async () => {
+      const module = await import("/src/stores/useMapExplorerStore.ts");
+      const store = module.useMapExplorerStore.getState();
+      const aoi = store.drawnFeatures.find((feature) => feature.properties.label === "Custom AOI");
+      return {
+        edited: store.reviewSession.events.some((event) => event.title.includes("Edited AOI")),
+        status: aoi?.properties.validation?.status ?? null,
+      };
+    })).toEqual({ edited: true, status: "valid" });
+    await expect(page.getByRole("region", { name: "Drawn features" })).toContainText("Validated");
+
+    await page.keyboard.press("Control+K");
+    const palette = page.getByRole("dialog", { name: "Map command palette" });
+    await expect(palette).toBeVisible();
+    await palette.getByLabel("Search map commands").fill("review timeline");
+    await triggerDomClick(palette.getByRole("option", { name: /Review/i }).first());
+
+    await expect(
+      page.getByTestId("map-review-timeline-event").filter({ hasText: "Edited AOI" }).first(),
+    ).toBeVisible();
   });
 
   test("routes layer removal through the command lifecycle with an audit row and revert", async ({ page }) => {

@@ -6,7 +6,7 @@
 /*  Provides explicit, scientific, transparent guided workflows for:  */
 /*                                                                    */
 /*    - AOI creation (viewport, drawn polygon, selected features,    */
-/*      geocoded place)                                              */
+/*      geocoded place, Urban study area)                            */
 /*    - Buffer (geodesic, metric / imperial)                         */
 /*    - Intersection of two polygon layers                           */
 /*    - Difference (A − B) and Union for scenario comparison         */
@@ -55,6 +55,10 @@ import {
   type GeometryWorkflowParams,
   type GeometryWorkflowRequest,
 } from "./geometry/GeometryWorkflowEngine";
+import {
+  summarizeDrawnGeometryValidation,
+  validateDrawnGeometry,
+} from "./DrawnGeometryValidation";
 
 /* ================================================================== */
 /*  Versioning & constants                                             */
@@ -140,13 +144,15 @@ export type MapWorkflowAOISourceKind =
   | "viewport"
   | "selected-features"
   | "drawn-polygon"
-  | "geocoded-place";
+  | "geocoded-place"
+  | "urban-study-area";
 
 export const MAP_WORKFLOW_AOI_SOURCE_LABELS: Record<MapWorkflowAOISourceKind, string> = {
   viewport: "Current viewport",
   "selected-features": "Selected features",
   "drawn-polygon": "Drawn polygon",
   "geocoded-place": "Geocoded place",
+  "urban-study-area": "Urban study area",
 };
 
 export type MapWorkflowDistanceUnit =
@@ -282,6 +288,13 @@ export interface MapWorkflowGeocodedPlace {
   source?: string;
 }
 
+export interface MapWorkflowUrbanStudyArea {
+  id: string;
+  label: string;
+  bounds: [number, number, number, number];
+  activeAoiId?: string;
+}
+
 export interface MapWorkflowContext {
   layers: MapWorkflowSourceLayerSummary[];
   layerSourceMap: Map<string, FeatureCollection>;
@@ -290,6 +303,7 @@ export interface MapWorkflowContext {
   drawnPolygons: Array<Feature<Polygon | MultiPolygon>>;
   viewportBounds: [number, number, number, number] | null;
   geocodedPlace: MapWorkflowGeocodedPlace | null;
+  urbanStudyArea: MapWorkflowUrbanStudyArea | null;
   now?: Date;
   urbanRequiredCrs?: string | null;
 }
@@ -401,6 +415,7 @@ export function buildMapWorkflowContext(
     drawnPolygons?: Array<Feature<Polygon | MultiPolygon>>;
     viewportBounds?: [number, number, number, number] | null;
     geocodedPlace?: MapWorkflowGeocodedPlace | null;
+    urbanStudyArea?: MapWorkflowUrbanStudyArea | null;
     urbanRequiredCrs?: string | null;
     now?: Date;
   } = {},
@@ -453,6 +468,7 @@ export function buildMapWorkflowContext(
     drawnPolygons: options.drawnPolygons ?? [],
     viewportBounds: options.viewportBounds ?? null,
     geocodedPlace: options.geocodedPlace ?? null,
+    urbanStudyArea: options.urbanStudyArea ?? null,
     ...(options.urbanRequiredCrs !== undefined ? { urbanRequiredCrs: options.urbanRequiredCrs } : {}),
     ...(options.now ? { now: options.now } : {}),
   };
@@ -1030,6 +1046,32 @@ function previewAOI(
       }
       break;
     }
+    case "urban-study-area": {
+      if (!context.urbanStudyArea) {
+        issues.push({
+          step: "source",
+          severity: "blocker",
+          code: "no-urban-study-area",
+          message: "Missing prerequisite: choose and apply an Urban Analytics study area first.",
+        });
+      } else if (!isFiniteBounds(context.urbanStudyArea.bounds)) {
+        issues.push({
+          step: "source",
+          severity: "blocker",
+          code: "invalid-urban-study-area-bounds",
+          message: "Urban Analytics study area bounds are invalid.",
+        });
+      } else {
+        baseGeometry = bboxToPolygonFeature(context.urbanStudyArea.bounds, draft.name || context.urbanStudyArea.label);
+        basisDescription = `Urban study area ${context.urbanStudyArea.label}`;
+        sourceLabel = `Urban · ${context.urbanStudyArea.label}`;
+        provenanceNotes.push(`Urban study area ID: ${context.urbanStudyArea.id}`);
+        if (context.urbanStudyArea.activeAoiId) {
+          provenanceNotes.push(`Active Urban AOI: ${context.urbanStudyArea.activeAoiId}`);
+        }
+      }
+      break;
+    }
   }
 
   const bufferMeters = unitToMeters(draft.bufferDistance ?? 0, draft.bufferUnit);
@@ -1049,6 +1091,23 @@ function previewAOI(
     }
   }
 
+  const aoiValidation = aoiGeometry ? validateDrawnGeometry(aoiGeometry.geometry) : null;
+  if (aoiValidation?.status === "blocked") {
+    issues.push({
+      step: "source",
+      severity: "blocker",
+      code: "aoi-invalid-geometry",
+      message: summarizeDrawnGeometryValidation(aoiValidation),
+    });
+  } else if (aoiValidation?.status === "warning") {
+    issues.push({
+      step: "source",
+      severity: "warning",
+      code: "aoi-geometry-warning",
+      message: summarizeDrawnGeometryValidation(aoiValidation),
+    });
+  }
+
   const featureCollection: FeatureCollection | null = aoiGeometry
     ? {
         type: "FeatureCollection",
@@ -1060,6 +1119,10 @@ function previewAOI(
               aoi_source: draft.source,
               aoi_label: draft.name,
               aoi_buffer_meters: bufferMeters,
+              ...(aoiValidation ? {
+                aoi_validation_status: aoiValidation.status,
+                aoi_validation_issues: aoiValidation.issueCodes.join(","),
+              } : {}),
             },
           },
         ],
@@ -2063,6 +2126,7 @@ function buildMapContextId(context: MapWorkflowContext, sourceLayerIds: string[]
     selectedFeatureCount: context.selectedFeatures.length,
     drawnPolygonCount: context.drawnPolygons.length,
     geocodedPlace: context.geocodedPlace?.label ?? null,
+    urbanStudyArea: context.urbanStudyArea?.id ?? null,
   }))}`;
 }
 
@@ -2577,7 +2641,7 @@ function collectProvenanceNotes(
 function describeMethod(preview: Pick<MapWorkflowPreview, "workflow">): string {
   switch (preview.workflow) {
     case "aoi":
-      return "AOI construction (viewport / selection / drawn / geocoded)";
+      return "AOI construction (viewport / selection / drawn / geocoded / Urban study area)";
     case "buffer":
       return "Geodesic buffer";
     case "intersect":

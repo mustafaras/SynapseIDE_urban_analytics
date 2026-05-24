@@ -8,10 +8,12 @@ import {
   createDefaultDraft,
   generateMapWorkflowPreview,
   MAP_WORKFLOW_PREVIEW_LAYER_ID,
+  type MapWorkflowAOIDraft,
   type MapWorkflowBufferDraft,
   type MapWorkflowComparisonDraft,
   type MapWorkflowIntersectDraft,
 } from "../MapWorkflowService";
+import { fcInvalidGeometry } from "@/centerpanel/components/map/__tests__/fixtures/gisFixtures";
 
 const fixedNow = new Date("2026-05-01T12:00:00.000Z");
 
@@ -112,6 +114,54 @@ describe("MapWorkflowService", () => {
       group: "analysis",
       qaStatus: "passed",
     });
+  });
+
+  it("creates an AOI preview from the Urban study area source", () => {
+    const context = buildMapWorkflowContext([], {
+      urbanStudyArea: {
+        id: "urban-kadikoy",
+        label: "Kadikoy study area",
+        bounds: [28.97, 40.96, 29.09, 41.02],
+        activeAoiId: "aoi-kadikoy",
+      },
+      now: fixedNow,
+    });
+    const draft: MapWorkflowAOIDraft = {
+      ...(createDefaultDraft("aoi") as MapWorkflowAOIDraft),
+      source: "urban-study-area",
+      name: "Urban requested AOI",
+    };
+
+    const preview = generateMapWorkflowPreview(draft, context);
+
+    expect(preview.canApply).toBe(true);
+    expect(preview.featureCollection?.features[0]?.properties).toMatchObject({
+      aoi_source: "urban-study-area",
+      aoi_label: "Urban requested AOI",
+      aoi_validation_status: "valid",
+    });
+    expect(String(preview.metrics.source_kind)).toContain("Urban");
+    expect(preview.metrics.provenance_notes).toContain("urban-kadikoy");
+  });
+
+  it("blocks invalid drawn AOI geometry instead of silently accepting topology failures", () => {
+    const invalidPolygon = fcInvalidGeometry.features.find((feature) => feature.properties?.issue === "self-intersection");
+    const context = buildMapWorkflowContext([], {
+      drawnPolygons: invalidPolygon?.geometry?.type === "Polygon"
+        ? [invalidPolygon as Feature<Polygon>]
+        : [],
+      now: fixedNow,
+    });
+    const draft: MapWorkflowAOIDraft = {
+      ...(createDefaultDraft("aoi") as MapWorkflowAOIDraft),
+      source: "drawn-polygon",
+    };
+
+    const preview = generateMapWorkflowPreview(draft, context);
+
+    expect(preview.canApply).toBe(false);
+    expect(preview.issues.some((issue) => issue.code === "aoi-invalid-geometry")).toBe(true);
+    expect(preview.manifest.qaSummary.blockers.join(" ")).toContain("Self-intersecting");
   });
 
   it("validates selected-feature buffer parameters before producing a result", () => {

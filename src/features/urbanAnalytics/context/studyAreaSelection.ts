@@ -36,6 +36,7 @@ import type {
   PendingFitBoundsRequest,
   ViewportState,
 } from '@/centerpanel/components/map/mapTypes';
+import { validateDrawnGeometry } from '@/services/map/DrawnGeometryValidation';
 import { useMapExplorerStore } from '@/stores/useMapExplorerStore';
 
 import type { UrbanEvidenceScalar } from '../lib/types';
@@ -216,6 +217,7 @@ function buildStudyAreaAoiFeature(
         strokeWidth: 2,
         fillOpacity: 0.12,
       },
+      validation: validateDrawnGeometry(polygonFromBounds(bounds)),
     },
   };
 }

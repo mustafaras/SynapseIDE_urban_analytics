@@ -3,9 +3,15 @@ import type {
   MapCommandResult,
 } from "@/services/map/contracts/gisContracts";
 import type {
+  DrawnFeature,
+  DrawnGeometryValidation,
   MapReproducibilityManifest,
   OverlayLayerConfig,
 } from "@/centerpanel/components/map/mapTypes";
+import {
+  summarizeDrawnGeometryValidation,
+  validateDrawnGeometry,
+} from "@/services/map/DrawnGeometryValidation";
 import type {
   MapReviewAuditCategory,
   MapReviewTimelineEventInput,
@@ -50,12 +56,22 @@ export interface MapReportHandoffCommand {
   publishable: boolean;
   blockers?: string[];
 }
+export interface MapAoiEditCommand {
+  kind: "aoi.edit";
+  featureId: string;
+  previousFeature: DrawnFeature;
+  nextFeature: DrawnFeature;
+  validation?: DrawnGeometryValidation;
+  blockers?: string[];
+  caveats?: string[];
+}
 
 export type MapActionCommand =
   | MapLayerRemoveCommand
   | MapLayerStyleCommand
   | MapWorkflowApplyCommand
-  | MapReportHandoffCommand;
+  | MapReportHandoffCommand
+  | MapAoiEditCommand;
 
 export type RoutedCommandKind = MapActionCommand["kind"];
 
@@ -68,6 +84,8 @@ export interface MapActionEffects {
   setLayerOrder: (orderedIds: string[]) => void;
   setLayerStyle: (id: string, style: Record<string, unknown>) => void;
   removeReportItem: (id: string) => void;
+  getDrawnFeature?: (id: string) => DrawnFeature | null;
+  updateDrawnFeature?: (id: string, patch: Partial<DrawnFeature>) => void;
 }
 
 export interface MapActionOptions {
@@ -88,7 +106,7 @@ export interface MapActionOutcome {
 
 export function previewMapCommand(
   command: MapActionCommand,
-  effects: Pick<MapActionEffects, "getLayer">,
+  effects: Pick<MapActionEffects, "getLayer" | "getDrawnFeature" | "updateDrawnFeature">,
 ): MapCommandPreflight {
   switch (command.kind) {
     case "layer.remove": {
@@ -123,6 +141,32 @@ export function previewMapCommand(
         };
       }
       return { ok: true, blockers: [], caveats: [] };
+    }
+    case "aoi.edit": {
+      if (!effects.getDrawnFeature || !effects.updateDrawnFeature) {
+        return blocked("AOI edit effects are unavailable in this map surface.");
+      }
+      const current = effects.getDrawnFeature(command.featureId);
+      if (!current) {
+        return blocked(`AOI "${command.featureId}" is no longer available to edit.`);
+      }
+      const validation = command.validation ?? validateDrawnGeometry(command.nextFeature.geometry);
+      const caveats = [
+        "AOI edits use EPSG:4326 display coordinates; area and distance interpretation still require CRS preflight.",
+        ...validation.caveats,
+        ...(command.caveats ?? []),
+      ];
+      if (command.blockers?.length) {
+        return { ok: false, blockers: command.blockers, caveats };
+      }
+      if (validation.status === "blocked") {
+        return {
+          ok: false,
+          blockers: [`AOI edit blocked: ${summarizeDrawnGeometryValidation(validation)}`],
+          caveats,
+        };
+      }
+      return { ok: true, blockers: [], caveats };
     }
   }
 }
@@ -180,6 +224,21 @@ export function applyMapCommand(
     }
     case "report.handoff": {
       revertToken = { kind: "report.handoff", reportItemId: command.reportItemId };
+      break;
+    }
+    case "aoi.edit": {
+      if (!effects.updateDrawnFeature) {
+        return blockedOutcome(command, commandId, createdAt, blocked("AOI edit effects are unavailable in this map surface."), targetName);
+      }
+      const validation = command.validation ?? validateDrawnGeometry(command.nextFeature.geometry);
+      effects.updateDrawnFeature(command.featureId, {
+        geometry: command.nextFeature.geometry,
+        properties: {
+          ...command.nextFeature.properties,
+          validation,
+        },
+      });
+      revertToken = { kind: "aoi.edit", featureId: command.featureId, previousFeature: command.previousFeature };
       break;
     }
   }
@@ -245,6 +304,12 @@ export function revertMapCommand(token: MapRevertToken, effects: MapActionEffect
     case "report.handoff":
       effects.removeReportItem(token.reportItemId);
       break;
+    case "aoi.edit":
+      effects.updateDrawnFeature?.(token.featureId, {
+        geometry: token.previousFeature.geometry,
+        properties: token.previousFeature.properties,
+      });
+      break;
   }
 }
 
@@ -263,6 +328,7 @@ const COMMAND_EVENT_META: Record<RoutedCommandKind, CommandEventMeta> = {
   "layer.style": { type: "layer-change", category: "cartography-review", verb: "Restyled layer" },
   "workflow.apply": { type: "workflow-action", category: "workflow-apply", verb: "Applied workflow" },
   "report.handoff": { type: "report-handoff", category: "export-report-handoff", verb: "Report handoff" },
+  "aoi.edit": { type: "workflow-action", category: "action-audit", verb: "Edited AOI" },
 };
 
 function buildCommandReviewEvent(
@@ -278,6 +344,7 @@ function buildCommandReviewEvent(
     result.status === "blocked"
       ? `Blocked: ${preflight.blockers.join(" ")}`
       : `${meta.verb} ${targetName} via the map command lifecycle.${preflight.caveats.length ? ` ${preflight.caveats.join(" ")}` : ""}`;
+  const commandDetails = buildCommandDetails(command);
   return {
     id: result.reviewEventId,
     type: meta.type,
@@ -293,8 +360,20 @@ function buildCommandReviewEvent(
       revertable: result.revertable,
       blockers: preflight.blockers,
       caveats: preflight.caveats,
+      ...commandDetails,
     },
     undo: result.revertable ? { available: true, actionLabel: "Revert" } : { available: false },
+  };
+}
+
+function buildCommandDetails(command: MapActionCommand): Record<string, unknown> {
+  if (command.kind !== "aoi.edit") return {};
+  const validation = command.validation ?? validateDrawnGeometry(command.nextFeature.geometry);
+  return {
+    featureId: command.featureId,
+    validationStatus: validation.status,
+    validationIssueCodes: validation.issueCodes,
+    geometryType: command.nextFeature.geometry.type,
   };
 }
 
@@ -306,6 +385,8 @@ function commandLayerIds(command: MapActionCommand): string[] {
       return [command.layerId];
     case "workflow.apply":
       return [command.outputLayer.id];
+    case "aoi.edit":
+      return [];
   }
 }
 
@@ -318,6 +399,8 @@ function resolveTargetName(command: MapActionCommand, effects: Pick<MapActionEff
       return command.outputLayer.name ?? command.workflowId;
     case "report.handoff":
       return command.reportTitle;
+    case "aoi.edit":
+      return command.nextFeature.properties.label || command.featureId;
   }
 }
 

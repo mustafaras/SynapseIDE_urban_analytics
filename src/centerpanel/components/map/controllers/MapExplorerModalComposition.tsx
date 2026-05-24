@@ -44,7 +44,7 @@ import { MapCanvasKeyboardFallbackControls } from "../MapCanvasKeyboardFallbackC
 import { MapToolbar } from "../MapToolbar";
 import { MapLayerPanel } from "../MapLayerPanel";
 import { MapLayerManager } from "../MapLayerManager";
-import { MapDrawingManager } from "../../MapDrawingManager";
+import { MapDrawingManager, type MapDrawingSnapSource } from "../../MapDrawingManager";
 import { MapMeasurementTool } from "../../MapMeasurementTool";
 import { MapContextMenu } from "../../MapContextMenu";
 import { MapChoroplethLayer } from "../../MapChoroplethLayer";
@@ -78,6 +78,10 @@ import { MapWorkspaceCockpit } from "../MapWorkspaceCockpit";
 import { ScientificQAPanel } from "../ScientificQAPanel";
 import { MapNLQueryPanel, type MapNLQueryPanelRunSummary } from "../MapNLQueryPanel";
 import { MapWorkflowDrawer } from "../MapWorkflowDrawer";
+import {
+  summarizeDrawnGeometryValidation,
+  validateDrawnGeometry,
+} from "@/services/map/DrawnGeometryValidation";
 import { MapReportHandoffDrawer } from "../MapReportHandoffDrawer";
 import { MapReviewTimelinePanel } from "../MapReviewTimelinePanel";
 import { LayerInspector } from "../inspector/LayerInspector";
@@ -696,6 +700,60 @@ function filterFeatureCollectionToBounds(
   };
 }
 
+function coerceOverlayFeatureCollection(layer: OverlayLayerConfig): GeoJSON.FeatureCollection | null {
+  const { sourceData } = layer;
+  if (!sourceData || typeof sourceData === "string") return null;
+  return (sourceData as GeoJSON.FeatureCollection).type === "FeatureCollection"
+    ? sourceData as GeoJSON.FeatureCollection
+    : null;
+}
+
+function buildDrawingSnapSources(layers: readonly OverlayLayerConfig[]): MapDrawingSnapSource[] {
+  const sources: MapDrawingSnapSource[] = [];
+  for (const layer of layers) {
+    if (!layer.visible || !layer.queryable) continue;
+    const featureCollection = coerceOverlayFeatureCollection(layer);
+    if (!featureCollection || featureCollection.features.length === 0) continue;
+    sources.push({
+      id: layer.id,
+      name: layer.name,
+      featureCollection: {
+        ...featureCollection,
+        features: featureCollection.features.slice(0, 1_000),
+      },
+    });
+    if (sources.length >= 8) break;
+  }
+  return sources;
+}
+
+function cloneGeometry<T extends GeoJSON.Geometry>(geometry: T): T {
+  return JSON.parse(JSON.stringify(geometry)) as T;
+}
+
+function buildDrawnAoiFromWorkflowResult(result: MapWorkflowApplyResult): DrawnFeature | null {
+  if (result.preview.workflow !== "aoi") return null;
+  const feature = result.preview.featureCollection?.features[0];
+  if (!feature?.geometry || !isPolygonGeometry(feature.geometry)) return null;
+  const validation = validateDrawnGeometry(feature.geometry);
+  if (validation.status === "blocked") return null;
+  return {
+    id: `aoi-${result.layer.id}`,
+    geometry: cloneGeometry(feature.geometry),
+    properties: {
+      label: result.layer.name || "Workflow AOI",
+      createdAt: new Date().toISOString(),
+      style: {
+        strokeColor: MAP_COLORS.interaction,
+        fillColor: MAP_COLORS.interaction,
+        strokeWidth: 2,
+        fillOpacity: 0.12,
+      },
+      validation,
+    },
+  };
+}
+
 function resolveFlowDispatchAoiCandidate(
   drawnFeatures: DrawnFeature[],
   selectedFeatureId: string | null,
@@ -1119,6 +1177,24 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       .map(([layerId]) => layerId),
     [selectedFeatureIds],
   );
+  const drawingSnapSources = useMemo(
+    () => buildDrawingSnapSources(overlayLayers),
+    [overlayLayers],
+  );
+  const workflowUrbanStudyArea = useMemo(() => {
+    if (!activeUrbanContext.studyAreaBounds) return null;
+    return {
+      id: activeUrbanContext.studyAreaId ?? activeUrbanContext.activeAoiId ?? "urban-study-area",
+      label: activeUrbanContext.studyAreaName ?? "Urban study area",
+      bounds: activeUrbanContext.studyAreaBounds,
+      ...(activeUrbanContext.activeAoiId ? { activeAoiId: activeUrbanContext.activeAoiId } : {}),
+    };
+  }, [
+    activeUrbanContext.activeAoiId,
+    activeUrbanContext.studyAreaBounds,
+    activeUrbanContext.studyAreaId,
+    activeUrbanContext.studyAreaName,
+  ]);
   const workflowContext = useMemo(
     () =>
       buildMapWorkflowContext(overlayLayers, {
@@ -1127,8 +1203,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         drawnPolygons: workflowDrawnPolygons,
         viewportBounds: currentMapBounds,
         geocodedPlace: workflowGeocodedPlace,
+        urbanStudyArea: workflowUrbanStudyArea,
       }),
-    [currentMapBounds, overlayLayers, workflowDrawnPolygons, workflowGeocodedPlace, workflowSelectedFeatures, workflowSelectedLayerIds],
+    [currentMapBounds, overlayLayers, workflowDrawnPolygons, workflowGeocodedPlace, workflowSelectedFeatures, workflowSelectedLayerIds, workflowUrbanStudyArea],
   );
   const workflowReadyCount = useMemo(
     () => workflowContext.layers.filter((layer) => layer.hasGeometry).length,
@@ -1209,6 +1286,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       removeReportItem: () => {
         /* report.handoff is not routed in-app yet; no-op keeps the boundary total. */
       },
+      getDrawnFeature: (id) => readStore().drawnFeatures.find((feature) => feature.id === id) ?? null,
+      updateDrawnFeature: (id, patch) => readStore().updateDrawnFeature(id, patch),
     };
   }, []);
 
@@ -1231,6 +1310,50 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       announce(`Layer removal blocked: ${outcome.preflight.blockers.join(" ")}`);
     }
   }, [announce, buildMapActionEffects, recordMapReviewEvent]);
+
+  const handleCommitDrawnFeatureEdit = useCallback((id: string, before: DrawnFeature, after: DrawnFeature) => {
+    const validation = after.properties.validation ?? validateDrawnGeometry(after.geometry);
+    const normalizedAfter: DrawnFeature = {
+      ...after,
+      properties: {
+        ...after.properties,
+        validation,
+      },
+    };
+    const outcome = applyMapCommand(
+      {
+        kind: "aoi.edit",
+        featureId: id,
+        previousFeature: before,
+        nextFeature: normalizedAfter,
+        validation,
+      },
+      buildMapActionEffects(),
+    );
+    recordMapReviewEvent(outcome.reviewEvent);
+    if (outcome.result.status === "applied") {
+      mapActionHistoryRef.current = recordMapActionHistoryEntry(mapActionHistoryRef.current, {
+        commandId: outcome.result.commandId,
+        kind: outcome.result.kind,
+        title: outcome.reviewEvent.title,
+        reviewEventId: outcome.result.reviewEventId ?? outcome.result.commandId,
+        appliedAt: outcome.result.createdAt,
+        revertable: outcome.result.revertable,
+        reverted: false,
+        ...(outcome.revertToken ? { revertToken: outcome.revertToken } : {}),
+      });
+      announce(validation.status === "warning"
+        ? "AOI edit applied with topology caveats; review timeline updated."
+        : "AOI edit applied; review timeline updated.");
+      return;
+    }
+
+    updateDrawnFeature(id, {
+      geometry: before.geometry,
+      properties: before.properties,
+    });
+    announce(`AOI edit blocked: ${summarizeDrawnGeometryValidation(validation)}`);
+  }, [announce, buildMapActionEffects, recordMapReviewEvent, updateDrawnFeature]);
 
   const handleRevertMapCommand = useCallback((commandId: string) => {
     const entry = findRevertableEntry(mapActionHistoryRef.current, commandId);
@@ -2059,6 +2182,20 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         reverted: false,
         ...(workflowOutcome.revertToken ? { revertToken: workflowOutcome.revertToken } : {}),
       });
+      const drawnAoi = buildDrawnAoiFromWorkflowResult(result);
+      if (drawnAoi) {
+        const mapState = useMapExplorerStore.getState();
+        if (mapState.drawnFeatures.some((feature) => feature.id === drawnAoi.id)) {
+          mapState.updateDrawnFeature(drawnAoi.id, {
+            geometry: drawnAoi.geometry,
+            properties: drawnAoi.properties,
+          });
+        } else {
+          mapState.addDrawnFeature(drawnAoi);
+        }
+        mapState.setActiveAoi(drawnAoi.id);
+        mapState.setSelectedFeatureId(drawnAoi.id);
+      }
       const bounds =
         result.layer.metadata?.bounds ??
         (result.preview.featureCollection
@@ -6245,10 +6382,12 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               sidebarVisible={effectiveShowDrawPanel}
               seedDrawStart={drawSeed}
               drawnFeatures={drawnFeatures}
+              snapSources={drawingSnapSources}
               selectedFeatureId={selectedFeatureId}
               onAddFeature={addDrawnFeature}
               onRemoveFeature={removeDrawnFeature}
               onUpdateFeature={updateDrawnFeature}
+              onCommitFeatureEdit={handleCommitDrawnFeatureEdit}
               onClearFeatures={clearDrawnFeatures}
               onSelectFeature={setSelectedFeatureId}
               onCancelDraw={handleCancelDraw}

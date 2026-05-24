@@ -109,7 +109,7 @@ const WORKFLOW_OPTIONS: Array<{
   {
     kind: "aoi",
     label: "Create AOI",
-    description: "Build a study area from viewport, drawn polygon, selection, or geocoded place.",
+    description: "Build a study area from viewport, drawn polygon, selection, geocoded place, or Urban context.",
     icon: <MapPin size={MAP_ICON_SIZES.sm} aria-hidden="true" />,
   },
   {
@@ -150,6 +150,7 @@ const AOI_SOURCES: MapWorkflowAOISourceKind[] = [
   "selected-features",
   "drawn-polygon",
   "geocoded-place",
+  "urban-study-area",
 ];
 const COMPARISON_VIEWS: MapWorkflowComparisonView[] = ["split", "swipe", "blend"];
 
@@ -1602,6 +1603,8 @@ function sourceDisabledReason(
       return context.drawnPolygons.length > 0 ? null : "Missing prerequisite: draw a polygon AOI on the map.";
     case "geocoded-place":
       return context.geocodedPlace ? null : "Missing prerequisite: search and choose a geocoded place.";
+    case "urban-study-area":
+      return context.urbanStudyArea ? null : "Missing prerequisite: apply an Urban Analytics study area.";
   }
 }
 

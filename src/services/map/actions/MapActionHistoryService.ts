@@ -1,5 +1,5 @@
 import type { MapCommandKind } from "@/services/map/contracts/gisContracts";
-import type { OverlayLayerConfig } from "@/centerpanel/components/map/mapTypes";
+import type { DrawnFeature, OverlayLayerConfig } from "@/centerpanel/components/map/mapTypes";
 
 /**
  * Inverse-operation data captured at apply time so a routed command can be
@@ -10,7 +10,8 @@ export type MapRevertToken =
   | { kind: "layer.remove"; layer: OverlayLayerConfig; orderedLayerIds: string[] }
   | { kind: "layer.style"; layerId: string; previousStyle: Record<string, unknown> | undefined }
   | { kind: "workflow.apply"; outputLayerId: string }
-  | { kind: "report.handoff"; reportItemId: string };
+  | { kind: "report.handoff"; reportItemId: string }
+  | { kind: "aoi.edit"; featureId: string; previousFeature: DrawnFeature };
 
 export interface MapActionHistoryEntry {
   commandId: string;
