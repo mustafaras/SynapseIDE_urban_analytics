@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type maplibregl from "maplibre-gl";
 import type { Feature, FeatureCollection, Geometry, MultiPolygon, Polygon } from "geojson";
@@ -78,9 +78,7 @@ import { MapWorkspaceCockpit } from "../MapWorkspaceCockpit";
 import { ScientificQAPanel } from "../ScientificQAPanel";
 import { MapNLQueryPanel, type MapNLQueryPanelRunSummary } from "../MapNLQueryPanel";
 import { MapWorkflowDrawer } from "../MapWorkflowDrawer";
-import { MapReportHandoffDrawer } from "../MapReportHandoffDrawer";
 import { MapReviewTimelinePanel } from "../MapReviewTimelinePanel";
-import { LayerInspector } from "../inspector/LayerInspector";
 import { CartographyRecommendationList } from "../CartographyRecommendationList";
 import {
   createMapEvidenceArtifact,
@@ -262,6 +260,16 @@ type CsvImportSession = import("../../../../services/map/MapDataImporter").CsvIm
 type ColumnarImportSession = import("../../../../services/map/MapDataImporter").ColumnarImportSession;
 type ImportedGeoJSONLayer = import("../../../../services/map/MapDataImporter").ImportedGeoJSONLayer;
 type SourceProfile = import("../../../../services/map/MapDataImporter").SourceProfile;
+
+const LazyMapReportHandoffDrawer = React.lazy(async () => {
+  const module = await import("../MapReportHandoffDrawer");
+  return { default: module.MapReportHandoffDrawer };
+});
+
+const LazyLayerInspector = React.lazy(async () => {
+  const module = await import("../inspector/LayerInspector");
+  return { default: module.LayerInspector };
+});
 type MapProjectSnapshot = import("../../../../services/map/MapPersistenceService").MapProjectSnapshot;
 type MapOutput = import("../../../../features/urbanAnalytics/lib/types").MapOutput;
 type NumericFieldInfo = import("../symbologyUtils").NumericFieldInfo;
@@ -5750,31 +5758,35 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             onAnnounce={announce}
           />
 
-          <MapReportHandoffDrawer
-            draft={reportHandoffDraft}
-            options={reportHandoffOptions}
-            isGeneratingSnapshot={isGeneratingReportHandoffSnapshot}
-            isExportingPdf={isExportingReportHandoffPdf}
-            presentation={dockLayout.compactDock ? "bottom-drawer" : "right-rail"}
-            width={dockLayout.rightPanelWidth}
-            onWidthChange={handleRightPanelWidthChange}
-            onOptionsChange={handleReportHandoffOptionsChange}
-            onRefreshSnapshot={handleRefreshReportHandoffSnapshot}
-            onRegisterEvidence={handleRegisterReportEvidenceBlock}
-            onDownloadPdf={handleDownloadReportHandoffPdf}
-            onInsert={handleInsertReportHandoff}
-            onClose={handleCloseReportHandoff}
-          />
+          <Suspense fallback={null}>
+            <LazyMapReportHandoffDrawer
+              draft={reportHandoffDraft}
+              options={reportHandoffOptions}
+              isGeneratingSnapshot={isGeneratingReportHandoffSnapshot}
+              isExportingPdf={isExportingReportHandoffPdf}
+              presentation={dockLayout.compactDock ? "bottom-drawer" : "right-rail"}
+              width={dockLayout.rightPanelWidth}
+              onWidthChange={handleRightPanelWidthChange}
+              onOptionsChange={handleReportHandoffOptionsChange}
+              onRefreshSnapshot={handleRefreshReportHandoffSnapshot}
+              onRegisterEvidence={handleRegisterReportEvidenceBlock}
+              onDownloadPdf={handleDownloadReportHandoffPdf}
+              onInsert={handleInsertReportHandoff}
+              onClose={handleCloseReportHandoff}
+            />
+          </Suspense>
 
           {inspectorLayer ? (
-            <LayerInspector
-              layer={inspectorLayer}
-              sourceHandle={inspectorSourceHandle}
-              onClose={() => {
-                setInspectorLayerId(null);
-                announce("Layer inspector closed");
-              }}
-            />
+            <Suspense fallback={null}>
+              <LazyLayerInspector
+                layer={inspectorLayer}
+                sourceHandle={inspectorSourceHandle}
+                onClose={() => {
+                  setInspectorLayerId(null);
+                  announce("Layer inspector closed");
+                }}
+              />
+            </Suspense>
           ) : null}
           <MapReviewTimelinePanel
             visible={showReviewTimeline && !navigatorStageMode}

@@ -10,12 +10,12 @@ const INITIAL_LOAD_BUDGET_BYTES = 2500 * 1024;
 const LAZY_CHUNK_BUDGET_BYTES = 500 * 1024;
 const APPROVED_LAZY_BUDGET_OVERRIDES = {
   'centerpanel/components/MapExplorerModal': {
-    budgetBytes: 3800 * 1024,
-    reason: 'Map explorer intentionally isolates importer, map engine, and dataset library stacks behind a single lazy boundary.',
+    budgetBytes: 3950 * 1024,
+    reason: 'Map explorer intentionally isolates importer, map engine, and dataset library stacks behind a single lazy boundary, including map-persistence recovery code shifted out of initial load.',
   },
   'centerpanel/Flows/SunlightSimFlow': {
-    budgetBytes: 1350 * 1024,
-    reason: 'Solar simulation keeps the Three.js orbit-control and sunlight-analysis stack isolated to the 3D workflow entry.',
+    budgetBytes: 1365 * 1024,
+    reason: 'Solar simulation keeps the Three.js orbit-control and sunlight-analysis stack isolated to the 3D workflow entry and shares the map-persistence recovery stack.',
   },
   'centerpanel/Flows/CityJSONFlow': {
     budgetBytes: 1024 * 1024,
@@ -38,8 +38,8 @@ const APPROVED_LAZY_BUDGET_OVERRIDES = {
     reason: 'The education workspace bundles teaching paths, methodology, and dataset-routing controls behind a dedicated lazy entry.',
   },
   'centerpanel/Flows/CompositeIndicatorFlow': {
-    budgetBytes: 560 * 1024,
-    reason: 'The composite-indicator workflow intentionally keeps OECD/JRC-style sensitivity, reporting, and publication tooling together behind one lazy flow boundary.',
+    budgetBytes: 570 * 1024,
+    reason: 'The composite-indicator workflow intentionally keeps OECD/JRC-style sensitivity, reporting, and publication tooling together behind one lazy flow boundary with map-persistence recovery helpers.',
   },
   'features/urbanAnalytics/RightPanelFourBlock': {
     budgetBytes: 1050 * 1024,
@@ -50,8 +50,8 @@ const APPROVED_LAZY_BUDGET_OVERRIDES = {
     reason: 'GeoAI Lab intentionally bundles land-cover, NL-to-SQL, object-detection, and provenance controls behind one toolbox lazy boundary.',
   },
   'centerpanel/Flows/CellularAutomataFlow': {
-    budgetBytes: 560 * 1024,
-    reason: 'Cellular automata keeps scenario execution, temporal publishing, and map handoff controls behind one lazy flow boundary.',
+    budgetBytes: 565 * 1024,
+    reason: 'Cellular automata keeps scenario execution, temporal publishing, and map handoff controls behind one lazy flow boundary with shared map-persistence recovery helpers.',
   },
   'centerpanel/Flows/UrbanMorphologyFlow': {
     budgetBytes: 560 * 1024,
