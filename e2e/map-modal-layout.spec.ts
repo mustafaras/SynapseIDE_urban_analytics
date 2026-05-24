@@ -582,4 +582,104 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
       });
     }
   });
+
+  test("runs a large buffer in a worker, keeping the main thread responsive (Prompt 13)", async ({ page }) => {
+    await page.setViewportSize({ width: 1680, height: 1100 });
+    await resetWorkbenchState(page);
+    await openMapExplorer(page);
+
+    // Seed a large point layer (> worker threshold) so the buffer is routed off-thread.
+    await page.evaluate(async () => {
+      const module = await import("/src/stores/useMapExplorerStore.ts");
+      const COUNT = 8000;
+      const features = Array.from({ length: COUNT }, (_, index) => ({
+        type: "Feature" as const,
+        id: `pt-${index}`,
+        geometry: {
+          type: "Point" as const,
+          coordinates: [28.95 + (index % 200) * 0.0008, 41.0 + Math.floor(index / 200) * 0.0008],
+        },
+        properties: { id: index },
+      }));
+      module.useMapExplorerStore.getState().addOverlayLayer({
+        id: "e2e-large-buffer",
+        name: "E2E Large Points",
+        type: "geojson",
+        visible: true,
+        opacity: 0.9,
+        group: "data",
+        sourceKind: "imported",
+        sourceData: { type: "FeatureCollection", features },
+        metadata: {
+          geometryType: "Point",
+          featureCount: COUNT,
+          fields: ["id"],
+          // Declared projected CRS so the planar buffer is CRS-safe (not
+          // reproject-blocked) and routes to the worker on its own.
+          crsSummary: { crs: "EPSG:32635", status: "known", source: "explicit", notes: [] },
+        },
+      });
+    });
+
+    // Execute the buffer through the real background worker pool while a
+    // requestAnimationFrame counter ticks. If the geometry ran on the main
+    // thread, the counter would stall; off-thread it keeps advancing.
+    const outcome = await page.evaluate(async () => {
+      const svc = await import("/src/services/map/MapWorkflowService.ts");
+      const execMod = await import("/src/services/map/geometry/mapWorkflowWorkerExecutor.ts");
+      const store = (await import("/src/stores/useMapExplorerStore.ts")).useMapExplorerStore.getState();
+
+      const context = svc.buildMapWorkflowContext(store.overlayLayers);
+      const draft = {
+        kind: "buffer" as const,
+        sourceMode: "layer" as const,
+        sourceLayerId: "e2e-large-buffer",
+        distance: 250,
+        unit: "meters" as const,
+        segments: 8,
+        dissolve: false,
+        name: "E2E worker buffer",
+      };
+      const preview = svc.generateMapWorkflowPreview(draft, context);
+
+      let frames = 0;
+      let running = true;
+      const tick = () => {
+        if (!running) return;
+        frames += 1;
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+
+      const executor = execMod.createMapWorkflowWorkerExecutor();
+      let sawProgress = false;
+      const result = await svc.executeMapWorkflow(
+        preview,
+        context,
+        executor,
+        { onProgress: (update) => { if (update.status === "running" || update.status === "queued") sawProgress = true; } },
+      );
+      running = false;
+
+      return {
+        needsWorker: preview.needsWorker,
+        frames,
+        sawProgress,
+        featureCount: result.preview.featureCount,
+        executionCrs: result.manifest.crsSummary.executionCrs,
+        backend: String(result.reportItem.metrics.geometry_backend ?? ""),
+        derivedLayerId: result.layer.id,
+      };
+    });
+
+    expect(outcome.needsWorker).toBe(true);
+    // Worker reported progress and results are fully attributed.
+    expect(outcome.sawProgress).toBe(true);
+    expect(outcome.featureCount).toBeGreaterThan(0);
+    expect(outcome.executionCrs).toBe("EPSG:32635");
+    expect(outcome.backend).toBe("turf");
+    expect(outcome.derivedLayerId).toContain("derived:buffer");
+    // Main thread stayed responsive during the off-thread run.
+    expect(outcome.frames).toBeGreaterThan(3);
+  });
 });

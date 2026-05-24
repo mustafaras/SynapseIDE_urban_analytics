@@ -208,10 +208,14 @@ import {
 import {
   buildMapWorkflowContext,
   buildMapWorkflowPreviewLayer,
+  executeMapWorkflow,
   type MapWorkflowApplyResult,
+  type MapWorkflowExecutionHandle,
+  type MapWorkflowExecutionUpdate,
   type MapWorkflowPreview,
   type MapWorkflowReportItem,
 } from "../../../../services/map/MapWorkflowService";
+import { createMapWorkflowWorkerExecutor } from "../../../../services/map/geometry/mapWorkflowWorkerExecutor";
 import {
   buildExportPackageNoteRequest,
   buildMapManifestRequest,
@@ -2025,6 +2029,10 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     announce(`All ${count} pins cleared`);
   }, [clearPins, pins.length, announce]);
 
+  const [workflowExecution, setWorkflowExecution] = useState<MapWorkflowExecutionUpdate | null>(null);
+  const workflowExecutionHandleRef = useRef<MapWorkflowExecutionHandle | null>(null);
+  const workflowExecutorRef = useRef<ReturnType<typeof createMapWorkflowWorkerExecutor> | null>(null);
+
   const handleApplyMapWorkflow = useCallback(
     (result: MapWorkflowApplyResult) => {
       setWorkflowPreview(null);
@@ -2170,6 +2178,48 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     },
     [announce, buildMapActionEffects, recordMapReviewEvent, reducedMotion, setActiveAnalysisResultLayers, upsertMapEvidenceArtifact],
   );
+
+  const handleExecuteMapWorkflow = useCallback(
+    (preview: MapWorkflowPreview) => {
+      if (!workflowExecutorRef.current) {
+        workflowExecutorRef.current = createMapWorkflowWorkerExecutor();
+      }
+      setWorkflowExecution({ status: "queued", percent: 0, stage: "Queued" });
+      announce(`Running ${preview.workflow} workflow in a background worker.`);
+
+      void executeMapWorkflow(preview, workflowContext, workflowExecutorRef.current, {
+        onProgress: (update) => setWorkflowExecution(update),
+        registerHandle: (handle) => {
+          workflowExecutionHandleRef.current = handle;
+        },
+      })
+        .then((result) => {
+          workflowExecutionHandleRef.current = null;
+          setWorkflowExecution(null);
+          handleApplyMapWorkflow(result);
+        })
+        .catch((error: unknown) => {
+          workflowExecutionHandleRef.current = null;
+          if (isBackgroundTaskCancelledError(error)) {
+            setWorkflowExecution(null);
+            toastInfo(`${preview.workflow} workflow cancelled.`);
+            announce(`${preview.workflow} workflow cancelled.`);
+            return;
+          }
+          const messageText = error instanceof Error ? error.message : "Worker geometry execution failed.";
+          setWorkflowExecution({ status: "failed", percent: 0, error: messageText });
+          toastWarning(`Workflow failed: ${messageText}`);
+          announce(`Workflow failed: ${messageText}`);
+        });
+    },
+    [announce, handleApplyMapWorkflow, workflowContext],
+  );
+
+  const handleCancelMapWorkflow = useCallback(() => {
+    workflowExecutionHandleRef.current?.cancel();
+    workflowExecutionHandleRef.current = null;
+    setWorkflowExecution(null);
+  }, []);
 
   const handleSaveWorkflowReport = useCallback(
     (report: MapWorkflowReportItem) => {
@@ -5938,6 +5988,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             onSaveReport={handleSaveWorkflowReport}
             onPreviewChange={setWorkflowPreview}
             onOpenWorkflowScript={handleOpenWorkflowScriptInIde}
+            onExecuteWorkflow={handleExecuteMapWorkflow}
+            onCancelWorkflow={handleCancelMapWorkflow}
+            workflowExecution={workflowExecution}
             onAnnounce={announce}
           />
 

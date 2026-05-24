@@ -11,6 +11,7 @@ import {
   adaptLISAResult,
 } from '../../services/map/MapEngineAdapter';
 import { fetchOverpassBuildingsForBounds } from '../../services/map/ExternalServiceConnector';
+import { computeGeometryWorkflow } from '../../services/map/geometry/GeometryWorkflowEngine';
 import {
   assertPreparedDataset,
   assertPreparedSpatiotemporalDataset,
@@ -62,9 +63,21 @@ export async function runWorkerTask<K extends WorkerTaskKind>(
         input as WorkerTaskInput<'external/overpass-buildings'>,
         report,
       ) as WorkerTaskOutput<K>;
+    case 'geometry/workflow':
+      return await runGeometryWorkflowTask(
+        input as WorkerTaskInput<'geometry/workflow'>,
+        report,
+      ) as WorkerTaskOutput<K>;
     default:
       throw new Error(`Unsupported worker task kind: ${kind}`);
   }
+}
+
+async function runGeometryWorkflowTask(
+  input: WorkerTaskInput<'geometry/workflow'>,
+  report: ReportProgress,
+): Promise<WorkerTaskOutput<'geometry/workflow'>> {
+  return computeGeometryWorkflow(input, (progress) => report(progress));
 }
 
 async function runOverpassBuildingsTask(

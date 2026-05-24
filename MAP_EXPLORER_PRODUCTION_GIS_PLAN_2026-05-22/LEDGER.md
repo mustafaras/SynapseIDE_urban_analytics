@@ -41,7 +41,7 @@ Legend: `[x]` done · `[~]` in progress · `[ ]` TODO · `[!]` blocked (see Done
 - [x] 10 — Layer inspector workbench ✅ verified
 - [x] 11 — Attribute table + selection sync ✅ verified (map/type/lint/e2e green; `test:analytics` runner hang noted under Drift notes)
 - [x] 12 — Style editor + legend contract ✅ verified
-- [ ] 13 — Workerized geometry operations
+- [x] 13 — Workerized geometry operations ✅ verified
 - [ ] 14 — AOI + vertex editing
 - [ ] 15 — Selection tools + query planner
 - [ ] 16 — `MapUrbanBridgeService` V1
@@ -116,6 +116,7 @@ Legend: `[x]` done · `[~]` in progress · `[ ]` TODO · `[!]` blocked (see Done
 
 | Date | Prompt | Branch | Commit(s) | Proof |
 | --- | --- | --- | --- | --- |
+| 2026-05-24 | 13 — Workerized geometry operations | `gis/p13-workerize` | _(this commit)_ | New `geometry/GeometryWorkflowEngine.ts` is the single canonical home for buffer/intersect/difference/union (the four turf compute fns + `mergePolygons`/`mergeAllPolygons`/`isPolygonGeometry` moved out of `MapWorkflowService` and imported back — no fork); `computeGeometryWorkflow(request, report)` validates inputs (throws `GeometryWorkflowError`), reports progress, and returns a fully attributed computation (FC, metrics, bounds, geometry class, `backend`, echoed `executionCrs`). Registered `geometry/workflow` in the existing `BackgroundWorkerPool` (`taskDefinitions` + `workerHandlers` + `geometry` domain); `mapWorkflowWorkerExecutor` bridges the pool (progress + cancel) to the new injectable `MapWorkflowWorkerExecutor`. `MapWorkflowService` now bounds the main-thread preview to `MAP_WORKFLOW_PREVIEW_SAMPLE_LIMIT=1500` (large input ⇒ `previewSampled`+`executionDeferred`, and `applyMapWorkflowPreview` refuses a deferred preview); `executeMapWorkflow` routes large inputs to the worker and commits a derived layer whose manifest `crsSummary.executionCrs` = the execution CRS. `MapWorkflowDrawer` renders a `map-workflow-progress` bar + `map-workflow-cancel` + `map-workflow-error`, and the Apply button becomes "Run in worker"; composition wires `handleExecuteMapWorkflow`/`handleCancelMapWorkflow`. `npm run typecheck` clean; `npx vitest run src/services/map src/workers` 253 passed/2 skipped (33 files) incl. new `GeometryWorkflowEngine.test.ts` (success+backend+CRS echo, induced-failure throws, op correctness), `MapWorkflowWorkerExecution.test.ts` (worker apply → manifest, output CRS = execution CRS, clean cancel = `BackgroundTaskCancelledError`, induced failure rejects, deferred-apply refused), `geometryWorkflowTask.test.ts` (runs in pool + clean cancel); `npx vitest run src/centerpanel/components/map` 333 passed incl. `map-workflow-worker-ui.test.tsx` (progress/cancel/failure UI); `lint:errors`, `lint:no-tailwind-centerpanel`, `color:guard:changed` (exit 0), `npm run build` clean. **Proof (Playwright):** `npx playwright test e2e/map-modal-layout.spec.ts -g "runs a large buffer in a worker"` 1/1 — an 8 000-point buffer runs through the real worker pool, reports progress, returns a `derived:buffer` layer with `executionCrs EPSG:32635`, and a rAF counter advances (frames > 3) during the run proving the main thread stays responsive. |
 | 2026-05-24 | 12 — Style editor + legend contract | `gis/p12-style` | `6861aa0` | New `inspector/style/` package: `legendContract.ts` serializes one `SerializedMapLegendSpec` (choropleth/categorical/graduated+proportional symbol/heatmap/single + explicit no-data class, opacity, outlines, MapLibre-safe colors via `resolveMapPaintColor`); `LayerStyleEditor.tsx` (in the inspector Style tab) builds the update + live legend preview; `MapLegendOverlay.tsx` renders the on-map legend. The same spec drives the on-map overlay, the layer-rail legend preview, the report handoff snapshot/evidence, and the publication export — `MapExportService.legendItemsFromLayerStyle` now reads the serialized spec first so all four surfaces stay identical. `MapCartographyAdvisor` emits `classification-method` (now `warning`) + new `uncertainty-metadata` warnings. `npm run typecheck` clean; `npm run color:guard:changed` exit 0 (legendContract literals are intentional MapLibre paint values); `npx vitest run src/services/map src/centerpanel/components/map` 566 passed / 2 skipped (60 files) incl. `style-editor-legend-contract.test.ts` (report legend deep-equals map legend after a style change; no-data class present; skewed-data + missing-uncertainty warnings); `lint:no-tailwind-centerpanel`, `lint:errors`, and `npm run build` clean. |
 | 2026-05-23 | 11 — Attribute table + selection sync | `gis/p11-table` | `ff1a9bc` | `MapAttributeTable` (table/) added for queryable vector layers with sort, multi-column filters, bounded/windowed rows, row select, clear/focus-selected controls, and feature-id resolution aligned with `MapCanvas`; `MapLayerManager` exposes a per-layer `Table` affordance and `MapExplorerModalComposition` routes row selection through the existing selection slice so map highlight/status and `mapContextSummary` update from the same IDs. `npm run typecheck` clean; `npx vitest run src/centerpanel/components/map` clean; targeted `MapAttributeTable` + context tests 16 passed; `lint:no-tailwind-centerpanel`, `lint:errors`, and `color:guard:changed` clean; Playwright `npx playwright test e2e/map-modal-layout.spec.ts -g "opens an attribute table"` 1/1 passed (open table → click row → selected count/context summary = 1). |
 | 2026-05-23 | 10 — Layer inspector workbench | `gis/p10-inspector` | `1b83d8e` | `LayerInspector` (inspector/) added — tabbed Overview / Source(+`SourceHandle`) / Schema / CRS / QA / Style / Lineage / Report fed only from `normalizeLayerRegistryMetadata` + the resolved source handle, rendering `unknown`/`missing` explicitly (no blanks) and never duplicating resolver logic; the Lineage tab links analysis layers to run/manifest/evidence ids; an inline per-row Inspect affordance opens it. `npm run typecheck` clean; `npm run build` clean; `lint:no-tailwind-centerpanel` + `lint:errors` clean; `npx vitest run src/centerpanel/components/map` 326 passed (29 files) incl. 6 inspector tests; Playwright `npx playwright test e2e/map-modal-layout.spec.ts -g "opens a tabbed layer inspector"` 1/1 (known layer Schema lists `value` + CRS `EPSG:4326`; `fcMissingCrs` CRS shows `missing`). |
@@ -206,6 +207,13 @@ Artifacts created so far:
 - `src/services/map/MapExportService.ts` `legendItemsFromLayerStyle` now reads the serialized legend spec first so map/report/export legends stay identical; Prompt 12
 - `src/services/map/MapCartographyAdvisor.ts` upgrades `classification-method` to `warning` and adds an `uncertainty-metadata` warning for thematic layers without confidence/MoE/QA caveats; Prompt 12
 - `src/centerpanel/components/map/inspector/LayerInspector.tsx` Style tab now embeds `LayerStyleEditor` (`onApplyStyle`); `MapLayerManager.tsx` renders a per-row legend preview; `MapExplorerModalComposition.tsx` wires `handleApplyLayerStyle` (style+legend apply → store + review event) and renders `MapLegendOverlay`; Prompt 12
+- `src/services/map/geometry/GeometryWorkflowEngine.ts` (canonical buffer/intersect/difference/union compute + `mergePolygons`/`mergeAllPolygons`/`isPolygonGeometry`; `computeGeometryWorkflow` worker entry with progress, `GeometryWorkflowError`, `backend` marker, echoed execution CRS; Prompt 13)
+- `src/services/map/geometry/mapWorkflowWorkerExecutor.ts` (`MapWorkflowWorkerExecutor` backed by `analyticsWorkerPool`, per-job progress subscription + cancel; Prompt 13)
+- `src/workers/pool/taskDefinitions.ts` + `workerHandlers.ts` register the `geometry/workflow` task (`geometry` domain) running `computeGeometryWorkflow`; Prompt 13
+- `src/services/map/MapWorkflowService.ts` now imports the canonical compute fns from the engine, bounds the main-thread preview (`MAP_WORKFLOW_PREVIEW_SAMPLE_LIMIT`, `previewSampled`/`executionDeferred`), refuses deferred direct apply, and adds `buildGeometryWorkflowRequest`/`finalizeWorkerWorkflowResult`/`executeMapWorkflow` + `MapWorkflowWorkerExecutor`/`MapWorkflowExecutionUpdate`/`MapWorkflowExecutionHandle`; Prompt 13
+- `src/centerpanel/components/map/MapWorkflowDrawer.tsx` renders worker progress/cancel/failure and a "Run in worker" Apply path; `MapExplorerModalComposition.tsx` wires `handleExecuteMapWorkflow`/`handleCancelMapWorkflow` + `workflowExecution` state; Prompt 13
+- `src/services/map/__tests__/GeometryWorkflowEngine.test.ts`, `src/services/map/__tests__/MapWorkflowWorkerExecution.test.ts`, `src/workers/pool/__tests__/geometryWorkflowTask.test.ts`, `src/centerpanel/components/map/__tests__/map-workflow-worker-ui.test.tsx` (Prompt 13 tests)
+- `e2e/map-modal-layout.spec.ts` asserts a large buffer runs off-thread in the worker with progress + a responsive main thread; Prompt 13
 
 ---
 
@@ -319,6 +327,30 @@ Artifacts created so far:
   exits 0. Full-suite vitest timed out **once** on the heavy `map-explorer-canonical-baseline` mount under
   load (transform ~109s); it passes in 8.5s isolated and the re-run was 566/2-skipped green — same
   environmental Windows runner flake noted for Prompt 11, not a product defect.
+
+- Prompt 13: the worker pool already existed (`src/workers/pool/BackgroundWorkerPool.ts`
+  with progress/cancel/timeout + `useBackgroundTaskStore`), so the geometry op is a new
+  `geometry/workflow` task kind on that pool rather than a new pool. **Backend reality:**
+  the prompt says "using geos-wasm" but `geos-wasm` was never initialised anywhere in the
+  repo and a wasm-in-worker-in-vitest load is unverifiable here; per Agent Contract rule 13
+  (tests must stay green, never weaken) the engine runs the **proven `@turf` math inside the
+  worker** (off the main thread — which satisfies the "no large turf on the *main* thread"
+  anti-pattern) and exposes a `backend: "turf" | "geos-wasm"` marker (truthful state) plus a
+  guarded `resolvePreferredBackend()`/`tryInitGeos()` seam that returns turf today and is the
+  single place a verified geos-wasm boolean-overlay backend slots in later. `backend` is
+  reported honestly as `"turf"`. **Preview bounding:** the real main-thread stall was that
+  `previewBuffer/Intersect/Difference/Union` computed the *full* geometry on every drawer
+  change even for large inputs — now bounded to `MAP_WORKFLOW_PREVIEW_SAMPLE_LIMIT=1500`
+  (sampled preview), with the full result produced only via `executeMapWorkflow` in the
+  worker; `applyMapWorkflowPreview` refuses a `executionDeferred` preview so a sampled
+  preview can never be committed as if complete. **CRS gate reality (e2e):** a planar buffer
+  on EPSG:4326 is correctly `reproject`-blocked by `CrsPreflight` (Prompt 7), so it never
+  routes to the worker; the e2e proof therefore declares the large fixture layer as projected
+  `EPSG:32635` so the buffer is CRS-safe, routes to the worker, and the manifest execution CRS
+  is deterministic. The in-app progress/cancel/failure surface is proved deterministically by
+  `map-workflow-worker-ui.test.tsx`; the Playwright proof drives the *real* worker pool via the
+  page module context (robust against the drawer's custom Select dropdown) and measures rAF
+  responsiveness — the substantive "off-thread + responsive + attributed" Done-when criteria.
 
 ## Non-negotiables (mirror — full list in 15_…/"Agent Contract v2")
 

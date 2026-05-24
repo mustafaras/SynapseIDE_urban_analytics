@@ -63,6 +63,7 @@ import {
   type MapWorkflowDifferenceDraft,
   type MapWorkflowDistanceUnit,
   type MapWorkflowDraft,
+  type MapWorkflowExecutionUpdate,
   type MapWorkflowIntersectDraft,
   type MapWorkflowKind,
   type MapWorkflowPreview,
@@ -79,6 +80,12 @@ export interface MapWorkflowDrawerProps {
   onApply: (result: MapWorkflowApplyResult) => void;
   onSaveReport?: (report: MapWorkflowReportItem) => void;
   onPreviewChange?: (preview: MapWorkflowPreview | null) => void;
+  /** Run a large-input workflow off the main thread (worker). */
+  onExecuteWorkflow?: (preview: MapWorkflowPreview) => void;
+  /** Cancel the in-flight worker execution. */
+  onCancelWorkflow?: () => void;
+  /** Live worker execution state (progress/cancel/failure). */
+  workflowExecution?: MapWorkflowExecutionUpdate | null;
   onOpenWorkflowScript?: (preview: MapWorkflowPreview) => void;
   initialDraftRequest?: {
     requestId: string;
@@ -399,6 +406,9 @@ export const MapWorkflowDrawer: React.FC<MapWorkflowDrawerProps> = ({
   onSaveReport,
   onPreviewChange,
   onOpenWorkflowScript,
+  onExecuteWorkflow,
+  onCancelWorkflow,
+  workflowExecution,
   onAnnounce,
   presentation = "floating",
   width,
@@ -520,6 +530,12 @@ export const MapWorkflowDrawer: React.FC<MapWorkflowDrawerProps> = ({
   };
 
   const handleApply = () => {
+    // Large inputs run off the main thread with progress + cancel.
+    if (preview.needsWorker && onExecuteWorkflow) {
+      onExecuteWorkflow(preview);
+      onAnnounce?.(`Running ${preview.workflow} in a background worker.`);
+      return;
+    }
     const result = applyMapWorkflowPreview(preview, context);
     if (!result) {
       onAnnounce?.("Workflow could not be applied. Resolve the highlighted blockers and try again.");
@@ -552,11 +568,17 @@ export const MapWorkflowDrawer: React.FC<MapWorkflowDrawerProps> = ({
     onAnnounce?.(`${label}: ${instruction}`);
   };
   const applyStatusId = "map-workflow-apply-status";
-  const applyStatusText = preview.canApply
-    ? "Ready to apply; derived layer will register with provenance and QA."
-    : preview.nextRequiredStep
-      ? `Missing prerequisite: complete ${MAP_WORKFLOW_STEP_LABELS[preview.nextRequiredStep]}.`
-      : "Missing prerequisite: configure workflow inputs.";
+  const executionActive = workflowExecution?.status === "queued" || workflowExecution?.status === "running";
+  const executionFailed = workflowExecution?.status === "failed";
+  const applyStatusText = executionActive
+    ? `Running in worker — ${workflowExecution?.stage ?? "processing"} (${workflowExecution?.percent ?? 0}%).`
+    : preview.canApply
+      ? preview.needsWorker
+        ? "Large input — runs in a background worker with progress and cancel."
+        : "Ready to apply; derived layer will register with provenance and QA."
+      : preview.nextRequiredStep
+        ? `Missing prerequisite: complete ${MAP_WORKFLOW_STEP_LABELS[preview.nextRequiredStep]}.`
+        : "Missing prerequisite: configure workflow inputs.";
 
   return (
     <div
@@ -801,6 +823,71 @@ export const MapWorkflowDrawer: React.FC<MapWorkflowDrawerProps> = ({
         ) : null}
       </div>
 
+      {executionActive || executionFailed ? (
+        <div
+          style={{
+            display: "grid",
+            gap: MAP_SPACING.xs,
+            padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
+            borderTop: MAP_STROKES.hairlineSubtle,
+          }}
+          data-testid="map-workflow-execution"
+        >
+          {executionActive ? (
+            <>
+              <div
+                role="progressbar"
+                aria-label="Workflow execution progress"
+                aria-valuenow={workflowExecution?.percent ?? 0}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                data-testid="map-workflow-progress"
+                style={{
+                  position: "relative",
+                  height: "0.375rem",
+                  borderRadius: MAP_RADIUS.full,
+                  background: MAP_COLORS.selectedSubtle,
+                  overflow: "hidden",
+                }}
+              >
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    width: `${Math.max(4, Math.min(100, workflowExecution?.percent ?? 0))}%`,
+                    background: MAP_COLORS.interaction,
+                    transition: "width 120ms linear",
+                  }}
+                />
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: MAP_SPACING.sm }}>
+                <span style={{ color: MAP_COLORS.textMuted, fontSize: MAP_TYPOGRAPHY.fontSize.xs }}>
+                  {workflowExecution?.detail ?? workflowExecution?.stage ?? "Processing"}
+                </span>
+                {onCancelWorkflow ? (
+                  <button
+                    type="button"
+                    style={mapStyles.sidePanelActionButton}
+                    onClick={onCancelWorkflow}
+                    data-testid="map-workflow-cancel"
+                  >
+                    Cancel
+                  </button>
+                ) : null}
+              </div>
+            </>
+          ) : (
+            <div
+              style={{ color: MAP_COLORS.error, fontSize: MAP_TYPOGRAPHY.fontSize.xs }}
+              role="alert"
+              data-testid="map-workflow-error"
+            >
+              {workflowExecution?.error ?? "Worker geometry execution failed."}
+            </div>
+          )}
+        </div>
+      ) : null}
+
       <div
         style={{
           ...mapStyles.sidePanelHeader,
@@ -820,21 +907,29 @@ export const MapWorkflowDrawer: React.FC<MapWorkflowDrawerProps> = ({
           type="button"
           style={{
             ...mapStyles.sidePanelPrimaryButton,
-            opacity: preview.canApply ? 1 : 0.5,
-            cursor: preview.canApply ? "pointer" : "not-allowed",
+            opacity: preview.canApply && !executionActive ? 1 : 0.5,
+            cursor: preview.canApply && !executionActive ? "pointer" : "not-allowed",
           }}
           onClick={handleApply}
-          disabled={!preview.canApply}
+          disabled={!preview.canApply || executionActive}
           aria-describedby={applyStatusId}
           aria-label={preview.canApply ? "Apply spatial workflow" : `Apply spatial workflow blocked: ${applyStatusText}`}
           title={preview.canApply
-            ? "Apply the configured workflow and register provenance, QA, and report metadata."
+            ? preview.needsWorker
+              ? "Run the workflow in a background worker; the UI stays responsive and you can cancel."
+              : "Apply the configured workflow and register provenance, QA, and report metadata."
             : preview.nextRequiredStep
               ? `Missing prerequisite: complete ${MAP_WORKFLOW_STEP_LABELS[preview.nextRequiredStep]}.`
               : "Missing prerequisite: configure the workflow inputs."}
         >
           <Layers size={MAP_ICON_SIZES.sm} aria-hidden="true" />
-          {preview.workflow === "comparison" ? "Apply comparison" : "Apply workflow"}
+          {executionActive
+            ? "Running…"
+            : preview.workflow === "comparison"
+              ? "Apply comparison"
+              : preview.needsWorker
+                ? "Run in worker"
+                : "Apply workflow"}
         </button>
       </div>
     </div>
