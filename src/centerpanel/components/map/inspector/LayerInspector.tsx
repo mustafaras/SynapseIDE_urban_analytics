@@ -12,6 +12,8 @@ import {
   MAP_Z_INDEX,
 } from "../mapTokens";
 import { IconClose } from "../MapIcons";
+import { LayerStyleEditor } from "./style/LayerStyleEditor";
+import type { LayerStyleUpdate } from "./style/legendContract";
 
 /**
  * LayerInspector — a tabbed, devtools-free readout of everything the metadata
@@ -24,6 +26,7 @@ export interface LayerInspectorProps {
   /** Resolved source handle for the layer (by `metadata.sourceId`), if registered. */
   sourceHandle?: SourceHandle | null;
   onClose: () => void;
+  onApplyStyle?: (layerId: string, update: LayerStyleUpdate) => void;
   onAnnounce?: (message: string) => void;
   /** Initial active tab (defaults to "overview"); primarily a testability hook. */
   initialTab?: InspectorTabId;
@@ -227,7 +230,13 @@ function describeNullableField(field: LayerSchemaFieldSummary): string {
   return field.nullable ? "nullable" : "not null";
 }
 
-export const LayerInspector: React.FC<LayerInspectorProps> = ({ layer, sourceHandle, onClose, initialTab }) => {
+export const LayerInspector: React.FC<LayerInspectorProps> = ({
+  layer,
+  sourceHandle,
+  onClose,
+  onApplyStyle,
+  initialTab,
+}) => {
   const [activeTab, setActiveTab] = useState<InspectorTabId>(initialTab ?? "overview");
   const registry = useMemo(() => normalizeLayerRegistryMetadata(layer), [layer]);
   const metadata = layer.metadata;
@@ -356,6 +365,9 @@ export const LayerInspector: React.FC<LayerInspectorProps> = ({ layer, sourceHan
               <span style={rowValueStyle}>
                 <Chips ids={layer.style ? Object.keys(layer.style) : []} empty="default styling" />
               </span>
+            </div>
+            <div style={{ marginTop: MAP_SPACING.md }}>
+              <LayerStyleEditor layer={layer} {...(onApplyStyle ? { onApplyStyle } : {})} />
             </div>
           </section>
         );

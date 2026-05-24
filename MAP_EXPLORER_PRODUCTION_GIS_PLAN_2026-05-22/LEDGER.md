@@ -40,7 +40,7 @@ Legend: `[x]` done · `[~]` in progress · `[ ]` TODO · `[!]` blocked (see Done
 - [x] 9 — Map command lifecycle (`MapActionExecutor`) ✅ verified
 - [x] 10 — Layer inspector workbench ✅ verified
 - [x] 11 — Attribute table + selection sync ✅ verified (map/type/lint/e2e green; `test:analytics` runner hang noted under Drift notes)
-- [ ] 12 — Style editor + legend contract
+- [x] 12 — Style editor + legend contract ✅ verified
 - [ ] 13 — Workerized geometry operations
 - [ ] 14 — AOI + vertex editing
 - [ ] 15 — Selection tools + query planner
@@ -116,6 +116,7 @@ Legend: `[x]` done · `[~]` in progress · `[ ]` TODO · `[!]` blocked (see Done
 
 | Date | Prompt | Branch | Commit(s) | Proof |
 | --- | --- | --- | --- | --- |
+| 2026-05-24 | 12 — Style editor + legend contract | `gis/p12-style` | `c7e634e` | New `inspector/style/` package: `legendContract.ts` serializes one `SerializedMapLegendSpec` (choropleth/categorical/graduated+proportional symbol/heatmap/single + explicit no-data class, opacity, outlines, MapLibre-safe colors via `resolveMapPaintColor`); `LayerStyleEditor.tsx` (in the inspector Style tab) builds the update + live legend preview; `MapLegendOverlay.tsx` renders the on-map legend. The same spec drives the on-map overlay, the layer-rail legend preview, the report handoff snapshot/evidence, and the publication export — `MapExportService.legendItemsFromLayerStyle` now reads the serialized spec first so all four surfaces stay identical. `MapCartographyAdvisor` emits `classification-method` (now `warning`) + new `uncertainty-metadata` warnings. `npm run typecheck` clean; `npm run color:guard:changed` exit 0 (legendContract literals are intentional MapLibre paint values); `npx vitest run src/services/map src/centerpanel/components/map` 566 passed / 2 skipped (60 files) incl. `style-editor-legend-contract.test.ts` (report legend deep-equals map legend after a style change; no-data class present; skewed-data + missing-uncertainty warnings); `lint:no-tailwind-centerpanel`, `lint:errors`, and `npm run build` clean. |
 | 2026-05-23 | 11 — Attribute table + selection sync | `gis/p11-table` | `ff1a9bc` | `MapAttributeTable` (table/) added for queryable vector layers with sort, multi-column filters, bounded/windowed rows, row select, clear/focus-selected controls, and feature-id resolution aligned with `MapCanvas`; `MapLayerManager` exposes a per-layer `Table` affordance and `MapExplorerModalComposition` routes row selection through the existing selection slice so map highlight/status and `mapContextSummary` update from the same IDs. `npm run typecheck` clean; `npx vitest run src/centerpanel/components/map` clean; targeted `MapAttributeTable` + context tests 16 passed; `lint:no-tailwind-centerpanel`, `lint:errors`, and `color:guard:changed` clean; Playwright `npx playwright test e2e/map-modal-layout.spec.ts -g "opens an attribute table"` 1/1 passed (open table → click row → selected count/context summary = 1). |
 | 2026-05-23 | 10 — Layer inspector workbench | `gis/p10-inspector` | `1b83d8e` | `LayerInspector` (inspector/) added — tabbed Overview / Source(+`SourceHandle`) / Schema / CRS / QA / Style / Lineage / Report fed only from `normalizeLayerRegistryMetadata` + the resolved source handle, rendering `unknown`/`missing` explicitly (no blanks) and never duplicating resolver logic; the Lineage tab links analysis layers to run/manifest/evidence ids; an inline per-row Inspect affordance opens it. `npm run typecheck` clean; `npm run build` clean; `lint:no-tailwind-centerpanel` + `lint:errors` clean; `npx vitest run src/centerpanel/components/map` 326 passed (29 files) incl. 6 inspector tests; Playwright `npx playwright test e2e/map-modal-layout.spec.ts -g "opens a tabbed layer inspector"` 1/1 (known layer Schema lists `value` + CRS `EPSG:4326`; `fcMissingCrs` CRS shows `missing`). |
 | 2026-05-23 | 9 — Map command lifecycle (`MapActionExecutor`) | `gis/p09-command-lifecycle` | `a8b1c21` | `MapActionExecutor` (preview/apply/revert) + `MapActionHistoryService` (history + revert tokens) added; `layer.remove`/`layer.style`/`workflow.apply`/`report.handoff` preflight → `MapCommandResult` (+ `MapReproducibilityManifest` for workflow.apply) + one review-timeline audit event, and blocked commands return `blockers`; layer removal (both panels) and workflow.apply (derived-layer commit) route through the executor and the review timeline shows a `map-review-timeline-revert` affordance that restores prior store state and marks the event undone. `npm run typecheck` clean; `npx vitest run src/services/map src/stores src/centerpanel/components/map` 694 passed / 2 skipped (66 files); `lint:errors` + `lint:no-tailwind-centerpanel` clean; Playwright `npx playwright test e2e/map-modal-layout.spec.ts -g "routes layer removal"` 1/1 passed (remove layer → audit row → revert restores the layer). |
@@ -198,6 +199,13 @@ Artifacts created so far:
 - `src/centerpanel/components/map/MapLayerManager.tsx` adds a queryable-layer `Table` affordance (`onOpenAttributeTable`); Prompt 11
 - `src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx` renders `MapAttributeTable`, focuses selected feature bounds, and writes selected IDs through the store selection slice; Prompt 11
 - `e2e/map-modal-layout.spec.ts` asserts table row selection updates selected count and the map context summary; Prompt 11
+- `src/centerpanel/components/map/inspector/style/legendContract.ts` (`SerializedMapLegendSpec` + `buildLayerStyleUpdate`/`getSerializedLegendSpecFromStyle`/`serializedLegendSpecToCompositionItems`; one serialized legend spec for map/panel/report/export, MapLibre-safe colors, explicit no-data class; Prompt 12)
+- `src/centerpanel/components/map/inspector/style/LayerStyleEditor.tsx` (Style-tab editor: mode/field/classification/ramp/classes/opacity/outline/labels/no-data + live legend preview, `mapStyles`/`MAP_*` tokens; Prompt 12)
+- `src/centerpanel/components/map/inspector/style/MapLegendOverlay.tsx` (on-map legend overlay fed from `buildMapCompositionLegendItems`; Prompt 12)
+- `src/centerpanel/components/map/__tests__/style-editor-legend-contract.test.ts` (report legend deep-equals map legend after style change; no-data class; classification + uncertainty warnings; Prompt 12)
+- `src/services/map/MapExportService.ts` `legendItemsFromLayerStyle` now reads the serialized legend spec first so map/report/export legends stay identical; Prompt 12
+- `src/services/map/MapCartographyAdvisor.ts` upgrades `classification-method` to `warning` and adds an `uncertainty-metadata` warning for thematic layers without confidence/MoE/QA caveats; Prompt 12
+- `src/centerpanel/components/map/inspector/LayerInspector.tsx` Style tab now embeds `LayerStyleEditor` (`onApplyStyle`); `MapLayerManager.tsx` renders a per-row legend preview; `MapExplorerModalComposition.tsx` wires `handleApplyLayerStyle` (style+legend apply → store + review event) and renders `MapLegendOverlay`; Prompt 12
 
 ---
 
@@ -297,6 +305,20 @@ Artifacts created so far:
   map/type/lint/e2e validation for this slice is green.
 
 ---
+
+- Prompt 12: legend parity is enforced by making `MapExportService.legendItemsFromLayerStyle`
+  read the serialized `SerializedMapLegendSpec` (`style.legendSpec`) **first**, before the
+  legacy `style.legendEntries`/`legend`/`classes` paths — so the on-map overlay, the layer-rail
+  preview, the report handoff snapshot, and the publication export all derive from the same spec
+  with no duplicated mapping (`MapReportHandoffService` already builds its legend via
+  `buildMapCompositionLegendItems`, so it picked up the spec for free — that file was not touched).
+  The Style editor lives in the **inspector Style tab** (Prompt 10's `LayerInspector`), not a new
+  modal. `legendContract.ts` literal colors (`rgb(153,153,153)` no-data, `rgba(17,24,39,…)` outline/halo,
+  `rgba(0,0,0,0)` heatmap zero-density) are intentional MapLibre paint values — MapLibre cannot parse the
+  `var()`/`color-mix()` `MAP_COLORS` tokens, so they stay literal and `color:guard:changed` (report mode)
+  exits 0. Full-suite vitest timed out **once** on the heavy `map-explorer-canonical-baseline` mount under
+  load (transform ~109s); it passes in 8.5s isolated and the re-run was 566/2-skipped green — same
+  environmental Windows runner flake noted for Prompt 11, not a product defect.
 
 ## Non-negotiables (mirror — full list in 15_…/"Agent Contract v2")
 

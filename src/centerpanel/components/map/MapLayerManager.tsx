@@ -4,6 +4,7 @@ import type {
   MapCartographyReviewState,
 } from "@/services/map/MapCartographyAdvisor";
 import type { SourceRestoreStatus } from "@/services/map/contracts/gisContracts";
+import { buildMapCompositionLegendItems } from "@/services/map/MapExportService";
 import type { LayerGroupId, LayerPublicationReadinessStatus, LayerQaStatus, LayerScientificQABadge, LayerSourceKind, OverlayLayerConfig } from "./mapTypes";
 import { CartographyRecommendationList } from "./CartographyRecommendationList";
 import { DeclareCrsControl } from "./DeclareCrsControl";
@@ -697,6 +698,27 @@ const analysisLegendRow: React.CSSProperties = {
   gridTemplateColumns: "12px minmax(0, 1fr) auto",
   gap: 8,
   alignItems: "center",
+};
+
+const layerLegendPreview: React.CSSProperties = {
+  display: "grid",
+  gap: 3,
+  marginTop: MAP_SPACING.xs,
+};
+
+const layerLegendPreviewRow: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "10px minmax(0, 1fr)",
+  gap: 6,
+  alignItems: "center",
+};
+
+const layerLegendPreviewLabel: React.CSSProperties = {
+  color: MAP_COLORS.textMuted,
+  fontSize: 9,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
 };
 
 const rerunBtn: React.CSSProperties = {
@@ -1757,6 +1779,7 @@ const LayerRow: React.FC<LayerRowProps> = ({
   const featureCount = registry.featureCount;
   const layerBounds = getLayerBounds(layer);
   const layerBadges = buildLayerBadges(layer);
+  const legendPreviewItems = buildMapCompositionLegendItems([{ ...layer, visible: true }]).slice(0, 4);
   const evidenceActions = buildLayerEvidenceActions(layer, {
     ...(onExportLayer ? { onExportLayer } : {}),
     ...(onSendLayerToUrban ? { onSendLayerToUrban } : {}),
@@ -1921,6 +1944,28 @@ const LayerRow: React.FC<LayerRowProps> = ({
             <LayerBadge key={badge.id} badge={badge} />
           ))}
         </div>
+
+        {legendPreviewItems.length > 0 ? (
+          <div style={layerLegendPreview} aria-label={`Layer legend for ${layer.name}`}>
+            {legendPreviewItems.map((item, index) => (
+              <div key={`${item.label}-${index}`} style={layerLegendPreviewRow}>
+                <span
+                  aria-hidden="true"
+                  style={{
+                    width: 10,
+                    height: item.kind === "line" ? 2 : 10,
+                    borderRadius: item.kind === "circle" ? MAP_RADIUS.full : MAP_RADIUS.xs,
+                    background: item.color,
+                    border: MAP_STROKES.hairlineSubtle,
+                  }}
+                />
+                <span style={layerLegendPreviewLabel} title={item.secondaryLabel ? `${item.label} / ${item.secondaryLabel}` : item.label}>
+                  {item.label}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : null}
 
         {onInspectLayer || onOpenAttributeTable ? (
           <div style={layerInlineActions}>

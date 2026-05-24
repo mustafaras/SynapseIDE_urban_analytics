@@ -83,6 +83,8 @@ import { MapReviewTimelinePanel } from "../MapReviewTimelinePanel";
 import { LayerInspector } from "../inspector/LayerInspector";
 import { MapAttributeTable, type AttrFeature } from "../table/MapAttributeTable";
 import { CartographyRecommendationList } from "../CartographyRecommendationList";
+import { MapLegendOverlay } from "../inspector/style/MapLegendOverlay";
+import type { LayerStyleUpdate } from "../inspector/style/legendContract";
 import {
   createMapEvidenceArtifact,
   createMapExportEvidenceArtifact,
@@ -2648,6 +2650,41 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const handleShowCartographyDetails = useCallback((recommendation: MapCartographyRecommendation) => {
     announce(`Cartography details opened for ${recommendation.title}`);
   }, [announce]);
+
+  const handleApplyLayerStyle = useCallback((layerId: string, update: LayerStyleUpdate) => {
+    const layer = overlayLayers.find((entry) => entry.id === layerId);
+    if (!layer) {
+      toastWarning("The styled layer is no longer available.");
+      return;
+    }
+
+    const nextLayer: OverlayLayerConfig = {
+      ...layer,
+      opacity: update.opacity,
+      style: update.style,
+      metadata: {
+        ...(layer.metadata ?? {}),
+        ...update.metadataPatch,
+      },
+    };
+    addOverlayLayer(nextLayer);
+    recordMapReviewEvent({
+      type: "action-status",
+      status: "applied",
+      title: `Layer style applied: ${layer.name}`,
+      summary: `${update.legendSpec.mode} style saved with ${update.legendSpec.entries.length} serialized legend entries. Report and export legends now read the same spec.`,
+      layerIds: [layer.id],
+      actionIds: [update.legendSpec.styleHash],
+      details: {
+        styleMode: update.legendSpec.mode,
+        legendEntryCount: update.legendSpec.entries.length,
+        noDataClass: update.legendSpec.noData.enabled,
+        warnings: update.warnings,
+      },
+    });
+    toastSuccess(`Applied ${update.legendSpec.mode} style to ${layer.name}.`);
+    announce(`Applied style and serialized legend for ${layer.name}`);
+  }, [addOverlayLayer, announce, overlayLayers, recordMapReviewEvent]);
 
   const handleReRunAnalysisLayer = useCallback(async (layerId: string, rerunToken?: string | null) => {
     if (!rerunToken) {
@@ -5778,6 +5815,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             onAnnounce={announce}
           />
 
+          <MapLegendOverlay items={mapPublicationLegendItems} />
+
           <MapReportHandoffDrawer
             draft={reportHandoffDraft}
             options={reportHandoffOptions}
@@ -5798,6 +5837,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             <LayerInspector
               layer={inspectorLayer}
               sourceHandle={inspectorSourceHandle}
+              onApplyStyle={handleApplyLayerStyle}
               onClose={() => {
                 setInspectorLayerId(null);
                 announce("Layer inspector closed");
