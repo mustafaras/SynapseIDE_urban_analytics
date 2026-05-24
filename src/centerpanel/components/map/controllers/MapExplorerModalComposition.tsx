@@ -77,6 +77,7 @@ import {
 import { MapWorkspaceCockpit } from "../MapWorkspaceCockpit";
 import { ScientificQAPanel } from "../ScientificQAPanel";
 import { MapNLQueryPanel, type MapNLQueryPanelRunSummary } from "../MapNLQueryPanel";
+import { MapSelectionTools } from "../MapSelectionTools";
 import { MapWorkflowDrawer } from "../MapWorkflowDrawer";
 import {
   summarizeDrawnGeometryValidation,
@@ -209,6 +210,7 @@ import {
   executeMapNLQueryPreview,
   type MapNLQueryPreview,
 } from "../../../../services/map/MapNLQueryBuilder";
+import type { MapQueryExecutionResult } from "../../../../services/map/query/MapQueryPlanner";
 import {
   buildMapWorkflowContext,
   buildMapWorkflowPreviewLayer,
@@ -1383,6 +1385,31 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       setActiveAnalysisResultLayers([layerId]);
     }
   }, [setActiveAnalysisResultLayers, setSelectedFeatures]);
+
+  const handleSelectionQueryResult = useCallback((result: MapQueryExecutionResult, label: string) => {
+    const layerIds = result.layers
+      .filter((layer) => layer.matchedFeatureCount > 0)
+      .map((layer) => layer.layerId);
+    recordMapReviewEvent({
+      type: "query-run",
+      status: result.status === "success" ? "applied" : "failed",
+      title: `${label} query`,
+      summary: `${label} matched ${result.totalMatched.toLocaleString()} feature(s) from ${result.scannedFeatureCount.toLocaleString()} scanned candidate row(s).${result.truncated ? " Execution was truncated by the declared query scope." : ""}`,
+      layerIds,
+      details: {
+        queryId: result.queryId,
+        plannerVersion: result.provenance.plannerVersion,
+        totalMatched: result.totalMatched,
+        scannedFeatureCount: result.scannedFeatureCount,
+        candidateFeatureCount: result.candidateFeatureCount,
+        bounded: result.bounded,
+        truncated: result.truncated,
+        warnings: result.warnings,
+        blockers: result.blockers,
+        provenance: result.provenance,
+      },
+    });
+  }, [recordMapReviewEvent]);
 
   useEffect(() => {
     if (!open || reviewSession.events.length > 0) {
@@ -6003,6 +6030,21 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
           />
 
           <MapLegendOverlay items={mapPublicationLegendItems} />
+
+          {!navigatorStageMode ? (
+            <MapSelectionTools
+              mapRef={mapInstanceRef}
+              queryableLayers={nlQueryToolbarContext.queryableLayers}
+              selectedFeatureIds={selectedFeatureIds}
+              leftInset={navigatorLeftInset}
+              onSetSelectedFeatures={setSelectedFeatures}
+              onClearSelectedFeatures={() => clearSelectedFeatures()}
+              onSetActiveAnalysisResultLayers={setActiveAnalysisResultLayers}
+              onAddDrawnFeature={addDrawnFeature}
+              onSelectionResult={handleSelectionQueryResult}
+              onAnnounce={announce}
+            />
+          ) : null}
 
           <MapReportHandoffDrawer
             draft={reportHandoffDraft}

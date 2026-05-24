@@ -234,6 +234,33 @@ async function seedAttributeTableLayer(page: import("@playwright/test").Page): P
   });
 }
 
+async function seedSelectionFixtureLayer(page: import("@playwright/test").Page): Promise<void> {
+  await page.evaluate(async () => {
+    const storeModule = await import("/src/stores/useMapExplorerStore.ts");
+    const fixtures = await import("/src/centerpanel/components/map/__tests__/fixtures/gisFixtures.ts");
+    const featureCollection = fixtures.fcPointsWGS84;
+
+    storeModule.useMapExplorerStore.getState().addOverlayLayer({
+      id: "e2e-selection-points",
+      name: "E2E fcPointsWGS84 Selection",
+      type: "geojson",
+      visible: true,
+      opacity: 0.9,
+      group: "data",
+      sourceKind: "imported",
+      queryable: true,
+      sourceData: featureCollection,
+      metadata: {
+        geometryType: "Point",
+        featureCount: featureCollection.features.length,
+        fields: ["id", "name", "value", "date"],
+        bounds: [29.0, 41.0, 29.04, 41.04],
+        crsSummary: { crs: "EPSG:4326", status: "known", source: "explicit", notes: [] },
+      },
+    });
+  });
+}
+
 async function openWorkflowDrawer(page: import("@playwright/test").Page) {
   const directWorkflowButton = page.getByRole("button", { name: /Workflow|Open AOI .* Compare workflow drawer/i }).first();
   if (await directWorkflowButton.isVisible().catch(() => false)) {
@@ -551,6 +578,62 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
     await expect(
       page.getByTestId("map-review-timeline-event").filter({ hasText: "Edited AOI" }).first(),
     ).toBeVisible();
+  });
+
+  test("selects fcPointsWGS84 points with a rectangle and shows the count chip (Prompt 15)", async ({ page }) => {
+    await page.setViewportSize({ width: 1680, height: 1100 });
+    await resetWorkbenchState(page);
+
+    await openMapExplorer(page);
+    await seedSelectionFixtureLayer(page);
+    await expect(page.getByRole("list", { name: "Layer list" })).toContainText("E2E fcPointsWGS84 Selection");
+    const drawingToggle = page.getByRole("button", { name: "Toggle drawings panel" }).first();
+    if (await drawingToggle.getAttribute("aria-pressed") === "true") {
+      await triggerDomClick(drawingToggle);
+      await expect(page.getByRole("region", { name: "Drawn features" })).toBeHidden();
+    }
+
+    const countChip = page.getByTestId("map-selection-count-chip");
+    await expect(countChip).toBeVisible();
+    await expect(countChip).toContainText("0 selected");
+    await triggerDomClick(page.getByTestId("map-rectangle-select-tool"));
+
+    const viewport = await page.evaluate(async () => {
+      const module = await import("/src/stores/useMapExplorerStore.ts");
+      const store = module.useMapExplorerStore.getState();
+      return { center: store.center, zoom: store.zoom };
+    });
+    const canvasBox = await page.locator(".maplibregl-canvas").first().boundingBox();
+    expect(canvasBox).not.toBeNull();
+    if (!canvasBox) return;
+
+    const start = projectLngLat(
+      [28.995, 40.995],
+      { center: viewport.center as [number, number], zoom: viewport.zoom },
+      canvasBox,
+    );
+    const end = projectLngLat(
+      [29.045, 41.015],
+      { center: viewport.center as [number, number], zoom: viewport.zoom },
+      canvasBox,
+    );
+    await page.mouse.move(start.x, start.y);
+    await page.mouse.down();
+    await page.mouse.move(end.x, end.y, { steps: 8 });
+    await page.mouse.up();
+
+    await expect(countChip).toContainText("10 selected");
+    await expect.poll(async () => page.evaluate(async () => {
+      const module = await import("/src/stores/useMapExplorerStore.ts");
+      return module.useMapExplorerStore.getState().selectedFeatureIds["e2e-selection-points"]?.length ?? 0;
+    })).toBe(10);
+    await expect.poll(async () => page.evaluate(async () => {
+      const module = await import("/src/stores/useMapExplorerStore.ts");
+      return module.useMapExplorerStore.getState().reviewSession.events.some((event) =>
+        event.title === "Rectangle selection query" &&
+        event.details?.bounded === true &&
+        event.details?.provenance != null);
+    })).toBe(true);
   });
 
   test("routes layer removal through the command lifecycle with an audit row and revert", async ({ page }) => {
