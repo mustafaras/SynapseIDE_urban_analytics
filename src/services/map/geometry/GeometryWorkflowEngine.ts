@@ -2,17 +2,18 @@
 /*  GeometryWorkflowEngine                                             */
 /*                                                                    */
 /*  Canonical buffer / intersect / difference / union computation for */
-/*  the Map Explorer spatial workflows (Prompt 13). This module is    */
-/*  the single home for the heavy geometry math so that BOTH the      */
-/*  main-thread bounded preview and the worker execution path run the */
-/*  identical code — no forked implementation.                        */
+/*  the Map Explorer spatial workflows (Prompt 13). Single home for    */
+/*  the heavy geometry math so the main-thread bounded preview and the */
+/*  worker execution run identical code — no fork.                     */
 /*                                                                    */
-/*  `computeGeometryWorkflow` is the worker-facing entry point: it    */
-/*  validates inputs (throwing GeometryWorkflowError on unusable      */
-/*  input so failures surface), reports progress, runs the op, and    */
-/*  returns a fully attributed computation (feature collection,       */
-/*  metrics, bounds, geometry class, execution CRS, and the backend   */
-/*  that actually ran).                                               */
+/*  Two interchangeable backends implement the `GeometryOps` seam:     */
+/*   - turf (geodesic, lng/lat) — synchronous; used by the preview.    */
+/*   - geos-wasm (rigorous planar topology) — used by the worker when  */
+/*     a projected execution CRS is available. The engine reprojects   */
+/*     display(4326) → execution once, runs geos in projected metres,  */
+/*     then reprojects the result back; if geos cannot initialise it   */
+/*     transparently falls back to turf. The backend that ran is       */
+/*     recorded truthfully on the result.                              */
 /* ================================================================== */
 
 import * as turf from "@turf/turf";
@@ -23,6 +24,13 @@ import type {
   MultiPolygon,
   Polygon,
 } from "geojson";
+import { isProjected } from "../crs/MapProjectionService";
+import {
+  createGeosGeometryOps,
+  getGeosModule,
+  isGeosBackendAvailable,
+  reprojectGeometry,
+} from "./geosGeometryBackend";
 
 export type GeometryWorkflowOp = "buffer" | "intersect" | "difference" | "union";
 
@@ -30,6 +38,20 @@ export type GeometryWorkflowOp = "buffer" | "intersect" | "difference" | "union"
 export type GeometryWorkflowBackend = "turf" | "geos-wasm";
 
 export type GeometryWorkflowGeometryClass = "point" | "line" | "polygon" | "mixed" | "unknown";
+
+/**
+ * Pluggable geometry primitives. `turfGeometryOps` runs geodesically in
+ * lng/lat; the geos-wasm ops run on geometries already in a projected CRS.
+ * The op bookkeeping (attribute tagging, dissolve, progress) is shared.
+ */
+export interface GeometryOps {
+  name: GeometryWorkflowBackend;
+  buffer(geometry: Geometry, meters: number, segments: number): Geometry | null;
+  intersection(a: Geometry, b: Geometry): Geometry | null;
+  difference(a: Geometry, b: Geometry): Geometry | null;
+  union(a: Geometry, b: Geometry): Geometry | null;
+  unaryUnion(geometries: Geometry[]): Geometry | null;
+}
 
 export interface GeometryWorkflowBufferParams {
   op: "buffer";
@@ -61,8 +83,8 @@ export type GeometryWorkflowParams =
 
 /**
  * Serializable request handed to the worker. Carries the full source
- * geometry (transferred once via postMessage), the resolved execution
- * CRS, and the source layer ids for provenance — never the live store.
+ * geometry (in `displayCrs`, transferred once via postMessage), the resolved
+ * execution CRS, and the source layer ids for provenance — never the store.
  */
 export interface GeometryWorkflowRequest {
   op: GeometryWorkflowOp;
@@ -71,8 +93,10 @@ export interface GeometryWorkflowRequest {
   params: GeometryWorkflowParams;
   /** Resolved execution CRS from CrsPreflight; null when none was available. */
   executionCrs: string | null;
+  /** CRS the source geometry is stored/rendered in (MapLibre canvas = EPSG:4326). */
+  displayCrs?: string;
   sourceLayerIds: string[];
-  /** Prefer the geos-wasm backend when available; falls back to turf. */
+  /** Prefer the geos-wasm backend when available + a projected execution CRS exists. */
   preferGeos?: boolean;
 }
 
@@ -107,6 +131,8 @@ export class GeometryWorkflowError extends Error {
     this.op = op;
   }
 }
+
+const DEFAULT_DISPLAY_CRS = "EPSG:4326";
 
 /* ------------------------------------------------------------------ */
 /*  Shared polygon helpers (canonical — imported by MapWorkflowService) */
@@ -158,13 +184,86 @@ export function mergeAllPolygons(
 }
 
 /* ------------------------------------------------------------------ */
-/*  Canonical op implementations (turf)                                */
+/*  Backends                                                           */
+/* ------------------------------------------------------------------ */
+
+function geometryFeature(geometry: Geometry): Feature {
+  return { type: "Feature", properties: {}, geometry };
+}
+
+/** turf backend — geodesic, operates directly on lng/lat geometries. */
+export const turfGeometryOps: GeometryOps = {
+  name: "turf",
+  buffer(geometry, meters, segments) {
+    try {
+      const result = turf.buffer(geometryFeature(geometry), meters, { units: "meters", steps: segments });
+      return result?.geometry ?? null;
+    } catch {
+      return null;
+    }
+  },
+  intersection(a, b) {
+    try {
+      const result = turf.intersect(turf.featureCollection([
+        geometryFeature(a) as Feature<Polygon | MultiPolygon>,
+        geometryFeature(b) as Feature<Polygon | MultiPolygon>,
+      ]));
+      return result?.geometry ?? null;
+    } catch {
+      return null;
+    }
+  },
+  difference(a, b) {
+    try {
+      const result = turf.difference(turf.featureCollection([
+        geometryFeature(a) as Feature<Polygon | MultiPolygon>,
+        geometryFeature(b) as Feature<Polygon | MultiPolygon>,
+      ]));
+      return result?.geometry ?? null;
+    } catch {
+      return null;
+    }
+  },
+  union(a, b) {
+    try {
+      const result = turf.union(turf.featureCollection([
+        geometryFeature(a) as Feature<Polygon | MultiPolygon>,
+        geometryFeature(b) as Feature<Polygon | MultiPolygon>,
+      ]));
+      return result?.geometry ?? null;
+    } catch {
+      return null;
+    }
+  },
+  unaryUnion(geometries) {
+    if (geometries.length === 0) return null;
+    let acc: Geometry | null = geometries[0] ?? null;
+    for (let index = 1; index < geometries.length; index += 1) {
+      const next = geometries[index];
+      if (!acc || !next) continue;
+      try {
+        const merged = turf.union(turf.featureCollection([
+          geometryFeature(acc) as Feature<Polygon | MultiPolygon>,
+          geometryFeature(next) as Feature<Polygon | MultiPolygon>,
+        ]));
+        if (merged?.geometry) acc = merged.geometry;
+      } catch {
+        // skip
+      }
+    }
+    return acc;
+  },
+};
+
+/* ------------------------------------------------------------------ */
+/*  Canonical op implementations (backend-agnostic via GeometryOps)    */
 /* ------------------------------------------------------------------ */
 
 export function computeBuffer(
   source: FeatureCollection,
   meters: number,
   options: { segments: number; dissolve: boolean; sourceLayerId: string },
+  ops: GeometryOps = turfGeometryOps,
   onFeature?: (index: number, total: number) => void,
 ): FeatureCollection {
   const buffered: Feature<Polygon | MultiPolygon>[] = [];
@@ -174,35 +273,36 @@ export function computeBuffer(
     index += 1;
     onFeature?.(index, total);
     if (!feature.geometry) continue;
-    try {
-      const result = turf.buffer(feature, meters, {
-        units: "meters",
-        steps: options.segments,
-      });
-      if (!result) continue;
-      const cloned = result as Feature<Polygon | MultiPolygon>;
-      cloned.properties = {
+    const geometry = ops.buffer(feature.geometry, meters, options.segments);
+    if (!geometry) continue;
+    buffered.push({
+      type: "Feature",
+      geometry: geometry as Polygon | MultiPolygon,
+      properties: {
         ...(feature.properties ?? {}),
         __buffer_meters: meters,
         __buffer_source_id: feature.id ?? null,
         __buffer_source_layer: options.sourceLayerId,
-      };
-      buffered.push(cloned);
-    } catch {
-      // skip
-    }
+      },
+    });
   }
 
   if (options.dissolve && buffered.length > 1) {
-    const merged = mergePolygons(buffered, "buffered_dissolved");
+    const merged = ops.unaryUnion(buffered.map((feature) => feature.geometry));
     if (merged) {
-      merged.properties = {
-        __buffer_meters: meters,
-        __buffer_source_layer: options.sourceLayerId,
-        __dissolved: true,
-        __input_features: source.features.length,
+      return {
+        type: "FeatureCollection",
+        features: [{
+          type: "Feature",
+          geometry: merged as Polygon | MultiPolygon,
+          properties: {
+            __buffer_meters: meters,
+            __buffer_source_layer: options.sourceLayerId,
+            __dissolved: true,
+            __input_features: source.features.length,
+          },
+        }],
       };
-      return { type: "FeatureCollection", features: [merged] };
     }
   }
 
@@ -213,6 +313,7 @@ export function computeIntersect(
   sourceA: FeatureCollection,
   sourceB: FeatureCollection,
   preserveAttributes: "a" | "b" | "both",
+  ops: GeometryOps = turfGeometryOps,
   onPair?: (index: number, total: number) => void,
 ): { featureCollection: FeatureCollection; pairCount: number } {
   const features: Feature[] = [];
@@ -222,36 +323,25 @@ export function computeIntersect(
   for (const a of sourceA.features) {
     aIndex += 1;
     onPair?.(aIndex, total);
-    if (!isPolygonGeometry(a.geometry)) continue;
+    if (!isPolygonGeometry(a.geometry) || !a.geometry) continue;
     for (const b of sourceB.features) {
-      if (!isPolygonGeometry(b.geometry)) continue;
-      try {
-        const fc = turf.featureCollection([
-          a as Feature<Polygon | MultiPolygon>,
-          b as Feature<Polygon | MultiPolygon>,
-        ]);
-        const result = turf.intersect(fc);
-        if (!result) continue;
-        pairCount += 1;
-        const properties: Record<string, unknown> = {};
-        if (preserveAttributes === "a" || preserveAttributes === "both") {
-          for (const [key, value] of Object.entries(a.properties ?? {})) {
-            properties[`a_${key}`] = value;
-          }
+      if (!isPolygonGeometry(b.geometry) || !b.geometry) continue;
+      const geometry = ops.intersection(a.geometry, b.geometry);
+      if (!geometry) continue;
+      pairCount += 1;
+      const properties: Record<string, unknown> = {};
+      if (preserveAttributes === "a" || preserveAttributes === "both") {
+        for (const [key, value] of Object.entries(a.properties ?? {})) {
+          properties[`a_${key}`] = value;
         }
-        if (preserveAttributes === "b" || preserveAttributes === "both") {
-          for (const [key, value] of Object.entries(b.properties ?? {})) {
-            properties[`b_${key}`] = value;
-          }
-        }
-        properties.__intersect_pair_index = pairCount;
-        features.push({
-          ...(result as Feature),
-          properties,
-        });
-      } catch {
-        // skip
       }
+      if (preserveAttributes === "b" || preserveAttributes === "both") {
+        for (const [key, value] of Object.entries(b.properties ?? {})) {
+          properties[`b_${key}`] = value;
+        }
+      }
+      properties.__intersect_pair_index = pairCount;
+      features.push({ type: "Feature", geometry, properties });
     }
   }
   return {
@@ -263,9 +353,14 @@ export function computeIntersect(
 export function computeDifference(
   sourceA: FeatureCollection,
   sourceB: FeatureCollection,
+  ops: GeometryOps = turfGeometryOps,
   onFeature?: (index: number, total: number) => void,
 ): FeatureCollection {
-  const dissolveB = mergeAllPolygons(sourceB);
+  const dissolveB = ops.unaryUnion(
+    sourceB.features
+      .filter((feature) => isPolygonGeometry(feature.geometry) && feature.geometry)
+      .map((feature) => feature.geometry as Geometry),
+  );
   if (!dissolveB) {
     return { type: "FeatureCollection", features: [] };
   }
@@ -275,22 +370,14 @@ export function computeDifference(
   for (const a of sourceA.features) {
     index += 1;
     onFeature?.(index, total);
-    if (!isPolygonGeometry(a.geometry)) continue;
-    try {
-      const fc = turf.featureCollection([
-        a as Feature<Polygon | MultiPolygon>,
-        dissolveB,
-      ]);
-      const result = turf.difference(fc);
-      if (!result) continue;
-      const properties = { ...(a.properties ?? {}), __difference: true };
-      features.push({
-        ...(result as Feature),
-        properties,
-      });
-    } catch {
-      // skip
-    }
+    if (!isPolygonGeometry(a.geometry) || !a.geometry) continue;
+    const geometry = ops.difference(a.geometry, dissolveB);
+    if (!geometry) continue;
+    features.push({
+      type: "Feature",
+      geometry,
+      properties: { ...(a.properties ?? {}), __difference: true },
+    });
   }
   return { type: "FeatureCollection", features };
 }
@@ -299,6 +386,7 @@ export function computeUnion(
   sourceA: FeatureCollection,
   sourceB: FeatureCollection,
   dissolve: boolean,
+  ops: GeometryOps = turfGeometryOps,
 ): FeatureCollection {
   const allPolygons: Array<Feature<Polygon | MultiPolygon>> = [];
   for (const feature of sourceA.features) {
@@ -316,16 +404,22 @@ export function computeUnion(
     return { type: "FeatureCollection", features: allPolygons };
   }
 
-  const merged = mergePolygons(allPolygons, "union_dissolved");
+  const merged = ops.unaryUnion(allPolygons.map((feature) => feature.geometry));
   if (!merged) {
     return { type: "FeatureCollection", features: allPolygons };
   }
-  merged.properties = { ...(merged.properties ?? {}), __dissolved: true };
-  return { type: "FeatureCollection", features: [merged] };
+  return {
+    type: "FeatureCollection",
+    features: [{
+      type: "Feature",
+      geometry: merged as Polygon | MultiPolygon,
+      properties: { __dissolved: true },
+    }],
+  };
 }
 
 /* ------------------------------------------------------------------ */
-/*  Local metric helpers (engine-scoped; do not depend on the service) */
+/*  Local metric helpers                                               */
 /* ------------------------------------------------------------------ */
 
 function safeAreaKm2(fc: FeatureCollection): number {
@@ -363,18 +457,52 @@ function classifyFeatureCollectionGeometry(fc: FeatureCollection): GeometryWorkf
   return [...kinds][0] as GeometryWorkflowGeometryClass;
 }
 
+function reprojectFeatureCollection(fc: FeatureCollection, from: string, to: string): FeatureCollection {
+  if (from === to) return fc;
+  return {
+    type: "FeatureCollection",
+    features: fc.features.map((feature) =>
+      feature.geometry
+        ? { ...feature, geometry: reprojectGeometry(feature.geometry, from, to) }
+        : feature,
+    ),
+  };
+}
+
 /* ------------------------------------------------------------------ */
 /*  Worker-facing entry point                                          */
 /* ------------------------------------------------------------------ */
 
 const PROGRESS_REPORT_STRIDE = 250;
 
+interface ResolvedBackend {
+  ops: GeometryOps;
+  backend: GeometryWorkflowBackend;
+}
+
 /**
- * Compute a geometry workflow op end-to-end. Runs the canonical turf
- * implementation by default; when `preferGeos` is set and the geos-wasm
- * backend initialises, that backend is used and recorded — otherwise it
- * transparently falls back to turf so a missing/failed wasm load never
- * breaks the operation. Throws GeometryWorkflowError on unusable input.
+ * Choose the geos-wasm backend when requested, a projected execution CRS is
+ * available, and the wasm initialises; otherwise turf. Never throws — a
+ * failed geos load degrades to turf so the op always completes.
+ */
+async function resolveBackend(request: GeometryWorkflowRequest): Promise<ResolvedBackend> {
+  const wantsGeos = request.preferGeos === true
+    && typeof request.executionCrs === "string"
+    && isProjected(request.executionCrs);
+  if (wantsGeos && (await isGeosBackendAvailable())) {
+    const geos = await getGeosModule();
+    if (geos) {
+      return { ops: createGeosGeometryOps(geos), backend: "geos-wasm" };
+    }
+  }
+  return { ops: turfGeometryOps, backend: "turf" };
+}
+
+/**
+ * Compute a geometry workflow op end-to-end. Validates inputs (throwing
+ * GeometryWorkflowError on unusable input), reports progress, runs the op on
+ * the resolved backend, and returns a fully attributed computation whose
+ * geometry is always in the display CRS.
  */
 export async function computeGeometryWorkflow(
   request: GeometryWorkflowRequest,
@@ -385,40 +513,50 @@ export async function computeGeometryWorkflow(
 
   emit({ percent: 4, stage: "Preparing geometry inputs" });
 
-  const backend: GeometryWorkflowBackend = request.preferGeos
-    ? await resolvePreferredBackend()
-    : "turf";
-
-  const [sourceA, sourceB] = request.sources;
+  const displayCrs = request.displayCrs ?? DEFAULT_DISPLAY_CRS;
+  const { ops, backend } = await resolveBackend(request);
+  const executionCrs = request.executionCrs;
   const inputFeatureCount = request.sources.reduce((total, fc) => total + fc.features.length, 0);
+
+  // geos runs in projected metres: reproject display → execution once.
+  const usesProjectedBackend = backend === "geos-wasm" && typeof executionCrs === "string";
+  const sources = usesProjectedBackend
+    ? request.sources.map((fc) => reprojectFeatureCollection(fc, displayCrs, executionCrs as string))
+    : request.sources;
+
+  const [sourceA, sourceB] = sources;
+  if (!sourceA) {
+    throw new GeometryWorkflowError(request.op, "The primary source layer has no geometry.");
+  }
 
   const makeFeatureReporter = (verb: string) => (index: number, total: number) => {
     if (total <= 0) return;
     if (index % PROGRESS_REPORT_STRIDE !== 0 && index !== total) return;
     const ratio = index / total;
     emit({
-      percent: 8 + Math.round(ratio * 84),
+      percent: 8 + Math.round(ratio * 80),
       stage: `${verb} features`,
       detail: `${index.toLocaleString()} / ${total.toLocaleString()}`,
     });
   };
 
-  let featureCollection: FeatureCollection;
+  let computed: FeatureCollection;
   let metrics: Record<string, number | string | null> = {};
 
   switch (request.params.op) {
     case "buffer": {
       const params = request.params;
-      featureCollection = computeBuffer(
+      computed = computeBuffer(
         sourceA,
         params.meters,
         { segments: params.segments, dissolve: params.dissolve, sourceLayerId: params.sourceLayerId },
+        ops,
         makeFeatureReporter("Buffering"),
       );
       metrics = {
         buffer_meters: params.meters,
         buffer_segments: params.segments,
-        buffered_features: featureCollection.features.length,
+        buffered_features: computed.features.length,
         input_features: sourceA.features.length,
         dissolved: params.dissolve ? 1 : 0,
       };
@@ -429,38 +567,39 @@ export async function computeGeometryWorkflow(
         sourceA,
         ensureSource(sourceB, request.op),
         request.params.preserveAttributes,
+        ops,
         makeFeatureReporter("Intersecting"),
       );
-      featureCollection = result.featureCollection;
-      metrics = {
-        intersect_pairs: result.pairCount,
-        result_features: featureCollection.features.length,
-      };
+      computed = result.featureCollection;
+      metrics = { intersect_pairs: result.pairCount, result_features: computed.features.length };
       break;
     }
     case "difference": {
-      featureCollection = computeDifference(
+      computed = computeDifference(
         sourceA,
         ensureSource(sourceB, request.op),
+        ops,
         makeFeatureReporter("Differencing"),
       );
-      metrics = { result_features: featureCollection.features.length };
+      metrics = { result_features: computed.features.length };
       break;
     }
     case "union": {
-      featureCollection = computeUnion(sourceA, ensureSource(sourceB, request.op), request.params.dissolve);
-      metrics = {
-        result_features: featureCollection.features.length,
-        dissolved: request.params.dissolve ? 1 : 0,
-      };
+      computed = computeUnion(sourceA, ensureSource(sourceB, request.op), request.params.dissolve, ops);
+      metrics = { result_features: computed.features.length, dissolved: request.params.dissolve ? 1 : 0 };
       break;
     }
     default:
       throw new GeometryWorkflowError(request.op, `Unsupported geometry workflow op: ${String(request.op)}`);
   }
 
-  emit({ percent: 94, stage: "Measuring output" });
-  const bounds = boundsOf(featureCollection);
+  emit({ percent: 92, stage: "Finalising output" });
+
+  // Bring geos results back to the display CRS before measuring/returning.
+  const featureCollection = usesProjectedBackend
+    ? reprojectFeatureCollection(computed, executionCrs as string, displayCrs)
+    : computed;
+
   metrics.area_km2 = safeAreaKm2(featureCollection);
   metrics.geometry_backend = backend;
 
@@ -471,7 +610,7 @@ export async function computeGeometryWorkflow(
     featureCollection,
     featureCount: featureCollection.features.length,
     geometryClass: classifyFeatureCollectionGeometry(featureCollection),
-    bounds,
+    bounds: boundsOf(featureCollection),
     metrics,
     backend,
     executionCrs: request.executionCrs,
@@ -501,42 +640,4 @@ function ensureSource(source: FeatureCollection | undefined, op: GeometryWorkflo
     throw new GeometryWorkflowError(op, `A ${op} operation requires a second source layer.`);
   }
   return source;
-}
-
-/* ------------------------------------------------------------------ */
-/*  Backend resolution (geos-wasm preferred, turf fallback)            */
-/* ------------------------------------------------------------------ */
-
-let geosBackendState: GeometryWorkflowBackend | null = null;
-
-/**
- * Attempt to initialise the geos-wasm backend once. Any failure (missing
- * wasm, non-worker runtime, init error) falls back to turf so the op
- * always completes. The current build uses turf for the math and records
- * geos-wasm availability for forward compatibility; geos boolean overlay
- * wiring is gated behind a verified wasm load.
- */
-async function resolvePreferredBackend(): Promise<GeometryWorkflowBackend> {
-  if (geosBackendState) return geosBackendState;
-  try {
-    const available = await tryInitGeos();
-    geosBackendState = available ? "geos-wasm" : "turf";
-  } catch {
-    geosBackendState = "turf";
-  }
-  return geosBackendState;
-}
-
-async function tryInitGeos(): Promise<boolean> {
-  // geos-wasm wasm loading is only meaningful in a worker/browser runtime.
-  if (typeof WebAssembly === "undefined") return false;
-  // The geos backend is initialised lazily by the worker entry; until a
-  // verified wasm load lands we keep turf as the computation engine and do
-  // not claim geos ran. Returning false keeps `backend: "turf"` truthful.
-  return false;
-}
-
-/** Test/diagnostic hook: reset memoised backend state. */
-export function __resetGeometryBackendForTests(): void {
-  geosBackendState = null;
 }

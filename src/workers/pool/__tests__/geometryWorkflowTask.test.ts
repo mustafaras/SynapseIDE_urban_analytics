@@ -74,7 +74,7 @@ describe("geometry/workflow worker task", () => {
     expect(result.op).toBe("buffer");
     expect(result.executionCrs).toBe("EPSG:32635");
     expect(result.featureCount).toBe(fcPolygonsProjected.featureCollection.features.length);
-    expect(result.backend).toBe("turf");
+    expect(result.backend).toBe("geos-wasm");
   });
 
   it("cancels a running geometry job cleanly", async () => {

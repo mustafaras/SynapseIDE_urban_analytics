@@ -677,7 +677,9 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
     expect(outcome.sawProgress).toBe(true);
     expect(outcome.featureCount).toBeGreaterThan(0);
     expect(outcome.executionCrs).toBe("EPSG:32635");
-    expect(outcome.backend).toBe("turf");
+    // geos-wasm actually initialises + runs in the browser worker (turf is the
+    // resilient fallback in code, but the supported path is geos-wasm).
+    expect(outcome.backend).toBe("geos-wasm");
     expect(outcome.derivedLayerId).toContain("derived:buffer");
     // Main thread stayed responsive during the off-thread run.
     expect(outcome.frames).toBeGreaterThan(3);

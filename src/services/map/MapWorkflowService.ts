@@ -687,6 +687,7 @@ export function buildGeometryWorkflowRequest(
   if (!WORKER_GEOMETRY_OPS.has(preview.workflow)) return null;
   const draft = preview.draft;
   const executionCrs = preview.crsPreflight.executionCrs;
+  const displayCrs = preview.crsPreflight.displayCrs;
   const sourceLayerIds = collectSourceLayerIds(draft, context);
 
   if (draft.kind === "buffer") {
@@ -699,7 +700,7 @@ export function buildGeometryWorkflowRequest(
       dissolve: draft.dissolve,
       sourceLayerId,
     };
-    return { op: "buffer", sources: [source], params, executionCrs, sourceLayerIds, preferGeos: true };
+    return { op: "buffer", sources: [source], params, executionCrs, displayCrs, sourceLayerIds, preferGeos: true };
   }
 
   if (draft.kind === "intersect" || draft.kind === "difference" || draft.kind === "union") {
@@ -712,7 +713,7 @@ export function buildGeometryWorkflowRequest(
         : draft.kind === "union"
           ? { op: "union", dissolve: draft.dissolve }
           : { op: "difference" };
-    return { op: draft.kind, sources: [sourceA, sourceB], params, executionCrs, sourceLayerIds, preferGeos: true };
+    return { op: draft.kind, sources: [sourceA, sourceB], params, executionCrs, displayCrs, sourceLayerIds, preferGeos: true };
   }
 
   return null;
