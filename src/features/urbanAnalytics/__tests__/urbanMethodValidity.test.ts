@@ -1,12 +1,70 @@
 import { describe, expect, it } from 'vitest';
 
+import type { MapExplorerContextSummary } from '@/centerpanel/components/map/mapContextSummary';
+import type { OverlayLayerConfig } from '@/centerpanel/components/map/mapTypes';
+import { buildMapToUrbanContextPayload } from '@/services/map/bridge/MapUrbanBridgeService';
 import { FLOW_LIBRARY_ITEMS } from '../../../centerpanel/Flows/flowLibraryMeta';
 import {
+  recommendUrbanMethodsFromMapContext,
   validateUrbanMethodMetadata,
   validateUrbanMethodValidityEnvelope,
 } from '../context/methodValidity';
 import { getIndicatorDefinition } from '../indicators/catalog';
 import { buildFullLibrary } from '../seeds';
+
+function recommendationPayload(layer: OverlayLayerConfig) {
+  const context: MapExplorerContextSummary = {
+    contextId: `recommend-${layer.id}`,
+    updatedAt: '2026-05-25T10:00:00.000Z',
+    viewport: { center: [29, 41], zoom: 11, bearing: 0, pitch: 0, baseLayerId: 'dark' },
+    currentBounds: [28.9, 40.9, 29.2, 41.2],
+    currentBoundsUpdatedAt: '2026-05-25T10:00:00.000Z',
+    activeAoi: { aoiId: 'aoi-kadikoy', geometryFamily: 'polygon' },
+    visibleLayerIds: [layer.id],
+    selectedLayerIds: [layer.id],
+    activeAnalysisResultLayerIds: [],
+    selection: { totalSelectedFeatures: 0, layerCounts: [] },
+    qa: {
+      status: 'passed',
+      checkedAt: '2026-05-25T10:00:00.000Z',
+      layerCount: 1,
+      blockedLayerCount: 0,
+      issueCounts: { info: 0, warning: 0, error: 0, blocker: 0 },
+    },
+  };
+  return buildMapToUrbanContextPayload({
+    contextSummary: context,
+    overlayLayers: [layer],
+    now: '2026-05-25T10:00:00.000Z',
+  });
+}
+
+function recommendationLayer(id: string, geometryType: string): OverlayLayerConfig {
+  return {
+    id,
+    name: id,
+    type: 'geojson',
+    visible: true,
+    opacity: 1,
+    sourceKind: 'project',
+    metadata: {
+      featureCount: 45,
+      crsSummary: { crs: 'EPSG:3857', status: 'known', source: 'explicit', notes: [] },
+      geometrySummary: { geometryType, geometryTypes: [geometryType], featureCount: 45, source: 'explicit', notes: [] },
+      schemaSummary: {
+        fieldCount: 4,
+        fields: [
+          { name: 'numeric_indicator', role: 'attribute' },
+          { name: 'travel_mode', role: 'attribute' },
+          { name: 'time_threshold', role: 'attribute' },
+          { name: 'poi_category', role: 'attribute' },
+        ],
+        source: 'explicit',
+        notes: [],
+      },
+    },
+  };
+}
 
 describe('Urban method validity metadata', () => {
   it('attaches a complete validity envelope to the representative method card preset', () => {
@@ -124,5 +182,29 @@ describe('Urban method validity metadata', () => {
     expect(validation.missingFields).toContain('requiredDataTypes');
     expect(validation.missingFields).toContain('requiredFields');
     expect(validation.warnings.some((warning) => warning.includes('incomplete method validity metadata'))).toBe(true);
+  });
+
+  it('changes attributed recommendations when bridged layer geometry changes', () => {
+    const polygon = recommendUrbanMethodsFromMapContext(
+      recommendationPayload(recommendationLayer('district-polygons', 'Polygon')),
+    );
+    const point = recommendUrbanMethodsFromMapContext(
+      recommendationPayload(recommendationLayer('service-points', 'Point')),
+    );
+
+    expect(polygon.some((hint) => hint.methodId === 'ss-morans-i')).toBe(true);
+    expect(point.some((hint) => hint.methodId === 'ss-morans-i')).toBe(false);
+    expect(point.some((hint) => hint.methodId === 'accessibility')).toBe(true);
+    expect(polygon[0]?.hint).toContain('based on: district-polygons / AOI aoi-kadikoy');
+    expect(point[0]?.hint).toContain('based on: service-points / AOI aoi-kadikoy');
+  });
+
+  it('marks a demo bridge candidate as demo-only instead of ready', () => {
+    const demoLayer = recommendationLayer('demo-polygons', 'Polygon');
+    demoLayer.sourceKind = 'demo';
+    const recommendations = recommendUrbanMethodsFromMapContext(recommendationPayload(demoLayer));
+
+    expect(recommendations.find((hint) => hint.methodId === 'ss-morans-i')?.status).toBe('demo-only');
+    expect(recommendations.find((hint) => hint.methodId === 'ss-morans-i')?.hint).toContain('demo/synthetic inputs remain labelled');
   });
 });

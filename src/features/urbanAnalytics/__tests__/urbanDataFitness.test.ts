@@ -2,8 +2,12 @@
 
 import { describe, expect, it } from 'vitest';
 import type { FeatureCollection } from 'geojson';
+import type { MapExplorerContextSummary } from '@/centerpanel/components/map/mapContextSummary';
 import type { OverlayLayerConfig } from '@/centerpanel/components/map/mapTypes';
+import { fcMissingCrs } from '@/centerpanel/components/map/__tests__/fixtures/gisFixtures';
+import { buildMapToUrbanContextPayload } from '@/services/map/bridge/MapUrbanBridgeService';
 import {
+  computeUrbanDataFitnessFromMapContext,
   computeUrbanDataFitnessProfile,
   extractUrbanDataFitnessLayerFromMapLayer,
 } from '../context/dataFitness';
@@ -27,6 +31,33 @@ function completeLayer(overrides: Partial<Parameters<typeof computeUrbanDataFitn
     totalValueCount: 450,
     ...overrides,
   };
+}
+
+function payloadForLayer(layer: OverlayLayerConfig) {
+  const context: MapExplorerContextSummary = {
+    contextId: `context-${layer.id}`,
+    updatedAt: computedAt,
+    viewport: { center: [29, 41], zoom: 11, bearing: 0, pitch: 0, baseLayerId: 'dark' },
+    currentBounds: [28.9, 40.9, 29.2, 41.2],
+    currentBoundsUpdatedAt: computedAt,
+    activeAoi: null,
+    visibleLayerIds: [layer.id],
+    selectedLayerIds: [layer.id],
+    activeAnalysisResultLayerIds: [],
+    selection: { totalSelectedFeatures: 0, layerCounts: [] },
+    qa: {
+      status: 'passed',
+      checkedAt: computedAt,
+      layerCount: 1,
+      blockedLayerCount: 0,
+      issueCounts: { info: 0, warning: 0, error: 0, blocker: 0 },
+    },
+  };
+  return buildMapToUrbanContextPayload({
+    contextSummary: context,
+    overlayLayers: [layer],
+    now: computedAt,
+  });
 }
 
 describe('computeUrbanDataFitnessProfile', () => {
@@ -97,6 +128,75 @@ describe('computeUrbanDataFitnessProfile', () => {
     expect(profile.crsFit).toBe('projected'); // recognized the declared code...
     expect(profile.status).not.toBe('ready'); // ...but never authoritative-ready
     expect(profile.score ?? 100).toBeLessThan(100); // the caveat caps the score
+  });
+
+  it('never upgrades demo, synthetic, or unknown runtime inputs to ready', () => {
+    const demo = computeUrbanDataFitnessProfile({
+      layers: [completeLayer({ sourceKind: 'demo', runtimeMode: 'demo' })],
+      requiredFields: ['population'],
+      requiredGeometryTypes: ['polygon'],
+      minimumFeatureCount: 100,
+      analysisScale: 'district',
+      sourceScale: 'district',
+      requiresTemporalCoverage: true,
+      computedAt,
+    });
+    const synthetic = computeUrbanDataFitnessProfile({
+      layers: [completeLayer({ runtimeMode: 'synthetic' })],
+      requiredFields: ['population'],
+      requiredGeometryTypes: ['polygon'],
+      minimumFeatureCount: 100,
+      analysisScale: 'district',
+      sourceScale: 'district',
+      requiresTemporalCoverage: true,
+      computedAt,
+    });
+    const unknown = computeUrbanDataFitnessProfile({
+      layers: [completeLayer({ runtimeMode: 'unknown' })],
+      requiredFields: ['population'],
+      requiredGeometryTypes: ['polygon'],
+      minimumFeatureCount: 100,
+      analysisScale: 'district',
+      sourceScale: 'district',
+      requiresTemporalCoverage: true,
+      computedAt,
+    });
+
+    expect(demo.status).toBe('warning');
+    expect(synthetic.status).toBe('warning');
+    expect(demo.score ?? 100).toBeLessThan(100);
+    expect(synthetic.score ?? 100).toBeLessThan(100);
+    expect(unknown.status).toBe('unknown');
+    expect(unknown.score).toBeNull();
+    expect(synthetic.issues.some((issue) => issue.code === 'synthetic_data')).toBe(true);
+    expect(unknown.issues.some((issue) => issue.code === 'unknown_runtime_mode')).toBe(true);
+  });
+
+  it('derives unknown fitness and attribution from a bridged fcMissingCrs layer', () => {
+    const missingCrsLayer: OverlayLayerConfig = {
+      id: 'missing-crs-polygons',
+      name: 'Missing CRS polygons',
+      type: 'geojson',
+      visible: true,
+      opacity: 1,
+      sourceKind: 'project',
+      sourceData: fcMissingCrs.featureCollection,
+      metadata: {
+        featureCount: fcMissingCrs.featureCollection.features.length,
+        geometryType: 'Polygon',
+        fields: ['population'],
+      },
+    };
+
+    const profile = computeUrbanDataFitnessFromMapContext(payloadForLayer(missingCrsLayer), {
+      requiredFields: ['population'],
+      requiredGeometryTypes: ['polygon'],
+    });
+
+    expect(profile.status).toBe('unknown');
+    expect(profile.score).toBeNull();
+    expect(profile.crsFit).toBe('missing');
+    expect(profile.uncertaintyNotes.join(' ')).toContain('Based on: Missing CRS polygons');
   });
 
   it('extracts a user-declared CRS as a caveated input from layer metadata', () => {

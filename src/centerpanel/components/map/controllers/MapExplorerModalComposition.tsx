@@ -4761,16 +4761,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       activeWorkflowId: activeFlow,
       completedRunIds: completedRuns.map((run) => run.runId),
       requestedLayerId: layerId,
-      receiver: () => {
+      receiver: (payload) => {
         const applied = applyMapContextToUrban({
-          mapState: {
-            activeAoiId,
-            overlayLayers,
-            selectedFeatureIds,
-            activeAnalysisResultLayerIds,
-            currentMapBounds,
-            scientificQA,
-          },
+          payload,
           triggerRecommendations: true,
         });
         return {

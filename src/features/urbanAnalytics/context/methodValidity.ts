@@ -3,6 +3,7 @@ import type {
   UrbanMethodReadinessStatus,
   UrbanMethodValidityEnvelope,
 } from '../lib/types';
+import type { MapToUrbanContextPayload } from '@/services/map/bridge/MapUrbanBridgeService';
 
 export type UrbanMethodMetadataSourceKind = 'method-card' | 'indicator' | 'workflow' | 'unknown';
 
@@ -24,6 +25,17 @@ export interface UrbanMethodValidityValidationResult {
   capabilityStatus: UrbanMethodCapabilityStatus;
   readinessStatus: UrbanMethodReadinessStatus;
   envelope: UrbanMethodValidityEnvelope;
+}
+
+export interface UrbanMapMethodRecommendation {
+  methodId: string;
+  methodTitle: string;
+  status: UrbanMethodReadinessStatus;
+  hint: string;
+  attribution: string;
+  layerIds: string[];
+  aoiId: string | null;
+  missingRequirements: string[];
 }
 
 const METHOD_VALIDITY_MISSING_WARNING =
@@ -173,6 +185,19 @@ export const URBAN_METHOD_VALIDITY_ENVELOPE_PRESETS: Record<string, UrbanMethodV
   },
 };
 
+const MAP_CONTEXT_RECOMMENDATION_METHODS = [
+  {
+    methodId: 'ss-morans-i',
+    methodTitle: "Spatial Autocorrelation (Moran's I)",
+    presetKey: 'card:ss-morans-i',
+  },
+  {
+    methodId: 'accessibility',
+    methodTitle: 'Accessibility workflow',
+    presetKey: 'flow:accessibility',
+  },
+] as const;
+
 export function getUrbanMethodValidityEnvelopePreset(key: string): UrbanMethodValidityEnvelope | null {
   return URBAN_METHOD_VALIDITY_ENVELOPE_PRESETS[key] ?? null;
 }
@@ -261,6 +286,128 @@ export function validateUrbanMethodValidityEnvelope(
     id: 'method',
     sourceKind: 'unknown',
     ...(envelope ? { validityEnvelope: envelope } : {}),
+  });
+}
+
+function geometryMatchesRequirement(geometryType: string | undefined, requiredType: string): boolean {
+  const geometry = geometryType?.toLowerCase() ?? '';
+  const required = requiredType.toLowerCase();
+  return geometry === required || geometry.includes(required);
+}
+
+function recommendationAttribution(
+  payload: MapToUrbanContextPayload,
+  layers: readonly MapToUrbanContextPayload['layerSummaries'][number][],
+): string {
+  const layerLabel = layers.map((layer) => layer.name).join(', ') || 'no matching layer';
+  const aoiLabel = payload.aoiReference.label ?? payload.aoiReference.aoiId;
+  return `based on: ${layerLabel}${aoiLabel ? ` / AOI ${aoiLabel}` : ''}`;
+}
+
+function recommendationMissingRequirements(
+  payload: MapToUrbanContextPayload,
+  layers: readonly MapToUrbanContextPayload['layerSummaries'][number][],
+  envelope: UrbanMethodValidityEnvelope,
+): string[] {
+  const missing: string[] = [];
+  const presentFields = new Set(
+    layers.flatMap((layer) => layer.fieldSummary.fields.map((field) => field.name.toLowerCase())),
+  );
+  for (const field of envelope.requiredFields) {
+    if (!presentFields.has(field.toLowerCase())) missing.push(`field ${field}`);
+  }
+
+  if (envelope.requiredDataTypes.includes('aoi') && payload.aoiReference.aoiId === null) {
+    missing.push('active AOI');
+  }
+
+  if (layers.some((layer) => layer.crs.crs === null)) {
+    missing.push('declared CRS');
+  } else if (
+    envelope.requiresProjectedCrs
+    && layers.some((layer) => layer.crs.crs?.toUpperCase() === 'EPSG:4326' || layer.crs.crs?.toUpperCase() === 'OGC:CRS84')
+  ) {
+    missing.push('projected CRS');
+  }
+
+  if (envelope.minimumFeatureCount !== undefined) {
+    const featureCount = layers.reduce((sum, layer) => sum + (layer.registry.featureCount ?? 0), 0);
+    if (featureCount < envelope.minimumFeatureCount) {
+      missing.push(`minimum ${envelope.minimumFeatureCount} features`);
+    }
+  }
+
+  if (payload.qaSummary.blockingIssueIds.length > 0) {
+    missing.push('resolved map QA blockers');
+  }
+  return missing;
+}
+
+/**
+ * Interprets lightweight Map context into method-level hints. This function
+ * is intentionally Urban-owned: Map supplies facts, while Urban determines
+ * method compatibility and preserves caveats in each recommendation.
+ */
+export function recommendUrbanMethodsFromMapContext(
+  payload: MapToUrbanContextPayload,
+): UrbanMapMethodRecommendation[] {
+  return MAP_CONTEXT_RECOMMENDATION_METHODS.flatMap((method) => {
+    const envelope = requireUrbanMethodValidityEnvelopePreset(method.presetKey);
+    const matchingLayers = envelope.requiredGeometryTypes?.length
+      ? payload.layerSummaries.filter((layer) =>
+          envelope.requiredGeometryTypes?.some((required) =>
+            geometryMatchesRequirement(layer.registry.geometryType, required),
+          ),
+        )
+      : payload.layerSummaries;
+    if (matchingLayers.length === 0) {
+      return [];
+    }
+
+    const attribution = recommendationAttribution(payload, matchingLayers);
+    const missingRequirements = recommendationMissingRequirements(payload, matchingLayers, envelope);
+    const hasDemoOrSynthetic = matchingLayers.some((layer) =>
+      layer.registry.sourceKind === 'demo'
+      || layer.registry.runtimeMode === 'demo'
+      || layer.registry.runtimeMode === 'synthetic',
+    );
+    const hasUnknownProvenance = matchingLayers.some((layer) =>
+      layer.registry.sourceKind === undefined || layer.registry.runtimeMode === 'unknown',
+    );
+    const hasQaWarning = payload.qaSummary.warningIssueIds.length > 0
+      || matchingLayers.some((layer) => layer.qa.status === 'warning');
+
+    let status: UrbanMethodReadinessStatus;
+    if (missingRequirements.length > 0) {
+      status = 'blocked';
+    } else if (hasDemoOrSynthetic) {
+      status = 'demo-only';
+    } else if (hasUnknownProvenance) {
+      status = 'needs-context';
+    } else if (hasQaWarning) {
+      status = 'ready-with-caveats';
+    } else {
+      status = 'ready';
+    }
+
+    const label = status === 'ready-with-caveats' ? 'ready with caveats' : status.replace('-', ' ');
+    const requirementText = missingRequirements.length > 0
+      ? `; missing: ${missingRequirements.join(', ')}`
+      : hasDemoOrSynthetic
+        ? '; demo/synthetic inputs remain labelled'
+        : hasUnknownProvenance
+          ? '; source/runtime mode remains unknown'
+          : '';
+    return [{
+      methodId: method.methodId,
+      methodTitle: method.methodTitle,
+      status,
+      hint: `${method.methodTitle}: ${label}${requirementText}; ${attribution}.`,
+      attribution,
+      layerIds: matchingLayers.map((layer) => layer.layerId),
+      aoiId: payload.aoiReference.aoiId,
+      missingRequirements,
+    }];
   });
 }
 

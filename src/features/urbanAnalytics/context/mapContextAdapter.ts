@@ -1,13 +1,21 @@
 import type { FeatureCollection } from 'geojson';
+import { selectMapExplorerContextSummary } from '@/centerpanel/components/map/mapContextSummary';
 import type { OverlayLayerConfig } from '@/centerpanel/components/map/mapTypes';
+import {
+  buildMapToUrbanContextPayload,
+  type MapToUrbanContextPayload,
+} from '@/services/map/bridge/MapUrbanBridgeService';
 import type { MapExplorerState } from '@/stores/useMapExplorerStore';
 import { useMapExplorerStore } from '@/stores/useMapExplorerStore';
 import { useUrbanStore } from '../store';
 import { useUrbanContextStore } from '../useUrbanContextStore';
+import { computeUrbanDataFitnessFromMapContext } from './dataFitness';
+import { recommendUrbanMethodsFromMapContext } from './methodValidity';
 import type {
   BoundingBox,
   MapToUrbanContextSummary,
   MapToUrbanQaSummary,
+  UrbanDataFitnessProfile,
   UrbanEvidenceQAState,
 } from '../lib/types';
 
@@ -298,7 +306,72 @@ export function buildMapToUrbanContextSummary(
   };
 }
 
+function payloadQaStatus(status: string): MapToUrbanQaSummary['status'] {
+  if (status === 'passed') return 'passed';
+  if (status === 'warning') return 'warning';
+  if (status === 'error' || status === 'blocked') return 'blocked';
+  return 'unknown';
+}
+
+function buildSummaryFromPayload(
+  payload: MapToUrbanContextPayload,
+  recommendationHints: string[],
+): MapToUrbanContextSummary {
+  const featureCounts = payload.layerSummaries.map((layer) => ({
+    layerId: layer.layerId,
+    featureCount: layer.registry.featureCount ?? null,
+  }));
+  const issueCount = Object.values(payload.qaSummary.issueCounts)
+    .reduce((total, count) => total + count, 0);
+
+  return {
+    createdAt: payload.createdAt,
+    aoiReference: {
+      aoiId: payload.aoiReference.aoiId,
+      bounds: payload.aoiReference.bbox,
+    },
+    layerIds: payload.layerSummaries.map((layer) => layer.layerId),
+    activeAnalysisResultLayerIds: [...payload.workflowSummary.activeAnalysisResultLayerIds],
+    geometryTypeSummary: payload.layerSummaries.map((layer) => ({
+      layerId: layer.layerId,
+      geometryType: layer.registry.geometryType ?? 'unknown',
+    })),
+    fieldSummary: payload.fieldSummaries.map((fields) => ({
+      layerId: fields.layerId,
+      fields: fields.fields.map((field) => field.name),
+      temporalFields: [...fields.temporalFields],
+    })),
+    temporalFields: [...new Set(payload.fieldSummaries.flatMap((fields) => fields.temporalFields))],
+    featureCountSummary: {
+      total: featureCounts.reduce((total, entry) => total + (entry.featureCount ?? 0), 0),
+      byLayer: featureCounts,
+    },
+    crsSummary: {
+      distinct: [...payload.crsSummary.distinct],
+      missingLayerIds: [...payload.crsSummary.missingLayerIds],
+      byLayer: payload.crsSummary.byLayer.map((layer) => ({
+        layerId: layer.layerId,
+        crs: layer.crs,
+      })),
+    },
+    qaSummary: {
+      status: payloadQaStatus(payload.qaSummary.status),
+      issueCount,
+      warningCount: payload.qaSummary.warningIssueIds.length,
+      blockerCount: payload.qaSummary.blockingIssueIds.length,
+      checkedAt: payload.qaSummary.checkedAt,
+      signature: payload.payloadId,
+    },
+    selectionSummary: payload.selectedFeatureCounts.map((selection) => ({
+      layerId: selection.layerId,
+      selectedFeatureCount: selection.count,
+    })),
+    recommendationHints,
+  };
+}
+
 export interface ApplyMapToUrbanContextOptions {
+  payload?: MapToUrbanContextPayload;
   mapState?: Pick<
     MapExplorerState,
     | 'activeAoiId'
@@ -317,13 +390,27 @@ export interface ApplyMapToUrbanContextResult {
   evidenceArtifactId: string;
   recommendationTriggered: boolean;
   recommendationReason: string | null;
+  dataFitness?: UrbanDataFitnessProfile;
 }
 
 export function applyMapContextToUrban(
   options: ApplyMapToUrbanContextOptions = {},
 ): ApplyMapToUrbanContextResult {
+  const recommendations = options.payload
+    ? recommendUrbanMethodsFromMapContext(options.payload)
+    : [];
   const mapState = options.mapState ?? useMapExplorerStore.getState();
-  const summary = buildMapToUrbanContextSummary(mapState);
+  const summary = options.payload
+    ? buildSummaryFromPayload(
+        options.payload,
+        recommendations.length > 0
+          ? recommendations.map((recommendation) => recommendation.hint)
+          : [`No method-specific match is available; based on: ${options.payload.layerSummaries.map((layer) => layer.name).join(', ') || 'no active layer'}.`],
+      )
+    : buildMapToUrbanContextSummary(mapState);
+  const dataFitness = options.payload
+    ? computeUrbanDataFitnessFromMapContext(options.payload)
+    : undefined;
 
   const urbanContextStore = useUrbanContextStore.getState();
   if (!urbanContextStore.context) {
@@ -339,7 +426,9 @@ export function applyMapContextToUrban(
   }
 
   const resolvedContextId = useUrbanContextStore.getState().context?.contextId ?? null;
-  const evidenceArtifactId = `map-context:${resolvedContextId ?? 'unbound'}`;
+  const evidenceArtifactId = options.payload
+    ? `map-context:${options.payload.context.contextId}:${options.payload.createdAt}`
+    : `map-context:${resolvedContextId ?? 'unbound'}`;
   const selectedFeatureCount = summary.selectionSummary.reduce(
     (sum, entry) => sum + entry.selectedFeatureCount,
     0,
@@ -349,10 +438,10 @@ export function applyMapContextToUrban(
     id: evidenceArtifactId,
     kind: 'map-layer',
     title: 'Map context summary',
-    summary: `AOI ${summary.aoiReference.aoiId ?? 'none'}, ${summary.layerIds.length} layer(s), ${summary.featureCountSummary.total} feature(s).`,
+    summary: `AOI ${summary.aoiReference.aoiId ?? 'none'}, ${summary.layerIds.length} layer(s), ${summary.featureCountSummary.total} feature(s). ${summary.recommendationHints[0] ?? ''}`.trim(),
     state: summary.qaSummary.status === 'blocked' ? 'blocked' : 'active',
     sourceModule: 'map-explorer',
-    sourceId: 'map-context-summary',
+    sourceId: options.payload?.payloadId ?? 'map-context-summary',
     linkedContextId: resolvedContextId ?? undefined,
     linkedLayerIds: [...summary.layerIds],
     tags: ['spatial_stats', 'indicators', 'scenario'],
@@ -365,6 +454,7 @@ export function applyMapContextToUrban(
         ? [`Missing CRS metadata for layers: ${summary.crsSummary.missingLayerIds.join(', ')}`]
         : [],
     },
+    ...(dataFitness ? { dataFitness } : {}),
     metadata: {
       layerCount: summary.layerIds.length,
       featureCount: summary.featureCountSummary.total,
@@ -374,6 +464,7 @@ export function applyMapContextToUrban(
       qaBlockerCount: summary.qaSummary.blockerCount,
       hasAoi: summary.aoiReference.aoiId !== null,
       hasTemporalFields: summary.temporalFields.length > 0,
+      ...(dataFitness ? { fitnessStatus: dataFitness.status } : {}),
     },
   });
 
@@ -405,6 +496,7 @@ export function applyMapContextToUrban(
     evidenceArtifactId,
     recommendationTriggered,
     recommendationReason,
+    ...(dataFitness ? { dataFitness } : {}),
   };
 }
 
@@ -445,6 +537,18 @@ export interface SubscribeMapToUrbanContextOptions {
   runInitialSync?: boolean;
 }
 
+function buildBridgePayloadFromMapState(state: MapExplorerState): MapToUrbanContextPayload {
+  return buildMapToUrbanContextPayload({
+    contextSummary: selectMapExplorerContextSummary(state),
+    overlayLayers: state.overlayLayers,
+    drawnFeatures: state.drawnFeatures,
+    activeAoiId: state.activeAoiId,
+    selectedFeatureIds: state.selectedFeatureIds,
+    mapEvidenceArtifacts: state.mapEvidenceArtifacts,
+    scientificQA: state.scientificQA,
+  });
+}
+
 export function subscribeMapContextToUrban(
   options: SubscribeMapToUrbanContextOptions = {},
 ): () => void {
@@ -453,7 +557,10 @@ export function subscribeMapContextToUrban(
   let lastSignature = '';
 
   const runSync = () => {
-    applyMapContextToUrban({ triggerRecommendations: options.triggerRecommendations });
+    applyMapContextToUrban({
+      payload: buildBridgePayloadFromMapState(useMapExplorerStore.getState()),
+      triggerRecommendations: options.triggerRecommendations,
+    });
   };
 
   if (options.runInitialSync !== false) {

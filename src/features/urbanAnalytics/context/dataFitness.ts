@@ -1,9 +1,11 @@
 import type {
+  AnalysisOutputMode,
   LayerQaStatus,
   LayerScientificQABadge,
   LayerSourceKind,
   OverlayLayerConfig,
 } from '@/centerpanel/components/map/mapTypes';
+import type { MapToUrbanContextPayload } from '@/services/map/bridge/MapUrbanBridgeService';
 import type {
   MapScientificQAGeometryFamily,
   MapScientificQAState,
@@ -46,6 +48,8 @@ export interface UrbanDataFitnessLayerInput {
   featureCount?: number;
   license?: string;
   sourceKind?: LayerSourceKind | string;
+  /** Declared execution mode for derived or demonstration data. */
+  runtimeMode?: AnalysisOutputMode;
   qaStatus?: LayerQaStatus;
   qaBadges?: LayerScientificQABadge[] | string[];
   qaCaveats?: string[];
@@ -69,6 +73,13 @@ export interface UrbanDataFitnessComputationInput {
   uncertaintyNotes?: readonly string[];
   computedAt?: string;
 }
+
+export type UrbanMapContextFitnessOptions = Omit<
+  UrbanDataFitnessComputationInput,
+  'layers' | 'runs' | 'mapQA' | 'computedAt'
+> & {
+  computedAt?: string;
+};
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -218,6 +229,9 @@ export function extractUrbanDataFitnessLayerFromMapLayer(
   const license = resolveLayerLicense(layer);
   if (license) result.license = license;
   if (layer.sourceKind) result.sourceKind = layer.sourceKind;
+  const runtimeMode = layer.metadata?.analysisResult?.outputMode
+    ?? (layer.sourceKind === 'demo' ? 'demo' : undefined);
+  if (runtimeMode) result.runtimeMode = runtimeMode;
   const qaStatus = layer.qaStatus ?? layer.metadata?.scientificQA?.status;
   if (qaStatus) result.qaStatus = qaStatus;
   const qaBadges = layer.metadata?.scientificQA?.badges;
@@ -227,6 +241,69 @@ export function extractUrbanDataFitnessLayerFromMapLayer(
   const temporalDate = resolveLayerTemporalDate(layer);
   if (temporalDate) result.temporalDate = temporalDate;
   return result;
+}
+
+function isLayerQaStatus(value: string): value is LayerQaStatus {
+  return value === 'unchecked' || value === 'passed' || value === 'warning' || value === 'error';
+}
+
+/**
+ * Converts the bridge contract into Urban-owned fitness inputs. It consumes
+ * summary metadata only; raw map geometry and source buffers never cross into
+ * the Urban recommendation path.
+ */
+export function extractUrbanDataFitnessLayersFromMapContext(
+  payload: MapToUrbanContextPayload,
+): UrbanDataFitnessLayerInput[] {
+  return payload.layerSummaries.map((layer) => {
+    const result: UrbanDataFitnessLayerInput = {
+      id: layer.layerId,
+      name: layer.name,
+    };
+
+    if (layer.registry.geometryType) result.geometryType = layer.registry.geometryType;
+    if (layer.crs.crs) result.crs = layer.crs.crs;
+    if (layer.crs.source === 'user-declared') result.crsUserDeclared = true;
+    const fields = layer.fieldSummary.fields.map((field) => field.name);
+    if (fields.length > 0) result.fields = fields;
+    if (layer.registry.featureCount !== undefined) result.featureCount = layer.registry.featureCount;
+    if (layer.registry.license) result.license = layer.registry.license;
+    if (layer.registry.sourceKind) result.sourceKind = layer.registry.sourceKind;
+    if (layer.registry.runtimeMode) {
+      result.runtimeMode = layer.registry.runtimeMode;
+    } else if (layer.registry.sourceKind === 'demo') {
+      result.runtimeMode = 'demo';
+    } else if (layer.registry.sourceKind === 'derived' || layer.registry.sourceKind === undefined) {
+      result.runtimeMode = 'unknown';
+    }
+    if (isLayerQaStatus(layer.qa.status)) result.qaStatus = layer.qa.status;
+    if (layer.qa.badges.length > 0) result.qaBadges = [...layer.qa.badges];
+    if (layer.qa.caveats.length > 0) result.qaCaveats = [...layer.qa.caveats];
+    return result;
+  });
+}
+
+function mapContextAttribution(payload: MapToUrbanContextPayload): string {
+  const layers = payload.layerSummaries.map((layer) => layer.name).join(', ') || 'no active layer';
+  const aoi = payload.aoiReference.label ?? payload.aoiReference.aoiId;
+  return `Based on: ${layers}${aoi ? ` / AOI ${aoi}` : ''}.`;
+}
+
+export function computeUrbanDataFitnessFromMapContext(
+  payload: MapToUrbanContextPayload,
+  options: UrbanMapContextFitnessOptions = {},
+): UrbanDataFitnessProfile {
+  return computeUrbanDataFitnessProfile({
+    ...options,
+    layers: extractUrbanDataFitnessLayersFromMapContext(payload),
+    uncertaintyNotes: [
+      ...(options.uncertaintyNotes ?? []),
+      mapContextAttribution(payload),
+      ...payload.aoiReference.caveats,
+      ...payload.disabledReasons,
+    ],
+    computedAt: options.computedAt ?? payload.createdAt,
+  });
 }
 
 export function extractUrbanDataFitnessLayerFromMapOutput(
@@ -631,6 +708,48 @@ function evaluateLicense(
   return dimension('ready', 'clear', 100, []);
 }
 
+function evaluateRuntimeMode(
+  layers: readonly UrbanDataFitnessLayerInput[],
+  issues: UrbanDataFitnessIssue[],
+  missingInputs: string[],
+  uncertaintyNotes: string[],
+): UrbanDataFitnessStatus {
+  const syntheticLayer = layers.find((layer) => layer.runtimeMode === 'synthetic');
+  if (syntheticLayer) {
+    addIssue(issues, {
+      code: 'synthetic_data',
+      category: 'lineage',
+      severity: 'warning',
+      message: `${syntheticLayer.name ?? syntheticLayer.id} is marked as synthetic data and is not production-ready evidence.`,
+      layerId: syntheticLayer.id,
+    });
+    uncertaintyNotes.push('Synthetic data remains labelled and cannot be treated as production-ready evidence.');
+    return 'warning';
+  }
+
+  const demoLayer = layers.find((layer) => layer.runtimeMode === 'demo' || layer.sourceKind === 'demo');
+  if (demoLayer) {
+    uncertaintyNotes.push('Demo/sample data remains labelled and cannot be treated as production-ready evidence.');
+    return 'warning';
+  }
+
+  const unknownLayer = layers.find((layer) => layer.runtimeMode === 'unknown');
+  if (unknownLayer) {
+    missingInputs.push('runtime mode metadata');
+    addIssue(issues, {
+      code: 'unknown_runtime_mode',
+      category: 'lineage',
+      severity: 'unknown',
+      message: `${unknownLayer.name ?? unknownLayer.id} has unknown runtime mode; readiness cannot be confirmed.`,
+      layerId: unknownLayer.id,
+    });
+    uncertaintyNotes.push('Unknown runtime mode remains unresolved; do not treat this context as production-ready.');
+    return 'unknown';
+  }
+
+  return 'ready';
+}
+
 function evaluateSampleSize(
   layers: readonly UrbanDataFitnessLayerInput[],
   minimumFeatureCount: number | undefined,
@@ -852,6 +971,7 @@ export function computeUrbanDataFitnessProfile(
     blockedReasons,
   );
   const license = evaluateLicense(layers, input.requiresLicense ?? true, issues, missingInputs);
+  const runtimeModeStatus = evaluateRuntimeMode(layers, issues, missingInputs, uncertaintyNotes);
   const sampleSize = evaluateSampleSize(layers, input.minimumFeatureCount, issues, missingInputs, blockedReasons);
   const fieldAvailability = evaluateFields(layers, requiredFields, issues, missingInputs, blockedReasons);
 
@@ -868,10 +988,11 @@ export function computeUrbanDataFitnessProfile(
     missingness.status,
     scaleSuitability.status,
     license.status,
+    runtimeModeStatus,
     sampleSize.status,
     fieldAvailability.status,
   ]);
-  const score = computeScore({
+  const baseScore = computeScore({
     geometry,
     crs,
     temporal: temporalCoverage,
@@ -882,6 +1003,12 @@ export function computeUrbanDataFitnessProfile(
     license,
     status,
   });
+  const containsNonProductionRuntime = layers.some((layer) =>
+    layer.runtimeMode === 'demo' || layer.runtimeMode === 'synthetic' || layer.sourceKind === 'demo',
+  );
+  const score = containsNonProductionRuntime && baseScore !== null
+    ? Math.min(baseScore, 65)
+    : baseScore;
 
   return {
     status,
