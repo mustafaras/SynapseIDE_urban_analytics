@@ -121,6 +121,11 @@ const caveatPanelStyle: React.CSSProperties = {
   background: MAP_COLORS.caveat,
 };
 
+const boundedPreviewPanelStyle: React.CSSProperties = {
+  ...caveatPanelStyle,
+  borderColor: MAP_COLORS.caveatText,
+};
+
 function formatBytes(value: number | undefined): string {
   if (value == null || !Number.isFinite(value) || value <= 0) return "unknown";
   const units = ["B", "KB", "MB", "GB"];
@@ -254,6 +259,20 @@ export const MapImportPreviewDialog: React.FC<MapImportPreviewDialogProps> = ({
         </div>
 
         <div style={bodyStyle}>
+          {profile.rendering?.mode === "preview" ? (
+            <div style={boundedPreviewPanelStyle} role="status" data-testid="map-import-bounded-preview-warning">
+              <div style={{ color: MAP_COLORS.caveatText, fontSize: 12, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
+                Bounded preview mode
+              </div>
+              <div style={{ color: MAP_COLORS.textSecondary, fontSize: 11, lineHeight: 1.5 }}>
+                This source exceeds the interactive render budget. The map canvas will draw a bounded visual preview while the original source remains available for metadata, export, and worker-backed analysis.
+              </div>
+              <div style={{ color: MAP_COLORS.textMuted, fontFamily: MAP_TYPOGRAPHY.fontFamilyMono, fontSize: 11 }}>
+                Source {profile.rendering.featureCount.toLocaleString()} features / preview {(profile.rendering.previewFeatureCount ?? 0).toLocaleString()} features / budget {profile.rendering.renderFeatureLimit.toLocaleString()}.
+              </div>
+            </div>
+          ) : null}
+
           {profile.extent ? (
             <div style={{ color: MAP_COLORS.textSecondary, fontSize: 11, lineHeight: 1.55 }}>
               <span style={{ color: MAP_COLORS.textMuted, textTransform: "uppercase", fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>Extent </span>

@@ -3,10 +3,14 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import { createCsvImportSession, profileSource } from "@/services/map/MapDataImporter";
+import {
+  createCsvImportSession,
+  MAP_GEOJSON_RENDER_FEATURE_BUDGET,
+  profileSource,
+} from "@/services/map/MapDataImporter";
 import { MapCsvImportDialog } from "../../MapCsvImportDialog";
 import { MapImportPreviewDialog } from "../MapImportPreviewDialog";
-import { csvPointsRaw, fcMissingCrs } from "./fixtures/gisFixtures";
+import { csvPointsRaw, fcLarge, fcMissingCrs } from "./fixtures/gisFixtures";
 
 describe("Map import source preflight UI", () => {
   it("renders CSV skipped-row and CRS caveats before commit", () => {
@@ -47,5 +51,29 @@ describe("Map import source preflight UI", () => {
     expect(html).toContain("Review Source Before Import");
     expect(html).toContain("CRS missing");
     expect(html).toContain("missing-crs.geojson");
+  });
+
+  it("warns when a large source will use bounded preview mode", () => {
+    const featureCollection = fcLarge(MAP_GEOJSON_RENDER_FEATURE_BUDGET + 12);
+    const profile = profileSource({
+      kind: "feature-collection",
+      sourceName: "fcLarge.geojson",
+      featureCollection,
+      declaredCrs: "EPSG:4326",
+    });
+    const html = renderToStaticMarkup(
+      <MapImportPreviewDialog
+        open
+        profile={profile}
+        onClose={vi.fn()}
+        onImport={vi.fn()}
+      />,
+    );
+
+    expect(profile.rendering?.mode).toBe("preview");
+    expect(profile.rendering?.previewFeatureCount).toBeLessThanOrEqual(MAP_GEOJSON_RENDER_FEATURE_BUDGET);
+    expect(html).toContain("Bounded preview mode");
+    expect(html).toContain("interactive render budget");
+    expect(html).toContain("30,012");
   });
 });

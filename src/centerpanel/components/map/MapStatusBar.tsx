@@ -1,5 +1,5 @@
 import React from "react";
-import type { LayerQaStatus, MeasureUnit } from "./mapTypes";
+import type { LayerQaStatus, LayerRenderMode, MeasureUnit } from "./mapTypes";
 import {
   MAP_COLORS,
   MAP_SPACING,
@@ -29,6 +29,9 @@ export interface MapStatusBarProps {
   qaStatus?: LayerQaStatus;
   qaIssueCount?: number;
   qaBlockerCount?: number;
+  performanceMode?: LayerRenderMode;
+  performanceIssueCount?: number;
+  lastRenderDurationMs?: number | null;
   isSaving?: boolean;
   isLoading?: boolean;
   lastSavedAt?: string | null;
@@ -118,7 +121,7 @@ type StatusItem = {
   tone?: StatusTone;
 };
 
-type StatusTone = "neutral" | "info" | "error" | "valid" | "running" | "pending" | "stale";
+type StatusTone = "neutral" | "info" | "error" | "valid" | "running" | "pending" | "stale" | "warning";
 
 const STATUS_TONE_COLOR: Record<StatusTone, string> = {
   neutral: "var(--syn-text-secondary, rgba(203, 213, 225, 0.92))",
@@ -128,6 +131,7 @@ const STATUS_TONE_COLOR: Record<StatusTone, string> = {
   running: "var(--syn-status-running, #60a5fa)",
   pending: "var(--syn-status-pending, #a78bfa)",
   stale: "var(--syn-status-stale, #94a3b8)",
+  warning: "var(--syn-status-warning, #fbbf24)",
 };
 
 function StatusSpinner(): React.ReactElement {
@@ -228,6 +232,14 @@ function syncTone(syncStatus: string): StatusTone {
   return "stale";
 }
 
+function formatPerformanceLabel(mode: LayerRenderMode, issueCount: number, durationMs?: number | null): string {
+  const durationLabel = durationMs != null && Number.isFinite(durationMs) ? ` ${Math.round(durationMs)}ms` : "";
+  if (mode === "preview") {
+    return `preview${issueCount > 0 ? ` ${issueCount}` : ""}${durationLabel}`;
+  }
+  return `full${durationLabel}`;
+}
+
 /* ================================================================== */
 /*  Component                                                          */
 /* ================================================================== */
@@ -250,6 +262,9 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
   qaStatus = "unchecked",
   qaIssueCount = 0,
   qaBlockerCount = 0,
+  performanceMode = "full",
+  performanceIssueCount = 0,
+  lastRenderDurationMs = null,
   isSaving = false,
   isLoading = false,
   lastSavedAt = null,
@@ -267,7 +282,9 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
   const projectLabel = formatProjectLabel(projectId);
   const geometryLabel = `${drawnFeatureCount} draw / ${measurementCount} meas / ${pinCount} pin`;
   const qaLabel = formatQaLabel(qaStatus, qaIssueCount, qaBlockerCount);
+  const performanceLabel = formatPerformanceLabel(performanceMode, performanceIssueCount, lastRenderDurationMs);
   const qaValueTone = qaTone(qaStatus, qaIssueCount, qaBlockerCount);
+  const performanceTone: StatusTone = performanceMode === "preview" || performanceIssueCount > 0 ? "warning" : "valid";
   const syncValueTone = syncTone(syncLabel);
   const saveValueTone = saveTone(isLoading, isSaving, lastSavedAt);
   const statusItems: StatusItem[] = [
@@ -282,6 +299,7 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
     { label: "Units", value: measureUnit === "metric" ? "metric" : "imperial" },
     { label: "CRS", value: crs, tone: "info" },
     { label: "QA", value: qaLabel, tone: qaValueTone },
+    { label: "Perf", value: performanceLabel, tone: performanceTone },
     { label: "Sync", value: syncLabel, tone: syncValueTone },
     { label: "Saved", value: saveLabel, busy: isSaving || isLoading, tone: saveValueTone },
   ];

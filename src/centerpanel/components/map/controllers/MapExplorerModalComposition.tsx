@@ -86,6 +86,10 @@ import {
 } from "@/services/map/DrawnGeometryValidation";
 import { MapReviewTimelinePanel } from "../MapReviewTimelinePanel";
 import { MapFigureComposerPanel } from "../layout/MapFigureComposerPanel";
+import {
+  MapPerformanceBudgetBanner,
+  MapPerformanceDiagnosticsPanel,
+} from "../MapPerformanceDiagnosticsPanel";
 import { MapAttributeTable, type AttrFeature } from "../table/MapAttributeTable";
 import { CartographyRecommendationList } from "../CartographyRecommendationList";
 import { MapLegendOverlay } from "../inspector/style/MapLegendOverlay";
@@ -159,6 +163,11 @@ import {
   type MapExportTarget,
   triggerMapDataDownload,
 } from "../../../../services/map/MapDataExporter";
+import {
+  buildMapPerformanceDiagnostics,
+  measureMapPerformance,
+  type MapPerformanceTimingMetric,
+} from "../../../../services/map/MapPerformanceDiagnostics";
 import { bindTableAlias, loadArrowIPC, loadGeoJSON, toGeoJSON } from "../../../../engine/spatial-db/SpatialDB";
 import {
   buildMapCompositionLegendItems,
@@ -1023,6 +1032,15 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const [showReviewTimeline, setShowReviewTimeline] = useState(false);
   const [showFigureComposer, setShowFigureComposer] = useState(false);
   const handleToggleFigureComposer = useCallback(() => setShowFigureComposer((previous) => !previous), []);
+  const [showPerformanceDiagnostics, setShowPerformanceDiagnostics] = useState(false);
+  const [performanceTimings, setPerformanceTimings] = useState<MapPerformanceTimingMetric[]>([]);
+  const recordPerformanceTiming = useCallback((metric: MapPerformanceTimingMetric) => {
+    setPerformanceTimings((previous) => [...previous.slice(-19), metric]);
+  }, []);
+  const handleTogglePerformanceDiagnostics = useCallback(() => {
+    setShowPerformanceDiagnostics((previous) => !previous);
+    announce("Performance diagnostics toggled");
+  }, [announce]);
   const [inspectorLayerId, setInspectorLayerId] = useState<string | null>(null);
   const inspectorLayer = inspectorLayerId
     ? overlayLayers.find((entry) => entry.id === inspectorLayerId) ?? null
@@ -1834,6 +1852,11 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       : overlayLayers;
     return workflowPreviewLayer ? [...baseLayers, workflowPreviewLayer] : baseLayers;
   }, [effectiveShowWorkflowDrawer, overlayLayers, workflowPreview?.comparisonState, workflowPreviewLayer]);
+  const performanceDiagnostics = useMemo(
+    () => buildMapPerformanceDiagnostics({ overlayLayers: mapRenderLayers, timings: performanceTimings }),
+    [mapRenderLayers, performanceTimings],
+  );
+  const performanceIssueCount = performanceDiagnostics.warnings.length;
   const toolbarActiveGeometryType = useMemo(() => {
     const selectedLayer = selectedPointSymbologyLayer?.visible
       ? selectedPointSymbologyLayer
@@ -1950,7 +1973,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   }, [announce, setActiveAnalysisResultLayers, setCurrentTimestep, setIsPlaying, temporalLayers]);
 
   /* ---- Sync overlay layers to MapLibre ---- */
-  useLayerSync(mapInstanceRef, mapRenderLayers);
+  useLayerSync(mapInstanceRef, mapRenderLayers, recordPerformanceTiming);
 
   /* ---- Scientific QA evaluation ---- */
   useEffect(() => {
@@ -5248,7 +5271,10 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
 
   const handleExportConfirm = useCallback(async () => {
     try {
-      const result = await exportMapData({
+      const { result, metric } = await measureMapPerformance({
+        kind: "export",
+        label: `${exportFormat.toUpperCase()} data export`,
+      }, () => exportMapData({
         target: exportTarget,
         pins,
         drawings: drawnFeatures,
@@ -5259,6 +5285,11 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
           prettyPrint: exportPrettyPrint,
           includeProperties: exportIncludeProperties,
         },
+      }));
+      recordPerformanceTiming({
+        ...metric,
+        featureCount: result.collection.features.length,
+        byteLength: result.byteLength,
       });
 
       triggerMapDataDownload(result);
@@ -5289,6 +5320,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     exportTarget,
     overlayLayers,
     pins,
+    recordPerformanceTiming,
   ]);
 
   const handleMapExportConfirm = useCallback(async () => {
@@ -5312,11 +5344,16 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       if (!captureMap) {
         throw new Error("Map canvas is not ready for export.");
       }
-      const result = await exportMapPublication(captureMap, {
+      const { result, metric } = await measureMapPerformance({
+        kind: "export",
+        label: `${mapCompositionOptions.format.toUpperCase()} publication export`,
+        featureCount: visiblePublicationLayers.reduce((sum, layer) => sum + (layer.metadata?.featureCount ?? 0), 0),
+      }, () => exportMapPublication(captureMap, {
         composition: mapCompositionOptions,
         overlayLayers: visiblePublicationLayers,
         scientificQA,
-      });
+      }));
+      recordPerformanceTiming(metric);
 
       triggerMapPublicationDownload(result);
       const readiness = result.readiness ?? mapPublicationReadiness;
@@ -5355,6 +5392,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     announce,
     mapPublicationReadiness,
     mapCompositionOptions,
+    recordPerformanceTiming,
     scientificQA,
     upsertMapEvidenceArtifact,
     visiblePublicationLayers,
@@ -5607,6 +5645,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               showReviewTimeline={showReviewTimeline}
               onToggleReviewTimeline={handleToggleReviewTimeline}
               reviewEventCount={reviewSession.events.length}
+              showPerformanceDiagnostics={showPerformanceDiagnostics}
+              onTogglePerformanceDiagnostics={handleTogglePerformanceDiagnostics}
+              performanceIssueCount={performanceIssueCount}
               showFigureComposer={showFigureComposer}
               onToggleFigureComposer={handleToggleFigureComposer}
               showChoroplethPanel={showChoroplethPanel}
@@ -6069,6 +6110,13 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
           <MapLegendOverlay items={mapPublicationLegendItems} />
 
           {!navigatorStageMode ? (
+            <MapPerformanceBudgetBanner
+              diagnostics={performanceDiagnostics}
+              rightInset={navigatorRightInset + 16}
+            />
+          ) : null}
+
+          {!navigatorStageMode ? (
             <MapSelectionTools
               mapRef={mapInstanceRef}
               queryableLayers={nlQueryToolbarContext.queryableLayers}
@@ -6183,6 +6231,15 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               announce("Figure gates passed — opening publication export");
             }}
             onAnnounce={announce}
+          />
+
+          <MapPerformanceDiagnosticsPanel
+            visible={showPerformanceDiagnostics && !navigatorStageMode}
+            diagnostics={performanceDiagnostics}
+            onClose={() => {
+              setShowPerformanceDiagnostics(false);
+              announce("Performance diagnostics closed");
+            }}
           />
 
           <WorkflowPreviewOverlay preview={effectiveShowWorkflowDrawer ? workflowPreview : null} />
@@ -6560,6 +6617,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               qaStatus={contextSummary.qa.status}
               qaIssueCount={scientificQAIssueCount}
               qaBlockerCount={scientificQABlockerCount}
+              performanceMode={performanceDiagnostics.renderMode}
+              performanceIssueCount={performanceIssueCount}
+              lastRenderDurationMs={performanceDiagnostics.lastRenderTiming?.durationMs ?? null}
               isSaving={isSavingProject}
               isLoading={isLoadingProject}
               lastSavedAt={lastSavedAt}

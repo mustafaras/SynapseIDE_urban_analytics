@@ -4,6 +4,10 @@ import {
   normalizeGeoJSONSourceDataForRender,
   type GeoJSONRenderNormalizationOptions,
 } from "@/services/map/MapDataImporter";
+import {
+  createMapPerformanceTiming,
+  type MapPerformanceTimingMetric,
+} from "@/services/map/MapPerformanceDiagnostics";
 import { normalizeXyzTileUrlTemplate } from "@/services/map/ExternalTileUrlTemplates";
 import type { OverlayLayerConfig } from "./mapTypes";
 import { MAP_COLORS, resolveMapPaintColor } from "./mapTokens";
@@ -23,6 +27,8 @@ const COMPANION_CIRCLE_OPACITY_STYLE_KEY = "__companionCircleOpacity";
 const COMPANION_CIRCLE_STROKE_COLOR_STYLE_KEY = "__companionCircleStrokeColor";
 const COMPANION_CIRCLE_STROKE_WIDTH_STYLE_KEY = "__companionCircleStrokeWidth";
 const EMPTY_FEATURE_COLLECTION: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
+
+export type LayerSyncPerformanceHandler = (metric: MapPerformanceTimingMetric) => void;
 
 function labelLayerId(layerId: string): string {
   return `${layerId}__labels`;
@@ -77,6 +83,20 @@ function buildRenderNormalizationOptions(layer: OverlayLayerConfig): GeoJSONRend
   Object.values(layer.style ?? {}).forEach((value) => collectExpressionPropertyKeys(value, preservePropertyKeys));
 
   return { preservePropertyKeys: Array.from(preservePropertyKeys) };
+}
+
+function performanceNow(): number {
+  if (typeof performance !== "undefined" && typeof performance.now === "function") {
+    return performance.now();
+  }
+  return Date.now();
+}
+
+function countVisibleFeatures(layers: readonly OverlayLayerConfig[]): number {
+  return layers.reduce((sum, layer) => {
+    if (!layer.visible) return sum;
+    return sum + (layer.metadata?.rendering?.featureCount ?? layer.metadata?.featureCount ?? 0);
+  }, 0);
 }
 
 /* ================================================================== */
@@ -333,6 +353,7 @@ function addManagedLayer(map: maplibregl.Map, layer: OverlayLayerConfig): void {
 export function useLayerSync(
   mapRef: React.RefObject<maplibregl.Map | null>,
   overlayLayers: OverlayLayerConfig[],
+  onPerformanceSample: LayerSyncPerformanceHandler | undefined = undefined,
 ): void {
   const [styleRevision, setStyleRevision] = useState(0);
   /** Track which layers we've added to MapLibre so we can diff */
@@ -364,6 +385,9 @@ export function useLayerSync(
     const map = mapRef.current;
     if (!map) return;
 
+    const startedAt = performanceNow();
+    let operationCount = 0;
+
     const prev = prevRef.current;
     const prevById = new Map(prev.map((l) => [l.id, l]));
     const currentIds = new Set(overlayLayers.map((l) => l.id));
@@ -373,6 +397,7 @@ export function useLayerSync(
       if (!currentIds.has(prevLayer.id) && addedIdsRef.current.has(prevLayer.id)) {
         removeManagedLayer(map, prevLayer.id);
         addedIdsRef.current.delete(prevLayer.id);
+        operationCount += 1;
       }
     }
 
@@ -393,6 +418,7 @@ export function useLayerSync(
       if ((shouldRebuild || managedLayerMissing || managedSourceMissing) && addedIdsRef.current.has(layer.id)) {
         removeManagedLayer(map, layer.id);
         addedIdsRef.current.delete(layer.id);
+        operationCount += 1;
       }
 
       if (!addedIdsRef.current.has(layer.id)) {
@@ -400,6 +426,7 @@ export function useLayerSync(
         try {
           addManagedLayer(map, layer);
           addedIdsRef.current.add(layer.id);
+          operationCount += 1;
         } catch {
           /* Source/layer add failed — possibly invalid data */
         }
@@ -412,6 +439,7 @@ export function useLayerSync(
           try {
             const source = map.getSource(layer.id) as maplibregl.GeoJSONSource | undefined;
             source?.setData(resolveGeoJSONRenderData(layer));
+            operationCount += 1;
           } catch { /* ignore */ }
         }
 
@@ -425,6 +453,7 @@ export function useLayerSync(
                 "visibility",
                 layer.visible ? "visible" : "none",
               );
+              operationCount += 1;
             }
           } catch { /* ignore */ }
         }
@@ -436,12 +465,14 @@ export function useLayerSync(
             const key = opacityKey(mlType);
             const val = mlType === "fill" ? layer.opacity * 0.6 : layer.opacity;
             map.setPaintProperty(layer.id, key, val);
+            operationCount += 1;
             if (map.getLayer(labelLayerId(layer.id))) {
               map.setPaintProperty(
                 labelLayerId(layer.id),
                 "text-opacity",
                 Math.min(1, Math.max(0.25, layer.opacity)),
               );
+              operationCount += 1;
             }
             if (map.getLayer(companionCircleLayerId(layer.id))) {
               map.setPaintProperty(
@@ -449,6 +480,7 @@ export function useLayerSync(
                 "circle-opacity",
                 (getInternalStyleValue<number>(layer.style, COMPANION_CIRCLE_OPACITY_STYLE_KEY) ?? 0.55) * layer.opacity,
               );
+              operationCount += 1;
             }
           } catch { /* ignore */ }
         }
@@ -469,11 +501,19 @@ export function useLayerSync(
         }
         map.moveLayer(layerId, beforeId);
         beforeId = layerId;
+        operationCount += 1;
       } catch { /* layer may not exist yet */ }
     }
 
     prevRef.current = overlayLayers.map((l) => ({ ...l }));
-  }, [mapRef, overlayLayers, styleRevision]);
+    onPerformanceSample?.(createMapPerformanceTiming({
+      kind: "render",
+      label: operationCount > 0 ? `Layer sync (${operationCount} operations)` : "Layer sync",
+      startedAt,
+      endedAt: performanceNow(),
+      featureCount: countVisibleFeatures(overlayLayers),
+    }));
+  }, [mapRef, overlayLayers, styleRevision, onPerformanceSample]);
 
   /* ---- Cleanup all overlay layers on unmount ---- */
   useEffect(() => {

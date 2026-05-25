@@ -93,6 +93,9 @@ export interface MapToolbarProps {
   showReviewTimeline?: boolean;
   onToggleReviewTimeline?: () => void;
   reviewEventCount?: number;
+  showPerformanceDiagnostics?: boolean;
+  onTogglePerformanceDiagnostics?: () => void;
+  performanceIssueCount?: number;
   showFigureComposer?: boolean;
   onToggleFigureComposer?: () => void;
   showChoroplethPanel?: boolean;
@@ -199,6 +202,8 @@ interface BuildToolbarCommandsArgs extends Required<Pick<
   | "workflowReadyCount"
   | "showReviewTimeline"
   | "reviewEventCount"
+  | "showPerformanceDiagnostics"
+  | "performanceIssueCount"
   | "showFigureComposer"
   | "showChoroplethPanel"
   | "showClusterViz"
@@ -233,6 +238,7 @@ interface BuildToolbarCommandsArgs extends Required<Pick<
   onToggleNLQueryPanel?: (() => void) | undefined;
   onToggleWorkflowDrawer?: (() => void) | undefined;
   onToggleReviewTimeline?: (() => void) | undefined;
+  onTogglePerformanceDiagnostics?: (() => void) | undefined;
   onToggleFigureComposer?: (() => void) | undefined;
   onToggleChoroplethPanel?: (() => void) | undefined;
   onToggleClusterViz?: (() => void) | undefined;
@@ -789,6 +795,24 @@ function buildToolbarCommands(args: BuildToolbarCommandsArgs): ToolbarCommand[] 
     active: args.showReviewTimeline,
     badge: args.reviewEventCount,
     tone: args.reviewEventCount > 0 ? "accent" : "default",
+    navigator: true,
+  });
+
+  add(args.onTogglePerformanceDiagnostics && {
+    id: "performance-diagnostics",
+    label: "Diagnostics",
+    shortLabel: "Diag",
+    title: "Open live render budgets and performance diagnostics",
+    keywords: ["performance", "diagnostics", "render budget", "preview mode", "worker transfer"],
+    icon: BarChart3,
+    onClick: args.onTogglePerformanceDiagnostics,
+    roles: ["explore", "analyze", "publish"],
+    overflowGroup: "advanced",
+    priority: args.performanceIssueCount > 0 ? 128 : args.showPerformanceDiagnostics ? 123 : 84,
+    active: args.showPerformanceDiagnostics,
+    badge: args.performanceIssueCount > 0 ? args.performanceIssueCount : null,
+    tone: args.performanceIssueCount > 0 ? "warning" : "default",
+    contextBoost: "quality",
     navigator: true,
   });
 
@@ -1434,6 +1458,9 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
   showReviewTimeline = false,
   onToggleReviewTimeline,
   reviewEventCount = 0,
+  showPerformanceDiagnostics = false,
+  onTogglePerformanceDiagnostics,
+  performanceIssueCount = 0,
   showFigureComposer = false,
   onToggleFigureComposer,
   showChoroplethPanel = false,
@@ -1552,6 +1579,9 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       showReviewTimeline,
       onToggleReviewTimeline,
       reviewEventCount,
+      showPerformanceDiagnostics,
+      onTogglePerformanceDiagnostics,
+      performanceIssueCount,
       showFigureComposer,
       onToggleFigureComposer,
       showChoroplethPanel,
@@ -1637,6 +1667,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       onToggleLayerPanel,
       onToggleMeasurePanel,
       onToggleNLQueryPanel,
+      onTogglePerformanceDiagnostics,
       onToggleWorkflowDrawer,
       onTogglePinMode,
       onToggleRestrictToMapView,
@@ -1645,6 +1676,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       onToggleViewportSync,
       onToggleVoxCityOverlayPanel,
       persistenceDisabled,
+      performanceIssueCount,
       pinCount,
       pinMode,
       restrictToMapView,
@@ -1662,6 +1694,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       showLayerPanel,
       showMeasurePanel,
       showNLQueryPanel,
+      showPerformanceDiagnostics,
       showReviewTimeline,
       showFigureComposer,
       showWorkflowDrawer,

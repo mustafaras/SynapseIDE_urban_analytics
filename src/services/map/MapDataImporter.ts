@@ -142,6 +142,7 @@ export interface SourceProfile {
   workerReady: boolean;
   crsSummary: LayerCrsSummary;
   schemaSummary?: LayerSchemaSummary;
+  rendering?: LayerRenderBudgetMetadata;
   license: string | null;
   attribution: string | null;
   caveats: string[];
@@ -450,6 +451,7 @@ function createSourceProfile(input: {
   sizeBytes?: number;
   estimatedMemoryBytes?: number;
   extent?: [number, number, number, number];
+  rendering?: LayerRenderBudgetMetadata;
   workerReady?: boolean;
   caveats?: readonly string[];
 }): SourceProfile {
@@ -486,6 +488,7 @@ function createSourceProfile(input: {
     workerReady,
     crsSummary: input.sourceHandle.crsSummary,
     ...(input.sourceHandle.schemaSummary ? { schemaSummary: input.sourceHandle.schemaSummary } : {}),
+    ...(input.rendering ? { rendering: input.rendering } : {}),
     license: input.sourceHandle.license ?? null,
     attribution: input.sourceHandle.attribution ?? null,
     caveats,
@@ -1088,6 +1091,22 @@ export function createRenderSafeFeatureCollection(
   };
 }
 
+function countFeatureCollectionCoordinates(featureCollection: FeatureCollection): number {
+  return featureCollection.features.reduce((sum, feature) => sum + countGeometryCoordinates(feature.geometry), 0);
+}
+
+function buildFeatureCollectionRenderingMetadata(featureCollection: FeatureCollection): LayerRenderBudgetMetadata {
+  const rendering = buildFeatureCollectionRenderProfile(featureCollection);
+  if (rendering.mode === "full") return rendering;
+
+  const preview = createRenderSafeFeatureCollection(featureCollection);
+  return {
+    ...rendering,
+    previewFeatureCount: preview.features.length,
+    previewCoordinateCount: countFeatureCollectionCoordinates(preview),
+  };
+}
+
 function isFeatureCollection(value: unknown): value is FeatureCollection {
   return isObject(value) && value.type === "FeatureCollection" && Array.isArray((value as FeatureCollection).features);
 }
@@ -1128,7 +1147,7 @@ export function buildFeatureCollectionMetadata(featureCollection: FeatureCollect
   const hint = geometryHintFromLabels(labels);
   const fields = new Set<string>();
   const bounds = getFeatureCollectionBounds(featureCollection);
-  const rendering = buildFeatureCollectionRenderProfile(featureCollection);
+  const rendering = buildFeatureCollectionRenderingMetadata(featureCollection);
   featureCollection.features.forEach((feature) => {
     Object.keys(feature.properties ?? {}).forEach((key) => fields.add(key));
   });
@@ -1478,6 +1497,7 @@ function buildImportedLayer(
     ...(sourceHandle.sizeBytes != null ? { sizeBytes: sourceHandle.sizeBytes } : {}),
     estimatedMemoryBytes: rendering.estimatedRenderBytes,
     ...(metadataWithSource.bounds ? { extent: metadataWithSource.bounds } : {}),
+    rendering,
     caveats,
   });
 
@@ -2038,6 +2058,7 @@ function profileFeatureCollectionSource(input: Extract<SourceProfileInput, { kin
     sizeBytes,
     estimatedMemoryBytes: rendering.estimatedRenderBytes,
     ...(featureMetadata.bounds ? { extent: featureMetadata.bounds } : {}),
+    rendering,
     caveats,
   });
 }
