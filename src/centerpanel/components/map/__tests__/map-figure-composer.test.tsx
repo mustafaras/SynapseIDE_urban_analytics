@@ -41,6 +41,28 @@ function missingCrsLayer(): OverlayLayerConfig {
   };
 }
 
+function missingAttributionLayer(): OverlayLayerConfig {
+  return {
+    id: "no-attribution",
+    name: "Anonymous parcels",
+    type: "geojson",
+    visible: true,
+    opacity: 1,
+    sourceKind: "imported",
+    qaStatus: "passed",
+    style: {
+      fillColor: "#22c55e",
+      legendEntries: [{ label: "Anonymous parcels", color: "#22c55e" }],
+    },
+    metadata: {
+      geometryType: "Polygon",
+      featureCount: 1,
+      fields: ["value"],
+      crsSummary: { crs: "EPSG:4326", status: "known", source: "explicit", notes: [] },
+    },
+  };
+}
+
 function render(layers: OverlayLayerConfig[]): string {
   return renderToStaticMarkup(
     <MapFigureComposerPanel
@@ -57,10 +79,19 @@ describe("MapFigureComposerPanel", () => {
     const markup = render([completeLayer()]);
     expect(markup).toContain("Figure metadata");
     expect(markup).toContain("EPSG:4326");
+    expect(markup).toContain("City open data");
     expect(markup).toContain("Export ready");
     expect(markup).not.toContain("map-figure-blockers");
     // The export button is the only disable-able control; absent when ready.
     expect(markup).not.toContain("disabled");
+  });
+
+  it("blocks export and names the missing-attribution layer in the blocker text", () => {
+    const markup = render([missingAttributionLayer()]);
+    expect(markup).toContain("map-figure-blockers");
+    expect(markup).toContain("Attribution and license");
+    expect(markup).toContain("Anonymous parcels");
+    expect(markup).toContain("disabled");
   });
 
   it("blocks export and names the cartographic gap when a visible layer lacks a CRS", () => {

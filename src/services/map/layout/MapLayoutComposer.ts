@@ -30,7 +30,9 @@ export interface MapFigureLayerSummary {
   layerId: string;
   name: string;
   sourceKind: string | null;
+  sourceName: string | null;
   crs: string | null;
+  license: string | null;
   attribution: string | null;
   qaStatus: string | null;
 }
@@ -74,6 +76,45 @@ export interface MapFigurePreflightResult {
   warnings: MapFigureGap[];
 }
 
+function uniqueTexts(values: Array<string | null | undefined>): string[] {
+  return Array.from(new Set(values.filter((value): value is string => typeof value === "string" && value.trim().length > 0)));
+}
+
+function summariseFigureLayer(layer: OverlayLayerConfig): MapFigureLayerSummary {
+  const registry = normalizeLayerRegistryMetadata(layer);
+  return {
+    layerId: layer.id,
+    name: layer.name,
+    sourceKind: registry.sourceKind ?? null,
+    sourceName: registry.licenseAttribution.sourceName ?? null,
+    crs: registry.crsSummary.status === "known" ? registry.crsSummary.crs : null,
+    license: registry.licenseAttribution.license ?? null,
+    attribution: registry.licenseAttribution.attribution ?? null,
+    qaStatus: registry.qaStatus ?? null,
+  };
+}
+
+function formatLayerAttribution(summary: MapFigureLayerSummary): string | null {
+  const sourceName = summary.sourceName ?? summary.name;
+  if (summary.attribution && summary.license) {
+    return `${sourceName} (${summary.attribution}; ${summary.license})`;
+  }
+  if (summary.attribution) {
+    return `${sourceName} (${summary.attribution})`;
+  }
+  if (summary.license) {
+    return `${sourceName} (${summary.license})`;
+  }
+  return null;
+}
+
+export function buildMapFigureAttributionText(overlayLayers: OverlayLayerConfig[]): string {
+  const visibleSummaries = overlayLayers.filter((layer) => layer.visible).map(summariseFigureLayer);
+  const formattedSources = uniqueTexts(visibleSummaries.map(formatLayerAttribution));
+  if (formattedSources.length === 0) return "";
+  return `Sources: ${formattedSources.join("; ")}. Scale is geodesic at map center.`;
+}
+
 function resolveFigureCrs(layerSummaries: MapFigureLayerSummary[]): string | null {
   const known = Array.from(
     new Set(layerSummaries.map((layer) => layer.crs).filter((crs): crs is string => Boolean(crs))),
@@ -99,23 +140,19 @@ function checkToGap(check: MapPublicationReadinessCheck): MapFigureGap {
  */
 export function composeMapFigure(input: ComposeMapFigureInput): MapFigureSpec {
   const createdAt = (input.now ?? new Date()).toISOString();
+  const hasExplicitAttributionText = input.composition != null
+    && Object.prototype.hasOwnProperty.call(input.composition, "attributionText");
+  const derivedAttributionText = buildMapFigureAttributionText(input.overlayLayers);
   const composition: MapCompositionOptions = {
     ...DEFAULT_MAP_COMPOSITION_OPTIONS,
     ...(input.composition ?? {}),
     ...(input.title ? { title: input.title } : {}),
+    attributionText: hasExplicitAttributionText
+      ? input.composition?.attributionText ?? ""
+      : derivedAttributionText,
   };
   const visibleLayers = input.overlayLayers.filter((layer) => layer.visible);
-  const visibleSummaries: MapFigureLayerSummary[] = visibleLayers.map((layer) => {
-    const registry = normalizeLayerRegistryMetadata(layer);
-    return {
-      layerId: layer.id,
-      name: layer.name,
-      sourceKind: registry.sourceKind ?? null,
-      crs: registry.crsSummary.status === "known" ? registry.crsSummary.crs : null,
-      attribution: registry.licenseAttribution.attribution ?? registry.licenseAttribution.license ?? null,
-      qaStatus: registry.qaStatus ?? null,
-    };
-  });
+  const visibleSummaries: MapFigureLayerSummary[] = visibleLayers.map(summariseFigureLayer);
 
   const legendItems = buildMapCompositionLegendItems(visibleLayers);
   const bearing = input.bearing ?? 0;
@@ -175,8 +212,34 @@ export function composeMapFigure(input: ComposeMapFigureInput): MapFigureSpec {
  * measurement-grade output) so legend / attribution / CRS each block by name.
  */
 export function preflightMapFigure(figure: MapFigureSpec): MapFigurePreflightResult {
-  const blockers: MapFigureGap[] = figure.readiness.blockers.map(checkToGap);
-  const warnings: MapFigureGap[] = figure.readiness.warnings.map(checkToGap);
+  const blockers: MapFigureGap[] = figure.readiness.blockers
+    .filter((check) => check.criterion !== "attribution-license")
+    .map(checkToGap);
+  const warnings: MapFigureGap[] = figure.readiness.warnings
+    .filter((check) => check.criterion !== "attribution-license")
+    .map(checkToGap);
+
+  const layersMissingAttribution = figure.visibleLayers.filter((layer) => !layer.attribution && !layer.license);
+  if (!figure.attribution || layersMissingAttribution.length > 0) {
+    const namedLayers = layersMissingAttribution.map((layer) => layer.name).join(", ");
+    const reasonParts: string[] = [];
+    if (!figure.attribution) {
+      reasonParts.push("Figure attribution text is missing.");
+    }
+    if (layersMissingAttribution.length > 0) {
+      reasonParts.push(
+        `${layersMissingAttribution.length} visible layer${layersMissingAttribution.length === 1 ? "" : "s"} lack layer-level license or attribution metadata${namedLayers ? `: ${namedLayers}` : ""}.`,
+      );
+    }
+    blockers.push({
+      criterion: "attribution-license",
+      label: "Attribution and license",
+      reason: reasonParts.join(" "),
+      recommendedFix: layersMissingAttribution.length > 0
+        ? "Attach source license or attribution metadata to each visible layer before exporting the figure."
+        : "Enable Attribution and provide source/license text derived from the visible layers.",
+    });
+  }
 
   if (!figure.crs && !blockers.some((gap) => gap.criterion === "crs-measurement")) {
     blockers.push({
