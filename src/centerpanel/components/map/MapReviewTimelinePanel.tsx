@@ -69,7 +69,9 @@ const AUDIT_CATEGORY_LABELS: Record<MapReviewAuditCategory, string> = {
   "session-snapshot": "Session snapshot",
   "layer-import": "Layer import",
   "layer-derived": "Layer derived",
+  "source-restore": "Source restore",
   "layer-registry": "Layer registry",
+  "crs-correction": "CRS correction",
   "qa-run": "QA run",
   "workflow-preview": "Workflow preview",
   "workflow-apply": "Workflow apply",
@@ -367,6 +369,8 @@ function EventRow({
       <div style={eventSummaryStyle}>{event.summary}</div>
       <div style={idWrapStyle} aria-label="Timeline event references">
         {compactIds(layerLabels).map((label) => <span key={`layer-${label}`} style={badgeStyle}>{label}</span>)}
+        {compactIds(event.sourceIds).map((id) => <span key={`source-${id}`} style={badgeStyle}>Source {id}</span>)}
+        {compactIds(event.runIds).map((id) => <span key={`run-${id}`} style={badgeStyle}>Run {id}</span>)}
         {compactIds(event.evidenceArtifactIds).map((id) => <span key={`evidence-${id}`} style={badgeStyle}>Evidence {id}</span>)}
         {compactIds(event.reportItemIds).map((id) => <span key={`report-${id}`} style={badgeStyle}>Report {id}</span>)}
         {compactIds(event.qaIssueIds).map((id) => <span key={`qa-${id}`} style={badgeStyle}>QA {id}</span>)}
@@ -423,6 +427,7 @@ export const MapReviewTimelinePanel: React.FC<MapReviewTimelinePanelProps> = ({
   const [categoryFilter, setCategoryFilter] = useState<MapReviewAuditCategory | "all">("all");
   const [statusFilter, setStatusFilter] = useState<MapReviewTimelineEventStatus | "all">("all");
   const [layerFilter, setLayerFilter] = useState<string | "all">("all");
+  const [sourceFilter, setSourceFilter] = useState<string | "all">("all");
   const [evidenceFilter, setEvidenceFilter] = useState<string | "all">("all");
   const [startDate, setStartDate] = useState<string | null>(null);
   const [endDate, setEndDate] = useState<string | null>(null);
@@ -438,18 +443,24 @@ export const MapReviewTimelinePanel: React.FC<MapReviewTimelinePanelProps> = ({
       category: categoryFilter,
       status: statusFilter,
       layerId: layerFilter,
+      sourceId: sourceFilter,
       evidenceArtifactId: evidenceFilter,
       startDate,
       endDate,
       query,
     }),
-    [categoryFilter, endDate, evidenceFilter, layerFilter, query, session, startDate, statusFilter, typeFilter],
+    [categoryFilter, endDate, evidenceFilter, layerFilter, query, session, sourceFilter, startDate, statusFilter, typeFilter],
   );
 
   const filteredLayerOptions = useMemo(() => {
     const ids = new Set(session.events.flatMap((event) => event.layerIds));
     return overlayLayers.filter((layer) => ids.has(layer.id));
   }, [overlayLayers, session.events]);
+
+  const filteredSourceOptions = useMemo(
+    () => Array.from(new Set(session.events.flatMap((event) => event.sourceIds))).sort(),
+    [session.events],
+  );
 
   const filteredEvidenceOptions = useMemo(
     () => Array.from(new Set(session.events.flatMap((event) => event.evidenceArtifactIds))).sort(),
@@ -513,6 +524,13 @@ export const MapReviewTimelinePanel: React.FC<MapReviewTimelinePanelProps> = ({
           <select style={inputStyle} value={layerFilter} onChange={(event) => setLayerFilter(event.target.value)}>
             <option value="all">All referenced layers</option>
             {filteredLayerOptions.map((layer) => <option key={layer.id} value={layer.id}>{layer.name}</option>)}
+          </select>
+        </label>
+        <label style={labelStyle}>
+          Source
+          <select style={inputStyle} value={sourceFilter} onChange={(event) => setSourceFilter(event.target.value)}>
+            <option value="all">All source handles</option>
+            {filteredSourceOptions.map((id) => <option key={id} value={id}>{id}</option>)}
           </select>
         </label>
         <label style={labelStyle}>
@@ -593,7 +611,8 @@ export const MapReviewTimelinePanel: React.FC<MapReviewTimelinePanelProps> = ({
             New session
           </button>
         </div>
-        <div style={eventActionsStyle}>
+        <div style={eventActionsStyle} aria-label="Export review">
+          <span style={eyebrowStyle}>Export review</span>
           <button
             type="button"
             style={actionButtonStyle}
