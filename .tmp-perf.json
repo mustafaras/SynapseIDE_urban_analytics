@@ -1,0 +1,3124 @@
+{
+  "budgets": {
+    "initialLoadBytes": 2560000,
+    "lazyChunkBytes": 512000,
+    "approvedLazyBudgetOverrides": {
+      "centerpanel/components/MapExplorerModal": {
+        "budgetBytes": 3891200,
+        "reason": "Map explorer intentionally isolates importer, map engine, and dataset library stacks behind a single lazy boundary."
+      },
+      "centerpanel/Flows/SunlightSimFlow": {
+        "budgetBytes": 1382400,
+        "reason": "Solar simulation keeps the Three.js orbit-control and sunlight-analysis stack isolated to the 3D workflow entry."
+      },
+      "centerpanel/Flows/CityJSONFlow": {
+        "budgetBytes": 1048576,
+        "reason": "CityJSON review keeps the Three.js orbit-control stack isolated to the 3D workflow entry."
+      },
+      "centerpanel/Flows/VoxCity3DFlow": {
+        "budgetBytes": 1382400,
+        "reason": "VoxCity 3D keeps the Three.js building-extrusion and orbit-control stack isolated to the 3D workflow entry."
+      },
+      "node_modules/html2pdf.js/dist/html2pdf": {
+        "budgetBytes": 1048576,
+        "reason": "Third-party PDF export is intentionally loaded on demand and budgeted separately from the default lazy threshold."
+      },
+      "features/urbanAnalytics/UrbanAnalyticsModal": {
+        "budgetBytes": 2048000,
+        "reason": "The full Urban Analytics workbench is lazy-loaded from the app shell and allowed a higher ceiling than routine panels."
+      },
+      "features/education/EducationModule": {
+        "budgetBytes": 870400,
+        "reason": "The education workspace bundles teaching paths, methodology, and dataset-routing controls behind a dedicated lazy entry."
+      },
+      "centerpanel/Flows/CompositeIndicatorFlow": {
+        "budgetBytes": 573440,
+        "reason": "The composite-indicator workflow intentionally keeps OECD/JRC-style sensitivity, reporting, and publication tooling together behind one lazy flow boundary."
+      },
+      "features/urbanAnalytics/RightPanelFourBlock": {
+        "budgetBytes": 1075200,
+        "reason": "The right-panel support surface intentionally keeps the seed-derived methodology fallback library behind the Urban Analytics workbench boundary."
+      },
+      "centerpanel/Tools/components/GeoAILab": {
+        "budgetBytes": 614400,
+        "reason": "GeoAI Lab intentionally bundles land-cover, NL-to-SQL, object-detection, and provenance controls behind one toolbox lazy boundary."
+      },
+      "centerpanel/Flows/CellularAutomataFlow": {
+        "budgetBytes": 573440,
+        "reason": "Cellular automata keeps scenario execution, temporal publishing, and map handoff controls behind one lazy flow boundary."
+      },
+      "centerpanel/Flows/UrbanMorphologyFlow": {
+        "budgetBytes": 573440,
+        "reason": "Urban morphology keeps morphotype generation, worker orchestration, and publication controls behind one lazy flow boundary."
+      },
+      "centerpanel/Flows/FacilityOptimisationFlow": {
+        "budgetBytes": 573440,
+        "reason": "Facility optimisation keeps allocation, comparison, and reporting controls behind one lazy flow boundary."
+      },
+      "centerpanel/Tools/components/EOConnectorPanel": {
+        "budgetBytes": 552960,
+        "reason": "EO connector keeps imagery source configuration and publish controls behind one toolbox lazy boundary."
+      },
+      "features/education/EducationLeftRail": {
+        "budgetBytes": 552960,
+        "reason": "Education left rail keeps teaching-path navigation and related metadata behind the education workspace boundary."
+      },
+      "centerpanel/Flows/ObjectDetectionFlow": {
+        "budgetBytes": 552960,
+        "reason": "Object detection keeps GeoAI publishing and review controls behind one lazy flow boundary."
+      }
+    }
+  },
+  "initial": {
+    "label": "Initial load",
+    "budgetBytes": 2560000,
+    "withinBudget": false,
+    "assets": [
+      {
+        "file": "assets/index-DyVAsHlr.js",
+        "rawBytes": 1699199,
+        "gzipBytes": 458936
+      },
+      {
+        "file": "assets/MapDataImporter-BN0v68Q4.js",
+        "rawBytes": 368202,
+        "gzipBytes": 94568
+      },
+      {
+        "file": "assets/CenterPanelShell-Cv5XXopX.js",
+        "rawBytes": 171112,
+        "gzipBytes": 46056
+      },
+      {
+        "file": "assets/error-bus-xgCSMrB9.js",
+        "rawBytes": 66116,
+        "gzipBytes": 23614
+      },
+      {
+        "file": "assets/index-BHu4JLvs.css",
+        "rawBytes": 63470,
+        "gzipBytes": 11806
+      },
+      {
+        "file": "assets/useMapExplorerStore-BznN462j.js",
+        "rawBytes": 56762,
+        "gzipBytes": 15172
+      },
+      {
+        "file": "assets/CenterPanelShell-AtKWzWjI.css",
+        "rawBytes": 46096,
+        "gzipBytes": 8846
+      },
+      {
+        "file": "assets/lucide-react-DXPVBH92.js",
+        "rawBytes": 43051,
+        "gzipBytes": 13915
+      },
+      {
+        "file": "assets/MapPersistenceService-CB_AbCxW.js",
+        "rawBytes": 35375,
+        "gzipBytes": 10441
+      },
+      {
+        "file": "assets/MapSourceRegistry-CEPioVSC.js",
+        "rawBytes": 29336,
+        "gzipBytes": 8060
+      },
+      {
+        "file": "assets/spatial-db-cRyfymVc.js",
+        "rawBytes": 29180,
+        "gzipBytes": 8601
+      },
+      {
+        "file": "assets/centerpanel-D01J5g0G.css",
+        "rawBytes": 25550,
+        "gzipBytes": 4565
+      },
+      {
+        "file": "assets/rail-Bua6y-Z8.css",
+        "rawBytes": 17114,
+        "gzipBytes": 3512
+      },
+      {
+        "file": "assets/useUrbanContextStore-D4mUS-Vz.js",
+        "rawBytes": 16174,
+        "gzipBytes": 4780
+      },
+      {
+        "file": "assets/editorStore-Cf8SdwfV.js",
+        "rawBytes": 15893,
+        "gzipBytes": 5422
+      },
+      {
+        "file": "assets/dist-CE-cfEJz.js",
+        "rawBytes": 13656,
+        "gzipBytes": 4618
+      },
+      {
+        "file": "assets/CollaborationUI-B1MUoEUP.js",
+        "rawBytes": 13041,
+        "gzipBytes": 3209
+      },
+      {
+        "file": "assets/design-DA_ShiU5.js",
+        "rawBytes": 11137,
+        "gzipBytes": 3358
+      },
+      {
+        "file": "assets/mapLayerMetadata-B8OZtgXr.js",
+        "rawBytes": 10743,
+        "gzipBytes": 3347
+      },
+      {
+        "file": "assets/state-BGAvJVjA.js",
+        "rawBytes": 10587,
+        "gzipBytes": 3748
+      },
+      {
+        "file": "assets/storage-B2UHVwWB.js",
+        "rawBytes": 9598,
+        "gzipBytes": 3105
+      },
+      {
+        "file": "assets/editorBridge-BXVMY4T9.js",
+        "rawBytes": 9059,
+        "gzipBytes": 3181
+      },
+      {
+        "file": "assets/BackgroundTasksControl-B-xuI8Mt.js",
+        "rawBytes": 8319,
+        "gzipBytes": 2737
+      },
+      {
+        "file": "assets/jsx-runtime-0GMzaUZo.js",
+        "rawBytes": 7972,
+        "gzipBytes": 3032
+      },
+      {
+        "file": "assets/useBackgroundTaskStore-BGnrs4uX.js",
+        "rawBytes": 7060,
+        "gzipBytes": 2503
+      },
+      {
+        "file": "assets/BackgroundTasksControl-7nHpEJ3J.css",
+        "rawBytes": 6671,
+        "gzipBytes": 1738
+      },
+      {
+        "file": "assets/CollaborationUI-CX3gNZiv.css",
+        "rawBytes": 5785,
+        "gzipBytes": 1659
+      },
+      {
+        "file": "assets/lazyWithRetry-B0mWohgu.js",
+        "rawBytes": 5043,
+        "gzipBytes": 2106
+      },
+      {
+        "file": "assets/synapseBus-FKd3ToKP.js",
+        "rawBytes": 4843,
+        "gzipBytes": 1881
+      },
+      {
+        "file": "assets/flags-BP_kL3aS.js",
+        "rawBytes": 4653,
+        "gzipBytes": 1399
+      },
+      {
+        "file": "assets/mapContextSummary-DCCZKi74.js",
+        "rawBytes": 4603,
+        "gzipBytes": 1835
+      },
+      {
+        "file": "assets/store-DPRYnxcQ.js",
+        "rawBytes": 4386,
+        "gzipBytes": 1793
+      },
+      {
+        "file": "assets/layout-CPpXvPHw.js",
+        "rawBytes": 4209,
+        "gzipBytes": 1780
+      },
+      {
+        "file": "assets/scheduler-BkoMe0bw.js",
+        "rawBytes": 3600,
+        "gzipBytes": 1596
+      },
+      {
+        "file": "assets/rail.module-BMMl0YWw.js",
+        "rawBytes": 3501,
+        "gzipBytes": 1150
+      },
+      {
+        "file": "assets/useFlowStore-DUHJVPa7.js",
+        "rawBytes": 3177,
+        "gzipBytes": 1357
+      },
+      {
+        "file": "assets/usePanelBridgeStore-CfmlZ8LV.js",
+        "rawBytes": 2677,
+        "gzipBytes": 1041
+      },
+      {
+        "file": "assets/centerpanel.module-DHbjZtgp.js",
+        "rawBytes": 2380,
+        "gzipBytes": 877
+      },
+      {
+        "file": "assets/sectionHierarchy-DbUHTPZO.js",
+        "rawBytes": 2149,
+        "gzipBytes": 928
+      },
+      {
+        "file": "assets/middleware-Ckfe_z6s.js",
+        "rawBytes": 1976,
+        "gzipBytes": 1009
+      },
+      {
+        "file": "assets/useSpatialIndexStore-klxzZwtX.js",
+        "rawBytes": 1956,
+        "gzipBytes": 746
+      },
+      {
+        "file": "assets/sections-BJ4LoRWM.js",
+        "rawBytes": 1316,
+        "gzipBytes": 560
+      },
+      {
+        "file": "assets/useAccessStore-Dns1yXwG.js",
+        "rawBytes": 1300,
+        "gzipBytes": 630
+      },
+      {
+        "file": "assets/preload-helper-yAHoHR4o.js",
+        "rawBytes": 1261,
+        "gzipBytes": 733
+      },
+      {
+        "file": "assets/useNewProjectDraftStore-9ME3ANHy.js",
+        "rawBytes": 1214,
+        "gzipBytes": 674
+      },
+      {
+        "file": "assets/chunk-zsgVPwQN.js",
+        "rawBytes": 1207,
+        "gzipBytes": 666
+      },
+      {
+        "file": "assets/api-CmDldUP8.js",
+        "rawBytes": 1143,
+        "gzipBytes": 667
+      },
+      {
+        "file": "assets/statusBridge-BxZwkt5a.js",
+        "rawBytes": 1098,
+        "gzipBytes": 588
+      },
+      {
+        "file": "assets/a11y-4-y81Iyo.css",
+        "rawBytes": 978,
+        "gzipBytes": 517
+      },
+      {
+        "file": "assets/useCalcStore-DaAncXu5.js",
+        "rawBytes": 775,
+        "gzipBytes": 386
+      },
+      {
+        "file": "assets/esm-L6BwRxLO.js",
+        "rawBytes": 765,
+        "gzipBytes": 479
+      },
+      {
+        "file": "assets/hooks-DxN4o7OP.js",
+        "rawBytes": 545,
+        "gzipBytes": 340
+      },
+      {
+        "file": "assets/statusBus-CiWWpr9-.js",
+        "rawBytes": 487,
+        "gzipBytes": 363
+      },
+      {
+        "file": "assets/uiStore-Dy0ixobe.js",
+        "rawBytes": 435,
+        "gzipBytes": 231
+      },
+      {
+        "file": "assets/download-CFzIiJEf.js",
+        "rawBytes": 306,
+        "gzipBytes": 246
+      },
+      {
+        "file": "assets/a11y.module-DFCMrl_3.js",
+        "rawBytes": 267,
+        "gzipBytes": 195
+      }
+    ],
+    "rawBytes": 2858508,
+    "gzipBytes": 781302
+  },
+  "lazyEntries": [
+    {
+      "key": "src/centerpanel/components/MapExplorerModal.tsx",
+      "label": "centerpanel/components/MapExplorerModal",
+      "assets": [
+        {
+          "file": "assets/MapExplorerModal-BLCTPQ3T.js",
+          "rawBytes": 1375596,
+          "gzipBytes": 365143
+        },
+        {
+          "file": "assets/useCityJSONScene-B3Rm_EnP.js",
+          "rawBytes": 861445,
+          "gzipBytes": 226071
+        },
+        {
+          "file": "assets/mapContextAdapter-CRGzHKsE.js",
+          "rawBytes": 801455,
+          "gzipBytes": 213115
+        },
+        {
+          "file": "assets/catalog-DHXqPf7L.js",
+          "rawBytes": 196886,
+          "gzipBytes": 47938
+        },
+        {
+          "file": "assets/mapContextAdapter-w0GmEUh1.css",
+          "rawBytes": 65328,
+          "gzipBytes": 9109
+        },
+        {
+          "file": "assets/MapEngineAdapter-BQ33xGIF.js",
+          "rawBytes": 62190,
+          "gzipBytes": 18204
+        },
+        {
+          "file": "assets/MapEmergingHotSpotViz-CaLQcnPi.js",
+          "rawBytes": 44411,
+          "gzipBytes": 12883
+        },
+        {
+          "file": "assets/SunlightSimulatorPanel-CBjQISgz.js",
+          "rawBytes": 40657,
+          "gzipBytes": 12183
+        },
+        {
+          "file": "assets/narrativeBuilders-vvO6tiyJ.js",
+          "rawBytes": 29830,
+          "gzipBytes": 9494
+        },
+        {
+          "file": "assets/BuildingViewer-DCVbumsF.js",
+          "rawBytes": 28072,
+          "gzipBytes": 9321
+        },
+        {
+          "file": "assets/voxCitySelectionService-DBtxpf3m.js",
+          "rawBytes": 25562,
+          "gzipBytes": 8845
+        },
+        {
+          "file": "assets/MapExplorerModal-DmCf20Co.css",
+          "rawBytes": 22580,
+          "gzipBytes": 3950
+        },
+        {
+          "file": "assets/datasetLibrary-abVR-067.js",
+          "rawBytes": 20413,
+          "gzipBytes": 7086
+        },
+        {
+          "file": "assets/dataBindings-CNMKyP6J.js",
+          "rawBytes": 19203,
+          "gzipBytes": 6637
+        },
+        {
+          "file": "assets/CityJSONViewer-Dpqfqmrn.js",
+          "rawBytes": 18971,
+          "gzipBytes": 6637
+        },
+        {
+          "file": "assets/DatasetLibraryBrowser-B4aCDrDy.js",
+          "rawBytes": 15422,
+          "gzipBytes": 4343
+        },
+        {
+          "file": "assets/QueryToSQL-CpRl5Mkr.js",
+          "rawBytes": 14487,
+          "gzipBytes": 5127
+        },
+        {
+          "file": "assets/storage-WNbOESVl.js",
+          "rawBytes": 14382,
+          "gzipBytes": 5443
+        },
+        {
+          "file": "assets/DatasetLibraryBrowser-BgXyVPJ_.css",
+          "rawBytes": 12155,
+          "gzipBytes": 2299
+        },
+        {
+          "file": "assets/methodValidity-BBvcdCeM.js",
+          "rawBytes": 9442,
+          "gzipBytes": 3378
+        },
+        {
+          "file": "assets/MapAnalysisDispatcher-DJrOeFOw.js",
+          "rawBytes": 7547,
+          "gzipBytes": 2878
+        },
+        {
+          "file": "assets/types-CDCYXNlV.js",
+          "rawBytes": 131,
+          "gzipBytes": 140
+        }
+      ],
+      "rawBytes": 3686165,
+      "gzipBytes": 980224,
+      "budgetBytes": 3891200,
+      "budgetReason": "Map explorer intentionally isolates importer, map engine, and dataset library stacks behind a single lazy boundary.",
+      "hasCustomBudget": true,
+      "withinBudget": true
+    },
+    {
+      "key": "src/features/urbanAnalytics/UrbanAnalyticsModal.tsx",
+      "label": "features/urbanAnalytics/UrbanAnalyticsModal",
+      "assets": [
+        {
+          "file": "assets/mapContextAdapter-CRGzHKsE.js",
+          "rawBytes": 801455,
+          "gzipBytes": 213115
+        },
+        {
+          "file": "assets/reportArtifactBuilder-B7JtX6Sr.js",
+          "rawBytes": 713429,
+          "gzipBytes": 240657
+        },
+        {
+          "file": "assets/catalog-DHXqPf7L.js",
+          "rawBytes": 196886,
+          "gzipBytes": 47938
+        },
+        {
+          "file": "assets/UrbanAnalyticsModal-Be7Su9TM.js",
+          "rawBytes": 158871,
+          "gzipBytes": 44523
+        },
+        {
+          "file": "assets/mapContextAdapter-w0GmEUh1.css",
+          "rawBytes": 65328,
+          "gzipBytes": 9109
+        },
+        {
+          "file": "assets/UrbanAnalyticsModal-DF0I5QWP.css",
+          "rawBytes": 40288,
+          "gzipBytes": 7008
+        },
+        {
+          "file": "assets/dataBindings-CNMKyP6J.js",
+          "rawBytes": 19203,
+          "gzipBytes": 6637
+        },
+        {
+          "file": "assets/storage-WNbOESVl.js",
+          "rawBytes": 14382,
+          "gzipBytes": 5443
+        },
+        {
+          "file": "assets/methodValidity-BBvcdCeM.js",
+          "rawBytes": 9442,
+          "gzipBytes": 3378
+        }
+      ],
+      "rawBytes": 2019284,
+      "gzipBytes": 577808,
+      "budgetBytes": 2048000,
+      "budgetReason": "The full Urban Analytics workbench is lazy-loaded from the app shell and allowed a higher ceiling than routine panels.",
+      "hasCustomBudget": true,
+      "withinBudget": true
+    },
+    {
+      "key": "src/centerpanel/Flows/SunlightSimFlow.tsx",
+      "label": "centerpanel/Flows/SunlightSimFlow",
+      "assets": [
+        {
+          "file": "assets/useCityJSONScene-B3Rm_EnP.js",
+          "rawBytes": 861445,
+          "gzipBytes": 226071
+        },
+        {
+          "file": "assets/flows-Cj4NIJh5.css",
+          "rawBytes": 71050,
+          "gzipBytes": 10735
+        },
+        {
+          "file": "assets/MapEngineAdapter-BQ33xGIF.js",
+          "rawBytes": 62190,
+          "gzipBytes": 18204
+        },
+        {
+          "file": "assets/SunlightSimulatorPanel-CBjQISgz.js",
+          "rawBytes": 40657,
+          "gzipBytes": 12183
+        },
+        {
+          "file": "assets/narrativeBuilders-vvO6tiyJ.js",
+          "rawBytes": 29830,
+          "gzipBytes": 9494
+        },
+        {
+          "file": "assets/voxCitySelectionService-DBtxpf3m.js",
+          "rawBytes": 25562,
+          "gzipBytes": 8845
+        },
+        {
+          "file": "assets/storage-WNbOESVl.js",
+          "rawBytes": 14382,
+          "gzipBytes": 5443
+        },
+        {
+          "file": "assets/flows.module-D1Sa_UtE.js",
+          "rawBytes": 10362,
+          "gzipBytes": 2852
+        },
+        {
+          "file": "assets/CrossPanelActions-Dla-b8Re.js",
+          "rawBytes": 4040,
+          "gzipBytes": 1563
+        },
+        {
+          "file": "assets/SunlightSimFlow-CsJR2TFm.js",
+          "rawBytes": 477,
+          "gzipBytes": 343
+        },
+        {
+          "file": "assets/types-CDCYXNlV.js",
+          "rawBytes": 131,
+          "gzipBytes": 140
+        }
+      ],
+      "rawBytes": 1120126,
+      "gzipBytes": 295873,
+      "budgetBytes": 1382400,
+      "budgetReason": "Solar simulation keeps the Three.js orbit-control and sunlight-analysis stack isolated to the 3D workflow entry.",
+      "hasCustomBudget": true,
+      "withinBudget": true
+    },
+    {
+      "key": "src/centerpanel/Flows/VoxCity3DFlow.tsx",
+      "label": "centerpanel/Flows/VoxCity3DFlow",
+      "assets": [
+        {
+          "file": "assets/useCityJSONScene-B3Rm_EnP.js",
+          "rawBytes": 861445,
+          "gzipBytes": 226071
+        },
+        {
+          "file": "assets/flows-Cj4NIJh5.css",
+          "rawBytes": 71050,
+          "gzipBytes": 10735
+        },
+        {
+          "file": "assets/MapEngineAdapter-BQ33xGIF.js",
+          "rawBytes": 62190,
+          "gzipBytes": 18204
+        },
+        {
+          "file": "assets/BuildingViewer-DCVbumsF.js",
+          "rawBytes": 28072,
+          "gzipBytes": 9321
+        },
+        {
+          "file": "assets/voxCitySelectionService-DBtxpf3m.js",
+          "rawBytes": 25562,
+          "gzipBytes": 8845
+        },
+        {
+          "file": "assets/storage-WNbOESVl.js",
+          "rawBytes": 14382,
+          "gzipBytes": 5443
+        },
+        {
+          "file": "assets/flows.module-D1Sa_UtE.js",
+          "rawBytes": 10362,
+          "gzipBytes": 2852
+        },
+        {
+          "file": "assets/CrossPanelActions-Dla-b8Re.js",
+          "rawBytes": 4040,
+          "gzipBytes": 1563
+        },
+        {
+          "file": "assets/VoxCity3DFlow-BWpBX-fs.js",
+          "rawBytes": 456,
+          "gzipBytes": 345
+        },
+        {
+          "file": "assets/types-CDCYXNlV.js",
+          "rawBytes": 131,
+          "gzipBytes": 140
+        }
+      ],
+      "rawBytes": 1077690,
+      "gzipBytes": 283519,
+      "budgetBytes": 1382400,
+      "budgetReason": "VoxCity 3D keeps the Three.js building-extrusion and orbit-control stack isolated to the 3D workflow entry.",
+      "hasCustomBudget": true,
+      "withinBudget": true
+    },
+    {
+      "key": "src/features/urbanAnalytics/RightPanelFourBlock.tsx",
+      "label": "features/urbanAnalytics/RightPanelFourBlock",
+      "assets": [
+        {
+          "file": "assets/reportArtifactBuilder-B7JtX6Sr.js",
+          "rawBytes": 713429,
+          "gzipBytes": 240657
+        },
+        {
+          "file": "assets/catalog-DHXqPf7L.js",
+          "rawBytes": 196886,
+          "gzipBytes": 47938
+        },
+        {
+          "file": "assets/RightPanelFourBlock-CBtYlDcw.js",
+          "rawBytes": 43562,
+          "gzipBytes": 12796
+        },
+        {
+          "file": "assets/learningPaths-CaC9vVsU.js",
+          "rawBytes": 31072,
+          "gzipBytes": 7916
+        },
+        {
+          "file": "assets/methodologyData-BT-GwfDF.js",
+          "rawBytes": 23618,
+          "gzipBytes": 7855
+        },
+        {
+          "file": "assets/flowLibraryMeta-Bdfy6n1B.js",
+          "rawBytes": 15875,
+          "gzipBytes": 5610
+        },
+        {
+          "file": "assets/RightPanelFourBlock-CQyLj7FR.css",
+          "rawBytes": 15722,
+          "gzipBytes": 3105
+        },
+        {
+          "file": "assets/storage-WNbOESVl.js",
+          "rawBytes": 14382,
+          "gzipBytes": 5443
+        },
+        {
+          "file": "assets/methodValidity-BBvcdCeM.js",
+          "rawBytes": 9442,
+          "gzipBytes": 3378
+        }
+      ],
+      "rawBytes": 1063988,
+      "gzipBytes": 334698,
+      "budgetBytes": 1075200,
+      "budgetReason": "The right-panel support surface intentionally keeps the seed-derived methodology fallback library behind the Urban Analytics workbench boundary.",
+      "hasCustomBudget": true,
+      "withinBudget": true
+    },
+    {
+      "key": "src/centerpanel/Flows/CityJSONFlow.tsx",
+      "label": "centerpanel/Flows/CityJSONFlow",
+      "assets": [
+        {
+          "file": "assets/useCityJSONScene-B3Rm_EnP.js",
+          "rawBytes": 861445,
+          "gzipBytes": 226071
+        },
+        {
+          "file": "assets/flows-Cj4NIJh5.css",
+          "rawBytes": 71050,
+          "gzipBytes": 10735
+        },
+        {
+          "file": "assets/CityJSONViewer-Dpqfqmrn.js",
+          "rawBytes": 18971,
+          "gzipBytes": 6637
+        },
+        {
+          "file": "assets/storage-WNbOESVl.js",
+          "rawBytes": 14382,
+          "gzipBytes": 5443
+        },
+        {
+          "file": "assets/flows.module-D1Sa_UtE.js",
+          "rawBytes": 10362,
+          "gzipBytes": 2852
+        },
+        {
+          "file": "assets/CrossPanelActions-Dla-b8Re.js",
+          "rawBytes": 4040,
+          "gzipBytes": 1563
+        },
+        {
+          "file": "assets/CityJSONFlow-BuJP3JRi.js",
+          "rawBytes": 439,
+          "gzipBytes": 329
+        }
+      ],
+      "rawBytes": 980689,
+      "gzipBytes": 253630,
+      "budgetBytes": 1048576,
+      "budgetReason": "CityJSON review keeps the Three.js orbit-control stack isolated to the 3D workflow entry.",
+      "hasCustomBudget": true,
+      "withinBudget": true
+    },
+    {
+      "key": "node_modules/html2pdf.js/dist/html2pdf.js",
+      "label": "node_modules/html2pdf.js/dist/html2pdf",
+      "assets": [
+        {
+          "file": "assets/html2pdf-r-YBDK4-.js",
+          "rawBytes": 736094,
+          "gzipBytes": 217089
+        },
+        {
+          "file": "assets/html2canvas-DgScOIC-.js",
+          "rawBytes": 199627,
+          "gzipBytes": 46386
+        }
+      ],
+      "rawBytes": 935721,
+      "gzipBytes": 263475,
+      "budgetBytes": 1048576,
+      "budgetReason": "Third-party PDF export is intentionally loaded on demand and budgeted separately from the default lazy threshold.",
+      "hasCustomBudget": true,
+      "withinBudget": true
+    },
+    {
+      "key": "src/features/education/EducationModule.tsx",
+      "label": "features/education/EducationModule",
+      "assets": [
+        {
+          "file": "assets/MethodologyExplainer-BsfAjiGy.js",
+          "rawBytes": 260895,
+          "gzipBytes": 76809
+        },
+        {
+          "file": "assets/uiStore-Bpy_fiT8.js",
+          "rawBytes": 71304,
+          "gzipBytes": 20365
+        },
+        {
+          "file": "assets/flows-Cj4NIJh5.css",
+          "rawBytes": 71050,
+          "gzipBytes": 10735
+        },
+        {
+          "file": "assets/learningPaths-CaC9vVsU.js",
+          "rawBytes": 31072,
+          "gzipBytes": 7916
+        },
+        {
+          "file": "assets/MethodologyExplainer-CSceNpVM.css",
+          "rawBytes": 28842,
+          "gzipBytes": 7821
+        },
+        {
+          "file": "assets/EducationModule-DktXWEvk.js",
+          "rawBytes": 24346,
+          "gzipBytes": 6780
+        },
+        {
+          "file": "assets/methodologyData-BT-GwfDF.js",
+          "rawBytes": 23618,
+          "gzipBytes": 7855
+        },
+        {
+          "file": "assets/datasetLibrary-abVR-067.js",
+          "rawBytes": 20413,
+          "gzipBytes": 7086
+        },
+        {
+          "file": "assets/education-ufQAY-EV.css",
+          "rawBytes": 18584,
+          "gzipBytes": 3439
+        },
+        {
+          "file": "assets/uiStore-D7pynL9S.css",
+          "rawBytes": 14179,
+          "gzipBytes": 2893
+        },
+        {
+          "file": "assets/flows.module-D1Sa_UtE.js",
+          "rawBytes": 10362,
+          "gzipBytes": 2852
+        },
+        {
+          "file": "assets/education.module-Be65m0Sa.js",
+          "rawBytes": 3282,
+          "gzipBytes": 1073
+        }
+      ],
+      "rawBytes": 577947,
+      "gzipBytes": 155624,
+      "budgetBytes": 870400,
+      "budgetReason": "The education workspace bundles teaching paths, methodology, and dataset-routing controls behind a dedicated lazy entry.",
+      "hasCustomBudget": true,
+      "withinBudget": true
+    },
+    {
+      "key": "node_modules/pdf-lib/es/index.js",
+      "label": "node_modules/pdf-lib/es/index",
+      "assets": [
+        {
+          "file": "assets/es-CwAu4tvI.js",
+          "rawBytes": 420100,
+          "gzipBytes": 174834
+        }
+      ],
+      "rawBytes": 420100,
+      "gzipBytes": 174834,
+      "budgetBytes": 512000,
+      "budgetReason": null,
+      "hasCustomBudget": false,
+      "withinBudget": true
+    },
+    {
+      "key": "src/features/education/MethodologyExplainer.tsx",
+      "label": "features/education/MethodologyExplainer",
+      "assets": [
+        {
+          "file": "assets/MethodologyExplainer-BsfAjiGy.js",
+          "rawBytes": 260895,
+          "gzipBytes": 76809
+        },
+        {
+          "file": "assets/flows-Cj4NIJh5.css",
+          "rawBytes": 71050,
+          "gzipBytes": 10735
+        },
+        {
+          "file": "assets/MethodologyExplainer-CSceNpVM.css",
+          "rawBytes": 28842,
+          "gzipBytes": 7821
+        },
+        {
+          "file": "assets/methodologyData-BT-GwfDF.js",
+          "rawBytes": 23618,
+          "gzipBytes": 7855
+        },
+        {
+          "file": "assets/education-ufQAY-EV.css",
+          "rawBytes": 18584,
+          "gzipBytes": 3439
+        },
+        {
+          "file": "assets/flows.module-D1Sa_UtE.js",
+          "rawBytes": 10362,
+          "gzipBytes": 2852
+        },
+        {
+          "file": "assets/education.module-Be65m0Sa.js",
+          "rawBytes": 3282,
+          "gzipBytes": 1073
+        }
+      ],
+      "rawBytes": 416633,
+      "gzipBytes": 110584,
+      "budgetBytes": 512000,
+      "budgetReason": null,
+      "hasCustomBudget": false,
+      "withinBudget": true
+    },
+    {
+      "key": "node_modules/jspdf/dist/jspdf.es.min.js",
+      "label": "node_modules/jspdf/dist/jspdf.es.min",
+      "assets": [
+        {
+          "file": "assets/jspdf.es.min-CP1HiK1-.js",
+          "rawBytes": 399680,
+          "gzipBytes": 128438
+        },
+        {
+          "file": "assets/typeof-B_Gzc1Qz.js",
+          "rawBytes": 315,
+          "gzipBytes": 207
+        }
+      ],
+      "rawBytes": 399995,
+      "gzipBytes": 128645,
+      "budgetBytes": 512000,
+      "budgetReason": null,
+      "hasCustomBudget": false,
+      "withinBudget": true
+    },
+    {
+      "key": "src/features/dashboard/DashboardBuilder.tsx",
+      "label": "features/dashboard/DashboardBuilder",
+      "assets": [
+        {
+          "file": "assets/catalog-DHXqPf7L.js",
+          "rawBytes": 196886,
+          "gzipBytes": 47938
+        },
+        {
+          "file": "assets/DashboardBuilder-CwlF4AW2.js",
+          "rawBytes": 72472,
+          "gzipBytes": 20038
+        },
+        {
+          "file": "assets/flows-Cj4NIJh5.css",
+          "rawBytes": 71050,
+          "gzipBytes": 10735
+        },
+        {
+          "file": "assets/DashboardBuilder-DQ1Bhh5h.css",
+          "rawBytes": 19811,
+          "gzipBytes": 3412
+        },
+        {
+          "file": "assets/dataBindings-CNMKyP6J.js",
+          "rawBytes": 19203,
+          "gzipBytes": 6637
+        },
+        {
+          "file": "assets/flows.module-D1Sa_UtE.js",
+          "rawBytes": 10362,
+          "gzipBytes": 2852
+        },
+        {
+          "file": "assets/methodValidity-BBvcdCeM.js",
+          "rawBytes": 9442,
+          "gzipBytes": 3378
+        },
+        {
+          "file": "assets/uiStore-O13_C-Ip.js",
+          "rawBytes": 299,
+          "gzipBytes": 210
+        }
+      ],
+      "rawBytes": 399525,
+      "gzipBytes": 95200,
+      "budgetBytes": 512000,
+      "budgetReason": null,
+      "hasCustomBudget": false,
+      "withinBudget": true
+    },
+    {
+      "key": "node_modules/onnxruntime-web/dist/ort.bundle.min.mjs",
+      "label": "node_modules/onnxruntime-web/dist/ort.bundle.min.mjs",
+      "assets": [
+        {
+          "file": "assets/ort.bundle.min-qTpDLdcM.js",
+          "rawBytes": 390881,
+          "gzipBytes": 104676
+        }
+      ],
+      "rawBytes": 390881,
+      "gzipBytes": 104676,
+      "budgetBytes": 512000,
+      "budgetReason": null,
+      "hasCustomBudget": false,
+      "withinBudget": true
+    },
+    {
+      "key": "node_modules/mqtt/dist/mqtt.esm.js",
+      "label": "node_modules/mqtt/dist/mqtt.esm",
+      "assets": [
+        {
+          "file": "assets/mqtt.esm-Qul2CH2r.js",
+          "rawBytes": 357169,
+          "gzipBytes": 103286
+        }
+      ],
+      "rawBytes": 357169,
+      "gzipBytes": 103286,
+      "budgetBytes": 512000,
+      "budgetReason": null,
+      "hasCustomBudget": false,
+      "withinBudget": true
+    },
+    {
+      "key": "src/centerpanel/Flows/CompositeIndicatorFlow.tsx",
+      "label": "centerpanel/Flows/CompositeIndicatorFlow",
+      "assets": [
+        {
+          "file": "assets/flows-Cj4NIJh5.css",
+          "rawBytes": 71050,
+          "gzipBytes": 10735
+        },
+        {
+          "file": "assets/MapEngineAdapter-BQ33xGIF.js",
+          "rawBytes": 62190,
+          "gzipBytes": 18204
+        },
+        {
+          "file": "assets/simulation-WEvAvqkp.js",
+          "rawBytes": 60108,
+          "gzipBytes": 19940
+        },
+        {
+          "file": "assets/CompositeIndicatorFlow-BtamUXHL.js",
+          "rawBytes": 33200,
+          "gzipBytes": 8574
+        },
+        {
+          "file": "assets/narrativeBuilders-vvO6tiyJ.js",
+          "rawBytes": 29830,
+          "gzipBytes": 9494
+        },
+        {
+          "file": "assets/storage-WNbOESVl.js",
+          "rawBytes": 14382,
+          "gzipBytes": 5443
+        },
+        {
+          "file": "assets/flowTypes-BODlyRki.js",
+          "rawBytes": 13899,
+          "gzipBytes": 4925
+        },
+        {
+          "file": "assets/flows.module-D1Sa_UtE.js",
+          "rawBytes": 10362,
+          "gzipBytes": 2852
+        },
+        {
+          "file": "assets/compositeIndicatorDemo-D5YpfajW.js",
+          "rawBytes": 5079,
+          "gzipBytes": 1605
+        },
+        {
+          "file": "assets/CrossPanelActions-Dla-b8Re.js",
+          "rawBytes": 4040,
+          "gzipBytes": 1563
+        },
+        {
+          "file": "assets/flowUtils-Cnug6vvh.js",
+          "rawBytes": 2269,
+          "gzipBytes": 1044
+        },
+        {
+          "file": "assets/types-CDCYXNlV.js",
+          "rawBytes": 131,
+          "gzipBytes": 140
+        }
+      ],
+      "rawBytes": 306540,
+      "gzipBytes": 84519,
+      "budgetBytes": 573440,
+      "budgetReason": "The composite-indicator workflow intentionally keeps OECD/JRC-style sensitivity, reporting, and publication tooling together behind one lazy flow boundary.",
+      "hasCustomBudget": true,
+      "withinBudget": true
+    },
+    {
+      "key": "src/centerpanel/Tools/ConsultonPanel.tsx",
+      "label": "centerpanel/Tools/ConsultonPanel",
+      "assets": [
+        {
+          "file": "assets/ConsultonPanel-SkMWO4Oo.js",
+          "rawBytes": 129524,
+          "gzipBytes": 38404
+        },
+        {
+          "file": "assets/tools-C4vqHAYY.css",
+          "rawBytes": 115257,
+          "gzipBytes": 16690
+        },
+        {
+          "file": "assets/exportInbox-AeUJS0qV.js",
+          "rawBytes": 23904,
+          "gzipBytes": 8698
+        },
+        {
+          "file": "assets/purify.es-Bwpm7U1o.js",
+          "rawBytes": 21101,
+          "gzipBytes": 8463
+        },
+        {
+          "file": "assets/tools.module-flC-6DE7.js",
+          "rawBytes": 11591,
+          "gzipBytes": 3361
+        },
+        {
+          "file": "assets/exporters-jMtGrdtR.js",
+          "rawBytes": 4671,
+          "gzipBytes": 2208
+        }
+      ],
+      "rawBytes": 306048,
+      "gzipBytes": 77824,
+      "budgetBytes": 512000,
+      "budgetReason": null,
+      "hasCustomBudget": false,
+      "withinBudget": true
+    },
+    {
+      "key": "src/centerpanel/Flows/CellularAutomataFlow.tsx",
+      "label": "centerpanel/Flows/CellularAutomataFlow",
+      "assets": [
+        {
+          "file": "assets/flows-Cj4NIJh5.css",
+          "rawBytes": 71050,
+          "gzipBytes": 10735
+        },
+        {
+          "file": "assets/MapEngineAdapter-BQ33xGIF.js",
+          "rawBytes": 62190,
+          "gzipBytes": 18204
+        },
+        {
+          "file": "assets/simulation-WEvAvqkp.js",
+          "rawBytes": 60108,
+          "gzipBytes": 19940
+        },
+        {
+          "file": "assets/narrativeBuilders-vvO6tiyJ.js",
+          "rawBytes": 29830,
+          "gzipBytes": 9494
+        },
+        {
+          "file": "assets/CellularAutomataFlow-X4QtAMAW.js",
+          "rawBytes": 26150,
+          "gzipBytes": 7749
+        },
+        {
+          "file": "assets/storage-WNbOESVl.js",
+          "rawBytes": 14382,
+          "gzipBytes": 5443
+        },
+        {
+          "file": "assets/flowTypes-BODlyRki.js",
+          "rawBytes": 13899,
+          "gzipBytes": 4925
+        },
+        {
+          "file": "assets/flows.module-D1Sa_UtE.js",
+          "rawBytes": 10362,
+          "gzipBytes": 2852
+        },
+        {
+          "file": "assets/CrossPanelActions-Dla-b8Re.js",
+          "rawBytes": 4040,
+          "gzipBytes": 1563
+        },
+        {
+          "file": "assets/BackgroundAnalyticsQueue-BXGmOaFf.js",
+          "rawBytes": 3643,
+          "gzipBytes": 1665
+        },
+        {
+          "file": "assets/LandCoverClassifier-fQ8IVDXZ.js",
+          "rawBytes": 3422,
+          "gzipBytes": 1598
+        },
+        {
+          "file": "assets/flowUtils-Cnug6vvh.js",
+          "rawBytes": 2269,
+          "gzipBytes": 1044
+        },
+        {
+          "file": "assets/types-CDCYXNlV.js",
+          "rawBytes": 131,
+          "gzipBytes": 140
+        }
+      ],
+      "rawBytes": 301476,
+      "gzipBytes": 85352,
+      "budgetBytes": 573440,
+      "budgetReason": "Cellular automata keeps scenario execution, temporal publishing, and map handoff controls behind one lazy flow boundary.",
+      "hasCustomBudget": true,
+      "withinBudget": true
+    },
+    {
+      "key": "src/centerpanel/Flows/UrbanMorphologyFlow.tsx",
+      "label": "centerpanel/Flows/UrbanMorphologyFlow",
+      "assets": [
+        {
+          "file": "assets/flows-Cj4NIJh5.css",
+          "rawBytes": 71050,
+          "gzipBytes": 10735
+        },
+        {
+          "file": "assets/MapEngineAdapter-BQ33xGIF.js",
+          "rawBytes": 62190,
+          "gzipBytes": 18204
+        },
+        {
+          "file": "assets/simulation-WEvAvqkp.js",
+          "rawBytes": 60108,
+          "gzipBytes": 19940
+        },
+        {
+          "file": "assets/UrbanMorphologyFlow-Cvjz3_Hf.js",
+          "rawBytes": 22794,
+          "gzipBytes": 6936
+        },
+        {
+          "file": "assets/flowLibraryMeta-Bdfy6n1B.js",
+          "rawBytes": 15875,
+          "gzipBytes": 5610
+        },
+        {
+          "file": "assets/storage-WNbOESVl.js",
+          "rawBytes": 14382,
+          "gzipBytes": 5443
+        },
+        {
+          "file": "assets/flowTypes-BODlyRki.js",
+          "rawBytes": 13899,
+          "gzipBytes": 4925
+        },
+        {
+          "file": "assets/flows.module-D1Sa_UtE.js",
+          "rawBytes": 10362,
+          "gzipBytes": 2852
+        },
+        {
+          "file": "assets/methodValidity-BBvcdCeM.js",
+          "rawBytes": 9442,
+          "gzipBytes": 3378
+        },
+        {
+          "file": "assets/compositeIndicatorDemo-D5YpfajW.js",
+          "rawBytes": 5079,
+          "gzipBytes": 1605
+        },
+        {
+          "file": "assets/CrossPanelActions-Dla-b8Re.js",
+          "rawBytes": 4040,
+          "gzipBytes": 1563
+        },
+        {
+          "file": "assets/BackgroundAnalyticsQueue-BXGmOaFf.js",
+          "rawBytes": 3643,
+          "gzipBytes": 1665
+        },
+        {
+          "file": "assets/LandCoverClassifier-fQ8IVDXZ.js",
+          "rawBytes": 3422,
+          "gzipBytes": 1598
+        },
+        {
+          "file": "assets/flowUtils-Cnug6vvh.js",
+          "rawBytes": 2269,
+          "gzipBytes": 1044
+        },
+        {
+          "file": "assets/types-CDCYXNlV.js",
+          "rawBytes": 131,
+          "gzipBytes": 140
+        }
+      ],
+      "rawBytes": 298686,
+      "gzipBytes": 85638,
+      "budgetBytes": 573440,
+      "budgetReason": "Urban morphology keeps morphotype generation, worker orchestration, and publication controls behind one lazy flow boundary.",
+      "hasCustomBudget": true,
+      "withinBudget": true
+    },
+    {
+      "key": "src/centerpanel/Flows/FacilityOptimisationFlow.tsx",
+      "label": "centerpanel/Flows/FacilityOptimisationFlow",
+      "assets": [
+        {
+          "file": "assets/flows-Cj4NIJh5.css",
+          "rawBytes": 71050,
+          "gzipBytes": 10735
+        },
+        {
+          "file": "assets/MapEngineAdapter-BQ33xGIF.js",
+          "rawBytes": 62190,
+          "gzipBytes": 18204
+        },
+        {
+          "file": "assets/simulation-WEvAvqkp.js",
+          "rawBytes": 60108,
+          "gzipBytes": 19940
+        },
+        {
+          "file": "assets/narrativeBuilders-vvO6tiyJ.js",
+          "rawBytes": 29830,
+          "gzipBytes": 9494
+        },
+        {
+          "file": "assets/FacilityOptimisationFlow-CQ39Yfz3.js",
+          "rawBytes": 25523,
+          "gzipBytes": 7182
+        },
+        {
+          "file": "assets/storage-WNbOESVl.js",
+          "rawBytes": 14382,
+          "gzipBytes": 5443
+        },
+        {
+          "file": "assets/flowTypes-BODlyRki.js",
+          "rawBytes": 13899,
+          "gzipBytes": 4925
+        },
+        {
+          "file": "assets/flows.module-D1Sa_UtE.js",
+          "rawBytes": 10362,
+          "gzipBytes": 2852
+        },
+        {
+          "file": "assets/CrossPanelActions-Dla-b8Re.js",
+          "rawBytes": 4040,
+          "gzipBytes": 1563
+        },
+        {
+          "file": "assets/flowUtils-Cnug6vvh.js",
+          "rawBytes": 2269,
+          "gzipBytes": 1044
+        },
+        {
+          "file": "assets/types-CDCYXNlV.js",
+          "rawBytes": 131,
+          "gzipBytes": 140
+        }
+      ],
+      "rawBytes": 293784,
+      "gzipBytes": 81522,
+      "budgetBytes": 573440,
+      "budgetReason": "Facility optimisation keeps allocation, comparison, and reporting controls behind one lazy flow boundary.",
+      "hasCustomBudget": true,
+      "withinBudget": true
+    },
+    {
+      "key": "src/centerpanel/Tools/components/GeoAILab.tsx",
+      "label": "centerpanel/Tools/components/GeoAILab",
+      "assets": [
+        {
+          "file": "assets/tools-C4vqHAYY.css",
+          "rawBytes": 115257,
+          "gzipBytes": 16690
+        },
+        {
+          "file": "assets/MapEngineAdapter-BQ33xGIF.js",
+          "rawBytes": 62190,
+          "gzipBytes": 18204
+        },
+        {
+          "file": "assets/GeoAILab-CJe4nX9I.js",
+          "rawBytes": 36937,
+          "gzipBytes": 9963
+        },
+        {
+          "file": "assets/eo-C31Sm_pI.js",
+          "rawBytes": 25025,
+          "gzipBytes": 8328
+        },
+        {
+          "file": "assets/hooks-DHasI6Iu.js",
+          "rawBytes": 23318,
+          "gzipBytes": 8291
+        },
+        {
+          "file": "assets/QueryToSQL-CpRl5Mkr.js",
+          "rawBytes": 14487,
+          "gzipBytes": 5127
+        },
+        {
+          "file": "assets/tools.module-flC-6DE7.js",
+          "rawBytes": 11591,
+          "gzipBytes": 3361
+        },
+        {
+          "file": "assets/LandCoverClassifier-fQ8IVDXZ.js",
+          "rawBytes": 3422,
+          "gzipBytes": 1598
+        },
+        {
+          "file": "assets/types-CDCYXNlV.js",
+          "rawBytes": 131,
+          "gzipBytes": 140
+        }
+      ],
+      "rawBytes": 292358,
+      "gzipBytes": 71702,
+      "budgetBytes": 614400,
+      "budgetReason": "GeoAI Lab intentionally bundles land-cover, NL-to-SQL, object-detection, and provenance controls behind one toolbox lazy boundary.",
+      "hasCustomBudget": true,
+      "withinBudget": true
+    },
+    {
+      "key": "src/centerpanel/Flows/ScenarioComparisonFlow.tsx",
+      "label": "centerpanel/Flows/ScenarioComparisonFlow",
+      "assets": [
+        {
+          "file": "assets/flows-Cj4NIJh5.css",
+          "rawBytes": 71050,
+          "gzipBytes": 10735
+        },
+        {
+          "file": "assets/simulation-WEvAvqkp.js",
+          "rawBytes": 60108,
+          "gzipBytes": 19940
+        },
+        {
+          "file": "assets/narrativeBuilders-vvO6tiyJ.js",
+          "rawBytes": 29830,
+          "gzipBytes": 9494
+        },
+        {
+          "file": "assets/methodologyData-BT-GwfDF.js",
+          "rawBytes": 23618,
+          "gzipBytes": 7855
+        },
+        {
+          "file": "assets/ScenarioComparisonFlow-CP5FR_xZ.js",
+          "rawBytes": 21233,
+          "gzipBytes": 6170
+        },
+        {
+          "file": "assets/education-ufQAY-EV.css",
+          "rawBytes": 18584,
+          "gzipBytes": 3439
+        },
+        {
+          "file": "assets/scenarioComparisonArtifacts-wuZOPNNd.js",
+          "rawBytes": 16887,
+          "gzipBytes": 5523
+        },
+        {
+          "file": "assets/storage-WNbOESVl.js",
+          "rawBytes": 14382,
+          "gzipBytes": 5443
+        },
+        {
+          "file": "assets/flowTypes-BODlyRki.js",
+          "rawBytes": 13899,
+          "gzipBytes": 4925
+        },
+        {
+          "file": "assets/flows.module-D1Sa_UtE.js",
+          "rawBytes": 10362,
+          "gzipBytes": 2852
+        },
+        {
+          "file": "assets/CrossPanelActions-Dla-b8Re.js",
+          "rawBytes": 4040,
+          "gzipBytes": 1563
+        },
+        {
+          "file": "assets/education.module-Be65m0Sa.js",
+          "rawBytes": 3282,
+          "gzipBytes": 1073
+        },
+        {
+          "file": "assets/MethodologyInfoButton-CmhbbAGN.js",
+          "rawBytes": 2369,
+          "gzipBytes": 1041
+        },
+        {
+          "file": "assets/flowUtils-Cnug6vvh.js",
+          "rawBytes": 2269,
+          "gzipBytes": 1044
+        }
+      ],
+      "rawBytes": 291913,
+      "gzipBytes": 81097,
+      "budgetBytes": 512000,
+      "budgetReason": null,
+      "hasCustomBudget": false,
+      "withinBudget": true
+    },
+    {
+      "key": "src/features/urbanAnalytics/indicators/IndicatorCatalogPanel.tsx",
+      "label": "features/urbanAnalytics/indicators/IndicatorCatalogPanel",
+      "assets": [
+        {
+          "file": "assets/catalog-DHXqPf7L.js",
+          "rawBytes": 196886,
+          "gzipBytes": 47938
+        },
+        {
+          "file": "assets/dataBindings-CNMKyP6J.js",
+          "rawBytes": 19203,
+          "gzipBytes": 6637
+        },
+        {
+          "file": "assets/IndicatorCatalogPanel-DAarUzFw.js",
+          "rawBytes": 17525,
+          "gzipBytes": 5120
+        },
+        {
+          "file": "assets/storage-WNbOESVl.js",
+          "rawBytes": 14382,
+          "gzipBytes": 5443
+        },
+        {
+          "file": "assets/IndicatorCatalogPanel-BpjcCUrf.css",
+          "rawBytes": 12597,
+          "gzipBytes": 2605
+        },
+        {
+          "file": "assets/methodValidity-BBvcdCeM.js",
+          "rawBytes": 9442,
+          "gzipBytes": 3378
+        }
+      ],
+      "rawBytes": 270035,
+      "gzipBytes": 71121,
+      "budgetBytes": 512000,
+      "budgetReason": null,
+      "hasCustomBudget": false,
+      "withinBudget": true
+    },
+    {
+      "key": "src/centerpanel/Tools/components/EOConnectorPanel.tsx",
+      "label": "centerpanel/Tools/components/EOConnectorPanel",
+      "assets": [
+        {
+          "file": "assets/tools-C4vqHAYY.css",
+          "rawBytes": 115257,
+          "gzipBytes": 16690
+        },
+        {
+          "file": "assets/MapEngineAdapter-BQ33xGIF.js",
+          "rawBytes": 62190,
+          "gzipBytes": 18204
+        },
+        {
+          "file": "assets/EOConnectorPanel-D0MLw61L.js",
+          "rawBytes": 46797,
+          "gzipBytes": 10999
+        },
+        {
+          "file": "assets/eo-C31Sm_pI.js",
+          "rawBytes": 25025,
+          "gzipBytes": 8328
+        },
+        {
+          "file": "assets/tools.module-flC-6DE7.js",
+          "rawBytes": 11591,
+          "gzipBytes": 3361
+        },
+        {
+          "file": "assets/types-CDCYXNlV.js",
+          "rawBytes": 131,
+          "gzipBytes": 140
+        }
+      ],
+      "rawBytes": 260991,
+      "gzipBytes": 57722,
+      "budgetBytes": 552960,
+      "budgetReason": "EO connector keeps imagery source configuration and publish controls behind one toolbox lazy boundary.",
+      "hasCustomBudget": true,
+      "withinBudget": true
+    },
+    {
+      "key": "src/features/education/EducationLeftRail.tsx",
+      "label": "features/education/EducationLeftRail",
+      "assets": [
+        {
+          "file": "assets/uiStore-Bpy_fiT8.js",
+          "rawBytes": 71304,
+          "gzipBytes": 20365
+        },
+        {
+          "file": "assets/flows-Cj4NIJh5.css",
+          "rawBytes": 71050,
+          "gzipBytes": 10735
+        },
+        {
+          "file": "assets/learningPaths-CaC9vVsU.js",
+          "rawBytes": 31072,
+          "gzipBytes": 7916
+        },
+        {
+          "file": "assets/methodologyData-BT-GwfDF.js",
+          "rawBytes": 23618,
+          "gzipBytes": 7855
+        },
+        {
+          "file": "assets/datasetLibrary-abVR-067.js",
+          "rawBytes": 20413,
+          "gzipBytes": 7086
+        },
+        {
+          "file": "assets/uiStore-D7pynL9S.css",
+          "rawBytes": 14179,
+          "gzipBytes": 2893
+        },
+        {
+          "file": "assets/flows.module-D1Sa_UtE.js",
+          "rawBytes": 10362,
+          "gzipBytes": 2852
+        },
+        {
+          "file": "assets/educationRail-J4AbzyJx.css",
+          "rawBytes": 6871,
+          "gzipBytes": 1608
+        },
+        {
+          "file": "assets/EducationLeftRail-D198xMh-.js",
+          "rawBytes": 4671,
+          "gzipBytes": 1729
+        },
+        {
+          "file": "assets/educationRail.module-GUAfRlWy.js",
+          "rawBytes": 1215,
+          "gzipBytes": 474
+        }
+      ],
+      "rawBytes": 254755,
+      "gzipBytes": 63513,
+      "budgetBytes": 552960,
+      "budgetReason": "Education left rail keeps teaching-path navigation and related metadata behind the education workspace boundary.",
+      "hasCustomBudget": true,
+      "withinBudget": true
+    },
+    {
+      "key": "src/centerpanel/Flows/ObjectDetectionFlow.tsx",
+      "label": "centerpanel/Flows/ObjectDetectionFlow",
+      "assets": [
+        {
+          "file": "assets/flows-Cj4NIJh5.css",
+          "rawBytes": 71050,
+          "gzipBytes": 10735
+        },
+        {
+          "file": "assets/MapEngineAdapter-BQ33xGIF.js",
+          "rawBytes": 62190,
+          "gzipBytes": 18204
+        },
+        {
+          "file": "assets/eo-C31Sm_pI.js",
+          "rawBytes": 25025,
+          "gzipBytes": 8328
+        },
+        {
+          "file": "assets/hooks-DHasI6Iu.js",
+          "rawBytes": 23318,
+          "gzipBytes": 8291
+        },
+        {
+          "file": "assets/ObjectDetectionFlow-CkpV1qOc.js",
+          "rawBytes": 22804,
+          "gzipBytes": 7080
+        },
+        {
+          "file": "assets/QueryToSQL-CpRl5Mkr.js",
+          "rawBytes": 14487,
+          "gzipBytes": 5127
+        },
+        {
+          "file": "assets/storage-WNbOESVl.js",
+          "rawBytes": 14382,
+          "gzipBytes": 5443
+        },
+        {
+          "file": "assets/flows.module-D1Sa_UtE.js",
+          "rawBytes": 10362,
+          "gzipBytes": 2852
+        },
+        {
+          "file": "assets/CrossPanelActions-Dla-b8Re.js",
+          "rawBytes": 4040,
+          "gzipBytes": 1563
+        },
+        {
+          "file": "assets/LandCoverClassifier-fQ8IVDXZ.js",
+          "rawBytes": 3422,
+          "gzipBytes": 1598
+        },
+        {
+          "file": "assets/types-CDCYXNlV.js",
+          "rawBytes": 131,
+          "gzipBytes": 140
+        }
+      ],
+      "rawBytes": 251211,
+      "gzipBytes": 69361,
+      "budgetBytes": 552960,
+      "budgetReason": "Object detection keeps GeoAI publishing and review controls behind one lazy flow boundary.",
+      "hasCustomBudget": true,
+      "withinBudget": true
+    },
+    {
+      "key": "src/centerpanel/Flows/SystemDynamicsFlow.tsx",
+      "label": "centerpanel/Flows/SystemDynamicsFlow",
+      "assets": [
+        {
+          "file": "assets/flows-Cj4NIJh5.css",
+          "rawBytes": 71050,
+          "gzipBytes": 10735
+        },
+        {
+          "file": "assets/simulation-WEvAvqkp.js",
+          "rawBytes": 60108,
+          "gzipBytes": 19940
+        },
+        {
+          "file": "assets/SystemDynamicsFlow-w6D6BJGX.js",
+          "rawBytes": 24642,
+          "gzipBytes": 6683
+        },
+        {
+          "file": "assets/methodologyData-BT-GwfDF.js",
+          "rawBytes": 23618,
+          "gzipBytes": 7855
+        },
+        {
+          "file": "assets/education-ufQAY-EV.css",
+          "rawBytes": 18584,
+          "gzipBytes": 3439
+        },
+        {
+          "file": "assets/storage-WNbOESVl.js",
+          "rawBytes": 14382,
+          "gzipBytes": 5443
+        },
+        {
+          "file": "assets/flowTypes-BODlyRki.js",
+          "rawBytes": 13899,
+          "gzipBytes": 4925
+        },
+        {
+          "file": "assets/flows.module-D1Sa_UtE.js",
+          "rawBytes": 10362,
+          "gzipBytes": 2852
+        },
+        {
+          "file": "assets/CrossPanelActions-Dla-b8Re.js",
+          "rawBytes": 4040,
+          "gzipBytes": 1563
+        },
+        {
+          "file": "assets/education.module-Be65m0Sa.js",
+          "rawBytes": 3282,
+          "gzipBytes": 1073
+        },
+        {
+          "file": "assets/MethodologyInfoButton-CmhbbAGN.js",
+          "rawBytes": 2369,
+          "gzipBytes": 1041
+        },
+        {
+          "file": "assets/flowUtils-Cnug6vvh.js",
+          "rawBytes": 2269,
+          "gzipBytes": 1044
+        }
+      ],
+      "rawBytes": 248605,
+      "gzipBytes": 66593,
+      "budgetBytes": 512000,
+      "budgetReason": null,
+      "hasCustomBudget": false,
+      "withinBudget": true
+    },
+    {
+      "key": "src/centerpanel/tabs/Note.tsx",
+      "label": "centerpanel/tabs/Note",
+      "assets": [
+        {
+          "file": "assets/Note-BE0Ru9-9.js",
+          "rawBytes": 95765,
+          "gzipBytes": 27561
+        },
+        {
+          "file": "assets/note-oogq81aw.css",
+          "rawBytes": 77614,
+          "gzipBytes": 12324
+        },
+        {
+          "file": "assets/Note-B-rWSdLP.css",
+          "rawBytes": 22809,
+          "gzipBytes": 4302
+        },
+        {
+          "file": "assets/storage-WNbOESVl.js",
+          "rawBytes": 14382,
+          "gzipBytes": 5443
+        },
+        {
+          "file": "assets/note.module-nE24Wh8n.js",
+          "rawBytes": 10275,
+          "gzipBytes": 2956
+        },
+        {
+          "file": "assets/exporters-jMtGrdtR.js",
+          "rawBytes": 4671,
+          "gzipBytes": 2208
+        },
+        {
+          "file": "assets/urban-context-strip-BjIXoYc6.css",
+          "rawBytes": 3802,
+          "gzipBytes": 877
+        },
+        {
+          "file": "assets/urban-context-strip.module-BNZAIf2U.js",
+          "rawBytes": 401,
+          "gzipBytes": 249
+        }
+      ],
+      "rawBytes": 229719,
+      "gzipBytes": 55920,
+      "budgetBytes": 512000,
+      "budgetReason": null,
+      "hasCustomBudget": false,
+      "withinBudget": true
+    },
+    {
+      "key": "src/centerpanel/Guide/GuideViewV2.tsx",
+      "label": "centerpanel/Guide/GuideViewV2",
+      "assets": [
+        {
+          "file": "assets/note-oogq81aw.css",
+          "rawBytes": 77614,
+          "gzipBytes": 12324
+        },
+        {
+          "file": "assets/guides-vrdEXYsH.css",
+          "rawBytes": 70985,
+          "gzipBytes": 10663
+        },
+        {
+          "file": "assets/GuideViewV2-uzzW44tI.js",
+          "rawBytes": 49655,
+          "gzipBytes": 17789
+        },
+        {
+          "file": "assets/note.module-nE24Wh8n.js",
+          "rawBytes": 10275,
+          "gzipBytes": 2956
+        },
+        {
+          "file": "assets/guides.module-B9-Vj5dk.js",
+          "rawBytes": 5976,
+          "gzipBytes": 1916
+        },
+        {
+          "file": "assets/GuideViewV2-eUeqVykR.css",
+          "rawBytes": 843,
+          "gzipBytes": 450
+        }
+      ],
+      "rawBytes": 215348,
+      "gzipBytes": 46098,
+      "budgetBytes": 512000,
+      "budgetReason": null,
+      "hasCustomBudget": false,
+      "withinBudget": true
+    },
+    {
+      "key": "src/centerpanel/Flows/EmergingHotSpotFlow.tsx",
+      "label": "centerpanel/Flows/EmergingHotSpotFlow",
+      "assets": [
+        {
+          "file": "assets/flows-Cj4NIJh5.css",
+          "rawBytes": 71050,
+          "gzipBytes": 10735
+        },
+        {
+          "file": "assets/MapEngineAdapter-BQ33xGIF.js",
+          "rawBytes": 62190,
+          "gzipBytes": 18204
+        },
+        {
+          "file": "assets/MapEmergingHotSpotViz-CaLQcnPi.js",
+          "rawBytes": 44411,
+          "gzipBytes": 12883
+        },
+        {
+          "file": "assets/storage-WNbOESVl.js",
+          "rawBytes": 14382,
+          "gzipBytes": 5443
+        },
+        {
+          "file": "assets/flows.module-D1Sa_UtE.js",
+          "rawBytes": 10362,
+          "gzipBytes": 2852
+        },
+        {
+          "file": "assets/CrossPanelActions-Dla-b8Re.js",
+          "rawBytes": 4040,
+          "gzipBytes": 1563
+        },
+        {
+          "file": "assets/EmergingHotSpotFlow-Cza2NObk.js",
+          "rawBytes": 763,
+          "gzipBytes": 462
+        },
+        {
+          "file": "assets/types-CDCYXNlV.js",
+          "rawBytes": 131,
+          "gzipBytes": 140
+        }
+      ],
+      "rawBytes": 207329,
+      "gzipBytes": 52282,
+      "budgetBytes": 512000,
+      "budgetReason": null,
+      "hasCustomBudget": false,
+      "withinBudget": true
+    },
+    {
+      "key": "src/centerpanel/Flows/ChangeDetectionFlow.tsx",
+      "label": "centerpanel/Flows/ChangeDetectionFlow",
+      "assets": [
+        {
+          "file": "assets/flows-Cj4NIJh5.css",
+          "rawBytes": 71050,
+          "gzipBytes": 10735
+        },
+        {
+          "file": "assets/simulation-WEvAvqkp.js",
+          "rawBytes": 60108,
+          "gzipBytes": 19940
+        },
+        {
+          "file": "assets/ChangeDetectionFlow-DHuiURaF.js",
+          "rawBytes": 22922,
+          "gzipBytes": 6305
+        },
+        {
+          "file": "assets/storage-WNbOESVl.js",
+          "rawBytes": 14382,
+          "gzipBytes": 5443
+        },
+        {
+          "file": "assets/flowTypes-BODlyRki.js",
+          "rawBytes": 13899,
+          "gzipBytes": 4925
+        },
+        {
+          "file": "assets/flows.module-D1Sa_UtE.js",
+          "rawBytes": 10362,
+          "gzipBytes": 2852
+        },
+        {
+          "file": "assets/CrossPanelActions-Dla-b8Re.js",
+          "rawBytes": 4040,
+          "gzipBytes": 1563
+        },
+        {
+          "file": "assets/BackgroundAnalyticsQueue-BXGmOaFf.js",
+          "rawBytes": 3643,
+          "gzipBytes": 1665
+        },
+        {
+          "file": "assets/LandCoverClassifier-fQ8IVDXZ.js",
+          "rawBytes": 3422,
+          "gzipBytes": 1598
+        },
+        {
+          "file": "assets/flowUtils-Cnug6vvh.js",
+          "rawBytes": 2269,
+          "gzipBytes": 1044
+        },
+        {
+          "file": "assets/types-CDCYXNlV.js",
+          "rawBytes": 131,
+          "gzipBytes": 140
+        }
+      ],
+      "rawBytes": 206228,
+      "gzipBytes": 56210,
+      "budgetBytes": 512000,
+      "budgetReason": null,
+      "hasCustomBudget": false,
+      "withinBudget": true
+    },
+    {
+      "key": "node_modules/html2canvas/dist/html2canvas.js",
+      "label": "node_modules/html2canvas/dist/html2canvas",
+      "assets": [
+        {
+          "file": "assets/html2canvas-DgScOIC-.js",
+          "rawBytes": 199627,
+          "gzipBytes": 46386
+        }
+      ],
+      "rawBytes": 199627,
+      "gzipBytes": 46386,
+      "budgetBytes": 512000,
+      "budgetReason": null,
+      "hasCustomBudget": false,
+      "withinBudget": true
+    },
+    {
+      "key": "src/features/dashboard/ScenarioComparisonDashboard.tsx",
+      "label": "features/dashboard/ScenarioComparisonDashboard",
+      "assets": [
+        {
+          "file": "assets/flows-Cj4NIJh5.css",
+          "rawBytes": 71050,
+          "gzipBytes": 10735
+        },
+        {
+          "file": "assets/simulation-WEvAvqkp.js",
+          "rawBytes": 60108,
+          "gzipBytes": 19940
+        },
+        {
+          "file": "assets/ScenarioComparisonDashboard-NjZ2BtGu.js",
+          "rawBytes": 25603,
+          "gzipBytes": 6932
+        },
+        {
+          "file": "assets/scenarioComparisonArtifacts-wuZOPNNd.js",
+          "rawBytes": 16887,
+          "gzipBytes": 5523
+        },
+        {
+          "file": "assets/flows.module-D1Sa_UtE.js",
+          "rawBytes": 10362,
+          "gzipBytes": 2852
+        },
+        {
+          "file": "assets/flowUtils-Cnug6vvh.js",
+          "rawBytes": 2269,
+          "gzipBytes": 1044
+        }
+      ],
+      "rawBytes": 186279,
+      "gzipBytes": 47026,
+      "budgetBytes": 512000,
+      "budgetReason": null,
+      "hasCustomBudget": false,
+      "withinBudget": true
+    },
+    {
+      "key": "src/centerpanel/Tools/ExportBar.tsx",
+      "label": "centerpanel/Tools/ExportBar",
+      "assets": [
+        {
+          "file": "assets/tools-C4vqHAYY.css",
+          "rawBytes": 115257,
+          "gzipBytes": 16690
+        },
+        {
+          "file": "assets/exportInbox-AeUJS0qV.js",
+          "rawBytes": 23904,
+          "gzipBytes": 8698
+        },
+        {
+          "file": "assets/ExportBar-DcogoOxi.js",
+          "rawBytes": 18002,
+          "gzipBytes": 5445
+        },
+        {
+          "file": "assets/tools.module-flC-6DE7.js",
+          "rawBytes": 11591,
+          "gzipBytes": 3361
+        },
+        {
+          "file": "assets/exporters-jMtGrdtR.js",
+          "rawBytes": 4671,
+          "gzipBytes": 2208
+        }
+      ],
+      "rawBytes": 173425,
+      "gzipBytes": 36402,
+      "budgetBytes": 512000,
+      "budgetReason": null,
+      "hasCustomBudget": false,
+      "withinBudget": true
+    },
+    {
+      "key": "src/centerpanel/Guide/OutlineRail.tsx",
+      "label": "centerpanel/Guide/OutlineRail",
+      "assets": [
+        {
+          "file": "assets/note-oogq81aw.css",
+          "rawBytes": 77614,
+          "gzipBytes": 12324
+        },
+        {
+          "file": "assets/guides-vrdEXYsH.css",
+          "rawBytes": 70985,
+          "gzipBytes": 10663
+        },
+        {
+          "file": "assets/note.module-nE24Wh8n.js",
+          "rawBytes": 10275,
+          "gzipBytes": 2956
+        },
+        {
+          "file": "assets/OutlineRail-iEUTTyQ8.js",
+          "rawBytes": 7205,
+          "gzipBytes": 2738
+        },
+        {
+          "file": "assets/guides.module-B9-Vj5dk.js",
+          "rawBytes": 5976,
+          "gzipBytes": 1916
+        },
+        {
+          "file": "assets/guideRailBridge-JePMKUld.js",
+          "rawBytes": 1054,
+          "gzipBytes": 680
+        }
+      ],
+      "rawBytes": 173109,
+      "gzipBytes": 31277,
+      "budgetBytes": 512000,
+      "budgetReason": null,
+      "hasCustomBudget": false,
+      "withinBudget": true
+    },
+    {
+      "key": "src/centerpanel/Tools/ToolsProjectList.tsx",
+      "label": "centerpanel/Tools/ToolsProjectList",
+      "assets": [
+        {
+          "file": "assets/tools-C4vqHAYY.css",
+          "rawBytes": 115257,
+          "gzipBytes": 16690
+        },
+        {
+          "file": "assets/ToolsProjectList-eB3kZxkO.css",
+          "rawBytes": 26740,
+          "gzipBytes": 4595
+        },
+        {
+          "file": "assets/ToolsProjectList-D-I7cwy8.js",
+          "rawBytes": 16913,
+          "gzipBytes": 4941
+        },
+        {
+          "file": "assets/tools.module-flC-6DE7.js",
+          "rawBytes": 11591,
+          "gzipBytes": 3361
+        }
+      ],
+      "rawBytes": 170501,
+      "gzipBytes": 29587,
+      "budgetBytes": 512000,
+      "budgetReason": null,
+      "hasCustomBudget": false,
+      "withinBudget": true
+    },
+    {
+      "key": "src/centerpanel/Tools/PreviewPanel.tsx",
+      "label": "centerpanel/Tools/PreviewPanel",
+      "assets": [
+        {
+          "file": "assets/tools-C4vqHAYY.css",
+          "rawBytes": 115257,
+          "gzipBytes": 16690
+        },
+        {
+          "file": "assets/exportInbox-AeUJS0qV.js",
+          "rawBytes": 23904,
+          "gzipBytes": 8698
+        },
+        {
+          "file": "assets/tools.module-flC-6DE7.js",
+          "rawBytes": 11591,
+          "gzipBytes": 3361
+        },
+        {
+          "file": "assets/PreviewPanel-Ddvp2e_W.js",
+          "rawBytes": 9664,
+          "gzipBytes": 3538
+        },
+        {
+          "file": "assets/exporters-jMtGrdtR.js",
+          "rawBytes": 4671,
+          "gzipBytes": 2208
+        }
+      ],
+      "rawBytes": 165087,
+      "gzipBytes": 34495,
+      "budgetBytes": 512000,
+      "budgetReason": null,
+      "hasCustomBudget": false,
+      "withinBudget": true
+    },
+    {
+      "key": "src/centerpanel/Flows/FlowHost.tsx",
+      "label": "centerpanel/Flows/FlowHost",
+      "assets": [
+        {
+          "file": "assets/flows-Cj4NIJh5.css",
+          "rawBytes": 71050,
+          "gzipBytes": 10735
+        },
+        {
+          "file": "assets/narrativeBuilders-vvO6tiyJ.js",
+          "rawBytes": 29830,
+          "gzipBytes": 9494
+        },
+        {
+          "file": "assets/FlowHost-C7g0vpkt.js",
+          "rawBytes": 19433,
+          "gzipBytes": 6000
+        },
+        {
+          "file": "assets/storage-WNbOESVl.js",
+          "rawBytes": 14382,
+          "gzipBytes": 5443
+        },
+        {
+          "file": "assets/flows.module-D1Sa_UtE.js",
+          "rawBytes": 10362,
+          "gzipBytes": 2852
+        },
+        {
+          "file": "assets/MapAnalysisDispatcher-DJrOeFOw.js",
+          "rawBytes": 7547,
+          "gzipBytes": 2878
+        },
+        {
+          "file": "assets/workflowExperience-CvjlKfBE.js",
+          "rawBytes": 7246,
+          "gzipBytes": 2693
+        }
+      ],
+      "rawBytes": 159850,
+      "gzipBytes": 40095,
+      "budgetBytes": 512000,
+      "budgetReason": null,
+      "hasCustomBudget": false,
+      "withinBudget": true
+    },
+    {
+      "key": "src/centerpanel/Tools/components/CapabilitiesOverviewPanel.tsx",
+      "label": "centerpanel/Tools/components/CapabilitiesOverviewPanel",
+      "assets": [
+        {
+          "file": "assets/tools-C4vqHAYY.css",
+          "rawBytes": 115257,
+          "gzipBytes": 16690
+        },
+        {
+          "file": "assets/flowLibraryMeta-Bdfy6n1B.js",
+          "rawBytes": 15875,
+          "gzipBytes": 5610
+        },
+        {
+          "file": "assets/tools.module-flC-6DE7.js",
+          "rawBytes": 11591,
+          "gzipBytes": 3361
+        },
+        {
+          "file": "assets/methodValidity-BBvcdCeM.js",
+          "rawBytes": 9442,
+          "gzipBytes": 3378
+        },
+        {
+          "file": "assets/CapabilitiesOverviewPanel-C2kPcYog.js",
+          "rawBytes": 6440,
+          "gzipBytes": 2027
+        }
+      ],
+      "rawBytes": 158605,
+      "gzipBytes": 31066,
+      "budgetBytes": 512000,
+      "budgetReason": null,
+      "hasCustomBudget": false,
+      "withinBudget": true
+    },
+    {
+      "key": "src/centerpanel/Tools/ToolsActionPanel.tsx",
+      "label": "centerpanel/Tools/ToolsActionPanel",
+      "assets": [
+        {
+          "file": "assets/tools-C4vqHAYY.css",
+          "rawBytes": 115257,
+          "gzipBytes": 16690
+        },
+        {
+          "file": "assets/ToolsActionPanel-CJfltvNP.js",
+          "rawBytes": 30665,
+          "gzipBytes": 7841
+        },
+        {
+          "file": "assets/tools.module-flC-6DE7.js",
+          "rawBytes": 11591,
+          "gzipBytes": 3361
+        }
+      ],
+      "rawBytes": 157513,
+      "gzipBytes": 27892,
+      "budgetBytes": 512000,
+      "budgetReason": null,
+      "hasCustomBudget": false,
+      "withinBudget": true
+    },
+    {
+      "key": "src/centerpanel/Tools/components/SpatialIndexLab.tsx",
+      "label": "centerpanel/Tools/components/SpatialIndexLab",
+      "assets": [
+        {
+          "file": "assets/tools-C4vqHAYY.css",
+          "rawBytes": 115257,
+          "gzipBytes": 16690
+        },
+        {
+          "file": "assets/SpatialIndexLab-BUaVMQX9.js",
+          "rawBytes": 26191,
+          "gzipBytes": 7760
+        },
+        {
+          "file": "assets/tools.module-flC-6DE7.js",
+          "rawBytes": 11591,
+          "gzipBytes": 3361
+        }
+      ],
+      "rawBytes": 153039,
+      "gzipBytes": 27811,
+      "budgetBytes": 512000,
+      "budgetReason": null,
+      "hasCustomBudget": false,
+      "withinBudget": true
+    },
+    {
+      "key": "node_modules/canvg/lib/index.es.js",
+      "label": "node_modules/canvg/lib/index.es",
+      "assets": [
+        {
+          "file": "assets/index.es-j_RYuKRi.js",
+          "rawBytes": 151460,
+          "gzipBytes": 48429
+        },
+        {
+          "file": "assets/typeof-B_Gzc1Qz.js",
+          "rawBytes": 315,
+          "gzipBytes": 207
+        }
+      ],
+      "rawBytes": 151775,
+      "gzipBytes": 48636,
+      "budgetBytes": 512000,
+      "budgetReason": null,
+      "hasCustomBudget": false,
+      "withinBudget": true
+    },
+    {
+      "key": "src/centerpanel/Flows/AnalyticalRunReviewFlow.tsx",
+      "label": "centerpanel/Flows/AnalyticalRunReviewFlow",
+      "assets": [
+        {
+          "file": "assets/flows-Cj4NIJh5.css",
+          "rawBytes": 71050,
+          "gzipBytes": 10735
+        },
+        {
+          "file": "assets/narrativeBuilders-vvO6tiyJ.js",
+          "rawBytes": 29830,
+          "gzipBytes": 9494
+        },
+        {
+          "file": "assets/storage-WNbOESVl.js",
+          "rawBytes": 14382,
+          "gzipBytes": 5443
+        },
+        {
+          "file": "assets/flowTypes-BODlyRki.js",
+          "rawBytes": 13899,
+          "gzipBytes": 4925
+        },
+        {
+          "file": "assets/flows.module-D1Sa_UtE.js",
+          "rawBytes": 10362,
+          "gzipBytes": 2852
+        },
+        {
+          "file": "assets/AnalyticalRunReviewFlow-DGw1ULMc.js",
+          "rawBytes": 8115,
+          "gzipBytes": 2789
+        },
+        {
+          "file": "assets/flowUtils-Cnug6vvh.js",
+          "rawBytes": 2269,
+          "gzipBytes": 1044
+        }
+      ],
+      "rawBytes": 149907,
+      "gzipBytes": 37282,
+      "budgetBytes": 512000,
+      "budgetReason": null,
+      "hasCustomBudget": false,
+      "withinBudget": true
+    },
+    {
+      "key": "src/centerpanel/Flows/AccessibilityFlow.tsx",
+      "label": "centerpanel/Flows/AccessibilityFlow",
+      "assets": [
+        {
+          "file": "assets/flows-Cj4NIJh5.css",
+          "rawBytes": 71050,
+          "gzipBytes": 10735
+        },
+        {
+          "file": "assets/workflowDemoRuntime-BxUgnkHs.js",
+          "rawBytes": 16628,
+          "gzipBytes": 5379
+        },
+        {
+          "file": "assets/storage-WNbOESVl.js",
+          "rawBytes": 14382,
+          "gzipBytes": 5443
+        },
+        {
+          "file": "assets/flowTypes-BODlyRki.js",
+          "rawBytes": 13899,
+          "gzipBytes": 4925
+        },
+        {
+          "file": "assets/AccessibilityFlow-HUr9RSwk.js",
+          "rawBytes": 11816,
+          "gzipBytes": 3808
+        },
+        {
+          "file": "assets/flows.module-D1Sa_UtE.js",
+          "rawBytes": 10362,
+          "gzipBytes": 2852
+        },
+        {
+          "file": "assets/MapAnalysisDispatcher-DJrOeFOw.js",
+          "rawBytes": 7547,
+          "gzipBytes": 2878
+        },
+        {
+          "file": "assets/CrossPanelActions-Dla-b8Re.js",
+          "rawBytes": 4040,
+          "gzipBytes": 1563
+        }
+      ],
+      "rawBytes": 149724,
+      "gzipBytes": 37583,
+      "budgetBytes": 512000,
+      "budgetReason": null,
+      "hasCustomBudget": false,
+      "withinBudget": true
+    },
+    {
+      "key": "src/centerpanel/Flows/EquityAuditFlow.tsx",
+      "label": "centerpanel/Flows/EquityAuditFlow",
+      "assets": [
+        {
+          "file": "assets/flows-Cj4NIJh5.css",
+          "rawBytes": 71050,
+          "gzipBytes": 10735
+        },
+        {
+          "file": "assets/workflowDemoRuntime-BxUgnkHs.js",
+          "rawBytes": 16628,
+          "gzipBytes": 5379
+        },
+        {
+          "file": "assets/storage-WNbOESVl.js",
+          "rawBytes": 14382,
+          "gzipBytes": 5443
+        },
+        {
+          "file": "assets/flowTypes-BODlyRki.js",
+          "rawBytes": 13899,
+          "gzipBytes": 4925
+        },
+        {
+          "file": "assets/EquityAuditFlow-BsDZhXOS.js",
+          "rawBytes": 13190,
+          "gzipBytes": 3798
+        },
+        {
+          "file": "assets/flows.module-D1Sa_UtE.js",
+          "rawBytes": 10362,
+          "gzipBytes": 2852
+        },
+        {
+          "file": "assets/CrossPanelActions-Dla-b8Re.js",
+          "rawBytes": 4040,
+          "gzipBytes": 1563
+        },
+        {
+          "file": "assets/flowUtils-Cnug6vvh.js",
+          "rawBytes": 2269,
+          "gzipBytes": 1044
+        }
+      ],
+      "rawBytes": 145820,
+      "gzipBytes": 35739,
+      "budgetBytes": 512000,
+      "budgetReason": null,
+      "hasCustomBudget": false,
+      "withinBudget": true
+    },
+    {
+      "key": "src/centerpanel/Tools/components/StreamingLab.tsx",
+      "label": "centerpanel/Tools/components/StreamingLab",
+      "assets": [
+        {
+          "file": "assets/tools-C4vqHAYY.css",
+          "rawBytes": 115257,
+          "gzipBytes": 16690
+        },
+        {
+          "file": "assets/StreamingLab-BoHi342Q.js",
+          "rawBytes": 14786,
+          "gzipBytes": 4671
+        },
+        {
+          "file": "assets/tools.module-flC-6DE7.js",
+          "rawBytes": 11591,
+          "gzipBytes": 3361
+        }
+      ],
+      "rawBytes": 141634,
+      "gzipBytes": 24722,
+      "budgetBytes": 512000,
+      "budgetReason": null,
+      "hasCustomBudget": false,
+      "withinBudget": true
+    },
+    {
+      "key": "src/centerpanel/Guide/MethodsView.tsx",
+      "label": "centerpanel/Guide/MethodsView",
+      "assets": [
+        {
+          "file": "assets/guides-vrdEXYsH.css",
+          "rawBytes": 70985,
+          "gzipBytes": 10663
+        },
+        {
+          "file": "assets/MethodsView-CgG_48pF.js",
+          "rawBytes": 63061,
+          "gzipBytes": 23734
+        },
+        {
+          "file": "assets/guides.module-B9-Vj5dk.js",
+          "rawBytes": 5976,
+          "gzipBytes": 1916
+        },
+        {
+          "file": "assets/guideRailBridge-JePMKUld.js",
+          "rawBytes": 1054,
+          "gzipBytes": 680
+        }
+      ],
+      "rawBytes": 141076,
+      "gzipBytes": 36993,
+      "budgetBytes": 512000,
+      "budgetReason": null,
+      "hasCustomBudget": false,
+      "withinBudget": true
+    },
+    {
+      "key": "src/centerpanel/Flows/VulnerabilityFlow.tsx",
+      "label": "centerpanel/Flows/VulnerabilityFlow",
+      "assets": [
+        {
+          "file": "assets/flows-Cj4NIJh5.css",
+          "rawBytes": 71050,
+          "gzipBytes": 10735
+        },
+        {
+          "file": "assets/workflowDemoRuntime-BxUgnkHs.js",
+          "rawBytes": 16628,
+          "gzipBytes": 5379
+        },
+        {
+          "file": "assets/storage-WNbOESVl.js",
+          "rawBytes": 14382,
+          "gzipBytes": 5443
+        },
+        {
+          "file": "assets/flowTypes-BODlyRki.js",
+          "rawBytes": 13899,
+          "gzipBytes": 4925
+        },
+        {
+          "file": "assets/VulnerabilityFlow-Cv6_kxpz.js",
+          "rawBytes": 10561,
+          "gzipBytes": 3233
+        },
+        {
+          "file": "assets/flows.module-D1Sa_UtE.js",
+          "rawBytes": 10362,
+          "gzipBytes": 2852
+        },
+        {
+          "file": "assets/CrossPanelActions-Dla-b8Re.js",
+          "rawBytes": 4040,
+          "gzipBytes": 1563
+        }
+      ],
+      "rawBytes": 140922,
+      "gzipBytes": 34130,
+      "budgetBytes": 512000,
+      "budgetReason": null,
+      "hasCustomBudget": false,
+      "withinBudget": true
+    },
+    {
+      "key": "src/centerpanel/Flows/SiteSuitabilityFlow.tsx",
+      "label": "centerpanel/Flows/SiteSuitabilityFlow",
+      "assets": [
+        {
+          "file": "assets/flows-Cj4NIJh5.css",
+          "rawBytes": 71050,
+          "gzipBytes": 10735
+        },
+        {
+          "file": "assets/workflowDemoRuntime-BxUgnkHs.js",
+          "rawBytes": 16628,
+          "gzipBytes": 5379
+        },
+        {
+          "file": "assets/storage-WNbOESVl.js",
+          "rawBytes": 14382,
+          "gzipBytes": 5443
+        },
+        {
+          "file": "assets/flowTypes-BODlyRki.js",
+          "rawBytes": 13899,
+          "gzipBytes": 4925
+        },
+        {
+          "file": "assets/SiteSuitabilityFlow-DueqvUP8.js",
+          "rawBytes": 10408,
+          "gzipBytes": 3215
+        },
+        {
+          "file": "assets/flows.module-D1Sa_UtE.js",
+          "rawBytes": 10362,
+          "gzipBytes": 2852
+        },
+        {
+          "file": "assets/CrossPanelActions-Dla-b8Re.js",
+          "rawBytes": 4040,
+          "gzipBytes": 1563
+        }
+      ],
+      "rawBytes": 140769,
+      "gzipBytes": 34112,
+      "budgetBytes": 512000,
+      "budgetReason": null,
+      "hasCustomBudget": false,
+      "withinBudget": true
+    },
+    {
+      "key": "src/centerpanel/Tools/components/CoverageDiagnosticsPanel.tsx",
+      "label": "centerpanel/Tools/components/CoverageDiagnosticsPanel",
+      "assets": [
+        {
+          "file": "assets/tools-C4vqHAYY.css",
+          "rawBytes": 115257,
+          "gzipBytes": 16690
+        },
+        {
+          "file": "assets/tools.module-flC-6DE7.js",
+          "rawBytes": 11591,
+          "gzipBytes": 3361
+        },
+        {
+          "file": "assets/CoverageDiagnosticsPanel-C9fvssjq.js",
+          "rawBytes": 8006,
+          "gzipBytes": 2673
+        }
+      ],
+      "rawBytes": 134854,
+      "gzipBytes": 22724,
+      "budgetBytes": 512000,
+      "budgetReason": null,
+      "hasCustomBudget": false,
+      "withinBudget": true
+    },
+    {
+      "key": "src/centerpanel/Flows/FlowsRail.tsx",
+      "label": "centerpanel/Flows/FlowsRail",
+      "assets": [
+        {
+          "file": "assets/flows-Cj4NIJh5.css",
+          "rawBytes": 71050,
+          "gzipBytes": 10735
+        },
+        {
+          "file": "assets/flowLibraryMeta-Bdfy6n1B.js",
+          "rawBytes": 15875,
+          "gzipBytes": 5610
+        },
+        {
+          "file": "assets/FlowsRail-DlE5jBIj.js",
+          "rawBytes": 13988,
+          "gzipBytes": 5049
+        },
+        {
+          "file": "assets/flows.module-D1Sa_UtE.js",
+          "rawBytes": 10362,
+          "gzipBytes": 2852
+        },
+        {
+          "file": "assets/methodValidity-BBvcdCeM.js",
+          "rawBytes": 9442,
+          "gzipBytes": 3378
+        },
+        {
+          "file": "assets/workflowExperience-CvjlKfBE.js",
+          "rawBytes": 7246,
+          "gzipBytes": 2693
+        },
+        {
+          "file": "assets/urban-context-strip-BjIXoYc6.css",
+          "rawBytes": 3802,
+          "gzipBytes": 877
+        },
+        {
+          "file": "assets/urban-context-strip.module-BNZAIf2U.js",
+          "rawBytes": 401,
+          "gzipBytes": 249
+        }
+      ],
+      "rawBytes": 132166,
+      "gzipBytes": 31443,
+      "budgetBytes": 512000,
+      "budgetReason": null,
+      "hasCustomBudget": false,
+      "withinBudget": true
+    },
+    {
+      "key": "src/centerpanel/Guide/OutlineRailV2.tsx",
+      "label": "centerpanel/Guide/OutlineRailV2",
+      "assets": [
+        {
+          "file": "assets/note-oogq81aw.css",
+          "rawBytes": 77614,
+          "gzipBytes": 12324
+        },
+        {
+          "file": "assets/note.module-nE24Wh8n.js",
+          "rawBytes": 10275,
+          "gzipBytes": 2956
+        },
+        {
+          "file": "assets/OutlineRailV2-DBo0rSuY.js",
+          "rawBytes": 7178,
+          "gzipBytes": 2746
+        },
+        {
+          "file": "assets/OutlineRailV2-B7Y9QnP0.css",
+          "rawBytes": 4353,
+          "gzipBytes": 1310
+        }
+      ],
+      "rawBytes": 99420,
+      "gzipBytes": 19336,
+      "budgetBytes": 512000,
+      "budgetReason": null,
+      "hasCustomBudget": false,
+      "withinBudget": true
+    },
+    {
+      "key": "src/components/editor/MonacoEditor.tsx",
+      "label": "components/editor/MonacoEditor",
+      "assets": [
+        {
+          "file": "assets/MonacoEditor-B8966zs8.js",
+          "rawBytes": 91290,
+          "gzipBytes": 25834
+        },
+        {
+          "file": "assets/MonacoEditor-BdzlDjJ0.css",
+          "rawBytes": 7810,
+          "gzipBytes": 1801
+        }
+      ],
+      "rawBytes": 99100,
+      "gzipBytes": 27635,
+      "budgetBytes": 512000,
+      "budgetReason": null,
+      "hasCustomBudget": false,
+      "withinBudget": true
+    },
+    {
+      "key": "src/services/map/MapEngineAdapter.ts",
+      "label": "services/map/MapEngineAdapter",
+      "assets": [
+        {
+          "file": "assets/MapEngineAdapter-BQ33xGIF.js",
+          "rawBytes": 62190,
+          "gzipBytes": 18204
+        },
+        {
+          "file": "assets/types-CDCYXNlV.js",
+          "rawBytes": 131,
+          "gzipBytes": 140
+        },
+        {
+          "file": "assets/MapEngineAdapter-BBKVdmv9.js",
+          "rawBytes": 93,
+          "gzipBytes": 108
+        }
+      ],
+      "rawBytes": 62414,
+      "gzipBytes": 18452,
+      "budgetBytes": 512000,
+      "budgetReason": null,
+      "hasCustomBudget": false,
+      "withinBudget": true
+    },
+    {
+      "key": "src/features/education/DatasetLibraryBrowser.tsx",
+      "label": "features/education/DatasetLibraryBrowser",
+      "assets": [
+        {
+          "file": "assets/datasetLibrary-abVR-067.js",
+          "rawBytes": 20413,
+          "gzipBytes": 7086
+        },
+        {
+          "file": "assets/DatasetLibraryBrowser-B4aCDrDy.js",
+          "rawBytes": 15422,
+          "gzipBytes": 4343
+        },
+        {
+          "file": "assets/DatasetLibraryBrowser-BgXyVPJ_.css",
+          "rawBytes": 12155,
+          "gzipBytes": 2299
+        },
+        {
+          "file": "assets/DatasetLibraryBrowser-DRqEVTma.js",
+          "rawBytes": 104,
+          "gzipBytes": 97
+        }
+      ],
+      "rawBytes": 48094,
+      "gzipBytes": 13825,
+      "budgetBytes": 512000,
+      "budgetReason": null,
+      "hasCustomBudget": false,
+      "withinBudget": true
+    },
+    {
+      "key": "src/features/education/MethodologyInfoButton.tsx",
+      "label": "features/education/MethodologyInfoButton",
+      "assets": [
+        {
+          "file": "assets/methodologyData-BT-GwfDF.js",
+          "rawBytes": 23618,
+          "gzipBytes": 7855
+        },
+        {
+          "file": "assets/education-ufQAY-EV.css",
+          "rawBytes": 18584,
+          "gzipBytes": 3439
+        },
+        {
+          "file": "assets/education.module-Be65m0Sa.js",
+          "rawBytes": 3282,
+          "gzipBytes": 1073
+        },
+        {
+          "file": "assets/MethodologyInfoButton-CmhbbAGN.js",
+          "rawBytes": 2369,
+          "gzipBytes": 1041
+        }
+      ],
+      "rawBytes": 47853,
+      "gzipBytes": 13408,
+      "budgetBytes": 512000,
+      "budgetReason": null,
+      "hasCustomBudget": false,
+      "withinBudget": true
+    },
+    {
+      "key": "node_modules/parquet-wasm/esm/parquet_wasm.js",
+      "label": "node_modules/parquet-wasm/esm/parquet_wasm",
+      "assets": [
+        {
+          "file": "assets/parquet_wasm-DCWGIwbW.js",
+          "rawBytes": 39454,
+          "gzipBytes": 8118
+        }
+      ],
+      "rawBytes": 39454,
+      "gzipBytes": 8118,
+      "budgetBytes": 512000,
+      "budgetReason": null,
+      "hasCustomBudget": false,
+      "withinBudget": true
+    },
+    {
+      "key": "src/centerpanel/registry-ui/Registry.tsx",
+      "label": "centerpanel/registry-ui/Registry",
+      "assets": [
+        {
+          "file": "assets/Registry-CwcQG5Mu.css",
+          "rawBytes": 21125,
+          "gzipBytes": 3951
+        },
+        {
+          "file": "assets/Registry-Cn-Iahi1.js",
+          "rawBytes": 16455,
+          "gzipBytes": 4967
+        }
+      ],
+      "rawBytes": 37580,
+      "gzipBytes": 8918,
+      "budgetBytes": 512000,
+      "budgetReason": null,
+      "hasCustomBudget": false,
+      "withinBudget": true
+    },
+    {
+      "key": "node_modules/dompurify/dist/purify.es.mjs",
+      "label": "node_modules/dompurify/dist/purify.es.mjs",
+      "assets": [
+        {
+          "file": "assets/purify.es-Bwpm7U1o.js",
+          "rawBytes": 21101,
+          "gzipBytes": 8463
+        }
+      ],
+      "rawBytes": 21101,
+      "gzipBytes": 8463,
+      "budgetBytes": 512000,
+      "budgetReason": null,
+      "hasCustomBudget": false,
+      "withinBudget": true
+    },
+    {
+      "key": "src/centerpanel/registry-ui/NewProjectPage.tsx",
+      "label": "centerpanel/registry-ui/NewProjectPage",
+      "assets": [
+        {
+          "file": "assets/NewProjectPage-BULFrfTv.css",
+          "rawBytes": 8411,
+          "gzipBytes": 1941
+        },
+        {
+          "file": "assets/NewProjectPage-BlH4QO2s.js",
+          "rawBytes": 6715,
+          "gzipBytes": 2265
+        }
+      ],
+      "rawBytes": 15126,
+      "gzipBytes": 4206,
+      "budgetBytes": 512000,
+      "budgetReason": null,
+      "hasCustomBudget": false,
+      "withinBudget": true
+    },
+    {
+      "key": "src/features/dashboard/DashboardLeftRail.tsx",
+      "label": "features/dashboard/DashboardLeftRail",
+      "assets": [
+        {
+          "file": "assets/educationRail-J4AbzyJx.css",
+          "rawBytes": 6871,
+          "gzipBytes": 1608
+        },
+        {
+          "file": "assets/DashboardLeftRail-B_R94RQ1.js",
+          "rawBytes": 4871,
+          "gzipBytes": 1751
+        },
+        {
+          "file": "assets/educationRail.module-GUAfRlWy.js",
+          "rawBytes": 1215,
+          "gzipBytes": 474
+        },
+        {
+          "file": "assets/uiStore-O13_C-Ip.js",
+          "rawBytes": 299,
+          "gzipBytes": 210
+        }
+      ],
+      "rawBytes": 13256,
+      "gzipBytes": 4043,
+      "budgetBytes": 512000,
+      "budgetReason": null,
+      "hasCustomBudget": false,
+      "withinBudget": true
+    },
+    {
+      "key": "src/centerpanel/components/EngineCapabilitiesPanel.tsx",
+      "label": "centerpanel/components/EngineCapabilitiesPanel",
+      "assets": [
+        {
+          "file": "assets/EngineCapabilitiesPanel-DgbE8STq.js",
+          "rawBytes": 10070,
+          "gzipBytes": 3116
+        }
+      ],
+      "rawBytes": 10070,
+      "gzipBytes": 3116,
+      "budgetBytes": 512000,
+      "budgetReason": null,
+      "hasCustomBudget": false,
+      "withinBudget": true
+    },
+    {
+      "key": "src/utils/crypto/localVault.ts",
+      "label": "utils/crypto/localVault",
+      "assets": [
+        {
+          "file": "assets/localVault-CA-kBrok.js",
+          "rawBytes": 1655,
+          "gzipBytes": 757
+        }
+      ],
+      "rawBytes": 1655,
+      "gzipBytes": 757,
+      "budgetBytes": 512000,
+      "budgetReason": null,
+      "hasCustomBudget": false,
+      "withinBudget": true
+    }
+  ],
+  "largestAssets": [
+    {
+      "file": "assets/index-DyVAsHlr.js",
+      "rawBytes": 1699199,
+      "gzipBytes": 458936
+    },
+    {
+      "file": "assets/MapExplorerModal-BLCTPQ3T.js",
+      "rawBytes": 1375596,
+      "gzipBytes": 365143
+    },
+    {
+      "file": "assets/useCityJSONScene-B3Rm_EnP.js",
+      "rawBytes": 861445,
+      "gzipBytes": 226071
+    },
+    {
+      "file": "assets/mapContextAdapter-CRGzHKsE.js",
+      "rawBytes": 801455,
+      "gzipBytes": 213115
+    },
+    {
+      "file": "assets/html2pdf-r-YBDK4-.js",
+      "rawBytes": 736094,
+      "gzipBytes": 217089
+    },
+    {
+      "file": "assets/reportArtifactBuilder-B7JtX6Sr.js",
+      "rawBytes": 713429,
+      "gzipBytes": 240657
+    },
+    {
+      "file": "assets/es-CwAu4tvI.js",
+      "rawBytes": 420100,
+      "gzipBytes": 174834
+    },
+    {
+      "file": "assets/jspdf.es.min-CP1HiK1-.js",
+      "rawBytes": 399680,
+      "gzipBytes": 128438
+    },
+    {
+      "file": "assets/ort.bundle.min-qTpDLdcM.js",
+      "rawBytes": 390881,
+      "gzipBytes": 104676
+    },
+    {
+      "file": "assets/MapDataImporter-BN0v68Q4.js",
+      "rawBytes": 368202,
+      "gzipBytes": 94568
+    },
+    {
+      "file": "assets/mqtt.esm-Qul2CH2r.js",
+      "rawBytes": 357169,
+      "gzipBytes": 103286
+    },
+    {
+      "file": "assets/MethodologyExplainer-BsfAjiGy.js",
+      "rawBytes": 260895,
+      "gzipBytes": 76809
+    }
+  ]
+}
