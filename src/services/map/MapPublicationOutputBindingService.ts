@@ -1,10 +1,13 @@
 import { normalizeLayerRegistryMetadata } from "@/centerpanel/components/map/mapLayerMetadata";
+import { createMapLayerEvidenceArtifact } from "@/centerpanel/components/map/mapEvidenceArtifacts";
 import type { MapExplorerContextSummary } from "@/centerpanel/components/map/mapContextSummary";
 import type {
   LayerPublicationReadinessStatus,
   MapEvidenceArtifact,
+  MapEvidenceCrsSummary,
   MapEvidenceQA,
   MapEvidenceScalar,
+  MapEvidenceSourceModule,
   OverlayLayerConfig,
 } from "@/centerpanel/components/map/mapTypes";
 import type {
@@ -118,6 +121,23 @@ export interface BuildMapEducationReferenceInput {
   createdAt?: string;
 }
 
+export interface BuildMapPublicationEvidenceArtifactInput {
+  layer: OverlayLayerConfig;
+  sourceModule?: MapEvidenceSourceModule;
+  linkedRunId?: string;
+  linkedWorkflowId?: string;
+  linkedArtifactIds?: string[];
+  urbanEvidenceId?: string;
+  runtimeMode?: "live" | "demo" | "synthetic" | "unknown";
+  manifestReferenceId?: string;
+  crsSummary?: Partial<MapEvidenceCrsSummary>;
+  contextId?: string;
+  contextSummary?: MapExplorerContextSummary | null;
+  publicationReadiness?: MapPublicationReadiness | null;
+  qa?: Partial<MapEvidenceQA>;
+  createdAt?: string;
+}
+
 function safeIdPart(value: string): string {
   return value
     .trim()
@@ -228,6 +248,48 @@ function buildOutputQA(input: {
   const checkedAt = input.publicationReadiness?.checkedAt ?? input.layer.metadata?.scientificQA?.checkedAt;
   if (checkedAt) qa.checkedAt = checkedAt;
   return qa;
+}
+
+export function buildMapPublicationEvidenceArtifact(
+  input: BuildMapPublicationEvidenceArtifactInput,
+): MapEvidenceArtifact {
+  const qa = buildOutputQA({
+    layer: input.layer,
+    publicationReadiness: input.publicationReadiness,
+  });
+  const qaState = input.qa?.state ?? qa.state;
+  const state = qaState === "blocked" || qaState === "error" ? "blocked" : "published";
+  const checkedAt = input.qa?.checkedAt ?? qa.checkedAt;
+  const evidenceQa: Partial<MapEvidenceQA> = {
+    state: qaState,
+    issueIds: input.qa?.issueIds ?? qa.issueIds,
+    issueCount: input.qa?.issueCount ?? qa.issueIds.length,
+    blockerCount: input.qa?.blockerCount ?? qa.blockerCount,
+    caveats: unique([...qa.caveats, ...(input.qa?.caveats ?? [])]),
+    ...(checkedAt ? { checkedAt } : {}),
+    ...(input.qa?.categorySummaries ? { categorySummaries: input.qa.categorySummaries } : {}),
+  };
+  const contextId = input.contextId ?? input.contextSummary?.contextId;
+
+  return createMapLayerEvidenceArtifact(input.layer, {
+    id: `map-evidence-publication-${safeIdPart(input.layer.id)}`,
+    state,
+    sourceModule: input.sourceModule ?? "map-explorer",
+    ...(input.urbanEvidenceId ? { urbanEvidenceId: input.urbanEvidenceId } : {}),
+    ...(input.linkedRunId ? { linkedRunId: input.linkedRunId } : {}),
+    ...(input.linkedWorkflowId ? { linkedWorkflowId: input.linkedWorkflowId } : {}),
+    ...(input.linkedArtifactIds ? { linkedArtifactIds: input.linkedArtifactIds } : {}),
+    ...(input.crsSummary ? { crsSummary: input.crsSummary } : {}),
+    ...(input.runtimeMode ? { runtimeMode: input.runtimeMode } : {}),
+    ...(input.manifestReferenceId ? { manifestId: input.manifestReferenceId } : {}),
+    qa: evidenceQa,
+    metadata: {
+      ...(contextId ? { contextId } : {}),
+      publicationReadinessStatus: input.publicationReadiness?.status
+        ?? normalizeLayerRegistryMetadata(input.layer).publicationReadiness.status,
+    },
+    ...(input.createdAt ? { createdAt: input.createdAt } : {}),
+  });
 }
 
 function areaStatus(state: DashboardBindingQAState): DashboardMapBinding["areas"][number]["status"] {

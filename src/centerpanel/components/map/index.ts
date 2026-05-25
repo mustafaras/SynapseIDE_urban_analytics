@@ -173,6 +173,9 @@ export {
   createMapVoxCityHandoffEvidenceArtifact,
   createMapWorkflowResultEvidenceArtifact,
   patchMapEvidenceArtifact,
+  supersedeMapEvidenceArtifact,
+  supersedeMapEvidenceArtifactsForLayerChange,
+  supersedeMapLayerEvidenceArtifactForLayerChange,
   selectMapEvidenceArtifactsByAoi,
   selectMapEvidenceArtifactsByLayer,
   selectMapEvidenceArtifactsBySource,
@@ -186,12 +189,14 @@ export type {
   MapEvidenceArtifactUpdate,
   MapExportEvidenceArtifactInput,
   MapLayerEvidenceArtifactOptions,
+  MapEvidenceArtifactSupersession,
   MapQAFindingEvidenceArtifactOptions,
   MapReportSnapshotEvidenceArtifactInput,
   MapScenarioComparisonEvidenceArtifactInput,
   MapTemporalEvidenceArtifactInput,
   MapVoxCityHandoffEvidenceArtifactInput,
   MapWorkflowResultEvidenceArtifactInput,
+  SupersedeMapEvidenceArtifactOptions,
 } from "./mapEvidenceArtifacts";
 
 export { MapTemporalPlayer } from "../MapTemporalPlayer";

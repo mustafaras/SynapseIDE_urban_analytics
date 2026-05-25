@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Archive,
   BadgeCheck,
@@ -29,9 +29,14 @@ import { getDashboardBinding } from '@/features/dashboard/dataBindings';
 import { queuePendingDashboardBinding } from '@/features/dashboard/storage';
 import type { DashboardBindingKind, DashboardWidgetType } from '@/features/dashboard/types';
 import { busTimestamp, synapseBus } from '@/services/synapseBus';
+import { MAP_LAYER_REGISTRY_EVENT, type MapLayerRegistryChangeDetail } from '@/centerpanel/components/map/mapTypes';
 import { useFlowStore } from '@/stores/useFlowStore';
 import { useMapExplorerStore } from '@/stores/useMapExplorerStore';
-import { assessPublicationEligibility, publishUrbanRunOutputsToMap } from '../context/mapEvidencePublisher';
+import {
+  assessPublicationEligibility,
+  publishUrbanRunOutputsToMap,
+  supersedePublishedUrbanMapEvidenceForLayerChange,
+} from '../context/mapEvidencePublisher';
 import {
   enqueueUrbanDashboardBinding,
   getUrbanDashboardBindingEligibility,
@@ -747,6 +752,27 @@ export function UrbanEvidenceTray({
   const [kindFilter, setKindFilter] = useState<EvidenceKindFilter>('all');
   const [selectedArtifactId, setSelectedArtifactId] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string>('');
+
+  useEffect(() => {
+    const handleLayerRegistryChange = (event: Event): void => {
+      const detail = (event as CustomEvent<MapLayerRegistryChangeDetail>).detail;
+      if (!detail?.layerId || (detail.operation !== 'update' && detail.operation !== 'remove')) {
+        return;
+      }
+      const layer = useMapExplorerStore.getState().overlayLayers.find((entry) => entry.id === detail.layerId) ?? null;
+      supersedePublishedUrbanMapEvidenceForLayerChange({
+        layerId: detail.layerId,
+        layer,
+        changedAt: detail.timestamp,
+        reason: detail.operation === 'remove'
+          ? `Map source layer ${detail.layerId} was removed after evidence publication.`
+          : `Map source layer ${detail.layerId} changed after evidence publication.`,
+      });
+    };
+
+    window.addEventListener(MAP_LAYER_REGISTRY_EVENT, handleLayerRegistryChange);
+    return () => window.removeEventListener(MAP_LAYER_REGISTRY_EVENT, handleLayerRegistryChange);
+  }, []);
 
   const layerNameById = useMemo(() => {
     const names = new Map<string, string>();

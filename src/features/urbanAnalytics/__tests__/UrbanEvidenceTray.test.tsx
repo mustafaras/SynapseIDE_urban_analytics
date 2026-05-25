@@ -394,6 +394,57 @@ describe('UrbanEvidenceTray', () => {
     }
   });
 
+  it('shows stale evidence and a superseding card after the published map layer is edited', async () => {
+    registerContextFixture();
+    const run = makeRun('run-stale-001', [makeMapOutput('edited-output')]);
+    registerWorkflowRunArtifact(run, makeManifest(run.runId, 'demo'));
+    const { container, root } = mountTray();
+
+    try {
+      await act(async () => {
+        root.render(<UrbanEvidenceTray initialExpanded />);
+      });
+      const workflowRow = rowByText(container, 'Workflow run-stale-001');
+      const publishButton = Array.from(workflowRow.querySelectorAll<HTMLButtonElement>('button')).find((button) =>
+        button.textContent?.includes('Publish'),
+      );
+      await dispatchClick(publishButton ?? null);
+
+      const publishedLayer = useMapExplorerStore.getState().overlayLayers.find((layer) =>
+        layer.id === 'urban-pub-run-stale-001-edited-output',
+      )!;
+      await act(async () => {
+        useMapExplorerStore.getState().updateLayerMetadata(publishedLayer.id, {
+          metadata: {
+            ...(publishedLayer.metadata ?? {}),
+            dataVersion: 'edited-v2',
+          },
+        });
+      });
+
+      const cards = useUrbanContextStore.getState().evidenceArtifacts.filter((artifact) =>
+        artifact.mapLayerId === publishedLayer.id,
+      );
+      expect(cards).toHaveLength(2);
+      expect(cards.some((artifact) => artifact.state === 'stale')).toBe(true);
+      expect(cards.some((artifact) =>
+        artifact.state === 'published' && artifact.metadata?.supersedesArtifactId,
+      )).toBe(true);
+      const mapArtifacts = useMapExplorerStore.getState().mapEvidenceArtifacts.filter((artifact) =>
+        artifact.sourceId === publishedLayer.id,
+      );
+      expect(mapArtifacts.some((artifact) => artifact.state === 'stale')).toBe(true);
+      expect(mapArtifacts.some((artifact) => artifact.state === 'published')).toBe(true);
+      expect(container.textContent).toContain('Stale');
+      expect(container.textContent).toContain('Superseding evidence reference after map source change');
+    } finally {
+      await act(async () => {
+        root.unmount();
+      });
+      container.remove();
+    }
+  });
+
   it('disables publish with a reason for workflow runs with no eligible map output', async () => {
     registerContextFixture();
     const run = makeRun('run-synthetic-001', [makeMapOutput('synthetic-output')]);

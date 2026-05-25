@@ -41,6 +41,8 @@ import {
   type MapEvidenceArtifactDraft,
   type MapEvidenceArtifactUpdate,
   patchMapEvidenceArtifact,
+  supersedeMapEvidenceArtifact,
+  supersedeMapEvidenceArtifactsForLayerChange,
   upsertMapEvidenceArtifact as upsertMapEvidenceArtifactInRegistry,
 } from "../centerpanel/components/map/mapEvidenceArtifacts";
 import type { MapScientificQAState } from "../services/map/MapScientificQA";
@@ -584,7 +586,11 @@ function detectLayerRegistryOperation(
     return { operation: "opacity", layerId: opacityChanged.id };
   }
 
-  return { operation: "update" };
+  const updatedLayer = layers.find((layer) => previousById.get(layer.id) !== layer);
+  return {
+    operation: "update",
+    ...(updatedLayer ? { layerId: updatedLayer.id } : {}),
+  };
 }
 
 function emitMapLayerRegistryChange(
@@ -706,18 +712,19 @@ function applyScientificQAToEvidenceArtifacts(
 ): MapEvidenceArtifact[] {
   if (!qa) return artifacts;
 
-  const refreshedArtifacts = artifacts.map((artifact) => {
-    if (artifact.kind === "qa-finding") return artifact;
+  let refreshedArtifacts = [...artifacts];
+  for (const artifact of artifacts) {
+    if (artifact.kind === "qa-finding" || (artifact.state !== "active" && artifact.state !== "published")) continue;
     const linkedLayerIds = uniqueStrings([
       ...artifact.linkedLayerIds,
       ...artifact.sourceLayerIds,
       artifact.derivedLayerId,
     ]);
-    if (linkedLayerIds.length === 0) return artifact;
+    if (linkedLayerIds.length === 0) continue;
 
     const linkedLayerSet = new Set(linkedLayerIds);
     const relatedLayerSummaries = qa.layerSummaries.filter((summary) => linkedLayerSet.has(summary.layerId));
-    if (relatedLayerSummaries.length === 0) return artifact;
+    if (relatedLayerSummaries.length === 0) continue;
 
     const relatedIssues = qa.issues.filter((issue) => issue.layerId && linkedLayerSet.has(issue.layerId));
     const issueIds = uniqueStrings(relatedIssues.map((issue) => issue.id));
@@ -730,14 +737,16 @@ function applyScientificQAToEvidenceArtifacts(
       ...relatedIssues.map((issue) => issue.explanation),
     ]).slice(0, 8);
 
-    return patchMapEvidenceArtifact(artifact, {
-      qaIssueIds: issueIds,
+    const qaState = blockerCount > 0
+      ? "blocked"
+      : warningCount > 0 || hasUnknownCategory
+        ? "warning"
+        : "passed";
+    const { staleArtifact, supersedingArtifact } = supersedeMapEvidenceArtifact(artifact, {
+      reason: "Map scientific QA was reevaluated after evidence publication.",
+      state: qaState === "blocked" ? "blocked" : artifact.state,
       qa: {
-        state: blockerCount > 0
-          ? "blocked"
-          : warningCount > 0 || hasUnknownCategory
-            ? "warning"
-            : "passed",
+        state: qaState,
         issueIds,
         issueCount: issueIds.length,
         blockerCount,
@@ -745,9 +754,11 @@ function applyScientificQAToEvidenceArtifacts(
         categorySummaries,
         checkedAt: qa.checkedAt,
       },
-      updatedAt: qa.checkedAt,
+      changedAt: qa.checkedAt,
     });
-  });
+    refreshedArtifacts = upsertMapEvidenceArtifactInRegistry(refreshedArtifacts, staleArtifact);
+    refreshedArtifacts = upsertMapEvidenceArtifactInRegistry(refreshedArtifacts, supersedingArtifact);
+  }
 
   return upsertMapEvidenceArtifactInRegistry(refreshedArtifacts, createMapQAFindingEvidenceArtifact(qa));
 }
@@ -1076,7 +1087,19 @@ export const useMapExplorerStore = create<MapExplorerState>()(
             );
           }
 
-          return { overlayLayers };
+          if (existingIndex === -1) return { overlayLayers };
+          return {
+            overlayLayers,
+            mapEvidenceArtifacts: supersedeMapEvidenceArtifactsForLayerChange(
+              s.mapEvidenceArtifacts,
+              normalizedLayer.id,
+              normalizedLayer,
+              {
+                reason: `Map source layer ${normalizedLayer.id} was replaced after evidence publication.`,
+                changedAt: normalizedLayer.metadata?.updatedAt ?? nowIsoTimestamp(),
+              },
+            ),
+          };
         }),
       removeOverlayLayer: (id: string) =>
         set((s: MapExplorerState) => {
@@ -1093,6 +1116,15 @@ export const useMapExplorerStore = create<MapExplorerState>()(
 
           return {
             overlayLayers,
+            mapEvidenceArtifacts: supersedeMapEvidenceArtifactsForLayerChange(
+              s.mapEvidenceArtifacts,
+              id,
+              null,
+              {
+                reason: `Map source layer ${id} was removed after evidence publication.`,
+                changedAt: nowIsoTimestamp(),
+              },
+            ),
           };
         }),
       toggleLayerVisibility: (id: string) =>
@@ -1108,11 +1140,48 @@ export const useMapExplorerStore = create<MapExplorerState>()(
           ),
         })),
       updateLayerMetadata: (id: string, patch: Partial<OverlayLayerConfig>) =>
-        set((s: MapExplorerState) => ({
-          overlayLayers: s.overlayLayers.map((l) =>
-            l.id === id ? withNormalizedLayerRegistryMetadata({ ...l, ...patch }) : l,
-          ),
-        })),
+        set((s: MapExplorerState) => {
+          let changedLayer: OverlayLayerConfig | null = null;
+          const overlayLayers = s.overlayLayers.map((layer) => {
+            if (layer.id !== id) return layer;
+            changedLayer = withNormalizedLayerRegistryMetadata({ ...layer, ...patch });
+            return changedLayer;
+          });
+          if (!changedLayer) return { overlayLayers };
+          const layerQa = changedLayer.metadata?.scientificQA;
+          const evidenceQa = layerQa
+            ? {
+                state: layerQa.status === "error" ? "blocked" as const : layerQa.status,
+                issueIds: layerQa.issueIds,
+                issueCount: layerQa.issueIds.length,
+                blockerCount: layerQa.status === "error" ? Math.max(1, layerQa.issueIds.length) : 0,
+                caveats: layerQa.caveats,
+                ...(layerQa.categorySummaries ? { categorySummaries: layerQa.categorySummaries } : {}),
+                checkedAt: layerQa.checkedAt,
+              }
+            : changedLayer.qaStatus === "error"
+              ? {
+                  state: "blocked" as const,
+                  issueIds: [],
+                  issueCount: 0,
+                  blockerCount: 1,
+                  caveats: ["Layer QA is blocking publication."],
+                }
+              : undefined;
+          return {
+            overlayLayers,
+            mapEvidenceArtifacts: supersedeMapEvidenceArtifactsForLayerChange(
+              s.mapEvidenceArtifacts,
+              id,
+              changedLayer,
+              {
+                reason: `Map source layer ${id} changed after evidence publication.`,
+                changedAt: changedLayer.metadata?.updatedAt ?? nowIsoTimestamp(),
+                ...(evidenceQa ? { qa: evidenceQa } : {}),
+              },
+            ),
+          };
+        }),
       reorderLayers: (orderedIds: string[]) =>
         set((s: MapExplorerState) => {
           const byId = new Map(s.overlayLayers.map((l) => [l.id, l]));
