@@ -23,9 +23,12 @@ import {
   createWfsLayerConfig,
   createXyzRasterLayerConfig,
   normalizeXyzTileUrlTemplate,
+  overpassRoadsToGeoJSON,
+  createOsmRoadsLayerConfig,
   STAMEN_WATERCOLOR_TILE_URL,
   XYZ_PRESETS,
   type OverpassBuildingsResult,
+  type OverpassRoadsResult,
 } from "../ExternalServiceConnector";
 
 describe("ExternalServiceConnector", () => {
@@ -432,4 +435,69 @@ describeLive("ExternalServiceConnector live service smoke tests", () => {
     const response = await fetchExternalService("https://tile.opentopomap.org/0/0/0.png", { method: "GET" }, { accept: "image/png", timeoutMs: 10_000 });
     expect(response.ok).toBe(true);
   }, 20_000);
+});
+
+describe("ExternalServiceConnector — OSM roads", () => {
+  it("parses Overpass highway ways into LineString features", () => {
+    const featureCollection = overpassRoadsToGeoJSON({
+      elements: [
+        {
+          type: "way",
+          id: 10,
+          tags: { highway: "primary", name: "Broadway", lanes: "4" },
+          geometry: [
+            { lon: -73.985, lat: 40.725 },
+            { lon: -73.975, lat: 40.735 },
+          ],
+        },
+        // A degenerate single-point way is dropped (not a valid LineString).
+        { type: "way", id: 11, tags: { highway: "service" }, geometry: [{ lon: -73.98, lat: 40.73 }] },
+        // Non-way elements are ignored.
+        { type: "node", id: 12, lat: 40.73, lon: -73.98 },
+      ],
+    });
+
+    expect(featureCollection.features).toHaveLength(1);
+    const [road] = featureCollection.features;
+    expect(road?.geometry.type).toBe("LineString");
+    expect(road?.geometry.coordinates).toHaveLength(2);
+    expect(road?.properties?.highway).toBe("primary");
+    expect(road?.properties?.name).toBe("Broadway");
+    expect(road?.properties?.lanes).toBe(4);
+  });
+
+  it("creates a queryable, ODbL-attributed external road layer in EPSG:4326", () => {
+    const result: OverpassRoadsResult = {
+      featureCollection: overpassRoadsToGeoJSON({
+        elements: [
+          {
+            type: "way",
+            id: 20,
+            tags: { highway: "secondary", name: "5th Ave" },
+            geometry: [
+              { lon: -73.98, lat: 40.72 },
+              { lon: -73.978, lat: 40.74 },
+            ],
+          },
+        ],
+      }),
+      requestedBounds: [-74, 40.7, -73.95, 40.75],
+      clampedBounds: [-73.99, 40.72, -73.97, 40.74],
+      areaKm2: 3.6,
+      wasClamped: true,
+      cacheKey: "k",
+      cacheHit: false,
+      fetchedAt: "2026-05-25T10:00:00.000Z",
+      endpoint: "https://overpass.test/api/interpreter",
+      provenance: "OpenStreetMap contributors — © ODbL",
+    };
+
+    const layer = createOsmRoadsLayerConfig(result);
+    expect(layer.sourceKind).toBe("external");
+    expect(layer.queryable).toBe(true);
+    expect(layer.metadata?.externalService?.kind).toBe("overpass");
+    expect(layer.metadata?.licenseAttribution?.license).toBe("ODbL");
+    expect(layer.metadata?.crsSummary?.crs).toBe("EPSG:4326");
+    expect(layer.provenance?.attribution).toContain("OpenStreetMap");
+  });
 });
