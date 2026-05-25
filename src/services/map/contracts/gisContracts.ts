@@ -12,16 +12,21 @@
 /* ==================================================================== */
 
 import type {
+  DrawnFeature,
   ImportLayerSourceMetadata,
   LayerCrsSummary,
+  LayerSchemaFieldRole,
   LayerSchemaSummary,
+  LayerScientificQACategorySummary,
   LayerSourceKind,
+  MapEvidenceArtifactKind,
+  MapEvidenceArtifactState,
+  MapEvidenceQAState,
   MapLayerRegistryLayerSummary,
-  MapReproducibilityAoiReference,
-  MapReproducibilityCrsSummary,
   MapReproducibilityManifest,
-  OverlayGeometryType,
 } from "@/centerpanel/components/map/mapTypes";
+import type { MapExplorerContextSummary } from "@/centerpanel/components/map/mapContextSummary";
+import type { MapWorkflowKind } from "../MapWorkflowService";
 
 /* -------------------------------------------------------------------- */
 /*  Source registry (Prompts 4–5, 21, 26)                               */
@@ -146,32 +151,213 @@ export interface MapCommandResult {
 /*  Map <-> Urban bridge (Prompts 16–18)                                */
 /* -------------------------------------------------------------------- */
 
-/** Map -> Urban: typed summaries + IDs only, never raw geometry. */
+export type MapToUrbanContextDestinationIntent = "urban-evidence-tray" | "method-recommendations";
+
+export interface MapToUrbanAoiPayloadReference {
+  aoiId: string | null;
+  label: string | null;
+  geometryFamily: DrawnFeature["geometry"]["type"] | string | null;
+  bbox: [number, number, number, number] | null;
+  source: "active-aoi" | "map-view" | "none";
+  validationStatus: string | null;
+  validationIssueCodes: string[];
+  caveats: string[];
+}
+
+export interface MapToUrbanLayerFieldDescriptor {
+  name: string;
+  role: LayerSchemaFieldRole | "unknown";
+  source: "schema" | "metadata" | "feature-scan";
+  type?: string;
+}
+
+export interface MapToUrbanLayerFieldSummary {
+  layerId: string;
+  fieldCount: number;
+  fields: MapToUrbanLayerFieldDescriptor[];
+  temporalFields: string[];
+  truncated: boolean;
+}
+
+export interface MapToUrbanLayerPayloadSummary {
+  layerId: string;
+  name: string;
+  registry: MapLayerRegistryLayerSummary;
+  selectedFeatureCount: number;
+  activeAnalysisResult: boolean;
+  fieldSummary: MapToUrbanLayerFieldSummary;
+  crs: {
+    crs: string | null;
+    status: string;
+    source: string;
+    notes: string[];
+  };
+  qa: {
+    status: string;
+    issueIds: string[];
+    badges: string[];
+    featureIssueCount: number;
+    caveats: string[];
+    categorySummaries?: LayerScientificQACategorySummary[];
+  };
+  readiness: {
+    status: string;
+    missingFields: string[];
+    blockingIssueIds: string[];
+    caveats: string[];
+  };
+  workflow: {
+    runId: string | null;
+    sourceRunId: string | null;
+    workflowId: string | null;
+    evidenceArtifactId: string | null;
+    reproducibilityManifestId: string | null;
+  };
+}
+
+export interface MapToUrbanContextCrsSummary {
+  distinct: string[];
+  missingLayerIds: string[];
+  mixedCrs: boolean;
+  byLayer: Array<{
+    layerId: string;
+    crs: string | null;
+    status: string;
+    source: string;
+  }>;
+}
+
+export interface MapToUrbanContextQaSummary {
+  status: string;
+  checkedAt: string | null;
+  layerCount: number;
+  blockedLayerCount: number;
+  issueCounts: Record<string, number>;
+  blockingIssueIds: string[];
+  warningIssueIds: string[];
+}
+
+export interface MapToUrbanEvidenceSummary {
+  artifactId: string;
+  kind: MapEvidenceArtifactKind;
+  title: string;
+  state: MapEvidenceArtifactState;
+  sourceModule: string;
+  linkedLayerIds: string[];
+  sourceLayerIds: string[];
+  linkedAoiId: string | null;
+  linkedRunId: string | null;
+  linkedWorkflowId: string | null;
+  derivedLayerId: string | null;
+  qaState: MapEvidenceQAState;
+  qaIssueCount: number;
+  qaBlockerCount: number;
+  updatedAt: string;
+}
+
+export interface MapToUrbanWorkflowSummary {
+  activeWorkflowId: string | null;
+  activeAnalysisResultLayerIds: string[];
+  activeRunIds: string[];
+  layerRunIds: string[];
+  manifestIds: string[];
+}
+
 export interface MapToUrbanContextPayload {
   version: 1;
-  mapContextId: string;
-  activeLayerSummaries: MapLayerRegistryLayerSummary[];
-  aoi?: MapReproducibilityAoiReference;
-  selection?: {
-    layerId: string;
-    selectedFeatureCount: number;
-  };
-  crs: MapReproducibilityCrsSummary;
-  qaBlockers: string[];
-  emittedAt: string;
+  payloadId: string;
+  sourceModule: "map-explorer";
+  destinationModule: "urban-analytics";
+  destinationIntent: MapToUrbanContextDestinationIntent[];
+  createdAt: string;
+  requestedLayerId: string | null;
+  context: MapExplorerContextSummary;
+  aoiReference: MapToUrbanAoiPayloadReference;
+  layerSummaries: MapToUrbanLayerPayloadSummary[];
+  visibleLayerIds: string[];
+  queryableLayerIds: string[];
+  selectedFeatureCounts: Array<{ layerId: string; count: number }>;
+  fieldSummaries: MapToUrbanLayerFieldSummary[];
+  crsSummary: MapToUrbanContextCrsSummary;
+  qaSummary: MapToUrbanContextQaSummary;
+  evidenceSummaries: MapToUrbanEvidenceSummary[];
+  workflowSummary: MapToUrbanWorkflowSummary;
+  disabledReasons: string[];
+}
+
+export type UrbanToMapGeometryRequirement = "point" | "line" | "polygon" | "mixed" | "unknown";
+export type UrbanToMapTemporalRequirement = "required" | "optional" | "not-required";
+
+export type UrbanToMapMethodRequestActionType =
+  | "focus-compatible-layers"
+  | "validate-aoi"
+  | "preview-map-workflow"
+  | "publish-derived-layer"
+  | "prepare-report-ready-snapshot";
+
+export interface UrbanToMapMethodRequestAction {
+  type: UrbanToMapMethodRequestActionType;
+  label?: string;
+  workflowKind?: MapWorkflowKind;
+  targetLayerIds?: string[];
+  reportScope?: "map-view" | "layer";
+}
+
+export type UrbanToMapMethodRequestActionInput =
+  | UrbanToMapMethodRequestActionType
+  | UrbanToMapMethodRequestAction;
+
+export interface UrbanToMapLayerRequirements {
+  targetLayerIds?: string[];
+  geometryTypes?: UrbanToMapGeometryRequirement[];
+  requiredFields?: string[];
+  optionalFields?: string[];
+  temporal?: UrbanToMapTemporalRequirement;
+  minFeatureCount?: number;
+  requireVisible?: boolean;
+  requireQueryable?: boolean;
+  requiredCrs?: string;
+}
+
+export interface UrbanToMapAoiRequirements {
+  required?: boolean;
+  preferredAoiId?: string;
+  geometryTypes?: UrbanToMapGeometryRequirement[];
+}
+
+export interface UrbanToMapWorkflowRequirements {
+  kind?: MapWorkflowKind;
+  distanceMeters?: number;
+  outputLayerName?: string;
+  sourceLayerId?: string;
+  comparisonLayerId?: string;
+}
+
+export interface UrbanToMapMethodRequirements {
+  layer?: UrbanToMapLayerRequirements;
+  aoi?: UrbanToMapAoiRequirements;
+  workflow?: UrbanToMapWorkflowRequirements;
+  recommendedScale?: string;
+  dataFitnessThreshold?: number | null;
 }
 
 /** Urban -> Map: a method request describing prerequisites to satisfy. */
 export interface UrbanToMapMethodRequestPayload {
   version: 1;
   requestId: string;
+  createdAt: string;
   methodId: string;
-  methodName: string;
-  requiredGeometry?: OverlayGeometryType;
-  requiredFields: string[];
-  requiredCrs?: string;
-  requiresAoi: boolean;
-  notes: string[];
+  sourceModule: "urban-analytics";
+  destinationModule: "map-explorer";
+  methodLabel?: string;
+  cardId?: string;
+  workflowId?: string;
+  selectedIndicatorKind?: string;
+  outputIntent?: "inspect" | "derive-layer" | "report" | "dashboard" | "ide";
+  reportIntent?: "snapshot" | "citation" | "method-appendix";
+  dashboardIntent?: "layer-binding" | "metric-binding";
+  requirements?: UrbanToMapMethodRequirements;
+  requestedActions: UrbanToMapMethodRequestActionInput[];
 }
 
 /* -------------------------------------------------------------------- */
