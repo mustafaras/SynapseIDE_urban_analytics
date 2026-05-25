@@ -86,6 +86,7 @@ import {
 } from "@/services/map/DrawnGeometryValidation";
 import { MapReportHandoffDrawer } from "../MapReportHandoffDrawer";
 import { MapReviewTimelinePanel } from "../MapReviewTimelinePanel";
+import { MapFigureComposerPanel } from "../layout/MapFigureComposerPanel";
 import { LayerInspector } from "../inspector/LayerInspector";
 import { MapAttributeTable, type AttrFeature } from "../table/MapAttributeTable";
 import { CartographyRecommendationList } from "../CartographyRecommendationList";
@@ -1008,6 +1009,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     setWorkflowReportItems,
   } = useMapWorkflowController();
   const [showReviewTimeline, setShowReviewTimeline] = useState(false);
+  const [showFigureComposer, setShowFigureComposer] = useState(false);
+  const handleToggleFigureComposer = useCallback(() => setShowFigureComposer((previous) => !previous), []);
   const [inspectorLayerId, setInspectorLayerId] = useState<string | null>(null);
   const inspectorLayer = inspectorLayerId
     ? overlayLayers.find((entry) => entry.id === inspectorLayerId) ?? null
@@ -5573,6 +5576,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               showReviewTimeline={showReviewTimeline}
               onToggleReviewTimeline={handleToggleReviewTimeline}
               reviewEventCount={reviewSession.events.length}
+              showFigureComposer={showFigureComposer}
+              onToggleFigureComposer={handleToggleFigureComposer}
               showChoroplethPanel={showChoroplethPanel}
               onToggleChoroplethPanel={handleToggleChoroplethPanel}
               showClusterViz={showClusterViz}
@@ -6124,6 +6129,23 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               recordedCopilotProposalIdsRef.current = new Set();
               recordedCopilotAuditIdsRef.current = new Set();
               announce("New map review session started");
+            }}
+            onAnnounce={announce}
+          />
+
+          <MapFigureComposerPanel
+            visible={showFigureComposer && !navigatorStageMode}
+            overlayLayers={overlayLayers}
+            qaState={scientificQA}
+            bearing={bearing}
+            onClose={() => {
+              setShowFigureComposer(false);
+              announce("Figure composer closed");
+            }}
+            onExportFigure={() => {
+              setShowFigureComposer(false);
+              setShowMapExportDialog(true);
+              announce("Figure gates passed — opening publication export");
             }}
             onAnnounce={announce}
           />

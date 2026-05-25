@@ -93,6 +93,8 @@ export interface MapToolbarProps {
   showReviewTimeline?: boolean;
   onToggleReviewTimeline?: () => void;
   reviewEventCount?: number;
+  showFigureComposer?: boolean;
+  onToggleFigureComposer?: () => void;
   showChoroplethPanel?: boolean;
   onToggleChoroplethPanel?: () => void;
   showClusterViz?: boolean;
@@ -197,6 +199,7 @@ interface BuildToolbarCommandsArgs extends Required<Pick<
   | "workflowReadyCount"
   | "showReviewTimeline"
   | "reviewEventCount"
+  | "showFigureComposer"
   | "showChoroplethPanel"
   | "showClusterViz"
   | "showHotSpotViz"
@@ -230,6 +233,7 @@ interface BuildToolbarCommandsArgs extends Required<Pick<
   onToggleNLQueryPanel?: (() => void) | undefined;
   onToggleWorkflowDrawer?: (() => void) | undefined;
   onToggleReviewTimeline?: (() => void) | undefined;
+  onToggleFigureComposer?: (() => void) | undefined;
   onToggleChoroplethPanel?: (() => void) | undefined;
   onToggleClusterViz?: (() => void) | undefined;
   onToggleHotSpotViz?: (() => void) | undefined;
@@ -786,6 +790,20 @@ function buildToolbarCommands(args: BuildToolbarCommandsArgs): ToolbarCommand[] 
     badge: args.reviewEventCount,
     tone: args.reviewEventCount > 0 ? "accent" : "default",
     navigator: true,
+  });
+
+  add(args.onToggleFigureComposer && {
+    id: "figure-composer",
+    label: "Figure",
+    shortLabel: "Figure",
+    title: "Compose a gate-checked publication figure (legend, scale bar, north arrow, attribution, CRS)",
+    keywords: ["figure", "compose", "publication", "layout", "legend", "scale bar", "north arrow", "export figure"],
+    icon: FileImage,
+    onClick: args.onToggleFigureComposer,
+    roles: ["publish"],
+    overflowGroup: "advanced",
+    priority: args.showFigureComposer ? 124 : 86,
+    active: args.showFigureComposer,
   });
 
   add(args.onToggleChoroplethPanel && {
@@ -1416,6 +1434,8 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
   showReviewTimeline = false,
   onToggleReviewTimeline,
   reviewEventCount = 0,
+  showFigureComposer = false,
+  onToggleFigureComposer,
   showChoroplethPanel = false,
   onToggleChoroplethPanel,
   showClusterViz = false,
@@ -1532,6 +1552,8 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       showReviewTimeline,
       onToggleReviewTimeline,
       reviewEventCount,
+      showFigureComposer,
+      onToggleFigureComposer,
       showChoroplethPanel,
       onToggleChoroplethPanel,
       showClusterViz,
@@ -1641,8 +1663,10 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       showMeasurePanel,
       showNLQueryPanel,
       showReviewTimeline,
+      showFigureComposer,
       showWorkflowDrawer,
       onToggleReviewTimeline,
+      onToggleFigureComposer,
       workflowReadyCount,
       showScientificQAPanel,
       showSidebar,
