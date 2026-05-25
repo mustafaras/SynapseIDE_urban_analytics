@@ -12,6 +12,7 @@ import {
   MAP_TYPOGRAPHY,
 } from "./mapTokens";
 import { useMapExplorerStore } from "../../../stores/useMapExplorerStore";
+import { classifyExternalServiceFailure } from "@/services/map/sources/MapConnectionRegistry";
 
 /* ================================================================== */
 /*  Props                                                              */
@@ -194,20 +195,40 @@ function renderErrorMessage(event: { error?: unknown; sourceId?: unknown; status
     ? useMapExplorerStore.getState().overlayLayers.find((candidate) => candidate.id === sourceId)
     : null;
   const rawMessage = event.error instanceof Error ? event.error.message : String(event.error ?? "Map render request failed.");
-  const status = typeof event.status === "number" ? ` HTTP ${event.status}.` : "";
+  const httpStatus = typeof event.status === "number" ? event.status : undefined;
 
   if (!layer || layer.sourceKind !== "external") {
     return null;
   }
 
   const isRaster = layer.type === "raster-tile" || layer.type === "vector-tile";
-  const isNetworkLike = /cors|failed to fetch|network|tile|http|unauthorized|forbidden/i.test(rawMessage) || event.status != null;
+  const isNetworkLike =
+    /cors|failed to fetch|network|tile|http|unauthorized|forbidden|rate.?limit|too many requests|401|403|429|offline|unreachable/i.test(rawMessage)
+    || httpStatus != null;
   if (!isRaster && !isNetworkLike) {
     return null;
   }
 
-  return `External service layer "${layer.name}" could not load from the browser.${status} ${rawMessage} If the endpoint is blocked by CORS or service permissions, use an HTTPS CORS proxy or a server-side geospatial proxy.`;
+  // Render a SPECIFIC, actionable failure state (CORS / auth / rate-limit /
+  // offline / timeout) instead of leaving a blank tile. The classifier is
+  // shared with MapConnectionRegistry so the on-map message and the layer
+  // dependency caveats describe the same failure.
+  const failure = classifyExternalServiceFailure(event.error ?? rawMessage, httpStatus);
+  const statusText = httpStatus != null ? ` (HTTP ${httpStatus})` : "";
+  const failureLabel = EXTERNAL_FAILURE_LABELS[failure.kind];
+  return `External service layer "${layer.name}" could not load — ${failureLabel}${statusText}. ${failure.reason}`;
 }
+
+const EXTERNAL_FAILURE_LABELS: Record<ReturnType<typeof classifyExternalServiceFailure>["kind"], string> = {
+  cors: "blocked by CORS",
+  auth: "authorization required",
+  "rate-limit": "rate-limited",
+  offline: "offline / unreachable",
+  timeout: "timed out",
+  "invalid-url": "invalid endpoint",
+  parse: "unreadable response",
+  unknown: "request failed",
+};
 
 /* ================================================================== */
 /*  Component                                                          */
