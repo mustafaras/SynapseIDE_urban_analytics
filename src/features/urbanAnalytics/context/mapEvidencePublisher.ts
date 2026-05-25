@@ -18,6 +18,7 @@
  */
 
 import type { OverlayLayerConfig } from '@/centerpanel/components/map/mapTypes';
+import { buildMapPublicationEvidenceArtifact } from '@/services/map/MapPublicationOutputBindingService';
 import { useMapExplorerStore } from '@/stores/useMapExplorerStore';
 import { useFlowStore } from '@/stores/useFlowStore';
 
@@ -25,6 +26,7 @@ import type {
   AnalysisLegendEntry,
   CompletedAnalysisRun,
   MapOutput,
+  UrbanEvidenceArtifact,
   UrbanEvidenceQAState,
   UrbanEvidenceScalar,
   UrbanToMapEvidencePublication,
@@ -192,6 +194,8 @@ function getLayerCrs(layer: OverlayLayerConfig): string | null {
     layer.metadata?.columnar?.crs,
     layer.metadata?.externalService?.crs,
     layer.metadata?.eoSource?.crs,
+    layer.metadata?.crsSummary?.crs,
+    layer.metadata?.registry?.crsSummary.crs,
   );
 }
 
@@ -287,8 +291,14 @@ function formatCrsSummary(crsSummary: UrbanToMapPublicationCrsSummary): string {
   return `${declared}; display ${crsSummary.displayCrs}`;
 }
 
+function uniqueText(values: readonly string[]): string[] {
+  return [...new Set(values.filter((value) => value.trim().length > 0))];
+}
+
 function buildPublicationQaSummary(
   manifest: UrbanWorkflowRunManifest | null,
+  crsSummary: UrbanToMapPublicationCrsSummary,
+  sourceLayers: readonly OverlayLayerConfig[],
 ): UrbanToMapPublicationQaSummary {
   const runtimeMode = manifest?.runtimeMode ?? 'unknown';
   const warnings: string[] = [];
@@ -308,6 +318,18 @@ function buildPublicationQaSummary(
   if (manifest?.dataFitness?.status === 'warning') {
     caveats.push('Data fitness had warnings at run time. Verify with supporting evidence before reporting.');
   }
+  if (crsSummary.missingLayerIds.length > 0) {
+    warnings.push(`CRS metadata is missing for source layer(s): ${crsSummary.missingLayerIds.join(', ')}.`);
+  }
+  for (const layer of sourceLayers) {
+    const scientificQA = layer.metadata?.scientificQA;
+    if (scientificQA?.status === 'error' || layer.qaStatus === 'error') {
+      blockers.push(`Source layer ${layer.name} has blocking map QA.`);
+    } else if (scientificQA?.status === 'warning' || layer.qaStatus === 'warning') {
+      warnings.push(`Source layer ${layer.name} has map QA warnings.`);
+    }
+    caveats.push(...(scientificQA?.caveats ?? []));
+  }
 
   const status: UrbanToMapPublicationQaSummary['status'] = blockers.length > 0
     ? 'blocked'
@@ -315,7 +337,12 @@ function buildPublicationQaSummary(
       ? 'warning'
       : 'unknown';
 
-  return { status, warnings, blockers, caveats };
+  return {
+    status,
+    warnings: uniqueText(warnings),
+    blockers: uniqueText(blockers),
+    caveats: uniqueText(caveats),
+  };
 }
 
 function buildUncertaintyNotes(
@@ -409,6 +436,7 @@ function buildOverlayLayer(
   run: CompletedAnalysisRun,
   manifest: UrbanWorkflowRunManifest | null,
   styleLegendMetadata: UrbanToMapPublicationStyleLegendMetadata,
+  crsSummary: UrbanToMapPublicationCrsSummary,
   studyAreaName?: string | null,
   studyAreaBounds?: [number, number, number, number] | null,
 ): OverlayLayerConfig {
@@ -428,7 +456,15 @@ function buildOverlayLayer(
     style: mapOutput.style ?? {},
     sourceKind: resolveSourceKind(manifest),
     group: PUBLICATION_LAYER_GROUP,
-    metadata: buildLayerMetadata(mapOutput, featureCount, geometryType, studyAreaBounds),
+    metadata: {
+      ...buildLayerMetadata(mapOutput, featureCount, geometryType, studyAreaBounds),
+      crsSummary: {
+        crs: crsSummary.declaredCrs,
+        status: crsSummary.declaredCrs && crsSummary.missingLayerIds.length === 0 ? 'known' : 'missing',
+        source: 'analysis-result',
+        notes: crsSummary.notes,
+      },
+    },
     provenance: buildLayerProvenance(run, mapOutput),
     qaStatus: 'unchecked',
   };
@@ -436,20 +472,45 @@ function buildOverlayLayer(
   return layer;
 }
 
+function buildManifestReferenceId(run: CompletedAnalysisRun, manifest: UrbanWorkflowRunManifest | null): string | null {
+  return manifest ? `urban-run-manifest:${run.runId}` : null;
+}
+
+function buildSourceSignature(
+  mapOutput: MapOutput,
+  existingLayers: readonly OverlayLayerConfig[],
+): string {
+  const layerById = new Map(existingLayers.map((layer) => [layer.id, layer]));
+  return JSON.stringify((mapOutput.engineBridge?.sourceLayerIds ?? []).map((layerId) => {
+    const layer = layerById.get(layerId);
+    return {
+      layerId,
+      dataVersion: layer?.metadata?.dataVersion ?? null,
+      updatedAt: layer?.metadata?.updatedAt ?? null,
+      crs: layer ? getLayerCrs(layer) : null,
+      qa: layer?.metadata?.scientificQA?.signature ?? layer?.qaStatus ?? null,
+    };
+  }));
+}
+
 function buildEvidenceArtifactDraft(
   mapOutput: MapOutput,
   run: CompletedAnalysisRun,
   manifest: UrbanWorkflowRunManifest | null,
   layerId: string,
-  contextId: string | null,
+  contextId: string,
   artifactId: string,
   publicationId: string,
   styleLegendMetadata: UrbanToMapPublicationStyleLegendMetadata,
   crsSummary: UrbanToMapPublicationCrsSummary,
   qaSummary: UrbanToMapPublicationQaSummary,
   uncertaintyNotes: UrbanToMapPublicationUncertaintyNotes,
+  sourceSignature: string,
+  supersedesArtifactId?: string,
 ): UrbanEvidenceArtifactDraft {
   const runtimeMode = manifest?.runtimeMode ?? 'unknown';
+  const sourceLayerIds = mapOutput.engineBridge?.sourceLayerIds ?? [];
+  const manifestReferenceId = buildManifestReferenceId(run, manifest);
   const qaState = evidenceQaStateFromPublication(qaSummary);
   const warnings = [...qaSummary.warnings, ...qaSummary.blockers];
   const limitations = [...qaSummary.caveats, ...crsSummary.notes, ...uncertaintyNotes.notes];
@@ -459,6 +520,11 @@ function buildEvidenceArtifactDraft(
     publicationRunId: run.runId,
     publicationOutputId: mapOutput.id,
     publicationRuntimeMode: runtimeMode,
+    publicationIsDemo: runtimeMode === 'demo',
+    publicationIsSynthetic: runtimeMode === 'synthetic',
+    publicationManifestId: manifestReferenceId,
+    publicationSourceLayerIds: metadataStringList(sourceLayerIds),
+    publicationSourceSignature: sourceSignature,
     publicationLayerType: styleLegendMetadata.layerType,
     publicationOpacity: styleLegendMetadata.opacity,
     publicationStyleKeys: metadataStringList(styleLegendMetadata.styleKeys),
@@ -470,6 +536,7 @@ function buildEvidenceArtifactDraft(
     publicationCrsNotes: metadataStringList(crsSummary.notes),
     publicationQaStatus: qaSummary.status,
     publicationUncertaintyNotes: metadataStringList(uncertaintyNotes.notes),
+    ...(supersedesArtifactId ? { supersedesArtifactId } : {}),
   };
 
   const draft: UrbanEvidenceArtifactDraft = {
@@ -481,11 +548,14 @@ function buildEvidenceArtifactDraft(
       ? `Demo-mode spatial output published to Map Explorer from run ${run.runId}.`
       : `Spatial output published to Map Explorer from run ${run.runId}.`,
     sourceModule: 'urban-analytics',
+    sourceId: layerId,
     state: 'published',
+    linkedContextId: contextId,
     linkedRunId: run.runId,
-    linkedLayerIds: [layerId],
+    linkedLayerIds: [layerId, ...sourceLayerIds],
+    ...(supersedesArtifactId ? { linkedArtifactIds: [supersedesArtifactId] } : {}),
     mapLayerId: layerId,
-    ...(contextId ? { linkedContextId: contextId } : {}),
+    ...(manifest?.flowId ? { flowId: manifest.flowId } : {}),
     qa: {
       state: qaState,
       warnings,
@@ -494,13 +564,14 @@ function buildEvidenceArtifactDraft(
     provenance: {
       sourceModule: 'urban-analytics',
       createdAt: new Date().toISOString(),
+      sourceId: layerId,
       runId: run.runId,
       ...(manifest?.flowId ? { flowId: manifest.flowId } : {}),
-      ...(contextId ? { contextId } : {}),
-      layerIds: [layerId],
+      contextId,
+      layerIds: [layerId, ...sourceLayerIds],
       filePaths: [],
       inputArtifactIds: [],
-      parentArtifactIds: [],
+      parentArtifactIds: supersedesArtifactId ? [supersedesArtifactId] : [],
     },
     metadata,
   };
@@ -663,6 +734,13 @@ export function publishUrbanRunOutputsToMap(
   const mapStore = useMapExplorerStore.getState();
   const urbanContextStore = useUrbanContextStore.getState();
   const contextId = urbanContextStore.context?.contextId ?? null;
+  if (!contextId) {
+    return {
+      eligible: false,
+      reasons: ['An active Urban Analysis Context is required before publishing map-derived evidence.'],
+      publications: [],
+    };
+  }
   const studyAreaName = urbanContextStore.context?.studyAreaName ?? null;
   const studyAreaBounds = urbanContextStore.context?.studyAreaBounds ?? null;
 
@@ -670,24 +748,59 @@ export function publishUrbanRunOutputsToMap(
   const newLayerIds: string[] = [];
 
   for (const output of eligibleOutputs) {
-    const publicationId = newPublicationId();
-    const artifactId = resolvePublicationArtifactId(run.runId, output.id);
+    const sourceSignature = buildSourceSignature(output, mapStore.overlayLayers);
+    const baseArtifactId = resolvePublicationArtifactId(run.runId, output.id);
     const styleLegendMetadata = buildStyleLegendMetadata(output);
     const crsSummary = buildCrsSummary(output, mapStore.overlayLayers);
-    const qaSummary = buildPublicationQaSummary(manifest);
+    const sourceLayerIds = output.engineBridge?.sourceLayerIds ?? [];
+    const sourceLayers = mapStore.overlayLayers.filter((layer) => sourceLayerIds.includes(layer.id));
+    const qaSummary = buildPublicationQaSummary(manifest, crsSummary, sourceLayers);
     const uncertaintyNotes = buildUncertaintyNotes(manifest);
     const layer = buildOverlayLayer(
       output,
       run,
       manifest,
       styleLegendMetadata,
+      crsSummary,
       studyAreaName,
       studyAreaBounds,
     );
-    mapStore.addOverlayLayer(layer);
+    const existingLayer = mapStore.overlayLayers.find((entry) => entry.id === layer.id) ?? null;
+    if (!existingLayer) {
+      mapStore.addOverlayLayer(layer);
+    }
     newLayerIds.push(layer.id);
 
-    const artifactDraft = buildEvidenceArtifactDraft(
+    const currentArtifacts = useUrbanContextStore.getState().evidenceArtifacts;
+    const existingArtifact = currentArtifacts.find((artifact) =>
+      artifact.kind === 'map-layer'
+      && artifact.state === 'published'
+      && artifact.metadata?.publicationRunId === run.runId
+      && artifact.metadata?.publicationOutputId === output.id
+      && artifact.metadata?.publicationSourceSignature === sourceSignature,
+    ) ?? null;
+    const supersededArtifact = existingArtifact
+      ? null
+      : currentArtifacts.find((artifact) =>
+          artifact.kind === 'map-layer'
+          && artifact.state === 'published'
+          && artifact.metadata?.publicationRunId === run.runId
+          && artifact.metadata?.publicationOutputId === output.id,
+        ) ?? null;
+    const publicationId = typeof existingArtifact?.metadata?.publicationId === 'string'
+      ? existingArtifact.metadata.publicationId
+      : newPublicationId();
+    const artifactId = existingArtifact?.id
+      ?? (supersededArtifact
+        ? `${baseArtifactId}-revision-${safeReferencePart(publicationId)}`
+        : baseArtifactId);
+    if (supersededArtifact) {
+      urbanContextStore.markEvidenceArtifactStale(
+        supersededArtifact.id,
+        `Source layer state changed after publication of run ${run.runId}.`,
+      );
+    }
+    const registeredArtifact = existingArtifact ?? urbanContextStore.registerEvidenceArtifact(buildEvidenceArtifactDraft(
       output,
       run,
       manifest,
@@ -699,14 +812,48 @@ export function publishUrbanRunOutputsToMap(
       crsSummary,
       qaSummary,
       uncertaintyNotes,
+      sourceSignature,
+      supersededArtifact?.id,
+    ));
+
+    const hasMapArtifact = mapStore.mapEvidenceArtifacts.some((artifact) =>
+      artifact.sourceId === layer.id,
     );
-    const registeredArtifact = urbanContextStore.registerEvidenceArtifact(artifactDraft);
+    if (!hasMapArtifact) {
+      mapStore.upsertMapEvidenceArtifact(buildMapPublicationEvidenceArtifact({
+        layer,
+        sourceModule: 'urban-analytics',
+        urbanEvidenceId: registeredArtifact.id,
+        linkedArtifactIds: [registeredArtifact.id],
+        linkedRunId: run.runId,
+        ...(manifest?.flowId ? { linkedWorkflowId: manifest.flowId } : {}),
+        runtimeMode: manifest?.runtimeMode ?? 'unknown',
+        ...(buildManifestReferenceId(run, manifest) ? { manifestReferenceId: buildManifestReferenceId(run, manifest)! } : {}),
+        crsSummary: {
+          ...(crsSummary.declaredCrs ? { declaredCrs: crsSummary.declaredCrs } : {}),
+          displayCrs: crsSummary.displayCrs,
+          sourceLayerCrs: crsSummary.sourceLayerCrs,
+          missingLayerIds: crsSummary.missingLayerIds,
+          notes: crsSummary.notes,
+        },
+        contextId,
+        qa: {
+          state: qaSummary.status === 'blocked'
+            ? 'blocked'
+            : qaSummary.status === 'warning' ? 'warning' : 'unchecked',
+          issueIds: [],
+          issueCount: 0,
+          blockerCount: qaSummary.blockers.length,
+          caveats: uniqueText([...qaSummary.warnings, ...qaSummary.blockers, ...qaSummary.caveats]),
+        },
+      }));
+    }
 
     const publication = buildPublicationRecord(
       output,
       run,
       manifest,
-      layer,
+      existingLayer ?? layer,
       registeredArtifact.id,
       publicationId,
       styleLegendMetadata,
@@ -737,4 +884,100 @@ export function publishUrbanRunOutputsToMap(
     reasons: [],
     publications,
   };
+}
+
+export interface SupersedePublishedUrbanMapEvidenceInput {
+  layerId: string;
+  layer?: OverlayLayerConfig | null;
+  reason?: string;
+  changedAt?: string;
+}
+
+/**
+ * Transition published Urban map evidence after a linked map layer changes.
+ * Only lifecycle/QA state on the prior claim changes; the current claim is a
+ * new artifact linked back to the stale record.
+ */
+export function supersedePublishedUrbanMapEvidenceForLayerChange(
+  input: SupersedePublishedUrbanMapEvidenceInput,
+): UrbanEvidenceArtifact[] {
+  const urbanStore = useUrbanContextStore.getState();
+  const changedAt = input.changedAt ?? new Date().toISOString();
+  const reason = input.reason ?? `Map source layer ${input.layerId} changed after evidence publication.`;
+  const layerQa = input.layer?.metadata?.scientificQA;
+  const affected = urbanStore.evidenceArtifacts.filter((artifact) =>
+    artifact.kind === 'map-layer'
+    && artifact.state === 'published'
+    && (
+      artifact.mapLayerId === input.layerId
+      || artifact.linkedLayerIds.includes(input.layerId)
+      || artifact.provenance.layerIds.includes(input.layerId)
+    ),
+  );
+  const supersedingArtifacts: UrbanEvidenceArtifact[] = [];
+
+  for (const artifact of affected) {
+    const dependencyChanged = artifact.mapLayerId !== input.layerId;
+    const removed = input.layer == null;
+    const blocked = removed || dependencyChanged || input.layer?.qaStatus === 'error' || layerQa?.status === 'error';
+    urbanStore.markEvidenceArtifactStale(artifact.id, reason);
+    const successorId = `${artifact.id}-revision-${safeReferencePart(newPublicationId())}`;
+    const successor = urbanStore.registerEvidenceArtifact({
+      id: successorId,
+      artifactId: successorId,
+      kind: artifact.kind,
+      title: artifact.title,
+      summary: `Superseding evidence reference after map source change: ${artifact.title}.`,
+      state: blocked ? 'blocked' : 'published',
+      sourceModule: artifact.sourceModule,
+      ...(artifact.sourceId ? { sourceId: artifact.sourceId } : {}),
+      ...(artifact.linkedContextId ? { linkedContextId: artifact.linkedContextId } : {}),
+      ...(artifact.linkedStudyAreaId ? { linkedStudyAreaId: artifact.linkedStudyAreaId } : {}),
+      ...(artifact.linkedRunId ? { linkedRunId: artifact.linkedRunId } : {}),
+      linkedLayerIds: artifact.linkedLayerIds,
+      linkedFilePaths: artifact.linkedFilePaths,
+      linkedArtifactIds: [...artifact.linkedArtifactIds, artifact.id],
+      ...(artifact.cardId ? { cardId: artifact.cardId } : {}),
+      ...(artifact.flowId ? { flowId: artifact.flowId } : {}),
+      ...(artifact.indicatorKind ? { indicatorKind: artifact.indicatorKind } : {}),
+      ...(artifact.mapLayerId ? { mapLayerId: artifact.mapLayerId } : {}),
+      tags: artifact.tags,
+      provenance: {
+        ...artifact.provenance,
+        createdAt: changedAt,
+        parentArtifactIds: [...artifact.provenance.parentArtifactIds, artifact.id],
+      },
+      qa: {
+        state: blocked ? 'blocked' : 'warning',
+        warnings: uniqueText([
+          ...artifact.qa.warnings,
+          reason,
+          ...(layerQa?.caveats ?? []),
+        ]),
+        limitations: uniqueText([
+          ...artifact.qa.limitations,
+          ...(dependencyChanged
+            ? ['A linked source layer changed; rerun or republish the derived layer before analytical use.']
+            : []),
+          ...(removed
+            ? ['The published map layer was removed; restore or republish it before analytical use.']
+            : []),
+        ]),
+      },
+      ...(artifact.dataFitness ? { dataFitness: artifact.dataFitness } : {}),
+      metadata: {
+        ...(artifact.metadata ?? {}),
+        supersedesArtifactId: artifact.id,
+        sourceChangedAt: changedAt,
+        sourceChangedLayerId: input.layerId,
+        sourceDataVersion: input.layer?.metadata?.dataVersion ?? null,
+        publicationQaStatus: blocked ? 'blocked' : 'warning',
+      },
+      createdAt: changedAt,
+      updatedAt: changedAt,
+    });
+    supersedingArtifacts.push(successor);
+  }
+
+  return supersedingArtifacts;
 }

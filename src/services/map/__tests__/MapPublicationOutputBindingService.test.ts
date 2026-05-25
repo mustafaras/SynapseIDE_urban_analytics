@@ -3,6 +3,7 @@ import type { OverlayLayerConfig } from "@/centerpanel/components/map/mapTypes";
 import {
   buildMapDashboardBinding,
   buildMapEducationReference,
+  buildMapPublicationEvidenceArtifact,
 } from "../MapPublicationOutputBindingService";
 
 const createdAt = "2026-05-12T14:30:00.000Z";
@@ -56,6 +57,48 @@ function layer(overrides: Partial<OverlayLayerConfig> = {}): OverlayLayerConfig 
 }
 
 describe("MapPublicationOutputBindingService", () => {
+  it("builds immutable publication evidence with complete scalar traceability", () => {
+    const artifact = buildMapPublicationEvidenceArtifact({
+      layer: layer({ sourceKind: "demo" }),
+      sourceModule: "urban-analytics",
+      urbanEvidenceId: "urban-evidence-access",
+      linkedRunId: "run-access-1",
+      linkedWorkflowId: "accessibility",
+      linkedArtifactIds: ["urban-evidence-access"],
+      runtimeMode: "demo",
+      manifestReferenceId: "urban-run-manifest:run-access-1",
+      contextId: "context-access-1",
+      crsSummary: {
+        declaredCrs: "EPSG:3857",
+        displayCrs: "EPSG:4326",
+        sourceLayerCrs: [{ layerId: "access-layer", crs: "EPSG:3857" }],
+        missingLayerIds: [],
+        notes: [],
+      },
+      qa: {
+        state: "warning",
+        caveats: ["Demo output must remain labelled."],
+      },
+      createdAt,
+    });
+
+    expect(artifact.state).toBe("published");
+    expect(artifact.urbanEvidenceId).toBe("urban-evidence-access");
+    expect(artifact.linkedRunId).toBe("run-access-1");
+    expect(artifact.linkedWorkflowId).toBe("accessibility");
+    expect(artifact.linkedArtifactIds).toContain("urban-evidence-access");
+    expect(artifact.qa.state).toBe("warning");
+    expect(artifact.provenance.crsSummary?.declaredCrs).toBe("EPSG:3857");
+    expect(artifact.metadata).toMatchObject({
+      runtimeMode: "demo",
+      isDemo: true,
+      isSynthetic: false,
+      manifestId: "urban-run-manifest:run-access-1",
+      contextId: "context-access-1",
+    });
+    expect(Object.prototype.hasOwnProperty.call(artifact, "sourceData")).toBe(false);
+  });
+
   it("builds a static dashboard map binding with QA and provenance traceability", () => {
     const binding = buildMapDashboardBinding({
       layer: layer(),

@@ -47,6 +47,7 @@ const baseOptions: Parameters<typeof useMapPanelLayout>[0] = {
   showDrawPanel: false,
   showMeasurePanel: false,
   showScientificQAPanel: false,
+  showUrbanMethodPanel: false,
   showNLQueryPanel: false,
   showWorkflowDrawer: false,
   showReviewTimeline: false,
@@ -83,6 +84,22 @@ describe("useMapPanelLayout", () => {
 
     expect(hook.current.navigatorLeftInset).toBe(32);
     expect(hook.current.navigatorRightInset).toBe(32);
+
+    hook.cleanup();
+  });
+
+  it("keeps the active Urban method request ahead of workflow and QA rails", () => {
+    const hook = renderPanelLayoutHook({
+      ...baseOptions,
+      showUrbanMethodPanel: true,
+      showScientificQAPanel: true,
+      showWorkflowDrawer: true,
+    });
+
+    expect(hook.current.requestedRightDockPanel).toBe("urbanMethod");
+    expect(hook.current.effectiveShowUrbanMethodPanel).toBe(true);
+    expect(hook.current.effectiveShowScientificQAPanel).toBe(false);
+    expect(hook.current.effectiveShowWorkflowDrawer).toBe(false);
 
     hook.cleanup();
   });

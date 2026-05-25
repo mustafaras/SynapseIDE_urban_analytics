@@ -1,8 +1,10 @@
 // @vitest-environment jsdom
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { OverlayLayerConfig } from '@/centerpanel/components/map/mapTypes';
+import { buildMapExplorerContextSummary } from '@/centerpanel/components/map/mapContextSummary';
+import type { DrawnFeature, OverlayLayerConfig } from '@/centerpanel/components/map/mapTypes';
 import type { MapScientificQAState } from '@/services/map/MapScientificQA';
+import { buildMapToUrbanContextPayload } from '@/services/map/bridge/MapUrbanBridgeService';
 import { useMapExplorerStore } from '@/stores/useMapExplorerStore';
 import { useUrbanStore } from '../store';
 import { useUrbanContextStore } from '../useUrbanContextStore';
@@ -80,6 +82,46 @@ function makeQaState(): MapScientificQAState {
   };
 }
 
+function makeAoi(id: string): DrawnFeature {
+  return {
+    id,
+    geometry: {
+      type: 'Polygon',
+      coordinates: [[[28.95, 40.95], [29.15, 40.95], [29.15, 41.15], [28.95, 41.15], [28.95, 40.95]]],
+    },
+    properties: {
+      label: id,
+      createdAt: '2026-05-08T10:00:00.000Z',
+    },
+  };
+}
+
+function makeBridgePayload(layer: OverlayLayerConfig, activeAoiId = 'aoi-kadikoy') {
+  const drawnFeatures = [makeAoi(activeAoiId)];
+  const contextSummary = buildMapExplorerContextSummary({
+    center: [29, 41],
+    zoom: 11,
+    bearing: 0,
+    pitch: 0,
+    activeBaseLayer: 'dark',
+    overlayLayers: [layer],
+    drawnFeatures,
+    activeAoiId,
+    selectedFeatureIds: {},
+    activeAnalysisResultLayerIds: [],
+    scientificQA: null,
+    currentMapBounds: [28.9, 40.9, 29.2, 41.2],
+    currentMapBoundsUpdatedAt: '2026-05-08T10:00:00.000Z',
+  });
+  return buildMapToUrbanContextPayload({
+    contextSummary,
+    overlayLayers: [layer],
+    drawnFeatures,
+    activeAoiId,
+    now: '2026-05-08T10:00:00.000Z',
+  });
+}
+
 beforeEach(() => {
   vi.useFakeTimers();
   localStorage.clear();
@@ -155,6 +197,35 @@ describe('applyMapContextToUrban', () => {
     expect(result.recommendationTriggered).toBe(true);
     expect(dispatchSpy).toHaveBeenCalled();
   });
+
+  it('registers visible attributed recommendations and conservative fitness from a bridge payload', () => {
+    const layer = makeLayer('demo-polygons', {
+      sourceKind: 'demo',
+      metadata: {
+        featureCount: 45,
+        crsSummary: { crs: 'EPSG:3857', status: 'known', source: 'explicit', notes: [] },
+        geometrySummary: { geometryType: 'Polygon', geometryTypes: ['Polygon'], featureCount: 45, source: 'explicit', notes: [] },
+        schemaSummary: {
+          fieldCount: 1,
+          fields: [{ name: 'numeric_indicator', role: 'attribute' }],
+          source: 'explicit',
+          notes: [],
+        },
+      },
+    });
+
+    const result = applyMapContextToUrban({
+      payload: makeBridgePayload(layer),
+      triggerRecommendations: true,
+    });
+    const artifact = useUrbanContextStore.getState().evidenceArtifacts
+      .find((entry) => entry.id === result.evidenceArtifactId);
+
+    expect(result.summary.recommendationHints.join(' ')).toContain('based on: Layer demo-polygons / AOI aoi-kadikoy');
+    expect(artifact?.summary).toContain('based on: Layer demo-polygons / AOI aoi-kadikoy');
+    expect(artifact?.dataFitness?.status).not.toBe('ready');
+    expect(artifact?.dataFitness?.issues.some((issue) => issue.code === 'demo_data')).toBe(true);
+  });
 });
 
 describe('subscribeMapContextToUrban', () => {
@@ -165,7 +236,7 @@ describe('subscribeMapContextToUrban', () => {
       runInitialSync: true,
     });
 
-    useMapExplorerStore.getState().setActiveAoi('aoi-2');
+    useMapExplorerStore.getState().replaceDrawnFeatures([makeAoi('aoi-2')]);
     useMapExplorerStore.getState().replaceOverlayLayers([makeLayer('layer-sub')]);
 
     vi.advanceTimersByTime(60);

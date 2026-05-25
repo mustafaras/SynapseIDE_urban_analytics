@@ -9,10 +9,14 @@ import type {
 } from "./MapAnalysisRecommender";
 import type { MapReportHandoffDraft } from "./MapReportHandoffService";
 import type { MapScientificQAState } from "./MapScientificQA";
+import type { MapReproducibilityManifest } from "@/centerpanel/components/map/mapTypes";
 import type { PendingReportInsert } from "@/services/reporting/types";
 import { downloadText } from "@/centerpanel/lib/download";
 
-export const MAP_REVIEW_SESSION_VERSION = 2;
+// v3: events carry first-class `sourceIds` (SourceHandle ids) and `runIds`
+// (reproducibility manifest ids) so an exported audit can be fully
+// reconstructed against source/layer/run/evidence references.
+export const MAP_REVIEW_SESSION_VERSION = 3;
 export const MAP_REVIEW_SESSION_EVENT_LIMIT = 400;
 
 export type MapReviewTimelineEventType =
@@ -43,7 +47,9 @@ export type MapReviewAuditCategory =
   | "session-snapshot"
   | "layer-import"
   | "layer-derived"
+  | "source-restore"
   | "layer-registry"
+  | "crs-correction"
   | "qa-run"
   | "workflow-preview"
   | "workflow-apply"
@@ -113,6 +119,8 @@ export interface MapReviewTimelineEvent {
   title: string;
   summary: string;
   layerIds: string[];
+  sourceIds: string[];
+  runIds: string[];
   evidenceArtifactIds: string[];
   reportItemIds: string[];
   qaIssueIds: string[];
@@ -134,6 +142,8 @@ export interface MapReviewTimelineEventInput {
   title: string;
   summary: string;
   layerIds?: string[];
+  sourceIds?: string[];
+  runIds?: string[];
   evidenceArtifactIds?: string[];
   reportItemIds?: string[];
   qaIssueIds?: string[];
@@ -160,6 +170,8 @@ export interface MapReviewSession {
     eventCounts: Record<MapReviewTimelineEventType, number>;
     categoryCounts: Record<MapReviewAuditCategory, number>;
     statusCounts: Record<MapReviewTimelineEventStatus, number>;
+    sourceIds: string[];
+    runIds: string[];
     evidenceArtifactIds: string[];
   };
 }
@@ -177,6 +189,8 @@ export interface MapReviewTimelineFilters {
   category?: MapReviewAuditCategory | "all";
   status?: MapReviewTimelineEventStatus | "all";
   layerId?: string | "all";
+  sourceId?: string | "all";
+  runId?: string | "all";
   evidenceArtifactId?: string | "all";
   reportItemId?: string | "all";
   startDate?: string | null;
@@ -350,7 +364,9 @@ export const MAP_REVIEW_AUDIT_CATEGORIES: readonly MapReviewAuditCategory[] = [
   "session-snapshot",
   "layer-import",
   "layer-derived",
+  "source-restore",
   "layer-registry",
+  "crs-correction",
   "qa-run",
   "workflow-preview",
   "workflow-apply",
@@ -401,11 +417,20 @@ function inferAuditCategory(input: MapReviewTimelineEventInput): MapReviewAuditC
     return status === "previewed" || status === "proposed" ? "workflow-preview" : "workflow-apply";
   }
   if (input.type === "layer-change") {
+    if (includesAny(haystack, ["crs", "projection", "reproject", "epsg", "coordinate reference"])) {
+      return "crs-correction";
+    }
+    if (includesAny(haystack, ["restore", "source handle", "recoverable", "unavailable source", "re-link"])) {
+      return "source-restore";
+    }
     if (includesAny(haystack, ["import", "external service", "service layer", "upload"])) {
       return "layer-import";
     }
     if (includesAny(haystack, ["derived", "analysis result", "workflow output", "buffer", "classification"])) {
       return "layer-derived";
+    }
+    if (includesAny(haystack, ["style", "symbology", "palette", "legend", "ramp", "cartograph"])) {
+      return "cartography-review";
     }
     return "layer-registry";
   }
@@ -431,6 +456,8 @@ function sessionMetadata(events: readonly MapReviewTimelineEvent[]): MapReviewSe
     eventCounts: countBy(events.map((event) => event.type), MAP_REVIEW_EVENT_TYPES),
     categoryCounts: countBy(events.map((event) => event.category), MAP_REVIEW_AUDIT_CATEGORIES),
     statusCounts: countBy(events.map((event) => event.status), MAP_REVIEW_EVENT_STATUSES),
+    sourceIds: uniqueStrings(events.flatMap((event) => event.sourceIds), 200),
+    runIds: uniqueStrings(events.flatMap((event) => event.runIds), 200),
     evidenceArtifactIds: uniqueStrings(events.flatMap((event) => event.evidenceArtifactIds), 200),
   };
 }
@@ -463,6 +490,8 @@ export function createMapReviewEvent(input: MapReviewTimelineEventInput): MapRev
     title: truncateText(input.title, 140),
     summary: truncateText(input.summary, 500),
     layerIds,
+    sourceIds: uniqueStrings(input.sourceIds),
+    runIds: uniqueStrings(input.runIds),
     evidenceArtifactIds,
     reportItemIds,
     qaIssueIds,
@@ -758,6 +787,241 @@ export function buildReportHandoffReviewEvent(
   };
 }
 
+export interface MapSourceRestoreReviewInput {
+  layerId: string;
+  layerName: string;
+  sourceId: string;
+  restoreStatus: string;
+  sourceKind?: string | null;
+  evidenceArtifactId?: string | null;
+  timestamp?: string;
+}
+
+/**
+ * Source-handle restore audit (project reopen / re-link). Status reflects
+ * whether the source resolved (`restored`), needs operator action
+ * (`recoverable`/`metadata-only`), or is gone (`unavailable`/`stale-reference`).
+ */
+export function buildSourceRestoreReviewEvent(input: MapSourceRestoreReviewInput): MapReviewTimelineEventInput {
+  const restoreStatus = input.restoreStatus.trim().toLowerCase();
+  const resolved = restoreStatus === "restored" || restoreStatus === "available";
+  const lost = restoreStatus === "unavailable" || restoreStatus === "stale-reference";
+  const status: MapReviewTimelineEventStatus = resolved ? "resolved" : lost ? "failed" : "recorded";
+  return {
+    type: "layer-change",
+    category: "source-restore",
+    status,
+    ...(input.timestamp ? { timestamp: input.timestamp } : {}),
+    title: `Source restore (${restoreStatus}): ${input.layerName}`,
+    summary: resolved
+      ? `Source handle ${input.sourceId} was restored for ${input.layerName}.`
+      : lost
+        ? `Source handle ${input.sourceId} could not be restored for ${input.layerName}; the layer keeps metadata-only references.`
+        : `Source handle ${input.sourceId} for ${input.layerName} is ${restoreStatus} and requires operator action to re-link.`,
+    layerIds: [input.layerId],
+    sourceIds: [input.sourceId],
+    evidenceArtifactIds: input.evidenceArtifactId ? [input.evidenceArtifactId] : [],
+    details: {
+      restoreStatus,
+      sourceId: input.sourceId,
+      sourceKind: input.sourceKind ?? null,
+    },
+  };
+}
+
+export interface MapLayerStyleReviewInput {
+  layerId: string;
+  layerName: string;
+  styleMode?: string;
+  classificationMethod?: string | null;
+  classCount?: number | null;
+  sourceId?: string | null;
+  evidenceArtifactId?: string | null;
+  timestamp?: string;
+}
+
+/** Cartographic style / legend change applied to a layer. */
+export function buildLayerStyleReviewEvent(input: MapLayerStyleReviewInput): MapReviewTimelineEventInput {
+  const modeText = input.styleMode ? ` (${input.styleMode})` : "";
+  return {
+    type: "layer-change",
+    category: "cartography-review",
+    status: "applied",
+    ...(input.timestamp ? { timestamp: input.timestamp } : {}),
+    title: `Style applied${modeText}: ${input.layerName}`,
+    summary: `Symbology updated for ${input.layerName}${input.classificationMethod ? ` using ${input.classificationMethod}` : ""}${typeof input.classCount === "number" ? ` across ${input.classCount} class(es)` : ""}.`,
+    layerIds: [input.layerId],
+    sourceIds: input.sourceId ? [input.sourceId] : [],
+    evidenceArtifactIds: input.evidenceArtifactId ? [input.evidenceArtifactId] : [],
+    details: {
+      styleMode: input.styleMode ?? null,
+      classificationMethod: input.classificationMethod ?? null,
+      classCount: input.classCount ?? null,
+    },
+  };
+}
+
+export interface MapCrsCorrectionReviewInput {
+  layerId: string;
+  layerName: string;
+  declaredCrs: string;
+  provenance: "user-declared" | "reproject" | "detected";
+  previousCrsStatus?: string | null;
+  caveat?: string | null;
+  sourceId?: string | null;
+  timestamp?: string;
+}
+
+/** CRS declaration / reprojection correction recorded against a layer. */
+export function buildCrsCorrectionReviewEvent(input: MapCrsCorrectionReviewInput): MapReviewTimelineEventInput {
+  const verb = input.provenance === "reproject" ? "Reprojected" : "Declared CRS";
+  return {
+    type: "layer-change",
+    category: "crs-correction",
+    status: "applied",
+    ...(input.timestamp ? { timestamp: input.timestamp } : {}),
+    title: `${verb} ${input.declaredCrs}: ${input.layerName}`,
+    summary: `${verb} ${input.declaredCrs} for ${input.layerName} (${input.provenance}).${input.caveat ? ` ${input.caveat}` : ""}`,
+    layerIds: [input.layerId],
+    sourceIds: input.sourceId ? [input.sourceId] : [],
+    details: {
+      declaredCrs: input.declaredCrs,
+      provenance: input.provenance,
+      previousCrsStatus: input.previousCrsStatus ?? null,
+      caveat: input.caveat ?? null,
+    },
+  };
+}
+
+export interface MapAnalysisDispatchReviewInput {
+  title: string;
+  summary: string;
+  method?: string;
+  manifest?: MapReproducibilityManifest;
+  inputLayerIds?: string[];
+  outputLayerIds?: string[];
+  runId?: string | null;
+  evidenceArtifactIds?: string[];
+  sourceIds?: string[];
+  status?: MapReviewTimelineEventStatus;
+  timestamp?: string;
+  details?: Record<string, unknown>;
+}
+
+/**
+ * Analysis dispatch / applied workflow. When a reproducibility manifest is
+ * passed, run/layer references are derived from it so the audit always carries
+ * the manifest id as the run reference.
+ */
+export function buildAnalysisDispatchReviewEvent(input: MapAnalysisDispatchReviewInput): MapReviewTimelineEventInput {
+  const manifest = input.manifest;
+  const runIds = uniqueStrings([input.runId, manifest?.manifestId]);
+  const layerIds = uniqueStrings([
+    ...(input.inputLayerIds ?? []),
+    ...(input.outputLayerIds ?? []),
+    ...(manifest?.inputLayerIds ?? []),
+    ...(manifest?.outputLayerIds ?? []),
+    ...(manifest?.sourceLayerIds ?? []),
+  ]);
+  const status: MapReviewTimelineEventStatus =
+    input.status ?? (manifest?.status === "blocked" ? "failed" : manifest?.status === "preview" ? "previewed" : "applied");
+  return {
+    type: "analysis-dispatch",
+    category: status === "previewed" || status === "proposed" ? "workflow-preview" : "workflow-apply",
+    status,
+    ...(input.timestamp ? { timestamp: input.timestamp } : {}),
+    title: input.title,
+    summary: input.summary,
+    layerIds,
+    runIds,
+    sourceIds: uniqueStrings(input.sourceIds),
+    evidenceArtifactIds: uniqueStrings(input.evidenceArtifactIds),
+    details: {
+      ...(input.method ? { method: input.method } : {}),
+      ...(manifest
+        ? {
+          workflowId: manifest.workflowId,
+          operation: manifest.operation,
+          workflowKind: manifest.workflowKind,
+          manifestStatus: manifest.status,
+        }
+        : {}),
+      ...(input.details ?? {}),
+    },
+  };
+}
+
+export interface MapExportReviewInput {
+  format: string;
+  scope?: string;
+  layerIds?: string[];
+  sourceIds?: string[];
+  runIds?: string[];
+  evidenceArtifactIds?: string[];
+  reportItemIds?: string[];
+  timestamp?: string;
+  details?: Record<string, unknown>;
+}
+
+/** Map export / package download (GeoJSON, figure, package, review log, …). */
+export function buildMapExportReviewEvent(input: MapExportReviewInput): MapReviewTimelineEventInput {
+  const scopeText = input.scope ? ` (${input.scope})` : "";
+  return {
+    type: "action-status",
+    category: "export-report-handoff",
+    status: "applied",
+    ...(input.timestamp ? { timestamp: input.timestamp } : {}),
+    title: `Map export${scopeText}: ${input.format.toUpperCase()}`,
+    summary: `Exported ${input.format.toUpperCase()}${input.scope ? ` for ${input.scope}` : ""} with referenced source/layer/run/evidence IDs preserved.`,
+    layerIds: uniqueStrings(input.layerIds),
+    sourceIds: uniqueStrings(input.sourceIds),
+    runIds: uniqueStrings(input.runIds),
+    evidenceArtifactIds: uniqueStrings(input.evidenceArtifactIds),
+    reportItemIds: uniqueStrings(input.reportItemIds),
+    details: {
+      format: input.format,
+      ...(input.scope ? { scope: input.scope } : {}),
+      ...(input.details ?? {}),
+    },
+  };
+}
+
+export interface MapUrbanHandoffReviewInput {
+  direction: "map-to-urban" | "urban-to-map";
+  method?: string;
+  requestId?: string | null;
+  layerIds?: string[];
+  sourceIds?: string[];
+  runIds?: string[];
+  evidenceArtifactIds?: string[];
+  status?: MapReviewTimelineEventStatus;
+  timestamp?: string;
+  details?: Record<string, unknown>;
+}
+
+/** Urban Analytics handoff (Map → Urban context or Urban → Map method request). */
+export function buildUrbanHandoffReviewEvent(input: MapUrbanHandoffReviewInput): MapReviewTimelineEventInput {
+  const directionLabel = input.direction === "map-to-urban" ? "Map → Urban context" : "Urban → Map method request";
+  return {
+    type: "action-status",
+    category: "urban-sync",
+    status: input.status ?? "applied",
+    ...(input.timestamp ? { timestamp: input.timestamp } : {}),
+    title: `Urban handoff: ${directionLabel}${input.method ? ` (${input.method})` : ""}`,
+    summary: `${directionLabel}${input.method ? ` for ${input.method}` : ""} synced through the Map↔Urban bridge with attributed source/layer references.`,
+    layerIds: uniqueStrings(input.layerIds),
+    sourceIds: uniqueStrings(input.sourceIds),
+    runIds: uniqueStrings(input.runIds),
+    evidenceArtifactIds: uniqueStrings(input.evidenceArtifactIds),
+    details: {
+      direction: input.direction,
+      ...(input.method ? { method: input.method } : {}),
+      ...(input.requestId ? { requestId: input.requestId } : {}),
+      ...(input.details ?? {}),
+    },
+  };
+}
+
 export function filterMapReviewTimelineEvents(
   session: MapReviewSession,
   filters: MapReviewTimelineFilters = {},
@@ -770,6 +1034,8 @@ export function filterMapReviewTimelineEvents(
     if (filters.category && filters.category !== "all" && event.category !== filters.category) return false;
     if (filters.status && filters.status !== "all" && event.status !== filters.status) return false;
     if (filters.layerId && filters.layerId !== "all" && !event.layerIds.includes(filters.layerId)) return false;
+    if (filters.sourceId && filters.sourceId !== "all" && !event.sourceIds.includes(filters.sourceId)) return false;
+    if (filters.runId && filters.runId !== "all" && !event.runIds.includes(filters.runId)) return false;
     if (
       filters.evidenceArtifactId &&
       filters.evidenceArtifactId !== "all" &&
@@ -789,6 +1055,8 @@ export function filterMapReviewTimelineEvents(
       event.category,
       event.status,
       ...event.layerIds,
+      ...event.sourceIds,
+      ...event.runIds,
       ...event.evidenceArtifactIds,
       ...event.reportItemIds,
       ...event.qaIssueIds,
@@ -842,6 +1110,9 @@ export function exportMapReviewSessionMarkdown(session: MapReviewSession): strin
     `- Created: ${formatEventTime(session.createdAt)}`,
     `- Updated: ${formatEventTime(session.updatedAt)}`,
     `- Event count: ${events.length}`,
+    `- Source IDs: ${formatList(session.metadata.sourceIds)}`,
+    `- Run IDs: ${formatList(session.metadata.runIds)}`,
+    `- Evidence Artifact IDs: ${formatList(session.metadata.evidenceArtifactIds)}`,
     "",
     "## Event Summary",
     "",
@@ -865,6 +1136,8 @@ export function exportMapReviewSessionMarkdown(session: MapReviewSession): strin
       `- Status: ${event.status}`,
       `- Summary: ${event.summary}`,
       `- Layer IDs: ${formatList(event.layerIds)}`,
+      `- Source IDs: ${formatList(event.sourceIds)}`,
+      `- Run IDs: ${formatList(event.runIds)}`,
       `- Evidence Artifact IDs: ${formatList(event.evidenceArtifactIds)}`,
       `- Report Item IDs: ${formatList(event.reportItemIds)}`,
       `- QA Issue IDs: ${formatList(event.qaIssueIds)}`,

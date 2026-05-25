@@ -2,6 +2,7 @@ import type {
   Feature,
   FeatureCollection,
   GeoJsonProperties,
+  LineString,
   MultiPolygon,
   Polygon,
   Position,
@@ -1491,6 +1492,230 @@ export function clearOverpassCache(): void {
   overpassCache.clear();
 }
 
+/* -------------------------------------------------------------------- */
+/*  Overpass roads (real OSM highway network)                           */
+/* -------------------------------------------------------------------- */
+
+export const OSM_ROADS_PROVENANCE = "OpenStreetMap contributors — © ODbL";
+
+export interface OverpassRoadsResult {
+  featureCollection: FeatureCollection<LineString, GeoJsonProperties>;
+  requestedBounds: [number, number, number, number];
+  clampedBounds: [number, number, number, number];
+  areaKm2: number;
+  wasClamped: boolean;
+  cacheKey: string;
+  cacheHit: boolean;
+  fetchedAt: string;
+  endpoint?: string;
+  provenance: string;
+}
+
+interface OverpassRoadsCacheEntry {
+  expiresAt: number;
+  result: OverpassRoadsResult;
+}
+
+const overpassRoadsCache = new Map<string, OverpassRoadsCacheEntry>();
+
+function buildOverpassRoadsQuery(bounds: [number, number, number, number]): string {
+  const [west, south, east, north] = bounds;
+  const bbox = `${south},${west},${north},${east}`;
+  return `
+[out:json][timeout:25];
+(
+  way["highway"](${bbox});
+);
+out body geom;
+`;
+}
+
+function normalizeOsmRoadProperties(element: OverpassElement): GeoJsonProperties {
+  const tags = element.tags ?? {};
+  const lanes = tags.lanes ? Number(tags.lanes) : undefined;
+  return {
+    osm_id: `${element.type}/${element.id}`,
+    road_id: `osm-${element.type}-${element.id}`,
+    highway: tags.highway ?? "unknown",
+    name: tags.name ?? null,
+    surface: tags.surface ?? null,
+    lanes: Number.isFinite(lanes) ? lanes : null,
+    oneway: tags.oneway ?? null,
+    maxspeed: tags.maxspeed ?? null,
+    source: "OpenStreetMap",
+  };
+}
+
+function overpassLineFromGeometry(geometry: OverpassGeometryPoint[] | undefined): Position[] | null {
+  if (!geometry || geometry.length < 2) return null;
+  const coordinates: Position[] = geometry
+    .filter((point) => Number.isFinite(point.lon) && Number.isFinite(point.lat))
+    .map((point) => [point.lon, point.lat]);
+  return coordinates.length >= 2 ? coordinates : null;
+}
+
+export function overpassRoadsToGeoJSON(
+  response: OverpassResponse,
+): FeatureCollection<LineString, GeoJsonProperties> {
+  const features = (response.elements ?? [])
+    .filter((element) => element.type === "way")
+    .map((element) => {
+      const coordinates = overpassLineFromGeometry(element.geometry);
+      if (!coordinates) return null;
+      return {
+        type: "Feature",
+        id: `osm-way-${element.id}`,
+        geometry: { type: "LineString", coordinates },
+        properties: normalizeOsmRoadProperties(element),
+      } satisfies Feature<LineString, GeoJsonProperties>;
+    })
+    .filter((feature): feature is Feature<LineString, GeoJsonProperties> => feature !== null);
+  return { type: "FeatureCollection", features };
+}
+
+export async function fetchOverpassRoadsForBounds(
+  bounds: [number, number, number, number],
+  options: { endpoint?: string; timeoutMs?: number; bypassCache?: boolean } = {},
+): Promise<OverpassRoadsResult> {
+  const boundsInfo = clampOverpassBounds(bounds);
+  const cached = overpassRoadsCache.get(boundsInfo.cacheKey);
+  if (!options.bypassCache && cached && cached.expiresAt > Date.now()) {
+    return { ...cached.result, cacheHit: true };
+  }
+
+  const endpoint = options.endpoint ?? DEFAULT_OVERPASS_ENDPOINT;
+  const response = await fetchExternalService(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+    },
+    body: new URLSearchParams({ data: buildOverpassRoadsQuery(boundsInfo.clampedBounds) }).toString(),
+  }, {
+    timeoutMs: options.timeoutMs ?? 30_000,
+    accept: "application/json",
+    attribution: OSM_ROADS_PROVENANCE,
+  });
+  const payload = await response.json() as OverpassResponse;
+  const featureCollection = overpassRoadsToGeoJSON(payload);
+  const result: OverpassRoadsResult = {
+    featureCollection,
+    requestedBounds: boundsInfo.requestedBounds,
+    clampedBounds: boundsInfo.clampedBounds,
+    areaKm2: boundsInfo.areaKm2,
+    wasClamped: boundsInfo.wasClamped,
+    cacheKey: boundsInfo.cacheKey,
+    cacheHit: false,
+    fetchedAt: nowIsoTimestamp(),
+    endpoint,
+    provenance: OSM_ROADS_PROVENANCE,
+  };
+  overpassRoadsCache.set(boundsInfo.cacheKey, {
+    expiresAt: Date.now() + OVERPASS_CACHE_TTL_MS,
+    result,
+  });
+  return result;
+}
+
+export function clearOverpassRoadsCache(): void {
+  overpassRoadsCache.clear();
+}
+
+export function createOsmRoadsLayerConfig(result: OverpassRoadsResult): OverlayLayerConfig {
+  const metadata = buildFeatureCollectionMetadata(result.featureCollection);
+  const layerId = createLayerId("osm-roads", "osm-roads");
+  const endpoint = result.endpoint ?? DEFAULT_OVERPASS_ENDPOINT;
+  const crs = "EPSG:4326";
+  const caveats = externalServiceCaveats({
+    kind: "overpass",
+    crs,
+    cacheHit: result.cacheHit,
+    wasClamped: result.wasClamped,
+  });
+  const scientificQA = buildExternalScientificQA({
+    layerId,
+    kind: "overpass",
+    checkedAt: result.fetchedAt,
+    queryable: true,
+    crs,
+    hasLicenseOrAttribution: true,
+    caveats,
+    dependencyStatus: result.cacheHit ? "cached" : "live",
+    cacheHit: result.cacheHit,
+  });
+
+  return withEvidenceMetadata({
+    id: layerId,
+    name: "OSM Road Network",
+    type: "geojson",
+    visible: true,
+    opacity: 0.9,
+    sourceData: result.featureCollection,
+    group: "data",
+    sourceKind: "external",
+    queryable: true,
+    qaStatus: scientificQA.status,
+    style: {
+      "line-color": "#38bdf8",
+      "line-width": [
+        "interpolate",
+        ["linear"],
+        ["zoom"],
+        10,
+        0.4,
+        14,
+        1.4,
+        17,
+        3,
+      ],
+    },
+    provenance: {
+      label: OSM_ROADS_PROVENANCE,
+      sourceName: "OpenStreetMap Overpass API",
+      sourceUrl: endpoint,
+      license: "ODbL",
+      attribution: OSM_ROADS_PROVENANCE,
+      method: `Overpass highway query clipped to ${result.areaKm2.toFixed(2)} km² bbox`,
+      generatedAt: result.fetchedAt,
+      notes: caveats,
+    },
+    metadata: {
+      ...metadata,
+      updatedAt: result.fetchedAt,
+      dataVersion: result.fetchedAt,
+      externalService: buildExternalServiceMetadata({
+        kind: "overpass",
+        endpoint,
+        title: "OpenStreetMap Overpass API",
+        bounds: result.requestedBounds,
+        crs,
+        refreshedAt: result.fetchedAt,
+        dependencyStatus: result.cacheHit ? "cached" : "live",
+        cacheTtlMs: OVERPASS_CACHE_TTL_MS,
+        cacheHit: result.cacheHit,
+        license: "ODbL",
+        attribution: OSM_ROADS_PROVENANCE,
+        caveats,
+      }),
+      crsSummary: buildExternalCrsSummary(crs, "external-service", ["Overpass road coordinates are returned as longitude/latitude GeoJSON from OpenStreetMap."]),
+      licenseAttribution: buildExternalLicenseAttribution({
+        sourceName: "OpenStreetMap Overpass API",
+        sourceUrl: endpoint,
+        license: "ODbL",
+        attribution: OSM_ROADS_PROVENANCE,
+      }),
+      scientificQA,
+      datasetContext: {
+        layerTitle: "OSM Road Network",
+        source: "OpenStreetMap Overpass API",
+        license: "ODbL",
+        crs: "EPSG:4326",
+        spatialExtent: result.clampedBounds.map((value) => value.toFixed(4)).join(", "),
+        schemaSummary: ["highway", "name", "surface", "lanes", "oneway", "maxspeed", "osm_id"],
+      },
+    },
+  });
+}
+
 export async function loadRemoteCityJSON(rawUrl: string): Promise<CityJSONLoadResult> {
   const response = await fetchExternalService(rawUrl, {}, { accept: "application/json,*/*" });
   const raw = await response.text();
@@ -1591,6 +1816,10 @@ export const ExternalServiceConnector = {
   getCachedOverpassBuildingsForBounds,
   cacheOverpassBuildingsResult,
   clearOverpassCache,
+  overpassRoadsToGeoJSON,
+  fetchOverpassRoadsForBounds,
+  createOsmRoadsLayerConfig,
+  clearOverpassRoadsCache,
   loadRemoteCityJSON,
   createRemoteCityJSONLayerConfig,
 };

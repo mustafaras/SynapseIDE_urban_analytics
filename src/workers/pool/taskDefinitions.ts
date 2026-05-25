@@ -16,8 +16,12 @@ import type {
   LisaSpatialStatsExecutionResult,
 } from '../../services/map/SpatialStatsExecutionService';
 import type { OverpassBuildingsResult } from '../../services/map/ExternalServiceConnector';
+import type {
+  GeometryWorkflowComputation,
+  GeometryWorkflowRequest,
+} from '../../services/map/geometry/GeometryWorkflowEngine';
 
-export type BackgroundTaskDomain = 'spatial-stats' | 'clustering' | 'simulation' | 'raster' | 'external';
+export type BackgroundTaskDomain = 'spatial-stats' | 'clustering' | 'simulation' | 'raster' | 'external' | 'geometry';
 
 export interface RasterAccuracyTaskInput {
   prediction: ArrayLike<number>;
@@ -73,6 +77,11 @@ export interface BackgroundTaskDefinitions {
       bypassCache?: boolean;
     };
     output: OverpassBuildingsResult;
+  };
+  'geometry/workflow': {
+    domain: 'geometry';
+    input: GeometryWorkflowRequest;
+    output: GeometryWorkflowComputation;
   };
 }
 
@@ -177,5 +186,6 @@ export function resolveTaskDomain(kind: WorkerTaskKind): BackgroundTaskDomain {
   if (kind.startsWith('clustering/')) return 'clustering';
   if (kind.startsWith('simulation/')) return 'simulation';
   if (kind.startsWith('external/')) return 'external';
+  if (kind.startsWith('geometry/')) return 'geometry';
   return 'raster';
 }

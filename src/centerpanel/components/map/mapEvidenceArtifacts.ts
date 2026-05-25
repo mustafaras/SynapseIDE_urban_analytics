@@ -108,13 +108,30 @@ export interface MapLayerEvidenceArtifactOptions {
   summary?: string;
   state?: MapEvidenceArtifactState;
   sourceModule?: MapEvidenceSourceModule;
+  urbanEvidenceId?: string;
   linkedAoiId?: string;
   linkedRunId?: string;
   linkedWorkflowId?: string;
   linkedArtifactIds?: string[];
+  crsSummary?: Partial<MapEvidenceCrsSummary>;
+  runtimeMode?: "live" | "demo" | "synthetic" | "unknown";
+  manifestId?: string;
   qa?: Partial<MapEvidenceQA>;
   metadata?: Record<string, MapEvidenceScalar>;
   createdAt?: string;
+}
+
+export interface SupersedeMapEvidenceArtifactOptions {
+  reason: string;
+  state?: MapEvidenceArtifactState;
+  qa?: Partial<MapEvidenceQA>;
+  metadata?: Record<string, MapEvidenceScalar>;
+  changedAt?: string;
+}
+
+export interface MapEvidenceArtifactSupersession {
+  staleArtifact: MapEvidenceArtifact;
+  supersedingArtifact: MapEvidenceArtifact;
 }
 
 export interface MapAoiEvidenceArtifactOptions {
@@ -868,7 +885,9 @@ function resolveLayerCrs(layer: OverlayLayerConfig): string | undefined {
     layer.metadata?.datasetContext?.crs
       ?? layer.metadata?.columnar?.crs
       ?? layer.metadata?.eoSource?.crs
-      ?? layer.metadata?.externalService?.crs,
+      ?? layer.metadata?.externalService?.crs
+      ?? layer.metadata?.crsSummary?.crs
+      ?? layer.metadata?.registry?.crsSummary.crs,
   );
 }
 
@@ -880,20 +899,26 @@ function sourceLayerIdsFromLayer(layer: OverlayLayerConfig): string[] {
 }
 
 function geometrySummaryFromLayer(layer: OverlayLayerConfig): MapEvidenceGeometrySummary {
-  const geometryTypes = normalizeStringList(layer.metadata?.geometryType ? [layer.metadata.geometryType] : []);
-  const notes = geometryTypes.length === 0 && layer.metadata?.featureCount === undefined && !layer.metadata?.bounds
+  const registrySummary = layer.metadata?.geometrySummary ?? layer.metadata?.registry?.geometrySummary;
+  const geometryTypes = normalizeStringList([
+    ...(registrySummary?.geometryTypes ?? []),
+    ...(layer.metadata?.geometryType ? [layer.metadata.geometryType] : []),
+  ]);
+  const featureCount = layer.metadata?.featureCount ?? registrySummary?.featureCount ?? undefined;
+  const bounds = layer.metadata?.bounds;
+  const notes = geometryTypes.length === 0 && featureCount === undefined && !bounds
     ? ["No layer geometry metadata was available; raw geometry was not copied into the artifact."]
     : [];
   const summary: MapEvidenceGeometrySummary = {
     geometryTypes,
-    source: geometryTypes.length > 0 || layer.metadata?.featureCount !== undefined || layer.metadata?.bounds ? "metadata" : "unknown",
+    source: geometryTypes.length > 0 || featureCount !== undefined || bounds ? "metadata" : "unknown",
     notes,
   };
-  if (typeof layer.metadata?.featureCount === "number" && Number.isFinite(layer.metadata.featureCount)) {
-    summary.featureCount = Math.max(0, Math.floor(layer.metadata.featureCount));
+  if (typeof featureCount === "number" && Number.isFinite(featureCount)) {
+    summary.featureCount = Math.max(0, Math.floor(featureCount));
   }
-  if (layer.metadata?.bounds) {
-    summary.bounds = layer.metadata.bounds;
+  if (bounds) {
+    summary.bounds = bounds;
   }
   return summary;
 }
@@ -954,6 +979,7 @@ export function createMapLayerEvidenceArtifact(
     linkedWorkflowId: options.linkedWorkflowId,
     linkedArtifactIds: options.linkedArtifactIds,
     qaIssueIds: layerQa.issueIds,
+    urbanEvidenceId: options.urbanEvidenceId,
     provenance: {
       sourceModule: options.sourceModule ?? "map-explorer",
       sourceName: layer.provenance?.sourceName ?? layer.name,
@@ -964,7 +990,7 @@ export function createMapLayerEvidenceArtifact(
       method: layer.metadata?.analysisResult?.engine ?? layer.provenance?.method,
       sourceLayerIds,
       derivedLayerId,
-      crsSummary: crsSummaryFromLayer(layer, sourceLayerIds),
+      crsSummary: options.crsSummary ?? crsSummaryFromLayer(layer, sourceLayerIds),
       geometrySummary: geometrySummaryFromLayer(layer),
       runId: layer.metadata?.analysisResult?.runId,
       layerProvenance: layer.provenance ? [layer.provenance] : [],
@@ -977,9 +1003,162 @@ export function createMapLayerEvidenceArtifact(
       visible: layer.visible,
       opacity: layer.opacity,
       queryable: layer.queryable ?? (layer.type === "geojson" || layer.type === "heatmap"),
+      sourceKind: layer.sourceKind ?? "project",
+      runtimeMode: options.runtimeMode ?? (layer.sourceKind === "demo" ? "demo" : "unknown"),
+      isDemo: options.runtimeMode === "demo" || layer.sourceKind === "demo",
+      isSynthetic: options.runtimeMode === "synthetic",
+      sourceDataVersion: layer.metadata?.dataVersion ?? null,
+      manifestId: options.manifestId ?? layer.metadata?.reproducibilityManifest?.manifestId ?? null,
     },
     createdAt,
   });
+}
+
+export function supersedeMapEvidenceArtifact(
+  artifact: MapEvidenceArtifact,
+  options: SupersedeMapEvidenceArtifactOptions,
+): MapEvidenceArtifactSupersession {
+  const changedAt = normalizeIso(options.changedAt);
+  const staleArtifact = patchMapEvidenceArtifact(artifact, {
+    state: "stale",
+    qa: {
+      ...artifact.qa,
+      state: artifact.qa.state === "blocked" || artifact.qa.state === "error" ? artifact.qa.state : "warning",
+      caveats: normalizeTextList([...artifact.qa.caveats, options.reason]),
+    },
+    updatedAt: changedAt,
+  });
+  const successorQa = normalizeQa({ ...artifact.qa, ...options.qa }, artifact.qaIssueIds);
+  const successorState = options.state
+    ?? (successorQa.state === "blocked" || successorQa.state === "error"
+      ? "blocked"
+      : artifact.state === "active" ? "active" : "published");
+  const supersedingArtifact = createMapEvidenceArtifact({
+    id: `${artifact.id}-revision-${safeReferencePart(newArtifactId())}`,
+    kind: artifact.kind,
+    title: artifact.title,
+    summary: artifact.summary ?? `Superseding evidence reference for ${artifact.title}.`,
+    state: successorState,
+    sourceModule: artifact.sourceModule,
+    ...(artifact.sourceId ? { sourceId: artifact.sourceId } : {}),
+    linkedLayerIds: artifact.linkedLayerIds,
+    sourceLayerIds: artifact.sourceLayerIds,
+    ...(artifact.derivedLayerId ? { derivedLayerId: artifact.derivedLayerId } : {}),
+    ...(artifact.linkedAoiId ? { linkedAoiId: artifact.linkedAoiId } : {}),
+    ...(artifact.linkedRunId ? { linkedRunId: artifact.linkedRunId } : {}),
+    ...(artifact.linkedWorkflowId ? { linkedWorkflowId: artifact.linkedWorkflowId } : {}),
+    linkedFileIds: artifact.linkedFileIds,
+    linkedArtifactIds: [...artifact.linkedArtifactIds, artifact.id],
+    qaIssueIds: successorQa.issueIds,
+    ...(artifact.reportInsertId ? { reportInsertId: artifact.reportInsertId } : {}),
+    ...(artifact.reportSnapshotId ? { reportSnapshotId: artifact.reportSnapshotId } : {}),
+    ...(artifact.dashboardBindingId ? { dashboardBindingId: artifact.dashboardBindingId } : {}),
+    ...(artifact.ideArtifactId ? { ideArtifactId: artifact.ideArtifactId } : {}),
+    ...(artifact.urbanEvidenceId ? { urbanEvidenceId: artifact.urbanEvidenceId } : {}),
+    ...(artifact.exportId ? { exportId: artifact.exportId } : {}),
+    tags: artifact.tags,
+    provenance: {
+      ...artifact.provenance,
+      createdAt: changedAt,
+      parentArtifactIds: [...artifact.provenance.parentArtifactIds, artifact.id],
+    },
+    qa: successorQa,
+    metadata: {
+      ...(artifact.metadata ?? {}),
+      ...(options.metadata ?? {}),
+      supersedesArtifactId: artifact.id,
+      supersessionReason: options.reason,
+    },
+    createdAt: changedAt,
+  });
+  return { staleArtifact, supersedingArtifact };
+}
+
+function runtimeModeFromMetadata(value: MapEvidenceScalar | undefined): MapLayerEvidenceArtifactOptions["runtimeMode"] {
+  return value === "live" || value === "demo" || value === "synthetic" || value === "unknown"
+    ? value
+    : undefined;
+}
+
+export function supersedeMapLayerEvidenceArtifactForLayerChange(
+  artifact: MapEvidenceArtifact,
+  layer: OverlayLayerConfig,
+  options: SupersedeMapEvidenceArtifactOptions,
+): MapEvidenceArtifactSupersession {
+  const { staleArtifact } = supersedeMapEvidenceArtifact(artifact, options);
+  const layerQa = qaFromLayer(layer);
+  const successorQa = normalizeQa({ ...layerQa, ...options.qa }, layerQa.issueIds);
+  const state = options.state
+    ?? (successorQa.state === "blocked" || successorQa.state === "error"
+      ? "blocked"
+      : artifact.state === "active" ? "active" : "published");
+  const runtimeMode = runtimeModeFromMetadata(artifact.metadata?.runtimeMode);
+  const manifestId = typeof artifact.metadata?.manifestId === "string" ? artifact.metadata.manifestId : undefined;
+  const supersedingArtifact = createMapLayerEvidenceArtifact(layer, {
+    id: `${artifact.id}-revision-${safeReferencePart(newArtifactId())}`,
+    title: artifact.title,
+    summary: artifact.summary ?? `Superseding evidence reference for ${artifact.title}.`,
+    state,
+    sourceModule: artifact.sourceModule,
+    ...(artifact.urbanEvidenceId ? { urbanEvidenceId: artifact.urbanEvidenceId } : {}),
+    ...(artifact.linkedAoiId ? { linkedAoiId: artifact.linkedAoiId } : {}),
+    ...(artifact.linkedRunId ? { linkedRunId: artifact.linkedRunId } : {}),
+    ...(artifact.linkedWorkflowId ? { linkedWorkflowId: artifact.linkedWorkflowId } : {}),
+    linkedArtifactIds: [...artifact.linkedArtifactIds, artifact.id],
+    ...(runtimeMode ? { runtimeMode } : {}),
+    ...(manifestId ? { manifestId } : {}),
+    qa: successorQa,
+    metadata: {
+      ...(artifact.metadata ?? {}),
+      ...(options.metadata ?? {}),
+      supersedesArtifactId: artifact.id,
+      supersessionReason: options.reason,
+    },
+    ...(options.changedAt ? { createdAt: options.changedAt } : {}),
+  });
+  return { staleArtifact, supersedingArtifact };
+}
+
+export function supersedeMapEvidenceArtifactsForLayerChange(
+  artifacts: readonly MapEvidenceArtifact[],
+  layerId: string,
+  layer: OverlayLayerConfig | null,
+  options: SupersedeMapEvidenceArtifactOptions,
+): MapEvidenceArtifact[] {
+  let next = [...artifacts];
+  const affected = artifacts.filter((artifact) =>
+    artifact.kind !== "qa-finding"
+    && (artifact.state === "active" || artifact.state === "published")
+    && (
+      artifact.linkedLayerIds.includes(layerId)
+      || artifact.sourceLayerIds.includes(layerId)
+      || artifact.derivedLayerId === layerId
+    ),
+  );
+
+  for (const artifact of affected) {
+    const directlyEdited = layer && (artifact.sourceId === layerId || artifact.derivedLayerId === layerId);
+    const transitionOptions = directlyEdited
+      ? options
+      : {
+          ...options,
+          state: "blocked" as const,
+          qa: {
+            ...(options.qa ?? {}),
+            state: "blocked" as const,
+            caveats: normalizeTextList([
+              ...(options.qa?.caveats ?? artifact.qa.caveats),
+              "A source dependency changed; the derived evidence must be rerun before publication.",
+            ]),
+          },
+        };
+    const { staleArtifact, supersedingArtifact } = directlyEdited
+      ? supersedeMapLayerEvidenceArtifactForLayerChange(artifact, layer, transitionOptions)
+      : supersedeMapEvidenceArtifact(artifact, transitionOptions);
+    next = upsertMapEvidenceArtifact(next, staleArtifact);
+    next = upsertMapEvidenceArtifact(next, supersedingArtifact);
+  }
+  return next;
 }
 
 function collectGeometryDetails(geometry: GeoJSON.Geometry): {

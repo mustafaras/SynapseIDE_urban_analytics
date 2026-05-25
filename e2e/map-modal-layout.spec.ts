@@ -189,6 +189,78 @@ async function seedWorkflowMissingCrsLayer(page: import("@playwright/test").Page
   });
 }
 
+async function seedAttributeTableLayer(page: import("@playwright/test").Page): Promise<void> {
+  await page.evaluate(async () => {
+    const module = await import("/src/stores/useMapExplorerStore.ts");
+    const featureCollection = {
+      type: "FeatureCollection" as const,
+      features: Array.from({ length: 25 }, (_, index) => {
+        const ring = Math.floor(index / 5);
+        const slot = index % 5;
+        return {
+          type: "Feature" as const,
+          geometry: {
+            type: "Point" as const,
+            coordinates: [29.0 + slot * 0.01, 41.0 + ring * 0.01],
+          },
+          properties: {
+            id: index + 1,
+            name: `site-${index + 1}`,
+            value: (index + 1) * 4,
+            date: `2026-01-${String((index % 28) + 1).padStart(2, "0")}`,
+          },
+        };
+      }),
+    };
+
+    module.useMapExplorerStore.getState().addOverlayLayer({
+      id: "e2e-attribute-points",
+      name: "E2E Attribute Points",
+      type: "geojson",
+      visible: true,
+      opacity: 0.9,
+      group: "data",
+      sourceKind: "imported",
+      queryable: true,
+      sourceData: featureCollection,
+      metadata: {
+        geometryType: "Point",
+        featureCount: featureCollection.features.length,
+        fields: ["id", "name", "value", "date"],
+        bounds: [29.0, 41.0, 29.04, 41.04],
+        crsSummary: { crs: "EPSG:4326", status: "known", source: "explicit", notes: [] },
+      },
+    });
+  });
+}
+
+async function seedSelectionFixtureLayer(page: import("@playwright/test").Page): Promise<void> {
+  await page.evaluate(async () => {
+    const storeModule = await import("/src/stores/useMapExplorerStore.ts");
+    const fixtures = await import("/src/centerpanel/components/map/__tests__/fixtures/gisFixtures.ts");
+    const featureCollection = fixtures.fcPointsWGS84;
+
+    storeModule.useMapExplorerStore.getState().addOverlayLayer({
+      id: "e2e-selection-points",
+      name: "E2E fcPointsWGS84 Selection",
+      type: "geojson",
+      visible: true,
+      opacity: 0.9,
+      group: "data",
+      sourceKind: "imported",
+      queryable: true,
+      sourceData: featureCollection,
+      metadata: {
+        geometryType: "Point",
+        featureCount: featureCollection.features.length,
+        fields: ["id", "name", "value", "date"],
+        bounds: [29.0, 41.0, 29.04, 41.04],
+        crsSummary: { crs: "EPSG:4326", status: "known", source: "explicit", notes: [] },
+      },
+    });
+  });
+}
+
 async function openWorkflowDrawer(page: import("@playwright/test").Page) {
   const directWorkflowButton = page.getByRole("button", { name: /Workflow|Open AOI .* Compare workflow drawer/i }).first();
   if (await directWorkflowButton.isVisible().catch(() => false)) {
@@ -204,6 +276,38 @@ async function openWorkflowDrawer(page: import("@playwright/test").Page) {
   const drawer = page.getByTestId("map-workflow-drawer");
   await expect(drawer).toBeVisible();
   return drawer;
+}
+
+async function openDrawingsPanel(page: import("@playwright/test").Page): Promise<void> {
+  const panel = page.getByRole("region", { name: "Drawn features" });
+  if (await panel.isVisible().catch(() => false)) return;
+  await page.keyboard.press("Control+K");
+  const palette = page.getByRole("dialog", { name: "Map command palette" });
+  await expect(palette).toBeVisible();
+  await palette.getByLabel("Search map commands").fill("drawings");
+  await triggerDomClick(palette.getByRole("option", { name: /Drawings/i }).first());
+  await expect(panel).toBeVisible();
+}
+
+function projectLngLat(
+  coordinate: [number, number],
+  viewport: { center: [number, number]; zoom: number },
+  canvasBox: { x: number; y: number; width: number; height: number },
+): { x: number; y: number } {
+  const worldSize = 512 * 2 ** viewport.zoom;
+  const project = ([lng, lat]: [number, number]) => {
+    const sin = Math.sin((lat * Math.PI) / 180);
+    return {
+      x: ((lng + 180) / 360) * worldSize,
+      y: (0.5 - Math.log((1 + sin) / (1 - sin)) / (4 * Math.PI)) * worldSize,
+    };
+  };
+  const point = project(coordinate);
+  const center = project(viewport.center);
+  return {
+    x: canvasBox.x + canvasBox.width / 2 + point.x - center.x,
+    y: canvasBox.y + canvasBox.height / 2 + point.y - center.y,
+  };
 }
 
 test.describe("Prompt 35 premium Map Explorer layout", () => {
@@ -381,6 +485,157 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
     await expect(row).not.toContainText("CRS missing");
   });
 
+  test("builds a viewport AOI and audits a vertex edit with validation status (Prompt 14)", async ({ page }) => {
+    await page.setViewportSize({ width: 1680, height: 1100 });
+    await resetWorkbenchState(page);
+
+    await openMapExplorer(page);
+    const drawer = await openWorkflowDrawer(page);
+    const applyWorkflowButton = drawer.getByRole("button", { name: /Apply spatial workflow|Apply workflow/i });
+    await expect(applyWorkflowButton).toBeEnabled();
+    await triggerDomClick(applyWorkflowButton);
+
+    await expect.poll(async () => page.evaluate(async () => {
+      const module = await import("/src/stores/useMapExplorerStore.ts");
+      const store = module.useMapExplorerStore.getState();
+      return store.drawnFeatures.some((feature) =>
+        feature.properties.label === "Custom AOI" && feature.properties.validation?.status === "valid");
+    })).toBe(true);
+
+    await page.evaluate(async () => {
+      const storeModule = await import("/src/stores/useMapExplorerStore.ts");
+      const validationModule = await import("/src/services/map/DrawnGeometryValidation.ts");
+      const store = storeModule.useMapExplorerStore.getState();
+      const aoi = store.drawnFeatures.find((feature) => feature.properties.label === "Custom AOI");
+      if (!aoi) throw new Error("Viewport AOI drawing was not created.");
+      const geometry = {
+        type: "Polygon" as const,
+        coordinates: [[
+          [29.12, 41.06],
+          [29.22, 41.06],
+          [29.22, 41.16],
+          [29.12, 41.16],
+          [29.12, 41.06],
+        ]],
+      };
+      store.updateDrawnFeature(aoi.id, {
+        geometry,
+        properties: {
+          ...aoi.properties,
+          validation: validationModule.validateDrawnGeometry(geometry),
+        },
+      });
+      store.setActiveAoi(aoi.id);
+      store.setSelectedFeatureId(aoi.id);
+    });
+
+    await triggerDomClick(drawer.getByRole("button", { name: "Close map workflow drawer" }));
+    await openDrawingsPanel(page);
+    await expect(page.getByRole("region", { name: "Drawn features" })).toContainText("Validated");
+
+    const dragTarget = await page.evaluate(async () => {
+      const module = await import("/src/stores/useMapExplorerStore.ts");
+      const store = module.useMapExplorerStore.getState();
+      const aoi = store.drawnFeatures.find((feature) => feature.properties.label === "Custom AOI");
+      if (!aoi || aoi.geometry.type !== "Polygon") throw new Error("Editable AOI polygon was not found.");
+      return {
+        center: store.center,
+        zoom: store.zoom,
+        coordinate: aoi.geometry.coordinates[0][2],
+      };
+    });
+    const canvasBox = await page.locator(".maplibregl-canvas").first().boundingBox();
+    expect(canvasBox).not.toBeNull();
+    const start = projectLngLat(
+      dragTarget.coordinate as [number, number],
+      { center: dragTarget.center as [number, number], zoom: dragTarget.zoom },
+      canvasBox!,
+    );
+    await page.waitForTimeout(100);
+
+    await page.mouse.move(start.x, start.y);
+    await page.mouse.down();
+    await page.mouse.move(start.x + 34, start.y - 18, { steps: 6 });
+    await page.mouse.up();
+
+    await expect.poll(async () => page.evaluate(async () => {
+      const module = await import("/src/stores/useMapExplorerStore.ts");
+      const store = module.useMapExplorerStore.getState();
+      const aoi = store.drawnFeatures.find((feature) => feature.properties.label === "Custom AOI");
+      return {
+        edited: store.reviewSession.events.some((event) => event.title.includes("Edited AOI")),
+        status: aoi?.properties.validation?.status ?? null,
+      };
+    })).toEqual({ edited: true, status: "valid" });
+    await expect(page.getByRole("region", { name: "Drawn features" })).toContainText("Validated");
+
+    await page.keyboard.press("Control+K");
+    const palette = page.getByRole("dialog", { name: "Map command palette" });
+    await expect(palette).toBeVisible();
+    await palette.getByLabel("Search map commands").fill("review timeline");
+    await triggerDomClick(palette.getByRole("option", { name: /Review/i }).first());
+
+    await expect(
+      page.getByTestId("map-review-timeline-event").filter({ hasText: "Edited AOI" }).first(),
+    ).toBeVisible();
+  });
+
+  test("selects fcPointsWGS84 points with a rectangle and shows the count chip (Prompt 15)", async ({ page }) => {
+    await page.setViewportSize({ width: 1680, height: 1100 });
+    await resetWorkbenchState(page);
+
+    await openMapExplorer(page);
+    await seedSelectionFixtureLayer(page);
+    await expect(page.getByRole("list", { name: "Layer list" })).toContainText("E2E fcPointsWGS84 Selection");
+    const drawingToggle = page.getByRole("button", { name: "Toggle drawings panel" }).first();
+    if (await drawingToggle.getAttribute("aria-pressed") === "true") {
+      await triggerDomClick(drawingToggle);
+      await expect(page.getByRole("region", { name: "Drawn features" })).toBeHidden();
+    }
+
+    const countChip = page.getByTestId("map-selection-count-chip");
+    await expect(countChip).toBeVisible();
+    await expect(countChip).toContainText("0 selected");
+    await triggerDomClick(page.getByTestId("map-rectangle-select-tool"));
+
+    const viewport = await page.evaluate(async () => {
+      const module = await import("/src/stores/useMapExplorerStore.ts");
+      const store = module.useMapExplorerStore.getState();
+      return { center: store.center, zoom: store.zoom };
+    });
+    const canvasBox = await page.locator(".maplibregl-canvas").first().boundingBox();
+    expect(canvasBox).not.toBeNull();
+    if (!canvasBox) return;
+
+    const start = projectLngLat(
+      [28.995, 40.995],
+      { center: viewport.center as [number, number], zoom: viewport.zoom },
+      canvasBox,
+    );
+    const end = projectLngLat(
+      [29.045, 41.015],
+      { center: viewport.center as [number, number], zoom: viewport.zoom },
+      canvasBox,
+    );
+    await page.mouse.move(start.x, start.y);
+    await page.mouse.down();
+    await page.mouse.move(end.x, end.y, { steps: 8 });
+    await page.mouse.up();
+
+    await expect(countChip).toContainText("10 selected");
+    await expect.poll(async () => page.evaluate(async () => {
+      const module = await import("/src/stores/useMapExplorerStore.ts");
+      return module.useMapExplorerStore.getState().selectedFeatureIds["e2e-selection-points"]?.length ?? 0;
+    })).toBe(10);
+    await expect.poll(async () => page.evaluate(async () => {
+      const module = await import("/src/stores/useMapExplorerStore.ts");
+      return module.useMapExplorerStore.getState().reviewSession.events.some((event) =>
+        event.title === "Rectangle selection query" &&
+        event.details?.bounded === true &&
+        event.details?.provenance != null);
+    })).toBe(true);
+  });
+
   test("routes layer removal through the command lifecycle with an audit row and revert", async ({ page }) => {
     await page.setViewportSize({ width: 1680, height: 1100 });
     await resetWorkbenchState(page);
@@ -479,6 +734,39 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
     await expect(page.getByTestId("map-layer-inspector-panel-crs")).toContainText("missing");
   });
 
+  test("opens an attribute table and syncs row selection with the map context summary", async ({ page }) => {
+    await page.setViewportSize({ width: 1680, height: 1100 });
+    await resetWorkbenchState(page);
+    await openMapExplorer(page);
+    await seedAttributeTableLayer(page);
+
+    const layerList = page.getByRole("list", { name: "Layer list" });
+    await expect(layerList).toContainText("E2E Attribute Points");
+
+    const row = page.getByRole("option", { name: /Layer: E2E Attribute Points/i });
+    await triggerDomClick(row.getByTestId("map-layer-table-trigger"));
+
+    const table = page.getByTestId("map-attribute-table");
+    await expect(table).toBeVisible();
+    await expect(table.getByTestId("map-attribute-table-count")).toContainText("25 of 25");
+
+    const firstTableRow = table.getByTestId("map-attribute-row").first();
+    await triggerDomClick(firstTableRow);
+    await expect(firstTableRow).toHaveAttribute("aria-selected", "true");
+
+    await expect(page.getByTestId("map-bottom-timeline")).toContainText("Select");
+    await expect(page.getByTestId("map-bottom-timeline")).toContainText("1");
+
+    const selectedFeatureCount = await page.evaluate(async () => {
+      const storeModule = await import("/src/stores/useMapExplorerStore.ts");
+      const summaryModule = await import("/src/centerpanel/components/map/mapContextSummary.ts");
+      return summaryModule.selectMapExplorerContextSummary(
+        storeModule.useMapExplorerStore.getState(),
+      ).selection.totalSelectedFeatures;
+    });
+    expect(selectedFeatureCount).toBe(1);
+  });
+
   test("keeps controls usable across laptop and tablet viewport screenshots", async ({ page }, testInfo) => {
     const viewports = [
       { label: "laptop", width: 1366, height: 900, minimumHeight: 520 },
@@ -503,5 +791,107 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
         contentType: "image/png",
       });
     }
+  });
+
+  test("runs a large buffer in a worker, keeping the main thread responsive (Prompt 13)", async ({ page }) => {
+    await page.setViewportSize({ width: 1680, height: 1100 });
+    await resetWorkbenchState(page);
+    await openMapExplorer(page);
+
+    // Seed a large point layer (> worker threshold) so the buffer is routed off-thread.
+    await page.evaluate(async () => {
+      const module = await import("/src/stores/useMapExplorerStore.ts");
+      const COUNT = 8000;
+      const features = Array.from({ length: COUNT }, (_, index) => ({
+        type: "Feature" as const,
+        id: `pt-${index}`,
+        geometry: {
+          type: "Point" as const,
+          coordinates: [28.95 + (index % 200) * 0.0008, 41.0 + Math.floor(index / 200) * 0.0008],
+        },
+        properties: { id: index },
+      }));
+      module.useMapExplorerStore.getState().addOverlayLayer({
+        id: "e2e-large-buffer",
+        name: "E2E Large Points",
+        type: "geojson",
+        visible: true,
+        opacity: 0.9,
+        group: "data",
+        sourceKind: "imported",
+        sourceData: { type: "FeatureCollection", features },
+        metadata: {
+          geometryType: "Point",
+          featureCount: COUNT,
+          fields: ["id"],
+          // Declared projected CRS so the planar buffer is CRS-safe (not
+          // reproject-blocked) and routes to the worker on its own.
+          crsSummary: { crs: "EPSG:32635", status: "known", source: "explicit", notes: [] },
+        },
+      });
+    });
+
+    // Execute the buffer through the real background worker pool while a
+    // requestAnimationFrame counter ticks. If the geometry ran on the main
+    // thread, the counter would stall; off-thread it keeps advancing.
+    const outcome = await page.evaluate(async () => {
+      const svc = await import("/src/services/map/MapWorkflowService.ts");
+      const execMod = await import("/src/services/map/geometry/mapWorkflowWorkerExecutor.ts");
+      const store = (await import("/src/stores/useMapExplorerStore.ts")).useMapExplorerStore.getState();
+
+      const context = svc.buildMapWorkflowContext(store.overlayLayers);
+      const draft = {
+        kind: "buffer" as const,
+        sourceMode: "layer" as const,
+        sourceLayerId: "e2e-large-buffer",
+        distance: 250,
+        unit: "meters" as const,
+        segments: 8,
+        dissolve: false,
+        name: "E2E worker buffer",
+      };
+      const preview = svc.generateMapWorkflowPreview(draft, context);
+
+      let frames = 0;
+      let running = true;
+      const tick = () => {
+        if (!running) return;
+        frames += 1;
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+
+      const executor = execMod.createMapWorkflowWorkerExecutor();
+      let sawProgress = false;
+      const result = await svc.executeMapWorkflow(
+        preview,
+        context,
+        executor,
+        { onProgress: (update) => { if (update.status === "running" || update.status === "queued") sawProgress = true; } },
+      );
+      running = false;
+
+      return {
+        needsWorker: preview.needsWorker,
+        frames,
+        sawProgress,
+        featureCount: result.preview.featureCount,
+        executionCrs: result.manifest.crsSummary.executionCrs,
+        backend: String(result.reportItem.metrics.geometry_backend ?? ""),
+        derivedLayerId: result.layer.id,
+      };
+    });
+
+    expect(outcome.needsWorker).toBe(true);
+    // Worker reported progress and results are fully attributed.
+    expect(outcome.sawProgress).toBe(true);
+    expect(outcome.featureCount).toBeGreaterThan(0);
+    expect(outcome.executionCrs).toBe("EPSG:32635");
+    // geos-wasm actually initialises + runs in the browser worker (turf is the
+    // resilient fallback in code, but the supported path is geos-wasm).
+    expect(outcome.backend).toBe("geos-wasm");
+    expect(outcome.derivedLayerId).toContain("derived:buffer");
+    // Main thread stayed responsive during the off-thread run.
+    expect(outcome.frames).toBeGreaterThan(3);
   });
 });

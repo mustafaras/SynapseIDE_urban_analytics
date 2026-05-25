@@ -856,6 +856,7 @@ export interface MapLayerRegistryLayerSummary {
   visible: boolean;
   opacity: number;
   sourceKind?: LayerSourceKind;
+  runtimeMode?: AnalysisOutputMode;
   qaStatus?: LayerQaStatus;
   queryable: boolean;
   crs?: string;

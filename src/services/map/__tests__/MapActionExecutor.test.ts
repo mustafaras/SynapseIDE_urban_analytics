@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { describe, expect, it } from "vitest";
-import type { MapReproducibilityManifest, OverlayLayerConfig } from "@/centerpanel/components/map/mapTypes";
+import type { DrawnFeature, MapReproducibilityManifest, OverlayLayerConfig } from "@/centerpanel/components/map/mapTypes";
 import {
   applyMapCommand,
   previewMapCommand,
@@ -15,6 +15,7 @@ import {
   recordMapActionHistoryEntry,
 } from "@/services/map/actions/MapActionHistoryService";
 import { useMapExplorerStore } from "@/stores/useMapExplorerStore";
+import { validateDrawnGeometry } from "../DrawnGeometryValidation";
 
 const FIXED_OPTS = { idFactory: () => "cmd-1", now: () => "2026-05-23T00:00:00.000Z" };
 
@@ -22,8 +23,22 @@ function layer(id: string, overrides: Partial<OverlayLayerConfig> = {}): Overlay
   return { id, name: `Layer ${id}`, type: "geojson", visible: true, opacity: 1, ...overrides };
 }
 
+function drawnAoi(id: string, coordinates: GeoJSON.Position[][]): DrawnFeature {
+  const geometry: GeoJSON.Polygon = { type: "Polygon", coordinates };
+  return {
+    id,
+    geometry,
+    properties: {
+      label: `AOI ${id}`,
+      createdAt: "2026-05-23T00:00:00.000Z",
+      validation: validateDrawnGeometry(geometry),
+    },
+  };
+}
+
 function createFakeEffects(initial: OverlayLayerConfig[] = []) {
   let layers = [...initial];
+  let drawings: DrawnFeature[] = [];
   const removedReportItems: string[] = [];
   const effects: MapActionEffects = {
     getLayer: (id) => layers.find((entry) => entry.id === id) ?? null,
@@ -46,8 +61,21 @@ function createFakeEffects(initial: OverlayLayerConfig[] = []) {
     removeReportItem: (id) => {
       removedReportItems.push(id);
     },
+    getDrawnFeature: (id) => drawings.find((entry) => entry.id === id) ?? null,
+    updateDrawnFeature: (id, patch) => {
+      drawings = drawings.map((entry) => (entry.id === id ? { ...entry, ...patch } : entry));
+    },
   };
-  return { effects, ids: () => layers.map((entry) => entry.id), layers: () => layers, removedReportItems };
+  return {
+    effects,
+    ids: () => layers.map((entry) => entry.id),
+    layers: () => layers,
+    drawings: () => drawings,
+    setDrawings: (entries: DrawnFeature[]) => {
+      drawings = entries;
+    },
+    removedReportItems,
+  };
 }
 
 describe("previewMapCommand", () => {
@@ -88,6 +116,25 @@ describe("previewMapCommand", () => {
       effects,
     );
     expect(report.ok).toBe(false);
+  });
+
+  it("blocks aoi.edit when the edited geometry is invalid", () => {
+    const { effects, setDrawings } = createFakeEffects();
+    const before = drawnAoi("aoi-1", [[[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]]]);
+    const invalid = drawnAoi("aoi-1", [[[0, 0], [1, 1], [1, 0], [0, 1], [0, 0]]]);
+    setDrawings([before]);
+
+    const preflight = previewMapCommand({
+      kind: "aoi.edit",
+      featureId: "aoi-1",
+      previousFeature: before,
+      nextFeature: invalid,
+      validation: validateDrawnGeometry(invalid.geometry),
+    }, effects);
+
+    expect(preflight.ok).toBe(false);
+    expect(preflight.blockers.join(" ")).toContain("Self-intersecting");
+    expect(preflight.caveats.join(" ")).toContain("CRS");
   });
 });
 
@@ -134,6 +181,28 @@ describe("applyMapCommand", () => {
     expect(outcome.reviewEvent.reportItemIds).toContain("r1");
   });
 
+  it("applies aoi.edit with validation details and a revert token", () => {
+    const { effects, drawings, setDrawings } = createFakeEffects();
+    const before = drawnAoi("aoi-1", [[[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]]]);
+    const after = drawnAoi("aoi-1", [[[0, 0], [2, 0], [2, 1], [0, 1], [0, 0]]]);
+    setDrawings([before]);
+
+    const outcome = applyMapCommand({
+      kind: "aoi.edit",
+      featureId: "aoi-1",
+      previousFeature: before,
+      nextFeature: after,
+      validation: validateDrawnGeometry(after.geometry),
+    }, effects, FIXED_OPTS);
+
+    expect(outcome.result.status).toBe("applied");
+    expect(outcome.result.kind).toBe("aoi.edit");
+    expect(outcome.reviewEvent.title).toContain("Edited AOI");
+    expect(outcome.reviewEvent.details?.validationStatus).toBe("valid");
+    expect(outcome.revertToken?.kind).toBe("aoi.edit");
+    expect((drawings()[0]?.geometry as GeoJSON.Polygon).coordinates[0]?.[1]).toEqual([2, 0]);
+  });
+
   it("returns a blocked result with blockers and applies no side effects", () => {
     const { effects, ids } = createFakeEffects([]);
     const outcome = applyMapCommand(
@@ -173,6 +242,24 @@ describe("revertMapCommand", () => {
     expect(ids()).toEqual(["derived"]);
     if (outcome.revertToken) revertMapCommand(outcome.revertToken, effects);
     expect(ids()).toHaveLength(0);
+  });
+
+  it("reverts aoi.edit to the previous geometry", () => {
+    const { effects, drawings, setDrawings } = createFakeEffects();
+    const before = drawnAoi("aoi-1", [[[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]]]);
+    const after = drawnAoi("aoi-1", [[[0, 0], [2, 0], [2, 1], [0, 1], [0, 0]]]);
+    setDrawings([before]);
+
+    const outcome = applyMapCommand({
+      kind: "aoi.edit",
+      featureId: "aoi-1",
+      previousFeature: before,
+      nextFeature: after,
+      validation: validateDrawnGeometry(after.geometry),
+    }, effects, FIXED_OPTS);
+    if (outcome.revertToken) revertMapCommand(outcome.revertToken, effects);
+
+    expect((drawings()[0]?.geometry as GeoJSON.Polygon).coordinates[0]?.[1]).toEqual([1, 0]);
   });
 });
 

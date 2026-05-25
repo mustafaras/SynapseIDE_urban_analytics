@@ -5,10 +5,13 @@
 /* ================================================================== */
 
 import React, { useCallback, useEffect, useRef } from "react";
-import { booleanValid } from "@turf/boolean-valid";
-import { kinks } from "@turf/kinks";
 import type maplibregl from "maplibre-gl";
 import type { DrawnFeature, DrawnGeometryValidation, DrawToolId } from "./map/mapTypes";
+import {
+  summarizeDrawnGeometryValidation,
+  validateDrawnGeometry,
+  visitDrawnGeometryPositions,
+} from "@/services/map/DrawnGeometryValidation";
 import {
   IconLine,
   IconPencil,
@@ -45,6 +48,7 @@ import { createOpaqueFloatingPanelStyle, useDraggableMapPanel } from "./map/useD
 /* ================================================================== */
 
 const SNAP_TOLERANCE_PX = 10;
+const SNAP_VISIBLE_LAYER_VERTEX_LIMIT = 4_000;
 const DRAW_SOURCE = "synapse-draw-src";
 const DRAW_FILL_LAYER = "synapse-draw-fill";
 const DRAW_LINE_LAYER = "synapse-draw-line";
@@ -63,9 +67,6 @@ const DRAW_TOOL_LABELS: Record<DrawToolId, string> = {
   circle: "Circle",
 };
 
-const DRAWING_VALIDATION_BASE_CAVEAT =
-  "Drawing coordinates use map display longitude/latitude; structural validation does not verify a source CRS.";
-
 /** Returns false if the MapLibre instance has already been destroyed via map.remove(). */
 const isMapAlive = (map: maplibregl.Map): boolean => {
   try {
@@ -76,166 +77,6 @@ const isMapAlive = (map: maplibregl.Map): boolean => {
     return false;
   }
 };
-
-function createDrawnValidation(
-  status: DrawnGeometryValidation["status"],
-  issueCodes: string[],
-  caveats: string[],
-): DrawnGeometryValidation {
-  return {
-    status,
-    issueCodes: Array.from(new Set(issueCodes)),
-    caveats: Array.from(new Set(caveats)),
-    checkedAt: new Date().toISOString(),
-  };
-}
-
-function visitDrawnGeometryPositions(
-  geometry: GeoJSON.Geometry,
-  visitor: (position: readonly number[]) => void,
-): void {
-  if (geometry.type === "GeometryCollection") {
-    geometry.geometries.forEach((entry) => visitDrawnGeometryPositions(entry, visitor));
-    return;
-  }
-
-  const walk = (value: unknown): void => {
-    if (!Array.isArray(value) || value.length === 0) return;
-    if (typeof value[0] === "number" && typeof value[1] === "number") {
-      visitor(value as readonly number[]);
-      return;
-    }
-    value.forEach(walk);
-  };
-
-  walk(geometry.coordinates);
-}
-
-function isFiniteCoordinatePair(position: readonly number[]): boolean {
-  return Number.isFinite(position[0]) && Number.isFinite(position[1]);
-}
-
-function coordinateKey(position: readonly number[]): string {
-  return `${position[0]},${position[1]}`;
-}
-
-function positionsMatch(first: readonly number[], second: readonly number[]): boolean {
-  return first[0] === second[0] && first[1] === second[1];
-}
-
-function distinctPositionCount(positions: readonly (readonly number[])[]): number {
-  return new Set(positions.map(coordinateKey)).size;
-}
-
-function polygonRingHasArea(ring: readonly (readonly number[])[]): boolean {
-  let signedArea = 0;
-  for (let index = 0; index < ring.length - 1; index += 1) {
-    const current = ring[index]!;
-    const next = ring[index + 1]!;
-    signedArea += current[0] * next[1] - next[0] * current[1];
-  }
-  return Math.abs(signedArea) > 1e-12;
-}
-
-function validateLinePositions(
-  positions: readonly (readonly number[])[],
-  blockedIssueCodes: string[],
-  caveats: string[],
-): void {
-  if (positions.length < 2) {
-    blockedIssueCodes.push("short_line");
-    caveats.push("Line drawings need at least two coordinate positions.");
-    return;
-  }
-  if (distinctPositionCount(positions) < 2) {
-    blockedIssueCodes.push("degenerate_line");
-    caveats.push("Line drawings need at least two distinct positions.");
-  }
-}
-
-function validatePolygonRing(
-  ring: readonly (readonly number[])[],
-  blockedIssueCodes: string[],
-  caveats: string[],
-): void {
-  if (ring.length < 4) {
-    blockedIssueCodes.push("short_ring");
-    caveats.push("Polygon drawings need at least three vertices and a closing coordinate.");
-    return;
-  }
-  if (!positionsMatch(ring[0]!, ring[ring.length - 1]!)) {
-    blockedIssueCodes.push("non_closed_ring");
-    caveats.push("Polygon rings must close before they can be used as an AOI.");
-  }
-  if (distinctPositionCount(ring.slice(0, -1)) < 3) {
-    blockedIssueCodes.push("degenerate_polygon");
-    caveats.push("Polygon drawings need at least three distinct positions.");
-  }
-  if (!polygonRingHasArea(ring)) {
-    blockedIssueCodes.push("zero_area_polygon");
-    caveats.push("Polygon drawings must enclose a measurable area.");
-  }
-}
-
-function validateDrawnGeometry(geometry: GeoJSON.Geometry): DrawnGeometryValidation {
-  const blockedIssueCodes: string[] = [];
-  const warningIssueCodes: string[] = [];
-  const caveats = [DRAWING_VALIDATION_BASE_CAVEAT];
-
-  visitDrawnGeometryPositions(geometry, (position) => {
-    if (!isFiniteCoordinatePair(position)) {
-      blockedIssueCodes.push("invalid_numeric_coordinate");
-      caveats.push("Every drawn coordinate must be finite before it can be stored.");
-      return;
-    }
-    if (Math.abs(position[1]) > 90) {
-      warningIssueCodes.push("latitude_out_of_range");
-      caveats.push("At least one latitude is outside the WGS84 display range.");
-    }
-  });
-
-  if (geometry.type === "Point") {
-    if (!isFiniteCoordinatePair(geometry.coordinates)) {
-      blockedIssueCodes.push("invalid_point_coordinate");
-    }
-  } else if (geometry.type === "LineString") {
-    validateLinePositions(geometry.coordinates, blockedIssueCodes, caveats);
-  } else if (geometry.type === "MultiLineString") {
-    geometry.coordinates.forEach((linePositions) => validateLinePositions(linePositions, blockedIssueCodes, caveats));
-  } else if (geometry.type === "Polygon") {
-    geometry.coordinates.forEach((ring) => validatePolygonRing(ring, blockedIssueCodes, caveats));
-  } else if (geometry.type === "MultiPolygon") {
-    geometry.coordinates.forEach((polygon) => {
-      polygon.forEach((ring) => validatePolygonRing(ring, blockedIssueCodes, caveats));
-    });
-  } else if (geometry.type === "GeometryCollection" && geometry.geometries.length === 0) {
-    blockedIssueCodes.push("empty_geometry_collection");
-    caveats.push("Geometry collections need at least one geometry.");
-  }
-
-  try {
-    if ((geometry.type === "Polygon" || geometry.type === "MultiPolygon")
-      && kinks({ type: "Feature", geometry, properties: {} }).features.length > 0) {
-      blockedIssueCodes.push("self_intersection");
-      caveats.push("Self-intersecting polygons are blocked because area and overlay results are unreliable.");
-    }
-    if (!booleanValid(geometry)) {
-      blockedIssueCodes.push("invalid_geojson_geometry");
-      caveats.push("The drawn geometry failed GeoJSON validity checks.");
-    }
-  } catch {
-    warningIssueCodes.push("topology_validation_unknown");
-    caveats.push("Topology validation could not complete for this drawing.");
-  }
-
-  if (blockedIssueCodes.length > 0) {
-    return createDrawnValidation("blocked", blockedIssueCodes, caveats);
-  }
-  if (warningIssueCodes.length > 0) {
-    return createDrawnValidation("warning", warningIssueCodes, caveats);
-  }
-  return createDrawnValidation("valid", [], caveats);
-}
 
 function getDrawnValidationLabel(status: DrawnGeometryValidation["status"] | undefined): string {
   if (status === "valid") return "Validated";
@@ -251,14 +92,27 @@ function getDrawnValidationColor(status: DrawnGeometryValidation["status"] | und
   return MAP_COLORS.textMuted;
 }
 
-function summarizeValidationBlock(validation: DrawnGeometryValidation): string {
-  return validation.caveats.find((caveat) => caveat !== DRAWING_VALIDATION_BASE_CAVEAT)
-    ?? "Geometry validation blocked this drawing.";
+function cloneJson<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
+function cloneDrawnFeature(feature: DrawnFeature): DrawnFeature {
+  return {
+    id: feature.id,
+    geometry: cloneJson(feature.geometry),
+    properties: cloneJson(feature.properties),
+  };
 }
 
 /* ================================================================== */
 /*  Props                                                              */
 /* ================================================================== */
+
+export interface MapDrawingSnapSource {
+  id: string;
+  name: string;
+  featureCollection: GeoJSON.FeatureCollection;
+}
 
 export interface MapDrawingManagerProps {
   mapRef: React.RefObject<maplibregl.Map | null>;
@@ -270,10 +124,12 @@ export interface MapDrawingManagerProps {
     token: number;
   } | null;
   drawnFeatures: DrawnFeature[];
+  snapSources?: readonly MapDrawingSnapSource[];
   selectedFeatureId: string | null;
   onAddFeature: (feature: DrawnFeature) => void;
   onRemoveFeature: (id: string) => void;
   onUpdateFeature: (id: string, patch: Partial<DrawnFeature>) => void;
+  onCommitFeatureEdit?: (id: string, before: DrawnFeature, after: DrawnFeature) => void;
   onClearFeatures: () => void;
   onSelectFeature: (id: string | null) => void;
   onCancelDraw: () => void;
@@ -327,10 +183,12 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
   sidebarVisible = true,
   seedDrawStart = null,
   drawnFeatures,
+  snapSources = [],
   selectedFeatureId,
   onAddFeature,
   onRemoveFeature,
   onUpdateFeature,
+  onCommitFeatureEdit,
   onClearFeatures,
   onSelectFeature,
   onCancelDraw,
@@ -346,16 +204,20 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
   const isDrawingRef = useRef(false);
   const activeToolRef = useRef(activeDrawTool);
   const featuresRef = useRef(drawnFeatures);
+  const snapSourcesRef = useRef<readonly MapDrawingSnapSource[]>(snapSources);
   const handledSeedTokenRef = useRef<number | null>(null);
 
   // Keep refs in sync
   activeToolRef.current = activeDrawTool;
   featuresRef.current = drawnFeatures;
+  snapSourcesRef.current = snapSources;
 
   /* ---- Editing state ---- */
   const editingRef = useRef<{
     featureId: string;
     vertexIndex: number;
+    before: DrawnFeature;
+    latest?: DrawnFeature;
   } | null>(null);
 
   /* ================================================================ */
@@ -606,25 +468,44 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
   /* ================================================================ */
 
   const trySnap = useCallback(
-    (lngLat: [number, number], map: maplibregl.Map): [number, number] | null => {
+    (
+      lngLat: [number, number],
+      map: maplibregl.Map,
+      excludeDrawnFeatureId?: string,
+    ): [number, number] | null => {
       const pt = map.project(lngLat);
-      for (const f of featuresRef.current) {
-        let coords: number[][] = [];
-        if (f.geometry.type === "Polygon") {
-          coords = (f.geometry as GeoJSON.Polygon).coordinates[0];
-        } else if (f.geometry.type === "LineString") {
-          coords = (f.geometry as GeoJSON.LineString).coordinates;
-        } else if (f.geometry.type === "Point") {
-          coords = [(f.geometry as GeoJSON.Point).coordinates];
+      let snapped: [number, number] | null = null;
+
+      const inspectPosition = (position: readonly number[]): void => {
+        if (snapped) return;
+        if (!Number.isFinite(position[0]) || !Number.isFinite(position[1])) return;
+        const candidate: [number, number] = [position[0]!, position[1]!];
+        const cp = map.project(candidate);
+        if (isWithinPixels(pt, cp, SNAP_TOLERANCE_PX)) {
+          snapped = candidate;
         }
-        for (const c of coords) {
-          const cp = map.project([c[0], c[1]]);
-          if (isWithinPixels(pt, cp, SNAP_TOLERANCE_PX)) {
-            return [c[0], c[1]];
-          }
+      };
+
+      for (const f of featuresRef.current) {
+        if (f.id === excludeDrawnFeatureId) continue;
+        visitDrawnGeometryPositions(f.geometry, inspectPosition);
+        if (snapped) return snapped;
+      }
+
+      let inspectedLayerVertices = 0;
+      for (const source of snapSourcesRef.current) {
+        for (const feature of source.featureCollection.features) {
+          if (inspectedLayerVertices >= SNAP_VISIBLE_LAYER_VERTEX_LIMIT) return snapped;
+          visitDrawnGeometryPositions(feature.geometry, (position) => {
+            if (inspectedLayerVertices >= SNAP_VISIBLE_LAYER_VERTEX_LIMIT) return;
+            inspectedLayerVertices += 1;
+            inspectPosition(position);
+          });
+          if (snapped) return snapped;
         }
       }
-      return null;
+
+      return snapped;
     },
     [],
   );
@@ -637,7 +518,7 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
     (geometry: GeoJSON.Geometry, label: string) => {
       const validation = validateDrawnGeometry(geometry);
       if (validation.status === "blocked") {
-        onAnnounce?.(`${label} was not added: ${summarizeValidationBlock(validation)}`);
+        onAnnounce?.(`${label} was not added: ${summarizeDrawnGeometryValidation(validation)}`);
         return;
       }
 
@@ -838,35 +719,48 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
 
       // Editing drag
       if (editingRef.current) {
-        cursorRef.current = coord;
-        snapRef.current = null;
         const { featureId, vertexIndex } = editingRef.current;
+        const snapped = trySnap(coord, map, featureId);
+        const c = snapped ?? coord;
+        cursorRef.current = c;
+        snapRef.current = snapped;
         const feat = featuresRef.current.find((f) => f.id === featureId);
         if (feat) {
-          const c = cursorRef.current;
           if (feat.geometry.type === "Polygon") {
             const ring = [...(feat.geometry as GeoJSON.Polygon).coordinates[0]];
             ring[vertexIndex] = c;
             // Also close the ring if editing index 0
             if (vertexIndex === 0) ring[ring.length - 1] = c;
             const geometry: GeoJSON.Polygon = { type: "Polygon", coordinates: [ring] };
-            onUpdateFeature(featureId, {
+            const nextFeature: DrawnFeature = {
+              ...feat,
               geometry,
               properties: {
                 ...feat.properties,
                 validation: validateDrawnGeometry(geometry),
               },
+            };
+            editingRef.current.latest = cloneDrawnFeature(nextFeature);
+            onUpdateFeature(featureId, {
+              geometry,
+              properties: nextFeature.properties,
             });
           } else if (feat.geometry.type === "LineString") {
             const coords = [...(feat.geometry as GeoJSON.LineString).coordinates] as [number, number][];
             coords[vertexIndex] = c;
             const geometry = makeLineString(coords);
-            onUpdateFeature(featureId, {
+            const nextFeature: DrawnFeature = {
+              ...feat,
               geometry,
               properties: {
                 ...feat.properties,
                 validation: validateDrawnGeometry(geometry),
               },
+            };
+            editingRef.current.latest = cloneDrawnFeature(nextFeature);
+            onUpdateFeature(featureId, {
+              geometry,
+              properties: nextFeature.properties,
             });
           }
         }
@@ -946,7 +840,11 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
           for (let i = 0; i < coords.length; i++) {
             const vp = map.project([coords[i][0], coords[i][1]]);
             if (isWithinPixels(click, vp, SNAP_TOLERANCE_PX)) {
-              editingRef.current = { featureId: selectedFeatureId, vertexIndex: i };
+              editingRef.current = {
+                featureId: selectedFeatureId,
+                vertexIndex: i,
+                before: cloneDrawnFeature(feat),
+              };
               map.dragPan.disable();
               e.preventDefault();
               return;
@@ -983,11 +881,17 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
     };
 
     /* ---------- Mouseup → rectangle finish / vertex edit end ---------- */
-    const onMouseUp = (e: maplibregl.MapMouseEvent) => {
+    const onMouseUp = () => {
       // Vertex editing end
       if (editingRef.current) {
+        const edit = editingRef.current;
         editingRef.current = null;
+        snapRef.current = null;
+        cursorRef.current = null;
         map.dragPan.enable();
+        if (edit.latest) {
+          onCommitFeatureEdit?.(edit.featureId, edit.before, edit.latest);
+        }
         return;
       }
 
@@ -1060,6 +964,7 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
     syncGhost,
     trySnap,
     onUpdateFeature,
+    onCommitFeatureEdit,
     onSelectFeature,
     onAnnounce,
     ensureSources,

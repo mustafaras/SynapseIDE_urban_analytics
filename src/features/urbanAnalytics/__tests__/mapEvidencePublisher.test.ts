@@ -7,7 +7,9 @@ import { useUrbanContextStore } from '../useUrbanContextStore';
 import {
   assessPublicationEligibility,
   publishUrbanRunOutputsToMap,
+  supersedePublishedUrbanMapEvidenceForLayerChange,
 } from '../context/mapEvidencePublisher';
+import { fcMissingCrs } from '@/centerpanel/components/map/__tests__/fixtures/gisFixtures';
 import type {
   AnalyticalFlowId,
   CompletedAnalysisRun,
@@ -60,7 +62,7 @@ function makeManifest(
   return {
     runId,
     flowId: 'site-suitability' as AnalyticalFlowId,
-    contextId: null,
+    contextId: useUrbanContextStore.getState().context?.contextId ?? null,
     inputs: {},
     parameters: {},
     methodValidity: null,
@@ -106,6 +108,9 @@ beforeEach(() => {
     lastPersistedAt: null,
     lastRestoredAt: null,
     storageStatus: 'available',
+  });
+  useUrbanContextStore.getState().createContext({
+    studyAreaId: 'publication-test-area',
   });
 });
 
@@ -254,6 +259,28 @@ describe('publishUrbanRunOutputsToMap', () => {
     expect(artifact.mapLayerId).toBe(layer.id);
   });
 
+  it('creates a map-registry publication artifact with run, context, runtime, and Urban references', () => {
+    const run = makeRun('r-map-registry', [makeMapOutput('output-1')]);
+    const manifest = makeManifest(run.runId, 'live');
+    useFlowStore.getState().registerManifest(manifest);
+
+    publishUrbanRunOutputsToMap(run);
+
+    const urbanArtifact = useUrbanContextStore.getState().evidenceArtifacts[0]!;
+    const mapArtifact = useMapExplorerStore.getState().mapEvidenceArtifacts[0]!;
+    expect(mapArtifact.state).toBe('published');
+    expect(mapArtifact.urbanEvidenceId).toBe(urbanArtifact.id);
+    expect(mapArtifact.linkedRunId).toBe(run.runId);
+    expect(mapArtifact.metadata).toMatchObject({
+      runtimeMode: 'live',
+      isDemo: false,
+      isSynthetic: false,
+      manifestId: `urban-run-manifest:${run.runId}`,
+      contextId: useUrbanContextStore.getState().context?.contextId,
+    });
+    expect(Object.prototype.hasOwnProperty.call(mapArtifact, 'sourceData')).toBe(false);
+  });
+
   it('updates the sidecar manifest mapArtifactIds when a manifest exists', () => {
     const run = makeRun('r1', [makeMapOutput('output-1')]);
     const manifest = makeManifest('r1', 'live');
@@ -376,6 +403,108 @@ describe('publishUrbanRunOutputsToMap', () => {
     expect(artifact.qa.warnings.some((w) => w.toLowerCase().includes('demo'))).toBe(true);
   });
 
+  it('retains demo labeling and missing-CRS QA from a source layer', () => {
+    useMapExplorerStore.getState().addOverlayLayer({
+      id: 'demo-missing-crs-source',
+      name: 'Demo parcels without CRS',
+      type: 'geojson',
+      visible: true,
+      opacity: 1,
+      sourceKind: 'demo',
+      group: 'data',
+      sourceData: fcMissingCrs.featureCollection,
+      metadata: {
+        crsSummary: { crs: null, status: 'missing', source: 'unknown', notes: ['Source CRS missing.'] },
+        scientificQA: {
+          status: 'warning',
+          issueIds: ['missing-crs'],
+          badges: ['missing_crs'],
+          checkedAt: '2026-06-01T11:40:00.000Z',
+          featureIssueCount: 0,
+          usedWorker: false,
+          caveats: ['CRS was not declared by source metadata.'],
+          signature: 'missing-crs-source',
+        },
+      },
+    });
+    const output = makeMapOutput('demo-output', {
+      engineBridge: {
+        domain: 'spatial-stats',
+        engine: 'DemoEngine',
+        sourceLayerIds: ['demo-missing-crs-source'],
+      },
+    });
+    const run = makeRun('r-demo-crs', [output]);
+    useFlowStore.getState().registerManifest(makeManifest(run.runId, 'demo'));
+
+    publishUrbanRunOutputsToMap(run);
+
+    const artifact = useUrbanContextStore.getState().evidenceArtifacts.find((entry) => entry.kind === 'map-layer')!;
+    const mapArtifact = useMapExplorerStore.getState().mapEvidenceArtifacts.find((entry) => entry.sourceId?.includes('urban-pub-r-demo-crs'))!;
+    expect(artifact.linkedLayerIds).toContain('demo-missing-crs-source');
+    expect(artifact.metadata).toMatchObject({
+      publicationIsDemo: true,
+      publicationIsSynthetic: false,
+      publicationMissingCrsLayerIds: 'demo-missing-crs-source',
+      publicationQaStatus: 'warning',
+    });
+    expect(artifact.qa.warnings.join(' ')).toContain('CRS metadata is missing');
+    expect(mapArtifact.metadata?.isDemo).toBe(true);
+    expect(mapArtifact.qa.state).toBe('warning');
+    expect(mapArtifact.provenance.crsSummary?.missingLayerIds).toEqual(['demo-missing-crs-source']);
+  });
+
+  it('marks prior Urban evidence stale and appends a successor on map-layer edits', () => {
+    const run = makeRun('r-supersede', [makeMapOutput('output-1')]);
+    useFlowStore.getState().registerManifest(makeManifest(run.runId, 'demo'));
+    publishUrbanRunOutputsToMap(run);
+
+    const original = useUrbanContextStore.getState().evidenceArtifacts.find((entry) => entry.kind === 'map-layer')!;
+    const originalMetadata = { ...original.metadata };
+    const layer = useMapExplorerStore.getState().overlayLayers.find((entry) => entry.id === original.mapLayerId)!;
+    const successors = supersedePublishedUrbanMapEvidenceForLayerChange({
+      layerId: layer.id,
+      layer: {
+        ...layer,
+        metadata: { ...(layer.metadata ?? {}), dataVersion: 'edited-v2' },
+      },
+      changedAt: '2026-06-01T12:10:00.000Z',
+    });
+
+    const artifacts = useUrbanContextStore.getState().evidenceArtifacts.filter((entry) => entry.kind === 'map-layer');
+    const stale = artifacts.find((entry) => entry.id === original.id)!;
+    expect(successors).toHaveLength(1);
+    expect(artifacts).toHaveLength(2);
+    expect(stale.state).toBe('stale');
+    expect(stale.metadata).toEqual(originalMetadata);
+    expect(successors[0]?.id).not.toBe(original.id);
+    expect(successors[0]?.linkedArtifactIds).toContain(original.id);
+    expect(successors[0]?.metadata).toMatchObject({
+      supersedesArtifactId: original.id,
+      sourceDataVersion: 'edited-v2',
+      publicationRuntimeMode: 'demo',
+      publicationIsDemo: true,
+    });
+  });
+
+  it('blocks a superseding Urban evidence record when its published map layer is removed', () => {
+    const run = makeRun('r-removed', [makeMapOutput('output-1')]);
+    publishUrbanRunOutputsToMap(run);
+    const original = useUrbanContextStore.getState().evidenceArtifacts.find((entry) => entry.kind === 'map-layer')!;
+
+    const successors = supersedePublishedUrbanMapEvidenceForLayerChange({
+      layerId: original.mapLayerId!,
+      layer: null,
+      reason: 'Published layer removed.',
+      changedAt: '2026-06-01T12:15:00.000Z',
+    });
+
+    expect(useUrbanContextStore.getState().evidenceArtifacts.find((entry) => entry.id === original.id)?.state).toBe('stale');
+    expect(successors[0]?.state).toBe('blocked');
+    expect(successors[0]?.qa.state).toBe('blocked');
+    expect(successors[0]?.qa.limitations.join(' ')).toContain('removed');
+  });
+
   it('does not duplicate layers when called twice with the same run', () => {
     const run = makeRun('r4', [makeMapOutput('output-1')]);
     publishUrbanRunOutputsToMap(run);
@@ -399,6 +528,7 @@ describe('publishUrbanRunOutputsToMap', () => {
 
     expect(first.publications[0]?.artifactId).toBe(second.publications[0]?.artifactId);
     expect(useUrbanContextStore.getState().evidenceArtifacts).toHaveLength(1);
+    expect(useMapExplorerStore.getState().mapEvidenceArtifacts).toHaveLength(1);
     expect(useFlowStore.getState().lookupManifest('r5')?.mapArtifactIds).toEqual([first.publications[0]?.artifactId]);
   });
 });

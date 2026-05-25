@@ -173,6 +173,7 @@ describe('applyUrbanStudyAreaSelection', () => {
     const aoi = mapState.drawnFeatures.find((feature) => feature.id === result.aoiId);
     expect(aoi?.geometry.type).toBe('Polygon');
     expect(aoi?.properties.label).toBe('Kadikoy');
+    expect(aoi?.properties.validation?.status).toBe('valid');
 
     expect(mapState.pendingFitBounds).not.toBeNull();
     expect(mapState.pendingFitBounds!.aoiId).toBe(result.aoiId);

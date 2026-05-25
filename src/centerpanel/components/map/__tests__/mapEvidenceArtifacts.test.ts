@@ -5,8 +5,10 @@ import {
   createMapLayerEvidenceArtifact,
   createMapWorkflowResultEvidenceArtifact,
   MAX_MAP_EVIDENCE_ARTIFACTS,
+  supersedeMapLayerEvidenceArtifactForLayerChange,
   upsertMapEvidenceArtifact,
 } from "../mapEvidenceArtifacts";
+import { fcMissingCrs } from "./fixtures/gisFixtures";
 import { evaluateMapScientificQASync } from "../../../../services/map/MapScientificQA";
 import {
   selectMapEvidenceArtifactsForAoi,
@@ -146,6 +148,99 @@ describe("map evidence artifact helpers", () => {
     expect(artifact.qa.issueIds).toEqual(["qa-1"]);
     expect(artifact.qa.categorySummaries?.[0]?.category).toBe("crs");
     expect(Object.prototype.hasOwnProperty.call(artifact, "sourceData")).toBe(false);
+  });
+
+  it("labels demo evidence and preserves unknown CRS without copying fixture geometry", () => {
+    const artifact = createMapLayerEvidenceArtifact({
+      id: "demo-missing-crs",
+      name: "Demo missing CRS parcels",
+      type: "geojson",
+      visible: true,
+      opacity: 1,
+      sourceKind: "demo",
+      sourceData: fcMissingCrs.featureCollection,
+      metadata: {
+        geometrySummary: {
+          geometryType: "Polygon",
+          geometryTypes: ["Polygon"],
+          featureCount: fcMissingCrs.featureCollection.features.length,
+          source: "explicit",
+          notes: [],
+        },
+        crsSummary: {
+          crs: null,
+          status: "missing",
+          source: "unknown",
+          notes: ["No source CRS declared."],
+        },
+        dataVersion: "v1",
+      },
+    }, {
+      state: "published",
+      runtimeMode: "demo",
+      manifestId: "manifest-demo-1",
+      urbanEvidenceId: "urban-demo-1",
+    });
+
+    expect(artifact.state).toBe("published");
+    expect(artifact.metadata).toMatchObject({
+      runtimeMode: "demo",
+      isDemo: true,
+      isSynthetic: false,
+      manifestId: "manifest-demo-1",
+      sourceDataVersion: "v1",
+    });
+    expect(artifact.urbanEvidenceId).toBe("urban-demo-1");
+    expect(artifact.provenance.crsSummary?.declaredCrs).toBeUndefined();
+    expect(artifact.provenance.geometrySummary?.featureCount).toBe(10);
+    expect(Object.prototype.hasOwnProperty.call(artifact, "sourceData")).toBe(false);
+  });
+
+  it("creates a new map artifact and marks the prior publication stale after an edit", () => {
+    const original = createMapLayerEvidenceArtifact(makeAnalysisLayer(), {
+      state: "published",
+      runtimeMode: "demo",
+      manifestId: "manifest-ols-1",
+    });
+    const editedLayer = {
+      ...makeAnalysisLayer(),
+      metadata: {
+        ...makeAnalysisLayer().metadata!,
+        dataVersion: "v2",
+        datasetContext: { crs: "EPSG:32635" },
+      },
+    };
+
+    const result = supersedeMapLayerEvidenceArtifactForLayerChange(original, editedLayer, {
+      reason: "Source layer was edited.",
+      changedAt: "2026-05-10T09:00:00.000Z",
+    });
+
+    expect(original.state).toBe("published");
+    expect(result.staleArtifact.state).toBe("stale");
+    expect(result.supersedingArtifact.id).not.toBe(original.id);
+    expect(result.supersedingArtifact.linkedArtifactIds).toContain(original.id);
+    expect(result.supersedingArtifact.metadata).toMatchObject({
+      supersedesArtifactId: original.id,
+      runtimeMode: "demo",
+      sourceDataVersion: "v2",
+    });
+    expect(result.supersedingArtifact.provenance.crsSummary?.declaredCrs).toBe("EPSG:32635");
+  });
+
+  it("creates a blocked successor in the map registry when a published layer is removed", () => {
+    const layer = makeAnalysisLayer();
+    useMapExplorerStore.getState().addOverlayLayer(layer);
+    useMapExplorerStore.getState().upsertMapEvidenceArtifact(createMapLayerEvidenceArtifact(layer, {
+      state: "published",
+    }));
+
+    useMapExplorerStore.getState().removeOverlayLayer(layer.id);
+
+    const artifacts = useMapExplorerStore.getState().mapEvidenceArtifacts.filter((entry) => entry.kind === "layer");
+    expect(artifacts).toHaveLength(2);
+    expect(artifacts.some((artifact) => artifact.state === "stale")).toBe(true);
+    expect(artifacts.some((artifact) => artifact.state === "blocked")).toBe(true);
   });
 
   it("propagates scientific QA runs into QA-finding evidence artifacts", () => {

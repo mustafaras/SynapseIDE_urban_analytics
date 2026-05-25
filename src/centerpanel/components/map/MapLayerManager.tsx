@@ -4,6 +4,7 @@ import type {
   MapCartographyReviewState,
 } from "@/services/map/MapCartographyAdvisor";
 import type { SourceRestoreStatus } from "@/services/map/contracts/gisContracts";
+import { buildMapCompositionLegendItems } from "@/services/map/MapExportService";
 import type { LayerGroupId, LayerPublicationReadinessStatus, LayerQaStatus, LayerScientificQABadge, LayerSourceKind, OverlayLayerConfig } from "./mapTypes";
 import { CartographyRecommendationList } from "./CartographyRecommendationList";
 import { DeclareCrsControl } from "./DeclareCrsControl";
@@ -47,6 +48,7 @@ export interface MapLayerManagerProps {
   onOpenLayerInIde?: (id: string) => void;
   onDeclareLayerCrs?: (id: string, crs: string) => void;
   onInspectLayer?: (id: string) => void;
+  onOpenAttributeTable?: (id: string) => void;
   onBindLayerToDashboard?: (id: string) => void;
   onOpenLayerEducationReference?: (id: string) => void;
   onFocusLayer?: (id: string) => void;
@@ -311,6 +313,31 @@ const layerBadgeRail: React.CSSProperties = {
   flexWrap: "wrap",
   gap: 4,
   minWidth: 0,
+};
+
+const layerInlineActions: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  flexWrap: "wrap",
+  gap: MAP_SPACING.xs,
+  marginTop: MAP_SPACING.xs,
+};
+
+const layerInlineActionButton: React.CSSProperties = {
+  padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
+  border: MAP_STROKES.hairlineStrong,
+  borderRadius: MAP_RADIUS.sm,
+  background: MAP_COLORS.transparent,
+  color: MAP_COLORS.interaction,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+  cursor: "pointer",
+};
+
+const layerInlineActionButtonDisabled: React.CSSProperties = {
+  color: MAP_COLORS.textMuted,
+  cursor: "not-allowed",
+  opacity: 0.72,
 };
 
 const layerBadgeBase: React.CSSProperties = {
@@ -671,6 +698,27 @@ const analysisLegendRow: React.CSSProperties = {
   gridTemplateColumns: "12px minmax(0, 1fr) auto",
   gap: 8,
   alignItems: "center",
+};
+
+const layerLegendPreview: React.CSSProperties = {
+  display: "grid",
+  gap: 3,
+  marginTop: MAP_SPACING.xs,
+};
+
+const layerLegendPreviewRow: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "10px minmax(0, 1fr)",
+  gap: 6,
+  alignItems: "center",
+};
+
+const layerLegendPreviewLabel: React.CSSProperties = {
+  color: MAP_COLORS.textMuted,
+  fontSize: 9,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
 };
 
 const rerunBtn: React.CSSProperties = {
@@ -1665,6 +1713,7 @@ interface LayerRowProps {
   onOpenLayerInIde?: (id: string) => void;
   onDeclareLayerCrs?: (id: string, crs: string) => void;
   onInspectLayer?: (id: string) => void;
+  onOpenAttributeTable?: (id: string) => void;
   onAddLayerToReport?: (id: string) => void;
   onBindLayerToDashboard?: (id: string) => void;
   onOpenLayerEducationReference?: (id: string) => void;
@@ -1699,6 +1748,7 @@ const LayerRow: React.FC<LayerRowProps> = ({
   onOpenLayerInIde,
   onDeclareLayerCrs,
   onInspectLayer,
+  onOpenAttributeTable,
   onAddLayerToReport,
   onBindLayerToDashboard,
   onFocusLayer,
@@ -1729,6 +1779,7 @@ const LayerRow: React.FC<LayerRowProps> = ({
   const featureCount = registry.featureCount;
   const layerBounds = getLayerBounds(layer);
   const layerBadges = buildLayerBadges(layer);
+  const legendPreviewItems = buildMapCompositionLegendItems([{ ...layer, visible: true }]).slice(0, 4);
   const evidenceActions = buildLayerEvidenceActions(layer, {
     ...(onExportLayer ? { onExportLayer } : {}),
     ...(onSendLayerToUrban ? { onSendLayerToUrban } : {}),
@@ -1894,27 +1945,58 @@ const LayerRow: React.FC<LayerRowProps> = ({
           ))}
         </div>
 
-        {onInspectLayer ? (
-          <button
-            type="button"
-            data-testid="map-layer-inspect-trigger"
-            onClick={() => onInspectLayer(layer.id)}
-            aria-label={`Inspect ${layer.name}`}
-            style={{
-              alignSelf: "flex-start",
-              marginTop: MAP_SPACING.xs,
-              padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
-              border: MAP_STROKES.hairlineStrong,
-              borderRadius: MAP_RADIUS.sm,
-              background: MAP_COLORS.transparent,
-              color: MAP_COLORS.interaction,
-              fontSize: MAP_TYPOGRAPHY.fontSize.xs,
-              fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
-              cursor: "pointer",
-            }}
-          >
-            Inspect
-          </button>
+        {legendPreviewItems.length > 0 ? (
+          <div style={layerLegendPreview} aria-label={`Layer legend for ${layer.name}`}>
+            {legendPreviewItems.map((item, index) => (
+              <div key={`${item.label}-${index}`} style={layerLegendPreviewRow}>
+                <span
+                  aria-hidden="true"
+                  style={{
+                    width: 10,
+                    height: item.kind === "line" ? 2 : 10,
+                    borderRadius: item.kind === "circle" ? MAP_RADIUS.full : MAP_RADIUS.xs,
+                    background: item.color,
+                    border: MAP_STROKES.hairlineSubtle,
+                  }}
+                />
+                <span style={layerLegendPreviewLabel} title={item.secondaryLabel ? `${item.label} / ${item.secondaryLabel}` : item.label}>
+                  {item.label}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : null}
+
+        {onInspectLayer || onOpenAttributeTable ? (
+          <div style={layerInlineActions}>
+            {onOpenAttributeTable ? (
+              <button
+                type="button"
+                data-testid="map-layer-table-trigger"
+                onClick={() => onOpenAttributeTable(layer.id)}
+                aria-label={`Open attribute table for ${layer.name}`}
+                disabled={!queryable}
+                title={queryable ? `Open attribute table for ${layer.name}` : "Missing prerequisite: layer is not queryable vector data."}
+                style={{
+                  ...layerInlineActionButton,
+                  ...(queryable ? {} : layerInlineActionButtonDisabled),
+                }}
+              >
+                Table
+              </button>
+            ) : null}
+            {onInspectLayer ? (
+              <button
+                type="button"
+                data-testid="map-layer-inspect-trigger"
+                onClick={() => onInspectLayer(layer.id)}
+                aria-label={`Inspect ${layer.name}`}
+                style={layerInlineActionButton}
+              >
+                Inspect
+              </button>
+            ) : null}
+          </div>
         ) : null}
 
         {onDeclareLayerCrs && (registry.crsSummary.status !== "known" || registry.crsSummary.source === "user-declared") ? (
@@ -1987,6 +2069,7 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
   onOpenLayerInIde,
   onDeclareLayerCrs,
   onInspectLayer,
+  onOpenAttributeTable,
   onBindLayerToDashboard,
   onOpenLayerEducationReference,
   onFocusLayer,
@@ -2518,6 +2601,7 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
                         {...(onOpenLayerInIde ? { onOpenLayerInIde } : {})}
                         {...(onDeclareLayerCrs ? { onDeclareLayerCrs } : {})}
                         {...(onInspectLayer ? { onInspectLayer } : {})}
+                        {...(onOpenAttributeTable ? { onOpenAttributeTable } : {})}
                         {...(onAddLayerToReport ? { onAddLayerToReport } : {})}
                         {...(onBindLayerToDashboard ? { onBindLayerToDashboard } : {})}
                         {...(onOpenLayerEducationReference ? { onOpenLayerEducationReference } : {})}

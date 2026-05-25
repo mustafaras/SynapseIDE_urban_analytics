@@ -44,7 +44,7 @@ import { MapCanvasKeyboardFallbackControls } from "../MapCanvasKeyboardFallbackC
 import { MapToolbar } from "../MapToolbar";
 import { MapLayerPanel } from "../MapLayerPanel";
 import { MapLayerManager } from "../MapLayerManager";
-import { MapDrawingManager } from "../../MapDrawingManager";
+import { MapDrawingManager, type MapDrawingSnapSource } from "../../MapDrawingManager";
 import { MapMeasurementTool } from "../../MapMeasurementTool";
 import { MapContextMenu } from "../../MapContextMenu";
 import { MapChoroplethLayer } from "../../MapChoroplethLayer";
@@ -77,9 +77,19 @@ import {
 import { MapWorkspaceCockpit } from "../MapWorkspaceCockpit";
 import { ScientificQAPanel } from "../ScientificQAPanel";
 import { MapNLQueryPanel, type MapNLQueryPanelRunSummary } from "../MapNLQueryPanel";
+import { MapSelectionTools } from "../MapSelectionTools";
 import { MapWorkflowDrawer } from "../MapWorkflowDrawer";
+import { MapUrbanMethodCompatibilityRail } from "../MapUrbanMethodCompatibilityRail";
+import {
+  summarizeDrawnGeometryValidation,
+  validateDrawnGeometry,
+} from "@/services/map/DrawnGeometryValidation";
 import { MapReviewTimelinePanel } from "../MapReviewTimelinePanel";
+import { MapFigureComposerPanel } from "../layout/MapFigureComposerPanel";
+import { MapAttributeTable, type AttrFeature } from "../table/MapAttributeTable";
 import { CartographyRecommendationList } from "../CartographyRecommendationList";
+import { MapLegendOverlay } from "../inspector/style/MapLegendOverlay";
+import type { LayerStyleUpdate } from "../inspector/style/legendContract";
 import {
   createMapEvidenceArtifact,
   createMapExportEvidenceArtifact,
@@ -132,7 +142,11 @@ import {
   type MapImportProgress,
   prepareMapImportFile,
 } from "../../../../services/map/MapDataImporter";
-import { loadTeachingDatasetIntoMapWorkspace, type TeachingDatasetId } from "../../../../services/data/datasetLibrary";
+import {
+  loadRealOsmCityIntoMapWorkspace,
+  loadTeachingDatasetIntoMapWorkspace,
+  type TeachingDatasetId,
+} from "../../../../services/data/datasetLibrary";
 import {
   collectNumericFields,
   hasPointGeometry,
@@ -200,13 +214,18 @@ import {
   executeMapNLQueryPreview,
   type MapNLQueryPreview,
 } from "../../../../services/map/MapNLQueryBuilder";
+import type { MapQueryExecutionResult } from "../../../../services/map/query/MapQueryPlanner";
 import {
   buildMapWorkflowContext,
   buildMapWorkflowPreviewLayer,
+  executeMapWorkflow,
   type MapWorkflowApplyResult,
+  type MapWorkflowExecutionHandle,
+  type MapWorkflowExecutionUpdate,
   type MapWorkflowPreview,
   type MapWorkflowReportItem,
 } from "../../../../services/map/MapWorkflowService";
+import { createMapWorkflowWorkerExecutor } from "../../../../services/map/geometry/mapWorkflowWorkerExecutor";
 import {
   buildExportPackageNoteRequest,
   buildMapManifestRequest,
@@ -220,9 +239,12 @@ import {
   buildMapEducationReference,
 } from "../../../../services/map/MapPublicationOutputBindingService";
 import {
+  buildUrbanToMapMethodRequestPayload,
   buildUrbanToMapMethodRequestPreview,
   type UrbanToMapMethodRequest,
-} from "../../../../services/map/UrbanToMapMethodRequestAdapter";
+  type UrbanToMapMethodRequestPayload,
+  type UrbanToMapMethodRequestPreview,
+} from "../../../../services/map/bridge/MapUrbanBridgeService";
 import {
   generateMapAnalysisRecommendations,
   type MapAnalysisRecommendation,
@@ -697,6 +719,60 @@ function filterFeatureCollectionToBounds(
   };
 }
 
+function coerceOverlayFeatureCollection(layer: OverlayLayerConfig): GeoJSON.FeatureCollection | null {
+  const { sourceData } = layer;
+  if (!sourceData || typeof sourceData === "string") return null;
+  return (sourceData as GeoJSON.FeatureCollection).type === "FeatureCollection"
+    ? sourceData as GeoJSON.FeatureCollection
+    : null;
+}
+
+function buildDrawingSnapSources(layers: readonly OverlayLayerConfig[]): MapDrawingSnapSource[] {
+  const sources: MapDrawingSnapSource[] = [];
+  for (const layer of layers) {
+    if (!layer.visible || !layer.queryable) continue;
+    const featureCollection = coerceOverlayFeatureCollection(layer);
+    if (!featureCollection || featureCollection.features.length === 0) continue;
+    sources.push({
+      id: layer.id,
+      name: layer.name,
+      featureCollection: {
+        ...featureCollection,
+        features: featureCollection.features.slice(0, 1_000),
+      },
+    });
+    if (sources.length >= 8) break;
+  }
+  return sources;
+}
+
+function cloneGeometry<T extends GeoJSON.Geometry>(geometry: T): T {
+  return JSON.parse(JSON.stringify(geometry)) as T;
+}
+
+function buildDrawnAoiFromWorkflowResult(result: MapWorkflowApplyResult): DrawnFeature | null {
+  if (result.preview.workflow !== "aoi") return null;
+  const feature = result.preview.featureCollection?.features[0];
+  if (!feature?.geometry || !isPolygonGeometry(feature.geometry)) return null;
+  const validation = validateDrawnGeometry(feature.geometry);
+  if (validation.status === "blocked") return null;
+  return {
+    id: `aoi-${result.layer.id}`,
+    geometry: cloneGeometry(feature.geometry),
+    properties: {
+      label: result.layer.name || "Workflow AOI",
+      createdAt: new Date().toISOString(),
+      style: {
+        strokeColor: MAP_COLORS.interaction,
+        fillColor: MAP_COLORS.interaction,
+        strokeWidth: 2,
+        fillOpacity: 0.12,
+      },
+      validation,
+    },
+  };
+}
+
 function resolveFlowDispatchAoiCandidate(
   drawnFeatures: DrawnFeature[],
   selectedFeatureId: string | null,
@@ -893,6 +969,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const selectedFeatureId = useMapExplorerStore((s) => s.selectedFeatureId);
   const selectedFeatureIds = useMapExplorerStore((s) => s.selectedFeatureIds);
   const setSelectedFeatureId = useMapExplorerStore((s) => s.setSelectedFeatureId);
+  const setSelectedFeatures = useMapExplorerStore((s) => s.setSelectedFeatures);
   const clearSelectedFeatures = useMapExplorerStore((s) => s.clearSelectedFeatures);
   const activeAoiId = useMapExplorerStore((s) => s.activeAoiId);
 
@@ -929,6 +1006,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const [showEmergingHotSpotViz, setShowEmergingHotSpotViz] = useState(false);
   const [showVoxCityOverlay, setShowVoxCityOverlay] = useState(false);
   const [showScientificQAPanel, setShowScientificQAPanel] = useState(false);
+  const [activeUrbanMethodRequest, setActiveUrbanMethodRequest] = useState<UrbanToMapMethodRequestPayload | null>(null);
+  const [activeUrbanMethodPreview, setActiveUrbanMethodPreview] = useState<UrbanToMapMethodRequestPreview | null>(null);
   const [showNLQueryPanel, setShowNLQueryPanel] = useState(false);
   const {
     showWorkflowDrawer,
@@ -942,12 +1021,18 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     setWorkflowReportItems,
   } = useMapWorkflowController();
   const [showReviewTimeline, setShowReviewTimeline] = useState(false);
+  const [showFigureComposer, setShowFigureComposer] = useState(false);
+  const handleToggleFigureComposer = useCallback(() => setShowFigureComposer((previous) => !previous), []);
   const [inspectorLayerId, setInspectorLayerId] = useState<string | null>(null);
   const inspectorLayer = inspectorLayerId
     ? overlayLayers.find((entry) => entry.id === inspectorLayerId) ?? null
     : null;
   const inspectorSourceHandle = inspectorLayer
     ? sourceHandles.find((handle) => handle.sourceId === inspectorLayer.metadata?.sourceId) ?? null
+    : null;
+  const [attributeTableLayerId, setAttributeTableLayerId] = useState<string | null>(null);
+  const attributeTableLayer = attributeTableLayerId
+    ? overlayLayers.find((entry) => entry.id === attributeTableLayerId) ?? null
     : null;
   const [showExternalServiceDialog, setShowExternalServiceDialog] = useState(false);
   const [pointSymbologyLayerId, setPointSymbologyLayerId] = useState<string | null>(null);
@@ -1115,6 +1200,24 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       .map(([layerId]) => layerId),
     [selectedFeatureIds],
   );
+  const drawingSnapSources = useMemo(
+    () => buildDrawingSnapSources(overlayLayers),
+    [overlayLayers],
+  );
+  const workflowUrbanStudyArea = useMemo(() => {
+    if (!activeUrbanContext.studyAreaBounds) return null;
+    return {
+      id: activeUrbanContext.studyAreaId ?? activeUrbanContext.activeAoiId ?? "urban-study-area",
+      label: activeUrbanContext.studyAreaName ?? "Urban study area",
+      bounds: activeUrbanContext.studyAreaBounds,
+      ...(activeUrbanContext.activeAoiId ? { activeAoiId: activeUrbanContext.activeAoiId } : {}),
+    };
+  }, [
+    activeUrbanContext.activeAoiId,
+    activeUrbanContext.studyAreaBounds,
+    activeUrbanContext.studyAreaId,
+    activeUrbanContext.studyAreaName,
+  ]);
   const workflowContext = useMemo(
     () =>
       buildMapWorkflowContext(overlayLayers, {
@@ -1123,8 +1226,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         drawnPolygons: workflowDrawnPolygons,
         viewportBounds: currentMapBounds,
         geocodedPlace: workflowGeocodedPlace,
+        urbanStudyArea: workflowUrbanStudyArea,
       }),
-    [currentMapBounds, overlayLayers, workflowDrawnPolygons, workflowGeocodedPlace, workflowSelectedFeatures, workflowSelectedLayerIds],
+    [currentMapBounds, overlayLayers, workflowDrawnPolygons, workflowGeocodedPlace, workflowSelectedFeatures, workflowSelectedLayerIds, workflowUrbanStudyArea],
   );
   const workflowReadyCount = useMemo(
     () => workflowContext.layers.filter((layer) => layer.hasGeometry).length,
@@ -1205,6 +1309,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       removeReportItem: () => {
         /* report.handoff is not routed in-app yet; no-op keeps the boundary total. */
       },
+      getDrawnFeature: (id) => readStore().drawnFeatures.find((feature) => feature.id === id) ?? null,
+      updateDrawnFeature: (id, patch) => readStore().updateDrawnFeature(id, patch),
     };
   }, []);
 
@@ -1228,6 +1334,50 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     }
   }, [announce, buildMapActionEffects, recordMapReviewEvent]);
 
+  const handleCommitDrawnFeatureEdit = useCallback((id: string, before: DrawnFeature, after: DrawnFeature) => {
+    const validation = after.properties.validation ?? validateDrawnGeometry(after.geometry);
+    const normalizedAfter: DrawnFeature = {
+      ...after,
+      properties: {
+        ...after.properties,
+        validation,
+      },
+    };
+    const outcome = applyMapCommand(
+      {
+        kind: "aoi.edit",
+        featureId: id,
+        previousFeature: before,
+        nextFeature: normalizedAfter,
+        validation,
+      },
+      buildMapActionEffects(),
+    );
+    recordMapReviewEvent(outcome.reviewEvent);
+    if (outcome.result.status === "applied") {
+      mapActionHistoryRef.current = recordMapActionHistoryEntry(mapActionHistoryRef.current, {
+        commandId: outcome.result.commandId,
+        kind: outcome.result.kind,
+        title: outcome.reviewEvent.title,
+        reviewEventId: outcome.result.reviewEventId ?? outcome.result.commandId,
+        appliedAt: outcome.result.createdAt,
+        revertable: outcome.result.revertable,
+        reverted: false,
+        ...(outcome.revertToken ? { revertToken: outcome.revertToken } : {}),
+      });
+      announce(validation.status === "warning"
+        ? "AOI edit applied with topology caveats; review timeline updated."
+        : "AOI edit applied; review timeline updated.");
+      return;
+    }
+
+    updateDrawnFeature(id, {
+      geometry: before.geometry,
+      properties: before.properties,
+    });
+    announce(`AOI edit blocked: ${summarizeDrawnGeometryValidation(validation)}`);
+  }, [announce, buildMapActionEffects, recordMapReviewEvent, updateDrawnFeature]);
+
   const handleRevertMapCommand = useCallback((commandId: string) => {
     const entry = findRevertableEntry(mapActionHistoryRef.current, commandId);
     if (!entry?.revertToken) {
@@ -1244,6 +1394,43 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     setInspectorLayerId(layerId);
     announce("Layer inspector opened");
   }, [announce]);
+
+  const handleOpenAttributeTable = useCallback((layerId: string) => {
+    setAttributeTableLayerId(layerId);
+    announce("Attribute table opened");
+  }, [announce]);
+
+  const handleAttributeTableSelection = useCallback((layerId: string, featureIds: string[]) => {
+    setSelectedFeatures(layerId, featureIds);
+    if (featureIds.length > 0) {
+      setActiveAnalysisResultLayers([layerId]);
+    }
+  }, [setActiveAnalysisResultLayers, setSelectedFeatures]);
+
+  const handleSelectionQueryResult = useCallback((result: MapQueryExecutionResult, label: string) => {
+    const layerIds = result.layers
+      .filter((layer) => layer.matchedFeatureCount > 0)
+      .map((layer) => layer.layerId);
+    recordMapReviewEvent({
+      type: "query-run",
+      status: result.status === "success" ? "applied" : "failed",
+      title: `${label} query`,
+      summary: `${label} matched ${result.totalMatched.toLocaleString()} feature(s) from ${result.scannedFeatureCount.toLocaleString()} scanned candidate row(s).${result.truncated ? " Execution was truncated by the declared query scope." : ""}`,
+      layerIds,
+      details: {
+        queryId: result.queryId,
+        plannerVersion: result.provenance.plannerVersion,
+        totalMatched: result.totalMatched,
+        scannedFeatureCount: result.scannedFeatureCount,
+        candidateFeatureCount: result.candidateFeatureCount,
+        bounded: result.bounded,
+        truncated: result.truncated,
+        warnings: result.warnings,
+        blockers: result.blockers,
+        provenance: result.provenance,
+      },
+    });
+  }, [recordMapReviewEvent]);
 
   useEffect(() => {
     if (!open || reviewSession.events.length > 0) {
@@ -1417,6 +1604,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     effectiveShowDrawPanel,
     effectiveShowMeasurePanel,
     effectiveShowScientificQAPanel,
+    effectiveShowUrbanMethodPanel,
     effectiveShowNLQueryPanel,
     effectiveShowWorkflowDrawer,
     navigatorLeftInset,
@@ -1428,6 +1616,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     showDrawPanel,
     showMeasurePanel,
     showScientificQAPanel,
+    showUrbanMethodPanel: activeUrbanMethodPreview !== null,
     showNLQueryPanel,
     showWorkflowDrawer,
     showReviewTimeline,
@@ -2013,6 +2202,10 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     announce(`All ${count} pins cleared`);
   }, [clearPins, pins.length, announce]);
 
+  const [workflowExecution, setWorkflowExecution] = useState<MapWorkflowExecutionUpdate | null>(null);
+  const workflowExecutionHandleRef = useRef<MapWorkflowExecutionHandle | null>(null);
+  const workflowExecutorRef = useRef<ReturnType<typeof createMapWorkflowWorkerExecutor> | null>(null);
+
   const handleApplyMapWorkflow = useCallback(
     (result: MapWorkflowApplyResult) => {
       setWorkflowPreview(null);
@@ -2039,6 +2232,20 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         reverted: false,
         ...(workflowOutcome.revertToken ? { revertToken: workflowOutcome.revertToken } : {}),
       });
+      const drawnAoi = buildDrawnAoiFromWorkflowResult(result);
+      if (drawnAoi) {
+        const mapState = useMapExplorerStore.getState();
+        if (mapState.drawnFeatures.some((feature) => feature.id === drawnAoi.id)) {
+          mapState.updateDrawnFeature(drawnAoi.id, {
+            geometry: drawnAoi.geometry,
+            properties: drawnAoi.properties,
+          });
+        } else {
+          mapState.addDrawnFeature(drawnAoi);
+        }
+        mapState.setActiveAoi(drawnAoi.id);
+        mapState.setSelectedFeatureId(drawnAoi.id);
+      }
       const bounds =
         result.layer.metadata?.bounds ??
         (result.preview.featureCollection
@@ -2158,6 +2365,48 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     },
     [announce, buildMapActionEffects, recordMapReviewEvent, reducedMotion, setActiveAnalysisResultLayers, upsertMapEvidenceArtifact],
   );
+
+  const handleExecuteMapWorkflow = useCallback(
+    (preview: MapWorkflowPreview) => {
+      if (!workflowExecutorRef.current) {
+        workflowExecutorRef.current = createMapWorkflowWorkerExecutor();
+      }
+      setWorkflowExecution({ status: "queued", percent: 0, stage: "Queued" });
+      announce(`Running ${preview.workflow} workflow in a background worker.`);
+
+      void executeMapWorkflow(preview, workflowContext, workflowExecutorRef.current, {
+        onProgress: (update) => setWorkflowExecution(update),
+        registerHandle: (handle) => {
+          workflowExecutionHandleRef.current = handle;
+        },
+      })
+        .then((result) => {
+          workflowExecutionHandleRef.current = null;
+          setWorkflowExecution(null);
+          handleApplyMapWorkflow(result);
+        })
+        .catch((error: unknown) => {
+          workflowExecutionHandleRef.current = null;
+          if (isBackgroundTaskCancelledError(error)) {
+            setWorkflowExecution(null);
+            toastInfo(`${preview.workflow} workflow cancelled.`);
+            announce(`${preview.workflow} workflow cancelled.`);
+            return;
+          }
+          const messageText = error instanceof Error ? error.message : "Worker geometry execution failed.";
+          setWorkflowExecution({ status: "failed", percent: 0, error: messageText });
+          toastWarning(`Workflow failed: ${messageText}`);
+          announce(`Workflow failed: ${messageText}`);
+        });
+    },
+    [announce, handleApplyMapWorkflow, workflowContext],
+  );
+
+  const handleCancelMapWorkflow = useCallback(() => {
+    workflowExecutionHandleRef.current?.cancel();
+    workflowExecutionHandleRef.current = null;
+    setWorkflowExecution(null);
+  }, []);
 
   const handleSaveWorkflowReport = useCallback(
     (report: MapWorkflowReportItem) => {
@@ -2639,6 +2888,41 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     announce(`Cartography details opened for ${recommendation.title}`);
   }, [announce]);
 
+  const handleApplyLayerStyle = useCallback((layerId: string, update: LayerStyleUpdate) => {
+    const layer = overlayLayers.find((entry) => entry.id === layerId);
+    if (!layer) {
+      toastWarning("The styled layer is no longer available.");
+      return;
+    }
+
+    const nextLayer: OverlayLayerConfig = {
+      ...layer,
+      opacity: update.opacity,
+      style: update.style,
+      metadata: {
+        ...(layer.metadata ?? {}),
+        ...update.metadataPatch,
+      },
+    };
+    addOverlayLayer(nextLayer);
+    recordMapReviewEvent({
+      type: "action-status",
+      status: "applied",
+      title: `Layer style applied: ${layer.name}`,
+      summary: `${update.legendSpec.mode} style saved with ${update.legendSpec.entries.length} serialized legend entries. Report and export legends now read the same spec.`,
+      layerIds: [layer.id],
+      actionIds: [update.legendSpec.styleHash],
+      details: {
+        styleMode: update.legendSpec.mode,
+        legendEntryCount: update.legendSpec.entries.length,
+        noDataClass: update.legendSpec.noData.enabled,
+        warnings: update.warnings,
+      },
+    });
+    toastSuccess(`Applied ${update.legendSpec.mode} style to ${layer.name}.`);
+    announce(`Applied style and serialized legend for ${layer.name}`);
+  }, [addOverlayLayer, announce, overlayLayers, recordMapReviewEvent]);
+
   const handleReRunAnalysisLayer = useCallback(async (layerId: string, rerunToken?: string | null) => {
     if (!rerunToken) {
       toastInfo("No re-run handler is registered for this analysis result.");
@@ -2816,6 +3100,15 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     fitToBounds(bounds);
     announce(`Map focused on ${layer.name}`);
   }, [announce, fitToBounds, overlayLayers]);
+
+  const handleFocusAttributeFeature = useCallback((feature: AttrFeature) => {
+    const bounds = getFeatureBounds(feature);
+    if (!bounds) {
+      announce("Feature extent is unavailable; cannot focus the map on this table row.");
+      return;
+    }
+    fitToBounds(bounds);
+  }, [announce, fitToBounds]);
 
   const handleHotSpotDispatch = useCallback(async (coordinate: [number, number]) => {
     if (isRunningQuickHotSpot) {
@@ -4133,11 +4426,30 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const handleTeachingDatasetImport = useCallback(async (datasetId: TeachingDatasetId) => {
     setLoadingTeachingDatasetId(datasetId);
     try {
-      const result = loadTeachingDatasetIntoMapWorkspace(datasetId);
-      fitToBounds(result.dataset.spatialExtent.bounds);
-      setShowImportHub(false);
-      toastSuccess(`Loaded ${result.dataset.city} teaching dataset with ${result.layers.length} published layers.`);
-      announce(`Loaded teaching dataset ${result.dataset.city}`);
+      // Prefer REAL OpenStreetMap data (buildings + roads, © ODbL) for a
+      // CRS-safe central window so the loaded geometry aligns with the
+      // actual street grid. Fall back to the deterministic synthetic
+      // teaching fixture — labelled honestly — only when OSM is unreachable.
+      try {
+        const real = await loadRealOsmCityIntoMapWorkspace(datasetId);
+        fitToBounds(real.window);
+        setShowImportHub(false);
+        toastSuccess(
+          `Loaded real OpenStreetMap data for ${real.city}: ${real.roadCount} roads + ${real.buildingCount} buildings (© ODbL).`,
+        );
+        announce(`Loaded real OpenStreetMap data for ${real.city}`);
+        return;
+      } catch (osmError) {
+        const reason = osmError instanceof Error ? osmError.message : "external service unavailable";
+        const result = loadTeachingDatasetIntoMapWorkspace(datasetId);
+        fitToBounds(result.dataset.spatialExtent.bounds);
+        setShowImportHub(false);
+        toastWarning(
+          `Live OpenStreetMap data unavailable (${reason}). Loaded the synthetic ${result.dataset.city} teaching fixture instead — labelled as demo data.`,
+        );
+        announce(`OpenStreetMap unavailable; loaded synthetic teaching fixture for ${result.dataset.city}`);
+        return;
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Teaching dataset import failed.";
       toastError(message);
@@ -4483,16 +4795,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       activeWorkflowId: activeFlow,
       completedRunIds: completedRuns.map((run) => run.runId),
       requestedLayerId: layerId,
-      receiver: () => {
+      receiver: (payload) => {
         const applied = applyMapContextToUrban({
-          mapState: {
-            activeAoiId,
-            overlayLayers,
-            selectedFeatureIds,
-            activeAnalysisResultLayerIds,
-            currentMapBounds,
-            scientificQA,
-          },
+          payload,
           triggerRecommendations: true,
         });
         return {
@@ -4583,8 +4888,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   ]);
 
   const handleUrbanToMapMethodRequest = useCallback((request: UrbanToMapMethodRequest) => {
+    const canonicalRequest = buildUrbanToMapMethodRequestPayload(request);
     const preview = buildUrbanToMapMethodRequestPreview({
-      request,
+      request: canonicalRequest,
       contextSummary,
       overlayLayers,
       workflowContext,
@@ -4605,42 +4911,18 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     });
 
     setWorkspaceView("explore");
+    setActiveUrbanMethodRequest(canonicalRequest);
+    setActiveUrbanMethodPreview(preview);
+    closeRightDockPanels();
+    closeFloatingRightPanels();
+    setShowScientificQAPanel(false);
+    setShowNLQueryPanel(false);
+    setShowWorkflowDrawer(false);
+    setUrbanWorkflowDraftRequest(null);
+    setReportHandoffSource(null);
+    setReportHandoffSnapshot(null);
     if (actionTypes.includes("focus-compatible-layers")) {
       setShowLayerPanel(true);
-    }
-    if (actionTypes.includes("validate-aoi")) {
-      if (preview.aoiPreview.missingPrerequisites.length > 0) {
-        closeRightDockPanels();
-        setShowDrawPanel(true);
-      } else {
-        openScientificQAPanel();
-      }
-    }
-
-    const requestsWorkflow = actionTypes.includes("preview-map-workflow") || actionTypes.includes("publish-derived-layer");
-    if (requestsWorkflow && preview.workflowDraftRequest) {
-      closeRightDockPanels();
-      closeFloatingRightPanels();
-      setReportHandoffSource(null);
-      setReportHandoffSnapshot(null);
-      setShowScientificQAPanel(false);
-      setUrbanWorkflowDraftRequest(preview.workflowDraftRequest);
-      setShowWorkflowDrawer(true);
-    } else {
-      setUrbanWorkflowDraftRequest(null);
-    }
-
-    const requestsReport = actionTypes.includes("prepare-report-ready-snapshot") || request.outputIntent === "report" || Boolean(request.reportIntent);
-    if (!requestsWorkflow && requestsReport && preview.reportSnapshotPreview?.status !== "blocked") {
-      const requestedLayerId = preview.reportSnapshotPreview?.scope === "layer"
-        ? preview.reportSnapshotPreview.targetLayerIds[0] ?? null
-        : null;
-      const requestedLayer = requestedLayerId
-        ? overlayLayers.find((layer) => layer.id === requestedLayerId)
-        : null;
-      handleOpenReportHandoff(requestedLayer
-        ? { scope: "layer", layerId: requestedLayer.id, title: `${requestedLayer.name} Urban method snapshot` }
-        : { scope: "map-view", title: `${preview.methodLabel} map evidence` });
     }
 
     recordMapReviewEvent({
@@ -4650,10 +4932,10 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       summary: `${preview.methodLabel} requested ${actionTypes.join(", ")} from Urban Analytics; Map Explorer produced a ${preview.status} preview without applying map mutations.`,
       layerIds: compatibleLayerIds,
       qaIssueIds: preview.qaBlockers.map((issue) => issue.issueId),
-      actionIds: [request.requestId],
+      actionIds: [canonicalRequest.requestId],
       details: {
-        requestId: request.requestId,
-        methodId: request.methodId,
+        requestId: canonicalRequest.requestId,
+        methodId: canonicalRequest.methodId,
         status: preview.status,
         actionTypes,
         compatibleLayerIds,
@@ -4679,13 +4961,36 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     closeFloatingRightPanels,
     closeRightDockPanels,
     contextSummary,
-    handleOpenReportHandoff,
-    openScientificQAPanel,
     overlayLayers,
     recordMapReviewEvent,
     scientificQA,
     workflowContext,
   ]);
+
+  const handleCloseUrbanMethodRail = useCallback(() => {
+    setActiveUrbanMethodRequest(null);
+    setActiveUrbanMethodPreview(null);
+    announce("Urban method compatibility rail closed");
+  }, [announce]);
+
+  const handleFocusUrbanMethodLayer = useCallback((layerId: string) => {
+    handleFocusLayer(layerId);
+    announce("Urban method compatible layer focused");
+  }, [announce, handleFocusLayer]);
+
+  const handlePreviewUrbanMethodWorkflow = useCallback(() => {
+    if (!activeUrbanMethodPreview || activeUrbanMethodPreview.status === "blocked" || !activeUrbanMethodPreview.workflowDraftRequest) {
+      return;
+    }
+    const draftRequest = activeUrbanMethodPreview.workflowDraftRequest;
+    closeRightDockPanels();
+    closeFloatingRightPanels();
+    setActiveUrbanMethodRequest(null);
+    setActiveUrbanMethodPreview(null);
+    setUrbanWorkflowDraftRequest(draftRequest);
+    setShowWorkflowDrawer(true);
+    announce(`Workflow preview opened for ${activeUrbanMethodPreview.methodLabel}`);
+  }, [activeUrbanMethodPreview, announce, closeFloatingRightPanels, closeRightDockPanels, setShowWorkflowDrawer, setUrbanWorkflowDraftRequest]);
 
   useMapUrbanBridgeController({
     open,
@@ -5302,6 +5607,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               showReviewTimeline={showReviewTimeline}
               onToggleReviewTimeline={handleToggleReviewTimeline}
               reviewEventCount={reviewSession.events.length}
+              showFigureComposer={showFigureComposer}
+              onToggleFigureComposer={handleToggleFigureComposer}
               showChoroplethPanel={showChoroplethPanel}
               onToggleChoroplethPanel={handleToggleChoroplethPanel}
               showClusterViz={showClusterViz}
@@ -5709,6 +6016,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
                 onSendLayerToUrban={handleSendLayerToUrban}
                 onDeclareLayerCrs={handleDeclareLayerCrs}
                 onInspectLayer={handleInspectLayer}
+                onOpenAttributeTable={handleOpenAttributeTable}
                 onOpenLayerInIde={handleOpenLayerInIde}
                 onClearLayerCache={handleClearLayerCache}
                 onReRunAnalysisLayer={handleReRunAnalysisLayer}
@@ -5758,6 +6066,34 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             onAnnounce={announce}
           />
 
+          <MapLegendOverlay items={mapPublicationLegendItems} />
+
+          {!navigatorStageMode ? (
+            <MapSelectionTools
+              mapRef={mapInstanceRef}
+              queryableLayers={nlQueryToolbarContext.queryableLayers}
+              selectedFeatureIds={selectedFeatureIds}
+              leftInset={navigatorLeftInset}
+              onSetSelectedFeatures={setSelectedFeatures}
+              onClearSelectedFeatures={() => clearSelectedFeatures()}
+              onSetActiveAnalysisResultLayers={setActiveAnalysisResultLayers}
+              onAddDrawnFeature={addDrawnFeature}
+              onSelectionResult={handleSelectionQueryResult}
+              onAnnounce={announce}
+            />
+          ) : null}
+
+          <MapUrbanMethodCompatibilityRail
+            visible={effectiveShowUrbanMethodPanel}
+            request={activeUrbanMethodRequest}
+            preview={activeUrbanMethodPreview}
+            presentation={dockLayout.compactDock ? "bottom-drawer" : "right-rail"}
+            width={dockLayout.rightPanelWidth}
+            onClose={handleCloseUrbanMethodRail}
+            onFocusLayer={handleFocusUrbanMethodLayer}
+            onPreviewWorkflow={handlePreviewUrbanMethodWorkflow}
+          />
+
           <Suspense fallback={null}>
             <LazyMapReportHandoffDrawer
               draft={reportHandoffDraft}
@@ -5785,8 +6121,22 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
                   setInspectorLayerId(null);
                   announce("Layer inspector closed");
                 }}
+                onApplyStyle={handleApplyLayerStyle}
               />
             </Suspense>
+          ) : null}
+          {attributeTableLayer ? (
+            <MapAttributeTable
+              layer={attributeTableLayer}
+              selectedIds={selectedFeatureIds[attributeTableLayer.id] ?? []}
+              onSelectFeatures={(featureIds) => handleAttributeTableSelection(attributeTableLayer.id, featureIds)}
+              onFocusFeature={handleFocusAttributeFeature}
+              onClose={() => {
+                setAttributeTableLayerId(null);
+                announce("Attribute table closed");
+              }}
+              onAnnounce={announce}
+            />
           ) : null}
           <MapReviewTimelinePanel
             visible={showReviewTimeline && !navigatorStageMode}
@@ -5814,6 +6164,23 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               recordedCopilotProposalIdsRef.current = new Set();
               recordedCopilotAuditIdsRef.current = new Set();
               announce("New map review session started");
+            }}
+            onAnnounce={announce}
+          />
+
+          <MapFigureComposerPanel
+            visible={showFigureComposer && !navigatorStageMode}
+            overlayLayers={overlayLayers}
+            qaState={scientificQA}
+            bearing={bearing}
+            onClose={() => {
+              setShowFigureComposer(false);
+              announce("Figure composer closed");
+            }}
+            onExportFigure={() => {
+              setShowFigureComposer(false);
+              setShowMapExportDialog(true);
+              announce("Figure gates passed — opening publication export");
             }}
             onAnnounce={announce}
           />
@@ -5869,6 +6236,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             onSaveReport={handleSaveWorkflowReport}
             onPreviewChange={setWorkflowPreview}
             onOpenWorkflowScript={handleOpenWorkflowScriptInIde}
+            onExecuteWorkflow={handleExecuteMapWorkflow}
+            onCancelWorkflow={handleCancelMapWorkflow}
+            workflowExecution={workflowExecution}
             onAnnounce={announce}
           />
 
@@ -6123,10 +6493,12 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               sidebarVisible={effectiveShowDrawPanel}
               seedDrawStart={drawSeed}
               drawnFeatures={drawnFeatures}
+              snapSources={drawingSnapSources}
               selectedFeatureId={selectedFeatureId}
               onAddFeature={addDrawnFeature}
               onRemoveFeature={removeDrawnFeature}
               onUpdateFeature={updateDrawnFeature}
+              onCommitFeatureEdit={handleCommitDrawnFeatureEdit}
               onClearFeatures={clearDrawnFeatures}
               onSelectFeature={setSelectedFeatureId}
               onCancelDraw={handleCancelDraw}

@@ -33,6 +33,7 @@ export type MapCartographyRecommendationType =
   | "heatmap-parameters"
   | "label-readability"
   | "legend-completeness"
+  | "uncertainty-metadata"
   | "accessibility-contrast";
 
 export type MapCartographyDistributionShape =
@@ -786,7 +787,7 @@ function createClassificationRecommendation(
   return {
     id,
     type: "classification-method",
-    severity: "info",
+    severity: "warning",
     layerId: layer.id,
     layerName: layer.name,
     field: numericField.field,
@@ -1119,6 +1120,53 @@ function createLegendRecommendation(
   };
 }
 
+function hasUncertaintyMetadata(layer: OverlayLayerConfig): boolean {
+  const style = layer.style ?? {};
+  const metadata = layer.metadata ?? {};
+  const analysisVisualization = metadata.analysisResult?.visualization as unknown as Record<string, unknown> | undefined;
+  const candidates = [
+    style.uncertainty,
+    style.uncertaintyField,
+    style.confidenceField,
+    style.marginOfErrorField,
+    metadata.scientificQA?.badges.includes("uncertain_output"),
+    metadata.scientificQA?.caveats.some((caveat) => caveat.toLowerCase().includes("uncertain")),
+    analysisVisualization?.uncertainty,
+    analysisVisualization?.confidence,
+  ];
+  return candidates.some(Boolean);
+}
+
+function createUncertaintyRecommendation(
+  layer: OverlayLayerConfig,
+  numericField: NumericFieldSummary | null,
+  options?: MapCartographyAdvisorOptions,
+): MapCartographyRecommendation | null {
+  if (!numericField || hasUncertaintyMetadata(layer)) return null;
+  const id = recommendationId(layer, "uncertainty-metadata", numericField.field);
+  if (isApplied(layer, id) || options?.dismissedRecommendationIds?.has(id)) {
+    return null;
+  }
+
+  return {
+    id,
+    type: "uncertainty-metadata",
+    severity: "warning",
+    layerId: layer.id,
+    layerName: layer.name,
+    field: numericField.field,
+    title: "Thematic style is missing uncertainty metadata",
+    rationale: `The layer styles ${numericField.field} but does not expose confidence, margin-of-error, or uncertainty caveats for report/export review.`,
+    suggestedFix: "Attach an uncertainty field, confidence note, or QA caveat before using this style as publication evidence.",
+    detailUrl: "#cartography-uncertainty",
+    preview: {
+      beforeLegend: existingLegend(layer),
+      afterLegend: existingLegend(layer),
+      summary: "No visual mutation is applied; this is a publication-readiness warning.",
+    },
+  };
+}
+
 export function generateLayerCartographyRecommendations(
   layer: OverlayLayerConfig,
   options?: MapCartographyAdvisorOptions,
@@ -1167,6 +1215,8 @@ export function generateLayerCartographyRecommendations(
   if (isThematicLayer(layer, numericFields)) {
     const legendRecommendation = createLegendRecommendation(layer, primaryNumericField, options);
     if (legendRecommendation) recommendations.push(legendRecommendation);
+    const uncertaintyRecommendation = createUncertaintyRecommendation(layer, primaryNumericField, options);
+    if (uncertaintyRecommendation) recommendations.push(uncertaintyRecommendation);
   }
 
   return recommendations.slice(0, 5);

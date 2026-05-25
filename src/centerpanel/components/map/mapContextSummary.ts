@@ -139,6 +139,11 @@ export function summarizeOverlayLayer(layer: OverlayLayerConfig): MapLayerRegist
     opacity: layer.opacity,
     queryable: registry.queryable,
     sourceKind: registry.sourceKind,
+    ...(layer.metadata?.analysisResult?.outputMode
+      ? { runtimeMode: layer.metadata.analysisResult.outputMode }
+      : registry.sourceKind === "demo"
+        ? { runtimeMode: "demo" as const }
+        : {}),
     qaStatus: registry.qaStatus,
     crsStatus: registry.crsSummary.status,
     geometryType: registry.geometrySummary.geometryType,

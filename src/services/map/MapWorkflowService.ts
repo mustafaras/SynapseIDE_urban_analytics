@@ -6,7 +6,7 @@
 /*  Provides explicit, scientific, transparent guided workflows for:  */
 /*                                                                    */
 /*    - AOI creation (viewport, drawn polygon, selected features,    */
-/*      geocoded place)                                              */
+/*      geocoded place, Urban study area)                            */
 /*    - Buffer (geodesic, metric / imperial)                         */
 /*    - Intersection of two polygon layers                           */
 /*    - Difference (A − B) and Union for scenario comparison         */
@@ -45,6 +45,20 @@ import {
   type CrsPreflightMetric,
   type CrsPreflightOperation,
 } from "./crs/CrsPreflight";
+import {
+  computeBuffer,
+  computeDifference,
+  computeIntersect,
+  computeUnion,
+  mergePolygons,
+  type GeometryWorkflowComputation,
+  type GeometryWorkflowParams,
+  type GeometryWorkflowRequest,
+} from "./geometry/GeometryWorkflowEngine";
+import {
+  summarizeDrawnGeometryValidation,
+  validateDrawnGeometry,
+} from "./DrawnGeometryValidation";
 
 /* ================================================================== */
 /*  Versioning & constants                                             */
@@ -56,6 +70,33 @@ export const MAP_WORKFLOW_MANIFEST_VERSION = 1;
 
 /** Threshold above which large datasets should be processed in a worker. */
 export const MAP_WORKFLOW_WORKER_FEATURE_THRESHOLD = 5_000;
+
+/**
+ * Upper bound on features the main-thread preview computes. Above the worker
+ * threshold the on-map preview is computed from the first N features only so
+ * the drawer stays responsive; the full result is produced in the worker via
+ * `executeMapWorkflow`.
+ */
+export const MAP_WORKFLOW_PREVIEW_SAMPLE_LIMIT = 1_500;
+
+interface BoundedPreviewSource {
+  source: FeatureCollection;
+  sampled: boolean;
+  fullCount: number;
+}
+
+/** Cap the source the main-thread preview computes on, returning the full count. */
+function boundPreviewSource(source: FeatureCollection): BoundedPreviewSource {
+  const fullCount = source.features.length;
+  if (fullCount <= MAP_WORKFLOW_PREVIEW_SAMPLE_LIMIT) {
+    return { source, sampled: false, fullCount };
+  }
+  return {
+    source: { type: "FeatureCollection", features: source.features.slice(0, MAP_WORKFLOW_PREVIEW_SAMPLE_LIMIT) },
+    sampled: true,
+    fullCount,
+  };
+}
 
 export const MAP_WORKFLOW_BUFFER_MIN_DISTANCE = 0;
 /** Hard upper bound on buffer distance (≈ Earth half-circumference; 20 000 km). */
@@ -103,13 +144,15 @@ export type MapWorkflowAOISourceKind =
   | "viewport"
   | "selected-features"
   | "drawn-polygon"
-  | "geocoded-place";
+  | "geocoded-place"
+  | "urban-study-area";
 
 export const MAP_WORKFLOW_AOI_SOURCE_LABELS: Record<MapWorkflowAOISourceKind, string> = {
   viewport: "Current viewport",
   "selected-features": "Selected features",
   "drawn-polygon": "Drawn polygon",
   "geocoded-place": "Geocoded place",
+  "urban-study-area": "Urban study area",
 };
 
 export type MapWorkflowDistanceUnit =
@@ -245,6 +288,13 @@ export interface MapWorkflowGeocodedPlace {
   source?: string;
 }
 
+export interface MapWorkflowUrbanStudyArea {
+  id: string;
+  label: string;
+  bounds: [number, number, number, number];
+  activeAoiId?: string;
+}
+
 export interface MapWorkflowContext {
   layers: MapWorkflowSourceLayerSummary[];
   layerSourceMap: Map<string, FeatureCollection>;
@@ -253,6 +303,7 @@ export interface MapWorkflowContext {
   drawnPolygons: Array<Feature<Polygon | MultiPolygon>>;
   viewportBounds: [number, number, number, number] | null;
   geocodedPlace: MapWorkflowGeocodedPlace | null;
+  urbanStudyArea: MapWorkflowUrbanStudyArea | null;
   now?: Date;
   urbanRequiredCrs?: string | null;
 }
@@ -304,6 +355,14 @@ export interface MapWorkflowPreview {
   nextRequiredStep: MapWorkflowStepId | null;
   canApply: boolean;
   needsWorker: boolean;
+  /** True when the on-map preview was computed from a bounded sample (large input). */
+  previewSampled?: boolean;
+  /**
+   * True when the full result must be produced off the main thread (large
+   * input). Direct `applyMapWorkflowPreview` is refused; the UI routes such
+   * previews through `executeMapWorkflow` (worker).
+   */
+  executionDeferred?: boolean;
   suggestions: MapWorkflowSuggestedAction[];
   crsPreflight: CrsPreflightResult;
   comparisonState?: MapWorkflowComparisonStatePreview;
@@ -356,6 +415,7 @@ export function buildMapWorkflowContext(
     drawnPolygons?: Array<Feature<Polygon | MultiPolygon>>;
     viewportBounds?: [number, number, number, number] | null;
     geocodedPlace?: MapWorkflowGeocodedPlace | null;
+    urbanStudyArea?: MapWorkflowUrbanStudyArea | null;
     urbanRequiredCrs?: string | null;
     now?: Date;
   } = {},
@@ -408,6 +468,7 @@ export function buildMapWorkflowContext(
     drawnPolygons: options.drawnPolygons ?? [],
     viewportBounds: options.viewportBounds ?? null,
     geocodedPlace: options.geocodedPlace ?? null,
+    urbanStudyArea: options.urbanStudyArea ?? null,
     ...(options.urbanRequiredCrs !== undefined ? { urbanRequiredCrs: options.urbanRequiredCrs } : {}),
     ...(options.now ? { now: options.now } : {}),
   };
@@ -518,6 +579,12 @@ export function applyMapWorkflowPreview(
     return applyComparison(preview, context);
   }
 
+  // A deferred large-input preview only holds a bounded sample — committing it
+  // would register an incomplete result. Force the worker path instead.
+  if (preview.executionDeferred) {
+    return null;
+  }
+
   if (!preview.featureCollection) {
     return null;
   }
@@ -562,6 +629,185 @@ export function applyMapWorkflowPreview(
   };
 
   return { layer, preview, manifest, reportItem };
+}
+
+/* ================================================================== */
+/*  Worker execution — large inputs run off the main thread            */
+/* ================================================================== */
+
+/** Progress/lifecycle surfaced to the UI while a workflow runs in a worker. */
+export interface MapWorkflowExecutionUpdate {
+  status: "queued" | "running" | "completed" | "failed" | "cancelled";
+  percent: number;
+  stage?: string | undefined;
+  detail?: string | undefined;
+  error?: string | undefined;
+}
+
+/**
+ * Handle returned by a worker executor. The geometry op resolves with a fully
+ * attributed computation; `cancel` aborts the in-flight job cleanly.
+ */
+export interface MapWorkflowExecutionHandle {
+  promise: Promise<GeometryWorkflowComputation>;
+  cancel: () => boolean;
+}
+
+/**
+ * Injected boundary the composition fills with the background worker pool, so
+ * `MapWorkflowService` performs no I/O and stays unit-testable with a fake.
+ */
+export interface MapWorkflowWorkerExecutor {
+  run: (
+    request: GeometryWorkflowRequest,
+    options: {
+      title: string;
+      description?: string | undefined;
+      onProgress?: ((update: MapWorkflowExecutionUpdate) => void) | undefined;
+    },
+  ) => MapWorkflowExecutionHandle;
+}
+
+const WORKER_GEOMETRY_OPS: ReadonlySet<MapWorkflowKind> = new Set(["buffer", "intersect", "difference", "union"]);
+
+function resolveBufferSource(
+  draft: MapWorkflowBufferDraft,
+  context: MapWorkflowContext,
+): { source: FeatureCollection | null; sourceLayerId: string } {
+  const sourceMode = draft.sourceMode ?? "layer";
+  if (sourceMode === "selected-features") {
+    return {
+      source: {
+        type: "FeatureCollection",
+        features: context.selectedFeatures.filter((feature) => Boolean(feature.geometry)),
+      },
+      sourceLayerId: context.selectedLayerIds.join(",") || "selection",
+    };
+  }
+  const layerId = draft.sourceLayerId;
+  return {
+    source: layerId ? context.layerSourceMap.get(layerId) ?? null : null,
+    sourceLayerId: layerId ?? "layer",
+  };
+}
+
+/**
+ * Build the serializable worker request for a buffer/intersect/difference/union
+ * preview. Returns null when the workflow is not a worker geometry op or the
+ * source geometry is unavailable.
+ */
+export function buildGeometryWorkflowRequest(
+  preview: MapWorkflowPreview,
+  context: MapWorkflowContext,
+): GeometryWorkflowRequest | null {
+  if (!WORKER_GEOMETRY_OPS.has(preview.workflow)) return null;
+  const draft = preview.draft;
+  const executionCrs = preview.crsPreflight.executionCrs;
+  const displayCrs = preview.crsPreflight.displayCrs;
+  const sourceLayerIds = collectSourceLayerIds(draft, context);
+
+  if (draft.kind === "buffer") {
+    const { source, sourceLayerId } = resolveBufferSource(draft, context);
+    if (!source || source.features.length === 0) return null;
+    const params: GeometryWorkflowParams = {
+      op: "buffer",
+      meters: unitToMeters(draft.distance, draft.unit),
+      segments: clampSegments(draft.segments),
+      dissolve: draft.dissolve,
+      sourceLayerId,
+    };
+    return { op: "buffer", sources: [source], params, executionCrs, displayCrs, sourceLayerIds, preferGeos: true };
+  }
+
+  if (draft.kind === "intersect" || draft.kind === "difference" || draft.kind === "union") {
+    const sourceA = draft.layerAId ? context.layerSourceMap.get(draft.layerAId) ?? null : null;
+    const sourceB = draft.layerBId ? context.layerSourceMap.get(draft.layerBId) ?? null : null;
+    if (!sourceA || !sourceB) return null;
+    const params: GeometryWorkflowParams =
+      draft.kind === "intersect"
+        ? { op: "intersect", preserveAttributes: draft.preserveAttributes }
+        : draft.kind === "union"
+          ? { op: "union", dissolve: draft.dissolve }
+          : { op: "difference" };
+    return { op: draft.kind, sources: [sourceA, sourceB], params, executionCrs, displayCrs, sourceLayerIds, preferGeos: true };
+  }
+
+  return null;
+}
+
+/**
+ * Turn a worker computation into a committed apply result — the same derived
+ * layer + manifest + report item shape as `applyMapWorkflowPreview`, but built
+ * from the full off-thread feature collection rather than the bounded sample.
+ */
+export function finalizeWorkerWorkflowResult(
+  preview: MapWorkflowPreview,
+  context: MapWorkflowContext,
+  computation: GeometryWorkflowComputation,
+): MapWorkflowApplyResult | null {
+  const committedPreview: MapWorkflowPreview = {
+    ...preview,
+    featureCollection: computation.featureCollection,
+    featureCount: computation.featureCount,
+    bounds: computation.bounds,
+    metrics: {
+      ...preview.metrics,
+      ...computation.metrics,
+      executed_in_worker: 1,
+      worker_input_features: computation.inputFeatureCount,
+    },
+    previewSampled: false,
+    executionDeferred: false,
+    canApply: true,
+  };
+  return applyMapWorkflowPreview(committedPreview, context);
+}
+
+/**
+ * Execute a workflow preview, running large inputs in a worker (with progress
+ * + cancel) and small inputs synchronously on the main thread. Always resolves
+ * with a fully attributed apply result whose manifest CRS equals the execution
+ * CRS, or throws if the op cannot run / was cancelled.
+ */
+export async function executeMapWorkflow(
+  preview: MapWorkflowPreview,
+  context: MapWorkflowContext,
+  executor: MapWorkflowWorkerExecutor,
+  hooks?: {
+    onProgress?: ((update: MapWorkflowExecutionUpdate) => void) | undefined;
+    registerHandle?: ((handle: MapWorkflowExecutionHandle) => void) | undefined;
+  },
+): Promise<MapWorkflowApplyResult> {
+  const request = preview.needsWorker ? buildGeometryWorkflowRequest(preview, context) : null;
+
+  if (!request) {
+    // Small / non-worker op: synchronous apply on the main thread.
+    hooks?.onProgress?.({ status: "running", percent: 50, stage: "Computing on main thread" });
+    const applied = applyMapWorkflowPreview(
+      preview.executionDeferred ? { ...preview, executionDeferred: false } : preview,
+      context,
+    );
+    if (!applied) {
+      throw new Error("Workflow could not be applied. Resolve the highlighted blockers and try again.");
+    }
+    hooks?.onProgress?.({ status: "completed", percent: 100, stage: "Complete" });
+    return applied;
+  }
+
+  hooks?.onProgress?.({ status: "queued", percent: 0, stage: "Queued" });
+  const handle = executor.run(request, {
+    title: `${describeMethod(preview)} (${request.sources.reduce((total, fc) => total + fc.features.length, 0).toLocaleString()} features)`,
+    description: "Off-main-thread geometry execution",
+    onProgress: hooks?.onProgress,
+  });
+  hooks?.registerHandle?.(handle);
+
+  const computation = await handle.promise;
+  const applied = finalizeWorkerWorkflowResult(preview, context, computation);
+  if (!applied) {
+    throw new Error("Worker geometry result could not be committed to a derived layer.");
+  }
+  return applied;
 }
 
 export function buildMapWorkflowPreviewLayer(
@@ -800,6 +1046,32 @@ function previewAOI(
       }
       break;
     }
+    case "urban-study-area": {
+      if (!context.urbanStudyArea) {
+        issues.push({
+          step: "source",
+          severity: "blocker",
+          code: "no-urban-study-area",
+          message: "Missing prerequisite: choose and apply an Urban Analytics study area first.",
+        });
+      } else if (!isFiniteBounds(context.urbanStudyArea.bounds)) {
+        issues.push({
+          step: "source",
+          severity: "blocker",
+          code: "invalid-urban-study-area-bounds",
+          message: "Urban Analytics study area bounds are invalid.",
+        });
+      } else {
+        baseGeometry = bboxToPolygonFeature(context.urbanStudyArea.bounds, draft.name || context.urbanStudyArea.label);
+        basisDescription = `Urban study area ${context.urbanStudyArea.label}`;
+        sourceLabel = `Urban · ${context.urbanStudyArea.label}`;
+        provenanceNotes.push(`Urban study area ID: ${context.urbanStudyArea.id}`);
+        if (context.urbanStudyArea.activeAoiId) {
+          provenanceNotes.push(`Active Urban AOI: ${context.urbanStudyArea.activeAoiId}`);
+        }
+      }
+      break;
+    }
   }
 
   const bufferMeters = unitToMeters(draft.bufferDistance ?? 0, draft.bufferUnit);
@@ -819,6 +1091,23 @@ function previewAOI(
     }
   }
 
+  const aoiValidation = aoiGeometry ? validateDrawnGeometry(aoiGeometry.geometry) : null;
+  if (aoiValidation?.status === "blocked") {
+    issues.push({
+      step: "source",
+      severity: "blocker",
+      code: "aoi-invalid-geometry",
+      message: summarizeDrawnGeometryValidation(aoiValidation),
+    });
+  } else if (aoiValidation?.status === "warning") {
+    issues.push({
+      step: "source",
+      severity: "warning",
+      code: "aoi-geometry-warning",
+      message: summarizeDrawnGeometryValidation(aoiValidation),
+    });
+  }
+
   const featureCollection: FeatureCollection | null = aoiGeometry
     ? {
         type: "FeatureCollection",
@@ -830,6 +1119,10 @@ function previewAOI(
               aoi_source: draft.source,
               aoi_label: draft.name,
               aoi_buffer_meters: bufferMeters,
+              ...(aoiValidation ? {
+                aoi_validation_status: aoiValidation.status,
+                aoi_validation_issues: aoiValidation.issueCodes.join(","),
+              } : {}),
             },
           },
         ],
@@ -1014,9 +1307,12 @@ function previewBuffer(
   });
   pushCrsPreflightIssue(crsPreflight, "source", issues);
 
+  let previewSampled = false;
   if (source && meters > 0 && !distanceIssue && issues.every((entry) => entry.severity !== "blocker")) {
     workerNeeded = source.features.length > MAP_WORKFLOW_WORKER_FEATURE_THRESHOLD;
-    featureCollection = computeBuffer(source, meters, {
+    const bounded = boundPreviewSource(source);
+    previewSampled = bounded.sampled;
+    featureCollection = computeBuffer(bounded.source, meters, {
       segments: clampSegments(draft.segments),
       dissolve: draft.dissolve,
       sourceLayerId: sourceMode === "selected-features"
@@ -1083,6 +1379,8 @@ function previewBuffer(
     guidance,
     suggestions,
     needsWorker: workerNeeded,
+    previewSampled,
+    executionDeferred: workerNeeded && previewSampled,
     crsPreflight,
     context,
   });
@@ -1122,6 +1420,7 @@ function previewIntersect(
 
   let featureCollection: FeatureCollection | null = null;
   let workerNeeded = false;
+  let previewSampled = false;
   let intersectingPairs = 0;
 
   if (
@@ -1138,7 +1437,10 @@ function previewIntersect(
     if (sourceA && sourceB) {
       workerNeeded =
         sourceA.features.length + sourceB.features.length > MAP_WORKFLOW_WORKER_FEATURE_THRESHOLD;
-      const result = computeIntersect(sourceA, sourceB, draft.preserveAttributes);
+      const boundedA = boundPreviewSource(sourceA);
+      const boundedB = boundPreviewSource(sourceB);
+      previewSampled = boundedA.sampled || boundedB.sampled;
+      const result = computeIntersect(boundedA.source, boundedB.source, draft.preserveAttributes);
       featureCollection = result.featureCollection;
       intersectingPairs = result.pairCount;
       if (intersectingPairs === 0) {
@@ -1170,6 +1472,8 @@ function previewIntersect(
     guidance,
     suggestions,
     needsWorker: workerNeeded,
+    previewSampled,
+    executionDeferred: workerNeeded && previewSampled,
     crsPreflight,
     context,
   });
@@ -1208,6 +1512,7 @@ function previewDifference(
 
   let featureCollection: FeatureCollection | null = null;
   let workerNeeded = false;
+  let previewSampled = false;
 
   if (
     layerA &&
@@ -1223,7 +1528,10 @@ function previewDifference(
     if (sourceA && sourceB) {
       workerNeeded =
         sourceA.features.length + sourceB.features.length > MAP_WORKFLOW_WORKER_FEATURE_THRESHOLD;
-      featureCollection = computeDifference(sourceA, sourceB);
+      const boundedA = boundPreviewSource(sourceA);
+      const boundedB = boundPreviewSource(sourceB);
+      previewSampled = boundedA.sampled || boundedB.sampled;
+      featureCollection = computeDifference(boundedA.source, boundedB.source);
     }
   }
 
@@ -1243,6 +1551,8 @@ function previewDifference(
     guidance,
     suggestions,
     needsWorker: workerNeeded,
+    previewSampled,
+    executionDeferred: workerNeeded && previewSampled,
     crsPreflight,
     context,
   });
@@ -1281,6 +1591,7 @@ function previewUnion(
 
   let featureCollection: FeatureCollection | null = null;
   let workerNeeded = false;
+  let previewSampled = false;
 
   if (
     layerA &&
@@ -1296,7 +1607,10 @@ function previewUnion(
     if (sourceA && sourceB) {
       workerNeeded =
         sourceA.features.length + sourceB.features.length > MAP_WORKFLOW_WORKER_FEATURE_THRESHOLD;
-      featureCollection = computeUnion(sourceA, sourceB, draft.dissolve);
+      const boundedA = boundPreviewSource(sourceA);
+      const boundedB = boundPreviewSource(sourceB);
+      previewSampled = boundedA.sampled || boundedB.sampled;
+      featureCollection = computeUnion(boundedA.source, boundedB.source, draft.dissolve);
     }
   }
 
@@ -1317,6 +1631,8 @@ function previewUnion(
     guidance,
     suggestions,
     needsWorker: workerNeeded,
+    previewSampled,
+    executionDeferred: workerNeeded && previewSampled,
     crsPreflight,
     context,
   });
@@ -1453,15 +1769,19 @@ function finalizePreview(input: {
   suggestions: MapWorkflowSuggestedAction[];
   context: MapWorkflowContext;
   needsWorker?: boolean | undefined;
+  previewSampled?: boolean | undefined;
+  executionDeferred?: boolean | undefined;
   forceCanApply?: boolean | undefined;
   crsPreflight?: CrsPreflightResult | undefined;
   comparisonState?: MapWorkflowComparisonStatePreview | undefined;
 }): MapWorkflowPreview {
   const blockers = input.issues.filter((entry) => entry.severity === "blocker");
   const featureCount = input.featureCollection?.features.length ?? 0;
+  // A deferred (worker) preview can be applied — but only through
+  // `executeMapWorkflow`, which produces the full off-thread result.
   const canApply =
     blockers.length === 0 &&
-    (input.forceCanApply ?? (featureCount > 0 || input.workflow === "comparison"));
+    (input.forceCanApply ?? (featureCount > 0 || Boolean(input.executionDeferred) || input.workflow === "comparison"));
 
   const nextRequiredStep = blockers[0]?.step ?? null;
   const expectedOutput = buildExpectedOutput(input, featureCount, input.needsWorker);
@@ -1503,6 +1823,8 @@ function finalizePreview(input: {
     nextRequiredStep,
     canApply,
     needsWorker: Boolean(input.needsWorker),
+    ...(input.previewSampled ? { previewSampled: true } : {}),
+    ...(input.executionDeferred ? { executionDeferred: true } : {}),
     suggestions: input.suggestions,
     crsPreflight,
     ...(input.comparisonState ? { comparisonState: input.comparisonState } : {}),
@@ -1804,6 +2126,7 @@ function buildMapContextId(context: MapWorkflowContext, sourceLayerIds: string[]
     selectedFeatureCount: context.selectedFeatures.length,
     drawnPolygonCount: context.drawnPolygons.length,
     geocodedPlace: context.geocodedPlace?.label ?? null,
+    urbanStudyArea: context.urbanStudyArea?.id ?? null,
   }))}`;
 }
 
@@ -2135,199 +2458,6 @@ function featuresToPolygon(
   }
 }
 
-function mergePolygons(
-  polygons: Array<Feature<Polygon | MultiPolygon>>,
-  label = "AOI",
-): Feature<Polygon | MultiPolygon> | null {
-  if (polygons.length === 0) return null;
-  if (polygons.length === 1) {
-    const cloned = JSON.parse(JSON.stringify(polygons[0])) as Feature<Polygon | MultiPolygon>;
-    cloned.properties = { ...(cloned.properties ?? {}), aoi_label: label };
-    return cloned;
-  }
-  let acc: Feature<Polygon | MultiPolygon> | null = null;
-  for (const polygon of polygons) {
-    if (!acc) {
-      acc = polygon;
-      continue;
-    }
-    try {
-      const fc = turf.featureCollection([acc, polygon]);
-      const merged = turf.union(fc);
-      if (merged) {
-        acc = merged as Feature<Polygon | MultiPolygon>;
-      }
-    } catch {
-      // skip
-    }
-  }
-  if (acc) {
-    acc.properties = { ...(acc.properties ?? {}), aoi_label: label };
-  }
-  return acc;
-}
-
-function computeBuffer(
-  source: FeatureCollection,
-  meters: number,
-  options: { segments: number; dissolve: boolean; sourceLayerId: string },
-): FeatureCollection {
-  const buffered: Feature<Polygon | MultiPolygon>[] = [];
-  for (const feature of source.features) {
-    if (!feature.geometry) continue;
-    try {
-      const result = turf.buffer(feature, meters, {
-        units: "meters",
-        steps: options.segments,
-      });
-      if (!result) continue;
-      const cloned = result as Feature<Polygon | MultiPolygon>;
-      cloned.properties = {
-        ...(feature.properties ?? {}),
-        __buffer_meters: meters,
-        __buffer_source_id: feature.id ?? null,
-        __buffer_source_layer: options.sourceLayerId,
-      };
-      buffered.push(cloned);
-    } catch {
-      // skip
-    }
-  }
-
-  if (options.dissolve && buffered.length > 1) {
-    const merged = mergePolygons(buffered, "buffered_dissolved");
-    if (merged) {
-      merged.properties = {
-        __buffer_meters: meters,
-        __buffer_source_layer: options.sourceLayerId,
-        __dissolved: true,
-        __input_features: source.features.length,
-      };
-      return { type: "FeatureCollection", features: [merged] };
-    }
-  }
-
-  return { type: "FeatureCollection", features: buffered };
-}
-
-function computeIntersect(
-  sourceA: FeatureCollection,
-  sourceB: FeatureCollection,
-  preserveAttributes: "a" | "b" | "both",
-): { featureCollection: FeatureCollection; pairCount: number } {
-  const features: Feature[] = [];
-  let pairCount = 0;
-  for (const a of sourceA.features) {
-    if (!isPolygonGeometry(a.geometry)) continue;
-    for (const b of sourceB.features) {
-      if (!isPolygonGeometry(b.geometry)) continue;
-      try {
-        const fc = turf.featureCollection([
-          a as Feature<Polygon | MultiPolygon>,
-          b as Feature<Polygon | MultiPolygon>,
-        ]);
-        const result = turf.intersect(fc);
-        if (!result) continue;
-        pairCount += 1;
-        const properties: Record<string, unknown> = {};
-        if (preserveAttributes === "a" || preserveAttributes === "both") {
-          for (const [key, value] of Object.entries(a.properties ?? {})) {
-            properties[`a_${key}`] = value;
-          }
-        }
-        if (preserveAttributes === "b" || preserveAttributes === "both") {
-          for (const [key, value] of Object.entries(b.properties ?? {})) {
-            properties[`b_${key}`] = value;
-          }
-        }
-        properties.__intersect_pair_index = pairCount;
-        features.push({
-          ...(result as Feature),
-          properties,
-        });
-      } catch {
-        // skip
-      }
-    }
-  }
-  return {
-    featureCollection: { type: "FeatureCollection", features },
-    pairCount,
-  };
-}
-
-function computeDifference(
-  sourceA: FeatureCollection,
-  sourceB: FeatureCollection,
-): FeatureCollection {
-  const dissolveB = mergeAllPolygons(sourceB);
-  if (!dissolveB) {
-    return { type: "FeatureCollection", features: [] };
-  }
-  const features: Feature[] = [];
-  for (const a of sourceA.features) {
-    if (!isPolygonGeometry(a.geometry)) continue;
-    try {
-      const fc = turf.featureCollection([
-        a as Feature<Polygon | MultiPolygon>,
-        dissolveB,
-      ]);
-      const result = turf.difference(fc);
-      if (!result) continue;
-      const properties = { ...(a.properties ?? {}), __difference: true };
-      features.push({
-        ...(result as Feature),
-        properties,
-      });
-    } catch {
-      // skip
-    }
-  }
-  return { type: "FeatureCollection", features };
-}
-
-function computeUnion(
-  sourceA: FeatureCollection,
-  sourceB: FeatureCollection,
-  dissolve: boolean,
-): FeatureCollection {
-  const allPolygons: Array<Feature<Polygon | MultiPolygon>> = [];
-  for (const feature of sourceA.features) {
-    if (isPolygonGeometry(feature.geometry)) {
-      allPolygons.push({ ...(feature as Feature<Polygon | MultiPolygon>), properties: { ...(feature.properties ?? {}), __union_origin: "A" } });
-    }
-  }
-  for (const feature of sourceB.features) {
-    if (isPolygonGeometry(feature.geometry)) {
-      allPolygons.push({ ...(feature as Feature<Polygon | MultiPolygon>), properties: { ...(feature.properties ?? {}), __union_origin: "B" } });
-    }
-  }
-
-  if (!dissolve) {
-    return { type: "FeatureCollection", features: allPolygons };
-  }
-
-  const merged = mergePolygons(allPolygons, "union_dissolved");
-  if (!merged) {
-    return { type: "FeatureCollection", features: allPolygons };
-  }
-  merged.properties = { ...(merged.properties ?? {}), __dissolved: true };
-  return { type: "FeatureCollection", features: [merged] };
-}
-
-function mergeAllPolygons(
-  source: FeatureCollection,
-): Feature<Polygon | MultiPolygon> | null {
-  const polygons = source.features.filter(
-    (feature): feature is Feature<Polygon | MultiPolygon> => isPolygonGeometry(feature.geometry),
-  );
-  return mergePolygons(polygons);
-}
-
-function isPolygonGeometry(geometry: Geometry | null | undefined): boolean {
-  return !!geometry && (geometry.type === "Polygon" || geometry.type === "MultiPolygon");
-}
-
 function safeAreaKm2(fc: FeatureCollection): number {
   try {
     const m2 = turf.area(fc);
@@ -2511,7 +2641,7 @@ function collectProvenanceNotes(
 function describeMethod(preview: Pick<MapWorkflowPreview, "workflow">): string {
   switch (preview.workflow) {
     case "aoi":
-      return "AOI construction (viewport / selection / drawn / geocoded)";
+      return "AOI construction (viewport / selection / drawn / geocoded / Urban study area)";
     case "buffer":
       return "Geodesic buffer";
     case "intersect":

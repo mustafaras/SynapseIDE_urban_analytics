@@ -4,6 +4,10 @@ import {
   MAP_COLORS,
   MAP_TYPOGRAPHY,
 } from "@/centerpanel/components/map/mapTokens";
+import {
+  getSerializedLegendSpecFromStyle,
+  serializedLegendSpecToCompositionItems,
+} from "@/centerpanel/components/map/inspector/style/legendContract";
 import { normalizeLayerRegistryMetadata } from "@/centerpanel/components/map/mapLayerMetadata";
 import type { MapEvidenceQA, OverlayLayerConfig } from "@/centerpanel/components/map/mapTypes";
 import { haversineDistance } from "@/utils/geodesic";
@@ -962,6 +966,16 @@ function labelFromUnknown(value: unknown, fallback: string): string {
 
 function legendItemsFromLayerStyle(layer: OverlayLayerConfig): MapCompositionLegendItem[] {
   const style = layer.style ?? {};
+  const serializedSpec = getSerializedLegendSpecFromStyle(style);
+  if (serializedSpec) {
+    return serializedLegendSpecToCompositionItems(serializedSpec).map((entry) => ({
+      label: entry.label,
+      color: colorFromUnknown(entry.color, DEFAULT_LAYER_COLORS[layer.type]),
+      ...(entry.secondaryLabel ? { secondaryLabel: entry.secondaryLabel } : {}),
+      kind: entry.kind,
+    }));
+  }
+
   const explicitLegend = style.legendEntries ?? style.legend ?? style.classes;
   if (!Array.isArray(explicitLegend)) return [];
 
