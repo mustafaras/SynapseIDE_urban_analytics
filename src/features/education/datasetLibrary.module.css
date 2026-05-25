@@ -286,6 +286,39 @@
   line-height: 1.5;
 }
 
+.provenanceRow {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.provenanceBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 7px;
+  border-radius: 2px;
+  border: 1px solid color-mix(in srgb, var(--syn-accent, #38bdf8) 38%, transparent);
+  background: color-mix(in srgb, var(--syn-accent, #38bdf8) 10%, transparent);
+  color: color-mix(in srgb, var(--syn-accent, #38bdf8) 88%, var(--syn-text-primary));
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.provenanceBadgeDot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--syn-accent, #38bdf8);
+  flex: none;
+}
+
 .statGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

@@ -363,6 +363,16 @@ export const DatasetLibraryBrowser: React.FC<DatasetLibraryBrowserProps> = ({
                     <span className={styles.cityBadge}>{dataset.region}</span>
                   </div>
 
+                  <div className={styles.provenanceRow}>
+                    <span
+                      className={styles.provenanceBadge}
+                      title="Load Dataset fetches live OpenStreetMap buildings + roads (© ODbL) for a central window. Falls back to the bundled synthetic demo geometry when OpenStreetMap is unavailable."
+                    >
+                      <span className={styles.provenanceBadgeDot} aria-hidden="true" />
+                      Live OpenStreetMap · demo fallback
+                    </span>
+                  </div>
+
                   <div className={styles.statGrid}>
                     <div className={styles.statCard}>
                       <div className={styles.statLabel}>Layers</div>

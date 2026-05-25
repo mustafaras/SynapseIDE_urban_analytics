@@ -144,7 +144,11 @@ import {
   type MapImportProgress,
   prepareMapImportFile,
 } from "../../../../services/map/MapDataImporter";
-import { loadTeachingDatasetIntoMapWorkspace, type TeachingDatasetId } from "../../../../services/data/datasetLibrary";
+import {
+  loadRealOsmCityIntoMapWorkspace,
+  loadTeachingDatasetIntoMapWorkspace,
+  type TeachingDatasetId,
+} from "../../../../services/data/datasetLibrary";
 import {
   collectNumericFields,
   hasPointGeometry,
@@ -4414,11 +4418,30 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const handleTeachingDatasetImport = useCallback(async (datasetId: TeachingDatasetId) => {
     setLoadingTeachingDatasetId(datasetId);
     try {
-      const result = loadTeachingDatasetIntoMapWorkspace(datasetId);
-      fitToBounds(result.dataset.spatialExtent.bounds);
-      setShowImportHub(false);
-      toastSuccess(`Loaded ${result.dataset.city} teaching dataset with ${result.layers.length} published layers.`);
-      announce(`Loaded teaching dataset ${result.dataset.city}`);
+      // Prefer REAL OpenStreetMap data (buildings + roads, © ODbL) for a
+      // CRS-safe central window so the loaded geometry aligns with the
+      // actual street grid. Fall back to the deterministic synthetic
+      // teaching fixture — labelled honestly — only when OSM is unreachable.
+      try {
+        const real = await loadRealOsmCityIntoMapWorkspace(datasetId);
+        fitToBounds(real.window);
+        setShowImportHub(false);
+        toastSuccess(
+          `Loaded real OpenStreetMap data for ${real.city}: ${real.roadCount} roads + ${real.buildingCount} buildings (© ODbL).`,
+        );
+        announce(`Loaded real OpenStreetMap data for ${real.city}`);
+        return;
+      } catch (osmError) {
+        const reason = osmError instanceof Error ? osmError.message : "external service unavailable";
+        const result = loadTeachingDatasetIntoMapWorkspace(datasetId);
+        fitToBounds(result.dataset.spatialExtent.bounds);
+        setShowImportHub(false);
+        toastWarning(
+          `Live OpenStreetMap data unavailable (${reason}). Loaded the synthetic ${result.dataset.city} teaching fixture instead — labelled as demo data.`,
+        );
+        announce(`OpenStreetMap unavailable; loaded synthetic teaching fixture for ${result.dataset.city}`);
+        return;
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Teaching dataset import failed.";
       toastError(message);
