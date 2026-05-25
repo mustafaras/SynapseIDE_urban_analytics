@@ -17,6 +17,7 @@ interface UseMapPanelLayoutOptions {
   showDrawPanel: boolean;
   showMeasurePanel: boolean;
   showScientificQAPanel: boolean;
+  showUrbanMethodPanel: boolean;
   showNLQueryPanel: boolean;
   showWorkflowDrawer: boolean;
   showReviewTimeline: boolean;
@@ -33,6 +34,7 @@ export function useMapPanelLayout({
   showDrawPanel,
   showMeasurePanel,
   showScientificQAPanel,
+  showUrbanMethodPanel,
   showNLQueryPanel,
   showWorkflowDrawer,
   showReviewTimeline,
@@ -43,11 +45,13 @@ export function useMapPanelLayout({
 }: UseMapPanelLayoutOptions) {
   const requestedRightDockPanel = hasReportHandoffSource
     ? "report"
-    : showScientificQAPanel
-      ? "scientificQA"
-      : showWorkflowDrawer
-        ? "workflow"
-        : getActiveRightDockPanel({
+    : showUrbanMethodPanel
+      ? "urbanMethod"
+      : showScientificQAPanel
+        ? "scientificQA"
+        : showWorkflowDrawer
+          ? "workflow"
+          : getActiveRightDockPanel({
             showPinSidebar: showSidebar,
             showDrawPanel,
             showMeasurePanel,
@@ -76,6 +80,7 @@ export function useMapPanelLayout({
     effectiveShowDrawPanel: dockLayout.showDrawPanel,
     effectiveShowMeasurePanel: dockLayout.showMeasurePanel,
     effectiveShowScientificQAPanel: showScientificQAPanel && dockLayout.showScientificQAPanel,
+    effectiveShowUrbanMethodPanel: showUrbanMethodPanel && dockLayout.showUrbanMethodPanel,
     effectiveShowNLQueryPanel: showNLQueryPanel && !navigatorStageMode,
     effectiveShowWorkflowDrawer: showWorkflowDrawer && dockLayout.showWorkflowPanel,
     effectiveShowReviewTimeline: showReviewTimeline && !navigatorStageMode,

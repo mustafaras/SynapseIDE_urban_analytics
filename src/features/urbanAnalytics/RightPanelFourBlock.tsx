@@ -43,6 +43,15 @@ import {
 	resolveUrbanLearningPath,
 } from './context/educationArtifactBuilder';
 import { enqueueUrbanMethodCardReportBlock } from './context/reportArtifactBuilder';
+import { validateUrbanMethodMetadata } from './context/methodValidity';
+import { useMapExplorerStore } from '../../stores/useMapExplorerStore';
+import {
+	publishUrbanToMapMethodRequest,
+	type UrbanToMapGeometryRequirement,
+	type UrbanToMapMethodRequest,
+	type UrbanToMapMethodRequirements,
+	type UrbanToMapTemporalRequirement,
+} from '../../services/map/bridge/MapUrbanBridgeService';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -112,6 +121,90 @@ const CARD_FLOW_MAP: Record<string, { id: string; label: string }> = {
  'voxcity-cityjson-loader': { id: 'cityjson_loader', label: 'CityJSON 3D Viewer' },
  'voxcity-sunlight-solar': { id: 'sunlight_sim', label: 'Sunlight & Solar Simulation' },
 };
+
+function toMapGeometryRequirements(card: Card): UrbanToMapGeometryRequirement[] {
+ const envelope = validateUrbanMethodMetadata({
+ id: card.id,
+ title: card.title,
+ sourceKind: 'method-card',
+ ...(card.validityEnvelope ? { validityEnvelope: card.validityEnvelope } : {}),
+ ...(card.capabilityStatus ? { capabilityStatus: card.capabilityStatus } : {}),
+ }).envelope;
+ const geometries = envelope.requiredGeometryTypes?.map((geometry): UrbanToMapGeometryRequirement => {
+ if (geometry === 'Point' || geometry === 'MultiPoint') return 'point';
+ if (geometry === 'LineString' || geometry === 'MultiLineString') return 'line';
+ return 'polygon';
+ }) ?? [];
+ if (geometries.length > 0) {
+ return Array.from(new Set(geometries));
+ }
+ if (envelope.requiredDataTypes.includes('vector-point-layer')) return ['point'];
+ if (envelope.requiredDataTypes.includes('vector-line-layer')) return ['line'];
+ if (envelope.requiredDataTypes.includes('vector-polygon-layer')) return ['polygon'];
+ return [];
+}
+
+function toMapTemporalRequirement(card: Card): UrbanToMapTemporalRequirement {
+ const structure = card.validityEnvelope?.requiredTemporalStructure;
+ return structure && structure !== 'not-required' ? 'required' : 'not-required';
+}
+
+export function buildPrepareInMapMethodRequest(
+ card: Card,
+ workflowId: string | null,
+ now = new Date().toISOString(),
+): UrbanToMapMethodRequest {
+ const validity = validateUrbanMethodMetadata({
+ id: card.id,
+ title: card.title,
+ sourceKind: 'method-card',
+ ...(card.validityEnvelope ? { validityEnvelope: card.validityEnvelope } : {}),
+ ...(card.capabilityStatus ? { capabilityStatus: card.capabilityStatus } : {}),
+ });
+ const envelope = validity.envelope;
+ const geometryTypes = toMapGeometryRequirements(card);
+ const requiresAoi = envelope.requiredDataTypes.includes('aoi');
+ const layerRequirements: NonNullable<UrbanToMapMethodRequirements['layer']> = {
+ ...(geometryTypes.length > 0 ? { geometryTypes } : {}),
+ requiredFields: [...envelope.requiredFields],
+ temporal: toMapTemporalRequirement(card),
+ requireQueryable: true,
+ ...(envelope.minimumFeatureCount != null ? { minFeatureCount: envelope.minimumFeatureCount } : {}),
+ ...(envelope.requiredCrs?.[0] ? { requiredCrs: envelope.requiredCrs[0] } : {}),
+ };
+ const projectedCrsWarning = envelope.requiresProjectedCrs && !envelope.requiredCrs?.[0]
+ ? ['This method requires a projected CRS; select and validate an execution CRS in Map Explorer.']
+ : [];
+
+ return {
+ requestId: `urban-method:${card.id}:${now}`,
+ createdAt: now,
+ sourceModule: 'urban-analytics',
+ methodId: card.id,
+ methodLabel: card.title,
+ methodValidity: {
+ status: validity.status,
+ capabilityStatus: validity.capabilityStatus,
+ blockers: validity.status === 'complete' ? [] : validity.warnings,
+ warnings: validity.status === 'complete' ? [...validity.warnings, ...projectedCrsWarning] : projectedCrsWarning,
+ },
+ cardId: card.id,
+ ...(workflowId ? { workflowId } : {}),
+ outputIntent: 'derive-layer',
+ requirements: {
+ layer: layerRequirements,
+ ...(requiresAoi ? { aoi: { required: true, geometryTypes: ['polygon'] } } : {}),
+ workflow: { kind: 'aoi', outputLayerName: `${card.title} preview` },
+ ...(envelope.recommendedScales?.[0] ? { recommendedScale: envelope.recommendedScales[0] } : {}),
+ dataFitnessThreshold: null,
+ },
+ requestedActions: [
+ 'focus-compatible-layers',
+ ...(requiresAoi ? (['validate-aoi'] as const) : []),
+ { type: 'preview-map-workflow', workflowKind: 'aoi' },
+ ],
+ };
+}
 
 function badgeClass(tone: DossierTone): string {
  return `rp-status rp-status--${tone}`;
@@ -406,6 +499,12 @@ function RightPanelFourBlock({ card, onClose }: RightPanelFourBlockProps) {
  linkedArtifactIds: dossier?.artifacts.map((artifact) => artifact.id) ?? [],
  });
  }, [card, dossier?.artifacts, relatedFlow?.id]);
+
+ const prepareInMap = useCallback(() => {
+ if (!card) return;
+ useMapExplorerStore.getState().open();
+ publishUrbanToMapMethodRequest(buildPrepareInMapMethodRequest(card, relatedFlow?.id ?? null));
+ }, [card, relatedFlow?.id]);
 
  const openLearningPath = useCallback(() => {
  if (!card) return;
@@ -878,6 +977,14 @@ print("Review assumptions before interpreting results.")`}</pre>
 
  {/* ---- Action bar ---- */}
  <footer className="rp-actions">
+ <button
+ className="rp-btn rp-btn--action"
+ data-testid="urban-method-prepare-in-map"
+ onClick={prepareInMap}
+ title="Open a Map Explorer compatibility preview for this method."
+ >
+ Prepare in Map
+ </button>
  {relatedFlow ? (
  <button
  className="rp-btn rp-btn--action"

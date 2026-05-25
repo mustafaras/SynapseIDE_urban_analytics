@@ -100,6 +100,20 @@ describe("map docking layout", () => {
     expect(layout.rightInset).toBe(440 + MAP_NUMERIC.overlayMargin);
   });
 
+  it("allocates a dedicated right dock lane for an Urban method request", () => {
+    const layout = getMapDockLayout({
+      containerWidth: 1320,
+      layerPanelRequested: true,
+      rightPanel: "urbanMethod",
+      navigatorStageMode: false,
+    });
+
+    expect(layout.activeRightPanel).toBe("urbanMethod");
+    expect(layout.showUrbanMethodPanel).toBe(true);
+    expect(layout.showWorkflowPanel).toBe(false);
+    expect(layout.rightInset).toBe(layout.rightPanelWidth + MAP_NUMERIC.overlayMargin);
+  });
+
   it("uses persisted layer panel width in the center lane calculation", () => {
     const layout = getMapDockLayout({
       containerWidth: 1440,

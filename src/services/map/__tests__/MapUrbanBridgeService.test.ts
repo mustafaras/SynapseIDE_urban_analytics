@@ -231,6 +231,21 @@ describe("MapUrbanBridgeService", () => {
     unsubscribe();
   });
 
+  it("delivers a pending method request after Map subscribes during modal open", () => {
+    const request = methodRequest({ requestId: "urban-pending-1" });
+    const listener = vi.fn();
+
+    expect(publishUrbanToMapMethodRequestViaAdapter(request)).toBe(true);
+    const unsubscribe = subscribeUrbanToMapMethodRequests(listener);
+
+    expect(listener).toHaveBeenCalledWith(expect.objectContaining({
+      requestId: "urban-pending-1",
+      destinationModule: "map-explorer",
+    }));
+
+    unsubscribe();
+  });
+
   it("surfaces QA blockers in Urban->Map previews without leaking raw layer payloads", () => {
     const qa: MapScientificQAState = {
       status: "error",

@@ -341,6 +341,13 @@ export interface UrbanToMapMethodRequirements {
   dataFitnessThreshold?: number | null;
 }
 
+export interface UrbanToMapMethodValiditySummary {
+  status: "complete" | "partial" | "missing";
+  capabilityStatus: "implemented" | "demo_mode" | "residual_gap" | "environment_dependent" | "deferred";
+  blockers: string[];
+  warnings: string[];
+}
+
 /** Urban -> Map: a method request describing prerequisites to satisfy. */
 export interface UrbanToMapMethodRequestPayload {
   version: 1;
@@ -350,6 +357,7 @@ export interface UrbanToMapMethodRequestPayload {
   sourceModule: "urban-analytics";
   destinationModule: "map-explorer";
   methodLabel?: string;
+  methodValidity?: UrbanToMapMethodValiditySummary;
   cardId?: string;
   workflowId?: string;
   selectedIndicatorKind?: string;

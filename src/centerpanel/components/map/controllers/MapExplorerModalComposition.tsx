@@ -79,6 +79,7 @@ import { ScientificQAPanel } from "../ScientificQAPanel";
 import { MapNLQueryPanel, type MapNLQueryPanelRunSummary } from "../MapNLQueryPanel";
 import { MapSelectionTools } from "../MapSelectionTools";
 import { MapWorkflowDrawer } from "../MapWorkflowDrawer";
+import { MapUrbanMethodCompatibilityRail } from "../MapUrbanMethodCompatibilityRail";
 import {
   summarizeDrawnGeometryValidation,
   validateDrawnGeometry,
@@ -235,9 +236,12 @@ import {
   buildMapEducationReference,
 } from "../../../../services/map/MapPublicationOutputBindingService";
 import {
+  buildUrbanToMapMethodRequestPayload,
   buildUrbanToMapMethodRequestPreview,
   type UrbanToMapMethodRequest,
-} from "../../../../services/map/UrbanToMapMethodRequestAdapter";
+  type UrbanToMapMethodRequestPayload,
+  type UrbanToMapMethodRequestPreview,
+} from "../../../../services/map/bridge/MapUrbanBridgeService";
 import {
   generateMapAnalysisRecommendations,
   type MapAnalysisRecommendation,
@@ -989,6 +993,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const [showEmergingHotSpotViz, setShowEmergingHotSpotViz] = useState(false);
   const [showVoxCityOverlay, setShowVoxCityOverlay] = useState(false);
   const [showScientificQAPanel, setShowScientificQAPanel] = useState(false);
+  const [activeUrbanMethodRequest, setActiveUrbanMethodRequest] = useState<UrbanToMapMethodRequestPayload | null>(null);
+  const [activeUrbanMethodPreview, setActiveUrbanMethodPreview] = useState<UrbanToMapMethodRequestPreview | null>(null);
   const [showNLQueryPanel, setShowNLQueryPanel] = useState(false);
   const {
     showWorkflowDrawer,
@@ -1583,6 +1589,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     effectiveShowDrawPanel,
     effectiveShowMeasurePanel,
     effectiveShowScientificQAPanel,
+    effectiveShowUrbanMethodPanel,
     effectiveShowNLQueryPanel,
     effectiveShowWorkflowDrawer,
     navigatorLeftInset,
@@ -1594,6 +1601,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     showDrawPanel,
     showMeasurePanel,
     showScientificQAPanel,
+    showUrbanMethodPanel: activeUrbanMethodPreview !== null,
     showNLQueryPanel,
     showWorkflowDrawer,
     showReviewTimeline,
@@ -4853,8 +4861,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   ]);
 
   const handleUrbanToMapMethodRequest = useCallback((request: UrbanToMapMethodRequest) => {
+    const canonicalRequest = buildUrbanToMapMethodRequestPayload(request);
     const preview = buildUrbanToMapMethodRequestPreview({
-      request,
+      request: canonicalRequest,
       contextSummary,
       overlayLayers,
       workflowContext,
@@ -4875,42 +4884,18 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     });
 
     setWorkspaceView("explore");
+    setActiveUrbanMethodRequest(canonicalRequest);
+    setActiveUrbanMethodPreview(preview);
+    closeRightDockPanels();
+    closeFloatingRightPanels();
+    setShowScientificQAPanel(false);
+    setShowNLQueryPanel(false);
+    setShowWorkflowDrawer(false);
+    setUrbanWorkflowDraftRequest(null);
+    setReportHandoffSource(null);
+    setReportHandoffSnapshot(null);
     if (actionTypes.includes("focus-compatible-layers")) {
       setShowLayerPanel(true);
-    }
-    if (actionTypes.includes("validate-aoi")) {
-      if (preview.aoiPreview.missingPrerequisites.length > 0) {
-        closeRightDockPanels();
-        setShowDrawPanel(true);
-      } else {
-        openScientificQAPanel();
-      }
-    }
-
-    const requestsWorkflow = actionTypes.includes("preview-map-workflow") || actionTypes.includes("publish-derived-layer");
-    if (requestsWorkflow && preview.workflowDraftRequest) {
-      closeRightDockPanels();
-      closeFloatingRightPanels();
-      setReportHandoffSource(null);
-      setReportHandoffSnapshot(null);
-      setShowScientificQAPanel(false);
-      setUrbanWorkflowDraftRequest(preview.workflowDraftRequest);
-      setShowWorkflowDrawer(true);
-    } else {
-      setUrbanWorkflowDraftRequest(null);
-    }
-
-    const requestsReport = actionTypes.includes("prepare-report-ready-snapshot") || request.outputIntent === "report" || Boolean(request.reportIntent);
-    if (!requestsWorkflow && requestsReport && preview.reportSnapshotPreview?.status !== "blocked") {
-      const requestedLayerId = preview.reportSnapshotPreview?.scope === "layer"
-        ? preview.reportSnapshotPreview.targetLayerIds[0] ?? null
-        : null;
-      const requestedLayer = requestedLayerId
-        ? overlayLayers.find((layer) => layer.id === requestedLayerId)
-        : null;
-      handleOpenReportHandoff(requestedLayer
-        ? { scope: "layer", layerId: requestedLayer.id, title: `${requestedLayer.name} Urban method snapshot` }
-        : { scope: "map-view", title: `${preview.methodLabel} map evidence` });
     }
 
     recordMapReviewEvent({
@@ -4920,10 +4905,10 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       summary: `${preview.methodLabel} requested ${actionTypes.join(", ")} from Urban Analytics; Map Explorer produced a ${preview.status} preview without applying map mutations.`,
       layerIds: compatibleLayerIds,
       qaIssueIds: preview.qaBlockers.map((issue) => issue.issueId),
-      actionIds: [request.requestId],
+      actionIds: [canonicalRequest.requestId],
       details: {
-        requestId: request.requestId,
-        methodId: request.methodId,
+        requestId: canonicalRequest.requestId,
+        methodId: canonicalRequest.methodId,
         status: preview.status,
         actionTypes,
         compatibleLayerIds,
@@ -4949,13 +4934,36 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     closeFloatingRightPanels,
     closeRightDockPanels,
     contextSummary,
-    handleOpenReportHandoff,
-    openScientificQAPanel,
     overlayLayers,
     recordMapReviewEvent,
     scientificQA,
     workflowContext,
   ]);
+
+  const handleCloseUrbanMethodRail = useCallback(() => {
+    setActiveUrbanMethodRequest(null);
+    setActiveUrbanMethodPreview(null);
+    announce("Urban method compatibility rail closed");
+  }, [announce]);
+
+  const handleFocusUrbanMethodLayer = useCallback((layerId: string) => {
+    handleFocusLayer(layerId);
+    announce("Urban method compatible layer focused");
+  }, [announce, handleFocusLayer]);
+
+  const handlePreviewUrbanMethodWorkflow = useCallback(() => {
+    if (!activeUrbanMethodPreview || activeUrbanMethodPreview.status === "blocked" || !activeUrbanMethodPreview.workflowDraftRequest) {
+      return;
+    }
+    const draftRequest = activeUrbanMethodPreview.workflowDraftRequest;
+    closeRightDockPanels();
+    closeFloatingRightPanels();
+    setActiveUrbanMethodRequest(null);
+    setActiveUrbanMethodPreview(null);
+    setUrbanWorkflowDraftRequest(draftRequest);
+    setShowWorkflowDrawer(true);
+    announce(`Workflow preview opened for ${activeUrbanMethodPreview.methodLabel}`);
+  }, [activeUrbanMethodPreview, announce, closeFloatingRightPanels, closeRightDockPanels, setShowWorkflowDrawer, setUrbanWorkflowDraftRequest]);
 
   useMapUrbanBridgeController({
     open,
@@ -6045,6 +6053,17 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               onAnnounce={announce}
             />
           ) : null}
+
+          <MapUrbanMethodCompatibilityRail
+            visible={effectiveShowUrbanMethodPanel}
+            request={activeUrbanMethodRequest}
+            preview={activeUrbanMethodPreview}
+            presentation={dockLayout.compactDock ? "bottom-drawer" : "right-rail"}
+            width={dockLayout.rightPanelWidth}
+            onClose={handleCloseUrbanMethodRail}
+            onFocusLayer={handleFocusUrbanMethodLayer}
+            onPreviewWorkflow={handlePreviewUrbanMethodWorkflow}
+          />
 
           <MapReportHandoffDrawer
             draft={reportHandoffDraft}

@@ -62,6 +62,7 @@ export type {
   UrbanToMapMethodRequestActionType,
   UrbanToMapMethodRequestPayload,
   UrbanToMapMethodRequirements,
+  UrbanToMapMethodValiditySummary,
   UrbanToMapTemporalRequirement,
   UrbanToMapWorkflowRequirements,
 } from "../contracts/gisContracts";
@@ -76,6 +77,8 @@ const MAX_FIELD_SCAN_FEATURES = 120;
 const MAX_FIELD_SUMMARY_FIELDS = 48;
 const MAX_EVIDENCE_SUMMARIES = 48;
 const MAX_TEXT_LIST = 12;
+let pendingUrbanToMapMethodRequest: UrbanToMapMethodRequestPayload | null = null;
+let urbanToMapMethodRequestSubscriberCount = 0;
 
 export type MapToUrbanContextStatus = "sent" | "blocked";
 export type UrbanToMapMethodRequest =
@@ -824,7 +827,7 @@ function evaluateLayerCompatibility(
   const geometryFamilies = getLayerGeometryFamilies(layer);
   const requiredGeometry = requirements?.geometryTypes?.filter((geometry) => geometry !== "unknown") ?? [];
   if (requiredGeometry.length > 0 && !geometryFamilies.some((geometry) => requiredGeometry.includes(geometry))) {
-    reasons.push(`Geometry must be ${requiredGeometry.join(" or ")}.`);
+    reasons.push(`Method requires ${requiredGeometry.join(" or ")} geometry; layer provides ${geometryFamilies.join(" or ")}.`);
   }
 
   const availableFields = getLayerFieldNames(layer);
@@ -1221,6 +1224,7 @@ export function buildUrbanToMapMethodRequestPreview(
   );
   const requestedLayerAction = hasAction(actions, "focus-compatible-layers") || hasAction(actions, "preview-map-workflow") || hasAction(actions, "publish-derived-layer");
   const missingPrerequisites = unique([
+    ...(request.methodValidity?.blockers ?? []),
     ...(requestedLayerAction && compatibleLayerIds.length === 0 ? ["No compatible map layer matches the Urban method requirements."] : []),
     ...compatibleLayers.flatMap((layer) => layer.reasons),
     ...aoiPreview.missingPrerequisites,
@@ -1229,6 +1233,7 @@ export function buildUrbanToMapMethodRequestPreview(
     ...(qaBlockers.length > 0 ? ["Scientific QA blockers are present in the requested map context."] : []),
   ]);
   const warnings = unique([
+    ...(request.methodValidity?.warnings ?? []),
     ...(request.requirements?.recommendedScale ? [`Recommended method scale: ${request.requirements.recommendedScale}.`] : []),
     ...(request.requirements?.dataFitnessThreshold != null ? ["Urban data-fitness thresholds are evaluated in Urban Analytics; Map Explorer only previews map-side compatibility."] : []),
     ...compatibleLayers.flatMap((layer) => layer.warnings),
@@ -1279,10 +1284,13 @@ export function extractUrbanToMapMethodRequestFromEvent(event: Event): UrbanToMa
 }
 
 export function publishUrbanToMapMethodRequest(request: UrbanToMapMethodRequest): boolean {
+  const payload = buildUrbanToMapMethodRequestPayload(request);
+  if (urbanToMapMethodRequestSubscriberCount === 0) {
+    pendingUrbanToMapMethodRequest = payload;
+  }
   if (typeof globalThis.dispatchEvent !== "function" || typeof globalThis.CustomEvent !== "function") {
     return false;
   }
-  const payload = buildUrbanToMapMethodRequestPayload(request);
   return globalThis.dispatchEvent(new CustomEvent<UrbanToMapMethodRequestEventDetail>(URBAN_TO_MAP_METHOD_REQUEST_EVENT, {
     detail: { request: payload },
   }));
@@ -1291,6 +1299,7 @@ export function publishUrbanToMapMethodRequest(request: UrbanToMapMethodRequest)
 export function subscribeUrbanToMapMethodRequests(
   handler: (request: UrbanToMapMethodRequestPayload) => void,
 ): () => void {
+  urbanToMapMethodRequestSubscriberCount += 1;
   const listener = (event: Event) => {
     const request = extractUrbanToMapMethodRequestFromEvent(event);
     if (request) {
@@ -1298,5 +1307,16 @@ export function subscribeUrbanToMapMethodRequests(
     }
   };
   globalThis.addEventListener(URBAN_TO_MAP_METHOD_REQUEST_EVENT, listener);
-  return () => globalThis.removeEventListener(URBAN_TO_MAP_METHOD_REQUEST_EVENT, listener);
+  if (pendingUrbanToMapMethodRequest) {
+    const pendingRequest = pendingUrbanToMapMethodRequest;
+    pendingUrbanToMapMethodRequest = null;
+    handler(pendingRequest);
+  }
+  let active = true;
+  return () => {
+    if (!active) return;
+    active = false;
+    urbanToMapMethodRequestSubscriberCount = Math.max(0, urbanToMapMethodRequestSubscriberCount - 1);
+    globalThis.removeEventListener(URBAN_TO_MAP_METHOD_REQUEST_EVENT, listener);
+  };
 }

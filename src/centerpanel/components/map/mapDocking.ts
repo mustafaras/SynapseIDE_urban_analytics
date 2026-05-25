@@ -1,6 +1,6 @@
 import { MAP_NUMERIC } from "./mapTokens";
 
-export type MapRightDockPanel = "pins" | "draw" | "measure" | "scientificQA" | "report" | "workflow";
+export type MapRightDockPanel = "pins" | "draw" | "measure" | "scientificQA" | "report" | "workflow" | "urbanMethod";
 export type MapLayerPanelPlacement = "left" | "bottom";
 
 export interface MapDockLayoutInput {
@@ -22,6 +22,7 @@ export interface MapDockLayout {
   showScientificQAPanel: boolean;
   showReportPanel: boolean;
   showWorkflowPanel: boolean;
+  showUrbanMethodPanel: boolean;
   layerPanelPlacement: MapLayerPanelPlacement | null;
   layerPanelWidth: number;
   rightPanelWidth: number;
@@ -50,6 +51,8 @@ function getRightPanelWidth(panel: MapRightDockPanel | null, preferredWidth?: nu
       ? 430
       : panel === "workflow"
         ? 480
+        : panel === "urbanMethod"
+          ? 448
     : panel === "draw"
       ? MAP_NUMERIC.drawingPanelWidth
       : panel === "measure"
@@ -109,6 +112,7 @@ export function getMapDockLayout(input: MapDockLayoutInput): MapDockLayout {
     showScientificQAPanel: activeRightPanel === "scientificQA",
     showReportPanel: activeRightPanel === "report",
     showWorkflowPanel: activeRightPanel === "workflow",
+    showUrbanMethodPanel: activeRightPanel === "urbanMethod",
     layerPanelPlacement,
     layerPanelWidth,
     rightPanelWidth,

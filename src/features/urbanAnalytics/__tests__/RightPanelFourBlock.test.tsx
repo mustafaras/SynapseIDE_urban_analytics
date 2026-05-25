@@ -5,7 +5,9 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { createRoot } from 'react-dom/client';
 
 import { drainPendingInserts } from '@/services/reporting/storage';
+import { subscribeUrbanToMapMethodRequests } from '@/services/map/bridge/MapUrbanBridgeService';
 import { usePanelBridgeStore } from '@/stores/usePanelBridgeStore';
+import { useMapExplorerStore } from '@/stores/useMapExplorerStore';
 
 import type { AnalyticalFlowId, Card } from '../lib/types';
 import RightPanelFourBlock from '../RightPanelFourBlock';
@@ -67,9 +69,55 @@ beforeEach(() => {
     insertedCardIds: [],
     contextCardVisible: true,
   });
+  useMapExplorerStore.setState({ isOpen: false });
 });
 
 describe('RightPanelFourBlock', () => {
+  it('emits a typed polygon method request when Prepare in Map is selected', async () => {
+    const validityEnvelope = requireUrbanMethodValidityEnvelopePreset('card:ss-morans-i');
+    const card: Card = {
+      id: 'ss-morans-i',
+      title: "Global Moran's I",
+      sectionId: 'spatial_stats',
+      summary: 'Measure spatial autocorrelation.',
+      tags: ['spatial_stats'],
+      methodology: 'Assess a numeric indicator across polygon zones.',
+      validityEnvelope,
+      capabilityStatus: validityEnvelope.capabilityStatus,
+    };
+    const requests: unknown[] = [];
+    const unsubscribe = subscribeUrbanToMapMethodRequests((payload) => requests.push(payload));
+    const { container, root } = mountPanel();
+
+    try {
+      await act(async () => {
+        root.render(<RightPanelFourBlock card={card} />);
+      });
+      await dispatchClick(container.querySelector("[data-testid='urban-method-prepare-in-map']"));
+
+      expect(useMapExplorerStore.getState().isOpen).toBe(true);
+      expect(requests).toContainEqual(expect.objectContaining({
+        version: 1,
+        methodId: 'ss-morans-i',
+        sourceModule: 'urban-analytics',
+        destinationModule: 'map-explorer',
+        methodValidity: expect.objectContaining({ status: 'complete', capabilityStatus: 'implemented' }),
+        requirements: expect.objectContaining({
+          layer: expect.objectContaining({
+            geometryTypes: ['polygon'],
+            requiredFields: ['numeric_indicator'],
+          }),
+        }),
+      }));
+    } finally {
+      unsubscribe();
+      await act(async () => {
+        root.unmount();
+      });
+      container.remove();
+    }
+  });
+
   it('renders substantive fallbacks for sparse cards instead of the legacy placeholders', async () => {
     const sparseCard: Card = {
       id: 'synthetic-right-panel-fallback',
