@@ -78,6 +78,9 @@ export interface MapToolbarProps {
   onToggleLayerPanel?: () => void;
   layerCount?: number;
   visibleLayerCount?: number;
+  showCatalog?: boolean;
+  onToggleCatalog?: () => void;
+  catalogSourceCount?: number;
   activeLayerGeometryType?: string | null;
   hasSelectedAoi?: boolean;
   scientificQAStatus?: LayerQaStatus;
@@ -196,6 +199,8 @@ interface BuildToolbarCommandsArgs extends Required<Pick<
   | "showLayerPanel"
   | "layerCount"
   | "visibleLayerCount"
+  | "showCatalog"
+  | "catalogSourceCount"
   | "activeLayerGeometryType"
   | "hasSelectedAoi"
   | "scientificQAStatus"
@@ -243,6 +248,7 @@ interface BuildToolbarCommandsArgs extends Required<Pick<
   importProgress: number | null;
   onWorkspaceViewChange?: ((view: MapWorkspaceView) => void) | undefined;
   onToggleLayerPanel?: (() => void) | undefined;
+  onToggleCatalog?: (() => void) | undefined;
   onToggleScientificQAPanel?: (() => void) | undefined;
   onToggleNLQueryPanel?: (() => void) | undefined;
   onToggleWorkflowDrawer?: (() => void) | undefined;
@@ -725,6 +731,23 @@ function buildToolbarCommands(args: BuildToolbarCommandsArgs): ToolbarCommand[] 
     overflowGroup: "advanced",
     priority: hasLayers ? 72 : 112,
     contextBoost: "empty",
+    navigator: true,
+  });
+
+  add(args.onToggleCatalog && {
+    id: "catalog",
+    label: "Catalog",
+    shortLabel: "Catalog",
+    title: "Open source catalog, restore health, and connection manager",
+    keywords: ["catalog", "source browser", "connections", "restore", "data sources", "repair"],
+    icon: FolderOpen,
+    onClick: args.onToggleCatalog,
+    roles: ["explore", "analyze", "publish"],
+    overflowGroup: "advanced",
+    priority: args.showCatalog ? 127 : hasLayers ? 87 : 121,
+    active: args.showCatalog,
+    badge: args.catalogSourceCount > 0 ? args.catalogSourceCount : null,
+    tone: "default",
     navigator: true,
   });
 
@@ -1489,6 +1512,9 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
   onToggleLayerPanel,
   layerCount = 0,
   visibleLayerCount = layerCount,
+  showCatalog = false,
+  onToggleCatalog,
+  catalogSourceCount = 0,
   activeLayerGeometryType = null,
   hasSelectedAoi = false,
   scientificQAStatus = "unchecked",
@@ -1615,6 +1641,9 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       onToggleLayerPanel,
       layerCount,
       visibleLayerCount,
+      showCatalog,
+      onToggleCatalog,
+      catalogSourceCount,
       activeLayerGeometryType,
       hasSelectedAoi,
       scientificQAStatus,
@@ -1703,6 +1732,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       isLoadingProject,
       isSavingProject,
       layerCount,
+      catalogSourceCount,
       measurementCount,
       nlQueryLayerCount,
       onWorkspaceViewChange,
@@ -1722,6 +1752,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       onToggleEmergingHotSpotViz,
       onToggleHotSpotViz,
       onToggleLayerPanel,
+      onToggleCatalog,
       onToggleMeasurePanel,
       onToggleNLQueryPanel,
       onTogglePerformanceDiagnostics,
@@ -1752,6 +1783,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       showEmergingHotSpotViz,
       showHotSpotViz,
       showLayerPanel,
+      showCatalog,
       showMeasurePanel,
       showNLQueryPanel,
       showPerformanceDiagnostics,

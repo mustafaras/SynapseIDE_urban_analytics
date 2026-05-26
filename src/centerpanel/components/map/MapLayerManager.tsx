@@ -41,6 +41,7 @@ export interface MapLayerManagerProps {
   onRemoveLayer: (id: string) => void;
   onReorderLayers: (orderedIds: string[]) => void;
   onAddLayer: (layer: OverlayLayerConfig) => void;
+  onAddDemoPack?: () => void;
   onReRunAnalysisLayer?: (id: string, rerunToken?: string | null) => void;
   onAddLayerToReport?: (id: string) => void;
   onExportLayer?: (id: string) => void;
@@ -2062,6 +2063,7 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
   onRemoveLayer,
   onReorderLayers,
   onAddLayer,
+  onAddDemoPack,
   onReRunAnalysisLayer,
   onAddLayerToReport,
   onExportLayer,
@@ -2256,6 +2258,10 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
   }, [onAddLayer, onAnnounce]);
 
   const handleAddDemoLayers = useCallback(() => {
+    if (onAddDemoPack) {
+      onAddDemoPack();
+      return;
+    }
     const layers = createMapExplorerDemoLayers();
     for (const layer of layers) {
       onAddLayer(layer);
@@ -2263,7 +2269,7 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
     onAnnounce?.(
       `${layers.length} demo layers added or refreshed (synthetic streets, blocks, and buildings for 3 Istanbul AOIs).`,
     );
-  }, [onAddLayer, onAnnounce]);
+  }, [onAddDemoPack, onAddLayer, onAnnounce]);
 
   const [osmReferenceBusy, setOsmReferenceBusy] = useState(false);
   const handleLoadOsmReference = useCallback(async () => {

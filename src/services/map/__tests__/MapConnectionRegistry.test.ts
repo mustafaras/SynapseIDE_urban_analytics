@@ -187,4 +187,19 @@ describe("MapConnectionRegistry — secret hygiene", () => {
 
     expect(stripSecretKeys({ token: "x", endpoint: "https://ok" })).toEqual({ endpoint: "https://ok" });
   });
+
+  it("rejects credentials embedded in persisted endpoint or tile-template URLs", () => {
+    expect(() => createConnectionDescriptor({
+      sourceId: "wfs-token-query",
+      serviceKind: "wfs",
+      endpoint: "https://example.test/wfs?api_key=do-not-store",
+    })).toThrow(/secrets are not stored/i);
+
+    expect(() => createConnectionDescriptor({
+      sourceId: "xyz-auth-template",
+      serviceKind: "xyz",
+      endpoint: "https://tiles.test",
+      urlTemplate: "https://tiles.test/{z}/{x}/{y}.png?token=do-not-store",
+    })).toThrow(/secrets are not stored/i);
+  });
 });

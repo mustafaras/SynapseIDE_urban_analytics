@@ -93,6 +93,16 @@ import {
 import { MapProcessingToolboxPanel, type ProcessingToolboxLayerOption } from "../processing";
 import { MapModelBuilderPanel } from "../modelBuilder";
 import {
+  MapCatalogPanel,
+  attachSourceHandleToExternalLayer,
+  buildCatalogConnectionLayer,
+  buildDemoPackCatalogInsertion,
+  type MapCatalogActionResult,
+  type MapCatalogConnectionDraft,
+  type MapCatalogItem,
+  type MapCatalogLayerInsertion,
+} from "../catalog";
+import {
   createMapProcessingRegistry,
   previewProcessingTool,
   runProcessingTool,
@@ -106,6 +116,11 @@ import {
   type MapModelDefinition,
   type MapModelRunResult,
 } from "../../../../services/map/model";
+import {
+  cacheConnectionMetadata,
+  checkConnectionHealth,
+  createConnectionDescriptor,
+} from "../../../../services/map/sources/MapConnectionRegistry";
 import { MapAttributeTable, type AttrFeature } from "../table/MapAttributeTable";
 import { CartographyRecommendationList } from "../CartographyRecommendationList";
 import { MapLegendOverlay } from "../inspector/style/MapLegendOverlay";
@@ -1059,6 +1074,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   }, [announce]);
   const [showProcessingToolbox, setShowProcessingToolbox] = useState(false);
   const [showModelBuilder, setShowModelBuilder] = useState(false);
+  const [showCatalog, setShowCatalog] = useState(false);
   const handleToggleProcessingToolbox = useCallback(() => {
     setShowProcessingToolbox((previous) => {
       const next = !previous;
@@ -1074,6 +1090,18 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       return next;
     });
     announce("Model builder toggled");
+  }, [announce]);
+  const handleToggleCatalog = useCallback(() => {
+    setShowCatalog((previous) => {
+      const next = !previous;
+      if (next) {
+        setWorkspaceView("explore");
+        setShowProcessingToolbox(false);
+        setShowModelBuilder(false);
+      }
+      return next;
+    });
+    announce("Catalog toggled");
   }, [announce]);
   const processingRegistry = useMemo(() => createMapProcessingRegistry(), []);
   const searchProcessingTools = useCallback(
@@ -4516,29 +4544,132 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     announce(`Imported layer ${result.layer.name}`);
   }, [addOverlayLayer, announce, fitToBounds, recordMapReviewEvent, registerLayerEvidenceCandidate, updateLayerMetadata, upsertSourceHandle]);
 
+  const handleCatalogAddDemoPack = useCallback((insertion: MapCatalogLayerInsertion) => {
+    for (const sourceHandle of insertion.sourceHandles) {
+      upsertSourceHandle(sourceHandle);
+    }
+    for (const layer of insertion.layers) {
+      addOverlayLayer(layer);
+      registerLayerEvidenceCandidate(layer, "map-explorer");
+    }
+    handleSetWorkspaceView("explore");
+    toastSuccess("Added synthetic demo pack with registered source records.");
+    announce("Catalog added synthetic demo pack to the map");
+  }, [addOverlayLayer, announce, handleSetWorkspaceView, registerLayerEvidenceCandidate, upsertSourceHandle]);
+
+  const handleCatalogBrowseSources = useCallback(() => {
+    setShowCatalog(false);
+    setShowImportHub(true);
+    announce("Catalog opened the data import browser");
+  }, [announce]);
+
+  const handleCatalogRepairSource = useCallback((item: MapCatalogItem) => {
+    setShowCatalog(false);
+    setShowImportHub(true);
+    announce(`Repair source requested for ${item.title}`);
+  }, [announce]);
+
+  const handleCatalogAddConnection = useCallback(async (
+    draft: MapCatalogConnectionDraft,
+  ): Promise<MapCatalogActionResult> => {
+    try {
+      const sourceId = `catalog-${draft.serviceKind}-${Date.now().toString(36)}`;
+      const descriptor = createConnectionDescriptor({
+        sourceId,
+        serviceKind: draft.serviceKind,
+        endpoint: draft.endpoint,
+        title: draft.title,
+        layerName: draft.title,
+        ...(draft.urlTemplate ? { urlTemplate: draft.urlTemplate } : {}),
+        ...(draft.crs ? { crs: draft.crs } : {}),
+      });
+      const health = await checkConnectionHealth(descriptor);
+      const result = buildCatalogConnectionLayer(descriptor, health);
+      cacheConnectionMetadata(descriptor, result.layer.metadata!.externalService!, health);
+      upsertSourceHandle(result.sourceHandle);
+      addOverlayLayer(result.layer);
+      registerLayerEvidenceCandidate(result.layer, "external-service");
+      const usable = health.dependencyStatus !== "offline";
+      const message = usable
+        ? `${draft.title} registered with ${health.dependencyStatus} service health.`
+        : `${draft.title} registered but unavailable: ${health.offlineReason ?? "service health check failed."}`;
+      if (usable) toastSuccess(message);
+      else toastWarning(message);
+      return { ok: usable, message, status: health.dependencyStatus };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Connection could not be registered.";
+      toastWarning(message);
+      return { ok: false, message };
+    }
+  }, [addOverlayLayer, registerLayerEvidenceCandidate, upsertSourceHandle]);
+
+  const handleCatalogReconnectSource = useCallback(async (
+    item: MapCatalogItem,
+  ): Promise<MapCatalogActionResult> => {
+    const sourceLayer = overlayLayers.find((layer) => item.layerIds.includes(layer.id));
+    const externalService = sourceLayer?.metadata?.externalService;
+    if (!sourceLayer || !externalService || externalService.kind === "cityjson") {
+      setShowExternalServiceDialog(true);
+      return { ok: false, message: "Open External Services to repair this connection record." };
+    }
+    try {
+      const descriptor = createConnectionDescriptor({
+        sourceId: item.sourceId ?? `source-${sourceLayer.id}`,
+        serviceKind: externalService.kind,
+        endpoint: externalService.endpoint,
+        ...(externalService.title ? { title: externalService.title } : {}),
+        ...(externalService.layerName ? { layerName: externalService.layerName } : {}),
+        ...(externalService.urlTemplate ? { urlTemplate: externalService.urlTemplate } : {}),
+        ...(externalService.crs ? { crs: externalService.crs } : {}),
+        ...(externalService.license ? { license: externalService.license } : {}),
+        ...(externalService.attribution ? { attribution: externalService.attribution } : {}),
+      });
+      const health = await checkConnectionHealth(descriptor);
+      const refreshed = buildCatalogConnectionLayer(descriptor, health);
+      cacheConnectionMetadata(descriptor, refreshed.layer.metadata!.externalService!, health);
+      upsertSourceHandle(refreshed.sourceHandle);
+      updateLayerMetadata(sourceLayer.id, {
+        qaStatus: refreshed.layer.qaStatus,
+        metadata: {
+          ...(sourceLayer.metadata ?? {}),
+          ...(refreshed.layer.metadata ?? {}),
+        },
+      });
+      const ok = health.dependencyStatus !== "offline";
+      const message = ok
+        ? `${sourceLayer.name} service health is ${health.dependencyStatus}.`
+        : `${sourceLayer.name} remains unavailable: ${health.offlineReason ?? "service health check failed."}`;
+      return { ok, message, status: health.dependencyStatus };
+    } catch (error) {
+      return { ok: false, message: error instanceof Error ? error.message : "Reconnect failed." };
+    }
+  }, [overlayLayers, updateLayerMetadata, upsertSourceHandle]);
+
   const handleExternalServiceLayerReady = useCallback((layer: OverlayLayerConfig) => {
-    addOverlayLayer(layer);
-    const evidenceArtifact = registerLayerEvidenceCandidate(layer, "external-service");
-    const dependencyStatus = layer.metadata?.externalService?.dependencyStatus ?? "unknown";
+    const registered = attachSourceHandleToExternalLayer(layer);
+    upsertSourceHandle(registered.sourceHandle);
+    addOverlayLayer(registered.layer);
+    const evidenceArtifact = registerLayerEvidenceCandidate(registered.layer, "external-service");
+    const dependencyStatus = registered.layer.metadata?.externalService?.dependencyStatus ?? "unknown";
     recordMapReviewEvent({
       type: "layer-change",
       status: dependencyStatus === "offline" ? "failed" : dependencyStatus === "stale" ? "previewed" : "recorded",
-      title: `External service evidence registered: ${layer.name}`,
-      summary: `${layer.metadata?.externalService?.kind?.toUpperCase() ?? "External"} layer added with dependency status ${dependencyStatus} and CRS ${layer.metadata?.crsSummary?.crs ?? "unknown"}.`,
-      layerIds: [layer.id],
+      title: `External service evidence registered: ${registered.layer.name}`,
+      summary: `${registered.layer.metadata?.externalService?.kind?.toUpperCase() ?? "External"} layer added with dependency status ${dependencyStatus} and CRS ${registered.layer.metadata?.crsSummary?.crs ?? "unknown"}.`,
+      layerIds: [registered.layer.id],
       actionIds: [evidenceArtifact.id],
       details: {
         evidenceArtifactId: evidenceArtifact.id,
-        serviceKind: layer.metadata?.externalService?.kind ?? null,
-        endpoint: layer.metadata?.externalService?.endpoint ?? null,
+        serviceKind: registered.layer.metadata?.externalService?.kind ?? null,
+        endpoint: registered.layer.metadata?.externalService?.endpoint ?? null,
         dependencyStatus,
-        cacheHit: layer.metadata?.externalService?.cacheHit ?? false,
-        staleAt: layer.metadata?.externalService?.staleAt ?? null,
-        crsStatus: layer.metadata?.crsSummary?.status ?? "unknown",
-        attribution: layer.metadata?.licenseAttribution?.attribution ?? null,
+        cacheHit: registered.layer.metadata?.externalService?.cacheHit ?? false,
+        staleAt: registered.layer.metadata?.externalService?.staleAt ?? null,
+        crsStatus: registered.layer.metadata?.crsSummary?.status ?? "unknown",
+        attribution: registered.layer.metadata?.licenseAttribution?.attribution ?? null,
       },
     });
-  }, [addOverlayLayer, recordMapReviewEvent, registerLayerEvidenceCandidate]);
+  }, [addOverlayLayer, recordMapReviewEvent, registerLayerEvidenceCandidate, upsertSourceHandle]);
 
   const handleImportFiles = useCallback(async (files: FileList | File[] | null) => {
     const nextFile = files ? Array.from(files)[0] : null;
@@ -5849,6 +5980,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               onToggleLayerPanel={handleToggleLayerPanel}
               layerCount={overlayLayers.length}
               visibleLayerCount={visiblePublicationLayers.length}
+              showCatalog={showCatalog}
+              onToggleCatalog={handleToggleCatalog}
+              catalogSourceCount={sourceHandles.length}
               activeLayerGeometryType={toolbarActiveGeometryType}
               hasSelectedAoi={Boolean(selectedAoiFeatureForQuery)}
               scientificQAStatus={scientificQA?.status ?? "unchecked"}
@@ -6274,7 +6408,14 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
                 onSetOpacity={setLayerOpacity}
                 onRemoveLayer={handleRemoveLayerViaCommand}
                 onReorderLayers={reorderLayers}
-                onAddLayer={addOverlayLayer}
+                onAddLayer={(layer) => {
+                  if (layer.sourceKind === "external" || layer.metadata?.externalService) {
+                    handleExternalServiceLayerReady(layer);
+                    return;
+                  }
+                  addOverlayLayer(layer);
+                }}
+                onAddDemoPack={() => handleCatalogAddDemoPack(buildDemoPackCatalogInsertion())}
                 onFocusLayer={handleFocusLayer}
                 onAddLayerToReport={handleLayerReportRequest}
                 onBindLayerToDashboard={handleBindLayerToDashboard}
@@ -6490,6 +6631,21 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             onRun={handleRunMapModel}
             onRunBatch={handleRunMapModelBatch}
             onExportToIdeAndUrban={handleExportMapModelToIdeAndUrban}
+          />
+
+          <MapCatalogPanel
+            visible={showCatalog && !navigatorStageMode}
+            sourceHandles={sourceHandles}
+            layers={overlayLayers}
+            onClose={() => {
+              setShowCatalog(false);
+              announce("Catalog closed");
+            }}
+            onBrowseSources={handleCatalogBrowseSources}
+            onAddDemoPack={handleCatalogAddDemoPack}
+            onRepairSource={handleCatalogRepairSource}
+            onReconnectSource={handleCatalogReconnectSource}
+            onAddConnection={handleCatalogAddConnection}
           />
 
           <WorkflowPreviewOverlay preview={effectiveShowWorkflowDrawer ? workflowPreview : null} />
