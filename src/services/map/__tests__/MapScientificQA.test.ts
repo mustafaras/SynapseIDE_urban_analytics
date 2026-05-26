@@ -132,6 +132,21 @@ describe("MapScientificQA", () => {
     expect(qa.metadata.categorySummaries?.every((summary) => summary.severity === "pass")).toBe(true);
   });
 
+  it("does not treat generated QA metadata as new layer input", () => {
+    const layer = createLayer("stable-qa-layer", validPolygonCollection);
+    const first = evaluateMapScientificQASync([layer], { viewportZoom: 12 });
+    const second = evaluateMapScientificQASync([{
+      ...layer,
+      metadata: {
+        ...layer.metadata,
+        scientificQA: first.layerSummaries[0]!.metadata,
+      },
+    }], { viewportZoom: 12 });
+
+    expect(second.layerSummaries[0]?.signature).toBe(first.layerSummaries[0]?.signature);
+    expect(second.metadata.signature).toBe(first.metadata.signature);
+  });
+
   it("warns and adds a caveat when CRS metadata is missing", () => {
     const layer = createLayer("missing-crs", validPolygonCollection, {
       datasetContext: {

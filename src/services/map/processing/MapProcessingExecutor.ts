@@ -17,6 +17,7 @@ import type {
   MapReproducibilityManifest,
   OverlayLayerConfig,
 } from "@/centerpanel/components/map/mapTypes";
+import { resolveOverlayLayerCrsSummary } from "@/centerpanel/components/map/mapLayerMetadata";
 import {
   applyMapCommand,
   type MapActionEffects,
@@ -197,6 +198,8 @@ export function runProcessingTool(
     manifestId: `manifest-processing-${descriptor.toolId}-${seed}`,
     mapContextId: options.mapContextId ?? "map-explorer",
   });
+  const sourceCrsSummary = resolveOverlayLayerCrsSummary(inputLayer);
+  const outputCrs = manifest.crsSummary.executionCrs ?? sourceCrsSummary.crs;
 
   const outputLayer: OverlayLayerConfig = {
     id: outputLayerId,
@@ -219,6 +222,12 @@ export function runProcessingTool(
     metadata: {
       featureCount: preview.outputFeatureCount,
       geometryType: preview.outputGeometryClass,
+      crsSummary: {
+        crs: outputCrs,
+        status: outputCrs ? "known" : sourceCrsSummary.status,
+        source: "analysis-result",
+        notes: [...sourceCrsSummary.notes, ...manifest.crsSummary.notes],
+      },
       updatedAt: createdAt,
       reproducibilityManifest: manifest,
     },

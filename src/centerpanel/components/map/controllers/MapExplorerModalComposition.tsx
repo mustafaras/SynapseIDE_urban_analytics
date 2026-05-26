@@ -91,11 +91,21 @@ import {
   MapPerformanceDiagnosticsPanel,
 } from "../MapPerformanceDiagnosticsPanel";
 import { MapProcessingToolboxPanel, type ProcessingToolboxLayerOption } from "../processing";
+import { MapModelBuilderPanel } from "../modelBuilder";
 import {
   createMapProcessingRegistry,
   previewProcessingTool,
   runProcessingTool,
 } from "../../../../services/map/processing";
+import {
+  buildMapModelCodeArtifactRequest,
+  executeMapModel,
+  executeMapModelBatch,
+  type MapModelBatchResult,
+  type MapModelBatchTarget,
+  type MapModelDefinition,
+  type MapModelRunResult,
+} from "../../../../services/map/model";
 import { MapAttributeTable, type AttrFeature } from "../table/MapAttributeTable";
 import { CartographyRecommendationList } from "../CartographyRecommendationList";
 import { MapLegendOverlay } from "../inspector/style/MapLegendOverlay";
@@ -1048,9 +1058,22 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     announce("Performance diagnostics toggled");
   }, [announce]);
   const [showProcessingToolbox, setShowProcessingToolbox] = useState(false);
+  const [showModelBuilder, setShowModelBuilder] = useState(false);
   const handleToggleProcessingToolbox = useCallback(() => {
-    setShowProcessingToolbox((previous) => !previous);
+    setShowProcessingToolbox((previous) => {
+      const next = !previous;
+      if (next) setShowModelBuilder(false);
+      return next;
+    });
     announce("Processing toolbox toggled");
+  }, [announce]);
+  const handleToggleModelBuilder = useCallback(() => {
+    setShowModelBuilder((previous) => {
+      const next = !previous;
+      if (next) setShowProcessingToolbox(false);
+      return next;
+    });
+    announce("Model builder toggled");
   }, [announce]);
   const processingRegistry = useMemo(() => createMapProcessingRegistry(), []);
   const searchProcessingTools = useCallback(
@@ -1414,6 +1437,72 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       return result;
     },
     [announce, buildMapActionEffects, recordMapReviewEvent],
+  );
+
+  const registerMapModelExecution = useCallback((result: MapModelRunResult): MapModelRunResult => {
+    for (const step of result.stepRuns) {
+      if (step.result.reviewEvent) recordMapReviewEvent(step.result.reviewEvent);
+      if (step.result.revertToken) {
+        mapActionHistoryRef.current = recordMapActionHistoryEntry(mapActionHistoryRef.current, {
+          commandId: step.result.command.commandId,
+          kind: step.result.command.kind,
+          title: step.result.reviewEvent?.title ?? step.step.label,
+          reviewEventId: step.result.command.reviewEventId ?? step.result.command.commandId,
+          appliedAt: step.result.command.createdAt,
+          revertable: step.result.command.revertable,
+          reverted: false,
+          revertToken: step.result.revertToken,
+        });
+      }
+    }
+    if (result.finalOutcome) {
+      recordMapReviewEvent(result.finalOutcome.reviewEvent);
+      if (result.finalOutcome.revertToken) {
+        mapActionHistoryRef.current = recordMapActionHistoryEntry(mapActionHistoryRef.current, {
+          commandId: result.finalOutcome.result.commandId,
+          kind: result.finalOutcome.result.kind,
+          title: result.finalOutcome.reviewEvent.title,
+          reviewEventId: result.finalOutcome.result.reviewEventId ?? result.finalOutcome.result.commandId,
+          appliedAt: result.finalOutcome.result.createdAt,
+          revertable: result.finalOutcome.result.revertable,
+          reverted: false,
+          revertToken: result.finalOutcome.revertToken,
+        });
+      }
+    }
+    if (result.status !== "applied" || !result.manifest || !result.manifestHash || !result.finalOutputLayer) {
+      announce(`Model blocked: ${result.blockers.join(" ")}`);
+      return result;
+    }
+    setActiveAnalysisResultLayers([result.finalOutputLayer.id]);
+    announce(`${result.model.title} model applied; output layer carries its reproducibility manifest.`);
+    return result;
+  }, [announce, recordMapReviewEvent, setActiveAnalysisResultLayers]);
+
+  const handleRunMapModel = useCallback(
+    (model: MapModelDefinition): MapModelRunResult => registerMapModelExecution(executeMapModel(
+      model,
+      processingRegistry,
+      buildMapActionEffects(),
+      { mapContextId: contextSummary.contextId },
+    )),
+    [buildMapActionEffects, contextSummary.contextId, processingRegistry, registerMapModelExecution],
+  );
+
+  const handleRunMapModelBatch = useCallback(
+    (model: MapModelDefinition, targets: readonly MapModelBatchTarget[]) => {
+      const batch = executeMapModelBatch(
+        model,
+        targets,
+        processingRegistry,
+        buildMapActionEffects(),
+        { mapContextId: contextSummary.contextId },
+      );
+      batch.results.forEach((entry) => registerMapModelExecution(entry.result));
+      if (batch.status !== "blocked") announce(`${batch.results.length} model batch target(s) processed.`);
+      return batch;
+    },
+    [announce, buildMapActionEffects, contextSummary.contextId, processingRegistry, registerMapModelExecution],
   );
 
   const handleCommitDrawnFeatureEdit = useCallback((id: string, before: DrawnFeature, after: DrawnFeature) => {
@@ -2578,6 +2667,73 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       announce(`IDE artifact failed: ${message}`);
     }
   }, [announce, recordMapReviewEvent, upsertMapEvidenceArtifact]);
+
+  const handleExportMapModelToIdeAndUrban = useCallback((result: MapModelRunResult, batchResult: MapModelBatchResult | null) => {
+    if (!result.manifest || !result.manifestHash || !result.finalOutputLayer) {
+      announce("Run the model successfully before exporting it.");
+      return;
+    }
+    const mapState = useMapExplorerStore.getState();
+    const currentContextSummary = selectMapExplorerContextSummary(mapState);
+    const request = buildMapModelCodeArtifactRequest({
+      result,
+      contextSummary: currentContextSummary,
+      overlayLayers: mapState.overlayLayers,
+      mapEvidenceArtifacts: mapState.mapEvidenceArtifacts,
+      scientificQA: mapState.scientificQA,
+    });
+    void handleDispatchMapCodeArtifact(request);
+
+    const sourceLayers = result.manifest.sourceLayerIds
+      .map((layerId) => mapState.overlayLayers.find((layer) => layer.id === layerId))
+      .filter((layer): layer is OverlayLayerConfig => layer !== undefined);
+    const runtimeMode = sourceLayers.some((layer) => layer.sourceKind === "demo") ? "demo" : "unknown";
+    const handoff = sendMapContextToUrban({
+      contextSummary: currentContextSummary,
+      overlayLayers: mapState.overlayLayers,
+      drawnFeatures: mapState.drawnFeatures,
+      ...(mapState.activeAoiId ? { activeAoiId: mapState.activeAoiId } : {}),
+      selectedFeatureIds: mapState.selectedFeatureIds,
+      mapEvidenceArtifacts: mapState.mapEvidenceArtifacts,
+      scientificQA: mapState.scientificQA,
+      requestedLayerId: result.finalOutputLayer.id,
+      receiver: (payload) => {
+        const applied = applyMapContextToUrban({
+          payload,
+          modelResult: {
+            modelId: result.model.modelId,
+            modelTitle: result.model.title,
+            manifestId: result.manifest!.manifestId,
+            manifestHash: result.manifestHash!,
+            workflowId: result.manifest!.workflowId,
+            outputLayerId: result.finalOutputLayer!.id,
+            sourceLayerIds: result.manifest!.sourceLayerIds,
+            stepCount: result.stepRuns.length,
+            batchTargetCount: batchResult?.results.length ?? 1,
+            runtimeMode,
+          },
+        });
+        return {
+          contextId: applied.contextId,
+          evidenceArtifactId: applied.evidenceArtifactId,
+          recommendationTriggered: applied.recommendationTriggered,
+          recommendationReason: applied.recommendationReason,
+        };
+      },
+    });
+    if (handoff.status === "blocked") {
+      const reason = handoff.disabledReasons[0] ?? "Model result is not eligible for Urban evidence publication.";
+      setDispatchFeedback({ tone: "error", title: "Model evidence blocked", description: reason });
+      announce(`Model evidence blocked: ${reason}`);
+      return;
+    }
+    setDispatchFeedback({
+      tone: "success",
+      title: "Model exported and published",
+      description: `${result.model.title} opened in Synapse IDE and published to Urban evidence.`,
+    });
+    announce(`${result.model.title} exported to Synapse IDE and published to Urban evidence.`);
+  }, [announce, handleDispatchMapCodeArtifact]);
 
   const handleOpenLayerInIde = useCallback((layerId: string) => {
     const layer = overlayLayers.find((entry) => entry.id === layerId);
@@ -5715,6 +5871,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               showProcessingToolbox={showProcessingToolbox}
               onToggleProcessingToolbox={handleToggleProcessingToolbox}
               processingToolCount={processingRegistry.implementedCount()}
+              showModelBuilder={showModelBuilder}
+              onToggleModelBuilder={handleToggleModelBuilder}
               showFigureComposer={showFigureComposer}
               onToggleFigureComposer={handleToggleFigureComposer}
               showChoroplethPanel={showChoroplethPanel}
@@ -6319,6 +6477,19 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             layers={processingToolboxLayers}
             onPreview={handlePreviewProcessingTool}
             onRun={handleRunProcessingTool}
+          />
+
+          <MapModelBuilderPanel
+            visible={showModelBuilder && !navigatorStageMode}
+            onClose={() => {
+              setShowModelBuilder(false);
+              announce("Model builder closed");
+            }}
+            tools={processingRegistry.list()}
+            layers={processingToolboxLayers}
+            onRun={handleRunMapModel}
+            onRunBatch={handleRunMapModelBatch}
+            onExportToIdeAndUrban={handleExportMapModelToIdeAndUrban}
           />
 
           <WorkflowPreviewOverlay preview={effectiveShowWorkflowDrawer ? workflowPreview : null} />

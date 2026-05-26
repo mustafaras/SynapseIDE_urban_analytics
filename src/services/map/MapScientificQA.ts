@@ -1005,15 +1005,8 @@ function buildLayerSignature(layer: OverlayLayerConfig, context: MapScientificQA
           : null,
         crsSummary: metadata.crsSummary,
         geometrySummary: metadata.geometrySummary,
-        scientificQA: metadata.scientificQA
-          ? {
-              status: metadata.scientificQA.status,
-              issueIds: metadata.scientificQA.issueIds,
-              badges: metadata.scientificQA.badges,
-              categorySummaries: metadata.scientificQA.categorySummaries,
-              signature: metadata.scientificQA.signature,
-            }
-          : null,
+        // `scientificQA` is generated from this signature and must not feed
+        // back into it; including it makes every completed QA pass appear new.
         registry: metadata.registry
           ? {
               crsSummary: metadata.registry.crsSummary,

@@ -2,7 +2,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildMapExplorerContextSummary } from '@/centerpanel/components/map/mapContextSummary';
-import type { DrawnFeature, OverlayLayerConfig } from '@/centerpanel/components/map/mapTypes';
+import type { DrawnFeature, MapReproducibilityManifest, OverlayLayerConfig } from '@/centerpanel/components/map/mapTypes';
 import type { MapScientificQAState } from '@/services/map/MapScientificQA';
 import { buildMapToUrbanContextPayload } from '@/services/map/bridge/MapUrbanBridgeService';
 import { useMapExplorerStore } from '@/stores/useMapExplorerStore';
@@ -225,6 +225,74 @@ describe('applyMapContextToUrban', () => {
     expect(artifact?.summary).toContain('based on: Layer demo-polygons / AOI aoi-kadikoy');
     expect(artifact?.dataFitness?.status).not.toBe('ready');
     expect(artifact?.dataFitness?.issues.some((issue) => issue.code === 'demo_data')).toBe(true);
+  });
+
+  it('publishes a model result as evidence referencing its bridge-carried manifest', () => {
+    const modelManifest: MapReproducibilityManifest = {
+      version: 1,
+      manifestId: 'manifest-model-transit-abc123',
+      workflowId: 'model:transit-access:exec-1',
+      status: 'applied',
+      createdAt: '2026-05-26T09:00:00.000Z',
+      mapContextId: 'map-model-context',
+      operation: 'model.execute',
+      workflowKind: 'model.transit-access',
+      inputLayerIds: ['model-source'],
+      sourceLayerIds: ['model-source'],
+      outputLayerIds: ['model-result'],
+      sourceLayers: [{ layerId: 'model-source', role: 'source', name: 'Source' }],
+      outputLayers: [{ layerId: 'model-result', role: 'derived', name: 'Result' }],
+      aoiReference: { source: 'model-input', selectedLayerIds: ['model-source'], selectedFeatureCount: 0, drawnPolygonCount: 0 },
+      viewportBounds: null,
+      parameters: { manifestHash: 'abc123', stepCount: 2 },
+      crsSummary: { status: 'known', displayCrs: 'EPSG:4326', sourceLayerCrs: [{ layerId: 'model-source', crs: 'EPSG:3857' }], missingLayerIds: [], notes: [] },
+      qaSummary: { status: 'passed', issueIds: [], blockerCount: 0, warningCount: 0, infoCount: 0, blockers: [], warnings: [], caveats: [] },
+      expectedOutput: { layerName: 'Result', geometryClass: 'Polygon', featureCount: 1, bounds: null, outputLayerGroup: 'analysis', needsWorker: false, reportCompatible: true, dashboardCompatible: true, ideCompatible: true },
+      handoffReferences: { reportItemIds: [], dashboardBindingIds: [], ideArtifactIds: [] },
+      qaIssueIds: [],
+      sourceDataVersions: { 'model-source': 'v1' },
+      engine: 'MapWorkflowService',
+      engineVersion: 'map-model-builder-1',
+    };
+    const layer = makeLayer('model-result', {
+      sourceKind: 'derived',
+      metadata: {
+        featureCount: 1,
+        geometryType: 'Polygon',
+        crsSummary: { crs: 'EPSG:3857', status: 'known', source: 'analysis-result', notes: [] },
+        reproducibilityManifest: modelManifest,
+      },
+    });
+    const payload = makeBridgePayload(layer);
+
+    const result = applyMapContextToUrban({
+      payload,
+      triggerRecommendations: false,
+      modelResult: {
+        modelId: 'transit-access',
+        modelTitle: 'Transit access coverage',
+        manifestId: modelManifest.manifestId,
+        manifestHash: 'abc123',
+        workflowId: modelManifest.workflowId,
+        outputLayerId: layer.id,
+        sourceLayerIds: ['model-source'],
+        stepCount: 2,
+        batchTargetCount: 1,
+        runtimeMode: 'unknown',
+      },
+    });
+    const artifact = useUrbanContextStore.getState().evidenceArtifacts.find((entry) => entry.id === result.evidenceArtifactId);
+
+    expect(payload.workflowSummary.manifestIds).toContain(modelManifest.manifestId);
+    expect(artifact?.title).toBe('Map model result: Transit access coverage');
+    expect(artifact?.metadata).toMatchObject({
+      mapModelManifestId: modelManifest.manifestId,
+      mapModelManifestHash: 'abc123',
+      mapModelManifestLinked: true,
+    });
+    expect(artifact?.linkedLayerIds).toContain('model-result');
+    expect(artifact?.qa.state).toBe('warning');
+    expect(artifact?.qa.warnings.join(' ')).toContain('runtime mode is unknown');
   });
 });
 

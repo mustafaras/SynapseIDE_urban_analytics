@@ -41,6 +41,9 @@ export type { MapWorkspaceCockpitProps } from "./MapWorkspaceCockpit";
 export { MapPinSidebar } from "./MapPinSidebar";
 export type { MapPinSidebarProps } from "./MapPinSidebar";
 
+export { MapModelBuilderPanel } from "./modelBuilder";
+export type { MapModelBuilderLayerOption, MapModelBuilderPanelProps } from "./modelBuilder";
+
 export { useFocusTrap } from "./useFocusTrap";
 export { useMapKeyboardControls } from "./useMapKeyboardControls";
 export { useAnnouncer } from "./useAnnouncer";

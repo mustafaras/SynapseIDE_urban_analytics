@@ -100,6 +100,8 @@ export interface MapToolbarProps {
   showProcessingToolbox?: boolean;
   onToggleProcessingToolbox?: () => void;
   processingToolCount?: number;
+  showModelBuilder?: boolean;
+  onToggleModelBuilder?: () => void;
   showFigureComposer?: boolean;
   onToggleFigureComposer?: () => void;
   showChoroplethPanel?: boolean;
@@ -210,6 +212,7 @@ interface BuildToolbarCommandsArgs extends Required<Pick<
   | "performanceIssueCount"
   | "showProcessingToolbox"
   | "processingToolCount"
+  | "showModelBuilder"
   | "showFigureComposer"
   | "showChoroplethPanel"
   | "showClusterViz"
@@ -246,6 +249,7 @@ interface BuildToolbarCommandsArgs extends Required<Pick<
   onToggleReviewTimeline?: (() => void) | undefined;
   onTogglePerformanceDiagnostics?: (() => void) | undefined;
   onToggleProcessingToolbox?: (() => void) | undefined;
+  onToggleModelBuilder?: (() => void) | undefined;
   onToggleFigureComposer?: (() => void) | undefined;
   onToggleChoroplethPanel?: (() => void) | undefined;
   onToggleClusterViz?: (() => void) | undefined;
@@ -836,6 +840,24 @@ function buildToolbarCommands(args: BuildToolbarCommandsArgs): ToolbarCommand[] 
     priority: args.showProcessingToolbox ? 124 : 86,
     active: args.showProcessingToolbox,
     badge: args.processingToolCount > 0 ? args.processingToolCount : null,
+    tone: "default",
+    contextBoost: "polygon",
+    navigator: true,
+  });
+
+  add(args.onToggleModelBuilder && {
+    id: "model-builder",
+    label: "Model",
+    shortLabel: "Model",
+    title: "Open model builder: chain processing steps, rerun, batch, and publish evidence",
+    keywords: ["model", "builder", "workflow designer", "batch", "processing chain", "publish evidence"],
+    icon: GitBranch,
+    onClick: args.onToggleModelBuilder,
+    roles: ["analyze", "explore"],
+    overflowGroup: "advanced",
+    priority: args.showModelBuilder ? 125 : 85,
+    active: args.showModelBuilder,
+    badge: null,
     tone: "default",
     contextBoost: "polygon",
     navigator: true,
@@ -1489,6 +1511,8 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
   showProcessingToolbox = false,
   onToggleProcessingToolbox,
   processingToolCount = 0,
+  showModelBuilder = false,
+  onToggleModelBuilder,
   showFigureComposer = false,
   onToggleFigureComposer,
   showChoroplethPanel = false,
@@ -1613,6 +1637,8 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       showProcessingToolbox,
       onToggleProcessingToolbox,
       processingToolCount,
+      showModelBuilder,
+      onToggleModelBuilder,
       showFigureComposer,
       onToggleFigureComposer,
       showChoroplethPanel,
@@ -1700,6 +1726,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       onToggleNLQueryPanel,
       onTogglePerformanceDiagnostics,
       onToggleProcessingToolbox,
+      onToggleModelBuilder,
       onToggleWorkflowDrawer,
       onTogglePinMode,
       onToggleRestrictToMapView,
@@ -1729,6 +1756,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       showNLQueryPanel,
       showPerformanceDiagnostics,
       showProcessingToolbox,
+      showModelBuilder,
       showReviewTimeline,
       showFigureComposer,
       showWorkflowDrawer,
