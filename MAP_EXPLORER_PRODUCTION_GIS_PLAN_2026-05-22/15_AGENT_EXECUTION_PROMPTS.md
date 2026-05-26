@@ -37,6 +37,13 @@ Before doing anything, READ these files in this repo and obey them (do not skip)
    in src/centerpanel/components/map/__tests__/fixtures/gisFixtures.ts.
 
 Then, BEFORE writing code:
+- Get on the canonical trunk and verify it is current:
+  `git checkout gis/map-explorer-production-prompts`, then `git log --oneline -5`.
+  Compare the latest `feat(map…)` commit to the highest `[x]` in the LEDGER.md
+  Status table. If they DISAGREE the checked-out branch is stale — run
+  `git branch -v`, fast-forward the trunk onto the highest `gis/pNN-*` tip
+  (`git merge --ff-only <tip>`), and re-read the ledger before picking a prompt.
+  Do NOT trust the ledger checkboxes until git and ledger agree.
 - Check the "Sequencing Cheat Sheet" hard-dependencies for my prompt number.
   If a prerequisite artifact (service/file/type from an earlier prompt) does NOT
   exist in the repo yet, STOP and tell me which prerequisite is missing instead

@@ -8,16 +8,24 @@ Single source of execution state + the resume point for any chat (especially a f
 
 ## ▶ Resume in a new chat (do this first)
 
-0. Start from the latest completed GIS prompt branch, not the older prompt-pack
-  base. For Prompt 6+, use `gis/p05-profiling` (Prompts 3–5 committed as `105e417`)
-   (or the active `gis/map-explorer-production-prompts` branch once advanced to the same head).
-   The WelcomeModal orbital redesign commit (`aa0be7d`) must remain in ancestry;
-   do not resume from the older `4d47df5` base unless you first merge/cherry-pick
-   the WelcomeModal redesign and the completed Prompt 1–2 baseline.
-1. Open [15_AGENT_EXECUTION_PROMPTS.md](15_AGENT_EXECUTION_PROMPTS.md) → read the **"⚠️ Cold-start protocol (anti-amnesia)"** section and copy its **BOOT BLOCK**.
-2. Read the **Status** table below; pick the lowest-numbered prompt that is `TODO` (respecting the dependency graph in the prompt file's "Sequencing Cheat Sheet").
-3. Paste the BOOT BLOCK, then paste that prompt, into the new chat.
-4. The agent must: read the named docs/contracts/fixtures, create a checkpoint branch `gis/p<NN>-<slug>`, deliver the prompt's **Proof**, run its **Validate** commands, then **append a row to the Done Log below and flip the Status checkbox** in the same commit.
+0. **Canonical trunk = `gis/map-explorer-production-prompts`.** Run
+   `git checkout gis/map-explorer-production-prompts` first. This branch is kept
+   fast-forwarded to the latest completed prompt (see Update protocol step 6), so
+   the working-tree ledger you read here is authoritative. Per-prompt checkpoint
+   branches (`gis/pNN-*`) are where each slice was built, but you do **not** resume
+   from them — they feed the trunk, not the other way around. The WelcomeModal
+   orbital redesign commit (`aa0be7d`) must remain in ancestry; do not resume from
+   the older `4d47df5` base.
+1. **Reconcile ledger with git before trusting it (anti-amnesia guard).** Run
+   `git log --oneline -5` and compare the latest `feat(map…)` commit to the highest
+   `[x]` in the Status table below. If they disagree, the checked-out branch is
+   STALE — run `git branch -v`, find the highest `gis/pNN-*` tip, and
+   `git merge --ff-only <that branch>` onto the trunk before continuing. (This is
+   exactly the drift that stalled the trunk at Prompt 2 on 2026-05-26; see Drift notes.)
+2. Open [15_AGENT_EXECUTION_PROMPTS.md](15_AGENT_EXECUTION_PROMPTS.md) → read the **"⚠️ Cold-start protocol (anti-amnesia)"** section and copy its **BOOT BLOCK**.
+3. Read the **Status** table below; pick the lowest-numbered prompt that is `TODO` (respecting the dependency graph in the prompt file's "Sequencing Cheat Sheet").
+4. Paste the BOOT BLOCK, then paste that prompt, into the new chat.
+5. The agent must: read the named docs/contracts/fixtures, create a checkpoint branch `gis/p<NN>-<slug>`, deliver the prompt's **Proof**, run its **Validate** commands, then **append a row to the Done Log below and flip the Status checkbox** in the same commit. After it lands, **fast-forward the trunk onto it** (Update protocol step 6).
 
 If you only have this ledger in front of you and nothing else: the standing rules are summarised under "Non-negotiables (mirror)" near the bottom — but still open the prompt file's Agent Contract v2 for the full list.
 
@@ -262,8 +270,25 @@ Artifacts created so far:
 3. List any new shared artifacts under "Artifacts created so far".
 4. Commit the ledger update **with** the prompt's slice (same branch), so state never drifts from code.
 5. If you discovered a repo fact that contradicts the prompt (path moved, type renamed), note it under "Drift notes" so the next chat doesn't repeat the surprise.
+6. **Advance the canonical trunk (mandatory — prevents the Prompt-2 stall).** Once the checkpoint branch is verified and committed:
+   ```bash
+   git checkout gis/map-explorer-production-prompts
+   git merge --ff-only gis/p<NN>-<slug>     # fast-forward only; no merge commit
+   git -c http.sslBackend=schannel push     # keep origin in sync (schannel = SSL workaround)
+   ```
+   The trunk must always point at the latest completed prompt so a fresh chat reading the working-tree ledger sees the truth. If `--ff-only` is rejected, the branches diverged — stop and reconcile rather than forcing a merge.
 
 ## Drift notes
+
+- **2026-05-26 — trunk stall (fixed).** The canonical trunk
+  `gis/map-explorer-production-prompts` had been left at `70e8f0d` (a Prompt-2-era
+  ancestor) while Prompts 3–23 were built and verified on per-prompt branches up
+  to `gis/p23-perf` (`6d8d003`). A fresh chat read the working-tree ledger on the
+  stale trunk and wrongly reported "next = Prompt 3". The work itself was intact
+  and the ledger *on `gis/p23-perf`* was correct. Fix: `git merge --ff-only
+  gis/p23-perf` advanced the trunk 51 commits (linear, no merge commit) to
+  `6d8d003`. To stop recurrence: Resume step 0/1 now force a git↔ledger reconcile,
+  and Update protocol step 6 makes advancing the trunk mandatory after every prompt.
 
 - Prompt 18 requested after Prompt 19 (2026-05-25): Prompt 19 was already committed on `gis/p19-evidence` before the user requested Prompt 18. The required `gis/p18-recommendations` checkpoint therefore intentionally descends from completed Prompt 19 instead of rewriting branch ancestry.
 
