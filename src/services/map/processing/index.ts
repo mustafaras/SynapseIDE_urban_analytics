@@ -27,13 +27,14 @@ export {
 } from "./MapProcessingExecutor";
 
 import { MapProcessingRegistry } from "./MapProcessingRegistry";
-import { REFERENCE_TOOL_DESCRIPTORS } from "./referenceTools";
+import { listProcessingToolDescriptors } from "./MapProcessingExecutor";
 
 /**
- * Build a registry pre-seeded with the Prompt 24a reference tools (buffer,
- * centroid, attribute-filter). Prompt 24b registers the remaining service-backed
- * tools onto a registry built the same way.
+ * Build a registry pre-seeded with the full processing catalogue: the Prompt
+ * 24a reference tools (buffer, centroid, attribute-filter), the Prompt 24b
+ * service-backed tools (overlay/geometry/join/stats), and the not-yet-wired
+ * stub descriptors (shown disabled with a reason).
  */
 export function createMapProcessingRegistry(): MapProcessingRegistry {
-  return new MapProcessingRegistry(REFERENCE_TOOL_DESCRIPTORS);
+  return new MapProcessingRegistry(listProcessingToolDescriptors());
 }

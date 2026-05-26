@@ -321,6 +321,7 @@ export function MapProcessingToolboxPanel({
                   </span>
                   <span style={{ fontSize: MAP_TYPOGRAPHY.fontSize.xs, color: MAP_COLORS.textMuted }}>
                     {tool.category}
+                    {tool.implemented ? "" : " · not wired yet"}
                   </span>
                 </button>
               );

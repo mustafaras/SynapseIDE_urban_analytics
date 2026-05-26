@@ -37,6 +37,8 @@ import { CrsPreflight } from "@/services/map/crs/CrsPreflight";
 export interface ProcessingToolInputs {
   params: Readonly<Record<string, unknown>>;
   inputLayer: OverlayLayerConfig;
+  /** Resolver for secondary inputs (overlay/clip/join tools resolve a second layer). */
+  getLayer: (id: string) => OverlayLayerConfig | null;
 }
 
 export interface ProcessingToolPreview {
@@ -56,6 +58,8 @@ export interface ProcessingToolPreview {
   outputGeometryClass: string;
   /** Normalized parameter record recorded in the manifest. */
   parameters: Record<string, unknown>;
+  /** Extra source layer ids (beyond the primary input) used by this run. */
+  secondarySourceIds?: string[];
 }
 
 export interface ProcessingToolExecutor {
@@ -67,19 +71,19 @@ export interface ProcessingToolExecutor {
 /*  Shared helpers                                                       */
 /* -------------------------------------------------------------------- */
 
-const EMPTY_FC: FeatureCollection = { type: "FeatureCollection", features: [] };
+export const EMPTY_FC: FeatureCollection = { type: "FeatureCollection", features: [] };
 
-function layerFeatures(layer: OverlayLayerConfig): Feature[] {
+export function layerFeatures(layer: OverlayLayerConfig): Feature[] {
   const data = layer.sourceData as FeatureCollection | undefined;
   if (!data || data.type !== "FeatureCollection" || !Array.isArray(data.features)) return [];
   return data.features as Feature[];
 }
 
-function featureCollection(features: Feature[]): FeatureCollection {
+export function featureCollection(features: Feature[]): FeatureCollection {
   return { type: "FeatureCollection", features };
 }
 
-function geometryClassOf(features: Feature[], fallback: string): string {
+export function geometryClassOf(features: Feature[], fallback: string): string {
   const types = new Set(features.map((feature) => feature.geometry?.type).filter(Boolean) as string[]);
   if (types.size === 0) return fallback;
   if (types.size === 1) return [...types][0]!;
@@ -388,12 +392,24 @@ export function getReferenceToolExecutor(toolId: string): ProcessingToolExecutor
 export interface BuildProcessingManifestInput {
   descriptor: ProcessingToolDescriptor;
   inputLayer: OverlayLayerConfig;
+  /** Secondary source layers (overlay/clip/join), recorded for provenance. */
+  additionalSourceLayers?: OverlayLayerConfig[];
   outputLayerId: string;
   outputLayerName: string;
   preview: ProcessingToolPreview;
   createdAt: string;
   manifestId: string;
   mapContextId: string;
+}
+
+function sourceLayerReference(layer: OverlayLayerConfig): MapReproducibilityLayerReference {
+  return {
+    layerId: layer.id,
+    role: "source",
+    name: layer.name,
+    ...(layer.sourceKind ? { sourceKind: layer.sourceKind } : {}),
+    ...(typeof layer.metadata?.featureCount === "number" ? { featureCount: layer.metadata.featureCount } : {}),
+  };
 }
 
 function computeBounds(fc: FeatureCollection): [number, number, number, number] | null {
@@ -411,6 +427,9 @@ function computeBounds(fc: FeatureCollection): [number, number, number, number] 
 
 export function buildProcessingManifest(input: BuildProcessingManifestInput): MapReproducibilityManifest {
   const { descriptor, inputLayer, outputLayerId, outputLayerName, preview, createdAt, manifestId, mapContextId } = input;
+  const additionalSourceLayers = input.additionalSourceLayers ?? [];
+  const allSourceLayers = [inputLayer, ...additionalSourceLayers];
+  const allSourceIds = allSourceLayers.map((layer) => layer.id);
   const layerCrs = preview.crs?.sourceCrs ?? resolveOverlayLayerCrsSummary(inputLayer).crs ?? null;
 
   const crsSummary: MapReproducibilityCrsSummary = {
@@ -419,8 +438,13 @@ export function buildProcessingManifest(input: BuildProcessingManifestInput): Ma
     displayCrs: preview.crs?.displayCrs ?? "EPSG:4326",
     executionCrs: preview.crs?.executionCrs ?? null,
     ...(preview.crs?.executionKind ? { executionKind: preview.crs.executionKind } : {}),
-    sourceLayerCrs: [{ layerId: inputLayer.id, crs: layerCrs }],
-    missingLayerIds: descriptor.requiresCrs && !layerCrs ? [inputLayer.id] : [],
+    sourceLayerCrs: allSourceLayers.map((layer) => ({
+      layerId: layer.id,
+      crs: resolveOverlayLayerCrsSummary(layer).crs,
+    })),
+    missingLayerIds: descriptor.requiresCrs
+      ? allSourceLayers.filter((layer) => !resolveOverlayLayerCrsSummary(layer).crs).map((layer) => layer.id)
+      : [],
     notes: preview.crs?.caveats ?? [],
   };
 
@@ -447,15 +471,7 @@ export function buildProcessingManifest(input: BuildProcessingManifestInput): Ma
     ideCompatible: true,
   };
 
-  const sourceLayerRef: MapReproducibilityLayerReference = {
-    layerId: inputLayer.id,
-    role: "source",
-    name: inputLayer.name,
-    ...(inputLayer.sourceKind ? { sourceKind: inputLayer.sourceKind } : {}),
-    ...(typeof inputLayer.metadata?.featureCount === "number"
-      ? { featureCount: inputLayer.metadata.featureCount }
-      : {}),
-  };
+  const sourceLayerRefs = allSourceLayers.map(sourceLayerReference);
 
   const outputLayerRef: MapReproducibilityLayerReference = {
     layerId: outputLayerId,
@@ -474,10 +490,10 @@ export function buildProcessingManifest(input: BuildProcessingManifestInput): Ma
     mapContextId,
     operation: descriptor.title,
     workflowKind: `processing.${descriptor.toolId}`,
-    inputLayerIds: [inputLayer.id],
-    sourceLayerIds: [inputLayer.id],
+    inputLayerIds: allSourceIds,
+    sourceLayerIds: allSourceIds,
     outputLayerIds: [outputLayerId],
-    sourceLayers: [sourceLayerRef],
+    sourceLayers: sourceLayerRefs,
     outputLayers: [outputLayerRef],
     aoiReference: {
       source: "none",
@@ -492,7 +508,9 @@ export function buildProcessingManifest(input: BuildProcessingManifestInput): Ma
     expectedOutput,
     handoffReferences: { reportItemIds: [], dashboardBindingIds: [], ideArtifactIds: [] },
     qaIssueIds: [],
-    sourceDataVersions: { [inputLayer.id]: inputLayer.metadata?.dataVersion ?? null },
+    sourceDataVersions: Object.fromEntries(
+      allSourceLayers.map((layer) => [layer.id, layer.metadata?.dataVersion ?? null]),
+    ),
     engine: "MapWorkflowService",
     engineVersion: "processing-toolbox-1",
   };

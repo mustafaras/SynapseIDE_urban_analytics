@@ -24,11 +24,28 @@ import {
 } from "@/services/map/actions/MapActionExecutor";
 import {
   buildProcessingManifest,
-  getReferenceToolExecutor,
-  REFERENCE_TOOL_DESCRIPTORS,
+  REFERENCE_TOOL_EXECUTORS,
+  type ProcessingToolExecutor,
   type ProcessingToolInputs,
   type ProcessingToolPreview,
 } from "./referenceTools";
+import { NOT_IMPLEMENTED_TOOL_DESCRIPTORS, SERVICE_TOOL_EXECUTORS } from "./serviceTools";
+
+/** All wired executors (reference + service-backed), keyed by tool id. */
+const ALL_EXECUTORS: Readonly<Record<string, ProcessingToolExecutor>> = {
+  ...REFERENCE_TOOL_EXECUTORS,
+  ...SERVICE_TOOL_EXECUTORS,
+};
+
+/** Full catalogue: implemented executors + not-yet-wired stub descriptors. */
+const ALL_DESCRIPTORS: ProcessingToolDescriptor[] = [
+  ...Object.values(ALL_EXECUTORS).map((executor) => executor.descriptor),
+  ...NOT_IMPLEMENTED_TOOL_DESCRIPTORS,
+];
+
+function getExecutor(toolId: string): ProcessingToolExecutor | null {
+  return ALL_EXECUTORS[toolId] ?? null;
+}
 
 export interface ProcessingRunOptions {
   now?: () => string;
@@ -56,13 +73,13 @@ export interface ProcessingRunResult {
   revertToken: MapActionOutcome["revertToken"] | null;
 }
 
-/** Descriptor lookup over the reference tools. */
+/** Descriptor lookup over the full catalogue (implemented + stubs). */
 export function getProcessingToolDescriptor(toolId: string): ProcessingToolDescriptor | null {
-  return getReferenceToolExecutor(toolId)?.descriptor ?? null;
+  return ALL_DESCRIPTORS.find((descriptor) => descriptor.toolId === toolId) ?? null;
 }
 
 export function listProcessingToolDescriptors(): ProcessingToolDescriptor[] {
-  return [...REFERENCE_TOOL_DESCRIPTORS];
+  return [...ALL_DESCRIPTORS];
 }
 
 function blockedPreview(blocker: string, geometryClass = "Geometry"): ProcessingToolPreview {
@@ -89,8 +106,18 @@ export function previewProcessingTool(
   params: Readonly<Record<string, unknown>>,
   getLayer: (id: string) => OverlayLayerConfig | null,
 ): ProcessingPreviewOutcome | null {
-  const executor = getReferenceToolExecutor(toolId);
-  if (!executor) return null;
+  const executor = getExecutor(toolId);
+  if (!executor) {
+    const descriptor = getProcessingToolDescriptor(toolId);
+    if (descriptor && !descriptor.implemented) {
+      return {
+        descriptor,
+        inputLayer: null,
+        preview: blockedPreview(`“${descriptor.title}” is registered but not yet wired — ${descriptor.summary}`),
+      };
+    }
+    return null;
+  }
 
   const layerId = typeof params.layer === "string" ? params.layer : "";
   const inputLayer = layerId ? getLayer(layerId) : null;
@@ -102,7 +129,7 @@ export function previewProcessingTool(
     };
   }
 
-  const inputs: ProcessingToolInputs = { params, inputLayer };
+  const inputs: ProcessingToolInputs = { params, inputLayer, getLayer };
   return { descriptor: executor.descriptor, inputLayer, preview: executor.preview(inputs) };
 }
 
@@ -155,9 +182,14 @@ export function runProcessingTool(
 
   const outputLayerId = `processing:${descriptor.toolId}:${seed}`;
   const outputLayerName = `${descriptor.title} · ${inputLayer.name}`;
+  const additionalSourceLayers = (preview.secondarySourceIds ?? [])
+    .map((id) => effects.getLayer(id))
+    .filter((layer): layer is OverlayLayerConfig => layer !== null);
+  const sourceLayerIds = [inputLayer.id, ...additionalSourceLayers.map((layer) => layer.id)];
   const manifest = buildProcessingManifest({
     descriptor,
     inputLayer,
+    additionalSourceLayers,
     outputLayerId,
     outputLayerName,
     preview,
@@ -181,7 +213,7 @@ export function runProcessingTool(
       label: outputLayerName,
       method: `Processing toolbox: ${descriptor.title}`,
       generatedAt: createdAt,
-      sourceLayerIds: [inputLayer.id],
+      sourceLayerIds,
       notes: preview.caveats,
     },
     metadata: {

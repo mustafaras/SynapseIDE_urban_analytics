@@ -21,15 +21,14 @@ function descriptor(overrides: Partial<ProcessingToolDescriptor> & Pick<Processi
 }
 
 describe("MapProcessingRegistry", () => {
-  it("seeds the three reference tools and reports implemented count", () => {
+  it("seeds the full catalogue with at least 12 implemented tools", () => {
     const registry = createMapProcessingRegistry();
-    expect(registry.list().map((tool) => tool.toolId).sort()).toEqual([
-      "attribute-filter",
-      "buffer",
-      "centroid",
-    ]);
-    expect(registry.implementedCount()).toBe(3);
-    expect(registry.categories().sort()).toEqual(["Geometry", "Selection"]);
+    const ids = registry.list().map((tool) => tool.toolId);
+    expect(ids).toEqual(expect.arrayContaining(["buffer", "centroid", "attribute-filter"]));
+    expect(registry.implementedCount()).toBeGreaterThanOrEqual(12);
+    expect(registry.categories()).toEqual(
+      expect.arrayContaining(["Geometry", "Selection", "Overlay", "Join", "Statistics"]),
+    );
   });
 
   it("searches by token across id, title, summary, and category", () => {
@@ -42,10 +41,13 @@ describe("MapProcessingRegistry", () => {
 
   it("returns all tools for an empty query and honours filters", () => {
     const registry = createMapProcessingRegistry();
-    expect(registry.search("").length).toBe(3);
+    expect(registry.search("").length).toBe(registry.list().length);
     expect(registry.search("", { category: "Selection" }).map((tool) => tool.toolId)).toEqual([
       "attribute-filter",
     ]);
+    // implementedOnly hides the stub descriptors.
+    expect(registry.search("", { implementedOnly: true }).length).toBe(registry.implementedCount());
+    expect(registry.search("", { implementedOnly: true }).length).toBeLessThan(registry.list().length);
   });
 
   it("excludes non-implemented tools when implementedOnly is set", () => {
