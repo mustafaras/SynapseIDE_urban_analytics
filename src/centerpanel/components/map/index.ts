@@ -47,6 +47,9 @@ export type { MapModelBuilderLayerOption, MapModelBuilderPanelProps } from "./mo
 export { MapCatalogPanel } from "./catalog";
 export type { MapCatalogPanelProps } from "./catalog";
 
+export { MapContentsTreePanel } from "./contents";
+export type { MapContentsTreePanelProps } from "./contents";
+
 export { useFocusTrap } from "./useFocusTrap";
 export { useMapKeyboardControls } from "./useMapKeyboardControls";
 export { useAnnouncer } from "./useAnnouncer";
@@ -76,6 +79,9 @@ export type {
   LayerSchemaFieldSummary,
   LayerSchemaSummary,
   LayerSourceKind,
+  MapDefinitionFilterOperator,
+  MapLayerDefinitionFilter,
+  MapLayerContentsState,
   LayerScientificQABadge,
   LayerScientificQAMetadata,
   MapLayerReadinessSummary,

@@ -81,6 +81,8 @@ export interface MapToolbarProps {
   showCatalog?: boolean;
   onToggleCatalog?: () => void;
   catalogSourceCount?: number;
+  showContents?: boolean;
+  onToggleContents?: () => void;
   activeLayerGeometryType?: string | null;
   hasSelectedAoi?: boolean;
   scientificQAStatus?: LayerQaStatus;
@@ -201,6 +203,7 @@ interface BuildToolbarCommandsArgs extends Required<Pick<
   | "visibleLayerCount"
   | "showCatalog"
   | "catalogSourceCount"
+  | "showContents"
   | "activeLayerGeometryType"
   | "hasSelectedAoi"
   | "scientificQAStatus"
@@ -249,6 +252,7 @@ interface BuildToolbarCommandsArgs extends Required<Pick<
   onWorkspaceViewChange?: ((view: MapWorkspaceView) => void) | undefined;
   onToggleLayerPanel?: (() => void) | undefined;
   onToggleCatalog?: (() => void) | undefined;
+  onToggleContents?: (() => void) | undefined;
   onToggleScientificQAPanel?: (() => void) | undefined;
   onToggleNLQueryPanel?: (() => void) | undefined;
   onToggleWorkflowDrawer?: (() => void) | undefined;
@@ -747,6 +751,23 @@ function buildToolbarCommands(args: BuildToolbarCommandsArgs): ToolbarCommand[] 
     priority: args.showCatalog ? 127 : hasLayers ? 87 : 121,
     active: args.showCatalog,
     badge: args.catalogSourceCount > 0 ? args.catalogSourceCount : null,
+    tone: "default",
+    navigator: true,
+  });
+
+  add(args.onToggleContents && {
+    id: "contents",
+    label: "Contents",
+    shortLabel: "Contents",
+    title: "Open professional contents tree with grouping, scale ranges, filters, and repair actions",
+    keywords: ["contents", "layer tree", "group layers", "scale range", "definition filter", "duplicate layer"],
+    icon: Layers3,
+    onClick: args.onToggleContents,
+    roles: ["explore", "analyze", "publish"],
+    overflowGroup: "advanced",
+    priority: args.showContents ? 128 : hasLayers ? 92 : 120,
+    active: args.showContents,
+    badge: args.layerCount > 0 ? args.layerCount : null,
     tone: "default",
     navigator: true,
   });
@@ -1515,6 +1536,8 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
   showCatalog = false,
   onToggleCatalog,
   catalogSourceCount = 0,
+  showContents = false,
+  onToggleContents,
   activeLayerGeometryType = null,
   hasSelectedAoi = false,
   scientificQAStatus = "unchecked",
@@ -1644,6 +1667,8 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       showCatalog,
       onToggleCatalog,
       catalogSourceCount,
+      showContents,
+      onToggleContents,
       activeLayerGeometryType,
       hasSelectedAoi,
       scientificQAStatus,
@@ -1753,6 +1778,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       onToggleHotSpotViz,
       onToggleLayerPanel,
       onToggleCatalog,
+      onToggleContents,
       onToggleMeasurePanel,
       onToggleNLQueryPanel,
       onTogglePerformanceDiagnostics,
@@ -1784,6 +1810,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       showHotSpotViz,
       showLayerPanel,
       showCatalog,
+      showContents,
       showMeasurePanel,
       showNLQueryPanel,
       showPerformanceDiagnostics,

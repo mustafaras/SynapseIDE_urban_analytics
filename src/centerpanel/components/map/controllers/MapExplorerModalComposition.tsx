@@ -103,6 +103,11 @@ import {
   type MapCatalogLayerInsertion,
 } from "../catalog";
 import {
+  MapContentsTreePanel,
+  applyContentsToRenderLayers,
+  duplicateMapContentsLayer,
+} from "../contents";
+import {
   createMapProcessingRegistry,
   previewProcessingTool,
   runProcessingTool,
@@ -1075,6 +1080,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const [showProcessingToolbox, setShowProcessingToolbox] = useState(false);
   const [showModelBuilder, setShowModelBuilder] = useState(false);
   const [showCatalog, setShowCatalog] = useState(false);
+  const [showContents, setShowContents] = useState(false);
   const handleToggleProcessingToolbox = useCallback(() => {
     setShowProcessingToolbox((previous) => {
       const next = !previous;
@@ -1098,10 +1104,24 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         setWorkspaceView("explore");
         setShowProcessingToolbox(false);
         setShowModelBuilder(false);
+        setShowContents(false);
       }
       return next;
     });
     announce("Catalog toggled");
+  }, [announce]);
+  const handleToggleContents = useCallback(() => {
+    setShowContents((previous) => {
+      const next = !previous;
+      if (next) {
+        setWorkspaceView("explore");
+        setShowProcessingToolbox(false);
+        setShowModelBuilder(false);
+        setShowCatalog(false);
+      }
+      return next;
+    });
+    announce("Contents tree toggled");
   }, [announce]);
   const processingRegistry = useMemo(() => createMapProcessingRegistry(), []);
   const searchProcessingTools = useCallback(
@@ -1958,14 +1978,18 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const selectedPointSymbologyLayer = pointSymbologyLayerId
     ? overlayLayers.find((layer) => layer.id === pointSymbologyLayerId) ?? null
     : null;
+  const contentsRenderLayers = useMemo(
+    () => applyContentsToRenderLayers(overlayLayers, zoom),
+    [overlayLayers, zoom],
+  );
   const interactiveAnalysisLayerIds = useMemo(
-    () => overlayLayers
+    () => contentsRenderLayers
       .filter((layer) =>
         layer.visible &&
         (layer.queryable ?? (layer.type === "geojson" || layer.type === "heatmap")),
       )
       .map((layer) => layer.id),
-    [overlayLayers],
+    [contentsRenderLayers],
   );
   const visiblePublicationLayers = useMemo(
     () => overlayLayers.filter((layer) => layer.visible),
@@ -2021,7 +2045,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const mapRenderLayers = useMemo(() => {
     const comparison = effectiveShowWorkflowDrawer ? workflowPreview?.comparisonState : undefined;
     const baseLayers = comparison?.view === "blend"
-      ? overlayLayers.map((layer) => {
+      ? contentsRenderLayers.map((layer) => {
           if (layer.id === comparison.layerAId) {
             return { ...layer, opacity: comparison.blendOpacityA };
           }
@@ -2030,9 +2054,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
           }
           return layer;
         })
-      : overlayLayers;
+      : contentsRenderLayers;
     return workflowPreviewLayer ? [...baseLayers, workflowPreviewLayer] : baseLayers;
-  }, [effectiveShowWorkflowDrawer, overlayLayers, workflowPreview?.comparisonState, workflowPreviewLayer]);
+  }, [contentsRenderLayers, effectiveShowWorkflowDrawer, workflowPreview?.comparisonState, workflowPreviewLayer]);
   const performanceDiagnostics = useMemo(
     () => buildMapPerformanceDiagnostics({ overlayLayers: mapRenderLayers, timings: performanceTimings }),
     [mapRenderLayers, performanceTimings],
@@ -4645,6 +4669,31 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     }
   }, [overlayLayers, updateLayerMetadata, upsertSourceHandle]);
 
+  const handleDuplicateContentsLayer = useCallback((layer: OverlayLayerConfig) => {
+    const duplicate = duplicateMapContentsLayer(layer);
+    addOverlayLayer(duplicate);
+    recordMapReviewEvent({
+      type: "layer-change",
+      status: "applied",
+      title: `Layer duplicated: ${layer.name}`,
+      summary: `Created ${duplicate.name} as a second view of the same source and retained its provenance and QA metadata.`,
+      layerIds: [layer.id, duplicate.id],
+      details: {
+        sourceLayerId: layer.id,
+        duplicateLayerId: duplicate.id,
+        sourceId: layer.metadata?.sourceId ?? null,
+        provenanceRetained: Boolean(layer.provenance || layer.metadata?.registry?.provenance),
+      },
+    });
+    announce(`Duplicated layer ${layer.name}`);
+  }, [addOverlayLayer, announce, recordMapReviewEvent]);
+
+  const handleRepairContentsSource = useCallback((layer: OverlayLayerConfig) => {
+    setShowContents(false);
+    setShowCatalog(true);
+    announce(`Catalog opened to repair source for ${layer.name}`);
+  }, [announce]);
+
   const handleExternalServiceLayerReady = useCallback((layer: OverlayLayerConfig) => {
     const registered = attachSourceHandleToExternalLayer(layer);
     upsertSourceHandle(registered.sourceHandle);
@@ -5983,6 +6032,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               showCatalog={showCatalog}
               onToggleCatalog={handleToggleCatalog}
               catalogSourceCount={sourceHandles.length}
+              showContents={showContents}
+              onToggleContents={handleToggleContents}
               activeLayerGeometryType={toolbarActiveGeometryType}
               hasSelectedAoi={Boolean(selectedAoiFeatureForQuery)}
               scientificQAStatus={scientificQA?.status ?? "unchecked"}
@@ -6646,6 +6697,22 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             onRepairSource={handleCatalogRepairSource}
             onReconnectSource={handleCatalogReconnectSource}
             onAddConnection={handleCatalogAddConnection}
+          />
+
+          <MapContentsTreePanel
+            visible={showContents && !navigatorStageMode}
+            layers={overlayLayers}
+            zoom={zoom}
+            onClose={() => {
+              setShowContents(false);
+              announce("Contents tree closed");
+            }}
+            onUpdateLayer={updateLayerMetadata}
+            onDuplicateLayer={handleDuplicateContentsLayer}
+            onRepairSource={handleRepairContentsSource}
+            onOpenProperties={handleInspectLayer}
+            onToggleVisibility={toggleLayerVisibility}
+            onReorderLayers={reorderLayers}
           />
 
           <WorkflowPreviewOverlay preview={effectiveShowWorkflowDrawer ? workflowPreview : null} />
