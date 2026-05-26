@@ -169,6 +169,9 @@ export interface MapToUrbanLayerFieldDescriptor {
   role: LayerSchemaFieldRole | "unknown";
   source: "schema" | "metadata" | "feature-scan";
   type?: string;
+  nullValueCount?: number;
+  nonNullValueCount?: number;
+  totalValueCount?: number;
 }
 
 export interface MapToUrbanLayerFieldSummary {

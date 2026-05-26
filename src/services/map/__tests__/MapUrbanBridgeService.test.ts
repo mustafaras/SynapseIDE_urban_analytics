@@ -172,6 +172,60 @@ describe("MapUrbanBridgeService", () => {
     expect(hasSourceDataKey(fromService)).toBe(false);
   });
 
+  it("captures per-field missingness counts from the feature scan summary when the full layer is scanned", () => {
+    const layer = polygonLayer({
+      sourceData: {
+        type: "FeatureCollection",
+        features: [
+          {
+            type: "Feature",
+            id: "district-1",
+            geometry: {
+              type: "Polygon",
+              coordinates: [[[29, 41], [29.05, 41], [29.05, 41.05], [29, 41.05], [29, 41]]],
+            },
+            properties: {
+              district: "Kadikoy",
+              population: 1200,
+              observed_at: "2026-01-01",
+            },
+          },
+          {
+            type: "Feature",
+            id: "district-2",
+            geometry: {
+              type: "Polygon",
+              coordinates: [[[29.06, 41], [29.11, 41], [29.11, 41.05], [29.06, 41.05], [29.06, 41]]],
+            },
+            properties: {
+              district: "Uskudar",
+              population: null,
+              observed_at: "2026-01-02",
+            },
+          },
+        ],
+      },
+      metadata: {
+        ...polygonLayer().metadata,
+        featureCount: 2,
+      },
+    });
+
+    const payload = buildMapToUrbanContextPayload({
+      contextSummary: contextSummary(),
+      overlayLayers: [layer],
+      now: fixedNow,
+    });
+    const populationField = payload.layerSummaries[0]?.fieldSummary.fields.find((field) => field.name === "population");
+
+    expect(populationField).toMatchObject({
+      name: "population",
+      nonNullValueCount: 1,
+      nullValueCount: 1,
+      totalValueCount: 2,
+    });
+  });
+
   it("matches legacy Urban->Map adapter output and keeps previews geometry-free", () => {
     const layers = [polygonLayer()];
     const input = {

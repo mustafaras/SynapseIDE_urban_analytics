@@ -278,13 +278,53 @@ function roleFromFieldName(fieldName: string): LayerSchemaFieldRole | "unknown" 
   return "attribute";
 }
 
+function isPresentFieldValue(value: unknown): boolean {
+  if (value == null) return false;
+  if (typeof value === "string") return value.trim().length > 0;
+  if (typeof value === "number") return Number.isFinite(value);
+  return true;
+}
+
+function fieldDescriptorSourceRank(source: MapToUrbanLayerFieldDescriptor["source"]): number {
+  switch (source) {
+    case "schema":
+      return 3;
+    case "metadata":
+      return 2;
+    case "feature-scan":
+    default:
+      return 1;
+  }
+}
+
 function addFieldDescriptor(
   fields: Map<string, MapToUrbanLayerFieldDescriptor>,
   descriptor: MapToUrbanLayerFieldDescriptor,
 ): void {
   const key = descriptor.name.trim();
-  if (!key || fields.has(key)) return;
-  fields.set(key, { ...descriptor, name: key });
+  if (!key) return;
+
+  const existing = fields.get(key);
+  if (!existing) {
+    fields.set(key, { ...descriptor, name: key });
+    return;
+  }
+
+  const next: MapToUrbanLayerFieldDescriptor = {
+    ...existing,
+    name: key,
+  };
+  if (fieldDescriptorSourceRank(descriptor.source) > fieldDescriptorSourceRank(existing.source)) {
+    next.source = descriptor.source;
+  }
+  if (existing.role === "unknown" && descriptor.role !== "unknown") {
+    next.role = descriptor.role;
+  }
+  if (!existing.type && descriptor.type) next.type = descriptor.type;
+  if (descriptor.nullValueCount !== undefined) next.nullValueCount = descriptor.nullValueCount;
+  if (descriptor.nonNullValueCount !== undefined) next.nonNullValueCount = descriptor.nonNullValueCount;
+  if (descriptor.totalValueCount !== undefined) next.totalValueCount = descriptor.totalValueCount;
+  fields.set(key, next);
 }
 
 function collectFeatureScanFields(layer: OverlayLayerConfig): MapToUrbanLayerFieldDescriptor[] {
@@ -293,18 +333,33 @@ function collectFeatureScanFields(layer: OverlayLayerConfig): MapToUrbanLayerFie
 
   const descriptors = new Map<string, MapToUrbanLayerFieldDescriptor>();
   const scanLimit = Math.min(collection.features.length, MAX_FIELD_SCAN_FEATURES);
+  const nonNullCounts = new Map<string, number>();
   for (let index = 0; index < scanLimit; index += 1) {
     const properties = collection.features[index]?.properties ?? {};
-    for (const fieldName of Object.keys(properties)) {
+    for (const [fieldName, rawValue] of Object.entries(properties)) {
       if (fieldName.startsWith("__")) continue;
+      const key = fieldName.trim();
+      if (!key) continue;
+      if (isPresentFieldValue(rawValue)) {
+        nonNullCounts.set(key, (nonNullCounts.get(key) ?? 0) + 1);
+      }
       addFieldDescriptor(descriptors, {
-        name: fieldName,
-        role: roleFromFieldName(fieldName),
+        name: key,
+        role: roleFromFieldName(key),
         source: "feature-scan",
       });
     }
   }
-  return [...descriptors.values()];
+
+  return [...descriptors.values()].map((descriptor) => {
+    const nonNullValueCount = nonNullCounts.get(descriptor.name) ?? 0;
+    return {
+      ...descriptor,
+      nonNullValueCount,
+      totalValueCount: scanLimit,
+      nullValueCount: Math.max(0, scanLimit - nonNullValueCount),
+    };
+  });
 }
 
 function buildLayerFieldSummary(layer: OverlayLayerConfig): MapToUrbanLayerFieldSummary {

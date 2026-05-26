@@ -6,6 +6,9 @@ import {
   BASE_STYLES,
   type DrawnFeature,
   type DrawToolId,
+  type LayerQaStatus,
+  type LayerSchemaFieldSummary,
+  type LayerScientificQABadge,
   MAP_BOOKMARK_LIMIT,
   MAP_LAYER_REGISTRY_EVENT,
   type MapEvidenceScalar,
@@ -126,7 +129,11 @@ import {
   checkConnectionHealth,
   createConnectionDescriptor,
 } from "../../../../services/map/sources/MapConnectionRegistry";
-import { MapAttributeTable, type AttrFeature } from "../table/MapAttributeTable";
+import {
+  MapAttributeTable,
+  type AttrFeature,
+  type MapAttributeDerivedFieldDraft,
+} from "../table/MapAttributeTable";
 import { CartographyRecommendationList } from "../CartographyRecommendationList";
 import { MapLegendOverlay } from "../inspector/style/MapLegendOverlay";
 import type { LayerStyleUpdate } from "../inspector/style/legendContract";
@@ -175,6 +182,7 @@ import { useMapWorkflowController } from "./useMapWorkflowController";
 import { IconClose, IconLayers } from "../MapIcons";
 import { usePrefersReducedMotion } from "../../../../hooks/usePrefersReducedMotion";
 import {
+  buildFeatureCollectionMetadata,
   completeCsvImport,
   getFeatureCollectionBounds,
   IMPORT_PROGRESS_THRESHOLD_BYTES,
@@ -1625,6 +1633,151 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       setActiveAnalysisResultLayers([layerId]);
     }
   }, [setActiveAnalysisResultLayers, setSelectedFeatures]);
+
+  const handleCreateAttributeDerivedLayer = useCallback((draft: MapAttributeDerivedFieldDraft) => {
+    const sourceLayer = overlayLayers.find((entry) => entry.id === draft.sourceLayerId);
+    if (!sourceLayer) {
+      toastWarning("The source layer for this field calculation is no longer available.");
+      announce("Field calculation blocked because the source layer is no longer available.");
+      return;
+    }
+
+    const createdAt = new Date().toISOString();
+    const layerId = `derived:fieldcalc:${sourceLayer.id}:${draft.fieldName}:${createdAt.replace(/[.:]/g, "-")}`;
+    const layerName = `Field calc · ${sourceLayer.name} · ${draft.fieldName}`;
+    const baseMetadata = buildFeatureCollectionMetadata(draft.featureCollection as FeatureCollection);
+    const inheritedSchema = sourceLayer.metadata?.schemaSummary?.fields
+      ?? sourceLayer.metadata?.registry?.schemaSummary.fields
+      ?? [];
+    const schemaFieldMap = new Map<string, LayerSchemaFieldSummary>();
+    inheritedSchema.forEach((field) => schemaFieldMap.set(field.name, { ...field }));
+    baseMetadata.schemaSummary?.fields.forEach((field) => {
+      if (!schemaFieldMap.has(field.name)) schemaFieldMap.set(field.name, { ...field });
+    });
+    schemaFieldMap.set(draft.fieldName, {
+      name: draft.fieldName,
+      role: draft.fieldProfile.kind === "temporal" ? "temporal" : "attribute",
+      ...(draft.fieldProfile.kind === "numeric"
+        ? { type: "number" }
+        : draft.fieldProfile.kind === "temporal"
+          ? { type: "date" }
+          : { type: "string" }),
+    });
+    const schemaFields = [...schemaFieldMap.values()];
+    const sourceCrsSummary = sourceLayer.metadata?.crsSummary ?? sourceLayer.metadata?.registry?.crsSummary;
+    const qaBadges = new Set<LayerScientificQABadge>();
+    if (sourceLayer.sourceKind === "demo" || sourceLayer.metadata?.analysisResult?.outputMode === "demo") {
+      qaBadges.add("sample_data");
+    }
+    if (!sourceCrsSummary?.crs) qaBadges.add("missing_crs");
+    if (draft.nullCount > 0 || draft.errorCount > 0) qaBadges.add("uncertain_output");
+    if (sourceLayer.metadata?.analysisResult?.stale) qaBadges.add("stale_result");
+
+    const qaIssueIds = Array.from(new Set([
+      ...(sourceLayer.metadata?.scientificQA?.issueIds ?? []),
+      ...(draft.errorCount > 0 ? ["fieldcalc_evaluation_error"] : []),
+      ...(draft.nullCount > 0 ? ["fieldcalc_null_output"] : []),
+    ]));
+    const qaCaveats = Array.from(new Set([
+      `Sandboxed field calculator expression: ${draft.expression}.`,
+      `Referenced fields: ${draft.referencedFields.join(", ") || "none"}.`,
+      ...draft.warnings,
+      ...(sourceCrsSummary?.notes ?? []),
+      ...((sourceLayer.qaStatus === "warning" || sourceLayer.qaStatus === "error")
+        ? (sourceLayer.metadata?.scientificQA?.caveats ?? [])
+        : []),
+    ]));
+    const qaStatus: LayerQaStatus = sourceLayer.qaStatus === "error" || sourceLayer.metadata?.scientificQA?.status === "error"
+      ? "error"
+      : qaCaveats.length > 0 || sourceLayer.qaStatus === "warning" || sourceLayer.metadata?.scientificQA?.status === "warning"
+        ? "warning"
+        : "passed";
+
+    const derivedLayer: OverlayLayerConfig = {
+      id: layerId,
+      name: layerName,
+      type: sourceLayer.type,
+      visible: true,
+      opacity: sourceLayer.opacity,
+      ...(sourceLayer.style ? { style: sourceLayer.style } : {}),
+      sourceData: draft.featureCollection,
+      queryable: true,
+      sourceKind: "derived",
+      group: "analysis",
+      provenance: {
+        label: layerName,
+        sourceName: sourceLayer.name,
+        method: `Sandboxed field calculator: ${draft.fieldName}`,
+        generatedAt: createdAt,
+        sourceLayerIds: [sourceLayer.id],
+        notes: [
+          `Expression: ${draft.expression}`,
+          ...(draft.referencedFields.length > 0 ? [`Referenced fields: ${draft.referencedFields.join(", ")}`] : []),
+          ...draft.warnings,
+        ],
+      },
+      qaStatus,
+      metadata: {
+        ...baseMetadata,
+        updatedAt: createdAt,
+        dataVersion: `fieldcalc:${createdAt}`,
+        fields: schemaFields.map((field) => field.name),
+        schemaSummary: {
+          fieldCount: schemaFields.length,
+          fields: schemaFields,
+          source: "analysis-result",
+          notes: [`Derived field ${draft.fieldName} generated from a sandboxed calculator expression.`],
+          ...(baseMetadata.schemaSummary?.geometryField ? { geometryField: baseMetadata.schemaSummary.geometryField } : {}),
+        },
+        ...(sourceCrsSummary ? {
+          crsSummary: {
+            crs: sourceCrsSummary.crs,
+            status: sourceCrsSummary.status,
+            source: sourceCrsSummary.source,
+            notes: [...sourceCrsSummary.notes],
+          },
+        } : {}),
+        scientificQA: {
+          status: qaStatus,
+          issueIds: qaIssueIds,
+          badges: [...qaBadges],
+          checkedAt: createdAt,
+          featureIssueCount: draft.nullCount + draft.errorCount,
+          usedWorker: false,
+          caveats: qaCaveats,
+          signature: `fieldcalc:${sourceLayer.id}:${draft.fieldName}:${createdAt}`,
+        },
+      },
+    };
+
+    addOverlayLayer(derivedLayer);
+    setAttributeTableLayerId(derivedLayer.id);
+    setActiveAnalysisResultLayers([derivedLayer.id]);
+    recordMapReviewEvent({
+      type: "layer-change",
+      status: "applied",
+      title: `Field calculator applied: ${draft.fieldName}`,
+      summary: `${sourceLayer.name} produced ${layerName} with a sandboxed calculator expression and preserved provenance/QA caveats.`,
+      layerIds: [sourceLayer.id, derivedLayer.id],
+      actionIds: [draft.fieldName],
+      details: {
+        expression: draft.expression,
+        sourceLayerId: sourceLayer.id,
+        derivedLayerId: derivedLayer.id,
+        referencedFieldCount: draft.referencedFields.length,
+        nullCount: draft.nullCount,
+        totalValueCount: draft.totalValueCount,
+        errorCount: draft.errorCount,
+      },
+      undo: {
+        available: false,
+        outcome: "Derived layer added to the analysis stack.",
+      },
+    });
+    const message = `Derived layer created: ${layerName}.`;
+    toastSuccess(message);
+    announce(message);
+  }, [addOverlayLayer, announce, overlayLayers, recordMapReviewEvent, setActiveAnalysisResultLayers]);
 
   const handleSelectionQueryResult = useCallback((result: MapQueryExecutionResult, label: string) => {
     const layerIds = result.layers
@@ -6596,6 +6749,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               selectedIds={selectedFeatureIds[attributeTableLayer.id] ?? []}
               onSelectFeatures={(featureIds) => handleAttributeTableSelection(attributeTableLayer.id, featureIds)}
               onFocusFeature={handleFocusAttributeFeature}
+              onCreateDerivedLayer={handleCreateAttributeDerivedLayer}
               onClose={() => {
                 setAttributeTableLayerId(null);
                 announce("Attribute table closed");

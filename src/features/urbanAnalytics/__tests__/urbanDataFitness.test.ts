@@ -199,6 +199,67 @@ describe('computeUrbanDataFitnessProfile', () => {
     expect(profile.uncertaintyNotes.join(' ')).toContain('Based on: Missing CRS polygons');
   });
 
+  it('uses bridged field counts to score missingness when the field summary is complete', () => {
+    const layer: OverlayLayerConfig = {
+      id: 'field-missingness-polygons',
+      name: 'Field missingness polygons',
+      type: 'geojson',
+      visible: true,
+      opacity: 1,
+      sourceKind: 'project',
+      sourceData: {
+        type: 'FeatureCollection',
+        features: [
+          {
+            type: 'Feature',
+            id: 'feature-1',
+            geometry: {
+              type: 'Polygon',
+              coordinates: [[[29, 41], [29.02, 41], [29.02, 41.02], [29, 41.02], [29, 41]]],
+            },
+            properties: {
+              population: 1200,
+              area_m2: 400,
+            },
+          },
+          {
+            type: 'Feature',
+            id: 'feature-2',
+            geometry: {
+              type: 'Polygon',
+              coordinates: [[[29.03, 41], [29.05, 41], [29.05, 41.02], [29.03, 41.02], [29.03, 41]]],
+            },
+            properties: {
+              population: null,
+              area_m2: 420,
+            },
+          },
+        ],
+      } as FeatureCollection,
+      metadata: {
+        featureCount: 2,
+        geometryType: 'Polygon',
+        fields: ['population', 'area_m2'],
+        crsSummary: {
+          crs: 'EPSG:3857',
+          status: 'known',
+          source: 'explicit',
+          notes: [],
+        },
+      },
+    };
+
+    const profile = computeUrbanDataFitnessFromMapContext(payloadForLayer(layer), {
+      requiredFields: ['population'],
+      requiredGeometryTypes: ['polygon'],
+    });
+
+    expect(profile.missingness.status).toBe('blocked');
+    expect(profile.missingness.score).toBe(20);
+    expect(profile.missingInputs).not.toContain('missingness metadata');
+    expect(profile.issues.some((issue) => issue.code === 'missing_missingness_metadata')).toBe(false);
+  });
+
   it('extracts a user-declared CRS as a caveated input from layer metadata', () => {
     const layer: OverlayLayerConfig = {
       id: 'declared-layer',
