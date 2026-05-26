@@ -2,6 +2,7 @@ import React from "react";
 import {
   AlertTriangle,
   BarChart3,
+  Boxes,
   Building2,
   ChevronDown,
   Circle,
@@ -96,6 +97,9 @@ export interface MapToolbarProps {
   showPerformanceDiagnostics?: boolean;
   onTogglePerformanceDiagnostics?: () => void;
   performanceIssueCount?: number;
+  showProcessingToolbox?: boolean;
+  onToggleProcessingToolbox?: () => void;
+  processingToolCount?: number;
   showFigureComposer?: boolean;
   onToggleFigureComposer?: () => void;
   showChoroplethPanel?: boolean;
@@ -204,6 +208,8 @@ interface BuildToolbarCommandsArgs extends Required<Pick<
   | "reviewEventCount"
   | "showPerformanceDiagnostics"
   | "performanceIssueCount"
+  | "showProcessingToolbox"
+  | "processingToolCount"
   | "showFigureComposer"
   | "showChoroplethPanel"
   | "showClusterViz"
@@ -239,6 +245,7 @@ interface BuildToolbarCommandsArgs extends Required<Pick<
   onToggleWorkflowDrawer?: (() => void) | undefined;
   onToggleReviewTimeline?: (() => void) | undefined;
   onTogglePerformanceDiagnostics?: (() => void) | undefined;
+  onToggleProcessingToolbox?: (() => void) | undefined;
   onToggleFigureComposer?: (() => void) | undefined;
   onToggleChoroplethPanel?: (() => void) | undefined;
   onToggleClusterViz?: (() => void) | undefined;
@@ -813,6 +820,24 @@ function buildToolbarCommands(args: BuildToolbarCommandsArgs): ToolbarCommand[] 
     badge: args.performanceIssueCount > 0 ? args.performanceIssueCount : null,
     tone: args.performanceIssueCount > 0 ? "warning" : "default",
     contextBoost: "quality",
+    navigator: true,
+  });
+
+  add(args.onToggleProcessingToolbox && {
+    id: "processing-toolbox",
+    label: "Toolbox",
+    shortLabel: "Tools",
+    title: "Open the processing toolbox: searchable geometry and selection tools",
+    keywords: ["processing", "toolbox", "buffer", "centroid", "attribute filter", "geoprocessing", "tools"],
+    icon: Boxes,
+    onClick: args.onToggleProcessingToolbox,
+    roles: ["analyze", "explore"],
+    overflowGroup: "advanced",
+    priority: args.showProcessingToolbox ? 124 : 86,
+    active: args.showProcessingToolbox,
+    badge: args.processingToolCount > 0 ? args.processingToolCount : null,
+    tone: "default",
+    contextBoost: "polygon",
     navigator: true,
   });
 
@@ -1461,6 +1486,9 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
   showPerformanceDiagnostics = false,
   onTogglePerformanceDiagnostics,
   performanceIssueCount = 0,
+  showProcessingToolbox = false,
+  onToggleProcessingToolbox,
+  processingToolCount = 0,
   showFigureComposer = false,
   onToggleFigureComposer,
   showChoroplethPanel = false,
@@ -1582,6 +1610,9 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       showPerformanceDiagnostics,
       onTogglePerformanceDiagnostics,
       performanceIssueCount,
+      showProcessingToolbox,
+      onToggleProcessingToolbox,
+      processingToolCount,
       showFigureComposer,
       onToggleFigureComposer,
       showChoroplethPanel,
@@ -1668,6 +1699,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       onToggleMeasurePanel,
       onToggleNLQueryPanel,
       onTogglePerformanceDiagnostics,
+      onToggleProcessingToolbox,
       onToggleWorkflowDrawer,
       onTogglePinMode,
       onToggleRestrictToMapView,
@@ -1677,6 +1709,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       onToggleVoxCityOverlayPanel,
       persistenceDisabled,
       performanceIssueCount,
+      processingToolCount,
       pinCount,
       pinMode,
       restrictToMapView,
@@ -1695,6 +1728,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       showMeasurePanel,
       showNLQueryPanel,
       showPerformanceDiagnostics,
+      showProcessingToolbox,
       showReviewTimeline,
       showFigureComposer,
       showWorkflowDrawer,

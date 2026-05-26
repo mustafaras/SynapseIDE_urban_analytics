@@ -378,6 +378,7 @@ export type ToolParameterType =
   | "layer"
   | "field"
   | "number"
+  | "text"
   | "enum"
   | "crs"
   | "aoi"
@@ -389,6 +390,10 @@ export interface ToolParameterDescriptor {
   type: ToolParameterType;
   required: boolean;
   enumValues?: string[];
+  /** Optional default seeded into the parameter form. */
+  defaultValue?: string | number | boolean;
+  /** Optional help text shown under the field. */
+  help?: string;
 }
 
 export interface ProcessingToolDescriptor {

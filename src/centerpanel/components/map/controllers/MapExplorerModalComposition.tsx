@@ -90,6 +90,12 @@ import {
   MapPerformanceBudgetBanner,
   MapPerformanceDiagnosticsPanel,
 } from "../MapPerformanceDiagnosticsPanel";
+import { MapProcessingToolboxPanel, type ProcessingToolboxLayerOption } from "../processing";
+import {
+  createMapProcessingRegistry,
+  previewProcessingTool,
+  runProcessingTool,
+} from "../../../../services/map/processing";
 import { MapAttributeTable, type AttrFeature } from "../table/MapAttributeTable";
 import { CartographyRecommendationList } from "../CartographyRecommendationList";
 import { MapLegendOverlay } from "../inspector/style/MapLegendOverlay";
@@ -1041,6 +1047,37 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     setShowPerformanceDiagnostics((previous) => !previous);
     announce("Performance diagnostics toggled");
   }, [announce]);
+  const [showProcessingToolbox, setShowProcessingToolbox] = useState(false);
+  const handleToggleProcessingToolbox = useCallback(() => {
+    setShowProcessingToolbox((previous) => !previous);
+    announce("Processing toolbox toggled");
+  }, [announce]);
+  const processingRegistry = useMemo(() => createMapProcessingRegistry(), []);
+  const searchProcessingTools = useCallback(
+    (query: string) => processingRegistry.search(query),
+    [processingRegistry],
+  );
+  const processingToolboxLayers = useMemo<ProcessingToolboxLayerOption[]>(
+    () =>
+      overlayLayers.map((layer) => ({
+        id: layer.id,
+        name: layer.name,
+        fields:
+          layer.metadata?.schemaSummary?.fields.map((field) => field.name) ??
+          layer.metadata?.fields ??
+          [],
+      })),
+    [overlayLayers],
+  );
+  const handlePreviewProcessingTool = useCallback(
+    (toolId: string, params: Record<string, string | number | boolean>) =>
+      previewProcessingTool(
+        toolId,
+        params,
+        (id) => useMapExplorerStore.getState().overlayLayers.find((layer) => layer.id === id) ?? null,
+      ),
+    [],
+  );
   const [inspectorLayerId, setInspectorLayerId] = useState<string | null>(null);
   const inspectorLayer = inspectorLayerId
     ? overlayLayers.find((entry) => entry.id === inspectorLayerId) ?? null
@@ -1351,6 +1388,33 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       announce(`Layer removal blocked: ${outcome.preflight.blockers.join(" ")}`);
     }
   }, [announce, buildMapActionEffects, recordMapReviewEvent]);
+
+  const handleRunProcessingTool = useCallback(
+    (toolId: string, params: Record<string, string | number | boolean>) => {
+      const result = runProcessingTool(toolId, params, buildMapActionEffects());
+      if (!result) return null;
+      if (result.reviewEvent) recordMapReviewEvent(result.reviewEvent);
+      if (result.status === "applied") {
+        if (result.revertToken) {
+          mapActionHistoryRef.current = recordMapActionHistoryEntry(mapActionHistoryRef.current, {
+            commandId: result.command.commandId,
+            kind: result.command.kind,
+            title: result.reviewEvent?.title ?? result.descriptor.title,
+            reviewEventId: result.command.reviewEventId ?? result.command.commandId,
+            appliedAt: result.command.createdAt,
+            revertable: result.command.revertable,
+            reverted: false,
+            revertToken: result.revertToken,
+          });
+        }
+        announce(`${result.descriptor.title} applied; output layer added. Revert is available in the review timeline.`);
+      } else {
+        announce(`${result.descriptor.title} blocked: ${result.preview.blockers.join(" ")}`);
+      }
+      return result;
+    },
+    [announce, buildMapActionEffects, recordMapReviewEvent],
+  );
 
   const handleCommitDrawnFeatureEdit = useCallback((id: string, before: DrawnFeature, after: DrawnFeature) => {
     const validation = after.properties.validation ?? validateDrawnGeometry(after.geometry);
@@ -5648,6 +5712,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               showPerformanceDiagnostics={showPerformanceDiagnostics}
               onTogglePerformanceDiagnostics={handleTogglePerformanceDiagnostics}
               performanceIssueCount={performanceIssueCount}
+              showProcessingToolbox={showProcessingToolbox}
+              onToggleProcessingToolbox={handleToggleProcessingToolbox}
+              processingToolCount={processingRegistry.implementedCount()}
               showFigureComposer={showFigureComposer}
               onToggleFigureComposer={handleToggleFigureComposer}
               showChoroplethPanel={showChoroplethPanel}
@@ -6240,6 +6307,18 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               setShowPerformanceDiagnostics(false);
               announce("Performance diagnostics closed");
             }}
+          />
+
+          <MapProcessingToolboxPanel
+            visible={showProcessingToolbox && !navigatorStageMode}
+            onClose={() => {
+              setShowProcessingToolbox(false);
+              announce("Processing toolbox closed");
+            }}
+            searchTools={searchProcessingTools}
+            layers={processingToolboxLayers}
+            onPreview={handlePreviewProcessingTool}
+            onRun={handleRunProcessingTool}
           />
 
           <WorkflowPreviewOverlay preview={effectiveShowWorkflowDrawer ? workflowPreview : null} />
