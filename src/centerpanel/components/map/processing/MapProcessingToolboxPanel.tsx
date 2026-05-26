@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from "react";
-import { Boxes, Play, X } from "lucide-react";
+import { Boxes, Cpu, Play, X } from "lucide-react";
 import type { ProcessingToolDescriptor } from "@/services/map/contracts/gisContracts";
 import type {
   ProcessingPreviewOutcome,
@@ -214,6 +214,30 @@ const logStyle: React.CSSProperties = {
   whiteSpace: "pre-wrap",
 };
 
+const RUNTIME_LABELS: Record<string, string> = {
+  "main-preview": "Main-thread preview",
+  worker: "Background worker",
+  "geos-wasm": "GEOS (wasm)",
+  duckdb: "DuckDB (wasm)",
+};
+
+const progressTrackStyle: React.CSSProperties = {
+  height: "4px",
+  borderRadius: MAP_RADIUS.sm,
+  background: MAP_COLORS.neutralSubtle,
+  overflow: "hidden",
+};
+
+/** Static (reduced-motion-safe) completion bar: the reference/service tools run
+ *  synchronously, so the bar reflects the finished run rather than faking motion. */
+function progressFillStyle(status: "applied" | "blocked"): React.CSSProperties {
+  return {
+    height: "100%",
+    width: status === "applied" ? "100%" : "8%",
+    background: status === "applied" ? MAP_COLORS.success : MAP_COLORS.error,
+  };
+}
+
 export function MapProcessingToolboxPanel({
   visible,
   onClose,
@@ -344,7 +368,10 @@ export function MapProcessingToolboxPanel({
                 <span style={chipStyle(selected.requiresCrs ? "crs" : "neutral")} data-testid="processing-tool-crs-chip">
                   {selected.requiresCrs ? "CRS required" : "No CRS"}
                 </span>
-                <span style={chipStyle("mode")}>{selected.executionMode}</span>
+                <span style={chipStyle("mode")} data-testid="processing-tool-runtime-chip">
+                  <Cpu size={11} aria-hidden style={{ marginRight: 4, verticalAlign: "middle" }} />
+                  {RUNTIME_LABELS[selected.executionMode] ?? selected.executionMode}
+                </span>
               </div>
 
               <ToolParameterForm
@@ -393,6 +420,9 @@ export function MapProcessingToolboxPanel({
                   data-testid="processing-run-result"
                   data-run-status={lastRun.status}
                 >
+                  <div style={progressTrackStyle} data-testid="processing-run-progress" aria-hidden>
+                    <div style={progressFillStyle(lastRun.status === "applied" ? "applied" : "blocked")} />
+                  </div>
                   {lastRun.status === "applied" ? (
                     <>
                       <strong>Applied · output layer added</strong>
