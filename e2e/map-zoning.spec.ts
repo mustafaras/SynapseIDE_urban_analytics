@@ -117,7 +117,7 @@ test.describe("Prompt 31 — Zoning rule engine @smoke", () => {
       const assignment = s.assignments.find((a) => String(a.parcelFeatureId) === "1");
       return {
         blocked: assignment?.metrics?.crsResult.blocked ?? null,
-        far: assignment?.metrics?.existingFAR ?? "none",
+        far: assignment?.metrics != null ? assignment.metrics.existingFAR : "none",
         caveats: assignment?.metrics?.caveats ?? [],
       };
     });
