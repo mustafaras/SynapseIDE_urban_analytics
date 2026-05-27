@@ -4,69 +4,173 @@ Browser-based spatial intelligence platform: tri-modal workbench (Synapse IDE + 
 
 > Full conventions: [AGENTS.md](AGENTS.md). Read it on demand, not eagerly.
 
+---
+
 ## Always-true rules (do not violate)
 
 - **No Tailwind in `src/centerpanel/`** — enforced by `npm run lint:no-tailwind-centerpanel`.
-- **CRS**: never compute area/distance in EPSG:4326. Project first.
+- **CRS**: never compute area/distance in EPSG:4326. Project first (`requiredCrs` on every method).
 - **`exactOptionalPropertyTypes: true`** — `prop?: string` ≠ `prop: string | undefined`.
-- **Evidence artifacts immutable** — mark stale via QA, never silently mutate.
-- **No fake/synthetic data labelled as real** — capability status must be explicit.
+- **Evidence artifacts immutable** — mark stale via QA state, never silently mutate or delete.
+- **No fake/synthetic data labelled as real** — capability status must be explicit: `implemented` | `demo_mode` | `residual_gap` | `environment_dependent` | `deferred`.
 - **State**: Zustand only. No Redux, no Context for app state. Use fine-grained selectors.
-- **No direct `localStorage`** — use Zustand `persist`.
+- **No direct `localStorage`** — use Zustand `persist` middleware (namespaced: `urban.ctx.*`, `urban.config.*`).
+- **Max 200 `UrbanEvidenceArtifact` instances** per context session (enforced in `context/evidenceArtifacts.ts`).
+- **`data.score` is `null` when metadata unknown** — treat `null` as unknown, never as high fitness.
+- **No heavy geometry through generic UI events** — use bridge services or typed events.
 
-## After any change to `src/features/urbanAnalytics/`
+---
 
-```bash
-npm run typecheck
-npm run test:analytics
-```
-
-## Other commands (only when relevant)
+## Commands
 
 ```bash
-npm run dev              # Vite + terminal server
-npm run lint:errors      # eslint quiet
-npm run test             # full vitest
-npm run test:e2e         # Playwright (needs dev server)
-npm run validate:rc      # full RC gate
+npm run dev              # Vite + terminal server (localhost:5173, port 9231)
+npm run typecheck        # tsc --noEmit — run after every change
+npm run lint:errors      # eslint quiet (errors only)
+npm run lint:no-tailwind-centerpanel  # fails if Tailwind found in centerpanel/
+npm run test             # vitest run (full suite)
+npm run test:analytics   # UA + engine subset — fastest for UA/engine work
+npm run test:e2e         # Playwright (needs dev server running)
+npm run test:e2e:smoke   # @smoke tagged only
+npm run test:e2e:a11y    # accessibility audit only
+npm run validate:rc      # full RC gate: typecheck + lint + test + build + perf:budgets + e2e:ci
+npm run build            # production build (12 GB heap)
+npm run color:guard      # regression check on color palette
+npm run deadcode         # ts-prune dead export scan
+npm run format           # prettier
 ```
 
-## Multi-session work — archived UA / Map / IDE pack
+**After any change to `src/features/urbanAnalytics/`:**
+```bash
+npm run typecheck && npm run test:analytics
+```
 
-The previous `DEVELOPMENT_PLANS/` operating pack is complete. The root planning folder has been removed; historical ledgers, manifests, prompt ladders, and alignment documents live here:
+**Map tests** run via `npx vitest run <path>` (not `test:analytics`).
+
+---
+
+## Architecture — three bounded modules
+
+| Module | Owns | Never owns |
+|---|---|---|
+| **Urban Analytics** (`src/features/urbanAnalytics/`) | Analysis context, method catalog, indicators, evidence artifacts, data fitness, method validity, workflow run manifests | Map rendering, editor tabs, large geometry buffers |
+| **Map Explorer** (`src/stores/useMapExplorerStore.ts`, `src/services/map/`) | Map viewport, layer rendering, geometry, feature selection | Analytical interpretation, indicator formulas |
+| **Synapse IDE** (`src/stores/appStore.ts`, `src/stores/editorStore.ts`) | Editor state, file buffers, terminal, AI chat | Spatial data, analytical context |
+
+Cross-module sync: Zustand selectors → [`usePanelBridgeStore`](src/stores/usePanelBridgeStore.ts) → typed bridges ([`editorBridge.ts`](src/services/editorBridge.ts), [`MapEngineAdapter.ts`](src/services/map/MapEngineAdapter.ts)).
+
+---
+
+## Key source files
+
+| Path | What it is |
+|---|---|
+| `src/features/urbanAnalytics/lib/types.ts` | Core domain types (~2 070 lines): scales, tags, indicator kinds, evidence artifacts, method validity, data fitness |
+| `src/features/urbanAnalytics/useUrbanContextStore.ts` | Context kernel store — immer + persist |
+| `src/features/urbanAnalytics/context/evidenceArtifacts.ts` | Evidence artifact registry, provenance, QA |
+| `src/features/urbanAnalytics/lib/methodValidity.ts` | Method validity assessment helpers |
+| `src/features/urbanAnalytics/lib/dataFitness.ts` | Data fitness scoring helpers |
+| `src/features/urbanAnalytics/seeds/` | 16+ seed method/dataset definitions |
+| `src/centerpanel/Flows/flowTypes.ts` | Workflow run shapes |
+| `src/stores/usePanelBridgeStore.ts` | CenterPanel ↔ RightPanel coordination contract |
+| `src/services/map/MapEngineAdapter.ts` | Map layer publication API |
+| `src/services/editorBridge.ts` | IDE code artifact bridge |
+| `src/services/map/contracts/gisContracts.ts` | **Shared GIS type contracts — import, never redefine** |
+| `src/centerpanel/components/map/__tests__/fixtures/gisFixtures.ts` | **Shared test fixtures — import, never redefine** |
+| `src/lib/error-bus.ts` | Centralized error emission and deduplication |
+
+---
+
+## State management
+
+All state is Zustand. No Redux, no Context API for app state.
+
+| Store | Purpose |
+|---|---|
+| `src/features/urbanAnalytics/useUrbanContextStore.ts` | Core analytical context kernel |
+| `src/features/urbanAnalytics/store.ts` | Navigation, section hierarchy, card library filtering |
+| `src/stores/useFlowStore.ts` | Analytical workflow state (active flow, completed runs) |
+| `src/stores/usePanelBridgeStore.ts` | CenterPanel ↔ RightPanel coordination |
+| `src/stores/useMapExplorerStore.ts` | Map layers, bounds, basemaps, overlay visibility |
+| `src/stores/useAiConfigStore.ts` | AI provider settings (OpenAI, Anthropic, local) |
+| `src/stores/useUrbanContextStore.ts` (alias) | See urbanAnalytics above |
+
+---
+
+## TypeScript strictness
+
+`tsconfig.app.json`: `strict`, `noUnusedLocals`, `noUnusedParameters`, `exactOptionalPropertyTypes`, `noImplicitReturns`, `noImplicitOverride`. No silent `any` — use `unknown` + narrowing.
+
+**Path aliases** (`@/*` → `src/*`): `@/components/*`, `@/hooks/*`, `@/utils/*`, `@/types/*`, `@/stores/*`, `@/services/*`, `@/ai/*`, `@/features/*`.
+
+---
+
+## UI conventions
+
+- **CSS**: CSS Modules (`*.module.css`) for `centerpanel/` — no Tailwind. Styled-components for shell/templates. camelCase in JSX (`styles.myClass`), kebab-case in `.module.css` (`.my-class`).
+- **Component libraries**: Radix UI (headless), deck.gl 9 (geo layers), React Three Fiber (3D), Chart.js, xterm.js.
+- **Design language**: Minimal premium — dense typography, thin separators, restrained amber accents. No decorative cards-in-cards, no marketing hero layouts.
+
+---
+
+## Worker / compute architecture
+
+- **Web workers** (`src/workers/`): GWR regression, hashing, PII redaction, search indexing.
+- **Worker pool** (`src/workers/pool/BackgroundWorkerPool.ts`): thread lifecycle, task queuing, resource limits.
+- **WASM** (`src/engine/wasm/SpatialIndexWASM.ts`): R-tree spatial index with JS fallback (`preferredBackend: 'wasm' | 'javascript'`).
+- **DuckDB-WASM** (`src/engine/spatial-db/`): in-browser SQL for large datasets.
+- **GPU** (`src/engine/gpu/`): WebGPU-accelerated spatial operations.
+
+Offload heavy computation to workers. Never block the main thread with spatial loops over large feature sets.
+
+---
+
+## Testing conventions
+
+- **Framework**: vitest with v8 coverage; coverage policy in `src/config/coveragePolicy.json`.
+- **Location**: `src/**/__tests__/**/*.test.{ts,tsx}` — colocated `__tests__` folders.
+- **Mocking**: `vi.mock()` for stores and services; test store logic through actions + selectors, not internals.
+- **E2E**: Playwright in `e2e/` — 25+ specs tagged `@smoke` / `@a11y` / functional; needs dev server.
+
+---
+
+## Common pitfalls
+
+- Importing from a store you don't own → implicit cross-module coupling. Use bridge services or typed events.
+- Adding fake citations, synthetic QA scores, or placeholder evidence violates the scientific evidence contract.
+- `exactOptionalPropertyTypes` means `prop?: string` and `prop: string | undefined` are different — be precise.
+- The `centerpanel/` tree must not use Tailwind — `lint:no-tailwind-centerpanel` will fail CI.
+- Never call `localStorage` directly.
+- `data.score === null` means unknown fitness, not high fitness.
+
+---
+
+## Active operating pack — Map Explorer Production GIS (2026-05-22)
+
+If asked to implement a "Prompt N" / "Map Explorer GIS" / "production GIS" task, the active pack is `MAP_EXPLORER_PRODUCTION_GIS_PLAN_2026-05-22/`. **Start with [LEDGER.md](MAP_EXPLORER_PRODUCTION_GIS_PLAN_2026-05-22/LEDGER.md)** — it holds execution state (which prompts are done/next), cold-start resume steps, and the update protocol. Then read [15_AGENT_EXECUTION_PROMPTS.md](MAP_EXPLORER_PRODUCTION_GIS_PLAN_2026-05-22/15_AGENT_EXECUTION_PROMPTS.md) — especially "Cold-start protocol (anti-amnesia)", "Repo Reality Notes", "Agent Contract v2", "Canonical Type Contracts", and "Shared Test Fixtures".
+
+**Current ledger state (as of 2026-05-27):** Prompts 0–22 complete ✅. Next: Prompt 23 (performance budgets + render diagnostics).
+
+After finishing a prompt, update the ledger (status + Done Log) in the same commit.
+
+---
+
+## Multi-session work — archived pack
+
+The previous `DEVELOPMENT_PLANS/` operating pack is complete (UA, Map Explorer, Synapse IDE: `all_completed`). Historical ledgers live at:
 
 ```text
 docs/archive/development-plans/tri-modal-operating-pack-2026-05-20/
 ```
 
-Completion status at archive time:
-- Urban Analytics: `all_completed`
-- Map Explorer: `all_completed`
-- Synapse IDE: `all_completed`
+Start with [README.md](docs/archive/development-plans/tri-modal-operating-pack-2026-05-20/README.md) and [ARCHIVE_INDEX.md](docs/archive/development-plans/tri-modal-operating-pack-2026-05-20/ARCHIVE_INDEX.md). Treat as historical reference only.
 
-For archive lookup, start with [README.md](docs/archive/development-plans/tri-modal-operating-pack-2026-05-20/README.md) and [ARCHIVE_INDEX.md](docs/archive/development-plans/tri-modal-operating-pack-2026-05-20/ARCHIVE_INDEX.md). Treat the archived pack as historical reference only; new structured work should begin from a new operating pack or a user-directed task.
+---
 
-## Active operating pack — Map Explorer Production GIS (2026-05-22)
+## Token-economy guidelines
 
-If asked to implement a "Prompt N" / "Map Explorer GIS" / "production GIS" task, the active pack is `MAP_EXPLORER_PRODUCTION_GIS_PLAN_2026-05-22/`. **Start with [LEDGER.md](MAP_EXPLORER_PRODUCTION_GIS_PLAN_2026-05-22/LEDGER.md)** — it holds execution state (which prompts are done/next), the cold-start resume steps, and the update protocol. Then read [15_AGENT_EXECUTION_PROMPTS.md](MAP_EXPLORER_PRODUCTION_GIS_PLAN_2026-05-22/15_AGENT_EXECUTION_PROMPTS.md) — specifically its "Cold-start protocol (anti-amnesia)", "Repo Reality Notes", "Agent Contract v2", "Canonical Type Contracts", and "Shared Test Fixtures" sections. After finishing a prompt, update the ledger (status + Done Log) in the same commit. Shared shapes are committed in [`gisContracts.ts`](src/services/map/contracts/gisContracts.ts); shared test fixtures in [gisFixtures.ts](src/centerpanel/components/map/__tests__/fixtures/gisFixtures.ts). Import these rather than re-defining them. Map tests run via `npx vitest run <path>` (not `test:analytics`).
-
-## Token-economy guidelines for this repo
-
-- Don't `Get-ChildItem -Recurse` from project root — `.venv`/`node_modules` are huge. Use Glob.
+- Don't `Get-ChildItem -Recurse` from project root — `.venv`/`node_modules` are huge. Use Glob or targeted `find`.
 - Don't Read `package-lock.json` or any file in `dist/` / `coverage/`.
-- For "where is X" type questions across the repo, delegate to the Explore subagent.
+- For "where is X" questions across the repo, delegate to the Explore subagent.
 - Use `/clear` after long ledger reads; use `/compact` in long sessions.
-
-## Module ownership (cross-module coupling = bug)
-
-| Module | Owns | Never owns |
-|---|---|---|
-| Urban Analytics (`src/features/urbanAnalytics/`) | analysis context, methods, indicators, evidence, validity | map rendering, editor tabs, geometry buffers |
-| Map Explorer (`src/stores/useMapExplorerStore.ts`, `src/services/map/`) | viewport, layers, geometry, selection | analytical interpretation, indicator formulas |
-| Synapse IDE (`src/stores/appStore.ts`, `src/stores/editorStore.ts`) | editor, buffers, terminal, AI chat | spatial data, analytical context |
-
-Sync via Zustand selectors, [`usePanelBridgeStore`](src/stores/usePanelBridgeStore.ts), and typed bridges ([`editorBridge.ts`](src/services/editorBridge.ts), [`MapEngineAdapter.ts`](src/services/map/MapEngineAdapter.ts)). No heavy geometry through generic UI events.
-
-## Path aliases
-
-`@/*` → `src/*` (also `@/components/*`, `@/hooks/*`, `@/utils/*`, `@/types/*`, `@/stores/*`, `@/services/*`, `@/ai/*`, `@/features/*`).
+- Import shared GIS contracts and test fixtures — never redefine them locally.
