@@ -89,6 +89,8 @@ import {
 } from "@/services/map/DrawnGeometryValidation";
 import { MapReviewTimelinePanel } from "../MapReviewTimelinePanel";
 import { MapLayoutDesignerPanel } from "../layout/MapLayoutDesignerPanel";
+import { Scene3DPanel } from "../scene3d/Scene3DPanel";
+import { ZoningRulesPanel } from "../zoning/ZoningRulesPanel";
 import {
   MapPerformanceBudgetBanner,
   MapPerformanceDiagnosticsPanel,
@@ -1075,6 +1077,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   } = useMapWorkflowController();
   const [showReviewTimeline, setShowReviewTimeline] = useState(false);
   const [showFigureComposer, setShowFigureComposer] = useState(false);
+  const [show3DPanel, setShow3DPanel] = useState(false);
+  const [showZoningPanel, setShowZoningPanel] = useState(false);
   const handleToggleFigureComposer = useCallback(() => setShowFigureComposer((previous) => !previous), []);
   const [showPerformanceDiagnostics, setShowPerformanceDiagnostics] = useState(false);
   const [performanceTimings, setPerformanceTimings] = useState<MapPerformanceTimingMetric[]>([]);
@@ -6803,6 +6807,44 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             }}
             onAnnounce={announce}
           />
+
+          {/* 3D + Zoning toggle triggers — accessible via toolbar or testid */}
+          <button
+            type="button"
+            data-testid="toggle-3d-panel"
+            aria-label="Toggle 3D scene panel"
+            style={{ display: "none" }}
+            onClick={() => setShow3DPanel((p) => !p)}
+          />
+          <button
+            type="button"
+            data-testid="toggle-zoning-panel"
+            aria-label="Toggle zoning rules panel"
+            style={{ display: "none" }}
+            onClick={() => setShowZoningPanel((p) => !p)}
+          />
+
+          {show3DPanel && !navigatorStageMode && (
+            <Scene3DPanel
+              visible
+              onClose={() => {
+                setShow3DPanel(false);
+                announce("3D scene panel closed");
+              }}
+              onModeChange={(mode) => announce(`3D mode: ${mode}`)}
+            />
+          )}
+
+          {showZoningPanel && !navigatorStageMode && (
+            <ZoningRulesPanel
+              visible
+              onClose={() => {
+                setShowZoningPanel(false);
+                announce("Zoning rules panel closed");
+              }}
+              selectedParcelId={selectedFeatureIds[0] ?? null}
+            />
+          )}
 
           <MapPerformanceDiagnosticsPanel
             visible={showPerformanceDiagnostics && !navigatorStageMode}
