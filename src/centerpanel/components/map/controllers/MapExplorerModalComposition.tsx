@@ -6,6 +6,9 @@ import {
   BASE_STYLES,
   type DrawnFeature,
   type DrawToolId,
+  type LayerQaStatus,
+  type LayerSchemaFieldSummary,
+  type LayerScientificQABadge,
   MAP_BOOKMARK_LIMIT,
   MAP_LAYER_REGISTRY_EVENT,
   type MapEvidenceScalar,
@@ -85,8 +88,58 @@ import {
   validateDrawnGeometry,
 } from "@/services/map/DrawnGeometryValidation";
 import { MapReviewTimelinePanel } from "../MapReviewTimelinePanel";
-import { MapFigureComposerPanel } from "../layout/MapFigureComposerPanel";
-import { MapAttributeTable, type AttrFeature } from "../table/MapAttributeTable";
+import { MapLayoutDesignerPanel } from "../layout/MapLayoutDesignerPanel";
+import { Scene3DPanel } from "../scene3d/Scene3DPanel";
+import { Scene3DInteractionStrip } from "../scene3d/Scene3DInteractionStrip";
+import { ScenarioComparisonStrip } from "../scene3d/ScenarioComparisonStrip";
+import { SunShadowPanel } from "../scene3d/SunShadowPanel";
+import { ZoningRulesPanel } from "../zoning/ZoningRulesPanel";
+import { MassingScenarioPanel } from "../zoning/MassingScenarioPanel";
+import {
+  MapPerformanceBudgetBanner,
+  MapPerformanceDiagnosticsPanel,
+} from "../MapPerformanceDiagnosticsPanel";
+import { MapProcessingToolboxPanel, type ProcessingToolboxLayerOption } from "../processing";
+import { MapModelBuilderPanel } from "../modelBuilder";
+import {
+  MapCatalogPanel,
+  attachSourceHandleToExternalLayer,
+  buildCatalogConnectionLayer,
+  buildDemoPackCatalogInsertion,
+  type MapCatalogActionResult,
+  type MapCatalogConnectionDraft,
+  type MapCatalogItem,
+  type MapCatalogLayerInsertion,
+} from "../catalog";
+import {
+  MapContentsTreePanel,
+  applyContentsToRenderLayers,
+  duplicateMapContentsLayer,
+} from "../contents";
+import {
+  createMapProcessingRegistry,
+  previewProcessingTool,
+  runProcessingTool,
+} from "../../../../services/map/processing";
+import {
+  buildMapModelCodeArtifactRequest,
+  executeMapModel,
+  executeMapModelBatch,
+  type MapModelBatchResult,
+  type MapModelBatchTarget,
+  type MapModelDefinition,
+  type MapModelRunResult,
+} from "../../../../services/map/model";
+import {
+  cacheConnectionMetadata,
+  checkConnectionHealth,
+  createConnectionDescriptor,
+} from "../../../../services/map/sources/MapConnectionRegistry";
+import {
+  MapAttributeTable,
+  type AttrFeature,
+  type MapAttributeDerivedFieldDraft,
+} from "../table/MapAttributeTable";
 import { CartographyRecommendationList } from "../CartographyRecommendationList";
 import { MapLegendOverlay } from "../inspector/style/MapLegendOverlay";
 import type { LayerStyleUpdate } from "../inspector/style/legendContract";
@@ -135,6 +188,7 @@ import { useMapWorkflowController } from "./useMapWorkflowController";
 import { IconClose, IconLayers } from "../MapIcons";
 import { usePrefersReducedMotion } from "../../../../hooks/usePrefersReducedMotion";
 import {
+  buildFeatureCollectionMetadata,
   completeCsvImport,
   getFeatureCollectionBounds,
   IMPORT_PROGRESS_THRESHOLD_BYTES,
@@ -159,6 +213,11 @@ import {
   type MapExportTarget,
   triggerMapDataDownload,
 } from "../../../../services/map/MapDataExporter";
+import {
+  buildMapPerformanceDiagnostics,
+  measureMapPerformance,
+  type MapPerformanceTimingMetric,
+} from "../../../../services/map/MapPerformanceDiagnostics";
 import { bindTableAlias, loadArrowIPC, loadGeoJSON, toGeoJSON } from "../../../../engine/spatial-db/SpatialDB";
 import {
   buildMapCompositionLegendItems,
@@ -1022,7 +1081,94 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   } = useMapWorkflowController();
   const [showReviewTimeline, setShowReviewTimeline] = useState(false);
   const [showFigureComposer, setShowFigureComposer] = useState(false);
+  const [show3DPanel, setShow3DPanel] = useState(false);
+  const [showZoningPanel, setShowZoningPanel] = useState(false);
+  const [showMassingPanel, setShowMassingPanel] = useState(false);
+  const [showSunShadowPanel, setShowSunShadowPanel] = useState(false);
+  const [showInteractionStrip, setShowInteractionStrip] = useState(false);
+  const [showComparisonStrip, setShowComparisonStrip] = useState(false);
   const handleToggleFigureComposer = useCallback(() => setShowFigureComposer((previous) => !previous), []);
+  const [showPerformanceDiagnostics, setShowPerformanceDiagnostics] = useState(false);
+  const [performanceTimings, setPerformanceTimings] = useState<MapPerformanceTimingMetric[]>([]);
+  const recordPerformanceTiming = useCallback((metric: MapPerformanceTimingMetric) => {
+    setPerformanceTimings((previous) => [...previous.slice(-19), metric]);
+  }, []);
+  const handleTogglePerformanceDiagnostics = useCallback(() => {
+    setShowPerformanceDiagnostics((previous) => !previous);
+    announce("Performance diagnostics toggled");
+  }, [announce]);
+  const [showProcessingToolbox, setShowProcessingToolbox] = useState(false);
+  const [showModelBuilder, setShowModelBuilder] = useState(false);
+  const [showCatalog, setShowCatalog] = useState(false);
+  const [showContents, setShowContents] = useState(false);
+  const handleToggleProcessingToolbox = useCallback(() => {
+    setShowProcessingToolbox((previous) => {
+      const next = !previous;
+      if (next) setShowModelBuilder(false);
+      return next;
+    });
+    announce("Processing toolbox toggled");
+  }, [announce]);
+  const handleToggleModelBuilder = useCallback(() => {
+    setShowModelBuilder((previous) => {
+      const next = !previous;
+      if (next) setShowProcessingToolbox(false);
+      return next;
+    });
+    announce("Model builder toggled");
+  }, [announce]);
+  const handleToggleCatalog = useCallback(() => {
+    setShowCatalog((previous) => {
+      const next = !previous;
+      if (next) {
+        setWorkspaceView("explore");
+        setShowProcessingToolbox(false);
+        setShowModelBuilder(false);
+        setShowContents(false);
+      }
+      return next;
+    });
+    announce("Catalog toggled");
+  }, [announce]);
+  const handleToggleContents = useCallback(() => {
+    setShowContents((previous) => {
+      const next = !previous;
+      if (next) {
+        setWorkspaceView("explore");
+        setShowProcessingToolbox(false);
+        setShowModelBuilder(false);
+        setShowCatalog(false);
+      }
+      return next;
+    });
+    announce("Contents tree toggled");
+  }, [announce]);
+  const processingRegistry = useMemo(() => createMapProcessingRegistry(), []);
+  const searchProcessingTools = useCallback(
+    (query: string) => processingRegistry.search(query),
+    [processingRegistry],
+  );
+  const processingToolboxLayers = useMemo<ProcessingToolboxLayerOption[]>(
+    () =>
+      overlayLayers.map((layer) => ({
+        id: layer.id,
+        name: layer.name,
+        fields:
+          layer.metadata?.schemaSummary?.fields.map((field) => field.name) ??
+          layer.metadata?.fields ??
+          [],
+      })),
+    [overlayLayers],
+  );
+  const handlePreviewProcessingTool = useCallback(
+    (toolId: string, params: Record<string, string | number | boolean>) =>
+      previewProcessingTool(
+        toolId,
+        params,
+        (id) => useMapExplorerStore.getState().overlayLayers.find((layer) => layer.id === id) ?? null,
+      ),
+    [],
+  );
   const [inspectorLayerId, setInspectorLayerId] = useState<string | null>(null);
   const inspectorLayer = inspectorLayerId
     ? overlayLayers.find((entry) => entry.id === inspectorLayerId) ?? null
@@ -1334,6 +1480,99 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     }
   }, [announce, buildMapActionEffects, recordMapReviewEvent]);
 
+  const handleRunProcessingTool = useCallback(
+    (toolId: string, params: Record<string, string | number | boolean>) => {
+      const result = runProcessingTool(toolId, params, buildMapActionEffects());
+      if (!result) return null;
+      if (result.reviewEvent) recordMapReviewEvent(result.reviewEvent);
+      if (result.status === "applied") {
+        if (result.revertToken) {
+          mapActionHistoryRef.current = recordMapActionHistoryEntry(mapActionHistoryRef.current, {
+            commandId: result.command.commandId,
+            kind: result.command.kind,
+            title: result.reviewEvent?.title ?? result.descriptor.title,
+            reviewEventId: result.command.reviewEventId ?? result.command.commandId,
+            appliedAt: result.command.createdAt,
+            revertable: result.command.revertable,
+            reverted: false,
+            revertToken: result.revertToken,
+          });
+        }
+        announce(`${result.descriptor.title} applied; output layer added. Revert is available in the review timeline.`);
+      } else {
+        announce(`${result.descriptor.title} blocked: ${result.preview.blockers.join(" ")}`);
+      }
+      return result;
+    },
+    [announce, buildMapActionEffects, recordMapReviewEvent],
+  );
+
+  const registerMapModelExecution = useCallback((result: MapModelRunResult): MapModelRunResult => {
+    for (const step of result.stepRuns) {
+      if (step.result.reviewEvent) recordMapReviewEvent(step.result.reviewEvent);
+      if (step.result.revertToken) {
+        mapActionHistoryRef.current = recordMapActionHistoryEntry(mapActionHistoryRef.current, {
+          commandId: step.result.command.commandId,
+          kind: step.result.command.kind,
+          title: step.result.reviewEvent?.title ?? step.step.label,
+          reviewEventId: step.result.command.reviewEventId ?? step.result.command.commandId,
+          appliedAt: step.result.command.createdAt,
+          revertable: step.result.command.revertable,
+          reverted: false,
+          revertToken: step.result.revertToken,
+        });
+      }
+    }
+    if (result.finalOutcome) {
+      recordMapReviewEvent(result.finalOutcome.reviewEvent);
+      if (result.finalOutcome.revertToken) {
+        mapActionHistoryRef.current = recordMapActionHistoryEntry(mapActionHistoryRef.current, {
+          commandId: result.finalOutcome.result.commandId,
+          kind: result.finalOutcome.result.kind,
+          title: result.finalOutcome.reviewEvent.title,
+          reviewEventId: result.finalOutcome.result.reviewEventId ?? result.finalOutcome.result.commandId,
+          appliedAt: result.finalOutcome.result.createdAt,
+          revertable: result.finalOutcome.result.revertable,
+          reverted: false,
+          revertToken: result.finalOutcome.revertToken,
+        });
+      }
+    }
+    if (result.status !== "applied" || !result.manifest || !result.manifestHash || !result.finalOutputLayer) {
+      announce(`Model blocked: ${result.blockers.join(" ")}`);
+      return result;
+    }
+    setActiveAnalysisResultLayers([result.finalOutputLayer.id]);
+    announce(`${result.model.title} model applied; output layer carries its reproducibility manifest.`);
+    return result;
+  }, [announce, recordMapReviewEvent, setActiveAnalysisResultLayers]);
+
+  const handleRunMapModel = useCallback(
+    (model: MapModelDefinition): MapModelRunResult => registerMapModelExecution(executeMapModel(
+      model,
+      processingRegistry,
+      buildMapActionEffects(),
+      { mapContextId: contextSummary.contextId },
+    )),
+    [buildMapActionEffects, contextSummary.contextId, processingRegistry, registerMapModelExecution],
+  );
+
+  const handleRunMapModelBatch = useCallback(
+    (model: MapModelDefinition, targets: readonly MapModelBatchTarget[]) => {
+      const batch = executeMapModelBatch(
+        model,
+        targets,
+        processingRegistry,
+        buildMapActionEffects(),
+        { mapContextId: contextSummary.contextId },
+      );
+      batch.results.forEach((entry) => registerMapModelExecution(entry.result));
+      if (batch.status !== "blocked") announce(`${batch.results.length} model batch target(s) processed.`);
+      return batch;
+    },
+    [announce, buildMapActionEffects, contextSummary.contextId, processingRegistry, registerMapModelExecution],
+  );
+
   const handleCommitDrawnFeatureEdit = useCallback((id: string, before: DrawnFeature, after: DrawnFeature) => {
     const validation = after.properties.validation ?? validateDrawnGeometry(after.geometry);
     const normalizedAfter: DrawnFeature = {
@@ -1406,6 +1645,151 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       setActiveAnalysisResultLayers([layerId]);
     }
   }, [setActiveAnalysisResultLayers, setSelectedFeatures]);
+
+  const handleCreateAttributeDerivedLayer = useCallback((draft: MapAttributeDerivedFieldDraft) => {
+    const sourceLayer = overlayLayers.find((entry) => entry.id === draft.sourceLayerId);
+    if (!sourceLayer) {
+      toastWarning("The source layer for this field calculation is no longer available.");
+      announce("Field calculation blocked because the source layer is no longer available.");
+      return;
+    }
+
+    const createdAt = new Date().toISOString();
+    const layerId = `derived:fieldcalc:${sourceLayer.id}:${draft.fieldName}:${createdAt.replace(/[.:]/g, "-")}`;
+    const layerName = `Field calc · ${sourceLayer.name} · ${draft.fieldName}`;
+    const baseMetadata = buildFeatureCollectionMetadata(draft.featureCollection as FeatureCollection);
+    const inheritedSchema = sourceLayer.metadata?.schemaSummary?.fields
+      ?? sourceLayer.metadata?.registry?.schemaSummary.fields
+      ?? [];
+    const schemaFieldMap = new Map<string, LayerSchemaFieldSummary>();
+    inheritedSchema.forEach((field) => schemaFieldMap.set(field.name, { ...field }));
+    baseMetadata.schemaSummary?.fields.forEach((field) => {
+      if (!schemaFieldMap.has(field.name)) schemaFieldMap.set(field.name, { ...field });
+    });
+    schemaFieldMap.set(draft.fieldName, {
+      name: draft.fieldName,
+      role: draft.fieldProfile.kind === "temporal" ? "temporal" : "attribute",
+      ...(draft.fieldProfile.kind === "numeric"
+        ? { type: "number" }
+        : draft.fieldProfile.kind === "temporal"
+          ? { type: "date" }
+          : { type: "string" }),
+    });
+    const schemaFields = [...schemaFieldMap.values()];
+    const sourceCrsSummary = sourceLayer.metadata?.crsSummary ?? sourceLayer.metadata?.registry?.crsSummary;
+    const qaBadges = new Set<LayerScientificQABadge>();
+    if (sourceLayer.sourceKind === "demo" || sourceLayer.metadata?.analysisResult?.outputMode === "demo") {
+      qaBadges.add("sample_data");
+    }
+    if (!sourceCrsSummary?.crs) qaBadges.add("missing_crs");
+    if (draft.nullCount > 0 || draft.errorCount > 0) qaBadges.add("uncertain_output");
+    if (sourceLayer.metadata?.analysisResult?.stale) qaBadges.add("stale_result");
+
+    const qaIssueIds = Array.from(new Set([
+      ...(sourceLayer.metadata?.scientificQA?.issueIds ?? []),
+      ...(draft.errorCount > 0 ? ["fieldcalc_evaluation_error"] : []),
+      ...(draft.nullCount > 0 ? ["fieldcalc_null_output"] : []),
+    ]));
+    const qaCaveats = Array.from(new Set([
+      `Sandboxed field calculator expression: ${draft.expression}.`,
+      `Referenced fields: ${draft.referencedFields.join(", ") || "none"}.`,
+      ...draft.warnings,
+      ...(sourceCrsSummary?.notes ?? []),
+      ...((sourceLayer.qaStatus === "warning" || sourceLayer.qaStatus === "error")
+        ? (sourceLayer.metadata?.scientificQA?.caveats ?? [])
+        : []),
+    ]));
+    const qaStatus: LayerQaStatus = sourceLayer.qaStatus === "error" || sourceLayer.metadata?.scientificQA?.status === "error"
+      ? "error"
+      : qaCaveats.length > 0 || sourceLayer.qaStatus === "warning" || sourceLayer.metadata?.scientificQA?.status === "warning"
+        ? "warning"
+        : "passed";
+
+    const derivedLayer: OverlayLayerConfig = {
+      id: layerId,
+      name: layerName,
+      type: sourceLayer.type,
+      visible: true,
+      opacity: sourceLayer.opacity,
+      ...(sourceLayer.style ? { style: sourceLayer.style } : {}),
+      sourceData: draft.featureCollection,
+      queryable: true,
+      sourceKind: "derived",
+      group: "analysis",
+      provenance: {
+        label: layerName,
+        sourceName: sourceLayer.name,
+        method: `Sandboxed field calculator: ${draft.fieldName}`,
+        generatedAt: createdAt,
+        sourceLayerIds: [sourceLayer.id],
+        notes: [
+          `Expression: ${draft.expression}`,
+          ...(draft.referencedFields.length > 0 ? [`Referenced fields: ${draft.referencedFields.join(", ")}`] : []),
+          ...draft.warnings,
+        ],
+      },
+      qaStatus,
+      metadata: {
+        ...baseMetadata,
+        updatedAt: createdAt,
+        dataVersion: `fieldcalc:${createdAt}`,
+        fields: schemaFields.map((field) => field.name),
+        schemaSummary: {
+          fieldCount: schemaFields.length,
+          fields: schemaFields,
+          source: "analysis-result",
+          notes: [`Derived field ${draft.fieldName} generated from a sandboxed calculator expression.`],
+          ...(baseMetadata.schemaSummary?.geometryField ? { geometryField: baseMetadata.schemaSummary.geometryField } : {}),
+        },
+        ...(sourceCrsSummary ? {
+          crsSummary: {
+            crs: sourceCrsSummary.crs,
+            status: sourceCrsSummary.status,
+            source: sourceCrsSummary.source,
+            notes: [...sourceCrsSummary.notes],
+          },
+        } : {}),
+        scientificQA: {
+          status: qaStatus,
+          issueIds: qaIssueIds,
+          badges: [...qaBadges],
+          checkedAt: createdAt,
+          featureIssueCount: draft.nullCount + draft.errorCount,
+          usedWorker: false,
+          caveats: qaCaveats,
+          signature: `fieldcalc:${sourceLayer.id}:${draft.fieldName}:${createdAt}`,
+        },
+      },
+    };
+
+    addOverlayLayer(derivedLayer);
+    setAttributeTableLayerId(derivedLayer.id);
+    setActiveAnalysisResultLayers([derivedLayer.id]);
+    recordMapReviewEvent({
+      type: "layer-change",
+      status: "applied",
+      title: `Field calculator applied: ${draft.fieldName}`,
+      summary: `${sourceLayer.name} produced ${layerName} with a sandboxed calculator expression and preserved provenance/QA caveats.`,
+      layerIds: [sourceLayer.id, derivedLayer.id],
+      actionIds: [draft.fieldName],
+      details: {
+        expression: draft.expression,
+        sourceLayerId: sourceLayer.id,
+        derivedLayerId: derivedLayer.id,
+        referencedFieldCount: draft.referencedFields.length,
+        nullCount: draft.nullCount,
+        totalValueCount: draft.totalValueCount,
+        errorCount: draft.errorCount,
+      },
+      undo: {
+        available: false,
+        outcome: "Derived layer added to the analysis stack.",
+      },
+    });
+    const message = `Derived layer created: ${layerName}.`;
+    toastSuccess(message);
+    announce(message);
+  }, [addOverlayLayer, announce, overlayLayers, recordMapReviewEvent, setActiveAnalysisResultLayers]);
 
   const handleSelectionQueryResult = useCallback((result: MapQueryExecutionResult, label: string) => {
     const layerIds = result.layers
@@ -1759,14 +2143,18 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const selectedPointSymbologyLayer = pointSymbologyLayerId
     ? overlayLayers.find((layer) => layer.id === pointSymbologyLayerId) ?? null
     : null;
+  const contentsRenderLayers = useMemo(
+    () => applyContentsToRenderLayers(overlayLayers, zoom),
+    [overlayLayers, zoom],
+  );
   const interactiveAnalysisLayerIds = useMemo(
-    () => overlayLayers
+    () => contentsRenderLayers
       .filter((layer) =>
         layer.visible &&
         (layer.queryable ?? (layer.type === "geojson" || layer.type === "heatmap")),
       )
       .map((layer) => layer.id),
-    [overlayLayers],
+    [contentsRenderLayers],
   );
   const visiblePublicationLayers = useMemo(
     () => overlayLayers.filter((layer) => layer.visible),
@@ -1822,7 +2210,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const mapRenderLayers = useMemo(() => {
     const comparison = effectiveShowWorkflowDrawer ? workflowPreview?.comparisonState : undefined;
     const baseLayers = comparison?.view === "blend"
-      ? overlayLayers.map((layer) => {
+      ? contentsRenderLayers.map((layer) => {
           if (layer.id === comparison.layerAId) {
             return { ...layer, opacity: comparison.blendOpacityA };
           }
@@ -1831,9 +2219,14 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
           }
           return layer;
         })
-      : overlayLayers;
+      : contentsRenderLayers;
     return workflowPreviewLayer ? [...baseLayers, workflowPreviewLayer] : baseLayers;
-  }, [effectiveShowWorkflowDrawer, overlayLayers, workflowPreview?.comparisonState, workflowPreviewLayer]);
+  }, [contentsRenderLayers, effectiveShowWorkflowDrawer, workflowPreview?.comparisonState, workflowPreviewLayer]);
+  const performanceDiagnostics = useMemo(
+    () => buildMapPerformanceDiagnostics({ overlayLayers: mapRenderLayers, timings: performanceTimings }),
+    [mapRenderLayers, performanceTimings],
+  );
+  const performanceIssueCount = performanceDiagnostics.warnings.length;
   const toolbarActiveGeometryType = useMemo(() => {
     const selectedLayer = selectedPointSymbologyLayer?.visible
       ? selectedPointSymbologyLayer
@@ -1950,7 +2343,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   }, [announce, setActiveAnalysisResultLayers, setCurrentTimestep, setIsPlaying, temporalLayers]);
 
   /* ---- Sync overlay layers to MapLibre ---- */
-  useLayerSync(mapInstanceRef, mapRenderLayers);
+  useLayerSync(mapInstanceRef, mapRenderLayers, recordPerformanceTiming);
 
   /* ---- Scientific QA evaluation ---- */
   useEffect(() => {
@@ -2491,6 +2884,73 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       announce(`IDE artifact failed: ${message}`);
     }
   }, [announce, recordMapReviewEvent, upsertMapEvidenceArtifact]);
+
+  const handleExportMapModelToIdeAndUrban = useCallback((result: MapModelRunResult, batchResult: MapModelBatchResult | null) => {
+    if (!result.manifest || !result.manifestHash || !result.finalOutputLayer) {
+      announce("Run the model successfully before exporting it.");
+      return;
+    }
+    const mapState = useMapExplorerStore.getState();
+    const currentContextSummary = selectMapExplorerContextSummary(mapState);
+    const request = buildMapModelCodeArtifactRequest({
+      result,
+      contextSummary: currentContextSummary,
+      overlayLayers: mapState.overlayLayers,
+      mapEvidenceArtifacts: mapState.mapEvidenceArtifacts,
+      scientificQA: mapState.scientificQA,
+    });
+    void handleDispatchMapCodeArtifact(request);
+
+    const sourceLayers = result.manifest.sourceLayerIds
+      .map((layerId) => mapState.overlayLayers.find((layer) => layer.id === layerId))
+      .filter((layer): layer is OverlayLayerConfig => layer !== undefined);
+    const runtimeMode = sourceLayers.some((layer) => layer.sourceKind === "demo") ? "demo" : "unknown";
+    const handoff = sendMapContextToUrban({
+      contextSummary: currentContextSummary,
+      overlayLayers: mapState.overlayLayers,
+      drawnFeatures: mapState.drawnFeatures,
+      ...(mapState.activeAoiId ? { activeAoiId: mapState.activeAoiId } : {}),
+      selectedFeatureIds: mapState.selectedFeatureIds,
+      mapEvidenceArtifacts: mapState.mapEvidenceArtifacts,
+      scientificQA: mapState.scientificQA,
+      requestedLayerId: result.finalOutputLayer.id,
+      receiver: (payload) => {
+        const applied = applyMapContextToUrban({
+          payload,
+          modelResult: {
+            modelId: result.model.modelId,
+            modelTitle: result.model.title,
+            manifestId: result.manifest!.manifestId,
+            manifestHash: result.manifestHash!,
+            workflowId: result.manifest!.workflowId,
+            outputLayerId: result.finalOutputLayer!.id,
+            sourceLayerIds: result.manifest!.sourceLayerIds,
+            stepCount: result.stepRuns.length,
+            batchTargetCount: batchResult?.results.length ?? 1,
+            runtimeMode,
+          },
+        });
+        return {
+          contextId: applied.contextId,
+          evidenceArtifactId: applied.evidenceArtifactId,
+          recommendationTriggered: applied.recommendationTriggered,
+          recommendationReason: applied.recommendationReason,
+        };
+      },
+    });
+    if (handoff.status === "blocked") {
+      const reason = handoff.disabledReasons[0] ?? "Model result is not eligible for Urban evidence publication.";
+      setDispatchFeedback({ tone: "error", title: "Model evidence blocked", description: reason });
+      announce(`Model evidence blocked: ${reason}`);
+      return;
+    }
+    setDispatchFeedback({
+      tone: "success",
+      title: "Model exported and published",
+      description: `${result.model.title} opened in Synapse IDE and published to Urban evidence.`,
+    });
+    announce(`${result.model.title} exported to Synapse IDE and published to Urban evidence.`);
+  }, [announce, handleDispatchMapCodeArtifact]);
 
   const handleOpenLayerInIde = useCallback((layerId: string) => {
     const layer = overlayLayers.find((entry) => entry.id === layerId);
@@ -4273,29 +4733,157 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     announce(`Imported layer ${result.layer.name}`);
   }, [addOverlayLayer, announce, fitToBounds, recordMapReviewEvent, registerLayerEvidenceCandidate, updateLayerMetadata, upsertSourceHandle]);
 
+  const handleCatalogAddDemoPack = useCallback((insertion: MapCatalogLayerInsertion) => {
+    for (const sourceHandle of insertion.sourceHandles) {
+      upsertSourceHandle(sourceHandle);
+    }
+    for (const layer of insertion.layers) {
+      addOverlayLayer(layer);
+      registerLayerEvidenceCandidate(layer, "map-explorer");
+    }
+    handleSetWorkspaceView("explore");
+    toastSuccess("Added synthetic demo pack with registered source records.");
+    announce("Catalog added synthetic demo pack to the map");
+  }, [addOverlayLayer, announce, handleSetWorkspaceView, registerLayerEvidenceCandidate, upsertSourceHandle]);
+
+  const handleCatalogBrowseSources = useCallback(() => {
+    setShowCatalog(false);
+    setShowImportHub(true);
+    announce("Catalog opened the data import browser");
+  }, [announce]);
+
+  const handleCatalogRepairSource = useCallback((item: MapCatalogItem) => {
+    setShowCatalog(false);
+    setShowImportHub(true);
+    announce(`Repair source requested for ${item.title}`);
+  }, [announce]);
+
+  const handleCatalogAddConnection = useCallback(async (
+    draft: MapCatalogConnectionDraft,
+  ): Promise<MapCatalogActionResult> => {
+    try {
+      const sourceId = `catalog-${draft.serviceKind}-${Date.now().toString(36)}`;
+      const descriptor = createConnectionDescriptor({
+        sourceId,
+        serviceKind: draft.serviceKind,
+        endpoint: draft.endpoint,
+        title: draft.title,
+        layerName: draft.title,
+        ...(draft.urlTemplate ? { urlTemplate: draft.urlTemplate } : {}),
+        ...(draft.crs ? { crs: draft.crs } : {}),
+      });
+      const health = await checkConnectionHealth(descriptor);
+      const result = buildCatalogConnectionLayer(descriptor, health);
+      cacheConnectionMetadata(descriptor, result.layer.metadata!.externalService!, health);
+      upsertSourceHandle(result.sourceHandle);
+      addOverlayLayer(result.layer);
+      registerLayerEvidenceCandidate(result.layer, "external-service");
+      const usable = health.dependencyStatus !== "offline";
+      const message = usable
+        ? `${draft.title} registered with ${health.dependencyStatus} service health.`
+        : `${draft.title} registered but unavailable: ${health.offlineReason ?? "service health check failed."}`;
+      if (usable) toastSuccess(message);
+      else toastWarning(message);
+      return { ok: usable, message, status: health.dependencyStatus };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Connection could not be registered.";
+      toastWarning(message);
+      return { ok: false, message };
+    }
+  }, [addOverlayLayer, registerLayerEvidenceCandidate, upsertSourceHandle]);
+
+  const handleCatalogReconnectSource = useCallback(async (
+    item: MapCatalogItem,
+  ): Promise<MapCatalogActionResult> => {
+    const sourceLayer = overlayLayers.find((layer) => item.layerIds.includes(layer.id));
+    const externalService = sourceLayer?.metadata?.externalService;
+    if (!sourceLayer || !externalService || externalService.kind === "cityjson") {
+      setShowExternalServiceDialog(true);
+      return { ok: false, message: "Open External Services to repair this connection record." };
+    }
+    try {
+      const descriptor = createConnectionDescriptor({
+        sourceId: item.sourceId ?? `source-${sourceLayer.id}`,
+        serviceKind: externalService.kind,
+        endpoint: externalService.endpoint,
+        ...(externalService.title ? { title: externalService.title } : {}),
+        ...(externalService.layerName ? { layerName: externalService.layerName } : {}),
+        ...(externalService.urlTemplate ? { urlTemplate: externalService.urlTemplate } : {}),
+        ...(externalService.crs ? { crs: externalService.crs } : {}),
+        ...(externalService.license ? { license: externalService.license } : {}),
+        ...(externalService.attribution ? { attribution: externalService.attribution } : {}),
+      });
+      const health = await checkConnectionHealth(descriptor);
+      const refreshed = buildCatalogConnectionLayer(descriptor, health);
+      cacheConnectionMetadata(descriptor, refreshed.layer.metadata!.externalService!, health);
+      upsertSourceHandle(refreshed.sourceHandle);
+      updateLayerMetadata(sourceLayer.id, {
+        qaStatus: refreshed.layer.qaStatus,
+        metadata: {
+          ...(sourceLayer.metadata ?? {}),
+          ...(refreshed.layer.metadata ?? {}),
+        },
+      });
+      const ok = health.dependencyStatus !== "offline";
+      const message = ok
+        ? `${sourceLayer.name} service health is ${health.dependencyStatus}.`
+        : `${sourceLayer.name} remains unavailable: ${health.offlineReason ?? "service health check failed."}`;
+      return { ok, message, status: health.dependencyStatus };
+    } catch (error) {
+      return { ok: false, message: error instanceof Error ? error.message : "Reconnect failed." };
+    }
+  }, [overlayLayers, updateLayerMetadata, upsertSourceHandle]);
+
+  const handleDuplicateContentsLayer = useCallback((layer: OverlayLayerConfig) => {
+    const duplicate = duplicateMapContentsLayer(layer);
+    addOverlayLayer(duplicate);
+    recordMapReviewEvent({
+      type: "layer-change",
+      status: "applied",
+      title: `Layer duplicated: ${layer.name}`,
+      summary: `Created ${duplicate.name} as a second view of the same source and retained its provenance and QA metadata.`,
+      layerIds: [layer.id, duplicate.id],
+      details: {
+        sourceLayerId: layer.id,
+        duplicateLayerId: duplicate.id,
+        sourceId: layer.metadata?.sourceId ?? null,
+        provenanceRetained: Boolean(layer.provenance || layer.metadata?.registry?.provenance),
+      },
+    });
+    announce(`Duplicated layer ${layer.name}`);
+  }, [addOverlayLayer, announce, recordMapReviewEvent]);
+
+  const handleRepairContentsSource = useCallback((layer: OverlayLayerConfig) => {
+    setShowContents(false);
+    setShowCatalog(true);
+    announce(`Catalog opened to repair source for ${layer.name}`);
+  }, [announce]);
+
   const handleExternalServiceLayerReady = useCallback((layer: OverlayLayerConfig) => {
-    addOverlayLayer(layer);
-    const evidenceArtifact = registerLayerEvidenceCandidate(layer, "external-service");
-    const dependencyStatus = layer.metadata?.externalService?.dependencyStatus ?? "unknown";
+    const registered = attachSourceHandleToExternalLayer(layer);
+    upsertSourceHandle(registered.sourceHandle);
+    addOverlayLayer(registered.layer);
+    const evidenceArtifact = registerLayerEvidenceCandidate(registered.layer, "external-service");
+    const dependencyStatus = registered.layer.metadata?.externalService?.dependencyStatus ?? "unknown";
     recordMapReviewEvent({
       type: "layer-change",
       status: dependencyStatus === "offline" ? "failed" : dependencyStatus === "stale" ? "previewed" : "recorded",
-      title: `External service evidence registered: ${layer.name}`,
-      summary: `${layer.metadata?.externalService?.kind?.toUpperCase() ?? "External"} layer added with dependency status ${dependencyStatus} and CRS ${layer.metadata?.crsSummary?.crs ?? "unknown"}.`,
-      layerIds: [layer.id],
+      title: `External service evidence registered: ${registered.layer.name}`,
+      summary: `${registered.layer.metadata?.externalService?.kind?.toUpperCase() ?? "External"} layer added with dependency status ${dependencyStatus} and CRS ${registered.layer.metadata?.crsSummary?.crs ?? "unknown"}.`,
+      layerIds: [registered.layer.id],
       actionIds: [evidenceArtifact.id],
       details: {
         evidenceArtifactId: evidenceArtifact.id,
-        serviceKind: layer.metadata?.externalService?.kind ?? null,
-        endpoint: layer.metadata?.externalService?.endpoint ?? null,
+        serviceKind: registered.layer.metadata?.externalService?.kind ?? null,
+        endpoint: registered.layer.metadata?.externalService?.endpoint ?? null,
         dependencyStatus,
-        cacheHit: layer.metadata?.externalService?.cacheHit ?? false,
-        staleAt: layer.metadata?.externalService?.staleAt ?? null,
-        crsStatus: layer.metadata?.crsSummary?.status ?? "unknown",
-        attribution: layer.metadata?.licenseAttribution?.attribution ?? null,
+        cacheHit: registered.layer.metadata?.externalService?.cacheHit ?? false,
+        staleAt: registered.layer.metadata?.externalService?.staleAt ?? null,
+        crsStatus: registered.layer.metadata?.crsSummary?.status ?? "unknown",
+        attribution: registered.layer.metadata?.licenseAttribution?.attribution ?? null,
       },
     });
-  }, [addOverlayLayer, recordMapReviewEvent, registerLayerEvidenceCandidate]);
+  }, [addOverlayLayer, recordMapReviewEvent, registerLayerEvidenceCandidate, upsertSourceHandle]);
 
   const handleImportFiles = useCallback(async (files: FileList | File[] | null) => {
     const nextFile = files ? Array.from(files)[0] : null;
@@ -5248,7 +5836,10 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
 
   const handleExportConfirm = useCallback(async () => {
     try {
-      const result = await exportMapData({
+      const { result, metric } = await measureMapPerformance({
+        kind: "export",
+        label: `${exportFormat.toUpperCase()} data export`,
+      }, () => exportMapData({
         target: exportTarget,
         pins,
         drawings: drawnFeatures,
@@ -5259,6 +5850,11 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
           prettyPrint: exportPrettyPrint,
           includeProperties: exportIncludeProperties,
         },
+      }));
+      recordPerformanceTiming({
+        ...metric,
+        featureCount: result.collection.features.length,
+        byteLength: result.byteLength,
       });
 
       triggerMapDataDownload(result);
@@ -5289,6 +5885,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     exportTarget,
     overlayLayers,
     pins,
+    recordPerformanceTiming,
   ]);
 
   const handleMapExportConfirm = useCallback(async () => {
@@ -5312,11 +5909,16 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       if (!captureMap) {
         throw new Error("Map canvas is not ready for export.");
       }
-      const result = await exportMapPublication(captureMap, {
+      const { result, metric } = await measureMapPerformance({
+        kind: "export",
+        label: `${mapCompositionOptions.format.toUpperCase()} publication export`,
+        featureCount: visiblePublicationLayers.reduce((sum, layer) => sum + (layer.metadata?.featureCount ?? 0), 0),
+      }, () => exportMapPublication(captureMap, {
         composition: mapCompositionOptions,
         overlayLayers: visiblePublicationLayers,
         scientificQA,
-      });
+      }));
+      recordPerformanceTiming(metric);
 
       triggerMapPublicationDownload(result);
       const readiness = result.readiness ?? mapPublicationReadiness;
@@ -5355,6 +5957,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     announce,
     mapPublicationReadiness,
     mapCompositionOptions,
+    recordPerformanceTiming,
     scientificQA,
     upsertMapEvidenceArtifact,
     visiblePublicationLayers,
@@ -5591,6 +6194,11 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               onToggleLayerPanel={handleToggleLayerPanel}
               layerCount={overlayLayers.length}
               visibleLayerCount={visiblePublicationLayers.length}
+              showCatalog={showCatalog}
+              onToggleCatalog={handleToggleCatalog}
+              catalogSourceCount={sourceHandles.length}
+              showContents={showContents}
+              onToggleContents={handleToggleContents}
               activeLayerGeometryType={toolbarActiveGeometryType}
               hasSelectedAoi={Boolean(selectedAoiFeatureForQuery)}
               scientificQAStatus={scientificQA?.status ?? "unchecked"}
@@ -5607,6 +6215,14 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               showReviewTimeline={showReviewTimeline}
               onToggleReviewTimeline={handleToggleReviewTimeline}
               reviewEventCount={reviewSession.events.length}
+              showPerformanceDiagnostics={showPerformanceDiagnostics}
+              onTogglePerformanceDiagnostics={handleTogglePerformanceDiagnostics}
+              performanceIssueCount={performanceIssueCount}
+              showProcessingToolbox={showProcessingToolbox}
+              onToggleProcessingToolbox={handleToggleProcessingToolbox}
+              processingToolCount={processingRegistry.implementedCount()}
+              showModelBuilder={showModelBuilder}
+              onToggleModelBuilder={handleToggleModelBuilder}
               showFigureComposer={showFigureComposer}
               onToggleFigureComposer={handleToggleFigureComposer}
               showChoroplethPanel={showChoroplethPanel}
@@ -6008,7 +6624,14 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
                 onSetOpacity={setLayerOpacity}
                 onRemoveLayer={handleRemoveLayerViaCommand}
                 onReorderLayers={reorderLayers}
-                onAddLayer={addOverlayLayer}
+                onAddLayer={(layer) => {
+                  if (layer.sourceKind === "external" || layer.metadata?.externalService) {
+                    handleExternalServiceLayerReady(layer);
+                    return;
+                  }
+                  addOverlayLayer(layer);
+                }}
+                onAddDemoPack={() => handleCatalogAddDemoPack(buildDemoPackCatalogInsertion())}
                 onFocusLayer={handleFocusLayer}
                 onAddLayerToReport={handleLayerReportRequest}
                 onBindLayerToDashboard={handleBindLayerToDashboard}
@@ -6067,6 +6690,13 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
           />
 
           <MapLegendOverlay items={mapPublicationLegendItems} />
+
+          {!navigatorStageMode ? (
+            <MapPerformanceBudgetBanner
+              diagnostics={performanceDiagnostics}
+              rightInset={navigatorRightInset + 16}
+            />
+          ) : null}
 
           {!navigatorStageMode ? (
             <MapSelectionTools
@@ -6131,6 +6761,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               selectedIds={selectedFeatureIds[attributeTableLayer.id] ?? []}
               onSelectFeatures={(featureIds) => handleAttributeTableSelection(attributeTableLayer.id, featureIds)}
               onFocusFeature={handleFocusAttributeFeature}
+              onCreateDerivedLayer={handleCreateAttributeDerivedLayer}
               onClose={() => {
                 setAttributeTableLayerId(null);
                 announce("Attribute table closed");
@@ -6168,21 +6799,185 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             onAnnounce={announce}
           />
 
-          <MapFigureComposerPanel
+          <MapLayoutDesignerPanel
             visible={showFigureComposer && !navigatorStageMode}
             overlayLayers={overlayLayers}
             qaState={scientificQA}
             bearing={bearing}
             onClose={() => {
               setShowFigureComposer(false);
-              announce("Figure composer closed");
+              announce("Layout designer closed");
             }}
-            onExportFigure={() => {
+            onExportBook={(_book) => {
               setShowFigureComposer(false);
               setShowMapExportDialog(true);
-              announce("Figure gates passed — opening publication export");
+              announce("Map book exported — opening publication export");
             }}
             onAnnounce={announce}
+          />
+
+          {/* 3D + Zoning toggle triggers — accessible via toolbar or testid */}
+          <button
+            type="button"
+            data-testid="toggle-3d-panel"
+            aria-label="Toggle 3D scene panel"
+            style={{ display: "none" }}
+            onClick={() => setShow3DPanel((p) => !p)}
+          />
+          <button
+            type="button"
+            data-testid="toggle-zoning-panel"
+            aria-label="Toggle zoning rules panel"
+            style={{ display: "none" }}
+            onClick={() => setShowZoningPanel((p) => !p)}
+          />
+          <button
+            type="button"
+            data-testid="toggle-massing-panel"
+            aria-label="Toggle massing scenarios panel"
+            style={{ display: "none" }}
+            onClick={() => setShowMassingPanel((p) => !p)}
+          />
+          <button
+            type="button"
+            data-testid="toggle-sunshadow-panel"
+            aria-label="Toggle sun/shadow analysis panel"
+            style={{ display: "none" }}
+            onClick={() => setShowSunShadowPanel((p) => !p)}
+          />
+          <button
+            type="button"
+            data-testid="toggle-3d-interaction-strip"
+            aria-label="Toggle 3D interaction strip"
+            style={{ display: "none" }}
+            onClick={() => setShowInteractionStrip((p) => !p)}
+          />
+          <button
+            type="button"
+            data-testid="toggle-3d-comparison-strip"
+            aria-label="Toggle scenario comparison strip"
+            style={{ display: "none" }}
+            onClick={() => setShowComparisonStrip((p) => !p)}
+          />
+
+          {show3DPanel && !navigatorStageMode && (
+            <Scene3DPanel
+              visible
+              onClose={() => {
+                setShow3DPanel(false);
+                announce("3D scene panel closed");
+              }}
+              onModeChange={(mode) => announce(`3D mode: ${mode}`)}
+            />
+          )}
+
+          {showZoningPanel && !navigatorStageMode && (
+            <ZoningRulesPanel
+              visible
+              onClose={() => {
+                setShowZoningPanel(false);
+                announce("Zoning rules panel closed");
+              }}
+              selectedParcelId={selectedFeatureIds[0] ?? null}
+            />
+          )}
+
+          {showMassingPanel && !navigatorStageMode && (
+            <MassingScenarioPanel
+              visible
+              onClose={() => {
+                setShowMassingPanel(false);
+                announce("Massing scenarios panel closed");
+              }}
+              parcelId={selectedFeatureIds[0] ?? null}
+            />
+          )}
+
+          {showSunShadowPanel && !navigatorStageMode && (
+            <SunShadowPanel
+              visible
+              onClose={() => {
+                setShowSunShadowPanel(false);
+                announce("Sun/shadow analysis panel closed");
+              }}
+            />
+          )}
+
+          <Scene3DInteractionStrip visible={showInteractionStrip && !navigatorStageMode} />
+
+          {showComparisonStrip && !navigatorStageMode && (
+            <ScenarioComparisonStrip
+              visible
+              onClose={() => {
+                setShowComparisonStrip(false);
+                announce("Scenario comparison strip closed");
+              }}
+            />
+          )}
+
+          <MapPerformanceDiagnosticsPanel
+            visible={showPerformanceDiagnostics && !navigatorStageMode}
+            diagnostics={performanceDiagnostics}
+            onClose={() => {
+              setShowPerformanceDiagnostics(false);
+              announce("Performance diagnostics closed");
+            }}
+          />
+
+          <MapProcessingToolboxPanel
+            visible={showProcessingToolbox && !navigatorStageMode}
+            onClose={() => {
+              setShowProcessingToolbox(false);
+              announce("Processing toolbox closed");
+            }}
+            searchTools={searchProcessingTools}
+            layers={processingToolboxLayers}
+            onPreview={handlePreviewProcessingTool}
+            onRun={handleRunProcessingTool}
+          />
+
+          <MapModelBuilderPanel
+            visible={showModelBuilder && !navigatorStageMode}
+            onClose={() => {
+              setShowModelBuilder(false);
+              announce("Model builder closed");
+            }}
+            tools={processingRegistry.list()}
+            layers={processingToolboxLayers}
+            onRun={handleRunMapModel}
+            onRunBatch={handleRunMapModelBatch}
+            onExportToIdeAndUrban={handleExportMapModelToIdeAndUrban}
+          />
+
+          <MapCatalogPanel
+            visible={showCatalog && !navigatorStageMode}
+            sourceHandles={sourceHandles}
+            layers={overlayLayers}
+            onClose={() => {
+              setShowCatalog(false);
+              announce("Catalog closed");
+            }}
+            onBrowseSources={handleCatalogBrowseSources}
+            onAddDemoPack={handleCatalogAddDemoPack}
+            onRepairSource={handleCatalogRepairSource}
+            onReconnectSource={handleCatalogReconnectSource}
+            onAddConnection={handleCatalogAddConnection}
+          />
+
+          <MapContentsTreePanel
+            visible={showContents && !navigatorStageMode}
+            layers={overlayLayers}
+            zoom={zoom}
+            onClose={() => {
+              setShowContents(false);
+              announce("Contents tree closed");
+            }}
+            onUpdateLayer={updateLayerMetadata}
+            onDuplicateLayer={handleDuplicateContentsLayer}
+            onRepairSource={handleRepairContentsSource}
+            onOpenProperties={handleInspectLayer}
+            onToggleVisibility={toggleLayerVisibility}
+            onReorderLayers={reorderLayers}
           />
 
           <WorkflowPreviewOverlay preview={effectiveShowWorkflowDrawer ? workflowPreview : null} />
@@ -6560,6 +7355,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               qaStatus={contextSummary.qa.status}
               qaIssueCount={scientificQAIssueCount}
               qaBlockerCount={scientificQABlockerCount}
+              performanceMode={performanceDiagnostics.renderMode}
+              performanceIssueCount={performanceIssueCount}
+              lastRenderDurationMs={performanceDiagnostics.lastRenderTiming?.durationMs ?? null}
               isSaving={isSavingProject}
               isLoading={isLoadingProject}
               lastSavedAt={lastSavedAt}

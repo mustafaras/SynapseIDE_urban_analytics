@@ -232,6 +232,22 @@ export function containsNoSecrets(value: unknown, depth = 0): boolean {
   return true;
 }
 
+function assertSecretFreeServiceUrl(rawUrl: string, label: string): void {
+  let url: URL;
+  try {
+    url = new URL(rawUrl);
+  } catch {
+    return;
+  }
+  const hasCredentialQuery = Array.from(url.searchParams.keys()).some((key) => SECRET_KEY_PATTERN.test(key));
+  if (url.username || url.password || hasCredentialQuery) {
+    throw new ExternalServiceError(
+      "invalid-url",
+      `${label} cannot include embedded credentials or credential-like query parameters. Use a secured connector or proxy; secrets are not stored in catalog records.`,
+    );
+  }
+}
+
 /* -------------------------------------------------------------------- */
 /*  Failure classification (shared with MapCanvas)                      */
 /* -------------------------------------------------------------------- */
@@ -533,6 +549,10 @@ export function createConnectionDescriptor(input: MapConnectionInput): MapConnec
   const validation = validateServiceUrl(input.urlTemplate ?? input.endpoint);
   if (!validation.ok) {
     throw new ExternalServiceError("invalid-url", validation.error ?? "Service URL is invalid.");
+  }
+  assertSecretFreeServiceUrl(input.endpoint, "Service endpoint");
+  if (input.urlTemplate) {
+    assertSecretFreeServiceUrl(input.urlTemplate, "Tile URL template");
   }
   const providerId = input.providerId ?? input.serviceKind;
   const profile = getMapConnectionProvider(providerId);

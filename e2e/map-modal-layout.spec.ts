@@ -767,6 +767,27 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
     expect(selectedFeatureCount).toBe(1);
   });
 
+  test("creates a derived attribute layer with a provenance badge from the sandboxed calculator", async ({ page }) => {
+    await page.setViewportSize({ width: 1680, height: 1100 });
+    await resetWorkbenchState(page);
+    await openMapExplorer(page);
+    await seedAttributeTableLayer(page);
+
+    const row = page.getByRole("option", { name: /Layer: E2E Attribute Points/i });
+    await triggerDomClick(row.getByTestId("map-layer-table-trigger"));
+
+    const table = page.getByTestId("map-attribute-table");
+    await expect(table).toBeVisible();
+    await triggerDomClick(table.getByRole("button", { name: "Calculator" }));
+
+    await table.getByLabel("Derived field name").fill("value_x2");
+    await table.getByLabel("Field calculator expression").fill("value * 2");
+    await triggerDomClick(table.getByTestId("map-field-calculator-apply"));
+
+    await expect(table.getByTestId("map-attribute-table-provenance-badge")).toContainText("Derived");
+    await expect(table.getByTestId("map-attribute-column-value_x2")).toBeVisible();
+  });
+
   test("keeps controls usable across laptop and tablet viewport screenshots", async ({ page }, testInfo) => {
     const viewports = [
       { label: "laptop", width: 1366, height: 900, minimumHeight: 520 },

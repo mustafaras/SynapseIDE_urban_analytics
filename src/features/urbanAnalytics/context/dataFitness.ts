@@ -213,6 +213,29 @@ function resolveLayerLicense(layer: OverlayLayerConfig): string | undefined {
   return layer.provenance?.license ?? layer.metadata?.datasetContext?.license;
 }
 
+function aggregateCompleteFieldCounts(
+  fields: readonly MapToUrbanContextPayload['layerSummaries'][number]['fieldSummary']['fields'][number][],
+  expectedFeatureCount?: number,
+): Pick<UrbanDataFitnessLayerInput, 'missingValueCount' | 'totalValueCount'> | null {
+  if (fields.length === 0) return null;
+
+  const baselineTotal = fields[0]?.totalValueCount;
+  const resolvedTotal = expectedFeatureCount ?? baselineTotal;
+  if (resolvedTotal === undefined) return null;
+
+  let missingValueCount = 0;
+  let totalValueCount = 0;
+  for (const field of fields) {
+    if (field.nullValueCount === undefined || field.totalValueCount === undefined) return null;
+    if (field.totalValueCount !== resolvedTotal) return null;
+    missingValueCount += field.nullValueCount;
+    totalValueCount += field.totalValueCount;
+  }
+
+  if (totalValueCount <= 0) return null;
+  return { missingValueCount, totalValueCount };
+}
+
 export function extractUrbanDataFitnessLayerFromMapLayer(
   layer: OverlayLayerConfig,
 ): UrbanDataFitnessLayerInput {
@@ -275,6 +298,16 @@ export function extractUrbanDataFitnessLayersFromMapContext(
       result.runtimeMode = 'demo';
     } else if (layer.registry.sourceKind === 'derived' || layer.registry.sourceKind === undefined) {
       result.runtimeMode = 'unknown';
+    }
+    if (!layer.fieldSummary.truncated) {
+      const aggregateCounts = aggregateCompleteFieldCounts(
+        layer.fieldSummary.fields,
+        layer.registry.featureCount ?? undefined,
+      );
+      if (aggregateCounts) {
+        result.missingValueCount = aggregateCounts.missingValueCount;
+        result.totalValueCount = aggregateCounts.totalValueCount;
+      }
     }
     if (isLayerQaStatus(layer.qa.status)) result.qaStatus = layer.qa.status;
     if (layer.qa.badges.length > 0) result.qaBadges = [...layer.qa.badges];

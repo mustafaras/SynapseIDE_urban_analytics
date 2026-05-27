@@ -3,6 +3,7 @@ import { AlertTriangle, CheckCircle2, Image, X } from "lucide-react";
 import type { OverlayLayerConfig } from "../mapTypes";
 import type { MapScientificQAState } from "@/services/map/MapScientificQA";
 import {
+  buildMapFigureAttributionText,
   composeMapFigure,
   preflightMapFigure,
   type MapFigureSpec,
@@ -171,8 +172,6 @@ const sectionTitleStyle: React.CSSProperties = {
   textTransform: "uppercase",
 };
 
-const DEFAULT_ATTRIBUTION = "Sources: visible map layers and project metadata. Scale is geodesic at map center.";
-
 export const MapFigureComposerPanel: React.FC<MapFigureComposerPanelProps> = ({
   visible,
   overlayLayers,
@@ -184,10 +183,12 @@ export const MapFigureComposerPanel: React.FC<MapFigureComposerPanelProps> = ({
 }) => {
   const panelDrag = useDraggableMapPanel();
   const [title, setTitle] = useState("Urban Analytics Map");
-  const [attributionText, setAttributionText] = useState(DEFAULT_ATTRIBUTION);
+  const derivedAttributionText = useMemo(() => buildMapFigureAttributionText(overlayLayers), [overlayLayers]);
+  const [customAttributionText, setCustomAttributionText] = useState<string | null>(null);
   const [includeLegend, setIncludeLegend] = useState(true);
   const [includeScaleBar, setIncludeScaleBar] = useState(true);
   const [includeNorthArrow, setIncludeNorthArrow] = useState(true);
+  const attributionText = customAttributionText ?? derivedAttributionText;
 
   const figure = useMemo(
     () =>
@@ -240,9 +241,10 @@ export const MapFigureComposerPanel: React.FC<MapFigureComposerPanelProps> = ({
           <textarea
             style={{ ...inputStyle, minHeight: "3.5rem", resize: "vertical" }}
             value={attributionText}
-            onChange={(event) => setAttributionText(event.target.value)}
+            onChange={(event) => setCustomAttributionText(event.target.value)}
             aria-label="Figure attribution"
             data-testid="map-figure-attribution"
+            placeholder="Visible layers must declare source attribution and license metadata before figure export."
           />
         </label>
         <div style={toggleRowStyle} role="group" aria-label="Figure elements">

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { OverlayLayerConfig } from "@/centerpanel/components/map/mapTypes";
 import {
   assertFigureExportable,
+  buildMapFigureAttributionText,
   composeMapFigure,
   preflightMapFigure,
 } from "../layout/MapLayoutComposer";
@@ -73,6 +74,40 @@ function missingCrsLayer(): OverlayLayerConfig {
   };
 }
 
+function missingAttributionLayer(): OverlayLayerConfig {
+  return {
+    id: "no-attribution",
+    name: "Anonymous parcels",
+    type: "geojson",
+    visible: true,
+    opacity: 1,
+    sourceKind: "imported",
+    queryable: true,
+    qaStatus: "passed",
+    sourceData: {
+      type: "FeatureCollection",
+      features: [
+        {
+          type: "Feature",
+          id: "a1",
+          properties: { value: 7 },
+          geometry: { type: "Polygon", coordinates: [[[29, 41], [29.02, 41], [29.02, 41.02], [29, 41.02], [29, 41]]] },
+        },
+      ],
+    },
+    style: {
+      fillColor: "#22c55e",
+      legendEntries: [{ label: "Anonymous parcels", color: "#22c55e" }],
+    },
+    metadata: {
+      geometryType: "Polygon",
+      featureCount: 1,
+      fields: ["value"],
+      crsSummary: { crs: "EPSG:4326", status: "known", source: "explicit", notes: [] },
+    },
+  };
+}
+
 describe("MapLayoutComposer", () => {
   it("produces a complete, reproducible figure spec when the cartographic gates pass", () => {
     const figure = composeMapFigure({ overlayLayers: [completeLayer()], title: "Corridor study", now: NOW });
@@ -85,7 +120,7 @@ describe("MapLayoutComposer", () => {
     expect(figure.title).toBe("Corridor study");
     expect(figure.createdAt).toBe(NOW.toISOString());
     expect(figure.legendItems.length).toBeGreaterThan(0);
-    expect(figure.attribution).not.toBeNull();
+    expect(figure.attribution).toContain("City open data");
     expect(figure.crs).toBe("EPSG:4326");
     expect(figure.scaleBar.included).toBe(true);
     expect(figure.northArrow.included).toBe(true);
@@ -94,10 +129,14 @@ describe("MapLayoutComposer", () => {
     expect(assertFigureExportable(figure).ok).toBe(true);
   });
 
-  it("blocks export and names the attribution gap when attribution text is missing", () => {
+  it("derives figure attribution text from visible-layer publication metadata", () => {
+    expect(buildMapFigureAttributionText([completeLayer()])).toContain("City open data");
+    expect(buildMapFigureAttributionText([missingAttributionLayer()])).toBe("");
+  });
+
+  it("blocks export and names the attribution gap when a visible layer lacks attribution metadata", () => {
     const figure = composeMapFigure({
-      overlayLayers: [completeLayer()],
-      composition: { attributionText: "" },
+      overlayLayers: [missingAttributionLayer()],
       now: NOW,
     });
 
@@ -106,6 +145,7 @@ describe("MapLayoutComposer", () => {
     expect(preflight.status).toBe("blocked");
     expect(preflight.blockers.some((gap) => gap.criterion === "attribution-license")).toBe(true);
     expect(figure.attribution).toBeNull();
+    expect(preflight.blockers.find((gap) => gap.criterion === "attribution-license")?.reason).toContain("Anonymous parcels");
 
     const exportable = assertFigureExportable(figure);
     expect(exportable.ok).toBe(false);

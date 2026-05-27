@@ -230,7 +230,7 @@ Heavy libraries (monaco, deck.gl, three.js, mapbox-gl) are in manual vendor chun
 
 If asked to implement a "Prompt N" / "Map Explorer GIS" / "production GIS" task, the active pack is `MAP_EXPLORER_PRODUCTION_GIS_PLAN_2026-05-22/`. **Start with [LEDGER.md](MAP_EXPLORER_PRODUCTION_GIS_PLAN_2026-05-22/LEDGER.md)** — it holds execution state (which prompts are done/next), cold-start resume steps, and the update protocol. Then read [15_AGENT_EXECUTION_PROMPTS.md](MAP_EXPLORER_PRODUCTION_GIS_PLAN_2026-05-22/15_AGENT_EXECUTION_PROMPTS.md) — especially "Cold-start protocol (anti-amnesia)", "Repo Reality Notes", "Agent Contract v2", "Canonical Type Contracts", and "Shared Test Fixtures".
 
-**Current ledger state (as of 2026-05-27):** Prompts 0–28 complete ✅. Next: Prompt 29 (Layout composer V2 + map book).
+**Current ledger state (as of 2026-05-27):** Prompts 0–34 complete ✅. Next: Prompt 35 (extend GIS token layer — status/density/motion).
 
 After finishing a prompt, update the ledger (status + Done Log) in the same commit.
 

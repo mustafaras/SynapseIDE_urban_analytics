@@ -46,6 +46,7 @@ function renderTable(
   selectedIds: readonly string[],
   onSelectFeatures: (featureIds: string[]) => void,
   viewportHeight = 360,
+  onCreateDerivedLayer?: Parameters<typeof MapAttributeTable>[0]["onCreateDerivedLayer"],
 ): void {
   if (!host) {
     host = document.createElement("div");
@@ -60,9 +61,22 @@ function renderTable(
         onSelectFeatures={onSelectFeatures}
         onFocusFeature={vi.fn()}
         onClose={vi.fn()}
+        onCreateDerivedLayer={onCreateDerivedLayer}
         viewportHeight={viewportHeight}
       />,
     );
+  });
+}
+
+function setControlValue(selector: string, value: string): void {
+  const control = host?.querySelector<HTMLInputElement | HTMLTextAreaElement>(selector) ?? null;
+  expect(control).not.toBeNull();
+  act(() => {
+    const prototype = control instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+    const descriptor = Object.getOwnPropertyDescriptor(prototype, "value");
+    descriptor?.set?.call(control, value);
+    control.dispatchEvent(new Event("input", { bubbles: true }));
+    control.dispatchEvent(new Event("change", { bubbles: true }));
   });
 }
 
@@ -149,5 +163,51 @@ describe("MapAttributeTable", () => {
 
     renderTable(layer, selectedFeatureIds.points ?? [], (ids) => useMapExplorerStore.getState().setSelectedFeatures(layer.id, ids));
     expect(host?.querySelector('[data-feature-id="1"]')?.getAttribute("aria-selected")).toBe("true");
+  });
+
+  it("shows a numeric field profile drawer with distribution and summary stats", () => {
+    renderTable(pointsLayer(), [], vi.fn());
+
+    act(() => {
+      host?.querySelector<HTMLButtonElement>('[data-testid="map-attribute-column-value"]')?.click();
+    });
+
+    const profileButton = [...(host?.querySelectorAll<HTMLButtonElement>("button") ?? [])]
+      .find((button) => button.textContent?.includes("Field profile"));
+    expect(profileButton).not.toBeNull();
+
+    act(() => {
+      profileButton?.click();
+    });
+
+    const drawer = host?.querySelector('[data-testid="map-attribute-profile-drawer"]');
+    expect(drawer).not.toBeNull();
+    expect(drawer?.textContent).toContain("value profile");
+    expect(drawer?.textContent).toContain("numeric");
+    expect(drawer?.textContent).toContain("4");
+    expect(drawer?.textContent).toContain("100");
+    expect(drawer?.textContent).toContain("52");
+  });
+
+  it("creates a derived field draft through the sandboxed calculator UI", () => {
+    const onCreateDerivedLayer = vi.fn();
+    renderTable(pointsLayer(), [], vi.fn(), 360, onCreateDerivedLayer);
+
+    act(() => {
+      host?.querySelector<HTMLButtonElement>('button[title="Create a derived field with the sandboxed calculator."]')?.click();
+    });
+    setControlValue('input[aria-label="Derived field name"]', "value_x2");
+    setControlValue('textarea[aria-label="Field calculator expression"]', "value * 2");
+
+    act(() => {
+      host?.querySelector<HTMLButtonElement>('[data-testid="map-field-calculator-apply"]')?.click();
+    });
+
+    expect(onCreateDerivedLayer).toHaveBeenCalledTimes(1);
+    const draft = onCreateDerivedLayer.mock.calls[0]?.[0];
+    expect(draft.fieldName).toBe("value_x2");
+    expect(draft.referencedFields).toEqual(["value"]);
+    expect(draft.featureCollection.features[0]?.properties?.value_x2).toBe(8);
+    expect(draft.featureCollection.features[24]?.properties?.value_x2).toBe(200);
   });
 });

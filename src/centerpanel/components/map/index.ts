@@ -41,6 +41,15 @@ export type { MapWorkspaceCockpitProps } from "./MapWorkspaceCockpit";
 export { MapPinSidebar } from "./MapPinSidebar";
 export type { MapPinSidebarProps } from "./MapPinSidebar";
 
+export { MapModelBuilderPanel } from "./modelBuilder";
+export type { MapModelBuilderLayerOption, MapModelBuilderPanelProps } from "./modelBuilder";
+
+export { MapCatalogPanel } from "./catalog";
+export type { MapCatalogPanelProps } from "./catalog";
+
+export { MapContentsTreePanel } from "./contents";
+export type { MapContentsTreePanelProps } from "./contents";
+
 export { useFocusTrap } from "./useFocusTrap";
 export { useMapKeyboardControls } from "./useMapKeyboardControls";
 export { useAnnouncer } from "./useAnnouncer";
@@ -70,6 +79,9 @@ export type {
   LayerSchemaFieldSummary,
   LayerSchemaSummary,
   LayerSourceKind,
+  MapDefinitionFilterOperator,
+  MapLayerDefinitionFilter,
+  MapLayerContentsState,
   LayerScientificQABadge,
   LayerScientificQAMetadata,
   MapLayerReadinessSummary,

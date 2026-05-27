@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import type { OverlayLayerConfig } from "../mapTypes";
 import {
   MAP_COLORS,
@@ -11,6 +11,18 @@ import {
   MAP_Z_INDEX,
 } from "../mapTokens";
 import { IconClose } from "../MapIcons";
+import {
+  ALLOWED_FIELD_FUNCTIONS,
+  applyFieldCalculation,
+  compileFieldCalculation,
+  isValidDerivedFieldName,
+} from "./fieldCalculator";
+import {
+  buildFieldProfile,
+  buildFieldProfiles,
+  formatFieldProfileMetric,
+  type FieldProfile,
+} from "./fieldProfiles";
 
 export type AttrFeature = GeoJSON.Feature;
 export type SortDirection = "asc" | "desc";
@@ -25,6 +37,20 @@ export interface AttributeRow {
   feature: AttrFeature;
   sourceIndex: number;
   featureId: string;
+}
+
+export interface MapAttributeDerivedFieldDraft {
+  sourceLayerId: string;
+  sourceLayerName: string;
+  fieldName: string;
+  expression: string;
+  featureCollection: GeoJSON.FeatureCollection;
+  fieldProfile: FieldProfile;
+  nullCount: number;
+  totalValueCount: number;
+  errorCount: number;
+  referencedFields: string[];
+  warnings: string[];
 }
 
 export function resolveFeatureId(feature: AttrFeature, sourceLayerId: string): string {
@@ -66,6 +92,24 @@ export function extractColumns(features: readonly AttrFeature[]): string[] {
     }
   }
   return columns;
+}
+
+function resolveLayerColumns(layer: OverlayLayerConfig, features: readonly AttrFeature[]): string[] {
+  const seen = new Set<string>();
+  const columns: string[] = [];
+  const addColumn = (value: string | undefined): void => {
+    const fieldName = value?.trim();
+    if (!fieldName || seen.has(fieldName)) return;
+    seen.add(fieldName);
+    columns.push(fieldName);
+  };
+
+  layer.metadata?.schemaSummary?.fields.forEach((field) => addColumn(field.name));
+  layer.metadata?.registry?.schemaSummary.fields.forEach((field) => addColumn(field.name));
+  layer.metadata?.fields?.forEach((field) => addColumn(field));
+  extractColumns(features).forEach((field) => addColumn(field));
+
+  return columns.slice(0, MAX_COLUMNS);
 }
 
 export function buildAttributeRows(features: readonly AttrFeature[], layerId: string): AttributeRow[] {
@@ -134,6 +178,7 @@ export interface MapAttributeTableProps {
   onSelectFeatures: (featureIds: string[]) => void;
   onFocusFeature: (feature: AttrFeature) => void;
   onClose: () => void;
+  onCreateDerivedLayer?: (draft: MapAttributeDerivedFieldDraft) => void;
   onAnnounce?: (message: string) => void;
   viewportHeight?: number;
 }
@@ -179,6 +224,30 @@ const toolbarStyle: React.CSSProperties = {
   alignItems: "center",
   gap: MAP_SPACING.xs,
   marginLeft: "auto",
+};
+
+const titleClusterStyle: React.CSSProperties = {
+  display: "grid",
+  gap: 2,
+  minWidth: 0,
+};
+
+const titleRowStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: MAP_SPACING.xs,
+  minWidth: 0,
+};
+
+const badgeStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  borderRadius: MAP_RADIUS.pill,
+  border: MAP_STROKES.hairlineSubtle,
+  padding: `1px ${MAP_SPACING.xs}`,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  color: MAP_COLORS.text,
+  background: MAP_COLORS.selectedSubtle,
 };
 
 const headerButtonStyle: React.CSSProperties = {
@@ -246,6 +315,128 @@ const cellStyle: React.CSSProperties = {
   lineHeight: `${ATTRIBUTE_ROW_HEIGHT}px`,
 };
 
+const drawerStyle: React.CSSProperties = {
+  display: "grid",
+  gap: MAP_SPACING.sm,
+  padding: MAP_SPACING.sm,
+  borderBottom: MAP_STROKES.hairlineSubtle,
+  background: MAP_COLORS.bgWorkspace,
+};
+
+const drawerHeaderStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: MAP_SPACING.sm,
+};
+
+const drawerTitleStyle: React.CSSProperties = {
+  fontSize: MAP_TYPOGRAPHY.fontSize.sm,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+  color: MAP_COLORS.text,
+};
+
+const statsGridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(7rem, 1fr))",
+  gap: MAP_SPACING.xs,
+};
+
+const statCardStyle: React.CSSProperties = {
+  display: "grid",
+  gap: 2,
+  minWidth: 0,
+  padding: MAP_SPACING.xs,
+  borderRadius: MAP_RADIUS.sm,
+  border: MAP_STROKES.hairlineSubtle,
+  background: MAP_COLORS.bgPanel,
+};
+
+const statLabelStyle: React.CSSProperties = {
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  color: MAP_COLORS.textMuted,
+};
+
+const statValueStyle: React.CSSProperties = {
+  fontSize: MAP_TYPOGRAPHY.fontSize.sm,
+  color: MAP_COLORS.text,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+};
+
+const distributionListStyle: React.CSSProperties = {
+  display: "grid",
+  gap: MAP_SPACING.xs,
+};
+
+const distributionRowStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1fr) minmax(7rem, 1.25fr) auto",
+  gap: MAP_SPACING.xs,
+  alignItems: "center",
+  minWidth: 0,
+};
+
+const distributionLabelStyle: React.CSSProperties = {
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  color: MAP_COLORS.text,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+};
+
+const distributionTrackStyle: React.CSSProperties = {
+  position: "relative",
+  height: 8,
+  borderRadius: MAP_RADIUS.pill,
+  background: MAP_COLORS.bgPanel,
+  border: MAP_STROKES.hairlineSubtle,
+  overflow: "hidden",
+};
+
+const distributionCountStyle: React.CSSProperties = {
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  color: MAP_COLORS.textMuted,
+};
+
+const calculatorGridStyle: React.CSSProperties = {
+  display: "grid",
+  gap: MAP_SPACING.sm,
+};
+
+const calculatorFieldStyle: React.CSSProperties = {
+  display: "grid",
+  gap: 4,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  color: MAP_COLORS.text,
+};
+
+const textInputStyle: React.CSSProperties = {
+  width: "100%",
+  padding: `6px ${MAP_SPACING.sm}`,
+  borderRadius: MAP_RADIUS.sm,
+  border: MAP_STROKES.hairline,
+  background: MAP_COLORS.bgPanel,
+  color: MAP_COLORS.text,
+  boxSizing: "border-box",
+};
+
+const textAreaStyle: React.CSSProperties = {
+  ...textInputStyle,
+  minHeight: 76,
+  resize: "vertical",
+  fontFamily: "ui-monospace, SFMono-Regular, Consolas, monospace",
+};
+
+const helperTextStyle: React.CSSProperties = {
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  color: MAP_COLORS.textMuted,
+};
+
+const statusTextStyle: React.CSSProperties = {
+  ...helperTextStyle,
+  color: MAP_COLORS.text,
+};
+
 function formatSortLabel(column: string, sortKey: string | null, sortDir: SortDirection): string {
   if (sortKey !== column) return column;
   return `${column} (${sortDir})`;
@@ -257,6 +448,7 @@ export const MapAttributeTable: React.FC<MapAttributeTableProps> = ({
   onSelectFeatures,
   onFocusFeature,
   onClose,
+  onCreateDerivedLayer,
   onAnnounce,
   viewportHeight = DEFAULT_VIEWPORT_HEIGHT,
 }) => {
@@ -264,9 +456,17 @@ export const MapAttributeTable: React.FC<MapAttributeTableProps> = ({
   const [sortDir, setSortDir] = useState<SortDirection>("asc");
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [scrollTop, setScrollTop] = useState(0);
+  const [activeField, setActiveField] = useState<string | null>(null);
+  const [profileDrawerOpen, setProfileDrawerOpen] = useState(false);
+  const [calculatorOpen, setCalculatorOpen] = useState(false);
+  const [derivedFieldName, setDerivedFieldName] = useState("derived_value");
+  const [expression, setExpression] = useState("value * 2");
+  const [calculatorError, setCalculatorError] = useState<string | null>(null);
+  const [calculatorStatus, setCalculatorStatus] = useState<string | null>(null);
 
   const features = useMemo(() => extractFeatures(layer.sourceData), [layer.sourceData]);
-  const columns = useMemo(() => extractColumns(features), [features]);
+  const columns = useMemo(() => resolveLayerColumns(layer, features), [features, layer]);
+  const fieldProfiles = useMemo(() => buildFieldProfiles(features, columns), [features, columns]);
   const baseRows = useMemo(() => buildAttributeRows(features, layer.id), [features, layer.id]);
   const rows = useMemo(
     () => sortRows(filterRows(baseRows, filters), sortKey, sortDir),
@@ -278,8 +478,19 @@ export const MapAttributeTable: React.FC<MapAttributeTableProps> = ({
     () => rows.find((row) => selected.has(row.featureId)) ?? null,
     [rows, selected],
   );
+  const activeProfile = useMemo(
+    () => (activeField ? fieldProfiles[activeField] ?? null : null),
+    [activeField, fieldProfiles],
+  );
+  const isDerivedLayer = layer.sourceKind === "derived" || layer.group === "analysis";
+
+  useEffect(() => {
+    if (activeField && columns.includes(activeField)) return;
+    setActiveField(columns[0] ?? null);
+  }, [activeField, columns]);
 
   const toggleSort = (key: string): void => {
+    setActiveField(key);
     if (sortKey === key) {
       setSortDir((dir) => (dir === "asc" ? "desc" : "asc"));
     } else {
@@ -308,6 +519,67 @@ export const MapAttributeTable: React.FC<MapAttributeTableProps> = ({
     onAnnounce?.(`Selection cleared for ${layer.name}.`);
   };
 
+  const handleApplyCalculation = (): void => {
+    const fieldName = derivedFieldName.trim();
+    if (!isValidDerivedFieldName(fieldName)) {
+      setCalculatorError("Derived field names must start with a letter or underscore and use only letters, digits, or underscores.");
+      setCalculatorStatus(null);
+      return;
+    }
+    if (columns.includes(fieldName)) {
+      setCalculatorError(`Field \"${fieldName}\" already exists on ${layer.name}.`);
+      setCalculatorStatus(null);
+      return;
+    }
+    if (!onCreateDerivedLayer) {
+      setCalculatorError("Derived-layer creation is unavailable in this view.");
+      setCalculatorStatus(null);
+      return;
+    }
+
+    try {
+      const program = compileFieldCalculation(expression, { allowedIdentifiers: columns });
+      const calculation = applyFieldCalculation({ features, fieldName, program });
+      const profile = buildFieldProfile(calculation.featureCollection.features, fieldName);
+      onCreateDerivedLayer({
+        sourceLayerId: layer.id,
+        sourceLayerName: layer.name,
+        fieldName,
+        expression: program.expression,
+        featureCollection: calculation.featureCollection,
+        fieldProfile: profile,
+        nullCount: calculation.nullCount,
+        totalValueCount: calculation.totalValueCount,
+        errorCount: calculation.errorCount,
+        referencedFields: calculation.referencedFields,
+        warnings: calculation.warnings,
+      });
+      setCalculatorError(null);
+      setCalculatorStatus(`Derived field ${fieldName} prepared from ${program.referencedFields.join(", ") || "constants"}.`);
+      onAnnounce?.(`Derived field ${fieldName} prepared from ${layer.name}.`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Field calculation failed.";
+      setCalculatorError(message);
+      setCalculatorStatus(null);
+      onAnnounce?.(`Field calculation blocked: ${message}`);
+    }
+  };
+
+  const profileMetrics = activeProfile
+    ? [
+        { label: "Type", value: activeProfile.kind },
+        { label: "Nulls", value: `${activeProfile.nullCount.toLocaleString()} / ${activeProfile.totalCount.toLocaleString()}` },
+        { label: "Distinct", value: activeProfile.distinctCount.toLocaleString() },
+        ...(activeProfile.kind === "numeric" || activeProfile.kind === "temporal"
+          ? [
+              { label: "Min", value: formatFieldProfileMetric(activeProfile.min) },
+              { label: "Max", value: formatFieldProfileMetric(activeProfile.max) },
+              { label: "Mean", value: formatFieldProfileMetric(activeProfile.mean) },
+            ]
+          : []),
+      ]
+    : [];
+
   return (
     <div
       style={panelStyle}
@@ -316,12 +588,43 @@ export const MapAttributeTable: React.FC<MapAttributeTableProps> = ({
       data-testid="map-attribute-table"
     >
       <div style={headerStyle}>
-        <span style={titleStyle}>{layer.name}</span>
-        <span style={metaStyle} data-testid="map-attribute-table-count">
-          {rows.length.toLocaleString()} of {features.length.toLocaleString()} feature{features.length === 1 ? "" : "s"}
-          {selectedIds.length > 0 ? ` - ${selectedIds.length} selected` : ""}
-        </span>
+        <div style={titleClusterStyle}>
+          <div style={titleRowStyle}>
+            <span style={titleStyle}>{layer.name}</span>
+            {isDerivedLayer ? (
+              <span
+                style={badgeStyle}
+                title={layer.provenance?.label ?? "Derived layer with recorded provenance."}
+                data-testid="map-attribute-table-provenance-badge"
+              >
+                Derived
+              </span>
+            ) : null}
+          </div>
+          <span style={metaStyle} data-testid="map-attribute-table-count">
+            {rows.length.toLocaleString()} of {features.length.toLocaleString()} feature{features.length === 1 ? "" : "s"}
+            {selectedIds.length > 0 ? ` - ${selectedIds.length} selected` : ""}
+          </span>
+        </div>
         <div style={toolbarStyle}>
+          <button
+            type="button"
+            style={{ ...headerButtonStyle, ...(activeProfile ? {} : disabledButtonStyle) }}
+            onClick={() => setProfileDrawerOpen((current) => !current)}
+            disabled={!activeProfile}
+            title={activeProfile ? `Inspect the ${activeProfile.fieldName} field profile.` : "No field is available for profiling."}
+          >
+            Field profile
+          </button>
+          <button
+            type="button"
+            style={{ ...headerButtonStyle, ...(columns.length > 0 ? {} : disabledButtonStyle) }}
+            onClick={() => setCalculatorOpen((current) => !current)}
+            disabled={columns.length === 0}
+            title={columns.length > 0 ? "Create a derived field with the sandboxed calculator." : "No fields available for calculation."}
+          >
+            Calculator
+          </button>
           <button
             type="button"
             style={{ ...headerButtonStyle, ...(selectedRow ? {} : disabledButtonStyle) }}
@@ -346,6 +649,88 @@ export const MapAttributeTable: React.FC<MapAttributeTableProps> = ({
         </div>
       </div>
 
+      {profileDrawerOpen && activeProfile ? (
+        <div style={drawerStyle} data-testid="map-attribute-profile-drawer">
+          <div style={drawerHeaderStyle}>
+            <div style={drawerTitleStyle}>{activeProfile.fieldName} profile</div>
+            <div style={helperTextStyle}>Distribution, null counts, and summary stats for the selected field.</div>
+          </div>
+          <div style={statsGridStyle}>
+            {profileMetrics.map((metric) => (
+              <div key={metric.label} style={statCardStyle}>
+                <span style={statLabelStyle}>{metric.label}</span>
+                <span style={statValueStyle}>{metric.value}</span>
+              </div>
+            ))}
+          </div>
+          <div style={distributionListStyle}>
+            {(activeProfile.distribution.length > 0 ? activeProfile.distribution : [{ label: "No non-null values", count: 0, ratio: 0 }]).map((entry) => (
+              <div key={entry.label} style={distributionRowStyle}>
+                <span style={distributionLabelStyle}>{entry.label}</span>
+                <span style={distributionTrackStyle}>
+                  <span
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      width: `${Math.max(0, Math.min(100, entry.ratio * 100))}%`,
+                      background: MAP_COLORS.interaction,
+                    }}
+                  />
+                </span>
+                <span style={distributionCountStyle}>{entry.count.toLocaleString()}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {calculatorOpen ? (
+        <div style={drawerStyle} data-testid="map-field-calculator">
+          <div style={drawerHeaderStyle}>
+            <div style={drawerTitleStyle}>Sandboxed field calculator</div>
+            <div style={helperTextStyle}>Allowlisted operators and fixed functions only. No globals, property access, or dynamic execution.</div>
+          </div>
+          <div style={calculatorGridStyle}>
+            <label style={calculatorFieldStyle}>
+              <span>Derived field name</span>
+              <input
+                type="text"
+                value={derivedFieldName}
+                onChange={(event) => setDerivedFieldName(event.target.value)}
+                aria-label="Derived field name"
+                style={textInputStyle}
+              />
+            </label>
+            <label style={calculatorFieldStyle}>
+              <span>Expression</span>
+              <textarea
+                value={expression}
+                onChange={(event) => setExpression(event.target.value)}
+                aria-label="Field calculator expression"
+                style={textAreaStyle}
+              />
+            </label>
+            <div style={helperTextStyle}>
+              Available fields: {columns.join(", ") || "none"}. Allowed functions: {ALLOWED_FIELD_FUNCTIONS.join(", ")}.
+            </div>
+            {calculatorError ? <div style={helperTextStyle} data-testid="map-field-calculator-error">{calculatorError}</div> : null}
+            {calculatorStatus ? <div style={statusTextStyle}>{calculatorStatus}</div> : null}
+            <div>
+              <button
+                type="button"
+                style={{ ...headerButtonStyle, ...(!onCreateDerivedLayer ? disabledButtonStyle : {}) }}
+                onClick={handleApplyCalculation}
+                disabled={!onCreateDerivedLayer}
+                data-testid="map-field-calculator-apply"
+                title={onCreateDerivedLayer ? "Create a derived layer with the new field." : "Derived-layer creation is unavailable in this view."}
+              >
+                Create derived layer
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {columns.length === 0 ? (
         <div style={{ padding: MAP_SPACING.md, ...metaStyle }}>
           This layer has no feature attributes to display.
@@ -360,6 +745,7 @@ export const MapAttributeTable: React.FC<MapAttributeTableProps> = ({
                 style={headerCellStyle}
                 onClick={() => toggleSort(column)}
                 aria-label={`Sort by ${column}`}
+                data-testid={`map-attribute-column-${column}`}
               >
                 {formatSortLabel(column, sortKey, sortDir)}
               </button>

@@ -16,7 +16,9 @@ import type {
   MapToUrbanContextSummary,
   MapToUrbanQaSummary,
   UrbanDataFitnessProfile,
+  UrbanEvidenceScalar,
   UrbanEvidenceQAState,
+  UrbanWorkflowRuntimeMode,
 } from '../lib/types';
 
 const TEMPORAL_FIELD_PATTERN = /(date|time|year|month|day|timestamp|datetime|period)/i;
@@ -382,6 +384,20 @@ export interface ApplyMapToUrbanContextOptions {
     | 'scientificQA'
   >;
   triggerRecommendations?: boolean;
+  modelResult?: MapModelUrbanEvidenceReference;
+}
+
+export interface MapModelUrbanEvidenceReference {
+  modelId: string;
+  modelTitle: string;
+  manifestId: string;
+  manifestHash: string;
+  workflowId: string;
+  outputLayerId: string;
+  sourceLayerIds: string[];
+  stepCount: number;
+  batchTargetCount: number;
+  runtimeMode: UrbanWorkflowRuntimeMode;
 }
 
 export interface ApplyMapToUrbanContextResult {
@@ -426,33 +442,74 @@ export function applyMapContextToUrban(
   }
 
   const resolvedContextId = useUrbanContextStore.getState().context?.contextId ?? null;
-  const evidenceArtifactId = options.payload
-    ? `map-context:${options.payload.context.contextId}:${options.payload.createdAt}`
-    : `map-context:${resolvedContextId ?? 'unbound'}`;
+  const modelResult = options.modelResult;
+  const evidenceArtifactId = modelResult
+    ? `map-model:${modelResult.manifestId}`
+    : options.payload
+      ? `map-context:${options.payload.context.contextId}:${options.payload.createdAt}`
+      : `map-context:${resolvedContextId ?? 'unbound'}`;
   const selectedFeatureCount = summary.selectionSummary.reduce(
     (sum, entry) => sum + entry.selectedFeatureCount,
     0,
   );
+  const manifestLinked = modelResult
+    ? options.payload?.workflowSummary.manifestIds.includes(modelResult.manifestId) ?? false
+    : false;
+  const modelWarnings = modelResult
+    ? [
+        ...(modelResult.runtimeMode !== 'live'
+          ? [`Model output runtime mode is ${modelResult.runtimeMode}; it is not asserted as verified live analytical readiness.`]
+          : []),
+        ...(!manifestLinked
+          ? ['The model manifest reference was not present in the Map-to-Urban bridge payload.']
+          : []),
+      ]
+    : [];
+  const linkedLayerIds = modelResult
+    ? [...new Set([...summary.layerIds, modelResult.outputLayerId, ...modelResult.sourceLayerIds])]
+    : [...summary.layerIds];
+  const modelMetadata: Record<string, UrbanEvidenceScalar> = modelResult
+    ? {
+        mapModelId: modelResult.modelId,
+        mapModelManifestId: modelResult.manifestId,
+        mapModelManifestHash: modelResult.manifestHash,
+        mapModelWorkflowId: modelResult.workflowId,
+        mapModelOutputLayerId: modelResult.outputLayerId,
+        mapModelStepCount: modelResult.stepCount,
+        mapModelBatchTargetCount: modelResult.batchTargetCount,
+        mapModelRuntimeMode: modelResult.runtimeMode,
+        mapModelManifestLinked: manifestLinked,
+      }
+    : {};
 
   useUrbanContextStore.getState().registerEvidenceArtifact({
     id: evidenceArtifactId,
     kind: 'map-layer',
-    title: 'Map context summary',
-    summary: `AOI ${summary.aoiReference.aoiId ?? 'none'}, ${summary.layerIds.length} layer(s), ${summary.featureCountSummary.total} feature(s). ${summary.recommendationHints[0] ?? ''}`.trim(),
+    title: modelResult ? `Map model result: ${modelResult.modelTitle}` : 'Map context summary',
+    summary: modelResult
+      ? `Model manifest ${modelResult.manifestId} published from Map Explorer; ${modelResult.stepCount} step(s), output ${modelResult.outputLayerId}.`
+      : `AOI ${summary.aoiReference.aoiId ?? 'none'}, ${summary.layerIds.length} layer(s), ${summary.featureCountSummary.total} feature(s). ${summary.recommendationHints[0] ?? ''}`.trim(),
     state: summary.qaSummary.status === 'blocked' ? 'blocked' : 'active',
     sourceModule: 'map-explorer',
-    sourceId: options.payload?.payloadId ?? 'map-context-summary',
+    sourceId: modelResult?.manifestId ?? options.payload?.payloadId ?? 'map-context-summary',
     linkedContextId: resolvedContextId ?? undefined,
-    linkedLayerIds: [...summary.layerIds],
+    linkedLayerIds,
     tags: ['spatial_stats', 'indicators', 'scenario'],
     qa: {
-      state: mapQaStateToEvidenceState(summary.qaSummary.status),
+      state: modelWarnings.length > 0 && summary.qaSummary.status !== 'blocked'
+        ? 'warning'
+        : mapQaStateToEvidenceState(summary.qaSummary.status),
       warnings: summary.qaSummary.status === 'blocked' || summary.qaSummary.status === 'warning'
-        ? [...summary.recommendationHints]
-        : [],
-      limitations: summary.crsSummary.missingLayerIds.length > 0
-        ? [`Missing CRS metadata for layers: ${summary.crsSummary.missingLayerIds.join(', ')}`]
-        : [],
+        ? [...summary.recommendationHints, ...modelWarnings]
+        : [...modelWarnings],
+      limitations: [
+        ...(summary.crsSummary.missingLayerIds.length > 0
+          ? [`Missing CRS metadata for layers: ${summary.crsSummary.missingLayerIds.join(', ')}`]
+          : []),
+        ...(modelResult && !manifestLinked
+          ? ['Model evidence cannot be independently traced until its manifest is present in the bridge payload.']
+          : []),
+      ],
     },
     ...(dataFitness ? { dataFitness } : {}),
     metadata: {
@@ -465,7 +522,18 @@ export function applyMapContextToUrban(
       hasAoi: summary.aoiReference.aoiId !== null,
       hasTemporalFields: summary.temporalFields.length > 0,
       ...(dataFitness ? { fitnessStatus: dataFitness.status } : {}),
+      ...modelMetadata,
     },
+    ...(modelResult
+      ? {
+          provenance: {
+            sourceId: modelResult.manifestId,
+            methodId: modelResult.workflowId,
+            methodName: modelResult.modelTitle,
+            notes: `Reference-only map model publication; manifest hash ${modelResult.manifestHash}.`,
+          },
+        }
+      : {}),
   });
 
   let recommendationTriggered = false;

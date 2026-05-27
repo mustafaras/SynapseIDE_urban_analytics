@@ -164,6 +164,30 @@ export interface LayerCartographyReviewMetadata {
   legendPersisted?: boolean;
 }
 
+export type MapDefinitionFilterOperator =
+  | "equals"
+  | "not-equals"
+  | "contains"
+  | "greater-than"
+  | "less-than";
+
+export interface MapLayerDefinitionFilter {
+  field: string;
+  operator: MapDefinitionFilterOperator;
+  value: string;
+}
+
+export interface MapLayerContentsState {
+  groupId: string;
+  groupLabel: string;
+  minZoom?: number;
+  maxZoom?: number;
+  definitionFilter?: MapLayerDefinitionFilter;
+  selectable: boolean;
+  editable: boolean;
+  updatedAt: string;
+}
+
 export type LayerPersistenceSource = "inline" | "url" | "metadata";
 
 export type LayerRestoreState =
@@ -320,6 +344,7 @@ export interface LayerMetadata {
   externalService?: ExternalServiceLayerMetadata;
   scientificQA?: LayerScientificQAMetadata;
   cartographyReview?: LayerCartographyReviewMetadata;
+  contents?: MapLayerContentsState;
   persistence?: LayerPersistenceMetadata;
   sourceId?: string;
   sourceStorageMode?: import("@/services/map/contracts/gisContracts").SourceStorageMode;

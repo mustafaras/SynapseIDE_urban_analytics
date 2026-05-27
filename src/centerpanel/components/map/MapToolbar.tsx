@@ -2,6 +2,7 @@ import React from "react";
 import {
   AlertTriangle,
   BarChart3,
+  Boxes,
   Building2,
   ChevronDown,
   Circle,
@@ -77,6 +78,11 @@ export interface MapToolbarProps {
   onToggleLayerPanel?: () => void;
   layerCount?: number;
   visibleLayerCount?: number;
+  showCatalog?: boolean;
+  onToggleCatalog?: () => void;
+  catalogSourceCount?: number;
+  showContents?: boolean;
+  onToggleContents?: () => void;
   activeLayerGeometryType?: string | null;
   hasSelectedAoi?: boolean;
   scientificQAStatus?: LayerQaStatus;
@@ -93,6 +99,14 @@ export interface MapToolbarProps {
   showReviewTimeline?: boolean;
   onToggleReviewTimeline?: () => void;
   reviewEventCount?: number;
+  showPerformanceDiagnostics?: boolean;
+  onTogglePerformanceDiagnostics?: () => void;
+  performanceIssueCount?: number;
+  showProcessingToolbox?: boolean;
+  onToggleProcessingToolbox?: () => void;
+  processingToolCount?: number;
+  showModelBuilder?: boolean;
+  onToggleModelBuilder?: () => void;
   showFigureComposer?: boolean;
   onToggleFigureComposer?: () => void;
   showChoroplethPanel?: boolean;
@@ -187,6 +201,9 @@ interface BuildToolbarCommandsArgs extends Required<Pick<
   | "showLayerPanel"
   | "layerCount"
   | "visibleLayerCount"
+  | "showCatalog"
+  | "catalogSourceCount"
+  | "showContents"
   | "activeLayerGeometryType"
   | "hasSelectedAoi"
   | "scientificQAStatus"
@@ -199,6 +216,11 @@ interface BuildToolbarCommandsArgs extends Required<Pick<
   | "workflowReadyCount"
   | "showReviewTimeline"
   | "reviewEventCount"
+  | "showPerformanceDiagnostics"
+  | "performanceIssueCount"
+  | "showProcessingToolbox"
+  | "processingToolCount"
+  | "showModelBuilder"
   | "showFigureComposer"
   | "showChoroplethPanel"
   | "showClusterViz"
@@ -229,10 +251,15 @@ interface BuildToolbarCommandsArgs extends Required<Pick<
   importProgress: number | null;
   onWorkspaceViewChange?: ((view: MapWorkspaceView) => void) | undefined;
   onToggleLayerPanel?: (() => void) | undefined;
+  onToggleCatalog?: (() => void) | undefined;
+  onToggleContents?: (() => void) | undefined;
   onToggleScientificQAPanel?: (() => void) | undefined;
   onToggleNLQueryPanel?: (() => void) | undefined;
   onToggleWorkflowDrawer?: (() => void) | undefined;
   onToggleReviewTimeline?: (() => void) | undefined;
+  onTogglePerformanceDiagnostics?: (() => void) | undefined;
+  onToggleProcessingToolbox?: (() => void) | undefined;
+  onToggleModelBuilder?: (() => void) | undefined;
   onToggleFigureComposer?: (() => void) | undefined;
   onToggleChoroplethPanel?: (() => void) | undefined;
   onToggleClusterViz?: (() => void) | undefined;
@@ -711,6 +738,40 @@ function buildToolbarCommands(args: BuildToolbarCommandsArgs): ToolbarCommand[] 
     navigator: true,
   });
 
+  add(args.onToggleCatalog && {
+    id: "catalog",
+    label: "Catalog",
+    shortLabel: "Catalog",
+    title: "Open source catalog, restore health, and connection manager",
+    keywords: ["catalog", "source browser", "connections", "restore", "data sources", "repair"],
+    icon: FolderOpen,
+    onClick: args.onToggleCatalog,
+    roles: ["explore", "analyze", "publish"],
+    overflowGroup: "advanced",
+    priority: args.showCatalog ? 127 : hasLayers ? 87 : 121,
+    active: args.showCatalog,
+    badge: args.catalogSourceCount > 0 ? args.catalogSourceCount : null,
+    tone: "default",
+    navigator: true,
+  });
+
+  add(args.onToggleContents && {
+    id: "contents",
+    label: "Contents",
+    shortLabel: "Contents",
+    title: "Open professional contents tree with grouping, scale ranges, filters, and repair actions",
+    keywords: ["contents", "layer tree", "group layers", "scale range", "definition filter", "duplicate layer"],
+    icon: Layers3,
+    onClick: args.onToggleContents,
+    roles: ["explore", "analyze", "publish"],
+    overflowGroup: "advanced",
+    priority: args.showContents ? 128 : hasLayers ? 92 : 120,
+    active: args.showContents,
+    badge: args.layerCount > 0 ? args.layerCount : null,
+    tone: "default",
+    navigator: true,
+  });
+
   add(args.onToggleScientificQAPanel && qaHasSignal && {
     id: "qa",
     label: "QA",
@@ -789,6 +850,60 @@ function buildToolbarCommands(args: BuildToolbarCommandsArgs): ToolbarCommand[] 
     active: args.showReviewTimeline,
     badge: args.reviewEventCount,
     tone: args.reviewEventCount > 0 ? "accent" : "default",
+    navigator: true,
+  });
+
+  add(args.onTogglePerformanceDiagnostics && {
+    id: "performance-diagnostics",
+    label: "Diagnostics",
+    shortLabel: "Diag",
+    title: "Open live render budgets and performance diagnostics",
+    keywords: ["performance", "diagnostics", "render budget", "preview mode", "worker transfer"],
+    icon: BarChart3,
+    onClick: args.onTogglePerformanceDiagnostics,
+    roles: ["explore", "analyze", "publish"],
+    overflowGroup: "advanced",
+    priority: args.performanceIssueCount > 0 ? 128 : args.showPerformanceDiagnostics ? 123 : 84,
+    active: args.showPerformanceDiagnostics,
+    badge: args.performanceIssueCount > 0 ? args.performanceIssueCount : null,
+    tone: args.performanceIssueCount > 0 ? "warning" : "default",
+    contextBoost: "quality",
+    navigator: true,
+  });
+
+  add(args.onToggleProcessingToolbox && {
+    id: "processing-toolbox",
+    label: "Toolbox",
+    shortLabel: "Tools",
+    title: "Open the processing toolbox: searchable geometry and selection tools",
+    keywords: ["processing", "toolbox", "buffer", "centroid", "attribute filter", "geoprocessing", "tools"],
+    icon: Boxes,
+    onClick: args.onToggleProcessingToolbox,
+    roles: ["analyze", "explore"],
+    overflowGroup: "advanced",
+    priority: args.showProcessingToolbox ? 124 : 86,
+    active: args.showProcessingToolbox,
+    badge: args.processingToolCount > 0 ? args.processingToolCount : null,
+    tone: "default",
+    contextBoost: "polygon",
+    navigator: true,
+  });
+
+  add(args.onToggleModelBuilder && {
+    id: "model-builder",
+    label: "Model",
+    shortLabel: "Model",
+    title: "Open model builder: chain processing steps, rerun, batch, and publish evidence",
+    keywords: ["model", "builder", "workflow designer", "batch", "processing chain", "publish evidence"],
+    icon: GitBranch,
+    onClick: args.onToggleModelBuilder,
+    roles: ["analyze", "explore"],
+    overflowGroup: "advanced",
+    priority: args.showModelBuilder ? 125 : 85,
+    active: args.showModelBuilder,
+    badge: null,
+    tone: "default",
+    contextBoost: "polygon",
     navigator: true,
   });
 
@@ -1418,6 +1533,11 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
   onToggleLayerPanel,
   layerCount = 0,
   visibleLayerCount = layerCount,
+  showCatalog = false,
+  onToggleCatalog,
+  catalogSourceCount = 0,
+  showContents = false,
+  onToggleContents,
   activeLayerGeometryType = null,
   hasSelectedAoi = false,
   scientificQAStatus = "unchecked",
@@ -1434,6 +1554,14 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
   showReviewTimeline = false,
   onToggleReviewTimeline,
   reviewEventCount = 0,
+  showPerformanceDiagnostics = false,
+  onTogglePerformanceDiagnostics,
+  performanceIssueCount = 0,
+  showProcessingToolbox = false,
+  onToggleProcessingToolbox,
+  processingToolCount = 0,
+  showModelBuilder = false,
+  onToggleModelBuilder,
   showFigureComposer = false,
   onToggleFigureComposer,
   showChoroplethPanel = false,
@@ -1536,6 +1664,11 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       onToggleLayerPanel,
       layerCount,
       visibleLayerCount,
+      showCatalog,
+      onToggleCatalog,
+      catalogSourceCount,
+      showContents,
+      onToggleContents,
       activeLayerGeometryType,
       hasSelectedAoi,
       scientificQAStatus,
@@ -1552,6 +1685,14 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       showReviewTimeline,
       onToggleReviewTimeline,
       reviewEventCount,
+      showPerformanceDiagnostics,
+      onTogglePerformanceDiagnostics,
+      performanceIssueCount,
+      showProcessingToolbox,
+      onToggleProcessingToolbox,
+      processingToolCount,
+      showModelBuilder,
+      onToggleModelBuilder,
       showFigureComposer,
       onToggleFigureComposer,
       showChoroplethPanel,
@@ -1616,6 +1757,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       isLoadingProject,
       isSavingProject,
       layerCount,
+      catalogSourceCount,
       measurementCount,
       nlQueryLayerCount,
       onWorkspaceViewChange,
@@ -1635,8 +1777,13 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       onToggleEmergingHotSpotViz,
       onToggleHotSpotViz,
       onToggleLayerPanel,
+      onToggleCatalog,
+      onToggleContents,
       onToggleMeasurePanel,
       onToggleNLQueryPanel,
+      onTogglePerformanceDiagnostics,
+      onToggleProcessingToolbox,
+      onToggleModelBuilder,
       onToggleWorkflowDrawer,
       onTogglePinMode,
       onToggleRestrictToMapView,
@@ -1645,6 +1792,8 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       onToggleViewportSync,
       onToggleVoxCityOverlayPanel,
       persistenceDisabled,
+      performanceIssueCount,
+      processingToolCount,
       pinCount,
       pinMode,
       restrictToMapView,
@@ -1660,8 +1809,13 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       showEmergingHotSpotViz,
       showHotSpotViz,
       showLayerPanel,
+      showCatalog,
+      showContents,
       showMeasurePanel,
       showNLQueryPanel,
+      showPerformanceDiagnostics,
+      showProcessingToolbox,
+      showModelBuilder,
       showReviewTimeline,
       showFigureComposer,
       showWorkflowDrawer,

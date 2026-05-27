@@ -174,6 +174,8 @@ describe("MapDataImporter", () => {
       featureCount,
       propertyFieldCount: 2,
     });
+    expect(metadata.rendering?.previewFeatureCount).toBeLessThanOrEqual(MAP_GEOJSON_RENDER_FEATURE_BUDGET);
+    expect(metadata.rendering?.previewCoordinateCount).toBe(metadata.rendering?.previewFeatureCount);
     expect(preview.features.length).toBeLessThanOrEqual(MAP_GEOJSON_RENDER_FEATURE_BUDGET);
     expect(normalizedPreview.features.length).toBe(preview.features.length);
   });
