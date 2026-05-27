@@ -90,6 +90,8 @@ import {
 import { MapReviewTimelinePanel } from "../MapReviewTimelinePanel";
 import { MapLayoutDesignerPanel } from "../layout/MapLayoutDesignerPanel";
 import { Scene3DPanel } from "../scene3d/Scene3DPanel";
+import { Scene3DInteractionStrip } from "../scene3d/Scene3DInteractionStrip";
+import { ScenarioComparisonStrip } from "../scene3d/ScenarioComparisonStrip";
 import { SunShadowPanel } from "../scene3d/SunShadowPanel";
 import { ZoningRulesPanel } from "../zoning/ZoningRulesPanel";
 import { MassingScenarioPanel } from "../zoning/MassingScenarioPanel";
@@ -1083,6 +1085,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const [showZoningPanel, setShowZoningPanel] = useState(false);
   const [showMassingPanel, setShowMassingPanel] = useState(false);
   const [showSunShadowPanel, setShowSunShadowPanel] = useState(false);
+  const [showInteractionStrip, setShowInteractionStrip] = useState(false);
+  const [showComparisonStrip, setShowComparisonStrip] = useState(false);
   const handleToggleFigureComposer = useCallback(() => setShowFigureComposer((previous) => !previous), []);
   const [showPerformanceDiagnostics, setShowPerformanceDiagnostics] = useState(false);
   const [performanceTimings, setPerformanceTimings] = useState<MapPerformanceTimingMetric[]>([]);
@@ -6841,6 +6845,20 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             style={{ display: "none" }}
             onClick={() => setShowSunShadowPanel((p) => !p)}
           />
+          <button
+            type="button"
+            data-testid="toggle-3d-interaction-strip"
+            aria-label="Toggle 3D interaction strip"
+            style={{ display: "none" }}
+            onClick={() => setShowInteractionStrip((p) => !p)}
+          />
+          <button
+            type="button"
+            data-testid="toggle-3d-comparison-strip"
+            aria-label="Toggle scenario comparison strip"
+            style={{ display: "none" }}
+            onClick={() => setShowComparisonStrip((p) => !p)}
+          />
 
           {show3DPanel && !navigatorStageMode && (
             <Scene3DPanel
@@ -6881,6 +6899,18 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               onClose={() => {
                 setShowSunShadowPanel(false);
                 announce("Sun/shadow analysis panel closed");
+              }}
+            />
+          )}
+
+          <Scene3DInteractionStrip visible={showInteractionStrip && !navigatorStageMode} />
+
+          {showComparisonStrip && !navigatorStageMode && (
+            <ScenarioComparisonStrip
+              visible
+              onClose={() => {
+                setShowComparisonStrip(false);
+                announce("Scenario comparison strip closed");
               }}
             />
           )}
