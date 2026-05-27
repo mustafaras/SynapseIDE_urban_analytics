@@ -90,6 +90,7 @@ import {
 import { MapReviewTimelinePanel } from "../MapReviewTimelinePanel";
 import { MapLayoutDesignerPanel } from "../layout/MapLayoutDesignerPanel";
 import { Scene3DPanel } from "../scene3d/Scene3DPanel";
+import { SunShadowPanel } from "../scene3d/SunShadowPanel";
 import { ZoningRulesPanel } from "../zoning/ZoningRulesPanel";
 import { MassingScenarioPanel } from "../zoning/MassingScenarioPanel";
 import {
@@ -1081,6 +1082,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const [show3DPanel, setShow3DPanel] = useState(false);
   const [showZoningPanel, setShowZoningPanel] = useState(false);
   const [showMassingPanel, setShowMassingPanel] = useState(false);
+  const [showSunShadowPanel, setShowSunShadowPanel] = useState(false);
   const handleToggleFigureComposer = useCallback(() => setShowFigureComposer((previous) => !previous), []);
   const [showPerformanceDiagnostics, setShowPerformanceDiagnostics] = useState(false);
   const [performanceTimings, setPerformanceTimings] = useState<MapPerformanceTimingMetric[]>([]);
@@ -6832,6 +6834,13 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             style={{ display: "none" }}
             onClick={() => setShowMassingPanel((p) => !p)}
           />
+          <button
+            type="button"
+            data-testid="toggle-sunshadow-panel"
+            aria-label="Toggle sun/shadow analysis panel"
+            style={{ display: "none" }}
+            onClick={() => setShowSunShadowPanel((p) => !p)}
+          />
 
           {show3DPanel && !navigatorStageMode && (
             <Scene3DPanel
@@ -6863,6 +6872,16 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
                 announce("Massing scenarios panel closed");
               }}
               parcelId={selectedFeatureIds[0] ?? null}
+            />
+          )}
+
+          {showSunShadowPanel && !navigatorStageMode && (
+            <SunShadowPanel
+              visible
+              onClose={() => {
+                setShowSunShadowPanel(false);
+                announce("Sun/shadow analysis panel closed");
+              }}
             />
           )}
 
