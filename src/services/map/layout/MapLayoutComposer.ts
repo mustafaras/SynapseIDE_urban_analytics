@@ -268,3 +268,137 @@ export const MapLayoutComposer = {
   preflight: preflightMapFigure,
   assertExportable: assertFigureExportable,
 };
+
+// --- V2 additions ---
+
+export type MapLayoutPageSize = "A4" | "A3" | "Letter";
+export type MapLayoutOrientation = "portrait" | "landscape";
+export type MapLayoutDPI = 72 | 150 | 300;
+
+export interface MapLayoutPreset {
+  pageSize: MapLayoutPageSize;
+  orientation: MapLayoutOrientation;
+  dpi: MapLayoutDPI;
+  label: string;
+}
+
+export const LAYOUT_PRESETS: readonly MapLayoutPreset[] = [
+  { pageSize: "A4", orientation: "portrait", dpi: 150, label: "A4 Portrait · 150 DPI" },
+  { pageSize: "A4", orientation: "landscape", dpi: 150, label: "A4 Landscape · 150 DPI" },
+  { pageSize: "A3", orientation: "landscape", dpi: 150, label: "A3 Landscape · 150 DPI" },
+  { pageSize: "Letter", orientation: "portrait", dpi: 72, label: "Letter Portrait · 72 DPI (web)" },
+];
+
+export interface MapPageSlot {
+  kind: "chart" | "table" | "text";
+  label: string;
+}
+
+export interface MapPageInput extends ComposeMapFigureInput {
+  pageNumber: number;
+  dynamicText?: string;
+  showInsetMap?: boolean;
+  slots?: MapPageSlot[];
+}
+
+export interface MapBookPage {
+  pageNumber: number;
+  figure: MapFigureSpec;
+  dynamicText: string;
+  showInsetMap: boolean;
+  slots: MapPageSlot[];
+}
+
+export interface MapBookSpec {
+  id: string;
+  createdAt: string;
+  preset: MapLayoutPreset;
+  pages: MapBookPage[];
+  /** True when every page passes preflight. */
+  exportable: boolean;
+}
+
+/** Serialisable state used to restore a layout across sessions. */
+export interface MapFigureRestoreMetadata {
+  version: 1;
+  presetIndex: number;
+  pages: Array<{
+    pageNumber: number;
+    title: string;
+    dynamicText: string;
+    showInsetMap: boolean;
+    slots: MapPageSlot[];
+    includeAttribution: boolean;
+    includeLegend: boolean;
+    includeScaleBar: boolean;
+    includeNorthArrow: boolean;
+  }>;
+}
+
+export function composeMapBook(
+  pageInputs: MapPageInput[],
+  preset: MapLayoutPreset,
+  now?: Date,
+): MapBookSpec {
+  const createdAt = (now ?? new Date()).toISOString();
+  const sorted = [...pageInputs].sort((a, b) => a.pageNumber - b.pageNumber);
+  const pages: MapBookPage[] = sorted.map((input) => ({
+    pageNumber: input.pageNumber,
+    figure: composeMapFigure({ ...input, now: now ?? new Date() }),
+    dynamicText: input.dynamicText ?? "",
+    showInsetMap: input.showInsetMap ?? false,
+    slots: input.slots ?? [],
+  }));
+  const exportable = pages.every((page) => preflightMapFigure(page.figure).ok);
+  return {
+    id: `map-book-${createdAt}`,
+    createdAt,
+    preset,
+    pages,
+    exportable,
+  };
+}
+
+export function serializeLayoutRestoreMetadata(
+  presetIndex: number,
+  pages: MapPageInput[],
+): MapFigureRestoreMetadata {
+  return {
+    version: 1,
+    presetIndex,
+    pages: pages.map((p) => ({
+      pageNumber: p.pageNumber,
+      title: p.title ?? "",
+      dynamicText: p.dynamicText ?? "",
+      showInsetMap: p.showInsetMap ?? false,
+      slots: p.slots ?? [],
+      includeAttribution: p.composition?.includeAttribution ?? true,
+      includeLegend: p.composition?.includeLegend ?? true,
+      includeScaleBar: p.composition?.includeScaleBar ?? true,
+      includeNorthArrow: p.composition?.includeNorthArrow ?? true,
+    })),
+  };
+}
+
+export function restorePageInputsFromMetadata(
+  meta: MapFigureRestoreMetadata,
+  overlayLayers: import("@/centerpanel/components/map/mapTypes").OverlayLayerConfig[],
+): { presetIndex: number; pages: MapPageInput[] } {
+  return {
+    presetIndex: meta.presetIndex,
+    pages: meta.pages.map((p) => ({
+      pageNumber: p.pageNumber,
+      overlayLayers,
+      title: p.title,
+      dynamicText: p.dynamicText,
+      showInsetMap: p.showInsetMap,
+      slots: p.slots,
+      composition: {
+        includeAttribution: p.includeAttribution,
+        includeLegend: p.includeLegend,
+        includeScaleBar: p.includeScaleBar,
+        includeNorthArrow: p.includeNorthArrow,
+      },
+    })),
+  };
+}
