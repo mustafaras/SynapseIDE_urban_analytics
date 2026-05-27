@@ -10,8 +10,8 @@ const INITIAL_LOAD_BUDGET_BYTES = 2500 * 1024;
 const LAZY_CHUNK_BUDGET_BYTES = 500 * 1024;
 const APPROVED_LAZY_BUDGET_OVERRIDES = {
   'centerpanel/components/MapExplorerModal': {
-    budgetBytes: 4100 * 1024,
-    reason: 'Map explorer intentionally isolates importer, map engine, dataset library, diagnostics, and map-persistence recovery stacks behind a single lazy boundary.',
+    budgetBytes: 4300 * 1024,
+    reason: 'Map explorer intentionally isolates importer, map engine, dataset library, diagnostics, map-persistence recovery stacks, and the 3D/zoning/massing/sun-shadow panel suite (Prompts 30–33) behind a single lazy boundary.',
   },
   'centerpanel/Flows/SunlightSimFlow': {
     budgetBytes: 1365 * 1024,
