@@ -91,6 +91,7 @@ import { MapReviewTimelinePanel } from "../MapReviewTimelinePanel";
 import { MapLayoutDesignerPanel } from "../layout/MapLayoutDesignerPanel";
 import { Scene3DPanel } from "../scene3d/Scene3DPanel";
 import { ZoningRulesPanel } from "../zoning/ZoningRulesPanel";
+import { MassingScenarioPanel } from "../zoning/MassingScenarioPanel";
 import {
   MapPerformanceBudgetBanner,
   MapPerformanceDiagnosticsPanel,
@@ -1079,6 +1080,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const [showFigureComposer, setShowFigureComposer] = useState(false);
   const [show3DPanel, setShow3DPanel] = useState(false);
   const [showZoningPanel, setShowZoningPanel] = useState(false);
+  const [showMassingPanel, setShowMassingPanel] = useState(false);
   const handleToggleFigureComposer = useCallback(() => setShowFigureComposer((previous) => !previous), []);
   const [showPerformanceDiagnostics, setShowPerformanceDiagnostics] = useState(false);
   const [performanceTimings, setPerformanceTimings] = useState<MapPerformanceTimingMetric[]>([]);
@@ -6823,6 +6825,13 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             style={{ display: "none" }}
             onClick={() => setShowZoningPanel((p) => !p)}
           />
+          <button
+            type="button"
+            data-testid="toggle-massing-panel"
+            aria-label="Toggle massing scenarios panel"
+            style={{ display: "none" }}
+            onClick={() => setShowMassingPanel((p) => !p)}
+          />
 
           {show3DPanel && !navigatorStageMode && (
             <Scene3DPanel
@@ -6843,6 +6852,17 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
                 announce("Zoning rules panel closed");
               }}
               selectedParcelId={selectedFeatureIds[0] ?? null}
+            />
+          )}
+
+          {showMassingPanel && !navigatorStageMode && (
+            <MassingScenarioPanel
+              visible
+              onClose={() => {
+                setShowMassingPanel(false);
+                announce("Massing scenarios panel closed");
+              }}
+              parcelId={selectedFeatureIds[0] ?? null}
             />
           )}
 
