@@ -88,7 +88,7 @@ import {
   validateDrawnGeometry,
 } from "@/services/map/DrawnGeometryValidation";
 import { MapReviewTimelinePanel } from "../MapReviewTimelinePanel";
-import { MapFigureComposerPanel } from "../layout/MapFigureComposerPanel";
+import { MapLayoutDesignerPanel } from "../layout/MapLayoutDesignerPanel";
 import {
   MapPerformanceBudgetBanner,
   MapPerformanceDiagnosticsPanel,
@@ -6787,19 +6787,19 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             onAnnounce={announce}
           />
 
-          <MapFigureComposerPanel
+          <MapLayoutDesignerPanel
             visible={showFigureComposer && !navigatorStageMode}
             overlayLayers={overlayLayers}
             qaState={scientificQA}
             bearing={bearing}
             onClose={() => {
               setShowFigureComposer(false);
-              announce("Figure composer closed");
+              announce("Layout designer closed");
             }}
-            onExportFigure={() => {
+            onExportBook={(_book) => {
               setShowFigureComposer(false);
               setShowMapExportDialog(true);
-              announce("Figure gates passed — opening publication export");
+              announce("Map book exported — opening publication export");
             }}
             onAnnounce={announce}
           />
