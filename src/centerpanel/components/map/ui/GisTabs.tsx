@@ -30,6 +30,8 @@ export interface GisTabsProps {
   children: React.ReactNode;
   style?: React.CSSProperties;
   "data-testid"?: string;
+  /** Prefix for per-tab data-testid attributes: `${tabTestIdPrefix}-${tab.id}` */
+  tabTestIdPrefix?: string;
 }
 
 const tabListStyle: React.CSSProperties = {
@@ -81,6 +83,7 @@ export const GisTabs: React.FC<GisTabsProps> = ({
   children,
   style,
   "data-testid": testId,
+  tabTestIdPrefix,
 }) => {
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
@@ -132,6 +135,7 @@ export const GisTabs: React.FC<GisTabsProps> = ({
             disabled={tab.disabled}
             title={tab.disabled && tab.disabledReason ? tab.disabledReason : tab.label}
             data-disabled-reason={tab.disabled && tab.disabledReason ? tab.disabledReason : undefined}
+            data-testid={tabTestIdPrefix ? `${tabTestIdPrefix}-${tab.id}` : undefined}
             tabIndex={activeId === tab.id ? 0 : -1}
             style={buildTabStyle(activeId === tab.id, tab.disabled)}
             onClick={() => { if (!tab.disabled) onTabChange(tab.id); }}

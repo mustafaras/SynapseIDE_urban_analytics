@@ -13,6 +13,8 @@ import {
   type MapCatalogLayerInsertion,
 } from "./catalogModel";
 import styles from "./MapCatalogPanel.module.css";
+import { GisEmptyState, GisIconButton, GisStatusChip } from "../ui";
+import type { GisStatusKey } from "../mapTokens";
 
 export interface MapCatalogPanelProps {
   visible: boolean;
@@ -28,12 +30,37 @@ export interface MapCatalogPanelProps {
 
 function healthLabel(health: MapCatalogHealth): string {
   switch (health) {
-    case "external-reference":
-      return "External";
-    case "metadata-only":
-      return "Metadata only";
+    case "external-reference": return "External";
+    case "metadata-only":      return "Metadata only";
+    case "rate-limit":         return "Rate limited";
     default:
       return health.charAt(0).toUpperCase() + health.slice(1);
+  }
+}
+
+function catalogHealthToGisStatus(health: MapCatalogHealth): GisStatusKey {
+  switch (health) {
+    case "restored":
+    case "live":
+    case "cached":
+      return "ready";
+    case "recoverable":
+    case "metadata-only":
+      return "caveat";
+    case "unavailable":
+    case "cors":
+    case "auth":
+    case "rate-limit":
+      return "blocked";
+    case "external-reference":
+    case "offline":
+      return "external-offline";
+    case "demo":
+      return "demo";
+    case "untracked":
+    case "unknown":
+    default:
+      return "unknown";
   }
 }
 
@@ -111,9 +138,7 @@ export const MapCatalogPanel: React.FC<MapCatalogPanelProps> = ({
           <h2><Database size={15} /> Catalog</h2>
           <p>Sources, services, restore state and generated outputs</p>
         </div>
-        <button className={styles.iconButton} type="button" onClick={onClose} aria-label="Close catalog">
-          <X size={15} />
-        </button>
+        <GisIconButton label="Close catalog" icon={<X size={15} />} onClick={onClose} size="md" />
       </header>
 
       <div className={styles.body}>
@@ -193,16 +218,23 @@ export const MapCatalogPanel: React.FC<MapCatalogPanelProps> = ({
             return (
               <section key={category.id} className={styles.category} data-testid={`catalog-category-${category.id}`}>
                 <h3>{category.label}<small>{entries.length}</small></h3>
-                {entries.length === 0 ? <p className={styles.empty}>{category.emptyLabel}</p> : (
+                {entries.length === 0 ? (
+                  <GisEmptyState title={category.emptyLabel} compact />
+                ) : (
                   <div className={styles.items}>
                     {entries.map((item) => (
                       <article className={styles.item} key={item.id} data-testid={`catalog-item-${item.id}`}>
                         <div className={styles.itemHeading}>
-                          <strong>{item.title}</strong>
-                          <span className={styles.health} data-status={item.health}>{healthLabel(item.health)}</span>
+                          <strong className={styles.itemTitle} title={item.title}>{item.title}</strong>
+                          <GisStatusChip
+                            status={catalogHealthToGisStatus(item.health)}
+                            label={healthLabel(item.health)}
+                            density="compact"
+                            data-testid={`catalog-health-${item.id}`}
+                          />
                         </div>
                         {item.synthetic ? <span className={styles.demoLabel}>DEMO / SYNTHETIC</span> : null}
-                        <p>{item.summary}</p>
+                        <p className={styles.itemSummary}>{item.summary}</p>
                         {item.actionableReason ? <p className={styles.actionable}>{item.actionableReason}</p> : null}
                         <div className={styles.itemActions}>
                           {item.template === "demo-pack" ? (

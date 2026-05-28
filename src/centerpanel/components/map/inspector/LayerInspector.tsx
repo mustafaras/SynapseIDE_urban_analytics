@@ -14,6 +14,11 @@ import {
 import { IconClose } from "../MapIcons";
 import { LayerStyleEditor } from "./style/LayerStyleEditor";
 import type { LayerStyleUpdate } from "./style/legendContract";
+import {
+  GisEmptyState,
+  GisIconButton,
+  GisTabs,
+} from "../ui";
 
 /**
  * LayerInspector — a tabbed, devtools-free readout of everything the metadata
@@ -91,41 +96,12 @@ const titleStyle: React.CSSProperties = {
   fontSize: MAP_TYPOGRAPHY.fontSize.md,
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
   color: MAP_COLORS.text,
-  wordBreak: "break-word",
+  /* Ellipsis-truncate long layer names — never clip silently */
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+  maxWidth: "22rem",
 };
-
-const closeButtonStyle: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  border: MAP_STROKES.none,
-  background: MAP_COLORS.transparent,
-  color: MAP_COLORS.textMuted,
-  cursor: "pointer",
-  padding: 2,
-  borderRadius: MAP_RADIUS.sm,
-};
-
-const tabBarStyle: React.CSSProperties = {
-  display: "flex",
-  flexWrap: "wrap",
-  gap: 2,
-  padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
-  borderBottom: MAP_STROKES.hairline,
-};
-
-function tabButtonStyle(active: boolean): React.CSSProperties {
-  return {
-    padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
-    border: MAP_STROKES.none,
-    borderRadius: MAP_RADIUS.sm,
-    background: active ? MAP_COLORS.selectedSubtle : MAP_COLORS.transparent,
-    color: active ? MAP_COLORS.interaction : MAP_COLORS.textMuted,
-    fontSize: MAP_TYPOGRAPHY.fontSize.xs,
-    fontWeight: active ? MAP_TYPOGRAPHY.fontWeight.semibold : MAP_TYPOGRAPHY.fontWeight.medium,
-    cursor: "pointer",
-  };
-}
 
 const bodyStyle: React.CSSProperties = {
   padding: MAP_SPACING.sm,
@@ -291,7 +267,7 @@ export const LayerInspector: React.FC<LayerInspectorProps> = ({
                   <Notes items={sourceHandle.caveats} />
                 </>
               ) : (
-                <span style={unknownStyle}>No source handle is registered for this layer.</span>
+                <GisEmptyState title="No source handle registered" description="No source handle is registered for this layer." compact />
               )}
             </section>
           </>
@@ -314,7 +290,7 @@ export const LayerInspector: React.FC<LayerInspectorProps> = ({
                 ))}
               </div>
             ) : (
-              <span style={unknownStyle}>Schema fields are not declared for this layer.</span>
+              <GisEmptyState title="No schema fields" description="Schema fields are not declared for this layer." compact />
             )}
             <Notes items={schema.notes} />
           </section>
@@ -349,7 +325,7 @@ export const LayerInspector: React.FC<LayerInspectorProps> = ({
                 <Notes items={qa.caveats} />
               </>
             ) : (
-              <span style={unknownStyle}>Scientific QA has not been run for this layer.</span>
+              <GisEmptyState title="QA not run" description="Scientific QA has not been run for this layer." compact />
             )}
           </section>
         );
@@ -406,7 +382,7 @@ export const LayerInspector: React.FC<LayerInspectorProps> = ({
                 <Row label="Evidence artifact" value={registry.evidenceArtifactId ?? analysis?.evidenceArtifactId} mono />
               </>
             ) : (
-              <span style={unknownStyle}>No analysis lineage — this is a source layer, not a derived result.</span>
+              <GisEmptyState title="No analysis lineage" description="This is a source layer, not a derived result." compact />
             )}
           </section>
         );
@@ -446,33 +422,26 @@ export const LayerInspector: React.FC<LayerInspectorProps> = ({
           <div style={eyebrowStyle}>Layer inspector</div>
           <div style={titleStyle}>{layer.name}</div>
         </div>
-        <button type="button" style={closeButtonStyle} onClick={onClose} aria-label="Close layer inspector">
-          <IconClose size={14} />
-        </button>
+        <GisIconButton
+          label="Close layer inspector"
+          icon={<IconClose size={14} />}
+          onClick={onClose}
+          size="sm"
+        />
       </div>
 
-      <div style={tabBarStyle} role="tablist" aria-label="Layer inspector tabs">
-        {TABS.map((tab) => {
-          const active = tab.id === activeTab;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              role="tab"
-              aria-selected={active}
-              data-testid={`map-layer-inspector-tab-${tab.id}`}
-              style={tabButtonStyle(active)}
-              onClick={() => setActiveTab(tab.id)}
-            >
-              {tab.label}
-            </button>
-          );
-        })}
-      </div>
-
-      <div style={bodyStyle} role="tabpanel" data-testid={`map-layer-inspector-panel-${activeTab}`}>
-        {renderTab()}
-      </div>
+      <GisTabs
+        tabs={[...TABS]}
+        activeId={activeTab}
+        onTabChange={(id) => setActiveTab(id as InspectorTabId)}
+        aria-label="Layer inspector"
+        tabTestIdPrefix="map-layer-inspector-tab"
+        style={{ flex: 1, minHeight: 0 }}
+      >
+        <div style={bodyStyle} data-testid={`map-layer-inspector-panel-${activeTab}`}>
+          {renderTab()}
+        </div>
+      </GisTabs>
     </div>
   );
 };

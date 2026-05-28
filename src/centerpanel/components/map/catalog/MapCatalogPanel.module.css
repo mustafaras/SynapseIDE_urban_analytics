@@ -246,6 +246,27 @@
   font-weight: 550;
 }
 
+/* Prompt 37 — truncation for long layer/source names */
+.itemTitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1;
+}
+
+.itemSummary {
+  margin: 0;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  word-break: break-word;
+  color: var(--syn-text-muted, #8993a3);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
 .health,
 .demoLabel {
   flex: none;

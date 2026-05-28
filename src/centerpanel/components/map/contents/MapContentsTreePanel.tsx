@@ -27,6 +27,7 @@ import {
   setMapLayerContentsState,
 } from "./contentsModel";
 import styles from "./MapContentsTreePanel.module.css";
+import { GisEmptyState, GisIconButton, GisStatusChip } from "../ui";
 
 export interface MapContentsTreePanelProps {
   visible: boolean;
@@ -170,9 +171,7 @@ export const MapContentsTreePanel: React.FC<MapContentsTreePanelProps> = ({
           <h2><FolderTree size={15} /> Contents</h2>
           <p>Groups, scale visibility, filters and layer readiness</p>
         </div>
-        <button className={styles.iconButton} type="button" onClick={onClose} aria-label="Close contents tree">
-          <X size={15} />
-        </button>
+        <GisIconButton label="Close contents tree" icon={<X size={15} />} onClick={onClose} size="md" />
       </header>
 
       <div className={styles.body}>
@@ -240,12 +239,19 @@ export const MapContentsTreePanel: React.FC<MapContentsTreePanelProps> = ({
                       </button>
                     </div>
                     <div className={styles.badges}>
-                      <span data-state={layer.visible && scale.inRange ? "ready" : "muted"}>
-                        {scale.inRange ? "Visible range" : "Out of scale"}
-                      </span>
+                      <GisStatusChip
+                        status={layer.visible && scale.inRange ? "ready" : "caveat"}
+                        label={scale.inRange ? "In range" : "Out of scale"}
+                        density="compact"
+                      />
                       <span>{contents.selectable ? "Selectable" : "Locked select"}</span>
                       <span>{contents.editable ? "Editable" : "Read only"}</span>
-                      <span>{registry.publicationReadiness.status}</span>
+                      <GisStatusChip
+                        status={registry.publicationReadiness.status === "ready" ? "ready" : registry.publicationReadiness.status === "blocked" ? "blocked" : "caveat"}
+                        label={registry.publicationReadiness.status}
+                        density="compact"
+                        data-testid={`contents-pub-status-${layer.id}`}
+                      />
                       {contents.definitionFilter ? <span className={styles.filterBadge}>Filtered</span> : null}
                     </div>
                     {warning ? (
@@ -267,7 +273,14 @@ export const MapContentsTreePanel: React.FC<MapContentsTreePanelProps> = ({
               })}
             </section>
           ))}
-          {layers.length === 0 ? <p className={styles.empty}>No layers have been added to this map.</p> : null}
+          {layers.length === 0 ? (
+            <GisEmptyState
+              icon={<FolderTree size={20} />}
+              title="No layers"
+              description="Add a layer to begin building the contents tree."
+              compact
+            />
+          ) : null}
         </div>
 
         <aside className={styles.properties}>
