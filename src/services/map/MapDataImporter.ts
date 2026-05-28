@@ -55,6 +55,9 @@ export const MAP_IMPORT_ACCEPT_ATTRIBUTE = [
   ".kml",
   ".kmz",
   ".gpx",
+  ".shp",
+  ".zip",
+  ".gpkg",
   ".fgb",
   ".flatgeobuf",
   ".pmtiles",
@@ -104,7 +107,7 @@ export interface GeoJSONRenderNormalizationOptions {
   propertyValueCharLimit?: number;
 }
 
-export type MapImportFileKind = "geojson" | "csv" | "arrow" | "geoparquet" | "kml" | "kmz" | "gpx";
+export type MapImportFileKind = "geojson" | "csv" | "arrow" | "geoparquet" | "kml" | "kmz" | "gpx" | "shapefile" | "geopackage";
 
 export type SourceProfileSupportStatus = "supported" | "partial" | "unsupported";
 
@@ -208,6 +211,20 @@ export interface ColumnarImportSession {
   sizeComparison: ColumnarSizeComparison;
 }
 
+export interface GeoPackageLayerInfo {
+  tableName: string;
+  featureCount: number | null;
+  geometryType: string | null;
+}
+
+export interface GeoPackageImportSession {
+  kind: "geopackage";
+  fileName: string;
+  layers: GeoPackageLayerInfo[];
+  /** Opaque data held in memory until user picks a layer */
+  _data: ArrayBuffer;
+}
+
 export type PreparedMapImportResult =
   | {
       kind: "ready";
@@ -224,6 +241,10 @@ export type PreparedMapImportResult =
   | {
       kind: "profile";
       profile: SourceProfile;
+    }
+  | {
+      kind: "geopackage";
+      session: GeoPackageImportSession;
     };
 
 export class MapDataImportError extends Error {
@@ -344,6 +365,8 @@ function sourceProfileSupportStatus(format: SourceFormat): SourceProfileSupportS
     case "kml":
     case "kmz":
     case "gpx":
+    case "shapefile":
+    case "geopackage":
       return "supported";
     case "flatgeobuf":
     case "pmtiles":
@@ -1258,7 +1281,7 @@ export function detectImportFileType(file: File): MapImportFileKind {
   }
 
   throw new MapDataImportError(
-    "Unsupported file type. Please choose GeoJSON, CSV, Arrow, GeoParquet, KML, KMZ, or GPX.",
+    "Unsupported file type. Please choose GeoJSON, CSV, Arrow, GeoParquet, KML, KMZ, GPX, Shapefile (.shp/.zip), or GeoPackage (.gpkg).",
   );
 }
 
@@ -1269,7 +1292,9 @@ function isMapImportFileKind(format: SourceFormat): format is MapImportFileKind 
     format === "geoparquet" ||
     format === "kml" ||
     format === "kmz" ||
-    format === "gpx";
+    format === "gpx" ||
+    format === "shapefile" ||
+    format === "geopackage";
 }
 
 export function detectSourceProfileFormat(file: File): SourceFormat {
@@ -1306,9 +1331,15 @@ export function detectSourceProfileFormat(file: File): SourceFormat {
   if (extension === "tif" || extension === "tiff" || mime === "image/tiff" || mime.includes("geotiff")) {
     return "geotiff";
   }
+  if (extension === "shp" || extension === "zip") {
+    return "shapefile";
+  }
+  if (extension === "gpkg") {
+    return "geopackage";
+  }
 
   throw new MapDataImportError(
-    "Unsupported file type. Please choose GeoJSON, CSV, Arrow, GeoParquet, KML, KMZ, GPX, FlatGeobuf, PMTiles, or GeoTIFF.",
+    "Unsupported file type. Please choose GeoJSON, CSV, Arrow, GeoParquet, KML, KMZ, GPX, Shapefile, GeoPackage, FlatGeobuf, PMTiles, or GeoTIFF.",
   );
 }
 
@@ -2522,6 +2553,203 @@ export async function importGeoJSONFile(
   });
 }
 
+/**
+ * Extracts an EPSG code from a Shapefile .prj WKT string.
+ * Looks for AUTHORITY["EPSG","<code>"] and returns "EPSG:<code>", or null if not found.
+ */
+export function parsePrjText(prjText: string): string | null {
+  const match = /AUTHORITY\["EPSG"\s*,\s*"(\d+)"\]/i.exec(prjText);
+  return match ? `EPSG:${match[1]}` : null;
+}
+
+/**
+ * Builds an ImportedGeoJSONLayer from a FeatureCollection with explicit CRS information.
+ * Extracted as a testable helper for Shapefile import logic.
+ */
+export function buildShapefileLayerFromFc(
+  fileName: string,
+  featureCollection: FeatureCollection,
+  epsgCode: string | null,
+): ImportedGeoJSONLayer {
+  const crsSummary: LayerCrsSummary = epsgCode
+    ? {
+        crs: epsgCode,
+        status: "known",
+        source: "import-source",
+        notes: ["CRS read from Shapefile .prj file; verify suitability before analytical measurement."],
+      }
+    : {
+        crs: null,
+        status: "missing",
+        source: "import-source",
+        notes: ["Shapefile .prj was not present or could not be read; CRS unknown."],
+      };
+
+  return buildImportedLayer(
+    fileName,
+    featureCollection,
+    "shapefile",
+    undefined,
+    { crsSummary },
+  );
+}
+
+/**
+ * Parses a zipped Shapefile (or bare .shp) using shpjs.
+ * Returns an ImportedGeoJSONLayer with CRS derived from the embedded .prj file.
+ */
+async function parseShapefileZip(data: ArrayBuffer, fileName: string): Promise<ImportedGeoJSONLayer> {
+  const shpjs = (await import("shpjs")).default;
+  const JSZipMod = (await import("jszip")).default;
+
+  let rawResult: FeatureCollection | FeatureCollection[];
+  try {
+    rawResult = await shpjs(data);
+  } catch (err) {
+    throw new MapDataImportError(
+      `Shapefile import failed: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+
+  const featureCollection: FeatureCollection = Array.isArray(rawResult)
+    ? (rawResult[0] ?? { type: "FeatureCollection", features: [] })
+    : rawResult;
+
+  // Attempt to read .prj from the zip for CRS detection
+  let epsgCode: string | null = null;
+  try {
+    const archive = await JSZipMod.loadAsync(data);
+    const prjEntry = Object.values(archive.files).find(
+      (entry) => !entry.dir && entry.name.toLowerCase().endsWith(".prj"),
+    );
+    if (prjEntry) {
+      const prjText = await prjEntry.async("string");
+      epsgCode = parsePrjText(prjText);
+    }
+  } catch {
+    // .prj not readable — CRS will be missing
+  }
+
+  validateFeatureCollection(featureCollection);
+  return buildShapefileLayerFromFc(fileName, featureCollection, epsgCode);
+}
+
+/**
+ * Parses a GeoPackage ArrayBuffer using @loaders.gl/geopackage.
+ * Returns a GeoPackageImportSession listing available layers.
+ */
+async function parseGeoPackageArrayBuffer(data: ArrayBuffer, fileName: string): Promise<GeoPackageImportSession> {
+  const { GeoPackageLoader } = await import("@loaders.gl/geopackage");
+  const { load } = await import("@loaders.gl/core");
+
+  let gpkg: unknown;
+  try {
+    gpkg = await load(new Uint8Array(data), GeoPackageLoader, { worker: false });
+  } catch (err) {
+    throw new MapDataImportError(
+      `GeoPackage import failed: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+
+  // GeoPackageLoader returns an object with a layers array
+  const gpkgObj = gpkg as Record<string, unknown>;
+  const rawLayers = Array.isArray(gpkgObj["layers"]) ? (gpkgObj["layers"] as unknown[]) : [];
+
+  const layers: GeoPackageLayerInfo[] = rawLayers.map((layer) => {
+    const l = layer as Record<string, unknown>;
+    const tableName = typeof l["name"] === "string" ? l["name"] : typeof l["id"] === "string" ? l["id"] : "unknown";
+    const featureCount =
+      typeof l["length"] === "number"
+        ? l["length"]
+        : Array.isArray(l["data"])
+          ? (l["data"] as unknown[]).length
+          : null;
+    const geometryType =
+      typeof l["schema"] === "object" && l["schema"] !== null
+        ? (((l["schema"] as Record<string, unknown>)["metadata"] as Record<string, unknown> | undefined)?.["geometryType"] as string | undefined) ?? null
+        : null;
+    return { tableName, featureCount, geometryType };
+  });
+
+  return {
+    kind: "geopackage",
+    fileName,
+    layers,
+    _data: data,
+  };
+}
+
+/**
+ * Commits a single named layer from a GeoPackageImportSession to an ImportedGeoJSONLayer.
+ */
+export async function commitGeoPackageLayer(
+  session: GeoPackageImportSession,
+  tableName: string,
+): Promise<ImportedGeoJSONLayer> {
+  const { GeoPackageLoader } = await import("@loaders.gl/geopackage");
+  const { load } = await import("@loaders.gl/core");
+
+  let gpkg: unknown;
+  try {
+    gpkg = await load(new Uint8Array(session._data), GeoPackageLoader, { worker: false, geopackage: { sqlJsCDN: undefined } });
+  } catch (err) {
+    throw new MapDataImportError(
+      `GeoPackage layer commit failed: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+
+  const gpkgObj = gpkg as Record<string, unknown>;
+  const rawLayers = Array.isArray(gpkgObj["layers"]) ? (gpkgObj["layers"] as unknown[]) : [];
+
+  const targetLayer = rawLayers.find((layer) => {
+    const l = layer as Record<string, unknown>;
+    return l["name"] === tableName || l["id"] === tableName;
+  }) as Record<string, unknown> | undefined;
+
+  if (!targetLayer) {
+    throw new MapDataImportError(`GeoPackage layer "${tableName}" was not found in the file.`);
+  }
+
+  // Extract features from the layer data
+  const rawData = Array.isArray(targetLayer["data"])
+    ? (targetLayer["data"] as unknown[])
+    : [];
+
+  const features: Feature[] = rawData.map((row) => {
+    const r = row as Record<string, unknown>;
+    const geometry = (r["geometry"] as Geometry | null | undefined) ?? null;
+    const { geometry: _g, ...rest } = r;
+    void _g;
+    return {
+      type: "Feature",
+      geometry: geometry as Geometry,
+      properties: rest as GeoJsonProperties,
+    };
+  }).filter((f) => f.geometry != null);
+
+  const featureCollection: FeatureCollection = {
+    type: "FeatureCollection",
+    features,
+  };
+
+  validateFeatureCollection(featureCollection);
+
+  return buildImportedLayer(
+    session.fileName,
+    featureCollection,
+    "geopackage",
+    undefined,
+    {
+      crsSummary: {
+        crs: "EPSG:4326",
+        status: "known",
+        source: "import-source",
+        notes: ["GeoPackage data is stored in WGS 84 (EPSG:4326) by specification; verify before analytical measurement."],
+      },
+    },
+  );
+}
+
 export async function prepareMapImportFile(
   file: File,
   options?: {
@@ -2599,6 +2827,30 @@ export async function prepareMapImportFile(
       result: buildImportedLayer(file.name, featureCollection, "kmz", undefined, undefined, {
         sourceSizeBytes: file.size,
       }),
+    };
+  }
+
+  if (fileType === "shapefile") {
+    const data = await readFileAsArrayBuffer(file, options?.onProgress);
+    return {
+      kind: "ready",
+      result: await parseShapefileZip(data, file.name),
+    };
+  }
+
+  if (fileType === "geopackage") {
+    const data = await readFileAsArrayBuffer(file, options?.onProgress);
+    const session = await parseGeoPackageArrayBuffer(data, file.name);
+    if (session.layers.length === 1 && session.layers[0]) {
+      // Single layer — commit immediately without requiring user selection
+      return {
+        kind: "ready",
+        result: await commitGeoPackageLayer(session, session.layers[0].tableName),
+      };
+    }
+    return {
+      kind: "geopackage",
+      session,
     };
   }
 

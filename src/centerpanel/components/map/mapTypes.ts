@@ -135,7 +135,7 @@ export interface ExternalServiceLayerMetadata {
 }
 
 export interface ImportLayerSourceMetadata {
-  format: "geojson" | "csv" | "arrow" | "geoparquet" | "kml" | "kmz" | "gpx";
+  format: "geojson" | "csv" | "arrow" | "geoparquet" | "kml" | "kmz" | "gpx" | "shapefile" | "geopackage";
   fileName: string;
   sourceName: string;
   sourceId?: string;
