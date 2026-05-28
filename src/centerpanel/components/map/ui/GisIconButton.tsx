@@ -10,8 +10,8 @@ import {
   MAP_ICON_SIZES,
   MAP_RADIUS,
   MAP_TRANSITIONS,
-  mapStyles,
 } from "../mapTokens";
+import motionStyles from "../design/motion.module.css";
 
 export interface GisIconButtonProps
   extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "children"> {
@@ -61,15 +61,13 @@ function buildButtonStyle(
           ? MAP_COLORS.bgPanel
           : MAP_COLORS.interaction
         : MAP_COLORS.textSecondary,
+    position: "relative",
     transition: MAP_TRANSITIONS.fast,
     opacity: disabled ? 0.45 : 1,
     flexShrink: 0,
     outline: "none",
-    /* inset left accent stripe for ghost active — matches mapStyles.sidePanelRowActive */
-    boxShadow:
-      active && variant === "ghost"
-        ? `inset 2px 0 0 ${MAP_COLORS.interaction}`
-        : "none",
+    /* accent stripe rendered via animated child span — see accentGrow below */
+    boxShadow: "none",
   };
 }
 
@@ -110,7 +108,22 @@ export const GisIconButton = React.forwardRef<
         disabled={disabled}
         style={{ ...computedStyle, ...style }}
       >
-        {/* clone icon with resolved size — callers pass MAP_ICON_SIZES props directly */}
+        {/* Animated inset accent bar — mounts when active, triggers accentGrow animation */}
+        {active && variant === "ghost" ? (
+          <span
+            aria-hidden
+            className={motionStyles.accentGrow}
+            style={{
+              position: "absolute",
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: "2px",
+              background: MAP_COLORS.interaction,
+              transformOrigin: "left center",
+            }}
+          />
+        ) : null}
         {icon}
       </button>
     );

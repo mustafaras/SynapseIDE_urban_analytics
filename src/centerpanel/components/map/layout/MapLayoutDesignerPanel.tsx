@@ -24,6 +24,7 @@ import {
 } from "../mapTokens";
 import { createOpaqueFloatingPanelStyle, useDraggableMapPanel } from "../useDraggableMapPanel";
 import { GisIconButton, GisStatusChip } from "../ui";
+import motionStyles from "../design/motion.module.css";
 
 export interface MapLayoutDesignerPanelProps {
   visible: boolean;
@@ -340,6 +341,7 @@ export const MapLayoutDesignerPanel: React.FC<MapLayoutDesignerPanelProps> = ({
     <aside
       data-draggable-map-panel="true"
       style={{ ...panelStyle, ...panelDrag.panelPositionStyle }}
+      className={motionStyles.panelIn}
       role="dialog"
       aria-modal="false"
       aria-label="Layout designer"

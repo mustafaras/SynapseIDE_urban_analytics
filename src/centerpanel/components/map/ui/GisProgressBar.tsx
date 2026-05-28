@@ -12,6 +12,7 @@ import {
   MAP_SPACING,
   MAP_TRANSITIONS,
 } from "../mapTokens";
+import motionStyles from "../design/motion.module.css";
 
 export interface GisProgressBarProps {
   /** 0–100. Omit for indeterminate. */
@@ -66,7 +67,10 @@ export const GisProgressBar: React.FC<GisProgressBarProps> = ({
       data-testid={testId}
       style={trackStyle}
     >
-      <div style={fillStyle} />
+      <div
+        style={fillStyle}
+        className={!reducedMotion && !isIndeterminate ? motionStyles.progressFill : undefined}
+      />
     </div>
   );
 };

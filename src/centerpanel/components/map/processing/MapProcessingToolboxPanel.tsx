@@ -16,6 +16,7 @@ import {
 } from "../mapTokens";
 import { ToolParameterForm, type ToolParameterValue } from "./ToolParameterForm";
 import { GisEmptyState, GisIconButton, GisProgressBar } from "../ui";
+import motionStyles from "../design/motion.module.css";
 
 export interface ProcessingToolboxLayerOption {
   id: string;
@@ -269,7 +270,7 @@ export function MapProcessingToolboxPanel({
   const canRun = Boolean(selected) && blockers.length === 0;
 
   return (
-    <section style={panelStyle} role="dialog" aria-label="Processing toolbox" data-testid="map-processing-toolbox">
+    <section style={panelStyle} className={motionStyles.panelIn} role="dialog" aria-label="Processing toolbox" data-testid="map-processing-toolbox">
       <header style={headerStyle}>
         <h2 style={titleStyle}>
           <Boxes size={16} aria-hidden /> Processing toolbox

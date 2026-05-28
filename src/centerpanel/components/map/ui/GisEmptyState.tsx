@@ -9,6 +9,7 @@ import {
   MAP_SPACING,
   MAP_TYPOGRAPHY,
 } from "../mapTokens";
+import motionStyles from "../design/motion.module.css";
 
 export interface GisEmptyStateProps {
   icon?: React.ReactNode;
@@ -42,7 +43,7 @@ export const GisEmptyState: React.FC<GisEmptyStateProps> = ({
   };
 
   return (
-    <div data-testid={testId} style={containerStyle} role="status" aria-live="polite">
+    <div data-testid={testId} style={containerStyle} role="status" aria-live="polite" className={motionStyles.fadeIn}>
       {icon ? (
         <span aria-hidden style={{ opacity: 0.4, display: "flex" }}>
           {icon}

@@ -11,6 +11,7 @@ import {
   type GisDensity,
   type GisStatusKey,
 } from "../mapTokens";
+import motionStyles from "../design/motion.module.css";
 
 export interface GisStatusChipProps {
   status: GisStatusKey;
@@ -49,11 +50,12 @@ export const GisStatusChip: React.FC<GisStatusChipProps> = ({
     ...style,
   };
 
+  /* statusFlash fires on mount; callers change key prop to re-trigger on state change */
   return (
     <span
       data-testid={testId}
       data-status={status}
-      className={className}
+      className={`${motionStyles.statusFlash}${className ? ` ${className}` : ""}`}
       style={chipStyle}
     >
       {label ?? status}

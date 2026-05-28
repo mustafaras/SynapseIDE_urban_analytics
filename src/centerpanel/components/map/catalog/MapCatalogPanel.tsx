@@ -13,6 +13,7 @@ import {
   type MapCatalogLayerInsertion,
 } from "./catalogModel";
 import styles from "./MapCatalogPanel.module.css";
+import motionStyles from "../design/motion.module.css";
 import { GisEmptyState, GisIconButton, GisStatusChip } from "../ui";
 import type { GisStatusKey } from "../mapTokens";
 
@@ -132,7 +133,7 @@ export const MapCatalogPanel: React.FC<MapCatalogPanelProps> = ({
   };
 
   return (
-    <section className={styles.panel} role="dialog" aria-label="Catalog" data-testid="map-catalog-panel">
+    <section className={`${styles.panel} ${motionStyles.panelIn}`} role="dialog" aria-label="Catalog" data-testid="map-catalog-panel">
       <header className={styles.header}>
         <div>
           <h2><Database size={15} /> Catalog</h2>

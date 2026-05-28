@@ -19,6 +19,7 @@ import {
   GisIconButton,
   GisTabs,
 } from "../ui";
+import motionStyles from "../design/motion.module.css";
 
 /**
  * LayerInspector — a tabbed, devtools-free readout of everything the metadata
@@ -413,6 +414,7 @@ export const LayerInspector: React.FC<LayerInspectorProps> = ({
   return (
     <div
       style={panelStyle}
+      className={motionStyles.panelIn}
       role="dialog"
       aria-label={`Layer inspector for ${layer.name}`}
       data-testid="map-layer-inspector"

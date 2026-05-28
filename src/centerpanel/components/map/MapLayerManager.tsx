@@ -24,6 +24,7 @@ import {
   MAP_Z_INDEX,
   mapStyles,
 } from "./mapTokens";
+import motionStyles from "./design/motion.module.css";
 import { IconClose, IconEyeClosed, IconEyeOpen } from "./MapIcons";
 
 /* ================================================================== */
@@ -1879,6 +1880,7 @@ const LayerRow: React.FC<LayerRowProps> = ({
     <div
       ref={rowRef}
       style={isDragging ? layerRowDragging : layerRow}
+      className={motionStyles.layerFade}
       draggable
       onDragStart={(e) => onDragStart(e, layer.id)}
       onDragOver={onDragOver}

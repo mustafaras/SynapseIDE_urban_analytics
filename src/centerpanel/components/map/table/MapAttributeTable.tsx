@@ -12,6 +12,7 @@ import {
 } from "../mapTokens";
 import { IconClose } from "../MapIcons";
 import { GisEmptyState, GisIconButton, GisStatusChip } from "../ui";
+import motionStyles from "../design/motion.module.css";
 import {
   ALLOWED_FIELD_FUNCTIONS,
   applyFieldCalculation,
@@ -790,6 +791,7 @@ export const MapAttributeTable: React.FC<MapAttributeTableProps> = ({
                         selectRow(row);
                       }
                     }}
+                    className={isSelected ? motionStyles.featurePulse : undefined}
                     style={{
                       position: "absolute",
                       top: visualIndex * ATTRIBUTE_ROW_HEIGHT,
@@ -801,6 +803,7 @@ export const MapAttributeTable: React.FC<MapAttributeTableProps> = ({
                       cursor: "pointer",
                       background: isSelected ? MAP_COLORS.selectedSubtle : MAP_COLORS.transparent,
                       borderBottom: MAP_STROKES.hairlineSubtle,
+                      ...(isSelected ? { outline: `1px solid ${MAP_COLORS.interaction}`, outlineOffset: "0px" } : {}),
                     }}
                   >
                     {columns.map((column) => (
