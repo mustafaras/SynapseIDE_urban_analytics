@@ -5,6 +5,41 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import type { FeatureCollection } from "geojson";
+
+/* ------------------------------------------------------------------ */
+/*  3D interaction mode                                                 */
+/* ------------------------------------------------------------------ */
+
+export type Scene3DInteractionMode =
+  | "inspect"
+  | "select"
+  | "measure"
+  | "edit-height"
+  | "compare"
+  | "sun-shadow"
+  | "section"
+  | "camera-bookmark";
+
+export const INTERACTION_MODES: Readonly<{
+  mode: Scene3DInteractionMode;
+  label: string;
+  shortLabel: string;
+}[]> = [
+  { mode: "inspect",         label: "Inspect building",         shortLabel: "Inspect" },
+  { mode: "select",          label: "Select features",          shortLabel: "Select" },
+  { mode: "measure",         label: "Measure distance/height",  shortLabel: "Measure" },
+  { mode: "edit-height",     label: "Edit building height",     shortLabel: "Edit height" },
+  { mode: "compare",         label: "Compare scenarios",        shortLabel: "Compare" },
+  { mode: "sun-shadow",      label: "Sun & shadow analysis",    shortLabel: "Sun/shadow" },
+  { mode: "section",         label: "Section / cut plane",      shortLabel: "Section" },
+  { mode: "camera-bookmark", label: "Camera bookmark",          shortLabel: "Bookmark" },
+] as const;
+
+export interface CameraBookmark {
+  id: string;
+  name: string;
+  createdAt: string;
+}
 import {
   analyseExtrusion,
   buildingConfigFromAnalysis,
@@ -27,6 +62,15 @@ export interface Scene3DState {
   /* --- Runtime mode --- */
   runtimeMode: Scene3DRuntimeMode;
   setRuntimeMode: (mode: Scene3DRuntimeMode) => void;
+
+  /* --- Interaction mode (tool strip) --- */
+  interactionMode: Scene3DInteractionMode;
+  setInteractionMode: (mode: Scene3DInteractionMode) => void;
+
+  /* --- Camera bookmarks --- */
+  cameraBookmarks: CameraBookmark[];
+  addCameraBookmark: (name: string) => void;
+  removeCameraBookmark: (id: string) => void;
 
   /* --- Active layer --- */
   activeLayerId: string | null;
@@ -92,6 +136,22 @@ export const useScene3DStore = create<Scene3DState>()(
       /* ---- runtime mode ---- */
       runtimeMode: "2d",
       setRuntimeMode: (mode) => set({ runtimeMode: mode }),
+
+      /* ---- interaction mode ---- */
+      interactionMode: "inspect",
+      setInteractionMode: (mode) => set({ interactionMode: mode }),
+
+      /* ---- camera bookmarks ---- */
+      cameraBookmarks: [],
+      addCameraBookmark: (name) => {
+        const id = `bookmark-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+        set((s) => ({
+          cameraBookmarks: [...s.cameraBookmarks, { id, name, createdAt: new Date().toISOString() }],
+        }));
+      },
+      removeCameraBookmark: (id) => {
+        set((s) => ({ cameraBookmarks: s.cameraBookmarks.filter((b) => b.id !== id) }));
+      },
 
       /* ---- active layer ---- */
       activeLayerId: null,
@@ -199,6 +259,8 @@ export const useScene3DStore = create<Scene3DState>()(
       storage: createJSONStorage(() => localStorage),
       partialize: (s) => ({
         runtimeMode: s.runtimeMode,
+        interactionMode: s.interactionMode,
+        cameraBookmarks: s.cameraBookmarks,
         heightFieldOverride: s.heightFieldOverride,
         floorFieldOverride: s.floorFieldOverride,
         metersPerLevelOverride: s.metersPerLevelOverride,
@@ -212,6 +274,8 @@ export const useScene3DStore = create<Scene3DState>()(
 /* ------------------------------------------------------------------ */
 
 export const selectScene3DMode = (s: Scene3DState) => s.runtimeMode;
+export const selectInteractionMode = (s: Scene3DState) => s.interactionMode;
+export const selectCameraBookmarks = (s: Scene3DState) => s.cameraBookmarks;
 export const selectExtrusionAnalysis = (s: Scene3DState) => s.extrusionAnalysis;
 export const selectBuildingConfig = (s: Scene3DState) => s.buildingConfig;
 export const selectScene3DSelected = (s: Scene3DState) => s.selectedFeatureIds;
