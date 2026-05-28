@@ -944,3 +944,106 @@ export const mapStyles = {
     lineHeight: MAP_TYPOGRAPHY.lineHeight.normal,
   } satisfies React.CSSProperties,
 } as const;
+
+/* ================================================================== */
+/*  Status tokens — semantic layer readiness / QA state colours        */
+/*  Every value resolves through MAP_COLORS — no bare hex allowed.     */
+/* ================================================================== */
+
+export type GisStatusKey =
+  | "ready"
+  | "caveat"
+  | "unknown"
+  | "demo"
+  | "synthetic"
+  | "external-offline"
+  | "stale"
+  | "blocked"
+  | "running";
+
+export const MAP_STATUS_TOKENS: Record<
+  GisStatusKey,
+  { readonly text: string; readonly bg: string; readonly border: string }
+> = {
+  ready: {
+    text: MAP_COLORS.success,
+    bg: `color-mix(in srgb, ${MAP_COLORS.success} 12%, transparent)`,
+    border: `color-mix(in srgb, ${MAP_COLORS.success} 28%, transparent)`,
+  },
+  caveat: {
+    text: MAP_COLORS.caveatText,
+    bg: MAP_COLORS.caveat,
+    border: `color-mix(in srgb, ${MAP_COLORS.caveatText} 28%, transparent)`,
+  },
+  unknown: {
+    text: MAP_COLORS.neutral,
+    bg: MAP_COLORS.neutralSubtle,
+    border: MAP_COLORS.hairlineSubtle,
+  },
+  demo: {
+    text: MAP_COLORS.interaction,
+    bg: MAP_COLORS.interactionSubtle,
+    border: MAP_COLORS.dashed,
+  },
+  synthetic: {
+    text: MAP_COLORS.textSecondary,
+    bg: MAP_COLORS.neutralSubtle,
+    border: MAP_COLORS.hairlineSubtle,
+  },
+  "external-offline": {
+    text: MAP_COLORS.error,
+    bg: `color-mix(in srgb, ${MAP_COLORS.error} 12%, transparent)`,
+    border: `color-mix(in srgb, ${MAP_COLORS.error} 28%, transparent)`,
+  },
+  stale: {
+    text: MAP_COLORS.caveatText,
+    bg: `color-mix(in srgb, ${MAP_COLORS.caveatText} 8%, transparent)`,
+    border: `color-mix(in srgb, ${MAP_COLORS.caveatText} 20%, transparent)`,
+  },
+  blocked: {
+    text: MAP_COLORS.error,
+    bg: `color-mix(in srgb, ${MAP_COLORS.error} 12%, transparent)`,
+    border: `color-mix(in srgb, ${MAP_COLORS.error} 28%, transparent)`,
+  },
+  running: {
+    text: MAP_COLORS.interaction,
+    bg: MAP_COLORS.interactionSubtle,
+    border: MAP_COLORS.interactionSoft,
+  },
+} as const;
+
+/* ================================================================== */
+/*  Density presets — compact / default row geometry                   */
+/* ================================================================== */
+
+export const MAP_DENSITY = {
+  compact: {
+    rowHeight: "1.625rem",
+    cellPadding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
+    fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+    gap: MAP_SPACING.xs,
+    iconSize: MAP_ICON_SIZES.xs,
+  },
+  default: {
+    rowHeight: "2rem",
+    cellPadding: `${MAP_SPACING.sm} ${MAP_SPACING.md}`,
+    fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+    gap: MAP_SPACING.sm,
+    iconSize: MAP_ICON_SIZES.sm,
+  },
+} as const;
+
+export type GisDensity = keyof typeof MAP_DENSITY;
+
+/** Ordered list of all GIS status keys — safe to iterate in UI. */
+export const GIS_STATUS_KEYS: readonly GisStatusKey[] = [
+  "ready",
+  "caveat",
+  "unknown",
+  "demo",
+  "synthetic",
+  "external-offline",
+  "stale",
+  "blocked",
+  "running",
+] as const;
