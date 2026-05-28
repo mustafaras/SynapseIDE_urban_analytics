@@ -59,6 +59,11 @@ import { MapHeatmapLayer } from "../../MapHeatmapLayer";
 import { MapHotSpotViz } from "../../MapHotSpotViz";
 import { MapSymbolLayer, type SymbolMode } from "../../MapSymbolLayer";
 import { MapTemporalPlayer } from "../../MapTemporalPlayer";
+import { TemporalPlayerPanel } from "../temporal";
+import {
+  selectTemporalFrameCount,
+  useTemporalLayerStore,
+} from "@/stores/useTemporalLayerStore";
 import { MapDataExportDialog } from "../../MapDataExportDialog";
 import { MapExportDialog } from "../../MapExportDialog";
 import { MapCsvImportDialog } from "../../MapCsvImportDialog";
@@ -2233,6 +2238,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       : visiblePublicationLayers[0] ?? null;
     return selectedLayer?.metadata?.geometryType ?? null;
   }, [selectedPointSymbologyLayer, visiblePublicationLayers]);
+  // Prompt 46 — store-driven temporal player (frame export + playback engine).
+  const temporalStoreFrameCount = useTemporalLayerStore(selectTemporalFrameCount);
   const temporalLayers = useMemo(
     () => overlayLayers.filter((layer) =>
       layer.visible &&
@@ -7101,6 +7108,22 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               layerName={activeTemporalLayer.name}
               visible={open}
             />
+          ) : null}
+
+          {open && temporalStoreFrameCount > 0 ? (
+            <div
+              data-testid="temporal-player-panel-host"
+              style={{
+                position: "absolute",
+                left: "50%",
+                bottom: "1rem",
+                transform: "translateX(-50%)",
+                zIndex: 6,
+                maxWidth: "min(46rem, 92%)",
+              }}
+            >
+              <TemporalPlayerPanel visible />
+            </div>
           ) : null}
 
           <MapContextMenu
