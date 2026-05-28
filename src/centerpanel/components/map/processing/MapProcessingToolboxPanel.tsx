@@ -15,6 +15,7 @@ import {
   MAP_Z_INDEX,
 } from "../mapTokens";
 import { ToolParameterForm, type ToolParameterValue } from "./ToolParameterForm";
+import { GisEmptyState, GisIconButton, GisProgressBar } from "../ui";
 
 export interface ProcessingToolboxLayerOption {
   id: string;
@@ -88,18 +89,6 @@ const titleStyle: React.CSSProperties = {
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
 };
 
-const iconButtonStyle: React.CSSProperties = {
-  width: "1.875rem",
-  height: "1.875rem",
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  border: MAP_STROKES.hairlineSubtle,
-  borderRadius: MAP_RADIUS.sm,
-  background: MAP_COLORS.transparent,
-  color: MAP_COLORS.textSecondary,
-  cursor: "pointer",
-};
 
 const searchRowStyle: React.CSSProperties = {
   padding: `${MAP_SPACING.sm} ${MAP_SPACING.md}`,
@@ -221,22 +210,6 @@ const RUNTIME_LABELS: Record<string, string> = {
   duckdb: "DuckDB (wasm)",
 };
 
-const progressTrackStyle: React.CSSProperties = {
-  height: "4px",
-  borderRadius: MAP_RADIUS.sm,
-  background: MAP_COLORS.neutralSubtle,
-  overflow: "hidden",
-};
-
-/** Static (reduced-motion-safe) completion bar: the reference/service tools run
- *  synchronously, so the bar reflects the finished run rather than faking motion. */
-function progressFillStyle(status: "applied" | "blocked"): React.CSSProperties {
-  return {
-    height: "100%",
-    width: status === "applied" ? "100%" : "8%",
-    background: status === "applied" ? MAP_COLORS.success : MAP_COLORS.error,
-  };
-}
 
 export function MapProcessingToolboxPanel({
   visible,
@@ -301,9 +274,7 @@ export function MapProcessingToolboxPanel({
         <h2 style={titleStyle}>
           <Boxes size={16} aria-hidden /> Processing toolbox
         </h2>
-        <button type="button" style={iconButtonStyle} onClick={onClose} aria-label="Close processing toolbox">
-          <X size={16} aria-hidden />
-        </button>
+        <GisIconButton label="Close processing toolbox" icon={<X size={16} aria-hidden />} onClick={onClose} size="md" />
       </header>
 
       <div style={searchRowStyle}>
@@ -321,9 +292,7 @@ export function MapProcessingToolboxPanel({
       <div style={bodyStyle}>
         <div style={listStyle} role="listbox" aria-label="Processing tools">
           {results.length === 0 ? (
-            <p style={{ padding: MAP_SPACING.md, color: MAP_COLORS.textMuted, fontSize: MAP_TYPOGRAPHY.fontSize.xs }}>
-              No tools match “{query}”.
-            </p>
+            <GisEmptyState title="No tools found" description={`No tools match "${query}".`} compact />
           ) : (
             results.map((tool) => {
               const active = selected?.toolId === tool.toolId;
@@ -420,9 +389,13 @@ export function MapProcessingToolboxPanel({
                   data-testid="processing-run-result"
                   data-run-status={lastRun.status}
                 >
-                  <div style={progressTrackStyle} data-testid="processing-run-progress" aria-hidden>
-                    <div style={progressFillStyle(lastRun.status === "applied" ? "applied" : "blocked")} />
-                  </div>
+                  <GisProgressBar
+                    value={lastRun.status === "applied" ? 100 : 8}
+                    label={lastRun.status === "applied" ? "Tool applied" : "Tool blocked"}
+                    color={lastRun.status === "applied" ? MAP_COLORS.success : MAP_COLORS.error}
+                    height="4px"
+                    data-testid="processing-run-progress"
+                  />
                   {lastRun.status === "applied" ? (
                     <>
                       <strong>Applied · output layer added</strong>
@@ -449,9 +422,7 @@ export function MapProcessingToolboxPanel({
               ) : null}
             </>
           ) : (
-            <p style={{ color: MAP_COLORS.textMuted, fontSize: MAP_TYPOGRAPHY.fontSize.xs }}>
-              Select a tool to configure and run it.
-            </p>
+            <GisEmptyState title="Select a tool" description="Choose a processing tool from the list to configure and run it." compact />
           )}
         </div>
       </div>

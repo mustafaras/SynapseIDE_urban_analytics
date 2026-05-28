@@ -23,6 +23,7 @@ import {
   MAP_Z_INDEX,
 } from "../mapTokens";
 import { createOpaqueFloatingPanelStyle, useDraggableMapPanel } from "../useDraggableMapPanel";
+import { GisIconButton, GisStatusChip } from "../ui";
 
 export interface MapLayoutDesignerPanelProps {
   visible: boolean;
@@ -350,9 +351,7 @@ export const MapLayoutDesignerPanel: React.FC<MapLayoutDesignerPanelProps> = ({
           <BookOpen size={MAP_ICON_SIZES.md} aria-hidden="true" />
           Layout designer
         </h3>
-        <button type="button" style={iconButtonStyle} onClick={onClose} aria-label="Close layout designer">
-          <X size={MAP_ICON_SIZES.sm} aria-hidden="true" />
-        </button>
+        <GisIconButton label="Close layout designer" icon={<X size={MAP_ICON_SIZES.sm} aria-hidden="true" />} onClick={onClose} size="md" />
       </header>
 
       {/* Page tabs */}
@@ -555,15 +554,18 @@ export const MapLayoutDesignerPanel: React.FC<MapLayoutDesignerPanelProps> = ({
             {/* Blockers */}
             {activeBlockers.length > 0 && (
               <div style={{ display: "grid", gap: MAP_SPACING.xs }} data-testid="map-layout-blockers">
-                <span style={sectionTitleStyle}>Blocked — fix before export</span>
+                <div style={{ display: "flex", alignItems: "center", gap: MAP_SPACING.sm }}>
+                  <span style={sectionTitleStyle}>Fix before export</span>
+                  <GisStatusChip status="blocked" label="blocked" density="compact" />
+                </div>
                 {activeBlockers.map((gap) => (
                   <div
                     key={gap.criterion}
                     style={{ ...gapRowStyle, borderColor: MAP_COLORS.error, color: MAP_COLORS.error }}
                   >
-                    <AlertTriangle size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+                    <GisStatusChip status="blocked" label={gap.label} density="compact" />
                     <span>
-                      <strong>{gap.label}:</strong> {gap.reason}
+                      {gap.reason}
                       {gap.recommendedFix ? ` — ${gap.recommendedFix}` : ""}
                     </span>
                   </div>
@@ -574,15 +576,17 @@ export const MapLayoutDesignerPanel: React.FC<MapLayoutDesignerPanelProps> = ({
             {/* Warnings */}
             {activeWarnings.length > 0 && (
               <div style={{ display: "grid", gap: MAP_SPACING.xs }}>
-                <span style={sectionTitleStyle}>Warnings</span>
+                <div style={{ display: "flex", alignItems: "center", gap: MAP_SPACING.sm }}>
+                  <span style={sectionTitleStyle}>Warnings</span>
+                  <GisStatusChip status="caveat" label="caveat" density="compact" />
+                </div>
                 {activeWarnings.map((gap) => (
                   <div
                     key={gap.criterion}
                     style={{ ...gapRowStyle, borderColor: MAP_COLORS.warning, color: MAP_COLORS.warning }}
                   >
-                    <span>
-                      <strong>{gap.label}:</strong> {gap.reason}
-                    </span>
+                    <GisStatusChip status="caveat" label={gap.label} density="compact" />
+                    <span>{gap.reason}</span>
                   </div>
                 ))}
               </div>

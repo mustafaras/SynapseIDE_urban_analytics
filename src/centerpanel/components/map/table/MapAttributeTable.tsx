@@ -11,6 +11,7 @@ import {
   MAP_Z_INDEX,
 } from "../mapTokens";
 import { IconClose } from "../MapIcons";
+import { GisEmptyState, GisIconButton, GisStatusChip } from "../ui";
 import {
   ALLOWED_FIELD_FUNCTIONS,
   applyFieldCalculation,
@@ -271,11 +272,6 @@ const disabledButtonStyle: React.CSSProperties = {
   opacity: 0.72,
 };
 
-const iconButtonStyle: React.CSSProperties = {
-  ...headerButtonStyle,
-  padding: 2,
-  color: MAP_COLORS.textMuted,
-};
 
 const headerCellStyle: React.CSSProperties = {
   flex: "1 1 0",
@@ -643,9 +639,7 @@ export const MapAttributeTable: React.FC<MapAttributeTableProps> = ({
           >
             Clear
           </button>
-          <button type="button" style={iconButtonStyle} onClick={onClose} aria-label="Close attribute table">
-            <IconClose size={14} />
-          </button>
+          <GisIconButton label="Close attribute table" icon={<IconClose size={14} />} onClick={onClose} size="sm" />
         </div>
       </div>
 
@@ -659,7 +653,15 @@ export const MapAttributeTable: React.FC<MapAttributeTableProps> = ({
             {profileMetrics.map((metric) => (
               <div key={metric.label} style={statCardStyle}>
                 <span style={statLabelStyle}>{metric.label}</span>
-                <span style={statValueStyle}>{metric.value}</span>
+                {metric.label === "Type" ? (
+                  <GisStatusChip
+                    status={metric.value === "numeric" ? "ready" : metric.value === "temporal" ? "caveat" : metric.value === "boolean" ? "demo" : "unknown"}
+                    label={metric.value}
+                    density="compact"
+                  />
+                ) : (
+                  <span style={statValueStyle}>{metric.value}</span>
+                )}
               </div>
             ))}
           </div>
@@ -732,9 +734,7 @@ export const MapAttributeTable: React.FC<MapAttributeTableProps> = ({
       ) : null}
 
       {columns.length === 0 ? (
-        <div style={{ padding: MAP_SPACING.md, ...metaStyle }}>
-          This layer has no feature attributes to display.
-        </div>
+        <GisEmptyState title="No attributes" description="This layer has no feature attributes to display." compact />
       ) : (
         <>
           <div style={{ display: "flex", padding: `0 ${MAP_SPACING.sm}`, borderBottom: MAP_STROKES.hairlineSubtle }}>
@@ -805,7 +805,9 @@ export const MapAttributeTable: React.FC<MapAttributeTableProps> = ({
                   >
                     {columns.map((column) => (
                       <span key={column} style={cellStyle} title={String(properties[column] ?? "")}>
-                        {properties[column] === undefined || properties[column] === null ? "" : String(properties[column])}
+                        {properties[column] === undefined || properties[column] === null ? (
+                          <span style={{ color: MAP_COLORS.textMuted, fontStyle: "italic", opacity: 0.7 }}>null</span>
+                        ) : String(properties[column])}
                       </span>
                     ))}
                   </div>
