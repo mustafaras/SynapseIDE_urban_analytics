@@ -28,6 +28,7 @@ import {
   MAP_TYPOGRAPHY,
   MAP_Z_INDEX,
 } from "../mapTokens";
+import { GisSectionHeader } from "../ui/GisSectionHeader";
 
 /* ------------------------------------------------------------------ */
 /*  Styles                                                              */
@@ -265,21 +266,26 @@ export const ScenarioComparisonStrip: React.FC<ScenarioComparisonStripProps> = (
       data-testid="scenario-comparison-strip"
       style={{ ...panelStyle, position: "absolute", top: position.y, left: position.x }}
     >
-      {/* Header */}
-      <div style={headerStyle} onMouseDown={onMouseDown}>
-        <h3 style={titleStyle}>
-          <Building2 size={MAP_ICON_SIZES.sm} aria-hidden />
-          Scenario comparison
-        </h3>
-        <button
-          type="button"
-          style={closeButtonStyle}
-          aria-label="Close scenario comparison strip"
-          onClick={onClose}
-        >
-          ×
-        </button>
-      </div>
+      {/* Header — uses GisSectionHeader primitive (Prompt 36) */}
+      <GisSectionHeader
+        title="Scenario comparison"
+        level={3}
+        separator
+        style={{ cursor: "grab" }}
+        actions={
+          <button
+            type="button"
+            style={closeButtonStyle}
+            aria-label="Close scenario comparison strip"
+            onClick={onClose}
+          >
+            ×
+          </button>
+        }
+        data-testid="scenario-comparison-header"
+      />
+      {/* onMouseDown on a wrapper for drag — must surround the header */}
+      <div data-map-drag-handle style={{ position: "absolute", top: 0, left: 0, right: "2.5rem", height: "2.25rem", cursor: "grab" }} onMouseDown={onMouseDown} aria-hidden />
 
       {/* Body */}
       <div style={bodyStyle}>

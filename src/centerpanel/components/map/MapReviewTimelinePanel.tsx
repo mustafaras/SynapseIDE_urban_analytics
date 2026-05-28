@@ -37,6 +37,7 @@ import {
   MAP_Z_INDEX,
 } from "./mapTokens";
 import { createOpaqueFloatingPanelStyle, useDraggableMapPanel } from "./useDraggableMapPanel";
+import { GisEmptyState } from "./ui/GisEmptyState";
 
 export interface MapReviewTimelinePanelProps {
   visible: boolean;
@@ -571,10 +572,12 @@ export const MapReviewTimelinePanel: React.FC<MapReviewTimelinePanelProps> = ({
             />
           ))
         ) : (
-          <div style={emptyStyle}>
-            <History size={MAP_ICON_SIZES.md} color={MAP_COLORS.textMuted} aria-hidden="true" />
-            <span>No timeline entries match the current filter set.</span>
-          </div>
+          <GisEmptyState
+            icon={<History size={MAP_ICON_SIZES.md} aria-hidden />}
+            title="No timeline entries"
+            description="No events match the current filter set."
+            compact
+          />
         )}
       </div>
 

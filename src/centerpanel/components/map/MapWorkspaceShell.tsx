@@ -5,12 +5,16 @@ import {
   MAP_COLORS,
   MAP_DIMENSIONS,
   MAP_NUMERIC,
+  MAP_RADIUS,
+  MAP_SHADOWS,
   MAP_SPACING,
   MAP_STROKES,
+  MAP_TRANSITIONS,
   MAP_TYPOGRAPHY,
   MAP_Z_INDEX,
   mapStyles,
 } from "./mapTokens";
+import { GisIconButton } from "./ui/GisIconButton";
 
 export interface MapWorkspaceShellProps {
   mode: MapExplorerMode;
@@ -42,6 +46,244 @@ export interface MapBottomTimelineProps extends React.HTMLAttributes<HTMLDivElem
   timelineSlot?: React.ReactNode;
   children?: React.ReactNode;
 }
+
+/* ------------------------------------------------------------------ */
+/*  MapActivityRail — Prompt 36                                         */
+/*  Slim vertical icon strip (VS Code activity bar).                   */
+/*  Uses GisIconButton with the sidePanelRowActive inset accent.       */
+/* ------------------------------------------------------------------ */
+
+export interface MapActivityItem {
+  id: string;
+  label: string;
+  icon: React.ReactNode;
+  active?: boolean;
+  disabled?: boolean;
+  disabledReason?: string;
+  onClick?: () => void;
+}
+
+export interface MapActivityRailProps {
+  items: MapActivityItem[];
+  bottomItems?: MapActivityItem[];
+  "aria-label"?: string;
+  style?: React.CSSProperties;
+  "data-testid"?: string;
+}
+
+const activityRailStyle: React.CSSProperties = {
+  position: "relative",
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  gap: "2px",
+  padding: "4px 2px",
+  width: "2.625rem",
+  minWidth: "2.625rem",
+  background: MAP_COLORS.bgPanel,
+  borderRight: MAP_STROKES.hairline,
+  zIndex: MAP_Z_INDEX.sidebar,
+  flexShrink: 0,
+  overflow: "hidden",
+};
+
+const activityRailDividerStyle: React.CSSProperties = {
+  width: "1.25rem",
+  height: "1px",
+  background: MAP_COLORS.hairlineSubtle,
+  margin: `${MAP_SPACING.xs} auto`,
+  flexShrink: 0,
+};
+
+function buildActivityButtonStyle(active: boolean): React.CSSProperties {
+  return {
+    /* Override default ghost to use the sidePanelRowActive inset accent */
+    ...(active ? mapStyles.sidePanelRowActive : {}),
+    borderRadius: MAP_RADIUS.sm,
+    width: "2rem",
+    height: "2rem",
+  };
+}
+
+export const MapActivityRail: React.FC<MapActivityRailProps> = ({
+  items,
+  bottomItems,
+  "aria-label": ariaLabel = "Workbench activity",
+  style,
+  "data-testid": testId,
+}) => (
+  <nav
+    aria-label={ariaLabel}
+    data-testid={testId ?? "map-activity-rail"}
+    data-map-activity-rail="true"
+    style={{ ...activityRailStyle, ...style }}
+  >
+    {items.map((item) => (
+      <GisIconButton
+        key={item.id}
+        label={item.label}
+        icon={item.icon}
+        active={item.active}
+        disabled={item.disabled}
+        disabledReason={item.disabledReason}
+        data-testid={`activity-btn-${item.id}`}
+        onClick={item.onClick}
+        style={item.active ? buildActivityButtonStyle(true) : undefined}
+      />
+    ))}
+    {bottomItems && bottomItems.length > 0 ? (
+      <>
+        <span aria-hidden style={{ flex: 1 }} />
+        <span aria-hidden style={activityRailDividerStyle} />
+        {bottomItems.map((item) => (
+          <GisIconButton
+            key={item.id}
+            label={item.label}
+            icon={item.icon}
+            active={item.active}
+            disabled={item.disabled}
+            disabledReason={item.disabledReason}
+            data-testid={`activity-btn-${item.id}`}
+            onClick={item.onClick}
+            style={item.active ? buildActivityButtonStyle(true) : undefined}
+          />
+        ))}
+      </>
+    ) : null}
+  </nav>
+);
+
+/* ------------------------------------------------------------------ */
+/*  MapCommandBar — Prompt 36                                           */
+/*  Slim top bar: breadcrumb title + trailing icon actions.            */
+/* ------------------------------------------------------------------ */
+
+export interface MapCommandBarAction {
+  id: string;
+  label: string;
+  icon: React.ReactNode;
+  onClick?: () => void;
+  disabled?: boolean;
+  disabledReason?: string;
+}
+
+export interface MapCommandBarProps {
+  title?: string;
+  titleId?: string;
+  breadcrumb?: string[];
+  actions?: MapCommandBarAction[];
+  style?: React.CSSProperties;
+  "data-testid"?: string;
+}
+
+const commandBarStyle: React.CSSProperties = {
+  display: "flex",
+  flexDirection: "row",
+  alignItems: "center",
+  gap: MAP_SPACING.sm,
+  height: "2.25rem",
+  minHeight: "2.25rem",
+  padding: `0 ${MAP_SPACING.md}`,
+  background: MAP_COLORS.bgHeader,
+  borderBottom: MAP_STROKES.hairline,
+  flexShrink: 0,
+  zIndex: MAP_Z_INDEX.sidebar,
+  overflow: "hidden",
+};
+
+const commandBarTitleStyle: React.CSSProperties = {
+  flex: 1,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  fontFamily: MAP_TYPOGRAPHY.fontFamily,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+  color: MAP_COLORS.textSecondary,
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  letterSpacing: "0.01em",
+  margin: 0,
+};
+
+const breadcrumbSepStyle: React.CSSProperties = {
+  color: MAP_COLORS.textMuted,
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  flexShrink: 0,
+};
+
+const commandBarActionsStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "2px",
+  flexShrink: 0,
+};
+
+export const MapCommandBar: React.FC<MapCommandBarProps> = ({
+  title,
+  titleId,
+  breadcrumb,
+  actions,
+  style,
+  "data-testid": testId,
+}) => {
+  const fullTitle =
+    breadcrumb && breadcrumb.length > 0
+      ? breadcrumb.join(" › ")
+      : (title ?? "");
+
+  return (
+    <div
+      data-testid={testId ?? "map-command-bar"}
+      data-map-command-bar="true"
+      style={{ ...commandBarStyle, ...style }}
+    >
+      {breadcrumb && breadcrumb.length > 0 ? (
+        <span style={{ display: "flex", alignItems: "center", gap: MAP_SPACING.xs, flex: 1, minWidth: 0, overflow: "hidden" }}>
+          {breadcrumb.map((crumb, i) => (
+            <React.Fragment key={crumb}>
+              {i > 0 && <span aria-hidden style={breadcrumbSepStyle}>›</span>}
+              <span
+                style={{
+                  ...commandBarTitleStyle,
+                  flex: i === breadcrumb.length - 1 ? 1 : "none",
+                  color: i === breadcrumb.length - 1 ? MAP_COLORS.text : MAP_COLORS.textMuted,
+                }}
+              >
+                {crumb}
+              </span>
+            </React.Fragment>
+          ))}
+        </span>
+      ) : title ? (
+        <p id={titleId} style={commandBarTitleStyle}>
+          {title}
+        </p>
+      ) : (
+        <span style={{ flex: 1 }} />
+      )}
+
+      {actions && actions.length > 0 ? (
+        <div
+          role="toolbar"
+          aria-label="Command bar actions"
+          style={commandBarActionsStyle}
+        >
+          {actions.map((action) => (
+            <GisIconButton
+              key={action.id}
+              label={action.label}
+              icon={action.icon}
+              disabled={action.disabled}
+              disabledReason={action.disabledReason}
+              data-testid={`command-bar-action-${action.id}`}
+              onClick={action.onClick}
+            />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+};
 
 function formatCssSize(value: number | string | undefined, fallback: string): string {
   if (typeof value === "number") {

@@ -34,6 +34,7 @@ import {
   MAP_TYPOGRAPHY,
   MAP_Z_INDEX,
 } from "../mapTokens";
+import { GisIconButton } from "../ui/GisIconButton";
 
 /* ------------------------------------------------------------------ */
 /*  Reduced-motion hook                                                 */
@@ -231,16 +232,14 @@ export const Scene3DInteractionStrip: React.FC<Scene3DInteractionStripProps> = (
     >
       {INTERACTION_MODES.map(({ mode, label }, idx) => (
         <React.Fragment key={mode}>
-          <button
-            type="button"
+          <GisIconButton
             data-testid={`3d-mode-btn-${mode}`}
-            aria-label={label}
-            aria-pressed={activeMode === mode}
-            style={getModeButtonStyle(activeMode === mode, reduced)}
+            label={label}
+            icon={MODE_ICONS[mode]}
+            active={activeMode === mode}
             onClick={() => handleModeClick(mode)}
-          >
-            {MODE_ICONS[mode]}
-          </button>
+            style={{ transition: reduced ? "none" : MAP_TRANSITIONS.fast }}
+          />
           {dividerAfter.has(idx) && <span style={dividerStyle} aria-hidden />}
         </React.Fragment>
       ))}
