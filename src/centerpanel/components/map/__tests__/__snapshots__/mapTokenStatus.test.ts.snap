@@ -1,0 +1,51 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`MAP_STATUS_TOKENS > snapshot: full status token map 1`] = `
+{
+  "blocked": {
+    "bg": "color-mix(in srgb, var(--syn-status-error, #f87171) 12%, transparent)",
+    "border": "color-mix(in srgb, var(--syn-status-error, #f87171) 28%, transparent)",
+    "text": "var(--syn-status-error, #f87171)",
+  },
+  "caveat": {
+    "bg": "color-mix(in srgb, var(--syn-status-info, #6aa9ff) 12%, transparent)",
+    "border": "color-mix(in srgb, var(--syn-status-info, #6aa9ff) 28%, transparent)",
+    "text": "var(--syn-status-info, #6aa9ff)",
+  },
+  "demo": {
+    "bg": "color-mix(in srgb, var(--syn-interaction-active, #3794ff) 10%, transparent)",
+    "border": "color-mix(in srgb, var(--syn-border-focus, #3794ff) 62%, transparent)",
+    "text": "var(--syn-interaction-active, #3794ff)",
+  },
+  "external-offline": {
+    "bg": "color-mix(in srgb, var(--syn-status-error, #f87171) 12%, transparent)",
+    "border": "color-mix(in srgb, var(--syn-status-error, #f87171) 28%, transparent)",
+    "text": "var(--syn-status-error, #f87171)",
+  },
+  "ready": {
+    "bg": "color-mix(in srgb, var(--syn-status-valid, #4ec27d) 12%, transparent)",
+    "border": "color-mix(in srgb, var(--syn-status-valid, #4ec27d) 28%, transparent)",
+    "text": "var(--syn-status-valid, #4ec27d)",
+  },
+  "running": {
+    "bg": "color-mix(in srgb, var(--syn-interaction-active, #3794ff) 10%, transparent)",
+    "border": "color-mix(in srgb, var(--syn-interaction-active, #3794ff) 22%, transparent)",
+    "text": "var(--syn-interaction-active, #3794ff)",
+  },
+  "stale": {
+    "bg": "color-mix(in srgb, var(--syn-status-info, #6aa9ff) 8%, transparent)",
+    "border": "color-mix(in srgb, var(--syn-status-info, #6aa9ff) 20%, transparent)",
+    "text": "var(--syn-status-info, #6aa9ff)",
+  },
+  "synthetic": {
+    "bg": "color-mix(in srgb, var(--syn-text-muted, #778190) 14%, transparent)",
+    "border": "color-mix(in srgb, var(--syn-border-subtle, #343a44) 72%, transparent)",
+    "text": "var(--syn-text-secondary, #a4adbb)",
+  },
+  "unknown": {
+    "bg": "color-mix(in srgb, var(--syn-text-muted, #778190) 14%, transparent)",
+    "border": "color-mix(in srgb, var(--syn-border-subtle, #343a44) 72%, transparent)",
+    "text": "var(--syn-text-secondary, #a4adbb)",
+  },
+}
+`;
