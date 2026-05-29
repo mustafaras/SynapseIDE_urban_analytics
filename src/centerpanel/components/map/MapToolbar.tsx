@@ -42,6 +42,14 @@ import {
   Workflow,
   type LucideIcon,
 } from "lucide-react";
+import type { ProcessingToolDescriptor, ToolParameterDescriptor } from "@/services/map/contracts/gisContracts";
+import {
+  formatMapKeybinding,
+  isOpenPaletteShortcut,
+  searchMapPaletteCommands,
+  shouldIgnoreMapPaletteShortcut,
+  type MapPaletteSearchCommand,
+} from "@/services/map/commands/MapCommandPalette";
 import BackgroundTasksControl from "../BackgroundTasksControl";
 import {
   useMapToolbarPreferencesStore,
@@ -154,6 +162,9 @@ export interface MapToolbarProps {
   isSavingProject?: boolean;
   isLoadingProject?: boolean;
   persistenceDisabled?: boolean;
+  processingTools?: readonly ProcessingToolDescriptor[];
+  processingLayerOptions?: readonly ProcessingPaletteLayerOption[];
+  onRunProcessingToolCommand?: (toolId: string, params: Record<string, string | number | boolean>) => void;
 }
 
 type CommandTone = "default" | "accent" | "danger" | "success" | "warning";
@@ -181,6 +192,20 @@ interface ToolbarCommand {
   contextBoost?: "empty" | "point" | "polygon" | "aoi" | "quality" | "query" | undefined;
   navigator?: boolean;
   shortcut?: string;
+}
+
+export interface ProcessingPaletteLayerOption {
+  id: string;
+  name: string;
+  fields: readonly string[];
+}
+
+type PaletteCommandSource = "toolbar" | "processing-tool";
+
+interface PaletteCommand extends ToolbarCommand, MapPaletteSearchCommand {
+  category: string;
+  source: PaletteCommandSource;
+  processingToolId?: string;
 }
 
 interface ToolbarCommandButtonProps {
@@ -641,7 +666,130 @@ function getContextScore(command: ToolbarCommand, args: {
   return score;
 }
 
-function getCommandCategory(command: ToolbarCommand): string {
+function getProcessingCategoryIcon(category: string): LucideIcon {
+  const normalized = category.toLowerCase();
+  if (normalized.includes("statistics")) return BarChart3;
+  if (normalized.includes("raster")) return FileImage;
+  if (normalized.includes("join")) return Link2;
+  if (normalized.includes("geometry")) return Boxes;
+  return Workflow;
+}
+
+function valueFromDefault(parameter: ToolParameterDescriptor): string | number | boolean | null {
+  if (typeof parameter.defaultValue === "string" || typeof parameter.defaultValue === "number" || typeof parameter.defaultValue === "boolean") {
+    return parameter.defaultValue;
+  }
+  return null;
+}
+
+function defaultProcessingParams(
+  descriptor: ProcessingToolDescriptor,
+  layers: readonly ProcessingPaletteLayerOption[],
+): Record<string, string | number | boolean> {
+  const params: Record<string, string | number | boolean> = {};
+  const layerIds = layers.map((layer) => layer.id);
+  let nextLayerIndex = 0;
+
+  for (const parameter of descriptor.parameters) {
+    const defaultValue = valueFromDefault(parameter);
+    if (defaultValue !== null) {
+      params[parameter.key] = defaultValue;
+      continue;
+    }
+
+    if (parameter.type === "layer") {
+      const layerId = layerIds[Math.min(nextLayerIndex, Math.max(layerIds.length - 1, 0))] ?? "";
+      params[parameter.key] = layerId;
+      nextLayerIndex += 1;
+    } else if (parameter.type === "field") {
+      params[parameter.key] = layers[0]?.fields[0] ?? "";
+    } else if (parameter.type === "enum") {
+      params[parameter.key] = parameter.enumValues?.[0] ?? "";
+    } else if (parameter.type === "boolean") {
+      params[parameter.key] = false;
+    } else {
+      params[parameter.key] = "";
+    }
+  }
+
+  return params;
+}
+
+function getProcessingToolDisabledReason(
+  descriptor: ProcessingToolDescriptor,
+  layers: readonly ProcessingPaletteLayerOption[],
+  runner: MapToolbarProps["onRunProcessingToolCommand"],
+): string | null {
+  if (!descriptor.implemented) {
+    return `${descriptor.title} is registered but not wired yet. ${descriptor.summary}`;
+  }
+  if (!runner) {
+    return "Processing command runner is not connected.";
+  }
+
+  const requiredLayerCount = descriptor.parameters.filter((parameter) => parameter.required && parameter.type === "layer").length;
+  if (layers.length < requiredLayerCount) {
+    return requiredLayerCount <= 1
+      ? "Add a map layer before running this processing tool."
+      : `Add at least ${requiredLayerCount} map layers before running this processing tool.`;
+  }
+
+  const needsField = descriptor.parameters.some((parameter) => parameter.required && parameter.type === "field");
+  if (needsField && !layers.some((layer) => layer.fields.length > 0)) {
+    return "Add a layer with fields before running this processing tool.";
+  }
+
+  return null;
+}
+
+function buildProcessingPaletteCommands({
+  tools,
+  layers,
+  onRun,
+}: {
+  tools: readonly ProcessingToolDescriptor[];
+  layers: readonly ProcessingPaletteLayerOption[];
+  onRun?: MapToolbarProps["onRunProcessingToolCommand"];
+}): PaletteCommand[] {
+  return tools.map((tool) => {
+    const disabledReason = getProcessingToolDisabledReason(tool, layers, onRun);
+    const params = defaultProcessingParams(tool, layers);
+    const disabled = Boolean(disabledReason);
+
+    return {
+      id: `processing:${tool.toolId}`,
+      label: tool.title,
+      shortLabel: tool.title,
+      title: tool.summary,
+      keywords: [
+        "processing",
+        "toolbox",
+        "geoprocessing",
+        tool.toolId,
+        tool.category,
+        ...tool.parameters.map((parameter) => parameter.label),
+      ],
+      icon: getProcessingCategoryIcon(tool.category),
+      onClick: () => {
+        if (disabled) return;
+        onRun?.(tool.toolId, params);
+      },
+      roles: ["explore", "analyze", "publish"],
+      overflowGroup: "advanced",
+      priority: tool.implemented ? 70 : 8,
+      disabled,
+      ...(disabledReason ? { disabledReason } : {}),
+      badge: tool.implemented ? null : "Blocked",
+      tone: tool.implemented ? "default" : "warning",
+      category: `Tool: ${tool.category}`,
+      source: "processing-tool",
+      processingToolId: tool.toolId,
+    };
+  });
+}
+
+function getCommandCategory(command: ToolbarCommand | PaletteCommand): string {
+  if ("category" in command) return command.category;
   if (command.id === "command-palette") return "System";
   return OVERFLOW_META[command.overflowGroup]?.label ?? "Map";
 }
@@ -1392,44 +1540,83 @@ function CommandPalette({
   onClose,
 }: {
   open: boolean;
-  commands: ToolbarCommand[];
+  commands: PaletteCommand[];
   onClose: () => void;
 }): React.ReactElement | null {
   const [query, setQuery] = React.useState("");
+  const [activeIndex, setActiveIndex] = React.useState(0);
   const inputRef = React.useRef<HTMLInputElement | null>(null);
+  const dialogRef = React.useRef<HTMLDivElement | null>(null);
+  const restoreFocusRef = React.useRef<HTMLElement | null>(null);
 
   React.useEffect(() => {
     if (!open) return;
     setQuery("");
+    setActiveIndex(0);
+    restoreFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const frame = window.requestAnimationFrame(() => inputRef.current?.focus());
-    return () => window.cancelAnimationFrame(frame);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      const target = restoreFocusRef.current;
+      if (target && document.contains(target)) {
+        window.requestAnimationFrame(() => target.focus());
+      }
+    };
   }, [open]);
 
   const filteredCommands = React.useMemo(() => {
-    const normalized = query.trim().toLowerCase();
-    const candidates = commands;
-    if (!normalized) return candidates.slice(0, 16);
-    return candidates
-      .filter((command) => {
-        const haystack = [
-          command.label,
-          command.shortLabel,
-          command.title,
-          command.id,
-          ...command.keywords,
-        ].join(" ").toLowerCase();
-        return normalized.split(/\s+/).every((part) => haystack.includes(part));
-      })
-      .slice(0, 16);
+    return searchMapPaletteCommands(commands, query, 20);
   }, [commands, query]);
 
+  React.useEffect(() => {
+    const firstRunnableIndex = filteredCommands.findIndex((command) => !command.disabled);
+    setActiveIndex(firstRunnableIndex >= 0 ? firstRunnableIndex : 0);
+  }, [filteredCommands]);
+
   if (!open) return null;
-  const firstRunnableCommand = filteredCommands.find((command) => !command.disabled);
+  const selectedCommand = filteredCommands[activeIndex] ?? filteredCommands.find((command) => !command.disabled) ?? null;
+  const runSelectedCommand = (): void => {
+    if (!selectedCommand || selectedCommand.disabled) return;
+    selectedCommand.onClick();
+    onClose();
+  };
+  const moveActiveIndex = (delta: 1 | -1): void => {
+    if (filteredCommands.length === 0) return;
+    setActiveIndex((current) => {
+      const next = (current + delta + filteredCommands.length) % filteredCommands.length;
+      return next;
+    });
+  };
+  const trapTabFocus = (event: React.KeyboardEvent<HTMLDivElement>): void => {
+    if (event.key !== "Tab") return;
+    const focusable = Array.from(
+      dialogRef.current?.querySelectorAll<HTMLElement>('input, button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])') ?? [],
+    ).filter((element) => !element.hasAttribute("disabled") && element.tabIndex !== -1);
+    if (focusable.length === 0) return;
+    const first = focusable[0]!;
+    const last = focusable[focusable.length - 1]!;
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
+  const runShortcutLabel = formatMapKeybinding("runSelected");
 
   return (
     <>
       <div style={paletteBackdropStyle} onClick={onClose} aria-hidden="true" />
-      <div style={paletteStyle} role="dialog" aria-modal="true" aria-label="Map command palette">
+      <div
+        ref={dialogRef}
+        style={paletteStyle}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Map command palette"
+        data-testid="map-command-palette"
+        onKeyDown={trapTabFocus}
+      >
         <input
           ref={inputRef}
           style={paletteInputStyle}
@@ -1440,27 +1627,40 @@ function CommandPalette({
               event.preventDefault();
               onClose();
             }
-            if (event.key === "Enter" && firstRunnableCommand) {
+            if (event.key === "ArrowDown") {
               event.preventDefault();
-              firstRunnableCommand.onClick();
-              onClose();
+              moveActiveIndex(1);
+            }
+            if (event.key === "ArrowUp") {
+              event.preventDefault();
+              moveActiveIndex(-1);
+            }
+            if (event.key === "Enter") {
+              event.preventDefault();
+              runSelectedCommand();
             }
           }}
-          placeholder="Search map commands: import geojson, query layers, draw polygon, export image"
+          placeholder="Search map commands and tools: buffer, import geojson, query layers, draw polygon"
           aria-label="Search map commands"
+          aria-controls="map-command-palette-list"
+          aria-activedescendant={selectedCommand ? `map-command-palette-option-${selectedCommand.id.replace(/[^a-z0-9_-]/gi, "-")}` : undefined}
         />
-        <div style={paletteListStyle} role="listbox" aria-label="Available map commands">
+        <div id="map-command-palette-list" style={paletteListStyle} role="listbox" aria-label="Available map commands">
           {filteredCommands.length === 0 ? (
             <div style={{ padding: MAP_SPACING.md, color: MAP_COLORS.textMuted, fontSize: MAP_TYPOGRAPHY.fontSize.sm }}>
               No matching command
             </div>
-          ) : filteredCommands.map((command) => (
+          ) : filteredCommands.map((command, index) => (
             (() => {
               const status = getCommandStatus(command);
               const accessibleTitle = getCommandAccessibleTitle(command);
+              const optionId = `map-command-palette-option-${command.id.replace(/[^a-z0-9_-]/gi, "-")}`;
+              const selected = index === activeIndex;
+              const shortcutLabel = command.disabled ? null : command.shortcut ?? runShortcutLabel;
               return (
             <button
               key={command.id}
+              id={optionId}
               type="button"
               style={{
                 ...commandButtonStyle(Boolean(command.active), Boolean(command.disabled), command.tone, "comfortable", true),
@@ -1468,18 +1668,21 @@ function CommandPalette({
                 minHeight: "3rem",
                 display: "grid",
                 gridTemplateColumns: "1.25rem minmax(0, 1fr) auto",
+                background: selected ? MAP_COLORS.neutralSubtle : command.active ? MAP_COLORS.selectedSubtle : MAP_COLORS.transparent,
                 opacity: command.disabled ? 0.55 : 1,
                 cursor: command.disabled ? "not-allowed" : "pointer",
               }}
+              data-testid={`map-command-palette-option-${command.id}`}
               onClick={() => {
                 if (command.disabled) return;
                 command.onClick();
                 onClose();
               }}
+              onMouseEnter={() => setActiveIndex(index)}
               title={accessibleTitle}
               role="option"
               aria-label={command.disabled ? `${command.label}. ${accessibleTitle}` : `${command.label}. ${command.title}`}
-              aria-selected={command.active || undefined}
+              aria-selected={selected || command.active || undefined}
               aria-disabled={command.disabled || undefined}
               disabled={command.disabled}
             >
@@ -1497,9 +1700,9 @@ function CommandPalette({
                   {getCommandCategory(command)}
                 </span>
                 <span style={{ display: "inline-flex", alignItems: "center", gap: "0.1875rem" }}>
-                  {command.shortcut ? (
+                  {shortcutLabel ? (
                     <span style={{ ...toolbarBadge, color: MAP_COLORS.textMuted, background: MAP_COLORS.bg }}>
-                      {command.shortcut}
+                      {shortcutLabel}
                     </span>
                   ) : null}
                   <span style={{ ...toolbarBadge, color: toneColor(status.tone), background: status.tone === "default" ? MAP_COLORS.bg : MAP_COLORS.selectedSubtle }}>
@@ -1609,6 +1812,9 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
   isSavingProject = false,
   isLoadingProject = false,
   persistenceDisabled = false,
+  processingTools = [],
+  processingLayerOptions = [],
+  onRunProcessingToolCommand,
 }) => {
   const toolbarRef = React.useRef<HTMLDivElement | null>(null);
   const [toolbarWidth, setToolbarWidth] = React.useState(1280);
@@ -1636,7 +1842,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
 
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent): void => {
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+      if (isOpenPaletteShortcut(event) && !shouldIgnoreMapPaletteShortcut(event)) {
         event.preventDefault();
         setPaletteOpen(true);
         setOpenMenu(null);
@@ -1647,8 +1853,8 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
         setPaletteOpen(false);
       }
     };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown, { capture: true });
+    return () => window.removeEventListener("keydown", handleKeyDown, { capture: true });
   }, []);
 
   const commands = React.useMemo(
@@ -1855,12 +2061,13 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
     return sourceCommands.filter((command) => command.overflowGroup === id);
   };
 
-  const commandPaletteCommand: ToolbarCommand = {
+  const openPaletteShortcut = formatMapKeybinding("openPalette");
+  const commandPaletteCommand = React.useMemo<PaletteCommand>(() => ({
     id: "command-palette",
     label: "Commands",
     shortLabel: "Cmd",
-    title: "Open command palette (Ctrl+K)",
-    keywords: ["command palette", "ctrl k", "search commands"],
+    title: `Open command palette (${openPaletteShortcut})`,
+    keywords: ["command palette", "ctrl k", "cmd k", "search commands", "keyboard"],
     icon: Command,
     onClick: () => {
       setPaletteOpen(true);
@@ -1869,12 +2076,31 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
     roles: ["explore", "analyze", "publish"],
     overflowGroup: "advanced",
     priority: 999,
-    shortcut: "Ctrl K",
-  };
+    shortcut: openPaletteShortcut,
+    category: "System",
+    source: "toolbar",
+  }), [openPaletteShortcut]);
+
+  const processingPaletteCommands = React.useMemo(
+    () => buildProcessingPaletteCommands({
+      tools: processingTools,
+      layers: processingLayerOptions,
+      onRun: onRunProcessingToolCommand,
+    }),
+    [onRunProcessingToolCommand, processingLayerOptions, processingTools],
+  );
 
   const paletteCommands = React.useMemo(
-    () => [commandPaletteCommand, ...commands],
-    [commands],
+    () => [
+      commandPaletteCommand,
+      ...commands.map((command): PaletteCommand => ({
+        ...command,
+        category: getCommandCategory(command),
+        source: "toolbar",
+      })),
+      ...processingPaletteCommands,
+    ],
+    [commandPaletteCommand, commands, processingPaletteCommands],
   );
 
   const advancedFooter = (
@@ -1902,7 +2128,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
         borderTop: MAP_STROKES.hairlineSubtle,
       }}>
         <Keyboard size={MAP_ICON_SIZES.sm} strokeWidth={1.8} aria-hidden="true" />
-        <span>Ctrl+K searches every available map command.</span>
+        <span>{openPaletteShortcut} searches map commands and processing tools.</span>
       </div>
     </>
   );

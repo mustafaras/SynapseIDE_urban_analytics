@@ -1151,6 +1151,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     announce("Contents tree toggled");
   }, [announce]);
   const processingRegistry = useMemo(() => createMapProcessingRegistry(), []);
+  const processingToolDescriptors = useMemo(() => processingRegistry.list(), [processingRegistry]);
   const searchProcessingTools = useCallback(
     (query: string) => processingRegistry.search(query),
     [processingRegistry],
@@ -6377,6 +6378,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               isSavingProject={isSavingProject}
               isLoadingProject={isLoadingProject}
               persistenceDisabled={persistenceDisabled}
+              processingTools={processingToolDescriptors}
+              processingLayerOptions={processingToolboxLayers}
+              onRunProcessingToolCommand={handleRunProcessingTool}
             />
           </div>
 
@@ -7031,7 +7035,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               setShowModelBuilder(false);
               announce("Model builder closed");
             }}
-            tools={processingRegistry.list()}
+            tools={processingToolDescriptors}
             layers={processingToolboxLayers}
             onRun={handleRunMapModel}
             onRunBatch={handleRunMapModelBatch}

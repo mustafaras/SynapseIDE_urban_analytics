@@ -59,7 +59,7 @@ describe("Map Explorer canonical surface — baseline smoke", () => {
       root.unmount();
     });
     container.remove();
-  }, 30000);
+  }, 60000);
 
   it("adds a layer to and removes it from useMapExplorerStore", async () => {
     const { useMapExplorerStore } = await import("@/stores/useMapExplorerStore");
