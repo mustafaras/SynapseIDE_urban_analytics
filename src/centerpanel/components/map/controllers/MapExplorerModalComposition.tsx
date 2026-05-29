@@ -112,6 +112,7 @@ import {
 } from "../MapPerformanceDiagnosticsPanel";
 import { MapProcessingToolboxPanel, type ProcessingToolboxLayerOption } from "../processing";
 import { MapModelBuilderPanel } from "../modelBuilder";
+import { MapPluginPanel } from "../plugins";
 import {
   MapCatalogPanel,
   attachSourceHandleToExternalLayer,
@@ -132,6 +133,7 @@ import {
   previewProcessingTool,
   runProcessingTool,
 } from "../../../../services/map/processing";
+import { createMapExtensionRegistry } from "../../../../services/map/plugins";
 import {
   buildMapModelCodeArtifactRequest,
   executeMapModel,
@@ -1112,12 +1114,17 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   }, [announce]);
   const [showProcessingToolbox, setShowProcessingToolbox] = useState(false);
   const [showModelBuilder, setShowModelBuilder] = useState(false);
+  const [showPluginPanel, setShowPluginPanel] = useState(false);
   const [showCatalog, setShowCatalog] = useState(false);
   const [showContents, setShowContents] = useState(false);
+  const extensionRegistry = useMemo(() => createMapExtensionRegistry(), []);
+  const pluginExtensions = useMemo(() => extensionRegistry.list(), [extensionRegistry]);
+  const processingExtensionExecutors = useMemo(() => extensionRegistry.processingToolExecutors(), [extensionRegistry]);
   const handleToggleProcessingToolbox = useCallback(() => {
     setShowProcessingToolbox((previous) => {
       const next = !previous;
       if (next) setShowModelBuilder(false);
+      if (next) setShowPluginPanel(false);
       return next;
     });
     announce("Processing toolbox toggled");
@@ -1126,9 +1133,21 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     setShowModelBuilder((previous) => {
       const next = !previous;
       if (next) setShowProcessingToolbox(false);
+      if (next) setShowPluginPanel(false);
       return next;
     });
     announce("Model builder toggled");
+  }, [announce]);
+  const handleTogglePluginPanel = useCallback(() => {
+    setShowPluginPanel((previous) => {
+      const next = !previous;
+      if (next) {
+        setShowProcessingToolbox(false);
+        setShowModelBuilder(false);
+      }
+      return next;
+    });
+    announce("Plugin registry toggled");
   }, [announce]);
   const handleToggleCatalog = useCallback(() => {
     setShowCatalog((previous) => {
@@ -1137,6 +1156,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         setWorkspaceView("explore");
         setShowProcessingToolbox(false);
         setShowModelBuilder(false);
+        setShowPluginPanel(false);
         setShowContents(false);
       }
       return next;
@@ -1151,12 +1171,16 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         setShowProcessingToolbox(false);
         setShowModelBuilder(false);
         setShowCatalog(false);
+        setShowPluginPanel(false);
       }
       return next;
     });
     announce("Contents tree toggled");
   }, [announce]);
-  const processingRegistry = useMemo(() => createMapProcessingRegistry(), []);
+  const processingRegistry = useMemo(
+    () => createMapProcessingRegistry(extensionRegistry.processingToolDescriptors()),
+    [extensionRegistry],
+  );
   const processingToolDescriptors = useMemo(() => processingRegistry.list(), [processingRegistry]);
   const searchProcessingTools = useCallback(
     (query: string) => processingRegistry.search(query),
@@ -1180,8 +1204,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         toolId,
         params,
         (id) => useMapExplorerStore.getState().overlayLayers.find((layer) => layer.id === id) ?? null,
+        { extensionExecutors: processingExtensionExecutors },
       ),
-    [],
+    [processingExtensionExecutors],
   );
   const [inspectorLayerId, setInspectorLayerId] = useState<string | null>(null);
   const inspectorLayer = inspectorLayerId
@@ -1507,7 +1532,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
 
   const handleRunProcessingTool = useCallback(
     (toolId: string, params: Record<string, string | number | boolean>) => {
-      const result = runProcessingTool(toolId, params, buildMapActionEffects());
+      const result = runProcessingTool(toolId, params, buildMapActionEffects(), {
+        extensionExecutors: processingExtensionExecutors,
+      });
       if (!result) return null;
       if (result.reviewEvent) recordMapReviewEvent(result.reviewEvent);
       if (result.status === "applied") {
@@ -1530,7 +1557,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       }
       return result;
     },
-    [announce, buildMapActionEffects, recordMapActionHistory, recordMapReviewEvent],
+    [announce, buildMapActionEffects, processingExtensionExecutors, recordMapActionHistory, recordMapReviewEvent],
   );
 
   const registerMapModelExecution = useCallback((result: MapModelRunResult): MapModelRunResult => {
@@ -1580,9 +1607,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       model,
       processingRegistry,
       buildMapActionEffects(),
-      { mapContextId: contextSummary.contextId },
+      { mapContextId: contextSummary.contextId, extensionExecutors: processingExtensionExecutors },
     )),
-    [buildMapActionEffects, contextSummary.contextId, processingRegistry, registerMapModelExecution],
+    [buildMapActionEffects, contextSummary.contextId, processingExtensionExecutors, processingRegistry, registerMapModelExecution],
   );
 
   const handleRunMapModelBatch = useCallback(
@@ -1592,13 +1619,13 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         targets,
         processingRegistry,
         buildMapActionEffects(),
-        { mapContextId: contextSummary.contextId },
+        { mapContextId: contextSummary.contextId, extensionExecutors: processingExtensionExecutors },
       );
       batch.results.forEach((entry) => registerMapModelExecution(entry.result));
       if (batch.status !== "blocked") announce(`${batch.results.length} model batch target(s) processed.`);
       return batch;
     },
-    [announce, buildMapActionEffects, contextSummary.contextId, processingRegistry, registerMapModelExecution],
+    [announce, buildMapActionEffects, contextSummary.contextId, processingExtensionExecutors, processingRegistry, registerMapModelExecution],
   );
 
   const handleCommitDrawnFeatureEdit = useCallback((id: string, before: DrawnFeature, after: DrawnFeature) => {
@@ -6356,6 +6383,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               showPerformanceDiagnostics={showPerformanceDiagnostics}
               onTogglePerformanceDiagnostics={handleTogglePerformanceDiagnostics}
               performanceIssueCount={performanceIssueCount}
+              showPluginPanel={showPluginPanel}
+              onTogglePluginPanel={handleTogglePluginPanel}
+              pluginExtensionCount={pluginExtensions.length}
               showProcessingToolbox={showProcessingToolbox}
               onToggleProcessingToolbox={handleToggleProcessingToolbox}
               processingToolCount={processingRegistry.implementedCount()}
@@ -7069,6 +7099,15 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             onClose={() => {
               setShowPerformanceDiagnostics(false);
               announce("Performance diagnostics closed");
+            }}
+          />
+
+          <MapPluginPanel
+            visible={showPluginPanel && !navigatorStageMode}
+            extensions={pluginExtensions}
+            onClose={() => {
+              setShowPluginPanel(false);
+              announce("Plugin registry closed");
             }}
           />
 

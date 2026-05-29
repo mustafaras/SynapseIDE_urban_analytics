@@ -21,13 +21,23 @@ export {
   previewProcessingTool,
   getProcessingToolDescriptor,
   listProcessingToolDescriptors,
+  type ProcessingExecutorExtensionOptions,
   type ProcessingRunOptions,
   type ProcessingRunResult,
   type ProcessingPreviewOutcome,
+  type ProcessingToolExecutorLookup,
 } from "./MapProcessingExecutor";
+
+export {
+  REFERENCE_PLUGIN_TOOL_ID,
+  REFERENCE_PLUGIN_TOOL_DESCRIPTOR,
+  REFERENCE_PLUGIN_TOOL_EXECUTOR,
+  REFERENCE_PLUGIN_TOOL_EXECUTORS,
+} from "./pluginTools";
 
 import { MapProcessingRegistry } from "./MapProcessingRegistry";
 import { listProcessingToolDescriptors } from "./MapProcessingExecutor";
+import type { ProcessingToolDescriptor } from "@/services/map/contracts/gisContracts";
 
 /**
  * Build a registry pre-seeded with the full processing catalogue: the Prompt
@@ -35,6 +45,8 @@ import { listProcessingToolDescriptors } from "./MapProcessingExecutor";
  * service-backed tools (overlay/geometry/join/stats), and the not-yet-wired
  * stub descriptors (shown disabled with a reason).
  */
-export function createMapProcessingRegistry(): MapProcessingRegistry {
-  return new MapProcessingRegistry(listProcessingToolDescriptors());
+export function createMapProcessingRegistry(
+  extensionDescriptors: ReadonlyArray<ProcessingToolDescriptor> = [],
+): MapProcessingRegistry {
+  return new MapProcessingRegistry([...listProcessingToolDescriptors(), ...extensionDescriptors]);
 }

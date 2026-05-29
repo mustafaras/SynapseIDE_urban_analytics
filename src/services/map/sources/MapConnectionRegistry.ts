@@ -124,7 +124,10 @@ export interface CheckConnectionHealthOptions {
   timeoutMs?: number;
   cacheHit?: boolean;
   now?: () => Date;
+  providers?: MapConnectionProviderCatalog;
 }
+
+export type MapConnectionProviderCatalog = Readonly<Record<string, MapConnectionProviderProfile>>;
 
 /* -------------------------------------------------------------------- */
 /*  Provider registry                                                   */
@@ -193,10 +196,13 @@ export const MAP_CONNECTION_PROVIDERS: Record<string, MapConnectionProviderProfi
   },
 };
 
-export function getMapConnectionProvider(providerOrKind: string): MapConnectionProviderProfile {
-  const direct = MAP_CONNECTION_PROVIDERS[providerOrKind];
+export function getMapConnectionProvider(
+  providerOrKind: string,
+  providers: MapConnectionProviderCatalog = MAP_CONNECTION_PROVIDERS,
+): MapConnectionProviderProfile {
+  const direct = providers[providerOrKind];
   if (direct) return direct;
-  const byKind = Object.values(MAP_CONNECTION_PROVIDERS).find((profile) => profile.serviceKind === providerOrKind);
+  const byKind = Object.values(providers).find((profile) => profile.serviceKind === providerOrKind);
   if (byKind) return byKind;
   throw new ExternalServiceError("invalid-url", `Unknown external service provider "${providerOrKind}".`);
 }
@@ -391,7 +397,7 @@ export async function checkConnectionHealth(
 ): Promise<ExternalServiceHealth> {
   const fetcher = options.fetcher ?? fetchExternalService;
   const checkedAt = (options.now?.() ?? new Date()).toISOString();
-  const profile = getMapConnectionProvider(descriptor.providerId);
+  const profile = getMapConnectionProvider(descriptor.providerId, options.providers);
   let probe: HealthProbe;
   try {
     probe = buildHealthProbe(descriptor, profile);
@@ -545,7 +551,10 @@ export function buildConnectionSourceHandle(
 /*  Descriptor construction (secret-stripping at the boundary)          */
 /* -------------------------------------------------------------------- */
 
-export function createConnectionDescriptor(input: MapConnectionInput): MapConnectionDescriptor {
+export function createConnectionDescriptor(
+  input: MapConnectionInput,
+  providers: MapConnectionProviderCatalog = MAP_CONNECTION_PROVIDERS,
+): MapConnectionDescriptor {
   const validation = validateServiceUrl(input.urlTemplate ?? input.endpoint);
   if (!validation.ok) {
     throw new ExternalServiceError("invalid-url", validation.error ?? "Service URL is invalid.");
@@ -555,7 +564,7 @@ export function createConnectionDescriptor(input: MapConnectionInput): MapConnec
     assertSecretFreeServiceUrl(input.urlTemplate, "Tile URL template");
   }
   const providerId = input.providerId ?? input.serviceKind;
-  const profile = getMapConnectionProvider(providerId);
+  const profile = getMapConnectionProvider(providerId, providers);
   // The descriptor is assembled from explicit, secret-free fields below; any
   // credential-like keys a caller passes are never copied across. Use
   // `stripSecretKeys` / `containsNoSecrets` for free-form records.

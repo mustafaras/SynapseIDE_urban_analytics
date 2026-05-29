@@ -18,6 +18,7 @@ import {
   MapProcessingRegistry,
   runProcessingTool,
   type ProcessingRunResult,
+  type ProcessingToolExecutorLookup,
 } from "@/services/map/processing";
 
 export const MAP_MODEL_DEFINITION_VERSION = 1;
@@ -75,6 +76,7 @@ export interface MapModelExecutionOptions {
   mapContextId?: string;
   now?: () => string;
   aoiId?: string | null;
+  extensionExecutors?: ProcessingToolExecutorLookup;
 }
 
 export interface MapModelStepRun {
@@ -550,6 +552,7 @@ export function executeMapModel(
       now: () => createdAt,
       idFactory: () => `model-${executionHash}-${safePart(step.stepId)}`,
       mapContextId: options.mapContextId ?? "map-explorer",
+      ...(options.extensionExecutors ? { extensionExecutors: options.extensionExecutors } : {}),
     });
     if (!result || result.status === "blocked" || !result.outputLayer || !result.manifest) {
       const blockers = result?.preview.blockers ?? [`Step "${step.label}" could not be executed.`];

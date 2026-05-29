@@ -1,0 +1,115 @@
+import type { MapExtensionPlugin } from "./MapExtensionRegistry";
+import {
+  REFERENCE_PLUGIN_TOOL_DESCRIPTOR,
+  REFERENCE_PLUGIN_TOOL_EXECUTOR,
+} from "@/services/map/processing/pluginTools";
+
+export const MAP_REFERENCE_EXTENSION_PLUGIN_ID = "map.reference-extension-pack";
+
+export const MAP_REFERENCE_EXTENSION_PLUGIN: MapExtensionPlugin = {
+  pluginId: MAP_REFERENCE_EXTENSION_PLUGIN_ID,
+  label: "Reference GIS extension pack",
+  version: "1.0.0",
+  extensions: [
+    {
+      extensionId: "source.cityjson-static",
+      pluginId: MAP_REFERENCE_EXTENSION_PLUGIN_ID,
+      kind: "source-connector",
+      label: "CityJSON static connector",
+      summary: "Reference declarative connector for local or proxied CityJSON sources.",
+      capability: "source:cityjson",
+      capabilityStatus: "environment_dependent",
+      availabilityStatus: "limited",
+      executionScope: "declarative",
+      version: "1.0.0",
+      caveats: [
+        "CityJSON availability depends on browser fetch/CORS and the Prompt 60 scene importer.",
+        "No credentials are stored in source metadata; secured endpoints require a proxy.",
+      ],
+      contribution: {
+        catalogGroup: "external",
+        secretMode: "secured-proxy-required",
+        provider: {
+          id: "cityjson-static",
+          label: "CityJSON static source",
+          serviceKind: "cityjson",
+          defaultCredentialMode: "not-required",
+          defaultCorsMode: "browser-fetch",
+          healthCheck: "head",
+          proxyGuidance: "Host CityJSON behind an HTTPS CORS-enabled static endpoint or a server-side geospatial proxy.",
+          raster: false,
+        },
+      },
+    },
+    {
+      extensionId: "renderer.dot-density-reference",
+      pluginId: MAP_REFERENCE_EXTENSION_PLUGIN_ID,
+      kind: "renderer",
+      label: "Dot-density renderer family",
+      summary: "Reference renderer family that advertises the serialized legend and QA caveat contract.",
+      capability: "renderer:dot-density",
+      capabilityStatus: "implemented",
+      availabilityStatus: "available",
+      executionScope: "declarative",
+      version: "1.0.0",
+      caveats: ["Dot-density renderers must carry the area-normalization caveat when no normalization field is selected."],
+      contribution: {
+        styleFamily: "dot-density",
+        compatibleGeometry: ["polygon"],
+        qaGates: ["legend-parity", "normalization-caveat"],
+        legendContract: "serialized-legend-v1",
+      },
+    },
+    {
+      extensionId: "processing.plugin-envelope",
+      pluginId: MAP_REFERENCE_EXTENSION_PLUGIN_ID,
+      kind: "processing-tool",
+      label: "Plugin envelope tool",
+      summary: "Reference processing-tool extension that proves plugin tools stay lifecycle-routed.",
+      capability: "processing:projected-envelope",
+      capabilityStatus: "implemented",
+      availabilityStatus: "available",
+      executionScope: "trusted-preview-only",
+      version: "1.0.0",
+      caveats: ["Runs only as a typed preview executor; apply, audit, manifest, undo, and QA gates remain owned by core."],
+      contribution: {
+        descriptor: REFERENCE_PLUGIN_TOOL_DESCRIPTOR,
+        executor: REFERENCE_PLUGIN_TOOL_EXECUTOR,
+      },
+    },
+    {
+      extensionId: "urban.walkability-reference",
+      pluginId: MAP_REFERENCE_EXTENSION_PLUGIN_ID,
+      kind: "urban-method-bridge",
+      label: "Walkability readiness bridge",
+      summary: "Reference declarative Urban method bridge for polygon context and report-ready snapshots.",
+      capability: "urban-bridge:walkability",
+      capabilityStatus: "implemented",
+      availabilityStatus: "available",
+      executionScope: "declarative",
+      version: "1.0.0",
+      caveats: [
+        "Bridge payloads carry layer ids and requirements only; raw geometry stays in Map Explorer stores.",
+        "The reference request uses EPSG:32635 as a concrete projected CRS for the Istanbul demo fixtures.",
+      ],
+      contribution: {
+        methodId: "plugin.walkability-access",
+        methodLabel: "Walkability access readiness",
+        workflowId: "site_suitability",
+        outputIntent: "report",
+        requestedActions: ["focus-compatible-layers", "preview-map-workflow", "prepare-report-ready-snapshot"],
+        requirements: {
+          layer: {
+            geometryTypes: ["polygon"],
+            requiredFields: ["population"],
+            optionalFields: ["walk_score", "transit_score"],
+            requiredCrs: "EPSG:32635",
+            requireQueryable: true,
+          },
+          aoi: { required: true, geometryTypes: ["polygon"] },
+          workflow: { kind: "aoi", outputLayerName: "Walkability readiness AOI" },
+        },
+      },
+    },
+  ],
+};

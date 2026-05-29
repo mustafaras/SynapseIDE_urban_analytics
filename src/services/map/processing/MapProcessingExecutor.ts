@@ -44,11 +44,49 @@ const ALL_DESCRIPTORS: ProcessingToolDescriptor[] = [
   ...NOT_IMPLEMENTED_TOOL_DESCRIPTORS,
 ];
 
-function getExecutor(toolId: string): ProcessingToolExecutor | null {
-  return ALL_EXECUTORS[toolId] ?? null;
+export type ProcessingToolExecutorLookup =
+  | Readonly<Record<string, ProcessingToolExecutor>>
+  | ReadonlyMap<string, ProcessingToolExecutor>;
+
+export interface ProcessingExecutorExtensionOptions {
+  /** Trusted extension preview executors. Apply still flows through MapActionExecutor. */
+  extensionExecutors?: ProcessingToolExecutorLookup;
 }
 
-export interface ProcessingRunOptions {
+function isReadonlyExecutorMap(value: ProcessingToolExecutorLookup): value is ReadonlyMap<string, ProcessingToolExecutor> {
+  return typeof (value as ReadonlyMap<string, ProcessingToolExecutor>).get === "function";
+}
+
+function extensionExecutorValues(lookup: ProcessingToolExecutorLookup | undefined): ProcessingToolExecutor[] {
+  if (!lookup) return [];
+  return isReadonlyExecutorMap(lookup) ? Array.from(lookup.values()) : Object.values(lookup);
+}
+
+function getExtensionExecutor(
+  toolId: string,
+  lookup: ProcessingToolExecutorLookup | undefined,
+): ProcessingToolExecutor | null {
+  if (!lookup) return null;
+  if (isReadonlyExecutorMap(lookup)) return lookup.get(toolId) ?? null;
+  return lookup[toolId] ?? null;
+}
+
+function uniqueDescriptors(descriptors: ProcessingToolDescriptor[]): ProcessingToolDescriptor[] {
+  const byId = new Map<string, ProcessingToolDescriptor>();
+  for (const descriptor of descriptors) {
+    if (!byId.has(descriptor.toolId)) byId.set(descriptor.toolId, descriptor);
+  }
+  return [...byId.values()];
+}
+
+function getExecutor(
+  toolId: string,
+  extensionExecutors?: ProcessingToolExecutorLookup,
+): ProcessingToolExecutor | null {
+  return ALL_EXECUTORS[toolId] ?? getExtensionExecutor(toolId, extensionExecutors);
+}
+
+export interface ProcessingRunOptions extends ProcessingExecutorExtensionOptions {
   now?: () => string;
   /** Deterministic id seed (tests). Derives layer/manifest/command ids. */
   idFactory?: () => string;
@@ -76,12 +114,20 @@ export interface ProcessingRunResult {
 }
 
 /** Descriptor lookup over the full catalogue (implemented + stubs). */
-export function getProcessingToolDescriptor(toolId: string): ProcessingToolDescriptor | null {
-  return ALL_DESCRIPTORS.find((descriptor) => descriptor.toolId === toolId) ?? null;
+export function getProcessingToolDescriptor(
+  toolId: string,
+  extensionExecutors?: ProcessingToolExecutorLookup,
+): ProcessingToolDescriptor | null {
+  return listProcessingToolDescriptors(extensionExecutors).find((descriptor) => descriptor.toolId === toolId) ?? null;
 }
 
-export function listProcessingToolDescriptors(): ProcessingToolDescriptor[] {
-  return [...ALL_DESCRIPTORS];
+export function listProcessingToolDescriptors(
+  extensionExecutors?: ProcessingToolExecutorLookup,
+): ProcessingToolDescriptor[] {
+  return uniqueDescriptors([
+    ...ALL_DESCRIPTORS,
+    ...extensionExecutorValues(extensionExecutors).map((executor) => executor.descriptor),
+  ]);
 }
 
 function blockedPreview(blocker: string, geometryClass = "Geometry"): ProcessingToolPreview {
@@ -107,10 +153,11 @@ export function previewProcessingTool(
   toolId: string,
   params: Readonly<Record<string, unknown>>,
   getLayer: (id: string) => OverlayLayerConfig | null,
+  options: ProcessingExecutorExtensionOptions = {},
 ): ProcessingPreviewOutcome | null {
-  const executor = getExecutor(toolId);
+  const executor = getExecutor(toolId, options.extensionExecutors);
   if (!executor) {
-    const descriptor = getProcessingToolDescriptor(toolId);
+    const descriptor = getProcessingToolDescriptor(toolId, options.extensionExecutors);
     if (descriptor && !descriptor.implemented) {
       return {
         descriptor,
@@ -152,7 +199,7 @@ export function runProcessingTool(
   effects: MapActionEffects,
   options: ProcessingRunOptions = {},
 ): ProcessingRunResult | null {
-  const outcome = previewProcessingTool(toolId, params, effects.getLayer);
+  const outcome = previewProcessingTool(toolId, params, effects.getLayer, options);
   if (!outcome) return null;
 
   const { descriptor, inputLayer, preview } = outcome;

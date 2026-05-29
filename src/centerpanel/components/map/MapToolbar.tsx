@@ -26,6 +26,7 @@ import {
   PanelTop,
   Pentagon,
   Pencil,
+  Puzzle,
   RectangleHorizontal,
   Redo2,
   Route,
@@ -115,6 +116,9 @@ export interface MapToolbarProps {
   showPerformanceDiagnostics?: boolean;
   onTogglePerformanceDiagnostics?: () => void;
   performanceIssueCount?: number;
+  showPluginPanel?: boolean;
+  onTogglePluginPanel?: () => void;
+  pluginExtensionCount?: number;
   showProcessingToolbox?: boolean;
   onToggleProcessingToolbox?: () => void;
   processingToolCount?: number;
@@ -254,6 +258,8 @@ interface BuildToolbarCommandsArgs extends Required<Pick<
   | "reviewEventCount"
   | "showPerformanceDiagnostics"
   | "performanceIssueCount"
+  | "showPluginPanel"
+  | "pluginExtensionCount"
   | "showProcessingToolbox"
   | "processingToolCount"
   | "showModelBuilder"
@@ -300,6 +306,7 @@ interface BuildToolbarCommandsArgs extends Required<Pick<
   onToggleWorkflowDrawer?: (() => void) | undefined;
   onToggleReviewTimeline?: (() => void) | undefined;
   onTogglePerformanceDiagnostics?: (() => void) | undefined;
+  onTogglePluginPanel?: (() => void) | undefined;
   onToggleProcessingToolbox?: (() => void) | undefined;
   onToggleModelBuilder?: (() => void) | undefined;
   onToggleFigureComposer?: (() => void) | undefined;
@@ -1072,6 +1079,23 @@ function buildToolbarCommands(args: BuildToolbarCommandsArgs): ToolbarCommand[] 
     navigator: true,
   });
 
+  add(args.onTogglePluginPanel && {
+    id: "plugin-registry",
+    label: "Plugins",
+    shortLabel: "Plug",
+    title: "Open plugin and extension registry",
+    keywords: ["plugins", "extensions", "extension registry", "source connector", "renderer", "urban bridge"],
+    icon: Puzzle,
+    onClick: args.onTogglePluginPanel,
+    roles: ["explore", "analyze", "publish"],
+    overflowGroup: "advanced",
+    priority: args.showPluginPanel ? 127 : 82,
+    active: args.showPluginPanel,
+    badge: args.pluginExtensionCount > 0 ? args.pluginExtensionCount : null,
+    tone: "default",
+    navigator: true,
+  });
+
   add(args.onToggleProcessingToolbox && {
     id: "processing-toolbox",
     label: "Toolbox",
@@ -1813,6 +1837,9 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
   showPerformanceDiagnostics = false,
   onTogglePerformanceDiagnostics,
   performanceIssueCount = 0,
+  showPluginPanel = false,
+  onTogglePluginPanel,
+  pluginExtensionCount = 0,
   showProcessingToolbox = false,
   onToggleProcessingToolbox,
   processingToolCount = 0,
@@ -1967,6 +1994,9 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       showPerformanceDiagnostics,
       onTogglePerformanceDiagnostics,
       performanceIssueCount,
+      showPluginPanel,
+      onTogglePluginPanel,
+      pluginExtensionCount,
       showProcessingToolbox,
       onToggleProcessingToolbox,
       processingToolCount,
@@ -2070,6 +2100,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       onToggleMeasurePanel,
       onToggleNLQueryPanel,
       onTogglePerformanceDiagnostics,
+      onTogglePluginPanel,
       onToggleProcessingToolbox,
       onToggleModelBuilder,
       onToggleWorkflowDrawer,
@@ -2082,6 +2113,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       onUndoMapAction,
       persistenceDisabled,
       performanceIssueCount,
+      pluginExtensionCount,
       processingToolCount,
       pinCount,
       pinMode,
@@ -2104,6 +2136,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       showMeasurePanel,
       showNLQueryPanel,
       showPerformanceDiagnostics,
+      showPluginPanel,
       showProcessingToolbox,
       showModelBuilder,
       showReviewTimeline,
