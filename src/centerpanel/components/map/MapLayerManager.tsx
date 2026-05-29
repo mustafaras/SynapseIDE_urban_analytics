@@ -5,6 +5,7 @@ import type {
 } from "@/services/map/MapCartographyAdvisor";
 import type { SourceRestoreStatus } from "@/services/map/contracts/gisContracts";
 import { buildMapCompositionLegendItems } from "@/services/map/MapExportService";
+import { MAP_VECTOR_TILE_SIMPLIFICATION_CAVEAT_LABEL } from "./mapTypes";
 import type { LayerGroupId, LayerPublicationReadinessStatus, LayerQaStatus, LayerScientificQABadge, LayerSourceKind, OverlayLayerConfig } from "./mapTypes";
 import { CartographyRecommendationList } from "./CartographyRecommendationList";
 import { DeclareCrsControl } from "./DeclareCrsControl";
@@ -1041,6 +1042,16 @@ function buildLayerBadges(layer: OverlayLayerConfig): LayerBadgeModel[] {
       label: QA_STATUS_LABELS[registry.qaStatus],
       title: `Scientific QA status: ${QA_STATUS_LABELS[registry.qaStatus]}.`,
       tone: qaBadgeTone(registry.qaStatus),
+    });
+  }
+
+  const vectorTiles = layer.metadata?.vectorTiles;
+  if (vectorTiles?.generalization === "zoom-dependent") {
+    badges.push({
+      id: "vector-tile-simplification",
+      label: vectorTiles.caveatLabel || MAP_VECTOR_TILE_SIMPLIFICATION_CAVEAT_LABEL,
+      title: vectorTiles.caveats.join(" ") || "Layer is rendered from generalized vector tiles at low zoom.",
+      tone: "warning",
     });
   }
 

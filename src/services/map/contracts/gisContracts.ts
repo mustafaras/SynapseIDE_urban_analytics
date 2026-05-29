@@ -15,6 +15,8 @@ import type {
   DrawnFeature,
   ImportLayerSourceMetadata,
   LayerCrsSummary,
+  MapVectorTileGeneralizationMode,
+  MapVectorTileSourceMode,
   LayerSchemaFieldRole,
   LayerSchemaSummary,
   LayerScientificQACategorySummary,
@@ -60,6 +62,15 @@ export type SourceFormat =
   | "xyz"
   | "geotiff";
 
+export interface SourceHandleVectorTileMetadata {
+  sourceMode: MapVectorTileSourceMode;
+  generalization: MapVectorTileGeneralizationMode;
+  minZoom: number;
+  maxZoom: number;
+  tileSize: number;
+  sourceLayer?: string;
+}
+
 /**
  * Durable, lightweight description of a data source. Referenced by an
  * OverlayLayerConfig through `metadata` so heavy geometry never has to
@@ -82,6 +93,8 @@ export interface SourceHandle {
   workerTableName?: string;
   /** url / indexeddb key / worker table name, depending on storageMode. */
   sourceRef?: string;
+  /** Lightweight tile metadata; never stores tile geometry or source bytes. */
+  vectorTile?: SourceHandleVectorTileMetadata;
   caveats: string[];
   profiledAt: string;
 }

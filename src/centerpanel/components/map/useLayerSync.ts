@@ -19,6 +19,11 @@ import {
   buildDotDensityFeatureCollection,
   getSerializedAdvancedCartographySpecFromStyle,
 } from "@/services/map/cartography/AdvancedCartographyEngine";
+import {
+  buildVectorTilePipeline,
+  buildVectorTileRenderFeatureCollection,
+  type VectorTilePipeline,
+} from "@/services/map/tiling/VectorTilePipelineService";
 import type { OverlayLayerConfig } from "./mapTypes";
 import { MAP_COLORS, resolveMapPaintColor } from "./mapTokens";
 
@@ -37,6 +42,9 @@ const COMPANION_CIRCLE_OPACITY_STYLE_KEY = "__companionCircleOpacity";
 const COMPANION_CIRCLE_STROKE_COLOR_STYLE_KEY = "__companionCircleStrokeColor";
 const COMPANION_CIRCLE_STROKE_WIDTH_STYLE_KEY = "__companionCircleStrokeWidth";
 const EMPTY_FEATURE_COLLECTION: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
+const WORLD_EXTENT = { west: -180, south: -85.05112878, east: 180, north: 85.05112878 };
+
+const vectorTilePipelineCache = new WeakMap<GeoJSON.FeatureCollection, Map<string, VectorTilePipeline>>();
 
 export type LayerSyncPerformanceHandler = (metric: MapPerformanceTimingMetric) => void;
 
@@ -125,6 +133,88 @@ function countVisibleFeatures(layers: readonly OverlayLayerConfig[]): number {
     if (!layer.visible) return sum;
     return sum + (layer.metadata?.rendering?.featureCount ?? layer.metadata?.featureCount ?? 0);
   }, 0);
+}
+
+function isFeatureCollection(value: unknown): value is GeoJSON.FeatureCollection {
+  return Boolean(value) && typeof value === "object" && (value as GeoJSON.FeatureCollection).type === "FeatureCollection" && Array.isArray((value as GeoJSON.FeatureCollection).features);
+}
+
+function isOnTheFlyVectorTileLayer(layer: OverlayLayerConfig): boolean {
+  return layer.metadata?.vectorTiles?.sourceMode === "on-the-fly" && isFeatureCollection(layer.sourceData);
+}
+
+function getMapZoom(map: maplibregl.Map | null | undefined): number {
+  const maybeMap = map as { getZoom?: () => number } | null | undefined;
+  const zoom = maybeMap?.getZoom?.();
+  return Number.isFinite(zoom) ? zoom : 12;
+}
+
+function getMapExtent(map: maplibregl.Map | null | undefined): typeof WORLD_EXTENT {
+  const maybeBounds = (map as { getBounds?: () => unknown } | null | undefined)?.getBounds?.();
+  const bounds = maybeBounds as {
+    getWest?: () => number;
+    getSouth?: () => number;
+    getEast?: () => number;
+    getNorth?: () => number;
+  } | null | undefined;
+  const west = bounds?.getWest?.();
+  const south = bounds?.getSouth?.();
+  const east = bounds?.getEast?.();
+  const north = bounds?.getNorth?.();
+  if ([west, south, east, north].every((value) => Number.isFinite(value))) {
+    return { west: west!, south: south!, east: east!, north: north! };
+  }
+  return WORLD_EXTENT;
+}
+
+function vectorTilePipelineCacheKey(layer: OverlayLayerConfig): string {
+  const metadata = layer.metadata?.vectorTiles;
+  return JSON.stringify({
+    sourceId: metadata?.sourceId ?? layer.id,
+    minZoom: metadata?.minZoom ?? null,
+    maxZoom: metadata?.maxZoom ?? null,
+    tileSize: metadata?.tileSize ?? null,
+    zoomLevels: metadata?.zoomLevels.map((entry) => entry.zoom) ?? null,
+  });
+}
+
+function getVectorTilePipeline(layer: OverlayLayerConfig, sourceData: GeoJSON.FeatureCollection): VectorTilePipeline {
+  let layerCache = vectorTilePipelineCache.get(sourceData);
+  if (!layerCache) {
+    layerCache = new Map<string, VectorTilePipeline>();
+    vectorTilePipelineCache.set(sourceData, layerCache);
+  }
+  const cacheKey = vectorTilePipelineCacheKey(layer);
+  const cached = layerCache.get(cacheKey);
+  if (cached) return cached;
+
+  const metadata = layer.metadata?.vectorTiles;
+  const pipeline = buildVectorTilePipeline(sourceData, {
+    ...(metadata?.sourceId ? { sourceId: metadata.sourceId } : {}),
+    ...(metadata?.sourceLayer ? { sourceLayer: metadata.sourceLayer } : {}),
+    ...(metadata?.sourceUrl ? { sourceUrl: metadata.sourceUrl } : {}),
+    ...(metadata?.minZoom != null ? { minZoom: metadata.minZoom } : {}),
+    ...(metadata?.maxZoom != null ? { maxZoom: metadata.maxZoom } : {}),
+    ...(metadata?.tileSize != null ? { tileSize: metadata.tileSize } : {}),
+    ...(metadata?.zoomLevels.length ? { zoomLevels: metadata.zoomLevels.map((entry) => entry.zoom) } : {}),
+  });
+  layerCache.set(cacheKey, pipeline);
+  return pipeline;
+}
+
+function resolveOnTheFlyVectorTileRenderData(
+  layer: OverlayLayerConfig,
+  map: maplibregl.Map | null | undefined,
+): GeoJSON.FeatureCollection | null {
+  if (!isOnTheFlyVectorTileLayer(layer)) return null;
+  if (!layer.visible) return EMPTY_FEATURE_COLLECTION;
+  const sourceData = layer.sourceData as GeoJSON.FeatureCollection;
+  const pipeline = getVectorTilePipeline(layer, sourceData);
+  return buildVectorTileRenderFeatureCollection(pipeline, getMapExtent(map), getMapZoom(map)).featureCollection;
+}
+
+function normalizePmtilesUrl(value: string): string {
+  return value.startsWith("pmtiles://") ? value : `pmtiles://${value}`;
 }
 
 /* ================================================================== */
@@ -230,9 +320,14 @@ function isGeoJSONBackedLayer(layer: OverlayLayerConfig): boolean {
 
 function resolveGeoJSONRenderData(
   layer: OverlayLayerConfig,
+  map?: maplibregl.Map | null,
 ): GeoJSON.FeatureCollection | GeoJSON.Feature | GeoJSON.Geometry | string {
   if (!layer.visible) {
     return EMPTY_FEATURE_COLLECTION;
+  }
+  const tiledRenderData = resolveOnTheFlyVectorTileRenderData(layer, map);
+  if (tiledRenderData) {
+    return tiledRenderData;
   }
   return (normalizeGeoJSONSourceDataForRender(layer.sourceData, buildRenderNormalizationOptions(layer)) as
     | GeoJSON.FeatureCollection
@@ -392,14 +487,24 @@ function addManagedLayer(map: maplibregl.Map, layer: OverlayLayerConfig): void {
       tileSize: 256,
     });
   } else if (layer.type === "vector-tile" && typeof layer.sourceData === "string") {
-    map.addSource(layer.id, {
-      type: "vector",
-      tiles: [layer.sourceData],
-    });
+    const vectorTileMetadata = layer.metadata?.vectorTiles;
+    if (vectorTileMetadata?.sourceMode === "pmtiles") {
+      map.addSource(layer.id, {
+        type: "vector",
+        url: normalizePmtilesUrl(vectorTileMetadata.sourceUrl ?? layer.sourceData),
+      });
+    } else {
+      map.addSource(layer.id, {
+        type: "vector",
+        tiles: [layer.sourceData],
+        ...(vectorTileMetadata?.minZoom != null ? { minzoom: vectorTileMetadata.minZoom } : {}),
+        ...(vectorTileMetadata?.maxZoom != null ? { maxzoom: vectorTileMetadata.maxZoom } : {}),
+      });
+    }
   } else {
     map.addSource(layer.id, {
       type: "geojson",
-      data: resolveGeoJSONRenderData(layer),
+      data: resolveGeoJSONRenderData(layer, map),
     });
   }
 
@@ -414,7 +519,7 @@ function addManagedLayer(map: maplibregl.Map, layer: OverlayLayerConfig): void {
   };
 
   if (layer.type === "vector-tile") {
-    layerSpec["source-layer"] = "default";
+    layerSpec["source-layer"] = layer.metadata?.vectorTiles?.sourceLayer ?? "default";
   }
 
   map.addLayer(layerSpec as maplibregl.LayerSpecification);
@@ -450,6 +555,7 @@ export function useLayerSync(
   onPerformanceSample: LayerSyncPerformanceHandler | undefined = undefined,
 ): void {
   const [styleRevision, setStyleRevision] = useState(0);
+  const [viewportRevision, setViewportRevision] = useState(0);
   /** Track which layers we've added to MapLibre so we can diff */
   const addedIdsRef = useRef<Set<string>>(new Set());
   /** Track previous snapshot for diffing */
@@ -472,6 +578,26 @@ export function useLayerSync(
     eventedMap.on("style.load", handleStyleLoad);
     return () => {
       eventedMap.off?.("style.load", handleStyleLoad);
+    };
+  }, [mapRef]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    const eventedMap = map as unknown as {
+      on?: (type: string, handler: () => void) => void;
+      off?: (type: string, handler: () => void) => void;
+    } | null;
+    if (!eventedMap?.on) return undefined;
+
+    const handleViewportSettled = () => {
+      setViewportRevision((revision) => revision + 1);
+    };
+
+    eventedMap.on("moveend", handleViewportSettled);
+    eventedMap.on("zoomend", handleViewportSettled);
+    return () => {
+      eventedMap.off?.("moveend", handleViewportSettled);
+      eventedMap.off?.("zoomend", handleViewportSettled);
     };
   }, [mapRef]);
 
@@ -529,10 +655,10 @@ export function useLayerSync(
 
       /* Existing layer — diff and update properties */
       if (prevLayer) {
-        if ((prevLayer.sourceData !== layer.sourceData || prevLayer.visible !== layer.visible) && isGeoJSONBackedLayer(layer)) {
+        if ((prevLayer.sourceData !== layer.sourceData || prevLayer.visible !== layer.visible || isOnTheFlyVectorTileLayer(layer)) && isGeoJSONBackedLayer(layer)) {
           try {
             const source = map.getSource(layer.id) as maplibregl.GeoJSONSource | undefined;
-            source?.setData(resolveGeoJSONRenderData(layer));
+            source?.setData(resolveGeoJSONRenderData(layer, map));
             const dotDensitySpec = getSerializedAdvancedCartographySpecFromStyle(layer.style);
             const dotDensitySource = map.getSource(dotDensitySourceId(layer.id)) as maplibregl.GeoJSONSource | undefined;
             if (dotDensitySpec?.mode === "dot-density" && dotDensitySource) {
@@ -620,7 +746,7 @@ export function useLayerSync(
       endedAt: performanceNow(),
       featureCount: countVisibleFeatures(overlayLayers),
     }));
-  }, [mapRef, overlayLayers, styleRevision, onPerformanceSample]);
+  }, [mapRef, overlayLayers, styleRevision, viewportRevision, onPerformanceSample]);
 
   /* ---- Cleanup all overlay layers on unmount ---- */
   useEffect(() => {

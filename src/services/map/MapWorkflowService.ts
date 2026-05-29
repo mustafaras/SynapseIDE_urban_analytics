@@ -29,6 +29,7 @@ import type {
   LayerQaStatus,
   LayerScientificQAMetadata,
   LayerSourceKind,
+  MapVectorTileLayerMetadata,
   MapReprojectionCacheLayerMetadata,
   MapReproducibilityExpectedOutput,
   MapReproducibilityLayerReference,
@@ -58,6 +59,7 @@ import {
   type GeometryWorkflowSourceFingerprint,
 } from "./geometry/GeometryWorkflowEngine";
 import type { ReprojectionCacheRunSummary } from "./geometry/ReprojectionCache";
+import { VECTOR_TILE_METRIC_CAVEAT } from "./tiling/VectorTilePipelineService";
 import {
   summarizeDrawnGeometryValidation,
   validateDrawnGeometry,
@@ -206,6 +208,7 @@ export interface MapWorkflowSourceLayerSummary {
   dataVersion: string | null;
   fields: string[];
   hasGeometry: boolean;
+  vectorTiles: MapVectorTileLayerMetadata | null;
 }
 
 /* ================================================================== */
@@ -463,6 +466,7 @@ export function buildMapWorkflowContext(
         null,
       fields,
       hasGeometry: Boolean(fc && fc.features.length > 0),
+      vectorTiles: layer.metadata?.vectorTiles ?? null,
     });
   }
 
@@ -1361,14 +1365,16 @@ function previewBuffer(
     : layer
       ? context.layerSourceMap.get(layer.id) ?? null
       : null;
+  const sourceLayerIds = sourceMode === "selected-features" ? context.selectedLayerIds : layer ? [layer.id] : [];
   const crsPreflight = preflightMapWorkflowOperation({
     label: "Buffer",
     metric: "buffer",
-    sourceLayerIds: sourceMode === "selected-features" ? context.selectedLayerIds : layer ? [layer.id] : [],
+    sourceLayerIds,
     context,
     sourceGeometry: source,
   });
   pushCrsPreflightIssue(crsPreflight, "source", issues);
+  pushVectorTileMetricCaveats(context, sourceLayerIds, "source", issues);
 
   let previewSampled = false;
   if (source && meters > 0 && !distanceIssue && issues.every((entry) => entry.severity !== "blocker")) {
@@ -1472,14 +1478,16 @@ function previewIntersect(
   const layerB = pickLayer(context, draft.layerBId);
 
   validatePolygonPair(draft.layerAId, draft.layerBId, layerA, layerB, issues);
+  const sourceLayerIds = [draft.layerAId, draft.layerBId].filter((id): id is string => Boolean(id));
   const crsPreflight = preflightMapWorkflowOperation({
     label: "Intersection",
     metric: "intersection",
-    sourceLayerIds: [draft.layerAId, draft.layerBId].filter((id): id is string => Boolean(id)),
+    sourceLayerIds,
     context,
     preferEqualArea: true,
   });
   pushCrsPreflightIssue(crsPreflight, "source", issues);
+  pushVectorTileMetricCaveats(context, sourceLayerIds, "source", issues);
 
   let featureCollection: FeatureCollection | null = null;
   let workerNeeded = false;
@@ -1564,14 +1572,16 @@ function previewDifference(
   const layerA = pickLayer(context, draft.minuendLayerId);
   const layerB = pickLayer(context, draft.subtrahendLayerId);
   validatePolygonPair(draft.minuendLayerId, draft.subtrahendLayerId, layerA, layerB, issues);
+  const sourceLayerIds = [draft.minuendLayerId, draft.subtrahendLayerId].filter((id): id is string => Boolean(id));
   const crsPreflight = preflightMapWorkflowOperation({
     label: "Difference",
     metric: "difference",
-    sourceLayerIds: [draft.minuendLayerId, draft.subtrahendLayerId].filter((id): id is string => Boolean(id)),
+    sourceLayerIds,
     context,
     preferEqualArea: true,
   });
   pushCrsPreflightIssue(crsPreflight, "source", issues);
+  pushVectorTileMetricCaveats(context, sourceLayerIds, "source", issues);
 
   let featureCollection: FeatureCollection | null = null;
   let workerNeeded = false;
@@ -1643,14 +1653,16 @@ function previewUnion(
   const layerA = pickLayer(context, draft.layerAId);
   const layerB = pickLayer(context, draft.layerBId);
   validatePolygonPair(draft.layerAId, draft.layerBId, layerA, layerB, issues);
+  const sourceLayerIds = [draft.layerAId, draft.layerBId].filter((id): id is string => Boolean(id));
   const crsPreflight = preflightMapWorkflowOperation({
     label: "Union",
     metric: "union",
-    sourceLayerIds: [draft.layerAId, draft.layerBId].filter((id): id is string => Boolean(id)),
+    sourceLayerIds,
     context,
     preferEqualArea: true,
   });
   pushCrsPreflightIssue(crsPreflight, "source", issues);
+  pushVectorTileMetricCaveats(context, sourceLayerIds, "source", issues);
 
   let featureCollection: FeatureCollection | null = null;
   let workerNeeded = false;
@@ -2262,6 +2274,25 @@ function pushCrsPreflightIssue(
   });
 }
 
+function pushVectorTileMetricCaveats(
+  context: MapWorkflowContext,
+  sourceLayerIds: readonly string[],
+  step: MapWorkflowStepId,
+  issues: MapWorkflowIssue[],
+): void {
+  for (const layerId of sourceLayerIds) {
+    const layer = context.layers.find((entry) => entry.id === layerId);
+    const vectorTiles = layer?.vectorTiles;
+    if (!layer || vectorTiles?.generalization !== "zoom-dependent") continue;
+    issues.push({
+      step,
+      severity: "warning",
+      code: `vector-tile-simplified-${safeIdPart(layer.id)}`,
+      message: `Layer "${layer.name}" is ${vectorTiles.caveatLabel}; ${VECTOR_TILE_METRIC_CAVEAT}`,
+    });
+  }
+}
+
 function pickLayer(
   context: MapWorkflowContext,
   layerId: string | null,
@@ -2628,15 +2659,17 @@ function collectBadges(
   const badges: LayerScientificQAMetadata["badges"] = [];
   let inheritsDemo = false;
   let missingCrs = false;
+  let inheritsTiledSimplification = false;
   for (const layerId of sourceLayerIds) {
     const summary = context.layers.find((layer) => layer.id === layerId);
     if (!summary) continue;
     if (summary.sourceKind === "demo") inheritsDemo = true;
     if (!summary.crs) missingCrs = true;
+    if (summary.vectorTiles?.generalization === "zoom-dependent") inheritsTiledSimplification = true;
   }
   if (inheritsDemo) badges.push("sample_data");
   if (missingCrs) badges.push("missing_crs");
-  if (preview.workflow === "comparison") badges.push("uncertain_output");
+  if (inheritsTiledSimplification || preview.workflow === "comparison") badges.push("uncertain_output");
   return badges;
 }
 

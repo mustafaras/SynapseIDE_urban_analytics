@@ -95,6 +95,16 @@ export function cloneSourceHandle(handle: SourceHandle): SourceHandle {
   if (handle.attribution) cloned.attribution = handle.attribution;
   if (handle.workerTableName) cloned.workerTableName = handle.workerTableName;
   if (handle.sourceRef) cloned.sourceRef = handle.sourceRef;
+  if (handle.vectorTile) {
+    cloned.vectorTile = {
+      sourceMode: handle.vectorTile.sourceMode,
+      generalization: handle.vectorTile.generalization,
+      minZoom: handle.vectorTile.minZoom,
+      maxZoom: handle.vectorTile.maxZoom,
+      tileSize: handle.vectorTile.tileSize,
+      ...(handle.vectorTile.sourceLayer ? { sourceLayer: handle.vectorTile.sourceLayer } : {}),
+    };
+  }
   return cloned;
 }
 

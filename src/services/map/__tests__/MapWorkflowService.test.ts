@@ -13,6 +13,10 @@ import {
   type MapWorkflowComparisonDraft,
   type MapWorkflowIntersectDraft,
 } from "../MapWorkflowService";
+import {
+  buildOnTheFlyVectorTileLayerMetadata,
+  VECTOR_TILE_METRIC_CAVEAT,
+} from "../tiling/VectorTilePipelineService";
 import { fcInvalidGeometry } from "@/centerpanel/components/map/__tests__/fixtures/gisFixtures";
 
 const fixedNow = new Date("2026-05-01T12:00:00.000Z");
@@ -287,6 +291,43 @@ describe("MapWorkflowService", () => {
     );
     expect(preview.manifest.status).toBe("blocked");
     expect(preview.manifest.crsSummary.notes.join(" ")).toContain("Declare the CRS before running");
+  });
+
+  it("adds a caveat when metric workflows use tiled simplified source geometry", () => {
+    const source = featureCollection([
+      polygonFeature("tile-a", [[0, 0], [2, 0], [2, 2], [0, 2]], { name: "A" }),
+    ]);
+    const baseLayer = layer("tiled-source", source, "Polygon", "EPSG:32635");
+    const tiledLayer: OverlayLayerConfig = {
+      ...baseLayer,
+      metadata: {
+        ...(baseLayer.metadata ?? {}),
+        vectorTiles: buildOnTheFlyVectorTileLayerMetadata(source),
+      },
+    };
+    const context = buildMapWorkflowContext([tiledLayer], { now: fixedNow });
+    const draft: MapWorkflowBufferDraft = {
+      ...(createDefaultDraft("buffer") as MapWorkflowBufferDraft),
+      sourceLayerId: "tiled-source",
+      distance: 100,
+      unit: "meters",
+    };
+
+    const preview = generateMapWorkflowPreview(draft, context);
+    const applied = applyMapWorkflowPreview(preview, context);
+
+    expect(preview.canApply).toBe(true);
+    expect(preview.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "vector-tile-simplified-tiled-source",
+          severity: "warning",
+        }),
+      ]),
+    );
+    expect(preview.manifest.qaSummary.caveats.join(" ")).toContain(VECTOR_TILE_METRIC_CAVEAT);
+    expect(applied?.reportItem.caveats.join(" ")).toContain(VECTOR_TILE_METRIC_CAVEAT);
+    expect(applied?.layer.metadata?.scientificQA?.badges).toContain("uncertain_output");
   });
 
   it("blocks workflow previews when an Urban method required CRS conflicts with the source CRS", () => {

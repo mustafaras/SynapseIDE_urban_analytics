@@ -358,6 +358,44 @@ export interface MapReprojectionCacheLayerMetadata {
   lastRunAt: string;
 }
 
+export const MAP_VECTOR_TILE_SIMPLIFICATION_CAVEAT_LABEL = "tiled (simplified)" as const;
+
+export type MapVectorTileSourceMode = "pmtiles" | "on-the-fly";
+
+export type MapVectorTileGeneralizationMode = "none" | "zoom-dependent";
+
+export interface MapVectorTileZoomLevelMetadata {
+  zoom: number;
+  tolerance: number;
+  tileCount: number;
+  featureCount: number;
+  originalCoordinateCount: number | null;
+  simplifiedCoordinateCount: number | null;
+  simplificationRatio: number | null;
+}
+
+export interface MapVectorTileLayerMetadata {
+  version: 1;
+  sourceMode: MapVectorTileSourceMode;
+  sourceFormat: "geojson" | "pmtiles";
+  generalization: MapVectorTileGeneralizationMode;
+  caveatLabel: typeof MAP_VECTOR_TILE_SIMPLIFICATION_CAVEAT_LABEL;
+  caveats: string[];
+  minZoom: number;
+  maxZoom: number;
+  tileSize: number;
+  originalFeatureCount: number | null;
+  originalCoordinateCount: number | null;
+  zoomLevels: MapVectorTileZoomLevelMetadata[];
+  sourceId?: string;
+  sourceLayer?: string;
+  sourceUrl?: string;
+  activeZoom?: number;
+  activeTileCount?: number;
+  activeFeatureCount?: number;
+  activeCoordinateCount?: number;
+}
+
 export interface LayerMetadata {
   featureCount?: number;
   geometryType?: string;
@@ -393,6 +431,7 @@ export interface LayerMetadata {
   rendering?: LayerRenderBudgetMetadata;
   registry?: LayerRegistryMetadata;
   reprojectionCache?: MapReprojectionCacheLayerMetadata;
+  vectorTiles?: MapVectorTileLayerMetadata;
 }
 
 export type MapReproducibilityManifestStatus = "preview" | "applied" | "blocked";

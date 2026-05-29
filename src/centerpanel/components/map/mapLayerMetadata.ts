@@ -274,6 +274,7 @@ function resolveFeatureCount(layer: OverlayLayerConfig): number | null {
   return layer.metadata?.featureCount
     ?? layer.metadata?.geometrySummary?.featureCount
     ?? layer.metadata?.registry?.featureCount
+    ?? layer.metadata?.vectorTiles?.originalFeatureCount
     ?? layer.metadata?.columnar?.rowCount
     ?? layer.metadata?.datasetContext?.packageFeatureCount
     ?? null;
@@ -420,6 +421,7 @@ function buildPublicationReadiness(
     ...(qaStatus === "error" ? scientificQA?.issueIds ?? ["layer-qa-error"] : []),
   ]);
   const externalService = layer.metadata?.externalService;
+  const vectorTiles = layer.metadata?.vectorTiles;
   const isFeatureLayer = QUERYABLE_LAYER_TYPES.has(layer.type);
   const geometryQaSummary = scientificQA?.categorySummaries?.find((summary) => summary.category === "geometry-validity");
 
@@ -449,6 +451,7 @@ function buildPublicationReadiness(
   }
   caveats.push(...(layer.metadata?.importSource?.caveats ?? []));
   caveats.push(...(externalService?.caveats ?? []));
+  caveats.push(...(vectorTiles?.caveats ?? []));
   if (externalService?.dependencyStatus === "offline") {
     blockingIssueIds.push("external-service-offline");
     caveats.push(externalService.offlineReason ?? "External service is currently offline or unreachable.");

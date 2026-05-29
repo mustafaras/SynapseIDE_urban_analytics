@@ -33,6 +33,9 @@ import {
   createImportSourceHandle,
   MAP_SOURCE_INLINE_STORAGE_LIMIT_BYTES,
 } from "./sources/MapSourceRegistry";
+import {
+  buildOnTheFlyVectorTileLayerMetadata,
+} from "./tiling/VectorTilePipelineService";
 
 export const MAX_IMPORT_FILE_SIZE_BYTES = 50 * 1024 * 1024;
 export const MAX_GEOJSON_FILE_SIZE_BYTES = MAX_IMPORT_FILE_SIZE_BYTES;
@@ -1416,6 +1419,9 @@ function buildImportedLayer(
   const importedFeatureCount = summaryOverrides?.importedFeatureCount ?? featureCollection.features.length;
   const workerTransferStatus: ImportLayerSourceMetadata["workerTransferStatus"] =
     sourceType === "arrow" || sourceType === "geoparquet" ? "prepared" : "not-required";
+  const vectorTiles = rendering.mode === "preview"
+    ? buildOnTheFlyVectorTileLayerMetadata(featureCollection, { sourceLayer: "default" })
+    : null;
   const caveats = buildImportCaveats({
     sourceType,
     ...(declaredCrs ? { declaredCrs } : {}),
@@ -1425,6 +1431,9 @@ function buildImportedLayer(
   });
   if (rendering.mode === "preview") {
     caveats.push("Layer exceeds the interactive browser render budget; the map canvas uses a bounded visual preview while the original source remains available for metadata, export, and worker-backed analysis.");
+  }
+  if (vectorTiles) {
+    caveats.push(...vectorTiles.caveats);
   }
   if (rendering.coordinateCount > MAP_GEOJSON_DEEP_TOPOLOGY_COORDINATE_BUDGET) {
     caveats.push("Deep topology QA was deferred for this large geometry set; structural GeoJSON validation completed, and detailed topology review should run in a worker-backed QA pass before publication.");
@@ -1464,6 +1473,7 @@ function buildImportedLayer(
       workerTransferStatus,
     }),
     evidenceArtifactId: createEvidenceArtifactId(layerId),
+    ...(vectorTiles ? { vectorTiles } : {}),
     ...metadataOverrides,
   };
 
@@ -1495,6 +1505,17 @@ function buildImportedLayer(
     ...(sourceHandleOptions?.sourceSizeBytes != null ? { sourceSizeBytes: sourceHandleOptions.sourceSizeBytes } : {}),
     ...(sourceHandleOptions?.sourceRef ? { sourceRef: sourceHandleOptions.sourceRef } : {}),
   });
+  if (vectorTiles) {
+    sourceHandle.vectorTile = {
+      sourceMode: vectorTiles.sourceMode,
+      generalization: vectorTiles.generalization,
+      minZoom: vectorTiles.minZoom,
+      maxZoom: vectorTiles.maxZoom,
+      tileSize: vectorTiles.tileSize,
+      ...(vectorTiles.sourceLayer ? { sourceLayer: vectorTiles.sourceLayer } : {}),
+    };
+    sourceHandle.caveats = uniqueTextList([...sourceHandle.caveats, ...vectorTiles.caveats]);
+  }
 
   const metadataWithSource = {
     ...metadata,
@@ -1506,6 +1527,7 @@ function buildImportedLayer(
       sourceId: sourceHandle.sourceId,
       ...(sourceHandle.sizeBytes != null ? { fileSizeBytes: sourceHandle.sizeBytes } : {}),
     },
+    ...(vectorTiles ? { vectorTiles: { ...vectorTiles, sourceId: sourceHandle.sourceId } } : {}),
   } satisfies LayerMetadata;
 
   const layer = withNormalizedLayerRegistryMetadata(
