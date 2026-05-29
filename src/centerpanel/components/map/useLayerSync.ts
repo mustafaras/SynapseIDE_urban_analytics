@@ -9,6 +9,11 @@ import {
   type MapPerformanceTimingMetric,
 } from "@/services/map/MapPerformanceDiagnostics";
 import { normalizeXyzTileUrlTemplate } from "@/services/map/ExternalTileUrlTemplates";
+import {
+  STYLE_LABEL_SPEC_KEY,
+  buildMapLibreLabelFragments,
+  getSerializedMapLabelSpecFromStyle,
+} from "@/services/map/labels/MapLabelEngine";
 import type { OverlayLayerConfig } from "./mapTypes";
 import { MAP_COLORS, resolveMapPaintColor } from "./mapTokens";
 
@@ -42,6 +47,8 @@ function stripInternalStyle(style?: Record<string, unknown>): Record<string, unk
   const nonPaintKeys = new Set([
     "legend",
     "legendEntries",
+    "legendSpec",
+    STYLE_LABEL_SPEC_KEY,
     "classes",
     "classificationField",
     "classificationMethod",
@@ -72,8 +79,10 @@ function collectExpressionPropertyKeys(value: unknown, output: Set<string>): voi
 
 function buildRenderNormalizationOptions(layer: OverlayLayerConfig): GeoJSONRenderNormalizationOptions {
   const preservePropertyKeys = new Set<string>();
-  const labelField = getInternalStyleValue<string>(layer.style, LABEL_FIELD_STYLE_KEY);
+  const labelSpec = getSerializedMapLabelSpecFromStyle(layer.style);
+  const labelField = labelSpec?.field ?? getInternalStyleValue<string>(layer.style, LABEL_FIELD_STYLE_KEY);
   if (labelField) preservePropertyKeys.add(labelField);
+  if (labelSpec?.priorityField) preservePropertyKeys.add(labelSpec.priorityField);
 
   const classificationField = typeof layer.style?.classificationField === "string"
     ? layer.style.classificationField
@@ -219,7 +228,7 @@ function getManagedLayerIds(layer: OverlayLayerConfig): string[] {
   if (getInternalStyleValue(layer.style, COMPANION_CIRCLE_STYLE_KEY)) {
     ids.push(companionCircleLayerId(layer.id));
   }
-  if (getInternalStyleValue(layer.style, LABEL_FIELD_STYLE_KEY)) {
+  if (getSerializedMapLabelSpecFromStyle(layer.style) || getInternalStyleValue(layer.style, LABEL_FIELD_STYLE_KEY)) {
     ids.push(labelLayerId(layer.id));
   }
   return ids;
@@ -230,6 +239,28 @@ function buildLabelLayerSpec(
 ): maplibregl.LayerSpecification | null {
   if (!isGeoJSONBackedLayer(layer)) {
     return null;
+  }
+
+  const serializedLabelSpec = getSerializedMapLabelSpecFromStyle(layer.style);
+  if (serializedLabelSpec) {
+    const fragments = buildMapLibreLabelFragments(serializedLabelSpec);
+    return {
+      id: labelLayerId(layer.id),
+      type: "symbol",
+      source: layer.id,
+      minzoom: fragments.minzoom,
+      maxzoom: fragments.maxzoom,
+      layout: {
+        visibility: layer.visible ? "visible" : "none",
+        ...fragments.layout,
+      },
+      paint: Object.fromEntries(
+        Object.entries({
+          ...fragments.paint,
+          "text-opacity": Math.min(1, Math.max(0.25, layer.opacity)),
+        }).map(([key, value]) => [key, typeof value === "string" ? resolveMapPaintColor(value) : value]),
+      ),
+    } as maplibregl.LayerSpecification;
   }
 
   const field = getInternalStyleValue<string>(layer.style, LABEL_FIELD_STYLE_KEY);
@@ -247,12 +278,12 @@ function buildLabelLayerSpec(
       "text-size": getInternalStyleValue<number>(layer.style, LABEL_SIZE_STYLE_KEY) ?? 11,
       "text-anchor": "top",
       "text-offset": [0, 1],
-      "text-allow-overlap": getInternalStyleValue<boolean>(layer.style, LABEL_ALLOW_OVERLAP_STYLE_KEY) ?? true,
-      "text-ignore-placement": getInternalStyleValue<boolean>(layer.style, LABEL_IGNORE_PLACEMENT_STYLE_KEY) ?? true,
+      "text-allow-overlap": getInternalStyleValue<boolean>(layer.style, LABEL_ALLOW_OVERLAP_STYLE_KEY) ?? false,
+      "text-ignore-placement": getInternalStyleValue<boolean>(layer.style, LABEL_IGNORE_PLACEMENT_STYLE_KEY) ?? false,
     },
     paint: {
-      "text-color": getInternalStyleValue<string>(layer.style, LABEL_COLOR_STYLE_KEY) ?? "#F9FAFB",
-      "text-halo-color": getInternalStyleValue<string>(layer.style, LABEL_HALO_COLOR_STYLE_KEY) ?? "rgba(17,24,39,0.9)",
+      "text-color": resolveMapPaintColor(getInternalStyleValue<string>(layer.style, LABEL_COLOR_STYLE_KEY) ?? "rgb(249,250,251)"),
+      "text-halo-color": resolveMapPaintColor(getInternalStyleValue<string>(layer.style, LABEL_HALO_COLOR_STYLE_KEY) ?? "rgba(17,24,39,0.9)"),
       "text-halo-width": getInternalStyleValue<number>(layer.style, LABEL_HALO_WIDTH_STYLE_KEY) ?? 1.25,
       "text-opacity": Math.min(1, Math.max(0.25, layer.opacity)),
     },

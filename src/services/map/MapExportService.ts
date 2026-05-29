@@ -204,7 +204,7 @@ export interface MapCompositionLegendItem {
   label: string;
   color: string;
   secondaryLabel?: string;
-  kind: "fill" | "line" | "circle" | "raster" | "heatmap";
+  kind: "fill" | "line" | "circle" | "raster" | "heatmap" | "label";
 }
 
 export interface MapCompositionOptions {
@@ -1556,6 +1556,10 @@ function drawPublicationLegend(
       context.moveTo(swatchX, swatchY + Math.round(5 * scale));
       context.lineTo(swatchX + Math.round(18 * scale), swatchY + Math.round(5 * scale));
       context.stroke();
+    } else if (item.kind === "label") {
+      context.fillStyle = item.color;
+      context.font = `700 ${Math.round(10 * scale)}px ${MAP_TYPOGRAPHY.fontFamily}`;
+      context.fillText("Aa", swatchX, swatchY + Math.round(9 * scale));
     } else if (item.kind === "circle") {
       context.beginPath();
       context.arc(swatchX + Math.round(7 * scale), swatchY + Math.round(6 * scale), Math.round(5 * scale), 0, Math.PI * 2);
@@ -1780,6 +1784,10 @@ function drawA0LegendPanel(options: { overlayLayers?: OverlayLayerConfig[] }): s
       context.moveTo(padding, y + swatchSize / 2);
       context.lineTo(padding + 11 * pxPerMm, y + swatchSize / 2);
       context.stroke();
+    } else if (item.kind === "label") {
+      context.fillStyle = item.color;
+      context.font = `700 ${Math.round(4.4 * pxPerMm)}px ${MAP_TYPOGRAPHY.fontFamily}`;
+      context.fillText("Aa", padding, y - 0.6 * pxPerMm);
     } else if (item.kind === "circle") {
       context.beginPath();
       context.arc(padding + swatchSize / 2, y + swatchSize / 2, swatchSize / 2, 0, Math.PI * 2);

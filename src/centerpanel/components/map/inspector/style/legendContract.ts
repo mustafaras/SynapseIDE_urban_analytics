@@ -2,6 +2,15 @@ import type { ClassificationMethod } from "@/utils/classification";
 import { classifyNumericValues } from "@/utils/classification";
 import type { ColorRampName } from "@/utils/colorRamps";
 import { getColorRampColors } from "@/utils/colorRamps";
+import {
+  STYLE_LABEL_SPEC_KEY,
+  buildSerializedMapLabelSpec,
+} from "@/services/map/labels/MapLabelEngine";
+import type {
+  MapLabelCollisionPolicy,
+  MapLabelPlacement,
+  SerializedMapLabelSpec,
+} from "@/services/map/labels/MapLabelEngine";
 import type {
   LayerCartographyReviewMetadata,
   LayerMetadata,
@@ -21,7 +30,7 @@ export type SerializedLegendMode =
   | "proportional-symbol"
   | "heatmap";
 
-export type SerializedLegendEntryKind = "fill" | "line" | "circle" | "raster" | "heatmap";
+export type SerializedLegendEntryKind = "fill" | "line" | "circle" | "raster" | "heatmap" | "label";
 
 export interface SerializedLegendEntry {
   id: string;
@@ -54,6 +63,7 @@ export interface SerializedMapLegendSpec {
     label: string;
     color: string;
   };
+  labels?: SerializedMapLabelSpec;
   warnings: string[];
 }
 
@@ -77,6 +87,17 @@ export interface LayerStyleEditorOptions {
   noDataColor: string;
   noDataLabel: string;
   labelsEnabled: boolean;
+  labelField?: string;
+  labelFontFamily: string;
+  labelSize: number;
+  labelColor: string;
+  labelHaloColor: string;
+  labelHaloWidth: number;
+  labelPlacement: MapLabelPlacement;
+  labelCollisionPolicy: MapLabelCollisionPolicy;
+  labelPriorityField?: string;
+  labelMinZoom: number;
+  labelMaxZoom: number;
 }
 
 export interface LayerStyleUpdate {
@@ -97,6 +118,9 @@ interface FieldSummary {
 const DEFAULT_CLASS_COUNT = 5;
 const DEFAULT_NO_DATA_COLOR = getColorRampColors("Set1", 9)[8] ?? "rgb(153, 153, 153)";
 const DEFAULT_OUTLINE_COLOR = "rgba(17,24,39,0.72)";
+const DEFAULT_LABEL_COLOR = "rgb(249, 250, 251)";
+const DEFAULT_LABEL_HALO_COLOR = "rgba(17,24,39,0.92)";
+const DEFAULT_LABEL_FONT = "Open Sans Regular";
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -197,9 +221,11 @@ export function getDefaultLayerStyleOptions(layer: OverlayLayerConfig): LayerSty
       ? "proportional-symbol"
       : "choropleth";
   const field = defaultFieldForMode(layer, mode);
+  const labelField = getLayerStyleFieldNames(layer)[0];
   return {
     mode,
     ...(field ? { field } : {}),
+    ...(labelField ? { labelField } : {}),
     classCount: DEFAULT_CLASS_COUNT,
     classificationMethod: "quantile",
     colorRamp: "YlOrRd",
@@ -209,6 +235,15 @@ export function getDefaultLayerStyleOptions(layer: OverlayLayerConfig): LayerSty
     noDataColor: DEFAULT_NO_DATA_COLOR,
     noDataLabel: "No data",
     labelsEnabled: false,
+    labelFontFamily: DEFAULT_LABEL_FONT,
+    labelSize: 11,
+    labelColor: DEFAULT_LABEL_COLOR,
+    labelHaloColor: DEFAULT_LABEL_HALO_COLOR,
+    labelHaloWidth: 1.4,
+    labelPlacement: kind === "line" ? "line" : "above",
+    labelCollisionPolicy: "hide-on-overlap",
+    labelMinZoom: 8,
+    labelMaxZoom: 24,
   };
 }
 
@@ -329,6 +364,13 @@ function buildReviewMetadata(
   };
 }
 
+function stripLabelStyleState(style: Record<string, unknown> | undefined): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(style ?? {}).filter(([key]) =>
+      key !== STYLE_LABEL_SPEC_KEY && !key.startsWith("__label")),
+  );
+}
+
 export function getSerializedLegendSpecFromStyle(style: Record<string, unknown> | undefined): SerializedMapLegendSpec | null {
   const candidate = style?.[STYLE_LEGEND_SPEC_KEY];
   if (!isObject(candidate)) return null;
@@ -341,12 +383,21 @@ export function getSerializedLegendSpecFromStyle(style: Record<string, unknown> 
 export function serializedLegendSpecToCompositionItems(
   spec: SerializedMapLegendSpec,
 ): SerializedLegendCompositionItem[] {
-  return spec.entries.map((entry) => ({
+  const items = spec.entries.map((entry) => ({
     label: entry.label,
     color: entry.color,
     secondaryLabel: entry.noData ? `${spec.layerName} / ${spec.noData.label}` : spec.layerName,
     kind: entry.kind,
   }));
+  if (spec.labels?.enabled) {
+    items.push({
+      label: `Labels: ${spec.labels.field}`,
+      color: spec.labels.color,
+      secondaryLabel: `${spec.layerName} / ${spec.labels.collisionPolicy} / z${spec.labels.scaleRange.minZoom}-${spec.labels.scaleRange.maxZoom}`,
+      kind: "label",
+    });
+  }
+  return items;
 }
 
 export function buildLayerStyleUpdate(
@@ -364,6 +415,20 @@ export function buildLayerStyleUpdate(
   let entries: SerializedLegendEntry[] = [];
   const stylePatch: Record<string, unknown> = {};
   let classificationMethod: ClassificationMethod | undefined;
+  const labelSpec = buildSerializedMapLabelSpec({
+    enabled: options.labelsEnabled,
+    field: options.labelField,
+    fontFamily: options.labelFontFamily,
+    size: options.labelSize,
+    color: resolveMapPaintColor(options.labelColor || DEFAULT_LABEL_COLOR),
+    haloColor: resolveMapPaintColor(options.labelHaloColor || DEFAULT_LABEL_HALO_COLOR),
+    haloWidth: options.labelHaloWidth,
+    placement: options.labelPlacement,
+    collisionPolicy: options.labelCollisionPolicy,
+    minZoom: options.labelMinZoom,
+    maxZoom: options.labelMaxZoom,
+    priorityField: options.labelPriorityField,
+  }, updatedAt);
 
   if (options.mode === "single" || !field) {
     const color = colors[colors.length - 1] ?? noDataColor;
@@ -462,14 +527,23 @@ export function buildLayerStyleUpdate(
   if (kind === "line") {
     stylePatch["line-width"] = options.outlineWidth;
   }
-  if (options.labelsEnabled && options.labelField) {
-    stylePatch.__labelField = options.labelField;
-    stylePatch.__labelSize = 11;
-    stylePatch.__labelColor = "rgb(249, 250, 251)";
-    stylePatch.__labelHaloColor = "rgba(17,24,39,0.92)";
-    stylePatch.__labelHaloWidth = 1.4;
-    stylePatch.__labelAllowOverlap = false;
-    stylePatch.__labelIgnorePlacement = false;
+  if (labelSpec) {
+    stylePatch[STYLE_LABEL_SPEC_KEY] = labelSpec;
+    stylePatch.__labelField = labelSpec.field;
+    stylePatch.__labelSize = labelSpec.size;
+    stylePatch.__labelColor = labelSpec.color;
+    stylePatch.__labelHaloColor = labelSpec.haloColor;
+    stylePatch.__labelHaloWidth = labelSpec.haloWidth;
+    stylePatch.__labelAllowOverlap = labelSpec.collisionPolicy === "allow-overlap";
+    stylePatch.__labelIgnorePlacement = labelSpec.collisionPolicy === "allow-overlap";
+    stylePatch.__labelPlacement = labelSpec.placement;
+    stylePatch.__labelMinZoom = labelSpec.scaleRange.minZoom;
+    stylePatch.__labelMaxZoom = labelSpec.scaleRange.maxZoom;
+    stylePatch.__labelFontFamily = labelSpec.fontFamily;
+    stylePatch.__labelCollisionPolicy = labelSpec.collisionPolicy;
+    if (labelSpec.priorityField) {
+      stylePatch.__labelPriorityField = labelSpec.priorityField;
+    }
   }
 
   const legendSpec: SerializedMapLegendSpec = {
@@ -490,11 +564,12 @@ export function buildLayerStyleUpdate(
       label: options.noDataLabel.trim() || "No data",
       color: noDataColor,
     },
+    ...(labelSpec ? { labels: labelSpec } : {}),
     warnings,
   };
 
   const style = {
-    ...(layer.style ?? {}),
+    ...stripLabelStyleState(layer.style),
     ...stylePatch,
     [STYLE_LEGEND_SPEC_KEY]: legendSpec,
     legendEntries: legendEntries.map((entry) => ({

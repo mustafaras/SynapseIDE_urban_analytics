@@ -6,6 +6,7 @@ import {
   type MapCompositionLegendItem,
   type MapPublicationReadiness,
 } from "./MapExportService";
+import { getSerializedMapLabelSpecFromStyle } from "./labels/MapLabelEngine";
 import { enqueuePendingInsert } from "@/services/reporting/storage";
 import type {
   PendingReportInsert,
@@ -111,6 +112,11 @@ export interface MapReportLayerEvidenceItem {
   citationId?: string;
   evidenceArtifactId?: string;
   dataVersion?: string;
+  labeling?: {
+    field: string;
+    collisionPolicy: string;
+    scaleRange: { minZoom: number; maxZoom: number };
+  };
 }
 
 export interface MapReportEvidenceBlockPayload {
@@ -575,6 +581,14 @@ function buildLayerEvidenceItem(
   if (reference?.citationId) item.citationId = reference.citationId;
   if (evidenceArtifactId) item.evidenceArtifactId = evidenceArtifactId;
   if (layer.metadata?.dataVersion) item.dataVersion = layer.metadata.dataVersion;
+  const labelSpec = getSerializedMapLabelSpecFromStyle(layer.style);
+  if (labelSpec) {
+    item.labeling = {
+      field: labelSpec.field,
+      collisionPolicy: labelSpec.collisionPolicy,
+      scaleRange: labelSpec.scaleRange,
+    };
+  }
   return item;
 }
 

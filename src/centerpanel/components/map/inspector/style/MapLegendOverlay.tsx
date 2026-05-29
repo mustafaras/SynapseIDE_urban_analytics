@@ -73,10 +73,16 @@ export const MapLegendOverlay: React.FC<MapLegendOverlayProps> = ({ items }) => 
               width: "0.85rem",
               height: item.kind === "line" ? "0.2rem" : "0.85rem",
               borderRadius: item.kind === "circle" ? MAP_RADIUS.full : MAP_RADIUS.xs,
-              background: item.color,
+              background: item.kind === "label" ? MAP_COLORS.transparent : item.color,
               border: MAP_STROKES.hairlineSubtle,
+              color: item.color,
+              fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+              fontWeight: MAP_TYPOGRAPHY.fontWeight.bold,
+              lineHeight: 1,
             }}
-          />
+          >
+            {item.kind === "label" ? "Aa" : null}
+          </span>
           <span style={labelStyle} title={item.secondaryLabel ? `${item.label} / ${item.secondaryLabel}` : item.label}>
             {item.label}
           </span>

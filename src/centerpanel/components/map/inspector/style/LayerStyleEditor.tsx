@@ -117,6 +117,27 @@ const CLASSIFICATION_OPTIONS: Array<{ value: ClassificationMethod; label: string
   { value: "standard-deviation", label: "Standard deviation" },
 ];
 
+const LABEL_FONT_OPTIONS = [
+  "Open Sans Regular",
+  "Arial Unicode MS Regular",
+  "Noto Sans Regular",
+  "Inter Regular",
+] as const;
+
+const LABEL_PLACEMENT_OPTIONS: Array<{ value: LayerStyleEditorOptions["labelPlacement"]; label: string }> = [
+  { value: "above", label: "Above feature" },
+  { value: "center", label: "Centered" },
+  { value: "below", label: "Below feature" },
+  { value: "left", label: "Left" },
+  { value: "right", label: "Right" },
+  { value: "line", label: "Along line" },
+];
+
+const LABEL_COLLISION_OPTIONS: Array<{ value: LayerStyleEditorOptions["labelCollisionPolicy"]; label: string }> = [
+  { value: "hide-on-overlap", label: "Hide overlapping labels" },
+  { value: "priority-by-field", label: "Priority by field" },
+];
+
 const COLOR_INPUT_FALLBACK = getColorRampColors("Set1", 9)[8] ?? getColorRampColors("Set1", 3)[0]!;
 
 function isFieldDrivenMode(mode: SerializedLegendMode): boolean {
@@ -131,7 +152,9 @@ export const LayerStyleEditor: React.FC<LayerStyleEditorProps> = ({ layer, onApp
   const [options, setOptions] = useState<LayerStyleEditorOptions>(defaults);
   const preview = useMemo(() => buildLayerStyleUpdate(layer, options), [layer, options]);
   const fieldChoices = options.mode === "categorical" ? allFields : numericFields.length > 0 ? numericFields : allFields;
-  const canApply = Boolean(onApplyStyle) && (!isFieldDrivenMode(options.mode) || Boolean(options.field));
+  const canApply = Boolean(onApplyStyle) &&
+    (!isFieldDrivenMode(options.mode) || Boolean(options.field)) &&
+    (!options.labelsEnabled || Boolean(options.labelField));
 
   const patchOptions = (patch: Partial<LayerStyleEditorOptions>) => {
     setOptions((current) => ({ ...current, ...patch }));
@@ -275,7 +298,7 @@ export const LayerStyleEditor: React.FC<LayerStyleEditorProps> = ({ layer, onApp
         </label>
 
         <label style={sectionStyle}>
-          <span style={labelStyle}>Labels</span>
+          <span style={labelStyle}>Label field</span>
           <select
             style={inputStyle}
             value={options.labelsEnabled ? options.labelField ?? "" : ""}
@@ -283,6 +306,7 @@ export const LayerStyleEditor: React.FC<LayerStyleEditorProps> = ({ layer, onApp
               labelsEnabled: Boolean(event.target.value),
               ...(event.target.value ? { labelField: event.target.value } : {}),
             })}
+            data-testid="map-label-field-select"
           >
             <option value="">Disabled</option>
             {allFields.map((field) => (
@@ -290,6 +314,168 @@ export const LayerStyleEditor: React.FC<LayerStyleEditorProps> = ({ layer, onApp
             ))}
           </select>
         </label>
+      </div>
+
+      <div style={previewStyle} data-testid="map-label-editor">
+        <div style={{ ...mapStyles.sidePanelMetricLabel, color: MAP_COLORS.textMuted }}>
+          Labeling
+        </div>
+
+        <div style={gridStyle}>
+          <label style={sectionStyle}>
+            <span style={labelStyle}>Font</span>
+            <select
+              style={inputStyle}
+              value={options.labelFontFamily}
+              onChange={(event) => patchOptions({ labelFontFamily: event.target.value })}
+              disabled={!options.labelsEnabled}
+            >
+              {LABEL_FONT_OPTIONS.map((font) => (
+                <option key={font} value={font}>{font}</option>
+              ))}
+            </select>
+          </label>
+
+          <label style={sectionStyle}>
+            <span style={labelStyle}>Placement</span>
+            <select
+              style={inputStyle}
+              value={options.labelPlacement}
+              onChange={(event) => patchOptions({ labelPlacement: event.target.value as LayerStyleEditorOptions["labelPlacement"] })}
+              disabled={!options.labelsEnabled}
+            >
+              {LABEL_PLACEMENT_OPTIONS.map((placement) => (
+                <option key={placement.value} value={placement.value}>{placement.label}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <div style={gridStyle}>
+          <label style={sectionStyle}>
+            <span style={labelStyle}>Label size: {options.labelSize}</span>
+            <input
+              style={rangeStyle}
+              type="range"
+              min={8}
+              max={28}
+              step={1}
+              value={options.labelSize}
+              disabled={!options.labelsEnabled}
+              onChange={(event) => patchOptions({ labelSize: Number(event.target.value) })}
+            />
+          </label>
+
+          <label style={sectionStyle}>
+            <span style={labelStyle}>Halo width: {options.labelHaloWidth.toFixed(1)}</span>
+            <input
+              style={rangeStyle}
+              type="range"
+              min={0}
+              max={5}
+              step={0.1}
+              value={options.labelHaloWidth}
+              disabled={!options.labelsEnabled}
+              onChange={(event) => patchOptions({ labelHaloWidth: Number(event.target.value) })}
+            />
+          </label>
+        </div>
+
+        <div style={gridStyle}>
+          <label style={sectionStyle}>
+            <span style={labelStyle}>Text color</span>
+            <input
+              style={{ ...inputStyle, padding: 2 }}
+              type="color"
+              value={options.labelColor.startsWith("#") ? options.labelColor : COLOR_INPUT_FALLBACK}
+              disabled={!options.labelsEnabled}
+              onChange={(event) => patchOptions({ labelColor: event.target.value })}
+            />
+          </label>
+
+          <label style={sectionStyle}>
+            <span style={labelStyle}>Halo color</span>
+            <input
+              style={{ ...inputStyle, padding: 2 }}
+              type="color"
+              value={options.labelHaloColor.startsWith("#") ? options.labelHaloColor : COLOR_INPUT_FALLBACK}
+              disabled={!options.labelsEnabled}
+              onChange={(event) => patchOptions({ labelHaloColor: event.target.value })}
+            />
+          </label>
+        </div>
+
+        <div style={gridStyle}>
+          <label style={sectionStyle}>
+            <span style={labelStyle}>Collision policy</span>
+            <select
+              style={inputStyle}
+              value={options.labelCollisionPolicy}
+              disabled={!options.labelsEnabled}
+              onChange={(event) => patchOptions({ labelCollisionPolicy: event.target.value as LayerStyleEditorOptions["labelCollisionPolicy"] })}
+              data-testid="map-label-collision-policy"
+            >
+              {LABEL_COLLISION_OPTIONS.map((policy) => (
+                <option key={policy.value} value={policy.value}>{policy.label}</option>
+              ))}
+            </select>
+          </label>
+
+          <label style={sectionStyle}>
+            <span style={labelStyle}>Priority field</span>
+            <select
+              style={inputStyle}
+              value={options.labelPriorityField ?? ""}
+              disabled={!options.labelsEnabled || options.labelCollisionPolicy !== "priority-by-field"}
+              onChange={(event) => patchOptions({ labelPriorityField: event.target.value })}
+            >
+              <option value="">Input order</option>
+              {numericFields.map((field) => (
+                <option key={field} value={field}>{field}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <div style={gridStyle}>
+          <label style={sectionStyle}>
+            <span style={labelStyle}>Min zoom: {options.labelMinZoom}</span>
+            <input
+              style={rangeStyle}
+              type="range"
+              min={0}
+              max={24}
+              step={1}
+              value={options.labelMinZoom}
+              disabled={!options.labelsEnabled}
+              onChange={(event) => patchOptions({ labelMinZoom: Number(event.target.value) })}
+              data-testid="map-label-min-zoom"
+            />
+          </label>
+
+          <label style={sectionStyle}>
+            <span style={labelStyle}>Max zoom: {options.labelMaxZoom}</span>
+            <input
+              style={rangeStyle}
+              type="range"
+              min={0}
+              max={24}
+              step={1}
+              value={options.labelMaxZoom}
+              disabled={!options.labelsEnabled}
+              onChange={(event) => patchOptions({ labelMaxZoom: Number(event.target.value) })}
+              data-testid="map-label-max-zoom"
+            />
+          </label>
+        </div>
+
+        {preview.legendSpec.labels ? (
+          <div style={badgeStyle} data-testid="map-label-contract-preview">
+            {preview.legendSpec.labels.field} labels · {preview.legendSpec.labels.collisionPolicy} · zoom {preview.legendSpec.labels.scaleRange.minZoom}-{preview.legendSpec.labels.scaleRange.maxZoom}
+          </div>
+        ) : (
+          <div style={noteStyle}>Label rendering is disabled for this layer.</div>
+        )}
       </div>
 
       <div style={previewStyle} data-testid="map-layer-style-legend-preview">
