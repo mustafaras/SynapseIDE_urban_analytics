@@ -8,7 +8,6 @@ import {
   MAP_COLORS,
   MAP_RADIUS,
   MAP_SHADOWS,
-  MAP_SPACING,
   MAP_STROKES,
 } from "../mapTokens";
 

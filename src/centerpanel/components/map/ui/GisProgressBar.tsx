@@ -9,7 +9,6 @@ import React from "react";
 import {
   MAP_COLORS,
   MAP_RADIUS,
-  MAP_SPACING,
   MAP_TRANSITIONS,
 } from "../mapTokens";
 import motionStyles from "../design/motion.module.css";

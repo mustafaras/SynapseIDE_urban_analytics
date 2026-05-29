@@ -283,16 +283,6 @@ const footerStyle: React.CSSProperties = {
   borderTop: MAP_STROKES.hairlineSubtle,
 };
 
-const emptyStyle: React.CSSProperties = {
-  display: "grid",
-  placeItems: "center",
-  gap: MAP_SPACING.sm,
-  padding: MAP_SPACING.xl,
-  color: MAP_COLORS.textMuted,
-  fontSize: MAP_TYPOGRAPHY.fontSize.sm,
-  textAlign: "center",
-};
-
 function formatTimestamp(value: string): string {
   const parsed = new Date(value);
   if (!Number.isFinite(parsed.getTime())) return value;

@@ -74,7 +74,8 @@ test.describe("P38 — work-surface visual pass @smoke", () => {
           fields: ["zone", "value"],
           crsSummary: { crs: "EPSG:4326", status: "known", source: "explicit", notes: [] },
         },
-      } as Parameters<typeof m.useMapExplorerStore.getState().addOverlayLayer>[0]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any);
     });
 
     // Open the attribute table on the seeded layer

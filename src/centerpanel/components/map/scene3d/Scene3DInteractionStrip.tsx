@@ -5,7 +5,8 @@
  * Positioned top-left so it does NOT occlude selected geometry in the center/right
  * of the map canvas. Respects prefers-reduced-motion.
  */
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
+import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import {
   Bookmark,
   Columns2,
@@ -30,33 +31,10 @@ import {
   MAP_SHADOWS,
   MAP_SPACING,
   MAP_STROKES,
-  MAP_TRANSITIONS,
   MAP_TYPOGRAPHY,
   MAP_Z_INDEX,
 } from "../mapTokens";
 import { GisIconButton } from "../ui/GisIconButton";
-
-/* ------------------------------------------------------------------ */
-/*  Reduced-motion hook                                                 */
-/* ------------------------------------------------------------------ */
-
-function usePrefersReducedMotion(): boolean {
-  const [reduced, setReduced] = useState(() =>
-    typeof window !== "undefined"
-      ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
-      : false,
-  );
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const handler = (e: MediaQueryListEvent) => setReduced(e.matches);
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, []);
-
-  return reduced;
-}
 
 /* ------------------------------------------------------------------ */
 /*  Icon map                                                            */
@@ -93,27 +71,6 @@ const stripStyle: React.CSSProperties = {
   boxShadow: MAP_SHADOWS.panel,
   /* strip intentionally placed top-left — does not occlude center/right canvas */
 };
-
-function getModeButtonStyle(
-  active: boolean,
-  reduced: boolean,
-): React.CSSProperties {
-  return {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    width: "2rem",
-    height: "2rem",
-    border: "none",
-    borderRadius: MAP_RADIUS.full,
-    cursor: "pointer",
-    background: active ? MAP_COLORS.interaction : "transparent",
-    color: active ? MAP_COLORS.bgPanel : MAP_COLORS.textMuted,
-    transition: reduced ? "none" : MAP_TRANSITIONS.fast,
-    outline: "none",
-    flexShrink: 0,
-  };
-}
 
 const bookmarkListStyle: React.CSSProperties = {
   position: "absolute",

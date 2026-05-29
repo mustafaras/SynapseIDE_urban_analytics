@@ -6,10 +6,8 @@ import {
   MAP_DIMENSIONS,
   MAP_NUMERIC,
   MAP_RADIUS,
-  MAP_SHADOWS,
   MAP_SPACING,
   MAP_STROKES,
-  MAP_TRANSITIONS,
   MAP_TYPOGRAPHY,
   MAP_Z_INDEX,
   mapStyles,
@@ -226,11 +224,6 @@ export const MapCommandBar: React.FC<MapCommandBarProps> = ({
   style,
   "data-testid": testId,
 }) => {
-  const fullTitle =
-    breadcrumb && breadcrumb.length > 0
-      ? breadcrumb.join(" › ")
-      : (title ?? "");
-
   return (
     <div
       data-testid={testId ?? "map-command-bar"}

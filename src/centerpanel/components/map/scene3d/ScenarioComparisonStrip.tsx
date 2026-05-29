@@ -19,7 +19,6 @@ import {
 import { createOpaqueFloatingPanelStyle, useDraggableMapPanel } from "../useDraggableMapPanel";
 import {
   MAP_COLORS,
-  MAP_ICON_SIZES,
   MAP_RADIUS,
   MAP_SHADOWS,
   MAP_SPACING,
@@ -46,25 +45,6 @@ const panelStyle: React.CSSProperties = {
   boxShadow: MAP_SHADOWS.panel,
   color: MAP_COLORS.text,
   overflow: "hidden",
-};
-
-const headerStyle: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: MAP_SPACING.sm,
-  padding: `${MAP_SPACING.sm} ${MAP_SPACING.md}`,
-  borderBottom: MAP_STROKES.hairlineSubtle,
-};
-
-const titleStyle: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: MAP_SPACING.sm,
-  margin: 0,
-  fontSize: MAP_TYPOGRAPHY.fontSize.sm,
-  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
-  color: MAP_COLORS.text,
 };
 
 const closeButtonStyle: React.CSSProperties = {

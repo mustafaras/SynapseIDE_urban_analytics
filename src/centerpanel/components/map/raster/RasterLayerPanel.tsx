@@ -8,7 +8,7 @@
  */
 import React, { useCallback } from "react";
 import { useRasterLayerStore } from "../../../../stores/useRasterLayerStore";
-import { MAP_COLORS, MAP_STATUS_TOKENS, MAP_TYPOGRAPHY } from "../mapTokens";
+import { MAP_COLORS, MAP_TYPOGRAPHY } from "../mapTokens";
 import { GisStatusChip } from "../ui/GisStatusChip";
 import { GisEmptyState } from "../ui/GisEmptyState";
 import { GisProgressBar } from "../ui/GisProgressBar";
@@ -56,31 +56,23 @@ export const RasterLayerPanel: React.FC<RasterLayerPanelProps> = ({
   const updateRenderConfig = useRasterLayerStore((s) => s.updateRenderConfig);
   const updateHistogram = useRasterLayerStore((s) => s.updateHistogram);
 
-  if (!visible) return null;
-  if (!state) return null;
-
-  const { inspection, qa, renderConfig, histogram, parsing, parseError } = state;
-  const meta = inspection?.metadata;
-
-  /* Band selector handler */
+  /* Hooks must come before any early returns */
   const handleBandChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {
       const idx = parseInt(e.target.value, 10);
       updateRenderConfig(layerId, { selectedBandIndex: idx });
-
-      // Recompute histogram for the newly selected band
-      if (inspection) {
-        const bs = inspection.bandSamples[idx];
+      const insp = state?.inspection;
+      if (insp) {
+        const bs = insp.bandSamples[idx];
         if (bs) {
-          const h = computeHistogram(bs.samples, meta?.noData ?? null, 32);
+          const h = computeHistogram(bs.samples, insp.metadata?.noData ?? null, 32);
           updateHistogram(layerId, h);
         }
       }
     },
-    [layerId, inspection, meta, updateRenderConfig, updateHistogram],
+    [layerId, state, updateRenderConfig, updateHistogram],
   );
 
-  /* Color ramp handler */
   const handleRampChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {
       updateRenderConfig(layerId, { colorRamp: e.target.value as ColorRampId });
@@ -88,13 +80,18 @@ export const RasterLayerPanel: React.FC<RasterLayerPanelProps> = ({
     [layerId, updateRenderConfig],
   );
 
-  /* Opacity handler */
   const handleOpacityChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       updateRenderConfig(layerId, { opacity: parseFloat(e.target.value) });
     },
     [layerId, updateRenderConfig],
   );
+
+  if (!visible) return null;
+  if (!state) return null;
+
+  const { inspection, qa, renderConfig, histogram, parsing, parseError } = state;
+  const meta = inspection?.metadata;
 
   /* ── Styles ── */
   const panelStyle: React.CSSProperties = {

@@ -1,3 +1,5 @@
+// @vitest-environment jsdom
+
 /**
  * Prompt 36 — GIS shell primitives: accessible-name enforcement + shell keyboard reachability.
  *

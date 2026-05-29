@@ -1,3 +1,5 @@
+// @vitest-environment jsdom
+
 /**
  * Prompt 35 — GIS token status + density + reduced-motion
  *

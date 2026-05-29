@@ -9,9 +9,6 @@ import { openUrbanAnalyticsWorkbench, resetWorkbenchState } from "./helpers/urba
  * main thread stays responsive (rAF counter advances during queries).
  */
 
-const ISTANBUL_LNG = 29.0;
-const ISTANBUL_LAT = 41.0;
-
 /** Seed a large GeoJSON layer (1 000 points, 3×3 degree grid) via the
  *  streaming store using an rbush index. */
 async function seedStreamingLayer(page: Page): Promise<void> {

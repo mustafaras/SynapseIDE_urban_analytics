@@ -47,7 +47,8 @@ test.describe("P37 — operator visual pass @smoke", () => {
           fields: ["zone"],
           crsSummary: { crs: "EPSG:4326", status: "known", source: "explicit", notes: [] },
         },
-      } as Parameters<typeof m.useMapExplorerStore.getState().addOverlayLayer>[0]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any);
     });
 
     // Open inspector on the seeded layer
