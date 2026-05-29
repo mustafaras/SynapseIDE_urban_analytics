@@ -19,6 +19,7 @@ import type {
   CrsPreflightResult,
   ProcessingToolDescriptor,
 } from "@/services/map/contracts/gisContracts";
+import type { MapJoinPreviewSummary } from "@/services/map/join/MapJoinPreviewService";
 import type {
   MapReproducibilityCrsSummary,
   MapReproducibilityExpectedOutput,
@@ -60,6 +61,10 @@ export interface ProcessingToolPreview {
   parameters: Record<string, unknown>;
   /** Extra source layer ids (beyond the primary input) used by this run. */
   secondarySourceIds?: string[];
+  /** Join/relate preview facts rendered before apply for join tools. */
+  joinSummary?: MapJoinPreviewSummary;
+  /** True when the operation should leave the UI thread for worker/DuckDB execution at production scale. */
+  needsWorker?: boolean;
 }
 
 export interface ProcessingToolExecutor {
@@ -465,7 +470,7 @@ export function buildProcessingManifest(input: BuildProcessingManifestInput): Ma
     featureCount: preview.outputFeatureCount,
     bounds: computeBounds(preview.outputFeatures),
     outputLayerGroup: "analysis",
-    needsWorker: false,
+    needsWorker: preview.needsWorker ?? false,
     reportCompatible: true,
     dashboardCompatible: false,
     ideCompatible: true,

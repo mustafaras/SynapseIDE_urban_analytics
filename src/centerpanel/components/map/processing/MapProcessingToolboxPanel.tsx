@@ -267,6 +267,7 @@ export function MapProcessingToolboxPanel({
 
   const blockers = preview?.preview.blockers ?? [];
   const caveats = preview?.preview.caveats ?? [];
+  const joinSummary = preview?.preview.joinSummary ?? null;
   const canRun = Boolean(selected) && blockers.length === 0;
 
   return (
@@ -365,6 +366,27 @@ export function MapProcessingToolboxPanel({
                   {preview?.preview.outputGeometryClass ?? "feature"} feature(s).
                 </div>
               )}
+
+              {joinSummary ? (
+                <div style={noticeStyle(joinSummary.cardinalityWarning ? "caveat" : "ok")} data-testid="processing-join-preview">
+                  <strong>Join preview</strong>
+                  <span data-testid="processing-join-matched-count">
+                    Matched: {joinSummary.matchedPrimaryCount} / {joinSummary.primaryFeatureCount}
+                  </span>
+                  <span data-testid="processing-join-unmatched-count">
+                    Unmatched: {joinSummary.unmatchedPrimaryCount}
+                  </span>
+                  <span data-testid="processing-join-output-count">
+                    Output rows: {joinSummary.outputFeatureCount}
+                  </span>
+                  <span data-testid="processing-join-cardinality">
+                    Cardinality: {joinSummary.cardinalityLabel}
+                  </span>
+                  {joinSummary.cardinalityWarning ? (
+                    <span data-testid="processing-join-cardinality-warning">{joinSummary.cardinalityWarning}</span>
+                  ) : null}
+                </div>
+              ) : null}
 
               {caveats.length > 0 ? (
                 <div style={noticeStyle("caveat")} data-testid="processing-preflight-caveats">

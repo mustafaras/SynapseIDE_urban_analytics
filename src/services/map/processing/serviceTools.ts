@@ -42,6 +42,13 @@ import {
   type ProcessingToolInputs,
   type ProcessingToolPreview,
 } from "./referenceTools";
+import {
+  buildAttributeJoinPreview,
+  buildSpatialJoinPreview,
+  type MapJoinLayerInput,
+  type MapJoinPreviewResult,
+  type SpatialJoinPredicate,
+} from "@/services/map/join/MapJoinPreviewService";
 
 /* -------------------------------------------------------------------- */
 /*  Shared helpers                                                       */
@@ -391,93 +398,102 @@ const reprojectTool: ProcessingToolExecutor = {
 };
 
 /* -------------------------------------------------------------------- */
-/*  Spatial join (points → containing polygon attributes)               */
+/*  Join / relate previews                                               */
 /* -------------------------------------------------------------------- */
+
+function toJoinLayerInput(layer: OverlayLayerConfig): MapJoinLayerInput {
+  return {
+    layerId: layer.id,
+    layerName: layer.name,
+    features: layerFeatures(layer),
+    crs: crsOf(layer),
+    geometryClass: layer.metadata?.geometryType ?? "Geometry",
+    fields: layer.metadata?.fields ?? [],
+  };
+}
+
+function fromJoinPreview(result: MapJoinPreviewResult): ProcessingToolPreview {
+  return {
+    ok: result.ok,
+    blockers: result.blockers,
+    caveats: result.caveats,
+    logs: result.logs,
+    crs: result.crs,
+    outputFeatures: result.outputFeatures,
+    outputFeatureCount: result.summary.outputFeatureCount,
+    outputGeometryClass: result.outputGeometryClass,
+    parameters: result.parameters,
+    secondarySourceIds: result.secondarySourceIds,
+    joinSummary: result.summary,
+    needsWorker: result.summary.execution.strategy !== "main-thread",
+  };
+}
+
+const attributeJoinTool: ProcessingToolExecutor = {
+  descriptor: {
+    toolId: "attribute-join",
+    title: "Attribute join",
+    category: "Join",
+    summary: "Join attributes by key while preserving unmatched rows and previewing cardinality before apply.",
+    parameters: [
+      { key: "layer", label: "Primary layer", type: "layer", required: true },
+      { key: "layerB", label: "Join layer", type: "layer", required: true },
+      { key: "field", label: "Primary key field", type: "field", required: true },
+      { key: "joinField", label: "Join key field", type: "text", required: true, defaultValue: "id", help: "Field name on the join layer." },
+    ],
+    requiresCrs: false,
+    executionMode: "worker",
+    qaGated: true,
+    urbanMethodIds: [],
+    implemented: true,
+  },
+  preview(inputs): ProcessingToolPreview {
+    const { layer: joinLayer, id: joinLayerId } = resolveSecondary(inputs, "layerB");
+    if (!joinLayer) {
+      return blocked(["Select a join layer before previewing the attribute join."], inputs.inputLayer.metadata?.geometryType ?? "Geometry", [`attribute-join: join layer="${joinLayerId}"`], { layerB: joinLayerId });
+    }
+    const primaryKey = typeof inputs.params.field === "string" ? inputs.params.field : "";
+    const joinKey = typeof inputs.params.joinField === "string" ? inputs.params.joinField : "";
+    return fromJoinPreview(buildAttributeJoinPreview({
+      mode: "attribute",
+      primary: toJoinLayerInput(inputs.inputLayer),
+      join: toJoinLayerInput(joinLayer),
+      primaryKey,
+      joinKey,
+    }));
+  },
+};
 
 const spatialJoinTool: ProcessingToolExecutor = {
   descriptor: {
     toolId: "spatial-join",
     title: "Spatial join",
     category: "Join",
-    summary: "Attach attributes from the first containing polygon to each point feature (point-in-polygon).",
+    summary: "Join attributes by spatial predicate with match/unmatched counts and cardinality preview before apply.",
     parameters: [
-      { key: "layer", label: "Point layer", type: "layer", required: true },
-      { key: "layerB", label: "Polygon layer", type: "layer", required: true },
+      { key: "layer", label: "Primary layer", type: "layer", required: true },
+      { key: "layerB", label: "Join layer", type: "layer", required: true },
+      { key: "predicate", label: "Predicate", type: "enum", required: true, enumValues: ["within", "intersects", "nearest"], defaultValue: "within" },
     ],
-    requiresCrs: false,
-    executionMode: "main-preview",
-    qaGated: false,
+    requiresCrs: true,
+    executionMode: "worker",
+    qaGated: true,
     urbanMethodIds: [],
     implemented: true,
   },
   preview(inputs): ProcessingToolPreview {
-    const { inputLayer } = inputs;
-    const logs = [`spatial-join: points="${inputLayer.name}" (${inputLayer.id})`];
-    const { layer: polygonLayer, id: polygonId } = resolveSecondary(inputs, "layerB");
-    if (!polygonLayer) {
-      return blocked(["Select a polygon layer to join attributes from."], "Point", logs, { layerB: polygonId });
+    const { layer: joinLayer, id: joinLayerId } = resolveSecondary(inputs, "layerB");
+    if (!joinLayer) {
+      return blocked(["Select a join layer before previewing the spatial join."], inputs.inputLayer.metadata?.geometryType ?? "Geometry", [`spatial-join: join layer="${joinLayerId}"`], { layerB: joinLayerId });
     }
-    logs.push(`spatial-join: polygons="${polygonLayer.name}" (${polygonLayer.id})`);
-
-    const points = layerFeatures(inputLayer).filter((feature) => feature.geometry?.type === "Point");
-    const polygons = layerFeatures(polygonLayer).filter((feature) => isPolygonGeometry(feature.geometry));
-    const blockers: string[] = [];
-    if (points.length === 0) blockers.push("The point layer has no Point features to join.");
-    if (polygons.length === 0) blockers.push("The polygon layer has no polygon features to join from.");
-    if (blockers.length > 0) {
-      return { ...blocked(blockers, "Point", logs, { layerB: polygonLayer.id }), secondarySourceIds: [polygonLayer.id] };
-    }
-
-    // visual-only CRS preflight (geometric containment): caveat, never block.
-    const crs = CrsPreflight.preflight(
-      { id: "spatial-join", label: "Spatial join", metric: "visual", executionKind: "geodesic", displayCrs: "EPSG:4326" },
-      [
-        { id: inputLayer.id, name: inputLayer.name, crs: crsOf(inputLayer) },
-        { id: polygonLayer.id, name: polygonLayer.name, crs: crsOf(polygonLayer) },
-      ],
-    );
-
-    let matchedCount = 0;
-    const joined: Feature[] = points.map((point) => {
-      const container = polygons.find((polygon) => {
-        try {
-          return turf.booleanPointInPolygon(point as never, polygon as never);
-        } catch {
-          return false;
-        }
-      });
-      if (container) matchedCount += 1;
-      const joinProps: Record<string, unknown> = {};
-      for (const [key, value] of Object.entries(container?.properties ?? {})) {
-        joinProps[`join_${key}`] = value;
-      }
-      return {
-        type: "Feature",
-        geometry: point.geometry,
-        properties: { ...(point.properties ?? {}), ...joinProps, __join_matched: Boolean(container) },
-      };
-    });
-    const caveats = [
-      "Spatial join uses geometric point-in-polygon on EPSG:4326 display coordinates.",
-      ...crs.caveats,
-    ];
-    if (matchedCount < points.length) {
-      caveats.push(`${points.length - matchedCount} of ${points.length} points fell outside every polygon.`);
-    }
-    logs.push(`spatial-join: ${matchedCount}/${points.length} point(s) matched a polygon`);
-
-    return {
-      ok: true,
-      blockers: [],
-      caveats,
-      logs,
-      crs,
-      outputFeatures: featureCollection(joined),
-      outputFeatureCount: joined.length,
-      outputGeometryClass: "Point",
-      parameters: { layerB: polygonLayer.id, matchedCount },
-      secondarySourceIds: [polygonLayer.id],
-    };
+    const rawPredicate = typeof inputs.params.predicate === "string" ? inputs.params.predicate : "within";
+    const predicate: SpatialJoinPredicate = rawPredicate === "intersects" || rawPredicate === "nearest" ? rawPredicate : "within";
+    return fromJoinPreview(buildSpatialJoinPreview({
+      mode: "spatial",
+      primary: toJoinLayerInput(inputs.inputLayer),
+      join: toJoinLayerInput(joinLayer),
+      predicate,
+    }));
   },
 };
 
@@ -560,6 +576,7 @@ export const SERVICE_TOOL_EXECUTORS: Readonly<Record<string, ProcessingToolExecu
   dissolve: dissolveTool,
   simplify: simplifyTool,
   reproject: reprojectTool,
+  "attribute-join": attributeJoinTool,
   "spatial-join": spatialJoinTool,
   hotspot: hotSpotTool,
 };

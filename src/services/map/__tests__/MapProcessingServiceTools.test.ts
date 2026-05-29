@@ -91,6 +91,13 @@ describe("processing catalogue — Prompt 24b", () => {
     // output is one point per input point
     expect(result!.manifest!.expectedOutput.geometryClass).toBe("Point");
     expect(result!.manifest!.expectedOutput.featureCount).toBe(FC_POINTS_WGS84_COUNT);
+    expect(result!.preview.joinSummary).toMatchObject({
+      mode: "spatial",
+      predicate: "within",
+      primaryFeatureCount: FC_POINTS_WGS84_COUNT,
+    });
+    expect(result!.preview.joinSummary!.matchedPrimaryCount).toBeGreaterThan(0);
+    expect(result!.preview.joinSummary!.unmatchedPrimaryCount).toBeGreaterThan(0);
     // provenance records BOTH source layers
     expect(result!.manifest!.sourceLayerIds.sort()).toEqual(["points", "polys"]);
     expect(result!.manifest!.sourceLayers.map((layer) => layer.layerId).sort()).toEqual(["points", "polys"]);
@@ -98,6 +105,41 @@ describe("processing catalogue — Prompt 24b", () => {
     // joined attributes are present on output features
     const features = (result!.outputLayer?.sourceData as GeoJSON.FeatureCollection).features;
     expect(features.every((feature) => "__join_matched" in (feature.properties ?? {}))).toBe(true);
+  });
+
+  it("attribute-join previews cardinality and preserves unmatched rows", () => {
+    const points = pointsWgs84();
+    const lookup: OverlayLayerConfig = {
+      id: "lookup",
+      name: "Lookup table",
+      type: "geojson",
+      visible: true,
+      opacity: 1,
+      sourceData: {
+        type: "FeatureCollection",
+        features: [
+          { type: "Feature", id: "a", geometry: null, properties: { id: 1, class: "inside" } } as GeoJSON.Feature,
+          { type: "Feature", id: "b", geometry: null, properties: { id: 1, class: "duplicate" } } as GeoJSON.Feature,
+          { type: "Feature", id: "c", geometry: null, properties: { id: 2, class: "single" } } as GeoJSON.Feature,
+        ],
+      },
+      metadata: {
+        featureCount: 3,
+        geometryType: "Table",
+        fields: ["id", "class"],
+      },
+    };
+    const { effects } = makeEffects([points, lookup]);
+    const result = runProcessingTool("attribute-join", { layer: "points", layerB: "lookup", field: "id", joinField: "id" }, effects);
+
+    expect(result).not.toBeNull();
+    expect(result!.status).toBe("applied");
+    expect(result!.preview.joinSummary!.cardinalityLabel).toBe("1:N");
+    expect(result!.preview.joinSummary!.cardinalityWarning).toMatch(/duplicate primary features/i);
+    expect(result!.preview.joinSummary!.unmatchedPrimaryCount).toBe(FC_POINTS_WGS84_COUNT - 2);
+    const fc = result!.outputLayer?.sourceData as GeoJSON.FeatureCollection;
+    expect(fc.features.some((feature) => feature.properties?.__join_matched === false)).toBe(true);
+    expect(result!.manifest!.sourceLayerIds.sort()).toEqual(["lookup", "points"]);
   });
 
   it("each implemented service tool yields an applied MapCommandResult with a manifest", () => {

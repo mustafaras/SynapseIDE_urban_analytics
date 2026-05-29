@@ -12,6 +12,7 @@ import {
 } from '../../services/map/MapEngineAdapter';
 import { fetchOverpassBuildingsForBounds } from '../../services/map/ExternalServiceConnector';
 import { computeGeometryWorkflow } from '../../services/map/geometry/GeometryWorkflowEngine';
+import { runMapJoinWorkerTask } from '../../services/map/join/MapJoinPreviewService';
 import {
   assertPreparedDataset,
   assertPreparedSpatiotemporalDataset,
@@ -66,6 +67,11 @@ export async function runWorkerTask<K extends WorkerTaskKind>(
     case 'geometry/workflow':
       return await runGeometryWorkflowTask(
         input as WorkerTaskInput<'geometry/workflow'>,
+        report,
+      ) as WorkerTaskOutput<K>;
+    case 'map/join-preview':
+      return runMapJoinWorkerTask(
+        input as WorkerTaskInput<'map/join-preview'>,
         report,
       ) as WorkerTaskOutput<K>;
     default:

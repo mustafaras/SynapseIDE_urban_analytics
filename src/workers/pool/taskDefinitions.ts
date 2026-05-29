@@ -20,8 +20,12 @@ import type {
   GeometryWorkflowComputation,
   GeometryWorkflowRequest,
 } from '../../services/map/geometry/GeometryWorkflowEngine';
+import type {
+  MapJoinWorkerInput,
+  MapJoinWorkerOutput,
+} from '../../services/map/join/MapJoinPreviewService';
 
-export type BackgroundTaskDomain = 'spatial-stats' | 'clustering' | 'simulation' | 'raster' | 'external' | 'geometry';
+export type BackgroundTaskDomain = 'spatial-stats' | 'clustering' | 'simulation' | 'raster' | 'external' | 'geometry' | 'join';
 
 export interface RasterAccuracyTaskInput {
   prediction: ArrayLike<number>;
@@ -82,6 +86,11 @@ export interface BackgroundTaskDefinitions {
     domain: 'geometry';
     input: GeometryWorkflowRequest;
     output: GeometryWorkflowComputation;
+  };
+  'map/join-preview': {
+    domain: 'join';
+    input: MapJoinWorkerInput;
+    output: MapJoinWorkerOutput;
   };
 }
 
@@ -187,5 +196,6 @@ export function resolveTaskDomain(kind: WorkerTaskKind): BackgroundTaskDomain {
   if (kind.startsWith('simulation/')) return 'simulation';
   if (kind.startsWith('external/')) return 'external';
   if (kind.startsWith('geometry/')) return 'geometry';
+  if (kind.startsWith('map/join')) return 'join';
   return 'raster';
 }
