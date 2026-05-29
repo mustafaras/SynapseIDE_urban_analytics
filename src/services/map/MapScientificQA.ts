@@ -841,7 +841,12 @@ function checkTopology(
 
   if (geometry.type === "Polygon" || geometry.type === "MultiPolygon") {
     try {
-      const intersectionCount = kinks({ type: "Feature", geometry, properties: {} }).features.length;
+      const intersectionCount = geometry.type === "MultiPolygon"
+        ? geometry.coordinates.reduce((count, coordinates) => {
+            const polygon: Geometry = { type: "Polygon", coordinates };
+            return count + kinks({ type: "Feature", geometry: polygon, properties: {} }).features.length;
+          }, 0)
+        : kinks({ type: "Feature", geometry, properties: {} }).features.length;
       if (intersectionCount > 0) {
         addFeatureIssue(issues, {
           code: "self_intersection",

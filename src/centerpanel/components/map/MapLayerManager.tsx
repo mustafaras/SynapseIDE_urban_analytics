@@ -54,6 +54,7 @@ export interface MapLayerManagerProps {
   onBindLayerToDashboard?: (id: string) => void;
   onOpenLayerEducationReference?: (id: string) => void;
   onFocusLayer?: (id: string) => void;
+  onRepairGeometry?: (id: string) => void;
   onClearLayerCache?: () => void;
   activeRerunToken?: string | null;
   onOpenSymbology?: (id: string) => void;
@@ -889,6 +890,7 @@ type LayerActionId =
   | "move-down"
   | "style"
   | "review"
+  | "repair-geometry"
   | "export"
   | "urban"
   | "ide"
@@ -1146,6 +1148,25 @@ function buildLayerEvidenceActions(
       "Education reference is not connected from the layer rail yet.",
     ),
   ];
+}
+
+function buildRepairGeometryAction(
+  layer: OverlayLayerConfig,
+  callback: ((id: string) => void) | undefined,
+): LayerEvidenceActionModel | null {
+  if (!layer.metadata?.scientificQA?.badges.includes("invalid_geometry")) return null;
+  const hasInlineGeometry = typeof layer.sourceData === "object" && layer.sourceData !== null;
+  return {
+    id: "repair-geometry",
+    label: "Repair geometry",
+    title: hasInlineGeometry
+      ? "Preview and apply GEOS topology repair for this layer."
+      : "Repair geometry needs an inline GeoJSON source.",
+    tone: "warning",
+    ...(!hasInlineGeometry ? { disabledReason: "Repair geometry needs an inline GeoJSON source." } : {}),
+    ...(hasInlineGeometry && callback ? { onSelect: () => callback(layer.id) } : {}),
+    ...(hasInlineGeometry && !callback ? { disabledReason: "Topology repair is not connected from this layer surface." } : {}),
+  };
 }
 
 /* ================================================================== */
@@ -1720,6 +1741,7 @@ interface LayerRowProps {
   onBindLayerToDashboard?: (id: string) => void;
   onOpenLayerEducationReference?: (id: string) => void;
   onFocusLayer?: (id: string) => void;
+  onRepairGeometry?: (id: string) => void;
   onMoveLayer: (id: string, direction: "up" | "down") => void;
   canMoveUp: boolean;
   canMoveDown: boolean;
@@ -1754,6 +1776,7 @@ const LayerRow: React.FC<LayerRowProps> = ({
   onAddLayerToReport,
   onBindLayerToDashboard,
   onFocusLayer,
+  onRepairGeometry,
   onMoveLayer,
   canMoveUp,
   canMoveDown,
@@ -1790,6 +1813,7 @@ const LayerRow: React.FC<LayerRowProps> = ({
     ...(onBindLayerToDashboard ? { onBindLayerToDashboard } : {}),
     ...(onOpenLayerEducationReference ? { onOpenLayerEducationReference } : {}),
   });
+  const repairGeometryAction = buildRepairGeometryAction(layer, onRepairGeometry);
   const utilityActions: LayerEvidenceActionModel[] = [
     ...(onFocusLayer && layerBounds
       ? [{
@@ -1833,6 +1857,7 @@ const LayerRow: React.FC<LayerRowProps> = ({
           onSelect: () => onReviewCartography(layer.id),
         }]
       : []),
+    ...(repairGeometryAction ? [repairGeometryAction] : []),
   ];
   const removalActions: LayerEvidenceActionModel[] = isRemovePending
     ? [
@@ -2083,6 +2108,7 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
   onBindLayerToDashboard,
   onOpenLayerEducationReference,
   onFocusLayer,
+  onRepairGeometry,
   onClearLayerCache,
   activeRerunToken = null,
   onOpenSymbology,
@@ -2620,6 +2646,7 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
                         {...(onBindLayerToDashboard ? { onBindLayerToDashboard } : {})}
                         {...(onOpenLayerEducationReference ? { onOpenLayerEducationReference } : {})}
                         {...(onFocusLayer ? { onFocusLayer } : {})}
+                        {...(onRepairGeometry ? { onRepairGeometry } : {})}
                         {...(onAnnounce ? { onAnnounce } : {})}
                         isDragging={dragId === layer.id}
                         onDragStart={handleDragStart}

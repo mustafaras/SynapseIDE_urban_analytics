@@ -44,7 +44,10 @@ function createFakeEffects(initial: OverlayLayerConfig[] = []) {
     getLayer: (id) => layers.find((entry) => entry.id === id) ?? null,
     getLayerOrder: () => layers.map((entry) => entry.id),
     addLayer: (entry) => {
-      layers = [...layers, entry];
+      const existingIndex = layers.findIndex((layerEntry) => layerEntry.id === entry.id);
+      layers = existingIndex === -1
+        ? [...layers, entry]
+        : layers.map((layerEntry, index) => (index === existingIndex ? entry : layerEntry));
     },
     removeLayer: (id) => {
       layers = layers.filter((entry) => entry.id !== id);
@@ -242,6 +245,24 @@ describe("revertMapCommand", () => {
     expect(ids()).toEqual(["derived"]);
     if (outcome.revertToken) revertMapCommand(outcome.revertToken, effects);
     expect(ids()).toHaveLength(0);
+  });
+
+  it("reverts workflow.apply replacement by restoring the previous layer", () => {
+    const source = layer("source", { metadata: { featureCount: 2 } });
+    const repaired = layer("source", { metadata: { featureCount: 1 } });
+    const { effects, layers } = createFakeEffects([source]);
+    const outcome = applyMapCommand({
+      kind: "workflow.apply",
+      workflowId: "topology.repair",
+      outputLayer: repaired,
+      replaceLayerId: "source",
+      canApply: true,
+    }, effects, FIXED_OPTS);
+
+    expect(layers()[0]?.metadata?.featureCount).toBe(1);
+    expect(outcome.revertToken?.kind).toBe("workflow.apply");
+    if (outcome.revertToken) revertMapCommand(outcome.revertToken, effects);
+    expect(layers()[0]?.metadata?.featureCount).toBe(2);
   });
 
   it("reverts aoi.edit to the previous geometry", () => {

@@ -43,6 +43,7 @@ export interface MapWorkflowApplyCommand {
   kind: "workflow.apply";
   workflowId: string;
   outputLayer: OverlayLayerConfig;
+  replaceLayerId?: string;
   canApply: boolean;
   manifest?: MapReproducibilityManifest;
   blockers?: string[];
@@ -123,6 +124,9 @@ export function previewMapCommand(
       return { ok: true, blockers: [], caveats: [] };
     }
     case "workflow.apply": {
+      if (command.replaceLayerId && !effects.getLayer(command.replaceLayerId)) {
+        return blocked(`Layer "${command.replaceLayerId}" is no longer available to replace.`);
+      }
       if (!command.canApply) {
         return {
           ok: false,
@@ -217,8 +221,17 @@ export function applyMapCommand(
       break;
     }
     case "workflow.apply": {
+      const replacedLayer = command.replaceLayerId ? effects.getLayer(command.replaceLayerId) : null;
+      if (command.replaceLayerId && !replacedLayer) {
+        return blockedOutcome(command, commandId, createdAt, blocked(`Layer "${command.replaceLayerId}" is no longer available to replace.`), targetName);
+      }
+      if (command.replaceLayerId && command.replaceLayerId !== command.outputLayer.id) {
+        effects.removeLayer(command.replaceLayerId);
+      }
       effects.addLayer(command.outputLayer);
-      revertToken = { kind: "workflow.apply", outputLayerId: command.outputLayer.id };
+      revertToken = replacedLayer
+        ? { kind: "workflow.apply", outputLayerId: command.outputLayer.id, replacedLayer }
+        : { kind: "workflow.apply", outputLayerId: command.outputLayer.id };
       if (command.manifest) manifest = command.manifest;
       break;
     }
@@ -299,7 +312,14 @@ export function revertMapCommand(token: MapRevertToken, effects: MapActionEffect
       effects.setLayerStyle(token.layerId, token.previousStyle ?? {});
       break;
     case "workflow.apply":
-      effects.removeLayer(token.outputLayerId);
+      if (token.replacedLayer) {
+        if (token.outputLayerId !== token.replacedLayer.id) {
+          effects.removeLayer(token.outputLayerId);
+        }
+        effects.addLayer(token.replacedLayer);
+      } else {
+        effects.removeLayer(token.outputLayerId);
+      }
       break;
     case "report.handoff":
       effects.removeReportItem(token.reportItemId);
@@ -367,14 +387,26 @@ function buildCommandReviewEvent(
 }
 
 function buildCommandDetails(command: MapActionCommand): Record<string, unknown> {
-  if (command.kind !== "aoi.edit") return {};
-  const validation = command.validation ?? validateDrawnGeometry(command.nextFeature.geometry);
-  return {
-    featureId: command.featureId,
-    validationStatus: validation.status,
-    validationIssueCodes: validation.issueCodes,
-    geometryType: command.nextFeature.geometry.type,
-  };
+  switch (command.kind) {
+    case "workflow.apply":
+      return {
+        workflowId: command.workflowId,
+        outputLayerId: command.outputLayer.id,
+        ...(command.replaceLayerId ? { replaceLayerId: command.replaceLayerId } : {}),
+        ...(command.manifest ? { manifestId: command.manifest.manifestId } : {}),
+      };
+    case "aoi.edit": {
+      const validation = command.validation ?? validateDrawnGeometry(command.nextFeature.geometry);
+      return {
+        featureId: command.featureId,
+        validationStatus: validation.status,
+        validationIssueCodes: validation.issueCodes,
+        geometryType: command.nextFeature.geometry.type,
+      };
+    }
+    default:
+      return {};
+  }
 }
 
 function commandLayerIds(command: MapActionCommand): string[] {
@@ -384,7 +416,10 @@ function commandLayerIds(command: MapActionCommand): string[] {
     case "report.handoff":
       return [command.layerId];
     case "workflow.apply":
-      return [command.outputLayer.id];
+      return Array.from(new Set([
+        command.outputLayer.id,
+        ...(command.replaceLayerId ? [command.replaceLayerId] : []),
+      ]));
     case "aoi.edit":
       return [];
   }

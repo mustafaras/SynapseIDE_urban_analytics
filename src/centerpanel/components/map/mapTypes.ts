@@ -164,6 +164,21 @@ export interface LayerCartographyReviewMetadata {
   legendPersisted?: boolean;
 }
 
+export interface MapTopologyRepairMetadata {
+  version: 1;
+  repairedAt: string;
+  sourceLayerId: string;
+  engine: "geos-wasm";
+  operations: string[];
+  findingCodes: string[];
+  sourceFeatureCount: number;
+  outputFeatureCount: number;
+  repairedFeatureCount: number;
+  removedFeatureCount: number;
+  caveats: string[];
+  manifestId: string;
+}
+
 export type MapDefinitionFilterOperator =
   | "equals"
   | "not-equals"
@@ -344,6 +359,7 @@ export interface LayerMetadata {
   externalService?: ExternalServiceLayerMetadata;
   scientificQA?: LayerScientificQAMetadata;
   cartographyReview?: LayerCartographyReviewMetadata;
+  topologyRepair?: MapTopologyRepairMetadata;
   contents?: MapLayerContentsState;
   persistence?: LayerPersistenceMetadata;
   sourceId?: string;

@@ -271,7 +271,9 @@ import { executeHotSpotSpatialStatsAsync } from "../../../../services/map/Spatia
 import {
   evaluateAnalysisQAGate,
   evaluateMapScientificQA,
+  evaluateMapScientificQASync,
 } from "../../../../services/map/MapScientificQA";
+import { previewLayerTopologyRepair } from "../../../../services/map/topology/TopologyRepairService";
 import {
   buildMapNLQueryAuditDetails,
   buildMapNLQueryContext,
@@ -1633,6 +1635,85 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     updateMapReviewEventStatus(entry.reviewEventId, "undone", "Reverted via command lifecycle");
     announce(`Reverted: ${entry.title}`);
   }, [announce, buildMapActionEffects, updateMapReviewEventStatus]);
+
+  const handleRepairLayerGeometry = useCallback(async (layerId: string) => {
+    const layer = useMapExplorerStore.getState().overlayLayers.find((entry) => entry.id === layerId);
+    if (!layer) {
+      toastWarning("The layer selected for topology repair is no longer available.");
+      announce("Geometry repair blocked: layer is no longer available.");
+      return;
+    }
+
+    try {
+      announce(`Previewing topology repair for ${layer.name}.`);
+      const preview = await previewLayerTopologyRepair(layer, {
+        mapContextId: contextSummary.contextId,
+      });
+      if (!preview.canApply || !preview.outputLayer || !preview.manifest) {
+        const reason = preview.blockers.join(" ") || "No repairable topology changes were found.";
+        toastWarning(`Geometry repair blocked: ${reason}`);
+        announce(`Geometry repair blocked: ${reason}`);
+        return;
+      }
+
+      const outcome = applyMapCommand(
+        {
+          kind: "workflow.apply",
+          workflowId: preview.manifest.workflowId,
+          outputLayer: preview.outputLayer,
+          replaceLayerId: layer.id,
+          canApply: true,
+          manifest: preview.manifest,
+          caveats: preview.caveats,
+        },
+        buildMapActionEffects(),
+      );
+      recordMapReviewEvent(outcome.reviewEvent);
+
+      if (outcome.result.status !== "applied") {
+        const reason = outcome.preflight.blockers.join(" ") || "Topology repair was not applied.";
+        toastWarning(`Geometry repair blocked: ${reason}`);
+        announce(`Geometry repair blocked: ${reason}`);
+        return;
+      }
+
+      mapActionHistoryRef.current = recordMapActionHistoryEntry(mapActionHistoryRef.current, {
+        commandId: outcome.result.commandId,
+        kind: outcome.result.kind,
+        title: `Geometry repaired: ${layer.name}`,
+        reviewEventId: outcome.result.reviewEventId ?? outcome.result.commandId,
+        appliedAt: outcome.result.createdAt,
+        revertable: outcome.result.revertable,
+        reverted: false,
+        ...(outcome.revertToken ? { revertToken: outcome.revertToken } : {}),
+      });
+      const qa = evaluateMapScientificQASync(useMapExplorerStore.getState().overlayLayers, {
+        viewportZoom: zoom,
+        activeAnalysisInputLayerIds,
+        comparisonLayerIds: activeAnalysisResultLayerIds,
+      });
+      setScientificQA(qa);
+
+      const repair = preview.preview;
+      const message =
+        `Geometry repair applied to ${layer.name}: ${repair.repairedFeatureCount.toLocaleString()} repaired, ${repair.removedFeatureCount.toLocaleString()} removed.`;
+      toastSuccess(message);
+      announce(`${message} Revert is available in the review timeline.`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Topology repair failed.";
+      toastWarning(`Geometry repair failed: ${message}`);
+      announce(`Geometry repair failed: ${message}`);
+    }
+  }, [
+    activeAnalysisInputLayerIds,
+    activeAnalysisResultLayerIds,
+    announce,
+    buildMapActionEffects,
+    contextSummary.contextId,
+    recordMapReviewEvent,
+    setScientificQA,
+    zoom,
+  ]);
 
   const handleInspectLayer = useCallback((layerId: string) => {
     setInspectorLayerId(layerId);
@@ -6644,6 +6725,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
                 onBindLayerToDashboard={handleBindLayerToDashboard}
                 onOpenLayerEducationReference={handleOpenLayerEducationReference}
                 onSendLayerToUrban={handleSendLayerToUrban}
+                onRepairGeometry={handleRepairLayerGeometry}
                 onDeclareLayerCrs={handleDeclareLayerCrs}
                 onInspectLayer={handleInspectLayer}
                 onOpenAttributeTable={handleOpenAttributeTable}

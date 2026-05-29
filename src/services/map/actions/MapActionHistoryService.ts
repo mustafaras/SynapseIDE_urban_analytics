@@ -9,7 +9,7 @@ import type { DrawnFeature, OverlayLayerConfig } from "@/centerpanel/components/
 export type MapRevertToken =
   | { kind: "layer.remove"; layer: OverlayLayerConfig; orderedLayerIds: string[] }
   | { kind: "layer.style"; layerId: string; previousStyle: Record<string, unknown> | undefined }
-  | { kind: "workflow.apply"; outputLayerId: string }
+  | { kind: "workflow.apply"; outputLayerId: string; replacedLayer?: OverlayLayerConfig }
   | { kind: "report.handoff"; reportItemId: string }
   | { kind: "aoi.edit"; featureId: string; previousFeature: DrawnFeature };
 
