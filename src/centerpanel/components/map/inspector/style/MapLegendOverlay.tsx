@@ -72,7 +72,7 @@ export const MapLegendOverlay: React.FC<MapLegendOverlayProps> = ({ items }) => 
             style={{
               width: "0.85rem",
               height: item.kind === "line" ? "0.2rem" : "0.85rem",
-              borderRadius: item.kind === "circle" ? MAP_RADIUS.full : MAP_RADIUS.xs,
+              borderRadius: item.kind === "circle" || item.kind === "dot-density" ? MAP_RADIUS.full : MAP_RADIUS.xs,
               background: item.kind === "label" ? MAP_COLORS.transparent : item.color,
               border: MAP_STROKES.hairlineSubtle,
               color: item.color,

@@ -236,7 +236,7 @@ function renderLegendItems(items: MapCartographyRecommendation["preview"]["befor
         style={{
           width: "0.75rem",
           height: "0.75rem",
-          borderRadius: MAP_RADIUS.xs,
+          borderRadius: item.kind === "circle" || item.kind === "dot-density" ? MAP_RADIUS.full : MAP_RADIUS.xs,
           background: item.kind === "label" ? MAP_COLORS.transparent : item.color,
           border: MAP_STROKES.hairlineSubtle,
           color: item.color,

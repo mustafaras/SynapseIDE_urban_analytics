@@ -101,10 +101,26 @@ const noteStyle: React.CSSProperties = {
   lineHeight: MAP_TYPOGRAPHY.lineHeight.normal,
 };
 
+const bivariateGridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  gap: 2,
+  width: "5rem",
+  minHeight: "5rem",
+};
+
+const bivariateCellStyle: React.CSSProperties = {
+  minHeight: "2.25rem",
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.xs,
+};
+
 const MODE_OPTIONS: Array<{ value: SerializedLegendMode; label: string }> = [
   { value: "single", label: "Single symbol" },
   { value: "choropleth", label: "Choropleth" },
   { value: "categorical", label: "Categorical" },
+  { value: "bivariate-choropleth", label: "Bivariate choropleth" },
+  { value: "dot-density", label: "Dot density" },
   { value: "graduated-symbol", label: "Graduated symbols" },
   { value: "proportional-symbol", label: "Proportional symbols" },
   { value: "heatmap", label: "Heatmap" },
@@ -144,6 +160,10 @@ function isFieldDrivenMode(mode: SerializedLegendMode): boolean {
   return mode !== "single";
 }
 
+function usesClassificationControls(mode: SerializedLegendMode): boolean {
+  return mode === "choropleth" || mode === "graduated-symbol" || mode === "proportional-symbol";
+}
+
 export const LayerStyleEditor: React.FC<LayerStyleEditorProps> = ({ layer, onApplyStyle }) => {
   const defaults = useMemo(() => getDefaultLayerStyleOptions(layer), [layer]);
   const allFields = useMemo(() => getLayerStyleFieldNames(layer), [layer]);
@@ -152,8 +172,12 @@ export const LayerStyleEditor: React.FC<LayerStyleEditorProps> = ({ layer, onApp
   const [options, setOptions] = useState<LayerStyleEditorOptions>(defaults);
   const preview = useMemo(() => buildLayerStyleUpdate(layer, options), [layer, options]);
   const fieldChoices = options.mode === "categorical" ? allFields : numericFields.length > 0 ? numericFields : allFields;
+  const secondaryFieldChoices = numericFields.filter((field) => field !== options.field);
+  const bivariateEntries = preview.legendSpec.entries.filter((entry) => entry.kind === "bivariate" && !entry.noData);
   const canApply = Boolean(onApplyStyle) &&
     (!isFieldDrivenMode(options.mode) || Boolean(options.field)) &&
+    (options.mode !== "bivariate-choropleth" || Boolean(options.secondaryField)) &&
+    (options.mode !== "dot-density" || options.dotValuePerDot > 0) &&
     (!options.labelsEnabled || Boolean(options.labelField));
 
   const patchOptions = (patch: Partial<LayerStyleEditorOptions>) => {
@@ -177,9 +201,13 @@ export const LayerStyleEditor: React.FC<LayerStyleEditorProps> = ({ layer, onApp
             value={options.mode}
             onChange={(event) => {
               const mode = event.target.value as SerializedLegendMode;
+              const nextSecondaryField = mode === "bivariate-choropleth"
+                ? options.secondaryField ?? numericFields.find((field) => field !== options.field)
+                : options.secondaryField;
               patchOptions({
                 mode,
                 ...(options.field ? { field: options.field } : {}),
+                ...(nextSecondaryField ? { secondaryField: nextSecondaryField } : {}),
               });
             }}
           >
@@ -194,7 +222,13 @@ export const LayerStyleEditor: React.FC<LayerStyleEditorProps> = ({ layer, onApp
           <select
             style={inputStyle}
             value={options.field ?? ""}
-            onChange={(event) => patchOptions({ field: event.target.value })}
+            onChange={(event) => {
+              const field = event.target.value;
+              const secondaryField = options.secondaryField === field
+                ? numericFields.find((candidate) => candidate !== field)
+                : options.secondaryField;
+              patchOptions({ field, secondaryField });
+            }}
             disabled={!isFieldDrivenMode(options.mode)}
           >
             {fieldChoices.length === 0 ? <option value="">No fields available</option> : null}
@@ -205,6 +239,57 @@ export const LayerStyleEditor: React.FC<LayerStyleEditorProps> = ({ layer, onApp
         </label>
       </div>
 
+      {options.mode === "bivariate-choropleth" ? (
+        <div style={gridStyle}>
+          <label style={sectionStyle}>
+            <span style={labelStyle}>Second field</span>
+            <select
+              style={inputStyle}
+              value={options.secondaryField ?? ""}
+              onChange={(event) => patchOptions({ secondaryField: event.target.value })}
+              data-testid="map-bivariate-second-field"
+            >
+              {secondaryFieldChoices.length === 0 ? <option value="">No second numeric field</option> : null}
+              {secondaryFieldChoices.map((field) => (
+                <option key={field} value={field}>{field}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+      ) : null}
+
+      {options.mode === "dot-density" ? (
+        <div style={gridStyle}>
+          <label style={sectionStyle}>
+            <span style={labelStyle}>Normalize by</span>
+            <select
+              style={inputStyle}
+              value={options.normalizationField ?? ""}
+              onChange={(event) => patchOptions({ normalizationField: event.target.value || undefined })}
+              data-testid="map-dot-density-normalization-field"
+            >
+              <option value="">None</option>
+              {numericFields.filter((field) => field !== options.field).map((field) => (
+                <option key={field} value={field}>{field}</option>
+              ))}
+            </select>
+          </label>
+
+          <label style={sectionStyle}>
+            <span style={labelStyle}>Value per dot</span>
+            <input
+              style={inputStyle}
+              type="number"
+              min={1}
+              step={1}
+              value={options.dotValuePerDot}
+              onChange={(event) => patchOptions({ dotValuePerDot: Math.max(1, Number(event.target.value)) })}
+              data-testid="map-dot-density-value-per-dot"
+            />
+          </label>
+        </div>
+      ) : null}
+
       <div style={gridStyle}>
         <label style={sectionStyle}>
           <span style={labelStyle}>Classification</span>
@@ -212,7 +297,7 @@ export const LayerStyleEditor: React.FC<LayerStyleEditorProps> = ({ layer, onApp
             style={inputStyle}
             value={options.classificationMethod}
             onChange={(event) => patchOptions({ classificationMethod: event.target.value as ClassificationMethod })}
-            disabled={options.mode === "single" || options.mode === "categorical" || options.mode === "heatmap"}
+            disabled={!usesClassificationControls(options.mode)}
           >
             {CLASSIFICATION_OPTIONS.map((method) => (
               <option key={method.value} value={method.value}>{method.label}</option>
@@ -244,6 +329,7 @@ export const LayerStyleEditor: React.FC<LayerStyleEditorProps> = ({ layer, onApp
             max={9}
             step={1}
             value={options.classCount}
+            disabled={!usesClassificationControls(options.mode)}
             onChange={(event) => patchOptions({ classCount: Number(event.target.value) })}
           />
         </label>
@@ -482,6 +568,23 @@ export const LayerStyleEditor: React.FC<LayerStyleEditorProps> = ({ layer, onApp
         <div style={{ ...mapStyles.sidePanelMetricLabel, color: MAP_COLORS.textMuted }}>
           Legend spec preview / {preview.legendSpec.entries.length} entries
         </div>
+        {bivariateEntries.length > 0 ? (
+          <div style={bivariateGridStyle} data-testid="map-bivariate-legend-grid" aria-label="Bivariate 2 by 2 legend">
+            {bivariateEntries.map((entry) => (
+              <span
+                key={entry.id}
+                title={entry.label}
+                aria-label={entry.label}
+                style={{
+                  ...bivariateCellStyle,
+                  background: entry.color,
+                  gridColumn: entry.gridColumn,
+                  gridRow: entry.gridRow,
+                }}
+              />
+            ))}
+          </div>
+        ) : null}
         {preview.legendSpec.entries.slice(0, 10).map((entry) => (
           <div key={entry.id} style={legendRowStyle}>
             <span
@@ -499,7 +602,7 @@ export const LayerStyleEditor: React.FC<LayerStyleEditorProps> = ({ layer, onApp
           </div>
         ))}
         {preview.warnings.map((warning) => (
-          <div key={warning} style={badgeStyle}>{warning}</div>
+          <div key={warning} style={badgeStyle} data-testid="map-cartography-caveat">{warning}</div>
         ))}
       </div>
 

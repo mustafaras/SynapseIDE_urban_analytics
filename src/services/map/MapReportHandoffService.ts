@@ -7,6 +7,7 @@ import {
   type MapPublicationReadiness,
 } from "./MapExportService";
 import { getSerializedMapLabelSpecFromStyle } from "./labels/MapLabelEngine";
+import { getSerializedLegendSpecFromStyle } from "@/centerpanel/components/map/inspector/style/legendContract";
 import { enqueuePendingInsert } from "@/services/reporting/storage";
 import type {
   PendingReportInsert,
@@ -414,6 +415,8 @@ function buildCaveats(input: {
     if (layer.metadata?.scientificQA?.badges.includes("uncertain_output")) {
       caveats.push(`${layer.name} carries an uncertain-output QA badge; treat classes or scores as screening evidence.`);
     }
+    const legendSpec = getSerializedLegendSpecFromStyle(layer.style);
+    caveats.push(...(legendSpec?.warnings ?? []).map((warning) => `${layer.name}: ${warning}`));
     caveats.push(...(layer.metadata?.scientificQA?.caveats ?? []).map((caveat) => `${layer.name}: ${caveat}`));
   }
 

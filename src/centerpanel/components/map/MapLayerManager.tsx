@@ -1957,7 +1957,7 @@ const LayerRow: React.FC<LayerRowProps> = ({
                   style={{
                     width: 10,
                     height: item.kind === "line" ? 2 : 10,
-                    borderRadius: item.kind === "circle" ? MAP_RADIUS.full : MAP_RADIUS.xs,
+                    borderRadius: item.kind === "circle" || item.kind === "dot-density" ? MAP_RADIUS.full : MAP_RADIUS.xs,
                     background: item.kind === "label" ? MAP_COLORS.transparent : item.color,
                     border: MAP_STROKES.hairlineSubtle,
                     color: item.color,

@@ -6,11 +6,19 @@ import {
   STYLE_LABEL_SPEC_KEY,
   buildSerializedMapLabelSpec,
 } from "@/services/map/labels/MapLabelEngine";
+import {
+  STYLE_ADVANCED_CARTOGRAPHY_SPEC_KEY,
+  STYLE_ADVANCED_CARTOGRAPHY_SPEC_VERSION,
+  buildBivariateChoroplethRenderer,
+  buildDotDensityRenderer,
+  type SerializedAdvancedCartographySpec,
+} from "@/services/map/cartography/AdvancedCartographyEngine";
 import type {
   MapLabelCollisionPolicy,
   MapLabelPlacement,
   SerializedMapLabelSpec,
 } from "@/services/map/labels/MapLabelEngine";
+import { buildProportionalRadiusExpression } from "../../symbolStyleUtils";
 import type {
   LayerCartographyReviewMetadata,
   LayerMetadata,
@@ -26,11 +34,21 @@ export type SerializedLegendMode =
   | "single"
   | "choropleth"
   | "categorical"
+  | "bivariate-choropleth"
+  | "dot-density"
   | "graduated-symbol"
   | "proportional-symbol"
   | "heatmap";
 
-export type SerializedLegendEntryKind = "fill" | "line" | "circle" | "raster" | "heatmap" | "label";
+export type SerializedLegendEntryKind =
+  | "fill"
+  | "line"
+  | "circle"
+  | "raster"
+  | "heatmap"
+  | "label"
+  | "bivariate"
+  | "dot-density";
 
 export interface SerializedLegendEntry {
   id: string;
@@ -43,6 +61,10 @@ export interface SerializedLegendEntry {
   max?: number;
   count?: number;
   noData?: boolean;
+  secondaryField?: string;
+  secondaryLabel?: string;
+  gridColumn?: number;
+  gridRow?: number;
 }
 
 export interface SerializedMapLegendSpec {
@@ -63,6 +85,7 @@ export interface SerializedMapLegendSpec {
     label: string;
     color: string;
   };
+  advancedCartography?: SerializedAdvancedCartographySpec;
   labels?: SerializedMapLabelSpec;
   warnings: string[];
 }
@@ -77,7 +100,9 @@ export interface SerializedLegendCompositionItem {
 export interface LayerStyleEditorOptions {
   mode: SerializedLegendMode;
   field?: string;
-  labelField?: string;
+  secondaryField?: string | undefined;
+  normalizationField?: string | undefined;
+  dotValuePerDot: number;
   classCount: number;
   classificationMethod: ClassificationMethod;
   colorRamp: ColorRampName;
@@ -121,6 +146,7 @@ const DEFAULT_OUTLINE_COLOR = "rgba(17,24,39,0.72)";
 const DEFAULT_LABEL_COLOR = "rgb(249, 250, 251)";
 const DEFAULT_LABEL_HALO_COLOR = "rgba(17,24,39,0.92)";
 const DEFAULT_LABEL_FONT = "Open Sans Regular";
+const DEFAULT_DOT_VALUE_PER_DOT = 500;
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -221,10 +247,14 @@ export function getDefaultLayerStyleOptions(layer: OverlayLayerConfig): LayerSty
       ? "proportional-symbol"
       : "choropleth";
   const field = defaultFieldForMode(layer, mode);
+  const numericFields = getLayerNumericStyleFieldNames(layer);
+  const secondaryField = numericFields.find((candidate) => candidate !== field);
   const labelField = getLayerStyleFieldNames(layer)[0];
   return {
     mode,
     ...(field ? { field } : {}),
+    ...(secondaryField ? { secondaryField } : {}),
+    dotValuePerDot: DEFAULT_DOT_VALUE_PER_DOT,
     ...(labelField ? { labelField } : {}),
     classCount: DEFAULT_CLASS_COUNT,
     classificationMethod: "quantile",
@@ -291,9 +321,18 @@ function categoricalEntries(params: {
 }
 
 function noDataExpression(field: string, noDataColor: string, expression: unknown): unknown[] {
+  return noDataExpressionForFields([field], noDataColor, expression);
+}
+
+function noDataExpressionForFields(fields: string[], noDataColor: string, expression: unknown): unknown[] {
+  const checks = fields.flatMap((field) => [
+    ["!", ["has", field]],
+    ["==", ["get", field], null],
+    ["==", ["to-string", ["get", field]], ""],
+  ]);
   return [
     "case",
-    ["any", ["!", ["has", field]], ["==", ["get", field], null], ["==", ["to-string", ["get", field]], ""]],
+    ["any", ...checks],
     noDataColor,
     expression,
   ];
@@ -371,6 +410,16 @@ function stripLabelStyleState(style: Record<string, unknown> | undefined): Recor
   );
 }
 
+function stripAdvancedStyleState(style: Record<string, unknown> | undefined): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(stripLabelStyleState(style)).filter(([key]) =>
+      key !== STYLE_ADVANCED_CARTOGRAPHY_SPEC_KEY &&
+      key !== "classificationField" &&
+      key !== "classificationFieldSecondary" &&
+      key !== "classificationMethod"),
+  );
+}
+
 export function getSerializedLegendSpecFromStyle(style: Record<string, unknown> | undefined): SerializedMapLegendSpec | null {
   const candidate = style?.[STYLE_LEGEND_SPEC_KEY];
   if (!isObject(candidate)) return null;
@@ -386,7 +435,7 @@ export function serializedLegendSpecToCompositionItems(
   const items = spec.entries.map((entry) => ({
     label: entry.label,
     color: entry.color,
-    secondaryLabel: entry.noData ? `${spec.layerName} / ${spec.noData.label}` : spec.layerName,
+    secondaryLabel: entry.secondaryLabel ?? (entry.noData ? `${spec.layerName} / ${spec.noData.label}` : spec.layerName),
     kind: entry.kind,
   }));
   if (spec.labels?.enabled) {
@@ -408,6 +457,10 @@ export function buildLayerStyleUpdate(
   const kind = geometryKind(layer);
   const colorKey = paintColorKey(kind);
   const field = options.field?.trim() || defaultFieldForMode(layer, options.mode);
+  const numericFields = getLayerNumericStyleFieldNames(layer);
+  const secondaryField = options.secondaryField?.trim() ||
+    numericFields.find((candidate) => candidate !== field);
+  const normalizationField = options.normalizationField?.trim() || undefined;
   const colors = getColorRampColors(options.colorRamp, Math.max(3, Math.min(9, options.classCount)))
     .map(resolveMapPaintColor);
   const noDataColor = resolveMapPaintColor(options.noDataColor || DEFAULT_NO_DATA_COLOR);
@@ -415,6 +468,7 @@ export function buildLayerStyleUpdate(
   let entries: SerializedLegendEntry[] = [];
   const stylePatch: Record<string, unknown> = {};
   let classificationMethod: ClassificationMethod | undefined;
+  let advancedCartography: SerializedAdvancedCartographySpec | undefined;
   const labelSpec = buildSerializedMapLabelSpec({
     enabled: options.labelsEnabled,
     field: options.labelField,
@@ -441,7 +495,62 @@ export function buildLayerStyleUpdate(
     stylePatch[colorKey] = color;
   } else {
     const fieldSummary = collectFieldSummaries(layer).find((candidate) => candidate.name === field);
-    if (options.mode === "categorical") {
+    if (options.mode === "bivariate-choropleth") {
+      if (!secondaryField) {
+        warnings.push("Bivariate renderer needs a second numeric field before a 2D legend can be generated.");
+        stylePatch[colorKey] = noDataColor;
+      } else {
+        const result = buildBivariateChoroplethRenderer({
+          layer,
+          xField: field,
+          yField: secondaryField,
+          updatedAt,
+        });
+        entries = result.entries.map((entry) => ({
+          id: entry.id,
+          label: entry.label,
+          color: resolveMapPaintColor(entry.color),
+          kind: "bivariate",
+          field: entry.field,
+          ...(entry.secondaryField ? { secondaryField: entry.secondaryField } : {}),
+          ...(entry.secondaryLabel ? { secondaryLabel: entry.secondaryLabel } : {}),
+          ...(entry.count != null ? { count: entry.count } : {}),
+          ...(entry.gridColumn != null ? { gridColumn: entry.gridColumn } : {}),
+          ...(entry.gridRow != null ? { gridRow: entry.gridRow } : {}),
+        }));
+        warnings.push(...result.caveats);
+        advancedCartography = result.spec;
+        classificationMethod = "quantile";
+        stylePatch[colorKey] = noDataExpressionForFields([field, secondaryField], noDataColor, result.fillColorExpression);
+        stylePatch.classificationField = field;
+        stylePatch.classificationFieldSecondary = secondaryField;
+        stylePatch.classificationMethod = "quantile";
+        stylePatch[STYLE_ADVANCED_CARTOGRAPHY_SPEC_KEY] = result.spec;
+      }
+    } else if (options.mode === "dot-density") {
+      const result = buildDotDensityRenderer({
+        layer,
+        valueField: field,
+        ...(normalizationField ? { normalizationField } : {}),
+        valuePerDot: options.dotValuePerDot,
+        updatedAt,
+      });
+      entries = result.entries.map((entry) => ({
+        id: entry.id,
+        label: entry.label,
+        color: resolveMapPaintColor(entry.color),
+        kind: "dot-density",
+        field: entry.field,
+        ...(entry.secondaryField ? { secondaryField: entry.secondaryField } : {}),
+        ...(entry.secondaryLabel ? { secondaryLabel: entry.secondaryLabel } : {}),
+        ...(entry.count != null ? { count: entry.count } : {}),
+      }));
+      warnings.push(...result.caveats);
+      advancedCartography = result.spec;
+      stylePatch[colorKey] = noDataExpression(field, noDataColor, "rgba(24, 76, 87, 0.18)");
+      stylePatch.classificationField = field;
+      stylePatch[STYLE_ADVANCED_CARTOGRAPHY_SPEC_KEY] = result.spec;
+    } else if (options.mode === "categorical") {
       entries = categoricalEntries({ layer, field, kind, colors });
       if (entries.length === 0) {
         warnings.push(`Field "${field}" has no categorical values; only no-data styling will be visible.`);
@@ -489,17 +598,29 @@ export function buildLayerStyleUpdate(
       if (options.mode === "proportional-symbol" || options.mode === "graduated-symbol") {
         const min = Math.min(...fieldSummary.numericValues);
         const max = Math.max(...fieldSummary.numericValues);
-        stylePatch["circle-radius"] = min === max
-          ? 8
-          : [
-              "interpolate",
-              ["linear"],
-              ["to-number", ["get", field], min],
-              min,
-              options.mode === "proportional-symbol" ? 4 : 5,
-              max,
-              options.mode === "proportional-symbol" ? 22 : 14,
-            ];
+        const minRadius = options.mode === "proportional-symbol" ? 4 : 5;
+        const maxRadius = options.mode === "proportional-symbol" ? 22 : 14;
+        stylePatch["circle-radius"] = buildProportionalRadiusExpression(field, min, max, minRadius, maxRadius);
+        if (options.mode === "proportional-symbol") {
+          const caveats: string[] = [];
+          if (min === max) {
+            caveats.push(`Proportional symbol field "${field}" is constant; symbol size cannot communicate magnitude differences.`);
+          }
+          if (fieldSummary.numericValues.length < fieldSummary.nonEmptyValues.length) {
+            caveats.push(`Proportional symbol field "${field}" contains non-numeric values; those features fall back to no-data styling.`);
+          }
+          warnings.push(...caveats);
+          advancedCartography = {
+            version: STYLE_ADVANCED_CARTOGRAPHY_SPEC_VERSION,
+            mode: "proportional-symbol",
+            layerId: layer.id,
+            layerName: layer.name,
+            updatedAt,
+            valueField: field,
+            caveats,
+          };
+          stylePatch[STYLE_ADVANCED_CARTOGRAPHY_SPEC_KEY] = advancedCartography;
+        }
       }
     }
   }
@@ -511,6 +632,7 @@ export function buildLayerStyleUpdate(
         color: noDataColor,
         kind,
         field,
+        ...(options.mode === "bivariate-choropleth" && secondaryField ? { secondaryField } : {}),
         noData: true,
       }
     : null;
@@ -564,12 +686,13 @@ export function buildLayerStyleUpdate(
       label: options.noDataLabel.trim() || "No data",
       color: noDataColor,
     },
+    ...(advancedCartography ? { advancedCartography } : {}),
     ...(labelSpec ? { labels: labelSpec } : {}),
     warnings,
   };
 
   const style = {
-    ...stripLabelStyleState(layer.style),
+    ...stripAdvancedStyleState(layer.style),
     ...stylePatch,
     [STYLE_LEGEND_SPEC_KEY]: legendSpec,
     legendEntries: legendEntries.map((entry) => ({
@@ -577,8 +700,12 @@ export function buildLayerStyleUpdate(
       color: entry.color,
       kind: entry.kind,
       ...(entry.field ? { field: entry.field } : {}),
+      ...(entry.secondaryField ? { secondaryField: entry.secondaryField } : {}),
+      ...(entry.secondaryLabel ? { secondaryLabel: entry.secondaryLabel } : {}),
       ...(entry.noData ? { noData: true } : {}),
       ...(entry.count != null ? { count: entry.count } : {}),
+      ...(entry.gridColumn != null ? { gridColumn: entry.gridColumn } : {}),
+      ...(entry.gridRow != null ? { gridRow: entry.gridRow } : {}),
     })),
     cartography: {
       mode: options.mode,

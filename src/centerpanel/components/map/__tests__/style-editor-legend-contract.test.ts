@@ -10,6 +10,11 @@ import { buildMapCompositionLegendItems } from "@/services/map/MapExportService"
 import { buildMapReportHandoffDraft } from "@/services/map/MapReportHandoffService";
 import { generateMapCartographyReview } from "@/services/map/MapCartographyAdvisor";
 import {
+  DOT_DENSITY_NORMALIZATION_CAVEAT,
+  buildDotDensityFeatureCollection,
+  getSerializedAdvancedCartographySpecFromStyle,
+} from "@/services/map/cartography/AdvancedCartographyEngine";
+import {
   buildMapLibreLabelFragments,
   cullOverlappingLabelCandidates,
   getSerializedMapLabelSpecFromStyle,
@@ -36,6 +41,29 @@ function projectedPolygonLayer(style: Record<string, unknown> = {}): OverlayLaye
         source: "explicit",
         notes: [],
       },
+    },
+  };
+}
+
+function advancedPolygonLayer(style: Record<string, unknown> = {}): OverlayLayerConfig {
+  const sourceData: GeoJSON.FeatureCollection = {
+    ...fcPolygonsProjected.featureCollection,
+    features: fcPolygonsProjected.featureCollection.features.map((feature, index) => ({
+      ...feature,
+      properties: {
+        ...(feature.properties ?? {}),
+        risk_score: 12 + index * 3,
+        population: 900 + index * 450,
+      },
+    })),
+  };
+
+  return {
+    ...projectedPolygonLayer(style),
+    sourceData,
+    metadata: {
+      ...projectedPolygonLayer(style).metadata,
+      fields: ["id", "zone", "area_m2", "risk_score", "population"],
     },
   };
 }
@@ -195,5 +223,86 @@ describe("style editor legend contract", () => {
 
     expect(result.visible.map((candidate) => candidate.id)).toEqual(["high", "far"]);
     expect(result.hidden.map((candidate) => candidate.id)).toEqual(["low"]);
+  });
+
+  it("serializes a bivariate choropleth as a 2 by 2 legend for map, report, and export", () => {
+    const layer = advancedPolygonLayer();
+    const update = buildLayerStyleUpdate(layer, {
+      ...getDefaultLayerStyleOptions(layer),
+      mode: "bivariate-choropleth",
+      field: "area_m2",
+      secondaryField: "risk_score",
+      classCount: 4,
+    }, "2026-05-29T00:00:00.000Z");
+    const styledLayer: OverlayLayerConfig = {
+      ...layer,
+      opacity: update.opacity,
+      style: update.style,
+      metadata: {
+        ...(layer.metadata ?? {}),
+        ...update.metadataPatch,
+      },
+    };
+
+    const cells = update.legendSpec.entries.filter((entry) => entry.kind === "bivariate" && !entry.noData);
+    const mapLegend = buildMapCompositionLegendItems([styledLayer]);
+    const reportDraft = buildMapReportHandoffDraft({
+      overlayLayers: [styledLayer],
+      viewport,
+      currentMapBounds: [28.9, 40.9, 29.2, 41.2],
+      baseLayerName: "Charcoal street atlas",
+      createdAt: "2026-05-29T00:00:00.000Z",
+    });
+
+    expect(cells).toHaveLength(4);
+    expect(new Set(cells.map((entry) => `${entry.gridColumn}:${entry.gridRow}`))).toEqual(new Set(["1:1", "1:2", "2:1", "2:2"]));
+    expect(update.legendSpec.advancedCartography?.mode).toBe("bivariate-choropleth");
+    expect(mapLegend.filter((entry) => entry.kind === "bivariate")).toHaveLength(4);
+    expect(reportDraft.snapshot.legendItems.filter((entry) => entry.kind === "bivariate")).toHaveLength(4);
+    expect(reportDraft.evidenceBlock.payload.composition.legendItems).toEqual(mapLegend);
+  });
+
+  it("emits dot-density normalization caveats through advisor and report evidence", () => {
+    const layer = advancedPolygonLayer();
+    const update = buildLayerStyleUpdate(layer, {
+      ...getDefaultLayerStyleOptions(layer),
+      mode: "dot-density",
+      field: "population",
+      dotValuePerDot: 1_000,
+    }, "2026-05-29T00:00:00.000Z");
+    const styledLayer: OverlayLayerConfig = {
+      ...layer,
+      opacity: update.opacity,
+      style: update.style,
+      metadata: {
+        ...(layer.metadata ?? {}),
+        ...update.metadataPatch,
+      },
+    };
+    const advancedSpec = getSerializedAdvancedCartographySpecFromStyle(styledLayer.style);
+    const dotFeatures = buildDotDensityFeatureCollection(styledLayer, advancedSpec!);
+    const review = generateMapCartographyReview([styledLayer], {
+      now: new Date("2026-05-29T00:00:00.000Z"),
+    });
+    const reportDraft = buildMapReportHandoffDraft({
+      overlayLayers: [styledLayer],
+      viewport,
+      currentMapBounds: [28.9, 40.9, 29.2, 41.2],
+      baseLayerName: "Charcoal street atlas",
+      createdAt: "2026-05-29T00:00:00.000Z",
+    });
+
+    expect(advancedSpec?.mode).toBe("dot-density");
+    expect(update.legendSpec.entries).toEqual(expect.arrayContaining([
+      expect.objectContaining({ kind: "dot-density", label: "1 dot = 1,000 population" }),
+    ]));
+    expect(update.warnings).toContain(DOT_DENSITY_NORMALIZATION_CAVEAT);
+    expect(dotFeatures.features.length).toBeGreaterThan(0);
+    expect(review.recommendations).toEqual(expect.arrayContaining([
+      expect.objectContaining({ type: "advanced-renderer-caveat", severity: "warning" }),
+    ]));
+    expect(reportDraft.evidenceBlock.payload.qa.caveats).toEqual(expect.arrayContaining([
+      expect.stringContaining(DOT_DENSITY_NORMALIZATION_CAVEAT),
+    ]));
   });
 });

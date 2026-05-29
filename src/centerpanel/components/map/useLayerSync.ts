@@ -14,6 +14,11 @@ import {
   buildMapLibreLabelFragments,
   getSerializedMapLabelSpecFromStyle,
 } from "@/services/map/labels/MapLabelEngine";
+import {
+  STYLE_ADVANCED_CARTOGRAPHY_SPEC_KEY,
+  buildDotDensityFeatureCollection,
+  getSerializedAdvancedCartographySpecFromStyle,
+} from "@/services/map/cartography/AdvancedCartographyEngine";
 import type { OverlayLayerConfig } from "./mapTypes";
 import { MAP_COLORS, resolveMapPaintColor } from "./mapTokens";
 
@@ -43,14 +48,24 @@ function companionCircleLayerId(layerId: string): string {
   return `${layerId}__companionCircle`;
 }
 
+function dotDensitySourceId(layerId: string): string {
+  return `${layerId}__dotDensitySource`;
+}
+
+function dotDensityLayerId(layerId: string): string {
+  return `${layerId}__dotDensity`;
+}
+
 function stripInternalStyle(style?: Record<string, unknown>): Record<string, unknown> {
   const nonPaintKeys = new Set([
     "legend",
     "legendEntries",
     "legendSpec",
     STYLE_LABEL_SPEC_KEY,
+    STYLE_ADVANCED_CARTOGRAPHY_SPEC_KEY,
     "classes",
     "classificationField",
+    "classificationFieldSecondary",
     "classificationMethod",
     "cartography",
     "cartographyReview",
@@ -83,6 +98,10 @@ function buildRenderNormalizationOptions(layer: OverlayLayerConfig): GeoJSONRend
   const labelField = labelSpec?.field ?? getInternalStyleValue<string>(layer.style, LABEL_FIELD_STYLE_KEY);
   if (labelField) preservePropertyKeys.add(labelField);
   if (labelSpec?.priorityField) preservePropertyKeys.add(labelSpec.priorityField);
+  const advancedSpec = getSerializedAdvancedCartographySpecFromStyle(layer.style);
+  if (advancedSpec?.valueField) preservePropertyKeys.add(advancedSpec.valueField);
+  if (advancedSpec?.secondaryField) preservePropertyKeys.add(advancedSpec.secondaryField);
+  if (advancedSpec?.normalizationField) preservePropertyKeys.add(advancedSpec.normalizationField);
 
   const classificationField = typeof layer.style?.classificationField === "string"
     ? layer.style.classificationField
@@ -228,6 +247,9 @@ function getManagedLayerIds(layer: OverlayLayerConfig): string[] {
   if (getInternalStyleValue(layer.style, COMPANION_CIRCLE_STYLE_KEY)) {
     ids.push(companionCircleLayerId(layer.id));
   }
+  if (getSerializedAdvancedCartographySpecFromStyle(layer.style)?.mode === "dot-density") {
+    ids.push(dotDensityLayerId(layer.id));
+  }
   if (getSerializedMapLabelSpecFromStyle(layer.style) || getInternalStyleValue(layer.style, LABEL_FIELD_STYLE_KEY)) {
     ids.push(labelLayerId(layer.id));
   }
@@ -318,11 +340,42 @@ function buildCompanionCircleLayerSpec(
   } as maplibregl.LayerSpecification;
 }
 
+function buildDotDensityLayerSpec(
+  layer: OverlayLayerConfig,
+): maplibregl.LayerSpecification | null {
+  if (!isGeoJSONBackedLayer(layer)) {
+    return null;
+  }
+
+  const spec = getSerializedAdvancedCartographySpecFromStyle(layer.style);
+  if (!spec || spec.mode !== "dot-density") {
+    return null;
+  }
+
+  return {
+    id: dotDensityLayerId(layer.id),
+    type: "circle",
+    source: dotDensitySourceId(layer.id),
+    layout: {
+      visibility: layer.visible ? "visible" : "none",
+    },
+    paint: {
+      "circle-radius": spec.dotRadius ?? 2.4,
+      "circle-color": resolveMapPaintColor(spec.dotColor ?? "rgb(249, 115, 22)"),
+      "circle-opacity": Math.min(1, Math.max(0.25, layer.opacity)),
+      "circle-stroke-color": "rgba(17,24,39,0.72)",
+      "circle-stroke-width": 0.5,
+    },
+  } as maplibregl.LayerSpecification;
+}
+
 function removeManagedLayer(map: maplibregl.Map, layerId: string): void {
   try {
     if (map.getLayer(labelLayerId(layerId))) map.removeLayer(labelLayerId(layerId));
+    if (map.getLayer(dotDensityLayerId(layerId))) map.removeLayer(dotDensityLayerId(layerId));
     if (map.getLayer(companionCircleLayerId(layerId))) map.removeLayer(companionCircleLayerId(layerId));
     if (map.getLayer(layerId)) map.removeLayer(layerId);
+    if (map.getSource(dotDensitySourceId(layerId))) map.removeSource(dotDensitySourceId(layerId));
     if (map.getSource(layerId)) map.removeSource(layerId);
   } catch {
     /* layer already cleaned up by style/source change */
@@ -369,6 +422,16 @@ function addManagedLayer(map: maplibregl.Map, layer: OverlayLayerConfig): void {
   const companionCircleSpec = buildCompanionCircleLayerSpec(layer);
   if (companionCircleSpec) {
     map.addLayer(companionCircleSpec);
+  }
+
+  const dotDensitySpec = getSerializedAdvancedCartographySpecFromStyle(layer.style);
+  const dotDensityLayerSpec = buildDotDensityLayerSpec(layer);
+  if (dotDensitySpec?.mode === "dot-density" && dotDensityLayerSpec) {
+    map.addSource(dotDensitySourceId(layer.id), {
+      type: "geojson",
+      data: layer.visible ? buildDotDensityFeatureCollection(layer, dotDensitySpec) : EMPTY_FEATURE_COLLECTION,
+    });
+    map.addLayer(dotDensityLayerSpec);
   }
 
   const labelSpec = buildLabelLayerSpec(layer);
@@ -470,6 +533,11 @@ export function useLayerSync(
           try {
             const source = map.getSource(layer.id) as maplibregl.GeoJSONSource | undefined;
             source?.setData(resolveGeoJSONRenderData(layer));
+            const dotDensitySpec = getSerializedAdvancedCartographySpecFromStyle(layer.style);
+            const dotDensitySource = map.getSource(dotDensitySourceId(layer.id)) as maplibregl.GeoJSONSource | undefined;
+            if (dotDensitySpec?.mode === "dot-density" && dotDensitySource) {
+              dotDensitySource.setData(layer.visible ? buildDotDensityFeatureCollection(layer, dotDensitySpec) : EMPTY_FEATURE_COLLECTION);
+            }
             operationCount += 1;
           } catch { /* ignore */ }
         }
@@ -510,6 +578,14 @@ export function useLayerSync(
                 companionCircleLayerId(layer.id),
                 "circle-opacity",
                 (getInternalStyleValue<number>(layer.style, COMPANION_CIRCLE_OPACITY_STYLE_KEY) ?? 0.55) * layer.opacity,
+              );
+              operationCount += 1;
+            }
+            if (map.getLayer(dotDensityLayerId(layer.id))) {
+              map.setPaintProperty(
+                dotDensityLayerId(layer.id),
+                "circle-opacity",
+                Math.min(1, Math.max(0.25, layer.opacity)),
               );
               operationCount += 1;
             }

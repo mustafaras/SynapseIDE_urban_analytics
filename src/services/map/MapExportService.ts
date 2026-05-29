@@ -204,7 +204,7 @@ export interface MapCompositionLegendItem {
   label: string;
   color: string;
   secondaryLabel?: string;
-  kind: "fill" | "line" | "circle" | "raster" | "heatmap" | "label";
+  kind: "fill" | "line" | "circle" | "raster" | "heatmap" | "label" | "bivariate" | "dot-density";
 }
 
 export interface MapCompositionOptions {
@@ -1560,7 +1560,7 @@ function drawPublicationLegend(
       context.fillStyle = item.color;
       context.font = `700 ${Math.round(10 * scale)}px ${MAP_TYPOGRAPHY.fontFamily}`;
       context.fillText("Aa", swatchX, swatchY + Math.round(9 * scale));
-    } else if (item.kind === "circle") {
+    } else if (item.kind === "circle" || item.kind === "dot-density") {
       context.beginPath();
       context.arc(swatchX + Math.round(7 * scale), swatchY + Math.round(6 * scale), Math.round(5 * scale), 0, Math.PI * 2);
       context.fill();
@@ -1788,7 +1788,7 @@ function drawA0LegendPanel(options: { overlayLayers?: OverlayLayerConfig[] }): s
       context.fillStyle = item.color;
       context.font = `700 ${Math.round(4.4 * pxPerMm)}px ${MAP_TYPOGRAPHY.fontFamily}`;
       context.fillText("Aa", padding, y - 0.6 * pxPerMm);
-    } else if (item.kind === "circle") {
+    } else if (item.kind === "circle" || item.kind === "dot-density") {
       context.beginPath();
       context.arc(padding + swatchSize / 2, y + swatchSize / 2, swatchSize / 2, 0, Math.PI * 2);
       context.fill();
@@ -2182,7 +2182,17 @@ function buildPublicationSvg(
     chunks.push(`<text x="${origin.x + Math.round(10 * scale)}" y="${origin.y + Math.round(18 * scale)}" font-family="${escapeXml(MAP_TYPOGRAPHY.fontFamilyBrand)}" font-size="${Math.round(11 * scale)}" font-weight="700" fill="#111827">Legend</text>`);
     legendItems.slice(0, 12).forEach((item, index) => {
       const rowY = origin.y + Math.round(34 * scale) + index * rowHeight;
-      chunks.push(`<rect x="${origin.x + Math.round(10 * scale)}" y="${rowY - Math.round(9 * scale)}" width="${Math.round(16 * scale)}" height="${Math.round(10 * scale)}" fill="${escapeXml(item.color)}"/>`);
+      const swatchX = origin.x + Math.round(10 * scale);
+      const swatchY = rowY - Math.round(9 * scale);
+      if (item.kind === "line") {
+        chunks.push(`<line x1="${swatchX}" y1="${swatchY + Math.round(5 * scale)}" x2="${swatchX + Math.round(18 * scale)}" y2="${swatchY + Math.round(5 * scale)}" stroke="${escapeXml(item.color)}" stroke-width="${Math.max(2, Math.round(2 * scale))}"/>`);
+      } else if (item.kind === "label") {
+        chunks.push(`<text x="${swatchX}" y="${swatchY + Math.round(9 * scale)}" font-family="${escapeXml(MAP_TYPOGRAPHY.fontFamily)}" font-size="${Math.round(10 * scale)}" font-weight="700" fill="${escapeXml(item.color)}">Aa</text>`);
+      } else if (item.kind === "circle" || item.kind === "dot-density") {
+        chunks.push(`<circle cx="${swatchX + Math.round(7 * scale)}" cy="${swatchY + Math.round(6 * scale)}" r="${Math.round(5 * scale)}" fill="${escapeXml(item.color)}"/>`);
+      } else {
+        chunks.push(`<rect x="${swatchX}" y="${swatchY}" width="${Math.round(16 * scale)}" height="${Math.round(10 * scale)}" fill="${escapeXml(item.color)}"/>`);
+      }
       chunks.push(`<text x="${origin.x + Math.round(34 * scale)}" y="${rowY}" font-family="${escapeXml(MAP_TYPOGRAPHY.fontFamily)}" font-size="${Math.round(9 * scale)}" fill="#1F2937">${escapeXml(item.label)}</text>`);
     });
   }

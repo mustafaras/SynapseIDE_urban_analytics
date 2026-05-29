@@ -15,6 +15,10 @@ import {
   getColorRampDefinition,
   type ColorRampName,
 } from "@/utils/colorRamps";
+import {
+  DOT_DENSITY_NORMALIZATION_CAVEAT,
+  getSerializedAdvancedCartographySpecFromStyle,
+} from "./cartography/AdvancedCartographyEngine";
 
 export const MAP_CARTOGRAPHY_ADVISOR_VERSION = 1;
 export const DEFAULT_CARTOGRAPHY_CLASS_COUNT = 5;
@@ -34,7 +38,8 @@ export type MapCartographyRecommendationType =
   | "label-readability"
   | "legend-completeness"
   | "uncertainty-metadata"
-  | "accessibility-contrast";
+  | "accessibility-contrast"
+  | "advanced-renderer-caveat";
 
 export type MapCartographyDistributionShape =
   | "empty"
@@ -77,6 +82,7 @@ export interface MapCartographyLegendPreviewItem {
   label: string;
   color: string;
   secondaryLabel?: string;
+  kind?: "fill" | "line" | "circle" | "raster" | "heatmap" | "label" | "bivariate" | "dot-density";
 }
 
 export interface MapCartographyRecommendationPreview {
@@ -571,7 +577,16 @@ function existingLegend(layer: OverlayLayerConfig): MapCartographyLegendPreviewI
             : typeof entry.range === "string"
               ? entry.range
               : `Class ${index + 1}`;
-        return { label, color, secondaryLabel: layer.name };
+        const kind = typeof entry.kind === "string" &&
+          ["fill", "line", "circle", "raster", "heatmap", "label", "bivariate", "dot-density"].includes(entry.kind)
+          ? entry.kind as MapCartographyLegendPreviewItem["kind"]
+          : undefined;
+        return {
+          label,
+          color,
+          secondaryLabel: typeof entry.secondaryLabel === "string" ? entry.secondaryLabel : layer.name,
+          ...(kind ? { kind } : {}),
+        };
       })
       .filter((entry): entry is MapCartographyLegendPreviewItem => entry != null);
   }
@@ -1167,6 +1182,52 @@ function createUncertaintyRecommendation(
   };
 }
 
+function createAdvancedRendererCaveatRecommendation(
+  layer: OverlayLayerConfig,
+  options?: MapCartographyAdvisorOptions,
+): MapCartographyRecommendation | null {
+  const spec = getSerializedAdvancedCartographySpecFromStyle(layer.style);
+  if (!spec) return null;
+
+  const caveats = spec.caveats.length > 0
+    ? spec.caveats
+    : spec.mode === "dot-density" && !spec.normalizationField
+      ? [DOT_DENSITY_NORMALIZATION_CAVEAT]
+      : [];
+  if (caveats.length === 0) return null;
+
+  const id = recommendationId(layer, "advanced-renderer-caveat", `${spec.mode}-${spec.valueField}-${spec.secondaryField ?? spec.normalizationField ?? "raw"}`);
+  if (options?.dismissedRecommendationIds?.has(id)) {
+    return null;
+  }
+
+  const modeLabel = spec.mode === "bivariate-choropleth"
+    ? "Bivariate renderer"
+    : spec.mode === "dot-density"
+      ? "Dot-density renderer"
+      : "Proportional symbol renderer";
+
+  return {
+    id,
+    type: "advanced-renderer-caveat",
+    severity: "warning",
+    layerId: layer.id,
+    layerName: layer.name,
+    field: spec.valueField,
+    title: `${modeLabel} has a publication caveat`,
+    rationale: caveats.join(" "),
+    suggestedFix: spec.mode === "dot-density"
+      ? "Add an area-normalization field or state that dots represent raw counts before export."
+      : "Review the fields and legend cells before using this advanced style as evidence.",
+    detailUrl: "#cartography-advanced-renderers",
+    preview: {
+      beforeLegend: existingLegend(layer),
+      afterLegend: existingLegend(layer),
+      summary: "Advanced cartography caveats remain attached to the style, report, and export legend.",
+    },
+  };
+}
+
 export function generateLayerCartographyRecommendations(
   layer: OverlayLayerConfig,
   options?: MapCartographyAdvisorOptions,
@@ -1180,6 +1241,9 @@ export function generateLayerCartographyRecommendations(
   const primaryNumericField = numericFields[0] ?? null;
   const styleColors = colorsFromStyle(layer.style);
   const recommendations: MapCartographyRecommendation[] = [];
+
+  const advancedRendererRecommendation = createAdvancedRendererCaveatRecommendation(layer, options);
+  if (advancedRendererRecommendation) recommendations.push(advancedRendererRecommendation);
 
   if ((family === "polygon" || family === "line") && primaryNumericField) {
     const classificationRecommendation = createClassificationRecommendation(
