@@ -1,5 +1,6 @@
 import type {
   LayerRenderBudgetMetadata,
+  MapReprojectionCacheLayerMetadata,
   OverlayLayerConfig,
 } from "@/centerpanel/components/map/mapTypes";
 import {
@@ -42,6 +43,22 @@ export interface MapPerformanceBudgets {
   renderMemoryBytes: number;
 }
 
+export interface MapReprojectionCacheDiagnosticsSummary {
+  layerCount: number;
+  entries: number;
+  maxEntries: number;
+  hits: number;
+  misses: number;
+  bypasses: number;
+  evictions: number;
+  hitRate: number;
+  projectedFeatureCount: number;
+  projectedCoordinateCount: number;
+  sourceIds: string[];
+  targetCrs: string | null;
+  lastRunAt: string | null;
+}
+
 export interface MapPerformanceDiagnosticsSummary {
   budgets: MapPerformanceBudgets;
   layerCount: number;
@@ -56,6 +73,7 @@ export interface MapPerformanceDiagnosticsSummary {
   renderMode: LayerRenderBudgetMetadata["mode"];
   lastRenderTiming: MapPerformanceTimingMetric | null;
   lastExportTiming: MapPerformanceTimingMetric | null;
+  reprojectionCache: MapReprojectionCacheDiagnosticsSummary;
   layers: MapLayerPerformanceSummary[];
   warnings: string[];
 }
@@ -140,6 +158,7 @@ export function buildMapPerformanceDiagnostics(input: {
   const timings = input.timings ?? [];
   const lastRenderTiming = findLastTiming(timings, "render");
   const lastExportTiming = findLastTiming(timings, "export");
+  const reprojectionCache = buildReprojectionCacheDiagnostics(input.overlayLayers);
   const warnings = buildPerformanceWarnings({
     budgets,
     visibleLayerCount: visibleLayers.length,
@@ -163,9 +182,63 @@ export function buildMapPerformanceDiagnostics(input: {
     renderMode: previewLayerCount > 0 ? "preview" : "full",
     lastRenderTiming,
     lastExportTiming,
+    reprojectionCache,
     layers,
     warnings,
   };
+}
+
+function buildReprojectionCacheDiagnostics(
+  overlayLayers: readonly OverlayLayerConfig[],
+): MapReprojectionCacheDiagnosticsSummary {
+  const cacheLayers = overlayLayers
+    .map((layer) => layer.metadata?.reprojectionCache)
+    .filter((entry): entry is MapReprojectionCacheLayerMetadata => Boolean(entry));
+  if (cacheLayers.length === 0) {
+    return {
+      layerCount: 0,
+      entries: 0,
+      maxEntries: 0,
+      hits: 0,
+      misses: 0,
+      bypasses: 0,
+      evictions: 0,
+      hitRate: 0,
+      projectedFeatureCount: 0,
+      projectedCoordinateCount: 0,
+      sourceIds: [],
+      targetCrs: null,
+      lastRunAt: null,
+    };
+  }
+
+  const latest = findLatestReprojectionCache(cacheLayers);
+  const hits = sumNumbers(cacheLayers.map((entry) => entry.hits));
+  const misses = sumNumbers(cacheLayers.map((entry) => entry.misses));
+  const measurable = hits + misses;
+  return {
+    layerCount: cacheLayers.length,
+    entries: latest.entries,
+    maxEntries: latest.maxEntries,
+    hits,
+    misses,
+    bypasses: sumNumbers(cacheLayers.map((entry) => entry.bypasses)),
+    evictions: sumNumbers(cacheLayers.map((entry) => entry.evictions)),
+    hitRate: measurable > 0 ? hits / measurable : 0,
+    projectedFeatureCount: sumNumbers(cacheLayers.map((entry) => entry.projectedFeatureCount)),
+    projectedCoordinateCount: sumNumbers(cacheLayers.map((entry) => entry.projectedCoordinateCount)),
+    sourceIds: uniqueText(cacheLayers.flatMap((entry) => entry.sourceIds)),
+    targetCrs: latest.targetCrs,
+    lastRunAt: latest.lastRunAt,
+  };
+}
+
+function findLatestReprojectionCache(
+  entries: readonly MapReprojectionCacheLayerMetadata[],
+): MapReprojectionCacheLayerMetadata {
+  return entries.reduce((latest, entry) => (
+    Date.parse(entry.lastRunAt) >= Date.parse(latest.lastRunAt) ? entry : latest
+  ), entries[0]!);
 }
 
 function buildLayerPerformanceSummary(
@@ -280,6 +353,10 @@ function findLastTiming(
 
 function sumNumbers(values: readonly number[]): number {
   return values.reduce((sum, value) => sum + (Number.isFinite(value) ? value : 0), 0);
+}
+
+function uniqueText(values: readonly string[]): string[] {
+  return Array.from(new Set(values.filter((value) => value.trim().length > 0)));
 }
 
 function performanceNow(): number {

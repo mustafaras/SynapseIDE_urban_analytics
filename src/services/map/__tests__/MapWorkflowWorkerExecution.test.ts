@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import {
   applyMapWorkflowPreview,
   buildGeometryWorkflowRequest,
@@ -16,6 +16,7 @@ import {
   type GeometryWorkflowComputation,
   type GeometryWorkflowRequest,
 } from "../geometry/GeometryWorkflowEngine";
+import { __resetReprojectionCacheForTests } from "../geometry/ReprojectionCache";
 import { BackgroundTaskCancelledError } from "@/workers/pool";
 import type { OverlayLayerConfig } from "@/centerpanel/components/map/mapTypes";
 import { fcPolygonsProjected } from "@/centerpanel/components/map/__tests__/fixtures/gisFixtures";
@@ -35,6 +36,8 @@ function projectedLayer(): OverlayLayerConfig {
       geometryType: "Polygon",
       featureCount: fcPolygonsProjected.featureCollection.features.length,
       fields: ["id", "zone", "area_m2"],
+      sourceId: "source:projected-parcels",
+      dataVersion: "projected-parcels:v1",
       crsSummary: { crs: EXECUTION_CRS, status: "known", source: "explicit", notes: [] },
     },
   };
@@ -70,6 +73,10 @@ function inlineExecutor(): MapWorkflowWorkerExecutor {
 }
 
 describe("MapWorkflowService worker execution", () => {
+  beforeEach(() => {
+    __resetReprojectionCacheForTests();
+  });
+
   it("builds a serializable geometry request carrying the execution CRS", () => {
     const { context, preview } = bufferPreview();
     const request = buildGeometryWorkflowRequest(preview, context);
@@ -77,6 +84,11 @@ describe("MapWorkflowService worker execution", () => {
     expect(request?.op).toBe("buffer");
     expect(request?.executionCrs).toBe(EXECUTION_CRS);
     expect(request?.sources[0]?.features.length).toBe(fcPolygonsProjected.featureCollection.features.length);
+    expect(request?.sourceFingerprints?.[0]).toMatchObject({
+      sourceId: "source:projected-parcels",
+      sourceCrs: EXECUTION_CRS,
+      dataVersion: "projected-parcels:v1",
+    });
     expect(request?.preferGeos).toBe(true);
   });
 
@@ -96,7 +108,9 @@ describe("MapWorkflowService worker execution", () => {
     // Output CRS = execution CRS.
     expect(result.manifest.crsSummary.executionCrs).toBe(EXECUTION_CRS);
     expect(result.layer.metadata?.reproducibilityManifest?.crsSummary.executionCrs).toBe(EXECUTION_CRS);
+    expect(result.layer.metadata?.reprojectionCache).toMatchObject({ entries: 1, misses: 1 });
     expect(result.reportItem.metrics.executed_in_worker).toBe(1);
+    expect(result.reportItem.metrics.reprojection_cache_misses).toBe(1);
     expect(updates.some((update) => update.status === "completed")).toBe(true);
   });
 
@@ -112,10 +126,26 @@ describe("MapWorkflowService worker execution", () => {
       backend: "turf",
       executionCrs: EXECUTION_CRS,
       inputFeatureCount: fcPolygonsProjected.featureCollection.features.length,
+      reprojectionCache: {
+        hits: 1,
+        misses: 0,
+        bypasses: 0,
+        evictions: 0,
+        entries: 1,
+        maxEntries: 12,
+        hitRate: 1,
+        projectedFeatureCount: fcPolygonsProjected.featureCollection.features.length,
+        projectedCoordinateCount: 50,
+        sourceIds: ["source:projected-parcels"],
+        targetCrs: EXECUTION_CRS,
+        measuredAt: "2026-05-01T12:00:00.000Z",
+        accesses: [],
+      },
     };
     const result = finalizeWorkerWorkflowResult(preview, context, computation);
     expect(result).not.toBeNull();
     expect(result?.manifest.crsSummary.executionCrs).toBe(EXECUTION_CRS);
+    expect(result?.layer.metadata?.reprojectionCache?.hits).toBe(1);
   });
 
   it("propagates a clean cancellation as BackgroundTaskCancelledError", async () => {

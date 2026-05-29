@@ -217,6 +217,13 @@ function modeBadgeStyle(mode: MapPerformanceDiagnosticsSummary["renderMode"]): R
   };
 }
 
+function formatCacheHitRate(diagnostics: MapPerformanceDiagnosticsSummary): string {
+  const cache = diagnostics.reprojectionCache;
+  const attempts = cache.hits + cache.misses;
+  if (attempts === 0) return "No runs";
+  return `${Math.round(cache.hitRate * 100)}% (${formatCount(cache.hits)}/${formatCount(attempts)})`;
+}
+
 export const MapPerformanceBudgetBanner: React.FC<MapPerformanceBudgetBannerProps> = ({
   diagnostics,
   rightInset = 16,
@@ -289,6 +296,7 @@ export const MapPerformanceDiagnosticsPanel: React.FC<MapPerformanceDiagnosticsP
         <StatCell label="Layer sync" value={formatPerformanceDuration(diagnostics.lastRenderTiming?.durationMs)} />
         <StatCell label="Last export" value={formatPerformanceDuration(diagnostics.lastExportTiming?.durationMs)} />
         <StatCell label="Preview layers" value={formatCount(diagnostics.previewLayerCount)} tone={diagnostics.previewLayerCount > 0 ? "warning" : "success"} />
+        <StatCell label="Reproj cache" value={formatCacheHitRate(diagnostics)} tone={diagnostics.reprojectionCache.hits > 0 ? "success" : "neutral"} />
       </div>
 
       <div style={bodyStyle}>
@@ -302,6 +310,14 @@ export const MapPerformanceDiagnosticsPanel: React.FC<MapPerformanceDiagnosticsP
             <span style={{ color: MAP_COLORS.textSecondary, fontFamily: MAP_TYPOGRAPHY.fontFamilyMono, fontSize: MAP_TYPOGRAPHY.fontSize.xs }}>
               Feature budget {formatCount(diagnostics.budgets.renderFeatureCount)} / coordinate budget {formatCount(diagnostics.budgets.renderCoordinateCount)} / memory budget {formatPerformanceBytes(diagnostics.budgets.renderMemoryBytes)}.
             </span>
+            {diagnostics.reprojectionCache.layerCount > 0 ? (
+              <span
+                data-testid="map-performance-reprojection-cache-line"
+                style={{ color: MAP_COLORS.textSecondary, fontFamily: MAP_TYPOGRAPHY.fontFamilyMono, fontSize: MAP_TYPOGRAPHY.fontSize.xs }}
+              >
+                Reprojection cache {formatCount(diagnostics.reprojectionCache.entries)}/{formatCount(diagnostics.reprojectionCache.maxEntries)} entries / {formatCount(diagnostics.reprojectionCache.hits)} hits / {formatCount(diagnostics.reprojectionCache.misses)} misses / {formatCount(diagnostics.reprojectionCache.evictions)} evictions.
+              </span>
+            ) : null}
           </div>
           {diagnostics.warnings.length > 0 ? (
             <div style={warningPanelStyle} data-testid="map-performance-warnings">

@@ -29,6 +29,7 @@ import type {
   LayerQaStatus,
   LayerScientificQAMetadata,
   LayerSourceKind,
+  MapReprojectionCacheLayerMetadata,
   MapReproducibilityExpectedOutput,
   MapReproducibilityLayerReference,
   MapReproducibilityManifest,
@@ -54,7 +55,9 @@ import {
   type GeometryWorkflowComputation,
   type GeometryWorkflowParams,
   type GeometryWorkflowRequest,
+  type GeometryWorkflowSourceFingerprint,
 } from "./geometry/GeometryWorkflowEngine";
+import type { ReprojectionCacheRunSummary } from "./geometry/ReprojectionCache";
 import {
   summarizeDrawnGeometryValidation,
   validateDrawnGeometry,
@@ -198,6 +201,7 @@ export interface MapWorkflowSourceLayerSummary {
   geometryType: string;
   geometryClass: MapWorkflowGeometryClass;
   featureCount: number;
+  sourceId: string | null;
   crs: string | null;
   dataVersion: string | null;
   fields: string[];
@@ -366,6 +370,7 @@ export interface MapWorkflowPreview {
   suggestions: MapWorkflowSuggestedAction[];
   crsPreflight: CrsPreflightResult;
   comparisonState?: MapWorkflowComparisonStatePreview;
+  reprojectionCache?: MapReprojectionCacheLayerMetadata;
 }
 
 export interface MapWorkflowComparisonStatePreview {
@@ -449,6 +454,7 @@ export function buildMapWorkflowContext(
       geometryType: typeof geometryType === "string" ? geometryType : "Unknown",
       geometryClass: classifyGeometry(geometryType ?? "Unknown"),
       featureCount,
+      sourceId: layer.metadata?.sourceId ?? layer.metadata?.persistence?.sourceId ?? null,
       crs,
       dataVersion:
         layer.metadata?.dataVersion ??
@@ -716,7 +722,16 @@ export function buildGeometryWorkflowRequest(
       dissolve: draft.dissolve,
       sourceLayerId,
     };
-    return { op: "buffer", sources: [source], params, executionCrs, displayCrs, sourceLayerIds, preferGeos: true };
+    return {
+      op: "buffer",
+      sources: [source],
+      params,
+      executionCrs,
+      displayCrs,
+      sourceLayerIds,
+      sourceFingerprints: [buildGeometryWorkflowSourceFingerprint(context, sourceLayerId, displayCrs)],
+      preferGeos: true,
+    };
   }
 
   if (draft.kind === "intersect" || draft.kind === "difference" || draft.kind === "union") {
@@ -729,10 +744,35 @@ export function buildGeometryWorkflowRequest(
         : draft.kind === "union"
           ? { op: "union", dissolve: draft.dissolve }
           : { op: "difference" };
-    return { op: draft.kind, sources: [sourceA, sourceB], params, executionCrs, displayCrs, sourceLayerIds, preferGeos: true };
+    return {
+      op: draft.kind,
+      sources: [sourceA, sourceB],
+      params,
+      executionCrs,
+      displayCrs,
+      sourceLayerIds,
+      sourceFingerprints: [
+        buildGeometryWorkflowSourceFingerprint(context, draft.layerAId ?? "layer-a", displayCrs),
+        buildGeometryWorkflowSourceFingerprint(context, draft.layerBId ?? "layer-b", displayCrs),
+      ],
+      preferGeos: true,
+    };
   }
 
   return null;
+}
+
+function buildGeometryWorkflowSourceFingerprint(
+  context: MapWorkflowContext,
+  layerId: string,
+  displayCrs: string,
+): GeometryWorkflowSourceFingerprint {
+  const layer = context.layers.find((entry) => entry.id === layerId);
+  return {
+    sourceId: layer?.sourceId ?? layer?.id ?? layerId,
+    sourceCrs: layer?.crs ?? displayCrs,
+    dataVersion: layer?.dataVersion ?? null,
+  };
 }
 
 /**
@@ -745,7 +785,10 @@ export function finalizeWorkerWorkflowResult(
   context: MapWorkflowContext,
   computation: GeometryWorkflowComputation,
 ): MapWorkflowApplyResult | null {
-  const committedPreview: MapWorkflowPreview = {
+  const reprojectionCache = computation.reprojectionCache
+    ? toReprojectionCacheLayerMetadata(computation.reprojectionCache)
+    : preview.reprojectionCache;
+  const committedPreviewBase: MapWorkflowPreview = {
     ...preview,
     featureCollection: computation.featureCollection,
     featureCount: computation.featureCount,
@@ -760,7 +803,27 @@ export function finalizeWorkerWorkflowResult(
     executionDeferred: false,
     canApply: true,
   };
+  const committedPreview = reprojectionCache
+    ? { ...committedPreviewBase, reprojectionCache }
+    : committedPreviewBase;
   return applyMapWorkflowPreview(committedPreview, context);
+}
+
+function toReprojectionCacheLayerMetadata(summary: ReprojectionCacheRunSummary): MapReprojectionCacheLayerMetadata {
+  return {
+    entries: summary.entries,
+    maxEntries: summary.maxEntries,
+    hits: summary.hits,
+    misses: summary.misses,
+    bypasses: summary.bypasses,
+    evictions: summary.evictions,
+    hitRate: summary.hitRate,
+    projectedFeatureCount: summary.projectedFeatureCount,
+    projectedCoordinateCount: summary.projectedCoordinateCount,
+    sourceIds: [...summary.sourceIds],
+    targetCrs: summary.targetCrs,
+    lastRunAt: summary.measuredAt,
+  };
 }
 
 /**
@@ -2516,6 +2579,9 @@ function buildDerivedLayer(
     updatedAt: nowIso(context),
     scientificQA: qaMetadata,
   };
+  if (preview.reprojectionCache) {
+    metadata.reprojectionCache = preview.reprojectionCache;
+  }
 
   return {
     id: layerId,

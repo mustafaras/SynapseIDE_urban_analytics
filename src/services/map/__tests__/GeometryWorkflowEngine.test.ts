@@ -1,10 +1,14 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import {
   GeometryWorkflowError,
   computeGeometryWorkflow,
   type GeometryWorkflowProgress,
   type GeometryWorkflowRequest,
 } from "../geometry/GeometryWorkflowEngine";
+import {
+  __resetReprojectionCacheForTests,
+  getReprojectionCacheStats,
+} from "../geometry/ReprojectionCache";
 import { fcPolygonsProjected } from "@/centerpanel/components/map/__tests__/fixtures/gisFixtures";
 
 const EXECUTION_CRS = "EPSG:32635";
@@ -13,7 +17,24 @@ function polygonSource() {
   return structuredClone(fcPolygonsProjected.featureCollection);
 }
 
+function cachedBufferRequest(dataVersion: string): GeometryWorkflowRequest {
+  return {
+    op: "buffer",
+    sources: [polygonSource()],
+    params: { op: "buffer", meters: 250, segments: 16, dissolve: false, sourceLayerId: "parcels" },
+    executionCrs: EXECUTION_CRS,
+    displayCrs: "EPSG:4326",
+    sourceLayerIds: ["parcels"],
+    sourceFingerprints: [{ sourceId: "source:parcels", sourceCrs: EXECUTION_CRS, dataVersion }],
+    preferGeos: true,
+  };
+}
+
 describe("GeometryWorkflowEngine.computeGeometryWorkflow", () => {
+  beforeEach(() => {
+    __resetReprojectionCacheForTests();
+  });
+
   it("buffers a source off the main thread, reporting progress and a manifest-ready computation", async () => {
     const progress: GeometryWorkflowProgress[] = [];
     const request: GeometryWorkflowRequest = {
@@ -140,5 +161,37 @@ describe("GeometryWorkflowEngine.computeGeometryWorkflow", () => {
         sourceLayerIds: ["parcels"],
       }),
     ).rejects.toBeInstanceOf(GeometryWorkflowError);
+  });
+
+  it("reuses projected geometry on a repeated metric workflow cache hit", async () => {
+    const first = await computeGeometryWorkflow(cachedBufferRequest("v1"));
+    const progress: GeometryWorkflowProgress[] = [];
+    const second = await computeGeometryWorkflow(cachedBufferRequest("v1"), (update) => progress.push(update));
+
+    expect(first.reprojectionCache).toMatchObject({ hits: 0, misses: 1 });
+    expect(second.reprojectionCache).toMatchObject({ hits: 1, misses: 0 });
+    expect(second.metrics.reprojection_cache_hits).toBe(1);
+    expect(progress.some((update) => update.stage === "Reprojection cache hit")).toBe(true);
+  });
+
+  it("invalidates projected geometry when the source data version changes", async () => {
+    await computeGeometryWorkflow(cachedBufferRequest("v1"));
+    const changed = await computeGeometryWorkflow(cachedBufferRequest("v2"));
+
+    expect(changed.reprojectionCache).toMatchObject({ hits: 0, misses: 1 });
+    expect(getReprojectionCacheStats().entries).toBe(2);
+  });
+
+  it("evicts least-recent projected entries at the configured LRU bound", async () => {
+    __resetReprojectionCacheForTests({ maxEntries: 2 });
+
+    await computeGeometryWorkflow(cachedBufferRequest("v1"));
+    await computeGeometryWorkflow(cachedBufferRequest("v2"));
+    const third = await computeGeometryWorkflow(cachedBufferRequest("v3"));
+    const firstAgain = await computeGeometryWorkflow(cachedBufferRequest("v1"));
+
+    expect(third.reprojectionCache).toMatchObject({ evictions: 1, entries: 2 });
+    expect(firstAgain.reprojectionCache).toMatchObject({ hits: 0, misses: 1, entries: 2 });
+    expect(getReprojectionCacheStats()).toMatchObject({ entries: 2, evictions: 2 });
   });
 });

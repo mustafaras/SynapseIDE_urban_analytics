@@ -31,6 +31,13 @@ import {
   isGeosBackendAvailable,
   reprojectGeometry,
 } from "./geosGeometryBackend";
+import {
+  buildFeatureCollectionChangeToken,
+  projectFeatureCollectionWithReprojectionCache,
+  summarizeReprojectionCacheRun,
+  type ReprojectionCacheAccessSummary,
+  type ReprojectionCacheRunSummary,
+} from "./ReprojectionCache";
 
 export type GeometryWorkflowOp = "buffer" | "intersect" | "difference" | "union";
 
@@ -96,8 +103,16 @@ export interface GeometryWorkflowRequest {
   /** CRS the source geometry is stored/rendered in (MapLibre canvas = EPSG:4326). */
   displayCrs?: string;
   sourceLayerIds: string[];
+  sourceFingerprints?: GeometryWorkflowSourceFingerprint[];
   /** Prefer the geos-wasm backend when available + a projected execution CRS exists. */
   preferGeos?: boolean;
+}
+
+export interface GeometryWorkflowSourceFingerprint {
+  sourceId: string;
+  sourceCrs?: string | null;
+  dataVersion?: string | null;
+  changeToken?: string | null;
 }
 
 export interface GeometryWorkflowComputation {
@@ -111,6 +126,7 @@ export interface GeometryWorkflowComputation {
   /** Echoed from the request so the result is self-describing for the manifest. */
   executionCrs: string | null;
   inputFeatureCount: number;
+  reprojectionCache?: ReprojectionCacheRunSummary;
 }
 
 export interface GeometryWorkflowProgress {
@@ -520,10 +536,37 @@ export async function computeGeometryWorkflow(
 
   // geos runs in projected metres: reproject display → execution once.
   const usesProjectedBackend = backend === "geos-wasm" && typeof executionCrs === "string";
-  const sources = usesProjectedBackend
-    ? request.sources.map((fc) => reprojectFeatureCollection(fc, displayCrs, executionCrs as string))
-    : request.sources;
+  const projection = usesProjectedBackend
+    ? projectSourcesForExecution(request, displayCrs, executionCrs as string, emit)
+    : { sources: request.sources, reprojectionCache: null };
 
+  return computeGeometryWorkflowWithSources({
+    request,
+    emit,
+    ops,
+    backend,
+    sources: projection.sources,
+    displayCrs,
+    projectionCrs: usesProjectedBackend ? executionCrs as string : null,
+    inputFeatureCount,
+    reprojectionCache: projection.reprojectionCache,
+  });
+}
+
+interface GeometryWorkflowCoreInput {
+  request: GeometryWorkflowRequest;
+  emit: (progress: GeometryWorkflowProgress) => void;
+  ops: GeometryOps;
+  backend: GeometryWorkflowBackend;
+  sources: FeatureCollection[];
+  displayCrs: string;
+  projectionCrs: string | null;
+  inputFeatureCount: number;
+  reprojectionCache: ReprojectionCacheRunSummary | null;
+}
+
+function computeGeometryWorkflowWithSources(input: GeometryWorkflowCoreInput): GeometryWorkflowComputation {
+  const { request, emit, ops, backend, sources, displayCrs, projectionCrs, inputFeatureCount, reprojectionCache } = input;
   const [sourceA, sourceB] = sources;
   if (!sourceA) {
     throw new GeometryWorkflowError(request.op, "The primary source layer has no geometry.");
@@ -595,13 +638,19 @@ export async function computeGeometryWorkflow(
 
   emit({ percent: 92, stage: "Finalising output" });
 
-  // Bring geos results back to the display CRS before measuring/returning.
-  const featureCollection = usesProjectedBackend
-    ? reprojectFeatureCollection(computed, executionCrs as string, displayCrs)
+  const featureCollection = projectionCrs
+    ? reprojectFeatureCollection(computed, projectionCrs, displayCrs)
     : computed;
-
   metrics.area_km2 = safeAreaKm2(featureCollection);
   metrics.geometry_backend = backend;
+  if (reprojectionCache) {
+    metrics.reprojection_cache_hits = reprojectionCache.hits;
+    metrics.reprojection_cache_misses = reprojectionCache.misses;
+    metrics.reprojection_cache_bypasses = reprojectionCache.bypasses;
+    metrics.reprojection_cache_evictions = reprojectionCache.evictions;
+    metrics.reprojection_cache_entries = reprojectionCache.entries;
+    metrics.reprojection_cache_hit_rate = Math.round(reprojectionCache.hitRate * 1000) / 1000;
+  }
 
   emit({ percent: 100, stage: "Geometry result ready" });
 
@@ -615,7 +664,70 @@ export async function computeGeometryWorkflow(
     backend,
     executionCrs: request.executionCrs,
     inputFeatureCount,
+    ...(reprojectionCache ? { reprojectionCache } : {}),
   };
+}
+
+function projectSourcesForExecution(
+  request: GeometryWorkflowRequest,
+  displayCrs: string,
+  executionCrs: string,
+  emit: (progress: GeometryWorkflowProgress) => void,
+): { sources: FeatureCollection[]; reprojectionCache: ReprojectionCacheRunSummary | null } {
+  const accesses: ReprojectionCacheAccessSummary[] = [];
+  const projected = request.sources.map((fc, index) => {
+    const descriptor = resolveReprojectionDescriptor(request, fc, index, displayCrs, executionCrs);
+    const result = projectFeatureCollectionWithReprojectionCache({
+      descriptor,
+      source: fc,
+      project: () => reprojectFeatureCollection(fc, displayCrs, executionCrs),
+    });
+    accesses.push(result.access);
+    if (result.access.status === "hit") {
+      emit({
+        percent: 6,
+        stage: "Reprojection cache hit",
+        detail: `${result.access.sourceId} -> ${result.access.targetCrs}`,
+      });
+    } else if (result.access.status === "miss") {
+      emit({
+        percent: 6,
+        stage: "Reprojection cache miss",
+        detail: `${result.access.sourceId} -> ${result.access.targetCrs}`,
+      });
+    }
+    return result.featureCollection;
+  });
+  return { sources: projected, reprojectionCache: summarizeReprojectionCacheRun(accesses) };
+}
+
+function resolveReprojectionDescriptor(
+  request: GeometryWorkflowRequest,
+  fc: FeatureCollection,
+  index: number,
+  displayCrs: string,
+  executionCrs: string,
+) {
+  const fingerprint = request.sourceFingerprints?.[index];
+  const fallbackSourceId = request.sourceLayerIds[index] ?? `source-${index + 1}`;
+  const sourceId = nonEmptyText(fingerprint?.sourceId) ?? fallbackSourceId;
+  const sourceCrs = nonEmptyText(fingerprint?.sourceCrs) ?? displayCrs;
+  const dataVersion = nonEmptyText(fingerprint?.dataVersion) ?? null;
+  const changeToken = nonEmptyText(fingerprint?.changeToken) ?? dataVersion ?? buildFeatureCollectionChangeToken(fc);
+  return {
+    sourceId,
+    sourceCrs,
+    inputCrs: displayCrs,
+    targetCrs: executionCrs,
+    dataVersion,
+    changeToken,
+  };
+}
+
+function nonEmptyText(value: string | null | undefined): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
 }
 
 function validateRequest(request: GeometryWorkflowRequest): void {

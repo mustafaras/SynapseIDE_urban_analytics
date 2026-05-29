@@ -343,6 +343,21 @@ export interface LayerRegistryMetadata {
   evidenceArtifactId?: string;
 }
 
+export interface MapReprojectionCacheLayerMetadata {
+  entries: number;
+  maxEntries: number;
+  hits: number;
+  misses: number;
+  bypasses: number;
+  evictions: number;
+  hitRate: number;
+  projectedFeatureCount: number;
+  projectedCoordinateCount: number;
+  sourceIds: string[];
+  targetCrs: string | null;
+  lastRunAt: string;
+}
+
 export interface LayerMetadata {
   featureCount?: number;
   geometryType?: string;
@@ -377,6 +392,7 @@ export interface LayerMetadata {
   voxCitySync?: MapVoxCitySyncMetadata;
   rendering?: LayerRenderBudgetMetadata;
   registry?: LayerRegistryMetadata;
+  reprojectionCache?: MapReprojectionCacheLayerMetadata;
 }
 
 export type MapReproducibilityManifestStatus = "preview" | "applied" | "blocked";
