@@ -22,15 +22,21 @@ import {
 import { buildUserDeclaredCrsSummary } from "../mapLayerMetadata";
 import {
   applyMapCommand,
+  redoMapCommand,
   revertMapCommand,
   type MapActionEffects,
 } from "@/services/map/actions/MapActionExecutor";
 import {
   createMapActionHistory,
+  findRedoableEntry,
   findRevertableEntry,
-  markMapActionReverted,
+  findUndoableEntry,
+  markMapActionRedone,
+  markMapActionUndone,
   recordMapActionHistoryEntry,
+  summarizeMapUndoRedo,
   type MapActionHistory,
+  type MapActionHistoryEntry,
 } from "@/services/map/actions/MapActionHistoryService";
 import {
   MAP_COLORS,
@@ -1450,6 +1456,16 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   // MapActionExecutor so each one is preflighted, audited (one review-timeline
   // event), and revertable. The history (with revert tokens) is transient.
   const mapActionHistoryRef = useRef<MapActionHistory>(createMapActionHistory());
+  const [mapUndoRedoSummary, setMapUndoRedoSummary] = useState(() => summarizeMapUndoRedo(mapActionHistoryRef.current));
+
+  const refreshMapUndoRedoSummary = useCallback(() => {
+    setMapUndoRedoSummary(summarizeMapUndoRedo(mapActionHistoryRef.current));
+  }, []);
+
+  const recordMapActionHistory = useCallback((entry: MapActionHistoryEntry) => {
+    mapActionHistoryRef.current = recordMapActionHistoryEntry(mapActionHistoryRef.current, entry);
+    refreshMapUndoRedoSummary();
+  }, [refreshMapUndoRedoSummary]);
 
   const buildMapActionEffects = useCallback((): MapActionEffects => {
     const readStore = useMapExplorerStore.getState;
@@ -1472,7 +1488,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     const outcome = applyMapCommand({ kind: "layer.remove", layerId }, buildMapActionEffects());
     recordMapReviewEvent(outcome.reviewEvent);
     if (outcome.result.status === "applied") {
-      mapActionHistoryRef.current = recordMapActionHistoryEntry(mapActionHistoryRef.current, {
+      recordMapActionHistory({
         commandId: outcome.result.commandId,
         kind: outcome.result.kind,
         title: outcome.reviewEvent.title,
@@ -1481,12 +1497,13 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         revertable: outcome.result.revertable,
         reverted: false,
         ...(outcome.revertToken ? { revertToken: outcome.revertToken } : {}),
+        ...(outcome.redoToken ? { redoToken: outcome.redoToken } : {}),
       });
       announce("Removed layer; revert is available in the review timeline.");
     } else {
       announce(`Layer removal blocked: ${outcome.preflight.blockers.join(" ")}`);
     }
-  }, [announce, buildMapActionEffects, recordMapReviewEvent]);
+  }, [announce, buildMapActionEffects, recordMapActionHistory, recordMapReviewEvent]);
 
   const handleRunProcessingTool = useCallback(
     (toolId: string, params: Record<string, string | number | boolean>) => {
@@ -1495,7 +1512,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       if (result.reviewEvent) recordMapReviewEvent(result.reviewEvent);
       if (result.status === "applied") {
         if (result.revertToken) {
-          mapActionHistoryRef.current = recordMapActionHistoryEntry(mapActionHistoryRef.current, {
+          recordMapActionHistory({
             commandId: result.command.commandId,
             kind: result.command.kind,
             title: result.reviewEvent?.title ?? result.descriptor.title,
@@ -1504,6 +1521,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             revertable: result.command.revertable,
             reverted: false,
             revertToken: result.revertToken,
+            ...(result.redoToken ? { redoToken: result.redoToken } : {}),
           });
         }
         announce(`${result.descriptor.title} applied; output layer added. Revert is available in the review timeline.`);
@@ -1512,14 +1530,14 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       }
       return result;
     },
-    [announce, buildMapActionEffects, recordMapReviewEvent],
+    [announce, buildMapActionEffects, recordMapActionHistory, recordMapReviewEvent],
   );
 
   const registerMapModelExecution = useCallback((result: MapModelRunResult): MapModelRunResult => {
     for (const step of result.stepRuns) {
       if (step.result.reviewEvent) recordMapReviewEvent(step.result.reviewEvent);
       if (step.result.revertToken) {
-        mapActionHistoryRef.current = recordMapActionHistoryEntry(mapActionHistoryRef.current, {
+        recordMapActionHistory({
           commandId: step.result.command.commandId,
           kind: step.result.command.kind,
           title: step.result.reviewEvent?.title ?? step.step.label,
@@ -1528,13 +1546,14 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
           revertable: step.result.command.revertable,
           reverted: false,
           revertToken: step.result.revertToken,
+          ...(step.result.redoToken ? { redoToken: step.result.redoToken } : {}),
         });
       }
     }
     if (result.finalOutcome) {
       recordMapReviewEvent(result.finalOutcome.reviewEvent);
       if (result.finalOutcome.revertToken) {
-        mapActionHistoryRef.current = recordMapActionHistoryEntry(mapActionHistoryRef.current, {
+        recordMapActionHistory({
           commandId: result.finalOutcome.result.commandId,
           kind: result.finalOutcome.result.kind,
           title: result.finalOutcome.reviewEvent.title,
@@ -1543,6 +1562,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
           revertable: result.finalOutcome.result.revertable,
           reverted: false,
           revertToken: result.finalOutcome.revertToken,
+          ...(result.finalOutcome.redoToken ? { redoToken: result.finalOutcome.redoToken } : {}),
         });
       }
     }
@@ -1553,7 +1573,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     setActiveAnalysisResultLayers([result.finalOutputLayer.id]);
     announce(`${result.model.title} model applied; output layer carries its reproducibility manifest.`);
     return result;
-  }, [announce, recordMapReviewEvent, setActiveAnalysisResultLayers]);
+  }, [announce, recordMapActionHistory, recordMapReviewEvent, setActiveAnalysisResultLayers]);
 
   const handleRunMapModel = useCallback(
     (model: MapModelDefinition): MapModelRunResult => registerMapModelExecution(executeMapModel(
@@ -1602,7 +1622,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     );
     recordMapReviewEvent(outcome.reviewEvent);
     if (outcome.result.status === "applied") {
-      mapActionHistoryRef.current = recordMapActionHistoryEntry(mapActionHistoryRef.current, {
+      recordMapActionHistory({
         commandId: outcome.result.commandId,
         kind: outcome.result.kind,
         title: outcome.reviewEvent.title,
@@ -1611,6 +1631,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         revertable: outcome.result.revertable,
         reverted: false,
         ...(outcome.revertToken ? { revertToken: outcome.revertToken } : {}),
+        ...(outcome.redoToken ? { redoToken: outcome.redoToken } : {}),
       });
       announce(validation.status === "warning"
         ? "AOI edit applied with topology caveats; review timeline updated."
@@ -1623,19 +1644,39 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       properties: before.properties,
     });
     announce(`AOI edit blocked: ${summarizeDrawnGeometryValidation(validation)}`);
-  }, [announce, buildMapActionEffects, recordMapReviewEvent, updateDrawnFeature]);
+  }, [announce, buildMapActionEffects, recordMapActionHistory, recordMapReviewEvent, updateDrawnFeature]);
 
-  const handleRevertMapCommand = useCallback((commandId: string) => {
-    const entry = findRevertableEntry(mapActionHistoryRef.current, commandId);
+  const handleUndoMapAction = useCallback((commandId?: string) => {
+    const entry = commandId
+      ? findRevertableEntry(mapActionHistoryRef.current, commandId)
+      : findUndoableEntry(mapActionHistoryRef.current);
     if (!entry?.revertToken) {
-      announce("This action can no longer be reverted.");
+      announce("There is no reversible map edit to undo.");
       return;
     }
     revertMapCommand(entry.revertToken, buildMapActionEffects());
-    mapActionHistoryRef.current = markMapActionReverted(mapActionHistoryRef.current, commandId);
-    updateMapReviewEventStatus(entry.reviewEventId, "undone", "Reverted via command lifecycle");
-    announce(`Reverted: ${entry.title}`);
-  }, [announce, buildMapActionEffects, updateMapReviewEventStatus]);
+    mapActionHistoryRef.current = markMapActionUndone(mapActionHistoryRef.current, entry.commandId);
+    refreshMapUndoRedoSummary();
+    updateMapReviewEventStatus(entry.reviewEventId, "undone", "Undone via map undo stack");
+    announce(`Undid: ${entry.title}`);
+  }, [announce, buildMapActionEffects, refreshMapUndoRedoSummary, updateMapReviewEventStatus]);
+
+  const handleRedoMapAction = useCallback(() => {
+    const entry = findRedoableEntry(mapActionHistoryRef.current);
+    if (!entry?.redoToken) {
+      announce("There is no map edit to redo.");
+      return;
+    }
+    redoMapCommand(entry.redoToken, buildMapActionEffects());
+    mapActionHistoryRef.current = markMapActionRedone(mapActionHistoryRef.current, entry.commandId);
+    refreshMapUndoRedoSummary();
+    updateMapReviewEventStatus(entry.reviewEventId, "applied", "Redone via map undo stack");
+    announce(`Redid: ${entry.title}`);
+  }, [announce, buildMapActionEffects, refreshMapUndoRedoSummary, updateMapReviewEventStatus]);
+
+  const handleRevertMapCommand = useCallback((commandId: string) => {
+    handleUndoMapAction(commandId);
+  }, [handleUndoMapAction]);
 
   const handleRepairLayerGeometry = useCallback(async (layerId: string) => {
     const layer = useMapExplorerStore.getState().overlayLayers.find((entry) => entry.id === layerId);
@@ -1678,7 +1719,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         return;
       }
 
-      mapActionHistoryRef.current = recordMapActionHistoryEntry(mapActionHistoryRef.current, {
+      recordMapActionHistory({
         commandId: outcome.result.commandId,
         kind: outcome.result.kind,
         title: `Geometry repaired: ${layer.name}`,
@@ -1687,6 +1728,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         revertable: outcome.result.revertable,
         reverted: false,
         ...(outcome.revertToken ? { revertToken: outcome.revertToken } : {}),
+        ...(outcome.redoToken ? { redoToken: outcome.redoToken } : {}),
       });
       const qa = evaluateMapScientificQASync(useMapExplorerStore.getState().overlayLayers, {
         viewportZoom: zoom,
@@ -1711,6 +1753,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     announce,
     buildMapActionEffects,
     contextSummary.contextId,
+    recordMapActionHistory,
     recordMapReviewEvent,
     setScientificQA,
     zoom,
@@ -2704,7 +2747,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         },
         buildMapActionEffects(),
       );
-      mapActionHistoryRef.current = recordMapActionHistoryEntry(mapActionHistoryRef.current, {
+      recordMapActionHistory({
         commandId: workflowOutcome.result.commandId,
         kind: workflowOutcome.result.kind,
         title: `Workflow applied: ${result.reportItem.title}`,
@@ -2713,6 +2756,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         revertable: workflowOutcome.result.revertable,
         reverted: false,
         ...(workflowOutcome.revertToken ? { revertToken: workflowOutcome.revertToken } : {}),
+        ...(workflowOutcome.redoToken ? { redoToken: workflowOutcome.redoToken } : {}),
       });
       const drawnAoi = buildDrawnAoiFromWorkflowResult(result);
       if (drawnAoi) {
@@ -2845,7 +2889,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       toastSuccess(message);
       announce(message);
     },
-    [announce, buildMapActionEffects, recordMapReviewEvent, reducedMotion, setActiveAnalysisResultLayers, upsertMapEvidenceArtifact],
+    [announce, buildMapActionEffects, recordMapActionHistory, recordMapReviewEvent, reducedMotion, setActiveAnalysisResultLayers, upsertMapEvidenceArtifact],
   );
 
   const handleExecuteMapWorkflow = useCallback(
@@ -3444,33 +3488,38 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       return;
     }
 
-    const nextLayer: OverlayLayerConfig = {
-      ...layer,
-      opacity: update.opacity,
+    const outcome = applyMapCommand({
+      kind: "layer.style",
+      layerId,
       style: update.style,
-      metadata: {
-        ...(layer.metadata ?? {}),
-        ...update.metadataPatch,
-      },
-    };
-    addOverlayLayer(nextLayer);
-    recordMapReviewEvent({
-      type: "action-status",
-      status: "applied",
-      title: `Layer style applied: ${layer.name}`,
-      summary: `${update.legendSpec.mode} style saved with ${update.legendSpec.entries.length} serialized legend entries. Report and export legends now read the same spec.`,
-      layerIds: [layer.id],
-      actionIds: [update.legendSpec.styleHash],
-      details: {
-        styleMode: update.legendSpec.mode,
-        legendEntryCount: update.legendSpec.entries.length,
-        noDataClass: update.legendSpec.noData.enabled,
-        warnings: update.warnings,
-      },
+      opacity: update.opacity,
+      metadataPatch: update.metadataPatch,
+      styleMode: update.legendSpec.mode,
+      styleHash: update.legendSpec.styleHash,
+      legendEntryCount: update.legendSpec.entries.length,
+      noDataClass: update.legendSpec.noData.enabled,
+      warnings: update.warnings,
+    }, buildMapActionEffects());
+    recordMapReviewEvent(outcome.reviewEvent);
+    if (outcome.result.status !== "applied") {
+      toastWarning(`Layer style blocked: ${outcome.preflight.blockers.join(" ")}`);
+      announce(`Layer style blocked for ${layer.name}`);
+      return;
+    }
+    recordMapActionHistory({
+      commandId: outcome.result.commandId,
+      kind: outcome.result.kind,
+      title: outcome.reviewEvent.title,
+      reviewEventId: outcome.result.reviewEventId ?? outcome.result.commandId,
+      appliedAt: outcome.result.createdAt,
+      revertable: outcome.result.revertable,
+      reverted: false,
+      ...(outcome.revertToken ? { revertToken: outcome.revertToken } : {}),
+      ...(outcome.redoToken ? { redoToken: outcome.redoToken } : {}),
     });
     toastSuccess(`Applied ${update.legendSpec.mode} style to ${layer.name}.`);
-    announce(`Applied style and serialized legend for ${layer.name}`);
-  }, [addOverlayLayer, announce, overlayLayers, recordMapReviewEvent]);
+    announce(`Applied style and serialized legend for ${layer.name}. Undo is available.`);
+  }, [announce, buildMapActionEffects, overlayLayers, recordMapActionHistory, recordMapReviewEvent]);
 
   const handleReRunAnalysisLayer = useCallback(async (layerId: string, rerunToken?: string | null) => {
     if (!rerunToken) {
@@ -6381,6 +6430,12 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               processingTools={processingToolDescriptors}
               processingLayerOptions={processingToolboxLayers}
               onRunProcessingToolCommand={handleRunProcessingTool}
+              canUndoMapAction={mapUndoRedoSummary.canUndo}
+              canRedoMapAction={mapUndoRedoSummary.canRedo}
+              undoMapActionLabel={mapUndoRedoSummary.undoLabel}
+              redoMapActionLabel={mapUndoRedoSummary.redoLabel}
+              onUndoMapAction={() => handleUndoMapAction()}
+              onRedoMapAction={handleRedoMapAction}
             />
           </div>
 

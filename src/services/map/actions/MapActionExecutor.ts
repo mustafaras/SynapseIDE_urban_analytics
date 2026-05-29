@@ -5,6 +5,7 @@ import type {
 import type {
   DrawnFeature,
   DrawnGeometryValidation,
+  LayerMetadata,
   MapReproducibilityManifest,
   OverlayLayerConfig,
 } from "@/centerpanel/components/map/mapTypes";
@@ -18,7 +19,7 @@ import type {
   MapReviewTimelineEventStatus,
   MapReviewTimelineEventType,
 } from "@/services/map/MapReviewSessionService";
-import type { MapRevertToken } from "./MapActionHistoryService";
+import type { MapRedoToken, MapRevertToken } from "./MapActionHistoryService";
 
 /**
  * MapActionExecutor — one preview → apply → revert lifecycle for high-impact map
@@ -38,6 +39,13 @@ export interface MapLayerStyleCommand {
   kind: "layer.style";
   layerId: string;
   style: Record<string, unknown>;
+  opacity?: number;
+  metadataPatch?: Partial<LayerMetadata>;
+  styleMode?: string;
+  styleHash?: string;
+  legendEntryCount?: number;
+  noDataClass?: boolean;
+  warnings?: readonly string[];
 }
 export interface MapWorkflowApplyCommand {
   kind: "workflow.apply";
@@ -99,6 +107,7 @@ export interface MapActionOutcome {
   preflight: MapCommandPreflight;
   reviewEvent: MapReviewTimelineEventInput;
   revertToken?: MapRevertToken;
+  redoToken?: MapRedoToken;
 }
 
 /* -------------------------------------------------------------------- */
@@ -198,6 +207,7 @@ export function applyMapCommand(
   }
 
   let revertToken: MapRevertToken | undefined;
+  let redoToken: MapRedoToken | undefined;
   let manifest: MapReproducibilityManifest | undefined;
 
   switch (command.kind) {
@@ -209,6 +219,7 @@ export function applyMapCommand(
       const orderedLayerIds = effects.getLayerOrder();
       effects.removeLayer(command.layerId);
       revertToken = { kind: "layer.remove", layer, orderedLayerIds };
+      redoToken = { kind: "layer.remove", layerId: command.layerId };
       break;
     }
     case "layer.style": {
@@ -216,8 +227,15 @@ export function applyMapCommand(
       if (!layer) {
         return blockedOutcome(command, commandId, createdAt, blocked(`Layer "${command.layerId}" is no longer available to restyle.`), targetName);
       }
-      revertToken = { kind: "layer.style", layerId: command.layerId, previousStyle: layer.style };
-      effects.setLayerStyle(command.layerId, command.style);
+      const nextLayer: OverlayLayerConfig = {
+        ...layer,
+        style: command.style,
+        ...(typeof command.opacity === "number" ? { opacity: command.opacity } : {}),
+        ...(command.metadataPatch ? { metadata: { ...(layer.metadata ?? {}), ...command.metadataPatch } } : {}),
+      };
+      revertToken = { kind: "layer.style", layerId: command.layerId, previousStyle: layer.style, previousLayer: layer };
+      redoToken = { kind: "layer.style", layerId: command.layerId, nextStyle: command.style, nextLayer };
+      effects.addLayer(nextLayer);
       break;
     }
     case "workflow.apply": {
@@ -232,11 +250,15 @@ export function applyMapCommand(
       revertToken = replacedLayer
         ? { kind: "workflow.apply", outputLayerId: command.outputLayer.id, replacedLayer }
         : { kind: "workflow.apply", outputLayerId: command.outputLayer.id };
+      redoToken = {
+        kind: "workflow.apply",
+        outputLayer: command.outputLayer,
+        ...(command.replaceLayerId ? { replaceLayerId: command.replaceLayerId } : {}),
+      };
       if (command.manifest) manifest = command.manifest;
       break;
     }
     case "report.handoff": {
-      revertToken = { kind: "report.handoff", reportItemId: command.reportItemId };
       break;
     }
     case "aoi.edit": {
@@ -252,6 +274,7 @@ export function applyMapCommand(
         },
       });
       revertToken = { kind: "aoi.edit", featureId: command.featureId, previousFeature: command.previousFeature };
+      redoToken = { kind: "aoi.edit", featureId: command.featureId, nextFeature: { ...command.nextFeature, properties: { ...command.nextFeature.properties, validation } } };
       break;
     }
   }
@@ -270,6 +293,7 @@ export function applyMapCommand(
     preflight,
     reviewEvent: buildCommandReviewEvent(command, result, preflight, targetName),
     ...(revertToken ? { revertToken } : {}),
+    ...(redoToken ? { redoToken } : {}),
   };
 }
 
@@ -309,7 +333,11 @@ export function revertMapCommand(token: MapRevertToken, effects: MapActionEffect
       break;
     }
     case "layer.style":
-      effects.setLayerStyle(token.layerId, token.previousStyle ?? {});
+      if (token.previousLayer) {
+        effects.addLayer(token.previousLayer);
+      } else {
+        effects.setLayerStyle(token.layerId, token.previousStyle ?? {});
+      }
       break;
     case "workflow.apply":
       if (token.replacedLayer) {
@@ -328,6 +356,33 @@ export function revertMapCommand(token: MapRevertToken, effects: MapActionEffect
       effects.updateDrawnFeature?.(token.featureId, {
         geometry: token.previousFeature.geometry,
         properties: token.previousFeature.properties,
+      });
+      break;
+  }
+}
+
+export function redoMapCommand(token: MapRedoToken, effects: MapActionEffects): void {
+  switch (token.kind) {
+    case "layer.remove":
+      effects.removeLayer(token.layerId);
+      break;
+    case "layer.style":
+      if (token.nextLayer) {
+        effects.addLayer(token.nextLayer);
+      } else {
+        effects.setLayerStyle(token.layerId, token.nextStyle);
+      }
+      break;
+    case "workflow.apply":
+      if (token.replaceLayerId && token.replaceLayerId !== token.outputLayer.id) {
+        effects.removeLayer(token.replaceLayerId);
+      }
+      effects.addLayer(token.outputLayer);
+      break;
+    case "aoi.edit":
+      effects.updateDrawnFeature?.(token.featureId, {
+        geometry: token.nextFeature.geometry,
+        properties: token.nextFeature.properties,
       });
       break;
   }
@@ -388,6 +443,14 @@ function buildCommandReviewEvent(
 
 function buildCommandDetails(command: MapActionCommand): Record<string, unknown> {
   switch (command.kind) {
+    case "layer.style":
+      return {
+        ...(command.styleMode ? { styleMode: command.styleMode } : {}),
+        ...(command.styleHash ? { styleHash: command.styleHash } : {}),
+        ...(typeof command.legendEntryCount === "number" ? { legendEntryCount: command.legendEntryCount } : {}),
+        ...(typeof command.noDataClass === "boolean" ? { noDataClass: command.noDataClass } : {}),
+        ...(command.warnings?.length ? { warnings: command.warnings } : {}),
+      };
     case "workflow.apply":
       return {
         workflowId: command.workflowId,

@@ -72,6 +72,7 @@ export interface ProcessingRunResult {
   logs: string[];
   reviewEvent: MapActionOutcome["reviewEvent"] | null;
   revertToken: MapActionOutcome["revertToken"] | null;
+  redoToken: MapActionOutcome["redoToken"] | null;
 }
 
 /** Descriptor lookup over the full catalogue (implemented + stubs). */
@@ -178,6 +179,7 @@ export function runProcessingTool(
       logs: preview.logs,
       reviewEvent: null,
       revertToken: null,
+      redoToken: null,
     };
   }
 
@@ -257,5 +259,6 @@ export function runProcessingTool(
     logs: preview.logs,
     reviewEvent: applied.reviewEvent,
     revertToken: applied.revertToken ?? null,
+    redoToken: applied.redoToken ?? null,
   };
 }

@@ -5,14 +5,20 @@ import type { DrawnFeature, MapReproducibilityManifest, OverlayLayerConfig } fro
 import {
   applyMapCommand,
   previewMapCommand,
+  redoMapCommand,
   revertMapCommand,
   type MapActionEffects,
 } from "@/services/map/actions/MapActionExecutor";
 import {
   createMapActionHistory,
+  findRedoableEntry,
   findRevertableEntry,
+  findUndoableEntry,
+  markMapActionRedone,
+  markMapActionUndone,
   markMapActionReverted,
   recordMapActionHistoryEntry,
+  summarizeMapUndoRedo,
 } from "@/services/map/actions/MapActionHistoryService";
 import { useMapExplorerStore } from "@/stores/useMapExplorerStore";
 import { validateDrawnGeometry } from "../DrawnGeometryValidation";
@@ -180,6 +186,9 @@ describe("applyMapCommand", () => {
       FIXED_OPTS,
     );
     expect(outcome.result.status).toBe("applied");
+    expect(outcome.result.revertable).toBe(false);
+    expect(outcome.revertToken).toBeUndefined();
+    expect(outcome.redoToken).toBeUndefined();
     expect(outcome.reviewEvent.type).toBe("report-handoff");
     expect(outcome.reviewEvent.reportItemIds).toContain("r1");
   });
@@ -282,6 +291,52 @@ describe("revertMapCommand", () => {
 
     expect((drawings()[0]?.geometry as GeoJSON.Polygon).coordinates[0]?.[1]).toEqual([1, 0]);
   });
+
+  it("replays style, workflow, and AOI edits from redo tokens", () => {
+    const { effects, layers, ids, drawings, setDrawings } = createFakeEffects([
+      layer("a", { opacity: 0.4, style: { color: "red" }, metadata: { fields: ["old"] } }),
+    ]);
+    const before = drawnAoi("aoi-1", [[[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]]]);
+    const after = drawnAoi("aoi-1", [[[0, 0], [3, 0], [3, 1], [0, 1], [0, 0]]]);
+    setDrawings([before]);
+
+    const styleOutcome = applyMapCommand({
+      kind: "layer.style",
+      layerId: "a",
+      style: { color: "blue" },
+      opacity: 0.8,
+      metadataPatch: { fields: ["new"] },
+    }, effects, FIXED_OPTS);
+    const workflowOutcome = applyMapCommand({ kind: "workflow.apply", workflowId: "w", outputLayer: layer("derived"), canApply: true }, effects, FIXED_OPTS);
+    const aoiOutcome = applyMapCommand({
+      kind: "aoi.edit",
+      featureId: "aoi-1",
+      previousFeature: before,
+      nextFeature: after,
+      validation: validateDrawnGeometry(after.geometry),
+    }, effects, FIXED_OPTS);
+
+    expect(layers()[0]?.style).toEqual({ color: "blue" });
+    expect(layers()[0]?.opacity).toBe(0.8);
+    expect(ids()).toContain("derived");
+    expect((drawings()[0]?.geometry as GeoJSON.Polygon).coordinates[0]?.[1]).toEqual([3, 0]);
+
+    if (aoiOutcome.revertToken) revertMapCommand(aoiOutcome.revertToken, effects);
+    if (workflowOutcome.revertToken) revertMapCommand(workflowOutcome.revertToken, effects);
+    if (styleOutcome.revertToken) revertMapCommand(styleOutcome.revertToken, effects);
+    expect(layers()[0]?.style).toEqual({ color: "red" });
+    expect(layers()[0]?.opacity).toBe(0.4);
+    expect(ids()).not.toContain("derived");
+    expect((drawings()[0]?.geometry as GeoJSON.Polygon).coordinates[0]?.[1]).toEqual([1, 0]);
+
+    if (styleOutcome.redoToken) redoMapCommand(styleOutcome.redoToken, effects);
+    if (workflowOutcome.redoToken) redoMapCommand(workflowOutcome.redoToken, effects);
+    if (aoiOutcome.redoToken) redoMapCommand(aoiOutcome.redoToken, effects);
+    expect(layers()[0]?.style).toEqual({ color: "blue" });
+    expect(layers()[0]?.opacity).toBe(0.8);
+    expect(ids()).toContain("derived");
+    expect((drawings()[0]?.geometry as GeoJSON.Polygon).coordinates[0]?.[1]).toEqual([3, 0]);
+  });
 });
 
 describe("MapActionHistoryService", () => {
@@ -314,6 +369,109 @@ describe("MapActionHistoryService", () => {
       reverted: false,
     });
     expect(findRevertableEntry(history, "c2")).toBeNull();
+  });
+
+  it("maintains a bounded LIFO undo/redo stack and clears redo on new actions", () => {
+    let history = createMapActionHistory();
+    history = recordMapActionHistoryEntry(history, {
+      commandId: "remove-a",
+      kind: "layer.remove",
+      title: "Removed: Layer a",
+      reviewEventId: "remove-a",
+      appliedAt: "2026-05-23T00:00:00.000Z",
+      revertable: true,
+      reverted: false,
+      revertToken: { kind: "layer.remove", layer: layer("a"), orderedLayerIds: ["a", "b"] },
+      redoToken: { kind: "layer.remove", layerId: "a" },
+    });
+    history = recordMapActionHistoryEntry(history, {
+      commandId: "style-b",
+      kind: "layer.style",
+      title: "Restyled: Layer b",
+      reviewEventId: "style-b",
+      appliedAt: "2026-05-23T00:00:02.000Z",
+      revertable: true,
+      reverted: false,
+      revertToken: { kind: "layer.style", layerId: "b", previousStyle: { color: "red" } },
+      redoToken: { kind: "layer.style", layerId: "b", nextStyle: { color: "blue" } },
+    });
+
+    expect(summarizeMapUndoRedo(history)).toMatchObject({ canUndo: true, canRedo: false, undoDepth: 2 });
+    expect(findUndoableEntry(history)?.commandId).toBe("style-b");
+
+    history = markMapActionUndone(history, "style-b");
+    expect(findUndoableEntry(history)?.commandId).toBe("remove-a");
+    expect(findRedoableEntry(history)?.commandId).toBe("style-b");
+    expect(summarizeMapUndoRedo(history)).toMatchObject({ canUndo: true, canRedo: true, undoDepth: 1, redoDepth: 1 });
+
+    history = markMapActionRedone(history, "style-b");
+    expect(findUndoableEntry(history)?.commandId).toBe("style-b");
+    expect(findRedoableEntry(history)).toBeNull();
+
+    history = markMapActionUndone(history, "style-b");
+    history = recordMapActionHistoryEntry(history, {
+      commandId: "report",
+      kind: "report.handoff",
+      title: "Report handoff",
+      reviewEventId: "report",
+      appliedAt: "2026-05-23T00:00:03.000Z",
+      revertable: false,
+      reverted: false,
+    });
+    expect(findRedoableEntry(history)).toBeNull();
+  });
+
+  it("coalesces rapid style edits but keeps the first undo snapshot and latest redo snapshot", () => {
+    let history = createMapActionHistory();
+    history = recordMapActionHistoryEntry(history, {
+      commandId: "style-1",
+      kind: "layer.style",
+      title: "Restyled once",
+      reviewEventId: "style-1",
+      appliedAt: "2026-05-23T00:00:00.000Z",
+      revertable: true,
+      reverted: false,
+      revertToken: { kind: "layer.style", layerId: "a", previousStyle: { color: "red" } },
+      redoToken: { kind: "layer.style", layerId: "a", nextStyle: { color: "blue" } },
+    });
+    history = recordMapActionHistoryEntry(history, {
+      commandId: "style-2",
+      kind: "layer.style",
+      title: "Restyled twice",
+      reviewEventId: "style-2",
+      appliedAt: "2026-05-23T00:00:00.500Z",
+      revertable: true,
+      reverted: false,
+      revertToken: { kind: "layer.style", layerId: "a", previousStyle: { color: "blue" } },
+      redoToken: { kind: "layer.style", layerId: "a", nextStyle: { color: "green" } },
+    });
+
+    const undoEntry = findUndoableEntry(history);
+    expect(summarizeMapUndoRedo(history).undoDepth).toBe(1);
+    expect(undoEntry?.commandId).toBe("style-2");
+    expect(undoEntry?.revertToken).toEqual({ kind: "layer.style", layerId: "a", previousStyle: { color: "red" } });
+    expect(undoEntry?.redoToken).toEqual({ kind: "layer.style", layerId: "a", nextStyle: { color: "green" } });
+    expect(history.entries.map((entry) => entry.commandId)).toEqual(["style-2", "style-1"]);
+  });
+
+  it("caps history and undo stacks at the configured limit", () => {
+    let history = createMapActionHistory();
+    for (let index = 0; index < 120; index += 1) {
+      history = recordMapActionHistoryEntry(history, {
+        commandId: `remove-${index}`,
+        kind: "layer.remove",
+        title: `Removed ${index}`,
+        reviewEventId: `remove-${index}`,
+        appliedAt: `2026-05-23T00:00:${String(index % 60).padStart(2, "0")}.000Z`,
+        revertable: true,
+        reverted: false,
+        revertToken: { kind: "layer.remove", layer: layer(`layer-${index}`), orderedLayerIds: [`layer-${index}`] },
+        redoToken: { kind: "layer.remove", layerId: `layer-${index}` },
+      });
+    }
+    expect(history.entries).toHaveLength(100);
+    expect(summarizeMapUndoRedo(history).undoDepth).toBe(100);
+    expect(history.entries[0]?.commandId).toBe("remove-119");
   });
 });
 

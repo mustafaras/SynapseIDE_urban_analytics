@@ -27,6 +27,7 @@ import {
   Pentagon,
   Pencil,
   RectangleHorizontal,
+  Redo2,
   Route,
   Ruler,
   Save,
@@ -37,6 +38,7 @@ import {
   Square,
   Target,
   Type,
+  Undo2,
   Upload,
   Waypoints,
   Workflow,
@@ -45,6 +47,9 @@ import {
 import type { ProcessingToolDescriptor, ToolParameterDescriptor } from "@/services/map/contracts/gisContracts";
 import {
   formatMapKeybinding,
+  isEditableShortcutTarget,
+  isMapRedoShortcut,
+  isMapUndoShortcut,
   isOpenPaletteShortcut,
   searchMapPaletteCommands,
   shouldIgnoreMapPaletteShortcut,
@@ -165,6 +170,12 @@ export interface MapToolbarProps {
   processingTools?: readonly ProcessingToolDescriptor[];
   processingLayerOptions?: readonly ProcessingPaletteLayerOption[];
   onRunProcessingToolCommand?: (toolId: string, params: Record<string, string | number | boolean>) => void;
+  canUndoMapAction?: boolean;
+  canRedoMapAction?: boolean;
+  undoMapActionLabel?: string | null;
+  redoMapActionLabel?: string | null;
+  onUndoMapAction?: () => void;
+  onRedoMapAction?: () => void;
 }
 
 type CommandTone = "default" | "accent" | "danger" | "success" | "warning";
@@ -272,8 +283,14 @@ interface BuildToolbarCommandsArgs extends Required<Pick<
   | "isSavingProject"
   | "isLoadingProject"
   | "persistenceDisabled"
+  | "canUndoMapAction"
+  | "canRedoMapAction"
+  | "undoMapActionLabel"
+  | "redoMapActionLabel"
 >> {
   importProgress: number | null;
+  onUndoMapAction?: (() => void) | undefined;
+  onRedoMapAction?: (() => void) | undefined;
   onWorkspaceViewChange?: ((view: MapWorkspaceView) => void) | undefined;
   onToggleLayerPanel?: (() => void) | undefined;
   onToggleCatalog?: (() => void) | undefined;
@@ -998,6 +1015,42 @@ function buildToolbarCommands(args: BuildToolbarCommandsArgs): ToolbarCommand[] 
     active: args.showReviewTimeline,
     badge: args.reviewEventCount,
     tone: args.reviewEventCount > 0 ? "accent" : "default",
+    navigator: true,
+  });
+
+  add(args.onUndoMapAction && {
+    id: "undo-map-action",
+    label: "Undo",
+    shortLabel: "Undo",
+    title: args.undoMapActionLabel ? `Undo ${args.undoMapActionLabel}` : "Undo last reversible map edit",
+    keywords: ["undo", "revert", "history", "ctrl z", "cmd z", args.undoMapActionLabel ?? "last edit"],
+    icon: Undo2,
+    onClick: args.onUndoMapAction,
+    roles: ["explore", "analyze", "publish"],
+    overflowGroup: "advanced",
+    priority: args.canUndoMapAction ? 132 : 38,
+    disabled: !args.canUndoMapAction,
+    disabledReason: "No reversible map edits are available to undo.",
+    tone: args.canUndoMapAction ? "accent" : "default",
+    shortcut: formatMapKeybinding("undoAction"),
+    navigator: true,
+  });
+
+  add(args.onRedoMapAction && {
+    id: "redo-map-action",
+    label: "Redo",
+    shortLabel: "Redo",
+    title: args.redoMapActionLabel ? `Redo ${args.redoMapActionLabel}` : "Redo last undone map edit",
+    keywords: ["redo", "history", "ctrl y", "cmd shift z", args.redoMapActionLabel ?? "last undone edit"],
+    icon: Redo2,
+    onClick: args.onRedoMapAction,
+    roles: ["explore", "analyze", "publish"],
+    overflowGroup: "advanced",
+    priority: args.canRedoMapAction ? 131 : 37,
+    disabled: !args.canRedoMapAction,
+    disabledReason: "Undo a reversible map edit before using redo.",
+    tone: args.canRedoMapAction ? "accent" : "default",
+    shortcut: formatMapKeybinding("redoAction"),
     navigator: true,
   });
 
@@ -1815,6 +1868,12 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
   processingTools = [],
   processingLayerOptions = [],
   onRunProcessingToolCommand,
+  canUndoMapAction = false,
+  canRedoMapAction = false,
+  undoMapActionLabel = null,
+  redoMapActionLabel = null,
+  onUndoMapAction,
+  onRedoMapAction,
 }) => {
   const toolbarRef = React.useRef<HTMLDivElement | null>(null);
   const [toolbarWidth, setToolbarWidth] = React.useState(1280);
@@ -1842,6 +1901,20 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
 
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent): void => {
+      if (isMapUndoShortcut(event) && !isEditableShortcutTarget(event.target)) {
+        if (canUndoMapAction && onUndoMapAction) {
+          event.preventDefault();
+          onUndoMapAction();
+        }
+        return;
+      }
+      if (isMapRedoShortcut(event) && !isEditableShortcutTarget(event.target)) {
+        if (canRedoMapAction && onRedoMapAction) {
+          event.preventDefault();
+          onRedoMapAction();
+        }
+        return;
+      }
       if (isOpenPaletteShortcut(event) && !shouldIgnoreMapPaletteShortcut(event)) {
         event.preventDefault();
         setPaletteOpen(true);
@@ -1855,7 +1928,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
     };
     window.addEventListener("keydown", handleKeyDown, { capture: true });
     return () => window.removeEventListener("keydown", handleKeyDown, { capture: true });
-  }, []);
+  }, [canRedoMapAction, canUndoMapAction, onRedoMapAction, onUndoMapAction]);
 
   const commands = React.useMemo(
     () => buildToolbarCommands({
@@ -1946,6 +2019,12 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       isSavingProject,
       isLoadingProject,
       persistenceDisabled,
+      canUndoMapAction,
+      canRedoMapAction,
+      undoMapActionLabel,
+      redoMapActionLabel,
+      onUndoMapAction,
+      onRedoMapAction,
     }),
     [
       activeDrawTool,
@@ -1953,6 +2032,8 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       activeMeasureTool,
       annotationCount,
       annotationMode,
+      canRedoMapAction,
+      canUndoMapAction,
       drawnFeatureCount,
       exportDisabled,
       exportDisabledReason,
@@ -1966,6 +2047,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       catalogSourceCount,
       measurementCount,
       nlQueryLayerCount,
+      onRedoMapAction,
       onWorkspaceViewChange,
       onExportClick,
       onImageExportClick,
@@ -1997,6 +2079,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       onToggleSidebar,
       onToggleViewportSync,
       onToggleVoxCityOverlayPanel,
+      onUndoMapAction,
       persistenceDisabled,
       performanceIssueCount,
       processingToolCount,
@@ -2005,6 +2088,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       restrictToMapView,
       reportDisabled,
       reportDisabledReason,
+      redoMapActionLabel,
       reviewEventCount,
       scientificQABlockerCount,
       scientificQAIssueCount,
@@ -2031,6 +2115,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       showScientificQAPanel,
       showSidebar,
       showVoxCityOverlayPanel,
+      undoMapActionLabel,
       visibleLayerCount,
       voxCityFootprintCount,
       viewportSyncEnabled,

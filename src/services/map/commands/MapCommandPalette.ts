@@ -16,7 +16,9 @@ export type MapKeybindingId =
   | "closePalette"
   | "runSelected"
   | "nextCommand"
-  | "previousCommand";
+  | "previousCommand"
+  | "undoAction"
+  | "redoAction";
 
 export interface MapKeybindingDescriptor {
   commandId: MapKeybindingId;
@@ -62,6 +64,20 @@ export const MAP_KEYBINDINGS: Record<MapKeybindingId, MapKeybindingDescriptor> =
     macShortcut: "ArrowUp",
     description: "Move to the previous command palette entry.",
   },
+  undoAction: {
+    commandId: "undoAction",
+    label: "Undo map action",
+    shortcut: "Ctrl+Z",
+    macShortcut: "Cmd+Z",
+    description: "Undo the latest reversible map edit.",
+  },
+  redoAction: {
+    commandId: "redoAction",
+    label: "Redo map action",
+    shortcut: "Ctrl+Y",
+    macShortcut: "Cmd+Shift+Z",
+    description: "Redo the latest undone map edit.",
+  },
 };
 
 function platformIsMac(platform: string | undefined): boolean {
@@ -75,6 +91,16 @@ export function formatMapKeybinding(bindingId: MapKeybindingId, platform = globa
 
 export function isOpenPaletteShortcut(event: Pick<KeyboardEvent, "ctrlKey" | "metaKey" | "altKey" | "shiftKey" | "key">): boolean {
   return (event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === "k";
+}
+
+export function isMapUndoShortcut(event: Pick<KeyboardEvent, "ctrlKey" | "metaKey" | "altKey" | "shiftKey" | "key">): boolean {
+  return (event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === "z";
+}
+
+export function isMapRedoShortcut(event: Pick<KeyboardEvent, "ctrlKey" | "metaKey" | "altKey" | "shiftKey" | "key">): boolean {
+  if (!(event.ctrlKey || event.metaKey) || event.altKey) return false;
+  const key = event.key.toLowerCase();
+  return (!event.shiftKey && key === "y") || (event.shiftKey && key === "z");
 }
 
 export function isEditableShortcutTarget(target: EventTarget | null): boolean {

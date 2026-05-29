@@ -638,6 +638,7 @@ export function executeMapModel(
         command: outcome.result,
         reviewEvent: outcome.reviewEvent,
         revertToken: outcome.revertToken ?? null,
+        redoToken: outcome.redoToken ?? null,
       },
     };
   });

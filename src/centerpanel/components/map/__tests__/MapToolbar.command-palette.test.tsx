@@ -135,4 +135,34 @@ describe("MapToolbar command palette", () => {
     expect(kernelOption!.disabled).toBe(true);
     expect(kernelOption!.textContent).toMatch(/not wired/i);
   });
+
+  it("exposes undo and redo commands as buttons, palette entries, and global shortcuts", () => {
+    const onUndoMapAction = vi.fn();
+    const onRedoMapAction = vi.fn();
+    renderToolbar({
+      canUndoMapAction: true,
+      canRedoMapAction: true,
+      undoMapActionLabel: "Restyled layer: parcels",
+      redoMapActionLabel: "Edited AOI: study area",
+      onUndoMapAction,
+      onRedoMapAction,
+    });
+
+    keydown(window, "z", { ctrlKey: true });
+    keydown(window, "y", { ctrlKey: true });
+    expect(onUndoMapAction).toHaveBeenCalledTimes(1);
+    expect(onRedoMapAction).toHaveBeenCalledTimes(1);
+
+    keydown(window, "k", { ctrlKey: true });
+    const input = paletteInput();
+    setInputValue(input, "undo");
+    const undoOption = document.querySelector<HTMLButtonElement>('[data-testid="map-command-palette-option-undo-map-action"]');
+    expect(undoOption).not.toBeNull();
+    expect(undoOption!.textContent).toContain("Ctrl+Z");
+
+    setInputValue(input, "redo");
+    const redoOption = document.querySelector<HTMLButtonElement>('[data-testid="map-command-palette-option-redo-map-action"]');
+    expect(redoOption).not.toBeNull();
+    expect(redoOption!.textContent).toContain("Ctrl+Y");
+  });
 });

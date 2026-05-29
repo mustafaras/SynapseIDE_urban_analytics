@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   formatMapKeybinding,
+  isMapRedoShortcut,
+  isMapUndoShortcut,
   isOpenPaletteShortcut,
   MAP_KEYBINDINGS,
   searchMapPaletteCommands,
@@ -63,7 +65,10 @@ describe("Map command palette search and keybindings", () => {
   it("publishes the global palette keybinding map", () => {
     expect(MAP_KEYBINDINGS.openPalette.shortcut).toBe("Ctrl+K");
     expect(MAP_KEYBINDINGS.openPalette.macShortcut).toBe("Cmd+K");
+    expect(MAP_KEYBINDINGS.undoAction.shortcut).toBe("Ctrl+Z");
+    expect(MAP_KEYBINDINGS.redoAction.macShortcut).toBe("Cmd+Shift+Z");
     expect(formatMapKeybinding("openPalette", "MacIntel")).toBe("Cmd+K");
+    expect(formatMapKeybinding("redoAction", "MacIntel")).toBe("Cmd+Shift+Z");
     expect(formatMapKeybinding("runSelected", "Win32")).toBe("Enter");
   });
 
@@ -71,6 +76,14 @@ describe("Map command palette search and keybindings", () => {
     expect(isOpenPaletteShortcut({ key: "k", ctrlKey: true, metaKey: false, altKey: false, shiftKey: false })).toBe(true);
     expect(isOpenPaletteShortcut({ key: "k", ctrlKey: true, metaKey: false, altKey: true, shiftKey: false })).toBe(false);
     expect(isOpenPaletteShortcut({ key: "j", ctrlKey: true, metaKey: false, altKey: false, shiftKey: false })).toBe(false);
+  });
+
+  it("recognizes map undo and redo keyboard chords", () => {
+    expect(isMapUndoShortcut({ key: "z", ctrlKey: true, metaKey: false, altKey: false, shiftKey: false })).toBe(true);
+    expect(isMapUndoShortcut({ key: "z", ctrlKey: true, metaKey: false, altKey: false, shiftKey: true })).toBe(false);
+    expect(isMapRedoShortcut({ key: "y", ctrlKey: true, metaKey: false, altKey: false, shiftKey: false })).toBe(true);
+    expect(isMapRedoShortcut({ key: "z", ctrlKey: false, metaKey: true, altKey: false, shiftKey: true })).toBe(true);
+    expect(isMapRedoShortcut({ key: "z", ctrlKey: true, metaKey: false, altKey: true, shiftKey: true })).toBe(false);
   });
 
   it("still allows the global palette chord after another listener prevented default", () => {
