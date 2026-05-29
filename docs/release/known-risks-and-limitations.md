@@ -1,8 +1,19 @@
 # Known Risks and Limitations
 
-Date: April 24, 2026  
-Audience: Internal release review  
-Status: Current release note
+Date: May 29, 2026
+Audience: Internal release review
+Status: Current release note; Prompt 64 RC gate is blocked
+
+## Prompt 64 RC Blockers
+
+These are current no-go conditions for a Map Explorer release-candidate claim.
+
+| Blocker | Impact | Current mitigation | Concrete limit |
+|---|---|---|---|
+| Bundle budgets fail. | `npm run validate:rc` stops at `npm run perf:budgets`, so the aggregate RC gate cannot reach the built-in Playwright CI phase. | Heavy surfaces remain lazy-loaded, and the initial load stays under its raw budget. | RC is blocked until `npm run perf:budgets` exits 0 or the approved exception budgets are intentionally revised with fresh evidence. |
+| P40 visual QA has two failures. | Premium design/visual QA cannot be claimed green. | Motion checks, no-Tailwind guard, and 11 of 13 focused P39/P40 tests passed. | RC is blocked until the `map-activity-rail` contract and blank-canvas detector proof pass. |
+| Prompt 63 documentation close-out is not complete. | Release docs and support matrices do not yet match every shipped Prompt 0-53 capability. | Current architecture, workflow, scientific checklist, visual checklist, and known-risks docs remain useful but are not a completed close-out pack. | RC is blocked until Prompt 63 refreshes the docs, source matrix, CRS/QA note, bridge note, design/motion/visual QA notes, validation summary, and link/cross-reference checks. |
+| Prompts 54-62 are not implemented. | Enterprise and modern-GIS capabilities after Prompt 53 are not release-certified. | Their absence is explicit in the prompt ledger. | Do not claim undo/redo, plugin registry, telemetry/observability, offline package export, AI guardrails, collaboration, terrain/3D Tiles, view corridors/sections, or raster/temporal/3D evidence visual-state close-out until those prompts land. |
 
 ## Visibility vs Execution Depth
 
@@ -29,7 +40,7 @@ Implementation status is tracked separately from verification depth through the 
 | WebSocket and MQTT streaming depend on reachable live endpoints. | Live streaming modes may fail despite the runtime surface being correct. | Deterministic replay mode is built into the Streaming Runtime and is the guaranteed release-verification path. | Live-feed verification remains conditional on broker and network health. |
 | Map-provider features depend on external map credentials. | Google Maps and some commercial basemap capabilities may not render in a bare local environment. | The workbench retains browser-local analytical surfaces and non-provider-specific map capabilities. | External provider failures should not be mistaken for app-shell regression. |
 | Browser memory and CPU ceilings still bound large analytical runs. | Very large datasets or long-running simulations may degrade responsiveness on weaker hardware. | Lazy loading, workers, bundle budgets, and browser-side runtime status surfaces are in place. | The platform is a browser-first analytical environment, not an unbounded server compute cluster. |
-| Several analytical lazy chunks require approved exception budgets. | VoxCity, Sunlight, RightPanel, and GeoAI Lab carry large but isolated lazy payloads because they bundle 3D, seed-derived support, or GeoAI runtime surfaces. | `npm run perf:budgets` passes with explicit exception ceilings and keeps these chunks visible in the budget report. | Future chunk splitting should reduce these exceptions, but the current release budget gate is green. |
+| Several analytical lazy chunks exceed their approved exception budgets. | VoxCity, Sunlight, RightPanel, GeoAI Lab, Map Explorer, Urban Analytics, Education, and several flow chunks carry large but isolated lazy payloads because they bundle 3D, seed-derived support, or analysis runtime surfaces. | `npm run perf:budgets` keeps these chunks visible in the budget report, and initial load remains under its raw budget. | Prompt 64 blocks RC until the budget gate passes or the approved exception ceilings are intentionally revised with fresh evidence. |
 
 ## Analytical Limitations
 
@@ -43,7 +54,7 @@ Implementation status is tracked separately from verification depth through the 
 | NL-to-SQL still depends on queryable project-context data rather than arbitrary remote catalogs. | Deterministic SQL generation and safety logic are implemented, and the GeoAI Lab UI executes accepted queries through SpatialDB across live project overlays and imported worker-backed spatial tables. Remote sources still need to be imported or published into the project context before they become queryable tables, and non-queryable layers are not silently substituted with demo data. | Treat the current validation state as `implemented with residual gap`: live project/imported queryable tables work, but automatic federation across every dataset surface is not implemented. |
 | Real object detection still depends on a configured browser-loadable model source. | The workflow now supports a real GeoAI runtime path, but the repository does not hard-ship detector weights; real execution requires `VITE_GEOAI_OBJECT_DETECTION_MODEL_URL` or an equivalent runtime override. | Treat the current validation state as `implemented` with explicit environment/configuration requirements for the real model path; Demo mode remains the truthful local fallback when the model source is unavailable. |
 | VoxCity extrusion and solar workflows retain explicit sample mode. | The 3D tools now prioritize real project geometry when Map Explorer layers, imported layers, CityJSON-derived volumes, or Building Viewer handoffs are available. Sample mode remains as a visible quick-start/demo path rather than a silent runtime default. | Treat them as `implemented with demo mode`: real project geometry is prioritized when available, and sample runs remain explicit. |
-| Map Explorer publication chunk is still large. | The full map workspace includes MapLibre, import/export, QA, workflow, report, temporal, and analytical panels behind one lazy modal boundary. | Current `npm run build` passes and the chunk is isolated, but future chunk splitting should continue. |
+| Map Explorer publication chunk is still large. | The full map workspace includes MapLibre, import/export, QA, workflow, report, temporal, and analytical panels behind one lazy modal boundary. | Current `npm run build` passes and the chunk is isolated, but Prompt 64 `npm run perf:budgets` fails with Map Explorer over budget. |
 | Built-in RAG corpus is curated rather than exhaustive. | Prompt 42 expanded the baseline corpus with academically relevant official sources, but not a complete planning literature index. | The system is materially better grounded, but literature completeness still depends on future corpus expansion. |
 | Some planning models are exploratory rather than policy-grade forecasting systems. | Many flows intentionally prioritize interpretability and reproducibility for urban analysis workflows. | Outputs support analytical review and scenario exploration; they do not replace field validation or statutory decision processes. |
 

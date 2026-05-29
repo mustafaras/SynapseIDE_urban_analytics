@@ -1,13 +1,26 @@
 # Release Candidate Validation
 
-Date: April 24, 2026  
-Primary RC aggregate baseline: `npm run validate:rc` (last full aggregate pass April 23, 2026)  
-Prompt 27 targeted validation update: `npm run typecheck`; `npm run build`; `npm run test`; `npx playwright test e2e/report-history.spec.ts`  
-Prompt 11 targeted validation update: `npm run typecheck`; `npm run build`; `npm run test`; `npx playwright test e2e/right-panel-fallbacks.spec.ts`  
-Prompt 12 targeted UI-hardening update: `npm run test -- src/centerpanel/components/map/__tests__/MapCanvas.lifecycle.test.tsx`; `npm run test -- src/features/dashboard/__tests__/dashboardWidgetContent.test.tsx`; `npm run test -- src/centerpanel/tabs/__tests__/Note.test.tsx`; `npm run test -- src/features/urbanAnalytics/__tests__/RightPanelFourBlock.test.tsx`; `npm run test -- src/centerpanel/components/map/__tests__/map-accessibility.test.ts src/centerpanel/components/map/__tests__/map-layer-management.test.ts`  
-Correction pass validation update: `npm run typecheck`; `npm run build`; `npm run test`; `npm run lint:errors`; `npm run perf:budgets`; `npm run test:e2e:smoke`; targeted right-panel, VoxCity, GeoAI, and release-candidate Playwright specs.  
-Prompt 36 Map Explorer release-hardening update: `npm run typecheck`; `npm run build`; `npm run test`; `npm run lint:errors`; `npm run test:e2e:smoke`; targeted Map Explorer modal, layer workflows, VoxCity bridge, report handoff, thematic, temporal, spatial-statistics, lifecycle, and repeated stability Playwright specs.  
-Outcome: Pass
+Date: May 29, 2026
+Current status: **Blocked by Prompt 64 gate**. See [map-explorer-p64-rc-report-2026-05-29.md](map-explorer-p64-rc-report-2026-05-29.md).
+Historical primary RC aggregate baseline: `npm run validate:rc` (last full aggregate pass April 23, 2026)
+Prompt 27 targeted validation update: `npm run typecheck`; `npm run build`; `npm run test`; `npx playwright test e2e/report-history.spec.ts`
+Prompt 11 targeted validation update: `npm run typecheck`; `npm run build`; `npm run test`; `npx playwright test e2e/right-panel-fallbacks.spec.ts`
+Prompt 12 targeted UI-hardening update: `npm run test -- src/centerpanel/components/map/__tests__/MapCanvas.lifecycle.test.tsx`; `npm run test -- src/features/dashboard/__tests__/dashboardWidgetContent.test.tsx`; `npm run test -- src/centerpanel/tabs/__tests__/Note.test.tsx`; `npm run test -- src/features/urbanAnalytics/__tests__/RightPanelFourBlock.test.tsx`; `npm run test -- src/centerpanel/components/map/__tests__/map-accessibility.test.ts src/centerpanel/components/map/__tests__/map-layer-management.test.ts`
+Correction pass validation update: `npm run typecheck`; `npm run build`; `npm run test`; `npm run lint:errors`; `npm run perf:budgets`; `npm run test:e2e:smoke`; targeted right-panel, VoxCity, GeoAI, and release-candidate Playwright specs.
+Prompt 36 Map Explorer release-hardening update: `npm run typecheck`; `npm run build`; `npm run test`; `npm run lint:errors`; `npm run test:e2e:smoke`; targeted Map Explorer modal, layer workflows, VoxCity bridge, report handoff, thematic, temporal, spatial-statistics, lifecycle, and repeated stability Playwright specs.
+Historical outcome: Pass
+
+## Prompt 64 Gate Update
+
+| Gate | Command | Result |
+|---|---|---|
+| Aggregate RC gate | `npm run validate:rc` | **Blocked** — full Vitest passed (226 files, 2602 passed, 2 skipped) and production build passed, then `npm run perf:budgets` exited 1. |
+| Bundle budgets | `npm run perf:budgets` inside `validate:rc` | **Fail** — 11 lazy chunk budget overruns, led by `centerpanel/components/MapExplorerModal` at 6.60 MiB raw against a 4.20 MiB budget. |
+| Accessibility E2E | `npm run test:e2e:a11y` | Pass — 5 tests. |
+| Centerpanel styling guard | `npm run lint:no-tailwind-centerpanel` | Pass — no Tailwind-like utility classes found in `src/centerpanel`. |
+| Focused motion/visual QA | `npx playwright test e2e/map-motion-p39.spec.ts e2e/map-visual-qa-p40.spec.ts` | **Fail** — 11 passed, 2 failed: missing `map-activity-rail` visual contract and blank-canvas detector threshold. |
+
+The older validation summary below is preserved as historical release evidence. The current Prompt 64 result supersedes it for any release-candidate claim.
 
 ## Validation Summary
 
