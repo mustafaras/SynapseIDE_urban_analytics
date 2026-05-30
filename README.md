@@ -86,10 +86,14 @@ This installs 60+ geospatial packages including GeoPandas, rasterio, OSMnx, mome
 
 ## Release Candidate
 
-The current repository state is hardened as a release candidate dated **April 23, 2026**.
+The current Map Explorer Production GIS close-out is dated **May 30, 2026**. Prompt 63 documentation is complete, but Prompt 64 is a **NO-GO / RC blocked** gate until `npm run validate:rc` passes or every active blocker remains documented with a concrete limit.
 
 - **In-app feature index:** `Toolbox` → `Capabilities Overview`
 - **Release validation record:** [`docs/release/release-candidate-validation.md`](docs/release/release-candidate-validation.md)
+- **Prompt 63 documentation close-out:** [`docs/release/map-explorer-p63-documentation-closeout-2026-05-30.md`](docs/release/map-explorer-p63-documentation-closeout-2026-05-30.md)
+- **Prompt 64 RC report:** [`docs/release/map-explorer-p64-rc-report-2026-05-30.md`](docs/release/map-explorer-p64-rc-report-2026-05-30.md)
+- **Map source support matrix:** [`docs/map-source-support-matrix.md`](docs/map-source-support-matrix.md)
+- **Map workflow guide:** [`docs/map-explorer-workflow-guide.md`](docs/map-explorer-workflow-guide.md)
 - **Visual completeness checklist:** [`docs/release/visual-completeness-checklist.md`](docs/release/visual-completeness-checklist.md)
 - **Known risks and limitations:** [`docs/release/known-risks-and-limitations.md`](docs/release/known-risks-and-limitations.md)
 - **Phase-grouped release summary:** [`CHANGELOG.md`](CHANGELOG.md)
@@ -408,7 +412,11 @@ CI mirrors this split so smoke, accessibility, and the remaining functional Play
 |------|----------|
 | Public APIs | [`docs/api/public-api.md`](docs/api/public-api.md) |
 | Architecture decisions | [`docs/architecture/README.md`](docs/architecture/README.md) |
+| Map Explorer workflow guide | [`docs/map-explorer-workflow-guide.md`](docs/map-explorer-workflow-guide.md) |
+| Map source support matrix | [`docs/map-source-support-matrix.md`](docs/map-source-support-matrix.md) |
 | Release validation | [`docs/release/release-candidate-validation.md`](docs/release/release-candidate-validation.md) |
+| Map Explorer P63 docs close-out | [`docs/release/map-explorer-p63-documentation-closeout-2026-05-30.md`](docs/release/map-explorer-p63-documentation-closeout-2026-05-30.md) |
+| Map Explorer P64 RC report | [`docs/release/map-explorer-p64-rc-report-2026-05-30.md`](docs/release/map-explorer-p64-rc-report-2026-05-30.md) |
 | Visual completeness | [`docs/release/visual-completeness-checklist.md`](docs/release/visual-completeness-checklist.md) |
 | Known risks | [`docs/release/known-risks-and-limitations.md`](docs/release/known-risks-and-limitations.md) |
 | Prompt 42 debt closure ledger | [`docs/implementation/prompt-42-completion.md`](docs/implementation/prompt-42-completion.md) |
@@ -458,4 +466,4 @@ CI mirrors this split so smoke, accessibility, and the remaining functional Play
 
 ## License
 
-See [LICENSE](LICENSE) for details.
+License details are not committed in this checkout.

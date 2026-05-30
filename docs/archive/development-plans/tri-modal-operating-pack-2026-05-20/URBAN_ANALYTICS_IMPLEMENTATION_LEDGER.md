@@ -401,7 +401,7 @@ Map Explorer and Synapse IDE prompts may be interleaved but must not modify Urba
 ### Archived: Prompts 00-24 execution logs
 
 Detailed execution logs for completed Prompts 00 through 24 have been moved to:
-[`DEVELOPMENT_PLANS/archive/URBAN_ANALYTICS_LEDGER_PROMPTS_00-24.md`](archive/URBAN_ANALYTICS_LEDGER_PROMPTS_00-24.md)
+[`DEVELOPMENT_PLANS/archive/URBAN_ANALYTICS_LEDGER_PROMPTS_00-24.md`](../URBAN_ANALYTICS_LEDGER_PROMPTS_00-24.md)
 
 Per-prompt outcomes (status, completion date, scope summary) remain in the **Prompt Status Register** above.
 Read the archive only when investigating prior implementation details for a specific prompt.

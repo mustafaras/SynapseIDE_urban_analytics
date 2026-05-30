@@ -1,7 +1,7 @@
 # Release Candidate Validation
 
-Date: May 29, 2026
-Current status: **Blocked by Prompt 64 gate**. See [map-explorer-p64-rc-report-2026-05-29.md](map-explorer-p64-rc-report-2026-05-29.md).
+Date: May 30, 2026
+Current status: **Blocked by Prompt 64 gate**. See [map-explorer-p64-rc-report-2026-05-30.md](map-explorer-p64-rc-report-2026-05-30.md). The May 29 report remains historical evidence and is superseded for current RC claims.
 Historical primary RC aggregate baseline: `npm run validate:rc` (last full aggregate pass April 23, 2026)
 Prompt 27 targeted validation update: `npm run typecheck`; `npm run build`; `npm run test`; `npx playwright test e2e/report-history.spec.ts`
 Prompt 11 targeted validation update: `npm run typecheck`; `npm run build`; `npm run test`; `npx playwright test e2e/right-panel-fallbacks.spec.ts`
@@ -14,13 +14,26 @@ Historical outcome: Pass
 
 | Gate | Command | Result |
 |---|---|---|
-| Aggregate RC gate | `npm run validate:rc` | **Blocked** — full Vitest passed (226 files, 2602 passed, 2 skipped) and production build passed, then `npm run perf:budgets` exited 1. |
-| Bundle budgets | `npm run perf:budgets` inside `validate:rc` | **Fail** — 11 lazy chunk budget overruns, led by `centerpanel/components/MapExplorerModal` at 6.60 MiB raw against a 4.20 MiB budget. |
-| Accessibility E2E | `npm run test:e2e:a11y` | Pass — 5 tests. |
+| Aggregate RC gate | `npm run validate:rc` | **Blocked** - typecheck passed, lint passed, full Vitest passed (235 files, 2646 passed, 2 skipped), production build passed, then `npm run perf:budgets` exited 1. |
+| Bundle budgets | `npm run perf:budgets` inside `validate:rc` | **Fail** - initial load is 5.63 MiB raw / 1.62 MiB gzip against a 2.44 MiB raw budget. The Map Explorer lazy chunk is inside its approved exception at 3.46 MiB raw against 4.20 MiB. |
+| Accessibility E2E | `npm run test:e2e:a11y` | Pass - 5 tests. |
 | Centerpanel styling guard | `npm run lint:no-tailwind-centerpanel` | Pass — no Tailwind-like utility classes found in `src/centerpanel`. |
-| Focused motion/visual QA | `npx playwright test e2e/map-motion-p39.spec.ts e2e/map-visual-qa-p40.spec.ts` | **Fail** — 11 passed, 2 failed: missing `map-activity-rail` visual contract and blank-canvas detector threshold. |
+| Focused motion/visual QA | `npx playwright test e2e/map-motion-p39.spec.ts e2e/map-visual-qa-p40.spec.ts` | **Fail** - 11 passed, 2 failed: missing `map-activity-rail` visual contract and blank-canvas detector threshold. |
+| Documentation close-out | `docs/release/map-explorer-p63-documentation-closeout-2026-05-30.md` plus link check | Pass - Prompt 63 docs now cover architecture, workflow, known risks, source support, CRS/QA, bridge contract, design/motion/visual QA, and validation summary. |
 
 The older validation summary below is preserved as historical release evidence. The current Prompt 64 result supersedes it for any release-candidate claim.
+
+## Current Bundle Budget Snapshot
+
+| Entry | Raw size | Result | Note |
+|---|---|---|---|
+| Initial load | 5.63 MiB | **Fail** | Budget is 2.44 MiB raw; this is the active RC performance blocker. |
+| `centerpanel/components/MapExplorerModal` | 3.46 MiB | Pass with approved exception | Budget is 4.20 MiB raw. |
+| `features/urbanAnalytics/UrbanAnalyticsModal` | 2.08 MiB | Pass with approved exception | Budget is 2.83 MiB raw. |
+| `features/urbanAnalytics/RightPanelFourBlock` | 1.09 MiB | Pass with approved exception | Budget is 1.86 MiB raw. |
+| `centerpanel/Flows/SunlightSimFlow` | 1.01 MiB | Pass with approved exception | Budget is 1.33 MiB raw. |
+| `centerpanel/Flows/VoxCity3DFlow` | 991.92 KiB | Pass with approved exception | Budget is 1.32 MiB raw. |
+| `centerpanel/Flows/CityJSONFlow` | 958.19 KiB | Pass with approved exception | Budget is 1.00 MiB raw. |
 
 ## Validation Summary
 

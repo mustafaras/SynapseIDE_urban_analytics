@@ -1,7 +1,7 @@
 # Map Explorer Scientific Release Checklist
 
-Date: May 2, 2026
-Status: Prompt 36 checked locally
+Date: May 30, 2026
+Status: Prompt 63 documentation close-out checked; Prompt 64 RC gate controls release readiness
 
 Use this checklist before claiming Map Explorer is ready for a scientific release.
 
@@ -10,10 +10,16 @@ Use this checklist before claiming Map Explorer is ready for a scientific releas
 - [x] Map state persists viewport, layers, selection, temporal status, panel widths, and project save/load state.
 - [x] Layer registry shows source type, feature count, visibility, queryability, CRS, QA, and provenance.
 - [x] GeoJSON, CSV, KML, GPX, Arrow, and GeoParquet import paths are covered.
+- [x] Shapefile and GeoPackage commit paths are documented and tested with CRS caveats.
+- [x] FlatGeobuf, PMTiles, GeoTIFF, CityJSON, and 3D Tiles have documented profile/streaming/scene-specific support limits.
 - [x] GeoJSON and GeoParquet export paths are covered.
+- [x] Offline package export preserves bounded source sidecars, styles, manifests, evidence references, and unavailable states for large/external sources.
 - [x] Drawing and measurement tools remain reachable from toolbar and context menu.
+- [x] Undo/redo covers reversible layer/style/AOI/workflow edits and excludes non-reversible side effects.
 - [x] Spatial statistics, thematic, temporal, and GeoAI/simulation map adapters publish structured layer metadata.
+- [x] Plugin-contributed source/render/tool/Urban bridge extensions register through typed metadata without bypassing QA gates.
 - [x] VoxCity bridge prioritizes real project geometry and labels demo/sample modes.
+- [x] Terrain, CityJSON, 3D Tiles metadata, view corridors, and section/cut-plane outputs carry CRS/vertical-datum assumptions.
 - [x] Publication export exposes page, format, DPI, scale, north arrow, legend, graticule, title, and attribution controls.
 
 ## Scientific Truthfulness
@@ -27,6 +33,9 @@ Use this checklist before claiming Map Explorer is ready for a scientific releas
 - [x] Provenance travels through layers, workflow outputs, VoxCity handoffs, review timeline, and report handoff.
 - [x] Demo/sample modes are explicit.
 - [x] NL query execution is scoped to visible queryable layers; non-queryable layers are not silently substituted.
+- [x] AI-proposed map actions are allowlisted, redacted, human-confirmed, and audited before apply.
+- [x] Collaboration sync labels connected/local-only/offline state and does not sync raw geometry.
+- [x] Raster noData, sampled statistics, and missing CRS states are visible in QA and evidence surfaces.
 - [x] Unavailable metadata is surfaced as unavailable.
 
 ## UX and Accessibility
@@ -41,6 +50,8 @@ Use this checklist before claiming Map Explorer is ready for a scientific releas
 - [x] Scroll is confined to panels/dialog bodies; map canvas is not squeezed by action bars.
 - [x] Empty and disabled states name missing prerequisites.
 - [x] Context menus render above floating panels.
+- [x] Reduced-motion gates cover GIS motion classes and temporal playback.
+- [x] Raster, temporal, and 3D evidence states expose text-bearing status chips.
 
 ## Performance
 
@@ -50,6 +61,7 @@ Use this checklist before claiming Map Explorer is ready for a scientific releas
 - [x] Detection/GeoAI map publication paths are covered by GeoAI bridge and smoke validation.
 - [x] Heatmap/proportional/graduated point renderers are covered by Playwright.
 - [x] Worker-backed queries and columnar transfers are covered by unit and Playwright tests.
+- [x] Observability and panel-error recovery surfaces are covered by diagnostics tests.
 - [ ] Browser memory ceilings are not removed; very large datasets remain bounded by user hardware.
 
 ## Documentation
@@ -59,6 +71,8 @@ Use this checklist before claiming Map Explorer is ready for a scientific releas
 - [x] Developer architecture doc for state/action handling exists.
 - [x] Known limitations include Map Explorer residual risks.
 - [x] Release validation doc records Prompt 36 results.
+- [x] Prompt 63 documentation close-out records current shipped GIS behavior and links every close-out gate.
+- [x] Prompt 64 report records the current RC decision and concrete blockers.
 
 ## Prompt 36 Validation Commands
 
@@ -89,4 +103,4 @@ Use this checklist before claiming Map Explorer is ready for a scientific releas
 - Very large GeoJSON, Arrow, GeoParquet, temporal, CA, detection, or heatmap workloads remain browser-memory bounded.
 - Sources without projection metadata default to visible caveats and `EPSG:4326` labeling where the app cannot infer a better CRS.
 - Some model-backed GeoAI paths remain environment-dependent when runtime model URLs or credentials are absent.
-- `MapExplorerModal` remains a large lazy chunk; the current build passes, but future chunk splitting is still desirable.
+- `MapExplorerModal` and other analytical lazy chunks remain large; the Prompt 64 RC report is the current source of truth for bundle-budget status.

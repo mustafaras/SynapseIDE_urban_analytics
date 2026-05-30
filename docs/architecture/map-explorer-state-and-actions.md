@@ -3,6 +3,8 @@
 Date: May 2, 2026
 Audience: Developers maintaining Map Explorer
 
+Close-out update: May 30, 2026. Prompt 63 adds explicit source-format, CRS/QA, Map/Urban bridge, design/motion, offline-package, collaboration, and RC documentation links. This document remains the state/action architecture baseline; see [`map-crs-and-qa-method-note.md`](map-crs-and-qa-method-note.md) and [`map-urban-bridge-contract.md`](map-urban-bridge-contract.md) for the close-out method notes.
+
 ## Core State Model
 
 Map Explorer state is centered on the map store and the modal shell:
@@ -113,6 +115,18 @@ VoxCity bridges should prefer real project geometry:
 4. Explicit demo/sample geometry only when selected or when no real source is available.
 
 Sample mode must be labeled; it must not masquerade as real project geometry.
+
+## Close-out Additions
+
+Prompt 54-62 features extend the same state/action boundary:
+
+- Undo/redo state is bounded and transient in `MapActionHistoryService`; non-reversible side effects remain review-only.
+- Plugin contributions register typed source, renderer, processing-tool, and Urban bridge descriptors, but apply still flows through command preflight and QA gates.
+- Observability stores redacted bounded diagnostics, not raw payloads or credentials.
+- Offline packages serialize snapshots, source handles, styles, manifests, evidence references, and small inline source sidecars only when bounded.
+- AI proposals are allowlisted, redacted, human-confirmed, and audited as `AI-proposed`.
+- Collaboration sync carries annotations, comments, target IDs, evidence IDs, and presence only. Raw geometry and source bytes are not synced.
+- Raster, temporal, and 3D evidence visual state is transient UI state backed by source handles and evidence references, not persisted heavy scene or raster buffers.
 
 ## Report and Audit Trail
 

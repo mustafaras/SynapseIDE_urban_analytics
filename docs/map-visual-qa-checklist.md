@@ -1,4 +1,4 @@
-# Map Explorer — Visual QA Release Checklist
+# Map Explorer - Visual QA Release Checklist
 
 Pre-release manual review checklist for the Map Explorer Production GIS UI.
 Complete before tagging a release candidate. Mark each item `[x]` when verified.
@@ -92,6 +92,7 @@ These are verified by `npm run test:e2e:smoke` — confirm green before release:
 
 - [ ] `e2e/map-visual-qa-p40.spec.ts` — all tests pass
 - [ ] `e2e/map-motion-p39.spec.ts` — reduced-motion gate passes
+- [ ] `e2e/map-evidence-visual-p62.spec.ts` — raster, temporal, and 3D evidence visual states render with visible state chips
 - [ ] Canvas nonblank bidirectional proof: blank overlay → detected as blank; real canvas → detected as non-blank
 - [ ] `mapVisualQA.test.ts` (vitest) — all 29+ unit tests green
 - [ ] `mapMotionSystem.test.ts` (vitest) — all 19 tests green

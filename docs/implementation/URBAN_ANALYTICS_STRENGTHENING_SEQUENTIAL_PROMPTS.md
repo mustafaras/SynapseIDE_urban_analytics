@@ -9,7 +9,7 @@ Establish a precise implementation framework that maps the strengthening plan to
 This file is optimized for long-horizon implementation agents such as Claude Opus 4.6. Read each prompt as an execution milestone, not as a brainstorming note. Apply the following rules throughout the entire sequence.
 
 #### Program Alignment
-- Treat this document as the execution counterpart of [URBAN_ANALYTICS_STRENGTHENING_PLAN.md](c:/Users/PC/Desktop/SynapseIDE_urban_analytics/URBAN_ANALYTICS_STRENGTHENING_PLAN.md).
+- Treat this document as the execution counterpart of [URBAN_ANALYTICS_STRENGTHENING_PLAN.md](URBAN_ANALYTICS_STRENGTHENING_PLAN.md).
 - Maintain explicit alignment with these seven axes throughout implementation:
   1. Spatial Statistical Depth
   2. Data Ecosystem Expansion

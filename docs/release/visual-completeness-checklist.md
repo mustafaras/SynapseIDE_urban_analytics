@@ -1,6 +1,6 @@
 # Visual Completeness Checklist
 
-Date: April 24, 2026  
+Date: May 30, 2026
 Status: Current release-surface visibility ledger
 
 ## Interpretation note
@@ -36,6 +36,21 @@ Verification-depth vocabulary:
 | Map Explorer | implemented | execution verified | `e2e/release-candidate-ui.spec.ts`; `e2e/map-columnar-io.spec.ts`; `src/centerpanel/components/map/__tests__/MapCanvas.lifecycle.test.tsx`; `src/centerpanel/components/map/__tests__/map-accessibility.test.ts`; `src/centerpanel/components/map/__tests__/map-layer-management.test.ts` | Reachability, workspace shell integrity, teardown hardening, and a real import/export journey are all covered. |
 | Status bar runtime chips (GeoAI, Spatial Index, Stream) | implemented | launch verified | Release smoke plus toolbox labs | Runtime state is visible; individual subsystems can still carry their own residual gaps. |
 
+## Map Explorer Production GIS Close-out Surfaces
+
+| Surface | Implementation status | Verification depth | Verification source | Notes |
+|---|---|---|---|---|
+| Command palette and keyboard command system | implemented | execution verified | `e2e/map-command-palette-p53.spec.ts`; command palette unit tests | Registered commands and processing tools are searchable and keyboard-runnable with disabled reasons. |
+| Undo/redo stack | implemented | execution verified | `e2e/map-undo-p54.spec.ts`; `src/services/map/__tests__/MapActionExecutor.test.ts` | Reversible map edits are undoable/redoable; exports and report insertion remain audit-only side effects. |
+| Plugin/extension registry | implemented with residual gap | execution verified | `e2e/map-plugins-p55.spec.ts`; `src/services/map/__tests__/MapExtensionRegistry.test.ts` | Reference connectors/renderers/tools/Urban bridges work through typed registries; untrusted plugin execution is still intentionally scoped. |
+| Observability and scoped recovery | implemented | execution verified | `e2e/map-observability-p56.spec.ts`; observability and panel-boundary tests | Diagnostics are bounded and redacted; panel crashes surface scoped retry UI. |
+| Offline reproducible package export | implemented with residual gap | unit verified | `src/services/map/__tests__/MapOfflinePackageService.test.ts`; toolbar command-palette tests | Small inline sources round-trip; large/external sources restore with explicit unavailable/recoverable states. |
+| AI map action guardrails | implemented | execution verified | `e2e/map-ai-guardrails-p58.spec.ts`; `src/services/map/__tests__/MapAIGuardrails.test.ts` | Apply-capable AI proposals require allowlist, redaction, human confirmation, and review audit. |
+| Shared review collaboration | implemented with residual gap | unit verified | `src/services/map` collaboration tests | Yjs annotations/comments/presence sync without raw geometry; live transport remains local/environment dependent. |
+| Terrain, CityJSON, and 3D Tiles source metadata | implemented with residual gap | execution verified | `e2e/map-terrain-cityjson-p60.spec.ts`; `src/services/map` scene3d tests | Terrain and CityJSON scene source handling is verified; broad 3D Tiles streaming/LOD is metadata/external-source bounded. |
+| View corridors and section/cut planes | implemented | execution verified | `e2e/map-view-corridor-section-p61.spec.ts`; `src/services/map/scene3d/ViewCorridorSectionService.ts` tests | Corridor/section results carry CRS and vertical assumptions. |
+| Raster, temporal, and 3D evidence visual states | implemented | execution verified | `e2e/map-evidence-visual-p62.spec.ts` | State chips and nonblank raster/3D evidence canvases are covered by screenshot-oriented Playwright checks. |
+
 ## Execution-Verified Workflows
 
 | Workflow surface | Implementation status | Verification depth | Verification source | Notes |
@@ -58,7 +73,7 @@ Verification-depth vocabulary:
 |---|---|---|---|---|
 | GeoAI Lab | implemented with residual gap | execution verified; demo-mode verified | `e2e/geoai-real-data.spec.ts`; `e2e/release-candidate-ui.spec.ts` | Land cover executes against explicit real raster sources and explicit demo mode. NL-to-SQL executes against live project overlays and imported worker-backed spatial tables in SpatialDB, with explicit demo mode and saved execution provenance; broader federation across every dataset surface remains residual. |
 | Object detection | implemented | execution verified | `e2e/geoai-real-data.spec.ts`; `e2e/release-candidate-ui.spec.ts` | The workflow now executes a mocked-real browser runtime path from the workflow surface, preserves explicit Demo mode, and publishes to map/review outputs with saved run metadata. |
-| CityJSON loader | implemented | launch verified | `e2e/release-candidate-ui.spec.ts` | Workflow entry is visible; current release suite does not yet execute a file-import journey here. |
+| CityJSON loader | implemented with residual gap | execution verified | `e2e/map-terrain-cityjson-p60.spec.ts`; `e2e/release-candidate-ui.spec.ts` | CityJSON scene import and terrain-grounded preview are exercised; generic 2D import is not the primary path. |
 | VoxCity 3D | implemented with demo mode | execution verified | `e2e/voxcity-real-data.spec.ts`; `e2e/release-candidate-ui.spec.ts` | The workflow now auto-prioritizes real project geometry from Map Explorer polygon layers when available, exposes active-source metadata, persists extrusion provenance, and keeps sample mode as an explicit quick-start only. |
 | Sunlight simulation | implemented with demo mode | execution verified | `e2e/voxcity-real-data.spec.ts`; `e2e/release-candidate-ui.spec.ts` | The workflow now consumes real building geometry from Map Explorer or Building Viewer handoff, persists solar-run provenance, and keeps sample mode explicit rather than implicit. |
 | Facility optimisation | implemented | launch verified | `e2e/release-candidate-ui.spec.ts` | Current evidence is launch-only verification; no dedicated execution-grade Playwright spec exists yet. |

@@ -1,6 +1,6 @@
 # Known Risks and Limitations
 
-Date: May 29, 2026
+Date: 2026-05-30
 Audience: Internal release review
 Status: Current release note; Prompt 64 RC gate is blocked
 
@@ -10,10 +10,22 @@ These are current no-go conditions for a Map Explorer release-candidate claim.
 
 | Blocker | Impact | Current mitigation | Concrete limit |
 |---|---|---|---|
-| Bundle budgets fail. | `npm run validate:rc` stops at `npm run perf:budgets`, so the aggregate RC gate cannot reach the built-in Playwright CI phase. | Heavy surfaces remain lazy-loaded, and the initial load stays under its raw budget. | RC is blocked until `npm run perf:budgets` exits 0 or the approved exception budgets are intentionally revised with fresh evidence. |
-| P40 visual QA has two failures. | Premium design/visual QA cannot be claimed green. | Motion checks, no-Tailwind guard, and 11 of 13 focused P39/P40 tests passed. | RC is blocked until the `map-activity-rail` contract and blank-canvas detector proof pass. |
-| Prompt 63 documentation close-out is not complete. | Release docs and support matrices do not yet match every shipped Prompt 0-53 capability. | Current architecture, workflow, scientific checklist, visual checklist, and known-risks docs remain useful but are not a completed close-out pack. | RC is blocked until Prompt 63 refreshes the docs, source matrix, CRS/QA note, bridge note, design/motion/visual QA notes, validation summary, and link/cross-reference checks. |
-| Prompts 54-62 are not implemented. | Enterprise and modern-GIS capabilities after Prompt 53 are not release-certified. | Their absence is explicit in the prompt ledger. | Do not claim undo/redo, plugin registry, telemetry/observability, offline package export, AI guardrails, collaboration, terrain/3D Tiles, view corridors/sections, or raster/temporal/3D evidence visual-state close-out until those prompts land. |
+| Initial-load bundle budget fails. | `npm run validate:rc` stops at `npm run perf:budgets`, so the aggregate command cannot reach its built-in Playwright CI phase. | Heavy GIS surfaces remain mostly lazy-loaded and the previously over-budget Map Explorer lazy chunk is now inside its approved exception. | RC is blocked until initial load is reduced to the 2.44 MiB raw budget or the budget is intentionally revised with fresh evidence. Current measured initial load is 5.63 MiB raw / 1.62 MiB gzip. |
+| P40 visual QA has two failures. | Premium design/visual QA cannot be claimed green. | P39 motion checks pass, no-Tailwind guard passes, accessibility audit passes, and 11 of 13 focused P39/P40 tests pass. | RC is blocked until `data-testid="map-activity-rail"` is present in the P40 desktop shell path and the blank-canvas detector threshold passes its bidirectional proof. |
+| Full E2E CI did not run inside `validate:rc`. | Smoke/a11y/functional Playwright suites are not proven by the aggregate RC command because the command stops at bundle budgets. | `npm run test:e2e:a11y` was run separately and passed 5/5 on 2026-05-30. | After the bundle budget gate passes, run `npm run validate:rc` again and require `npm run test:e2e:ci` to run inside the aggregate command. |
+
+## Documentation Close-out
+
+Prompt 63 is complete for shipped behavior as of 2026-05-30. The current documentation references are:
+
+- [`../map-explorer-workflow-guide.md`](../map-explorer-workflow-guide.md)
+- [`../map-source-support-matrix.md`](../map-source-support-matrix.md)
+- [`../architecture/map-crs-and-qa-method-note.md`](../architecture/map-crs-and-qa-method-note.md)
+- [`../architecture/map-urban-bridge-contract.md`](../architecture/map-urban-bridge-contract.md)
+- [`map-explorer-design-motion-visual-qa.md`](map-explorer-design-motion-visual-qa.md)
+- [`map-explorer-p63-documentation-closeout-2026-05-30.md`](map-explorer-p63-documentation-closeout-2026-05-30.md)
+
+Documentation completeness does not certify RC readiness; the Prompt 64 report remains authoritative for current blockers.
 
 ## Visibility vs Execution Depth
 
@@ -36,41 +48,43 @@ Implementation status is tracked separately from verification depth through the 
 
 | Risk | Impact | Current mitigation | Residual note |
 |---|---|---|---|
-| Live AI providers require valid credentials and upstream availability. | Provider-backed chat, inference, and external model routing can be unavailable in local or CI environments. | Provider configuration is optional and the workbench remains locally operable without live credentials. | Live upstream responses are intentionally documented as environment-dependent rather than assumed available. |
+| Live AI providers require valid credentials and upstream availability. | Provider-backed chat, inference, and external model routing can be unavailable in local or CI environments. | Provider configuration is optional and the workbench remains locally operable without live credentials. | Live upstream responses are environment-dependent, not assumed available. |
 | WebSocket and MQTT streaming depend on reachable live endpoints. | Live streaming modes may fail despite the runtime surface being correct. | Deterministic replay mode is built into the Streaming Runtime and is the guaranteed release-verification path. | Live-feed verification remains conditional on broker and network health. |
-| Map-provider features depend on external map credentials. | Google Maps and some commercial basemap capabilities may not render in a bare local environment. | The workbench retains browser-local analytical surfaces and non-provider-specific map capabilities. | External provider failures should not be mistaken for app-shell regression. |
-| Browser memory and CPU ceilings still bound large analytical runs. | Very large datasets or long-running simulations may degrade responsiveness on weaker hardware. | Lazy loading, workers, bundle budgets, and browser-side runtime status surfaces are in place. | The platform is a browser-first analytical environment, not an unbounded server compute cluster. |
-| Several analytical lazy chunks exceed their approved exception budgets. | VoxCity, Sunlight, RightPanel, GeoAI Lab, Map Explorer, Urban Analytics, Education, and several flow chunks carry large but isolated lazy payloads because they bundle 3D, seed-derived support, or analysis runtime surfaces. | `npm run perf:budgets` keeps these chunks visible in the budget report, and initial load remains under its raw budget. | Prompt 64 blocks RC until the budget gate passes or the approved exception ceilings are intentionally revised with fresh evidence. |
+| Map-provider features depend on external map credentials. | Google Maps and some commercial basemap capabilities may not render in a bare local environment. | Browser-local analytical surfaces and non-provider-specific map capabilities remain independently testable. | External provider failures should not be mistaken for app-shell regression. |
+| Browser memory and CPU ceilings still bound large analytical runs. | Very large datasets or long-running simulations may degrade responsiveness on weaker hardware. | Workers, streaming, vector tiling, sampled raster reads, diagnostics, and package restore states make limits visible. | The platform is a browser-first analytical environment, not an unbounded server compute cluster. |
+| Initial-load budget regression is active. | The app can still build, but RC performance governance blocks release. | `perf:budgets` keeps the regression explicit. | Current blocker: 5.63 MiB raw initial load vs 2.44 MiB budget. |
 
 ## Analytical Limitations
 
 | Limitation | Why it exists | Release interpretation |
 |---|---|---|
-| Map Explorer external services remain provider-dependent. | WMS, WFS, XYZ, OSM, reverse geocoding, and external basemaps can be blocked by credentials, CORS, rate limits, network failures, or provider downtime. | Treat these as `environment-dependent`; local map state, import/export, and analytical panels remain independently testable. |
-| Map Explorer large-data performance is browser bounded. | Large GeoJSON, Arrow, GeoParquet, temporal frames, CA outputs, detection boxes, and heatmaps execute in a browser-first runtime even when workers are used. | Treat large workloads as `implemented with residual gap`; progress, memory estimates, workers, and lazy loading mitigate but do not remove client hardware ceilings. |
-| Map Explorer CRS defaults are truthful fallbacks, not authoritative reprojection. | Some local/imported sources omit projection metadata. The UI labels missing CRS and may show `EPSG:4326` where no better metadata is available. | Users must confirm CRS before publication or statutory decisions; missing projection metadata remains a visible QA caveat. |
-| Map Explorer NL query execution is intentionally scoped. | NL-to-SQL runs only against visible queryable layers and imported/worker-backed tables. Remote catalogs and non-queryable layers are not silently substituted. | Treat as `implemented with residual gap`; scope is truthful and auditable rather than pretending full federation. |
-| GeoAI land cover still relies on a demo-hosted model package even when the raster source is real. | The classifier pipeline now executes against explicit EO/imported raster sources, but the browser-safe model artifact is still shipped through the demo runtime/model path and real-source runs do not have reference labels for accuracy scoring. | Treat the current validation state as `implemented with residual gap`, not as full production-grade remote-sensing validation parity. |
-| NL-to-SQL still depends on queryable project-context data rather than arbitrary remote catalogs. | Deterministic SQL generation and safety logic are implemented, and the GeoAI Lab UI executes accepted queries through SpatialDB across live project overlays and imported worker-backed spatial tables. Remote sources still need to be imported or published into the project context before they become queryable tables, and non-queryable layers are not silently substituted with demo data. | Treat the current validation state as `implemented with residual gap`: live project/imported queryable tables work, but automatic federation across every dataset surface is not implemented. |
-| Real object detection still depends on a configured browser-loadable model source. | The workflow now supports a real GeoAI runtime path, but the repository does not hard-ship detector weights; real execution requires `VITE_GEOAI_OBJECT_DETECTION_MODEL_URL` or an equivalent runtime override. | Treat the current validation state as `implemented` with explicit environment/configuration requirements for the real model path; Demo mode remains the truthful local fallback when the model source is unavailable. |
-| VoxCity extrusion and solar workflows retain explicit sample mode. | The 3D tools now prioritize real project geometry when Map Explorer layers, imported layers, CityJSON-derived volumes, or Building Viewer handoffs are available. Sample mode remains as a visible quick-start/demo path rather than a silent runtime default. | Treat them as `implemented with demo mode`: real project geometry is prioritized when available, and sample runs remain explicit. |
-| Map Explorer publication chunk is still large. | The full map workspace includes MapLibre, import/export, QA, workflow, report, temporal, and analytical panels behind one lazy modal boundary. | Current `npm run build` passes and the chunk is isolated, but Prompt 64 `npm run perf:budgets` fails with Map Explorer over budget. |
-| Built-in RAG corpus is curated rather than exhaustive. | Prompt 42 expanded the baseline corpus with academically relevant official sources, but not a complete planning literature index. | The system is materially better grounded, but literature completeness still depends on future corpus expansion. |
-| Some planning models are exploratory rather than policy-grade forecasting systems. | Many flows intentionally prioritize interpretability and reproducibility for urban analysis workflows. | Outputs support analytical review and scenario exploration; they do not replace field validation or statutory decision processes. |
+| External services remain provider-dependent. | WMS, WMTS, WFS, XYZ, OSM, reverse geocoding, COG/STAC, external basemaps, Sentinel Hub, and live 3D sources can be blocked by credentials, CORS, rate limits, network failures, or provider downtime. | Treat these as `environment-dependent`; local map state, import/export, and analytical panels remain independently testable. |
+| Large-data performance is browser bounded. | Large GeoJSON, Arrow, GeoParquet, temporal frames, raster samples, vector tiles, CA outputs, detection boxes, and heatmaps execute in a browser-first runtime even when workers are used. | Treat large workloads as `implemented with residual gap`; progress, memory estimates, workers, tiling, and lazy loading mitigate but do not remove client hardware ceilings. |
+| CRS defaults are truthful fallbacks, not authoritative reprojection. | Some sources omit projection metadata, and user-declared CRS is not verified source metadata. | Users must confirm CRS before publication, statutory decisions, planar metrics, or corridor/section measurements. |
+| GeoPackage CRS handling has a current caveat. | The current GeoPackage commit path labels committed data as EPSG:4326 and requires review. | Non-WGS84 GeoPackages must be verified before metric analysis or release-sensitive use. |
+| Raster analysis is sampled/bounded. | GeoTIFF parsing samples bands for histogram/statistics and does not silently read full large rasters on the hot path. | Treat sampled raster QA as review evidence, not full-resolution raster analytics. Missing CRS blocks readiness; missing noData is a warning. |
+| Vector-tile and FlatGeobuf workflows can be display/extent scoped. | Tiled/generalized geometry and extent streams are designed for responsiveness. | Low-zoom/tiled geometry must carry approximation caveats; precision-sensitive metrics need full-resolution source geometry. |
+| NL query execution is scoped. | NL-to-SQL runs only against visible queryable layers and imported/worker-backed tables. | Treat as `implemented with residual gap`; remote catalogs and non-queryable layers are not silently substituted. |
+| AI map actions require confirmation. | Guardrails intentionally prevent automatic apply of model-proposed map changes. | Treat AI assistance as auditable operator support, not autonomous GIS editing. |
+| Collaboration is lightweight review sync. | Yjs sync carries annotations, comments, targets, evidence IDs, and presence, not raw source data or heavy geometry. | Treat as `implemented with residual gap`; live multi-user transport and offline/local-only state must remain explicit. |
+| 3D Tiles and terrain/city-model paths are metadata/source-handle bounded. | Scene paths preserve vertical-datum and source caveats and do not claim full external tile-payload analysis. | Treat as `implemented with residual gap` for broad 3D Tiles parity. |
+| Built-in RAG corpus is curated rather than exhaustive. | Prompt 42 expanded the baseline corpus with academically relevant official sources, but not a complete planning literature index. | Literature completeness still depends on future corpus expansion. |
+| Some planning models are exploratory rather than policy-grade forecasting systems. | Many flows prioritize interpretability and reproducibility for urban analysis workflows. | Outputs support analytical review and scenario exploration; they do not replace field validation or statutory decision processes. |
 
-## Governance and Documentation Risks
+## Governance Risks
 
 | Risk | Current state | Planned action |
 |---|---|---|
-| Historical completion notes can overstate current surface depth. | Remediation Prompt 02 added `docs/implementation/prompt-status-ledger.md` and rebuilt the module matrix as the current-state source of truth. | When current truth changes, update the ledger, module matrix, completion note, and release docs together. |
+| Historical completion notes can overstate current surface depth. | The Prompt 63 close-out and Prompt 64 report supersede older pass language for Map Explorer Production GIS. | When current truth changes, update the ledger, source matrix, workflow guide, release validation, known risks, and RC report together. |
+| Visual QA can drift from shell implementation. | P40 currently expects an activity-rail test hook that is absent in the tested path. | Restore the canonical hook or update the P40 spec only after confirming the current shell contract. |
 
 ## Visual Verification Exceptions
 
-These items are explicitly flagged because they cannot be fully guaranteed through a credential-free local walkthrough:
+These items cannot be fully guaranteed through a credential-free local walkthrough:
 
 - Live upstream AI responses from external providers.
-- Live WebSocket and MQTT feeds beyond the deterministic replay connector.
-- Provider-gated map integrations that require external API keys.
-- Provider-gated Map Explorer services and external basemaps beyond local/imported data paths.
+- Live WebSocket and MQTT feeds beyond deterministic replay connectors.
+- Provider-gated map integrations and external basemaps.
+- Provider-gated Map Explorer services, EO providers, and live 3D tile sources.
 
-These are not hidden risks. They are visible operational dependencies and are intentionally separated from the locally verifiable release surface.
+These are visible operational dependencies and are intentionally separated from the locally verifiable release surface.

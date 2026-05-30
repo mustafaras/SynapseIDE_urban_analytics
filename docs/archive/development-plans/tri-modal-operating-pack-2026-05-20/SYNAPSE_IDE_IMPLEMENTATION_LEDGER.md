@@ -142,7 +142,7 @@ Use this format for each entry:
 Synapse IDE is **COMPLETE** — all 30 prompts (00–29) delivered.
 
 Detailed execution logs for completed Prompts 00 through 29 have been moved to:
-[`DEVELOPMENT_PLANS/archive/SYNAPSE_IDE_LEDGER_PROMPTS_00-29.md`](archive/SYNAPSE_IDE_LEDGER_PROMPTS_00-29.md)
+[`DEVELOPMENT_PLANS/archive/SYNAPSE_IDE_LEDGER_PROMPTS_00-29.md`](../SYNAPSE_IDE_LEDGER_PROMPTS_00-29.md)
 
 Per-prompt outcomes (status, completion date, scope summary) remain in the **Prompt Status Register** above.
 Read the archive only when investigating prior implementation details for a specific prompt.

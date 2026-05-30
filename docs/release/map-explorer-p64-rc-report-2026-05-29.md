@@ -1,5 +1,7 @@
 # Map Explorer Prompt 64 Release Candidate Report
 
+Superseded for current release-candidate claims by [`map-explorer-p64-rc-report-2026-05-30.md`](map-explorer-p64-rc-report-2026-05-30.md). This file is retained as historical May 29 gate evidence.
+
 Date: May 29, 2026
 Branch: `gis/p64-rc`
 Base commit: `8562cd8` (`feat(map): add command palette keyboard system`)
