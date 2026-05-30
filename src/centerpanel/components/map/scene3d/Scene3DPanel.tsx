@@ -1,7 +1,12 @@
-import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FeatureCollection, GeoJsonProperties, Polygon } from "geojson";
-import { AlertTriangle, Box, ChevronDown, Eye, Layers } from "lucide-react";
+import { AlertTriangle, Box, ChevronDown, Crosshair, Eye, Layers, Scissors } from "lucide-react";
 import {
+  selectSectionPlaneDefinition,
+  selectSectionPlaneResult,
+  selectScene3DActiveLayerCrs,
+  selectScene3DActiveLayerId,
+  selectScene3DBuildings,
   selectBuildingConfig,
   selectExtrusionAnalysis,
   selectInspectorEntries,
@@ -9,8 +14,10 @@ import {
   selectScene3DTerrainSourceHandle,
   selectScene3DMode,
   selectScene3DSelected,
+  selectViewCorridorResult,
   useScene3DStore,
 } from "@/stores/useScene3DStore";
+import { useMapExplorerStore } from "@/stores/useMapExplorerStore";
 import {
   MAP_COLORS,
   MAP_ICON_SIZES,
@@ -18,6 +25,7 @@ import {
   MAP_SHADOWS,
   MAP_SPACING,
   MAP_STROKES,
+  MAP_TRANSITIONS,
   MAP_TYPOGRAPHY,
   MAP_Z_INDEX,
   resolveMapPaintColor,
@@ -25,6 +33,11 @@ import {
 import { createOpaqueFloatingPanelStyle, useDraggableMapPanel } from "../useDraggableMapPanel";
 import type { Scene3DRuntimeMode } from "@/services/map/scene3d/Map3DSceneController";
 import type { SourceHandle } from "@/services/map/contracts/gisContracts";
+import type {
+  Scene3DBuildingMass,
+  SectionPlaneAnalysisResult,
+  ViewCorridorAnalysisResult,
+} from "@/services/map/scene3d/ViewCorridorSectionService";
 
 /* ------------------------------------------------------------------ */
 /*  Props                                                               */
@@ -204,6 +217,69 @@ const sceneCanvasStyle: React.CSSProperties = {
   display: "block",
 };
 
+const analysisPanelStyle: React.CSSProperties = {
+  display: "grid",
+  gap: MAP_SPACING.sm,
+  padding: MAP_SPACING.sm,
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.sm,
+  background: MAP_COLORS.bgWorkspace,
+};
+
+const analysisActionRowStyle: React.CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: MAP_SPACING.sm,
+};
+
+const analysisButtonStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: MAP_SPACING.xs,
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.sm,
+  background: MAP_COLORS.transparent,
+  color: MAP_COLORS.text,
+  padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
+  cursor: "pointer",
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  transition: MAP_TRANSITIONS.fast,
+};
+
+const analysisButtonDisabledStyle: React.CSSProperties = {
+  ...analysisButtonStyle,
+  cursor: "not-allowed",
+  color: MAP_COLORS.textMuted,
+  opacity: 0.7,
+};
+
+const metricGridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+  gap: MAP_SPACING.xs,
+};
+
+const metricTileStyle: React.CSSProperties = {
+  display: "grid",
+  gap: "2px",
+  padding: MAP_SPACING.xs,
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.sm,
+  minWidth: 0,
+};
+
+const metricValueStyle: React.CSSProperties = {
+  color: MAP_COLORS.text,
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+  fontSize: MAP_TYPOGRAPHY.fontSize.sm,
+};
+
+const rangeStyle: React.CSSProperties = {
+  width: "100%",
+  accentColor: MAP_COLORS.interaction,
+};
+
 function handleRuntimeLabel(handle: SourceHandle | null): string {
   if (!handle?.scene3d) return "none";
   if (handle.scene3d.runtimeMode === "metadata-only") return "metadata-only";
@@ -236,6 +312,48 @@ function sceneBounds(collection: FeatureCollection<Polygon, GeoJsonProperties>):
   return minX === Number.POSITIVE_INFINITY ? null : [minX, minY, maxX, maxY];
 }
 
+function buildingBoundsFromMasses(buildings: readonly Scene3DBuildingMass[]): [number, number, number, number] | null {
+  if (buildings.length === 0) return null;
+  let minX = Number.POSITIVE_INFINITY;
+  let minY = Number.POSITIVE_INFINITY;
+  let maxX = Number.NEGATIVE_INFINITY;
+  let maxY = Number.NEGATIVE_INFINITY;
+  for (const building of buildings) {
+    minX = Math.min(minX, building.bbox[0]);
+    minY = Math.min(minY, building.bbox[1]);
+    maxX = Math.max(maxX, building.bbox[2]);
+    maxY = Math.max(maxY, building.bbox[3]);
+  }
+  return [minX, minY, maxX, maxY];
+}
+
+function buildingMassForFeature(
+  buildings: readonly Scene3DBuildingMass[],
+  feature: FeatureCollection<Polygon, GeoJsonProperties>["features"][number],
+  index: number,
+): Scene3DBuildingMass | null {
+  const featureId = String(feature.id ?? feature.properties?.id ?? index + 1);
+  return buildings.find((building) => building.featureId === featureId) ?? null;
+}
+
+function mapSceneX(value: number, bounds: [number, number, number, number], width: number): number {
+  const span = Math.max(bounds[2] - bounds[0], Number.EPSILON);
+  return 18 + ((value - bounds[0]) / span) * (width - 40);
+}
+
+function formatMetres(value: number, digits = 1): string {
+  if (!Number.isFinite(value)) return "0.0 m";
+  return `${value.toFixed(digits)} m`;
+}
+
+function resultExecutionCrs(
+  corridorResult: ViewCorridorAnalysisResult | null,
+  sectionResult: SectionPlaneAnalysisResult | null,
+  fallback: string | null,
+): string | null {
+  return corridorResult?.executionCrs ?? sectionResult?.executionCrs ?? fallback;
+}
+
 function featureHeight(properties: GeoJsonProperties): number {
   const candidates = [
     properties?.measuredHeight,
@@ -255,6 +373,9 @@ function drawTerrainScenePreview(
   collection: FeatureCollection<Polygon, GeoJsonProperties> | null,
   cityModelHandle: SourceHandle | null,
   terrainHandle: SourceHandle | null,
+  sceneBuildings: readonly Scene3DBuildingMass[],
+  corridorResult: ViewCorridorAnalysisResult | null,
+  sectionResult: SectionPlaneAnalysisResult | null,
 ): void {
   const context = canvas.getContext("2d");
   if (!context) return;
@@ -266,6 +387,8 @@ function drawTerrainScenePreview(
   const building = resolveMapPaintColor(MAP_COLORS.caveatText);
   const roof = resolveMapPaintColor(MAP_COLORS.text);
   const muted = resolveMapPaintColor(MAP_COLORS.textMuted);
+  const intrusion = resolveMapPaintColor(MAP_COLORS.error);
+  const section = resolveMapPaintColor(MAP_COLORS.interaction);
 
   context.clearRect(0, 0, width, height);
   context.fillStyle = bg;
@@ -288,7 +411,7 @@ function drawTerrainScenePreview(
   context.stroke();
 
   if (collection && cityModelHandle) {
-    const bounds = sceneBounds(collection);
+    const bounds = buildingBoundsFromMasses(sceneBuildings) ?? sceneBounds(collection);
     const visibleFeatures = collection.features.slice(0, 28);
     visibleFeatures.forEach((feature, index) => {
       const ring = feature.geometry.coordinates[0];
@@ -302,11 +425,51 @@ function drawTerrainScenePreview(
       const buildingHeight = Math.min(height * 0.54, Math.max(12, featureHeight(feature.properties) * 1.7));
       const y = baseY - terrainLift;
       const w = 9 + (index % 4) * 2;
-      context.fillStyle = building;
+      const mass = buildingMassForFeature(sceneBuildings, feature, index);
+      const featureId = mass?.featureId ?? String(feature.id ?? feature.properties?.id ?? index + 1);
+      const intrudes = corridorResult?.intrusions.some((entry) => entry.featureId === featureId) ?? false;
+      const sectionCut = sectionResult?.cutFeatureIds.includes(featureId) ?? false;
+      const beyondClip = Boolean(
+        sectionResult?.plane.clipEnabled
+        && mass
+        && sectionResult.plane.axis === "x"
+        && mass.bbox[0] > sectionResult.plane.offsetM,
+      );
+      context.globalAlpha = beyondClip && !sectionCut && !intrudes ? 0.32 : 1;
+      context.fillStyle = intrudes ? intrusion : sectionCut ? section : building;
       context.fillRect(x, y - buildingHeight, w, buildingHeight);
       context.fillStyle = roof;
       context.fillRect(x, y - buildingHeight - 3, w, 3);
+      if (beyondClip && mass) {
+        context.strokeStyle = muted;
+        context.lineWidth = 1;
+        context.strokeRect(x, y - buildingHeight, w, buildingHeight);
+      }
+      context.globalAlpha = 1;
     });
+
+    if (bounds && corridorResult) {
+      const originX = mapSceneX(corridorResult.corridor.origin[0], bounds, width);
+      const targetX = mapSceneX(corridorResult.corridor.target[0], bounds, width);
+      context.strokeStyle = corridorResult.status === "ready" ? intrusion : muted;
+      context.lineWidth = 2;
+      context.setLineDash([5, 4]);
+      context.beginPath();
+      context.moveTo(originX, baseY - 118);
+      context.lineTo(targetX, baseY - 88);
+      context.stroke();
+      context.setLineDash([]);
+    }
+
+    if (bounds && sectionResult) {
+      const planeX = mapSceneX(sectionResult.plane.offsetM, bounds, width);
+      context.strokeStyle = section;
+      context.lineWidth = 2;
+      context.beginPath();
+      context.moveTo(planeX, 24);
+      context.lineTo(planeX, height - 10);
+      context.stroke();
+    }
   }
 
   context.fillStyle = muted;
@@ -324,20 +487,31 @@ export const Scene3DPanel: React.FC<Scene3DPanelProps> = ({ visible, onClose, on
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const runtimeMode = useScene3DStore(selectScene3DMode);
+  const activeLayerId = useScene3DStore(selectScene3DActiveLayerId);
+  const activeLayerCrs = useScene3DStore(selectScene3DActiveLayerCrs);
   const analysis = useScene3DStore(selectExtrusionAnalysis);
   const buildingConfig = useScene3DStore(selectBuildingConfig);
   const cityModelHandle = useScene3DStore(selectScene3DCityModelSourceHandle);
   const terrainHandle = useScene3DStore(selectScene3DTerrainSourceHandle);
   const activeCollection = useScene3DStore((s) => s.activeCollection);
+  const sceneBuildings = useScene3DStore(selectScene3DBuildings);
   const selectedIds = useScene3DStore(selectScene3DSelected);
   const inspectorEntries = useScene3DStore(selectInspectorEntries);
+  const viewCorridorResult = useScene3DStore(selectViewCorridorResult);
+  const sectionPlaneDefinition = useScene3DStore(selectSectionPlaneDefinition);
+  const sectionPlaneResult = useScene3DStore(selectSectionPlaneResult);
 
   const setRuntimeMode = useScene3DStore((s) => s.setRuntimeMode);
   const publishSceneMetadata = useScene3DStore((s) => s.publishSceneMetadata);
+  const runDefaultViewCorridor = useScene3DStore((s) => s.runDefaultViewCorridor);
+  const runDefaultSectionPlane = useScene3DStore((s) => s.runDefaultSectionPlane);
+  const setSectionPlaneOffset = useScene3DStore((s) => s.setSectionPlaneOffset);
   const setHeightFieldOverride = useScene3DStore((s) => s.setHeightFieldOverride);
   const heightFieldOverride = useScene3DStore((s) => s.heightFieldOverride);
   const metersPerLevelOverride = useScene3DStore((s) => s.metersPerLevelOverride);
   const setMetersPerLevelOverride = useScene3DStore((s) => s.setMetersPerLevelOverride);
+  const registerMapEvidenceArtifact = useMapExplorerStore((s) => s.registerMapEvidenceArtifact);
+  const [publishedAnalysisId, setPublishedAnalysisId] = useState<string | null>(null);
 
   const caveats = useMemo(
     () => [
@@ -356,6 +530,91 @@ export const Scene3DPanel: React.FC<Scene3DPanelProps> = ({ visible, onClose, on
     [setRuntimeMode, onModeChange],
   );
 
+  const sectionRange = useMemo(() => {
+    const bounds = buildingBoundsFromMasses(sceneBuildings);
+    if (!bounds) return { min: 0, max: 100, step: 1, value: 50 };
+    const min = bounds[0];
+    const max = bounds[2];
+    return {
+      min,
+      max,
+      step: 0.5,
+      value: sectionPlaneDefinition?.offsetM ?? (min + max) / 2,
+    };
+  }, [sceneBuildings, sectionPlaneDefinition?.offsetM]);
+
+  const corridorIntrusionIds = useMemo(
+    () => new Set(viewCorridorResult?.intrusions.map((entry) => entry.featureId) ?? []),
+    [viewCorridorResult?.intrusions],
+  );
+
+  const sectionCutIds = useMemo(
+    () => new Set(sectionPlaneResult?.cutFeatureIds ?? []),
+    [sectionPlaneResult?.cutFeatureIds],
+  );
+
+  const handleSectionOffsetChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setSectionPlaneOffset(Number(event.currentTarget.value));
+    },
+    [setSectionPlaneOffset],
+  );
+
+  const handlePublishAnalysisEvidence = useCallback(() => {
+    if (!activeLayerId || (!viewCorridorResult && !sectionPlaneResult)) return;
+    const executionCrs = resultExecutionCrs(viewCorridorResult, sectionPlaneResult, activeLayerCrs);
+    const assumptions = [
+      ...(viewCorridorResult?.assumptions ?? []),
+      ...(sectionPlaneResult?.assumptions ?? []),
+    ];
+    const caveats = [
+      ...(viewCorridorResult?.caveats ?? []),
+      ...(sectionPlaneResult?.caveats ?? []),
+    ];
+    const blocked = viewCorridorResult?.status === "blocked" || sectionPlaneResult?.status === "blocked";
+    const artifact = registerMapEvidenceArtifact({
+      kind: "workflow-result",
+      title: "3D corridor and section analysis",
+      summary: `View corridor intrusions: ${viewCorridorResult?.intrusionCount ?? 0}; section cuts: ${sectionPlaneResult?.cutCount ?? 0}.`,
+      sourceModule: "map-explorer",
+      sourceLayerIds: [activeLayerId],
+      linkedLayerIds: [activeLayerId],
+      tags: ["scene3d", "view-corridor", "section-plane"],
+      provenance: {
+        sourceModule: "map-explorer",
+        sourceLayerIds: [activeLayerId],
+        method: "3D view corridor + section cut",
+        crsSummary: {
+          sourceLayerCrs: [{ layerId: activeLayerId, crs: activeLayerCrs }],
+          displayCrs: "EPSG:4326",
+          ...(executionCrs ? { declaredCrs: executionCrs } : {}),
+          notes: assumptions,
+        },
+        geometrySummary: {
+          source: "workflow-summary",
+          geometryTypes: ["line-of-sight", "section-plane", "building-footprint"],
+          featureCount: sectionPlaneResult?.contextFeatureCount ?? viewCorridorResult?.testedBuildingCount ?? 0,
+          notes: ["Evidence stores scene-analysis metrics and IDs only; source geometry remains in Map Explorer state."],
+        },
+        notes: assumptions,
+      },
+      qa: {
+        state: blocked ? "blocked" : caveats.length > 0 ? "warning" : "passed",
+        caveats,
+        blockerCount: blocked ? 1 : 0,
+      },
+      metadata: {
+        execution_crs: executionCrs,
+        corridor_intrusion_count: viewCorridorResult?.intrusionCount ?? 0,
+        corridor_length_m: viewCorridorResult?.corridorLengthM ?? null,
+        section_cut_count: sectionPlaneResult?.cutCount ?? 0,
+        section_offset_m: sectionPlaneResult?.plane.offsetM ?? null,
+        clip_retains_analyzed_geometry: sectionPlaneResult?.clipRetainsAnalyzedGeometry ?? true,
+      },
+    });
+    setPublishedAnalysisId(artifact.id);
+  }, [activeLayerCrs, activeLayerId, registerMapEvidenceArtifact, sectionPlaneResult, viewCorridorResult]);
+
   useEffect(() => {
     if (!visible || !canvasRef.current || runtimeMode === "2d") return;
     drawTerrainScenePreview(
@@ -363,8 +622,11 @@ export const Scene3DPanel: React.FC<Scene3DPanelProps> = ({ visible, onClose, on
       activeCollection as FeatureCollection<Polygon, GeoJsonProperties> | null,
       cityModelHandle,
       terrainHandle,
+      sceneBuildings,
+      viewCorridorResult,
+      sectionPlaneResult,
     );
-  }, [activeCollection, cityModelHandle, runtimeMode, terrainHandle, visible]);
+  }, [activeCollection, cityModelHandle, runtimeMode, sceneBuildings, sectionPlaneResult, terrainHandle, viewCorridorResult, visible]);
 
   if (!visible) return null;
 
@@ -484,6 +746,162 @@ export const Scene3DPanel: React.FC<Scene3DPanelProps> = ({ visible, onClose, on
           </div>
         )}
 
+        {(runtimeMode === "2.5d" || runtimeMode === "3d") && (
+          <div style={analysisPanelStyle} data-testid="scene3d-analysis-tools">
+            <span style={sectionTitleStyle}>Corridor + section</span>
+            <div style={rowStyle} data-testid="scene3d-analysis-crs">
+              <span style={keyStyle}>Execution CRS</span>
+              <span>{resultExecutionCrs(viewCorridorResult, sectionPlaneResult, activeLayerCrs) ?? "not declared"}</span>
+            </div>
+
+            <div style={analysisActionRowStyle}>
+              <button
+                type="button"
+                style={sceneBuildings.length > 0 ? analysisButtonStyle : analysisButtonDisabledStyle}
+                onClick={runDefaultViewCorridor}
+                disabled={sceneBuildings.length === 0}
+                data-testid="scene3d-run-corridor"
+                aria-label="Define protected view corridor"
+              >
+                <Crosshair size={MAP_ICON_SIZES.xs} aria-hidden="true" />
+                Define corridor
+              </button>
+              <button
+                type="button"
+                style={sceneBuildings.length > 0 ? analysisButtonStyle : analysisButtonDisabledStyle}
+                onClick={runDefaultSectionPlane}
+                disabled={sceneBuildings.length === 0}
+                data-testid="scene3d-run-section"
+                aria-label="Create section cut plane"
+              >
+                <Scissors size={MAP_ICON_SIZES.xs} aria-hidden="true" />
+                Section cut
+              </button>
+            </div>
+
+            <div
+              style={metricGridStyle}
+              data-testid="scene3d-corridor-result"
+              data-status={viewCorridorResult?.status ?? "idle"}
+              data-intrusion-count={viewCorridorResult?.intrusionCount ?? 0}
+            >
+              <div style={metricTileStyle}>
+                <span style={keyStyle}>Intrusions</span>
+                <span style={{ ...metricValueStyle, color: (viewCorridorResult?.intrusionCount ?? 0) > 0 ? MAP_COLORS.error : MAP_COLORS.text }}>
+                  {viewCorridorResult?.intrusionCount ?? 0}
+                </span>
+              </div>
+              <div style={metricTileStyle}>
+                <span style={keyStyle}>Length</span>
+                <span style={metricValueStyle}>{formatMetres(viewCorridorResult?.corridorLengthM ?? 0)}</span>
+              </div>
+              <div style={metricTileStyle}>
+                <span style={keyStyle}>Width</span>
+                <span style={metricValueStyle}>{formatMetres(viewCorridorResult?.corridor.widthMetres ?? 0)}</span>
+              </div>
+            </div>
+
+            {viewCorridorResult?.blockedReason && (
+              <div style={caveatStyle} data-testid="scene3d-corridor-blocked">
+                <AlertTriangle size={MAP_ICON_SIZES.xs} aria-hidden="true" />
+                <span>{viewCorridorResult.blockedReason}</span>
+              </div>
+            )}
+
+            {viewCorridorResult && viewCorridorResult.intrusions.length > 0 && (
+              <div style={{ display: "grid", gap: MAP_SPACING.xs }} data-testid="scene3d-corridor-intrusions">
+                {viewCorridorResult.intrusions.slice(0, 4).map((intrusion) => (
+                  <div
+                    key={intrusion.featureId}
+                    data-testid={`scene3d-corridor-intrusion-${intrusion.featureId}`}
+                    style={{
+                      ...rowStyle,
+                      gridTemplateColumns: "minmax(0, 1fr) auto",
+                      borderLeft: `2px solid ${MAP_COLORS.error}`,
+                      paddingLeft: MAP_SPACING.sm,
+                    }}
+                  >
+                    <span>{intrusion.label}</span>
+                    <span style={{ color: MAP_COLORS.error }}>{formatMetres(intrusion.excessM)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <label style={{ display: "grid", gap: MAP_SPACING.xs }}>
+              <span style={keyStyle}>Section offset</span>
+              <input
+                type="range"
+                min={sectionRange.min}
+                max={sectionRange.max}
+                step={sectionRange.step}
+                value={sectionRange.value}
+                onChange={handleSectionOffsetChange}
+                disabled={sceneBuildings.length === 0}
+                style={rangeStyle}
+                data-testid="scene3d-section-plane-slider"
+                aria-label="Section plane offset"
+              />
+            </label>
+
+            <div
+              style={metricGridStyle}
+              data-testid="scene3d-section-readout"
+              data-status={sectionPlaneResult?.status ?? "idle"}
+              data-cut-count={sectionPlaneResult?.cutCount ?? 0}
+              data-retains-context={sectionPlaneResult?.clipRetainsAnalyzedGeometry ?? true}
+            >
+              <div style={metricTileStyle}>
+                <span style={keyStyle}>Cut</span>
+                <span style={metricValueStyle}>{sectionPlaneResult?.cutCount ?? 0}</span>
+              </div>
+              <div style={metricTileStyle}>
+                <span style={keyStyle}>Offset</span>
+                <span style={metricValueStyle}>{formatMetres(sectionPlaneResult?.plane.offsetM ?? sectionRange.value)}</span>
+              </div>
+              <div style={metricTileStyle}>
+                <span style={keyStyle}>Height</span>
+                <span style={metricValueStyle}>{formatMetres(sectionPlaneResult?.maxCutHeightM ?? 0)}</span>
+              </div>
+            </div>
+
+            {sectionPlaneResult && (
+              <div style={rowStyle} data-testid="scene3d-section-context-retained">
+                <span style={keyStyle}>Context retained</span>
+                <span>{sectionPlaneResult.retainedContextFeatureIds.length} / {sectionPlaneResult.contextFeatureCount}</span>
+              </div>
+            )}
+
+            {sectionPlaneResult?.blockedReason && (
+              <div style={caveatStyle} data-testid="scene3d-section-blocked">
+                <AlertTriangle size={MAP_ICON_SIZES.xs} aria-hidden="true" />
+                <span>{sectionPlaneResult.blockedReason}</span>
+              </div>
+            )}
+
+            <div style={analysisActionRowStyle}>
+              <button
+                type="button"
+                style={viewCorridorResult || sectionPlaneResult ? analysisButtonStyle : analysisButtonDisabledStyle}
+                onClick={handlePublishAnalysisEvidence}
+                disabled={!viewCorridorResult && !sectionPlaneResult}
+                data-testid="scene3d-publish-analysis-evidence"
+                aria-label="Publish 3D analysis evidence"
+              >
+                Publish evidence
+              </button>
+              {publishedAnalysisId && (
+                <span
+                  style={{ ...keyStyle, alignSelf: "center" }}
+                  data-testid="scene3d-analysis-evidence-published"
+                >
+                  {publishedAnalysisId}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Caveats */}
         {caveats.length > 0 && (
           <div style={{ display: "grid", gap: MAP_SPACING.xs }} data-testid="scene3d-caveats">
@@ -506,28 +924,45 @@ export const Scene3DPanel: React.FC<Scene3DPanelProps> = ({ visible, onClose, on
             </span>
             <div style={{ display: "grid", gap: MAP_SPACING.xs, maxHeight: "12rem", overflowY: "auto" }}>
               {inspectorEntries.slice(0, 20).map((entry) => (
-                <div
-                  key={String(entry.featureId)}
-                  data-testid={`scene3d-building-${String(entry.featureId)}`}
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "auto minmax(0, 1fr) auto",
-                    gap: MAP_SPACING.sm,
-                    padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
-                    border: MAP_STROKES.hairlineSubtle,
-                    borderRadius: MAP_RADIUS.sm,
-                    fontSize: MAP_TYPOGRAPHY.fontSize.xs,
-                    background: entry.isSelected ? MAP_COLORS.selectedSubtle : MAP_COLORS.transparent,
-                  }}
-                >
-                  <Layers size={MAP_ICON_SIZES.xs} aria-hidden="true" />
-                  <span style={{ fontFamily: MAP_TYPOGRAPHY.fontFamilyMono }}>
-                    #{String(entry.featureId)}
-                  </span>
-                  <span style={{ color: MAP_COLORS.textMuted }}>
-                    {entry.heightMetres.toFixed(1)} m
-                  </span>
-                </div>
+                (() => {
+                  const featureId = String(entry.featureId);
+                  const corridorIntrusion = corridorIntrusionIds.has(featureId);
+                  const sectionCut = sectionCutIds.has(featureId);
+                  return (
+                    <div
+                      key={featureId}
+                      data-testid={`scene3d-building-${featureId}`}
+                      data-corridor-intrusion={corridorIntrusion ? "true" : "false"}
+                      data-section-cut={sectionCut ? "true" : "false"}
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "auto minmax(0, 1fr) auto",
+                        gap: MAP_SPACING.sm,
+                        padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
+                        border: corridorIntrusion
+                          ? `1px solid ${MAP_COLORS.error}`
+                          : sectionCut
+                            ? `1px solid ${MAP_COLORS.interaction}`
+                            : MAP_STROKES.hairlineSubtle,
+                        borderRadius: MAP_RADIUS.sm,
+                        fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+                        background: corridorIntrusion
+                          ? MAP_COLORS.caveat
+                          : entry.isSelected || sectionCut
+                            ? MAP_COLORS.selectedSubtle
+                            : MAP_COLORS.transparent,
+                      }}
+                    >
+                      <Layers size={MAP_ICON_SIZES.xs} aria-hidden="true" />
+                      <span style={{ fontFamily: MAP_TYPOGRAPHY.fontFamilyMono }}>
+                        #{featureId}
+                      </span>
+                      <span style={{ color: corridorIntrusion ? MAP_COLORS.error : MAP_COLORS.textMuted }}>
+                        {entry.heightMetres.toFixed(1)} m
+                      </span>
+                    </div>
+                  );
+                })()
               ))}
               {inspectorEntries.length > 20 && (
                 <span style={{ color: MAP_COLORS.textMuted, fontSize: MAP_TYPOGRAPHY.fontSize.xs }}>

@@ -4,7 +4,7 @@
  */
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import type { FeatureCollection } from "geojson";
+import type { FeatureCollection, GeoJsonProperties, MultiPolygon, Polygon } from "geojson";
 import type { SourceHandle } from "@/services/map/contracts/gisContracts";
 import { cloneSourceHandle } from "@/services/map/sources/MapSourceRegistry";
 
@@ -54,6 +54,19 @@ import {
   type Scene3DMetadata,
   type Scene3DRuntimeMode,
 } from "@/services/map/scene3d/Map3DSceneController";
+import {
+  analyseSectionPlane,
+  analyseViewCorridor,
+  buildDefaultSectionPlaneDefinition,
+  buildDefaultViewCorridorDefinition,
+  buildScene3DBuildingMasses,
+  type Scene3DAnalysisInput,
+  type Scene3DBuildingMass,
+  type SectionPlaneAnalysisResult,
+  type SectionPlaneDefinition,
+  type ViewCorridorAnalysisResult,
+  type ViewCorridorDefinition,
+} from "@/services/map/scene3d/ViewCorridorSectionService";
 import type { BuildingConfig } from "@/components/map/layers/BuildingLayer";
 
 /* ------------------------------------------------------------------ */
@@ -77,6 +90,8 @@ export interface Scene3DState {
   /* --- Active layer --- */
   activeLayerId: string | null;
   activeCollection: FeatureCollection | null;
+  activeLayerCrs: string | null;
+  sceneBuildings: Scene3DBuildingMass[];
   cityModelSourceHandle: SourceHandle | null;
   terrainSourceHandle: SourceHandle | null;
 
@@ -88,6 +103,7 @@ export interface Scene3DState {
       heightField?: string;
       floorField?: string;
       metersPerLevel?: number;
+      declaredCrs?: string | null;
       cityModelSourceHandle?: SourceHandle | null;
       terrainSourceHandle?: SourceHandle | null;
     },
@@ -117,6 +133,20 @@ export interface Scene3DState {
   sceneMetadata: Scene3DMetadata | null;
   publishSceneMetadata: () => void;
 
+  /* --- Prompt 61: view corridor + section/cut plane analysis --- */
+  viewCorridorDefinition: ViewCorridorDefinition | null;
+  viewCorridorResult: ViewCorridorAnalysisResult | null;
+  runDefaultViewCorridor: () => void;
+  setViewCorridorDefinition: (definition: ViewCorridorDefinition) => void;
+  clearViewCorridor: () => void;
+
+  sectionPlaneDefinition: SectionPlaneDefinition | null;
+  sectionPlaneResult: SectionPlaneAnalysisResult | null;
+  runDefaultSectionPlane: () => void;
+  setSectionPlaneDefinition: (definition: SectionPlaneDefinition) => void;
+  setSectionPlaneOffset: (offsetM: number) => void;
+  clearSectionPlane: () => void;
+
   /* --- Height field override --- */
   heightFieldOverride: string | null;
   floorFieldOverride: string | null;
@@ -142,6 +172,40 @@ function reanalyse(
   });
   const config = buildingConfigFromAnalysis(layerId, collection, analysis);
   return { analysis, config };
+}
+
+function knownCrsFromHandle(handle: SourceHandle | null | undefined): string | null {
+  return handle?.crsSummary.status === "known" ? handle.crsSummary.crs : null;
+}
+
+function resolveDeclaredCrs(
+  explicitCrs: string | null | undefined,
+  cityModelHandle: SourceHandle | null | undefined,
+  terrainHandle: SourceHandle | null | undefined,
+  fallbackCrs: string | null,
+): string | null {
+  if (explicitCrs !== undefined) return explicitCrs;
+  return knownCrsFromHandle(cityModelHandle) ?? knownCrsFromHandle(terrainHandle) ?? fallbackCrs;
+}
+
+function verticalDatumLabel(
+  cityModelHandle: SourceHandle | null,
+  terrainHandle: SourceHandle | null,
+): string | null {
+  const datum = terrainHandle?.scene3d?.verticalDatum ?? cityModelHandle?.scene3d?.verticalDatum;
+  if (!datum) return null;
+  if (datum.status === "known" && datum.value) return datum.value;
+  return `unknown (${datum.source})`;
+}
+
+function sceneAnalysisInput(state: Scene3DState): Scene3DAnalysisInput | null {
+  if (!state.activeLayerId) return null;
+  return {
+    layerId: state.activeLayerId,
+    declaredCrs: state.activeLayerCrs,
+    buildings: state.sceneBuildings,
+    verticalDatumLabel: verticalDatumLabel(state.cityModelSourceHandle, state.terrainSourceHandle),
+  };
 }
 
 export const useScene3DStore = create<Scene3DState>()(
@@ -170,6 +234,8 @@ export const useScene3DStore = create<Scene3DState>()(
       /* ---- active layer ---- */
       activeLayerId: null,
       activeCollection: null,
+      activeLayerCrs: null,
+      sceneBuildings: [],
       cityModelSourceHandle: null,
       terrainSourceHandle: null,
       extrusionAnalysis: null,
@@ -182,23 +248,39 @@ export const useScene3DStore = create<Scene3DState>()(
           metersPerLevel: options.metersPerLevel ?? get().metersPerLevelOverride,
         });
         const entries = inspectBuildings(collection, analysis, get().selectedFeatureIds);
+        const cityModelSourceHandle = options.cityModelSourceHandle === undefined
+          ? get().cityModelSourceHandle
+          : options.cityModelSourceHandle
+            ? cloneSourceHandle(options.cityModelSourceHandle)
+            : null;
+        const terrainSourceHandle = options.terrainSourceHandle === undefined
+          ? get().terrainSourceHandle
+          : options.terrainSourceHandle
+            ? cloneSourceHandle(options.terrainSourceHandle)
+            : null;
+        const activeLayerCrs = resolveDeclaredCrs(
+          options.declaredCrs,
+          cityModelSourceHandle,
+          terrainSourceHandle,
+          get().activeLayerCrs,
+        );
+        const sceneBuildings = buildScene3DBuildingMasses(
+          collection as FeatureCollection<Polygon | MultiPolygon, GeoJsonProperties>,
+          analysis,
+        );
         set({
           activeLayerId: layerId,
           activeCollection: collection,
-          cityModelSourceHandle: options.cityModelSourceHandle === undefined
-            ? get().cityModelSourceHandle
-            : options.cityModelSourceHandle
-              ? cloneSourceHandle(options.cityModelSourceHandle)
-              : null,
-          terrainSourceHandle: options.terrainSourceHandle === undefined
-            ? get().terrainSourceHandle
-            : options.terrainSourceHandle
-              ? cloneSourceHandle(options.terrainSourceHandle)
-              : null,
+          activeLayerCrs,
+          sceneBuildings,
+          cityModelSourceHandle,
+          terrainSourceHandle,
           extrusionAnalysis: analysis,
           buildingConfig: config,
           inspectorEntries: entries,
           sceneMetadata: null,
+          viewCorridorResult: null,
+          sectionPlaneResult: null,
         });
       },
 
@@ -213,6 +295,12 @@ export const useScene3DStore = create<Scene3DState>()(
           : handles.terrainSourceHandle
             ? cloneSourceHandle(handles.terrainSourceHandle)
             : null,
+        activeLayerCrs: resolveDeclaredCrs(
+          undefined,
+          handles.cityModelSourceHandle === undefined ? state.cityModelSourceHandle : handles.cityModelSourceHandle,
+          handles.terrainSourceHandle === undefined ? state.terrainSourceHandle : handles.terrainSourceHandle,
+          state.activeLayerCrs,
+        ),
         sceneMetadata: null,
       })),
 
@@ -220,6 +308,8 @@ export const useScene3DStore = create<Scene3DState>()(
         set({
           activeLayerId: null,
           activeCollection: null,
+          activeLayerCrs: null,
+          sceneBuildings: [],
           cityModelSourceHandle: null,
           terrainSourceHandle: null,
           extrusionAnalysis: null,
@@ -227,6 +317,10 @@ export const useScene3DStore = create<Scene3DState>()(
           inspectorEntries: [],
           sceneMetadata: null,
           selectedFeatureIds: [],
+          viewCorridorDefinition: null,
+          viewCorridorResult: null,
+          sectionPlaneDefinition: null,
+          sectionPlaneResult: null,
         }),
 
       /* ---- selection ---- */
@@ -275,6 +369,64 @@ export const useScene3DStore = create<Scene3DState>()(
         });
         set({ sceneMetadata: metadata });
       },
+
+      /* ---- Prompt 61 analysis ---- */
+      viewCorridorDefinition: null,
+      viewCorridorResult: null,
+
+      runDefaultViewCorridor: () => {
+        const input = sceneAnalysisInput(get());
+        if (!input) return;
+        const definition = buildDefaultViewCorridorDefinition(input.buildings);
+        set({
+          viewCorridorDefinition: definition,
+          viewCorridorResult: analyseViewCorridor(input, definition),
+        });
+      },
+
+      setViewCorridorDefinition: (definition) => {
+        const input = sceneAnalysisInput(get());
+        set({
+          viewCorridorDefinition: definition,
+          viewCorridorResult: input ? analyseViewCorridor(input, definition) : null,
+        });
+      },
+
+      clearViewCorridor: () => set({ viewCorridorDefinition: null, viewCorridorResult: null }),
+
+      sectionPlaneDefinition: null,
+      sectionPlaneResult: null,
+
+      runDefaultSectionPlane: () => {
+        const input = sceneAnalysisInput(get());
+        if (!input) return;
+        const definition = buildDefaultSectionPlaneDefinition(input.buildings);
+        set({
+          sectionPlaneDefinition: definition,
+          sectionPlaneResult: analyseSectionPlane(input, definition),
+        });
+      },
+
+      setSectionPlaneDefinition: (definition) => {
+        const input = sceneAnalysisInput(get());
+        set({
+          sectionPlaneDefinition: definition,
+          sectionPlaneResult: input ? analyseSectionPlane(input, definition) : null,
+        });
+      },
+
+      setSectionPlaneOffset: (offsetM) => {
+        const input = sceneAnalysisInput(get());
+        if (!input) return;
+        const currentDefinition = get().sectionPlaneDefinition ?? buildDefaultSectionPlaneDefinition(input.buildings);
+        const definition: SectionPlaneDefinition = { ...currentDefinition, offsetM };
+        set({
+          sectionPlaneDefinition: definition,
+          sectionPlaneResult: analyseSectionPlane(input, definition),
+        });
+      },
+
+      clearSectionPlane: () => set({ sectionPlaneDefinition: null, sectionPlaneResult: null }),
 
       /* ---- field overrides ---- */
       heightFieldOverride: null,
@@ -327,12 +479,19 @@ export const useScene3DStore = create<Scene3DState>()(
 export const selectScene3DMode = (s: Scene3DState) => s.runtimeMode;
 export const selectInteractionMode = (s: Scene3DState) => s.interactionMode;
 export const selectCameraBookmarks = (s: Scene3DState) => s.cameraBookmarks;
+export const selectScene3DActiveLayerId = (s: Scene3DState) => s.activeLayerId;
+export const selectScene3DActiveLayerCrs = (s: Scene3DState) => s.activeLayerCrs;
+export const selectScene3DBuildings = (s: Scene3DState) => s.sceneBuildings;
 export const selectExtrusionAnalysis = (s: Scene3DState) => s.extrusionAnalysis;
 export const selectBuildingConfig = (s: Scene3DState) => s.buildingConfig;
 export const selectScene3DCityModelSourceHandle = (s: Scene3DState) => s.cityModelSourceHandle;
 export const selectScene3DTerrainSourceHandle = (s: Scene3DState) => s.terrainSourceHandle;
 export const selectScene3DSelected = (s: Scene3DState) => s.selectedFeatureIds;
 export const selectInspectorEntries = (s: Scene3DState) => s.inspectorEntries;
+export const selectViewCorridorDefinition = (s: Scene3DState) => s.viewCorridorDefinition;
+export const selectViewCorridorResult = (s: Scene3DState) => s.viewCorridorResult;
+export const selectSectionPlaneDefinition = (s: Scene3DState) => s.sectionPlaneDefinition;
+export const selectSectionPlaneResult = (s: Scene3DState) => s.sectionPlaneResult;
 
 /**
  * Derive 3D building IDs to highlight given the current 2D selection.
