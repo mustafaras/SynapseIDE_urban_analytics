@@ -2,7 +2,8 @@
  * Prompt 45 — Color ramp legend + noData swatch for a raster band.
  */
 import React from "react";
-import { MAP_COLORS, MAP_TYPOGRAPHY } from "../mapTokens";
+import { MAP_COLORS, MAP_TYPOGRAPHY, type GisStatusKey } from "../mapTokens";
+import { GisStatusChip } from "../ui/GisStatusChip";
 import {
   buildRampGradient,
   type ColorRampId,
@@ -25,6 +26,14 @@ export interface RasterLegendProps {
 const RAMP_HEIGHT = 12;
 const RAMP_WIDTH = "100%";
 
+const legendStateRowStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  flexWrap: "wrap",
+  gap: 5,
+  marginTop: 5,
+};
+
 const formatVal = (v: number): string => {
   if (Math.abs(v) >= 1000) return v.toFixed(0);
   if (Math.abs(v) >= 1) return v.toFixed(2);
@@ -43,6 +52,7 @@ export const RasterLegend: React.FC<RasterLegendProps> = ({
   const displayMin = minOverride ?? stats.min;
   const displayMax = maxOverride ?? stats.max;
   const gradient = buildRampGradient(rampId);
+  const noDataStatus: GisStatusKey = noData !== null ? "ready" : "caveat";
 
   const labelStyle: React.CSSProperties = {
     fontSize: "10px",
@@ -64,6 +74,21 @@ export const RasterLegend: React.FC<RasterLegendProps> = ({
         }}
         aria-label={`Color ramp: ${rampId}`}
       />
+
+      <div style={legendStateRowStyle} data-testid="raster-legend-state-chips">
+        <GisStatusChip
+          status="ready"
+          label="ramp"
+          density="compact"
+          data-testid="raster-legend-ramp-chip"
+        />
+        <GisStatusChip
+          status={noDataStatus}
+          label={noData !== null ? "noData declared" : "noData missing"}
+          density="compact"
+          data-testid="raster-legend-nodata-chip"
+        />
+      </div>
 
       {/* Min / Max labels */}
       <div style={{ display: "flex", justifyContent: "space-between", marginTop: 3 }}>
@@ -97,7 +122,7 @@ export const RasterLegend: React.FC<RasterLegendProps> = ({
             style={{
               width: 12,
               height: 12,
-              background: "transparent",
+              background: MAP_COLORS.transparent,
               border: `1px dashed ${MAP_COLORS.hairlineStrong}`,
               borderRadius: 2,
               flexShrink: 0,

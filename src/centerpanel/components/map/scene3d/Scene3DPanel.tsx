@@ -29,7 +29,9 @@ import {
   MAP_TYPOGRAPHY,
   MAP_Z_INDEX,
   resolveMapPaintColor,
+  type GisStatusKey,
 } from "../mapTokens";
+import { GisStatusChip } from "../ui/GisStatusChip";
 import { createOpaqueFloatingPanelStyle, useDraggableMapPanel } from "../useDraggableMapPanel";
 import type { Scene3DRuntimeMode } from "@/services/map/scene3d/Map3DSceneController";
 import type { SourceHandle } from "@/services/map/contracts/gisContracts";
@@ -232,6 +234,13 @@ const analysisActionRowStyle: React.CSSProperties = {
   gap: MAP_SPACING.sm,
 };
 
+const stateChipRowStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  flexWrap: "wrap",
+  gap: MAP_SPACING.xs,
+};
+
 const analysisButtonStyle: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
@@ -291,6 +300,50 @@ function verticalDatumLabel(handle: SourceHandle | null): string {
   if (!datum) return "not recorded";
   if (datum.status === "known" && datum.value) return datum.value;
   return `unknown (${datum.source})`;
+}
+
+function sceneRuntimeModeStatus(mode: Scene3DRuntimeMode): GisStatusKey {
+  return mode === "3d" || mode === "2.5d" ? "ready" : "unknown";
+}
+
+function sourceRuntimeStatus(handle: SourceHandle | null): GisStatusKey {
+  const scene = handle?.scene3d;
+  if (!scene) return "unknown";
+  if (scene.sourceKind === "generated-massing" || scene.sourceKind === "zoning-envelope") return "synthetic";
+  if (scene.runtimeMode === "sample") return "demo";
+  if (scene.runtimeMode === "metadata-only") return "caveat";
+  return "ready";
+}
+
+function sourceRuntimeLabel(handle: SourceHandle | null): string {
+  const scene = handle?.scene3d;
+  if (!scene) return "footprint extrusion";
+  if (scene.sourceKind === "generated-massing") return "generated massing";
+  if (scene.sourceKind === "zoning-envelope") return "generated envelope";
+  if (scene.runtimeMode === "metadata-only") return "metadata only";
+  return scene.runtimeMode;
+}
+
+function verticalDatumStatus(handle: SourceHandle | null): GisStatusKey {
+  const datum = handle?.scene3d?.verticalDatum;
+  if (!datum) return "unknown";
+  return datum.status === "known" ? "ready" : "caveat";
+}
+
+function generationStateStatus(handle: SourceHandle | null): GisStatusKey {
+  const sourceKind = handle?.scene3d?.sourceKind;
+  if (!sourceKind) return "unknown";
+  if (sourceKind === "generated-massing" || sourceKind === "zoning-envelope" || sourceKind === "sun-shadow-result") return "synthetic";
+  if (sourceKind === "sample-3d") return "demo";
+  return "ready";
+}
+
+function generationStateLabel(handle: SourceHandle | null): string {
+  const sourceKind = handle?.scene3d?.sourceKind;
+  if (!sourceKind) return "source unknown";
+  if (sourceKind === "generated-massing" || sourceKind === "zoning-envelope" || sourceKind === "sun-shadow-result") return "generated";
+  if (sourceKind === "sample-3d") return "sample";
+  return "real/source-backed";
 }
 
 function sceneBounds(collection: FeatureCollection<Polygon, GeoJsonProperties>): [number, number, number, number] | null {
@@ -683,6 +736,32 @@ export const Scene3DPanel: React.FC<Scene3DPanelProps> = ({ visible, onClose, on
               data-testid="scene3d-terrain-canvas"
               aria-label="Terrain grounded 3D scene preview"
             />
+            <div style={stateChipRowStyle} data-testid="scene3d-evidence-state-chips">
+              <GisStatusChip
+                status={sceneRuntimeModeStatus(runtimeMode)}
+                label={`view ${runtimeMode}`}
+                density="compact"
+                data-testid="scene3d-runtime-mode-chip"
+              />
+              <GisStatusChip
+                status={sourceRuntimeStatus(cityModelHandle)}
+                label={sourceRuntimeLabel(cityModelHandle)}
+                density="compact"
+                data-testid="scene3d-source-mode-chip"
+              />
+              <GisStatusChip
+                status={verticalDatumStatus(terrainHandle ?? cityModelHandle)}
+                label={verticalDatumLabel(terrainHandle ?? cityModelHandle)}
+                density="compact"
+                data-testid="scene3d-vertical-assumption-chip"
+              />
+              <GisStatusChip
+                status={generationStateStatus(cityModelHandle)}
+                label={generationStateLabel(cityModelHandle)}
+                density="compact"
+                data-testid="scene3d-generation-state-chip"
+              />
+            </div>
             <div style={rowStyle}>
               <span style={keyStyle}>City model</span>
               <span>{cityModelHandle?.format ?? "building extrusion"} · {handleRuntimeLabel(cityModelHandle)}</span>

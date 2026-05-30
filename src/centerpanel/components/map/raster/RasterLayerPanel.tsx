@@ -6,9 +6,9 @@
  *
  * No Tailwind; all styles via mapTokens inline.
  */
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import { useRasterLayerStore } from "../../../../stores/useRasterLayerStore";
-import { MAP_COLORS, MAP_TYPOGRAPHY } from "../mapTokens";
+import { MAP_COLORS, MAP_TYPOGRAPHY, resolveMapPaintColor } from "../mapTokens";
 import { GisStatusChip } from "../ui/GisStatusChip";
 import { GisEmptyState } from "../ui/GisEmptyState";
 import { GisProgressBar } from "../ui/GisProgressBar";
@@ -16,7 +16,7 @@ import { GisSectionHeader } from "../ui/GisSectionHeader";
 import { GisIconButton } from "../ui/GisIconButton";
 import { RasterHistogramChart } from "./RasterHistogramChart";
 import { RasterLegend, RAMP_OPTIONS } from "./RasterLegend";
-import { computeHistogram } from "../../../../services/map/raster/RasterHistogramEngine";
+import { COLOR_RAMP_STOPS, computeHistogram } from "../../../../services/map/raster/RasterHistogramEngine";
 import type { ColorRampId } from "../../../../services/map/raster/RasterHistogramEngine";
 import type { GisStatusKey } from "../mapTokens";
 
@@ -42,6 +42,59 @@ function qaStatusToChip(status: string | undefined): GisStatusKey {
   return "unknown";
 }
 
+function noDataStatusToChip(noData: number | null | undefined): GisStatusKey {
+  return noData !== null && noData !== undefined ? "ready" : "caveat";
+}
+
+function crsStatusToChip(epsgCode: string | null | undefined): GisStatusKey {
+  return epsgCode ? "ready" : "blocked";
+}
+
+function drawRasterEvidencePreview(
+  canvas: HTMLCanvasElement,
+  rampId: ColorRampId,
+  noDataDeclared: boolean,
+  validCount: number,
+): void {
+  const context = canvas.getContext("2d");
+  if (!context) return;
+
+  const width = canvas.width;
+  const height = canvas.height;
+  context.clearRect(0, 0, width, height);
+  context.fillStyle = resolveMapPaintColor(MAP_COLORS.bgWorkspace);
+  context.fillRect(0, 0, width, height);
+
+  const gradient = context.createLinearGradient(10, 0, width - 10, 0);
+  for (const [pct, color] of COLOR_RAMP_STOPS[rampId]) {
+    gradient.addColorStop(Number.parseFloat(pct) / 100, color);
+  }
+
+  context.fillStyle = gradient;
+  context.fillRect(10, 12, width - 20, height - 38);
+  context.strokeStyle = resolveMapPaintColor(MAP_COLORS.hairlineStrong);
+  context.lineWidth = 1;
+  context.strokeRect(10, 12, width - 20, height - 38);
+
+  if (noDataDeclared) {
+    context.save();
+    context.strokeStyle = resolveMapPaintColor(MAP_COLORS.textMuted);
+    context.setLineDash([4, 4]);
+    for (let offset = -height; offset < width; offset += 12) {
+      context.beginPath();
+      context.moveTo(offset, height - 12);
+      context.lineTo(offset + height, 12);
+      context.stroke();
+    }
+    context.restore();
+  }
+
+  context.fillStyle = resolveMapPaintColor(noDataDeclared ? MAP_COLORS.textSecondary : MAP_COLORS.caveatText);
+  context.font = "11px ui-monospace, SFMono-Regular, Consolas, monospace";
+  context.fillText(noDataDeclared ? "noData mask declared" : "noData missing", 12, height - 11);
+  context.fillText(`${validCount.toLocaleString()} valid px`, Math.max(12, width - 118), height - 11);
+}
+
 /* ------------------------------------------------------------------ */
 /*  Panel                                                               */
 /* ------------------------------------------------------------------ */
@@ -55,6 +108,22 @@ export const RasterLayerPanel: React.FC<RasterLayerPanelProps> = ({
   const state = useRasterLayerStore((s) => s.layers[layerId]);
   const updateRenderConfig = useRasterLayerStore((s) => s.updateRenderConfig);
   const updateHistogram = useRasterLayerStore((s) => s.updateHistogram);
+  const rasterCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const previewMetadata = state?.inspection?.metadata;
+  const previewHistogram = state?.histogram;
+  const previewRampId = state?.renderConfig.colorRamp;
+
+  useEffect(() => {
+    if (!visible || !rasterCanvasRef.current || !previewMetadata || !previewHistogram || !previewRampId) {
+      return;
+    }
+    drawRasterEvidencePreview(
+      rasterCanvasRef.current,
+      previewRampId,
+      previewMetadata.noData !== null,
+      previewHistogram.stats.validCount,
+    );
+  }, [previewHistogram, previewMetadata, previewRampId, visible]);
 
   /* Hooks must come before any early returns */
   const handleBandChange = useCallback(
@@ -150,6 +219,24 @@ export const RasterLayerPanel: React.FC<RasterLayerPanelProps> = ({
 
   const sectionGap: React.CSSProperties = { marginBottom: 12 };
 
+  const stateChipRowStyle: React.CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 6,
+    marginTop: 8,
+  };
+
+  const evidenceCanvasStyle: React.CSSProperties = {
+    width: "100%",
+    aspectRatio: "3.4 / 1",
+    display: "block",
+    border: `1px solid ${MAP_COLORS.hairline}`,
+    borderRadius: 3,
+    background: MAP_COLORS.bgWorkspace,
+    marginTop: 8,
+  };
+
   return (
     <div style={panelStyle} data-testid="raster-layer-panel">
       {/* Header */}
@@ -215,6 +302,32 @@ export const RasterLayerPanel: React.FC<RasterLayerPanelProps> = ({
         {meta && (
           <div style={sectionGap}>
             <GisSectionHeader title="Metadata" level={4} />
+            <div style={stateChipRowStyle} data-testid="raster-state-chips">
+              <GisStatusChip
+                status={qaStatusToChip(qa?.status)}
+                label={`QA ${qa?.status ?? "unknown"}`}
+                density="compact"
+                data-testid="raster-state-qa-chip"
+              />
+              <GisStatusChip
+                status={crsStatusToChip(meta.epsgCode)}
+                label={meta.epsgCode ? `CRS ${meta.epsgCode}` : "CRS missing"}
+                density="compact"
+                data-testid="raster-state-crs-chip"
+              />
+              <GisStatusChip
+                status={noDataStatusToChip(meta.noData)}
+                label={meta.noData !== null ? "noData declared" : "noData missing"}
+                density="compact"
+                data-testid="raster-state-nodata-chip"
+              />
+              <GisStatusChip
+                status={meta.sampled ? "caveat" : "ready"}
+                label={meta.sampled ? "sampled stats" : "full stats"}
+                density="compact"
+                data-testid="raster-state-sampling-chip"
+              />
+            </div>
             <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "2px 8px", fontSize: "11px", marginTop: 6 }}>
               <span style={{ color: MAP_COLORS.textMuted }}>Dimensions</span>
               <span data-testid="raster-meta-dimensions">{meta.width} × {meta.height} px</span>
@@ -304,6 +417,14 @@ export const RasterLayerPanel: React.FC<RasterLayerPanelProps> = ({
         {meta && histogram && (
           <div style={sectionGap}>
             <GisSectionHeader title="Legend" level={4} />
+            <canvas
+              ref={rasterCanvasRef}
+              width={480}
+              height={142}
+              style={evidenceCanvasStyle}
+              data-testid="raster-evidence-canvas"
+              aria-label="Raster evidence preview canvas"
+            />
             <RasterLegend
               rampId={renderConfig.colorRamp}
               stats={histogram.stats}

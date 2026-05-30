@@ -15,6 +15,7 @@ import {
   MAP_RADIUS,
   MAP_SPACING,
   MAP_TYPOGRAPHY,
+  type GisStatusKey,
 } from "../mapTokens";
 import { usePrefersReducedMotion } from "../design";
 import { GisIconButton, GisProgressBar, GisStatusChip } from "../ui";
@@ -29,7 +30,7 @@ import {
   useTemporalLayerStore,
   type TemporalFrameExportPayload,
 } from "@/stores/useTemporalLayerStore";
-import type { GisStatusKey, PlaybackSpeed } from "../mapTypes";
+import type { PlaybackSpeed } from "../mapTypes";
 
 export interface TemporalPlayerPanelProps {
   /** Whether the player rail is mounted/visible. */
@@ -51,6 +52,18 @@ function runtimeModeToStatus(mode: TemporalRuntimeMode): GisStatusKey {
     default:
       return "unknown";
   }
+}
+
+function playbackStatus(hasFrames: boolean, isPlaying: boolean, playbackMode: string): GisStatusKey {
+  if (!hasFrames) return "unknown";
+  if (isPlaying) return "running";
+  return playbackMode === "continuous" ? "ready" : "caveat";
+}
+
+function playbackLabel(hasFrames: boolean, isPlaying: boolean, playbackMode: string): string {
+  if (!hasFrames) return "no frames";
+  if (isPlaying) return "playing";
+  return playbackMode === "continuous" ? "paused" : "snapshot";
 }
 
 export const TemporalPlayerPanel: React.FC<TemporalPlayerPanelProps> = ({
@@ -109,6 +122,7 @@ export const TemporalPlayerPanel: React.FC<TemporalPlayerPanelProps> = ({
   const railStyle: React.CSSProperties = {
     display: "flex",
     alignItems: "center",
+    flexWrap: "wrap",
     gap: MAP_SPACING.sm,
     padding: `${MAP_SPACING.sm} ${MAP_SPACING.md}`,
     background: MAP_COLORS.bgPanel,
@@ -157,13 +171,39 @@ export const TemporalPlayerPanel: React.FC<TemporalPlayerPanelProps> = ({
     gap: "2px",
   };
 
+  const stateChipRowStyle: React.CSSProperties = {
+    display: "inline-flex",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: MAP_SPACING.xs,
+  };
+
   return (
     <div role="group" aria-label="Temporal playback" data-testid="temporal-player-panel" style={railStyle}>
-      <GisStatusChip
-        status={runtimeModeToStatus(runtimeMode)}
-        label={runtimeMode}
-        data-testid="temporal-runtime-chip"
-      />
+      <div style={stateChipRowStyle} data-testid="temporal-state-chips">
+        <GisStatusChip
+          status={runtimeModeToStatus(runtimeMode)}
+          label={runtimeMode}
+          data-testid="temporal-runtime-chip"
+        />
+        <GisStatusChip
+          status={hasFrames ? "ready" : "unknown"}
+          label={hasFrames ? `Frame ${activeFrameIndex + 1}/${frameCount}` : "No frames"}
+          data-testid="temporal-frame-chip"
+        />
+        <GisStatusChip
+          status={playbackStatus(hasFrames, isPlaying, playbackMode)}
+          label={playbackLabel(hasFrames, isPlaying, playbackMode)}
+          data-testid="temporal-playback-chip"
+        />
+        {prefersReducedMotion && (
+          <GisStatusChip
+            status="caveat"
+            label="reduced motion"
+            data-testid="temporal-motion-chip"
+          />
+        )}
+      </div>
 
       <GisIconButton
         label="Previous frame"

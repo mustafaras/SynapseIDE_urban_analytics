@@ -66,10 +66,12 @@ import { MapHotSpotViz } from "../../MapHotSpotViz";
 import { MapSymbolLayer, type SymbolMode } from "../../MapSymbolLayer";
 import { MapTemporalPlayer } from "../../MapTemporalPlayer";
 import { TemporalPlayerPanel } from "../temporal";
+import { RasterLayerPanel } from "../raster/RasterLayerPanel";
 import {
   selectTemporalFrameCount,
   useTemporalLayerStore,
 } from "@/stores/useTemporalLayerStore";
+import { useRasterLayerStore } from "@/stores/useRasterLayerStore";
 import { MapDataExportDialog } from "../../MapDataExportDialog";
 import { MapExportDialog } from "../../MapExportDialog";
 import { MapCsvImportDialog } from "../../MapCsvImportDialog";
@@ -1108,6 +1110,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   } = useMapWorkflowController();
   const [showReviewTimeline, setShowReviewTimeline] = useState(false);
   const [showFigureComposer, setShowFigureComposer] = useState(false);
+  const [showRasterPanel, setShowRasterPanel] = useState(false);
   const [show3DPanel, setShow3DPanel] = useState(false);
   const [showZoningPanel, setShowZoningPanel] = useState(false);
   const [showMassingPanel, setShowMassingPanel] = useState(false);
@@ -2457,6 +2460,12 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   }, [selectedPointSymbologyLayer, visiblePublicationLayers]);
   // Prompt 46 — store-driven temporal player (frame export + playback engine).
   const temporalStoreFrameCount = useTemporalLayerStore(selectTemporalFrameCount);
+  const rasterLayerStates = useRasterLayerStore((state) => state.layers);
+  const rasterLayerIds = useMemo(() => Object.keys(rasterLayerStates), [rasterLayerStates]);
+  const activeRasterLayerId = rasterLayerIds[0] ?? null;
+  const activeRasterLayerName = activeRasterLayerId
+    ? overlayLayers.find((layer) => layer.id === activeRasterLayerId)?.name ?? activeRasterLayerId
+    : "Raster layer";
   const temporalLayers = useMemo(
     () => overlayLayers.filter((layer) =>
       layer.visible &&
@@ -7187,6 +7196,13 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
           {/* 3D + Zoning toggle triggers — accessible via toolbar or testid */}
           <button
             type="button"
+            data-testid="toggle-raster-panel"
+            aria-label="Toggle raster evidence panel"
+            style={{ display: "none" }}
+            onClick={() => setShowRasterPanel((p) => !p)}
+          />
+          <button
+            type="button"
             data-testid="toggle-3d-panel"
             aria-label="Toggle 3D scene panel"
             style={{ display: "none" }}
@@ -7227,6 +7243,18 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             style={{ display: "none" }}
             onClick={() => setShowComparisonStrip((p) => !p)}
           />
+
+          {showRasterPanel && activeRasterLayerId && !navigatorStageMode && (
+            <RasterLayerPanel
+              layerId={activeRasterLayerId}
+              layerName={activeRasterLayerName}
+              visible
+              onClose={() => {
+                setShowRasterPanel(false);
+                announce("Raster evidence panel closed");
+              }}
+            />
+          )}
 
           {show3DPanel && !navigatorStageMode && (
             <Scene3DPanel
