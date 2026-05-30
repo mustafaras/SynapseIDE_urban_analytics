@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   BackgroundTaskCancelledError,
   BackgroundWorkerPool,
+  type BackgroundWorkerPoolLifecycleEvent,
 } from '../BackgroundWorkerPool';
 import type {
   WorkerMainToWorkerMessage,
@@ -25,6 +26,21 @@ class FakeWorker {
 
   postMessage(message: WorkerMainToWorkerMessage): void {
     if (this.terminated || message.type !== 'execute') {
+      return;
+    }
+
+    const failureInput = message.task.input as { shouldFail?: boolean; errorMessage?: string };
+    if (failureInput.shouldFail) {
+      setTimeout(() => {
+        if (this.terminated) {
+          return;
+        }
+        this.emit('message', {
+          type: 'error',
+          jobId: message.jobId,
+          error: failureInput.errorMessage ?? 'Forced worker failure',
+        });
+      }, 10);
       return;
     }
 
@@ -185,5 +201,43 @@ describe('BackgroundWorkerPool', () => {
     vi.advanceTimersByTime(50);
     await expect(first.promise).resolves.toEqual(expect.objectContaining({ synthetic: true }));
     expect(workerFactory).toHaveBeenCalledTimes(1);
+  });
+
+  it('surfaces failed worker jobs through lifecycle events', async () => {
+    const workerFactory = vi.fn(() => new FakeWorker() as unknown as Worker);
+    const lifecycleEvents: BackgroundWorkerPoolLifecycleEvent[] = [];
+    const pool = new BackgroundWorkerPool({
+      workerCount: 1,
+      workerFactory,
+      onTaskEvent: (event) => lifecycleEvents.push(event),
+    });
+
+    const handle = pool.enqueue('raster/classification-accuracy', {
+      ...makeRasterInput(),
+      shouldFail: true,
+      errorMessage: 'Forced raster worker failure token=abc123abc123abc123abc123abc123abc123',
+    } as never, {
+      title: 'Forced failure run',
+    });
+
+    vi.advanceTimersByTime(10);
+    await expect(handle.promise).rejects.toThrow('Forced raster worker failure');
+
+    const snapshot = pool.getSnapshot();
+    const failedJob = snapshot.jobs.find((job) => job.id === handle.id);
+    expect(failedJob?.status).toBe('failed');
+    expect(failedJob?.error).toContain('Forced raster worker failure');
+    expect(lifecycleEvents).toHaveLength(1);
+    expect(lifecycleEvents[0]).toEqual(expect.objectContaining({
+      status: 'failed',
+      snapshot: expect.objectContaining({
+        id: handle.id,
+        kind: 'raster/classification-accuracy',
+        error: expect.stringContaining('Forced raster worker failure'),
+      }),
+    }));
+    const retry = pool.retryJob(handle.id);
+    expect(retry?.id).not.toBe(handle.id);
+    void retry?.promise.catch(() => undefined);
   });
 });

@@ -1,6 +1,7 @@
 import React from "react";
-import { Activity, AlertTriangle, BarChart3, Gauge, X } from "lucide-react";
+import { Activity, AlertTriangle, BarChart3, Gauge, RotateCcw, ShieldAlert, X } from "lucide-react";
 import type { MapPerformanceDiagnosticsSummary } from "@/services/map/MapPerformanceDiagnostics";
+import type { MapTelemetryEvent, MapTelemetrySeverity } from "@/services/map/observability";
 import {
   formatPerformanceBytes,
   formatPerformanceDuration,
@@ -21,6 +22,7 @@ export interface MapPerformanceDiagnosticsPanelProps {
   visible: boolean;
   diagnostics: MapPerformanceDiagnosticsSummary;
   onClose: () => void;
+  onRetryWorkerJob?: (jobId: string) => void;
 }
 
 export interface MapPerformanceBudgetBannerProps {
@@ -174,6 +176,52 @@ const layerHeaderRowStyle: React.CSSProperties = {
   textTransform: "uppercase",
 };
 
+const telemetryListStyle: React.CSSProperties = {
+  display: "grid",
+  gap: MAP_SPACING.xs,
+};
+
+const telemetryRowStyle: React.CSSProperties = {
+  display: "grid",
+  gap: MAP_SPACING.xs,
+  padding: MAP_SPACING.sm,
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.sm,
+  background: MAP_COLORS.bg,
+};
+
+const telemetryMetaStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: MAP_SPACING.xs,
+  flexWrap: "wrap",
+  color: MAP_COLORS.textMuted,
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+};
+
+const telemetryMessageStyle: React.CSSProperties = {
+  color: MAP_COLORS.textSecondary,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  lineHeight: MAP_TYPOGRAPHY.lineHeight.normal,
+  overflowWrap: "anywhere",
+};
+
+const retryButtonStyle: React.CSSProperties = {
+  width: "fit-content",
+  display: "inline-flex",
+  alignItems: "center",
+  gap: MAP_SPACING.xs,
+  padding: "0.25rem 0.5rem",
+  border: MAP_STROKES.hairline,
+  borderRadius: MAP_RADIUS.sm,
+  background: MAP_COLORS.bgPanel,
+  color: MAP_COLORS.text,
+  cursor: "pointer",
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+};
+
 const modeBadgeBaseStyle: React.CSSProperties = {
   display: "inline-flex",
   width: "fit-content",
@@ -224,6 +272,28 @@ function formatCacheHitRate(diagnostics: MapPerformanceDiagnosticsSummary): stri
   return `${Math.round(cache.hitRate * 100)}% (${formatCount(cache.hits)}/${formatCount(attempts)})`;
 }
 
+function formatTelemetryTime(value: string): string {
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) return "now";
+  return new Date(timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+}
+
+function severityColor(severity: MapTelemetrySeverity): string {
+  if (severity === "error") return MAP_COLORS.error;
+  if (severity === "warning") return MAP_COLORS.caveatText;
+  return MAP_COLORS.textMuted;
+}
+
+function detailString(event: MapTelemetryEvent, key: string): string | null {
+  const value = event.details[key];
+  return typeof value === "string" ? value : null;
+}
+
+function shouldForceDiagnosticsCrash(): boolean {
+  if (typeof window === "undefined") return false;
+  return Boolean((window as typeof window & { __MAP_E2E_FORCE_MAP_DIAGNOSTICS_CRASH__?: boolean }).__MAP_E2E_FORCE_MAP_DIAGNOSTICS_CRASH__);
+}
+
 export const MapPerformanceBudgetBanner: React.FC<MapPerformanceBudgetBannerProps> = ({
   diagnostics,
   rightInset = 16,
@@ -258,9 +328,14 @@ export const MapPerformanceDiagnosticsPanel: React.FC<MapPerformanceDiagnosticsP
   visible,
   diagnostics,
   onClose,
+  onRetryWorkerJob,
 }) => {
   const panelDrag = useDraggableMapPanel();
   if (!visible) return null;
+  if (shouldForceDiagnosticsCrash()) {
+    throw new Error("Forced Map diagnostics panel failure for recovery proof.");
+  }
+  const telemetryEvents = diagnostics.telemetryEvents.slice(0, 8);
 
   return (
     <aside
@@ -297,6 +372,8 @@ export const MapPerformanceDiagnosticsPanel: React.FC<MapPerformanceDiagnosticsP
         <StatCell label="Last export" value={formatPerformanceDuration(diagnostics.lastExportTiming?.durationMs)} />
         <StatCell label="Preview layers" value={formatCount(diagnostics.previewLayerCount)} tone={diagnostics.previewLayerCount > 0 ? "warning" : "success"} />
         <StatCell label="Reproj cache" value={formatCacheHitRate(diagnostics)} tone={diagnostics.reprojectionCache.hits > 0 ? "success" : "neutral"} />
+        <StatCell label="Ops events" value={formatCount(diagnostics.telemetrySummary.totalCount)} />
+        <StatCell label="Ops errors" value={formatCount(diagnostics.telemetrySummary.errorCount)} tone={diagnostics.telemetrySummary.errorCount > 0 ? "warning" : "success"} />
       </div>
 
       <div style={bodyStyle}>
@@ -332,6 +409,49 @@ export const MapPerformanceDiagnosticsPanel: React.FC<MapPerformanceDiagnosticsP
             <div style={{ ...warningRowStyle, color: MAP_COLORS.success }}>
               <Activity size={MAP_ICON_SIZES.sm} aria-hidden="true" />
               Current layer stack is within the documented interactive render budgets.
+            </div>
+          )}
+        </section>
+
+        <section style={{ display: "grid", gap: MAP_SPACING.sm }} data-testid="map-observability-log">
+          <div style={sectionTitleStyle}>Operations Log</div>
+          {telemetryEvents.length === 0 ? (
+            <div style={{ ...warningRowStyle, color: MAP_COLORS.textMuted }}>
+              <Activity size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+              No diagnostics events recorded for this map session.
+            </div>
+          ) : (
+            <div style={telemetryListStyle}>
+              {telemetryEvents.map((event) => {
+                const jobId = event.kind === "worker.failure" ? detailString(event, "jobId") : null;
+                return (
+                  <article
+                    key={event.id}
+                    style={{ ...telemetryRowStyle, borderColor: severityColor(event.severity) }}
+                    data-testid={`map-observability-event-${event.kind}`}
+                  >
+                    <div style={telemetryMetaStyle}>
+                      <ShieldAlert size={MAP_ICON_SIZES.sm} aria-hidden="true" style={{ color: severityColor(event.severity) }} />
+                      <span style={{ color: severityColor(event.severity), textTransform: "uppercase" }}>{event.severity}</span>
+                      <span>{event.kind}</span>
+                      <span>{formatTelemetryTime(event.createdAt)}</span>
+                      {event.recoverable ? <span>Recoverable</span> : null}
+                    </div>
+                    <div style={telemetryMessageStyle}>{event.message}</div>
+                    {jobId && event.recoverable && onRetryWorkerJob ? (
+                      <button
+                        type="button"
+                        style={retryButtonStyle}
+                        data-testid="map-worker-recovery-retry"
+                        onClick={() => onRetryWorkerJob(jobId)}
+                      >
+                        <RotateCcw size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+                        {event.recoveryLabel ?? "Retry worker job"}
+                      </button>
+                    ) : null}
+                  </article>
+                );
+              })}
             </div>
           )}
         </section>

@@ -43,10 +43,17 @@ interface InternalJob<K extends WorkerTaskKind = WorkerTaskKind> {
   timeoutHandle?: ReturnType<typeof setTimeout>;
 }
 
+export interface BackgroundWorkerPoolLifecycleEvent {
+  status: Extract<BackgroundTaskStatus, 'completed' | 'failed' | 'cancelled'>;
+  snapshot: BackgroundTaskSnapshot;
+  error?: unknown;
+}
+
 export interface BackgroundWorkerPoolOptions {
   workerCount?: number;
   workerFactory: WorkerFactory;
   maxRetainedJobs?: number;
+  onTaskEvent?: (event: BackgroundWorkerPoolLifecycleEvent) => void;
 }
 
 function clampWorkerCount(value: number): number {
@@ -76,12 +83,14 @@ export class BackgroundWorkerPool {
   private readonly jobs = new Map<string, InternalJob>();
   private readonly queue: string[] = [];
   private readonly maxRetainedJobs: number;
+  private readonly onTaskEvent?: (event: BackgroundWorkerPoolLifecycleEvent) => void;
   private workerCountTarget: number;
   private workers: WorkerSlot[] = [];
 
   constructor(options: BackgroundWorkerPoolOptions) {
     this.workerFactory = options.workerFactory;
     this.maxRetainedJobs = Math.max(4, options.maxRetainedJobs ?? 18);
+    this.onTaskEvent = options.onTaskEvent;
     this.workerCountTarget = clampWorkerCount(options.workerCount ?? 1);
   }
 
@@ -203,6 +212,20 @@ export class BackgroundWorkerPool {
     }
 
     return false;
+  }
+
+  retryJob(jobId: string): BackgroundTaskHandle | null {
+    const job = this.jobs.get(jobId);
+    if (!job || job.snapshot.status !== 'failed') {
+      return null;
+    }
+    const retryOptions: BackgroundTaskEnqueueOptions = {
+      title: `Retry ${job.snapshot.title}`,
+      ...(job.snapshot.description ? { description: job.snapshot.description } : {}),
+      ...(typeof job.snapshot.timeoutMs === 'number' ? { timeoutMs: job.snapshot.timeoutMs } : {}),
+      ...(job.snapshot.viewAction ? { viewAction: job.snapshot.viewAction } : {}),
+    };
+    return this.enqueue(job.snapshot.kind, job.input as WorkerTaskInput<WorkerTaskKind>, retryOptions);
   }
 
   clearFinished(): void {
@@ -392,8 +415,22 @@ export class BackgroundWorkerPool {
       job.reject(error ?? new Error(job.snapshot.error ?? 'Background task failed.'));
     }
 
+    this.emitLifecycleEvent({
+      status,
+      snapshot: job.snapshot,
+      ...(error !== undefined ? { error } : {}),
+    });
+
     this.pruneRetainedJobs();
     this.dispatchSnapshot();
+  }
+
+  private emitLifecycleEvent(event: BackgroundWorkerPoolLifecycleEvent): void {
+    try {
+      this.onTaskEvent?.(event);
+    } catch {
+      // Telemetry hooks must never block worker recovery or promise settlement.
+    }
   }
 
   private removeFromQueue(jobId: string): void {

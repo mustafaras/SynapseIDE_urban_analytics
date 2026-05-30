@@ -8,6 +8,11 @@ import {
   MAP_GEOJSON_RENDER_FEATURE_BUDGET,
   MAP_GEOJSON_RENDER_MEMORY_BUDGET_BYTES,
 } from "./MapDataImporter";
+import type {
+  MapTelemetryEvent,
+  MapTelemetrySummary,
+} from "./observability";
+import { buildMapTelemetrySummary } from "./observability";
 
 export type MapPerformanceTimingKind = "render" | "export";
 
@@ -76,6 +81,8 @@ export interface MapPerformanceDiagnosticsSummary {
   reprojectionCache: MapReprojectionCacheDiagnosticsSummary;
   layers: MapLayerPerformanceSummary[];
   warnings: string[];
+  telemetryEvents: readonly MapTelemetryEvent[];
+  telemetrySummary: MapTelemetrySummary;
 }
 
 export const MAP_PERFORMANCE_BUDGETS: MapPerformanceBudgets = {
@@ -144,6 +151,7 @@ export function buildMapPerformanceDiagnostics(input: {
   overlayLayers: readonly OverlayLayerConfig[];
   timings?: readonly MapPerformanceTimingMetric[];
   budgets?: MapPerformanceBudgets;
+  telemetryEvents?: readonly MapTelemetryEvent[];
 }): MapPerformanceDiagnosticsSummary {
   const budgets = input.budgets ?? MAP_PERFORMANCE_BUDGETS;
   const layers = input.overlayLayers.map((layer) => buildLayerPerformanceSummary(layer, budgets));
@@ -167,6 +175,7 @@ export function buildMapPerformanceDiagnostics(input: {
     layers,
     lastRenderTiming,
   });
+  const telemetryEvents = input.telemetryEvents ?? [];
 
   return {
     budgets,
@@ -185,6 +194,8 @@ export function buildMapPerformanceDiagnostics(input: {
     reprojectionCache,
     layers,
     warnings,
+    telemetryEvents,
+    telemetrySummary: buildMapTelemetrySummary(telemetryEvents),
   };
 }
 

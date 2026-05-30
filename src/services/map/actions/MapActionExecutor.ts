@@ -2,6 +2,7 @@ import type {
   MapCommandPreflight,
   MapCommandResult,
 } from "@/services/map/contracts/gisContracts";
+import { recordMapTelemetryEvent } from "@/services/map/observability";
 import type {
   DrawnFeature,
   DrawnGeometryValidation,
@@ -288,13 +289,15 @@ export function applyMapCommand(
     reviewEventId: commandId,
     ...(manifest ? { manifest } : {}),
   };
-  return {
+  const outcome: MapActionOutcome = {
     result,
     preflight,
     reviewEvent: buildCommandReviewEvent(command, result, preflight, targetName),
     ...(revertToken ? { revertToken } : {}),
     ...(redoToken ? { redoToken } : {}),
   };
+  recordCommandTelemetry(command, result, preflight, targetName);
+  return outcome;
 }
 
 function blockedOutcome(
@@ -312,7 +315,40 @@ function blockedOutcome(
     createdAt,
     reviewEventId: commandId,
   };
+  recordCommandTelemetry(command, result, preflight, targetName);
   return { result, preflight, reviewEvent: buildCommandReviewEvent(command, result, preflight, targetName) };
+}
+
+function recordCommandTelemetry(
+  command: MapActionCommand,
+  result: MapCommandResult,
+  preflight: MapCommandPreflight,
+  targetName: string,
+): void {
+  recordMapTelemetryEvent({
+    kind: "command.run",
+    severity: result.status === "applied" ? "info" : "warning",
+    source: "map-command",
+    message: `Map command ${command.kind} ${result.status} for ${targetName}.`,
+    code: `MAP_COMMAND_${result.status.toUpperCase()}`,
+    recoverable: result.status === "blocked",
+    ...(result.status === "blocked" ? { recoveryLabel: "Review blockers" } : {}),
+    entityIds: {
+      commandId: result.commandId,
+    },
+    details: {
+      commandId: result.commandId,
+      commandKind: command.kind,
+      status: result.status,
+      targetName,
+      layerIds: commandLayerIds(command),
+      blockerCount: preflight.blockers.length,
+      caveatCount: preflight.caveats.length,
+      revertable: result.revertable,
+      ...(result.manifest ? { manifestId: result.manifest.manifestId } : {}),
+    },
+    fingerprint: `command:${result.commandId}:${command.kind}:${result.status}`,
+  });
 }
 
 /* -------------------------------------------------------------------- */

@@ -110,6 +110,7 @@ import {
   MapPerformanceBudgetBanner,
   MapPerformanceDiagnosticsPanel,
 } from "../MapPerformanceDiagnosticsPanel";
+import { MapPanelErrorBoundary } from "../MapPanelErrorBoundary";
 import { MapProcessingToolboxPanel, type ProcessingToolboxLayerOption } from "../processing";
 import { MapModelBuilderPanel } from "../modelBuilder";
 import { MapPluginPanel } from "../plugins";
@@ -231,6 +232,11 @@ import {
   measureMapPerformance,
   type MapPerformanceTimingMetric,
 } from "../../../../services/map/MapPerformanceDiagnostics";
+import {
+  getMapTelemetryEvents,
+  recordMapTelemetryEvent,
+  subscribeMapTelemetryEvents,
+} from "../../../../services/map/observability";
 import { bindTableAlias, loadArrowIPC, loadGeoJSON, toGeoJSON } from "../../../../engine/spatial-db/SpatialDB";
 import {
   buildMapCompositionLegendItems,
@@ -350,7 +356,7 @@ import {
   type MapCartographyRecommendation,
 } from "../../../../services/map/MapCartographyAdvisor";
 import { toastError, toastInfo, toastSuccess, toastWarning } from "../../../../ui/toast/api";
-import { isBackgroundTaskCancelledError } from "../../../../workers/pool";
+import { analyticsWorkerPool, isBackgroundTaskCancelledError } from "../../../../workers/pool";
 
 type CsvImportSession = import("../../../../services/map/MapDataImporter").CsvImportSession;
 type ColumnarImportSession = import("../../../../services/map/MapDataImporter").ColumnarImportSession;
@@ -1105,9 +1111,21 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const handleToggleFigureComposer = useCallback(() => setShowFigureComposer((previous) => !previous), []);
   const [showPerformanceDiagnostics, setShowPerformanceDiagnostics] = useState(false);
   const [performanceTimings, setPerformanceTimings] = useState<MapPerformanceTimingMetric[]>([]);
+  const [telemetryEvents, setTelemetryEvents] = useState(() => getMapTelemetryEvents());
+  useEffect(() => subscribeMapTelemetryEvents(() => setTelemetryEvents(getMapTelemetryEvents())), []);
   const recordPerformanceTiming = useCallback((metric: MapPerformanceTimingMetric) => {
     setPerformanceTimings((previous) => [...previous.slice(-19), metric]);
   }, []);
+  const handleRetryWorkerJob = useCallback((jobId: string) => {
+    const handle = analyticsWorkerPool.retryJob(jobId);
+    if (!handle) {
+      announce("Worker retry is unavailable for that task");
+      return;
+    }
+    void handle.promise.catch(() => undefined);
+    setShowPerformanceDiagnostics(true);
+    announce("Worker retry queued");
+  }, [announce]);
   const handleTogglePerformanceDiagnostics = useCallback(() => {
     setShowPerformanceDiagnostics((previous) => !previous);
     announce("Performance diagnostics toggled");
@@ -2380,10 +2398,42 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     return workflowPreviewLayer ? [...baseLayers, workflowPreviewLayer] : baseLayers;
   }, [contentsRenderLayers, effectiveShowWorkflowDrawer, workflowPreview?.comparisonState, workflowPreviewLayer]);
   const performanceDiagnostics = useMemo(
-    () => buildMapPerformanceDiagnostics({ overlayLayers: mapRenderLayers, timings: performanceTimings }),
-    [mapRenderLayers, performanceTimings],
+    () => buildMapPerformanceDiagnostics({ overlayLayers: mapRenderLayers, timings: performanceTimings, telemetryEvents }),
+    [mapRenderLayers, performanceTimings, telemetryEvents],
   );
-  const performanceIssueCount = performanceDiagnostics.warnings.length;
+  const performanceWarningFingerprint = performanceDiagnostics.warnings.join(" | ");
+  useEffect(() => {
+    if (!performanceWarningFingerprint) {
+      return;
+    }
+    performanceWarningFingerprint.split(" | ").forEach((warning) => {
+      recordMapTelemetryEvent({
+        kind: "performance.budget",
+        severity: "warning",
+        source: "performance-diagnostics",
+        message: warning,
+        code: "MAP_PERFORMANCE_BUDGET",
+        recoverable: true,
+        recoveryLabel: "Review render budgets",
+        details: {
+          renderMode: performanceDiagnostics.renderMode,
+          previewLayerCount: performanceDiagnostics.previewLayerCount,
+          visibleLayerCount: performanceDiagnostics.visibleLayerCount,
+          workerTransferBytes: performanceDiagnostics.workerTransferBytes,
+        },
+        fingerprint: `performance:${warning}`,
+      }, { dedupeKey: `performance:${warning}`, dedupeMs: 30_000 });
+    });
+  }, [
+    performanceDiagnostics.previewLayerCount,
+    performanceDiagnostics.renderMode,
+    performanceDiagnostics.visibleLayerCount,
+    performanceDiagnostics.workerTransferBytes,
+    performanceWarningFingerprint,
+  ]);
+  const performanceIssueCount = performanceDiagnostics.warnings.length
+    + performanceDiagnostics.telemetrySummary.warningCount
+    + performanceDiagnostics.telemetrySummary.errorCount;
   const toolbarActiveGeometryType = useMemo(() => {
     const selectedLayer = selectedPointSymbologyLayer?.visible
       ? selectedPointSymbologyLayer
@@ -7093,79 +7143,134 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             />
           )}
 
-          <MapPerformanceDiagnosticsPanel
-            visible={showPerformanceDiagnostics && !navigatorStageMode}
-            diagnostics={performanceDiagnostics}
+          <MapPanelErrorBoundary
+            panelName="Render diagnostics"
+            resetKey={showPerformanceDiagnostics}
             onClose={() => {
               setShowPerformanceDiagnostics(false);
               announce("Performance diagnostics closed");
             }}
-          />
+          >
+            <MapPerformanceDiagnosticsPanel
+              visible={showPerformanceDiagnostics && !navigatorStageMode}
+              diagnostics={performanceDiagnostics}
+              onRetryWorkerJob={handleRetryWorkerJob}
+              onClose={() => {
+                setShowPerformanceDiagnostics(false);
+                announce("Performance diagnostics closed");
+              }}
+            />
+          </MapPanelErrorBoundary>
 
-          <MapPluginPanel
-            visible={showPluginPanel && !navigatorStageMode}
-            extensions={pluginExtensions}
+          <MapPanelErrorBoundary
+            panelName="Plugin registry"
+            resetKey={showPluginPanel}
             onClose={() => {
               setShowPluginPanel(false);
               announce("Plugin registry closed");
             }}
-          />
+          >
+            <MapPluginPanel
+              visible={showPluginPanel && !navigatorStageMode}
+              extensions={pluginExtensions}
+              onClose={() => {
+                setShowPluginPanel(false);
+                announce("Plugin registry closed");
+              }}
+            />
+          </MapPanelErrorBoundary>
 
-          <MapProcessingToolboxPanel
-            visible={showProcessingToolbox && !navigatorStageMode}
+          <MapPanelErrorBoundary
+            panelName="Processing toolbox"
+            resetKey={showProcessingToolbox}
             onClose={() => {
               setShowProcessingToolbox(false);
               announce("Processing toolbox closed");
             }}
-            searchTools={searchProcessingTools}
-            layers={processingToolboxLayers}
-            onPreview={handlePreviewProcessingTool}
-            onRun={handleRunProcessingTool}
-          />
+          >
+            <MapProcessingToolboxPanel
+              visible={showProcessingToolbox && !navigatorStageMode}
+              onClose={() => {
+                setShowProcessingToolbox(false);
+                announce("Processing toolbox closed");
+              }}
+              searchTools={searchProcessingTools}
+              layers={processingToolboxLayers}
+              onPreview={handlePreviewProcessingTool}
+              onRun={handleRunProcessingTool}
+            />
+          </MapPanelErrorBoundary>
 
-          <MapModelBuilderPanel
-            visible={showModelBuilder && !navigatorStageMode}
+          <MapPanelErrorBoundary
+            panelName="Model builder"
+            resetKey={showModelBuilder}
             onClose={() => {
               setShowModelBuilder(false);
               announce("Model builder closed");
             }}
-            tools={processingToolDescriptors}
-            layers={processingToolboxLayers}
-            onRun={handleRunMapModel}
-            onRunBatch={handleRunMapModelBatch}
-            onExportToIdeAndUrban={handleExportMapModelToIdeAndUrban}
-          />
+          >
+            <MapModelBuilderPanel
+              visible={showModelBuilder && !navigatorStageMode}
+              onClose={() => {
+                setShowModelBuilder(false);
+                announce("Model builder closed");
+              }}
+              tools={processingToolDescriptors}
+              layers={processingToolboxLayers}
+              onRun={handleRunMapModel}
+              onRunBatch={handleRunMapModelBatch}
+              onExportToIdeAndUrban={handleExportMapModelToIdeAndUrban}
+            />
+          </MapPanelErrorBoundary>
 
-          <MapCatalogPanel
-            visible={showCatalog && !navigatorStageMode}
-            sourceHandles={sourceHandles}
-            layers={overlayLayers}
+          <MapPanelErrorBoundary
+            panelName="Catalog"
+            resetKey={showCatalog}
             onClose={() => {
               setShowCatalog(false);
               announce("Catalog closed");
             }}
-            onBrowseSources={handleCatalogBrowseSources}
-            onAddDemoPack={handleCatalogAddDemoPack}
-            onRepairSource={handleCatalogRepairSource}
-            onReconnectSource={handleCatalogReconnectSource}
-            onAddConnection={handleCatalogAddConnection}
-          />
+          >
+            <MapCatalogPanel
+              visible={showCatalog && !navigatorStageMode}
+              sourceHandles={sourceHandles}
+              layers={overlayLayers}
+              onClose={() => {
+                setShowCatalog(false);
+                announce("Catalog closed");
+              }}
+              onBrowseSources={handleCatalogBrowseSources}
+              onAddDemoPack={handleCatalogAddDemoPack}
+              onRepairSource={handleCatalogRepairSource}
+              onReconnectSource={handleCatalogReconnectSource}
+              onAddConnection={handleCatalogAddConnection}
+            />
+          </MapPanelErrorBoundary>
 
-          <MapContentsTreePanel
-            visible={showContents && !navigatorStageMode}
-            layers={overlayLayers}
-            zoom={zoom}
+          <MapPanelErrorBoundary
+            panelName="Contents"
+            resetKey={showContents}
             onClose={() => {
               setShowContents(false);
               announce("Contents tree closed");
             }}
-            onUpdateLayer={updateLayerMetadata}
-            onDuplicateLayer={handleDuplicateContentsLayer}
-            onRepairSource={handleRepairContentsSource}
-            onOpenProperties={handleInspectLayer}
-            onToggleVisibility={toggleLayerVisibility}
-            onReorderLayers={reorderLayers}
-          />
+          >
+            <MapContentsTreePanel
+              visible={showContents && !navigatorStageMode}
+              layers={overlayLayers}
+              zoom={zoom}
+              onClose={() => {
+                setShowContents(false);
+                announce("Contents tree closed");
+              }}
+              onUpdateLayer={updateLayerMetadata}
+              onDuplicateLayer={handleDuplicateContentsLayer}
+              onRepairSource={handleRepairContentsSource}
+              onOpenProperties={handleInspectLayer}
+              onToggleVisibility={toggleLayerVisibility}
+              onReorderLayers={reorderLayers}
+            />
+          </MapPanelErrorBoundary>
 
           <WorkflowPreviewOverlay preview={effectiveShowWorkflowDrawer ? workflowPreview : null} />
 

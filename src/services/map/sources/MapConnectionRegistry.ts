@@ -31,6 +31,7 @@ import {
   validateServiceUrl,
   type ExternalServiceKind,
 } from "../ExternalServiceConnector";
+import { recordMapTelemetryEvent } from "../observability";
 
 /* -------------------------------------------------------------------- */
 /*  Types                                                               */
@@ -403,6 +404,7 @@ export async function checkConnectionHealth(
     probe = buildHealthProbe(descriptor, profile);
   } catch (error) {
     const failure = classifyExternalServiceFailure(error);
+    recordExternalServiceTelemetry(descriptor, failure, checkedAt);
     return {
       dependencyStatus: "offline",
       checkedAt,
@@ -419,6 +421,7 @@ export async function checkConnectionHealth(
     return { dependencyStatus: options.cacheHit ? "cached" : "live", checkedAt };
   } catch (error) {
     const failure = classifyExternalServiceFailure(error);
+    recordExternalServiceTelemetry(descriptor, failure, checkedAt);
     return {
       dependencyStatus: "offline",
       checkedAt,
@@ -427,6 +430,37 @@ export async function checkConnectionHealth(
       ...(failure.httpStatus != null ? { httpStatus: failure.httpStatus } : {}),
     };
   }
+}
+
+function recordExternalServiceTelemetry(
+  descriptor: MapConnectionDescriptor,
+  failure: ExternalServiceFailure,
+  checkedAt: string,
+): void {
+  recordMapTelemetryEvent({
+    kind: "external-service.error",
+    severity: "warning",
+    source: "external-service",
+    message: `${descriptor.providerId} service health check failed: ${failure.reason}`,
+    code: `EXTERNAL_${failure.kind.toUpperCase()}`,
+    recoverable: true,
+    recoveryLabel: "Reconnect source",
+    entityIds: {
+      sourceId: descriptor.sourceId,
+      providerId: descriptor.providerId,
+    },
+    details: {
+      sourceId: descriptor.sourceId,
+      providerId: descriptor.providerId,
+      serviceKind: descriptor.serviceKind,
+      endpoint: descriptor.endpoint,
+      failureKind: failure.kind,
+      reason: failure.reason,
+      checkedAt,
+      ...(failure.httpStatus != null ? { httpStatus: failure.httpStatus } : {}),
+    },
+    fingerprint: `external:${descriptor.sourceId}:${failure.kind}:${failure.reason}`,
+  }, { dedupeKey: `external:${descriptor.sourceId}:${failure.kind}`, dedupeMs: 5_000 });
 }
 
 /** Downgrade a previously-live dependency to `stale` once its TTL lapses. */

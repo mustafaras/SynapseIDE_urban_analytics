@@ -10,6 +10,7 @@ interface BackgroundTaskStore extends BackgroundTaskPoolSnapshot {
   claimPanelHost: (hostId: string) => void;
   clearFinished: () => void;
   cancelJob: (jobId: string) => boolean;
+  retryJob: (jobId: string) => string | null;
   setWorkerCount: (workerCount: number) => void;
 }
 
@@ -37,6 +38,14 @@ export const useBackgroundTaskStore = create<BackgroundTaskStore>((set) => ({
     }),
   clearFinished: () => analyticsWorkerPool.clearFinished(),
   cancelJob: (jobId) => analyticsWorkerPool.cancelJob(jobId),
+  retryJob: (jobId) => {
+    const handle = analyticsWorkerPool.retryJob(jobId);
+    if (!handle) {
+      return null;
+    }
+    void handle.promise.catch(() => undefined);
+    return handle.id;
+  },
   setWorkerCount: (workerCount) => analyticsWorkerPool.setWorkerCount(workerCount),
 }));
 

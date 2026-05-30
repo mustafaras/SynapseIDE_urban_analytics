@@ -6,6 +6,7 @@ import {
   Clock3,
   ListOrdered,
   LoaderCircle,
+  RotateCcw,
   Rows3,
   X,
 } from 'lucide-react';
@@ -65,6 +66,7 @@ function renderPanel(
   workerCount: number,
   onClose: () => void,
   onCancel: (jobId: string) => void,
+  onRetry: (jobId: string) => void,
   onClearFinished: () => void,
 ): React.ReactNode {
   const left = Math.max(12, Math.min(window.innerWidth - Math.min(420, window.innerWidth - 24), anchorRect.right - 420));
@@ -153,6 +155,12 @@ function renderPanel(
                       Cancel job
                     </button>
                   ) : null}
+                  {job.status === 'failed' ? (
+                    <button type="button" className={styles.actionButton} onClick={() => onRetry(job.id)}>
+                      <RotateCcw size={12} />
+                      Retry job
+                    </button>
+                  ) : null}
                   {job.status === 'completed' && job.viewAction ? (
                     <button type="button" className={styles.actionButton} onClick={job.viewAction.onClick}>
                       <Rows3 size={12} />
@@ -187,6 +195,7 @@ export const BackgroundTasksControl: React.FC<BackgroundTasksControlProps> = ({ 
   const closePanel = useBackgroundTaskStore((state) => state.closePanel);
   const claimPanelHost = useBackgroundTaskStore((state) => state.claimPanelHost);
   const cancelJob = useBackgroundTaskStore((state) => state.cancelJob);
+  const retryJob = useBackgroundTaskStore((state) => state.retryJob);
   const clearFinished = useBackgroundTaskStore((state) => state.clearFinished);
   const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
   const isPanelOwner = panelOpen && panelHostId === hostId;
@@ -279,7 +288,7 @@ export const BackgroundTasksControl: React.FC<BackgroundTasksControlProps> = ({ 
       </button>
 
       {isPanelOwner && anchorRect && typeof document !== 'undefined'
-        ? renderPanel(anchorRect, jobs, activeCount, queuedCount, workerCount, closePanel, cancelJob, clearFinished)
+        ? renderPanel(anchorRect, jobs, activeCount, queuedCount, workerCount, closePanel, cancelJob, retryJob, clearFinished)
         : null}
     </>
   );

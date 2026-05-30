@@ -2,7 +2,7 @@
 
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   MAP_GEOJSON_RENDER_FEATURE_BUDGET,
   buildFeatureCollectionMetadata,
@@ -12,6 +12,11 @@ import {
   formatPerformanceBytes,
   type MapPerformanceTimingMetric,
 } from "@/services/map/MapPerformanceDiagnostics";
+import {
+  clearMapTelemetryEvents,
+  getMapTelemetryEvents,
+  recordMapTelemetryEvent,
+} from "@/services/map/observability";
 import {
   MapPerformanceBudgetBanner,
   MapPerformanceDiagnosticsPanel,
@@ -34,6 +39,10 @@ function largeLayer(): OverlayLayerConfig {
 }
 
 describe("Map performance diagnostics", () => {
+  afterEach(() => {
+    clearMapTelemetryEvents();
+  });
+
   it("summarizes live render budgets and bounded preview layers", () => {
     const renderMetric: MapPerformanceTimingMetric = {
       kind: "render",
@@ -86,5 +95,40 @@ describe("Map performance diagnostics", () => {
     expect(html).toContain("30,025");
     expect(html).toContain("30,000");
     expect(html).toContain(formatPerformanceBytes(diagnostics.estimatedRenderBytes));
+  });
+
+  it("renders redacted observability events with worker retry affordance", () => {
+    recordMapTelemetryEvent({
+      kind: "worker.failure",
+      severity: "error",
+      source: "worker-pool",
+      message: "Worker failed for alex@example.test with token=secret-worker-token",
+      recoverable: true,
+      recoveryLabel: "Retry worker job",
+      details: {
+        jobId: "job-worker-1",
+        taskKind: "geometry/workflow",
+        error: "token=secret-worker-token",
+      },
+    });
+    const diagnostics = buildMapPerformanceDiagnostics({
+      overlayLayers: [largeLayer()],
+      telemetryEvents: getMapTelemetryEvents(),
+    });
+    const html = renderToStaticMarkup(
+      <MapPerformanceDiagnosticsPanel
+        visible
+        diagnostics={diagnostics}
+        onClose={vi.fn()}
+        onRetryWorkerJob={vi.fn()}
+      />,
+    );
+
+    expect(html).toContain("Operations Log");
+    expect(html).toContain("worker.failure");
+    expect(html).toContain("Retry worker job");
+    expect(html).toContain("[REDACTED]");
+    expect(html).not.toContain("alex@example.test");
+    expect(html).not.toContain("secret-worker-token");
   });
 });
