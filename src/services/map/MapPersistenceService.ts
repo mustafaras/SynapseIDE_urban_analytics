@@ -1341,6 +1341,10 @@ function createSnapshot(input: SaveProjectMapStateInput): MapProjectSnapshot {
   };
 }
 
+export function createMapProjectSnapshot(input: SaveProjectMapStateInput): MapProjectSnapshot {
+  return createSnapshot(input);
+}
+
 function buildSpatialLayerFeatures(layer: PersistedOverlayLayer): Feature[] {
   if (!layer.sourceData) {
     return [];

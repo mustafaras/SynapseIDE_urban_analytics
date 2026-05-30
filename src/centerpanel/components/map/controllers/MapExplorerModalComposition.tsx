@@ -251,6 +251,10 @@ import {
   triggerMapPublicationDownload,
 } from "../../../../services/map/MapExportService";
 import {
+  exportOfflineMapPackage,
+  triggerOfflineMapPackageDownload,
+} from "../../../../services/map/MapOfflinePackageService";
+import {
   clearPersistedMapProjectSnapshots,
   getRestorableOverlayLayers,
   loadProjectMapState,
@@ -2280,6 +2284,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const [mapExportPreviewUrl, setMapExportPreviewUrl] = useState<string | null>(null);
   const [isGeneratingMapExportPreview, setIsGeneratingMapExportPreview] = useState(false);
   const [isExportingMapImage, setIsExportingMapImage] = useState(false);
+  const [isExportingOfflinePackage, setIsExportingOfflinePackage] = useState(false);
   const [isLoadingPointSymbology, setIsLoadingPointSymbology] = useState(false);
   const [pointSymbologyError, setPointSymbologyError] = useState<string | null>(null);
   const [pointSymbologyCollection, setPointSymbologyCollection] = useState<GeoJSON.FeatureCollection | null>(null);
@@ -6103,6 +6108,78 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     recordPerformanceTiming,
   ]);
 
+  const handleOfflinePackageExport = useCallback(async () => {
+    const hasPackageContent = pins.length > 0 ||
+      bookmarks.length > 0 ||
+      annotations.length > 0 ||
+      drawnFeatures.length > 0 ||
+      overlayLayers.length > 0 ||
+      mapEvidenceArtifacts.length > 0;
+    if (!hasPackageContent) {
+      toastInfo("Add map content before exporting an offline package.");
+      announce("Offline package export skipped: no map content");
+      return;
+    }
+
+    setIsExportingOfflinePackage(true);
+    try {
+      const projectId = selectedProjectId ?? "map-session";
+      const { result, metric } = await measureMapPerformance({
+        kind: "export",
+        label: "Offline reproducible package export",
+        featureCount: overlayLayers.reduce((sum, layer) => sum + (layer.metadata?.featureCount ?? 0), 0),
+      }, () => exportOfflineMapPackage({
+        projectId,
+        activeBaseLayer,
+        viewport: getCurrentViewportState(),
+        pins,
+        bookmarks,
+        annotations,
+        drawnFeatures,
+        overlayLayers,
+        sourceHandles,
+        mapEvidenceArtifacts,
+        scientificQA,
+        reviewSession,
+      }));
+      recordPerformanceTiming({
+        ...metric,
+        byteLength: result.byteLength,
+      });
+      triggerOfflineMapPackageDownload(result);
+      recordMapReviewEvent(result.reviewEvent);
+      toastSuccess(
+        `Exported offline package ${result.filename} with ${result.packageManifest.embeddedSourceCount.toLocaleString()} embedded source${result.packageManifest.embeddedSourceCount === 1 ? "" : "s"}.`,
+      );
+      if (result.packageManifest.unavailableSourceCount > 0) {
+        toastInfo(`${result.packageManifest.unavailableSourceCount.toLocaleString()} source${result.packageManifest.unavailableSourceCount === 1 ? "" : "s"} restored as unavailable metadata.`);
+      }
+      announce("Offline reproducible package exported");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Offline package export failed.";
+      toastError(message);
+      announce(`Offline package export failed: ${message}`);
+    } finally {
+      setIsExportingOfflinePackage(false);
+    }
+  }, [
+    activeBaseLayer,
+    announce,
+    annotations,
+    bookmarks,
+    drawnFeatures,
+    getCurrentViewportState,
+    mapEvidenceArtifacts,
+    overlayLayers,
+    pins,
+    recordMapReviewEvent,
+    recordPerformanceTiming,
+    reviewSession,
+    scientificQA,
+    selectedProjectId,
+    sourceHandles,
+  ]);
+
   const handleMapExportConfirm = useCallback(async () => {
     const map = mapInstanceRef.current;
     if (!map) {
@@ -6297,6 +6374,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     onImport: handleImportRequest,
     onDataExport: handleExportRequest,
     onImageExport: handleMapExportRequest,
+    onPackageExport: handleOfflinePackageExport,
     onReportHandoff: handleOpenCurrentMapReportHandoff,
     onProjectSave: () => {
       void handleProjectSave();
@@ -6317,6 +6395,13 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const exportDisabledReason = exportDisabled
     ? "Add pins, drawings, or visible overlay layers before exporting GeoJSON."
     : undefined;
+  const packageExportDisabled =
+    pins.length === 0 &&
+    bookmarks.length === 0 &&
+    annotations.length === 0 &&
+    drawnFeatures.length === 0 &&
+    overlayLayers.length === 0 &&
+    mapEvidenceArtifacts.length === 0;
   const reportDisabledReason = isGeneratingReportHandoffSnapshot
     ? "The current map report snapshot is still rendering."
     : undefined;
@@ -6493,6 +6578,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
                 announce("External map services dialog opened");
               }}
               onImageExportClick={toolbarCommandHandlers.exportImage}
+              onExportPackageClick={toolbarCommandHandlers.exportPackage}
               onAddToReportClick={toolbarCommandHandlers.openReportHandoff}
               onExportClick={toolbarCommandHandlers.exportData}
               onSaveProjectClick={toolbarCommandHandlers.saveProject}
@@ -6501,9 +6587,12 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               importProgress={importProgress?.percent ?? null}
               exportDisabled={exportDisabled}
               exportDisabledReason={exportDisabledReason}
+              packageExportDisabled={packageExportDisabled}
+              packageExportDisabledReason="Add pins, drawings, overlay layers, or map evidence before exporting an offline package."
               reportDisabled={isGeneratingReportHandoffSnapshot}
               reportDisabledReason={reportDisabledReason}
               isExportingImage={isExportingMapImage}
+              isExportingPackage={isExportingOfflinePackage}
               isSavingProject={isSavingProject}
               isLoadingProject={isLoadingProject}
               persistenceDisabled={persistenceDisabled}

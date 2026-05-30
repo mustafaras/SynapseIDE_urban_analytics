@@ -158,6 +158,7 @@ export interface MapToolbarProps {
   onOpenExternalServices?: () => void;
   onExportClick?: () => void;
   onImageExportClick?: () => void;
+  onExportPackageClick?: () => void;
   onAddToReportClick?: () => void;
   onSaveProjectClick?: () => void;
   onLoadProjectClick?: () => void;
@@ -165,9 +166,12 @@ export interface MapToolbarProps {
   importProgress?: number | null;
   exportDisabled?: boolean;
   exportDisabledReason?: string | undefined;
+  packageExportDisabled?: boolean;
+  packageExportDisabledReason?: string | undefined;
   reportDisabled?: boolean;
   reportDisabledReason?: string | undefined;
   isExportingImage?: boolean;
+  isExportingPackage?: boolean;
   isSavingProject?: boolean;
   isLoadingProject?: boolean;
   persistenceDisabled?: boolean;
@@ -283,9 +287,12 @@ interface BuildToolbarCommandsArgs extends Required<Pick<
   | "isImporting"
   | "exportDisabled"
   | "exportDisabledReason"
+  | "packageExportDisabled"
+  | "packageExportDisabledReason"
   | "reportDisabled"
   | "reportDisabledReason"
   | "isExportingImage"
+  | "isExportingPackage"
   | "isSavingProject"
   | "isLoadingProject"
   | "persistenceDisabled"
@@ -326,6 +333,7 @@ interface BuildToolbarCommandsArgs extends Required<Pick<
   onOpenExternalServices?: (() => void) | undefined;
   onExportClick?: (() => void) | undefined;
   onImageExportClick?: (() => void) | undefined;
+  onExportPackageClick?: (() => void) | undefined;
   onAddToReportClick?: (() => void) | undefined;
   onSaveProjectClick?: (() => void) | undefined;
   onLoadProjectClick?: (() => void) | undefined;
@@ -1422,6 +1430,23 @@ function buildToolbarCommands(args: BuildToolbarCommandsArgs): ToolbarCommand[] 
     disabledReason: "The current map image export is still rendering.",
   });
 
+  add(args.onExportPackageClick && {
+    id: "export-offline-package",
+    label: args.isExportingPackage ? "Packaging" : "Export package",
+    shortLabel: "Package",
+    title: "Export reproducible offline package",
+    keywords: ["offline package", "reproducible package", "zip", "project package", "review package"],
+    icon: Download,
+    onClick: args.onExportPackageClick,
+    roles: ["publish", "explore"],
+    overflowGroup: "export",
+    priority: args.isExportingPackage ? 116 : 84,
+    disabled: args.isExportingPackage || args.packageExportDisabled,
+    disabledReason: args.isExportingPackage
+      ? "The offline package export is already running."
+      : args.packageExportDisabledReason ?? "Add map content before exporting an offline package.",
+  });
+
   add(args.onAddToReportClick && {
     id: "add-map-to-report",
     label: "Report",
@@ -1879,6 +1904,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
   onOpenExternalServices,
   onExportClick,
   onImageExportClick,
+  onExportPackageClick,
   onAddToReportClick,
   onSaveProjectClick,
   onLoadProjectClick,
@@ -1886,9 +1912,12 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
   importProgress = null,
   exportDisabled = false,
   exportDisabledReason = undefined,
+  packageExportDisabled = false,
+  packageExportDisabledReason = undefined,
   reportDisabled = false,
   reportDisabledReason = undefined,
   isExportingImage = false,
+  isExportingPackage = false,
   isSavingProject = false,
   isLoadingProject = false,
   persistenceDisabled = false,
@@ -2036,6 +2065,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       onOpenExternalServices,
       onExportClick,
       onImageExportClick,
+      onExportPackageClick,
       onAddToReportClick,
       onSaveProjectClick,
       onLoadProjectClick,
@@ -2043,9 +2073,12 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       importProgress,
       exportDisabled,
       exportDisabledReason,
+      packageExportDisabled,
+      packageExportDisabledReason,
       reportDisabled,
       reportDisabledReason,
       isExportingImage,
+      isExportingPackage,
       isSavingProject,
       isLoadingProject,
       persistenceDisabled,
@@ -2070,6 +2103,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       hasSelectedAoi,
       importProgress,
       isExportingImage,
+      isExportingPackage,
       isImporting,
       isLoadingProject,
       isSavingProject,
@@ -2081,6 +2115,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       onWorkspaceViewChange,
       onExportClick,
       onImageExportClick,
+      onExportPackageClick,
       onAddToReportClick,
       onImportClick,
       onLoadProjectClick,
@@ -2112,6 +2147,8 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       onToggleVoxCityOverlayPanel,
       onUndoMapAction,
       persistenceDisabled,
+      packageExportDisabled,
+      packageExportDisabledReason,
       performanceIssueCount,
       pluginExtensionCount,
       processingToolCount,
