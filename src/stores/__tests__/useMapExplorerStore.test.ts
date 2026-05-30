@@ -548,24 +548,24 @@ describe("useMapExplorerStore", () => {
 
       queueCopilotActionProposal({
         id: "prop-1",
-        kind: "toggleLayer",
-        title: "Toggle",
+        kind: "layer.style",
+        title: "Restyle",
         rationale: "",
         expectedEffect: "",
         riskLevel: "low",
-        previewPayload: { kind: "toggleLayer", layerId: "layer-a", visible: true },
-        applyPayload: { kind: "toggleLayer", layerId: "layer-a", visible: true },
+        previewPayload: { kind: "layer.style", layerId: "layer-a", style: { "fill-color": "#3794ff" } },
+        applyPayload: { kind: "layer.style", layerId: "layer-a", style: { "fill-color": "#3794ff" } },
         evidence: [],
       });
       queueCopilotActionProposal({
         id: "prop-2",
-        kind: "toggleLayer",
-        title: "Toggle 2",
+        kind: "layer.style",
+        title: "Restyle 2",
         rationale: "",
         expectedEffect: "",
         riskLevel: "low",
-        previewPayload: { kind: "toggleLayer", layerId: "layer-b", visible: true },
-        applyPayload: { kind: "toggleLayer", layerId: "layer-b", visible: true },
+        previewPayload: { kind: "layer.style", layerId: "layer-b", style: { "fill-color": "#22c55e" } },
+        applyPayload: { kind: "layer.style", layerId: "layer-b", style: { "fill-color": "#22c55e" } },
         evidence: [],
       });
       expect(useMapExplorerStore.getState().pendingCopilotActionCount).toBe(2);
@@ -576,8 +576,56 @@ describe("useMapExplorerStore", () => {
       applyCopilotActionProposal("prop-1");
       expect(useMapExplorerStore.getState().pendingCopilotActionCount).toBe(1);
 
+      previewCopilotActionProposal("prop-2");
       applyCopilotActionProposal("prop-2");
       expect(useMapExplorerStore.getState().pendingCopilotActionCount).toBe(0);
+    });
+
+    it("rejects copilot actions that are not allowlisted", () => {
+      useMapExplorerStore.getState().queueCopilotActionProposal({
+        id: "prop-disallowed",
+        kind: "shell.exec",
+        title: "Run shell",
+        rationale: "rm -rf /",
+        expectedEffect: "Mutate workspace",
+        riskLevel: "high",
+        previewPayload: { kind: "shell.exec", command: "rm -rf /" },
+        applyPayload: { kind: "shell.exec", command: "rm -rf /" },
+        evidence: [],
+      });
+
+      const state = useMapExplorerStore.getState();
+      expect(state.pendingCopilotActionCount).toBe(0);
+      expect(state.copilotActionProposals[0]).toMatchObject({
+        id: "prop-disallowed",
+        status: "rejected",
+        guardrail: expect.objectContaining({ status: "rejected", auditTag: "AI-proposed" }),
+      });
+      expect(state.copilotAuditTrail.at(-1)).toMatchObject({
+        proposalId: "prop-disallowed",
+        action: "rejected",
+      });
+    });
+
+    it("requires preview confirmation before applying copilot proposals", () => {
+      const { queueCopilotActionProposal, applyCopilotActionProposal } = useMapExplorerStore.getState();
+      queueCopilotActionProposal({
+        id: "prop-confirm",
+        kind: "layer.style",
+        title: "Restyle",
+        rationale: "",
+        expectedEffect: "",
+        riskLevel: "low",
+        previewPayload: { kind: "layer.style", layerId: "layer-a", style: { "fill-color": "#3794ff" } },
+        applyPayload: { kind: "layer.style", layerId: "layer-a", style: { "fill-color": "#3794ff" } },
+        evidence: [],
+      });
+
+      applyCopilotActionProposal("prop-confirm");
+
+      const state = useMapExplorerStore.getState();
+      expect(state.copilotActionProposals.find((proposal) => proposal.id === "prop-confirm")?.status).toBe("rejected");
+      expect(state.copilotAuditTrail.at(-1)?.reason).toContain("preview confirmation");
     });
 
     it("bounds copilot proposal history and audit trail for long-lived sessions", () => {
@@ -590,15 +638,16 @@ describe("useMapExplorerStore", () => {
         const proposalId = `prop-bounded-${index}`;
         queueCopilotActionProposal({
           id: proposalId,
-          kind: "toggleLayer",
+          kind: "layer.style",
           title: `Toggle ${index}`,
           rationale: "",
           expectedEffect: "",
           riskLevel: "low",
-          previewPayload: { kind: "toggleLayer", layerId: `layer-${index}`, visible: true },
-          applyPayload: { kind: "toggleLayer", layerId: `layer-${index}`, visible: true },
+          previewPayload: { kind: "layer.style", layerId: `layer-${index}`, style: { "fill-color": "#3794ff" } },
+          applyPayload: { kind: "layer.style", layerId: `layer-${index}`, style: { "fill-color": "#3794ff" } },
           evidence: [],
         });
+        useMapExplorerStore.getState().previewCopilotActionProposal(proposalId);
         applyCopilotActionProposal(proposalId);
       }
 

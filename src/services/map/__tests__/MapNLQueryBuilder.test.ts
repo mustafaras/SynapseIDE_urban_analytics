@@ -128,6 +128,11 @@ describe("MapNLQueryBuilder", () => {
     expect(preview.sourceLayers.map((entry) => entry.name)).toEqual(["Parcels", "Transit Stops"]);
     expect(preview.copyText).toContain("Scope: Visible layers");
     expect(preview.requiresExplicitApply).toBe(true);
+    expect(preview.aiGuardrail).toMatchObject({
+      status: "allowed",
+      auditTag: "AI-proposed",
+      requiresHumanConfirmation: true,
+    });
     expect(preview.intentPreview).toMatchObject({
       intent: "proximity",
       intentLabel: "Proximity",
@@ -203,6 +208,10 @@ describe("MapNLQueryBuilder", () => {
       decision: "rejected",
       requiresExplicitApply: true,
     });
+    expect(audit.aiGuardrail).toEqual(expect.objectContaining({
+      status: "rejected",
+      auditTag: "AI-proposed",
+    }));
     expect(audit.affectedLayers).toEqual(expect.any(Array));
   });
 
@@ -214,6 +223,12 @@ describe("MapNLQueryBuilder", () => {
     const preview = generateMapNLQueryPreview("Show parcels within 500 meters of transit stops.", context);
     const loadedAliases: string[] = [];
 
+    await expect(executeMapNLQueryPreview(preview, {
+      loadGeoJSON: async () => {},
+      bindTableAlias: async () => {},
+      toGeoJSON: async () => parcels,
+    })).rejects.toThrow("human confirmation");
+
     const result = await executeMapNLQueryPreview(preview, {
       loadGeoJSON: async (alias) => {
         loadedAliases.push(alias);
@@ -223,7 +238,7 @@ describe("MapNLQueryBuilder", () => {
         expect(sql).toContain("ST_DWithin");
         return parcels;
       },
-    });
+    }, { confirmed: true });
 
     expect(loadedAliases).toEqual(["parcels", "transit_stops"]);
     expect(result.layer.name).toContain("NL Query:");

@@ -85,6 +85,7 @@ function getButton(host: HTMLElement, label: string): HTMLButtonElement {
 describe("MapNLQueryPanel", () => {
   it("requires explicit preview acceptance before running a map query", async () => {
     const onRun = vi.fn();
+    const onProposalGenerated = vi.fn();
     const onPreviewDecision = vi.fn();
     const host = document.createElement("div");
     document.body.appendChild(host);
@@ -104,6 +105,7 @@ describe("MapNLQueryPanel", () => {
           isRunning={false}
           lastRunSummary={null}
           onRun={onRun}
+          onProposalGenerated={onProposalGenerated}
           onPreviewDecision={onPreviewDecision}
           onClose={vi.fn()}
         />,
@@ -111,7 +113,9 @@ describe("MapNLQueryPanel", () => {
     });
 
     expect(host.textContent).toContain("Interpreted Intent Preview");
+    expect(host.textContent).toContain("AI-proposed preview requires confirmation");
     expect(host.textContent).toContain("Affected Layers and Required Fields");
+    expect(onProposalGenerated).toHaveBeenCalledWith(expect.objectContaining({ aiGuardrail: expect.objectContaining({ auditTag: "AI-proposed" }) }));
     expect(getButton(host, "Run Query").disabled).toBe(true);
 
     await act(async () => {
@@ -122,7 +126,7 @@ describe("MapNLQueryPanel", () => {
     expect(getButton(host, "Run Query").disabled).toBe(true);
 
     await act(async () => {
-      getButton(host, "Accept").dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      getButton(host, "Confirm").dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
     expect(onPreviewDecision).toHaveBeenLastCalledWith(expect.objectContaining({ canRun: true }), "accepted");
@@ -133,10 +137,13 @@ describe("MapNLQueryPanel", () => {
     });
 
     expect(onRun).toHaveBeenCalledTimes(1);
-    expect(onRun).toHaveBeenCalledWith(expect.objectContaining({
-      requiresExplicitApply: true,
-      affectedLayers: expect.any(Array),
-      requiredFields: expect.any(Array),
-    }));
+    expect(onRun).toHaveBeenCalledWith(
+      expect.objectContaining({
+        requiresExplicitApply: true,
+        affectedLayers: expect.any(Array),
+        requiredFields: expect.any(Array),
+      }),
+      { confirmed: true },
+    );
   });
 });

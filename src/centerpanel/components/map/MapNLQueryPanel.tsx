@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { Feature, Geometry } from "geojson";
 import {
   AlertTriangle,
@@ -49,7 +49,8 @@ export interface MapNLQueryPanelProps {
   currentMapBounds: [number, number, number, number] | null;
   isRunning: boolean;
   lastRunSummary: MapNLQueryPanelRunSummary | null;
-  onRun: (preview: MapNLQueryPreview) => void | Promise<void>;
+  onRun: (preview: MapNLQueryPreview, options: { confirmed: boolean }) => void | Promise<void>;
+  onProposalGenerated?: (preview: MapNLQueryPreview) => void;
   onPreviewDecision?: (preview: MapNLQueryPreview, decision: MapNLQueryPanelPreviewDecision) => void;
   onClose: () => void;
   onAnnounce?: (message: string) => void;
@@ -256,6 +257,7 @@ export const MapNLQueryPanel: React.FC<MapNLQueryPanelProps> = ({
   isRunning,
   lastRunSummary,
   onRun,
+  onProposalGenerated,
   onPreviewDecision,
   onClose,
   onAnnounce,
@@ -268,6 +270,7 @@ export const MapNLQueryPanel: React.FC<MapNLQueryPanelProps> = ({
     previewId: string;
     decision: MapNLQueryPanelPreviewDecision;
   } | null>(null);
+  const recordedProposalIdsRef = useRef<Set<string>>(new Set());
   const panelDrag = useDraggableMapPanel();
 
   const context = useMemo(
@@ -287,6 +290,14 @@ export const MapNLQueryPanel: React.FC<MapNLQueryPanelProps> = ({
   const previewAccepted = previewDecision?.previewId === preview.id && previewDecision.decision === "accepted";
   const previewRejected = previewDecision?.previewId === preview.id && previewDecision.decision === "rejected";
   const canRunAcceptedPreview = preview.canRun && previewAccepted && !isRunning;
+
+  useEffect(() => {
+    if (!visible || recordedProposalIdsRef.current.has(preview.id)) {
+      return;
+    }
+    recordedProposalIdsRef.current.add(preview.id);
+    onProposalGenerated?.(preview);
+  }, [onProposalGenerated, preview, visible]);
 
   if (!visible) {
     return null;
@@ -349,11 +360,11 @@ export const MapNLQueryPanel: React.FC<MapNLQueryPanelProps> = ({
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: MAP_SPACING.sm }}>
             <span style={{ color: MAP_COLORS.text, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
               {previewAccepted
-                ? "Preview accepted for execution"
+                ? "AI-proposed preview confirmed for execution"
                 : previewRejected
-                  ? "Preview rejected"
+                  ? "AI-proposed preview rejected"
                   : preview.canRun
-                    ? "Preview requires explicit acceptance"
+                    ? "AI-proposed preview requires confirmation"
                     : "Review required before execution"}
             </span>
             {previewAccepted ? (
@@ -370,6 +381,7 @@ export const MapNLQueryPanel: React.FC<MapNLQueryPanelProps> = ({
             {renderMetaPill(`Ambiguity ${preview.intentPreview.ambiguityState}`, ambiguityTone(preview))}
             {renderMetaPill(`${context.queryableLayers.length} executable layer${context.queryableLayers.length === 1 ? "" : "s"}`)}
             {renderMetaPill(`${context.unavailableLayers.length} unavailable`)}
+            {renderMetaPill(preview.aiGuardrail.auditTag, preview.aiGuardrail.status === "allowed" ? "ok" : "warn")}
           </div>
         </div>
 
@@ -540,10 +552,18 @@ export const MapNLQueryPanel: React.FC<MapNLQueryPanelProps> = ({
             ))}
             {preview.warnings.map((warning) => (
               <div key={warning} style={{ display: "grid", gridTemplateColumns: "1rem minmax(0, 1fr)", gap: MAP_SPACING.sm, color: MAP_COLORS.textSecondary }}>
-                <Info size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+              <Info size={MAP_ICON_SIZES.sm} aria-hidden="true" />
                 <span style={{ fontSize: MAP_TYPOGRAPHY.fontSize.xs, lineHeight: MAP_TYPOGRAPHY.lineHeight.normal }}>{warning}</span>
               </div>
             ))}
+            {preview.aiGuardrail.requiresHumanConfirmation ? (
+              <div style={{ display: "grid", gridTemplateColumns: "1rem minmax(0, 1fr)", gap: MAP_SPACING.sm, color: MAP_COLORS.textSecondary }}>
+                <Info size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+                <span style={{ fontSize: MAP_TYPOGRAPHY.fontSize.xs, lineHeight: MAP_TYPOGRAPHY.lineHeight.normal }}>
+                  AI-proposed map actions require analyst confirmation before apply.
+                </span>
+              </div>
+            ) : null}
           </div>
         ) : null}
 
@@ -614,11 +634,11 @@ export const MapNLQueryPanel: React.FC<MapNLQueryPanelProps> = ({
             style={previewAccepted ? activeSmallButton : smallButton}
             onClick={() => handlePreviewDecision("accepted")}
             disabled={!preview.canRun || isRunning}
-            aria-label="Accept interpreted map query preview"
-            title={preview.canRun ? "Accept this interpreted preview for execution." : preview.blockers[0] ?? "Resolve blockers before accepting this preview."}
+            aria-label="Confirm AI-proposed map query preview"
+            title={preview.canRun ? "Confirm this AI-proposed preview for execution." : preview.blockers[0] ?? "Resolve blockers before confirming this preview."}
           >
             <CheckCircle2 size={MAP_ICON_SIZES.sm} aria-hidden="true" />
-            Accept
+            Confirm
           </button>
           <button
             type="button"
@@ -628,7 +648,7 @@ export const MapNLQueryPanel: React.FC<MapNLQueryPanelProps> = ({
               cursor: canRunAcceptedPreview ? "pointer" : "not-allowed",
             }}
             onClick={() => {
-              void onRun(preview);
+              void onRun(preview, { confirmed: previewAccepted });
             }}
             disabled={!canRunAcceptedPreview}
             aria-label="Run accepted map query"

@@ -46,6 +46,11 @@ import {
   upsertMapEvidenceArtifact as upsertMapEvidenceArtifactInRegistry,
 } from "../centerpanel/components/map/mapEvidenceArtifacts";
 import type { MapScientificQAState } from "../services/map/MapScientificQA";
+import {
+  guardMapAIActionProposal,
+  sanitizeMapAIText,
+  type MapAIGuardrailDecision,
+} from "../services/map/MapAIGuardrails";
 import type { SourceHandle } from "../services/map/contracts/gisContracts";
 import {
   cloneSourceHandle,
@@ -129,6 +134,9 @@ interface MapCopilotActionProposalInput {
 
 interface MapCopilotActionProposal extends MapCopilotActionProposalInput {
   status: MapCopilotActionStatus;
+  guardrail: MapAIGuardrailDecision;
+  confirmationRequired: boolean;
+  guardrailBlockers: string[];
   queuedAt: string;
   previewedAt?: string;
   appliedAt?: string;
@@ -140,6 +148,8 @@ interface MapCopilotAuditEntry {
   proposalId: string;
   action: MapCopilotActionStatus;
   timestamp: string;
+  reason?: string;
+  guardrail?: MapAIGuardrailDecision;
 }
 
 const isAoiFeature = (feature: Pick<DrawnFeature, "geometry">): boolean =>
@@ -813,9 +823,80 @@ function trimCopilotAuditTrail(trail: MapCopilotAuditEntry[]): MapCopilotAuditEn
     : trail;
 }
 
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function readStringProperty(value: unknown, key: string): string | null {
+  if (!isPlainRecord(value)) return null;
+  const entry = value[key];
+  return typeof entry === "string" && entry.trim().length > 0 ? entry.trim() : null;
+}
+
+function stringifyGuardrailPayload(value: unknown): string {
+  if (value == null) return "";
+  if (typeof value === "string") return value;
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
+function inferCopilotCommandKind(proposal: MapCopilotActionProposalInput): string | null {
+  return (
+    readStringProperty(proposal, "commandKind") ??
+    readStringProperty(proposal.applyPayload, "kind") ??
+    readStringProperty(proposal.previewPayload, "kind") ??
+    proposal.kind
+  );
+}
+
+function inferCopilotToolId(proposal: MapCopilotActionProposalInput): string | null {
+  return (
+    readStringProperty(proposal, "toolId") ??
+    readStringProperty(proposal.applyPayload, "toolId") ??
+    readStringProperty(proposal.previewPayload, "toolId")
+  );
+}
+
+function sanitizeCopilotProposal(proposal: MapCopilotActionProposalInput): MapCopilotActionProposalInput {
+  const sanitizedTitle = sanitizeMapAIText(proposal.title).text || "AI map action";
+  return {
+    ...proposal,
+    title: sanitizedTitle,
+    ...(typeof proposal.rationale === "string" ? { rationale: sanitizeMapAIText(proposal.rationale).text } : {}),
+    ...(typeof proposal.expectedEffect === "string" ? { expectedEffect: sanitizeMapAIText(proposal.expectedEffect).text } : {}),
+  };
+}
+
+function guardCopilotProposal(proposal: MapCopilotActionProposalInput): MapAIGuardrailDecision {
+  return guardMapAIActionProposal({
+    source: "copilot",
+    actionKind: proposal.kind,
+    title: proposal.title,
+    prompt: [
+      proposal.title,
+      typeof proposal.rationale === "string" ? proposal.rationale : "",
+      typeof proposal.expectedEffect === "string" ? proposal.expectedEffect : "",
+    ].filter(Boolean).join("\n"),
+    output: [
+      stringifyGuardrailPayload(proposal.previewPayload),
+      stringifyGuardrailPayload(proposal.applyPayload),
+    ].filter(Boolean).join("\n"),
+    commandKind: inferCopilotCommandKind(proposal),
+    toolId: inferCopilotToolId(proposal),
+    bounded: true,
+    safeReadOnly: true,
+    requiresApply: true,
+  });
+}
+
 function createCopilotAuditEntry(
   proposalId: string,
   action: MapCopilotActionStatus,
+  reason?: string,
+  guardrail?: MapAIGuardrailDecision,
 ): MapCopilotAuditEntry {
   const timestamp = nowIsoTimestamp();
   return {
@@ -823,6 +904,8 @@ function createCopilotAuditEntry(
     proposalId,
     action,
     timestamp,
+    ...(reason ? { reason } : {}),
+    ...(guardrail ? { guardrail } : {}),
   };
 }
 
@@ -1302,9 +1385,14 @@ export const useMapExplorerStore = create<MapExplorerState>()(
       queueCopilotActionProposal: (proposal: MapCopilotActionProposalInput) =>
         set((state: MapExplorerState) => {
           const queuedAt = nowIsoTimestamp();
+          const sanitizedProposal = sanitizeCopilotProposal(proposal);
+          const guardrail = guardCopilotProposal(sanitizedProposal);
           const nextProposal: MapCopilotActionProposal = {
-            ...proposal,
-            status: "proposed",
+            ...sanitizedProposal,
+            status: guardrail.status === "allowed" ? "proposed" : "rejected",
+            guardrail,
+            confirmationRequired: guardrail.requiresHumanConfirmation,
+            guardrailBlockers: [...guardrail.blockers],
             queuedAt,
           };
           const exists = state.copilotActionProposals.some((entry) => entry.id === proposal.id);
@@ -1313,8 +1401,15 @@ export const useMapExplorerStore = create<MapExplorerState>()(
               ? state.copilotActionProposals.map((entry) => entry.id === proposal.id ? nextProposal : entry)
               : [...state.copilotActionProposals, nextProposal],
           );
+          const copilotAuditTrail = guardrail.status === "allowed"
+            ? state.copilotAuditTrail
+            : trimCopilotAuditTrail([
+              ...state.copilotAuditTrail,
+              createCopilotAuditEntry(proposal.id, "rejected", guardrail.blockers[0] ?? "AI action rejected by guardrails.", guardrail),
+            ]);
           return {
             copilotActionProposals,
+            copilotAuditTrail,
             pendingCopilotActionCount: countPendingCopilotActions(copilotActionProposals),
           };
         }),
@@ -1322,7 +1417,7 @@ export const useMapExplorerStore = create<MapExplorerState>()(
         set((state: MapExplorerState) => {
           const timestamp = nowIsoTimestamp();
           const copilotActionProposals = state.copilotActionProposals.map((proposal) =>
-            proposal.id === id && proposal.status === "proposed"
+            proposal.id === id && proposal.status === "proposed" && proposal.guardrail.status === "allowed"
               ? { ...proposal, status: "preview" as const, previewedAt: timestamp }
               : proposal,
           );
@@ -1334,10 +1429,19 @@ export const useMapExplorerStore = create<MapExplorerState>()(
       applyCopilotActionProposal: (id: string) =>
         set((state: MapExplorerState) => {
           const timestamp = nowIsoTimestamp();
+          const target = state.copilotActionProposals.find((proposal) => proposal.id === id);
+          const canApply = target?.status === "preview" && target.guardrail.status === "allowed";
+          const rejectionReason = target == null
+            ? `Copilot proposal "${id}" is no longer available.`
+            : target.guardrail.status !== "allowed"
+              ? target.guardrail.blockers[0] ?? "AI action rejected by guardrails."
+              : "AI-proposed map actions require preview confirmation before apply.";
           const copilotActionProposals = trimCopilotProposals(
             state.copilotActionProposals.map((proposal) =>
-              proposal.id === id && proposal.status !== "applied"
+              proposal.id === id && canApply
                 ? { ...proposal, status: "applied" as const, appliedAt: timestamp }
+                : proposal.id === id && proposal.status !== "applied" && proposal.status !== "rejected"
+                  ? { ...proposal, status: "rejected" as const, rejectedAt: timestamp }
                 : proposal,
             ),
           );
@@ -1345,7 +1449,12 @@ export const useMapExplorerStore = create<MapExplorerState>()(
             copilotActionProposals,
             copilotAuditTrail: trimCopilotAuditTrail([
               ...state.copilotAuditTrail,
-              createCopilotAuditEntry(id, "applied"),
+              createCopilotAuditEntry(
+                id,
+                canApply ? "applied" : "rejected",
+                canApply ? undefined : rejectionReason,
+                target?.guardrail,
+              ),
             ]),
             pendingCopilotActionCount: countPendingCopilotActions(copilotActionProposals),
           };
@@ -1364,7 +1473,12 @@ export const useMapExplorerStore = create<MapExplorerState>()(
             copilotActionProposals,
             copilotAuditTrail: trimCopilotAuditTrail([
               ...state.copilotAuditTrail,
-              createCopilotAuditEntry(id, "rejected"),
+              createCopilotAuditEntry(
+                id,
+                "rejected",
+                "AI-proposed action rejected by the analyst.",
+                state.copilotActionProposals.find((proposal) => proposal.id === id)?.guardrail,
+              ),
             ]),
             pendingCopilotActionCount: countPendingCopilotActions(copilotActionProposals),
           };

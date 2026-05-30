@@ -9,6 +9,13 @@ import type {
 import { normalizeLayerRegistryMetadata } from "@/centerpanel/components/map/mapLayerMetadata";
 import { isSafeSQL, queryToSQL } from "@/engine/geoai/nlp/QueryToSQL";
 import type { GeneratedSQL, QueryIntent } from "@/engine/geoai/nlp/types";
+import {
+  assertMapAIApplyConfirmed,
+  guardMapAIActionProposal,
+  mapAIGuardrailDetails,
+  sanitizeMapAIText,
+  type MapAIGuardrailDecision,
+} from "./MapAIGuardrails";
 import { adaptQueryResult, type AnalysisAdapterResult } from "./MapEngineAdapter";
 import { buildFeatureCollectionMetadata, getFeatureCollectionBounds, parseInlineGeoJSONSource } from "./MapDataImporter";
 
@@ -134,6 +141,7 @@ export interface MapNLQueryPreview {
   blockers: string[];
   canRun: boolean;
   requiresExplicitApply: boolean;
+  aiGuardrail: MapAIGuardrailDecision;
   copyText: string;
 }
 
@@ -151,6 +159,10 @@ export interface MapNLQueryExecutionResult {
   geometryType: string;
   elapsedMs: number;
   followUpSuggestions: string[];
+}
+
+export interface ExecuteMapNLQueryPreviewOptions {
+  confirmed?: boolean;
 }
 
 export interface BuildMapNLQueryContextOptions {
@@ -1007,6 +1019,7 @@ export function buildMapNLQueryAuditDetails(
     warnings: preview.warnings,
     blockers: preview.blockers,
     canRun: preview.canRun,
+    aiGuardrail: mapAIGuardrailDetails(preview.aiGuardrail),
     ...extras,
   };
 }
@@ -1015,9 +1028,10 @@ export function generateMapNLQueryPreview(
   request: string,
   context: MapNLQueryContext,
 ): MapNLQueryPreview {
-  const trimmedRequest = request.trim();
+  const promptGuard = sanitizeMapAIText(request);
+  const trimmedRequest = promptGuard.text.trim();
   const rawGenerated = queryToSQL(trimmedRequest || "show visible layers", { maxResultLimit: DEFAULT_LIMIT });
-  const warnings = [...rawGenerated.parse.warnings];
+  const warnings = [...promptGuard.warnings, ...rawGenerated.parse.warnings];
   const blockers: string[] = [];
   const rawConfidenceBand = confidenceBand(rawGenerated.parse.confidence);
 
@@ -1106,6 +1120,20 @@ export function generateMapNLQueryPreview(
     ...(rawInputAccepted && !safety.safe && safety.reason ? { rejectionReason: safety.reason } : {}),
   };
 
+  const aiGuardrail = guardMapAIActionProposal({
+    source: "nl-query",
+    actionKind: "nl-query.apply",
+    title: "Natural language map query",
+    prompt: request,
+    output: [sql, predicate, generated.parse.explanation].filter(Boolean).join("\n"),
+    nlQueryIntent: generated.parse.intent,
+    bounded: true,
+    safeReadOnly: generated.safe,
+    requiresApply: true,
+  });
+  warnings.push(...aiGuardrail.warnings);
+  blockers.push(...aiGuardrail.blockers);
+
   const expectedOutputType = sourceLayers[0]?.geometryType ?? "Unknown";
   const normalizedRequiredFields = uniqueRequiredFields(requiredFields);
   const uniqueWarnings = Array.from(new Set(warnings.filter((warning) => warning.trim().length > 0)));
@@ -1139,8 +1167,9 @@ export function generateMapNLQueryPreview(
     warnings: uniqueWarnings,
     blockers: uniqueBlockers,
     requiresExplicitApply: true,
+    aiGuardrail,
   };
-  const canRun = previewBase.blockers.length === 0 && generated.safe && sourceLayers.length > 0;
+  const canRun = previewBase.blockers.length === 0 && generated.safe && aiGuardrail.status === "allowed" && sourceLayers.length > 0;
   return {
     ...previewBase,
     canRun,
@@ -1233,9 +1262,14 @@ export function buildMapNLFollowUpSuggestions(featureCount: number, geometryType
 export async function executeMapNLQueryPreview(
   preview: MapNLQueryPreview,
   runtime: MapNLQueryRuntime,
+  options: ExecuteMapNLQueryPreviewOptions = {},
 ): Promise<MapNLQueryExecutionResult> {
   if (!preview.canRun) {
     throw new Error(preview.blockers[0] ?? "The query preview is not executable.");
+  }
+  const confirmation = assertMapAIApplyConfirmed(preview.aiGuardrail, options.confirmed ?? false);
+  if (!confirmation.ok) {
+    throw new Error(confirmation.reason ?? "AI-proposed map query apply requires human confirmation.");
   }
 
   await prepareRuntimeTables(preview, runtime);

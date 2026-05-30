@@ -298,6 +298,7 @@ import {
   executeMapNLQueryPreview,
   type MapNLQueryPreview,
 } from "../../../../services/map/MapNLQueryBuilder";
+import { buildMapAIProposalReviewEvent, mapAIGuardrailDetails } from "../../../../services/map/MapAIGuardrails";
 import type { MapQueryExecutionResult } from "../../../../services/map/query/MapQueryPlanner";
 import {
   buildMapWorkflowContext,
@@ -963,6 +964,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const lastReviewRecommendationSignatureRef = useRef<string | null>(null);
   const recordedCopilotProposalIdsRef = useRef<Set<string>>(new Set());
   const recordedCopilotAuditIdsRef = useRef<Set<string>>(new Set());
+  const recordedNLQueryProposalIdsRef = useRef<Set<string>>(new Set());
   const cursorRef = useRef<{ lng: number; lat: number } | null>(null);
   const statusCursorRef = useRef<MapStatusBarCursorHandle | null>(null);
   const symbologyPanelDrag = useDraggableMapPanel();
@@ -2063,18 +2065,18 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         continue;
       }
       recordedCopilotProposalIdsRef.current.add(proposal.id);
-      recordMapReviewEvent({
-        type: "action-status",
-        status: proposal.status === "preview" ? "previewed" : proposal.status === "proposed" ? "proposed" : proposal.status,
+      recordMapReviewEvent(buildMapAIProposalReviewEvent(proposal.guardrail, {
+        proposalId: proposal.id,
+        title: proposal.title,
         timestamp: proposal.queuedAt,
-        title: `Action proposed: ${proposal.title}`,
-        summary: `Explicit map action proposal queued with kind ${proposal.kind}.`,
         actionIds: [proposal.id],
         details: {
           kind: proposal.kind,
           status: proposal.status,
+          confirmationRequired: proposal.confirmationRequired,
+          guardrailBlockers: proposal.guardrailBlockers,
         },
-      });
+      }));
     }
   }, [copilotActionProposals, open, recordMapReviewEvent]);
 
@@ -2093,12 +2095,20 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         type: "action-status",
         status: auditEntry.action === "applied" ? "applied" : auditEntry.action === "rejected" ? "rejected" : "recorded",
         timestamp: auditEntry.timestamp,
-        title: `Action ${auditEntry.action}: ${proposal?.title ?? auditEntry.proposalId}`,
-        summary: `Explicit action ${auditEntry.proposalId} was ${auditEntry.action}.`,
+        title: `AI-proposed action ${auditEntry.action}: ${proposal?.title ?? auditEntry.proposalId}`,
+        summary: auditEntry.reason
+          ? `AI-proposed action ${auditEntry.proposalId} was ${auditEntry.action}: ${auditEntry.reason}`
+          : `AI-proposed action ${auditEntry.proposalId} was ${auditEntry.action}.`,
         actionIds: [auditEntry.proposalId],
         details: {
           auditId: auditEntry.id,
           kind: proposal?.kind ?? "unknown",
+          reason: auditEntry.reason ?? null,
+          aiGuardrail: proposal?.guardrail
+            ? mapAIGuardrailDetails(proposal.guardrail)
+            : auditEntry.guardrail
+              ? mapAIGuardrailDetails(auditEntry.guardrail)
+              : null,
         },
       });
     }
@@ -3959,16 +3969,33 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     }
   }, [activeAnalysisResultLayerIds, addOverlayLayer, announce, currentMapBounds, fitToBounds, isRunningQuickHotSpot, openScientificQAPanel, overlayLayers, recordMapReviewEvent, restrictToMapView, scientificQA, setActiveAnalysisResultLayers, upsertCompletedRun, upsertMapEvidenceArtifact]);
 
+  const handleMapNLQueryProposalGenerated = useCallback((preview: MapNLQueryPreview) => {
+    if (recordedNLQueryProposalIdsRef.current.has(preview.id)) {
+      return;
+    }
+    recordedNLQueryProposalIdsRef.current.add(preview.id);
+    recordMapReviewEvent(buildMapAIProposalReviewEvent(preview.aiGuardrail, {
+      proposalId: preview.id,
+      title: `Map query preview: ${preview.intentPreview.intentLabel}`,
+      layerIds: preview.sourceLayers.map((layer) => layer.id),
+      actionIds: [preview.id],
+      details: buildMapNLQueryAuditDetails(preview, {
+        decision: "proposed",
+        mapMutationApplied: false,
+      }),
+    }));
+  }, [recordMapReviewEvent]);
+
   const handleMapNLQueryPreviewDecision = useCallback((preview: MapNLQueryPreview, decision: "accepted" | "rejected") => {
     recordMapReviewEvent({
       type: "query-run",
       status: decision === "accepted" ? "previewed" : "rejected",
       title: decision === "accepted"
-        ? `Map query preview accepted: ${preview.intentPreview.intentLabel}`
-        : `Map query preview rejected: ${preview.intentPreview.intentLabel}`,
+        ? `AI-proposed map query confirmed: ${preview.intentPreview.intentLabel}`
+        : `AI-proposed map query rejected: ${preview.intentPreview.intentLabel}`,
       summary: decision === "accepted"
-        ? `Analyst accepted an interpreted NL query preview for ${preview.sourceLayers.length} affected layer(s); no map layer has been created yet.`
-        : "Analyst rejected an interpreted NL query preview without mutating map state.",
+        ? `Analyst confirmed an AI-proposed NL query preview for ${preview.sourceLayers.length} affected layer(s); no map layer has been created yet.`
+        : "Analyst rejected an AI-proposed NL query preview without mutating map state.",
       layerIds: preview.sourceLayers.map((layer) => layer.id),
       actionIds: [preview.id],
       details: buildMapNLQueryAuditDetails(preview, {
@@ -3978,8 +4005,27 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     });
   }, [recordMapReviewEvent]);
 
-  const handleRunMapNLQuery = useCallback(async (preview: MapNLQueryPreview) => {
+  const handleRunMapNLQuery = useCallback(async (preview: MapNLQueryPreview, options: { confirmed: boolean }) => {
     if (isRunningMapNLQuery) {
+      return;
+    }
+
+    if (!options.confirmed) {
+      const reason = "AI-proposed map query apply requires human confirmation.";
+      recordMapReviewEvent({
+        type: "query-run",
+        status: "rejected",
+        title: "Map query execution blocked: confirmation required",
+        summary: reason,
+        layerIds: preview.sourceLayers.map((layer) => layer.id),
+        actionIds: [preview.id],
+        details: buildMapNLQueryAuditDetails(preview, {
+          decision: "confirmation-required",
+          mapMutationApplied: false,
+        }),
+      });
+      toastWarning(reason);
+      announce(reason);
       return;
     }
 
@@ -4010,11 +4056,15 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     });
 
     try {
-      const result = await executeMapNLQueryPreview(preview, {
-        loadGeoJSON,
-        bindTableAlias,
-        toGeoJSON,
-      });
+      const result = await executeMapNLQueryPreview(
+        preview,
+        {
+          loadGeoJSON,
+          bindTableAlias,
+          toGeoJSON,
+        },
+        { confirmed: options.confirmed },
+      );
       addOverlayLayer(result.layer);
       upsertMapEvidenceArtifact(result.adapterResult.evidenceArtifact);
       upsertCompletedRun(createAnalysisCompletedRun(result.adapterResult, { flowId: "review" }));
@@ -7111,6 +7161,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               lastReviewRecommendationSignatureRef.current = null;
               recordedCopilotProposalIdsRef.current = new Set();
               recordedCopilotAuditIdsRef.current = new Set();
+              recordedNLQueryProposalIdsRef.current = new Set();
               announce("New map review session started");
             }}
             onAnnounce={announce}
@@ -7387,6 +7438,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             isRunning={isRunningMapNLQuery}
             lastRunSummary={lastMapNLQuerySummary}
             onRun={handleRunMapNLQuery}
+            onProposalGenerated={handleMapNLQueryProposalGenerated}
             onPreviewDecision={handleMapNLQueryPreviewDecision}
             onClose={() => {
               setShowNLQueryPanel(false);

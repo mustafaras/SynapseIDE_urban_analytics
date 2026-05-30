@@ -85,6 +85,14 @@ export type MapActionCommand =
 
 export type RoutedCommandKind = MapActionCommand["kind"];
 
+export const MAP_REGISTERED_COMMAND_KINDS = [
+  "layer.remove",
+  "layer.style",
+  "workflow.apply",
+  "report.handoff",
+  "aoi.edit",
+] as const satisfies readonly RoutedCommandKind[];
+
 /** Side-effect boundary the executor drives. Backed by the store in the app, by fakes in tests. */
 export interface MapActionEffects {
   getLayer: (id: string) => OverlayLayerConfig | null;
