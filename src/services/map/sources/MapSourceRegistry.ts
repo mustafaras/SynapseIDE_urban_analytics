@@ -105,6 +105,46 @@ export function cloneSourceHandle(handle: SourceHandle): SourceHandle {
       ...(handle.vectorTile.sourceLayer ? { sourceLayer: handle.vectorTile.sourceLayer } : {}),
     };
   }
+  if (handle.scene3d) {
+    cloned.scene3d = {
+      sourceKind: handle.scene3d.sourceKind,
+      runtimeMode: handle.scene3d.runtimeMode,
+      verticalDatum: {
+        status: handle.scene3d.verticalDatum.status,
+        value: handle.scene3d.verticalDatum.value,
+        source: handle.scene3d.verticalDatum.source,
+        caveats: [...handle.scene3d.verticalDatum.caveats],
+      },
+      objectCount: handle.scene3d.objectCount,
+      lods: [...handle.scene3d.lods],
+      bbox3d: handle.scene3d.bbox3d ? [...handle.scene3d.bbox3d] : null,
+      ...(handle.scene3d.terrain
+        ? {
+            terrain: {
+              sourceKind: handle.scene3d.terrain.sourceKind,
+              width: handle.scene3d.terrain.width,
+              height: handle.scene3d.terrain.height,
+              bbox: handle.scene3d.terrain.bbox ? [...handle.scene3d.terrain.bbox] : null,
+              elevationRangeM: handle.scene3d.terrain.elevationRangeM
+                ? [...handle.scene3d.terrain.elevationRangeM]
+                : null,
+              sampleCount: handle.scene3d.terrain.sampleCount,
+            },
+          }
+        : {}),
+      ...(handle.scene3d.tileset
+        ? {
+            tileset: {
+              assetVersion: handle.scene3d.tileset.assetVersion,
+              rootGeometricError: handle.scene3d.tileset.rootGeometricError,
+              tileCount: handle.scene3d.tileset.tileCount,
+              contentCount: handle.scene3d.tileset.contentCount,
+              rootRefine: handle.scene3d.tileset.rootRefine,
+            },
+          }
+        : {}),
+    };
+  }
   return cloned;
 }
 

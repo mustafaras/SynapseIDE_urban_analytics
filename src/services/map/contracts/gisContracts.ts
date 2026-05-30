@@ -60,7 +60,9 @@ export type SourceFormat =
   | "wms"
   | "wfs"
   | "xyz"
-  | "geotiff";
+  | "geotiff"
+  | "cityjson"
+  | "3d-tiles";
 
 export interface SourceHandleVectorTileMetadata {
   sourceMode: MapVectorTileSourceMode;
@@ -69,6 +71,65 @@ export interface SourceHandleVectorTileMetadata {
   maxZoom: number;
   tileSize: number;
   sourceLayer?: string;
+}
+
+export type SourceHandleVerticalDatumStatus = "known" | "unknown";
+
+export type SourceHandleVerticalDatumSource =
+  | "cityjson-metadata"
+  | "3d-tiles-metadata"
+  | "geotiff-metadata"
+  | "maplibre-terrain"
+  | "user-declared"
+  | "unavailable";
+
+export interface SourceHandleVerticalDatumMetadata {
+  status: SourceHandleVerticalDatumStatus;
+  value: string | null;
+  source: SourceHandleVerticalDatumSource;
+  caveats: string[];
+}
+
+export type SourceHandleScene3DSourceKind =
+  | "building-footprint-extrusion"
+  | "cityjson"
+  | "3d-tiles"
+  | "terrain-dem"
+  | "maplibre-terrain"
+  | "zoning-envelope"
+  | "generated-massing"
+  | "voxel-grid"
+  | "sun-shadow-result"
+  | "sample-3d";
+
+export type SourceHandleScene3DRuntimeMode = "real" | "sample" | "metadata-only";
+
+export interface SourceHandleTerrainSceneMetadata {
+  sourceKind: "dem-geotiff" | "maplibre-terrain";
+  width: number | null;
+  height: number | null;
+  bbox: [number, number, number, number] | null;
+  elevationRangeM: [number, number] | null;
+  sampleCount: number | null;
+}
+
+export interface SourceHandle3DTilesSceneMetadata {
+  assetVersion: string | null;
+  rootGeometricError: number | null;
+  tileCount: number | null;
+  contentCount: number | null;
+  rootRefine: string | null;
+}
+
+export interface SourceHandleScene3DMetadata {
+  sourceKind: SourceHandleScene3DSourceKind;
+  runtimeMode: SourceHandleScene3DRuntimeMode;
+  verticalDatum: SourceHandleVerticalDatumMetadata;
+  objectCount: number | null;
+  lods: string[];
+  bbox3d: [number, number, number, number, number, number] | null;
+  terrain?: SourceHandleTerrainSceneMetadata;
+  tileset?: SourceHandle3DTilesSceneMetadata;
 }
 
 /**
@@ -95,6 +156,8 @@ export interface SourceHandle {
   sourceRef?: string;
   /** Lightweight tile metadata; never stores tile geometry or source bytes. */
   vectorTile?: SourceHandleVectorTileMetadata;
+  /** Lightweight 3D/terrain metadata; never stores meshes, DEM cells, or tile payloads. */
+  scene3d?: SourceHandleScene3DMetadata;
   caveats: string[];
   profiledAt: string;
 }

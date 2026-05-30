@@ -5,6 +5,8 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import type { FeatureCollection } from "geojson";
+import type { SourceHandle } from "@/services/map/contracts/gisContracts";
+import { cloneSourceHandle } from "@/services/map/sources/MapSourceRegistry";
 
 /* ------------------------------------------------------------------ */
 /*  3D interaction mode                                                 */
@@ -75,13 +77,25 @@ export interface Scene3DState {
   /* --- Active layer --- */
   activeLayerId: string | null;
   activeCollection: FeatureCollection | null;
+  cityModelSourceHandle: SourceHandle | null;
+  terrainSourceHandle: SourceHandle | null;
 
   /** Set the active building footprint layer for 3D extrusion. */
   setActiveLayer: (
     layerId: string,
     collection: FeatureCollection,
-    options?: { heightField?: string; floorField?: string; metersPerLevel?: number },
+    options?: {
+      heightField?: string;
+      floorField?: string;
+      metersPerLevel?: number;
+      cityModelSourceHandle?: SourceHandle | null;
+      terrainSourceHandle?: SourceHandle | null;
+    },
   ) => void;
+  setSceneSourceHandles: (handles: {
+    cityModelSourceHandle?: SourceHandle | null;
+    terrainSourceHandle?: SourceHandle | null;
+  }) => void;
   clearActiveLayer: () => void;
 
   /* --- Extrusion analysis --- */
@@ -156,6 +170,8 @@ export const useScene3DStore = create<Scene3DState>()(
       /* ---- active layer ---- */
       activeLayerId: null,
       activeCollection: null,
+      cityModelSourceHandle: null,
+      terrainSourceHandle: null,
       extrusionAnalysis: null,
       buildingConfig: null,
 
@@ -169,6 +185,16 @@ export const useScene3DStore = create<Scene3DState>()(
         set({
           activeLayerId: layerId,
           activeCollection: collection,
+          cityModelSourceHandle: options.cityModelSourceHandle === undefined
+            ? get().cityModelSourceHandle
+            : options.cityModelSourceHandle
+              ? cloneSourceHandle(options.cityModelSourceHandle)
+              : null,
+          terrainSourceHandle: options.terrainSourceHandle === undefined
+            ? get().terrainSourceHandle
+            : options.terrainSourceHandle
+              ? cloneSourceHandle(options.terrainSourceHandle)
+              : null,
           extrusionAnalysis: analysis,
           buildingConfig: config,
           inspectorEntries: entries,
@@ -176,10 +202,26 @@ export const useScene3DStore = create<Scene3DState>()(
         });
       },
 
+      setSceneSourceHandles: (handles) => set((state) => ({
+        cityModelSourceHandle: handles.cityModelSourceHandle === undefined
+          ? state.cityModelSourceHandle
+          : handles.cityModelSourceHandle
+            ? cloneSourceHandle(handles.cityModelSourceHandle)
+            : null,
+        terrainSourceHandle: handles.terrainSourceHandle === undefined
+          ? state.terrainSourceHandle
+          : handles.terrainSourceHandle
+            ? cloneSourceHandle(handles.terrainSourceHandle)
+            : null,
+        sceneMetadata: null,
+      })),
+
       clearActiveLayer: () =>
         set({
           activeLayerId: null,
           activeCollection: null,
+          cityModelSourceHandle: null,
+          terrainSourceHandle: null,
           extrusionAnalysis: null,
           buildingConfig: null,
           inspectorEntries: [],
@@ -214,13 +256,22 @@ export const useScene3DStore = create<Scene3DState>()(
       sceneMetadata: null,
 
       publishSceneMetadata: () => {
-        const { activeLayerId, runtimeMode, extrusionAnalysis, selectedFeatureIds } = get();
+        const {
+          activeLayerId,
+          runtimeMode,
+          extrusionAnalysis,
+          selectedFeatureIds,
+          cityModelSourceHandle,
+          terrainSourceHandle,
+        } = get();
         if (!activeLayerId || !extrusionAnalysis) return;
         const metadata = buildScene3DMetadata({
           layerId: activeLayerId,
           runtimeMode,
           extrusionAnalysis,
           selectedFeatureIds,
+          cityModelSourceHandle,
+          terrainSourceHandle,
         });
         set({ sceneMetadata: metadata });
       },
@@ -234,7 +285,7 @@ export const useScene3DStore = create<Scene3DState>()(
         set({ heightFieldOverride: field });
         const { activeLayerId, activeCollection } = get();
         if (activeLayerId && activeCollection) {
-          get().setActiveLayer(activeLayerId, activeCollection, { heightField: field ?? undefined });
+          get().setActiveLayer(activeLayerId, activeCollection, field ? { heightField: field } : {});
         }
       },
 
@@ -242,7 +293,7 @@ export const useScene3DStore = create<Scene3DState>()(
         set({ floorFieldOverride: field });
         const { activeLayerId, activeCollection } = get();
         if (activeLayerId && activeCollection) {
-          get().setActiveLayer(activeLayerId, activeCollection, { floorField: field ?? undefined });
+          get().setActiveLayer(activeLayerId, activeCollection, field ? { floorField: field } : {});
         }
       },
 
@@ -278,10 +329,10 @@ export const selectInteractionMode = (s: Scene3DState) => s.interactionMode;
 export const selectCameraBookmarks = (s: Scene3DState) => s.cameraBookmarks;
 export const selectExtrusionAnalysis = (s: Scene3DState) => s.extrusionAnalysis;
 export const selectBuildingConfig = (s: Scene3DState) => s.buildingConfig;
+export const selectScene3DCityModelSourceHandle = (s: Scene3DState) => s.cityModelSourceHandle;
+export const selectScene3DTerrainSourceHandle = (s: Scene3DState) => s.terrainSourceHandle;
 export const selectScene3DSelected = (s: Scene3DState) => s.selectedFeatureIds;
 export const selectInspectorEntries = (s: Scene3DState) => s.inspectorEntries;
-export const selectScene3DCaveats = (s: Scene3DState) =>
-  s.extrusionAnalysis?.caveats ?? [];
 
 /**
  * Derive 3D building IDs to highlight given the current 2D selection.

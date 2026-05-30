@@ -675,10 +675,105 @@ function normalizeSourceFormat(value: unknown): SourceFormat | undefined {
     case "wfs":
     case "xyz":
     case "geotiff":
+    case "cityjson":
+    case "3d-tiles":
       return value;
     default:
       return undefined;
   }
+}
+
+function normalizeNumberTuple(value: unknown, length: number): number[] | null {
+  if (!Array.isArray(value) || value.length < length) return null;
+  const parsed = value.slice(0, length).map(Number);
+  return parsed.every(Number.isFinite) ? parsed : null;
+}
+
+function normalizeVerticalDatum(value: unknown): NonNullable<SourceHandle["scene3d"]>["verticalDatum"] | null {
+  if (!isObject(value)) return null;
+  const status = value.status === "known" || value.status === "unknown" ? value.status : "unknown";
+  const source =
+    value.source === "cityjson-metadata" ||
+    value.source === "3d-tiles-metadata" ||
+    value.source === "geotiff-metadata" ||
+    value.source === "maplibre-terrain" ||
+    value.source === "user-declared" ||
+    value.source === "unavailable"
+      ? value.source
+      : "unavailable";
+
+  return {
+    status,
+    value: typeof value.value === "string" && value.value.trim() ? value.value.trim() : null,
+    source,
+    caveats: normalizeStringList(value.caveats),
+  };
+}
+
+function normalizeScene3DMetadata(value: unknown): SourceHandle["scene3d"] | undefined {
+  if (!isObject(value)) return undefined;
+  const verticalDatum = normalizeVerticalDatum(value.verticalDatum);
+  if (!verticalDatum) return undefined;
+  const sourceKind =
+    value.sourceKind === "building-footprint-extrusion" ||
+    value.sourceKind === "cityjson" ||
+    value.sourceKind === "3d-tiles" ||
+    value.sourceKind === "terrain-dem" ||
+    value.sourceKind === "maplibre-terrain" ||
+    value.sourceKind === "zoning-envelope" ||
+    value.sourceKind === "generated-massing" ||
+    value.sourceKind === "voxel-grid" ||
+    value.sourceKind === "sun-shadow-result" ||
+    value.sourceKind === "sample-3d"
+      ? value.sourceKind
+      : "sample-3d";
+  const runtimeMode = value.runtimeMode === "real" || value.runtimeMode === "sample" || value.runtimeMode === "metadata-only"
+    ? value.runtimeMode
+    : "metadata-only";
+  const objectCount = Number(value.objectCount);
+  const bbox3d = normalizeNumberTuple(value.bbox3d, 6) as [number, number, number, number, number, number] | null;
+  const terrainSource = isObject(value.terrain) ? value.terrain : null;
+  const tilesetSource = isObject(value.tileset) ? value.tileset : null;
+  const terrainBbox = terrainSource ? normalizeNumberTuple(terrainSource.bbox, 4) as [number, number, number, number] | null : null;
+  const elevationRangeM = terrainSource ? normalizeNumberTuple(terrainSource.elevationRangeM, 2) as [number, number] | null : null;
+  const terrainWidth = Number(terrainSource?.width);
+  const terrainHeight = Number(terrainSource?.height);
+  const terrainSampleCount = Number(terrainSource?.sampleCount);
+  const tileCount = Number(tilesetSource?.tileCount);
+  const contentCount = Number(tilesetSource?.contentCount);
+  const rootGeometricError = Number(tilesetSource?.rootGeometricError);
+
+  return {
+    sourceKind,
+    runtimeMode,
+    verticalDatum,
+    objectCount: Number.isFinite(objectCount) ? Math.max(0, Math.floor(objectCount)) : null,
+    lods: normalizeStringList(value.lods, 64),
+    bbox3d,
+    ...(terrainSource
+      ? {
+          terrain: {
+            sourceKind: terrainSource.sourceKind === "maplibre-terrain" ? "maplibre-terrain" : "dem-geotiff",
+            width: Number.isFinite(terrainWidth) ? Math.max(0, Math.floor(terrainWidth)) : null,
+            height: Number.isFinite(terrainHeight) ? Math.max(0, Math.floor(terrainHeight)) : null,
+            bbox: terrainBbox,
+            elevationRangeM,
+            sampleCount: Number.isFinite(terrainSampleCount) ? Math.max(0, Math.floor(terrainSampleCount)) : null,
+          },
+        }
+      : {}),
+    ...(tilesetSource
+      ? {
+          tileset: {
+            assetVersion: typeof tilesetSource.assetVersion === "string" ? tilesetSource.assetVersion : null,
+            rootGeometricError: Number.isFinite(rootGeometricError) ? rootGeometricError : null,
+            tileCount: Number.isFinite(tileCount) ? Math.max(0, Math.floor(tileCount)) : null,
+            contentCount: Number.isFinite(contentCount) ? Math.max(0, Math.floor(contentCount)) : null,
+            rootRefine: typeof tilesetSource.rootRefine === "string" ? tilesetSource.rootRefine : null,
+          },
+        }
+      : {}),
+  };
 }
 
 function normalizeSourceHandle(value: unknown): SourceHandle | null {
@@ -745,6 +840,8 @@ function normalizeSourceHandle(value: unknown): SourceHandle | null {
   if (typeof value.attribution === "string" && value.attribution.trim()) handle.attribution = value.attribution.trim();
   if (typeof value.workerTableName === "string" && value.workerTableName.trim()) handle.workerTableName = value.workerTableName.trim();
   if (typeof value.sourceRef === "string" && value.sourceRef.trim()) handle.sourceRef = value.sourceRef.trim();
+  const scene3d = normalizeScene3DMetadata(value.scene3d);
+  if (scene3d) handle.scene3d = scene3d;
   return handle;
 }
 

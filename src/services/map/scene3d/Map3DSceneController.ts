@@ -8,6 +8,10 @@
 import type { FeatureCollection, Feature, Polygon } from "geojson";
 import type { BuildingConfig } from "@/components/map/layers/BuildingLayer";
 import type { MapVoxCitySyncMetadata } from "@/centerpanel/components/map/mapTypes";
+import type {
+  SourceHandle,
+  SourceHandleVerticalDatumMetadata,
+} from "../contracts/gisContracts";
 
 /* ------------------------------------------------------------------ */
 /*  Public types                                                        */
@@ -60,6 +64,12 @@ export interface Scene3DMetadata {
   createdAt: string;
   runtimeMode: Scene3DRuntimeMode;
   layerId: string;
+  sourceHandles: {
+    cityModelSourceId: string | null;
+    terrainSourceId: string | null;
+    verticalDatum: SourceHandleVerticalDatumMetadata | null;
+    caveats: string[];
+  };
   extrusionAnalysis: ExtrusionAnalysis;
   selectedFeatureIds: string[];
   /** Partial VoxCity sync metadata for cross-panel bridge compatibility. */
@@ -298,6 +308,8 @@ export function buildScene3DMetadata(opts: {
   runtimeMode: Scene3DRuntimeMode;
   extrusionAnalysis: ExtrusionAnalysis;
   selectedFeatureIds: string[];
+  cityModelSourceHandle?: SourceHandle | null;
+  terrainSourceHandle?: SourceHandle | null;
 }): Scene3DMetadata {
   const sceneId = `scene3d-${++_sceneCounter}-${Date.now()}`;
   const now = new Date().toISOString();
@@ -312,11 +324,25 @@ export function buildScene3DMetadata(opts: {
     caveats: opts.extrusionAnalysis.caveats,
   };
 
+  const sourceCaveats = [
+    ...(opts.cityModelSourceHandle?.caveats ?? []),
+    ...(opts.terrainSourceHandle?.caveats ?? []),
+  ];
+  const verticalDatum = opts.terrainSourceHandle?.scene3d?.verticalDatum
+    ?? opts.cityModelSourceHandle?.scene3d?.verticalDatum
+    ?? null;
+
   return {
     sceneId,
     createdAt: now,
     runtimeMode: opts.runtimeMode,
     layerId: opts.layerId,
+    sourceHandles: {
+      cityModelSourceId: opts.cityModelSourceHandle?.sourceId ?? null,
+      terrainSourceId: opts.terrainSourceHandle?.sourceId ?? null,
+      verticalDatum,
+      caveats: [...new Set(sourceCaveats)],
+    },
     extrusionAnalysis: opts.extrusionAnalysis,
     selectedFeatureIds: opts.selectedFeatureIds,
     voxCityCompat,

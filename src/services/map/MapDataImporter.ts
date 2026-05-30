@@ -377,6 +377,8 @@ function sourceProfileSupportStatus(format: SourceFormat): SourceProfileSupportS
     case "wfs":
     case "xyz":
     case "geotiff":
+    case "cityjson":
+    case "3d-tiles":
       return "partial";
     default:
       return "unsupported";
@@ -1303,7 +1305,14 @@ function isMapImportFileKind(format: SourceFormat): format is MapImportFileKind 
 export function detectSourceProfileFormat(file: File): SourceFormat {
   const extension = getFileExtension(file.name);
   const mime = file.type.toLowerCase();
+  const normalizedName = file.name.toLowerCase();
 
+  if (extension === "cityjson" || normalizedName.endsWith(".city.json") || mime.includes("cityjson")) {
+    return "cityjson";
+  }
+  if (extension === "b3dm" || extension === "i3dm" || extension === "pnts" || extension === "cmpt" || normalizedName.endsWith("tileset.json")) {
+    return "3d-tiles";
+  }
   if (extension === "geojson" || extension === "json" || mime === "application/geo+json") {
     return "geojson";
   }
@@ -1342,7 +1351,7 @@ export function detectSourceProfileFormat(file: File): SourceFormat {
   }
 
   throw new MapDataImportError(
-    "Unsupported file type. Please choose GeoJSON, CSV, Arrow, GeoParquet, KML, KMZ, GPX, Shapefile, GeoPackage, FlatGeobuf, PMTiles, or GeoTIFF.",
+    "Unsupported file type. Please choose GeoJSON, CSV, Arrow, GeoParquet, KML, KMZ, GPX, Shapefile, GeoPackage, FlatGeobuf, PMTiles, GeoTIFF, CityJSON, or 3D Tiles.",
   );
 }
 
@@ -2122,10 +2131,11 @@ function externalServiceFormat(kind: ExternalServiceLayerMetadata["kind"]): Sour
       return "wms";
     case "wfs":
       return "wfs";
+    case "cityjson":
+      return "cityjson";
     case "xyz":
     case "wmts":
     case "overpass":
-    case "cityjson":
     default:
       return "xyz";
   }
