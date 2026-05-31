@@ -1,29 +1,34 @@
 ---
 name: check-analytics
-description: Run the required post-change validation for Urban Analytics and engine code. Use after any edit to src/features/urbanAnalytics/, src/engine/, src/services/data/, or src/workers/pool/. Runs typecheck then test:analytics and surfaces failures with context.
+description: Run required validation for Urban Analytics, analytical engines, data services, and worker-pool code. Use after edits to src/features/urbanAnalytics/, src/engine/, src/services/data/, src/workers/pool/, or when a GIS Modal Premium UI prompt is forced to touch Urban Analytics bridge contracts.
 ---
 
-# Validate Urban Analytics / Engine Changes
+# Validate Urban Analytics and Engine Changes
 
-This is the **mandatory** post-change check for the analytics domain. Run it every time you touch:
+This is the mandatory post-change check for the analytics domain. In the GIS Modal Premium UI pack, touching Urban Analytics should be exceptional and limited to typed bridge compatibility.
+
+Run this when you touch:
 
 - `src/features/urbanAnalytics/`
-- `src/engine/` (spatial-stats, simulation, wasm, spatial-db, gpu)
-- `src/services/data/` (connectors, pipeline, eo)
+- `src/engine/`
+- `src/services/data/`
 - `src/workers/pool/`
+- Map Explorer to Urban Analytics bridge code that changes analytical contracts
 
-## The check
+## Core Gate
+
+Run in order:
 
 ```bash
 npm run typecheck
 npm run test:analytics
 ```
 
-Run them **in order**. Type errors often cause test failures — fix the type errors first.
+Fix type errors first. Test failures after type errors are often noise.
 
-## What `test:analytics` covers
+## What `test:analytics` Covers
 
-```
+```text
 src/engine
 src/features/urbanAnalytics
 src/services/data
@@ -31,39 +36,47 @@ src/workers/pool
 src/centerpanel/Tools/__tests__/CoverageDiagnosticsPanel.test.tsx
 ```
 
-It does **not** cover centerpanel map components — for those use `npx vitest run <path>`.
+It does not cover most Map Explorer UI. For GIS modal UI work, use `check-gis-modal` as well.
 
-## Reading failures
+## GIS Modal Bridge Rule
 
-**TypeScript errors** (`npm run typecheck`):
+If a GIS modal prompt touches Urban Analytics:
 
-- `exactOptionalPropertyTypes` violations: `prop?: string` ≠ `prop: string | undefined`. Add the explicit `| undefined` union or remove the `?`.
-- `noUnusedLocals` / `noUnusedParameters`: delete the symbol or prefix with `_`.
-- Generic `any`: replace with `unknown` + type narrowing.
-
-**Test failures** (`npm run test:analytics`):
-
-- Evidence artifact mutations: `UrbanEvidenceArtifact` is immutable after creation — use QA state transitions, not direct mutation.
-- `score === null` treated as a value: `null` means *unknown*, not high/zero fitness. Add a null guard.
-- CRS errors: any area/distance calculation must project out of EPSG:4326 first.
-- Store selector failures: select individual fields, not entire store objects.
-
-## When to escalate to the full gate
-
-Run `npm run validate:rc` before committing a feature branch or PR. It runs:
+1. Confirm the prompt explicitly requires typed bridge compatibility.
+2. Preserve module ownership: Urban Analytics owns interpretation, indicators, evidence, fitness, and method validity; Map Explorer owns viewport, layers, geometry, and rendering.
+3. Do not pass heavy geometry or raw source payloads through generic UI events.
+4. Run both gates:
 
 ```bash
 npm run typecheck
-npm run lint:errors
-npm run test        # full vitest
-npm run build
-npm run perf:budgets
-npm run test:e2e:ci
+npm run test:analytics
+npx vitest run src/services/map
 ```
 
-`perf:budgets` will fail if a new import bloats a vendor chunk beyond its budget — check the chunk report and move heavy imports behind a dynamic `import()` if needed.
+Add targeted tests for any changed bridge contract.
 
-## Common pitfalls
+## Reading Failures
 
-- Importing a store you don't own (cross-module coupling) will often compile fine but break the evidence or validity contracts at test time. Check module ownership in `CLAUDE.md` if a test fails unexpectedly.
-- The `test:analytics` runner can hang if a test opens a Zustand `persist` store that tries to write `localStorage` in a Node environment. Mock the store or use `vi.mock()` on the persist layer.
+TypeScript:
+
+- `exactOptionalPropertyTypes`: `prop?: string` is not the same as `prop: string | undefined`.
+- `noUnusedLocals` or `noUnusedParameters`: remove the symbol or deliberately prefix an unused parameter with `_`.
+- Avoid silent `any`; use `unknown` with narrowing.
+
+Analytics tests:
+
+- Evidence artifacts are immutable after creation. Mark stale or invalid through QA state, not direct mutation.
+- `DataFitnessAssessment.score === null` means unknown metadata, not ready and not zero.
+- Area and distance must not be computed in EPSG:4326. Project first and declare `requiredCrs`.
+- Capability status must be explicit: `implemented`, `demo_mode`, `residual_gap`, `environment_dependent`, or `deferred`.
+- Store tests should use actions and selectors, not internal implementation details.
+
+## Escalate to Full Gate
+
+Before a release branch or broad PR:
+
+```bash
+npm run validate:rc
+```
+
+If the GIS modal pack is involved, also ensure its ledger records prompt-specific validation, scientific truthfulness proof, and residual risk.

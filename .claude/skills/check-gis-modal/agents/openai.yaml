@@ -1,0 +1,4 @@
+interface:
+  display_name: "Check GIS Modal"
+  short_description: "Validate Map Explorer and GIS modal prompt work."
+  default_prompt: "Run the GIS modal validation gate for my current Map Explorer change and tell me which proof belongs in the ledger."
