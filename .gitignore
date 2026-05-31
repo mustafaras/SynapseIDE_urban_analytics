@@ -24,6 +24,7 @@ eslint-errors.json
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
+.vs/
 .idea
 .DS_Store
 *.suo
@@ -63,6 +64,7 @@ coverage
 *.tsbuildinfo
 .vitest
 .cache
+.tmp-perf.json
 tmp
 temp
 e2e/__screens__/
