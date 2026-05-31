@@ -2,7 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-05-22
-- **Context pack:** Map Explorer Production GIS (`MAP_EXPLORER_PRODUCTION_GIS_PLAN_2026-05-22/`), Prompt 1
+- **Context pack:** Map Explorer Production GIS ([docs/archive/development-plans/map-explorer-production-gis-2026-05-22/](../archive/development-plans/map-explorer-production-gis-2026-05-22/)), Prompt 1
 - **Supersedes:** nothing (first canonical-surface decision)
 - **Related:** [`map-explorer-state-and-actions.md`](map-explorer-state-and-actions.md), [`adr-0001-browser-first-analytical-runtime.md`](adr-0001-browser-first-analytical-runtime.md)
 

@@ -226,13 +226,11 @@ Heavy libraries (monaco, deck.gl, three.js, mapbox-gl) are in manual vendor chun
 
 ---
 
-## Active operating pack — Map Explorer Production GIS (2026-05-22)
+## Archived operating pack — Map Explorer Production GIS (2026-05-22)
 
-If asked to implement a "Prompt N" / "Map Explorer GIS" / "production GIS" task, the active pack is `MAP_EXPLORER_PRODUCTION_GIS_PLAN_2026-05-22/`. **Start with [LEDGER.md](MAP_EXPLORER_PRODUCTION_GIS_PLAN_2026-05-22/LEDGER.md)** — it holds execution state (which prompts are done/next), cold-start resume steps, and the update protocol. Then read [15_AGENT_EXECUTION_PROMPTS.md](MAP_EXPLORER_PRODUCTION_GIS_PLAN_2026-05-22/15_AGENT_EXECUTION_PROMPTS.md) — especially "Cold-start protocol (anti-amnesia)", "Repo Reality Notes", "Agent Contract v2", "Canonical Type Contracts", and "Shared Test Fixtures".
+The Map Explorer Production GIS prompt ladder is complete and archived. The former root folder `MAP_EXPLORER_PRODUCTION_GIS_PLAN_2026-05-22/` has been moved to [docs/archive/development-plans/map-explorer-production-gis-2026-05-22/](docs/archive/development-plans/map-explorer-production-gis-2026-05-22/).
 
-**Current ledger state (as of 2026-05-27):** Prompts 0–34 complete ✅. Next: Prompt 35 (extend GIS token layer — status/density/motion).
-
-After finishing a prompt, update the ledger (status + Done Log) in the same commit.
+There is no active "next GIS prompt" in this pack. Use the archived [ARCHIVE_INDEX.md](docs/archive/development-plans/map-explorer-production-gis-2026-05-22/ARCHIVE_INDEX.md) and [LEDGER.md](docs/archive/development-plans/map-explorer-production-gis-2026-05-22/LEDGER.md) only for historical reference, audits, or follow-up planning. New GIS work should start from a user-directed task or a fresh operating pack, not by resuming this archived ladder.
 
 ---
 

@@ -1,12 +1,14 @@
 # LEDGER — Map Explorer Production GIS prompt ladder
 
-Single source of execution state + the resume point for any chat (especially a fresh one with no memory). Date started: 2026-05-22.
+> Archived: 2026-05-31. This ledger is retained as historical execution evidence and is no longer an active resume point. Final production hardening and `npm run validate:rc` success landed on `master` in commit `401fb34e187e12656e28e27ebcb293ece90ed94e`; earlier Prompt 64 NO-GO rows are preserved as audit history.
 
-> **This ledger does not auto-run anything.** It is *discovered* via the `CLAUDE.md` "Active operating pack" pointer (auto-loaded every session) and via `README.md`. Once an agent opens this pack, this is the first file to read: it tells the agent how to boot safely and which prompt is next. Treat it as the "where are we / what next" record.
+Historical single source of execution state and former resume point for the completed prompt ladder. Date started: 2026-05-22.
+
+> **This ledger does not auto-run anything.** When the pack was active, it was discovered via the `CLAUDE.md` operating-pack pointer and via `README.md`. It is now archived and should be read only as the historical "where were we / what landed" record.
 
 ---
 
-## ▶ Resume in a new chat (do this first)
+## Historical resume protocol (do not execute)
 
 0. **Canonical trunk = `gis/map-explorer-production-prompts`.** Run
    `git checkout gis/map-explorer-production-prompts` first. This branch is kept

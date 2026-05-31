@@ -1,8 +1,15 @@
 # Map Explorer Production GIS + Urban Analytics Operating Pack
 
 Date: 2026-05-22
-Status: planning baseline
+Status: archived completed operating pack
 Scope: turn Map Explorer into a professional, production-grade browser GIS surface that works as a first-class spatial instrument for Urban Analytics.
+
+Archived: 2026-05-31.
+Original root path: `MAP_EXPLORER_PRODUCTION_GIS_PLAN_2026-05-22/`.
+
+This folder is preserved as historical execution material. The prompt ladder is complete and no longer an active resume point. Final production hardening and release-candidate validation were completed on `master` in commit `401fb34e187e12656e28e27ebcb293ece90ed94e`.
+
+Some files inside this archive intentionally preserve interim execution notes, including earlier Prompt 64 NO-GO records. Treat those as historical audit entries superseded by the final validation commit above.
 
 This folder is a new structured plan. It is not a continuation of the archived development prompt ladders. The plan is grounded in the current repository state inspected on 2026-05-22.
 
@@ -28,9 +35,9 @@ This folder is a new structured plan. It is not a continuation of the archived d
 | `LEDGER.md` | **Start here for execution.** Single source of execution state + resume point for any chat: per-prompt Status checkboxes (0 done, 1–64 TODO), a Done Log of branches/commits/proofs, the cold-start resume steps, an update protocol, and a drift-notes section. |
 | `15_AGENT_EXECUTION_PROMPTS.md` | Code-verified (v4) copy-paste agent prompt list (Prompt 0 → 64 across 8 tracks; heavy ones split a/b/c). **Prompt 0 is implemented + verified in the repo** (`src/services/map/contracts/gisContracts.ts` compiles under typecheck; `src/centerpanel/components/map/__tests__/fixtures/gisFixtures.ts` + self-test pass 8/8). Each prompt is a standalone spec with Context, numbered Build steps, Anti-patterns, real repo paths (extend-vs-create), shared TypeScript contracts + named fixtures, an explicit visible-effect Proof, and a git checkpoint/rollback rule. v4 adds Track G (capability depth: formats, streaming, raster, temporal, labeling, cartography, topology, joins, reprojection cache, vector tiles) and Track H (enterprise: command palette, undo/redo, plugin SDK, observability, offline package, AI guardrails, collaboration, terrain/CityJSON, view corridors). Includes Repo Reality Notes, the script matrix, Agent Contract v2, and a dependency-aware sequencing cheat sheet. |
 
-## Token-Friendly Entry Point
+## Token-Friendly Historical Entry Point
 
-For most future implementation work, do not read the whole folder first. Start with:
+For most historical review work, do not read the whole folder first. Start with:
 
 1. `00_TOKEN_FRIENDLY_CONTEXT.md`
 2. The one or two domain files relevant to the task

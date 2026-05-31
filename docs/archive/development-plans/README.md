@@ -2,9 +2,10 @@
 
 This folder stores completed or superseded operating-pack material.
 
-Current archive:
+Current archives:
 
 ```text
+docs/archive/development-plans/map-explorer-production-gis-2026-05-22/
 docs/archive/development-plans/tri-modal-operating-pack-2026-05-20/
 ```
 

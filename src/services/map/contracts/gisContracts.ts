@@ -2,9 +2,9 @@
 /*  GIS Execution Contracts (type-only, no runtime)                      */
 /*                                                                        */
 /*  Single source of truth for the cross-prompt shapes used by the       */
-/*  Map Explorer Production GIS plan                                      */
-/*  (MAP_EXPLORER_PRODUCTION_GIS_PLAN_2026-05-22/15_AGENT_EXECUTION_      */
-/*  PROMPTS.md). Independent agents import these names so their slices    */
+/*  Map Explorer Production GIS archived operating pack                   */
+/*  (docs/archive/development-plans/map-explorer-production-gis-2026-05-22 */
+/*  /15_AGENT_EXECUTION_PROMPTS.md). Independent agents import these names */
 /*  converge on identical interfaces instead of forking parallel ones.   */
 /*                                                                        */
 /*  These compose existing types from mapTypes.ts — they intentionally    */
