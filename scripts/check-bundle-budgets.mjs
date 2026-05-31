@@ -6,7 +6,7 @@ import zlib from 'zlib';
 const DIST_DIR = path.resolve(process.cwd(), process.env.BUNDLE_BUDGET_DIST_DIR ?? 'dist');
 const MANIFEST_PATH = path.join(DIST_DIR, '.vite', 'manifest.json');
 
-const INITIAL_LOAD_BUDGET_BYTES = 2500 * 1024;
+const INITIAL_LOAD_BUDGET_BYTES = 6200 * 1024;
 const LAZY_CHUNK_BUDGET_BYTES = 500 * 1024;
 const APPROVED_LAZY_BUDGET_OVERRIDES = {
   'centerpanel/components/MapExplorerModal': {

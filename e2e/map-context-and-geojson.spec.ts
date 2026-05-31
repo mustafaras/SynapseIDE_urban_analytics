@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { promises as fs } from "node:fs";
+import { importLocalMapFileWithPreflight } from "./helpers/mapImport";
 import { openUrbanAnalyticsWorkbench, resetWorkbenchState, triggerDomClick } from "./helpers/urbanAnalytics";
 
 function createGeoJsonFixture() {
@@ -142,17 +143,13 @@ test.describe("Map Explorer context menu and GeoJSON I/O", () => {
     await expect(mapExplorer).toBeVisible();
     await triggerDomClick(page.getByRole("button", { name: /Explore Layers|Switch map workspace to explore/i }).first());
 
-    await triggerDomClick(page.getByRole("button", {
+    await triggerDomClick(mapExplorer.getByRole("button", {
       name: /Import GeoJSON, CSV, Arrow, GeoParquet, KML, KMZ, and GPX files|Open spatial data import options/i,
-    }));
+    }).first());
     const importHub = page.getByRole("dialog", { name: "Spatial data import hub" });
     await expect(importHub).toContainText("GeoJSON");
 
-    const [importChooser] = await Promise.all([
-      page.waitForEvent("filechooser"),
-      importHub.getByRole("button", { name: "Browse Local File" }).click(),
-    ]);
-    await importChooser.setFiles(payload);
+    await importLocalMapFileWithPreflight(page, payload);
 
     await expect(page.getByTestId("toast").filter({ hasText: /Imported study-area \(2 features\)\./i }).first()).toBeVisible();
 
@@ -182,15 +179,7 @@ test.describe("Map Explorer context menu and GeoJSON I/O", () => {
     expect(JSON.parse(exportedText)).toEqual(JSON.parse(raw));
     await expect(page.getByTestId("toast").filter({ hasText: /Exported 2 features to .*\.geojson/i }).first()).toBeVisible();
 
-    await triggerDomClick(page.getByRole("button", {
-      name: /Import GeoJSON, CSV, Arrow, GeoParquet, KML, KMZ, and GPX files|Open spatial data import options/i,
-    }));
-    const reimportHub = page.getByRole("dialog", { name: "Spatial data import hub" });
-    const [reimportChooser] = await Promise.all([
-      page.waitForEvent("filechooser"),
-      reimportHub.getByRole("button", { name: "Browse Local File" }).click(),
-    ]);
-    await reimportChooser.setFiles({
+    await importLocalMapFileWithPreflight(page, {
       name: "study-area-roundtrip.geojson",
       mimeType: "application/geo+json",
       buffer: Buffer.from(exportedText),

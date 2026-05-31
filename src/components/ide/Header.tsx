@@ -348,6 +348,9 @@ export const Header: React.FC<HeaderProps> = ({
         return;
       }
       if (isMeta && !e.shiftKey && (e.key === 'k' || e.key === 'K')) {
+        if (document.querySelector('[data-map-workspace-shell="modal"] [data-map-explorer-shell="true"]')) {
+          return;
+        }
         e.preventDefault();
         onOpenCommandPalette?.();
         return;

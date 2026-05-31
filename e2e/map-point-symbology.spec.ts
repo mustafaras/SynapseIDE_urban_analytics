@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { importLocalMapFileWithPreflight } from "./helpers/mapImport";
 import { openUrbanAnalyticsWorkbench, resetWorkbenchState, triggerDomClick } from "./helpers/urbanAnalytics";
 
 function createPointSymbologyFixture() {
@@ -46,11 +47,7 @@ test.describe("Map Explorer point symbology", () => {
     const importHub = page.getByRole("dialog", { name: "Spatial data import hub" });
     await expect(importHub).toBeVisible();
 
-    const [importChooser] = await Promise.all([
-      page.waitForEvent("filechooser"),
-      importHub.getByRole("button", { name: "Browse Local File" }).click(),
-    ]);
-    await importChooser.setFiles(createPointSymbologyFixture());
+    await importLocalMapFileWithPreflight(page, createPointSymbologyFixture());
 
     await expect(page.getByTestId("toast").filter({ hasText: /Imported point-symbols \(24 features\)\./i }).first()).toBeVisible();
     await expect(page.getByRole("list", { name: "Layer list" })).toContainText("point-symbols");

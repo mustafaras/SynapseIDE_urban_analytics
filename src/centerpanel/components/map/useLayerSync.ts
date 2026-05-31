@@ -42,7 +42,14 @@ const COMPANION_CIRCLE_OPACITY_STYLE_KEY = "__companionCircleOpacity";
 const COMPANION_CIRCLE_STROKE_COLOR_STYLE_KEY = "__companionCircleStrokeColor";
 const COMPANION_CIRCLE_STROKE_WIDTH_STYLE_KEY = "__companionCircleStrokeWidth";
 const EMPTY_FEATURE_COLLECTION: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
+const TRANSPARENT_RASTER_DATA_URL = "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%221%22%20height%3D%221%22%2F%3E";
 const WORLD_EXTENT = { west: -180, south: -85.05112878, east: 180, north: 85.05112878 };
+const WORLD_IMAGE_COORDINATES: [[number, number], [number, number], [number, number], [number, number]] = [
+  [WORLD_EXTENT.west, WORLD_EXTENT.north],
+  [WORLD_EXTENT.east, WORLD_EXTENT.north],
+  [WORLD_EXTENT.east, WORLD_EXTENT.south],
+  [WORLD_EXTENT.west, WORLD_EXTENT.south],
+];
 
 const vectorTilePipelineCache = new WeakMap<GeoJSON.FeatureCollection, Map<string, VectorTilePipeline>>();
 
@@ -480,7 +487,13 @@ function removeManagedLayer(map: maplibregl.Map, layerId: string): void {
 function addManagedLayer(map: maplibregl.Map, layer: OverlayLayerConfig): void {
   const mlType = resolveLayerType(layer);
 
-  if (layer.type === "raster-tile" && typeof layer.sourceData === "string") {
+  if (layer.type === "raster-tile" && layer.metadata?.raster?.renderMode === "sampled-image") {
+    map.addSource(layer.id, {
+      type: "image",
+      url: typeof layer.sourceData === "string" ? layer.sourceData : TRANSPARENT_RASTER_DATA_URL,
+      coordinates: layer.metadata.raster.imageCoordinates ?? WORLD_IMAGE_COORDINATES,
+    });
+  } else if (layer.type === "raster-tile" && typeof layer.sourceData === "string") {
     map.addSource(layer.id, {
       type: "raster",
       tiles: [normalizeXyzTileUrlTemplate(layer.sourceData)],

@@ -10,6 +10,27 @@
  * 6. Reduced-motion: transition style is "none" when prefers-reduced-motion: reduce is emulated.
  */
 import { expect, test, type Page } from "@playwright/test";
+import {
+  openUrbanAnalyticsWorkbench,
+  resetWorkbenchState,
+  triggerDomClick,
+} from "./helpers/urbanAnalytics";
+
+async function openMapExplorer(page: Page, options: { reset?: boolean } = {}): Promise<void> {
+  if (options.reset ?? true) {
+    await resetWorkbenchState(page);
+  }
+  const urbanModal = await openUrbanAnalyticsWorkbench(page);
+  await triggerDomClick(
+    urbanModal.getByRole("button", { name: "Open Map Explorer (Ctrl+Shift+M)" }),
+  );
+  await expect(page.getByRole("dialog", { name: "Map Explorer" }).first()).toBeVisible();
+  await triggerDomClick(
+    page
+      .getByRole("button", { name: /Explore Layers|Switch map workspace to explore/i })
+      .first(),
+  );
+}
 
 async function openInteractionStrip(page: Page): Promise<void> {
   await page.evaluate(async () => {
@@ -27,8 +48,7 @@ async function openComparisonStrip(page: Page): Promise<void> {
 
 test.describe("Prompt 34 — 3D interaction design @smoke", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/");
-    await page.waitForLoadState("networkidle");
+    await openMapExplorer(page);
   });
 
   test("interaction strip renders all 8 mode buttons", async ({ page }) => {
@@ -90,6 +110,10 @@ test.describe("Prompt 34 — 3D interaction design @smoke", () => {
       useSunShadowStore.getState().setActiveHour(0);
     });
 
+    await page.reload();
+    await page.waitForLoadState("networkidle");
+    await openMapExplorer(page, { reset: false });
+
     await openComparisonStrip(page);
     const strip = page.getByTestId("scenario-comparison-strip");
 
@@ -133,6 +157,10 @@ test.describe("Prompt 34 — 3D interaction design @smoke", () => {
         declaredCrs: "EPSG:32635",
       });
     });
+
+    await page.reload();
+    await page.waitForLoadState("networkidle");
+    await openMapExplorer(page, { reset: false });
 
     await openComparisonStrip(page);
     const strip = page.getByTestId("scenario-comparison-strip");

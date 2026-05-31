@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { importLocalMapFileWithPreflight } from "./helpers/mapImport";
 import { openUrbanAnalyticsWorkbench, resetWorkbenchState, triggerDomClick } from "./helpers/urbanAnalytics";
 
 function ring(minLng: number, minLat: number, maxLng: number, maxLat: number) {
@@ -79,17 +80,7 @@ function createHotSpotFixture() {
 }
 
 async function importFixture(page: import("@playwright/test").Page, fixture: ReturnType<typeof createLisaFixture>) {
-  await triggerDomClick(page.getByRole("button", {
-    name: /Import GeoJSON, CSV, Arrow, GeoParquet, KML, KMZ, and GPX files|Open spatial data import options/i,
-  }));
-  const importHub = page.getByRole("dialog", { name: "Spatial data import hub" });
-  await expect(importHub).toBeVisible();
-
-  const [importChooser] = await Promise.all([
-    page.waitForEvent("filechooser"),
-    importHub.getByRole("button", { name: "Browse Local File" }).click(),
-  ]);
-  await importChooser.setFiles(fixture);
+  await importLocalMapFileWithPreflight(page, fixture);
 }
 
 test.describe("Map Explorer spatial statistics renderers", () => {
@@ -115,7 +106,7 @@ test.describe("Map Explorer spatial statistics renderers", () => {
     }).first());
 
     await triggerDomClick(page.getByRole("button", { name: "Drawing, measuring, and map interaction tools" }));
-    await triggerDomClick(page.getByRole("menu", { name: "Tools commands" }).getByRole("button", {
+    await triggerDomClick(page.getByRole("menu", { name: "Tools commands" }).getByRole("menuitem", {
       name: "Open Local Moran's I cluster map panel",
     }));
     const lisaPanel = page.getByRole("dialog", { name: "Local Moran's I analysis panel" });
@@ -139,7 +130,7 @@ test.describe("Map Explorer spatial statistics renderers", () => {
     await expect(lisaPanel.getByText("p ≤ 0.010")).toBeVisible();
 
     await triggerDomClick(page.getByRole("button", { name: "Drawing, measuring, and map interaction tools" }));
-    await triggerDomClick(page.getByRole("menu", { name: "Tools commands" }).getByRole("button", {
+    await triggerDomClick(page.getByRole("menu", { name: "Tools commands" }).getByRole("menuitem", {
       name: "Open Getis-Ord Gi* hot and cold spot panel",
     }));
     const hotSpotPanel = page.getByRole("dialog", { name: "Getis-Ord Gi-star analysis panel" });

@@ -125,6 +125,12 @@ test.describe("Map Explorer temporal animation player", () => {
       });
     }).toBe(false);
 
+    await page.evaluate(async () => {
+      const storeModule = await import("/src/stores/useMapExplorerStore.ts");
+      storeModule.useMapExplorerStore.getState().setCurrentTimestep(10);
+    });
+    await expect.poll(async () => Number(await slider.getAttribute("aria-valuenow"))).toBe(10);
+
     await triggerDomClick(player.getByRole("button", { name: "Play" }));
     const resumedAt = await page.evaluate(async () => {
       const storeModule = await import("/src/stores/useMapExplorerStore.ts");

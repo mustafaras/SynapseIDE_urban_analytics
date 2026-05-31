@@ -30,7 +30,7 @@ async function seedRasterLayer(page: Page, layerId: string): Promise<void> {
     for (let i = 0; i < 256; i++) samples0[i] = i; // band 0: 0–255
 
     const samples1 = new Float64Array(256);
-    for (let i = 0; i < 256; i++) samples1[i] = 255 - i; // band 1: 255–0
+    for (let i = 0; i < 256; i++) samples1[i] = 1000 + i; // band 1: offset range, distinct mean
 
     const metadata = {
       width: 256,
@@ -52,7 +52,7 @@ async function seedRasterLayer(page: Page, layerId: string): Promise<void> {
       metadata,
       bandSamples: [
         { bandIndex: 0, samples: samples0, stats: { min: 1, max: 255, mean: 128, noDataCount: 1, sampleCount: 256, validCount: 255 } },
-        { bandIndex: 1, samples: samples1, stats: { min: 0, max: 254, mean: 127, noDataCount: 1, sampleCount: 256, validCount: 255 } },
+        { bandIndex: 1, samples: samples1, stats: { min: 1000, max: 1255, mean: 1127.5, noDataCount: 0, sampleCount: 256, validCount: 256 } },
       ],
       caveats: [] as string[],
     };
@@ -68,8 +68,8 @@ async function seedRasterLayer(page: Page, layerId: string): Promise<void> {
 
 test.describe("Map Explorer — raster layer @smoke", () => {
   test.beforeEach(async ({ page }) => {
-    await openUrbanAnalyticsWorkbench(page);
     await resetWorkbenchState(page);
+    await openUrbanAnalyticsWorkbench(page);
     await seedRasterLayer(page, "raster-e2e-layer");
   });
 

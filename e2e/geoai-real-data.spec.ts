@@ -321,6 +321,13 @@ async function installMockObjectDetectionRuntime(page: Page): Promise<void> {
   });
 }
 
+async function closeMapExplorer(page: Page): Promise<void> {
+  const mapExplorer = page.getByRole("dialog", { name: "Map Explorer" }).first();
+  await expect(mapExplorer).toBeVisible();
+  await triggerDomClick(mapExplorer.getByRole("button", { name: "Close map explorer (Escape)" }));
+  await expect(mapExplorer).toBeHidden();
+}
+
 test.describe("GeoAI land-cover real-data upgrade", () => {
   test.beforeEach(async ({ page }) => {
     await page.setViewportSize({ width: 1680, height: 1100 });
@@ -340,7 +347,7 @@ test.describe("GeoAI land-cover real-data upgrade", () => {
 
     await triggerDomClick(urbanModal.getByTestId("geoai-land-cover-run"));
     await expect(urbanModal.getByTestId("geoai-land-cover-notice")).toContainText(/Demo source classification published/i);
-    await expect(page.getByRole("dialog", { name: "Map Explorer" })).toBeVisible();
+    await closeMapExplorer(page);
 
     const workflowsTab = urbanModal.getByTestId("cp-tab-workflows");
     await triggerDomClick(workflowsTab);
@@ -385,7 +392,7 @@ test.describe("GeoAI land-cover real-data upgrade", () => {
 
     await triggerDomClick(urbanModal.getByTestId("geoai-land-cover-run"));
     await expect(urbanModal.getByTestId("geoai-land-cover-notice")).toContainText(/Real source classification published/i);
-    await expect(page.getByRole("dialog", { name: "Map Explorer" })).toBeVisible();
+    await closeMapExplorer(page);
 
     const workflowsTab = urbanModal.getByTestId("cp-tab-workflows");
     await triggerDomClick(workflowsTab);
@@ -413,7 +420,7 @@ test.describe("GeoAI land-cover real-data upgrade", () => {
     await setFormValue(urbanModal.getByTestId("geoai-query-input"), "Find parcels where risk score > 70");
     await triggerDomClick(urbanModal.getByTestId("geoai-query-run"));
     await expect(urbanModal.getByTestId("geoai-query-notice")).toContainText(/Live project data query published/i);
-    await expect(page.getByRole("dialog", { name: "Map Explorer" })).toBeVisible();
+    await closeMapExplorer(page);
 
     const workflowsTab = urbanModal.getByTestId("cp-tab-workflows");
     await triggerDomClick(workflowsTab);
@@ -486,7 +493,7 @@ test.describe("GeoAI land-cover real-data upgrade", () => {
     await triggerDomClick(objectDetectionFlow.getByTestId("object-detector-run"));
 
     await expect(objectDetectionFlow.getByTestId("object-detector-notice")).toContainText(/Real model detection published/i);
-    await expect(page.getByRole("dialog", { name: "Map Explorer" })).toBeVisible();
+    await closeMapExplorer(page);
 
     const reviewFlow = await openWorkflowById(urbanModal, "review");
     await expect(reviewFlow).toContainText(/Object Detection/i);
@@ -524,7 +531,7 @@ test.describe("GeoAI land-cover real-data upgrade", () => {
     await expect(objectDetectionFlow.getByTestId("object-detector-notice")).toContainText(/Real model detection published/i);
     await expect(objectDetectionFlow).toContainText(/Detected classes/i);
     await expect(objectDetectionFlow).toContainText(/Vehicle/i);
-    await expect(page.getByRole("dialog", { name: "Map Explorer" })).toBeVisible();
+    await closeMapExplorer(page);
 
     const reviewFlow = await openWorkflowById(urbanModal, "review");
     await expect(reviewFlow).toContainText(/Object Detection/i);

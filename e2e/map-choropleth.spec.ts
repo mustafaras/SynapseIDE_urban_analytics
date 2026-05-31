@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { importLocalMapFileWithPreflight } from "./helpers/mapImport";
 import { openUrbanAnalyticsWorkbench, resetWorkbenchState, triggerDomClick } from "./helpers/urbanAnalytics";
 
 function createChoroplethFixture() {
@@ -46,11 +47,7 @@ test.describe("Map Explorer choropleth renderer", () => {
     const importHub = page.getByRole("dialog", { name: "Spatial data import hub" });
     await expect(importHub).toBeVisible();
 
-    const [importChooser] = await Promise.all([
-      page.waitForEvent("filechooser"),
-      importHub.getByRole("button", { name: "Browse Local File" }).click(),
-    ]);
-    await importChooser.setFiles(createChoroplethFixture());
+    await importLocalMapFileWithPreflight(page, createChoroplethFixture());
 
     await expect(page.getByTestId("toast").filter({ hasText: /Imported choropleth-polygons \(5 features\)\./i }).first()).toBeVisible();
     await triggerDomClick(page.getByRole("button", {

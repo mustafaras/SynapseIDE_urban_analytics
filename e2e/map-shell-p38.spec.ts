@@ -50,46 +50,19 @@ test.describe("P38 — work-surface visual pass @smoke", () => {
     await resetWorkbenchState(page);
     const mapExplorer = await openMapExplorer(page);
 
-    // Seed a layer with features
-    await page.evaluate(async () => {
-      const m = await import("/src/stores/useMapExplorerStore.ts");
-      m.useMapExplorerStore.getState().addOverlayLayer({
-        id: "p38-table-layer",
-        name: "P38 Table Target",
-        type: "geojson",
-        visible: true,
-        opacity: 1,
-        group: "data",
-        sourceKind: "imported",
-        sourceData: {
-          type: "FeatureCollection",
-          features: [
-            { type: "Feature", geometry: { type: "Point", coordinates: [29.0, 41.0] }, properties: { zone: "A", value: null } },
-            { type: "Feature", geometry: { type: "Point", coordinates: [29.1, 41.1] }, properties: { zone: "B", value: 42 } },
-          ],
-        },
-        metadata: {
-          geometryType: "Point",
-          featureCount: 2,
-          fields: ["zone", "value"],
-          crsSummary: { crs: "EPSG:4326", status: "known", source: "explicit", notes: [] },
-        },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any);
-    });
+    await triggerDomClick(
+      page
+        .getByRole("button", { name: /Add demo street, block, and building layers/i })
+        .first(),
+    );
 
-    // Open the attribute table on the seeded layer
-    const layerRow = mapExplorer.getByRole("option", { name: /Layer: P38 Table Target/i }).first();
-    await expect(layerRow).toBeVisible({ timeout: 8000 });
-
-    // Try to open the table — look for a "Table" button in the layer row
-    const tableBtn = layerRow.getByRole("button", { name: /Table/i }).first();
-    if (await tableBtn.isVisible()) {
-      await triggerDomClick(tableBtn);
-      const table = page.getByTestId("map-attribute-table");
-      await expect(table).toBeVisible({ timeout: 6000 });
-      await expect(table.getByRole("button", { name: "Close attribute table" })).toBeVisible();
-    }
+    const tableBtn = mapExplorer.getByTestId("map-layer-table-trigger").first();
+    await expect(tableBtn).toBeVisible({ timeout: 8000 });
+    await expect(tableBtn).toBeEnabled();
+    await triggerDomClick(tableBtn);
+    const table = page.getByTestId("map-attribute-table");
+    await expect(table).toBeVisible({ timeout: 6000 });
+    await expect(table.getByRole("button", { name: "Close attribute table" })).toBeVisible();
 
     await page.screenshot({ path: "e2e/__screens__/p38-attribute-table.png" });
   });

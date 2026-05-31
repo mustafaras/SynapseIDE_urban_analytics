@@ -135,7 +135,7 @@ export interface ExternalServiceLayerMetadata {
 }
 
 export interface ImportLayerSourceMetadata {
-  format: "geojson" | "csv" | "arrow" | "geoparquet" | "kml" | "kmz" | "gpx" | "shapefile" | "geopackage";
+  format: "geojson" | "csv" | "arrow" | "geoparquet" | "kml" | "kmz" | "gpx" | "shapefile" | "geopackage" | "geotiff";
   fileName: string;
   sourceName: string;
   sourceId?: string;
@@ -396,12 +396,29 @@ export interface MapVectorTileLayerMetadata {
   activeCoordinateCount?: number;
 }
 
+export interface MapRasterLayerMetadata {
+  version: 1;
+  sourceFormat: "geotiff";
+  renderMode: "sampled-image";
+  width: number;
+  height: number;
+  bandCount: number;
+  selectedBandIndex: number;
+  noData: number | null;
+  epsgCode: string | null;
+  sampled: boolean;
+  sampleWidth: number;
+  sampleHeight: number;
+  imageCoordinates?: [[number, number], [number, number], [number, number], [number, number]];
+  caveats: string[];
+}
+
 export interface LayerMetadata {
   featureCount?: number;
   geometryType?: string;
   bounds?: [number, number, number, number]; // [minLng, minLat, maxLng, maxLat]
   fields?: string[];
-  importFormat?: "geojson" | "csv" | "arrow" | "geoparquet" | "kml" | "kmz" | "gpx";
+  importFormat?: "geojson" | "csv" | "arrow" | "geoparquet" | "kml" | "kmz" | "gpx" | "shapefile" | "geopackage" | "geotiff";
   updatedAt?: string;
   dataVersion?: string;
   importSource?: ImportLayerSourceMetadata;
@@ -432,6 +449,7 @@ export interface LayerMetadata {
   registry?: LayerRegistryMetadata;
   reprojectionCache?: MapReprojectionCacheLayerMetadata;
   vectorTiles?: MapVectorTileLayerMetadata;
+  raster?: MapRasterLayerMetadata;
 }
 
 export type MapReproducibilityManifestStatus = "preview" | "applied" | "blocked";

@@ -26,7 +26,7 @@ test.describe("Prompt 36 indicator catalog", () => {
     await expect(indicatorPanel).toBeVisible();
     await expect(urbanModal.getByTestId("tools-card-indicators")).toBeVisible();
 
-    await triggerDomClick(indicatorPanel.getByRole("button", { name: "Transport & Mobility" }));
+    await triggerDomClick(indicatorPanel.getByRole("button", { name: "Transport & Mobility", exact: true }));
     await setFormValue(indicatorPanel.getByRole("searchbox", { name: "Search indicators" }), "mode split");
 
     const modeSplitCard = indicatorPanel.locator('[data-indicator-kind="modeSplit"]');
@@ -53,7 +53,7 @@ test.describe("Prompt 36 indicator catalog", () => {
     await triggerDomClick(toolboxTab);
     await expect(toolboxTab).toHaveAttribute("aria-selected", "true");
 
-    await triggerDomClick(indicatorPanel.getByRole("button", { name: "Transport & Mobility" }));
+    await triggerDomClick(indicatorPanel.getByRole("button", { name: "Transport & Mobility", exact: true }));
     await setFormValue(indicatorPanel.getByRole("searchbox", { name: "Search indicators" }), "mode split");
     await expect(modeSplitCard).toBeVisible();
     await triggerDomClick(modeSplitCard);

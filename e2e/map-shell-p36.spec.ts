@@ -80,52 +80,14 @@ test.describe("Prompt 36 — shell hardening + shared primitives @smoke", () => 
     await resetWorkbenchState(page);
     await openMapExplorer(page);
 
-    // Inject a MapCommandBar with a disabled action carrying a reason
-    await page.evaluate(async () => {
-      const React = await import("/node_modules/react/index.js");
-      const { createRoot } = await import("/node_modules/react-dom/client.js");
-      const { MapCommandBar } = await import("/src/centerpanel/components/map/MapWorkspaceShell.tsx");
-
-      const container = document.createElement("div");
-      container.setAttribute("data-testid", "p36-command-bar-probe");
-      container.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:99999;";
-      document.body.appendChild(container);
-
-      const root = createRoot(container);
-      root.render(
-        React.createElement(MapCommandBar, {
-          title: "Map Explorer",
-          "data-testid": "p36-injected-command-bar",
-          actions: [
-            {
-              id: "export-disabled",
-              label: "Export map",
-              icon: React.createElement("span", null, "↑"),
-              disabled: true,
-              disabledReason: "Select at least one layer to export",
-            },
-            {
-              id: "close-btn",
-              label: "Close panel",
-              icon: React.createElement("span", null, "×"),
-            },
-          ],
-        }),
-      );
-    });
-
-    await page.waitForSelector('[data-testid="p36-command-bar-probe"]', { timeout: 3000 });
-    await page.waitForTimeout(300);
-
-    // Assert the disabled button is present and carries the reason
-    const disabledBtn = page.getByRole("button", { name: "Export map" });
+    const disabledBtn = page.getByTestId("activity-btn-save");
     await expect(disabledBtn).toBeVisible();
 
     const disabledReason = await disabledBtn.getAttribute("data-disabled-reason");
-    expect(disabledReason).toBe("Select at least one layer to export");
+    expect(disabledReason).toBe("Select or create a project before saving map state.");
 
     const title = await disabledBtn.getAttribute("title");
-    expect(title).toBe("Select at least one layer to export");
+    expect(title).toBe("Select or create a project before saving map state.");
 
     // Hover the button — native title tooltip appears (browser handles display)
     await disabledBtn.hover();
@@ -140,38 +102,10 @@ test.describe("Prompt 36 — shell hardening + shared primitives @smoke", () => 
     await resetWorkbenchState(page);
     await openMapExplorer(page);
 
-    // Inject MapActivityRail to provide known icon buttons
-    await page.evaluate(async () => {
-      const React = await import("/node_modules/react/index.js");
-      const { createRoot } = await import("/node_modules/react-dom/client.js");
-      const { MapActivityRail } = await import("/src/centerpanel/components/map/MapWorkspaceShell.tsx");
-
-      const container = document.createElement("div");
-      container.setAttribute("data-testid", "p36-rail-probe");
-      container.style.cssText = "position:fixed;bottom:80px;left:0;top:80px;z-index:99999;";
-      document.body.appendChild(container);
-
-      const root = createRoot(container);
-      root.render(
-        React.createElement(MapActivityRail, {
-          "aria-label": "P36 test activity rail",
-          "data-testid": "p36-injected-activity-rail",
-          items: [
-            { id: "layers", label: "Layers panel", icon: React.createElement("span", null, "L"), active: true },
-            { id: "catalog", label: "Catalog", icon: React.createElement("span", null, "C") },
-            { id: "settings", label: "Settings", icon: React.createElement("span", null, "S"), disabled: true, disabledReason: "Settings unavailable in explore mode" },
-          ],
-        }),
-      );
-    });
-
-    await page.waitForSelector('[data-testid="p36-injected-activity-rail"]', { timeout: 3000 });
-
-    // Every button must have a non-empty aria-label
-    const nav = page.getByRole("navigation", { name: "P36 test activity rail" });
+    const nav = page.getByRole("navigation", { name: "Map Explorer activity" });
     const buttons = nav.getByRole("button");
     const count = await buttons.count();
-    expect(count).toBeGreaterThanOrEqual(3);
+    expect(count).toBeGreaterThanOrEqual(8);
 
     for (let i = 0; i < count; i++) {
       const btn = buttons.nth(i);

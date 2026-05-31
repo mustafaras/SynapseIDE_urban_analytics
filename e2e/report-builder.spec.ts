@@ -3,6 +3,7 @@ import { openUrbanAnalyticsWorkbench, resetWorkbenchState, setFormValue, trigger
 
 test.describe("Report builder flow", () => {
   test("launches the workbench and inserts an inline citation into a report", async ({ page }) => {
+    await page.setViewportSize({ width: 1680, height: 1100 });
     await resetWorkbenchState(page);
     const urbanModal = await openUrbanAnalyticsWorkbench(page);
 
@@ -11,7 +12,7 @@ test.describe("Report builder flow", () => {
     await triggerDomClick(reportTab);
     await expect(reportTab).toHaveAttribute("aria-selected", "true");
 
-    const builder = urbanModal.getByTestId("report-builder");
+    const builder = urbanModal.getByRole("region", { name: "Structured report builder" }).first();
     await expect(builder).toBeVisible();
 
     await setFormValue(builder.getByLabel("Report Name"), "Playwright Report");

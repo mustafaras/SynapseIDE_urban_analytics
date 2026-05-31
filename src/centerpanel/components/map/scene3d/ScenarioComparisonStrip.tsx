@@ -29,6 +29,8 @@ import {
 } from "../mapTokens";
 import { GisSectionHeader } from "../ui/GisSectionHeader";
 
+const DEFAULT_TIMELINE_HOURS = [6, 8, 10, 12, 14, 16, 18] as const;
+
 /* ------------------------------------------------------------------ */
 /*  Styles                                                              */
 /* ------------------------------------------------------------------ */
@@ -225,18 +227,19 @@ export const ScenarioComparisonStrip: React.FC<ScenarioComparisonStripProps> = (
   const timelineHours = useSunShadowStore((s) => s.timelineHours);
   const setActiveHour = useSunShadowStore((s) => s.setActiveHour);
 
-  const { position, onMouseDown } = useDraggableMapPanel({ x: 60, y: 80 });
+  const panelDrag = useDraggableMapPanel();
 
   const hasMassing = massingScenarios.length > 0;
   const hasShadow = shadowScenarios.length > 0;
-  const hasTimeline = timelineHours.length > 0;
+  const visibleTimelineHours = timelineHours.length > 0 ? timelineHours : [...DEFAULT_TIMELINE_HOURS];
+  const hasTimeline = visibleTimelineHours.length > 0;
 
   const handleSetHour = useCallback(
     (hourValue: number) => {
       const idx = timelineHours.indexOf(hourValue);
-      if (idx >= 0) setActiveHour(idx);
+      setActiveHour(idx >= 0 ? idx : visibleTimelineHours.indexOf(hourValue));
     },
-    [timelineHours, setActiveHour],
+    [timelineHours, visibleTimelineHours, setActiveHour],
   );
 
   if (!visible) return null;
@@ -244,14 +247,16 @@ export const ScenarioComparisonStrip: React.FC<ScenarioComparisonStripProps> = (
   return (
     <div
       data-testid="scenario-comparison-strip"
-      style={{ ...panelStyle, position: "absolute", top: position.y, left: position.x }}
+      data-draggable-map-panel="true"
+      style={{ ...panelStyle, ...panelDrag.panelPositionStyle }}
     >
       {/* Header — uses GisSectionHeader primitive (Prompt 36) */}
       <GisSectionHeader
         title="Scenario comparison"
         level={3}
         separator
-        style={{ cursor: "grab" }}
+        style={panelDrag.dragHandleStyle}
+        {...panelDrag.dragHandleProps}
         actions={
           <button
             type="button"
@@ -265,7 +270,12 @@ export const ScenarioComparisonStrip: React.FC<ScenarioComparisonStripProps> = (
         data-testid="scenario-comparison-header"
       />
       {/* onMouseDown on a wrapper for drag — must surround the header */}
-      <div data-map-drag-handle style={{ position: "absolute", top: 0, left: 0, right: "2.5rem", height: "2.25rem", cursor: "grab" }} onMouseDown={onMouseDown} aria-hidden />
+      <div
+        data-map-drag-handle
+        style={{ position: "absolute", top: 0, left: 0, right: "2.5rem", height: "2.25rem", ...panelDrag.dragHandleStyle }}
+        {...panelDrag.dragHandleProps}
+        aria-hidden
+      />
 
       {/* Body */}
       <div style={bodyStyle}>
@@ -278,7 +288,7 @@ export const ScenarioComparisonStrip: React.FC<ScenarioComparisonStripProps> = (
               Sun-shadow timeline
             </p>
             <div style={timelineRowStyle}>
-              {timelineHours.map((h) => (
+              {visibleTimelineHours.map((h) => (
                 <button
                   key={h}
                   type="button"
@@ -350,7 +360,7 @@ export const ScenarioComparisonStrip: React.FC<ScenarioComparisonStripProps> = (
                         </div>
                         <div style={metricRowStyle}>
                           <span>Coverage</span>
-                          <span style={metricValueStyle}>{(alt.achievedCoverageRatio * 100).toFixed(0)}%</span>
+                          <span style={metricValueStyle}>{(alt.achievedCoverage * 100).toFixed(0)}%</span>
                         </div>
                         <div style={{ display: "flex", gap: MAP_SPACING.xs, flexWrap: "wrap" }}>
                           <span style={complianceBadgeStyle(alt.farCompliant)}>

@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   parsePrjText,
   buildShapefileLayerFromFc,
+  extractGeoPackageLayerCrsSummary,
   profileSource,
   type GeoPackageLayerInfo,
 } from "@/services/map/MapDataImporter";
@@ -63,10 +64,17 @@ describe("GeoPackageLayerInfo shape", () => {
       tableName: "buildings",
       featureCount: 1200,
       geometryType: "Polygon",
+      crsSummary: {
+        crs: "EPSG:32635",
+        status: "known",
+        source: "import-source",
+        notes: [],
+      },
     };
     expect(info.tableName).toBe("buildings");
     expect(info.featureCount).toBe(1200);
     expect(info.geometryType).toBe("Polygon");
+    expect(info.crsSummary.crs).toBe("EPSG:32635");
   });
 
   it("allows null featureCount and geometryType", () => {
@@ -74,9 +82,36 @@ describe("GeoPackageLayerInfo shape", () => {
       tableName: "unknown_layer",
       featureCount: null,
       geometryType: null,
+      crsSummary: {
+        crs: null,
+        status: "missing",
+        source: "import-source",
+        notes: ["missing"],
+      },
     };
     expect(info.featureCount).toBeNull();
     expect(info.geometryType).toBeNull();
+    expect(info.crsSummary.status).toBe("missing");
+  });
+
+  it("extracts embedded CRS candidates from GeoPackage layer metadata", () => {
+    const crs = extractGeoPackageLayerCrsSummary({
+      name: "parcels",
+      metadata: {
+        srs_id: 32635,
+      },
+    });
+    expect(crs.status).toBe("known");
+    expect(crs.crs).toBe("EPSG:32635");
+  });
+
+  it("does not assume EPSG:4326 when GeoPackage CRS metadata is absent", () => {
+    const crs = extractGeoPackageLayerCrsSummary({
+      name: "parcels",
+      data: minimalFc.features,
+    });
+    expect(crs.status).toBe("missing");
+    expect(crs.crs).toBeNull();
   });
 });
 

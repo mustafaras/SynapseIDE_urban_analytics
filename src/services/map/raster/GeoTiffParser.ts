@@ -248,3 +248,57 @@ export function defaultRasterRenderConfig(): RasterLayerRenderConfig {
     maxOverride: null,
   };
 }
+
+function clampByte(value: number): number {
+  return Math.max(0, Math.min(255, Math.round(value)));
+}
+
+function rasterPreviewColor(value: number, min: number, max: number): string {
+  const span = max - min;
+  const t = span > 0 ? Math.max(0, Math.min(1, (value - min) / span)) : 0.5;
+  const r = clampByte(24 + t * 184);
+  const g = clampByte(84 + Math.sin(t * Math.PI) * 112);
+  const b = clampByte(112 + (1 - t) * 96);
+  return `rgb(${r} ${g} ${b})`;
+}
+
+function isNoDataValue(value: number, noData: number | null): boolean {
+  if (noData === null) return false;
+  if (Number.isNaN(noData)) return Number.isNaN(value);
+  return Math.abs(value - noData) < 1e-10;
+}
+
+export function createGeoTiffSampleImageDataUrl(
+  inspection: GeoTiffInspection,
+  bandIndex = 0,
+  maxDimension = 64,
+): string {
+  const band = inspection.bandSamples.find((entry) => entry.bandIndex === bandIndex)
+    ?? inspection.bandSamples[0];
+  const width = inspection.metadata.sampleWidth;
+  const height = inspection.metadata.sampleHeight;
+  const cellStepX = Math.max(1, Math.ceil(width / Math.max(1, maxDimension)));
+  const cellStepY = Math.max(1, Math.ceil(height / Math.max(1, maxDimension)));
+  const cols = Math.ceil(width / cellStepX);
+  const rows = Math.ceil(height / cellStepY);
+  const stats = band?.stats ?? { min: 0, max: 1, mean: 0, noDataCount: 0, sampleCount: 0, validCount: 0 };
+  const samples = band?.samples ?? new Float64Array(0);
+  const noData = inspection.metadata.noData;
+  const rects: string[] = [];
+
+  for (let row = 0; row < rows; row += 1) {
+    const sampleY = Math.min(height - 1, row * cellStepY);
+    for (let col = 0; col < cols; col += 1) {
+      const sampleX = Math.min(width - 1, col * cellStepX);
+      const value = samples[sampleY * width + sampleX] ?? Number.NaN;
+      const fill = Number.isFinite(value) && !isNoDataValue(value, noData)
+        ? rasterPreviewColor(value, stats.min, stats.max)
+        : "rgb(37 44 58)";
+      const opacity = Number.isFinite(value) && !isNoDataValue(value, noData) ? "1" : "0.28";
+      rects.push(`<rect x="${col}" y="${row}" width="1" height="1" fill="${fill}" fill-opacity="${opacity}"/>`);
+    }
+  }
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${cols}" height="${rows}" viewBox="0 0 ${cols} ${rows}" shape-rendering="crispEdges">${rects.join("")}</svg>`;
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}

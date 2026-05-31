@@ -36,6 +36,21 @@ export interface MassingScenario {
   createdAt: string;
 }
 
+export interface AddMassingScenarioInput {
+  label?: string;
+  parcel: Feature<Polygon>;
+  rule: ZoningRule;
+  params: Partial<MassingParams> & {
+    targetFloors?: number;
+    floors?: number;
+    useBaseline?: boolean;
+  };
+  declaredCrs?: string | null;
+  isBaseline?: boolean;
+  parcelId?: string | number;
+  ruleId?: string;
+}
+
 /* ------------------------------------------------------------------ */
 /*  Persisted shape (buildingGeometries stripped)                      */
 /* ------------------------------------------------------------------ */
@@ -58,6 +73,7 @@ export interface MassingState {
    * If parcel + rule are provided the alternative is generated immediately;
    * otherwise alternative is null until generateAlternative is called.
    */
+  addScenario(input: AddMassingScenarioInput): MassingScenario;
   addScenario(
     parcelId: string | number,
     ruleId: string,
@@ -97,6 +113,46 @@ export interface MassingState {
   clearAll(): void;
 }
 
+type PositionalAddScenarioArgs = [
+  parcelId: string | number,
+  ruleId: string,
+  params: MassingParams,
+  label?: string,
+  isBaseline?: boolean,
+  parcel?: Feature<Polygon> | null,
+  rule?: ZoningRule | null,
+  declaredCrs?: string | null,
+];
+
+function getParcelIdentifier(parcel: Feature<Polygon>): string | number | null {
+  if (typeof parcel.id === "string" || typeof parcel.id === "number") {
+    return parcel.id;
+  }
+  const propertyId = parcel.properties?.id;
+  return typeof propertyId === "string" || typeof propertyId === "number" ? propertyId : null;
+}
+
+function resolveObjectAddScenarioArgs(input: AddMassingScenarioInput): PositionalAddScenarioArgs {
+  const parcelId = input.parcelId ?? input.params.parcelId ?? getParcelIdentifier(input.parcel) ?? "parcel";
+  const floorCount = input.params.floorCount ?? input.params.targetFloors ?? input.params.floors ?? 1;
+  const params: MassingParams = {
+    parcelId,
+    buildingCount: input.params.buildingCount ?? 1,
+    floorCount,
+    coverageRatio: input.params.coverageRatio ?? 0.35,
+  };
+  return [
+    parcelId,
+    input.ruleId ?? input.rule.id,
+    params,
+    input.label,
+    input.isBaseline ?? input.params.useBaseline,
+    input.parcel,
+    input.rule,
+    input.declaredCrs ?? null,
+  ];
+}
+
 /* ------------------------------------------------------------------ */
 /*  ID helpers                                                          */
 /* ------------------------------------------------------------------ */
@@ -116,7 +172,19 @@ export const useMassingStore = create<MassingState>()(
       activeScenarioId: null,
       comparisonMetadata: null,
 
-      addScenario(parcelId, ruleId, params, label, isBaseline, parcel, rule, declaredCrs) {
+      addScenario(...args: [AddMassingScenarioInput] | PositionalAddScenarioArgs) {
+        const [
+          parcelId,
+          ruleId,
+          params,
+          label,
+          isBaseline,
+          parcel,
+          rule,
+          declaredCrs,
+        ] = typeof args[0] === "object" && "parcel" in args[0]
+          ? resolveObjectAddScenarioArgs(args[0])
+          : args;
         const id = `msc-${shortId()}`;
         const now = new Date().toISOString();
         const resolvedLabel =

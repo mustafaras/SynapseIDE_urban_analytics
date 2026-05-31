@@ -19,7 +19,7 @@
  *
  * Screenshots saved to e2e/__screens__/ for human review.
  */
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import {
   openUrbanAnalyticsWorkbench,
   resetWorkbenchState,
@@ -91,15 +91,37 @@ async function seedDistrictLayer(page: import("@playwright/test").Page, id = "p4
 }
 
 // ---------------------------------------------------------------------------
-// Helper: count unique byte values in a screenshot buffer sample
+// Helper: count unique rendered pixel colors in a screenshot buffer sample
 // ---------------------------------------------------------------------------
-function countUniqueByteValues(buffer: Buffer, sampleSize = 4000): number {
-  const seen = new Set<number>();
-  const step = Math.max(1, Math.floor(buffer.length / sampleSize));
-  for (let i = 0; i < buffer.length; i += step) {
-    seen.add(buffer[i]);
-  }
-  return seen.size;
+async function countUniquePixelColors(page: Page, buffer: Buffer, sampleSize = 4000): Promise<number> {
+  const encoded = buffer.toString("base64");
+  return page.evaluate(
+    async ({ encodedPng, sampleLimit }) => {
+      const image = new Image();
+      image.src = `data:image/png;base64,${encodedPng}`;
+      await image.decode();
+
+      const canvas = document.createElement("canvas");
+      canvas.width = image.naturalWidth;
+      canvas.height = image.naturalHeight;
+      const context = canvas.getContext("2d", { willReadFrequently: true });
+      if (!context) return 0;
+
+      context.drawImage(image, 0, 0);
+      const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+      const pixelCount = pixels.length / 4;
+      const step = Math.max(1, Math.floor(pixelCount / sampleLimit));
+      const seen = new Set<string>();
+
+      for (let pixel = 0; pixel < pixelCount; pixel += step) {
+        const index = pixel * 4;
+        seen.add(`${pixels[index]},${pixels[index + 1]},${pixels[index + 2]},${pixels[index + 3]}`);
+      }
+
+      return seen.size;
+    },
+    { encodedPng: encoded, sampleLimit: sampleSize },
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -149,7 +171,7 @@ test.describe("P40 — canvas nonblank assertion (blank-detection proof) @smoke"
 
     // --- PHASE 1: REAL canvas — must NOT look blank ---
     const realShot = await canvasRegion.screenshot({ type: "png" });
-    const realUnique = countUniqueByteValues(realShot);
+    const realUnique = await countUniquePixelColors(page, realShot);
     // A rendered map with styled polygons has significant color variation.
     // This assertion WOULD FAIL if the canvas region showed a blank/uniform surface.
     expect(realUnique).toBeGreaterThan(5);
@@ -164,8 +186,8 @@ test.describe("P40 — canvas nonblank assertion (blank-detection proof) @smoke"
     });
 
     const blankShot = await canvasRegion.screenshot({ type: "png" });
-    const blankUnique = countUniqueByteValues(blankShot);
-    // A pure-white overlay leaves ≤5 unique byte values — the detector catches it.
+    const blankUnique = await countUniquePixelColors(page, blankShot);
+    // A pure-white overlay leaves ≤5 unique rendered colors — the detector catches it.
     // This proves the CI guard would fire on a blank-canvas regression.
     expect(blankUnique).toBeLessThanOrEqual(10);
 
@@ -177,7 +199,7 @@ test.describe("P40 — canvas nonblank assertion (blank-detection proof) @smoke"
     // --- PHASE 3: after removing overlay, canvas must be non-blank again ---
     await page.waitForTimeout(200);
     const recoveredShot = await canvasRegion.screenshot({ type: "png" });
-    const recoveredUnique = countUniqueByteValues(recoveredShot);
+    const recoveredUnique = await countUniquePixelColors(page, recoveredShot);
     expect(recoveredUnique).toBeGreaterThan(5);
 
     await page.screenshot({ path: "e2e/__screens__/p40-canvas-nonblank-proof.png" });

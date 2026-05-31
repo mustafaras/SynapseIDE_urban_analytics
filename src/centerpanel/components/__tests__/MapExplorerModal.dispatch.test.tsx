@@ -44,6 +44,7 @@ vi.mock("../registry/state", () => ({
 
 vi.mock("../map/MapWorkspaceShell", () => ({
   MapWorkspaceShell: ({ children }: { children: React.ReactNode }) => <div data-map-explorer-shell="true">{children}</div>,
+  MapActivityRail: () => <nav data-testid="map-activity-rail" aria-label="Map Explorer activity" />,
   MapCanvasRegion: React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>((props, ref) => {
     return <div {...props} ref={ref} data-testid="map-canvas-region" />;
   }),

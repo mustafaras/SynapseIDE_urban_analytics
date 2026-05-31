@@ -281,12 +281,50 @@ async function openWorkflowDrawer(page: import("@playwright/test").Page) {
 async function openDrawingsPanel(page: import("@playwright/test").Page): Promise<void> {
   const panel = page.getByRole("region", { name: "Drawn features" });
   if (await panel.isVisible().catch(() => false)) return;
+  const directToggles = page.getByRole("button", { name: "Toggle drawings panel" });
+  const directToggleCount = await directToggles.count();
+  for (let index = 0; index < directToggleCount; index += 1) {
+    const directToggle = directToggles.nth(index);
+    if (await directToggle.isVisible().catch(() => false)) {
+      await triggerDomClick(directToggle);
+      await expect(panel).toBeVisible();
+      return;
+    }
+  }
   await page.keyboard.press("Control+K");
   const palette = page.getByRole("dialog", { name: "Map command palette" });
   await expect(palette).toBeVisible();
   await palette.getByLabel("Search map commands").fill("drawings");
   await triggerDomClick(palette.getByRole("option", { name: /Drawings/i }).first());
   await expect(panel).toBeVisible();
+}
+
+async function openReviewTimeline(page: import("@playwright/test").Page): Promise<void> {
+  const timeline = page.getByTestId("map-review-timeline-event").first();
+  const directReviewButton = page.getByRole("button", { name: "Open review timeline with filters and reproducible session export" }).first();
+  if (await directReviewButton.isVisible().catch(() => false)) {
+    await triggerDomClick(directReviewButton);
+    await expect(timeline).toBeVisible();
+    return;
+  }
+
+  const advancedButton = page.getByRole("button", { name: "Scientific QA, 3D sync, density, and command controls" }).first();
+  if (await advancedButton.isVisible().catch(() => false)) {
+    await triggerDomClick(advancedButton);
+    const advancedMenu = page.getByRole("menu", { name: "Advanced commands" });
+    await triggerDomClick(advancedMenu.getByRole("menuitem", {
+      name: "Open review timeline with filters and reproducible session export",
+    }).first());
+    await expect(timeline).toBeVisible();
+    return;
+  }
+
+  await page.keyboard.press("Control+K");
+  const palette = page.getByRole("dialog", { name: "Map command palette" });
+  await expect(palette).toBeVisible();
+  await palette.getByLabel("Search map commands").fill("review timeline");
+  await triggerDomClick(palette.getByRole("option", { name: /Review/i }).first());
+  await expect(timeline).toBeVisible();
 }
 
 function projectLngLat(
@@ -569,11 +607,7 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
     })).toEqual({ edited: true, status: "valid" });
     await expect(page.getByRole("region", { name: "Drawn features" })).toContainText("Validated");
 
-    await page.keyboard.press("Control+K");
-    const palette = page.getByRole("dialog", { name: "Map command palette" });
-    await expect(palette).toBeVisible();
-    await palette.getByLabel("Search map commands").fill("review timeline");
-    await triggerDomClick(palette.getByRole("option", { name: /Review/i }).first());
+    await openReviewTimeline(page);
 
     await expect(
       page.getByTestId("map-review-timeline-event").filter({ hasText: "Edited AOI" }).first(),
@@ -655,12 +689,8 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
     await triggerDomClick(page.getByRole("menuitem", { name: "Confirm delete E2E Istanbul WGS84 Points" }));
     await expect(layerList).not.toContainText("E2E Istanbul WGS84 Points");
 
-    // Open the review timeline (via the command palette) and assert the audit row + revert affordance.
-    await page.keyboard.press("Control+K");
-    const palette = page.getByRole("dialog", { name: "Map command palette" });
-    await expect(palette).toBeVisible();
-    await palette.getByLabel("Search map commands").fill("review timeline");
-    await triggerDomClick(palette.getByRole("option", { name: /Review/i }).first());
+    // Open the review timeline and assert the audit row + revert affordance.
+    await openReviewTimeline(page);
 
     const revertButton = page.getByTestId("map-review-timeline-revert");
     await expect(revertButton).toBeVisible();

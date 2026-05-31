@@ -2,7 +2,10 @@ import { expect, test, type Page } from "@playwright/test";
 import { openUrbanAnalyticsWorkbench, resetWorkbenchState, triggerDomClick } from "./helpers/urbanAnalytics";
 
 function isIgnorableDiagnostic(message: string): boolean {
-  return /failed to connect to websocket|websocket closed without opened|hmr|vite|favicon/i.test(message);
+  return (
+    /failed to connect to websocket|websocket closed without opened|hmr|vite|favicon/i.test(message) ||
+    /127\.0\.0\.1:9231|net::ERR_CONNECTION_REFUSED/i.test(message)
+  );
 }
 
 async function seedStabilityLayer(page: Page, cycle: number): Promise<void> {

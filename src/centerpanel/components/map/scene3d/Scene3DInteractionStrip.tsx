@@ -32,6 +32,7 @@ import {
   MAP_SPACING,
   MAP_STROKES,
   MAP_TYPOGRAPHY,
+  MAP_TRANSITIONS,
   MAP_Z_INDEX,
 } from "../mapTokens";
 import { GisIconButton } from "../ui/GisIconButton";

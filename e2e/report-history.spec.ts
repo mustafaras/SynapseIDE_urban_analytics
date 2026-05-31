@@ -3,6 +3,7 @@ import { openUrbanAnalyticsWorkbench, resetWorkbenchState, setFormValue, trigger
 
 test.describe("Report history flow", () => {
   test("captures snapshots, diff review, and report-save history in the report workspace", async ({ page }) => {
+    await page.setViewportSize({ width: 1680, height: 1100 });
     await resetWorkbenchState(page);
     await page.evaluate(async () => {
       const [{ seedProjects }, { loadReportLibraryState, saveReportLibraryState }] = await Promise.all([
@@ -72,7 +73,7 @@ test.describe("Report history flow", () => {
     await expect(recentChanges).not.toContainText("Save a snapshot, save the report, or complete an analytical run");
     await expect(recentChanges).toContainText("snapshot", { ignoreCase: true });
 
-    const builder = urbanModal.getByTestId("report-builder");
+    const builder = urbanModal.getByRole("region", { name: "Structured report builder" }).first();
     await setFormValue(builder.getByLabel("Report Name"), "Playwright Review History");
     const saveButton = builder.getByRole("button", { name: "Save" });
     await saveButton.scrollIntoViewIfNeeded();

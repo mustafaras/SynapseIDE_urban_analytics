@@ -85,6 +85,7 @@ import { MapSearchBar } from "../MapSearchBar";
 import { MapStatusBar, type MapStatusBarProps } from "../MapStatusBar";
 import { MapPinSidebar } from "../MapPinSidebar";
 import {
+  MapActivityRail,
   MapBottomTimeline,
   MapCanvasRegion,
   MapPanelRail,
@@ -201,7 +202,18 @@ import { useMapPanelLayout } from "./useMapPanelLayout";
 import { useMapReportController } from "./useMapReportController";
 import { useMapUrbanBridgeController } from "./useMapUrbanBridgeController";
 import { useMapWorkflowController } from "./useMapWorkflowController";
-import { IconClose, IconLayers } from "../MapIcons";
+import {
+  IconArea,
+  IconClose,
+  IconExport,
+  IconGlobe,
+  IconImage,
+  IconImport,
+  IconLayers,
+  IconMeasure,
+  IconSave,
+  IconUnknown,
+} from "../MapIcons";
 import { usePrefersReducedMotion } from "../../../../hooks/usePrefersReducedMotion";
 import {
   buildFeatureCollectionMetadata,
@@ -368,7 +380,12 @@ import { analyticsWorkerPool, isBackgroundTaskCancelledError } from "../../../..
 type CsvImportSession = import("../../../../services/map/MapDataImporter").CsvImportSession;
 type ColumnarImportSession = import("../../../../services/map/MapDataImporter").ColumnarImportSession;
 type ImportedGeoJSONLayer = import("../../../../services/map/MapDataImporter").ImportedGeoJSONLayer;
+type ImportedRasterLayer = import("../../../../services/map/MapDataImporter").ImportedRasterLayer;
 type SourceProfile = import("../../../../services/map/MapDataImporter").SourceProfile;
+
+function isImportedRasterLayer(result: ImportedGeoJSONLayer | ImportedRasterLayer): result is ImportedRasterLayer {
+  return "inspection" in result && "histogram" in result;
+}
 
 const LazyMapReportHandoffDrawer = React.lazy(async () => {
   const module = await import("../MapReportHandoffDrawer");
@@ -633,9 +650,18 @@ function formatBytes(value: number): string {
 const MAP_NAVIGATOR_STAGE_MARGIN = MAP_NUMERIC.navigatorStageMargin;
 const MAP_NAVIGATOR_STAGE_TOP = MAP_NUMERIC.navigatorStageTop;
 const MAP_NAVIGATOR_STAGE_BOTTOM = MAP_NUMERIC.navigatorStageBottom;
+const MAP_ACTIVITY_RAIL_WIDTH = "2.625rem";
 
 const srOnlyFocusable: React.CSSProperties = {
   ...mapStyles.srOnly,
+};
+
+const mapActivityRailOverlayStyle: React.CSSProperties = {
+  position: "absolute",
+  top: 0,
+  bottom: 0,
+  left: 0,
+  height: "100%",
 };
 
 const commandHeaderStyle: React.CSSProperties = {
@@ -646,7 +672,7 @@ const commandHeaderStyle: React.CSSProperties = {
   alignContent: "center",
   gap: MAP_SPACING.xs,
   minHeight: "2.75rem",
-  padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
+  padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm} ${MAP_SPACING.xs} calc(${MAP_ACTIVITY_RAIL_WIDTH} + ${MAP_SPACING.sm})`,
   overflowX: "visible",
   overflowY: "visible",
   background: MAP_COLORS.bgHeader,
@@ -2276,7 +2302,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const [isDragActive, setIsDragActive] = useState(false);
   const [pendingImportPreview, setPendingImportPreview] = useState<{
     profile: SourceProfile;
-    result?: ImportedGeoJSONLayer;
+    result?: ImportedGeoJSONLayer | ImportedRasterLayer;
   } | null>(null);
   const [pendingCsvImport, setPendingCsvImport] = useState<CsvImportSession | null>(null);
   const [pendingColumnarImport, setPendingColumnarImport] = useState<ColumnarImportSession | null>(null);
@@ -5012,6 +5038,49 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     announce(`Imported layer ${result.layer.name}`);
   }, [addOverlayLayer, announce, fitToBounds, recordMapReviewEvent, registerLayerEvidenceCandidate, updateLayerMetadata, upsertSourceHandle]);
 
+  const handleImportedRasterLayerReady = useCallback(async (result: ImportedRasterLayer) => {
+    upsertSourceHandle(result.sourceHandle);
+    const rasterStore = useRasterLayerStore.getState();
+    rasterStore.registerRasterLayer(result.layer.id, result.renderConfig);
+    const scientificQA = result.layer.metadata?.scientificQA;
+    if (scientificQA) {
+      rasterStore.applyInspection({
+        layerId: result.layer.id,
+        inspection: result.inspection,
+        qa: scientificQA,
+        histogram: result.histogram,
+      });
+    }
+    addOverlayLayer(result.layer);
+    if (result.layer.metadata?.bounds) {
+      fitToBounds(result.layer.metadata.bounds);
+    }
+
+    const evidenceArtifact = registerLayerEvidenceCandidate(result.layer, "map-explorer");
+    recordMapReviewEvent({
+      type: "layer-change",
+      category: "layer-import",
+      status: "recorded",
+      title: `Raster import evidence registered: ${result.layer.name}`,
+      summary: `GEOTIFF import added as a sampled raster layer with ${result.summary.sampledPixelCount.toLocaleString()} sampled pixel(s), CRS ${result.layer.metadata?.crsSummary?.crs ?? "unknown"}, and QA state ${result.layer.qaStatus ?? "unchecked"}.`,
+      layerIds: [result.layer.id],
+      evidenceArtifactIds: [evidenceArtifact.id],
+      actionIds: [evidenceArtifact.id],
+      details: {
+        evidenceArtifactId: evidenceArtifact.id,
+        sourceType: result.summary.sourceType,
+        rasterPixelCount: result.summary.rasterPixelCount,
+        sampledPixelCount: result.summary.sampledPixelCount,
+        bandCount: result.inspection.metadata.bandCount,
+        noData: result.inspection.metadata.noData,
+        crsStatus: result.layer.metadata?.crsSummary?.status ?? "unknown",
+      },
+    });
+
+    toastSuccess(`Imported raster ${result.layer.name} as a sampled GeoTIFF layer.`);
+    announce(`Imported raster layer ${result.layer.name}`);
+  }, [addOverlayLayer, announce, fitToBounds, recordMapReviewEvent, registerLayerEvidenceCandidate, upsertSourceHandle]);
+
   const handleCatalogAddDemoPack = useCallback((insertion: MapCatalogLayerInsertion) => {
     for (const sourceHandle of insertion.sourceHandles) {
       upsertSourceHandle(sourceHandle);
@@ -5179,7 +5248,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       stage: "Reading file",
     });
     setShowImportProgress(
-      nextFile.size > IMPORT_PROGRESS_THRESHOLD_BYTES || /\.(arrow|feather|ipc|parquet|geoparquet)$/i.test(nextFile.name),
+      nextFile.size > IMPORT_PROGRESS_THRESHOLD_BYTES || /\.(arrow|feather|ipc|parquet|geoparquet|tif|tiff)$/i.test(nextFile.name),
     );
     setImportLabel(nextFile.name);
 
@@ -5210,6 +5279,15 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         return;
       }
 
+      if (prepared.kind === "raster") {
+        setPendingImportPreview({
+          profile: prepared.result.sourceProfile,
+          result: prepared.result,
+        });
+        announce("GEOTIFF source profiled. Review raster QA before import.");
+        return;
+      }
+
       setPendingImportPreview({
         profile: prepared.result.sourceProfile,
         result: prepared.result,
@@ -5228,14 +5306,18 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     if (!pendingImportPreview?.result) return;
 
     try {
-      await handleImportedLayerReady(pendingImportPreview.result);
+      if (isImportedRasterLayer(pendingImportPreview.result)) {
+        await handleImportedRasterLayerReady(pendingImportPreview.result);
+      } else {
+        await handleImportedLayerReady(pendingImportPreview.result);
+      }
       clearPendingImportPreview();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Spatial import failed.";
       toastError(message);
       announce(`Import failed: ${message}`);
     }
-  }, [announce, clearPendingImportPreview, handleImportedLayerReady, pendingImportPreview]);
+  }, [announce, clearPendingImportPreview, handleImportedLayerReady, handleImportedRasterLayerReady, pendingImportPreview]);
 
   const handleCsvImportConfirm = useCallback(async () => {
     if (!pendingCsvImport) return;
@@ -6465,6 +6547,75 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     ? "The current map report snapshot is still rendering."
     : undefined;
   const persistenceDisabled = !selectedProjectId;
+  const activityRailItems = [
+    {
+      id: "layers",
+      label: effectiveShowLayerPanel ? "Hide layer panel" : "Show layer panel",
+      icon: <IconLayers size={MAP_ICON_SIZES.sm} />,
+      active: effectiveShowLayerPanel,
+      onClick: handleToggleLayerPanel,
+    },
+    {
+      id: "catalog",
+      label: showCatalog ? "Close catalog" : "Open catalog",
+      icon: <IconImport size={MAP_ICON_SIZES.sm} />,
+      active: showCatalog,
+      onClick: handleToggleCatalog,
+    },
+    {
+      id: "contents",
+      label: showContents ? "Close contents tree" : "Open contents tree",
+      icon: <IconGlobe size={MAP_ICON_SIZES.sm} />,
+      active: showContents,
+      onClick: handleToggleContents,
+    },
+    {
+      id: "processing",
+      label: showProcessingToolbox ? "Close processing toolbox" : "Open processing toolbox",
+      icon: <IconMeasure size={MAP_ICON_SIZES.sm} />,
+      active: showProcessingToolbox,
+      onClick: handleToggleProcessingToolbox,
+    },
+    {
+      id: "layout",
+      label: showFigureComposer ? "Close layout designer" : "Open layout designer",
+      icon: <IconImage size={MAP_ICON_SIZES.sm} />,
+      active: showFigureComposer,
+      onClick: handleToggleFigureComposer,
+    },
+    {
+      id: "scene3d",
+      label: show3DPanel ? "Close 3D scene" : "Open 3D scene",
+      icon: <IconArea size={MAP_ICON_SIZES.sm} />,
+      active: show3DPanel,
+      onClick: () => setShow3DPanel((previous) => !previous),
+    },
+  ];
+  const activityRailBottomItems = [
+    {
+      id: "qa",
+      label: showScientificQAPanel ? "Close scientific QA" : "Open scientific QA",
+      icon: <IconUnknown size={MAP_ICON_SIZES.sm} />,
+      active: showScientificQAPanel,
+      onClick: handleToggleScientificQAPanel,
+    },
+    {
+      id: "export",
+      label: "Export map data",
+      icon: <IconExport size={MAP_ICON_SIZES.sm} />,
+      disabled: exportDisabled,
+      ...(exportDisabledReason ? { disabledReason: exportDisabledReason } : {}),
+      onClick: toolbarCommandHandlers.exportData,
+    },
+    {
+      id: "save",
+      label: "Save map project",
+      icon: <IconSave size={MAP_ICON_SIZES.sm} />,
+      disabled: persistenceDisabled,
+      ...(persistenceDisabled ? { disabledReason: "Select or create a project before saving map state." } : {}),
+      onClick: toolbarCommandHandlers.saveProject,
+    },
+  ];
 
   return createPortal(
     <MapWorkspaceShell mode={mode} shellRef={trapRef} onClose={onClose}>
@@ -6517,6 +6668,13 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
 
         {/* Screen reader announcements */}
         <AnnouncerRegion />
+
+        <MapActivityRail
+          items={activityRailItems}
+          bottomItems={activityRailBottomItems}
+          aria-label="Map Explorer activity"
+          style={mapActivityRailOverlayStyle}
+        />
 
         {/* Header bar */}
         <div ref={headerRef} style={commandHeaderStyle} role="toolbar" aria-label="Map command bar">
@@ -6698,6 +6856,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             "--map-dock-left": `${navigatorLeftInset}px`,
             "--map-dock-right": `${navigatorRightInset}px`,
             "--map-layer-panel-width": `${dockLayout.layerPanelWidth}px`,
+            "--map-activity-rail-width": MAP_ACTIVITY_RAIL_WIDTH,
+            marginLeft: MAP_ACTIVITY_RAIL_WIDTH,
           } as React.CSSProperties}
           data-map-dock-compact={dockLayout.compactDock ? "true" : "false"}
           data-map-right-panel={dockLayout.activeRightPanel ?? "none"}
@@ -6720,7 +6880,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               }}
               aria-hidden="true"
             >
-              Drop GeoJSON, CSV, Arrow, GeoParquet, KML, KMZ, or GPX to import
+              Drop GeoJSON, CSV, Arrow, GeoParquet, KML, KMZ, GPX, or GeoTIFF to import
             </div>
           ) : null}
 

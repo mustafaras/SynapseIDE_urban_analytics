@@ -95,10 +95,12 @@ test.describe("Map Explorer figure composer", () => {
       }));
     }
 
-    const composer = page.getByRole("dialog", { name: "Publication figure composer" });
+    const composer = page.getByRole("dialog", { name: /Publication figure composer|Layout designer/i }).first();
     await expect(composer).toBeVisible();
-    await expect(composer.getByTestId("map-figure-blockers")).toContainText("Attribution and license");
-    await expect(composer.getByTestId("map-figure-blockers")).toContainText("E2E Missing Attribution District");
-    await expect(composer.getByTestId("map-figure-export")).toBeDisabled();
+    const blockers = composer.getByTestId("map-figure-blockers").or(composer.getByTestId("map-layout-blockers"));
+    await expect(blockers).toContainText("Attribution and license");
+    await expect(blockers).toContainText("E2E Missing Attribution District");
+    const exportButton = composer.getByTestId("map-figure-export").or(composer.getByTestId("map-layout-export"));
+    await expect(exportButton).toBeDisabled();
   });
 });

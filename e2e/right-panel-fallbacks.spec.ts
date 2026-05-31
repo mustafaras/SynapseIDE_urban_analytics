@@ -38,15 +38,15 @@ test.describe('Prompt 11 right-panel fallbacks', () => {
 
     const tablist = urbanModal.getByRole('tablist', { name: 'Content sections' });
 
-    await triggerDomClick(tablist.getByRole('tab', { name: 'Python Code' }));
+    await triggerDomClick(tablist.getByRole('tab', { name: 'Code & Repro' }));
     const codeBlock = urbanModal.locator('#rp-tabpanel-code .rp-prompt-code').first();
     await expect(codeBlock).toBeVisible();
     await expect(codeBlock).toContainText(/Related Urban Indicators & Indices example:|starter scaffold/);
 
-    await triggerDomClick(tablist.getByRole('tab', { name: 'Data Req.' }));
+    await triggerDomClick(tablist.getByRole('tab', { name: 'Data Fitness' }));
     await expect(urbanModal.locator('#rp-tabpanel-data .rp-data-block').first()).toBeVisible();
 
-    await triggerDomClick(tablist.getByRole('tab', { name: 'References' }));
+    await triggerDomClick(tablist.getByRole('tab', { name: 'Evidence & Refs' }));
     await expect(urbanModal.locator('#rp-tabpanel-references .rp-ref-item').first()).toBeVisible();
 
     await triggerDomClick(tablist.getByRole('tab', { name: 'Methodology' }));

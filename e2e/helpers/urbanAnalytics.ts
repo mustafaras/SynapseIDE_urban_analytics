@@ -12,7 +12,9 @@ export async function resetWorkbenchState(page: Page): Promise<void> {
 }
 
 export async function openUrbanAnalyticsWorkbench(page: Page): Promise<Locator> {
-  const openAnalyticsButton = page.getByRole("button", { name: "Open Urban Analytics" });
+  const openAnalyticsButton = page
+    .getByRole("button", { name: /^(Open Urban Analytics|Analytics)$/ })
+    .first();
   await expect(openAnalyticsButton).toBeVisible();
   await openAnalyticsButton.click();
 

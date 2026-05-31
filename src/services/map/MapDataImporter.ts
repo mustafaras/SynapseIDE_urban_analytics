@@ -12,6 +12,7 @@ import type {
   LayerSchemaSummary,
   LayerScientificQAMetadata,
   LayerSourceKind,
+  MapRasterLayerMetadata,
   OverlayGeometryType,
   OverlayLayerConfig,
 } from "../../centerpanel/components/map/mapTypes";
@@ -36,6 +37,11 @@ import {
 import {
   buildOnTheFlyVectorTileLayerMetadata,
 } from "./tiling/VectorTilePipelineService";
+import { createGeoTiffSampleImageDataUrl, defaultRasterRenderConfig } from "./raster/GeoTiffParser";
+import type { GeoTiffInspection, RasterLayerRenderConfig } from "./raster/GeoTiffParser";
+import { assessRasterQA } from "./raster/RasterQAService";
+import { computeHistogram } from "./raster/RasterHistogramEngine";
+import type { BandHistogramResult } from "./raster/RasterHistogramEngine";
 
 export const MAX_IMPORT_FILE_SIZE_BYTES = 50 * 1024 * 1024;
 export const MAX_GEOJSON_FILE_SIZE_BYTES = MAX_IMPORT_FILE_SIZE_BYTES;
@@ -110,7 +116,7 @@ export interface GeoJSONRenderNormalizationOptions {
   propertyValueCharLimit?: number;
 }
 
-export type MapImportFileKind = "geojson" | "csv" | "arrow" | "geoparquet" | "kml" | "kmz" | "gpx" | "shapefile" | "geopackage";
+export type MapImportFileKind = "geojson" | "csv" | "arrow" | "geoparquet" | "kml" | "kmz" | "gpx" | "shapefile" | "geopackage" | "geotiff";
 
 export type SourceProfileSupportStatus = "supported" | "partial" | "unsupported";
 
@@ -161,6 +167,20 @@ export interface ImportedGeoJSONLayer {
   sourceHandle: SourceHandle;
   sourceProfile: SourceProfile;
   summary?: ImportedLayerSummary;
+}
+
+export interface ImportedRasterLayer {
+  inspection: GeoTiffInspection;
+  histogram: BandHistogramResult;
+  renderConfig: RasterLayerRenderConfig;
+  layer: OverlayLayerConfig;
+  sourceHandle: SourceHandle;
+  sourceProfile: SourceProfile;
+  summary: ImportedLayerSummary & {
+    sourceType: "geotiff";
+    rasterPixelCount: number;
+    sampledPixelCount: number;
+  };
 }
 
 export interface CsvPreviewRow {
@@ -218,6 +238,7 @@ export interface GeoPackageLayerInfo {
   tableName: string;
   featureCount: number | null;
   geometryType: string | null;
+  crsSummary: LayerCrsSummary;
 }
 
 export interface GeoPackageImportSession {
@@ -244,6 +265,10 @@ export type PreparedMapImportResult =
   | {
       kind: "profile";
       profile: SourceProfile;
+    }
+  | {
+      kind: "raster";
+      result: ImportedRasterLayer;
     }
   | {
       kind: "geopackage";
@@ -1286,7 +1311,7 @@ export function detectImportFileType(file: File): MapImportFileKind {
   }
 
   throw new MapDataImportError(
-    "Unsupported file type. Please choose GeoJSON, CSV, Arrow, GeoParquet, KML, KMZ, GPX, Shapefile (.shp/.zip), or GeoPackage (.gpkg).",
+    "Unsupported file type. Please choose GeoJSON, CSV, Arrow, GeoParquet, KML, KMZ, GPX, Shapefile (.shp/.zip), GeoPackage (.gpkg), or GeoTIFF (.tif/.tiff).",
   );
 }
 
@@ -1299,7 +1324,8 @@ function isMapImportFileKind(format: SourceFormat): format is MapImportFileKind 
     format === "kmz" ||
     format === "gpx" ||
     format === "shapefile" ||
-    format === "geopackage";
+    format === "geopackage" ||
+    format === "geotiff";
 }
 
 export function detectSourceProfileFormat(file: File): SourceFormat {
@@ -2626,6 +2652,117 @@ export function buildShapefileLayerFromFc(
   );
 }
 
+const GEO_PACKAGE_CRS_KEYS = [
+  "crs",
+  "coordinateReferenceSystem",
+  "coordinate_reference_system",
+  "epsg",
+  "epsgCode",
+  "srs",
+  "srsId",
+  "srs_id",
+  "spatialReference",
+  "spatial_reference",
+  "projection",
+  "proj",
+] as const;
+
+const GEO_PACKAGE_CRS_SCAN_SKIP_KEYS = new Set([
+  "data",
+  "features",
+  "properties",
+  "geometry",
+  "coordinates",
+]);
+
+function normalizeEpsgCandidate(value: unknown): string | null {
+  if (typeof value === "number" && Number.isInteger(value) && value > 0) {
+    return `EPSG:${value}`;
+  }
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const authority = parsePrjText(trimmed);
+  if (authority) {
+    return authority;
+  }
+
+  const epsgMatch = /\bEPSG(?::|\/|\s+)?(\d{3,6})\b/i.exec(trimmed);
+  if (epsgMatch?.[1]) {
+    return `EPSG:${epsgMatch[1]}`;
+  }
+
+  if (/^\d{3,6}$/.test(trimmed)) {
+    return `EPSG:${trimmed}`;
+  }
+
+  return null;
+}
+
+function findGeoPackageEpsgCode(value: unknown, depth = 0): string | null {
+  if (depth > 5) {
+    return null;
+  }
+
+  const direct = normalizeEpsgCandidate(value);
+  if (direct) {
+    return direct;
+  }
+
+  if (Array.isArray(value)) {
+    for (const entry of value.slice(0, 24)) {
+      const nested = findGeoPackageEpsgCode(entry, depth + 1);
+      if (nested) return nested;
+    }
+    return null;
+  }
+
+  if (typeof value !== "object" || value === null) {
+    return null;
+  }
+
+  const record = value as Record<string, unknown>;
+  for (const key of GEO_PACKAGE_CRS_KEYS) {
+    const nested = findGeoPackageEpsgCode(record[key], depth + 1);
+    if (nested) return nested;
+  }
+
+  for (const [key, nestedValue] of Object.entries(record)) {
+    if (GEO_PACKAGE_CRS_SCAN_SKIP_KEYS.has(key)) {
+      continue;
+    }
+    const nested = findGeoPackageEpsgCode(nestedValue, depth + 1);
+    if (nested) return nested;
+  }
+
+  return null;
+}
+
+export function extractGeoPackageLayerCrsSummary(layer: Record<string, unknown>): LayerCrsSummary {
+  const epsgCode = findGeoPackageEpsgCode(layer);
+  if (epsgCode) {
+    return {
+      crs: epsgCode,
+      status: "known",
+      source: "import-source",
+      notes: ["CRS read from GeoPackage layer metadata; verify suitability before analytical measurement."],
+    };
+  }
+
+  return {
+    crs: null,
+    status: "missing",
+    source: "import-source",
+    notes: ["GeoPackage layer did not expose embedded CRS metadata through the browser loader; declare CRS before metric analysis."],
+  };
+}
+
 /**
  * Parses a zipped Shapefile (or bare .shp) using shpjs.
  * Returns an ImportedGeoJSONLayer with CRS derived from the embedded .prj file.
@@ -2700,7 +2837,12 @@ async function parseGeoPackageArrayBuffer(data: ArrayBuffer, fileName: string): 
       typeof l["schema"] === "object" && l["schema"] !== null
         ? (((l["schema"] as Record<string, unknown>)["metadata"] as Record<string, unknown> | undefined)?.["geometryType"] as string | undefined) ?? null
         : null;
-    return { tableName, featureCount, geometryType };
+    return {
+      tableName,
+      featureCount,
+      geometryType,
+      crsSummary: extractGeoPackageLayerCrsSummary(l),
+    };
   });
 
   return {
@@ -2772,14 +2914,204 @@ export async function commitGeoPackageLayer(
     "geopackage",
     undefined,
     {
-      crsSummary: {
-        crs: "EPSG:4326",
-        status: "known",
-        source: "import-source",
-        notes: ["GeoPackage data is stored in WGS 84 (EPSG:4326) by specification; verify before analytical measurement."],
-      },
+      crsSummary: extractGeoPackageLayerCrsSummary(targetLayer),
     },
   );
+}
+
+function buildGeoTiffCrsSummary(inspection: GeoTiffInspection): LayerCrsSummary {
+  if (inspection.metadata.epsgCode) {
+    return {
+      crs: inspection.metadata.epsgCode,
+      status: "known",
+      source: "import-source",
+      notes: ["CRS read from GeoTIFF GeoKey metadata; verify analytical suitability before metric use."],
+    };
+  }
+
+  return {
+    crs: null,
+    status: "missing",
+    source: "import-source",
+    notes: ["GeoTIFF did not expose an EPSG CRS; declare CRS before spatial analysis or publication."],
+  };
+}
+
+function rasterImageCoordinates(
+  bbox: GeoTiffInspection["metadata"]["bbox"],
+): MapRasterLayerMetadata["imageCoordinates"] | null {
+  if (!bbox) return null;
+  const [west, south, east, north] = bbox;
+  return [
+    [west, north],
+    [east, north],
+    [east, south],
+    [west, south],
+  ];
+}
+
+function normalizeRasterQa(qa: LayerScientificQAMetadata, caveats: readonly string[]): LayerScientificQAMetadata {
+  const status = qa.status === "passed" || qa.status === "warning" ? qa.status : "error";
+  return {
+    ...qa,
+    status,
+    caveats: uniqueTextList([...qa.caveats, ...caveats]),
+  };
+}
+
+export function buildGeoTiffImportedRasterLayer(
+  fileName: string,
+  inspection: GeoTiffInspection,
+  options?: {
+    sourceSizeBytes?: number;
+  },
+): ImportedRasterLayer {
+  const layerId = createLayerId("raster");
+  const importedAt = nowIsoTimestamp();
+  const renderConfig = defaultRasterRenderConfig();
+  const selectedBandIndex = renderConfig.selectedBandIndex;
+  const bandSample = inspection.bandSamples[selectedBandIndex] ?? inspection.bandSamples[0];
+  const histogram = bandSample
+    ? computeHistogram(bandSample.samples, inspection.metadata.noData, 32)
+    : {
+        stats: { min: 0, max: 0, mean: 0, noDataCount: 0, sampleCount: 0, validCount: 0 },
+        bins: [],
+        binCount: 32,
+        sampledCount: 0,
+      };
+  const imageCoordinates = rasterImageCoordinates(inspection.metadata.bbox);
+  const crsSummary = buildGeoTiffCrsSummary(inspection);
+  const rasterCaveats = uniqueTextList([
+    ...inspection.caveats,
+    "GeoTIFF is rendered as a bounded sampled image preview; full-resolution raster analytics remain worker-gated.",
+    ...(imageCoordinates ? [] : ["GeoTIFF did not expose a geographic bounding box; the raster layer is imported for inspection but remains hidden until georeferencing is repaired."]),
+    "Imported file license and attribution are not declared by the browser import pipeline; review before publication.",
+  ]);
+  const rasterMetadata: MapRasterLayerMetadata = {
+    version: 1,
+    sourceFormat: "geotiff",
+    renderMode: "sampled-image",
+    width: inspection.metadata.width,
+    height: inspection.metadata.height,
+    bandCount: inspection.metadata.bandCount,
+    selectedBandIndex,
+    noData: inspection.metadata.noData,
+    epsgCode: inspection.metadata.epsgCode,
+    sampled: inspection.metadata.sampled,
+    sampleWidth: inspection.metadata.sampleWidth,
+    sampleHeight: inspection.metadata.sampleHeight,
+    ...(imageCoordinates ? { imageCoordinates } : {}),
+    caveats: rasterCaveats,
+  };
+  const scientificQA = normalizeRasterQa(assessRasterQA(inspection.metadata), rasterCaveats);
+  const metadata: LayerMetadata = {
+    geometryType: "Raster",
+    ...(inspection.metadata.bbox ? { bounds: inspection.metadata.bbox } : {}),
+    fields: inspection.metadata.bands.map((band) => band.label),
+    importFormat: "geotiff",
+    updatedAt: importedAt,
+    dataVersion: `geotiff:${importedAt}`,
+    importSource: {
+      format: "geotiff",
+      fileName,
+      sourceName: fileName,
+      importedAt,
+      importedFeatureCount: 0,
+      ...(options?.sourceSizeBytes != null ? { fileSizeBytes: options.sourceSizeBytes } : {}),
+      ...(inspection.metadata.epsgCode ? { declaredCrs: inspection.metadata.epsgCode } : {}),
+      sourceConfidence: inspection.metadata.epsgCode ? "declared" : "unknown",
+      workerTransferStatus: "not-required",
+      caveats: rasterCaveats,
+    },
+    crsSummary,
+    schemaSummary: {
+      fieldCount: inspection.metadata.bandCount,
+      fields: inspection.metadata.bands.map((band) => ({
+        name: band.label,
+        role: "attribute",
+        type: band.dtype,
+      })),
+      source: "import-source",
+      notes: ["GeoTIFF band metadata is exposed as raster schema fields for inspection and reporting."],
+    },
+    licenseAttribution: buildImportLicenseAttribution(fileName),
+    scientificQA,
+    evidenceArtifactId: createEvidenceArtifactId(layerId),
+    raster: rasterMetadata,
+  };
+  const layerBase: OverlayLayerConfig = {
+    id: layerId,
+    name: stripExtension(fileName),
+    type: "raster-tile",
+    visible: Boolean(imageCoordinates),
+    opacity: renderConfig.opacity,
+    sourceData: createGeoTiffSampleImageDataUrl(inspection, selectedBandIndex),
+    sourceKind: "imported",
+    qaStatus: scientificQA.status,
+    queryable: false,
+    provenance: {
+      label: "GEOTIFF import",
+      sourceName: fileName,
+      method: "Browser GeoTIFF sampled raster import",
+      collectedAt: importedAt,
+      generatedAt: importedAt,
+      notes: rasterCaveats,
+    },
+    metadata,
+    group: "data",
+  };
+  const sourceHandle = createImportSourceHandle({
+    layer: layerBase,
+    format: "geotiff",
+    ...(options?.sourceSizeBytes != null ? { sourceSizeBytes: options.sourceSizeBytes } : {}),
+  });
+  const metadataWithSource = {
+    ...metadata,
+    sourceId: sourceHandle.sourceId,
+    sourceStorageMode: sourceHandle.storageMode,
+    sourceRestoreStatus: sourceHandle.restoreStatus,
+    importSource: {
+      ...metadata.importSource,
+      sourceId: sourceHandle.sourceId,
+      ...(sourceHandle.sizeBytes != null ? { fileSizeBytes: sourceHandle.sizeBytes } : {}),
+    },
+  } satisfies LayerMetadata;
+  const layer = withNormalizedLayerRegistryMetadata(
+    applySourceHandleToLayer({
+      ...layerBase,
+      metadata: metadataWithSource,
+    }, sourceHandle),
+  );
+  const pixelCount = inspection.metadata.width * inspection.metadata.height;
+  const sourceProfile = createSourceProfile({
+    sourceHandle,
+    format: "geotiff",
+    sourceName: fileName,
+    supportStatus: "supported",
+    canCommit: true,
+    profileStrategy: "sampled",
+    featureCount: null,
+    ...(sourceHandle.sizeBytes != null ? { sizeBytes: sourceHandle.sizeBytes } : {}),
+    estimatedMemoryBytes: inspection.bandSamples.reduce((sum, band) => sum + band.samples.byteLength, 0),
+    ...(inspection.metadata.bbox ? { extent: inspection.metadata.bbox } : {}),
+    workerReady: true,
+    caveats: rasterCaveats,
+  });
+
+  return {
+    inspection,
+    histogram,
+    renderConfig,
+    layer,
+    sourceHandle,
+    sourceProfile,
+    summary: {
+      sourceType: "geotiff",
+      importedFeatureCount: 0,
+      rasterPixelCount: pixelCount,
+      sampledPixelCount: inspection.metadata.sampleWidth * inspection.metadata.sampleHeight,
+    },
+  };
 }
 
 export async function prepareMapImportFile(
@@ -2848,6 +3180,30 @@ export async function prepareMapImportFile(
     return {
       kind: "columnar",
       session: createColumnarImportSession(file.name, artifact),
+    };
+  }
+
+  if (fileType === "geotiff") {
+    const data = await readFileAsArrayBuffer(file, options?.onProgress);
+    options?.onProgress?.({
+      loaded: file.size,
+      total: file.size,
+      percent: 72,
+      stage: "Sampling GeoTIFF bands",
+      estimatedMemoryBytes: file.size,
+    });
+    const { parseGeoTiffArrayBuffer } = await import("./raster/GeoTiffParser");
+    const inspection = await parseGeoTiffArrayBuffer(data, file.size);
+    options?.onProgress?.({
+      loaded: file.size,
+      total: file.size,
+      percent: 100,
+      stage: "GeoTIFF preview ready",
+      estimatedMemoryBytes: inspection.bandSamples.reduce((sum, band) => sum + band.samples.byteLength, 0),
+    });
+    return {
+      kind: "raster",
+      result: buildGeoTiffImportedRasterLayer(file.name, inspection, { sourceSizeBytes: file.size }),
     };
   }
 

@@ -155,7 +155,7 @@ const LOCAL_FORMATS = [
   {
     label: "GeoTIFF",
     extensions: ".tif, .tiff",
-    description: "Metadata preflight with raster caveats; render, histogram, and band QA land in the raster slice.",
+    description: "Sampled raster rendering with band histogram, no-data handling, CRS caveats, and raster QA.",
   },
 ] as const;
 
@@ -222,6 +222,7 @@ export const MapDataImportHubDialog: React.FC<MapDataImportHubDialogProps> = ({
               </div>
               <div style={{ color: MAP_COLORS.textSecondary, fontSize: 12, lineHeight: 1.55 }}>
                 Local files now surface source quality before commit: CRS status, schema, size, skipped rows, license and attribution gaps, and worker readiness.
+                Columnar formats now surface schema previews, worker transfer diagnostics, and geometry decoding notes.
               </div>
             </div>
 

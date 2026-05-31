@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import type { FeatureCollection } from "geojson";
 import {
   buildFeatureCollectionMetadata,
+  buildGeoTiffImportedRasterLayer,
   createRenderSafeFeatureCollection,
   completeCsvImport,
   createCsvImportSession,
@@ -333,17 +334,64 @@ describe("MapDataImporter", () => {
   });
 
   it("returns a metadata-only preflight for partial local source formats", async () => {
-    const prepared = await prepareMapImportFile(new File([new Uint8Array([1, 2, 3, 4])], "raster.tif", {
-      type: "image/tiff",
+    const prepared = await prepareMapImportFile(new File([new Uint8Array([1, 2, 3, 4])], "tiles.pmtiles", {
+      type: "application/octet-stream",
     }));
 
     expect(prepared.kind).toBe("profile");
     if (prepared.kind !== "profile") {
-      throw new Error(`Expected profile-only GeoTIFF preflight, received ${prepared.kind}.`);
+      throw new Error(`Expected profile-only PMTiles preflight, received ${prepared.kind}.`);
     }
-    expect(prepared.profile.format).toBe("geotiff");
+    expect(prepared.profile.format).toBe("pmtiles");
     expect(prepared.profile.canCommit).toBe(false);
     expect(prepared.profile.workerReady).toBe(true);
+  });
+
+  it("builds a committable sampled GeoTIFF raster layer from an inspection", () => {
+    const samples = new Float64Array([1, 2, 3, 4]);
+    const inspection = {
+      metadata: {
+        width: 2,
+        height: 2,
+        bandCount: 1,
+        bands: [{ index: 0, label: "Band 1", dtype: "float32" }],
+        noData: null,
+        bbox: [28.9, 40.9, 29.1, 41.1] as [number, number, number, number],
+        epsgCode: "EPSG:4326",
+        sampled: false,
+        sampleWidth: 2,
+        sampleHeight: 2,
+        sizeBytes: 256,
+      },
+      bandSamples: [{
+        bandIndex: 0,
+        samples,
+        stats: { min: 1, max: 4, mean: 2.5, noDataCount: 0, sampleCount: 4, validCount: 4 },
+      }],
+      caveats: ["No GDAL_NODATA value declared; rendering and statistics assume all pixels are valid."],
+    };
+
+    const result = buildGeoTiffImportedRasterLayer("sample.tif", inspection, { sourceSizeBytes: 256 });
+
+    expect(result.layer.type).toBe("raster-tile");
+    expect(result.layer.sourceData).toEqual(expect.stringContaining("data:image/svg+xml"));
+    expect(result.layer.metadata?.raster).toMatchObject({
+      sourceFormat: "geotiff",
+      renderMode: "sampled-image",
+      width: 2,
+      height: 2,
+      bandCount: 1,
+      epsgCode: "EPSG:4326",
+    });
+    expect(result.layer.metadata?.raster?.imageCoordinates).toEqual([
+      [28.9, 41.1],
+      [29.1, 41.1],
+      [29.1, 40.9],
+      [28.9, 40.9],
+    ]);
+    expect(result.sourceProfile.canCommit).toBe(true);
+    expect(result.sourceHandle.format).toBe("geotiff");
+    expect(result.summary.sampledPixelCount).toBe(4);
   });
 
   it("classifies oversized local imports as non-inline source handles", async () => {

@@ -2012,7 +2012,7 @@ const LayerRow: React.FC<LayerRowProps> = ({
           </div>
         ) : null}
 
-        {onInspectLayer || onOpenAttributeTable ? (
+        {onInspectLayer || onOpenAttributeTable || onOpenSymbology ? (
           <div style={layerInlineActions}>
             {onOpenAttributeTable ? (
               <button
@@ -2039,6 +2039,17 @@ const LayerRow: React.FC<LayerRowProps> = ({
                 style={layerInlineActionButton}
               >
                 Inspect
+              </button>
+            ) : null}
+            {onOpenSymbology ? (
+              <button
+                type="button"
+                onClick={() => onOpenSymbology(layer.id)}
+                aria-label={`Open symbology panel for ${layer.name}`}
+                title={`Open symbology panel for ${layer.name}`}
+                style={layerInlineActionButton}
+              >
+                Style
               </button>
             ) : null}
           </div>
