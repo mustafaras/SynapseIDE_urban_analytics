@@ -320,10 +320,14 @@ const railResizeHandleBaseStyle: React.CSSProperties = {
 
 const bottomTimelineShellStyle: React.CSSProperties = {
   flexShrink: 0,
+  width: "100%",
+  maxWidth: "100%",
   minWidth: MAP_SPACING.zero,
   display: "grid",
+  gridTemplateColumns: "minmax(0, 1fr)",
   background: MAP_COLORS.bgPanel,
   borderTop: MAP_CHROME_BORDER_SUBTLE,
+  overflow: "hidden",
 };
 
 const bottomTimelineSlotStyle: React.CSSProperties = {

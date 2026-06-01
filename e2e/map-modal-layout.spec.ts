@@ -1,7 +1,7 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { openUrbanAnalyticsWorkbench, resetWorkbenchState, triggerDomClick } from "./helpers/urbanAnalytics";
 
-async function openMapExplorer(page: import("@playwright/test").Page) {
+async function openMapExplorer(page: Page) {
   const urbanModal = await openUrbanAnalyticsWorkbench(page);
   await triggerDomClick(urbanModal.getByRole("button", { name: "Open Map Explorer (Ctrl+Shift+M)" }));
 
@@ -13,7 +13,21 @@ async function openMapExplorer(page: import("@playwright/test").Page) {
   return mapExplorer;
 }
 
-async function getPersistedLayerPanelWidth(page: import("@playwright/test").Page): Promise<number | null> {
+async function openMapExplorerFromStore(page: Page) {
+  await page.evaluate(async () => {
+    const module = await import("/src/stores/useMapExplorerStore.ts");
+    module.useMapExplorerStore.getState().open();
+  });
+
+  const mapExplorer = page.getByRole("dialog", { name: "Map Explorer" }).first();
+  await expect(mapExplorer).toBeVisible();
+  const exploreButton = page.getByRole("button", { name: /Explore Layers|Switch map workspace to explore/i }).first();
+  await expect(exploreButton).toBeVisible();
+  await triggerDomClick(exploreButton);
+  return mapExplorer;
+}
+
+async function getPersistedLayerPanelWidth(page: Page): Promise<number | null> {
   return page.evaluate(() => {
     const raw = window.localStorage.getItem("synapse-map-explorer");
     if (!raw) return null;
@@ -22,7 +36,98 @@ async function getPersistedLayerPanelWidth(page: import("@playwright/test").Page
   });
 }
 
-async function seedComparisonLayers(page: import("@playwright/test").Page): Promise<void> {
+async function openCommandPalette(page: Page) {
+  await page.keyboard.press("Control+K");
+  const palette = page.getByRole("dialog", { name: "Map command palette" });
+  await expect(palette).toBeVisible();
+  return palette;
+}
+
+async function expectPaletteCommand(page: Page, query: string, commandId: string): Promise<void> {
+  const palette = page.getByRole("dialog", { name: "Map command palette" });
+  await palette.getByLabel("Search map commands").fill(query);
+  await expect(page.getByTestId(`map-command-palette-option-${commandId}`)).toBeVisible();
+}
+
+async function openSidebarTab(page: Page, tabId: string): Promise<void> {
+  const tab = page.getByTestId(`map-workbench-sidebar-tab-${tabId}`);
+  await expect(tab).toBeVisible();
+  await tab.scrollIntoViewIfNeeded();
+  await triggerDomClick(tab);
+  await expect(tab).toHaveAttribute("aria-selected", "true");
+}
+
+async function openPrompt16Explorer(page: Page, options: { seedWorkflowLayer?: boolean } = {}) {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await resetWorkbenchState(page);
+  await openMapExplorerFromStore(page);
+  if (options.seedWorkflowLayer) {
+    await seedWorkflowBufferLayer(page);
+  }
+
+  const shell = page.locator('[data-map-explorer-shell="true"]');
+  const rail = page.getByTestId("map-activity-rail");
+  await expect(shell).toBeVisible();
+  await expect(rail).toBeVisible();
+  await expect(page.getByTestId("map-canvas-region")).toBeVisible();
+  return { shell, rail };
+}
+
+async function expectNoHorizontalOverflowOrPanelOverlap(page: Page): Promise<void> {
+  const result = await page.evaluate(() => {
+    const selectors = [
+      { name: "shell", selector: '[data-map-explorer-shell="true"]' },
+      { name: "command center", selector: '[data-testid="map-command-center"]', allowInternalOverflow: true },
+      { name: "activity rail", selector: '[data-testid="map-activity-rail"]' },
+      { name: "panel rail", selector: '[data-testid="map-layer-panel-rail"]', allowInternalOverflow: true },
+      { name: "workbench sidebar", selector: '[data-map-workbench-sidebar="true"]' },
+      { name: "canvas region", selector: '[data-testid="map-canvas-region"]' },
+      { name: "inspector", selector: '[data-testid="map-inspector-host"]' },
+      { name: "bottom timeline", selector: '[data-testid="map-bottom-timeline"]' },
+      { name: "bottom panel", selector: '[data-testid="map-bottom-panel"]' },
+    ];
+    const isVisible = (element: Element): boolean => {
+      const rect = element.getBoundingClientRect();
+      const style = window.getComputedStyle(element);
+      return rect.width > 0 && rect.height > 0 && style.visibility !== "hidden" && style.display !== "none";
+    };
+    const boundsIssues = selectors.flatMap(({ name, selector, allowInternalOverflow }) =>
+      Array.from(document.querySelectorAll(selector)).flatMap((element, index) => {
+        if (!isVisible(element)) return [];
+        const rect = element.getBoundingClientRect();
+        const ownOverflow = Math.max(0, element.scrollWidth - element.clientWidth);
+        const internalOverflow = !allowInternalOverflow && ownOverflow > 2;
+        const outOfViewport = rect.left < -1 || rect.right > window.innerWidth + 1;
+        return internalOverflow || outOfViewport
+          ? [{
+              name: `${name}${index > 0 ? ` ${index + 1}` : ""}`,
+              left: Math.round(rect.left),
+              right: Math.round(rect.right),
+              viewportWidth: window.innerWidth,
+              ownOverflow,
+            }]
+          : [];
+      }),
+    );
+    const bottomPanel = document.querySelector('[data-testid="map-bottom-panel"]');
+    const statusBar = document.querySelector('[role="status"][aria-label="Map status"]');
+    const overlapIssues = bottomPanel && statusBar && isVisible(bottomPanel) && isVisible(statusBar)
+      ? (() => {
+          const panelRect = bottomPanel.getBoundingClientRect();
+          const statusRect = statusBar.getBoundingClientRect();
+          return panelRect.bottom <= statusRect.top + 1
+            ? []
+            : [{ name: "bottom panel/status bar", panelBottom: Math.round(panelRect.bottom), statusTop: Math.round(statusRect.top) }];
+        })()
+      : [];
+    return { boundsIssues, overlapIssues };
+  });
+
+  expect(result.boundsIssues, JSON.stringify(result.boundsIssues)).toEqual([]);
+  expect(result.overlapIssues, JSON.stringify(result.overlapIssues)).toEqual([]);
+}
+
+async function seedComparisonLayers(page: Page): Promise<void> {
   await page.evaluate(async () => {
     const module = await import("/src/stores/useMapExplorerStore.ts");
     const createFeatureCollection = (offset: number, label: string) => ({
@@ -357,6 +462,131 @@ function projectLngLat(
 }
 
 test.describe("Prompt 35 premium Map Explorer layout", () => {
+  test("opens, closes, and reopens the modal without losing the entry point", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await resetWorkbenchState(page);
+
+    const mapExplorer = await openMapExplorer(page);
+    await expect(page.getByTestId("map-canvas-region")).toBeVisible();
+
+    await triggerDomClick(page.getByRole("button", { name: "Close map explorer (Escape)" }));
+    await expect(mapExplorer).toBeHidden();
+
+    const urbanModal = page.getByRole("dialog", { name: "Urban Analytics Workbench" });
+    await expect(urbanModal).toBeVisible();
+    await triggerDomClick(urbanModal.getByRole("button", { name: "Open Map Explorer (Ctrl+Shift+M)" }));
+    await expect(page.getByRole("dialog", { name: "Map Explorer" }).first()).toBeVisible();
+    await expect(page.getByTestId("map-canvas-region")).toBeVisible();
+  });
+
+  test("keeps hidden Prompt 16 command palette routes discoverable", async ({ page }) => {
+    await openPrompt16Explorer(page);
+    await openCommandPalette(page);
+    await expectPaletteCommand(page, "catalog", "catalog");
+    await expectPaletteCommand(page, "contents", "contents");
+    await expectPaletteCommand(page, "processing toolbox", "processing-toolbox");
+    await expectPaletteCommand(page, "layout figure", "figure-composer");
+    await expectPaletteCommand(page, "scientific qa", "qa");
+    await expectPaletteCommand(page, "export geojson", "export-geojson");
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog", { name: "Map command palette" })).toBeHidden();
+  });
+
+  test("switches every Prompt 16 activity without hiding the work surface", async ({ page }) => {
+    const { shell, rail } = await openPrompt16Explorer(page);
+    const activityIds = [
+      "overview",
+      "data",
+      "layers",
+      "analyze",
+      "style",
+      "scene",
+      "publish",
+      "qa",
+      "review",
+      "diagnostics",
+      "extensions",
+    ];
+    for (const activityId of activityIds) {
+      await expect(rail.getByTestId(`activity-btn-${activityId}`)).toBeVisible();
+      await triggerDomClick(rail.getByTestId(`activity-btn-${activityId}`));
+      await expect(shell).toHaveAttribute("data-map-active-activity", activityId);
+      await expect(rail.getByTestId(`activity-btn-${activityId}`)).toHaveAttribute("aria-pressed", "true");
+      await expect(page.getByTestId("map-canvas-region")).toBeVisible();
+    }
+  });
+
+  test("reaches Prompt 16 data, layers, inspector, QA, and attributes routes", async ({ page }) => {
+    const { rail } = await openPrompt16Explorer(page, { seedWorkflowLayer: true });
+    await triggerDomClick(rail.getByTestId("activity-btn-data"));
+    await openSidebarTab(page, "data-import");
+    await expect(page.getByTestId("map-catalog-panel")).toBeVisible();
+    await expect(page.getByTestId("map-catalog-panel")).toContainText(/Add Data|Import/i);
+
+    await triggerDomClick(rail.getByTestId("activity-btn-layers"));
+    await openSidebarTab(page, "layers-contents");
+    await expect(page.getByTestId("map-contents-tree")).toBeVisible();
+    await openSidebarTab(page, "layers-stack");
+
+    const seededLayerRow = page.getByRole("option", { name: /Layer: E2E Istanbul WGS84 Points/i });
+    await expect(seededLayerRow).toBeVisible();
+    await triggerDomClick(seededLayerRow.getByTestId("map-layer-inspect-trigger"));
+    await expect(page.getByTestId("map-inspector-host")).toBeVisible();
+    await expect(page.getByTestId("map-layer-inspector")).toBeVisible();
+    await triggerDomClick(page.getByTestId("map-inspector-host").getByRole("button", { name: "Close inspector" }));
+
+    await triggerDomClick(seededLayerRow.getByTestId("map-layer-table-trigger"));
+    await expect(page.getByTestId("map-bottom-panel")).toHaveAttribute("data-active-bottom-tab", "attributes");
+    await expect(page.getByTestId("map-attribute-table")).toBeVisible();
+
+    await triggerDomClick(page.getByRole("button", { name: "Open QA Problems" }));
+    await expect(page.getByTestId("map-bottom-panel")).toHaveAttribute("data-active-bottom-tab", "problems");
+    await expect(page.getByRole("region", { name: "Map QA problems" })).toBeVisible();
+  });
+
+  test("reaches Prompt 16 Analyze workspace routes", async ({ page }) => {
+    const { rail } = await openPrompt16Explorer(page);
+    await triggerDomClick(rail.getByTestId("activity-btn-analyze"));
+    await openSidebarTab(page, "analyze-workflows");
+    await expect(page.getByTestId("map-workflow-drawer")).toBeVisible();
+    await openSidebarTab(page, "analyze-tools");
+    await expect(page.getByTestId("map-processing-toolbox")).toBeVisible();
+    await openSidebarTab(page, "analyze-query");
+    await expect(page.getByRole("region", { name: "Natural language map query builder" })).toBeVisible();
+    await openSidebarTab(page, "analyze-models");
+    await expect(page.getByTestId("map-model-builder")).toBeVisible();
+  });
+
+  test("reaches Prompt 16 Scene workspace routes", async ({ page }) => {
+    const { rail } = await openPrompt16Explorer(page);
+    await triggerDomClick(rail.getByTestId("activity-btn-scene"));
+    await openSidebarTab(page, "scene-raster");
+    await expect(page.getByTestId("map-scene-tab-body")).toContainText(/No raster layer|Raster/i);
+    await openSidebarTab(page, "scene-3d");
+    await expect(page.getByTestId("scene3d-panel")).toBeVisible();
+    await openSidebarTab(page, "scene-zoning");
+    await expect(page.getByTestId("zoning-rules-panel")).toBeVisible();
+    await openSidebarTab(page, "scene-massing");
+    await expect(page.getByTestId("massing-scenario-panel")).toBeVisible();
+    await openSidebarTab(page, "scene-sun-shadow");
+    await expect(page.getByTestId("sunshadow-panel")).toBeVisible();
+  });
+
+  test("reaches Prompt 16 Publish workspace routes", async ({ page }) => {
+    const { rail } = await openPrompt16Explorer(page);
+    await triggerDomClick(rail.getByTestId("activity-btn-publish"));
+    await openSidebarTab(page, "publish-figure");
+    await expect(page.getByTestId("map-layout-designer")).toBeVisible();
+    await openSidebarTab(page, "publish-data-export");
+    await expect(page.getByTestId("map-publish-panel-slot")).toContainText("GeoJSON and GeoParquet export");
+    await openSidebarTab(page, "publish-report");
+    await expect(page.getByTestId("map-publish-panel-slot")).toContainText("Snapshot and structured evidence");
+    await openSidebarTab(page, "publish-offline-package");
+    await expect(page.getByTestId("map-publish-panel-slot")).toContainText("Bounded reproducibility package");
+    await openSidebarTab(page, "publish-review-package");
+    await expect(page.getByTestId("map-publish-panel-slot")).toContainText("Pre-handoff metadata review");
+  });
+
   test("keeps map, layer rail, and bottom status visible on desktop", async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 1680, height: 1100 });
     await resetWorkbenchState(page);
@@ -867,26 +1097,30 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
     await expect(table.getByTestId("map-attribute-column-value_x2")).toBeVisible();
   });
 
-  test("keeps controls usable across laptop and tablet viewport screenshots", async ({ page }, testInfo) => {
+  test("keeps controls usable across desktop, tablet, and short viewport screenshots", async ({ page }, testInfo) => {
     const viewports = [
-      { label: "laptop", width: 1366, height: 900, minimumHeight: 520 },
-      { label: "tablet", width: 1024, height: 768, minimumHeight: 420 },
+      { label: "desktop", width: 1440, height: 900, minimumHeight: 500 },
+      { label: "tablet", width: 768, height: 1024, minimumHeight: 420 },
+      { label: "short", width: 1280, height: 600, minimumHeight: 300 },
     ];
 
     for (const viewport of viewports) {
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
       await resetWorkbenchState(page);
       await openMapExplorer(page);
+      await triggerDomClick(page.getByRole("button", { name: "Open QA Problems" }));
 
       const canvasRegion = page.getByTestId("map-canvas-region");
       const bottomTimeline = page.getByTestId("map-bottom-timeline");
       await expect(canvasRegion).toBeVisible();
       await expect(bottomTimeline).toBeVisible();
+      await expect(page.getByTestId("map-bottom-panel")).toHaveAttribute("data-active-bottom-tab", "problems");
 
       const canvasBox = await canvasRegion.boundingBox();
       expect(canvasBox?.height ?? 0).toBeGreaterThanOrEqual(viewport.minimumHeight);
+      await expectNoHorizontalOverflowOrPanelOverlap(page);
 
-      await testInfo.attach(`prompt-35-${viewport.label}-viewport`, {
+      await testInfo.attach(`prompt-16-${viewport.label}-viewport`, {
         body: await page.screenshot({ fullPage: true }),
         contentType: "image/png",
       });

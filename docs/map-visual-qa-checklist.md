@@ -110,6 +110,15 @@ These are verified by `npm run test:e2e:smoke` — confirm green before release:
 - [ ] Forced-colors mode keeps focus rings, status chips, panel borders, and progress bars readable
 - [ ] Desktop (1440×900), tablet (768×1024), and short viewport (1280×600) smoke checks show no text overlap or panel/status-bar overlap
 
+## H — Prompt 16 Regression and Visual QA Delta
+
+- [ ] Map Explorer opens, closes, and reopens from the Urban Analytics workbench without a blank canvas or lost entry point
+- [ ] Every activity rail item (Overview, Data, Layers, Analyze, Style, Scene, Publish, QA, Review, Diagnostics, Extensions) changes the active shell state and keeps the canvas visible
+- [ ] Hidden commands remain reachable through the command palette, including catalog, contents, processing toolbox, figure composer, QA, and GeoJSON export
+- [ ] Add Data, Layers Contents, layer inspector, QA Problems, and Attributes bottom tab are reachable without floating duplicate chrome
+- [ ] Analyze tabs open Workflows, Tools, Query, and Models in the sidebar; Scene tabs open Raster, 3D, Zoning, Massing, and Sun/Shadow; Publish tabs open Figure, Data Export, Report, Offline Package, and Review Package
+- [ ] Desktop (1440×900), tablet (768×1024), and short viewport (1280×600) automated checks show no horizontal overflow and no bottom-panel/status-bar overlap
+
 ---
 
 ## Reviewer sign-off

@@ -79,6 +79,8 @@ const panelStyle: React.CSSProperties = {
   minHeight: "12rem",
   height: MAP_PANEL_SIZES.bottomPanelHeight,
   maxHeight: MAP_PANEL_SIZES.bottomPanelMaxHeight,
+  width: "100%",
+  maxWidth: "100%",
   minWidth: MAP_SPACING.zero,
   background: MAP_COLORS.bgPanel,
   borderTop: MAP_STROKES.hairlineStrong,
