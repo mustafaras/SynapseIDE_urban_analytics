@@ -136,6 +136,50 @@ describe("MapToolbar command palette", () => {
     expect(kernelOption!.textContent).toMatch(/not wired/i);
   });
 
+  it("keeps former activity rail commands searchable in the command palette", () => {
+    renderToolbar({
+      layerCount: 1,
+      visibleLayerCount: 1,
+      scientificQAIssueCount: 1,
+      onToggleLayerPanel: vi.fn(),
+      onToggleCatalog: vi.fn(),
+      onToggleContents: vi.fn(),
+      onToggleProcessingToolbox: vi.fn(),
+      onToggleFigureComposer: vi.fn(),
+      onToggleScientificQAPanel: vi.fn(),
+      onExportClick: vi.fn(),
+      onSaveProjectClick: vi.fn(),
+      persistenceDisabled: true,
+    });
+
+    keydown(window, "k", { ctrlKey: true });
+    const input = paletteInput();
+
+    const expectedCommands = [
+      { query: "layers", id: "layers" },
+      { query: "catalog", id: "catalog" },
+      { query: "contents", id: "contents" },
+      { query: "processing toolbox", id: "processing-toolbox" },
+      { query: "layout figure", id: "figure-composer" },
+      { query: "scientific qa", id: "qa" },
+      { query: "export geojson", id: "export-geojson" },
+    ];
+
+    for (const command of expectedCommands) {
+      setInputValue(input, command.query);
+      expect(
+        document.querySelector<HTMLButtonElement>(`[data-testid="map-command-palette-option-${command.id}"]`),
+        command.id,
+      ).not.toBeNull();
+    }
+
+    setInputValue(input, "save project");
+    const saveOption = document.querySelector<HTMLButtonElement>('[data-testid="map-command-palette-option-save-project"]');
+    expect(saveOption).not.toBeNull();
+    expect(saveOption!.disabled).toBe(true);
+    expect(saveOption!.textContent).toContain("Select or create a project before saving map state.");
+  });
+
   it("exposes undo and redo commands as buttons, palette entries, and global shortcuts", () => {
     const onUndoMapAction = vi.fn();
     const onRedoMapAction = vi.fn();

@@ -1,6 +1,20 @@
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type maplibregl from "maplibre-gl";
+import {
+  Activity,
+  Box,
+  Compass,
+  Database,
+  FileImage,
+  History,
+  Layers3,
+  Palette,
+  Puzzle,
+  ShieldAlert,
+  Workflow,
+  type LucideIcon,
+} from "lucide-react";
 import type { Feature, FeatureCollection, Geometry, MultiPolygon, Polygon } from "geojson";
 import {
   BASE_STYLES,
@@ -203,17 +217,18 @@ import { useMapReportController } from "./useMapReportController";
 import { useMapUrbanBridgeController } from "./useMapUrbanBridgeController";
 import { useMapWorkflowController } from "./useMapWorkflowController";
 import {
-  IconArea,
   IconClose,
   IconExport,
-  IconGlobe,
-  IconImage,
-  IconImport,
   IconLayers,
-  IconMeasure,
   IconSave,
-  IconUnknown,
 } from "../MapIcons";
+import {
+  MAP_PRIMARY_ACTIVITY_ORDER,
+  MAP_UTILITY_ACTIVITY_ORDER,
+  getMapActivityDefinition,
+  type MapActivityDefinition,
+  type MapActivityId,
+} from "../navigation";
 import { usePrefersReducedMotion } from "../../../../hooks/usePrefersReducedMotion";
 import {
   buildFeatureCollectionMetadata,
@@ -651,6 +666,28 @@ const MAP_NAVIGATOR_STAGE_MARGIN = MAP_NUMERIC.navigatorStageMargin;
 const MAP_NAVIGATOR_STAGE_TOP = MAP_NUMERIC.navigatorStageTop;
 const MAP_NAVIGATOR_STAGE_BOTTOM = MAP_NUMERIC.navigatorStageBottom;
 const MAP_ACTIVITY_RAIL_WIDTH = "2.625rem";
+
+const MAP_ACTIVITY_ICON_COMPONENTS: Record<string, LucideIcon> = {
+  Activity,
+  Box,
+  Compass,
+  Database,
+  FileImage,
+  History,
+  Layers3,
+  Palette,
+  Puzzle,
+  ShieldAlert,
+  Workflow,
+};
+
+const MAP_PRIMARY_ACTIVITY_DEFINITIONS = MAP_PRIMARY_ACTIVITY_ORDER.map(getMapActivityDefinition);
+const MAP_UTILITY_ACTIVITY_DEFINITIONS = MAP_UTILITY_ACTIVITY_ORDER.map(getMapActivityDefinition);
+
+function renderMapActivityIcon(activity: MapActivityDefinition): React.ReactElement {
+  const Icon = MAP_ACTIVITY_ICON_COMPONENTS[activity.iconName] ?? Compass;
+  return <Icon size={MAP_ICON_SIZES.sm} strokeWidth={1.8} aria-hidden="true" />;
+}
 
 const srOnlyFocusable: React.CSSProperties = {
   ...mapStyles.srOnly,
@@ -1111,7 +1148,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       : "navigator";
 
   /* ---- Transient local state (not persisted) ---- */
+  const initialActivityId: MapActivityId = initialWorkspaceView === "navigator" ? "overview" : "layers";
   const [workspaceView, setWorkspaceView] = useState<MapWorkspaceView>(initialWorkspaceView);
+  const [activeActivityId, setActiveActivityId] = useState<MapActivityId>(initialActivityId);
   const [showSidebar, setShowSidebar] = useState(false);
   const [showLayerPanel, setShowLayerPanel] = useState(true);
   const [showChoroplethPanel, setShowChoroplethPanel] = useState(false);
@@ -6525,6 +6564,66 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     },
   });
 
+  const handleSelectMapActivity = useCallback((activity: MapActivityDefinition) => {
+    setActiveActivityId(activity.id);
+
+    switch (activity.id) {
+      case "overview":
+        setWorkspaceView("navigator");
+        break;
+      case "data":
+        setWorkspaceView("explore");
+        setShowCatalog(true);
+        setShowContents(false);
+        setShowProcessingToolbox(false);
+        setShowModelBuilder(false);
+        setShowPluginPanel(false);
+        break;
+      case "layers":
+        setWorkspaceView("explore");
+        setShowLayerPanel(true);
+        break;
+      case "analyze":
+        setWorkspaceView("analyze");
+        setShowProcessingToolbox(true);
+        setShowModelBuilder(false);
+        setShowPluginPanel(false);
+        setShowCatalog(false);
+        setShowContents(false);
+        break;
+      case "style":
+        setWorkspaceView("analyze");
+        setShowLayerPanel(true);
+        break;
+      case "scene":
+        setWorkspaceView("explore");
+        setShow3DPanel(true);
+        break;
+      case "publish":
+        setWorkspaceView("explore");
+        setShowFigureComposer(true);
+        break;
+      case "qa":
+        openScientificQAPanel();
+        break;
+      case "review":
+        setShowReviewTimeline(true);
+        break;
+      case "diagnostics":
+        setShowPerformanceDiagnostics(true);
+        break;
+      case "extensions":
+        setShowPluginPanel(true);
+        setShowProcessingToolbox(false);
+        setShowModelBuilder(false);
+        break;
+      default:
+        break;
+    }
+
+    announce(`${activity.label} activity selected`);
+  }, [announce, openScientificQAPanel]);
+
   /* ---- Render ---- */
   if (!open) return null;
 
@@ -6547,58 +6646,21 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     ? "The current map report snapshot is still rendering."
     : undefined;
   const persistenceDisabled = !selectedProjectId;
-  const activityRailItems = [
-    {
-      id: "layers",
-      label: effectiveShowLayerPanel ? "Hide layer panel" : "Show layer panel",
-      icon: <IconLayers size={MAP_ICON_SIZES.sm} />,
-      active: effectiveShowLayerPanel,
-      onClick: handleToggleLayerPanel,
-    },
-    {
-      id: "catalog",
-      label: showCatalog ? "Close catalog" : "Open catalog",
-      icon: <IconImport size={MAP_ICON_SIZES.sm} />,
-      active: showCatalog,
-      onClick: handleToggleCatalog,
-    },
-    {
-      id: "contents",
-      label: showContents ? "Close contents tree" : "Open contents tree",
-      icon: <IconGlobe size={MAP_ICON_SIZES.sm} />,
-      active: showContents,
-      onClick: handleToggleContents,
-    },
-    {
-      id: "processing",
-      label: showProcessingToolbox ? "Close processing toolbox" : "Open processing toolbox",
-      icon: <IconMeasure size={MAP_ICON_SIZES.sm} />,
-      active: showProcessingToolbox,
-      onClick: handleToggleProcessingToolbox,
-    },
-    {
-      id: "layout",
-      label: showFigureComposer ? "Close layout designer" : "Open layout designer",
-      icon: <IconImage size={MAP_ICON_SIZES.sm} />,
-      active: showFigureComposer,
-      onClick: handleToggleFigureComposer,
-    },
-    {
-      id: "scene3d",
-      label: show3DPanel ? "Close 3D scene" : "Open 3D scene",
-      icon: <IconArea size={MAP_ICON_SIZES.sm} />,
-      active: show3DPanel,
-      onClick: () => setShow3DPanel((previous) => !previous),
-    },
-  ];
+  const activityRailItems = MAP_PRIMARY_ACTIVITY_DEFINITIONS.map((activity) => ({
+    id: activity.id,
+    label: activity.ariaLabel,
+    icon: renderMapActivityIcon(activity),
+    active: activeActivityId === activity.id,
+    onClick: () => handleSelectMapActivity(activity),
+  }));
   const activityRailBottomItems = [
-    {
-      id: "qa",
-      label: showScientificQAPanel ? "Close scientific QA" : "Open scientific QA",
-      icon: <IconUnknown size={MAP_ICON_SIZES.sm} />,
-      active: showScientificQAPanel,
-      onClick: handleToggleScientificQAPanel,
-    },
+    ...MAP_UTILITY_ACTIVITY_DEFINITIONS.map((activity) => ({
+      id: activity.id,
+      label: activity.ariaLabel,
+      icon: renderMapActivityIcon(activity),
+      active: activeActivityId === activity.id,
+      onClick: () => handleSelectMapActivity(activity),
+    })),
     {
       id: "export",
       label: "Export map data",
@@ -6618,7 +6680,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   ];
 
   return createPortal(
-    <MapWorkspaceShell mode={mode} shellRef={trapRef} onClose={onClose}>
+    <MapWorkspaceShell mode={mode} shellRef={trapRef} onClose={onClose} activeActivityId={activeActivityId}>
         {reducedMotion ? (
           <style>
             {'[data-map-explorer-shell="true"], [data-map-explorer-shell="true"] * { transition: none !important; animation: none !important; scroll-behavior: auto !important; }'}

@@ -1381,7 +1381,13 @@ function buildToolbarCommands(args: BuildToolbarCommandsArgs): ToolbarCommand[] 
     badge: args.measurementCount,
   });
 
-  add(args.onSaveProjectClick && !args.persistenceDisabled && {
+  const saveProjectDisabledReason = args.persistenceDisabled
+    ? "Select or create a project before saving map state."
+    : args.isSavingProject
+      ? "The current map project save is already in progress."
+      : undefined;
+
+  add(args.onSaveProjectClick && {
     id: "save-project",
     label: args.isSavingProject ? "Saving" : "Save",
     shortLabel: "Save",
@@ -1392,8 +1398,8 @@ function buildToolbarCommands(args: BuildToolbarCommandsArgs): ToolbarCommand[] 
     roles: ["explore", "publish"],
     overflowGroup: "export",
     priority: args.isSavingProject ? 115 : 87,
-    disabled: args.isSavingProject,
-    disabledReason: "The current map project save is already in progress.",
+    disabled: Boolean(saveProjectDisabledReason),
+    ...(saveProjectDisabledReason ? { disabledReason: saveProjectDisabledReason } : {}),
     contextBoost: "empty",
     navigator: true,
   });

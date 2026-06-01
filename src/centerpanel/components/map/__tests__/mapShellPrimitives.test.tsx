@@ -33,6 +33,7 @@ import {
 import {
   MapActivityRail,
   MapCommandBar,
+  MapWorkspaceShell,
 } from "@/centerpanel/components/map/MapWorkspaceShell";
 
 afterEach(() => cleanup());
@@ -110,6 +111,22 @@ describe("MapActivityRail", () => {
     render(<MapActivityRail items={items} aria-label="Map activity" />);
     const btn = screen.getByRole("button", { name: "Settings" });
     expect(btn.getAttribute("data-disabled-reason")).toBe("Not available in demo mode");
+  });
+});
+
+/* ================================================================== */
+/*  MapWorkspaceShell active activity                                   */
+/* ================================================================== */
+describe("MapWorkspaceShell", () => {
+  it("exposes the active activity on the shell surface", () => {
+    render(
+      <MapWorkspaceShell mode="embedded" activeActivityId="layers">
+        <div>Map content</div>
+      </MapWorkspaceShell>,
+    );
+
+    const surface = document.querySelector('[data-map-explorer-shell="true"]');
+    expect(surface?.getAttribute("data-map-active-activity")).toBe("layers");
   });
 });
 

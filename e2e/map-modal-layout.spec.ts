@@ -379,6 +379,33 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
     });
   });
 
+  test("switches premium activity rail state without hiding the work surface", async ({ page }) => {
+    await page.setViewportSize({ width: 1680, height: 1100 });
+    await resetWorkbenchState(page);
+
+    await openMapExplorer(page);
+
+    const shell = page.locator('[data-map-explorer-shell="true"]');
+    const rail = page.getByTestId("map-activity-rail");
+    await expect(rail).toBeVisible();
+    await expect(rail.getByTestId("activity-btn-overview")).toBeVisible();
+    await expect(rail.getByTestId("activity-btn-data")).toBeVisible();
+    await expect(rail.getByTestId("activity-btn-layers")).toBeVisible();
+    await expect(rail.getByTestId("activity-btn-analyze")).toBeVisible();
+    await expect(rail.getByTestId("activity-btn-style")).toBeVisible();
+    await expect(rail.getByTestId("activity-btn-scene")).toBeVisible();
+    await expect(rail.getByTestId("activity-btn-publish")).toBeVisible();
+
+    await triggerDomClick(rail.getByTestId("activity-btn-data"));
+    await expect(shell).toHaveAttribute("data-map-active-activity", "data");
+    await expect(rail.getByTestId("activity-btn-data")).toHaveAttribute("aria-pressed", "true");
+
+    await triggerDomClick(rail.getByTestId("activity-btn-layers"));
+    await expect(shell).toHaveAttribute("data-map-active-activity", "layers");
+    await expect(rail.getByTestId("activity-btn-layers")).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByTestId("map-canvas-region")).toBeVisible();
+  });
+
   test("persists resized layer rail width", async ({ page }) => {
     await page.setViewportSize({ width: 1680, height: 1100 });
     await resetWorkbenchState(page);

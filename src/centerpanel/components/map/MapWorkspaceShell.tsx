@@ -20,6 +20,7 @@ export interface MapWorkspaceShellProps {
   shellRef?: React.RefObject<HTMLDivElement | null>;
   onClose?: () => void;
   labelledBy?: string;
+  activeActivityId?: string | null;
 }
 
 export type MapPanelRailSide = "left" | "right" | "bottom";
@@ -392,6 +393,7 @@ export const MapWorkspaceShell: React.FC<MapWorkspaceShellProps> = ({
   shellRef,
   onClose,
   labelledBy = "map-explorer-title",
+  activeActivityId = null,
 }) => {
   const isModal = mode === "modal" || mode === "presentation";
   const rootRef = React.useRef<HTMLDivElement | null>(null);
@@ -464,6 +466,7 @@ export const MapWorkspaceShell: React.FC<MapWorkspaceShellProps> = ({
         className="MapWorkspaceShell__surface"
         data-map-explorer-shell="true"
         data-map-explorer-mode={mode}
+        data-map-active-activity={activeActivityId ?? undefined}
       >
         <style>{workspaceFocusCss}</style>
         {children}
