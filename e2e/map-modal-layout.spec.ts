@@ -299,6 +299,14 @@ async function openDrawingsPanel(page: import("@playwright/test").Page): Promise
   await expect(panel).toBeVisible();
 }
 
+async function toggleDrawingsPanelFromPalette(page: import("@playwright/test").Page): Promise<void> {
+  await page.keyboard.press("Control+K");
+  const palette = page.getByRole("dialog", { name: "Map command palette" });
+  await expect(palette).toBeVisible();
+  await palette.getByLabel("Search map commands").fill("drawings");
+  await triggerDomClick(palette.getByRole("option", { name: /Drawings/i }).first());
+}
+
 async function openReviewTimeline(page: import("@playwright/test").Page): Promise<void> {
   const timeline = page.getByTestId("map-review-timeline-event").first();
   const directReviewButton = page.getByRole("button", { name: "Open review timeline with filters and reproducible session export" }).first();
@@ -358,20 +366,28 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
     const canvasRegion = page.getByTestId("map-canvas-region");
     const layerRail = page.getByTestId("map-layer-panel-rail");
     const bottomTimeline = page.getByTestId("map-bottom-timeline");
+    const commandCenter = page.getByTestId("map-command-center");
 
     await expect(canvasRegion).toBeVisible();
     await expect(layerRail).toBeVisible();
     await expect(layerRail).toHaveAttribute("data-map-panel-rail", "left");
     await expect(bottomTimeline).toBeVisible();
+    await expect(commandCenter).toBeVisible();
+    await expect(commandCenter.getByTestId("map-toolbar-command-command-palette")).toBeVisible();
+    await expect(commandCenter.getByTestId("map-command-center-primary-action")).toBeVisible();
+    await expect(commandCenter.getByTestId("map-command-center-overflow")).toBeVisible();
     await expect(page.getByRole("application", { name: /Interactive map canvas/i })).toBeVisible();
 
     const canvasBox = await canvasRegion.boundingBox();
     const railBox = await layerRail.boundingBox();
     const timelineBox = await bottomTimeline.boundingBox();
+    const registryCount = Number(await commandCenter.getAttribute("data-command-registry-count"));
+    const visibleCount = Number(await commandCenter.getAttribute("data-command-center-visible-count"));
 
     expect(canvasBox?.height ?? 0).toBeGreaterThanOrEqual(560);
     expect(railBox?.width ?? 0).toBeGreaterThanOrEqual(320);
     expect(timelineBox?.height ?? 0).toBeGreaterThan(24);
+    expect(registryCount).toBeGreaterThan(visibleCount);
 
     await testInfo.attach("prompt-35-desktop-viewport", {
       body: await page.screenshot({ fullPage: true }),
@@ -648,9 +664,9 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
     await openMapExplorer(page);
     await seedSelectionFixtureLayer(page);
     await expect(page.getByRole("list", { name: "Layer list" })).toContainText("E2E fcPointsWGS84 Selection");
-    const drawingToggle = page.getByRole("button", { name: "Toggle drawings panel" }).first();
-    if (await drawingToggle.getAttribute("aria-pressed") === "true") {
-      await triggerDomClick(drawingToggle);
+    const drawingsPanel = page.getByRole("region", { name: "Drawn features" });
+    if (await drawingsPanel.isVisible().catch(() => false)) {
+      await toggleDrawingsPanelFromPalette(page);
       await expect(page.getByRole("region", { name: "Drawn features" })).toBeHidden();
     }
 

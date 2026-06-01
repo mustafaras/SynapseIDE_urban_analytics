@@ -41,7 +41,6 @@ import {
   Type,
   Undo2,
   Upload,
-  Waypoints,
   Workflow,
   type LucideIcon,
 } from "lucide-react";
@@ -191,6 +190,7 @@ type ToolbarRole = "explore" | "analyze" | "publish";
 type ToolbarDensity = MapToolbarDensityPreference;
 type ToolbarBreakpoint = "mobile" | "tablet" | "desktop";
 type OverflowGroupId = "tools" | "export" | "advanced";
+type CommandTaxonomyId = "data" | "layers" | "analyze" | "style" | "scene" | "publish" | "review" | "system";
 
 interface ToolbarCommand {
   id: string;
@@ -366,23 +366,59 @@ const DENSITY_LABELS: Record<ToolbarDensity, string> = {
   expert: "Expert",
 };
 
-const OVERFLOW_META: Record<OverflowGroupId, { label: string; title: string; icon: LucideIcon }> = {
-  tools: {
-    label: "Tools",
-    title: "Drawing, measuring, and map interaction tools",
-    icon: Waypoints,
+const COMMAND_TAXONOMY_META: Record<CommandTaxonomyId, { label: string; title: string; icon: LucideIcon }> = {
+  data: {
+    label: "Data",
+    title: "Import, external services, source catalog, and restore commands",
+    icon: Upload,
   },
-  export: {
-    label: "Export",
-    title: "Save, load, and export map outputs",
+  layers: {
+    label: "Layers",
+    title: "Layer stack, contents tree, visibility, and layer organization commands",
+    icon: Layers3,
+  },
+  analyze: {
+    label: "Analyze",
+    title: "Workflow, processing, model, query, draw, measure, and statistics commands",
+    icon: Workflow,
+  },
+  style: {
+    label: "Style",
+    title: "Renderer, thematic style, label, and annotation commands",
+    icon: Palette,
+  },
+  scene: {
+    label: "Scene",
+    title: "3D, VoxCity, viewport sync, raster, and temporal commands",
+    icon: Building2,
+  },
+  publish: {
+    label: "Publish",
+    title: "Figure, export, package, report, save, and load commands",
     icon: Download,
   },
-  advanced: {
-    label: "Advanced",
-    title: "Scientific QA, 3D sync, density, and command controls",
+  review: {
+    label: "Review",
+    title: "QA, timeline, diagnostics, and extension review commands",
+    icon: ShieldAlert,
+  },
+  system: {
+    label: "System",
+    title: "Command center, undo, redo, density, navigator, and utility commands",
     icon: Settings2,
   },
 };
+
+const COMMAND_TAXONOMY_ORDER: readonly CommandTaxonomyId[] = [
+  "data",
+  "layers",
+  "analyze",
+  "style",
+  "scene",
+  "publish",
+  "review",
+  "system",
+];
 
 /* ================================================================== */
 /*  Styles                                                             */
@@ -411,13 +447,15 @@ const roleSwitch: React.CSSProperties = {
   minWidth: MAP_SPACING.zero,
   height: "1.75rem",
   padding: "0 0.125rem",
-  borderRight: MAP_STROKES.hairlineSubtle,
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.sm,
   gap: "0.125rem",
 };
 
 const commandRail: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
+  justifyContent: "flex-end",
   flex: "1 1 auto",
   minWidth: MAP_SPACING.zero,
   gap: "0.125rem",
@@ -429,8 +467,15 @@ const overflowRail: React.CSSProperties = {
   alignItems: "center",
   flex: "0 0 auto",
   gap: "0.125rem",
-  borderLeft: MAP_STROKES.hairlineSubtle,
   paddingLeft: MAP_SPACING.xs,
+};
+
+const primaryActionShell: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  minWidth: MAP_SPACING.zero,
+  paddingLeft: MAP_SPACING.xs,
+  borderLeft: MAP_STROKES.hairlineSubtle,
 };
 
 const toolbarButtonText: React.CSSProperties = {
@@ -463,7 +508,8 @@ const overflowMenuStyle: React.CSSProperties = {
   top: "calc(100% + 0.375rem)",
   right: 0,
   zIndex: MAP_Z_INDEX.dropdown,
-  width: "min(22rem, calc(100vw - 2rem))",
+  width: "min(30rem, calc(100vw - 2rem))",
+  maxHeight: "min(36rem, calc(100vh - 7rem))",
   padding: MAP_SPACING.xs,
   border: MAP_STROKES.hairlineSubtle,
   borderRadius: MAP_RADIUS.md,
@@ -471,6 +517,26 @@ const overflowMenuStyle: React.CSSProperties = {
   boxShadow: MAP_SHADOWS.none,
   display: "grid",
   gap: "0.125rem",
+  overflowY: "auto",
+};
+
+const overflowSectionStyle: React.CSSProperties = {
+  display: "grid",
+  gap: "0.125rem",
+  padding: `${MAP_SPACING.xs} 0`,
+  borderTop: MAP_STROKES.hairlineSubtle,
+};
+
+const overflowSectionHeaderStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "1rem minmax(0, 1fr) auto",
+  alignItems: "center",
+  gap: MAP_SPACING.xs,
+  padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
+  color: MAP_COLORS.textMuted,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+  textTransform: "uppercase",
 };
 
 const paletteBackdropStyle: React.CSSProperties = {
@@ -645,15 +711,6 @@ function iconForQAStatus(status: LayerQaStatus): LucideIcon {
   return ShieldCheck;
 }
 
-function normalizeGeometryType(value?: string | null): "point" | "polygon" | "line" | "mixed" | "unknown" {
-  const normalized = value?.toLowerCase() ?? "";
-  if (normalized.includes("point")) return "point";
-  if (normalized.includes("polygon") || normalized.includes("multi")) return "polygon";
-  if (normalized.includes("line")) return "line";
-  if (normalized.includes("mixed")) return "mixed";
-  return "unknown";
-}
-
 function getDefaultRole(workspaceView: MapWorkspaceView): ToolbarRole {
   if (workspaceView === "analyze") return "analyze";
   return "explore";
@@ -663,39 +720,6 @@ function getBreakpoint(width: number): ToolbarBreakpoint {
   if (width < 720) return "mobile";
   if (width < 1120) return "tablet";
   return "desktop";
-}
-
-function getVisibleCommandLimit(breakpoint: ToolbarBreakpoint, density: ToolbarDensity): number {
-  if (breakpoint === "mobile") {
-    return density === "expert" ? 5 : density === "compact" ? 4 : 3;
-  }
-  if (breakpoint === "tablet") {
-    return density === "expert" ? 7 : density === "compact" ? 7 : 6;
-  }
-  return density === "expert" ? 7 : density === "compact" ? 8 : 7;
-}
-
-function isCommandVisibleInRole(command: ToolbarCommand, role: ToolbarRole, workspaceView: MapWorkspaceView): boolean {
-  if (workspaceView === "navigator") {
-    return Boolean(command.navigator);
-  }
-  return command.roles.includes(role);
-}
-
-function getContextScore(command: ToolbarCommand, args: {
-  visibleLayerCount: number;
-  geometryType: ReturnType<typeof normalizeGeometryType>;
-  hasSelectedAoi: boolean;
-}): number {
-  let score = command.priority;
-  if (command.active) score += 50;
-  if (command.contextBoost === "empty" && args.visibleLayerCount === 0) score += 34;
-  if (command.contextBoost === "query" && args.visibleLayerCount > 0) score += 16;
-  if (command.contextBoost === "quality" && args.visibleLayerCount > 0) score += 12;
-  if (command.contextBoost === "aoi" && !args.hasSelectedAoi) score += 10;
-  if (command.contextBoost === "point" && args.geometryType === "point") score += 28;
-  if (command.contextBoost === "polygon" && args.geometryType === "polygon") score += 28;
-  return score;
 }
 
 function getProcessingCategoryIcon(category: string): LucideIcon {
@@ -820,12 +844,6 @@ function buildProcessingPaletteCommands({
   });
 }
 
-function getCommandCategory(command: ToolbarCommand | PaletteCommand): string {
-  if ("category" in command) return command.category;
-  if (command.id === "command-palette") return "System";
-  return OVERFLOW_META[command.overflowGroup]?.label ?? "Map";
-}
-
 function getCommandStatus(command: ToolbarCommand): { label: string; tone: CommandTone } {
   if (command.disabled) return { label: "Unavailable", tone: "warning" };
   if (command.active) return { label: "Active", tone: "accent" };
@@ -839,6 +857,47 @@ function getCommandUnavailableReason(command: ToolbarCommand): string {
 function getCommandAccessibleTitle(command: ToolbarCommand): string {
   if (!command.disabled) return command.title;
   return `${command.title}. ${getCommandUnavailableReason(command)}`;
+}
+
+function getCommandTaxonomy(command: Pick<ToolbarCommand, "id" | "overflowGroup">): CommandTaxonomyId {
+  const id = command.id;
+  if (["import", "services", "catalog"].includes(id)) return "data";
+  if (["layers", "contents"].includes(id)) return "layers";
+  if (
+    id === "query" ||
+    id === "workflow" ||
+    id === "processing-toolbox" ||
+    id === "model-builder" ||
+    id === "extent" ||
+    id === "lisa" ||
+    id === "hotspot" ||
+    id === "emerging-hotspot" ||
+    id.startsWith("draw-") ||
+    id.startsWith("measure-")
+  ) {
+    return "analyze";
+  }
+  if (["theme", "annotations"].includes(id)) return "style";
+  if (["sync", "voxcity"].includes(id)) return "scene";
+  if (
+    id === "figure-composer" ||
+    id === "save-project" ||
+    id === "load-project" ||
+    id === "export-image" ||
+    id === "export-offline-package" ||
+    id === "add-map-to-report" ||
+    id === "export-geojson"
+  ) {
+    return "publish";
+  }
+  if (["qa", "review-timeline", "performance-diagnostics", "plugin-registry"].includes(id)) return "review";
+  if (id === "pin-mode" || id === "pins") return "data";
+  return command.overflowGroup === "export" ? "publish" : "system";
+}
+
+function getCommandCategory(command: ToolbarCommand | PaletteCommand): string {
+  if ("category" in command) return command.category;
+  return COMMAND_TAXONOMY_META[getCommandTaxonomy(command)].label;
 }
 
 function buildToolbarCommands(args: BuildToolbarCommandsArgs): ToolbarCommand[] {
@@ -1404,7 +1463,13 @@ function buildToolbarCommands(args: BuildToolbarCommandsArgs): ToolbarCommand[] 
     navigator: true,
   });
 
-  add(args.onLoadProjectClick && !args.persistenceDisabled && {
+  const loadProjectDisabledReason = args.persistenceDisabled
+    ? "Select or create a project before loading map state."
+    : args.isLoadingProject
+      ? "A saved map project is already loading."
+      : undefined;
+
+  add(args.onLoadProjectClick && {
     id: "load-project",
     label: args.isLoadingProject ? "Loading" : "Load",
     shortLabel: "Load",
@@ -1415,8 +1480,8 @@ function buildToolbarCommands(args: BuildToolbarCommandsArgs): ToolbarCommand[] 
     roles: ["explore", "publish"],
     overflowGroup: "export",
     priority: args.isLoadingProject || !hasLayers ? 92 : 64,
-    disabled: args.isLoadingProject,
-    disabledReason: "A saved map project is already loading.",
+    disabled: Boolean(loadProjectDisabledReason),
+    ...(loadProjectDisabledReason ? { disabledReason: loadProjectDisabledReason } : {}),
     contextBoost: "empty",
     navigator: true,
   });
@@ -1487,6 +1552,51 @@ function buildToolbarCommands(args: BuildToolbarCommandsArgs): ToolbarCommand[] 
   return commands;
 }
 
+function findFirstCommand(commands: readonly ToolbarCommand[], ids: readonly string[]): ToolbarCommand | null {
+  for (const id of ids) {
+    const command = commands.find((candidate) => candidate.id === id);
+    if (command) return command;
+  }
+  return null;
+}
+
+function selectContextualPrimaryCommand(args: {
+  commands: readonly ToolbarCommand[];
+  toolbarRole: ToolbarRole;
+  workspaceView: MapWorkspaceView;
+  visibleLayerCount: number;
+  hasSelectedAoi: boolean;
+  scientificQABlockerCount: number;
+  scientificQAIssueCount: number;
+  isImporting: boolean;
+}): ToolbarCommand | null {
+  const activeCommand = args.commands.find((command) => command.active && !command.disabled);
+  if (args.isImporting) return findFirstCommand(args.commands, ["import"]) ?? activeCommand ?? null;
+  if (args.scientificQABlockerCount > 0 || args.scientificQAIssueCount > 0) {
+    return findFirstCommand(args.commands, ["qa"]) ?? activeCommand ?? null;
+  }
+  if (args.visibleLayerCount === 0) {
+    return findFirstCommand(args.commands, ["import", "catalog", "services"]) ?? activeCommand ?? null;
+  }
+  if (args.toolbarRole === "publish") {
+    return findFirstCommand(args.commands, ["figure-composer", "export-image", "add-map-to-report", "export-geojson"]) ?? activeCommand ?? null;
+  }
+  if (args.toolbarRole === "analyze" || args.workspaceView === "analyze") {
+    return findFirstCommand(args.commands, args.hasSelectedAoi ? ["workflow", "processing-toolbox"] : ["processing-toolbox", "workflow"]) ?? activeCommand ?? null;
+  }
+  return findFirstCommand(args.commands, ["layers", "contents", "catalog", "import"]) ?? activeCommand ?? null;
+}
+
+function groupCommandsByTaxonomy(commands: readonly ToolbarCommand[]): Array<{
+  id: CommandTaxonomyId;
+  commands: ToolbarCommand[];
+}> {
+  return COMMAND_TAXONOMY_ORDER.map((id) => ({
+    id,
+    commands: commands.filter((command) => getCommandTaxonomy(command) === id),
+  })).filter((group) => group.commands.length > 0);
+}
+
 function ToolbarCommandButton({
   command,
   density,
@@ -1515,6 +1625,8 @@ function ToolbarCommandButton({
       aria-disabled={disabled || undefined}
       disabled={disabled}
       role={menuItem ? "menuitem" : undefined}
+      data-testid={`map-toolbar-command-${command.id}`}
+      data-map-command-id={command.id}
       {...toolbarButtonInteraction(active, disabled)}
     >
       <Icon size={MAP_ICON_SIZES.sm} strokeWidth={1.8} color={color} aria-hidden="true" />
@@ -1552,7 +1664,6 @@ function RoleSwitch({
 }
 
 function ToolbarOverflowMenu({
-  id,
   commands,
   density,
   open,
@@ -1560,7 +1671,6 @@ function ToolbarOverflowMenu({
   onClose,
   children,
 }: {
-  id: OverflowGroupId;
   commands: ToolbarCommand[];
   density: ToolbarDensity;
   open: boolean;
@@ -1568,8 +1678,7 @@ function ToolbarOverflowMenu({
   onClose: () => void;
   children?: React.ReactNode;
 }): React.ReactElement | null {
-  const meta = OVERFLOW_META[id];
-  const Icon = meta.icon;
+  const groupedCommands = groupCommandsByTaxonomy(commands);
   const hasBody = commands.length > 0 || children != null;
   if (!hasBody) return null;
 
@@ -1579,32 +1688,46 @@ function ToolbarOverflowMenu({
         type="button"
         style={commandButtonStyle(open, false, "default", density)}
         onClick={onToggle}
-        title={meta.title}
-        aria-label={meta.title}
+        title="Open grouped map command overflow"
+        aria-label="Open grouped map command overflow"
         aria-expanded={open}
         aria-haspopup="menu"
+        data-testid="map-command-center-overflow"
         {...toolbarButtonInteraction(open, false)}
       >
-        <Icon size={MAP_ICON_SIZES.sm} strokeWidth={1.8} aria-hidden="true" />
-        <span style={toolbarButtonText}>{meta.label}</span>
+        <Settings2 size={MAP_ICON_SIZES.sm} strokeWidth={1.8} aria-hidden="true" />
+        <span style={toolbarButtonText}>More</span>
         <ChevronDown size={MAP_ICON_SIZES.xs} strokeWidth={1.8} aria-hidden="true" />
       </button>
 
       {open ? (
-        <div style={overflowMenuStyle} role="menu" aria-label={`${meta.label} commands`}>
+        <div style={overflowMenuStyle} role="menu" aria-label="Grouped map commands">
           <div style={menuHeaderStyle}>
-            <span>{meta.label}</span>
+            <span>Command Center</span>
             <span>{commands.length} cmd</span>
           </div>
-          {commands.map((command) => (
-            <ToolbarCommandButton
-              key={command.id}
-              command={command}
-              density="comfortable"
-              menuItem
-              onAfterClick={onClose}
-            />
-          ))}
+          {groupedCommands.map((group) => {
+            const meta = COMMAND_TAXONOMY_META[group.id];
+            const Icon = meta.icon;
+            return (
+              <section key={group.id} style={overflowSectionStyle} aria-label={meta.title}>
+                <div style={overflowSectionHeaderStyle}>
+                  <Icon size={MAP_ICON_SIZES.sm} strokeWidth={1.8} aria-hidden="true" />
+                  <span>{meta.label}</span>
+                  <span>{group.commands.length}</span>
+                </div>
+                {group.commands.map((command) => (
+                  <ToolbarCommandButton
+                    key={command.id}
+                    command={command}
+                    density="comfortable"
+                    menuItem
+                    onAfterClick={onClose}
+                  />
+                ))}
+              </section>
+            );
+          })}
           {children}
         </div>
       ) : null}
@@ -1942,7 +2065,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
   const density = useMapToolbarPreferencesStore((state) => state.density);
   const setDensity = useMapToolbarPreferencesStore((state) => state.setDensity);
   const [toolbarRole, setToolbarRole] = React.useState<ToolbarRole>(() => getDefaultRole(workspaceView));
-  const [openMenu, setOpenMenu] = React.useState<OverflowGroupId | null>(null);
+  const [openMenu, setOpenMenu] = React.useState<"more" | null>(null);
   const [paletteOpen, setPaletteOpen] = React.useState(false);
 
   React.useEffect(() => {
@@ -2200,27 +2323,33 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
   );
 
   const breakpoint = getBreakpoint(toolbarWidth);
-  const geometryType = normalizeGeometryType(activeLayerGeometryType);
-  const visibleCommandLimit = getVisibleCommandLimit(breakpoint, density);
-  const availableRoleCommands = React.useMemo(
-    () => commands.filter((command) => isCommandVisibleInRole(command, toolbarRole, workspaceView)),
-    [commands, toolbarRole, workspaceView],
+  const commandRegistry = commands;
+  const primaryCommand = React.useMemo(
+    () => selectContextualPrimaryCommand({
+      commands: commandRegistry,
+      toolbarRole,
+      workspaceView,
+      visibleLayerCount,
+      hasSelectedAoi,
+      scientificQABlockerCount,
+      scientificQAIssueCount,
+      isImporting,
+    }),
+    [
+      commandRegistry,
+      hasSelectedAoi,
+      isImporting,
+      scientificQABlockerCount,
+      scientificQAIssueCount,
+      toolbarRole,
+      visibleLayerCount,
+      workspaceView,
+    ],
   );
-  const sortedRoleCommands = React.useMemo(
-    () => [...availableRoleCommands].sort((a, b) => (
-      getContextScore(b, { visibleLayerCount, geometryType, hasSelectedAoi })
-      - getContextScore(a, { visibleLayerCount, geometryType, hasSelectedAoi })
-    )),
-    [availableRoleCommands, geometryType, hasSelectedAoi, visibleLayerCount],
+  const overflowCommands = React.useMemo(
+    () => commandRegistry.filter((command) => command.id !== primaryCommand?.id),
+    [commandRegistry, primaryCommand],
   );
-
-  const visibleCommands = sortedRoleCommands.slice(0, visibleCommandLimit);
-  const visibleIds = new Set(visibleCommands.map((command) => command.id));
-  const overflowCommands = sortedRoleCommands.filter((command) => !visibleIds.has(command.id));
-  const overflowByGroup = (id: OverflowGroupId): ToolbarCommand[] => {
-    const sourceCommands = id === "advanced" ? sortedRoleCommands : overflowCommands;
-    return sourceCommands.filter((command) => command.overflowGroup === id);
-  };
 
   const openPaletteShortcut = formatMapKeybinding("openPalette");
   const commandPaletteCommand = React.useMemo<PaletteCommand>(() => ({
@@ -2298,7 +2427,11 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
     <div
       ref={toolbarRef}
       style={toolbarShell}
-      aria-label={`Adaptive map toolbar for ${workspaceView} workspace`}
+      aria-label={`Map command center for ${workspaceView} workspace`}
+      data-testid="map-command-center"
+      data-map-command-center="true"
+      data-command-registry-count={commandRegistry.length}
+      data-command-center-visible-count={primaryCommand ? "3" : "2"}
       data-toolbar-density={density}
       data-toolbar-breakpoint={breakpoint}
     >
@@ -2317,39 +2450,25 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       ) : (
         <div style={{ ...roleSwitch, color: MAP_COLORS.textMuted }}>
           <Compass size={MAP_ICON_SIZES.sm} strokeWidth={1.8} aria-hidden="true" />
-          <span style={{ fontSize: MAP_TYPOGRAPHY.fontSize.xs, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>Data</span>
+          <span style={{ fontSize: MAP_TYPOGRAPHY.fontSize.xs, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>Overview</span>
         </div>
       )}
 
-      <div style={commandRail} aria-label="Priority map commands">
-        {visibleCommands.map((command) => (
-          <ToolbarCommandButton key={command.id} command={command} density={density} />
-        ))}
+      <div style={commandRail} aria-label="Command palette and contextual primary action">
+        <ToolbarCommandButton command={commandPaletteCommand} density="comfortable" />
+        {primaryCommand ? (
+          <div style={primaryActionShell} data-testid="map-command-center-primary-action">
+            <ToolbarCommandButton command={primaryCommand} density="comfortable" />
+          </div>
+        ) : null}
       </div>
 
       <div style={overflowRail} aria-label="Overflow map command groups">
         <ToolbarOverflowMenu
-          id="tools"
-          commands={overflowByGroup("tools")}
+          commands={overflowCommands}
           density={density}
-          open={openMenu === "tools"}
-          onToggle={() => setOpenMenu((current) => current === "tools" ? null : "tools")}
-          onClose={() => setOpenMenu(null)}
-        />
-        <ToolbarOverflowMenu
-          id="export"
-          commands={overflowByGroup("export")}
-          density={density}
-          open={openMenu === "export"}
-          onToggle={() => setOpenMenu((current) => current === "export" ? null : "export")}
-          onClose={() => setOpenMenu(null)}
-        />
-        <ToolbarOverflowMenu
-          id="advanced"
-          commands={overflowByGroup("advanced")}
-          density={density}
-          open={openMenu === "advanced"}
-          onToggle={() => setOpenMenu((current) => current === "advanced" ? null : "advanced")}
+          open={openMenu === "more"}
+          onToggle={() => setOpenMenu((current) => current === "more" ? null : "more")}
           onClose={() => setOpenMenu(null)}
         >
           {advancedFooter}
@@ -2363,7 +2482,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
         onClose={() => setPaletteOpen(false)}
       />
       <span style={mapStyles.srOnly}>
-        Toolbar commands adapt to screen width. Less frequent commands are grouped as Tools, Export, and Advanced.
+        The visible command center shows a palette trigger, task lens selector, contextual primary action, and grouped overflow. The command palette keeps the complete map command registry searchable.
       </span>
     </div>
   );

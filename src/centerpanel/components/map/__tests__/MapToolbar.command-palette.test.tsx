@@ -149,6 +149,7 @@ describe("MapToolbar command palette", () => {
       onToggleScientificQAPanel: vi.fn(),
       onExportClick: vi.fn(),
       onSaveProjectClick: vi.fn(),
+      onLoadProjectClick: vi.fn(),
       persistenceDisabled: true,
     });
 
@@ -178,6 +179,41 @@ describe("MapToolbar command palette", () => {
     expect(saveOption).not.toBeNull();
     expect(saveOption!.disabled).toBe(true);
     expect(saveOption!.textContent).toContain("Select or create a project before saving map state.");
+
+    setInputValue(input, "load project");
+    const loadOption = document.querySelector<HTMLButtonElement>('[data-testid="map-command-palette-option-load-project"]');
+    expect(loadOption).not.toBeNull();
+    expect(loadOption!.disabled).toBe(true);
+    expect(loadOption!.textContent).toContain("Select or create a project before loading map state.");
+  });
+
+  it("renders a compact command center while hiding secondary commands from the top belt", () => {
+    renderToolbar({
+      layerCount: 2,
+      visibleLayerCount: 2,
+      catalogSourceCount: 3,
+      onToggleLayerPanel: vi.fn(),
+      onToggleCatalog: vi.fn(),
+      onToggleContents: vi.fn(),
+      onToggleProcessingToolbox: vi.fn(),
+      onToggleFigureComposer: vi.fn(),
+      onExportClick: vi.fn(),
+      onImageExportClick: vi.fn(),
+      onSaveProjectClick: vi.fn(),
+      onLoadProjectClick: vi.fn(),
+    });
+
+    const commandCenter = document.querySelector<HTMLElement>('[data-testid="map-command-center"]');
+    expect(commandCenter).not.toBeNull();
+    expect(Number(commandCenter!.dataset.commandRegistryCount)).toBeGreaterThan(8);
+    expect(document.querySelector('[data-testid="map-command-center-primary-action"]')).not.toBeNull();
+    expect(document.querySelector('[data-testid="map-toolbar-command-command-palette"]')).not.toBeNull();
+    expect(document.querySelector('[data-testid="map-toolbar-command-catalog"]')).toBeNull();
+
+    keydown(window, "k", { ctrlKey: true });
+    const input = paletteInput();
+    setInputValue(input, "catalog");
+    expect(document.querySelector<HTMLButtonElement>('[data-testid="map-command-palette-option-catalog"]')).not.toBeNull();
   });
 
   it("exposes undo and redo commands as buttons, palette entries, and global shortcuts", () => {

@@ -718,10 +718,18 @@ const commandHeaderStyle: React.CSSProperties = {
 
 const commandHeaderTitleStyle: React.CSSProperties = {
   ...mapStyles.title,
+  display: "inline-flex",
+  alignItems: "center",
+  gap: MAP_SPACING.xs,
   flex: "0 0 auto",
   marginRight: MAP_SPACING.zero,
   lineHeight: MAP_TYPOGRAPHY.lineHeight.tight,
   whiteSpace: "nowrap",
+};
+
+const commandHeaderBreadcrumbMutedStyle: React.CSSProperties = {
+  color: MAP_COLORS.textMuted,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.medium,
 };
 
 const commandHeaderToolbarSlot: React.CSSProperties = {
@@ -6646,6 +6654,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     ? "The current map report snapshot is still rendering."
     : undefined;
   const persistenceDisabled = !selectedProjectId;
+  const activeActivity = getMapActivityDefinition(activeActivityId);
   const activityRailItems = MAP_PRIMARY_ACTIVITY_DEFINITIONS.map((activity) => ({
     id: activity.id,
     label: activity.ariaLabel,
@@ -6740,7 +6749,11 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
 
         {/* Header bar */}
         <div ref={headerRef} style={commandHeaderStyle} role="toolbar" aria-label="Map command bar">
-          <span style={commandHeaderTitleStyle} id="map-explorer-title">Map Explorer</span>
+          <span style={commandHeaderTitleStyle} id="map-explorer-title" aria-label="Map Explorer">
+            <span>Map Explorer</span>
+            <span aria-hidden style={commandHeaderBreadcrumbMutedStyle}>/</span>
+            <span aria-hidden style={commandHeaderBreadcrumbMutedStyle}>{activeActivity.label}</span>
+          </span>
 
           <MapSearchBar
             compact
