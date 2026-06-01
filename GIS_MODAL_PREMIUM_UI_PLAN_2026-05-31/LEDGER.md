@@ -22,19 +22,19 @@ gis-modal-ui/premium-redesign
 Next prompt:
 
 ```text
-Prompt 01 - Command and Panel Inventory (of 56)
+Prompt 02 - Navigation Model (of 56)
 ```
 
 Last completed prompt:
 
 ```text
-none
+Prompt 01 - Command and Panel Inventory
 ```
 
 Last pushed integration commit:
 
 ```text
-none recorded
+pending closeout push from gis-modal-ui/p01-inventory
 ```
 
 Update this pointer after every completed prompt. It is the first anti-amnesia check for the next agent.
@@ -208,7 +208,7 @@ Legend: `[ ]` TODO, `[~]` in progress, `[x]` done, `[!]` blocked.
 
 | Status | Prompt | Branch | Commit | Push | Required proof |
 | --- | --- | --- | --- | --- | --- |
-| [ ] | 01 - Command and Panel Inventory | `gis-modal-ui/p01-inventory` |  |  | Inventory coverage test, no visible UI change |
+| [x] | 01 - Command and Panel Inventory | `gis-modal-ui/p01-inventory` | branch head after closeout commit | pending closeout push | Inventory coverage test passed; no runtime shell imports or visible UI change |
 | [ ] | 02 - Navigation Model | `gis-modal-ui/p02-navigation-model` |  |  | Activity/task-lens model tests |
 | [ ] | 03 - Activity Rail Refresh | `gis-modal-ui/p03-activity-rail` |  |  | Stable activity rail, old actions reachable |
 | [ ] | 04 - Command Center | `gis-modal-ui/p04-command-center` |  |  | Palette complete, compact header |
@@ -324,6 +324,7 @@ Append newest entries at the top.
 
 | Date | Prompt | Branch | Start SHA | Commit | Push | Integration FF | Validation | Premium UI proof | Anti-amnesia proof | Residual risk |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 2026-06-01 | 01 - Command and Panel Inventory | `gis-modal-ui/p01-inventory` | `486b65a` | branch head after closeout commit | pending closeout push | pending closeout fast-forward | `npm run typecheck` pass; `npx vitest run src/centerpanel/components/map` pass (56 files, 532 tests); `npm run lint:errors` pass | Added pure inventory module only; tests assert `MapToolbar`, `MapExplorerModalComposition`, and `MapWorkspaceShell` do not import the inventory, so runtime rendering is unchanged | Fresh GIS Modal Premium UI Redesign pack confirmed; archived production GIS ladder not resumed; Prompt 01 branch created from `gis-modal-ui/premium-redesign`; added files: `src/centerpanel/components/map/navigation/mapSurfaceInventory.ts`, `src/centerpanel/components/map/navigation/index.ts`, `src/centerpanel/components/map/__tests__/mapSurfaceInventory.test.ts`; coverage maps toolbar commands, palette commands, `show*` flags, activity rail IDs, hidden scene toggles, workspace views, quick actions, dialogs, drawers, overlays, and status surfaces | Inventory is a static contract over current source markers; future Prompt 02 should convert this into the semantic navigation model |
 
 ---
 
