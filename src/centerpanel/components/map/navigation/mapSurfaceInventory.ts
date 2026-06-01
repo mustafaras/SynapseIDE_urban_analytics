@@ -457,7 +457,7 @@ export const MAP_SURFACE_INVENTORY = [
     targetHome: "publish",
     targetSlot: "dialog",
     currentSurface: "MapToolbar",
-    targetSurface: "Publish activity > Image export",
+    targetSurface: "Publish activity > Figure",
   },
   {
     id: "toolbar.export-offline-package",
@@ -467,7 +467,7 @@ export const MAP_SURFACE_INVENTORY = [
     targetHome: "publish",
     targetSlot: "dialog",
     currentSurface: "MapToolbar",
-    targetSurface: "Publish activity > Offline package",
+    targetSurface: "Publish activity > Offline Package",
   },
   {
     id: "toolbar.add-map-to-report",
@@ -477,7 +477,7 @@ export const MAP_SURFACE_INVENTORY = [
     targetHome: "publish",
     targetSlot: "right-inspector",
     currentSurface: "MapToolbar",
-    targetSurface: "Publish activity > Report handoff",
+    targetSurface: "Publish activity > Report",
   },
   {
     id: "toolbar.export-geojson",
@@ -487,7 +487,7 @@ export const MAP_SURFACE_INVENTORY = [
     targetHome: "publish",
     targetSlot: "dialog",
     currentSurface: "MapToolbar",
-    targetSurface: "Publish activity > Data export",
+    targetSurface: "Publish activity > Data Export",
   },
   {
     id: "palette.command-palette",
@@ -1117,7 +1117,7 @@ export const MAP_SURFACE_INVENTORY = [
     targetHome: "publish",
     targetSlot: "dialog",
     currentSurface: "MapDataExportDialog",
-    targetSurface: "Publish activity > Data export",
+    targetSurface: "Publish activity > Data Export",
   },
   {
     id: "state.showMapExportDialog",
@@ -1127,7 +1127,7 @@ export const MAP_SURFACE_INVENTORY = [
     targetHome: "publish",
     targetSlot: "dialog",
     currentSurface: "MapExportDialog",
-    targetSurface: "Publish activity > Image export",
+    targetSurface: "Publish activity > Figure",
   },
   {
     id: "state.inspectorLayerId",
@@ -1177,7 +1177,7 @@ export const MAP_SURFACE_INVENTORY = [
     targetHome: "publish",
     targetSlot: "right-inspector",
     currentSurface: "MapReportHandoffDrawer",
-    targetSurface: "Publish activity > Report handoff",
+    targetSurface: "Publish activity > Report",
   },
   {
     id: "state.selectionStatsSummary",

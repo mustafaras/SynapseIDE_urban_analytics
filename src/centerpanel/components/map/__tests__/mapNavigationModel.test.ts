@@ -215,7 +215,7 @@ describe("mapNavigationModel", () => {
     expect(binding).toMatchObject({
       inventoryId: "toolbar.export-geojson",
       activityId: "publish",
-      sidebarTabId: "publish-export",
+      sidebarTabId: "publish-data-export",
     });
     expect(entry).toEqual(before);
   });

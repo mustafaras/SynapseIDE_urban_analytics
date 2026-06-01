@@ -31,6 +31,7 @@ export interface MapLayoutDesignerPanelProps {
   overlayLayers: OverlayLayerConfig[];
   qaState: MapScientificQAState | null;
   bearing?: number;
+  presentation?: "floating" | "embedded";
   onClose: () => void;
   onExportBook?: (book: MapBookSpec) => void;
   onAnnounce?: (msg: string) => void;
@@ -47,6 +48,19 @@ const panelStyle: React.CSSProperties = {
   borderRadius: MAP_RADIUS.lg,
   background: MAP_COLORS.bgPanel,
   boxShadow: MAP_SHADOWS.panel,
+  color: MAP_COLORS.text,
+  overflow: "hidden",
+};
+
+const embeddedPanelStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateRows: "auto auto minmax(0, 1fr) auto",
+  width: "100%",
+  minHeight: "34rem",
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.sm,
+  background: MAP_COLORS.bgPanel,
+  boxShadow: "none",
   color: MAP_COLORS.text,
   overflow: "hidden",
 };
@@ -266,6 +280,7 @@ export const MapLayoutDesignerPanel: React.FC<MapLayoutDesignerPanelProps> = ({
   overlayLayers,
   qaState: _qaState,
   bearing = 0,
+  presentation = "floating",
   onClose,
   onExportBook,
   onAnnounce,
@@ -336,19 +351,24 @@ export const MapLayoutDesignerPanel: React.FC<MapLayoutDesignerPanelProps> = ({
 
   const activeBlockers = activePagePreflight?.blockers ?? [];
   const activeWarnings = activePagePreflight?.warnings ?? [];
+  const isFloating = presentation === "floating";
 
   return (
     <aside
-      data-draggable-map-panel="true"
-      style={{ ...panelStyle, ...panelDrag.panelPositionStyle }}
+      data-draggable-map-panel={isFloating ? "true" : undefined}
+      data-map-layout-designer-panel={presentation}
+      style={isFloating ? { ...panelStyle, ...panelDrag.panelPositionStyle } : embeddedPanelStyle}
       className={motionStyles.panelIn}
-      role="dialog"
-      aria-modal="false"
+      role={isFloating ? "dialog" : "region"}
+      aria-modal={isFloating ? "false" : undefined}
       aria-label="Layout designer"
       data-testid="map-layout-designer"
     >
       {/* Header */}
-      <header style={{ ...headerStyle, ...panelDrag.dragHandleStyle }} {...panelDrag.dragHandleProps}>
+      <header
+        style={isFloating ? { ...headerStyle, ...panelDrag.dragHandleStyle } : headerStyle}
+        {...(isFloating ? panelDrag.dragHandleProps : {})}
+      >
         <h3 style={titleStyle}>
           <BookOpen size={MAP_ICON_SIZES.md} aria-hidden="true" />
           Layout designer

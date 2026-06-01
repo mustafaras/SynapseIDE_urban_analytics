@@ -33,7 +33,7 @@ import {
   type MeasureToolId,
   type OverlayLayerConfig,
 } from "../mapTypes";
-import { buildUserDeclaredCrsSummary } from "../mapLayerMetadata";
+import { buildUserDeclaredCrsSummary, resolveOverlayLayerCrsSummary } from "../mapLayerMetadata";
 import {
   applyMapCommand,
   redoMapCommand,
@@ -136,6 +136,14 @@ import {
   type MapSceneStatusChip,
   type MapSceneTabId,
 } from "../scene";
+import {
+  MapPublishPathPanel,
+  MapPublishWorkspace,
+  type MapPublishPathAction,
+  type MapPublishPathMeta,
+  type MapPublishReadinessItem,
+  type MapPublishTabId,
+} from "../publish";
 import { MapBottomPanel, type MapBottomPanelCoreTabId, type MapBottomPanelTask } from "../bottom";
 import { ScientificQAPanel } from "../ScientificQAPanel";
 import { MapProblemsPanel, buildMapProblemsModel, type MapProblemRow } from "../problems";
@@ -310,6 +318,10 @@ import {
   exportMapOnlyA0LandscapePdf,
   exportMapPublication,
   type MapCompositionOptions,
+  type MapPublicationReadiness,
+  type MapPublicationReadinessCheck,
+  type MapPublicationReadinessCriterion,
+  type MapPublicationReadinessSeverity,
   mapPublicationReadinessToEvidenceQA,
   renderMapExportPreview,
   triggerMapPublicationDownload,
@@ -469,12 +481,28 @@ const SCENE_TAB_IDS: readonly MapSceneTabId[] = [
   "scene-voxcity",
 ];
 
+const PUBLISH_TAB_IDS: readonly MapPublishTabId[] = [
+  "publish-figure",
+  "publish-data-export",
+  "publish-report",
+  "publish-offline-package",
+  "publish-review-package",
+];
+
 function isMapSceneTabId(id: string): id is MapSceneTabId {
   return (SCENE_TAB_IDS as readonly string[]).includes(id);
 }
 
 function resolveSceneTabId(id: string): MapSceneTabId {
   return isMapSceneTabId(id) ? id : "scene-3d";
+}
+
+function isMapPublishTabId(id: string): id is MapPublishTabId {
+  return (PUBLISH_TAB_IDS as readonly string[]).includes(id);
+}
+
+function resolvePublishTabId(id: string): MapPublishTabId {
+  return isMapPublishTabId(id) ? id : "publish-figure";
 }
 
 function sceneStatusChip(
@@ -535,6 +563,201 @@ function viewportSyncChip(enabled: boolean, statusLabel: string): MapSceneStatus
     `Sync: ${enabled ? statusLabel : "off"}`,
     enabled ? "ready" : "caveat",
   );
+}
+
+function readinessSeverityToGisStatus(status: MapPublicationReadinessSeverity): GisStatusKey {
+  if (status === "blocked") return "blocked";
+  if (status === "warning") return "caveat";
+  return "ready";
+}
+
+function findReadinessCheck(
+  readiness: MapPublicationReadiness,
+  criterion: MapPublicationReadinessCriterion,
+): MapPublicationReadinessCheck | null {
+  return readiness.checks.find((check) => check.criterion === criterion) ?? null;
+}
+
+function publishReadinessItem(input: {
+  id: string;
+  label: string;
+  status: GisStatusKey;
+  detail: string;
+  required?: boolean | undefined;
+  title?: string | undefined;
+}): MapPublishReadinessItem {
+  const item: MapPublishReadinessItem = {
+    id: input.id,
+    label: input.label,
+    status: input.status,
+    detail: input.detail,
+  };
+  if (input.required !== undefined) item.required = input.required;
+  if (input.title?.trim()) item.title = input.title.trim();
+  return item;
+}
+
+function publishReadinessItemFromCheck(input: {
+  id: string;
+  label: string;
+  readiness: MapPublicationReadiness;
+  criterion: MapPublicationReadinessCriterion;
+  fallbackDetail: string;
+  required?: boolean | undefined;
+}): MapPublishReadinessItem {
+  const check = findReadinessCheck(input.readiness, input.criterion);
+  return publishReadinessItem({
+    id: input.id,
+    label: input.label,
+    status: check ? readinessSeverityToGisStatus(check.status) : "unknown",
+    detail: check?.message ?? input.fallbackDetail,
+    required: input.required ?? check?.required,
+    title: check?.recommendedFix,
+  });
+}
+
+function uniquePublishStrings(values: readonly (string | null | undefined)[], limit = 12): string[] {
+  const result: string[] = [];
+  const seen = new Set<string>();
+  for (const value of values) {
+    const trimmed = value?.trim();
+    if (!trimmed || seen.has(trimmed)) continue;
+    seen.add(trimmed);
+    result.push(trimmed);
+    if (result.length >= limit) break;
+  }
+  return result;
+}
+
+function collectLayerEvidenceIds(layer: OverlayLayerConfig): string[] {
+  return uniquePublishStrings([
+    layer.metadata?.evidenceArtifactId,
+    layer.metadata?.analysisResult?.evidenceArtifactId,
+    layer.metadata?.registry?.evidenceArtifactId,
+  ], 8);
+}
+
+function formatCompactList(values: readonly string[], emptyLabel: string, limit = 3): string {
+  if (values.length === 0) return emptyLabel;
+  const head = values.slice(0, limit).join(", ");
+  const remainder = values.length - limit;
+  return remainder > 0 ? `${head}, +${remainder}` : head;
+}
+
+function formatPublishBounds(bounds: [number, number, number, number] | null | undefined): string {
+  if (!bounds) return "Current view bounds not captured yet";
+  return bounds.map((value) => value.toFixed(5).replace(/0+$/g, "").replace(/\.$/, "")).join(", ");
+}
+
+function buildPublishReadinessItems(input: {
+  readiness: MapPublicationReadiness;
+  visibleLayers: OverlayLayerConfig[];
+  composition: MapCompositionOptions;
+  evidenceIds: readonly string[];
+}): MapPublishReadinessItem[] {
+  const crsSummaries = input.visibleLayers.map((layer) => resolveOverlayLayerCrsSummary(layer));
+  const knownCrsValues = uniquePublishStrings(crsSummaries.map((summary) => summary.crs), 6);
+  const missingCrsCount = crsSummaries.filter((summary) => summary.status !== "known").length;
+  const crsCheck = findReadinessCheck(input.readiness, "crs-measurement");
+  const crsDetail = [
+    knownCrsValues.length > 0 ? `CRS: ${formatCompactList(knownCrsValues, "none")}.` : "CRS: no declared layer CRS.",
+    missingCrsCount > 0 ? `${missingCrsCount} visible layer${missingCrsCount === 1 ? "" : "s"} missing CRS readiness.` : null,
+    crsCheck?.message,
+  ].filter((value): value is string => Boolean(value)).join(" ");
+  const caveatDetail = input.readiness.caveats.length > 0
+    ? `${input.readiness.caveats.length} QA/source caveat${input.readiness.caveats.length === 1 ? "" : "s"} will travel with the output.`
+    : input.readiness.warnings.length > 0
+      ? `${input.readiness.warnings.length} readiness warning${input.readiness.warnings.length === 1 ? "" : "s"} will be reviewed before output.`
+      : "No QA caveat is currently required by publication readiness.";
+  const caveatStatus: GisStatusKey =
+    input.readiness.blockers.length > 0
+      ? "blocked"
+      : input.readiness.caveats.length > 0 || input.readiness.warnings.length > 0
+        ? "caveat"
+        : "ready";
+  const evidenceDetail = input.evidenceIds.length > 0
+    ? `${input.evidenceIds.length} evidence ID${input.evidenceIds.length === 1 ? "" : "s"}: ${formatCompactList(input.evidenceIds, "none", 4)}.`
+    : "No evidence IDs are attached; output will rely on layer and project metadata only.";
+
+  return [
+    publishReadinessItemFromCheck({
+      id: "title",
+      label: "Title",
+      readiness: input.readiness,
+      criterion: "title",
+      fallbackDetail: input.composition.title.trim() ? `Title recorded: ${input.composition.title.trim()}.` : "A publication title is required.",
+      required: true,
+    }),
+    publishReadinessItemFromCheck({
+      id: "visible-layers",
+      label: "Visible layers",
+      readiness: input.readiness,
+      criterion: "visible-layer",
+      fallbackDetail: `${input.visibleLayers.length} visible layer${input.visibleLayers.length === 1 ? "" : "s"}.`,
+      required: true,
+    }),
+    publishReadinessItem({
+      id: "crs",
+      label: "CRS",
+      status: crsCheck ? readinessSeverityToGisStatus(crsCheck.status) : missingCrsCount > 0 ? "caveat" : "ready",
+      detail: crsDetail,
+      required: true,
+      title: crsCheck?.recommendedFix,
+    }),
+    publishReadinessItemFromCheck({
+      id: "legend",
+      label: "Legend",
+      readiness: input.readiness,
+      criterion: "legend",
+      fallbackDetail: input.composition.includeLegend ? "Legend is enabled." : "Legend is disabled.",
+      required: true,
+    }),
+    publishReadinessItemFromCheck({
+      id: "scale-bar",
+      label: "Scale bar",
+      readiness: input.readiness,
+      criterion: "scale-bar",
+      fallbackDetail: input.composition.includeScaleBar ? "Scale bar is enabled." : "Scale bar is disabled.",
+      required: true,
+    }),
+    publishReadinessItemFromCheck({
+      id: "north-arrow",
+      label: "North arrow",
+      readiness: input.readiness,
+      criterion: "north-arrow",
+      fallbackDetail: input.composition.includeNorthArrow ? "North arrow is enabled." : "North arrow is disabled.",
+      required: true,
+    }),
+    publishReadinessItemFromCheck({
+      id: "attribution",
+      label: "Attribution",
+      readiness: input.readiness,
+      criterion: "attribution-license",
+      fallbackDetail: input.composition.includeAttribution ? "Attribution is enabled." : "Attribution is disabled.",
+      required: true,
+    }),
+    publishReadinessItem({
+      id: "qa-caveats",
+      label: "QA caveats",
+      status: caveatStatus,
+      detail: caveatDetail,
+      title: input.readiness.caveats.slice(0, 4).join(" "),
+    }),
+    publishReadinessItem({
+      id: "evidence-ids",
+      label: "Evidence IDs",
+      status: input.evidenceIds.length > 0 ? "ready" : "caveat",
+      detail: evidenceDetail,
+    }),
+  ];
+}
+
+function publishTabLabel(tabId: MapPublishTabId): string {
+  if (tabId === "publish-data-export") return "Data Export";
+  if (tabId === "publish-report") return "Report";
+  if (tabId === "publish-offline-package") return "Offline Package";
+  if (tabId === "publish-review-package") return "Review Package";
+  return "Figure";
 }
 
 function clampNumber(value: number, min: number, max: number): number {
@@ -1305,7 +1528,6 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const [showFigureComposer, setShowFigureComposer] = useState(false);
   const [showInteractionStrip, setShowInteractionStrip] = useState(false);
   const [showComparisonStrip, setShowComparisonStrip] = useState(false);
-  const handleToggleFigureComposer = useCallback(() => setShowFigureComposer((previous) => !previous), []);
   const [bottomPanelOpen, setBottomPanelOpen] = useState(false);
   const [activeBottomPanelTab, setActiveBottomPanelTab] = useState<MapBottomPanelCoreTabId>("problems");
 
@@ -1431,6 +1653,28 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     setPointSymbologyLayerId(null);
     setShowChoroplethPanel(false);
     setShowVoxCityOverlay(tabId === "scene-voxcity");
+    announce(announcement);
+  }, [announce, setShowWorkflowDrawer, setWorkflowPreview]);
+  const openPublishActivityTab = useCallback((tabId: MapPublishTabId, announcement: string) => {
+    setWorkspaceView("explore");
+    setActiveActivityId("publish");
+    setShowLayerPanel(true);
+    setWorkbenchSidebarCollapsed(false);
+    setWorkbenchSidebarTab(tabId);
+    setShowFigureComposer(tabId === "publish-figure");
+    setShowProcessingToolbox(false);
+    setShowModelBuilder(false);
+    setShowPluginPanel(false);
+    setShowNLQueryPanel(false);
+    setShowWorkflowDrawer(false);
+    setWorkflowPreview(null);
+    setShowScientificQAPanel(false);
+    setShowClusterViz(false);
+    setShowHotSpotViz(false);
+    setShowEmergingHotSpotViz(false);
+    setPointSymbologyLayerId(null);
+    setShowChoroplethPanel(false);
+    setShowVoxCityOverlay(false);
     announce(announcement);
   }, [announce, setShowWorkflowDrawer, setWorkflowPreview]);
   const extensionRegistry = useMemo(() => createMapExtensionRegistry(), []);
@@ -2523,6 +2767,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     isExportingReportHandoffPdf,
     setIsExportingReportHandoffPdf,
   } = useMapReportController();
+  const activePublishTabId = resolvePublishTabId(workbenchSidebarTab);
+  const publishReportTabDocked = activeActivityId === "publish" && showLayerPanel && activePublishTabId === "publish-report";
   const {
     dockLayout,
     effectiveShowSidebar,
@@ -2546,7 +2792,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     showNLQueryPanel,
     showWorkflowDrawer,
     showReviewTimeline,
-    hasReportHandoffSource: Boolean(reportHandoffSource),
+    hasReportHandoffSource: Boolean(reportHandoffSource) && !publishReportTabDocked,
     navigatorStageMode,
     navigatorStageMargin: MAP_NAVIGATOR_STAGE_MARGIN,
     layoutPreferences,
@@ -2598,6 +2844,26 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     closeRightDockPanels();
     openSceneActivityTab(tabId, announcement);
   }, [closeFloatingRightPanels, closeRightDockPanels, openSceneActivityTab]);
+  const handleOpenPublishTab = useCallback((tabId: MapPublishTabId, announcement: string) => {
+    closeFloatingRightPanels();
+    closeRightDockPanels();
+    openPublishActivityTab(tabId, announcement);
+  }, [closeFloatingRightPanels, closeRightDockPanels, openPublishActivityTab]);
+  const handlePublishWorkspaceTabChange = useCallback((tabId: string) => {
+    const resolvedTabId = resolvePublishTabId(tabId);
+    setWorkbenchSidebarTab(resolvedTabId);
+    setShowFigureComposer(resolvedTabId === "publish-figure");
+    announce(`Publish ${publishTabLabel(resolvedTabId)} opened`);
+  }, [announce]);
+  const handleToggleFigureComposer = useCallback(() => {
+    if (activeActivityId === "publish" && showLayerPanel && activePublishTabId === "publish-figure") {
+      setShowLayerPanel(false);
+      setShowFigureComposer(false);
+      announce("Figure composer closed");
+      return;
+    }
+    handleOpenPublishTab("publish-figure", "Figure composer opened in Publish");
+  }, [activeActivityId, activePublishTabId, announce, handleOpenPublishTab, showLayerPanel]);
   const handleToggleProcessingToolbox = useCallback(() => {
     if (activeActivityId === "analyze" && showLayerPanel && workbenchSidebarTab === "analyze-tools") {
       setShowLayerPanel(false);
@@ -6511,7 +6777,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         handleOpenStyleTab("style-renderer", "Renderer styling opened in Style", activeStyleLayer?.id ?? null);
         break;
       case "export-map":
-        handleSetWorkspaceView("explore");
+        handleOpenPublishTab("publish-figure", "Publish Figure opened for map export");
         handleMapExportRequest();
         break;
       case "save-project":
@@ -6521,7 +6787,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       default:
         break;
     }
-  }, [activeStyleLayer, announce, closeFloatingRightPanels, handleImportRequest, handleMapExportRequest, handleOpenStyleTab, handleProjectSave, handleSetDrawTool, handleSetMeasureTool, handleSetWorkspaceView, setActiveTool]);
+  }, [activeStyleLayer, announce, closeFloatingRightPanels, handleImportRequest, handleMapExportRequest, handleOpenPublishTab, handleOpenStyleTab, handleProjectSave, handleSetDrawTool, handleSetMeasureTool, handleSetWorkspaceView, setActiveTool]);
 
   const handleExportConfirm = useCallback(async () => {
     try {
@@ -6897,8 +7163,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         openSceneActivityTab("scene-3d", "Scene workspace opened");
         break;
       case "publish":
-        setWorkspaceView("explore");
-        setShowFigureComposer(true);
+        openPublishActivityTab("publish-figure", "Publish workspace opened");
         break;
       case "qa":
         openMapProblems();
@@ -6919,7 +7184,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     }
 
     announce(`${activity.label} activity selected`);
-  }, [announce, openAnalyzeActivityTab, openBottomPanelTab, openMapProblems, openStyleActivityTab]);
+  }, [announce, openAnalyzeActivityTab, openBottomPanelTab, openMapProblems, openPublishActivityTab, openSceneActivityTab, openStyleActivityTab]);
 
   const bottomProblemsModel = useMemo(
     () => buildMapProblemsModel({ qaState: scientificQA, overlayLayers }),
@@ -7097,7 +7362,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     drawnFeatures.length === 0 &&
     overlayLayers.filter((layer) => layer.visible).length === 0;
   const exportDisabledReason = exportDisabled
-    ? "Add pins, drawings, or visible overlay layers before exporting GeoJSON."
+    ? "Add pins, drawings, or visible GeoJSON-capable overlay layers before exporting spatial data."
     : undefined;
   const packageExportDisabled =
     pins.length === 0 &&
@@ -7106,9 +7371,208 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     drawnFeatures.length === 0 &&
     overlayLayers.length === 0 &&
     mapEvidenceArtifacts.length === 0;
+  const packageExportDisabledReason = "Add pins, drawings, overlay layers, bookmarks, annotations, or map evidence before exporting an offline package.";
   const reportDisabledReason = isGeneratingReportHandoffSnapshot
     ? "The current map report snapshot is still rendering."
     : undefined;
+  const publishEvidenceIds = uniquePublishStrings([
+    ...visiblePublicationLayers.flatMap(collectLayerEvidenceIds),
+    ...mapEvidenceArtifacts.map((artifact) => artifact.id),
+  ], 24);
+  const publishReadinessItems = buildPublishReadinessItems({
+    readiness: mapPublicationReadiness,
+    visibleLayers: visiblePublicationLayers,
+    composition: mapCompositionOptions,
+    evidenceIds: publishEvidenceIds,
+  });
+  const mapImageExportDisabledReason = mapPublicationReadiness.status === "blocked"
+    ? mapPublicationReadiness.blockers[0]?.message ?? "Resolve publication readiness blockers before exporting a map image."
+    : undefined;
+  const figureActions: MapPublishPathAction[] = [
+    {
+      label: "Map image export",
+      onClick: handleMapExportRequest,
+      primary: true,
+      disabled: Boolean(mapImageExportDisabledReason),
+      ...(mapImageExportDisabledReason ? { disabledReason: mapImageExportDisabledReason } : {}),
+    },
+  ];
+  const dataExportActions: MapPublishPathAction[] = [
+    {
+      label: "Spatial data export",
+      onClick: handleExportRequest,
+      primary: true,
+      disabled: exportDisabled,
+      ...(exportDisabledReason ? { disabledReason: exportDisabledReason } : {}),
+    },
+  ];
+  const reportActions: MapPublishPathAction[] = reportHandoffDraft
+    ? []
+    : [
+        {
+          label: "Prepare report handoff",
+          onClick: handleOpenCurrentMapReportHandoff,
+          primary: true,
+          disabled: Boolean(reportDisabledReason),
+          ...(reportDisabledReason ? { disabledReason: reportDisabledReason } : {}),
+        },
+      ];
+  const offlineActions: MapPublishPathAction[] = [
+    {
+      label: isExportingOfflinePackage ? "Packaging..." : "Export offline package",
+      onClick: () => {
+        void handleOfflinePackageExport();
+      },
+      primary: true,
+      disabled: packageExportDisabled || isExportingOfflinePackage,
+      ...(packageExportDisabled
+        ? { disabledReason: packageExportDisabledReason }
+        : isExportingOfflinePackage
+          ? { disabledReason: "Offline package export is already running." }
+          : {}),
+    },
+  ];
+  const reviewActions: MapPublishPathAction[] = [
+    {
+      label: "Review timeline",
+      onClick: () => openBottomPanelTab("timeline", "Review timeline opened in the bottom panel"),
+    },
+    {
+      label: "IDE manifest",
+      onClick: handleOpenMapManifestInIde,
+    },
+    {
+      label: "IDE note",
+      onClick: handleOpenExportNoteInIde,
+    },
+  ];
+  const figureMeta: MapPublishPathMeta[] = [
+    { label: "Map image", value: `${mapCompositionOptions.format.toUpperCase()} @ ${mapCompositionOptions.dpi} DPI` },
+    { label: "Layers", value: visiblePublicationLayers.length.toLocaleString(), status: visiblePublicationLayers.length > 0 ? "ready" : "blocked" },
+    { label: "Legend", value: `${mapPublicationLegendItems.length.toLocaleString()} item${mapPublicationLegendItems.length === 1 ? "" : "s"}`, status: mapPublicationReadiness.hasLegend ? "ready" : "blocked" },
+    { label: "Readiness", value: mapPublicationReadiness.status.replace(/-/g, " "), status: mapPublicationReadiness.status === "blocked" ? "blocked" : mapPublicationReadiness.status === "ready-with-caveats" ? "caveat" : "ready" },
+  ];
+  const dataExportMeta: MapPublishPathMeta[] = [
+    { label: "Target", value: exportTarget.replace(/-/g, " ") },
+    { label: "Format", value: exportFormat === "geoparquet" ? "GeoParquet" : "GeoJSON" },
+    { label: "Pins", value: pins.length.toLocaleString() },
+    { label: "Drawings", value: drawnFeatures.length.toLocaleString() },
+  ];
+  const reportMeta: MapPublishPathMeta[] = [
+    { label: "Snapshot", value: reportHandoffDraft?.snapshot.filename ?? (reportHandoffSnapshot?.dataUrl ? "captured" : "metadata only"), status: reportHandoffSnapshot?.dataUrl ? "ready" : "caveat" },
+    { label: "Evidence block", value: reportHandoffDraft?.evidenceBlock.id ?? "not prepared", status: reportHandoffDraft ? "ready" : "unknown" },
+    { label: "Citations", value: (reportHandoffDraft?.citations.length ?? 0).toLocaleString() },
+    { label: "Readiness", value: (reportHandoffDraft?.publicationReadiness.status ?? mapPublicationReadiness.status).replace(/-/g, " ") },
+  ];
+  const offlineMeta: MapPublishPathMeta[] = [
+    { label: "Source bounds", value: formatPublishBounds(currentMapBounds), status: currentMapBounds ? "ready" : "caveat" },
+    { label: "Layers", value: overlayLayers.length.toLocaleString() },
+    { label: "Source handles", value: sourceHandles.length.toLocaleString() },
+    { label: "Evidence IDs", value: publishEvidenceIds.length.toLocaleString(), status: publishEvidenceIds.length > 0 ? "ready" : "caveat" },
+  ];
+  const reviewMeta: MapPublishPathMeta[] = [
+    { label: "Readiness ID", value: mapPublicationReadiness.id },
+    { label: "Checked", value: new Date(mapPublicationReadiness.checkedAt).toLocaleString() },
+    { label: "Review events", value: reviewSession.events.length.toLocaleString(), status: reviewSession.events.length > 0 ? "ready" : "caveat" },
+    { label: "Caveats", value: mapPublicationReadiness.caveats.length.toLocaleString(), status: mapPublicationReadiness.caveats.length > 0 ? "caveat" : "ready" },
+  ];
+  const publishFigureElement = (
+    <MapPublishPathPanel
+      eyebrow="Map image"
+      title="Figure and map image"
+      description="Figure composition uses the visible layer stack, cartographic elements, attribution text, CRS caveats, and publication readiness checks before rendering."
+      meta={figureMeta}
+      actions={figureActions}
+    >
+      <MapLayoutDesignerPanel
+        visible
+        presentation="embedded"
+        overlayLayers={overlayLayers}
+        qaState={scientificQA}
+        bearing={bearing}
+        onClose={() => {
+          setShowFigureComposer(false);
+          setShowLayerPanel(false);
+          announce("Layout designer closed");
+        }}
+        onExportBook={(_book) => {
+          setShowFigureComposer(false);
+          setShowMapExportDialog(true);
+          announce("Map book exported — opening publication export");
+        }}
+        onAnnounce={announce}
+      />
+    </MapPublishPathPanel>
+  );
+  const publishDataExportElement = (
+    <MapPublishPathPanel
+      eyebrow="Spatial data"
+      title="GeoJSON and GeoParquet export"
+      description="Data export keeps the selected target, GeoJSON precision controls, GeoParquet spatial metadata, skipped-layer notices, and feature-property rules in the existing export dialog."
+      meta={dataExportMeta}
+      actions={dataExportActions}
+    />
+  );
+  const publishReportElement = (
+    <MapPublishPathPanel
+      eyebrow="Report handoff"
+      title="Snapshot and structured evidence"
+      description="Report handoff carries the current snapshot, citations, structured references, caveats, attribution, and evidence block into the report builder."
+      meta={reportMeta}
+      actions={reportActions}
+    >
+      {reportHandoffDraft ? (
+        <Suspense fallback={null}>
+          <LazyMapReportHandoffDrawer
+            draft={reportHandoffDraft}
+            options={reportHandoffOptions}
+            isGeneratingSnapshot={isGeneratingReportHandoffSnapshot}
+            isExportingPdf={isExportingReportHandoffPdf}
+            presentation="embedded"
+            onOptionsChange={handleReportHandoffOptionsChange}
+            onRefreshSnapshot={handleRefreshReportHandoffSnapshot}
+            onRegisterEvidence={handleRegisterReportEvidenceBlock}
+            onDownloadPdf={handleDownloadReportHandoffPdf}
+            onInsert={handleInsertReportHandoff}
+            onClose={handleCloseReportHandoff}
+          />
+        </Suspense>
+      ) : null}
+    </MapPublishPathPanel>
+  );
+  const publishOfflinePackageElement = (
+    <MapPublishPathPanel
+      eyebrow="Offline package"
+      title="Bounded reproducibility package"
+      description="Offline package export preserves project state, source handles, bounded inline source sidecars, unavailable-source caveats, review events, and evidence references."
+      meta={offlineMeta}
+      actions={offlineActions}
+    />
+  );
+  const publishReviewPackageElement = (
+    <MapPublishPathPanel
+      eyebrow="Review package"
+      title="Pre-handoff metadata review"
+      description="Review package lists the readiness outcome, source bounds, caveats, evidence IDs, review timeline, and export notes before any formal output is handed off."
+      meta={reviewMeta}
+      actions={reviewActions}
+    >
+      <div style={{ display: "grid", gap: MAP_SPACING.sm, color: MAP_COLORS.textSecondary, fontSize: MAP_TYPOGRAPHY.fontSize.xs, lineHeight: MAP_TYPOGRAPHY.lineHeight.normal }}>
+        <div>
+          <strong style={{ color: MAP_COLORS.text }}>Evidence IDs:</strong>{" "}
+          {formatCompactList(publishEvidenceIds, "No evidence IDs attached", 8)}
+        </div>
+        <div>
+          <strong style={{ color: MAP_COLORS.text }}>Visible layer IDs:</strong>{" "}
+          {formatCompactList(visiblePublicationLayers.map((layer) => layer.id), "No visible overlay layers", 8)}
+        </div>
+        <div>
+          <strong style={{ color: MAP_COLORS.text }}>QA caveats:</strong>{" "}
+          {formatCompactList(mapPublicationReadiness.caveats, "No caveats required by readiness", 3)}
+        </div>
+      </div>
+    </MapPublishPathPanel>
+  );
   const persistenceDisabled = !selectedProjectId;
   const activeActivity = getRuntimeMapActivityDefinition(activeActivityId);
   const activityRailItems = MAP_PRIMARY_ACTIVITY_DEFINITIONS.map((activity) => ({
@@ -7150,7 +7614,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     activeActivityId === "layers" ||
     activeActivityId === "analyze" ||
     activeActivityId === "style" ||
-    activeActivityId === "scene";
+    activeActivityId === "scene" ||
+    activeActivityId === "publish";
   const analyzeSidebarActive = activeActivityId === "analyze" && effectiveShowLayerPanel;
   const analyzeWorkflowsTabActive = analyzeSidebarActive && workbenchSidebarTab === "analyze-workflows";
   const analyzeToolsTabActive = analyzeSidebarActive && workbenchSidebarTab === "analyze-tools";
@@ -7168,6 +7633,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const sceneMassingTabActive = sceneSidebarActive && activeSceneTabId === "scene-massing";
   const sceneSunShadowTabActive = sceneSidebarActive && activeSceneTabId === "scene-sun-shadow";
   const sceneVoxCityTabActive = sceneSidebarActive && activeSceneTabId === "scene-voxcity";
+  const publishSidebarActive = activeActivityId === "publish" && effectiveShowLayerPanel;
+  const publishFigureTabActive = publishSidebarActive && activePublishTabId === "publish-figure";
+  const publishReportTabActive = publishSidebarActive && activePublishTabId === "publish-report";
   const activeAnalysisOutputLayerIds = new Set(activeAnalysisResultLayerIds);
   const analysisOutputLayers = overlayLayers.filter((layer) =>
     activeAnalysisOutputLayerIds.has(layer.id) || layer.group === "analysis" || Boolean(layer.metadata?.analysisResult),
@@ -7939,7 +8407,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               processingToolCount={processingRegistry.implementedCount()}
               showModelBuilder={showModelBuilder || analyzeModelsTabActive}
               onToggleModelBuilder={handleToggleModelBuilder}
-              showFigureComposer={showFigureComposer}
+              showFigureComposer={showFigureComposer || publishFigureTabActive}
               onToggleFigureComposer={handleToggleFigureComposer}
               showChoroplethPanel={showChoroplethPanel || styleRendererTabActive}
               onToggleChoroplethPanel={handleToggleStyleRenderer}
@@ -7993,7 +8461,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               exportDisabled={exportDisabled}
               exportDisabledReason={exportDisabledReason}
               packageExportDisabled={packageExportDisabled}
-              packageExportDisabledReason="Add pins, drawings, overlay layers, or map evidence before exporting an offline package."
+              packageExportDisabledReason={packageExportDisabledReason}
               reportDisabled={isGeneratingReportHandoffSnapshot}
               reportDisabledReason={reportDisabledReason}
               isExportingImage={isExportingMapImage}
@@ -8398,6 +8866,25 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
                     }}
                     width="100%"
                   />
+                ) : activeActivityId === "publish" ? (
+                  <MapPublishWorkspace
+                    activeTabId={workbenchSidebarTab}
+                    onTabChange={handlePublishWorkspaceTabChange}
+                    readinessItems={publishReadinessItems}
+                    figure={publishFigureElement}
+                    dataExport={publishDataExportElement}
+                    report={publishReportElement}
+                    offlinePackage={publishOfflinePackageElement}
+                    reviewPackage={publishReviewPackageElement}
+                    onToggleCollapse={() => setWorkbenchSidebarCollapsed((prev) => !prev)}
+                    collapsed={workbenchSidebarCollapsed}
+                    onClose={() => {
+                      setShowLayerPanel(false);
+                      setShowFigureComposer(false);
+                      announce("Publish workspace closed");
+                    }}
+                    width="100%"
+                  />
                 ) : (
                   <MapWorkbenchSidebar
                     title={activeActivity.label}
@@ -8481,23 +8968,25 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             onPreviewWorkflow={handlePreviewUrbanMethodWorkflow}
           />
 
-          <Suspense fallback={null}>
-            <LazyMapReportHandoffDrawer
-              draft={reportHandoffDraft}
-              options={reportHandoffOptions}
-              isGeneratingSnapshot={isGeneratingReportHandoffSnapshot}
-              isExportingPdf={isExportingReportHandoffPdf}
-              presentation={dockLayout.compactDock ? "bottom-drawer" : "right-rail"}
-              width={dockLayout.rightPanelWidth}
-              onWidthChange={handleRightPanelWidthChange}
-              onOptionsChange={handleReportHandoffOptionsChange}
-              onRefreshSnapshot={handleRefreshReportHandoffSnapshot}
-              onRegisterEvidence={handleRegisterReportEvidenceBlock}
-              onDownloadPdf={handleDownloadReportHandoffPdf}
-              onInsert={handleInsertReportHandoff}
-              onClose={handleCloseReportHandoff}
-            />
-          </Suspense>
+          {publishReportTabActive ? null : (
+            <Suspense fallback={null}>
+              <LazyMapReportHandoffDrawer
+                draft={reportHandoffDraft}
+                options={reportHandoffOptions}
+                isGeneratingSnapshot={isGeneratingReportHandoffSnapshot}
+                isExportingPdf={isExportingReportHandoffPdf}
+                presentation={dockLayout.compactDock ? "bottom-drawer" : "right-rail"}
+                width={dockLayout.rightPanelWidth}
+                onWidthChange={handleRightPanelWidthChange}
+                onOptionsChange={handleReportHandoffOptionsChange}
+                onRefreshSnapshot={handleRefreshReportHandoffSnapshot}
+                onRegisterEvidence={handleRegisterReportEvidenceBlock}
+                onDownloadPdf={handleDownloadReportHandoffPdf}
+                onInsert={handleInsertReportHandoff}
+                onClose={handleCloseReportHandoff}
+              />
+            </Suspense>
+          )}
 
           <Suspense fallback={null}>
             <LazyMapInspectorHost
@@ -8511,7 +9000,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             />
           </Suspense>
           <MapLayoutDesignerPanel
-            visible={showFigureComposer && !navigatorStageMode}
+            visible={showFigureComposer && !navigatorStageMode && !publishFigureTabActive}
             overlayLayers={overlayLayers}
             qaState={scientificQA}
             bearing={bearing}

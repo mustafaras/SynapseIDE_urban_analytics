@@ -19,7 +19,7 @@ interface MapReportHandoffDrawerProps {
   options: MapReportHandoffOptions;
   isGeneratingSnapshot: boolean;
   isExportingPdf?: boolean;
-  presentation?: "floating" | "right-rail" | "bottom-drawer";
+  presentation?: "floating" | "right-rail" | "bottom-drawer" | "embedded";
   width?: number;
   minWidth?: number;
   maxWidth?: number;
@@ -60,7 +60,23 @@ function clampPanelWidth(width: number, minWidth: number, maxWidth: number): num
   return Math.max(minWidth, Math.min(maxWidth, width));
 }
 
-function getDrawerStyle(presentation: "floating" | "right-rail" | "bottom-drawer", width?: number): React.CSSProperties {
+function getDrawerStyle(
+  presentation: "floating" | "right-rail" | "bottom-drawer" | "embedded",
+  width?: number,
+): React.CSSProperties {
+  if (presentation === "embedded") {
+    return {
+      ...drawerBaseStyle,
+      position: "relative",
+      width: "100%",
+      minHeight: "34rem",
+      boxShadow: "none",
+      border: MAP_STROKES.hairlineSubtle,
+      borderRadius: MAP_RADIUS.sm,
+      zIndex: "auto",
+    };
+  }
+
   if (presentation === "bottom-drawer") {
     return {
       ...drawerBaseStyle,

@@ -51,9 +51,10 @@ export type MapSidebarTabId =
   | "scene-sun-shadow"
   | "scene-voxcity"
   | "publish-figure"
-  | "publish-export"
-  | "publish-package"
+  | "publish-data-export"
   | "publish-report"
+  | "publish-offline-package"
+  | "publish-review-package"
   | "extensions-registry";
 
 export type MapInspectorContextId =
@@ -542,25 +543,32 @@ export const MAP_SIDEBAR_TAB_DEFINITIONS = [
     description: "Figure composer, page size, DPI, legend, scale bar, north arrow, attribution, and CRS.",
   },
   {
-    id: "publish-export",
+    id: "publish-data-export",
     activityId: "publish",
-    label: "Export",
-    ariaLabel: "Publish export tab",
-    description: "Map image export, data export, included layers, excluded layers, and disabled reasons.",
-  },
-  {
-    id: "publish-package",
-    activityId: "publish",
-    label: "Package",
-    ariaLabel: "Publish package tab",
-    description: "Offline package, bounded source sidecars, manifests, and recoverability caveats.",
+    label: "Data Export",
+    ariaLabel: "Publish Data Export tab",
+    description: "GeoJSON and GeoParquet data export, targets, precision, included layers, and disabled reasons.",
   },
   {
     id: "publish-report",
     activityId: "publish",
     label: "Report",
-    ariaLabel: "Publish report tab",
+    ariaLabel: "Publish Report tab",
     description: "Report handoff, snapshot, evidence IDs, metadata, attribution, and QA caveats.",
+  },
+  {
+    id: "publish-offline-package",
+    activityId: "publish",
+    label: "Offline Package",
+    ariaLabel: "Publish Offline Package tab",
+    description: "Offline package, bounded source sidecars, manifests, and recoverability caveats.",
+  },
+  {
+    id: "publish-review-package",
+    activityId: "publish",
+    label: "Review Package",
+    ariaLabel: "Publish Review Package tab",
+    description: "Readiness review, caveats, attribution, evidence IDs, source bounds, and review events before handoff.",
   },
   {
     id: "extensions-registry",
@@ -711,7 +719,7 @@ export const MAP_TASK_LENSES = [
     description: "Prioritizes styling, publishing, review, attribution, and export readiness.",
     defaultActivityId: "publish",
     activityPriority: ["publish", "style", "review", "qa", "layers", "overview", "data", "scene", "analyze", "diagnostics", "extensions"],
-    sidebarTabPriority: ["publish-figure", "publish-report", "publish-export", "style-legend", "style-labels"],
+    sidebarTabPriority: ["publish-figure", "publish-data-export", "publish-report", "publish-offline-package", "publish-review-package", "style-legend", "style-labels"],
     inspectorContextPriority: ["publish-item", "layer", "qa-issue", "source"],
     bottomPanelTabPriority: ["timeline", "problems", "tasks", "attributes"],
     preserveCommandPalette: true,
@@ -808,8 +816,9 @@ function getSidebarTabForInventoryEntry(entry: MapSurfaceInventoryEntry, activit
 
   if (activityId === "publish") {
     if (includesAny(fingerprint, ["report", "handoff"])) return "publish-report";
-    if (includesAny(fingerprint, ["package", "offline"])) return "publish-package";
-    if (includesAny(fingerprint, ["export", "geojson", "image", "png", "data"])) return "publish-export";
+    if (includesAny(fingerprint, ["review package", "readiness", "manifest", "caveat", "evidence"])) return "publish-review-package";
+    if (includesAny(fingerprint, ["package", "offline"])) return "publish-offline-package";
+    if (includesAny(fingerprint, ["geojson", "geoparquet", "data export", "spatial data"])) return "publish-data-export";
     return "publish-figure";
   }
 
