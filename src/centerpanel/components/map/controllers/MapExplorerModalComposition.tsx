@@ -59,6 +59,7 @@ import {
   MAP_NUMERIC,
   MAP_RADIUS,
   MAP_SPACING,
+  MAP_STROKES,
   MAP_TYPOGRAPHY,
   mapStyles,
 } from "../mapTokens";
@@ -106,6 +107,7 @@ import {
   MapWorkspaceShell,
 } from "../MapWorkspaceShell";
 import { MapWorkspaceCockpit } from "../MapWorkspaceCockpit";
+import { MapWorkbenchSidebar, type MapWorkbenchSidebarTab } from "../sidebar";
 import { ScientificQAPanel } from "../ScientificQAPanel";
 import { MapNLQueryPanel, type MapNLQueryPanelRunSummary } from "../MapNLQueryPanel";
 import { MapSelectionTools } from "../MapSelectionTools";
@@ -701,6 +703,36 @@ const mapActivityRailOverlayStyle: React.CSSProperties = {
   height: "100%",
 };
 
+const workbenchEntryListStyle: React.CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: MAP_SPACING.xs,
+  padding: MAP_SPACING.sm,
+};
+
+const workbenchEntryButtonStyle: React.CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "flex-start",
+  gap: 2,
+  width: "100%",
+  padding: `${MAP_SPACING.sm} ${MAP_SPACING.md}`,
+  borderRadius: MAP_RADIUS.sm,
+  border: MAP_STROKES.hairline,
+  background: MAP_COLORS.bgPanel,
+  color: MAP_COLORS.text,
+  textAlign: "left",
+  cursor: "pointer",
+  fontFamily: MAP_TYPOGRAPHY.fontFamily,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+};
+
+const workbenchEntryButtonHintStyle: React.CSSProperties = {
+  color: MAP_COLORS.textMuted,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  lineHeight: 1.4,
+};
+
 const commandHeaderStyle: React.CSSProperties = {
   ...mapStyles.header,
   position: "relative",
@@ -1159,6 +1191,10 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const initialActivityId: MapActivityId = initialWorkspaceView === "navigator" ? "overview" : "layers";
   const [workspaceView, setWorkspaceView] = useState<MapWorkspaceView>(initialWorkspaceView);
   const [activeActivityId, setActiveActivityId] = useState<MapActivityId>(initialActivityId);
+  const [workbenchSidebarTab, setWorkbenchSidebarTab] = useState<string>(
+    initialActivityId === "overview" ? "overview-readiness" : "layers-stack",
+  );
+  const [workbenchSidebarCollapsed, setWorkbenchSidebarCollapsed] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
   const [showLayerPanel, setShowLayerPanel] = useState(true);
   const [showChoroplethPanel, setShowChoroplethPanel] = useState(false);
@@ -2566,8 +2602,15 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
 
   const handleSetWorkspaceView = useCallback((view: MapWorkspaceView) => {
     setWorkspaceView(view);
+    // Entering the explore workspace from the navigator-centric Overview
+    // activity lands on the Layers workbench so the layer stack stays the
+    // default left-rail surface (matches the long-standing explore contract).
+    if (view === "explore" && activeActivityId === "overview") {
+      setActiveActivityId("layers");
+      setWorkbenchSidebarTab("layers-stack");
+    }
     announce(`Map workspace switched to ${view}`);
-  }, [announce]);
+  }, [activeActivityId, announce]);
 
   const focusInteractiveMapCanvas = useCallback(() => {
     const focusCanvas = () => {
@@ -6577,19 +6620,23 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
 
     switch (activity.id) {
       case "overview":
-        setWorkspaceView("navigator");
+        setWorkspaceView("explore");
+        setShowLayerPanel(true);
+        setWorkbenchSidebarTab("overview-readiness");
         break;
       case "data":
         setWorkspaceView("explore");
-        setShowCatalog(true);
+        setShowLayerPanel(true);
         setShowContents(false);
         setShowProcessingToolbox(false);
         setShowModelBuilder(false);
         setShowPluginPanel(false);
+        setWorkbenchSidebarTab("data-import");
         break;
       case "layers":
         setWorkspaceView("explore");
         setShowLayerPanel(true);
+        setWorkbenchSidebarTab("layers-stack");
         break;
       case "analyze":
         setWorkspaceView("analyze");
@@ -6687,6 +6734,176 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       onClick: toolbarCommandHandlers.saveProject,
     },
   ];
+
+  const isWorkbenchActivity =
+    activeActivityId === "overview" ||
+    activeActivityId === "data" ||
+    activeActivityId === "layers";
+
+  const layerStackElement = (
+    <MapLayerManager
+      overlayLayers={overlayLayers}
+      activeBaseLayerName={BASE_STYLES[activeBaseLayer].name}
+      onToggleVisibility={toggleLayerVisibility}
+      onSetOpacity={setLayerOpacity}
+      onRemoveLayer={handleRemoveLayerViaCommand}
+      onReorderLayers={reorderLayers}
+      onAddLayer={(layer) => {
+        if (layer.sourceKind === "external" || layer.metadata?.externalService) {
+          handleExternalServiceLayerReady(layer);
+          return;
+        }
+        addOverlayLayer(layer);
+      }}
+      onAddDemoPack={() => handleCatalogAddDemoPack(buildDemoPackCatalogInsertion())}
+      onFocusLayer={handleFocusLayer}
+      onAddLayerToReport={handleLayerReportRequest}
+      onBindLayerToDashboard={handleBindLayerToDashboard}
+      onOpenLayerEducationReference={handleOpenLayerEducationReference}
+      onSendLayerToUrban={handleSendLayerToUrban}
+      onRepairGeometry={handleRepairLayerGeometry}
+      onDeclareLayerCrs={handleDeclareLayerCrs}
+      onInspectLayer={handleInspectLayer}
+      onOpenAttributeTable={handleOpenAttributeTable}
+      onOpenLayerInIde={handleOpenLayerInIde}
+      onClearLayerCache={handleClearLayerCache}
+      onReRunAnalysisLayer={handleReRunAnalysisLayer}
+      activeRerunToken={rerunningAnalysisToken}
+      onOpenSymbology={handleOpenPointSymbology}
+      activeSymbologyLayerId={pointSymbologyLayerId}
+      cartographyReviewState={cartographyReviewState}
+      onApplyCartographyRecommendation={handleApplyCartographyRecommendation}
+      onDismissCartographyRecommendation={handleDismissCartographyRecommendation}
+      onUndoCartographyRecommendation={handleUndoCartographyRecommendation}
+      canUndoCartographyRecommendation={cartographyUndoStack.length > 0}
+      onShowCartographyDetails={handleShowCartographyDetails}
+      onRequestClose={() => {
+        setShowLayerPanel(false);
+        announce("Layer panel closed");
+      }}
+      panelStyle={{ width: "100%", height: "100%" }}
+      onAnnounce={announce}
+    />
+  );
+
+  const overviewCockpitElement = (
+    <MapWorkspaceCockpit
+      workspaceView={workspaceView}
+      onSelectView={handleSetWorkspaceView}
+      onQuickAction={handleMapQuickAction}
+      contextSummary={contextSummary}
+      overlayLayers={overlayLayers}
+      pinCount={pins.length}
+      drawnFeatureCount={drawnFeatures.length}
+      measurementCount={measurements.length}
+      selectedProjectId={selectedProjectId}
+      lastSavedAt={lastSavedAt}
+      activeAoiLabel={activeAoiLabel}
+      qaIssueCount={scientificQAIssueCount}
+      qaBlockerCount={scientificQABlockerCount}
+      workflowReadyCount={workflowReadyCount}
+      visiblePublicationLayerCount={visiblePublicationLayers.length}
+      viewportSyncEnabled={viewportSyncEnabled}
+      syncStatus={viewportSyncStatus}
+      analysisRecommendations={analysisRecommendationState.recommendations}
+      onAnalysisRecommendationAction={handleAnalysisRecommendationAction}
+    />
+  );
+
+  const dataSourcesEntryElement = (
+    <div style={workbenchEntryListStyle}>
+      <button
+        type="button"
+        style={workbenchEntryButtonStyle}
+        data-testid="map-workbench-data-import"
+        onClick={() => {
+          handleImportRequest();
+        }}
+      >
+        <span>Import data…</span>
+        <span style={workbenchEntryButtonHintStyle}>
+          GeoJSON, CSV, Arrow, GeoParquet, KML, KMZ, GPX, or GeoTIFF.
+        </span>
+      </button>
+      <button
+        type="button"
+        style={workbenchEntryButtonStyle}
+        data-testid="map-workbench-data-catalog"
+        onClick={() => {
+          setShowCatalog(true);
+          announce("Data catalog opened");
+        }}
+      >
+        <span>Open data catalog</span>
+        <span style={workbenchEntryButtonHintStyle}>
+          Browse demo packs and connected sources.
+        </span>
+      </button>
+      <button
+        type="button"
+        style={workbenchEntryButtonStyle}
+        data-testid="map-workbench-data-contents"
+        onClick={() => {
+          setShowContents(true);
+          announce("Contents tree opened");
+        }}
+      >
+        <span>Open contents tree</span>
+        <span style={workbenchEntryButtonHintStyle}>
+          Review the layer hierarchy and grouping.
+        </span>
+      </button>
+    </div>
+  );
+
+  const layersContentsEntryElement = (
+    <div style={workbenchEntryListStyle}>
+      <button
+        type="button"
+        style={workbenchEntryButtonStyle}
+        data-testid="map-workbench-layers-contents"
+        onClick={() => {
+          setShowContents(true);
+          announce("Contents tree opened");
+        }}
+      >
+        <span>Open contents tree</span>
+        <span style={workbenchEntryButtonHintStyle}>
+          Inspect the structured layer hierarchy.
+        </span>
+      </button>
+    </div>
+  );
+
+  const workbenchSidebarTabs: MapWorkbenchSidebarTab[] =
+    activeActivityId === "overview"
+      ? [
+          {
+            id: "overview-readiness",
+            label: "Overview",
+            render: () => overviewCockpitElement,
+          },
+        ]
+      : activeActivityId === "data"
+        ? [
+            {
+              id: "data-import",
+              label: "Sources",
+              render: () => dataSourcesEntryElement,
+            },
+          ]
+        : [
+            {
+              id: "layers-stack",
+              label: "Stack",
+              render: () => layerStackElement,
+            },
+            {
+              id: "layers-contents",
+              label: "Contents",
+              render: () => layersContentsEntryElement,
+            },
+          ];
 
   return createPortal(
     <MapWorkspaceShell mode={mode} shellRef={trapRef} onClose={onClose} activeActivityId={activeActivityId}>
@@ -7227,49 +7444,23 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               ariaLabel="Layer and data panel"
               data-testid="map-layer-panel-rail"
             >
-              <MapLayerManager
-                overlayLayers={overlayLayers}
-                activeBaseLayerName={BASE_STYLES[activeBaseLayer].name}
-                onToggleVisibility={toggleLayerVisibility}
-                onSetOpacity={setLayerOpacity}
-                onRemoveLayer={handleRemoveLayerViaCommand}
-                onReorderLayers={reorderLayers}
-                onAddLayer={(layer) => {
-                  if (layer.sourceKind === "external" || layer.metadata?.externalService) {
-                    handleExternalServiceLayerReady(layer);
-                    return;
-                  }
-                  addOverlayLayer(layer);
-                }}
-                onAddDemoPack={() => handleCatalogAddDemoPack(buildDemoPackCatalogInsertion())}
-                onFocusLayer={handleFocusLayer}
-                onAddLayerToReport={handleLayerReportRequest}
-                onBindLayerToDashboard={handleBindLayerToDashboard}
-                onOpenLayerEducationReference={handleOpenLayerEducationReference}
-                onSendLayerToUrban={handleSendLayerToUrban}
-                onRepairGeometry={handleRepairLayerGeometry}
-                onDeclareLayerCrs={handleDeclareLayerCrs}
-                onInspectLayer={handleInspectLayer}
-                onOpenAttributeTable={handleOpenAttributeTable}
-                onOpenLayerInIde={handleOpenLayerInIde}
-                onClearLayerCache={handleClearLayerCache}
-                onReRunAnalysisLayer={handleReRunAnalysisLayer}
-                activeRerunToken={rerunningAnalysisToken}
-                onOpenSymbology={handleOpenPointSymbology}
-                activeSymbologyLayerId={pointSymbologyLayerId}
-                cartographyReviewState={cartographyReviewState}
-                onApplyCartographyRecommendation={handleApplyCartographyRecommendation}
-                onDismissCartographyRecommendation={handleDismissCartographyRecommendation}
-                onUndoCartographyRecommendation={handleUndoCartographyRecommendation}
-                canUndoCartographyRecommendation={cartographyUndoStack.length > 0}
-                onShowCartographyDetails={handleShowCartographyDetails}
-                onRequestClose={() => {
-                  setShowLayerPanel(false);
-                  announce("Layer panel closed");
-                }}
-                panelStyle={{ width: "100%", height: "100%" }}
-                onAnnounce={announce}
-              />
+              {isWorkbenchActivity ? (
+                <MapWorkbenchSidebar
+                  title={activeActivity.label}
+                  tabs={workbenchSidebarTabs}
+                  activeTabId={workbenchSidebarTab}
+                  onTabChange={setWorkbenchSidebarTab}
+                  onToggleCollapse={() => setWorkbenchSidebarCollapsed((prev) => !prev)}
+                  collapsed={workbenchSidebarCollapsed}
+                  onClose={() => {
+                    setShowLayerPanel(false);
+                    announce("Workbench sidebar closed");
+                  }}
+                  width="100%"
+                />
+              ) : (
+                layerStackElement
+              )}
             </MapPanelRail>
           ) : null}
 
