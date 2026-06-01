@@ -957,7 +957,7 @@ export const MAP_SURFACE_INVENTORY = [
     targetHome: "scene",
     targetSlot: "left-sidebar",
     currentSurface: "ZoningRulesPanel",
-    targetSurface: "Scene activity > Urban form",
+    targetSurface: "Scene activity > Zoning",
   },
   {
     id: "state.showMassingPanel",
@@ -967,7 +967,7 @@ export const MAP_SURFACE_INVENTORY = [
     targetHome: "scene",
     targetSlot: "left-sidebar",
     currentSurface: "MassingScenarioPanel",
-    targetSurface: "Scene activity > Urban form",
+    targetSurface: "Scene activity > Massing",
   },
   {
     id: "state.showSunShadowPanel",
@@ -977,7 +977,7 @@ export const MAP_SURFACE_INVENTORY = [
     targetHome: "scene",
     targetSlot: "left-sidebar",
     currentSurface: "SunShadowPanel",
-    targetSurface: "Scene activity > Urban form",
+    targetSurface: "Scene activity > Sun/Shadow",
   },
   {
     id: "state.showInteractionStrip",
@@ -1307,7 +1307,7 @@ export const MAP_SURFACE_INVENTORY = [
     targetHome: "scene",
     targetSlot: "left-sidebar",
     currentSurface: "Hidden test-only toggle",
-    targetSurface: "Scene activity > Urban form",
+    targetSurface: "Scene activity > Zoning",
   },
   {
     id: "hidden-toggle.massing",
@@ -1317,7 +1317,7 @@ export const MAP_SURFACE_INVENTORY = [
     targetHome: "scene",
     targetSlot: "left-sidebar",
     currentSurface: "Hidden test-only toggle",
-    targetSurface: "Scene activity > Urban form",
+    targetSurface: "Scene activity > Massing",
   },
   {
     id: "hidden-toggle.sunshadow",
@@ -1327,7 +1327,7 @@ export const MAP_SURFACE_INVENTORY = [
     targetHome: "scene",
     targetSlot: "left-sidebar",
     currentSurface: "Hidden test-only toggle",
-    targetSurface: "Scene activity > Urban form",
+    targetSurface: "Scene activity > Sun/Shadow",
   },
   {
     id: "hidden-toggle.interaction-strip",

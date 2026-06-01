@@ -61,6 +61,7 @@ import {
   MAP_SPACING,
   MAP_TYPOGRAPHY,
   mapStyles,
+  type GisStatusKey,
 } from "../mapTokens";
 import { MapCanvas, type MapFeatureReportRequest } from "../MapCanvas";
 import { MapCanvasKeyboardFallbackControls } from "../MapCanvasKeyboardFallbackControls";
@@ -85,11 +86,15 @@ import { MapSymbolLayer, type SymbolMode } from "../../MapSymbolLayer";
 import { MapTemporalPlayer } from "../../MapTemporalPlayer";
 import { TemporalPlayerPanel } from "../temporal";
 import { RasterLayerPanel } from "../raster/RasterLayerPanel";
-import {
-  selectTemporalFrameCount,
-  useTemporalLayerStore,
-} from "@/stores/useTemporalLayerStore";
+import { useTemporalLayerStore } from "@/stores/useTemporalLayerStore";
 import { useRasterLayerStore } from "@/stores/useRasterLayerStore";
+import {
+  selectScene3DActiveLayerCrs,
+  selectScene3DCityModelSourceHandle,
+  selectScene3DMode,
+  selectScene3DTerrainSourceHandle,
+  useScene3DStore,
+} from "@/stores/useScene3DStore";
 import { MapDataExportDialog } from "../../MapDataExportDialog";
 import { MapExportDialog } from "../../MapExportDialog";
 import { MapCsvImportDialog } from "../../MapCsvImportDialog";
@@ -126,6 +131,11 @@ import {
   MapStyleWorkspace,
   type MapStyleTabId,
 } from "../style";
+import {
+  MapSceneWorkspace,
+  type MapSceneStatusChip,
+  type MapSceneTabId,
+} from "../scene";
 import { MapBottomPanel, type MapBottomPanelCoreTabId, type MapBottomPanelTask } from "../bottom";
 import { ScientificQAPanel } from "../ScientificQAPanel";
 import { MapProblemsPanel, buildMapProblemsModel, type MapProblemRow } from "../problems";
@@ -337,6 +347,7 @@ import {
   subscribeToViewportSync,
   useViewportSyncStore,
 } from "../../../../services/map/MapSyncService";
+import type { SourceHandle } from "../../../../services/map/contracts/gisContracts";
 import { sendMapContextToUrban } from "../../../../services/map/MapToUrbanContextAdapter";
 import { createSpatialStatsExecutionIdentity } from "../../../../services/map/SpatialStatsExecutionService";
 import { executeHotSpotSpatialStatsAsync } from "../../../../services/map/SpatialStatsExecutionQueue";
@@ -446,6 +457,84 @@ interface DispatchFeedbackState {
   tone: DispatchFeedbackTone;
   title: string;
   description: string;
+}
+
+const SCENE_TAB_IDS: readonly MapSceneTabId[] = [
+  "scene-raster",
+  "scene-temporal",
+  "scene-3d",
+  "scene-zoning",
+  "scene-massing",
+  "scene-sun-shadow",
+  "scene-voxcity",
+];
+
+function isMapSceneTabId(id: string): id is MapSceneTabId {
+  return (SCENE_TAB_IDS as readonly string[]).includes(id);
+}
+
+function resolveSceneTabId(id: string): MapSceneTabId {
+  return isMapSceneTabId(id) ? id : "scene-3d";
+}
+
+function sceneStatusChip(
+  id: string,
+  label: string,
+  status: GisStatusKey,
+  title?: string,
+): MapSceneStatusChip {
+  return title ? { id, label, status, title } : { id, label, status };
+}
+
+function formatSceneStatusValue(value: string | null | undefined, fallback: string): string {
+  if (!value) return fallback;
+  return value
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function sourceHandleCrs(handle: SourceHandle | null): string | null {
+  return handle?.crsSummary.status === "known" ? handle.crsSummary.crs : null;
+}
+
+function sourceHandleSceneKind(handle: SourceHandle | null): string | null {
+  return handle?.scene3d?.sourceKind ?? null;
+}
+
+function sceneVerticalDatumChip(
+  terrainHandle: SourceHandle | null,
+  cityModelHandle: SourceHandle | null,
+): MapSceneStatusChip {
+  const datum = terrainHandle?.scene3d?.verticalDatum ?? cityModelHandle?.scene3d?.verticalDatum;
+  if (!datum) {
+    return sceneStatusChip("vertical-datum", "Vertical datum: not recorded", "unknown");
+  }
+  if (datum.status === "known" && datum.value) {
+    return sceneStatusChip("vertical-datum", `Vertical datum: ${datum.value}`, "ready", datum.caveats.join(" "));
+  }
+  return sceneStatusChip(
+    "vertical-datum",
+    `Vertical datum: unknown (${datum.source})`,
+    "caveat",
+    datum.caveats.join(" "),
+  );
+}
+
+function layerCrsChip(layer: OverlayLayerConfig | null, fallback = "CRS: unknown"): MapSceneStatusChip {
+  const summary = layer?.metadata?.crsSummary ?? layer?.metadata?.registry?.crsSummary;
+  if (summary?.crs) return sceneStatusChip("crs", `CRS: ${summary.crs}`, "ready", summary.notes.join(" "));
+  if (summary?.status === "missing") return sceneStatusChip("crs", "CRS: missing", "blocked", summary.notes.join(" "));
+  return sceneStatusChip("crs", fallback, "unknown");
+}
+
+function viewportSyncChip(enabled: boolean, statusLabel: string): MapSceneStatusChip {
+  return sceneStatusChip(
+    "sync-state",
+    `Sync: ${enabled ? statusLabel : "off"}`,
+    enabled ? "ready" : "caveat",
+  );
 }
 
 function clampNumber(value: number, min: number, max: number): number {
@@ -1214,11 +1303,6 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   } = useMapWorkflowController();
   const [showReviewTimeline, setShowReviewTimeline] = useState(false);
   const [showFigureComposer, setShowFigureComposer] = useState(false);
-  const [showRasterPanel, setShowRasterPanel] = useState(false);
-  const [show3DPanel, setShow3DPanel] = useState(false);
-  const [showZoningPanel, setShowZoningPanel] = useState(false);
-  const [showMassingPanel, setShowMassingPanel] = useState(false);
-  const [showSunShadowPanel, setShowSunShadowPanel] = useState(false);
   const [showInteractionStrip, setShowInteractionStrip] = useState(false);
   const [showComparisonStrip, setShowComparisonStrip] = useState(false);
   const handleToggleFigureComposer = useCallback(() => setShowFigureComposer((previous) => !previous), []);
@@ -1326,6 +1410,27 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     setShowHotSpotViz(false);
     setShowEmergingHotSpotViz(false);
     setShowVoxCityOverlay(false);
+    announce(announcement);
+  }, [announce, setShowWorkflowDrawer, setWorkflowPreview]);
+  const openSceneActivityTab = useCallback((tabId: MapSceneTabId, announcement: string) => {
+    setWorkspaceView("explore");
+    setActiveActivityId("scene");
+    setShowLayerPanel(true);
+    setWorkbenchSidebarCollapsed(false);
+    setWorkbenchSidebarTab(tabId);
+    setShowProcessingToolbox(false);
+    setShowModelBuilder(false);
+    setShowPluginPanel(false);
+    setShowNLQueryPanel(false);
+    setShowWorkflowDrawer(false);
+    setWorkflowPreview(null);
+    setShowScientificQAPanel(false);
+    setShowClusterViz(false);
+    setShowHotSpotViz(false);
+    setShowEmergingHotSpotViz(false);
+    setPointSymbologyLayerId(null);
+    setShowChoroplethPanel(false);
+    setShowVoxCityOverlay(tabId === "scene-voxcity");
     announce(announcement);
   }, [announce, setShowWorkflowDrawer, setWorkflowPreview]);
   const extensionRegistry = useMemo(() => createMapExtensionRegistry(), []);
@@ -2488,6 +2593,11 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     closeRightDockPanels();
     openStyleActivityTab(tabId, announcement, layerId);
   }, [closeRightDockPanels, openStyleActivityTab]);
+  const handleOpenSceneTab = useCallback((tabId: MapSceneTabId, announcement: string) => {
+    closeFloatingRightPanels();
+    closeRightDockPanels();
+    openSceneActivityTab(tabId, announcement);
+  }, [closeFloatingRightPanels, closeRightDockPanels, openSceneActivityTab]);
   const handleToggleProcessingToolbox = useCallback(() => {
     if (activeActivityId === "analyze" && showLayerPanel && workbenchSidebarTab === "analyze-tools") {
       setShowLayerPanel(false);
@@ -2780,13 +2890,14 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     return selectedLayer?.metadata?.geometryType ?? null;
   }, [selectedPointSymbologyLayer, visiblePublicationLayers]);
   // Prompt 46 — store-driven temporal player (frame export + playback engine).
-  const temporalStoreFrameCount = useTemporalLayerStore(selectTemporalFrameCount);
+  const temporalRuntimeMode = useTemporalLayerStore((state) => state.runtimeMode);
   const rasterLayerStates = useRasterLayerStore((state) => state.layers);
   const rasterLayerIds = useMemo(() => Object.keys(rasterLayerStates), [rasterLayerStates]);
   const activeRasterLayerId = rasterLayerIds[0] ?? null;
   const activeRasterLayerName = activeRasterLayerId
     ? overlayLayers.find((layer) => layer.id === activeRasterLayerId)?.name ?? activeRasterLayerId
     : "Raster layer";
+  const activeRasterState = activeRasterLayerId ? rasterLayerStates[activeRasterLayerId] : undefined;
   const temporalLayers = useMemo(
     () => overlayLayers.filter((layer) =>
       layer.visible &&
@@ -2798,6 +2909,10 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const activeTemporalLayer = temporalLayers.find((layer) => layer.id === selectedTemporalLayerId)
     ?? temporalLayers[0]
     ?? null;
+  const scene3DMode = useScene3DStore(selectScene3DMode);
+  const scene3DActiveLayerCrs = useScene3DStore(selectScene3DActiveLayerCrs);
+  const scene3DCityModelHandle = useScene3DStore(selectScene3DCityModelSourceHandle);
+  const scene3DTerrainHandle = useScene3DStore(selectScene3DTerrainSourceHandle);
 
   const handleMapContainerRef = useCallback((element: HTMLDivElement | null) => {
     mapContainerRef.current = element;
@@ -3085,20 +3200,11 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   }, []);
 
   const handleOpenVoxCityOverlayFromService = useCallback(() => {
-    setWorkspaceView("explore");
-    setShowScientificQAPanel(false);
-    setShowNLQueryPanel(false);
     setShowSidebar(false);
     setShowDrawPanel(false);
     setShowMeasurePanel(false);
-    setPointSymbologyLayerId(null);
-    setShowChoroplethPanel(false);
-    setShowClusterViz(false);
-    setShowHotSpotViz(false);
-    setShowEmergingHotSpotViz(false);
-    setShowVoxCityOverlay(true);
-    announce("VoxCity 2D overlay opened for external building source");
-  }, [announce]);
+    handleOpenSceneTab("scene-voxcity", "VoxCity 2D overlay opened in Scene");
+  }, [handleOpenSceneTab]);
 
   const handleMapRenderError = useCallback((message: string) => {
     const now = Date.now();
@@ -3705,17 +3811,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         handleOpenStyleTab("style-symbols", `Point symbology recommendation opened in Style for ${layerName}`, openLayerId);
         break;
       case "voxcity-overlay":
-        setWorkspaceView("explore");
-        setShowScientificQAPanel(false);
-        closeRightDockPanels();
-        setPointSymbologyLayerId(null);
-        setShowChoroplethPanel(false);
-        setShowClusterViz(false);
-        setShowHotSpotViz(false);
-        setShowEmergingHotSpotViz(false);
-        setShowWorkflowDrawer(false);
-        setShowVoxCityOverlay(true);
-        announce("VoxCity recommendation opened");
+        handleOpenSceneTab("scene-voxcity", "VoxCity recommendation opened in Scene");
         break;
       case "workflow":
         handleOpenAnalyzeTab("analyze-workflows", `Workflow recommendation opened for ${layerName}`);
@@ -3736,7 +3832,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       default:
         break;
     }
-  }, [activeUrbanContext, announce, buildCurrentReviewSnapshot, closeRightDockPanels, contextSummary, handleOpenAnalyzeTab, handleOpenStyleTab, handleRunSelectionStatistics, openScientificQAPanel, overlayLayers, recordMapReviewEvent]);
+  }, [activeUrbanContext, announce, buildCurrentReviewSnapshot, contextSummary, handleOpenAnalyzeTab, handleOpenSceneTab, handleOpenStyleTab, handleRunSelectionStatistics, openScientificQAPanel, overlayLayers, recordMapReviewEvent]);
 
   const handleApplyCartographyRecommendation = useCallback((recommendationId: string) => {
     const recommendation = cartographyReviewState.recommendations.find((entry) => entry.id === recommendationId);
@@ -6798,8 +6894,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         openStyleActivityTab("style-renderer", "Style workspace opened");
         break;
       case "scene":
-        setWorkspaceView("explore");
-        setShow3DPanel(true);
+        openSceneActivityTab("scene-3d", "Scene workspace opened");
         break;
       case "publish":
         setWorkspaceView("explore");
@@ -7054,7 +7149,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     activeActivityId === "data" ||
     activeActivityId === "layers" ||
     activeActivityId === "analyze" ||
-    activeActivityId === "style";
+    activeActivityId === "style" ||
+    activeActivityId === "scene";
   const analyzeSidebarActive = activeActivityId === "analyze" && effectiveShowLayerPanel;
   const analyzeWorkflowsTabActive = analyzeSidebarActive && workbenchSidebarTab === "analyze-workflows";
   const analyzeToolsTabActive = analyzeSidebarActive && workbenchSidebarTab === "analyze-tools";
@@ -7063,6 +7159,15 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const styleSidebarActive = activeActivityId === "style" && effectiveShowLayerPanel;
   const styleRendererTabActive = styleSidebarActive && workbenchSidebarTab === "style-renderer";
   const styleSymbolsTabActive = styleSidebarActive && workbenchSidebarTab === "style-symbols";
+  const sceneSidebarActive = activeActivityId === "scene" && effectiveShowLayerPanel;
+  const activeSceneTabId = resolveSceneTabId(workbenchSidebarTab);
+  const sceneRasterTabActive = sceneSidebarActive && activeSceneTabId === "scene-raster";
+  const sceneTemporalTabActive = sceneSidebarActive && activeSceneTabId === "scene-temporal";
+  const scene3DTabActive = sceneSidebarActive && activeSceneTabId === "scene-3d";
+  const sceneZoningTabActive = sceneSidebarActive && activeSceneTabId === "scene-zoning";
+  const sceneMassingTabActive = sceneSidebarActive && activeSceneTabId === "scene-massing";
+  const sceneSunShadowTabActive = sceneSidebarActive && activeSceneTabId === "scene-sun-shadow";
+  const sceneVoxCityTabActive = sceneSidebarActive && activeSceneTabId === "scene-voxcity";
   const activeAnalysisOutputLayerIds = new Set(activeAnalysisResultLayerIds);
   const analysisOutputLayers = overlayLayers.filter((layer) =>
     activeAnalysisOutputLayerIds.has(layer.id) || layer.group === "analysis" || Boolean(layer.metadata?.analysisResult),
@@ -7340,6 +7445,197 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
           onShowCartographyDetails={handleShowCartographyDetails}
         />
       )}
+    />
+  );
+
+  const sceneStatusChips: MapSceneStatusChip[] = (() => {
+    const sync = viewportSyncChip(viewportSyncEnabled, viewportSyncStatus);
+    const referenceLayer = activeTemporalLayer ?? overlayLayers.find((layer) => layer.visible) ?? overlayLayers[0] ?? null;
+
+    if (activeSceneTabId === "scene-raster") {
+      const meta = activeRasterState?.inspection?.metadata;
+      return [
+        sceneStatusChip("source-mode", activeRasterLayerId ? "Source mode: raster" : "Source mode: no raster", activeRasterLayerId ? "ready" : "unknown"),
+        sceneStatusChip("crs", meta?.epsgCode ? `CRS: ${meta.epsgCode}` : "CRS: missing", meta?.epsgCode ? "ready" : "blocked"),
+        sceneStatusChip("vertical-datum", "Vertical datum: n/a", "unknown"),
+        sceneStatusChip("sample-generated", meta?.sampled ? "Sample/generated: sampled stats" : "Sample/generated: full stats", meta?.sampled ? "caveat" : activeRasterLayerId ? "ready" : "unknown"),
+        sync,
+      ];
+    }
+
+    if (activeSceneTabId === "scene-temporal") {
+      const runtimeStatus: GisStatusKey =
+        temporalRuntimeMode === "live" ? "ready" : temporalRuntimeMode === "demo" ? "demo" : temporalRuntimeMode === "synthetic" ? "synthetic" : "unknown";
+      return [
+        sceneStatusChip("source-mode", activeTemporalLayer ? `Source mode: ${formatSceneStatusValue(temporalRuntimeMode, "temporal")}` : "Source mode: no temporal layer", activeTemporalLayer ? runtimeStatus : "unknown"),
+        layerCrsChip(activeTemporalLayer, "CRS: temporal layer unknown"),
+        sceneStatusChip("vertical-datum", "Vertical datum: n/a", "unknown"),
+        sceneStatusChip("sample-generated", `Sample/generated: ${formatSceneStatusValue(temporalRuntimeMode, "unknown")}`, runtimeStatus),
+        sync,
+      ];
+    }
+
+    if (activeSceneTabId === "scene-3d") {
+      const sourceKind = sourceHandleSceneKind(scene3DTerrainHandle) ?? sourceHandleSceneKind(scene3DCityModelHandle);
+      const runtimeMode = scene3DTerrainHandle?.scene3d?.runtimeMode ?? scene3DCityModelHandle?.scene3d?.runtimeMode ?? null;
+      const crs = scene3DActiveLayerCrs ?? sourceHandleCrs(scene3DTerrainHandle) ?? sourceHandleCrs(scene3DCityModelHandle);
+      const generated = sourceKind === "generated-massing" || sourceKind === "zoning-envelope" || sourceKind === "sun-shadow-result";
+      const modeStatus: GisStatusKey = generated ? "synthetic" : runtimeMode === "sample" || sourceKind === "sample-3d" ? "demo" : sourceKind ? "ready" : "unknown";
+      return [
+        sceneStatusChip("source-mode", `Source mode: ${formatSceneStatusValue(sourceKind ?? scene3DMode, "3D scene")}`, modeStatus),
+        sceneStatusChip("crs", crs ? `CRS: ${crs}` : "CRS: missing", crs ? "ready" : "blocked"),
+        sceneVerticalDatumChip(scene3DTerrainHandle, scene3DCityModelHandle),
+        sceneStatusChip("sample-generated", `Sample/generated: ${generated ? "Generated" : runtimeMode === "sample" || sourceKind === "sample-3d" ? "Sample" : "Real/derived"}`, modeStatus),
+        sync,
+      ];
+    }
+
+    if (activeSceneTabId === "scene-zoning") {
+      return [
+        sceneStatusChip("source-mode", selectedFeatureIds.length > 0 ? "Source mode: selected parcel" : "Source mode: parcel required", selectedFeatureIds.length > 0 ? "ready" : "caveat"),
+        layerCrsChip(referenceLayer, "CRS: parcel layer unknown"),
+        sceneStatusChip("vertical-datum", "Vertical datum: n/a", "unknown"),
+        sceneStatusChip("sample-generated", "Sample/generated: user rules", "ready"),
+        sync,
+      ];
+    }
+
+    if (activeSceneTabId === "scene-massing") {
+      return [
+        sceneStatusChip("source-mode", selectedFeatureIds.length > 0 ? "Source mode: parcel scenario" : "Source mode: parcel required", selectedFeatureIds.length > 0 ? "ready" : "caveat"),
+        layerCrsChip(referenceLayer, "CRS: massing layer unknown"),
+        sceneVerticalDatumChip(scene3DTerrainHandle, scene3DCityModelHandle),
+        sceneStatusChip("sample-generated", "Sample/generated: generated massing", "synthetic"),
+        sync,
+      ];
+    }
+
+    if (activeSceneTabId === "scene-sun-shadow") {
+      return [
+        sceneStatusChip("source-mode", "Source mode: sun/shadow scenario", "synthetic"),
+        layerCrsChip(referenceLayer, "CRS: scene layer unknown"),
+        sceneVerticalDatumChip(scene3DTerrainHandle, scene3DCityModelHandle),
+        sceneStatusChip("sample-generated", "Sample/generated: generated shadows", "synthetic"),
+        sync,
+      ];
+    }
+
+    return [
+      sceneStatusChip("source-mode", "Source mode: demo / active layer / OSM", "caveat"),
+      sceneStatusChip("crs", "CRS: EPSG:4326 display", "ready"),
+      sceneStatusChip("vertical-datum", "Vertical datum: CityJSON not recorded", "caveat"),
+      sceneStatusChip("sample-generated", "Sample/generated: labels explicit", "caveat"),
+      sync,
+    ];
+  })();
+
+  const handleSceneWorkspaceTabChange = (id: string): void => {
+    setWorkbenchSidebarTab(id);
+    setShowVoxCityOverlay(id === "scene-voxcity");
+  };
+
+  const sceneRasterElement = activeRasterLayerId ? (
+    <RasterLayerPanel
+      layerId={activeRasterLayerId}
+      layerName={activeRasterLayerName}
+      visible
+      presentation="embedded"
+      onClose={() => {
+        setShowLayerPanel(false);
+        announce("Raster evidence panel closed");
+      }}
+    />
+  ) : (
+    <GisEmptyState
+      title="No raster layer"
+      description="Import a raster source before reviewing noData, histogram, QA, and evidence details."
+      compact
+    />
+  );
+
+  const sceneTemporalElement = activeTemporalLayer ? (
+    <div style={{ display: "grid", gap: MAP_SPACING.md }} data-testid="map-scene-temporal-panel">
+      {temporalLayers.length > 1 ? (
+        <select
+          aria-label="Select temporal analysis layer"
+          value={activeTemporalLayer.id}
+          onChange={handleTemporalLayerSelection}
+          style={mapStyles.temporalSelect}
+        >
+          {temporalLayers.map((layer) => (
+            <option key={layer.id} value={layer.id}>{layer.name}</option>
+          ))}
+        </select>
+      ) : null}
+      <TemporalPlayerPanel visible />
+    </div>
+  ) : (
+    <GisEmptyState
+      title="No temporal layer"
+      description="Run or import a temporal analysis layer before using playback controls."
+      compact
+    />
+  );
+
+  const scene3DElement = (
+    <Scene3DPanel
+      visible
+      presentation="embedded"
+      onClose={() => {
+        setShowLayerPanel(false);
+        announce("3D scene panel closed");
+      }}
+      onModeChange={(mode) => announce(`3D mode: ${mode}`)}
+    />
+  );
+
+  const sceneZoningElement = (
+    <ZoningRulesPanel
+      visible
+      presentation="embedded"
+      onClose={() => {
+        setShowLayerPanel(false);
+        announce("Zoning rules panel closed");
+      }}
+      selectedParcelId={selectedFeatureIds[0] ?? null}
+    />
+  );
+
+  const sceneMassingElement = (
+    <MassingScenarioPanel
+      visible
+      presentation="embedded"
+      onClose={() => {
+        setShowLayerPanel(false);
+        announce("Massing scenarios panel closed");
+      }}
+      parcelId={selectedFeatureIds[0] ?? null}
+    />
+  );
+
+  const sceneSunShadowElement = (
+    <SunShadowPanel
+      visible
+      presentation="embedded"
+      onClose={() => {
+        setShowLayerPanel(false);
+        announce("Sun/shadow analysis panel closed");
+      }}
+    />
+  );
+
+  const sceneVoxCityElement = (
+    <MapVoxCityOverlay
+      mapRef={mapInstanceRef}
+      panelVisible
+      presentation="embedded"
+      onPanelClose={() => {
+        setShowLayerPanel(false);
+        setShowVoxCityOverlay(false);
+        announce("VoxCity 2D overlay closed");
+      }}
+      onAnnounce={announce}
+      onExternalImportProgress={handleExternalServiceProgress}
     />
   );
 
@@ -7655,23 +7951,15 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               onToggleEmergingHotSpotViz={handleToggleEmergingHotSpotViz}
               viewportSyncEnabled={viewportSyncEnabled}
               onToggleViewportSync={handleToggleViewportSync}
-              showVoxCityOverlayPanel={showVoxCityOverlay}
+              showVoxCityOverlayPanel={showVoxCityOverlay || sceneVoxCityTabActive}
               onToggleVoxCityOverlayPanel={() => {
-                setShowVoxCityOverlay((current) => {
-                  const next = !current;
-                  if (next) {
-                    setShowScientificQAPanel(false);
-                    setShowNLQueryPanel(false);
-                    closeRightDockPanels();
-                    setPointSymbologyLayerId(null);
-                    setShowChoroplethPanel(false);
-                    setShowClusterViz(false);
-                    setShowHotSpotViz(false);
-                    setShowEmergingHotSpotViz(false);
-                  }
-                  announce(next ? "VoxCity 2D overlay opened" : "VoxCity 2D overlay closed");
-                  return next;
-                });
+                if (sceneVoxCityTabActive) {
+                  setShowLayerPanel(false);
+                  setShowVoxCityOverlay(false);
+                  announce("VoxCity 2D overlay closed");
+                  return;
+                }
+                handleOpenSceneTab("scene-voxcity", "VoxCity 2D overlay opened in Scene");
               }}
               voxCityFootprintCount={SAMPLE_BUILDINGS.length}
               restrictToMapView={restrictToMapView}
@@ -8089,6 +8377,27 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
                     }}
                     width="100%"
                   />
+                ) : activeActivityId === "scene" ? (
+                  <MapSceneWorkspace
+                    activeTabId={workbenchSidebarTab}
+                    onTabChange={handleSceneWorkspaceTabChange}
+                    statusChips={sceneStatusChips}
+                    raster={sceneRasterElement}
+                    temporal={sceneTemporalElement}
+                    scene3d={scene3DElement}
+                    zoning={sceneZoningElement}
+                    massing={sceneMassingElement}
+                    sunShadow={sceneSunShadowElement}
+                    voxCity={sceneVoxCityElement}
+                    onToggleCollapse={() => setWorkbenchSidebarCollapsed((prev) => !prev)}
+                    collapsed={workbenchSidebarCollapsed}
+                    onClose={() => {
+                      setShowLayerPanel(false);
+                      setShowVoxCityOverlay(false);
+                      announce("Scene workspace closed");
+                    }}
+                    width="100%"
+                  />
                 ) : (
                   <MapWorkbenchSidebar
                     title={activeActivity.label}
@@ -8224,35 +8533,70 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             data-testid="toggle-raster-panel"
             aria-label="Toggle raster evidence panel"
             style={{ display: "none" }}
-            onClick={() => setShowRasterPanel((p) => !p)}
+            onClick={() => {
+              if (sceneRasterTabActive) {
+                setShowLayerPanel(false);
+                announce("Raster evidence panel closed");
+                return;
+              }
+              handleOpenSceneTab("scene-raster", "Raster evidence panel opened in Scene");
+            }}
           />
           <button
             type="button"
             data-testid="toggle-3d-panel"
             aria-label="Toggle 3D scene panel"
             style={{ display: "none" }}
-            onClick={() => setShow3DPanel((p) => !p)}
+            onClick={() => {
+              if (scene3DTabActive) {
+                setShowLayerPanel(false);
+                announce("3D scene panel closed");
+                return;
+              }
+              handleOpenSceneTab("scene-3d", "3D scene panel opened in Scene");
+            }}
           />
           <button
             type="button"
             data-testid="toggle-zoning-panel"
             aria-label="Toggle zoning rules panel"
             style={{ display: "none" }}
-            onClick={() => setShowZoningPanel((p) => !p)}
+            onClick={() => {
+              if (sceneZoningTabActive) {
+                setShowLayerPanel(false);
+                announce("Zoning rules panel closed");
+                return;
+              }
+              handleOpenSceneTab("scene-zoning", "Zoning rules panel opened in Scene");
+            }}
           />
           <button
             type="button"
             data-testid="toggle-massing-panel"
             aria-label="Toggle massing scenarios panel"
             style={{ display: "none" }}
-            onClick={() => setShowMassingPanel((p) => !p)}
+            onClick={() => {
+              if (sceneMassingTabActive) {
+                setShowLayerPanel(false);
+                announce("Massing scenarios panel closed");
+                return;
+              }
+              handleOpenSceneTab("scene-massing", "Massing scenarios panel opened in Scene");
+            }}
           />
           <button
             type="button"
             data-testid="toggle-sunshadow-panel"
             aria-label="Toggle sun/shadow analysis panel"
             style={{ display: "none" }}
-            onClick={() => setShowSunShadowPanel((p) => !p)}
+            onClick={() => {
+              if (sceneSunShadowTabActive) {
+                setShowLayerPanel(false);
+                announce("Sun/shadow analysis panel closed");
+                return;
+              }
+              handleOpenSceneTab("scene-sun-shadow", "Sun/shadow analysis panel opened in Scene");
+            }}
           />
           <button
             type="button"
@@ -8268,61 +8612,6 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             style={{ display: "none" }}
             onClick={() => setShowComparisonStrip((p) => !p)}
           />
-
-          {showRasterPanel && activeRasterLayerId && !navigatorStageMode && (
-            <RasterLayerPanel
-              layerId={activeRasterLayerId}
-              layerName={activeRasterLayerName}
-              visible
-              onClose={() => {
-                setShowRasterPanel(false);
-                announce("Raster evidence panel closed");
-              }}
-            />
-          )}
-
-          {show3DPanel && !navigatorStageMode && (
-            <Scene3DPanel
-              visible
-              onClose={() => {
-                setShow3DPanel(false);
-                announce("3D scene panel closed");
-              }}
-              onModeChange={(mode) => announce(`3D mode: ${mode}`)}
-            />
-          )}
-
-          {showZoningPanel && !navigatorStageMode && (
-            <ZoningRulesPanel
-              visible
-              onClose={() => {
-                setShowZoningPanel(false);
-                announce("Zoning rules panel closed");
-              }}
-              selectedParcelId={selectedFeatureIds[0] ?? null}
-            />
-          )}
-
-          {showMassingPanel && !navigatorStageMode && (
-            <MassingScenarioPanel
-              visible
-              onClose={() => {
-                setShowMassingPanel(false);
-                announce("Massing scenarios panel closed");
-              }}
-              parcelId={selectedFeatureIds[0] ?? null}
-            />
-          )}
-
-          {showSunShadowPanel && !navigatorStageMode && (
-            <SunShadowPanel
-              visible
-              onClose={() => {
-                setShowSunShadowPanel(false);
-                announce("Sun/shadow analysis panel closed");
-              }}
-            />
-          )}
 
           <Scene3DInteractionStrip visible={showInteractionStrip && !navigatorStageMode} />
 
@@ -8470,45 +8759,6 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             </button>
           ) : null}
 
-          {temporalLayers.length > 1 ? (
-            <div
-              style={mapStyles.temporalSelector}
-              role="group"
-              aria-label="Temporal layer selector"
-            >
-              <span
-                style={mapStyles.temporalLabel}
-              >
-                Temporal Layer
-              </span>
-
-              {temporalLayers.length > 1 ? (
-                <select
-                  aria-label="Select temporal analysis layer"
-                  value={activeTemporalLayer?.id ?? ""}
-                  onChange={handleTemporalLayerSelection}
-                  style={mapStyles.temporalSelect}
-                >
-                  {temporalLayers.map((layer) => (
-                    <option key={layer.id} value={layer.id}>{layer.name}</option>
-                  ))}
-                </select>
-              ) : (
-                <span
-                  style={mapStyles.temporalLayerName}
-                >
-                  {activeTemporalLayer?.name}
-                </span>
-              )}
-
-              <span
-                style={mapStyles.temporalMeta}
-              >
-                {activeTemporalLayer?.metadata?.analysisResult?.visualization.temporalFrames?.length ?? 0} frames loaded
-              </span>
-            </div>
-          ) : null}
-
           {activeTemporalLayer ? (
             <MapTemporalPlayer
               map={mapInstanceRef.current}
@@ -8517,24 +8767,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               sourceId={activeTemporalLayer.id}
               layerId={activeTemporalLayer.id}
               layerName={activeTemporalLayer.name}
-              visible={open}
+              visible={open && sceneTemporalTabActive}
             />
-          ) : null}
-
-          {open && temporalStoreFrameCount > 0 ? (
-            <div
-              data-testid="temporal-player-panel-host"
-              style={{
-                position: "absolute",
-                left: "50%",
-                bottom: "1rem",
-                transform: "translateX(-50%)",
-                zIndex: 6,
-                maxWidth: "min(46rem, 92%)",
-              }}
-            >
-              <TemporalPlayerPanel visible />
-            </div>
           ) : null}
 
           <MapContextMenu
@@ -8600,19 +8834,6 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             onClose={() => setShowEmergingHotSpotViz(false)}
             onAnnounce={announce}
           />
-
-          {showVoxCityOverlay && !effectiveShowScientificQAPanel && !effectiveShowNLQueryPanel ? (
-            <MapVoxCityOverlay
-              mapRef={mapInstanceRef}
-              panelVisible={showVoxCityOverlay}
-              onPanelClose={() => {
-                setShowVoxCityOverlay(false);
-                announce("VoxCity 2D overlay closed");
-              }}
-              onAnnounce={announce}
-              onExternalImportProgress={handleExternalServiceProgress}
-            />
-          ) : null}
 
           {pointSymbologyLayerId && !styleSymbolsTabActive && !effectiveShowScientificQAPanel && !effectiveShowNLQueryPanel ? (
             <div

@@ -49,6 +49,7 @@ export interface Scene3DPanelProps {
   visible: boolean;
   onClose: () => void;
   onModeChange?: (mode: Scene3DRuntimeMode) => void;
+  presentation?: "floating" | "embedded";
 }
 
 /* ------------------------------------------------------------------ */
@@ -64,6 +65,18 @@ const panelStyle: React.CSSProperties = {
   borderRadius: MAP_RADIUS.lg,
   background: MAP_COLORS.bgPanel,
   boxShadow: MAP_SHADOWS.panel,
+  color: MAP_COLORS.text,
+  overflow: "hidden",
+};
+
+const embeddedPanelStyle: React.CSSProperties = {
+  position: "relative",
+  display: "grid",
+  gridTemplateRows: "auto auto auto",
+  width: "100%",
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.sm,
+  background: MAP_COLORS.bgPanel,
   color: MAP_COLORS.text,
   overflow: "hidden",
 };
@@ -535,9 +548,15 @@ function drawTerrainScenePreview(
 /*  Component                                                           */
 /* ------------------------------------------------------------------ */
 
-export const Scene3DPanel: React.FC<Scene3DPanelProps> = ({ visible, onClose, onModeChange }) => {
+export const Scene3DPanel: React.FC<Scene3DPanelProps> = ({
+  visible,
+  onClose,
+  onModeChange,
+  presentation = "floating",
+}) => {
   const panelDrag = useDraggableMapPanel();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const embedded = presentation === "embedded";
 
   const runtimeMode = useScene3DStore(selectScene3DMode);
   const activeLayerId = useScene3DStore(selectScene3DActiveLayerId);
@@ -685,15 +704,19 @@ export const Scene3DPanel: React.FC<Scene3DPanelProps> = ({ visible, onClose, on
 
   return (
     <aside
-      data-draggable-map-panel="true"
-      style={{ ...panelStyle, ...panelDrag.panelPositionStyle }}
-      role="dialog"
-      aria-modal="false"
+      data-draggable-map-panel={embedded ? undefined : "true"}
+      style={embedded ? embeddedPanelStyle : { ...panelStyle, ...panelDrag.panelPositionStyle }}
+      role={embedded ? "region" : "dialog"}
+      aria-modal={embedded ? undefined : "false"}
       aria-label="3D scene panel"
+      data-presentation={presentation}
       data-testid="scene3d-panel"
     >
       {/* Header */}
-      <header style={{ ...headerStyle, ...panelDrag.dragHandleStyle }} {...panelDrag.dragHandleProps}>
+      <header
+        style={embedded ? headerStyle : { ...headerStyle, ...panelDrag.dragHandleStyle }}
+        {...(embedded ? {} : panelDrag.dragHandleProps)}
+      >
         <h3 style={titleStyle}>
           <Box size={MAP_ICON_SIZES.md} aria-hidden="true" />
           3D Scene
@@ -704,7 +727,7 @@ export const Scene3DPanel: React.FC<Scene3DPanelProps> = ({ visible, onClose, on
       </header>
 
       {/* Body */}
-      <div style={bodyStyle}>
+      <div style={embedded ? { ...bodyStyle, overflowY: "visible" } : bodyStyle}>
         {/* Mode switcher */}
         <div style={{ display: "grid", gap: MAP_SPACING.xs }}>
           <span style={sectionTitleStyle}>View mode</span>

@@ -343,6 +343,18 @@ const panelStyle: React.CSSProperties = {
   ...createOpaqueFloatingPanelStyle(PANEL_WIDTH),
 };
 
+const embeddedPanelStyle: React.CSSProperties = {
+  position: "relative",
+  display: "flex",
+  flexDirection: "column",
+  width: "100%",
+  border: `1px solid ${MAP_COLORS.hairline}`,
+  borderRadius: MAP_RADIUS.sm,
+  background: MAP_COLORS.bgPanel,
+  color: MAP_COLORS.text,
+  overflow: "hidden",
+};
+
 const panelHeaderStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
@@ -514,6 +526,8 @@ export interface MapVoxCityOverlayProps {
   panelVisible: boolean;
   /** Close the configuration panel. */
   onPanelClose: () => void;
+  /** Floating map overlay by default; embedded mode is used by the Scene workspace. */
+  presentation?: "floating" | "embedded";
   /** Optional callback to announce status messages. */
   onAnnounce?: (message: string) => void;
   /** Optional bridge into the Map Explorer import/progress indicator. */
@@ -528,10 +542,12 @@ export const MapVoxCityOverlay: React.FC<MapVoxCityOverlayProps> = ({
   mapRef,
   panelVisible,
   onPanelClose,
+  presentation = "floating",
   onAnnounce,
   onExternalImportProgress,
 }) => {
   const { panelPositionStyle, dragHandleProps, dragHandleStyle } = useDraggableMapPanel();
+  const embedded = presentation === "embedded";
 
   /* -------- Store registry actions -------- */
   const overlayLayers = useMapExplorerStore((s) => s.overlayLayers);
@@ -1422,11 +1438,16 @@ export const MapVoxCityOverlay: React.FC<MapVoxCityOverlayProps> = ({
 
   return (
     <div
-      style={{ ...panelStyle, ...panelPositionStyle }}
-      role="dialog"
+      style={embedded ? embeddedPanelStyle : { ...panelStyle, ...panelPositionStyle }}
+      role={embedded ? "region" : "dialog"}
       aria-label="VoxCity 2D overlay configuration"
+      data-presentation={presentation}
+      data-testid="voxcity-overlay-panel"
     >
-      <div style={{ ...panelHeaderStyle, ...dragHandleStyle }} {...dragHandleProps}>
+      <div
+        style={embedded ? panelHeaderStyle : { ...panelHeaderStyle, ...dragHandleStyle }}
+        {...(embedded ? {} : dragHandleProps)}
+      >
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <Building2 size={16} color={MAP_COLORS.interaction} />
           <div>
@@ -1446,7 +1467,7 @@ export const MapVoxCityOverlay: React.FC<MapVoxCityOverlayProps> = ({
         </button>
       </div>
 
-      <div style={panelBodyStyle}>
+      <div style={embedded ? { ...panelBodyStyle, overflowY: "visible" } : panelBodyStyle}>
         {/* ------------ Real data source selector ------------ */}
         <div
           style={{

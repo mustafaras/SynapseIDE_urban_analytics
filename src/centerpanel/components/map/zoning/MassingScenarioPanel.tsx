@@ -43,6 +43,7 @@ export interface MassingScenarioPanelProps {
   rule?: ZoningRule | null;
   parcel?: Feature<Polygon> | null;
   declaredCrs?: string | null;
+  presentation?: "floating" | "embedded";
 }
 
 /* ------------------------------------------------------------------ */
@@ -61,6 +62,18 @@ const panelStyle: React.CSSProperties = {
   borderRadius: MAP_RADIUS.lg,
   background: MAP_COLORS.bgPanel,
   boxShadow: MAP_SHADOWS.panel,
+  color: MAP_COLORS.text,
+  overflow: "hidden",
+};
+
+const embeddedPanelStyle: React.CSSProperties = {
+  position: "relative",
+  display: "grid",
+  gridTemplateRows: "auto auto auto",
+  width: "100%",
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.sm,
+  background: MAP_COLORS.bgPanel,
   color: MAP_COLORS.text,
   overflow: "hidden",
 };
@@ -247,8 +260,10 @@ export const MassingScenarioPanel: React.FC<MassingScenarioPanelProps> = ({
   rule,
   parcel,
   declaredCrs,
+  presentation = "floating",
 }) => {
   const panelDrag = useDraggableMapPanel();
+  const embedded = presentation === "embedded";
 
   const scenarios = useMassingStore(selectMassingScenarios);
   const comparisonMetadata = useMassingStore(selectComparisonMetadata);
@@ -293,17 +308,18 @@ export const MassingScenarioPanel: React.FC<MassingScenarioPanelProps> = ({
 
   return (
     <aside
-      data-draggable-map-panel="true"
-      style={{ ...panelStyle, ...panelDrag.panelPositionStyle }}
-      role="dialog"
-      aria-modal="false"
+      data-draggable-map-panel={embedded ? undefined : "true"}
+      style={embedded ? embeddedPanelStyle : { ...panelStyle, ...panelDrag.panelPositionStyle }}
+      role={embedded ? "region" : "dialog"}
+      aria-modal={embedded ? undefined : "false"}
       aria-label="Massing scenarios panel"
+      data-presentation={presentation}
       data-testid="massing-scenario-panel"
     >
       {/* Header */}
       <header
-        style={{ ...headerStyle, ...panelDrag.dragHandleStyle }}
-        {...panelDrag.dragHandleProps}
+        style={embedded ? headerStyle : { ...headerStyle, ...panelDrag.dragHandleStyle }}
+        {...(embedded ? {} : panelDrag.dragHandleProps)}
       >
         <h3 style={titleStyle}>
           <Building2 size={MAP_ICON_SIZES.md} aria-hidden="true" />
@@ -320,7 +336,7 @@ export const MassingScenarioPanel: React.FC<MassingScenarioPanelProps> = ({
       </header>
 
       {/* Body */}
-      <div style={bodyStyle}>
+      <div style={embedded ? { ...bodyStyle, overflowY: "visible" } : bodyStyle}>
 
         {/* ── Section 1: Scenarios list ── */}
         <div style={{ display: "grid", gap: MAP_SPACING.sm }} data-testid="massing-scenarios-section">

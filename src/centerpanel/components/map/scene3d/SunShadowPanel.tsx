@@ -30,6 +30,7 @@ import { createOpaqueFloatingPanelStyle, useDraggableMapPanel } from "../useDrag
 export interface SunShadowPanelProps {
   visible: boolean;
   onClose: () => void;
+  presentation?: "floating" | "embedded";
 }
 
 /* ------------------------------------------------------------------ */
@@ -48,6 +49,18 @@ const panelStyle: React.CSSProperties = {
   borderRadius: MAP_RADIUS.lg,
   background: MAP_COLORS.bgPanel,
   boxShadow: MAP_SHADOWS.panel,
+  color: MAP_COLORS.text,
+  overflow: "hidden",
+};
+
+const embeddedPanelStyle: React.CSSProperties = {
+  position: "relative",
+  display: "grid",
+  gridTemplateRows: "auto auto auto",
+  width: "100%",
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.sm,
+  background: MAP_COLORS.bgPanel,
   color: MAP_COLORS.text,
   overflow: "hidden",
 };
@@ -229,8 +242,13 @@ function formatDeg(deg: number): string {
 /*  Component                                                           */
 /* ------------------------------------------------------------------ */
 
-export const SunShadowPanel: React.FC<SunShadowPanelProps> = ({ visible, onClose }) => {
+export const SunShadowPanel: React.FC<SunShadowPanelProps> = ({
+  visible,
+  onClose,
+  presentation = "floating",
+}) => {
   const panelDrag = useDraggableMapPanel();
+  const embedded = presentation === "embedded";
 
   const timelineHours = useSunShadowStore((s) => s.timelineHours);
   const activeHourIndex = useSunShadowStore((s) => s.activeHourIndex);
@@ -261,16 +279,18 @@ export const SunShadowPanel: React.FC<SunShadowPanelProps> = ({ visible, onClose
 
   return (
     <aside
-      data-draggable-map-panel="true"
-      style={{ ...panelStyle, ...panelDrag.panelPositionStyle }}
-      role="dialog"
-      aria-modal="false"
+      data-draggable-map-panel={embedded ? undefined : "true"}
+      style={embedded ? embeddedPanelStyle : { ...panelStyle, ...panelDrag.panelPositionStyle }}
+      role={embedded ? "region" : "dialog"}
+      aria-modal={embedded ? undefined : "false"}
       aria-label="Sun / Shadow Analysis"
+      data-presentation={presentation}
+      data-testid="sunshadow-panel"
     >
       {/* ---- Header ---- */}
       <header
-        style={{ ...headerStyle, ...panelDrag.dragHandleStyle }}
-        {...panelDrag.dragHandleProps}
+        style={embedded ? headerStyle : { ...headerStyle, ...panelDrag.dragHandleStyle }}
+        {...(embedded ? {} : panelDrag.dragHandleProps)}
       >
         <h2 style={titleStyle}>
           <Sun size={MAP_ICON_SIZES.sm} aria-hidden="true" />
@@ -288,7 +308,7 @@ export const SunShadowPanel: React.FC<SunShadowPanelProps> = ({ visible, onClose
       </header>
 
       {/* ---- Body ---- */}
-      <div style={bodyStyle}>
+      <div style={embedded ? { ...bodyStyle, overflowY: "visible" } : bodyStyle}>
         {/* Timeline */}
         <section>
           <p style={sectionTitleStyle}>Timeline</p>

@@ -46,7 +46,9 @@ export type MapSidebarTabId =
   | "scene-raster"
   | "scene-temporal"
   | "scene-3d"
-  | "scene-urban-form"
+  | "scene-zoning"
+  | "scene-massing"
+  | "scene-sun-shadow"
   | "scene-voxcity"
   | "publish-figure"
   | "publish-export"
@@ -500,16 +502,30 @@ export const MAP_SIDEBAR_TAB_DEFINITIONS = [
   {
     id: "scene-3d",
     activityId: "scene",
-    label: "3D",
-    ariaLabel: "Scene 3D tab",
+    label: "3D Scene",
+    ariaLabel: "Scene 3D Scene tab",
     description: "3D scene, terrain, CityJSON, 3D Tiles, vertical datum, and viewport sync.",
   },
   {
-    id: "scene-urban-form",
+    id: "scene-zoning",
     activityId: "scene",
-    label: "Urban Form",
-    ariaLabel: "Scene urban form tab",
-    description: "Zoning, massing, sun and shadow, view corridors, sections, and assumptions.",
+    label: "Zoning",
+    ariaLabel: "Scene Zoning tab",
+    description: "Zoning rule assignment, selected parcel metrics, envelope assumptions, and CRS caveats.",
+  },
+  {
+    id: "scene-massing",
+    activityId: "scene",
+    label: "Massing",
+    ariaLabel: "Scene Massing tab",
+    description: "Generated massing scenarios, baseline comparison, compliance, and assumption metadata.",
+  },
+  {
+    id: "scene-sun-shadow",
+    activityId: "scene",
+    label: "Sun/Shadow",
+    ariaLabel: "Scene Sun/Shadow tab",
+    description: "Sun and shadow scenarios, solar position, generated evidence, and vertical assumptions.",
   },
   {
     id: "scene-voxcity",
@@ -671,7 +687,7 @@ export const MAP_TASK_LENSES = [
     description: "Prioritizes layer interpretation, scene review, styling, and publish readiness.",
     defaultActivityId: "layers",
     activityPriority: ["layers", "scene", "style", "publish", "overview", "analyze", "qa", "review", "diagnostics", "data", "extensions"],
-    sidebarTabPriority: ["layers-stack", "scene-3d", "scene-urban-form", "style-renderer", "publish-figure"],
+    sidebarTabPriority: ["layers-stack", "scene-3d", "scene-zoning", "scene-massing", "scene-sun-shadow", "style-renderer", "publish-figure"],
     inspectorContextPriority: ["layer", "scene-item", "publish-item", "qa-issue"],
     bottomPanelTabPriority: ["attributes", "timeline", "problems", "tasks"],
     preserveCommandPalette: true,
@@ -783,7 +799,9 @@ function getSidebarTabForInventoryEntry(entry: MapSurfaceInventoryEntry, activit
   if (activityId === "scene") {
     if (includesAny(fingerprint, ["raster", "geotiff", "nodata"])) return "scene-raster";
     if (includesAny(fingerprint, ["temporal", "timeline", "frame"])) return "scene-temporal";
-    if (includesAny(fingerprint, ["zoning", "massing", "sun", "shadow", "urban form"])) return "scene-urban-form";
+    if (includesAny(fingerprint, ["zoning"])) return "scene-zoning";
+    if (includesAny(fingerprint, ["massing", "scenario comparison"])) return "scene-massing";
+    if (includesAny(fingerprint, ["sun", "shadow"])) return "scene-sun-shadow";
     if (includesAny(fingerprint, ["voxcity", "cityjson"])) return "scene-voxcity";
     return "scene-3d";
   }

@@ -29,6 +29,7 @@ export interface RasterLayerPanelProps {
   layerName?: string;
   visible?: boolean;
   onClose?: () => void;
+  presentation?: "floating" | "embedded";
 }
 
 /* ------------------------------------------------------------------ */
@@ -104,6 +105,7 @@ export const RasterLayerPanel: React.FC<RasterLayerPanelProps> = ({
   layerName = "Raster layer",
   visible = true,
   onClose,
+  presentation = "floating",
 }) => {
   const state = useRasterLayerStore((s) => s.layers[layerId]);
   const updateRenderConfig = useRasterLayerStore((s) => s.updateRenderConfig);
@@ -161,9 +163,10 @@ export const RasterLayerPanel: React.FC<RasterLayerPanelProps> = ({
 
   const { inspection, qa, renderConfig, histogram, parsing, parseError } = state;
   const meta = inspection?.metadata;
+  const embedded = presentation === "embedded";
 
   /* ── Styles ── */
-  const panelStyle: React.CSSProperties = {
+  const floatingPanelStyle: React.CSSProperties = {
     position: "absolute",
     right: 8,
     top: 60,
@@ -177,6 +180,18 @@ export const RasterLayerPanel: React.FC<RasterLayerPanelProps> = ({
     zIndex: 30,
     overflow: "hidden",
   };
+  const embeddedPanelStyle: React.CSSProperties = {
+    position: "relative",
+    width: "100%",
+    background: MAP_COLORS.bgPanel,
+    border: `1px solid ${MAP_COLORS.hairline}`,
+    borderRadius: 4,
+    fontFamily: MAP_TYPOGRAPHY.fontFamily,
+    fontSize: "12px",
+    color: MAP_COLORS.text,
+    overflow: "hidden",
+  };
+  const panelStyle = embedded ? embeddedPanelStyle : floatingPanelStyle;
 
   const headerStyle: React.CSSProperties = {
     display: "flex",
@@ -238,7 +253,13 @@ export const RasterLayerPanel: React.FC<RasterLayerPanelProps> = ({
   };
 
   return (
-    <div style={panelStyle} data-testid="raster-layer-panel">
+    <div
+      style={panelStyle}
+      role={embedded ? "region" : "dialog"}
+      aria-label="Raster layer panel"
+      data-presentation={presentation}
+      data-testid="raster-layer-panel"
+    >
       {/* Header */}
       <div style={headerStyle}>
         <span

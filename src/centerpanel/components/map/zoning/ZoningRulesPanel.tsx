@@ -32,6 +32,7 @@ export interface ZoningRulesPanelProps {
   onClose: () => void;
   /** Currently selected parcel ID (from 2D map selection). */
   selectedParcelId?: string | number | null;
+  presentation?: "floating" | "embedded";
 }
 
 /* ------------------------------------------------------------------ */
@@ -47,6 +48,18 @@ const panelStyle: React.CSSProperties = {
   borderRadius: MAP_RADIUS.lg,
   background: MAP_COLORS.bgPanel,
   boxShadow: MAP_SHADOWS.panel,
+  color: MAP_COLORS.text,
+  overflow: "hidden",
+};
+
+const embeddedPanelStyle: React.CSSProperties = {
+  position: "relative",
+  display: "grid",
+  gridTemplateRows: "auto auto auto",
+  width: "100%",
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.sm,
+  background: MAP_COLORS.bgPanel,
   color: MAP_COLORS.text,
   overflow: "hidden",
 };
@@ -212,8 +225,10 @@ export const ZoningRulesPanel: React.FC<ZoningRulesPanelProps> = ({
   visible,
   onClose,
   selectedParcelId,
+  presentation = "floating",
 }) => {
   const panelDrag = useDraggableMapPanel();
+  const embedded = presentation === "embedded";
 
   const rules = useZoningStore(selectZoningRules);
   const assignments = useZoningStore(selectZoningAssignments);
@@ -255,15 +270,19 @@ export const ZoningRulesPanel: React.FC<ZoningRulesPanelProps> = ({
 
   return (
     <aside
-      data-draggable-map-panel="true"
-      style={{ ...panelStyle, ...panelDrag.panelPositionStyle }}
-      role="dialog"
-      aria-modal="false"
+      data-draggable-map-panel={embedded ? undefined : "true"}
+      style={embedded ? embeddedPanelStyle : { ...panelStyle, ...panelDrag.panelPositionStyle }}
+      role={embedded ? "region" : "dialog"}
+      aria-modal={embedded ? undefined : "false"}
       aria-label="Zoning rules panel"
+      data-presentation={presentation}
       data-testid="zoning-rules-panel"
     >
       {/* Header */}
-      <header style={{ ...headerStyle, ...panelDrag.dragHandleStyle }} {...panelDrag.dragHandleProps}>
+      <header
+        style={embedded ? headerStyle : { ...headerStyle, ...panelDrag.dragHandleStyle }}
+        {...(embedded ? {} : panelDrag.dragHandleProps)}
+      >
         <h3 style={titleStyle}>
           <Layers size={MAP_ICON_SIZES.md} aria-hidden="true" />
           Zoning Rules
@@ -274,7 +293,7 @@ export const ZoningRulesPanel: React.FC<ZoningRulesPanelProps> = ({
       </header>
 
       {/* Body */}
-      <div style={bodyStyle}>
+      <div style={embedded ? { ...bodyStyle, overflowY: "visible" } : bodyStyle}>
 
         {/* Selected parcel + metrics */}
         {selectedParcelId != null && (
