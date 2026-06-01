@@ -22,19 +22,19 @@ gis-modal-ui/premium-redesign
 Next prompt:
 
 ```text
-Prompt 02 - Navigation Model (of 56)
+Prompt 03 - Activity Rail Refresh (of 56)
 ```
 
 Last completed prompt:
 
 ```text
-Prompt 01 - Command and Panel Inventory
+Prompt 02 - Navigation Model
 ```
 
 Last pushed integration commit:
 
 ```text
-e34aebc (Prompt 01 implementation; prompt and integration branches pushed)
+pending closeout push from gis-modal-ui/p02-navigation-model
 ```
 
 Update this pointer after every completed prompt. It is the first anti-amnesia check for the next agent.
@@ -209,7 +209,7 @@ Legend: `[ ]` TODO, `[~]` in progress, `[x]` done, `[!]` blocked.
 | Status | Prompt | Branch | Commit | Push | Required proof |
 | --- | --- | --- | --- | --- | --- |
 | [x] | 01 - Command and Panel Inventory | `gis-modal-ui/p01-inventory` | `e34aebc` | pushed to `origin/gis-modal-ui/p01-inventory` | Inventory coverage test passed; no runtime shell imports or visible UI change |
-| [ ] | 02 - Navigation Model | `gis-modal-ui/p02-navigation-model` |  |  | Activity/task-lens model tests |
+| [x] | 02 - Navigation Model | `gis-modal-ui/p02-navigation-model` | branch head after closeout commit | pending closeout push | Activity order, task-lens model, keyboard-safe metadata, and inventory binding tests passed |
 | [ ] | 03 - Activity Rail Refresh | `gis-modal-ui/p03-activity-rail` |  |  | Stable activity rail, old actions reachable |
 | [ ] | 04 - Command Center | `gis-modal-ui/p04-command-center` |  |  | Palette complete, compact header |
 | [ ] | 05 - Sidebar Host | `gis-modal-ui/p05-sidebar-host` |  |  | Overview/Data/Layers mounted in sidebar |
@@ -324,6 +324,7 @@ Append newest entries at the top.
 
 | Date | Prompt | Branch | Start SHA | Commit | Push | Integration FF | Validation | Premium UI proof | Anti-amnesia proof | Residual risk |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 2026-06-01 | 02 - Navigation Model | `gis-modal-ui/p02-navigation-model` | `8ae31ee` | branch head after closeout commit | pending closeout push | pending closeout fast-forward | `npm run typecheck` pass; `npx vitest run src/centerpanel/components/map/__tests__` pass (50 files, 530 tests); `npm run lint:errors` pass | Added pure navigation metadata only; tests assert `MapToolbar`, `MapExplorerModalComposition`, and `MapWorkspaceShell` do not import `mapNavigationModel`, so runtime rendering is unchanged | Fresh GIS Modal Premium UI Redesign pack confirmed; archived production GIS ladder not resumed; Prompt 02 branch created from pushed integration; added files: `src/centerpanel/components/map/navigation/mapNavigationModel.ts`, `src/centerpanel/components/map/__tests__/mapNavigationModel.test.ts`; updated `src/centerpanel/components/map/navigation/index.ts`; model links every Prompt 01 inventory item to an activity, sidebar tab, inspector context, or bottom tab where applicable | Navigation bindings are derived from inventory metadata and may be refined as later prompts replace temporary panel homes with concrete shell slots |
 | 2026-06-01 | 01 - Command and Panel Inventory | `gis-modal-ui/p01-inventory` | `486b65a` | `e34aebc` | pushed to `origin/gis-modal-ui/p01-inventory` | fast-forwarded and pushed `origin/gis-modal-ui/premium-redesign` | `npm run typecheck` pass; `npx vitest run src/centerpanel/components/map` pass (56 files, 532 tests); `npm run lint:errors` pass | Added pure inventory module only; tests assert `MapToolbar`, `MapExplorerModalComposition`, and `MapWorkspaceShell` do not import the inventory, so runtime rendering is unchanged | Fresh GIS Modal Premium UI Redesign pack confirmed; archived production GIS ladder not resumed; Prompt 01 branch created from `gis-modal-ui/premium-redesign`; added files: `src/centerpanel/components/map/navigation/mapSurfaceInventory.ts`, `src/centerpanel/components/map/navigation/index.ts`, `src/centerpanel/components/map/__tests__/mapSurfaceInventory.test.ts`; coverage maps toolbar commands, palette commands, `show*` flags, activity rail IDs, hidden scene toggles, workspace views, quick actions, dialogs, drawers, overlays, and status surfaces | Inventory is a static contract over current source markers; future Prompt 02 should convert this into the semantic navigation model |
 
 ---
