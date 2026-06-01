@@ -58,6 +58,16 @@ export type { MapCatalogPanelProps } from "./catalog";
 export { MapContentsTreePanel } from "./contents";
 export type { MapContentsTreePanelProps } from "./contents";
 
+export { LayerInspector, MapInspectorHost } from "./inspector";
+export type {
+  InspectorTabId,
+  LayerInspectorProps,
+  MapInspectorContextKind,
+  MapInspectorHostContext,
+  MapInspectorHostPresentation,
+  MapInspectorHostProps,
+} from "./inspector";
+
 export { useFocusTrap } from "./useFocusTrap";
 export { useMapKeyboardControls } from "./useMapKeyboardControls";
 export { useAnnouncer } from "./useAnnouncer";

@@ -788,8 +788,14 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
     // Inspect the known layer: Schema lists `value`, CRS shows EPSG:4326.
     const pointsRow = page.getByRole("option", { name: /Layer: E2E Inspector Points/i });
     await triggerDomClick(pointsRow.getByTestId("map-layer-inspect-trigger"));
+    const inspectorHost = page.getByTestId("map-inspector-host");
+    await expect(inspectorHost).toBeVisible();
+    await expect(inspectorHost).toHaveAttribute("data-context", "layer");
+    await expect(inspectorHost).toHaveAttribute("data-presentation", "right-rail");
+
     const inspector = page.getByTestId("map-layer-inspector");
     await expect(inspector).toBeVisible();
+    await expect(inspector).toHaveAttribute("data-presentation", "embedded");
 
     await triggerDomClick(inspector.getByTestId("map-layer-inspector-tab-schema"));
     await expect(page.getByTestId("map-layer-inspector-panel-schema")).toContainText("value");
@@ -797,8 +803,8 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
     await triggerDomClick(inspector.getByTestId("map-layer-inspector-tab-crs"));
     await expect(page.getByTestId("map-layer-inspector-panel-crs")).toContainText("EPSG:4326");
 
-    await triggerDomClick(inspector.getByRole("button", { name: "Close layer inspector" }));
-    await expect(inspector).toBeHidden();
+    await triggerDomClick(inspectorHost.getByRole("button", { name: "Close inspector" }));
+    await expect(inspectorHost).toBeHidden();
 
     // The missing-CRS layer shows CRS as `missing`, never a blank.
     const missingRow = page.getByRole("option", { name: /Layer: E2E Inspector Missing/i });

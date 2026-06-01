@@ -35,6 +35,7 @@ import {
   MapCommandBar,
   MapWorkspaceShell,
 } from "@/centerpanel/components/map/MapWorkspaceShell";
+import { MapInspectorHost } from "@/centerpanel/components/map/inspector";
 
 afterEach(() => cleanup());
 
@@ -127,6 +128,27 @@ describe("MapWorkspaceShell", () => {
 
     const surface = document.querySelector('[data-map-explorer-shell="true"]');
     expect(surface?.getAttribute("data-map-active-activity")).toBe("layers");
+  });
+});
+
+/* ================================================================== */
+/*  MapInspectorHost                                                    */
+/* ================================================================== */
+describe("MapInspectorHost", () => {
+  it("renders as a labeled right-side inspector host", () => {
+    render(
+      <MapInspectorHost
+        visible
+        context={{ kind: "map", title: "Map context" }}
+        presentation="right-rail"
+        onClose={vi.fn()}
+      />,
+    );
+
+    const host = screen.getByTestId("map-inspector-host");
+    expect(host.getAttribute("data-presentation")).toBe("right-rail");
+    expect(screen.getByRole("dialog", { name: "Map inspector: Map context" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "Close inspector" })).toBeDefined();
   });
 });
 

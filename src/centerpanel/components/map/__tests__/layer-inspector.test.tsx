@@ -1,10 +1,17 @@
 // @vitest-environment jsdom
 
 import React from "react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import type { SourceHandle } from "@/services/map/contracts/gisContracts";
 import type { OverlayLayerConfig } from "../mapTypes";
-import { LayerInspector, type InspectorTabId } from "../inspector/LayerInspector";
+import {
+  LayerInspector,
+  MapInspectorHost,
+  type InspectorTabId,
+  type MapInspectorHostContext,
+} from "../inspector";
 
 function pointsLayer(): OverlayLayerConfig {
   return {
@@ -67,6 +74,8 @@ function analysisLayer(): OverlayLayerConfig {
 
 const noop = (): void => {};
 
+afterEach(() => cleanup());
+
 function markup(layer: OverlayLayerConfig, initialTab: InspectorTabId): string {
   return renderToStaticMarkup(
     <LayerInspector layer={layer} sourceHandle={null} onClose={noop} initialTab={initialTab} />,
@@ -104,5 +113,88 @@ describe("LayerInspector", () => {
     for (const tab of ["overview", "source", "schema", "crs", "qa", "style", "lineage", "report"]) {
       expect(html).toContain(`map-layer-inspector-tab-${tab}`);
     }
+  });
+
+  it("renders source handle restore details explicitly on the source tab", () => {
+    const handle: SourceHandle = {
+      sourceId: "source-points",
+      kind: "imported",
+      storageMode: "indexeddb-local",
+      restoreStatus: "restored",
+      format: "geojson",
+      crsSummary: { crs: "EPSG:4326", status: "known", source: "import-source", notes: [] },
+      featureCount: 25,
+      caveats: ["Profiled source handle."],
+      profiledAt: "2026-05-31T12:00:00.000Z",
+    };
+    const html = renderToStaticMarkup(
+      <LayerInspector layer={pointsLayer()} sourceHandle={handle} onClose={noop} initialTab="source" />,
+    );
+
+    expect(html).toContain("source-points");
+    expect(html).toContain("indexeddb-local");
+    expect(html).toContain("restored");
+  });
+});
+
+describe("MapInspectorHost", () => {
+  it("hosts the layer inspector in one right-side inspector shell", () => {
+    render(
+      <MapInspectorHost
+        visible
+        context={{ kind: "layer", layer: pointsLayer() }}
+        onClose={noop}
+      />,
+    );
+
+    expect(screen.getByTestId("map-inspector-host").getAttribute("data-context")).toBe("layer");
+    expect(screen.getByTestId("map-layer-inspector").getAttribute("data-presentation")).toBe("embedded");
+    expect(screen.getByRole("tab", { name: "Overview" })).toBeDefined();
+    expect(screen.getByRole("tab", { name: "Report" })).toBeDefined();
+  });
+
+  it("provides placeholders for non-layer inspector contexts", () => {
+    const contexts: MapInspectorHostContext[] = [
+      { kind: "none" },
+      { kind: "map" },
+      { kind: "feature-selection" },
+      { kind: "qa-issue" },
+      { kind: "workflow-preview" },
+      { kind: "publish" },
+      { kind: "scene" },
+    ];
+
+    for (const context of contexts) {
+      const html = renderToStaticMarkup(
+        <MapInspectorHost visible context={context} onClose={noop} />,
+      );
+      expect(html).toContain("map-inspector-host");
+      expect(html).toContain(`data-context="${context.kind}"`);
+    }
+  });
+
+  it("returns focus to the opener when closed", () => {
+    vi.useFakeTimers();
+    const opener = document.createElement("button");
+    opener.textContent = "Inspect";
+    document.body.appendChild(opener);
+    opener.focus();
+    const onClose = vi.fn();
+
+    render(
+      <MapInspectorHost
+        visible
+        context={{ kind: "layer", layer: pointsLayer() }}
+        onClose={onClose}
+        returnFocusTo={opener}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Close inspector" }));
+    expect(onClose).toHaveBeenCalledOnce();
+    vi.runAllTimers();
+    expect(document.activeElement).toBe(opener);
+    opener.remove();
+    vi.useRealTimers();
   });
 });

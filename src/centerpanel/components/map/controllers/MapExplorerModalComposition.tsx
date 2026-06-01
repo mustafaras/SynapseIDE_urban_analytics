@@ -179,6 +179,7 @@ import {
 } from "../table/MapAttributeTable";
 import { CartographyRecommendationList } from "../CartographyRecommendationList";
 import { MapLegendOverlay } from "../inspector/style/MapLegendOverlay";
+import type { MapInspectorHostContext } from "../inspector";
 import type { LayerStyleUpdate } from "../inspector/style/legendContract";
 import {
   createMapEvidenceArtifact,
@@ -413,9 +414,9 @@ const LazyMapReportHandoffDrawer = React.lazy(async () => {
   return { default: module.MapReportHandoffDrawer };
 });
 
-const LazyLayerInspector = React.lazy(async () => {
-  const module = await import("../inspector/LayerInspector");
-  return { default: module.LayerInspector };
+const LazyMapInspectorHost = React.lazy(async () => {
+  const module = await import("../inspector/MapInspectorHost");
+  return { default: module.MapInspectorHost };
 });
 type MapProjectSnapshot = import("../../../../services/map/MapPersistenceService").MapProjectSnapshot;
 type MapOutput = import("../../../../features/urbanAnalytics/lib/types").MapOutput;
@@ -1336,12 +1337,21 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     [processingExtensionExecutors],
   );
   const [inspectorLayerId, setInspectorLayerId] = useState<string | null>(null);
+  const inspectorReturnFocusRef = useRef<HTMLElement | null>(null);
   const inspectorLayer = inspectorLayerId
     ? overlayLayers.find((entry) => entry.id === inspectorLayerId) ?? null
     : null;
   const inspectorSourceHandle = inspectorLayer
     ? sourceHandles.find((handle) => handle.sourceId === inspectorLayer.metadata?.sourceId) ?? null
     : null;
+  const inspectorContext = useMemo<MapInspectorHostContext>(() => {
+    if (!inspectorLayer) return { kind: "none" };
+    return {
+      kind: "layer",
+      layer: inspectorLayer,
+      ...(inspectorSourceHandle ? { sourceHandle: inspectorSourceHandle } : {}),
+    };
+  }, [inspectorLayer, inspectorSourceHandle]);
   const [attributeTableLayerId, setAttributeTableLayerId] = useState<string | null>(null);
   const attributeTableLayer = attributeTableLayerId
     ? overlayLayers.find((entry) => entry.id === attributeTableLayerId) ?? null
@@ -1914,8 +1924,32 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   ]);
 
   const handleInspectLayer = useCallback((layerId: string) => {
+    if (typeof document !== "undefined") {
+      const activeElement = document.activeElement;
+      inspectorReturnFocusRef.current = activeElement instanceof HTMLElement ? activeElement : null;
+    }
+    setShowScientificQAPanel(false);
+    setShowNLQueryPanel(false);
+    setShowWorkflowDrawer(false);
+    setWorkflowPreview(null);
+    setShowReviewTimeline(false);
+    setPointSymbologyLayerId(null);
+    setShowChoroplethPanel(false);
+    setShowClusterViz(false);
+    setShowHotSpotViz(false);
+    setShowEmergingHotSpotViz(false);
+    setShowVoxCityOverlay(false);
     setInspectorLayerId(layerId);
     announce("Layer inspector opened");
+  }, [
+    announce,
+    setShowWorkflowDrawer,
+    setWorkflowPreview,
+  ]);
+
+  const handleCloseInspectorHost = useCallback(() => {
+    setInspectorLayerId(null);
+    announce("Inspector closed");
   }, [announce]);
 
   const handleOpenAttributeTable = useCallback((layerId: string) => {
@@ -7578,19 +7612,17 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             />
           </Suspense>
 
-          {inspectorLayer ? (
-            <Suspense fallback={null}>
-              <LazyLayerInspector
-                layer={inspectorLayer}
-                sourceHandle={inspectorSourceHandle}
-                onClose={() => {
-                  setInspectorLayerId(null);
-                  announce("Layer inspector closed");
-                }}
-                onApplyStyle={handleApplyLayerStyle}
-              />
-            </Suspense>
-          ) : null}
+          <Suspense fallback={null}>
+            <LazyMapInspectorHost
+              visible={inspectorContext.kind !== "none"}
+              context={inspectorContext}
+              presentation={dockLayout.compactDock ? "bottom-drawer" : "right-rail"}
+              width={dockLayout.rightPanelWidth}
+              onClose={handleCloseInspectorHost}
+              onApplyLayerStyle={handleApplyLayerStyle}
+              returnFocusTo={inspectorReturnFocusRef.current}
+            />
+          </Suspense>
           {attributeTableLayer ? (
             <MapAttributeTable
               layer={attributeTableLayer}

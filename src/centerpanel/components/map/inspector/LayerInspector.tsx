@@ -36,6 +36,9 @@ export interface LayerInspectorProps {
   onAnnounce?: (message: string) => void;
   /** Initial active tab (defaults to "overview"); primarily a testability hook. */
   initialTab?: InspectorTabId;
+  /** Host-managed rendering removes floating position, border, shadow, and optional header chrome. */
+  presentation?: "floating" | "embedded";
+  showHeader?: boolean;
 }
 
 export type InspectorTabId =
@@ -74,6 +77,21 @@ const panelStyle: React.CSSProperties = {
   borderRadius: MAP_RADIUS.md,
   boxShadow: MAP_SHADOWS.dropdown,
   zIndex: MAP_Z_INDEX.dropdown,
+  overflow: "hidden",
+};
+
+const embeddedPanelStyle: React.CSSProperties = {
+  position: "relative",
+  width: "100%",
+  height: "100%",
+  minHeight: 0,
+  display: "flex",
+  flexDirection: "column",
+  background: MAP_COLORS.transparent,
+  border: MAP_STROKES.none,
+  borderRadius: 0,
+  boxShadow: MAP_SHADOWS.none,
+  zIndex: "auto",
   overflow: "hidden",
 };
 
@@ -213,6 +231,8 @@ export const LayerInspector: React.FC<LayerInspectorProps> = ({
   onClose,
   onApplyStyle,
   initialTab,
+  presentation = "floating",
+  showHeader = true,
 }) => {
   const [activeTab, setActiveTab] = useState<InspectorTabId>(initialTab ?? "overview");
   const registry = useMemo(() => normalizeLayerRegistryMetadata(layer), [layer]);
@@ -413,24 +433,27 @@ export const LayerInspector: React.FC<LayerInspectorProps> = ({
 
   return (
     <div
-      style={panelStyle}
-      className={motionStyles.panelIn}
-      role="dialog"
+      style={presentation === "embedded" ? embeddedPanelStyle : panelStyle}
+      className={presentation === "floating" ? motionStyles.panelIn : undefined}
+      role={presentation === "embedded" ? "region" : "dialog"}
       aria-label={`Layer inspector for ${layer.name}`}
       data-testid="map-layer-inspector"
+      data-presentation={presentation}
     >
-      <div style={headerStyle}>
-        <div>
-          <div style={eyebrowStyle}>Layer inspector</div>
-          <div style={titleStyle}>{layer.name}</div>
+      {showHeader ? (
+        <div style={headerStyle}>
+          <div>
+            <div style={eyebrowStyle}>Layer inspector</div>
+            <div style={titleStyle}>{layer.name}</div>
+          </div>
+          <GisIconButton
+            label="Close layer inspector"
+            icon={<IconClose size={14} />}
+            onClick={onClose}
+            size="sm"
+          />
         </div>
-        <GisIconButton
-          label="Close layer inspector"
-          icon={<IconClose size={14} />}
-          onClick={onClose}
-          size="sm"
-        />
-      </div>
+      ) : null}
 
       <GisTabs
         tabs={[...TABS]}
