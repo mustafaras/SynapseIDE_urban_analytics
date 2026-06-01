@@ -3,7 +3,7 @@ import type {
   MapCartographyRecommendation,
   MapCartographyReviewState,
 } from "@/services/map/MapCartographyAdvisor";
-import type { SourceRestoreStatus } from "@/services/map/contracts/gisContracts";
+import type { SourceHandle, SourceRestoreStatus } from "@/services/map/contracts/gisContracts";
 import { buildMapCompositionLegendItems } from "@/services/map/MapExportService";
 import { MAP_VECTOR_TILE_SIMPLIFICATION_CAVEAT_LABEL } from "./mapTypes";
 import type { LayerGroupId, LayerPublicationReadinessStatus, LayerQaStatus, LayerScientificQABadge, LayerSourceKind, OverlayLayerConfig } from "./mapTypes";
@@ -66,10 +66,42 @@ export interface MapLayerManagerProps {
   onUndoCartographyRecommendation?: () => void;
   canUndoCartographyRecommendation?: boolean;
   onShowCartographyDetails?: (recommendation: MapCartographyRecommendation) => void;
+  onOpenCartographyReviewScope?: (layerId: string | null) => void;
+  presentation?: "standalone" | "embedded";
+  cartographyReviewPlacement?: "inline" | "none";
   onRequestClose?: () => void;
   panelStyle?: React.CSSProperties;
   /** Screen reader announcement */
   onAnnounce?: (msg: string) => void;
+}
+
+export interface MapLayerSourcesPanelProps {
+  overlayLayers: readonly OverlayLayerConfig[];
+  sourceHandles?: readonly SourceHandle[];
+  onInspectLayer?: (id: string) => void;
+  onOpenAttributeTable?: (id: string) => void;
+  onSendLayerToUrban?: (id: string) => void;
+  onOpenLayerInIde?: (id: string) => void;
+  onAddLayerToReport?: (id: string) => void;
+  onBindLayerToDashboard?: (id: string) => void;
+  onOpenLayerEducationReference?: (id: string) => void;
+  onDeclareLayerCrs?: (id: string, crs: string) => void;
+  onRepairGeometry?: (id: string) => void;
+  onFocusLayer?: (id: string) => void;
+  onAnnounce?: (msg: string) => void;
+}
+
+export interface MapLayerCartographyPanelProps {
+  overlayLayers: readonly OverlayLayerConfig[];
+  cartographyReviewState?: MapCartographyReviewState | null;
+  activeLayerId?: string | null;
+  onActiveLayerChange?: (layerId: string | null) => void;
+  onOpenSymbology?: (id: string) => void;
+  onApplyCartographyRecommendation?: (recommendationId: string) => void;
+  onDismissCartographyRecommendation?: (recommendationId: string) => void;
+  onUndoCartographyRecommendation?: () => void;
+  canUndoCartographyRecommendation?: boolean;
+  onShowCartographyDetails?: (recommendation: MapCartographyRecommendation) => void;
 }
 
 /* ================================================================== */
@@ -146,6 +178,20 @@ const panelContainer: React.CSSProperties = {
   width: "100%",
   borderRight: MAP_STROKES.hairlineSubtle,
   overflow: "visible",
+};
+
+const panelContainerEmbedded: React.CSSProperties = {
+  ...panelContainer,
+  position: "relative",
+  inset: "auto",
+  left: "auto",
+  top: "auto",
+  bottom: "auto",
+  width: "100%",
+  height: "100%",
+  borderRight: MAP_STROKES.none,
+  background: MAP_COLORS.transparent,
+  zIndex: "auto",
 };
 
 const panelCollapsed: React.CSSProperties = {
@@ -579,6 +625,93 @@ const clearLayerCacheConfirmBtn: React.CSSProperties = {
   border: `1px solid ${MAP_COLORS.warning}`,
 };
 
+const layerAuxPanel: React.CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  minHeight: "100%",
+  background: MAP_COLORS.transparent,
+  color: MAP_COLORS.text,
+  fontFamily: MAP_TYPOGRAPHY.fontFamily,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+};
+
+const layerAuxSummary: React.CSSProperties = {
+  ...mapStyles.sidePanelSummaryStrip,
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+};
+
+const layerAuxBody: React.CSSProperties = {
+  ...mapStyles.sidePanelBody,
+  display: "grid",
+  alignContent: "start",
+  gap: MAP_SPACING.sm,
+  padding: MAP_SPACING.sm,
+};
+
+const layerSourceRow: React.CSSProperties = {
+  ...mapStyles.sidePanelRow,
+  display: "grid",
+  gap: MAP_SPACING.xs,
+  padding: MAP_SPACING.sm,
+};
+
+const layerSourceHead: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1fr) auto",
+  alignItems: "start",
+  gap: MAP_SPACING.sm,
+};
+
+const layerSourceTitle: React.CSSProperties = {
+  minWidth: 0,
+  color: MAP_COLORS.text,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+  lineHeight: MAP_TYPOGRAPHY.lineHeight.tight,
+  overflowWrap: "anywhere",
+};
+
+const layerSourceMetaGrid: React.CSSProperties = {
+  display: "grid",
+  gap: 2,
+  color: MAP_COLORS.textMuted,
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+  fontSize: 10,
+  lineHeight: 1.35,
+  overflowWrap: "anywhere",
+};
+
+const layerSourceActionRow: React.CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  alignItems: "center",
+  gap: MAP_SPACING.xs,
+};
+
+const layerAuxEmpty: React.CSSProperties = {
+  ...mapStyles.sidePanelEmpty,
+  padding: MAP_SPACING.md,
+};
+
+const cartographyScopeRail: React.CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: MAP_SPACING.xs,
+  padding: `${MAP_SPACING.sm} ${MAP_SPACING.md}`,
+  borderBottom: MAP_STROKES.hairlineSubtle,
+};
+
+const cartographyScopeButton: React.CSSProperties = {
+  ...layerInlineActionButton,
+  maxWidth: "100%",
+};
+
+const cartographyScopeButtonActive: React.CSSProperties = {
+  ...cartographyScopeButton,
+  color: MAP_COLORS.interaction,
+  border: `1px solid ${MAP_COLORS.focus}`,
+};
+
 const popoverStyle: React.CSSProperties = {
   position: "absolute",
   left: `calc(var(--map-layer-panel-width, ${MAP_DIMENSIONS.layerPanelWidth}) + ${MAP_SPACING.sm})`,
@@ -864,6 +997,19 @@ function formatImportSourceLabel(format?: NonNullable<OverlayLayerConfig["metada
     default:
       return null;
   }
+}
+
+function formatLayerGeometryFeatureSummary(layer: OverlayLayerConfig): string | null {
+  const registry = normalizeLayerRegistryMetadata(layer);
+  const geometryType = registry.geometrySummary.geometryType;
+  const featureCount = registry.featureCount;
+  if (featureCount != null && geometryType !== "Unknown") {
+    return `${geometryType} / ${featureCount.toLocaleString()} features`;
+  }
+  if (featureCount != null) {
+    return `${featureCount.toLocaleString()} features`;
+  }
+  return geometryType !== "Unknown" ? geometryType : null;
 }
 
 function scientificQaBadgeStyle(badge: LayerScientificQABadge): React.CSSProperties {
@@ -1247,6 +1393,315 @@ const LayerActionMenu: React.FC<LayerActionMenuProps> = ({ layerName, actions, f
     </div>
   </details>
 );
+
+const SourceLayerActionButton: React.FC<{
+  layerName: string;
+  action: LayerEvidenceActionModel;
+  onAnnounce?: (msg: string) => void;
+}> = ({ layerName, action, onAnnounce }) => {
+  const disabled = Boolean(action.disabledReason || !action.onSelect);
+  const title = action.disabledReason ?? action.title;
+  return (
+    <button
+      type="button"
+      style={{
+        ...layerInlineActionButton,
+        ...layerActionToneStyle(action.tone),
+        ...(disabled ? layerInlineActionButtonDisabled : {}),
+      }}
+      disabled={disabled}
+      title={title}
+      aria-label={disabled ? `${action.label}: ${title}` : `${action.label} ${layerName}`}
+      data-layer-action={action.id}
+      {...(action.disabledReason ? { "data-disabled-reason": action.disabledReason } : {})}
+      onClick={() => {
+        if (disabled || !action.onSelect) {
+          if (action.disabledReason) {
+            onAnnounce?.(`${action.label} disabled for ${layerName}: ${action.disabledReason}`);
+          }
+          return;
+        }
+        action.onSelect();
+        onAnnounce?.(`${action.label} requested for ${layerName}`);
+      }}
+    >
+      {action.label}
+    </button>
+  );
+};
+
+export const MapLayerSourcesPanel: React.FC<MapLayerSourcesPanelProps> = ({
+  overlayLayers,
+  sourceHandles = [],
+  onInspectLayer,
+  onOpenAttributeTable,
+  onSendLayerToUrban,
+  onOpenLayerInIde,
+  onAddLayerToReport,
+  onBindLayerToDashboard,
+  onOpenLayerEducationReference,
+  onDeclareLayerCrs,
+  onRepairGeometry,
+  onFocusLayer,
+  onAnnounce,
+}) => {
+  const sourceSummary = useMemo(() => {
+    const restored = overlayLayers.filter((layer) => {
+      const handle = layer.metadata?.sourceId
+        ? sourceHandles.find((candidate) => candidate.sourceId === layer.metadata?.sourceId)
+        : null;
+      return (handle?.restoreStatus ?? resolveLayerSourceRestoreStatus(layer)) === "restored";
+    }).length;
+    const atRisk = overlayLayers.length - restored;
+    return { total: overlayLayers.length, restored, atRisk };
+  }, [overlayLayers, sourceHandles]);
+
+  return (
+    <section style={layerAuxPanel} aria-label="Layer sources" data-testid="map-layer-sources-panel">
+      <div style={layerAuxSummary} aria-label="Layer source restore summary">
+        <div style={mapStyles.sidePanelMetric}>
+          <span style={mapStyles.sidePanelMetricLabel}>Restored</span>
+          <span style={mapStyles.sidePanelMetricValue}>{sourceSummary.restored}/{sourceSummary.total}</span>
+        </div>
+        <div style={{ ...mapStyles.sidePanelMetric, borderRight: MAP_STROKES.none }}>
+          <span style={mapStyles.sidePanelMetricLabel}>Needs attention</span>
+          <span style={mapStyles.sidePanelMetricValue}>{sourceSummary.atRisk}</span>
+        </div>
+      </div>
+      <div style={layerAuxBody}>
+        {overlayLayers.length === 0 ? (
+          <p style={layerAuxEmpty}>Add a layer to inspect source handles, restore state, and provenance.</p>
+        ) : null}
+        {overlayLayers.map((layer) => {
+          const registry = normalizeLayerRegistryMetadata(layer);
+          const sourceHandle = layer.metadata?.sourceId
+            ? sourceHandles.find((handle) => handle.sourceId === layer.metadata?.sourceId) ?? null
+            : null;
+          const restoreStatus = sourceHandle?.restoreStatus ?? resolveLayerSourceRestoreStatus(layer);
+          const storageMode = sourceHandle?.storageMode ?? layer.metadata?.sourceStorageMode ?? null;
+          const geometryFeatureSummary = formatLayerGeometryFeatureSummary(layer);
+          const queryable = registry.queryable;
+          const layerBounds = getLayerBounds(layer);
+          const evidenceActions = buildLayerEvidenceActions(layer, {
+            ...(onSendLayerToUrban ? { onSendLayerToUrban } : {}),
+            ...(onOpenLayerInIde ? { onOpenLayerInIde } : {}),
+            ...(onAddLayerToReport ? { onAddLayerToReport } : {}),
+            ...(onBindLayerToDashboard ? { onBindLayerToDashboard } : {}),
+            ...(onOpenLayerEducationReference ? { onOpenLayerEducationReference } : {}),
+          }).filter((action) => action.id !== "export");
+          const repairGeometryAction = buildRepairGeometryAction(layer, onRepairGeometry);
+          const utilityActions: LayerEvidenceActionModel[] = [
+            ...(onFocusLayer && layerBounds
+              ? [{
+                  id: "locate" as const,
+                  label: "Locate",
+                  title: `Zoom to extent ${formatBounds(layerBounds)}`,
+                  onSelect: () => onFocusLayer(layer.id),
+                }]
+              : []),
+            ...(repairGeometryAction ? [repairGeometryAction] : []),
+          ];
+          return (
+            <article key={layer.id} style={layerSourceRow} data-testid={`map-layer-source-row-${layer.id}`}>
+              <div style={layerSourceHead}>
+                <div style={layerSourceTitle}>{layer.name}</div>
+                <LayerBadge
+                  badge={{
+                    id: "restore",
+                    label: restoreStatus ? SOURCE_RESTORE_STATUS_LABELS[restoreStatus] : "unregistered",
+                    title: restoreStatus
+                      ? `Source restore status: ${SOURCE_RESTORE_STATUS_LABELS[restoreStatus]}.`
+                      : "No source handle or restore state is registered for this layer.",
+                    tone: sourceRestoreBadgeTone(restoreStatus, registry.sourceKind),
+                  }}
+                />
+              </div>
+              <div style={layerBadgeRail}>
+                <LayerBadge
+                  badge={{
+                    id: "source",
+                    label: SOURCE_KIND_LABELS[registry.sourceKind],
+                    title: `Source kind: ${SOURCE_KIND_LABELS[registry.sourceKind]}.`,
+                    tone: sourceRestoreBadgeTone(restoreStatus, registry.sourceKind),
+                  }}
+                />
+                <LayerBadge
+                  badge={{
+                    id: "qa",
+                    label: QA_STATUS_LABELS[registry.qaStatus],
+                    title: `Scientific QA status: ${QA_STATUS_LABELS[registry.qaStatus]}.`,
+                    tone: qaBadgeTone(registry.qaStatus),
+                  }}
+                />
+                <LayerBadge
+                  badge={{
+                    id: "publication",
+                    label: PUBLICATION_READINESS_LABELS[registry.publicationReadiness.status],
+                    title: buildPublicationGateReason(layer) ?? (registry.publicationReadiness.caveats.join(" ") || "Layer metadata is publication-ready."),
+                    tone: publicationBadgeTone(registry.publicationReadiness.status),
+                  }}
+                />
+                {geometryFeatureSummary ? (
+                  <LayerBadge
+                    badge={{
+                      id: "geometry",
+                      label: geometryFeatureSummary,
+                      title: `Geometry and feature count: ${geometryFeatureSummary}.`,
+                      tone: "neutral",
+                    }}
+                  />
+                ) : null}
+              </div>
+              <div style={layerSourceMetaGrid}>
+                <span data-testid={`map-layer-source-restore-${layer.id}`}>
+                  Restore: {restoreStatus ? SOURCE_RESTORE_STATUS_LABELS[restoreStatus] : "unregistered"}
+                </span>
+                <span>Handle: {sourceHandle?.sourceId ?? layer.metadata?.sourceId ?? "not registered"}</span>
+                <span>Storage: {storageMode ?? "unknown"}</span>
+                <span title={registry.provenance.label}>Provenance: {registry.provenance.label}</span>
+              </div>
+              <div style={layerSourceActionRow}>
+                {onInspectLayer ? (
+                  <button type="button" style={layerInlineActionButton} onClick={() => onInspectLayer(layer.id)}>
+                    Inspect
+                  </button>
+                ) : null}
+                {onOpenAttributeTable ? (
+                  <button
+                    type="button"
+                    style={{ ...layerInlineActionButton, ...(queryable ? {} : layerInlineActionButtonDisabled) }}
+                    disabled={!queryable}
+                    title={queryable ? `Open attribute table for ${layer.name}` : "Missing prerequisite: layer is not queryable vector data."}
+                    onClick={() => onOpenAttributeTable(layer.id)}
+                  >
+                    Table
+                  </button>
+                ) : null}
+                {[...utilityActions, ...evidenceActions].map((action) => (
+                  <SourceLayerActionButton
+                    key={action.id}
+                    layerName={layer.name}
+                    action={action}
+                    {...(onAnnounce ? { onAnnounce } : {})}
+                  />
+                ))}
+              </div>
+              {onDeclareLayerCrs && (registry.crsSummary.status !== "known" || registry.crsSummary.source === "user-declared") ? (
+                <DeclareCrsControl
+                  layerId={layer.id}
+                  layerName={layer.name}
+                  currentCrs={registry.crsSummary.crs}
+                  isUserDeclared={registry.crsSummary.source === "user-declared"}
+                  bounds={layerBounds}
+                  onDeclare={onDeclareLayerCrs}
+                  {...(onAnnounce ? { onAnnounce } : {})}
+                />
+              ) : null}
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+};
+
+export const MapLayerCartographyPanel: React.FC<MapLayerCartographyPanelProps> = ({
+  overlayLayers,
+  cartographyReviewState = null,
+  activeLayerId = null,
+  onActiveLayerChange,
+  onOpenSymbology,
+  onApplyCartographyRecommendation,
+  onDismissCartographyRecommendation,
+  onUndoCartographyRecommendation,
+  canUndoCartographyRecommendation = false,
+  onShowCartographyDetails,
+}) => {
+  const recommendations = cartographyReviewState?.recommendations ?? [];
+  const countsByLayer = useMemo(() => {
+    const counts = new Map<string, number>();
+    recommendations.forEach((recommendation) => {
+      counts.set(recommendation.layerId, (counts.get(recommendation.layerId) ?? 0) + 1);
+    });
+    return counts;
+  }, [recommendations]);
+  const scopedRecommendations = activeLayerId
+    ? recommendations.filter((recommendation) => recommendation.layerId === activeLayerId)
+    : recommendations;
+  const scopedLayerName = activeLayerId
+    ? overlayLayers.find((layer) => layer.id === activeLayerId)?.name ?? "Selected layer"
+    : "Visible map";
+
+  if (!cartographyReviewState || !onApplyCartographyRecommendation || !onDismissCartographyRecommendation) {
+    return (
+      <section style={layerAuxPanel} aria-label="Layer cartography" data-testid="map-layer-cartography-panel">
+        <p style={layerAuxEmpty}>
+          Cartography recommendations appear here after the map style review runs for visible layers.
+        </p>
+      </section>
+    );
+  }
+
+  return (
+    <section style={layerAuxPanel} aria-label="Layer cartography" data-testid="map-layer-cartography-panel">
+      <div style={layerAuxSummary} aria-label="Cartography review summary">
+        <div style={mapStyles.sidePanelMetric}>
+          <span style={mapStyles.sidePanelMetricLabel}>Recommendations</span>
+          <span style={mapStyles.sidePanelMetricValue}>{recommendations.length}</span>
+        </div>
+        <div style={{ ...mapStyles.sidePanelMetric, borderRight: MAP_STROKES.none }}>
+          <span style={mapStyles.sidePanelMetricLabel}>Visible layers</span>
+          <span style={mapStyles.sidePanelMetricValue}>{cartographyReviewState.metadata.visibleLayerCount}</span>
+        </div>
+      </div>
+      <div style={cartographyScopeRail} aria-label="Cartography recommendation scope">
+        <button
+          type="button"
+          style={activeLayerId === null ? cartographyScopeButtonActive : cartographyScopeButton}
+          onClick={() => onActiveLayerChange?.(null)}
+        >
+          Visible map
+        </button>
+        {overlayLayers.map((layer) => {
+          const count = countsByLayer.get(layer.id) ?? 0;
+          return (
+            <button
+              key={layer.id}
+              type="button"
+              style={activeLayerId === layer.id ? cartographyScopeButtonActive : cartographyScopeButton}
+              title={`${count} recommendation${count === 1 ? "" : "s"} for ${layer.name}`}
+              onClick={() => onActiveLayerChange?.(layer.id)}
+            >
+              {layer.name}{count > 0 ? ` (${count})` : ""}
+            </button>
+          );
+        })}
+        {activeLayerId && onOpenSymbology ? (
+          <button
+            type="button"
+            style={layerInlineActionButton}
+            onClick={() => onOpenSymbology(activeLayerId)}
+          >
+            Open style
+          </button>
+        ) : null}
+      </div>
+      <div style={layerAuxBody}>
+        <CartographyRecommendationList
+          title={`Cartography / ${scopedLayerName}`}
+          recommendations={scopedRecommendations}
+          emptyMessage="No pending cartographic issues in this scope."
+          maxItems={6}
+          canUndo={canUndoCartographyRecommendation}
+          onApply={onApplyCartographyRecommendation}
+          onDismiss={onDismissCartographyRecommendation}
+          {...(onUndoCartographyRecommendation ? { onUndo: onUndoCartographyRecommendation } : {})}
+          {...(onShowCartographyDetails ? { onShowDetails: onShowCartographyDetails } : {})}
+        />
+      </div>
+    </section>
+  );
+};
 
 /* ---- Metadata Popover ---- */
 
@@ -1812,7 +2267,7 @@ const LayerRow: React.FC<LayerRowProps> = ({
   const queryable = isLayerQueryable(layer);
   const crs = resolveLayerCrs(layer);
   const registry = normalizeLayerRegistryMetadata(layer);
-  const featureCount = registry.featureCount;
+  const geometryFeatureSummary = formatLayerGeometryFeatureSummary(layer);
   const layerBounds = getLayerBounds(layer);
   const layerBadges = buildLayerBadges(layer);
   const legendPreviewItems = buildMapCompositionLegendItems([{ ...layer, visible: true }]).slice(0, 4);
@@ -1903,7 +2358,7 @@ const LayerRow: React.FC<LayerRowProps> = ({
     qaStatus === "unchecked" ? null : QA_STATUS_LABELS[qaStatus],
     scientificQA?.featureIssueCount ? `${scientificQA.featureIssueCount.toLocaleString()} QA feature issue(s)` : null,
     queryable ? "queryable" : null,
-    featureCount != null ? `${featureCount.toLocaleString()} features` : null,
+    geometryFeatureSummary,
     crs,
   ].filter(Boolean).join(" / ");
 
@@ -2141,6 +2596,9 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
   onUndoCartographyRecommendation,
   canUndoCartographyRecommendation = false,
   onShowCartographyDetails,
+  onOpenCartographyReviewScope,
+  presentation = "standalone",
+  cartographyReviewPlacement = "inline",
   onRequestClose,
   panelStyle,
   onAnnounce,
@@ -2473,13 +2931,17 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
   }, [onAnnounce, overlayLayers]);
 
   const handleOpenCartographyReview = useCallback((layerId: string | null) => {
+    if (onOpenCartographyReviewScope) {
+      onOpenCartographyReviewScope(layerId);
+      return;
+    }
     setCartographyLayerFilterId(layerId);
     setCartographyPanelOpen(true);
     const layerName = layerId
       ? overlayLayers.find((layer) => layer.id === layerId)?.name ?? "selected layer"
       : "visible map";
     onAnnounce?.(`Symbology review opened for ${layerName}`);
-  }, [onAnnounce, overlayLayers]);
+  }, [onAnnounce, onOpenCartographyReviewScope, overlayLayers]);
 
   /* ---- Remove with announcement ---- */
   const handleRemove = useCallback((id: string) => {
@@ -2511,7 +2973,7 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
     : null;
 
   /* ---- Collapsed state ---- */
-  if (collapsed) {
+  if (collapsed && presentation !== "embedded") {
     return (
       <div style={panelCollapsed} role="region" aria-label="Layer panel (collapsed)">
         <button
@@ -2536,24 +2998,31 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
   };
 
   return (
-    <div style={{ ...panelContainer, ...panelStyle }} role="region" aria-label="Layer management panel">
+    <div
+      style={{ ...(presentation === "embedded" ? panelContainerEmbedded : panelContainer), ...panelStyle }}
+      role="region"
+      aria-label="Layer management panel"
+      data-presentation={presentation}
+    >
       {/* Panel header */}
-      <div style={panelHeader}>
-        <div style={mapStyles.sidePanelTitleStack}>
-          <span style={mapStyles.sidePanelEyebrow}>Layer stack</span>
-          <span style={panelTitle}>Layers</span>
+      {presentation === "standalone" ? (
+        <div style={panelHeader}>
+          <div style={mapStyles.sidePanelTitleStack}>
+            <span style={mapStyles.sidePanelEyebrow}>Layer stack</span>
+            <span style={panelTitle}>Layers</span>
+          </div>
+          <button
+            type="button"
+            style={panelCloseBtn}
+            onClick={handleClosePanel}
+            aria-label="Close layer panel"
+            title="Close layer panel"
+          >
+            <IconClose size={11} />
+            Close
+          </button>
         </div>
-        <button
-          type="button"
-          style={panelCloseBtn}
-          onClick={handleClosePanel}
-          aria-label="Close layer panel"
-          title="Close layer panel"
-        >
-          <IconClose size={11} />
-          Close
-        </button>
-      </div>
+      ) : null}
 
       <div style={mapStyles.sidePanelSummaryStrip} aria-label="Layer stack summary">
         <div style={mapStyles.sidePanelMetric}>
@@ -2570,7 +3039,7 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
         </div>
       </div>
 
-      {cartographyReviewState && onApplyCartographyRecommendation && onDismissCartographyRecommendation ? (
+      {cartographyReviewPlacement === "inline" && cartographyReviewState && onApplyCartographyRecommendation && onDismissCartographyRecommendation ? (
         <div style={cartographyReviewStrip} aria-label="Cartography review summary">
           <div style={cartographyReviewTopLine}>
             <div>

@@ -17,6 +17,7 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import type maplibregl from "maplibre-gl";
+import type { SourceHandle } from "@/services/map/contracts/gisContracts";
 import { MAP_LAYER_REGISTRY_EVENT } from "../mapTypes";
 import type {
   LayerGroupId,
@@ -796,10 +797,169 @@ describe("MapLayerManager component", () => {
     expect(html).toContain("Publication needs review");
     expect(html).toContain("queryable");
     expect(html).toContain("EPSG:3857");
+    expect(html).toContain("Polygon / 240 features");
     expect(html).toContain("240 features");
     expect(html).toContain("Actions");
     expect(html).toContain("Publication needs review: missing license attribution.");
     expect(html).toContain("Delete");
+  });
+
+  it("renders embedded layer stack without duplicate panel chrome", async () => {
+    const mod = await import("../MapLayerManager");
+    const layer: OverlayLayerConfig = {
+      id: "embedded-layer",
+      name: "Embedded Layer",
+      type: "geojson",
+      visible: true,
+      opacity: 0.75,
+      group: "data",
+      sourceKind: "demo",
+      qaStatus: "warning",
+      metadata: {
+        sourceRestoreStatus: "metadata-only",
+        featureCount: 12,
+        geometryType: "Polygon",
+        scientificQA: {
+          status: "warning",
+          issueIds: ["sample-data"],
+          badges: ["sample_data"],
+          checkedAt: "2026-05-31T08:00:00.000Z",
+          featureIssueCount: 0,
+          usedWorker: false,
+          caveats: ["Synthetic demo data."],
+          signature: "embedded-layer",
+        },
+      },
+    };
+
+    const html = renderToStaticMarkup(
+      React.createElement(mod.MapLayerManager, {
+        overlayLayers: [layer],
+        activeBaseLayerName: "Dark Matter",
+        onToggleVisibility: () => undefined,
+        onSetOpacity: () => undefined,
+        onRemoveLayer: () => undefined,
+        onReorderLayers: () => undefined,
+        onAddLayer: () => undefined,
+        presentation: "embedded",
+        cartographyReviewPlacement: "none",
+      }),
+    );
+
+    expect(html).toContain("data-presentation=\"embedded\"");
+    expect(html).not.toContain("Close layer panel");
+    expect(html).toContain("Demo / metadata only");
+    expect(html).toContain("Sample data");
+    expect(html).toContain("Polygon / 12 features");
+  });
+
+  it("renders per-layer source restore status in the Sources activity surface", async () => {
+    const mod = await import("../MapLayerManager");
+    const layer: OverlayLayerConfig = {
+      id: "source-layer",
+      name: "Source Layer",
+      type: "geojson",
+      visible: true,
+      opacity: 1,
+      group: "data",
+      sourceKind: "imported",
+      queryable: true,
+      provenance: {
+        label: "Municipal source registry",
+        license: "ODbL",
+        attribution: "City GIS",
+      },
+      metadata: {
+        sourceId: "source-handle-1",
+        featureCount: 88,
+        geometryType: "LineString",
+        fields: ["id", "name"],
+        crsSummary: {
+          crs: "EPSG:3857",
+          status: "known",
+          source: "explicit",
+          notes: [],
+        },
+      },
+    };
+    const handle: SourceHandle = {
+      sourceId: "source-handle-1",
+      kind: "imported",
+      storageMode: "indexeddb-local",
+      restoreStatus: "recoverable",
+      crsSummary: {
+        crs: "EPSG:3857",
+        status: "known",
+        source: "explicit",
+        notes: [],
+      },
+      featureCount: 88,
+      caveats: [],
+      profiledAt: "2026-05-31T08:00:00.000Z",
+    };
+
+    const html = renderToStaticMarkup(
+      React.createElement(mod.MapLayerSourcesPanel, {
+        overlayLayers: [layer],
+        sourceHandles: [handle],
+        onInspectLayer: () => undefined,
+        onOpenAttributeTable: () => undefined,
+        onSendLayerToUrban: () => undefined,
+        onOpenLayerInIde: () => undefined,
+        onAddLayerToReport: () => undefined,
+      }),
+    );
+
+    expect(html).toContain("Layer sources");
+    expect(html).toContain("Source Layer");
+    expect(html).toContain("Restore: recoverable");
+    expect(html).toContain("Handle: source-handle-1");
+    expect(html).toContain("Storage: indexeddb-local");
+    expect(html).toContain("LineString / 88 features");
+    expect(html).toContain("Inspect");
+    expect(html).toContain("Urban");
+    expect(html).toContain("IDE");
+  });
+
+  it("renders contents as an embedded Layers activity tab instead of floating dialog chrome", async () => {
+    const mod = await import("../contents/MapContentsTreePanel");
+    const layer: OverlayLayerConfig = {
+      id: "contents-embedded",
+      name: "Contents Embedded",
+      type: "geojson",
+      visible: true,
+      opacity: 1,
+      group: "data",
+      sourceKind: "imported",
+      queryable: true,
+      metadata: {
+        featureCount: 5,
+        geometryType: "Point",
+        fields: ["name"],
+      },
+    };
+
+    const html = renderToStaticMarkup(
+      React.createElement(mod.MapContentsTreePanel, {
+        visible: true,
+        presentation: "embedded",
+        layers: [layer],
+        zoom: 12,
+        onClose: () => undefined,
+        onUpdateLayer: () => undefined,
+        onDuplicateLayer: () => undefined,
+        onRepairSource: () => undefined,
+        onOpenProperties: () => undefined,
+        onToggleVisibility: () => undefined,
+        onReorderLayers: () => undefined,
+      }),
+    );
+
+    expect(html).toContain("data-presentation=\"embedded\"");
+    expect(html).toContain("role=\"region\"");
+    expect(html).not.toContain("Close contents tree");
+    expect(html).toContain("Contents Embedded");
+    expect(html).toContain("Data Layers");
   });
 
   it("renders disabled reasons for layer handoff actions", async () => {
@@ -1360,6 +1520,10 @@ describe("barrel exports — layer-management additions", () => {
     const barrel = await import("../index");
     expect(barrel.MapLayerManager).toBeDefined();
     expect(typeof barrel.MapLayerManager).toBe("function");
+    expect(barrel.MapLayerSourcesPanel).toBeDefined();
+    expect(typeof barrel.MapLayerSourcesPanel).toBe("function");
+    expect(barrel.MapLayerCartographyPanel).toBeDefined();
+    expect(typeof barrel.MapLayerCartographyPanel).toBe("function");
   });
 
   it("exports MapWorkspaceCockpit", async () => {

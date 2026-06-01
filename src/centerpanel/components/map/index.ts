@@ -10,8 +10,16 @@ export type { MapToolbarProps } from "./MapToolbar";
 export { MapLayerPanel } from "./MapLayerPanel";
 export type { MapLayerPanelProps } from "./MapLayerPanel";
 
-export { MapLayerManager } from "./MapLayerManager";
-export type { MapLayerManagerProps } from "./MapLayerManager";
+export {
+  MapLayerCartographyPanel,
+  MapLayerManager,
+  MapLayerSourcesPanel,
+} from "./MapLayerManager";
+export type {
+  MapLayerCartographyPanelProps,
+  MapLayerManagerProps,
+  MapLayerSourcesPanelProps,
+} from "./MapLayerManager";
 
 export {
   MapBottomTimeline,

@@ -40,6 +40,7 @@ export interface MapContentsTreePanelProps {
   onOpenProperties: (layerId: string) => void;
   onToggleVisibility: (layerId: string) => void;
   onReorderLayers: (layerIds: string[]) => void;
+  presentation?: "floating" | "embedded";
 }
 
 function qaWarning(layer: OverlayLayerConfig): string | null {
@@ -69,6 +70,7 @@ export const MapContentsTreePanel: React.FC<MapContentsTreePanelProps> = ({
   onOpenProperties,
   onToggleVisibility,
   onReorderLayers,
+  presentation = "floating",
 }) => {
   const [activeLayerId, setActiveLayerId] = useState<string | null>(null);
   const [selectedLayerIds, setSelectedLayerIds] = useState<Set<string>>(() => new Set());
@@ -164,15 +166,25 @@ export const MapContentsTreePanel: React.FC<MapContentsTreePanelProps> = ({
   const activeScale = activeLayer ? evaluateContentsScaleRange(activeLayer, zoom) : null;
   const activeFilterResult = activeLayer ? applyDefinitionFilterToLayer(activeLayer) : null;
 
+  const embedded = presentation === "embedded";
+
   return (
-    <section className={styles.panel} role="dialog" aria-label="Contents tree" data-testid="map-contents-tree">
-      <header className={styles.header}>
-        <div>
-          <h2><FolderTree size={15} /> Contents</h2>
-          <p>Groups, scale visibility, filters and layer readiness</p>
-        </div>
-        <GisIconButton label="Close contents tree" icon={<X size={15} />} onClick={onClose} size="md" />
-      </header>
+    <section
+      className={[styles.panel, embedded ? styles.embeddedPanel : null].filter(Boolean).join(" ")}
+      role={embedded ? "region" : "dialog"}
+      aria-label="Contents tree"
+      data-testid="map-contents-tree"
+      data-presentation={presentation}
+    >
+      {!embedded ? (
+        <header className={styles.header}>
+          <div>
+            <h2><FolderTree size={15} /> Contents</h2>
+            <p>Groups, scale visibility, filters and layer readiness</p>
+          </div>
+          <GisIconButton label="Close contents tree" icon={<X size={15} />} onClick={onClose} size="md" />
+        </header>
+      ) : null}
 
       <div className={styles.body}>
         <div className={styles.tree}>

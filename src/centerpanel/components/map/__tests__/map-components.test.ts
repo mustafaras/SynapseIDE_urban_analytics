@@ -33,6 +33,27 @@ import { DESIGN_TOKENS } from "@/constants/design";
 
 let roots: Root[] = [];
 
+function openCommandPalette(): void {
+  act(() => {
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true }));
+  });
+}
+
+function setInputValue(element: HTMLInputElement, value: string): void {
+  const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")?.set;
+  expect(setter).toBeDefined();
+  act(() => {
+    setter!.call(element, value);
+    element.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+}
+
+function commandPaletteInput(): HTMLInputElement {
+  const input = document.querySelector<HTMLInputElement>('input[aria-label="Search map commands"]');
+  expect(input).not.toBeNull();
+  return input!;
+}
+
 afterEach(() => {
   for (const root of roots) {
     act(() => {
@@ -402,8 +423,10 @@ describe("Map Explorer components render without errors", () => {
         onToggleViewportSync: () => undefined,
       }),
     );
-    expect(html).toContain("Pin");
-    expect(html).toContain("Toggle 2D and 3D viewport sync");
+    expect(html).toContain("data-testid=\"map-command-center\"");
+    expect(html).toContain("data-command-registry-count=\"3\"");
+    expect(html).toContain("Commands");
+    expect(html).toContain("More");
   });
 
   it("renders a minimal navigator MapToolbar", async () => {
@@ -420,7 +443,8 @@ describe("Map Explorer components render without errors", () => {
         onImportClick: () => undefined,
       }),
     );
-    expect(html).toContain("Data");
+    expect(html).toContain("Overview");
+    expect(html).toContain("Import");
     expect(html).not.toContain("Sketch");
     expect(html).not.toContain("Measure");
     expect(html).not.toContain("Toggle pin mode");
@@ -451,13 +475,22 @@ describe("Map Explorer components render without errors", () => {
       );
     });
 
-    const saveButton = Array.from(host.querySelectorAll<HTMLButtonElement>("button"))
-      .find((button) => button.textContent?.includes("Save"));
-    expect(saveButton).toBeDefined();
-    expect(host.textContent).toContain("Load");
+    openCommandPalette();
+    const input = commandPaletteInput();
+    setInputValue(input, "save project");
+    const saveButton = host.querySelector<HTMLButtonElement>('[data-testid="map-command-palette-option-save-project"]');
+    expect(saveButton).not.toBeNull();
+
+    setInputValue(input, "load project");
+    const loadButton = host.querySelector<HTMLButtonElement>('[data-testid="map-command-palette-option-load-project"]');
+    expect(loadButton).not.toBeNull();
+
+    setInputValue(input, "save project");
+    const activeSaveButton = host.querySelector<HTMLButtonElement>('[data-testid="map-command-palette-option-save-project"]');
+    expect(activeSaveButton).not.toBeNull();
 
     await act(async () => {
-      saveButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      activeSaveButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
     expect(onSaveProjectClick).toHaveBeenCalledTimes(1);
@@ -466,23 +499,35 @@ describe("Map Explorer components render without errors", () => {
 
   it("renders analysis commands in analyze MapToolbar", async () => {
     const { MapToolbar } = await import("../MapToolbar");
-    const html = renderToStaticMarkup(
-      React.createElement(MapToolbar, {
-        workspaceView: "analyze",
-        pinMode: false,
-        onTogglePinMode: () => undefined,
-        showSidebar: false,
-        onToggleSidebar: () => undefined,
-        pinCount: 0,
-        onToggleChoroplethPanel: () => undefined,
-        onSetDrawTool: () => undefined,
-        onSetMeasureTool: () => undefined,
-        onToggleMeasurePanel: () => undefined,
-      }),
-    );
-    expect(html).toContain("Analyze");
-    expect(html).toContain("Draw polygon");
-    expect(html).toContain("Measure distance");
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const root = createRoot(host);
+    roots.push(root);
+
+    await act(async () => {
+      root.render(
+        React.createElement(MapToolbar, {
+          workspaceView: "analyze",
+          pinMode: false,
+          onTogglePinMode: () => undefined,
+          showSidebar: false,
+          onToggleSidebar: () => undefined,
+          pinCount: 0,
+          onToggleChoroplethPanel: () => undefined,
+          onSetDrawTool: () => undefined,
+          onSetMeasureTool: () => undefined,
+          onToggleMeasurePanel: () => undefined,
+        }),
+      );
+    });
+
+    expect(host.textContent).toContain("Analyze");
+    openCommandPalette();
+    const input = commandPaletteInput();
+    setInputValue(input, "draw polygon");
+    expect(host.querySelector('[data-testid="map-command-palette-option-draw-polygon"]')).not.toBeNull();
+    setInputValue(input, "measure distance");
+    expect(host.querySelector('[data-testid="map-command-palette-option-measure-distance"]')).not.toBeNull();
   });
 
   it("renders MapLayerPanel", async () => {

@@ -67,7 +67,11 @@ import { MapCanvas, type MapFeatureReportRequest } from "../MapCanvas";
 import { MapCanvasKeyboardFallbackControls } from "../MapCanvasKeyboardFallbackControls";
 import { MapToolbar } from "../MapToolbar";
 import { MapLayerPanel } from "../MapLayerPanel";
-import { MapLayerManager } from "../MapLayerManager";
+import {
+  MapLayerCartographyPanel,
+  MapLayerManager,
+  MapLayerSourcesPanel,
+} from "../MapLayerManager";
 import { MapDrawingManager, type MapDrawingSnapSource } from "../../MapDrawingManager";
 import { MapMeasurementTool } from "../../MapMeasurementTool";
 import { MapContextMenu } from "../../MapContextMenu";
@@ -1195,6 +1199,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     initialActivityId === "overview" ? "overview-readiness" : "layers-stack",
   );
   const [workbenchSidebarCollapsed, setWorkbenchSidebarCollapsed] = useState(false);
+  const [layersCartographyScopeId, setLayersCartographyScopeId] = useState<string | null>(null);
   const [showSidebar, setShowSidebar] = useState(false);
   const [showLayerPanel, setShowLayerPanel] = useState(true);
   const [showChoroplethPanel, setShowChoroplethPanel] = useState(false);
@@ -1252,7 +1257,6 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const [showModelBuilder, setShowModelBuilder] = useState(false);
   const [showPluginPanel, setShowPluginPanel] = useState(false);
   const [showCatalog, setShowCatalog] = useState(false);
-  const [showContents, setShowContents] = useState(false);
   const extensionRegistry = useMemo(() => createMapExtensionRegistry(), []);
   const pluginExtensions = useMemo(() => extensionRegistry.list(), [extensionRegistry]);
   const processingExtensionExecutors = useMemo(() => extensionRegistry.processingToolExecutors(), [extensionRegistry]);
@@ -1293,26 +1297,36 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         setShowProcessingToolbox(false);
         setShowModelBuilder(false);
         setShowPluginPanel(false);
-        setShowContents(false);
       }
       return next;
     });
     announce("Catalog toggled");
   }, [announce]);
-  const handleToggleContents = useCallback(() => {
-    setShowContents((previous) => {
-      const next = !previous;
-      if (next) {
-        setWorkspaceView("explore");
-        setShowProcessingToolbox(false);
-        setShowModelBuilder(false);
-        setShowCatalog(false);
-        setShowPluginPanel(false);
-      }
-      return next;
-    });
-    announce("Contents tree toggled");
+  const openLayersActivityTab = useCallback((
+    tabId: "layers-stack" | "layers-contents" | "layers-sources" | "layers-cartography",
+    announcement: string,
+    cartographyScopeId: string | null = null,
+  ) => {
+    setWorkspaceView("explore");
+    setActiveActivityId("layers");
+    setShowLayerPanel(true);
+    setWorkbenchSidebarCollapsed(false);
+    setWorkbenchSidebarTab(tabId);
+    setLayersCartographyScopeId(cartographyScopeId);
+    setShowCatalog(false);
+    setShowProcessingToolbox(false);
+    setShowModelBuilder(false);
+    setShowPluginPanel(false);
+    announce(announcement);
   }, [announce]);
+  const handleToggleContents = useCallback(() => {
+    if (showLayerPanel && activeActivityId === "layers" && workbenchSidebarTab === "layers-contents") {
+      setShowLayerPanel(false);
+      announce("Contents tree closed");
+      return;
+    }
+    openLayersActivityTab("layers-contents", "Contents tree opened in Layers activity");
+  }, [activeActivityId, announce, openLayersActivityTab, showLayerPanel, workbenchSidebarTab]);
   const processingRegistry = useMemo(
     () => createMapProcessingRegistry(extensionRegistry.processingToolDescriptors()),
     [extensionRegistry],
@@ -5292,7 +5306,6 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   }, [addOverlayLayer, announce, recordMapReviewEvent]);
 
   const handleRepairContentsSource = useCallback((layer: OverlayLayerConfig) => {
-    setShowContents(false);
     setShowCatalog(true);
     announce(`Catalog opened to repair source for ${layer.name}`);
   }, [announce]);
@@ -6627,7 +6640,6 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       case "data":
         setWorkspaceView("explore");
         setShowLayerPanel(true);
-        setShowContents(false);
         setShowProcessingToolbox(false);
         setShowModelBuilder(false);
         setShowPluginPanel(false);
@@ -6644,7 +6656,6 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         setShowModelBuilder(false);
         setShowPluginPanel(false);
         setShowCatalog(false);
-        setShowContents(false);
         break;
       case "style":
         setWorkspaceView("analyze");
@@ -6777,6 +6788,11 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       onUndoCartographyRecommendation={handleUndoCartographyRecommendation}
       canUndoCartographyRecommendation={cartographyUndoStack.length > 0}
       onShowCartographyDetails={handleShowCartographyDetails}
+      onOpenCartographyReviewScope={(layerId) => {
+        openLayersActivityTab("layers-cartography", "Cartography recommendations opened in Layers activity", layerId);
+      }}
+      presentation="embedded"
+      cartographyReviewPlacement="none"
       onRequestClose={() => {
         setShowLayerPanel(false);
         announce("Layer panel closed");
@@ -6844,8 +6860,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         style={workbenchEntryButtonStyle}
         data-testid="map-workbench-data-contents"
         onClick={() => {
-          setShowContents(true);
-          announce("Contents tree opened");
+          openLayersActivityTab("layers-contents", "Contents tree opened in Layers activity");
         }}
       >
         <span>Open contents tree</span>
@@ -6856,23 +6871,55 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     </div>
   );
 
-  const layersContentsEntryElement = (
-    <div style={workbenchEntryListStyle}>
-      <button
-        type="button"
-        style={workbenchEntryButtonStyle}
-        data-testid="map-workbench-layers-contents"
-        onClick={() => {
-          setShowContents(true);
-          announce("Contents tree opened");
-        }}
-      >
-        <span>Open contents tree</span>
-        <span style={workbenchEntryButtonHintStyle}>
-          Inspect the structured layer hierarchy.
-        </span>
-      </button>
-    </div>
+  const layersContentsElement = (
+    <MapContentsTreePanel
+      visible
+      presentation="embedded"
+      layers={overlayLayers}
+      zoom={zoom}
+      onClose={() => {
+        openLayersActivityTab("layers-stack", "Layer stack opened");
+      }}
+      onUpdateLayer={updateLayerMetadata}
+      onDuplicateLayer={handleDuplicateContentsLayer}
+      onRepairSource={handleRepairContentsSource}
+      onOpenProperties={handleInspectLayer}
+      onToggleVisibility={toggleLayerVisibility}
+      onReorderLayers={reorderLayers}
+    />
+  );
+
+  const layersSourcesElement = (
+    <MapLayerSourcesPanel
+      overlayLayers={overlayLayers}
+      sourceHandles={sourceHandles}
+      onInspectLayer={handleInspectLayer}
+      onOpenAttributeTable={handleOpenAttributeTable}
+      onSendLayerToUrban={handleSendLayerToUrban}
+      onOpenLayerInIde={handleOpenLayerInIde}
+      onAddLayerToReport={handleLayerReportRequest}
+      onBindLayerToDashboard={handleBindLayerToDashboard}
+      onOpenLayerEducationReference={handleOpenLayerEducationReference}
+      onDeclareLayerCrs={handleDeclareLayerCrs}
+      onRepairGeometry={handleRepairLayerGeometry}
+      onFocusLayer={handleFocusLayer}
+      onAnnounce={announce}
+    />
+  );
+
+  const layersCartographyElement = (
+    <MapLayerCartographyPanel
+      overlayLayers={overlayLayers}
+      cartographyReviewState={cartographyReviewState}
+      activeLayerId={layersCartographyScopeId}
+      onActiveLayerChange={setLayersCartographyScopeId}
+      onOpenSymbology={handleOpenPointSymbology}
+      onApplyCartographyRecommendation={handleApplyCartographyRecommendation}
+      onDismissCartographyRecommendation={handleDismissCartographyRecommendation}
+      onUndoCartographyRecommendation={handleUndoCartographyRecommendation}
+      canUndoCartographyRecommendation={cartographyUndoStack.length > 0}
+      onShowCartographyDetails={handleShowCartographyDetails}
+    />
   );
 
   const workbenchSidebarTabs: MapWorkbenchSidebarTab[] =
@@ -6901,9 +6948,21 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             {
               id: "layers-contents",
               label: "Contents",
-              render: () => layersContentsEntryElement,
+              render: () => layersContentsElement,
+            },
+            {
+              id: "layers-sources",
+              label: "Sources",
+              render: () => layersSourcesElement,
+            },
+            {
+              id: "layers-cartography",
+              label: "Cartography",
+              render: () => layersCartographyElement,
             },
           ];
+  const layersContentsTabActive =
+    showLayerPanel && activeActivityId === "layers" && workbenchSidebarTab === "layers-contents";
 
   return createPortal(
     <MapWorkspaceShell mode={mode} shellRef={trapRef} onClose={onClose} activeActivityId={activeActivityId}>
@@ -7006,7 +7065,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               showCatalog={showCatalog}
               onToggleCatalog={handleToggleCatalog}
               catalogSourceCount={sourceHandles.length}
-              showContents={showContents}
+              showContents={layersContentsTabActive}
               onToggleContents={handleToggleContents}
               activeLayerGeometryType={toolbarActiveGeometryType}
               hasSelectedAoi={Boolean(selectedAoiFeatureForQuery)}
@@ -7838,31 +7897,6 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               onRepairSource={handleCatalogRepairSource}
               onReconnectSource={handleCatalogReconnectSource}
               onAddConnection={handleCatalogAddConnection}
-            />
-          </MapPanelErrorBoundary>
-
-          <MapPanelErrorBoundary
-            panelName="Contents"
-            resetKey={showContents}
-            onClose={() => {
-              setShowContents(false);
-              announce("Contents tree closed");
-            }}
-          >
-            <MapContentsTreePanel
-              visible={showContents && !navigatorStageMode}
-              layers={overlayLayers}
-              zoom={zoom}
-              onClose={() => {
-                setShowContents(false);
-                announce("Contents tree closed");
-              }}
-              onUpdateLayer={updateLayerMetadata}
-              onDuplicateLayer={handleDuplicateContentsLayer}
-              onRepairSource={handleRepairContentsSource}
-              onOpenProperties={handleInspectLayer}
-              onToggleVisibility={toggleLayerVisibility}
-              onReorderLayers={reorderLayers}
             />
           </MapPanelErrorBoundary>
 
