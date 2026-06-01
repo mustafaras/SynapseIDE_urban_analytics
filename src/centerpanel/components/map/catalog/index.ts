@@ -7,6 +7,7 @@ export {
   buildCatalogConnectionLayer,
   buildDemoPackCatalogInsertion,
   buildMapCatalogItems,
+  buildMapSourceReadinessCounts,
   MAP_CATALOG_CATEGORIES,
   type MapCatalogActionResult,
   type MapCatalogCategory,
@@ -16,4 +17,5 @@ export {
   type MapCatalogHealth,
   type MapCatalogItem,
   type MapCatalogLayerInsertion,
+  type MapSourceReadinessCounts,
 } from "./catalogModel";

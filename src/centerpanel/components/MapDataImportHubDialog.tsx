@@ -125,12 +125,12 @@ const LOCAL_FORMATS = [
   {
     label: "GeoJSON",
     extensions: ".geojson, .json",
-    description: "Direct feature publishing with topology validation and extent extraction.",
+    description: "Direct feature publishing with topology validation and extent extraction; CRS is unknown unless declared by trustworthy metadata.",
   },
   {
     label: "CSV",
     extensions: ".csv",
-    description: "Coordinate mapping workflow for lat/lon point datasets with row preview.",
+    description: "Coordinate mapping workflow for lat/lon point datasets with row preview and skipped-row diagnostics.",
   },
   {
     label: "Arrow",
@@ -145,17 +145,27 @@ const LOCAL_FORMATS = [
   {
     label: "KML / KMZ / GPX",
     extensions: ".kml, .kmz, .gpx",
-    description: "Interoperability path for field traces, placemarks, and archival map packages.",
+    description: "Interoperability path for field traces, placemarks, and archival map packages without fabricating unsupported constructs.",
+  },
+  {
+    label: "Shapefile",
+    extensions: ".shp, .zip",
+    description: "Supported through Shapefile parsing; zipped sidecars are recommended for CRS and attribute recovery.",
+  },
+  {
+    label: "GeoPackage",
+    extensions: ".gpkg",
+    description: "Supported with layer discovery and per-layer CRS when loader metadata is available; multi-layer packages require a layer choice.",
   },
   {
     label: "FlatGeobuf / PMTiles",
     extensions: ".fgb, .pmtiles",
-    description: "Metadata preflight with streaming readiness notes; full extent streaming lands in the large-vector slice.",
+    description: "Metadata/profile-oriented local upload path with streaming readiness notes; not a blanket full-extent local import claim.",
   },
   {
     label: "GeoTIFF",
     extensions: ".tif, .tiff",
-    description: "Sampled raster rendering with band histogram, no-data handling, CRS caveats, and raster QA.",
+    description: "Sampled raster rendering with band histogram, no-data handling, CRS caveats, and raster QA rather than full-resolution analytics.",
   },
 ] as const;
 

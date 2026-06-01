@@ -43,6 +43,9 @@ const tabListStyle: React.CSSProperties = {
   padding: `0 ${MAP_SPACING.sm}`,
   background: MAP_COLORS.bgHeader,
   flexShrink: 0,
+  minWidth: 0,
+  overflowX: "auto",
+  scrollbarWidth: "thin",
 };
 
 function buildTabStyle(active: boolean, disabled: boolean | undefined): React.CSSProperties {

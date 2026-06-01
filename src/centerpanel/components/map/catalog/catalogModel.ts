@@ -82,6 +82,15 @@ export interface MapCatalogConnectionLayerResult {
   sourceHandle: SourceHandle;
 }
 
+export interface MapSourceReadinessCounts {
+  restoredLive: number;
+  recoverable: number;
+  unavailable: number;
+  external: number;
+  metadataOnly: number;
+  demoSynthetic: number;
+}
+
 export const MAP_CATALOG_CATEGORIES: readonly MapCatalogCategory[] = [
   {
     id: "project-sources",
@@ -219,6 +228,48 @@ export function buildMapCatalogItems(
     template: "demo-pack",
   });
   return items;
+}
+
+export function buildMapSourceReadinessCounts(
+  sourceHandles: readonly SourceHandle[],
+  layers: readonly OverlayLayerConfig[],
+): MapSourceReadinessCounts {
+  const counts: MapSourceReadinessCounts = {
+    restoredLive: 0,
+    recoverable: 0,
+    unavailable: 0,
+    external: 0,
+    metadataOnly: 0,
+    demoSynthetic: 0,
+  };
+  const items = buildMapCatalogItems(sourceHandles, layers).filter((item) => item.template !== "demo-pack");
+
+  for (const item of items) {
+    if (item.health === "restored" || item.health === "live" || item.health === "cached") {
+      counts.restoredLive += 1;
+    }
+    if (item.health === "recoverable") {
+      counts.recoverable += 1;
+    }
+    if (
+      item.health === "unavailable" ||
+      item.health === "offline" ||
+      item.health === "untracked"
+    ) {
+      counts.unavailable += 1;
+    }
+    if (item.sourceKind === "external" || item.sourceHandle?.kind === "external") {
+      counts.external += 1;
+    }
+    if (item.health === "metadata-only" || item.sourceHandle?.storageMode === "metadata-only") {
+      counts.metadataOnly += 1;
+    }
+    if (item.synthetic || item.sourceKind === "demo" || item.sourceHandle?.kind === "demo") {
+      counts.demoSynthetic += 1;
+    }
+  }
+
+  return counts;
 }
 
 export function buildDemoPackCatalogInsertion(

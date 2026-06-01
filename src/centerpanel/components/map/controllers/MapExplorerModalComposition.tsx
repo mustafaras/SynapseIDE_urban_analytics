@@ -59,7 +59,6 @@ import {
   MAP_NUMERIC,
   MAP_RADIUS,
   MAP_SPACING,
-  MAP_STROKES,
   MAP_TYPOGRAPHY,
   mapStyles,
 } from "../mapTokens";
@@ -146,6 +145,7 @@ import {
   type MapCatalogConnectionDraft,
   type MapCatalogItem,
   type MapCatalogLayerInsertion,
+  type MapDataActivitySectionId,
 } from "../catalog";
 import {
   MapContentsTreePanel,
@@ -707,36 +707,6 @@ const mapActivityRailOverlayStyle: React.CSSProperties = {
   height: "100%",
 };
 
-const workbenchEntryListStyle: React.CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  gap: MAP_SPACING.xs,
-  padding: MAP_SPACING.sm,
-};
-
-const workbenchEntryButtonStyle: React.CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "flex-start",
-  gap: 2,
-  width: "100%",
-  padding: `${MAP_SPACING.sm} ${MAP_SPACING.md}`,
-  borderRadius: MAP_RADIUS.sm,
-  border: MAP_STROKES.hairline,
-  background: MAP_COLORS.bgPanel,
-  color: MAP_COLORS.text,
-  textAlign: "left",
-  cursor: "pointer",
-  fontFamily: MAP_TYPOGRAPHY.fontFamily,
-  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
-};
-
-const workbenchEntryButtonHintStyle: React.CSSProperties = {
-  color: MAP_COLORS.textMuted,
-  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
-  lineHeight: 1.4,
-};
-
 const commandHeaderStyle: React.CSSProperties = {
   ...mapStyles.header,
   position: "relative",
@@ -1256,7 +1226,6 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const [showProcessingToolbox, setShowProcessingToolbox] = useState(false);
   const [showModelBuilder, setShowModelBuilder] = useState(false);
   const [showPluginPanel, setShowPluginPanel] = useState(false);
-  const [showCatalog, setShowCatalog] = useState(false);
   const extensionRegistry = useMemo(() => createMapExtensionRegistry(), []);
   const pluginExtensions = useMemo(() => extensionRegistry.list(), [extensionRegistry]);
   const processingExtensionExecutors = useMemo(() => extensionRegistry.processingToolExecutors(), [extensionRegistry]);
@@ -1289,19 +1258,28 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     });
     announce("Plugin registry toggled");
   }, [announce]);
-  const handleToggleCatalog = useCallback(() => {
-    setShowCatalog((previous) => {
-      const next = !previous;
-      if (next) {
-        setWorkspaceView("explore");
-        setShowProcessingToolbox(false);
-        setShowModelBuilder(false);
-        setShowPluginPanel(false);
-      }
-      return next;
-    });
-    announce("Catalog toggled");
+  const openDataActivitySection = useCallback((
+    tabId: "data-import" | "data-connections" | "data-catalog" | "data-health" | "data-demo",
+    announcement: string,
+  ) => {
+    setWorkspaceView("explore");
+    setActiveActivityId("data");
+    setShowLayerPanel(true);
+    setWorkbenchSidebarCollapsed(false);
+    setWorkbenchSidebarTab(tabId);
+    setShowProcessingToolbox(false);
+    setShowModelBuilder(false);
+    setShowPluginPanel(false);
+    announce(announcement);
   }, [announce]);
+  const handleToggleCatalog = useCallback(() => {
+    if (showLayerPanel && activeActivityId === "data" && workbenchSidebarTab === "data-catalog") {
+      setShowLayerPanel(false);
+      announce("Data catalog closed");
+      return;
+    }
+    openDataActivitySection("data-catalog", "Data catalog opened in Data activity");
+  }, [activeActivityId, announce, openDataActivitySection, showLayerPanel, workbenchSidebarTab]);
   const openLayersActivityTab = useCallback((
     tabId: "layers-stack" | "layers-contents" | "layers-sources" | "layers-cartography",
     announcement: string,
@@ -1313,7 +1291,6 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     setWorkbenchSidebarCollapsed(false);
     setWorkbenchSidebarTab(tabId);
     setLayersCartographyScopeId(cartographyScopeId);
-    setShowCatalog(false);
     setShowProcessingToolbox(false);
     setShowModelBuilder(false);
     setShowPluginPanel(false);
@@ -5199,13 +5176,11 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   }, [addOverlayLayer, announce, handleSetWorkspaceView, registerLayerEvidenceCandidate, upsertSourceHandle]);
 
   const handleCatalogBrowseSources = useCallback(() => {
-    setShowCatalog(false);
     setShowImportHub(true);
     announce("Catalog opened the data import browser");
   }, [announce]);
 
   const handleCatalogRepairSource = useCallback((item: MapCatalogItem) => {
-    setShowCatalog(false);
     setShowImportHub(true);
     announce(`Repair source requested for ${item.title}`);
   }, [announce]);
@@ -5306,9 +5281,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   }, [addOverlayLayer, announce, recordMapReviewEvent]);
 
   const handleRepairContentsSource = useCallback((layer: OverlayLayerConfig) => {
-    setShowCatalog(true);
-    announce(`Catalog opened to repair source for ${layer.name}`);
-  }, [announce]);
+    openDataActivitySection("data-health", `Source health opened to repair source for ${layer.name}`);
+  }, [openDataActivitySection]);
 
   const handleExternalServiceLayerReady = useCallback((layer: OverlayLayerConfig) => {
     const registered = attachSourceHandleToExternalLayer(layer);
@@ -6655,7 +6629,6 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         setShowProcessingToolbox(true);
         setShowModelBuilder(false);
         setShowPluginPanel(false);
-        setShowCatalog(false);
         break;
       case "style":
         setWorkspaceView("analyze");
@@ -6826,49 +6799,29 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     />
   );
 
-  const dataSourcesEntryElement = (
-    <div style={workbenchEntryListStyle}>
-      <button
-        type="button"
-        style={workbenchEntryButtonStyle}
-        data-testid="map-workbench-data-import"
-        onClick={() => {
-          handleImportRequest();
-        }}
-      >
-        <span>Import data…</span>
-        <span style={workbenchEntryButtonHintStyle}>
-          GeoJSON, CSV, Arrow, GeoParquet, KML, KMZ, GPX, or GeoTIFF.
-        </span>
-      </button>
-      <button
-        type="button"
-        style={workbenchEntryButtonStyle}
-        data-testid="map-workbench-data-catalog"
-        onClick={() => {
-          setShowCatalog(true);
-          announce("Data catalog opened");
-        }}
-      >
-        <span>Open data catalog</span>
-        <span style={workbenchEntryButtonHintStyle}>
-          Browse demo packs and connected sources.
-        </span>
-      </button>
-      <button
-        type="button"
-        style={workbenchEntryButtonStyle}
-        data-testid="map-workbench-data-contents"
-        onClick={() => {
-          openLayersActivityTab("layers-contents", "Contents tree opened in Layers activity");
-        }}
-      >
-        <span>Open contents tree</span>
-        <span style={workbenchEntryButtonHintStyle}>
-          Review the layer hierarchy and grouping.
-        </span>
-      </button>
-    </div>
+  const handleOpenExternalServicesFromDataActivity = (): void => {
+    setShowExternalServiceDialog(true);
+    announce("External services opened from Data activity");
+  };
+
+  const renderDataActivitySection = (activeSection: MapDataActivitySectionId): React.ReactNode => (
+    <MapCatalogPanel
+      visible
+      presentation="embedded"
+      activeSection={activeSection}
+      sourceHandles={sourceHandles}
+      layers={overlayLayers}
+      onClose={() => {
+        setShowLayerPanel(false);
+        announce("Data activity closed");
+      }}
+      onBrowseSources={handleCatalogBrowseSources}
+      onAddDemoPack={handleCatalogAddDemoPack}
+      onRepairSource={handleCatalogRepairSource}
+      onReconnectSource={handleCatalogReconnectSource}
+      onAddConnection={handleCatalogAddConnection}
+      onOpenExternalServices={handleOpenExternalServicesFromDataActivity}
+    />
   );
 
   const layersContentsElement = (
@@ -6935,8 +6888,28 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         ? [
             {
               id: "data-import",
-              label: "Sources",
-              render: () => dataSourcesEntryElement,
+              label: "Add Data",
+              render: () => renderDataActivitySection("add-data"),
+            },
+            {
+              id: "data-connections",
+              label: "Connections",
+              render: () => renderDataActivitySection("connections"),
+            },
+            {
+              id: "data-catalog",
+              label: "Catalog",
+              render: () => renderDataActivitySection("catalog"),
+            },
+            {
+              id: "data-health",
+              label: "Source Health",
+              render: () => renderDataActivitySection("source-health"),
+            },
+            {
+              id: "data-demo",
+              label: "Demo Data",
+              render: () => renderDataActivitySection("demo-data"),
             },
           ]
         : [
@@ -6963,6 +6936,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
           ];
   const layersContentsTabActive =
     showLayerPanel && activeActivityId === "layers" && workbenchSidebarTab === "layers-contents";
+  const dataCatalogTabActive =
+    showLayerPanel && activeActivityId === "data" && workbenchSidebarTab === "data-catalog";
 
   return createPortal(
     <MapWorkspaceShell mode={mode} shellRef={trapRef} onClose={onClose} activeActivityId={activeActivityId}>
@@ -7062,7 +7037,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               onToggleLayerPanel={handleToggleLayerPanel}
               layerCount={overlayLayers.length}
               visibleLayerCount={visiblePublicationLayers.length}
-              showCatalog={showCatalog}
+              showCatalog={dataCatalogTabActive}
               onToggleCatalog={handleToggleCatalog}
               catalogSourceCount={sourceHandles.length}
               showContents={layersContentsTabActive}
@@ -7873,30 +7848,6 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               onRun={handleRunMapModel}
               onRunBatch={handleRunMapModelBatch}
               onExportToIdeAndUrban={handleExportMapModelToIdeAndUrban}
-            />
-          </MapPanelErrorBoundary>
-
-          <MapPanelErrorBoundary
-            panelName="Catalog"
-            resetKey={showCatalog}
-            onClose={() => {
-              setShowCatalog(false);
-              announce("Catalog closed");
-            }}
-          >
-            <MapCatalogPanel
-              visible={showCatalog && !navigatorStageMode}
-              sourceHandles={sourceHandles}
-              layers={overlayLayers}
-              onClose={() => {
-                setShowCatalog(false);
-                announce("Catalog closed");
-              }}
-              onBrowseSources={handleCatalogBrowseSources}
-              onAddDemoPack={handleCatalogAddDemoPack}
-              onRepairSource={handleCatalogRepairSource}
-              onReconnectSource={handleCatalogReconnectSource}
-              onAddConnection={handleCatalogAddConnection}
             />
           </MapPanelErrorBoundary>
 

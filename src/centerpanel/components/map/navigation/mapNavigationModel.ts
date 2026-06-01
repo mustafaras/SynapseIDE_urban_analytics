@@ -26,6 +26,7 @@ export type MapSidebarTabId =
   | "data-catalog"
   | "data-connections"
   | "data-health"
+  | "data-demo"
   | "layers-stack"
   | "layers-contents"
   | "layers-sources"
@@ -171,7 +172,7 @@ export const MAP_ACTIVITY_DEFINITIONS = [
     id: "data",
     label: "Data",
     ariaLabel: "Data activity",
-    description: "Local import, external services, source catalog, and restore health.",
+    description: "Local import, external services, source catalog, restore health, and demo data.",
     placement: "primary-rail",
     order: 1,
     mnemonic: "D",
@@ -180,7 +181,7 @@ export const MAP_ACTIVITY_DEFINITIONS = [
     defaultInspectorContextId: "source",
     defaultBottomPanelTabId: "tasks",
     commandCategory: "Data",
-    commandKeywords: ["data", "import", "source", "catalog", "service", "connection"],
+    commandKeywords: ["data", "import", "source", "catalog", "service", "connection", "demo"],
   },
   {
     id: "layers",
@@ -337,8 +338,8 @@ export const MAP_SIDEBAR_TAB_DEFINITIONS = [
   {
     id: "data-import",
     activityId: "data",
-    label: "Import",
-    ariaLabel: "Data import tab",
+    label: "Add Data",
+    ariaLabel: "Data Add Data tab",
     description: "Local files, teaching datasets, preflight, CSV mapping, and import progress.",
   },
   {
@@ -361,6 +362,13 @@ export const MAP_SIDEBAR_TAB_DEFINITIONS = [
     label: "Source Health",
     ariaLabel: "Data source health tab",
     description: "Recoverable, unavailable, metadata-only, and external dependency states.",
+  },
+  {
+    id: "data-demo",
+    activityId: "data",
+    label: "Demo Data",
+    ariaLabel: "Data Demo Data tab",
+    description: "Synthetic teaching packs, demo provenance, and non-observational source labels.",
   },
   {
     id: "layers-stack",
@@ -643,7 +651,7 @@ export const MAP_TASK_LENSES = [
     description: "Prioritizes data loading, layer review, analysis, and QA.",
     defaultActivityId: "data",
     activityPriority: ["data", "layers", "analyze", "qa", "overview", "style", "publish", "review", "diagnostics", "scene", "extensions"],
-    sidebarTabPriority: ["data-import", "layers-stack", "analyze-workflows", "analyze-tools", "analyze-query", "analyze-statistics"],
+    sidebarTabPriority: ["data-import", "data-catalog", "layers-stack", "analyze-workflows", "analyze-tools", "analyze-query"],
     inspectorContextPriority: ["source", "layer", "analysis-run", "qa-issue"],
     bottomPanelTabPriority: ["problems", "attributes", "tasks", "diagnostics"],
     preserveCommandPalette: true,
@@ -733,7 +741,8 @@ function getSidebarTabForInventoryEntry(entry: MapSurfaceInventoryEntry, activit
 
   if (activityId === "data") {
     if (includesAny(fingerprint, ["connection", "service", "provider", "wms", "wfs", "xyz"])) return "data-connections";
-    if (includesAny(fingerprint, ["catalog", "source catalog", "demo pack"])) return "data-catalog";
+    if (includesAny(fingerprint, ["demo pack", "demo data", "synthetic"])) return "data-demo";
+    if (includesAny(fingerprint, ["catalog", "source catalog"])) return "data-catalog";
     if (includesAny(fingerprint, ["health", "restore", "recoverable", "unavailable", "metadata-only"])) return "data-health";
     return "data-import";
   }
