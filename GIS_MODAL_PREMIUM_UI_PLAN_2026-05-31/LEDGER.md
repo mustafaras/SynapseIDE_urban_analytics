@@ -34,7 +34,7 @@ Prompt 06 - Layers Consolidation
 Last pushed integration commit:
 
 ```text
-2528f98 (Prompt 06 implementation; prompt and integration branches pushed after ledger closeout)
+Prompt 06 pushed (implementation commit `2528f98`; integration tip includes ledger closeout)
 ```
 
 Update this pointer after every completed prompt. It is the first anti-amnesia check for the next agent.
