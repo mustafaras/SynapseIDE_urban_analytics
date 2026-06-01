@@ -22,19 +22,19 @@ gis-modal-ui/premium-redesign
 Next prompt:
 
 ```text
-Prompt 04 - Command Center (of 56)
+Prompt 05 - Sidebar Host (of 56)
 ```
 
 Last completed prompt:
 
 ```text
-Prompt 03 - Activity Rail Refresh
+Prompt 04 - Command Center
 ```
 
 Last pushed integration commit:
 
 ```text
-f069f41 (Prompt 03 implementation; prompt and integration branches pushed)
+a5f6924 (Prompt 04 implementation; prompt and integration branches pushed)
 ```
 
 Update this pointer after every completed prompt. It is the first anti-amnesia check for the next agent.
@@ -211,7 +211,7 @@ Legend: `[ ]` TODO, `[~]` in progress, `[x]` done, `[!]` blocked.
 | [x] | 01 - Command and Panel Inventory | `gis-modal-ui/p01-inventory` | `e34aebc` | pushed to `origin/gis-modal-ui/p01-inventory` | Inventory coverage test passed; no runtime shell imports or visible UI change |
 | [x] | 02 - Navigation Model | `gis-modal-ui/p02-navigation-model` | `89e015b` | pushed to `origin/gis-modal-ui/p02-navigation-model` | Activity order, task-lens model, keyboard-safe metadata, and inventory binding tests passed |
 | [x] | 03 - Activity Rail Refresh | `gis-modal-ui/p03-activity-rail` | `f069f41` | pushed to `origin/gis-modal-ui/p03-activity-rail` | Stable activity rail, old actions reachable |
-| [ ] | 04 - Command Center | `gis-modal-ui/p04-command-center` |  |  | Palette complete, compact header |
+| [x] | 04 - Command Center | `gis-modal-ui/p04-command-center` | `a5f6924` | pushed to `origin/gis-modal-ui/p04-command-center` | Palette complete, compact header |
 | [ ] | 05 - Sidebar Host | `gis-modal-ui/p05-sidebar-host` |  |  | Overview/Data/Layers mounted in sidebar |
 | [ ] | 06 - Layers Consolidation | `gis-modal-ui/p06-layers-consolidation` |  |  | Stack/Contents/Sources/Cartography tabs |
 | [ ] | 07 - Data Consolidation | `gis-modal-ui/p07-data-consolidation` |  |  | Import/catalog/services/source health unified |
@@ -324,6 +324,7 @@ Append newest entries at the top.
 
 | Date | Prompt | Branch | Start SHA | Commit | Push | Integration FF | Validation | Premium UI proof | Anti-amnesia proof | Residual risk |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 2026-06-01 | 04 - Command Center | `gis-modal-ui/p04-command-center` | `5ccad1b` | `a5f6924` | pushed to `origin/gis-modal-ui/p04-command-center` | fast-forwarded and pushed `origin/gis-modal-ui/premium-redesign` | `npm run typecheck` pass; `npx vitest run src/centerpanel/components/map/__tests__/MapToolbar.command-palette.test.tsx` pass (1 file, 5 tests); `npx vitest run src/centerpanel/components/map/__tests__/MapCommandPaletteSearch.test.ts` pass (1 file, 9 tests); `npm run lint:errors` pass; `npm run test:e2e -- e2e/map-modal-layout.spec.ts` pass (16 tests) | Header now renders a compact command center with breadcrumb, place search, palette trigger, task lens selector, contextual primary action, grouped overflow, and close; e2e verifies command center controls are visible and registry count exceeds visible command count; command palette tests prove hidden `catalog` remains searchable and disabled save/load reasons are exposed | Fresh GIS Modal Premium UI Redesign pack confirmed; archived production GIS ladder not resumed; Prompt 04 branch created from pushed integration; changed files: `MapToolbar.tsx`, `MapExplorerModalComposition.tsx`, `MapToolbar.command-palette.test.tsx`, `e2e/map-modal-layout.spec.ts`; full command registry remains wired through `buildToolbarCommands` while visible rendering is compact | Command center still lives inside `MapToolbar.tsx` for this prompt; deeper component extraction can land with later command-center/header prompts if desired |
 | 2026-06-01 | 03 - Activity Rail Refresh | `gis-modal-ui/p03-activity-rail` | `190a417` | `f069f41` | pushed to `origin/gis-modal-ui/p03-activity-rail` | fast-forwarded and pushed `origin/gis-modal-ui/premium-redesign` | `npm run typecheck` pass; `npx vitest run src/centerpanel/components/map/__tests__/mapShellPrimitives.test.tsx` pass (1 file, 18 tests); `npx vitest run src/centerpanel/components/map/__tests__/MapToolbar.command-palette.test.tsx` pass (1 file, 4 tests); `npm run lint:errors` pass; `npm run test:e2e -- e2e/map-modal-layout.spec.ts` pass (16 tests) | Activity rail now renders primary and utility workbench activities from the Prompt 02 navigation model; e2e switches Data then Layers and verifies `data-map-active-activity`, `aria-pressed`, and visible map canvas; temporary export/save utility actions keep disabled reasons visible | Fresh GIS Modal Premium UI Redesign pack confirmed; archived production GIS ladder not resumed; Prompt 03 branch created from `gis-modal-ui/premium-redesign`; changed files: `MapExplorerModalComposition.tsx`, `MapWorkspaceShell.tsx`, `MapToolbar.tsx`, `mapShellPrimitives.test.tsx`, `MapToolbar.command-palette.test.tsx`, `e2e/map-modal-layout.spec.ts`; command palette test keeps former rail commands reachable for layer panel, catalog, contents, processing, layout/figure, QA, export, and save | Activity switching opens representative legacy panels as temporary homes until Prompt 05 introduces the sidebar host; Scene opens the existing 3D panel rather than a full Scene sidebar until later prompts |
 | 2026-06-01 | 02 - Navigation Model | `gis-modal-ui/p02-navigation-model` | `8ae31ee` | `89e015b` | pushed to `origin/gis-modal-ui/p02-navigation-model` | fast-forwarded and pushed `origin/gis-modal-ui/premium-redesign` | `npm run typecheck` pass; `npx vitest run src/centerpanel/components/map/__tests__` pass (50 files, 530 tests); `npm run lint:errors` pass | Added pure navigation metadata only; tests assert `MapToolbar`, `MapExplorerModalComposition`, and `MapWorkspaceShell` do not import `mapNavigationModel`, so runtime rendering is unchanged | Fresh GIS Modal Premium UI Redesign pack confirmed; archived production GIS ladder not resumed; Prompt 02 branch created from pushed integration; added files: `src/centerpanel/components/map/navigation/mapNavigationModel.ts`, `src/centerpanel/components/map/__tests__/mapNavigationModel.test.ts`; updated `src/centerpanel/components/map/navigation/index.ts`; model links every Prompt 01 inventory item to an activity, sidebar tab, inspector context, or bottom tab where applicable | Navigation bindings are derived from inventory metadata and may be refined as later prompts replace temporary panel homes with concrete shell slots |
 | 2026-06-01 | 01 - Command and Panel Inventory | `gis-modal-ui/p01-inventory` | `486b65a` | `e34aebc` | pushed to `origin/gis-modal-ui/p01-inventory` | fast-forwarded and pushed `origin/gis-modal-ui/premium-redesign` | `npm run typecheck` pass; `npx vitest run src/centerpanel/components/map` pass (56 files, 532 tests); `npm run lint:errors` pass | Added pure inventory module only; tests assert `MapToolbar`, `MapExplorerModalComposition`, and `MapWorkspaceShell` do not import the inventory, so runtime rendering is unchanged | Fresh GIS Modal Premium UI Redesign pack confirmed; archived production GIS ladder not resumed; Prompt 01 branch created from `gis-modal-ui/premium-redesign`; added files: `src/centerpanel/components/map/navigation/mapSurfaceInventory.ts`, `src/centerpanel/components/map/navigation/index.ts`, `src/centerpanel/components/map/__tests__/mapSurfaceInventory.test.ts`; coverage maps toolbar commands, palette commands, `show*` flags, activity rail IDs, hidden scene toggles, workspace views, quick actions, dialogs, drawers, overlays, and status surfaces | Inventory is a static contract over current source markers; future Prompt 02 should convert this into the semantic navigation model |
