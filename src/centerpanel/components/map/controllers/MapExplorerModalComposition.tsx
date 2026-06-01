@@ -111,6 +111,12 @@ import {
 } from "../MapWorkspaceShell";
 import { MapWorkspaceCockpit } from "../MapWorkspaceCockpit";
 import { MapWorkbenchSidebar, type MapWorkbenchSidebarTab } from "../sidebar";
+import {
+  MapAnalyzeDataOperationsPanel,
+  MapAnalyzeStatisticsPanel,
+  MapAnalyzeWorkspace,
+  type MapAnalyzeTabId,
+} from "../analyze";
 import { MapBottomPanel, type MapBottomPanelCoreTabId, type MapBottomPanelTask } from "../bottom";
 import { ScientificQAPanel } from "../ScientificQAPanel";
 import { MapProblemsPanel, buildMapProblemsModel, type MapProblemRow } from "../problems";
@@ -1267,27 +1273,28 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const [showProcessingToolbox, setShowProcessingToolbox] = useState(false);
   const [showModelBuilder, setShowModelBuilder] = useState(false);
   const [showPluginPanel, setShowPluginPanel] = useState(false);
+  const openAnalyzeActivityTab = useCallback((tabId: MapAnalyzeTabId, announcement: string) => {
+    setWorkspaceView("analyze");
+    setActiveActivityId("analyze");
+    setShowLayerPanel(true);
+    setWorkbenchSidebarCollapsed(false);
+    setWorkbenchSidebarTab(tabId);
+    setShowProcessingToolbox(false);
+    setShowModelBuilder(false);
+    setShowPluginPanel(false);
+    setShowNLQueryPanel(false);
+    setShowWorkflowDrawer(false);
+    setWorkflowPreview(null);
+    setShowScientificQAPanel(false);
+    setShowChoroplethPanel(false);
+    setShowClusterViz(false);
+    setShowHotSpotViz(false);
+    setShowEmergingHotSpotViz(false);
+    announce(announcement);
+  }, [announce, setShowWorkflowDrawer, setWorkflowPreview]);
   const extensionRegistry = useMemo(() => createMapExtensionRegistry(), []);
   const pluginExtensions = useMemo(() => extensionRegistry.list(), [extensionRegistry]);
   const processingExtensionExecutors = useMemo(() => extensionRegistry.processingToolExecutors(), [extensionRegistry]);
-  const handleToggleProcessingToolbox = useCallback(() => {
-    setShowProcessingToolbox((previous) => {
-      const next = !previous;
-      if (next) setShowModelBuilder(false);
-      if (next) setShowPluginPanel(false);
-      return next;
-    });
-    announce("Processing toolbox toggled");
-  }, [announce]);
-  const handleToggleModelBuilder = useCallback(() => {
-    setShowModelBuilder((previous) => {
-      const next = !previous;
-      if (next) setShowProcessingToolbox(false);
-      if (next) setShowPluginPanel(false);
-      return next;
-    });
-    announce("Model builder toggled");
-  }, [announce]);
   const handleTogglePluginPanel = useCallback(() => {
     setShowPluginPanel((previous) => {
       const next = !previous;
@@ -1444,6 +1451,10 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   );
   const selectionStatsAvailable = useMemo(
     () => Object.values(selectedFeatureIds).some((ids) => ids.length > 0),
+    [selectedFeatureIds],
+  );
+  const selectedFeatureCount = useMemo(
+    () => Object.values(selectedFeatureIds).reduce((total, ids) => total + ids.length, 0),
     [selectedFeatureIds],
   );
   const activeUrbanContext = useMemo<MapAnalysisUrbanContextSummary>(() => ({
@@ -1715,6 +1726,10 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       if (!result) return null;
       if (result.reviewEvent) recordMapReviewEvent(result.reviewEvent);
       if (result.status === "applied") {
+        if (result.outputLayer) {
+          setActiveAnalysisResultLayers([result.outputLayer.id]);
+          setInspectorLayerId(result.outputLayer.id);
+        }
         if (result.revertToken) {
           recordMapActionHistory({
             commandId: result.command.commandId,
@@ -1734,7 +1749,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       }
       return result;
     },
-    [announce, buildMapActionEffects, processingExtensionExecutors, recordMapActionHistory, recordMapReviewEvent],
+    [announce, buildMapActionEffects, processingExtensionExecutors, recordMapActionHistory, recordMapReviewEvent, setActiveAnalysisResultLayers],
   );
 
   const registerMapModelExecution = useCallback((result: MapModelRunResult): MapModelRunResult => {
@@ -1775,6 +1790,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       return result;
     }
     setActiveAnalysisResultLayers([result.finalOutputLayer.id]);
+    setInspectorLayerId(result.finalOutputLayer.id);
     announce(`${result.model.title} model applied; output layer carries its reproducibility manifest.`);
     return result;
   }, [announce, recordMapActionHistory, recordMapReviewEvent, setActiveAnalysisResultLayers]);
@@ -2141,6 +2157,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     setAttributeTableLayerId(derivedLayer.id);
     openBottomPanelTab("attributes", "Derived attribute table opened in the bottom panel");
     setActiveAnalysisResultLayers([derivedLayer.id]);
+    setInspectorLayerId(derivedLayer.id);
     recordMapReviewEvent({
       type: "layer-change",
       status: "applied",
@@ -2397,14 +2414,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     closeFloatingRightPanels,
     closeRightDockPanels,
     openScientificQAPanel,
-    handleToggleNLQueryPanel,
-    handleToggleWorkflowDrawer,
     handleToggleSidebar,
     handleToggleLayerPanel,
     handleToggleChoroplethPanel,
-    handleToggleClusterViz,
-    handleToggleHotSpotViz,
-    handleToggleEmergingHotSpotViz,
   } = useMapPanelCommands({
     announce,
     compactDock: dockLayout.compactDock,
@@ -2428,6 +2440,65 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     setWorkflowPreview,
     showLayerPanel,
   });
+  const handleOpenAnalyzeTab = useCallback((tabId: MapAnalyzeTabId, announcement: string) => {
+    closeFloatingRightPanels();
+    closeRightDockPanels();
+    openAnalyzeActivityTab(tabId, announcement);
+  }, [closeFloatingRightPanels, closeRightDockPanels, openAnalyzeActivityTab]);
+  const handleToggleProcessingToolbox = useCallback(() => {
+    if (activeActivityId === "analyze" && showLayerPanel && workbenchSidebarTab === "analyze-tools") {
+      setShowLayerPanel(false);
+      announce("Processing toolbox closed");
+      return;
+    }
+    handleOpenAnalyzeTab("analyze-tools", "Processing toolbox opened in Analyze Tools");
+  }, [activeActivityId, announce, handleOpenAnalyzeTab, showLayerPanel, workbenchSidebarTab]);
+  const handleToggleModelBuilder = useCallback(() => {
+    if (activeActivityId === "analyze" && showLayerPanel && workbenchSidebarTab === "analyze-models") {
+      setShowLayerPanel(false);
+      announce("Model builder closed");
+      return;
+    }
+    handleOpenAnalyzeTab("analyze-models", "Model builder opened in Analyze Models");
+  }, [activeActivityId, announce, handleOpenAnalyzeTab, showLayerPanel, workbenchSidebarTab]);
+  const handleToggleWorkflowDrawer = useCallback(() => {
+    if (activeActivityId === "analyze" && showLayerPanel && workbenchSidebarTab === "analyze-workflows") {
+      setShowLayerPanel(false);
+      setWorkflowPreview(null);
+      announce("Spatial workflows closed");
+      return;
+    }
+    handleOpenAnalyzeTab("analyze-workflows", "Spatial workflows opened in Analyze Workflows");
+  }, [activeActivityId, announce, handleOpenAnalyzeTab, setWorkflowPreview, showLayerPanel, workbenchSidebarTab]);
+  const handleToggleNLQueryPanel = useCallback(() => {
+    if (activeActivityId === "analyze" && showLayerPanel && workbenchSidebarTab === "analyze-query") {
+      setShowLayerPanel(false);
+      announce("Map query builder closed");
+      return;
+    }
+    handleOpenAnalyzeTab("analyze-query", "Map query builder opened in Analyze Query");
+  }, [activeActivityId, announce, handleOpenAnalyzeTab, showLayerPanel, workbenchSidebarTab]);
+  const handleToggleClusterViz = useCallback(() => {
+    const closing = activeActivityId === "analyze" && workbenchSidebarTab === "analyze-statistics" && showClusterViz;
+    handleOpenAnalyzeTab("analyze-statistics", closing ? "LISA cluster panel closed" : "LISA cluster panel opened in Analyze Statistics");
+    if (!closing) {
+      setShowClusterViz(true);
+    }
+  }, [activeActivityId, handleOpenAnalyzeTab, showClusterViz, workbenchSidebarTab]);
+  const handleToggleHotSpotViz = useCallback(() => {
+    const closing = activeActivityId === "analyze" && workbenchSidebarTab === "analyze-statistics" && showHotSpotViz;
+    handleOpenAnalyzeTab("analyze-statistics", closing ? "Getis-Ord Gi* panel closed" : "Getis-Ord Gi* panel opened in Analyze Statistics");
+    if (!closing) {
+      setShowHotSpotViz(true);
+    }
+  }, [activeActivityId, handleOpenAnalyzeTab, showHotSpotViz, workbenchSidebarTab]);
+  const handleToggleEmergingHotSpotViz = useCallback(() => {
+    const closing = activeActivityId === "analyze" && workbenchSidebarTab === "analyze-statistics" && showEmergingHotSpotViz;
+    handleOpenAnalyzeTab("analyze-statistics", closing ? "Emerging hot spot panel closed" : "Emerging hot spot panel opened in Analyze Statistics");
+    if (!closing) {
+      setShowEmergingHotSpotViz(true);
+    }
+  }, [activeActivityId, handleOpenAnalyzeTab, showEmergingHotSpotViz, workbenchSidebarTab]);
   const {
     handleToggleRestrictToMapView,
     handleOpenFlowDispatchDialog,
@@ -2716,10 +2787,12 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     if (activeMeasureTool || showMeasurePanel) {
       setShowDrawPanel(false);
       setShowMeasurePanel(true);
-    } else {
+    } else if (activeDrawTool) {
       setShowDrawPanel(true);
+    } else {
+      setShowDrawPanel(false);
     }
-  }, [activeMeasureTool, setActiveMeasureTool, showMeasurePanel, workspaceView]);
+  }, [activeDrawTool, activeMeasureTool, setActiveMeasureTool, showMeasurePanel, workspaceView]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -3102,6 +3175,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         }
       }
       setActiveAnalysisResultLayers([result.layer.id]);
+      setInspectorLayerId(result.layer.id);
       setWorkflowReportItems((current) => {
         const filtered = current.filter((item) => item.id !== result.reportItem.id);
         return [...filtered, result.reportItem];
@@ -3486,6 +3560,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     recordMapReviewEvent(buildRecommendationActionReviewEvent(recommendation, buildCurrentReviewSnapshot()));
     const { action } = recommendation;
     if (action.type === "run-selection-statistics") {
+      handleOpenAnalyzeTab("analyze-statistics", "Selection statistics opened in Analyze Statistics");
       handleRunSelectionStatistics();
       return;
     }
@@ -3556,43 +3631,16 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         announce(`Choropleth recommendation opened for ${layerName}`);
         break;
       case "cluster":
-        setWorkspaceView("analyze");
-        setShowScientificQAPanel(false);
-        closeRightDockPanels();
-        setPointSymbologyLayerId(null);
-        setShowChoroplethPanel(false);
-        setShowHotSpotViz(false);
-        setShowEmergingHotSpotViz(false);
-        setShowVoxCityOverlay(false);
-        setShowWorkflowDrawer(false);
+        handleOpenAnalyzeTab("analyze-statistics", `LISA recommendation opened for ${layerName}`);
         setShowClusterViz(true);
-        announce(`LISA recommendation opened for ${layerName}`);
         break;
       case "hotspot":
-        setWorkspaceView("analyze");
-        setShowScientificQAPanel(false);
-        closeRightDockPanels();
-        setPointSymbologyLayerId(null);
-        setShowChoroplethPanel(false);
-        setShowClusterViz(false);
-        setShowEmergingHotSpotViz(false);
-        setShowVoxCityOverlay(false);
-        setShowWorkflowDrawer(false);
+        handleOpenAnalyzeTab("analyze-statistics", `Hot spot recommendation opened for ${layerName}`);
         setShowHotSpotViz(true);
-        announce(`Hot spot recommendation opened for ${layerName}`);
         break;
       case "emerging-hotspot":
-        setWorkspaceView("analyze");
-        setShowScientificQAPanel(false);
-        closeRightDockPanels();
-        setPointSymbologyLayerId(null);
-        setShowChoroplethPanel(false);
-        setShowClusterViz(false);
-        setShowHotSpotViz(false);
-        setShowVoxCityOverlay(false);
-        setShowWorkflowDrawer(false);
+        handleOpenAnalyzeTab("analyze-statistics", `Emerging hot spot recommendation opened for ${layerName}`);
         setShowEmergingHotSpotViz(true);
-        announce(`Emerging hot spot recommendation opened for ${layerName}`);
         break;
       case "point-symbology":
         if (!openLayerId) {
@@ -3626,32 +3674,10 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         announce("VoxCity recommendation opened");
         break;
       case "workflow":
-        setWorkspaceView("explore");
-        closeRightDockPanels();
-        setShowScientificQAPanel(false);
-        setShowNLQueryPanel(false);
-        setPointSymbologyLayerId(null);
-        setShowChoroplethPanel(false);
-        setShowClusterViz(false);
-        setShowHotSpotViz(false);
-        setShowEmergingHotSpotViz(false);
-        setShowVoxCityOverlay(false);
-        setShowWorkflowDrawer(true);
-        announce(`Workflow recommendation opened for ${layerName}`);
+        handleOpenAnalyzeTab("analyze-workflows", `Workflow recommendation opened for ${layerName}`);
         break;
       case "nl-query":
-        setWorkspaceView("explore");
-        closeRightDockPanels();
-        setShowScientificQAPanel(false);
-        setPointSymbologyLayerId(null);
-        setShowChoroplethPanel(false);
-        setShowClusterViz(false);
-        setShowHotSpotViz(false);
-        setShowEmergingHotSpotViz(false);
-        setShowVoxCityOverlay(false);
-        setShowWorkflowDrawer(false);
-        setShowNLQueryPanel(true);
-        announce("Natural-language map query recommendation opened");
+        handleOpenAnalyzeTab("analyze-query", "Natural-language map query recommendation opened in Analyze Query");
         break;
       case "layer-panel":
         setWorkspaceView("explore");
@@ -3666,7 +3692,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       default:
         break;
     }
-  }, [activeUrbanContext, announce, buildCurrentReviewSnapshot, closeRightDockPanels, contextSummary, handleRunSelectionStatistics, openScientificQAPanel, overlayLayers, recordMapReviewEvent]);
+  }, [activeUrbanContext, announce, buildCurrentReviewSnapshot, closeRightDockPanels, contextSummary, handleOpenAnalyzeTab, handleRunSelectionStatistics, openScientificQAPanel, overlayLayers, recordMapReviewEvent]);
 
   const handleApplyCartographyRecommendation = useCallback((recommendationId: string) => {
     const recommendation = cartographyReviewState.recommendations.find((entry) => entry.id === recommendationId);
@@ -4275,6 +4301,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       upsertMapEvidenceArtifact(result.adapterResult.evidenceArtifact);
       upsertCompletedRun(createAnalysisCompletedRun(result.adapterResult, { flowId: "review" }));
       setActiveAnalysisResultLayers([result.layer.id]);
+      setInspectorLayerId(result.layer.id);
       setLastMapNLQuerySummary({
         layerName: result.layer.name,
         featureCount: result.featureCount,
@@ -6727,10 +6754,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         setWorkbenchSidebarTab("layers-stack");
         break;
       case "analyze":
-        setWorkspaceView("analyze");
-        setShowProcessingToolbox(true);
-        setShowModelBuilder(false);
-        setShowPluginPanel(false);
+        openAnalyzeActivityTab("analyze-workflows", "Analyze workspace opened");
         break;
       case "style":
         setWorkspaceView("analyze");
@@ -6763,7 +6787,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     }
 
     announce(`${activity.label} activity selected`);
-  }, [announce, openBottomPanelTab, openMapProblems]);
+  }, [announce, openAnalyzeActivityTab, openBottomPanelTab, openMapProblems]);
 
   const bottomProblemsModel = useMemo(
     () => buildMapProblemsModel({ qaState: scientificQA, overlayLayers }),
@@ -6991,7 +7015,17 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const isWorkbenchActivity =
     activeActivityId === "overview" ||
     activeActivityId === "data" ||
-    activeActivityId === "layers";
+    activeActivityId === "layers" ||
+    activeActivityId === "analyze";
+  const analyzeSidebarActive = activeActivityId === "analyze" && effectiveShowLayerPanel;
+  const analyzeWorkflowsTabActive = analyzeSidebarActive && workbenchSidebarTab === "analyze-workflows";
+  const analyzeToolsTabActive = analyzeSidebarActive && workbenchSidebarTab === "analyze-tools";
+  const analyzeQueryTabActive = analyzeSidebarActive && workbenchSidebarTab === "analyze-query";
+  const analyzeModelsTabActive = analyzeSidebarActive && workbenchSidebarTab === "analyze-models";
+  const activeAnalysisOutputLayerIds = new Set(activeAnalysisResultLayerIds);
+  const analysisOutputLayers = overlayLayers.filter((layer) =>
+    activeAnalysisOutputLayerIds.has(layer.id) || layer.group === "analysis" || Boolean(layer.metadata?.analysisResult),
+  );
 
   const layerStackElement = (
     <MapLayerManager
@@ -7141,6 +7175,112 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       onUndoCartographyRecommendation={handleUndoCartographyRecommendation}
       canUndoCartographyRecommendation={cartographyUndoStack.length > 0}
       onShowCartographyDetails={handleShowCartographyDetails}
+    />
+  );
+
+  const analyzeWorkflowElement = (
+    <MapWorkflowDrawer
+      visible={analyzeWorkflowsTabActive}
+      context={workflowContext}
+      initialDraftRequest={urbanWorkflowDraftRequest}
+      presentation="embedded"
+      onClose={() => {
+        setShowLayerPanel(false);
+        setWorkflowPreview(null);
+        setUrbanWorkflowDraftRequest(null);
+        announce("Analyze workflows closed");
+      }}
+      onApply={handleApplyMapWorkflow}
+      onSaveReport={handleSaveWorkflowReport}
+      onPreviewChange={setWorkflowPreview}
+      onOpenWorkflowScript={handleOpenWorkflowScriptInIde}
+      onExecuteWorkflow={handleExecuteMapWorkflow}
+      onCancelWorkflow={handleCancelMapWorkflow}
+      workflowExecution={workflowExecution}
+      onAnnounce={announce}
+    />
+  );
+
+  const analyzeToolsElement = (
+    <MapProcessingToolboxPanel
+      visible={analyzeToolsTabActive}
+      presentation="embedded"
+      onClose={() => {
+        setShowLayerPanel(false);
+        announce("Analyze tools closed");
+      }}
+      searchTools={searchProcessingTools}
+      layers={processingToolboxLayers}
+      onPreview={handlePreviewProcessingTool}
+      onRun={handleRunProcessingTool}
+    />
+  );
+
+  const analyzeQueryElement = (
+    <MapNLQueryPanel
+      visible={analyzeQueryTabActive}
+      presentation="embedded"
+      overlayLayers={overlayLayers}
+      selectedAoiFeature={selectedAoiFeatureForQuery}
+      currentMapBounds={currentMapBounds}
+      isRunning={isRunningMapNLQuery}
+      lastRunSummary={lastMapNLQuerySummary}
+      onRun={handleRunMapNLQuery}
+      onProposalGenerated={handleMapNLQueryProposalGenerated}
+      onPreviewDecision={handleMapNLQueryPreviewDecision}
+      onClose={() => {
+        setShowLayerPanel(false);
+        announce("Analyze query closed");
+      }}
+      onAnnounce={announce}
+    />
+  );
+
+  const analyzeModelsElement = (
+    <MapModelBuilderPanel
+      visible={analyzeModelsTabActive}
+      presentation="embedded"
+      onClose={() => {
+        setShowLayerPanel(false);
+        announce("Analyze models closed");
+      }}
+      tools={processingToolDescriptors}
+      layers={processingToolboxLayers}
+      onRun={handleRunMapModel}
+      onRunBatch={handleRunMapModelBatch}
+      onExportToIdeAndUrban={handleExportMapModelToIdeAndUrban}
+    />
+  );
+
+  const analyzeStatisticsElement = (
+    <MapAnalyzeStatisticsPanel
+      hasAnalysisLayers={overlayLayers.length > 0}
+      selectedFeatureCount={selectedFeatureCount}
+      selectionStatsAvailable={selectionStatsAvailable}
+      lisaActive={showClusterViz}
+      hotSpotActive={showHotSpotViz}
+      emergingHotSpotActive={showEmergingHotSpotViz}
+      onOpenLISA={handleToggleClusterViz}
+      onOpenHotSpot={handleToggleHotSpotViz}
+      onOpenEmergingHotSpot={handleToggleEmergingHotSpotViz}
+      onRunSelectionStatistics={handleRunSelectionStatistics}
+    />
+  );
+
+  const analyzeDataOperationsElement = (
+    <MapAnalyzeDataOperationsPanel
+      layers={analysisOutputLayers}
+      activeLayerIds={activeAnalysisResultLayerIds}
+      selectedFeatureCount={selectedFeatureCount}
+      onOpenAttributes={handleOpenAttributeTable}
+      onInspectLayer={handleInspectLayer}
+      onSetActiveLayer={(layerId) => {
+        setActiveAnalysisResultLayers([layerId]);
+        setInspectorLayerId(layerId);
+        announce("Analysis output layer activated");
+      }}
+      onRunSelectionStatistics={handleRunSelectionStatistics}
+      onOpenTools={() => handleOpenAnalyzeTab("analyze-tools", "Processing toolbox opened in Analyze Tools")}
     />
   );
 
@@ -7318,10 +7458,10 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               scientificQABlockerCount={scientificQABlockerCount}
               showScientificQAPanel={bottomPanelOpen && activeBottomPanelTab === "problems"}
               onToggleScientificQAPanel={handleToggleMapProblems}
-              showNLQueryPanel={showNLQueryPanel}
+              showNLQueryPanel={showNLQueryPanel || analyzeQueryTabActive}
               onToggleNLQueryPanel={handleToggleNLQueryPanel}
               nlQueryLayerCount={nlQueryToolbarContext.queryableLayers.length}
-              showWorkflowDrawer={showWorkflowDrawer}
+              showWorkflowDrawer={showWorkflowDrawer || analyzeWorkflowsTabActive}
               onToggleWorkflowDrawer={handleToggleWorkflowDrawer}
               workflowReadyCount={workflowReadyCount}
               showReviewTimeline={bottomPanelOpen && activeBottomPanelTab === "timeline"}
@@ -7333,10 +7473,10 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               showPluginPanel={showPluginPanel}
               onTogglePluginPanel={handleTogglePluginPanel}
               pluginExtensionCount={pluginExtensions.length}
-              showProcessingToolbox={showProcessingToolbox}
+              showProcessingToolbox={showProcessingToolbox || analyzeToolsTabActive}
               onToggleProcessingToolbox={handleToggleProcessingToolbox}
               processingToolCount={processingRegistry.implementedCount()}
-              showModelBuilder={showModelBuilder}
+              showModelBuilder={showModelBuilder || analyzeModelsTabActive}
               onToggleModelBuilder={handleToggleModelBuilder}
               showFigureComposer={showFigureComposer}
               onToggleFigureComposer={handleToggleFigureComposer}
@@ -7748,19 +7888,40 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               data-testid="map-layer-panel-rail"
             >
               {isWorkbenchActivity ? (
-                <MapWorkbenchSidebar
-                  title={activeActivity.label}
-                  tabs={workbenchSidebarTabs}
-                  activeTabId={workbenchSidebarTab}
-                  onTabChange={setWorkbenchSidebarTab}
-                  onToggleCollapse={() => setWorkbenchSidebarCollapsed((prev) => !prev)}
-                  collapsed={workbenchSidebarCollapsed}
-                  onClose={() => {
-                    setShowLayerPanel(false);
-                    announce("Workbench sidebar closed");
-                  }}
-                  width="100%"
-                />
+                activeActivityId === "analyze" ? (
+                  <MapAnalyzeWorkspace
+                    activeTabId={workbenchSidebarTab}
+                    onTabChange={setWorkbenchSidebarTab}
+                    workflows={analyzeWorkflowElement}
+                    tools={analyzeToolsElement}
+                    query={analyzeQueryElement}
+                    models={analyzeModelsElement}
+                    statistics={analyzeStatisticsElement}
+                    dataOperations={analyzeDataOperationsElement}
+                    onToggleCollapse={() => setWorkbenchSidebarCollapsed((prev) => !prev)}
+                    collapsed={workbenchSidebarCollapsed}
+                    onClose={() => {
+                      setShowLayerPanel(false);
+                      setWorkflowPreview(null);
+                      announce("Analyze workspace closed");
+                    }}
+                    width="100%"
+                  />
+                ) : (
+                  <MapWorkbenchSidebar
+                    title={activeActivity.label}
+                    tabs={workbenchSidebarTabs}
+                    activeTabId={workbenchSidebarTab}
+                    onTabChange={setWorkbenchSidebarTab}
+                    onToggleCollapse={() => setWorkbenchSidebarCollapsed((prev) => !prev)}
+                    collapsed={workbenchSidebarCollapsed}
+                    onClose={() => {
+                      setShowLayerPanel(false);
+                      announce("Workbench sidebar closed");
+                    }}
+                    width="100%"
+                  />
+                )
               ) : (
                 layerStackElement
               )}
@@ -8020,7 +8181,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             }}
           >
             <MapProcessingToolboxPanel
-              visible={showProcessingToolbox && !navigatorStageMode}
+              visible={showProcessingToolbox && !navigatorStageMode && !analyzeToolsTabActive}
               onClose={() => {
                 setShowProcessingToolbox(false);
                 announce("Processing toolbox closed");
@@ -8041,7 +8202,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             }}
           >
             <MapModelBuilderPanel
-              visible={showModelBuilder && !navigatorStageMode}
+              visible={showModelBuilder && !navigatorStageMode && !analyzeModelsTabActive}
               onClose={() => {
                 setShowModelBuilder(false);
                 announce("Model builder closed");
@@ -8054,7 +8215,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             />
           </MapPanelErrorBoundary>
 
-          <WorkflowPreviewOverlay preview={effectiveShowWorkflowDrawer ? workflowPreview : null} />
+          <WorkflowPreviewOverlay preview={(effectiveShowWorkflowDrawer || analyzeWorkflowsTabActive) ? workflowPreview : null} />
 
           <ScientificQAPanel
             visible={effectiveShowScientificQAPanel}
@@ -8073,7 +8234,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
           />
 
           <MapNLQueryPanel
-            visible={effectiveShowNLQueryPanel}
+            visible={effectiveShowNLQueryPanel && !analyzeQueryTabActive}
             overlayLayers={overlayLayers}
             selectedAoiFeature={selectedAoiFeatureForQuery}
             currentMapBounds={currentMapBounds}
@@ -8090,7 +8251,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
           />
 
           <MapWorkflowDrawer
-            visible={effectiveShowWorkflowDrawer}
+            visible={effectiveShowWorkflowDrawer && !analyzeWorkflowsTabActive}
             context={workflowContext}
             initialDraftRequest={urbanWorkflowDraftRequest}
             presentation={dockLayout.compactDock ? "bottom-drawer" : "right-rail"}

@@ -27,6 +27,7 @@ export interface MapModelBuilderPanelProps {
   onRun: (model: MapModelDefinition) => MapModelRunResult;
   onRunBatch: (model: MapModelDefinition, targets: readonly MapModelBatchTarget[]) => MapModelBatchResult;
   onExportToIdeAndUrban: (result: MapModelRunResult, batchResult: MapModelBatchResult | null) => void;
+  presentation?: "floating" | "embedded";
 }
 
 function slug(value: string): string {
@@ -96,6 +97,7 @@ export function MapModelBuilderPanel({
   onRun,
   onRunBatch,
   onExportToIdeAndUrban,
+  presentation = "floating",
 }: MapModelBuilderPanelProps): ReactElement | null {
   const implementedTools = useMemo(() => tools.filter((tool) => tool.implemented), [tools]);
   const [title, setTitle] = useState("Transit access coverage");
@@ -184,7 +186,13 @@ export function MapModelBuilderPanel({
   );
 
   return (
-    <section className={styles.panel} role="dialog" aria-label="Model builder" data-testid="map-model-builder">
+    <section
+      className={presentation === "embedded" ? `${styles.panel} ${styles.panelEmbedded}` : styles.panel}
+      role={presentation === "embedded" ? "region" : "dialog"}
+      aria-label="Model builder"
+      data-testid="map-model-builder"
+      data-presentation={presentation}
+    >
       <header className={styles.header}>
         <h2><GitBranch size={16} aria-hidden /> Model builder</h2>
         <button type="button" className={styles.iconButton} onClick={onClose} aria-label="Close model builder">

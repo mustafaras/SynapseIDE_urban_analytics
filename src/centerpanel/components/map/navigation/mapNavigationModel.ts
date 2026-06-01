@@ -33,9 +33,10 @@ export type MapSidebarTabId =
   | "layers-cartography"
   | "analyze-workflows"
   | "analyze-tools"
-  | "analyze-models"
   | "analyze-query"
+  | "analyze-models"
   | "analyze-statistics"
+  | "analyze-data-operations"
   | "analyze-measurements"
   | "style-renderer"
   | "style-symbols"
@@ -211,7 +212,7 @@ export const MAP_ACTIVITY_DEFINITIONS = [
     defaultInspectorContextId: "analysis-run",
     defaultBottomPanelTabId: "tasks",
     commandCategory: "Analyze",
-    commandKeywords: ["analyze", "workflow", "processing", "model", "query", "statistics", "measure"],
+    commandKeywords: ["analyze", "workflow", "processing", "model", "query", "statistics", "data operations", "measure"],
   },
   {
     id: "style",
@@ -413,13 +414,6 @@ export const MAP_SIDEBAR_TAB_DEFINITIONS = [
     description: "Processing toolbox, parameter forms, runtime chips, progress, and blocked reasons.",
   },
   {
-    id: "analyze-models",
-    activityId: "analyze",
-    label: "Models",
-    ariaLabel: "Analyze models tab",
-    description: "Model builder, chain execution, batch execution, and IDE or Urban handoff.",
-  },
-  {
     id: "analyze-query",
     activityId: "analyze",
     label: "Query",
@@ -427,11 +421,25 @@ export const MAP_SIDEBAR_TAB_DEFINITIONS = [
     description: "Natural-language query, scope limits, selection query, and human confirmation.",
   },
   {
+    id: "analyze-models",
+    activityId: "analyze",
+    label: "Models",
+    ariaLabel: "Analyze models tab",
+    description: "Model builder, chain execution, batch execution, and IDE or Urban handoff.",
+  },
+  {
     id: "analyze-statistics",
     activityId: "analyze",
     label: "Statistics",
     ariaLabel: "Analyze statistics tab",
     description: "LISA, Getis-Ord Gi*, emerging hot spot, and selected-feature summary statistics.",
+  },
+  {
+    id: "analyze-data-operations",
+    activityId: "analyze",
+    label: "Data Operations",
+    ariaLabel: "Analyze data operations tab",
+    description: "Analysis output layers, selected-feature operations, attribute routing, and inspector handoff.",
   },
   {
     id: "analyze-measurements",
@@ -651,7 +659,7 @@ export const MAP_TASK_LENSES = [
     description: "Prioritizes data loading, layer review, analysis, and QA.",
     defaultActivityId: "data",
     activityPriority: ["data", "layers", "analyze", "qa", "overview", "style", "publish", "review", "diagnostics", "scene", "extensions"],
-    sidebarTabPriority: ["data-import", "data-catalog", "layers-stack", "analyze-workflows", "analyze-tools", "analyze-query"],
+    sidebarTabPriority: ["data-import", "data-catalog", "layers-stack", "analyze-workflows", "analyze-tools", "analyze-query", "analyze-data-operations"],
     inspectorContextPriority: ["source", "layer", "analysis-run", "qa-issue"],
     bottomPanelTabPriority: ["problems", "attributes", "tasks", "diagnostics"],
     preserveCommandPalette: true,
@@ -758,6 +766,7 @@ function getSidebarTabForInventoryEntry(entry: MapSurfaceInventoryEntry, activit
     if (includesAny(fingerprint, ["query", "nl", "selection query"])) return "analyze-query";
     if (includesAny(fingerprint, ["model"])) return "analyze-models";
     if (includesAny(fingerprint, ["lisa", "hot spot", "hotspot", "statistics", "summary"])) return "analyze-statistics";
+    if (includesAny(fingerprint, ["output", "attribute", "data operation", "derived layer"])) return "analyze-data-operations";
     if (includesAny(fingerprint, ["measure", "measurement", "distance", "area"])) return "analyze-measurements";
     if (includesAny(fingerprint, ["toolbox", "processing", "tool"])) return "analyze-tools";
     return "analyze-workflows";

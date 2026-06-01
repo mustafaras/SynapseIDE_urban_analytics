@@ -95,6 +95,7 @@ describe("MapModelBuilderPanel", () => {
       root!.render(
         <MapModelBuilderPanel
           visible
+          presentation="embedded"
           onClose={() => {}}
           tools={registry.list()}
           layers={[

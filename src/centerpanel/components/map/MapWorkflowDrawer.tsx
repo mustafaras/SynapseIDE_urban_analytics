@@ -93,7 +93,7 @@ export interface MapWorkflowDrawerProps {
     draft: MapWorkflowDraft;
   } | null;
   onAnnounce?: (message: string) => void;
-  presentation?: "floating" | "right-rail" | "bottom-drawer";
+  presentation?: "floating" | "right-rail" | "bottom-drawer" | "embedded";
   width?: number;
   minWidth?: number;
   maxWidth?: number;
@@ -177,9 +177,28 @@ function clampPanelWidth(width: number, minWidth: number, maxWidth: number): num
 }
 
 function getWorkflowDrawerStyle(
-  presentation: "floating" | "right-rail" | "bottom-drawer",
+  presentation: "floating" | "right-rail" | "bottom-drawer" | "embedded",
   width?: number,
 ): React.CSSProperties {
+  if (presentation === "embedded") {
+    return {
+      position: "relative",
+      inset: "auto",
+      width: "100%",
+      height: "100%",
+      minHeight: "34rem",
+      maxWidth: "none",
+      display: "flex",
+      flexDirection: "column",
+      border: MAP_STROKES.none,
+      borderRadius: 0,
+      background: MAP_COLORS.bgPanel,
+      boxShadow: "none",
+      zIndex: "auto",
+      overflow: "hidden",
+    };
+  }
+
   if (presentation === "bottom-drawer") {
     return {
       ...mapStyles.sidePanelSurface,

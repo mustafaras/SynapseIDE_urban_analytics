@@ -54,6 +54,7 @@ export interface MapNLQueryPanelProps {
   onPreviewDecision?: (preview: MapNLQueryPreview, decision: MapNLQueryPanelPreviewDecision) => void;
   onClose: () => void;
   onAnnounce?: (message: string) => void;
+  presentation?: "floating" | "embedded";
 }
 
 const EXAMPLE_REQUESTS = [
@@ -77,6 +78,21 @@ const MODES: Array<{ id: MapNLQueryMode; label: string }> = [
 
 const panelBaseStyle: React.CSSProperties = {
   ...createOpaqueFloatingPanelStyle(`min(44rem, calc(100% - ${MAP_SPACING.xl}))`),
+};
+
+const embeddedPanelStyle: React.CSSProperties = {
+  position: "relative",
+  display: "flex",
+  flexDirection: "column",
+  width: "100%",
+  height: "100%",
+  minHeight: "34rem",
+  border: MAP_STROKES.none,
+  borderRadius: 0,
+  background: MAP_COLORS.bgPanel,
+  boxShadow: "none",
+  color: MAP_COLORS.text,
+  overflow: "hidden",
 };
 
 const sectionStyle: React.CSSProperties = {
@@ -261,6 +277,7 @@ export const MapNLQueryPanel: React.FC<MapNLQueryPanelProps> = ({
   onPreviewDecision,
   onClose,
   onAnnounce,
+  presentation = "floating",
 }) => {
   const [request, setRequest] = useState<string>(EXAMPLE_REQUESTS[0]);
   const [scope, setScope] = useState<MapNLQueryScope>("visible");
@@ -303,6 +320,8 @@ export const MapNLQueryPanel: React.FC<MapNLQueryPanelProps> = ({
     return null;
   }
 
+  const embedded = presentation === "embedded";
+
   const handleCopy = async () => {
     try {
       await navigator.clipboard?.writeText(preview.copyText);
@@ -325,16 +344,19 @@ export const MapNLQueryPanel: React.FC<MapNLQueryPanelProps> = ({
 
   return (
     <div
-      style={{
-        ...panelBaseStyle,
-        ...panelDrag.panelPositionStyle,
-      }}
-      role="dialog"
+      style={embedded
+        ? embeddedPanelStyle
+        : {
+            ...panelBaseStyle,
+            ...panelDrag.panelPositionStyle,
+          }}
+      role={embedded ? "region" : "dialog"}
       aria-label="Natural language map query builder"
+      data-presentation={presentation}
     >
       <div
-        style={{ ...mapStyles.sidePanelHeader, ...panelDrag.dragHandleStyle }}
-        {...panelDrag.dragHandleProps}
+        style={embedded ? mapStyles.sidePanelHeader : { ...mapStyles.sidePanelHeader, ...panelDrag.dragHandleStyle }}
+        {...(embedded ? {} : panelDrag.dragHandleProps)}
       >
         <div style={mapStyles.sidePanelTitleStack}>
           <div style={mapStyles.sidePanelEyebrow}>Map Query Builder</div>

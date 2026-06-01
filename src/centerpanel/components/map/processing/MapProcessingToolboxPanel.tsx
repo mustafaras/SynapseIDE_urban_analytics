@@ -31,6 +31,7 @@ export interface MapProcessingToolboxPanelProps {
   layers: ProcessingToolboxLayerOption[];
   onPreview: (toolId: string, params: Record<string, ToolParameterValue>) => ProcessingPreviewOutcome | null;
   onRun: (toolId: string, params: Record<string, ToolParameterValue>) => ProcessingRunResult | null;
+  presentation?: "floating" | "embedded";
 }
 
 type ParamMap = Record<string, ToolParameterValue>;
@@ -67,6 +68,21 @@ const panelStyle: React.CSSProperties = {
   borderRadius: MAP_RADIUS.sm,
   background: MAP_COLORS.bgPanel,
   boxShadow: MAP_SHADOWS.panel,
+  color: MAP_COLORS.text,
+  overflow: "hidden",
+};
+
+const embeddedPanelStyle: React.CSSProperties = {
+  position: "relative",
+  display: "grid",
+  gridTemplateRows: "auto auto minmax(0, 1fr)",
+  width: "100%",
+  height: "100%",
+  minHeight: "32rem",
+  border: MAP_STROKES.none,
+  borderRadius: 0,
+  background: MAP_COLORS.bgPanel,
+  boxShadow: "none",
   color: MAP_COLORS.text,
   overflow: "hidden",
 };
@@ -219,6 +235,7 @@ export function MapProcessingToolboxPanel({
   layers,
   onPreview,
   onRun,
+  presentation = "floating",
 }: MapProcessingToolboxPanelProps): React.ReactElement | null {
   const [query, setQuery] = useState("");
   const [selectedToolId, setSelectedToolId] = useState<string | null>(null);
@@ -269,9 +286,17 @@ export function MapProcessingToolboxPanel({
   const caveats = preview?.preview.caveats ?? [];
   const joinSummary = preview?.preview.joinSummary ?? null;
   const canRun = Boolean(selected) && blockers.length === 0;
+  const embedded = presentation === "embedded";
 
   return (
-    <section style={panelStyle} className={motionStyles.panelIn} role="dialog" aria-label="Processing toolbox" data-testid="map-processing-toolbox">
+    <section
+      style={embedded ? embeddedPanelStyle : panelStyle}
+      className={embedded ? undefined : motionStyles.panelIn}
+      role={embedded ? "region" : "dialog"}
+      aria-label="Processing toolbox"
+      data-testid="map-processing-toolbox"
+      data-presentation={presentation}
+    >
       <header style={headerStyle}>
         <h2 style={titleStyle}>
           <Boxes size={16} aria-hidden /> Processing toolbox

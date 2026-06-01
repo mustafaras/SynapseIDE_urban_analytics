@@ -98,6 +98,7 @@ describe("MapProcessingToolboxPanel", () => {
       root!.render(
         <MapProcessingToolboxPanel
           visible
+          presentation="embedded"
           onClose={() => {}}
           searchTools={(q) => registry.search(q)}
           layers={layers}
@@ -162,6 +163,7 @@ describe("MapProcessingToolboxPanel — blocked preflight", () => {
       root!.render(
         <MapProcessingToolboxPanel
           visible
+          presentation="embedded"
           onClose={() => {}}
           searchTools={(q) => registry.search(q)}
           layers={[{ id: "layer-projected", name: "Projected polygons", fields: ["zone"] }]}

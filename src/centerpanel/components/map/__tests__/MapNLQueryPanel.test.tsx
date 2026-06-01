@@ -96,6 +96,7 @@ describe("MapNLQueryPanel", () => {
       root.render(
         <MapNLQueryPanel
           visible
+          presentation="embedded"
           overlayLayers={[
             layer("parcels", "Parcels", parcels),
             layer("transit", "Transit Stops", transitStops),
