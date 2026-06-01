@@ -1,18 +1,18 @@
 ---
 applyTo: "src/features/urbanAnalytics/**"
 description: >
-  Rules for working inside the Urban Analytics feature module. Use only the
-  section relevant to your edit (methods/indicators/calculators, context and
-  evidence, seeds/validity/data fitness, or the urban modal shell).
+  Rules for maintaining the Urban Analytics feature module. Use only the
+  section relevant to your edit: methods/indicators/calculators, context and
+  evidence, seeds/validity/data fitness, or the urban modal shell.
 ---
 
 # Urban Analytics — Implementation Rules
 
 ## Before Editing
 
-1. Read the ledger status: [`DEVELOPMENT_PLANS/URBAN_ANALYTICS_IMPLEMENTATION_LEDGER.md`](../../DEVELOPMENT_PLANS/URBAN_ANALYTICS_IMPLEMENTATION_LEDGER.md) — confirm which prompts are complete and which is active.
-2. Check the active prompt in [`DEVELOPMENT_PLANS/URBAN_ANALYTICS_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md`](../../DEVELOPMENT_PLANS/URBAN_ANALYTICS_SEQUENTIAL_IMPLEMENTATION_PROMPTS.md) for exact scope, acceptance criteria, and stop conditions.
-3. Verify live imports and then apply only the rule sections relevant to the file being edited — planned APIs may differ from current code.
+1. Treat Urban Analytics as a maintained module, not an active prompt ladder. The historical implementation pack is archived under [`docs/archive/development-plans/tri-modal-operating-pack-2026-05-20/`](../../docs/archive/development-plans/tri-modal-operating-pack-2026-05-20/).
+2. Verify live imports and current tests before editing — archived plan APIs may differ from current code.
+3. Apply only the rule sections relevant to the file being edited.
 
 ## Module Ownership
 
@@ -75,12 +75,8 @@ npm run typecheck
 npm run test:analytics
 ```
 
-Both must pass before marking a prompt complete in the ledger.
+Both should pass before treating maintenance work as complete.
 
-## Ledger Update
+## Historical Archive
 
-After completing any prompt scope, update:
-- Prompt Status Register (set to `completed`)
-- Files Inspected and Files Changed registries
-- Validation History (command + outcome)
-- Next Prompt Pointer
+The former Urban Analytics prompt ledger is complete and archived. Read archived ledgers only for historical context or user-requested audits; do not treat them as active scope or update them for normal maintenance work.
