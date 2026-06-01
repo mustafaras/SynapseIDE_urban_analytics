@@ -31,6 +31,7 @@ export interface MapStatusBarProps {
   qaBlockerCount?: number;
   performanceMode?: LayerRenderMode;
   performanceIssueCount?: number;
+  onOpenProblems?: () => void;
   lastRenderDurationMs?: number | null;
   isSaving?: boolean;
   isLoading?: boolean;
@@ -82,6 +83,17 @@ const statusItem: React.CSSProperties = {
   whiteSpace: "nowrap",
 };
 
+const statusItemButton: React.CSSProperties = {
+  ...statusItem,
+  border: 0,
+  padding: 0,
+  margin: 0,
+  background: "transparent",
+  font: "inherit",
+  color: "inherit",
+  cursor: "pointer",
+};
+
 const separatorStyle: React.CSSProperties = {
   color: "var(--syn-border-subtle, rgba(148, 163, 184, 0.56))",
   flexShrink: 0,
@@ -119,6 +131,8 @@ type StatusItem = {
   maxWidth?: string;
   busy?: boolean;
   tone?: StatusTone;
+  onClick?: () => void;
+  ariaLabel?: string;
 };
 
 type StatusTone = "neutral" | "info" | "error" | "valid" | "running" | "pending" | "stale" | "warning";
@@ -264,6 +278,7 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
   qaBlockerCount = 0,
   performanceMode = "full",
   performanceIssueCount = 0,
+  onOpenProblems,
   lastRenderDurationMs = null,
   isSaving = false,
   isLoading = false,
@@ -298,7 +313,7 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
     { label: "Marks", value: geometryLabel },
     { label: "Units", value: measureUnit === "metric" ? "metric" : "imperial" },
     { label: "CRS", value: crs, tone: "info" },
-    { label: "QA", value: qaLabel, tone: qaValueTone },
+    { label: "QA", value: qaLabel, tone: qaValueTone, onClick: onOpenProblems, ariaLabel: "Open QA Problems" },
     { label: "Perf", value: performanceLabel, tone: performanceTone },
     { label: "Sync", value: syncLabel, tone: syncValueTone },
     { label: "Saved", value: saveLabel, busy: isSaving || isLoading, tone: saveValueTone },
@@ -310,19 +325,41 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
         {statusItems.map((item, index) => (
           <React.Fragment key={item.label}>
             {index > 0 ? <span style={separatorStyle}>/</span> : null}
-            <span style={{ ...statusItem, maxWidth: item.maxWidth }}>
-              <b style={labelStyle}>{item.label}</b>
-              <span
-                style={{
-                  ...(item.busy ? busyValueStyle : valueStyle),
-                  color: item.tone ? STATUS_TONE_COLOR[item.tone] : valueStyle.color,
-                }}
+            {item.onClick ? (
+              <button
+                type="button"
+                style={{ ...statusItemButton, maxWidth: item.maxWidth }}
+                onClick={item.onClick}
+                aria-label={item.ariaLabel ?? `${item.label}: ${item.value}`}
+                title={item.ariaLabel ?? `${item.label}: ${item.value}`}
               >
-                :
-                {item.busy ? <StatusSpinner /> : null}
-                {item.value}
+                <b style={labelStyle}>{item.label}</b>
+                <span
+                  style={{
+                    ...(item.busy ? busyValueStyle : valueStyle),
+                    color: item.tone ? STATUS_TONE_COLOR[item.tone] : valueStyle.color,
+                  }}
+                >
+                  :
+                  {item.busy ? <StatusSpinner /> : null}
+                  {item.value}
+                </span>
+              </button>
+            ) : (
+              <span style={{ ...statusItem, maxWidth: item.maxWidth }}>
+                <b style={labelStyle}>{item.label}</b>
+                <span
+                  style={{
+                    ...(item.busy ? busyValueStyle : valueStyle),
+                    color: item.tone ? STATUS_TONE_COLOR[item.tone] : valueStyle.color,
+                  }}
+                >
+                  :
+                  {item.busy ? <StatusSpinner /> : null}
+                  {item.value}
+                </span>
               </span>
-            </span>
+            )}
           </React.Fragment>
         ))}
       </div>

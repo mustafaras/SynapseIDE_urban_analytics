@@ -28,7 +28,6 @@ describe("MapToolbar external services", () => {
         showSidebar
         onToggleSidebar={vi.fn()}
         pinCount={0}
-        onImportClick={vi.fn()}
         onOpenExternalServices={vi.fn()}
       />,
     );
@@ -52,24 +51,25 @@ describe("MapToolbar external services", () => {
           showSidebar={false}
           onToggleSidebar={vi.fn()}
           pinCount={0}
+          onImportClick={vi.fn()}
           onOpenExternalServices={onOpenExternalServices}
         />,
       );
     });
 
-    const advancedButton = document.querySelector<HTMLButtonElement>(
-      'button[aria-label="Scientific QA, 3D sync, density, and command controls"]',
+    const overflowButton = document.querySelector<HTMLButtonElement>(
+      'button[aria-label="Open grouped map command overflow"]',
     );
-    expect(advancedButton).not.toBeNull();
+    expect(overflowButton).not.toBeNull();
 
     await act(async () => {
-      advancedButton!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      overflowButton!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
-    const advancedMenu = document.querySelector<HTMLElement>('[role="menu"][aria-label="Advanced commands"]');
-    expect(advancedMenu?.textContent).toContain("External Services");
+    const commandMenu = document.querySelector<HTMLElement>('[role="menu"][aria-label="Grouped map commands"]');
+    expect(commandMenu?.textContent).toContain("External Services");
 
-    const externalServicesButton = Array.from(advancedMenu?.querySelectorAll<HTMLButtonElement>("button") ?? [])
+    const externalServicesButton = Array.from(commandMenu?.querySelectorAll<HTMLButtonElement>("button") ?? [])
       .find((button) => button.textContent?.includes("External Services"));
     expect(externalServicesButton).toBeDefined();
 
@@ -133,18 +133,37 @@ describe("MapToolbar external services", () => {
     );
     expect(noCallbackHtml).not.toContain("Export visible map data as GeoJSON");
 
-    const noDataHtml = renderToStaticMarkup(
-      <MapToolbar
-        pinMode={false}
-        onTogglePinMode={vi.fn()}
-        showSidebar={false}
-        onToggleSidebar={vi.fn()}
-        pinCount={0}
-        onExportClick={vi.fn()}
-        exportDisabled
-      />,
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const root = createRoot(host);
+    roots.push(root);
+
+    act(() => {
+      root.render(
+        <MapToolbar
+          pinMode={false}
+          onTogglePinMode={vi.fn()}
+          showSidebar={false}
+          onToggleSidebar={vi.fn()}
+          pinCount={0}
+          onExportClick={vi.fn()}
+          exportDisabled
+        />,
+      );
+    });
+
+    const overflowButton = document.querySelector<HTMLButtonElement>(
+      'button[aria-label="Open grouped map command overflow"]',
     );
-    expect(noDataHtml).toContain("Export visible map data as GeoJSON");
-    expect(noDataHtml).toContain("Add pins, drawings, or visible overlay layers before exporting GeoJSON.");
+    if (overflowButton) {
+      act(() => {
+        overflowButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      });
+    }
+
+    const exportButton = document.querySelector<HTMLButtonElement>('[data-map-command-id="export-geojson"]');
+    expect(exportButton).not.toBeNull();
+    expect(exportButton?.getAttribute("aria-label")).toContain("Export visible map data as GeoJSON");
+    expect(exportButton?.getAttribute("aria-label")).toContain("Add pins, drawings, or visible overlay layers before exporting GeoJSON.");
   });
 });

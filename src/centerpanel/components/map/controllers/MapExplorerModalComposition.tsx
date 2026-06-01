@@ -230,12 +230,12 @@ import {
   IconSave,
 } from "../MapIcons";
 import {
-  MAP_PRIMARY_ACTIVITY_ORDER,
-  MAP_UTILITY_ACTIVITY_ORDER,
-  getMapActivityDefinition,
+  MAP_RUNTIME_PRIMARY_ACTIVITY_DEFINITIONS,
+  MAP_RUNTIME_UTILITY_ACTIVITY_DEFINITIONS,
+  getRuntimeMapActivityDefinition,
   type MapActivityDefinition,
   type MapActivityId,
-} from "../navigation";
+} from "../mapActivityRuntime";
 import { usePrefersReducedMotion } from "../../../../hooks/usePrefersReducedMotion";
 import {
   buildFeatureCollectionMetadata,
@@ -688,8 +688,8 @@ const MAP_ACTIVITY_ICON_COMPONENTS: Record<string, LucideIcon> = {
   Workflow,
 };
 
-const MAP_PRIMARY_ACTIVITY_DEFINITIONS = MAP_PRIMARY_ACTIVITY_ORDER.map(getMapActivityDefinition);
-const MAP_UTILITY_ACTIVITY_DEFINITIONS = MAP_UTILITY_ACTIVITY_ORDER.map(getMapActivityDefinition);
+const MAP_PRIMARY_ACTIVITY_DEFINITIONS = MAP_RUNTIME_PRIMARY_ACTIVITY_DEFINITIONS;
+const MAP_UTILITY_ACTIVITY_DEFINITIONS = MAP_RUNTIME_UTILITY_ACTIVITY_DEFINITIONS;
 
 function renderMapActivityIcon(activity: MapActivityDefinition): React.ReactElement {
   const Icon = MAP_ACTIVITY_ICON_COMPONENTS[activity.iconName] ?? Compass;
@@ -6636,6 +6636,11 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     },
   });
 
+  const openMapProblems = useCallback(() => {
+    setActiveActivityId("qa");
+    openScientificQAPanel();
+  }, [openScientificQAPanel]);
+
   const handleSelectMapActivity = useCallback((activity: MapActivityDefinition) => {
     setActiveActivityId(activity.id);
 
@@ -6677,7 +6682,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         setShowFigureComposer(true);
         break;
       case "qa":
-        openScientificQAPanel();
+        openMapProblems();
         break;
       case "review":
         setShowReviewTimeline(true);
@@ -6695,7 +6700,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     }
 
     announce(`${activity.label} activity selected`);
-  }, [announce, openScientificQAPanel]);
+  }, [announce, openMapProblems]);
 
   /* ---- Render ---- */
   if (!open) return null;
@@ -6719,7 +6724,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     ? "The current map report snapshot is still rendering."
     : undefined;
   const persistenceDisabled = !selectedProjectId;
-  const activeActivity = getMapActivityDefinition(activeActivityId);
+  const activeActivity = getRuntimeMapActivityDefinition(activeActivityId);
   const activityRailItems = MAP_PRIMARY_ACTIVITY_DEFINITIONS.map((activity) => ({
     id: activity.id,
     label: activity.ariaLabel,
@@ -8275,6 +8280,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               qaStatus={contextSummary.qa.status}
               qaIssueCount={scientificQAIssueCount}
               qaBlockerCount={scientificQABlockerCount}
+              onOpenProblems={openMapProblems}
               performanceMode={performanceDiagnostics.renderMode}
               performanceIssueCount={performanceIssueCount}
               lastRenderDurationMs={performanceDiagnostics.lastRenderTiming?.durationMs ?? null}

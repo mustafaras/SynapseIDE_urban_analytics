@@ -40,8 +40,21 @@ export type { MapSearchBarProps } from "./MapSearchBar";
 
 export { MapStatusBar } from "./MapStatusBar";
 export { ScientificQAPanel } from "./ScientificQAPanel";
+export { MapProblemsPanel } from "./problems";
 export type { MapStatusBarProps } from "./MapStatusBar";
 export type { ScientificQAPanelProps } from "./ScientificQAPanel";
+export {
+  buildMapProblemsModel,
+  getMapProblemKindLabel,
+  type BuildMapProblemsModelInput,
+  type MapProblemActionKind,
+  type MapProblemActionTarget,
+  type MapProblemGroup,
+  type MapProblemKind,
+  type MapProblemRow,
+  type MapProblemSeverity,
+  type MapProblemsModel,
+} from "./problems";
 
 export { MapWorkspaceCockpit } from "./MapWorkspaceCockpit";
 export type { MapWorkspaceCockpitProps } from "./MapWorkspaceCockpit";

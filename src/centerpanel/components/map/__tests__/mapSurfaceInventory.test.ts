@@ -7,6 +7,8 @@ import { MAP_QUICK_ACTIONS, MAP_WORKSPACE_VIEWS } from "../mapExperience";
 import {
   MAP_SURFACE_INVENTORY,
   MAP_WORKBENCH_TARGET_HOMES,
+  MAP_PRIMARY_ACTIVITY_ORDER,
+  MAP_UTILITY_ACTIVITY_ORDER,
   getMapSurfaceInventoryByHome,
 } from "../navigation";
 
@@ -81,6 +83,10 @@ function extractCompositionShowStateIds(compositionSource: string): Set<string> 
 }
 
 function extractActivityRailIds(compositionSource: string): Set<string> {
+  if (compositionSource.includes("const activityRailItems = MAP_PRIMARY_ACTIVITY_DEFINITIONS.map")) {
+    return new Set([...MAP_PRIMARY_ACTIVITY_ORDER, ...MAP_UTILITY_ACTIVITY_ORDER]);
+  }
+
   const railSource = [
     sourceSlice(compositionSource, "const activityRailItems = [", "const activityRailBottomItems = ["),
     sourceSlice(compositionSource, "const activityRailBottomItems = [", "return createPortal"),

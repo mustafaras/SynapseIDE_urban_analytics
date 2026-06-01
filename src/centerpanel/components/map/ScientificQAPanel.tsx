@@ -28,6 +28,7 @@ import {
   MAP_Z_INDEX,
   mapStyles,
 } from "./mapTokens";
+import { MapProblemsPanel, buildMapProblemsModel, type MapProblemRow } from "./problems";
 import { createOpaqueFloatingPanelStyle, useDraggableMapPanel } from "./useDraggableMapPanel";
 
 export interface ScientificQAPanelProps {
@@ -421,6 +422,22 @@ export const ScientificQAPanel: React.FC<ScientificQAPanelProps> = ({
     return new Map(overlayLayers.map((layer) => [layer.id, layer.name]));
   }, [overlayLayers]);
 
+  const problemsModel = useMemo(() => {
+    return buildMapProblemsModel({ qaState, overlayLayers });
+  }, [overlayLayers, qaState]);
+
+  const handleProblemAction = useCallback((problem: MapProblemRow) => {
+    if (!problem.qaIssueId || !qaState) {
+      return;
+    }
+    const issue = qaState.issues.find((entry) => entry.id === problem.qaIssueId);
+    if (!issue) {
+      return;
+    }
+    setExpandedIssueId(issue.id);
+    onShowDetails?.(issue);
+  }, [onShowDetails, qaState]);
+
   const categoryRows = qaState?.metadata.categorySummaries ?? [];
   const categoryRiskCount = categoryRows.filter((row) => row.severity !== "pass").length;
 
@@ -551,6 +568,14 @@ export const ScientificQAPanel: React.FC<ScientificQAPanelProps> = ({
       </div>
 
       <div style={mapStyles.sidePanelBody}>
+        <section style={sectionStyle} aria-label="Scientific QA problems">
+          <MapProblemsPanel
+            model={problemsModel}
+            compact={presentation === "bottom-drawer"}
+            onProblemAction={handleProblemAction}
+          />
+        </section>
+
         <section style={sectionStyle} aria-label="Scientific QA domains">
           <div style={sectionHeaderStyle}>
             <span>QA domains</span>
