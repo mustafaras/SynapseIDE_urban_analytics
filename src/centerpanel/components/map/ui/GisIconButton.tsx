@@ -103,6 +103,7 @@ export const GisIconButton = React.forwardRef<
         {...disabledProps}
         ref={ref}
         type="button"
+        data-gis-icon-button="true"
         aria-label={label}
         aria-pressed={active}
         disabled={disabled}

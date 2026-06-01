@@ -5,6 +5,7 @@ import {
   MAP_COLORS,
   MAP_DIMENSIONS,
   MAP_NUMERIC,
+  MAP_PANEL_SIZES,
   MAP_RADIUS,
   MAP_SPACING,
   MAP_STROKES,
@@ -199,7 +200,7 @@ const commandBarTitleStyle: React.CSSProperties = {
   whiteSpace: "nowrap",
   overflow: "hidden",
   textOverflow: "ellipsis",
-  letterSpacing: "0.01em",
+  letterSpacing: 0,
   margin: 0,
 };
 
@@ -328,6 +329,8 @@ const bottomTimelineShellStyle: React.CSSProperties = {
 const bottomTimelineSlotStyle: React.CSSProperties = {
   ...mapStyles.bottomTimelineRegion,
   borderTop: MAP_STROKES.none,
+  minWidth: MAP_SPACING.zero,
+  overflow: "hidden",
 };
 
 const mapExplorerA11yVars = {
@@ -344,6 +347,15 @@ const workspaceFocusCss = `
   outline-offset: 2px !important;
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--syn-interaction-focus-ring, #3794ff) 28%, transparent) !important;
 }
+[data-map-explorer-shell="true"] [data-gis-status-chip="true"],
+[data-map-explorer-shell="true"] [data-gis-tab="true"],
+[data-map-explorer-shell="true"] [data-gis-empty-state="true"] {
+  min-width: 0;
+  max-width: 100%;
+}
+[data-map-explorer-shell="true"] [data-gis-status-chip="true"] {
+  box-sizing: border-box;
+}
 [data-map-explorer-shell="true"] [role="separator"] {
   border-inline: 1px solid transparent;
 }
@@ -351,6 +363,30 @@ const workspaceFocusCss = `
 [data-map-explorer-shell="true"] [role="separator"]:focus-visible {
   background: color-mix(in srgb, var(--syn-interaction-active, #3794ff) 12%, transparent) !important;
   border-inline-color: var(--syn-border-focus, #3794ff) !important;
+}
+@media (forced-colors: active) {
+  [data-map-explorer-shell="true"] :focus-visible {
+    outline: 2px solid Highlight !important;
+    box-shadow: none !important;
+  }
+  [data-map-explorer-shell="true"] [data-gis-status-chip="true"] {
+    color: CanvasText !important;
+    background: Canvas !important;
+    border-color: CanvasText !important;
+  }
+  [data-map-explorer-shell="true"] [data-status="demo"],
+  [data-map-explorer-shell="true"] [data-status="synthetic"] {
+    border-style: dashed !important;
+  }
+  [data-map-explorer-shell="true"] [data-map-workbench-sidebar="true"],
+  [data-map-explorer-shell="true"] [data-map-panel-rail],
+  [data-map-explorer-shell="true"] [data-testid="map-inspector-host"],
+  [data-map-explorer-shell="true"] [data-testid="map-bottom-panel"] {
+    border-color: CanvasText !important;
+  }
+  [data-map-explorer-shell="true"] [data-gis-progress-bar="true"] > div {
+    background: Highlight !important;
+  }
 }
 `;
 
@@ -361,9 +397,9 @@ function getPanelRailStyle(side: MapPanelRailSide, width: number | string | unde
       left: MAP_SPACING.zero,
       right: MAP_SPACING.zero,
       bottom: MAP_SPACING.zero,
-      height: formatCssSize(height, "min(24rem, 52%)"),
+      height: formatCssSize(height, MAP_PANEL_SIZES.bottomPanelHeight),
       width: "auto",
-      maxHeight: "min(30rem, 68%)",
+      maxHeight: MAP_PANEL_SIZES.bottomPanelMaxHeight,
       borderTop: MAP_CHROME_BORDER_STRONG,
       borderRight: MAP_STROKES.none,
     };

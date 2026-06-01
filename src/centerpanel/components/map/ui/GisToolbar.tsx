@@ -73,6 +73,7 @@ export const GisToolbar: React.FC<GisToolbarProps> = ({
     <div
       {...props}
       role="toolbar"
+      data-gis-toolbar="true"
       aria-label={ariaLabel}
       aria-orientation={orientation}
       style={containerStyle}

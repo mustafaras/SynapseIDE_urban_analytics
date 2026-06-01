@@ -39,11 +39,13 @@ export const GisEmptyState: React.FC<GisEmptyStateProps> = ({
     padding: compact ? MAP_SPACING.md : MAP_SPACING.lg,
     textAlign: "center",
     color: MAP_COLORS.textMuted,
+    minWidth: 0,
+    maxWidth: "100%",
     ...style,
   };
 
   return (
-    <div data-testid={testId} style={containerStyle} role="status" aria-live="polite" className={motionStyles.fadeIn}>
+    <div data-testid={testId} data-gis-empty-state="true" style={containerStyle} role="status" aria-live="polite" className={motionStyles.fadeIn}>
       {icon ? (
         <span aria-hidden style={{ opacity: 0.4, display: "flex" }}>
           {icon}
@@ -57,6 +59,7 @@ export const GisEmptyState: React.FC<GisEmptyStateProps> = ({
           fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
           color: MAP_COLORS.textSecondary,
           lineHeight: MAP_TYPOGRAPHY.lineHeight.normal,
+          overflowWrap: "anywhere",
         }}
       >
         {title}
@@ -70,6 +73,7 @@ export const GisEmptyState: React.FC<GisEmptyStateProps> = ({
             color: MAP_COLORS.textMuted,
             lineHeight: MAP_TYPOGRAPHY.lineHeight.relaxed,
             maxWidth: "20rem",
+            overflowWrap: "anywhere",
           }}
         >
           {description}

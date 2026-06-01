@@ -173,6 +173,53 @@ export const MAP_ICON_SIZES = {
   md: MAP_NUMERIC.iconMd,
 } as const;
 
+/* ---- Visual system polish aliases ---- */
+export const MAP_FOCUS_STYLES = {
+  ring: {
+    outline: `2px solid ${MAP_COLORS.focus}`,
+    outlineOffset: "2px",
+    boxShadow: `0 0 0 3px color-mix(in srgb, ${MAP_COLORS.focus} 28%, transparent)`,
+  } satisfies React.CSSProperties,
+} as const;
+
+export const MAP_TEXT_STYLES = {
+  titleWrap: {
+    minWidth: MAP_SPACING.zero,
+    whiteSpace: "normal",
+    overflowWrap: "anywhere",
+    wordBreak: "normal",
+    hyphens: "auto",
+    lineHeight: MAP_TYPOGRAPHY.lineHeight.tight,
+  } satisfies React.CSSProperties,
+  valueWrap: {
+    minWidth: MAP_SPACING.zero,
+    overflowWrap: "anywhere",
+    wordBreak: "break-word",
+    lineHeight: MAP_TYPOGRAPHY.lineHeight.normal,
+  } satisfies React.CSSProperties,
+  truncate: {
+    minWidth: MAP_SPACING.zero,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  } satisfies React.CSSProperties,
+  chipLabel: {
+    minWidth: MAP_SPACING.zero,
+    maxWidth: "100%",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  } satisfies React.CSSProperties,
+} as const;
+
+export const MAP_PANEL_SIZES = {
+  sidebarExpanded: "clamp(16rem, 24vw, 22rem)",
+  inspectorRightRail: "min(26.25rem, calc(100% - 2rem))",
+  inspectorBottomDrawer: "min(26rem, 58%)",
+  bottomPanelHeight: "clamp(10rem, 28vh, 20rem)",
+  bottomPanelMaxHeight: "min(20rem, 42vh)",
+} as const;
+
 /* ---- Blur ---- */
 export const MAP_BLUR = {
   overlay: DESIGN_TOKENS.blur.md,
@@ -653,12 +700,11 @@ export const mapStyles = {
     display: "inline-flex",
     alignItems: "center",
     gap: MAP_SPACING.xs,
-    minWidth: MAP_SPACING.zero,
+    ...MAP_TEXT_STYLES.titleWrap,
     color: MAP_COLORS.text,
     fontFamily: MAP_TYPOGRAPHY.fontFamilyBrand,
     fontSize: MAP_TYPOGRAPHY.fontSize.sm,
     fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
-    lineHeight: MAP_TYPOGRAPHY.lineHeight.tight,
   } satisfies React.CSSProperties,
 
   sidePanelHeaderActions: {

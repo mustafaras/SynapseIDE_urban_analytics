@@ -8,6 +8,7 @@ import {
   MAP_COLORS,
   MAP_SPACING,
   MAP_STROKES,
+  MAP_TEXT_STYLES,
   MAP_TYPOGRAPHY,
 } from "../mapTokens";
 
@@ -34,7 +35,7 @@ const HIGHLIGHT_COLOR: Record<NonNullable<GisPropertyRow["highlight"]>, string> 
 
 const gridStyle: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "auto 1fr",
+  gridTemplateColumns: "minmax(6rem, max-content) minmax(0, 1fr)",
   gap: 0,
   width: "100%",
 };
@@ -45,7 +46,6 @@ const cellBase: React.CSSProperties = {
   fontFamily: MAP_TYPOGRAPHY.fontFamily,
   borderBottom: MAP_STROKES.hairlineSubtle,
   alignItems: "start",
-  wordBreak: "break-word",
   minWidth: 0,
 };
 
@@ -81,9 +81,10 @@ export const GisPropertyGrid: React.FC<GisPropertyGridProps> = ({
           <dd
             style={{
               ...cellBase,
+              ...MAP_TEXT_STYLES.valueWrap,
               margin: 0,
               color: highlight ? HIGHLIGHT_COLOR[highlight] : MAP_COLORS.text,
-              fontWeight: MAP_TYPOGRAPHY.fontWeight.normal,
+              fontWeight: 400,
             }}
           >
             {value}

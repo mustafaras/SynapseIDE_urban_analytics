@@ -35,7 +35,9 @@ const tooltipStyle: React.CSSProperties = {
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
   fontFamily: MAP_TYPOGRAPHY.fontFamily,
   color: MAP_COLORS.text,
-  whiteSpace: "nowrap",
+  maxWidth: "16rem",
+  whiteSpace: "normal",
+  overflowWrap: "anywhere",
   pointerEvents: "none",
   zIndex: MAP_Z_INDEX.dropdown,
 };

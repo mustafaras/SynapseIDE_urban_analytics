@@ -3,10 +3,13 @@ import { Activity, AlertTriangle, CheckCircle2, Circle, CircleDashed, X } from "
 import type { MapBottomPanelTabId as NavigationMapBottomPanelTabId } from "../navigation";
 import {
   MAP_COLORS,
+  MAP_DENSITY,
   MAP_ICON_SIZES,
+  MAP_PANEL_SIZES,
   MAP_RADIUS,
   MAP_SPACING,
   MAP_STROKES,
+  MAP_TEXT_STYLES,
   MAP_TYPOGRAPHY,
 } from "../mapTokens";
 import { GisEmptyState, GisIconButton } from "../ui";
@@ -74,8 +77,8 @@ const panelStyle: React.CSSProperties = {
   display: "grid",
   gridTemplateRows: "auto minmax(0, 1fr)",
   minHeight: "12rem",
-  height: "clamp(13rem, 28vh, 22rem)",
-  maxHeight: "min(22rem, 44vh)",
+  height: MAP_PANEL_SIZES.bottomPanelHeight,
+  maxHeight: MAP_PANEL_SIZES.bottomPanelMaxHeight,
   minWidth: MAP_SPACING.zero,
   background: MAP_COLORS.bgPanel,
   borderTop: MAP_STROKES.hairlineStrong,
@@ -99,11 +102,14 @@ const tabListStyle: React.CSSProperties = {
   gap: MAP_SPACING.zero,
   minWidth: MAP_SPACING.zero,
   overflowX: "auto",
+  overscrollBehaviorX: "contain",
+  scrollbarGutter: "stable",
 };
 
 const tabButtonBaseStyle: React.CSSProperties = {
   position: "relative",
-  minHeight: "2rem",
+  minHeight: MAP_DENSITY.compact.rowHeight,
+  maxWidth: "10.5rem",
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
@@ -118,7 +124,7 @@ const tabButtonBaseStyle: React.CSSProperties = {
   fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
-  whiteSpace: "nowrap",
+  ...MAP_TEXT_STYLES.chipLabel,
 };
 
 const tabButtonActiveStyle: React.CSSProperties = {
@@ -164,7 +170,7 @@ const tasksListStyle: React.CSSProperties = {
 
 const taskRowStyle: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "minmax(9rem, 0.65fr) minmax(0, 1fr) minmax(8rem, auto)",
+  gridTemplateColumns: "minmax(8rem, 0.55fr) minmax(0, 1fr) minmax(7rem, auto)",
   alignItems: "center",
   gap: MAP_SPACING.md,
   minWidth: MAP_SPACING.zero,
@@ -178,9 +184,7 @@ const taskLabelStyle: React.CSSProperties = {
   color: MAP_COLORS.text,
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
+  ...MAP_TEXT_STYLES.titleWrap,
 };
 
 const taskDetailStyle: React.CSSProperties = {
@@ -195,7 +199,7 @@ const taskMetaStyle: React.CSSProperties = {
   color: MAP_COLORS.textMuted,
   fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
-  whiteSpace: "nowrap",
+  ...MAP_TEXT_STYLES.truncate,
 };
 
 const taskStatusStyle: React.CSSProperties = {

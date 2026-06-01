@@ -8,6 +8,7 @@ import {
   MAP_SHADOWS,
   MAP_SPACING,
   MAP_STROKES,
+  MAP_TEXT_STYLES,
   MAP_TYPOGRAPHY,
   MAP_Z_INDEX,
 } from "../mapTokens";
@@ -107,7 +108,7 @@ const headerStyle: React.CSSProperties = {
 const eyebrowStyle: React.CSSProperties = {
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
   textTransform: "uppercase",
-  letterSpacing: "0.06em",
+  letterSpacing: 0,
   color: MAP_COLORS.textMuted,
 };
 
@@ -115,10 +116,7 @@ const titleStyle: React.CSSProperties = {
   fontSize: MAP_TYPOGRAPHY.fontSize.md,
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
   color: MAP_COLORS.text,
-  /* Ellipsis-truncate long layer names — never clip silently */
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
+  ...MAP_TEXT_STYLES.titleWrap,
   maxWidth: "22rem",
 };
 
@@ -134,26 +132,28 @@ const sectionTitleStyle: React.CSSProperties = {
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
   textTransform: "uppercase",
-  letterSpacing: "0.04em",
+  letterSpacing: 0,
   color: MAP_COLORS.textMuted,
   marginBottom: MAP_SPACING.xs,
 };
 
 const rowStyle: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
+  display: "grid",
+  gridTemplateColumns: "minmax(6.5rem, 0.42fr) minmax(0, 1fr)",
+  alignItems: "start",
   gap: MAP_SPACING.sm,
   padding: `2px 0`,
   fontSize: MAP_TYPOGRAPHY.fontSize.sm,
 };
 
-const rowLabelStyle: React.CSSProperties = { color: MAP_COLORS.textMuted, whiteSpace: "nowrap" };
-const rowValueStyle: React.CSSProperties = { color: MAP_COLORS.text, textAlign: "right", wordBreak: "break-word" };
+const rowLabelStyle: React.CSSProperties = { color: MAP_COLORS.textMuted, ...MAP_TEXT_STYLES.truncate };
+const rowValueStyle: React.CSSProperties = { color: MAP_COLORS.text, textAlign: "right", ...MAP_TEXT_STYLES.valueWrap };
 const unknownStyle: React.CSSProperties = { color: MAP_COLORS.caveatText, fontStyle: "italic" };
 const monoStyle: React.CSSProperties = { fontFamily: MAP_TYPOGRAPHY.fontFamilyMono };
 
 const chipStyle: React.CSSProperties = {
-  display: "inline-block",
+  display: "inline-flex",
+  maxWidth: "100%",
   padding: `1px ${MAP_SPACING.xs}`,
   margin: "1px",
   border: MAP_STROKES.hairline,
@@ -161,6 +161,7 @@ const chipStyle: React.CSSProperties = {
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
   fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
   color: MAP_COLORS.text,
+  overflowWrap: "anywhere",
 };
 
 const noteStyle: React.CSSProperties = {

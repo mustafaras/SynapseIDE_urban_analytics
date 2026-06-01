@@ -64,6 +64,7 @@ export const GisProgressBar: React.FC<GisProgressBarProps> = ({
       aria-valuemin={isIndeterminate ? undefined : 0}
       aria-valuemax={isIndeterminate ? undefined : 100}
       data-testid={testId}
+      data-gis-progress-bar="true"
       style={trackStyle}
     >
       <div

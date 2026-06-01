@@ -20,8 +20,10 @@ import React from "react";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import {
   MAP_COLORS,
+  MAP_PANEL_SIZES,
   MAP_SPACING,
   MAP_STROKES,
+  MAP_TEXT_STYLES,
   MAP_TYPOGRAPHY,
   MAP_Z_INDEX,
 } from "../mapTokens";
@@ -95,8 +97,8 @@ const headerStyle: React.CSSProperties = {
   flexDirection: "row",
   alignItems: "center",
   gap: MAP_SPACING.sm,
-  minHeight: "2.25rem",
-  padding: `0 ${MAP_SPACING.sm} 0 ${MAP_SPACING.md}`,
+  minHeight: "2.375rem",
+  padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm} ${MAP_SPACING.xs} ${MAP_SPACING.md}`,
   background: MAP_COLORS.bgHeader,
   borderBottom: MAP_STROKES.hairline,
   flexShrink: 0,
@@ -105,9 +107,8 @@ const headerStyle: React.CSSProperties = {
 const titleWrapStyle: React.CSSProperties = {
   flex: 1,
   minWidth: 0,
-  display: "flex",
-  alignItems: "baseline",
-  gap: MAP_SPACING.xs,
+  display: "grid",
+  gap: "0.125rem",
   overflow: "hidden",
 };
 
@@ -116,18 +117,14 @@ const titleStyle: React.CSSProperties = {
   fontSize: MAP_TYPOGRAPHY.fontSize.sm,
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
   color: MAP_COLORS.text,
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  letterSpacing: "0.01em",
+  letterSpacing: 0,
+  ...MAP_TEXT_STYLES.titleWrap,
 };
 
 const subtitleStyle: React.CSSProperties = {
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
   color: MAP_COLORS.textMuted,
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
+  ...MAP_TEXT_STYLES.truncate,
 };
 
 const headerActionsStyle: React.CSSProperties = {
@@ -159,7 +156,7 @@ const collapsedTitleStyle: React.CSSProperties = {
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
   color: MAP_COLORS.textSecondary,
-  letterSpacing: "0.04em",
+  letterSpacing: 0,
   whiteSpace: "nowrap",
 };
 
@@ -178,7 +175,7 @@ export const MapWorkbenchSidebar: React.FC<MapWorkbenchSidebarProps> = ({
   onClose,
   onToggleCollapse,
   collapsed = false,
-  width = "18rem",
+  width = MAP_PANEL_SIZES.sidebarExpanded,
   style,
   "data-testid": testId = "map-workbench-sidebar",
 }) => {
@@ -247,7 +244,7 @@ export const MapWorkbenchSidebar: React.FC<MapWorkbenchSidebarProps> = ({
       data-map-workbench-sidebar="true"
       data-active-tab={resolvedActiveId}
       aria-label={`${title} sidebar`}
-      style={{ ...shellBaseStyle, width, ...style }}
+      style={{ ...shellBaseStyle, width, maxWidth: "100%", ...style }}
     >
       <div style={headerStyle}>
         <div style={titleWrapStyle}>

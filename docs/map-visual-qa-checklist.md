@@ -100,6 +100,18 @@ These are verified by `npm run test:e2e:smoke` — confirm green before release:
 
 ---
 
+## G — Prompt 15 Premium Shell Polish Delta
+
+- [ ] Sidebar, inspector, and bottom panel headers use the same compact chrome and visible focus treatment
+- [ ] Long layer, source, readiness, and task labels wrap or truncate without escaping their parent row
+- [ ] Sidebar workspace sections use separators for shell structure; repeated rows remain scan-friendly without card-in-card chrome
+- [ ] Demo and synthetic chips remain distinguishable without relying on color alone
+- [ ] Panel scroll areas contain overflow without creating horizontal page or modal scrollbars
+- [ ] Forced-colors mode keeps focus rings, status chips, panel borders, and progress bars readable
+- [ ] Desktop (1440×900), tablet (768×1024), and short viewport (1280×600) smoke checks show no text overlap or panel/status-bar overlap
+
+---
+
 ## Reviewer sign-off
 
 | Area | Reviewer | Date | Notes |

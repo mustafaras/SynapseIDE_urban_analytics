@@ -8,6 +8,7 @@ import {
   MAP_COLORS,
   MAP_SPACING,
   MAP_STROKES,
+  MAP_TEXT_STYLES,
   MAP_TYPOGRAPHY,
 } from "../mapTokens";
 
@@ -50,6 +51,7 @@ export const GisSectionHeader: React.FC<GisSectionHeaderProps> = ({
     background: MAP_COLORS.bgHeader,
     flexShrink: 0,
     minWidth: 0,
+    maxWidth: "100%",
     ...style,
   };
 
@@ -59,13 +61,10 @@ export const GisSectionHeader: React.FC<GisSectionHeaderProps> = ({
     fontFamily: MAP_TYPOGRAPHY.fontFamily,
     fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
     color: MAP_COLORS.textSecondary,
-    letterSpacing: "0.03em",
+    letterSpacing: 0,
     textTransform: "uppercase",
-    whiteSpace: "nowrap",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
+    ...MAP_TEXT_STYLES.titleWrap,
     flex: 1,
-    minWidth: 0,
   };
 
   return (

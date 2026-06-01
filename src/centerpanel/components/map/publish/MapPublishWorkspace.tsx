@@ -12,6 +12,7 @@ import {
   MAP_RADIUS,
   MAP_SPACING,
   MAP_STROKES,
+  MAP_TEXT_STYLES,
   MAP_TYPOGRAPHY,
   type GisStatusKey,
 } from "../mapTokens";
@@ -90,7 +91,7 @@ const PUBLISH_TAB_DEFINITIONS: ReadonlyArray<{
 const bodyStyle: React.CSSProperties = {
   display: "grid",
   alignContent: "start",
-  gap: MAP_SPACING.md,
+  gap: MAP_SPACING.sm,
   minHeight: "100%",
   padding: MAP_SPACING.md,
   color: MAP_COLORS.text,
@@ -131,13 +132,14 @@ const readinessGridStyle: React.CSSProperties = {
 
 const readinessItemStyle: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "minmax(7rem, 0.34fr) minmax(0, 1fr)",
+  gridTemplateColumns: "minmax(6.5rem, 0.32fr) minmax(0, 1fr)",
   gap: MAP_SPACING.sm,
   alignItems: "start",
   padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
-  border: MAP_STROKES.hairlineSubtle,
-  borderRadius: MAP_RADIUS.sm,
-  background: MAP_COLORS.bg,
+  border: MAP_STROKES.none,
+  borderBottom: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.none,
+  background: MAP_COLORS.transparent,
 };
 
 const readinessLabelStyle: React.CSSProperties = {
@@ -150,6 +152,7 @@ const readinessDetailStyle: React.CSSProperties = {
   minWidth: 0,
   color: MAP_COLORS.textSecondary,
   lineHeight: MAP_TYPOGRAPHY.lineHeight.normal,
+  ...MAP_TEXT_STYLES.valueWrap,
 };
 
 const panelSlotStyle: React.CSSProperties = {
@@ -165,10 +168,10 @@ const pathPanelStyle: React.CSSProperties = {
 const pathHeaderStyle: React.CSSProperties = {
   display: "grid",
   gap: MAP_SPACING.xs,
-  padding: MAP_SPACING.sm,
-  border: MAP_STROKES.hairlineSubtle,
-  borderRadius: MAP_RADIUS.sm,
-  background: MAP_COLORS.bg,
+  padding: 0,
+  border: MAP_STROKES.none,
+  borderRadius: MAP_RADIUS.none,
+  background: MAP_COLORS.transparent,
 };
 
 const pathEyebrowStyle: React.CSSProperties = {
@@ -185,6 +188,7 @@ const pathTitleStyle: React.CSSProperties = {
   color: MAP_COLORS.text,
   fontSize: MAP_TYPOGRAPHY.fontSize.sm,
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+  ...MAP_TEXT_STYLES.titleWrap,
 };
 
 const pathDescriptionStyle: React.CSSProperties = {
@@ -192,11 +196,12 @@ const pathDescriptionStyle: React.CSSProperties = {
   color: MAP_COLORS.textSecondary,
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
   lineHeight: MAP_TYPOGRAPHY.lineHeight.normal,
+  ...MAP_TEXT_STYLES.valueWrap,
 };
 
 const pathMetaGridStyle: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  gridTemplateColumns: "repeat(auto-fit, minmax(8rem, 1fr))",
   gap: MAP_SPACING.xs,
 };
 
@@ -206,7 +211,8 @@ const pathMetaItemStyle: React.CSSProperties = {
   minWidth: 0,
   padding: MAP_SPACING.xs,
   border: MAP_STROKES.hairlineSubtle,
-  borderRadius: MAP_RADIUS.sm,
+  borderRadius: MAP_RADIUS.xs,
+  background: MAP_COLORS.transparent,
 };
 
 const pathMetaLabelStyle: React.CSSProperties = {
@@ -218,9 +224,7 @@ const pathMetaLabelStyle: React.CSSProperties = {
 const pathMetaValueStyle: React.CSSProperties = {
   color: MAP_COLORS.text,
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
+  ...MAP_TEXT_STYLES.valueWrap,
 };
 
 const actionRowStyle: React.CSSProperties = {
@@ -241,6 +245,9 @@ const actionButtonBaseStyle: React.CSSProperties = {
   padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
   cursor: "pointer",
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  maxWidth: "100%",
+  whiteSpace: "normal",
+  textAlign: "center",
 };
 
 const primaryActionStyle: React.CSSProperties = {

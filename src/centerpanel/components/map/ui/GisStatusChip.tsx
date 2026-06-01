@@ -7,6 +7,7 @@ import React from "react";
 import {
   MAP_DENSITY,
   MAP_STATUS_TOKENS,
+  MAP_TEXT_STYLES,
   MAP_TYPOGRAPHY,
   type GisDensity,
   type GisStatusKey,
@@ -37,16 +38,17 @@ export const GisStatusChip: React.FC<GisStatusChipProps> = ({
   const chipStyle: React.CSSProperties = {
     display: "inline-flex",
     alignItems: "center",
-    height: d.rowHeight,
+    minHeight: d.rowHeight,
     padding: `2px 8px`,
     borderRadius: "3px",
     fontSize: d.fontSize,
     fontFamily: MAP_TYPOGRAPHY.fontFamily,
     fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
-    whiteSpace: "nowrap",
+    ...MAP_TEXT_STYLES.chipLabel,
     color: tok.text,
     background: tok.bg,
     border: `1px solid ${tok.border}`,
+    borderStyle: status === "demo" ? "dashed" : status === "synthetic" ? "dotted" : "solid",
     ...style,
   };
 
@@ -55,6 +57,7 @@ export const GisStatusChip: React.FC<GisStatusChipProps> = ({
     <span
       data-testid={testId}
       data-status={status}
+      data-gis-status-chip="true"
       className={`${motionStyles.statusFlash}${className ? ` ${className}` : ""}`}
       style={chipStyle}
     >

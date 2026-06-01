@@ -3,9 +3,11 @@ import type { SourceHandle } from "@/services/map/contracts/gisContracts";
 import type { OverlayLayerConfig } from "../mapTypes";
 import {
   MAP_COLORS,
+  MAP_PANEL_SIZES,
   MAP_RADIUS,
   MAP_SPACING,
   MAP_STROKES,
+  MAP_TEXT_STYLES,
   MAP_TYPOGRAPHY,
   MAP_Z_INDEX,
   mapStyles,
@@ -59,14 +61,12 @@ const eyebrowStyle: React.CSSProperties = {
   color: MAP_COLORS.textMuted,
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
   textTransform: "uppercase",
-  letterSpacing: "0.04em",
+  letterSpacing: 0,
 };
 
 const titleStyle: React.CSSProperties = {
   margin: 0,
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
+  ...MAP_TEXT_STYLES.titleWrap,
   color: MAP_COLORS.text,
   fontSize: MAP_TYPOGRAPHY.fontSize.sm,
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
@@ -90,9 +90,9 @@ function getHostStyle(presentation: MapInspectorHostPresentation, width?: number
       right: MAP_SPACING.zero,
       bottom: MAP_SPACING.zero,
       top: "auto",
-      height: "min(28rem, 60%)",
+      height: MAP_PANEL_SIZES.inspectorBottomDrawer,
       borderTop: MAP_STROKES.hairlineStrong,
-      borderRadius: `${MAP_RADIUS.lg} ${MAP_RADIUS.lg} 0 0`,
+      borderRadius: `${MAP_RADIUS.sm} ${MAP_RADIUS.sm} 0 0`,
       zIndex: MAP_Z_INDEX.symbologyPanel + 2,
     };
   }
@@ -102,8 +102,8 @@ function getHostStyle(presentation: MapInspectorHostPresentation, width?: number
     top: MAP_SPACING.zero,
     right: MAP_SPACING.zero,
     bottom: MAP_SPACING.zero,
-    width: `${width ?? 420}px`,
-    maxWidth: "calc(100% - 2rem)",
+    width: width ? `min(${width}px, ${MAP_PANEL_SIZES.inspectorRightRail})` : MAP_PANEL_SIZES.inspectorRightRail,
+    maxWidth: MAP_PANEL_SIZES.inspectorRightRail,
     borderLeft: MAP_STROKES.hairlineSubtle,
     zIndex: MAP_Z_INDEX.symbologyPanel + 2,
   };

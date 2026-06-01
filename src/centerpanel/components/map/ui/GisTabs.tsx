@@ -6,9 +6,11 @@
 import React, { useCallback, useRef } from "react";
 import {
   MAP_COLORS,
+  MAP_DENSITY,
   MAP_RADIUS,
   MAP_SPACING,
   MAP_STROKES,
+  MAP_TEXT_STYLES,
   MAP_TRANSITIONS,
   MAP_TYPOGRAPHY,
 } from "../mapTokens";
@@ -45,6 +47,8 @@ const tabListStyle: React.CSSProperties = {
   flexShrink: 0,
   minWidth: 0,
   overflowX: "auto",
+  overscrollBehaviorX: "contain",
+  scrollbarGutter: "stable",
   scrollbarWidth: "thin",
 };
 
@@ -53,6 +57,8 @@ function buildTabStyle(active: boolean, disabled: boolean | undefined): React.CS
     display: "inline-flex",
     alignItems: "center",
     gap: MAP_SPACING.xs,
+    minHeight: MAP_DENSITY.compact.rowHeight,
+    maxWidth: "11rem",
     padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
     border: "none",
     borderBottom: active
@@ -67,12 +73,12 @@ function buildTabStyle(active: boolean, disabled: boolean | undefined): React.CS
         : MAP_COLORS.textSecondary,
     fontSize: MAP_TYPOGRAPHY.fontSize.xs,
     fontFamily: MAP_TYPOGRAPHY.fontFamily,
-    fontWeight: active ? MAP_TYPOGRAPHY.fontWeight.semibold : MAP_TYPOGRAPHY.fontWeight.normal,
+    fontWeight: active ? MAP_TYPOGRAPHY.fontWeight.semibold : 400,
     cursor: disabled ? "not-allowed" : "pointer",
     opacity: disabled ? 0.45 : 1,
     transition: MAP_TRANSITIONS.fast,
     outline: "none",
-    whiteSpace: "nowrap",
+    ...MAP_TEXT_STYLES.chipLabel,
     flexShrink: 0,
     marginBottom: "-1px",
   };
@@ -123,6 +129,7 @@ export const GisTabs: React.FC<GisTabsProps> = ({
   return (
     <div
       data-testid={testId}
+      data-gis-tabs="true"
       style={{ display: "flex", flexDirection: "column", minHeight: 0, ...style }}
     >
       <div role="tablist" aria-label={ariaLabel} style={tabListStyle}>
@@ -138,6 +145,7 @@ export const GisTabs: React.FC<GisTabsProps> = ({
             disabled={tab.disabled}
             title={tab.disabled && tab.disabledReason ? tab.disabledReason : tab.label}
             data-disabled-reason={tab.disabled && tab.disabledReason ? tab.disabledReason : undefined}
+            data-gis-tab="true"
             data-testid={tabTestIdPrefix ? `${tabTestIdPrefix}-${tab.id}` : undefined}
             tabIndex={activeId === tab.id ? 0 : -1}
             style={buildTabStyle(activeId === tab.id, tab.disabled)}
@@ -153,7 +161,7 @@ export const GisTabs: React.FC<GisTabsProps> = ({
         role="tabpanel"
         id={`gis-tabpanel-${activeId}`}
         aria-labelledby={`gis-tab-${activeId}`}
-        style={{ flex: 1, overflow: "auto", minHeight: 0 }}
+        style={{ flex: 1, overflow: "auto", minHeight: 0, overscrollBehavior: "contain", scrollbarGutter: "stable" }}
       >
         {children}
       </div>

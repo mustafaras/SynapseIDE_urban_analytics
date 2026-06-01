@@ -7,6 +7,7 @@ import {
   MAP_RADIUS,
   MAP_SPACING,
   MAP_STROKES,
+  MAP_TEXT_STYLES,
   MAP_TYPOGRAPHY,
 } from "../mapTokens";
 import { MapWorkbenchSidebar } from "../sidebar";
@@ -78,7 +79,7 @@ const ANALYZE_TAB_DEFINITIONS: ReadonlyArray<{
 const panelStackStyle: React.CSSProperties = {
   display: "grid",
   alignContent: "start",
-  gap: MAP_SPACING.md,
+  gap: MAP_SPACING.sm,
   minHeight: "100%",
   padding: MAP_SPACING.md,
   color: MAP_COLORS.text,
@@ -122,10 +123,10 @@ const listStyle: React.CSSProperties = {
 const rowStyle: React.CSSProperties = {
   display: "grid",
   gap: MAP_SPACING.xs,
-  padding: MAP_SPACING.sm,
-  border: MAP_STROKES.hairlineSubtle,
-  borderRadius: MAP_RADIUS.sm,
-  background: MAP_COLORS.bg,
+  padding: `${MAP_SPACING.sm} 0`,
+  borderBottom: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.none,
+  background: MAP_COLORS.transparent,
 };
 
 const rowHeaderStyle: React.CSSProperties = {
@@ -139,9 +140,7 @@ const rowHeaderStyle: React.CSSProperties = {
 const rowTitleStyle: React.CSSProperties = {
   color: MAP_COLORS.text,
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
+  ...MAP_TEXT_STYLES.titleWrap,
 };
 
 const chipRowStyle: React.CSSProperties = {
@@ -156,11 +155,13 @@ const chipStyle: React.CSSProperties = {
   minHeight: "1.25rem",
   padding: `0 ${MAP_SPACING.xs}`,
   border: MAP_STROKES.hairlineSubtle,
-  borderRadius: MAP_RADIUS.sm,
+  borderRadius: MAP_RADIUS.xs,
   color: MAP_COLORS.textSecondary,
-  background: MAP_COLORS.bgPanel,
+  background: MAP_COLORS.transparent,
   fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  maxWidth: "100%",
+  overflowWrap: "anywhere",
 };
 
 const actionRowStyle: React.CSSProperties = {
@@ -185,6 +186,8 @@ function actionButtonStyle(active = false, disabled = false): React.CSSPropertie
     fontSize: MAP_TYPOGRAPHY.fontSize.xs,
     fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
     fontFamily: MAP_TYPOGRAPHY.fontFamily,
+    maxWidth: "100%",
+    textAlign: "center",
   };
 }
 

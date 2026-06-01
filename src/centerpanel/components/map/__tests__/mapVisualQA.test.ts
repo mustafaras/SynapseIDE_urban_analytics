@@ -244,3 +244,90 @@ describe("motion.module.css — P40 class contract", () => {
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// Prompt 15 visual-system contract — source-level guardrails
+// ---------------------------------------------------------------------------
+const MAP_TOKENS_PATH = join(
+  process.cwd(),
+  "src/centerpanel/components/map/mapTokens.ts",
+);
+const SHELL_PATH = join(
+  process.cwd(),
+  "src/centerpanel/components/map/MapWorkspaceShell.tsx",
+);
+const STATUS_CHIP_PATH = join(
+  process.cwd(),
+  "src/centerpanel/components/map/ui/GisStatusChip.tsx",
+);
+const TABS_PATH = join(
+  process.cwd(),
+  "src/centerpanel/components/map/ui/GisTabs.tsx",
+);
+const SIDEBAR_PATH = join(
+  process.cwd(),
+  "src/centerpanel/components/map/sidebar/MapWorkbenchSidebar.tsx",
+);
+const INSPECTOR_HOST_PATH = join(
+  process.cwd(),
+  "src/centerpanel/components/map/inspector/MapInspectorHost.tsx",
+);
+const LAYER_INSPECTOR_PATH = join(
+  process.cwd(),
+  "src/centerpanel/components/map/inspector/LayerInspector.tsx",
+);
+const BOTTOM_PANEL_PATH = join(
+  process.cwd(),
+  "src/centerpanel/components/map/bottom/MapBottomPanel.tsx",
+);
+
+describe("Prompt 15 visual-system polish contract", () => {
+  const tokens = readFileSync(MAP_TOKENS_PATH, "utf-8");
+  const shell = readFileSync(SHELL_PATH, "utf-8");
+  const statusChip = readFileSync(STATUS_CHIP_PATH, "utf-8");
+  const tabs = readFileSync(TABS_PATH, "utf-8");
+  const sidebar = readFileSync(SIDEBAR_PATH, "utf-8");
+  const inspectorHost = readFileSync(INSPECTOR_HOST_PATH, "utf-8");
+  const layerInspector = readFileSync(LAYER_INSPECTOR_PATH, "utf-8");
+  const bottomPanel = readFileSync(BOTTOM_PANEL_PATH, "utf-8");
+
+  it("centralizes wrapping and responsive panel aliases in mapTokens", () => {
+    expect(tokens).toContain("MAP_TEXT_STYLES");
+    expect(tokens).toContain("titleWrap");
+    expect(tokens).toContain("valueWrap");
+    expect(tokens).toContain("chipLabel");
+    expect(tokens).toContain("MAP_PANEL_SIZES");
+    expect(tokens).toContain("bottomPanelHeight");
+    expect(tokens).toContain("inspectorRightRail");
+  });
+
+  it("keeps status chips distinct beyond color alone", () => {
+    expect(statusChip).toContain('data-gis-status-chip="true"');
+    expect(statusChip).toContain('status === "demo" ? "dashed"');
+    expect(statusChip).toContain('status === "synthetic" ? "dotted"');
+    expect(statusChip).toContain("MAP_TEXT_STYLES.chipLabel");
+  });
+
+  it("keeps tabs dense and scroll-contained", () => {
+    expect(tabs).toContain("MAP_DENSITY.compact.rowHeight");
+    expect(tabs).toContain("overscrollBehaviorX");
+    expect(tabs).toContain("scrollbarGutter");
+    expect(tabs).toContain('data-gis-tab="true"');
+  });
+
+  it("adds forced-colors focus and status fallbacks in the shell", () => {
+    expect(shell).toContain("@media (forced-colors: active)");
+    expect(shell).toContain("outline: 2px solid Highlight");
+    expect(shell).toContain('[data-gis-status-chip="true"]');
+    expect(shell).toContain('[data-gis-progress-bar="true"]');
+  });
+
+  it("uses shared wrap aliases in sidebar, inspector, and bottom hosts", () => {
+    for (const source of [sidebar, inspectorHost, layerInspector, bottomPanel]) {
+      expect(source).toContain("MAP_TEXT_STYLES");
+    }
+    expect(sidebar).toContain("MAP_PANEL_SIZES.sidebarExpanded");
+    expect(inspectorHost).toContain("MAP_PANEL_SIZES.inspectorRightRail");
+    expect(bottomPanel).toContain("MAP_PANEL_SIZES.bottomPanelHeight");
+  });
+});
