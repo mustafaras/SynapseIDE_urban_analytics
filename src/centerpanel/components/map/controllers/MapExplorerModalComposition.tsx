@@ -117,6 +117,15 @@ import {
   MapAnalyzeWorkspace,
   type MapAnalyzeTabId,
 } from "../analyze";
+import {
+  MapStyleAdvisorPanel,
+  MapStyleLabelsPanel,
+  MapStyleLegendPanel,
+  MapStyleRendererPanel,
+  MapStyleSymbolsPanel,
+  MapStyleWorkspace,
+  type MapStyleTabId,
+} from "../style";
 import { MapBottomPanel, type MapBottomPanelCoreTabId, type MapBottomPanelTask } from "../bottom";
 import { ScientificQAPanel } from "../ScientificQAPanel";
 import { MapProblemsPanel, buildMapProblemsModel, type MapProblemRow } from "../problems";
@@ -1180,6 +1189,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   );
   const [workbenchSidebarCollapsed, setWorkbenchSidebarCollapsed] = useState(false);
   const [layersCartographyScopeId, setLayersCartographyScopeId] = useState<string | null>(null);
+  const [styleWorkspaceLayerId, setStyleWorkspaceLayerId] = useState<string | null>(null);
   const [showSidebar, setShowSidebar] = useState(false);
   const [showLayerPanel, setShowLayerPanel] = useState(true);
   const [showChoroplethPanel, setShowChoroplethPanel] = useState(false);
@@ -1290,6 +1300,32 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     setShowClusterViz(false);
     setShowHotSpotViz(false);
     setShowEmergingHotSpotViz(false);
+    announce(announcement);
+  }, [announce, setShowWorkflowDrawer, setWorkflowPreview]);
+  const openStyleActivityTab = useCallback((
+    tabId: MapStyleTabId,
+    announcement: string,
+    layerId?: string | null,
+  ) => {
+    setWorkspaceView("explore");
+    setActiveActivityId("style");
+    setShowLayerPanel(true);
+    setWorkbenchSidebarCollapsed(false);
+    setWorkbenchSidebarTab(tabId);
+    if (layerId !== undefined) {
+      setStyleWorkspaceLayerId(layerId);
+    }
+    setShowProcessingToolbox(false);
+    setShowModelBuilder(false);
+    setShowPluginPanel(false);
+    setShowNLQueryPanel(false);
+    setShowWorkflowDrawer(false);
+    setWorkflowPreview(null);
+    setShowScientificQAPanel(false);
+    setShowClusterViz(false);
+    setShowHotSpotViz(false);
+    setShowEmergingHotSpotViz(false);
+    setShowVoxCityOverlay(false);
     announce(announcement);
   }, [announce, setShowWorkflowDrawer, setWorkflowPreview]);
   const extensionRegistry = useMemo(() => createMapExtensionRegistry(), []);
@@ -2416,7 +2452,6 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     openScientificQAPanel,
     handleToggleSidebar,
     handleToggleLayerPanel,
-    handleToggleChoroplethPanel,
   } = useMapPanelCommands({
     announce,
     compactDock: dockLayout.compactDock,
@@ -2445,6 +2480,14 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     closeRightDockPanels();
     openAnalyzeActivityTab(tabId, announcement);
   }, [closeFloatingRightPanels, closeRightDockPanels, openAnalyzeActivityTab]);
+  const handleOpenStyleTab = useCallback((
+    tabId: MapStyleTabId,
+    announcement: string,
+    layerId?: string | null,
+  ) => {
+    closeRightDockPanels();
+    openStyleActivityTab(tabId, announcement, layerId);
+  }, [closeRightDockPanels, openStyleActivityTab]);
   const handleToggleProcessingToolbox = useCallback(() => {
     if (activeActivityId === "analyze" && showLayerPanel && workbenchSidebarTab === "analyze-tools") {
       setShowLayerPanel(false);
@@ -2597,6 +2640,23 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const selectedPointSymbologyLayer = pointSymbologyLayerId
     ? overlayLayers.find((layer) => layer.id === pointSymbologyLayerId) ?? null
     : null;
+  const activeStyleLayer = useMemo(() => {
+    if (styleWorkspaceLayerId) {
+      const explicitLayer = overlayLayers.find((layer) => layer.id === styleWorkspaceLayerId);
+      if (explicitLayer) return explicitLayer;
+    }
+
+    return selectedPointSymbologyLayer
+      ?? inspectorLayer
+      ?? overlayLayers.find((layer) => layer.visible)
+      ?? overlayLayers[0]
+      ?? null;
+  }, [inspectorLayer, overlayLayers, selectedPointSymbologyLayer, styleWorkspaceLayerId]);
+  useEffect(() => {
+    if (styleWorkspaceLayerId && !overlayLayers.some((layer) => layer.id === styleWorkspaceLayerId)) {
+      setStyleWorkspaceLayerId(null);
+    }
+  }, [overlayLayers, styleWorkspaceLayerId]);
   const contentsRenderLayers = useMemo(
     () => applyContentsToRenderLayers(overlayLayers, zoom),
     [overlayLayers, zoom],
@@ -3539,22 +3599,22 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   }, [setActiveTool]);
 
   const handleOpenPointSymbology = useCallback((layerId: string) => {
-    setPointSymbologyLayerId((current) => {
-      const next = current === layerId ? null : layerId;
-      if (next) {
-        setShowScientificQAPanel(false);
-        closeRightDockPanels();
-        setShowChoroplethPanel(false);
-        setShowClusterViz(false);
-        setShowHotSpotViz(false);
-        setShowEmergingHotSpotViz(false);
-        announce(`Point symbology panel opened for ${overlayLayers.find((layer) => layer.id === layerId)?.name ?? layerId}`);
-      } else {
-        announce("Point symbology panel closed");
-      }
-      return next;
-    });
-  }, [announce, closeRightDockPanels, overlayLayers]);
+    const layerName = overlayLayers.find((layer) => layer.id === layerId)?.name ?? layerId;
+    if (
+      pointSymbologyLayerId === layerId &&
+      activeActivityId === "style" &&
+      showLayerPanel &&
+      workbenchSidebarTab === "style-symbols"
+    ) {
+      setPointSymbologyLayerId(null);
+      announce("Point symbology panel closed");
+      return;
+    }
+
+    setPointSymbologyLayerId(layerId);
+    setShowChoroplethPanel(false);
+    handleOpenStyleTab("style-symbols", `Point symbology opened in Style Symbols for ${layerName}`, layerId);
+  }, [activeActivityId, announce, handleOpenStyleTab, overlayLayers, pointSymbologyLayerId, showLayerPanel, workbenchSidebarTab]);
 
   const handleAnalysisRecommendationAction = useCallback((recommendation: MapAnalysisRecommendation) => {
     recordMapReviewEvent(buildRecommendationActionReviewEvent(recommendation, buildCurrentReviewSnapshot()));
@@ -3618,17 +3678,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         openScientificQAPanel();
         break;
       case "choropleth":
-        setWorkspaceView("analyze");
-        setShowScientificQAPanel(false);
-        closeRightDockPanels();
         setPointSymbologyLayerId(null);
-        setShowClusterViz(false);
-        setShowHotSpotViz(false);
-        setShowEmergingHotSpotViz(false);
-        setShowVoxCityOverlay(false);
-        setShowWorkflowDrawer(false);
+        handleOpenStyleTab("style-renderer", `Renderer recommendation opened in Style for ${layerName}`, openLayerId);
         setShowChoroplethPanel(true);
-        announce(`Choropleth recommendation opened for ${layerName}`);
         break;
       case "cluster":
         handleOpenAnalyzeTab("analyze-statistics", `LISA recommendation opened for ${layerName}`);
@@ -3647,18 +3699,10 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
           toastInfo("Select or reveal a point layer before opening point symbology.");
           return;
         }
-        setWorkspaceView("analyze");
-        setShowScientificQAPanel(false);
-        closeRightDockPanels();
         setShowChoroplethPanel(false);
-        setShowClusterViz(false);
-        setShowHotSpotViz(false);
-        setShowEmergingHotSpotViz(false);
-        setShowVoxCityOverlay(false);
-        setShowWorkflowDrawer(false);
         setPointSymbologyMode(action.symbologyMode ?? "heatmap");
         setPointSymbologyLayerId(openLayerId);
-        announce(`Point symbology recommendation opened for ${layerName}`);
+        handleOpenStyleTab("style-symbols", `Point symbology recommendation opened in Style for ${layerName}`, openLayerId);
         break;
       case "voxcity-overlay":
         setWorkspaceView("explore");
@@ -3692,7 +3736,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       default:
         break;
     }
-  }, [activeUrbanContext, announce, buildCurrentReviewSnapshot, closeRightDockPanels, contextSummary, handleOpenAnalyzeTab, handleRunSelectionStatistics, openScientificQAPanel, overlayLayers, recordMapReviewEvent]);
+  }, [activeUrbanContext, announce, buildCurrentReviewSnapshot, closeRightDockPanels, contextSummary, handleOpenAnalyzeTab, handleOpenStyleTab, handleRunSelectionStatistics, openScientificQAPanel, overlayLayers, recordMapReviewEvent]);
 
   const handleApplyCartographyRecommendation = useCallback((recommendationId: string) => {
     const recommendation = cartographyReviewState.recommendations.find((entry) => entry.id === recommendationId);
@@ -6366,15 +6410,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         handleSetMeasureTool("measure-distance");
         break;
       case "theme-data":
-        handleSetWorkspaceView("analyze");
-        setShowScientificQAPanel(false);
-        closeRightDockPanels();
-        setShowLayerPanel(true);
         setPointSymbologyLayerId(null);
-        setShowClusterViz(false);
-        setShowHotSpotViz(false);
-        setShowChoroplethPanel(true);
-        announce("Thematic analysis panel opened");
+        setShowChoroplethPanel(false);
+        handleOpenStyleTab("style-renderer", "Renderer styling opened in Style", activeStyleLayer?.id ?? null);
         break;
       case "export-map":
         handleSetWorkspaceView("explore");
@@ -6387,7 +6425,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       default:
         break;
     }
-  }, [announce, closeFloatingRightPanels, closeRightDockPanels, handleImportRequest, handleMapExportRequest, handleProjectSave, handleSetDrawTool, handleSetMeasureTool, handleSetWorkspaceView, setActiveTool]);
+  }, [activeStyleLayer, announce, closeFloatingRightPanels, handleImportRequest, handleMapExportRequest, handleOpenStyleTab, handleProjectSave, handleSetDrawTool, handleSetMeasureTool, handleSetWorkspaceView, setActiveTool]);
 
   const handleExportConfirm = useCallback(async () => {
     try {
@@ -6757,8 +6795,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         openAnalyzeActivityTab("analyze-workflows", "Analyze workspace opened");
         break;
       case "style":
-        setWorkspaceView("analyze");
-        setShowLayerPanel(true);
+        openStyleActivityTab("style-renderer", "Style workspace opened");
         break;
       case "scene":
         setWorkspaceView("explore");
@@ -6787,7 +6824,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     }
 
     announce(`${activity.label} activity selected`);
-  }, [announce, openAnalyzeActivityTab, openBottomPanelTab, openMapProblems]);
+  }, [announce, openAnalyzeActivityTab, openBottomPanelTab, openMapProblems, openStyleActivityTab]);
 
   const bottomProblemsModel = useMemo(
     () => buildMapProblemsModel({ qaState: scientificQA, overlayLayers }),
@@ -7016,16 +7053,31 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     activeActivityId === "overview" ||
     activeActivityId === "data" ||
     activeActivityId === "layers" ||
-    activeActivityId === "analyze";
+    activeActivityId === "analyze" ||
+    activeActivityId === "style";
   const analyzeSidebarActive = activeActivityId === "analyze" && effectiveShowLayerPanel;
   const analyzeWorkflowsTabActive = analyzeSidebarActive && workbenchSidebarTab === "analyze-workflows";
   const analyzeToolsTabActive = analyzeSidebarActive && workbenchSidebarTab === "analyze-tools";
   const analyzeQueryTabActive = analyzeSidebarActive && workbenchSidebarTab === "analyze-query";
   const analyzeModelsTabActive = analyzeSidebarActive && workbenchSidebarTab === "analyze-models";
+  const styleSidebarActive = activeActivityId === "style" && effectiveShowLayerPanel;
+  const styleRendererTabActive = styleSidebarActive && workbenchSidebarTab === "style-renderer";
+  const styleSymbolsTabActive = styleSidebarActive && workbenchSidebarTab === "style-symbols";
   const activeAnalysisOutputLayerIds = new Set(activeAnalysisResultLayerIds);
   const analysisOutputLayers = overlayLayers.filter((layer) =>
     activeAnalysisOutputLayerIds.has(layer.id) || layer.group === "analysis" || Boolean(layer.metadata?.analysisResult),
   );
+  const handleToggleStyleRenderer = (): void => {
+    if (styleRendererTabActive && showLayerPanel) {
+      setShowLayerPanel(false);
+      announce("Renderer styling closed");
+      return;
+    }
+
+    setPointSymbologyLayerId(null);
+    setShowChoroplethPanel(false);
+    handleOpenStyleTab("style-renderer", "Renderer styling opened in Style", activeStyleLayer?.id ?? null);
+  };
 
   const layerStackElement = (
     <MapLayerManager
@@ -7065,7 +7117,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       canUndoCartographyRecommendation={cartographyUndoStack.length > 0}
       onShowCartographyDetails={handleShowCartographyDetails}
       onOpenCartographyReviewScope={(layerId) => {
-        openLayersActivityTab("layers-cartography", "Cartography recommendations opened in Layers activity", layerId);
+        handleOpenStyleTab("style-advisor", "Cartography recommendations opened in Style Advisor", layerId);
       }}
       presentation="embedded"
       cartographyReviewPlacement="none"
@@ -7175,6 +7227,119 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       onUndoCartographyRecommendation={handleUndoCartographyRecommendation}
       canUndoCartographyRecommendation={cartographyUndoStack.length > 0}
       onShowCartographyDetails={handleShowCartographyDetails}
+    />
+  );
+
+  const pointSymbologyControlBody = (
+    <div style={mapStyles.symbologyBody} data-testid="map-style-point-symbol-controls">
+      {selectedPointSymbologyLayer ? (
+        <CartographyRecommendationList
+          title="Scientific symbology review"
+          recommendations={selectedLayerCartographyRecommendations}
+          emptyMessage="No pending cartographic issues for this layer."
+          maxItems={3}
+          canUndo={cartographyUndoStack.length > 0}
+          onApply={handleApplyCartographyRecommendation}
+          onDismiss={handleDismissCartographyRecommendation}
+          onUndo={handleUndoCartographyRecommendation}
+          onShowDetails={handleShowCartographyDetails}
+        />
+      ) : null}
+
+      {isLoadingPointSymbology ? (
+        <div style={mapStyles.symbologyLoading}>Loading point layer...</div>
+      ) : null}
+
+      {pointSymbologyError ? (
+        <div style={mapStyles.symbologyError}>{pointSymbologyError}</div>
+      ) : null}
+
+      {selectedPointSymbologyLayer && pointSymbologyCollection ? (
+        pointSymbologyMode === "heatmap" ? (
+          <MapHeatmapLayer
+            mapRef={mapInstanceRef}
+            layer={selectedPointSymbologyLayer}
+            featureCollection={pointSymbologyCollection}
+            numericFields={pointSymbologyFields}
+          />
+        ) : (
+          <MapSymbolLayer
+            mapRef={mapInstanceRef}
+            layer={selectedPointSymbologyLayer}
+            featureCollection={pointSymbologyCollection}
+            numericFields={pointSymbologyFields}
+            mode={pointSymbologyMode}
+          />
+        )
+      ) : null}
+    </div>
+  );
+
+  const activeStyleLayerId = activeStyleLayer?.id ?? null;
+  const styleLayerPanelProps = {
+    layers: overlayLayers,
+    activeLayer: activeStyleLayer,
+    activeLayerId: activeStyleLayerId,
+    onActiveLayerChange: setStyleWorkspaceLayerId,
+    onInspectLayer: handleInspectLayer,
+  };
+  const styleRendererElement = (
+    <MapStyleRendererPanel
+      {...styleLayerPanelProps}
+      onApplyStyle={handleApplyLayerStyle}
+      choroplethPreviewActive={showChoroplethPanel}
+      onOpenChoroplethPreview={() => {
+        setPointSymbologyLayerId(null);
+        setShowChoroplethPanel(true);
+        announce("Live choropleth preview opened from Style Renderer");
+      }}
+    />
+  );
+  const styleSymbolsElement = (
+    <MapStyleSymbolsPanel
+      {...styleLayerPanelProps}
+      activeMode={pointSymbologyMode}
+      symbologyActive={Boolean(activeStyleLayerId && pointSymbologyLayerId === activeStyleLayerId)}
+      isLoading={isLoadingPointSymbology}
+      error={pointSymbologyError}
+      symbolControls={pointSymbologyLayerId === activeStyleLayerId ? pointSymbologyControlBody : null}
+      onOpenPointSymbology={(mode) => {
+        if (!activeStyleLayer) return;
+        setPointSymbologyMode(mode);
+        setPointSymbologyLayerId(activeStyleLayer.id);
+        setShowChoroplethPanel(false);
+        announce(`Point ${mode} styling opened for ${activeStyleLayer.name}`);
+      }}
+      onClosePointSymbology={() => {
+        setPointSymbologyLayerId(null);
+        announce("Point symbology panel closed");
+      }}
+    />
+  );
+  const styleLabelsElement = (
+    <MapStyleLabelsPanel
+      {...styleLayerPanelProps}
+      onApplyStyle={handleApplyLayerStyle}
+    />
+  );
+  const styleLegendElement = <MapStyleLegendPanel {...styleLayerPanelProps} />;
+  const styleAdvisorElement = (
+    <MapStyleAdvisorPanel
+      {...styleLayerPanelProps}
+      advisor={(
+        <MapLayerCartographyPanel
+          overlayLayers={overlayLayers}
+          cartographyReviewState={cartographyReviewState}
+          activeLayerId={styleWorkspaceLayerId}
+          onActiveLayerChange={setStyleWorkspaceLayerId}
+          onOpenSymbology={handleOpenPointSymbology}
+          onApplyCartographyRecommendation={handleApplyCartographyRecommendation}
+          onDismissCartographyRecommendation={handleDismissCartographyRecommendation}
+          onUndoCartographyRecommendation={handleUndoCartographyRecommendation}
+          canUndoCartographyRecommendation={cartographyUndoStack.length > 0}
+          onShowCartographyDetails={handleShowCartographyDetails}
+        />
+      )}
     />
   );
 
@@ -7480,8 +7645,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               onToggleModelBuilder={handleToggleModelBuilder}
               showFigureComposer={showFigureComposer}
               onToggleFigureComposer={handleToggleFigureComposer}
-              showChoroplethPanel={showChoroplethPanel}
-              onToggleChoroplethPanel={handleToggleChoroplethPanel}
+              showChoroplethPanel={showChoroplethPanel || styleRendererTabActive}
+              onToggleChoroplethPanel={handleToggleStyleRenderer}
               showClusterViz={showClusterViz}
               onToggleClusterViz={handleToggleClusterViz}
               showHotSpotViz={showHotSpotViz}
@@ -7904,6 +8069,23 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
                       setShowLayerPanel(false);
                       setWorkflowPreview(null);
                       announce("Analyze workspace closed");
+                    }}
+                    width="100%"
+                  />
+                ) : activeActivityId === "style" ? (
+                  <MapStyleWorkspace
+                    activeTabId={workbenchSidebarTab}
+                    onTabChange={setWorkbenchSidebarTab}
+                    renderer={styleRendererElement}
+                    symbols={styleSymbolsElement}
+                    labels={styleLabelsElement}
+                    legend={styleLegendElement}
+                    advisor={styleAdvisorElement}
+                    onToggleCollapse={() => setWorkbenchSidebarCollapsed((prev) => !prev)}
+                    collapsed={workbenchSidebarCollapsed}
+                    onClose={() => {
+                      setShowLayerPanel(false);
+                      announce("Style workspace closed");
                     }}
                     width="100%"
                   />
@@ -8432,7 +8614,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             />
           ) : null}
 
-          {pointSymbologyLayerId && !effectiveShowScientificQAPanel && !effectiveShowNLQueryPanel ? (
+          {pointSymbologyLayerId && !styleSymbolsTabActive && !effectiveShowScientificQAPanel && !effectiveShowNLQueryPanel ? (
             <div
               style={{
                 ...createOpaqueFloatingPanelStyle(MAP_DIMENSIONS.symbologyPanelWidth),
@@ -8485,50 +8667,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
                 ))}
               </div>
 
-              <div style={mapStyles.symbologyBody}>
-                {selectedPointSymbologyLayer ? (
-                  <CartographyRecommendationList
-                    title="Scientific symbology review"
-                    recommendations={selectedLayerCartographyRecommendations}
-                    emptyMessage="No pending cartographic issues for this layer."
-                    maxItems={3}
-                    canUndo={cartographyUndoStack.length > 0}
-                    onApply={handleApplyCartographyRecommendation}
-                    onDismiss={handleDismissCartographyRecommendation}
-                    onUndo={handleUndoCartographyRecommendation}
-                    onShowDetails={handleShowCartographyDetails}
-                  />
-                ) : null}
-
-                {isLoadingPointSymbology ? (
-                  <div style={mapStyles.symbologyLoading}>Loading point layer...</div>
-                ) : null}
-
-                {pointSymbologyError ? (
-                  <div style={mapStyles.symbologyError}>
-                    {pointSymbologyError}
-                  </div>
-                ) : null}
-
-                {selectedPointSymbologyLayer && pointSymbologyCollection ? (
-                  pointSymbologyMode === "heatmap" ? (
-                    <MapHeatmapLayer
-                      mapRef={mapInstanceRef}
-                      layer={selectedPointSymbologyLayer}
-                      featureCollection={pointSymbologyCollection}
-                      numericFields={pointSymbologyFields}
-                    />
-                  ) : (
-                    <MapSymbolLayer
-                      mapRef={mapInstanceRef}
-                      layer={selectedPointSymbologyLayer}
-                      featureCollection={pointSymbologyCollection}
-                      numericFields={pointSymbologyFields}
-                      mode={pointSymbologyMode}
-                    />
-                  )
-                ) : null}
-              </div>
+              {pointSymbologyControlBody}
             </div>
           ) : null}
 
