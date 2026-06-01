@@ -41,8 +41,15 @@ export type { MapSearchBarProps } from "./MapSearchBar";
 export { MapStatusBar } from "./MapStatusBar";
 export { ScientificQAPanel } from "./ScientificQAPanel";
 export { MapProblemsPanel } from "./problems";
+export { MapBottomPanel } from "./bottom";
 export type { MapStatusBarProps } from "./MapStatusBar";
 export type { ScientificQAPanelProps } from "./ScientificQAPanel";
+export type {
+  MapBottomPanelCoreTabId,
+  MapBottomPanelProps,
+  MapBottomPanelTask,
+  MapBottomPanelTaskStatus,
+} from "./bottom";
 export {
   buildMapProblemsModel,
   getMapProblemKindLabel,

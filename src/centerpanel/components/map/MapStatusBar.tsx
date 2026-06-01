@@ -32,6 +32,10 @@ export interface MapStatusBarProps {
   performanceMode?: LayerRenderMode;
   performanceIssueCount?: number;
   onOpenProblems?: () => void;
+  onOpenAttributes?: () => void;
+  reviewEventCount?: number;
+  onOpenTimeline?: () => void;
+  onOpenDiagnostics?: () => void;
   lastRenderDurationMs?: number | null;
   isSaving?: boolean;
   isLoading?: boolean;
@@ -279,6 +283,10 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
   performanceMode = "full",
   performanceIssueCount = 0,
   onOpenProblems,
+  onOpenAttributes,
+  reviewEventCount = 0,
+  onOpenTimeline,
+  onOpenDiagnostics,
   lastRenderDurationMs = null,
   isSaving = false,
   isLoading = false,
@@ -308,13 +316,14 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
     { label: "Project", value: projectLabel, maxWidth: "12rem" },
     { label: "Mode", value: workspaceLabel ?? "explore" },
     { label: "Layers", value: `${visibleLayerCount}/${layerCount}` },
-    { label: "Select", value: `${selectedFeatureCount}` },
+    { label: "Select", value: `${selectedFeatureCount}`, onClick: onOpenAttributes, ariaLabel: "Open selected feature attributes" },
     { label: "AOI", value: hasActiveAoi ? "active" : "none", tone: hasActiveAoi ? "info" : "stale" },
     { label: "Marks", value: geometryLabel },
     { label: "Units", value: measureUnit === "metric" ? "metric" : "imperial" },
     { label: "CRS", value: crs, tone: "info" },
     { label: "QA", value: qaLabel, tone: qaValueTone, onClick: onOpenProblems, ariaLabel: "Open QA Problems" },
-    { label: "Perf", value: performanceLabel, tone: performanceTone },
+    { label: "Review", value: `${reviewEventCount}`, onClick: onOpenTimeline, ariaLabel: "Open review timeline" },
+    { label: "Perf", value: performanceLabel, tone: performanceTone, onClick: onOpenDiagnostics, ariaLabel: "Open performance diagnostics" },
     { label: "Sync", value: syncLabel, tone: syncValueTone },
     { label: "Saved", value: saveLabel, busy: isSaving || isLoading, tone: saveValueTone },
   ];

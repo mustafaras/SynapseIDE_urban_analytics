@@ -22,6 +22,7 @@ export interface MapPerformanceDiagnosticsPanelProps {
   visible: boolean;
   diagnostics: MapPerformanceDiagnosticsSummary;
   onClose: () => void;
+  presentation?: "floating" | "embedded";
   onRetryWorkerJob?: (jobId: string) => void;
 }
 
@@ -41,6 +42,20 @@ const panelStyle: React.CSSProperties = {
   boxShadow: MAP_SHADOWS.panel,
   color: MAP_COLORS.text,
   overflow: "hidden",
+};
+
+const embeddedPanelStyle: React.CSSProperties = {
+  ...panelStyle,
+  position: "relative",
+  inset: "auto",
+  width: "100%",
+  height: "100%",
+  maxWidth: "none",
+  maxHeight: "none",
+  border: MAP_STROKES.none,
+  borderRadius: MAP_RADIUS.none,
+  boxShadow: MAP_SHADOWS.none,
+  zIndex: "auto",
 };
 
 const headerStyle: React.CSSProperties = {
@@ -328,6 +343,7 @@ export const MapPerformanceDiagnosticsPanel: React.FC<MapPerformanceDiagnosticsP
   visible,
   diagnostics,
   onClose,
+  presentation = "floating",
   onRetryWorkerJob,
 }) => {
   const panelDrag = useDraggableMapPanel();
@@ -336,17 +352,20 @@ export const MapPerformanceDiagnosticsPanel: React.FC<MapPerformanceDiagnosticsP
     throw new Error("Forced Map diagnostics panel failure for recovery proof.");
   }
   const telemetryEvents = diagnostics.telemetryEvents.slice(0, 8);
+  const embedded = presentation === "embedded";
+  const resolvedPanelStyle = embedded ? embeddedPanelStyle : { ...panelStyle, ...panelDrag.panelPositionStyle };
+  const resolvedHeaderStyle = embedded ? headerStyle : { ...headerStyle, ...panelDrag.dragHandleStyle };
 
   return (
     <aside
-      data-draggable-map-panel="true"
-      style={{ ...panelStyle, ...panelDrag.panelPositionStyle }}
-      role="dialog"
-      aria-modal="false"
+      data-draggable-map-panel={embedded ? undefined : "true"}
+      style={resolvedPanelStyle}
+      role={embedded ? "region" : "dialog"}
+      aria-modal={embedded ? undefined : "false"}
       aria-label="Map performance diagnostics"
       data-testid="map-performance-diagnostics"
     >
-      <header style={{ ...headerStyle, ...panelDrag.dragHandleStyle }} {...panelDrag.dragHandleProps}>
+      <header style={resolvedHeaderStyle} {...(embedded ? {} : panelDrag.dragHandleProps)}>
         <div>
           <h3 style={titleStyle}>
             <BarChart3 size={MAP_ICON_SIZES.md} aria-hidden="true" />

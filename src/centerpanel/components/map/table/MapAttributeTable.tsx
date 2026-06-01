@@ -180,6 +180,7 @@ export interface MapAttributeTableProps {
   onSelectFeatures: (featureIds: string[]) => void;
   onFocusFeature: (feature: AttrFeature) => void;
   onClose: () => void;
+  presentation?: "floating" | "embedded";
   onCreateDerivedLayer?: (draft: MapAttributeDerivedFieldDraft) => void;
   onAnnounce?: (message: string) => void;
   viewportHeight?: number;
@@ -199,6 +200,21 @@ const panelStyle: React.CSSProperties = {
   boxShadow: MAP_SHADOWS.dropdown,
   zIndex: MAP_Z_INDEX.dropdown,
   overflow: "hidden",
+};
+
+const embeddedPanelStyle: React.CSSProperties = {
+  ...panelStyle,
+  position: "relative",
+  left: "auto",
+  right: "auto",
+  bottom: "auto",
+  width: "100%",
+  height: "100%",
+  maxHeight: "none",
+  border: MAP_STROKES.none,
+  borderRadius: MAP_RADIUS.none,
+  boxShadow: MAP_SHADOWS.none,
+  zIndex: "auto",
 };
 
 const headerStyle: React.CSSProperties = {
@@ -445,6 +461,7 @@ export const MapAttributeTable: React.FC<MapAttributeTableProps> = ({
   onSelectFeatures,
   onFocusFeature,
   onClose,
+  presentation = "floating",
   onCreateDerivedLayer,
   onAnnounce,
   viewportHeight = DEFAULT_VIEWPORT_HEIGHT,
@@ -480,6 +497,7 @@ export const MapAttributeTable: React.FC<MapAttributeTableProps> = ({
     [activeField, fieldProfiles],
   );
   const isDerivedLayer = layer.sourceKind === "derived" || layer.group === "analysis";
+  const embedded = presentation === "embedded";
 
   useEffect(() => {
     if (activeField && columns.includes(activeField)) return;
@@ -579,8 +597,8 @@ export const MapAttributeTable: React.FC<MapAttributeTableProps> = ({
 
   return (
     <div
-      style={panelStyle}
-      role="dialog"
+      style={embedded ? embeddedPanelStyle : panelStyle}
+      role={embedded ? "region" : "dialog"}
       aria-label={`Attribute table for ${layer.name}`}
       data-testid="map-attribute-table"
     >

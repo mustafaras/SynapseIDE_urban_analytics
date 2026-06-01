@@ -45,6 +45,7 @@ export interface MapReviewTimelinePanelProps {
   overlayLayers: OverlayLayerConfig[];
   qaState: MapScientificQAState | null;
   onClose: () => void;
+  presentation?: "floating" | "embedded";
   onRecordEvent: (event: MapReviewTimelineEventInput) => void;
   onUpdateEventStatus: (eventId: string, status: MapReviewTimelineEventStatus, outcome?: string) => void;
   onClearSession: () => void;
@@ -109,6 +110,20 @@ const panelStyle: React.CSSProperties = {
   boxShadow: MAP_SHADOWS.panel,
   color: MAP_COLORS.text,
   overflow: "hidden",
+};
+
+const embeddedPanelStyle: React.CSSProperties = {
+  ...panelStyle,
+  position: "relative",
+  inset: "auto",
+  width: "100%",
+  height: "100%",
+  maxWidth: "none",
+  maxHeight: "none",
+  border: MAP_STROKES.none,
+  borderRadius: MAP_RADIUS.none,
+  boxShadow: MAP_SHADOWS.none,
+  zIndex: "auto",
 };
 
 const headerStyle: React.CSSProperties = {
@@ -407,6 +422,7 @@ export const MapReviewTimelinePanel: React.FC<MapReviewTimelinePanelProps> = ({
   overlayLayers,
   qaState,
   onClose,
+  presentation = "floating",
   onRecordEvent,
   onUpdateEventStatus,
   onClearSession,
@@ -461,16 +477,19 @@ export const MapReviewTimelinePanel: React.FC<MapReviewTimelinePanelProps> = ({
   if (!visible) return null;
 
   const activeQaIssues = qaState?.issues.filter((issue) => issue.severity !== "info") ?? [];
+  const embedded = presentation === "embedded";
+  const resolvedPanelStyle = embedded ? embeddedPanelStyle : { ...panelStyle, ...panelDrag.panelPositionStyle };
+  const resolvedHeaderStyle = embedded ? headerStyle : { ...headerStyle, ...panelDrag.dragHandleStyle };
 
   return (
     <aside
-      data-draggable-map-panel="true"
-      style={{ ...panelStyle, ...panelDrag.panelPositionStyle }}
-      role="dialog"
-      aria-modal="false"
+      data-draggable-map-panel={embedded ? undefined : "true"}
+      style={resolvedPanelStyle}
+      role={embedded ? "region" : "dialog"}
+      aria-modal={embedded ? undefined : "false"}
       aria-label="Map review timeline panel"
     >
-      <header style={{ ...headerStyle, ...panelDrag.dragHandleStyle }} {...panelDrag.dragHandleProps}>
+      <header style={resolvedHeaderStyle} {...(embedded ? {} : panelDrag.dragHandleProps)}>
         <div style={titleStackStyle}>
           <span style={eyebrowStyle}>Collaborative review</span>
           <h3 style={titleStyle}>
