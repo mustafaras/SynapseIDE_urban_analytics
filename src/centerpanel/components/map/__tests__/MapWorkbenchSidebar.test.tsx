@@ -101,6 +101,38 @@ describe("MapWorkbenchSidebar", () => {
     expect(screen.getByTestId("entry-contents")).toBeDefined();
   });
 
+  it("renders only the active tab body so inactive heavy panels stay unmounted", () => {
+    const renderReadiness = vi.fn(() => <div data-testid="content-readiness">Ready</div>);
+    const renderHeavyModel = vi.fn(() => <div data-testid="content-heavy-model">Model builder</div>);
+
+    function Harness() {
+      const [activeId, setActiveId] = React.useState("overview-readiness");
+      const tabs: MapWorkbenchSidebarTab[] = [
+        { id: "overview-readiness", label: "Readiness", render: renderReadiness },
+        { id: "analyze-models", label: "Models", render: renderHeavyModel },
+      ];
+      return (
+        <MapWorkbenchSidebar
+          title="Analyze"
+          tabs={tabs}
+          activeTabId={activeId}
+          onTabChange={setActiveId}
+        />
+      );
+    }
+
+    render(<Harness />);
+
+    expect(renderReadiness).toHaveBeenCalledTimes(1);
+    expect(renderHeavyModel).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("content-heavy-model")).toBeNull();
+
+    fireEvent.click(screen.getByTestId("map-workbench-sidebar-tab-analyze-models"));
+
+    expect(renderHeavyModel).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId("content-heavy-model")).toBeDefined();
+  });
+
   it("keeps import, catalog, layer stack, and contents reachable across activities", () => {
     function Harness() {
       const [activeId, setActiveId] = React.useState("data-import");

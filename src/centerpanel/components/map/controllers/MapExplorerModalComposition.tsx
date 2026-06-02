@@ -7662,6 +7662,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     overflow: "auto",
     padding: 12,
   };
+  const bottomAttributesTabActive = bottomPanelOpen && activeBottomPanelTab === "attributes";
+  const bottomDiagnosticsTabActive = bottomPanelOpen && activeBottomPanelTab === "diagnostics";
 
   const bottomPanelProblemsContent = (
     <div style={bottomPanelScrollStyle}>
@@ -7669,30 +7671,32 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     </div>
   );
 
-  const bottomPanelAttributesContent = attributeTableLayer ? (
-    <MapAttributeTable
-      presentation="embedded"
-      layer={attributeTableLayer}
-      selectedIds={selectedFeatureIds[attributeTableLayer.id] ?? []}
-      onSelectFeatures={(featureIds) => handleAttributeTableSelection(attributeTableLayer.id, featureIds)}
-      onFocusFeature={handleFocusAttributeFeature}
-      onCreateDerivedLayer={handleCreateAttributeDerivedLayer}
-      onClose={() => {
-        setAttributeTableLayerId(null);
-        closeBottomPanel();
-        announce("Attribute table closed");
-      }}
-      onAnnounce={announce}
-    />
-  ) : (
-    <GisEmptyState
-      title="No attribute table selected"
-      description="Select a queryable layer or click the selected-feature status to inspect attributes here."
-      compact
-      style={{ height: "100%" }}
-      data-testid="map-bottom-panel-attributes-empty"
-    />
-  );
+  const bottomPanelAttributesContent = bottomAttributesTabActive
+    ? attributeTableLayer ? (
+      <MapAttributeTable
+        presentation="embedded"
+        layer={attributeTableLayer}
+        selectedIds={selectedFeatureIds[attributeTableLayer.id] ?? []}
+        onSelectFeatures={(featureIds) => handleAttributeTableSelection(attributeTableLayer.id, featureIds)}
+        onFocusFeature={handleFocusAttributeFeature}
+        onCreateDerivedLayer={handleCreateAttributeDerivedLayer}
+        onClose={() => {
+          setAttributeTableLayerId(null);
+          closeBottomPanel();
+          announce("Attribute table closed");
+        }}
+        onAnnounce={announce}
+      />
+    ) : (
+      <GisEmptyState
+        title="No attribute table selected"
+        description="Select a queryable layer or click the selected-feature status to inspect attributes here."
+        compact
+        style={{ height: "100%" }}
+        data-testid="map-bottom-panel-attributes-empty"
+      />
+    )
+    : null;
 
   const bottomPanelTimelineContent = (
     <MapReviewTimelinePanel
@@ -7726,21 +7730,21 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     />
   );
 
-  const bottomPanelDiagnosticsContent = (
+  const bottomPanelDiagnosticsContent = bottomDiagnosticsTabActive ? (
     <MapPanelErrorBoundary
       panelName="Render diagnostics"
       resetKey={activeBottomPanelTab}
       onClose={closeBottomPanel}
     >
       <MapPerformanceDiagnosticsPanel
-        visible={bottomPanelOpen && activeBottomPanelTab === "diagnostics"}
+        visible
         presentation="embedded"
         diagnostics={performanceDiagnostics}
         onRetryWorkerJob={handleRetryWorkerJob}
         onClose={closeBottomPanel}
       />
     </MapPanelErrorBoundary>
-  );
+  ) : null;
 
   /* ---- Render ---- */
   if (!open) return null;
@@ -8391,24 +8395,26 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     setShowVoxCityOverlay(id === "scene-voxcity");
   };
 
-  const sceneRasterElement = activeRasterLayerId ? (
-    <RasterLayerPanel
-      layerId={activeRasterLayerId}
-      layerName={activeRasterLayerName}
-      visible
-      presentation="embedded"
-      onClose={() => {
-        setShowLayerPanel(false);
-        announce("Raster evidence panel closed");
-      }}
-    />
-  ) : (
-    <GisEmptyState
-      title="No raster layer"
-      description="Import a raster source before reviewing noData, histogram, QA, and evidence details."
-      compact
-    />
-  );
+  const sceneRasterElement = sceneRasterTabActive
+    ? activeRasterLayerId ? (
+      <RasterLayerPanel
+        layerId={activeRasterLayerId}
+        layerName={activeRasterLayerName}
+        visible
+        presentation="embedded"
+        onClose={() => {
+          setShowLayerPanel(false);
+          announce("Raster evidence panel closed");
+        }}
+      />
+    ) : (
+      <GisEmptyState
+        title="No raster layer"
+        description="Import a raster source before reviewing noData, histogram, QA, and evidence details."
+        compact
+      />
+    )
+    : null;
 
   const sceneTemporalElement = activeTemporalLayer ? (
     <div style={{ display: "grid", gap: MAP_SPACING.md }} data-testid="map-scene-temporal-panel">
@@ -8434,7 +8440,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     />
   );
 
-  const scene3DElement = (
+  const scene3DElement = scene3DTabActive ? (
     <Scene3DPanel
       visible
       presentation="embedded"
@@ -8444,7 +8450,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       }}
       onModeChange={(mode) => announce(`3D mode: ${mode}`)}
     />
-  );
+  ) : null;
 
   const sceneZoningElement = (
     <ZoningRulesPanel
@@ -8554,9 +8560,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     />
   );
 
-  const analyzeModelsElement = (
+  const analyzeModelsElement = analyzeModelsTabActive ? (
     <MapModelBuilderPanel
-      visible={analyzeModelsTabActive}
+      visible
       presentation="embedded"
       onClose={() => {
         setShowLayerPanel(false);
@@ -8568,7 +8574,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       onRunBatch={handleRunMapModelBatch}
       onExportToIdeAndUrban={handleExportMapModelToIdeAndUrban}
     />
-  );
+  ) : null;
 
   const analyzeStatisticsElement = (
     <MapAnalyzeStatisticsPanel
@@ -9552,23 +9558,25 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             />
           )}
 
-          <MapPanelErrorBoundary
-            panelName="Plugin registry"
-            resetKey={showPluginPanel}
-            onClose={() => {
-              setShowPluginPanel(false);
-              announce("Plugin registry closed");
-            }}
-          >
-            <MapPluginPanel
-              visible={showPluginPanel && !navigatorStageMode}
-              extensions={pluginExtensions}
+          {showPluginPanel && !navigatorStageMode ? (
+            <MapPanelErrorBoundary
+              panelName="Plugin registry"
+              resetKey={showPluginPanel}
               onClose={() => {
                 setShowPluginPanel(false);
                 announce("Plugin registry closed");
               }}
-            />
-          </MapPanelErrorBoundary>
+            >
+              <MapPluginPanel
+                visible
+                extensions={pluginExtensions}
+                onClose={() => {
+                  setShowPluginPanel(false);
+                  announce("Plugin registry closed");
+                }}
+              />
+            </MapPanelErrorBoundary>
+          ) : null}
 
           <MapPanelErrorBoundary
             panelName="Processing toolbox"
@@ -9591,27 +9599,29 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             />
           </MapPanelErrorBoundary>
 
-          <MapPanelErrorBoundary
-            panelName="Model builder"
-            resetKey={showModelBuilder}
-            onClose={() => {
-              setShowModelBuilder(false);
-              announce("Model builder closed");
-            }}
-          >
-            <MapModelBuilderPanel
-              visible={showModelBuilder && !navigatorStageMode && !analyzeModelsTabActive}
+          {showModelBuilder && !navigatorStageMode && !analyzeModelsTabActive ? (
+            <MapPanelErrorBoundary
+              panelName="Model builder"
+              resetKey={showModelBuilder}
               onClose={() => {
                 setShowModelBuilder(false);
                 announce("Model builder closed");
               }}
-              tools={processingToolDescriptors}
-              layers={processingToolboxLayers}
-              onRun={handleRunMapModel}
-              onRunBatch={handleRunMapModelBatch}
-              onExportToIdeAndUrban={handleExportMapModelToIdeAndUrban}
-            />
-          </MapPanelErrorBoundary>
+            >
+              <MapModelBuilderPanel
+                visible
+                onClose={() => {
+                  setShowModelBuilder(false);
+                  announce("Model builder closed");
+                }}
+                tools={processingToolDescriptors}
+                layers={processingToolboxLayers}
+                onRun={handleRunMapModel}
+                onRunBatch={handleRunMapModelBatch}
+                onExportToIdeAndUrban={handleExportMapModelToIdeAndUrban}
+              />
+            </MapPanelErrorBoundary>
+          ) : null}
 
           <WorkflowPreviewOverlay preview={(effectiveShowWorkflowDrawer || analyzeWorkflowsTabActive) ? workflowPreview : null} />
 

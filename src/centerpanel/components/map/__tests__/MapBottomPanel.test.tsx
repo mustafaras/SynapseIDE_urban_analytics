@@ -25,6 +25,8 @@ function renderBottomPanel(options: {
   activeTabId?: MapBottomPanelCoreTabId;
   onTabChange?: (tabId: MapBottomPanelCoreTabId) => void;
   onClose?: () => void;
+  attributes?: React.ReactNode;
+  diagnostics?: React.ReactNode;
 } = {}): void {
   host = document.createElement("div");
   document.body.appendChild(host);
@@ -38,10 +40,10 @@ function renderBottomPanel(options: {
         onTabChange={options.onTabChange ?? (() => {})}
         onClose={options.onClose ?? (() => {})}
         problems={<div data-testid="problems-content">Problems content</div>}
-        attributes={<div data-testid="attributes-content">Attributes content</div>}
+        attributes={options.attributes ?? <div data-testid="attributes-content">Attributes content</div>}
         timeline={<div data-testid="timeline-content">Timeline content</div>}
         tasks={tasks}
-        diagnostics={<div data-testid="diagnostics-content">Diagnostics content</div>}
+        diagnostics={options.diagnostics ?? <div data-testid="diagnostics-content">Diagnostics content</div>}
       />,
     );
   });
@@ -66,6 +68,24 @@ describe("MapBottomPanel", () => {
     expect(tab("timeline").getAttribute("aria-selected")).toBe("true");
     expect(host!.querySelector('[data-testid="timeline-content"]')?.textContent).toContain("Timeline content");
     expect(host!.querySelector('[data-testid="problems-content"]')).toBeNull();
+  });
+
+  it("does not mount inactive heavy tab content", () => {
+    const renderAttributes = vi.fn(() => <div data-testid="heavy-attributes">Attributes</div>);
+    const renderDiagnostics = vi.fn(() => <div data-testid="heavy-diagnostics">Diagnostics</div>);
+    const HeavyAttributes = (): React.ReactElement => renderAttributes();
+    const HeavyDiagnostics = (): React.ReactElement => renderDiagnostics();
+
+    renderBottomPanel({
+      activeTabId: "problems",
+      attributes: <HeavyAttributes />,
+      diagnostics: <HeavyDiagnostics />,
+    });
+
+    expect(renderAttributes).not.toHaveBeenCalled();
+    expect(renderDiagnostics).not.toHaveBeenCalled();
+    expect(host!.querySelector('[data-testid="heavy-attributes"]')).toBeNull();
+    expect(host!.querySelector('[data-testid="heavy-diagnostics"]')).toBeNull();
   });
 
   it("routes pointer tab changes and close actions", () => {
