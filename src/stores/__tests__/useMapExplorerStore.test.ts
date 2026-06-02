@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  DEFAULT_MAP_EXPLORER_LAYOUT_PREFERENCES,
   MAP_EXPLORER_HEAVY_GEOMETRY_KEYS,
   MAP_EXPLORER_PERSISTED_STATE_KEYS,
   MAP_EXPLORER_SLICE_ORDER,
@@ -281,6 +282,39 @@ describe("useMapExplorerStore", () => {
       useMapExplorerStore.getState().setActiveTool("pin");
       useMapExplorerStore.getState().setActiveTool(null);
       expect(useMapExplorerStore.getState().activeTool).toBeNull();
+    });
+  });
+
+  /* ---- Layout preferences ---- */
+
+  describe("layout preferences", () => {
+    it("restores default widths without mutating analytical map state", () => {
+      const s = useMapExplorerStore.getState();
+      s.addOverlayLayer(makeLayer("analysis-layer"));
+      s.upsertSourceHandle(makeSourceHandle("source-a"));
+      s.setSelectedFeatures("analysis-layer", ["feature-1"]);
+      s.setActiveAoi("aoi-1");
+      s.setActiveAnalysisResultLayers(["analysis-layer"]);
+      s.registerMapEvidenceArtifact({
+        id: "evidence-layout-proof",
+        artifactId: "evidence-layout-proof",
+        kind: "selection",
+        title: "Layout reset evidence proof",
+        linkedLayerIds: ["analysis-layer"],
+      });
+      s.setLayoutPreferences({ layerPanelWidth: 640, rightPanelWidth: 500 });
+
+      const before = useMapExplorerStore.getState();
+      before.restoreDefaultLayoutPreferences();
+      const after = useMapExplorerStore.getState();
+
+      expect(after.layoutPreferences).toEqual(DEFAULT_MAP_EXPLORER_LAYOUT_PREFERENCES);
+      expect(after.overlayLayers).toEqual(before.overlayLayers);
+      expect(after.sourceHandles).toEqual(before.sourceHandles);
+      expect(after.mapEvidenceArtifacts).toEqual(before.mapEvidenceArtifacts);
+      expect(after.selectedFeatureIds).toEqual(before.selectedFeatureIds);
+      expect(after.activeAoiId).toBe(before.activeAoiId);
+      expect(after.activeAnalysisResultLayerIds).toEqual(before.activeAnalysisResultLayerIds);
     });
   });
 

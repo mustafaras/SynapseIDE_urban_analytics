@@ -5,6 +5,7 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ProcessingToolDescriptor } from "@/services/map/contracts/gisContracts";
+import { useMapToolbarPreferencesStore } from "../../../../stores/useMapToolbarPreferencesStore";
 import { MapToolbar } from "../MapToolbar";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -85,6 +86,8 @@ afterEach(() => {
   host?.remove();
   host = null;
   document.body.innerHTML = "";
+  useMapToolbarPreferencesStore.setState({ density: "expert", taskLens: "analyst" });
+  window.localStorage.clear();
 });
 
 describe("MapToolbar command palette", () => {
@@ -244,5 +247,66 @@ describe("MapToolbar command palette", () => {
     const redoOption = document.querySelector<HTMLButtonElement>('[data-testid="map-command-palette-option-redo-map-action"]');
     expect(redoOption).not.toBeNull();
     expect(redoOption!.textContent).toContain("Ctrl+Y");
+  });
+
+  it("exposes Prompt 17 task lens and layout recovery commands in the command palette", () => {
+    const onTaskLensChange = vi.fn();
+    const onResetLayout = vi.fn();
+    const onCollapsePanels = vi.fn();
+    const onFocusMapCanvas = vi.fn();
+    const onRestoreDefaultWidths = vi.fn();
+    renderToolbar({
+      layerCount: 1,
+      visibleLayerCount: 1,
+      onTaskLensChange,
+      onResetLayout,
+      onCollapsePanels,
+      onFocusMapCanvas,
+      onRestoreDefaultWidths,
+    });
+
+    const runPaletteCommand = (query: string, id: string): void => {
+      keydown(window, "k", { ctrlKey: true });
+      const input = paletteInput();
+      setInputValue(input, query);
+      const option = document.querySelector<HTMLButtonElement>(`[data-testid="map-command-palette-option-${id}"]`);
+      expect(option, id).not.toBeNull();
+      act(() => {
+        option!.click();
+      });
+    };
+
+    runPaletteCommand("publisher lens", "task-lens-publisher");
+    expect(onTaskLensChange).toHaveBeenCalledWith("publisher");
+
+    runPaletteCommand("reset layout", "reset-layout");
+    runPaletteCommand("collapse all panels", "collapse-panels");
+    runPaletteCommand("focus map canvas", "focus-map-canvas");
+    runPaletteCommand("restore default widths", "restore-default-widths");
+    runPaletteCommand("switch density", "switch-density");
+
+    expect(onResetLayout).toHaveBeenCalledTimes(1);
+    expect(onCollapsePanels).toHaveBeenCalledTimes(1);
+    expect(onFocusMapCanvas).toHaveBeenCalledTimes(1);
+    expect(onRestoreDefaultWidths).toHaveBeenCalledTimes(1);
+    expect(useMapToolbarPreferencesStore.getState().density).toBe("compact");
+  });
+
+  it("switches visible task lenses without requiring map data callbacks", () => {
+    const onTaskLensChange = vi.fn();
+    renderToolbar({ onTaskLensChange });
+
+    const commandCenter = document.querySelector<HTMLElement>('[data-testid="map-command-center"]');
+    expect(commandCenter?.dataset.taskLens).toBe("analyst");
+
+    const reviewerLens = document.querySelector<HTMLButtonElement>('[data-testid="map-task-lens-reviewer"]');
+    expect(reviewerLens).not.toBeNull();
+    act(() => {
+      reviewerLens!.click();
+    });
+
+    expect(onTaskLensChange).toHaveBeenCalledWith("reviewer");
+    expect(useMapToolbarPreferencesStore.getState().taskLens).toBe("reviewer");
+    expect(commandCenter?.dataset.taskLens).toBe("reviewer");
   });
 });

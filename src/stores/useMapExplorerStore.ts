@@ -91,7 +91,7 @@ export interface MapExplorerLayoutPreferences {
   rightPanelWidth: number;
 }
 
-const DEFAULT_LAYOUT_PREFERENCES: MapExplorerLayoutPreferences = {
+export const DEFAULT_MAP_EXPLORER_LAYOUT_PREFERENCES: MapExplorerLayoutPreferences = {
   layerPanelWidth: MAP_NUMERIC.layerPanelWidth,
   rightPanelWidth: 384,
 };
@@ -262,6 +262,7 @@ export interface MapExplorerState {
   /* --- Layout preferences (persisted) --- */
   layoutPreferences: MapExplorerLayoutPreferences;
   setLayoutPreferences: (patch: Partial<MapExplorerLayoutPreferences>) => void;
+  restoreDefaultLayoutPreferences: () => void;
 
   /* --- Overlay layers (NOT persisted — GeoJSON too large) --- */
   overlayLayers: OverlayLayerConfig[];
@@ -508,13 +509,13 @@ function normalizeLayoutPreferences(input: Partial<MapExplorerLayoutPreferences>
       Number(input?.layerPanelWidth),
       MAP_LAYER_PANEL_MIN_WIDTH,
       MAP_LAYER_PANEL_MAX_WIDTH,
-      DEFAULT_LAYOUT_PREFERENCES.layerPanelWidth,
+      DEFAULT_MAP_EXPLORER_LAYOUT_PREFERENCES.layerPanelWidth,
     ),
     rightPanelWidth: clampNumber(
       Number(input?.rightPanelWidth),
       300,
       520,
-      DEFAULT_LAYOUT_PREFERENCES.rightPanelWidth,
+      DEFAULT_MAP_EXPLORER_LAYOUT_PREFERENCES.rightPanelWidth,
     ),
   };
 }
@@ -1142,7 +1143,7 @@ export const useMapExplorerStore = create<MapExplorerState>()(
       setActiveTool: (tool: MapToolId) => set({ activeTool: tool }),
 
       /* --- Layout preferences --- */
-      layoutPreferences: DEFAULT_LAYOUT_PREFERENCES,
+      layoutPreferences: DEFAULT_MAP_EXPLORER_LAYOUT_PREFERENCES,
       setLayoutPreferences: (patch: Partial<MapExplorerLayoutPreferences>) =>
         set((state: MapExplorerState) => ({
           layoutPreferences: normalizeLayoutPreferences({
@@ -1150,6 +1151,10 @@ export const useMapExplorerStore = create<MapExplorerState>()(
             ...patch,
           }),
         })),
+      restoreDefaultLayoutPreferences: () =>
+        set({
+          layoutPreferences: { ...DEFAULT_MAP_EXPLORER_LAYOUT_PREFERENCES },
+        }),
 
       /* --- Overlay layers --- */
       overlayLayers: [] as OverlayLayerConfig[],

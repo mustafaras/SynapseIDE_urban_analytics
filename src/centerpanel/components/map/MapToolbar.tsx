@@ -63,6 +63,10 @@ import {
 import type { DrawToolId, LayerQaStatus, MeasureToolId } from "./mapTypes";
 import type { MapWorkspaceView } from "./mapExperience";
 import {
+  MAP_RUNTIME_TASK_LENSES,
+  type MapTaskLensId,
+} from "./mapActivityRuntime";
+import {
   MAP_COLORS,
   MAP_ICON_SIZES,
   MAP_RADIUS,
@@ -82,6 +86,12 @@ import {
 export interface MapToolbarProps {
   workspaceView?: MapWorkspaceView;
   onWorkspaceViewChange?: (view: MapWorkspaceView) => void;
+  taskLens?: MapTaskLensId;
+  onTaskLensChange?: (lens: MapTaskLensId) => void;
+  onResetLayout?: () => void;
+  onCollapsePanels?: () => void;
+  onFocusMapCanvas?: () => void;
+  onRestoreDefaultWidths?: () => void;
   pinMode: boolean;
   onTogglePinMode: () => void;
   showSidebar: boolean;
@@ -337,6 +347,14 @@ interface BuildToolbarCommandsArgs extends Required<Pick<
   onAddToReportClick?: (() => void) | undefined;
   onSaveProjectClick?: (() => void) | undefined;
   onLoadProjectClick?: (() => void) | undefined;
+  taskLens: MapTaskLensId;
+  density: ToolbarDensity;
+  onTaskLensChange: (lens: MapTaskLensId) => void;
+  onSwitchDensity: () => void;
+  onResetLayout?: (() => void) | undefined;
+  onCollapsePanels?: (() => void) | undefined;
+  onFocusMapCanvas?: (() => void) | undefined;
+  onRestoreDefaultWidths?: (() => void) | undefined;
 }
 
 const DRAW_TOOLS: Array<{
@@ -354,10 +372,18 @@ const DRAW_TOOLS: Array<{
   { id: "circle", label: "Circle", shortLabel: "Circle", icon: Circle, title: "Draw circle AOI", priority: 45 },
 ];
 
-const ROLE_LABELS: Record<ToolbarRole, string> = {
-  explore: "Explore",
-  analyze: "Analyze",
-  publish: "Publish",
+const TASK_LENS_SHORT_LABELS: Record<MapTaskLensId, string> = {
+  analyst: "Analyst",
+  planner: "Planner",
+  reviewer: "Reviewer",
+  publisher: "Publisher",
+};
+
+const TASK_LENS_TOOLBAR_ROLES: Record<MapTaskLensId, ToolbarRole> = {
+  analyst: "analyze",
+  planner: "explore",
+  reviewer: "explore",
+  publisher: "publish",
 };
 
 const DENSITY_LABELS: Record<ToolbarDensity, string> = {
@@ -365,6 +391,8 @@ const DENSITY_LABELS: Record<ToolbarDensity, string> = {
   comfortable: "Comfort",
   expert: "Expert",
 };
+
+const TOOLBAR_DENSITY_ORDER = ["compact", "comfortable", "expert"] as const satisfies readonly ToolbarDensity[];
 
 const COMMAND_TAXONOMY_META: Record<CommandTaxonomyId, { label: string; title: string; icon: LucideIcon }> = {
   data: {
@@ -711,9 +739,14 @@ function iconForQAStatus(status: LayerQaStatus): LucideIcon {
   return ShieldCheck;
 }
 
-function getDefaultRole(workspaceView: MapWorkspaceView): ToolbarRole {
-  if (workspaceView === "analyze") return "analyze";
-  return "explore";
+function getRoleForTaskLens(taskLens: MapTaskLensId, workspaceView: MapWorkspaceView): ToolbarRole {
+  if (workspaceView === "analyze" && taskLens === "analyst") return "analyze";
+  return TASK_LENS_TOOLBAR_ROLES[taskLens];
+}
+
+function getNextToolbarDensityPreference(density: ToolbarDensity): ToolbarDensity {
+  const currentIndex = TOOLBAR_DENSITY_ORDER.indexOf(density);
+  return TOOLBAR_DENSITY_ORDER[(currentIndex + 1) % TOOLBAR_DENSITY_ORDER.length] ?? "compact";
 }
 
 function getBreakpoint(width: number): ToolbarBreakpoint {
@@ -861,6 +894,12 @@ function getCommandAccessibleTitle(command: ToolbarCommand): string {
 
 function getCommandTaxonomy(command: Pick<ToolbarCommand, "id" | "overflowGroup">): CommandTaxonomyId {
   const id = command.id;
+  if (
+    id.startsWith("task-lens-") ||
+    ["reset-layout", "collapse-panels", "focus-map-canvas", "restore-default-widths", "switch-density"].includes(id)
+  ) {
+    return "system";
+  }
   if (["import", "services", "catalog"].includes(id)) return "data";
   if (["layers", "contents"].includes(id)) return "layers";
   if (
@@ -898,6 +937,38 @@ function getCommandTaxonomy(command: Pick<ToolbarCommand, "id" | "overflowGroup"
 function getCommandCategory(command: ToolbarCommand | PaletteCommand): string {
   if ("category" in command) return command.category;
   return COMMAND_TAXONOMY_META[getCommandTaxonomy(command)].label;
+}
+
+function getToolbarTaskLensDefinition(taskLensId: MapTaskLensId) {
+  const definition = MAP_RUNTIME_TASK_LENSES.find((taskLens) => taskLens.id === taskLensId);
+  if (!definition) {
+    throw new Error(`Unknown toolbar task lens: ${taskLensId}`);
+  }
+  return definition;
+}
+
+function createTaskLensCommand(args: BuildToolbarCommandsArgs, input: {
+  id: string;
+  lensId: MapTaskLensId;
+  priority: number;
+}): ToolbarCommand {
+  const lens = getToolbarTaskLensDefinition(input.lensId);
+  const active = args.taskLens === input.lensId;
+  return {
+    id: input.id,
+    label: lens.label,
+    shortLabel: TASK_LENS_SHORT_LABELS[lens.id],
+    title: `Switch to ${lens.label} task lens. ${lens.description}`,
+    keywords: ["task lens", "persona", "layout preset", "view preset", lens.id, lens.label, lens.description],
+    icon: Compass,
+    onClick: () => args.onTaskLensChange(input.lensId),
+    roles: ["explore", "analyze", "publish"],
+    overflowGroup: "advanced",
+    priority: active ? input.priority + 20 : input.priority,
+    active,
+    badge: active ? "Lens" : null,
+    navigator: true,
+  };
 }
 
 function buildToolbarCommands(args: BuildToolbarCommandsArgs): ToolbarCommand[] {
@@ -943,6 +1014,30 @@ function buildToolbarCommands(args: BuildToolbarCommandsArgs): ToolbarCommand[] 
     active: args.workspaceView === "navigator",
     navigator: true,
   });
+
+  add(createTaskLensCommand(args, {
+    id: "task-lens-analyst",
+    lensId: "analyst",
+    priority: 119,
+  }));
+
+  add(createTaskLensCommand(args, {
+    id: "task-lens-planner",
+    lensId: "planner",
+    priority: 118,
+  }));
+
+  add(createTaskLensCommand(args, {
+    id: "task-lens-reviewer",
+    lensId: "reviewer",
+    priority: 117,
+  }));
+
+  add(createTaskLensCommand(args, {
+    id: "task-lens-publisher",
+    lensId: "publisher",
+    priority: 116,
+  }));
 
   add(args.onImportClick && {
     id: "import",
@@ -1125,6 +1220,77 @@ function buildToolbarCommands(args: BuildToolbarCommandsArgs): ToolbarCommand[] 
     disabledReason: "Undo a reversible map edit before using redo.",
     tone: args.canRedoMapAction ? "accent" : "default",
     shortcut: formatMapKeybinding("redoAction"),
+    navigator: true,
+  });
+
+  add(args.onResetLayout && {
+    id: "reset-layout",
+    label: "Reset layout",
+    shortLabel: "Reset",
+    title: "Restore map-first chrome, default panel widths, and the Layers workbench without clearing map data",
+    keywords: ["reset layout", "recover layout", "map first", "default chrome", "panels"],
+    icon: Redo2,
+    onClick: args.onResetLayout,
+    roles: ["explore", "analyze", "publish"],
+    overflowGroup: "advanced",
+    priority: 110,
+    navigator: true,
+  });
+
+  add(args.onCollapsePanels && {
+    id: "collapse-panels",
+    label: "Collapse panels",
+    shortLabel: "Collapse",
+    title: "Collapse side panels, bottom panel, drawers, and floating map tools",
+    keywords: ["collapse all panels", "close panels", "hide drawers", "map canvas"],
+    icon: PanelTop,
+    onClick: args.onCollapsePanels,
+    roles: ["explore", "analyze", "publish"],
+    overflowGroup: "advanced",
+    priority: 109,
+    navigator: true,
+  });
+
+  add(args.onFocusMapCanvas && {
+    id: "focus-map-canvas",
+    label: "Focus map canvas",
+    shortLabel: "Focus",
+    title: "Move keyboard focus to the interactive map canvas",
+    keywords: ["focus map canvas", "keyboard", "skip to map", "canvas"],
+    icon: Focus,
+    onClick: args.onFocusMapCanvas,
+    roles: ["explore", "analyze", "publish"],
+    overflowGroup: "advanced",
+    priority: 108,
+    navigator: true,
+  });
+
+  add(args.onRestoreDefaultWidths && {
+    id: "restore-default-widths",
+    label: "Default widths",
+    shortLabel: "Widths",
+    title: "Restore default sidebar and inspector widths without changing map content",
+    keywords: ["restore default widths", "sidebar width", "inspector width", "layout width"],
+    icon: RectangleHorizontal,
+    onClick: args.onRestoreDefaultWidths,
+    roles: ["explore", "analyze", "publish"],
+    overflowGroup: "advanced",
+    priority: 107,
+    navigator: true,
+  });
+
+  add({
+    id: "switch-density",
+    label: "Switch density",
+    shortLabel: "Density",
+    title: `Switch toolbar density from ${DENSITY_LABELS[args.density]} to ${DENSITY_LABELS[getNextToolbarDensityPreference(args.density)]}`,
+    keywords: ["switch density", "compact density", "comfortable density", "expert density", "toolbar density"],
+    icon: Settings2,
+    onClick: args.onSwitchDensity,
+    roles: ["explore", "analyze", "publish"],
+    overflowGroup: "advanced",
+    priority: 106,
+    badge: DENSITY_LABELS[args.density],
     navigator: true,
   });
 
@@ -1563,6 +1729,7 @@ function findFirstCommand(commands: readonly ToolbarCommand[], ids: readonly str
 function selectContextualPrimaryCommand(args: {
   commands: readonly ToolbarCommand[];
   toolbarRole: ToolbarRole;
+  taskLens: MapTaskLensId;
   workspaceView: MapWorkspaceView;
   visibleLayerCount: number;
   hasSelectedAoi: boolean;
@@ -1570,13 +1737,29 @@ function selectContextualPrimaryCommand(args: {
   scientificQAIssueCount: number;
   isImporting: boolean;
 }): ToolbarCommand | null {
-  const activeCommand = args.commands.find((command) => command.active && !command.disabled);
+  const primaryEligibleCommands = args.commands.filter((command) =>
+    !command.id.startsWith("task-lens-") &&
+    !["reset-layout", "collapse-panels", "focus-map-canvas", "restore-default-widths", "switch-density"].includes(command.id)
+  );
+  const activeCommand = primaryEligibleCommands.find((command) => command.active && !command.disabled);
   if (args.isImporting) return findFirstCommand(args.commands, ["import"]) ?? activeCommand ?? null;
   if (args.scientificQABlockerCount > 0 || args.scientificQAIssueCount > 0) {
     return findFirstCommand(args.commands, ["qa"]) ?? activeCommand ?? null;
   }
   if (args.visibleLayerCount === 0) {
     return findFirstCommand(args.commands, ["import", "catalog", "services"]) ?? activeCommand ?? null;
+  }
+  if (args.taskLens === "reviewer") {
+    return findFirstCommand(args.commands, ["qa", "review-timeline", "performance-diagnostics", "catalog"]) ?? activeCommand ?? null;
+  }
+  if (args.taskLens === "planner") {
+    return findFirstCommand(args.commands, ["layers", "contents", "theme", "voxcity", "figure-composer"]) ?? activeCommand ?? null;
+  }
+  if (args.taskLens === "publisher") {
+    return findFirstCommand(args.commands, ["figure-composer", "export-image", "add-map-to-report", "export-geojson"]) ?? activeCommand ?? null;
+  }
+  if (args.taskLens === "analyst") {
+    return findFirstCommand(args.commands, args.hasSelectedAoi ? ["workflow", "processing-toolbox", "query"] : ["layers", "processing-toolbox", "query"]) ?? activeCommand ?? null;
   }
   if (args.toolbarRole === "publish") {
     return findFirstCommand(args.commands, ["figure-composer", "export-image", "add-map-to-report", "export-geojson"]) ?? activeCommand ?? null;
@@ -1636,27 +1819,28 @@ function ToolbarCommandButton({
   );
 }
 
-function RoleSwitch({
-  role,
-  onRoleChange,
+function TaskLensSwitch({
+  taskLens,
+  onTaskLensChange,
 }: {
-  role: ToolbarRole;
-  onRoleChange: (role: ToolbarRole) => void;
+  taskLens: MapTaskLensId;
+  onTaskLensChange: (taskLens: MapTaskLensId) => void;
 }): React.ReactElement {
   return (
-    <div style={roleSwitch} role="group" aria-label="Role-based toolbar modes">
-      {(Object.keys(ROLE_LABELS) as ToolbarRole[]).map((entry) => (
+    <div style={roleSwitch} role="group" aria-label="Task lens selector">
+      {MAP_RUNTIME_TASK_LENSES.map((entry) => (
         <button
-          key={entry}
+          key={entry.id}
           type="button"
-          style={roleButtonStyle(role === entry)}
-          onClick={() => onRoleChange(entry)}
-          title={`Switch toolbar to ${ROLE_LABELS[entry]} mode`}
-          aria-label={`Switch toolbar to ${ROLE_LABELS[entry]} mode`}
-          aria-pressed={role === entry}
-          {...toolbarButtonInteraction(role === entry, false)}
+          style={roleButtonStyle(taskLens === entry.id)}
+          onClick={() => onTaskLensChange(entry.id)}
+          title={entry.description}
+          aria-label={`Switch to ${entry.label} task lens`}
+          aria-pressed={taskLens === entry.id}
+          data-testid={`map-task-lens-${entry.id}`}
+          {...toolbarButtonInteraction(taskLens === entry.id, false)}
         >
-          {ROLE_LABELS[entry]}
+          {TASK_LENS_SHORT_LABELS[entry.id]}
         </button>
       ))}
     </div>
@@ -1958,6 +2142,12 @@ function CommandPalette({
 export const MapToolbar: React.FC<MapToolbarProps> = ({
   workspaceView = "explore",
   onWorkspaceViewChange,
+  taskLens: taskLensProp,
+  onTaskLensChange,
+  onResetLayout,
+  onCollapsePanels,
+  onFocusMapCanvas,
+  onRestoreDefaultWidths,
   pinMode,
   onTogglePinMode,
   showSidebar,
@@ -2064,13 +2254,12 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
   const [toolbarWidth, setToolbarWidth] = React.useState(1280);
   const density = useMapToolbarPreferencesStore((state) => state.density);
   const setDensity = useMapToolbarPreferencesStore((state) => state.setDensity);
-  const [toolbarRole, setToolbarRole] = React.useState<ToolbarRole>(() => getDefaultRole(workspaceView));
+  const storedTaskLens = useMapToolbarPreferencesStore((state) => state.taskLens);
+  const setStoredTaskLens = useMapToolbarPreferencesStore((state) => state.setTaskLens);
+  const taskLens = taskLensProp ?? storedTaskLens;
+  const toolbarRole = getRoleForTaskLens(taskLens, workspaceView);
   const [openMenu, setOpenMenu] = React.useState<"more" | null>(null);
   const [paletteOpen, setPaletteOpen] = React.useState(false);
-
-  React.useEffect(() => {
-    setToolbarRole(getDefaultRole(workspaceView));
-  }, [workspaceView]);
 
   React.useEffect(() => {
     const element = toolbarRef.current;
@@ -2115,10 +2304,28 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
     return () => window.removeEventListener("keydown", handleKeyDown, { capture: true });
   }, [canRedoMapAction, canUndoMapAction, onRedoMapAction, onUndoMapAction]);
 
+  const handleTaskLensChange = React.useCallback((nextTaskLens: MapTaskLensId) => {
+    setStoredTaskLens(nextTaskLens);
+    onTaskLensChange?.(nextTaskLens);
+    setOpenMenu(null);
+  }, [onTaskLensChange, setStoredTaskLens]);
+
+  const handleSwitchDensity = React.useCallback(() => {
+    setDensity(getNextToolbarDensityPreference(density));
+  }, [density, setDensity]);
+
   const commands = React.useMemo(
     () => buildToolbarCommands({
       workspaceView,
       onWorkspaceViewChange,
+      taskLens,
+      density,
+      onTaskLensChange: handleTaskLensChange,
+      onSwitchDensity: handleSwitchDensity,
+      onResetLayout,
+      onCollapsePanels,
+      onFocusMapCanvas,
+      onRestoreDefaultWidths,
       pinMode,
       onTogglePinMode,
       showSidebar,
@@ -2226,9 +2433,12 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       annotationMode,
       canRedoMapAction,
       canUndoMapAction,
+      density,
       drawnFeatureCount,
       exportDisabled,
       exportDisabledReason,
+      handleSwitchDensity,
+      handleTaskLensChange,
       hasSelectedAoi,
       importProgress,
       isExportingImage,
@@ -2242,13 +2452,17 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       nlQueryLayerCount,
       onRedoMapAction,
       onWorkspaceViewChange,
+      onCollapsePanels,
       onExportClick,
+      onFocusMapCanvas,
       onImageExportClick,
       onExportPackageClick,
       onAddToReportClick,
       onImportClick,
       onLoadProjectClick,
       onOpenExternalServices,
+      onResetLayout,
+      onRestoreDefaultWidths,
       onSaveProjectClick,
       onSetDrawTool,
       onSetMeasureTool,
@@ -2314,6 +2528,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       showScientificQAPanel,
       showSidebar,
       showVoxCityOverlayPanel,
+      taskLens,
       undoMapActionLabel,
       visibleLayerCount,
       voxCityFootprintCount,
@@ -2328,6 +2543,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
     () => selectContextualPrimaryCommand({
       commands: commandRegistry,
       toolbarRole,
+      taskLens,
       workspaceView,
       visibleLayerCount,
       hasSelectedAoi,
@@ -2341,6 +2557,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       isImporting,
       scientificQABlockerCount,
       scientificQAIssueCount,
+      taskLens,
       toolbarRole,
       visibleLayerCount,
       workspaceView,
@@ -2431,21 +2648,15 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       data-testid="map-command-center"
       data-map-command-center="true"
       data-command-registry-count={commandRegistry.length}
-      data-command-center-visible-count={primaryCommand ? "3" : "2"}
+      data-command-center-visible-count={primaryCommand ? "4" : "3"}
       data-toolbar-density={density}
+      data-task-lens={taskLens}
       data-toolbar-breakpoint={breakpoint}
     >
       {workspaceView !== "navigator" ? (
-        <RoleSwitch
-          role={toolbarRole}
-          onRoleChange={(nextRole) => {
-            setToolbarRole(nextRole);
-            if (nextRole === "explore") {
-              onWorkspaceViewChange?.("explore");
-            } else if (nextRole === "analyze") {
-              onWorkspaceViewChange?.("analyze");
-            }
-          }}
+        <TaskLensSwitch
+          taskLens={taskLens}
+          onTaskLensChange={handleTaskLensChange}
         />
       ) : (
         <div style={{ ...roleSwitch, color: MAP_COLORS.textMuted }}>

@@ -53,7 +53,7 @@ function extractToolbarCommandIds(toolbarSource: string): Set<string> {
     commandIds.add(match[1]);
   }
 
-  const drawToolsSource = sourceSlice(toolbarSource, "const DRAW_TOOLS", "const ROLE_LABELS");
+  const drawToolsSource = sourceSlice(toolbarSource, "const DRAW_TOOLS", "const TASK_LENS_SHORT_LABELS");
   for (const match of drawToolsSource.matchAll(/\bid:\s*"([^"]+)"/g)) {
     commandIds.add(`draw-${match[1]}`);
   }

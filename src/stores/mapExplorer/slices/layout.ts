@@ -40,6 +40,7 @@ export const layoutSlicePolicy = defineMapExplorerSlicePolicy({
     "clearMapAnnotations",
     "setActiveTool",
     "setLayoutPreferences",
+    "restoreDefaultLayoutPreferences",
   ],
   persistedKeys: ["pins", "bookmarks", "annotations", "annotationToolSettings", "layoutPreferences"],
   transientKeys: ["selectedAnnotationId", "activeTool"],

@@ -237,6 +237,7 @@ import {
 } from "../mapExperience";
 import { selectMapExplorerContextSummary } from "../mapContextSummary";
 import {
+  DEFAULT_MAP_EXPLORER_LAYOUT_PREFERENCES,
   selectLayoutPreferences,
   selectMapBearing,
   selectMapCenter,
@@ -244,6 +245,7 @@ import {
   selectMapZoom,
   useMapExplorerStore,
 } from "../../../../stores/useMapExplorerStore";
+import { useMapToolbarPreferencesStore } from "../../../../stores/useMapToolbarPreferencesStore";
 import { useAppStore } from "../../../../stores/appStore";
 import { useFlowStore } from "../../../../stores/useFlowStore";
 import { useProjectRegistryOptional } from "../../../registry/state";
@@ -268,9 +270,11 @@ import {
 import {
   MAP_RUNTIME_PRIMARY_ACTIVITY_DEFINITIONS,
   MAP_RUNTIME_UTILITY_ACTIVITY_DEFINITIONS,
+  getRuntimeMapTaskLensDefinition,
   getRuntimeMapActivityDefinition,
   type MapActivityDefinition,
   type MapActivityId,
+  type MapTaskLensId,
 } from "../mapActivityRuntime";
 import { usePrefersReducedMotion } from "../../../../hooks/usePrefersReducedMotion";
 import {
@@ -1442,6 +1446,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const copilotAuditTrail = useMapExplorerStore((s) => s.copilotAuditTrail);
   const layoutPreferences = useMapExplorerStore(selectLayoutPreferences);
   const setLayoutPreferences = useMapExplorerStore((s) => s.setLayoutPreferences);
+  const restoreDefaultLayoutPreferences = useMapExplorerStore((s) => s.restoreDefaultLayoutPreferences);
+  const activeTaskLensId = useMapToolbarPreferencesStore((s) => s.taskLens);
+  const toolbarDensity = useMapToolbarPreferencesStore((s) => s.density);
 
   /* ---- Overlay layer store selectors ---- */
   const {
@@ -3213,6 +3220,122 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     window.requestAnimationFrame(focusCanvas);
     announce("Interactive map canvas focused");
   }, [announce, mapCanvasId]);
+
+  const activeTaskLens = useMemo(
+    () => getRuntimeMapTaskLensDefinition(activeTaskLensId),
+    [activeTaskLensId],
+  );
+
+  const handleRestoreDefaultWidths = useCallback(() => {
+    restoreDefaultLayoutPreferences();
+    announce(
+      `Default panel widths restored (${DEFAULT_MAP_EXPLORER_LAYOUT_PREFERENCES.layerPanelWidth}px sidebar, ${DEFAULT_MAP_EXPLORER_LAYOUT_PREFERENCES.rightPanelWidth}px inspector)`,
+    );
+  }, [announce, restoreDefaultLayoutPreferences]);
+
+  const handleCollapseAllPanels = useCallback(() => {
+    closeFloatingRightPanels();
+    closeRightDockPanels();
+    setShowLayerPanel(false);
+    setWorkbenchSidebarCollapsed(true);
+    setBottomPanelOpen(false);
+    setShowScientificQAPanel(false);
+    setShowReviewTimeline(false);
+    setShowProcessingToolbox(false);
+    setShowModelBuilder(false);
+    setShowPluginPanel(false);
+    setShowFigureComposer(false);
+    setShowInteractionStrip(false);
+    setShowComparisonStrip(false);
+    setShowWorkflowDrawer(false);
+    setWorkflowPreview(null);
+    announce("All map panels collapsed");
+  }, [
+    announce,
+    closeFloatingRightPanels,
+    closeRightDockPanels,
+    setShowWorkflowDrawer,
+    setWorkflowPreview,
+  ]);
+
+  const handleResetLayout = useCallback(() => {
+    closeFloatingRightPanels();
+    closeRightDockPanels();
+    restoreDefaultLayoutPreferences();
+    setWorkspaceView("explore");
+    setActiveActivityId("layers");
+    setWorkbenchSidebarTab("layers-stack");
+    setWorkbenchSidebarCollapsed(false);
+    setShowLayerPanel(true);
+    setBottomPanelOpen(false);
+    setShowScientificQAPanel(false);
+    setShowReviewTimeline(false);
+    setShowProcessingToolbox(false);
+    setShowModelBuilder(false);
+    setShowPluginPanel(false);
+    setShowFigureComposer(false);
+    setShowInteractionStrip(false);
+    setShowComparisonStrip(false);
+    setShowWorkflowDrawer(false);
+    setWorkflowPreview(null);
+    announce("Map layout reset to map-first chrome");
+  }, [
+    announce,
+    closeFloatingRightPanels,
+    closeRightDockPanels,
+    restoreDefaultLayoutPreferences,
+    setShowWorkflowDrawer,
+    setWorkflowPreview,
+  ]);
+
+  const handleTaskLensChange = useCallback((nextTaskLensId: MapTaskLensId) => {
+    const nextLens = getRuntimeMapTaskLensDefinition(nextTaskLensId);
+    const targetActivityId = nextLens.defaultActivityId;
+    const targetActivity = getRuntimeMapActivityDefinition(targetActivityId);
+    const sidebarTab = nextLens.sidebarTabPriority[0] ?? targetActivity.defaultSidebarTabId ?? "layers-stack";
+
+    closeFloatingRightPanels();
+    closeRightDockPanels();
+    setShowProcessingToolbox(false);
+    setShowModelBuilder(false);
+    setShowPluginPanel(false);
+    setShowScientificQAPanel(false);
+    setShowWorkflowDrawer(false);
+    setWorkflowPreview(null);
+    setWorkbenchSidebarCollapsed(false);
+    setActiveActivityId(targetActivityId);
+    setWorkbenchSidebarTab(sidebarTab);
+    setWorkspaceView(targetActivityId === "analyze" ? "analyze" : "explore");
+
+    if (targetActivityId === "qa") {
+      setShowLayerPanel(false);
+      setBottomPanelOpen(true);
+      setActiveBottomPanelTab("problems");
+      setShowReviewTimeline(false);
+    } else if (targetActivityId === "review") {
+      setShowLayerPanel(false);
+      setBottomPanelOpen(true);
+      setActiveBottomPanelTab("timeline");
+      setShowReviewTimeline(true);
+    } else if (targetActivityId === "diagnostics") {
+      setShowLayerPanel(false);
+      setBottomPanelOpen(true);
+      setActiveBottomPanelTab("diagnostics");
+      setShowReviewTimeline(false);
+    } else {
+      setBottomPanelOpen(false);
+      setShowReviewTimeline(false);
+      setShowLayerPanel(true);
+    }
+
+    announce(`${nextLens.label} lens applied`);
+  }, [
+    announce,
+    closeFloatingRightPanels,
+    closeRightDockPanels,
+    setShowWorkflowDrawer,
+    setWorkflowPreview,
+  ]);
 
   useEffect(() => {
     if (workspaceView !== "analyze") {
@@ -8366,6 +8489,12 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             <MapToolbar
               workspaceView={workspaceView}
               onWorkspaceViewChange={handleSetWorkspaceView}
+              taskLens={activeTaskLensId}
+              onTaskLensChange={handleTaskLensChange}
+              onResetLayout={handleResetLayout}
+              onCollapsePanels={handleCollapseAllPanels}
+              onFocusMapCanvas={focusInteractiveMapCanvas}
+              onRestoreDefaultWidths={handleRestoreDefaultWidths}
               pinMode={pinMode}
               onTogglePinMode={handleTogglePinMode}
               showSidebar={effectiveShowSidebar}
@@ -9454,6 +9583,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               zoom={zoom}
               projectId={selectedProjectId}
               workspaceLabel={workspaceView}
+              taskLensLabel={activeTaskLens.label}
+              densityLabel={toolbarDensity === "comfortable" ? "comfort" : toolbarDensity}
               layerCount={overlayLayers.length}
               visibleLayerCount={overlayLayers.filter((layer) => layer.visible).length}
               pinCount={pins.length}

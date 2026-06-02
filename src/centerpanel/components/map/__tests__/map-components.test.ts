@@ -424,7 +424,10 @@ describe("Map Explorer components render without errors", () => {
       }),
     );
     expect(html).toContain("data-testid=\"map-command-center\"");
-    expect(html).toContain("data-command-registry-count=\"3\"");
+    const registryCount = Number(html.match(/data-command-registry-count="(\d+)"/)?.[1] ?? 0);
+    expect(registryCount).toBeGreaterThanOrEqual(8);
+    expect(html).toContain("Task lens selector");
+    expect(html).toContain("Analyst");
     expect(html).toContain("Commands");
     expect(html).toContain("More");
   });
@@ -521,7 +524,7 @@ describe("Map Explorer components render without errors", () => {
       );
     });
 
-    expect(host.textContent).toContain("Analyze");
+    expect(host.textContent).toContain("Analyst");
     openCommandPalette();
     const input = commandPaletteInput();
     setInputValue(input, "draw polygon");

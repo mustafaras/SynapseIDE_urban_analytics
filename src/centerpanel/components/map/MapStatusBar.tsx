@@ -16,6 +16,8 @@ export interface MapStatusBarProps {
   zoom: number;
   projectId?: string | null;
   workspaceLabel?: string | null;
+  taskLensLabel?: string | null;
+  densityLabel?: string | null;
   layerCount?: number;
   visibleLayerCount?: number;
   pinCount?: number;
@@ -267,6 +269,8 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
   zoom,
   projectId = null,
   workspaceLabel = null,
+  taskLensLabel = null,
+  densityLabel = null,
   layerCount = 0,
   visibleLayerCount = 0,
   pinCount = 0,
@@ -315,6 +319,8 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
     ...(cursor != null ? [{ label: "Cursor", value: `${cursor.lat.toFixed(5)}, ${cursor.lng.toFixed(5)}`, maxWidth: "12rem" }] : []),
     { label: "Project", value: projectLabel, maxWidth: "12rem" },
     { label: "Mode", value: workspaceLabel ?? "explore" },
+    ...(taskLensLabel ? [{ label: "Lens", value: taskLensLabel, maxWidth: "7rem" }] : []),
+    ...(densityLabel ? [{ label: "Density", value: densityLabel, maxWidth: "7rem" }] : []),
     { label: "Layers", value: `${visibleLayerCount}/${layerCount}` },
     { label: "Select", value: `${selectedFeatureCount}`, onClick: onOpenAttributes, ariaLabel: "Open selected feature attributes" },
     { label: "AOI", value: hasActiveAoi ? "active" : "none", tone: hasActiveAoi ? "info" : "stale" },
