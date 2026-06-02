@@ -12,6 +12,7 @@ export {
   type MapContentsFilterResult,
   type MapContentsGroup,
   type MapContentsScaleResult,
+  type MapLayerContentsPatch,
 } from "./contentsModel";
 export {
   MapContentsTreePanel,

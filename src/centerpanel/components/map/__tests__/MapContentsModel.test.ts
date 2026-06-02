@@ -1,10 +1,15 @@
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { OverlayLayerConfig } from "../mapTypes";
 import {
   applyContentsToRenderLayer,
   applyDefinitionFilterToLayer,
+  buildMapContentsGroups,
   duplicateMapContentsLayer,
   evaluateContentsScaleRange,
+  formatDefinitionFilter,
+  MapContentsTreePanel,
   setMapLayerContentsState,
 } from "../contents";
 
@@ -102,5 +107,73 @@ describe("professional contents layer semantics", () => {
     expect(duplicate.provenance).toEqual(configured.provenance);
     expect(duplicate.provenance).not.toBe(configured.provenance);
     expect(duplicate.sourceData).toBe(configured.sourceData);
+  });
+
+  it("keeps groups, scale ranges and filters available for compact tree rows", () => {
+    const configured = setMapLayerContentsState(layer(), {
+      groupId: "group-review",
+      groupLabel: "Review",
+      minZoom: 12,
+      maxZoom: 16,
+      definitionFilter: { field: "zone", operator: "equals", value: "commercial" },
+    }, "2026-05-26T10:00:00.000Z");
+    const analysis = setMapLayerContentsState({
+      ...layer(),
+      id: "contents-analysis",
+      name: "Contents Analysis Result",
+      group: "analysis",
+      sourceKind: "derived",
+    }, {
+      groupId: "analysis",
+      groupLabel: "Analysis Results",
+    }, "2026-05-26T10:00:00.000Z");
+
+    expect(buildMapContentsGroups([configured, analysis])).toEqual([
+      { id: "group-review", label: "Review", layerIds: ["contents-parcels"] },
+      { id: "analysis", label: "Analysis Results", layerIds: ["contents-analysis"] },
+    ]);
+    const filter = configured.metadata?.contents?.definitionFilter;
+    expect(filter ? formatDefinitionFilter(filter) : null).toBe("zone = commercial");
+    expect(evaluateContentsScaleRange(configured, 14)).toMatchObject({ inRange: true });
+    expect(evaluateContentsScaleRange(configured, 18)).toMatchObject({ inRange: false });
+  });
+
+  it("renders selected layer readiness, row scale badges and row filter badges without dropping actions", () => {
+    const configured = setMapLayerContentsState(layer(), {
+      groupId: "group-review",
+      groupLabel: "Priority Review",
+      minZoom: 12,
+      maxZoom: 16,
+      definitionFilter: { field: "zone", operator: "equals", value: "commercial" },
+    }, "2026-05-26T10:00:00.000Z");
+    const noop = (): void => undefined;
+    const markup = renderToStaticMarkup(React.createElement(MapContentsTreePanel, {
+      visible: true,
+      layers: [configured],
+      zoom: 14,
+      onClose: noop,
+      onUpdateLayer: noop,
+      onDuplicateLayer: noop,
+      onRepairSource: noop,
+      onOpenProperties: noop,
+      onToggleVisibility: noop,
+      onReorderLayers: noop,
+      presentation: "embedded",
+    }));
+
+    expect(markup).toContain("Priority Review");
+    expect(markup).toContain("data-testid=\"contents-row-scale-contents-parcels\"");
+    expect(markup).toContain("data-testid=\"contents-row-filter-contents-parcels\"");
+    expect(markup).toContain("Z12-16");
+    expect(markup).toContain("zone = commercial");
+    expect(markup).toContain("data-testid=\"contents-active-readiness\"");
+    expect(markup).toContain("Source");
+    expect(markup).toContain("Geometry");
+    expect(markup).toContain("CRS");
+    expect(markup).toContain("QA");
+    expect(markup).toContain("Publish");
+    expect(markup).toContain("data-testid=\"contents-properties-contents-parcels\"");
+    expect(markup).toContain("data-testid=\"contents-duplicate\"");
+    expect(markup).toContain("data-testid=\"contents-repair\"");
   });
 });

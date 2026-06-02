@@ -24,6 +24,14 @@ export interface MapContentsFilterResult {
   filteredFeatureCount: number | null;
 }
 
+export type MapLayerContentsPatch =
+  Partial<Omit<MapLayerContentsState, "updatedAt" | "minZoom" | "maxZoom" | "definitionFilter">>
+  & {
+    minZoom?: number | undefined;
+    maxZoom?: number | undefined;
+    definitionFilter?: MapLayerDefinitionFilter | undefined;
+  };
+
 export const MAP_CONTENTS_SYSTEM_GROUPS: Readonly<Record<LayerGroupId, string>> = {
   base: "Base Layers",
   data: "Data Layers",
@@ -59,7 +67,7 @@ export function resolveMapLayerContentsState(
 
 export function setMapLayerContentsState(
   layer: OverlayLayerConfig,
-  patch: Partial<Omit<MapLayerContentsState, "updatedAt">>,
+  patch: MapLayerContentsPatch,
   updatedAt: string = new Date().toISOString(),
 ): OverlayLayerConfig {
   const previous = resolveMapLayerContentsState(layer, updatedAt);
