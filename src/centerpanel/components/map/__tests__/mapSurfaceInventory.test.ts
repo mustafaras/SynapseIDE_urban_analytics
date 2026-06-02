@@ -166,6 +166,7 @@ describe("Map surface inventory", () => {
   it("keeps major modal components, dialogs, drawers, overlays, and status surfaces inventoried", () => {
     const requiredSurfaceIds = [
       "MapLayerManager",
+      "MapCanvasControls",
       "MapSelectionTools",
       "MapLegendOverlay",
       "MapPerformanceBudgetBanner",

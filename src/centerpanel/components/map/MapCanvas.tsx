@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { BASE_STYLES, type BaseLayerId, type MapPin, type ViewportState } from "./mapTypes";
@@ -26,6 +26,7 @@ export interface MapCanvasProps {
   interactiveLayerIds?: string[];
   reducedMotion?: boolean;
   preserveDrawingBuffer?: boolean;
+  showScaleBar?: boolean;
   /**
    * Optional initial viewport for the map at construction time.
    *
@@ -242,6 +243,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
   interactiveLayerIds = [],
   reducedMotion = false,
   preserveDrawingBuffer = false,
+  showScaleBar = true,
   initialViewport,
   viewportMode = 'shared',
   onCursorMove,
@@ -257,6 +259,8 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markersRef = useRef<maplibregl.Marker[]>([]);
   const popupRef = useRef<maplibregl.Popup | null>(null);
+  const scaleControlRef = useRef<maplibregl.ScaleControl | null>(null);
+  const scaleControlAddedRef = useRef(false);
   const pinModeRef = useRef(pinMode);
   const interactiveLayerIdsRef = useRef<string[]>(interactiveLayerIds);
   const cursorMoveRef = useRef(onCursorMove);
@@ -267,6 +271,24 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
   const initialViewportRef = useRef<Partial<ViewportState> | undefined>(initialViewport);
   const viewportModeRef = useRef(viewportMode);
   const tearingDownRef = useRef(false);
+
+  const syncScaleControl = useCallback((map: maplibregl.Map, visible: boolean): void => {
+    if (visible) {
+      if (!scaleControlRef.current) {
+        scaleControlRef.current = new maplibregl.ScaleControl({ maxWidth: MAP_NUMERIC.scaleMaxWidth });
+      }
+      if (!scaleControlAddedRef.current) {
+        map.addControl(scaleControlRef.current, "bottom-left");
+        scaleControlAddedRef.current = true;
+      }
+      return;
+    }
+
+    if (scaleControlRef.current && scaleControlAddedRef.current) {
+      map.removeControl(scaleControlRef.current);
+      scaleControlAddedRef.current = false;
+    }
+  }, []);
 
   useEffect(() => {
     viewportModeRef.current = viewportMode;
@@ -320,8 +342,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
       ...(reducedMotion ? { fadeDuration: 0 } : {}),
     });
 
-    map.addControl(new maplibregl.NavigationControl(), "bottom-right");
-    map.addControl(new maplibregl.ScaleControl({ maxWidth: MAP_NUMERIC.scaleMaxWidth }), "bottom-left");
+    syncScaleControl(map, showScaleBar);
     map.addControl(
       new maplibregl.AttributionControl({ compact: true }),
       "bottom-left",
@@ -460,6 +481,8 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
       pendingCursorRef.current = null;
       markersRef.current.forEach((m) => m.remove());
       markersRef.current = [];
+      scaleControlAddedRef.current = false;
+      scaleControlRef.current = null;
       popupRef.current?.remove();
       popupRef.current = null;
       try {
@@ -471,7 +494,12 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
       }
       onMapDestroy();
     };
-  }, [preserveDrawingBuffer]);
+  }, [preserveDrawingBuffer, syncScaleControl]);
+
+  useEffect(() => {
+    if (!mapRef.current) return;
+    syncScaleControl(mapRef.current, showScaleBar);
+  }, [showScaleBar, syncScaleControl]);
 
   /* ---- Switch base layer ---- */
   useEffect(() => {

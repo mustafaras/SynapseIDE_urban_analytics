@@ -1460,6 +1460,16 @@ export const MAP_SURFACE_INVENTORY = [
     targetSurface: "Canvas tool strip > Selection",
   },
   {
+    id: "surface.MapCanvasControls",
+    sourceId: "MapCanvasControls",
+    label: "Canvas control standard",
+    kind: "canvas-overlay",
+    targetHome: "canvas-overlay",
+    targetSlot: "canvas",
+    currentSurface: "MapCanvasControls",
+    targetSurface: "Canvas controls > Viewport, basemap, CRS, and publish furniture",
+  },
+  {
     id: "surface.MapLegendOverlay",
     sourceId: "MapLegendOverlay",
     label: "Map legend overlay",

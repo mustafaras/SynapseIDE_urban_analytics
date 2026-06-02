@@ -13,6 +13,8 @@ const mapMockState = vi.hoisted(() => {
     instances: [] as Array<{
       emit: (type: string, event: { error?: unknown; sourceId?: string; status?: number }) => void;
       options?: { preserveDrawingBuffer?: boolean };
+      addControl: ReturnType<typeof vi.fn>;
+      removeControl: ReturnType<typeof vi.fn>;
     }>,
   };
 });
@@ -24,6 +26,8 @@ vi.mock("maplibre-gl", () => {
     constructor(options?: { preserveDrawingBuffer?: boolean }) {
       mapMockState.instances.push({
         options,
+        addControl: this.addControl,
+        removeControl: this.removeControl,
         emit: (type, event) => {
           for (const handler of this.listeners.get(type) ?? []) {
             handler(event);
@@ -33,6 +37,8 @@ vi.mock("maplibre-gl", () => {
     }
 
     addControl = vi.fn();
+
+    removeControl = vi.fn();
 
     on = vi.fn((type: string, handler: (event: { error?: unknown; preventDefault?: () => void }) => void) => {
       const handlers = this.listeners.get(type) ?? [];
@@ -86,8 +92,12 @@ vi.mock("maplibre-gl", () => {
   }
 
   class MockNavigationControl {}
-  class MockScaleControl {}
-  class MockAttributionControl {}
+  class MockScaleControl {
+    kind = "scale";
+  }
+  class MockAttributionControl {
+    kind = "attribution";
+  }
 
   return {
     default: {
@@ -167,6 +177,54 @@ describe("MapCanvas lifecycle", () => {
     });
 
     expect(mapMockState.instances[0]?.options?.preserveDrawingBuffer).toBe(true);
+
+    await act(async () => {
+      root.unmount();
+    });
+  });
+
+  it("toggles the MapLibre scale control without recreating the canvas", async () => {
+    const { MapCanvas } = await import("../MapCanvas");
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    const renderCanvas = (showScaleBar: boolean) => (
+      <MapCanvas
+        baseLayer="dark"
+        pinMode={false}
+        pins={[]}
+        showScaleBar={showScaleBar}
+        onCursorMove={() => undefined}
+        onZoomChange={() => undefined}
+        onViewportChange={() => undefined}
+        onMapClick={() => undefined}
+        onMapReady={() => undefined}
+        onMapDestroy={() => undefined}
+      />
+    );
+
+    await act(async () => {
+      root.render(renderCanvas(false));
+    });
+
+    expect(mapMockState.instances).toHaveLength(1);
+    expect(mapMockState.instances[0]?.addControl.mock.calls.some(([control]) => control?.kind === "scale")).toBe(false);
+
+    await act(async () => {
+      root.render(renderCanvas(true));
+    });
+
+    expect(mapMockState.instances).toHaveLength(1);
+    const scaleControl = mapMockState.instances[0]?.addControl.mock.calls.find(([control]) => control?.kind === "scale")?.[0];
+    expect(scaleControl).toBeDefined();
+
+    await act(async () => {
+      root.render(renderCanvas(false));
+    });
+
+    expect(mapMockState.instances).toHaveLength(1);
+    expect(mapMockState.instances[0]?.removeControl).toHaveBeenCalledWith(scaleControl);
 
     await act(async () => {
       root.unmount();

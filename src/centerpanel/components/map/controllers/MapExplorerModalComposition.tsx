@@ -64,9 +64,9 @@ import {
   type GisStatusKey,
 } from "../mapTokens";
 import { MapCanvas, type MapFeatureReportRequest } from "../MapCanvas";
+import { MapCanvasControls } from "../MapCanvasControls";
 import { MapCanvasKeyboardFallbackControls } from "../MapCanvasKeyboardFallbackControls";
 import { MapToolbar } from "../MapToolbar";
-import { MapLayerPanel } from "../MapLayerPanel";
 import {
   MapLayerCartographyPanel,
   MapLayerManager,
@@ -1193,6 +1193,88 @@ function getFeatureBounds(feature: GeoJSON.Feature): [number, number, number, nu
     return null;
   }
   return [minLng, minLat, maxLng, maxLat];
+}
+
+function mergeBounds(
+  boundsList: Array<[number, number, number, number] | null | undefined>,
+): [number, number, number, number] | null {
+  const finiteBounds = boundsList.filter((bounds): bounds is [number, number, number, number] =>
+    Boolean(bounds) && bounds.every((value) => Number.isFinite(value)),
+  );
+  if (finiteBounds.length === 0) {
+    return null;
+  }
+
+  return finiteBounds.reduce<[number, number, number, number]>((merged, bounds) => [
+    Math.min(merged[0], bounds[0]),
+    Math.min(merged[1], bounds[1]),
+    Math.max(merged[2], bounds[2]),
+    Math.max(merged[3], bounds[3]),
+  ], finiteBounds[0]!);
+}
+
+function getLayerFitBounds(layer: OverlayLayerConfig): [number, number, number, number] | null {
+  const metadataBounds = layer.metadata?.bounds ?? layer.metadata?.geometrySummary?.bounds ?? null;
+  if (metadataBounds) {
+    return metadataBounds;
+  }
+
+  const sourceData = layer.sourceData;
+  if (!sourceData || typeof sourceData === "string") {
+    return null;
+  }
+
+  const collection = (sourceData as FeatureCollection).type === "FeatureCollection"
+    ? (sourceData as FeatureCollection)
+    : null;
+  return collection ? getFeatureCollectionBounds(collection) : null;
+}
+
+function getFeatureSelectionKeys(feature: GeoJSON.Feature, layerId: string): Set<string> {
+  const properties = feature.properties as Record<string, unknown> | null | undefined;
+  const keys = [
+    feature.id,
+    properties?.id,
+    properties?.feature_id,
+    properties?.detection_id,
+    properties?.cell_id,
+    properties?.agent_id,
+    properties?.name,
+    `${layerId}-feature`,
+  ];
+  return new Set(
+    keys
+      .filter((value): value is string | number => typeof value === "string" || typeof value === "number")
+      .map(String),
+  );
+}
+
+function getSelectedFeatureFitBounds(
+  layers: readonly OverlayLayerConfig[],
+  selectedFeatureIds: Record<string, string[]>,
+): [number, number, number, number] | null {
+  const selectedBounds: Array<[number, number, number, number]> = [];
+
+  for (const [layerId, ids] of Object.entries(selectedFeatureIds)) {
+    if (ids.length === 0) continue;
+    const layer = layers.find((entry) => entry.id === layerId);
+    if (!layer || !layer.sourceData || typeof layer.sourceData === "string") continue;
+
+    const collection = (layer.sourceData as FeatureCollection).type === "FeatureCollection"
+      ? (layer.sourceData as FeatureCollection)
+      : null;
+    if (!collection) continue;
+
+    const idSet = new Set(ids.map(String));
+    for (const feature of collection.features) {
+      const featureKeys = getFeatureSelectionKeys(feature, layerId);
+      if (![...featureKeys].some((key) => idSet.has(key))) continue;
+      const bounds = getFeatureBounds(feature);
+      if (bounds) selectedBounds.push(bounds);
+    }
+  }
+
+  return mergeBounds(selectedBounds);
 }
 
 function doBoundsIntersect(
@@ -4561,6 +4643,109 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     fitToBounds(bounds);
   }, [announce, fitToBounds]);
 
+  const visibleLayerFitBounds = useMemo(
+    () => mergeBounds(overlayLayers.filter((layer) => layer.visible).map(getLayerFitBounds)),
+    [overlayLayers],
+  );
+  const selectedCanvasFitContext = useMemo(() => {
+    const activeAoiBounds = contextSummary.activeAoi?.bbox ?? null;
+    if (activeAoiBounds) {
+      return { bounds: activeAoiBounds, label: activeAoiLabel ?? "active AOI" };
+    }
+
+    const selectedBounds = getSelectedFeatureFitBounds(overlayLayers, selectedFeatureIds);
+    if (selectedBounds) {
+      return { bounds: selectedBounds, label: "selected features" };
+    }
+
+    const selectedDrawing = selectedFeatureId
+      ? drawnFeatures.find((feature) => feature.id === selectedFeatureId) ?? null
+      : null;
+    const selectedDrawingBounds = selectedDrawing ? getFeatureBounds(selectedDrawing) : null;
+    if (selectedDrawingBounds) {
+      const label = selectedDrawing.properties?.label;
+      return { bounds: selectedDrawingBounds, label: typeof label === "string" && label.trim() ? label.trim() : "selected drawing" };
+    }
+
+    const activeLayer = attributeTableLayer ?? inspectorLayer ?? activeStyleLayer;
+    const activeLayerBounds = activeLayer ? getLayerFitBounds(activeLayer) : null;
+    if (activeLayerBounds) {
+      return { bounds: activeLayerBounds, label: activeLayer.name };
+    }
+
+    return null;
+  }, [
+    activeAoiLabel,
+    activeStyleLayer,
+    attributeTableLayer,
+    contextSummary.activeAoi?.bbox,
+    drawnFeatures,
+    inspectorLayer,
+    overlayLayers,
+    selectedFeatureId,
+    selectedFeatureIds,
+  ]);
+
+  const handleCanvasZoom = useCallback((delta: number) => {
+    const map = mapInstanceRef.current;
+    if (!map) {
+      announce("Map controls are not ready yet");
+      return;
+    }
+    const nextZoom = +(map.getZoom() + delta).toFixed(1);
+    map.zoomTo(nextZoom, { animate: !reducedMotion });
+    announce(`Zoom level ${nextZoom}`);
+  }, [announce, reducedMotion]);
+
+  const handleCanvasResetView = useCallback(() => {
+    const map = mapInstanceRef.current;
+    if (!map) {
+      announce("Map controls are not ready yet");
+      return;
+    }
+    const nextView = {
+      center: [29.0, 41.0] as [number, number],
+      zoom: 10,
+      bearing: 0,
+      pitch: 0,
+    };
+    if (reducedMotion) {
+      map.jumpTo(nextView);
+    } else {
+      map.flyTo({ ...nextView, duration: 900, essential: true });
+    }
+    setViewport(nextView);
+    announce("Map view reset to default");
+  }, [announce, reducedMotion, setViewport]);
+
+  const handleCanvasFitVisibleLayers = useCallback(() => {
+    if (!visibleLayerFitBounds) {
+      handleCanvasResetView();
+      return;
+    }
+    fitToBounds(visibleLayerFitBounds);
+    announce("Map fitted to visible layers");
+  }, [announce, fitToBounds, handleCanvasResetView, visibleLayerFitBounds]);
+
+  const handleCanvasFitSelectedContext = useCallback(() => {
+    if (!selectedCanvasFitContext) {
+      announce("Select a layer, feature, or AOI before fitting the map.");
+      return;
+    }
+    fitToBounds(selectedCanvasFitContext.bounds);
+    announce(`Map fitted to ${selectedCanvasFitContext.label}`);
+  }, [announce, fitToBounds, selectedCanvasFitContext]);
+
+  const handleClearActiveCanvasTool = useCallback(() => {
+    const hasActiveCanvasTool = Boolean(activeTool || activeDrawTool || activeMeasureTool);
+    setActiveTool(null);
+    setActiveDrawTool(null);
+    setActiveMeasureTool(null);
+    if (hasActiveCanvasTool) {
+      announce("Active map tool cleared");
+    }
+  }, [activeDrawTool, activeMeasureTool, activeTool, announce, setActiveDrawTool, setActiveMeasureTool, setActiveTool]);
+
   const handleHotSpotDispatch = useCallback(async (coordinate: [number, number]) => {
     if (isRunningQuickHotSpot) {
       return;
@@ -7250,6 +7435,33 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     toggleBottomPanelTab("problems", "QA Problems opened in the bottom panel");
   }, [toggleBottomPanelTab]);
 
+  const handleOpenCanvasCrsReadiness = useCallback(() => {
+    openMapProblems();
+    announce("CRS readiness opened in QA Problems");
+  }, [announce, openMapProblems]);
+
+  const handleToggleCanvasScaleBar = useCallback(() => {
+    const includeScaleBar = !mapCompositionOptions.includeScaleBar;
+    setMapCompositionOptions((current) => ({ ...current, includeScaleBar }));
+    announce(includeScaleBar ? "Scale bar shown for publish preview" : "Scale bar hidden for publish preview");
+  }, [announce, mapCompositionOptions.includeScaleBar]);
+
+  const handleToggleCanvasNorthArrow = useCallback(() => {
+    const includeNorthArrow = !mapCompositionOptions.includeNorthArrow;
+    setMapCompositionOptions((current) => ({ ...current, includeNorthArrow }));
+    announce(includeNorthArrow ? "North arrow shown for publish preview" : "North arrow hidden for publish preview");
+  }, [announce, mapCompositionOptions.includeNorthArrow]);
+
+  const handleToggleCanvasLegend = useCallback(() => {
+    if (mapPublicationLegendItems.length === 0) {
+      announce("No visible layer legend is available");
+      return;
+    }
+    const includeLegend = !mapCompositionOptions.includeLegend;
+    setMapCompositionOptions((current) => ({ ...current, includeLegend }));
+    announce(includeLegend ? "Legend shown for publish preview" : "Legend hidden for publish preview");
+  }, [announce, mapCompositionOptions.includeLegend, mapPublicationLegendItems.length]);
+
   const handleToggleReviewTimelineBottomPanel = useCallback(() => {
     toggleBottomPanelTab("timeline", "Review timeline opened in the bottom panel");
   }, [toggleBottomPanelTab]);
@@ -8621,8 +8833,6 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             onShareBookmark={handleShareBookmark}
           />
 
-          <MapLayerPanel compact activeLayer={activeBaseLayer} onSetLayer={handleSetBaseLayer} />
-
           <button
             type="button"
             style={commandHeaderCloseButton}
@@ -9043,6 +9253,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             interactiveLayerIds={interactiveAnalysisLayerIds}
             reducedMotion={reducedMotion}
             preserveDrawingBuffer={mapCanvasCaptureMode}
+            showScaleBar={mapCompositionOptions.includeScaleBar}
             onCursorMove={handleCursorMove}
             onZoomChange={handleZoomChange}
             onViewportChange={handleViewportChange}
@@ -9051,6 +9262,36 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             onMapDestroy={handleMapDestroy}
             onRenderError={handleMapRenderError}
             onFeatureReportRequest={handleFeatureReportRequest}
+          />
+
+          <MapCanvasControls
+            activeBaseLayer={activeBaseLayer}
+            onSetBaseLayer={handleSetBaseLayer}
+            activeTool={activeTool}
+            activeDrawTool={activeDrawTool}
+            activeMeasureTool={activeMeasureTool}
+            selectedFeatureCount={selectedFeatureCount}
+            visibleLayerCount={visiblePublicationLayers.length}
+            hasActiveAoi={Boolean(contextSummary.activeAoi)}
+            legendVisible={mapCompositionOptions.includeLegend && mapPublicationLegendItems.length > 0}
+            legendAvailable={mapPublicationLegendItems.length > 0}
+            scaleBarVisible={mapCompositionOptions.includeScaleBar}
+            northArrowVisible={mapCompositionOptions.includeNorthArrow}
+            bearing={bearing}
+            fitSelectedDisabled={!selectedCanvasFitContext}
+            fitSelectedReason="Select a layer, feature, or AOI before fitting the map."
+            fitVisibleDisabled={!visibleLayerFitBounds}
+            fitVisibleReason="Show at least one layer before fitting visible layers."
+            onZoomIn={() => handleCanvasZoom(1)}
+            onZoomOut={() => handleCanvasZoom(-1)}
+            onResetView={handleCanvasResetView}
+            onFitVisibleLayers={handleCanvasFitVisibleLayers}
+            onFitSelectedContext={handleCanvasFitSelectedContext}
+            onOpenCrsReadiness={handleOpenCanvasCrsReadiness}
+            onToggleLegend={handleToggleCanvasLegend}
+            onToggleScaleBar={handleToggleCanvasScaleBar}
+            onToggleNorthArrow={handleToggleCanvasNorthArrow}
+            onClearActiveTool={handleClearActiveCanvasTool}
           />
 
           <MapCanvasKeyboardFallbackControls
@@ -9062,7 +9303,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             onAnnounce={announce}
           />
 
-          <MapLegendOverlay items={mapPublicationLegendItems} />
+          {mapCompositionOptions.includeLegend ? (
+            <MapLegendOverlay items={mapPublicationLegendItems} />
+          ) : null}
 
           {!navigatorStageMode ? (
             <MapPerformanceBudgetBanner

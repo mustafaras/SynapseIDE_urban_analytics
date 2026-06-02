@@ -263,6 +263,7 @@ describe("barrel index exports", () => {
   it("exports all sub-components", async () => {
     const barrel = await import("../index");
     expect(barrel.MapCanvas).toBeDefined();
+    expect(barrel.MapCanvasControls).toBeDefined();
     expect(barrel.MapWorkspaceShell).toBeDefined();
     expect(barrel.MapPanelRail).toBeDefined();
     expect(barrel.MapCanvasRegion).toBeDefined();
@@ -303,6 +304,12 @@ describe("component modules are individually importable", () => {
     const mod = await import("../MapCanvas");
     expect(mod.MapCanvas).toBeDefined();
     expect(typeof mod.MapCanvas).toBe("function");
+  });
+
+  it("MapCanvasControls exports a named component", async () => {
+    const mod = await import("../MapCanvasControls");
+    expect(mod.MapCanvasControls).toBeDefined();
+    expect(typeof mod.MapCanvasControls).toBe("function");
   });
 
   it("MapToolbar exports a named component", async () => {
@@ -430,6 +437,130 @@ describe("Map Explorer components render without errors", () => {
     expect(html).toContain("Analyst");
     expect(html).toContain("Commands");
     expect(html).toContain("More");
+  });
+
+  it("renders compact MapCanvasControls for viewport recovery and publish furniture", async () => {
+    const { MapCanvasControls } = await import("../MapCanvasControls");
+    const html = renderToStaticMarkup(
+      React.createElement(MapCanvasControls, {
+        activeBaseLayer: "dark",
+        onSetBaseLayer: () => undefined,
+        activeTool: null,
+        activeDrawTool: null,
+        activeMeasureTool: null,
+        selectedFeatureCount: 0,
+        visibleLayerCount: 2,
+        hasActiveAoi: false,
+        legendVisible: true,
+        legendAvailable: true,
+        scaleBarVisible: true,
+        northArrowVisible: true,
+        bearing: 15,
+        onZoomIn: () => undefined,
+        onZoomOut: () => undefined,
+        onResetView: () => undefined,
+        onFitVisibleLayers: () => undefined,
+        onFitSelectedContext: () => undefined,
+        onOpenCrsReadiness: () => undefined,
+        onToggleLegend: () => undefined,
+        onToggleScaleBar: () => undefined,
+        onToggleNorthArrow: () => undefined,
+        onClearActiveTool: () => undefined,
+      }),
+    );
+
+    expect(html).toContain("data-testid=\"map-canvas-controls\"");
+    expect(html).toContain("Viewport recovery controls");
+    expect(html).toContain("Open CRS readiness");
+    expect(html).toContain("Publish preview furniture controls");
+    expect(html).toContain("Select");
+    expect(html).toContain("data-testid=\"map-north-arrow-preview\"");
+  });
+
+  it("runs MapCanvasControls actions without mutating analytical layer callbacks", async () => {
+    const { MapCanvasControls } = await import("../MapCanvasControls");
+    const onZoomIn = vi.fn();
+    const onFitVisibleLayers = vi.fn();
+    const onFitSelectedContext = vi.fn();
+    const onOpenCrsReadiness = vi.fn();
+    const onToggleLegend = vi.fn();
+    const onToggleScaleBar = vi.fn();
+    const onToggleNorthArrow = vi.fn();
+    const onClearActiveTool = vi.fn();
+    const onSetBaseLayer = vi.fn();
+    const analyticalLayerCallback = vi.fn();
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const root = createRoot(host);
+    roots.push(root);
+
+    await act(async () => {
+      root.render(
+        React.createElement(MapCanvasControls, {
+          activeBaseLayer: "dark",
+          onSetBaseLayer,
+          activeTool: null,
+          activeDrawTool: "polygon",
+          activeMeasureTool: null,
+          selectedFeatureCount: 3,
+          visibleLayerCount: 2,
+          hasActiveAoi: true,
+          legendVisible: true,
+          legendAvailable: true,
+          scaleBarVisible: true,
+          northArrowVisible: true,
+          bearing: 0,
+          onZoomIn,
+          onZoomOut: () => undefined,
+          onResetView: () => undefined,
+          onFitVisibleLayers,
+          onFitSelectedContext,
+          onOpenCrsReadiness,
+          onToggleLegend,
+          onToggleScaleBar,
+          onToggleNorthArrow,
+          onClearActiveTool,
+        }),
+      );
+    });
+
+    const clickByLabel = async (label: string): Promise<void> => {
+      const button = host.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`);
+      expect(button).not.toBeNull();
+      await act(async () => {
+        button?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      });
+    };
+
+    await clickByLabel("Zoom in");
+    await clickByLabel("Fit to visible layers, 2 visible");
+    await clickByLabel("Fit to selected layer, feature, or AOI");
+    await clickByLabel("Open CRS readiness");
+    await clickByLabel("Hide scale bar");
+    await clickByLabel("Hide north arrow");
+    await clickByLabel("Hide legend");
+    await clickByLabel("Clear active map tool");
+
+    const baseTrigger = host.querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]');
+    await act(async () => {
+      baseTrigger?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    const streetsButton = Array.from(host.querySelectorAll<HTMLButtonElement>("button"))
+      .find((button) => button.textContent?.includes("OpenStreetMap"));
+    await act(async () => {
+      streetsButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(onZoomIn).toHaveBeenCalledTimes(1);
+    expect(onFitVisibleLayers).toHaveBeenCalledTimes(1);
+    expect(onFitSelectedContext).toHaveBeenCalledTimes(1);
+    expect(onOpenCrsReadiness).toHaveBeenCalledTimes(1);
+    expect(onToggleScaleBar).toHaveBeenCalledTimes(1);
+    expect(onToggleNorthArrow).toHaveBeenCalledTimes(1);
+    expect(onToggleLegend).toHaveBeenCalledTimes(1);
+    expect(onClearActiveTool).toHaveBeenCalledTimes(1);
+    expect(onSetBaseLayer).toHaveBeenCalledWith("streets");
+    expect(analyticalLayerCallback).not.toHaveBeenCalled();
   });
 
   it("renders a minimal navigator MapToolbar", async () => {

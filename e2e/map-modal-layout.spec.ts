@@ -82,6 +82,8 @@ async function expectNoHorizontalOverflowOrPanelOverlap(page: Page): Promise<voi
       { name: "panel rail", selector: '[data-testid="map-layer-panel-rail"]', allowInternalOverflow: true },
       { name: "workbench sidebar", selector: '[data-map-workbench-sidebar="true"]' },
       { name: "canvas region", selector: '[data-testid="map-canvas-region"]' },
+      { name: "canvas viewport controls", selector: '[data-testid="map-canvas-viewport-controls"]' },
+      { name: "canvas furniture controls", selector: '[data-testid="map-canvas-furniture-controls"]' },
       { name: "inspector", selector: '[data-testid="map-inspector-host"]' },
       { name: "bottom timeline", selector: '[data-testid="map-bottom-timeline"]' },
       { name: "bottom panel", selector: '[data-testid="map-bottom-panel"]' },
@@ -432,11 +434,20 @@ async function openReviewTimeline(page: import("@playwright/test").Page): Promis
     return;
   }
 
+  const statusReviewButton = page.getByRole("button", { name: /^Open review timeline$/ }).first();
+  if (await statusReviewButton.isVisible().catch(() => false)) {
+    await triggerDomClick(statusReviewButton);
+    await expect(timeline).toBeVisible();
+    return;
+  }
+
   await page.keyboard.press("Control+K");
   const palette = page.getByRole("dialog", { name: "Map command palette" });
   await expect(palette).toBeVisible();
   await palette.getByLabel("Search map commands").fill("review timeline");
-  await triggerDomClick(palette.getByRole("option", { name: /Review/i }).first());
+  await triggerDomClick(palette.getByRole("option", {
+    name: /Open review timeline with filters and reproducible session export/i,
+  }).first());
   await expect(timeline).toBeVisible();
 }
 
@@ -585,6 +596,152 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
     await expect(page.getByTestId("map-publish-panel-slot")).toContainText("Bounded reproducibility package");
     await openSidebarTab(page, "publish-review-package");
     await expect(page.getByTestId("map-publish-panel-slot")).toContainText("Pre-handoff metadata review");
+  });
+
+  test("standardizes Prompt 18 canvas controls for recovery, tools, basemap, and furniture", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await resetWorkbenchState(page);
+    await openMapExplorerFromStore(page);
+    await seedWorkflowBufferLayer(page);
+
+    const viewportControls = page.getByTestId("map-canvas-viewport-controls");
+    const furnitureControls = page.getByTestId("map-canvas-furniture-controls");
+    const activeTool = page.getByTestId("map-active-tool-indicator");
+    await expect(viewportControls).toBeVisible();
+    await expect(furnitureControls).toBeVisible();
+    await expect(activeTool).toContainText("Select");
+    await expect(viewportControls.getByRole("button", { name: "Zoom in" })).toBeVisible();
+    await expect(viewportControls.getByRole("button", { name: /Fit to visible layers/i })).toBeVisible();
+    await expect(viewportControls.getByRole("button", { name: "Open CRS readiness" })).toBeVisible();
+
+    await page.evaluate(async () => {
+      const module = await import("/src/stores/useMapExplorerStore.ts");
+      module.useMapExplorerStore.getState().setViewport({
+        center: [0, 0],
+        zoom: 1,
+        bearing: 37,
+        pitch: 25,
+      });
+    });
+    await triggerDomClick(viewportControls.getByRole("button", { name: "Reset map view" }));
+    await expect.poll(() => page.evaluate(async () => {
+      const module = await import("/src/stores/useMapExplorerStore.ts");
+      const state = module.useMapExplorerStore.getState();
+      return {
+        center: state.center,
+        zoom: state.zoom,
+        bearing: state.bearing,
+        pitch: state.pitch,
+      };
+    })).toEqual({
+      center: [29, 41],
+      zoom: 10,
+      bearing: 0,
+      pitch: 0,
+    });
+
+    await page.evaluate(async () => {
+      const module = await import("/src/stores/useMapExplorerStore.ts");
+      module.useMapExplorerStore.getState().setActiveDrawTool("polygon");
+    });
+    await expect(activeTool).toContainText("Draw polygon");
+    await triggerDomClick(activeTool.getByRole("button", { name: "Clear active map tool" }));
+    await expect(activeTool).toContainText("Select");
+    await expect.poll(() => page.evaluate(async () => {
+      const module = await import("/src/stores/useMapExplorerStore.ts");
+      const state = module.useMapExplorerStore.getState();
+      return {
+        activeTool: state.activeTool,
+        activeDrawTool: state.activeDrawTool,
+        activeMeasureTool: state.activeMeasureTool,
+      };
+    })).toEqual({
+      activeTool: null,
+      activeDrawTool: null,
+      activeMeasureTool: null,
+    });
+
+    const beforeBasemapSwitch = await page.evaluate(async () => {
+      const module = await import("/src/stores/useMapExplorerStore.ts");
+      const state = module.useMapExplorerStore.getState();
+      return {
+        activeBaseLayer: state.activeBaseLayer,
+        overlayLayerIds: state.overlayLayers.map((layer) => layer.id),
+      };
+    });
+    await triggerDomClick(furnitureControls.getByRole("button", { name: /Select base map layer/i }));
+    await triggerDomClick(furnitureControls.getByRole("menuitemradio", { name: "OpenStreetMap" }));
+    await expect.poll(() => page.evaluate(async () => {
+      const module = await import("/src/stores/useMapExplorerStore.ts");
+      const state = module.useMapExplorerStore.getState();
+      return {
+        activeBaseLayer: state.activeBaseLayer,
+        overlayLayerIds: state.overlayLayers.map((layer) => layer.id),
+      };
+    })).toEqual({
+      activeBaseLayer: "streets",
+      overlayLayerIds: beforeBasemapSwitch.overlayLayerIds,
+    });
+    expect(beforeBasemapSwitch.activeBaseLayer).not.toBe("streets");
+
+    await triggerDomClick(furnitureControls.getByRole("button", { name: "Hide north arrow" }));
+    await expect(page.getByTestId("map-north-arrow-preview")).toBeHidden();
+    const showLegendToggle = furnitureControls.getByRole("button", { name: "Show legend" });
+    if (
+      await showLegendToggle.isVisible().catch(() => false)
+      && await showLegendToggle.isEnabled().catch(() => false)
+    ) {
+      await triggerDomClick(showLegendToggle);
+      await expect(page.getByTestId("map-legend-overlay")).toBeVisible();
+    }
+    const hideLegendToggle = furnitureControls.getByRole("button", { name: "Hide legend" });
+    if (
+      await hideLegendToggle.isVisible().catch(() => false)
+      && await hideLegendToggle.isEnabled().catch(() => false)
+    ) {
+      await triggerDomClick(hideLegendToggle);
+      await expect(page.getByTestId("map-legend-overlay")).toBeHidden();
+      await expect(furnitureControls.getByRole("button", { name: "Show legend" })).toHaveAttribute("aria-pressed", "false");
+    }
+    await triggerDomClick(furnitureControls.getByRole("button", { name: "Hide scale bar" }));
+    await expect(furnitureControls.getByRole("button", { name: "Show scale bar" })).toHaveAttribute("aria-pressed", "false");
+
+    await page.evaluate(() => {
+      const canvas = document.querySelector<HTMLElement>('[data-testid="map-canvas-region"]');
+      if (!canvas) return;
+      const probe = document.createElement("div");
+      probe.dataset.testid = "prompt18-feature-popup-probe";
+      probe.className = "maplibregl-popup";
+      probe.style.position = "absolute";
+      probe.style.left = "50%";
+      probe.style.top = "50%";
+      probe.style.width = "220px";
+      probe.style.height = "112px";
+      probe.style.transform = "translate(-50%, -50%)";
+      probe.style.background = "rgba(255,255,255,0.94)";
+      canvas.appendChild(probe);
+    });
+
+    const overlapProbe = await page.evaluate(() => {
+      const controls = [
+        document.querySelector('[data-testid="map-canvas-viewport-controls"]'),
+        document.querySelector('[data-testid="map-canvas-furniture-controls"]'),
+        document.querySelector('[data-testid="map-active-tool-indicator"]'),
+      ].filter((element): element is Element => Boolean(element));
+      const popup = document.querySelector('[data-testid="prompt18-feature-popup-probe"]');
+      const status = document.querySelector('[role="status"][aria-label="Map status"]');
+      const overlaps = (left: DOMRect, right: DOMRect): boolean =>
+        left.left < right.right && left.right > right.left && left.top < right.bottom && left.bottom > right.top;
+      return controls.flatMap((control, index) => {
+        const controlRect = control.getBoundingClientRect();
+        const issues: string[] = [];
+        if (popup && overlaps(controlRect, popup.getBoundingClientRect())) issues.push(`control-${index}-popup`);
+        if (status && overlaps(controlRect, status.getBoundingClientRect())) issues.push(`control-${index}-status`);
+        return issues;
+      });
+    });
+    expect(overlapProbe).toEqual([]);
+    await expectNoHorizontalOverflowOrPanelOverlap(page);
   });
 
   test("keeps map, layer rail, and bottom status visible on desktop", async ({ page }, testInfo) => {
