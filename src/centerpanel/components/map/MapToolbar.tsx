@@ -188,6 +188,7 @@ export interface MapToolbarProps {
   isSavingProject?: boolean;
   isLoadingProject?: boolean;
   persistenceDisabled?: boolean;
+  hasUnsavedProjectChanges?: boolean;
   processingTools?: readonly ProcessingToolDescriptor[];
   processingLayerOptions?: readonly ProcessingPaletteLayerOption[];
   onRunProcessingToolCommand?: (toolId: string, params: Record<string, string | number | boolean>) => void;
@@ -246,6 +247,7 @@ interface ToolbarCommandButtonProps {
   command: ToolbarCommand;
   density: ToolbarDensity;
   menuItem?: boolean;
+  primary?: boolean;
   onAfterClick?: () => void;
 }
 
@@ -311,6 +313,7 @@ interface BuildToolbarCommandsArgs extends Required<Pick<
   | "isSavingProject"
   | "isLoadingProject"
   | "persistenceDisabled"
+  | "hasUnsavedProjectChanges"
   | "canUndoMapAction"
   | "canRedoMapAction"
   | "undoMapActionLabel"
@@ -626,11 +629,20 @@ function commandButtonStyle(
   tone: CommandTone = "default",
   density: ToolbarDensity = "expert",
   menuItem = false,
+  primary = false,
 ): React.CSSProperties {
   const color = active ? MAP_COLORS.interaction : toneColor(tone);
   const height = menuItem ? "2.125rem" : density === "comfortable" ? "1.95rem" : "1.7rem";
   const paddingX = menuItem ? MAP_SPACING.sm : density === "comfortable" ? MAP_SPACING.sm : MAP_SPACING.xs;
-  const maxWidth = menuItem ? "100%" : density === "comfortable" ? "7.25rem" : density === "compact" ? "5.9rem" : "5.25rem";
+  const maxWidth = menuItem
+    ? "100%"
+    : primary
+      ? "8.75rem"
+      : density === "comfortable"
+        ? "7.25rem"
+        : density === "compact"
+          ? "5.9rem"
+          : "5.25rem";
 
   return {
     display: "inline-flex",
@@ -1815,6 +1827,51 @@ function findFirstCommand(commands: readonly ToolbarCommand[], ids: readonly str
   return null;
 }
 
+type ContextualPrimaryReason = "import" | "inspect-layer" | "review-problems" | "publish" | "save";
+
+const CONTEXTUAL_PRIMARY_LABELS: Record<ContextualPrimaryReason, Pick<ToolbarCommand, "label" | "shortLabel" | "title" | "tone">> = {
+  import: {
+    label: "Import Data",
+    shortLabel: "Import",
+    title: "Import data into the empty map",
+    tone: "accent",
+  },
+  "inspect-layer": {
+    label: "Inspect Layer",
+    shortLabel: "Inspect",
+    title: "Inspect the selected map layer",
+    tone: "accent",
+  },
+  "review-problems": {
+    label: "Review Problems",
+    shortLabel: "Problems",
+    title: "Review QA blockers in the map problems panel",
+    tone: "danger",
+  },
+  publish: {
+    label: "Publish",
+    shortLabel: "Publish",
+    title: "Publish the ready map composition",
+    tone: "accent",
+  },
+  save: {
+    label: "Save",
+    shortLabel: "Save",
+    title: "Save unsaved map project changes",
+    tone: "accent",
+  },
+};
+
+function asContextualPrimaryCommand(command: ToolbarCommand | null, reason: ContextualPrimaryReason): ToolbarCommand | null {
+  if (!command) return null;
+  const primary = CONTEXTUAL_PRIMARY_LABELS[reason];
+  return {
+    ...command,
+    ...primary,
+    keywords: uniqueCommandTerms([...command.keywords, primary.label]),
+  };
+}
+
 function selectContextualPrimaryCommand(args: {
   commands: readonly ToolbarCommand[];
   toolbarRole: ToolbarRole;
@@ -1829,7 +1886,7 @@ function selectContextualPrimaryCommand(args: {
   hasSelectedLayer: boolean;
   /** True when the map is publish-ready (no QA blockers, has content, publisher lens) */
   isPublishReady: boolean;
-  /** True when the project has content and can be saved */
+  /** True when the project has unsaved map changes and can be saved */
   canSave: boolean;
 }): ToolbarCommand | null {
   const primaryEligibleCommands = args.commands.filter((command) =>
@@ -1837,16 +1894,21 @@ function selectContextualPrimaryCommand(args: {
     !["reset-layout", "collapse-panels", "focus-map-canvas", "restore-default-widths", "switch-density"].includes(command.id)
   );
   const activeCommand = primaryEligibleCommands.find((command) => command.active && !command.disabled);
-  if (args.isImporting) return findFirstCommand(args.commands, ["import"]) ?? activeCommand ?? null;
-  if (args.scientificQABlockerCount > 0 || args.scientificQAIssueCount > 0) {
-    return findFirstCommand(args.commands, ["qa"]) ?? activeCommand ?? null;
+  if (args.isImporting) {
+    return asContextualPrimaryCommand(findFirstCommand(args.commands, ["import"]), "import") ?? activeCommand ?? null;
+  }
+  if (args.scientificQABlockerCount > 0) {
+    return asContextualPrimaryCommand(findFirstCommand(args.commands, ["qa"]), "review-problems") ?? activeCommand ?? null;
   }
   if (args.visibleLayerCount === 0) {
-    return findFirstCommand(args.commands, ["import", "catalog", "services"]) ?? activeCommand ?? null;
+    return asContextualPrimaryCommand(findFirstCommand(args.commands, ["import"]), "import")
+      ?? findFirstCommand(args.commands, ["catalog", "services"])
+      ?? activeCommand
+      ?? null;
   }
   /* Selected layer (non-AOI) → Inspect Layer via the layer stack */
   if (args.hasSelectedLayer && !args.hasSelectedAoi) {
-    return findFirstCommand(args.commands, ["layers", "contents"]) ?? activeCommand ?? null;
+    return asContextualPrimaryCommand(findFirstCommand(args.commands, ["layers", "contents"]), "inspect-layer") ?? activeCommand ?? null;
   }
   if (args.taskLens === "reviewer") {
     return findFirstCommand(args.commands, ["qa", "review-timeline", "performance-diagnostics", "catalog"]) ?? activeCommand ?? null;
@@ -1856,7 +1918,7 @@ function selectContextualPrimaryCommand(args: {
   }
   /* Publish-ready map → Publish (checked before generic publisher lens to surface it prominently) */
   if (args.isPublishReady) {
-    return findFirstCommand(args.commands, ["figure-composer", "add-map-to-report", "export-image"]) ?? activeCommand ?? null;
+    return asContextualPrimaryCommand(findFirstCommand(args.commands, ["figure-composer", "add-map-to-report", "export-image"]), "publish") ?? activeCommand ?? null;
   }
   if (args.taskLens === "publisher") {
     return findFirstCommand(args.commands, ["figure-composer", "export-image", "add-map-to-report", "export-geojson"]) ?? activeCommand ?? null;
@@ -1882,7 +1944,7 @@ function selectContextualPrimaryCommand(args: {
   }
   /* Dirty project → Save */
   if (args.canSave) {
-    return findFirstCommand(args.commands, ["save-project"]) ?? activeCommand ?? null;
+    return asContextualPrimaryCommand(findFirstCommand(args.commands, ["save-project"]), "save") ?? activeCommand ?? null;
   }
   return findFirstCommand(args.commands, ["layers", "contents", "catalog", "import"]) ?? activeCommand ?? null;
 }
@@ -1901,6 +1963,7 @@ function ToolbarCommandButton({
   command,
   density,
   menuItem = false,
+  primary = false,
   onAfterClick,
 }: ToolbarCommandButtonProps): React.ReactElement {
   const Icon = command.icon;
@@ -1913,7 +1976,7 @@ function ToolbarCommandButton({
   return (
     <button
       type="button"
-      style={commandButtonStyle(active, disabled, command.tone, density, menuItem)}
+      style={commandButtonStyle(active, disabled, command.tone, density, menuItem, primary)}
       onClick={() => {
         if (disabled) return;
         command.onClick();
@@ -2401,6 +2464,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
   isSavingProject = false,
   isLoadingProject = false,
   persistenceDisabled = false,
+  hasUnsavedProjectChanges = false,
   processingTools = [],
   processingLayerOptions = [],
   onRunProcessingToolCommand,
@@ -2581,6 +2645,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       isSavingProject,
       isLoadingProject,
       persistenceDisabled,
+      hasUnsavedProjectChanges,
       canUndoMapAction,
       canRedoMapAction,
       undoMapActionLabel,
@@ -2720,7 +2785,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
         scientificQAIssueCount === 0 &&
         taskLens === "publisher",
       canSave:
-        layerCount > 0 &&
+        hasUnsavedProjectChanges &&
         !persistenceDisabled &&
         !isSavingProject &&
         onSaveProjectClick != null,
@@ -2729,6 +2794,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       activeLayerGeometryType,
       commandRegistry,
       hasSelectedAoi,
+      hasUnsavedProjectChanges,
       isImporting,
       isSavingProject,
       layerCount,
@@ -2871,7 +2937,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
         <ToolbarCommandButton command={commandPaletteCommand} density="comfortable" />
         {primaryCommand ? (
           <div style={primaryActionShell} data-testid="map-command-center-primary-action">
-            <ToolbarCommandButton command={primaryCommand} density="comfortable" />
+            <ToolbarCommandButton command={primaryCommand} density="comfortable" primary />
           </div>
         ) : null}
       </div>

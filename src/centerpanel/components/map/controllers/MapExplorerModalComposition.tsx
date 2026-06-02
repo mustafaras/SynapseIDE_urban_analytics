@@ -480,6 +480,40 @@ interface DispatchFeedbackState {
   description: string;
 }
 
+interface MapProjectSaveTrigger {
+  activeBaseLayer: string;
+  annotations: readonly unknown[];
+  bearing: number;
+  bookmarks: readonly unknown[];
+  center: readonly [number, number];
+  drawnFeatures: readonly unknown[];
+  overlayLayers: readonly unknown[];
+  pins: readonly unknown[];
+  pitch: number;
+  selectedProjectId: string | null;
+  sourceHandles: readonly unknown[];
+  zoom: number;
+}
+
+function sameMapProjectSaveTrigger(
+  previous: MapProjectSaveTrigger | null,
+  next: MapProjectSaveTrigger,
+): boolean {
+  return Boolean(previous)
+    && previous.activeBaseLayer === next.activeBaseLayer
+    && previous.annotations === next.annotations
+    && previous.bearing === next.bearing
+    && previous.bookmarks === next.bookmarks
+    && previous.center === next.center
+    && previous.drawnFeatures === next.drawnFeatures
+    && previous.overlayLayers === next.overlayLayers
+    && previous.pins === next.pins
+    && previous.pitch === next.pitch
+    && previous.selectedProjectId === next.selectedProjectId
+    && previous.sourceHandles === next.sourceHandles
+    && previous.zoom === next.zoom;
+}
+
 const SCENE_TAB_IDS: readonly MapSceneTabId[] = [
   "scene-raster",
   "scene-temporal",
@@ -3123,23 +3157,50 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const [selectedTemporalLayerId, setSelectedTemporalLayerId] = useState<string | null>(null);
   const quotaWarningShownRef = useRef<{ key: string; timestamp: number } | null>(null);
   const lastProjectSaveErrorRef = useRef<{ key: string; timestamp: number } | null>(null);
-  const lastAutoSaveTriggerRef = useRef<{
-    activeBaseLayer: typeof activeBaseLayer;
-    annotations: typeof annotations;
-    bearing: typeof bearing;
-    bookmarks: typeof bookmarks;
-    center: typeof center;
-    drawnFeatures: typeof drawnFeatures;
-    overlayLayers: typeof overlayLayers;
-    pins: typeof pins;
-    pitch: typeof pitch;
-    selectedProjectId: typeof selectedProjectId;
-    sourceHandles: typeof sourceHandles;
-    zoom: typeof zoom;
-  } | null>(null);
+  const lastAutoSaveTriggerRef = useRef<MapProjectSaveTrigger | null>(null);
+  const lastSavedProjectTriggerRef = useRef<MapProjectSaveTrigger | null>(null);
   const isRestoringProjectRef = useRef(false);
   const previousProjectIdRef = useRef<string | null>(selectedProjectId);
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const currentProjectSaveTrigger = useMemo<MapProjectSaveTrigger>(() => ({
+    activeBaseLayer,
+    annotations,
+    bearing,
+    bookmarks,
+    center,
+    drawnFeatures,
+    overlayLayers,
+    pins,
+    pitch,
+    selectedProjectId,
+    sourceHandles,
+    zoom,
+  }), [
+    activeBaseLayer,
+    annotations,
+    bearing,
+    bookmarks,
+    center,
+    drawnFeatures,
+    overlayLayers,
+    pins,
+    pitch,
+    selectedProjectId,
+    sourceHandles,
+    zoom,
+  ]);
+
+  const hasPersistableMapContent = overlayLayers.length > 0
+    || pins.length > 0
+    || drawnFeatures.length > 0
+    || annotations.length > 0
+    || bookmarks.length > 0;
+  const hasUnsavedProjectChanges = Boolean(
+    selectedProjectId
+      && hasPersistableMapContent
+      && !sameMapProjectSaveTrigger(lastSavedProjectTriggerRef.current, currentProjectSaveTrigger),
+  );
 
   const pinMode = activeTool === "pin";
   const mapCanvasCaptureMode = showMapExportDialog
@@ -5428,6 +5489,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       });
 
       setLastSavedAt(result.snapshot.savedAt);
+      lastSavedProjectTriggerRef.current = currentProjectSaveTrigger;
+      lastAutoSaveTriggerRef.current = currentProjectSaveTrigger;
 
       if (result.quota.warning) {
         const now = Date.now();
@@ -5493,6 +5556,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     announce,
     annotations,
     bookmarks,
+    currentProjectSaveTrigger,
     drawnFeatures,
     getCurrentViewportState,
     overlayLayers,
@@ -5523,6 +5587,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       const result = await loadProjectMapState(projectId);
       if (!result.snapshot) {
         setLastSavedAt(null);
+        lastSavedProjectTriggerRef.current = null;
         clearProjectContent();
         /* Do not pull the project's default bbox over an explicit fit-bounds
            request from the current open cycle (e.g. Urban Analytics study
@@ -5588,6 +5653,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     setDismissedCartographyRecommendationIds(new Set());
     setLastSavedAt(null);
     lastAutoSaveTriggerRef.current = null;
+    lastSavedProjectTriggerRef.current = null;
 
     const layerLabel = activeLayerCount === 1 ? "layer" : "layers";
     const snapshotLabel = removedProjectSnapshots === 1 ? "snapshot" : "snapshots";
@@ -5623,6 +5689,15 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   useEffect(() => {
     handleProjectLoadRef.current = handleProjectLoad;
   }, [handleProjectLoad]);
+
+  useEffect(() => {
+    if (!lastSavedAt || isSavingProject || isLoadingProject || isRestoringProjectRef.current) {
+      return;
+    }
+    if (lastSavedProjectTriggerRef.current == null) {
+      lastSavedProjectTriggerRef.current = currentProjectSaveTrigger;
+    }
+  }, [currentProjectSaveTrigger, isLoadingProject, isSavingProject, lastSavedAt]);
 
   useEffect(() => {
     if (!open || !selectedProjectId) {
@@ -8870,6 +8945,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               isSavingProject={isSavingProject}
               isLoadingProject={isLoadingProject}
               persistenceDisabled={persistenceDisabled}
+              hasUnsavedProjectChanges={hasUnsavedProjectChanges}
               processingTools={processingToolDescriptors}
               processingLayerOptions={processingToolboxLayers}
               onRunProcessingToolCommand={handleRunProcessingTool}

@@ -464,9 +464,10 @@ describe("MapToolbar contextual primary action state machine (Prompt 25)", () =>
     expect(primaryShell).not.toBeNull();
     const primaryBtn = primaryShell!.querySelector<HTMLButtonElement>("[data-map-command-id]");
     expect(primaryBtn?.dataset.mapCommandId).toBe("import");
+    expect(primaryBtn?.textContent).toContain("Import Data");
   });
 
-  it("surfaces Layers as primary action when a layer is selected (non-AOI)", () => {
+  it("surfaces Inspect Layer as primary action when a layer is selected (non-AOI)", () => {
     renderToolbar({
       visibleLayerCount: 1,
       layerCount: 1,
@@ -478,9 +479,10 @@ describe("MapToolbar contextual primary action state machine (Prompt 25)", () =>
     expect(primaryShell).not.toBeNull();
     const primaryBtn = primaryShell!.querySelector<HTMLButtonElement>("[data-map-command-id]");
     expect(["layers", "contents"]).toContain(primaryBtn?.dataset.mapCommandId);
+    expect(primaryBtn?.textContent).toContain("Inspect Layer");
   });
 
-  it("surfaces QA as primary action when scientific QA blockers exist", () => {
+  it("surfaces Review Problems as primary action when scientific QA blockers exist", () => {
     renderToolbar({
       visibleLayerCount: 2,
       layerCount: 2,
@@ -494,9 +496,30 @@ describe("MapToolbar contextual primary action state machine (Prompt 25)", () =>
     expect(primaryShell).not.toBeNull();
     const primaryBtn = primaryShell!.querySelector<HTMLButtonElement>("[data-map-command-id]");
     expect(primaryBtn?.dataset.mapCommandId).toBe("qa");
+    expect(primaryBtn?.textContent).toContain("Review Problems");
   });
 
-  it("surfaces Figure Composer as primary when map is publish-ready (publisher lens, no QA blockers)", () => {
+  it("does not promote QA warnings over a dirty project when no blocker exists", () => {
+    renderToolbar({
+      visibleLayerCount: 1,
+      layerCount: 1,
+      scientificQABlockerCount: 0,
+      scientificQAIssueCount: 1,
+      hasUnsavedProjectChanges: true,
+      persistenceDisabled: false,
+      isSavingProject: false,
+      onToggleScientificQAPanel: vi.fn(),
+      onSaveProjectClick: vi.fn(),
+    });
+
+    const primaryShell = document.querySelector<HTMLElement>('[data-testid="map-command-center-primary-action"]');
+    expect(primaryShell).not.toBeNull();
+    const primaryBtn = primaryShell!.querySelector<HTMLButtonElement>("[data-map-command-id]");
+    expect(primaryBtn?.dataset.mapCommandId).toBe("save-project");
+    expect(primaryBtn?.textContent).toContain("Save");
+  });
+
+  it("surfaces Publish as primary when map is publish-ready (publisher lens, no QA blockers)", () => {
     useMapToolbarPreferencesStore.setState({ taskLens: "publisher" });
     renderToolbar({
       visibleLayerCount: 2,
@@ -511,14 +534,16 @@ describe("MapToolbar contextual primary action state machine (Prompt 25)", () =>
     expect(primaryShell).not.toBeNull();
     const primaryBtn = primaryShell!.querySelector<HTMLButtonElement>("[data-map-command-id]");
     expect(["figure-composer", "add-map-to-report", "export-image"]).toContain(primaryBtn?.dataset.mapCommandId);
+    expect(primaryBtn?.textContent).toContain("Publish");
   });
 
-  it("surfaces Save as primary when project has content and no analyst-specific command is registered", () => {
+  it("surfaces Save as primary when project has unsaved changes and no analyst-specific command is registered", () => {
     /* No onToggleLayerPanel / onToggleProcessingToolbox → analyst lens has no matching command →
        falls through to the canSave tier and surfaces "Save" as primary action. */
     renderToolbar({
       visibleLayerCount: 1,
       layerCount: 1,
+      hasUnsavedProjectChanges: true,
       persistenceDisabled: false,
       isSavingProject: false,
       onSaveProjectClick: vi.fn(),

@@ -3,12 +3,12 @@ import { expect, type Locator, type Page } from "@playwright/test";
 export const IDE_ENTRY_URL = "/?e2e=1&view=ide";
 
 export async function resetWorkbenchState(page: Page): Promise<void> {
-  await page.goto(IDE_ENTRY_URL);
+  await page.goto(IDE_ENTRY_URL, { waitUntil: "domcontentloaded" });
   await page.evaluate(() => {
     window.localStorage.clear();
     window.sessionStorage.clear();
   });
-  await page.goto(IDE_ENTRY_URL);
+  await page.goto(IDE_ENTRY_URL, { waitUntil: "domcontentloaded" });
 }
 
 export async function openUrbanAnalyticsWorkbench(page: Page): Promise<Locator> {

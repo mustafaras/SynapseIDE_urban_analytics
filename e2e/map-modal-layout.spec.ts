@@ -1,12 +1,19 @@
 import { expect, test, type Page } from "@playwright/test";
 import { openUrbanAnalyticsWorkbench, resetWorkbenchState, triggerDomClick } from "./helpers/urbanAnalytics";
 
+async function waitForMapExplorerDialog(page: Page) {
+  const loadingStatus = page.getByText("Loading Map Explorer...");
+  await expect(loadingStatus).toBeHidden({ timeout: 60000 });
+  const mapExplorer = page.getByRole("dialog", { name: "Map Explorer" }).first();
+  await expect(mapExplorer).toBeVisible({ timeout: 60000 });
+  return mapExplorer;
+}
+
 async function openMapExplorer(page: Page) {
   const urbanModal = await openUrbanAnalyticsWorkbench(page);
   await triggerDomClick(urbanModal.getByRole("button", { name: "Open Map Explorer (Ctrl+Shift+M)" }));
 
-  const mapExplorer = page.getByRole("dialog", { name: "Map Explorer" }).first();
-  await expect(mapExplorer).toBeVisible();
+  const mapExplorer = await waitForMapExplorerDialog(page);
   const exploreButton = page.getByRole("button", { name: /Explore Layers|Switch map workspace to explore/i }).first();
   await expect(exploreButton).toBeVisible();
   await triggerDomClick(exploreButton);
@@ -19,8 +26,7 @@ async function openMapExplorerFromStore(page: Page) {
     module.useMapExplorerStore.getState().open();
   });
 
-  const mapExplorer = page.getByRole("dialog", { name: "Map Explorer" }).first();
-  await expect(mapExplorer).toBeVisible();
+  const mapExplorer = await waitForMapExplorerDialog(page);
   const exploreButton = page.getByRole("button", { name: /Explore Layers|Switch map workspace to explore/i }).first();
   await expect(exploreButton).toBeVisible();
   await triggerDomClick(exploreButton);
