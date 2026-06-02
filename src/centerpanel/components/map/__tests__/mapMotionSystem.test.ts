@@ -46,6 +46,7 @@ function extractReducedMotionBlock(source: string): string {
 
 const animatedClasses = collectAnimatedClasses(css);
 const reducedMotionSection = extractReducedMotionBlock(css);
+const REQUIRED_MOTION_ALIASES = ["panel", "row", "status", "progress", "focus"] as const;
 
 describe("motion.module.css — animation class inventory", () => {
   it("contains at least 7 animated classes", () => {
@@ -54,6 +55,21 @@ describe("motion.module.css — animation class inventory", () => {
 
   it("contains a @media (prefers-reduced-motion: reduce) block", () => {
     expect(reducedMotionSection.length).toBeGreaterThan(0);
+  });
+});
+
+describe("motion.module.css — semantic motion aliases", () => {
+  for (const alias of REQUIRED_MOTION_ALIASES) {
+    it(`defines duration and easing variables for ${alias} feedback`, () => {
+      expect(css).toContain(`--gis-motion-duration-${alias}`);
+      expect(css).toContain(`--gis-motion-easing-${alias}`);
+    });
+  }
+
+  it("uses aliases for the requested panel, row, status, progress, and focus classes", () => {
+    for (const className of ["panelIn", "layerFade", "statusFlash", "progressFill", "accentGrow"] as const) {
+      expect(css).toMatch(new RegExp(`\\.${className}\\s*\\{[^}]*var\\(--gis-motion-`));
+    }
   });
 });
 

@@ -17,10 +17,25 @@ exports[`MAP_STATUS_TOKENS > snapshot: full status token map 1`] = `
     "border": "color-mix(in srgb, var(--syn-border-focus, #3794ff) 62%, transparent)",
     "text": "var(--syn-interaction-active, #3794ff)",
   },
+  "external": {
+    "bg": "color-mix(in srgb, var(--syn-status-info, #6aa9ff) 10%, transparent)",
+    "border": "var(--syn-border-default, #4a5260)",
+    "text": "var(--syn-status-info, #6aa9ff)",
+  },
   "external-offline": {
     "bg": "color-mix(in srgb, var(--syn-status-error, #f87171) 12%, transparent)",
     "border": "color-mix(in srgb, var(--syn-status-error, #f87171) 28%, transparent)",
     "text": "var(--syn-status-error, #f87171)",
+  },
+  "generated": {
+    "bg": "color-mix(in srgb, var(--syn-interaction-active, #3794ff) 10%, transparent)",
+    "border": "var(--syn-border-default, #4a5260)",
+    "text": "var(--syn-interaction-active, #3794ff)",
+  },
+  "metadata-only": {
+    "bg": "color-mix(in srgb, var(--syn-text-muted, #778190) 14%, transparent)",
+    "border": "color-mix(in srgb, var(--syn-border-focus, #3794ff) 62%, transparent)",
+    "text": "var(--syn-text-secondary, #a4adbb)",
   },
   "ready": {
     "bg": "color-mix(in srgb, var(--syn-status-valid, #4ec27d) 12%, transparent)",

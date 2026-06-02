@@ -39,6 +39,95 @@ export const MAP_COLORS = {
   transparent: mapToken.colors.transparent,
 } as const;
 
+export type MapChromeSlotKey =
+  | "activityRail"
+  | "commandCenter"
+  | "sidebar"
+  | "rightInspector"
+  | "bottomPanel"
+  | "statusBar"
+  | "canvasOverlay"
+  | "problemsPanel";
+
+export const MAP_CHROME_SLOT_KEYS: readonly MapChromeSlotKey[] = [
+  "activityRail",
+  "commandCenter",
+  "sidebar",
+  "rightInspector",
+  "bottomPanel",
+  "statusBar",
+  "canvasOverlay",
+  "problemsPanel",
+] as const;
+
+export const MAP_CHROME_TOKENS: Record<
+  MapChromeSlotKey,
+  {
+    readonly surface: string;
+    readonly border: string;
+    readonly text: string;
+    readonly accent: string;
+    readonly activeBg: string;
+  }
+> = {
+  activityRail: {
+    surface: MAP_COLORS.bgHeader,
+    border: MAP_COLORS.hairlineSubtle,
+    text: MAP_COLORS.textSecondary,
+    accent: MAP_COLORS.interaction,
+    activeBg: MAP_COLORS.selectedSubtle,
+  },
+  commandCenter: {
+    surface: MAP_COLORS.bgHeader,
+    border: MAP_COLORS.hairline,
+    text: MAP_COLORS.text,
+    accent: MAP_COLORS.interaction,
+    activeBg: MAP_COLORS.interactionSubtle,
+  },
+  sidebar: {
+    surface: MAP_COLORS.bgPanel,
+    border: MAP_COLORS.hairlineSubtle,
+    text: MAP_COLORS.text,
+    accent: MAP_COLORS.interaction,
+    activeBg: MAP_COLORS.selectedSubtle,
+  },
+  rightInspector: {
+    surface: MAP_COLORS.bgPanel,
+    border: MAP_COLORS.hairlineSubtle,
+    text: MAP_COLORS.text,
+    accent: MAP_COLORS.focus,
+    activeBg: MAP_COLORS.selectedSubtle,
+  },
+  bottomPanel: {
+    surface: MAP_COLORS.bgPanel,
+    border: MAP_COLORS.hairlineSubtle,
+    text: MAP_COLORS.textSecondary,
+    accent: MAP_COLORS.interaction,
+    activeBg: MAP_COLORS.interactionSubtle,
+  },
+  statusBar: {
+    surface: MAP_COLORS.bgHeader,
+    border: MAP_COLORS.hairlineSubtle,
+    text: MAP_COLORS.textMuted,
+    accent: MAP_COLORS.neutral,
+    activeBg: MAP_COLORS.neutralSubtle,
+  },
+  canvasOverlay: {
+    surface: MAP_COLORS.overlayBg,
+    border: MAP_COLORS.hairlineStrong,
+    text: MAP_COLORS.text,
+    accent: MAP_COLORS.focus,
+    activeBg: MAP_COLORS.selectedSubtle,
+  },
+  problemsPanel: {
+    surface: MAP_COLORS.bgPanel,
+    border: MAP_COLORS.hairlineStrong,
+    text: MAP_COLORS.text,
+    accent: MAP_COLORS.caveatText,
+    activeBg: MAP_COLORS.caveat,
+  },
+} as const;
+
 /* ----------------------------------------------------------------- */
 /*  MapLibre-safe color resolution                                    */
 /*  MapLibre GL paint properties (fill-color, line-color, …) cannot   */
@@ -103,6 +192,23 @@ export const MAP_TRANSITIONS = {
   standard: DESIGN_TOKENS.transitions.md,
 } as const;
 
+export const MAP_MOTION = {
+  duration: {
+    panel: "180ms",
+    row: "200ms",
+    status: "320ms",
+    progress: "1s",
+    focus: "220ms",
+  },
+  easing: {
+    panel: "cubic-bezier(0.2, 0, 0, 1)",
+    row: DESIGN_TOKENS.animation.easing.easeOut,
+    status: DESIGN_TOKENS.animation.easing.easeOut,
+    progress: "linear",
+    focus: "cubic-bezier(0.2, 0, 0, 1)",
+  },
+} as const;
+
 /* ---- Typography ---- */
 export const MAP_TYPOGRAPHY = {
   fontFamily: DESIGN_TOKENS.typography.fontFamily.primary,
@@ -161,6 +267,23 @@ export const MAP_DIMENSIONS = {
   toolbarSeparatorHeight: mapToken.dimensions.toolbarSeparatorHeight,
   progressTrackHeight: mapToken.dimensions.progressTrackHeight,
   hiddenSize: mapToken.dimensions.hiddenSize,
+} as const;
+
+export const MAP_SHELL_DIMENSIONS = {
+  activityRailWidth: "2.625rem",
+  commandCenterHeight: "2.75rem",
+  leftSidebarMinWidth: "17.5rem",
+  leftSidebarWidth: "clamp(17.5rem, 24vw, 22.5rem)",
+  leftSidebarMaxWidth: "22.5rem",
+  rightInspectorMinWidth: "22.5rem",
+  rightInspectorWidth: "clamp(22.5rem, 28vw, 27.5rem)",
+  rightInspectorMaxWidth: "27.5rem",
+  bottomPanelMinHeight: "13.75rem",
+  bottomPanelHeight: "clamp(13.75rem, 30vh, 21.25rem)",
+  bottomPanelMaxHeight: "21.25rem",
+  statusBarHeight: "1.75rem",
+  canvasOverlayInset: MAP_SPACING.md,
+  separatorWidth: MAP_DIMENSIONS.separatorWidth,
 } as const;
 
 export const MAP_NUMERIC = {
@@ -1002,6 +1125,9 @@ export type GisStatusKey =
   | "unknown"
   | "demo"
   | "synthetic"
+  | "generated"
+  | "external"
+  | "metadata-only"
   | "external-offline"
   | "stale"
   | "blocked"
@@ -1036,6 +1162,21 @@ export const MAP_STATUS_TOKENS: Record<
     bg: MAP_COLORS.neutralSubtle,
     border: MAP_COLORS.hairlineSubtle,
   },
+  generated: {
+    text: MAP_COLORS.interaction,
+    bg: MAP_COLORS.interactionSubtle,
+    border: MAP_COLORS.hairlineStrong,
+  },
+  external: {
+    text: MAP_COLORS.caveatText,
+    bg: `color-mix(in srgb, ${MAP_COLORS.caveatText} 10%, transparent)`,
+    border: MAP_COLORS.hairlineStrong,
+  },
+  "metadata-only": {
+    text: MAP_COLORS.neutral,
+    bg: MAP_COLORS.neutralSubtle,
+    border: MAP_COLORS.dashed,
+  },
   "external-offline": {
     text: MAP_COLORS.error,
     bg: `color-mix(in srgb, ${MAP_COLORS.error} 12%, transparent)`,
@@ -1059,8 +1200,16 @@ export const MAP_STATUS_TOKENS: Record<
 } as const;
 
 /* ================================================================== */
-/*  Density presets — compact / default row geometry                   */
+/*  Density presets — compact / comfortable row geometry               */
 /* ================================================================== */
+
+const MAP_COMFORTABLE_DENSITY = {
+  rowHeight: "2rem",
+  cellPadding: `${MAP_SPACING.sm} ${MAP_SPACING.md}`,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  gap: MAP_SPACING.sm,
+  iconSize: MAP_ICON_SIZES.sm,
+} as const;
 
 export const MAP_DENSITY = {
   compact: {
@@ -1070,13 +1219,8 @@ export const MAP_DENSITY = {
     gap: MAP_SPACING.xs,
     iconSize: MAP_ICON_SIZES.xs,
   },
-  default: {
-    rowHeight: "2rem",
-    cellPadding: `${MAP_SPACING.sm} ${MAP_SPACING.md}`,
-    fontSize: MAP_TYPOGRAPHY.fontSize.xs,
-    gap: MAP_SPACING.sm,
-    iconSize: MAP_ICON_SIZES.sm,
-  },
+  comfortable: MAP_COMFORTABLE_DENSITY,
+  default: MAP_COMFORTABLE_DENSITY,
 } as const;
 
 export type GisDensity = keyof typeof MAP_DENSITY;
@@ -1088,6 +1232,9 @@ export const GIS_STATUS_KEYS: readonly GisStatusKey[] = [
   "unknown",
   "demo",
   "synthetic",
+  "generated",
+  "external",
+  "metadata-only",
   "external-offline",
   "stale",
   "blocked",

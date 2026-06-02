@@ -6,6 +6,19 @@
 
 /* ---- Keyframes ---- */
 
+:global(:root) {
+  --gis-motion-duration-panel: 180ms;
+  --gis-motion-duration-row: 200ms;
+  --gis-motion-duration-status: 320ms;
+  --gis-motion-duration-progress: 1s;
+  --gis-motion-duration-focus: 220ms;
+  --gis-motion-easing-panel: cubic-bezier(0.2, 0, 0, 1);
+  --gis-motion-easing-row: cubic-bezier(0.4, 0, 0.2, 1);
+  --gis-motion-easing-status: cubic-bezier(0.4, 0, 0.2, 1);
+  --gis-motion-easing-progress: linear;
+  --gis-motion-easing-focus: cubic-bezier(0.2, 0, 0, 1);
+}
+
 @keyframes gis-fade-in {
   from { opacity: 0; }
   to   { opacity: 1; }
@@ -53,23 +66,23 @@
 
 /* Fade a new panel or content block in */
 .fadeIn {
-  animation: gis-fade-in 140ms ease-out both;
+  animation: gis-fade-in var(--gis-motion-duration-row, 200ms) var(--gis-motion-easing-row, ease-out) both;
 }
 
 /* Slide+fade a floating panel in from slightly above */
 .panelIn {
-  animation: gis-panel-in 180ms cubic-bezier(0.2, 0, 0, 1) both;
+  animation: gis-panel-in var(--gis-motion-duration-panel, 180ms) var(--gis-motion-easing-panel, cubic-bezier(0.2, 0, 0, 1)) both;
 }
 
 /* Grow the active-accent bar (left inset) */
 .accentGrow {
-  animation: gis-accent-grow 220ms cubic-bezier(0.2, 0, 0, 1) both;
+  animation: gis-accent-grow var(--gis-motion-duration-focus, 220ms) var(--gis-motion-easing-focus, cubic-bezier(0.2, 0, 0, 1)) both;
   transform-origin: left;
 }
 
 /* Flash a status chip when it changes state */
 .statusFlash {
-  animation: gis-status-flash 320ms ease-out both;
+  animation: gis-status-flash var(--gis-motion-duration-status, 320ms) var(--gis-motion-easing-status, ease-out) both;
 }
 
 /* Pulse a selected map feature's outline */
@@ -79,12 +92,12 @@
 
 /* Animate a progress bar fill */
 .progressFill {
-  animation: gis-progress-fill 1s linear both;
+  animation: gis-progress-fill var(--gis-motion-duration-progress, 1s) var(--gis-motion-easing-progress, linear) both;
 }
 
 /* Fade a newly added layer row in */
 .layerFade {
-  animation: gis-layer-fade 200ms ease-out both;
+  animation: gis-layer-fade var(--gis-motion-duration-row, 200ms) var(--gis-motion-easing-row, ease-out) both;
 }
 
 /* ---- Reduced-motion: disable all GIS animations ---- */

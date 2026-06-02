@@ -34,6 +34,16 @@ export const GisStatusChip: React.FC<GisStatusChipProps> = ({
 }) => {
   const tok = MAP_STATUS_TOKENS[status];
   const d = MAP_DENSITY[density];
+  const borderStyle =
+    status === "demo"
+      ? "dashed"
+      : status === "synthetic"
+        ? "dotted"
+        : status === "generated" || status === "external"
+          ? "dashed"
+          : status === "metadata-only"
+            ? "dotted"
+            : "solid";
 
   const chipStyle: React.CSSProperties = {
     display: "inline-flex",
@@ -48,7 +58,7 @@ export const GisStatusChip: React.FC<GisStatusChipProps> = ({
     color: tok.text,
     background: tok.bg,
     border: `1px solid ${tok.border}`,
-    borderStyle: status === "demo" ? "dashed" : status === "synthetic" ? "dotted" : "solid",
+    borderStyle,
     ...style,
   };
 

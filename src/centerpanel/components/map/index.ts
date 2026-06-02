@@ -268,12 +268,16 @@ export type {
 
 export {
   MAP_COLORS,
+  MAP_CHROME_SLOT_KEYS,
+  MAP_CHROME_TOKENS,
   MAP_RADIUS,
   MAP_SHADOWS,
   MAP_TRANSITIONS,
+  MAP_MOTION,
   MAP_TYPOGRAPHY,
   MAP_SPACING,
   MAP_DIMENSIONS,
+  MAP_SHELL_DIMENSIONS,
   MAP_NUMERIC,
   MAP_ICON_SIZES,
   MAP_BLUR,
@@ -281,3 +285,4 @@ export {
   MAP_STROKES,
   mapStyles,
 } from "./mapTokens";
+export type { MapChromeSlotKey } from "./mapTokens";
