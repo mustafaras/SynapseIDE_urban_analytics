@@ -47,12 +47,16 @@ import {
 import type { ProcessingToolDescriptor, ToolParameterDescriptor } from "@/services/map/contracts/gisContracts";
 import {
   formatMapKeybinding,
+  groupMapPaletteCommandsByTaxonomy,
   isEditableShortcutTarget,
   isMapRedoShortcut,
   isMapUndoShortcut,
   isOpenPaletteShortcut,
+  MAP_COMMAND_TAXONOMY_META,
+  MAP_COMMAND_TAXONOMY_ORDER,
   searchMapPaletteCommands,
   shouldIgnoreMapPaletteShortcut,
+  type MapCommandTaxonomyId,
   type MapPaletteSearchCommand,
 } from "@/services/map/commands/MapCommandPalette";
 import BackgroundTasksControl from "../BackgroundTasksControl";
@@ -200,7 +204,7 @@ type ToolbarRole = "explore" | "analyze" | "publish";
 type ToolbarDensity = MapToolbarDensityPreference;
 type ToolbarBreakpoint = "mobile" | "tablet" | "desktop";
 type OverflowGroupId = "tools" | "export" | "advanced";
-type CommandTaxonomyId = "data" | "layers" | "analyze" | "style" | "scene" | "publish" | "review" | "system";
+type CommandTaxonomyId = MapCommandTaxonomyId;
 
 interface ToolbarCommand {
   id: string;
@@ -234,6 +238,7 @@ type PaletteCommandSource = "toolbar" | "processing-tool";
 interface PaletteCommand extends ToolbarCommand, MapPaletteSearchCommand {
   category: string;
   source: PaletteCommandSource;
+  taxonomy: CommandTaxonomyId;
   processingToolId?: string;
 }
 
@@ -394,59 +399,23 @@ const DENSITY_LABELS: Record<ToolbarDensity, string> = {
 
 const TOOLBAR_DENSITY_ORDER = ["compact", "comfortable", "expert"] as const satisfies readonly ToolbarDensity[];
 
-const COMMAND_TAXONOMY_META: Record<CommandTaxonomyId, { label: string; title: string; icon: LucideIcon }> = {
-  data: {
-    label: "Data",
-    title: "Import, external services, source catalog, and restore commands",
-    icon: Upload,
-  },
-  layers: {
-    label: "Layers",
-    title: "Layer stack, contents tree, visibility, and layer organization commands",
-    icon: Layers3,
-  },
-  analyze: {
-    label: "Analyze",
-    title: "Workflow, processing, model, query, draw, measure, and statistics commands",
-    icon: Workflow,
-  },
-  style: {
-    label: "Style",
-    title: "Renderer, thematic style, label, and annotation commands",
-    icon: Palette,
-  },
-  scene: {
-    label: "Scene",
-    title: "3D, VoxCity, viewport sync, raster, and temporal commands",
-    icon: Building2,
-  },
-  publish: {
-    label: "Publish",
-    title: "Figure, export, package, report, save, and load commands",
-    icon: Download,
-  },
-  review: {
-    label: "Review",
-    title: "QA, timeline, diagnostics, and extension review commands",
-    icon: ShieldAlert,
-  },
-  system: {
-    label: "System",
-    title: "Command center, undo, redo, density, navigator, and utility commands",
-    icon: Settings2,
-  },
+const COMMAND_TAXONOMY_ICONS: Record<CommandTaxonomyId, LucideIcon> = {
+  data: Upload,
+  layers: Layers3,
+  contents: Layers3,
+  qa: ShieldAlert,
+  analyze: Workflow,
+  query: Search,
+  style: Palette,
+  scene: Building2,
+  publish: Download,
+  review: History,
+  diagnostics: BarChart3,
+  project: Settings2,
+  extensions: Puzzle,
 };
 
-const COMMAND_TAXONOMY_ORDER: readonly CommandTaxonomyId[] = [
-  "data",
-  "layers",
-  "analyze",
-  "style",
-  "scene",
-  "publish",
-  "review",
-  "system",
-];
+const COMMAND_TAXONOMY_ORDER: readonly CommandTaxonomyId[] = MAP_COMMAND_TAXONOMY_ORDER;
 
 /* ================================================================== */
 /*  Styles                                                             */
@@ -831,6 +800,103 @@ function getProcessingToolDisabledReason(
   return null;
 }
 
+function uniqueCommandTerms(terms: readonly (string | null | undefined)[]): string[] {
+  const seen = new Set<string>();
+  const unique: string[] = [];
+  for (const term of terms) {
+    const normalized = term?.trim();
+    if (!normalized) continue;
+    const key = normalized.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    unique.push(normalized);
+  }
+  return unique;
+}
+
+const LEGACY_COMMAND_ALIASES: Record<string, readonly string[]> = {
+  "command-palette": ["old command search", "map commands", "ctrl k", "cmd k", "keyboard shortcut"],
+  layers: ["layer panel", "toggle layer panel", "layer manager", "inspect layer", "attribute table", "field schema"],
+  navigator: ["overview", "cockpit", "workspace navigator", "map cockpit", "quick actions"],
+  import: ["data import hub", "local files", "upload layer", "GeoJSON", "GeoParquet", "Shapefile", "GeoPackage", "GeoTIFF", "CSV", "Arrow", "KML", "KMZ", "GPX", "CRS", "projection"],
+  services: ["add connection", "external service", "OGC", "WMS", "WMTS", "WFS", "XYZ", "source", "provider attribution"],
+  catalog: ["browse source", "source browser", "source catalog", "restore health", "demo data", "metadata-only", "external reference", "GeoTIFF", "Shapefile", "GeoParquet", "WMS", "WFS"],
+  contents: ["contents tree", "layer tree", "group layers", "scale range", "definition filter", "duplicate layer", "source repair", "field", "schema", "field schema"],
+  qa: ["scientific qa", "quality assurance", "problems", "CRS", "projection", "declare CRS", "repair geometry", "noData", "source caveats"],
+  query: ["NL query", "natural language query", "selection query", "attribute query", "field", "schema", "SQL"],
+  workflow: ["workflow drawer", "AOI workflow", "buffer", "intersect", "union", "difference", "compare", "spatial join"],
+  "review-timeline": ["review timeline", "audit", "revert command", "comments", "collaboration", "session log"],
+  "undo-map-action": ["undo", "revert", "history", "Ctrl+Z", "Cmd+Z"],
+  "redo-map-action": ["redo", "history", "Ctrl+Y", "Cmd+Shift+Z"],
+  "reset-layout": ["layout reset", "recover layout", "map-first", "restore layout"],
+  "collapse-panels": ["collapse all panels", "hide panels", "close drawers"],
+  "focus-map-canvas": ["focus map", "keyboard focus", "canvas focus"],
+  "restore-default-widths": ["default widths", "sidebar width", "inspector width"],
+  "switch-density": ["compact density", "comfortable density", "expert density"],
+  "performance-diagnostics": ["diagnostics", "render budget", "worker transfer", "telemetry", "recovery", "performance"],
+  "plugin-registry": ["plugins", "extensions", "extension registry", "source connector", "renderer extension", "Urban bridge"],
+  "processing-toolbox": ["processing toolbox", "geoprocessing", "buffer", "intersect", "spatial join", "field calculator"],
+  "model-builder": ["model builder", "workflow graph", "batch", "processing chain", "buffer", "intersect", "join"],
+  "figure-composer": ["layout figure", "figure composer", "map book", "legend", "scale bar", "north arrow", "attribution", "CRS", "projection"],
+  theme: ["theme data", "choropleth", "renderer", "symbology", "classification", "style layer"],
+  extent: ["current extent", "map view", "viewport scope", "AOI"],
+  lisa: ["LISA", "Local Moran", "cluster map", "spatial autocorrelation", "spatial statistics"],
+  hotspot: ["Gi*", "Gi star", "Getis-Ord", "hot spot", "cold spot", "spatial statistics"],
+  "emerging-hotspot": ["emerging hot spot", "temporal hotspot", "time series", "space time"],
+  sync: ["3D sync", "viewport sync", "terrain", "linked camera", "scene"],
+  voxcity: ["VoxCity", "CityJSON", "3D", "3D Tiles", "terrain", "building footprints"],
+  "pin-mode": ["drop pin", "map note", "field note", "review note"],
+  pins: ["pin sidebar", "notes", "field notes", "review notes"],
+  drawings: ["draw panel", "drawings", "features", "AOI"],
+  annotations: ["annotation", "label", "map text", "publication mark"],
+  "measure-distance": ["distance", "measure distance", "ruler", "projected CRS"],
+  "measure-area": ["area", "measure area", "polygon area", "projected CRS"],
+  "measure-results": ["measurements", "measurement results", "units", "CRS caveats"],
+  "save-project": ["save project", "persist map", "project state"],
+  "load-project": ["load project", "restore map", "open saved state"],
+  "export-image": ["image export", "PNG", "screenshot", "legend", "scale", "attribution"],
+  "export-offline-package": ["offline package", "review package", "source bounds", "GeoJSON", "GeoParquet", "attribution"],
+  "add-map-to-report": ["report handoff", "citation", "attribution", "evidence", "map finding"],
+  "export-geojson": ["GeoJSON", "GeoParquet", "data export", "schema", "field", "download data", "attribution"],
+};
+
+function getCommandAliases(command: Pick<ToolbarCommand, "id" | "shortLabel" | "label">): readonly string[] {
+  return uniqueCommandTerms([
+    command.id.replace(/-/g, " "),
+    command.shortLabel,
+    ...(LEGACY_COMMAND_ALIASES[command.id] ?? []),
+  ]);
+}
+
+function getEnrichedCommandKeywords(
+  command: Pick<ToolbarCommand, "id" | "keywords" | "label" | "shortLabel" | "title" | "shortcut">,
+  taxonomy: CommandTaxonomyId,
+  aliases: readonly string[],
+): readonly string[] {
+  const taxonomyMeta = MAP_COMMAND_TAXONOMY_META[taxonomy];
+  return uniqueCommandTerms([
+    ...command.keywords,
+    ...aliases,
+    command.label,
+    command.shortLabel,
+    command.title,
+    command.shortcut,
+    taxonomyMeta.label,
+    taxonomyMeta.title,
+    ...taxonomyMeta.keywords,
+  ]);
+}
+
+function getProcessingCommandAliases(tool: ProcessingToolDescriptor): readonly string[] {
+  return uniqueCommandTerms([
+    tool.toolId.replace(/-/g, " "),
+    tool.title,
+    `processing ${tool.title}`,
+    `toolbox ${tool.title}`,
+    tool.category,
+  ]);
+}
+
 function buildProcessingPaletteCommands({
   tools,
   layers,
@@ -844,6 +910,7 @@ function buildProcessingPaletteCommands({
     const disabledReason = getProcessingToolDisabledReason(tool, layers, onRun);
     const params = defaultProcessingParams(tool, layers);
     const disabled = Boolean(disabledReason);
+    const aliases = getProcessingCommandAliases(tool);
 
     return {
       id: `processing:${tool.toolId}`,
@@ -855,9 +922,15 @@ function buildProcessingPaletteCommands({
         "toolbox",
         "geoprocessing",
         tool.toolId,
+        tool.title,
+        tool.summary,
         tool.category,
         ...tool.parameters.map((parameter) => parameter.label),
+        ...tool.parameters.map((parameter) => parameter.key),
+        ...aliases,
+        ...MAP_COMMAND_TAXONOMY_META.analyze.keywords,
       ],
+      aliases,
       icon: getProcessingCategoryIcon(tool.category),
       onClick: () => {
         if (disabled) return;
@@ -871,6 +944,7 @@ function buildProcessingPaletteCommands({
       badge: tool.implemented ? null : "Blocked",
       tone: tool.implemented ? "default" : "warning",
       category: `Tool: ${tool.category}`,
+      taxonomy: "analyze",
       source: "processing-tool",
       processingToolId: tool.toolId,
     };
@@ -895,15 +969,29 @@ function getCommandAccessibleTitle(command: ToolbarCommand): string {
 function getCommandTaxonomy(command: Pick<ToolbarCommand, "id" | "overflowGroup">): CommandTaxonomyId {
   const id = command.id;
   if (
+    id === "command-palette" ||
+    id === "navigator" ||
     id.startsWith("task-lens-") ||
-    ["reset-layout", "collapse-panels", "focus-map-canvas", "restore-default-widths", "switch-density"].includes(id)
+    [
+      "undo-map-action",
+      "redo-map-action",
+      "reset-layout",
+      "collapse-panels",
+      "focus-map-canvas",
+      "restore-default-widths",
+      "switch-density",
+      "save-project",
+      "load-project",
+    ].includes(id)
   ) {
-    return "system";
+    return "project";
   }
   if (["import", "services", "catalog"].includes(id)) return "data";
-  if (["layers", "contents"].includes(id)) return "layers";
+  if (id === "layers") return "layers";
+  if (id === "contents") return "contents";
+  if (id === "qa") return "qa";
+  if (id === "query") return "query";
   if (
-    id === "query" ||
     id === "workflow" ||
     id === "processing-toolbox" ||
     id === "model-builder" ||
@@ -911,6 +999,8 @@ function getCommandTaxonomy(command: Pick<ToolbarCommand, "id" | "overflowGroup"
     id === "lisa" ||
     id === "hotspot" ||
     id === "emerging-hotspot" ||
+    id === "drawings" ||
+    id === "measure-results" ||
     id.startsWith("draw-") ||
     id.startsWith("measure-")
   ) {
@@ -920,8 +1010,6 @@ function getCommandTaxonomy(command: Pick<ToolbarCommand, "id" | "overflowGroup"
   if (["sync", "voxcity"].includes(id)) return "scene";
   if (
     id === "figure-composer" ||
-    id === "save-project" ||
-    id === "load-project" ||
     id === "export-image" ||
     id === "export-offline-package" ||
     id === "add-map-to-report" ||
@@ -929,14 +1017,15 @@ function getCommandTaxonomy(command: Pick<ToolbarCommand, "id" | "overflowGroup"
   ) {
     return "publish";
   }
-  if (["qa", "review-timeline", "performance-diagnostics", "plugin-registry"].includes(id)) return "review";
-  if (id === "pin-mode" || id === "pins") return "data";
-  return command.overflowGroup === "export" ? "publish" : "system";
+  if (["review-timeline", "pin-mode", "pins"].includes(id)) return "review";
+  if (id === "performance-diagnostics") return "diagnostics";
+  if (id === "plugin-registry") return "extensions";
+  return command.overflowGroup === "export" ? "publish" : "project";
 }
 
 function getCommandCategory(command: ToolbarCommand | PaletteCommand): string {
   if ("category" in command) return command.category;
-  return COMMAND_TAXONOMY_META[getCommandTaxonomy(command)].label;
+  return MAP_COMMAND_TAXONOMY_META[getCommandTaxonomy(command)].label;
 }
 
 function getToolbarTaskLensDefinition(taskLensId: MapTaskLensId) {
@@ -1043,8 +1132,8 @@ function buildToolbarCommands(args: BuildToolbarCommandsArgs): ToolbarCommand[] 
     id: "import",
     label: args.isImporting ? "Importing" : "Import",
     shortLabel: args.isImporting ? "Import" : "Import",
-    title: "Import GeoJSON, CSV, Arrow, GeoParquet, KML, KMZ, and GPX files",
-    keywords: ["import geojson", "upload data", "load file", "add data"],
+    title: "Import GeoJSON, CSV, Arrow, GeoParquet, KML, KMZ, GPX, Shapefile, GeoPackage, and sampled GeoTIFF files",
+    keywords: ["import geojson", "upload data", "load file", "add data", "geoparquet", "shapefile", "geopackage", "geotiff"],
     icon: Upload,
     onClick: args.onImportClick,
     roles: ["explore", "analyze", "publish"],
@@ -1093,8 +1182,8 @@ function buildToolbarCommands(args: BuildToolbarCommandsArgs): ToolbarCommand[] 
     id: "contents",
     label: "Contents",
     shortLabel: "Contents",
-    title: "Open professional contents tree with grouping, scale ranges, filters, and repair actions",
-    keywords: ["contents", "layer tree", "group layers", "scale range", "definition filter", "duplicate layer"],
+    title: "Open professional contents tree with grouping, field schema, scale ranges, filters, and repair actions",
+    keywords: ["contents", "layer tree", "group layers", "field schema", "schema", "field", "scale range", "definition filter", "duplicate layer"],
     icon: Layers3,
     onClick: args.onToggleContents,
     roles: ["explore", "analyze", "publish"],
@@ -1457,7 +1546,7 @@ function buildToolbarCommands(args: BuildToolbarCommandsArgs): ToolbarCommand[] 
     label: "Sync",
     shortLabel: "Sync",
     title: "Toggle 2D and 3D viewport sync",
-    keywords: ["3d sync", "voxcfity camera", "linked viewport"],
+    keywords: ["3d sync", "voxcity camera", "linked viewport", "terrain"],
     icon: Link2,
     onClick: args.onToggleViewportSync,
     roles: ["explore", "analyze"],
@@ -1891,8 +1980,8 @@ function ToolbarOverflowMenu({
             <span>{commands.length} cmd</span>
           </div>
           {groupedCommands.map((group) => {
-            const meta = COMMAND_TAXONOMY_META[group.id];
-            const Icon = meta.icon;
+            const meta = MAP_COMMAND_TAXONOMY_META[group.id];
+            const Icon = COMMAND_TAXONOMY_ICONS[group.id];
             return (
               <section key={group.id} style={overflowSectionStyle} aria-label={meta.title}>
                 <div style={overflowSectionHeaderStyle}>
@@ -1982,6 +2071,15 @@ function CommandPalette({
   const filteredCommands = React.useMemo(() => {
     return searchMapPaletteCommands(commands, query, 20);
   }, [commands, query]);
+  const groupedFilteredCommands = React.useMemo(() => {
+    return groupMapPaletteCommandsByTaxonomy(filteredCommands).map((group) => ({
+      ...group,
+      commands: group.commands.map((command) => ({
+        command,
+        index: filteredCommands.indexOf(command),
+      })),
+    }));
+  }, [filteredCommands]);
 
   React.useEffect(() => {
     const firstRunnableIndex = filteredCommands.findIndex((command) => !command.disabled);
@@ -2075,69 +2173,94 @@ function CommandPalette({
             <div style={{ padding: MAP_SPACING.md, color: MAP_COLORS.textMuted, fontSize: MAP_TYPOGRAPHY.fontSize.sm }}>
               No matching command
             </div>
-          ) : filteredCommands.map((command, index) => (
-            (() => {
-              const status = getCommandStatus(command);
-              const accessibleTitle = getCommandAccessibleTitle(command);
-              const optionId = `map-command-palette-option-${command.id.replace(/[^a-z0-9_-]/gi, "-")}`;
-              const selected = index === activeIndex;
-              const shortcutLabel = command.disabled ? null : command.shortcut ?? runShortcutLabel;
-              return (
-            <button
-              key={command.id}
-              id={optionId}
-              type="button"
-              style={{
-                ...commandButtonStyle(Boolean(command.active), Boolean(command.disabled), command.tone, "comfortable", true),
-                maxWidth: "100%",
-                minHeight: "3rem",
-                display: "grid",
-                gridTemplateColumns: "1.25rem minmax(0, 1fr) auto",
-                background: selected ? MAP_COLORS.neutralSubtle : command.active ? MAP_COLORS.selectedSubtle : MAP_COLORS.transparent,
-                opacity: command.disabled ? 0.55 : 1,
-                cursor: command.disabled ? "not-allowed" : "pointer",
-              }}
-              data-testid={`map-command-palette-option-${command.id}`}
-              onClick={() => {
-                if (command.disabled) return;
-                command.onClick();
-                onClose();
-              }}
-              onMouseEnter={() => setActiveIndex(index)}
-              title={accessibleTitle}
-              role="option"
-              aria-label={command.disabled ? `${command.label}. ${accessibleTitle}` : `${command.label}. ${command.title}`}
-              aria-selected={selected || command.active || undefined}
-              aria-disabled={command.disabled || undefined}
-              disabled={command.disabled}
+          ) : groupedFilteredCommands.map((group) => (
+            <div
+              key={group.taxonomyId}
+              role="group"
+              aria-label={group.metadata.title}
+              data-testid={`map-command-palette-group-${group.taxonomyId}`}
+              style={{ display: "grid", gap: MAP_SPACING.xs, paddingBlock: MAP_SPACING.xs }}
             >
-              {React.createElement(command.icon, { size: MAP_ICON_SIZES.sm, strokeWidth: 1.8, "aria-hidden": true })}
-              <span style={{ display: "grid", minWidth: 0, textAlign: "left", gap: "0.125rem" }}>
-                <span style={{ color: MAP_COLORS.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {command.label}
-                </span>
-                <span style={{ color: MAP_COLORS.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {command.disabled ? accessibleTitle : command.title}
-                </span>
-              </span>
-              <span style={{ display: "grid", justifyItems: "end", gap: "0.125rem" }}>
-                <span style={{ color: MAP_COLORS.textMuted, fontSize: MAP_TYPOGRAPHY.fontSize.xs }}>
-                  {getCommandCategory(command)}
-                </span>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: "0.1875rem" }}>
-                  {shortcutLabel ? (
-                    <span style={{ ...toolbarBadge, color: MAP_COLORS.textMuted, background: MAP_COLORS.bg }}>
-                      {shortcutLabel}
-                    </span>
-                  ) : null}
-                  <span style={{ ...toolbarBadge, color: toneColor(status.tone), background: status.tone === "default" ? MAP_COLORS.bg : MAP_COLORS.selectedSubtle }}>
-                    {command.badge != null && command.badge !== 0 ? command.badge : status.label}
-                  </span>
-                </span>
-              </span>
-            </button>
-              );
-            })()
+              <div style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: MAP_SPACING.sm,
+                padding: `0 ${MAP_SPACING.sm}`,
+                color: MAP_COLORS.textMuted,
+                fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+                fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+                textTransform: "uppercase",
+                letterSpacing: 0,
+              }}>
+                <span>{group.metadata.label}</span>
+                <span>{group.commands.length}</span>
+              </div>
+              {group.commands.map(({ command, index }) => (
+                (() => {
+                  const status = getCommandStatus(command);
+                  const accessibleTitle = getCommandAccessibleTitle(command);
+                  const optionId = `map-command-palette-option-${command.id.replace(/[^a-z0-9_-]/gi, "-")}`;
+                  const selected = index === activeIndex;
+                  const shortcutLabel = command.disabled ? null : command.shortcut ?? runShortcutLabel;
+                  return (
+                    <button
+                      key={command.id}
+                      id={optionId}
+                      type="button"
+                      style={{
+                        ...commandButtonStyle(Boolean(command.active), Boolean(command.disabled), command.tone, "comfortable", true),
+                        maxWidth: "100%",
+                        minHeight: "3rem",
+                        display: "grid",
+                        gridTemplateColumns: "1.25rem minmax(0, 1fr) auto",
+                        background: selected ? MAP_COLORS.neutralSubtle : command.active ? MAP_COLORS.selectedSubtle : MAP_COLORS.transparent,
+                        opacity: command.disabled ? 0.55 : 1,
+                        cursor: command.disabled ? "not-allowed" : "pointer",
+                      }}
+                      data-testid={`map-command-palette-option-${command.id}`}
+                      onClick={() => {
+                        if (command.disabled) return;
+                        command.onClick();
+                        onClose();
+                      }}
+                      onMouseEnter={() => setActiveIndex(index)}
+                      title={accessibleTitle}
+                      role="option"
+                      aria-label={command.disabled ? `${command.label}. ${accessibleTitle}` : `${command.label}. ${command.title}`}
+                      aria-selected={selected || command.active || undefined}
+                      aria-disabled={command.disabled || undefined}
+                      disabled={command.disabled}
+                    >
+                      {React.createElement(command.icon, { size: MAP_ICON_SIZES.sm, strokeWidth: 1.8, "aria-hidden": true })}
+                      <span style={{ display: "grid", minWidth: 0, textAlign: "left", gap: "0.125rem" }}>
+                        <span style={{ color: MAP_COLORS.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {command.label}
+                        </span>
+                        <span style={{ color: MAP_COLORS.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {command.disabled ? accessibleTitle : command.title}
+                        </span>
+                      </span>
+                      <span style={{ display: "grid", justifyItems: "end", gap: "0.125rem" }}>
+                        <span style={{ color: MAP_COLORS.textMuted, fontSize: MAP_TYPOGRAPHY.fontSize.xs }}>
+                          {getCommandCategory(command)}
+                        </span>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: "0.1875rem" }}>
+                          {shortcutLabel ? (
+                            <span style={{ ...toolbarBadge, color: MAP_COLORS.textMuted, background: MAP_COLORS.bg }}>
+                              {shortcutLabel}
+                            </span>
+                          ) : null}
+                          <span style={{ ...toolbarBadge, color: toneColor(status.tone), background: status.tone === "default" ? MAP_COLORS.bg : MAP_COLORS.selectedSubtle }}>
+                            {command.badge != null && command.badge !== 0 ? command.badge : status.label}
+                          </span>
+                        </span>
+                      </span>
+                    </button>
+                  );
+                })()
+              ))}
+            </div>
           ))}
         </div>
       </div>
@@ -2586,7 +2709,16 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
     label: "Commands",
     shortLabel: "Cmd",
     title: `Open command palette (${openPaletteShortcut})`,
-    keywords: ["command palette", "ctrl k", "cmd k", "search commands", "keyboard"],
+    keywords: uniqueCommandTerms([
+      "command palette",
+      "ctrl k",
+      "cmd k",
+      "search commands",
+      "keyboard",
+      ...MAP_COMMAND_TAXONOMY_META.project.keywords,
+      ...(LEGACY_COMMAND_ALIASES["command-palette"] ?? []),
+    ]),
+    aliases: LEGACY_COMMAND_ALIASES["command-palette"],
     icon: Command,
     onClick: () => {
       setPaletteOpen(true);
@@ -2596,7 +2728,8 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
     overflowGroup: "advanced",
     priority: 999,
     shortcut: openPaletteShortcut,
-    category: "System",
+    category: MAP_COMMAND_TAXONOMY_META.project.label,
+    taxonomy: "project",
     source: "toolbar",
   }), [openPaletteShortcut]);
 
@@ -2612,11 +2745,18 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
   const paletteCommands = React.useMemo(
     () => [
       commandPaletteCommand,
-      ...commands.map((command): PaletteCommand => ({
-        ...command,
-        category: getCommandCategory(command),
-        source: "toolbar",
-      })),
+      ...commands.map((command): PaletteCommand => {
+        const taxonomy = getCommandTaxonomy(command);
+        const aliases = getCommandAliases(command);
+        return {
+          ...command,
+          category: getCommandCategory(command),
+          taxonomy,
+          aliases,
+          keywords: getEnrichedCommandKeywords(command, taxonomy, aliases),
+          source: "toolbar",
+        };
+      }),
       ...processingPaletteCommands,
     ],
     [commandPaletteCommand, commands, processingPaletteCommands],

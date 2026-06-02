@@ -42,6 +42,38 @@ const kernelDensityTool: ProcessingToolDescriptor = {
   implemented: false,
 };
 
+const intersectTool: ProcessingToolDescriptor = {
+  toolId: "intersect",
+  title: "Intersect",
+  category: "Overlay",
+  summary: "Intersect two projected layers and preserve overlapping features.",
+  parameters: [
+    { key: "inputLayer", label: "Input layer", type: "layer", required: true },
+    { key: "overlayLayer", label: "Overlay layer", type: "layer", required: true },
+  ],
+  requiresCrs: true,
+  executionMode: "worker",
+  qaGated: true,
+  urbanMethodIds: [],
+  implemented: true,
+};
+
+const spatialJoinTool: ProcessingToolDescriptor = {
+  toolId: "spatial-join",
+  title: "Spatial join",
+  category: "Overlay",
+  summary: "Join target and join layer attributes using spatial relationships and field schema checks.",
+  parameters: [
+    { key: "targetLayer", label: "Target layer", type: "layer", required: true },
+    { key: "joinLayer", label: "Join layer", type: "layer", required: true },
+  ],
+  requiresCrs: true,
+  executionMode: "worker",
+  qaGated: true,
+  urbanMethodIds: [],
+  implemented: true,
+};
+
 function renderToolbar(props: Partial<React.ComponentProps<typeof MapToolbar>> = {}): void {
   host = document.createElement("div");
   document.body.appendChild(host);
@@ -137,6 +169,107 @@ describe("MapToolbar command palette", () => {
     expect(kernelOption).not.toBeNull();
     expect(kernelOption!.disabled).toBe(true);
     expect(kernelOption!.textContent).toMatch(/not wired/i);
+  });
+
+  it("groups Prompt 24 GIS command taxonomy results and finds representative search terms", () => {
+    renderToolbar({
+      layerCount: 2,
+      visibleLayerCount: 2,
+      catalogSourceCount: 3,
+      nlQueryLayerCount: 2,
+      scientificQAIssueCount: 2,
+      scientificQABlockerCount: 1,
+      workflowReadyCount: 2,
+      reviewEventCount: 1,
+      performanceIssueCount: 1,
+      pluginExtensionCount: 1,
+      voxCityFootprintCount: 4,
+      drawnFeatureCount: 1,
+      measurementCount: 1,
+      annotationCount: 1,
+      processingTools: [bufferTool, intersectTool, spatialJoinTool, kernelDensityTool],
+      processingLayerOptions: [
+        { id: "projected-parcels", name: "Projected parcels", fields: ["zone", "population"] },
+        { id: "projected-districts", name: "Projected districts", fields: ["district_id"] },
+      ],
+      onImportClick: vi.fn(),
+      onOpenExternalServices: vi.fn(),
+      onToggleLayerPanel: vi.fn(),
+      onToggleCatalog: vi.fn(),
+      onToggleContents: vi.fn(),
+      onToggleScientificQAPanel: vi.fn(),
+      onToggleNLQueryPanel: vi.fn(),
+      onToggleWorkflowDrawer: vi.fn(),
+      onToggleProcessingToolbox: vi.fn(),
+      onToggleModelBuilder: vi.fn(),
+      onToggleChoroplethPanel: vi.fn(),
+      onToggleClusterViz: vi.fn(),
+      onToggleHotSpotViz: vi.fn(),
+      onToggleEmergingHotSpotViz: vi.fn(),
+      onToggleViewportSync: vi.fn(),
+      onToggleVoxCityOverlayPanel: vi.fn(),
+      onToggleRestrictToMapView: vi.fn(),
+      onSetDrawTool: vi.fn(),
+      onToggleDrawPanel: vi.fn(),
+      onToggleAnnotationMode: vi.fn(),
+      onSetMeasureTool: vi.fn(),
+      onToggleMeasurePanel: vi.fn(),
+      onToggleFigureComposer: vi.fn(),
+      onExportClick: vi.fn(),
+      onImageExportClick: vi.fn(),
+      onExportPackageClick: vi.fn(),
+      onAddToReportClick: vi.fn(),
+      onToggleReviewTimeline: vi.fn(),
+      onTogglePerformanceDiagnostics: vi.fn(),
+      onTogglePluginPanel: vi.fn(),
+      onSaveProjectClick: vi.fn(),
+      onLoadProjectClick: vi.fn(),
+      onRunProcessingToolCommand: vi.fn(),
+    });
+
+    keydown(window, "k", { ctrlKey: true });
+    const input = paletteInput();
+
+    const expectedCommands = [
+      { query: "source catalog", id: "catalog", group: "data" },
+      { query: "WMS", id: "services", group: "data" },
+      { query: "GeoJSON", id: "import", group: "data" },
+      { query: "GeoParquet", id: "import", group: "data" },
+      { query: "Shapefile", id: "import", group: "data" },
+      { query: "GeoTIFF", id: "import", group: "data" },
+      { query: "field schema", id: "contents", group: "contents" },
+      { query: "CRS projection", id: "qa", group: "qa" },
+      { query: "buffer", id: "processing:buffer", group: "analyze" },
+      { query: "intersect", id: "processing:intersect", group: "analyze" },
+      { query: "join", id: "processing:spatial-join", group: "analyze" },
+      { query: "LISA", id: "lisa", group: "analyze" },
+      { query: "Gi*", id: "hotspot", group: "analyze" },
+      { query: "3D terrain", id: "sync", group: "scene" },
+      { query: "noData", id: "qa", group: "qa" },
+      { query: "attribution", id: "figure-composer", group: "publish" },
+      { query: "review pins", id: "pins", group: "review" },
+      { query: "diagnostics render budget", id: "performance-diagnostics", group: "diagnostics" },
+      { query: "extensions source connector", id: "plugin-registry", group: "extensions" },
+      { query: "Ctrl+K", id: "command-palette", group: "project" },
+    ];
+
+    for (const command of expectedCommands) {
+      setInputValue(input, command.query);
+      expect(
+        document.querySelector<HTMLElement>(`[data-testid="map-command-palette-group-${command.group}"]`),
+        command.group,
+      ).not.toBeNull();
+      expect(
+        document.querySelector<HTMLButtonElement>(`[data-testid="map-command-palette-option-${command.id}"]`),
+        command.query,
+      ).not.toBeNull();
+    }
+
+    setInputValue(input, "kernel density");
+    const disabledOption = document.querySelector<HTMLButtonElement>('[data-testid="map-command-palette-option-processing:kernel-density"]');
+    expect(disabledOption).not.toBeNull();
+    expect(disabledOption!.disabled).toBe(true);
+    expect(disabledOption!.textContent).toMatch(/not wired/i);
   });
 
   it("keeps former activity rail commands searchable in the command palette", () => {
