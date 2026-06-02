@@ -22,19 +22,19 @@ gis-modal-ui/premium-redesign
 Next prompt:
 
 ```text
-Prompt 32 - Layer Action Command Menu (of 56)
+Prompt 33 - Inspector Metadata and Provenance Polish (of 56)
 ```
 
 Last completed prompt:
 
 ```text
-Prompt 31 - Contents Tree Premium Controls
+Prompt 32 - Layer Action Command Menu
 ```
 
 Last pushed integration commit:
 
 ```text
-Prompt 31 closeout pushed (contents tree premium controls at integration branch tip — branch tip after closeout)
+Prompt 32 closeout pushed (layer action command menu at integration branch tip — branch tip after closeout)
 ```
 
 Update this pointer after every completed prompt. It is the first anti-amnesia check for the next agent.
@@ -239,7 +239,7 @@ Legend: `[ ]` TODO, `[~]` in progress, `[x]` done, `[!]` blocked.
 | [x] | 29 - External Services and Source Catalog UX | `gis-modal-ui/p29-source-catalog-ux` | branch tip after closeout | pushed to `origin/gis-modal-ui/p29-source-catalog-ux`; fast-forwarded into `origin/gis-modal-ui/premium-redesign` | Source health labels distinguish external-reference, metadata-only, recoverable, unavailable, offline, and demo; Connections and Catalog keep provider caveats, no-credentials-stored messaging, license/attribution notes, endpoint references, and repair/reconnect actions visible |
 | [x] | 30 - Layer Stack Row Redesign | `gis-modal-ui/p30-layer-row-redesign` | branch tip after closeout | pushed to `origin/gis-modal-ui/p30-layer-row-redesign`; fast-forwarded into `origin/gis-modal-ui/premium-redesign` | Dense readiness lanes show visibility, name, source, restore, geometry, features, CRS, QA, publication, active/style state, demo/synthetic caveats, and complete row actions without layout jump |
 | [x] | 31 - Contents Tree Premium Controls | `gis-modal-ui/p31-contents-tree` | branch tip after closeout | pushed to `origin/gis-modal-ui/p31-contents-tree`; fast-forwarded into `origin/gis-modal-ui/premium-redesign` | Contents rows keep scannable groups, compact scale/filter badges, active layer and readiness visible, and duplicate/properties/source repair controls intact |
-| [ ] | 32 - Layer Action Command Menu | `gis-modal-ui/p32-layer-action-menu` |  |  | Per-layer action parity |
+| [x] | 32 - Layer Action Command Menu | `gis-modal-ui/p32-layer-action-menu` | branch tip after closeout | pushed to `origin/gis-modal-ui/p32-layer-action-menu`; fast-forwarded into `origin/gis-modal-ui/premium-redesign` | Per-layer action parity preserved with grouped compact menus, visible disabled reasons, keyboard-native controls, and guarded remove confirmation |
 | [ ] | 33 - Inspector Metadata and Provenance Polish | `gis-modal-ui/p33-inspector-metadata` |  |  | Explicit unknown/missing metadata |
 | [ ] | 34 - CRS and QA Fix Flow | `gis-modal-ui/p34-crs-qa-fixes` |  |  | User-declared CRS caveat and QA fix proof |
 | [ ] | 35 - Attribute, Field, Join, and Table Workflow | `gis-modal-ui/p35-table-field-join` |  |  | Table selection and field/join preview |
@@ -318,12 +318,39 @@ npm run test:analytics
 
 ---
 
+## Prompt 32 Action Parity
+
+| Old action / callback | Prompt 32 location | Parity proof |
+| --- | --- | --- |
+| Visibility toggle | Primary row eye button | Still outside the menu for one-click visibility |
+| Opacity | Primary row slider | Still in each layer row |
+| Locate / focus (`onFocusLayer`) | `View / Focus` > `Locate` | Disabled reason shown when extent or callback is unavailable |
+| Reorder up/down (`onReorderLayers`) | `View / Focus` > `Move up`, `Move down` | Top/bottom rows show disabled reasons |
+| Inspect (`onInspectLayer`) | `Inspect` > `Inspect` | Legacy `map-layer-inspect-trigger` selector preserved |
+| Attribute table (`onOpenAttributeTable`) | `Data / Table` > `Table` | Legacy `map-layer-table-trigger` selector preserved; non-queryable rows show disabled reason |
+| Symbology (`onOpenSymbology`) | `Style` > `Style` | Active style state still visible and menu title names the layer |
+| Cartography review (`onOpenCartographyReviewScope`) | `Style` > `Review` | Recommendation count remains in the action label |
+| CRS declaration (`onDeclareLayerCrs`) | `CRS / QA` row editor remains inline | CRS form is preserved because it needs text input, not a one-click command |
+| Geometry repair (`onRepairGeometry`) | `CRS / QA` > `Repair geometry` | Missing invalid-geometry finding/source/callback each show disabled reasons |
+| Analysis rerun (`onReRunAnalysisLayer`) | `Analyze / Rerun` > `Re-run` | Missing analysis result/token/callback and active rerun state show disabled reasons |
+| Export (`onExportLayer`) | `Publish / Report` > `Export` | Publication gates remain disabled reasons |
+| Report handoff (`onAddLayerToReport`) | `Publish / Report` > `Report` | Publication gates remain disabled reasons |
+| Dashboard bind (`onBindLayerToDashboard`) | `Publish / Report` > `Dashboard` | Publication gates remain disabled reasons |
+| Education reference (`onOpenLayerEducationReference`) | `Publish / Report` > `Education` | Callback absence remains a disabled reason |
+| Urban handoff (`onSendLayerToUrban`) | `Bridge / IDE / Urban` > `Urban` | Queryability/CRS/callback gates remain disabled reasons |
+| IDE handoff (`onOpenLayerInIde`) | `Bridge / IDE / Urban` > `IDE` | Evidence/source/run prerequisites remain disabled reasons |
+| Remove (`onRemoveLayer`) | `Cache / Remove` > `Delete`, then `Confirm delete` / `Cancel` | Guarded remove confirmation preserved |
+| Cache clear (`onClearLayerCache`) | Layer panel footer cache action | Existing global cache confirmation remains outside per-layer menu |
+
+---
+
 ## Done Log
 
 Append newest entries at the top.
 
 | Date | Prompt | Branch | Start SHA | Commit | Push | Integration FF | Validation | Premium UI proof | Anti-amnesia proof | Residual risk |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 2026-06-02 | 32 - Layer Action Command Menu | `gis-modal-ui/p32-layer-action-menu` | `651b21e` | branch tip after closeout | pushed to `origin/gis-modal-ui/p32-layer-action-menu` | fast-forwarded and pushed `origin/gis-modal-ui/premium-redesign` | Passed: `npm run typecheck` (clean); `npx vitest run src/centerpanel/components/map/__tests__/map-layer-management.test.ts` (51/51); `npx vitest run src/centerpanel/components/map/__tests__/map-context-menu.test.ts` (6/6); `npm run lint:errors` (clean). | Layer rows and Sources rows now use a compact grouped `Actions` menu with the requested sections: Inspect, View / Focus, Style, Data / Table, CRS / QA, Analyze / Rerun, Publish / Report, Bridge / IDE / Urban, and Cache / Remove. Inline row overload was removed for Inspect/Table/Style while legacy action ids and test selectors remain on menu items. Disabled actions show visible reasons in the menu, destructive delete/confirm delete use danger styling, and native `details`/button semantics keep the menu keyboard navigable. The action parity table above lists every old action and new location. | Fresh GIS Modal Premium UI Redesign pack confirmed; archived production GIS ladder not resumed. Prompt 32 body, ledger pointer/status, plan Layers row-action guidance, `MapLayerManager.tsx`, `MapContentsTreePanel.tsx`, `contextMenuUtils.ts`, `map-layer-management.test.ts`, and `map-context-menu.test.ts` were read. Changed files stayed within Map Explorer layer action menu utilities, focused tests, and this ledger. All `MapLayerManager` callbacks, guarded remove confirmation, disabled handoff gates, and announcement/audit hooks were preserved. | Low. CRS declaration remains an inline row editor rather than a one-click menu item because it requires user-entered EPSG text; its parity is explicitly recorded above. No e2e/build gate was required for Prompt 32. |
 | 2026-06-02 | 31 - Contents Tree Premium Controls | `gis-modal-ui/p31-contents-tree` | `7759283` | branch tip after closeout | pushed to `origin/gis-modal-ui/p31-contents-tree` | fast-forwarded and pushed `origin/gis-modal-ui/premium-redesign` | Passed: `npm run typecheck` (clean); `npx vitest run src/centerpanel/components/map/__tests__/MapContentsModel.test.ts` (5/5); `npx vitest run src/centerpanel/components/map` final exact rerun (67/67 files, 659/659 tests) after transient import-timeout retries; `npm run lint:errors` (clean). | Contents now reads as a dense GIS layer tree: group headers show layer count, visible count, scale-limited rows, filter count, and out-of-scale count; each compact row keeps selection, visibility, wrapping layer name, active state, source kind, geometry and feature count, CRS status, QA status, publication readiness, scale state/range, and definition filter summary visible. Row actions have stable slots for reorder up/down and properties. The selected-layer inspector keeps selectable/editable toggles, scale range editor, definition filter editor, duplicate, source repair, and open properties controls, plus a readiness grid for Source, Geometry, CRS, QA, Publish, Scale, and Filter. | Fresh GIS Modal Premium UI Redesign pack confirmed; archived production GIS ladder not resumed. Prompt 31 body, ledger pointer/status, Layers activity plan context, `MapContentsTreePanel.tsx`, `contentsModel.ts`, `MapContentsTreePanel.module.css`, `mapTypes.ts`, `mapLayerMetadata.ts`, `MapContentsModel.test.ts`, e2e content selectors, and map component references were read. Changed files stayed within Map Explorer contents UI/model/export, focused contents tests, and this ledger. Grouping, reorder, scale range semantics, definition filter semantics, visibility, duplicate, repair, properties, and active-layer workflow were preserved. | Low. This prompt keeps row actions explicit rather than introducing a new dropdown menu; consolidated per-layer command-menu polish remains scheduled for Prompt 32. No e2e/build gate was required for Prompt 31. |
 | 2026-06-02 | 30 - Layer Stack Row Redesign | `gis-modal-ui/p30-layer-row-redesign` | `9904e14` | branch tip after closeout | pushed to `origin/gis-modal-ui/p30-layer-row-redesign` | fast-forwarded and pushed `origin/gis-modal-ui/premium-redesign` | Passed: `npm run typecheck` (clean); `npx vitest run src/centerpanel/components/map/__tests__/map-layer-management.test.ts` (51/51); `npx vitest run src/centerpanel/components/map/__tests__/mapVisualQA.test.ts` (42/42); `npm run lint:errors` (clean). | Layer Stack rows now use fixed visibility/content/action columns and dense readiness lanes for Source, Restore, Geom, Features, CRS, QA, and Publish. Long layer names own the first row and wrap with shared text tokens, while mode/caveat chips sit below the name so badges do not cover it. Data Layers, VoxCity, and Analysis Results group headers remain. Demo/synthetic, sample data, user-declared CRS caveats, vector-tile caveats, queryability, stale analysis, and active style state remain visible. Quick Table/Inspect/Style controls keep existing e2e selectors, and the action menu still exposes locate/focus, reorder up/down, review, repair geometry, export, Urban, IDE, report, dashboard, education, and remove actions. | Fresh GIS Modal Premium UI Redesign pack confirmed; archived production GIS ladder not resumed. Prompt 30 body, Premium Prompt Matrix row, plan sections 8.3, 8.4, 9.1, and 11.2, ledger status, `MapLayerManager.tsx`, `mapLayerMetadata.ts`, `mapTypes.ts`, `map-layer-management.test.ts`, and `mapVisualQA.test.ts` were read. Changed files stayed within Map Explorer layer-stack UI, focused layer/visual tests, and this ledger. No Urban Analytics, Synapse IDE, source-byte persistence, raw geometry movement, CRS gate bypass, or analytical readiness softening. | Low. This prompt redesigns Stack row readability only; deeper contents grouping/filter controls remain deferred to Prompt 31 and consolidated per-layer command-menu polish remains deferred to Prompt 32. No e2e/build gate was required for Prompt 30. |
 | 2026-06-02 | 29 - External Services and Source Catalog UX | `gis-modal-ui/p29-source-catalog-ux` | `aca723d` | branch tip after closeout | pushed to `origin/gis-modal-ui/p29-source-catalog-ux` | fast-forwarded and pushed `origin/gis-modal-ui/premium-redesign` | Passed: `npm run typecheck` (clean); `npx vitest run src/services/map/__tests__/MapConnectionRegistry.test.ts` (9/9); `npx vitest run src/services/map/__tests__/MapSourceRegistry.test.ts` (3/3); `npx vitest run src/centerpanel/components/map/__tests__/MapCatalogPanel.test.tsx` (7/7); `npm run lint:errors` (clean); additional GIS modal guard `npm run lint:no-tailwind-centerpanel` (clean). | Data > Connections and Catalog now read as a compact GIS source catalog: readiness counts include restored/live, recoverable, unavailable, offline, external refs, metadata-only, and demo/synthetic; catalog rows show distinct status chips and labels for external-reference, metadata-only, recoverable, unavailable, offline, and demo, with status detail, provider/source mode, endpoint references, CRS, caveats, licensing/attribution notes, and state-specific repair/reconnect/check-provider actions. The connection form keeps no-credentials-stored messaging, adds optional license and attribution fields, wraps endpoints safely, and threads secret-free attribution metadata into the existing descriptor. The External Services dialog status panel keeps provider caveats visible before adding WMS/WMTS/WFS/XYZ/Overpass/CityJSON layers. | Fresh GIS Modal Premium UI Redesign pack confirmed; archived production GIS ladder not resumed. Prompt 29 body, ledger pointer/status, plan Data activity/source catalog rows, `MapCatalogPanel.tsx`, `catalogModel.ts`, `MapServiceDialog.tsx`, `MapConnectionRegistry.ts`, `MapSourceRegistry.ts`, `ExternalServiceConnector.ts`, focused registry tests, and catalog tests were read. Changed files stayed within Map Explorer Data catalog/service UI, catalog model, modal connection wiring, focused tests, and this ledger. Connection health checks, source handle persistence, secret hygiene, and no raw provider bytes in packages were preserved. | Low. This prompt improves source catalog and provider UX only; actual external provider availability remains environment-dependent by design. No e2e/build gate was required for Prompt 29. |

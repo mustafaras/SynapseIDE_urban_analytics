@@ -14,6 +14,10 @@ import { normalizeLayerRegistryMetadata } from "./mapLayerMetadata";
 import { createOsmBuildingsLayerConfig } from "@/services/map/ExternalServiceConnector";
 import { executeOverpassBuildingsAsync } from "@/services/map/ExternalServiceQueue";
 import {
+  LAYER_ACTION_COMMAND_GROUPS,
+  type LayerActionCommandGroupId,
+} from "./contextMenuUtils";
+import {
   MAP_COLORS,
   MAP_DENSITY,
   MAP_DIMENSIONS,
@@ -420,14 +424,6 @@ const layerReadinessValue: React.CSSProperties = {
   lineHeight: MAP_TYPOGRAPHY.lineHeight.tight,
 };
 
-const layerInlineActions: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  flexWrap: "wrap",
-  gap: MAP_SPACING.xs,
-  minHeight: MAP_DENSITY.compact.rowHeight,
-};
-
 const layerInlineActionButton: React.CSSProperties = {
   padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
   border: MAP_STROKES.hairlineStrong,
@@ -437,12 +433,6 @@ const layerInlineActionButton: React.CSSProperties = {
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
   cursor: "pointer",
-};
-
-const layerInlineActionButtonDisabled: React.CSSProperties = {
-  color: MAP_COLORS.textMuted,
-  cursor: "not-allowed",
-  opacity: 0.72,
 };
 
 const layerBadgeBase: React.CSSProperties = {
@@ -499,10 +489,13 @@ const layerActionGrid: React.CSSProperties = {
   right: 0,
   display: "grid",
   gridTemplateColumns: "1fr",
-  gap: 3,
+  gap: 6,
   marginTop: 0,
   padding: 7,
-  minWidth: 190,
+  minWidth: 230,
+  maxWidth: 260,
+  maxHeight: "min(34rem, calc(100vh - 7rem))",
+  overflowY: "auto",
   border: MAP_STROKES.hairlineStrong,
   borderRadius: MAP_RADIUS.sm,
   background: MAP_COLORS.bgPanel,
@@ -510,10 +503,25 @@ const layerActionGrid: React.CSSProperties = {
   zIndex: MAP_Z_INDEX.dropdown,
 };
 
+const layerActionGroup: React.CSSProperties = {
+  display: "grid",
+  gap: 3,
+  minWidth: 0,
+};
+
+const layerActionGroupLabel: React.CSSProperties = {
+  color: MAP_COLORS.textMuted,
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+  fontSize: 9,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+  letterSpacing: MAP_TYPOGRAPHY.letterSpacing.caps,
+  lineHeight: MAP_TYPOGRAPHY.lineHeight.tight,
+  textTransform: "uppercase",
+};
+
 const layerActionButton: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
+  display: "grid",
+  gap: 2,
   width: "100%",
   background: MAP_COLORS.transparent,
   border: MAP_STROKES.hairlineSubtle,
@@ -526,15 +534,28 @@ const layerActionButton: React.CSSProperties = {
   borderRadius: MAP_RADIUS.sm,
   transition: MAP_TRANSITIONS.fast,
   maxWidth: "100%",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
+  minWidth: 0,
+  whiteSpace: "normal",
   textAlign: "left" as const,
+};
+
+const layerActionButtonLabel: React.CSSProperties = {
+  minWidth: 0,
+  overflowWrap: "anywhere",
+};
+
+const layerActionDisabledReason: React.CSSProperties = {
+  color: MAP_COLORS.textMuted,
+  fontSize: 9,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.medium,
+  lineHeight: 1.25,
+  overflowWrap: "anywhere",
 };
 
 const layerActionButtonDanger: React.CSSProperties = {
   color: MAP_COLORS.error,
   background: "rgba(248, 113, 113, 0.08)",
+  border: `1px solid ${MAP_COLORS.error}`,
 };
 
 const layerActionButtonWarning: React.CSSProperties = {
@@ -1098,11 +1119,14 @@ interface LayerReadinessCellModel {
 }
 
 type LayerActionId =
+  | "inspect"
+  | "table"
   | "locate"
   | "move-up"
   | "move-down"
   | "style"
   | "review"
+  | "rerun"
   | "repair-geometry"
   | "export"
   | "urban"
@@ -1118,11 +1142,13 @@ type LayerActionTone = "default" | "warning" | "danger";
 
 interface LayerEvidenceActionModel {
   id: LayerActionId;
+  groupId: LayerActionCommandGroupId;
   label: string;
   title: string;
   tone?: LayerActionTone;
   disabledReason?: string;
   onSelect?: () => void;
+  testId?: string;
 }
 
 interface LayerEvidenceActionCallbacks {
@@ -1217,6 +1243,12 @@ function buildPublicationGateReason(layer: OverlayLayerConfig): string | null {
   return null;
 }
 
+function buildTableGateReason(layer: OverlayLayerConfig): string | null {
+  return normalizeLayerRegistryMetadata(layer).queryable
+    ? null
+    : "Missing prerequisite: layer is not queryable vector data.";
+}
+
 function formatFeatureCountLabel(featureCount: number | null): string {
   return featureCount == null ? "count unknown" : `${featureCount.toLocaleString()} features`;
 }
@@ -1308,20 +1340,28 @@ function buildLayerReadinessCells(layer: OverlayLayerConfig): LayerReadinessCell
 }
 
 function createLayerAction(
+  groupId: LayerActionCommandGroupId,
   layer: OverlayLayerConfig,
   id: LayerActionId,
   label: string,
   callback: ((id: string) => void) | undefined,
   disabledReason: string | null,
   fallbackDisabledReason: string,
+  options: {
+    tone?: LayerActionTone;
+    testId?: string;
+  } = {},
 ): LayerEvidenceActionModel {
   const reason = disabledReason ?? (callback ? null : fallbackDisabledReason);
   return {
     id,
+    groupId,
     label,
     title: reason ?? `${label} ${layer.name}`,
+    ...(options.tone ? { tone: options.tone } : {}),
     ...(reason ? { disabledReason: reason } : {}),
     ...(!reason && callback ? { onSelect: () => callback(layer.id) } : {}),
+    ...(options.testId ? { testId: options.testId } : {}),
   };
 }
 
@@ -1339,6 +1379,7 @@ function buildLayerEvidenceActions(
 
   return [
     createLayerAction(
+      "publish-report",
       layer,
       "export",
       "Export",
@@ -1347,6 +1388,7 @@ function buildLayerEvidenceActions(
       "Publication export is not connected from the layer rail yet.",
     ),
     createLayerAction(
+      "bridge",
       layer,
       "urban",
       "Urban",
@@ -1355,6 +1397,7 @@ function buildLayerEvidenceActions(
       "Urban Analytics handoff is not connected from the layer rail yet.",
     ),
     createLayerAction(
+      "bridge",
       layer,
       "ide",
       "IDE",
@@ -1363,6 +1406,7 @@ function buildLayerEvidenceActions(
       "IDE handoff is not connected from the layer rail yet.",
     ),
     createLayerAction(
+      "publish-report",
       layer,
       "report",
       "Report",
@@ -1371,6 +1415,7 @@ function buildLayerEvidenceActions(
       "Report handoff is not connected from the layer rail yet.",
     ),
     createLayerAction(
+      "publish-report",
       layer,
       "dashboard",
       "Dashboard",
@@ -1379,6 +1424,7 @@ function buildLayerEvidenceActions(
       "Dashboard binding is not connected from the layer rail yet.",
     ),
     createLayerAction(
+      "publish-report",
       layer,
       "education",
       "Education",
@@ -1389,22 +1435,87 @@ function buildLayerEvidenceActions(
   ];
 }
 
+function buildLayerCoreCommandActions(
+  layer: OverlayLayerConfig,
+  callbacks: {
+    onInspectLayer?: (id: string) => void;
+    onOpenAttributeTable?: (id: string) => void;
+  },
+): LayerEvidenceActionModel[] {
+  return [
+    createLayerAction(
+      "inspect",
+      layer,
+      "inspect",
+      "Inspect",
+      callbacks.onInspectLayer,
+      null,
+      "Layer inspector is not connected from the layer rail yet.",
+      { testId: "map-layer-inspect-trigger" },
+    ),
+    createLayerAction(
+      "data-table",
+      layer,
+      "table",
+      "Table",
+      callbacks.onOpenAttributeTable,
+      buildTableGateReason(layer),
+      "Attribute table is not connected from the layer rail yet.",
+      { testId: "map-layer-table-trigger" },
+    ),
+  ];
+}
+
+function buildLayerRerunAction(
+  layer: OverlayLayerConfig,
+  callback: ((id: string, rerunToken?: string | null) => void) | undefined,
+  activeRerunToken: string | null,
+): LayerEvidenceActionModel {
+  const analysisResult = layer.metadata?.analysisResult;
+  const isRerunning = Boolean(
+    analysisResult?.rerunToken && activeRerunToken === analysisResult.rerunToken,
+  );
+  const disabledReason = !analysisResult
+    ? "Layer is not an analysis result."
+    : !callback
+      ? "Analysis rerun is not connected from the layer rail yet."
+      : !analysisResult.rerunToken
+        ? "Missing prerequisite: this analysis result has no rerun token."
+        : isRerunning
+          ? "Analysis is already re-running."
+          : null;
+  return {
+    id: "rerun",
+    groupId: "analyze-rerun",
+    label: isRerunning ? "Re-running" : "Re-run",
+    title: disabledReason ?? "Re-run this analysis with the recorded method and source layer.",
+    tone: isRerunning ? "warning" : "default",
+    ...(disabledReason ? { disabledReason } : {}),
+    ...(!disabledReason && callback ? { onSelect: () => callback(layer.id, analysisResult?.rerunToken) } : {}),
+  };
+}
+
 function buildRepairGeometryAction(
   layer: OverlayLayerConfig,
   callback: ((id: string) => void) | undefined,
-): LayerEvidenceActionModel | null {
-  if (!layer.metadata?.scientificQA?.badges.includes("invalid_geometry")) return null;
+): LayerEvidenceActionModel {
+  const hasInvalidGeometry = Boolean(layer.metadata?.scientificQA?.badges.includes("invalid_geometry"));
   const hasInlineGeometry = typeof layer.sourceData === "object" && layer.sourceData !== null;
+  const disabledReason = !hasInvalidGeometry
+    ? "No invalid geometry QA finding is present."
+    : !hasInlineGeometry
+      ? "Repair geometry needs an inline GeoJSON source."
+      : !callback
+        ? "Topology repair is not connected from this layer surface."
+        : null;
   return {
     id: "repair-geometry",
+    groupId: "crs-qa",
     label: "Repair geometry",
-    title: hasInlineGeometry
-      ? "Preview and apply GEOS topology repair for this layer."
-      : "Repair geometry needs an inline GeoJSON source.",
+    title: disabledReason ?? "Preview and apply GEOS topology repair for this layer.",
     tone: "warning",
-    ...(!hasInlineGeometry ? { disabledReason: "Repair geometry needs an inline GeoJSON source." } : {}),
-    ...(hasInlineGeometry && callback ? { onSelect: () => callback(layer.id) } : {}),
-    ...(hasInlineGeometry && !callback ? { disabledReason: "Topology repair is not connected from this layer surface." } : {}),
+    ...(disabledReason ? { disabledReason } : {}),
+    ...(!disabledReason && callback ? { onSelect: () => callback(layer.id) } : {}),
   };
 }
 
@@ -1454,84 +1565,72 @@ function layerActionToneStyle(tone: LayerActionTone | undefined): React.CSSPrope
   return {};
 }
 
-const LayerActionMenu: React.FC<LayerActionMenuProps> = ({ layerName, actions, forceOpen = false, onAnnounce }) => (
-  <details style={layerActionMenu} {...(forceOpen ? { open: true } : {})}>
-    <summary style={layerActionSummary} aria-label={`Layer actions for ${layerName}`} title="Layer evidence actions">
-      Actions
-    </summary>
-    <div style={layerActionGrid} role="menu" aria-label={`Evidence actions for ${layerName}`}>
-      {actions.map((action) => {
-        const disabled = Boolean(action.disabledReason || !action.onSelect);
-        const title = action.disabledReason ?? action.title;
-        return (
-          <button
-            key={action.id}
-            type="button"
-            style={{
-              ...layerActionButton,
-              ...layerActionToneStyle(action.tone),
-              ...(disabled ? layerActionButtonDisabled : {}),
-            }}
-            disabled={disabled}
-            title={title}
-            role="menuitem"
-            aria-disabled={disabled || undefined}
-            aria-label={disabled ? `${action.label}: ${title}` : `${action.label} ${layerName}`}
-            data-layer-action={action.id}
-            {...(action.disabledReason ? { "data-disabled-reason": action.disabledReason } : {})}
-            onClick={(event) => {
-              event.stopPropagation();
-              if (disabled || !action.onSelect) {
-                if (action.disabledReason) {
-                  onAnnounce?.(`${action.label} disabled for ${layerName}: ${action.disabledReason}`);
-                }
-                return;
-              }
-              action.onSelect();
-              onAnnounce?.(`${action.label} requested for ${layerName}`);
-            }}
-          >
-            {action.label}
-          </button>
-        );
-      })}
-    </div>
-  </details>
-);
+const LayerActionMenu: React.FC<LayerActionMenuProps> = ({ layerName, actions, forceOpen = false, onAnnounce }) => {
+  const groupedActions = LAYER_ACTION_COMMAND_GROUPS
+    .map((group) => ({
+      group,
+      actions: actions.filter((action) => action.groupId === group.id),
+    }))
+    .filter((group) => group.actions.length > 0);
 
-const SourceLayerActionButton: React.FC<{
-  layerName: string;
-  action: LayerEvidenceActionModel;
-  onAnnounce?: (msg: string) => void;
-}> = ({ layerName, action, onAnnounce }) => {
-  const disabled = Boolean(action.disabledReason || !action.onSelect);
-  const title = action.disabledReason ?? action.title;
   return (
-    <button
-      type="button"
-      style={{
-        ...layerInlineActionButton,
-        ...layerActionToneStyle(action.tone),
-        ...(disabled ? layerInlineActionButtonDisabled : {}),
-      }}
-      disabled={disabled}
-      title={title}
-      aria-label={disabled ? `${action.label}: ${title}` : `${action.label} ${layerName}`}
-      data-layer-action={action.id}
-      {...(action.disabledReason ? { "data-disabled-reason": action.disabledReason } : {})}
-      onClick={() => {
-        if (disabled || !action.onSelect) {
-          if (action.disabledReason) {
-            onAnnounce?.(`${action.label} disabled for ${layerName}: ${action.disabledReason}`);
-          }
-          return;
-        }
-        action.onSelect();
-        onAnnounce?.(`${action.label} requested for ${layerName}`);
-      }}
-    >
-      {action.label}
-    </button>
+    <details style={layerActionMenu} {...(forceOpen ? { open: true } : {})}>
+      <summary style={layerActionSummary} aria-label={`Layer actions for ${layerName}`} title="Layer command menu">
+        Actions
+      </summary>
+      <div style={layerActionGrid} role="menu" aria-label={`Layer command menu for ${layerName}`}>
+        {groupedActions.map(({ group, actions: groupActions }) => (
+          <div
+            key={group.id}
+            style={layerActionGroup}
+            role="group"
+            aria-label={group.label}
+            data-layer-action-group={group.id}
+          >
+            <div style={layerActionGroupLabel}>{group.label}</div>
+            {groupActions.map((action) => {
+              const disabled = Boolean(action.disabledReason || !action.onSelect);
+              const title = action.disabledReason ?? action.title;
+              return (
+                <button
+                  key={action.id}
+                  type="button"
+                  style={{
+                    ...layerActionButton,
+                    ...layerActionToneStyle(action.tone),
+                    ...(disabled ? layerActionButtonDisabled : {}),
+                  }}
+                  disabled={disabled}
+                  title={title}
+                  role="menuitem"
+                  aria-disabled={disabled || undefined}
+                  aria-label={disabled ? `${action.label}: ${title}` : `${action.label} ${layerName}`}
+                  data-layer-action={action.id}
+                  {...(action.testId ? { "data-testid": action.testId } : {})}
+                  {...(action.disabledReason ? { "data-disabled-reason": action.disabledReason } : {})}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    if (disabled || !action.onSelect) {
+                      if (action.disabledReason) {
+                        onAnnounce?.(`${action.label} disabled for ${layerName}: ${action.disabledReason}`);
+                      }
+                      return;
+                    }
+                    action.onSelect();
+                    onAnnounce?.(`${action.label} requested for ${layerName}`);
+                  }}
+                >
+                  <span style={layerActionButtonLabel}>{action.label}</span>
+                  {disabled ? (
+                    <span style={layerActionDisabledReason}>{title}</span>
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    </details>
   );
 };
 
@@ -1585,8 +1684,11 @@ export const MapLayerSourcesPanel: React.FC<MapLayerSourcesPanelProps> = ({
           const restoreStatus = sourceHandle?.restoreStatus ?? resolveLayerSourceRestoreStatus(layer);
           const storageMode = sourceHandle?.storageMode ?? layer.metadata?.sourceStorageMode ?? null;
           const geometryFeatureSummary = formatLayerGeometryFeatureSummary(layer);
-          const queryable = registry.queryable;
           const layerBounds = getLayerBounds(layer);
+          const coreCommandActions = buildLayerCoreCommandActions(layer, {
+            ...(onInspectLayer ? { onInspectLayer } : {}),
+            ...(onOpenAttributeTable ? { onOpenAttributeTable } : {}),
+          });
           const evidenceActions = buildLayerEvidenceActions(layer, {
             ...(onSendLayerToUrban ? { onSendLayerToUrban } : {}),
             ...(onOpenLayerInIde ? { onOpenLayerInIde } : {}),
@@ -1596,16 +1698,20 @@ export const MapLayerSourcesPanel: React.FC<MapLayerSourcesPanelProps> = ({
           }).filter((action) => action.id !== "export");
           const repairGeometryAction = buildRepairGeometryAction(layer, onRepairGeometry);
           const utilityActions: LayerEvidenceActionModel[] = [
-            ...(onFocusLayer && layerBounds
-              ? [{
-                  id: "locate" as const,
-                  label: "Locate",
-                  title: `Zoom to extent ${formatBounds(layerBounds)}`,
-                  onSelect: () => onFocusLayer(layer.id),
-                }]
-              : []),
-            ...(repairGeometryAction ? [repairGeometryAction] : []),
+            {
+              id: "locate" as const,
+              groupId: "view-focus",
+              label: "Locate",
+              title: layerBounds ? `Zoom to extent ${formatBounds(layerBounds)}` : "Layer extent metadata is unavailable.",
+              ...(!layerBounds
+                ? { disabledReason: "Layer extent metadata is unavailable." }
+                : onFocusLayer
+                  ? { onSelect: () => onFocusLayer(layer.id) }
+                  : { disabledReason: "Focus callback is not connected from the layer sources panel yet." }),
+            },
+            repairGeometryAction,
           ];
+          const sourceActions = [...coreCommandActions, ...utilityActions, ...evidenceActions];
           return (
             <article key={layer.id} style={layerSourceRow} data-testid={`map-layer-source-row-${layer.id}`}>
               <div style={layerSourceHead}>
@@ -1666,30 +1772,11 @@ export const MapLayerSourcesPanel: React.FC<MapLayerSourcesPanelProps> = ({
                 <span title={registry.provenance.label}>Provenance: {registry.provenance.label}</span>
               </div>
               <div style={layerSourceActionRow}>
-                {onInspectLayer ? (
-                  <button type="button" style={layerInlineActionButton} onClick={() => onInspectLayer(layer.id)}>
-                    Inspect
-                  </button>
-                ) : null}
-                {onOpenAttributeTable ? (
-                  <button
-                    type="button"
-                    style={{ ...layerInlineActionButton, ...(queryable ? {} : layerInlineActionButtonDisabled) }}
-                    disabled={!queryable}
-                    title={queryable ? `Open attribute table for ${layer.name}` : "Missing prerequisite: layer is not queryable vector data."}
-                    onClick={() => onOpenAttributeTable(layer.id)}
-                  >
-                    Table
-                  </button>
-                ) : null}
-                {[...utilityActions, ...evidenceActions].map((action) => (
-                  <SourceLayerActionButton
-                    key={action.id}
-                    layerName={layer.name}
-                    action={action}
-                    {...(onAnnounce ? { onAnnounce } : {})}
-                  />
-                ))}
+                <LayerActionMenu
+                  layerName={layer.name}
+                  actions={sourceActions}
+                  {...(onAnnounce ? { onAnnounce } : {})}
+                />
               </div>
               {onDeclareLayerCrs && (registry.crsSummary.status !== "known" || registry.crsSummary.source === "user-declared") ? (
                 <DeclareCrsControl
@@ -2313,6 +2400,8 @@ interface LayerRowProps {
   onOpenLayerEducationReference?: (id: string) => void;
   onFocusLayer?: (id: string) => void;
   onRepairGeometry?: (id: string) => void;
+  onReRunAnalysisLayer?: (id: string, rerunToken?: string | null) => void;
+  activeRerunToken?: string | null;
   onMoveLayer: (id: string, direction: "up" | "down") => void;
   canMoveUp: boolean;
   canMoveDown: boolean;
@@ -2348,6 +2437,8 @@ const LayerRow: React.FC<LayerRowProps> = ({
   onBindLayerToDashboard,
   onFocusLayer,
   onRepairGeometry,
+  onReRunAnalysisLayer,
+  activeRerunToken = null,
   onMoveLayer,
   canMoveUp,
   canMoveDown,
@@ -2377,6 +2468,10 @@ const LayerRow: React.FC<LayerRowProps> = ({
   const readinessCells = buildLayerReadinessCells(layer);
   const legendPreviewItems = buildMapCompositionLegendItems([{ ...layer, visible: true }]).slice(0, 4);
   const vectorTiles = layer.metadata?.vectorTiles;
+  const coreCommandActions = buildLayerCoreCommandActions(layer, {
+    ...(onInspectLayer ? { onInspectLayer } : {}),
+    ...(onOpenAttributeTable ? { onOpenAttributeTable } : {}),
+  });
   const evidenceActions = buildLayerEvidenceActions(layer, {
     ...(onExportLayer ? { onExportLayer } : {}),
     ...(onSendLayerToUrban ? { onSendLayerToUrban } : {}),
@@ -2387,16 +2482,20 @@ const LayerRow: React.FC<LayerRowProps> = ({
   });
   const repairGeometryAction = buildRepairGeometryAction(layer, onRepairGeometry);
   const utilityActions: LayerEvidenceActionModel[] = [
-    ...(onFocusLayer && layerBounds
-      ? [{
-          id: "locate" as const,
-          label: "Locate",
-          title: `Zoom to extent ${formatBounds(layerBounds)}`,
-          onSelect: () => onFocusLayer(layer.id),
-        }]
-      : []),
+    {
+      id: "locate" as const,
+      groupId: "view-focus",
+      label: "Locate",
+      title: layerBounds ? `Zoom to extent ${formatBounds(layerBounds)}` : "Layer extent metadata is unavailable.",
+      ...(!layerBounds
+        ? { disabledReason: "Layer extent metadata is unavailable." }
+        : onFocusLayer
+          ? { onSelect: () => onFocusLayer(layer.id) }
+          : { disabledReason: "Focus callback is not connected from the layer rail yet." }),
+    },
     {
       id: "move-up" as const,
+      groupId: "view-focus",
       label: "Move up",
       title: "Move this layer higher in the drawing order.",
       ...(canMoveUp
@@ -2405,6 +2504,7 @@ const LayerRow: React.FC<LayerRowProps> = ({
     },
     {
       id: "move-down" as const,
+      groupId: "view-focus",
       label: "Move down",
       title: "Move this layer lower in the drawing order.",
       ...(canMoveDown
@@ -2414,27 +2514,43 @@ const LayerRow: React.FC<LayerRowProps> = ({
     ...(onOpenSymbology
       ? [{
           id: "style" as const,
+          groupId: "style" as const,
           label: isSymbologyActive ? "Style active" : "Style",
-          title: "Open symbology panel",
+          title: `Open symbology panel for ${layer.name}`,
           tone: isSymbologyActive ? "warning" as const : "default" as const,
           onSelect: () => onOpenSymbology(layer.id),
         }]
-      : []),
+      : [{
+          id: "style" as const,
+          groupId: "style" as const,
+          label: "Style",
+          title: "Symbology is unavailable for this layer from the layer rail.",
+          disabledReason: "Symbology is unavailable for this layer from the layer rail.",
+        }]),
     ...(onReviewCartography
       ? [{
           id: "review" as const,
+          groupId: "style" as const,
           label: cartographyRecommendationCount > 0 ? `Review ${cartographyRecommendationCount}` : "Review",
-          title: "Review symbology",
+          title: `Review symbology for ${layer.name}`,
           tone: cartographyRecommendationCount > 0 ? "warning" as const : "default" as const,
           onSelect: () => onReviewCartography(layer.id),
         }]
-      : []),
-    ...(repairGeometryAction ? [repairGeometryAction] : []),
+      : [{
+          id: "review" as const,
+          groupId: "style" as const,
+          label: "Review",
+          title: "Cartography review is not connected from the layer rail yet.",
+          disabledReason: "Cartography review is not connected from the layer rail yet.",
+        }]),
+    repairGeometryAction,
+    buildLayerRerunAction(layer, onReRunAnalysisLayer, activeRerunToken),
   ];
   const removalActions: LayerEvidenceActionModel[] = isRemovePending
     ? [
         {
           id: "confirm-remove",
+          groupId: "cache-remove",
           label: "Confirm delete",
           title: "Confirm layer removal",
           tone: "danger",
@@ -2442,6 +2558,7 @@ const LayerRow: React.FC<LayerRowProps> = ({
         },
         {
           id: "cancel-remove",
+          groupId: "cache-remove",
           label: "Cancel",
           title: "Cancel layer removal",
           onSelect: () => onCancelRemove(layer.id),
@@ -2449,12 +2566,13 @@ const LayerRow: React.FC<LayerRowProps> = ({
       ]
     : [{
         id: "remove",
+        groupId: "cache-remove",
         label: "Delete",
         title: "Remove layer",
         tone: "danger",
         onSelect: () => onRequestRemove(layer.id),
       }];
-  const rowActions = [...utilityActions, ...evidenceActions, ...removalActions];
+  const rowActions = [...coreCommandActions, ...utilityActions, ...evidenceActions, ...removalActions];
   const importFormat = formatImportSourceLabel(layer.metadata?.importFormat);
   const restoreStatus = resolveLayerSourceRestoreStatus(layer);
   const outputMode = analysisResult?.outputMode;
@@ -2600,49 +2718,6 @@ const LayerRow: React.FC<LayerRowProps> = ({
                 </span>
               </div>
             ))}
-          </div>
-        ) : null}
-
-        {onInspectLayer || onOpenAttributeTable || onOpenSymbology ? (
-          <div style={layerInlineActions}>
-            {onOpenAttributeTable ? (
-              <button
-                type="button"
-                data-testid="map-layer-table-trigger"
-                onClick={() => onOpenAttributeTable(layer.id)}
-                aria-label={`Open attribute table for ${layer.name}`}
-                disabled={!queryable}
-                title={queryable ? `Open attribute table for ${layer.name}` : "Missing prerequisite: layer is not queryable vector data."}
-                style={{
-                  ...layerInlineActionButton,
-                  ...(queryable ? {} : layerInlineActionButtonDisabled),
-                }}
-              >
-                Table
-              </button>
-            ) : null}
-            {onInspectLayer ? (
-              <button
-                type="button"
-                data-testid="map-layer-inspect-trigger"
-                onClick={() => onInspectLayer(layer.id)}
-                aria-label={`Inspect ${layer.name}`}
-                style={layerInlineActionButton}
-              >
-                Inspect
-              </button>
-            ) : null}
-            {onOpenSymbology ? (
-              <button
-                type="button"
-                onClick={() => onOpenSymbology(layer.id)}
-                aria-label={`Open symbology panel for ${layer.name}`}
-                title={`Open symbology panel for ${layer.name}`}
-                style={layerInlineActionButton}
-              >
-                Style
-              </button>
-            ) : null}
           </div>
         ) : null}
 
@@ -3274,6 +3349,8 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
                         {...(onOpenLayerEducationReference ? { onOpenLayerEducationReference } : {})}
                         {...(onFocusLayer ? { onFocusLayer } : {})}
                         {...(onRepairGeometry ? { onRepairGeometry } : {})}
+                        activeRerunToken={activeRerunToken}
+                        {...(onReRunAnalysisLayer ? { onReRunAnalysisLayer } : {})}
                         {...(onAnnounce ? { onAnnounce } : {})}
                         isDragging={dragId === layer.id}
                         onDragStart={handleDragStart}

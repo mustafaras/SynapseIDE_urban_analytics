@@ -2,6 +2,41 @@ import type { DrawnFeature, MapPin, OverlayLayerConfig } from "./mapTypes";
 
 export type LngLat = [number, number];
 
+export type LayerActionCommandGroupId =
+  | "inspect"
+  | "view-focus"
+  | "style"
+  | "data-table"
+  | "crs-qa"
+  | "analyze-rerun"
+  | "publish-report"
+  | "bridge"
+  | "cache-remove";
+
+export interface LayerActionCommandGroup {
+  id: LayerActionCommandGroupId;
+  label: string;
+}
+
+export const LAYER_ACTION_COMMAND_GROUPS: readonly LayerActionCommandGroup[] = [
+  { id: "inspect", label: "Inspect" },
+  { id: "view-focus", label: "View / Focus" },
+  { id: "style", label: "Style" },
+  { id: "data-table", label: "Data / Table" },
+  { id: "crs-qa", label: "CRS / QA" },
+  { id: "analyze-rerun", label: "Analyze / Rerun" },
+  { id: "publish-report", label: "Publish / Report" },
+  { id: "bridge", label: "Bridge / IDE / Urban" },
+  { id: "cache-remove", label: "Cache / Remove" },
+] as const;
+
+const LAYER_ACTION_COMMAND_GROUP_LABELS: Readonly<Record<LayerActionCommandGroupId, string>> =
+  Object.fromEntries(LAYER_ACTION_COMMAND_GROUPS.map((group) => [group.id, group.label])) as Record<LayerActionCommandGroupId, string>;
+
+export function getLayerActionCommandGroupLabel(groupId: LayerActionCommandGroupId): string {
+  return LAYER_ACTION_COMMAND_GROUP_LABELS[groupId];
+}
+
 export interface ContextMenuPositionClampInput {
   x: number;
   y: number;

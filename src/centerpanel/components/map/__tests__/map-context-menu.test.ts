@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 import type { DrawnFeature, OverlayLayerConfig } from "../mapTypes";
 import { MapContextMenu } from "../../MapContextMenu";
 import {
+  LAYER_ACTION_COMMAND_GROUPS,
   clampContextMenuPosition,
   collectVisibleBounds,
   formatCoordinatePair,
+  getLayerActionCommandGroupLabel,
 } from "../contextMenuUtils";
 
 describe("MapContextMenu helpers", () => {
@@ -28,6 +30,21 @@ describe("MapContextMenu helpers", () => {
 
   it("formats clipboard coordinates as lat, lng with 6 decimals", () => {
     expect(formatCoordinatePair([2.3522, 48.8566])).toBe("48.856600, 2.352200");
+  });
+
+  it("defines the premium layer command menu groups in stable order", () => {
+    expect(LAYER_ACTION_COMMAND_GROUPS.map((group) => group.label)).toEqual([
+      "Inspect",
+      "View / Focus",
+      "Style",
+      "Data / Table",
+      "CRS / QA",
+      "Analyze / Rerun",
+      "Publish / Report",
+      "Bridge / IDE / Urban",
+      "Cache / Remove",
+    ]);
+    expect(getLayerActionCommandGroupLabel("cache-remove")).toBe("Cache / Remove");
   });
 
   it("collects bounds from pins, drawings, and visible overlay layers", () => {

@@ -994,6 +994,23 @@ describe("MapLayerManager component", () => {
             caveats: ["Invalid geometry."],
             signature: "action-layer",
           },
+          analysisResult: {
+            engine: "OD accessibility",
+            runTimestamp: "2026-05-31T08:10:00.000Z",
+            parameterSummary: "origin=blocks; destination=transit",
+            inputParameters: { origin: "blocks", destination: "transit" },
+            statisticalSummary: { meanAccess: 0.72 },
+            stale: false,
+            rerunToken: "rerun-action-layer",
+            visualization: {
+              kind: "choropleth",
+              title: "Accessibility",
+              valueField: "access",
+              classificationMethod: "quantile",
+              classCount: 5,
+              colorRamp: "Viridis",
+            },
+          },
         },
       },
       {
@@ -1025,17 +1042,21 @@ describe("MapLayerManager component", () => {
         onInspectLayer: () => undefined,
         onOpenAttributeTable: () => undefined,
         onRepairGeometry: () => undefined,
+        onReRunAnalysisLayer: () => undefined,
         activeSymbologyLayerId: "action-layer",
         cartographyReviewState: reviewState,
       }),
     );
 
     for (const actionId of [
+      "inspect",
+      "table",
       "locate",
       "move-up",
       "move-down",
       "style",
       "review",
+      "rerun",
       "repair-geometry",
       "export",
       "urban",
@@ -1046,6 +1067,32 @@ describe("MapLayerManager component", () => {
       "remove",
     ]) {
       expect(html).toContain(`data-layer-action="${actionId}"`);
+    }
+    for (const groupId of [
+      "inspect",
+      "view-focus",
+      "style",
+      "data-table",
+      "crs-qa",
+      "analyze-rerun",
+      "publish-report",
+      "bridge",
+      "cache-remove",
+    ]) {
+      expect(html).toContain(`data-layer-action-group="${groupId}"`);
+    }
+    for (const groupLabel of [
+      "Inspect",
+      "View / Focus",
+      "Style",
+      "Data / Table",
+      "CRS / QA",
+      "Analyze / Rerun",
+      "Publish / Report",
+      "Bridge / IDE / Urban",
+      "Cache / Remove",
+    ]) {
+      expect(html).toContain(groupLabel);
     }
     expect(html).toContain('data-testid="map-layer-table-trigger"');
     expect(html).toContain('data-testid="map-layer-inspect-trigger"');
