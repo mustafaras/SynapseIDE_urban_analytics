@@ -948,7 +948,9 @@ describe("Map Explorer components render without errors", () => {
 
     expect(html).toContain("Active map context summary");
     expect(html).toContain("Study area");
-    expect(html).toContain("Workflow Surface");
+    expect(html).toContain("Project");
+    expect(html).toContain("Save State");
+    expect(html).toContain("Review Readiness");
     expect(html).toContain("Viewport sync active");
   });
 

@@ -840,6 +840,16 @@ export const MAP_SURFACE_INVENTORY = [
     targetSurface: "Layers activity > Stack",
   },
   {
+    id: "quick-action.review-problems",
+    sourceId: "review-problems",
+    label: "Review problems quick action",
+    kind: "quick-action",
+    targetHome: "qa",
+    targetSlot: "bottom-panel",
+    currentSurface: "MapWorkspaceCockpit",
+    targetSurface: "QA activity > Problems",
+  },
+  {
     id: "quick-action.open-pins",
     sourceId: "open-pins",
     label: "Pins and notes quick action",

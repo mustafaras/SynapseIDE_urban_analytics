@@ -1,10 +1,11 @@
-import type { OverlayLayerConfig } from "./mapTypes";
+import type { LayerQaStatus, OverlayLayerConfig } from "./mapTypes";
 
 export type MapWorkspaceView = "navigator" | "explore" | "analyze";
 
 export type MapQuickActionId =
   | "import-data"
   | "review-layers"
+  | "review-problems"
   | "open-pins"
   | "draw-aoi"
   | "measure"
@@ -25,7 +26,15 @@ export interface MapQuickActionMeta {
   targetView: MapWorkspaceView;
 }
 
-export type MapWorkspaceReadinessTone = "foundational" | "operational" | "delivery";
+export type MapWorkspaceReadinessTone = "foundational" | "operational" | "delivery" | "blocked";
+export type MapWorkspaceReadinessState =
+  | "no-data"
+  | "data-loaded"
+  | "invisible-layers"
+  | "stale-analysis"
+  | "missing-aoi"
+  | "qa-blockers"
+  | "publish-ready";
 export type MapWorkspaceStepStatus = "complete" | "current" | "upcoming";
 
 export interface MapWorkspaceReadinessStep {
@@ -36,12 +45,16 @@ export interface MapWorkspaceReadinessStep {
 }
 
 export interface MapWorkspaceReadiness {
+  state: MapWorkspaceReadinessState;
   score: number;
   label: string;
   tone: MapWorkspaceReadinessTone;
   focusLabel: string;
   narrative: string;
   rationale: string;
+  nextActionId: MapQuickActionId;
+  nextActionLabel: string;
+  nextActionDescription: string;
   sequence: readonly MapWorkspaceReadinessStep[];
 }
 
@@ -75,6 +88,12 @@ export const MAP_QUICK_ACTIONS: readonly MapQuickActionMeta[] = [
     label: "Review Layers",
     description: "Open the layer stack, check visibility, and inspect stale analysis outputs.",
     targetView: "explore",
+  },
+  {
+    id: "review-problems",
+    label: "Review Problems",
+    description: "Open QA Problems to inspect blockers, CRS caveats, source warnings, and publication readiness issues.",
+    targetView: "analyze",
   },
   {
     id: "open-pins",
@@ -119,23 +138,114 @@ export function getMapWorkspaceHint(view: MapWorkspaceView): string {
   return match?.description ?? "Use the map workspace to inspect, analyze, and publish spatial layers.";
 }
 
+export function hasMapLayerSourceEvidence(layer: OverlayLayerConfig): boolean {
+  const metadata = layer.metadata;
+  return Boolean(layer.sourceData)
+    || Boolean(layer.sourceKind)
+    || Boolean(layer.provenance)
+    || typeof metadata?.featureCount === "number"
+    || Boolean(metadata?.sourceId)
+    || Boolean(metadata?.sourceStorageMode)
+    || Boolean(metadata?.sourceRestoreStatus)
+    || Boolean(metadata?.importSource)
+    || Boolean(metadata?.analysisResult)
+    || Boolean(metadata?.datasetContext)
+    || Boolean(metadata?.columnar)
+    || Boolean(metadata?.eoSource)
+    || Boolean(metadata?.externalService)
+    || Boolean(metadata?.raster)
+    || Boolean(metadata?.vectorTiles)
+    || Boolean(metadata?.registry)
+    || Boolean(metadata?.reproducibilityManifest)
+    || Boolean(metadata?.evidenceArtifactId);
+}
+
+function resolveReadinessFacts(args: {
+  overlayLayers: OverlayLayerConfig[];
+  pinCount: number;
+  drawnFeatureCount: number;
+  measurementCount: number;
+  lastSavedAt?: string | null;
+  hasActiveAoi?: boolean;
+  qaStatus?: LayerQaStatus;
+  qaIssueCount?: number;
+  qaBlockerCount?: number;
+  visiblePublicationLayerCount?: number;
+}) {
+  const layerCount = args.overlayLayers.length;
+  const sourceLayerCount = args.overlayLayers.filter(hasMapLayerSourceEvidence).length;
+  const visibleLayerCount = args.overlayLayers.filter((layer) => layer.visible).length;
+  const visibleSourceLayerCount = args.overlayLayers.filter((layer) => layer.visible && hasMapLayerSourceEvidence(layer)).length;
+  const analysisLayerCount = args.overlayLayers.filter((layer) => (layer.group ?? "data") === "analysis").length;
+  const staleLayerCount = args.overlayLayers.filter((layer) => layer.metadata?.analysisResult?.stale).length;
+  const hasData = sourceLayerCount > 0;
+  const hasVisibleData = visibleSourceLayerCount > 0;
+  const hasActiveAoi = args.hasActiveAoi ?? args.drawnFeatureCount > 0;
+  const qaStatus = args.qaStatus ?? "unchecked";
+  const qaIssueCount = args.qaIssueCount ?? 0;
+  const qaBlockerCount = args.qaBlockerCount ?? (qaStatus === "error" ? 1 : 0);
+  const visiblePublicationLayerCount = args.visiblePublicationLayerCount ?? visibleSourceLayerCount;
+  const hasPublicationLayer = visiblePublicationLayerCount > 0 && hasVisibleData;
+  const hasSavedState = Boolean(args.lastSavedAt);
+  const hasDecisionLayer = analysisLayerCount > 0 || args.pinCount > 0;
+
+  return {
+    layerCount,
+    sourceLayerCount,
+    visibleLayerCount,
+    visibleSourceLayerCount,
+    analysisLayerCount,
+    staleLayerCount,
+    hasData,
+    hasVisibleData,
+    hasActiveAoi,
+    qaStatus,
+    qaIssueCount,
+    qaBlockerCount,
+    visiblePublicationLayerCount,
+    hasPublicationLayer,
+    hasSavedState,
+    hasDecisionLayer,
+  } as const;
+}
+
 export function getRecommendedMapQuickAction(args: {
   overlayLayers: OverlayLayerConfig[];
   pinCount: number;
   drawnFeatureCount: number;
   measurementCount: number;
+  hasActiveAoi?: boolean;
+  qaStatus?: LayerQaStatus;
+  qaIssueCount?: number;
+  qaBlockerCount?: number;
+  visiblePublicationLayerCount?: number;
+  lastSavedAt?: string | null;
 }): MapQuickActionId {
-  const analysisCount = args.overlayLayers.filter((layer) => (layer.group ?? "data") === "analysis").length;
+  const facts = resolveReadinessFacts(args);
 
-  if (args.overlayLayers.length === 0) {
+  if (!facts.hasData) {
     return "import-data";
   }
 
-  if (args.drawnFeatureCount === 0) {
+  if (!facts.hasVisibleData || facts.staleLayerCount > 0) {
+    return "review-layers";
+  }
+
+  if (
+    facts.qaBlockerCount > 0 ||
+    facts.qaIssueCount > 0 ||
+    facts.qaStatus === "error" ||
+    facts.qaStatus === "warning" ||
+    facts.qaStatus === "unchecked"
+  ) {
+    return "review-problems";
+  }
+
+  if (!facts.hasActiveAoi) {
     return "draw-aoi";
   }
 
-  if (analysisCount === 0) {
+  if (facts.analysisLayerCount === 0) {
     return "theme-data";
   }
 
@@ -156,37 +266,62 @@ export function getMapWorkspaceReadiness(args: {
   drawnFeatureCount: number;
   measurementCount: number;
   lastSavedAt?: string | null;
+  hasActiveAoi?: boolean;
+  qaStatus?: LayerQaStatus;
+  qaIssueCount?: number;
+  qaBlockerCount?: number;
+  visiblePublicationLayerCount?: number;
 }): MapWorkspaceReadiness {
-  const layerCount = args.overlayLayers.length;
-  const visibleLayerCount = args.overlayLayers.filter((layer) => layer.visible).length;
-  const analysisLayerCount = args.overlayLayers.filter((layer) => (layer.group ?? "data") === "analysis").length;
-  const staleLayerCount = args.overlayLayers.filter((layer) => layer.metadata?.analysisResult?.stale).length;
+  const facts = resolveReadinessFacts(args);
+  const qaPassed = facts.qaStatus === "passed" && facts.qaBlockerCount === 0;
+  const state: MapWorkspaceReadinessState = !facts.hasData
+    ? "no-data"
+    : !facts.hasVisibleData
+      ? "invisible-layers"
+      : facts.qaBlockerCount > 0 || facts.qaStatus === "error"
+        ? "qa-blockers"
+        : facts.staleLayerCount > 0
+          ? "stale-analysis"
+          : facts.qaStatus === "unchecked"
+            ? "data-loaded"
+            : !facts.hasActiveAoi
+              ? "missing-aoi"
+              : facts.hasPublicationLayer && qaPassed && facts.hasSavedState
+                ? "publish-ready"
+                : "data-loaded";
 
-  const hasLayers = layerCount > 0;
-  const hasCuratedStack = hasLayers && visibleLayerCount > 0 && staleLayerCount === 0;
-  const hasSpatialFraming = args.drawnFeatureCount > 0 || args.measurementCount > 0;
-  const hasDecisionLayer = analysisLayerCount > 0 || args.pinCount > 0;
-  const hasSavedState = Boolean(args.lastSavedAt);
-
-  const score = Math.max(
+  const rawScore = Math.max(
     0,
     Math.min(
       100,
-      (hasLayers ? 25 : 0)
-        + (hasCuratedStack ? 20 : 0)
-        + (hasSpatialFraming || analysisLayerCount > 0 ? 25 : 0)
-        + (hasDecisionLayer ? 15 : 0)
-        + (hasSavedState ? 15 : 0),
+      (facts.hasData ? 20 : 0)
+        + (facts.hasVisibleData ? 20 : 0)
+        + (facts.staleLayerCount === 0 && facts.hasVisibleData ? 12 : 0)
+        + (qaPassed ? 18 : facts.qaStatus === "warning" ? 8 : 0)
+        + (facts.hasActiveAoi ? 14 : 0)
+        + (facts.hasPublicationLayer ? 12 : 0)
+        + (facts.hasSavedState ? 8 : 0)
+        + (facts.hasDecisionLayer ? 8 : 0),
     ),
   );
+  const stateScoreCap: Record<MapWorkspaceReadinessState, number> = {
+    "no-data": 10,
+    "invisible-layers": 35,
+    "qa-blockers": 45,
+    "stale-analysis": 58,
+    "data-loaded": 74,
+    "missing-aoi": 84,
+    "publish-ready": 100,
+  };
+  const score = state === "publish-ready" ? 100 : Math.min(rawScore, stateScoreCap[state]);
 
-  const currentStepId: MapWorkspaceReadinessStep["id"] | null = !hasLayers
+  const currentStepId: MapWorkspaceReadinessStep["id"] | null = !facts.hasData
     ? "load-data"
-    : !hasCuratedStack
+    : !facts.hasVisibleData || facts.staleLayerCount > 0 || facts.qaBlockerCount > 0 || facts.qaStatus === "unchecked"
       ? "curate-stack"
-      : !(hasSpatialFraming || analysisLayerCount > 0)
+      : !facts.hasActiveAoi
         ? "frame-analysis"
-        : !(hasDecisionLayer && hasSavedState)
+        : state !== "publish-ready"
           ? "publish-story"
           : null;
 
@@ -214,10 +349,12 @@ export function getMapWorkspaceReadiness(args: {
   ];
 
   const completedSteps = new Set<MapWorkspaceReadinessStep["id"]>();
-  if (hasLayers) completedSteps.add("load-data");
-  if (hasCuratedStack) completedSteps.add("curate-stack");
-  if (hasSpatialFraming || analysisLayerCount > 0) completedSteps.add("frame-analysis");
-  if (hasDecisionLayer && hasSavedState) completedSteps.add("publish-story");
+  if (facts.hasData) completedSteps.add("load-data");
+  if (facts.hasVisibleData && facts.staleLayerCount === 0 && facts.qaBlockerCount === 0 && facts.qaStatus !== "unchecked") {
+    completedSteps.add("curate-stack");
+  }
+  if (facts.hasActiveAoi) completedSteps.add("frame-analysis");
+  if (state === "publish-ready") completedSteps.add("publish-story");
 
   const currentStepIndex = currentStepId == null
     ? stepCatalog.length
@@ -232,65 +369,136 @@ export function getMapWorkspaceReadiness(args: {
         : "upcoming",
   })) satisfies readonly MapWorkspaceReadinessStep[];
 
-  if (!hasLayers) {
+  if (state === "no-data") {
     return {
+      state,
       score,
-      label: "Foundational",
+      label: "No Data",
       tone: "foundational",
-      focusLabel: "Load Data",
-      narrative: "The map canvas is structurally ready, but it still needs layers before it can support a planning decision.",
-      rationale: "No working layers are loaded yet. Start with a trusted dataset or teaching fixture so the rest of the workspace has something concrete to organize.",
+      focusLabel: "Import Data",
+      narrative: "The cockpit has no source-backed layer to evaluate yet.",
+      rationale: facts.layerCount > 0
+        ? "Layer placeholders exist, but none carry source data, source kind, or metadata evidence. Import or restore a trusted source before claiming readiness."
+        : "No working layers are loaded yet. Start with a trusted dataset or teaching fixture so the rest of the workspace has concrete spatial context.",
+      nextActionId: "import-data",
+      nextActionLabel: "Import Data",
+      nextActionDescription: "Load or restore a source-backed spatial layer before QA, AOI framing, or publishing.",
       sequence,
     };
   }
 
-  if (!hasCuratedStack) {
+  if (state === "invisible-layers") {
     return {
+      state,
       score,
-      label: "Foundational",
+      label: "Invisible Layers",
       tone: "foundational",
-      focusLabel: "Curate Stack",
-      narrative: "Data is present, but the layer stack still needs to be made legible before analysis becomes credible.",
-      rationale: visibleLayerCount === 0
-        ? "Layers exist, but none are visible. Re-enable the layers you want to inspect before you draw or analyse."
-        : "Some analysis layers are stale. Reconcile visibility and rerun stale outputs so the map reflects the current data state.",
+      focusLabel: "Reveal Layers",
+      narrative: "Source-backed data exists, but no source-backed layer is visible on the map.",
+      rationale: "Reveal at least one data layer before AOI framing, QA interpretation, or export can be considered meaningful.",
+      nextActionId: "review-layers",
+      nextActionLabel: "Review Layers",
+      nextActionDescription: "Open the layer stack and turn on the source-backed layers that should drive the current map.",
       sequence,
     };
   }
 
-  if (!(hasSpatialFraming || analysisLayerCount > 0)) {
+  if (state === "qa-blockers") {
     return {
+      state,
       score,
-      label: "Operational",
-      tone: "operational",
-      focusLabel: "Frame Analysis",
-      narrative: "The map has a clean layer stack and is ready to move from browsing into focused spatial work.",
-      rationale: "Your layers are staged. Add an AOI or a measurement pass so the next analytical outputs are anchored to a clear study frame.",
+      label: "QA Blockers",
+      tone: "blocked",
+      focusLabel: "Review Problems",
+      narrative: "Scientific QA blockers prevent this map from being represented as publication-ready.",
+      rationale: `${facts.qaBlockerCount} blocker${facts.qaBlockerCount === 1 ? "" : "s"} or error state must be resolved before formal output, dispatch, or report handoff.`,
+      nextActionId: "review-problems",
+      nextActionLabel: "Review Problems",
+      nextActionDescription: "Open QA Problems and resolve blockers before proceeding.",
       sequence,
     };
   }
 
-  if (!(hasDecisionLayer && hasSavedState)) {
+  if (state === "stale-analysis") {
     return {
+      state,
       score,
-      label: "Operational",
+      label: "Stale Analysis",
       tone: "operational",
-      focusLabel: "Publish Story",
-      narrative: "The workspace is analytically active, but it still needs a saved narrative footprint before it becomes briefing-ready.",
-      rationale: !hasDecisionLayer
-        ? "You have framing geometry, but no analytical or narrative layer yet. Theme the data, pin field notes, or generate a result layer before you export."
-        : "The map already contains decision-ready output. Save the current state so the project can be restored and shared without rebuilding the scene.",
+      focusLabel: "Refresh Outputs",
+      narrative: "At least one analysis layer is stale relative to its source state.",
+      rationale: "Review the layer stack and rerun or remove stale outputs so the cockpit reflects the current data, not an old analytical snapshot.",
+      nextActionId: "review-layers",
+      nextActionLabel: "Review Stale Layers",
+      nextActionDescription: "Open the layer stack and inspect stale analysis outputs before continuing.",
       sequence,
     };
   }
+
+  if (state === "missing-aoi") {
+    return {
+      state,
+      score,
+      label: "Missing AOI",
+      tone: "operational",
+      focusLabel: "Draw AOI",
+      narrative: "Data is visible and checked, but the map still lacks an explicit study area.",
+      rationale: "Draw or select an AOI so downstream workflows and review artifacts have a bounded spatial frame instead of relying on a transient viewport.",
+      nextActionId: "draw-aoi",
+      nextActionLabel: "Draw AOI",
+      nextActionDescription: "Create a polygon study area for analysis, review, and report handoff.",
+      sequence,
+    };
+  }
+
+  if (state === "publish-ready") {
+    return {
+      state,
+      score: 100,
+      label: "Publish Ready",
+      tone: "delivery",
+      focusLabel: "Publish",
+      narrative: "Source-backed visible layers, QA, AOI framing, publication candidates, and saved project state are all in place.",
+      rationale: "The current map has real source state, a checked stack, explicit spatial context, and a persisted project state. It can move into figure, data export, package, or report handoff.",
+      nextActionId: "export-map",
+      nextActionLabel: "Publish",
+      nextActionDescription: "Open Publish to export the current figure, data package, or report-ready map evidence.",
+      sequence,
+    };
+  }
+
+  const shouldSaveBeforeHandoff =
+    facts.hasPublicationLayer &&
+    !facts.hasSavedState &&
+    facts.hasActiveAoi &&
+    facts.qaStatus !== "unchecked" &&
+    facts.qaBlockerCount === 0;
 
   return {
+    state,
     score,
-    label: "Delivery Ready",
-    tone: "delivery",
-    focusLabel: "Maintain And Export",
-    narrative: "Layers, framing, and saved state are all in place. The workspace can now support briefing, export, or collaborative review.",
-    rationale: "The current map has both analytical context and a persisted project state. Use the quick actions to export a clean spatial story or refine the last delivery details.",
+    label: "Data Loaded",
+    tone: "operational",
+    focusLabel: facts.qaStatus === "unchecked"
+      ? "Review Readiness"
+      : shouldSaveBeforeHandoff
+        ? "Save State"
+        : "Prepare Output",
+    narrative: facts.qaStatus === "unchecked"
+      ? "Source-backed data is visible, but QA has not checked the current stack yet."
+      : shouldSaveBeforeHandoff
+        ? "The map has publishable layers, but it still needs a saved project state before formal handoff."
+        : "Data is loaded and visible; continue framing, styling, or saving before claiming publication readiness.",
+    rationale: facts.qaStatus === "unchecked"
+      ? "Run or review QA before treating the layer stack as operationally safe."
+      : shouldSaveBeforeHandoff
+        ? "Save the map state so the current visible stack, context, and publish candidates can be restored."
+        : "The cockpit has real source state, but not every readiness requirement is satisfied yet.",
+    nextActionId: shouldSaveBeforeHandoff ? "save-project" : "review-problems",
+    nextActionLabel: shouldSaveBeforeHandoff ? "Save Project" : "Review Readiness",
+    nextActionDescription: shouldSaveBeforeHandoff
+      ? "Persist the current Map Explorer project state before formal export."
+      : "Open QA Problems to confirm blockers, warnings, CRS state, and publication readiness.",
     sequence,
   };
 }

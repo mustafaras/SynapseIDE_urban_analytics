@@ -26,7 +26,7 @@ import type { MapExplorerContextSummary } from "./mapContextSummary";
 import type { MapAnalysisRecommendation } from "@/services/map/MapAnalysisRecommender";
 import {
   getMapWorkspaceReadiness,
-  getRecommendedMapQuickAction,
+  hasMapLayerSourceEvidence,
   MAP_QUICK_ACTIONS,
   MAP_WORKSPACE_VIEWS,
   type MapQuickActionId,
@@ -75,6 +75,7 @@ const viewIcons: Record<MapWorkspaceView, LucideIcon> = {
 const quickActionIcons: Record<MapQuickActionId, LucideIcon> = {
   "import-data": Upload,
   "review-layers": Layers3,
+  "review-problems": Shield,
   "open-pins": MapPinned,
   "draw-aoi": PencilRuler,
   measure: Ruler,
@@ -87,6 +88,7 @@ const readinessToneClassName = {
   foundational: styles.statusBadgeFoundational,
   operational: styles.statusBadgeOperational,
   delivery: styles.statusBadgeDelivery,
+  blocked: styles.statusBadgeBlocked,
 } as const;
 
 const sequenceStatusClassName = {
@@ -123,6 +125,7 @@ const viewMicrocopy: Record<MapWorkspaceView, string> = {
 const quickActionMicrocopy: Record<MapQuickActionId, string> = {
   "import-data": "Load data",
   "review-layers": "Check stack",
+  "review-problems": "Problems",
   "open-pins": "Field notes",
   "draw-aoi": "Frame area",
   measure: "Measure",
@@ -132,6 +135,7 @@ const quickActionMicrocopy: Record<MapQuickActionId, string> = {
 };
 
 const supportingActionOrder: MapQuickActionId[] = [
+  "review-problems",
   "review-layers",
   "draw-aoi",
   "theme-data",
@@ -235,20 +239,12 @@ export const MapWorkspaceCockpit: React.FC<MapWorkspaceCockpitProps> = ({
   const saveLabel = useMemo(() => formatSaveLabel(lastSavedAt), [lastSavedAt]);
   const dataLayerCount = overlayLayers.filter((layer) => (layer.group ?? "data") === "data").length;
   const columnarLayerCount = overlayLayers.filter((layer) => Boolean(layer.metadata?.columnar)).length;
+  const sourceBackedLayerCount = overlayLayers.filter(hasMapLayerSourceEvidence).length;
+  const visibleSourceBackedLayerCount = overlayLayers.filter((layer) => layer.visible && hasMapLayerSourceEvidence(layer)).length;
   const featureCount = overlayLayers.reduce((sum, layer) => {
     const layerFeatureCount = layer.metadata?.featureCount;
     return sum + (typeof layerFeatureCount === "number" ? layerFeatureCount : 0);
   }, 0);
-
-  const recommendedAction = useMemo(
-    () => getRecommendedMapQuickAction({
-      overlayLayers,
-      pinCount,
-      drawnFeatureCount,
-      measurementCount,
-    }),
-    [drawnFeatureCount, measurementCount, overlayLayers, pinCount],
-  );
 
   const readiness = useMemo(
     () => getMapWorkspaceReadiness({
@@ -257,17 +253,38 @@ export const MapWorkspaceCockpit: React.FC<MapWorkspaceCockpitProps> = ({
       drawnFeatureCount,
       measurementCount,
       lastSavedAt,
+      hasActiveAoi: Boolean(activeAoi),
+      qaStatus: contextSummary.qa.status,
+      qaIssueCount,
+      qaBlockerCount,
+      visiblePublicationLayerCount,
     }),
-    [drawnFeatureCount, lastSavedAt, measurementCount, overlayLayers, pinCount],
+    [
+      activeAoi,
+      contextSummary.qa.status,
+      drawnFeatureCount,
+      lastSavedAt,
+      measurementCount,
+      overlayLayers,
+      pinCount,
+      qaBlockerCount,
+      qaIssueCount,
+      visiblePublicationLayerCount,
+    ],
   );
 
-  const recommendedActionMeta = MAP_QUICK_ACTIONS.find((action) => action.id === recommendedAction) ?? MAP_QUICK_ACTIONS[0];
+  const recommendedActionMeta = MAP_QUICK_ACTIONS.find((action) => action.id === readiness.nextActionId) ?? MAP_QUICK_ACTIONS[0];
   const visibleAnalysisRecommendations = useMemo(
     () => analysisRecommendations.slice(0, 3),
     [analysisRecommendations],
   );
 
   const contextSignals = useMemo<ContextSignal[]>(() => {
+    const projectValue = selectedProjectId ? projectLabel : "Unassigned";
+    const projectDetail = selectedProjectId
+      ? "Project scope is selected for save/load continuity."
+      : "Select or create a project before saving formal map state.";
+
     const aoiValue = activeAoi
       ? activeAoiLabel ?? activeAoi.aoiId
       : contextSummary.currentBounds
@@ -296,80 +313,58 @@ export const MapWorkspaceCockpit: React.FC<MapWorkspaceCockpitProps> = ({
             ? "Run scientific QA to confirm the current stack is publication-safe."
             : "Load visible layers before QA can assess the workspace.";
 
-    const workflowValue = workflowReadyCount > 0
-      ? `${workflowReadyCount} ready`
-      : activeAoi || contextSummary.currentBounds
-        ? "Needs inputs"
-        : "Needs frame";
-    const workflowDetail = workflowReadyCount > 0
-      ? `${workflowReadyCount} geometry-bearing layer${workflowReadyCount === 1 ? " is" : "s are"} available for workflow preview.`
-      : activeAoi || contextSummary.currentBounds
-        ? "Theme or reveal a geometry layer so workflow previews have valid spatial input."
-        : "Establish a study frame before spatial workflows or dispatches can run.";
-
-    const exportValue = visiblePublicationLayerCount === 0
-      ? "Needs layer"
-      : qaBlockerCount > 0
-        ? "Blocked"
-        : "Ready";
-    const exportDetail = visiblePublicationLayerCount === 0
-      ? "Reveal at least one visible layer before export or report packaging can begin."
-      : qaBlockerCount > 0
-        ? `${qaBlockerCount} QA blocker${qaBlockerCount === 1 ? "" : "s"} must be resolved before formal output.`
-        : `${visiblePublicationLayerCount} visible publication layer${visiblePublicationLayerCount === 1 ? " is" : "s are"} available for packaging.`;
-
     return [
       {
-        id: "stack",
-        label: "Visible Stack",
+        id: "project",
+        label: "Project",
+        value: projectValue,
+        detail: projectDetail,
+        Icon: HardDrive,
+        tone: selectedProjectId ? "ready" : "attention",
+      },
+      {
+        id: "layers",
+        label: "Layers",
         value: `${contextSummary.visibleLayerIds.length}/${layerCount}`,
         detail: layerCount > 0
-          ? `${featureCount.toLocaleString()} mapped feature${featureCount === 1 ? "" : "s"} across the active stack.`
+          ? `${sourceBackedLayerCount}/${layerCount} source-backed; ${featureCount.toLocaleString()} mapped feature${featureCount === 1 ? "" : "s"}.`
           : "Import or reveal a dataset before layer controls, QA, and export can run.",
         Icon: Layers3,
-        tone: contextSummary.visibleLayerIds.length > 0 ? "ready" : "attention",
+        tone: visibleSourceBackedLayerCount > 0 ? "ready" : sourceBackedLayerCount > 0 ? "attention" : "blocked",
+      },
+      {
+        id: "selection",
+        label: "Selected",
+        value: selectedFeatureCount > 0 ? `${selectedFeatureCount} features` : "None",
+        detail: selectedFeatureCount > 0
+          ? `${selectedLayerCount} layer${selectedLayerCount === 1 ? "" : "s"} drive map stats and workflow context.`
+          : "Select features to compute statistics and focus analysis.",
+        Icon: Database,
+        tone: selectedFeatureCount > 0 ? "ready" : "neutral",
       },
       {
         id: "aoi",
-        label: "Active AOI",
+        label: "AOI",
         value: aoiValue,
         detail: aoiDetail,
         Icon: MapPinned,
         tone: activeAoi ? "ready" : contextSummary.currentBounds ? "neutral" : "attention",
       },
       {
-        id: "selection",
-        label: "Selection",
-        value: selectedFeatureCount > 0 ? `${selectedFeatureCount} selected` : "No selection",
-        detail: selectedFeatureCount > 0
-          ? `${selectedLayerCount} layer${selectedLayerCount === 1 ? "" : "s"} currently drive map stats and workflow context.`
-          : "Select one or more features to compute statistics and focus analysis.",
-        Icon: Database,
-        tone: selectedFeatureCount > 0 ? "ready" : "neutral",
-      },
-      {
         id: "qa",
-        label: "QA Status",
+        label: "QA",
         value: qaValue,
         detail: qaDetail,
         Icon: Shield,
         tone: qaBlockerCount > 0 ? "blocked" : qaIssueCount > 0 ? "attention" : contextSummary.qa.status === "passed" ? "ready" : "neutral",
       },
       {
-        id: "workflow",
-        label: "Workflow Surface",
-        value: workflowValue,
-        detail: workflowDetail,
-        Icon: FlaskConical,
-        tone: workflowReadyCount > 0 ? "ready" : activeAoi || contextSummary.currentBounds ? "neutral" : "attention",
-      },
-      {
-        id: "export",
-        label: "Export Surface",
-        value: exportValue,
-        detail: exportDetail,
-        Icon: FileOutput,
-        tone: qaBlockerCount > 0 ? "blocked" : visiblePublicationLayerCount > 0 ? "ready" : "neutral",
+        id: "save",
+        label: "Save State",
+        value: lastSavedAt ? "Saved" : "Draft",
+        detail: lastSavedAt ? `Last saved at ${saveLabel}.` : "Save the current project before formal handoff.",
+        Icon: Save,
+        tone: lastSavedAt ? "ready" : "attention",
       },
       {
         id: "sync",
@@ -389,15 +384,19 @@ export const MapWorkspaceCockpit: React.FC<MapWorkspaceCockpitProps> = ({
     contextSummary.visibleLayerIds.length,
     featureCount,
     layerCount,
+    lastSavedAt,
+    projectLabel,
     qaBlockerCount,
     qaCheckedLabel,
     qaIssueCount,
+    saveLabel,
     selectedFeatureCount,
     selectedLayerCount,
+    selectedProjectId,
+    sourceBackedLayerCount,
     syncStatus,
     viewportSyncEnabled,
-    visiblePublicationLayerCount,
-    workflowReadyCount,
+    visibleSourceBackedLayerCount,
   ]);
 
   const supportQuickActions = useMemo(() => {
@@ -442,7 +441,11 @@ export const MapWorkspaceCockpit: React.FC<MapWorkspaceCockpitProps> = ({
         id: "study-frame",
         label: "Study Frame",
         value: `${drawnFeatureCount}`,
-        detail: measurementCount > 0 ? `${measurementCount} measurements` : "AOI needed",
+        detail: workflowReadyCount > 0
+          ? `${workflowReadyCount} workflow-ready layer${workflowReadyCount === 1 ? "" : "s"}`
+          : measurementCount > 0
+            ? `${measurementCount} measurements`
+            : "AOI needed",
         Icon: PencilRuler,
         tone: drawnFeatureCount > 0 || measurementCount > 0 ? "ready" : "attention",
       },
@@ -463,7 +466,7 @@ export const MapWorkspaceCockpit: React.FC<MapWorkspaceCockpitProps> = ({
         tone: lastSavedAt ? "ready" : "neutral",
       },
     ] as const,
-    [analysisLayerCount, drawnFeatureCount, featureCount, lastSavedAt, layerCount, measurementCount, saveLabel, staleLayerCount, visibleLayerCount],
+    [analysisLayerCount, drawnFeatureCount, featureCount, lastSavedAt, layerCount, measurementCount, saveLabel, staleLayerCount, visibleLayerCount, workflowReadyCount],
   );
 
   const integrationSignals = useMemo(
@@ -479,35 +482,44 @@ export const MapWorkspaceCockpit: React.FC<MapWorkspaceCockpitProps> = ({
       {
         id: "layer-quality",
         label: "Layer Quality",
-        value: staleLayerCount > 0 ? `${staleLayerCount}` : "Clear",
-        detail: staleLayerCount > 0 ? "Needs rerun" : "No stale layers",
+        value: sourceBackedLayerCount === 0 ? "No data" : staleLayerCount > 0 ? `${staleLayerCount}` : "Clear",
+        detail: sourceBackedLayerCount === 0 ? "Source state required" : staleLayerCount > 0 ? "Needs rerun" : "No stale layers",
         Icon: Shield,
-        tone: staleLayerCount > 0 ? "attention" : "ready",
+        tone: sourceBackedLayerCount === 0 ? "blocked" : staleLayerCount > 0 ? "attention" : "ready",
       },
       {
         id: "export-package",
         label: "Export Package",
-        value: layerCount > 0 ? "Ready" : "Empty",
-        detail: layerCount > 0 ? `${visibleLayerCount} visible layers` : "Add layers first",
+        value: readiness.state === "publish-ready" ? "Ready" : visiblePublicationLayerCount > 0 ? "Pending" : "Empty",
+        detail: readiness.state === "publish-ready"
+          ? `${visiblePublicationLayerCount} publication layer${visiblePublicationLayerCount === 1 ? "" : "s"} checked`
+          : visiblePublicationLayerCount > 0
+            ? "Resolve readiness before export"
+            : "Add layers first",
         Icon: FileOutput,
-        tone: layerCount > 0 ? "ready" : "neutral",
+        tone: readiness.state === "publish-ready" ? "ready" : visiblePublicationLayerCount > 0 ? "attention" : "neutral",
       },
     ] as const,
-    [columnarLayerCount, layerCount, staleLayerCount, visibleLayerCount],
+    [columnarLayerCount, readiness.state, sourceBackedLayerCount, staleLayerCount, visiblePublicationLayerCount],
   );
 
   const currentSequenceStep = readiness.sequence.find((step) => step.status === "current")
     ?? readiness.sequence[readiness.sequence.length - 1];
-  const PrimaryActionIcon = quickActionIcons[recommendedActionMeta.id];
+  const PrimaryActionIcon = quickActionIcons[readiness.nextActionId];
 
   return (
-    <section className={styles.panel} aria-label="Map workspace cockpit" style={cockpitStyle}>
+    <section
+      className={styles.panel}
+      aria-label="Map workspace cockpit"
+      data-readiness-state={readiness.state}
+      style={cockpitStyle}
+    >
       <header className={styles.commandBar}>
         <div className={styles.commandIdentity}>
           <span className={styles.brandMark}><Globe size={15} /></span>
           <div className={styles.identityCopy}>
-            <span className={styles.brandKicker}>Spatial Navigator</span>
-            <span className={styles.brandTitle}>Map Command Center</span>
+            <span className={styles.brandKicker}>Overview</span>
+            <span className={styles.brandTitle}>Readiness Cockpit</span>
           </div>
           <span className={`${styles.toneBadge} ${readinessToneClassName[readiness.tone]}`}>
             {readiness.label}
@@ -533,13 +545,13 @@ export const MapWorkspaceCockpit: React.FC<MapWorkspaceCockpitProps> = ({
         <button
           type="button"
           className={styles.primaryCommand}
-          onClick={() => onQuickAction(recommendedActionMeta.id)}
-          aria-label={`Run recommended map action: ${recommendedActionMeta.label}`}
+          onClick={() => onQuickAction(readiness.nextActionId)}
+          aria-label={`Run next readiness action: ${readiness.nextActionLabel}`}
         >
           <span className={styles.primaryCommandIcon}><PrimaryActionIcon size={14} /></span>
           <span className={styles.primaryCommandCopy}>
-            <span>Next Best Action</span>
-            <strong>{recommendedActionMeta.label}</strong>
+            <span>Next Action</span>
+            <strong>{readiness.nextActionLabel}</strong>
           </span>
           <ArrowRight size={14} />
         </button>
@@ -662,9 +674,9 @@ export const MapWorkspaceCockpit: React.FC<MapWorkspaceCockpitProps> = ({
           </div>
 
           <div className={styles.recommendedBand}>
-            <span className={styles.recommendedEyebrow}>Recommended</span>
-            <strong>{recommendedActionMeta.label}</strong>
-            <p>{recommendedActionMeta.description}</p>
+            <span className={styles.recommendedEyebrow}>State-specific action</span>
+            <strong>{readiness.nextActionLabel}</strong>
+            <p>{readiness.nextActionDescription || recommendedActionMeta.description}</p>
           </div>
 
           <div className={styles.analysisRecommendationStrip} aria-label="Recommended next spatial analysis steps">

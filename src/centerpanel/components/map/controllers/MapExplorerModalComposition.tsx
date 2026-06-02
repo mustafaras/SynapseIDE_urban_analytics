@@ -7186,6 +7186,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         handleSetWorkspaceView("explore");
         setShowLayerPanel(true);
         break;
+      case "review-problems":
+        openBottomPanelTab("problems", "QA Problems opened from Overview readiness cockpit");
+        break;
       case "open-pins":
         handleSetWorkspaceView("explore");
         setShowScientificQAPanel(false);
@@ -7226,7 +7229,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       default:
         break;
     }
-  }, [activeStyleLayer, announce, closeFloatingRightPanels, handleImportRequest, handleMapExportRequest, handleOpenPublishTab, handleOpenStyleTab, handleProjectSave, handleSetDrawTool, handleSetMeasureTool, handleSetWorkspaceView, setActiveTool]);
+  }, [activeStyleLayer, announce, closeFloatingRightPanels, handleImportRequest, handleMapExportRequest, handleOpenPublishTab, handleOpenStyleTab, handleProjectSave, handleSetDrawTool, handleSetMeasureTool, handleSetWorkspaceView, openBottomPanelTab, setActiveTool]);
 
   const handleExportConfirm = useCallback(async () => {
     try {

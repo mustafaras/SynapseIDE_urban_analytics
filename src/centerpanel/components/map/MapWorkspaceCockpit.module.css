@@ -96,7 +96,7 @@
 
 .brandTitle {
   color: var(--cockpit-text);
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   line-height: 1.1;
   overflow: hidden;
@@ -144,6 +144,14 @@
 
 .statusBadgeDelivery {
   color: var(--cockpit-info);
+  background: transparent;
+  border-top: 0;
+  border-right: 0;
+  border-bottom: 0;
+}
+
+.statusBadgeBlocked {
+  color: var(--cockpit-blocked);
   background: transparent;
   border-top: 0;
   border-right: 0;
