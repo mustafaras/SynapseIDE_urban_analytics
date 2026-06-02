@@ -443,3 +443,90 @@ describe("MapToolbar command palette", () => {
     expect(commandCenter?.dataset.taskLens).toBe("reviewer");
   });
 });
+
+describe("MapToolbar contextual primary action state machine (Prompt 25)", () => {
+  it("shows active lens indicator zone with data-active-lens attribute", () => {
+    renderToolbar({});
+
+    const lensZone = document.querySelector<HTMLElement>('[data-testid="map-command-center-active-lens"]');
+    expect(lensZone).not.toBeNull();
+    expect(lensZone!.dataset.activeLens).toBe("analyst");
+  });
+
+  it("surfaces Import Data as primary action when the map is empty", () => {
+    renderToolbar({
+      visibleLayerCount: 0,
+      layerCount: 0,
+      onImportClick: vi.fn(),
+    });
+
+    const primaryShell = document.querySelector<HTMLElement>('[data-testid="map-command-center-primary-action"]');
+    expect(primaryShell).not.toBeNull();
+    const primaryBtn = primaryShell!.querySelector<HTMLButtonElement>("[data-map-command-id]");
+    expect(primaryBtn?.dataset.mapCommandId).toBe("import");
+  });
+
+  it("surfaces Layers as primary action when a layer is selected (non-AOI)", () => {
+    renderToolbar({
+      visibleLayerCount: 1,
+      layerCount: 1,
+      activeLayerGeometryType: "Polygon",
+      onToggleLayerPanel: vi.fn(),
+    });
+
+    const primaryShell = document.querySelector<HTMLElement>('[data-testid="map-command-center-primary-action"]');
+    expect(primaryShell).not.toBeNull();
+    const primaryBtn = primaryShell!.querySelector<HTMLButtonElement>("[data-map-command-id]");
+    expect(["layers", "contents"]).toContain(primaryBtn?.dataset.mapCommandId);
+  });
+
+  it("surfaces QA as primary action when scientific QA blockers exist", () => {
+    renderToolbar({
+      visibleLayerCount: 2,
+      layerCount: 2,
+      scientificQABlockerCount: 2,
+      scientificQAIssueCount: 1,
+      onToggleScientificQAPanel: vi.fn(),
+      onToggleLayerPanel: vi.fn(),
+    });
+
+    const primaryShell = document.querySelector<HTMLElement>('[data-testid="map-command-center-primary-action"]');
+    expect(primaryShell).not.toBeNull();
+    const primaryBtn = primaryShell!.querySelector<HTMLButtonElement>("[data-map-command-id]");
+    expect(primaryBtn?.dataset.mapCommandId).toBe("qa");
+  });
+
+  it("surfaces Figure Composer as primary when map is publish-ready (publisher lens, no QA blockers)", () => {
+    useMapToolbarPreferencesStore.setState({ taskLens: "publisher" });
+    renderToolbar({
+      visibleLayerCount: 2,
+      layerCount: 2,
+      scientificQABlockerCount: 0,
+      scientificQAIssueCount: 0,
+      onToggleFigureComposer: vi.fn(),
+      onToggleLayerPanel: vi.fn(),
+    });
+
+    const primaryShell = document.querySelector<HTMLElement>('[data-testid="map-command-center-primary-action"]');
+    expect(primaryShell).not.toBeNull();
+    const primaryBtn = primaryShell!.querySelector<HTMLButtonElement>("[data-map-command-id]");
+    expect(["figure-composer", "add-map-to-report", "export-image"]).toContain(primaryBtn?.dataset.mapCommandId);
+  });
+
+  it("surfaces Save as primary when project has content and no analyst-specific command is registered", () => {
+    /* No onToggleLayerPanel / onToggleProcessingToolbox → analyst lens has no matching command →
+       falls through to the canSave tier and surfaces "Save" as primary action. */
+    renderToolbar({
+      visibleLayerCount: 1,
+      layerCount: 1,
+      persistenceDisabled: false,
+      isSavingProject: false,
+      onSaveProjectClick: vi.fn(),
+    });
+
+    const primaryShell = document.querySelector<HTMLElement>('[data-testid="map-command-center-primary-action"]');
+    expect(primaryShell).not.toBeNull();
+    const primaryBtn = primaryShell!.querySelector<HTMLButtonElement>("[data-map-command-id]");
+    expect(primaryBtn?.dataset.mapCommandId).toBe("save-project");
+  });
+});

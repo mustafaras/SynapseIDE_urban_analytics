@@ -1825,6 +1825,12 @@ function selectContextualPrimaryCommand(args: {
   scientificQABlockerCount: number;
   scientificQAIssueCount: number;
   isImporting: boolean;
+  /** True when a layer is selected/active and not an AOI — shows Inspect Layer */
+  hasSelectedLayer: boolean;
+  /** True when the map is publish-ready (no QA blockers, has content, publisher lens) */
+  isPublishReady: boolean;
+  /** True when the project has content and can be saved */
+  canSave: boolean;
 }): ToolbarCommand | null {
   const primaryEligibleCommands = args.commands.filter((command) =>
     !command.id.startsWith("task-lens-") &&
@@ -1838,23 +1844,45 @@ function selectContextualPrimaryCommand(args: {
   if (args.visibleLayerCount === 0) {
     return findFirstCommand(args.commands, ["import", "catalog", "services"]) ?? activeCommand ?? null;
   }
+  /* Selected layer (non-AOI) → Inspect Layer via the layer stack */
+  if (args.hasSelectedLayer && !args.hasSelectedAoi) {
+    return findFirstCommand(args.commands, ["layers", "contents"]) ?? activeCommand ?? null;
+  }
   if (args.taskLens === "reviewer") {
     return findFirstCommand(args.commands, ["qa", "review-timeline", "performance-diagnostics", "catalog"]) ?? activeCommand ?? null;
   }
   if (args.taskLens === "planner") {
     return findFirstCommand(args.commands, ["layers", "contents", "theme", "voxcity", "figure-composer"]) ?? activeCommand ?? null;
   }
+  /* Publish-ready map → Publish (checked before generic publisher lens to surface it prominently) */
+  if (args.isPublishReady) {
+    return findFirstCommand(args.commands, ["figure-composer", "add-map-to-report", "export-image"]) ?? activeCommand ?? null;
+  }
   if (args.taskLens === "publisher") {
     return findFirstCommand(args.commands, ["figure-composer", "export-image", "add-map-to-report", "export-geojson"]) ?? activeCommand ?? null;
   }
   if (args.taskLens === "analyst") {
-    return findFirstCommand(args.commands, args.hasSelectedAoi ? ["workflow", "processing-toolbox", "query"] : ["layers", "processing-toolbox", "query"]) ?? activeCommand ?? null;
+    const analystPrimary =
+      findFirstCommand(args.commands, args.hasSelectedAoi ? ["workflow", "processing-toolbox", "query"] : ["layers", "processing-toolbox", "query"]) ??
+      activeCommand;
+    /* When the analyst lens has a specific command available, surface it immediately.
+       If none of the analyst commands are registered (no callbacks provided), fall
+       through to the project-management tier so "Save" can surface as primary. */
+    if (analystPrimary != null) return analystPrimary;
   }
   if (args.toolbarRole === "publish") {
     return findFirstCommand(args.commands, ["figure-composer", "export-image", "add-map-to-report", "export-geojson"]) ?? activeCommand ?? null;
   }
   if (args.toolbarRole === "analyze" || args.workspaceView === "analyze") {
-    return findFirstCommand(args.commands, args.hasSelectedAoi ? ["workflow", "processing-toolbox"] : ["processing-toolbox", "workflow"]) ?? activeCommand ?? null;
+    const analyzePrimary =
+      findFirstCommand(args.commands, args.hasSelectedAoi ? ["workflow", "processing-toolbox"] : ["processing-toolbox", "workflow"]) ??
+      activeCommand;
+    /* Fall through to project-management tier when no analyze-specific command is registered. */
+    if (analyzePrimary != null) return analyzePrimary;
+  }
+  /* Dirty project → Save */
+  if (args.canSave) {
+    return findFirstCommand(args.commands, ["save-project"]) ?? activeCommand ?? null;
   }
   return findFirstCommand(args.commands, ["layers", "contents", "catalog", "import"]) ?? activeCommand ?? null;
 }
@@ -2685,11 +2713,27 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       scientificQABlockerCount,
       scientificQAIssueCount,
       isImporting,
+      hasSelectedLayer: activeLayerGeometryType != null,
+      isPublishReady:
+        visibleLayerCount > 0 &&
+        scientificQABlockerCount === 0 &&
+        scientificQAIssueCount === 0 &&
+        taskLens === "publisher",
+      canSave:
+        layerCount > 0 &&
+        !persistenceDisabled &&
+        !isSavingProject &&
+        onSaveProjectClick != null,
     }),
     [
+      activeLayerGeometryType,
       commandRegistry,
       hasSelectedAoi,
       isImporting,
+      isSavingProject,
+      layerCount,
+      onSaveProjectClick,
+      persistenceDisabled,
       scientificQABlockerCount,
       scientificQAIssueCount,
       taskLens,
@@ -2806,12 +2850,18 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       data-toolbar-breakpoint={breakpoint}
     >
       {workspaceView !== "navigator" ? (
-        <TaskLensSwitch
-          taskLens={taskLens}
-          onTaskLensChange={handleTaskLensChange}
-        />
+        <div data-testid="map-command-center-active-lens" data-active-lens={taskLens}>
+          <TaskLensSwitch
+            taskLens={taskLens}
+            onTaskLensChange={handleTaskLensChange}
+          />
+        </div>
       ) : (
-        <div style={{ ...roleSwitch, color: MAP_COLORS.textMuted }}>
+        <div
+          style={{ ...roleSwitch, color: MAP_COLORS.textMuted }}
+          data-testid="map-command-center-active-lens"
+          data-active-lens="overview"
+        >
           <Compass size={MAP_ICON_SIZES.sm} strokeWidth={1.8} aria-hidden="true" />
           <span style={{ fontSize: MAP_TYPOGRAPHY.fontSize.xs, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>Overview</span>
         </div>

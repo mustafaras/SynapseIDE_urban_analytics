@@ -8733,7 +8733,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
 
         {/* Header bar */}
         <div ref={headerRef} style={commandHeaderStyle} role="toolbar" aria-label="Map command bar">
-          <span style={commandHeaderTitleStyle} id="map-explorer-title" aria-label="Map Explorer">
+          <span style={commandHeaderTitleStyle} id="map-explorer-title" aria-label="Map Explorer" data-testid="map-command-center-title">
             <span>Map Explorer</span>
             <span aria-hidden style={commandHeaderBreadcrumbMutedStyle}>/</span>
             <span aria-hidden style={commandHeaderBreadcrumbMutedStyle}>{activeActivity.label}</span>
