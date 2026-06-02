@@ -9,10 +9,13 @@ import {
   MAP_COLORS,
   MAP_ICON_SIZES,
   MAP_RADIUS,
+  MAP_SHELL_DIMENSIONS,
+  MAP_STROKES,
   MAP_TRANSITIONS,
   mapStyles,
 } from "../mapTokens";
 import motionStyles from "../design/motion.module.css";
+import primitiveStyles from "./GisPrimitive.module.css";
 
 export interface GisIconButtonProps
   extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "children"> {
@@ -20,9 +23,11 @@ export interface GisIconButtonProps
   label: string;
   icon: React.ReactNode;
   active?: boolean;
-  size?: "sm" | "md";
-  /** Ghost = transparent active bg with inset accent; accent = filled active bg. */
-  variant?: "ghost" | "accent";
+  size?: "sm" | "md" | "rail";
+  /** Ghost = transparent active bg with inset accent; accent = filled active bg; rail = VS Code-style activity button. */
+  variant?: "ghost" | "accent" | "rail";
+  /** Menu triggers and disclosure-like controls can use aria-expanded instead. */
+  showPressedState?: boolean;
   /**
    * Human-readable reason shown via tooltip when the button is disabled.
    * Required whenever disabled is true so the user understands why.
@@ -33,22 +38,24 @@ export interface GisIconButtonProps
 const SIZE_MAP = {
   sm: { dimension: "1.75rem", iconSize: MAP_ICON_SIZES.xs },
   md: { dimension: "2rem", iconSize: MAP_ICON_SIZES.sm },
+  rail: { dimension: MAP_SHELL_DIMENSIONS.railButtonSize, iconSize: MAP_ICON_SIZES.sm },
 } as const;
 
 function buildButtonStyle(
   active: boolean,
-  variant: "ghost" | "accent",
+  variant: "ghost" | "accent" | "rail",
   disabled: boolean | undefined,
   dimension: string,
 ): React.CSSProperties {
+  const railVariant = variant === "rail";
   return {
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
     width: dimension,
     height: dimension,
-    border: "none",
-    borderRadius: MAP_RADIUS.sm,
+    border: railVariant || active ? MAP_STROKES.hairlineSubtle : "1px solid transparent",
+    borderRadius: railVariant ? MAP_RADIUS.md : MAP_RADIUS.sm,
     cursor: disabled ? "not-allowed" : "pointer",
     background: active
       ? variant === "accent"
@@ -66,9 +73,8 @@ function buildButtonStyle(
     transition: MAP_TRANSITIONS.fast,
     opacity: disabled ? 0.45 : 1,
     flexShrink: 0,
-    outline: "none",
     /* accent stripe rendered via animated child span — see accentGrow below */
-    boxShadow: "none",
+    boxShadow: active && railVariant ? `inset 2px 0 0 ${MAP_COLORS.interaction}` : "none",
   };
 }
 
@@ -83,8 +89,10 @@ export const GisIconButton = React.forwardRef<
       active = false,
       size = "md",
       variant = "ghost",
+      showPressedState = true,
       disabled,
       disabledReason,
+      className,
       style,
       ...props
     },
@@ -110,14 +118,18 @@ export const GisIconButton = React.forwardRef<
         ref={ref}
         type="button"
         data-gis-icon-button="true"
+        data-gis-icon-button-variant={variant}
+        data-gis-icon-button-size={size}
+        data-active={active ? "true" : undefined}
         aria-label={label}
-        aria-pressed={active}
+        aria-pressed={showPressedState ? active : undefined}
         aria-describedby={describedBy || undefined}
         disabled={disabled}
+        className={`${primitiveStyles.focusVisible} ${primitiveStyles.motionFeedback}${className ? ` ${className}` : ""}`}
         style={{ ...computedStyle, ...style }}
       >
         {/* Animated inset accent bar — mounts when active, triggers accentGrow animation */}
-        {active && variant === "ghost" ? (
+        {active && (variant === "ghost" || variant === "rail") ? (
           <span
             aria-hidden
             className={motionStyles.accentGrow}

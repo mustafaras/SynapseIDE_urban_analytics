@@ -271,6 +271,7 @@ export const MAP_DIMENSIONS = {
 
 export const MAP_SHELL_DIMENSIONS = {
   activityRailWidth: "2.625rem",
+  railButtonSize: "2.25rem",
   commandCenterHeight: "2.75rem",
   leftSidebarMinWidth: "17.5rem",
   leftSidebarWidth: "clamp(17.5rem, 24vw, 22.5rem)",

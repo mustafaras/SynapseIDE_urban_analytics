@@ -17,18 +17,22 @@
  *  11. GisTabs renders tablist + tabpanel with correct aria associations
  *  12. GisToolbar renders role="toolbar"
  */
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Layers, Settings, X } from "lucide-react";
 import React from "react";
 
 import {
   GisEmptyState,
+  GisDensePropertyRow,
+  GisDisclosureRow,
   GisIconButton,
   GisProgressBar,
   GisSectionHeader,
+  GisSplitStatusChip,
   GisTabs,
   GisToolbar,
+  GisToolbarOverflowTrigger,
 } from "@/centerpanel/components/map/ui";
 import {
   MapActivityRail,
@@ -87,6 +91,44 @@ describe("GisIconButton", () => {
     );
     const btn = screen.getByRole("button", { name: "Close" });
     expect((btn as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("supports the stable rail icon-button variant", () => {
+    render(
+      <GisIconButton
+        label="Layers activity"
+        icon={<Layers size={14} />}
+        size="rail"
+        variant="rail"
+        active
+      />,
+    );
+    const btn = screen.getByRole("button", { name: "Layers activity" });
+    expect(btn.getAttribute("data-gis-icon-button-size")).toBe("rail");
+    expect(btn.getAttribute("data-gis-icon-button-variant")).toBe("rail");
+    expect((btn as HTMLButtonElement).style.width).toBe("2.25rem");
+    expect((btn as HTMLButtonElement).style.height).toBe("2.25rem");
+  });
+});
+
+/* ================================================================== */
+/*  GisStatusChip                                                       */
+/* ================================================================== */
+describe("GisStatusChip", () => {
+  it("wraps compact labels instead of clipping them", () => {
+    render(
+      <GisSplitStatusChip
+        status="metadata-only"
+        label="Metadata only"
+        detail="External source reference"
+        density="compact"
+        data-testid="split-chip"
+      />,
+    );
+    const chip = screen.getByTestId("split-chip");
+    expect(chip.getAttribute("data-gis-split-status-chip")).toBe("true");
+    expect(chip.getAttribute("aria-label")).toBe("Metadata only: External source reference");
+    expect(chip.textContent).toContain("External source reference");
   });
 });
 
@@ -292,6 +334,89 @@ describe("GisTabs", () => {
     expect(describedBy).toBeTruthy();
     expect(document.getElementById(describedBy!)?.textContent).toContain("No CRS detected");
   });
+
+  it("supports compact tab geometry without clipping text", () => {
+    render(
+      <GisTabs
+        tabs={TABS}
+        activeId="overview"
+        onTabChange={vi.fn()}
+        aria-label="Compact layer inspector"
+        variant="compact"
+        tabTestIdPrefix="compact-tab"
+      >
+        <div>Content</div>
+      </GisTabs>,
+    );
+    const activeTab = screen.getByTestId("compact-tab-overview");
+    expect(activeTab.getAttribute("data-gis-tab-variant")).toBe("compact");
+    expect((activeTab as HTMLButtonElement).style.minHeight).toBe("1.625rem");
+    expect((activeTab as HTMLButtonElement).style.whiteSpace).toBe("normal");
+    expect((activeTab as HTMLButtonElement).style.textOverflow).toBe("clip");
+  });
+});
+
+/* ================================================================== */
+/*  GisDisclosureRow                                                    */
+/* ================================================================== */
+describe("GisDisclosureRow", () => {
+  it("renders an accessible disclosure row and toggles expansion", () => {
+    const onExpandedChange = vi.fn();
+    render(
+      <GisDisclosureRow
+        label="Source health"
+        description="Recoverable external services"
+        expanded={false}
+        onExpandedChange={onExpandedChange}
+      >
+        <span>Recoverable sources</span>
+      </GisDisclosureRow>,
+    );
+    const button = screen.getByRole("button", { name: /Source health/ });
+    expect(button.getAttribute("aria-expanded")).toBe("false");
+    expect(button.getAttribute("aria-controls")).toBeTruthy();
+    fireEvent.click(button);
+    expect(onExpandedChange).toHaveBeenCalledWith(true);
+  });
+
+  it("exposes disabled reason and does not toggle when disabled", () => {
+    const onExpandedChange = vi.fn();
+    render(
+      <GisDisclosureRow
+        label="Advanced QA"
+        expanded={false}
+        disabled
+        disabledReason="No layer selected"
+        onExpandedChange={onExpandedChange}
+      />,
+    );
+    const button = screen.getByRole("button", { name: "Advanced QA" });
+    expect(button.getAttribute("data-disabled-reason")).toBe("No layer selected");
+    const describedBy = button.getAttribute("aria-describedby");
+    expect(describedBy).toBeTruthy();
+    expect(document.getElementById(describedBy!)?.textContent).toContain("No layer selected");
+    fireEvent.click(button);
+    expect(onExpandedChange).not.toHaveBeenCalled();
+  });
+});
+
+/* ================================================================== */
+/*  GisDensePropertyRow                                                 */
+/* ================================================================== */
+describe("GisDensePropertyRow", () => {
+  it("renders a dense wrapping property row", () => {
+    render(
+      <GisDensePropertyRow
+        label="CRS"
+        value="User-declared EPSG:26918, verification required before planar analysis"
+        mono
+        data-testid="dense-property-row"
+      />,
+    );
+    const row = screen.getByTestId("dense-property-row");
+    expect(row.getAttribute("data-gis-dense-property-row")).toBe("true");
+    expect(row.textContent).toContain("verification required");
+  });
 });
 
 /* ================================================================== */
@@ -306,5 +431,18 @@ describe("GisToolbar", () => {
     );
     const toolbar = screen.getByRole("toolbar", { name: "Map tools" });
     expect(toolbar).toBeDefined();
+  });
+
+  it("renders a toolbar overflow trigger with menu semantics", () => {
+    render(
+      <GisToolbar aria-label="Map tools">
+        <GisToolbarOverflowTrigger open />
+      </GisToolbar>,
+    );
+    const trigger = screen.getByRole("button", { name: "More actions" });
+    expect(trigger.getAttribute("data-gis-toolbar-overflow-trigger")).toBe("true");
+    expect(trigger.getAttribute("aria-haspopup")).toBe("menu");
+    expect(trigger.getAttribute("aria-expanded")).toBe("true");
+    expect(trigger.getAttribute("aria-pressed")).toBeNull();
   });
 });

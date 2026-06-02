@@ -100,8 +100,6 @@ function buildActivityButtonStyle(active: boolean): React.CSSProperties {
     /* Override default ghost to use the sidePanelRowActive inset accent */
     ...(active ? mapStyles.sidePanelRowActive : {}),
     borderRadius: MAP_RADIUS.sm,
-    width: "2rem",
-    height: "2rem",
   };
 }
 
@@ -153,6 +151,8 @@ export const MapActivityRail: React.FC<MapActivityRailProps> = ({
         label={item.label}
         icon={item.icon}
         active={item.active}
+        size="rail"
+        variant="rail"
         disabled={item.disabled}
         disabledReason={item.disabledReason}
         data-testid={`activity-btn-${item.id}`}
@@ -170,6 +170,8 @@ export const MapActivityRail: React.FC<MapActivityRailProps> = ({
             label={item.label}
             icon={item.icon}
             active={item.active}
+            size="rail"
+            variant="rail"
             disabled={item.disabled}
             disabledReason={item.disabledReason}
             data-testid={`activity-btn-${item.id}`}

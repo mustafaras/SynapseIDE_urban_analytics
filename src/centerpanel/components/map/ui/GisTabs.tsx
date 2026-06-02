@@ -13,8 +13,10 @@ import {
   MAP_TEXT_STYLES,
   MAP_TRANSITIONS,
   MAP_TYPOGRAPHY,
+  type GisDensity,
   mapStyles,
 } from "../mapTokens";
+import primitiveStyles from "./GisPrimitive.module.css";
 
 export interface GisTab {
   id: string;
@@ -35,6 +37,9 @@ export interface GisTabsProps {
   "data-testid"?: string;
   /** Prefix for per-tab data-testid attributes: `${tabTestIdPrefix}-${tab.id}` */
   tabTestIdPrefix?: string;
+  /** Compact tab geometry for dense sidebar/inspector surfaces. */
+  variant?: "default" | "compact";
+  density?: GisDensity;
 }
 
 const tabListStyle: React.CSSProperties = {
@@ -53,15 +58,22 @@ const tabListStyle: React.CSSProperties = {
   scrollbarWidth: "thin",
 };
 
-function buildTabStyle(active: boolean, disabled: boolean | undefined): React.CSSProperties {
+function buildTabStyle(
+  active: boolean,
+  disabled: boolean | undefined,
+  variant: "default" | "compact",
+  density: GisDensity,
+): React.CSSProperties {
+  const densityPreset = MAP_DENSITY[density];
+  const compact = variant === "compact";
   return {
     display: "inline-flex",
     alignItems: "center",
-    gap: MAP_SPACING.xs,
-    minHeight: MAP_DENSITY.compact.rowHeight,
-    maxWidth: "11rem",
-    padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
-    border: "none",
+    gap: compact ? MAP_SPACING.xs : densityPreset.gap,
+    minHeight: compact ? MAP_DENSITY.compact.rowHeight : densityPreset.rowHeight,
+    maxWidth: compact ? "9rem" : "11rem",
+    padding: compact ? `2px ${MAP_SPACING.sm}` : densityPreset.cellPadding,
+    border: "1px solid transparent",
     borderBottom: active
       ? `2px solid ${MAP_COLORS.interaction}`
       : "2px solid transparent",
@@ -72,14 +84,18 @@ function buildTabStyle(active: boolean, disabled: boolean | undefined): React.CS
       : disabled
         ? MAP_COLORS.textMuted
         : MAP_COLORS.textSecondary,
-    fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+    fontSize: densityPreset.fontSize,
     fontFamily: MAP_TYPOGRAPHY.fontFamily,
     fontWeight: active ? MAP_TYPOGRAPHY.fontWeight.semibold : 400,
     cursor: disabled ? "not-allowed" : "pointer",
     opacity: disabled ? 0.45 : 1,
     transition: MAP_TRANSITIONS.fast,
-    outline: "none",
     ...MAP_TEXT_STYLES.chipLabel,
+    overflow: "visible",
+    textOverflow: "clip",
+    whiteSpace: "normal",
+    overflowWrap: "anywhere",
+    lineHeight: MAP_TYPOGRAPHY.lineHeight.tight,
     flexShrink: 0,
     marginBottom: "-1px",
   };
@@ -94,9 +110,12 @@ export const GisTabs: React.FC<GisTabsProps> = ({
   style,
   "data-testid": testId,
   tabTestIdPrefix,
+  variant = "default",
+  density,
 }) => {
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const disabledReasonBaseId = React.useId();
+  const effectiveDensity = density ?? (variant === "compact" ? "compact" : "default");
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLButtonElement>, currentIdx: number) => {
@@ -154,9 +173,11 @@ export const GisTabs: React.FC<GisTabsProps> = ({
               title={tab.disabled && tab.disabledReason ? tab.disabledReason : tab.label}
               data-disabled-reason={tab.disabled && tab.disabledReason ? tab.disabledReason : undefined}
               data-gis-tab="true"
+              data-gis-tab-variant={variant}
               data-testid={tabTestIdPrefix ? `${tabTestIdPrefix}-${tab.id}` : undefined}
               tabIndex={activeId === tab.id ? 0 : -1}
-              style={buildTabStyle(activeId === tab.id, tab.disabled)}
+              className={`${primitiveStyles.focusVisible} ${primitiveStyles.motionFeedback}`}
+              style={buildTabStyle(activeId === tab.id, tab.disabled, variant, effectiveDensity)}
               onClick={() => { if (!tab.disabled) onTabChange(tab.id); }}
               onKeyDown={(e) => handleKeyDown(e, idx)}
             >

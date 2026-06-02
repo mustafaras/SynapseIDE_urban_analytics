@@ -9,9 +9,11 @@ import React from "react";
 import {
   MAP_COLORS,
   MAP_RADIUS,
+  MAP_STROKES,
   MAP_TRANSITIONS,
 } from "../mapTokens";
 import motionStyles from "../design/motion.module.css";
+import primitiveStyles from "./GisPrimitive.module.css";
 
 export interface GisProgressBarProps {
   /** 0–100. Omit for indeterminate. */
@@ -21,6 +23,7 @@ export interface GisProgressBarProps {
   color?: string;
   reducedMotion?: boolean;
   style?: React.CSSProperties;
+  className?: string;
   "data-testid"?: string;
 }
 
@@ -31,6 +34,7 @@ export const GisProgressBar: React.FC<GisProgressBarProps> = ({
   color,
   reducedMotion = false,
   style,
+  className,
   "data-testid": testId,
 }) => {
   const isIndeterminate = value === undefined;
@@ -42,6 +46,7 @@ export const GisProgressBar: React.FC<GisProgressBarProps> = ({
     height,
     borderRadius: MAP_RADIUS.full,
     background: MAP_COLORS.interactionSubtle,
+    border: MAP_STROKES.hairlineSubtle,
     overflow: "hidden",
     ...style,
   };
@@ -65,11 +70,12 @@ export const GisProgressBar: React.FC<GisProgressBarProps> = ({
       aria-valuemax={isIndeterminate ? undefined : 100}
       data-testid={testId}
       data-gis-progress-bar="true"
+      className={`${primitiveStyles.progressTrack}${className ? ` ${className}` : ""}`}
       style={trackStyle}
     >
       <div
         style={fillStyle}
-        className={!reducedMotion && !isIndeterminate ? motionStyles.progressFill : undefined}
+        className={`${primitiveStyles.progressFill}${!reducedMotion && !isIndeterminate ? ` ${motionStyles.progressFill}` : ""}`}
       />
     </div>
   );

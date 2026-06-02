@@ -6,11 +6,14 @@
 import React from "react";
 import {
   MAP_COLORS,
+  MAP_DENSITY,
   MAP_SPACING,
   MAP_STROKES,
   MAP_TEXT_STYLES,
   MAP_TYPOGRAPHY,
+  type GisDensity,
 } from "../mapTokens";
+import primitiveStyles from "./GisPrimitive.module.css";
 
 export interface GisPropertyRow {
   key: string;
@@ -23,6 +26,18 @@ export interface GisPropertyGridProps {
   rows: GisPropertyRow[];
   /** Show a top border separator when nested inside a section */
   topBorder?: boolean;
+  density?: GisDensity;
+  style?: React.CSSProperties;
+  "data-testid"?: string;
+}
+
+export interface GisDensePropertyRowProps {
+  label: React.ReactNode;
+  value: React.ReactNode;
+  action?: React.ReactNode;
+  highlight?: GisPropertyRow["highlight"];
+  density?: GisDensity;
+  mono?: boolean;
   style?: React.CSSProperties;
   "data-testid"?: string;
 }
@@ -52,9 +67,11 @@ const cellBase: React.CSSProperties = {
 export const GisPropertyGrid: React.FC<GisPropertyGridProps> = ({
   rows,
   topBorder = false,
+  density = "default",
   style,
   "data-testid": testId,
 }) => {
+  const densityPreset = MAP_DENSITY[density];
   return (
     <dl
       data-testid={testId}
@@ -70,6 +87,9 @@ export const GisPropertyGrid: React.FC<GisPropertyGridProps> = ({
           <dt
             style={{
               ...cellBase,
+              minHeight: densityPreset.rowHeight,
+              padding: densityPreset.cellPadding,
+              fontSize: densityPreset.fontSize,
               color: MAP_COLORS.textMuted,
               fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
               whiteSpace: "nowrap",
@@ -81,6 +101,9 @@ export const GisPropertyGrid: React.FC<GisPropertyGridProps> = ({
           <dd
             style={{
               ...cellBase,
+              minHeight: densityPreset.rowHeight,
+              padding: densityPreset.cellPadding,
+              fontSize: densityPreset.fontSize,
               ...MAP_TEXT_STYLES.valueWrap,
               margin: 0,
               color: highlight ? HIGHLIGHT_COLOR[highlight] : MAP_COLORS.text,
@@ -91,6 +114,77 @@ export const GisPropertyGrid: React.FC<GisPropertyGridProps> = ({
           </dd>
         </React.Fragment>
       ))}
+    </dl>
+  );
+};
+
+export const GisDensePropertyRow: React.FC<GisDensePropertyRowProps> = ({
+  label,
+  value,
+  action,
+  highlight,
+  density = "compact",
+  mono = false,
+  style,
+  "data-testid": testId,
+}) => {
+  const densityPreset = MAP_DENSITY[density];
+
+  return (
+    <dl
+      data-testid={testId}
+      data-gis-dense-property-row="true"
+      className={primitiveStyles.propertyRow}
+      style={{
+        display: "grid",
+        gridTemplateColumns: action ? "minmax(5rem, 34%) minmax(0, 1fr) auto" : "minmax(5rem, 34%) minmax(0, 1fr)",
+        alignItems: "start",
+        width: "100%",
+        minHeight: densityPreset.rowHeight,
+        margin: 0,
+        borderBottom: MAP_STROKES.hairlineSubtle,
+        ...style,
+      }}
+    >
+      <dt
+        style={{
+          minWidth: 0,
+          padding: densityPreset.cellPadding,
+          color: MAP_COLORS.textMuted,
+          fontSize: densityPreset.fontSize,
+          fontFamily: MAP_TYPOGRAPHY.fontFamily,
+          fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+          ...MAP_TEXT_STYLES.valueWrap,
+        }}
+      >
+        {label}
+      </dt>
+      <dd
+        style={{
+          minWidth: 0,
+          margin: 0,
+          padding: densityPreset.cellPadding,
+          color: highlight ? HIGHLIGHT_COLOR[highlight] : MAP_COLORS.text,
+          fontSize: densityPreset.fontSize,
+          fontFamily: mono ? MAP_TYPOGRAPHY.fontFamilyMono : MAP_TYPOGRAPHY.fontFamily,
+          ...MAP_TEXT_STYLES.valueWrap,
+        }}
+      >
+        {value}
+      </dd>
+      {action ? (
+        <dd
+          style={{
+            margin: 0,
+            padding: densityPreset.cellPadding,
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "flex-end",
+          }}
+        >
+          {action}
+        </dd>
+      ) : null}
     </dl>
   );
 };

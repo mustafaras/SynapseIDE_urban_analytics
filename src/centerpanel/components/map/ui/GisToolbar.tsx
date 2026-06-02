@@ -4,12 +4,15 @@
  * dividers between logical groups.
  */
 import React from "react";
+import { MoreHorizontal } from "lucide-react";
 import {
   MAP_COLORS,
+  MAP_ICON_SIZES,
   MAP_RADIUS,
   MAP_SHADOWS,
   MAP_STROKES,
 } from "../mapTokens";
+import { GisIconButton, type GisIconButtonProps } from "./GisIconButton";
 
 export interface GisToolbarProps extends React.HTMLAttributes<HTMLDivElement> {
   "aria-label": string;
@@ -22,6 +25,12 @@ export interface GisToolbarProps extends React.HTMLAttributes<HTMLDivElement> {
 
 export interface GisToolbarDividerProps {
   orientation?: "horizontal" | "vertical";
+}
+
+export interface GisToolbarOverflowTriggerProps
+  extends Omit<GisIconButtonProps, "icon" | "label" | "active" | "variant"> {
+  label?: string;
+  open?: boolean;
 }
 
 export const GisToolbarDivider: React.FC<GisToolbarDividerProps> = ({
@@ -82,3 +91,23 @@ export const GisToolbar: React.FC<GisToolbarProps> = ({
     </div>
   );
 };
+
+export const GisToolbarOverflowTrigger = React.forwardRef<
+  HTMLButtonElement,
+  GisToolbarOverflowTriggerProps
+>(({ label = "More actions", open = false, size = "sm", ...props }, ref) => (
+  <GisIconButton
+    {...props}
+    ref={ref}
+    label={label}
+    icon={<MoreHorizontal size={MAP_ICON_SIZES.sm} aria-hidden="true" />}
+    size={size}
+    variant="ghost"
+    active={open}
+    showPressedState={false}
+    aria-haspopup="menu"
+    aria-expanded={open}
+    data-gis-toolbar-overflow-trigger="true"
+  />
+));
+GisToolbarOverflowTrigger.displayName = "GisToolbarOverflowTrigger";

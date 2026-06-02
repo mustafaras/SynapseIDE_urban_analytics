@@ -1,0 +1,88 @@
+.focusVisible:focus-visible {
+  outline: 2px solid var(--syn-color-focus, #f8c14a);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--syn-color-focus, #f8c14a) 28%, transparent);
+}
+
+.motionFeedback {
+  transition:
+    background-color var(--gis-motion-duration-row, 200ms) var(--gis-motion-easing-row, ease-out),
+    border-color var(--gis-motion-duration-row, 200ms) var(--gis-motion-easing-row, ease-out),
+    color var(--gis-motion-duration-row, 200ms) var(--gis-motion-easing-row, ease-out),
+    transform var(--gis-motion-duration-focus, 220ms) var(--gis-motion-easing-focus, ease-out);
+}
+
+.motionFeedback:not(:disabled):active {
+  transform: translateY(1px);
+}
+
+.statusChip {
+  transition:
+    background-color var(--gis-motion-duration-status, 320ms) var(--gis-motion-easing-status, ease-out),
+    border-color var(--gis-motion-duration-status, 320ms) var(--gis-motion-easing-status, ease-out),
+    color var(--gis-motion-duration-status, 320ms) var(--gis-motion-easing-status, ease-out);
+}
+
+.progressTrack {
+  border: 1px solid transparent;
+}
+
+.progressFill {
+  forced-color-adjust: none;
+}
+
+.disclosureRow {
+  width: 100%;
+}
+
+.disclosureChevron {
+  transition: transform var(--gis-motion-duration-focus, 220ms) var(--gis-motion-easing-focus, ease-out);
+}
+
+.disclosureChevronOpen {
+  transform: rotate(90deg);
+}
+
+.propertyRow {
+  forced-color-adjust: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .motionFeedback,
+  .statusChip,
+  .disclosureChevron {
+    transition: none;
+  }
+
+  .motionFeedback:not(:disabled):active {
+    transform: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .focusVisible {
+    border-color: ButtonText !important;
+  }
+
+  .focusVisible:focus-visible {
+    outline: 2px solid Highlight;
+    box-shadow: none;
+  }
+
+  .focusVisible[aria-pressed="true"],
+  .focusVisible[aria-expanded="true"],
+  .focusVisible[data-active="true"] {
+    border-color: Highlight !important;
+  }
+
+  .statusChip,
+  .progressTrack,
+  .disclosureRow,
+  .propertyRow {
+    border-color: CanvasText !important;
+  }
+
+  .progressFill {
+    background: Highlight !important;
+  }
+}
