@@ -89,10 +89,26 @@ const bodyStyle: React.CSSProperties = {
 const footerStyle: React.CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
-  alignItems: "center",
+  alignItems: "flex-end",
   gap: MAP_SPACING.md,
   padding: MAP_SPACING.md,
   borderTop: MAP_STROKES.hairlineSubtle,
+};
+
+const footerNoteStackStyle: React.CSSProperties = {
+  display: "grid",
+  gap: 8,
+  minWidth: 0,
+  maxWidth: 560,
+};
+
+const footerCaveatsStyle: React.CSSProperties = {
+  display: "grid",
+  gap: 4,
+  padding: MAP_SPACING.sm,
+  borderRadius: MAP_RADIUS.sm,
+  border: `1px solid ${MAP_COLORS.focus}`,
+  background: MAP_COLORS.caveat,
 };
 
 const buttonStyle: React.CSSProperties = {
@@ -154,6 +170,19 @@ function crsLabel(profile: SourceProfile): string {
   return `CRS ${profile.crsSummary.status}`;
 }
 
+function geometryLabel(profile: SourceProfile): string {
+  return profile.geometrySummary?.geometryType ?? "unknown";
+}
+
+function geometryDetail(profile: SourceProfile): string {
+  const summary = profile.geometrySummary;
+  if (!summary) return "Geometry type was not exposed by this profile path.";
+  if (summary.geometryTypes.length > 0) {
+    return `${summary.geometryTypes.join(", ")} geometry; ${formatCount(summary.featureCount)} spatial feature(s).`;
+  }
+  return summary.notes[0] ?? "Geometry type requires review.";
+}
+
 function supportTone(profile: SourceProfile): React.CSSProperties {
   if (profile.supportStatus === "supported") {
     return { borderColor: MAP_COLORS.success, color: MAP_COLORS.success };
@@ -178,6 +207,7 @@ export const MapImportPreviewDialog: React.FC<MapImportPreviewDialogProps> = ({
     : profile.featureCount === 0
       ? "This source contains no spatial features to commit."
       : "Resolve preflight blockers before commit.";
+  const commitCaveats = profile.caveats.slice(0, 5);
 
   return (
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- overlay click dismiss
@@ -240,9 +270,23 @@ export const MapImportPreviewDialog: React.FC<MapImportPreviewDialogProps> = ({
             <span style={{ color: MAP_COLORS.textSecondary, fontSize: 11 }}>{profile.crsSummary.notes[0] ?? "CRS review required."}</span>
           </div>
           <div style={summaryCellStyle}>
+            <span style={{ color: MAP_COLORS.textMuted, fontSize: 10, textTransform: "uppercase", letterSpacing: 0 }}>Geometry</span>
+            <span style={{ color: MAP_COLORS.text, fontSize: 14, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>{geometryLabel(profile)}</span>
+            <span style={{ color: MAP_COLORS.textSecondary, fontSize: 11 }}>{geometryDetail(profile)}</span>
+          </div>
+          <div style={summaryCellStyle}>
             <span style={{ color: MAP_COLORS.textMuted, fontSize: 10, textTransform: "uppercase", letterSpacing: 0 }}>Size</span>
             <span style={{ color: MAP_COLORS.text, fontSize: 14, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>{formatBytes(profile.sizeBytes)}</span>
             <span style={{ color: MAP_COLORS.textSecondary, fontSize: 11 }}>Memory estimate: {formatBytes(profile.estimatedMemoryBytes)}</span>
+          </div>
+          <div style={summaryCellStyle}>
+            <span style={{ color: MAP_COLORS.textMuted, fontSize: 10, textTransform: "uppercase", letterSpacing: 0 }}>Worker Transfer</span>
+            <span style={{ color: profile.workerReady ? MAP_COLORS.success : MAP_COLORS.text, fontSize: 14, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
+              {profile.workerReady ? "Ready" : "Not required"}
+            </span>
+            <span style={{ color: MAP_COLORS.textSecondary, fontSize: 11 }}>
+              {profile.workerReady ? "Prepared for worker-backed import or analysis." : "Main-thread commit path; no worker table is staged."}
+            </span>
           </div>
           <div style={summaryCellStyle}>
             <span style={{ color: MAP_COLORS.textMuted, fontSize: 10, textTransform: "uppercase", letterSpacing: 0 }}>Schema</span>
@@ -279,19 +323,23 @@ export const MapImportPreviewDialog: React.FC<MapImportPreviewDialogProps> = ({
               <span style={{ fontFamily: MAP_TYPOGRAPHY.fontFamilyMono }}>{profile.extent.map((value) => value.toFixed(5)).join(", ")}</span>
             </div>
           ) : null}
-
-          {profile.caveats.length > 0 ? (
-            <div style={caveatPanelStyle}>
-              {profile.caveats.map((caveat) => (
-                <div key={caveat} style={{ color: MAP_COLORS.textSecondary, fontSize: 11, lineHeight: 1.5 }}>{caveat}</div>
-              ))}
-            </div>
-          ) : null}
         </div>
 
         <div style={footerStyle}>
-          <div style={{ color: MAP_COLORS.textMuted, fontSize: 11, lineHeight: 1.45, maxWidth: 520 }}>
-            {importEnabled ? "Import will publish this profiled source as a QA-aware layer." : disabledReason}
+          <div style={footerNoteStackStyle}>
+            <div style={{ color: MAP_COLORS.textMuted, fontSize: 11, lineHeight: 1.45 }}>
+              {importEnabled ? "Import will publish this profiled source as a QA-aware layer." : disabledReason}
+            </div>
+            {commitCaveats.length > 0 ? (
+              <div style={footerCaveatsStyle} aria-label="Commit caveats">
+                <div style={{ color: MAP_COLORS.caveatText, fontSize: 10, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold, textTransform: "uppercase" }}>
+                  Commit caveats
+                </div>
+                {commitCaveats.map((caveat) => (
+                  <div key={caveat} style={{ color: MAP_COLORS.textSecondary, fontSize: 11, lineHeight: 1.45 }}>{caveat}</div>
+                ))}
+              </div>
+            ) : null}
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <button type="button" style={buttonStyle} onClick={onClose}>Cancel</button>

@@ -87,6 +87,26 @@ const primaryButtonStyle: React.CSSProperties = {
   color: MAP_COLORS.interaction,
 };
 
+const footerStyle: React.CSSProperties = {
+  ...sectionStyle,
+  paddingTop: MAP_SPACING.md,
+  borderTop: MAP_STROKES.hairlineSubtle,
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-end",
+  gap: MAP_SPACING.md,
+};
+
+const footerCaveatsStyle: React.CSSProperties = {
+  display: "grid",
+  gap: 4,
+  maxWidth: 460,
+  padding: MAP_SPACING.sm,
+  borderRadius: MAP_RADIUS.sm,
+  border: `1px solid ${MAP_COLORS.focus}`,
+  background: MAP_COLORS.caveat,
+};
+
 const preflightGridStyle: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit, minmax(132px, 1fr))",
@@ -136,6 +156,7 @@ export const MapCsvImportDialog: React.FC<MapCsvImportDialogProps> = ({
     latitudeColumn.length === 0 ||
     longitudeColumn.length === 0 ||
     latitudeColumn === longitudeColumn;
+  const commitCaveats = sourceProfile.caveats.slice(0, 5);
 
   return (
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- overlay click dismiss
@@ -254,12 +275,30 @@ export const MapCsvImportDialog: React.FC<MapCsvImportDialogProps> = ({
             </span>
           </div>
           <div style={preflightCellStyle}>
+            <span style={{ color: MAP_COLORS.textMuted, fontSize: 10, textTransform: "uppercase", letterSpacing: 0 }}>Geometry</span>
+            <span style={{ color: MAP_COLORS.text, fontSize: 14, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
+              {sourceProfile.geometrySummary?.geometryType ?? "Point"}
+            </span>
+            <span style={{ color: MAP_COLORS.textSecondary, fontSize: 11 }}>
+              {sourceProfile.geometrySummary?.notes[0] ?? "Point geometry requires coordinate column review."}
+            </span>
+          </div>
+          <div style={preflightCellStyle}>
             <span style={{ color: MAP_COLORS.textMuted, fontSize: 10, textTransform: "uppercase", letterSpacing: 0 }}>Source Size</span>
             <span style={{ color: MAP_COLORS.text, fontSize: 14, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
               {formatBytes(sourceProfile.sizeBytes)}
             </span>
-            <span style={{ color: sourceProfile.workerReady ? MAP_COLORS.success : MAP_COLORS.textSecondary, fontSize: 11 }}>
-              Worker {sourceProfile.workerReady ? "ready" : "not required"}
+            <span style={{ color: MAP_COLORS.textSecondary, fontSize: 11 }}>
+              Memory estimate: {formatBytes(sourceProfile.estimatedMemoryBytes)}
+            </span>
+          </div>
+          <div style={preflightCellStyle}>
+            <span style={{ color: MAP_COLORS.textMuted, fontSize: 10, textTransform: "uppercase", letterSpacing: 0 }}>Worker Transfer</span>
+            <span style={{ color: sourceProfile.workerReady ? MAP_COLORS.success : MAP_COLORS.text, fontSize: 14, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
+              {sourceProfile.workerReady ? "Ready" : "Not required"}
+            </span>
+            <span style={{ color: MAP_COLORS.textSecondary, fontSize: 11 }}>
+              {sourceProfile.workerReady ? "Prepared for worker-backed handling." : "CSV commit does not stage a worker table."}
             </span>
           </div>
         </div>
@@ -365,27 +404,28 @@ export const MapCsvImportDialog: React.FC<MapCsvImportDialogProps> = ({
           ) : null}
         </div>
 
-        <div
-          style={{
-            ...sectionStyle,
-            paddingTop: MAP_SPACING.md,
-            borderTop: MAP_STROKES.hairlineSubtle,
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: 8,
-          }}
-        >
-          <button type="button" style={buttonStyle} onClick={onClose}>
-            Cancel
-          </button>
-          <button
-            type="button"
-            style={importDisabled ? { ...primaryButtonStyle, opacity: 0.55, cursor: "not-allowed" } : primaryButtonStyle}
-            onClick={onImport}
-            disabled={importDisabled}
-          >
-            Import
-          </button>
+        <div style={footerStyle}>
+          <div style={footerCaveatsStyle} aria-label="CSV commit caveats">
+            <div style={{ color: MAP_COLORS.caveatText, fontSize: 10, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold, textTransform: "uppercase" }}>
+              Commit caveats
+            </div>
+            {commitCaveats.map((caveat) => (
+              <div key={caveat} style={{ color: MAP_COLORS.textSecondary, fontSize: 11, lineHeight: 1.45 }}>{caveat}</div>
+            ))}
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button type="button" style={buttonStyle} onClick={onClose}>
+              Cancel
+            </button>
+            <button
+              type="button"
+              style={importDisabled ? { ...primaryButtonStyle, opacity: 0.55, cursor: "not-allowed" } : primaryButtonStyle}
+              onClick={onImport}
+              disabled={importDisabled}
+            >
+              Import
+            </button>
+          </div>
         </div>
       </div>
     </div>

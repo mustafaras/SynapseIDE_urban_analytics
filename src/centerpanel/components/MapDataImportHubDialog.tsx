@@ -96,10 +96,24 @@ const localFormatSectionStyle: React.CSSProperties = {
 
 const localFormatListStyle: React.CSSProperties = {
   display: "grid",
+  gap: MAP_SPACING.sm,
   border: MAP_STROKES.hairlineSubtle,
   borderRadius: MAP_RADIUS.sm,
+  padding: MAP_SPACING.sm,
   overflow: "hidden",
   background: MAP_COLORS.bg,
+};
+
+const localFormatGroupStyle: React.CSSProperties = {
+  display: "grid",
+  gap: 6,
+};
+
+const localFormatGroupHeaderStyle: React.CSSProperties = {
+  display: "grid",
+  gap: 3,
+  color: MAP_COLORS.textSecondary,
+  fontSize: 11,
 };
 
 const localFormatRowStyle: React.CSSProperties = {
@@ -121,51 +135,80 @@ const localFormatLabelStyle: React.CSSProperties = {
   textTransform: "uppercase",
 };
 
-const LOCAL_FORMATS = [
+const LOCAL_FORMAT_GROUPS = [
   {
-    label: "GeoJSON",
-    extensions: ".geojson, .json",
-    description: "Direct feature publishing with topology validation and extent extraction; CRS is unknown unless declared by trustworthy metadata.",
+    label: "Local vector files",
+    summary: "Committed after modal preflight when the supported local path can produce map features.",
+    formats: [
+      {
+        label: "GeoJSON / JSON",
+        extensions: ".geojson, .json",
+        description: "Direct feature publishing with topology validation and extent extraction; CRS is unknown unless trusted metadata declares it.",
+      },
+      {
+        label: "CSV",
+        extensions: ".csv",
+        description: "Coordinate mapping workflow for point datasets with row preview and skipped-row diagnostics.",
+      },
+      {
+        label: "KML / KMZ / GPX",
+        extensions: ".kml, .kmz, .gpx",
+        description: "Field traces and placemarks are converted without fabricating unsupported constructs or device semantics.",
+      },
+      {
+        label: "Shapefile / GeoPackage",
+        extensions: ".shp, .zip, .gpkg",
+        description: "Shapefile sidecars and GeoPackage layer metadata are used when available; multi-layer packages require a selected layer.",
+      },
+    ],
   },
   {
-    label: "CSV",
-    extensions: ".csv",
-    description: "Coordinate mapping workflow for lat/lon point datasets with row preview and skipped-row diagnostics.",
+    label: "Columnar vector",
+    summary: "Supported with schema preview, memory estimate, and worker-transfer readiness.",
+    formats: [
+      {
+        label: "Arrow / Feather / IPC",
+        extensions: ".arrow, .feather, .ipc",
+        description: "Columnar import with schema preview, row counts, worker transfer, and geometry decoding.",
+      },
+      {
+        label: "GeoParquet / Parquet",
+        extensions: ".geoparquet, .parquet",
+        description: "GeoParquet metadata, CRS declarations, geometry column, quality scoring, and GeoJSON size comparison are surfaced before commit.",
+      },
+    ],
   },
   {
-    label: "Arrow",
-    extensions: ".arrow, .feather, .ipc",
-    description: "Columnar import with schema preview, quality scoring, row counts, worker transfer, and geometry decoding.",
+    label: "External or profile-only",
+    summary: "Profiled or connected without claiming generic local full-file commit support.",
+    formats: [
+      {
+        label: "FlatGeobuf / PMTiles",
+        extensions: ".fgb, .pmtiles",
+        description: "Local uploads remain metadata/profile-oriented; streaming/rendering uses URL, vector-tile, or range-capable source paths.",
+      },
+      {
+        label: "WMS / WFS / XYZ / Overpass",
+        extensions: "service URLs",
+        description: "Use External Services; provider availability, CORS, credentials, rate limits, and attribution remain explicit caveats.",
+      },
+    ],
   },
   {
-    label: "GeoParquet",
-    extensions: ".geoparquet, .parquet",
-    description: "Spatial metadata-aware columnar import with CRS, geometry column, quality scoring, and GeoJSON size comparison.",
-  },
-  {
-    label: "KML / KMZ / GPX",
-    extensions: ".kml, .kmz, .gpx",
-    description: "Interoperability path for field traces, placemarks, and archival map packages without fabricating unsupported constructs.",
-  },
-  {
-    label: "Shapefile",
-    extensions: ".shp, .zip",
-    description: "Supported through Shapefile parsing; zipped sidecars are recommended for CRS and attribute recovery.",
-  },
-  {
-    label: "GeoPackage",
-    extensions: ".gpkg",
-    description: "Supported with layer discovery and per-layer CRS when loader metadata is available; multi-layer packages require a layer choice.",
-  },
-  {
-    label: "FlatGeobuf / PMTiles",
-    extensions: ".fgb, .pmtiles",
-    description: "Metadata/profile-oriented local upload path with streaming readiness notes; not a blanket full-extent local import claim.",
-  },
-  {
-    label: "GeoTIFF",
-    extensions: ".tif, .tiff",
-    description: "Sampled raster rendering with band histogram, no-data handling, CRS caveats, and raster QA rather than full-resolution analytics.",
+    label: "Raster and scene-specific",
+    summary: "Handled by sampled raster or scene workflows, not generic full-resolution vector import.",
+    formats: [
+      {
+        label: "GeoTIFF",
+        extensions: ".tif, .tiff",
+        description: "Sampled raster rendering with band histogram, noData handling, CRS caveats, and raster QA rather than full-resolution analytics.",
+      },
+      {
+        label: "COG / STAC / CityJSON / 3D Tiles",
+        extensions: "catalog or scene paths",
+        description: "Scene and EO sources preserve source metadata, CRS/vertical caveats, and external dependency labels.",
+      },
+    ],
   },
 ] as const;
 
@@ -253,7 +296,7 @@ export const MapDataImportHubDialog: React.FC<MapDataImportHubDialogProps> = ({
           <div style={localFormatSectionStyle}>
             <div>
               <div style={{ color: MAP_COLORS.textMuted, fontSize: 12, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold, marginBottom: 6, textTransform: "uppercase" }}>
-                Local Format Matrix
+                Source Support Matrix
               </div>
               <div style={{ color: MAP_COLORS.textSecondary, fontSize: 12, lineHeight: 1.55 }}>
                 Local files now surface source quality before commit: CRS status, schema, size, skipped rows, license and attribution gaps, and worker readiness.
@@ -262,16 +305,24 @@ export const MapDataImportHubDialog: React.FC<MapDataImportHubDialogProps> = ({
             </div>
 
             <div style={localFormatListStyle}>
-              {LOCAL_FORMATS.map((format) => (
-                <div key={format.label} style={localFormatRowStyle}>
-                  <span style={localFormatLabelStyle}>{format.label}</span>
-                  <div style={{ color: MAP_COLORS.textSecondary, fontSize: 11, fontFamily: MAP_TYPOGRAPHY.fontFamilyMono }}>
-                    {format.extensions}
+              {LOCAL_FORMAT_GROUPS.map((group) => (
+                <section key={group.label} style={localFormatGroupStyle}>
+                  <div style={localFormatGroupHeaderStyle}>
+                    <strong style={{ color: MAP_COLORS.text, fontSize: 11, textTransform: "uppercase" }}>{group.label}</strong>
+                    <span>{group.summary}</span>
                   </div>
-                  <div style={{ color: MAP_COLORS.textMuted, fontSize: 11, lineHeight: 1.55 }}>
-                    {format.description}
-                  </div>
-                </div>
+                  {group.formats.map((format) => (
+                    <div key={format.label} style={localFormatRowStyle}>
+                      <span style={localFormatLabelStyle}>{format.label}</span>
+                      <div style={{ color: MAP_COLORS.textSecondary, fontSize: 11, fontFamily: MAP_TYPOGRAPHY.fontFamilyMono }}>
+                        {format.extensions}
+                      </div>
+                      <div style={{ color: MAP_COLORS.textMuted, fontSize: 11, lineHeight: 1.55 }}>
+                        {format.description}
+                      </div>
+                    </div>
+                  ))}
+                </section>
               ))}
             </div>
           </div>

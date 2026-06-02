@@ -114,10 +114,20 @@ const tableShellStyle: React.CSSProperties = {
 const footerStyle: React.CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
-  alignItems: "center",
+  alignItems: "flex-end",
   gap: 12,
   padding: MAP_SPACING.md,
   borderTop: MAP_STROKES.hairlineSubtle,
+};
+
+const footerCaveatsStyle: React.CSSProperties = {
+  display: "grid",
+  gap: 4,
+  maxWidth: 560,
+  padding: MAP_SPACING.sm,
+  borderRadius: MAP_RADIUS.sm,
+  border: `1px solid ${MAP_COLORS.focus}`,
+  background: MAP_COLORS.caveat,
 };
 
 const buttonStyle: React.CSSProperties = {
@@ -240,6 +250,7 @@ export const MapColumnarImportDialog: React.FC<MapColumnarImportDialogProps> = (
     : session.longitudeColumn && session.latitudeColumn
       ? `${session.longitudeColumn} / ${session.latitudeColumn} (Lon/Lat)`
       : formatLabel(session.geometryEncoding);
+  const commitCaveats = Array.from(new Set([...sourceProfile.caveats, ...session.warnings])).slice(0, 6);
 
   return (
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- overlay click dismiss
@@ -277,7 +288,7 @@ export const MapColumnarImportDialog: React.FC<MapColumnarImportDialogProps> = (
               Review {formatLabelText} Import
             </div>
             <div style={{ color: MAP_COLORS.textSecondary, fontSize: 12, lineHeight: 1.55, maxWidth: 860 }}>
-              {session.fileName} is ready for commit. Inspect the column schema, geometry encoding,
+              {session.fileName} has been profiled for commit. Inspect the column schema, geometry encoding,
               preview rows, and the projected memory footprint before publishing the dataset into the map workspace.
             </div>
           </div>
@@ -510,8 +521,17 @@ export const MapColumnarImportDialog: React.FC<MapColumnarImportDialogProps> = (
         </div>
 
         <div style={footerStyle}>
-          <div style={{ color: MAP_COLORS.textMuted, fontSize: 11, lineHeight: 1.45, maxWidth: 540 }}>
-            Import will publish a standard map layer for visual inspection and a worker-ready Arrow IPC transfer for downstream analytics.
+          <div style={footerCaveatsStyle} aria-label={`${formatLabelText} commit caveats`}>
+            <div style={{ color: MAP_COLORS.caveatText, fontSize: 10, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold, textTransform: "uppercase" }}>
+              Commit caveats
+            </div>
+            {commitCaveats.length > 0 ? commitCaveats.map((caveat) => (
+              <div key={caveat} style={{ color: MAP_COLORS.textSecondary, fontSize: 11, lineHeight: 1.45 }}>{caveat}</div>
+            )) : (
+              <div style={{ color: MAP_COLORS.textSecondary, fontSize: 11, lineHeight: 1.45 }}>
+                Import publishes a standard map layer and a worker-ready Arrow IPC transfer.
+              </div>
+            )}
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <button type="button" style={buttonStyle} onClick={onClose}>Cancel</button>

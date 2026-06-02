@@ -6,6 +6,7 @@ import type {
   ExternalServiceLayerMetadata,
   ImportLayerSourceMetadata,
   LayerCrsSummary,
+  LayerGeometrySummary,
   LayerLicenseAttributionSummary,
   LayerMetadata,
   LayerRenderBudgetMetadata,
@@ -153,6 +154,7 @@ export interface SourceProfile {
   extent?: [number, number, number, number];
   workerReady: boolean;
   crsSummary: LayerCrsSummary;
+  geometrySummary?: LayerGeometrySummary;
   schemaSummary?: LayerSchemaSummary;
   rendering?: LayerRenderBudgetMetadata;
   license: string | null;
@@ -444,6 +446,7 @@ function createProfileLayer(input: {
   format: SourceFormat;
   crsSummary: LayerCrsSummary;
   featureCount: number | null;
+  geometrySummary?: LayerGeometrySummary;
   schemaSummary?: LayerSchemaSummary;
   extent?: [number, number, number, number];
   caveats: readonly string[];
@@ -457,6 +460,7 @@ function createProfileLayer(input: {
     crsSummary: input.crsSummary,
     ...(sourceProfileCanCommit(input.format) ? { importFormat: input.format as ImportLayerSourceMetadata["format"] } : {}),
     ...(input.featureCount != null ? { featureCount: input.featureCount } : {}),
+    ...(input.geometrySummary ? { geometrySummary: input.geometrySummary } : {}),
     ...(input.schemaSummary ? { schemaSummary: input.schemaSummary } : {}),
     ...(input.extent ? { bounds: input.extent } : {}),
     licenseAttribution: {
@@ -504,6 +508,7 @@ function createSourceProfile(input: {
   sizeBytes?: number;
   estimatedMemoryBytes?: number;
   extent?: [number, number, number, number];
+  geometrySummary?: LayerGeometrySummary;
   rendering?: LayerRenderBudgetMetadata;
   workerReady?: boolean;
   caveats?: readonly string[];
@@ -540,6 +545,7 @@ function createSourceProfile(input: {
     ...(input.extent ? { extent: input.extent } : {}),
     workerReady,
     crsSummary: input.sourceHandle.crsSummary,
+    ...(input.geometrySummary ? { geometrySummary: input.geometrySummary } : {}),
     ...(input.sourceHandle.schemaSummary ? { schemaSummary: input.sourceHandle.schemaSummary } : {}),
     ...(input.rendering ? { rendering: input.rendering } : {}),
     license: input.sourceHandle.license ?? null,
@@ -1585,6 +1591,7 @@ function buildImportedLayer(
     ...(sourceHandle.sizeBytes != null ? { sizeBytes: sourceHandle.sizeBytes } : {}),
     estimatedMemoryBytes: rendering.estimatedRenderBytes,
     ...(metadataWithSource.bounds ? { extent: metadataWithSource.bounds } : {}),
+    ...(metadataWithSource.geometrySummary ? { geometrySummary: metadataWithSource.geometrySummary } : {}),
     rendering,
     caveats,
   });
@@ -2050,6 +2057,15 @@ export function profileCsvImportSession(session: CsvImportSession, mapping?: Csv
   const rowCounts = resolvedMapping ? countCsvSpatialRows(session, resolvedMapping) : null;
   const crsSummary = buildProfileCrsSummary({ format: "csv" });
   const schemaSummary = buildCsvProfileSchemaSummary(session, resolvedMapping);
+  const geometrySummary: LayerGeometrySummary = {
+    geometryType: "Point",
+    geometryTypes: ["Point"],
+    featureCount: rowCounts?.importedFeatureCount ?? null,
+    source: "import-source",
+    notes: [resolvedMapping
+      ? `Point geometry will be derived from ${resolvedMapping.longitudeColumn} / ${resolvedMapping.latitudeColumn}.`
+      : "Point geometry is pending distinct latitude and longitude column selection."],
+  };
   const profiledAt = nowIsoTimestamp();
   const caveats = uniqueTextList([
     "CSV point geometry will be derived from latitude/longitude columns; verify coordinate semantics before analysis.",
@@ -2067,6 +2083,7 @@ export function profileCsvImportSession(session: CsvImportSession, mapping?: Csv
     format: "csv",
     crsSummary,
     featureCount: rowCounts?.importedFeatureCount ?? null,
+    geometrySummary,
     schemaSummary,
     caveats,
     profiledAt,
@@ -2094,6 +2111,7 @@ export function profileCsvImportSession(session: CsvImportSession, mapping?: Csv
     ...(rowCounts ? { skippedRecordCount: rowCounts.skippedRecordCount } : {}),
     sizeBytes: session.sourceSizeBytes,
     estimatedMemoryBytes: Math.max(session.sourceSizeBytes, session.totalRows * ESTIMATED_BYTES_PER_FEATURE),
+    geometrySummary,
     caveats,
   });
 }
@@ -2119,6 +2137,7 @@ function profileFeatureCollectionSource(input: Extract<SourceProfileInput, { kin
     format,
     crsSummary,
     featureCount: input.featureCollection.features.length,
+    ...(featureMetadata.geometrySummary ? { geometrySummary: featureMetadata.geometrySummary } : {}),
     ...(featureMetadata.schemaSummary ? { schemaSummary: featureMetadata.schemaSummary } : {}),
     ...(featureMetadata.bounds ? { extent: featureMetadata.bounds } : {}),
     caveats,
@@ -2145,6 +2164,7 @@ function profileFeatureCollectionSource(input: Extract<SourceProfileInput, { kin
     featureCount: input.featureCollection.features.length,
     sizeBytes,
     estimatedMemoryBytes: rendering.estimatedRenderBytes,
+    ...(featureMetadata.geometrySummary ? { geometrySummary: featureMetadata.geometrySummary } : {}),
     ...(featureMetadata.bounds ? { extent: featureMetadata.bounds } : {}),
     rendering,
     caveats,
@@ -3006,6 +3026,14 @@ export function buildGeoTiffImportedRasterLayer(
   const scientificQA = normalizeRasterQa(assessRasterQA(inspection.metadata), rasterCaveats);
   const metadata: LayerMetadata = {
     geometryType: "Raster",
+    geometrySummary: {
+      geometryType: "Raster",
+      geometryTypes: ["Raster"],
+      featureCount: null,
+      source: "import-source",
+      notes: ["GeoTIFF geometry is represented as sampled raster pixels, not vector features."],
+      ...(inspection.metadata.bbox ? { bounds: inspection.metadata.bbox } : {}),
+    },
     ...(inspection.metadata.bbox ? { bounds: inspection.metadata.bbox } : {}),
     fields: inspection.metadata.bands.map((band) => band.label),
     importFormat: "geotiff",
@@ -3094,6 +3122,7 @@ export function buildGeoTiffImportedRasterLayer(
     ...(sourceHandle.sizeBytes != null ? { sizeBytes: sourceHandle.sizeBytes } : {}),
     estimatedMemoryBytes: inspection.bandSamples.reduce((sum, band) => sum + band.samples.byteLength, 0),
     ...(inspection.metadata.bbox ? { extent: inspection.metadata.bbox } : {}),
+    ...(metadataWithSource.geometrySummary ? { geometrySummary: metadataWithSource.geometrySummary } : {}),
     workerReady: true,
     caveats: rasterCaveats,
   });

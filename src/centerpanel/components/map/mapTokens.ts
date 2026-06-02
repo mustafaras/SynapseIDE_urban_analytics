@@ -736,6 +736,7 @@ export const mapStyles = {
   importProgressFill: {
     height: "100%",
     background: MAP_COLORS.interaction,
+    transition: `width var(--gis-motion-duration-progress, ${MAP_MOTION.duration.progress}) var(--gis-motion-easing-progress, ${MAP_MOTION.easing.progress})`,
   } satisfies React.CSSProperties,
 
   navigatorStage: {

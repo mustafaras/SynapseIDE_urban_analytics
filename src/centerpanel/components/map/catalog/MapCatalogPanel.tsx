@@ -37,48 +37,112 @@ export interface MapCatalogPanelProps {
   onOpenExternalServices?: () => void;
 }
 
-const LOCAL_IMPORT_SUPPORT_ROWS = [
+const FORMAT_SUPPORT_GROUPS = [
   {
-    id: "geojson",
-    label: "GeoJSON / JSON",
-    status: "Direct import",
-    detail: "Feature publishing with topology checks; CRS remains unknown unless the source declares trustworthy metadata.",
-  },
-  {
-    id: "csv",
-    label: "CSV",
-    status: "Coordinate preview",
-    detail: "Latitude/longitude mapping, row preview, and skipped-row diagnostics stay visible before commit.",
+    id: "local-vector",
+    label: "Local vector files",
+    summary: "Committed through the modal-owned file picker after source preflight.",
+    rows: [
+      {
+        id: "geojson",
+        label: "GeoJSON / JSON",
+        status: "Direct import",
+        detail: "Feature publishing with topology checks; CRS remains unknown unless trusted metadata declares it.",
+      },
+      {
+        id: "csv",
+        label: "CSV",
+        status: "Coordinate preview",
+        detail: "Latitude/longitude mapping, row preview, and skipped-row diagnostics stay visible before commit.",
+      },
+      {
+        id: "kml-gpx",
+        label: "KML / KMZ / GPX",
+        status: "Vector import",
+        detail: "Placemarks and traces are converted without fabricating unsupported KML constructs or GPX semantics.",
+      },
+      {
+        id: "shapefile",
+        label: "Shapefile .shp / .zip",
+        status: "Supported",
+        detail: ".zip is recommended for sidecars; bare .shp files have limited CRS and attribute recovery.",
+      },
+      {
+        id: "geopackage",
+        label: "GeoPackage .gpkg",
+        status: "Layer choice",
+        detail: "Layer discovery and per-layer CRS are used when loader metadata exposes them; multi-layer packages require selection.",
+      },
+    ],
   },
   {
     id: "columnar",
-    label: "Arrow / GeoParquet",
-    status: "Columnar preview",
-    detail: "Schema, row counts, worker-transfer readiness, and geometry decoding notes are reviewed before map commit.",
+    label: "Columnar vector",
+    summary: "Supported with schema, memory, worker-transfer, and geometry decoding preflight.",
+    rows: [
+      {
+        id: "arrow",
+        label: "Arrow / Feather / IPC",
+        status: "Columnar preview",
+        detail: "Schema, row counts, worker-transfer readiness, and memory estimates are reviewed before map commit.",
+      },
+      {
+        id: "geoparquet",
+        label: "GeoParquet / Parquet",
+        status: "Spatial metadata",
+        detail: "GeoParquet CRS and geometry metadata are copied as declarations and still require suitability review before metric analysis.",
+      },
+    ],
   },
   {
-    id: "kml-gpx",
-    label: "KML / KMZ / GPX",
-    status: "Vector import",
-    detail: "Placemarks and traces are imported without fabricating unsupported KML constructs or GPX semantics.",
+    id: "profile-external",
+    label: "External or profile-only",
+    summary: "Visible in catalog/preflight without claiming generic local full-file commit support.",
+    rows: [
+      {
+        id: "flatgeobuf",
+        label: "FlatGeobuf",
+        status: "Profile-only local",
+        detail: "Local upload remains metadata/profile-oriented; extent streaming is supported for HTTP range-capable URLs.",
+      },
+      {
+        id: "pmtiles",
+        label: "PMTiles",
+        status: "Tile/source metadata",
+        detail: "PMTiles rendering uses vector-tile/source metadata paths; low-zoom generalized geometry is caveated for precision analysis.",
+      },
+      {
+        id: "wms-wfs",
+        label: "WMS / WMTS / XYZ / WFS / Overpass",
+        status: "External path",
+        detail: "Connect through External Services; provider availability, CORS, credentials, rate limits, and attribution stay explicit.",
+      },
+    ],
   },
   {
-    id: "shapefile",
-    label: "Shapefile",
-    status: "Supported",
-    detail: "Use .zip when sidecars are needed; bare .shp files have limited CRS and attribute recovery.",
-  },
-  {
-    id: "geopackage",
-    label: "GeoPackage",
-    status: "Supported",
-    detail: "Layer discovery and per-layer CRS are used when exposed by the loader; multi-layer packages require a selected layer.",
-  },
-  {
-    id: "raster-profile",
-    label: "GeoTIFF / FGB / PMTiles",
-    status: "Partial or sampled",
-    detail: "GeoTIFF renders as a sampled raster; FlatGeobuf and PMTiles local uploads stay metadata/profile-oriented.",
+    id: "raster-scene",
+    label: "Raster and scene-specific",
+    summary: "Supported through bounded raster/scene workflows, not as generic full-resolution vector intake.",
+    rows: [
+      {
+        id: "geotiff",
+        label: "GeoTIFF",
+        status: "Sampled raster",
+        detail: "Generic import renders a bounded sampled raster with CRS, noData, band, histogram, and raster QA caveats.",
+      },
+      {
+        id: "cog-stac",
+        label: "COG / STAC / Sentinel Hub",
+        status: "Toolbox connector",
+        detail: "EO source selection and processing are environment-dependent and record provenance rather than embedding provider data.",
+      },
+      {
+        id: "cityjson-tiles",
+        label: "CityJSON / 3D Tiles",
+        status: "Scene path",
+        detail: "Scene metadata and source handles are supported; CRS, vertical datum, and external payload access remain caveated.",
+      },
+    ],
   },
 ] as const;
 
@@ -294,6 +358,24 @@ export const MapCatalogPanel: React.FC<MapCatalogPanelProps> = ({
     </button>
   );
 
+  const renderImportEntry = (): React.ReactNode => (
+    <section className={styles.importEntry} data-testid="catalog-import-entry" aria-label="Local import intake">
+      <div className={styles.importEntryHeader}>
+        <div>
+          <h3><FolderOpen size={13} /> Local file intake</h3>
+          <p>Browse once, then review format, CRS, geometry, counts, skipped rows, memory, worker readiness, and caveats before commit.</p>
+        </div>
+        <button className={styles.primaryButton} type="button" data-testid="catalog-browse-source" onClick={onBrowseSources}>
+          <FolderOpen size={13} /> Browse Local Files
+        </button>
+      </div>
+      <div className={styles.importEntryMeta}>
+        <span>Hidden file input remains owned by the modal shell.</span>
+        <span>Unsafe/profile-only formats stay blocked until their supported path is used.</span>
+      </div>
+    </section>
+  );
+
   const renderConnectionForm = (): React.ReactNode => (
     <form className={styles.connectionForm} onSubmit={(event) => void submitConnection(event)}>
       <h3><Globe2 size={13} /> New Connection</h3>
@@ -355,14 +437,24 @@ export const MapCatalogPanel: React.FC<MapCatalogPanelProps> = ({
 
   const renderSupportMatrix = (): React.ReactNode => (
     <section className={styles.supportMatrix} data-testid="catalog-local-format-matrix">
-      <h3><Info size={13} /> Local format support</h3>
-      <div className={styles.supportRows}>
-        {LOCAL_IMPORT_SUPPORT_ROWS.map((row) => (
-          <article className={styles.supportRow} key={row.id} data-testid={`catalog-local-format-${row.id}`}>
-            <strong>{row.label}</strong>
-            <span>{row.status}</span>
-            <p>{row.detail}</p>
-          </article>
+      <h3><Info size={13} /> Source support groups</h3>
+      <div className={styles.supportGroups}>
+        {FORMAT_SUPPORT_GROUPS.map((group) => (
+          <div className={styles.supportGroup} key={group.id} data-testid={`catalog-format-group-${group.id}`}>
+            <div className={styles.supportGroupHeader}>
+              <strong>{group.label}</strong>
+              <span>{group.summary}</span>
+            </div>
+            <div className={styles.supportRows}>
+              {group.rows.map((row) => (
+                <article className={styles.supportRow} key={row.id} data-testid={`catalog-local-format-${row.id}`}>
+                  <strong>{row.label}</strong>
+                  <span>{row.status}</span>
+                  <p>{row.detail}</p>
+                </article>
+              ))}
+            </div>
+          </div>
         ))}
       </div>
     </section>
@@ -434,7 +526,6 @@ export const MapCatalogPanel: React.FC<MapCatalogPanelProps> = ({
       return (
         <>
           {renderSourceStats()}
-          {renderBrowseButton()}
           {renderReadinessCounts()}
         </>
       );
@@ -515,6 +606,7 @@ export const MapCatalogPanel: React.FC<MapCatalogPanelProps> = ({
               <p>{sectionCopy.description}</p>
             </header>
           ) : null}
+          {activeSection === "add-data" ? renderImportEntry() : null}
           {activeSection === "add-data" ? renderSupportMatrix() : null}
           {activeSection === "connections" ? renderProviderCaveats() : null}
           {categoryIdsForSection().length > 0 ? (
