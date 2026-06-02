@@ -95,4 +95,21 @@ describe("MapBottomPanel", () => {
     expect(onTabChange).toHaveBeenNthCalledWith(3, "diagnostics");
     expect(onTabChange).toHaveBeenNthCalledWith(4, "problems");
   });
+
+  it("closes with scoped Escape without bubbling to the modal", () => {
+    const onClose = vi.fn();
+    renderBottomPanel({ onClose });
+
+    const panel = host!.querySelector('[data-testid="map-bottom-panel"]')!;
+    const event = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
+    const bubbleListener = vi.fn();
+    document.body.addEventListener("keydown", bubbleListener);
+
+    act(() => panel.dispatchEvent(event));
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(event.defaultPrevented).toBe(true);
+    expect(bubbleListener).not.toHaveBeenCalled();
+    document.body.removeEventListener("keydown", bubbleListener);
+  });
 });

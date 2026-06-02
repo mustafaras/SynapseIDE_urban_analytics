@@ -169,6 +169,31 @@ describe("MapWorkbenchSidebar", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it("closes with scoped Escape without bubbling to the modal", () => {
+    const onClose = vi.fn();
+    render(
+      <MapWorkbenchSidebar
+        title="Layers"
+        tabs={buildActivityTabs()}
+        activeTabId="layers-stack"
+        onTabChange={vi.fn()}
+        onClose={onClose}
+      />,
+    );
+
+    const sidebar = screen.getByTestId("map-workbench-sidebar");
+    const event = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
+    const bubbleListener = vi.fn();
+    document.body.addEventListener("keydown", bubbleListener);
+
+    fireEvent(sidebar, event);
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(event.defaultPrevented).toBe(true);
+    expect(bubbleListener).not.toHaveBeenCalled();
+    document.body.removeEventListener("keydown", bubbleListener);
+  });
+
   it("renders a slim collapsed rail with an expand affordance", () => {
     const onToggleCollapse = vi.fn();
     render(

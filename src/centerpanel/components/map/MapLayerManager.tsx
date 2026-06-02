@@ -2377,8 +2377,7 @@ const LayerRow: React.FC<LayerRowProps> = ({
       onDragOver={onDragOver}
       onDrop={(e) => onDrop(e, layer.id)}
       onDragEnd={onDragEnd}
-      role="option"
-      aria-selected={false}
+      role="listitem"
       aria-label={`Layer: ${layer.name}`}
       tabIndex={0}
       onKeyDown={(event) => {

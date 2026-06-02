@@ -105,6 +105,34 @@ function buildActivityButtonStyle(active: boolean): React.CSSProperties {
   };
 }
 
+function handleActivityRailKeyDown(event: React.KeyboardEvent<HTMLElement>): void {
+  const isForward = event.key === "ArrowDown" || event.key === "ArrowRight";
+  const isBackward = event.key === "ArrowUp" || event.key === "ArrowLeft";
+  const isBoundary = event.key === "Home" || event.key === "End";
+  if (!isForward && !isBackward && !isBoundary) {
+    return;
+  }
+
+  const buttons = Array.from(
+    event.currentTarget.querySelectorAll<HTMLButtonElement>('button[data-gis-icon-button="true"]:not(:disabled)'),
+  );
+  if (buttons.length === 0) {
+    return;
+  }
+
+  const currentIndex = buttons.findIndex((button) => button === event.target);
+  const nextIndex = event.key === "Home"
+    ? 0
+    : event.key === "End"
+      ? buttons.length - 1
+      : isForward
+        ? (Math.max(currentIndex, 0) + 1) % buttons.length
+        : (currentIndex <= 0 ? buttons.length - 1 : currentIndex - 1);
+
+  event.preventDefault();
+  buttons[nextIndex]?.focus();
+}
+
 export const MapActivityRail: React.FC<MapActivityRailProps> = ({
   items,
   bottomItems,
@@ -116,6 +144,7 @@ export const MapActivityRail: React.FC<MapActivityRailProps> = ({
     aria-label={ariaLabel}
     data-testid={testId ?? "map-activity-rail"}
     data-map-activity-rail="true"
+    onKeyDown={handleActivityRailKeyDown}
     style={{ ...activityRailStyle, ...style }}
   >
     {items.map((item) => (
@@ -377,6 +406,12 @@ const workspaceFocusCss = `
     color: CanvasText !important;
     background: Canvas !important;
     border-color: CanvasText !important;
+  }
+  [data-map-explorer-shell="true"] [data-gis-icon-button="true"][aria-pressed="true"] {
+    outline: 1px solid Highlight !important;
+  }
+  [data-map-explorer-shell="true"] [data-status="blocked"] {
+    border-width: 2px !important;
   }
   [data-map-explorer-shell="true"] [data-status="demo"],
   [data-map-explorer-shell="true"] [data-status="synthetic"] {

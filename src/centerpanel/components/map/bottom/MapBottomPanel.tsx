@@ -368,6 +368,13 @@ export function MapBottomPanel({
       aria-label="Map bottom panel"
       data-testid="map-bottom-panel"
       data-active-bottom-tab={activeTab.id}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          event.stopPropagation();
+          onClose();
+        }
+      }}
     >
       <header style={headerStyle}>
         <div style={tabListStyle} role="tablist" aria-label="Map bottom panel tabs">

@@ -539,7 +539,7 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
     await expect(page.getByTestId("map-contents-tree")).toBeVisible();
     await openSidebarTab(page, "layers-stack");
 
-    const seededLayerRow = page.getByRole("option", { name: /Layer: E2E Istanbul WGS84 Points/i });
+    const seededLayerRow = page.getByRole("listitem", { name: /Layer: E2E Istanbul WGS84 Points/i });
     await expect(seededLayerRow).toBeVisible();
     await triggerDomClick(seededLayerRow.getByTestId("map-layer-inspect-trigger"));
     await expect(page.getByTestId("map-inspector-host")).toBeVisible();
@@ -934,7 +934,7 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
     await openMapExplorer(page);
     await seedWorkflowMissingCrsLayer(page);
 
-    const row = page.getByRole("option", { name: /Layer: E2E Missing CRS Polygons/i });
+    const row = page.getByRole("listitem", { name: /Layer: E2E Missing CRS Polygons/i });
     await expect(row).toBeVisible();
     await expect(row).toContainText("CRS missing");
 
@@ -1173,7 +1173,7 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
     await expect(layerList).toContainText("E2E Inspector Points");
 
     // Inspect the known layer: Schema lists `value`, CRS shows EPSG:4326.
-    const pointsRow = page.getByRole("option", { name: /Layer: E2E Inspector Points/i });
+    const pointsRow = page.getByRole("listitem", { name: /Layer: E2E Inspector Points/i });
     await triggerDomClick(pointsRow.getByTestId("map-layer-inspect-trigger"));
     const inspectorHost = page.getByTestId("map-inspector-host");
     await expect(inspectorHost).toBeVisible();
@@ -1194,7 +1194,7 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
     await expect(inspectorHost).toBeHidden();
 
     // The missing-CRS layer shows CRS as `missing`, never a blank.
-    const missingRow = page.getByRole("option", { name: /Layer: E2E Inspector Missing/i });
+    const missingRow = page.getByRole("listitem", { name: /Layer: E2E Inspector Missing/i });
     await triggerDomClick(missingRow.getByTestId("map-layer-inspect-trigger"));
     await triggerDomClick(page.getByTestId("map-layer-inspector").getByTestId("map-layer-inspector-tab-crs"));
     await expect(page.getByTestId("map-layer-inspector-panel-crs")).toContainText("missing");
@@ -1209,7 +1209,7 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
     const layerList = page.getByRole("list", { name: "Layer list" });
     await expect(layerList).toContainText("E2E Attribute Points");
 
-    const row = page.getByRole("option", { name: /Layer: E2E Attribute Points/i });
+    const row = page.getByRole("listitem", { name: /Layer: E2E Attribute Points/i });
     await triggerDomClick(row.getByTestId("map-layer-table-trigger"));
 
     const table = page.getByTestId("map-attribute-table");
@@ -1239,7 +1239,7 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
     await openMapExplorer(page);
     await seedAttributeTableLayer(page);
 
-    const row = page.getByRole("option", { name: /Layer: E2E Attribute Points/i });
+    const row = page.getByRole("listitem", { name: /Layer: E2E Attribute Points/i });
     await triggerDomClick(row.getByTestId("map-layer-table-trigger"));
 
     const table = page.getByTestId("map-attribute-table");

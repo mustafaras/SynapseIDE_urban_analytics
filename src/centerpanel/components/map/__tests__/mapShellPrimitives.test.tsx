@@ -71,6 +71,9 @@ describe("GisIconButton", () => {
     const btn = screen.getByRole("button", { name: "Export" });
     expect(btn.getAttribute("data-disabled-reason")).toBe("No layers selected");
     expect(btn.getAttribute("title")).toBe("No layers selected");
+    const describedBy = btn.getAttribute("aria-describedby");
+    expect(describedBy).toBeTruthy();
+    expect(document.getElementById(describedBy!)?.textContent).toContain("No layers selected");
   });
 
   it("is disabled when disabled=true", () => {
@@ -112,6 +115,14 @@ describe("MapActivityRail", () => {
     render(<MapActivityRail items={items} aria-label="Map activity" />);
     const btn = screen.getByRole("button", { name: "Settings" });
     expect(btn.getAttribute("data-disabled-reason")).toBe("Not available in demo mode");
+  });
+
+  it("supports arrow-key traversal across enabled rail items", () => {
+    render(<MapActivityRail items={items} aria-label="Map activity" />);
+    const layers = screen.getByRole("button", { name: "Layers" });
+    layers.focus();
+    layers.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, cancelable: true }));
+    expect(document.activeElement).toBe(layers);
   });
 });
 
@@ -277,6 +288,9 @@ describe("GisTabs", () => {
     );
     const crsTab = screen.getByRole("tab", { name: "CRS" });
     expect(crsTab.getAttribute("data-disabled-reason")).toBe("No CRS detected");
+    const describedBy = crsTab.getAttribute("aria-describedby");
+    expect(describedBy).toBeTruthy();
+    expect(document.getElementById(describedBy!)?.textContent).toContain("No CRS detected");
   });
 });
 

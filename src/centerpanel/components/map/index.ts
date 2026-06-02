@@ -95,6 +95,14 @@ export { useFocusTrap } from "./useFocusTrap";
 export { useMapKeyboardControls } from "./useMapKeyboardControls";
 export { useAnnouncer } from "./useAnnouncer";
 export { useLayerSync } from "./useLayerSync";
+export {
+  MAP_ACCESSIBILITY_INTERACTION_MATRIX,
+  getMapAccessibilityInteractionRule,
+} from "./mapAccessibilityMatrix";
+export type {
+  MapAccessibilityInteractionRule,
+  MapAccessibilitySurface,
+} from "./mapAccessibilityMatrix";
 
 export type {
   BaseLayerId,

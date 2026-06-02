@@ -13,6 +13,7 @@ import {
   MAP_TEXT_STYLES,
   MAP_TRANSITIONS,
   MAP_TYPOGRAPHY,
+  mapStyles,
 } from "../mapTokens";
 
 export interface GisTab {
@@ -95,6 +96,7 @@ export const GisTabs: React.FC<GisTabsProps> = ({
   tabTestIdPrefix,
 }) => {
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const disabledReasonBaseId = React.useId();
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLButtonElement>, currentIdx: number) => {
@@ -133,29 +135,41 @@ export const GisTabs: React.FC<GisTabsProps> = ({
       style={{ display: "flex", flexDirection: "column", minHeight: 0, ...style }}
     >
       <div role="tablist" aria-label={ariaLabel} style={tabListStyle}>
-        {tabs.map((tab, idx) => (
-          <button
-            key={tab.id}
-            ref={(el) => { tabRefs.current[idx] = el; }}
-            role="tab"
-            id={`gis-tab-${tab.id}`}
-            aria-controls={`gis-tabpanel-${tab.id}`}
-            aria-selected={activeId === tab.id}
-            aria-disabled={tab.disabled}
-            disabled={tab.disabled}
-            title={tab.disabled && tab.disabledReason ? tab.disabledReason : tab.label}
-            data-disabled-reason={tab.disabled && tab.disabledReason ? tab.disabledReason : undefined}
-            data-gis-tab="true"
-            data-testid={tabTestIdPrefix ? `${tabTestIdPrefix}-${tab.id}` : undefined}
-            tabIndex={activeId === tab.id ? 0 : -1}
-            style={buildTabStyle(activeId === tab.id, tab.disabled)}
-            onClick={() => { if (!tab.disabled) onTabChange(tab.id); }}
-            onKeyDown={(e) => handleKeyDown(e, idx)}
-          >
-            {tab.icon}
-            {tab.label}
-          </button>
-        ))}
+        {tabs.map((tab, idx) => {
+          const disabledReasonId = tab.disabled && tab.disabledReason
+            ? `${disabledReasonBaseId}-${tab.id}-disabled-reason`
+            : undefined;
+          return (
+            <button
+              key={tab.id}
+              ref={(el) => { tabRefs.current[idx] = el; }}
+              role="tab"
+              id={`gis-tab-${tab.id}`}
+              aria-controls={`gis-tabpanel-${tab.id}`}
+              aria-label={tab.label}
+              aria-selected={activeId === tab.id}
+              aria-disabled={tab.disabled}
+              aria-describedby={disabledReasonId}
+              disabled={tab.disabled}
+              title={tab.disabled && tab.disabledReason ? tab.disabledReason : tab.label}
+              data-disabled-reason={tab.disabled && tab.disabledReason ? tab.disabledReason : undefined}
+              data-gis-tab="true"
+              data-testid={tabTestIdPrefix ? `${tabTestIdPrefix}-${tab.id}` : undefined}
+              tabIndex={activeId === tab.id ? 0 : -1}
+              style={buildTabStyle(activeId === tab.id, tab.disabled)}
+              onClick={() => { if (!tab.disabled) onTabChange(tab.id); }}
+              onKeyDown={(e) => handleKeyDown(e, idx)}
+            >
+              {tab.icon}
+              {tab.label}
+              {disabledReasonId ? (
+                <span id={disabledReasonId} style={mapStyles.srOnly}>
+                  Disabled: {tab.disabledReason}
+                </span>
+              ) : null}
+            </button>
+          );
+        })}
       </div>
       <div
         role="tabpanel"

@@ -63,6 +63,62 @@ async function openIdeTerminal(page: Page) {
   return shellSelect;
 }
 
+async function seedPrompt20Layer(page: Page) {
+  await page.evaluate(async () => {
+    const module = await import("/src/stores/useMapExplorerStore.ts");
+    const featureCollection = {
+      type: "FeatureCollection" as const,
+      features: [
+        {
+          type: "Feature" as const,
+          id: "prompt-20-parcel-1",
+          geometry: {
+            type: "Polygon" as const,
+            coordinates: [[
+              [28.98, 41.0],
+              [29.01, 41.0],
+              [29.01, 41.03],
+              [28.98, 41.03],
+              [28.98, 41.0],
+            ]],
+          },
+          properties: { name: "Prompt 20 keyboard parcel", value: 7 },
+        },
+      ],
+    };
+
+    module.useMapExplorerStore.getState().addOverlayLayer({
+      id: "e2e-prompt-20-keyboard-layer",
+      name: "E2E Prompt 20 Keyboard Layer",
+      type: "geojson",
+      visible: true,
+      opacity: 0.86,
+      group: "data",
+      sourceKind: "imported",
+      queryable: true,
+      sourceData: featureCollection,
+      metadata: {
+        geometryType: "Polygon",
+        featureCount: featureCollection.features.length,
+        fields: ["name", "value"],
+        bounds: [28.98, 41.0, 29.01, 41.03],
+      },
+    });
+  });
+}
+
+async function openMapExplorerFromStore(page: Page) {
+  await page.evaluate(async () => {
+    const module = await import("/src/stores/useMapExplorerStore.ts");
+    module.useMapExplorerStore.getState().open();
+  });
+
+  const mapExplorer = page.getByRole("dialog", { name: "Map Explorer" }).first();
+  await expect(mapExplorer).toBeVisible();
+  await expect(page.getByTestId("map-canvas-region")).toBeVisible();
+  return mapExplorer;
+}
+
 test.describe("Prompt 40 shell focus hardening @a11y", () => {
   test.beforeEach(async ({ page }) => {
     await page.setViewportSize({ width: 1680, height: 1100 });
@@ -134,6 +190,81 @@ test.describe("Prompt 03 Map Explorer accessibility @a11y", () => {
 
     await page.keyboard.press("Escape");
     await expect(mapExplorer).toBeHidden();
+  });
+});
+
+test.describe("Prompt 20 Map Explorer accessibility matrix @a11y", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.setViewportSize({ width: 1680, height: 1100 });
+    await resetWorkbenchState(page);
+  });
+
+  test("keyboard-only path reaches import, inspect, QA, and command palette with scoped Escape", async ({ page }) => {
+    await seedPrompt20Layer(page);
+    const mapExplorer = await openMapExplorerFromStore(page);
+
+    const dataActivity = mapExplorer.getByTestId("activity-btn-data");
+    await dataActivity.focus();
+    await expect(dataActivity).toBeFocused();
+    await page.keyboard.press("Enter");
+
+    const browseSource = mapExplorer.getByTestId("catalog-browse-source");
+    await expect(browseSource).toBeVisible();
+    await browseSource.focus();
+    await page.keyboard.press("Enter");
+
+    const importHub = page.getByRole("dialog", { name: "Spatial data import hub" });
+    await expect(importHub).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(importHub).toBeHidden();
+    await expect(mapExplorer).toBeVisible();
+
+    const layersActivity = mapExplorer.getByTestId("activity-btn-layers");
+    await layersActivity.focus();
+    await page.keyboard.press("Enter");
+
+    const inspectLayer = mapExplorer.getByTestId("map-layer-inspect-trigger").first();
+    await expect(inspectLayer).toBeVisible();
+    await inspectLayer.focus();
+    await page.keyboard.press("Enter");
+
+    const inspector = mapExplorer.getByTestId("map-inspector-host");
+    await expect(inspector).toBeVisible();
+    await expect(inspector).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(inspector).toBeHidden();
+    await expect(inspectLayer).toBeFocused();
+
+    const qaActivity = mapExplorer.getByTestId("activity-btn-qa");
+    await qaActivity.focus();
+    await page.keyboard.press("Enter");
+
+    const bottomPanel = mapExplorer.getByTestId("map-bottom-panel");
+    await expect(bottomPanel).toBeVisible();
+    const problemsTab = mapExplorer.getByTestId("map-bottom-tab-problems");
+    await problemsTab.focus();
+    await page.keyboard.press("ArrowRight");
+    await expect(mapExplorer.getByTestId("map-bottom-tab-attributes")).toHaveAttribute("aria-selected", "true");
+    await page.keyboard.press("Escape");
+    await expect(bottomPanel).toBeHidden();
+    await expect(qaActivity).toBeFocused();
+
+    const paletteButton = mapExplorer.getByTestId("map-toolbar-command-command-palette");
+    await paletteButton.focus();
+    await page.keyboard.press("Enter");
+
+    const palette = page.getByRole("dialog", { name: "Map command palette" });
+    await expect(palette).toBeVisible();
+    await palette.getByLabel("Search map commands").fill("qa");
+    await page.keyboard.press("Escape");
+    await expect(palette).toBeHidden();
+    await expect(mapExplorer).toBeVisible();
+    await expect(paletteButton).toBeFocused();
+
+    await page.emulateMedia({ forcedColors: "active" });
+    await expect(layersActivity).toHaveAttribute("aria-pressed", "true");
+    await page.emulateMedia({ forcedColors: "none" });
+    await expectNoAxeViolations(page, '[role="dialog"][aria-labelledby="map-explorer-title"]', "serious");
   });
 });
 

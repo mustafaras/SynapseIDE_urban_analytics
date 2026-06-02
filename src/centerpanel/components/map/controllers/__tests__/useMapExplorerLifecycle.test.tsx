@@ -72,4 +72,18 @@ describe("useMapExplorerLifecycle", () => {
 
     expect(onClose).toHaveBeenCalledTimes(1);
   });
+
+  it("does not close the modal when an inner layer already handled Escape", () => {
+    const onClose = vi.fn();
+
+    act(() => {
+      root.render(<Harness open onClose={onClose} />);
+    });
+
+    const event = new KeyboardEvent("keydown", { key: "Escape", cancelable: true });
+    event.preventDefault();
+    window.dispatchEvent(event);
+
+    expect(onClose).not.toHaveBeenCalled();
+  });
 });

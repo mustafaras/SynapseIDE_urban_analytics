@@ -10,6 +10,7 @@ import {
   MAP_ICON_SIZES,
   MAP_RADIUS,
   MAP_TRANSITIONS,
+  mapStyles,
 } from "../mapTokens";
 import motionStyles from "../design/motion.module.css";
 
@@ -89,8 +90,13 @@ export const GisIconButton = React.forwardRef<
     },
     ref,
   ) => {
+    const { "aria-describedby": ariaDescribedBy, ...buttonProps } = props;
     const { dimension } = SIZE_MAP[size];
+    const disabledReasonId = React.useId();
     const computedStyle = buildButtonStyle(active, variant, disabled, dimension);
+    const describedBy = disabled && disabledReason
+      ? [ariaDescribedBy, disabledReasonId].filter(Boolean).join(" ")
+      : ariaDescribedBy;
 
     const disabledProps =
       disabled && disabledReason
@@ -99,13 +105,14 @@ export const GisIconButton = React.forwardRef<
 
     return (
       <button
-        {...props}
+        {...buttonProps}
         {...disabledProps}
         ref={ref}
         type="button"
         data-gis-icon-button="true"
         aria-label={label}
         aria-pressed={active}
+        aria-describedby={describedBy || undefined}
         disabled={disabled}
         style={{ ...computedStyle, ...style }}
       >
@@ -126,6 +133,11 @@ export const GisIconButton = React.forwardRef<
           />
         ) : null}
         {icon}
+        {disabled && disabledReason ? (
+          <span id={disabledReasonId} style={mapStyles.srOnly}>
+            Disabled: {disabledReason}
+          </span>
+        ) : null}
       </button>
     );
   },

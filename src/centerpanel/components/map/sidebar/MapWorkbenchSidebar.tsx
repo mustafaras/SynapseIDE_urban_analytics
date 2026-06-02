@@ -245,6 +245,13 @@ export const MapWorkbenchSidebar: React.FC<MapWorkbenchSidebarProps> = ({
       data-active-tab={resolvedActiveId}
       aria-label={`${title} sidebar`}
       style={{ ...shellBaseStyle, width, maxWidth: "100%", ...style }}
+      onKeyDown={(event) => {
+        if (event.key === "Escape" && onClose) {
+          event.preventDefault();
+          event.stopPropagation();
+          onClose();
+        }
+      }}
     >
       <div style={headerStyle}>
         <div style={titleWrapStyle}>

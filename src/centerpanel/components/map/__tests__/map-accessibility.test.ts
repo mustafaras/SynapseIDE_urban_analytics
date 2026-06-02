@@ -521,3 +521,30 @@ describe("reduced motion — matchMedia support", () => {
     expect(typeof mod.usePrefersReducedMotion).toBe("function");
   });
 });
+
+describe("Prompt 20 accessibility interaction matrix", () => {
+  it("covers every required keyboard, focus, Escape, contrast, and motion surface", async () => {
+    const { MAP_ACCESSIBILITY_INTERACTION_MATRIX } = await import("../mapAccessibilityMatrix");
+    const surfaces = new Set(MAP_ACCESSIBILITY_INTERACTION_MATRIX.map((rule) => rule.surface));
+
+    expect(surfaces).toEqual(new Set([
+      "activity-rail",
+      "command-center",
+      "sidebar",
+      "inspector",
+      "bottom-panel",
+      "canvas",
+      "escape-scope",
+      "disabled-reason",
+      "high-contrast",
+      "reduced-motion",
+    ]));
+  });
+
+  it("keeps the matrix as lightweight UI metadata", async () => {
+    const { MAP_ACCESSIBILITY_INTERACTION_MATRIX, getMapAccessibilityInteractionRule } = await import("../mapAccessibilityMatrix");
+
+    expect(getMapAccessibilityInteractionRule("scoped-escape-stack")?.escapeRule).toContain("before the modal closes");
+    expect(JSON.stringify(MAP_ACCESSIBILITY_INTERACTION_MATRIX)).not.toMatch(/FeatureCollection|sourceData|coordinates|geometry/i);
+  });
+});

@@ -1416,6 +1416,17 @@ function waitForMapCanvasCaptureMode(): Promise<void> {
   });
 }
 
+function restoreFocusToElement(element: HTMLElement | null): void {
+  if (!element || !element.isConnected) {
+    return;
+  }
+  window.requestAnimationFrame(() => {
+    if (element.isConnected) {
+      element.focus({ preventScroll: true });
+    }
+  });
+}
+
 const MAP_RENDER_ERROR_NOTICE_COOLDOWN_MS = 60_000;
 const MAP_QUOTA_WARNING_NOTICE_COOLDOWN_MS = 5 * 60_000;
 const MAP_AUTOSAVE_ERROR_NOTICE_COOLDOWN_MS = 2 * 60_000;
@@ -1625,8 +1636,14 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const [showComparisonStrip, setShowComparisonStrip] = useState(false);
   const [bottomPanelOpen, setBottomPanelOpen] = useState(false);
   const [activeBottomPanelTab, setActiveBottomPanelTab] = useState<MapBottomPanelCoreTabId>("problems");
+  const bottomPanelReturnFocusRef = useRef<HTMLElement | null>(null);
 
   const openBottomPanelTab = useCallback((tabId: MapBottomPanelCoreTabId, announcement?: string) => {
+    if (!bottomPanelOpen && typeof document !== "undefined") {
+      const activeElement = document.activeElement;
+      bottomPanelReturnFocusRef.current = activeElement instanceof HTMLElement ? activeElement : null;
+    }
+
     if (workspaceView === "navigator") {
       setWorkspaceView("explore");
     }
@@ -1647,12 +1664,13 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     }
 
     announce(announcement ?? `${tabId.charAt(0).toUpperCase()}${tabId.slice(1)} bottom panel opened`);
-  }, [announce, workspaceView]);
+  }, [announce, bottomPanelOpen, workspaceView]);
 
   const closeBottomPanel = useCallback(() => {
     setBottomPanelOpen(false);
     setShowReviewTimeline(false);
     announce("Bottom panel closed");
+    restoreFocusToElement(bottomPanelReturnFocusRef.current);
   }, [announce]);
 
   const toggleBottomPanelTab = useCallback((tabId: MapBottomPanelCoreTabId, announcement?: string) => {
@@ -3320,6 +3338,14 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     }
     announce(`Map workspace switched to ${view}`);
   }, [activeActivityId, announce]);
+
+  const focusActiveActivityButton = useCallback(() => {
+    if (typeof document === "undefined") {
+      return;
+    }
+    const target = document.querySelector<HTMLElement>(`[data-testid="activity-btn-${activeActivityId}"]`);
+    restoreFocusToElement(target);
+  }, [activeActivityId]);
 
   const focusInteractiveMapCanvas = useCallback(() => {
     const focusCanvas = () => {
@@ -8892,6 +8918,13 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
           onDrop={(event) => {
             void handleDrop(event);
           }}
+          onKeyDown={(event) => {
+            if (event.key === "Escape" && (activeTool || activeDrawTool || activeMeasureTool)) {
+              event.preventDefault();
+              event.stopPropagation();
+              handleClearActiveCanvasTool();
+            }
+          }}
         >
           {isDragActive ? (
             <div
@@ -9192,6 +9225,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
                       setShowLayerPanel(false);
                       setWorkflowPreview(null);
                       announce("Analyze workspace closed");
+                      focusActiveActivityButton();
                     }}
                     width="100%"
                   />
@@ -9209,6 +9243,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
                     onClose={() => {
                       setShowLayerPanel(false);
                       announce("Style workspace closed");
+                      focusActiveActivityButton();
                     }}
                     width="100%"
                   />
@@ -9230,6 +9265,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
                       setShowLayerPanel(false);
                       setShowVoxCityOverlay(false);
                       announce("Scene workspace closed");
+                      focusActiveActivityButton();
                     }}
                     width="100%"
                   />
@@ -9249,6 +9285,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
                       setShowLayerPanel(false);
                       setShowFigureComposer(false);
                       announce("Publish workspace closed");
+                      focusActiveActivityButton();
                     }}
                     width="100%"
                   />
@@ -9263,6 +9300,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
                     onClose={() => {
                       setShowLayerPanel(false);
                       announce("Workbench sidebar closed");
+                      focusActiveActivityButton();
                     }}
                     width="100%"
                   />

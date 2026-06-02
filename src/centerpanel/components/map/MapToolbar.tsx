@@ -2018,6 +2018,15 @@ function CommandPalette({
       first.focus();
     }
   };
+  const handleDialogKeyDown = (event: React.KeyboardEvent<HTMLDivElement>): void => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      event.stopPropagation();
+      onClose();
+      return;
+    }
+    trapTabFocus(event);
+  };
   const runShortcutLabel = formatMapKeybinding("runSelected");
 
   return (
@@ -2030,7 +2039,7 @@ function CommandPalette({
         aria-modal="true"
         aria-label="Map command palette"
         data-testid="map-command-palette"
-        onKeyDown={trapTabFocus}
+        onKeyDown={handleDialogKeyDown}
       >
         <input
           ref={inputRef}
@@ -2040,6 +2049,7 @@ function CommandPalette({
           onKeyDown={(event) => {
             if (event.key === "Escape") {
               event.preventDefault();
+              event.stopPropagation();
               onClose();
             }
             if (event.key === "ArrowDown") {
@@ -2295,14 +2305,16 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
         setOpenMenu(null);
         return;
       }
-      if (event.key === "Escape") {
+      if (event.key === "Escape" && (paletteOpen || openMenu)) {
+        event.preventDefault();
+        event.stopPropagation();
         setOpenMenu(null);
         setPaletteOpen(false);
       }
     };
     window.addEventListener("keydown", handleKeyDown, { capture: true });
     return () => window.removeEventListener("keydown", handleKeyDown, { capture: true });
-  }, [canRedoMapAction, canUndoMapAction, onRedoMapAction, onUndoMapAction]);
+  }, [canRedoMapAction, canUndoMapAction, onRedoMapAction, onUndoMapAction, openMenu, paletteOpen]);
 
   const handleTaskLensChange = React.useCallback((nextTaskLens: MapTaskLensId) => {
     setStoredTaskLens(nextTaskLens);

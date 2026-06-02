@@ -176,6 +176,17 @@ export const MapDataImportHubDialog: React.FC<MapDataImportHubDialogProps> = ({
   onBrowseLocalFiles,
   onLoadDataset,
 }) => {
+  const dialogRef = React.useRef<HTMLDivElement | null>(null);
+
+  React.useEffect(() => {
+    if (!open) {
+      return;
+    }
+    window.requestAnimationFrame(() => {
+      dialogRef.current?.focus({ preventScroll: true });
+    });
+  }, [open]);
+
   if (!open) {
     return null;
   }
@@ -190,7 +201,21 @@ export const MapDataImportHubDialog: React.FC<MapDataImportHubDialogProps> = ({
         }
       }}
     >
-      <div style={dialogStyle} role="dialog" aria-modal="true" aria-label="Spatial data import hub">
+      <div
+        ref={dialogRef}
+        style={dialogStyle}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Spatial data import hub"
+        tabIndex={-1}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            event.stopPropagation();
+            onClose();
+          }
+        }}
+      >
         <div style={headerStyle}>
           <div>
             <div
