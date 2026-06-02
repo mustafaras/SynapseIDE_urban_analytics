@@ -40,6 +40,12 @@ import {
   MapWorkspaceShell,
 } from "@/centerpanel/components/map/MapWorkspaceShell";
 import { MapInspectorHost } from "@/centerpanel/components/map/inspector";
+import { MAP_SHELL_DIMENSIONS } from "@/centerpanel/components/map/mapTokens";
+import {
+  MAP_PRIMARY_ACTIVITY_ORDER,
+  MAP_SURFACE_INVENTORY,
+  MAP_UTILITY_ACTIVITY_ORDER,
+} from "@/centerpanel/components/map/navigation";
 
 afterEach(() => cleanup());
 
@@ -61,6 +67,18 @@ describe("GisIconButton", () => {
     );
     const btn = screen.getByRole("button", { name: "Inspect" });
     expect(btn.getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("keeps the accessible name separate from the polished tooltip", () => {
+    render(
+      <GisIconButton
+        label="Layers activity"
+        tooltip="Layers: manage visibility, order, and inspection"
+        icon={<Layers size={14} />}
+      />,
+    );
+    const btn = screen.getByRole("button", { name: "Layers activity" });
+    expect(btn.getAttribute("title")).toBe("Layers: manage visibility, order, and inspection");
   });
 
   it("exposes disabledReason via data-disabled-reason and title when disabled", () => {
@@ -108,6 +126,7 @@ describe("GisIconButton", () => {
     expect(btn.getAttribute("data-gis-icon-button-variant")).toBe("rail");
     expect((btn as HTMLButtonElement).style.width).toBe("2.25rem");
     expect((btn as HTMLButtonElement).style.height).toBe("2.25rem");
+    expect(btn.querySelector('[data-gis-active-accent="rail"]')).toBeTruthy();
   });
 });
 
@@ -147,6 +166,15 @@ describe("MapActivityRail", () => {
     expect(nav).toBeDefined();
   });
 
+  it("keeps a stable rail width with hidden overflow", () => {
+    render(<MapActivityRail items={items} aria-label="Map activity" />);
+    const nav = screen.getByRole("navigation", { name: "Map activity" });
+    expect((nav as HTMLElement).style.width).toBe(MAP_SHELL_DIMENSIONS.activityRailWidth);
+    expect((nav as HTMLElement).style.minWidth).toBe(MAP_SHELL_DIMENSIONS.activityRailWidth);
+    expect((nav as HTMLElement).style.maxWidth).toBe(MAP_SHELL_DIMENSIONS.activityRailWidth);
+    expect((nav as HTMLElement).style.overflow).toBe("hidden");
+  });
+
   it("renders all item buttons with accessible names", () => {
     render(<MapActivityRail items={items} aria-label="Map activity" />);
     expect(screen.getByRole("button", { name: "Layers" })).toBeDefined();
@@ -159,12 +187,82 @@ describe("MapActivityRail", () => {
     expect(btn.getAttribute("data-disabled-reason")).toBe("Not available in demo mode");
   });
 
+  it("marks the active activity without relying on color alone", () => {
+    render(
+      <MapActivityRail
+        items={[
+          {
+            id: "overview",
+            label: "Overview",
+            ariaLabel: "Overview activity",
+            tooltip: "Overview: current map status, context, and next action",
+            icon: <Layers size={14} />,
+            active: true,
+          },
+        ]}
+        aria-label="Map activity"
+      />,
+    );
+    const btn = screen.getByRole("button", { name: "Overview activity" });
+    expect(btn.getAttribute("title")).toBe("Overview: current map status, context, and next action");
+    expect(btn.getAttribute("aria-current")).toBe("page");
+    expect(btn.getAttribute("data-map-activity-label")).toBe("Overview");
+    expect(btn.getAttribute("data-map-activity-state")).toBe("active");
+    const accent = btn.querySelector<HTMLElement>('[data-gis-active-accent="rail"]');
+    expect(accent).toBeTruthy();
+    expect(accent?.style.width).toBe("3px");
+  });
+
   it("supports arrow-key traversal across enabled rail items", () => {
     render(<MapActivityRail items={items} aria-label="Map activity" />);
     const layers = screen.getByRole("button", { name: "Layers" });
     layers.focus();
     layers.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, cancelable: true }));
     expect(document.activeElement).toBe(layers);
+  });
+});
+
+/* ================================================================== */
+/*  Prompt 26 rail taxonomy                                             */
+/* ================================================================== */
+describe("Prompt 26 activity rail taxonomy", () => {
+  it("keeps the stable GIS workflow order", () => {
+    expect(MAP_PRIMARY_ACTIVITY_ORDER).toEqual([
+      "overview",
+      "data",
+      "layers",
+      "analyze",
+      "style",
+      "scene",
+      "publish",
+    ]);
+    expect(MAP_UTILITY_ACTIVITY_ORDER).toEqual([
+      "qa",
+      "review",
+      "diagnostics",
+      "extensions",
+    ]);
+  });
+
+  it("documents every legacy rail action in its new home", () => {
+    const expectedHomes = new Map([
+      ["rail.layers", "layers"],
+      ["rail.catalog", "data"],
+      ["rail.contents", "layers"],
+      ["rail.processing", "analyze"],
+      ["rail.layout", "publish"],
+      ["rail.scene3d", "scene"],
+      ["rail.qa", "qa"],
+      ["rail.export", "publish"],
+      ["rail.save", "status-bar"],
+    ]);
+
+    for (const [inventoryId, targetHome] of expectedHomes) {
+      const entry = MAP_SURFACE_INVENTORY.find((item) => item.id === inventoryId);
+      expect(entry, inventoryId).toBeDefined();
+      expect(entry?.targetHome, inventoryId).toBe(targetHome);
+      expect(entry?.targetSurface.trim().length, inventoryId).toBeGreaterThan(0);
+    }
   });
 });
 

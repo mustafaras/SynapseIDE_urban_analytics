@@ -28,6 +28,8 @@ export interface GisIconButtonProps
   variant?: "ghost" | "accent" | "rail";
   /** Menu triggers and disclosure-like controls can use aria-expanded instead. */
   showPressedState?: boolean;
+  /** Polished native tooltip text. Defaults to the accessible label. */
+  tooltip?: string;
   /**
    * Human-readable reason shown via tooltip when the button is disabled.
    * Required whenever disabled is true so the user understands why.
@@ -90,6 +92,7 @@ export const GisIconButton = React.forwardRef<
       size = "md",
       variant = "ghost",
       showPressedState = true,
+      tooltip,
       disabled,
       disabledReason,
       className,
@@ -109,7 +112,7 @@ export const GisIconButton = React.forwardRef<
     const disabledProps =
       disabled && disabledReason
         ? { "data-disabled-reason": disabledReason, title: disabledReason }
-        : { title: label };
+        : { title: tooltip ?? label };
 
     return (
       <button
@@ -132,13 +135,15 @@ export const GisIconButton = React.forwardRef<
         {active && (variant === "ghost" || variant === "rail") ? (
           <span
             aria-hidden
+            data-gis-active-accent={variant}
             className={motionStyles.accentGrow}
             style={{
               position: "absolute",
               left: 0,
               top: 0,
               bottom: 0,
-              width: "2px",
+              width: variant === "rail" ? "3px" : "2px",
+              borderRadius: variant === "rail" ? `0 ${MAP_RADIUS.full} ${MAP_RADIUS.full} 0` : undefined,
               background: MAP_COLORS.interaction,
               transformOrigin: "left center",
             }}

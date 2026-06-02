@@ -263,7 +263,6 @@ import { useMapUrbanBridgeController } from "./useMapUrbanBridgeController";
 import { useMapWorkflowController } from "./useMapWorkflowController";
 import {
   IconClose,
-  IconExport,
   IconLayers,
   IconSave,
 } from "../MapIcons";
@@ -1067,6 +1066,10 @@ const MAP_UTILITY_ACTIVITY_DEFINITIONS = MAP_RUNTIME_UTILITY_ACTIVITY_DEFINITION
 function renderMapActivityIcon(activity: MapActivityDefinition): React.ReactElement {
   const Icon = MAP_ACTIVITY_ICON_COMPONENTS[activity.iconName] ?? Compass;
   return <Icon size={MAP_ICON_SIZES.sm} strokeWidth={1.8} aria-hidden="true" />;
+}
+
+function formatMapActivityTooltip(activity: MapActivityDefinition): string {
+  return `${activity.label}: ${activity.description}`;
 }
 
 const srOnlyFocusable: React.CSSProperties = {
@@ -8045,7 +8048,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const activeActivity = getRuntimeMapActivityDefinition(activeActivityId);
   const activityRailItems = MAP_PRIMARY_ACTIVITY_DEFINITIONS.map((activity) => ({
     id: activity.id,
-    label: activity.ariaLabel,
+    label: activity.label,
+    ariaLabel: activity.ariaLabel,
+    tooltip: formatMapActivityTooltip(activity),
     icon: renderMapActivityIcon(activity),
     active: activeActivityId === activity.id,
     onClick: () => handleSelectMapActivity(activity),
@@ -8053,22 +8058,18 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const activityRailBottomItems = [
     ...MAP_UTILITY_ACTIVITY_DEFINITIONS.map((activity) => ({
       id: activity.id,
-      label: activity.ariaLabel,
+      label: activity.label,
+      ariaLabel: activity.ariaLabel,
+      tooltip: formatMapActivityTooltip(activity),
       icon: renderMapActivityIcon(activity),
       active: activeActivityId === activity.id,
       onClick: () => handleSelectMapActivity(activity),
     })),
     {
-      id: "export",
-      label: "Export map data",
-      icon: <IconExport size={MAP_ICON_SIZES.sm} />,
-      disabled: exportDisabled,
-      ...(exportDisabledReason ? { disabledReason: exportDisabledReason } : {}),
-      onClick: toolbarCommandHandlers.exportData,
-    },
-    {
       id: "save",
-      label: "Save map project",
+      label: "Project Save",
+      ariaLabel: "Save map project",
+      tooltip: "Project Save: persist the current Map Explorer project state.",
       icon: <IconSave size={MAP_ICON_SIZES.sm} />,
       disabled: persistenceDisabled,
       ...(persistenceDisabled ? { disabledReason: "Select or create a project before saving map state." } : {}),

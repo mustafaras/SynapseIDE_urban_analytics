@@ -7,6 +7,7 @@ import {
   MAP_NUMERIC,
   MAP_PANEL_SIZES,
   MAP_RADIUS,
+  MAP_SHELL_DIMENSIONS,
   MAP_SPACING,
   MAP_STROKES,
   MAP_TYPOGRAPHY,
@@ -56,6 +57,8 @@ export interface MapBottomTimelineProps extends React.HTMLAttributes<HTMLDivElem
 export interface MapActivityItem {
   id: string;
   label: string;
+  ariaLabel?: string;
+  tooltip?: string;
   icon: React.ReactNode;
   active?: boolean;
   disabled?: boolean;
@@ -78,8 +81,10 @@ const activityRailStyle: React.CSSProperties = {
   alignItems: "center",
   gap: "2px",
   padding: "4px 2px",
-  width: "2.625rem",
-  minWidth: "2.625rem",
+  width: MAP_SHELL_DIMENSIONS.activityRailWidth,
+  minWidth: MAP_SHELL_DIMENSIONS.activityRailWidth,
+  maxWidth: MAP_SHELL_DIMENSIONS.activityRailWidth,
+  boxSizing: "border-box",
   background: MAP_COLORS.bgPanel,
   borderRight: MAP_STROKES.hairline,
   zIndex: MAP_Z_INDEX.sidebar,
@@ -99,6 +104,13 @@ function buildActivityButtonStyle(active: boolean): React.CSSProperties {
   return {
     /* Override default ghost to use the sidePanelRowActive inset accent */
     ...(active ? mapStyles.sidePanelRowActive : {}),
+    ...(active
+      ? {
+          outline: `1px solid ${MAP_COLORS.hairlineStrong}`,
+          outlineOffset: "-1px",
+          boxShadow: `inset 3px 0 0 ${MAP_COLORS.interaction}, inset 0 0 0 1px ${MAP_COLORS.hairlineSubtle}`,
+        }
+      : {}),
     borderRadius: MAP_RADIUS.sm,
   };
 }
@@ -148,7 +160,8 @@ export const MapActivityRail: React.FC<MapActivityRailProps> = ({
     {items.map((item) => (
       <GisIconButton
         key={item.id}
-        label={item.label}
+        label={item.ariaLabel ?? item.label}
+        tooltip={item.tooltip ?? item.label}
         icon={item.icon}
         active={item.active}
         size="rail"
@@ -156,6 +169,10 @@ export const MapActivityRail: React.FC<MapActivityRailProps> = ({
         disabled={item.disabled}
         disabledReason={item.disabledReason}
         data-testid={`activity-btn-${item.id}`}
+        data-map-activity-item={item.id}
+        data-map-activity-label={item.label}
+        data-map-activity-state={item.active ? "active" : "idle"}
+        aria-current={item.active ? "page" : undefined}
         onClick={item.onClick}
         style={item.active ? buildActivityButtonStyle(true) : undefined}
       />
@@ -167,7 +184,8 @@ export const MapActivityRail: React.FC<MapActivityRailProps> = ({
         {bottomItems.map((item) => (
           <GisIconButton
             key={item.id}
-            label={item.label}
+            label={item.ariaLabel ?? item.label}
+            tooltip={item.tooltip ?? item.label}
             icon={item.icon}
             active={item.active}
             size="rail"
@@ -175,6 +193,10 @@ export const MapActivityRail: React.FC<MapActivityRailProps> = ({
             disabled={item.disabled}
             disabledReason={item.disabledReason}
             data-testid={`activity-btn-${item.id}`}
+            data-map-activity-item={item.id}
+            data-map-activity-label={item.label}
+            data-map-activity-state={item.active ? "active" : "idle"}
+            aria-current={item.active ? "page" : undefined}
             onClick={item.onClick}
             style={item.active ? buildActivityButtonStyle(true) : undefined}
           />
