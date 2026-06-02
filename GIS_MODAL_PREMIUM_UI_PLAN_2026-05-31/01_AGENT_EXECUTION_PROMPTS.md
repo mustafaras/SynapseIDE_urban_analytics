@@ -246,6 +246,8 @@ In the final chat response, keep it short:
 
 Use this matrix with the individual prompt bodies. It makes the ladder detailed without repeating the same instructions in every prompt.
 
+> ⚡ = GPT-5.5 (Copilot) veya Claude Opus 4.8 (Copilot) önerilir — aynı anda 6+ dosya takibi, çapraz servis bağımlılığı, sistematik QA/a11y/perf veya build gate içeren promptlar.
+
 | Prompt | Premium design intent | Motion / interaction proof | Anti-amnesia proof |
 | --- | --- | --- | --- |
 | 01 | Establish a complete map of current commands, panels, overlays, dialogs, and target workbench homes. | No visible motion change. Prove no runtime UI change. | Coverage test proves no command/panel is unmapped. |
@@ -253,22 +255,22 @@ Use this matrix with the individual prompt bodies. It makes the ladder detailed 
 | 03 | Replace ad hoc rail actions with premium semantic activity icons and active accent behavior. | Prove active rail accent uses existing focus/motion rules and reduced-motion remains safe. | Ledger records old rail actions and their new homes. |
 | 04 | Turn the header into a compact command center instead of a crowded toolbar. | Prove overflow/palette open without layout shift. | Tests prove hidden commands remain palette-searchable. |
 | 05 | Introduce the contextual sidebar shell with Overview, Data, and Layers as the first stable homes. | Prove sidebar enter/collapse behavior does not cover the canvas and respects reduced motion. | Ledger records mounted legacy panels and temporary wrappers. |
-| 06 | Make Layers feel like a professional GIS contents surface, not separate layer/list panels. | Prove layer rows stay stable when badges/actions appear. | Tests prove all layer actions still exist after consolidation. |
+| 06 ⚡ | Make Layers feel like a professional GIS contents surface, not separate layer/list panels. | Prove layer rows stay stable when badges/actions appear. | Tests prove all layer actions still exist after consolidation. |
 | 07 | Make Data a source portal: import, catalog, services, restore health, demo data. | Prove import progress/status feedback remains visible. | Source support and restore states remain mapped to Data sections. |
 | 08 | Create one right inspector host for selected context, starting with layer inspection. | Prove inspector open/close focus return and no overlapping old panel. | LayerInspector tabs and source-handle fields remain test-covered. |
 | 09 | Promote QA to a Problems model that keeps scientific blockers unavoidable. | Prove blocked/caveat/demo states are distinct without color alone. | Problems rows link back to layers/sources/actions. |
-| 10 | Add a bottom panel for operational truth and reduce floating panel sprawl. | Prove tab switching is stable, keyboard reachable, and does not cover status bar. | Bottom tab routing is recorded from status bar and panel openers. |
-| 11 | Make analysis discoverable without weakening CRS gates or tool prerequisites. | Prove run/progress/blocked states remain visible. | Workflow/tool/query/model routes are listed in ledger. |
+| 10 ⚡ | Add a bottom panel for operational truth and reduce floating panel sprawl. | Prove tab switching is stable, keyboard reachable, and does not cover status bar. | Bottom tab routing is recorded from status bar and panel openers. |
+| 11 ⚡ | Make analysis discoverable without weakening CRS gates or tool prerequisites. | Prove run/progress/blocked states remain visible. | Workflow/tool/query/model routes are listed in ledger. |
 | 12 | Make cartography a premium GIS styling workspace with legend contract continuity. | Prove style previews do not jump layout and legend updates are visible. | Map/report/export legend equality remains test-covered. |
-| 13 | Make raster, temporal, 3D, zoning, massing, sun/shadow, and VoxCity a coherent Scene workspace. | Prove active scene controls do not obscure unrelated 2D workflows. | Scene mode/source/CRS/vertical datum caveats remain recorded. |
+| 13 ⚡ | Make raster, temporal, 3D, zoning, massing, sun/shadow, and VoxCity a coherent Scene workspace. | Prove active scene controls do not obscure unrelated 2D workflows. | Scene mode/source/CRS/vertical datum caveats remain recorded. |
 | 14 | Make publishing a readiness workflow, not a cluster of export buttons. | Prove readiness checklist changes status clearly without idle animation. | Export/report/package inclusion rules are ledgered. |
-| 15 | Normalize the whole shell into one premium visual system. | Prove reduced-motion, high-contrast, and no-overlap checks. | Visual QA results are recorded with viewport notes. |
-| 16 | Lock the redesign with regression and visual QA. | Prove desktop/tablet/short viewport behavior and no hidden command loss. | E2E command/activity coverage becomes the resume safety net. |
+| 15 ⚡ | Normalize the whole shell into one premium visual system. | Prove reduced-motion, high-contrast, and no-overlap checks. | Visual QA results are recorded with viewport notes. |
+| 16 ⚡ | Lock the redesign with regression and visual QA. | Prove desktop/tablet/short viewport behavior and no hidden command loss. | E2E command/activity coverage becomes the resume safety net. |
 | 17 | Add task lenses, layout reset, collapse-all, focus-map, and density recovery. | Prove density changes do not mutate analytical state. | Ledger records layout state boundaries. |
 | 18 | Standardize canvas controls: fit, basemap, active tool, scale/legend/north-arrow. | Prove controls do not cover popups/status and active tools are cancellable. | Fit/basemap/tool commands are mapped to command palette and UI. |
 | 19 | Add collaboration as a truthful Review surface. | Prove live/local-only/offline states are visually distinct. | Tests prove no raw geometry/source bytes enter collaboration UI. |
-| 20 | Complete keyboard, focus, Escape, high-contrast, and reduced-motion interaction rules. | Prove a keyboard-only path through import, inspect, QA, palette. | Accessibility matrix becomes a reusable resume artifact. |
-| 21 | Protect performance through lazy mounting and activity-switch responsiveness. | Prove inactive heavy panels are not mounted and map does not blank. | Build and performance evidence are recorded as final guardrail. |
+| 20 ⚡ | Complete keyboard, focus, Escape, high-contrast, and reduced-motion interaction rules. | Prove a keyboard-only path through import, inspect, QA, palette. | Accessibility matrix becomes a reusable resume artifact. |
+| 21 ⚡ | Protect performance through lazy mounting and activity-switch responsiveness. | Prove inactive heavy panels are not mounted and map does not blank. | Build and performance evidence are recorded as final guardrail. |
 | 22 | Audit and upgrade GIS tokens for VS Code-like chrome, density, and semantic states. | Prove token changes do not create one-note palettes or motion regressions. | Token snapshot/tests record the design contract. |
 | 23 | Harden shared GIS primitives before larger panel refactors. | Prove icon buttons, tabs, chips, tooltips, and progress bars remain accessible. | Primitive tests become the UI contract for later prompts. |
 | 24 | Build the command taxonomy and palette search vocabulary around real GIS actions. | Prove commands are searchable by GIS terms, shortcuts, and activity names. | Command map prevents hidden feature loss. |
@@ -282,28 +284,28 @@ Use this matrix with the individual prompt bodies. It makes the ladder detailed 
 | 32 | Consolidate layer row actions into a premium command menu. | Prove every current per-layer action remains reachable. | Action parity table is recorded. |
 | 33 | Expand right inspector polish for layer metadata, source, schema, CRS, QA, lineage. | Prove unknown/missing values render explicitly. | Inspector tabs remain the metadata source of truth. |
 | 34 | Build CRS and QA fix flows into Problems and Inspector. | Prove user-declared CRS remains caveated and not verified. | CRS fix path is recorded with tests. |
-| 35 | Move attribute table, field profiles, field calculator, and joins into a professional bottom workflow. | Prove map-row-selection round trip. | Table/data operation state boundaries are recorded. |
+| 35 ⚡ | Move attribute table, field profiles, field calculator, and joins into a professional bottom workflow. | Prove map-row-selection round trip. | Table/data operation state boundaries are recorded. |
 | 36 | Standardize canvas interaction tool strip for selection, draw, measure, AOI, and clear tool. | Prove active tools are visible, cancellable, and keyboard reachable. | Canvas interaction states are mapped. |
 | 37 | Polish AOI and workflow launch ergonomics. | Prove AOI sources and CRS gates stay visible before run. | Workflow prerequisites are ledgered. |
-| 38 | Redesign Processing Toolbox categories, parameter forms, runtime chips, and progress. | Prove blocked reasons and runtime mode chips render before execution. | Tool registry mapping is recorded. |
-| 39 | Redesign Model Builder workflow graph and batch execution UX. | Prove chain/batch/export behavior remains intact. | Model run evidence is recorded. |
+| 38 ⚡ | Redesign Processing Toolbox categories, parameter forms, runtime chips, and progress. | Prove blocked reasons and runtime mode chips render before execution. | Tool registry mapping is recorded. |
+| 39 ⚡ | Redesign Model Builder workflow graph and batch execution UX. | Prove chain/batch/export behavior remains intact. | Model run evidence is recorded. |
 | 40 | Redesign NL Query and AI guardrail UX. | Prove human confirmation is required before apply. | AI proposal audit trail remains intact. |
 | 41 | Polish spatial statistics and advanced analysis renderers. | Prove LISA/Gi*/hotspot outputs remain caveated and discoverable. | Renderer/output readiness is recorded. |
 | 42 | Build Style workspace renderer and symbology surfaces. | Prove renderer eligibility and disabled reasons are visible. | Style update contract remains covered. |
 | 43 | Build labels, annotations, and publication mark styling. | Prove labels/annotations do not obscure critical UI or caveats. | Label/annotation export behavior is recorded. |
-| 44 | Guarantee legend contract parity across map, inspector, report, and export. | Prove serialized legend equality. | Legend parity test is the resume artifact. |
+| 44 ⚡ | Guarantee legend contract parity across map, inspector, report, and export. | Prove serialized legend equality. | Legend parity test is the resume artifact. |
 | 45 | Redesign Raster evidence UI: GeoTIFF, noData, histogram, sampled/full-stat state. | Prove noData/CRS/sample caveats remain visible. | Raster evidence state is recorded. |
 | 46 | Redesign Temporal playback UI and frame export controls. | Prove reduced-motion disables autoplay/animation. | Temporal state contract is recorded. |
-| 47 | Redesign 3D scene, terrain, CityJSON, and 3D Tiles UX. | Prove vertical datum/source/sample/generated chips are visible. | Scene source metadata remains lightweight. |
+| 47 ⚡ | Redesign 3D scene, terrain, CityJSON, and 3D Tiles UX. | Prove vertical datum/source/sample/generated chips are visible. | Scene source metadata remains lightweight. |
 | 48 | Redesign zoning, massing, sun/shadow, corridor, and section controls. | Prove projected CRS and vertical assumptions remain visible. | Urban form analysis caveats are recorded. |
 | 49 | Redesign VoxCity 2D/3D bridge surfaces. | Prove real vs sample geometry labels stay explicit. | VoxCity source priority is recorded. |
 | 50 | Redesign Publish Figure and map book workflow. | Prove title/legend/scale/north arrow/attribution/CRS checklist. | Figure readiness is recorded. |
 | 51 | Redesign data export, offline package, and report handoff surfaces. | Prove inclusion/exclusion and source bounds are visible before export. | Export/report/package evidence remains intact. |
-| 52 | Redesign Review timeline, audit, collaboration, and comment surfaces. | Prove local-only/live/offline and evidence links are truthful. | Review/collab payload limits are recorded. |
-| 53 | Redesign Diagnostics, observability, plugin registry, and recovery surfaces. | Prove redacted diagnostics and recoverable panel errors. | Diagnostic privacy and plugin mapping are recorded. |
+| 52 ⚡ | Redesign Review timeline, audit, collaboration, and comment surfaces. | Prove local-only/live/offline and evidence links are truthful. | Review/collab payload limits are recorded. |
+| 53 ⚡ | Redesign Diagnostics, observability, plugin registry, and recovery surfaces. | Prove redacted diagnostics and recoverable panel errors. | Diagnostic privacy and plugin mapping are recorded. |
 | 54 | Finalize preferences, task lenses, layout reset, density, and persistence boundaries. | Prove reset/density do not mutate analytical state. | Layout persistence keys are recorded. |
-| 55 | Run the full accessibility and keyboard interaction pass. | Prove keyboard-only import-to-QA path and scoped Escape behavior. | Accessibility matrix becomes final artifact. |
-| 56 | Run final performance, visual QA, build, and release-readiness gate. | Prove lazy mount, no blank canvas, no overlap, and build success. | Final readiness record closes the pack. |
+| 55 ⚡ | Run the full accessibility and keyboard interaction pass. | Prove keyboard-only import-to-QA path and scoped Escape behavior. | Accessibility matrix becomes final artifact. |
+| 56 ⚡ | Run final performance, visual QA, build, and release-readiness gate. | Prove lazy mount, no blank canvas, no overlap, and build success. | Final readiness record closes the pack. |
 
 ---
 
@@ -613,7 +615,7 @@ Closeout:
 
 ---
 
-## Prompt 06 - Layers Consolidation
+## Prompt 06 - Layers Consolidation  [⚡ GPT-5.5 / Opus 4.8]
 
 Goal: unify layer stack and contents tree under one professional Layers activity.
 
@@ -872,7 +874,7 @@ Closeout:
 
 ---
 
-## Prompt 10 - Bottom Panel
+## Prompt 10 - Bottom Panel  [⚡ GPT-5.5 / Opus 4.8]
 
 Goal: add the VS Code-style bottom panel and mount Problems, Attributes, Timeline, Tasks, and Diagnostics.
 
@@ -933,7 +935,7 @@ Closeout:
 
 ---
 
-## Prompt 11 - Analyze Workspace
+## Prompt 11 - Analyze Workspace  [⚡ GPT-5.5 / Opus 4.8]
 
 Goal: group workflows, processing toolbox, model builder, NL query, and spatial statistics under one Analyze activity.
 
@@ -1051,7 +1053,7 @@ Closeout:
 
 ---
 
-## Prompt 13 - Scene Workspace
+## Prompt 13 - Scene Workspace  [⚡ GPT-5.5 / Opus 4.8]
 
 Goal: group raster, temporal, 3D, zoning, massing, sun/shadow, and VoxCity under one Scene activity.
 
@@ -1183,7 +1185,7 @@ Closeout:
 
 ---
 
-## Prompt 15 - Visual System Polish
+## Prompt 15 - Visual System Polish  [⚡ GPT-5.5 / Opus 4.8]
 
 Goal: normalize the redesigned shell into a cohesive premium GIS visual system.
 
@@ -1243,7 +1245,7 @@ Closeout:
 
 ---
 
-## Prompt 16 - Regression and Visual QA
+## Prompt 16 - Regression and Visual QA  [⚡ GPT-5.5 / Opus 4.8]
 
 Goal: harden the redesign with automated and manual QA coverage.
 
@@ -1465,7 +1467,7 @@ Closeout:
 
 ---
 
-## Prompt 20 - Accessibility Matrix
+## Prompt 20 - Accessibility Matrix  [⚡ GPT-5.5 / Opus 4.8]
 
 Goal: implement and test the complete keyboard/focus/Escape interaction matrix for the redesigned modal.
 
@@ -1524,7 +1526,7 @@ Closeout:
 
 ---
 
-## Prompt 21 - Performance Budget
+## Prompt 21 - Performance Budget  [⚡ GPT-5.5 / Opus 4.8]
 
 Goal: ensure the premium shell does not regress modal open time, map responsiveness, or lazy-mount behavior.
 
@@ -2406,7 +2408,7 @@ Closeout:
 
 ---
 
-## Prompt 35 - Attribute, Field, Join, and Table Workflow
+## Prompt 35 - Attribute, Field, Join, and Table Workflow  [⚡ GPT-5.5 / Opus 4.8]
 
 Goal: make table-centric GIS work a professional bottom-panel workflow.
 
@@ -2593,7 +2595,7 @@ Closeout:
 
 ---
 
-## Prompt 38 - Processing Toolbox Premium Form
+## Prompt 38 - Processing Toolbox Premium Form  [⚡ GPT-5.5 / Opus 4.8]
 
 Goal: redesign the processing toolbox as a professional geoprocessing surface with searchable tools, clear parameters, blocked reasons, runtime chips, and progress.
 
@@ -2659,7 +2661,7 @@ Closeout:
 
 ---
 
-## Prompt 39 - Model Builder Premium Workflow Graph
+## Prompt 39 - Model Builder Premium Workflow Graph  [⚡ GPT-5.5 / Opus 4.8]
 
 Goal: make model builder chains, batch execution, and IDE/Urban export feel like a serious GIS workflow builder.
 
@@ -2957,7 +2959,7 @@ Closeout:
 
 ---
 
-## Prompt 44 - Legend Contract Parity
+## Prompt 44 - Legend Contract Parity  [⚡ GPT-5.5 / Opus 4.8]
 
 Goal: guarantee that the map legend, inspector legend, report legend, and export legend share one serialized contract.
 
@@ -3133,7 +3135,7 @@ Closeout:
 
 ---
 
-## Prompt 47 - 3D Scene, Terrain, CityJSON, and 3D Tiles UX
+## Prompt 47 - 3D Scene, Terrain, CityJSON, and 3D Tiles UX  [⚡ GPT-5.5 / Opus 4.8]
 
 Goal: make the 3D scene path premium while keeping terrain, CityJSON, 3D Tiles, source mode, vertical datum, and generated states explicit.
 
@@ -3450,7 +3452,7 @@ Closeout:
 
 ---
 
-## Prompt 52 - Review Timeline and Collaboration Surface
+## Prompt 52 - Review Timeline and Collaboration Surface  [⚡ GPT-5.5 / Opus 4.8]
 
 Goal: make review timeline, audit trail, collaboration comments, presence, and local-only state a coherent Review workspace.
 
@@ -3516,7 +3518,7 @@ Closeout:
 
 ---
 
-## Prompt 53 - Diagnostics, Plugins, and Recovery UX
+## Prompt 53 - Diagnostics, Plugins, and Recovery UX  [⚡ GPT-5.5 / Opus 4.8]
 
 Goal: make diagnostics, observability, plugin registry, and recoverable panel errors professional and privacy-safe.
 
@@ -3647,7 +3649,7 @@ Closeout:
 
 ---
 
-## Prompt 55 - Full Accessibility and Keyboard Pass
+## Prompt 55 - Full Accessibility and Keyboard Pass  [⚡ GPT-5.5 / Opus 4.8]
 
 Goal: complete the accessibility matrix for the redesigned GIS modal.
 
@@ -3717,7 +3719,7 @@ Closeout:
 
 ---
 
-## Prompt 56 - Final Performance, Visual QA, and Release Readiness
+## Prompt 56 - Final Performance, Visual QA, and Release Readiness  [⚡ GPT-5.5 / Opus 4.8]
 
 Goal: close the pack with a truthful final gate for premium GIS UI quality, performance, accessibility, and build readiness.
 
