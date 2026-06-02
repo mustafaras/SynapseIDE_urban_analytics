@@ -437,6 +437,11 @@ import {
   type MapReviewTimelineEventInput,
 } from "../../../../services/map/MapReviewSessionService";
 import {
+  getMapReviewCollaborationConnectionBadge,
+  MAP_REVIEW_COLLABORATION_SCHEMA_VERSION,
+  type MapReviewCollaborationSnapshot,
+} from "../../../../services/map/collaboration/MapReviewCollaborationService";
+import {
   applyCartographyRecommendationToLayer,
   generateMapCartographyReview,
   type MapCartographyRecommendation,
@@ -1575,6 +1580,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const selectedProject = selectedProjectId
     ? projectRegistry?.state.projects.find((project) => project.id === selectedProjectId) ?? null
     : null;
+  const appUser = useAppStore((s) => s.user);
   const autoSaveEnabled = useAppStore((s) => s.user?.preferences.autoSave ?? true);
   const initialWorkspaceView: MapWorkspaceView =
     overlayLayers.length > 0 || pins.length > 0 || drawnFeatures.length > 0 || annotations.length > 0 || measurements.length > 0
@@ -2694,6 +2700,27 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       initialSnapshot: buildCurrentReviewSnapshot(),
     });
   }, [buildCurrentReviewSnapshot, clearMapReviewSession, open, reviewSession.events.length, selectedProject?.name, selectedProjectId]);
+
+  const reviewCollaborationSnapshot = useMemo<MapReviewCollaborationSnapshot>(() => {
+    const reviewerId = appUser?.id ?? "local-reviewer";
+    const reviewerName = appUser?.name ?? "Local reviewer";
+    return {
+      schemaVersion: MAP_REVIEW_COLLABORATION_SCHEMA_VERSION,
+      sessionId: reviewSession.id,
+      connectionState: "local-only",
+      badge: getMapReviewCollaborationConnectionBadge("local-only"),
+      annotations: [],
+      comments: [],
+      presence: [{
+        clientId: `local:${reviewerId}`,
+        userId: reviewerId,
+        name: reviewerName,
+        connectionState: "local-only",
+        lastActiveAt: reviewSession.updatedAt,
+        isSelf: true,
+      }],
+    };
+  }, [appUser?.id, appUser?.name, reviewSession.id, reviewSession.updatedAt]);
 
   useEffect(() => {
     if (!open || typeof globalThis.addEventListener !== "function") {
@@ -7646,6 +7673,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       visible={bottomPanelOpen && activeBottomPanelTab === "timeline"}
       presentation="embedded"
       session={reviewSession}
+      collaborationSnapshot={reviewCollaborationSnapshot}
       overlayLayers={overlayLayers}
       qaState={scientificQA}
       onClose={closeBottomPanel}
@@ -9845,6 +9873,10 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               onOpenAttributes={handleOpenAttributesFromStatus}
               reviewEventCount={reviewSession.events.length}
               onOpenTimeline={() => openBottomPanelTab("timeline", "Review timeline opened in the bottom panel")}
+              collaborationStatus={reviewCollaborationSnapshot.connectionState}
+              collaborationPresenceCount={reviewCollaborationSnapshot.presence.length}
+              collaborationCommentCount={reviewCollaborationSnapshot.comments.length}
+              onOpenCollaboration={() => openBottomPanelTab("timeline", "Review collaboration opened in the bottom panel")}
               onOpenDiagnostics={() => openBottomPanelTab("diagnostics", "Performance diagnostics opened in the bottom panel")}
               performanceMode={performanceDiagnostics.renderMode}
               performanceIssueCount={performanceIssueCount}

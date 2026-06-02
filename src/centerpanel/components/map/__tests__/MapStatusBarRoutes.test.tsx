@@ -64,12 +64,13 @@ describe("MapStatusBar bottom panel routes", () => {
 
     clickStatus("Open QA Problems");
     clickStatus("Open selected feature attributes");
+    clickStatus("Open Review collaboration (local-only)");
     clickStatus("Open review timeline");
     clickStatus("Open performance diagnostics");
 
     expect(callbacks.onOpenProblems).toHaveBeenCalledTimes(1);
     expect(callbacks.onOpenAttributes).toHaveBeenCalledTimes(1);
-    expect(callbacks.onOpenTimeline).toHaveBeenCalledTimes(1);
+    expect(callbacks.onOpenTimeline).toHaveBeenCalledTimes(2);
     expect(callbacks.onOpenDiagnostics).toHaveBeenCalledTimes(1);
   });
 });

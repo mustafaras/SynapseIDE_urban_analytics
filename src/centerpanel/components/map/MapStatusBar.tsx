@@ -11,6 +11,8 @@ import {
 /*  Props                                                              */
 /* ================================================================== */
 
+export type MapStatusBarCollaborationState = "connected" | "local-only" | "offline";
+
 export interface MapStatusBarProps {
   cursor: { lng: number; lat: number } | null;
   zoom: number;
@@ -37,6 +39,10 @@ export interface MapStatusBarProps {
   onOpenAttributes?: () => void;
   reviewEventCount?: number;
   onOpenTimeline?: () => void;
+  collaborationStatus?: MapStatusBarCollaborationState;
+  collaborationPresenceCount?: number;
+  collaborationCommentCount?: number;
+  onOpenCollaboration?: () => void;
   onOpenDiagnostics?: () => void;
   lastRenderDurationMs?: number | null;
   isSaving?: boolean;
@@ -252,6 +258,25 @@ function syncTone(syncStatus: string): StatusTone {
   return "stale";
 }
 
+function collaborationTone(status: MapStatusBarCollaborationState): StatusTone {
+  if (status === "connected") return "valid";
+  if (status === "offline") return "error";
+  return "warning";
+}
+
+function formatCollaborationLabel(
+  status: MapStatusBarCollaborationState,
+  presenceCount: number,
+  commentCount: number,
+): string {
+  const stateLabel = status === "connected" ? "live" : status;
+  const details = [
+    presenceCount > 0 ? `${presenceCount}p` : null,
+    commentCount > 0 ? `${commentCount}c` : null,
+  ].filter((entry): entry is string => entry !== null);
+  return details.length > 0 ? `${stateLabel} ${details.join("/")}` : stateLabel;
+}
+
 function formatPerformanceLabel(mode: LayerRenderMode, issueCount: number, durationMs?: number | null): string {
   const durationLabel = durationMs != null && Number.isFinite(durationMs) ? ` ${Math.round(durationMs)}ms` : "";
   if (mode === "preview") {
@@ -290,6 +315,10 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
   onOpenAttributes,
   reviewEventCount = 0,
   onOpenTimeline,
+  collaborationStatus = "local-only",
+  collaborationPresenceCount = 0,
+  collaborationCommentCount = 0,
+  onOpenCollaboration,
   onOpenDiagnostics,
   lastRenderDurationMs = null,
   isSaving = false,
@@ -310,8 +339,10 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
   const geometryLabel = `${drawnFeatureCount} draw / ${measurementCount} meas / ${pinCount} pin`;
   const qaLabel = formatQaLabel(qaStatus, qaIssueCount, qaBlockerCount);
   const performanceLabel = formatPerformanceLabel(performanceMode, performanceIssueCount, lastRenderDurationMs);
+  const collaborationLabel = formatCollaborationLabel(collaborationStatus, collaborationPresenceCount, collaborationCommentCount);
   const qaValueTone = qaTone(qaStatus, qaIssueCount, qaBlockerCount);
   const performanceTone: StatusTone = performanceMode === "preview" || performanceIssueCount > 0 ? "warning" : "valid";
+  const collaborationValueTone = collaborationTone(collaborationStatus);
   const syncValueTone = syncTone(syncLabel);
   const saveValueTone = saveTone(isLoading, isSaving, lastSavedAt);
   const statusItems: StatusItem[] = [
@@ -328,6 +359,13 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
     { label: "Units", value: measureUnit === "metric" ? "metric" : "imperial" },
     { label: "CRS", value: crs, tone: "info" },
     { label: "QA", value: qaLabel, tone: qaValueTone, onClick: onOpenProblems, ariaLabel: "Open QA Problems" },
+    {
+      label: "Collab",
+      value: collaborationLabel,
+      tone: collaborationValueTone,
+      onClick: onOpenCollaboration ?? onOpenTimeline,
+      ariaLabel: `Open Review collaboration (${collaborationLabel})`,
+    },
     { label: "Review", value: `${reviewEventCount}`, onClick: onOpenTimeline, ariaLabel: "Open review timeline" },
     { label: "Perf", value: performanceLabel, tone: performanceTone, onClick: onOpenDiagnostics, ariaLabel: "Open performance diagnostics" },
     { label: "Sync", value: syncLabel, tone: syncValueTone },

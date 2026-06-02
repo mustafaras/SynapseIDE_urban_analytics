@@ -6,7 +6,12 @@ import {
   FileText,
   Filter,
   History,
+  Link2,
+  MessageSquare,
   RotateCcw,
+  Users,
+  Wifi,
+  WifiOff,
   X,
 } from "lucide-react";
 import type { OverlayLayerConfig } from "./mapTypes";
@@ -25,6 +30,16 @@ import {
   MAP_REVIEW_EVENT_TYPES,
   triggerMapReviewSessionDownload,
 } from "@/services/map/MapReviewSessionService";
+import type {
+  MapReviewCollaborationConnectionState,
+  MapReviewCollaborationSnapshot,
+  MapReviewCollaborationTarget,
+  MapReviewComment,
+} from "@/services/map/collaboration/MapReviewCollaborationService";
+import {
+  getMapReviewCollaborationConnectionBadge,
+  MAP_REVIEW_COLLABORATION_SCHEMA_VERSION,
+} from "@/services/map/collaboration/MapReviewCollaborationService";
 import type { MapScientificQAState } from "@/services/map/MapScientificQA";
 import {
   MAP_COLORS,
@@ -33,6 +48,7 @@ import {
   MAP_SHADOWS,
   MAP_SPACING,
   MAP_STROKES,
+  MAP_TEXT_STYLES,
   MAP_TYPOGRAPHY,
   MAP_Z_INDEX,
 } from "./mapTokens";
@@ -42,6 +58,7 @@ import { GisEmptyState } from "./ui/GisEmptyState";
 export interface MapReviewTimelinePanelProps {
   visible: boolean;
   session: MapReviewSession;
+  collaborationSnapshot?: MapReviewCollaborationSnapshot;
   overlayLayers: OverlayLayerConfig[];
   qaState: MapScientificQAState | null;
   onClose: () => void;
@@ -298,6 +315,80 @@ const footerStyle: React.CSSProperties = {
   borderTop: MAP_STROKES.hairlineSubtle,
 };
 
+const collaborationSectionStyle: React.CSSProperties = {
+  display: "grid",
+  gap: MAP_SPACING.sm,
+  padding: MAP_SPACING.md,
+  borderBottom: MAP_STROKES.hairlineSubtle,
+  background: MAP_COLORS.bgPanel,
+};
+
+const collaborationHeaderStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1fr) auto",
+  alignItems: "start",
+  gap: MAP_SPACING.sm,
+  minWidth: MAP_SPACING.zero,
+};
+
+const collaborationStatsStyle: React.CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: MAP_SPACING.xs,
+  minWidth: MAP_SPACING.zero,
+};
+
+const collaborationGridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(14rem, 1fr))",
+  gap: MAP_SPACING.md,
+  minWidth: MAP_SPACING.zero,
+};
+
+const collaborationColumnStyle: React.CSSProperties = {
+  display: "grid",
+  alignContent: "start",
+  gap: MAP_SPACING.xs,
+  minWidth: MAP_SPACING.zero,
+};
+
+const collaborationSubheadStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: MAP_SPACING.xs,
+  minWidth: MAP_SPACING.zero,
+  color: MAP_COLORS.text,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+};
+
+const collaborationRowStyle: React.CSSProperties = {
+  display: "grid",
+  gap: MAP_SPACING.xs,
+  minWidth: MAP_SPACING.zero,
+  padding: `${MAP_SPACING.xs} 0`,
+  borderTop: MAP_STROKES.hairlineSubtle,
+};
+
+const collaborationRowTitleStyle: React.CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  alignItems: "center",
+  gap: MAP_SPACING.xs,
+  minWidth: MAP_SPACING.zero,
+  color: MAP_COLORS.text,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+  ...MAP_TEXT_STYLES.valueWrap,
+};
+
+const collaborationNoteStyle: React.CSSProperties = {
+  color: MAP_COLORS.textMuted,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  lineHeight: MAP_TYPOGRAPHY.lineHeight.normal,
+  ...MAP_TEXT_STYLES.valueWrap,
+};
+
 function formatTimestamp(value: string): string {
   const parsed = new Date(value);
   if (!Number.isFinite(parsed.getTime())) return value;
@@ -333,6 +424,195 @@ function eventStatusColor(status: MapReviewTimelineEventStatus): string {
 function compactIds(values: readonly string[], limit = 3): string[] {
   if (values.length <= limit) return [...values];
   return [...values.slice(0, limit), `+${values.length - limit} more`];
+}
+
+function createLocalOnlyCollaborationSnapshot(sessionId: string): MapReviewCollaborationSnapshot {
+  return {
+    schemaVersion: MAP_REVIEW_COLLABORATION_SCHEMA_VERSION,
+    sessionId,
+    connectionState: "local-only",
+    badge: getMapReviewCollaborationConnectionBadge("local-only"),
+    annotations: [],
+    comments: [],
+    presence: [],
+  };
+}
+
+function collaborationStateLabel(state: MapReviewCollaborationConnectionState): string {
+  if (state === "connected") return "Live sync";
+  if (state === "offline") return "Offline";
+  return "Local-only";
+}
+
+function collaborationStateColor(state: MapReviewCollaborationConnectionState): string {
+  if (state === "connected") return MAP_COLORS.success;
+  if (state === "offline") return MAP_COLORS.error;
+  return MAP_COLORS.caveatText;
+}
+
+function collaborationStateIcon(state: MapReviewCollaborationConnectionState): React.ReactNode {
+  if (state === "offline") return <WifiOff size={MAP_ICON_SIZES.sm} aria-hidden="true" />;
+  return <Wifi size={MAP_ICON_SIZES.sm} aria-hidden="true" />;
+}
+
+function targetKey(target: MapReviewCollaborationTarget): string {
+  return `${target.kind}:${target.id}`;
+}
+
+function targetLabel(target: MapReviewCollaborationTarget | undefined): string {
+  if (!target) return "Review target unavailable";
+  return target.label ? `${target.label} / ${target.kind}:${target.id}` : `${target.kind}:${target.id}`;
+}
+
+function uniqueList(values: readonly string[]): string[] {
+  return Array.from(new Set(values.filter(Boolean))).sort();
+}
+
+function collaborationEvidenceIds(snapshot: MapReviewCollaborationSnapshot): string[] {
+  return uniqueList([
+    ...snapshot.annotations.flatMap((annotation) => annotation.evidenceArtifactIds),
+    ...snapshot.comments.flatMap((comment) => comment.evidenceArtifactIds),
+  ]);
+}
+
+function commentsByTarget(comments: readonly MapReviewComment[]): Array<{ key: string; target: MapReviewCollaborationTarget; comments: MapReviewComment[] }> {
+  const groups = new Map<string, { key: string; target: MapReviewCollaborationTarget; comments: MapReviewComment[] }>();
+  for (const comment of comments) {
+    const key = targetKey(comment.target);
+    const group = groups.get(key);
+    if (group) {
+      group.comments.push(comment);
+    } else {
+      groups.set(key, { key, target: comment.target, comments: [comment] });
+    }
+  }
+  return Array.from(groups.values()).sort((left, right) => left.key.localeCompare(right.key));
+}
+
+function ReferenceBadges({ label, ids }: { label: string; ids: readonly string[] }): React.ReactElement | null {
+  if (ids.length === 0) return null;
+  return (
+    <div style={idWrapStyle} aria-label={`${label} references`}>
+      {compactIds(ids).map((id) => <span key={`${label}-${id}`} style={badgeStyle}>{label} {id}</span>)}
+    </div>
+  );
+}
+
+function CollaborationSurface({ snapshot }: { snapshot: MapReviewCollaborationSnapshot }): React.ReactElement {
+  const stateColor = collaborationStateColor(snapshot.connectionState);
+  const stateLabel = collaborationStateLabel(snapshot.connectionState);
+  const openComments = snapshot.comments.filter((comment) => comment.status === "open");
+  const resolvedComments = snapshot.comments.length - openComments.length;
+  const evidenceIds = collaborationEvidenceIds(snapshot);
+  const groupedComments = commentsByTarget(snapshot.comments);
+
+  return (
+    <section
+      style={collaborationSectionStyle}
+      aria-label="Review collaboration status"
+      data-testid="map-review-collaboration"
+      data-collaboration-state={snapshot.connectionState}
+    >
+      <div style={collaborationHeaderStyle}>
+        <div style={titleStackStyle}>
+          <span style={eyebrowStyle}>Collaboration</span>
+          <div style={summaryStyle}>{snapshot.badge.description}</div>
+        </div>
+        <span
+          style={{ ...badgeStyle, color: stateColor, borderColor: stateColor }}
+          data-testid="map-review-collaboration-state"
+        >
+          {collaborationStateIcon(snapshot.connectionState)}
+          {stateLabel}
+        </span>
+      </div>
+
+      <div style={collaborationStatsStyle} aria-label="Collaboration sync summary">
+        <span style={{ ...badgeStyle, color: stateColor, borderColor: stateColor }}>Sync {snapshot.badge.label}</span>
+        <span style={badgeStyle}>{snapshot.presence.length} reviewer{snapshot.presence.length === 1 ? "" : "s"}</span>
+        <span style={badgeStyle}>{openComments.length} open comment{openComments.length === 1 ? "" : "s"}</span>
+        <span style={badgeStyle}>{resolvedComments} resolved</span>
+        <span style={badgeStyle}>{snapshot.annotations.length} annotation link{snapshot.annotations.length === 1 ? "" : "s"}</span>
+        <span style={badgeStyle}>{evidenceIds.length} evidence ID{evidenceIds.length === 1 ? "" : "s"}</span>
+      </div>
+
+      <div style={collaborationGridStyle}>
+        <div style={collaborationColumnStyle}>
+          <div style={collaborationSubheadStyle}>
+            <Users size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+            Reviewer presence
+          </div>
+          {snapshot.presence.length > 0 ? snapshot.presence.map((presence) => {
+            const presenceColor = collaborationStateColor(presence.connectionState);
+            return (
+              <article key={presence.clientId} style={collaborationRowStyle} data-testid="map-review-collaboration-presence">
+                <div style={collaborationRowTitleStyle}>
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      width: "0.5rem",
+                      height: "0.5rem",
+                      borderRadius: MAP_RADIUS.full,
+                      background: presence.color ?? presenceColor,
+                      boxShadow: `0 0 0 1px ${presenceColor}`,
+                    }}
+                  />
+                  {presence.name}{presence.isSelf ? " (you)" : ""}
+                </div>
+                <div style={metaStyle}>{collaborationStateLabel(presence.connectionState)} / last active {formatTimestamp(presence.lastActiveAt)}</div>
+                {presence.activeTarget ? <div style={collaborationNoteStyle}>Target {targetLabel(presence.activeTarget)}</div> : null}
+              </article>
+            );
+          }) : (
+            <span style={collaborationNoteStyle}>No reviewer presence is published for this local review session.</span>
+          )}
+        </div>
+
+        <div style={collaborationColumnStyle}>
+          <div style={collaborationSubheadStyle}>
+            <MessageSquare size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+            Comments by target ID
+          </div>
+          {groupedComments.length > 0 ? groupedComments.map((group) => (
+            <article key={group.key} style={collaborationRowStyle} data-testid="map-review-comment-target">
+              <div style={collaborationRowTitleStyle}>{targetLabel(group.target)}</div>
+              {group.comments.map((comment) => (
+                <div key={comment.id} style={collaborationRowStyle} data-testid="map-review-comment">
+                  <div style={metaStyle}>{comment.author.name} / {comment.status} / Comment {comment.id}</div>
+                  <div style={eventSummaryStyle}>{comment.body}</div>
+                  <ReferenceBadges label="Annotation" ids={comment.annotationIds} />
+                  <ReferenceBadges label="Evidence" ids={comment.evidenceArtifactIds} />
+                </div>
+              ))}
+            </article>
+          )) : (
+            <span style={collaborationNoteStyle}>No review comments are available for this session.</span>
+          )}
+        </div>
+
+        <div style={collaborationColumnStyle}>
+          <div style={collaborationSubheadStyle}>
+            <Link2 size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+            Annotation and evidence links
+          </div>
+          {snapshot.annotations.length > 0 ? snapshot.annotations.map((annotation) => (
+            <article key={annotation.id} style={collaborationRowStyle} data-testid="map-review-annotation-link">
+              <div style={collaborationRowTitleStyle}>Annotation {annotation.id}</div>
+              <div style={metaStyle}>{annotation.author.name} / {targetLabel(annotation.target)}</div>
+              <ReferenceBadges label="Layer" ids={annotation.layerIds} />
+              <ReferenceBadges label="Evidence" ids={annotation.evidenceArtifactIds} />
+            </article>
+          )) : (
+            <span style={collaborationNoteStyle}>No annotation links are available for this session.</span>
+          )}
+        </div>
+      </div>
+
+      <div style={collaborationNoteStyle}>
+        Review sync payload: target IDs, comment text, annotation IDs, evidence IDs, and presence only. Source bytes and layer geometry are excluded.
+      </div>
+    </section>
+  );
 }
 
 function EventRow({
@@ -419,6 +699,7 @@ function EventRow({
 export const MapReviewTimelinePanel: React.FC<MapReviewTimelinePanelProps> = ({
   visible,
   session,
+  collaborationSnapshot,
   overlayLayers,
   qaState,
   onClose,
@@ -474,6 +755,8 @@ export const MapReviewTimelinePanel: React.FC<MapReviewTimelinePanelProps> = ({
     [session.events],
   );
 
+  const resolvedCollaborationSnapshot = collaborationSnapshot ?? createLocalOnlyCollaborationSnapshot(session.id);
+
   if (!visible) return null;
 
   const activeQaIssues = qaState?.issues.filter((issue) => issue.severity !== "info") ?? [];
@@ -504,6 +787,8 @@ export const MapReviewTimelinePanel: React.FC<MapReviewTimelinePanelProps> = ({
           <X size={MAP_ICON_SIZES.sm} aria-hidden="true" />
         </button>
       </header>
+
+      <CollaborationSurface snapshot={resolvedCollaborationSnapshot} />
 
       <section style={filterGridStyle} aria-label="Review timeline filters">
         <label style={labelStyle}>

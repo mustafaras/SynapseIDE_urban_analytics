@@ -63,7 +63,8 @@ Planar metric work is blocked unless `CrsPreflight` approves a projected executi
 ## Collaborate, Audit, and Recover
 
 - Review timeline entries record imports, command runs, QA state, workflow outputs, report handoffs, exports, AI-proposed actions, and package exports.
-- Collaboration sessions sync annotations, comments, target IDs, evidence IDs, and presence through Yjs. Offline or disconnected sessions show `local-only` rather than claiming live sync.
+- Review > Collaboration and the bottom Timeline surface show collaboration sync state, reviewer presence, comments grouped by target ID, annotation links, and evidence IDs. The status bar separates viewport sync from collaboration sync with a `Collab` item.
+- Collaboration sessions sync annotations, comments, target IDs, evidence IDs, and presence through Yjs. Offline or disconnected sessions show `local-only` or `offline` rather than claiming live sync, and collaboration payloads exclude raw source bytes and layer geometry.
 - Diagnostics collect bounded, redacted operational events for command runs, worker failures, external-service errors, performance warnings, and panel errors.
 - Map panel error boundaries keep scoped failures recoverable instead of blanking the modal.
 
