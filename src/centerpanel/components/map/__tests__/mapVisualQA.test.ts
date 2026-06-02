@@ -280,6 +280,10 @@ const BOTTOM_PANEL_PATH = join(
   process.cwd(),
   "src/centerpanel/components/map/bottom/MapBottomPanel.tsx",
 );
+const LAYER_MANAGER_PATH = join(
+  process.cwd(),
+  "src/centerpanel/components/map/MapLayerManager.tsx",
+);
 
 describe("Prompt 15 visual-system polish contract", () => {
   const tokens = readFileSync(MAP_TOKENS_PATH, "utf-8");
@@ -329,5 +333,27 @@ describe("Prompt 15 visual-system polish contract", () => {
     expect(sidebar).toContain("MAP_PANEL_SIZES.sidebarExpanded");
     expect(inspectorHost).toContain("MAP_PANEL_SIZES.inspectorRightRail");
     expect(bottomPanel).toContain("MAP_PANEL_SIZES.bottomPanelHeight");
+  });
+});
+
+describe("Prompt 30 layer stack row visual contract", () => {
+  const layerManager = readFileSync(LAYER_MANAGER_PATH, "utf-8");
+
+  it("keeps compact layer rows in stable visibility/content/action columns", () => {
+    expect(layerManager).toContain('gridTemplateColumns: "1.625rem minmax(0, 1fr) 3.5rem"');
+    expect(layerManager).toContain("minHeight: \"7.5rem\"");
+    expect(layerManager).toContain("width: \"3.5rem\"");
+    expect(layerManager).toContain("layerReadinessGrid");
+    expect(layerManager).toContain("LayerReadinessCell");
+  });
+
+  it("keeps every readiness lane and row action surface present", () => {
+    for (const lane of ["source", "restore", "geometry", "features", "crs", "qa", "publication"]) {
+      expect(layerManager).toContain(`id: "${lane}"`);
+    }
+    expect(layerManager).toContain('data-layer-readiness={cell.id}');
+    expect(layerManager).toContain('data-layer-action={action.id}');
+    expect(layerManager).toContain('data-testid="map-layer-table-trigger"');
+    expect(layerManager).toContain('data-testid="map-layer-inspect-trigger"');
   });
 });

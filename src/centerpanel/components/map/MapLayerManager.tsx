@@ -15,11 +15,13 @@ import { createOsmBuildingsLayerConfig } from "@/services/map/ExternalServiceCon
 import { executeOverpassBuildingsAsync } from "@/services/map/ExternalServiceQueue";
 import {
   MAP_COLORS,
+  MAP_DENSITY,
   MAP_DIMENSIONS,
   MAP_RADIUS,
   MAP_SHADOWS,
   MAP_SPACING,
   MAP_STROKES,
+  MAP_TEXT_STYLES,
   MAP_TRANSITIONS,
   MAP_TYPOGRAPHY,
   MAP_Z_INDEX,
@@ -237,18 +239,21 @@ const groupHeader: React.CSSProperties = {
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
   textTransform: "uppercase" as const,
   letterSpacing: MAP_TYPOGRAPHY.letterSpacing.caps,
-  padding: `${MAP_SPACING.md} ${MAP_SPACING.md} ${MAP_SPACING.xs}`,
+  padding: `${MAP_SPACING.sm} ${MAP_SPACING.md} ${MAP_SPACING.xs}`,
   marginTop: 0,
+  minHeight: MAP_DENSITY.compact.rowHeight,
 };
 
 const layerRow: React.CSSProperties = {
   ...mapStyles.sidePanelRow,
   display: "grid",
-  gridTemplateColumns: "1.5rem minmax(0, 1fr) auto",
-  alignItems: "start",
-  gap: MAP_SPACING.sm,
-  padding: `${MAP_SPACING.sm} ${MAP_SPACING.md}`,
-  fontSize: 12,
+  gridTemplateColumns: "1.625rem minmax(0, 1fr) 3.5rem",
+  alignItems: "stretch",
+  gap: MAP_DENSITY.compact.gap,
+  minHeight: "7.5rem",
+  padding: `${MAP_SPACING.sm} ${MAP_SPACING.sm}`,
+  boxSizing: "border-box",
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
   cursor: "grab",
 };
 
@@ -260,20 +265,27 @@ const layerRowDragging: React.CSSProperties = {
 
 const visibilityBtn: React.CSSProperties = {
   background: "none",
-  border: "none",
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.sm,
   cursor: "pointer",
   fontSize: 14,
-  padding: 2,
+  width: MAP_DENSITY.compact.rowHeight,
+  height: MAP_DENSITY.compact.rowHeight,
+  padding: 0,
   lineHeight: 1,
   transition: MAP_TRANSITIONS.fast,
   flexShrink: 0,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
 };
 
 const layerContent: React.CSSProperties = {
   flex: 1,
   minWidth: 0,
   display: "grid",
-  gap: 5,
+  alignContent: "start",
+  gap: MAP_SPACING.xs,
 };
 
 const layerNameButton: React.CSSProperties = {
@@ -284,16 +296,17 @@ const layerNameButton: React.CSSProperties = {
   padding: 0,
   cursor: "pointer",
   minWidth: 0,
-  flex: "1 1 12rem",
+  width: "100%",
   maxWidth: "100%",
+  display: "block",
 };
 
 const layerName: React.CSSProperties = {
+  ...MAP_TEXT_STYLES.titleWrap,
   color: MAP_COLORS.text,
-  fontSize: 12,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
   fontFamily: MAP_TYPOGRAPHY.fontFamily,
-  overflowWrap: "anywhere",
-  whiteSpace: "normal" as const,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
   cursor: "pointer",
 };
 
@@ -306,10 +319,8 @@ const layerTextBlock: React.CSSProperties = {
 };
 
 const layerNameLine: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  flexWrap: "wrap",
-  gap: MAP_SPACING.sm,
+  display: "grid",
+  gap: 2,
   minWidth: 0,
 };
 
@@ -350,19 +361,63 @@ const layerMetaText: React.CSSProperties = {
   whiteSpace: "normal",
 };
 
+const layerModeRail: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  flexWrap: "wrap",
+  gap: 4,
+  minHeight: "1.125rem",
+  minWidth: 0,
+};
+
+const layerBadgeRail: React.CSSProperties = {
+  ...layerModeRail,
+};
+
 const layerControlRow: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: 6,
   minWidth: 0,
+  minHeight: MAP_DENSITY.compact.rowHeight,
 };
 
-const layerBadgeRail: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  flexWrap: "wrap",
+const layerReadinessGrid: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
   gap: 4,
   minWidth: 0,
+};
+
+const layerReadinessCellBase: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "3.25rem minmax(0, 1fr)",
+  alignItems: "center",
+  gap: 4,
+  minHeight: MAP_DENSITY.compact.rowHeight,
+  minWidth: 0,
+  padding: "2px 5px",
+  border: MAP_STROKES.hairlineSubtle,
+  borderLeftWidth: 2,
+  borderRadius: MAP_RADIUS.sm,
+  background: "rgba(255,255,255,0.018)",
+  boxSizing: "border-box",
+};
+
+const layerReadinessLabel: React.CSSProperties = {
+  color: MAP_COLORS.textMuted,
+  fontSize: 9,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+  lineHeight: MAP_TYPOGRAPHY.lineHeight.tight,
+  whiteSpace: "nowrap",
+};
+
+const layerReadinessValue: React.CSSProperties = {
+  ...MAP_TEXT_STYLES.valueWrap,
+  color: MAP_COLORS.textSecondary,
+  fontSize: 10,
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+  lineHeight: MAP_TYPOGRAPHY.lineHeight.tight,
 };
 
 const layerInlineActions: React.CSSProperties = {
@@ -370,7 +425,7 @@ const layerInlineActions: React.CSSProperties = {
   alignItems: "center",
   flexWrap: "wrap",
   gap: MAP_SPACING.xs,
-  marginTop: MAP_SPACING.xs,
+  minHeight: MAP_DENSITY.compact.rowHeight,
 };
 
 const layerInlineActionButton: React.CSSProperties = {
@@ -394,6 +449,7 @@ const layerBadgeBase: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   maxWidth: "11rem",
+  minHeight: "1rem",
   padding: "1px 3px",
   borderRadius: MAP_RADIUS.sm,
   border: MAP_STROKES.none,
@@ -403,9 +459,7 @@ const layerBadgeBase: React.CSSProperties = {
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
   letterSpacing: 0,
   lineHeight: 1.2,
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
+  ...MAP_TEXT_STYLES.chipLabel,
   flexShrink: 0,
 };
 
@@ -415,6 +469,7 @@ const layerActionMenu: React.CSSProperties = {
   justifySelf: "end",
   alignSelf: "start",
   zIndex: 2,
+  width: "3.5rem",
 };
 
 const layerActionSummary: React.CSSProperties = {
@@ -422,7 +477,10 @@ const layerActionSummary: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
-  minWidth: 54,
+  width: "3.5rem",
+  minWidth: "3.5rem",
+  minHeight: MAP_DENSITY.compact.rowHeight,
+  boxSizing: "border-box",
   background: MAP_COLORS.transparent,
   border: MAP_STROKES.hairlineSubtle,
   color: MAP_COLORS.interaction,
@@ -1031,6 +1089,14 @@ interface LayerBadgeModel {
   tone: LayerBadgeTone;
 }
 
+interface LayerReadinessCellModel {
+  id: string;
+  label: string;
+  value: string;
+  title: string;
+  tone: LayerBadgeTone;
+}
+
 type LayerActionId =
   | "locate"
   | "move-up"
@@ -1151,78 +1217,94 @@ function buildPublicationGateReason(layer: OverlayLayerConfig): string | null {
   return null;
 }
 
-function buildLayerBadges(layer: OverlayLayerConfig): LayerBadgeModel[] {
+function formatFeatureCountLabel(featureCount: number | null): string {
+  return featureCount == null ? "count unknown" : `${featureCount.toLocaleString()} features`;
+}
+
+function buildCrsReadinessValue(layer: OverlayLayerConfig): string {
   const registry = normalizeLayerRegistryMetadata(layer);
-  const isDerived = registry.sourceKind === "derived" || Boolean(layer.metadata?.analysisResult);
+  const crs = registry.crsSummary.crs;
+  if (registry.crsSummary.source === "user-declared") {
+    return crs ? `${crs} user-declared` : "user-declared CRS";
+  }
+  if (registry.crsSummary.status === "known") {
+    return crs ?? "CRS known";
+  }
+  if (registry.crsSummary.status === "missing") {
+    return "CRS missing";
+  }
+  return "CRS unknown";
+}
+
+function buildLayerReadinessCells(layer: OverlayLayerConfig): LayerReadinessCellModel[] {
+  const registry = normalizeLayerRegistryMetadata(layer);
   const sourceRestoreStatus = resolveLayerSourceRestoreStatus(layer);
-  const sourceRestoreLabel = sourceRestoreStatus ? SOURCE_RESTORE_STATUS_LABELS[sourceRestoreStatus] : null;
-  const crsLabel = registry.crsSummary.status === "known"
-    ? registry.crsSummary.crs ?? "CRS known"
-    : "CRS missing";
+  const sourceRestoreLabel = sourceRestoreStatus ? SOURCE_RESTORE_STATUS_LABELS[sourceRestoreStatus] : "unregistered";
+  const baseSourceLabel = SOURCE_KIND_LABELS[registry.sourceKind];
+  const sourceLabel = registry.sourceKind === "demo" ? "Demo / synthetic" : baseSourceLabel;
+  const geometryType = registry.geometrySummary.geometryType !== "Unknown"
+    ? registry.geometrySummary.geometryType
+    : "Unknown geometry";
+  const featureCountLabel = formatFeatureCountLabel(registry.featureCount);
+  const crsValue = buildCrsReadinessValue(layer);
   const publicationLabel = `Publication ${PUBLICATION_READINESS_LABELS[registry.publicationReadiness.status].toLowerCase()}`;
-  const badges: LayerBadgeModel[] = [
+  return [
     {
       id: "source",
-      label: sourceRestoreLabel
-        ? `${SOURCE_KIND_LABELS[registry.sourceKind]} / ${sourceRestoreLabel}`
-        : SOURCE_KIND_LABELS[registry.sourceKind],
-      title: sourceRestoreStatus
-        ? `Source kind: ${SOURCE_KIND_LABELS[registry.sourceKind]}. Restore status: ${SOURCE_RESTORE_STATUS_LABELS[sourceRestoreStatus]}. Provenance: ${registry.provenance.label}`
-        : `Source kind: ${SOURCE_KIND_LABELS[registry.sourceKind]}. Provenance: ${registry.provenance.label}`,
+      label: "Source",
+      value: sourceLabel,
+      title: `Source kind: ${baseSourceLabel} / ${sourceRestoreLabel}. Provenance: ${registry.provenance.label}`,
       tone: sourceRestoreBadgeTone(sourceRestoreStatus, registry.sourceKind),
     },
-  ];
-
-  if (isDerived) {
-    badges.push({
-      id: "derived",
-      label: isDerived ? (layer.metadata?.analysisResult?.stale ? "Derived stale" : "Derived") : "Source layer",
-      title: "Derived layer with recorded analysis lineage.",
-      tone: layer.metadata?.analysisResult?.stale ? "warning" : isDerived ? "info" : "neutral",
-    });
-  }
-
-  if (registry.qaStatus === "warning" || registry.qaStatus === "error") {
-    badges.push({
-      id: "qa",
-      label: QA_STATUS_LABELS[registry.qaStatus],
-      title: `Scientific QA status: ${QA_STATUS_LABELS[registry.qaStatus]}.`,
-      tone: qaBadgeTone(registry.qaStatus),
-    });
-  }
-
-  const vectorTiles = layer.metadata?.vectorTiles;
-  if (vectorTiles?.generalization === "zoom-dependent") {
-    badges.push({
-      id: "vector-tile-simplification",
-      label: vectorTiles.caveatLabel || MAP_VECTOR_TILE_SIMPLIFICATION_CAVEAT_LABEL,
-      title: vectorTiles.caveats.join(" ") || "Layer is rendered from generalized vector tiles at low zoom.",
-      tone: "warning",
-    });
-  }
-
-  const crsUserDeclared = registry.crsSummary.source === "user-declared";
-  if (registry.crsSummary.status !== "known" || crsUserDeclared) {
-    badges.push({
+    {
+      id: "restore",
+      label: "Restore",
+      value: sourceRestoreLabel,
+      title: sourceRestoreStatus
+        ? `Source restore state: ${SOURCE_RESTORE_STATUS_LABELS[sourceRestoreStatus]}.`
+        : "Source restore state: unregistered. No source handle or restore state is registered for this layer.",
+      tone: sourceRestoreStatus ? sourceRestoreBadgeTone(sourceRestoreStatus, registry.sourceKind) : "neutral",
+    },
+    {
+      id: "geometry",
+      label: "Geom",
+      value: geometryType,
+      title: `Geometry type: ${geometryType}.`,
+      tone: geometryType === "Unknown geometry" ? "warning" : "neutral",
+    },
+    {
+      id: "features",
+      label: "Features",
+      value: featureCountLabel,
+      title: `Feature count: ${featureCountLabel}.`,
+      tone: registry.featureCount == null ? "warning" : "neutral",
+    },
+    {
       id: "crs",
-      label: crsUserDeclared ? "user-declared (caveat)" : crsLabel,
+      label: "CRS",
+      value: crsValue,
       title: registry.crsSummary.notes.length > 0
         ? registry.crsSummary.notes.join(" ")
-        : `CRS: ${crsLabel}.`,
-      tone: crsUserDeclared ? "warning" : "error",
-    });
-  }
-
-  if (registry.publicationReadiness.status === "needs-review" || registry.publicationReadiness.status === "blocked") {
-    badges.push({
+        : `CRS status: ${crsValue}.`,
+      tone: registry.crsSummary.status === "known"
+        ? (registry.crsSummary.source === "user-declared" ? "warning" : "good")
+        : "error",
+    },
+    {
+      id: "qa",
+      label: "QA",
+      value: QA_STATUS_LABELS[registry.qaStatus],
+      title: `Scientific QA status: ${QA_STATUS_LABELS[registry.qaStatus]}.`,
+      tone: qaBadgeTone(registry.qaStatus),
+    },
+    {
       id: "publication",
-      label: publicationLabel,
+      label: "Publish",
+      value: publicationLabel,
       title: buildPublicationGateReason(layer) ?? (registry.publicationReadiness.caveats.join(" ") || "Layer metadata is publication-ready."),
       tone: publicationBadgeTone(registry.publicationReadiness.status),
-    });
-  }
-
-  return badges;
+    },
+  ];
 }
 
 function createLayerAction(
@@ -1333,6 +1415,29 @@ function buildRepairGeometryAction(
 const LayerBadge: React.FC<{ badge: LayerBadgeModel }> = ({ badge }) => (
   <span style={{ ...layerBadgeBase, ...layerBadgeToneStyle(badge.tone) }} title={badge.title}>
     {badge.label}
+  </span>
+);
+
+function layerReadinessCellStyle(tone: LayerBadgeTone): React.CSSProperties {
+  const toneStyle = layerBadgeToneStyle(tone);
+  return {
+    ...layerReadinessCellBase,
+    borderLeftColor: toneStyle.color ?? MAP_COLORS.hairlineStrong,
+  };
+}
+
+const LayerReadinessCell: React.FC<{
+  layerId: string;
+  cell: LayerReadinessCellModel;
+}> = ({ layerId, cell }) => (
+  <span
+    style={layerReadinessCellStyle(cell.tone)}
+    title={cell.title}
+    data-layer-readiness={cell.id}
+    data-testid={`map-layer-readiness-${layerId}-${cell.id}`}
+  >
+    <span style={layerReadinessLabel}>{cell.label}</span>
+    <span style={{ ...layerReadinessValue, ...layerBadgeToneStyle(cell.tone) }}>{cell.value}</span>
   </span>
 );
 
@@ -2269,8 +2374,9 @@ const LayerRow: React.FC<LayerRowProps> = ({
   const registry = normalizeLayerRegistryMetadata(layer);
   const geometryFeatureSummary = formatLayerGeometryFeatureSummary(layer);
   const layerBounds = getLayerBounds(layer);
-  const layerBadges = buildLayerBadges(layer);
+  const readinessCells = buildLayerReadinessCells(layer);
   const legendPreviewItems = buildMapCompositionLegendItems([{ ...layer, visible: true }]).slice(0, 4);
+  const vectorTiles = layer.metadata?.vectorTiles;
   const evidenceActions = buildLayerEvidenceActions(layer, {
     ...(onExportLayer ? { onExportLayer } : {}),
     ...(onSendLayerToUrban ? { onSendLayerToUrban } : {}),
@@ -2351,6 +2457,7 @@ const LayerRow: React.FC<LayerRowProps> = ({
   const rowActions = [...utilityActions, ...evidenceActions, ...removalActions];
   const importFormat = formatImportSourceLabel(layer.metadata?.importFormat);
   const restoreStatus = resolveLayerSourceRestoreStatus(layer);
+  const outputMode = analysisResult?.outputMode;
   const detailSummary = [
     SOURCE_KIND_LABELS[sourceKind],
     restoreStatus ? SOURCE_RESTORE_STATUS_LABELS[restoreStatus] : null,
@@ -2410,6 +2517,14 @@ const LayerRow: React.FC<LayerRowProps> = ({
           >
             <span style={layerName}>{layer.name}</span>
           </button>
+        </div>
+
+        <div style={layerModeRail} aria-label={`Layer mode and caveat badges for ${layer.name}`}>
+          {isSymbologyActive ? (
+            <span style={staleChip} title="This layer is active in the style workspace">
+              Active style
+            </span>
+          ) : null}
           {analysisResult?.stale ? (
             <span style={staleChip} title="Source data changed after this analysis result was computed">
               Stale
@@ -2423,6 +2538,28 @@ const LayerRow: React.FC<LayerRowProps> = ({
               {formatColumnarLabel(columnar.format)}
             </span>
           ) : null}
+          {outputMode === "demo" || outputMode === "synthetic" ? (
+            <span
+              style={outputMode === "synthetic" ? scientificQaBadgeStyle("uncertain_output") : scientificQaBadgeStyle("sample_data")}
+              title={`Analysis output mode: ${outputMode}.`}
+            >
+              {outputMode === "synthetic" ? "Synthetic output" : "Demo output"}
+            </span>
+          ) : null}
+          <span
+            style={queryable ? layerBadgeBase : { ...layerBadgeBase, ...layerBadgeToneStyle("warning") }}
+            title={queryable ? "Layer is queryable from the map registry." : "Layer is not queryable from the map registry."}
+          >
+            {queryable ? "queryable" : "not queryable"}
+          </span>
+          {vectorTiles?.generalization === "zoom-dependent" ? (
+            <span
+              style={scientificQaBadgeStyle("uncertain_output")}
+              title={vectorTiles.caveats.join(" ") || "Layer is rendered from generalized vector tiles at low zoom."}
+            >
+              {vectorTiles.caveatLabel || MAP_VECTOR_TILE_SIMPLIFICATION_CAVEAT_LABEL}
+            </span>
+          ) : null}
           {scientificQA?.badges
             .filter((badge) => badge !== "stale_result" || !analysisResult?.stale)
             .map((badge) => (
@@ -2432,9 +2569,9 @@ const LayerRow: React.FC<LayerRowProps> = ({
             ))}
         </div>
 
-        <div style={layerBadgeRail} aria-label={`Layer readiness badges for ${layer.name}`}>
-          {layerBadges.map((badge) => (
-            <LayerBadge key={badge.id} badge={badge} />
+        <div style={layerReadinessGrid} aria-label={`Layer readiness for ${layer.name}: ${detailSummary}`}>
+          {readinessCells.map((cell) => (
+            <LayerReadinessCell key={cell.id} layerId={layer.id} cell={cell} />
           ))}
         </div>
 

@@ -17,6 +17,7 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import type maplibregl from "maplibre-gl";
+import type { MapCartographyReviewState } from "@/services/map/MapCartographyAdvisor";
 import type { SourceHandle } from "@/services/map/contracts/gisContracts";
 import { MAP_LAYER_REGISTRY_EVENT } from "../mapTypes";
 import type {
@@ -802,6 +803,256 @@ describe("MapLayerManager component", () => {
     expect(html).toContain("Actions");
     expect(html).toContain("Publication needs review: missing license attribution.");
     expect(html).toContain("Delete");
+  });
+
+  it("renders dense readiness lanes with stable group headers", async () => {
+    const mod = await import("../MapLayerManager");
+    const layers: OverlayLayerConfig[] = [
+      {
+        id: "long-data-layer",
+        name: "Very Long Municipal Zoning Parcels Readiness Name That Must Wrap Without Hiding Badges",
+        type: "geojson",
+        visible: true,
+        opacity: 0.8,
+        group: "data",
+        sourceKind: "imported",
+        qaStatus: "warning",
+        queryable: true,
+        provenance: {
+          label: "Municipal zoning portal",
+          sourceUrl: "https://example.test/zoning.geojson",
+        },
+        metadata: {
+          sourceRestoreStatus: "restored",
+          featureCount: 240,
+          geometryType: "Polygon",
+          fields: ["zone", "height_limit"],
+          crsSummary: {
+            crs: "EPSG:3857",
+            status: "known",
+            source: "explicit",
+            notes: [],
+          },
+        },
+      },
+      {
+        id: "voxcity-layer",
+        name: "VoxCity Scene Output",
+        type: "geojson",
+        visible: false,
+        opacity: 1,
+        group: "voxcity",
+        sourceKind: "demo",
+        qaStatus: "warning",
+        metadata: {
+          sourceRestoreStatus: "metadata-only",
+          featureCount: 12,
+          geometryType: "Polygon",
+          scientificQA: {
+            status: "warning",
+            issueIds: ["sample-data"],
+            badges: ["sample_data"],
+            checkedAt: "2026-05-31T08:00:00.000Z",
+            featureIssueCount: 0,
+            usedWorker: false,
+            caveats: ["Synthetic demo data."],
+            signature: "voxcity-layer",
+          },
+        },
+      },
+      {
+        id: "analysis-layer",
+        name: "Accessibility Index",
+        type: "heatmap",
+        visible: true,
+        opacity: 0.6,
+        group: "analysis",
+        sourceKind: "derived",
+        qaStatus: "passed",
+        metadata: {
+          featureCount: 88,
+          geometryType: "Point",
+          crsSummary: {
+            crs: "EPSG:32635",
+            status: "known",
+            source: "user-declared",
+            notes: ["User-declared CRS caveat remains visible."],
+          },
+        },
+      },
+    ];
+
+    const html = renderToStaticMarkup(
+      React.createElement(mod.MapLayerManager, {
+        overlayLayers: layers,
+        activeBaseLayerName: "Dark Matter",
+        onToggleVisibility: () => undefined,
+        onSetOpacity: () => undefined,
+        onRemoveLayer: () => undefined,
+        onReorderLayers: () => undefined,
+        onAddLayer: () => undefined,
+      }),
+    );
+
+    expect(html).toContain("Data Layers");
+    expect(html).toContain("VoxCity");
+    expect(html).toContain("Analysis Results");
+    expect(html).toContain("Very Long Municipal Zoning Parcels Readiness Name");
+    expect(html).toContain('data-layer-readiness="source"');
+    expect(html).toContain('data-layer-readiness="restore"');
+    expect(html).toContain('data-layer-readiness="geometry"');
+    expect(html).toContain('data-layer-readiness="features"');
+    expect(html).toContain('data-layer-readiness="crs"');
+    expect(html).toContain('data-layer-readiness="qa"');
+    expect(html).toContain('data-layer-readiness="publication"');
+    expect(html).toContain("Imported");
+    expect(html).toContain("restored");
+    expect(html).toContain("Polygon");
+    expect(html).toContain("240 features");
+    expect(html).toContain("EPSG:3857");
+    expect(html).toContain("QA warning");
+    expect(html).toContain("Publication needs review");
+    expect(html).toContain("Demo / synthetic");
+    expect(html).toContain("Demo / metadata only");
+    expect(html).toContain("Sample data");
+    expect(html).toContain("EPSG:32635 user-declared");
+  });
+
+  it("keeps the layer row action inventory reachable", async () => {
+    const mod = await import("../MapLayerManager");
+    const reviewState: MapCartographyReviewState = {
+      status: "needs-review",
+      reviewedAt: "2026-05-31T08:00:00.000Z",
+      recommendations: [{
+        id: "cartography-review-1",
+        type: "symbol-density",
+        severity: "warning",
+        layerId: "action-layer",
+        layerName: "Action Layer",
+        title: "Point symbols need review",
+        rationale: "Dense point symbols may obscure detail.",
+        suggestedFix: "Reduce symbol radius.",
+        detailUrl: "https://example.test/cartography",
+        preview: {
+          beforeStyle: {},
+          afterStyle: {},
+        },
+      }],
+      metadata: {
+        generatedBy: "MapCartographyAdvisor",
+        version: 1,
+        visibleLayerCount: 3,
+        recommendationCounts: { info: 0, warning: 1, error: 0 },
+        signature: "action-inventory",
+      },
+    };
+    const layers: OverlayLayerConfig[] = [
+      {
+        id: "before-action-layer",
+        name: "Before Action Layer",
+        type: "geojson",
+        visible: true,
+        opacity: 1,
+      },
+      {
+        id: "action-layer",
+        name: "Action Layer",
+        type: "geojson",
+        visible: true,
+        opacity: 1,
+        sourceKind: "external",
+        qaStatus: "error",
+        queryable: true,
+        sourceData: {
+          type: "FeatureCollection",
+          features: [],
+        },
+        provenance: {
+          label: "Action source",
+          sourceUrl: "https://example.test/action.geojson",
+          license: "ODbL",
+          attribution: "City GIS",
+        },
+        metadata: {
+          featureCount: 1,
+          geometryType: "Point",
+          bounds: [28.925, 40.962, 29.064, 41.052],
+          fields: ["name"],
+          crsSummary: {
+            crs: "EPSG:3857",
+            status: "known",
+            source: "explicit",
+            notes: [],
+          },
+          scientificQA: {
+            status: "error",
+            issueIds: ["invalid-geometry"],
+            badges: ["invalid_geometry"],
+            checkedAt: "2026-05-31T08:00:00.000Z",
+            featureIssueCount: 1,
+            usedWorker: true,
+            caveats: ["Invalid geometry."],
+            signature: "action-layer",
+          },
+        },
+      },
+      {
+        id: "after-action-layer",
+        name: "After Action Layer",
+        type: "geojson",
+        visible: true,
+        opacity: 1,
+      },
+    ];
+
+    const html = renderToStaticMarkup(
+      React.createElement(mod.MapLayerManager, {
+        overlayLayers: layers,
+        activeBaseLayerName: "Dark Matter",
+        onToggleVisibility: () => undefined,
+        onSetOpacity: () => undefined,
+        onRemoveLayer: () => undefined,
+        onReorderLayers: () => undefined,
+        onAddLayer: () => undefined,
+        onExportLayer: () => undefined,
+        onSendLayerToUrban: () => undefined,
+        onOpenLayerInIde: () => undefined,
+        onAddLayerToReport: () => undefined,
+        onBindLayerToDashboard: () => undefined,
+        onOpenLayerEducationReference: () => undefined,
+        onFocusLayer: () => undefined,
+        onOpenSymbology: () => undefined,
+        onInspectLayer: () => undefined,
+        onOpenAttributeTable: () => undefined,
+        onRepairGeometry: () => undefined,
+        activeSymbologyLayerId: "action-layer",
+        cartographyReviewState: reviewState,
+      }),
+    );
+
+    for (const actionId of [
+      "locate",
+      "move-up",
+      "move-down",
+      "style",
+      "review",
+      "repair-geometry",
+      "export",
+      "urban",
+      "ide",
+      "report",
+      "dashboard",
+      "education",
+      "remove",
+    ]) {
+      expect(html).toContain(`data-layer-action="${actionId}"`);
+    }
+    expect(html).toContain('data-testid="map-layer-table-trigger"');
+    expect(html).toContain('data-testid="map-layer-inspect-trigger"');
+    expect(html).toContain("Active style");
+    expect(html).toContain("Style active");
+    expect(html).toContain("Open symbology panel for Action Layer");
+    expect(html).toContain("Layer actions for Action Layer");
   });
 
   it("renders embedded layer stack without duplicate panel chrome", async () => {
