@@ -151,6 +151,7 @@ const label: React.CSSProperties = {
 
 const input: React.CSSProperties = {
   width: "100%",
+  minWidth: 0,
   minHeight: "2rem",
   boxSizing: "border-box",
   padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
@@ -191,6 +192,7 @@ const layerList: React.CSSProperties = {
 const layerRow = (selected = false): React.CSSProperties => ({
   display: "grid",
   gap: MAP_SPACING.xs,
+  minWidth: 0,
   padding: MAP_SPACING.sm,
   borderRadius: MAP_RADIUS.sm,
   border: selected ? `1px solid ${MAP_COLORS.focus}` : MAP_STROKES.hairlineSubtle,
@@ -204,6 +206,8 @@ const metaLine: React.CSSProperties = {
   color: MAP_COLORS.textMuted,
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
   lineHeight: 1.45,
+  minWidth: 0,
+  overflowWrap: "anywhere",
 };
 
 const statusPanel: React.CSSProperties = {
@@ -221,6 +225,22 @@ const errorText: React.CSSProperties = {
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
   lineHeight: 1.45,
 };
+
+const caveatList: React.CSSProperties = {
+  display: "grid",
+  gap: MAP_SPACING.xs,
+  margin: 0,
+  paddingLeft: MAP_SPACING.md,
+  color: MAP_COLORS.textMuted,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  lineHeight: 1.45,
+};
+
+const EXTERNAL_SERVICE_CAVEATS = [
+  "No credentials, tokens, cookies, or provider bytes are stored in project packages.",
+  "WMS, WMTS, and XYZ layers are visual references unless a queryable vector service is fetched explicitly.",
+  "Provider availability, CORS policy, rate limits, license, and attribution must be reviewed before publication.",
+] as const;
 
 function serviceErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "External service request failed.";
@@ -712,6 +732,9 @@ export const MapServiceDialog: React.FC<MapServiceDialogProps> = ({
       </div>
       <div style={metaLine}>{description}</div>
       <div style={metaLine}>Timeout policy: 10 seconds for capabilities and service metadata; Overpass runs as a cancelable background task.</div>
+      <ul style={caveatList} aria-label={`${panelTitle} provider caveats`}>
+        {EXTERNAL_SERVICE_CAVEATS.map((caveat) => <li key={caveat}>{caveat}</li>)}
+      </ul>
       {busyLabel ? <div style={{ ...metaLine, color: MAP_COLORS.interaction }}>Working: {busyLabel}</div> : null}
       {error ? <div style={errorText}>{error}</div> : null}
     </aside>

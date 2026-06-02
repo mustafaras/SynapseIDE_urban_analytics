@@ -6,6 +6,7 @@ import {
   buildDemoPackCatalogInsertion,
   buildMapCatalogItems,
   buildMapSourceReadinessCounts,
+  mapCatalogHealthDescriptor,
   MAP_CATALOG_CATEGORIES,
   type MapCatalogActionResult,
   type MapCatalogConnectionDraft,
@@ -149,16 +150,18 @@ const FORMAT_SUPPORT_GROUPS = [
 const PROVIDER_CAVEATS = [
   "External services depend on upstream availability, CORS policy, browser credential mode, attribution, and provider rate limits.",
   "WMS, WMTS, XYZ, and most tile providers are visual references unless a queryable vector service is explicitly connected.",
-  "Catalog records never persist credentials, tokens, cookies, or raw source bytes for external providers.",
+  "Catalog records never persist credentials, tokens, cookies, or raw source bytes for external providers; only secret-free endpoint references are stored.",
+  "Provider licensing and attribution should be reviewed before a layer is published, exported, or included in a report handoff.",
 ] as const;
 
 const READINESS_METRICS = [
-  { key: "restoredLive", label: "Restored / live" },
-  { key: "recoverable", label: "Recoverable" },
-  { key: "unavailable", label: "Unavailable" },
-  { key: "external", label: "External" },
-  { key: "metadataOnly", label: "Metadata-only" },
-  { key: "demoSynthetic", label: "Demo / synthetic" },
+  { key: "restoredLive", label: "Restored / live", status: "ready" },
+  { key: "recoverable", label: "Recoverable", status: "caveat" },
+  { key: "unavailable", label: "Unavailable", status: "blocked" },
+  { key: "offline", label: "Offline", status: "external-offline" },
+  { key: "external", label: "External refs", status: "external" },
+  { key: "metadataOnly", label: "Metadata-only", status: "metadata-only" },
+  { key: "demoSynthetic", label: "Demo / synthetic", status: "demo" },
 ] as const;
 
 const SECTION_COPY: Record<MapDataActivitySectionId, { title: string; description: string }> = {
@@ -185,13 +188,7 @@ const SECTION_COPY: Record<MapDataActivitySectionId, { title: string; descriptio
 };
 
 function healthLabel(health: MapCatalogHealth): string {
-  switch (health) {
-    case "external-reference": return "External";
-    case "metadata-only":      return "Metadata only";
-    case "rate-limit":         return "Rate limited";
-    default:
-      return health.charAt(0).toUpperCase() + health.slice(1);
-  }
+  return mapCatalogHealthDescriptor(health).label;
 }
 
 function catalogHealthToGisStatus(health: MapCatalogHealth): GisStatusKey {
@@ -201,16 +198,18 @@ function catalogHealthToGisStatus(health: MapCatalogHealth): GisStatusKey {
     case "cached":
       return "ready";
     case "recoverable":
-    case "metadata-only":
       return "caveat";
+    case "metadata-only":
+      return "metadata-only";
     case "unavailable":
     case "cors":
     case "auth":
     case "rate-limit":
       return "blocked";
-    case "external-reference":
     case "offline":
       return "external-offline";
+    case "external-reference":
+      return "external";
     case "demo":
       return "demo";
     case "untracked":
@@ -244,6 +243,8 @@ export const MapCatalogPanel: React.FC<MapCatalogPanelProps> = ({
   const [endpoint, setEndpoint] = useState("");
   const [urlTemplate, setUrlTemplate] = useState("");
   const [crs, setCrs] = useState("");
+  const [license, setLicense] = useState("");
+  const [attribution, setAttribution] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<MapCatalogActionResult | null>(null);
   const items = useMemo(() => buildMapCatalogItems(sourceHandles, layers), [layers, sourceHandles]);
@@ -284,6 +285,8 @@ export const MapCatalogPanel: React.FC<MapCatalogPanelProps> = ({
     event.preventDefault();
     const trimmedTitle = title.trim();
     const trimmedEndpoint = endpoint.trim();
+    const trimmedLicense = license.trim();
+    const trimmedAttribution = attribution.trim();
     if (!trimmedEndpoint) {
       setFeedback({ ok: false, message: "A service endpoint URL is required." });
       return;
@@ -295,6 +298,8 @@ export const MapCatalogPanel: React.FC<MapCatalogPanelProps> = ({
       endpoint: trimmedEndpoint,
       ...(urlTemplate.trim() ? { urlTemplate: urlTemplate.trim() } : {}),
       ...(crs.trim() ? { crs: crs.trim() } : {}),
+      ...(trimmedLicense ? { license: trimmedLicense } : {}),
+      ...(trimmedAttribution ? { attribution: trimmedAttribution } : {}),
     });
     setFeedback(result);
     setBusyId(null);
@@ -344,7 +349,12 @@ export const MapCatalogPanel: React.FC<MapCatalogPanelProps> = ({
   const renderReadinessCounts = (): React.ReactNode => (
     <div className={styles.readinessGrid} aria-label="Source readiness counts">
       {READINESS_METRICS.map((metric) => (
-        <div className={styles.readinessMetric} key={metric.key} data-testid={`catalog-readiness-${metric.key}`}>
+        <div
+          className={styles.readinessMetric}
+          key={metric.key}
+          data-status={metric.status}
+          data-testid={`catalog-readiness-${metric.key}`}
+        >
           <strong>{readinessCounts[metric.key]}</strong>
           <span>{metric.label}</span>
         </div>
@@ -417,7 +427,25 @@ export const MapCatalogPanel: React.FC<MapCatalogPanelProps> = ({
         <span>Declared CRS</span>
         <input value={crs} onChange={(event) => setCrs(event.target.value)} placeholder="EPSG:4326" />
       </label>
-      <p className={styles.secretNote}>No credentials or secrets are stored in catalog records.</p>
+      <label className={styles.field}>
+        <span>License note</span>
+        <input
+          data-testid="catalog-connection-license"
+          value={license}
+          onChange={(event) => setLicense(event.target.value)}
+          placeholder="ODbL, CC BY, provider terms, or unknown"
+        />
+      </label>
+      <label className={styles.field}>
+        <span>Attribution</span>
+        <input
+          data-testid="catalog-connection-attribution"
+          value={attribution}
+          onChange={(event) => setAttribution(event.target.value)}
+          placeholder="Provider attribution required for publication"
+        />
+      </label>
+      <p className={styles.secretNote}>No credentials or secrets are stored in catalog records. Endpoint, license, attribution, CRS, and health metadata only.</p>
       <button className={styles.secondaryButton} type="submit" data-testid="catalog-save-connection" disabled={busyId === "new-connection"}>
         {busyId === "new-connection" ? "Checking..." : "Add and Check Health"}
       </button>
@@ -474,46 +502,72 @@ export const MapCatalogPanel: React.FC<MapCatalogPanelProps> = ({
             <GisEmptyState title={category.emptyLabel} compact />
           ) : (
             <div className={styles.items}>
-              {entries.map((item) => (
-                <article className={styles.item} key={item.id} data-testid={`catalog-item-${item.id}`}>
-                  <div className={styles.itemHeading}>
-                    <strong className={styles.itemTitle} title={item.title}>{item.title}</strong>
-                    <GisStatusChip
-                      status={catalogHealthToGisStatus(item.health)}
-                      label={healthLabel(item.health)}
-                      density="compact"
-                      data-testid={`catalog-health-${item.id}`}
-                    />
-                  </div>
-                  {item.synthetic ? <span className={styles.demoLabel}>DEMO / SYNTHETIC</span> : null}
-                  <p className={styles.itemSummary}>{item.summary}</p>
-                  {item.actionableReason ? <p className={styles.actionable}>{item.actionableReason}</p> : null}
-                  <div className={styles.itemActions}>
-                    {item.template === "demo-pack" ? (
-                      <button type="button" data-testid="catalog-add-demo-pack" onClick={addDemoPack}>Add to Map</button>
+              {entries.map((item) => {
+                const descriptor = mapCatalogHealthDescriptor(item.health);
+                const caveats = item.caveats.slice(0, 4);
+                return (
+                  <article className={styles.item} key={item.id} data-testid={`catalog-item-${item.id}`}>
+                    <div className={styles.itemHeading}>
+                      <div className={styles.itemTitleStack}>
+                        <strong className={styles.itemTitle} title={item.title}>{item.title}</strong>
+                        <span className={styles.statusDetail}>{descriptor.detail}</span>
+                      </div>
+                      <GisStatusChip
+                        status={catalogHealthToGisStatus(item.health)}
+                        label={healthLabel(item.health)}
+                        density="compact"
+                        data-testid={`catalog-health-${item.id}`}
+                      />
+                    </div>
+                    <div className={styles.itemMeta} aria-label="Source catalog metadata">
+                      <span>{item.providerLabel ?? item.sourceKind}</span>
+                      <span>{item.sourceHandle?.storageMode ?? "source handle missing"}</span>
+                      <span>{item.layerIds.length} layer{item.layerIds.length === 1 ? "" : "s"}</span>
+                      {item.sourceHandle?.crsSummary.crs ? <span>{item.sourceHandle.crsSummary.crs}</span> : <span>CRS unknown</span>}
+                    </div>
+                    {item.endpoint ? <p className={styles.itemEndpoint}>{item.endpoint}</p> : null}
+                    {item.synthetic ? <span className={styles.demoLabel}>DEMO / SYNTHETIC</span> : null}
+                    <p className={styles.itemSummary}>{item.summary}</p>
+                    {item.license || item.attribution ? (
+                      <p className={styles.licenseNote}>
+                        License: {item.license ?? "unknown"}. Attribution: {item.attribution ?? "not supplied"}.
+                      </p>
+                    ) : item.category === "external-services" ? (
+                      <p className={styles.licenseNote}>License/attribution not supplied; review provider terms before publication.</p>
                     ) : null}
-                    {item.category === "external-services" && !item.template ? (
-                      <button
-                        type="button"
-                        data-testid={`catalog-reconnect-${item.id}`}
-                        disabled={busyId === item.id}
-                        onClick={() => void reconnect(item)}
-                      >
-                        <RefreshCw size={11} /> {busyId === item.id ? "Checking..." : "Reconnect"}
-                      </button>
+                    {caveats.length > 0 ? (
+                      <ul className={styles.itemCaveats} aria-label="Source caveats">
+                        {caveats.map((caveat) => <li key={caveat}>{caveat}</li>)}
+                      </ul>
                     ) : null}
-                    {statusNeedsRepair(item) ? (
-                      <button
-                        type="button"
-                        data-testid={`catalog-repair-${item.id}`}
-                        onClick={() => onRepairSource(item)}
-                      >
-                        <Wrench size={11} /> Repair Source
-                      </button>
-                    ) : null}
-                  </div>
-                </article>
-              ))}
+                    {item.actionableReason ? <p className={styles.actionable}>{item.actionableReason}</p> : null}
+                    <div className={styles.itemActions}>
+                      {item.template === "demo-pack" ? (
+                        <button type="button" data-testid="catalog-add-demo-pack" onClick={addDemoPack}>Add to Map</button>
+                      ) : null}
+                      {item.category === "external-services" && !item.template ? (
+                        <button
+                          type="button"
+                          data-testid={`catalog-reconnect-${item.id}`}
+                          disabled={busyId === item.id}
+                          onClick={() => void reconnect(item)}
+                        >
+                          <RefreshCw size={11} /> {busyId === item.id ? "Checking..." : descriptor.reconnectLabel ?? "Check provider"}
+                        </button>
+                      ) : null}
+                      {statusNeedsRepair(item) ? (
+                        <button
+                          type="button"
+                          data-testid={`catalog-repair-${item.id}`}
+                          onClick={() => onRepairSource(item)}
+                        >
+                          <Wrench size={11} /> {descriptor.repairLabel ?? "Repair Source"}
+                        </button>
+                      ) : null}
+                    </div>
+                  </article>
+                );
+              })}
             </div>
           )}
         </section>
@@ -533,6 +587,7 @@ export const MapCatalogPanel: React.FC<MapCatalogPanelProps> = ({
     if (activeSection === "connections") {
       return (
         <>
+          {renderReadinessCounts()}
           <button
             className={styles.primaryButton}
             type="button"

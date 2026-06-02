@@ -6160,6 +6160,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         layerName: draft.title,
         ...(draft.urlTemplate ? { urlTemplate: draft.urlTemplate } : {}),
         ...(draft.crs ? { crs: draft.crs } : {}),
+        ...(draft.license ? { license: draft.license } : {}),
+        ...(draft.attribution ? { attribution: draft.attribution } : {}),
       });
       const health = await checkConnectionHealth(descriptor);
       const result = buildCatalogConnectionLayer(descriptor, health);

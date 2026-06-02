@@ -41,6 +41,7 @@ function renderPanel(options: {
   onAddDemoPack?: (insertion: MapCatalogLayerInsertion) => void;
   onRepairSource?: (item: MapCatalogItem) => void;
   onOpenExternalServices?: () => void;
+  onAddConnection?: (draft: MapCatalogConnectionDraft) => Promise<MapCatalogActionResult>;
 } = {}): void {
   host = document.createElement("div");
   document.body.appendChild(host);
@@ -58,7 +59,7 @@ function renderPanel(options: {
         onAddDemoPack={options.onAddDemoPack ?? (() => {})}
         onRepairSource={options.onRepairSource ?? (() => {})}
         onReconnectSource={async () => ({ ok: false, message: "Unavailable" } satisfies MapCatalogActionResult)}
-        onAddConnection={async (_draft: MapCatalogConnectionDraft) => ({ ok: true, message: "Added" })}
+        onAddConnection={options.onAddConnection ?? (async (_draft: MapCatalogConnectionDraft) => ({ ok: true, message: "Added" }))}
         onOpenExternalServices={options.onOpenExternalServices}
       />,
     );
@@ -68,6 +69,14 @@ function renderPanel(options: {
 function click(testId: string): void {
   const element = host!.querySelector(`[data-testid="${testId}"]`)!;
   act(() => element.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+}
+
+function changeValue(testId: string, value: string): void {
+  const element = host!.querySelector(`[data-testid="${testId}"]`) as HTMLInputElement;
+  act(() => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set?.call(element, value);
+    element.dispatchEvent(new Event("input", { bubbles: true }));
+  });
 }
 
 afterEach(() => {
@@ -112,9 +121,124 @@ describe("MapCatalogPanel", () => {
 
     expect(host!.textContent).toContain("External-provider caveats");
     expect(host!.textContent).toContain("No credentials or secrets are stored");
+    expect(host!.textContent).toContain("provider rate limits");
+    expect(host!.textContent).toContain("License note");
+    expect(host!.textContent).toContain("Attribution");
 
     click("catalog-open-external-services");
     expect(openExternalServices).toHaveBeenCalledOnce();
+  });
+
+  it("submits secret-free endpoint metadata with license and attribution notes", async () => {
+    const addConnection = vi.fn<(draft: MapCatalogConnectionDraft) => Promise<MapCatalogActionResult>>()
+      .mockResolvedValue({ ok: true, message: "Added" });
+    renderPanel({ activeSection: "connections", onAddConnection: addConnection });
+
+    changeValue("catalog-connection-endpoint", "https://example.test/wms");
+    changeValue("catalog-connection-license", "CC BY 4.0");
+    changeValue("catalog-connection-attribution", "Example GIS Office");
+
+    await act(async () => {
+      host!.querySelector("form")!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    });
+
+    expect(addConnection).toHaveBeenCalledWith(expect.objectContaining({
+      endpoint: "https://example.test/wms",
+      license: "CC BY 4.0",
+      attribution: "Example GIS Office",
+    }));
+  });
+
+  it("labels every source restore and external dependency state distinctly", () => {
+    const offlineLayer: OverlayLayerConfig = {
+      id: "offline-wms-layer",
+      name: "Offline WMS",
+      type: "raster-tile",
+      visible: true,
+      opacity: 1,
+      sourceKind: "external",
+      metadata: {
+        sourceId: "offline-wms",
+        externalService: {
+          kind: "wms",
+          endpoint: "https://example.invalid/wms",
+          dependencyStatus: "offline",
+          offlineReason: "Provider returned HTTP 503.",
+        },
+      },
+    };
+    renderPanel({
+      activeSection: "source-health",
+      layers: [offlineLayer],
+      sourceHandles: [
+        {
+          sourceId: "external-ref",
+          kind: "external",
+          storageMode: "external-service",
+          restoreStatus: "external-reference",
+          format: "wms",
+          sourceRef: "https://example.test/wms",
+          crsSummary: { crs: null, status: "unknown", source: "external-service", notes: [] },
+          featureCount: null,
+          caveats: ["External service availability must be checked."],
+          profiledAt: "2026-05-26T10:00:00.000Z",
+        },
+        {
+          sourceId: "metadata-only-source",
+          kind: "imported",
+          storageMode: "metadata-only",
+          restoreStatus: "metadata-only",
+          format: "geojson",
+          crsSummary: { crs: null, status: "unknown", source: "unknown", notes: [] },
+          featureCount: null,
+          caveats: ["Raw geometry is not available."],
+          profiledAt: "2026-05-26T10:00:00.000Z",
+        },
+        {
+          sourceId: "recoverable-source",
+          kind: "imported",
+          storageMode: "worker-table",
+          restoreStatus: "recoverable",
+          workerTableName: "worker:recoverable-source",
+          crsSummary: { crs: null, status: "unknown", source: "unknown", notes: [] },
+          featureCount: 5,
+          caveats: ["Rehydrate before analysis."],
+          profiledAt: "2026-05-26T10:00:00.000Z",
+        },
+        brokenSource(),
+        {
+          sourceId: "offline-wms",
+          kind: "external",
+          storageMode: "external-service",
+          restoreStatus: "external-reference",
+          format: "wms",
+          sourceRef: "https://example.invalid/wms",
+          crsSummary: { crs: null, status: "unknown", source: "external-service", notes: [] },
+          featureCount: null,
+          caveats: ["External service availability must be checked."],
+          profiledAt: "2026-05-26T10:00:00.000Z",
+        },
+        {
+          sourceId: "demo-source",
+          kind: "demo",
+          storageMode: "inline-small",
+          restoreStatus: "restored",
+          format: "geojson",
+          crsSummary: { crs: "EPSG:3857", status: "known", source: "import-source", notes: [] },
+          featureCount: 3,
+          caveats: ["Synthetic demo source."],
+          profiledAt: "2026-05-26T10:00:00.000Z",
+        },
+      ],
+    });
+
+    expect(host!.textContent).toContain("External reference");
+    expect(host!.textContent).toContain("Metadata only");
+    expect(host!.textContent).toContain("Recoverable");
+    expect(host!.textContent).toContain("Unavailable");
+    expect(host!.textContent).toContain("Offline");
+    expect(host!.textContent).toContain("Demo / synthetic");
+    expect(host!.querySelector('[data-testid="catalog-readiness-offline"]')?.textContent).toContain("1");
   });
 
   it("summarizes source readiness counts without hiding metadata-only or demo records", () => {

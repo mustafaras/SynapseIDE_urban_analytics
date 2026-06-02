@@ -54,6 +54,11 @@ export interface MapCatalogItem {
   sourceHandle?: SourceHandle;
   sourceId?: string;
   actionableReason?: string;
+  providerLabel?: string;
+  endpoint?: string;
+  license?: string;
+  attribution?: string;
+  caveats: string[];
   synthetic?: boolean;
   template?: "demo-pack";
 }
@@ -69,6 +74,8 @@ export interface MapCatalogConnectionDraft {
   endpoint: string;
   urlTemplate?: string;
   crs?: string;
+  license?: string;
+  attribution?: string;
 }
 
 export interface MapCatalogActionResult {
@@ -86,9 +93,17 @@ export interface MapSourceReadinessCounts {
   restoredLive: number;
   recoverable: number;
   unavailable: number;
+  offline: number;
   external: number;
   metadataOnly: number;
   demoSynthetic: number;
+}
+
+export interface MapCatalogHealthDescriptor {
+  label: string;
+  detail: string;
+  repairLabel?: string;
+  reconnectLabel?: string;
 }
 
 export const MAP_CATALOG_CATEGORIES: readonly MapCatalogCategory[] = [
@@ -153,25 +168,59 @@ function describeSource(handle: SourceHandle, layerCount: number): string {
   return `${format}; ${count}; ${layerCount} layer${layerCount === 1 ? "" : "s"}.`;
 }
 
+function resolveProviderLabel(handle: SourceHandle): string | undefined {
+  if (handle.kind !== "external") return undefined;
+  if (!handle.format) return "External service";
+  try {
+    return getMapConnectionProvider(handle.format).label;
+  } catch {
+    return handle.format.toUpperCase();
+  }
+}
+
 function sourceTitle(handle: SourceHandle, layers: readonly OverlayLayerConfig[]): string {
   const linkedLayer = layers.find((layer) => resolveLayerSourceId(layer) === handle.sourceId);
   return linkedLayer?.name ?? handle.sourceRef ?? handle.sourceId;
 }
 
 function actionForHealth(health: MapCatalogHealth): string | undefined {
+  const descriptor = mapCatalogHealthDescriptor(health);
+  return descriptor.repairLabel || descriptor.reconnectLabel ? descriptor.detail : undefined;
+}
+
+export function mapCatalogHealthDescriptor(health: MapCatalogHealth): MapCatalogHealthDescriptor {
   switch (health) {
-    case "offline":
-      return "Service is offline. Reconnect to run a new health check.";
-    case "stale":
-      return "Service health is stale. Reconnect before analytical use.";
+    case "restored":
+      return { label: "Restored", detail: "Local source bytes or trusted source metadata restored for this session." };
+    case "live":
+      return { label: "Live", detail: "External dependency passed the latest health check." };
+    case "cached":
+      return { label: "Cached", detail: "External dependency is using a bounded cache result; refresh before publication if stale." };
+    case "recoverable":
+      return { label: "Recoverable", detail: "Source can be rehydrated from a local cache, worker table, DuckDB table, or URL reference.", reconnectLabel: "Rehydrate" };
     case "unavailable":
-      return "Source bytes are unavailable. Repair source by importing a replacement.";
+      return { label: "Unavailable", detail: "Source bytes are unavailable. Repair source by importing a replacement.", repairLabel: "Repair source" };
+    case "external-reference":
+      return { label: "External reference", detail: "Catalog stores a secret-free endpoint/reference only; provider bytes are not packaged.", reconnectLabel: "Check provider" };
     case "metadata-only":
-      return "Only metadata is available. Repair source to restore layer data.";
+      return { label: "Metadata only", detail: "Only metadata is available. Repair source to restore layer data.", repairLabel: "Repair source" };
+    case "offline":
+      return { label: "Offline", detail: "Service is offline. Reconnect to run a new health check.", reconnectLabel: "Reconnect" };
+    case "stale":
+      return { label: "Stale", detail: "Service health is stale. Reconnect before analytical use.", reconnectLabel: "Refresh health" };
+    case "cors":
+      return { label: "CORS blocked", detail: "Browser policy blocked the endpoint. Use a CORS-safe proxy or server-side connector.", reconnectLabel: "Retry check" };
+    case "auth":
+      return { label: "Auth required", detail: "The provider requires credentials. Use a secured connector; credentials are not stored here.", reconnectLabel: "Retry check" };
+    case "rate-limit":
+      return { label: "Rate limited", detail: "The provider is rate-limiting requests. Reduce frequency, narrow AOI, or use a mirror.", reconnectLabel: "Retry later" };
+    case "unknown":
+      return { label: "Unknown", detail: "Health has not been verified in this browser session.", reconnectLabel: "Check health" };
+    case "demo":
+      return { label: "Demo / synthetic", detail: "Synthetic onboarding source; not observational data." };
     case "untracked":
-      return "No SourceHandle is registered. Repair source metadata before analytical reuse.";
     default:
-      return undefined;
+      return { label: "Untracked", detail: "No SourceHandle is registered. Repair source metadata before analytical reuse.", repairLabel: "Repair metadata" };
   }
 }
 
@@ -182,6 +231,7 @@ export function buildMapCatalogItems(
   const items: MapCatalogItem[] = sourceHandles.map((handle) => {
     const linkedLayers = layers.filter((layer) => resolveLayerSourceId(layer) === handle.sourceId);
     const health = resolveHandleHealth(handle, linkedLayers);
+    const providerLabel = resolveProviderLabel(handle);
     return {
       id: `source-${handle.sourceId}`,
       category: resolveCategory(handle.kind, handle),
@@ -192,6 +242,11 @@ export function buildMapCatalogItems(
       layerIds: linkedLayers.map((layer) => layer.id),
       sourceHandle: handle,
       sourceId: handle.sourceId,
+      ...(providerLabel ? { providerLabel } : {}),
+      ...(handle.sourceRef ? { endpoint: handle.sourceRef } : {}),
+      ...(handle.license ? { license: handle.license } : {}),
+      ...(handle.attribution ? { attribution: handle.attribution } : {}),
+      caveats: [...handle.caveats],
       ...(actionForHealth(health) ? { actionableReason: actionForHealth(health) } : {}),
       ...(handle.kind === "demo" ? { synthetic: true } : {}),
     };
@@ -210,6 +265,7 @@ export function buildMapCatalogItems(
       health: "untracked",
       sourceKind: kind,
       layerIds: [layer.id],
+      caveats: ["Layer is present, but its durable source record is missing."],
       ...(sourceId ? { sourceId } : {}),
       actionableReason: actionForHealth("untracked"),
       ...(kind === "demo" ? { synthetic: true } : {}),
@@ -224,6 +280,7 @@ export function buildMapCatalogItems(
     health: "demo",
     sourceKind: "demo",
     layerIds: [],
+    caveats: [DEMO_PACK_PROVENANCE, "Not observational data."],
     synthetic: true,
     template: "demo-pack",
   });
@@ -238,6 +295,7 @@ export function buildMapSourceReadinessCounts(
     restoredLive: 0,
     recoverable: 0,
     unavailable: 0,
+    offline: 0,
     external: 0,
     metadataOnly: 0,
     demoSynthetic: 0,
@@ -253,9 +311,12 @@ export function buildMapSourceReadinessCounts(
     }
     if (
       item.health === "unavailable" ||
-      item.health === "offline" ||
       item.health === "untracked"
     ) {
+      counts.unavailable += 1;
+    }
+    if (item.health === "offline") {
+      counts.offline += 1;
       counts.unavailable += 1;
     }
     if (item.sourceKind === "external" || item.sourceHandle?.kind === "external") {

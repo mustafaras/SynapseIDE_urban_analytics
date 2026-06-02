@@ -240,6 +240,21 @@
   text-transform: uppercase;
 }
 
+.readinessMetric[data-status="ready"] {
+  border-color: color-mix(in srgb, var(--syn-status-valid, #4ec27d) 26%, transparent);
+}
+
+.readinessMetric[data-status="blocked"],
+.readinessMetric[data-status="external-offline"] {
+  border-color: color-mix(in srgb, var(--syn-status-error, #f87171) 30%, transparent);
+}
+
+.readinessMetric[data-status="external"],
+.readinessMetric[data-status="metadata-only"],
+.readinessMetric[data-status="caveat"] {
+  border-color: color-mix(in srgb, var(--syn-interaction-active, #d09a48) 26%, transparent);
+}
+
 .catalogTree {
   display: grid;
   align-content: start;
@@ -459,6 +474,12 @@
   font-size: 12px;
 }
 
+.itemTitleStack {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
 .itemHeading strong {
   font-weight: 550;
 }
@@ -472,6 +493,47 @@
   flex: 1;
 }
 
+.statusDetail {
+  color: var(--syn-text-muted, #8993a3);
+  font-size: 10px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.itemMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  min-width: 0;
+}
+
+.itemMeta span {
+  min-width: 0;
+  padding: 2px 6px;
+  border: 1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.18));
+  border-radius: 3px;
+  color: var(--syn-text-secondary, #b8c0cd);
+  font-family: var(--font-mono, "JetBrains Mono", monospace);
+  font-size: 9px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  text-transform: uppercase;
+}
+
+.itemEndpoint {
+  margin: 0;
+  padding: 5px 7px;
+  border: 1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.14));
+  border-radius: 3px;
+  background: var(--syn-bg, #111319);
+  color: var(--syn-text-muted, #8993a3);
+  font-family: var(--font-mono, "JetBrains Mono", monospace);
+  font-size: 9px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 .itemSummary {
   margin: 0;
   overflow: hidden;
@@ -482,6 +544,28 @@
   color: var(--syn-text-muted, #8993a3);
   font-size: 10px;
   line-height: 1.45;
+}
+
+.licenseNote {
+  margin: 0;
+  color: var(--syn-text-secondary, #b8c0cd);
+  font-size: 10px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.itemCaveats {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  padding-left: 15px;
+  color: var(--syn-text-muted, #8993a3);
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.itemCaveats li {
+  overflow-wrap: anywhere;
 }
 
 .health,
