@@ -208,8 +208,8 @@ import {
   checkConnectionHealth,
   createConnectionDescriptor,
 } from "../../../../services/map/sources/MapConnectionRegistry";
+import { MapAttributeWorkflowPanel } from "../table/MapAttributeWorkflowPanel";
 import {
-  MapAttributeTable,
   type AttrFeature,
   type MapAttributeDerivedFieldDraft,
 } from "../table/MapAttributeTable";
@@ -7754,32 +7754,23 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     </div>
   );
 
-  const bottomPanelAttributesContent = bottomAttributesTabActive
-    ? attributeTableLayer ? (
-      <MapAttributeTable
-        presentation="embedded"
-        layer={attributeTableLayer}
-        selectedIds={selectedFeatureIds[attributeTableLayer.id] ?? []}
-        onSelectFeatures={(featureIds) => handleAttributeTableSelection(attributeTableLayer.id, featureIds)}
-        onFocusFeature={handleFocusAttributeFeature}
-        onCreateDerivedLayer={handleCreateAttributeDerivedLayer}
-        onClose={() => {
-          setAttributeTableLayerId(null);
-          closeBottomPanel();
-          announce("Attribute table closed");
-        }}
-        onAnnounce={announce}
-      />
-    ) : (
-      <GisEmptyState
-        title="No attribute table selected"
-        description="Select a queryable layer or click the selected-feature status to inspect attributes here."
-        compact
-        style={{ height: "100%" }}
-        data-testid="map-bottom-panel-attributes-empty"
-      />
-    )
-    : null;
+  const bottomPanelAttributesContent = bottomAttributesTabActive ? (
+    <MapAttributeWorkflowPanel
+      layers={overlayLayers}
+      activeLayerId={attributeTableLayerId}
+      selectedFeatureIds={selectedFeatureIds}
+      onActiveLayerChange={setAttributeTableLayerId}
+      onSelectFeatures={handleAttributeTableSelection}
+      onFocusFeature={handleFocusAttributeFeature}
+      onCreateDerivedLayer={handleCreateAttributeDerivedLayer}
+      onClose={() => {
+        setAttributeTableLayerId(null);
+        closeBottomPanel();
+        announce("Attribute workflow closed");
+      }}
+      onAnnounce={announce}
+    />
+  ) : null;
 
   const bottomPanelTimelineContent = (
     <MapReviewTimelinePanel

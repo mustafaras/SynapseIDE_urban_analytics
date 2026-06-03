@@ -33,7 +33,7 @@ describe("Prompt 21 performance budget source contract", () => {
     );
 
     expect(attributesSource).toContain("bottomAttributesTabActive");
-    expect(attributesSource.indexOf("bottomAttributesTabActive")).toBeLessThan(attributesSource.indexOf("<MapAttributeTable"));
+    expect(attributesSource.indexOf("bottomAttributesTabActive")).toBeLessThan(attributesSource.indexOf("<MapAttributeWorkflowPanel"));
     expect(diagnosticsSource).toContain("bottomDiagnosticsTabActive");
     expect(diagnosticsSource.indexOf("bottomDiagnosticsTabActive")).toBeLessThan(diagnosticsSource.indexOf("<MapPerformanceDiagnosticsPanel"));
     expect(diagnosticsSource).toContain("visible");

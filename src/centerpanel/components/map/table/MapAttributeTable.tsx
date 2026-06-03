@@ -96,7 +96,7 @@ export function extractColumns(features: readonly AttrFeature[]): string[] {
   return columns;
 }
 
-function resolveLayerColumns(layer: OverlayLayerConfig, features: readonly AttrFeature[]): string[] {
+export function resolveLayerColumns(layer: OverlayLayerConfig, features: readonly AttrFeature[]): string[] {
   const seen = new Set<string>();
   const columns: string[] = [];
   const addColumn = (value: string | undefined): void => {
@@ -260,7 +260,7 @@ const titleRowStyle: React.CSSProperties = {
 const badgeStyle: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
-  borderRadius: MAP_RADIUS.pill,
+  borderRadius: MAP_RADIUS.full,
   border: MAP_STROKES.hairlineSubtle,
   padding: `1px ${MAP_SPACING.xs}`,
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
@@ -400,7 +400,7 @@ const distributionLabelStyle: React.CSSProperties = {
 const distributionTrackStyle: React.CSSProperties = {
   position: "relative",
   height: 8,
-  borderRadius: MAP_RADIUS.pill,
+  borderRadius: MAP_RADIUS.full,
   background: MAP_COLORS.bgPanel,
   border: MAP_STROKES.hairlineSubtle,
   overflow: "hidden",
@@ -470,6 +470,7 @@ export const MapAttributeTable: React.FC<MapAttributeTableProps> = ({
   const [sortDir, setSortDir] = useState<SortDirection>("asc");
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [scrollTop, setScrollTop] = useState(0);
+  const [selectedOnly, setSelectedOnly] = useState(false);
   const [activeField, setActiveField] = useState<string | null>(null);
   const [profileDrawerOpen, setProfileDrawerOpen] = useState(false);
   const [calculatorOpen, setCalculatorOpen] = useState(false);
@@ -477,17 +478,25 @@ export const MapAttributeTable: React.FC<MapAttributeTableProps> = ({
   const [expression, setExpression] = useState("value * 2");
   const [calculatorError, setCalculatorError] = useState<string | null>(null);
   const [calculatorStatus, setCalculatorStatus] = useState<string | null>(null);
+  const [fieldPreview, setFieldPreview] = useState<MapAttributeDerivedFieldDraft | null>(null);
+  const [fieldPreviewKey, setFieldPreviewKey] = useState<string | null>(null);
 
   const features = useMemo(() => extractFeatures(layer.sourceData), [layer.sourceData]);
   const columns = useMemo(() => resolveLayerColumns(layer, features), [features, layer]);
   const fieldProfiles = useMemo(() => buildFieldProfiles(features, columns), [features, columns]);
   const baseRows = useMemo(() => buildAttributeRows(features, layer.id), [features, layer.id]);
+  const selected = useMemo(() => new Set(selectedIds), [selectedIds]);
   const rows = useMemo(
-    () => sortRows(filterRows(baseRows, filters), sortKey, sortDir),
-    [baseRows, filters, sortKey, sortDir],
+    () => {
+      const filteredRows = filterRows(baseRows, filters);
+      const scopedRows = selectedOnly
+        ? filteredRows.filter((row) => selected.has(row.featureId))
+        : filteredRows;
+      return sortRows(scopedRows, sortKey, sortDir);
+    },
+    [baseRows, filters, selected, selectedOnly, sortKey, sortDir],
   );
   const visibleWindow = computeWindow(scrollTop, viewportHeight, ATTRIBUTE_ROW_HEIGHT, rows.length);
-  const selected = useMemo(() => new Set(selectedIds), [selectedIds]);
   const selectedRow = useMemo(
     () => rows.find((row) => selected.has(row.featureId)) ?? null,
     [rows, selected],
@@ -498,11 +507,22 @@ export const MapAttributeTable: React.FC<MapAttributeTableProps> = ({
   );
   const isDerivedLayer = layer.sourceKind === "derived" || layer.group === "analysis";
   const embedded = presentation === "embedded";
+  const calculatorPreviewKey = useMemo(
+    () => [layer.id, features.length, columns.join("|"), derivedFieldName.trim(), expression].join("\u0000"),
+    [columns, derivedFieldName, expression, features.length, layer.id],
+  );
+  const fieldPreviewReady = fieldPreview !== null && fieldPreviewKey === calculatorPreviewKey;
 
   useEffect(() => {
     if (activeField && columns.includes(activeField)) return;
     setActiveField(columns[0] ?? null);
   }, [activeField, columns]);
+
+  useEffect(() => {
+    if (selectedIds.length === 0 && selectedOnly) {
+      setSelectedOnly(false);
+    }
+  }, [selectedIds.length, selectedOnly]);
 
   const toggleSort = (key: string): void => {
     setActiveField(key);
@@ -534,50 +554,68 @@ export const MapAttributeTable: React.FC<MapAttributeTableProps> = ({
     onAnnounce?.(`Selection cleared for ${layer.name}.`);
   };
 
-  const handleApplyCalculation = (): void => {
+  const buildDerivedFieldPreview = (): MapAttributeDerivedFieldDraft => {
     const fieldName = derivedFieldName.trim();
     if (!isValidDerivedFieldName(fieldName)) {
-      setCalculatorError("Derived field names must start with a letter or underscore and use only letters, digits, or underscores.");
-      setCalculatorStatus(null);
-      return;
+      throw new Error("Derived field names must start with a letter or underscore and use only letters, digits, or underscores.");
     }
     if (columns.includes(fieldName)) {
-      setCalculatorError(`Field \"${fieldName}\" already exists on ${layer.name}.`);
-      setCalculatorStatus(null);
-      return;
+      throw new Error(`Field \"${fieldName}\" already exists on ${layer.name}.`);
     }
+
+    const program = compileFieldCalculation(expression, { allowedIdentifiers: columns });
+    const calculation = applyFieldCalculation({ features, fieldName, program });
+    const profile = buildFieldProfile(calculation.featureCollection.features, fieldName);
+    return {
+      sourceLayerId: layer.id,
+      sourceLayerName: layer.name,
+      fieldName,
+      expression: program.expression,
+      featureCollection: calculation.featureCollection,
+      fieldProfile: profile,
+      nullCount: calculation.nullCount,
+      totalValueCount: calculation.totalValueCount,
+      errorCount: calculation.errorCount,
+      referencedFields: calculation.referencedFields,
+      warnings: calculation.warnings,
+    };
+  };
+
+  const handlePreviewCalculation = (): void => {
+    try {
+      const preview = buildDerivedFieldPreview();
+      setFieldPreview(preview);
+      setFieldPreviewKey(calculatorPreviewKey);
+      setCalculatorError(null);
+      setCalculatorStatus(`Preview ready for ${preview.fieldName}: ${preview.totalValueCount.toLocaleString()} value(s), ${preview.nullCount.toLocaleString()} null output(s), ${preview.errorCount.toLocaleString()} evaluation error(s).`);
+      onAnnounce?.(`Derived field preview ready for ${preview.fieldName}.`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Field calculation failed.";
+      setCalculatorError(message);
+      setCalculatorStatus(null);
+      setFieldPreview(null);
+      setFieldPreviewKey(null);
+      onAnnounce?.(`Field calculation blocked: ${message}`);
+    }
+  };
+
+  const handleCreateFromPreview = (): void => {
     if (!onCreateDerivedLayer) {
       setCalculatorError("Derived-layer creation is unavailable in this view.");
       setCalculatorStatus(null);
       return;
     }
-
-    try {
-      const program = compileFieldCalculation(expression, { allowedIdentifiers: columns });
-      const calculation = applyFieldCalculation({ features, fieldName, program });
-      const profile = buildFieldProfile(calculation.featureCollection.features, fieldName);
-      onCreateDerivedLayer({
-        sourceLayerId: layer.id,
-        sourceLayerName: layer.name,
-        fieldName,
-        expression: program.expression,
-        featureCollection: calculation.featureCollection,
-        fieldProfile: profile,
-        nullCount: calculation.nullCount,
-        totalValueCount: calculation.totalValueCount,
-        errorCount: calculation.errorCount,
-        referencedFields: calculation.referencedFields,
-        warnings: calculation.warnings,
-      });
-      setCalculatorError(null);
-      setCalculatorStatus(`Derived field ${fieldName} prepared from ${program.referencedFields.join(", ") || "constants"}.`);
-      onAnnounce?.(`Derived field ${fieldName} prepared from ${layer.name}.`);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Field calculation failed.";
-      setCalculatorError(message);
+    if (!fieldPreviewReady || !fieldPreview) {
+      setCalculatorError("Preview the current field calculation before creating a derived layer.");
       setCalculatorStatus(null);
-      onAnnounce?.(`Field calculation blocked: ${message}`);
+      onAnnounce?.("Field calculation blocked until the preview is refreshed.");
+      return;
     }
+
+    onCreateDerivedLayer(fieldPreview);
+    setCalculatorError(null);
+    setCalculatorStatus(`Derived field ${fieldPreview.fieldName} prepared from ${fieldPreview.referencedFields.join(", ") || "constants"}.`);
+    onAnnounce?.(`Derived field ${fieldPreview.fieldName} prepared from ${layer.name}.`);
   };
 
   const profileMetrics = activeProfile
@@ -619,9 +657,25 @@ export const MapAttributeTable: React.FC<MapAttributeTableProps> = ({
           <span style={metaStyle} data-testid="map-attribute-table-count">
             {rows.length.toLocaleString()} of {features.length.toLocaleString()} feature{features.length === 1 ? "" : "s"}
             {selectedIds.length > 0 ? ` - ${selectedIds.length} selected` : ""}
+            {selectedOnly ? " - selected filter on" : ""}
           </span>
         </div>
         <div style={toolbarStyle}>
+          <button
+            type="button"
+            style={{
+              ...headerButtonStyle,
+              ...(selectedOnly ? { background: MAP_COLORS.selectedSubtle, color: MAP_COLORS.text } : {}),
+              ...(selectedIds.length > 0 ? {} : disabledButtonStyle),
+            }}
+            onClick={() => setSelectedOnly((current) => !current)}
+            disabled={selectedIds.length === 0}
+            title={selectedIds.length > 0 ? "Filter the table to selected feature ids." : "Missing prerequisite: no selected features for this layer."}
+            aria-pressed={selectedOnly}
+            data-testid="map-attribute-selected-filter"
+          >
+            Selected only
+          </button>
           <button
             type="button"
             style={{ ...headerButtonStyle, ...(activeProfile ? {} : disabledButtonStyle) }}
@@ -736,14 +790,41 @@ export const MapAttributeTable: React.FC<MapAttributeTableProps> = ({
             </div>
             {calculatorError ? <div style={helperTextStyle} data-testid="map-field-calculator-error">{calculatorError}</div> : null}
             {calculatorStatus ? <div style={statusTextStyle}>{calculatorStatus}</div> : null}
-            <div>
+            {fieldPreview ? (
+              <div style={statCardStyle} data-testid="map-field-calculator-preview-summary">
+                <span style={statLabelStyle}>Derived field preview</span>
+                <span style={statValueStyle}>{fieldPreview.fieldName}</span>
+                <div style={helperTextStyle}>
+                  {fieldPreview.fieldProfile.kind} field · {fieldPreview.totalValueCount.toLocaleString()} rows · {fieldPreview.nullCount.toLocaleString()} null · {fieldPreview.errorCount.toLocaleString()} errors
+                  {fieldPreviewReady ? "" : " · stale, preview again before creating"}
+                </div>
+              </div>
+            ) : (
+              <div style={helperTextStyle}>Preview the expression to inspect output counts before creating a derived layer.</div>
+            )}
+            <div style={{ display: "flex", gap: MAP_SPACING.xs, flexWrap: "wrap" }}>
               <button
                 type="button"
-                style={{ ...headerButtonStyle, ...(!onCreateDerivedLayer ? disabledButtonStyle : {}) }}
-                onClick={handleApplyCalculation}
-                disabled={!onCreateDerivedLayer}
+                style={headerButtonStyle}
+                onClick={handlePreviewCalculation}
+                data-testid="map-field-calculator-preview"
+                title="Preview the derived field values, stats, nulls, and blocked states before creating a layer."
+              >
+                Preview derived field
+              </button>
+              <button
+                type="button"
+                style={{ ...headerButtonStyle, ...(onCreateDerivedLayer && fieldPreviewReady ? {} : disabledButtonStyle) }}
+                onClick={handleCreateFromPreview}
+                disabled={!onCreateDerivedLayer || !fieldPreviewReady}
                 data-testid="map-field-calculator-apply"
-                title={onCreateDerivedLayer ? "Create a derived layer with the new field." : "Derived-layer creation is unavailable in this view."}
+                title={
+                  !onCreateDerivedLayer
+                    ? "Derived-layer creation is unavailable in this view."
+                    : fieldPreviewReady
+                      ? "Create a derived layer from the current preview."
+                      : "Preview the current calculation before creating a derived layer."
+                }
               >
                 Create derived layer
               </button>

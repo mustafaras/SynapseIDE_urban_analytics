@@ -353,7 +353,7 @@ describe("Prompt 30 layer stack row visual contract", () => {
     }
     expect(layerManager).toContain('data-layer-readiness={cell.id}');
     expect(layerManager).toContain('data-layer-action={action.id}');
-    expect(layerManager).toContain('data-testid="map-layer-table-trigger"');
-    expect(layerManager).toContain('data-testid="map-layer-inspect-trigger"');
+    expect(layerManager).toContain('testId: "map-layer-table-trigger"');
+    expect(layerManager).toContain('testId: "map-layer-inspect-trigger"');
   });
 });

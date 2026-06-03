@@ -11,6 +11,7 @@ import {
   MapAttributeTable,
   sortRows,
 } from "../table/MapAttributeTable";
+import { MapAttributeWorkflowPanel } from "../table/MapAttributeWorkflowPanel";
 import { buildMapExplorerContextSummary } from "../mapContextSummary";
 import { fcLarge, fcPointsWGS84 } from "./fixtures/gisFixtures";
 import { useMapExplorerStore } from "../../../../stores/useMapExplorerStore";
@@ -68,11 +69,70 @@ function renderTable(
   });
 }
 
+function joinedPointsLayer(): OverlayLayerConfig {
+  return pointsLayer({
+    id: "scores",
+    name: "Fixture scores",
+    sourceData: {
+      type: "FeatureCollection",
+      features: fcPointsWGS84.features.map((feature, index) => ({
+        ...feature,
+        properties: {
+          id: index + 1,
+          score: 100 + index,
+        },
+      })),
+    },
+    metadata: {
+      geometryType: "Point",
+      featureCount: fcPointsWGS84.features.length,
+      fields: ["id", "score"],
+      crsSummary: { crs: "EPSG:4326", status: "known", source: "explicit", notes: [] },
+    },
+  });
+}
+
+function renderWorkflow(overrides?: Partial<React.ComponentProps<typeof MapAttributeWorkflowPanel>>): void {
+  if (!host) {
+    host = document.createElement("div");
+    document.body.appendChild(host);
+    root = createRoot(host);
+  }
+
+  const props: React.ComponentProps<typeof MapAttributeWorkflowPanel> = {
+    layers: [pointsLayer(), joinedPointsLayer()],
+    activeLayerId: "points",
+    selectedFeatureIds: {},
+    onActiveLayerChange: vi.fn(),
+    onSelectFeatures: vi.fn(),
+    onFocusFeature: vi.fn(),
+    onCreateDerivedLayer: vi.fn(),
+    onClose: vi.fn(),
+    onAnnounce: vi.fn(),
+    ...overrides,
+  };
+
+  act(() => {
+    root?.render(<MapAttributeWorkflowPanel {...props} />);
+  });
+}
+
+async function flushReactUpdates(): Promise<void> {
+  await act(async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+}
+
 function setControlValue(selector: string, value: string): void {
-  const control = host?.querySelector<HTMLInputElement | HTMLTextAreaElement>(selector) ?? null;
+  const control = host?.querySelector<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(selector) ?? null;
   expect(control).not.toBeNull();
   act(() => {
-    const prototype = control instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+    const prototype = control instanceof HTMLTextAreaElement
+      ? HTMLTextAreaElement.prototype
+      : control instanceof HTMLSelectElement
+        ? HTMLSelectElement.prototype
+        : HTMLInputElement.prototype;
     const descriptor = Object.getOwnPropertyDescriptor(prototype, "value");
     descriptor?.set?.call(control, value);
     control.dispatchEvent(new Event("input", { bubbles: true }));
@@ -165,6 +225,21 @@ describe("MapAttributeTable", () => {
     expect(host?.querySelector('[data-feature-id="1"]')?.getAttribute("aria-selected")).toBe("true");
   });
 
+  it("filters the attribute table to selected feature ids", () => {
+    renderTable(pointsLayer(), ["3"], vi.fn());
+
+    expect(host?.querySelector('[data-testid="map-attribute-table-count"]')?.textContent).toContain("25 of 25");
+
+    act(() => {
+      host?.querySelector<HTMLButtonElement>('[data-testid="map-attribute-selected-filter"]')?.click();
+    });
+
+    expect(host?.querySelector('[data-testid="map-attribute-table-count"]')?.textContent).toContain("1 of 25");
+    expect(host?.querySelector('[data-testid="map-attribute-table-count"]')?.textContent).toContain("selected filter on");
+    expect(host?.querySelector('[data-feature-id="3"]')).not.toBeNull();
+    expect(host?.querySelector('[data-feature-id="1"]')).toBeNull();
+  });
+
   it("shows a numeric field profile drawer with distribution and summary stats", () => {
     renderTable(pointsLayer(), [], vi.fn());
 
@@ -189,7 +264,7 @@ describe("MapAttributeTable", () => {
     expect(drawer?.textContent).toContain("52");
   });
 
-  it("creates a derived field draft through the sandboxed calculator UI", () => {
+  it("previews before creating a derived field draft through the sandboxed calculator UI", () => {
     const onCreateDerivedLayer = vi.fn();
     renderTable(pointsLayer(), [], vi.fn(), 360, onCreateDerivedLayer);
 
@@ -198,6 +273,17 @@ describe("MapAttributeTable", () => {
     });
     setControlValue('input[aria-label="Derived field name"]', "value_x2");
     setControlValue('textarea[aria-label="Field calculator expression"]', "value * 2");
+
+    const applyButton = host?.querySelector<HTMLButtonElement>('[data-testid="map-field-calculator-apply"]');
+    expect(applyButton?.disabled).toBe(true);
+
+    act(() => {
+      host?.querySelector<HTMLButtonElement>('[data-testid="map-field-calculator-preview"]')?.click();
+    });
+
+    const previewSummary = host?.querySelector('[data-testid="map-field-calculator-preview-summary"]');
+    expect(previewSummary?.textContent).toContain("value_x2");
+    expect(previewSummary?.textContent).toContain("25 rows");
 
     act(() => {
       host?.querySelector<HTMLButtonElement>('[data-testid="map-field-calculator-apply"]')?.click();
@@ -209,5 +295,51 @@ describe("MapAttributeTable", () => {
     expect(draft.referencedFields).toEqual(["value"]);
     expect(draft.featureCollection.features[0]?.properties?.value_x2).toBe(8);
     expect(draft.featureCollection.features[24]?.properties?.value_x2).toBe(200);
+  });
+
+  it("shows disabled reasons for non-queryable layers in the workflow panel", () => {
+    const rasterLayer = pointsLayer({
+      id: "imagery",
+      name: "Imagery tiles",
+      type: "raster-tile",
+      queryable: false,
+      sourceData: "https://tiles.example.test/{z}/{x}/{y}.png",
+      metadata: {
+        geometryType: "unknown",
+        featureCount: 0,
+        fields: [],
+        crsSummary: { crs: "EPSG:3857", status: "known", source: "explicit", notes: [] },
+      },
+    });
+
+    renderWorkflow({
+      layers: [rasterLayer],
+      activeLayerId: "imagery",
+    });
+
+    expect(host?.querySelector('[data-testid="map-attribute-workflow-panel"]')).not.toBeNull();
+    expect(host?.querySelector('[data-testid="map-attribute-layer-disabled-reason"]')?.textContent).toContain("Layer is not queryable");
+    expect(host?.querySelector('[data-testid="map-attribute-layer-disabled-reason"]')?.textContent).toContain("non-queryable");
+    expect(host?.querySelector('[data-testid="map-attribute-join-disabled-reason"]')?.textContent).toContain("non-queryable");
+  });
+
+  it("runs an attribute join preview from the workflow panel", async () => {
+    renderWorkflow();
+    await flushReactUpdates();
+
+    const runButton = host?.querySelector<HTMLButtonElement>('[data-testid="map-attribute-join-preview-run"]');
+    expect(runButton?.disabled).toBe(false);
+
+    await act(async () => {
+      runButton?.click();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const result = host?.querySelector('[data-testid="map-attribute-join-preview-result"]');
+    expect(result).not.toBeNull();
+    expect(result?.textContent).toContain("preview ready");
+    expect(result?.textContent).toContain("25 / 25 primary");
+    expect(result?.textContent).toContain("Output rows");
   });
 });

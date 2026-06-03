@@ -1254,6 +1254,8 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
 
     await table.getByLabel("Derived field name").fill("value_x2");
     await table.getByLabel("Field calculator expression").fill("value * 2");
+    await triggerDomClick(table.getByTestId("map-field-calculator-preview"));
+    await expect(table.getByTestId("map-field-calculator-preview-summary")).toContainText("value_x2");
     await triggerDomClick(table.getByTestId("map-field-calculator-apply"));
 
     await expect(table.getByTestId("map-attribute-table-provenance-badge")).toContainText("Derived");

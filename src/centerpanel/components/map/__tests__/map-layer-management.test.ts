@@ -915,7 +915,7 @@ describe("MapLayerManager component", () => {
     expect(html).toContain("Demo / synthetic");
     expect(html).toContain("Demo / metadata only");
     expect(html).toContain("Sample data");
-    expect(html).toContain("EPSG:32635 user-declared");
+    expect(html).toContain("EPSG:32635 user-declared (caveat)");
   });
 
   it("keeps the layer row action inventory reachable", async () => {

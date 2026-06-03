@@ -1257,7 +1257,7 @@ function buildCrsReadinessValue(layer: OverlayLayerConfig): string {
   const registry = normalizeLayerRegistryMetadata(layer);
   const crs = registry.crsSummary.crs;
   if (registry.crsSummary.source === "user-declared") {
-    return crs ? `${crs} user-declared` : "user-declared CRS";
+    return crs ? `${crs} user-declared (caveat)` : "user-declared (caveat) CRS";
   }
   if (registry.crsSummary.status === "known") {
     return crs ?? "CRS known";
