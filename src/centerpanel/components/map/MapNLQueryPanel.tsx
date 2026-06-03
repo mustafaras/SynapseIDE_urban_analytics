@@ -201,9 +201,54 @@ const decisionActionsStyle: React.CSSProperties = {
   minWidth: MAP_SPACING.zero,
 };
 
+const responsiveCardGrid: React.CSSProperties = {
+  display: "grid",
+  gap: MAP_SPACING.sm,
+  gridTemplateColumns: "repeat(auto-fit, minmax(16rem, 1fr))",
+  alignItems: "start",
+};
+
+const detailListStyle: React.CSSProperties = {
+  display: "grid",
+  gap: MAP_SPACING.xs,
+};
+
+const detailRowStyle: React.CSSProperties = {
+  display: "grid",
+  gap: MAP_SPACING.xs,
+  minWidth: MAP_SPACING.zero,
+  padding: `${MAP_SPACING.xs} ${MAP_SPACING.zero}`,
+};
+
+const reviewBlock: React.CSSProperties = {
+  margin: 0,
+  padding: MAP_SPACING.sm,
+  borderRadius: MAP_RADIUS.sm,
+  border: MAP_STROKES.hairlineSubtle,
+  background: MAP_COLORS.bg,
+  color: MAP_COLORS.text,
+  fontFamily: MAP_TYPOGRAPHY.fontFamily,
+  fontSize: MAP_TYPOGRAPHY.fontSize.sm,
+  lineHeight: MAP_TYPOGRAPHY.lineHeight.normal,
+  whiteSpace: "pre-wrap",
+  wordBreak: "break-word",
+};
+
 function formatMs(value: number): string {
   if (!Number.isFinite(value)) return "0 ms";
   return value >= 1000 ? `${(value / 1000).toFixed(1)} s` : `${Math.round(value)} ms`;
+}
+
+function formatCoordinate(value: number): string {
+  if (!Number.isFinite(value)) {
+    return "0";
+  }
+  return Math.abs(value) >= 100 ? value.toFixed(2) : value.toFixed(3);
+}
+
+function formatBounds(bounds: [number, number, number, number]): string {
+  const [west, south, east, north] = bounds;
+  return `W ${formatCoordinate(west)} · S ${formatCoordinate(south)} · E ${formatCoordinate(east)} · N ${formatCoordinate(north)}`;
 }
 
 function renderMetaPill(label: string, tone: "neutral" | "ok" | "warn" = "neutral"): React.ReactNode {
@@ -307,6 +352,38 @@ export const MapNLQueryPanel: React.FC<MapNLQueryPanelProps> = ({
   const previewAccepted = previewDecision?.previewId === preview.id && previewDecision.decision === "accepted";
   const previewRejected = previewDecision?.previewId === preview.id && previewDecision.decision === "rejected";
   const canRunAcceptedPreview = preview.canRun && previewAccepted && !isRunning;
+  const selectedSourceIds = useMemo(() => new Set(preview.sourceLayers.map((layer) => layer.id)), [preview.sourceLayers]);
+  const promptWasSanitized = preview.request !== request.trim();
+  const promptGuardChanged = promptWasSanitized
+    || preview.aiGuardrail.prompt.redactionCount > 0
+    || preview.aiGuardrail.prompt.sanitizedMarkup;
+  const outputGuardChanged = preview.aiGuardrail.output.redactionCount > 0 || preview.aiGuardrail.output.sanitizedMarkup;
+  const blockedProposal = preview.blockers.length > 0
+    || preview.aiGuardrail.status === "rejected"
+    || preview.intentPreview.ambiguityState === "blocked";
+  const guardrailToneValue = preview.aiGuardrail.status === "allowed" ? "ok" : "warn";
+  const confirmationSummary = previewAccepted
+    ? "Proposal confirmed. Run is now enabled for this exact preview."
+    : previewRejected
+      ? "Proposal rejected. Run remains disabled until a new preview is confirmed."
+      : preview.canRun
+        ? "Human confirmation is required. Run stays disabled until this proposal is explicitly confirmed."
+        : "Resolve the blocked or unsupported state before this proposal can be confirmed.";
+  const scopeSummary = scope === "selected-aoi"
+    ? selectedAoiFeature
+      ? "Selected AOI is active and will bound the query preview before execution."
+      : "Selected AOI scope is chosen, but no AOI polygon is available yet."
+    : scope === "current-extent"
+      ? currentMapBounds
+        ? `Current extent scope is active: ${formatBounds(currentMapBounds)}.`
+        : "Current extent scope is chosen, but the map viewport is unavailable."
+      : scope === "project"
+        ? "Project scope can include hidden non-external project layers. Review the selected sources before apply."
+        : "Visible scope limits the preview to currently visible queryable layers.";
+  const promptGuardMessages = Array.from(new Set([
+    ...preview.aiGuardrail.prompt.warnings,
+    ...preview.aiGuardrail.output.warnings,
+  ]));
 
   useEffect(() => {
     if (!visible || recordedProposalIdsRef.current.has(preview.id)) {
@@ -408,13 +485,88 @@ export const MapNLQueryPanel: React.FC<MapNLQueryPanelProps> = ({
         </div>
 
         <div style={sectionStyle}>
-          <div style={sectionTitle}>Request</div>
+          <div style={sectionTitle}>Scope and Layer Limits</div>
+          <div style={responsiveCardGrid}>
+            <div style={layerCard}>
+              <div style={{ color: MAP_COLORS.text, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
+                Execution scope
+              </div>
+              <div style={chipRow}>
+                {renderMetaPill(context.scopeLabel)}
+                {renderMetaPill(context.modeLabel, context.mode === "live" ? "ok" : "warn")}
+                {renderMetaPill(`${context.allLayerCount} total layer${context.allLayerCount === 1 ? "" : "s"}`)}
+                {renderMetaPill(`${context.queryableLayers.length} queryable now`, context.queryableLayers.length > 0 ? "ok" : "warn")}
+                {renderMetaPill(`${context.unavailableLayers.length} excluded now`, context.unavailableLayers.length > 0 ? "warn" : "neutral")}
+              </div>
+              <div style={mutedText}>{scopeSummary}</div>
+            </div>
+
+            <div style={layerCard}>
+              <div style={{ color: MAP_COLORS.text, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
+                Queryable layer scope
+              </div>
+              {context.queryableLayers.length > 0 ? (
+                <div style={detailListStyle}>
+                  {context.queryableLayers.slice(0, 5).map((layer, index) => (
+                    <div
+                      key={layer.id}
+                      style={{
+                        ...detailRowStyle,
+                        ...(index > 0 ? { borderTop: MAP_STROKES.hairlineSubtle } : null),
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: MAP_SPACING.sm }}>
+                        <span style={{ color: MAP_COLORS.text, fontWeight: MAP_TYPOGRAPHY.fontWeight.medium, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {layer.name}
+                        </span>
+                        {renderMetaPill(selectedSourceIds.has(layer.id) ? "Selected by proposal" : "In scope", selectedSourceIds.has(layer.id) ? "ok" : "neutral")}
+                      </div>
+                      <div style={chipRow}>
+                        {renderMetaPill(layer.geometryType)}
+                        {renderMetaPill(layer.sourceKind)}
+                        {layer.featureCount != null ? renderMetaPill(`${layer.featureCount.toLocaleString()} features`) : null}
+                        {layer.crs ? renderMetaPill(layer.crs) : renderMetaPill("CRS unknown", "warn")}
+                      </div>
+                    </div>
+                  ))}
+                  {context.queryableLayers.length > 5 ? (
+                    <div style={mutedText}>
+                      +{context.queryableLayers.length - 5} more queryable layer{context.queryableLayers.length - 5 === 1 ? "" : "s"} remain in scope.
+                    </div>
+                  ) : null}
+                </div>
+              ) : (
+                <div style={mutedText}>No queryable layers are currently available in this scope and mode.</div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div style={sectionStyle}>
+          <div style={sectionTitle}>Prompt Input</div>
+          <div style={mutedText}>
+            The proposal below is generated from a sanitized, read-only prompt review. Raw text is never applied directly.
+          </div>
           <textarea
             value={request}
             onChange={(event) => setRequest(event.target.value)}
             style={queryInputStyle}
             aria-label="Natural language map query request"
           />
+          {promptGuardChanged ? (
+            <div style={layerCard}>
+              <div style={{ color: MAP_COLORS.text, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
+                AI-reviewed prompt
+              </div>
+              <pre style={reviewBlock}>{preview.request || "No sanitized prompt available."}</pre>
+              <div style={chipRow}>
+                {renderMetaPill(`Prompt redactions ${preview.aiGuardrail.prompt.redactionCount}`, preview.aiGuardrail.prompt.redactionCount > 0 ? "warn" : "neutral")}
+                {preview.aiGuardrail.prompt.sanitizedMarkup ? renderMetaPill("Prompt markup stripped", "warn") : null}
+                {renderMetaPill(`Output redactions ${preview.aiGuardrail.output.redactionCount}`, preview.aiGuardrail.output.redactionCount > 0 ? "warn" : "neutral")}
+                {preview.aiGuardrail.output.sanitizedMarkup ? renderMetaPill("Output markup stripped", "warn") : null}
+              </div>
+            </div>
+          ) : null}
           <div style={chipRow}>
             {EXAMPLE_REQUESTS.map((example) => (
               <button
@@ -468,6 +620,12 @@ export const MapNLQueryPanel: React.FC<MapNLQueryPanelProps> = ({
         <div style={sectionStyle}>
           <div style={sectionTitle}>Interpreted Intent Preview</div>
           <div style={layerCard}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: MAP_SPACING.sm }}>
+              <div style={{ color: MAP_COLORS.text, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
+                Proposed plan
+              </div>
+              {renderMetaPill(blockedProposal ? "Preview blocked" : "Preview only", blockedProposal ? "warn" : "neutral")}
+            </div>
             <div style={{ color: MAP_COLORS.text, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
               Interpreted as {preview.intentPreview.intentLabel}
             </div>
@@ -476,7 +634,28 @@ export const MapNLQueryPanel: React.FC<MapNLQueryPanelProps> = ({
               {renderMetaPill(preview.intentPreview.sourceLayerSelection)}
               {renderMetaPill(preview.generated.safe ? "Read-only SQL" : "SQL blocked", preview.generated.safe ? "ok" : "warn")}
               {renderMetaPill(`${preview.intentPreview.requiredLayerCount} required layer${preview.intentPreview.requiredLayerCount === 1 ? "" : "s"}`)}
+              {renderMetaPill(`Output ${preview.expectedOutputType}`)}
             </div>
+            {preview.sourceLayers.length > 0 ? (
+              <div style={mutedText}>
+                Selected sources: {preview.sourceLayers.map((layer) => layer.name).join(", ")}
+              </div>
+            ) : null}
+            {preview.intentPreview.spatialRelations.length > 0 ? (
+              <div style={mutedText}>
+                Spatial relations: {preview.intentPreview.spatialRelations.join(", ")}
+              </div>
+            ) : null}
+            {preview.intentPreview.distancesDetected.length > 0 ? (
+              <div style={mutedText}>
+                Distance limits: {preview.intentPreview.distancesDetected.map((entry) => `${entry.metres} m`).join(", ")}
+              </div>
+            ) : null}
+            {preview.intentPreview.thresholdsDetected.length > 0 ? (
+              <div style={mutedText}>
+                Thresholds: {preview.intentPreview.thresholdsDetected.map((entry) => `${entry.operator} ${entry.value}`).join(", ")}
+              </div>
+            ) : null}
             {preview.intentPreview.recognisedAttributes.length > 0 ? (
               <div style={mutedText}>
                 Attributes: {preview.intentPreview.recognisedAttributes.join(", ")}
@@ -496,6 +675,59 @@ export const MapNLQueryPanel: React.FC<MapNLQueryPanelProps> = ({
                 ))}
               </div>
             ) : null}
+          </div>
+        </div>
+
+        <div style={sectionStyle}>
+          <div style={sectionTitle}>AI Guardrail Status</div>
+          <div style={responsiveCardGrid}>
+            <div style={layerCard}>
+              <div style={{ color: MAP_COLORS.text, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
+                Proposal guardrails
+              </div>
+              <div style={chipRow}>
+                {renderMetaPill(preview.aiGuardrail.status === "allowed" ? "Allowed" : "Rejected", guardrailToneValue)}
+                {renderMetaPill(preview.aiGuardrail.allowlistEntry ?? "No allowlist match", guardrailToneValue)}
+                {renderMetaPill(preview.aiGuardrail.safeReadOnly ? "Read-only" : "Not read-only", preview.aiGuardrail.safeReadOnly ? "ok" : "warn")}
+                {renderMetaPill(preview.aiGuardrail.bounded ? "Bounded scope" : "Unbounded", preview.aiGuardrail.bounded ? "ok" : "warn")}
+                {renderMetaPill(preview.aiGuardrail.requiresHumanConfirmation ? "Human confirmation required" : "No confirmation required", preview.aiGuardrail.requiresHumanConfirmation ? "warn" : "ok")}
+                {renderMetaPill(`Audit ${preview.aiGuardrail.auditTag}`, guardrailToneValue)}
+              </div>
+              <div style={mutedText}>
+                The AI proposal remains review-only until the analyst confirms it. Unsupported intents and unsafe SQL stay blocked.
+              </div>
+            </div>
+
+            <div style={layerCard}>
+              <div style={{ color: MAP_COLORS.text, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
+                Sanitization and redaction
+              </div>
+              <div style={chipRow}>
+                {renderMetaPill(`Prompt redactions ${preview.aiGuardrail.prompt.redactionCount}`, preview.aiGuardrail.prompt.redactionCount > 0 ? "warn" : "neutral")}
+                {renderMetaPill(`Output redactions ${preview.aiGuardrail.output.redactionCount}`, preview.aiGuardrail.output.redactionCount > 0 ? "warn" : "neutral")}
+                {preview.aiGuardrail.prompt.sanitizedMarkup ? renderMetaPill("Prompt markup stripped", "warn") : null}
+                {preview.aiGuardrail.output.sanitizedMarkup ? renderMetaPill("Output markup stripped", "warn") : null}
+                {!promptGuardChanged && !outputGuardChanged ? renderMetaPill("No sanitization required", "ok") : null}
+              </div>
+              {promptGuardChanged ? (
+                <pre style={reviewBlock}>{preview.request || "No sanitized prompt available."}</pre>
+              ) : (
+                <div style={mutedText}>No redaction or markup stripping was needed for this proposal.</div>
+              )}
+              {promptGuardMessages.length > 0 ? (
+                <div style={detailListStyle}>
+                  {promptGuardMessages.map((warning) => (
+                    <div
+                      key={warning}
+                      style={{ display: "grid", gridTemplateColumns: "1rem minmax(0, 1fr)", gap: MAP_SPACING.sm, color: MAP_COLORS.textSecondary }}
+                    >
+                      <Info size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+                      <span style={{ fontSize: MAP_TYPOGRAPHY.fontSize.xs, lineHeight: MAP_TYPOGRAPHY.lineHeight.normal }}>{warning}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
 
@@ -565,29 +797,55 @@ export const MapNLQueryPanel: React.FC<MapNLQueryPanelProps> = ({
 
         {(preview.blockers.length > 0 || preview.warnings.length > 0) ? (
           <div style={sectionStyle}>
-            <div style={sectionTitle}>Execution Notes</div>
-            {preview.blockers.map((blocker) => (
-              <div key={blocker} style={{ display: "grid", gridTemplateColumns: "1rem minmax(0, 1fr)", gap: MAP_SPACING.sm, color: MAP_COLORS.error }}>
-                <CircleOff size={MAP_ICON_SIZES.sm} aria-hidden="true" />
-                <span style={{ fontSize: MAP_TYPOGRAPHY.fontSize.xs, lineHeight: MAP_TYPOGRAPHY.lineHeight.normal }}>{blocker}</span>
+            <div style={sectionTitle}>{blockedProposal ? "Unsupported / Blocked Proposal" : "Execution Notes"}</div>
+            <div style={layerCard}>
+              <div style={{ color: blockedProposal ? MAP_COLORS.warning : MAP_COLORS.text, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
+                {blockedProposal ? "This proposal cannot be applied as written." : "Review these notes before confirmation."}
               </div>
-            ))}
-            {preview.warnings.map((warning) => (
-              <div key={warning} style={{ display: "grid", gridTemplateColumns: "1rem minmax(0, 1fr)", gap: MAP_SPACING.sm, color: MAP_COLORS.textSecondary }}>
-              <Info size={MAP_ICON_SIZES.sm} aria-hidden="true" />
-                <span style={{ fontSize: MAP_TYPOGRAPHY.fontSize.xs, lineHeight: MAP_TYPOGRAPHY.lineHeight.normal }}>{warning}</span>
-              </div>
-            ))}
-            {preview.aiGuardrail.requiresHumanConfirmation ? (
-              <div style={{ display: "grid", gridTemplateColumns: "1rem minmax(0, 1fr)", gap: MAP_SPACING.sm, color: MAP_COLORS.textSecondary }}>
-                <Info size={MAP_ICON_SIZES.sm} aria-hidden="true" />
-                <span style={{ fontSize: MAP_TYPOGRAPHY.fontSize.xs, lineHeight: MAP_TYPOGRAPHY.lineHeight.normal }}>
-                  AI-proposed map actions require analyst confirmation before apply.
-                </span>
-              </div>
-            ) : null}
+              {preview.blockers.map((blocker) => (
+                <div key={blocker} style={{ display: "grid", gridTemplateColumns: "1rem minmax(0, 1fr)", gap: MAP_SPACING.sm, color: MAP_COLORS.error }}>
+                  <CircleOff size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+                  <span style={{ fontSize: MAP_TYPOGRAPHY.fontSize.xs, lineHeight: MAP_TYPOGRAPHY.lineHeight.normal }}>{blocker}</span>
+                </div>
+              ))}
+              {preview.warnings.map((warning) => (
+                <div key={warning} style={{ display: "grid", gridTemplateColumns: "1rem minmax(0, 1fr)", gap: MAP_SPACING.sm, color: MAP_COLORS.textSecondary }}>
+                  <Info size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+                  <span style={{ fontSize: MAP_TYPOGRAPHY.fontSize.xs, lineHeight: MAP_TYPOGRAPHY.lineHeight.normal }}>{warning}</span>
+                </div>
+              ))}
+              {preview.aiGuardrail.requiresHumanConfirmation ? (
+                <div style={{ display: "grid", gridTemplateColumns: "1rem minmax(0, 1fr)", gap: MAP_SPACING.sm, color: MAP_COLORS.textSecondary }}>
+                  <Info size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+                  <span style={{ fontSize: MAP_TYPOGRAPHY.fontSize.xs, lineHeight: MAP_TYPOGRAPHY.lineHeight.normal }}>
+                    AI-proposed map actions require analyst confirmation before apply.
+                  </span>
+                </div>
+              ) : null}
+            </div>
           </div>
         ) : null}
+
+        <div style={sectionStyle}>
+          <div style={sectionTitle}>Preview Confirmation</div>
+          <div style={layerCard}>
+            <div style={{ color: MAP_COLORS.text, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
+              {previewAccepted
+                ? "Confirmed proposal"
+                : previewRejected
+                  ? "Rejected proposal"
+                  : preview.canRun
+                    ? "Human confirmation required"
+                    : "Confirmation unavailable"}
+            </div>
+            <div style={mutedText}>{confirmationSummary}</div>
+            <div style={chipRow}>
+              {renderMetaPill(preview.aiGuardrail.confirmationState === "confirmed" ? "Confirmed" : "Confirmation required", preview.aiGuardrail.confirmationState === "confirmed" ? "ok" : "warn")}
+              {renderMetaPill(canRunAcceptedPreview ? "Run enabled" : "Run disabled", canRunAcceptedPreview ? "ok" : "warn")}
+              {renderMetaPill("Proposal is review-only until confirmed", "warn")}
+            </div>
+          </div>
+        </div>
 
         <div style={sectionStyle}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: MAP_SPACING.sm }}>
@@ -615,7 +873,7 @@ export const MapNLQueryPanel: React.FC<MapNLQueryPanelProps> = ({
 
         {lastRunSummary ? (
           <div style={sectionStyle}>
-            <div style={sectionTitle}>Last Result</div>
+            <div style={sectionTitle}>Run Result</div>
             <div style={layerCard}>
               <div style={{ color: MAP_COLORS.text, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
                 {lastRunSummary.layerName}
@@ -637,7 +895,9 @@ export const MapNLQueryPanel: React.FC<MapNLQueryPanelProps> = ({
 
       <div style={{ ...mapStyles.sidePanelHeader, justifyContent: "space-between" }}>
         <div style={mutedText}>
-          Apply creates a derived query result layer; source layers remain unchanged.
+          {previewAccepted
+            ? "Confirmed proposals create a derived query result layer; source layers remain unchanged."
+            : "Run is disabled until this proposal is explicitly confirmed. Apply creates a derived query result layer; source layers remain unchanged."}
         </div>
         <div style={decisionActionsStyle}>
           <button

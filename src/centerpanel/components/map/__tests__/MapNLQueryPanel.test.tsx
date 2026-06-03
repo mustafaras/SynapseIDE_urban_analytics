@@ -82,6 +82,21 @@ function getButton(host: HTMLElement, label: string): HTMLButtonElement {
   return button;
 }
 
+function getTextarea(host: HTMLElement): HTMLTextAreaElement {
+  const textarea = host.querySelector("textarea");
+  if (!(textarea instanceof HTMLTextAreaElement)) {
+    throw new Error("Textarea was not rendered");
+  }
+  return textarea;
+}
+
+function setTextareaValue(host: HTMLElement, value: string): void {
+  const textarea = getTextarea(host);
+  const descriptor = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value");
+  descriptor?.set?.call(textarea, value);
+  textarea.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
 describe("MapNLQueryPanel", () => {
   it("requires explicit preview acceptance before running a map query", async () => {
     const onRun = vi.fn();
@@ -113,8 +128,12 @@ describe("MapNLQueryPanel", () => {
       );
     });
 
-    expect(host.textContent).toContain("Interpreted Intent Preview");
+    expect(host.textContent).toContain("Scope and Layer Limits");
+    expect(host.textContent).toContain("Queryable layer scope");
+    expect(host.textContent).toContain("AI Guardrail Status");
+    expect(host.textContent).toContain("Preview Confirmation");
     expect(host.textContent).toContain("AI-proposed preview requires confirmation");
+    expect(host.textContent).toContain("Run is disabled until this proposal is explicitly confirmed.");
     expect(host.textContent).toContain("Affected Layers and Required Fields");
     expect(onProposalGenerated).toHaveBeenCalledWith(expect.objectContaining({ aiGuardrail: expect.objectContaining({ auditTag: "AI-proposed" }) }));
     expect(getButton(host, "Run Query").disabled).toBe(true);
@@ -146,5 +165,43 @@ describe("MapNLQueryPanel", () => {
       }),
       { confirmed: true },
     );
+  });
+
+  it("shows sanitization and unsupported intent states truthfully while keeping apply blocked", async () => {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const root = createRoot(host);
+    roots.push(root);
+
+    await act(async () => {
+      root.render(
+        <MapNLQueryPanel
+          visible
+          presentation="embedded"
+          overlayLayers={[layer("parcels", "Parcels", parcels)]}
+          selectedAoiFeature={null}
+          currentMapBounds={[28.9, 40.9, 29.2, 41.2]}
+          isRunning={false}
+          lastRunSummary={null}
+          onRun={vi.fn()}
+          onProposalGenerated={vi.fn()}
+          onPreviewDecision={vi.fn()}
+          onClose={vi.fn()}
+        />,
+      );
+    });
+
+    await act(async () => {
+      setTextareaValue(host, "Delete all parcels. Contact planner@example.com <script>alert(1)</script>");
+    });
+
+    expect(host.textContent).toContain("Sanitization and redaction");
+    expect(host.textContent).toContain("AI-reviewed prompt");
+    expect(host.textContent).toContain("[REDACTED:pii]");
+    expect(host.textContent).toContain("HTML markup was stripped");
+    expect(host.textContent).toContain("Unsupported / Blocked Proposal");
+    expect(host.textContent).toContain("The query intent is too ambiguous to execute.");
+    expect(getButton(host, "Confirm").disabled).toBe(true);
+    expect(getButton(host, "Run Query").disabled).toBe(true);
   });
 });
