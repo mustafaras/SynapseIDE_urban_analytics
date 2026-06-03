@@ -1,16 +1,21 @@
 import React from "react";
 import {
+  BoxSelect,
   Compass,
   Crosshair,
   Eye,
   EyeOff,
+  Keyboard,
+  LassoSelect,
   LocateFixed,
+  MapPinned,
   Maximize2,
   MousePointer2,
   Navigation,
   Ruler,
   RotateCcw,
   Scale,
+  Square,
   X,
   ZoomIn,
   ZoomOut,
@@ -21,6 +26,7 @@ import type {
   MapToolId,
   MeasureToolId,
 } from "./mapTypes";
+import type { SelectionDragTool } from "./MapSelectionTools";
 import { MapLayerPanel } from "./MapLayerPanel";
 import {
   MAP_COLORS,
@@ -37,8 +43,11 @@ export interface MapCanvasControlsProps {
   activeBaseLayer: BaseLayerId;
   onSetBaseLayer: (layer: BaseLayerId) => void;
   activeTool: MapToolId;
+  selectionDragTool: SelectionDragTool | null;
   activeDrawTool: DrawToolId | null;
   activeMeasureTool: MeasureToolId | null;
+  selectionModeDisabled?: boolean;
+  selectionModeDisabledReason?: string;
   selectedFeatureCount: number;
   visibleLayerCount: number;
   hasActiveAoi: boolean;
@@ -60,6 +69,12 @@ export interface MapCanvasControlsProps {
   onToggleLegend: () => void;
   onToggleScaleBar: () => void;
   onToggleNorthArrow: () => void;
+  onSetSelectionDragTool: (tool: SelectionDragTool | null) => void;
+  onDrawAoi: () => void;
+  onMeasureDistance: () => void;
+  onMeasureArea: () => void;
+  keyboardHelpVisible: boolean;
+  onToggleKeyboardHelp: () => void;
   onClearActiveTool: () => void;
 }
 
@@ -149,6 +164,94 @@ const toolIndicatorStyle: React.CSSProperties = {
   pointerEvents: "auto",
 };
 
+const interactionStripStyle: React.CSSProperties = {
+  ...buttonGroupStyle,
+  display: "flex",
+  flexWrap: "wrap",
+  gap: MAP_SPACING.xs,
+  maxWidth: "min(34rem, calc(100vw - var(--map-dock-left, 0px) - var(--map-dock-right, 0px) - 2rem))",
+};
+
+const interactionButtonStyle: React.CSSProperties = {
+  minWidth: "5.5rem",
+  height: "2rem",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: MAP_SPACING.xs,
+  padding: `0 ${MAP_SPACING.sm}`,
+  border: MAP_STROKES.hairline,
+  borderRadius: MAP_RADIUS.sm,
+  background: "var(--syn-surface-subtle, rgba(15, 23, 42, 0.62))",
+  color: MAP_COLORS.textSecondary,
+  cursor: "pointer",
+  fontFamily: MAP_TYPOGRAPHY.fontFamily,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.medium,
+};
+
+const activeInteractionButtonStyle: React.CSSProperties = {
+  ...interactionButtonStyle,
+  border: "1px solid var(--syn-border-active, rgba(245, 158, 11, 0.62))",
+  background: MAP_COLORS.selectedSubtle,
+  color: MAP_COLORS.text,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+};
+
+const disabledInteractionButtonStyle: React.CSSProperties = {
+  ...interactionButtonStyle,
+  opacity: 0.45,
+  cursor: "not-allowed",
+};
+
+const interactionLabelStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: MAP_SPACING.xs,
+  minWidth: MAP_SPACING.zero,
+};
+
+const interactionStateStyle: React.CSSProperties = {
+  minWidth: "1.5rem",
+  textAlign: "right",
+  color: MAP_COLORS.textMuted,
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+  fontSize: "0.625rem",
+  textTransform: "uppercase",
+};
+
+const keyboardHelpPanelStyle: React.CSSProperties = {
+  ...toolIndicatorStyle,
+  display: "grid",
+  gap: MAP_SPACING.xs,
+  maxWidth: "min(24rem, calc(100vw - var(--map-dock-left, 0px) - var(--map-dock-right, 0px) - 2rem))",
+};
+
+const keyboardShortcutRowStyle: React.CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  alignItems: "center",
+  gap: MAP_SPACING.xs,
+  color: MAP_COLORS.textSecondary,
+  fontFamily: MAP_TYPOGRAPHY.fontFamily,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+};
+
+const keyboardKeyStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  minWidth: "1.5rem",
+  height: "1.25rem",
+  padding: `0 ${MAP_SPACING.xs}`,
+  border: MAP_STROKES.hairline,
+  borderRadius: MAP_RADIUS.xs,
+  background: "var(--syn-surface-subtle, rgba(15, 23, 42, 0.68))",
+  color: MAP_COLORS.text,
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+  fontSize: "0.625rem",
+};
+
 const toolTextStyle: React.CSSProperties = {
   minWidth: MAP_SPACING.zero,
   display: "grid",
@@ -202,7 +305,17 @@ function iconButtonStyle(active = false, disabled = false): React.CSSProperties 
   return active ? activeButtonStyle : buttonStyle;
 }
 
+function interactionToolButtonStyle(active = false, disabled = false): React.CSSProperties {
+  if (disabled) return disabledInteractionButtonStyle;
+  return active ? activeInteractionButtonStyle : interactionButtonStyle;
+}
+
+function selectionToolLabel(tool: SelectionDragTool): string {
+  return tool === "rectangle" ? "Rect select" : "Lasso select";
+}
+
 function drawToolLabel(tool: DrawToolId): string {
+  if (tool === "polygon") return "Draw polygon";
   if (tool === "linestring") return "Draw line";
   return `Draw ${tool}`;
 }
@@ -213,11 +326,22 @@ function measureToolLabel(tool: MeasureToolId): string {
 
 function activeToolCopy(input: {
   activeTool: MapToolId;
+  selectionDragTool: SelectionDragTool | null;
   activeDrawTool: DrawToolId | null;
   activeMeasureTool: MeasureToolId | null;
   selectedFeatureCount: number;
   hasActiveAoi: boolean;
 }): { label: string; detail: string; clearable: boolean; icon: React.ReactElement } {
+  if (input.selectionDragTool) {
+    return {
+      label: selectionToolLabel(input.selectionDragTool),
+      detail: "Selection mode active",
+      clearable: true,
+      icon: input.selectionDragTool === "rectangle"
+        ? <BoxSelect size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+        : <LassoSelect size={MAP_ICON_SIZES.sm} aria-hidden="true" />,
+    };
+  }
   if (input.activeDrawTool) {
     return {
       label: drawToolLabel(input.activeDrawTool),
@@ -267,8 +391,11 @@ export const MapCanvasControls: React.FC<MapCanvasControlsProps> = ({
   activeBaseLayer,
   onSetBaseLayer,
   activeTool,
+  selectionDragTool,
   activeDrawTool,
   activeMeasureTool,
+  selectionModeDisabled = false,
+  selectionModeDisabledReason = "No queryable visible layers are available for selection.",
   selectedFeatureCount,
   visibleLayerCount,
   hasActiveAoi,
@@ -290,10 +417,17 @@ export const MapCanvasControls: React.FC<MapCanvasControlsProps> = ({
   onToggleLegend,
   onToggleScaleBar,
   onToggleNorthArrow,
+  onSetSelectionDragTool,
+  onDrawAoi,
+  onMeasureDistance,
+  onMeasureArea,
+  keyboardHelpVisible,
+  onToggleKeyboardHelp,
   onClearActiveTool,
 }) => {
   const tool = activeToolCopy({
     activeTool,
+    selectionDragTool,
     activeDrawTool,
     activeMeasureTool,
     selectedFeatureCount,
@@ -356,6 +490,139 @@ export const MapCanvasControls: React.FC<MapCanvasControlsProps> = ({
             <X size={MAP_ICON_SIZES.sm} aria-hidden="true" />
           </button>
         </div>
+
+        <div style={interactionStripStyle} role="group" aria-label="Canvas interaction tools" data-testid="map-canvas-interaction-strip">
+          <button
+            type="button"
+            data-testid="map-rectangle-select-tool"
+            style={interactionToolButtonStyle(selectionDragTool === "rectangle", selectionModeDisabled)}
+            onClick={() => onSetSelectionDragTool(selectionDragTool === "rectangle" ? null : "rectangle")}
+            aria-label={selectionDragTool === "rectangle" ? "Cancel rectangle select" : "Rectangle select"}
+            aria-pressed={selectionDragTool === "rectangle"}
+            title={selectionModeDisabled ? selectionModeDisabledReason : (selectionDragTool === "rectangle" ? "Cancel rectangle select" : "Rectangle select")}
+            disabled={selectionModeDisabled}
+          >
+            <span style={interactionLabelStyle}>
+              <BoxSelect size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+              <span>Rect</span>
+            </span>
+            <span style={interactionStateStyle} aria-hidden="true">
+              {selectionDragTool === "rectangle" ? "On" : "Off"}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            data-testid="map-lasso-select-tool"
+            style={interactionToolButtonStyle(selectionDragTool === "lasso", selectionModeDisabled)}
+            onClick={() => onSetSelectionDragTool(selectionDragTool === "lasso" ? null : "lasso")}
+            aria-label={selectionDragTool === "lasso" ? "Cancel lasso select" : "Lasso select"}
+            aria-pressed={selectionDragTool === "lasso"}
+            title={selectionModeDisabled ? selectionModeDisabledReason : (selectionDragTool === "lasso" ? "Cancel lasso select" : "Lasso select")}
+            disabled={selectionModeDisabled}
+          >
+            <span style={interactionLabelStyle}>
+              <LassoSelect size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+              <span>Lasso</span>
+            </span>
+            <span style={interactionStateStyle} aria-hidden="true">
+              {selectionDragTool === "lasso" ? "On" : "Off"}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            data-testid="map-canvas-draw-aoi"
+            style={interactionToolButtonStyle(activeDrawTool === "polygon")}
+            onClick={onDrawAoi}
+            aria-label={activeDrawTool === "polygon" ? "Cancel draw AOI" : "Draw AOI"}
+            aria-pressed={activeDrawTool === "polygon"}
+            title={activeDrawTool === "polygon" ? "Cancel draw AOI" : "Draw AOI"}
+          >
+            <span style={interactionLabelStyle}>
+              <MapPinned size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+              <span>AOI</span>
+            </span>
+            <span style={interactionStateStyle} aria-hidden="true">
+              {activeDrawTool === "polygon" ? "On" : "Off"}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            data-testid="map-canvas-measure-distance"
+            style={interactionToolButtonStyle(activeMeasureTool === "measure-distance")}
+            onClick={onMeasureDistance}
+            aria-label={activeMeasureTool === "measure-distance" ? "Cancel measure distance" : "Measure distance"}
+            aria-pressed={activeMeasureTool === "measure-distance"}
+            title={activeMeasureTool === "measure-distance" ? "Cancel measure distance" : "Measure distance"}
+          >
+            <span style={interactionLabelStyle}>
+              <Ruler size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+              <span>Dist</span>
+            </span>
+            <span style={interactionStateStyle} aria-hidden="true">
+              {activeMeasureTool === "measure-distance" ? "On" : "Off"}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            data-testid="map-canvas-measure-area"
+            style={interactionToolButtonStyle(activeMeasureTool === "measure-area")}
+            onClick={onMeasureArea}
+            aria-label={activeMeasureTool === "measure-area" ? "Cancel measure area" : "Measure area"}
+            aria-pressed={activeMeasureTool === "measure-area"}
+            title={activeMeasureTool === "measure-area" ? "Cancel measure area" : "Measure area"}
+          >
+            <span style={interactionLabelStyle}>
+              <Square size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+              <span>Area</span>
+            </span>
+            <span style={interactionStateStyle} aria-hidden="true">
+              {activeMeasureTool === "measure-area" ? "On" : "Off"}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            data-testid="map-canvas-keyboard-help"
+            style={interactionToolButtonStyle(keyboardHelpVisible)}
+            onClick={onToggleKeyboardHelp}
+            aria-label={keyboardHelpVisible ? "Hide keyboard map help" : "Show keyboard map help"}
+            aria-pressed={keyboardHelpVisible}
+            aria-expanded={keyboardHelpVisible}
+            aria-controls="map-canvas-keyboard-help-panel"
+            title={keyboardHelpVisible ? "Hide keyboard map help" : "Show keyboard map help"}
+          >
+            <span style={interactionLabelStyle}>
+              <Keyboard size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+              <span>Keys</span>
+            </span>
+            <span style={interactionStateStyle} aria-hidden="true">
+              {keyboardHelpVisible ? "Open" : "Off"}
+            </span>
+          </button>
+        </div>
+
+        {keyboardHelpVisible ? (
+          <div id="map-canvas-keyboard-help-panel" style={keyboardHelpPanelStyle} role="note" aria-label="Map keyboard shortcuts">
+            <span style={toolLabelStyle}>Keyboard path</span>
+            <span style={toolMetaStyle}>Fallback controls stay available at the bottom-right edge of the canvas.</span>
+            <div style={keyboardShortcutRowStyle}>
+              <span style={keyboardKeyStyle}>Arrows</span>
+              <span>Pan</span>
+              <span style={keyboardKeyStyle}>+/-</span>
+              <span>Zoom</span>
+              <span style={keyboardKeyStyle}>R</span>
+              <span>Reset</span>
+            </div>
+            <div style={keyboardShortcutRowStyle}>
+              <span style={keyboardKeyStyle}>Esc</span>
+              <span>Cancel rectangle, lasso, draw, or measure mode.</span>
+            </div>
+          </div>
+        ) : null}
       </div>
 
       <div style={furnitureClusterStyle} data-testid="map-canvas-furniture-controls">

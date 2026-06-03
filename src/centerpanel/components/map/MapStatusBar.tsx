@@ -29,6 +29,7 @@ export interface MapStatusBarProps {
   crs?: string;
   syncStatus?: string;
   selectedFeatureCount?: number;
+  activeCanvasToolLabel?: string | null;
   hasActiveAoi?: boolean;
   qaStatus?: LayerQaStatus;
   qaIssueCount?: number;
@@ -305,6 +306,7 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
   crs = "EPSG:4326",
   syncStatus = "3D link off",
   selectedFeatureCount = 0,
+  activeCanvasToolLabel = null,
   hasActiveAoi = false,
   qaStatus = "unchecked",
   qaIssueCount = 0,
@@ -354,6 +356,7 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
     ...(densityLabel ? [{ label: "Density", value: densityLabel, maxWidth: "7rem" }] : []),
     { label: "Layers", value: `${visibleLayerCount}/${layerCount}` },
     { label: "Select", value: `${selectedFeatureCount}`, onClick: onOpenAttributes, ariaLabel: "Open selected feature attributes" },
+    ...(activeCanvasToolLabel ? [{ label: "Tool", value: activeCanvasToolLabel, maxWidth: "10rem", tone: "info" as const }] : []),
     { label: "AOI", value: hasActiveAoi ? "active" : "none", tone: hasActiveAoi ? "info" : "stale" },
     { label: "Marks", value: geometryLabel },
     { label: "Units", value: measureUnit === "metric" ? "metric" : "imperial" },

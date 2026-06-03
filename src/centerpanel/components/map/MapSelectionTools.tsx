@@ -44,15 +44,21 @@ import {
 
 type SelectionDragTool = "rectangle" | "lasso";
 
+export type { SelectionDragTool };
+
 export interface MapSelectionToolsProps {
   mapRef: React.RefObject<maplibregl.Map | null>;
   queryableLayers: readonly MapNLQueryLayer[];
   selectedFeatureIds: Readonly<Record<string, readonly string[]>>;
+  activeDragTool?: SelectionDragTool | null;
+  showModeButtons?: boolean;
   leftInset?: number;
+  topOffset?: React.CSSProperties["top"];
   onSetSelectedFeatures: (layerId: string, featureIds: string[]) => void;
   onClearSelectedFeatures: () => void;
   onSetActiveAnalysisResultLayers: (layerIds: string[]) => void;
   onAddDrawnFeature: (feature: DrawnFeature) => void;
+  onActiveDragToolChange?: (tool: SelectionDragTool | null) => void;
   onSelectionResult?: (result: MapQueryExecutionResult, label: string) => void;
   onAnnounce?: (message: string) => void;
 }
@@ -320,24 +326,36 @@ export const MapSelectionTools: React.FC<MapSelectionToolsProps> = ({
   mapRef,
   queryableLayers,
   selectedFeatureIds,
+  activeDragTool: activeDragToolProp,
+  showModeButtons = true,
   leftInset = 0,
+  topOffset,
   onSetSelectedFeatures,
   onClearSelectedFeatures,
   onSetActiveAnalysisResultLayers,
   onAddDrawnFeature,
+  onActiveDragToolChange,
   onSelectionResult,
   onAnnounce,
 }) => {
-  const [activeDragTool, setActiveDragTool] = useState<SelectionDragTool | null>(null);
+  const [internalActiveDragTool, setInternalActiveDragTool] = useState<SelectionDragTool | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
   const [filterLayerId, setFilterLayerId] = useState("");
   const [filterField, setFilterField] = useState("");
   const [filterOperator, setFilterOperator] = useState<MapAttributeOperator>("contains");
   const [filterValue, setFilterValue] = useState("");
+  const activeDragTool = activeDragToolProp ?? internalActiveDragTool;
   const queryableLayersRef = useRef(queryableLayers);
   const dragStartRef = useRef<[number, number] | null>(null);
   const lassoRingRef = useRef<Position[]>([]);
   const activeDragToolRef = useRef<SelectionDragTool | null>(activeDragTool);
+
+  const setResolvedActiveDragTool = useCallback((tool: SelectionDragTool | null) => {
+    if (activeDragToolProp === undefined) {
+      setInternalActiveDragTool(tool);
+    }
+    onActiveDragToolChange?.(tool);
+  }, [activeDragToolProp, onActiveDragToolChange]);
 
   queryableLayersRef.current = queryableLayers;
   activeDragToolRef.current = activeDragTool;
@@ -511,7 +529,7 @@ export const MapSelectionTools: React.FC<MapSelectionToolsProps> = ({
       clearSelectionPreview(map);
       map.dragPan.enable();
       map.getCanvas().style.cursor = "";
-      setActiveDragTool(null);
+      setResolvedActiveDragTool(null);
       event.preventDefault();
     };
 
@@ -529,7 +547,7 @@ export const MapSelectionTools: React.FC<MapSelectionToolsProps> = ({
         map.getCanvas().style.cursor = "";
       }
     };
-  }, [activeDragTool, mapRef, runSpatialSelection]);
+  }, [activeDragTool, mapRef, runSpatialSelection, setResolvedActiveDragTool]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -635,6 +653,7 @@ export const MapSelectionTools: React.FC<MapSelectionToolsProps> = ({
       data-testid="map-selection-tools"
       style={{
         ...panelStyle,
+        top: topOffset ?? panelStyle.top,
         left: panelLeft,
         maxWidth: `calc(100% - ${leftInset}px - ${MAP_SPACING.lg})`,
       }}
@@ -644,26 +663,30 @@ export const MapSelectionTools: React.FC<MapSelectionToolsProps> = ({
           <MousePointer2 size={MAP_ICON_SIZES.sm} aria-hidden="true" />
           {formatCount(totalSelected)}
         </span>
-        <button
-          type="button"
-          data-testid="map-rectangle-select-tool"
-          aria-label={activeDragTool === "rectangle" ? "Cancel rectangle select" : "Rectangle select"}
-          title="Rectangle select"
-          style={activeDragTool === "rectangle" ? activeIconButtonStyle : iconButtonStyle}
-          onClick={() => setActiveDragTool((current) => current === "rectangle" ? null : "rectangle")}
-        >
-          <BoxSelect size={MAP_ICON_SIZES.sm} aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          data-testid="map-lasso-select-tool"
-          aria-label={activeDragTool === "lasso" ? "Cancel lasso select" : "Lasso select"}
-          title="Lasso select"
-          style={activeDragTool === "lasso" ? activeIconButtonStyle : iconButtonStyle}
-          onClick={() => setActiveDragTool((current) => current === "lasso" ? null : "lasso")}
-        >
-          <LassoSelect size={MAP_ICON_SIZES.sm} aria-hidden="true" />
-        </button>
+        {showModeButtons ? (
+          <>
+            <button
+              type="button"
+              data-testid="map-rectangle-select-tool"
+              aria-label={activeDragTool === "rectangle" ? "Cancel rectangle select" : "Rectangle select"}
+              title="Rectangle select"
+              style={activeDragTool === "rectangle" ? activeIconButtonStyle : iconButtonStyle}
+              onClick={() => setResolvedActiveDragTool(activeDragTool === "rectangle" ? null : "rectangle")}
+            >
+              <BoxSelect size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              data-testid="map-lasso-select-tool"
+              aria-label={activeDragTool === "lasso" ? "Cancel lasso select" : "Lasso select"}
+              title="Lasso select"
+              style={activeDragTool === "lasso" ? activeIconButtonStyle : iconButtonStyle}
+              onClick={() => setResolvedActiveDragTool(activeDragTool === "lasso" ? null : "lasso")}
+            >
+              <LassoSelect size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+            </button>
+          </>
+        ) : null}
         <button
           type="button"
           aria-label={filterOpen ? "Close filter select" : "Filter select"}

@@ -446,8 +446,10 @@ describe("Map Explorer components render without errors", () => {
         activeBaseLayer: "dark",
         onSetBaseLayer: () => undefined,
         activeTool: null,
+        selectionDragTool: "rectangle",
         activeDrawTool: null,
         activeMeasureTool: null,
+        selectionModeDisabled: false,
         selectedFeatureCount: 0,
         visibleLayerCount: 2,
         hasActiveAoi: false,
@@ -465,15 +467,23 @@ describe("Map Explorer components render without errors", () => {
         onToggleLegend: () => undefined,
         onToggleScaleBar: () => undefined,
         onToggleNorthArrow: () => undefined,
+        onSetSelectionDragTool: () => undefined,
+        onDrawAoi: () => undefined,
+        onMeasureDistance: () => undefined,
+        onMeasureArea: () => undefined,
+        keyboardHelpVisible: true,
+        onToggleKeyboardHelp: () => undefined,
         onClearActiveTool: () => undefined,
       }),
     );
 
     expect(html).toContain("data-testid=\"map-canvas-controls\"");
     expect(html).toContain("Viewport recovery controls");
+    expect(html).toContain("Canvas interaction tools");
     expect(html).toContain("Open CRS readiness");
     expect(html).toContain("Publish preview furniture controls");
-    expect(html).toContain("Select");
+    expect(html).toContain("Rect select");
+    expect(html).toContain("Keyboard path");
     expect(html).toContain("data-testid=\"map-north-arrow-preview\"");
   });
 
@@ -487,6 +497,11 @@ describe("Map Explorer components render without errors", () => {
     const onToggleScaleBar = vi.fn();
     const onToggleNorthArrow = vi.fn();
     const onClearActiveTool = vi.fn();
+    const onSetSelectionDragTool = vi.fn();
+    const onDrawAoi = vi.fn();
+    const onMeasureDistance = vi.fn();
+    const onMeasureArea = vi.fn();
+    const onToggleKeyboardHelp = vi.fn();
     const onSetBaseLayer = vi.fn();
     const analyticalLayerCallback = vi.fn();
     const host = document.createElement("div");
@@ -500,8 +515,10 @@ describe("Map Explorer components render without errors", () => {
           activeBaseLayer: "dark",
           onSetBaseLayer,
           activeTool: null,
+          selectionDragTool: null,
           activeDrawTool: "polygon",
           activeMeasureTool: null,
+          selectionModeDisabled: false,
           selectedFeatureCount: 3,
           visibleLayerCount: 2,
           hasActiveAoi: true,
@@ -519,10 +536,28 @@ describe("Map Explorer components render without errors", () => {
           onToggleLegend,
           onToggleScaleBar,
           onToggleNorthArrow,
+          onSetSelectionDragTool,
+          onDrawAoi,
+          onMeasureDistance,
+          onMeasureArea,
+          keyboardHelpVisible: false,
+          onToggleKeyboardHelp,
           onClearActiveTool,
         }),
       );
     });
+
+    const rectangleButton = host.querySelector<HTMLButtonElement>('[data-testid="map-rectangle-select-tool"]');
+    const lassoButton = host.querySelector<HTMLButtonElement>('[data-testid="map-lasso-select-tool"]');
+    const drawAoiButton = host.querySelector<HTMLButtonElement>('[data-testid="map-canvas-draw-aoi"]');
+    const distanceButton = host.querySelector<HTMLButtonElement>('[data-testid="map-canvas-measure-distance"]');
+    const keyboardHelpButton = host.querySelector<HTMLButtonElement>('[data-testid="map-canvas-keyboard-help"]');
+
+    expect(rectangleButton?.textContent).toContain("Off");
+    expect(lassoButton?.textContent).toContain("Off");
+    expect(drawAoiButton?.textContent).toContain("On");
+    expect(distanceButton?.textContent).toContain("Off");
+    expect(keyboardHelpButton?.textContent).toContain("Off");
 
     const clickByLabel = async (label: string): Promise<void> => {
       const button = host.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`);
@@ -539,6 +574,12 @@ describe("Map Explorer components render without errors", () => {
     await clickByLabel("Hide scale bar");
     await clickByLabel("Hide north arrow");
     await clickByLabel("Hide legend");
+    await clickByLabel("Rectangle select");
+    await clickByLabel("Lasso select");
+    await clickByLabel("Cancel draw AOI");
+    await clickByLabel("Measure distance");
+    await clickByLabel("Measure area");
+    await clickByLabel("Show keyboard map help");
     await clickByLabel("Clear active map tool");
 
     const baseTrigger = host.querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]');
@@ -558,6 +599,11 @@ describe("Map Explorer components render without errors", () => {
     expect(onToggleScaleBar).toHaveBeenCalledTimes(1);
     expect(onToggleNorthArrow).toHaveBeenCalledTimes(1);
     expect(onToggleLegend).toHaveBeenCalledTimes(1);
+    expect(onSetSelectionDragTool).toHaveBeenCalledTimes(2);
+    expect(onDrawAoi).toHaveBeenCalledTimes(1);
+    expect(onMeasureDistance).toHaveBeenCalledTimes(1);
+    expect(onMeasureArea).toHaveBeenCalledTimes(1);
+    expect(onToggleKeyboardHelp).toHaveBeenCalledTimes(1);
     expect(onClearActiveTool).toHaveBeenCalledTimes(1);
     expect(onSetBaseLayer).toHaveBeenCalledWith("streets");
     expect(analyticalLayerCallback).not.toHaveBeenCalled();

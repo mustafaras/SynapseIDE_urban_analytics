@@ -1190,6 +1190,16 @@ export const MAP_SURFACE_INVENTORY = [
     targetSurface: "Canvas tool strip > Measure",
   },
   {
+    id: "state.showCanvasKeyboardHelp",
+    sourceId: "showCanvasKeyboardHelp",
+    label: "Canvas keyboard help visibility",
+    kind: "canvas-overlay",
+    targetHome: "canvas-overlay",
+    targetSlot: "canvas",
+    currentSurface: "MapCanvasControls keyboard help panel",
+    targetSurface: "Canvas tool strip > Keyboard help",
+  },
+  {
     id: "state.showImportProgress",
     sourceId: "showImportProgress",
     label: "Import progress HUD visibility",

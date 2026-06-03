@@ -149,7 +149,7 @@ import { ScientificQAPanel } from "../ScientificQAPanel";
 import { MapProblemsPanel, buildMapProblemsModel, type MapProblemRow } from "../problems";
 import { GisEmptyState } from "../ui";
 import { MapNLQueryPanel, type MapNLQueryPanelRunSummary } from "../MapNLQueryPanel";
-import { MapSelectionTools } from "../MapSelectionTools";
+import { MapSelectionTools, type SelectionDragTool } from "../MapSelectionTools";
 import { MapWorkflowDrawer } from "../MapWorkflowDrawer";
 import { MapUrbanMethodCompatibilityRail } from "../MapUrbanMethodCompatibilityRail";
 import {
@@ -1943,6 +1943,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const [pointSymbologyMode, setPointSymbologyMode] = useState<SymbolMode | "heatmap">("heatmap");
   const [showDrawPanel, setShowDrawPanel] = useState(true);
   const [showMeasurePanel, setShowMeasurePanel] = useState(false);
+  const [selectionDragTool, setSelectionDragTool] = useState<SelectionDragTool | null>(null);
+  const [showCanvasKeyboardHelp, setShowCanvasKeyboardHelp] = useState(false);
   const [mapContainerElement, setMapContainerElement] = useState<HTMLDivElement | null>(null);
   const [mapContainerWidth, setMapContainerWidth] = useState(0);
   const [restrictToMapView, setRestrictToMapView] = useState(() => Boolean(currentMapBounds));
@@ -3558,6 +3560,15 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   }, [activeDrawTool, activeMeasureTool, setActiveMeasureTool, showMeasurePanel, workspaceView]);
 
   useEffect(() => {
+    if (!selectionDragTool) {
+      return;
+    }
+    if (activeTool || activeDrawTool || activeMeasureTool) {
+      setSelectionDragTool(null);
+    }
+  }, [activeDrawTool, activeMeasureTool, activeTool, selectionDragTool]);
+
+  useEffect(() => {
     if (!open) return undefined;
     if (!mapContainerElement) return undefined;
 
@@ -4635,6 +4646,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const handleSetDrawTool = useCallback(
     (tool: DrawToolId | null) => {
       setActiveDrawTool(tool);
+      setSelectionDragTool(null);
+      setShowCanvasKeyboardHelp(false);
       // When activating draw, deactivate pin mode
       if (tool) {
         setActiveTool(null);
@@ -4674,6 +4687,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const handleSetMeasureTool = useCallback(
     (tool: MeasureToolId | null) => {
       setActiveMeasureTool(tool);
+      setSelectionDragTool(null);
+      setShowCanvasKeyboardHelp(false);
       // Deactivate pin mode and draw tool when measuring
       if (tool) {
         setActiveTool(null);
@@ -4708,6 +4723,32 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       return !prev;
     });
   }, [announce, closeFloatingRightPanels]);
+
+  const handleSetSelectionDragTool = useCallback((tool: SelectionDragTool | null) => {
+    setSelectionDragTool(tool);
+    setShowCanvasKeyboardHelp(false);
+    if (!tool) {
+      return;
+    }
+    setWorkspaceView("analyze");
+    setShowScientificQAPanel(false);
+    closeFloatingRightPanels();
+    setShowSidebar(false);
+    setShowDrawPanel(false);
+    setShowMeasurePanel(false);
+    setActiveTool(null);
+    setActiveDrawTool(null);
+    setActiveMeasureTool(null);
+    announce(tool === "rectangle" ? "Rectangle selection mode enabled" : "Lasso selection mode enabled");
+  }, [announce, closeFloatingRightPanels, setActiveDrawTool, setActiveMeasureTool, setActiveTool]);
+
+  const handleToggleCanvasKeyboardHelp = useCallback(() => {
+    setShowCanvasKeyboardHelp((current) => {
+      const next = !current;
+      announce(next ? "Map keyboard help opened" : "Map keyboard help closed");
+      return next;
+    });
+  }, [announce]);
 
   /* ---- Navigation ---- */
   const flyTo = useCallback((lng: number, lat: number, z = 14) => {
@@ -4854,14 +4895,30 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   }, [announce, fitToBounds, selectedCanvasFitContext]);
 
   const handleClearActiveCanvasTool = useCallback(() => {
-    const hasActiveCanvasTool = Boolean(activeTool || activeDrawTool || activeMeasureTool);
+    const hasActiveCanvasTool = Boolean(activeTool || activeDrawTool || activeMeasureTool || selectionDragTool);
     setActiveTool(null);
     setActiveDrawTool(null);
     setActiveMeasureTool(null);
+    setSelectionDragTool(null);
     if (hasActiveCanvasTool) {
       announce("Active map tool cleared");
     }
-  }, [activeDrawTool, activeMeasureTool, activeTool, announce, setActiveDrawTool, setActiveMeasureTool, setActiveTool]);
+  }, [activeDrawTool, activeMeasureTool, activeTool, announce, selectionDragTool, setActiveDrawTool, setActiveMeasureTool, setActiveTool]);
+
+  const activeCanvasToolLabel = useMemo(() => {
+    if (selectionDragTool === "rectangle") return "Rect select";
+    if (selectionDragTool === "lasso") return "Lasso select";
+    if (activeDrawTool === "polygon") return "Draw polygon";
+    if (activeDrawTool === "linestring") return "Draw line";
+    if (activeDrawTool) return `Draw ${activeDrawTool}`;
+    if (activeMeasureTool === "measure-distance") return "Measure distance";
+    if (activeMeasureTool === "measure-area") return "Measure area";
+    if (activeTool === "pin") return "Pin placement";
+    if (activeTool === "annotate") return "Annotation";
+    return null;
+  }, [activeDrawTool, activeMeasureTool, activeTool, selectionDragTool]);
+
+  const selectionToolsTopOffset = showCanvasKeyboardHelp ? "13.5rem" : "10rem";
 
   const handleHotSpotDispatch = useCallback(async (coordinate: [number, number]) => {
     if (isRunningQuickHotSpot) {
@@ -7522,6 +7579,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     setShowSidebar(false);
     setShowDrawPanel(false);
     setShowMeasurePanel(true);
+    setSelectionDragTool(null);
     setActiveTool(null);
     setActiveDrawTool(null);
     setActiveMeasureTool("measure-distance");
@@ -7539,6 +7597,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     setShowSidebar(false);
     setShowDrawPanel(true);
     setShowMeasurePanel(false);
+    setSelectionDragTool(null);
     setActiveTool(null);
     setActiveMeasureTool(null);
     setActiveDrawTool("polygon");
@@ -8998,9 +9057,14 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             void handleDrop(event);
           }}
           onKeyDown={(event) => {
-            if (event.key === "Escape" && (activeTool || activeDrawTool || activeMeasureTool)) {
+            if (event.key === "Escape" && (activeTool || activeDrawTool || activeMeasureTool || selectionDragTool || showCanvasKeyboardHelp)) {
               event.preventDefault();
               event.stopPropagation();
+              if (showCanvasKeyboardHelp) {
+                setShowCanvasKeyboardHelp(false);
+                announce("Map keyboard help closed");
+                return;
+              }
               handleClearActiveCanvasTool();
             }
           }}
@@ -9413,8 +9477,11 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             activeBaseLayer={activeBaseLayer}
             onSetBaseLayer={handleSetBaseLayer}
             activeTool={activeTool}
+            selectionDragTool={selectionDragTool}
             activeDrawTool={activeDrawTool}
             activeMeasureTool={activeMeasureTool}
+            selectionModeDisabled={nlQueryToolbarContext.queryableLayers.length === 0}
+            selectionModeDisabledReason="No queryable visible layers are available for selection."
             selectedFeatureCount={selectedFeatureCount}
             visibleLayerCount={visiblePublicationLayers.length}
             hasActiveAoi={Boolean(contextSummary.activeAoi)}
@@ -9436,6 +9503,12 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             onToggleLegend={handleToggleCanvasLegend}
             onToggleScaleBar={handleToggleCanvasScaleBar}
             onToggleNorthArrow={handleToggleCanvasNorthArrow}
+            onSetSelectionDragTool={handleSetSelectionDragTool}
+            onDrawAoi={() => handleSetDrawTool(activeDrawTool === "polygon" ? null : "polygon")}
+            onMeasureDistance={() => handleSetMeasureTool(activeMeasureTool === "measure-distance" ? null : "measure-distance")}
+            onMeasureArea={() => handleSetMeasureTool(activeMeasureTool === "measure-area" ? null : "measure-area")}
+            keyboardHelpVisible={showCanvasKeyboardHelp}
+            onToggleKeyboardHelp={handleToggleCanvasKeyboardHelp}
             onClearActiveTool={handleClearActiveCanvasTool}
           />
 
@@ -9464,11 +9537,15 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               mapRef={mapInstanceRef}
               queryableLayers={nlQueryToolbarContext.queryableLayers}
               selectedFeatureIds={selectedFeatureIds}
+              activeDragTool={selectionDragTool}
+              showModeButtons={false}
               leftInset={navigatorLeftInset}
+              topOffset={selectionToolsTopOffset}
               onSetSelectedFeatures={setSelectedFeatures}
               onClearSelectedFeatures={() => clearSelectedFeatures()}
               onSetActiveAnalysisResultLayers={setActiveAnalysisResultLayers}
               onAddDrawnFeature={addDrawnFeature}
+              onActiveDragToolChange={setSelectionDragTool}
               onSelectionResult={handleSelectionQueryResult}
               onAnnounce={announce}
             />
@@ -9996,6 +10073,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               crs="EPSG:4326"
               syncStatus={viewportSyncStatus}
               selectedFeatureCount={contextSummary.selection.totalSelectedFeatures}
+              activeCanvasToolLabel={activeCanvasToolLabel}
               hasActiveAoi={Boolean(contextSummary.activeAoi)}
               qaStatus={contextSummary.qa.status}
               qaIssueCount={scientificQAIssueCount}
