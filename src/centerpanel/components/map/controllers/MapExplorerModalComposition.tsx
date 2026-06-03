@@ -9721,6 +9721,16 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             onShowDetails={(issue) => {
               announce(`Scientific QA details opened for ${issue.title}`);
             }}
+            onOpenLayer={handleFocusLayer}
+            onDeclareCrs={(layerId) => {
+              handleInspectLayer(layerId);
+              announce("Inspector opened — use the CRS tab to declare a coordinate reference system");
+            }}
+            onInspectLayer={handleInspectLayer}
+            onRepairGeometry={handleRepairLayerGeometry}
+            onOpenExportReadiness={() => {
+              handleOpenPublishTab("publish-data-export", "Export readiness opened in Publish");
+            }}
           />
 
           <MapNLQueryPanel
