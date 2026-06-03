@@ -34,7 +34,9 @@ Prompt 34 - CRS and QA Fix Flow
 Last pushed integration commit:
 
 ```text
-Prompt 34 closeout pushed (CRS and QA fix affordances in ScientificQAPanel at integration branch tip)
+Prompt 34 wiring fix pushed — MapExplorerModalComposition now passes all 5 QA fix callbacks
+(onOpenLayer, onDeclareCrs, onInspectLayer, onRepairGeometry, onOpenExportReadiness) to
+ScientificQAPanel. 0 TS errors, 11/11 tests pass. commit afad3c2.
 ```
 
 Update this pointer after every completed prompt. It is the first anti-amnesia check for the next agent.
@@ -241,7 +243,7 @@ Legend: `[ ]` TODO, `[~]` in progress, `[x]` done, `[!]` blocked.
 | [x] | 31 - Contents Tree Premium Controls | `gis-modal-ui/p31-contents-tree` | branch tip after closeout | pushed to `origin/gis-modal-ui/p31-contents-tree`; fast-forwarded into `origin/gis-modal-ui/premium-redesign` | Contents rows keep scannable groups, compact scale/filter badges, active layer and readiness visible, and duplicate/properties/source repair controls intact |
 | [x] | 32 - Layer Action Command Menu | `gis-modal-ui/p32-layer-action-menu` | branch tip after closeout | pushed to `origin/gis-modal-ui/p32-layer-action-menu`; fast-forwarded into `origin/gis-modal-ui/premium-redesign` | Per-layer action parity preserved with grouped compact menus, visible disabled reasons, keyboard-native controls, and guarded remove confirmation |
 | [x] | 33 - Inspector Metadata and Provenance Polish | `gis-modal-ui/p33-inspector-metadata` | branch tip after closeout | pushed to `origin/gis-modal-ui/p33-inspector-metadata`; fast-forwarded and pushed `origin/gis-modal-ui/premium-redesign` | Explicit unknown/missing metadata on every tab; evidence, run, source, and reproducibility IDs linked |
-| [x] | 34 - CRS and QA Fix Flow | `gis-modal-ui/p34-crs-qa-fixes` | branch tip after closeout | pushed to `origin/gis-modal-ui/p34-crs-qa-fixes`; fast-forwarded and pushed `origin/gis-modal-ui/premium-redesign` | Fix affordances in `ScientificQAPanel`: Declare CRS, Repair geometry, Inspect source, Open layer, Export readiness buttons per issue category with proof text (EPSG:4326 insufficiency for CRS issues; manifest/provenance for geometry issues). All existing QA issue rendering preserved. 0 TS errors; 11/11 targeted tests pass; lint clean. |
+| [x] | 34 - CRS and QA Fix Flow | `gis-modal-ui/p34-crs-qa-fixes` | `afad3c2` | pushed to `origin/gis-modal-ui/premium-redesign` | Fix affordances in `ScientificQAPanel`: Declare CRS, Repair geometry, Inspect source, Open layer, Export readiness buttons per issue category with proof text. Wiring gap fixed: `MapExplorerModalComposition` now passes all 5 callbacks (`onOpenLayer→handleFocusLayer`, `onDeclareCrs→handleInspectLayer`, `onInspectLayer→handleInspectLayer`, `onRepairGeometry→handleRepairLayerGeometry`, `onOpenExportReadiness→handleOpenPublishTab("publish-data-export")`). 0 TS errors; 11/11 targeted tests pass; lint clean. |
 | [ ] | 35 - Attribute, Field, Join, and Table Workflow | `gis-modal-ui/p35-table-field-join` |  |  | Table selection and field/join preview |
 | [ ] | 36 - Canvas Interaction Tool Strip | `gis-modal-ui/p36-canvas-tool-strip` |  |  | Active tool visibility and cancellation |
 | [ ] | 37 - AOI and Workflow Launch Ergonomics | `gis-modal-ui/p37-aoi-workflow-launch` |  |  | AOI source and CRS readiness proof |
