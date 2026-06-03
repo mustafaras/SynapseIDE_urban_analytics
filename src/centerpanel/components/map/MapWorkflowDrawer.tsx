@@ -414,6 +414,63 @@ const fieldGrid: React.CSSProperties = {
   gap: MAP_SPACING.sm,
 };
 
+type LaunchSummaryTone = "default" | "ready" | "warning" | "blocked";
+
+const launchSummaryGrid: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(12rem, 1fr))",
+  gap: MAP_SPACING.sm,
+};
+
+const launchCardHeader: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: MAP_SPACING.sm,
+};
+
+const launchCardLabel: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: MAP_SPACING.xs,
+  color: MAP_COLORS.textMuted,
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  textTransform: "uppercase",
+};
+
+const launchCardTitle: React.CSSProperties = {
+  color: MAP_COLORS.text,
+  fontSize: MAP_TYPOGRAPHY.fontSize.sm,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+  lineHeight: MAP_TYPOGRAPHY.lineHeight.normal,
+};
+
+const launchCardDetailList: React.CSSProperties = {
+  display: "grid",
+  gap: MAP_SPACING.xs,
+};
+
+const launchCardDetailLine: React.CSSProperties = {
+  color: MAP_COLORS.textSecondary,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  lineHeight: 1.5,
+};
+
+const aoiOptionFooter: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: MAP_SPACING.xs,
+  flexWrap: "wrap",
+};
+
+const aoiOptionHelper: React.CSSProperties = {
+  color: MAP_COLORS.textMuted,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  lineHeight: 1.45,
+};
+
 /* ================================================================== */
 /*  Component                                                          */
 /* ================================================================== */
@@ -522,6 +579,7 @@ export const MapWorkflowDrawer: React.FC<MapWorkflowDrawerProps> = ({
   const crsBlocker = preview.issues.find(
     (issue) => issue.severity === "blocker" && issue.code.startsWith("crs-"),
   );
+  const firstBlocker = preview.issues.find((issue) => issue.severity === "blocker") ?? null;
 
   useEffect(() => {
     if (!visible) {
@@ -592,10 +650,14 @@ export const MapWorkflowDrawer: React.FC<MapWorkflowDrawerProps> = ({
   const executionFailed = workflowExecution?.status === "failed";
   const applyStatusText = executionActive
     ? `Running in worker — ${workflowExecution?.stage ?? "processing"} (${workflowExecution?.percent ?? 0}%).`
+    : executionFailed
+      ? workflowExecution?.error ?? "Worker geometry execution failed."
     : preview.canApply
       ? preview.needsWorker
         ? "Large input — runs in a background worker with progress and cancel."
         : "Ready to apply; derived layer will register with provenance and QA."
+      : firstBlocker
+        ? firstBlocker.message
       : preview.nextRequiredStep
         ? `Missing prerequisite: complete ${MAP_WORKFLOW_STEP_LABELS[preview.nextRequiredStep]}.`
         : "Missing prerequisite: configure workflow inputs.";
@@ -684,6 +746,12 @@ export const MapWorkflowDrawer: React.FC<MapWorkflowDrawerProps> = ({
           </div>
           {renderWorkflowEditor({ draft, context, updateDraft })}
         </div>
+
+        <WorkflowLaunchBrief
+          preview={preview}
+          context={context}
+          reportEnabled={Boolean(onSaveReport)}
+        />
 
         {/* Preview metrics */}
         <div style={sectionStyle}>
@@ -920,6 +988,7 @@ export const MapWorkflowDrawer: React.FC<MapWorkflowDrawerProps> = ({
           style={{ color: MAP_COLORS.textMuted, fontSize: MAP_TYPOGRAPHY.fontSize.xs }}
           role="status"
           aria-live="polite"
+          data-testid="map-workflow-apply-status"
         >
           {applyStatusText}
         </div>
@@ -938,9 +1007,11 @@ export const MapWorkflowDrawer: React.FC<MapWorkflowDrawerProps> = ({
             ? preview.needsWorker
               ? "Run the workflow in a background worker; the UI stays responsive and you can cancel."
               : "Apply the configured workflow and register provenance, QA, and report metadata."
-            : preview.nextRequiredStep
-              ? `Missing prerequisite: complete ${MAP_WORKFLOW_STEP_LABELS[preview.nextRequiredStep]}.`
-              : "Missing prerequisite: configure the workflow inputs."}
+            : firstBlocker
+              ? firstBlocker.message
+              : preview.nextRequiredStep
+                ? `Missing prerequisite: complete ${MAP_WORKFLOW_STEP_LABELS[preview.nextRequiredStep]}.`
+                : "Missing prerequisite: configure the workflow inputs."}
         >
           <Layers size={MAP_ICON_SIZES.sm} aria-hidden="true" />
           {executionActive
@@ -1008,6 +1079,81 @@ const PreviewBadge: React.FC<{ preview: MapWorkflowPreview }> = ({ preview }) =>
       )}
       <span>{label}</span>
     </span>
+  );
+};
+
+interface WorkflowLaunchCardSummary {
+  title: string;
+  statusLabel: string;
+  tone: LaunchSummaryTone;
+  details: string[];
+}
+
+const WorkflowLaunchBrief: React.FC<{
+  preview: MapWorkflowPreview;
+  context: MapWorkflowContext;
+  reportEnabled: boolean;
+}> = ({ preview, context, reportEnabled }) => {
+  const sourceSummary = describeWorkflowSourceSummary(preview, context);
+  const executionSummary = describeWorkflowExecutionSummary(preview);
+  const outcomeSummary = describeWorkflowOutcomeSummary(preview, reportEnabled);
+
+  return (
+    <div style={sectionStyle}>
+      <div style={{ ...sectionTitle, display: "flex", justifyContent: "space-between", gap: MAP_SPACING.sm }}>
+        <span>Launch brief</span>
+        <span style={{ color: MAP_COLORS.textMuted, fontSize: MAP_TYPOGRAPHY.fontSize.xs }}>
+          Preview remains non-destructive until apply.
+        </span>
+      </div>
+      <div style={launchSummaryGrid}>
+        <WorkflowLaunchCard
+          label="Source"
+          icon={<MapPin size={MAP_ICON_SIZES.sm} aria-hidden="true" />}
+          summary={sourceSummary}
+          dataTestId="map-workflow-launch-source-summary"
+        />
+        <WorkflowLaunchCard
+          label="Execution"
+          icon={<Workflow size={MAP_ICON_SIZES.sm} aria-hidden="true" />}
+          summary={executionSummary}
+          dataTestId="map-workflow-execution-readiness"
+        />
+        <WorkflowLaunchCard
+          label="Output"
+          icon={<GitBranch size={MAP_ICON_SIZES.sm} aria-hidden="true" />}
+          summary={outcomeSummary}
+          dataTestId="map-workflow-output-consequence"
+        />
+      </div>
+    </div>
+  );
+};
+
+const WorkflowLaunchCard: React.FC<{
+  label: string;
+  icon: React.ReactNode;
+  summary: WorkflowLaunchCardSummary;
+  dataTestId?: string;
+}> = ({ label, icon, summary, dataTestId }) => {
+  return (
+    <div style={getLaunchCardStyle(summary.tone)} data-testid={dataTestId}>
+      <div style={launchCardHeader}>
+        <span style={launchCardLabel}>
+          {icon}
+          {label}
+        </span>
+        <span style={getLaunchStatusPillStyle(summary.tone)}>{summary.statusLabel}</span>
+      </div>
+      <div style={launchCardTitle}>{summary.title}</div>
+      <div style={launchCardDetailList}>
+        {summary.details.map((detail) => (
+          <span key={detail} style={launchCardDetailLine}>
+            {detail}
+          </span>
+        ))}
+      </div>
+    </div>
   );
 };
 
@@ -1108,6 +1254,7 @@ const AOIEditor: React.FC<EditorParams & { draft: MapWorkflowAOIDraft }> = ({ dr
         <div style={optionRow}>
           {AOI_SOURCES.map((sourceKind) => {
             const disabledReason = sourceDisabledReason(sourceKind, context);
+            const sourceSummary = describeAoiSourceOption(sourceKind, context);
             const active = draft.source === sourceKind;
             const style = disabledReason
               ? tileButtonDisabled
@@ -1128,9 +1275,15 @@ const AOIEditor: React.FC<EditorParams & { draft: MapWorkflowAOIDraft }> = ({ dr
                   : `Use ${MAP_WORKFLOW_AOI_SOURCE_LABELS[sourceKind]} as AOI source`}
               >
                 <strong>{MAP_WORKFLOW_AOI_SOURCE_LABELS[sourceKind]}</strong>
-                {disabledReason ? (
-                  <span style={{ color: MAP_COLORS.textMuted }}>{disabledReason}</span>
-                ) : null}
+                <span style={{ color: MAP_COLORS.textSecondary, fontSize: MAP_TYPOGRAPHY.fontSize.xs, lineHeight: 1.45 }}>
+                  {sourceSummary.detail}
+                </span>
+                <div style={aoiOptionFooter}>
+                  <span style={getLaunchStatusPillStyle(sourceSummary.tone)}>{sourceSummary.statusLabel}</span>
+                  {sourceSummary.helper ? (
+                    <span style={aoiOptionHelper}>{sourceSummary.helper}</span>
+                  ) : null}
+                </div>
               </button>
             );
           })}
@@ -1625,6 +1778,255 @@ function sourceDisabledReason(
     case "urban-study-area":
       return context.urbanStudyArea ? null : "Missing prerequisite: apply an Urban Analytics study area.";
   }
+}
+
+function getLaunchCardStyle(tone: LaunchSummaryTone): React.CSSProperties {
+  const accent = getLaunchToneColor(tone);
+  return {
+    display: "grid",
+    gap: MAP_SPACING.sm,
+    padding: MAP_SPACING.sm,
+    borderRadius: MAP_RADIUS.sm,
+    border: `1px solid ${accent}`,
+    background: tone === "blocked" ? MAP_COLORS.selectedSubtle : MAP_COLORS.bg,
+    boxShadow: `inset 2px 0 0 ${accent}`,
+  };
+}
+
+function getLaunchStatusPillStyle(tone: LaunchSummaryTone): React.CSSProperties {
+  return {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: MAP_SPACING.xs,
+    padding: `0 ${MAP_SPACING.xs}`,
+    borderRadius: MAP_RADIUS.full,
+    border: `1px solid ${getLaunchToneColor(tone)}`,
+    color: getLaunchToneColor(tone),
+    fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+    fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+    lineHeight: 1.8,
+    whiteSpace: "nowrap",
+  };
+}
+
+function getLaunchToneColor(tone: LaunchSummaryTone): string {
+  switch (tone) {
+    case "ready":
+      return MAP_COLORS.success;
+    case "warning":
+      return MAP_COLORS.warning;
+    case "blocked":
+      return MAP_COLORS.error;
+    default:
+      return MAP_COLORS.interaction;
+  }
+}
+
+function compactDetailLines(values: Array<string | null | undefined>): string[] {
+  return values.filter((value): value is string => typeof value === "string" && value.trim().length > 0);
+}
+
+function resolveLayerName(layerId: string | null | undefined, context: MapWorkflowContext): string | null {
+  if (!layerId) {
+    return null;
+  }
+  return context.layers.find((layer) => layer.id === layerId)?.name ?? layerId;
+}
+
+function formatBoundsSummary(bounds: [number, number, number, number]): string {
+  const [minLng, minLat, maxLng, maxLat] = bounds;
+  return `${minLng.toFixed(3)}, ${minLat.toFixed(3)} to ${maxLng.toFixed(3)}, ${maxLat.toFixed(3)}`;
+}
+
+function describeAoiSourceOption(
+  source: MapWorkflowAOISourceKind,
+  context: MapWorkflowContext,
+): { title: string; detail: string; helper: string | null; statusLabel: string; tone: LaunchSummaryTone } {
+  const unavailable = sourceDisabledReason(source, context);
+  if (unavailable) {
+    return {
+      title: MAP_WORKFLOW_AOI_SOURCE_LABELS[source],
+      detail: unavailable,
+      helper: null,
+      statusLabel: "Blocked",
+      tone: "blocked",
+    };
+  }
+
+  switch (source) {
+    case "viewport":
+      return {
+        title: MAP_WORKFLOW_AOI_SOURCE_LABELS[source],
+        detail: "Use the current visible map extent as the study boundary.",
+        helper: context.viewportBounds ? `Bounds ${formatBoundsSummary(context.viewportBounds)}` : null,
+        statusLabel: "Ready",
+        tone: "ready",
+      };
+    case "selected-features":
+      return {
+        title: MAP_WORKFLOW_AOI_SOURCE_LABELS[source],
+        detail: `${context.selectedFeatures.length} selected feature${context.selectedFeatures.length === 1 ? "" : "s"} promoted into the AOI.`,
+        helper: context.selectedLayerIds.length > 0
+          ? `${context.selectedLayerIds.length} contributing layer${context.selectedLayerIds.length === 1 ? "" : "s"}`
+          : null,
+        statusLabel: "Ready",
+        tone: "ready",
+      };
+    case "drawn-polygon":
+      return {
+        title: MAP_WORKFLOW_AOI_SOURCE_LABELS[source],
+        detail: `${context.drawnPolygons.length} drawn polygon${context.drawnPolygons.length === 1 ? "" : "s"} available for AOI scope.`,
+        helper: "Best when the map boundary should match analyst intent exactly.",
+        statusLabel: "Ready",
+        tone: "ready",
+      };
+    case "geocoded-place":
+      return {
+        title: MAP_WORKFLOW_AOI_SOURCE_LABELS[source],
+        detail: context.geocodedPlace ? context.geocodedPlace.label : MAP_WORKFLOW_AOI_SOURCE_LABELS[source],
+        helper: context.geocodedPlace ? `Place source ${context.geocodedPlace.source ?? "unknown"}` : null,
+        statusLabel: "Ready",
+        tone: "ready",
+      };
+    case "urban-study-area":
+      return {
+        title: MAP_WORKFLOW_AOI_SOURCE_LABELS[source],
+        detail: context.urbanStudyArea ? context.urbanStudyArea.label : MAP_WORKFLOW_AOI_SOURCE_LABELS[source],
+        helper: context.urbanStudyArea?.activeAoiId
+          ? `Active Urban AOI ${context.urbanStudyArea.activeAoiId}`
+          : context.urbanStudyArea
+            ? `Study area ID ${context.urbanStudyArea.id}`
+            : null,
+        statusLabel: "Ready",
+        tone: "ready",
+      };
+  }
+}
+
+function describeWorkflowSourceSummary(
+  preview: MapWorkflowPreview,
+  context: MapWorkflowContext,
+): WorkflowLaunchCardSummary {
+  const sourceBlocker = preview.issues.find(
+    (issue) => issue.step === "source" && issue.severity === "blocker",
+  ) ?? null;
+
+  if (preview.draft.kind === "aoi") {
+    const selectedSource = describeAoiSourceOption(preview.draft.source, context);
+    return {
+      title:
+        typeof preview.metrics.source_kind === "string" && preview.metrics.source_kind.trim().length > 0
+          ? preview.metrics.source_kind
+          : selectedSource.title,
+      statusLabel: sourceBlocker ? "Blocked" : selectedSource.statusLabel,
+      tone: sourceBlocker ? "blocked" : selectedSource.tone,
+      details: compactDetailLines([
+        typeof preview.metrics.basis === "string" && preview.metrics.basis.trim().length > 0
+          ? preview.metrics.basis
+          : selectedSource.detail,
+        typeof preview.metrics.provenance_notes === "string" ? preview.metrics.provenance_notes : selectedSource.helper,
+        typeof preview.metrics.buffer_meters === "number" && preview.metrics.buffer_meters > 0
+          ? `Edge expansion ${formatMetricValue(preview.metrics.buffer_meters)} m.`
+          : null,
+        sourceBlocker?.message,
+      ]),
+    };
+  }
+
+  if (preview.draft.kind === "buffer") {
+    const layerName = preview.draft.sourceMode === "selected-features"
+      ? "Selected features"
+      : resolveLayerName(preview.draft.sourceLayerId, context);
+    return {
+      title: layerName ?? "Choose a source layer",
+      statusLabel: sourceBlocker ? "Blocked" : layerName ? "Ready" : "Awaiting source",
+      tone: sourceBlocker ? "blocked" : layerName ? "ready" : "warning",
+      details: compactDetailLines([
+        preview.draft.sourceMode === "selected-features"
+          ? `${context.selectedFeatures.length} selected feature${context.selectedFeatures.length === 1 ? "" : "s"} will feed the buffer.`
+          : layerName
+            ? `Buffer source layer ${layerName}.`
+            : "Choose a layer or selected features for the buffer input.",
+        `Distance ${formatMetricValue(preview.draft.distance)} ${MAP_WORKFLOW_DISTANCE_UNIT_LABELS[preview.draft.unit]}.`,
+        sourceBlocker?.message,
+      ]),
+    };
+  }
+
+  const layerNameA = "sourceLayerIdA" in preview.draft
+    ? resolveLayerName(preview.draft.sourceLayerIdA, context)
+    : null;
+  const layerNameB = "sourceLayerIdB" in preview.draft
+    ? resolveLayerName(preview.draft.sourceLayerIdB, context)
+    : null;
+  const workflowLabel = WORKFLOW_OPTIONS.find((option) => option.kind === preview.workflow)?.label ?? preview.workflow;
+
+  return {
+    title: layerNameA && layerNameB ? `${layerNameA} and ${layerNameB}` : `${workflowLabel} sources pending`,
+    statusLabel: sourceBlocker ? "Blocked" : layerNameA && layerNameB ? "Ready" : "Awaiting layers",
+    tone: sourceBlocker ? "blocked" : layerNameA && layerNameB ? "ready" : "warning",
+    details: compactDetailLines([
+      layerNameA && layerNameB
+        ? `${workflowLabel} will evaluate ${layerNameA} against ${layerNameB}.`
+        : `Choose the source layers required for ${workflowLabel.toLowerCase()}.`,
+      preview.draft.kind === "comparison"
+        ? `Comparison view ${MAP_WORKFLOW_COMPARISON_VIEW_LABELS[preview.draft.view as MapWorkflowComparisonView]}.`
+        : null,
+      sourceBlocker?.message,
+    ]),
+  };
+}
+
+function describeWorkflowExecutionSummary(preview: MapWorkflowPreview): WorkflowLaunchCardSummary {
+  const crsBlocker = preview.issues.find(
+    (issue) => issue.severity === "blocker" && issue.code.startsWith("crs-"),
+  ) ?? null;
+  const crsSummary = preview.manifest.crsSummary;
+  return {
+    title: crsSummary.executionCrs
+      ? `Execution CRS ${crsSummary.executionCrs}`
+      : crsSummary.sourceCrs
+        ? "Execution CRS unresolved"
+        : "Execution CRS unknown",
+    statusLabel: crsBlocker ? "Blocked" : preview.canApply ? "Ready" : "Review inputs",
+    tone: crsBlocker ? "blocked" : preview.canApply ? "ready" : "warning",
+    details: compactDetailLines([
+      `Display CRS ${crsSummary.displayCrs}.`,
+      `Execution mode ${crsSummary.executionKind ?? "planar"}.`,
+      preview.needsWorker
+        ? "Large geometry runs in a background worker with visible progress and cancel."
+        : "No worker handoff is required for this preview.",
+      crsSummary.missingLayerIds.length > 0
+        ? `${crsSummary.missingLayerIds.length} source layer${crsSummary.missingLayerIds.length === 1 ? " is" : "s are"} missing CRS metadata.`
+        : null,
+      crsBlocker?.message ?? crsSummary.notes[0] ?? (preview.nextRequiredStep ? `Next required step: ${MAP_WORKFLOW_STEP_LABELS[preview.nextRequiredStep]}.` : null),
+    ]),
+  };
+}
+
+function describeWorkflowOutcomeSummary(
+  preview: MapWorkflowPreview,
+  reportEnabled: boolean,
+): WorkflowLaunchCardSummary {
+  const expected = preview.expectedOutput;
+  return {
+    title: expected.layerName ?? `${preview.workflow} result`,
+    statusLabel: reportEnabled && expected.reportCompatible ? "Report ready" : "Manifest-backed",
+    tone: reportEnabled && expected.reportCompatible ? "ready" : "default",
+    details: compactDetailLines([
+      "Preview does not change the map until you apply the workflow.",
+      expected.layerName
+        ? `Apply publishes ${expected.layerName} to the ${expected.outputLayerGroup} layer group.`
+        : `Apply publishes the ${expected.geometryClass} result to the ${expected.outputLayerGroup} layer group.`,
+      `Expected output ${expected.featureCount.toLocaleString()} ${expected.geometryClass} feature${expected.featureCount === 1 ? "" : "s"}.`,
+      "Apply registers provenance, QA, reproducibility metadata, and an evidence artifact for the result.",
+      reportEnabled && expected.reportCompatible
+        ? "Save as report item remains available for the same manifest-backed output."
+        : null,
+      expected.ideCompatible ? "Open IDE script remains available from this preview." : null,
+      expected.dashboardCompatible ? "Dashboard bindings can be created from the resulting layer." : null,
+    ]),
+  };
 }
 
 function formatMetricLabel(key: string): string {
