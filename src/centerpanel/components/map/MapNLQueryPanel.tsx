@@ -362,6 +362,13 @@ export const MapNLQueryPanel: React.FC<MapNLQueryPanelProps> = ({
     || preview.aiGuardrail.status === "rejected"
     || preview.intentPreview.ambiguityState === "blocked";
   const guardrailToneValue = preview.aiGuardrail.status === "allowed" ? "ok" : "warn";
+  const confirmationDisplayState = previewAccepted
+    ? "confirmed"
+    : previewRejected
+      ? "rejected"
+      : preview.aiGuardrail.confirmationState === "confirmed"
+        ? "confirmed"
+        : "required";
   const confirmationSummary = previewAccepted
     ? "Proposal confirmed. Run is now enabled for this exact preview."
     : previewRejected
@@ -840,7 +847,14 @@ export const MapNLQueryPanel: React.FC<MapNLQueryPanelProps> = ({
             </div>
             <div style={mutedText}>{confirmationSummary}</div>
             <div style={chipRow}>
-              {renderMetaPill(preview.aiGuardrail.confirmationState === "confirmed" ? "Confirmed" : "Confirmation required", preview.aiGuardrail.confirmationState === "confirmed" ? "ok" : "warn")}
+              {renderMetaPill(
+                confirmationDisplayState === "confirmed"
+                  ? "Confirmed"
+                  : confirmationDisplayState === "rejected"
+                    ? "Rejected"
+                    : "Confirmation required",
+                confirmationDisplayState === "confirmed" ? "ok" : "warn",
+              )}
               {renderMetaPill(canRunAcceptedPreview ? "Run enabled" : "Run disabled", canRunAcceptedPreview ? "ok" : "warn")}
               {renderMetaPill("Proposal is review-only until confirmed", "warn")}
             </div>

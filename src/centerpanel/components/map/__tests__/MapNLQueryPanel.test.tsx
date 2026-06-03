@@ -97,6 +97,10 @@ function setTextareaValue(host: HTMLElement, value: string): void {
   textarea.dispatchEvent(new Event("input", { bubbles: true }));
 }
 
+function hasExactSpanText(host: HTMLElement, text: string): boolean {
+  return Array.from(host.querySelectorAll("span")).some((entry) => entry.textContent?.trim() === text);
+}
+
 describe("MapNLQueryPanel", () => {
   it("requires explicit preview acceptance before running a map query", async () => {
     const onRun = vi.fn();
@@ -137,6 +141,8 @@ describe("MapNLQueryPanel", () => {
     expect(host.textContent).toContain("Affected Layers and Required Fields");
     expect(onProposalGenerated).toHaveBeenCalledWith(expect.objectContaining({ aiGuardrail: expect.objectContaining({ auditTag: "AI-proposed" }) }));
     expect(getButton(host, "Run Query").disabled).toBe(true);
+    expect(hasExactSpanText(host, "Confirmation required")).toBe(true);
+    expect(hasExactSpanText(host, "Confirmed")).toBe(false);
 
     await act(async () => {
       getButton(host, "Reject").dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -144,6 +150,8 @@ describe("MapNLQueryPanel", () => {
 
     expect(onPreviewDecision).toHaveBeenLastCalledWith(expect.objectContaining({ canRun: true }), "rejected");
     expect(getButton(host, "Run Query").disabled).toBe(true);
+    expect(hasExactSpanText(host, "Rejected")).toBe(true);
+    expect(hasExactSpanText(host, "Confirmation required")).toBe(false);
 
     await act(async () => {
       getButton(host, "Confirm").dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -151,6 +159,9 @@ describe("MapNLQueryPanel", () => {
 
     expect(onPreviewDecision).toHaveBeenLastCalledWith(expect.objectContaining({ canRun: true }), "accepted");
     expect(getButton(host, "Run Query").disabled).toBe(false);
+    expect(hasExactSpanText(host, "Confirmed")).toBe(true);
+    expect(hasExactSpanText(host, "Confirmation required")).toBe(false);
+    expect(hasExactSpanText(host, "Rejected")).toBe(false);
 
     await act(async () => {
       getButton(host, "Run Query").dispatchEvent(new MouseEvent("click", { bubbles: true }));
