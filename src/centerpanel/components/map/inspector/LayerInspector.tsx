@@ -251,20 +251,30 @@ export const LayerInspector: React.FC<LayerInspectorProps> = ({
             <Row label="Name" value={layer.name} />
             <Row label="Type" value={layer.type} />
             <Row label="Source kind" value={registry.sourceKind} />
+            <Row label="Visible" value={layer.visible ? "Yes" : "No"} />
+            <Row label="Opacity" value={`${Math.round(layer.opacity * 100)}%`} />
             <Row label="Feature count" value={registry.featureCount} fallback={UNKNOWN} />
             <Row label="Geometry" value={registry.geometrySummary.geometryType} />
+            <Row label="Bounds" value={registry.geometrySummary.bounds ? "Set" : UNKNOWN} />
             <Row label="Queryable" value={registry.queryable ? "Yes" : "No"} />
             <Row label="QA status" value={registry.qaStatus} />
             <Row label="CRS" value={registry.crsSummary.crs} fallback={registry.crsSummary.status} mono />
+            <Row label="CRS provenance" value={registry.crsSummary.source} />
             <Row label="Publication" value={registry.publicationReadiness.status} />
+            {registry.evidenceArtifactId ? (
+              <Row label="Evidence artifact" value={registry.evidenceArtifactId} mono />
+            ) : null}
+            <Notes items={registry.geometrySummary.notes ?? []} />
           </section>
         );
-      case "source":
+      case "source": {
+        const persistence = metadata?.persistence;
         return (
           <>
             <section>
               <SectionTitle>Provenance</SectionTitle>
               <Row label="Label" value={registry.provenance.label} />
+              <Row label="Source kind" value={registry.sourceKind} />
               <Row label="Source name" value={registry.licenseAttribution.sourceName} />
               <Row label="Source URL" value={registry.licenseAttribution.sourceUrl} />
               <Row label="License" value={registry.licenseAttribution.license} />
@@ -273,6 +283,17 @@ export const LayerInspector: React.FC<LayerInspectorProps> = ({
               <Row label="Import format" value={metadata?.importFormat} fallback="not an import" />
               <Notes items={registry.provenance.notes ?? []} />
             </section>
+            {persistence ? (
+              <section>
+                <SectionTitle>Persistence</SectionTitle>
+                <Row label="Restore state" value={persistence.restoreState} />
+                <Row label="Saved at" value={persistence.savedAt} />
+                <Row label="Source persistence" value={persistence.sourcePersistence} />
+                {persistence.restoreWarnings?.length ? (
+                  <Notes items={persistence.restoreWarnings} />
+                ) : null}
+              </section>
+            ) : null}
             <section>
               <SectionTitle>Source handle</SectionTitle>
               {sourceHandle ? (
@@ -294,6 +315,7 @@ export const LayerInspector: React.FC<LayerInspectorProps> = ({
             </section>
           </>
         );
+      }
       case "schema": {
         const schema = registry.schemaSummary;
         return (
@@ -381,6 +403,7 @@ export const LayerInspector: React.FC<LayerInspectorProps> = ({
                     <Row label="Run id" value={analysis.runId} mono />
                     <Row label="Run at" value={analysis.runTimestamp} />
                     <Row label="Parameters" value={analysis.parameterSummary} />
+                    <Row label="Stale" value={analysis.stale ? "Yes" : "No"} />
                     <div style={rowStyle}>
                       <span style={rowLabelStyle}>Source layers</span>
                       <span style={rowValueStyle}><Chips ids={analysis.sourceLayerIds ?? []} /></span>
@@ -391,6 +414,10 @@ export const LayerInspector: React.FC<LayerInspectorProps> = ({
                   <>
                     <Row label="Manifest id" value={manifest.manifestId} mono />
                     <Row label="Workflow id" value={manifest.workflowId} mono />
+                    <Row label="Manifest status" value={manifest.status} />
+                    <Row label="Created at" value={manifest.createdAt} />
+                    <Row label="Engine" value={manifest.engine} />
+                    <Row label="Engine version" value={manifest.engineVersion} />
                     <div style={rowStyle}>
                       <span style={rowLabelStyle}>Input layers</span>
                       <span style={rowValueStyle}><Chips ids={manifest.inputLayerIds} /></span>
@@ -414,7 +441,10 @@ export const LayerInspector: React.FC<LayerInspectorProps> = ({
           <section>
             <SectionTitle>Report / Export readiness</SectionTitle>
             <Row label="Status" value={pub.status} />
-            <Row label="Evidence artifact" value={registry.evidenceArtifactId} mono />
+            <Row label="Data version" value={metadata?.dataVersion} fallback="not tracked" />
+            {registry.evidenceArtifactId ? (
+              <Row label="Evidence artifact" value={registry.evidenceArtifactId} mono />
+            ) : null}
             <div style={rowStyle}>
               <span style={rowLabelStyle}>Missing fields</span>
               <span style={rowValueStyle}><Chips ids={pub.missingFields} empty="none" /></span>
@@ -423,7 +453,11 @@ export const LayerInspector: React.FC<LayerInspectorProps> = ({
               <span style={rowLabelStyle}>Blocking issues</span>
               <span style={rowValueStyle}><Chips ids={pub.blockingIssueIds} empty="none" /></span>
             </div>
-            <Notes items={pub.caveats} />
+            {pub.caveats?.length ? (
+              <>
+                <Notes items={pub.caveats} />
+              </>
+            ) : null}
           </section>
         );
       }
