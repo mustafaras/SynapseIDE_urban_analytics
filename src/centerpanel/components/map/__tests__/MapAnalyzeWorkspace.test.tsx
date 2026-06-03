@@ -47,6 +47,36 @@ function analysisLayer(): OverlayLayerConfig {
     metadata: {
       featureCount: 12,
       geometryType: "Polygon",
+      crsSummary: {
+        crs: "EPSG:3857",
+        status: "known",
+        source: "analysis-result",
+        notes: [],
+      },
+      publicationReadiness: {
+        status: "ready-with-caveats",
+        missingFields: [],
+        blockingIssueIds: [],
+        caveats: ["Legend review pending before external export."],
+      },
+      analysisResult: {
+        engine: "LocalMoransI",
+        runTimestamp: "2026-06-03T12:00:00.000Z",
+        parameterSummary: "queen / fdr / 0.05",
+        inputParameters: {},
+        statisticalSummary: {},
+        outputMode: "live",
+        qaSummary: {
+          status: "warning",
+          issueIds: [],
+          blockerCount: 0,
+          warningCount: 1,
+          infoCount: 0,
+          caveats: ["Legend review pending before external export."],
+          uncertaintyNotes: ["Threshold choice changes marginal significance classes."],
+        },
+        visualization: { kind: "lisa-cluster" } as never,
+      },
     },
   };
 }
@@ -105,6 +135,7 @@ describe("MapAnalyzeWorkspace", () => {
     render(
       <MapAnalyzeStatisticsPanel
         hasAnalysisLayers={false}
+        analysisOutputLayers={[]}
         selectedFeatureCount={0}
         selectionStatsAvailable={false}
         lisaActive={false}
@@ -126,6 +157,7 @@ describe("MapAnalyzeWorkspace", () => {
       root!.render(
         <MapAnalyzeStatisticsPanel
           hasAnalysisLayers
+          analysisOutputLayers={[analysisLayer()]}
           selectedFeatureCount={3}
           selectionStatsAvailable
           lisaActive={false}
@@ -143,6 +175,10 @@ describe("MapAnalyzeWorkspace", () => {
     click("analyze-statistics-selection-summary");
     expect(openLISA).toHaveBeenCalledTimes(1);
     expect(runSelectionStatistics).toHaveBeenCalledTimes(1);
+    expect(query("analyze-statistics-readiness")?.textContent).toContain("Polygon source ready");
+    expect(query("analyze-statistics-caveats")?.textContent).toContain("Heatmap density remains reachable under Style");
+    expect(query("analyze-statistics-output-group")?.textContent).toContain("Analysis Results");
+    expect(query("analyze-statistics-output-analysis-buffer")?.textContent).toContain("Ready with caveats");
   });
 
   it("routes analysis output layers to attributes, inspector, and active result state", () => {

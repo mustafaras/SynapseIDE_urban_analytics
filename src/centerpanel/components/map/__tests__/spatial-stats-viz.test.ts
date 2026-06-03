@@ -9,7 +9,11 @@ import {
   normalizeLisaClusterType,
   resolveHotSpotStats,
   resolveLisaStats,
+  resolveSpatialStatsCrsLabel,
+  resolveSpatialStatsGroupLabel,
+  summarizeSpatialStatsLayer,
 } from "../spatialStatsVizUtils";
+import type { OverlayLayerConfig } from "../mapTypes";
 
 describe("spatialStatsVizUtils", () => {
   it("normalizes LISA cluster values from legacy and engine contracts", () => {
@@ -132,5 +136,84 @@ describe("spatialStatsVizUtils", () => {
     });
     expect(HOT_SPOT_COLORS["not-significant"]).toBe("#FFFFBF");
     expect(HOT_SPOT_COLORS["hot-99"]).not.toBe(HOT_SPOT_COLORS["cold-99"]);
+  });
+
+  it("summarizes CRS, publication, and caveat state from analysis layers", () => {
+    const layer: OverlayLayerConfig = {
+      id: "analysis-lisa",
+      name: "LISA result",
+      type: "geojson",
+      visible: true,
+      opacity: 0.92,
+      group: "analysis",
+      metadata: {
+        geometryType: "Polygon",
+        crsSummary: {
+          crs: null,
+          status: "missing",
+          source: "unknown",
+          notes: ["Layer CRS not declared"],
+        },
+        publicationReadiness: {
+          status: "ready-with-caveats",
+          missingFields: [],
+          blockingIssueIds: [],
+          caveats: ["Legend needs review before external export."],
+        },
+        analysisResult: {
+          engine: "LocalMoransI",
+          runTimestamp: "2026-06-03T00:00:00.000Z",
+          parameterSummary: "Queen contiguity, alpha 0.05",
+          inputParameters: {},
+          statisticalSummary: {},
+          outputMode: "demo",
+          caveats: ["Neighbor interpretation depends on the current coordinate system."],
+          qaSummary: {
+            status: "warning",
+            issueIds: [],
+            blockerCount: 0,
+            warningCount: 1,
+            infoCount: 0,
+            caveats: ["Multiple testing choice affects significance."],
+            uncertaintyNotes: ["This run used illustrative demo values."],
+          },
+          visualization: { kind: "lisa-cluster" } as never,
+        },
+      },
+    };
+
+    const summary = summarizeSpatialStatsLayer(layer);
+
+    expect(resolveSpatialStatsGroupLabel(layer)).toBe("Analysis Results");
+    expect(resolveSpatialStatsCrsLabel(layer)).toBe("CRS review required");
+    expect(summary.publicationStatusLabel).toBe("Ready with caveats");
+    expect(summary.outputModeLabel).toBe("Demo output");
+    expect(summary.caveats).toContain("Legend needs review before external export.");
+    expect(summary.caveats).toContain(
+      "CRS review is required before interpreting neighborhood distance, density, or area-sensitive statistics.",
+    );
+    expect(summary.uncertaintyNotes).toContain("This run used illustrative demo values.");
+  });
+
+  it("prefers declared CRS labels when spatial metadata is present", () => {
+    const layer: OverlayLayerConfig = {
+      id: "heatmap-points",
+      name: "Point density",
+      type: "geojson",
+      visible: true,
+      opacity: 1,
+      group: "analysis",
+      metadata: {
+        geometryType: "Point",
+        crsSummary: {
+          crs: "EPSG:3857",
+          status: "known",
+          source: "explicit",
+          notes: [],
+        },
+      },
+    };
+
+    expect(resolveSpatialStatsCrsLabel(layer)).toBe("EPSG:3857");
   });
 });

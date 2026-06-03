@@ -12,6 +12,7 @@ import {
   type NumericFieldInfo,
   toFiniteNumber,
 } from "./map/symbologyUtils";
+import { resolveSpatialStatsLayerContext } from "./map/spatialStatsVizUtils";
 import { normalizeGeoJSONSourceDataForRender } from "@/services/map/MapDataImporter";
 
 export interface MapHeatmapLayerProps {
@@ -53,6 +54,48 @@ const rangeInputStyle: React.CSSProperties = {
   accentColor: MAP_COLORS.interaction,
 };
 
+const helperTextStyle: React.CSSProperties = {
+  color: MAP_COLORS.textSecondary,
+  fontSize: 12,
+  lineHeight: 1.45,
+};
+
+const readinessGridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+  gap: 10,
+};
+
+const readinessCardStyle: React.CSSProperties = {
+  display: "grid",
+  gap: 6,
+  padding: "10px 12px",
+  borderRadius: MAP_RADIUS.sm,
+  border: `1px solid ${MAP_COLORS.hairline}`,
+  background: "rgba(255,255,255,0.03)",
+};
+
+const readinessValueStyle: React.CSSProperties = {
+  color: MAP_COLORS.text,
+  fontSize: 13,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+};
+
+const caveatListStyle: React.CSSProperties = {
+  display: "grid",
+  gap: 6,
+};
+
+const caveatRowStyle: React.CSSProperties = {
+  padding: "8px 10px",
+  borderRadius: MAP_RADIUS.sm,
+  border: `1px solid ${MAP_COLORS.hairline}`,
+  background: "rgba(255,255,255,0.02)",
+  color: MAP_COLORS.textSecondary,
+  fontSize: 12,
+  lineHeight: 1.45,
+};
+
 function heatmapSourceId(layerId: string): string {
   return `${layerId}--symbology-heatmap-source`;
 }
@@ -90,6 +133,36 @@ function cleanupHeatmapArtifacts(map: maplibregl.Map, layerId: string): void {
   }
 }
 
+function hasPointGeometry(collection: GeoJSON.FeatureCollection): boolean {
+  return collection.features.some((feature) => {
+    const geometryType = feature.geometry?.type?.toLowerCase() ?? "";
+    return geometryType === "point" || geometryType === "multipoint";
+  });
+}
+
+function dedupeMessages(values: Array<string | null | undefined>): string[] {
+  const seen = new Set<string>();
+  const deduped: string[] = [];
+
+  values.forEach((value) => {
+    if (typeof value !== "string") {
+      return;
+    }
+    const normalized = value.trim();
+    if (normalized.length === 0) {
+      return;
+    }
+    const fingerprint = normalized.toLowerCase();
+    if (seen.has(fingerprint)) {
+      return;
+    }
+    seen.add(fingerprint);
+    deduped.push(normalized);
+  });
+
+  return deduped;
+}
+
 export const MapHeatmapLayer: React.FC<MapHeatmapLayerProps> = ({
   mapRef,
   layer,
@@ -121,6 +194,27 @@ export const MapHeatmapLayer: React.FC<MapHeatmapLayerProps> = ({
   const decoratedCollection = useMemo(
     () => decoratePointFeatures(featureCollection),
     [featureCollection],
+  );
+
+  const layerSummary = useMemo(
+    () => resolveSpatialStatsLayerContext(layer),
+    [layer],
+  );
+
+  const pointGeometryReady = useMemo(
+    () => hasPointGeometry(featureCollection),
+    [featureCollection],
+  );
+
+  const heatmapCaveats = useMemo(
+    () => dedupeMessages([
+      ...layerSummary.caveats,
+      ...layerSummary.uncertaintyNotes,
+      !pointGeometryReady ? "Heatmap rendering expects point geometries for density estimation." : null,
+      "Heatmap density is a renderer rather than a standalone statistical output.",
+      "Gradient, opacity, and transition zoom affect publication legibility and legend interpretation.",
+    ]),
+    [layerSummary, pointGeometryReady],
   );
 
   const weightDomain = useMemo(
@@ -302,6 +396,47 @@ export const MapHeatmapLayer: React.FC<MapHeatmapLayerProps> = ({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      <div style={sectionStyle} data-testid="heatmap-readiness-panel">
+        <div style={labelStyle}>Heatmap Readiness and Caveats</div>
+        <div style={readinessGridStyle}>
+          <div style={readinessCardStyle}>
+            <div style={labelStyle}>Required geometry</div>
+            <div style={readinessValueStyle}>{pointGeometryReady ? "Point geometry ready" : "Point geometry required"}</div>
+            <div style={helperTextStyle}>
+              Density surfaces derive from visible point features; non-point geometry should stay in other renderer workflows.
+            </div>
+          </div>
+          <div style={readinessCardStyle}>
+            <div style={labelStyle}>Weight field</div>
+            <div style={readinessValueStyle}>{weightField === "uniform" ? "Uniform weight" : weightField}</div>
+            <div style={helperTextStyle}>
+              {numericFields.length > 0
+                ? `${numericFields.length.toLocaleString()} numeric field(s) can drive weighted density.`
+                : "Heatmap can still render with uniform density when no numeric weight field is available."}
+            </div>
+          </div>
+          <div style={readinessCardStyle}>
+            <div style={labelStyle}>CRS and execution</div>
+            <div style={readinessValueStyle}>{layerSummary.crsLabel}</div>
+            <div style={helperTextStyle}>
+              Screen-space density renderer with transition zoom {transitionZoom.toFixed(1)} and optional zoom-scaled radius.
+            </div>
+          </div>
+          <div style={readinessCardStyle}>
+            <div style={labelStyle}>Publication status</div>
+            <div style={readinessValueStyle}>{layerSummary.publicationStatusLabel}</div>
+            <div style={helperTextStyle}>
+              {layerSummary.outputGroupLabel} · {layerSummary.outputModeLabel}. Review legend and companion-point visibility before export.
+            </div>
+          </div>
+        </div>
+        <div style={caveatListStyle}>
+          {heatmapCaveats.map((message) => (
+            <div key={message} style={caveatRowStyle}>{message}</div>
+          ))}
+        </div>
+      </div>
+
       <div style={sectionStyle}>
         <label style={labelStyle} htmlFor="heatmap-weight-field">Weight field</label>
         <select

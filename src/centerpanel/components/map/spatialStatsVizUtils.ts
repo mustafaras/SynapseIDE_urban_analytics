@@ -1,3 +1,8 @@
+import type {
+  AnalysisOutputMode,
+  LayerPublicationReadinessStatus,
+  OverlayLayerConfig,
+} from "./mapTypes";
 import { buildFeatureIdentifier, toFiniteNumber } from "./symbologyUtils";
 
 export const LISA_FEATURE_ID_FIELD = "__lisaFeatureId";
@@ -57,6 +62,17 @@ export interface DecoratedHotSpotResult {
   validFeatureCount: number;
 }
 
+export interface SpatialStatsLayerPublicationSummary {
+  crsLabel: string;
+  outputGroupLabel: string;
+  publicationStatus: LayerPublicationReadinessStatus;
+  publicationStatusLabel: string;
+  outputMode: AnalysisOutputMode;
+  outputModeLabel: string;
+  caveats: string[];
+  uncertaintyNotes: string[];
+}
+
 export const LISA_CLUSTER_COLORS: Record<LisaClusterCategory, string> = {
   HH: "#FF0000",
   HL: "#FF9999",
@@ -107,6 +123,157 @@ const HOT_SPOT_CATEGORY_ORDER: HotSpotCategory[] = [
 const HOT_99_Z = 2.5758293035489004;
 const HOT_95_Z = 1.959963984540054;
 const HOT_90_Z = 1.6448536269514729;
+
+const OUTPUT_MODE_LABELS: Record<AnalysisOutputMode, string> = {
+  live: "Live output",
+  demo: "Demo output",
+  synthetic: "Synthetic output",
+  unknown: "Mode not declared",
+};
+
+const PUBLICATION_STATUS_LABELS: Record<LayerPublicationReadinessStatus, string> = {
+  ready: "Ready",
+  "ready-with-caveats": "Ready with caveats",
+  "needs-review": "Needs review",
+  blocked: "Blocked",
+};
+
+function humanizeToken(value: string): string {
+  return value
+    .replace(/[-_]+/g, " ")
+    .replace(/\b\w/g, (match) => match.toUpperCase());
+}
+
+function dedupeStrings(values: Array<string | null | undefined>): string[] {
+  const seen = new Set<string>();
+  const deduped: string[] = [];
+
+  for (const value of values) {
+    if (typeof value !== "string") {
+      continue;
+    }
+    const normalized = value.trim();
+    if (normalized.length === 0) {
+      continue;
+    }
+    const fingerprint = normalized.toLowerCase();
+    if (seen.has(fingerprint)) {
+      continue;
+    }
+    seen.add(fingerprint);
+    deduped.push(normalized);
+  }
+
+  return deduped;
+}
+
+function resolveOutputModeCaveat(outputMode: AnalysisOutputMode): string | null {
+  if (outputMode === "demo") {
+    return "Demo output remains illustrative and must stay labeled before publication or export.";
+  }
+  if (outputMode === "synthetic") {
+    return "Synthetic output reflects modeled data and must stay labeled in publication workflows.";
+  }
+  if (outputMode === "unknown") {
+    return "Output mode is not declared; review provenance before treating this layer as publication-ready.";
+  }
+  return null;
+}
+
+export function resolveSpatialStatsGroupLabel(
+  layer: OverlayLayerConfig | null | undefined,
+): string {
+  if (layer?.group === "analysis") {
+    return "Analysis Results";
+  }
+  if (typeof layer?.group === "string" && layer.group.trim().length > 0) {
+    return humanizeToken(layer.group);
+  }
+  return "Analysis Results";
+}
+
+export function resolveSpatialStatsPublicationStatus(
+  layer: OverlayLayerConfig | null | undefined,
+): LayerPublicationReadinessStatus {
+  const publicationStatus = layer?.metadata?.publicationReadiness?.status;
+  if (publicationStatus) {
+    return publicationStatus;
+  }
+
+  const qaStatus = layer?.metadata?.analysisResult?.qaSummary?.status;
+  if (qaStatus === "passed") {
+    return "ready";
+  }
+  if (qaStatus === "warning") {
+    return "ready-with-caveats";
+  }
+  if (qaStatus === "blocked" || qaStatus === "error") {
+    return "blocked";
+  }
+  return "needs-review";
+}
+
+export function resolveSpatialStatsCrsLabel(
+  layer: OverlayLayerConfig | null | undefined,
+): string {
+  const metadata = layer?.metadata;
+  const manifestCrs =
+    metadata?.analysisResult?.reproducibilityManifest?.crsSummary.executionCrs ??
+    metadata?.analysisResult?.reproducibilityManifest?.crsSummary.displayCrs ??
+    metadata?.reproducibilityManifest?.crsSummary.executionCrs ??
+    metadata?.reproducibilityManifest?.crsSummary.displayCrs;
+  const sourceCrs =
+    metadata?.crsSummary?.crs ??
+    metadata?.importSource?.declaredCrs ??
+    metadata?.columnar?.crs ??
+    metadata?.datasetContext?.crs ??
+    metadata?.externalService?.crs ??
+    metadata?.raster?.epsgCode ??
+    manifestCrs ??
+    null;
+
+  if (typeof sourceCrs === "string" && sourceCrs.trim().length > 0) {
+    return sourceCrs.trim();
+  }
+  if (metadata?.crsSummary?.status === "unknown") {
+    return "CRS unknown";
+  }
+  return "CRS review required";
+}
+
+export function summarizeSpatialStatsLayer(
+  layer: OverlayLayerConfig | null | undefined,
+): SpatialStatsLayerPublicationSummary {
+  const metadata = layer?.metadata;
+  const analysis = metadata?.analysisResult;
+  const publicationStatus = resolveSpatialStatsPublicationStatus(layer);
+  const outputMode = analysis?.outputMode ?? "unknown";
+  const crsLabel = resolveSpatialStatsCrsLabel(layer);
+  const crsReviewRequired = crsLabel === "CRS review required" || crsLabel === "CRS unknown";
+
+  const caveats = dedupeStrings([
+    ...((metadata?.publicationReadiness?.caveats ?? []) as string[]),
+    ...((analysis?.caveats ?? []) as string[]),
+    ...((analysis?.qaSummary?.caveats ?? []) as string[]),
+    resolveOutputModeCaveat(outputMode),
+    crsReviewRequired
+      ? "CRS review is required before interpreting neighborhood distance, density, or area-sensitive statistics."
+      : null,
+  ]);
+
+  return {
+    crsLabel,
+    outputGroupLabel: resolveSpatialStatsGroupLabel(layer),
+    publicationStatus,
+    publicationStatusLabel: PUBLICATION_STATUS_LABELS[publicationStatus],
+    outputMode,
+    outputModeLabel: OUTPUT_MODE_LABELS[outputMode],
+    caveats,
+    uncertaintyNotes: dedupeStrings(analysis?.qaSummary?.uncertaintyNotes ?? []),
+  };
+}
+
+export const resolveSpatialStatsLayerContext = summarizeSpatialStatsLayer;
 
 function readProperty(
   properties: GeoJSON.GeoJsonProperties | null | undefined,

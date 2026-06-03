@@ -12,6 +12,7 @@ import {
 } from "../mapTokens";
 import { MapWorkbenchSidebar } from "../sidebar";
 import type { MapWorkbenchSidebarTab } from "../sidebar";
+import { resolveSpatialStatsLayerContext } from "../spatialStatsVizUtils";
 import { GisEmptyState } from "../ui";
 
 export type MapAnalyzeTabId = Extract<
@@ -41,6 +42,7 @@ export interface MapAnalyzeWorkspaceProps {
 
 export interface MapAnalyzeStatisticsPanelProps {
   hasAnalysisLayers: boolean;
+  analysisOutputLayers: readonly OverlayLayerConfig[];
   selectedFeatureCount: number;
   selectionStatsAvailable: boolean;
   lisaActive: boolean;
@@ -109,6 +111,14 @@ const sectionTitleStyle: React.CSSProperties = {
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
 };
 
+const labelStyle: React.CSSProperties = {
+  color: MAP_COLORS.textSecondary,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+  textTransform: "uppercase",
+  letterSpacing: 0.6,
+};
+
 const mutedStyle: React.CSSProperties = {
   color: MAP_COLORS.textMuted,
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
@@ -168,6 +178,35 @@ const actionRowStyle: React.CSSProperties = {
   display: "flex",
   flexWrap: "wrap",
   gap: MAP_SPACING.xs,
+};
+
+const readinessGridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+  gap: MAP_SPACING.sm,
+};
+
+const readinessCardStyle: React.CSSProperties = {
+  display: "grid",
+  gap: MAP_SPACING.xs,
+  padding: MAP_SPACING.sm,
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.sm,
+  background: MAP_COLORS.transparent,
+};
+
+const caveatListStyle: React.CSSProperties = {
+  display: "grid",
+  gap: MAP_SPACING.xs,
+};
+
+const caveatRowStyle: React.CSSProperties = {
+  padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.sm,
+  color: MAP_COLORS.textSecondary,
+  lineHeight: MAP_TYPOGRAPHY.lineHeight.normal,
+  background: MAP_COLORS.transparent,
 };
 
 function actionButtonStyle(active = false, disabled = false): React.CSSProperties {
@@ -243,6 +282,7 @@ export const MapAnalyzeWorkspace: React.FC<MapAnalyzeWorkspaceProps> = ({
 
 export const MapAnalyzeStatisticsPanel: React.FC<MapAnalyzeStatisticsPanelProps> = ({
   hasAnalysisLayers,
+  analysisOutputLayers,
   selectedFeatureCount,
   selectionStatsAvailable,
   lisaActive,
@@ -255,9 +295,62 @@ export const MapAnalyzeStatisticsPanel: React.FC<MapAnalyzeStatisticsPanelProps>
 }) => {
   const layerBlockedReason = "Missing prerequisite: add at least one spatial layer before opening this statistics panel.";
   const selectionBlockedReason = "Missing prerequisite: select one or more features before running selection statistics.";
+  const outputPreviewLayers = analysisOutputLayers.slice(0, 3);
+  const latestOutputSummary = analysisOutputLayers[0]
+    ? resolveSpatialStatsLayerContext(analysisOutputLayers[0])
+    : null;
+  const sharedCaveats = Array.from(new Set([
+    "Polygon geometry is required for LISA, Gi*, and emerging hot spot analysis.",
+    "Each statistics run requires numeric attributes; emerging hot spot needs at least three ordered numeric time fields.",
+    "Review CRS and execution context before interpreting neighborhood scale, density, or temporal trend strength.",
+    "Heatmap density remains reachable under Style and should be treated as a renderer, not a published statistical output.",
+    ...analysisOutputLayers.flatMap((layer) => {
+      const summary = resolveSpatialStatsLayerContext(layer);
+      return [...summary.caveats, ...summary.uncertaintyNotes];
+    }),
+  ])).slice(0, 6);
 
   return (
     <div style={panelStackStyle} data-testid="map-analyze-statistics">
+      <section style={sectionStyle} aria-label="Statistics readiness" data-testid="analyze-statistics-readiness">
+        <div style={sectionHeaderStyle}>
+          <h3 style={sectionTitleStyle}>Readiness</h3>
+          <span style={chipStyle}>{analysisOutputLayers.length.toLocaleString()} outputs tracked</span>
+        </div>
+        <div style={readinessGridStyle}>
+          <article style={readinessCardStyle}>
+            <div style={labelStyle}>Required geometry</div>
+            <div style={rowTitleStyle}>{hasAnalysisLayers ? "Polygon source ready" : "Polygon source required"}</div>
+            <div style={mutedStyle}>
+              Launchers stay available from Analyze, but LISA, Gi*, and emerging hot spot only run against visible polygon layers.
+            </div>
+          </article>
+          <article style={readinessCardStyle}>
+            <div style={labelStyle}>Numeric fields</div>
+            <div style={rowTitleStyle}>{hasAnalysisLayers ? "Choose fields per run" : "Await source layer"}</div>
+            <div style={mutedStyle}>
+              LISA and Gi* require one numeric field; emerging hot spot requires an ordered numeric field sequence.
+            </div>
+          </article>
+          <article style={readinessCardStyle}>
+            <div style={labelStyle}>CRS and execution</div>
+            <div style={rowTitleStyle}>{latestOutputSummary?.crsLabel ?? "CRS review required"}</div>
+            <div style={mutedStyle}>
+              Contiguity method, thresholds, and temporal ordering remain visible inside each statistics run panel.
+            </div>
+          </article>
+          <article style={readinessCardStyle}>
+            <div style={labelStyle}>Output group</div>
+            <div style={rowTitleStyle}>
+              {analysisOutputLayers.length > 0 ? `${analysisOutputLayers.length.toLocaleString()} analysis outputs` : "Publishes to Analysis Results"}
+            </div>
+            <div style={mutedStyle}>
+              Published statistics preserve output mode, QA, and publication status in the Analysis Results group.
+            </div>
+          </article>
+        </div>
+      </section>
+
       <section style={sectionStyle} aria-label="Spatial statistics launchers">
         <div style={sectionHeaderStyle}>
           <h3 style={sectionTitleStyle}>Spatial Statistics</h3>
@@ -300,6 +393,52 @@ export const MapAnalyzeStatisticsPanel: React.FC<MapAnalyzeStatisticsPanelProps>
             <BarChart3 size={13} aria-hidden /> Emerging
           </button>
         </div>
+      </section>
+
+      <section style={sectionStyle} aria-label="Statistics caveats" data-testid="analyze-statistics-caveats">
+        <div style={sectionHeaderStyle}>
+          <h3 style={sectionTitleStyle}>Shared Caveats</h3>
+          <span style={chipStyle}>{sharedCaveats.length.toLocaleString()} visible</span>
+        </div>
+        <div style={caveatListStyle}>
+          {sharedCaveats.map((message) => (
+            <div key={message} style={caveatRowStyle}>
+              {message}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section style={sectionStyle} aria-label="Statistics output layer group" data-testid="analyze-statistics-output-group">
+        <div style={sectionHeaderStyle}>
+          <h3 style={sectionTitleStyle}>Output Layer Group</h3>
+          <span style={chipStyle}>Analysis Results</span>
+        </div>
+        {outputPreviewLayers.length > 0 ? (
+          <div style={listStyle}>
+            {outputPreviewLayers.map((layer) => {
+              const summary = resolveSpatialStatsLayerContext(layer);
+              return (
+                <article key={layer.id} style={rowStyle} data-testid={`analyze-statistics-output-${layer.id}`}>
+                  <div style={rowHeaderStyle}>
+                    <span style={rowTitleStyle} title={layer.name}>{layer.name}</span>
+                    <span style={chipStyle}>{summary.publicationStatusLabel}</span>
+                  </div>
+                  <div style={chipRowStyle}>
+                    <span style={chipStyle}>{summary.outputGroupLabel}</span>
+                    <span style={chipStyle}>{summary.outputModeLabel}</span>
+                    <span style={chipStyle}>{summary.crsLabel}</span>
+                  </div>
+                  {summary.caveats[0] ? <div style={mutedStyle}>{summary.caveats[0]}</div> : null}
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <div style={mutedStyle}>
+            Statistics outputs will appear here after you run LISA, Gi*, or emerging hot spot and publish into Analysis Results.
+          </div>
+        )}
       </section>
 
       <section style={sectionStyle} aria-label="Selection statistics">

@@ -20,6 +20,7 @@ import type { OverlayLayerConfig } from "./map/mapTypes";
 import { MAP_TYPOGRAPHY } from "./map/mapTokens";
 import { createOpaqueFloatingPanelStyle, useDraggableMapPanel } from "./map/useDraggableMapPanel";
 import { collectNumericFields, resolveFeatureCollection } from "./map/symbologyUtils";
+import { resolveSpatialStatsLayerContext } from "./map/spatialStatsVizUtils";
 import { IconClose, IconMeasure } from "./map/MapIcons";
 
 const PANEL_WIDTH = 420;
@@ -49,6 +50,7 @@ type ResolvedLayerState = {
 
 type LastRunState = {
   insertedAt: string;
+  layerId: string;
   layerName: string;
   summary: Record<EmergingHotSpotCategory, number>;
   legend: EmergingHotSpotLegendEntry[];
@@ -184,6 +186,45 @@ const legendRowStyle: React.CSSProperties = {
   background: "transparent",
 };
 
+const readinessGridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(min(170px, 100%), 1fr))",
+  gap: 8,
+  minWidth: 0,
+};
+
+const readinessCardStyle: React.CSSProperties = {
+  display: "grid",
+  gap: 6,
+  minWidth: 0,
+  padding: "10px 12px",
+  borderRadius: 0,
+  border: `1px solid ${WORKBENCH_CHROME.borderFaint}`,
+  background: "transparent",
+};
+
+const readinessValueStyle: React.CSSProperties = {
+  color: WORKBENCH_CHROME.text,
+  fontSize: 13,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+};
+
+const caveatListStyle: React.CSSProperties = {
+  display: "grid",
+  gap: 6,
+  minWidth: 0,
+};
+
+const caveatRowStyle: React.CSSProperties = {
+  padding: "8px 10px",
+  borderRadius: 0,
+  border: `1px solid ${WORKBENCH_CHROME.borderFaint}`,
+  background: "transparent",
+  color: WORKBENCH_CHROME.textSecondary,
+  fontSize: 12,
+  lineHeight: 1.45,
+};
+
 function isPolygonLayerCandidate(layer: OverlayLayerConfig): boolean {
   if (layer.type !== "geojson") {
     return false;
@@ -236,6 +277,29 @@ function pickDefaultTimeFields(fieldNames: string[]): string[] {
   return prioritized.slice(0, Math.min(DEFAULT_TIME_FIELD_COUNT, prioritized.length)).sort(naturalSort);
 }
 
+function dedupeMessages(values: Array<string | null | undefined>): string[] {
+  const seen = new Set<string>();
+  const deduped: string[] = [];
+
+  values.forEach((value) => {
+    if (typeof value !== "string") {
+      return;
+    }
+    const normalized = value.trim();
+    if (normalized.length === 0) {
+      return;
+    }
+    const fingerprint = normalized.toLowerCase();
+    if (seen.has(fingerprint)) {
+      return;
+    }
+    seen.add(fingerprint);
+    deduped.push(normalized);
+  });
+
+  return deduped;
+}
+
 export const MapEmergingHotSpotViz: React.FC<MapEmergingHotSpotVizProps> = ({
   overlayLayers,
   visible,
@@ -272,6 +336,21 @@ export const MapEmergingHotSpotViz: React.FC<MapEmergingHotSpotVizProps> = ({
   const activeLayer = useMemo(
     () => eligibleLayers.find((layer) => layer.id === selectedLayerId) ?? null,
     [eligibleLayers, selectedLayerId],
+  );
+
+  const sourceLayerSummary = useMemo(
+    () => resolveSpatialStatsLayerContext(resolvedLayer?.layer ?? activeLayer ?? null),
+    [activeLayer, resolvedLayer],
+  );
+
+  const publishedLayer = useMemo(
+    () => (lastRun ? overlayLayers.find((layer) => layer.id === lastRun.layerId) ?? null : null),
+    [lastRun, overlayLayers],
+  );
+
+  const publishedLayerSummary = useMemo(
+    () => resolveSpatialStatsLayerContext(publishedLayer),
+    [publishedLayer],
   );
 
   useEffect(() => {
@@ -343,6 +422,19 @@ export const MapEmergingHotSpotViz: React.FC<MapEmergingHotSpotVizProps> = ({
 
   const selectedTimeFieldSet = useMemo(() => new Set(selectedTimeFields), [selectedTimeFields]);
   const canRun = Boolean(resolvedLayer && selectedTimeFields.length >= 3);
+
+  const readinessCaveats = useMemo(
+    () => dedupeMessages([
+      !resolvedLayer ? "Choose a visible polygon layer before running emerging hot spot analysis." : null,
+      selectedTimeFields.length < 3
+        ? "Select at least three ordered numeric time fields before running the temporal workflow."
+        : null,
+      ...sourceLayerSummary.caveats,
+      ...sourceLayerSummary.uncertaintyNotes,
+      "Temporal category shifts depend on time-field order, contiguity weights, and the chosen significance threshold.",
+    ]),
+    [resolvedLayer, selectedTimeFields.length, sourceLayerSummary],
+  );
 
   const toggleTimeField = useCallback((fieldName: string) => {
     setSelectedTimeFields((current) => {
@@ -422,6 +514,7 @@ export const MapEmergingHotSpotViz: React.FC<MapEmergingHotSpotVizProps> = ({
       upsertCompletedRun(createSpatialStatsCompletedRun(rerunnableResult, { flowId }));
       setLastRun({
         insertedAt: rerunnableResult.layer.metadata?.analysisResult?.runTimestamp ?? new Date().toISOString(),
+        layerId: rerunnableResult.layer.id,
         layerName: rerunnableResult.layer.name,
         summary: execution.summary,
         legend: execution.legend,
@@ -762,6 +855,47 @@ export const MapEmergingHotSpotViz: React.FC<MapEmergingHotSpotVizProps> = ({
 
         <div style={helperTextStyle}>
           The published layer uses the shared temporal player for play, pause, step, and speed controls while retaining the emerging hot spot legend and category counts in analysis metadata.
+        </div>
+
+        <div style={sectionStyle} data-testid="emerging-hotspot-readiness-panel">
+          <div style={labelStyle}>Readiness and Caveats</div>
+          <div style={readinessGridStyle}>
+            <div style={readinessCardStyle}>
+              <div style={labelStyle}>Required geometry</div>
+              <div style={readinessValueStyle}>{resolvedLayer ? "Polygon geometry ready" : "Polygon geometry required"}</div>
+              <div style={helperTextStyle}>
+                {resolvedLayer ? `${resolvedLayer.layer.name} is ready for temporal neighborhood analysis.` : "Choose a visible polygon layer before running emerging hot spot analysis."}
+              </div>
+            </div>
+            <div style={readinessCardStyle}>
+              <div style={labelStyle}>Ordered numeric fields</div>
+              <div style={readinessValueStyle}>{selectedTimeFields.length >= 3 ? `${selectedTimeFields.length.toLocaleString()} selected` : "3 fields required"}</div>
+              <div style={helperTextStyle}>
+                {selectedTimeFields.length > 0 ? `Sequence: ${selectedTimeFields.join(" -> ")}` : "Pick at least three ordered numeric fields to build the temporal sequence."}
+              </div>
+            </div>
+            <div style={readinessCardStyle}>
+              <div style={labelStyle}>CRS and execution</div>
+              <div style={readinessValueStyle}>{sourceLayerSummary.crsLabel}</div>
+              <div style={helperTextStyle}>
+                {(weightsMethod === "queen" ? "Queen" : "Rook")} contiguity, self weight {selfWeight ? "enabled" : "disabled"}, alpha {significanceThreshold.toFixed(3)}.
+              </div>
+            </div>
+            <div style={readinessCardStyle}>
+              <div style={labelStyle}>Output layer group</div>
+              <div style={readinessValueStyle}>{lastRun ? publishedLayerSummary.publicationStatusLabel : "Publishes to Analysis Results"}</div>
+              <div style={helperTextStyle}>
+                {lastRun
+                  ? `${publishedLayerSummary.outputGroupLabel} · ${publishedLayerSummary.outputModeLabel}`
+                  : "Temporal outputs keep playback, legend, QA, and rerun metadata in Analysis Results."}
+              </div>
+            </div>
+          </div>
+          <div style={caveatListStyle}>
+            {readinessCaveats.map((message) => (
+              <div key={message} style={caveatRowStyle}>{message}</div>
+            ))}
+          </div>
         </div>
 
         {isResolvingLayer ? <div style={helperTextStyle}>Loading polygon layer...</div> : null}

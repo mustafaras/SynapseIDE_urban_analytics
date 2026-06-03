@@ -35,6 +35,7 @@ import {
   HOT_SPOT_FEATURE_ID_FIELD,
   HOT_SPOT_GI_FIELD,
   HOT_SPOT_P_VALUE_FIELD,
+  resolveSpatialStatsLayerContext,
   HOT_SPOT_Z_SCORE_FIELD,
 } from "./map/spatialStatsVizUtils";
 import { IconClose, IconMeasure } from "./map/MapIcons";
@@ -51,6 +52,7 @@ type ResolvedLayerState = {
 
 type LastRunState = {
   insertedAt: string;
+  layerId: string;
   layerName: string;
   summary: Record<HotSpotConfidence, number>;
   validFeatureCount: number;
@@ -185,6 +187,65 @@ const mapTooltipStyle: React.CSSProperties = {
   pointerEvents: "none",
   zIndex: MAP_Z_INDEX.dropdown + 14,
 };
+
+const readinessGridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+  gap: 10,
+};
+
+const readinessCardStyle: React.CSSProperties = {
+  display: "grid",
+  gap: 6,
+  padding: "10px 12px",
+  borderRadius: MAP_RADIUS.sm,
+  border: `1px solid ${MAP_COLORS.hairline}`,
+  background: "rgba(255,255,255,0.03)",
+};
+
+const readinessValueStyle: React.CSSProperties = {
+  color: MAP_COLORS.text,
+  fontSize: 13,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+};
+
+const caveatListStyle: React.CSSProperties = {
+  display: "grid",
+  gap: 6,
+};
+
+const caveatRowStyle: React.CSSProperties = {
+  padding: "8px 10px",
+  borderRadius: MAP_RADIUS.sm,
+  border: `1px solid ${MAP_COLORS.hairline}`,
+  background: "rgba(255,255,255,0.02)",
+  color: MAP_COLORS.textSecondary,
+  fontSize: 12,
+  lineHeight: 1.45,
+};
+
+function dedupeMessages(values: Array<string | null | undefined>): string[] {
+  const seen = new Set<string>();
+  const deduped: string[] = [];
+
+  values.forEach((value) => {
+    if (typeof value !== "string") {
+      return;
+    }
+    const normalized = value.trim();
+    if (normalized.length === 0) {
+      return;
+    }
+    const fingerprint = normalized.toLowerCase();
+    if (seen.has(fingerprint)) {
+      return;
+    }
+    seen.add(fingerprint);
+    deduped.push(normalized);
+  });
+
+  return deduped;
+}
 
 function isPolygonLayerCandidate(layer: OverlayLayerConfig): boolean {
   if (layer.type !== "geojson") {
@@ -345,6 +406,32 @@ export const MapHotSpotViz: React.FC<MapHotSpotVizProps> = ({
   const activeResultLayer = useMemo(
     () => resultLayers.find((layer) => layer.id === selectedResultLayerId) ?? null,
     [resultLayers, selectedResultLayerId],
+  );
+
+  const sourceLayerSummary = useMemo(
+    () => resolveSpatialStatsLayerContext(resolvedLayer?.layer ?? activeLayer ?? null),
+    [activeLayer, resolvedLayer],
+  );
+
+  const publishedLayer = useMemo(
+    () => (lastRun ? overlayLayers.find((layer) => layer.id === lastRun.layerId) ?? null : null),
+    [lastRun, overlayLayers],
+  );
+
+  const publishedLayerSummary = useMemo(
+    () => resolveSpatialStatsLayerContext(publishedLayer),
+    [publishedLayer],
+  );
+
+  const readinessCaveats = useMemo(
+    () => dedupeMessages([
+      !resolvedLayer ? "Choose a visible polygon layer before running Getis-Ord Gi*." : null,
+      !selectedValueField ? "Choose a numeric field so hot and cold spots can be computed." : null,
+      ...sourceLayerSummary.caveats,
+      ...sourceLayerSummary.uncertaintyNotes,
+      `Contiguity (${weightsMethod}) and self-weight ${selfWeight ? "inclusion" : "exclusion"} can shift marginal hot and cold spot classes at alpha ${significanceThreshold.toFixed(3)}.`,
+    ]),
+    [resolvedLayer, selectedValueField, sourceLayerSummary, weightsMethod, selfWeight, significanceThreshold],
   );
 
   const renderedHotSpot = useMemo(
@@ -613,6 +700,7 @@ export const MapHotSpotViz: React.FC<MapHotSpotVizProps> = ({
       upsertCompletedRun(createSpatialStatsCompletedRun(rerunnableResult, { flowId: "review" }));
       setLastRun({
         insertedAt: rerunnableResult.layer.metadata?.analysisResult?.runTimestamp ?? new Date().toISOString(),
+        layerId: rerunnableResult.layer.id,
         layerName: rerunnableResult.layer.name,
         summary: execution.summary,
         validFeatureCount: execution.validFeatureCount,
@@ -913,6 +1001,49 @@ export const MapHotSpotViz: React.FC<MapHotSpotVizProps> = ({
 
         <div style={helperTextStyle}>
           The result layer is recorded as a completed run and appears under Analysis Results with rerun support.
+        </div>
+
+        <div style={sectionStyle} data-testid="hotspot-readiness-panel">
+          <div style={labelStyle}>Readiness and Caveats</div>
+          <div style={readinessGridStyle}>
+            <div style={readinessCardStyle}>
+              <div style={labelStyle}>Required geometry</div>
+              <div style={readinessValueStyle}>{resolvedLayer ? "Polygon geometry ready" : "Polygon geometry required"}</div>
+              <div style={helperTextStyle}>
+                {resolvedLayer ? `${resolvedLayer.layer.name} is ready for neighborhood hot and cold spot analysis.` : "Choose a visible polygon layer before running Gi*."}
+              </div>
+            </div>
+            <div style={readinessCardStyle}>
+              <div style={labelStyle}>Numeric field</div>
+              <div style={readinessValueStyle}>{selectedValueField || "Numeric field required"}</div>
+              <div style={helperTextStyle}>
+                {resolvedLayer
+                  ? `${resolvedLayer.numericFields.length.toLocaleString()} numeric field(s) are available on the selected layer.`
+                  : "Field availability appears after the source layer loads."}
+              </div>
+            </div>
+            <div style={readinessCardStyle}>
+              <div style={labelStyle}>CRS and execution</div>
+              <div style={readinessValueStyle}>{sourceLayerSummary.crsLabel}</div>
+              <div style={helperTextStyle}>
+                {(weightsMethod === "queen" ? "Queen" : "Rook")} contiguity with self weight {selfWeight ? "enabled" : "disabled"} at alpha {significanceThreshold.toFixed(3)}.
+              </div>
+            </div>
+            <div style={readinessCardStyle}>
+              <div style={labelStyle}>Output layer group</div>
+              <div style={readinessValueStyle}>{lastRun ? publishedLayerSummary.publicationStatusLabel : "Publishes to Analysis Results"}</div>
+              <div style={helperTextStyle}>
+                {lastRun
+                  ? `${publishedLayerSummary.outputGroupLabel} · ${publishedLayerSummary.outputModeLabel}`
+                  : "Completed runs preserve QA, output mode, and rerun metadata in Analysis Results."}
+              </div>
+            </div>
+          </div>
+          <div style={caveatListStyle}>
+            {readinessCaveats.map((message) => (
+              <div key={message} style={caveatRowStyle}>{message}</div>
+            ))}
+          </div>
         </div>
 
         {isResolvingLayer ? <div style={helperTextStyle}>Loading polygon layer...</div> : null}

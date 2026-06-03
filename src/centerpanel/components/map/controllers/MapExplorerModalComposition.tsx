@@ -8709,7 +8709,14 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
 
   const analyzeStatisticsElement = (
     <MapAnalyzeStatisticsPanel
-      hasAnalysisLayers={overlayLayers.length > 0}
+      hasAnalysisLayers={overlayLayers.some((layer) => {
+        if (!layer.visible || layer.type !== "geojson") {
+          return false;
+        }
+        const geometryType = layer.metadata?.geometryType?.toLowerCase() ?? "";
+        return geometryType.length === 0 || geometryType.includes("polygon") || geometryType.includes("multi");
+      })}
+      analysisOutputLayers={analysisOutputLayers}
       selectedFeatureCount={selectedFeatureCount}
       selectionStatsAvailable={selectionStatsAvailable}
       lisaActive={showClusterViz}
