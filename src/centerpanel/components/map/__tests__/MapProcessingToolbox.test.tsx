@@ -127,6 +127,20 @@ describe("MapProcessingToolboxPanel", () => {
     expect(query("processing-tool-attribute-filter")).toBeNull();
   });
 
+  it("filters by category and renders the GIS parameter/readiness rail", () => {
+    click(query("processing-tool-category-filter-geometry")!);
+    expect(query("processing-tool-buffer")).not.toBeNull();
+    expect(query("processing-tool-centroid")).not.toBeNull();
+    expect(query("processing-tool-attribute-filter")).toBeNull();
+
+    click(query("processing-tool-buffer")!);
+    expect(query("processing-tool-runtime-chip")?.textContent).toContain("Main-thread preview");
+    expect(query("processing-tool-readiness-card")?.textContent).toContain("Preview ready");
+    expect(query("processing-tool-readiness-card")?.textContent).toContain("Projected polygons");
+    expect(host!.querySelector('[data-parameter-type="layer"]')).not.toBeNull();
+    expect(host!.querySelector('[data-parameter-type="number"]')).not.toBeNull();
+  });
+
   it("runs buffer on the projected layer and surfaces an output layer + manifest", () => {
     click(query("processing-tool-buffer")!);
     // projected CRS → not blocked, run enabled

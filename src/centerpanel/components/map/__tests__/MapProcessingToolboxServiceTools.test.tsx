@@ -149,4 +149,34 @@ describe("MapProcessingToolboxPanel — service tools (24b)", () => {
     expect(options.length - notWired.length).toBeGreaterThanOrEqual(12);
     expect(notWired.length).toBeGreaterThan(0);
   });
+
+  it("surfaces the runtime legend and selected worker runtime chip", () => {
+    const registry = createMapProcessingRegistry();
+    host = document.createElement("div");
+    document.body.appendChild(host);
+    root = createRoot(host);
+    act(() => {
+      root!.render(
+        <MapProcessingToolboxPanel
+          visible
+          onClose={() => {}}
+          searchTools={(q) => registry.search(q)}
+          layers={[{ id: "polys", name: "Join polys", fields: ["zone", "area_m2"] }]}
+          onPreview={(toolId, params) => previewProcessingTool(toolId, params, () => null)}
+          onRun={() => null}
+        />,
+      );
+    });
+
+    const legend = query("processing-tool-runtime-legend")?.textContent ?? "";
+    expect(legend).toContain("Main-thread preview");
+    expect(legend).toContain("Background worker");
+    expect(legend).toContain("GEOS (wasm)");
+    expect(legend).toContain("DuckDB (wasm)");
+
+    setInput(query<HTMLInputElement>("processing-tool-search")!, "worker");
+    expect(query("processing-tool-spatial-join")?.textContent).toContain("Background worker");
+    click(query("processing-tool-spatial-join")!);
+    expect(query("processing-tool-runtime-chip")?.textContent).toContain("Background worker");
+  });
 });
