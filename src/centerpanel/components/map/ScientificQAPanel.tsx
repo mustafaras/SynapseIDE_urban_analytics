@@ -42,6 +42,16 @@ export interface ScientificQAPanelProps {
   minWidth?: number;
   maxWidth?: number;
   onWidthChange?: (width: number) => void;
+  /** Open the CRS declare dialog for a layer. Declaring CRS is a caveated assertion — never a guarantee. */
+  onDeclareCrs?: (layerId: string) => void;
+  /** Open the Inspector for a layer to review source provenance metadata. */
+  onInspectLayer?: (layerId: string) => void;
+  /** Trigger topology repair for a layer. Creates a new derived layer with reproducibility manifest. */
+  onRepairGeometry?: (layerId: string) => void;
+  /** Open / focus the affected layer in the layer panel. */
+  onOpenLayer?: (layerId: string) => void;
+  /** Open the export readiness check for a layer. */
+  onOpenExportReadiness?: (layerId: string) => void;
 }
 
 const SEVERITY_LABELS: Record<MapScientificQAIssueSeverity, string> = {
@@ -279,6 +289,44 @@ const fixStyle: React.CSSProperties = {
   background: MAP_COLORS.transparent,
 };
 
+const fixAffordancesStyle: React.CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: MAP_SPACING.xs,
+  padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
+  borderLeft: `2px solid ${MAP_COLORS.caveat}`,
+  background: MAP_COLORS.transparent,
+};
+
+const fixActionsBarStyle: React.CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap" as const,
+  gap: MAP_SPACING.xs,
+};
+
+const fixActionBtnStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: MAP_SPACING.xs,
+  padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
+  border: MAP_STROKES.hairlineStrong,
+  borderRadius: MAP_RADIUS.sm,
+  background: MAP_COLORS.transparent,
+  color: MAP_COLORS.interaction,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+  cursor: "pointer",
+  lineHeight: 1.2,
+};
+
+const fixProofStyle: React.CSSProperties = {
+  color: MAP_COLORS.caveatText,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  lineHeight: 1.4,
+  fontStyle: "italic",
+  margin: 0,
+};
+
 const detailButton: React.CSSProperties = {
   ...mapStyles.sidePanelActionButton,
   width: "100%",
@@ -398,6 +446,11 @@ export const ScientificQAPanel: React.FC<ScientificQAPanelProps> = ({
   minWidth = 300,
   maxWidth = 520,
   onWidthChange,
+  onDeclareCrs,
+  onInspectLayer,
+  onRepairGeometry,
+  onOpenLayer,
+  onOpenExportReadiness,
 }) => {
   const [expandedIssueId, setExpandedIssueId] = useState<string | null>(null);
   const { panelPositionStyle, dragHandleProps, dragHandleStyle } = useDraggableMapPanel();
@@ -657,6 +710,7 @@ export const ScientificQAPanel: React.FC<ScientificQAPanelProps> = ({
               {qaState.issues.map((issue) => {
                 const expanded = expandedIssueId === issue.id;
                 const color = severityColor(issue.severity);
+                const layerId = issue.layerId;
                 return (
                   <article
                     key={issue.id}
@@ -685,6 +739,81 @@ export const ScientificQAPanel: React.FC<ScientificQAPanelProps> = ({
                     <div style={fixStyle}>
                       <strong>Suggested fix:</strong> {issue.suggestedFix}
                     </div>
+
+                    {layerId ? (
+                      <div style={fixAffordancesStyle}>
+                        <div style={fixActionsBarStyle}>
+                          {onOpenLayer ? (
+                            <button
+                              type="button"
+                              style={fixActionBtnStyle}
+                              onClick={() => onOpenLayer(layerId)}
+                              aria-label={`Open affected layer ${issue.layerName ?? layerId}`}
+                              data-testid={`map-qa-fix-open-layer-${issue.id}`}
+                            >
+                              Open layer
+                            </button>
+                          ) : null}
+                          {onDeclareCrs && issue.category === "crs" ? (
+                            <button
+                              type="button"
+                              style={fixActionBtnStyle}
+                              onClick={() => onDeclareCrs(layerId)}
+                              aria-label={`Declare CRS for ${issue.layerName ?? layerId}`}
+                              data-testid={`map-qa-fix-declare-crs-${issue.id}`}
+                            >
+                              Declare CRS
+                            </button>
+                          ) : null}
+                          {onInspectLayer && issue.category === "source-provenance" ? (
+                            <button
+                              type="button"
+                              style={fixActionBtnStyle}
+                              onClick={() => onInspectLayer(layerId)}
+                              aria-label={`Inspect source for ${issue.layerName ?? layerId}`}
+                              data-testid={`map-qa-fix-inspect-source-${issue.id}`}
+                            >
+                              Inspect source
+                            </button>
+                          ) : null}
+                          {onRepairGeometry && (issue.category === "geometry" || issue.category === "geometry-type") ? (
+                            <button
+                              type="button"
+                              style={fixActionBtnStyle}
+                              onClick={() => onRepairGeometry(layerId)}
+                              aria-label={`Repair geometry for ${issue.layerName ?? layerId}`}
+                              data-testid={`map-qa-fix-repair-geometry-${issue.id}`}
+                            >
+                              Repair geometry
+                            </button>
+                          ) : null}
+                          {onOpenExportReadiness && issue.category === "export-readiness" ? (
+                            <button
+                              type="button"
+                              style={fixActionBtnStyle}
+                              onClick={() => onOpenExportReadiness(layerId)}
+                              aria-label={`Open export readiness for ${issue.layerName ?? layerId}`}
+                              data-testid={`map-qa-fix-export-readiness-${issue.id}`}
+                            >
+                              Export readiness
+                            </button>
+                          ) : null}
+                        </div>
+                        {issue.category === "crs" ? (
+                          <p style={fixProofStyle}>
+                            Declaring CRS is a caveated assertion — coordinates are not re-verified.
+                            EPSG:4326 is a geographic CRS; planar metric operations (area, buffer,
+                            distance) require a projected CRS regardless of what is declared.
+                          </p>
+                        ) : issue.category === "geometry" || issue.category === "geometry-type" ? (
+                          <p style={fixProofStyle}>
+                            Topology repair creates a new derived layer with a reproducibility manifest.
+                            The original layer is preserved. QA re-evaluates the repaired layer;
+                            caveat annotations are carried through.
+                          </p>
+                        ) : null}
+                      </div>
+                    ) : null}
 
                     <button
                       type="button"
