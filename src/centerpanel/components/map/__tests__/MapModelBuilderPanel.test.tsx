@@ -84,6 +84,36 @@ afterEach(() => {
 });
 
 describe("MapModelBuilderPanel", () => {
+  it("shows blocked step reasons before run when model inputs are missing", () => {
+    const registry = createMapProcessingRegistry();
+    host = document.createElement("div");
+    document.body.appendChild(host);
+    root = createRoot(host);
+    act(() => {
+      root!.render(
+        <MapModelBuilderPanel
+          visible
+          presentation="embedded"
+          onClose={() => {}}
+          tools={registry.list()}
+          layers={[]}
+          onRun={() => { throw new Error("Blocked model should not run"); }}
+          onRunBatch={() => { throw new Error("Blocked batch should not run"); }}
+          onExportToIdeAndUrban={() => {}}
+        />,
+      );
+    });
+
+    click("model-add-step");
+
+    expect(host.querySelector('[data-testid="model-readiness"]')?.getAttribute("data-status")).toBe("blocked");
+    expect(host.querySelector('[data-testid="model-step-status-step-1"]')?.getAttribute("data-status")).toBe("blocked");
+    expect(host.querySelector('[data-testid="model-step-blockers-step-1"]')?.textContent).toContain("Input layer");
+    expect(host.querySelector('[data-testid="model-blocking-reasons"]')?.textContent).toContain("Select a primary source layer");
+    expect((host.querySelector('[data-testid="model-run"]') as HTMLButtonElement).disabled).toBe(true);
+    expect((host.querySelector('[data-testid="model-save"]') as HTMLButtonElement).disabled).toBe(true);
+  });
+
   it("builds a chained model, saves and deterministically reruns it, then exports", () => {
     const registry = createMapProcessingRegistry();
     const effects = effectsFor([layer("primary"), layer("overlay")]);

@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useState, type ReactElement } from "react";
-import { Braces, GitBranch, Layers3, Play, Save, X } from "lucide-react";
+import { type ReactElement, type ReactNode, useEffect, useMemo, useState } from "react";
+import { AlertTriangle, Braces, CheckCircle2, FileCode2, GitBranch, Layers3, Play, Save, X } from "lucide-react";
 import type { ProcessingToolDescriptor, ToolParameterDescriptor } from "@/services/map/contracts/gisContracts";
 import {
-  saveMapModel,
   type MapModelBatchResult,
   type MapModelBatchTarget,
   type MapModelDefinition,
@@ -11,7 +10,9 @@ import {
   type MapModelRunResult,
   type MapModelStep,
   type MapSavedModel,
+  saveMapModel,
 } from "@/services/map/model";
+import { GisProgressBar, GisPropertyGrid, GisStatusChip } from "../ui";
 import styles from "./MapModelBuilderPanel.module.css";
 
 export interface MapModelBuilderLayerOption {
@@ -66,6 +67,128 @@ function defaultStep(
   };
 }
 
+interface StepReadiness {
+  step: MapModelStep;
+  descriptor: ProcessingToolDescriptor | null;
+  index: number;
+  status: "ready" | "blocked";
+  reasons: string[];
+  dependencies: string[];
+  outputLabel: string;
+}
+
+function nextStepIndex(steps: readonly MapModelStep[]): number {
+  const existing = new Set(steps.map((step) => step.stepId));
+  let index = steps.length + 1;
+  while (existing.has(`step-${index}`)) index += 1;
+  return index;
+}
+
+function updateStepLabel(steps: readonly MapModelStep[], stepId: string, label: string): MapModelStep[] {
+  return steps.map((step) => step.stepId === stepId ? { ...step, label } : step);
+}
+
+function layerName(layers: readonly MapModelBuilderLayerOption[], layerId: string, fallback: string): string {
+  return layers.find((layer) => layer.id === layerId)?.name ?? (layerId.trim() || fallback);
+}
+
+function isMissingLiteral(value: MapModelLiteralValue): boolean {
+  return typeof value === "string" ? value.trim().length === 0 : typeof value === "number" && Number.isNaN(value);
+}
+
+function bindingLabel(
+  binding: MapModelParameterBinding | undefined,
+  sourceLayerId: string,
+  overlayLayerId: string,
+  layers: readonly MapModelBuilderLayerOption[],
+  priorSteps: readonly MapModelStep[],
+): string {
+  if (!binding) return "Unbound";
+  if (binding.kind === "source") {
+    const layerId = binding.inputId === "overlay" ? overlayLayerId : sourceLayerId;
+    const label = binding.inputId === "overlay" ? "Overlay" : "Primary";
+    return `${label}: ${layerName(layers, layerId, "missing layer")}`;
+  }
+  if (binding.kind === "step-output") {
+    return `Output: ${priorSteps.find((step) => step.stepId === binding.stepId)?.label ?? binding.stepId}`;
+  }
+  if (binding.kind === "batch-aoi") return "Batch AOI binding";
+  return String(binding.value);
+}
+
+function buildStepReadiness(
+  step: MapModelStep,
+  index: number,
+  steps: readonly MapModelStep[],
+  descriptor: ProcessingToolDescriptor | undefined,
+  sourceLayerId: string,
+  overlayLayerId: string,
+  layers: readonly MapModelBuilderLayerOption[],
+): StepReadiness {
+  const reasons: string[] = [];
+  const dependencies: string[] = [];
+  const priorSteps = steps.slice(0, index);
+  const priorStepIds = new Set(priorSteps.map((prior) => prior.stepId));
+
+  if (!descriptor) {
+    reasons.push(`Tool "${step.toolId}" is no longer available in the processing registry.`);
+  } else if (!descriptor.implemented) {
+    reasons.push(`Tool "${descriptor.title}" is registered but not implemented.`);
+  } else {
+    for (const parameter of descriptor.parameters) {
+      const binding = step.parameters[parameter.key];
+      dependencies.push(`${parameter.label}: ${bindingLabel(binding, sourceLayerId, overlayLayerId, layers, priorSteps)}`);
+      if (!binding) {
+        if (parameter.required && parameter.defaultValue === undefined) {
+          reasons.push(`Missing required parameter "${parameter.label}".`);
+        }
+        continue;
+      }
+      if (binding.kind === "literal") {
+        if (parameter.required && isMissingLiteral(binding.value)) {
+          reasons.push(`Set a value for "${parameter.label}".`);
+        }
+        if (parameter.type === "layer") {
+          reasons.push(`Layer parameter "${parameter.label}" must use a source input or earlier step output.`);
+        }
+      }
+      if (binding.kind === "source") {
+        const layerId = binding.inputId === "overlay" ? overlayLayerId : binding.inputId === "source" ? sourceLayerId : "";
+        if (!layerId || !layers.some((layer) => layer.id === layerId)) {
+          reasons.push(`Layer parameter "${parameter.label}" references missing ${binding.inputId} input.`);
+        }
+      }
+      if (binding.kind === "step-output" && !priorStepIds.has(binding.stepId)) {
+        reasons.push(`Layer parameter "${parameter.label}" must reference an earlier step output.`);
+      }
+      if (binding.kind === "batch-aoi" && parameter.type !== "aoi") {
+        reasons.push(`Parameter "${parameter.label}" cannot use a batch AOI binding.`);
+      }
+      if (binding.kind === "batch-aoi" && parameter.type === "aoi") {
+        reasons.push(`Parameter "${parameter.label}" requires a batch AOI target before execution.`);
+      }
+    }
+  }
+
+  return {
+    step,
+    descriptor: descriptor ?? null,
+    index,
+    status: reasons.length > 0 ? "blocked" : "ready",
+    reasons,
+    dependencies,
+    outputLabel: `${step.label || descriptor?.title || step.toolId} output`,
+  };
+}
+
+function renderList(values: readonly string[], testId: string): ReactNode {
+  return (
+    <ul className={styles.reasonList} data-testid={testId}>
+      {values.map((value) => <li key={value}>{value}</li>)}
+    </ul>
+  );
+}
+
 function bindingToken(binding: MapModelParameterBinding | undefined): string {
   if (!binding) return "";
   if (binding.kind === "source") return `source:${binding.inputId}`;
@@ -110,6 +233,7 @@ export function MapModelBuilderPanel({
   const [lastSavedRunHash, setLastSavedRunHash] = useState<string | null>(null);
   const [batchLayerIds, setBatchLayerIds] = useState<string[]>([]);
   const [batchResult, setBatchResult] = useState<MapModelBatchResult | null>(null);
+  const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
 
   useEffect(() => {
     if (layers.length === 0) return;
@@ -122,6 +246,16 @@ export function MapModelBuilderPanel({
       setSelectedToolId(implementedTools[0]?.toolId ?? "");
     }
   }, [implementedTools, selectedToolId]);
+
+  useEffect(() => {
+    if (steps.length === 0) {
+      setSelectedStepId(null);
+      return;
+    }
+    if (!steps.some((step) => step.stepId === selectedStepId)) {
+      setSelectedStepId(steps[0]!.stepId);
+    }
+  }, [selectedStepId, steps]);
 
   if (!visible) return null;
 
@@ -139,10 +273,18 @@ export function MapModelBuilderPanel({
   const addStep = (): void => {
     const descriptor = implementedTools.find((tool) => tool.toolId === selectedToolId);
     if (!descriptor) return;
-    setSteps((current) => [
-      ...current,
-      defaultStep(descriptor, current.length, current[current.length - 1]?.stepId ?? null),
-    ]);
+    setSteps((current) => {
+      const index = nextStepIndex(current);
+      const step = defaultStep(descriptor, index - 1, current[current.length - 1]?.stepId ?? null);
+      setSelectedStepId(step.stepId);
+      return [...current, step];
+    });
+  };
+
+  const removeStep = (stepId: string): void => {
+    const nextSelected = steps.find((entry) => entry.stepId !== stepId)?.stepId ?? null;
+    setSteps((current) => current.filter((entry) => entry.stepId !== stepId));
+    if (selectedStepId === stepId) setSelectedStepId(nextSelected);
   };
 
   const runDefinition = (definition: MapModelDefinition): void => {
@@ -177,7 +319,33 @@ export function MapModelBuilderPanel({
     if (lastApplied) setLastRun(lastApplied.result);
   };
 
-  const canRun = sourceLayerId.length > 0 && overlayLayerId.length > 0 && steps.length > 0;
+  const stepReadiness = steps.map((step, index) => buildStepReadiness(
+    step,
+    index,
+    steps,
+    implementedTools.find((tool) => tool.toolId === step.toolId),
+    sourceLayerId,
+    overlayLayerId,
+    layers,
+  ));
+  const blockedSteps = stepReadiness.filter((entry) => entry.status === "blocked");
+  const modelBlockers = [
+    ...(layers.length === 0 ? ["Add at least one map layer before running the model."] : []),
+    ...(sourceLayerId.length > 0 ? [] : ["Select a primary source layer."]),
+    ...(overlayLayerId.length > 0 ? [] : ["Select an overlay source layer."]),
+    ...(steps.length > 0 ? [] : ["Add at least one processing step."]),
+    ...blockedSteps.flatMap((entry) => entry.reasons.map((reason) => `${entry.step.label}: ${reason}`)),
+  ];
+  const canRun = modelBlockers.length === 0;
+  const draftDefinition = buildDefinition();
+  const selectedStep = steps.find((step) => step.stepId === selectedStepId) ?? null;
+  const selectedDescriptor = selectedStep ? implementedTools.find((tool) => tool.toolId === selectedStep.toolId) : undefined;
+  const selectedIndex = selectedStep ? steps.findIndex((step) => step.stepId === selectedStep.stepId) : -1;
+  const selectedPriorSteps = selectedIndex >= 0 ? steps.slice(0, selectedIndex) : [];
+  const runDisabledReason = modelBlockers[0] ?? "Ready to run.";
+  const runProgress = lastRun ? Math.round((lastRun.stepRuns.length / Math.max(steps.length, 1)) * 100) : 0;
+  const batchProgress = batchResult ? Math.round((batchResult.results.length / Math.max(batchLayerIds.length, 1)) * 100) : 0;
+  const outputLabel = `${draftDefinition.title} · result`;
   const deterministicRerun = Boolean(
     savedModel
     && lastSavedRunHash
@@ -195,6 +363,10 @@ export function MapModelBuilderPanel({
     >
       <header className={styles.header}>
         <h2><GitBranch size={16} aria-hidden /> Model builder</h2>
+        <div className={styles.headerChips} aria-label="Model builder readiness">
+          <GisStatusChip status={canRun ? "ready" : "blocked"} label={canRun ? "Ready" : "Blocked"} density="compact" data-testid="model-readiness" />
+          <GisStatusChip status="generated" label={`${steps.length} step${steps.length === 1 ? "" : "s"}`} density="compact" />
+        </div>
         <button type="button" className={styles.iconButton} onClick={onClose} aria-label="Close model builder">
           <X size={16} aria-hidden />
         </button>
@@ -202,23 +374,27 @@ export function MapModelBuilderPanel({
 
       <div className={styles.body}>
         <section className={styles.configuration} aria-label="Model definition">
-          <label className={styles.field}>
-            <span>Model name</span>
-            <input data-testid="model-name" value={title} onChange={(event) => setTitle(event.target.value)} />
-          </label>
-          <div className={styles.inputGrid}>
+          <div className={styles.definitionBar}>
             <label className={styles.field}>
-              <span>Primary source</span>
-              <select data-testid="model-source-input" value={sourceLayerId} onChange={(event) => setSourceLayerId(event.target.value)}>
-                {layers.map((layer) => <option key={layer.id} value={layer.id}>{layer.name}</option>)}
-              </select>
+              <span>Model name</span>
+              <input data-testid="model-name" value={title} onChange={(event) => setTitle(event.target.value)} />
             </label>
-            <label className={styles.field}>
-              <span>Overlay source</span>
-              <select data-testid="model-overlay-input" value={overlayLayerId} onChange={(event) => setOverlayLayerId(event.target.value)}>
-                {layers.map((layer) => <option key={layer.id} value={layer.id}>{layer.name}</option>)}
-              </select>
-            </label>
+            <div className={styles.inputGrid}>
+              <label className={styles.field}>
+                <span>Primary source</span>
+                <select data-testid="model-source-input" value={sourceLayerId} onChange={(event) => setSourceLayerId(event.target.value)}>
+                  {layers.length === 0 ? <option value="">No layer available</option> : null}
+                  {layers.map((layer) => <option key={layer.id} value={layer.id}>{layer.name}</option>)}
+                </select>
+              </label>
+              <label className={styles.field}>
+                <span>Overlay source</span>
+                <select data-testid="model-overlay-input" value={overlayLayerId} onChange={(event) => setOverlayLayerId(event.target.value)}>
+                  {layers.length === 0 ? <option value="">No layer available</option> : null}
+                  {layers.map((layer) => <option key={layer.id} value={layer.id}>{layer.name}</option>)}
+                </select>
+              </label>
+            </div>
           </div>
 
           <div className={styles.addStepRow}>
@@ -228,45 +404,103 @@ export function MapModelBuilderPanel({
                 {implementedTools.map((tool) => <option key={tool.toolId} value={tool.toolId}>{tool.title}</option>)}
               </select>
             </label>
-            <button type="button" className={styles.secondaryButton} data-testid="model-add-step" onClick={addStep}>
+            <button type="button" className={styles.secondaryButton} data-testid="model-add-step" onClick={addStep} disabled={!selectedToolId}>
               Add step
             </button>
           </div>
 
-          <div className={styles.stepList} data-testid="model-step-list">
-            {steps.length === 0 ? <p className={styles.empty}>Add a processing step to construct an ordered model.</p> : null}
-            {steps.map((step, stepIndex) => {
-              const descriptor = implementedTools.find((tool) => tool.toolId === step.toolId);
-              if (!descriptor) return null;
-              const priorSteps = steps.slice(0, stepIndex);
-              return (
-                <article className={styles.step} key={step.stepId} data-testid={`model-step-${step.toolId}`}>
-                  <div className={styles.stepHeader}>
-                    <span className={styles.stepIndex}>{String(stepIndex + 1).padStart(2, "0")}</span>
-                    <strong>{descriptor.title}</strong>
-                    <span className={styles.role}>{stepIndex === steps.length - 1 ? "final" : "intermediate"}</span>
+          <div className={styles.workflowGrid}>
+            <section className={styles.stepGraph} aria-label="Model step graph">
+              <div className={styles.sectionTitleRow}>
+                <h3>Workflow graph</h3>
+                <GisStatusChip status={blockedSteps.length === 0 ? "ready" : "blocked"} label={blockedSteps.length === 0 ? "All steps ready" : `${blockedSteps.length} blocked`} density="compact" />
+              </div>
+              <div className={styles.stepList} data-testid="model-step-list">
+                {steps.length === 0 ? <p className={styles.empty}>Add a processing step to construct an ordered model.</p> : null}
+                {stepReadiness.map((entry) => (
+                  <article
+                    className={`${styles.step} ${entry.step.stepId === selectedStepId ? styles.stepSelected : ""}`}
+                    key={entry.step.stepId}
+                    data-testid={`model-step-${entry.step.toolId}`}
+                    data-status={entry.status}
+                  >
+                    <button
+                      type="button"
+                      className={styles.stepSelect}
+                      onClick={() => setSelectedStepId(entry.step.stepId)}
+                      aria-pressed={entry.step.stepId === selectedStepId}
+                    >
+                      <span className={styles.stepIndex}>{String(entry.index + 1).padStart(2, "0")}</span>
+                      <span className={styles.stepMain}>
+                        <strong>{entry.step.label}</strong>
+                        <small>{entry.descriptor?.summary ?? entry.step.toolId}</small>
+                      </span>
+                      <GisStatusChip
+                        status={entry.status === "ready" ? "ready" : "blocked"}
+                        label={entry.status === "ready" ? "Ready" : "Blocked"}
+                        density="compact"
+                        data-testid={`model-step-status-${entry.step.stepId}`}
+                      />
+                    </button>
+                    <div className={styles.stepMeta}>
+                      <span className={styles.role}>{entry.index === steps.length - 1 ? "final output" : "passes output"}</span>
+                      <span>{entry.outputLabel}</span>
+                    </div>
+                    {entry.reasons.length > 0 ? renderList(entry.reasons, `model-step-blockers-${entry.step.stepId}`) : null}
                     <button
                       type="button"
                       className={styles.removeButton}
-                      onClick={() => setSteps((current) => current.filter((entry) => entry.stepId !== step.stepId))}
-                      aria-label={`Remove ${descriptor.title} step`}
+                      onClick={() => removeStep(entry.step.stepId)}
+                      aria-label={`Remove ${entry.step.label} step`}
                     >
                       Remove
                     </button>
-                  </div>
+                  </article>
+                ))}
+              </div>
+            </section>
+
+            <section className={styles.stepEditor} aria-label="Selected step editor" data-testid="model-step-editor">
+              <div className={styles.sectionTitleRow}>
+                <h3>Selected step editor</h3>
+                {selectedStep ? <GisStatusChip status={blockedSteps.some((entry) => entry.step.stepId === selectedStep.stepId) ? "blocked" : "ready"} label={selectedStep.stepId} density="compact" /> : null}
+              </div>
+              {selectedStep && selectedDescriptor ? (
+                <>
+                  <label className={styles.field}>
+                    <span>Step label</span>
+                    <input
+                      data-testid={`model-step-label-${selectedStep.stepId}`}
+                      value={selectedStep.label}
+                      onChange={(event) => setSteps((current) => updateStepLabel(current, selectedStep.stepId, event.target.value))}
+                    />
+                  </label>
+                  <GisPropertyGrid
+                    density="compact"
+                    rows={[
+                      { key: "Tool", value: selectedDescriptor.title },
+                      { key: "Execution", value: selectedDescriptor.executionMode },
+                      {
+                        key: "CRS gate",
+                        value: selectedDescriptor.requiresCrs ? "Projected CRS required" : "No CRS gate",
+                        ...(selectedDescriptor.requiresCrs ? { highlight: "warn" as const } : {}),
+                      },
+                      { key: "QA", value: selectedDescriptor.qaGated ? "QA-gated" : "No QA gate" },
+                    ]}
+                  />
                   <div className={styles.parameters}>
-                    {descriptor.parameters.map((parameter) => (
+                    {selectedDescriptor.parameters.map((parameter) => (
                       <label key={parameter.key} className={styles.field}>
                         <span>{parameter.label}</span>
                         {parameter.type === "layer" ? (
                           <select
-                            data-testid={`model-param-${step.stepId}-${parameter.key}`}
-                            value={bindingToken(step.parameters[parameter.key])}
+                            data-testid={`model-param-${selectedStep.stepId}-${parameter.key}`}
+                            value={bindingToken(selectedStep.parameters[parameter.key])}
                             onChange={(event) => {
                               const [kind, id] = event.target.value.split(":");
                               setSteps((current) => updateParameter(
                                 current,
-                                step.stepId,
+                                selectedStep.stepId,
                                 parameter.key,
                                 kind === "step"
                                   ? { kind: "step-output", stepId: id ?? "" }
@@ -276,54 +510,88 @@ export function MapModelBuilderPanel({
                           >
                             <option value="source:source">Primary source</option>
                             <option value="source:overlay">Overlay source</option>
-                            {priorSteps.map((prior) => (
+                            {selectedPriorSteps.map((prior) => (
                               <option key={prior.stepId} value={`step:${prior.stepId}`}>Output: {prior.label}</option>
                             ))}
                           </select>
                         ) : parameter.type === "boolean" ? (
                           <input
                             type="checkbox"
-                            checked={literalValue(step.parameters[parameter.key]) === true}
-                            onChange={(event) => setSteps((current) => updateParameter(current, step.stepId, parameter.key, { kind: "literal", value: event.target.checked }))}
+                            checked={literalValue(selectedStep.parameters[parameter.key]) === true}
+                            onChange={(event) => setSteps((current) => updateParameter(current, selectedStep.stepId, parameter.key, { kind: "literal", value: event.target.checked }))}
                           />
                         ) : parameter.type === "enum" ? (
                           <select
-                            value={String(literalValue(step.parameters[parameter.key]))}
-                            onChange={(event) => setSteps((current) => updateParameter(current, step.stepId, parameter.key, { kind: "literal", value: event.target.value }))}
+                            value={String(literalValue(selectedStep.parameters[parameter.key]))}
+                            onChange={(event) => setSteps((current) => updateParameter(current, selectedStep.stepId, parameter.key, { kind: "literal", value: event.target.value }))}
                           >
                             {(parameter.enumValues ?? []).map((value) => <option key={value} value={value}>{value}</option>)}
                           </select>
                         ) : parameter.type === "aoi" ? (
-                          <select disabled value="batch-aoi">
+                          <select disabled value="batch-aoi" aria-label={`${parameter.label} uses batch AOI binding`}>
                             <option value="batch-aoi">Batch AOI binding</option>
                           </select>
                         ) : (
                           <input
                             type={parameter.type === "number" ? "number" : "text"}
-                            value={String(literalValue(step.parameters[parameter.key]))}
+                            value={String(literalValue(selectedStep.parameters[parameter.key]))}
                             onChange={(event) => {
                               const value: MapModelLiteralValue = parameter.type === "number"
                                 ? Number(event.target.value)
                                 : event.target.value;
-                              setSteps((current) => updateParameter(current, step.stepId, parameter.key, { kind: "literal", value }));
+                              setSteps((current) => updateParameter(current, selectedStep.stepId, parameter.key, { kind: "literal", value }));
                             }}
                           />
                         )}
+                        {parameter.help ? <small className={styles.helpText}>{parameter.help}</small> : null}
                       </label>
                     ))}
                   </div>
-                </article>
-              );
-            })}
+                  <div className={styles.dependencyList}>
+                    {buildStepReadiness(selectedStep, selectedIndex, steps, selectedDescriptor, sourceLayerId, overlayLayerId, layers).dependencies.map((dependency) => (
+                      <span key={dependency}>{dependency}</span>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <p className={styles.empty}>Select or add a step to edit its bindings.</p>
+              )}
+            </section>
           </div>
         </section>
 
         <aside className={styles.runRail} aria-label="Model run and publication">
+          <section className={styles.runPreview} aria-label="Run preview" data-testid="model-run-preview">
+            <div className={styles.sectionTitleRow}>
+              <h3><CheckCircle2 size={13} aria-hidden /> Run preview</h3>
+              <GisStatusChip status={canRun ? "ready" : "blocked"} label={canRun ? "Executable" : "Needs input"} density="compact" />
+            </div>
+            <GisPropertyGrid
+              density="compact"
+              rows={[
+                { key: "Model ID", value: draftDefinition.modelId },
+                {
+                  key: "Inputs",
+                  value: `${layerName(layers, sourceLayerId, "missing primary")} + ${layerName(layers, overlayLayerId, "missing overlay")}`,
+                  ...(sourceLayerId && overlayLayerId ? {} : { highlight: "warn" as const }),
+                },
+                {
+                  key: "Chain",
+                  value: `${steps.length} step${steps.length === 1 ? "" : "s"}, ${blockedSteps.length} blocked`,
+                  ...(blockedSteps.length > 0 ? { highlight: "warn" as const } : {}),
+                },
+                { key: "Output", value: outputLabel },
+              ]}
+            />
+            <GisProgressBar value={runProgress} label="Model run progress" data-testid="model-run-progress" />
+            {modelBlockers.length > 0 ? renderList(modelBlockers, "model-blocking-reasons") : <p className={styles.readyText}>Chain is ready for deterministic execution.</p>}
+          </section>
+
           <div className={styles.actions}>
-            <button type="button" className={styles.primaryButton} disabled={!canRun} onClick={() => runDefinition(buildDefinition())} data-testid="model-run">
+            <button type="button" className={styles.primaryButton} disabled={!canRun} onClick={() => runDefinition(buildDefinition())} data-testid="model-run" title={!canRun ? runDisabledReason : undefined}>
               <Play size={13} aria-hidden /> Run model
             </button>
-            <button type="button" className={styles.secondaryButton} disabled={!canRun} onClick={handleSave} data-testid="model-save">
+            <button type="button" className={styles.secondaryButton} disabled={!canRun} onClick={handleSave} data-testid="model-save" title={!canRun ? runDisabledReason : undefined}>
               <Save size={13} aria-hidden /> Save and run
             </button>
             <button type="button" className={styles.secondaryButton} disabled={!savedModel} onClick={handleRerun} data-testid="model-rerun">
@@ -331,9 +599,13 @@ export function MapModelBuilderPanel({
             </button>
           </div>
 
-          <section className={styles.batch}>
-            <h3><Layers3 size={13} aria-hidden /> Batch primary source</h3>
+          <section className={styles.batch} aria-label="Batch targets">
+            <div className={styles.sectionTitleRow}>
+              <h3><Layers3 size={13} aria-hidden /> Batch targets</h3>
+              <GisStatusChip status={batchLayerIds.length > 0 ? "ready" : "blocked"} label={`${batchLayerIds.length} selected`} density="compact" />
+            </div>
             <p>Run this template against selected layer inputs. Each output retains a separate manifest.</p>
+            <GisProgressBar value={batchProgress} label="Batch run progress" data-testid="model-batch-progress" />
             <div className={styles.batchLayers}>
               {layers.map((layer) => (
                 <label key={layer.id}>
@@ -348,6 +620,7 @@ export function MapModelBuilderPanel({
                   <span>{layer.name}</span>
                 </label>
               ))}
+              {layers.length === 0 ? <span className={styles.empty}>No layer targets are available.</span> : null}
             </div>
             <button
               type="button"
@@ -355,17 +628,32 @@ export function MapModelBuilderPanel({
               disabled={!canRun || batchLayerIds.length === 0}
               onClick={handleBatch}
               data-testid="model-run-batch"
+              title={!canRun ? runDisabledReason : batchLayerIds.length === 0 ? "Select at least one batch target." : undefined}
             >
               Run batch ({batchLayerIds.length})
             </button>
+            {batchResult ? (
+              <section className={batchResult.status === "applied" ? styles.result : styles.blocked} data-testid="model-batch-result" data-status={batchResult.status}>
+                <h3>Batch {batchResult.status}</h3>
+                <span>{batchResult.results.filter((entry) => entry.result.status === "applied").length} output(s) applied</span>
+                {batchResult.blockers.length > 0 ? renderList(batchResult.blockers, "model-batch-blockers") : null}
+              </section>
+            ) : null}
           </section>
 
           {lastRun ? (
-            <section className={lastRun.status === "applied" ? styles.result : styles.blocked} data-testid="model-run-result" data-status={lastRun.status}>
-              <h3>{lastRun.status === "applied" ? "Model applied" : "Model blocked"}</h3>
+            <section className={lastRun.status === "applied" ? styles.result : styles.blocked} aria-label="Output and evidence" data-testid="model-run-result" data-status={lastRun.status}>
+              <h3><FileCode2 size={13} aria-hidden /> {lastRun.status === "applied" ? "Output and evidence" : "Model blocked"}</h3>
               {lastRun.status === "applied" ? (
                 <>
-                  <span data-testid="model-output-layer">{lastRun.finalOutputLayer?.name}</span>
+                  <GisPropertyGrid
+                    density="compact"
+                    rows={[
+                      { key: "Output layer", value: <span data-testid="model-output-layer">{lastRun.finalOutputLayer?.name}</span>, highlight: "success" },
+                      { key: "Artifact label", value: `${lastRun.model.title} final model result` },
+                      { key: "Workflow", value: lastRun.manifest?.workflowId ?? "Missing manifest" },
+                    ]}
+                  />
                   <code data-testid="model-manifest-hash">hash: {lastRun.manifestHash}</code>
                   {deterministicRerun ? <span data-testid="model-determinism">Saved rerun identical</span> : null}
                   <button
@@ -373,22 +661,22 @@ export function MapModelBuilderPanel({
                     className={styles.exportButton}
                     onClick={() => onExportToIdeAndUrban(lastRun, batchResult)}
                     data-testid="model-export"
+                    aria-label={`Export ${lastRun.model.title} final model result to IDE and Urban evidence`}
                   >
-                    <Braces size={13} aria-hidden /> Export to IDE + Urban evidence
+                    <Braces size={13} aria-hidden /> Export final result to IDE + Urban
                   </button>
                 </>
               ) : (
-                lastRun.blockers.map((blocker) => <span key={blocker}>{blocker}</span>)
+                renderList(lastRun.blockers, "model-run-blockers")
               )}
             </section>
-          ) : null}
-
-          {batchResult ? (
-            <section className={batchResult.status === "applied" ? styles.result : styles.blocked} data-testid="model-batch-result" data-status={batchResult.status}>
-              <h3>Batch {batchResult.status}</h3>
-              <span>{batchResult.results.filter((entry) => entry.result.status === "applied").length} output(s) applied</span>
+          ) : (
+            <section className={styles.outputPlaceholder} aria-label="Output and evidence" data-testid="model-output-evidence">
+              <h3><FileCode2 size={13} aria-hidden /> Output and evidence</h3>
+              <p>Run the chain to create a derived layer, model manifest, IDE workflow script request, and Urban evidence handoff label.</p>
+              {modelBlockers.length > 0 ? <span><AlertTriangle size={12} aria-hidden /> Resolve blocked steps before export.</span> : <span>Artifact label: {outputLabel}</span>}
             </section>
-          ) : null}
+          )}
         </aside>
       </div>
     </section>
