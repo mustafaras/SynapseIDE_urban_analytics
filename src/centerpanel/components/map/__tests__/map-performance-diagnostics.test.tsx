@@ -131,4 +131,45 @@ describe("Map performance diagnostics", () => {
     expect(html).not.toContain("alex@example.test");
     expect(html).not.toContain("secret-worker-token");
   });
+
+  it("groups observability events into readable, redacted categories", () => {
+    recordMapTelemetryEvent({
+      kind: "worker.failure",
+      severity: "error",
+      source: "worker-pool",
+      message: "Worker crashed",
+      recoverable: true,
+      recoveryLabel: "Retry worker job",
+      details: { jobId: "job-1" },
+    });
+    recordMapTelemetryEvent({
+      kind: "external-service.error",
+      severity: "warning",
+      source: "external-service",
+      message: "WFS request failed with api_key=plain-secret",
+      details: { endpoint: "https://services.example.test/wfs?api_key=plain-secret" },
+    });
+    recordMapTelemetryEvent({
+      kind: "command.run",
+      severity: "error",
+      source: "map-command",
+      message: "Buffer command failed",
+    });
+    const diagnostics = buildMapPerformanceDiagnostics({
+      overlayLayers: [largeLayer()],
+      telemetryEvents: getMapTelemetryEvents(),
+    });
+    const html = renderToStaticMarkup(
+      <MapPerformanceDiagnosticsPanel visible diagnostics={diagnostics} onClose={vi.fn()} />,
+    );
+
+    expect(html).toContain("Worker failures");
+    expect(html).toContain("External service errors");
+    expect(html).toContain("Command activity");
+    expect(html).toContain("map-observability-category-worker.failure");
+    expect(html).toContain("map-observability-redaction-note");
+    expect(html).toContain("redacted before any event is stored");
+    expect(html).toContain("[REDACTED]");
+    expect(html).not.toContain("plain-secret");
+  });
 });

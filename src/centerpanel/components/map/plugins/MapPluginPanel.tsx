@@ -134,6 +134,74 @@ const metaStyle: React.CSSProperties = {
   fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
 };
 
+const contributionListStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "auto minmax(0, 1fr)",
+  columnGap: MAP_SPACING.sm,
+  rowGap: "0.125rem",
+  margin: `${MAP_SPACING.xs} 0 0`,
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+};
+
+const contributionKeyStyle: React.CSSProperties = {
+  color: MAP_COLORS.textMuted,
+  textTransform: "uppercase",
+  whiteSpace: "nowrap",
+};
+
+const contributionValueStyle: React.CSSProperties = {
+  color: MAP_COLORS.textSecondary,
+  minWidth: 0,
+  overflowWrap: "anywhere",
+};
+
+interface ContributionDetail {
+  label: string;
+  value: string;
+}
+
+function contributionDetails(extension: MapExtensionDescriptor): ContributionDetail[] {
+  switch (extension.kind) {
+    case "source-connector": {
+      const { contribution } = extension;
+      return [
+        { label: "Catalog", value: contribution.catalogGroup },
+        { label: "Service", value: contribution.provider.serviceKind },
+        { label: "Secrets", value: contribution.secretMode },
+      ];
+    }
+    case "renderer": {
+      const { contribution } = extension;
+      return [
+        { label: "Style family", value: contribution.styleFamily },
+        { label: "Geometry", value: contribution.compatibleGeometry.join(", ") },
+        { label: "Legend", value: contribution.legendContract },
+        { label: "QA gates", value: contribution.qaGates.join(", ") || "none declared" },
+      ];
+    }
+    case "processing-tool": {
+      const { descriptor } = extension.contribution;
+      return [
+        { label: "Tool id", value: descriptor.toolId },
+        { label: "QA gated", value: descriptor.qaGated ? "yes" : "no" },
+      ];
+    }
+    case "urban-method-bridge": {
+      const { contribution } = extension;
+      const details: ContributionDetail[] = [
+        { label: "Method", value: contribution.methodId },
+        { label: "Actions", value: contribution.requestedActions.join(", ") },
+      ];
+      const requiredCrs = contribution.requirements?.layer?.requiredCrs;
+      if (requiredCrs) details.push({ label: "Required CRS", value: requiredCrs });
+      return details;
+    }
+    default:
+      return [];
+  }
+}
+
 function statusForAvailability(status: MapExtensionAvailabilityStatus): GisStatusChipProps["status"] {
   if (status === "available") return "ready";
   if (status === "limited") return "caveat";
@@ -195,7 +263,16 @@ export function MapPluginPanel({ visible, extensions, onClose }: MapPluginPanelP
                     <span>{extension.extensionId}</span>
                     <span>{extension.capability}</span>
                     <span>{extension.executionScope}</span>
+                    <span>{extension.pluginId}@{extension.version}</span>
                   </div>
+                  <dl style={contributionListStyle} data-testid={`map-plugin-contribution-${extension.extensionId}`}>
+                    {contributionDetails(extension).map((detail) => (
+                      <React.Fragment key={detail.label}>
+                        <dt style={contributionKeyStyle}>{detail.label}</dt>
+                        <dd style={contributionValueStyle}>{detail.value}</dd>
+                      </React.Fragment>
+                    ))}
+                  </dl>
                   {extension.disabledReason ? (
                     <p style={{ ...rowSummaryStyle, color: MAP_COLORS.caveatText }}>{extension.disabledReason}</p>
                   ) : null}

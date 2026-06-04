@@ -54,6 +54,13 @@ const messageStyle: React.CSSProperties = {
   overflowWrap: "anywhere",
 };
 
+const hintStyle: React.CSSProperties = {
+  margin: 0,
+  color: MAP_COLORS.textMuted,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  lineHeight: MAP_TYPOGRAPHY.lineHeight.normal,
+};
+
 const actionRowStyle: React.CSSProperties = {
   display: "flex",
   gap: MAP_SPACING.sm,
@@ -131,6 +138,9 @@ export class MapPanelErrorBoundary extends React.Component<MapPanelErrorBoundary
         </h3>
         <p style={messageStyle}>
           {redactMapTelemetryString(error.message || "The panel stopped rendering. Retry the panel or close it while the map stays available.")}
+        </p>
+        <p style={hintStyle}>
+          Only this panel was affected. The map canvas and every other tool stay interactive — retry to reload it, or close it and keep working.
         </p>
         <div style={actionRowStyle}>
           <button type="button" style={buttonStyle} onClick={this.handleRetry} data-testid="map-panel-error-retry">

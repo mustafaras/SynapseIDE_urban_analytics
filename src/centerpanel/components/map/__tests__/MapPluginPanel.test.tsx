@@ -49,4 +49,15 @@ describe("MapPluginPanel", () => {
     expect(query("map-plugin-extension-processing.plugin-envelope")?.textContent).toMatch(/available/i);
     expect(query("map-plugin-extension-urban.walkability-reference")?.textContent).toMatch(/walkability readiness bridge/i);
   });
+
+  it("surfaces typed contribution descriptors for each extension kind", () => {
+    renderPanel();
+
+    expect(query("map-plugin-contribution-renderer.dot-density-reference")?.textContent).toMatch(/dot-density/i);
+    expect(query("map-plugin-contribution-renderer.dot-density-reference")?.textContent).toMatch(/serialized-legend-v1/i);
+    expect(query("map-plugin-contribution-source.cityjson-static")?.textContent).toMatch(/secured-proxy-required/i);
+    expect(query("map-plugin-contribution-processing.plugin-envelope")?.textContent).toMatch(/plugin-envelope/i);
+    expect(query("map-plugin-contribution-urban.walkability-reference")?.textContent).toMatch(/plugin\.walkability-access/i);
+    expect(query("map-plugin-contribution-urban.walkability-reference")?.textContent).toMatch(/EPSG:32635/i);
+  });
 });
