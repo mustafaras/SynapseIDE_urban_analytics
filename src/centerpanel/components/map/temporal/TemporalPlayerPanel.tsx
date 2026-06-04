@@ -2,10 +2,10 @@
 /*  TemporalPlayerPanel — Prompt 46                                     */
 /*                                                                      */
 /*  Compact transport bar for temporal layer playback. Reads/writes the  */
-/*  `useTemporalLayerStore`, drives continuous auto-advance via the        */
-/*  TemporalPlaybackEngine ticker, and honours the reduced-motion gate     */
-/*  (auto-play is suppressed). Styling is mapTokens inline only — no       */
-/*  Tailwind, no bare hex colours.                                         */
+/*  `useTemporalLayerStore`, mirrors the active frame state used by the   */
+/*  bottom timeline, and honours the reduced-motion gate (auto-play is    */
+/*  suppressed). Styling is mapTokens inline only — no Tailwind, no bare  */
+/*  hex colours.                                                          */
 /* ================================================================== */
 
 import React from "react";
@@ -21,7 +21,6 @@ import { usePrefersReducedMotion } from "../design";
 import { GisIconButton, GisProgressBar, GisStatusChip } from "../ui";
 import {
   TEMPORAL_PLAYBACK_SPEEDS,
-  createTemporalTicker,
   type TemporalRuntimeMode,
 } from "@/services/map/temporal";
 import {
@@ -93,19 +92,6 @@ export const TemporalPlayerPanel: React.FC<TemporalPlayerPanelProps> = ({
   React.useEffect(() => {
     setReducedMotion(prefersReducedMotion);
   }, [prefersReducedMotion, setReducedMotion]);
-
-  // Continuous auto-advance ticker. Never starts while reduced-motion is on
-  // because `isPlaying` is forced false by the store in that case.
-  React.useEffect(() => {
-    if (!isPlaying || playbackMode !== "continuous" || frameCount === 0) {
-      return undefined;
-    }
-    const ticker = createTemporalTicker(speed);
-    ticker.start(() => {
-      useTemporalLayerStore.getState().nextFrame();
-    });
-    return () => ticker.stop();
-  }, [isPlaying, playbackMode, speed, frameCount]);
 
   if (!visible) return null;
 
@@ -223,15 +209,21 @@ export const TemporalPlayerPanel: React.FC<TemporalPlayerPanelProps> = ({
         <GisIconButton
           label="Play playback"
           icon={<Play size={14} />}
-          onClick={play}
-          disabled={!hasFrames || prefersReducedMotion || playbackMode !== "continuous"}
+          onClick={() => {
+            if (!hasFrames) {
+              return;
+            }
+            if (activeFrameIndex >= frameCount - 1) {
+              goToFrame(0);
+            }
+            play();
+          }}
+          disabled={!hasFrames || prefersReducedMotion}
           {...(prefersReducedMotion
             ? { disabledReason: "Auto-play disabled: reduced-motion preference is active" }
-            : playbackMode !== "continuous"
-              ? { disabledReason: "Switch to continuous mode to auto-play" }
-              : !hasFrames
-                ? { disabledReason: "Load a temporal layer first" }
-                : {})}
+            : !hasFrames
+              ? { disabledReason: "Load a temporal layer first" }
+              : {})}
         />
       )}
       <GisIconButton

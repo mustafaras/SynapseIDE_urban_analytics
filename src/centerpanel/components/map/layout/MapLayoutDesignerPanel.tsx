@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, BookOpen, CheckCircle2, Plus, Trash2, X } from "lucide-react";
 import type { OverlayLayerConfig } from "../mapTypes";
 import type { MapScientificQAState } from "@/services/map/MapScientificQA";
@@ -7,7 +7,9 @@ import {
   composeMapBook,
   LAYOUT_PRESETS,
   preflightMapFigure,
+  restorePageInputsFromMetadata,
   type MapBookSpec,
+  type MapFigureRestoreMetadata,
   type MapLayoutPreset,
   type MapPageInput,
   type MapPageSlot,
@@ -32,8 +34,10 @@ export interface MapLayoutDesignerPanelProps {
   qaState: MapScientificQAState | null;
   bearing?: number;
   presentation?: "floating" | "embedded";
+  restoreRequest?: { id: string; metadata: MapFigureRestoreMetadata } | null;
   onClose: () => void;
   onExportBook?: (book: MapBookSpec) => void;
+  onRestoreRequestHandled?: (id: string) => void;
   onAnnounce?: (msg: string) => void;
 }
 
@@ -275,14 +279,30 @@ function pageStateToInput(state: PageState, overlayLayers: OverlayLayerConfig[])
   };
 }
 
+function pageInputToState(input: MapPageInput): PageState {
+  return {
+    pageNumber: input.pageNumber,
+    title: input.title ?? `Map Page ${input.pageNumber}`,
+    dynamicText: input.dynamicText ?? "",
+    showInsetMap: input.showInsetMap ?? false,
+    slots: input.slots ?? [],
+    includeAttribution: input.composition?.includeAttribution ?? true,
+    includeLegend: input.composition?.includeLegend ?? true,
+    includeScaleBar: input.composition?.includeScaleBar ?? true,
+    includeNorthArrow: input.composition?.includeNorthArrow ?? true,
+  };
+}
+
 export const MapLayoutDesignerPanel: React.FC<MapLayoutDesignerPanelProps> = ({
   visible,
   overlayLayers,
   qaState: _qaState,
   bearing = 0,
   presentation = "floating",
+  restoreRequest = null,
   onClose,
   onExportBook,
+  onRestoreRequestHandled,
   onAnnounce,
 }) => {
   const panelDrag = useDraggableMapPanel();
@@ -291,6 +311,19 @@ export const MapLayoutDesignerPanel: React.FC<MapLayoutDesignerPanelProps> = ({
   const [presetIndex, setPresetIndex] = useState(0);
   const [newSlotKind, setNewSlotKind] = useState<MapPageSlot["kind"]>("chart");
   const [newSlotLabel, setNewSlotLabel] = useState("");
+
+  useEffect(() => {
+    if (!restoreRequest) {
+      return;
+    }
+    const restored = restorePageInputsFromMetadata(restoreRequest.metadata, overlayLayers);
+    const restoredPages = restored.pages.map(pageInputToState);
+    setPresetIndex(restored.presetIndex);
+    setPages(restoredPages.length > 0 ? restoredPages : [makeDefaultPage(1)]);
+    setActivePageIndex(0);
+    onAnnounce?.("Temporal frame layout restored");
+    onRestoreRequestHandled?.(restoreRequest.id);
+  }, [onAnnounce, onRestoreRequestHandled, overlayLayers, restoreRequest]);
 
   const preset: MapLayoutPreset = LAYOUT_PRESETS[presetIndex] ?? LAYOUT_PRESETS[0];
 

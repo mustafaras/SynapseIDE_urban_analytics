@@ -59,6 +59,7 @@ import {
   MAP_NUMERIC,
   MAP_RADIUS,
   MAP_SPACING,
+  MAP_STROKES,
   MAP_TYPOGRAPHY,
   mapStyles,
   type GisStatusKey,
@@ -84,10 +85,16 @@ import { MapHeatmapLayer } from "../../MapHeatmapLayer";
 import { MapHotSpotViz } from "../../MapHotSpotViz";
 import { MapSymbolLayer, type SymbolMode } from "../../MapSymbolLayer";
 import { MapTemporalPlayer } from "../../MapTemporalPlayer";
-import { TemporalPlayerPanel } from "../temporal";
+import { TemporalScenePanel } from "../temporal";
 import { RasterLayerPanel } from "../raster/RasterLayerPanel";
-import { useTemporalLayerStore } from "@/stores/useTemporalLayerStore";
+import { useTemporalLayerStore, type TemporalFrameExportPayload } from "@/stores/useTemporalLayerStore";
 import { useRasterLayerStore } from "@/stores/useRasterLayerStore";
+import {
+  mergeTemporalEvidenceIntoMetadata,
+  summarizeFrameFeatures,
+  type TemporalFrameDefinition,
+  type TemporalRuntimeMode,
+} from "@/services/map/temporal";
 import {
   selectScene3DActiveLayerCrs,
   selectScene3DCityModelSourceHandle,
@@ -599,6 +606,88 @@ function layerCrsChip(layer: OverlayLayerConfig | null, fallback = "CRS: unknown
   if (summary?.crs) return sceneStatusChip("crs", `CRS: ${summary.crs}`, "ready", summary.notes.join(" "));
   if (summary?.status === "missing") return sceneStatusChip("crs", "CRS: missing", "blocked", summary.notes.join(" "));
   return sceneStatusChip("crs", fallback, "unknown");
+}
+
+function buildTemporalFrameDefinitions(
+  frames: ReadonlyArray<{ key: string; label: string; data: FeatureCollection }>,
+  valueField?: string,
+): TemporalFrameDefinition[] {
+  return frames.map((frame, index) => {
+    const summary = summarizeFrameFeatures(frame.data.features, valueField);
+    return {
+      index,
+      key: frame.key,
+      label: frame.label,
+      featureCount: summary.featureCount,
+      binSum: summary.binSum,
+    };
+  });
+}
+
+function collectTemporalSourceFields(
+  frames: ReadonlyArray<{ data: FeatureCollection }>,
+  timeField?: string,
+): string[] {
+  const fields = new Set<string>();
+  for (const frame of frames) {
+    for (const feature of frame.data.features) {
+      for (const key of Object.keys(feature.properties ?? {})) {
+        const trimmed = key.trim();
+        if (!trimmed) {
+          continue;
+        }
+        fields.add(trimmed);
+        if (fields.size >= 24) {
+          break;
+        }
+      }
+      if (fields.size >= 24) {
+        break;
+      }
+    }
+    if (fields.size >= 24) {
+      break;
+    }
+  }
+  if (timeField?.trim()) {
+    fields.add(timeField.trim());
+  }
+  return [...fields].sort((left, right) => left.localeCompare(right));
+}
+
+function resolveTemporalRuntimeMode(layer: OverlayLayerConfig | null): TemporalRuntimeMode {
+  if (!layer) {
+    return "unknown";
+  }
+  if (layer.sourceKind === "demo") {
+    return "demo";
+  }
+  const temporalTitle = `${layer.name} ${layer.metadata?.analysisResult?.visualization?.title ?? ""}`.toLowerCase();
+  if (/\b(sample|synthetic|generated|simulation|scenario|forecast|predicted)\b/.test(temporalTitle)) {
+    return "synthetic";
+  }
+  if (
+    layer.sourceKind === "project"
+    || layer.sourceKind === "imported"
+    || layer.sourceKind === "external"
+    || layer.sourceKind === "derived"
+  ) {
+    return "live";
+  }
+  return "unknown";
+}
+
+function formatTemporalGeneratedLabel(mode: TemporalRuntimeMode): string {
+  switch (mode) {
+    case "live":
+      return "Real/derived";
+    case "demo":
+      return "Sample/demo";
+    case "synthetic":
+      return "Generated";
+    default:
+      return "Not recorded";
+  }
 }
 
 function viewportSyncChip(enabled: boolean, statusLabel: string): MapSceneStatusChip {
@@ -1622,8 +1711,12 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const clearMeasurements = useMapExplorerStore((s) => s.clearMeasurements);
   const measureUnit = useMapExplorerStore((s) => s.measureUnit);
   const setMeasureUnit = useMapExplorerStore((s) => s.setMeasureUnit);
+  const currentTimestep = useMapExplorerStore((s) => s.currentTimestep);
+  const mapIsPlaying = useMapExplorerStore((s) => s.isPlaying);
+  const mapPlaybackSpeed = useMapExplorerStore((s) => s.playbackSpeed);
   const setCurrentTimestep = useMapExplorerStore((s) => s.setCurrentTimestep);
   const setIsPlaying = useMapExplorerStore((s) => s.setIsPlaying);
+  const setPlaybackSpeed = useMapExplorerStore((s) => s.setPlaybackSpeed);
 
   const projectRegistry = useProjectRegistryOptional();
   const selectedProjectId = projectRegistry?.state.selectedProjectId ?? null;
@@ -3162,6 +3255,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
   const [rerunningAnalysisToken, setRerunningAnalysisToken] = useState<string | null>(null);
   const [selectedTemporalLayerId, setSelectedTemporalLayerId] = useState<string | null>(null);
+  const [temporalFrameExportRequest, setTemporalFrameExportRequest] = useState<TemporalFrameExportPayload | null>(null);
   const quotaWarningShownRef = useRef<{ key: string; timestamp: number } | null>(null);
   const lastProjectSaveErrorRef = useRef<{ key: string; timestamp: number } | null>(null);
   const lastAutoSaveTriggerRef = useRef<MapProjectSaveTrigger | null>(null);
@@ -3358,7 +3452,19 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     return selectedLayer?.metadata?.geometryType ?? null;
   }, [selectedPointSymbologyLayer, visiblePublicationLayers]);
   // Prompt 46 — store-driven temporal player (frame export + playback engine).
+  const temporalActiveFrameIndex = useTemporalLayerStore((state) => state.activeFrameIndex);
+  const temporalIsPlaying = useTemporalLayerStore((state) => state.isPlaying);
+  const temporalPlaybackSpeed = useTemporalLayerStore((state) => state.speed);
   const temporalRuntimeMode = useTemporalLayerStore((state) => state.runtimeMode);
+  const temporalSetFrames = useTemporalLayerStore((state) => state.setFrames);
+  const temporalSetLayerReferences = useTemporalLayerStore((state) => state.setLayerReferences);
+  const temporalSetPlaybackMode = useTemporalLayerStore((state) => state.setPlaybackMode);
+  const temporalSetSpeed = useTemporalLayerStore((state) => state.setSpeed);
+  const temporalGoToFrame = useTemporalLayerStore((state) => state.goToFrame);
+  const temporalPlay = useTemporalLayerStore((state) => state.play);
+  const temporalPause = useTemporalLayerStore((state) => state.pause);
+  const temporalBuildEvidence = useTemporalLayerStore((state) => state.buildEvidence);
+  const temporalReset = useTemporalLayerStore((state) => state.reset);
   const rasterLayerStates = useRasterLayerStore((state) => state.layers);
   const rasterLayerIds = useMemo(() => Object.keys(rasterLayerStates), [rasterLayerStates]);
   const activeRasterLayerId = rasterLayerIds[0] ?? null;
@@ -3377,6 +3483,28 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const activeTemporalLayer = temporalLayers.find((layer) => layer.id === selectedTemporalLayerId)
     ?? temporalLayers[0]
     ?? null;
+  const activeTemporalVisualization = activeTemporalLayer?.metadata?.analysisResult?.visualization?.kind === "temporal"
+    ? activeTemporalLayer.metadata.analysisResult.visualization
+    : null;
+  const activeTemporalFrames = activeTemporalVisualization?.temporalFrames ?? [];
+  const activeTemporalFrameDefinitions = useMemo<TemporalFrameDefinition[]>(
+    () => buildTemporalFrameDefinitions(activeTemporalFrames, activeTemporalVisualization?.valueField),
+    [activeTemporalFrames, activeTemporalVisualization?.valueField],
+  );
+  const activeTemporalSourceFields = useMemo(
+    () => collectTemporalSourceFields(activeTemporalFrames, activeTemporalVisualization?.timeProperty),
+    [activeTemporalFrames, activeTemporalVisualization?.timeProperty],
+  );
+  const activeTemporalSourceMode = useMemo(
+    () => resolveTemporalRuntimeMode(activeTemporalLayer),
+    [activeTemporalLayer],
+  );
+  const temporalLayoutRestoreRequest = useMemo(
+    () => temporalFrameExportRequest
+      ? { id: temporalFrameExportRequest.exportedAt, metadata: temporalFrameExportRequest.restoreMetadata }
+      : null,
+    [temporalFrameExportRequest],
+  );
   const scene3DMode = useScene3DStore(selectScene3DMode);
   const scene3DActiveLayerCrs = useScene3DStore(selectScene3DActiveLayerCrs);
   const scene3DCityModelHandle = useScene3DStore(selectScene3DCityModelSourceHandle);
@@ -3608,8 +3736,112 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     setCurrentTimestep(0);
   }, [activeTemporalLayer?.id, setCurrentTimestep, setIsPlaying]);
 
-  const handleTemporalLayerSelection = useCallback((event: React.ChangeEvent<HTMLSelectElement>) => {
-    const nextLayerId = event.target.value;
+  useEffect(() => {
+    if (!activeTemporalLayer || activeTemporalFrameDefinitions.length === 0) {
+      temporalReset();
+      return;
+    }
+
+    temporalSetFrames(activeTemporalFrameDefinitions);
+    temporalSetPlaybackMode("snapshot");
+    temporalSetLayerReferences({
+      activeLayerId: activeTemporalLayer.id,
+      sourceId: activeTemporalLayer.metadata?.sourceId ?? activeTemporalLayer.id,
+      layerId: activeTemporalLayer.id,
+      layerName: activeTemporalLayer.name,
+      sourceFields: activeTemporalSourceFields,
+      timeField: activeTemporalVisualization?.timeProperty ?? null,
+      runtimeMode: activeTemporalSourceMode,
+    });
+  }, [
+    activeTemporalFrameDefinitions,
+    activeTemporalLayer?.id,
+    activeTemporalLayer?.metadata?.sourceId,
+    activeTemporalLayer?.name,
+    activeTemporalSourceFields,
+    activeTemporalSourceMode,
+    activeTemporalVisualization?.timeProperty,
+    temporalReset,
+    temporalSetFrames,
+    temporalSetLayerReferences,
+    temporalSetPlaybackMode,
+  ]);
+
+  useEffect(() => {
+    if (currentTimestep !== temporalActiveFrameIndex) {
+      temporalGoToFrame(currentTimestep);
+    }
+  }, [currentTimestep, temporalActiveFrameIndex, temporalGoToFrame]);
+
+  useEffect(() => {
+    if (mapPlaybackSpeed !== temporalPlaybackSpeed) {
+      temporalSetSpeed(mapPlaybackSpeed);
+    }
+  }, [mapPlaybackSpeed, temporalPlaybackSpeed, temporalSetSpeed]);
+
+  useEffect(() => {
+    if (mapIsPlaying === temporalIsPlaying) {
+      return;
+    }
+    if (mapIsPlaying) {
+      temporalPlay();
+      return;
+    }
+    temporalPause();
+  }, [mapIsPlaying, temporalIsPlaying, temporalPause, temporalPlay]);
+
+  useEffect(() => {
+    if (temporalActiveFrameIndex !== currentTimestep) {
+      setCurrentTimestep(temporalActiveFrameIndex);
+    }
+  }, [currentTimestep, setCurrentTimestep, temporalActiveFrameIndex]);
+
+  useEffect(() => {
+    if (temporalPlaybackSpeed !== mapPlaybackSpeed) {
+      setPlaybackSpeed(temporalPlaybackSpeed);
+    }
+  }, [mapPlaybackSpeed, setPlaybackSpeed, temporalPlaybackSpeed]);
+
+  useEffect(() => {
+    if (temporalIsPlaying !== mapIsPlaying) {
+      setIsPlaying(temporalIsPlaying);
+    }
+  }, [mapIsPlaying, setIsPlaying, temporalIsPlaying]);
+
+  useEffect(() => {
+    if (!activeTemporalLayer) {
+      return;
+    }
+    const evidence = temporalBuildEvidence();
+    if (!evidence) {
+      return;
+    }
+    const existing = activeTemporalLayer.metadata?.temporalEvidence;
+    const matchesExisting = existing?.temporalEvidenceId === evidence.temporalEvidenceId
+      && existing?.step.index === evidence.step.index
+      && existing?.frameCount === evidence.frameCount
+      && existing?.timeField === evidence.timeField
+      && existing?.playback.speed === evidence.playback.speed
+      && existing?.playback.isPlaying === evidence.playback.isPlaying
+      && existing?.reportExportFrameReference.frameIndex === evidence.reportExportFrameReference.frameIndex
+      && existing?.playbackParameters.runtimeMode === evidence.playbackParameters.runtimeMode;
+    if (matchesExisting) {
+      return;
+    }
+    updateLayerMetadata(activeTemporalLayer.id, {
+      metadata: mergeTemporalEvidenceIntoMetadata(activeTemporalLayer.metadata, evidence),
+    });
+  }, [
+    activeTemporalLayer,
+    temporalActiveFrameIndex,
+    temporalBuildEvidence,
+    temporalIsPlaying,
+    temporalPlaybackSpeed,
+    temporalRuntimeMode,
+    updateLayerMetadata,
+  ]);
+
+  const handleTemporalLayerSelection = useCallback((nextLayerId: string) => {
     setSelectedTemporalLayerId(nextLayerId);
     setActiveAnalysisResultLayers([nextLayerId]);
     setIsPlaying(false);
@@ -3620,6 +3852,16 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       announce(`Temporal layer selected: ${nextLayer.name}`);
     }
   }, [announce, setActiveAnalysisResultLayers, setCurrentTimestep, setIsPlaying, temporalLayers]);
+
+  const handleTemporalFrameExport = useCallback((payload: TemporalFrameExportPayload) => {
+    setTemporalFrameExportRequest(payload);
+    setIsPlaying(false);
+    handleOpenPublishTab("publish-figure", `Temporal frame ready for export: ${payload.frameLabel}`);
+  }, [handleOpenPublishTab, setIsPlaying]);
+
+  const handleTemporalRestoreRequestHandled = useCallback((id: string) => {
+    setTemporalFrameExportRequest((current) => current?.exportedAt === id ? null : current);
+  }, []);
 
   /* ---- Sync overlay layers to MapLibre ---- */
   useLayerSync(mapInstanceRef, mapRenderLayers, recordPerformanceTiming);
@@ -8131,6 +8373,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         overlayLayers={overlayLayers}
         qaState={scientificQA}
         bearing={bearing}
+        restoreRequest={temporalLayoutRestoreRequest}
         onClose={() => {
           setShowFigureComposer(false);
           setShowLayerPanel(false);
@@ -8141,6 +8384,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
           setShowMapExportDialog(true);
           announce("Map book exported — opening publication export");
         }}
+        onRestoreRequestHandled={handleTemporalRestoreRequestHandled}
         onAnnounce={announce}
       />
     </MapPublishPathPanel>
@@ -8595,7 +8839,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         sceneStatusChip("source-mode", activeTemporalLayer ? `Source mode: ${formatSceneStatusValue(temporalRuntimeMode, "temporal")}` : "Source mode: no temporal layer", activeTemporalLayer ? runtimeStatus : "unknown"),
         layerCrsChip(activeTemporalLayer, "CRS: temporal layer unknown"),
         sceneStatusChip("vertical-datum", "Vertical datum: n/a", "unknown"),
-        sceneStatusChip("sample-generated", `Sample/generated: ${formatSceneStatusValue(temporalRuntimeMode, "unknown")}`, runtimeStatus),
+        sceneStatusChip("sample-generated", `Sample/generated: ${formatTemporalGeneratedLabel(temporalRuntimeMode)}`, runtimeStatus),
         sync,
       ];
     }
@@ -8681,21 +8925,12 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     : null;
 
   const sceneTemporalElement = activeTemporalLayer ? (
-    <div style={{ display: "grid", gap: MAP_SPACING.md }} data-testid="map-scene-temporal-panel">
-      {temporalLayers.length > 1 ? (
-        <select
-          aria-label="Select temporal analysis layer"
-          value={activeTemporalLayer.id}
-          onChange={handleTemporalLayerSelection}
-          style={mapStyles.temporalSelect}
-        >
-          {temporalLayers.map((layer) => (
-            <option key={layer.id} value={layer.id}>{layer.name}</option>
-          ))}
-        </select>
-      ) : null}
-      <TemporalPlayerPanel visible />
-    </div>
+    <TemporalScenePanel
+      activeLayer={activeTemporalLayer}
+      temporalLayers={temporalLayers}
+      onLayerChange={handleTemporalLayerSelection}
+      onExportFrame={handleTemporalFrameExport}
+    />
   ) : (
     <GisEmptyState
       title="No temporal layer"
@@ -9801,6 +10036,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             overlayLayers={overlayLayers}
             qaState={scientificQA}
             bearing={bearing}
+            restoreRequest={temporalLayoutRestoreRequest}
             onClose={() => {
               setShowFigureComposer(false);
               announce("Layout designer closed");
@@ -9810,6 +10046,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               setShowMapExportDialog(true);
               announce("Map book exported — opening publication export");
             }}
+            onRestoreRequestHandled={handleTemporalRestoreRequestHandled}
             onAnnounce={announce}
           />
 

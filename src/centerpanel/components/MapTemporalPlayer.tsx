@@ -18,6 +18,7 @@ import React, {
 import type maplibregl from "maplibre-gl";
 import type { MapTemporalEvidenceMetadata, PlaybackSpeed } from "./map/mapTypes";
 import { createMapTemporalEvidenceArtifact } from "./map/mapEvidenceArtifacts";
+import { usePrefersReducedMotion } from "./map/design";
 import {
   MAP_COLORS,
   MAP_RADIUS,
@@ -462,6 +463,13 @@ export const MapTemporalPlayer: React.FC<MapTemporalPlayerProps> = ({
   const setTimeRange = useMapExplorerStore((s: MapExplorerState) => s.setTimeRange);
   const upsertMapEvidenceArtifact = useMapExplorerStore((s: MapExplorerState) => s.upsertMapEvidenceArtifact);
   const evidenceCreatedAtRef = useRef<string>(new Date().toISOString());
+  const prefersReducedMotion = usePrefersReducedMotion();
+
+  useEffect(() => {
+    if (prefersReducedMotion && isPlaying) {
+      setIsPlaying(false);
+    }
+  }, [isPlaying, prefersReducedMotion, setIsPlaying]);
 
   /* Sync time range when frames change */
   useEffect(() => {
@@ -686,7 +694,7 @@ export const MapTemporalPlayer: React.FC<MapTemporalPlayerProps> = ({
   const lastFrameTimeRef = useRef<number>(0);
 
   useEffect(() => {
-    if (!isPlaying || totalSteps <= 1) {
+    if (prefersReducedMotion || !isPlaying || totalSteps <= 1) {
       if (rafRef.current != null) {
         cancelAnimationFrame(rafRef.current);
         rafRef.current = null;
@@ -736,6 +744,9 @@ export const MapTemporalPlayer: React.FC<MapTemporalPlayerProps> = ({
       switch (e.key) {
         case " ": {
           e.preventDefault();
+          if (prefersReducedMotion) {
+            return;
+          }
           const { isPlaying: playing } = useMapExplorerStore.getState();
           setIsPlaying(!playing);
           break;
@@ -782,6 +793,7 @@ export const MapTemporalPlayer: React.FC<MapTemporalPlayerProps> = ({
   }, [
     visible,
     totalSteps,
+    prefersReducedMotion,
     setIsPlaying,
     setCurrentTimestep,
     setPlaybackSpeed,
@@ -898,16 +910,28 @@ export const MapTemporalPlayer: React.FC<MapTemporalPlayerProps> = ({
 
           <button
             type="button"
-            style={isPlaying ? controlBtnActiveStyle : controlBtnStyle}
+            style={!isPlaying && prefersReducedMotion
+              ? { ...controlBtnStyle, ...controlBtnDisabledStyle }
+              : isPlaying
+                ? controlBtnActiveStyle
+                : controlBtnStyle}
             onClick={() => {
+              if (!isPlaying && prefersReducedMotion) {
+                return;
+              }
               // If at end, restart from beginning
               if (!isPlaying && clampedStep >= totalSteps - 1) {
                 setCurrentTimestep(0);
               }
               setIsPlaying(!isPlaying);
             }}
+            disabled={!isPlaying && prefersReducedMotion}
             aria-label={isPlaying ? "Pause" : "Play"}
-            title={isPlaying ? "Pause (Space)" : "Play (Space)"}
+            title={prefersReducedMotion && !isPlaying
+              ? "Play disabled while reduced motion is enabled"
+              : isPlaying
+                ? "Pause (Space)"
+                : "Play (Space)"}
           >
             {isPlaying ? <IconPause size={12} /> : <IconPlay size={12} />}
           </button>
