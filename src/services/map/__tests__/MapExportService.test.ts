@@ -31,6 +31,11 @@ import {
 } from "../MapExportService";
 import type { OverlayLayerConfig } from "@/centerpanel/components/map/mapTypes";
 import type { MapScientificQAState } from "../MapScientificQA";
+import {
+  buildLayerStyleUpdate,
+  getDefaultLayerStyleOptions,
+  serializedLegendSpecToCompositionItems,
+} from "@/centerpanel/components/map/inspector/style/legendContract";
 
 const fixedReadinessDate = new Date("2026-04-11T20:31:45.000Z");
 
@@ -231,6 +236,109 @@ describe("MapExportService", () => {
     ]);
     expect(legend[2]?.secondaryLabel).toBe("Access score");
     expect(legend[3]).toMatchObject({ color: "#22C55E", kind: "line" });
+  });
+
+  it("prefers serialized legendSpec for export readiness and publication manifest parity", () => {
+    const layer = publicationLayer({
+      sourceData: {
+        type: "FeatureCollection",
+        features: [
+          {
+            type: "Feature",
+            properties: { id: 1, score: 12, zone: "low" },
+            geometry: {
+              type: "Polygon",
+              coordinates: [[
+                [29, 41],
+                [29.01, 41],
+                [29.01, 41.01],
+                [29, 41.01],
+                [29, 41],
+              ]],
+            },
+          },
+          {
+            type: "Feature",
+            properties: { id: 2, score: 88, zone: "high" },
+            geometry: {
+              type: "Polygon",
+              coordinates: [[
+                [29.02, 41],
+                [29.03, 41],
+                [29.03, 41.01],
+                [29.02, 41.01],
+                [29.02, 41],
+              ]],
+            },
+          },
+        ],
+      },
+      metadata: {
+        ...(publicationLayer().metadata ?? {}),
+        geometryType: "Polygon",
+        fields: ["id", "score", "zone"],
+      },
+    });
+    const update = buildLayerStyleUpdate(layer, {
+      ...getDefaultLayerStyleOptions(layer),
+      mode: "choropleth",
+      field: "score",
+      classCount: 3,
+      noDataLabel: "Score missing",
+    }, fixedReadinessDate.toISOString());
+    const styledLayer: OverlayLayerConfig = {
+      ...layer,
+      opacity: update.opacity,
+      style: {
+        ...update.style,
+        legendEntries: [{ label: "Legacy mismatch", color: "#000000" }],
+      },
+      metadata: {
+        ...(layer.metadata ?? {}),
+        ...update.metadataPatch,
+      },
+    };
+
+    const exportLegend = buildMapCompositionLegendItems([styledLayer]);
+    const serializedLegend = serializedLegendSpecToCompositionItems(update.legendSpec);
+    const readiness = buildMapPublicationReadiness({
+      mode: "publication-export",
+      overlayLayers: [styledLayer],
+      composition: {
+        ...DEFAULT_MAP_COMPOSITION_OPTIONS,
+        title: "Legend parity export",
+        attributionText: "Transit authority",
+      },
+      legendItems: exportLegend,
+      scientificQA: qaState(),
+      now: fixedReadinessDate,
+    });
+    const manifest = buildMapPublicationManifest({
+      result: {
+        filename: "legend-parity.pdf",
+        format: "pdf",
+        mimeType: "application/pdf",
+        width: 1200,
+        height: 900,
+      },
+      composition: {
+        ...DEFAULT_MAP_COMPOSITION_OPTIONS,
+        title: "Legend parity export",
+        attributionText: "Transit authority",
+      },
+      overlayLayers: [styledLayer],
+      legendItems: exportLegend,
+      readiness,
+      scientificQA: qaState(),
+      createdAt: fixedReadinessDate.toISOString(),
+    });
+
+    expect(exportLegend).toEqual(serializedLegend);
+    expect(exportLegend.map((entry) => entry.label)).not.toContain("Legacy mismatch");
+    expect(exportLegend.some((entry) => entry.label === "Score missing")).toBe(true);
+    expect(readiness.hasLegend).toBe(true);
+    expect(readiness.checks.find((check) => check.criterion === "legend")?.message).toContain(`${serializedLegend.length} legend item`);
+    expect(manifest.legendItemCount).toBe(serializedLegend.length);
   });
 
   it("chooses a nice scale bar distance under the measured span", () => {

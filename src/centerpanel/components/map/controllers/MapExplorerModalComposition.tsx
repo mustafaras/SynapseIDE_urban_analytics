@@ -131,6 +131,7 @@ import {
   MapStyleWorkspace,
   type MapStyleTabId,
 } from "../style";
+import { getSerializedLegendSpecFromStyle } from "../inspector/style/legendContract";
 import {
   MapSceneWorkspace,
   type MapSceneStatusChip,
@@ -8021,6 +8022,99 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       onOpenReviewPackage={() => handleOpenPublishTab("publish-review-package", "Publication mark review package opened")}
     />
   );
+  const visibleLegendSpecs = visiblePublicationLayers
+    .map((layer) => getSerializedLegendSpecFromStyle(layer.style))
+    .filter((spec) => spec !== null);
+  const legendContractWarnings = visibleLegendSpecs.flatMap((spec) =>
+    spec.warnings.map((warning) => `${spec.layerName}: ${warning}`),
+  );
+  const legendNoDataClassCount = visibleLegendSpecs.filter((spec) => spec.noData.enabled).length;
+  const publishLegendParityElement = (
+    <section
+      style={{
+        display: "grid",
+        gap: MAP_SPACING.sm,
+        paddingTop: MAP_SPACING.sm,
+        borderTop: MAP_STROKES.hairlineSubtle,
+      }}
+      aria-label="Legend contract parity"
+      data-testid="map-publish-legend-parity-panel"
+    >
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: MAP_SPACING.sm }}>
+        <h4 style={{ margin: 0, color: MAP_COLORS.text, fontSize: MAP_TYPOGRAPHY.fontSize.sm, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
+          Legend contract
+        </h4>
+        <span style={mapStyles.sidePanelMetricValue}>{mapPublicationLegendItems.length.toLocaleString()} item{mapPublicationLegendItems.length === 1 ? "" : "s"}</span>
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: MAP_SPACING.xs }} data-testid="map-publish-legend-parity-targets">
+        {["Map", "Inspector", "Report", "Export"].map((target) => (
+          <span key={target} style={mapStyles.sidePanelMetricLabel}>{target}</span>
+        ))}
+        <span style={legendNoDataClassCount > 0 ? { ...mapStyles.sidePanelMetricLabel, color: MAP_COLORS.caveatText } : mapStyles.sidePanelMetricLabel}>
+          {legendNoDataClassCount.toLocaleString()} noData
+        </span>
+        <span style={legendContractWarnings.length > 0 ? { ...mapStyles.sidePanelMetricLabel, color: MAP_COLORS.caveatText } : mapStyles.sidePanelMetricLabel}>
+          {legendContractWarnings.length.toLocaleString()} caveats
+        </span>
+      </div>
+      <div style={{ display: "grid", gap: MAP_SPACING.xs }} data-testid="map-publish-legend-parity-items">
+        {mapPublicationLegendItems.length > 0 ? mapPublicationLegendItems.slice(0, 8).map((item, index) => (
+          <div
+            key={`${item.label}-${item.secondaryLabel ?? "legend"}-${index}`}
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1rem minmax(0, 1fr) auto",
+              alignItems: "center",
+              gap: MAP_SPACING.sm,
+              padding: MAP_SPACING.xs,
+              borderBottom: MAP_STROKES.hairlineSubtle,
+            }}
+          >
+            <span
+              aria-hidden
+              style={{
+                width: item.kind === "line" ? "1rem" : "0.9rem",
+                height: item.kind === "line" ? "0.25rem" : "0.9rem",
+                borderRadius: item.kind === "circle" || item.kind === "dot-density" ? MAP_RADIUS.full : MAP_RADIUS.xs,
+                border: MAP_STROKES.hairlineSubtle,
+                background: item.kind === "label" ? MAP_COLORS.transparent : item.color,
+                color: item.color,
+                fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+                fontWeight: MAP_TYPOGRAPHY.fontWeight.bold,
+                lineHeight: 1,
+              }}
+            >
+              {item.kind === "label" ? "Aa" : null}
+            </span>
+            <span style={{ minWidth: 0, display: "grid", gap: 2 }}>
+              <span style={{ color: MAP_COLORS.text, fontSize: MAP_TYPOGRAPHY.fontSize.xs, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {item.label}
+              </span>
+              {item.secondaryLabel ? (
+                <span style={{ color: MAP_COLORS.textMuted, fontSize: MAP_TYPOGRAPHY.fontSize.xs, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {item.secondaryLabel}
+                </span>
+              ) : null}
+            </span>
+            <span style={mapStyles.sidePanelMetricLabel}>{item.kind}</span>
+          </div>
+        )) : (
+          <div style={{ color: MAP_COLORS.textMuted, fontSize: MAP_TYPOGRAPHY.fontSize.xs }}>
+            No legend items
+          </div>
+        )}
+      </div>
+      {legendContractWarnings.length > 0 ? (
+        <div style={{ display: "grid", gap: MAP_SPACING.xs }} data-testid="map-publish-legend-parity-caveats">
+          {legendContractWarnings.slice(0, 3).map((warning) => (
+            <span key={warning} style={{ color: MAP_COLORS.caveatText, fontSize: MAP_TYPOGRAPHY.fontSize.xs, lineHeight: MAP_TYPOGRAPHY.lineHeight.normal }}>
+              {warning}
+            </span>
+          ))}
+        </div>
+      ) : null}
+    </section>
+  );
   const publishFigureElement = (
     <MapPublishPathPanel
       eyebrow="Map image"
@@ -8029,6 +8123,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       meta={figureMeta}
       actions={figureActions}
     >
+      {publishLegendParityElement}
       {renderPublicationMarksPanel()}
       <MapLayoutDesignerPanel
         visible
@@ -8058,6 +8153,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       meta={dataExportMeta}
       actions={dataExportActions}
     >
+      {publishLegendParityElement}
       {renderPublicationMarksPanel()}
     </MapPublishPathPanel>
   );
@@ -8069,6 +8165,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       meta={reportMeta}
       actions={reportActions}
     >
+      {publishLegendParityElement}
       {renderPublicationMarksPanel()}
       {reportHandoffDraft ? (
         <Suspense fallback={null}>
@@ -8097,6 +8194,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       meta={offlineMeta}
       actions={offlineActions}
     >
+      {publishLegendParityElement}
       {renderPublicationMarksPanel()}
     </MapPublishPathPanel>
   );
@@ -8108,6 +8206,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       meta={reviewMeta}
       actions={reviewActions}
     >
+      {publishLegendParityElement}
       {renderPublicationMarksPanel()}
       <div style={{ display: "grid", gap: MAP_SPACING.sm, color: MAP_COLORS.textSecondary, fontSize: MAP_TYPOGRAPHY.fontSize.xs, lineHeight: MAP_TYPOGRAPHY.lineHeight.normal }}>
         <div>

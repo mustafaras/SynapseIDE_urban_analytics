@@ -3,10 +3,18 @@ import type { OverlayLayerConfig, ViewportState } from "../mapTypes";
 import {
   buildLayerStyleUpdate,
   getDefaultLayerStyleOptions,
+  getSerializedLegendSpecFromStyle,
   serializedLegendSpecToCompositionItems,
+  type LayerStyleEditorOptions,
+  type LayerStyleUpdate,
+  type SerializedLegendMode,
 } from "../inspector/style/legendContract";
 import { fcPointsWGS84, fcPolygonsProjected } from "./fixtures/gisFixtures";
-import { buildMapCompositionLegendItems } from "@/services/map/MapExportService";
+import {
+  DEFAULT_MAP_COMPOSITION_OPTIONS,
+  buildMapCompositionLegendItems,
+  buildMapPublicationReadiness,
+} from "@/services/map/MapExportService";
 import { buildMapReportHandoffDraft } from "@/services/map/MapReportHandoffService";
 import { generateMapCartographyReview } from "@/services/map/MapCartographyAdvisor";
 import {
@@ -92,6 +100,96 @@ function pointLayer(style: Record<string, unknown> = {}): OverlayLayerConfig {
   };
 }
 
+function heatmapLayer(style: Record<string, unknown> = {}): OverlayLayerConfig {
+  return {
+    ...pointLayer(style),
+    id: "site-density",
+    name: "Site density",
+    type: "heatmap",
+  };
+}
+
+function lineLayer(style: Record<string, unknown> = {}): OverlayLayerConfig {
+  return {
+    id: "transit-lines",
+    name: "Transit lines",
+    type: "geojson",
+    visible: true,
+    opacity: 1,
+    sourceKind: "imported",
+    sourceData: {
+      type: "FeatureCollection",
+      features: [{
+        type: "Feature",
+        properties: { id: 1, ridership: 1200 },
+        geometry: {
+          type: "LineString",
+          coordinates: [[29, 41], [29.1, 41.1]],
+        },
+      }],
+    },
+    style,
+    metadata: {
+      geometryType: "LineString",
+      featureCount: 1,
+      fields: ["id", "ridership"],
+      crsSummary: {
+        crs: "EPSG:32635",
+        status: "known",
+        source: "explicit",
+        notes: [],
+      },
+    },
+  };
+}
+
+function applyUpdate(layer: OverlayLayerConfig, update: LayerStyleUpdate): OverlayLayerConfig {
+  return {
+    ...layer,
+    opacity: update.opacity,
+    style: update.style,
+    metadata: {
+      ...(layer.metadata ?? {}),
+      ...update.metadataPatch,
+    },
+  };
+}
+
+function expectLegendParity(layer: OverlayLayerConfig, update: LayerStyleUpdate): void {
+  const styledLayer = applyUpdate(layer, update);
+  const storedSpec = getSerializedLegendSpecFromStyle(styledLayer.style);
+  const serializedLegend = serializedLegendSpecToCompositionItems(update.legendSpec);
+  const mapLegend = buildMapCompositionLegendItems([styledLayer]);
+  const reportDraft = buildMapReportHandoffDraft({
+    overlayLayers: [styledLayer],
+    viewport,
+    currentMapBounds: [28.9, 40.9, 29.2, 41.2],
+    baseLayerName: "Charcoal street atlas",
+    createdAt: "2026-05-23T00:00:00.000Z",
+  });
+  const readiness = buildMapPublicationReadiness({
+    mode: "publication-export",
+    overlayLayers: [styledLayer],
+    composition: {
+      ...DEFAULT_MAP_COMPOSITION_OPTIONS,
+      title: "Legend contract parity",
+      attributionText: "Fixture source",
+    },
+    legendItems: mapLegend,
+    requireScaleBar: false,
+    requireNorthArrow: false,
+    requireAttribution: false,
+    now: new Date("2026-05-23T00:00:00.000Z"),
+  });
+
+  expect(storedSpec).toEqual(update.legendSpec);
+  expect(mapLegend).toEqual(serializedLegend);
+  expect(reportDraft.snapshot.legendItems).toEqual(serializedLegend);
+  expect(reportDraft.evidenceBlock.payload.composition.legendItems).toEqual(serializedLegend);
+  expect(readiness.hasLegend).toBe(true);
+  expect(readiness.checks.find((check) => check.criterion === "legend")?.message).toContain(`${serializedLegend.length} legend item`);
+}
+
 const viewport: ViewportState = {
   center: [29, 41],
   zoom: 11,
@@ -134,6 +232,126 @@ describe("style editor legend contract", () => {
     expect(mapLegend).toEqual(serializedLegend);
     expect(reportDraft.snapshot.legendItems).toEqual(mapLegend);
     expect(reportDraft.evidenceBlock.payload.composition.legendItems).toEqual(mapLegend);
+  });
+
+  it("keeps one serialized legend contract for every supported renderer family", () => {
+    const cases: Array<{
+      label: string;
+      layer: OverlayLayerConfig;
+      mode: SerializedLegendMode;
+      options: Partial<LayerStyleEditorOptions>;
+      expectedKind: string;
+      expectedMinimumEntries: number;
+    }> = [
+      {
+        label: "single symbol",
+        layer: projectedPolygonLayer(),
+        mode: "single",
+        options: {},
+        expectedKind: "fill",
+        expectedMinimumEntries: 2,
+      },
+      {
+        label: "choropleth",
+        layer: projectedPolygonLayer(),
+        mode: "choropleth",
+        options: { field: "area_m2", classCount: 4, classificationMethod: "quantile" },
+        expectedKind: "fill",
+        expectedMinimumEntries: 5,
+      },
+      {
+        label: "categorical",
+        layer: projectedPolygonLayer(),
+        mode: "categorical",
+        options: { field: "zone", classCount: 3 },
+        expectedKind: "fill",
+        expectedMinimumEntries: 3,
+      },
+      {
+        label: "graduated symbols",
+        layer: pointLayer(),
+        mode: "graduated-symbol",
+        options: { field: "value", classCount: 4 },
+        expectedKind: "circle",
+        expectedMinimumEntries: 5,
+      },
+      {
+        label: "proportional symbols",
+        layer: pointLayer(),
+        mode: "proportional-symbol",
+        options: { field: "value", classCount: 4 },
+        expectedKind: "circle",
+        expectedMinimumEntries: 5,
+      },
+      {
+        label: "heatmap",
+        layer: heatmapLayer(),
+        mode: "heatmap",
+        options: { field: "value", classCount: 5 },
+        expectedKind: "heatmap",
+        expectedMinimumEntries: 6,
+      },
+    ];
+
+    for (const testCase of cases) {
+      const defaults = getDefaultLayerStyleOptions(testCase.layer);
+      const update = buildLayerStyleUpdate(testCase.layer, {
+        ...defaults,
+        mode: testCase.mode,
+        noDataLabel: `${testCase.label} noData`,
+        ...testCase.options,
+      }, "2026-05-23T00:00:00.000Z");
+      const noDataEntry = update.legendSpec.entries.find((entry) => entry.noData);
+      const renderedEntries = update.legendSpec.entries.filter((entry) => !entry.noData);
+
+      expect(update.legendSpec.mode).toBe(testCase.mode);
+      expect(renderedEntries.length).toBeGreaterThan(0);
+      expect(renderedEntries.every((entry) => entry.kind === testCase.expectedKind)).toBe(true);
+      expect(update.legendSpec.entries.length).toBeGreaterThanOrEqual(testCase.expectedMinimumEntries);
+      expect(noDataEntry).toMatchObject({
+        label: `${testCase.label} noData`,
+        noData: true,
+        kind: testCase.expectedKind,
+      });
+      expectLegendParity(testCase.layer, update);
+    }
+  });
+
+  it("carries opacity, outline, and stroke styling alongside the serialized legend", () => {
+    const polygonLayer = projectedPolygonLayer();
+    const polygonUpdate = buildLayerStyleUpdate(polygonLayer, {
+      ...getDefaultLayerStyleOptions(polygonLayer),
+      mode: "choropleth",
+      field: "area_m2",
+      opacity: 0.42,
+      outlineColor: "#123456",
+      outlineWidth: 2.4,
+    }, "2026-05-23T00:00:00.000Z");
+    expect(polygonUpdate.opacity).toBe(0.42);
+    expect(polygonUpdate.style["fill-outline-color"]).toBe("#123456");
+    expectLegendParity(polygonLayer, polygonUpdate);
+
+    const symbolLayer = pointLayer();
+    const symbolUpdate = buildLayerStyleUpdate(symbolLayer, {
+      ...getDefaultLayerStyleOptions(symbolLayer),
+      mode: "proportional-symbol",
+      field: "value",
+      outlineColor: "#654321",
+      outlineWidth: 3.2,
+    }, "2026-05-23T00:00:00.000Z");
+    expect(symbolUpdate.style["circle-stroke-color"]).toBe("#654321");
+    expect(symbolUpdate.style["circle-stroke-width"]).toBe(3.2);
+    expectLegendParity(symbolLayer, symbolUpdate);
+
+    const routeLayer = lineLayer();
+    const routeUpdate = buildLayerStyleUpdate(routeLayer, {
+      ...getDefaultLayerStyleOptions(routeLayer),
+      mode: "choropleth",
+      field: "ridership",
+      outlineWidth: 4,
+    }, "2026-05-23T00:00:00.000Z");
+    expect(routeUpdate.style["line-width"]).toBe(4);
+    expectLegendParity(routeLayer, routeUpdate);
   });
 
   it("emits warnings for poor classification and missing uncertainty metadata", () => {

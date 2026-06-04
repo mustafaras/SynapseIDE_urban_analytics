@@ -39,6 +39,19 @@ const titleStyle: React.CSSProperties = {
   letterSpacing: MAP_TYPOGRAPHY.letterSpacing.caps,
 };
 
+const headerStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: MAP_SPACING.sm,
+};
+
+const countStyle: React.CSSProperties = {
+  color: MAP_COLORS.textMuted,
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+};
+
 const rowStyle: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns: "0.85rem minmax(0, 1fr)",
@@ -55,8 +68,17 @@ const labelStyle: React.CSSProperties = {
   whiteSpace: "nowrap",
 };
 
+const secondaryLabelStyle: React.CSSProperties = {
+  color: MAP_COLORS.textMuted,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+};
+
 export const MapLegendOverlay: React.FC<MapLegendOverlayProps> = ({ items }) => {
   if (items.length === 0) return null;
+  const visibleItems = items.slice(0, 12);
 
   return (
     <aside
@@ -64,8 +86,11 @@ export const MapLegendOverlay: React.FC<MapLegendOverlayProps> = ({ items }) => 
       aria-label="Map legend"
       data-testid="map-legend-overlay"
     >
-      <div style={titleStyle}>Legend</div>
-      {items.slice(0, 12).map((item, index) => (
+      <div style={headerStyle}>
+        <div style={titleStyle}>Legend</div>
+        <div style={countStyle}>{items.length} item{items.length === 1 ? "" : "s"}</div>
+      </div>
+      {visibleItems.map((item, index) => (
         <div key={`${item.label}-${item.secondaryLabel ?? "map"}-${index}`} style={rowStyle}>
           <span
             aria-hidden="true"
@@ -83,11 +108,17 @@ export const MapLegendOverlay: React.FC<MapLegendOverlayProps> = ({ items }) => 
           >
             {item.kind === "label" ? "Aa" : null}
           </span>
-          <span style={labelStyle} title={item.secondaryLabel ? `${item.label} / ${item.secondaryLabel}` : item.label}>
-            {item.label}
+          <span style={{ minWidth: 0, display: "grid", gap: 2 }}>
+            <span style={labelStyle} title={item.secondaryLabel ? `${item.label} / ${item.secondaryLabel}` : item.label}>
+              {item.label}
+            </span>
+            {item.secondaryLabel ? <span style={secondaryLabelStyle}>{item.secondaryLabel}</span> : null}
           </span>
         </div>
       ))}
+      {items.length > visibleItems.length ? (
+        <div style={countStyle}>+{items.length - visibleItems.length} more</div>
+      ) : null}
     </aside>
   );
 };

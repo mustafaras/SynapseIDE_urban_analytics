@@ -243,7 +243,7 @@ const legendListStyle: React.CSSProperties = {
 
 const legendEntryStyle: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "1.25rem minmax(0, 1fr)",
+  gridTemplateColumns: "1.25rem minmax(0, 1fr) auto",
   alignItems: "center",
   gap: MAP_SPACING.sm,
   padding: MAP_SPACING.sm,
@@ -257,6 +257,18 @@ const swatchStyle: React.CSSProperties = {
   height: "1rem",
   borderRadius: MAP_RADIUS.xs,
   border: MAP_STROKES.hairlineSubtle,
+};
+
+const lineSwatchStyle: React.CSSProperties = {
+  ...swatchStyle,
+  height: "0.25rem",
+  alignSelf: "center",
+  borderRadius: MAP_RADIUS.full,
+};
+
+const circleSwatchStyle: React.CSSProperties = {
+  ...swatchStyle,
+  borderRadius: MAP_RADIUS.full,
 };
 
 const readinessGridStyle: React.CSSProperties = {
@@ -1285,6 +1297,19 @@ function resolveLegendSpec(layer: OverlayLayerConfig | null, explicitSpec?: Seri
   return buildLayerStyleUpdate(layer, getDefaultLayerStyleOptions(layer)).legendSpec;
 }
 
+function legendSwatchStyle(kind: string, color: string): React.CSSProperties {
+  const base = kind === "line"
+    ? lineSwatchStyle
+    : kind === "circle" || kind === "dot-density"
+      ? circleSwatchStyle
+      : swatchStyle;
+  return {
+    ...base,
+    background: kind === "label" ? MAP_COLORS.transparent : color,
+    color,
+  };
+}
+
 export const MapStyleLegendPanel: React.FC<MapStyleLegendPanelProps> = ({
   layers,
   activeLayer,
@@ -1314,18 +1339,49 @@ export const MapStyleLegendPanel: React.FC<MapStyleLegendPanelProps> = ({
           <>
             <div style={chipRowStyle} data-testid="map-style-legend-contract-targets">
               <span style={chipStyle}>Map</span>
+              <span style={chipStyle}>Inspector</span>
               <span style={chipStyle}>Report</span>
               <span style={chipStyle}>Export</span>
               <span style={chipStyle}>{compositionItems.length} composition items</span>
             </div>
+            <div style={readinessGridStyle} data-testid="map-style-legend-contract-summary">
+              <div style={readinessCellStyle}>
+                <span style={mutedStyle}>Serialized source</span>
+                <span style={chipStyle}>{spec.source}</span>
+              </div>
+              <div style={readinessCellStyle}>
+                <span style={mutedStyle}>Style hash</span>
+                <span style={chipStyle}>{spec.styleHash}</span>
+              </div>
+              <div style={readinessCellStyle}>
+                <span style={mutedStyle}>NoData class</span>
+                <span style={spec.noData.enabled ? warningChipStyle : chipStyle}>
+                  {spec.noData.enabled ? spec.noData.label : "Not emitted"}
+                </span>
+              </div>
+              <div style={readinessCellStyle}>
+                <span style={mutedStyle}>Caveats</span>
+                <span style={spec.warnings.length > 0 ? warningChipStyle : chipStyle}>
+                  {spec.warnings.length.toLocaleString()}
+                </span>
+              </div>
+            </div>
             <div style={legendListStyle}>
               {compositionItems.map((item, index) => (
                 <div key={`${item.label}-${index}`} style={legendEntryStyle} data-testid="map-style-legend-entry">
-                  <span style={{ ...swatchStyle, background: item.color }} aria-hidden />
+                  <span style={legendSwatchStyle(item.kind, item.color)} aria-hidden>
+                    {item.kind === "label" ? "Aa" : null}
+                  </span>
                   <div style={{ minWidth: 0 }}>
                     <div style={layerNameStyle}>{item.label}</div>
                     {item.secondaryLabel ? <div style={mutedStyle}>{item.secondaryLabel}</div> : null}
                   </div>
+                  <span
+                    style={item.secondaryLabel?.includes(` / ${spec.noData.label}`) ? warningChipStyle : chipStyle}
+                    title={item.secondaryLabel}
+                  >
+                    {item.secondaryLabel?.includes(` / ${spec.noData.label}`) ? "no-data" : item.kind}
+                  </span>
                 </div>
               ))}
             </div>
