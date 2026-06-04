@@ -147,8 +147,10 @@ import {
 } from "../scene";
 import {
   MapPublicationMarksPanel,
+  MapPublishOutputInventory,
   MapPublishPathPanel,
   MapPublishWorkspace,
+  type MapPublishInventoryEntry,
   type MapPublishPathAction,
   type MapPublishPathMeta,
   type MapPublishReadinessItem,
@@ -894,6 +896,181 @@ function buildPublishReadinessItems(input: {
       detail: evidenceDetail,
     }),
   ];
+}
+
+/* ---- Publish output inventory derivation (Prompt 51) ---- */
+
+function restoreStatusToGisStatus(status: SourceHandle["restoreStatus"]): GisStatusKey {
+  if (status === "restored") return "ready";
+  if (status === "unavailable") return "blocked";
+  return "caveat";
+}
+
+function isVectorExportableLayer(layer: OverlayLayerConfig): boolean {
+  return (layer.type === "geojson" || layer.type === "heatmap") && Boolean(layer.sourceData);
+}
+
+function layerCrsLabel(layer: OverlayLayerConfig): string {
+  const summary = resolveOverlayLayerCrsSummary(layer);
+  if (summary.status === "known" && summary.crs) return summary.crs;
+  if (summary.crs) return `${summary.crs} (${summary.status})`;
+  return "CRS missing";
+}
+
+function layerInventoryDetail(layer: OverlayLayerConfig): string {
+  const geometry = layer.metadata?.geometryType ?? layer.type;
+  const featureCount = typeof layer.metadata?.featureCount === "number"
+    ? `${layer.metadata.featureCount.toLocaleString()} features`
+    : null;
+  return [geometry, featureCount, layerCrsLabel(layer)].filter(Boolean).join(" · ");
+}
+
+function layerProvenanceCaveats(layer: OverlayLayerConfig): string[] {
+  const out: string[] = [];
+  const crs = resolveOverlayLayerCrsSummary(layer);
+  if (crs.status !== "known") {
+    out.push(`${layer.name}: CRS ${crs.status === "user-declared" ? "is user-declared (caveat)" : "is missing"}.`);
+  }
+  const qa = String(layer.qaStatus ?? "").toLowerCase();
+  if (qa === "blocked" || qa === "failed") {
+    out.push(`${layer.name}: QA is ${qa}.`);
+  }
+  return out;
+}
+
+function shortPublishId(value: string, max = 30): string {
+  return value.length > max ? `${value.slice(0, max - 1)}…` : value;
+}
+
+function buildDataExportInventory(input: {
+  overlayLayers: OverlayLayerConfig[];
+  target: MapExportTarget;
+  pinCount: number;
+  drawingCount: number;
+}): { included: MapPublishInventoryEntry[]; excluded: MapPublishInventoryEntry[]; caveats: string[] } {
+  const included: MapPublishInventoryEntry[] = [];
+  const excluded: MapPublishInventoryEntry[] = [];
+  const caveats: string[] = [];
+
+  if (input.target === "pins") {
+    if (input.pinCount > 0) {
+      included.push({ id: "pins", label: "Pins", status: "ready", detail: `${input.pinCount.toLocaleString()} pin(s) → Point features.` });
+    } else {
+      excluded.push({ id: "pins", label: "Pins", status: "caveat", detail: "No pins placed to export." });
+    }
+    return { included, excluded, caveats };
+  }
+  if (input.target === "drawings") {
+    if (input.drawingCount > 0) {
+      included.push({ id: "drawings", label: "Drawings", status: "ready", detail: `${input.drawingCount.toLocaleString()} drawn feature(s).` });
+    } else {
+      excluded.push({ id: "drawings", label: "Drawings", status: "caveat", detail: "No drawn features to export." });
+    }
+    return { included, excluded, caveats };
+  }
+
+  let hiddenCount = 0;
+  for (const layer of input.overlayLayers) {
+    if (!layer.visible) {
+      hiddenCount += 1;
+      continue;
+    }
+    if (isVectorExportableLayer(layer)) {
+      included.push({ id: layer.id, label: layer.name, status: "ready", detail: layerInventoryDetail(layer) });
+      caveats.push(...layerProvenanceCaveats(layer));
+    } else {
+      const reason = !(layer.type === "geojson" || layer.type === "heatmap")
+        ? `${layer.type} layer — not vector-exportable to GeoJSON/GeoParquet.`
+        : "No in-memory source geometry; reload the source before export.";
+      excluded.push({ id: layer.id, label: layer.name, status: "caveat", detail: reason });
+    }
+  }
+  if (hiddenCount > 0) {
+    excluded.push({
+      id: "hidden-layers",
+      label: `${hiddenCount} hidden layer${hiddenCount === 1 ? "" : "s"}`,
+      status: "caveat",
+      detail: "Hidden layers are not part of a visible-layers data export.",
+    });
+  }
+  return { included, excluded, caveats: uniquePublishStrings(caveats, 6) };
+}
+
+function isOfflineEmbeddableLayer(layer: OverlayLayerConfig): boolean {
+  const persistence = layer.metadata?.persistence?.sourcePersistence ?? (layer.sourceData ? "inline" : "metadata");
+  return persistence === "inline" && Boolean(layer.sourceData);
+}
+
+function buildOfflinePackageInventory(input: {
+  overlayLayers: OverlayLayerConfig[];
+  sourceHandles: readonly SourceHandle[];
+}): {
+  included: MapPublishInventoryEntry[];
+  excluded: MapPublishInventoryEntry[];
+  sourceRestore: MapPublishInventoryEntry[];
+  caveats: string[];
+} {
+  const included: MapPublishInventoryEntry[] = [];
+  const excluded: MapPublishInventoryEntry[] = [];
+  const caveats: string[] = [];
+
+  for (const layer of input.overlayLayers) {
+    if (isOfflineEmbeddableLayer(layer)) {
+      included.push({ id: layer.id, label: layer.name, status: "ready", detail: "Inline source — embedded only if ≤ 1 MB; otherwise referenced." });
+    } else {
+      const reason = layer.sourceData
+        ? "Non-inline source — referenced, not embedded; not recoverable from the package alone."
+        : "Metadata-only / external source — referenced, not recoverable from the package alone.";
+      excluded.push({ id: layer.id, label: layer.name, status: "caveat", detail: reason });
+    }
+  }
+
+  const sourceRestore: MapPublishInventoryEntry[] = input.sourceHandles.map((handle) => ({
+    id: handle.sourceId,
+    label: shortPublishId(handle.sourceId),
+    status: restoreStatusToGisStatus(handle.restoreStatus),
+    detail: `${handle.storageMode} · ${handle.restoreStatus}${handle.caveats[0] ? ` · ${handle.caveats[0]}` : ""}`,
+  }));
+
+  for (const handle of input.sourceHandles) {
+    caveats.push(...handle.caveats);
+  }
+  if (excluded.length > 0) {
+    caveats.push("Referenced (non-embedded) sources require the original file or service on restore; they are not recoverable from the package alone.");
+  }
+  return { included, excluded, sourceRestore, caveats: uniquePublishStrings(caveats, 6) };
+}
+
+function buildReportHandoffInventory(input: {
+  overlayLayers: OverlayLayerConfig[];
+  snapshotCaptured: boolean;
+  readinessCaveats: readonly string[];
+}): { included: MapPublishInventoryEntry[]; excluded: MapPublishInventoryEntry[]; caveats: string[] } {
+  const included: MapPublishInventoryEntry[] = [];
+  const excluded: MapPublishInventoryEntry[] = [];
+  let hiddenCount = 0;
+
+  for (const layer of input.overlayLayers) {
+    if (layer.visible) {
+      included.push({ id: layer.id, label: layer.name, status: "ready", detail: `Rendered into the report snapshot image · ${layerCrsLabel(layer)}.` });
+    } else {
+      hiddenCount += 1;
+    }
+  }
+  if (hiddenCount > 0) {
+    excluded.push({
+      id: "hidden-layers",
+      label: `${hiddenCount} hidden layer${hiddenCount === 1 ? "" : "s"}`,
+      status: "caveat",
+      detail: "Hidden layers do not appear in the report snapshot.",
+    });
+  }
+
+  const caveats: string[] = [...input.readinessCaveats];
+  if (!input.snapshotCaptured) {
+    caveats.unshift("Report snapshot is metadata-only until a snapshot image is captured; no map image is embedded yet.");
+  }
+  return { included, excluded, caveats: uniquePublishStrings(caveats, 6) };
 }
 
 function publishTabLabel(tabId: MapPublishTabId): string {
@@ -8221,6 +8398,20 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const mapImageExportDisabledReason = mapPublicationReadiness.status === "blocked"
     ? mapPublicationReadiness.blockers[0]?.message ?? "Resolve publication readiness blockers before exporting a map image."
     : undefined;
+  const publishBoundsLabel = formatPublishBounds(currentMapBounds);
+  const publishBoundsStatus: GisStatusKey = currentMapBounds ? "ready" : "caveat";
+  const dataExportInventory = buildDataExportInventory({
+    overlayLayers,
+    target: exportTarget,
+    pinCount: pins.length,
+    drawingCount: drawnFeatures.length,
+  });
+  const offlinePackageInventory = buildOfflinePackageInventory({ overlayLayers, sourceHandles });
+  const reportHandoffInventory = buildReportHandoffInventory({
+    overlayLayers,
+    snapshotCaptured: Boolean(reportHandoffSnapshot?.dataUrl),
+    readinessCaveats: (reportHandoffDraft?.publicationReadiness ?? mapPublicationReadiness).caveats,
+  });
   const figureActions: MapPublishPathAction[] = [
     {
       label: "Map image export",
@@ -8480,6 +8671,17 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       meta={dataExportMeta}
       actions={dataExportActions}
     >
+      <MapPublishOutputInventory
+        outputType={`${exportFormat === "geoparquet" ? "GeoParquet" : "GeoJSON"} FeatureCollection — vector geometry + properties`}
+        outputTypeNote="Only visible vector (GeoJSON/heatmap) layers with in-memory geometry are written. Raster, vector-tile, and external-service layers are excluded, and coordinates are exported in their source CRS without reprojection."
+        included={dataExportInventory.included}
+        excluded={dataExportInventory.excluded}
+        bounds={publishBoundsLabel}
+        boundsStatus={publishBoundsStatus}
+        evidenceIds={publishEvidenceIds}
+        caveats={dataExportInventory.caveats}
+        {...(exportDisabledReason ? { disabledReason: exportDisabledReason } : {})}
+      />
       {publishLegendParityElement}
       {renderPublicationMarksPanel()}
     </MapPublishPathPanel>
@@ -8492,6 +8694,17 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       meta={reportMeta}
       actions={reportActions}
     >
+      <MapPublishOutputInventory
+        outputType="Static report snapshot (raster image) + structured evidence block and citations"
+        outputTypeNote="The snapshot is a rendered raster image of the current map, not live or queryable data. Layer geometry and source bytes are not embedded; evidence travels as references."
+        included={reportHandoffInventory.included}
+        excluded={reportHandoffInventory.excluded}
+        bounds={publishBoundsLabel}
+        boundsStatus={publishBoundsStatus}
+        evidenceIds={publishEvidenceIds}
+        caveats={reportHandoffInventory.caveats}
+        {...(reportDisabledReason ? { disabledReason: reportDisabledReason } : {})}
+      />
       {publishLegendParityElement}
       {renderPublicationMarksPanel()}
       {reportHandoffDraft ? (
@@ -8521,6 +8734,21 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       meta={offlineMeta}
       actions={offlineActions}
     >
+      <MapPublishOutputInventory
+        outputType="Offline package (.zip) — snapshot metadata, styles, manifests, review timeline, evidence references"
+        outputTypeNote="Only inline vector sources within the 1 MB limit are embedded. External, worker-table, DuckDB, URL, and oversized sources are referenced and are NOT recoverable from the package alone."
+        included={offlinePackageInventory.included}
+        excluded={offlinePackageInventory.excluded}
+        sourceRestore={offlinePackageInventory.sourceRestore}
+        bounds={publishBoundsLabel}
+        boundsStatus={publishBoundsStatus}
+        evidenceIds={publishEvidenceIds}
+        caveats={offlinePackageInventory.caveats}
+        includedLabel="Embedded in package"
+        excludedLabel="Referenced only (not embedded)"
+        emptyIncludedLabel="No inline sources qualify for embedding; all sources are referenced."
+        {...(packageExportDisabled ? { disabledReason: packageExportDisabledReason } : {})}
+      />
       {publishLegendParityElement}
       {renderPublicationMarksPanel()}
     </MapPublishPathPanel>
