@@ -8865,8 +8865,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     />
   );
 
+  const sceneViewportSyncChip = viewportSyncChip(viewportSyncEnabled, viewportSyncStatus);
   const sceneStatusChips: MapSceneStatusChip[] = (() => {
-    const sync = viewportSyncChip(viewportSyncEnabled, viewportSyncStatus);
+    const sync = sceneViewportSyncChip;
     const referenceLayer = activeTemporalLayer ?? overlayLayers.find((layer) => layer.visible) ?? overlayLayers[0] ?? null;
 
     if (activeSceneTabId === "scene-raster") {
@@ -8893,8 +8894,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     }
 
     if (activeSceneTabId === "scene-3d") {
-      const sourceKind = sourceHandleSceneKind(scene3DTerrainHandle) ?? sourceHandleSceneKind(scene3DCityModelHandle);
-      const runtimeMode = scene3DTerrainHandle?.scene3d?.runtimeMode ?? scene3DCityModelHandle?.scene3d?.runtimeMode ?? null;
+      const sourceKind = sourceHandleSceneKind(scene3DCityModelHandle) ?? sourceHandleSceneKind(scene3DTerrainHandle);
+      const runtimeMode = scene3DCityModelHandle?.scene3d?.runtimeMode ?? scene3DTerrainHandle?.scene3d?.runtimeMode ?? null;
       const crs = scene3DActiveLayerCrs ?? sourceHandleCrs(scene3DTerrainHandle) ?? sourceHandleCrs(scene3DCityModelHandle);
       const generated = sourceKind === "generated-massing" || sourceKind === "zoning-envelope" || sourceKind === "sun-shadow-result";
       const modeStatus: GisStatusKey = generated ? "synthetic" : runtimeMode === "sample" || sourceKind === "sample-3d" ? "demo" : sourceKind ? "ready" : "unknown";
@@ -8991,6 +8992,11 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     <Scene3DPanel
       visible
       presentation="embedded"
+      viewportSync={{
+        label: sceneViewportSyncChip.label,
+        status: sceneViewportSyncChip.status,
+        ...(sceneViewportSyncChip.title ? { title: sceneViewportSyncChip.title } : {}),
+      }}
       onClose={() => {
         setShowLayerPanel(false);
         announce("3D scene panel closed");

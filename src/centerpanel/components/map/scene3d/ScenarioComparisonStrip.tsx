@@ -207,7 +207,8 @@ const assumptionChipStyle: React.CSSProperties = {
 
 export interface ScenarioComparisonStripProps {
   visible: boolean;
-  onClose: () => void;
+  onClose?: () => void;
+  presentation?: "floating" | "embedded";
 }
 
 /* ------------------------------------------------------------------ */
@@ -217,6 +218,7 @@ export interface ScenarioComparisonStripProps {
 export const ScenarioComparisonStrip: React.FC<ScenarioComparisonStripProps> = ({
   visible,
   onClose,
+  presentation = "floating",
 }) => {
   const massingScenarios = useMassingStore(selectMassingScenarios);
   const activeScenarioId = useMassingStore(selectActiveScenarioId);
@@ -228,6 +230,7 @@ export const ScenarioComparisonStrip: React.FC<ScenarioComparisonStripProps> = (
   const setActiveHour = useSunShadowStore((s) => s.setActiveHour);
 
   const panelDrag = useDraggableMapPanel();
+  const embedded = presentation === "embedded";
 
   const hasMassing = massingScenarios.length > 0;
   const hasShadow = shadowScenarios.length > 0;
@@ -244,38 +247,59 @@ export const ScenarioComparisonStrip: React.FC<ScenarioComparisonStripProps> = (
 
   if (!visible) return null;
 
+  const resolvedPanelStyle: React.CSSProperties = embedded
+    ? {
+        position: "relative",
+        display: "grid",
+        gridTemplateRows: "auto minmax(0, 1fr)",
+        width: "100%",
+        border: MAP_STROKES.hairlineSubtle,
+        borderRadius: MAP_RADIUS.sm,
+        background: MAP_COLORS.bgWorkspace,
+        color: MAP_COLORS.text,
+        overflow: "hidden",
+      }
+    : { ...panelStyle, ...panelDrag.panelPositionStyle };
+
   return (
     <div
       data-testid="scenario-comparison-strip"
-      data-draggable-map-panel="true"
-      style={{ ...panelStyle, ...panelDrag.panelPositionStyle }}
+      data-presentation={presentation}
+      data-draggable-map-panel={embedded ? undefined : "true"}
+      style={resolvedPanelStyle}
     >
       {/* Header — uses GisSectionHeader primitive (Prompt 36) */}
       <GisSectionHeader
         title="Scenario comparison"
         level={3}
         separator
-        style={panelDrag.dragHandleStyle}
-        {...panelDrag.dragHandleProps}
-        actions={
-          <button
-            type="button"
-            style={closeButtonStyle}
-            aria-label="Close scenario comparison strip"
-            onClick={onClose}
-          >
-            ×
-          </button>
-        }
+        style={embedded ? undefined : panelDrag.dragHandleStyle}
+        {...(embedded ? {} : panelDrag.dragHandleProps)}
+        {...(embedded
+          ? {}
+          : {
+              actions: (
+                <button
+                  type="button"
+                  style={closeButtonStyle}
+                  aria-label="Close scenario comparison strip"
+                  onClick={onClose}
+                >
+                  ×
+                </button>
+              ),
+            })}
         data-testid="scenario-comparison-header"
       />
       {/* onMouseDown on a wrapper for drag — must surround the header */}
-      <div
-        data-map-drag-handle
-        style={{ position: "absolute", top: 0, left: 0, right: "2.5rem", height: "2.25rem", ...panelDrag.dragHandleStyle }}
-        {...panelDrag.dragHandleProps}
-        aria-hidden
-      />
+      {!embedded && (
+        <div
+          data-map-drag-handle
+          style={{ position: "absolute", top: 0, left: 0, right: "2.5rem", height: "2.25rem", ...panelDrag.dragHandleStyle }}
+          {...panelDrag.dragHandleProps}
+          aria-hidden
+        />
+      )}
 
       {/* Body */}
       <div style={bodyStyle}>
