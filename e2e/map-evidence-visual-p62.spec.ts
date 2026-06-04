@@ -79,13 +79,41 @@ async function seedPrompt62State(page: Page): Promise<void> {
       histogram: computeHistogram(rasterSamples, rasterMetadata.noData, 32),
     });
 
+    const makeTemporalFrame = (key: string, label: string, value: number) => ({
+      key,
+      label,
+      data: {
+        type: "FeatureCollection" as const,
+        features: [
+          {
+            type: "Feature" as const,
+            id: `${key}-a`,
+            geometry: { type: "Point" as const, coordinates: [29.04, 41.02] },
+            properties: { month: key, value, district: "central" },
+          },
+          {
+            type: "Feature" as const,
+            id: `${key}-b`,
+            geometry: { type: "Point" as const, coordinates: [29.12, 41.08] },
+            properties: { month: key, value: value + 6, district: "north" },
+          },
+        ],
+      },
+    });
+    const temporalFrames = [
+      makeTemporalFrame("2026-01", "Jan 2026", 120),
+      makeTemporalFrame("2026-02", "Feb 2026", 138),
+      makeTemporalFrame("2026-03", "Mar 2026", 166),
+      makeTemporalFrame("2026-04", "Apr 2026", 158),
+    ];
     const temporalStore = useTemporalLayerStore.getState();
-    temporalStore.setFrames([
-      { index: 0, key: "2026-01", label: "Jan 2026", featureCount: 24, binSum: 120 },
-      { index: 1, key: "2026-02", label: "Feb 2026", featureCount: 27, binSum: 138 },
-      { index: 2, key: "2026-03", label: "Mar 2026", featureCount: 31, binSum: 166 },
-      { index: 3, key: "2026-04", label: "Apr 2026", featureCount: 29, binSum: 158 },
-    ]);
+    temporalStore.setFrames(temporalFrames.map((frame, index) => ({
+      index,
+      key: frame.key,
+      label: frame.label,
+      featureCount: frame.data.features.length,
+      binSum: frame.data.features.reduce((sum, feature) => sum + Number(feature.properties.value ?? 0), 0),
+    })));
     temporalStore.setLayerReferences({
       activeLayerId: "p62-temporal-layer",
       sourceId: "p62-temporal-source",
@@ -154,6 +182,41 @@ async function seedPrompt62State(page: Page): Promise<void> {
     };
 
     const mapStore = useMapExplorerStore.getState();
+    mapStore.addOverlayLayer({
+      id: "p62-temporal-layer",
+      name: "P62 Temporal Evidence Layer",
+      type: "geojson",
+      visible: true,
+      opacity: 0.72,
+      group: "analysis",
+      sourceKind: "demo",
+      queryable: true,
+      qaStatus: "warning",
+      metadata: {
+        sourceId: "p62-temporal-source",
+        crsSummary,
+        featureCount: temporalFrames.reduce((sum, frame) => sum + frame.data.features.length, 0),
+        geometryType: "Point",
+        fields: ["month", "value", "district"],
+        analysisResult: {
+          engine: "EmergingHotSpots",
+          runId: "p62-temporal-demo-run",
+          runTimestamp: "2026-06-04T10:00:00.000Z",
+          parameterSummary: "Prompt 62 temporal evidence playback demo.",
+          inputParameters: { timeField: "month", valueField: "value" },
+          statisticalSummary: { frames: temporalFrames.length },
+          outputMode: "demo",
+          caveats: ["Seeded visual QA layer for temporal playback evidence; not analytical output."],
+          visualization: {
+            kind: "temporal",
+            title: "P62 Temporal Evidence Layer",
+            timeProperty: "month",
+            valueField: "value",
+            temporalFrames,
+          },
+        },
+      },
+    });
     mapStore.upsertSourceHandle(sourceHandle);
     mapStore.addOverlayLayer({
       id: "p62-generated-massing-layer",
@@ -208,13 +271,20 @@ test.describe("Prompt 62 — evidence visual states @smoke", () => {
     const rasterImage = await rasterCanvas.screenshot({ type: "png" });
     expect(countUniqueByteValues(rasterImage)).toBeGreaterThan(5);
     await page.screenshot({ path: "e2e/__screens__/p62-raster-evidence-state.png", fullPage: false });
-    await triggerDomClick(page.getByTestId("raster-panel-close"));
 
+    await triggerDomClick(page.getByTestId("map-workbench-sidebar-tab-scene-temporal"));
     const temporalPanel = page.getByTestId("temporal-player-panel");
     await expect(temporalPanel).toBeVisible();
+    await page.evaluate(async () => {
+      const { useTemporalLayerStore } = await import("/src/stores/useTemporalLayerStore.ts");
+      const temporalStore = useTemporalLayerStore.getState();
+      temporalStore.setPlaybackMode("continuous");
+      temporalStore.goToFrame(2);
+      temporalStore.pause();
+    });
     await expect(page.getByTestId("temporal-runtime-chip")).toContainText("demo");
     await expect(page.getByTestId("temporal-frame-chip")).toContainText("Frame 3/4");
-    await expect(page.getByTestId("temporal-playback-chip")).toContainText("playing");
+    await expect(page.getByTestId("temporal-playback-chip")).toContainText("paused");
     await page.screenshot({ path: "e2e/__screens__/p62-temporal-evidence-state.png", fullPage: false });
 
     await triggerDomClick(page.getByTestId("toggle-3d-panel"));

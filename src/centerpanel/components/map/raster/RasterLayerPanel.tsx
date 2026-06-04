@@ -192,7 +192,10 @@ export const RasterLayerPanel: React.FC<RasterLayerPanelProps> = ({
       ? `${formatInteger(sampledPixelCount)} sampled px of ${formatInteger(totalPixelCount)}`
       : `${formatInteger(sampledPixelCount)} px full extent`
     : "not loaded";
-  const noDataLabel = meta?.noData !== null && meta?.noData !== undefined ? `noData ${formatStatValue(meta.noData)}` : "noData missing";
+  const noDataValue = meta?.noData;
+  const noDataDeclared = noDataValue !== null && noDataValue !== undefined;
+  const noDataLabel = noDataDeclared ? `noData ${formatStatValue(noDataValue)}` : "noData missing";
+  const noDataStateLabel = noDataDeclared ? "noData declared" : "noData missing";
   const crsLabel = meta?.epsgCode ? `CRS ${meta.epsgCode}` : "CRS missing";
   const embedded = presentation === "embedded";
 
@@ -434,7 +437,7 @@ export const RasterLayerPanel: React.FC<RasterLayerPanelProps> = ({
               />
               <GisStatusChip
                 status={noDataStatusToChip(meta.noData)}
-                label={meta.noData !== null ? noDataLabel : "noData missing"}
+                label={noDataStateLabel}
                 density="compact"
                 data-testid="raster-state-nodata-chip"
               />
@@ -599,7 +602,7 @@ export const RasterLayerPanel: React.FC<RasterLayerPanelProps> = ({
               />
               <GisStatusChip
                 status={noDataStatusToChip(meta.noData)}
-                label={meta.noData !== null ? noDataLabel : "noData missing"}
+                label={noDataStateLabel}
                 density="compact"
                 data-testid="raster-legend-nodata-status-chip"
               />
