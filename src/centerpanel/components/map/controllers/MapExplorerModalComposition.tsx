@@ -97,6 +97,7 @@ import {
 } from "@/services/map/temporal";
 import {
   selectScene3DActiveLayerCrs,
+  selectScene3DBuildings,
   selectScene3DCityModelSourceHandle,
   selectScene3DMode,
   selectScene3DTerrainSourceHandle,
@@ -599,6 +600,16 @@ function sceneVerticalDatumChip(
     "caveat",
     datum.caveats.join(" "),
   );
+}
+
+function sceneVerticalDatumValue(
+  terrainHandle: SourceHandle | null,
+  cityModelHandle: SourceHandle | null,
+): string | null {
+  const datum = terrainHandle?.scene3d?.verticalDatum ?? cityModelHandle?.scene3d?.verticalDatum;
+  if (!datum) return null;
+  if (datum.status === "known" && datum.value) return datum.value;
+  return `unknown (${datum.source})`;
 }
 
 function layerCrsChip(layer: OverlayLayerConfig | null, fallback = "CRS: unknown"): MapSceneStatusChip {
@@ -3508,8 +3519,12 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   );
   const scene3DMode = useScene3DStore(selectScene3DMode);
   const scene3DActiveLayerCrs = useScene3DStore(selectScene3DActiveLayerCrs);
+  const scene3DBuildings = useScene3DStore(selectScene3DBuildings);
   const scene3DCityModelHandle = useScene3DStore(selectScene3DCityModelSourceHandle);
   const scene3DTerrainHandle = useScene3DStore(selectScene3DTerrainSourceHandle);
+  const sceneUrbanFormCrs =
+    scene3DActiveLayerCrs ?? sourceHandleCrs(scene3DTerrainHandle) ?? sourceHandleCrs(scene3DCityModelHandle);
+  const sceneUrbanFormVerticalDatum = sceneVerticalDatumValue(scene3DTerrainHandle, scene3DCityModelHandle);
 
   const handleMapContainerRef = useCallback((element: HTMLDivElement | null) => {
     mapContainerRef.current = element;
@@ -8912,7 +8927,11 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       return [
         sceneStatusChip("source-mode", selectedFeatureIds.length > 0 ? "Source mode: selected parcel" : "Source mode: parcel required", selectedFeatureIds.length > 0 ? "ready" : "caveat"),
         layerCrsChip(referenceLayer, "CRS: parcel layer unknown"),
-        sceneStatusChip("vertical-datum", "Vertical datum: n/a", "unknown"),
+        sceneStatusChip(
+          "vertical-datum",
+          sceneUrbanFormVerticalDatum ? `Vertical datum: ${sceneUrbanFormVerticalDatum}` : "Vertical datum: planar zoning heights",
+          sceneUrbanFormVerticalDatum ? "ready" : "caveat",
+        ),
         sceneStatusChip("sample-generated", "Sample/generated: user rules", "ready"),
         sync,
       ];
@@ -9014,6 +9033,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         announce("Zoning rules panel closed");
       }}
       selectedParcelId={selectedFeatureIds[0] ?? null}
+      declaredCrs={sceneUrbanFormCrs}
+      verticalDatum={sceneUrbanFormVerticalDatum}
+      buildingPrerequisiteCount={scene3DBuildings.length}
     />
   );
 
@@ -9026,6 +9048,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         announce("Massing scenarios panel closed");
       }}
       parcelId={selectedFeatureIds[0] ?? null}
+      declaredCrs={sceneUrbanFormCrs}
+      verticalDatum={sceneUrbanFormVerticalDatum}
+      buildingPrerequisiteCount={scene3DBuildings.length}
     />
   );
 

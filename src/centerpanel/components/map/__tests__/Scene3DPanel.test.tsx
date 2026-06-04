@@ -236,6 +236,10 @@ describe("Scene3DPanel", () => {
     expect(text("scene3d-terrain-metadata")).toContain("Terrain");
     expect(text("scene3d-terrain-metadata")).toContain("2,048");
     expect(text("scene3d-tiles-metadata")).toContain("not linked");
+    expect(text("scene3d-urban-form-controls")).toContain("View corridor: ready");
+    expect(text("scene3d-urban-form-controls")).toContain("Section/cut plane: ready");
+    expect(text("scene3d-analysis-projected-crs-chip")).toContain("EPSG:32635");
+    expect(text("scene3d-analysis-vertical-chip")).toContain("EGM96 geoid height");
     expect(query("scene3d-terrain-canvas")).not.toBeNull();
     expect(query("scene3d-interaction-strip")?.getAttribute("data-presentation")).toBe("embedded");
     expect(query("scene3d-interaction-strip")?.getAttribute("data-position")).toBe("docked");

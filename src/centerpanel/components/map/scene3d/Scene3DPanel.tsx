@@ -376,6 +376,23 @@ function sourceCrsLabel(handle: SourceHandle | null): string {
   return handle.crsSummary.status === "known" && handle.crsSummary.crs ? handle.crsSummary.crs : "not declared";
 }
 
+function isProjectedCrs(crs: string | null | undefined): boolean {
+  if (!crs) return false;
+  return !/(EPSG:4326|WGS\s*84|CRS84)/i.test(crs);
+}
+
+function analysisProjectedCrsStatus(crs: string | null | undefined): GisStatusKey {
+  return isProjectedCrs(crs) ? "ready" : "blocked";
+}
+
+function analysisToolStatus(
+  result: ViewCorridorAnalysisResult | SectionPlaneAnalysisResult | null,
+  hasBuildings: boolean,
+): GisStatusKey {
+  if (result) return result.status === "ready" ? "generated" : "blocked";
+  return hasBuildings ? "unknown" : "blocked";
+}
+
 function formatOptionalNumber(value: number | null | undefined): string {
   return value == null ? "not recorded" : value.toLocaleString();
 }
@@ -1070,6 +1087,46 @@ export const Scene3DPanel: React.FC<Scene3DPanelProps> = ({
         {previewActive && (
           <div style={analysisPanelStyle} data-testid="scene3d-analysis-tools">
             <span style={sectionTitleStyle}>Corridor + section</span>
+            <div style={stateChipRowStyle} data-testid="scene3d-urban-form-controls">
+              <GisStatusChip
+                status={analysisToolStatus(viewCorridorResult, sceneBuildings.length > 0)}
+                label={viewCorridorResult
+                  ? "View corridor: generated"
+                  : sceneBuildings.length > 0
+                    ? "View corridor: ready"
+                    : "View corridor: buildings required"}
+                density="compact"
+                data-testid="scene3d-view-corridor-control-chip"
+              />
+              <GisStatusChip
+                status={analysisToolStatus(sectionPlaneResult, sceneBuildings.length > 0)}
+                label={sectionPlaneResult
+                  ? "Section/cut plane: generated"
+                  : sceneBuildings.length > 0
+                    ? "Section/cut plane: ready"
+                    : "Section/cut plane: buildings required"}
+                density="compact"
+                data-testid="scene3d-section-cut-control-chip"
+              />
+              <GisStatusChip
+                status={analysisProjectedCrsStatus(activeLayerCrs)}
+                label={`Projected CRS: ${activeLayerCrs ?? "missing"}`}
+                density="compact"
+                data-testid="scene3d-analysis-projected-crs-chip"
+              />
+              <GisStatusChip
+                status={verticalDatumStatus(terrainHandle ?? cityModelHandle)}
+                label={`Vertical: ${verticalDatumLabel(terrainHandle ?? cityModelHandle)}`}
+                density="compact"
+                data-testid="scene3d-analysis-vertical-chip"
+              />
+              <GisStatusChip
+                status={sceneBuildings.length > 0 ? "ready" : "blocked"}
+                label={`Buildings: ${sceneBuildings.length} scene masses`}
+                density="compact"
+                data-testid="scene3d-analysis-building-prerequisite-chip"
+              />
+            </div>
             <div style={rowStyle} data-testid="scene3d-analysis-crs">
               <span style={keyStyle}>Execution CRS</span>
               <span>{resultExecutionCrs(viewCorridorResult, sectionPlaneResult, activeLayerCrs) ?? "not declared"}</span>

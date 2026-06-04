@@ -21,6 +21,7 @@ import {
   MAP_TYPOGRAPHY,
   MAP_Z_INDEX,
 } from "../mapTokens";
+import { GisStatusChip } from "../ui/GisStatusChip";
 import { createOpaqueFloatingPanelStyle, useDraggableMapPanel } from "../useDraggableMapPanel";
 
 /* ------------------------------------------------------------------ */
@@ -181,6 +182,22 @@ const warningStyle: React.CSSProperties = {
   borderColor: MAP_COLORS.caveat,
 };
 
+const assumptionPanelStyle: React.CSSProperties = {
+  display: "grid",
+  gap: MAP_SPACING.sm,
+  padding: MAP_SPACING.sm,
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.sm,
+  background: MAP_COLORS.bgWorkspace,
+};
+
+const assumptionChipRowStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  flexWrap: "wrap",
+  gap: MAP_SPACING.xs,
+};
+
 const footerStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
@@ -264,6 +281,7 @@ export const SunShadowPanel: React.FC<SunShadowPanelProps> = ({
 
   const solarPosition = computeSolarPosition(latitude, longitude, activeDateTime);
   const sunBelowHorizon = solarPosition.altitudeDeg <= 0;
+  const scenarioBuildingCount = scenarios.reduce((count, scenario) => count + scenario.buildings.length, 0);
 
   const handlePublish = useCallback(() => {
     if (!activeScenarioId) return;
@@ -309,6 +327,46 @@ export const SunShadowPanel: React.FC<SunShadowPanelProps> = ({
 
       {/* ---- Body ---- */}
       <div style={embedded ? { ...bodyStyle, overflowY: "visible" } : bodyStyle}>
+        <section style={assumptionPanelStyle} data-testid="sunshadow-urban-form-assumptions">
+          <p style={sectionTitleStyle}>Urban form assumptions</p>
+          <div style={assumptionChipRowStyle}>
+            <GisStatusChip
+              status="caveat"
+              label="Projected CRS: not used (EPSG:4326 display)"
+              density="compact"
+              data-testid="sunshadow-projected-crs"
+            />
+            <GisStatusChip
+              status="demo"
+              label="Vertical: assumed-flat-terrain"
+              density="compact"
+              data-testid="sunshadow-vertical-assumption"
+            />
+            <GisStatusChip
+              status="demo"
+              label="Runtime: demo-mode"
+              density="compact"
+              data-testid="sunshadow-runtime-assumption"
+            />
+            <GisStatusChip
+              status={scenarioBuildingCount > 0 ? "ready" : "blocked"}
+              label={`Buildings: ${scenarioBuildingCount} in scenarios`}
+              density="compact"
+              data-testid="sunshadow-building-prerequisite-chip"
+            />
+            <GisStatusChip
+              status={activeScenarioId ? "generated" : "unknown"}
+              label={activeScenarioId ? "Shadow evidence ready" : "Evidence: no active scenario"}
+              density="compact"
+              data-testid="sunshadow-evidence-state-chip"
+            />
+          </div>
+          <div style={solarInfoStyle} data-testid="sunshadow-prerequisites">
+            <span style={keyStyle}>Controls</span>
+            <span style={valueStyle}>Sun path, scenario shadows, flat-terrain caveats, and evidence publishing.</span>
+          </div>
+        </section>
+
         {/* Timeline */}
         <section>
           <p style={sectionTitleStyle}>Timeline</p>
@@ -366,7 +424,7 @@ export const SunShadowPanel: React.FC<SunShadowPanelProps> = ({
           <p style={sectionTitleStyle}>Scenarios ({scenarios.length})</p>
           {scenarios.length === 0 && (
             <p style={{ ...valueStyle, marginTop: MAP_SPACING.sm }}>
-              No scenarios. Use the store API to add scenarios.
+              No shadow scenarios; parcel and building prerequisites are listed above.
             </p>
           )}
           <div style={{ display: "grid", gap: MAP_SPACING.sm, marginTop: MAP_SPACING.sm }}>
@@ -420,6 +478,23 @@ export const SunShadowPanel: React.FC<SunShadowPanelProps> = ({
                   <div style={{ fontSize: MAP_TYPOGRAPHY.fontSize.xs, color: MAP_COLORS.textMuted, fontFamily: MAP_TYPOGRAPHY.fontFamilyMono }}>
                     mode: {sc.result?.assumptions.runtimeMode ?? "—"} ·{" "}
                     {sc.result?.assumptions.solarModel ?? "—"}
+                  </div>
+                  <div style={assumptionChipRowStyle} data-testid="sunshadow-scenario-chips">
+                    <GisStatusChip
+                      status={sc.result ? "generated" : "metadata-only"}
+                      label={sc.result ? "Generated shadow" : "Metadata only"}
+                      density="compact"
+                    />
+                    <GisStatusChip
+                      status="demo"
+                      label={`Vertical: ${sc.result?.assumptions.verticalDatum ?? "assumed-flat-terrain"}`}
+                      density="compact"
+                    />
+                    <GisStatusChip
+                      status={sc.geometrySource === "user-provided" ? "ready" : "synthetic"}
+                      label={`Source: ${sc.geometrySource}`}
+                      density="compact"
+                    />
                   </div>
                 </div>
               );

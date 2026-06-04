@@ -2,8 +2,9 @@
  * ZoningRulesPanel — rule table editor + parcel assignment + metrics display.
  * mapTokens only, no Tailwind, no hard-coded hex.
  */
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { AlertTriangle, CheckCircle2, Plus, Trash2, X, Layers } from "lucide-react";
+import type { Feature, MultiPolygon, Polygon } from "geojson";
 import {
   selectAssignmentForParcel,
   selectZoningAssignments,
@@ -19,9 +20,15 @@ import {
   MAP_STROKES,
   MAP_TYPOGRAPHY,
   MAP_Z_INDEX,
+  type GisStatusKey,
 } from "../mapTokens";
+import { GisStatusChip } from "../ui/GisStatusChip";
 import { createOpaqueFloatingPanelStyle, useDraggableMapPanel } from "../useDraggableMapPanel";
 import type { ZoningRuleInput } from "@/services/map/zoning/ZoningRuleEngine";
+import {
+  computeZoningEnvelope,
+  type ZoningEnvelopeResult,
+} from "@/services/map/zoning/ZoningEnvelopeEngine";
 
 /* ------------------------------------------------------------------ */
 /*  Props                                                               */
@@ -32,6 +39,12 @@ export interface ZoningRulesPanelProps {
   onClose: () => void;
   /** Currently selected parcel ID (from 2D map selection). */
   selectedParcelId?: string | number | null;
+  /** Scene-level CRS context when the panel is embedded in Scene > Urban Form. */
+  declaredCrs?: string | null;
+  /** Scene-level vertical datum or height basis, surfaced as an assumption. */
+  verticalDatum?: string | null;
+  /** Optional building context count used for existing FAR/coverage prerequisites. */
+  buildingPrerequisiteCount?: number;
   presentation?: "floating" | "embedded";
 }
 
@@ -179,6 +192,22 @@ const caveatStyle: React.CSSProperties = {
   borderColor: MAP_COLORS.caveat,
 };
 
+const assumptionPanelStyle: React.CSSProperties = {
+  display: "grid",
+  gap: MAP_SPACING.sm,
+  padding: MAP_SPACING.sm,
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.sm,
+  background: MAP_COLORS.bgWorkspace,
+};
+
+const assumptionChipRowStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  flexWrap: "wrap",
+  gap: MAP_SPACING.xs,
+};
+
 const footerStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
@@ -217,6 +246,67 @@ const DEFAULT_RULE: ZoningRuleInput = {
   notes: undefined,
 };
 
+function isProjectedCrs(crs: string | null | undefined): boolean {
+  if (!crs) return false;
+  return !/(EPSG:4326|WGS\s*84|CRS84)/i.test(crs);
+}
+
+function projectedCrsStatus(crs: string | null | undefined): GisStatusKey {
+  return isProjectedCrs(crs) ? "ready" : "blocked";
+}
+
+function projectedCrsLabel(crs: string | null | undefined): string {
+  return `Projected CRS: ${crs && crs.trim() ? crs : "missing"}`;
+}
+
+function verticalAssumptionLabel(verticalDatum: string | null | undefined): string {
+  return verticalDatum && verticalDatum.trim()
+    ? `Vertical: ${verticalDatum}`
+    : "Vertical: planar rule heights";
+}
+
+function findParcelFeature(
+  parcels: Array<Feature<Polygon | MultiPolygon>>,
+  selectedParcelId: string | number | null | undefined,
+): Feature<Polygon | MultiPolygon> | null {
+  if (selectedParcelId == null) return null;
+  return parcels.find((feature) =>
+    String(feature.id ?? feature.properties?.id) === String(selectedParcelId),
+  ) ?? null;
+}
+
+function isPolygonFeature(
+  feature: Feature<Polygon | MultiPolygon> | null,
+): feature is Feature<Polygon> {
+  return feature?.geometry.type === "Polygon";
+}
+
+function envelopeStatus(
+  selectedParcel: Feature<Polygon | MultiPolygon> | null,
+  currentRule: ReturnType<typeof useZoningStore.getState>["rules"][number] | null,
+  declaredCrs: string | null,
+  envelope: ZoningEnvelopeResult | null,
+): GisStatusKey {
+  if (!selectedParcel || !isPolygonFeature(selectedParcel) || !currentRule) return "blocked";
+  if (!isProjectedCrs(declaredCrs)) return "blocked";
+  if (!envelope || envelope.crsResult.blocked) return "blocked";
+  return envelope.collapsed ? "caveat" : "ready";
+}
+
+function envelopeLabel(
+  selectedParcel: Feature<Polygon | MultiPolygon> | null,
+  currentRule: ReturnType<typeof useZoningStore.getState>["rules"][number] | null,
+  envelope: ZoningEnvelopeResult | null,
+): string {
+  if (!selectedParcel) return "Envelope: parcel required";
+  if (!isPolygonFeature(selectedParcel)) return "Envelope: Polygon parcel required";
+  if (!currentRule) return "Envelope: zoning rule required";
+  if (!envelope) return "Envelope: pending";
+  if (envelope.crsResult.blocked) return "Envelope: CRS blocked";
+  if (envelope.collapsed) return "Envelope: setback collapsed";
+  return "Envelope: ready";
+}
+
 /* ------------------------------------------------------------------ */
 /*  Component                                                           */
 /* ------------------------------------------------------------------ */
@@ -225,6 +315,9 @@ export const ZoningRulesPanel: React.FC<ZoningRulesPanelProps> = ({
   visible,
   onClose,
   selectedParcelId,
+  declaredCrs,
+  verticalDatum,
+  buildingPrerequisiteCount = 0,
   presentation = "floating",
 }) => {
   const panelDrag = useDraggableMapPanel();
@@ -236,6 +329,8 @@ export const ZoningRulesPanel: React.FC<ZoningRulesPanelProps> = ({
   const removeRule = useZoningStore((s) => s.removeRule);
   const assignRule = useZoningStore((s) => s.assignRule);
   const unassignRule = useZoningStore((s) => s.unassignRule);
+  const activeParcels = useZoningStore((s) => s.activeParcels);
+  const activeDeclaredCrs = useZoningStore((s) => s.activeDeclaredCrs);
 
   const currentAssignment = useZoningStore(
     selectAssignmentForParcel(selectedParcelId ?? ""),
@@ -265,6 +360,29 @@ export const ZoningRulesPanel: React.FC<ZoningRulesPanelProps> = ({
   }, [unassignRule, selectedParcelId]);
 
   const metrics = currentAssignment?.metrics ?? null;
+  const effectiveDeclaredCrs = declaredCrs ?? activeDeclaredCrs;
+  const selectedParcel = useMemo(
+    () => findParcelFeature(activeParcels?.features ?? [], selectedParcelId),
+    [activeParcels?.features, selectedParcelId],
+  );
+  const currentRule = useMemo(
+    () => rules.find((rule) => rule.id === currentAssignment?.ruleId) ?? null,
+    [currentAssignment?.ruleId, rules],
+  );
+  const envelopeResult = useMemo(() => {
+    if (!isPolygonFeature(selectedParcel) || !currentRule) return null;
+    return computeZoningEnvelope({
+      parcel: selectedParcel,
+      rule: currentRule,
+      declaredCrs: effectiveDeclaredCrs,
+    });
+  }, [currentRule, effectiveDeclaredCrs, selectedParcel]);
+  const resolvedEnvelopeStatus = envelopeStatus(
+    selectedParcel,
+    currentRule,
+    effectiveDeclaredCrs,
+    envelopeResult,
+  );
 
   if (!visible) return null;
 
@@ -294,6 +412,84 @@ export const ZoningRulesPanel: React.FC<ZoningRulesPanelProps> = ({
 
       {/* Body */}
       <div style={embedded ? { ...bodyStyle, overflowY: "visible" } : bodyStyle}>
+        <section style={assumptionPanelStyle} data-testid="zoning-urban-form-assumptions">
+          <span style={sectionTitleStyle}>Urban form prerequisites</span>
+          <div style={assumptionChipRowStyle}>
+            <GisStatusChip
+              status={selectedParcel ? "ready" : "blocked"}
+              label={selectedParcel ? `Parcel: #${String(selectedParcelId)}` : "Parcel: none selected"}
+              density="compact"
+              data-testid="zoning-parcel-prerequisite-chip"
+            />
+            <GisStatusChip
+              status={projectedCrsStatus(effectiveDeclaredCrs)}
+              label={projectedCrsLabel(effectiveDeclaredCrs)}
+              density="compact"
+              data-testid="zoning-projected-crs"
+            />
+            <GisStatusChip
+              status={verticalDatum && verticalDatum.trim() ? "ready" : "caveat"}
+              label={verticalAssumptionLabel(verticalDatum)}
+              density="compact"
+              data-testid="zoning-vertical-assumption"
+            />
+            <GisStatusChip
+              status={buildingPrerequisiteCount > 0 ? "ready" : "unknown"}
+              label={`Buildings: ${buildingPrerequisiteCount} context`}
+              density="compact"
+              data-testid="zoning-building-prerequisite-chip"
+            />
+            <GisStatusChip
+              status={resolvedEnvelopeStatus}
+              label={envelopeLabel(selectedParcel, currentRule, envelopeResult)}
+              density="compact"
+              data-testid="zoning-envelope-prerequisite-chip"
+            />
+          </div>
+          <div style={rowStyle} data-testid="zoning-prerequisites">
+            <span style={keyStyle}>Controls</span>
+            <span>Zoning rules, zoning envelope, parcel metrics, and scenario handoff stay CRS-gated.</span>
+          </div>
+        </section>
+
+        <section style={assumptionPanelStyle} data-testid="zoning-envelope-summary">
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: MAP_SPACING.sm }}>
+            <span style={sectionTitleStyle}>Zoning envelope</span>
+            <GisStatusChip
+              status={resolvedEnvelopeStatus}
+              label={envelopeLabel(selectedParcel, currentRule, envelopeResult)}
+              density="compact"
+            />
+          </div>
+          <div style={metricGridStyle}>
+            <div style={metricCellStyle}>
+              <span style={keyStyle}>Setback</span>
+              <span>{currentRule ? `${currentRule.minSetbackMetres.toFixed(1)} m` : "rule required"}</span>
+            </div>
+            <div style={metricCellStyle}>
+              <span style={keyStyle}>Buildable area</span>
+              <span>{envelopeResult && !envelopeResult.crsResult.blocked ? `${envelopeResult.buildableAreaM2.toFixed(1)} m²` : "blocked"}</span>
+            </div>
+            <div style={metricCellStyle}>
+              <span style={keyStyle}>Capacity</span>
+              <span>{envelopeResult && !envelopeResult.crsResult.blocked ? `${envelopeResult.capacityMaxFloorAreaM2.toFixed(0)} m²` : "blocked"}</span>
+            </div>
+            <div style={metricCellStyle}>
+              <span style={keyStyle}>Rule</span>
+              <span>{currentRule ? `${currentRule.zoneCode} · FAR ${currentRule.maxFAR}` : "not assigned"}</span>
+            </div>
+          </div>
+          {envelopeResult?.caveats.length ? (
+            <div style={{ display: "grid", gap: MAP_SPACING.xs }}>
+              {envelopeResult.caveats.slice(0, 2).map((caveat) => (
+                <div key={caveat} style={caveatStyle}>
+                  <AlertTriangle size={MAP_ICON_SIZES.xs} aria-hidden="true" />
+                  <span>{caveat}</span>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </section>
 
         {/* Selected parcel + metrics */}
         {selectedParcelId != null && (
