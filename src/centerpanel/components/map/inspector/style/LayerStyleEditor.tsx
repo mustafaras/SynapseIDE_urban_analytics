@@ -26,6 +26,9 @@ import {
 export interface LayerStyleEditorProps {
   layer: OverlayLayerConfig;
   onApplyStyle?: (layerId: string, update: LayerStyleUpdate) => void;
+  rendererMode?: SerializedLegendMode;
+  onRendererModeChange?: (mode: SerializedLegendMode) => void;
+  disabledModeReasons?: Partial<Record<SerializedLegendMode, string>>;
 }
 
 const sectionStyle: React.CSSProperties = {
@@ -164,24 +167,55 @@ function usesClassificationControls(mode: SerializedLegendMode): boolean {
   return mode === "choropleth" || mode === "graduated-symbol" || mode === "proportional-symbol";
 }
 
-export const LayerStyleEditor: React.FC<LayerStyleEditorProps> = ({ layer, onApplyStyle }) => {
+export const LayerStyleEditor: React.FC<LayerStyleEditorProps> = ({
+  layer,
+  onApplyStyle,
+  rendererMode,
+  onRendererModeChange,
+  disabledModeReasons,
+}) => {
   const defaults = useMemo(() => getDefaultLayerStyleOptions(layer), [layer]);
   const allFields = useMemo(() => getLayerStyleFieldNames(layer), [layer]);
   const numericFields = useMemo(() => getLayerNumericStyleFieldNames(layer), [layer]);
   const rampOptions = useMemo(() => listColorRampDefinitions(), []);
-  const [options, setOptions] = useState<LayerStyleEditorOptions>(defaults);
+  const initialOptions = useMemo(
+    () => ({
+      ...defaults,
+      ...(rendererMode ? { mode: rendererMode } : {}),
+    }),
+    [defaults, rendererMode],
+  );
+  const [options, setOptions] = useState<LayerStyleEditorOptions>(initialOptions);
   const preview = useMemo(() => buildLayerStyleUpdate(layer, options), [layer, options]);
   const fieldChoices = options.mode === "categorical" ? allFields : numericFields.length > 0 ? numericFields : allFields;
   const secondaryFieldChoices = numericFields.filter((field) => field !== options.field);
   const bivariateEntries = preview.legendSpec.entries.filter((entry) => entry.kind === "bivariate" && !entry.noData);
+  const selectedModeDisabledReason = disabledModeReasons?.[options.mode];
   const canApply = Boolean(onApplyStyle) &&
+    !selectedModeDisabledReason &&
     (!isFieldDrivenMode(options.mode) || Boolean(options.field)) &&
     (options.mode !== "bivariate-choropleth" || Boolean(options.secondaryField)) &&
     (options.mode !== "dot-density" || options.dotValuePerDot > 0) &&
     (!options.labelsEnabled || Boolean(options.labelField));
 
+  React.useEffect(() => {
+    setOptions(initialOptions);
+  }, [initialOptions]);
+
   const patchOptions = (patch: Partial<LayerStyleEditorOptions>) => {
     setOptions((current) => ({ ...current, ...patch }));
+  };
+
+  const handleModeChange = (mode: SerializedLegendMode) => {
+    const nextSecondaryField = mode === "bivariate-choropleth"
+      ? options.secondaryField ?? numericFields.find((field) => field !== options.field)
+      : options.secondaryField;
+    patchOptions({
+      mode,
+      ...(options.field ? { field: options.field } : {}),
+      ...(nextSecondaryField ? { secondaryField: nextSecondaryField } : {}),
+    });
+    onRendererModeChange?.(mode);
   };
 
   return (
@@ -199,20 +233,20 @@ export const LayerStyleEditor: React.FC<LayerStyleEditorProps> = ({ layer, onApp
           <select
             style={inputStyle}
             value={options.mode}
+            data-testid="map-layer-style-mode-select"
             onChange={(event) => {
               const mode = event.target.value as SerializedLegendMode;
-              const nextSecondaryField = mode === "bivariate-choropleth"
-                ? options.secondaryField ?? numericFields.find((field) => field !== options.field)
-                : options.secondaryField;
-              patchOptions({
-                mode,
-                ...(options.field ? { field: options.field } : {}),
-                ...(nextSecondaryField ? { secondaryField: nextSecondaryField } : {}),
-              });
+              handleModeChange(mode);
             }}
           >
             {MODE_OPTIONS.map((mode) => (
-              <option key={mode.value} value={mode.value}>{mode.label}</option>
+              <option
+                key={mode.value}
+                value={mode.value}
+                disabled={Boolean(disabledModeReasons?.[mode.value])}
+              >
+                {mode.label}
+              </option>
             ))}
           </select>
         </label>
@@ -238,6 +272,12 @@ export const LayerStyleEditor: React.FC<LayerStyleEditorProps> = ({ layer, onApp
           </select>
         </label>
       </div>
+
+      {selectedModeDisabledReason ? (
+        <div style={badgeStyle} data-testid="map-layer-style-mode-disabled-reason">
+          {selectedModeDisabledReason}
+        </div>
+      ) : null}
 
       {options.mode === "bivariate-choropleth" ? (
         <div style={gridStyle}>

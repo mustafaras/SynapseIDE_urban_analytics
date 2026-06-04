@@ -18,6 +18,7 @@ import {
   getSerializedLegendSpecFromStyle,
   serializedLegendSpecToCompositionItems,
   type LayerStyleUpdate,
+  type SerializedLegendMode,
   type SerializedMapLegendSpec,
 } from "../inspector/style/legendContract";
 import type { OverlayLayerConfig } from "../mapTypes";
@@ -39,6 +40,29 @@ export type MapStyleTabId = Extract<
 >;
 
 type StyleSymbolMode = SymbolMode | "heatmap";
+type RendererChoiceStatus = "ready" | "limited" | "blocked";
+
+interface RendererChoice {
+  mode: SerializedLegendMode;
+  label: string;
+  description: string;
+  status: RendererChoiceStatus;
+  reason: string | null;
+  facts: string[];
+}
+
+interface RendererEligibilitySummary {
+  label: string;
+  status: "eligible" | "limited" | "blocked";
+  reasons: string[];
+  fieldCount: number;
+  numericFieldCount: number;
+  categoricalFieldCount: number;
+  staleLabel: string;
+  stale: boolean;
+  caveats: string[];
+  disabledModeReasons: Partial<Record<SerializedLegendMode, string>>;
+}
 
 export interface MapStyleWorkspaceProps {
   activeTabId: string;
@@ -220,6 +244,50 @@ const swatchStyle: React.CSSProperties = {
   border: MAP_STROKES.hairlineSubtle,
 };
 
+const readinessGridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(8.5rem, 1fr))",
+  gap: MAP_SPACING.xs,
+};
+
+const readinessCellStyle: React.CSSProperties = {
+  display: "grid",
+  gap: "0.125rem",
+  minWidth: 0,
+  padding: MAP_SPACING.sm,
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.sm,
+  background: MAP_COLORS.transparent,
+};
+
+const rendererChoiceGridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(9.75rem, 1fr))",
+  gap: MAP_SPACING.xs,
+};
+
+const rendererChoiceTitleStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: MAP_SPACING.xs,
+  minWidth: 0,
+};
+
+const caveatListStyle: React.CSSProperties = {
+  display: "grid",
+  gap: MAP_SPACING.xs,
+};
+
+const caveatRowStyle: React.CSSProperties = {
+  padding: MAP_SPACING.sm,
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.sm,
+  color: MAP_COLORS.textSecondary,
+  background: MAP_COLORS.transparent,
+  lineHeight: MAP_TYPOGRAPHY.lineHeight.normal,
+};
+
 function actionButtonStyle(active = false, disabled = false): React.CSSProperties {
   return {
     display: "inline-flex",
@@ -241,6 +309,29 @@ function actionButtonStyle(active = false, disabled = false): React.CSSPropertie
   };
 }
 
+function rendererChoiceStyle(
+  active: boolean,
+  status: RendererChoiceStatus,
+): React.CSSProperties {
+  const blocked = status === "blocked";
+  return {
+    display: "grid",
+    alignContent: "start",
+    gap: MAP_SPACING.xs,
+    width: "100%",
+    minHeight: "7rem",
+    padding: MAP_SPACING.sm,
+    border: active ? MAP_STROKES.hairlineStrong : MAP_STROKES.hairlineSubtle,
+    borderRadius: MAP_RADIUS.sm,
+    background: active ? MAP_COLORS.selectedSubtle : MAP_COLORS.transparent,
+    color: blocked ? MAP_COLORS.textMuted : MAP_COLORS.text,
+    cursor: blocked ? "not-allowed" : "pointer",
+    opacity: blocked ? 0.62 : 1,
+    textAlign: "left",
+    fontFamily: MAP_TYPOGRAPHY.fontFamily,
+  };
+}
+
 function normalizeGeometryType(layer: OverlayLayerConfig | null): string {
   return layer?.metadata?.geometryType?.trim() || (layer?.type === "heatmap" ? "Point" : "Unknown geometry");
 }
@@ -248,6 +339,15 @@ function normalizeGeometryType(layer: OverlayLayerConfig | null): string {
 function isPointGeometryLabel(geometryType: string): boolean {
   const lower = geometryType.toLowerCase();
   return lower.includes("point");
+}
+
+function isPolygonGeometryLabel(geometryType: string): boolean {
+  const lower = geometryType.toLowerCase();
+  return lower.includes("polygon");
+}
+
+function hasFeatureRendererSource(layer: OverlayLayerConfig | null): boolean {
+  return layer?.type === "geojson" || layer?.type === "heatmap";
 }
 
 function formatStatusLabel(value: string | undefined, fallback: string): string {
@@ -267,13 +367,213 @@ function getLayerPublicationLabel(layer: OverlayLayerConfig): string {
   return formatStatusLabel(layer.metadata?.publicationReadiness?.status, "needs-review");
 }
 
-function getRendererEligibility(layer: OverlayLayerConfig | null): {
-  label: string;
-  status: "eligible" | "limited" | "blocked";
-  reasons: string[];
-  fieldCount: number;
-  numericFieldCount: number;
-} {
+function getStaleResultLabel(layer: OverlayLayerConfig): { label: string; stale: boolean } {
+  if (layer.metadata?.analysisResult?.stale) {
+    return { label: "Stale result", stale: true };
+  }
+  if (layer.metadata?.externalService?.dependencyStatus === "stale") {
+    return { label: "Stale source", stale: true };
+  }
+  if (layer.metadata?.persistence?.restoreState === "stale-reference") {
+    return { label: "Stale reference", stale: true };
+  }
+  if (layer.metadata?.analysisResult) {
+    return { label: "Result current", stale: false };
+  }
+  return { label: "No derived result", stale: false };
+}
+
+function dedupeMessages(values: Array<string | null | undefined>): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+
+  values.forEach((value) => {
+    if (typeof value !== "string") return;
+    const normalized = value.trim();
+    if (!normalized) return;
+    const key = normalized.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    result.push(normalized);
+  });
+
+  return result;
+}
+
+function getLayerReadinessCaveats(layer: OverlayLayerConfig): string[] {
+  const metadata = layer.metadata;
+  const scaleReasons = metadata?.scientificQA?.categorySummaries
+    ?.filter((summary) => summary.category === "scale" && summary.severity !== "pass")
+    .flatMap((summary) => summary.reasons) ?? [];
+  const crsSummary = metadata?.crsSummary;
+  const renderBudget = metadata?.rendering;
+
+  return dedupeMessages([
+    ...(metadata?.scientificQA?.caveats ?? []),
+    ...(metadata?.publicationReadiness?.caveats ?? []),
+    ...(metadata?.analysisResult?.caveats ?? []),
+    ...(metadata?.externalService?.caveats ?? []),
+    ...(renderBudget?.warnings ?? []),
+    ...scaleReasons,
+    crsSummary?.status === "missing" ? "CRS metadata is missing; metric styling and export scale should be reviewed." : null,
+    crsSummary?.status === "unknown" ? "CRS metadata is unknown; classification and publication context need review." : null,
+    renderBudget?.mode === "preview" ? "Layer is rendering in preview mode; confirm full-resolution symbology before export." : null,
+    metadata?.analysisResult?.stale ? "Analysis output is stale; re-run or mark the layer before publishing updated symbology." : null,
+    metadata?.externalService?.dependencyStatus === "offline" ? "External service is offline; source freshness cannot be verified." : null,
+    metadata?.externalService?.dependencyStatus === "stale" ? "External service dependency is stale; refresh before final cartography." : null,
+    metadata?.publicationReadiness?.missingFields.length
+      ? `Publication readiness is missing: ${metadata.publicationReadiness.missingFields.join(", ")}.`
+      : null,
+    metadata?.publicationReadiness?.blockingIssueIds.length
+      ? `${metadata.publicationReadiness.blockingIssueIds.length.toLocaleString()} publication blocker(s) remain.`
+      : null,
+  ]);
+}
+
+function addRendererReason(reasons: string[], condition: boolean, message: string): void {
+  if (condition) {
+    reasons.push(message);
+  }
+}
+
+function buildDisabledReason(reasons: string[]): string | null {
+  return reasons.length > 0 ? reasons.join(" ") : null;
+}
+
+function rendererStatus(reason: string | null, limited = false): RendererChoiceStatus {
+  if (reason) return "blocked";
+  return limited ? "limited" : "ready";
+}
+
+function buildRendererChoice(
+  mode: SerializedLegendMode,
+  label: string,
+  description: string,
+  facts: string[],
+  reasons: string[],
+  limited = false,
+): RendererChoice {
+  const reason = buildDisabledReason(reasons);
+  return {
+    mode,
+    label,
+    description,
+    status: rendererStatus(reason, limited),
+    reason,
+    facts,
+  };
+}
+
+function buildRendererChoices(layer: OverlayLayerConfig | null): RendererChoice[] {
+  const geometryType = normalizeGeometryType(layer);
+  const fieldCount = layer ? getLayerStyleFieldNames(layer).length : 0;
+  const numericFieldCount = layer ? getLayerNumericStyleFieldNames(layer).length : 0;
+  const categoricalFieldCount = fieldCount;
+  const hasLayer = Boolean(layer);
+  const featureSource = hasFeatureRendererSource(layer);
+  const pointGeometry = isPointGeometryLabel(geometryType);
+  const polygonGeometry = isPolygonGeometryLabel(geometryType);
+  const hasNumeric = numericFieldCount > 0;
+  const hasTwoNumeric = numericFieldCount > 1;
+  const hasCategorical = categoricalFieldCount > 0;
+  const noLayerReason = "Select a layer before choosing a renderer.";
+  const sourceReason = "Renderer needs a GeoJSON or heatmap layer.";
+  const polygonReason = `Renderer needs polygon geometry. Current geometry: ${geometryType}.`;
+  const pointReason = `Renderer needs point geometry. Current geometry: ${geometryType}.`;
+  const numericReason = "Renderer needs at least one numeric field.";
+  const secondNumericReason = "Bivariate renderer needs at least two numeric fields.";
+  const categoricalReason = "Categorical renderer needs at least one attribute field.";
+  const commonFacts = [
+    geometryType,
+    `${numericFieldCount.toLocaleString()} numeric`,
+    `${categoricalFieldCount.toLocaleString()} categorical`,
+  ];
+
+  const requireBase = (extra: Array<[boolean, string]>): string[] => {
+    const reasons: string[] = [];
+    addRendererReason(reasons, !hasLayer, noLayerReason);
+    addRendererReason(reasons, hasLayer && !featureSource, sourceReason);
+    extra.forEach(([condition, message]) => addRendererReason(reasons, condition, message));
+    return reasons;
+  };
+
+  return [
+    buildRendererChoice(
+      "single",
+      "Single Symbol",
+      "Uniform fill, line, circle, or raster color with legend persistence.",
+      commonFacts,
+      requireBase([]),
+    ),
+    buildRendererChoice(
+      "choropleth",
+      "Choropleth",
+      "Classified polygon thematic map for numeric attributes.",
+      commonFacts,
+      requireBase([
+        [hasLayer && !polygonGeometry, polygonReason],
+        [hasLayer && !hasNumeric, numericReason],
+      ]),
+    ),
+    buildRendererChoice(
+      "categorical",
+      "Categorical",
+      "Discrete classes for named zones, statuses, or land-use fields.",
+      commonFacts,
+      requireBase([[hasLayer && !hasCategorical, categoricalReason]]),
+    ),
+    buildRendererChoice(
+      "bivariate-choropleth",
+      "Bivariate 2x2",
+      "Two numeric polygon fields serialized as a matrix legend.",
+      commonFacts,
+      requireBase([
+        [hasLayer && !polygonGeometry, polygonReason],
+        [hasLayer && !hasTwoNumeric, secondNumericReason],
+      ]),
+    ),
+    buildRendererChoice(
+      "dot-density",
+      "Dot Density",
+      "Population or count dots generated from polygon attributes.",
+      commonFacts,
+      requireBase([
+        [hasLayer && !polygonGeometry, polygonReason],
+        [hasLayer && !hasNumeric, numericReason],
+      ]),
+      Boolean(hasLayer && polygonGeometry && hasNumeric),
+    ),
+    buildRendererChoice(
+      "heatmap",
+      "Heatmap",
+      "Screen-space density surface for points with optional weights.",
+      commonFacts,
+      requireBase([[hasLayer && !pointGeometry, pointReason]]),
+    ),
+    buildRendererChoice(
+      "proportional-symbol",
+      "Proportional",
+      "Point symbols scaled continuously by a numeric field.",
+      commonFacts,
+      requireBase([
+        [hasLayer && !pointGeometry, pointReason],
+        [hasLayer && !hasNumeric, numericReason],
+      ]),
+    ),
+    buildRendererChoice(
+      "graduated-symbol",
+      "Graduated",
+      "Point symbols classified into size and color classes.",
+      commonFacts,
+      requireBase([
+        [hasLayer && !pointGeometry, pointReason],
+        [hasLayer && !hasNumeric, numericReason],
+      ]),
+    ),
+  ];
+}
+
+function getRendererEligibility(layer: OverlayLayerConfig | null): RendererEligibilitySummary {
   if (!layer) {
     return {
       label: "No layer selected",
@@ -281,13 +581,28 @@ function getRendererEligibility(layer: OverlayLayerConfig | null): {
       reasons: ["Select a layer before styling."],
       fieldCount: 0,
       numericFieldCount: 0,
+      categoricalFieldCount: 0,
+      staleLabel: "No derived result",
+      stale: false,
+      caveats: [],
+      disabledModeReasons: Object.fromEntries(
+        MODE_OPTIONS.map((mode) => [mode.value, "Select a layer before choosing a renderer."]),
+      ) as Partial<Record<SerializedLegendMode, string>>,
     };
   }
 
   const geometryType = normalizeGeometryType(layer);
   const fieldCount = getLayerStyleFieldNames(layer).length;
   const numericFieldCount = getLayerNumericStyleFieldNames(layer).length;
+  const categoricalFieldCount = fieldCount;
   const reasons: string[] = [];
+  const staleState = getStaleResultLabel(layer);
+  const caveats = getLayerReadinessCaveats(layer);
+  const disabledModeReasons = Object.fromEntries(
+    buildRendererChoices(layer)
+      .filter((choice) => choice.reason)
+      .map((choice) => [choice.mode, choice.reason]),
+  ) as Partial<Record<SerializedLegendMode, string>>;
 
   if (layer.type !== "geojson" && layer.type !== "heatmap") {
     reasons.push("Feature renderers need a GeoJSON or heatmap layer.");
@@ -305,6 +620,10 @@ function getRendererEligibility(layer: OverlayLayerConfig | null): {
     reasons.push("Choropleth, proportional, and graduated renderers need a numeric field.");
   }
 
+  if (staleState.stale) {
+    reasons.push(staleState.label);
+  }
+
   if (reasons.length === 0) {
     return {
       label: "Renderer eligible",
@@ -312,6 +631,11 @@ function getRendererEligibility(layer: OverlayLayerConfig | null): {
       reasons,
       fieldCount,
       numericFieldCount,
+      categoricalFieldCount,
+      staleLabel: staleState.label,
+      stale: staleState.stale,
+      caveats,
+      disabledModeReasons,
     };
   }
 
@@ -322,6 +646,11 @@ function getRendererEligibility(layer: OverlayLayerConfig | null): {
     reasons,
     fieldCount,
     numericFieldCount,
+    categoricalFieldCount,
+    staleLabel: staleState.label,
+    stale: staleState.stale,
+    caveats,
+    disabledModeReasons,
   };
 }
 
@@ -332,6 +661,29 @@ function layerSelectorButtonStyle(active: boolean): React.CSSProperties {
     width: "100%",
     minHeight: "2rem",
   };
+}
+
+function getPreferredRendererMode(layer: OverlayLayerConfig | null): SerializedLegendMode {
+  if (!layer) return "single";
+  const defaultMode = getDefaultLayerStyleOptions(layer).mode;
+  const choices = buildRendererChoices(layer);
+  const defaultChoice = choices.find((choice) => choice.mode === defaultMode);
+  if (defaultChoice && defaultChoice.status !== "blocked") {
+    return defaultMode;
+  }
+  return choices.find((choice) => choice.status !== "blocked")?.mode ?? "single";
+}
+
+function rendererModeToSymbolMode(mode: SerializedLegendMode): StyleSymbolMode {
+  if (mode === "proportional-symbol") return "proportional";
+  if (mode === "graduated-symbol") return "graduated";
+  return "heatmap";
+}
+
+function symbolModeToRendererMode(mode: StyleSymbolMode): SerializedLegendMode {
+  if (mode === "proportional") return "proportional-symbol";
+  if (mode === "graduated") return "graduated-symbol";
+  return "heatmap";
 }
 
 const LayerSelector: React.FC<MapStyleLayerPanelProps> = ({
@@ -414,16 +766,53 @@ export const MapStyleLayerHeader: React.FC<MapStyleLayerPanelProps> = ({
             <Shapes size={11} aria-hidden />
             {eligibility.label}
           </span>
-          <span style={chipStyle}>{eligibility.numericFieldCount} numeric fields</span>
-          <span style={chipStyle}>{eligibility.fieldCount} fields</span>
+          <span style={chipStyle}>{eligibility.numericFieldCount} numeric</span>
+          <span style={chipStyle}>{eligibility.categoricalFieldCount} categorical</span>
           <span style={chipStyle}>QA {getLayerQaLabel(activeLayer)}</span>
           <span style={chipStyle}>Publish {getLayerPublicationLabel(activeLayer)}</span>
+          <span
+            style={eligibility.stale ? warningChipStyle : chipStyle}
+            data-testid="map-style-stale-status"
+          >
+            {eligibility.staleLabel}
+          </span>
+        </div>
+
+        <div style={readinessGridStyle} data-testid="map-style-readiness-summary">
+          <div style={readinessCellStyle}>
+            <span style={mutedStyle}>Geometry</span>
+            <span style={chipStyle}>{normalizeGeometryType(activeLayer)}</span>
+          </div>
+          <div style={readinessCellStyle}>
+            <span style={mutedStyle}>Fields</span>
+            <span style={chipStyle}>{eligibility.numericFieldCount} numeric / {eligibility.categoricalFieldCount} categorical</span>
+          </div>
+          <div style={readinessCellStyle}>
+            <span style={mutedStyle}>CRS</span>
+            <span style={activeLayer.metadata?.crsSummary?.status === "known" ? chipStyle : warningChipStyle}>
+              {activeLayer.metadata?.crsSummary?.crs ?? formatStatusLabel(activeLayer.metadata?.crsSummary?.status, "unknown")}
+            </span>
+          </div>
+          <div style={readinessCellStyle}>
+            <span style={mutedStyle}>Scale / render</span>
+            <span style={activeLayer.metadata?.rendering?.mode === "preview" ? warningChipStyle : chipStyle}>
+              {activeLayer.metadata?.rendering?.mode === "preview" ? "Preview render" : "Full render"}
+            </span>
+          </div>
         </div>
 
         {eligibility.reasons.length > 0 ? (
           <div style={chipRowStyle} data-testid="map-style-renderer-blockers">
             {eligibility.reasons.map((reason) => (
               <span key={reason} style={warningChipStyle}>{reason}</span>
+            ))}
+          </div>
+        ) : null}
+
+        {eligibility.caveats.length > 0 ? (
+          <div style={caveatListStyle} data-testid="map-style-readiness-caveats">
+            {eligibility.caveats.slice(0, 4).map((caveat) => (
+              <div key={caveat} style={caveatRowStyle}>{caveat}</div>
             ))}
           </div>
         ) : null}
@@ -492,37 +881,97 @@ export const MapStyleRendererPanel: React.FC<MapStyleRendererPanelProps> = ({
   onApplyStyle,
   onOpenChoroplethPreview,
   choroplethPreviewActive,
-}) => (
-  <div style={panelStackStyle} data-testid="map-style-renderer-panel">
-    <MapStyleLayerHeader
-      layers={layers}
-      activeLayer={activeLayer}
-      activeLayerId={activeLayerId}
-      onActiveLayerChange={onActiveLayerChange}
-      {...(onInspectLayer ? { onInspectLayer } : {})}
-    />
-    <section style={sectionStyle} aria-label="Renderer controls">
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: MAP_SPACING.sm }}>
-        <h3 style={sectionTitleStyle}>Renderer</h3>
-        <button
-          type="button"
-          style={actionButtonStyle(choroplethPreviewActive, !activeLayer)}
-          disabled={!activeLayer}
-          onClick={onOpenChoroplethPreview}
-          data-testid="map-style-open-choropleth-preview"
-        >
-          <MapPinned size={12} aria-hidden />
-          Live preview
-        </button>
-      </div>
-      {activeLayer ? (
-        <LayerStyleEditor layer={activeLayer} {...(onApplyStyle ? { onApplyStyle } : {})} />
-      ) : (
-        <GisEmptyState title="Renderer unavailable" description="Select a layer to enable renderer controls." compact />
-      )}
-    </section>
-  </div>
-);
+}) => {
+  const preferredMode = React.useMemo(() => getPreferredRendererMode(activeLayer), [activeLayer]);
+  const [selectedRendererMode, setSelectedRendererMode] = React.useState<SerializedLegendMode>(preferredMode);
+  const rendererChoices = React.useMemo(() => buildRendererChoices(activeLayer), [activeLayer]);
+  const eligibility = React.useMemo(() => getRendererEligibility(activeLayer), [activeLayer]);
+
+  React.useEffect(() => {
+    setSelectedRendererMode(preferredMode);
+  }, [preferredMode]);
+
+  const activeChoice = rendererChoices.find((choice) => choice.mode === selectedRendererMode);
+  const selectedMode = activeChoice && activeChoice.status !== "blocked"
+    ? selectedRendererMode
+    : getPreferredRendererMode(activeLayer);
+
+  return (
+    <div style={panelStackStyle} data-testid="map-style-renderer-panel">
+      <MapStyleLayerHeader
+        layers={layers}
+        activeLayer={activeLayer}
+        activeLayerId={activeLayerId}
+        onActiveLayerChange={onActiveLayerChange}
+        {...(onInspectLayer ? { onInspectLayer } : {})}
+      />
+      <section style={sectionStyle} aria-label="Renderer controls">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: MAP_SPACING.sm }}>
+          <h3 style={sectionTitleStyle}>Renderer</h3>
+          <button
+            type="button"
+            style={actionButtonStyle(choroplethPreviewActive, !activeLayer)}
+            disabled={!activeLayer}
+            onClick={onOpenChoroplethPreview}
+            data-testid="map-style-open-choropleth-preview"
+          >
+            <MapPinned size={12} aria-hidden />
+            Live preview
+          </button>
+        </div>
+
+        <div style={rendererChoiceGridStyle} data-testid="map-style-renderer-choice-grid">
+          {rendererChoices.map((choice) => {
+            const disabled = choice.status === "blocked";
+            const active = choice.mode === selectedMode;
+            return (
+              <button
+                key={choice.mode}
+                type="button"
+                style={rendererChoiceStyle(active, choice.status)}
+                disabled={disabled}
+                title={choice.reason ?? choice.description}
+                aria-pressed={active}
+                data-testid={`map-style-renderer-choice-${choice.mode}`}
+                onClick={() => setSelectedRendererMode(choice.mode)}
+              >
+                <span style={rendererChoiceTitleStyle}>
+                  <span style={{ ...layerNameStyle, fontSize: MAP_TYPOGRAPHY.fontSize.xs }}>{choice.label}</span>
+                  <span style={choice.status === "ready" ? chipStyle : warningChipStyle}>
+                    {choice.status}
+                  </span>
+                </span>
+                <span style={mutedStyle}>{choice.description}</span>
+                <span style={chipRowStyle}>
+                  {choice.facts.map((fact) => (
+                    <span key={`${choice.mode}-${fact}`} style={chipStyle}>{fact}</span>
+                  ))}
+                </span>
+                {choice.reason ? (
+                  <span style={warningChipStyle} data-testid={`map-style-renderer-disabled-${choice.mode}`}>
+                    {choice.reason}
+                  </span>
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
+
+        {activeLayer ? (
+          <LayerStyleEditor
+            layer={activeLayer}
+            rendererMode={selectedMode}
+            onRendererModeChange={setSelectedRendererMode}
+            disabledModeReasons={eligibility.disabledModeReasons}
+            {...(onApplyStyle ? { onApplyStyle } : {})}
+          />
+        ) : (
+          <GisEmptyState title="Renderer unavailable" description="Select a layer to enable renderer controls." compact />
+        )}
+      </section>
+    </div>
+  );
+};
 
 export const MapStyleSymbolsPanel: React.FC<MapStyleSymbolsPanelProps> = ({
   layers,
@@ -542,6 +991,11 @@ export const MapStyleSymbolsPanel: React.FC<MapStyleSymbolsPanelProps> = ({
   const pointLayer = activeLayer ? isPointGeometryLabel(geometryType) : false;
   const numericFieldCount = activeLayer ? getLayerNumericStyleFieldNames(activeLayer).length : 0;
   const fieldBlocked = numericFieldCount === 0;
+  const symbolChoices = buildRendererChoices(activeLayer).filter((choice) =>
+    choice.mode === "heatmap" ||
+    choice.mode === "proportional-symbol" ||
+    choice.mode === "graduated-symbol",
+  );
   const pointBlockedReason = activeLayer
     ? `Symbols need point geometry. Current geometry: ${geometryType}.`
     : "Select a point layer before configuring symbols.";
@@ -558,29 +1012,45 @@ export const MapStyleSymbolsPanel: React.FC<MapStyleSymbolsPanelProps> = ({
       />
       <section style={sectionStyle} aria-label="Symbol controls">
         <h3 style={sectionTitleStyle}>Symbols</h3>
-        <div style={actionRowStyle}>
-          {(["heatmap", "proportional", "graduated"] as const).map((mode) => {
-            const disabled = !activeLayer || !pointLayer || (mode !== "heatmap" && fieldBlocked);
-            const title = !activeLayer || !pointLayer
-              ? pointBlockedReason
-              : mode !== "heatmap" && fieldBlocked
-                ? fieldBlockedReason
-                : undefined;
+        <div style={rendererChoiceGridStyle} data-testid="map-style-symbol-choice-grid">
+          {symbolChoices.map((choice) => {
+            const mode = rendererModeToSymbolMode(choice.mode);
+            const disabled = choice.status === "blocked";
+            const title = choice.reason ?? choice.description;
+            const active = activeMode === mode && symbologyActive;
             return (
               <button
-                key={mode}
+                key={choice.mode}
                 type="button"
-                style={actionButtonStyle(activeMode === mode && symbologyActive, disabled)}
+                style={rendererChoiceStyle(active, choice.status)}
                 disabled={disabled}
-                {...(title ? { title } : {})}
-                aria-pressed={activeMode === mode && symbologyActive}
+                title={title}
+                aria-pressed={active}
                 data-testid={`map-style-symbol-mode-${mode}`}
                 onClick={() => onOpenPointSymbology(mode)}
               >
-                {mode === "heatmap" ? "Heatmap" : mode === "proportional" ? "Proportional" : "Graduated"}
+                <span style={rendererChoiceTitleStyle}>
+                  <span style={{ ...layerNameStyle, fontSize: MAP_TYPOGRAPHY.fontSize.xs }}>{choice.label}</span>
+                  <span style={choice.status === "ready" ? chipStyle : warningChipStyle}>
+                    {choice.status}
+                  </span>
+                </span>
+                <span style={mutedStyle}>{choice.description}</span>
+                <span style={chipRowStyle}>
+                  {choice.facts.map((fact) => (
+                    <span key={`${choice.mode}-${fact}`} style={chipStyle}>{fact}</span>
+                  ))}
+                </span>
+                {choice.reason ? (
+                  <span style={warningChipStyle} data-testid={`map-style-symbol-disabled-${mode}`}>
+                    {choice.reason}
+                  </span>
+                ) : null}
               </button>
             );
           })}
+        </div>
+        <div style={actionRowStyle}>
           {symbologyActive ? (
             <button
               type="button"
@@ -597,6 +1067,13 @@ export const MapStyleSymbolsPanel: React.FC<MapStyleSymbolsPanelProps> = ({
         ) : null}
         {activeLayer && pointLayer && fieldBlocked ? (
           <div style={warningChipStyle} data-testid="map-style-symbol-fields-blocked">{fieldBlockedReason}</div>
+        ) : null}
+        {symbologyActive ? (
+          <div style={chipRowStyle} data-testid="map-style-symbol-active-contract">
+            <span style={chipStyle}>{symbolModeToRendererMode(activeMode)} renderer</span>
+            <span style={chipStyle}>Live map preview</span>
+            <span style={chipStyle}>Legend reviewed in Style Legend</span>
+          </div>
         ) : null}
         {isLoading ? <div style={mutedStyle}>Loading point layer...</div> : null}
         {error ? <div style={warningChipStyle}>{error}</div> : null}

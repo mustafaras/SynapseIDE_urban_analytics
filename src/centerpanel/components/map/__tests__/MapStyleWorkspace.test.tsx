@@ -196,11 +196,122 @@ describe("MapStyleWorkspace", () => {
     expect(headerText).toContain("District choropleth");
     expect(headerText).toContain("Polygon");
     expect(headerText).toContain("Renderer eligible");
+    expect(headerText).toContain("1 numeric");
+    expect(headerText).toContain("3 categorical");
     expect(headerText).toContain("QA Passed");
     expect(headerText).toContain("Publish Ready");
 
     click("map-style-open-choropleth-preview");
     expect(openPreview).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows renderer eligibility, stale state, and disabled reasons per renderer", () => {
+    const baseLayer = polygonLayer();
+    const layer = polygonLayer({
+      metadata: {
+        ...baseLayer.metadata,
+        crsSummary: {
+          crs: null,
+          status: "missing",
+          source: "unknown",
+          notes: [],
+        },
+        publicationReadiness: {
+          status: "ready-with-caveats",
+          missingFields: ["attribution"],
+          blockingIssueIds: ["qa-1"],
+          caveats: ["Publication scale caveat is visible."],
+          checkedAt: "2026-06-01T00:00:00.000Z",
+        },
+        scientificQA: {
+          status: "warning",
+          issueIds: ["scale-1"],
+          badges: ["stale_result"],
+          checkedAt: "2026-06-01T00:00:00.000Z",
+          featureIssueCount: 0,
+          usedWorker: false,
+          caveats: ["Scientific scale caveat is visible."],
+          categorySummaries: [{
+            category: "scale",
+            severity: "warning",
+            issueIds: ["scale-1"],
+            affectedLayerIds: ["districts"],
+            reasons: ["Scale is below the intended cartographic review range."],
+            recommendedFixes: ["Review at publication scale."],
+          }],
+          signature: "qa-scale",
+        },
+        rendering: {
+          mode: "preview",
+          featureCount: 2,
+          coordinateCount: 10,
+          propertyFieldCount: 3,
+          estimatedRenderBytes: 512,
+          renderFeatureLimit: 1000,
+          renderCoordinateLimit: 10_000,
+          estimatedRenderByteLimit: 1_000_000,
+          warnings: ["Preview renderer sampled features."],
+        },
+        analysisResult: {
+          engine: "LocalMoransI",
+          runTimestamp: "2026-06-01T00:00:00.000Z",
+          parameterSummary: "queen contiguity",
+          inputParameters: {},
+          statisticalSummary: {},
+          stale: true,
+          visualization: {
+            kind: "choropleth",
+            title: "Stale LISA output",
+          },
+        },
+      },
+    });
+
+    render(
+      <MapStyleRendererPanel
+        layers={[layer]}
+        activeLayer={layer}
+        activeLayerId={layer.id}
+        onActiveLayerChange={vi.fn()}
+        onOpenChoroplethPreview={vi.fn()}
+        choroplethPreviewActive={false}
+      />,
+    );
+
+    expect(query("map-style-stale-status")?.textContent).toContain("Stale result");
+    expect(query("map-style-readiness-summary")?.textContent).toContain("Preview render");
+    expect(query("map-style-readiness-caveats")?.textContent).toContain("Publication scale caveat");
+    expect(query("map-style-readiness-caveats")?.textContent).toContain("Preview renderer sampled features");
+    expect(query("map-style-renderer-disabled-bivariate-choropleth")?.textContent).toContain("at least two numeric fields");
+    expect(query("map-style-renderer-disabled-heatmap")?.textContent).toContain("point geometry");
+    expect(query<HTMLButtonElement>("map-style-renderer-choice-dot-density")!.disabled).toBe(false);
+
+    const modeSelect = query<HTMLSelectElement>("map-layer-style-mode-select")!;
+    const bivariateOption = Array.from(modeSelect.options).find((option) => option.value === "bivariate-choropleth");
+    expect(bivariateOption?.disabled).toBe(true);
+  });
+
+  it("drives the style editor mode from compact renderer choices", () => {
+    const layer = polygonLayer();
+
+    render(
+      <MapStyleRendererPanel
+        layers={[layer]}
+        activeLayer={layer}
+        activeLayerId={layer.id}
+        onActiveLayerChange={vi.fn()}
+        onOpenChoroplethPreview={vi.fn()}
+        choroplethPreviewActive={false}
+      />,
+    );
+
+    expect(query<HTMLSelectElement>("map-layer-style-mode-select")?.value).toBe("choropleth");
+
+    click("map-style-renderer-choice-categorical");
+    expect(query<HTMLSelectElement>("map-layer-style-mode-select")?.value).toBe("categorical");
+
+    click("map-style-renderer-choice-dot-density");
+    expect(query<HTMLSelectElement>("map-layer-style-mode-select")?.value).toBe("dot-density");
   });
 
   it("names missing geometry and field prerequisites for symbol renderers", () => {
