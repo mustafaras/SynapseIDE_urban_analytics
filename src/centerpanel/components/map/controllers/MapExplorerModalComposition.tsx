@@ -137,6 +137,7 @@ import {
   type MapSceneTabId,
 } from "../scene";
 import {
+  MapPublicationMarksPanel,
   MapPublishPathPanel,
   MapPublishWorkspace,
   type MapPublishPathAction,
@@ -7976,6 +7977,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     { label: "Map image", value: `${mapCompositionOptions.format.toUpperCase()} @ ${mapCompositionOptions.dpi} DPI` },
     { label: "Layers", value: visiblePublicationLayers.length.toLocaleString(), status: visiblePublicationLayers.length > 0 ? "ready" : "blocked" },
     { label: "Legend", value: `${mapPublicationLegendItems.length.toLocaleString()} item${mapPublicationLegendItems.length === 1 ? "" : "s"}`, status: mapPublicationReadiness.hasLegend ? "ready" : "blocked" },
+    { label: "Annotations", value: annotations.length.toLocaleString(), status: annotations.length > 0 ? "ready" : "caveat" },
     { label: "Readiness", value: mapPublicationReadiness.status.replace(/-/g, " "), status: mapPublicationReadiness.status === "blocked" ? "blocked" : mapPublicationReadiness.status === "ready-with-caveats" ? "caveat" : "ready" },
   ];
   const dataExportMeta: MapPublishPathMeta[] = [
@@ -7988,20 +7990,37 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     { label: "Snapshot", value: reportHandoffDraft?.snapshot.filename ?? (reportHandoffSnapshot?.dataUrl ? "captured" : "metadata only"), status: reportHandoffSnapshot?.dataUrl ? "ready" : "caveat" },
     { label: "Evidence block", value: reportHandoffDraft?.evidenceBlock.id ?? "not prepared", status: reportHandoffDraft ? "ready" : "unknown" },
     { label: "Citations", value: (reportHandoffDraft?.citations.length ?? 0).toLocaleString() },
+    { label: "Annotations", value: annotations.length.toLocaleString(), status: annotations.length > 0 ? "ready" : "caveat" },
     { label: "Readiness", value: (reportHandoffDraft?.publicationReadiness.status ?? mapPublicationReadiness.status).replace(/-/g, " ") },
   ];
   const offlineMeta: MapPublishPathMeta[] = [
     { label: "Source bounds", value: formatPublishBounds(currentMapBounds), status: currentMapBounds ? "ready" : "caveat" },
     { label: "Layers", value: overlayLayers.length.toLocaleString() },
     { label: "Source handles", value: sourceHandles.length.toLocaleString() },
+    { label: "Marks", value: (annotations.length + pins.length + bookmarks.length).toLocaleString(), status: annotations.length + pins.length + bookmarks.length > 0 ? "ready" : "caveat" },
     { label: "Evidence IDs", value: publishEvidenceIds.length.toLocaleString(), status: publishEvidenceIds.length > 0 ? "ready" : "caveat" },
   ];
   const reviewMeta: MapPublishPathMeta[] = [
     { label: "Readiness ID", value: mapPublicationReadiness.id },
     { label: "Checked", value: new Date(mapPublicationReadiness.checkedAt).toLocaleString() },
     { label: "Review events", value: reviewSession.events.length.toLocaleString(), status: reviewSession.events.length > 0 ? "ready" : "caveat" },
+    { label: "Marks", value: `${annotations.length.toLocaleString()} annotations / ${pins.length.toLocaleString()} pins / ${bookmarks.length.toLocaleString()} views`, status: annotations.length + pins.length + bookmarks.length > 0 ? "ready" : "caveat" },
     { label: "Caveats", value: mapPublicationReadiness.caveats.length.toLocaleString(), status: mapPublicationReadiness.caveats.length > 0 ? "caveat" : "ready" },
   ];
+  const renderPublicationMarksPanel = () => (
+    <MapPublicationMarksPanel
+      annotationCount={annotations.length}
+      pinCount={pins.length}
+      bookmarkCount={bookmarks.length}
+      annotationMode={annotationMode}
+      pinSidebarVisible={effectiveShowSidebar}
+      onToggleAnnotationMode={handleToggleAnnotationMode}
+      onTogglePinSidebar={handleToggleSidebar}
+      onOpenDataExport={() => handleOpenPublishTab("publish-data-export", "Publication mark data export opened")}
+      onOpenReport={() => handleOpenPublishTab("publish-report", "Publication mark report handoff opened")}
+      onOpenReviewPackage={() => handleOpenPublishTab("publish-review-package", "Publication mark review package opened")}
+    />
+  );
   const publishFigureElement = (
     <MapPublishPathPanel
       eyebrow="Map image"
@@ -8010,6 +8029,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       meta={figureMeta}
       actions={figureActions}
     >
+      {renderPublicationMarksPanel()}
       <MapLayoutDesignerPanel
         visible
         presentation="embedded"
@@ -8037,7 +8057,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       description="Data export keeps the selected target, GeoJSON precision controls, GeoParquet spatial metadata, skipped-layer notices, and feature-property rules in the existing export dialog."
       meta={dataExportMeta}
       actions={dataExportActions}
-    />
+    >
+      {renderPublicationMarksPanel()}
+    </MapPublishPathPanel>
   );
   const publishReportElement = (
     <MapPublishPathPanel
@@ -8047,6 +8069,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       meta={reportMeta}
       actions={reportActions}
     >
+      {renderPublicationMarksPanel()}
       {reportHandoffDraft ? (
         <Suspense fallback={null}>
           <LazyMapReportHandoffDrawer
@@ -8073,7 +8096,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       description="Offline package export preserves project state, source handles, bounded inline source sidecars, unavailable-source caveats, review events, and evidence references."
       meta={offlineMeta}
       actions={offlineActions}
-    />
+    >
+      {renderPublicationMarksPanel()}
+    </MapPublishPathPanel>
   );
   const publishReviewPackageElement = (
     <MapPublishPathPanel
@@ -8083,6 +8108,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       meta={reviewMeta}
       actions={reviewActions}
     >
+      {renderPublicationMarksPanel()}
       <div style={{ display: "grid", gap: MAP_SPACING.sm, color: MAP_COLORS.textSecondary, fontSize: MAP_TYPOGRAPHY.fontSize.xs, lineHeight: MAP_TYPOGRAPHY.lineHeight.normal }}>
         <div>
           <strong style={{ color: MAP_COLORS.text }}>Evidence IDs:</strong>{" "}
@@ -8417,6 +8443,14 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     <MapStyleLabelsPanel
       {...styleLayerPanelProps}
       onApplyStyle={handleApplyLayerStyle}
+      annotationCount={annotations.length}
+      pinCount={pins.length}
+      bookmarkCount={bookmarks.length}
+      annotationMode={annotationMode}
+      pinSidebarVisible={effectiveShowSidebar}
+      onToggleAnnotationMode={handleToggleAnnotationMode}
+      onTogglePinSidebar={handleToggleSidebar}
+      onOpenPublishMarks={() => handleOpenPublishTab("publish-review-package", "Publication marks opened in Publish Review Package")}
     />
   );
   const styleLegendElement = <MapStyleLegendPanel {...styleLayerPanelProps} />;

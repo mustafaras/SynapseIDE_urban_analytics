@@ -1,13 +1,20 @@
 import React from "react";
 import {
   BadgeCheck,
+  Bookmark,
   CircleDot,
+  Eye,
+  EyeOff,
+  FileImage,
   ListChecks,
   MapPinned,
+  PackageCheck,
   Palette,
   Shapes,
   Tags,
+  Type,
 } from "lucide-react";
+import { getSerializedMapLabelSpecFromStyle } from "@/services/map/labels/MapLabelEngine";
 import type { SymbolMode } from "../../MapSymbolLayer";
 import { LayerStyleEditor } from "../inspector/style/LayerStyleEditor";
 import {
@@ -32,7 +39,7 @@ import {
 } from "../mapTokens";
 import type { MapSidebarTabId } from "../navigation";
 import { MapWorkbenchSidebar, type MapWorkbenchSidebarTab } from "../sidebar";
-import { GisEmptyState } from "../ui";
+import { GisEmptyState, GisStatusChip } from "../ui";
 
 export type MapStyleTabId = Extract<
   MapSidebarTabId,
@@ -104,6 +111,14 @@ export interface MapStyleSymbolsPanelProps extends MapStyleLayerPanelProps {
 
 export interface MapStyleLabelsPanelProps extends MapStyleLayerPanelProps {
   onApplyStyle?: (layerId: string, update: LayerStyleUpdate) => void;
+  annotationCount?: number;
+  pinCount?: number;
+  bookmarkCount?: number;
+  annotationMode?: boolean;
+  pinSidebarVisible?: boolean;
+  onToggleAnnotationMode?: () => void;
+  onTogglePinSidebar?: () => void;
+  onOpenPublishMarks?: () => void;
 }
 
 export interface MapStyleLegendPanelProps extends MapStyleLayerPanelProps {
@@ -352,6 +367,21 @@ function hasFeatureRendererSource(layer: OverlayLayerConfig | null): boolean {
 
 function formatStatusLabel(value: string | undefined, fallback: string): string {
   return (value ?? fallback)
+    .split("-")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function formatCount(value: number): string {
+  return value.toLocaleString();
+}
+
+function formatLabelScaleRange(minZoom: number, maxZoom: number): string {
+  return `z${minZoom}-${maxZoom}`;
+}
+
+function formatCollisionPolicy(value: string): string {
+  return value
     .split("-")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
@@ -1090,8 +1120,30 @@ export const MapStyleLabelsPanel: React.FC<MapStyleLabelsPanelProps> = ({
   onActiveLayerChange,
   onInspectLayer,
   onApplyStyle,
+  annotationCount = 0,
+  pinCount = 0,
+  bookmarkCount = 0,
+  annotationMode = false,
+  pinSidebarVisible = false,
+  onToggleAnnotationMode,
+  onTogglePinSidebar,
+  onOpenPublishMarks,
 }) => {
-  const fieldCount = activeLayer ? getLayerStyleFieldNames(activeLayer).length : 0;
+  const fields = activeLayer ? getLayerStyleFieldNames(activeLayer) : [];
+  const numericFields = activeLayer ? getLayerNumericStyleFieldNames(activeLayer) : [];
+  const labelSpec = activeLayer ? getSerializedMapLabelSpecFromStyle(activeLayer.style) : null;
+  const fieldCount = fields.length;
+  const totalPublicationMarks = annotationCount + pinCount + bookmarkCount;
+  const labelFieldValue = labelSpec?.field ?? (fieldCount > 0 ? "Choose field" : "Unavailable");
+  const labelScaleValue = labelSpec
+    ? formatLabelScaleRange(labelSpec.scaleRange.minZoom, labelSpec.scaleRange.maxZoom)
+    : "z8-24";
+  const labelCollisionValue = labelSpec
+    ? formatCollisionPolicy(labelSpec.collisionPolicy)
+    : numericFields.length > 0
+      ? "Hide overlap / Priority"
+      : "Hide overlap";
+
   return (
     <div style={panelStackStyle} data-testid="map-style-labels-panel">
       <MapStyleLayerHeader
@@ -1103,6 +1155,34 @@ export const MapStyleLabelsPanel: React.FC<MapStyleLabelsPanelProps> = ({
       />
       <section style={sectionStyle} aria-label="Label controls">
         <h3 style={sectionTitleStyle}>Labels</h3>
+        <div
+          style={readinessGridStyle}
+          aria-label="Label export-aware controls"
+          data-testid="map-style-label-controls-summary"
+        >
+          <div style={readinessCellStyle}>
+            <span style={mutedStyle}>Label field</span>
+            <span style={fieldCount > 0 ? chipStyle : warningChipStyle}>
+              <Tags size={11} aria-hidden />
+              {labelFieldValue}
+            </span>
+          </div>
+          <div style={readinessCellStyle}>
+            <span style={mutedStyle}>Scale range</span>
+            <span style={chipStyle}>{labelScaleValue}</span>
+          </div>
+          <div style={readinessCellStyle}>
+            <span style={mutedStyle}>Collision / declutter</span>
+            <span style={fieldCount > 0 ? chipStyle : warningChipStyle}>{labelCollisionValue}</span>
+          </div>
+          <div style={readinessCellStyle}>
+            <span style={mutedStyle}>Export inclusion</span>
+            <span style={chipStyle}>
+              <FileImage size={11} aria-hidden />
+              Map image + report
+            </span>
+          </div>
+        </div>
         {activeLayer && fieldCount === 0 ? (
           <div style={warningChipStyle} data-testid="map-style-labels-blocked">Label fields are unavailable for this layer.</div>
         ) : null}
@@ -1111,6 +1191,87 @@ export const MapStyleLabelsPanel: React.FC<MapStyleLabelsPanelProps> = ({
         ) : (
           <GisEmptyState title="Labels unavailable" description="Select a layer to enable label controls." compact />
         )}
+      </section>
+      <section
+        style={sectionStyle}
+        aria-label="Annotation and publication mark controls"
+        data-testid="map-style-publication-mark-controls"
+      >
+        <div style={headerTitleRowStyle}>
+          <h3 style={sectionTitleStyle}>Publication marks</h3>
+          <GisStatusChip
+            status={totalPublicationMarks > 0 ? "ready" : "caveat"}
+            label={`${formatCount(totalPublicationMarks)} mark${totalPublicationMarks === 1 ? "" : "s"}`}
+            density="compact"
+          />
+        </div>
+        <div style={readinessGridStyle}>
+          <div style={readinessCellStyle}>
+            <span style={mutedStyle}>Annotations</span>
+            <span style={chipStyle}>
+              <Type size={11} aria-hidden />
+              {formatCount(annotationCount)}
+            </span>
+          </div>
+          <div style={readinessCellStyle}>
+            <span style={mutedStyle}>Pins</span>
+            <span style={chipStyle}>
+              <MapPinned size={11} aria-hidden />
+              {formatCount(pinCount)}
+            </span>
+          </div>
+          <div style={readinessCellStyle}>
+            <span style={mutedStyle}>Saved views</span>
+            <span style={chipStyle}>
+              <Bookmark size={11} aria-hidden />
+              {formatCount(bookmarkCount)}
+            </span>
+          </div>
+          <div style={readinessCellStyle}>
+            <span style={mutedStyle}>Package</span>
+            <span style={totalPublicationMarks > 0 ? chipStyle : warningChipStyle}>
+              <PackageCheck size={11} aria-hidden />
+              {totalPublicationMarks > 0 ? "Included" : "No marks"}
+            </span>
+          </div>
+        </div>
+        <div style={actionRowStyle} aria-label="Publication mark actions">
+          {onToggleAnnotationMode ? (
+            <button
+              type="button"
+              style={actionButtonStyle(annotationMode)}
+              onClick={onToggleAnnotationMode}
+              aria-pressed={annotationMode}
+              data-testid="map-style-toggle-annotation-mode"
+            >
+              <Type size={13} aria-hidden />
+              {annotationMode ? "Annotation on" : "Annotation mode"}
+            </button>
+          ) : null}
+          {onTogglePinSidebar ? (
+            <button
+              type="button"
+              style={actionButtonStyle(pinSidebarVisible)}
+              onClick={onTogglePinSidebar}
+              aria-pressed={pinSidebarVisible}
+              data-testid="map-style-toggle-pin-sidebar"
+            >
+              {pinSidebarVisible ? <Eye size={13} aria-hidden /> : <EyeOff size={13} aria-hidden />}
+              {pinSidebarVisible ? "Pins visible" : "Show pins"}
+            </button>
+          ) : null}
+          {onOpenPublishMarks ? (
+            <button
+              type="button"
+              style={actionButtonStyle(false)}
+              onClick={onOpenPublishMarks}
+              data-testid="map-style-open-publish-marks"
+            >
+              <ListChecks size={13} aria-hidden />
+              Publish inclusion
+            </button>
+          ) : null}
+        </div>
       </section>
     </div>
   );

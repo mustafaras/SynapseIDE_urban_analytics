@@ -206,8 +206,8 @@ const compactIconButtonStyle: React.CSSProperties = {
 };
 
 const compactCountBadgeStyle: React.CSSProperties = {
-  minWidth: "0.875rem",
-  height: "0.875rem",
+  minWidth: "1.625rem",
+  height: "1rem",
   padding: "0 0.25rem",
   borderRadius: MAP_RADIUS.sm,
   display: "inline-flex",
@@ -218,6 +218,33 @@ const compactCountBadgeStyle: React.CSSProperties = {
   fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+};
+
+const bookmarkCountPillStyle: React.CSSProperties = {
+  flex: "0 0 auto",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  minHeight: "1.25rem",
+  padding: `0 ${MAP_SPACING.xs}`,
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.xs,
+  color: MAP_COLORS.textSecondary,
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  whiteSpace: "nowrap",
+};
+
+const compactExportStripStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: MAP_SPACING.sm,
+  padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
+  borderBottom: MAP_STROKES.hairlineSubtle,
+  color: MAP_COLORS.textSecondary,
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
 };
 
 function encodeBookmark(bookmark: MapBookmark): string {
@@ -334,7 +361,7 @@ export const MapBookmarkBar: React.FC<MapBookmarkBarProps> = ({
         >
           <Bookmark size={MAP_ICON_SIZES.sm} aria-hidden="true" />
           <span>Views</span>
-          {bookmarks.length > 0 ? <span style={compactCountBadgeStyle}>{bookmarks.length}</span> : null}
+          <span style={compactCountBadgeStyle}>{bookmarks.length}/{maxBookmarks}</span>
           <ChevronDown size={MAP_ICON_SIZES.xs} aria-hidden="true" />
         </button>
 
@@ -343,6 +370,14 @@ export const MapBookmarkBar: React.FC<MapBookmarkBarProps> = ({
             <div style={compactMenuHeaderStyle}>
               <span>Saved Views</span>
               <span>{bookmarks.length}/{maxBookmarks}</span>
+            </div>
+            <div
+              style={compactExportStripStyle}
+              aria-label="Saved views export inclusion"
+              data-testid="map-bookmark-export-strip"
+            >
+              <span>Review package</span>
+              <span>Offline package</span>
             </div>
             <button
               type="button"
@@ -436,6 +471,16 @@ export const MapBookmarkBar: React.FC<MapBookmarkBarProps> = ({
       }}>
         <Bookmark size={MAP_ICON_SIZES.sm} aria-hidden="true" />
         {inline ? "Views" : "Saved Views"}
+      </span>
+      <span
+        style={{
+          ...bookmarkCountPillStyle,
+          ...(inline ? { minHeight: "1.25rem", fontSize: "0.6875rem" } satisfies React.CSSProperties : null),
+        }}
+        title="Saved views are included in review and offline packages"
+        data-testid="map-bookmark-count-pill"
+      >
+        {bookmarks.length}/{maxBookmarks}
       </span>
       <button
         type="button"

@@ -1,4 +1,9 @@
 export {
+  MapPublicationMarksPanel,
+  type MapPublicationMarksPanelProps,
+} from "./MapPublicationMarksPanel";
+
+export {
   MapPublishPathPanel,
   MapPublishWorkspace,
   type MapPublishPathAction,

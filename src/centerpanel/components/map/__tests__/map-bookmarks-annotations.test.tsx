@@ -7,7 +7,11 @@ import type maplibregl from "maplibre-gl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MapAnnotationLayer, ANNOTATION_SYMBOL_LAYER_ID } from "../../MapAnnotationLayer";
 import { MapBookmarkBar } from "../../MapBookmarkBar";
+import { MapPublicationMarksPanel } from "../publish";
+import { MapPinSidebar } from "../MapPinSidebar";
+import { MapStyleLabelsPanel } from "../style";
 import { MapToolbar } from "../MapToolbar";
+import { buildSerializedMapLabelSpec } from "@/services/map/labels/MapLabelEngine";
 import {
   MAP_ANNOTATION_LIMIT,
   MAP_BOOKMARK_LIMIT,
@@ -66,6 +70,47 @@ function makeAnnotation(id = "annotation-1"): MapAnnotation {
       updatedAt: "2026-04-28T00:00:00.000Z",
       leaderTarget: [29, 41],
     },
+  };
+}
+
+function makeLabelLayer(): OverlayLayerConfig {
+  const labelSpec = buildSerializedMapLabelSpec({
+    enabled: true,
+    field: "name",
+    collisionPolicy: "priority-by-field",
+    priorityField: "risk_score",
+    minZoom: 10,
+    maxZoom: 16,
+  }, "2026-04-28T00:00:00.000Z");
+
+  return {
+    id: "parcels",
+    name: "Parcels",
+    type: "geojson",
+    visible: true,
+    opacity: 1,
+    metadata: {
+      geometryType: "Polygon",
+      fields: ["name", "risk_score"],
+    },
+    sourceData: {
+      type: "FeatureCollection",
+      features: [{
+        type: "Feature",
+        properties: { name: "Downtown parcel", risk_score: 84 },
+        geometry: {
+          type: "Polygon",
+          coordinates: [[
+            [29, 41],
+            [29.01, 41],
+            [29.01, 41.01],
+            [29, 41.01],
+            [29, 41],
+          ]],
+        },
+      }],
+    },
+    style: labelSpec ? { labelSpec } : {},
   };
 }
 
@@ -229,6 +274,7 @@ describe("Map bookmarks and annotations UI surfaces", () => {
 
     expect(bookmarkHtml).toContain("Saved Views");
     expect(bookmarkHtml).toContain("Downtown");
+    expect(bookmarkHtml).toContain("1/50");
 
     const toolbarHtml = renderToStaticMarkup(
       <MapToolbar
@@ -245,6 +291,72 @@ describe("Map bookmarks and annotations UI surfaces", () => {
 
     expect(toolbarHtml).toContain("Toggle text annotation tool");
     expect(toolbarHtml).toContain("Text");
+  });
+
+  it("renders label, pin, bookmark, and publish mark controls with export awareness", () => {
+    const labelLayer = makeLabelLayer();
+    const labelsHtml = renderToStaticMarkup(
+      <MapStyleLabelsPanel
+        layers={[labelLayer]}
+        activeLayer={labelLayer}
+        activeLayerId={labelLayer.id}
+        onActiveLayerChange={() => undefined}
+        onApplyStyle={() => undefined}
+        annotationCount={2}
+        pinCount={1}
+        bookmarkCount={1}
+        annotationMode={false}
+        pinSidebarVisible={false}
+        onToggleAnnotationMode={() => undefined}
+        onTogglePinSidebar={() => undefined}
+        onOpenPublishMarks={() => undefined}
+      />,
+    );
+
+    expect(labelsHtml).toContain("Label field");
+    expect(labelsHtml).toContain("z10-16");
+    expect(labelsHtml).toContain("Priority By Field");
+    expect(labelsHtml).toContain("Export inclusion");
+    expect(labelsHtml).toContain("Annotation mode");
+    expect(labelsHtml).toContain("Show pins");
+    expect(labelsHtml).toContain("Publish inclusion");
+
+    const pinHtml = renderToStaticMarkup(
+      <MapPinSidebar
+        visible
+        pins={[{ id: "pin-1", lng: 29.1, lat: 41.1, label: "Site visit" }]}
+        onRemovePin={() => undefined}
+        onClearAll={() => undefined}
+        onFlyTo={() => undefined}
+      />,
+    );
+
+    expect(pinHtml).toContain("Pin export inclusion");
+    expect(pinHtml).toContain("Data export");
+    expect(pinHtml).toContain("Report");
+    expect(pinHtml).toContain("Package");
+
+    const publishHtml = renderToStaticMarkup(
+      <MapPublicationMarksPanel
+        annotationCount={2}
+        pinCount={1}
+        bookmarkCount={1}
+        annotationMode
+        pinSidebarVisible
+        onToggleAnnotationMode={() => undefined}
+        onTogglePinSidebar={() => undefined}
+        onOpenDataExport={() => undefined}
+        onOpenReport={() => undefined}
+        onOpenReviewPackage={() => undefined}
+      />,
+    );
+
+    expect(publishHtml).toContain("Publication marks");
+    expect(publishHtml).toContain("2/200");
+    expect(publishHtml).toContain("1/50");
+    expect(publishHtml).toContain("Annotation on");
+    expect(publishHtml).toContain("Pins visible");
+    expect(publishHtml).toContain("Review package");
   });
 
   it("adds a dedicated symbol layer and leader source for annotations", async () => {
@@ -275,6 +387,10 @@ describe("Map bookmarks and annotations UI surfaces", () => {
     expect(layers.get(ANNOTATION_SYMBOL_LAYER_ID)?.type).toBe("symbol");
     expect(sources.get("synapse-map-annotations-src")?.setData).toHaveBeenCalled();
     expect(sources.get("synapse-map-annotation-leaders-src")?.setData).toHaveBeenCalled();
+    expect(container.querySelector("[data-testid='map-annotation-controls']")?.getAttribute("data-map-overlay-placement")).toBe("canvas-docked");
+    expect(container.querySelector("[data-testid='map-annotation-publication-strip']")?.textContent).toContain("1/200 marks");
+    expect(container.querySelector("[data-testid='map-annotation-publication-strip']")?.textContent).toContain("Map image");
+    expect(container.querySelector("[data-testid='map-annotation-publication-strip']")?.textContent).toContain("Report");
     expect(map.setFilter).toHaveBeenCalledWith(
       "synapse-map-annotations-selected",
       ["==", ["get", "__annotationId"], "annotation-1"],

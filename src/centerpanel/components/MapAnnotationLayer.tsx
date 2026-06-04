@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type maplibregl from "maplibre-gl";
-import { Bold, Italic, Type, X } from "lucide-react";
+import { Bold, FileImage, FileText, Italic, PackageCheck, Type, X } from "lucide-react";
 import {
   MAP_ANNOTATION_COLOR_PALETTE,
   MAP_ANNOTATION_LIMIT,
@@ -53,10 +53,12 @@ export interface MapAnnotationLayerProps {
 
 const panelStyle: React.CSSProperties = {
   position: "absolute",
-  top: MAP_SPACING.sm,
+  top: `calc(var(--map-dock-top, 0px) + ${MAP_SPACING.sm})`,
   left: `calc(var(--map-dock-left, 0px) + ${MAP_SPACING.sm})`,
   zIndex: MAP_Z_INDEX.sidebar,
   width: "min(27rem, calc(100% - var(--map-dock-left, 0px) - var(--map-dock-right, 0px) - 2rem))",
+  maxHeight: "min(22rem, calc(100% - var(--map-dock-top, 0px) - var(--map-dock-bottom, 0px) - 1rem))",
+  overflowY: "auto",
   display: "grid",
   gap: MAP_SPACING.sm,
   padding: MAP_SPACING.sm,
@@ -125,6 +127,32 @@ const inlineLabelStyle: React.CSSProperties = {
   color: MAP_COLORS.textSecondary,
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
   whiteSpace: "nowrap",
+};
+
+const publicationStripStyle: React.CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  alignItems: "center",
+  gap: MAP_SPACING.xs,
+  padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.sm,
+  background: MAP_COLORS.transparent,
+  color: MAP_COLORS.textSecondary,
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+};
+
+const publicationChipStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "0.25rem",
+  minHeight: "1.25rem",
+  padding: `0 ${MAP_SPACING.xs}`,
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.xs,
+  color: MAP_COLORS.textMuted,
+  background: MAP_COLORS.transparent,
 };
 
 function isMapAlive(map: maplibregl.Map): boolean {
@@ -533,11 +561,17 @@ export const MapAnnotationLayer: React.FC<MapAnnotationLayerProps> = ({
   }
 
   return (
-    <div style={panelStyle} role="group" aria-label="Map annotation controls">
+    <div
+      style={panelStyle}
+      role="group"
+      aria-label="Map annotation controls"
+      data-testid="map-annotation-controls"
+      data-map-overlay-placement="canvas-docked"
+    >
       <div style={panelHeaderStyle}>
         <span style={panelTitleStyle}>
           <Type size={MAP_ICON_SIZES.sm} aria-hidden="true" />
-          {selectedAnnotation ? "Annotation" : "Text Annotation"}
+          {selectedAnnotation ? "Publication Mark" : "Text Annotation"}
         </span>
         <button
           type="button"
@@ -550,6 +584,27 @@ export const MapAnnotationLayer: React.FC<MapAnnotationLayerProps> = ({
         >
           <X size={MAP_ICON_SIZES.sm} aria-hidden="true" />
         </button>
+      </div>
+
+      <div
+        style={publicationStripStyle}
+        aria-label="Annotation publication status"
+        data-testid="map-annotation-publication-strip"
+      >
+        <span style={publicationChipStyle}>{annotations.length}/{MAP_ANNOTATION_LIMIT} marks</span>
+        <span style={publicationChipStyle}>{active ? "Place mode" : "Edit mode"}</span>
+        <span style={publicationChipStyle}>
+          <FileImage size={MAP_ICON_SIZES.xs} aria-hidden />
+          Map image
+        </span>
+        <span style={publicationChipStyle}>
+          <FileText size={MAP_ICON_SIZES.xs} aria-hidden />
+          Report
+        </span>
+        <span style={publicationChipStyle}>
+          <PackageCheck size={MAP_ICON_SIZES.xs} aria-hidden />
+          Package
+        </span>
       </div>
 
       <div style={controlsStyle}>

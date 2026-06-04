@@ -1,4 +1,5 @@
 import React from "react";
+import { Database, FileText, PackageCheck } from "lucide-react";
 import type { MapPin } from "./mapTypes";
 import {
   MAP_COLORS,
@@ -77,6 +78,29 @@ const iconOnlyBtn: React.CSSProperties = {
   padding: MAP_SPACING.zero,
 };
 
+const publicationStrip: React.CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  alignItems: "center",
+  gap: MAP_SPACING.xs,
+  padding: `${MAP_SPACING.xs} ${MAP_SPACING.md}`,
+  borderBottom: MAP_STROKES.hairlineSubtle,
+  color: MAP_COLORS.textMuted,
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+};
+
+const publicationChip: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "0.25rem",
+  minHeight: "1.25rem",
+  padding: `0 ${MAP_SPACING.xs}`,
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_SPACING.xs,
+  color: MAP_COLORS.textSecondary,
+};
+
 function formatCoordinate(value: number): string {
   return Number.isFinite(value) ? value.toFixed(5) : "--";
 }
@@ -132,6 +156,25 @@ export const MapPinSidebar: React.FC<MapPinSidebarProps> = ({
           <span style={mapStyles.sidePanelMetricLabel}>Last Lng</span>
           <span style={mapStyles.sidePanelMetricValue}>{lastPin ? formatCoordinate(lastPin.lng) : "None"}</span>
         </div>
+      </div>
+
+      <div
+        style={publicationStrip}
+        aria-label="Pin export inclusion"
+        data-testid="map-pin-sidebar-publication-strip"
+      >
+        <span style={publicationChip}>
+          <Database size={MAP_ICON_SIZES.xs} aria-hidden />
+          Data export
+        </span>
+        <span style={publicationChip}>
+          <FileText size={MAP_ICON_SIZES.xs} aria-hidden />
+          Report
+        </span>
+        <span style={publicationChip}>
+          <PackageCheck size={MAP_ICON_SIZES.xs} aria-hidden />
+          Package
+        </span>
       </div>
 
       {pins.length === 0 ? (
