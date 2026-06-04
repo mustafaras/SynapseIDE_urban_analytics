@@ -1925,11 +1925,24 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const [workbenchSidebarTab, setWorkbenchSidebarTab] = useState<string>(
     initialActivityId === "overview" ? "overview-readiness" : "layers-stack",
   );
-  const [workbenchSidebarCollapsed, setWorkbenchSidebarCollapsed] = useState(false);
+  const [workbenchSidebarCollapsed, setWorkbenchSidebarCollapsed] = useState(
+    layoutPreferences.panelMode === "collapsed",
+  );
   const [layersCartographyScopeId, setLayersCartographyScopeId] = useState<string | null>(null);
   const [styleWorkspaceLayerId, setStyleWorkspaceLayerId] = useState<string | null>(null);
   const [showSidebar, setShowSidebar] = useState(false);
-  const [showLayerPanel, setShowLayerPanel] = useState(true);
+  const [showLayerPanel, setShowLayerPanelState] = useState(
+    layoutPreferences.panelMode !== "collapsed",
+  );
+  const setShowLayerPanel = useCallback<React.Dispatch<React.SetStateAction<boolean>>>((next) => {
+    setShowLayerPanelState((current) => {
+      const resolved = typeof next === "function" ? next(current) : next;
+      if (resolved !== current) {
+        setLayoutPreferences({ panelMode: resolved ? "map-first" : "collapsed" });
+      }
+      return resolved;
+    });
+  }, [setLayoutPreferences]);
   const [showChoroplethPanel, setShowChoroplethPanel] = useState(false);
   const [showClusterViz, setShowClusterViz] = useState(false);
   const [showHotSpotViz, setShowHotSpotViz] = useState(false);
@@ -3751,15 +3764,19 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   );
 
   const handleRestoreDefaultWidths = useCallback(() => {
-    restoreDefaultLayoutPreferences();
+    setLayoutPreferences({
+      layerPanelWidth: DEFAULT_MAP_EXPLORER_LAYOUT_PREFERENCES.layerPanelWidth,
+      rightPanelWidth: DEFAULT_MAP_EXPLORER_LAYOUT_PREFERENCES.rightPanelWidth,
+    });
     announce(
       `Default panel widths restored (${DEFAULT_MAP_EXPLORER_LAYOUT_PREFERENCES.layerPanelWidth}px sidebar, ${DEFAULT_MAP_EXPLORER_LAYOUT_PREFERENCES.rightPanelWidth}px inspector)`,
     );
-  }, [announce, restoreDefaultLayoutPreferences]);
+  }, [announce, setLayoutPreferences]);
 
   const handleCollapseAllPanels = useCallback(() => {
     closeFloatingRightPanels();
     closeRightDockPanels();
+    setLayoutPreferences({ panelMode: "collapsed" });
     setShowLayerPanel(false);
     setWorkbenchSidebarCollapsed(true);
     setBottomPanelOpen(false);
@@ -3778,6 +3795,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     announce,
     closeFloatingRightPanels,
     closeRightDockPanels,
+    setLayoutPreferences,
     setShowWorkflowDrawer,
     setWorkflowPreview,
   ]);

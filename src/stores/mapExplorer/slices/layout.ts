@@ -2,8 +2,9 @@ import { defineMapExplorerSlicePolicy } from "./types";
 
 /**
  * Layout and annotation slice.
- * Persistence: mixed. User UI widths, pins, bookmarks, and bounded text
- * annotations are lightweight restore state; selected annotation/tool focus is live.
+ * Persistence: mixed. User UI widths, map-first/collapsed chrome mode,
+ * pins, bookmarks, and bounded text annotations are lightweight restore
+ * state; selected annotation/tool focus is live.
  */
 export const layoutSlicePolicy = defineMapExplorerSlicePolicy({
   id: "layout",
@@ -45,5 +46,5 @@ export const layoutSlicePolicy = defineMapExplorerSlicePolicy({
   persistedKeys: ["pins", "bookmarks", "annotations", "annotationToolSettings", "layoutPreferences"],
   transientKeys: ["selectedAnnotationId", "activeTool"],
   heavyGeometryKeys: [],
-  rationale: "Bounded lightweight marks and panel widths are restore UX; active tool/selection focus is session-only.",
+  rationale: "Bounded lightweight marks, panel widths, and map-first/collapsed chrome mode are restore UX; active tool/selection focus is session-only.",
 });

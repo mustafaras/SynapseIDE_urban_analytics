@@ -397,10 +397,9 @@ const TASK_LENS_TOOLBAR_ROLES: Record<MapTaskLensId, ToolbarRole> = {
 const DENSITY_LABELS: Record<ToolbarDensity, string> = {
   compact: "Compact",
   comfortable: "Comfort",
-  expert: "Expert",
 };
 
-const TOOLBAR_DENSITY_ORDER = ["compact", "comfortable", "expert"] as const satisfies readonly ToolbarDensity[];
+const TOOLBAR_DENSITY_ORDER = ["compact", "comfortable"] as const satisfies readonly ToolbarDensity[];
 
 const COMMAND_TAXONOMY_ICONS: Record<CommandTaxonomyId, LucideIcon> = {
   data: Upload,
@@ -627,7 +626,7 @@ function commandButtonStyle(
   active = false,
   disabled = false,
   tone: CommandTone = "default",
-  density: ToolbarDensity = "expert",
+  density: ToolbarDensity = "comfortable",
   menuItem = false,
   primary = false,
 ): React.CSSProperties {
@@ -844,7 +843,7 @@ const LEGACY_COMMAND_ALIASES: Record<string, readonly string[]> = {
   "collapse-panels": ["collapse all panels", "hide panels", "close drawers"],
   "focus-map-canvas": ["focus map", "keyboard focus", "canvas focus"],
   "restore-default-widths": ["default widths", "sidebar width", "inspector width"],
-  "switch-density": ["compact density", "comfortable density", "expert density"],
+  "switch-density": ["compact density", "comfortable density"],
   "performance-diagnostics": ["diagnostics", "render budget", "worker transfer", "telemetry", "recovery", "performance"],
   "plugin-registry": ["plugins", "extensions", "extension registry", "source connector", "renderer extension", "Urban bridge"],
   "processing-toolbox": ["processing toolbox", "geoprocessing", "buffer", "intersect", "spatial join", "field calculator"],
@@ -1385,7 +1384,7 @@ function buildToolbarCommands(args: BuildToolbarCommandsArgs): ToolbarCommand[] 
     label: "Switch density",
     shortLabel: "Density",
     title: `Switch toolbar density from ${DENSITY_LABELS[args.density]} to ${DENSITY_LABELS[getNextToolbarDensityPreference(args.density)]}`,
-    keywords: ["switch density", "compact density", "comfortable density", "expert density", "toolbar density"],
+    keywords: ["switch density", "compact density", "comfortable density", "toolbar density"],
     icon: Settings2,
     onClick: args.onSwitchDensity,
     roles: ["explore", "analyze", "publish"],

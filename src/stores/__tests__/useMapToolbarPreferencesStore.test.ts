@@ -12,7 +12,7 @@ function createMemoryStorage(): Storage {
   };
 }
 
-function ensureLocalStorage(): Storage {
+function ensureLocalStorage(options: { clear?: boolean } = {}): Storage {
   if (typeof globalThis.localStorage === "undefined") {
     Object.defineProperty(globalThis, "localStorage", {
       value: createMemoryStorage(),
@@ -20,12 +20,14 @@ function ensureLocalStorage(): Storage {
       writable: true,
     });
   }
-  globalThis.localStorage.clear();
+  if (options.clear !== false) {
+    globalThis.localStorage.clear();
+  }
   return globalThis.localStorage;
 }
 
-async function freshToolbarPreferencesStore() {
-  ensureLocalStorage();
+async function freshToolbarPreferencesStore(options: { clearStorage?: boolean } = {}) {
+  ensureLocalStorage({ clear: options.clearStorage });
   vi.resetModules();
   const mod = await import("../useMapToolbarPreferencesStore");
   return mod.useMapToolbarPreferencesStore;
@@ -37,11 +39,11 @@ afterEach(() => {
 });
 
 describe("useMapToolbarPreferencesStore", () => {
-  it("defaults to the analyst lens with expert density", async () => {
+  it("defaults to the analyst lens with comfortable density", async () => {
     const store = await freshToolbarPreferencesStore();
 
     expect(store.getState().taskLens).toBe("analyst");
-    expect(store.getState().density).toBe("expert");
+    expect(store.getState().density).toBe("comfortable");
   });
 
   it("persists only lightweight toolbar layout preferences", async () => {
@@ -59,5 +61,23 @@ describe("useMapToolbarPreferencesStore", () => {
       taskLens: "reviewer",
     });
     expect(Object.keys(parsed.state).sort()).toEqual(["density", "taskLens"]);
+  });
+
+  it("normalizes legacy or invalid persisted preferences to lightweight defaults", async () => {
+    const storage = ensureLocalStorage();
+    storage.setItem("synapse-map-toolbar-preferences", JSON.stringify({
+      state: {
+        density: "expert",
+        taskLens: "unknown",
+        overlayLayers: [{ id: "should-not-hydrate" }],
+      },
+      version: 0,
+    }));
+
+    const store = await freshToolbarPreferencesStore({ clearStorage: false });
+
+    expect(store.getState().density).toBe("comfortable");
+    expect(store.getState().taskLens).toBe("analyst");
+    expect("overlayLayers" in store.getState()).toBe(false);
   });
 });
