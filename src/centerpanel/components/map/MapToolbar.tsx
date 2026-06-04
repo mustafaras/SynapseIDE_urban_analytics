@@ -977,6 +977,10 @@ function getCommandAccessibleTitle(command: ToolbarCommand): string {
   return `${command.title}. ${getCommandUnavailableReason(command)}`;
 }
 
+function getCommandDomIdSegment(commandId: string): string {
+  return commandId.replace(/[^a-z0-9_-]/gi, "-");
+}
+
 function getCommandTaxonomy(command: Pick<ToolbarCommand, "id" | "overflowGroup">): CommandTaxonomyId {
   const id = command.id;
   if (
@@ -1971,6 +1975,10 @@ function ToolbarCommandButton({
   const disabled = Boolean(command.disabled);
   const color = active ? MAP_COLORS.interaction : toneColor(command.tone ?? "default");
   const accessibleTitle = getCommandAccessibleTitle(command);
+  const disabledReason = disabled ? getCommandUnavailableReason(command) : null;
+  const disabledReasonId = disabledReason
+    ? `map-toolbar-command-${getCommandDomIdSegment(command.id)}-disabled-reason`
+    : undefined;
 
   return (
     <button
@@ -1985,15 +1993,22 @@ function ToolbarCommandButton({
       aria-label={accessibleTitle}
       aria-pressed={active || undefined}
       aria-disabled={disabled || undefined}
+      aria-describedby={disabledReasonId}
       disabled={disabled}
       role={menuItem ? "menuitem" : undefined}
       data-testid={`map-toolbar-command-${command.id}`}
       data-map-command-id={command.id}
+      data-disabled-reason={disabledReason ?? undefined}
       {...toolbarButtonInteraction(active, disabled)}
     >
       <Icon size={MAP_ICON_SIZES.sm} strokeWidth={1.8} color={color} aria-hidden="true" />
       <span style={toolbarButtonText}>{label}</span>
       {command.badge != null && command.badge !== 0 ? <span style={toolbarBadge} aria-hidden="true">{command.badge}</span> : null}
+      {disabledReason && disabledReasonId ? (
+        <span id={disabledReasonId} style={mapStyles.srOnly}>
+          Disabled: {disabledReason}
+        </span>
+      ) : null}
     </button>
   );
 }
@@ -2260,7 +2275,7 @@ function CommandPalette({
           placeholder="Search map commands and tools: buffer, import geojson, query layers, draw polygon"
           aria-label="Search map commands"
           aria-controls="map-command-palette-list"
-          aria-activedescendant={selectedCommand ? `map-command-palette-option-${selectedCommand.id.replace(/[^a-z0-9_-]/gi, "-")}` : undefined}
+          aria-activedescendant={selectedCommand ? `map-command-palette-option-${getCommandDomIdSegment(selectedCommand.id)}` : undefined}
         />
         <div id="map-command-palette-list" style={paletteListStyle} role="listbox" aria-label="Available map commands">
           {filteredCommands.length === 0 ? (
@@ -2294,9 +2309,11 @@ function CommandPalette({
                 (() => {
                   const status = getCommandStatus(command);
                   const accessibleTitle = getCommandAccessibleTitle(command);
-                  const optionId = `map-command-palette-option-${command.id.replace(/[^a-z0-9_-]/gi, "-")}`;
+                  const optionId = `map-command-palette-option-${getCommandDomIdSegment(command.id)}`;
                   const selected = index === activeIndex;
                   const shortcutLabel = command.disabled ? null : command.shortcut ?? runShortcutLabel;
+                  const disabledReason = command.disabled ? getCommandUnavailableReason(command) : null;
+                  const disabledReasonId = disabledReason ? `${optionId}-disabled-reason` : undefined;
                   return (
                     <button
                       key={command.id}
@@ -2324,6 +2341,8 @@ function CommandPalette({
                       aria-label={command.disabled ? `${command.label}. ${accessibleTitle}` : `${command.label}. ${command.title}`}
                       aria-selected={selected || command.active || undefined}
                       aria-disabled={command.disabled || undefined}
+                      aria-describedby={disabledReasonId}
+                      data-disabled-reason={disabledReason ?? undefined}
                       disabled={command.disabled}
                     >
                       {React.createElement(command.icon, { size: MAP_ICON_SIZES.sm, strokeWidth: 1.8, "aria-hidden": true })}
@@ -2350,6 +2369,11 @@ function CommandPalette({
                           </span>
                         </span>
                       </span>
+                      {disabledReason && disabledReasonId ? (
+                        <span id={disabledReasonId} style={mapStyles.srOnly}>
+                          Disabled: {disabledReason}
+                        </span>
+                      ) : null}
                     </button>
                   );
                 })()

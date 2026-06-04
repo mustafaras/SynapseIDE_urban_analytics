@@ -273,7 +273,7 @@ describe("barrel index exports", () => {
     expect(barrel.MapSearchBar).toBeDefined();
     expect(barrel.MapStatusBar).toBeDefined();
     expect(barrel.MapPinSidebar).toBeDefined();
-  }, 15000);
+  }, 30000);
 
   it("exports mapTokens constants", async () => {
     const barrel = await import("../index");

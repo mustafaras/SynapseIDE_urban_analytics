@@ -193,7 +193,7 @@ test.describe("Prompt 03 Map Explorer accessibility @a11y", () => {
   });
 });
 
-test.describe("Prompt 20 Map Explorer accessibility matrix @a11y", () => {
+test.describe("Prompt 55 Map Explorer accessibility matrix @a11y", () => {
   test.beforeEach(async ({ page }) => {
     await page.setViewportSize({ width: 1680, height: 1100 });
     await resetWorkbenchState(page);
@@ -222,6 +222,13 @@ test.describe("Prompt 20 Map Explorer accessibility matrix @a11y", () => {
     const layersActivity = mapExplorer.getByTestId("activity-btn-layers");
     await layersActivity.focus();
     await page.keyboard.press("Enter");
+
+    const layerActions = mapExplorer.getByTestId("map-layer-actions-summary").first();
+    await expect(layerActions).toBeVisible();
+    await layerActions.focus();
+    await expect(layerActions).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(layerActions).toHaveAttribute("aria-expanded", "true");
 
     const inspectLayer = mapExplorer.getByTestId("map-layer-inspect-trigger").first();
     await expect(inspectLayer).toBeVisible();
