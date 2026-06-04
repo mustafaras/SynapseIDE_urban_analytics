@@ -3104,9 +3104,10 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     announcement: string,
     layerId?: string | null,
   ) => {
+    closeFloatingRightPanels();
     closeRightDockPanels();
     openStyleActivityTab(tabId, announcement, layerId);
-  }, [closeRightDockPanels, openStyleActivityTab]);
+  }, [closeFloatingRightPanels, closeRightDockPanels, openStyleActivityTab]);
   const handleOpenSceneTab = useCallback((tabId: MapSceneTabId, announcement: string) => {
     closeFloatingRightPanels();
     closeRightDockPanels();
@@ -3732,6 +3733,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   }, [selectedTemporalLayerId, temporalLayers]);
 
   useEffect(() => {
+    temporalFrameSyncRef.current = { map: 0, temporal: 0 };
+    temporalPlaybackSyncRef.current = { map: false, temporal: false };
     setIsPlaying(false);
     setCurrentTimestep(0);
   }, [activeTemporalLayer?.id, setCurrentTimestep, setIsPlaying]);
@@ -3767,46 +3770,91 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     temporalSetPlaybackMode,
   ]);
 
+  const temporalFrameSyncRef = useRef({
+    map: currentTimestep,
+    temporal: temporalActiveFrameIndex,
+  });
+  const temporalSpeedSyncRef = useRef({
+    map: mapPlaybackSpeed,
+    temporal: temporalPlaybackSpeed,
+  });
+  const temporalPlaybackSyncRef = useRef({
+    map: mapIsPlaying,
+    temporal: temporalIsPlaying,
+  });
+
   useEffect(() => {
-    if (currentTimestep !== temporalActiveFrameIndex) {
+    const previous = temporalFrameSyncRef.current;
+    if (currentTimestep === temporalActiveFrameIndex) {
+      temporalFrameSyncRef.current = { map: currentTimestep, temporal: temporalActiveFrameIndex };
+      return;
+    }
+
+    const mapChanged = currentTimestep !== previous.map;
+    const temporalChanged = temporalActiveFrameIndex !== previous.temporal;
+
+    if (mapChanged && !temporalChanged) {
+      temporalFrameSyncRef.current = { map: currentTimestep, temporal: currentTimestep };
       temporalGoToFrame(currentTimestep);
+      return;
     }
-  }, [currentTimestep, temporalActiveFrameIndex, temporalGoToFrame]);
+
+    temporalFrameSyncRef.current = {
+      map: temporalActiveFrameIndex,
+      temporal: temporalActiveFrameIndex,
+    };
+    setCurrentTimestep(temporalActiveFrameIndex);
+  }, [currentTimestep, setCurrentTimestep, temporalActiveFrameIndex, temporalGoToFrame]);
 
   useEffect(() => {
-    if (mapPlaybackSpeed !== temporalPlaybackSpeed) {
+    const previous = temporalSpeedSyncRef.current;
+    if (mapPlaybackSpeed === temporalPlaybackSpeed) {
+      temporalSpeedSyncRef.current = { map: mapPlaybackSpeed, temporal: temporalPlaybackSpeed };
+      return;
+    }
+
+    const mapChanged = mapPlaybackSpeed !== previous.map;
+    const temporalChanged = temporalPlaybackSpeed !== previous.temporal;
+
+    if (mapChanged && !temporalChanged) {
+      temporalSpeedSyncRef.current = { map: mapPlaybackSpeed, temporal: mapPlaybackSpeed };
       temporalSetSpeed(mapPlaybackSpeed);
+      return;
     }
-  }, [mapPlaybackSpeed, temporalPlaybackSpeed, temporalSetSpeed]);
+
+    temporalSpeedSyncRef.current = {
+      map: temporalPlaybackSpeed,
+      temporal: temporalPlaybackSpeed,
+    };
+    setPlaybackSpeed(temporalPlaybackSpeed);
+  }, [mapPlaybackSpeed, setPlaybackSpeed, temporalPlaybackSpeed, temporalSetSpeed]);
 
   useEffect(() => {
+    const previous = temporalPlaybackSyncRef.current;
     if (mapIsPlaying === temporalIsPlaying) {
+      temporalPlaybackSyncRef.current = { map: mapIsPlaying, temporal: temporalIsPlaying };
       return;
     }
-    if (mapIsPlaying) {
-      temporalPlay();
+
+    const mapChanged = mapIsPlaying !== previous.map;
+    const temporalChanged = temporalIsPlaying !== previous.temporal;
+
+    if (mapChanged && !temporalChanged) {
+      temporalPlaybackSyncRef.current = { map: mapIsPlaying, temporal: mapIsPlaying };
+      if (mapIsPlaying) {
+        temporalPlay();
+        return;
+      }
+      temporalPause();
       return;
     }
-    temporalPause();
-  }, [mapIsPlaying, temporalIsPlaying, temporalPause, temporalPlay]);
 
-  useEffect(() => {
-    if (temporalActiveFrameIndex !== currentTimestep) {
-      setCurrentTimestep(temporalActiveFrameIndex);
-    }
-  }, [currentTimestep, setCurrentTimestep, temporalActiveFrameIndex]);
-
-  useEffect(() => {
-    if (temporalPlaybackSpeed !== mapPlaybackSpeed) {
-      setPlaybackSpeed(temporalPlaybackSpeed);
-    }
-  }, [mapPlaybackSpeed, setPlaybackSpeed, temporalPlaybackSpeed]);
-
-  useEffect(() => {
-    if (temporalIsPlaying !== mapIsPlaying) {
-      setIsPlaying(temporalIsPlaying);
-    }
-  }, [mapIsPlaying, setIsPlaying, temporalIsPlaying]);
+    temporalPlaybackSyncRef.current = {
+      map: temporalIsPlaying,
+      temporal: temporalIsPlaying,
+    };
+    setIsPlaying(temporalIsPlaying);
+  }, [mapIsPlaying, setIsPlaying, temporalIsPlaying, temporalPause, temporalPlay]);
 
   useEffect(() => {
     if (!activeTemporalLayer) {
@@ -10305,6 +10353,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               layerId={activeTemporalLayer.id}
               layerName={activeTemporalLayer.name}
               visible={open && sceneTemporalTabActive}
+              emitEvidenceArtifact={false}
             />
           ) : null}
 

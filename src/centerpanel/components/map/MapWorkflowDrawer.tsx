@@ -583,7 +583,6 @@ export const MapWorkflowDrawer: React.FC<MapWorkflowDrawerProps> = ({
 
   useEffect(() => {
     if (!visible) {
-      onPreviewChange?.(null);
       return undefined;
     }
 

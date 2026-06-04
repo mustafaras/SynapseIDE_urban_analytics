@@ -27,6 +27,7 @@ import { wireNetworkEvents } from './utils/resilience/netEvents';
 import { flags } from './config/flags';
 import { useAppStore } from './stores/appStore';
 import { useMapExplorerStore } from '@/stores/useMapExplorerStore';
+import { useTemporalLayerStore } from '@/stores/useTemporalLayerStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useSynapseWorkspaceStore } from '@/stores/useSynapseWorkspaceStore';
 import { useUrbanStore } from './features/urbanAnalytics/store';
@@ -1105,6 +1106,85 @@ const MainApp: React.FC<MainAppProps> = ({ onOpenAnalytics }) => {
               },
             },
           });
+        };
+        (window as any).e2e.openMapExplorer = () => {
+          useMapExplorerStore.getState().open();
+        };
+        (window as any).e2e.seedTemporalLayer = (input: {
+          id?: string;
+          name: string;
+          frames: Array<{
+            key: string;
+            label: string;
+            featureCollection: GeoJSON.FeatureCollection;
+          }>;
+          timeProperty?: string;
+          valueField?: string;
+          engine?: string;
+          runtimeMode?: 'live' | 'demo' | 'synthetic' | 'unknown';
+          sourceLabel?: string;
+        }) => {
+          const frames = input.frames.map((frame) => ({
+            key: frame.key,
+            label: frame.label,
+            data: frame.featureCollection,
+          }));
+          const firstFrame = frames[0]?.data ?? { type: 'FeatureCollection', features: [] };
+          const geometryType = firstFrame.features[0]?.geometry?.type ?? 'Unknown';
+          const fields = Array.from(new Set(frames.flatMap((frame) =>
+            frame.data.features.flatMap((feature) => Object.keys(feature.properties ?? {})),
+          )));
+
+          useMapExplorerStore.getState().addOverlayLayer({
+            id: input.id ?? `e2e-temporal-layer-${Date.now()}`,
+            name: input.name,
+            type: 'geojson',
+            visible: true,
+            opacity: 0.92,
+            group: 'analysis',
+            sourceKind: 'derived',
+            sourceData: firstFrame,
+            metadata: {
+              geometryType,
+              featureCount: frames.reduce((count, frame) => count + frame.data.features.length, 0),
+              fields,
+              sourceId: input.id ?? input.name,
+              datasetContext: {
+                datasetTitle: input.name,
+                source: input.sourceLabel ?? 'E2E seeded temporal layer',
+              },
+              analysisResult: {
+                engine: input.engine ?? 'E2E Temporal Fixture',
+                runTimestamp: new Date().toISOString(),
+                parameterSummary: `${frames.length} temporal frame(s) seeded for E2E`,
+                inputParameters: { frames: frames.length },
+                statisticalSummary: { frames: frames.length },
+                visualization: {
+                  kind: 'temporal',
+                  title: input.name,
+                  timeProperty: input.timeProperty ?? 'timestamp',
+                  temporalFrames: frames,
+                  ...(input.valueField ? { valueField: input.valueField } : {}),
+                },
+                runtimeMode: input.runtimeMode ?? 'demo',
+              },
+            },
+          });
+        };
+        (window as any).e2e.getTemporalPlaybackState = () => {
+          const map = useMapExplorerStore.getState();
+          const temporal = useTemporalLayerStore.getState();
+          return {
+            mapOpen: map.isOpen,
+            currentTimestep: map.currentTimestep,
+            isPlaying: map.isPlaying,
+            playbackSpeed: map.playbackSpeed,
+            overlayLayerCount: map.overlayLayers.length,
+            temporalFrameCount: temporal.frames.length,
+            temporalActiveFrameIndex: temporal.activeFrameIndex,
+            temporalIsPlaying: temporal.isPlaying,
+            temporalSpeed: temporal.speed,
+          };
         };
         (window as any).e2e.clearGeoJSONLayers = () => {
           useMapExplorerStore.getState().replaceOverlayLayers([]);

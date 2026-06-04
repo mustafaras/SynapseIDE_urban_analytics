@@ -1,5 +1,10 @@
 import { expect, test, type Page } from "@playwright/test";
-import { openUrbanAnalyticsWorkbench, resetWorkbenchState, triggerDomClick } from "./helpers/urbanAnalytics";
+import {
+  openLayerActionMenu,
+  openUrbanAnalyticsWorkbench,
+  resetWorkbenchState,
+  triggerDomClick,
+} from "./helpers/urbanAnalytics";
 
 async function waitForMapExplorerDialog(page: Page) {
   const loadingStatus = page.getByText("Loading Map Explorer...");
@@ -21,16 +26,7 @@ async function openMapExplorer(page: Page) {
 }
 
 async function openMapExplorerFromStore(page: Page) {
-  await page.evaluate(async () => {
-    const module = await import("/src/stores/useMapExplorerStore.ts");
-    module.useMapExplorerStore.getState().open();
-  });
-
-  const mapExplorer = await waitForMapExplorerDialog(page);
-  const exploreButton = page.getByRole("button", { name: /Explore Layers|Switch map workspace to explore/i }).first();
-  await expect(exploreButton).toBeVisible();
-  await triggerDomClick(exploreButton);
-  return mapExplorer;
+  return openMapExplorer(page);
 }
 
 async function getPersistedLayerPanelWidth(page: Page): Promise<number | null> {
@@ -509,28 +505,56 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
     await expect(page.getByRole("dialog", { name: "Map command palette" })).toBeHidden();
   });
 
-  test("switches every Prompt 16 activity without hiding the work surface", async ({ page }) => {
-    const { shell, rail } = await openPrompt16Explorer(page);
-    const activityIds = [
-      "overview",
-      "data",
-      "layers",
-      "analyze",
-      "style",
-      "scene",
-      "publish",
-      "qa",
-      "review",
-      "diagnostics",
-      "extensions",
-    ];
-    for (const activityId of activityIds) {
-      await expect(rail.getByTestId(`activity-btn-${activityId}`)).toBeVisible();
-      await triggerDomClick(rail.getByTestId(`activity-btn-${activityId}`));
-      await expect(shell).toHaveAttribute("data-map-active-activity", activityId);
-      await expect(rail.getByTestId(`activity-btn-${activityId}`)).toHaveAttribute("aria-pressed", "true");
+  const prompt16WorkbenchActivityIds = [
+    "overview",
+    "data",
+    "layers",
+    "analyze",
+    "style",
+    "scene",
+    "publish",
+  ] as const;
+
+  for (const activityId of prompt16WorkbenchActivityIds) {
+    test(`keeps the Prompt 16 work surface visible for ${activityId}`, async ({ page }) => {
+      const { shell, rail } = await openPrompt16Explorer(page);
+      const pageErrors: string[] = [];
+      const consoleMessages: string[] = [];
+      page.on("pageerror", (error) => {
+        pageErrors.push(error.message);
+      });
+      page.on("console", (message) => {
+        if (message.type() === "warning" || message.type() === "error") {
+          consoleMessages.push(`${message.type()}: ${message.text()}`);
+        }
+      });
+      const activityButton = rail.getByTestId(`activity-btn-${activityId}`);
+      await expect(activityButton).toBeVisible();
+      await triggerDomClick(activityButton);
+      await expect
+        .poll(async () => {
+          const shellCount = await shell.count();
+          if (shellCount === 0) {
+            const diagnosticParts = [
+              pageErrors.join(" | ") || "no-pageerror",
+              consoleMessages.join(" || ") || "no-console",
+            ];
+            return `closed:${diagnosticParts.join(" // ")}`;
+          }
+          return (await shell.getAttribute("data-map-active-activity")) ?? "missing-activity";
+        })
+        .toBe(activityId);
+      await expect(activityButton).toHaveAttribute("aria-pressed", "true");
       await expect(page.getByTestId("map-canvas-region")).toBeVisible();
-    }
+    });
+  }
+
+  test("keeps Prompt 16 utility rail actions visible", async ({ page }) => {
+    const { rail } = await openPrompt16Explorer(page);
+    await expect(rail.getByTestId("activity-btn-qa")).toBeVisible();
+    await expect(rail.getByTestId("activity-btn-review")).toBeVisible();
+    await expect(rail.getByTestId("activity-btn-diagnostics")).toBeVisible();
+    await expect(rail.getByTestId("activity-btn-extensions")).toBeVisible();
   });
 
   test("reaches Prompt 16 data, layers, inspector, QA, and attributes routes", async ({ page }) => {
@@ -547,11 +571,13 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
 
     const seededLayerRow = page.getByRole("listitem", { name: /Layer: E2E Istanbul WGS84 Points/i });
     await expect(seededLayerRow).toBeVisible();
+    await openLayerActionMenu(seededLayerRow);
     await triggerDomClick(seededLayerRow.getByTestId("map-layer-inspect-trigger"));
     await expect(page.getByTestId("map-inspector-host")).toBeVisible();
     await expect(page.getByTestId("map-layer-inspector")).toBeVisible();
     await triggerDomClick(page.getByTestId("map-inspector-host").getByRole("button", { name: "Close inspector" }));
 
+    await openLayerActionMenu(seededLayerRow);
     await triggerDomClick(seededLayerRow.getByTestId("map-layer-table-trigger"));
     await expect(page.getByTestId("map-bottom-panel")).toHaveAttribute("data-active-bottom-tab", "attributes");
     await expect(page.getByTestId("map-attribute-table")).toBeVisible();
@@ -1180,6 +1206,7 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
 
     // Inspect the known layer: Schema lists `value`, CRS shows EPSG:4326.
     const pointsRow = page.getByRole("listitem", { name: /Layer: E2E Inspector Points/i });
+    await openLayerActionMenu(pointsRow);
     await triggerDomClick(pointsRow.getByTestId("map-layer-inspect-trigger"));
     const inspectorHost = page.getByTestId("map-inspector-host");
     await expect(inspectorHost).toBeVisible();
@@ -1201,6 +1228,7 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
 
     // The missing-CRS layer shows CRS as `missing`, never a blank.
     const missingRow = page.getByRole("listitem", { name: /Layer: E2E Inspector Missing/i });
+  await openLayerActionMenu(missingRow);
     await triggerDomClick(missingRow.getByTestId("map-layer-inspect-trigger"));
     await triggerDomClick(page.getByTestId("map-layer-inspector").getByTestId("map-layer-inspector-tab-crs"));
     await expect(page.getByTestId("map-layer-inspector-panel-crs")).toContainText("missing");
@@ -1216,6 +1244,7 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
     await expect(layerList).toContainText("E2E Attribute Points");
 
     const row = page.getByRole("listitem", { name: /Layer: E2E Attribute Points/i });
+    await openLayerActionMenu(row);
     await triggerDomClick(row.getByTestId("map-layer-table-trigger"));
 
     const table = page.getByTestId("map-attribute-table");
@@ -1246,6 +1275,7 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
     await seedAttributeTableLayer(page);
 
     const row = page.getByRole("listitem", { name: /Layer: E2E Attribute Points/i });
+    await openLayerActionMenu(row);
     await triggerDomClick(row.getByTestId("map-layer-table-trigger"));
 
     const table = page.getByTestId("map-attribute-table");

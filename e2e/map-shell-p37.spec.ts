@@ -6,55 +6,41 @@
  * @smoke
  */
 import { expect, test } from "@playwright/test";
-import { openUrbanAnalyticsWorkbench, resetWorkbenchState, triggerDomClick } from "./helpers/urbanAnalytics";
-
-async function openMapExplorer(page: import("@playwright/test").Page) {
-  const urbanModal = await openUrbanAnalyticsWorkbench(page);
-  await triggerDomClick(urbanModal.getByRole("button", { name: "Open Map Explorer (Ctrl+Shift+M)" }));
-  const mapExplorer = page.getByRole("dialog", { name: "Map Explorer" }).first();
-  await expect(mapExplorer).toBeVisible();
-  const exploreButton = page.getByRole("button", { name: /Explore Layers|Switch map workspace to explore/i }).first();
-  await triggerDomClick(exploreButton);
-  return mapExplorer;
-}
+import {
+  openLayerActionMenu,
+  openMapExplorer,
+  resetWorkbenchState,
+  seedGeoJSONLayerFixture,
+  triggerDomClick,
+} from "./helpers/urbanAnalytics";
 
 test.describe("P37 — operator visual pass @smoke", () => {
   test("LayerInspector tabs carry data-testid via GisTabs tabTestIdPrefix", async ({ page }) => {
     await page.setViewportSize({ width: 1680, height: 1100 });
     await resetWorkbenchState(page);
     const mapExplorer = await openMapExplorer(page);
+    await triggerDomClick(mapExplorer.getByTestId("activity-btn-layers"));
+    await triggerDomClick(page.getByTestId("map-workbench-sidebar-tab-layers-stack"));
 
-    // Seed a layer directly via the store
-    await page.evaluate(async () => {
-      const m = await import("/src/stores/useMapExplorerStore.ts");
-      m.useMapExplorerStore.getState().addOverlayLayer({
-        id: "p37-layer",
-        name: "P37 Inspection Target",
-        type: "geojson",
-        visible: true,
-        opacity: 1,
-        group: "data",
-        sourceKind: "imported",
-        sourceData: {
+    await seedGeoJSONLayerFixture(page, {
+      id: "p37-layer",
+      name: "P37 Inspection Target",
+      featureCollection: {
           type: "FeatureCollection",
           features: [
             { type: "Feature", geometry: { type: "Point", coordinates: [29.0, 41.0] }, properties: { zone: "A" } },
           ],
         },
-        metadata: {
-          geometryType: "Point",
-          featureCount: 1,
-          fields: ["zone"],
-          crsSummary: { crs: "EPSG:4326", status: "known", source: "explicit", notes: [] },
-        },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any);
+      datasetTitle: "P37 Inspection Target",
+      sourceLabel: "P37 E2E seeded layer",
     });
 
     // Open inspector on the seeded layer
-    const layerRow = mapExplorer.getByRole("option", { name: /Layer: P37 Inspection Target/i }).first();
+  const layerRow = page.getByRole("listitem", { name: /Layer: P37 Inspection Target/i }).first();
     await expect(layerRow).toBeVisible({ timeout: 8000 });
+    await openLayerActionMenu(layerRow);
     const inspectTrigger = layerRow.getByTestId("map-layer-inspect-trigger");
+    await expect(inspectTrigger).toBeVisible();
     await triggerDomClick(inspectTrigger);
 
     const inspector = page.getByTestId("map-layer-inspector");
@@ -67,7 +53,7 @@ test.describe("P37 — operator visual pass @smoke", () => {
     await expect(page.locator('[data-testid="map-layer-inspector-tab-style"]')).toBeVisible();
 
     // Verify close button has accessible label
-    await expect(inspector.getByRole("button", { name: "Close layer inspector" })).toBeVisible();
+    await expect(page.getByTestId("map-inspector-host").getByRole("button", { name: "Close inspector" })).toBeVisible();
 
     await page.screenshot({ path: "e2e/__screens__/p37-layer-inspector.png" });
   });

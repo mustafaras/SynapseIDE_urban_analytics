@@ -2173,9 +2173,13 @@ function CommandPalette({
   }, [filteredCommands]);
 
   React.useEffect(() => {
+    if (!open) {
+      return;
+    }
     const firstRunnableIndex = filteredCommands.findIndex((command) => !command.disabled);
-    setActiveIndex(firstRunnableIndex >= 0 ? firstRunnableIndex : 0);
-  }, [filteredCommands]);
+    const nextIndex = firstRunnableIndex >= 0 ? firstRunnableIndex : 0;
+    setActiveIndex((current) => (current === nextIndex ? current : nextIndex));
+  }, [filteredCommands, open]);
 
   if (!open) return null;
   const selectedCommand = filteredCommands[activeIndex] ?? filteredCommands.find((command) => !command.disabled) ?? null;

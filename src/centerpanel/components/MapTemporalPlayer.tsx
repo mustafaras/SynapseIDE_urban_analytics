@@ -67,6 +67,8 @@ export interface MapTemporalPlayerProps {
   layerName?: string;
   /** Whether the player bar is visible */
   visible?: boolean;
+  /** Whether the player should publish a temporal evidence artifact into the registry */
+  emitEvidenceArtifact?: boolean;
 }
 
 /* ================================================================== */
@@ -441,6 +443,7 @@ export const MapTemporalPlayer: React.FC<MapTemporalPlayerProps> = ({
   layerId = "temporal-layer",
   layerName,
   visible = true,
+  emitEvidenceArtifact = true,
 }) => {
   /* ---- Resolve frames ---- */
   const resolvedFrames = useMemo<TemporalFrame[]>(() => {
@@ -463,6 +466,7 @@ export const MapTemporalPlayer: React.FC<MapTemporalPlayerProps> = ({
   const setTimeRange = useMapExplorerStore((s: MapExplorerState) => s.setTimeRange);
   const upsertMapEvidenceArtifact = useMapExplorerStore((s: MapExplorerState) => s.upsertMapEvidenceArtifact);
   const evidenceCreatedAtRef = useRef<string>(new Date().toISOString());
+  const lastTemporalEvidenceSignatureRef = useRef<string | null>(null);
   const prefersReducedMotion = usePrefersReducedMotion();
 
   useEffect(() => {
@@ -572,14 +576,23 @@ export const MapTemporalPlayer: React.FC<MapTemporalPlayerProps> = ({
     totalSteps,
   ]);
 
+  const temporalEvidenceSignature = useMemo(
+    () => (temporalEvidenceMetadata ? JSON.stringify(temporalEvidenceMetadata) : null),
+    [temporalEvidenceMetadata],
+  );
+
   useEffect(() => {
-    if (!visible || !temporalEvidenceMetadata) return;
+    if (!visible || !emitEvidenceArtifact || !temporalEvidenceMetadata || !temporalEvidenceSignature) return;
+    if (lastTemporalEvidenceSignatureRef.current === temporalEvidenceSignature) {
+      return;
+    }
+    lastTemporalEvidenceSignatureRef.current = temporalEvidenceSignature;
     upsertMapEvidenceArtifact(createMapTemporalEvidenceArtifact({
       temporal: temporalEvidenceMetadata,
       createdAt: evidenceCreatedAtRef.current,
       updatedAt: new Date().toISOString(),
     }));
-  }, [temporalEvidenceMetadata, upsertMapEvidenceArtifact, visible]);
+  }, [emitEvidenceArtifact, temporalEvidenceMetadata, temporalEvidenceSignature, upsertMapEvidenceArtifact, visible]);
 
   /* ---- Prefetch buffer: keep current + next frame refs ---- */
   const prefetchRef = useRef<{

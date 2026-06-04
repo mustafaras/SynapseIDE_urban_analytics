@@ -414,6 +414,31 @@ function nowIsoTimestamp(): string {
   return new Date().toISOString();
 }
 
+function matchesEvidenceArtifactIdentity(left: MapEvidenceArtifact, right: MapEvidenceArtifact): boolean {
+  return left.id === right.id
+    || left.id === right.artifactId
+    || left.artifactId === right.id
+    || left.artifactId === right.artifactId;
+}
+
+function evidenceArtifactSignature(artifact: MapEvidenceArtifact): string {
+  return JSON.stringify({
+    ...artifact,
+    updatedAt: "",
+    provenance: artifact.provenance
+      ? {
+          ...artifact.provenance,
+          updatedAt: "",
+        }
+      : artifact.provenance,
+  });
+}
+
+function sameEvidenceArtifactContent(left: MapEvidenceArtifact, right: MapEvidenceArtifact): boolean {
+  return matchesEvidenceArtifactIdentity(left, right)
+    && evidenceArtifactSignature(left) === evidenceArtifactSignature(right);
+}
+
 function clampNumber(value: number, min: number, max: number, fallback: number): number {
   return Number.isFinite(value) ? Math.max(min, Math.min(max, value)) : fallback;
 }
@@ -1327,6 +1352,12 @@ export const useMapExplorerStore = create<MapExplorerState>()(
         return artifact;
       },
       upsertMapEvidenceArtifact: (artifact: MapEvidenceArtifact) => {
+        const existingArtifact = get().mapEvidenceArtifacts.find((entry) =>
+          matchesEvidenceArtifactIdentity(entry, artifact),
+        );
+        if (existingArtifact && sameEvidenceArtifactContent(existingArtifact, artifact)) {
+          return existingArtifact;
+        }
         set((state: MapExplorerState) => ({
           mapEvidenceArtifacts: upsertMapEvidenceArtifactInRegistry(state.mapEvidenceArtifacts, artifact),
         }));

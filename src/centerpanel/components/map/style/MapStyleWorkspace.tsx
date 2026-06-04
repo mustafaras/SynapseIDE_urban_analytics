@@ -617,6 +617,7 @@ function buildRendererChoices(layer: OverlayLayerConfig | null): RendererChoice[
 
 function getRendererEligibility(layer: OverlayLayerConfig | null): RendererEligibilitySummary {
   if (!layer) {
+    const noLayerReason = "Select a layer before choosing a renderer.";
     return {
       label: "No layer selected",
       status: "blocked",
@@ -628,7 +629,7 @@ function getRendererEligibility(layer: OverlayLayerConfig | null): RendererEligi
       stale: false,
       caveats: [],
       disabledModeReasons: Object.fromEntries(
-        MODE_OPTIONS.map((mode) => [mode.value, "Select a layer before choosing a renderer."]),
+        buildRendererChoices(null).map((choice) => [choice.mode, noLayerReason]),
       ) as Partial<Record<SerializedLegendMode, string>>,
     };
   }

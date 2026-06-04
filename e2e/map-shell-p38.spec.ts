@@ -6,17 +6,12 @@
  * @smoke
  */
 import { expect, test } from "@playwright/test";
-import { openUrbanAnalyticsWorkbench, resetWorkbenchState, triggerDomClick } from "./helpers/urbanAnalytics";
-
-async function openMapExplorer(page: import("@playwright/test").Page) {
-  const urbanModal = await openUrbanAnalyticsWorkbench(page);
-  await triggerDomClick(urbanModal.getByRole("button", { name: "Open Map Explorer (Ctrl+Shift+M)" }));
-  const mapExplorer = page.getByRole("dialog", { name: "Map Explorer" }).first();
-  await expect(mapExplorer).toBeVisible();
-  const exploreButton = page.getByRole("button", { name: /Explore Layers|Switch map workspace to explore/i }).first();
-  await triggerDomClick(exploreButton);
-  return mapExplorer;
-}
+import {
+  openLayerActionMenu,
+  openMapExplorer,
+  resetWorkbenchState,
+  triggerDomClick,
+} from "./helpers/urbanAnalytics";
 
 test.describe("P38 — work-surface visual pass @smoke", () => {
   test("processing toolbox close button is accessible via GisIconButton", async ({ page }) => {
@@ -49,6 +44,8 @@ test.describe("P38 — work-surface visual pass @smoke", () => {
     await page.setViewportSize({ width: 1680, height: 1100 });
     await resetWorkbenchState(page);
     const mapExplorer = await openMapExplorer(page);
+    await triggerDomClick(mapExplorer.getByTestId("activity-btn-layers"));
+    await triggerDomClick(page.getByTestId("map-workbench-sidebar-tab-layers-stack"));
 
     await triggerDomClick(
       page
@@ -56,7 +53,10 @@ test.describe("P38 — work-surface visual pass @smoke", () => {
         .first(),
     );
 
-    const tableBtn = mapExplorer.getByTestId("map-layer-table-trigger").first();
+    const streetsRow = page.getByRole("listitem", { name: /Layer: Üsküdar Demo Streets/i }).first();
+    await expect(streetsRow).toBeVisible({ timeout: 8000 });
+    await openLayerActionMenu(streetsRow);
+    const tableBtn = streetsRow.getByTestId("map-layer-table-trigger");
     await expect(tableBtn).toBeVisible({ timeout: 8000 });
     await expect(tableBtn).toBeEnabled();
     await triggerDomClick(tableBtn);
