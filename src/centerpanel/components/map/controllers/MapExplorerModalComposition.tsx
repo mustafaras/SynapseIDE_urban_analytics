@@ -8279,10 +8279,30 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       onClick: handleOpenExportNoteInIde,
     },
   ];
+  const figurePageSizeLabel = mapCompositionOptions.pageSize === "custom"
+    ? `${Math.round(mapCompositionOptions.customWidthMm)}×${Math.round(mapCompositionOptions.customHeightMm)} mm`
+    : mapCompositionOptions.pageSize.toUpperCase();
+  const figureGraticuleInsetLabel = [
+    mapCompositionOptions.includeGraticule ? "Graticule" : null,
+    mapCompositionOptions.includeInsetMap ? "Inset" : null,
+  ].filter((value): value is string => Boolean(value)).join(" + ") || "Off";
+  const figureCrsCheck = findReadinessCheck(mapPublicationReadiness, "crs-measurement");
+  const figureCrsValues = uniquePublishStrings(
+    visiblePublicationLayers.map((layer) => resolveOverlayLayerCrsSummary(layer).crs),
+    3,
+  );
+  const figureAttributionCheck = findReadinessCheck(mapPublicationReadiness, "attribution-license");
   const figureMeta: MapPublishPathMeta[] = [
-    { label: "Map image", value: `${mapCompositionOptions.format.toUpperCase()} @ ${mapCompositionOptions.dpi} DPI` },
-    { label: "Layers", value: visiblePublicationLayers.length.toLocaleString(), status: visiblePublicationLayers.length > 0 ? "ready" : "blocked" },
+    { label: "Page size", value: figurePageSizeLabel },
+    { label: "Resolution", value: `${mapCompositionOptions.format.toUpperCase()} @ ${mapCompositionOptions.dpi} DPI` },
+    { label: "Visible layers", value: visiblePublicationLayers.length.toLocaleString(), status: visiblePublicationLayers.length > 0 ? "ready" : "blocked" },
     { label: "Legend", value: `${mapPublicationLegendItems.length.toLocaleString()} item${mapPublicationLegendItems.length === 1 ? "" : "s"}`, status: mapPublicationReadiness.hasLegend ? "ready" : "blocked" },
+    { label: "Scale bar", value: mapCompositionOptions.includeScaleBar ? "On" : "Off", status: mapCompositionOptions.includeScaleBar ? "ready" : "caveat" },
+    { label: "North arrow", value: mapCompositionOptions.includeNorthArrow ? "On" : "Off", status: mapCompositionOptions.includeNorthArrow ? "ready" : "caveat" },
+    { label: "Graticule / inset", value: figureGraticuleInsetLabel },
+    { label: "Attribution", value: mapCompositionOptions.includeAttribution ? "Included" : "Off", status: figureAttributionCheck ? readinessSeverityToGisStatus(figureAttributionCheck.status) : mapCompositionOptions.includeAttribution ? "ready" : "caveat" },
+    { label: "CRS", value: figureCrsValues.length > 0 ? formatCompactList(figureCrsValues, "missing") : "missing", status: figureCrsCheck ? readinessSeverityToGisStatus(figureCrsCheck.status) : figureCrsValues.length > 0 ? "ready" : "caveat" },
+    { label: "QA caveats", value: mapPublicationReadiness.caveats.length.toLocaleString(), status: mapPublicationReadiness.caveats.length > 0 ? "caveat" : "ready" },
     { label: "Annotations", value: annotations.length.toLocaleString(), status: annotations.length > 0 ? "ready" : "caveat" },
     { label: "Readiness", value: mapPublicationReadiness.status.replace(/-/g, " "), status: mapPublicationReadiness.status === "blocked" ? "blocked" : mapPublicationReadiness.status === "ready-with-caveats" ? "caveat" : "ready" },
   ];

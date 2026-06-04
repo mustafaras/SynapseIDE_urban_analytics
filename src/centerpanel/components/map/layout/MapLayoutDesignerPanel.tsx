@@ -1,13 +1,15 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, BookOpen, CheckCircle2, Plus, Trash2, X } from "lucide-react";
+import { AlertTriangle, BookOpen, CheckCircle2, Plus, ShieldCheck, Trash2, X } from "lucide-react";
 import type { OverlayLayerConfig } from "../mapTypes";
 import type { MapScientificQAState } from "@/services/map/MapScientificQA";
 import {
+  buildFigureReadinessChecklist,
   buildMapFigureAttributionText,
   composeMapBook,
   LAYOUT_PRESETS,
   preflightMapFigure,
   restorePageInputsFromMetadata,
+  summariseFigureReadiness,
   type MapBookSpec,
   type MapFigureRestoreMetadata,
   type MapLayoutPreset,
@@ -386,6 +388,14 @@ export const MapLayoutDesignerPanel: React.FC<MapLayoutDesignerPanelProps> = ({
   const activeWarnings = activePagePreflight?.warnings ?? [];
   const isFloating = presentation === "floating";
 
+  const activeFigure = book.pages[activePageIndex]?.figure ?? null;
+  const readinessRows = activeFigure
+    ? buildFigureReadinessChecklist(activeFigure, { pageSize: preset.pageSize.toUpperCase(), dpi: preset.dpi })
+    : [];
+  const readinessSummary = summariseFigureReadiness(readinessRows);
+  const readinessSummaryLabel =
+    readinessSummary === "ready" ? "Export ready" : readinessSummary === "caveat" ? "Ready with caveats" : "Blocked";
+
   return (
     <aside
       data-draggable-map-panel={isFloating ? "true" : undefined}
@@ -556,6 +566,47 @@ export const MapLayoutDesignerPanel: React.FC<MapLayoutDesignerPanelProps> = ({
                 <span>{bearing.toFixed(0)}°</span>
               </div>
             </div>
+
+            {/* Readiness checklist */}
+            <section
+              style={{
+                display: "grid",
+                gap: MAP_SPACING.xs,
+                padding: MAP_SPACING.sm,
+                border: MAP_STROKES.hairlineSubtle,
+                borderRadius: MAP_RADIUS.sm,
+                background: MAP_COLORS.bg,
+              }}
+              aria-label="Figure readiness checklist"
+              data-testid="map-layout-readiness"
+            >
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: MAP_SPACING.sm }}>
+                <span style={{ ...sectionTitleStyle, display: "inline-flex", alignItems: "center", gap: MAP_SPACING.xs }}>
+                  <ShieldCheck size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+                  Readiness checklist
+                </span>
+                <GisStatusChip status={readinessSummary} label={readinessSummaryLabel} density="compact" data-testid="map-layout-readiness-summary" />
+              </div>
+              {readinessRows.map((row) => (
+                <div
+                  key={row.id}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "minmax(7rem, auto) minmax(0, 1fr)",
+                    alignItems: "center",
+                    gap: MAP_SPACING.sm,
+                    fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+                    color: MAP_COLORS.textSecondary,
+                  }}
+                  data-testid={`map-layout-readiness-${row.id}`}
+                >
+                  <GisStatusChip status={row.status} label={row.label} density="compact" />
+                  <span style={{ minWidth: 0, color: row.status === "blocked" ? MAP_COLORS.error : MAP_COLORS.textSecondary }} title={row.detail}>
+                    {row.value}{row.detail ? ` — ${row.detail}` : ""}
+                  </span>
+                </div>
+              ))}
+            </section>
 
             {/* Slots */}
             <div style={{ display: "grid", gap: MAP_SPACING.xs }}>
