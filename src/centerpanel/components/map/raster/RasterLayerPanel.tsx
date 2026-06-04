@@ -51,6 +51,24 @@ function crsStatusToChip(epsgCode: string | null | undefined): GisStatusKey {
   return epsgCode ? "ready" : "blocked";
 }
 
+function formatInteger(value: number): string {
+  return Math.round(value).toLocaleString();
+}
+
+function formatStatValue(value: number): string {
+  if (!Number.isFinite(value)) return "n/a";
+  if (Math.abs(value) >= 1000) return value.toLocaleString(undefined, { maximumFractionDigits: 0 });
+  if (Math.abs(value) >= 10) return value.toLocaleString(undefined, { maximumFractionDigits: 1 });
+  return value.toLocaleString(undefined, { maximumFractionDigits: 3 });
+}
+
+function formatFileSize(sizeBytes: number | undefined): string {
+  if (sizeBytes === undefined) return "size unknown";
+  if (sizeBytes < 1024) return `${sizeBytes.toLocaleString()} B`;
+  if (sizeBytes < 1024 * 1024) return `${(sizeBytes / 1024).toLocaleString(undefined, { maximumFractionDigits: 1 })} KB`;
+  return `${(sizeBytes / (1024 * 1024)).toLocaleString(undefined, { maximumFractionDigits: 1 })} MB`;
+}
+
 function drawRasterEvidencePreview(
   canvas: HTMLCanvasElement,
   rampId: ColorRampId,
@@ -163,6 +181,19 @@ export const RasterLayerPanel: React.FC<RasterLayerPanelProps> = ({
 
   const { inspection, qa, renderConfig, histogram, parsing, parseError } = state;
   const meta = inspection?.metadata;
+  const selectedBand = meta?.bands.find((band) => band.index === renderConfig.selectedBandIndex) ?? meta?.bands[0];
+  const selectedBandSample = inspection?.bandSamples.find((band) => band.bandIndex === renderConfig.selectedBandIndex)
+    ?? inspection?.bandSamples[0];
+  const totalPixelCount = meta ? meta.width * meta.height : 0;
+  const sampledPixelCount = meta ? meta.sampleWidth * meta.sampleHeight : 0;
+  const sampleModeLabel = meta?.sampled ? "sampled stats only" : "full stats";
+  const sampleWindowLabel = meta
+    ? meta.sampled
+      ? `${formatInteger(sampledPixelCount)} sampled px of ${formatInteger(totalPixelCount)}`
+      : `${formatInteger(sampledPixelCount)} px full extent`
+    : "not loaded";
+  const noDataLabel = meta?.noData !== null && meta?.noData !== undefined ? `noData ${formatStatValue(meta.noData)}` : "noData missing";
+  const crsLabel = meta?.epsgCode ? `CRS ${meta.epsgCode}` : "CRS missing";
   const embedded = presentation === "embedded";
 
   /* ── Styles ── */
@@ -242,6 +273,71 @@ export const RasterLayerPanel: React.FC<RasterLayerPanelProps> = ({
     marginTop: 8,
   };
 
+  const evidenceSummaryStyle: React.CSSProperties = {
+    marginTop: 8,
+    padding: 8,
+    border: `1px solid ${MAP_COLORS.hairline}`,
+    borderRadius: 4,
+    background: MAP_COLORS.bgWorkspace,
+  };
+
+  const factGridStyle: React.CSSProperties = {
+    display: "grid",
+    gridTemplateColumns: "88px minmax(0, 1fr)",
+    gap: "4px 10px",
+    fontSize: "11px",
+    lineHeight: 1.35,
+  };
+
+  const factLabelStyle: React.CSSProperties = {
+    color: MAP_COLORS.textMuted,
+    minWidth: 0,
+  };
+
+  const factValueStyle: React.CSSProperties = {
+    color: MAP_COLORS.text,
+    minWidth: 0,
+    overflowWrap: "anywhere",
+  };
+
+  const caveatNoteStyle: React.CSSProperties = {
+    marginTop: 8,
+    padding: "6px 8px",
+    border: `1px solid ${MAP_COLORS.caveatText}`,
+    borderRadius: 4,
+    background: MAP_COLORS.caveat,
+    color: MAP_COLORS.caveatText,
+    fontSize: "10px",
+    lineHeight: 1.45,
+  };
+
+  const bandListStyle: React.CSSProperties = {
+    display: "grid",
+    gap: 6,
+    maxHeight: 130,
+    overflowY: "auto",
+    marginTop: 8,
+  };
+
+  const bandRowStyle: React.CSSProperties = {
+    display: "grid",
+    gridTemplateColumns: "minmax(0, 1fr) auto",
+    gap: 8,
+    alignItems: "center",
+    padding: "6px 8px",
+    border: `1px solid ${MAP_COLORS.hairline}`,
+    borderRadius: 4,
+    background: MAP_COLORS.bgWorkspace,
+  };
+
+  const visualContextStyle: React.CSSProperties = {
+    display: "flex",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 6,
+  };
+
   const evidenceCanvasStyle: React.CSSProperties = {
     width: "100%",
     aspectRatio: "3.4 / 1",
@@ -319,10 +415,10 @@ export const RasterLayerPanel: React.FC<RasterLayerPanelProps> = ({
           />
         )}
 
-        {/* Metadata summary */}
+        {/* Source and evidence summary */}
         {meta && (
           <div style={sectionGap}>
-            <GisSectionHeader title="Metadata" level={4} />
+            <GisSectionHeader title="Raster evidence" level={4} />
             <div style={stateChipRowStyle} data-testid="raster-state-chips">
               <GisStatusChip
                 status={qaStatusToChip(qa?.status)}
@@ -338,34 +434,90 @@ export const RasterLayerPanel: React.FC<RasterLayerPanelProps> = ({
               />
               <GisStatusChip
                 status={noDataStatusToChip(meta.noData)}
-                label={meta.noData !== null ? "noData declared" : "noData missing"}
+                label={meta.noData !== null ? noDataLabel : "noData missing"}
                 density="compact"
                 data-testid="raster-state-nodata-chip"
               />
               <GisStatusChip
                 status={meta.sampled ? "caveat" : "ready"}
-                label={meta.sampled ? "sampled stats" : "full stats"}
+                label={sampleModeLabel}
                 density="compact"
                 data-testid="raster-state-sampling-chip"
               />
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "2px 8px", fontSize: "11px", marginTop: 6 }}>
-              <span style={{ color: MAP_COLORS.textMuted }}>Dimensions</span>
-              <span data-testid="raster-meta-dimensions">{meta.width} × {meta.height} px</span>
-              <span style={{ color: MAP_COLORS.textMuted }}>Bands</span>
-              <span data-testid="raster-meta-bands">{meta.bandCount}</span>
-              <span style={{ color: MAP_COLORS.textMuted }}>CRS</span>
-              <span data-testid="raster-meta-crs">
+            <div style={evidenceSummaryStyle} data-testid="raster-source-summary">
+              <div style={factGridStyle}>
+                <span style={factLabelStyle}>Source</span>
+                <span style={factValueStyle} data-testid="raster-source-format">
+                  GeoTIFF · {formatFileSize(meta.sizeBytes)}
+                </span>
+                <span style={factLabelStyle}>Footprint</span>
+                <span style={factValueStyle} data-testid="raster-meta-dimensions">
+                  {meta.width} × {meta.height} px · {formatInteger(totalPixelCount)} cells
+                </span>
+                <span style={factLabelStyle}>Sampling</span>
+                <span style={factValueStyle} data-testid="raster-meta-sampling">
+                  {sampleWindowLabel}
+                </span>
+                <span style={factLabelStyle}>Bands</span>
+                <span style={factValueStyle} data-testid="raster-meta-bands">
+                  {meta.bandCount} · active {selectedBand?.label ?? `Band ${renderConfig.selectedBandIndex + 1}`}
+                </span>
+                <span style={factLabelStyle}>CRS</span>
+                <span style={factValueStyle} data-testid="raster-meta-crs">
                 {meta.epsgCode ?? (
                   <span style={{ color: MAP_COLORS.caveatText }}>not declared</span>
                 )}
-              </span>
-              <span style={{ color: MAP_COLORS.textMuted }}>noData</span>
-              <span data-testid="raster-meta-nodata">
+                </span>
+                <span style={factLabelStyle}>noData</span>
+                <span style={factValueStyle} data-testid="raster-meta-nodata">
                 {meta.noData !== null ? String(meta.noData) : (
                   <span style={{ color: MAP_COLORS.caveatText }}>not declared</span>
                 )}
-              </span>
+                </span>
+              </div>
+            </div>
+            {meta.sampled && (
+              <div style={caveatNoteStyle} data-testid="raster-sample-caveat">
+                Statistics and histogram are based on a bounded sample. Full-resolution raster analytics are not claimed here.
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Band metadata */}
+        {meta && (
+          <div style={sectionGap}>
+            <GisSectionHeader title="Band metadata" level={4} />
+            <div style={bandListStyle} data-testid="raster-band-metadata">
+              {meta.bands.map((band) => {
+                const sample = inspection?.bandSamples.find((entry) => entry.bandIndex === band.index);
+                const isActive = band.index === renderConfig.selectedBandIndex;
+                return (
+                  <div
+                    key={band.index}
+                    style={{
+                      ...bandRowStyle,
+                      borderColor: isActive ? MAP_COLORS.interaction : MAP_COLORS.hairline,
+                    }}
+                    data-testid={`raster-band-row-${band.index}`}
+                  >
+                    <span style={{ minWidth: 0 }}>
+                      <span style={{ display: "block", fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
+                        {band.label}{isActive ? " · active" : ""}
+                      </span>
+                      <span style={{ display: "block", color: MAP_COLORS.textMuted, fontSize: "10px" }}>
+                        {band.dtype} · index {band.index + 1}
+                      </span>
+                    </span>
+                    <span style={{ textAlign: "right", color: MAP_COLORS.textSecondary, fontSize: "10px" }}>
+                      {sample
+                        ? `${formatInteger(sample.stats.validCount)} valid · ${formatInteger(sample.stats.noDataCount)} noData`
+                        : "not sampled"}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
@@ -438,6 +590,26 @@ export const RasterLayerPanel: React.FC<RasterLayerPanelProps> = ({
         {meta && histogram && (
           <div style={sectionGap}>
             <GisSectionHeader title="Legend" level={4} />
+            <div style={visualContextStyle} data-testid="raster-legend-caveat-chips">
+              <GisStatusChip
+                status={crsStatusToChip(meta.epsgCode)}
+                label={crsLabel}
+                density="compact"
+                data-testid="raster-legend-crs-chip"
+              />
+              <GisStatusChip
+                status={noDataStatusToChip(meta.noData)}
+                label={meta.noData !== null ? noDataLabel : "noData missing"}
+                density="compact"
+                data-testid="raster-legend-nodata-status-chip"
+              />
+              <GisStatusChip
+                status={meta.sampled ? "caveat" : "ready"}
+                label={sampleModeLabel}
+                density="compact"
+                data-testid="raster-legend-sampling-chip"
+              />
+            </div>
             <canvas
               ref={rasterCanvasRef}
               width={480}
@@ -460,6 +632,28 @@ export const RasterLayerPanel: React.FC<RasterLayerPanelProps> = ({
         {histogram && (
           <div style={sectionGap}>
             <GisSectionHeader title="Histogram" level={4} />
+            {meta && (
+              <div style={visualContextStyle} data-testid="raster-chart-caveat-chips">
+                <GisStatusChip
+                  status={crsStatusToChip(meta.epsgCode)}
+                  label={crsLabel}
+                  density="compact"
+                  data-testid="raster-chart-crs-chip"
+                />
+                <GisStatusChip
+                  status={noDataStatusToChip(meta.noData)}
+                  label={meta.noData !== null ? noDataLabel : "noData missing"}
+                  density="compact"
+                  data-testid="raster-chart-nodata-chip"
+                />
+                <GisStatusChip
+                  status={meta.sampled ? "caveat" : "ready"}
+                  label={sampleModeLabel}
+                  density="compact"
+                  data-testid="raster-chart-sampling-chip"
+                />
+              </div>
+            )}
             <RasterHistogramChart
               histogram={histogram}
               chartHeight={80}
@@ -470,7 +664,33 @@ export const RasterLayerPanel: React.FC<RasterLayerPanelProps> = ({
               style={{ fontSize: "10px", color: MAP_COLORS.textMuted, marginTop: 4 }}
               data-testid="raster-histogram-sample-count"
             >
-              {meta?.sampled ? "sampled" : "full"} · {histogram.sampledCount.toLocaleString()} valid px
+              {meta?.sampled ? "sampled evidence" : "full extent evidence"} · {histogram.sampledCount.toLocaleString()} valid px
+              {histogram.stats.noDataCount > 0 ? ` · ${histogram.stats.noDataCount.toLocaleString()} noData px excluded` : ""}
+            </div>
+          </div>
+        )}
+
+        {/* Evidence references */}
+        {meta && (
+          <div style={sectionGap}>
+            <GisSectionHeader title="Evidence references" level={4} />
+            <div style={evidenceSummaryStyle} data-testid="raster-evidence-references">
+              <div style={factGridStyle}>
+                <span style={factLabelStyle}>Layer</span>
+                <span style={factValueStyle} data-testid="raster-evidence-layer-id">{layerId}</span>
+                <span style={factLabelStyle}>QA signature</span>
+                <span style={factValueStyle} data-testid="raster-evidence-qa-signature">
+                  {qa?.signature ?? "not checked"}
+                </span>
+                <span style={factLabelStyle}>Sample window</span>
+                <span style={factValueStyle} data-testid="raster-evidence-sample-window">
+                  {meta.sampleWidth} × {meta.sampleHeight} · {sampleModeLabel}
+                </span>
+                <span style={factLabelStyle}>Active band</span>
+                <span style={factValueStyle} data-testid="raster-evidence-active-band">
+                  {selectedBand?.label ?? "Band 1"}{selectedBandSample ? ` · mean ${formatStatValue(selectedBandSample.stats.mean)}` : ""}
+                </span>
+              </div>
             </div>
           </div>
         )}
