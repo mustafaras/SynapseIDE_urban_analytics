@@ -1402,6 +1402,14 @@ const commandHeaderToolbarSlot: React.CSSProperties = {
   overflow: "visible",
 };
 
+const commandHeaderSegmentDividerStyle: React.CSSProperties = {
+  width: 1,
+  height: "1.5rem",
+  flexShrink: 0,
+  margin: `0 ${MAP_SPACING.xs}`,
+  background: "var(--syn-border-subtle, rgba(148, 163, 184, 0.28))",
+};
+
 const commandHeaderCloseButton: React.CSSProperties = {
   ...mapStyles.closeBtn,
   position: "static",
@@ -5419,8 +5427,6 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     if (activeTool === "annotate") return "Annotation";
     return null;
   }, [activeDrawTool, activeMeasureTool, activeTool, selectionDragTool]);
-
-  const selectionToolsTopOffset = showCanvasKeyboardHelp ? "13.5rem" : "10rem";
 
   const handleHotSpotDispatch = useCallback(async (coordinate: [number, number]) => {
     if (isRunningQuickHotSpot) {
@@ -9523,6 +9529,48 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const dataCatalogTabActive =
     showLayerPanel && activeActivityId === "data" && workbenchSidebarTab === "data-catalog";
 
+  // Shared props for the unified command-bar tool cluster (header) and the
+  // map-canvas overlays (north arrow + keyboard help). One source of truth so the
+  // embedded "bar" surface and the "overlay" surface never drift apart.
+  const mapCanvasControlsProps = {
+    activeBaseLayer,
+    onSetBaseLayer: handleSetBaseLayer,
+    activeTool,
+    selectionDragTool,
+    activeDrawTool,
+    activeMeasureTool,
+    selectionModeDisabled: nlQueryToolbarContext.queryableLayers.length === 0,
+    selectionModeDisabledReason: "No queryable visible layers are available for selection.",
+    selectedFeatureCount,
+    visibleLayerCount: visiblePublicationLayers.length,
+    hasActiveAoi: Boolean(contextSummary.activeAoi),
+    legendVisible: mapCompositionOptions.includeLegend && mapPublicationLegendItems.length > 0,
+    legendAvailable: mapPublicationLegendItems.length > 0,
+    scaleBarVisible: mapCompositionOptions.includeScaleBar,
+    northArrowVisible: mapCompositionOptions.includeNorthArrow,
+    bearing,
+    fitSelectedDisabled: !selectedCanvasFitContext,
+    fitSelectedReason: "Select a layer, feature, or AOI before fitting the map.",
+    fitVisibleDisabled: !visibleLayerFitBounds,
+    fitVisibleReason: "Show at least one layer before fitting visible layers.",
+    onZoomIn: () => handleCanvasZoom(1),
+    onZoomOut: () => handleCanvasZoom(-1),
+    onResetView: handleCanvasResetView,
+    onFitVisibleLayers: handleCanvasFitVisibleLayers,
+    onFitSelectedContext: handleCanvasFitSelectedContext,
+    onOpenCrsReadiness: handleOpenCanvasCrsReadiness,
+    onToggleLegend: handleToggleCanvasLegend,
+    onToggleScaleBar: handleToggleCanvasScaleBar,
+    onToggleNorthArrow: handleToggleCanvasNorthArrow,
+    onSetSelectionDragTool: handleSetSelectionDragTool,
+    onDrawAoi: () => handleSetDrawTool(activeDrawTool === "polygon" ? null : "polygon"),
+    onMeasureDistance: () => handleSetMeasureTool(activeMeasureTool === "measure-distance" ? null : "measure-distance"),
+    onMeasureArea: () => handleSetMeasureTool(activeMeasureTool === "measure-area" ? null : "measure-area"),
+    keyboardHelpVisible: showCanvasKeyboardHelp,
+    onToggleKeyboardHelp: handleToggleCanvasKeyboardHelp,
+    onClearActiveTool: handleClearActiveCanvasTool,
+  } satisfies Omit<React.ComponentProps<typeof MapCanvasControls>, "surface">;
+
   return createPortal(
     <MapWorkspaceShell mode={mode} shellRef={trapRef} onClose={onClose} activeActivityId={activeActivityId}>
         {reducedMotion ? (
@@ -9585,6 +9633,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         {/* Header bar */}
         <div ref={headerRef} style={commandHeaderStyle} role="toolbar" aria-label="Map command bar">
           <span style={commandHeaderTitleStyle} id="map-explorer-title" aria-label="Map Explorer" data-testid="map-command-center-title">
+            <span aria-hidden data-testid="map-command-brand" style={{ width: "0.1875rem", height: "1.1rem", borderRadius: "2px", background: MAP_COLORS.interaction, flexShrink: 0 }} />
+            <span style={{ color: MAP_COLORS.interaction, fontWeight: MAP_TYPOGRAPHY.fontWeight.bold, letterSpacing: "0.01em" }}>Urban Analytics</span>
+            <span aria-hidden style={commandHeaderBreadcrumbMutedStyle}>·</span>
             <span>Map Explorer</span>
             <span aria-hidden style={commandHeaderBreadcrumbMutedStyle}>/</span>
             <span aria-hidden style={commandHeaderBreadcrumbMutedStyle}>{activeActivity.label}</span>
@@ -9607,6 +9658,34 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             }}
             onResultCount={(count) => announce(`${count} search result${count !== 1 ? "s" : ""} found`)}
           />
+
+          {/* Unified canvas tool cluster — zoom/fit/CRS, interaction tools, furniture, basemap */}
+          <div
+            style={{ display: "flex", alignItems: "center", minWidth: 0, flexShrink: 1 }}
+            data-testid="map-command-canvas-tools"
+          >
+            <MapCanvasControls surface="bar" {...mapCanvasControlsProps} />
+            {!navigatorStageMode ? (
+              <>
+                <span aria-hidden="true" style={commandHeaderSegmentDividerStyle} />
+                <MapSelectionTools
+                  mapRef={mapInstanceRef}
+                  queryableLayers={nlQueryToolbarContext.queryableLayers}
+                  selectedFeatureIds={selectedFeatureIds}
+                  activeDragTool={selectionDragTool}
+                  showModeButtons={false}
+                  variant="bar"
+                  onSetSelectedFeatures={setSelectedFeatures}
+                  onClearSelectedFeatures={() => clearSelectedFeatures()}
+                  onSetActiveAnalysisResultLayers={setActiveAnalysisResultLayers}
+                  onAddDrawnFeature={addDrawnFeature}
+                  onActiveDragToolChange={setSelectionDragTool}
+                  onSelectionResult={handleSelectionQueryResult}
+                  onAnnounce={announce}
+                />
+              </>
+            ) : null}
+          </div>
 
           <div style={commandHeaderToolbarSlot}>
             <MapToolbar
@@ -10256,44 +10335,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             onFeatureReportRequest={handleFeatureReportRequest}
           />
 
-          <MapCanvasControls
-            activeBaseLayer={activeBaseLayer}
-            onSetBaseLayer={handleSetBaseLayer}
-            activeTool={activeTool}
-            selectionDragTool={selectionDragTool}
-            activeDrawTool={activeDrawTool}
-            activeMeasureTool={activeMeasureTool}
-            selectionModeDisabled={nlQueryToolbarContext.queryableLayers.length === 0}
-            selectionModeDisabledReason="No queryable visible layers are available for selection."
-            selectedFeatureCount={selectedFeatureCount}
-            visibleLayerCount={visiblePublicationLayers.length}
-            hasActiveAoi={Boolean(contextSummary.activeAoi)}
-            legendVisible={mapCompositionOptions.includeLegend && mapPublicationLegendItems.length > 0}
-            legendAvailable={mapPublicationLegendItems.length > 0}
-            scaleBarVisible={mapCompositionOptions.includeScaleBar}
-            northArrowVisible={mapCompositionOptions.includeNorthArrow}
-            bearing={bearing}
-            fitSelectedDisabled={!selectedCanvasFitContext}
-            fitSelectedReason="Select a layer, feature, or AOI before fitting the map."
-            fitVisibleDisabled={!visibleLayerFitBounds}
-            fitVisibleReason="Show at least one layer before fitting visible layers."
-            onZoomIn={() => handleCanvasZoom(1)}
-            onZoomOut={() => handleCanvasZoom(-1)}
-            onResetView={handleCanvasResetView}
-            onFitVisibleLayers={handleCanvasFitVisibleLayers}
-            onFitSelectedContext={handleCanvasFitSelectedContext}
-            onOpenCrsReadiness={handleOpenCanvasCrsReadiness}
-            onToggleLegend={handleToggleCanvasLegend}
-            onToggleScaleBar={handleToggleCanvasScaleBar}
-            onToggleNorthArrow={handleToggleCanvasNorthArrow}
-            onSetSelectionDragTool={handleSetSelectionDragTool}
-            onDrawAoi={() => handleSetDrawTool(activeDrawTool === "polygon" ? null : "polygon")}
-            onMeasureDistance={() => handleSetMeasureTool(activeMeasureTool === "measure-distance" ? null : "measure-distance")}
-            onMeasureArea={() => handleSetMeasureTool(activeMeasureTool === "measure-area" ? null : "measure-area")}
-            keyboardHelpVisible={showCanvasKeyboardHelp}
-            onToggleKeyboardHelp={handleToggleCanvasKeyboardHelp}
-            onClearActiveTool={handleClearActiveCanvasTool}
-          />
+          {/* Canvas overlays only (north arrow + keyboard help popover). The tool
+              cluster itself now lives in the unified command header below. */}
+          <MapCanvasControls surface="overlay" {...mapCanvasControlsProps} />
 
           <MapCanvasKeyboardFallbackControls
             mapRef={mapInstanceRef}
@@ -10315,24 +10359,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             />
           ) : null}
 
-          {!navigatorStageMode ? (
-            <MapSelectionTools
-              mapRef={mapInstanceRef}
-              queryableLayers={nlQueryToolbarContext.queryableLayers}
-              selectedFeatureIds={selectedFeatureIds}
-              activeDragTool={selectionDragTool}
-              showModeButtons={false}
-              leftInset={navigatorLeftInset}
-              topOffset={selectionToolsTopOffset}
-              onSetSelectedFeatures={setSelectedFeatures}
-              onClearSelectedFeatures={() => clearSelectedFeatures()}
-              onSetActiveAnalysisResultLayers={setActiveAnalysisResultLayers}
-              onAddDrawnFeature={addDrawnFeature}
-              onActiveDragToolChange={setSelectionDragTool}
-              onSelectionResult={handleSelectionQueryResult}
-              onAnnounce={announce}
-            />
-          ) : null}
+          {/* Selection tools now live in the unified command header (variant="bar"). */}
 
           <MapUrbanMethodCompatibilityRail
             visible={effectiveShowUrbanMethodPanel}
