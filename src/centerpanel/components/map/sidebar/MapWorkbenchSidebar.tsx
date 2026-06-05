@@ -104,6 +104,23 @@ const headerStyle: React.CSSProperties = {
   flexShrink: 0,
 };
 
+const titleRowStyle: React.CSSProperties = {
+  flex: 1,
+  minWidth: 0,
+  display: "flex",
+  alignItems: "center",
+  gap: MAP_SPACING.sm,
+  overflow: "hidden",
+};
+
+const headerAccentStyle: React.CSSProperties = {
+  width: "0.1875rem",
+  height: "1.05rem",
+  borderRadius: "2px",
+  background: MAP_COLORS.interaction,
+  flexShrink: 0,
+};
+
 const titleWrapStyle: React.CSSProperties = {
   flex: 1,
   minWidth: 0,
@@ -254,13 +271,16 @@ export const MapWorkbenchSidebar: React.FC<MapWorkbenchSidebarProps> = ({
       }}
     >
       <div style={headerStyle}>
-        <div style={titleWrapStyle}>
-          <h2 style={titleStyle}>{title}</h2>
-          {subtitle ? (
-            <span aria-hidden style={subtitleStyle}>
-              {subtitle}
-            </span>
-          ) : null}
+        <div style={titleRowStyle}>
+          <span aria-hidden style={headerAccentStyle} />
+          <div style={titleWrapStyle}>
+            <h2 style={titleStyle}>{title}</h2>
+            {subtitle ? (
+              <span aria-hidden style={subtitleStyle}>
+                {subtitle}
+              </span>
+            ) : null}
+          </div>
         </div>
         <div style={headerActionsStyle}>
           {onToggleCollapse ? (
