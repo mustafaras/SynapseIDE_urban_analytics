@@ -157,6 +157,7 @@ import {
   type MapPublishTabId,
 } from "../publish";
 import { MapBottomPanel, type MapBottomPanelCoreTabId, type MapBottomPanelTask } from "../bottom";
+import { MapReviewSidebar, type MapReviewSidebarTab } from "../review/MapReviewSidebar";
 import { ScientificQAPanel } from "../ScientificQAPanel";
 import { MapProblemsPanel, buildMapProblemsModel, type MapProblemRow } from "../problems";
 import { GisEmptyState } from "../ui";
@@ -1978,6 +1979,11 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const [bottomPanelOpen, setBottomPanelOpen] = useState(false);
   const [activeBottomPanelTab, setActiveBottomPanelTab] = useState<MapBottomPanelCoreTabId>("problems");
   const bottomPanelReturnFocusRef = useRef<HTMLElement | null>(null);
+  // QA Problems + Review timeline now live in a premium right sidebar (Slice 2),
+  // not the bottom-opening panel.
+  const [reviewSidebarOpen, setReviewSidebarOpen] = useState(false);
+  const [reviewSidebarTab, setReviewSidebarTab] = useState<MapReviewSidebarTab>("problems");
+  const reviewSidebarReturnFocusRef = useRef<HTMLElement | null>(null);
 
   const openBottomPanelTab = useCallback((tabId: MapBottomPanelCoreTabId, announcement?: string) => {
     if (!bottomPanelOpen && typeof document !== "undefined") {
@@ -2021,6 +2027,32 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     }
     openBottomPanelTab(tabId, announcement);
   }, [activeBottomPanelTab, bottomPanelOpen, closeBottomPanel, openBottomPanelTab]);
+
+  const openReviewSidebar = useCallback((tab: MapReviewSidebarTab, announcement?: string) => {
+    if (typeof document !== "undefined") {
+      const active = document.activeElement;
+      reviewSidebarReturnFocusRef.current = active instanceof HTMLElement ? active : null;
+    }
+    if (workspaceView === "navigator") {
+      setWorkspaceView("explore");
+    }
+    setReviewSidebarTab(tab);
+    setReviewSidebarOpen(true);
+    if (announcement) announce(announcement);
+  }, [announce, workspaceView]);
+
+  const closeReviewSidebar = useCallback(() => {
+    setReviewSidebarOpen(false);
+    restoreFocusToElement(reviewSidebarReturnFocusRef.current);
+  }, []);
+
+  const toggleReviewSidebar = useCallback((tab: MapReviewSidebarTab, announcement?: string) => {
+    if (reviewSidebarOpen && reviewSidebarTab === tab) {
+      closeReviewSidebar();
+      return;
+    }
+    openReviewSidebar(tab, announcement);
+  }, [closeReviewSidebar, openReviewSidebar, reviewSidebarOpen, reviewSidebarTab]);
 
   const [performanceTimings, setPerformanceTimings] = useState<MapPerformanceTimingMetric[]>([]);
   const [telemetryEvents, setTelemetryEvents] = useState(() => getMapTelemetryEvents());
@@ -3859,20 +3891,20 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
 
     if (targetActivityId === "qa") {
       setShowLayerPanel(false);
-      setBottomPanelOpen(true);
-      setActiveBottomPanelTab("problems");
-      setShowReviewTimeline(false);
+      setReviewSidebarTab("problems");
+      setReviewSidebarOpen(true);
     } else if (targetActivityId === "review") {
       setShowLayerPanel(false);
-      setBottomPanelOpen(true);
-      setActiveBottomPanelTab("timeline");
-      setShowReviewTimeline(true);
+      setReviewSidebarTab("review");
+      setReviewSidebarOpen(true);
     } else if (targetActivityId === "diagnostics") {
       setShowLayerPanel(false);
+      setReviewSidebarOpen(false);
       setBottomPanelOpen(true);
       setActiveBottomPanelTab("diagnostics");
       setShowReviewTimeline(false);
     } else {
+      setReviewSidebarOpen(false);
       setBottomPanelOpen(false);
       setShowReviewTimeline(false);
       setShowLayerPanel(true);
@@ -8131,12 +8163,12 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   });
 
   const openMapProblems = useCallback(() => {
-    openBottomPanelTab("problems", "QA Problems opened in the bottom panel");
-  }, [openBottomPanelTab]);
+    openReviewSidebar("problems", "QA Problems opened in the review sidebar");
+  }, [openReviewSidebar]);
 
   const handleToggleMapProblems = useCallback(() => {
-    toggleBottomPanelTab("problems", "QA Problems opened in the bottom panel");
-  }, [toggleBottomPanelTab]);
+    toggleReviewSidebar("problems", "QA Problems opened in the review sidebar");
+  }, [toggleReviewSidebar]);
 
   const handleOpenCanvasCrsReadiness = useCallback(() => {
     openMapProblems();
@@ -8166,8 +8198,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   }, [announce, mapCompositionOptions.includeLegend, mapPublicationLegendItems.length]);
 
   const handleToggleReviewTimelineBottomPanel = useCallback(() => {
-    toggleBottomPanelTab("timeline", "Review timeline opened in the bottom panel");
-  }, [toggleBottomPanelTab]);
+    toggleReviewSidebar("review", "Review timeline opened in the review sidebar");
+  }, [toggleReviewSidebar]);
 
   const handleSelectMapActivity = useCallback((activity: MapActivityDefinition) => {
     setActiveActivityId(activity.id);
@@ -8207,7 +8239,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         openMapProblems();
         break;
       case "review":
-        openBottomPanelTab("timeline", "Review timeline opened in the bottom panel");
+        openReviewSidebar("review", "Review timeline opened in the review sidebar");
         break;
       case "diagnostics":
         openBottomPanelTab("diagnostics", "Performance diagnostics opened in the bottom panel");
@@ -8222,7 +8254,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     }
 
     announce(`${activity.label} activity selected`);
-  }, [announce, openAnalyzeActivityTab, openBottomPanelTab, openMapProblems, openPublishActivityTab, openSceneActivityTab, openStyleActivityTab]);
+  }, [announce, openAnalyzeActivityTab, openBottomPanelTab, openMapProblems, openPublishActivityTab, openReviewSidebar, openSceneActivityTab, openStyleActivityTab]);
 
   const bottomProblemsModel = useMemo(
     () => buildMapProblemsModel({ qaState: scientificQA, overlayLayers }),
@@ -8339,15 +8371,15 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     />
   ) : null;
 
-  const bottomPanelTimelineContent = (
+  const buildReviewTimeline = (visible: boolean, onClose: () => void): React.ReactNode => (
     <MapReviewTimelinePanel
-      visible={bottomPanelOpen && activeBottomPanelTab === "timeline"}
+      visible={visible}
       presentation="embedded"
       session={reviewSession}
       collaborationSnapshot={reviewCollaborationSnapshot}
       overlayLayers={overlayLayers}
       qaState={scientificQA}
-      onClose={closeBottomPanel}
+      onClose={onClose}
       onRecordEvent={recordMapReviewEvent}
       onRevertCommand={handleRevertMapCommand}
       onUpdateEventStatus={(eventId, status, outcome) => {
@@ -8369,6 +8401,22 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       }}
       onAnnounce={announce}
     />
+  );
+
+  const bottomPanelTimelineContent = buildReviewTimeline(
+    bottomPanelOpen && activeBottomPanelTab === "timeline",
+    closeBottomPanel,
+  );
+
+  const reviewSidebarProblemsContent = (
+    <div style={bottomPanelScrollStyle}>
+      <MapProblemsPanel model={bottomProblemsModel} compact onProblemAction={handleBottomProblemAction} />
+    </div>
+  );
+
+  const reviewSidebarTimelineContent = buildReviewTimeline(
+    reviewSidebarOpen && reviewSidebarTab === "review",
+    closeReviewSidebar,
   );
 
   const bottomPanelDiagnosticsContent = bottomDiagnosticsTabActive ? (
@@ -9716,7 +9764,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               scientificQAStatus={scientificQA?.status ?? "unchecked"}
               scientificQAIssueCount={scientificQAIssueCount}
               scientificQABlockerCount={scientificQABlockerCount}
-              showScientificQAPanel={bottomPanelOpen && activeBottomPanelTab === "problems"}
+              showScientificQAPanel={reviewSidebarOpen && reviewSidebarTab === "problems"}
               onToggleScientificQAPanel={handleToggleMapProblems}
               showNLQueryPanel={showNLQueryPanel || analyzeQueryTabActive}
               onToggleNLQueryPanel={handleToggleNLQueryPanel}
@@ -9724,7 +9772,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               showWorkflowDrawer={showWorkflowDrawer || analyzeWorkflowsTabActive}
               onToggleWorkflowDrawer={handleToggleWorkflowDrawer}
               workflowReadyCount={workflowReadyCount}
-              showReviewTimeline={bottomPanelOpen && activeBottomPanelTab === "timeline"}
+              showReviewTimeline={reviewSidebarOpen && reviewSidebarTab === "review"}
               onToggleReviewTimeline={handleToggleReviewTimelineBottomPanel}
               reviewEventCount={reviewSession.events.length}
               showPerformanceDiagnostics={bottomPanelOpen && activeBottomPanelTab === "diagnostics"}
@@ -10394,7 +10442,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
 
           <Suspense fallback={null}>
             <LazyMapInspectorHost
-              visible={inspectorContext.kind !== "none"}
+              visible={inspectorContext.kind !== "none" && !reviewSidebarOpen}
               context={inspectorContext}
               presentation={dockLayout.compactDock ? "bottom-drawer" : "right-rail"}
               width={dockLayout.rightPanelWidth}
@@ -10403,6 +10451,21 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               returnFocusTo={inspectorReturnFocusRef.current}
             />
           </Suspense>
+
+          <MapReviewSidebar
+            visible={reviewSidebarOpen && !navigatorStageMode}
+            activeTab={reviewSidebarTab}
+            onTabChange={setReviewSidebarTab}
+            onClose={closeReviewSidebar}
+            problems={reviewSidebarProblemsContent}
+            review={reviewSidebarTimelineContent}
+            problemCount={scientificQAIssueCount}
+            reviewCount={reviewSession.events.length}
+            blockerCount={scientificQABlockerCount}
+            presentation={dockLayout.compactDock ? "bottom-drawer" : "right-rail"}
+            width={dockLayout.rightPanelWidth}
+            returnFocusTo={reviewSidebarReturnFocusRef.current}
+          />
           <MapLayoutDesignerPanel
             visible={showFigureComposer && !navigatorStageMode && !publishFigureTabActive}
             overlayLayers={overlayLayers}
