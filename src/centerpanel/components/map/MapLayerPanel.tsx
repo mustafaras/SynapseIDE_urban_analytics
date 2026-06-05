@@ -71,7 +71,7 @@ const compactBaseTrigger: React.CSSProperties = {
   justifyContent: "center",
   gap: "0.25rem",
   minHeight: "1.625rem",
-  maxWidth: "9rem",
+  maxWidth: "7rem",
   padding: `${MAP_SPACING.zero} ${MAP_SPACING.xs}`,
   borderRadius: MAP_RADIUS.sm,
   border: "1px solid transparent",

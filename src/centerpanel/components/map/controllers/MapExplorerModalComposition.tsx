@@ -61,12 +61,12 @@ import {
   MAP_SPACING,
   MAP_STROKES,
   MAP_TYPOGRAPHY,
+  MAP_Z_INDEX,
   mapStyles,
   type GisStatusKey,
 } from "../mapTokens";
 import { MapCanvas, type MapFeatureReportRequest } from "../MapCanvas";
 import { MapCanvasControls } from "../MapCanvasControls";
-import { MapCanvasKeyboardFallbackControls } from "../MapCanvasKeyboardFallbackControls";
 import { MapToolbar } from "../MapToolbar";
 import {
   MapLayerCartographyPanel,
@@ -391,8 +391,8 @@ import {
   executeMapNLQueryPreview,
   type MapNLQueryPreview,
 } from "../../../../services/map/MapNLQueryBuilder";
-import { buildMapAIProposalReviewEvent, mapAIGuardrailDetails } from "../../../../services/map/MapAIGuardrails";
 import type { MapQueryExecutionResult } from "../../../../services/map/query/MapQueryPlanner";
+import { buildMapAIProposalReviewEvent, mapAIGuardrailDetails } from "../../../../services/map/MapAIGuardrails";
 import {
   buildMapWorkflowContext,
   buildMapWorkflowPreviewLayer,
@@ -1366,60 +1366,198 @@ const mapActivityRailOverlayStyle: React.CSSProperties = {
 
 const commandHeaderStyle: React.CSSProperties = {
   ...mapStyles.header,
+  display: "grid",
+  gridTemplateColumns: "minmax(10.75rem, 0.68fr) minmax(17rem, 1fr) minmax(21rem, 1.05fr) auto auto",
   position: "relative",
   zIndex: MAP_NUMERIC.importProgressZIndex + 1,
   flexWrap: "nowrap",
+  alignItems: "center",
   alignContent: "center",
   gap: MAP_SPACING.xs,
-  minHeight: "2.75rem",
+  minHeight: "3.125rem",
+  height: "3.125rem",
   padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm} ${MAP_SPACING.xs} calc(${MAP_ACTIVITY_RAIL_WIDTH} + ${MAP_SPACING.sm})`,
   overflowX: "visible",
   overflowY: "visible",
-  background: MAP_COLORS.bgHeader,
+  background: [
+    "linear-gradient(115deg, transparent 0%, color-mix(in srgb, var(--syn-interaction-active, #3794ff) 11%, transparent) 38%, transparent 72%)",
+    "repeating-linear-gradient(90deg, color-mix(in srgb, var(--syn-border-subtle, rgba(148, 163, 184, 0.3)) 34%, transparent) 0 1px, transparent 1px 5.5rem)",
+    "linear-gradient(180deg, color-mix(in srgb, var(--syn-surface-header, #20242b) 96%, #ffffff 4%), var(--syn-surface-header, #20242b))",
+  ].join(", "),
+  backgroundSize: "34rem 100%, 11rem 100%, 100% 100%",
+  backgroundPosition: "-34rem 0, 0 0, 0 0",
   borderBottom: "1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.32))",
+  boxShadow: "inset 0 -1px 0 color-mix(in srgb, var(--syn-interaction-active, #3794ff) 18%, transparent)",
+  isolation: "isolate",
 };
 
+const premiumHeaderMotionCss = `
+@keyframes mapPremiumHeaderDrift {
+  0% { background-position: -34rem 0, 0 0, 0 0; }
+  100% { background-position: 34rem 0, 11rem 0, 0 0; }
+}
+
+[data-map-premium-header="true"] {
+  animation: mapPremiumHeaderDrift 18s linear infinite;
+}
+
+[data-map-premium-header="true"] > * {
+  min-width: 0;
+}
+
+@media (max-width: 1180px) {
+  [data-map-premium-header="true"] {
+    grid-template-columns: minmax(9.75rem, 0.72fr) minmax(14rem, 1fr) minmax(18rem, 1fr) auto auto !important;
+  }
+}
+
+@media (max-width: 1320px) and (max-height: 680px) {
+  [data-map-premium-header="true"] {
+    grid-template-columns: minmax(10rem, 0.58fr) minmax(15rem, 0.92fr) minmax(18rem, 1fr) auto auto !important;
+  }
+
+  [data-map-command-bar="true"],
+  [data-map-selection-dock="true"] {
+    display: none !important;
+  }
+}
+
+@media (max-width: 860px) {
+  [data-map-premium-header="true"] {
+    grid-template-columns: minmax(9rem, 0.8fr) minmax(14rem, 1fr) auto auto !important;
+  }
+
+  [data-map-command-bar="true"],
+  [data-map-selection-dock="true"] {
+    display: none !important;
+  }
+}
+`;
+
 const commandHeaderTitleStyle: React.CSSProperties = {
-  ...mapStyles.title,
   display: "inline-flex",
   alignItems: "center",
   gap: MAP_SPACING.xs,
-  flex: "0 0 auto",
+  order: 1,
+  minHeight: "2.375rem",
+  padding: `${MAP_SPACING.zero} ${MAP_SPACING.sm}`,
   marginRight: MAP_SPACING.zero,
+  borderRadius: MAP_RADIUS.sm,
+  background: "linear-gradient(180deg, color-mix(in srgb, var(--syn-surface-panel, #151a21) 42%, transparent), transparent)",
+  border: "1px solid color-mix(in srgb, var(--syn-border-subtle, rgba(148, 163, 184, 0.3)) 72%, transparent)",
   lineHeight: MAP_TYPOGRAPHY.lineHeight.tight,
   whiteSpace: "nowrap",
+  overflow: "hidden",
 };
 
-const commandHeaderBreadcrumbMutedStyle: React.CSSProperties = {
+const commandHeaderBrandAccentStyle: React.CSSProperties = {
+  width: "1.625rem",
+  height: "1.625rem",
+  borderRadius: MAP_RADIUS.sm,
+  border: "1px solid color-mix(in srgb, var(--syn-interaction-active, #3794ff) 44%, transparent)",
+  background: [
+    "linear-gradient(135deg, color-mix(in srgb, var(--syn-interaction-active, #3794ff) 88%, #ffffff 8%), transparent 54%)",
+    "linear-gradient(315deg, color-mix(in srgb, var(--syn-status-running, #4ec27d) 72%, transparent), transparent 58%)",
+    "var(--syn-surface-header, #20242b)",
+  ].join(", "),
+  boxShadow: "inset 0 0 0 1px color-mix(in srgb, #ffffff 10%, transparent)",
+  flexShrink: 0,
+};
+
+const commandHeaderBrandCopyStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateRows: "auto auto",
+  gap: "0.0625rem",
+  minWidth: MAP_SPACING.zero,
+};
+
+const commandHeaderBrandKickerStyle: React.CSSProperties = {
+  color: MAP_COLORS.interaction,
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+  fontSize: "0.625rem",
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.bold,
+  letterSpacing: 0,
+  textTransform: "uppercase",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+};
+
+const commandHeaderBrandLineStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: MAP_SPACING.xs,
+  minWidth: MAP_SPACING.zero,
+  color: MAP_COLORS.text,
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyBrand,
+  fontSize: MAP_TYPOGRAPHY.fontSize.sm,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.bold,
+  letterSpacing: 0,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+};
+
+const commandHeaderActivityPillStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  minWidth: MAP_SPACING.zero,
+  maxWidth: "8rem",
+  height: "1.125rem",
+  padding: `0 ${MAP_SPACING.xs}`,
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.xs,
   color: MAP_COLORS.textMuted,
-  fontWeight: MAP_TYPOGRAPHY.fontWeight.medium,
+  background: "var(--syn-surface-subtle, rgba(15, 23, 42, 0.42))",
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+  fontSize: "0.625rem",
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+  textTransform: "uppercase",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+};
+
+const commandHeaderSearchSlotStyle: React.CSSProperties = {
+  order: 2,
+  display: "flex",
+  alignItems: "center",
+  minHeight: "2.375rem",
+  padding: `${MAP_SPACING.zero} ${MAP_SPACING.xs}`,
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.sm,
+  background: "color-mix(in srgb, var(--syn-surface-panel, #151a21) 42%, transparent)",
 };
 
 const commandHeaderToolbarSlot: React.CSSProperties = {
-  flex: "1 1 20rem",
+  order: 3,
   minWidth: MAP_SPACING.zero,
   display: "flex",
   alignItems: "center",
+  minHeight: "2.375rem",
+  padding: `${MAP_SPACING.zero} ${MAP_SPACING.xs}`,
+  borderRadius: MAP_RADIUS.sm,
+  border: MAP_STROKES.hairlineSubtle,
+  background: "color-mix(in srgb, var(--syn-surface-panel, #151a21) 48%, transparent)",
   overflow: "visible",
 };
 
-const commandHeaderSegmentDividerStyle: React.CSSProperties = {
-  width: 1,
-  height: "1.5rem",
-  flexShrink: 0,
-  margin: `0 ${MAP_SPACING.xs}`,
-  background: "var(--syn-border-subtle, rgba(148, 163, 184, 0.28))",
+const canvasSelectionDockStyle: React.CSSProperties = {
+  position: "absolute",
+  top: "3.25rem",
+  left: `calc(var(--map-dock-left, 0px) + ${MAP_SPACING.md})`,
+  zIndex: MAP_Z_INDEX.dropdown,
+  pointerEvents: "auto",
+  maxWidth: `calc(100% - var(--map-dock-left, 0px) - var(--map-dock-right, 0px) - ${MAP_SPACING.xl})`,
 };
 
 const commandHeaderCloseButton: React.CSSProperties = {
   ...mapStyles.closeBtn,
+  order: 6,
   position: "static",
   flex: "0 0 auto",
   width: "1.75rem",
   height: "1.75rem",
   border: "1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.32))",
   borderRadius: MAP_RADIUS.sm,
-  background: MAP_COLORS.transparent,
+  background: "color-mix(in srgb, var(--syn-surface-panel, #151a21) 54%, transparent)",
 };
 
 /* ================================================================== */
@@ -2538,6 +2676,40 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     });
   }, [addMapReviewEvent, buildCurrentReviewSnapshot]);
 
+  const handleSelectionResult = useCallback((result: MapQueryExecutionResult, label: string) => {
+    const matchedLayers = result.layers.filter((layer) => layer.matchedFeatureCount > 0);
+    recordMapReviewEvent({
+      type: "query-run",
+      status: result.status === "success" ? "applied" : "rejected",
+      title: `${label} query`,
+      summary: `${label} selected ${result.totalMatched.toLocaleString()} feature${result.totalMatched === 1 ? "" : "s"} across ${matchedLayers.length.toLocaleString()} layer${matchedLayers.length === 1 ? "" : "s"}.`,
+      layerIds: result.layers.map((layer) => layer.layerId),
+      actionIds: [result.queryId],
+      details: {
+        queryId: result.queryId,
+        interaction: label,
+        totalMatched: result.totalMatched,
+        scannedFeatureCount: result.scannedFeatureCount,
+        candidateFeatureCount: result.candidateFeatureCount,
+        bounded: result.bounded,
+        truncated: result.truncated,
+        warnings: result.warnings,
+        blockers: result.blockers,
+        provenance: result.provenance,
+        matchedLayers: result.layers.map((layer) => ({
+          layerId: layer.layerId,
+          layerName: layer.layerName,
+          matchedFeatureCount: layer.matchedFeatureCount,
+          candidateFeatureCount: layer.candidateFeatureCount,
+          scannedFeatureCount: layer.scannedFeatureCount,
+          sourceFeatureCount: layer.sourceFeatureCount,
+          bounded: layer.bounded,
+          truncated: layer.truncated,
+        })),
+      },
+    });
+  }, [recordMapReviewEvent]);
+
   // Map command lifecycle (Prompt 9): high-impact actions flow through
   // MapActionExecutor so each one is preflighted, audited (one review-timeline
   // event), and revertable. The history (with revert tokens) is transient.
@@ -3056,31 +3228,6 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     toastSuccess(message);
     announce(message);
   }, [addOverlayLayer, announce, openBottomPanelTab, overlayLayers, recordMapReviewEvent, setActiveAnalysisResultLayers]);
-
-  const handleSelectionQueryResult = useCallback((result: MapQueryExecutionResult, label: string) => {
-    const layerIds = result.layers
-      .filter((layer) => layer.matchedFeatureCount > 0)
-      .map((layer) => layer.layerId);
-    recordMapReviewEvent({
-      type: "query-run",
-      status: result.status === "success" ? "applied" : "failed",
-      title: `${label} query`,
-      summary: `${label} matched ${result.totalMatched.toLocaleString()} feature(s) from ${result.scannedFeatureCount.toLocaleString()} scanned candidate row(s).${result.truncated ? " Execution was truncated by the declared query scope." : ""}`,
-      layerIds,
-      details: {
-        queryId: result.queryId,
-        plannerVersion: result.provenance.plannerVersion,
-        totalMatched: result.totalMatched,
-        scannedFeatureCount: result.scannedFeatureCount,
-        candidateFeatureCount: result.candidateFeatureCount,
-        bounded: result.bounded,
-        truncated: result.truncated,
-        warnings: result.warnings,
-        blockers: result.blockers,
-        provenance: result.provenance,
-      },
-    });
-  }, [recordMapReviewEvent]);
 
   useEffect(() => {
     if (!open || reviewSession.events.length > 0) {
@@ -8163,12 +8310,12 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   });
 
   const openMapProblems = useCallback(() => {
-    openReviewSidebar("problems", "QA Problems opened in the review sidebar");
-  }, [openReviewSidebar]);
+    openBottomPanelTab("problems", "QA Problems opened in the bottom panel");
+  }, [openBottomPanelTab]);
 
   const handleToggleMapProblems = useCallback(() => {
-    toggleReviewSidebar("problems", "QA Problems opened in the review sidebar");
-  }, [toggleReviewSidebar]);
+    toggleBottomPanelTab("problems", "QA Problems opened in the bottom panel");
+  }, [toggleBottomPanelTab]);
 
   const handleOpenCanvasCrsReadiness = useCallback(() => {
     openMapProblems();
@@ -9626,6 +9773,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             {'[data-map-explorer-shell="true"], [data-map-explorer-shell="true"] * { transition: none !important; animation: none !important; scroll-behavior: auto !important; }'}
           </style>
         ) : null}
+        <style>{premiumHeaderMotionCss}</style>
 
         <input
           ref={importInputRef}
@@ -9679,60 +9827,42 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         />
 
         {/* Header bar */}
-        <div ref={headerRef} style={commandHeaderStyle} role="toolbar" aria-label="Map command bar">
+        <div
+          ref={headerRef}
+          style={commandHeaderStyle}
+          role="toolbar"
+          aria-label="Map command bar"
+          data-map-premium-header="true"
+        >
           <span style={commandHeaderTitleStyle} id="map-explorer-title" aria-label="Map Explorer" data-testid="map-command-center-title">
-            <span aria-hidden data-testid="map-command-brand" style={{ width: "0.1875rem", height: "1.1rem", borderRadius: "2px", background: MAP_COLORS.interaction, flexShrink: 0 }} />
-            <span style={{ color: MAP_COLORS.interaction, fontWeight: MAP_TYPOGRAPHY.fontWeight.bold, letterSpacing: "0.01em" }}>Urban Analytics</span>
-            <span aria-hidden style={commandHeaderBreadcrumbMutedStyle}>·</span>
-            <span>Map Explorer</span>
-            <span aria-hidden style={commandHeaderBreadcrumbMutedStyle}>/</span>
-            <span aria-hidden style={commandHeaderBreadcrumbMutedStyle}>{activeActivity.label}</span>
+            <span aria-hidden data-testid="map-command-brand" style={commandHeaderBrandAccentStyle} />
+            <span style={commandHeaderBrandCopyStyle}>
+              <span style={commandHeaderBrandKickerStyle}>Urban Analytics</span>
+              <span style={commandHeaderBrandLineStyle}>
+                <span>Map Explorer</span>
+                <span aria-hidden style={commandHeaderActivityPillStyle}>{activeActivity.label}</span>
+              </span>
+            </span>
           </span>
 
-          <MapSearchBar
-            compact
-            onFlyTo={flyTo}
-            onPlaceSelected={(place) => {
-              if (place.bbox) {
-                setWorkflowGeocodedPlace({
-                  label: place.label,
-                  bbox: place.bbox,
-                  center: place.center,
-                  source: place.source,
-                });
-              } else {
-                setWorkflowGeocodedPlace(null);
-              }
-            }}
-            onResultCount={(count) => announce(`${count} search result${count !== 1 ? "s" : ""} found`)}
-          />
-
-          {/* Unified canvas tool cluster — zoom/fit/CRS, interaction tools, furniture, basemap */}
-          <div
-            style={{ display: "flex", alignItems: "center", minWidth: 0, flexShrink: 1 }}
-            data-testid="map-command-canvas-tools"
-          >
-            <MapCanvasControls surface="bar" {...mapCanvasControlsProps} />
-            {!navigatorStageMode ? (
-              <>
-                <span aria-hidden="true" style={commandHeaderSegmentDividerStyle} />
-                <MapSelectionTools
-                  mapRef={mapInstanceRef}
-                  queryableLayers={nlQueryToolbarContext.queryableLayers}
-                  selectedFeatureIds={selectedFeatureIds}
-                  activeDragTool={selectionDragTool}
-                  showModeButtons={false}
-                  variant="bar"
-                  onSetSelectedFeatures={setSelectedFeatures}
-                  onClearSelectedFeatures={() => clearSelectedFeatures()}
-                  onSetActiveAnalysisResultLayers={setActiveAnalysisResultLayers}
-                  onAddDrawnFeature={addDrawnFeature}
-                  onActiveDragToolChange={setSelectionDragTool}
-                  onSelectionResult={handleSelectionQueryResult}
-                  onAnnounce={announce}
-                />
-              </>
-            ) : null}
+          <div style={commandHeaderSearchSlotStyle}>
+            <MapSearchBar
+              compact
+              onFlyTo={flyTo}
+              onPlaceSelected={(place) => {
+                if (place.bbox) {
+                  setWorkflowGeocodedPlace({
+                    label: place.label,
+                    bbox: place.bbox,
+                    center: place.center,
+                    source: place.source,
+                  });
+                } else {
+                  setWorkflowGeocodedPlace(null);
+                }
+              }}
+              onResultCount={(count) => announce(`${count} search result${count !== 1 ? "s" : ""} found`)}
+            />
           </div>
 
           <div style={commandHeaderToolbarSlot}>
@@ -9870,6 +10000,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             onRenameBookmark={handleRenameBookmark}
             onDeleteBookmark={handleDeleteBookmark}
             onShareBookmark={handleShareBookmark}
+            style={{ order: 5 }}
           />
 
           <button
@@ -10383,18 +10514,27 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             onFeatureReportRequest={handleFeatureReportRequest}
           />
 
-          {/* Canvas overlays only (north arrow + keyboard help popover). The tool
-              cluster itself now lives in the unified command header below. */}
-          <MapCanvasControls surface="overlay" {...mapCanvasControlsProps} />
+          <MapCanvasControls {...mapCanvasControlsProps} />
 
-          <MapCanvasKeyboardFallbackControls
-            mapRef={mapInstanceRef}
-            mapElementId={mapCanvasId}
-            reducedMotion={reducedMotion}
-            defaultCenter={[29.0, 41.0]}
-            defaultZoom={10}
-            onAnnounce={announce}
-          />
+          {!navigatorStageMode ? (
+            <div style={canvasSelectionDockStyle} data-map-selection-dock="true">
+              <MapSelectionTools
+                mapRef={mapInstanceRef}
+                queryableLayers={nlQueryToolbarContext.queryableLayers}
+                selectedFeatureIds={selectedFeatureIds}
+                activeDragTool={selectionDragTool}
+                showModeButtons
+                variant="bar"
+                onSetSelectedFeatures={setSelectedFeatures}
+                onClearSelectedFeatures={() => clearSelectedFeatures()}
+                onSetActiveAnalysisResultLayers={setActiveAnalysisResultLayers}
+                onAddDrawnFeature={addDrawnFeature}
+                onActiveDragToolChange={setSelectionDragTool}
+                onSelectionResult={handleSelectionResult}
+                onAnnounce={announce}
+              />
+            </div>
+          ) : null}
 
           {mapCompositionOptions.includeLegend ? (
             <MapLegendOverlay items={mapPublicationLegendItems} />
@@ -10406,8 +10546,6 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               rightInset={navigatorRightInset + 16}
             />
           ) : null}
-
-          {/* Selection tools now live in the unified command header (variant="bar"). */}
 
           <MapUrbanMethodCompatibilityRail
             visible={effectiveShowUrbanMethodPanel}

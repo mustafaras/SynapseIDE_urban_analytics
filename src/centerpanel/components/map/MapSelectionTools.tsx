@@ -739,12 +739,27 @@ export const MapSelectionTools: React.FC<MapSelectionToolsProps> = ({
   const chipStyle = isBar ? barCountChipStyle : countChipStyle;
   const btnStyle = isBar ? barIconButtonStyle : iconButtonStyle;
   const btnActiveStyle = isBar ? barActiveIconButtonStyle : activeIconButtonStyle;
+  const compactZeroSelectionChip = false;
+  const selectionCountLabel = formatCount(totalSelected);
 
   const toolbarRow = (
     <div style={isBar ? barToolbarStyle : toolbarStyle}>
-      <span style={chipStyle} data-testid="map-selection-count-chip">
-        <MousePointer2 size={MAP_ICON_SIZES.sm} aria-hidden="true" />
-        {formatCount(totalSelected)}
+      <span
+        style={{
+          ...chipStyle,
+          ...(compactZeroSelectionChip ? {
+            width: "1.875rem",
+            padding: MAP_SPACING.zero,
+            justifyContent: "center",
+            gap: MAP_SPACING.zero,
+          } satisfies React.CSSProperties : null),
+        }}
+        data-testid="map-selection-count-chip"
+        aria-label={selectionCountLabel}
+        title={selectionCountLabel}
+      >
+        {compactZeroSelectionChip ? null : <MousePointer2 size={MAP_ICON_SIZES.sm} aria-hidden="true" />}
+        {compactZeroSelectionChip ? "0" : selectionCountLabel}
       </span>
       {showModeButtons ? (
         <>

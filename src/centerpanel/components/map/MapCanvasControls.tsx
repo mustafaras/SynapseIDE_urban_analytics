@@ -5,7 +5,6 @@ import {
   Crosshair,
   Eye,
   EyeOff,
-  Globe2,
   Keyboard,
   LassoSelect,
   LocateFixed,
@@ -118,73 +117,26 @@ const commandBarStyle: React.CSSProperties = {
   borderBottom: MAP_STROKES.hairlineStrong,
   boxShadow: MAP_SHADOWS.none,
   pointerEvents: "auto",
-  overflowX: "auto",
-  overflowY: "hidden",
-  scrollbarWidth: "thin",
+  overflowX: "visible",
+  overflowY: "visible",
   zIndex: MAP_Z_INDEX.dropdown,
 };
 
 const embeddedBarStyle: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
-  gap: MAP_SPACING.xs,
+  gap: "0.125rem",
+  flex: "1 1 auto",
   minWidth: 0,
   maxWidth: "100%",
-  overflowX: "auto",
-  overflowY: "hidden",
-  scrollbarWidth: "thin",
-};
-
-const brandStyle: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: MAP_SPACING.xs,
-  paddingRight: MAP_SPACING.xs,
-  flexShrink: 0,
-};
-
-const brandAccentStyle: React.CSSProperties = {
-  width: "0.1875rem",
-  height: "1.375rem",
-  borderRadius: "2px",
-  background: MAP_COLORS.interaction,
-  flexShrink: 0,
-};
-
-const brandMarkStyle: React.CSSProperties = {
-  display: "grid",
-  placeItems: "center",
-  color: MAP_COLORS.interaction,
-  flexShrink: 0,
-};
-
-const brandTextStyle: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "baseline",
-  gap: "0.375rem",
-  minWidth: 0,
-};
-
-const brandNameStyle: React.CSSProperties = {
-  fontFamily: MAP_TYPOGRAPHY.fontFamily,
-  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
-  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
-  letterSpacing: "0.01em",
-  color: MAP_COLORS.text,
-  whiteSpace: "nowrap",
-};
-
-const brandSubStyle: React.CSSProperties = {
-  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
-  fontSize: "0.6875rem",
-  color: MAP_COLORS.textMuted,
-  whiteSpace: "nowrap",
+  overflowX: "visible",
+  overflowY: "visible",
 };
 
 const barGroupStyle: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
-  gap: "0.1875rem",
+  gap: "0.125rem",
   flexShrink: 0,
 };
 
@@ -193,12 +145,12 @@ const barDividerStyle: React.CSSProperties = {
   height: "1.5rem",
   background: "var(--syn-border-subtle, rgba(148, 163, 184, 0.28))",
   flexShrink: 0,
-  margin: `0 ${MAP_SPACING.xs}`,
+  margin: "0 0.1875rem",
 };
 
 const buttonStyle: React.CSSProperties = {
-  width: "1.875rem",
-  height: "1.875rem",
+  width: "1.75rem",
+  height: "1.75rem",
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
@@ -228,9 +180,9 @@ const toolIndicatorStyle: React.CSSProperties = {
   gridTemplateColumns: "auto minmax(0, 1fr) auto",
   alignItems: "center",
   gap: MAP_SPACING.xs,
-  minWidth: "8.5rem",
-  maxWidth: "13rem",
-  height: "1.875rem",
+  minWidth: "7.25rem",
+  maxWidth: "10rem",
+  height: "1.75rem",
   padding: `0 ${MAP_SPACING.xs} 0 ${MAP_SPACING.sm}`,
   border: MAP_STROKES.hairline,
   borderRadius: MAP_RADIUS.sm,
@@ -240,8 +192,8 @@ const toolIndicatorStyle: React.CSSProperties = {
 };
 
 const interactionButtonStyle: React.CSSProperties = {
-  width: "1.875rem",
-  height: "1.875rem",
+  width: "1.75rem",
+  height: "1.75rem",
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
@@ -295,7 +247,7 @@ const furnitureGroupStyle: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   gap: MAP_SPACING.xs,
-  marginLeft: "auto",
+  minWidth: MAP_SPACING.zero,
   paddingLeft: MAP_SPACING.xs,
   flexShrink: 0,
 };
@@ -491,8 +443,6 @@ export const MapCanvasControls: React.FC<MapCanvasControlsProps> = ({
   selectionDragTool,
   activeDrawTool,
   activeMeasureTool,
-  selectionModeDisabled = false,
-  selectionModeDisabledReason = "No queryable visible layers are available for selection.",
   selectedFeatureCount,
   visibleLayerCount,
   hasActiveAoi,
@@ -505,8 +455,6 @@ export const MapCanvasControls: React.FC<MapCanvasControlsProps> = ({
   fitSelectedReason = "Select a feature, layer, or AOI before fitting the map.",
   fitVisibleDisabled = false,
   fitVisibleReason = "Show at least one layer before fitting visible layers.",
-  brandTitle = "Urban Analytics",
-  brandSubtitle = "· Map Explorer",
   surface = "full",
   onZoomIn,
   onZoomOut,
@@ -517,7 +465,6 @@ export const MapCanvasControls: React.FC<MapCanvasControlsProps> = ({
   onToggleLegend,
   onToggleScaleBar,
   onToggleNorthArrow,
-  onSetSelectionDragTool,
   onDrawAoi,
   onMeasureDistance,
   onMeasureArea,
@@ -534,20 +481,7 @@ export const MapCanvasControls: React.FC<MapCanvasControlsProps> = ({
     hasActiveAoi,
   });
   const safeBearing = Number.isFinite(bearing) ? bearing : 0;
-  const showIndicator = surface !== "bar" || tool.clearable;
-
-  const brandNode = (
-    <div style={brandStyle} data-testid="map-command-brand">
-      <span aria-hidden="true" style={brandAccentStyle} />
-      <span aria-hidden="true" style={brandMarkStyle}>
-        <Globe2 size={MAP_ICON_SIZES.md} aria-hidden="true" />
-      </span>
-      <span style={brandTextStyle}>
-        <span style={brandNameStyle}>{brandTitle}</span>
-        {brandSubtitle ? <span style={brandSubStyle}>{brandSubtitle}</span> : null}
-      </span>
-    </div>
-  );
+  const showIndicator = true;
 
   const viewportGroup = (
         <div style={barGroupStyle} role="group" aria-label="Viewport recovery controls" data-testid="map-canvas-viewport-controls">
@@ -608,42 +542,6 @@ export const MapCanvasControls: React.FC<MapCanvasControlsProps> = ({
 
   const interactionGroup = (
         <div style={barGroupStyle} role="group" aria-label="Canvas interaction tools" data-testid="map-canvas-interaction-strip">
-          <button
-            type="button"
-            data-testid="map-rectangle-select-tool"
-            style={interactionToolButtonStyle(selectionDragTool === "rectangle", selectionModeDisabled)}
-            onClick={() => onSetSelectionDragTool(selectionDragTool === "rectangle" ? null : "rectangle")}
-            aria-label={selectionDragTool === "rectangle" ? "Cancel rectangle select" : "Rectangle select"}
-            aria-pressed={selectionDragTool === "rectangle"}
-            title={selectionModeDisabled ? selectionModeDisabledReason : (selectionDragTool === "rectangle" ? "Cancel rectangle select" : "Rectangle select")}
-            disabled={selectionModeDisabled}
-          >
-            <span style={interactionLabelStyle}>
-              <BoxSelect size={MAP_ICON_SIZES.sm} aria-hidden="true" />
-            </span>
-            <span style={interactionStateStyle} aria-hidden="true">
-              {selectionDragTool === "rectangle" ? "On" : "Off"}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            data-testid="map-lasso-select-tool"
-            style={interactionToolButtonStyle(selectionDragTool === "lasso", selectionModeDisabled)}
-            onClick={() => onSetSelectionDragTool(selectionDragTool === "lasso" ? null : "lasso")}
-            aria-label={selectionDragTool === "lasso" ? "Cancel lasso select" : "Lasso select"}
-            aria-pressed={selectionDragTool === "lasso"}
-            title={selectionModeDisabled ? selectionModeDisabledReason : (selectionDragTool === "lasso" ? "Cancel lasso select" : "Lasso select")}
-            disabled={selectionModeDisabled}
-          >
-            <span style={interactionLabelStyle}>
-              <LassoSelect size={MAP_ICON_SIZES.sm} aria-hidden="true" />
-            </span>
-            <span style={interactionStateStyle} aria-hidden="true">
-              {selectionDragTool === "lasso" ? "On" : "Off"}
-            </span>
-          </button>
-
           <button
             type="button"
             data-testid="map-canvas-draw-aoi"
@@ -828,8 +726,6 @@ export const MapCanvasControls: React.FC<MapCanvasControlsProps> = ({
   return (
     <div style={rootStyle} role="group" aria-label="Map canvas controls" data-testid="map-canvas-controls">
       <div style={commandBarStyle} data-testid="map-command-bar" data-map-command-bar="true">
-        {brandNode}
-        <span style={barDividerStyle} aria-hidden="true" />
         {viewportGroup}
         <span style={barDividerStyle} aria-hidden="true" />
         {indicatorNode}
