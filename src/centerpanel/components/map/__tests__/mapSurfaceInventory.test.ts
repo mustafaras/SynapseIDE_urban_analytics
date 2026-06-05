@@ -41,6 +41,67 @@ function missingFromInventory(sourceIds: Iterable<string>, inventoryIds: Set<str
   return [...sourceIds].filter((sourceId) => !inventoryIds.has(sourceId)).sort();
 }
 
+const BASELINE_BOTTOM_PANEL_TARGET_IDS = [
+  "quick-action.review-problems",
+  "rail.diagnostics.activity",
+  "rail.qa",
+  "state.activeTemporalLayer",
+  "state.attributeTableLayerId",
+  "state.showPerformanceDiagnostics",
+  "state.showReviewTimeline",
+  "state.showScientificQAPanel",
+  "state.temporalStoreFrameCount",
+  "toolbar.measure-results",
+  "toolbar.performance-diagnostics",
+  "toolbar.qa",
+  "toolbar.review-timeline",
+] as const;
+
+const BASELINE_FLOATING_SURFACE_IDS = [
+  "state.pointSymbologyLayerId",
+  "state.showChoroplethPanel",
+  "state.showClusterViz",
+  "state.showEmergingHotSpotViz",
+  "state.showHotSpotViz",
+] as const;
+
+const BASELINE_CANVAS_OVERLAY_HOME_IDS = [
+  "quick-action.draw-aoi",
+  "quick-action.measure",
+  "state.showCanvasKeyboardHelp",
+  "state.showDrawPanel",
+  "state.showMeasurePanel",
+  "surface.MapCanvasControls",
+  "surface.MapContextMenu",
+  "surface.MapSelectionTools",
+  "toolbar.draw-circle",
+  "toolbar.draw-linestring",
+  "toolbar.draw-point",
+  "toolbar.draw-polygon",
+  "toolbar.draw-rectangle",
+  "toolbar.drawings",
+  "toolbar.focus-map-canvas",
+  "toolbar.measure-area",
+  "toolbar.measure-distance",
+  "toolbar.pin-mode",
+] as const;
+
+const BASELINE_DIALOG_IDS = [
+  "state.isFlowDispatchDialogOpen",
+  "state.pendingColumnarImport",
+  "state.pendingCsvImport",
+  "state.pendingImportPreview",
+  "state.showExportDialog",
+  "state.showExternalServiceDialog",
+  "state.showImportHub",
+  "state.showMapExportDialog",
+] as const;
+
+const BASELINE_DRAWER_IDS = [
+  "state.reportHandoffDraft",
+  "state.showWorkflowDrawer",
+] as const;
+
 function extractToolbarCommandIds(toolbarSource: string): Set<string> {
   const commandIds = new Set<string>();
   const toolbarBuilderSource = sourceSlice(
@@ -211,5 +272,42 @@ describe("Map surface inventory", () => {
     for (const targetHome of MAP_WORKBENCH_TARGET_HOMES) {
       expect(getMapSurfaceInventoryByHome(targetHome).length, targetHome).toBeGreaterThan(0);
     }
+  });
+
+  it("freezes the current bottom workspace target baseline until right-dock migration owns it", () => {
+    const bottomPanelTargetIds = MAP_SURFACE_INVENTORY
+      .filter((entry) => entry.targetSlot === "bottom-panel")
+      .map((entry) => entry.id)
+      .sort();
+
+    expect(bottomPanelTargetIds).toEqual([...BASELINE_BOTTOM_PANEL_TARGET_IDS].sort());
+  });
+
+  it("freezes the current floating and canvas-overlay baseline until dock consolidation owns it", () => {
+    const floatingSurfaceIds = MAP_SURFACE_INVENTORY
+      .filter((entry) => entry.currentSurface.toLowerCase().includes("floating"))
+      .map((entry) => entry.id)
+      .sort();
+    const canvasOverlayHomeIds = MAP_SURFACE_INVENTORY
+      .filter((entry) => entry.targetHome === "canvas-overlay")
+      .map((entry) => entry.id)
+      .sort();
+
+    expect(floatingSurfaceIds).toEqual([...BASELINE_FLOATING_SURFACE_IDS].sort());
+    expect(canvasOverlayHomeIds).toEqual([...BASELINE_CANVAS_OVERLAY_HOME_IDS].sort());
+  });
+
+  it("freezes current dialog and drawer routing so modal inventory changes are explicit", () => {
+    const dialogIds = MAP_SURFACE_INVENTORY
+      .filter((entry) => entry.kind === "dialog")
+      .map((entry) => entry.id)
+      .sort();
+    const drawerIds = MAP_SURFACE_INVENTORY
+      .filter((entry) => entry.kind === "drawer")
+      .map((entry) => entry.id)
+      .sort();
+
+    expect(dialogIds).toEqual([...BASELINE_DIALOG_IDS].sort());
+    expect(drawerIds).toEqual([...BASELINE_DRAWER_IDS].sort());
   });
 });

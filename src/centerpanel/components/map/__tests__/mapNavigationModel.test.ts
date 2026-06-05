@@ -20,6 +20,31 @@ import {
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../../");
 const allActivityIds = [...MAP_PRIMARY_ACTIVITY_ORDER, ...MAP_UTILITY_ACTIVITY_ORDER];
+const BASELINE_BOTTOM_PANEL_TAB_IDS = [
+  "attributes",
+  "console",
+  "diagnostics",
+  "measurements",
+  "problems",
+  "tasks",
+  "timeline",
+] as const;
+const BASELINE_ACTIVITY_BOTTOM_PANEL_DEFAULTS = {
+  analyze: "tasks",
+  data: "tasks",
+  diagnostics: "diagnostics",
+  layers: "attributes",
+  publish: "tasks",
+  qa: "problems",
+  review: "timeline",
+  scene: "timeline",
+} as const;
+const BASELINE_TASK_LENS_BOTTOM_PANEL_PRIORITIES = {
+  analyst: ["problems", "attributes", "tasks", "diagnostics"],
+  planner: ["attributes", "timeline", "problems", "tasks"],
+  publisher: ["timeline", "problems", "tasks", "attributes"],
+  reviewer: ["problems", "timeline", "diagnostics", "console"],
+} as const;
 
 function readRepoFile(relativePath: string): string {
   return readFileSync(resolve(repoRoot, relativePath), "utf8");
@@ -176,6 +201,22 @@ describe("mapNavigationModel", () => {
       expect(binding, entry.id).toBeDefined();
       expect(allActivityIds).toContain(binding?.activityId);
     }
+  });
+
+  it("freezes the current bottom-panel navigation baseline until right-dock migration owns it", () => {
+    const bottomPanelTabIds = MAP_BOTTOM_PANEL_TAB_DEFINITIONS.map((tab) => tab.id).sort();
+    const activityBottomPanelDefaults = Object.fromEntries(
+      MAP_ACTIVITY_DEFINITIONS
+        .filter((activity) => activity.defaultBottomPanelTabId !== null)
+        .map((activity) => [activity.id, activity.defaultBottomPanelTabId]),
+    );
+    const taskLensBottomPanelPriorities = Object.fromEntries(
+      MAP_TASK_LENSES.map((lens) => [lens.id, [...lens.bottomPanelTabPriority]]),
+    );
+
+    expect(bottomPanelTabIds).toEqual([...BASELINE_BOTTOM_PANEL_TAB_IDS].sort());
+    expect(activityBottomPanelDefaults).toEqual(BASELINE_ACTIVITY_BOTTOM_PANEL_DEFAULTS);
+    expect(taskLensBottomPanelPriorities).toEqual(BASELINE_TASK_LENS_BOTTOM_PANEL_PRIORITIES);
   });
 
   it("keeps representative inventory routes in their planned homes", () => {
