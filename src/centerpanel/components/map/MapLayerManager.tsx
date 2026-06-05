@@ -474,6 +474,7 @@ const layerActionSummary: React.CSSProperties = {
   background: MAP_COLORS.transparent,
   border: MAP_STROKES.hairlineSubtle,
   color: MAP_COLORS.interaction,
+  appearance: "none",
   cursor: "pointer",
   fontSize: 10,
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
@@ -1566,6 +1567,10 @@ function layerActionToneStyle(tone: LayerActionTone | undefined): React.CSSPrope
 }
 
 const LayerActionMenu: React.FC<LayerActionMenuProps> = ({ layerName, actions, forceOpen = false, onAnnounce }) => {
+  const [expanded, setExpanded] = useState(forceOpen);
+  const summaryRef = useRef<HTMLButtonElement | null>(null);
+  const menuId = React.useId();
+  const open = forceOpen || expanded;
   const groupedActions = LAYER_ACTION_COMMAND_GROUPS
     .map((group) => ({
       group,
@@ -1574,11 +1579,38 @@ const LayerActionMenu: React.FC<LayerActionMenuProps> = ({ layerName, actions, f
     .filter((group) => group.actions.length > 0);
 
   return (
-    <details style={layerActionMenu} {...(forceOpen ? { open: true } : {})}>
-      <summary style={layerActionSummary} aria-label={`Layer actions for ${layerName}`} title="Layer command menu">
+    <div style={layerActionMenu}>
+      <button
+        ref={summaryRef}
+        type="button"
+        style={layerActionSummary}
+        aria-label={`Layer actions for ${layerName}`}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-controls={menuId}
+        title="Layer command menu"
+        data-testid="map-layer-actions-summary"
+        onClick={(event) => {
+          event.stopPropagation();
+          setExpanded((current) => !current);
+        }}
+      >
         Actions
-      </summary>
-      <div style={layerActionGrid} role="menu" aria-label={`Layer command menu for ${layerName}`}>
+      </button>
+      <div
+        id={menuId}
+        style={layerActionGrid}
+        role="menu"
+        aria-label={`Layer command menu for ${layerName}`}
+        hidden={!open}
+        onKeyDown={(event) => {
+          if (event.key !== "Escape") return;
+          event.preventDefault();
+          event.stopPropagation();
+          setExpanded(false);
+          summaryRef.current?.focus({ preventScroll: true });
+        }}
+      >
         {groupedActions.map(({ group, actions: groupActions }) => (
           <div
             key={group.id}
@@ -1630,7 +1662,7 @@ const LayerActionMenu: React.FC<LayerActionMenuProps> = ({ layerName, actions, f
           </div>
         ))}
       </div>
-    </details>
+    </div>
   );
 };
 

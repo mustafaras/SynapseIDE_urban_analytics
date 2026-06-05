@@ -61,12 +61,12 @@ import {
   MAP_SPACING,
   MAP_STROKES,
   MAP_TYPOGRAPHY,
+  MAP_Z_INDEX,
   mapStyles,
   type GisStatusKey,
 } from "../mapTokens";
 import { MapCanvas, type MapFeatureReportRequest } from "../MapCanvas";
 import { MapCanvasControls } from "../MapCanvasControls";
-import { MapCanvasKeyboardFallbackControls } from "../MapCanvasKeyboardFallbackControls";
 import { MapToolbar } from "../MapToolbar";
 import {
   MapLayerCartographyPanel,
@@ -97,6 +97,7 @@ import {
 } from "@/services/map/temporal";
 import {
   selectScene3DActiveLayerCrs,
+  selectScene3DBuildings,
   selectScene3DCityModelSourceHandle,
   selectScene3DMode,
   selectScene3DTerrainSourceHandle,
@@ -146,14 +147,17 @@ import {
 } from "../scene";
 import {
   MapPublicationMarksPanel,
+  MapPublishOutputInventory,
   MapPublishPathPanel,
   MapPublishWorkspace,
+  type MapPublishInventoryEntry,
   type MapPublishPathAction,
   type MapPublishPathMeta,
   type MapPublishReadinessItem,
   type MapPublishTabId,
 } from "../publish";
 import { MapBottomPanel, type MapBottomPanelCoreTabId, type MapBottomPanelTask } from "../bottom";
+import { MapReviewSidebar, type MapReviewSidebarTab } from "../review/MapReviewSidebar";
 import { ScientificQAPanel } from "../ScientificQAPanel";
 import { MapProblemsPanel, buildMapProblemsModel, type MapProblemRow } from "../problems";
 import { GisEmptyState } from "../ui";
@@ -387,8 +391,8 @@ import {
   executeMapNLQueryPreview,
   type MapNLQueryPreview,
 } from "../../../../services/map/MapNLQueryBuilder";
-import { buildMapAIProposalReviewEvent, mapAIGuardrailDetails } from "../../../../services/map/MapAIGuardrails";
 import type { MapQueryExecutionResult } from "../../../../services/map/query/MapQueryPlanner";
+import { buildMapAIProposalReviewEvent, mapAIGuardrailDetails } from "../../../../services/map/MapAIGuardrails";
 import {
   buildMapWorkflowContext,
   buildMapWorkflowPreviewLayer,
@@ -599,6 +603,16 @@ function sceneVerticalDatumChip(
     "caveat",
     datum.caveats.join(" "),
   );
+}
+
+function sceneVerticalDatumValue(
+  terrainHandle: SourceHandle | null,
+  cityModelHandle: SourceHandle | null,
+): string | null {
+  const datum = terrainHandle?.scene3d?.verticalDatum ?? cityModelHandle?.scene3d?.verticalDatum;
+  if (!datum) return null;
+  if (datum.status === "known" && datum.value) return datum.value;
+  return `unknown (${datum.source})`;
 }
 
 function layerCrsChip(layer: OverlayLayerConfig | null, fallback = "CRS: unknown"): MapSceneStatusChip {
@@ -883,6 +897,181 @@ function buildPublishReadinessItems(input: {
       detail: evidenceDetail,
     }),
   ];
+}
+
+/* ---- Publish output inventory derivation (Prompt 51) ---- */
+
+function restoreStatusToGisStatus(status: SourceHandle["restoreStatus"]): GisStatusKey {
+  if (status === "restored") return "ready";
+  if (status === "unavailable") return "blocked";
+  return "caveat";
+}
+
+function isVectorExportableLayer(layer: OverlayLayerConfig): boolean {
+  return (layer.type === "geojson" || layer.type === "heatmap") && Boolean(layer.sourceData);
+}
+
+function layerCrsLabel(layer: OverlayLayerConfig): string {
+  const summary = resolveOverlayLayerCrsSummary(layer);
+  if (summary.status === "known" && summary.crs) return summary.crs;
+  if (summary.crs) return `${summary.crs} (${summary.status})`;
+  return "CRS missing";
+}
+
+function layerInventoryDetail(layer: OverlayLayerConfig): string {
+  const geometry = layer.metadata?.geometryType ?? layer.type;
+  const featureCount = typeof layer.metadata?.featureCount === "number"
+    ? `${layer.metadata.featureCount.toLocaleString()} features`
+    : null;
+  return [geometry, featureCount, layerCrsLabel(layer)].filter(Boolean).join(" · ");
+}
+
+function layerProvenanceCaveats(layer: OverlayLayerConfig): string[] {
+  const out: string[] = [];
+  const crs = resolveOverlayLayerCrsSummary(layer);
+  if (crs.status !== "known") {
+    out.push(`${layer.name}: CRS ${crs.status === "user-declared" ? "is user-declared (caveat)" : "is missing"}.`);
+  }
+  const qa = String(layer.qaStatus ?? "").toLowerCase();
+  if (qa === "blocked" || qa === "failed") {
+    out.push(`${layer.name}: QA is ${qa}.`);
+  }
+  return out;
+}
+
+function shortPublishId(value: string, max = 30): string {
+  return value.length > max ? `${value.slice(0, max - 1)}…` : value;
+}
+
+function buildDataExportInventory(input: {
+  overlayLayers: OverlayLayerConfig[];
+  target: MapExportTarget;
+  pinCount: number;
+  drawingCount: number;
+}): { included: MapPublishInventoryEntry[]; excluded: MapPublishInventoryEntry[]; caveats: string[] } {
+  const included: MapPublishInventoryEntry[] = [];
+  const excluded: MapPublishInventoryEntry[] = [];
+  const caveats: string[] = [];
+
+  if (input.target === "pins") {
+    if (input.pinCount > 0) {
+      included.push({ id: "pins", label: "Pins", status: "ready", detail: `${input.pinCount.toLocaleString()} pin(s) → Point features.` });
+    } else {
+      excluded.push({ id: "pins", label: "Pins", status: "caveat", detail: "No pins placed to export." });
+    }
+    return { included, excluded, caveats };
+  }
+  if (input.target === "drawings") {
+    if (input.drawingCount > 0) {
+      included.push({ id: "drawings", label: "Drawings", status: "ready", detail: `${input.drawingCount.toLocaleString()} drawn feature(s).` });
+    } else {
+      excluded.push({ id: "drawings", label: "Drawings", status: "caveat", detail: "No drawn features to export." });
+    }
+    return { included, excluded, caveats };
+  }
+
+  let hiddenCount = 0;
+  for (const layer of input.overlayLayers) {
+    if (!layer.visible) {
+      hiddenCount += 1;
+      continue;
+    }
+    if (isVectorExportableLayer(layer)) {
+      included.push({ id: layer.id, label: layer.name, status: "ready", detail: layerInventoryDetail(layer) });
+      caveats.push(...layerProvenanceCaveats(layer));
+    } else {
+      const reason = !(layer.type === "geojson" || layer.type === "heatmap")
+        ? `${layer.type} layer — not vector-exportable to GeoJSON/GeoParquet.`
+        : "No in-memory source geometry; reload the source before export.";
+      excluded.push({ id: layer.id, label: layer.name, status: "caveat", detail: reason });
+    }
+  }
+  if (hiddenCount > 0) {
+    excluded.push({
+      id: "hidden-layers",
+      label: `${hiddenCount} hidden layer${hiddenCount === 1 ? "" : "s"}`,
+      status: "caveat",
+      detail: "Hidden layers are not part of a visible-layers data export.",
+    });
+  }
+  return { included, excluded, caveats: uniquePublishStrings(caveats, 6) };
+}
+
+function isOfflineEmbeddableLayer(layer: OverlayLayerConfig): boolean {
+  const persistence = layer.metadata?.persistence?.sourcePersistence ?? (layer.sourceData ? "inline" : "metadata");
+  return persistence === "inline" && Boolean(layer.sourceData);
+}
+
+function buildOfflinePackageInventory(input: {
+  overlayLayers: OverlayLayerConfig[];
+  sourceHandles: readonly SourceHandle[];
+}): {
+  included: MapPublishInventoryEntry[];
+  excluded: MapPublishInventoryEntry[];
+  sourceRestore: MapPublishInventoryEntry[];
+  caveats: string[];
+} {
+  const included: MapPublishInventoryEntry[] = [];
+  const excluded: MapPublishInventoryEntry[] = [];
+  const caveats: string[] = [];
+
+  for (const layer of input.overlayLayers) {
+    if (isOfflineEmbeddableLayer(layer)) {
+      included.push({ id: layer.id, label: layer.name, status: "ready", detail: "Inline source — embedded only if ≤ 1 MB; otherwise referenced." });
+    } else {
+      const reason = layer.sourceData
+        ? "Non-inline source — referenced, not embedded; not recoverable from the package alone."
+        : "Metadata-only / external source — referenced, not recoverable from the package alone.";
+      excluded.push({ id: layer.id, label: layer.name, status: "caveat", detail: reason });
+    }
+  }
+
+  const sourceRestore: MapPublishInventoryEntry[] = input.sourceHandles.map((handle) => ({
+    id: handle.sourceId,
+    label: shortPublishId(handle.sourceId),
+    status: restoreStatusToGisStatus(handle.restoreStatus),
+    detail: `${handle.storageMode} · ${handle.restoreStatus}${handle.caveats[0] ? ` · ${handle.caveats[0]}` : ""}`,
+  }));
+
+  for (const handle of input.sourceHandles) {
+    caveats.push(...handle.caveats);
+  }
+  if (excluded.length > 0) {
+    caveats.push("Referenced (non-embedded) sources require the original file or service on restore; they are not recoverable from the package alone.");
+  }
+  return { included, excluded, sourceRestore, caveats: uniquePublishStrings(caveats, 6) };
+}
+
+function buildReportHandoffInventory(input: {
+  overlayLayers: OverlayLayerConfig[];
+  snapshotCaptured: boolean;
+  readinessCaveats: readonly string[];
+}): { included: MapPublishInventoryEntry[]; excluded: MapPublishInventoryEntry[]; caveats: string[] } {
+  const included: MapPublishInventoryEntry[] = [];
+  const excluded: MapPublishInventoryEntry[] = [];
+  let hiddenCount = 0;
+
+  for (const layer of input.overlayLayers) {
+    if (layer.visible) {
+      included.push({ id: layer.id, label: layer.name, status: "ready", detail: `Rendered into the report snapshot image · ${layerCrsLabel(layer)}.` });
+    } else {
+      hiddenCount += 1;
+    }
+  }
+  if (hiddenCount > 0) {
+    excluded.push({
+      id: "hidden-layers",
+      label: `${hiddenCount} hidden layer${hiddenCount === 1 ? "" : "s"}`,
+      status: "caveat",
+      detail: "Hidden layers do not appear in the report snapshot.",
+    });
+  }
+
+  const caveats: string[] = [...input.readinessCaveats];
+  if (!input.snapshotCaptured) {
+    caveats.unshift("Report snapshot is metadata-only until a snapshot image is captured; no map image is embedded yet.");
+  }
+  return { included, excluded, caveats: uniquePublishStrings(caveats, 6) };
 }
 
 function publishTabLabel(tabId: MapPublishTabId): string {
@@ -1177,52 +1366,198 @@ const mapActivityRailOverlayStyle: React.CSSProperties = {
 
 const commandHeaderStyle: React.CSSProperties = {
   ...mapStyles.header,
+  display: "grid",
+  gridTemplateColumns: "minmax(10.75rem, 0.68fr) minmax(17rem, 1fr) minmax(21rem, 1.05fr) auto auto",
   position: "relative",
   zIndex: MAP_NUMERIC.importProgressZIndex + 1,
   flexWrap: "nowrap",
+  alignItems: "center",
   alignContent: "center",
   gap: MAP_SPACING.xs,
-  minHeight: "2.75rem",
+  minHeight: "3.125rem",
+  height: "3.125rem",
   padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm} ${MAP_SPACING.xs} calc(${MAP_ACTIVITY_RAIL_WIDTH} + ${MAP_SPACING.sm})`,
   overflowX: "visible",
   overflowY: "visible",
-  background: MAP_COLORS.bgHeader,
+  background: [
+    "linear-gradient(115deg, transparent 0%, color-mix(in srgb, var(--syn-interaction-active, #3794ff) 11%, transparent) 38%, transparent 72%)",
+    "repeating-linear-gradient(90deg, color-mix(in srgb, var(--syn-border-subtle, rgba(148, 163, 184, 0.3)) 34%, transparent) 0 1px, transparent 1px 5.5rem)",
+    "linear-gradient(180deg, color-mix(in srgb, var(--syn-surface-header, #20242b) 96%, #ffffff 4%), var(--syn-surface-header, #20242b))",
+  ].join(", "),
+  backgroundSize: "34rem 100%, 11rem 100%, 100% 100%",
+  backgroundPosition: "-34rem 0, 0 0, 0 0",
   borderBottom: "1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.32))",
+  boxShadow: "inset 0 -1px 0 color-mix(in srgb, var(--syn-interaction-active, #3794ff) 18%, transparent)",
+  isolation: "isolate",
 };
 
+const premiumHeaderMotionCss = `
+@keyframes mapPremiumHeaderDrift {
+  0% { background-position: -34rem 0, 0 0, 0 0; }
+  100% { background-position: 34rem 0, 11rem 0, 0 0; }
+}
+
+[data-map-premium-header="true"] {
+  animation: mapPremiumHeaderDrift 18s linear infinite;
+}
+
+[data-map-premium-header="true"] > * {
+  min-width: 0;
+}
+
+@media (max-width: 1180px) {
+  [data-map-premium-header="true"] {
+    grid-template-columns: minmax(9.75rem, 0.72fr) minmax(14rem, 1fr) minmax(18rem, 1fr) auto auto !important;
+  }
+}
+
+@media (max-width: 1320px) and (max-height: 680px) {
+  [data-map-premium-header="true"] {
+    grid-template-columns: minmax(10rem, 0.58fr) minmax(15rem, 0.92fr) minmax(18rem, 1fr) auto auto !important;
+  }
+
+  [data-map-command-bar="true"],
+  [data-map-selection-dock="true"] {
+    display: none !important;
+  }
+}
+
+@media (max-width: 860px) {
+  [data-map-premium-header="true"] {
+    grid-template-columns: minmax(9rem, 0.8fr) minmax(14rem, 1fr) auto auto !important;
+  }
+
+  [data-map-command-bar="true"],
+  [data-map-selection-dock="true"] {
+    display: none !important;
+  }
+}
+`;
+
 const commandHeaderTitleStyle: React.CSSProperties = {
-  ...mapStyles.title,
   display: "inline-flex",
   alignItems: "center",
   gap: MAP_SPACING.xs,
-  flex: "0 0 auto",
+  order: 1,
+  minHeight: "2.375rem",
+  padding: `${MAP_SPACING.zero} ${MAP_SPACING.sm}`,
   marginRight: MAP_SPACING.zero,
+  borderRadius: MAP_RADIUS.sm,
+  background: "linear-gradient(180deg, color-mix(in srgb, var(--syn-surface-panel, #151a21) 42%, transparent), transparent)",
+  border: "1px solid color-mix(in srgb, var(--syn-border-subtle, rgba(148, 163, 184, 0.3)) 72%, transparent)",
   lineHeight: MAP_TYPOGRAPHY.lineHeight.tight,
   whiteSpace: "nowrap",
+  overflow: "hidden",
 };
 
-const commandHeaderBreadcrumbMutedStyle: React.CSSProperties = {
+const commandHeaderBrandAccentStyle: React.CSSProperties = {
+  width: "1.625rem",
+  height: "1.625rem",
+  borderRadius: MAP_RADIUS.sm,
+  border: "1px solid color-mix(in srgb, var(--syn-interaction-active, #3794ff) 44%, transparent)",
+  background: [
+    "linear-gradient(135deg, color-mix(in srgb, var(--syn-interaction-active, #3794ff) 88%, #ffffff 8%), transparent 54%)",
+    "linear-gradient(315deg, color-mix(in srgb, var(--syn-status-running, #4ec27d) 72%, transparent), transparent 58%)",
+    "var(--syn-surface-header, #20242b)",
+  ].join(", "),
+  boxShadow: "inset 0 0 0 1px color-mix(in srgb, #ffffff 10%, transparent)",
+  flexShrink: 0,
+};
+
+const commandHeaderBrandCopyStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateRows: "auto auto",
+  gap: "0.0625rem",
+  minWidth: MAP_SPACING.zero,
+};
+
+const commandHeaderBrandKickerStyle: React.CSSProperties = {
+  color: MAP_COLORS.interaction,
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+  fontSize: "0.625rem",
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.bold,
+  letterSpacing: 0,
+  textTransform: "uppercase",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+};
+
+const commandHeaderBrandLineStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: MAP_SPACING.xs,
+  minWidth: MAP_SPACING.zero,
+  color: MAP_COLORS.text,
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyBrand,
+  fontSize: MAP_TYPOGRAPHY.fontSize.sm,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.bold,
+  letterSpacing: 0,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+};
+
+const commandHeaderActivityPillStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  minWidth: MAP_SPACING.zero,
+  maxWidth: "8rem",
+  height: "1.125rem",
+  padding: `0 ${MAP_SPACING.xs}`,
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.xs,
   color: MAP_COLORS.textMuted,
-  fontWeight: MAP_TYPOGRAPHY.fontWeight.medium,
+  background: "var(--syn-surface-subtle, rgba(15, 23, 42, 0.42))",
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+  fontSize: "0.625rem",
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+  textTransform: "uppercase",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+};
+
+const commandHeaderSearchSlotStyle: React.CSSProperties = {
+  order: 2,
+  display: "flex",
+  alignItems: "center",
+  minHeight: "2.375rem",
+  padding: `${MAP_SPACING.zero} ${MAP_SPACING.xs}`,
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.sm,
+  background: "color-mix(in srgb, var(--syn-surface-panel, #151a21) 42%, transparent)",
 };
 
 const commandHeaderToolbarSlot: React.CSSProperties = {
-  flex: "1 1 20rem",
+  order: 3,
   minWidth: MAP_SPACING.zero,
   display: "flex",
   alignItems: "center",
+  minHeight: "2.375rem",
+  padding: `${MAP_SPACING.zero} ${MAP_SPACING.xs}`,
+  borderRadius: MAP_RADIUS.sm,
+  border: MAP_STROKES.hairlineSubtle,
+  background: "color-mix(in srgb, var(--syn-surface-panel, #151a21) 48%, transparent)",
   overflow: "visible",
+};
+
+const canvasSelectionDockStyle: React.CSSProperties = {
+  position: "absolute",
+  top: "3.25rem",
+  left: `calc(var(--map-dock-left, 0px) + ${MAP_SPACING.md})`,
+  zIndex: MAP_Z_INDEX.dropdown,
+  pointerEvents: "auto",
+  maxWidth: `calc(100% - var(--map-dock-left, 0px) - var(--map-dock-right, 0px) - ${MAP_SPACING.xl})`,
 };
 
 const commandHeaderCloseButton: React.CSSProperties = {
   ...mapStyles.closeBtn,
+  order: 6,
   position: "static",
   flex: "0 0 auto",
   width: "1.75rem",
   height: "1.75rem",
   border: "1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.32))",
   borderRadius: MAP_RADIUS.sm,
-  background: MAP_COLORS.transparent,
+  background: "color-mix(in srgb, var(--syn-surface-panel, #151a21) 54%, transparent)",
 };
 
 /* ================================================================== */
@@ -1737,11 +2072,24 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const [workbenchSidebarTab, setWorkbenchSidebarTab] = useState<string>(
     initialActivityId === "overview" ? "overview-readiness" : "layers-stack",
   );
-  const [workbenchSidebarCollapsed, setWorkbenchSidebarCollapsed] = useState(false);
+  const [workbenchSidebarCollapsed, setWorkbenchSidebarCollapsed] = useState(
+    layoutPreferences.panelMode === "collapsed",
+  );
   const [layersCartographyScopeId, setLayersCartographyScopeId] = useState<string | null>(null);
   const [styleWorkspaceLayerId, setStyleWorkspaceLayerId] = useState<string | null>(null);
   const [showSidebar, setShowSidebar] = useState(false);
-  const [showLayerPanel, setShowLayerPanel] = useState(true);
+  const [showLayerPanel, setShowLayerPanelState] = useState(
+    layoutPreferences.panelMode !== "collapsed",
+  );
+  const setShowLayerPanel = useCallback<React.Dispatch<React.SetStateAction<boolean>>>((next) => {
+    setShowLayerPanelState((current) => {
+      const resolved = typeof next === "function" ? next(current) : next;
+      if (resolved !== current) {
+        setLayoutPreferences({ panelMode: resolved ? "map-first" : "collapsed" });
+      }
+      return resolved;
+    });
+  }, [setLayoutPreferences]);
   const [showChoroplethPanel, setShowChoroplethPanel] = useState(false);
   const [showClusterViz, setShowClusterViz] = useState(false);
   const [showHotSpotViz, setShowHotSpotViz] = useState(false);
@@ -1769,6 +2117,11 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const [bottomPanelOpen, setBottomPanelOpen] = useState(false);
   const [activeBottomPanelTab, setActiveBottomPanelTab] = useState<MapBottomPanelCoreTabId>("problems");
   const bottomPanelReturnFocusRef = useRef<HTMLElement | null>(null);
+  // QA Problems + Review timeline now live in a premium right sidebar (Slice 2),
+  // not the bottom-opening panel.
+  const [reviewSidebarOpen, setReviewSidebarOpen] = useState(false);
+  const [reviewSidebarTab, setReviewSidebarTab] = useState<MapReviewSidebarTab>("problems");
+  const reviewSidebarReturnFocusRef = useRef<HTMLElement | null>(null);
 
   const openBottomPanelTab = useCallback((tabId: MapBottomPanelCoreTabId, announcement?: string) => {
     if (!bottomPanelOpen && typeof document !== "undefined") {
@@ -1812,6 +2165,32 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     }
     openBottomPanelTab(tabId, announcement);
   }, [activeBottomPanelTab, bottomPanelOpen, closeBottomPanel, openBottomPanelTab]);
+
+  const openReviewSidebar = useCallback((tab: MapReviewSidebarTab, announcement?: string) => {
+    if (typeof document !== "undefined") {
+      const active = document.activeElement;
+      reviewSidebarReturnFocusRef.current = active instanceof HTMLElement ? active : null;
+    }
+    if (workspaceView === "navigator") {
+      setWorkspaceView("explore");
+    }
+    setReviewSidebarTab(tab);
+    setReviewSidebarOpen(true);
+    if (announcement) announce(announcement);
+  }, [announce, workspaceView]);
+
+  const closeReviewSidebar = useCallback(() => {
+    setReviewSidebarOpen(false);
+    restoreFocusToElement(reviewSidebarReturnFocusRef.current);
+  }, []);
+
+  const toggleReviewSidebar = useCallback((tab: MapReviewSidebarTab, announcement?: string) => {
+    if (reviewSidebarOpen && reviewSidebarTab === tab) {
+      closeReviewSidebar();
+      return;
+    }
+    openReviewSidebar(tab, announcement);
+  }, [closeReviewSidebar, openReviewSidebar, reviewSidebarOpen, reviewSidebarTab]);
 
   const [performanceTimings, setPerformanceTimings] = useState<MapPerformanceTimingMetric[]>([]);
   const [telemetryEvents, setTelemetryEvents] = useState(() => getMapTelemetryEvents());
@@ -2296,6 +2675,40 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       snapshot: event.snapshot ?? buildCurrentReviewSnapshot(),
     });
   }, [addMapReviewEvent, buildCurrentReviewSnapshot]);
+
+  const handleSelectionResult = useCallback((result: MapQueryExecutionResult, label: string) => {
+    const matchedLayers = result.layers.filter((layer) => layer.matchedFeatureCount > 0);
+    recordMapReviewEvent({
+      type: "query-run",
+      status: result.status === "success" ? "applied" : "rejected",
+      title: `${label} query`,
+      summary: `${label} selected ${result.totalMatched.toLocaleString()} feature${result.totalMatched === 1 ? "" : "s"} across ${matchedLayers.length.toLocaleString()} layer${matchedLayers.length === 1 ? "" : "s"}.`,
+      layerIds: result.layers.map((layer) => layer.layerId),
+      actionIds: [result.queryId],
+      details: {
+        queryId: result.queryId,
+        interaction: label,
+        totalMatched: result.totalMatched,
+        scannedFeatureCount: result.scannedFeatureCount,
+        candidateFeatureCount: result.candidateFeatureCount,
+        bounded: result.bounded,
+        truncated: result.truncated,
+        warnings: result.warnings,
+        blockers: result.blockers,
+        provenance: result.provenance,
+        matchedLayers: result.layers.map((layer) => ({
+          layerId: layer.layerId,
+          layerName: layer.layerName,
+          matchedFeatureCount: layer.matchedFeatureCount,
+          candidateFeatureCount: layer.candidateFeatureCount,
+          scannedFeatureCount: layer.scannedFeatureCount,
+          sourceFeatureCount: layer.sourceFeatureCount,
+          bounded: layer.bounded,
+          truncated: layer.truncated,
+        })),
+      },
+    });
+  }, [recordMapReviewEvent]);
 
   // Map command lifecycle (Prompt 9): high-impact actions flow through
   // MapActionExecutor so each one is preflighted, audited (one review-timeline
@@ -2815,31 +3228,6 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     toastSuccess(message);
     announce(message);
   }, [addOverlayLayer, announce, openBottomPanelTab, overlayLayers, recordMapReviewEvent, setActiveAnalysisResultLayers]);
-
-  const handleSelectionQueryResult = useCallback((result: MapQueryExecutionResult, label: string) => {
-    const layerIds = result.layers
-      .filter((layer) => layer.matchedFeatureCount > 0)
-      .map((layer) => layer.layerId);
-    recordMapReviewEvent({
-      type: "query-run",
-      status: result.status === "success" ? "applied" : "failed",
-      title: `${label} query`,
-      summary: `${label} matched ${result.totalMatched.toLocaleString()} feature(s) from ${result.scannedFeatureCount.toLocaleString()} scanned candidate row(s).${result.truncated ? " Execution was truncated by the declared query scope." : ""}`,
-      layerIds,
-      details: {
-        queryId: result.queryId,
-        plannerVersion: result.provenance.plannerVersion,
-        totalMatched: result.totalMatched,
-        scannedFeatureCount: result.scannedFeatureCount,
-        candidateFeatureCount: result.candidateFeatureCount,
-        bounded: result.bounded,
-        truncated: result.truncated,
-        warnings: result.warnings,
-        blockers: result.blockers,
-        provenance: result.provenance,
-      },
-    });
-  }, [recordMapReviewEvent]);
 
   useEffect(() => {
     if (!open || reviewSession.events.length > 0) {
@@ -3508,8 +3896,12 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   );
   const scene3DMode = useScene3DStore(selectScene3DMode);
   const scene3DActiveLayerCrs = useScene3DStore(selectScene3DActiveLayerCrs);
+  const scene3DBuildings = useScene3DStore(selectScene3DBuildings);
   const scene3DCityModelHandle = useScene3DStore(selectScene3DCityModelSourceHandle);
   const scene3DTerrainHandle = useScene3DStore(selectScene3DTerrainSourceHandle);
+  const sceneUrbanFormCrs =
+    scene3DActiveLayerCrs ?? sourceHandleCrs(scene3DTerrainHandle) ?? sourceHandleCrs(scene3DCityModelHandle);
+  const sceneUrbanFormVerticalDatum = sceneVerticalDatumValue(scene3DTerrainHandle, scene3DCityModelHandle);
 
   const handleMapContainerRef = useCallback((element: HTMLDivElement | null) => {
     mapContainerRef.current = element;
@@ -3559,15 +3951,19 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   );
 
   const handleRestoreDefaultWidths = useCallback(() => {
-    restoreDefaultLayoutPreferences();
+    setLayoutPreferences({
+      layerPanelWidth: DEFAULT_MAP_EXPLORER_LAYOUT_PREFERENCES.layerPanelWidth,
+      rightPanelWidth: DEFAULT_MAP_EXPLORER_LAYOUT_PREFERENCES.rightPanelWidth,
+    });
     announce(
       `Default panel widths restored (${DEFAULT_MAP_EXPLORER_LAYOUT_PREFERENCES.layerPanelWidth}px sidebar, ${DEFAULT_MAP_EXPLORER_LAYOUT_PREFERENCES.rightPanelWidth}px inspector)`,
     );
-  }, [announce, restoreDefaultLayoutPreferences]);
+  }, [announce, setLayoutPreferences]);
 
   const handleCollapseAllPanels = useCallback(() => {
     closeFloatingRightPanels();
     closeRightDockPanels();
+    setLayoutPreferences({ panelMode: "collapsed" });
     setShowLayerPanel(false);
     setWorkbenchSidebarCollapsed(true);
     setBottomPanelOpen(false);
@@ -3586,6 +3982,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     announce,
     closeFloatingRightPanels,
     closeRightDockPanels,
+    setLayoutPreferences,
     setShowWorkflowDrawer,
     setWorkflowPreview,
   ]);
@@ -3641,20 +4038,20 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
 
     if (targetActivityId === "qa") {
       setShowLayerPanel(false);
-      setBottomPanelOpen(true);
-      setActiveBottomPanelTab("problems");
-      setShowReviewTimeline(false);
+      setReviewSidebarTab("problems");
+      setReviewSidebarOpen(true);
     } else if (targetActivityId === "review") {
       setShowLayerPanel(false);
-      setBottomPanelOpen(true);
-      setActiveBottomPanelTab("timeline");
-      setShowReviewTimeline(true);
+      setReviewSidebarTab("review");
+      setReviewSidebarOpen(true);
     } else if (targetActivityId === "diagnostics") {
       setShowLayerPanel(false);
+      setReviewSidebarOpen(false);
       setBottomPanelOpen(true);
       setActiveBottomPanelTab("diagnostics");
       setShowReviewTimeline(false);
     } else {
+      setReviewSidebarOpen(false);
       setBottomPanelOpen(false);
       setShowReviewTimeline(false);
       setShowLayerPanel(true);
@@ -5209,8 +5606,6 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     if (activeTool === "annotate") return "Annotation";
     return null;
   }, [activeDrawTool, activeMeasureTool, activeTool, selectionDragTool]);
-
-  const selectionToolsTopOffset = showCanvasKeyboardHelp ? "13.5rem" : "10rem";
 
   const handleHotSpotDispatch = useCallback(async (coordinate: [number, number]) => {
     if (isRunningQuickHotSpot) {
@@ -7950,8 +8345,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   }, [announce, mapCompositionOptions.includeLegend, mapPublicationLegendItems.length]);
 
   const handleToggleReviewTimelineBottomPanel = useCallback(() => {
-    toggleBottomPanelTab("timeline", "Review timeline opened in the bottom panel");
-  }, [toggleBottomPanelTab]);
+    toggleReviewSidebar("review", "Review timeline opened in the review sidebar");
+  }, [toggleReviewSidebar]);
 
   const handleSelectMapActivity = useCallback((activity: MapActivityDefinition) => {
     setActiveActivityId(activity.id);
@@ -7991,7 +8386,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         openMapProblems();
         break;
       case "review":
-        openBottomPanelTab("timeline", "Review timeline opened in the bottom panel");
+        openReviewSidebar("review", "Review timeline opened in the review sidebar");
         break;
       case "diagnostics":
         openBottomPanelTab("diagnostics", "Performance diagnostics opened in the bottom panel");
@@ -8006,7 +8401,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     }
 
     announce(`${activity.label} activity selected`);
-  }, [announce, openAnalyzeActivityTab, openBottomPanelTab, openMapProblems, openPublishActivityTab, openSceneActivityTab, openStyleActivityTab]);
+  }, [announce, openAnalyzeActivityTab, openBottomPanelTab, openMapProblems, openPublishActivityTab, openReviewSidebar, openSceneActivityTab, openStyleActivityTab]);
 
   const bottomProblemsModel = useMemo(
     () => buildMapProblemsModel({ qaState: scientificQA, overlayLayers }),
@@ -8123,15 +8518,15 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     />
   ) : null;
 
-  const bottomPanelTimelineContent = (
+  const buildReviewTimeline = (visible: boolean, onClose: () => void): React.ReactNode => (
     <MapReviewTimelinePanel
-      visible={bottomPanelOpen && activeBottomPanelTab === "timeline"}
+      visible={visible}
       presentation="embedded"
       session={reviewSession}
       collaborationSnapshot={reviewCollaborationSnapshot}
       overlayLayers={overlayLayers}
       qaState={scientificQA}
-      onClose={closeBottomPanel}
+      onClose={onClose}
       onRecordEvent={recordMapReviewEvent}
       onRevertCommand={handleRevertMapCommand}
       onUpdateEventStatus={(eventId, status, outcome) => {
@@ -8153,6 +8548,22 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       }}
       onAnnounce={announce}
     />
+  );
+
+  const bottomPanelTimelineContent = buildReviewTimeline(
+    bottomPanelOpen && activeBottomPanelTab === "timeline",
+    closeBottomPanel,
+  );
+
+  const reviewSidebarProblemsContent = (
+    <div style={bottomPanelScrollStyle}>
+      <MapProblemsPanel model={bottomProblemsModel} compact onProblemAction={handleBottomProblemAction} />
+    </div>
+  );
+
+  const reviewSidebarTimelineContent = buildReviewTimeline(
+    reviewSidebarOpen && reviewSidebarTab === "review",
+    closeReviewSidebar,
   );
 
   const bottomPanelDiagnosticsContent = bottomDiagnosticsTabActive ? (
@@ -8206,6 +8617,20 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const mapImageExportDisabledReason = mapPublicationReadiness.status === "blocked"
     ? mapPublicationReadiness.blockers[0]?.message ?? "Resolve publication readiness blockers before exporting a map image."
     : undefined;
+  const publishBoundsLabel = formatPublishBounds(currentMapBounds);
+  const publishBoundsStatus: GisStatusKey = currentMapBounds ? "ready" : "caveat";
+  const dataExportInventory = buildDataExportInventory({
+    overlayLayers,
+    target: exportTarget,
+    pinCount: pins.length,
+    drawingCount: drawnFeatures.length,
+  });
+  const offlinePackageInventory = buildOfflinePackageInventory({ overlayLayers, sourceHandles });
+  const reportHandoffInventory = buildReportHandoffInventory({
+    overlayLayers,
+    snapshotCaptured: Boolean(reportHandoffSnapshot?.dataUrl),
+    readinessCaveats: (reportHandoffDraft?.publicationReadiness ?? mapPublicationReadiness).caveats,
+  });
   const figureActions: MapPublishPathAction[] = [
     {
       label: "Map image export",
@@ -8264,10 +8689,30 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       onClick: handleOpenExportNoteInIde,
     },
   ];
+  const figurePageSizeLabel = mapCompositionOptions.pageSize === "custom"
+    ? `${Math.round(mapCompositionOptions.customWidthMm)}×${Math.round(mapCompositionOptions.customHeightMm)} mm`
+    : mapCompositionOptions.pageSize.toUpperCase();
+  const figureGraticuleInsetLabel = [
+    mapCompositionOptions.includeGraticule ? "Graticule" : null,
+    mapCompositionOptions.includeInsetMap ? "Inset" : null,
+  ].filter((value): value is string => Boolean(value)).join(" + ") || "Off";
+  const figureCrsCheck = findReadinessCheck(mapPublicationReadiness, "crs-measurement");
+  const figureCrsValues = uniquePublishStrings(
+    visiblePublicationLayers.map((layer) => resolveOverlayLayerCrsSummary(layer).crs),
+    3,
+  );
+  const figureAttributionCheck = findReadinessCheck(mapPublicationReadiness, "attribution-license");
   const figureMeta: MapPublishPathMeta[] = [
-    { label: "Map image", value: `${mapCompositionOptions.format.toUpperCase()} @ ${mapCompositionOptions.dpi} DPI` },
-    { label: "Layers", value: visiblePublicationLayers.length.toLocaleString(), status: visiblePublicationLayers.length > 0 ? "ready" : "blocked" },
+    { label: "Page size", value: figurePageSizeLabel },
+    { label: "Resolution", value: `${mapCompositionOptions.format.toUpperCase()} @ ${mapCompositionOptions.dpi} DPI` },
+    { label: "Visible layers", value: visiblePublicationLayers.length.toLocaleString(), status: visiblePublicationLayers.length > 0 ? "ready" : "blocked" },
     { label: "Legend", value: `${mapPublicationLegendItems.length.toLocaleString()} item${mapPublicationLegendItems.length === 1 ? "" : "s"}`, status: mapPublicationReadiness.hasLegend ? "ready" : "blocked" },
+    { label: "Scale bar", value: mapCompositionOptions.includeScaleBar ? "On" : "Off", status: mapCompositionOptions.includeScaleBar ? "ready" : "caveat" },
+    { label: "North arrow", value: mapCompositionOptions.includeNorthArrow ? "On" : "Off", status: mapCompositionOptions.includeNorthArrow ? "ready" : "caveat" },
+    { label: "Graticule / inset", value: figureGraticuleInsetLabel },
+    { label: "Attribution", value: mapCompositionOptions.includeAttribution ? "Included" : "Off", status: figureAttributionCheck ? readinessSeverityToGisStatus(figureAttributionCheck.status) : mapCompositionOptions.includeAttribution ? "ready" : "caveat" },
+    { label: "CRS", value: figureCrsValues.length > 0 ? formatCompactList(figureCrsValues, "missing") : "missing", status: figureCrsCheck ? readinessSeverityToGisStatus(figureCrsCheck.status) : figureCrsValues.length > 0 ? "ready" : "caveat" },
+    { label: "QA caveats", value: mapPublicationReadiness.caveats.length.toLocaleString(), status: mapPublicationReadiness.caveats.length > 0 ? "caveat" : "ready" },
     { label: "Annotations", value: annotations.length.toLocaleString(), status: annotations.length > 0 ? "ready" : "caveat" },
     { label: "Readiness", value: mapPublicationReadiness.status.replace(/-/g, " "), status: mapPublicationReadiness.status === "blocked" ? "blocked" : mapPublicationReadiness.status === "ready-with-caveats" ? "caveat" : "ready" },
   ];
@@ -8445,6 +8890,17 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       meta={dataExportMeta}
       actions={dataExportActions}
     >
+      <MapPublishOutputInventory
+        outputType={`${exportFormat === "geoparquet" ? "GeoParquet" : "GeoJSON"} FeatureCollection — vector geometry + properties`}
+        outputTypeNote="Only visible vector (GeoJSON/heatmap) layers with in-memory geometry are written. Raster, vector-tile, and external-service layers are excluded, and coordinates are exported in their source CRS without reprojection."
+        included={dataExportInventory.included}
+        excluded={dataExportInventory.excluded}
+        bounds={publishBoundsLabel}
+        boundsStatus={publishBoundsStatus}
+        evidenceIds={publishEvidenceIds}
+        caveats={dataExportInventory.caveats}
+        {...(exportDisabledReason ? { disabledReason: exportDisabledReason } : {})}
+      />
       {publishLegendParityElement}
       {renderPublicationMarksPanel()}
     </MapPublishPathPanel>
@@ -8457,6 +8913,17 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       meta={reportMeta}
       actions={reportActions}
     >
+      <MapPublishOutputInventory
+        outputType="Static report snapshot (raster image) + structured evidence block and citations"
+        outputTypeNote="The snapshot is a rendered raster image of the current map, not live or queryable data. Layer geometry and source bytes are not embedded; evidence travels as references."
+        included={reportHandoffInventory.included}
+        excluded={reportHandoffInventory.excluded}
+        bounds={publishBoundsLabel}
+        boundsStatus={publishBoundsStatus}
+        evidenceIds={publishEvidenceIds}
+        caveats={reportHandoffInventory.caveats}
+        {...(reportDisabledReason ? { disabledReason: reportDisabledReason } : {})}
+      />
       {publishLegendParityElement}
       {renderPublicationMarksPanel()}
       {reportHandoffDraft ? (
@@ -8486,6 +8953,21 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       meta={offlineMeta}
       actions={offlineActions}
     >
+      <MapPublishOutputInventory
+        outputType="Offline package (.zip) — snapshot metadata, styles, manifests, review timeline, evidence references"
+        outputTypeNote="Only inline vector sources within the 1 MB limit are embedded. External, worker-table, DuckDB, URL, and oversized sources are referenced and are NOT recoverable from the package alone."
+        included={offlinePackageInventory.included}
+        excluded={offlinePackageInventory.excluded}
+        sourceRestore={offlinePackageInventory.sourceRestore}
+        bounds={publishBoundsLabel}
+        boundsStatus={publishBoundsStatus}
+        evidenceIds={publishEvidenceIds}
+        caveats={offlinePackageInventory.caveats}
+        includedLabel="Embedded in package"
+        excludedLabel="Referenced only (not embedded)"
+        emptyIncludedLabel="No inline sources qualify for embedding; all sources are referenced."
+        {...(packageExportDisabled ? { disabledReason: packageExportDisabledReason } : {})}
+      />
       {publishLegendParityElement}
       {renderPublicationMarksPanel()}
     </MapPublishPathPanel>
@@ -8865,8 +9347,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     />
   );
 
+  const sceneViewportSyncChip = viewportSyncChip(viewportSyncEnabled, viewportSyncStatus);
   const sceneStatusChips: MapSceneStatusChip[] = (() => {
-    const sync = viewportSyncChip(viewportSyncEnabled, viewportSyncStatus);
+    const sync = sceneViewportSyncChip;
     const referenceLayer = activeTemporalLayer ?? overlayLayers.find((layer) => layer.visible) ?? overlayLayers[0] ?? null;
 
     if (activeSceneTabId === "scene-raster") {
@@ -8893,8 +9376,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     }
 
     if (activeSceneTabId === "scene-3d") {
-      const sourceKind = sourceHandleSceneKind(scene3DTerrainHandle) ?? sourceHandleSceneKind(scene3DCityModelHandle);
-      const runtimeMode = scene3DTerrainHandle?.scene3d?.runtimeMode ?? scene3DCityModelHandle?.scene3d?.runtimeMode ?? null;
+      const sourceKind = sourceHandleSceneKind(scene3DCityModelHandle) ?? sourceHandleSceneKind(scene3DTerrainHandle);
+      const runtimeMode = scene3DCityModelHandle?.scene3d?.runtimeMode ?? scene3DTerrainHandle?.scene3d?.runtimeMode ?? null;
       const crs = scene3DActiveLayerCrs ?? sourceHandleCrs(scene3DTerrainHandle) ?? sourceHandleCrs(scene3DCityModelHandle);
       const generated = sourceKind === "generated-massing" || sourceKind === "zoning-envelope" || sourceKind === "sun-shadow-result";
       const modeStatus: GisStatusKey = generated ? "synthetic" : runtimeMode === "sample" || sourceKind === "sample-3d" ? "demo" : sourceKind ? "ready" : "unknown";
@@ -8911,7 +9394,11 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       return [
         sceneStatusChip("source-mode", selectedFeatureIds.length > 0 ? "Source mode: selected parcel" : "Source mode: parcel required", selectedFeatureIds.length > 0 ? "ready" : "caveat"),
         layerCrsChip(referenceLayer, "CRS: parcel layer unknown"),
-        sceneStatusChip("vertical-datum", "Vertical datum: n/a", "unknown"),
+        sceneStatusChip(
+          "vertical-datum",
+          sceneUrbanFormVerticalDatum ? `Vertical datum: ${sceneUrbanFormVerticalDatum}` : "Vertical datum: planar zoning heights",
+          sceneUrbanFormVerticalDatum ? "ready" : "caveat",
+        ),
         sceneStatusChip("sample-generated", "Sample/generated: user rules", "ready"),
         sync,
       ];
@@ -8991,6 +9478,11 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     <Scene3DPanel
       visible
       presentation="embedded"
+      viewportSync={{
+        label: sceneViewportSyncChip.label,
+        status: sceneViewportSyncChip.status,
+        ...(sceneViewportSyncChip.title ? { title: sceneViewportSyncChip.title } : {}),
+      }}
       onClose={() => {
         setShowLayerPanel(false);
         announce("3D scene panel closed");
@@ -9008,6 +9500,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         announce("Zoning rules panel closed");
       }}
       selectedParcelId={selectedFeatureIds[0] ?? null}
+      declaredCrs={sceneUrbanFormCrs}
+      verticalDatum={sceneUrbanFormVerticalDatum}
+      buildingPrerequisiteCount={scene3DBuildings.length}
     />
   );
 
@@ -9020,6 +9515,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         announce("Massing scenarios panel closed");
       }}
       parcelId={selectedFeatureIds[0] ?? null}
+      declaredCrs={sceneUrbanFormCrs}
+      verticalDatum={sceneUrbanFormVerticalDatum}
+      buildingPrerequisiteCount={scene3DBuildings.length}
     />
   );
 
@@ -9226,6 +9724,48 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const dataCatalogTabActive =
     showLayerPanel && activeActivityId === "data" && workbenchSidebarTab === "data-catalog";
 
+  // Shared props for the unified command-bar tool cluster (header) and the
+  // map-canvas overlays (north arrow + keyboard help). One source of truth so the
+  // embedded "bar" surface and the "overlay" surface never drift apart.
+  const mapCanvasControlsProps = {
+    activeBaseLayer,
+    onSetBaseLayer: handleSetBaseLayer,
+    activeTool,
+    selectionDragTool,
+    activeDrawTool,
+    activeMeasureTool,
+    selectionModeDisabled: nlQueryToolbarContext.queryableLayers.length === 0,
+    selectionModeDisabledReason: "No queryable visible layers are available for selection.",
+    selectedFeatureCount,
+    visibleLayerCount: visiblePublicationLayers.length,
+    hasActiveAoi: Boolean(contextSummary.activeAoi),
+    legendVisible: mapCompositionOptions.includeLegend && mapPublicationLegendItems.length > 0,
+    legendAvailable: mapPublicationLegendItems.length > 0,
+    scaleBarVisible: mapCompositionOptions.includeScaleBar,
+    northArrowVisible: mapCompositionOptions.includeNorthArrow,
+    bearing,
+    fitSelectedDisabled: !selectedCanvasFitContext,
+    fitSelectedReason: "Select a layer, feature, or AOI before fitting the map.",
+    fitVisibleDisabled: !visibleLayerFitBounds,
+    fitVisibleReason: "Show at least one layer before fitting visible layers.",
+    onZoomIn: () => handleCanvasZoom(1),
+    onZoomOut: () => handleCanvasZoom(-1),
+    onResetView: handleCanvasResetView,
+    onFitVisibleLayers: handleCanvasFitVisibleLayers,
+    onFitSelectedContext: handleCanvasFitSelectedContext,
+    onOpenCrsReadiness: handleOpenCanvasCrsReadiness,
+    onToggleLegend: handleToggleCanvasLegend,
+    onToggleScaleBar: handleToggleCanvasScaleBar,
+    onToggleNorthArrow: handleToggleCanvasNorthArrow,
+    onSetSelectionDragTool: handleSetSelectionDragTool,
+    onDrawAoi: () => handleSetDrawTool(activeDrawTool === "polygon" ? null : "polygon"),
+    onMeasureDistance: () => handleSetMeasureTool(activeMeasureTool === "measure-distance" ? null : "measure-distance"),
+    onMeasureArea: () => handleSetMeasureTool(activeMeasureTool === "measure-area" ? null : "measure-area"),
+    keyboardHelpVisible: showCanvasKeyboardHelp,
+    onToggleKeyboardHelp: handleToggleCanvasKeyboardHelp,
+    onClearActiveTool: handleClearActiveCanvasTool,
+  } satisfies Omit<React.ComponentProps<typeof MapCanvasControls>, "surface">;
+
   return createPortal(
     <MapWorkspaceShell mode={mode} shellRef={trapRef} onClose={onClose} activeActivityId={activeActivityId}>
         {reducedMotion ? (
@@ -9233,6 +9773,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             {'[data-map-explorer-shell="true"], [data-map-explorer-shell="true"] * { transition: none !important; animation: none !important; scroll-behavior: auto !important; }'}
           </style>
         ) : null}
+        <style>{premiumHeaderMotionCss}</style>
 
         <input
           ref={importInputRef}
@@ -9286,30 +9827,43 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         />
 
         {/* Header bar */}
-        <div ref={headerRef} style={commandHeaderStyle} role="toolbar" aria-label="Map command bar">
+        <div
+          ref={headerRef}
+          style={commandHeaderStyle}
+          role="toolbar"
+          aria-label="Map command bar"
+          data-map-premium-header="true"
+        >
           <span style={commandHeaderTitleStyle} id="map-explorer-title" aria-label="Map Explorer" data-testid="map-command-center-title">
-            <span>Map Explorer</span>
-            <span aria-hidden style={commandHeaderBreadcrumbMutedStyle}>/</span>
-            <span aria-hidden style={commandHeaderBreadcrumbMutedStyle}>{activeActivity.label}</span>
+            <span aria-hidden data-testid="map-command-brand" style={commandHeaderBrandAccentStyle} />
+            <span style={commandHeaderBrandCopyStyle}>
+              <span style={commandHeaderBrandKickerStyle}>Urban Analytics</span>
+              <span style={commandHeaderBrandLineStyle}>
+                <span>Map Explorer</span>
+                <span aria-hidden style={commandHeaderActivityPillStyle}>{activeActivity.label}</span>
+              </span>
+            </span>
           </span>
 
-          <MapSearchBar
-            compact
-            onFlyTo={flyTo}
-            onPlaceSelected={(place) => {
-              if (place.bbox) {
-                setWorkflowGeocodedPlace({
-                  label: place.label,
-                  bbox: place.bbox,
-                  center: place.center,
-                  source: place.source,
-                });
-              } else {
-                setWorkflowGeocodedPlace(null);
-              }
-            }}
-            onResultCount={(count) => announce(`${count} search result${count !== 1 ? "s" : ""} found`)}
-          />
+          <div style={commandHeaderSearchSlotStyle}>
+            <MapSearchBar
+              compact
+              onFlyTo={flyTo}
+              onPlaceSelected={(place) => {
+                if (place.bbox) {
+                  setWorkflowGeocodedPlace({
+                    label: place.label,
+                    bbox: place.bbox,
+                    center: place.center,
+                    source: place.source,
+                  });
+                } else {
+                  setWorkflowGeocodedPlace(null);
+                }
+              }}
+              onResultCount={(count) => announce(`${count} search result${count !== 1 ? "s" : ""} found`)}
+            />
+          </div>
 
           <div style={commandHeaderToolbarSlot}>
             <MapToolbar
@@ -9340,7 +9894,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               scientificQAStatus={scientificQA?.status ?? "unchecked"}
               scientificQAIssueCount={scientificQAIssueCount}
               scientificQABlockerCount={scientificQABlockerCount}
-              showScientificQAPanel={bottomPanelOpen && activeBottomPanelTab === "problems"}
+              showScientificQAPanel={reviewSidebarOpen && reviewSidebarTab === "problems"}
               onToggleScientificQAPanel={handleToggleMapProblems}
               showNLQueryPanel={showNLQueryPanel || analyzeQueryTabActive}
               onToggleNLQueryPanel={handleToggleNLQueryPanel}
@@ -9348,7 +9902,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               showWorkflowDrawer={showWorkflowDrawer || analyzeWorkflowsTabActive}
               onToggleWorkflowDrawer={handleToggleWorkflowDrawer}
               workflowReadyCount={workflowReadyCount}
-              showReviewTimeline={bottomPanelOpen && activeBottomPanelTab === "timeline"}
+              showReviewTimeline={reviewSidebarOpen && reviewSidebarTab === "review"}
               onToggleReviewTimeline={handleToggleReviewTimelineBottomPanel}
               reviewEventCount={reviewSession.events.length}
               showPerformanceDiagnostics={bottomPanelOpen && activeBottomPanelTab === "diagnostics"}
@@ -9446,6 +10000,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             onRenameBookmark={handleRenameBookmark}
             onDeleteBookmark={handleDeleteBookmark}
             onShareBookmark={handleShareBookmark}
+            style={{ order: 5 }}
           />
 
           <button
@@ -9959,53 +10514,27 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             onFeatureReportRequest={handleFeatureReportRequest}
           />
 
-          <MapCanvasControls
-            activeBaseLayer={activeBaseLayer}
-            onSetBaseLayer={handleSetBaseLayer}
-            activeTool={activeTool}
-            selectionDragTool={selectionDragTool}
-            activeDrawTool={activeDrawTool}
-            activeMeasureTool={activeMeasureTool}
-            selectionModeDisabled={nlQueryToolbarContext.queryableLayers.length === 0}
-            selectionModeDisabledReason="No queryable visible layers are available for selection."
-            selectedFeatureCount={selectedFeatureCount}
-            visibleLayerCount={visiblePublicationLayers.length}
-            hasActiveAoi={Boolean(contextSummary.activeAoi)}
-            legendVisible={mapCompositionOptions.includeLegend && mapPublicationLegendItems.length > 0}
-            legendAvailable={mapPublicationLegendItems.length > 0}
-            scaleBarVisible={mapCompositionOptions.includeScaleBar}
-            northArrowVisible={mapCompositionOptions.includeNorthArrow}
-            bearing={bearing}
-            fitSelectedDisabled={!selectedCanvasFitContext}
-            fitSelectedReason="Select a layer, feature, or AOI before fitting the map."
-            fitVisibleDisabled={!visibleLayerFitBounds}
-            fitVisibleReason="Show at least one layer before fitting visible layers."
-            onZoomIn={() => handleCanvasZoom(1)}
-            onZoomOut={() => handleCanvasZoom(-1)}
-            onResetView={handleCanvasResetView}
-            onFitVisibleLayers={handleCanvasFitVisibleLayers}
-            onFitSelectedContext={handleCanvasFitSelectedContext}
-            onOpenCrsReadiness={handleOpenCanvasCrsReadiness}
-            onToggleLegend={handleToggleCanvasLegend}
-            onToggleScaleBar={handleToggleCanvasScaleBar}
-            onToggleNorthArrow={handleToggleCanvasNorthArrow}
-            onSetSelectionDragTool={handleSetSelectionDragTool}
-            onDrawAoi={() => handleSetDrawTool(activeDrawTool === "polygon" ? null : "polygon")}
-            onMeasureDistance={() => handleSetMeasureTool(activeMeasureTool === "measure-distance" ? null : "measure-distance")}
-            onMeasureArea={() => handleSetMeasureTool(activeMeasureTool === "measure-area" ? null : "measure-area")}
-            keyboardHelpVisible={showCanvasKeyboardHelp}
-            onToggleKeyboardHelp={handleToggleCanvasKeyboardHelp}
-            onClearActiveTool={handleClearActiveCanvasTool}
-          />
+          <MapCanvasControls {...mapCanvasControlsProps} />
 
-          <MapCanvasKeyboardFallbackControls
-            mapRef={mapInstanceRef}
-            mapElementId={mapCanvasId}
-            reducedMotion={reducedMotion}
-            defaultCenter={[29.0, 41.0]}
-            defaultZoom={10}
-            onAnnounce={announce}
-          />
+          {!navigatorStageMode ? (
+            <div style={canvasSelectionDockStyle} data-map-selection-dock="true">
+              <MapSelectionTools
+                mapRef={mapInstanceRef}
+                queryableLayers={nlQueryToolbarContext.queryableLayers}
+                selectedFeatureIds={selectedFeatureIds}
+                activeDragTool={selectionDragTool}
+                showModeButtons
+                variant="bar"
+                onSetSelectedFeatures={setSelectedFeatures}
+                onClearSelectedFeatures={() => clearSelectedFeatures()}
+                onSetActiveAnalysisResultLayers={setActiveAnalysisResultLayers}
+                onAddDrawnFeature={addDrawnFeature}
+                onActiveDragToolChange={setSelectionDragTool}
+                onSelectionResult={handleSelectionResult}
+                onAnnounce={announce}
+              />
+            </div>
+          ) : null}
 
           {mapCompositionOptions.includeLegend ? (
             <MapLegendOverlay items={mapPublicationLegendItems} />
@@ -10015,25 +10544,6 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             <MapPerformanceBudgetBanner
               diagnostics={performanceDiagnostics}
               rightInset={navigatorRightInset + 16}
-            />
-          ) : null}
-
-          {!navigatorStageMode ? (
-            <MapSelectionTools
-              mapRef={mapInstanceRef}
-              queryableLayers={nlQueryToolbarContext.queryableLayers}
-              selectedFeatureIds={selectedFeatureIds}
-              activeDragTool={selectionDragTool}
-              showModeButtons={false}
-              leftInset={navigatorLeftInset}
-              topOffset={selectionToolsTopOffset}
-              onSetSelectedFeatures={setSelectedFeatures}
-              onClearSelectedFeatures={() => clearSelectedFeatures()}
-              onSetActiveAnalysisResultLayers={setActiveAnalysisResultLayers}
-              onAddDrawnFeature={addDrawnFeature}
-              onActiveDragToolChange={setSelectionDragTool}
-              onSelectionResult={handleSelectionQueryResult}
-              onAnnounce={announce}
             />
           ) : null}
 
@@ -10070,7 +10580,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
 
           <Suspense fallback={null}>
             <LazyMapInspectorHost
-              visible={inspectorContext.kind !== "none"}
+              visible={inspectorContext.kind !== "none" && !reviewSidebarOpen}
               context={inspectorContext}
               presentation={dockLayout.compactDock ? "bottom-drawer" : "right-rail"}
               width={dockLayout.rightPanelWidth}
@@ -10079,6 +10589,21 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               returnFocusTo={inspectorReturnFocusRef.current}
             />
           </Suspense>
+
+          <MapReviewSidebar
+            visible={reviewSidebarOpen && !navigatorStageMode}
+            activeTab={reviewSidebarTab}
+            onTabChange={setReviewSidebarTab}
+            onClose={closeReviewSidebar}
+            problems={reviewSidebarProblemsContent}
+            review={reviewSidebarTimelineContent}
+            problemCount={scientificQAIssueCount}
+            reviewCount={reviewSession.events.length}
+            blockerCount={scientificQABlockerCount}
+            presentation={dockLayout.compactDock ? "bottom-drawer" : "right-rail"}
+            width={dockLayout.rightPanelWidth}
+            returnFocusTo={reviewSidebarReturnFocusRef.current}
+          />
           <MapLayoutDesignerPanel
             visible={showFigureComposer && !navigatorStageMode && !publishFigureTabActive}
             overlayLayers={overlayLayers}

@@ -263,6 +263,137 @@ export function assertFigureExportable(figure: MapFigureSpec): { ok: boolean; bl
   return { ok: false, blockedReason: first ? `${first.label}: ${first.reason}` : "Figure export is blocked." };
 }
 
+// --- Figure readiness checklist (Prompt 50) ---
+//
+// A compact-but-complete cartographic readiness row set rendered before figure
+// or map-book export. It reuses the same preflight gates (legend / attribution /
+// CRS block; title / scale bar / north arrow warn) so the checklist never forks
+// a second judgement of export readiness — it only presents one row per element
+// and names the missing input when a gate fails.
+
+export type MapFigureReadinessStatus = "ready" | "caveat" | "blocked";
+
+export interface MapFigureReadinessRow {
+  id: string;
+  label: string;
+  value: string;
+  status: MapFigureReadinessStatus;
+  /** Present only when the row is blocked or carries a caveat worth surfacing. */
+  detail?: string;
+}
+
+export interface MapFigureReadinessContext {
+  /** Page size label from the active layout preset, e.g. "A4". */
+  pageSize?: string;
+  /** Output resolution from the active layout preset. */
+  dpi?: number;
+}
+
+/**
+ * Build the ordered cartographic readiness checklist for a figure. Title, page
+ * size, DPI, visible layers, legend, scale bar, north arrow, attribution, CRS,
+ * and QA caveats each get one row; blocking gaps carry the named reason so a
+ * blocked export state can point at the missing input.
+ */
+export function buildFigureReadinessChecklist(
+  figure: MapFigureSpec,
+  context: MapFigureReadinessContext = {},
+): MapFigureReadinessRow[] {
+  const preflight = preflightMapFigure(figure);
+  const blockerByCriterion = new Map(preflight.blockers.map((gap) => [gap.criterion, gap]));
+  const warningByCriterion = new Map(preflight.warnings.map((gap) => [gap.criterion, gap]));
+  const rows: MapFigureReadinessRow[] = [];
+
+  const titleValue = figure.title.trim();
+  rows.push({
+    id: "title",
+    label: "Title",
+    value: titleValue || "untitled",
+    status: titleValue ? "ready" : "caveat",
+    ...(titleValue ? {} : { detail: "A publication title is recommended before export." }),
+  });
+
+  if (context.pageSize) {
+    rows.push({ id: "page-size", label: "Page size", value: context.pageSize, status: "ready" });
+  }
+  if (typeof context.dpi === "number") {
+    rows.push({ id: "dpi", label: "DPI", value: `${context.dpi}`, status: "ready" });
+  }
+
+  const layerCount = figure.visibleLayers.length;
+  rows.push({
+    id: "visible-layers",
+    label: "Visible layers",
+    value: `${layerCount}`,
+    status: layerCount > 0 ? "ready" : "blocked",
+    ...(layerCount > 0 ? {} : { detail: "At least one visible layer is required to compose a figure." }),
+  });
+
+  const legendBlocker = blockerByCriterion.get("legend");
+  const legendCount = figure.legendItems.length;
+  rows.push({
+    id: "legend",
+    label: "Legend",
+    value: `${legendCount} item${legendCount === 1 ? "" : "s"}`,
+    status: legendBlocker ? "blocked" : legendCount > 0 ? "ready" : "caveat",
+    ...(legendBlocker ? { detail: legendBlocker.reason } : {}),
+  });
+
+  const scaleWarning = warningByCriterion.get("scale-bar");
+  rows.push({
+    id: "scale-bar",
+    label: "Scale bar",
+    value: figure.scaleBar.included ? "on" : "off",
+    status: figure.scaleBar.included ? "ready" : "caveat",
+    ...(!figure.scaleBar.included && scaleWarning ? { detail: scaleWarning.reason } : {}),
+  });
+
+  const northWarning = warningByCriterion.get("north-arrow");
+  rows.push({
+    id: "north-arrow",
+    label: "North arrow",
+    value: figure.northArrow.included ? `${figure.northArrow.bearing.toFixed(0)}°` : "off",
+    status: figure.northArrow.included ? "ready" : "caveat",
+    ...(!figure.northArrow.included && northWarning ? { detail: northWarning.reason } : {}),
+  });
+
+  const attributionBlocker = blockerByCriterion.get("attribution-license");
+  rows.push({
+    id: "attribution",
+    label: "Attribution",
+    value: figure.attribution ? "included" : "missing",
+    status: attributionBlocker ? "blocked" : "ready",
+    ...(attributionBlocker ? { detail: attributionBlocker.reason } : {}),
+  });
+
+  const crsBlocker = blockerByCriterion.get("crs-measurement");
+  rows.push({
+    id: "crs",
+    label: "CRS",
+    value: figure.crs ?? "missing",
+    status: crsBlocker ? "blocked" : "ready",
+    ...(crsBlocker ? { detail: crsBlocker.reason } : {}),
+  });
+
+  const caveatCount = figure.qaCaveats.length;
+  rows.push({
+    id: "qa-caveats",
+    label: "QA caveats",
+    value: caveatCount > 0 ? `${caveatCount}` : "none",
+    status: caveatCount > 0 ? "caveat" : "ready",
+    ...(caveatCount > 0 ? { detail: figure.qaCaveats.slice(0, 3).join(" ") } : {}),
+  });
+
+  return rows;
+}
+
+/** Roll the checklist rows up to a single worst-case status for a summary chip. */
+export function summariseFigureReadiness(rows: MapFigureReadinessRow[]): MapFigureReadinessStatus {
+  if (rows.some((row) => row.status === "blocked")) return "blocked";
+  if (rows.some((row) => row.status === "caveat")) return "caveat";
+  return "ready";
+}
+
 export const MapLayoutComposer = {
   compose: composeMapFigure,
   preflight: preflightMapFigure,

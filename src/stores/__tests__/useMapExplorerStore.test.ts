@@ -302,7 +302,7 @@ describe("useMapExplorerStore", () => {
         title: "Layout reset evidence proof",
         linkedLayerIds: ["analysis-layer"],
       });
-      s.setLayoutPreferences({ layerPanelWidth: 640, rightPanelWidth: 500 });
+      s.setLayoutPreferences({ layerPanelWidth: 640, rightPanelWidth: 500, panelMode: "collapsed" });
 
       const before = useMapExplorerStore.getState();
       before.restoreDefaultLayoutPreferences();
@@ -808,6 +808,30 @@ describe("useMapExplorerStore", () => {
       expect(parsed.state.selectedFeatureIds).toEqual({ "layer-a": ["f1", "f2"] });
       expect(parsed.state.activeAoiId).toBe("aoi-1");
       expect(parsed.state.activeAnalysisResultLayerIds).toEqual(["r1", "r2"]);
+    });
+
+    it("persists only lightweight layout recovery preferences", async () => {
+      const store = await freshStore();
+      store.getState().addOverlayLayer(makeLayer("large-runtime-layer", { sourceData: fcLarge(1000) }));
+      store.getState().setLayoutPreferences({
+        layerPanelWidth: 640,
+        rightPanelWidth: 500,
+        panelMode: "collapsed",
+      });
+
+      const raw = localStorage.getItem("synapse-map-explorer");
+      expect(raw).toBeTruthy();
+      const parsed = JSON.parse(raw!);
+      const serializedPersistedState = JSON.stringify(parsed.state);
+
+      expect(parsed.state.layoutPreferences).toEqual({
+        layerPanelWidth: 640,
+        rightPanelWidth: 500,
+        panelMode: "collapsed",
+      });
+      expect(parsed.state.overlayLayers).toBeUndefined();
+      expect(serializedPersistedState).not.toContain("sourceData");
+      expect(serializedPersistedState).not.toContain("FeatureCollection");
     });
 
     it("does NOT persist transient copilot state (snapshots, proposals, audit, pending count)", async () => {

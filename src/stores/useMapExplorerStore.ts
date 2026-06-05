@@ -86,14 +86,18 @@ const DEFAULT_VIEWPORT: ViewportState = {
   pitch: 0,
 };
 
+export type MapExplorerLayoutPanelMode = "map-first" | "collapsed";
+
 export interface MapExplorerLayoutPreferences {
   layerPanelWidth: number;
   rightPanelWidth: number;
+  panelMode: MapExplorerLayoutPanelMode;
 }
 
 export const DEFAULT_MAP_EXPLORER_LAYOUT_PREFERENCES: MapExplorerLayoutPreferences = {
   layerPanelWidth: MAP_NUMERIC.layerPanelWidth,
   rightPanelWidth: 384,
+  panelMode: "map-first",
 };
 
 const DEFAULT_ANNOTATION_SETTINGS: MapAnnotationStyleSettings = {
@@ -542,6 +546,7 @@ function normalizeLayoutPreferences(input: Partial<MapExplorerLayoutPreferences>
       520,
       DEFAULT_MAP_EXPLORER_LAYOUT_PREFERENCES.rightPanelWidth,
     ),
+    panelMode: input?.panelMode === "collapsed" ? "collapsed" : "map-first",
   };
 }
 

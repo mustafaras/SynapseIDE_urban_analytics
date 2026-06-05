@@ -3,7 +3,7 @@
  *
  * mapTokens only. No Tailwind. No hard-coded hex colours.
  */
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -19,6 +19,11 @@ import {
   selectMassingScenarios,
   selectComparisonMetadata,
 } from "@/stores/useMassingStore";
+import {
+  selectAssignmentForParcel,
+  selectZoningRules,
+  useZoningStore,
+} from "@/stores/useZoningStore";
 import type { ZoningRule } from "@/services/map/zoning/ZoningRuleEngine";
 import {
   MAP_COLORS,
@@ -29,7 +34,9 @@ import {
   MAP_STROKES,
   MAP_TYPOGRAPHY,
   MAP_Z_INDEX,
+  type GisStatusKey,
 } from "../mapTokens";
+import { GisStatusChip } from "../ui/GisStatusChip";
 import { createOpaqueFloatingPanelStyle, useDraggableMapPanel } from "../useDraggableMapPanel";
 
 /* ------------------------------------------------------------------ */
@@ -43,6 +50,8 @@ export interface MassingScenarioPanelProps {
   rule?: ZoningRule | null;
   parcel?: Feature<Polygon> | null;
   declaredCrs?: string | null;
+  verticalDatum?: string | null;
+  buildingPrerequisiteCount?: number;
   presentation?: "floating" | "embedded";
 }
 
@@ -231,6 +240,22 @@ const caveatStyle: React.CSSProperties = {
   borderColor: MAP_COLORS.caveat,
 };
 
+const assumptionPanelStyle: React.CSSProperties = {
+  display: "grid",
+  gap: MAP_SPACING.sm,
+  padding: MAP_SPACING.sm,
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.sm,
+  background: MAP_COLORS.bgWorkspace,
+};
+
+const assumptionChipRowStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  flexWrap: "wrap",
+  gap: MAP_SPACING.xs,
+};
+
 /* ------------------------------------------------------------------ */
 /*  Default add-scenario form values                                    */
 /* ------------------------------------------------------------------ */
@@ -249,6 +274,40 @@ const DEFAULT_FORM: AddFormValues = {
   isBaseline: false,
 };
 
+function isProjectedCrs(crs: string | null | undefined): boolean {
+  if (!crs) return false;
+  return !/(EPSG:4326|WGS\s*84|CRS84)/i.test(crs);
+}
+
+function projectedCrsStatus(crs: string | null | undefined): GisStatusKey {
+  return isProjectedCrs(crs) ? "ready" : "blocked";
+}
+
+function projectedCrsLabel(crs: string | null | undefined): string {
+  return `Projected CRS: ${crs && crs.trim() ? crs : "missing"}`;
+}
+
+function verticalAssumptionLabel(verticalDatum: string | null | undefined): string {
+  return verticalDatum && verticalDatum.trim()
+    ? `Vertical: ${verticalDatum}`
+    : "Vertical: 3.3 m floor-height basis";
+}
+
+function findPolygonParcel(
+  parcels: Array<Feature<Polygon>>,
+  parcelId: string | number | null | undefined,
+): Feature<Polygon> | null {
+  if (parcelId == null) return null;
+  return parcels.find((feature) =>
+    String(feature.id ?? feature.properties?.id) === String(parcelId),
+  ) ?? null;
+}
+
+function scenarioOutputStatus(hasAlternative: boolean, blocked: boolean): GisStatusKey {
+  if (blocked) return "blocked";
+  return hasAlternative ? "generated" : "metadata-only";
+}
+
 /* ------------------------------------------------------------------ */
 /*  Component                                                           */
 /* ------------------------------------------------------------------ */
@@ -260,6 +319,8 @@ export const MassingScenarioPanel: React.FC<MassingScenarioPanelProps> = ({
   rule,
   parcel,
   declaredCrs,
+  verticalDatum,
+  buildingPrerequisiteCount = 0,
   presentation = "floating",
 }) => {
   const panelDrag = useDraggableMapPanel();
@@ -272,9 +333,28 @@ export const MassingScenarioPanel: React.FC<MassingScenarioPanelProps> = ({
   const removeScenario = useMassingStore((s) => s.removeScenario);
   const setActiveScenario = useMassingStore((s) => s.setActiveScenario);
   const generateComparison = useMassingStore((s) => s.generateComparison);
+  const zoningRules = useZoningStore(selectZoningRules);
+  const activeParcels = useZoningStore((s) => s.activeParcels);
+  const activeDeclaredCrs = useZoningStore((s) => s.activeDeclaredCrs);
+  const currentAssignment = useZoningStore(
+    selectAssignmentForParcel(parcelId ?? ""),
+  );
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [form, setForm] = useState<AddFormValues>(DEFAULT_FORM);
+  const effectiveDeclaredCrs = declaredCrs ?? activeDeclaredCrs;
+  const resolvedRule = useMemo(
+    () => rule ?? zoningRules.find((candidate) => candidate.id === currentAssignment?.ruleId) ?? null,
+    [currentAssignment?.ruleId, rule, zoningRules],
+  );
+  const activePolygonParcels = useMemo(
+    () => activeParcels?.features.filter((feature): feature is Feature<Polygon> => feature.geometry.type === "Polygon") ?? [],
+    [activeParcels?.features],
+  );
+  const resolvedParcel = useMemo(
+    () => parcel ?? findPolygonParcel(activePolygonParcels, parcelId),
+    [activePolygonParcels, parcel, parcelId],
+  );
 
   const handleAdd = useCallback(() => {
     if (!parcelId) return;
@@ -286,23 +366,29 @@ export const MassingScenarioPanel: React.FC<MassingScenarioPanelProps> = ({
     };
     addScenario(
       parcelId,
-      rule?.id ?? "unknown",
+      resolvedRule?.id ?? "unknown",
       params,
       undefined,
       form.isBaseline,
-      parcel ?? null,
-      rule ?? null,
-      declaredCrs ?? null,
+      resolvedParcel,
+      resolvedRule,
+      effectiveDeclaredCrs ?? null,
     );
     setForm(DEFAULT_FORM);
     setShowAddForm(false);
-  }, [addScenario, parcelId, rule, parcel, declaredCrs, form]);
+  }, [addScenario, parcelId, resolvedRule, form, resolvedParcel, effectiveDeclaredCrs]);
 
   const handleGenerateComparison = useCallback(() => {
     generateComparison();
   }, [generateComparison]);
 
   const scenariosWithAlternatives = scenarios.filter((s) => s.alternative !== null);
+  const outputStatus: GisStatusKey =
+    scenariosWithAlternatives.length > 0
+      ? "generated"
+      : scenarios.length > 0
+        ? "metadata-only"
+        : "unknown";
 
   if (!visible) return null;
 
@@ -337,6 +423,51 @@ export const MassingScenarioPanel: React.FC<MassingScenarioPanelProps> = ({
 
       {/* Body */}
       <div style={embedded ? { ...bodyStyle, overflowY: "visible" } : bodyStyle}>
+        <section style={assumptionPanelStyle} data-testid="massing-urban-form-assumptions">
+          <span style={sectionTitleStyle}>Urban form prerequisites</span>
+          <div style={assumptionChipRowStyle}>
+            <GisStatusChip
+              status={parcelId != null ? "ready" : "blocked"}
+              label={parcelId != null ? `Parcel: #${String(parcelId)}` : "Parcel: none selected"}
+              density="compact"
+              data-testid="massing-parcel-prerequisite-chip"
+            />
+            <GisStatusChip
+              status={resolvedRule ? "ready" : "blocked"}
+              label={resolvedRule ? `Rule: ${resolvedRule.zoneCode}` : "Rule: not assigned"}
+              density="compact"
+              data-testid="massing-rule-prerequisite-chip"
+            />
+            <GisStatusChip
+              status={projectedCrsStatus(effectiveDeclaredCrs)}
+              label={projectedCrsLabel(effectiveDeclaredCrs)}
+              density="compact"
+              data-testid="massing-projected-crs"
+            />
+            <GisStatusChip
+              status={verticalDatum && verticalDatum.trim() ? "ready" : "caveat"}
+              label={verticalAssumptionLabel(verticalDatum)}
+              density="compact"
+              data-testid="massing-vertical-assumption"
+            />
+            <GisStatusChip
+              status={buildingPrerequisiteCount > 0 ? "ready" : "unknown"}
+              label={`Buildings: ${buildingPrerequisiteCount} generated context`}
+              density="compact"
+              data-testid="massing-building-prerequisite-chip"
+            />
+            <GisStatusChip
+              status={outputStatus}
+              label={`Alternatives: ${scenariosWithAlternatives.length} generated`}
+              density="compact"
+              data-testid="massing-output-state-chip"
+            />
+          </div>
+          <div style={rowStyle} data-testid="massing-prerequisites">
+            <span style={keyStyle}>Controls</span>
+            <span>Zoning envelope, massing alternatives, comparison evidence, and source-light scenario metadata.</span>
+          </div>
+        </section>
 
         {/* ── Section 1: Scenarios list ── */}
         <div style={{ display: "grid", gap: MAP_SPACING.sm }} data-testid="massing-scenarios-section">
@@ -356,7 +487,7 @@ export const MassingScenarioPanel: React.FC<MassingScenarioPanelProps> = ({
 
           {scenarios.length === 0 && (
             <span style={{ fontSize: MAP_TYPOGRAPHY.fontSize.xs, color: MAP_COLORS.textMuted }}>
-              No scenarios yet. Select a parcel, then add a scenario below.
+              No massing alternatives yet. Parcel, rule, and projected CRS state are listed above.
             </span>
           )}
 
@@ -396,6 +527,24 @@ export const MassingScenarioPanel: React.FC<MassingScenarioPanelProps> = ({
                   </button>
                 </div>
 
+                <div style={assumptionChipRowStyle} data-testid="massing-scenario-chips">
+                  <GisStatusChip
+                    status={sc.isBaseline ? "ready" : "generated"}
+                    label={sc.isBaseline ? "Baseline" : "Scenario"}
+                    density="compact"
+                  />
+                  <GisStatusChip
+                    status={scenarioOutputStatus(Boolean(alt), alt?.envelopeResult.crsResult.blocked ?? false)}
+                    label={alt ? (alt.envelopeResult.crsResult.blocked ? "CRS blocked" : "Generated massing") : "Metadata only"}
+                    density="compact"
+                  />
+                  <GisStatusChip
+                    status={alt?.compliant ? "ready" : alt ? "caveat" : "unknown"}
+                    label={alt ? (alt.compliant ? "Compliant" : "Caveat") : "Awaiting envelope"}
+                    density="compact"
+                  />
+                </div>
+
                 {alt ? (
                   <div style={{ display: "flex", gap: MAP_SPACING.md, flexWrap: "wrap", color: MAP_COLORS.textSecondary }}>
                     <span>FAR {alt.achievedFAR.toFixed(2)}</span>
@@ -430,7 +579,14 @@ export const MassingScenarioPanel: React.FC<MassingScenarioPanelProps> = ({
             {!parcelId && (
               <div style={caveatStyle}>
                 <AlertTriangle size={MAP_ICON_SIZES.xs} aria-hidden="true" />
-                <span>No parcel selected. Select a parcel on the map first.</span>
+                <span>No parcel selected; the scenario can only stay metadata-only.</span>
+              </div>
+            )}
+
+            {parcelId && (!resolvedParcel || !resolvedRule || !isProjectedCrs(effectiveDeclaredCrs)) && (
+              <div style={caveatStyle}>
+                <AlertTriangle size={MAP_ICON_SIZES.xs} aria-hidden="true" />
+                <span>Generated massing requires parcel geometry, assigned rule, and projected CRS.</span>
               </div>
             )}
 
@@ -500,7 +656,7 @@ export const MassingScenarioPanel: React.FC<MassingScenarioPanelProps> = ({
                 data-no-panel-drag="true"
               >
                 <Plus size={MAP_ICON_SIZES.xs} aria-hidden="true" />
-                Add
+                Add alternative
               </button>
               <button
                 type="button"

@@ -52,6 +52,12 @@ export interface MapSelectionToolsProps {
   selectedFeatureIds: Readonly<Record<string, readonly string[]>>;
   activeDragTool?: SelectionDragTool | null;
   showModeButtons?: boolean;
+  /**
+   * - "floating" — standalone floating card over the canvas (default)
+   * - "flush"    — docked card without the floating shadow
+   * - "bar"      — inline compact cluster for embedding in the unified command header
+   */
+  variant?: "floating" | "flush" | "bar";
   leftInset?: number;
   topOffset?: React.CSSProperties["top"];
   onSetSelectedFeatures: (layerId: string, featureIds: string[]) => void;
@@ -91,6 +97,79 @@ const toolbarStyle: React.CSSProperties = {
   alignItems: "center",
   gap: MAP_SPACING.xs,
   minWidth: MAP_SPACING.zero,
+};
+
+const barClusterStyle: React.CSSProperties = {
+  position: "relative",
+  display: "inline-flex",
+  alignItems: "center",
+  minWidth: MAP_SPACING.zero,
+  fontFamily: MAP_TYPOGRAPHY.fontFamily,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  color: MAP_COLORS.textSecondary,
+};
+
+const barToolbarStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "0.1875rem",
+  minWidth: MAP_SPACING.zero,
+};
+
+const barFilterPopoverStyle: React.CSSProperties = {
+  position: "absolute",
+  top: "calc(100% + 0.5rem)",
+  left: MAP_SPACING.zero,
+  zIndex: MAP_Z_INDEX.dropdown + 2,
+  display: "grid",
+  gridTemplateColumns:
+    "minmax(8rem, 1.1fr) minmax(7rem, 0.9fr) minmax(7rem, 0.9fr) minmax(8rem, 1fr) auto",
+  gap: MAP_SPACING.xs,
+  alignItems: "center",
+  width: "min(40rem, 88vw)",
+  padding: MAP_SPACING.sm,
+  border: MAP_STROKES.hairlineStrong,
+  borderRadius: MAP_RADIUS.sm,
+  background: "var(--syn-surface-panel, rgba(12, 16, 24, 0.96))",
+  boxShadow: MAP_SHADOWS.dropdown,
+};
+
+const barCountChipStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: MAP_SPACING.xs,
+  height: "1.875rem",
+  padding: `0 ${MAP_SPACING.sm}`,
+  border: "1px solid var(--syn-border-active, rgba(245, 158, 11, 0.42))",
+  borderRadius: MAP_RADIUS.sm,
+  color: MAP_COLORS.interaction,
+  background: MAP_COLORS.selectedSubtle,
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+  whiteSpace: "nowrap",
+  flexShrink: 0,
+};
+
+const barIconButtonStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "1.875rem",
+  height: "1.875rem",
+  border: "1px solid transparent",
+  borderRadius: MAP_RADIUS.sm,
+  background: MAP_COLORS.transparent,
+  color: MAP_COLORS.textSecondary,
+  cursor: "pointer",
+  flexShrink: 0,
+};
+
+const barActiveIconButtonStyle: React.CSSProperties = {
+  ...barIconButtonStyle,
+  border: "1px solid var(--syn-border-active, rgba(245, 158, 11, 0.62))",
+  color: MAP_COLORS.interaction,
+  background: MAP_COLORS.selectedSubtle,
 };
 
 const iconButtonStyle: React.CSSProperties = {
@@ -328,6 +407,7 @@ export const MapSelectionTools: React.FC<MapSelectionToolsProps> = ({
   selectedFeatureIds,
   activeDragTool: activeDragToolProp,
   showModeButtons = true,
+  variant = "floating",
   leftInset = 0,
   topOffset,
   onSetSelectedFeatures,
@@ -646,163 +726,220 @@ export const MapSelectionTools: React.FC<MapSelectionToolsProps> = ({
   const clearDisabled = totalSelected === 0;
   const selectedActionsDisabled = totalSelected === 0 || selectedCollection.features.length === 0;
   const panelLeft = `calc(${leftInset}px + ${MAP_SPACING.md})`;
+  const flushStyle: React.CSSProperties = variant === "flush"
+    ? {
+        border: MAP_STROKES.hairline,
+        borderRadius: MAP_RADIUS.sm,
+        background: "var(--syn-surface-panel, rgba(12, 16, 24, 0.82))",
+        boxShadow: MAP_SHADOWS.none,
+      }
+    : {};
+
+  const isBar = variant === "bar";
+  const chipStyle = isBar ? barCountChipStyle : countChipStyle;
+  const btnStyle = isBar ? barIconButtonStyle : iconButtonStyle;
+  const btnActiveStyle = isBar ? barActiveIconButtonStyle : activeIconButtonStyle;
+  const compactZeroSelectionChip = false;
+  const selectionCountLabel = formatCount(totalSelected);
+
+  const toolbarRow = (
+    <div style={isBar ? barToolbarStyle : toolbarStyle}>
+      <span
+        style={{
+          ...chipStyle,
+          ...(compactZeroSelectionChip ? {
+            width: "1.875rem",
+            padding: MAP_SPACING.zero,
+            justifyContent: "center",
+            gap: MAP_SPACING.zero,
+          } satisfies React.CSSProperties : null),
+        }}
+        data-testid="map-selection-count-chip"
+        aria-label={selectionCountLabel}
+        title={selectionCountLabel}
+      >
+        {compactZeroSelectionChip ? null : <MousePointer2 size={MAP_ICON_SIZES.sm} aria-hidden="true" />}
+        {compactZeroSelectionChip ? "0" : selectionCountLabel}
+      </span>
+      {showModeButtons ? (
+        <>
+          <button
+            type="button"
+            data-testid="map-rectangle-select-tool"
+            aria-label={activeDragTool === "rectangle" ? "Cancel rectangle select" : "Rectangle select"}
+            title="Rectangle select"
+            style={activeDragTool === "rectangle" ? btnActiveStyle : btnStyle}
+            onClick={() => setResolvedActiveDragTool(activeDragTool === "rectangle" ? null : "rectangle")}
+          >
+            <BoxSelect size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            data-testid="map-lasso-select-tool"
+            aria-label={activeDragTool === "lasso" ? "Cancel lasso select" : "Lasso select"}
+            title="Lasso select"
+            style={activeDragTool === "lasso" ? btnActiveStyle : btnStyle}
+            onClick={() => setResolvedActiveDragTool(activeDragTool === "lasso" ? null : "lasso")}
+          >
+            <LassoSelect size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+          </button>
+        </>
+      ) : null}
+      <button
+        type="button"
+        aria-label={filterOpen ? "Close filter select" : "Filter select"}
+        title="Filter select"
+        style={filterOpen ? btnActiveStyle : btnStyle}
+        onClick={() => setFilterOpen((current) => !current)}
+      >
+        <ListFilter size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+      </button>
+      <span style={dividerStyle} aria-hidden="true" />
+      <button
+        type="button"
+        aria-label="Export selected features"
+        title="Export selected features"
+        disabled={selectedActionsDisabled}
+        style={{ ...btnStyle, ...(selectedActionsDisabled ? disabledButtonStyle : {}) }}
+        onClick={handleExportSelection}
+      >
+        <Download size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+      </button>
+      <button
+        type="button"
+        aria-label="Focus selected features"
+        title="Focus selected features"
+        disabled={selectedActionsDisabled}
+        style={{ ...btnStyle, ...(selectedActionsDisabled ? disabledButtonStyle : {}) }}
+        onClick={handleFocusSelection}
+      >
+        <Focus size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+      </button>
+      <button
+        type="button"
+        aria-label="Send selected features to AOI"
+        title="Send selected features to AOI"
+        disabled={selectedActionsDisabled}
+        style={{ ...btnStyle, ...(selectedActionsDisabled ? disabledButtonStyle : {}) }}
+        onClick={handleSendSelectionToAoi}
+      >
+        <MapPinned size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+      </button>
+      <button
+        type="button"
+        aria-label="Clear selected features"
+        title="Clear selected features"
+        disabled={clearDisabled}
+        style={{ ...btnStyle, ...(clearDisabled ? disabledButtonStyle : {}) }}
+        onClick={() => {
+          onClearSelectedFeatures();
+          onSetActiveAnalysisResultLayers([]);
+          onAnnounce?.("Selection cleared.");
+        }}
+      >
+        <Trash2 size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+      </button>
+    </div>
+  );
+
+  const filterControls = (
+    <>
+      <select
+        aria-label="Selection filter layer"
+        value={activeLayer?.id ?? ""}
+        style={inputStyle}
+        onChange={(event) => {
+          setFilterLayerId(event.target.value);
+          setFilterField("");
+        }}
+      >
+        {queryableLayers.map((layer) => (
+          <option key={layer.id} value={layer.id}>{layer.name}</option>
+        ))}
+      </select>
+      <select
+        aria-label="Selection filter field"
+        value={filterField}
+        style={inputStyle}
+        onChange={(event) => setFilterField(event.target.value)}
+      >
+        {activeFields.map((field) => (
+          <option key={field} value={field}>{field}</option>
+        ))}
+      </select>
+      <select
+        aria-label="Selection filter operator"
+        value={filterOperator}
+        style={inputStyle}
+        onChange={(event) => setFilterOperator(event.target.value as MapAttributeOperator)}
+      >
+        <option value="contains">contains</option>
+        <option value="equals">equals</option>
+        <option value="not-equals">not equals</option>
+        <option value="starts-with">starts with</option>
+        <option value="ends-with">ends with</option>
+        <option value="gt">&gt;</option>
+        <option value="gte">&gt;=</option>
+        <option value="lt">&lt;</option>
+        <option value="lte">&lt;=</option>
+        <option value="exists">exists</option>
+      </select>
+      <input
+        aria-label="Selection filter value"
+        value={filterValue}
+        disabled={filterOperator === "exists"}
+        style={{ ...inputStyle, ...(filterOperator === "exists" ? disabledButtonStyle : {}) }}
+        onChange={(event) => setFilterValue(event.target.value)}
+      />
+      <button
+        type="button"
+        style={{
+          ...applyButtonStyle,
+          ...(queryableLayers.length === 0 || !filterField ? disabledButtonStyle : {}),
+        }}
+        disabled={queryableLayers.length === 0 || !filterField}
+        onClick={handleApplyFilter}
+      >
+        Apply
+      </button>
+    </>
+  );
+
+  if (isBar) {
+    return (
+      <div
+        style={barClusterStyle}
+        aria-label="Map selection tools"
+        data-testid="map-selection-tools"
+        data-map-selection-variant="bar"
+      >
+        {toolbarRow}
+        {filterOpen ? (
+          <div style={barFilterPopoverStyle} data-testid="map-selection-filter-row">
+            {filterControls}
+          </div>
+        ) : null}
+      </div>
+    );
+  }
 
   return (
     <section
       aria-label="Map selection tools"
       data-testid="map-selection-tools"
+      data-map-selection-variant={variant}
       style={{
         ...panelStyle,
+        ...flushStyle,
         top: topOffset ?? panelStyle.top,
         left: panelLeft,
         maxWidth: `calc(100% - ${leftInset}px - ${MAP_SPACING.lg})`,
       }}
     >
-      <div style={toolbarStyle}>
-        <span style={countChipStyle} data-testid="map-selection-count-chip">
-          <MousePointer2 size={MAP_ICON_SIZES.sm} aria-hidden="true" />
-          {formatCount(totalSelected)}
-        </span>
-        {showModeButtons ? (
-          <>
-            <button
-              type="button"
-              data-testid="map-rectangle-select-tool"
-              aria-label={activeDragTool === "rectangle" ? "Cancel rectangle select" : "Rectangle select"}
-              title="Rectangle select"
-              style={activeDragTool === "rectangle" ? activeIconButtonStyle : iconButtonStyle}
-              onClick={() => setResolvedActiveDragTool(activeDragTool === "rectangle" ? null : "rectangle")}
-            >
-              <BoxSelect size={MAP_ICON_SIZES.sm} aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              data-testid="map-lasso-select-tool"
-              aria-label={activeDragTool === "lasso" ? "Cancel lasso select" : "Lasso select"}
-              title="Lasso select"
-              style={activeDragTool === "lasso" ? activeIconButtonStyle : iconButtonStyle}
-              onClick={() => setResolvedActiveDragTool(activeDragTool === "lasso" ? null : "lasso")}
-            >
-              <LassoSelect size={MAP_ICON_SIZES.sm} aria-hidden="true" />
-            </button>
-          </>
-        ) : null}
-        <button
-          type="button"
-          aria-label={filterOpen ? "Close filter select" : "Filter select"}
-          title="Filter select"
-          style={filterOpen ? activeIconButtonStyle : iconButtonStyle}
-          onClick={() => setFilterOpen((current) => !current)}
-        >
-          <ListFilter size={MAP_ICON_SIZES.sm} aria-hidden="true" />
-        </button>
-        <span style={dividerStyle} aria-hidden="true" />
-        <button
-          type="button"
-          aria-label="Export selected features"
-          title="Export selected features"
-          disabled={selectedActionsDisabled}
-          style={{ ...iconButtonStyle, ...(selectedActionsDisabled ? disabledButtonStyle : {}) }}
-          onClick={handleExportSelection}
-        >
-          <Download size={MAP_ICON_SIZES.sm} aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          aria-label="Focus selected features"
-          title="Focus selected features"
-          disabled={selectedActionsDisabled}
-          style={{ ...iconButtonStyle, ...(selectedActionsDisabled ? disabledButtonStyle : {}) }}
-          onClick={handleFocusSelection}
-        >
-          <Focus size={MAP_ICON_SIZES.sm} aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          aria-label="Send selected features to AOI"
-          title="Send selected features to AOI"
-          disabled={selectedActionsDisabled}
-          style={{ ...iconButtonStyle, ...(selectedActionsDisabled ? disabledButtonStyle : {}) }}
-          onClick={handleSendSelectionToAoi}
-        >
-          <MapPinned size={MAP_ICON_SIZES.sm} aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          aria-label="Clear selected features"
-          title="Clear selected features"
-          disabled={clearDisabled}
-          style={{ ...iconButtonStyle, ...(clearDisabled ? disabledButtonStyle : {}) }}
-          onClick={() => {
-            onClearSelectedFeatures();
-            onSetActiveAnalysisResultLayers([]);
-            onAnnounce?.("Selection cleared.");
-          }}
-        >
-          <Trash2 size={MAP_ICON_SIZES.sm} aria-hidden="true" />
-        </button>
-      </div>
-
+      {toolbarRow}
       {filterOpen ? (
         <div style={filterRowStyle} data-testid="map-selection-filter-row">
-          <select
-            aria-label="Selection filter layer"
-            value={activeLayer?.id ?? ""}
-            style={inputStyle}
-            onChange={(event) => {
-              setFilterLayerId(event.target.value);
-              setFilterField("");
-            }}
-          >
-            {queryableLayers.map((layer) => (
-              <option key={layer.id} value={layer.id}>{layer.name}</option>
-            ))}
-          </select>
-          <select
-            aria-label="Selection filter field"
-            value={filterField}
-            style={inputStyle}
-            onChange={(event) => setFilterField(event.target.value)}
-          >
-            {activeFields.map((field) => (
-              <option key={field} value={field}>{field}</option>
-            ))}
-          </select>
-          <select
-            aria-label="Selection filter operator"
-            value={filterOperator}
-            style={inputStyle}
-            onChange={(event) => setFilterOperator(event.target.value as MapAttributeOperator)}
-          >
-            <option value="contains">contains</option>
-            <option value="equals">equals</option>
-            <option value="not-equals">not equals</option>
-            <option value="starts-with">starts with</option>
-            <option value="ends-with">ends with</option>
-            <option value="gt">&gt;</option>
-            <option value="gte">&gt;=</option>
-            <option value="lt">&lt;</option>
-            <option value="lte">&lt;=</option>
-            <option value="exists">exists</option>
-          </select>
-          <input
-            aria-label="Selection filter value"
-            value={filterValue}
-            disabled={filterOperator === "exists"}
-            style={{ ...inputStyle, ...(filterOperator === "exists" ? disabledButtonStyle : {}) }}
-            onChange={(event) => setFilterValue(event.target.value)}
-          />
-          <button
-            type="button"
-            style={{
-              ...applyButtonStyle,
-              ...(queryableLayers.length === 0 || !filterField ? disabledButtonStyle : {}),
-            }}
-            disabled={queryableLayers.length === 0 || !filterField}
-            onClick={handleApplyFilter}
-          >
-            Apply
-          </button>
+          {filterControls}
         </div>
       ) : (
         <span style={hintStyle}>

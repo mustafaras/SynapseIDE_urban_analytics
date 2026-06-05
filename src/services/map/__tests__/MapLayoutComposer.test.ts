@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 import type { OverlayLayerConfig } from "@/centerpanel/components/map/mapTypes";
 import {
   assertFigureExportable,
+  buildFigureReadinessChecklist,
   buildMapFigureAttributionText,
   composeMapFigure,
   preflightMapFigure,
+  summariseFigureReadiness,
 } from "../layout/MapLayoutComposer";
 
 const NOW = new Date("2026-05-25T10:00:00.000Z");
@@ -174,5 +176,41 @@ describe("MapLayoutComposer", () => {
     const preflight = preflightMapFigure(figure);
     expect(preflight.ok).toBe(false);
     expect(preflight.blockers.some((gap) => gap.criterion === "legend")).toBe(true);
+  });
+
+  it("records a compact-but-complete figure readiness checklist with page size and DPI context", () => {
+    const figure = composeMapFigure({ overlayLayers: [completeLayer()], title: "Corridor study", now: NOW });
+    const rows = buildFigureReadinessChecklist(figure, { pageSize: "A4", dpi: 300 });
+
+    // One row per cartographic element, in a stable cartographic order.
+    expect(rows.map((row) => row.id)).toEqual([
+      "title",
+      "page-size",
+      "dpi",
+      "visible-layers",
+      "legend",
+      "scale-bar",
+      "north-arrow",
+      "attribution",
+      "crs",
+      "qa-caveats",
+    ]);
+    expect(rows.every((row) => row.status !== "blocked")).toBe(true);
+    expect(summariseFigureReadiness(rows)).not.toBe("blocked");
+    expect(rows.find((row) => row.id === "crs")?.value).toBe("EPSG:4326");
+    expect(rows.find((row) => row.id === "page-size")?.value).toBe("A4");
+    expect(rows.find((row) => row.id === "attribution")?.value).toBe("included");
+  });
+
+  it("names the missing cartographic input in the readiness checklist when a gate fails", () => {
+    const figure = composeMapFigure({ overlayLayers: [missingAttributionLayer()], now: NOW });
+    const rows = buildFigureReadinessChecklist(figure);
+
+    const attribution = rows.find((row) => row.id === "attribution");
+    expect(attribution?.status).toBe("blocked");
+    expect(attribution?.detail).toContain("Anonymous parcels");
+    expect(summariseFigureReadiness(rows)).toBe("blocked");
+    // The checklist omits page-size/dpi rows when no preset context is supplied.
+    expect(rows.some((row) => row.id === "page-size")).toBe(false);
   });
 });

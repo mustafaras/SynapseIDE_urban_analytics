@@ -387,6 +387,13 @@ const TASK_LENS_SHORT_LABELS: Record<MapTaskLensId, string> = {
   publisher: "Publisher",
 };
 
+const TASK_LENS_MICRO_LABELS: Record<MapTaskLensId, string> = {
+  analyst: "A",
+  planner: "P",
+  reviewer: "R",
+  publisher: "Pub",
+};
+
 const TASK_LENS_TOOLBAR_ROLES: Record<MapTaskLensId, ToolbarRole> = {
   analyst: "analyze",
   planner: "explore",
@@ -397,10 +404,9 @@ const TASK_LENS_TOOLBAR_ROLES: Record<MapTaskLensId, ToolbarRole> = {
 const DENSITY_LABELS: Record<ToolbarDensity, string> = {
   compact: "Compact",
   comfortable: "Comfort",
-  expert: "Expert",
 };
 
-const TOOLBAR_DENSITY_ORDER = ["compact", "comfortable", "expert"] as const satisfies readonly ToolbarDensity[];
+const TOOLBAR_DENSITY_ORDER = ["compact", "comfortable"] as const satisfies readonly ToolbarDensity[];
 
 const COMMAND_TAXONOMY_ICONS: Record<CommandTaxonomyId, LucideIcon> = {
   data: Upload,
@@ -432,10 +438,13 @@ const toolbarShell: React.CSSProperties = {
   alignContent: "center",
   flexWrap: "nowrap",
   flex: "1 1 100%",
-  gap: "0.1875rem",
+  gap: MAP_SPACING.xs,
+  height: "2rem",
+  padding: "0 0.125rem",
+  boxSizing: "border-box",
   minWidth: MAP_SPACING.zero,
   maxWidth: "100%",
-  overflowX: "clip",
+  overflowX: "visible",
   overflowY: "visible",
   fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
 };
@@ -449,16 +458,17 @@ const roleSwitch: React.CSSProperties = {
   padding: "0 0.125rem",
   border: MAP_STROKES.hairlineSubtle,
   borderRadius: MAP_RADIUS.sm,
+  background: "var(--syn-surface-subtle, rgba(15, 23, 42, 0.38))",
   gap: "0.125rem",
 };
 
 const commandRail: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
-  justifyContent: "flex-end",
+  justifyContent: "flex-start",
   flex: "1 1 auto",
   minWidth: MAP_SPACING.zero,
-  gap: "0.125rem",
+  gap: MAP_SPACING.xs,
   overflow: "hidden",
 };
 
@@ -466,16 +476,16 @@ const overflowRail: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   flex: "0 0 auto",
-  gap: "0.125rem",
+  gap: MAP_SPACING.xs,
   paddingLeft: MAP_SPACING.xs,
+  borderLeft: MAP_STROKES.hairlineSubtle,
 };
 
 const primaryActionShell: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   minWidth: MAP_SPACING.zero,
-  paddingLeft: MAP_SPACING.xs,
-  borderLeft: MAP_STROKES.hairlineSubtle,
+  flex: "0 1 auto",
 };
 
 const toolbarButtonText: React.CSSProperties = {
@@ -606,6 +616,9 @@ const segmentedControlStyle: React.CSSProperties = {
   padding: "0.125rem",
 };
 
+const primaryCommandButtonBackground =
+  "linear-gradient(180deg, color-mix(in srgb, var(--syn-interaction-active, #3794ff) 16%, transparent), color-mix(in srgb, var(--syn-interaction-active, #3794ff) 7%, transparent))";
+
 const toolbarFocusOutline = `2px solid ${MAP_COLORS.focus}`;
 
 function toneColor(tone: CommandTone): string {
@@ -627,22 +640,32 @@ function commandButtonStyle(
   active = false,
   disabled = false,
   tone: CommandTone = "default",
-  density: ToolbarDensity = "expert",
+  density: ToolbarDensity = "comfortable",
   menuItem = false,
   primary = false,
 ): React.CSSProperties {
   const color = active ? MAP_COLORS.interaction : toneColor(tone);
-  const height = menuItem ? "2.125rem" : density === "comfortable" ? "1.95rem" : "1.7rem";
+  const height = menuItem ? "2.125rem" : primary ? "1.825rem" : density === "comfortable" ? "1.75rem" : "1.625rem";
   const paddingX = menuItem ? MAP_SPACING.sm : density === "comfortable" ? MAP_SPACING.sm : MAP_SPACING.xs;
   const maxWidth = menuItem
     ? "100%"
     : primary
-      ? "8.75rem"
+      ? density === "compact" ? "6.75rem" : "10.5rem"
       : density === "comfortable"
-        ? "7.25rem"
+        ? "6.75rem"
         : density === "compact"
           ? "5.9rem"
           : "5.25rem";
+  const border = primary
+    ? `1px solid color-mix(in srgb, ${MAP_COLORS.interaction} 46%, ${MAP_COLORS.hairlineSubtle})`
+    : active
+      ? `1px solid ${MAP_COLORS.focus}`
+      : "1px solid transparent";
+  const background = primary
+    ? primaryCommandButtonBackground
+    : active
+      ? MAP_COLORS.selectedSubtle
+      : MAP_COLORS.transparent;
 
   return {
     display: "inline-flex",
@@ -650,38 +673,44 @@ function commandButtonStyle(
     justifyContent: menuItem ? "flex-start" : "center",
     gap: density === "comfortable" || menuItem ? "0.375rem" : "0.25rem",
     minHeight: height,
+    minWidth: primary ? density === "compact" ? "5.5rem" : "7.75rem" : undefined,
     maxWidth,
     padding: `${MAP_SPACING.zero} ${paddingX}`,
     borderRadius: MAP_RADIUS.sm,
-    border: active ? `1px solid ${MAP_COLORS.focus}` : "1px solid transparent",
-    background: active ? MAP_COLORS.selectedSubtle : MAP_COLORS.transparent,
-    color,
+    border,
+    background,
+    color: primary && !disabled ? MAP_COLORS.interaction : color,
     fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
     fontSize: MAP_TYPOGRAPHY.fontSize.xs,
-    fontWeight: active ? MAP_TYPOGRAPHY.fontWeight.semibold : MAP_TYPOGRAPHY.fontWeight.medium,
+    fontWeight: active || primary ? MAP_TYPOGRAPHY.fontWeight.semibold : MAP_TYPOGRAPHY.fontWeight.medium,
     lineHeight: MAP_TYPOGRAPHY.lineHeight.tight,
     whiteSpace: "nowrap",
     cursor: disabled ? "not-allowed" : "pointer",
     opacity: disabled ? 0.55 : 1,
     transition: MAP_TRANSITIONS.fast,
-    boxShadow: active ? `inset 2px 0 0 ${MAP_COLORS.interaction}` : "none",
+    boxShadow: primary
+      ? `inset 2px 0 0 ${MAP_COLORS.interaction}`
+      : active
+        ? `inset 2px 0 0 ${MAP_COLORS.interaction}`
+        : "none",
   };
 }
 
 function toolbarButtonInteraction(
   active = false,
   disabled = false,
+  primary = false,
 ): Pick<React.ButtonHTMLAttributes<HTMLButtonElement>, "onMouseEnter" | "onMouseLeave" | "onFocus" | "onBlur"> {
   return {
     onMouseEnter: (event) => {
       if (active || disabled) return;
-      event.currentTarget.style.background = MAP_COLORS.neutralSubtle;
+      event.currentTarget.style.background = primary ? MAP_COLORS.selectedSubtle : MAP_COLORS.neutralSubtle;
       event.currentTarget.style.color = MAP_COLORS.interaction;
     },
     onMouseLeave: (event) => {
       if (active || disabled) return;
-      event.currentTarget.style.background = MAP_COLORS.transparent;
-      event.currentTarget.style.color = "";
+      event.currentTarget.style.background = primary ? primaryCommandButtonBackground : MAP_COLORS.transparent;
+      event.currentTarget.style.color = primary ? MAP_COLORS.interaction : "";
     },
     onFocus: (event) => {
       event.currentTarget.style.outline = toolbarFocusOutline;
@@ -694,19 +723,20 @@ function toolbarButtonInteraction(
   };
 }
 
-function roleButtonStyle(active: boolean): React.CSSProperties {
+function roleButtonStyle(active: boolean, compact = false): React.CSSProperties {
   return {
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    height: "1.5rem",
-    padding: `0 ${MAP_SPACING.xs}`,
-    border: MAP_STROKES.none,
+    height: "1.4375rem",
+    minWidth: compact ? "1.5rem" : undefined,
+    padding: compact ? `0 ${MAP_SPACING.xs}` : `0 0.375rem`,
+    border: active ? `1px solid color-mix(in srgb, ${MAP_COLORS.interaction} 38%, transparent)` : "1px solid transparent",
     borderRadius: MAP_RADIUS.sm,
-    background: active ? MAP_COLORS.selectedSubtle : MAP_COLORS.transparent,
+    background: active ? MAP_COLORS.selectedSubtle : "transparent",
     color: active ? MAP_COLORS.interaction : MAP_COLORS.textMuted,
     fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
-    fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+    fontSize: "0.625rem",
     fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
     cursor: "pointer",
     textTransform: "uppercase",
@@ -844,7 +874,7 @@ const LEGACY_COMMAND_ALIASES: Record<string, readonly string[]> = {
   "collapse-panels": ["collapse all panels", "hide panels", "close drawers"],
   "focus-map-canvas": ["focus map", "keyboard focus", "canvas focus"],
   "restore-default-widths": ["default widths", "sidebar width", "inspector width"],
-  "switch-density": ["compact density", "comfortable density", "expert density"],
+  "switch-density": ["compact density", "comfortable density"],
   "performance-diagnostics": ["diagnostics", "render budget", "worker transfer", "telemetry", "recovery", "performance"],
   "plugin-registry": ["plugins", "extensions", "extension registry", "source connector", "renderer extension", "Urban bridge"],
   "processing-toolbox": ["processing toolbox", "geoprocessing", "buffer", "intersect", "spatial join", "field calculator"],
@@ -976,6 +1006,10 @@ function getCommandUnavailableReason(command: ToolbarCommand): string {
 function getCommandAccessibleTitle(command: ToolbarCommand): string {
   if (!command.disabled) return command.title;
   return `${command.title}. ${getCommandUnavailableReason(command)}`;
+}
+
+function getCommandDomIdSegment(commandId: string): string {
+  return commandId.replace(/[^a-z0-9_-]/gi, "-");
 }
 
 function getCommandTaxonomy(command: Pick<ToolbarCommand, "id" | "overflowGroup">): CommandTaxonomyId {
@@ -1385,7 +1419,7 @@ function buildToolbarCommands(args: BuildToolbarCommandsArgs): ToolbarCommand[] 
     label: "Switch density",
     shortLabel: "Density",
     title: `Switch toolbar density from ${DENSITY_LABELS[args.density]} to ${DENSITY_LABELS[getNextToolbarDensityPreference(args.density)]}`,
-    keywords: ["switch density", "compact density", "comfortable density", "expert density", "toolbar density"],
+    keywords: ["switch density", "compact density", "comfortable density", "toolbar density"],
     icon: Settings2,
     onClick: args.onSwitchDensity,
     roles: ["explore", "analyze", "publish"],
@@ -1970,8 +2004,12 @@ function ToolbarCommandButton({
   const label = density === "comfortable" || menuItem ? command.label : command.shortLabel;
   const active = Boolean(command.active);
   const disabled = Boolean(command.disabled);
-  const color = active ? MAP_COLORS.interaction : toneColor(command.tone ?? "default");
+  const color = primary && !disabled ? MAP_COLORS.interaction : active ? MAP_COLORS.interaction : toneColor(command.tone ?? "default");
   const accessibleTitle = getCommandAccessibleTitle(command);
+  const disabledReason = disabled ? getCommandUnavailableReason(command) : null;
+  const disabledReasonId = disabledReason
+    ? `map-toolbar-command-${getCommandDomIdSegment(command.id)}-disabled-reason`
+    : undefined;
 
   return (
     <button
@@ -1986,15 +2024,22 @@ function ToolbarCommandButton({
       aria-label={accessibleTitle}
       aria-pressed={active || undefined}
       aria-disabled={disabled || undefined}
+      aria-describedby={disabledReasonId}
       disabled={disabled}
       role={menuItem ? "menuitem" : undefined}
       data-testid={`map-toolbar-command-${command.id}`}
       data-map-command-id={command.id}
-      {...toolbarButtonInteraction(active, disabled)}
+      data-disabled-reason={disabledReason ?? undefined}
+      {...toolbarButtonInteraction(active, disabled, primary)}
     >
       <Icon size={MAP_ICON_SIZES.sm} strokeWidth={1.8} color={color} aria-hidden="true" />
       <span style={toolbarButtonText}>{label}</span>
       {command.badge != null && command.badge !== 0 ? <span style={toolbarBadge} aria-hidden="true">{command.badge}</span> : null}
+      {disabledReason && disabledReasonId ? (
+        <span id={disabledReasonId} style={mapStyles.srOnly}>
+          Disabled: {disabledReason}
+        </span>
+      ) : null}
     </button>
   );
 }
@@ -2002,17 +2047,26 @@ function ToolbarCommandButton({
 function TaskLensSwitch({
   taskLens,
   onTaskLensChange,
+  compact = false,
 }: {
   taskLens: MapTaskLensId;
   onTaskLensChange: (taskLens: MapTaskLensId) => void;
+  compact?: boolean;
 }): React.ReactElement {
   return (
-    <div style={roleSwitch} role="group" aria-label="Task lens selector">
+    <div
+      style={{
+        ...roleSwitch,
+        ...(compact ? { gap: "0.0625rem", padding: "0 0.0625rem" } satisfies React.CSSProperties : null),
+      }}
+      role="group"
+      aria-label="Task lens selector"
+    >
       {MAP_RUNTIME_TASK_LENSES.map((entry) => (
         <button
           key={entry.id}
           type="button"
-          style={roleButtonStyle(taskLens === entry.id)}
+          style={roleButtonStyle(taskLens === entry.id, compact)}
           onClick={() => onTaskLensChange(entry.id)}
           title={entry.description}
           aria-label={`Switch to ${entry.label} task lens`}
@@ -2020,7 +2074,7 @@ function TaskLensSwitch({
           data-testid={`map-task-lens-${entry.id}`}
           {...toolbarButtonInteraction(taskLens === entry.id, false)}
         >
-          {TASK_LENS_SHORT_LABELS[entry.id]}
+          {compact ? TASK_LENS_MICRO_LABELS[entry.id] : TASK_LENS_SHORT_LABELS[entry.id]}
         </button>
       ))}
     </div>
@@ -2261,7 +2315,7 @@ function CommandPalette({
           placeholder="Search map commands and tools: buffer, import geojson, query layers, draw polygon"
           aria-label="Search map commands"
           aria-controls="map-command-palette-list"
-          aria-activedescendant={selectedCommand ? `map-command-palette-option-${selectedCommand.id.replace(/[^a-z0-9_-]/gi, "-")}` : undefined}
+          aria-activedescendant={selectedCommand ? `map-command-palette-option-${getCommandDomIdSegment(selectedCommand.id)}` : undefined}
         />
         <div id="map-command-palette-list" style={paletteListStyle} role="listbox" aria-label="Available map commands">
           {filteredCommands.length === 0 ? (
@@ -2295,9 +2349,11 @@ function CommandPalette({
                 (() => {
                   const status = getCommandStatus(command);
                   const accessibleTitle = getCommandAccessibleTitle(command);
-                  const optionId = `map-command-palette-option-${command.id.replace(/[^a-z0-9_-]/gi, "-")}`;
+                  const optionId = `map-command-palette-option-${getCommandDomIdSegment(command.id)}`;
                   const selected = index === activeIndex;
                   const shortcutLabel = command.disabled ? null : command.shortcut ?? runShortcutLabel;
+                  const disabledReason = command.disabled ? getCommandUnavailableReason(command) : null;
+                  const disabledReasonId = disabledReason ? `${optionId}-disabled-reason` : undefined;
                   return (
                     <button
                       key={command.id}
@@ -2325,6 +2381,8 @@ function CommandPalette({
                       aria-label={command.disabled ? `${command.label}. ${accessibleTitle}` : `${command.label}. ${command.title}`}
                       aria-selected={selected || command.active || undefined}
                       aria-disabled={command.disabled || undefined}
+                      aria-describedby={disabledReasonId}
+                      data-disabled-reason={disabledReason ?? undefined}
                       disabled={command.disabled}
                     >
                       {React.createElement(command.icon, { size: MAP_ICON_SIZES.sm, strokeWidth: 1.8, "aria-hidden": true })}
@@ -2351,6 +2409,11 @@ function CommandPalette({
                           </span>
                         </span>
                       </span>
+                      {disabledReason && disabledReasonId ? (
+                        <span id={disabledReasonId} style={mapStyles.srOnly}>
+                          Disabled: {disabledReason}
+                        </span>
+                      ) : null}
                     </button>
                   );
                 })()
@@ -2770,6 +2833,9 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
   );
 
   const breakpoint = getBreakpoint(toolbarWidth);
+  const compactTaskLens = toolbarWidth < 560;
+  const primaryButtonDensity: ToolbarDensity = toolbarWidth < 340 ? "compact" : "comfortable";
+  const paletteButtonDensity: ToolbarDensity = toolbarWidth < 500 ? "compact" : "comfortable";
   const commandRegistry = commands;
   const primaryCommand = React.useMemo(
     () => selectContextualPrimaryCommand({
@@ -2812,6 +2878,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       workspaceView,
     ],
   );
+  const showInlinePalette = true;
   const overflowCommands = React.useMemo(
     () => commandRegistry.filter((command) => command.id !== primaryCommand?.id),
     [commandRegistry, primaryCommand],
@@ -2914,7 +2981,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       data-testid="map-command-center"
       data-map-command-center="true"
       data-command-registry-count={commandRegistry.length}
-      data-command-center-visible-count={primaryCommand ? "4" : "3"}
+      data-command-center-visible-count={String(2 + (primaryCommand ? 1 : 0) + (showInlinePalette ? 1 : 0))}
       data-toolbar-density={density}
       data-task-lens={taskLens}
       data-toolbar-breakpoint={breakpoint}
@@ -2924,6 +2991,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
           <TaskLensSwitch
             taskLens={taskLens}
             onTaskLensChange={handleTaskLensChange}
+            compact={compactTaskLens}
           />
         </div>
       ) : (
@@ -2938,11 +3006,13 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       )}
 
       <div style={commandRail} aria-label="Command palette and contextual primary action">
-        <ToolbarCommandButton command={commandPaletteCommand} density="comfortable" />
         {primaryCommand ? (
           <div style={primaryActionShell} data-testid="map-command-center-primary-action">
-            <ToolbarCommandButton command={primaryCommand} density="comfortable" primary />
+            <ToolbarCommandButton command={primaryCommand} density={primaryButtonDensity} primary />
           </div>
+        ) : null}
+        {showInlinePalette ? (
+          <ToolbarCommandButton command={commandPaletteCommand} density={paletteButtonDensity} />
         ) : null}
       </div>
 

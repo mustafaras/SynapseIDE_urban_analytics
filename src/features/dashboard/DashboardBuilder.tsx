@@ -64,6 +64,8 @@ import type {
 } from "./types";
 
 const DND_MIME = "application/x-synapse-dashboard";
+const COLOR_INPUT_HEX_PATTERN = /^#[0-9a-fA-F]{6}$/;
+const COLOR_INPUT_FALLBACK = "#3794ff";
 
 type DragPayload =
   | { source: "library"; widgetType: DashboardWidgetType; advancedChartType?: AdvancedChartType }
@@ -137,6 +139,10 @@ function parseDragPayload(event: React.DragEvent): DragPayload | null {
 
 function compareDocumentsByUpdatedAt(left: DashboardDocument, right: DashboardDocument): number {
   return Date.parse(right.updatedAt) - Date.parse(left.updatedAt);
+}
+
+function getColorInputValue(color: string | undefined): string {
+  return color && COLOR_INPUT_HEX_PATTERN.test(color) ? color : COLOR_INPUT_FALLBACK;
 }
 
 function mergeDashboardLibraryState(
@@ -1056,7 +1062,7 @@ export const DashboardBuilder: React.FC<DashboardBuilderProps> = ({
                     <input
                       className={flowStyles.input}
                       type="color"
-                      value={selectedWidget.config.style?.accentColor ?? "#3794ff"}
+                      value={getColorInputValue(selectedWidget.config.style?.accentColor)}
                       onChange={(event) => updateWidgetConfig(selectedWidget.id, (widget) => ({
                         ...widget,
                         config: {

@@ -39,7 +39,9 @@ import {
   MAP_SHADOWS,
   MAP_TYPOGRAPHY,
   resolveMapPaintColor,
+  type GisStatusKey,
 } from "./map/mapTokens";
+import { GisStatusChip } from "./map/ui/GisStatusChip";
 import { createOpaqueFloatingPanelStyle, useDraggableMapPanel } from "./map/useDraggableMapPanel";
 import type { LayerGroupId, OverlayLayerConfig } from "./map/mapTypes";
 import {
@@ -106,6 +108,7 @@ const EMPTY_FOOTPRINT_COLLECTION: GeoJSON.FeatureCollection<GeoJSON.Polygon | Ge
   type: "FeatureCollection",
   features: [],
 };
+const VOXCITY_SOURCE_PRIORITY_ORDER: readonly VoxCityOverlaySourceMode[] = ["active-layer", "osm", "demo"];
 
 /* ================================================================== */
 /*  Theming                                                            */
@@ -113,10 +116,20 @@ const EMPTY_FOOTPRINT_COLLECTION: GeoJSON.FeatureCollection<GeoJSON.Polygon | Ge
 
 type ColorBy = "height" | "type" | "year";
 type VoxCityOverlaySourceMode = "demo" | "active-layer" | "osm";
+type VoxCityBridgePriorityId = "project-layer" | "cityjson" | "osm" | "demo";
 
 interface ResolvedMapLayerSource {
   layer: OverlayLayerConfig;
   source: VoxCityResolvedSource;
+}
+
+interface VoxCityBridgePriorityEntry {
+  id: VoxCityBridgePriorityId;
+  rank: number;
+  label: string;
+  detail: string;
+  status: GisStatusKey;
+  active: boolean;
 }
 
 const TYPE_COLORS: Record<string, string> = {
@@ -335,6 +348,206 @@ function sourceKindLabel(mode: VoxCityOverlaySourceMode): string {
   return "Demo";
 }
 
+function isGeographicCrs(crs: string | null | undefined): boolean {
+  return /4326|crs\s*84|wgs\s*84/i.test(crs ?? "");
+}
+
+function activeFootprintSourceStatus(
+  mode: VoxCityOverlaySourceMode,
+  source: VoxCityResolvedSource | null,
+): GisStatusKey {
+  if (source) return mode === "osm" ? "external" : "ready";
+  if (mode === "demo") return "demo";
+  return mode === "active-layer" ? "blocked" : "unknown";
+}
+
+function activeFootprintSourceLabel(
+  mode: VoxCityOverlaySourceMode,
+  source: VoxCityResolvedSource | null,
+): string {
+  if (source) {
+    if (mode === "osm") return "Active source: REAL OSM buildings";
+    return "Active source: REAL project layer";
+  }
+  if (mode === "demo") return "Active source: DEMO SAMPLE - not project data";
+  if (mode === "active-layer") return "Active source: project layer missing";
+  return "Active source: OSM not loaded";
+}
+
+function activeCrsStatus(
+  mode: VoxCityOverlaySourceMode,
+  source: VoxCityResolvedSource | null,
+): GisStatusKey {
+  if (source) return isGeographicCrs(source.metadata.crs) ? "ready" : "caveat";
+  if (mode === "demo") return "caveat";
+  return "unknown";
+}
+
+function activeCrsLabel(
+  mode: VoxCityOverlaySourceMode,
+  source: VoxCityResolvedSource | null,
+): string {
+  if (source?.metadata.crs) {
+    const suffix = isGeographicCrs(source.metadata.crs) ? "" : " (projection caveat)";
+    return `CRS: ${source.metadata.crs}${suffix}`;
+  }
+  if (source) return "CRS: source layer not declared";
+  if (mode === "demo") return "CRS: anchored display, not surveyed";
+  return "CRS: waiting for source";
+}
+
+function activeVerticalStatus(
+  mode: VoxCityOverlaySourceMode,
+  hasLoadedCityJson: boolean,
+  source: VoxCityResolvedSource | null,
+): GisStatusKey {
+  if (hasLoadedCityJson) return "caveat";
+  if (source) return "caveat";
+  return mode === "demo" ? "demo" : "unknown";
+}
+
+function activeVerticalLabel(
+  mode: VoxCityOverlaySourceMode,
+  hasLoadedCityJson: boolean,
+  source: VoxCityResolvedSource | null,
+): string {
+  if (hasLoadedCityJson) return "Vertical: CityJSON Z values, datum verify";
+  if (source) return "Vertical: height/floor fields, datum not declared";
+  if (mode === "demo") return "Vertical: sample heights, no datum";
+  return "Vertical: waiting for source heights";
+}
+
+function footprintRegistryName(
+  mode: VoxCityOverlaySourceMode,
+  hasRealSource: boolean,
+): string {
+  if (!hasRealSource) {
+    return mode === "demo" ? "VoxCity Demo Sample Footprints" : "VoxCity Footprints (source pending)";
+  }
+  return mode === "osm" ? "VoxCity OSM Building Footprints" : "VoxCity Project Building Footprints";
+}
+
+function cityJsonRegistryName(
+  loadedCityJsonCount: number,
+  mode: VoxCityOverlaySourceMode,
+  selectedLod: string | null,
+): string {
+  const suffix = selectedLod ? ` (LOD ${selectedLod})` : "";
+  if (loadedCityJsonCount > 0) return `VoxCity CityJSON Surfaces${suffix}`;
+  return mode === "demo" ? `VoxCity Sample CityJSON Surfaces${suffix}` : `CityJSON Surfaces${suffix}`;
+}
+
+function overlaySourceKind(
+  mode: VoxCityOverlaySourceMode,
+  hasRealSource: boolean,
+): OverlayLayerConfig["sourceKind"] {
+  if (!hasRealSource) return "demo";
+  return mode === "osm" ? "external" : "project";
+}
+
+function cityJsonBridgeStatus(
+  loadedCityJsonCount: number,
+  mode: VoxCityOverlaySourceMode,
+): GisStatusKey {
+  if (loadedCityJsonCount > 0) return "external";
+  return mode === "demo" ? "demo" : "unknown";
+}
+
+function cityJsonBridgeLabel(
+  loadedCityJsonCount: number,
+  mode: VoxCityOverlaySourceMode,
+  referenceSystem?: string | null,
+): string {
+  if (loadedCityJsonCount > 0) {
+    return `CityJSON: REAL source${referenceSystem ? ` (${referenceSystem})` : ""}`;
+  }
+  return mode === "demo" ? "CityJSON: DEMO sample surfaces" : "CityJSON: not loaded";
+}
+
+function realSampleProofText(
+  mode: VoxCityOverlaySourceMode,
+  source: VoxCityResolvedSource | null,
+): string {
+  if (source && mode === "active-layer") {
+    return "Project geometry is active. VoxCity uses map-layer footprints; sample fallback is inactive.";
+  }
+  if (source && mode === "osm") {
+    return "External OSM geometry is active. Treat it as OpenStreetMap/Overpass data, not municipal project data.";
+  }
+  if (mode === "demo") {
+    return "Demo sample is active. This is not project geometry or analytical output.";
+  }
+  return "No real source is loaded for this mode; VoxCity outputs stay unavailable or explicitly demo-labelled.";
+}
+
+function evidenceBridgeStatus(
+  mode: VoxCityOverlaySourceMode,
+  hasRealSource: boolean,
+): GisStatusKey {
+  if (hasRealSource) return mode === "osm" ? "external" : "ready";
+  return mode === "demo" ? "demo" : "unknown";
+}
+
+function evidenceBridgeLabel(
+  mode: VoxCityOverlaySourceMode,
+  hasRealSource: boolean,
+): string {
+  if (hasRealSource) return "Evidence: reference-only handoff";
+  if (mode === "demo") return "Evidence: sample-labelled references";
+  return "Evidence: awaiting source geometry";
+}
+
+function buildBridgePriorityEntries(
+  mode: VoxCityOverlaySourceMode,
+  projectSourceCount: number,
+  cityJsonCount: number,
+  osmSourceCount: number,
+  isFetchingOsmLayer: boolean,
+): VoxCityBridgePriorityEntry[] {
+  return [
+    {
+      id: "project-layer",
+      rank: 1,
+      label: "Project polygon layer",
+      detail: projectSourceCount > 0
+        ? `${projectSourceCount} visible polygon source${projectSourceCount === 1 ? "" : "s"} ready`
+        : "Preferred real geometry path; add or show a polygon layer",
+      status: projectSourceCount > 0 ? "ready" : "unknown",
+      active: mode === "active-layer",
+    },
+    {
+      id: "cityjson",
+      rank: 2,
+      label: "CityJSON source",
+      detail: cityJsonCount > 0
+        ? `${cityJsonCount} object${cityJsonCount === 1 ? "" : "s"} loaded for semantic surfaces`
+        : "Used when a CityJSON document is loaded; no heavy payload is persisted here",
+      status: cityJsonCount > 0 ? "external" : "metadata-only",
+      active: cityJsonCount > 0,
+    },
+    {
+      id: "osm",
+      rank: 3,
+      label: "OSM buildings",
+      detail: osmSourceCount > 0
+        ? `${osmSourceCount} Overpass layer${osmSourceCount === 1 ? "" : "s"} available`
+        : isFetchingOsmLayer
+          ? "Fetching Overpass buildings for the active AOI"
+          : "External fallback; never labelled as project data",
+      status: osmSourceCount > 0 ? "external" : isFetchingOsmLayer ? "running" : "unknown",
+      active: mode === "osm",
+    },
+    {
+      id: "demo",
+      rank: 4,
+      label: "Demo/sample fallback",
+      detail: "Deterministic sample footprints, always labelled as non-project data",
+      status: "demo",
+      active: mode === "demo",
+    },
+  ];
+}
+
 /* ================================================================== */
 /*  Styles                                                             */
 /* ================================================================== */
@@ -514,6 +727,65 @@ const statLabel: React.CSSProperties = {
   color: MAP_COLORS.textMuted,
   textTransform: "uppercase",
   letterSpacing: 0.6,
+};
+
+const bridgePanelStyle: React.CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 10,
+  padding: "10px 12px",
+  borderRadius: MAP_RADIUS.sm,
+  border: `1px solid ${MAP_COLORS.hairlineStrong}`,
+  background: MAP_COLORS.bgHeader,
+};
+
+const bridgeChipRowStyle: React.CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: 6,
+  alignItems: "center",
+};
+
+const priorityListStyle: React.CSSProperties = {
+  display: "grid",
+  gap: 4,
+  paddingTop: 2,
+};
+
+const priorityRowStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "20px minmax(0, 1fr) auto",
+  gap: 8,
+  alignItems: "center",
+  minHeight: 26,
+  padding: "4px 0",
+  borderTop: `1px solid ${MAP_COLORS.hairlineSubtle}`,
+};
+
+const priorityRankStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: 18,
+  height: 18,
+  borderRadius: MAP_RADIUS.xs,
+  border: `1px solid ${MAP_COLORS.hairline}`,
+  color: MAP_COLORS.textMuted,
+  fontSize: 10,
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+};
+
+const priorityLabelStyle: React.CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  minWidth: 0,
+  gap: 1,
+};
+
+const proofTextStyle: React.CSSProperties = {
+  color: MAP_COLORS.textSecondary,
+  fontSize: 11,
+  lineHeight: 1.45,
 };
 
 /* ================================================================== */
@@ -1314,16 +1586,16 @@ export const MapVoxCityOverlay: React.FC<MapVoxCityOverlayProps> = ({
   useEffect(() => {
     ensureLayerEntry(
       FOOTPRINT_REGISTRY_ID,
-      "VoxCity Sample Footprints",
+      footprintRegistryName(sourceMode, hasActiveRealSource),
       showFootprints,
       footprintOpacity,
       counts.buildings,
       footprintSourceProvenance,
-      hasActiveRealSource ? "external" : "demo",
+      overlaySourceKind(sourceMode, hasActiveRealSource),
     );
     ensureLayerEntry(
       CITYJSON_REGISTRY_ID,
-      `CityJSON Surfaces${selectedLod ? ` (LOD ${selectedLod})` : ""}`,
+      cityJsonRegistryName(loadedCityJsonObjects.length, sourceMode, selectedLod),
       showCityJson,
       cityJsonOpacity,
       counts.cityJsonSurfaces,
@@ -1337,7 +1609,7 @@ export const MapVoxCityOverlay: React.FC<MapVoxCityOverlayProps> = ({
       1,
       counts.buildings,
       "Address / id labels for VoxCity buildings",
-      hasActiveRealSource ? "external" : "demo",
+      overlaySourceKind(sourceMode, hasActiveRealSource),
     );
   }, [
     showFootprints,
@@ -1432,6 +1704,32 @@ export const MapVoxCityOverlay: React.FC<MapVoxCityOverlayProps> = ({
     padding: "6px 8px",
   };
 
+  const activeSourceStatus = activeFootprintSourceStatus(sourceMode, activeRealSource);
+  const activeSourceLabel = activeFootprintSourceLabel(sourceMode, activeRealSource);
+  const crsStatus = activeCrsStatus(sourceMode, activeRealSource);
+  const crsLabel = activeCrsLabel(sourceMode, activeRealSource);
+  const verticalStatus = activeVerticalStatus(sourceMode, loadedCityJsonObjects.length > 0, activeRealSource);
+  const verticalLabel = activeVerticalLabel(sourceMode, loadedCityJsonObjects.length > 0, activeRealSource);
+  const cityJsonStatus = cityJsonBridgeStatus(loadedCityJsonObjects.length, sourceMode);
+  const cityJsonLabel = cityJsonBridgeLabel(
+    loadedCityJsonObjects.length,
+    sourceMode,
+    cityJsonSummary?.referenceSystem,
+  );
+  const evidenceStatus = evidenceBridgeStatus(sourceMode, hasActiveRealSource);
+  const evidenceLabel = evidenceBridgeLabel(sourceMode, hasActiveRealSource);
+  const syncLabel = selectedBuildingId
+    ? `Sync: selected ${selectedBuildingId}`
+    : "Sync: 2D/3D handoff ready";
+  const sourcePriorityEntries = buildBridgePriorityEntries(
+    sourceMode,
+    activeMapLayerSources.length,
+    loadedCityJsonObjects.length,
+    osmLayerSources.length,
+    isFetchingOsm,
+  );
+  const realSampleProof = realSampleProofText(sourceMode, activeRealSource);
+
   if (!panelVisible) {
     return null;
   }
@@ -1468,6 +1766,80 @@ export const MapVoxCityOverlay: React.FC<MapVoxCityOverlayProps> = ({
       </div>
 
       <div style={embedded ? { ...panelBodyStyle, overflowY: "visible" } : panelBodyStyle}>
+        {/* ------------ VoxCity bridge status ------------ */}
+        <section style={bridgePanelStyle} data-testid="voxcity-bridge-surface">
+          <span style={{ ...labelStyle, color: MAP_COLORS.interaction }}>VoxCity bridge status</span>
+          <div style={bridgeChipRowStyle}>
+            <GisStatusChip
+              status={activeSourceStatus}
+              label={activeSourceLabel}
+              density="compact"
+              data-testid="voxcity-active-source-mode"
+            />
+            <GisStatusChip
+              status={counts.buildings > 0 ? activeSourceStatus : "unknown"}
+              label={`Footprints: ${counts.buildings}`}
+              density="compact"
+              data-testid="voxcity-footprint-count-chip"
+            />
+            <GisStatusChip
+              status={crsStatus}
+              label={crsLabel}
+              density="compact"
+              data-testid="voxcity-crs-caveat-chip"
+            />
+            <GisStatusChip
+              status={verticalStatus}
+              label={verticalLabel}
+              density="compact"
+              data-testid="voxcity-vertical-caveat-chip"
+            />
+            <GisStatusChip
+              status={cityJsonStatus}
+              label={cityJsonLabel}
+              density="compact"
+              data-testid="voxcity-cityjson-source-chip"
+            />
+            <GisStatusChip
+              status="ready"
+              label={syncLabel}
+              density="compact"
+              data-testid="voxcity-sync-state-chip"
+            />
+            <GisStatusChip
+              status={evidenceStatus}
+              label={evidenceLabel}
+              density="compact"
+              data-testid="voxcity-evidence-state-chip"
+            />
+          </div>
+
+          <div style={priorityListStyle} data-testid="voxcity-source-priority">
+            {sourcePriorityEntries.map((entry) => (
+              <div key={entry.id} style={priorityRowStyle}>
+                <span style={priorityRankStyle}>{entry.rank}</span>
+                <span style={priorityLabelStyle}>
+                  <span style={{ fontSize: 11, color: entry.active ? MAP_COLORS.interaction : MAP_COLORS.text }}>
+                    {entry.label}
+                  </span>
+                  <span style={{ fontSize: 10, color: MAP_COLORS.textMuted, lineHeight: 1.35 }}>
+                    {entry.detail}
+                  </span>
+                </span>
+                <GisStatusChip
+                  status={entry.status}
+                  label={entry.active ? "active" : entry.status}
+                  density="compact"
+                />
+              </div>
+            ))}
+          </div>
+
+          <span style={proofTextStyle} data-testid="voxcity-real-sample-proof">
+            {realSampleProof}
+          </span>
+        </section>
+
         {/* ------------ Real data source selector ------------ */}
         <div
           style={{
@@ -1482,7 +1854,7 @@ export const MapVoxCityOverlay: React.FC<MapVoxCityOverlayProps> = ({
         >
           <span style={{ ...labelStyle, color: MAP_COLORS.interaction }}>Building Source</span>
           <div style={segmentRow}>
-            {(["demo", "active-layer", "osm"] as VoxCityOverlaySourceMode[]).map((mode) => (
+            {VOXCITY_SOURCE_PRIORITY_ORDER.map((mode) => (
               <button
                 key={mode}
                 type="button"
@@ -1545,10 +1917,14 @@ export const MapVoxCityOverlay: React.FC<MapVoxCityOverlayProps> = ({
 
           <span style={{ fontSize: 11, color: MAP_COLORS.textSecondary, lineHeight: 1.4 }}>
             {hasActiveRealSource
-              ? `${footprintSourceTitle} is bound directly from the shared map layer registry for linked 2D/3D inspection.`
+              ? sourceMode === "osm"
+                ? `${footprintSourceTitle} is bound from OpenStreetMap/Overpass. It stays labelled as external geometry, not project data.`
+                : `${footprintSourceTitle} is bound directly from the project map layer registry for linked 2D/3D inspection.`
               : sourceMode === "osm"
                 ? "Fetch OSM building footprints for the selected AOI to create a live OpenStreetMap building layer."
-                : "Synthetic VoxCity sample buildings are reprojected around the current map view for safe demo exploration."}
+                : sourceMode === "active-layer"
+                  ? "Project polygon layers are preferred. Show or import a polygon layer to activate real project footprints."
+                  : "DEMO SAMPLE buildings are reprojected around the current map view for safe exploration only."}
           </span>
           <span style={{ fontSize: 10, color: MAP_COLORS.textMuted }}>
             {!hasActiveRealSource

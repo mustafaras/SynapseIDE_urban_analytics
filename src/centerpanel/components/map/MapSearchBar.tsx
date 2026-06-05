@@ -1,7 +1,9 @@
 import React, { useCallback, useState } from "react";
+import { Search } from "lucide-react";
 import {
   MAP_COLORS,
   MAP_DIMENSIONS,
+  MAP_ICON_SIZES,
   MAP_RADIUS,
   MAP_SHADOWS,
   MAP_SPACING,
@@ -43,7 +45,7 @@ const searchInput: React.CSSProperties = {
   padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
   borderRadius: MAP_RADIUS.sm,
   border: MAP_STROKES.hairlineSubtle,
-  background: "var(--syn-surface-input, #1a1f26)",
+  background: "color-mix(in srgb, var(--syn-surface-input, #1a1f26) 88%, transparent)",
   color: MAP_COLORS.text,
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
   width: MAP_DIMENSIONS.searchWidth,
@@ -132,8 +134,9 @@ export const MapSearchBar: React.FC<MapSearchBarProps> = ({ onFlyTo, onResultCou
         display: "flex",
         alignItems: "center",
         gap: compact ? MAP_SPACING.xs : MAP_SPACING.sm,
-        minWidth: compact ? "8rem" : undefined,
-        flex: compact ? "0 1 16rem" : undefined,
+        minWidth: compact ? "9.5rem" : undefined,
+        width: compact ? "100%" : undefined,
+        flex: compact ? "1 1 100%" : undefined,
       }}
     >
       <input
@@ -141,10 +144,11 @@ export const MapSearchBar: React.FC<MapSearchBarProps> = ({ onFlyTo, onResultCou
         role="combobox"
         style={{
           ...searchInput,
-          width: compact ? "clamp(8rem, 12vw, 13rem)" : MAP_DIMENSIONS.searchWidth,
-          minHeight: compact ? "1.625rem" : undefined,
+          width: compact ? "100%" : MAP_DIMENSIONS.searchWidth,
+          minHeight: compact ? "1.875rem" : undefined,
           padding: compact ? `${MAP_SPACING.zero} ${MAP_SPACING.sm}` : searchInput.padding,
           fontFamily: compact ? MAP_TYPOGRAPHY.fontFamilyMono : undefined,
+          borderColor: compact ? "transparent" : undefined,
         }}
         placeholder="Search location..."
         value={query}
@@ -171,15 +175,23 @@ export const MapSearchBar: React.FC<MapSearchBarProps> = ({ onFlyTo, onResultCou
         type="button"
         style={{
           ...mapStyles.btn,
-          minHeight: compact ? "1.625rem" : undefined,
-          padding: compact ? `${MAP_SPACING.zero} ${MAP_SPACING.sm}` : mapStyles.btn.padding,
+          minHeight: compact ? "1.875rem" : undefined,
+          width: compact ? "1.875rem" : undefined,
+          justifyContent: "center",
+          padding: compact ? MAP_SPACING.zero : mapStyles.btn.padding,
+          border: compact ? "1px solid transparent" : mapStyles.btn.border,
           fontFamily: compact ? MAP_TYPOGRAPHY.fontFamilyMono : mapStyles.btn.fontFamily,
         }}
         onClick={handleSearch}
         disabled={isSearching}
         aria-label="Execute location search"
       >
-        {isSearching ? "..." : "Search"}
+        {isSearching ? "..." : compact ? (
+          <>
+            <Search size={MAP_ICON_SIZES.sm} strokeWidth={1.8} aria-hidden="true" />
+            <span style={mapStyles.srOnly}>Search</span>
+          </>
+        ) : "Search"}
       </button>
 
       {results.length > 0 && (

@@ -32,6 +32,18 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+async function flushAnimationFrame(): Promise<void> {
+  await act(async () => {
+    await new Promise<void>((resolve) => {
+      if (typeof window.requestAnimationFrame === "function") {
+        window.requestAnimationFrame(() => resolve());
+        return;
+      }
+      window.setTimeout(resolve, 0);
+    });
+  });
+}
+
 /* ================================================================== */
 /*  1. useFocusTrap — unit tests (no DOM, logic verification)          */
 /* ================================================================== */
@@ -359,6 +371,201 @@ describe("MapPanelRail keyboard resizing", () => {
   });
 });
 
+describe("Prompt 55 keyboard route surfaces", () => {
+  it("moves activity rail focus with arrow, Home, and End keys while skipping disabled items", async () => {
+    const { MapActivityRail } = await import("../MapWorkspaceShell");
+
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const root = createRoot(host);
+    roots.push(root);
+
+    await act(async () => {
+      root.render(React.createElement(MapActivityRail, {
+        items: [
+          { id: "layers", label: "Layers", icon: React.createElement("span", { "aria-hidden": true }), active: true },
+          { id: "data", label: "Data", icon: React.createElement("span", { "aria-hidden": true }) },
+          {
+            id: "blocked",
+            label: "Blocked",
+            icon: React.createElement("span", { "aria-hidden": true }),
+            disabled: true,
+            disabledReason: "Unavailable until a project is loaded.",
+          },
+        ],
+        bottomItems: [
+          { id: "qa", label: "Problems", icon: React.createElement("span", { "aria-hidden": true }) },
+        ],
+      }));
+    });
+
+    const layers = host.querySelector('[data-testid="activity-btn-layers"]') as HTMLButtonElement;
+    const data = host.querySelector('[data-testid="activity-btn-data"]') as HTMLButtonElement;
+    const blocked = host.querySelector('[data-testid="activity-btn-blocked"]') as HTMLButtonElement;
+    const qa = host.querySelector('[data-testid="activity-btn-qa"]') as HTMLButtonElement;
+
+    expect(blocked.disabled).toBe(true);
+    expect(blocked.getAttribute("data-disabled-reason")).toContain("Unavailable");
+    layers.focus();
+    layers.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, cancelable: true }));
+    expect(document.activeElement).toBe(data);
+
+    data.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, cancelable: true }));
+    expect(document.activeElement).toBe(qa);
+
+    qa.dispatchEvent(new KeyboardEvent("keydown", { key: "Home", bubbles: true, cancelable: true }));
+    expect(document.activeElement).toBe(layers);
+
+    layers.dispatchEvent(new KeyboardEvent("keydown", { key: "End", bubbles: true, cancelable: true }));
+    expect(document.activeElement).toBe(qa);
+  });
+
+  it("supports bottom panel tab keys and keeps Escape scoped to the panel", async () => {
+    const { MapBottomPanel } = await import("../bottom/MapBottomPanel");
+    const onTabChange = vi.fn();
+    const onClose = vi.fn();
+
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const root = createRoot(host);
+    roots.push(root);
+
+    await act(async () => {
+      root.render(React.createElement(MapBottomPanel, {
+        visible: true,
+        activeTabId: "problems",
+        onTabChange,
+        onClose,
+        problems: React.createElement("div", null, "Problems"),
+        attributes: React.createElement("div", null, "Attributes"),
+        timeline: React.createElement("div", null, "Timeline"),
+        diagnostics: React.createElement("div", null, "Diagnostics"),
+        tasks: [],
+      }));
+    });
+
+    const panel = host.querySelector('[data-testid="map-bottom-panel"]') as HTMLElement;
+    const problemsTab = host.querySelector('[data-testid="map-bottom-tab-problems"]') as HTMLButtonElement;
+    const attributesTab = host.querySelector('[data-testid="map-bottom-tab-attributes"]') as HTMLButtonElement;
+    const diagnosticsTab = host.querySelector('[data-testid="map-bottom-tab-diagnostics"]') as HTMLButtonElement;
+
+    problemsTab.focus();
+    problemsTab.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true }));
+    expect(onTabChange).toHaveBeenLastCalledWith("attributes");
+    await flushAnimationFrame();
+    expect(document.activeElement).toBe(attributesTab);
+
+    attributesTab.dispatchEvent(new KeyboardEvent("keydown", { key: "End", bubbles: true, cancelable: true }));
+    expect(onTabChange).toHaveBeenLastCalledWith("diagnostics");
+    await flushAnimationFrame();
+    expect(document.activeElement).toBe(diagnosticsTab);
+
+    const bubbleListener = vi.fn();
+    document.body.addEventListener("keydown", bubbleListener);
+    const escapeEvent = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
+    panel.dispatchEvent(escapeEvent);
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(escapeEvent.defaultPrevented).toBe(true);
+    expect(bubbleListener).not.toHaveBeenCalled();
+    document.body.removeEventListener("keydown", bubbleListener);
+  });
+
+  it("keeps recovery actions, task lenses, and density reachable from the command palette", async () => {
+    const { MapToolbar } = await import("../MapToolbar");
+    const onTaskLensChange = vi.fn();
+    const onResetLayout = vi.fn();
+    const onCollapsePanels = vi.fn();
+    const onFocusMapCanvas = vi.fn();
+    const onRestoreDefaultWidths = vi.fn();
+
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const root = createRoot(host);
+    roots.push(root);
+
+    await act(async () => {
+      root.render(React.createElement(MapToolbar, {
+        workspaceView: "explore",
+        taskLens: "analyst",
+        onTaskLensChange,
+        onResetLayout,
+        onCollapsePanels,
+        onFocusMapCanvas,
+        onRestoreDefaultWidths,
+        pinMode: false,
+        onTogglePinMode: vi.fn(),
+        showSidebar: false,
+        onToggleSidebar: vi.fn(),
+        pinCount: 0,
+        showLayerPanel: true,
+        onToggleLayerPanel: vi.fn(),
+        layerCount: 1,
+        visibleLayerCount: 1,
+        showCatalog: false,
+        onToggleCatalog: vi.fn(),
+        catalogSourceCount: 1,
+        showContents: false,
+        onToggleContents: vi.fn(),
+        scientificQAStatus: "warning",
+        scientificQAIssueCount: 1,
+        scientificQABlockerCount: 0,
+        showScientificQAPanel: false,
+        onToggleScientificQAPanel: vi.fn(),
+        onImportClick: vi.fn(),
+        canUndoMapAction: false,
+        onUndoMapAction: vi.fn(),
+        canRedoMapAction: false,
+        onRedoMapAction: vi.fn(),
+      }));
+    });
+
+    const paletteTrigger = host.querySelector('[data-testid="map-toolbar-command-command-palette"]') as HTMLButtonElement;
+    paletteTrigger.focus();
+    await act(async () => {
+      paletteTrigger.click();
+    });
+    await flushAnimationFrame();
+
+    expect(host.querySelector('[data-testid="map-command-palette"]')).toBeTruthy();
+    expect(document.activeElement).toBe(host.querySelector('input[aria-label="Search map commands"]'));
+
+    for (const testId of [
+      "map-command-palette-option-task-lens-analyst",
+      "map-command-palette-option-task-lens-planner",
+      "map-command-palette-option-task-lens-reviewer",
+      "map-command-palette-option-task-lens-publisher",
+      "map-command-palette-option-reset-layout",
+      "map-command-palette-option-collapse-panels",
+      "map-command-palette-option-focus-map-canvas",
+      "map-command-palette-option-restore-default-widths",
+      "map-command-palette-option-switch-density",
+    ]) {
+      expect(host.querySelector(`[data-testid="${testId}"]`)).toBeTruthy();
+    }
+
+    const input = host.querySelector('input[aria-label="Search map commands"]') as HTMLInputElement;
+    await act(async () => {
+      input.value = "undo";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+
+    const disabledUndo = host.querySelector('[data-testid="map-command-palette-option-undo-map-action"]') as HTMLButtonElement;
+    expect(disabledUndo.disabled).toBe(true);
+    expect(disabledUndo.getAttribute("data-disabled-reason")).toContain("No reversible map edits");
+    const describedBy = disabledUndo.getAttribute("aria-describedby");
+    expect(describedBy).toBeTruthy();
+    expect(document.getElementById(describedBy ?? "")?.textContent).toContain("No reversible map edits");
+
+    input.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
+    await flushAnimationFrame();
+    await flushAnimationFrame();
+
+    expect(host.querySelector('[data-testid="map-command-palette"]')).toBeNull();
+    expect(document.activeElement).toBe(paletteTrigger);
+  });
+});
+
 /* ================================================================== */
 /*  3. useAnnouncer — unit tests                                       */
 /* ================================================================== */
@@ -522,7 +729,7 @@ describe("reduced motion — matchMedia support", () => {
   });
 });
 
-describe("Prompt 20 accessibility interaction matrix", () => {
+describe("Prompt 55 accessibility interaction matrix", () => {
   it("covers every required keyboard, focus, Escape, contrast, and motion surface", async () => {
     const { MAP_ACCESSIBILITY_INTERACTION_MATRIX } = await import("../mapAccessibilityMatrix");
     const surfaces = new Set(MAP_ACCESSIBILITY_INTERACTION_MATRIX.map((rule) => rule.surface));
@@ -545,6 +752,21 @@ describe("Prompt 20 accessibility interaction matrix", () => {
     const { MAP_ACCESSIBILITY_INTERACTION_MATRIX, getMapAccessibilityInteractionRule } = await import("../mapAccessibilityMatrix");
 
     expect(getMapAccessibilityInteractionRule("scoped-escape-stack")?.escapeRule).toContain("before the modal closes");
+    expect(getMapAccessibilityInteractionRule("command-center-order")?.proof).toEqual(expect.arrayContaining([
+      "map-command-palette-option-task-lens-analyst",
+      "map-command-palette-option-task-lens-planner",
+      "map-command-palette-option-task-lens-reviewer",
+      "map-command-palette-option-task-lens-publisher",
+      "map-command-palette-option-switch-density",
+    ]));
+    expect(getMapAccessibilityInteractionRule("forced-colors-states")?.proof).toEqual(expect.arrayContaining([
+      "border-width:2px",
+      "border-style:dashed",
+    ]));
+    expect(getMapAccessibilityInteractionRule("reduced-motion-safety")?.proof).toEqual(expect.arrayContaining([
+      "animation: none",
+      "scroll-behavior: auto",
+    ]));
     expect(JSON.stringify(MAP_ACCESSIBILITY_INTERACTION_MATRIX)).not.toMatch(/FeatureCollection|sourceData|coordinates|geometry/i);
   });
 });

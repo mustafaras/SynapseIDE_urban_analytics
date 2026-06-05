@@ -121,6 +121,45 @@ These are verified by `npm run test:e2e:smoke` — confirm green before release:
 
 ---
 
+## I — Prompt 56 Final Readiness Notes (2026-06-04)
+
+Automated final gate status:
+
+| Area | Evidence | Result |
+| --- | --- | --- |
+| Desktop 1440x900 | `npm run test:e2e -- e2e/map-modal-layout.spec.ts` viewport screenshot path | Pass: map, layer rail, bottom status, and canvas stayed visible with no critical overlap. |
+| Tablet 768x1024 | `npm run test:e2e -- e2e/map-modal-layout.spec.ts` constrained viewport path | Pass: layer panel switches to the constrained layout and controls remain reachable. |
+| Short viewport 1280x600 | `npm run test:e2e -- e2e/map-modal-layout.spec.ts` short viewport path | Pass: modal header, panel scroll regions, and bottom status remain usable without critical overlap. |
+| Reduced motion | `npm run test:e2e -- e2e/accessibility-audit.spec.ts`; `npx vitest run src/centerpanel/components/map` includes motion system tests | Pass: reduced-motion accessibility route and component motion contracts stayed green. |
+| High contrast | `npm run test:e2e -- e2e/accessibility-audit.spec.ts`; `npx vitest run src/centerpanel/components/map` includes visual QA/status tests | Pass: forced-colors focus, active, blocked, and demo/synthetic states remain non-color-only. |
+| Command palette reachability | `npm run test:e2e -- e2e/map-modal-layout.spec.ts` and accessibility route | Pass: hidden routes, command palette, density/lens, QA Problems, and import-to-inspect route remained reachable. |
+| Canvas nonblank | `npm run test:e2e -- e2e/map-modal-layout.spec.ts`; `npm run test:e2e -- e2e/map-evidence-visual-p62.spec.ts` | Pass: base map canvas remained visible; raster and 3D evidence canvases passed pixel-diversity checks. |
+| No critical overlap | `npm run test:e2e -- e2e/map-modal-layout.spec.ts` | Pass: desktop/tablet/short checks passed and no blocking overlap was detected. |
+
+Final validation commands run:
+
+- `npm run typecheck`
+- `npm run lint:errors`
+- `npm run lint:no-tailwind-centerpanel`
+- `npx vitest run src/centerpanel/components/map` (74 files, 699 tests)
+- `npx vitest run src/services/map` (60 files, 503 passed, 2 skipped)
+- `npm run test:e2e -- e2e/map-modal-layout.spec.ts` (31/31)
+- `npm run test:e2e -- e2e/accessibility-audit.spec.ts` (6/6)
+- `npm run test:e2e -- e2e/map-evidence-visual-p62.spec.ts` (1/1)
+- `npm run build`
+
+Residual risks:
+
+- `e2e/map-modal-layout.spec.ts` passes but the Vite browser console still emits one React warning: `Cannot update a component (MapExplorerModal) while rendering a different component (MapExplorerModal)`. No user-visible failure was observed; this should be resolved before a strict console-clean release gate.
+- `npm run build` passes with existing Vite/Rolldown warnings for `sql.js` browser externalization (`fs`/`crypto`), `new URL("./", import.meta.url)` runtime resolution, plugin timing, and chunks larger than 2000 kB.
+- `src/services/map` retains 2 skipped tests in the service suite; the run otherwise passed.
+
+Prompt 56 fixes made during final QA:
+
+- `GisStatusChip` no longer mixes `border` shorthand with `borderStyle`, removing the repeated React style-property conflict warning from map-modal e2e.
+- Raster evidence noData status chips now report `noData declared` while raw noData values remain visible in analytical chart/detail context.
+- `e2e/map-evidence-visual-p62.spec.ts` now seeds temporal playback through an actual demo overlay layer and navigates to Scene > Temporal before asserting the player, matching the current product route.
+
 ## Reviewer sign-off
 
 | Area | Reviewer | Date | Notes |

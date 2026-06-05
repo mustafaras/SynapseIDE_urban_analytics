@@ -4,6 +4,12 @@ export {
 } from "./MapPublicationMarksPanel";
 
 export {
+  MapPublishOutputInventory,
+  type MapPublishInventoryEntry,
+  type MapPublishOutputInventoryProps,
+} from "./MapPublishOutputInventory";
+
+export {
   MapPublishPathPanel,
   MapPublishWorkspace,
   type MapPublishPathAction,

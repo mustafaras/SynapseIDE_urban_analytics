@@ -33,6 +33,8 @@ import {
 } from "../mapTokens";
 import { GisStatusChip } from "../ui/GisStatusChip";
 import { createOpaqueFloatingPanelStyle, useDraggableMapPanel } from "../useDraggableMapPanel";
+import { Scene3DInteractionStrip } from "./Scene3DInteractionStrip";
+import { ScenarioComparisonStrip } from "./ScenarioComparisonStrip";
 import type { Scene3DRuntimeMode } from "@/services/map/scene3d/Map3DSceneController";
 import type { SourceHandle } from "@/services/map/contracts/gisContracts";
 import type {
@@ -50,6 +52,11 @@ export interface Scene3DPanelProps {
   onClose: () => void;
   onModeChange?: (mode: Scene3DRuntimeMode) => void;
   presentation?: "floating" | "embedded";
+  viewportSync?: {
+    label: string;
+    status: GisStatusKey;
+    title?: string;
+  };
 }
 
 /* ------------------------------------------------------------------ */
@@ -72,11 +79,11 @@ const panelStyle: React.CSSProperties = {
 const embeddedPanelStyle: React.CSSProperties = {
   position: "relative",
   display: "grid",
-  gridTemplateRows: "auto auto auto",
+  gridTemplateRows: "auto minmax(0, 1fr) auto",
   width: "100%",
-  border: MAP_STROKES.hairlineSubtle,
-  borderRadius: MAP_RADIUS.sm,
-  background: MAP_COLORS.bgPanel,
+  border: "none",
+  borderRadius: 0,
+  background: MAP_COLORS.transparent,
   color: MAP_COLORS.text,
   overflow: "hidden",
 };
@@ -226,10 +233,23 @@ const RUNTIME_MODES: { id: Scene3DRuntimeMode; label: string }[] = [
 const sceneCanvasStyle: React.CSSProperties = {
   width: "100%",
   aspectRatio: "2.8 / 1",
-  border: MAP_STROKES.hairlineSubtle,
+  border: "none",
   borderRadius: MAP_RADIUS.sm,
   background: MAP_COLORS.bgWorkspace,
   display: "block",
+};
+
+const previewIdleStyle: React.CSSProperties = {
+  width: "100%",
+  minHeight: "5.75rem",
+  display: "grid",
+  placeItems: "center",
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.sm,
+  background: MAP_COLORS.bgWorkspace,
+  color: MAP_COLORS.textMuted,
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
 };
 
 const analysisPanelStyle: React.CSSProperties = {
@@ -302,10 +322,120 @@ const rangeStyle: React.CSSProperties = {
   accentColor: MAP_COLORS.interaction,
 };
 
+const sourceMetadataGridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(10.5rem, 1fr))",
+  gap: MAP_SPACING.sm,
+};
+
+const sourceMetadataLaneStyle: React.CSSProperties = {
+  display: "grid",
+  gap: MAP_SPACING.xs,
+  alignContent: "start",
+  minWidth: 0,
+  padding: MAP_SPACING.sm,
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.sm,
+  background: MAP_COLORS.bgWorkspace,
+};
+
+const sourceMetadataHeaderStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: MAP_SPACING.sm,
+  minWidth: 0,
+};
+
+const sourceMetadataTitleStyle: React.CSSProperties = {
+  margin: 0,
+  color: MAP_COLORS.text,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+};
+
+const dockedControlSectionStyle: React.CSSProperties = {
+  display: "grid",
+  gap: MAP_SPACING.xs,
+};
+
 function handleRuntimeLabel(handle: SourceHandle | null): string {
   if (!handle?.scene3d) return "none";
   if (handle.scene3d.runtimeMode === "metadata-only") return "metadata-only";
   return handle.scene3d.runtimeMode;
+}
+
+function sceneSourceKindLabel(handle: SourceHandle | null): string {
+  const kind = handle?.scene3d?.sourceKind;
+  if (!kind) return "not linked";
+  return kind.replace(/[-_]+/g, " ");
+}
+
+function sourceCrsLabel(handle: SourceHandle | null): string {
+  if (!handle) return "not linked";
+  return handle.crsSummary.status === "known" && handle.crsSummary.crs ? handle.crsSummary.crs : "not declared";
+}
+
+function isProjectedCrs(crs: string | null | undefined): boolean {
+  if (!crs) return false;
+  return !/(EPSG:4326|WGS\s*84|CRS84)/i.test(crs);
+}
+
+function analysisProjectedCrsStatus(crs: string | null | undefined): GisStatusKey {
+  return isProjectedCrs(crs) ? "ready" : "blocked";
+}
+
+function analysisToolStatus(
+  result: ViewCorridorAnalysisResult | SectionPlaneAnalysisResult | null,
+  hasBuildings: boolean,
+): GisStatusKey {
+  if (result) return result.status === "ready" ? "generated" : "blocked";
+  return hasBuildings ? "unknown" : "blocked";
+}
+
+function formatOptionalNumber(value: number | null | undefined): string {
+  return value == null ? "not recorded" : value.toLocaleString();
+}
+
+function formatOptionalMetres(value: number | null | undefined, digits = 1): string {
+  if (value == null || !Number.isFinite(value)) return "not recorded";
+  return `${value.toFixed(digits)} m`;
+}
+
+function formatElevationRange(range: [number, number] | null | undefined): string {
+  if (!range) return "not recorded";
+  return `${formatOptionalMetres(range[0])} - ${formatOptionalMetres(range[1])}`;
+}
+
+function formatBbox2d(bbox: [number, number, number, number] | null | undefined): string {
+  if (!bbox) return "not recorded";
+  return `${bbox[0].toFixed(4)}, ${bbox[1].toFixed(4)} to ${bbox[2].toFixed(4)}, ${bbox[3].toFixed(4)}`;
+}
+
+function formatBbox3d(bbox: [number, number, number, number, number, number] | null | undefined): string {
+  if (!bbox) return "not recorded";
+  return `${bbox[0].toFixed(4)}, ${bbox[1].toFixed(4)} to ${bbox[3].toFixed(4)}, ${bbox[4].toFixed(4)}; z ${bbox[2].toFixed(1)}-${bbox[5].toFixed(1)} m`;
+}
+
+function formatLods(lods: readonly string[] | undefined): string {
+  return lods && lods.length > 0 ? lods.join(", ") : "not recorded";
+}
+
+function MetadataRow({
+  label,
+  value,
+  testId,
+}: {
+  label: string;
+  value: string;
+  testId?: string;
+}) {
+  return (
+    <div style={rowStyle} {...(testId ? { "data-testid": testId } : {})}>
+      <span style={keyStyle}>{label}</span>
+      <span>{value}</span>
+    </div>
+  );
 }
 
 function verticalDatumLabel(handle: SourceHandle | null): string {
@@ -322,7 +452,7 @@ function sceneRuntimeModeStatus(mode: Scene3DRuntimeMode): GisStatusKey {
 function sourceRuntimeStatus(handle: SourceHandle | null): GisStatusKey {
   const scene = handle?.scene3d;
   if (!scene) return "unknown";
-  if (scene.sourceKind === "generated-massing" || scene.sourceKind === "zoning-envelope") return "synthetic";
+  if (scene.sourceKind === "generated-massing" || scene.sourceKind === "zoning-envelope" || scene.sourceKind === "sun-shadow-result") return "synthetic";
   if (scene.runtimeMode === "sample") return "demo";
   if (scene.runtimeMode === "metadata-only") return "caveat";
   return "ready";
@@ -334,7 +464,7 @@ function sourceRuntimeLabel(handle: SourceHandle | null): string {
   if (scene.sourceKind === "generated-massing") return "generated massing";
   if (scene.sourceKind === "zoning-envelope") return "generated envelope";
   if (scene.runtimeMode === "metadata-only") return "metadata only";
-  return scene.runtimeMode;
+  return `${scene.runtimeMode} ${sceneSourceKindLabel(handle)}`;
 }
 
 function verticalDatumStatus(handle: SourceHandle | null): GisStatusKey {
@@ -344,19 +474,23 @@ function verticalDatumStatus(handle: SourceHandle | null): GisStatusKey {
 }
 
 function generationStateStatus(handle: SourceHandle | null): GisStatusKey {
-  const sourceKind = handle?.scene3d?.sourceKind;
+  const scene = handle?.scene3d;
+  const sourceKind = scene?.sourceKind;
   if (!sourceKind) return "unknown";
   if (sourceKind === "generated-massing" || sourceKind === "zoning-envelope" || sourceKind === "sun-shadow-result") return "synthetic";
-  if (sourceKind === "sample-3d") return "demo";
+  if (sourceKind === "sample-3d" || scene?.runtimeMode === "sample") return "demo";
+  if (scene?.runtimeMode === "metadata-only") return "caveat";
   return "ready";
 }
 
 function generationStateLabel(handle: SourceHandle | null): string {
-  const sourceKind = handle?.scene3d?.sourceKind;
+  const scene = handle?.scene3d;
+  const sourceKind = scene?.sourceKind;
   if (!sourceKind) return "source unknown";
   if (sourceKind === "generated-massing" || sourceKind === "zoning-envelope" || sourceKind === "sun-shadow-result") return "generated";
-  if (sourceKind === "sample-3d") return "sample";
-  return "real/source-backed";
+  if (sourceKind === "sample-3d" || scene?.runtimeMode === "sample") return "sample";
+  if (scene?.runtimeMode === "metadata-only") return "metadata only";
+  return "source-backed";
 }
 
 function sceneBounds(collection: FeatureCollection<Polygon, GeoJsonProperties>): [number, number, number, number] | null {
@@ -553,6 +687,7 @@ export const Scene3DPanel: React.FC<Scene3DPanelProps> = ({
   onClose,
   onModeChange,
   presentation = "floating",
+  viewportSync,
 }) => {
   const panelDrag = useDraggableMapPanel();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -565,6 +700,12 @@ export const Scene3DPanel: React.FC<Scene3DPanelProps> = ({
   const buildingConfig = useScene3DStore(selectBuildingConfig);
   const cityModelHandle = useScene3DStore(selectScene3DCityModelSourceHandle);
   const terrainHandle = useScene3DStore(selectScene3DTerrainSourceHandle);
+  const primarySceneHandle = cityModelHandle ?? terrainHandle;
+  const cityScene = cityModelHandle?.scene3d ?? null;
+  const terrainScene = terrainHandle?.scene3d ?? null;
+  const tilesetScene = cityScene?.sourceKind === "3d-tiles" ? cityScene : null;
+  const cityJsonScene = cityScene?.sourceKind === "cityjson" ? cityScene : null;
+  const previewActive = runtimeMode === "2.5d" || runtimeMode === "3d";
   const activeCollection = useScene3DStore((s) => s.activeCollection);
   const sceneBuildings = useScene3DStore(selectScene3DBuildings);
   const selectedIds = useScene3DStore(selectScene3DSelected);
@@ -748,9 +889,9 @@ export const Scene3DPanel: React.FC<Scene3DPanelProps> = ({
           </div>
         </div>
 
-        {(runtimeMode === "2.5d" || runtimeMode === "3d") && (
-          <div style={{ display: "grid", gap: MAP_SPACING.xs }} data-testid="scene3d-source-handle">
-            <span style={sectionTitleStyle}>Scene source</span>
+        <div style={{ display: "grid", gap: MAP_SPACING.xs }} data-testid="scene3d-source-handle">
+          <span style={sectionTitleStyle}>Scene source</span>
+          {previewActive ? (
             <canvas
               ref={canvasRef}
               width={520}
@@ -759,49 +900,144 @@ export const Scene3DPanel: React.FC<Scene3DPanelProps> = ({
               data-testid="scene3d-terrain-canvas"
               aria-label="Terrain grounded 3D scene preview"
             />
-            <div style={stateChipRowStyle} data-testid="scene3d-evidence-state-chips">
-              <GisStatusChip
-                status={sceneRuntimeModeStatus(runtimeMode)}
-                label={`view ${runtimeMode}`}
-                density="compact"
-                data-testid="scene3d-runtime-mode-chip"
-              />
-              <GisStatusChip
-                status={sourceRuntimeStatus(cityModelHandle)}
-                label={sourceRuntimeLabel(cityModelHandle)}
-                density="compact"
-                data-testid="scene3d-source-mode-chip"
-              />
-              <GisStatusChip
-                status={verticalDatumStatus(terrainHandle ?? cityModelHandle)}
-                label={verticalDatumLabel(terrainHandle ?? cityModelHandle)}
-                density="compact"
-                data-testid="scene3d-vertical-assumption-chip"
-              />
-              <GisStatusChip
-                status={generationStateStatus(cityModelHandle)}
-                label={generationStateLabel(cityModelHandle)}
-                density="compact"
-                data-testid="scene3d-generation-state-chip"
-              />
+          ) : (
+            <div
+              style={previewIdleStyle}
+              data-testid="scene3d-preview-idle"
+              data-heavy-scene-mounted="false"
+            >
+              2D view · terrain preview idle
             </div>
-            <div style={rowStyle}>
-              <span style={keyStyle}>City model</span>
-              <span>{cityModelHandle?.format ?? "building extrusion"} · {handleRuntimeLabel(cityModelHandle)}</span>
-            </div>
-            <div style={rowStyle}>
-              <span style={keyStyle}>Terrain</span>
-              <span>{terrainHandle?.format ?? "flat ground"} · {handleRuntimeLabel(terrainHandle)}</span>
-            </div>
-            <div style={rowStyle} data-testid="scene3d-vertical-datum">
-              <span style={keyStyle}>Vertical datum</span>
-              <span>{verticalDatumLabel(terrainHandle ?? cityModelHandle)}</span>
-            </div>
+          )}
+          <div style={stateChipRowStyle} data-testid="scene3d-evidence-state-chips">
+            <GisStatusChip
+              status={sceneRuntimeModeStatus(runtimeMode)}
+              label={`view ${runtimeMode}`}
+              density="compact"
+              data-testid="scene3d-runtime-mode-chip"
+            />
+            <GisStatusChip
+              status={sourceRuntimeStatus(primarySceneHandle)}
+              label={sourceRuntimeLabel(primarySceneHandle)}
+              density="compact"
+              data-testid="scene3d-source-mode-chip"
+            />
+            <GisStatusChip
+              status={verticalDatumStatus(terrainHandle ?? cityModelHandle)}
+              label={verticalDatumLabel(terrainHandle ?? cityModelHandle)}
+              density="compact"
+              data-testid="scene3d-vertical-assumption-chip"
+            />
+            <GisStatusChip
+              status={generationStateStatus(primarySceneHandle)}
+              label={generationStateLabel(primarySceneHandle)}
+              density="compact"
+              data-testid="scene3d-generation-state-chip"
+            />
+            {viewportSync ? (
+              <span title={viewportSync.title}>
+                <GisStatusChip
+                  status={viewportSync.status}
+                  label={viewportSync.label}
+                  density="compact"
+                  data-testid="scene3d-viewport-sync-chip"
+                />
+              </span>
+            ) : null}
           </div>
+          <div style={sourceMetadataGridStyle} data-testid="scene3d-source-metadata">
+            <section style={sourceMetadataLaneStyle} data-testid="scene3d-cityjson-metadata">
+              <div style={sourceMetadataHeaderStyle}>
+                <h4 style={sourceMetadataTitleStyle}>CityJSON</h4>
+                <GisStatusChip
+                  status={cityJsonScene ? sourceRuntimeStatus(cityModelHandle) : "unknown"}
+                  label={cityJsonScene ? handleRuntimeLabel(cityModelHandle) : "not linked"}
+                  density="compact"
+                  data-testid="scene3d-cityjson-state-chip"
+                />
+              </div>
+              <MetadataRow
+                label="Source mode"
+                value={cityJsonScene ? sourceRuntimeLabel(cityModelHandle) : "not linked"}
+                testId="scene3d-cityjson-source-mode"
+              />
+              <MetadataRow label="Objects" value={formatOptionalNumber(cityJsonScene?.objectCount)} />
+              <MetadataRow label="LOD" value={formatLods(cityJsonScene?.lods)} />
+              <MetadataRow label="CRS" value={cityJsonScene ? sourceCrsLabel(cityModelHandle) : "not linked"} />
+              <MetadataRow label="3D bounds" value={formatBbox3d(cityJsonScene?.bbox3d)} />
+            </section>
+
+            <section style={sourceMetadataLaneStyle} data-testid="scene3d-terrain-metadata">
+              <div style={sourceMetadataHeaderStyle}>
+                <h4 style={sourceMetadataTitleStyle}>Terrain</h4>
+                <GisStatusChip
+                  status={terrainScene ? sourceRuntimeStatus(terrainHandle) : "unknown"}
+                  label={terrainScene ? handleRuntimeLabel(terrainHandle) : "flat"}
+                  density="compact"
+                  data-testid="scene3d-terrain-state-chip"
+                />
+              </div>
+              <MetadataRow
+                label="Source mode"
+                value={terrainScene ? sourceRuntimeLabel(terrainHandle) : "flat ground fallback"}
+                testId="scene3d-terrain-source-mode"
+              />
+              <MetadataRow
+                label="Grid"
+                value={terrainScene?.terrain ? `${formatOptionalNumber(terrainScene.terrain.width)} x ${formatOptionalNumber(terrainScene.terrain.height)}` : "not linked"}
+              />
+              <MetadataRow label="Elevation" value={formatElevationRange(terrainScene?.terrain?.elevationRangeM)} />
+              <MetadataRow label="Samples" value={formatOptionalNumber(terrainScene?.terrain?.sampleCount)} />
+              <MetadataRow label="CRS" value={terrainScene ? sourceCrsLabel(terrainHandle) : "not linked"} />
+              <MetadataRow label="Bounds" value={formatBbox2d(terrainScene?.terrain?.bbox)} />
+            </section>
+
+            <section style={sourceMetadataLaneStyle} data-testid="scene3d-tiles-metadata">
+              <div style={sourceMetadataHeaderStyle}>
+                <h4 style={sourceMetadataTitleStyle}>3D Tiles</h4>
+                <GisStatusChip
+                  status={tilesetScene ? sourceRuntimeStatus(cityModelHandle) : "unknown"}
+                  label={tilesetScene ? handleRuntimeLabel(cityModelHandle) : "not linked"}
+                  density="compact"
+                  data-testid="scene3d-tiles-state-chip"
+                />
+              </div>
+              <MetadataRow
+                label="Source mode"
+                value={tilesetScene ? sourceRuntimeLabel(cityModelHandle) : "not linked"}
+                testId="scene3d-tiles-source-mode"
+              />
+              <MetadataRow label="Asset" value={tilesetScene?.tileset?.assetVersion ?? "not recorded"} />
+              <MetadataRow
+                label="Tiles"
+                value={tilesetScene?.tileset ? `${formatOptionalNumber(tilesetScene.tileset.tileCount)} tiles / ${formatOptionalNumber(tilesetScene.tileset.contentCount)} content` : "not linked"}
+              />
+              <MetadataRow label="Error" value={formatOptionalMetres(tilesetScene?.tileset?.rootGeometricError)} />
+              <MetadataRow label="Refine" value={tilesetScene?.tileset?.rootRefine ?? "not recorded"} />
+              <MetadataRow label="3D bounds" value={formatBbox3d(tilesetScene?.bbox3d)} />
+            </section>
+          </div>
+          <div style={rowStyle} data-testid="scene3d-vertical-datum">
+            <span style={keyStyle}>Vertical datum</span>
+            <span>{verticalDatumLabel(terrainHandle ?? cityModelHandle)}</span>
+          </div>
+        </div>
+
+        {previewActive && (
+          <section style={dockedControlSectionStyle} data-testid="scene3d-docked-interaction-tools">
+            <span style={sectionTitleStyle}>Interaction tools</span>
+            <Scene3DInteractionStrip visible presentation="embedded" />
+          </section>
+        )}
+
+        {previewActive && (
+          <section style={dockedControlSectionStyle} data-testid="scene3d-docked-scenario-comparison">
+            <ScenarioComparisonStrip visible presentation="embedded" />
+          </section>
         )}
 
         {/* Extrusion config */}
-        {(runtimeMode === "2.5d" || runtimeMode === "3d") && (
+        {previewActive && (
           <div style={{ display: "grid", gap: MAP_SPACING.xs }} data-testid="scene3d-extrusion-config">
             <span style={sectionTitleStyle}>Extrusion</span>
             <div style={rowStyle}>
@@ -848,9 +1084,49 @@ export const Scene3DPanel: React.FC<Scene3DPanelProps> = ({
           </div>
         )}
 
-        {(runtimeMode === "2.5d" || runtimeMode === "3d") && (
+        {previewActive && (
           <div style={analysisPanelStyle} data-testid="scene3d-analysis-tools">
             <span style={sectionTitleStyle}>Corridor + section</span>
+            <div style={stateChipRowStyle} data-testid="scene3d-urban-form-controls">
+              <GisStatusChip
+                status={analysisToolStatus(viewCorridorResult, sceneBuildings.length > 0)}
+                label={viewCorridorResult
+                  ? "View corridor: generated"
+                  : sceneBuildings.length > 0
+                    ? "View corridor: ready"
+                    : "View corridor: buildings required"}
+                density="compact"
+                data-testid="scene3d-view-corridor-control-chip"
+              />
+              <GisStatusChip
+                status={analysisToolStatus(sectionPlaneResult, sceneBuildings.length > 0)}
+                label={sectionPlaneResult
+                  ? "Section/cut plane: generated"
+                  : sceneBuildings.length > 0
+                    ? "Section/cut plane: ready"
+                    : "Section/cut plane: buildings required"}
+                density="compact"
+                data-testid="scene3d-section-cut-control-chip"
+              />
+              <GisStatusChip
+                status={analysisProjectedCrsStatus(activeLayerCrs)}
+                label={`Projected CRS: ${activeLayerCrs ?? "missing"}`}
+                density="compact"
+                data-testid="scene3d-analysis-projected-crs-chip"
+              />
+              <GisStatusChip
+                status={verticalDatumStatus(terrainHandle ?? cityModelHandle)}
+                label={`Vertical: ${verticalDatumLabel(terrainHandle ?? cityModelHandle)}`}
+                density="compact"
+                data-testid="scene3d-analysis-vertical-chip"
+              />
+              <GisStatusChip
+                status={sceneBuildings.length > 0 ? "ready" : "blocked"}
+                label={`Buildings: ${sceneBuildings.length} scene masses`}
+                density="compact"
+                data-testid="scene3d-analysis-building-prerequisite-chip"
+              />
+            </div>
             <div style={rowStyle} data-testid="scene3d-analysis-crs">
               <span style={keyStyle}>Execution CRS</span>
               <span>{resultExecutionCrs(viewCorridorResult, sectionPlaneResult, activeLayerCrs) ?? "not declared"}</span>

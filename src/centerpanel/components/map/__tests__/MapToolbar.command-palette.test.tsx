@@ -118,7 +118,7 @@ afterEach(() => {
   host?.remove();
   host = null;
   document.body.innerHTML = "";
-  useMapToolbarPreferencesStore.setState({ density: "expert", taskLens: "analyst" });
+  useMapToolbarPreferencesStore.setState({ density: "comfortable", taskLens: "analyst" });
   window.localStorage.clear();
 });
 

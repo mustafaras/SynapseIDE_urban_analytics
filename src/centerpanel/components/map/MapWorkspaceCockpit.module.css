@@ -22,6 +22,10 @@
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr);
   overflow: hidden;
+  /* The cockpit lives in a variable-width sidebar; size its internal layout to
+     its own width (not the viewport) so it never overflows a narrow panel. */
+  container-type: inline-size;
+  container-name: cockpit;
   border: 1px solid var(--syn-border-subtle);
   border-radius: 4px;
   background: var(--syn-surface-panel);
@@ -37,10 +41,10 @@
 
 .commandBar {
   display: grid;
-  grid-template-columns: minmax(300px, 1.2fr) minmax(180px, 0.7fr) minmax(210px, 0.72fr) minmax(280px, 0.95fr);
-  align-items: center;
-  gap: 16px;
-  padding: 14px 16px;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 9px;
+  padding: 10px 12px;
   border-bottom: 1px solid var(--syn-border-subtle);
   background: var(--syn-surface-panel);
 }
@@ -60,7 +64,9 @@
 }
 
 .commandIdentity {
-  gap: 12px;
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
+  gap: 9px;
   min-width: 0;
 }
 
@@ -68,8 +74,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 26px;
+  height: 26px;
   border-radius: 0;
   border: 0;
   background: transparent;
@@ -160,8 +166,9 @@
 
 .commandMeta {
   gap: 8px;
-  justify-content: flex-end;
+  justify-content: flex-start;
   min-width: 0;
+  overflow: hidden;
 }
 
 .metaChip,
@@ -171,6 +178,8 @@
   background: transparent;
   color: var(--syn-text-secondary);
   font-size: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -224,7 +233,7 @@
   justify-content: space-between;
   gap: 12px;
   width: 100%;
-  min-height: 50px;
+  min-height: 44px;
   min-width: 0;
   padding: 9px 12px;
   border: 1px solid color-mix(in srgb, var(--cockpit-accent) 42%, var(--syn-border-subtle));
@@ -273,21 +282,23 @@
 
 .bodyGrid {
   display: grid;
-  grid-template-columns: minmax(300px, 0.78fr) minmax(0, 1.22fr);
-  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto;
   grid-template-areas:
-    "state flow"
-    "state integration";
+    "state"
+    "flow"
+    "integration";
   min-height: 0;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   align-items: start;
 }
 
 .contextStrip {
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0;
-  padding: 10px 14px 9px;
+  padding: 8px 12px;
   border-bottom: 1px solid var(--syn-border-subtle);
   background: var(--syn-surface-panel);
 }
@@ -298,17 +309,17 @@
   align-items: start;
   gap: 7px;
   min-width: 0;
-  padding: 2px 10px;
-  border-left: 1px solid var(--syn-border-subtle);
+  padding: 6px 8px;
+  border-top: 1px solid var(--syn-border-subtle);
+  border-left: 0;
 }
 
 .contextStrip > :first-child {
-  border-left: 0;
-  padding-left: 0;
+  border-top: 0;
 }
 
-.contextStrip > :last-child {
-  padding-right: 0;
+.contextStrip > :nth-child(2) {
+  border-top: 0;
 }
 
 .contextCellIcon {
@@ -366,9 +377,10 @@
   min-width: 0;
   min-height: 0;
   height: 100%;
-  padding: 16px;
+  padding: 12px;
   overflow: auto;
-  border-right: 1px solid color-mix(in srgb, var(--cockpit-accent) 6%, transparent);
+  border-right: 0;
+  border-top: 1px solid color-mix(in srgb, var(--cockpit-accent) 8%, transparent);
 }
 
 .pane:last-child {
@@ -641,8 +653,8 @@
 
 .modeRail {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
 }
 
 .modeBtn {
@@ -651,8 +663,8 @@
   align-items: center;
   gap: 10px;
   min-width: 0;
-  min-height: 56px;
-  padding: 10px;
+  min-height: 44px;
+  padding: 8px;
   border: 1px solid var(--syn-border-subtle);
   border-left: 2px solid transparent;
   border-radius: 3px;
@@ -960,7 +972,7 @@
 
 .analysisRecommendationMetaGrid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
   min-width: 0;
 }
@@ -985,10 +997,9 @@
 }
 
 .analysisRecommendationFooter {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
   min-width: 0;
   padding-top: 2px;
 }
@@ -1009,7 +1020,7 @@
   justify-content: center;
   gap: 5px;
   min-height: 30px;
-  flex: 0 0 auto;
+  width: fit-content;
   padding: 6px 9px;
   border: 1px solid color-mix(in srgb, var(--cockpit-accent) 36%, transparent);
   border-radius: 3px;
@@ -1064,7 +1075,7 @@
 
 .quickActionGrid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
   margin-top: 12px;
 }
@@ -1131,7 +1142,7 @@
 
 @media (max-width: 980px) {
   .commandBar {
-    grid-template-columns: minmax(220px, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .bodyGrid {
@@ -1151,17 +1162,16 @@
   }
 
   .quickActionGrid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .modeRail {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .contextStrip {
-    grid-template-columns: repeat(7, minmax(124px, 1fr));
-    overflow-x: auto;
-    overflow-y: hidden;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: hidden;
   }
 }
 
@@ -1183,9 +1193,12 @@
   }
 
   .metricRibbon,
-  .quickActionGrid,
-  .analysisRecommendationMetaGrid {
+  .quickActionGrid {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .analysisRecommendationMetaGrid {
+    grid-template-columns: 1fr;
   }
 
   .modeRail {
@@ -1193,7 +1206,7 @@
   }
 
   .contextStrip {
-    grid-template-columns: repeat(7, minmax(124px, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .statusHotkey {
@@ -1227,21 +1240,4 @@
 
 .statePane .focusBand p {
   display: block;
-}
-
-@media (min-width: 1280px) and (min-height: 700px) {
-  .bodyGrid {
-    grid-template-columns: minmax(300px, 0.8fr) minmax(420px, 1fr) minmax(360px, 0.95fr);
-    grid-template-rows: minmax(0, 1fr);
-    grid-template-areas: "state flow integration";
-  }
-
-  .flowPane {
-    border-right: 1px solid color-mix(in srgb, var(--cockpit-accent) 6%, transparent);
-  }
-
-  .integrationPane {
-    height: 100%;
-    border-top: 0;
-  }
 }

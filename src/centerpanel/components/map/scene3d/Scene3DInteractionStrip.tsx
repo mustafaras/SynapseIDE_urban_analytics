@@ -138,6 +138,7 @@ const dividerStyle: React.CSSProperties = {
 
 export interface Scene3DInteractionStripProps {
   visible: boolean;
+  presentation?: "floating" | "embedded";
 }
 
 /* ------------------------------------------------------------------ */
@@ -146,6 +147,7 @@ export interface Scene3DInteractionStripProps {
 
 export const Scene3DInteractionStrip: React.FC<Scene3DInteractionStripProps> = ({
   visible,
+  presentation = "floating",
 }) => {
   const activeMode = useScene3DStore(selectInteractionMode);
   const bookmarks = useScene3DStore(selectCameraBookmarks);
@@ -177,14 +179,41 @@ export const Scene3DInteractionStrip: React.FC<Scene3DInteractionStripProps> = (
 
   if (!visible) return null;
 
+  const embedded = presentation === "embedded";
+  const resolvedStripStyle: React.CSSProperties = embedded
+    ? {
+        ...stripStyle,
+        position: "relative",
+        top: "auto",
+        left: "auto",
+        zIndex: "auto",
+        flexWrap: "wrap",
+        width: "100%",
+        borderRadius: MAP_RADIUS.sm,
+        boxShadow: "none",
+        background: MAP_COLORS.bgWorkspace,
+      }
+    : stripStyle;
+  const resolvedBookmarkListStyle: React.CSSProperties = embedded
+    ? {
+        ...bookmarkListStyle,
+        position: "static",
+        flexBasis: "100%",
+        minWidth: 0,
+        boxShadow: "none",
+        marginTop: MAP_SPACING.xs,
+      }
+    : bookmarkListStyle;
+
   /* Dividers between logical groups */
   const dividerAfter = new Set<number>([1, 3, 6]);
 
   return (
     <div
       data-testid="scene3d-interaction-strip"
-      data-position="top-left"
-      style={stripStyle}
+      data-presentation={presentation}
+      data-position={embedded ? "docked" : "top-left"}
+      style={resolvedStripStyle}
       role="toolbar"
       aria-label="3D interaction tools"
     >
@@ -203,7 +232,7 @@ export const Scene3DInteractionStrip: React.FC<Scene3DInteractionStripProps> = (
       ))}
 
       {showBookmarks && (
-        <div style={bookmarkListStyle} data-testid="camera-bookmark-list">
+        <div style={resolvedBookmarkListStyle} data-testid="camera-bookmark-list">
           {bookmarks.length === 0 ? (
             <p style={emptyBookmarkStyle}>No saved views</p>
           ) : (

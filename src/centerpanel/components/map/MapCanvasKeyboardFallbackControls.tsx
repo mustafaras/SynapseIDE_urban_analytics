@@ -30,6 +30,7 @@ export interface MapCanvasKeyboardFallbackControlsProps {
   defaultCenter: [number, number];
   defaultZoom: number;
   onAnnounce?: (message: string) => void;
+  surface?: "floating" | "bar";
 }
 
 const controlShellStyle: React.CSSProperties = {
@@ -78,6 +79,48 @@ const gridSpacerStyle: React.CSSProperties = {
   height: "1.75rem",
 };
 
+const inlineShellStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "0.1875rem",
+  flex: "0 0 auto",
+  height: "1.875rem",
+  padding: "0 0.25rem",
+  border: "1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.32))",
+  borderRadius: MAP_RADIUS.sm,
+  background: "color-mix(in srgb, var(--syn-surface-panel, #151a21) 58%, transparent)",
+  color: MAP_COLORS.textSecondary,
+};
+
+const inlineClusterStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "0.125rem",
+};
+
+const inlineButtonStyle: React.CSSProperties = {
+  width: "1.5rem",
+  height: "1.5rem",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  border: "1px solid transparent",
+  borderRadius: MAP_RADIUS.sm,
+  background: MAP_COLORS.transparent,
+  color: MAP_COLORS.textSecondary,
+  cursor: "pointer",
+  fontFamily: MAP_TYPOGRAPHY.fontFamily,
+};
+
+const inlineLabelStyle: React.CSSProperties = {
+  padding: "0 0.25rem",
+  color: MAP_COLORS.textMuted,
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+  fontSize: "0.625rem",
+  fontWeight: 700,
+  letterSpacing: 0,
+};
+
 function runWithMap(
   mapRef: React.RefObject<maplibregl.Map | null>,
   onMissingMap: () => void,
@@ -98,6 +141,7 @@ export const MapCanvasKeyboardFallbackControls: React.FC<MapCanvasKeyboardFallba
   defaultCenter,
   defaultZoom,
   onAnnounce,
+  surface = "floating",
 }) => {
   const animate = !reducedMotion;
   const announceMissingMap = React.useCallback(() => {
@@ -148,6 +192,40 @@ export const MapCanvasKeyboardFallbackControls: React.FC<MapCanvasKeyboardFallba
       onAnnounce?.("Map view reset to default");
     });
   }, [announceMissingMap, defaultCenter, defaultZoom, mapRef, onAnnounce, reducedMotion]);
+
+  if (surface === "bar") {
+    return (
+      <div
+        style={inlineShellStyle}
+        role="group"
+        aria-label="Keyboard map canvas controls"
+        data-map-canvas-fallback-controls="true"
+        data-map-canvas-fallback-surface="bar"
+      >
+        <span style={mapStyles.srOnly}>
+          Map canvas topbar controls for pan and focus.
+        </span>
+        <span style={inlineLabelStyle} aria-hidden="true">NAV</span>
+        <span style={inlineClusterStyle} aria-label="Pan map controls">
+          <button type="button" style={inlineButtonStyle} onClick={() => panMap("west")} aria-label="Pan map west" title="Pan map west">
+            <ArrowLeft size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+          </button>
+          <button type="button" style={inlineButtonStyle} onClick={() => panMap("north")} aria-label="Pan map north" title="Pan map north">
+            <ArrowUp size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+          </button>
+          <button type="button" style={inlineButtonStyle} onClick={() => panMap("south")} aria-label="Pan map south" title="Pan map south">
+            <ArrowDown size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+          </button>
+          <button type="button" style={inlineButtonStyle} onClick={() => panMap("east")} aria-label="Pan map east" title="Pan map east">
+            <ArrowRight size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+          </button>
+          <button type="button" style={inlineButtonStyle} onClick={focusMapCanvas} aria-label="Return focus to map canvas" title="Return focus to map canvas">
+            <Focus size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+          </button>
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div

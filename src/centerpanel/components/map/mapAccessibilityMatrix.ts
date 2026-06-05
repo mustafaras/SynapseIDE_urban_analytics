@@ -34,7 +34,16 @@ export const MAP_ACCESSIBILITY_INTERACTION_MATRIX: readonly MapAccessibilityInte
     keyboardRule: "Focus reaches search, palette, contextual primary action, overflow, and close controls in visual order.",
     focusRule: "The command palette restores focus to its opener when it closes.",
     escapeRule: "Escape closes the command palette before the modal is eligible to close.",
-    proof: ["map-command-center", "map-command-palette", "map-toolbar-command-command-palette"],
+    proof: [
+      "map-command-center",
+      "map-command-palette",
+      "map-toolbar-command-command-palette",
+      "map-command-palette-option-task-lens-analyst",
+      "map-command-palette-option-task-lens-planner",
+      "map-command-palette-option-task-lens-reviewer",
+      "map-command-palette-option-task-lens-publisher",
+      "map-command-palette-option-switch-density",
+    ],
   },
   {
     id: "sidebar-close-return",
@@ -80,9 +89,9 @@ export const MAP_ACCESSIBILITY_INTERACTION_MATRIX: readonly MapAccessibilityInte
     id: "disabled-reason-text",
     surface: "disabled-reason",
     keyboardRule: "Disabled controls remain skipped by native tab order.",
-    focusRule: "Disabled controls expose a data-disabled-reason and aria-described text for the reason.",
+    focusRule: "Disabled controls expose a data-disabled-reason and aria-described hidden text for the reason.",
     escapeRule: "Disabled controls never intercept Escape.",
-    proof: ["data-disabled-reason", "aria-describedby"],
+    proof: ["data-disabled-reason", "aria-describedby", "map-command-palette-option-undo-map-action-disabled-reason"],
   },
   {
     id: "forced-colors-states",
@@ -90,7 +99,7 @@ export const MAP_ACCESSIBILITY_INTERACTION_MATRIX: readonly MapAccessibilityInte
     keyboardRule: "Active, blocked, demo, and synthetic states include text, aria state, border weight, or line style beyond hue.",
     focusRule: "Forced-colors focus uses system Highlight outlines.",
     escapeRule: "High-contrast styling does not change Escape routing.",
-    proof: ["aria-pressed", "data-status=blocked", "data-status=demo", "data-status=synthetic"],
+    proof: ["aria-pressed", "data-status=blocked", "data-status=demo", "data-status=synthetic", "border-width:2px", "border-style:dashed"],
   },
   {
     id: "reduced-motion-safety",
@@ -98,7 +107,7 @@ export const MAP_ACCESSIBILITY_INTERACTION_MATRIX: readonly MapAccessibilityInte
     keyboardRule: "Reduced motion removes non-essential shell animation and uses jumpTo for keyboard map reset.",
     focusRule: "Focus movement remains immediate and visible when reduced motion is active.",
     escapeRule: "Reduced motion does not change scoped Escape priority.",
-    proof: ["prefers-reduced-motion", "jumpTo", "transition: none"],
+    proof: ["prefers-reduced-motion", "jumpTo", "transition: none", "animation: none", "scroll-behavior: auto"],
   },
 ];
 

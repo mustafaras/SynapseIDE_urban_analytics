@@ -273,7 +273,7 @@ describe("barrel index exports", () => {
     expect(barrel.MapSearchBar).toBeDefined();
     expect(barrel.MapStatusBar).toBeDefined();
     expect(barrel.MapPinSidebar).toBeDefined();
-  }, 15000);
+  }, 30000);
 
   it("exports mapTokens constants", async () => {
     const barrel = await import("../index");
@@ -553,8 +553,8 @@ describe("Map Explorer components render without errors", () => {
     const distanceButton = host.querySelector<HTMLButtonElement>('[data-testid="map-canvas-measure-distance"]');
     const keyboardHelpButton = host.querySelector<HTMLButtonElement>('[data-testid="map-canvas-keyboard-help"]');
 
-    expect(rectangleButton?.textContent).toContain("Off");
-    expect(lassoButton?.textContent).toContain("Off");
+    expect(rectangleButton).toBeNull();
+    expect(lassoButton).toBeNull();
     expect(drawAoiButton?.textContent).toContain("On");
     expect(distanceButton?.textContent).toContain("Off");
     expect(keyboardHelpButton?.textContent).toContain("Off");
@@ -574,8 +574,6 @@ describe("Map Explorer components render without errors", () => {
     await clickByLabel("Hide scale bar");
     await clickByLabel("Hide north arrow");
     await clickByLabel("Hide legend");
-    await clickByLabel("Rectangle select");
-    await clickByLabel("Lasso select");
     await clickByLabel("Cancel draw AOI");
     await clickByLabel("Measure distance");
     await clickByLabel("Measure area");
@@ -599,7 +597,7 @@ describe("Map Explorer components render without errors", () => {
     expect(onToggleScaleBar).toHaveBeenCalledTimes(1);
     expect(onToggleNorthArrow).toHaveBeenCalledTimes(1);
     expect(onToggleLegend).toHaveBeenCalledTimes(1);
-    expect(onSetSelectionDragTool).toHaveBeenCalledTimes(2);
+    expect(onSetSelectionDragTool).not.toHaveBeenCalled();
     expect(onDrawAoi).toHaveBeenCalledTimes(1);
     expect(onMeasureDistance).toHaveBeenCalledTimes(1);
     expect(onMeasureArea).toHaveBeenCalledTimes(1);

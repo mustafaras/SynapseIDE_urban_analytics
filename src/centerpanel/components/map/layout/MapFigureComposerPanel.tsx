@@ -1,13 +1,17 @@
 import React, { useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, Image, X } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Image, ShieldCheck, X } from "lucide-react";
 import type { OverlayLayerConfig } from "../mapTypes";
 import type { MapScientificQAState } from "@/services/map/MapScientificQA";
+import type { MapPublicationDpi, MapPublicationPageSize } from "@/services/map/MapExportService";
 import {
+  buildFigureReadinessChecklist,
   buildMapFigureAttributionText,
   composeMapFigure,
   preflightMapFigure,
+  summariseFigureReadiness,
   type MapFigureSpec,
 } from "@/services/map/layout/MapLayoutComposer";
+import { GisStatusChip } from "../ui";
 import {
   MAP_COLORS,
   MAP_ICON_SIZES,
@@ -88,12 +92,62 @@ const inputStyle: React.CSSProperties = {
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
 };
 
+const selectStyle: React.CSSProperties = {
+  ...inputStyle,
+  cursor: "pointer",
+};
+
+const pageSetupRowStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
+  gap: MAP_SPACING.sm,
+};
+
 const metaRowStyle: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns: "auto minmax(0, 1fr)",
   gap: MAP_SPACING.sm,
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
   color: MAP_COLORS.textSecondary,
+};
+
+const readinessSectionStyle: React.CSSProperties = {
+  display: "grid",
+  gap: MAP_SPACING.xs,
+  padding: `${MAP_SPACING.sm} ${MAP_SPACING.sm}`,
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.sm,
+  background: MAP_COLORS.bg,
+};
+
+const readinessHeaderStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: MAP_SPACING.sm,
+};
+
+const readinessRowStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "minmax(7rem, auto) minmax(0, 1fr)",
+  alignItems: "center",
+  gap: MAP_SPACING.sm,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  color: MAP_COLORS.textSecondary,
+};
+
+const PAGE_SIZE_OPTIONS: ReadonlyArray<{ value: MapPublicationPageSize; label: string }> = [
+  { value: "a4", label: "A4" },
+  { value: "a3", label: "A3" },
+  { value: "letter", label: "Letter" },
+];
+
+const DPI_OPTIONS: readonly MapPublicationDpi[] = [72, 150, 300];
+
+const READINESS_STATUS_LABEL: Record<"ready" | "caveat" | "blocked", string> = {
+  ready: "Export ready",
+  caveat: "Ready with caveats",
+  blocked: "Blocked",
 };
 
 const metaKeyStyle: React.CSSProperties = {
@@ -188,6 +242,8 @@ export const MapFigureComposerPanel: React.FC<MapFigureComposerPanelProps> = ({
   const [includeLegend, setIncludeLegend] = useState(true);
   const [includeScaleBar, setIncludeScaleBar] = useState(true);
   const [includeNorthArrow, setIncludeNorthArrow] = useState(true);
+  const [pageSize, setPageSize] = useState<MapPublicationPageSize>("a4");
+  const [dpi, setDpi] = useState<MapPublicationDpi>(300);
   const attributionText = customAttributionText ?? derivedAttributionText;
 
   const figure = useMemo(
@@ -203,12 +259,20 @@ export const MapFigureComposerPanel: React.FC<MapFigureComposerPanelProps> = ({
           includeLegend,
           includeScaleBar,
           includeNorthArrow,
+          pageSize,
+          dpi,
         },
       }),
-    [attributionText, bearing, includeLegend, includeNorthArrow, includeScaleBar, overlayLayers, qaState, title],
+    [attributionText, bearing, dpi, includeLegend, includeNorthArrow, includeScaleBar, overlayLayers, pageSize, qaState, title],
   );
 
   const preflight = useMemo(() => preflightMapFigure(figure), [figure]);
+  const pageSizeLabel = PAGE_SIZE_OPTIONS.find((option) => option.value === pageSize)?.label ?? pageSize.toUpperCase();
+  const readinessRows = useMemo(
+    () => buildFigureReadinessChecklist(figure, { pageSize: pageSizeLabel, dpi }),
+    [dpi, figure, pageSizeLabel],
+  );
+  const readinessSummary = summariseFigureReadiness(readinessRows);
 
   if (!visible) return null;
 
@@ -236,6 +300,34 @@ export const MapFigureComposerPanel: React.FC<MapFigureComposerPanelProps> = ({
           Figure title
           <input style={inputStyle} value={title} onChange={(event) => setTitle(event.target.value)} aria-label="Figure title" />
         </label>
+        <div style={pageSetupRowStyle} data-testid="map-figure-page-setup">
+          <label style={labelStyle}>
+            Page size
+            <select
+              style={selectStyle}
+              value={pageSize}
+              onChange={(event) => setPageSize(event.target.value as MapPublicationPageSize)}
+              aria-label="Figure page size"
+            >
+              {PAGE_SIZE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </label>
+          <label style={labelStyle}>
+            Resolution (DPI)
+            <select
+              style={selectStyle}
+              value={dpi}
+              onChange={(event) => setDpi(Number(event.target.value) as MapPublicationDpi)}
+              aria-label="Figure resolution in DPI"
+            >
+              {DPI_OPTIONS.map((option) => (
+                <option key={option} value={option}>{option} DPI</option>
+              ))}
+            </select>
+          </label>
+        </div>
         <label style={labelStyle}>
           Attribution
           <textarea
@@ -272,6 +364,24 @@ export const MapFigureComposerPanel: React.FC<MapFigureComposerPanelProps> = ({
             <div style={metaRowStyle}><span style={metaKeyStyle}>QA caveats</span><span>{figure.qaCaveats.length}</span></div>
           ) : null}
         </div>
+
+        <section style={readinessSectionStyle} aria-label="Figure readiness checklist" data-testid="map-figure-readiness">
+          <div style={readinessHeaderStyle}>
+            <span style={{ ...sectionTitleStyle, display: "inline-flex", alignItems: "center", gap: MAP_SPACING.xs }}>
+              <ShieldCheck size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+              Readiness checklist
+            </span>
+            <GisStatusChip status={readinessSummary} label={READINESS_STATUS_LABEL[readinessSummary]} density="compact" data-testid="map-figure-readiness-summary" />
+          </div>
+          {readinessRows.map((row) => (
+            <div key={row.id} style={readinessRowStyle} data-testid={`map-figure-readiness-${row.id}`}>
+              <GisStatusChip status={row.status} label={row.label} density="compact" />
+              <span style={{ minWidth: 0, color: row.status === "blocked" ? MAP_COLORS.error : MAP_COLORS.textSecondary }} title={row.detail}>
+                {row.value}{row.detail ? ` — ${row.detail}` : ""}
+              </span>
+            </div>
+          ))}
+        </section>
 
         {preflight.blockers.length > 0 ? (
           <div style={{ display: "grid", gap: MAP_SPACING.xs }} data-testid="map-figure-blockers">

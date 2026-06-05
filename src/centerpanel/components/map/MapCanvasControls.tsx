@@ -60,6 +60,16 @@ export interface MapCanvasControlsProps {
   fitSelectedReason?: string;
   fitVisibleDisabled?: boolean;
   fitVisibleReason?: string;
+  /** Optional product wordmark shown at the start of the command bar. */
+  brandTitle?: string;
+  brandSubtitle?: string;
+  /**
+   * Render surface:
+   * - "full"   — standalone floating overlay bar + north arrow + keyboard popover (default; used by unit tests)
+   * - "bar"    — inline tool cluster only, to embed inside the unified command header
+   * - "overlay"— north arrow + keyboard popover only, anchored over the map canvas
+   */
+  surface?: "full" | "bar" | "overlay";
   onZoomIn: () => void;
   onZoomOut: () => void;
   onResetView: () => void;
@@ -85,46 +95,62 @@ const rootStyle: React.CSSProperties = {
   zIndex: MAP_Z_INDEX.dropdown - 1,
 };
 
-const viewportClusterStyle: React.CSSProperties = {
+/* ------------------------------------------------------------------ */
+/*  Premium top command bar                                            */
+/*  One branded horizontal strip replaces the old floating corner      */
+/*  clusters: wordmark · viewport · interaction tools · furniture.     */
+/* ------------------------------------------------------------------ */
+
+const commandBarStyle: React.CSSProperties = {
   position: "absolute",
-  top: "5.25rem",
-  left: `calc(var(--map-dock-left, 0px) + ${MAP_SPACING.md})`,
-  display: "grid",
+  top: MAP_SPACING.zero,
+  left: "calc(var(--map-dock-left, 0px))",
+  right: "calc(var(--map-dock-right, 0px))",
+  display: "flex",
+  alignItems: "center",
   gap: MAP_SPACING.xs,
+  height: "2.75rem",
+  minHeight: "2.75rem",
+  padding: `0 ${MAP_SPACING.sm}`,
+  boxSizing: "border-box",
+  background: MAP_COLORS.bgHeader,
+  borderBottom: MAP_STROKES.hairlineStrong,
+  boxShadow: MAP_SHADOWS.none,
   pointerEvents: "auto",
+  overflowX: "visible",
+  overflowY: "visible",
+  zIndex: MAP_Z_INDEX.dropdown,
 };
 
-const furnitureClusterStyle: React.CSSProperties = {
-  position: "absolute",
-  top: MAP_SPACING.md,
-  right: `calc(var(--map-dock-right, 0px) + ${MAP_SPACING.md})`,
-  display: "grid",
-  gap: MAP_SPACING.xs,
-  justifyItems: "end",
-  pointerEvents: "auto",
-};
-
-const buttonGroupStyle: React.CSSProperties = {
+const embeddedBarStyle: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
-  gap: "0.1875rem",
-  width: "fit-content",
-  padding: "0.1875rem",
-  border: MAP_STROKES.hairlineStrong,
-  borderRadius: MAP_RADIUS.sm,
-  background: "var(--syn-surface-panel, rgba(12, 16, 24, 0.88))",
-  boxShadow: MAP_SHADOWS.none,
+  gap: "0.125rem",
+  flex: "1 1 auto",
+  minWidth: 0,
+  maxWidth: "100%",
+  overflowX: "visible",
+  overflowY: "visible",
 };
 
-const verticalGroupStyle: React.CSSProperties = {
-  ...buttonGroupStyle,
-  display: "grid",
-  gridTemplateColumns: "repeat(2, 1.875rem)",
+const barGroupStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "0.125rem",
+  flexShrink: 0,
+};
+
+const barDividerStyle: React.CSSProperties = {
+  width: 1,
+  height: "1.5rem",
+  background: "var(--syn-border-subtle, rgba(148, 163, 184, 0.28))",
+  flexShrink: 0,
+  margin: "0 0.1875rem",
 };
 
 const buttonStyle: React.CSSProperties = {
-  width: "1.875rem",
-  height: "1.875rem",
+  width: "1.75rem",
+  height: "1.75rem",
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
@@ -133,6 +159,7 @@ const buttonStyle: React.CSSProperties = {
   background: MAP_COLORS.transparent,
   color: MAP_COLORS.textSecondary,
   cursor: "pointer",
+  flexShrink: 0,
 };
 
 const activeButtonStyle: React.CSSProperties = {
@@ -153,38 +180,29 @@ const toolIndicatorStyle: React.CSSProperties = {
   gridTemplateColumns: "auto minmax(0, 1fr) auto",
   alignItems: "center",
   gap: MAP_SPACING.xs,
-  minWidth: "11.75rem",
-  maxWidth: "min(17rem, calc(100vw - var(--map-dock-left, 0px) - var(--map-dock-right, 0px) - 2rem))",
-  padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
-  border: MAP_STROKES.hairlineStrong,
+  minWidth: "7.25rem",
+  maxWidth: "10rem",
+  height: "1.75rem",
+  padding: `0 ${MAP_SPACING.xs} 0 ${MAP_SPACING.sm}`,
+  border: MAP_STROKES.hairline,
   borderRadius: MAP_RADIUS.sm,
-  background: "var(--syn-surface-panel, rgba(12, 16, 24, 0.9))",
+  background: "var(--syn-surface-subtle, rgba(15, 23, 42, 0.5))",
   color: MAP_COLORS.textSecondary,
-  boxShadow: MAP_SHADOWS.none,
-  pointerEvents: "auto",
-};
-
-const interactionStripStyle: React.CSSProperties = {
-  ...buttonGroupStyle,
-  display: "flex",
-  flexWrap: "wrap",
-  gap: MAP_SPACING.xs,
-  maxWidth: "min(34rem, calc(100vw - var(--map-dock-left, 0px) - var(--map-dock-right, 0px) - 2rem))",
+  flexShrink: 0,
 };
 
 const interactionButtonStyle: React.CSSProperties = {
-  minWidth: "5.5rem",
-  height: "2rem",
+  width: "1.75rem",
+  height: "1.75rem",
   display: "inline-flex",
   alignItems: "center",
-  justifyContent: "space-between",
-  gap: MAP_SPACING.xs,
-  padding: `0 ${MAP_SPACING.sm}`,
-  border: MAP_STROKES.hairline,
+  justifyContent: "center",
+  border: "1px solid transparent",
   borderRadius: MAP_RADIUS.sm,
-  background: "var(--syn-surface-subtle, rgba(15, 23, 42, 0.62))",
+  background: MAP_COLORS.transparent,
   color: MAP_COLORS.textSecondary,
   cursor: "pointer",
+  flexShrink: 0,
   fontFamily: MAP_TYPOGRAPHY.fontFamily,
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
   fontWeight: MAP_TYPOGRAPHY.fontWeight.medium,
@@ -212,19 +230,50 @@ const interactionLabelStyle: React.CSSProperties = {
 };
 
 const interactionStateStyle: React.CSSProperties = {
-  minWidth: "1.5rem",
-  textAlign: "right",
-  color: MAP_COLORS.textMuted,
-  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
-  fontSize: "0.625rem",
-  textTransform: "uppercase",
+  /* State text (On/Off) is kept for assistive tech + tests but visually hidden;
+     active state is conveyed by the amber border + aria-pressed. */
+  position: "absolute",
+  width: "1px",
+  height: "1px",
+  padding: 0,
+  margin: "-1px",
+  overflow: "hidden",
+  clip: "rect(0 0 0 0)",
+  whiteSpace: "nowrap",
+  border: 0,
+};
+
+const furnitureGroupStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: MAP_SPACING.xs,
+  minWidth: MAP_SPACING.zero,
+  paddingLeft: MAP_SPACING.xs,
+  flexShrink: 0,
+};
+
+const furnitureButtonsStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "0.1875rem",
+  flexShrink: 0,
 };
 
 const keyboardHelpPanelStyle: React.CSSProperties = {
-  ...toolIndicatorStyle,
+  position: "absolute",
+  top: "3rem",
+  left: "calc(var(--map-dock-left, 0px) + 0.75rem)",
   display: "grid",
   gap: MAP_SPACING.xs,
   maxWidth: "min(24rem, calc(100vw - var(--map-dock-left, 0px) - var(--map-dock-right, 0px) - 2rem))",
+  padding: `${MAP_SPACING.sm} ${MAP_SPACING.md}`,
+  border: MAP_STROKES.hairlineStrong,
+  borderRadius: MAP_RADIUS.sm,
+  background: "var(--syn-surface-panel, rgba(12, 16, 24, 0.95))",
+  boxShadow: MAP_SHADOWS.dropdown,
+  color: MAP_COLORS.textSecondary,
+  pointerEvents: "auto",
+  zIndex: MAP_Z_INDEX.dropdown + 1,
 };
 
 const keyboardShortcutRowStyle: React.CSSProperties = {
@@ -276,7 +325,7 @@ const toolMetaStyle: React.CSSProperties = {
   whiteSpace: "nowrap",
   color: MAP_COLORS.textMuted,
   fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
-  fontSize: "0.6875rem",
+  fontSize: "0.625rem",
 };
 
 const northArrowStyle: React.CSSProperties = {
@@ -394,8 +443,6 @@ export const MapCanvasControls: React.FC<MapCanvasControlsProps> = ({
   selectionDragTool,
   activeDrawTool,
   activeMeasureTool,
-  selectionModeDisabled = false,
-  selectionModeDisabledReason = "No queryable visible layers are available for selection.",
   selectedFeatureCount,
   visibleLayerCount,
   hasActiveAoi,
@@ -408,6 +455,7 @@ export const MapCanvasControls: React.FC<MapCanvasControlsProps> = ({
   fitSelectedReason = "Select a feature, layer, or AOI before fitting the map.",
   fitVisibleDisabled = false,
   fitVisibleReason = "Show at least one layer before fitting visible layers.",
+  surface = "full",
   onZoomIn,
   onZoomOut,
   onResetView,
@@ -417,7 +465,6 @@ export const MapCanvasControls: React.FC<MapCanvasControlsProps> = ({
   onToggleLegend,
   onToggleScaleBar,
   onToggleNorthArrow,
-  onSetSelectionDragTool,
   onDrawAoi,
   onMeasureDistance,
   onMeasureArea,
@@ -434,11 +481,10 @@ export const MapCanvasControls: React.FC<MapCanvasControlsProps> = ({
     hasActiveAoi,
   });
   const safeBearing = Number.isFinite(bearing) ? bearing : 0;
+  const showIndicator = true;
 
-  return (
-    <div style={rootStyle} role="group" aria-label="Map canvas controls" data-testid="map-canvas-controls">
-      <div style={viewportClusterStyle} data-testid="map-canvas-viewport-controls">
-        <div style={verticalGroupStyle} role="group" aria-label="Viewport recovery controls">
+  const viewportGroup = (
+        <div style={barGroupStyle} role="group" aria-label="Viewport recovery controls" data-testid="map-canvas-viewport-controls">
           <button type="button" style={buttonStyle} onClick={onZoomIn} aria-label="Zoom in" title="Zoom in">
             <ZoomIn size={MAP_ICON_SIZES.sm} aria-hidden="true" />
           </button>
@@ -472,7 +518,9 @@ export const MapCanvasControls: React.FC<MapCanvasControlsProps> = ({
             <Navigation size={MAP_ICON_SIZES.sm} aria-hidden="true" />
           </button>
         </div>
+  );
 
+  const indicatorNode = (
         <div style={toolIndicatorStyle} data-testid="map-active-tool-indicator">
           {tool.icon}
           <span style={toolTextStyle}>
@@ -490,46 +538,10 @@ export const MapCanvasControls: React.FC<MapCanvasControlsProps> = ({
             <X size={MAP_ICON_SIZES.sm} aria-hidden="true" />
           </button>
         </div>
+  );
 
-        <div style={interactionStripStyle} role="group" aria-label="Canvas interaction tools" data-testid="map-canvas-interaction-strip">
-          <button
-            type="button"
-            data-testid="map-rectangle-select-tool"
-            style={interactionToolButtonStyle(selectionDragTool === "rectangle", selectionModeDisabled)}
-            onClick={() => onSetSelectionDragTool(selectionDragTool === "rectangle" ? null : "rectangle")}
-            aria-label={selectionDragTool === "rectangle" ? "Cancel rectangle select" : "Rectangle select"}
-            aria-pressed={selectionDragTool === "rectangle"}
-            title={selectionModeDisabled ? selectionModeDisabledReason : (selectionDragTool === "rectangle" ? "Cancel rectangle select" : "Rectangle select")}
-            disabled={selectionModeDisabled}
-          >
-            <span style={interactionLabelStyle}>
-              <BoxSelect size={MAP_ICON_SIZES.sm} aria-hidden="true" />
-              <span>Rect</span>
-            </span>
-            <span style={interactionStateStyle} aria-hidden="true">
-              {selectionDragTool === "rectangle" ? "On" : "Off"}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            data-testid="map-lasso-select-tool"
-            style={interactionToolButtonStyle(selectionDragTool === "lasso", selectionModeDisabled)}
-            onClick={() => onSetSelectionDragTool(selectionDragTool === "lasso" ? null : "lasso")}
-            aria-label={selectionDragTool === "lasso" ? "Cancel lasso select" : "Lasso select"}
-            aria-pressed={selectionDragTool === "lasso"}
-            title={selectionModeDisabled ? selectionModeDisabledReason : (selectionDragTool === "lasso" ? "Cancel lasso select" : "Lasso select")}
-            disabled={selectionModeDisabled}
-          >
-            <span style={interactionLabelStyle}>
-              <LassoSelect size={MAP_ICON_SIZES.sm} aria-hidden="true" />
-              <span>Lasso</span>
-            </span>
-            <span style={interactionStateStyle} aria-hidden="true">
-              {selectionDragTool === "lasso" ? "On" : "Off"}
-            </span>
-          </button>
-
+  const interactionGroup = (
+        <div style={barGroupStyle} role="group" aria-label="Canvas interaction tools" data-testid="map-canvas-interaction-strip">
           <button
             type="button"
             data-testid="map-canvas-draw-aoi"
@@ -541,7 +553,6 @@ export const MapCanvasControls: React.FC<MapCanvasControlsProps> = ({
           >
             <span style={interactionLabelStyle}>
               <MapPinned size={MAP_ICON_SIZES.sm} aria-hidden="true" />
-              <span>AOI</span>
             </span>
             <span style={interactionStateStyle} aria-hidden="true">
               {activeDrawTool === "polygon" ? "On" : "Off"}
@@ -559,7 +570,6 @@ export const MapCanvasControls: React.FC<MapCanvasControlsProps> = ({
           >
             <span style={interactionLabelStyle}>
               <Ruler size={MAP_ICON_SIZES.sm} aria-hidden="true" />
-              <span>Dist</span>
             </span>
             <span style={interactionStateStyle} aria-hidden="true">
               {activeMeasureTool === "measure-distance" ? "On" : "Off"}
@@ -577,7 +587,6 @@ export const MapCanvasControls: React.FC<MapCanvasControlsProps> = ({
           >
             <span style={interactionLabelStyle}>
               <Square size={MAP_ICON_SIZES.sm} aria-hidden="true" />
-              <span>Area</span>
             </span>
             <span style={interactionStateStyle} aria-hidden="true">
               {activeMeasureTool === "measure-area" ? "On" : "Off"}
@@ -597,90 +606,135 @@ export const MapCanvasControls: React.FC<MapCanvasControlsProps> = ({
           >
             <span style={interactionLabelStyle}>
               <Keyboard size={MAP_ICON_SIZES.sm} aria-hidden="true" />
-              <span>Keys</span>
             </span>
             <span style={interactionStateStyle} aria-hidden="true">
               {keyboardHelpVisible ? "Open" : "Off"}
             </span>
           </button>
         </div>
+  );
 
-        {keyboardHelpVisible ? (
-          <div id="map-canvas-keyboard-help-panel" style={keyboardHelpPanelStyle} role="note" aria-label="Map keyboard shortcuts">
-            <span style={toolLabelStyle}>Keyboard path</span>
-            <span style={toolMetaStyle}>Fallback controls stay available at the bottom-right edge of the canvas.</span>
-            <div style={keyboardShortcutRowStyle}>
-              <span style={keyboardKeyStyle}>Arrows</span>
-              <span>Pan</span>
-              <span style={keyboardKeyStyle}>+/-</span>
-              <span>Zoom</span>
-              <span style={keyboardKeyStyle}>R</span>
-              <span>Reset</span>
-            </div>
-            <div style={keyboardShortcutRowStyle}>
-              <span style={keyboardKeyStyle}>Esc</span>
-              <span>Cancel rectangle, lasso, draw, or measure mode.</span>
-            </div>
+  const furnitureGroup = (
+        <div style={furnitureGroupStyle} data-testid="map-canvas-furniture-controls">
+          <div style={furnitureButtonsStyle} role="group" aria-label="Publish preview furniture controls">
+            <button
+              type="button"
+              style={iconButtonStyle(scaleBarVisible)}
+              onClick={onToggleScaleBar}
+              aria-label={scaleBarVisible ? "Hide scale bar" : "Show scale bar"}
+              aria-pressed={scaleBarVisible}
+              title={scaleBarVisible ? "Hide scale bar" : "Show scale bar"}
+            >
+              <Scale size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              style={iconButtonStyle(northArrowVisible)}
+              onClick={onToggleNorthArrow}
+              aria-label={northArrowVisible ? "Hide north arrow" : "Show north arrow"}
+              aria-pressed={northArrowVisible}
+              title={northArrowVisible ? "Hide north arrow" : "Show north arrow"}
+            >
+              <Compass size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              style={iconButtonStyle(legendVisible, !legendAvailable)}
+              onClick={onToggleLegend}
+              aria-label={legendVisible ? "Hide legend" : "Show legend"}
+              aria-pressed={legendVisible}
+              title={legendAvailable ? (legendVisible ? "Hide legend" : "Show legend") : "No visible layer legend available"}
+              disabled={!legendAvailable}
+            >
+              {legendVisible ? (
+                <Eye size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+              ) : (
+                <EyeOff size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+              )}
+            </button>
           </div>
+          <span style={barDividerStyle} aria-hidden="true" />
+          <MapLayerPanel compact activeLayer={activeBaseLayer} onSetLayer={onSetBaseLayer} />
+        </div>
+  );
+
+  const keyboardPanel = keyboardHelpVisible ? (
+    <div id="map-canvas-keyboard-help-panel" style={keyboardHelpPanelStyle} role="note" aria-label="Map keyboard shortcuts">
+      <span style={toolLabelStyle}>Keyboard path</span>
+      <span style={toolMetaStyle}>Fallback controls stay available at the bottom-right edge of the canvas.</span>
+      <div style={keyboardShortcutRowStyle}>
+        <span style={keyboardKeyStyle}>Arrows</span>
+        <span>Pan</span>
+        <span style={keyboardKeyStyle}>+/-</span>
+        <span>Zoom</span>
+        <span style={keyboardKeyStyle}>R</span>
+        <span>Reset</span>
+      </div>
+      <div style={keyboardShortcutRowStyle}>
+        <span style={keyboardKeyStyle}>Esc</span>
+        <span>Cancel rectangle, lasso, draw, or measure mode.</span>
+      </div>
+    </div>
+  ) : null;
+
+  const northArrowNode = northArrowVisible ? (
+    <div
+      style={northArrowStyle}
+      aria-hidden="true"
+      data-testid="map-north-arrow-preview"
+    >
+      <span style={{ ...northArrowNeedleStyle, transform: `rotate(${-safeBearing}deg)` }}>
+        <Navigation size={MAP_ICON_SIZES.md} aria-hidden="true" />
+      </span>
+      <span style={{ position: "absolute", top: "0.25rem", fontSize: "0.625rem", fontWeight: 700 }}>N</span>
+    </div>
+  ) : null;
+
+  if (surface === "overlay") {
+    return (
+      <div style={rootStyle} role="group" aria-label="Map canvas overlays" data-testid="map-canvas-overlays">
+        {keyboardPanel}
+        {northArrowNode}
+      </div>
+    );
+  }
+
+  if (surface === "bar") {
+    return (
+      <div
+        style={embeddedBarStyle}
+        role="group"
+        aria-label="Map canvas controls"
+        data-testid="map-canvas-controls"
+        data-map-canvas-surface="bar"
+      >
+        {viewportGroup}
+        <span style={barDividerStyle} aria-hidden="true" />
+        {showIndicator ? (
+          <>
+            {indicatorNode}
+            <span style={barDividerStyle} aria-hidden="true" />
+          </>
         ) : null}
+        {interactionGroup}
+        <span style={barDividerStyle} aria-hidden="true" />
+        {furnitureGroup}
       </div>
+    );
+  }
 
-      <div style={furnitureClusterStyle} data-testid="map-canvas-furniture-controls">
-        <MapLayerPanel compact activeLayer={activeBaseLayer} onSetLayer={onSetBaseLayer} />
-        <div style={buttonGroupStyle} role="group" aria-label="Publish preview furniture controls">
-          <button
-            type="button"
-            style={iconButtonStyle(scaleBarVisible)}
-            onClick={onToggleScaleBar}
-            aria-label={scaleBarVisible ? "Hide scale bar" : "Show scale bar"}
-            aria-pressed={scaleBarVisible}
-            title={scaleBarVisible ? "Hide scale bar" : "Show scale bar"}
-          >
-            <Scale size={MAP_ICON_SIZES.sm} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            style={iconButtonStyle(northArrowVisible)}
-            onClick={onToggleNorthArrow}
-            aria-label={northArrowVisible ? "Hide north arrow" : "Show north arrow"}
-            aria-pressed={northArrowVisible}
-            title={northArrowVisible ? "Hide north arrow" : "Show north arrow"}
-          >
-            <Compass size={MAP_ICON_SIZES.sm} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            style={iconButtonStyle(legendVisible, !legendAvailable)}
-            onClick={onToggleLegend}
-            aria-label={legendVisible ? "Hide legend" : "Show legend"}
-            aria-pressed={legendVisible}
-            title={legendAvailable ? (legendVisible ? "Hide legend" : "Show legend") : "No visible layer legend available"}
-            disabled={!legendAvailable}
-          >
-            {legendVisible ? (
-              <Eye size={MAP_ICON_SIZES.sm} aria-hidden="true" />
-            ) : (
-              <EyeOff size={MAP_ICON_SIZES.sm} aria-hidden="true" />
-            )}
-          </button>
-          <span style={{ ...toolMetaStyle, padding: `0 ${MAP_SPACING.xs}` }}>
-            Preview
-          </span>
-        </div>
+  return (
+    <div style={rootStyle} role="group" aria-label="Map canvas controls" data-testid="map-canvas-controls">
+      <div style={commandBarStyle} data-testid="map-command-bar" data-map-command-bar="true">
+        {viewportGroup}
+        <span style={barDividerStyle} aria-hidden="true" />
+        {indicatorNode}
+        <span style={barDividerStyle} aria-hidden="true" />
+        {interactionGroup}
+        {furnitureGroup}
       </div>
-
-      {northArrowVisible ? (
-        <div
-          style={northArrowStyle}
-          aria-hidden="true"
-          data-testid="map-north-arrow-preview"
-        >
-          <span style={{ ...northArrowNeedleStyle, transform: `rotate(${-safeBearing}deg)` }}>
-            <Navigation size={MAP_ICON_SIZES.md} aria-hidden="true" />
-          </span>
-          <span style={{ position: "absolute", top: "0.25rem", fontSize: "0.625rem", fontWeight: 700 }}>N</span>
-        </div>
-      ) : null}
+      {keyboardPanel}
+      {northArrowNode}
     </div>
   );
 };
