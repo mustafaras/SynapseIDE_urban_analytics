@@ -123,6 +123,9 @@ import {
   MapWorkspaceShell,
 } from "../MapWorkspaceShell";
 import { MapWorkspaceCockpit } from "../MapWorkspaceCockpit";
+import { MapWorkspaceOverviewSummary } from "../MapWorkspaceOverviewSummary";
+import { MapStartDialog } from "../MapStartDialog";
+import { MapRightDockHost } from "../MapRightDockHost";
 import { MapWorkbenchSidebar, type MapWorkbenchSidebarTab } from "../sidebar";
 import {
   MapAnalyzeDataOperationsPanel,
@@ -243,11 +246,33 @@ import { createOpaqueFloatingPanelStyle, useDraggableMapPanel } from "../useDrag
 import {
   MAP_LAYER_PANEL_MAX_WIDTH,
   MAP_LAYER_PANEL_MIN_WIDTH,
+  type MapRightDockPanel,
 } from "../mapDocking";
+import {
+  EMPTY_MAP_RIGHT_DOCK_ROUTE_STATE,
+  MAP_RIGHT_DOCK_PANEL_IDS,
+  closeMapRightDockRouteState,
+  createMapRightDockRoute,
+  createMapRightDockRouteFromBottomTab,
+  getMapRightDockPanelDefinition,
+  openMapRightDockRouteState,
+  switchMapRightDockRouteState,
+  type MapRightDockRoute,
+  type MapRightDockRouteSource,
+  type MapRightDockRouteState,
+} from "../mapRightDockRoutes";
 import {
   type MapQuickActionId,
   type MapWorkspaceView,
 } from "../mapExperience";
+import {
+  createInitialMapStartDialogState,
+  dismissMapStartDialog,
+  getMapStartDialogQuickActionHandoff,
+  hasMapStartDialogWorkspaceContent,
+  type MapStartDialogHandoff,
+  type MapStartDialogState,
+} from "../mapStartDialogState";
 import { selectMapExplorerContextSummary } from "../mapContextSummary";
 import {
   DEFAULT_MAP_EXPLORER_LAYOUT_PREFERENCES,
@@ -1946,7 +1971,6 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const mapCanvasId = "map-explorer-canvas";
 
   /* ---- Accessibility hooks ---- */
-  const { trapRef } = useMapExplorerLifecycle({ open, onClose });
   const { announce, AnnouncerRegion } = useAnnouncer();
   const reducedMotion = usePrefersReducedMotion();
 
@@ -2060,18 +2084,62 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     : null;
   const appUser = useAppStore((s) => s.user);
   const autoSaveEnabled = useAppStore((s) => s.user?.preferences.autoSave ?? true);
-  const initialWorkspaceView: MapWorkspaceView =
-    overlayLayers.length > 0 || pins.length > 0 || drawnFeatures.length > 0 || annotations.length > 0 || measurements.length > 0
-      ? "explore"
-      : "navigator";
+  const mapStartDialogContext = useMemo(() => ({
+    selectedProjectId,
+    layerCount: overlayLayers.length,
+    pinCount: pins.length,
+    drawnFeatureCount: drawnFeatures.length,
+    annotationCount: annotations.length,
+    measurementCount: measurements.length,
+  }), [
+    annotations.length,
+    drawnFeatures.length,
+    measurements.length,
+    overlayLayers.length,
+    pins.length,
+    selectedProjectId,
+  ]);
 
   /* ---- Transient local state (not persisted) ---- */
-  const initialActivityId: MapActivityId = initialWorkspaceView === "navigator" ? "overview" : "layers";
+  const [mapStartDialogState, setMapStartDialogState] = useState<MapStartDialogState>(() =>
+    createInitialMapStartDialogState(mapStartDialogContext),
+  );
+  const initialWorkspaceView: MapWorkspaceView = "explore";
+  const initialActivityId: MapActivityId = "layers";
   const [workspaceView, setWorkspaceView] = useState<MapWorkspaceView>(initialWorkspaceView);
   const [activeActivityId, setActiveActivityId] = useState<MapActivityId>(initialActivityId);
-  const [workbenchSidebarTab, setWorkbenchSidebarTab] = useState<string>(
-    initialActivityId === "overview" ? "overview-readiness" : "layers-stack",
-  );
+  const [workbenchSidebarTab, setWorkbenchSidebarTab] = useState<string>("layers-stack");
+  const closeMapStartDialog = useCallback((action: MapStartDialogHandoff | "dismiss" | "close" | "escape", announcement?: string) => {
+    setMapStartDialogState((current) => dismissMapStartDialog(current, action));
+    if (announcement) {
+      announce(announcement);
+    }
+  }, [announce]);
+  const handleMapExplorerCloseRequest = useCallback(() => {
+    if (mapStartDialogState.open) {
+      closeMapStartDialog("close", "Map launch dialog dismissed");
+      return;
+    }
+    onClose();
+  }, [closeMapStartDialog, mapStartDialogState.open, onClose]);
+  const handleMapExplorerEscapeRequest = useCallback(() => {
+    if (mapStartDialogState.open) {
+      closeMapStartDialog("escape", "Map launch dialog dismissed");
+      return;
+    }
+    onClose();
+  }, [closeMapStartDialog, mapStartDialogState.open, onClose]);
+  const { trapRef } = useMapExplorerLifecycle({
+    open,
+    onClose: handleMapExplorerCloseRequest,
+    onEscape: handleMapExplorerEscapeRequest,
+  });
+  useEffect(() => {
+    if (!mapStartDialogState.open || !hasMapStartDialogWorkspaceContent(mapStartDialogContext)) {
+      return;
+    }
+    setMapStartDialogState((current) => dismissMapStartDialog(current, "continue"));
+  }, [mapStartDialogContext, mapStartDialogState.open]);
   const [workbenchSidebarCollapsed, setWorkbenchSidebarCollapsed] = useState(
     layoutPreferences.panelMode === "collapsed",
   );
@@ -2116,6 +2184,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const [showComparisonStrip, setShowComparisonStrip] = useState(false);
   const [bottomPanelOpen, setBottomPanelOpen] = useState(false);
   const [activeBottomPanelTab, setActiveBottomPanelTab] = useState<MapBottomPanelCoreTabId>("problems");
+  const [rightDockRouteState, setRightDockRouteState] = useState<MapRightDockRouteState>(
+    EMPTY_MAP_RIGHT_DOCK_ROUTE_STATE,
+  );
   const bottomPanelReturnFocusRef = useRef<HTMLElement | null>(null);
   // QA Problems + Review timeline now live in a premium right sidebar (Slice 2),
   // not the bottom-opening panel.
@@ -2123,10 +2194,42 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const [reviewSidebarTab, setReviewSidebarTab] = useState<MapReviewSidebarTab>("problems");
   const reviewSidebarReturnFocusRef = useRef<HTMLElement | null>(null);
 
-  const openBottomPanelTab = useCallback((tabId: MapBottomPanelCoreTabId, announcement?: string) => {
+  const activeRightDockRoute = rightDockRouteState.activeRoute;
+
+  const openRightDockRoute = useCallback((route: MapRightDockRoute) => {
+    setRightDockRouteState((current) => openMapRightDockRouteState(current, route));
+  }, []);
+
+  const switchRightDockRoute = useCallback((route: MapRightDockRoute) => {
+    setRightDockRouteState((current) => switchMapRightDockRouteState(current, route));
+  }, []);
+
+  const closeRightDockRoute = useCallback(() => {
+    setRightDockRouteState((current) => closeMapRightDockRouteState(current));
+  }, []);
+
+  const openBottomPanelTab = useCallback((
+    tabId: MapBottomPanelCoreTabId,
+    announcement?: string,
+    routeSource: MapRightDockRouteSource = "programmatic",
+  ) => {
     if (!bottomPanelOpen && typeof document !== "undefined") {
       const activeElement = document.activeElement;
       bottomPanelReturnFocusRef.current = activeElement instanceof HTMLElement ? activeElement : null;
+    }
+
+    const route = createMapRightDockRouteFromBottomTab(tabId, {
+      source: routeSource,
+      detail: announcement ?? null,
+    });
+    if (bottomPanelOpen) {
+      switchRightDockRoute(route);
+    } else {
+      openRightDockRoute(route);
+    }
+
+    if (mapStartDialogState.open) {
+      closeMapStartDialog("continue", "Map launch dialog dismissed");
     }
 
     if (workspaceView === "navigator") {
@@ -2149,21 +2252,34 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     }
 
     announce(announcement ?? `${tabId.charAt(0).toUpperCase()}${tabId.slice(1)} bottom panel opened`);
-  }, [announce, bottomPanelOpen, workspaceView]);
+  }, [
+    announce,
+    bottomPanelOpen,
+    closeMapStartDialog,
+    mapStartDialogState.open,
+    openRightDockRoute,
+    switchRightDockRoute,
+    workspaceView,
+  ]);
 
   const closeBottomPanel = useCallback(() => {
     setBottomPanelOpen(false);
     setShowReviewTimeline(false);
+    closeRightDockRoute();
     announce("Bottom panel closed");
     restoreFocusToElement(bottomPanelReturnFocusRef.current);
-  }, [announce]);
+  }, [announce, closeRightDockRoute]);
 
-  const toggleBottomPanelTab = useCallback((tabId: MapBottomPanelCoreTabId, announcement?: string) => {
+  const toggleBottomPanelTab = useCallback((
+    tabId: MapBottomPanelCoreTabId,
+    announcement?: string,
+    routeSource: MapRightDockRouteSource = "programmatic",
+  ) => {
     if (bottomPanelOpen && activeBottomPanelTab === tabId) {
       closeBottomPanel();
       return;
     }
-    openBottomPanelTab(tabId, announcement);
+    openBottomPanelTab(tabId, announcement, routeSource);
   }, [activeBottomPanelTab, bottomPanelOpen, closeBottomPanel, openBottomPanelTab]);
 
   const openReviewSidebar = useCallback((tab: MapReviewSidebarTab, announcement?: string) => {
@@ -2171,13 +2287,16 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       const active = document.activeElement;
       reviewSidebarReturnFocusRef.current = active instanceof HTMLElement ? active : null;
     }
+    if (mapStartDialogState.open) {
+      closeMapStartDialog("continue", "Map launch dialog dismissed");
+    }
     if (workspaceView === "navigator") {
       setWorkspaceView("explore");
     }
     setReviewSidebarTab(tab);
     setReviewSidebarOpen(true);
     if (announcement) announce(announcement);
-  }, [announce, workspaceView]);
+  }, [announce, closeMapStartDialog, mapStartDialogState.open, workspaceView]);
 
   const closeReviewSidebar = useCallback(() => {
     setReviewSidebarOpen(false);
@@ -2205,10 +2324,10 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       return;
     }
     void handle.promise.catch(() => undefined);
-    openBottomPanelTab("diagnostics", "Worker retry queued in diagnostics");
+    openBottomPanelTab("diagnostics", "Worker retry queued in diagnostics", "worker");
   }, [announce, openBottomPanelTab]);
   const handleTogglePerformanceDiagnostics = useCallback(() => {
-    toggleBottomPanelTab("diagnostics", "Performance diagnostics opened in the bottom panel");
+    toggleBottomPanelTab("diagnostics", "Performance diagnostics opened in the bottom panel", "toolbar");
   }, [toggleBottomPanelTab]);
   const [showProcessingToolbox, setShowProcessingToolbox] = useState(false);
   const [showModelBuilder, setShowModelBuilder] = useState(false);
@@ -2430,7 +2549,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const [lastMapNLQuerySummary, setLastMapNLQuerySummary] = useState<MapNLQueryPanelRunSummary | null>(null);
   const [dismissedCartographyRecommendationIds, setDismissedCartographyRecommendationIds] = useState<Set<string>>(() => new Set());
   const [cartographyUndoStack, setCartographyUndoStack] = useState<CartographyUndoEntry[]>([]);
-  const navigatorStageMode = workspaceView === "navigator";
+  const startDialogOpen = mapStartDialogState.open;
+  const navigatorStageMode = startDialogOpen || workspaceView === "navigator";
 
   const compatibleAoiFlows = useMemo(() => getCompatibleAoiFlows(), []);
   const flowDispatchAoi = useMemo(
@@ -3055,7 +3175,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
 
   const handleOpenAttributeTable = useCallback((layerId: string) => {
     setAttributeTableLayerId(layerId);
-    openBottomPanelTab("attributes", "Attribute table opened in the bottom panel");
+    openBottomPanelTab("attributes", "Attribute table opened in the bottom panel", "toolbar");
   }, [openBottomPanelTab]);
 
   const handleOpenAttributesFromStatus = useCallback(() => {
@@ -3068,11 +3188,11 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
 
     if (targetLayerId) {
       setAttributeTableLayerId(targetLayerId);
-      openBottomPanelTab("attributes", "Selected feature attributes opened in the bottom panel");
+      openBottomPanelTab("attributes", "Selected feature attributes opened in the bottom panel", "status-bar");
       return;
     }
 
-    openBottomPanelTab("attributes", "Attributes tab opened without an active layer");
+    openBottomPanelTab("attributes", "Attributes tab opened without an active layer", "status-bar");
   }, [activeAnalysisResultLayerIds, attributeTableLayerId, openBottomPanelTab, overlayLayers, selectedFeatureIds]);
 
   const handleAttributeTableSelection = useCallback((layerId: string, featureIds: string[]) => {
@@ -3200,7 +3320,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
 
     addOverlayLayer(derivedLayer);
     setAttributeTableLayerId(derivedLayer.id);
-    openBottomPanelTab("attributes", "Derived attribute table opened in the bottom panel");
+    openBottomPanelTab("attributes", "Derived attribute table opened in the bottom panel", "programmatic");
     setActiveAnalysisResultLayers([derivedLayer.id]);
     setInspectorLayerId(derivedLayer.id);
     recordMapReviewEvent({
@@ -3449,6 +3569,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     showWorkflowDrawer,
     showReviewTimeline,
     hasReportHandoffSource: Boolean(reportHandoffSource) && !publishReportTabDocked,
+    activeRightDockRoutePanel: activeRightDockRoute?.panel ?? null,
     navigatorStageMode,
     navigatorStageMargin: MAP_NAVIGATOR_STAGE_MARGIN,
     layoutPreferences,
@@ -3916,7 +4037,30 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     setLayoutPreferences({ rightPanelWidth: width });
   }, [setLayoutPreferences]);
 
+  const handleRightDockHostPanelChange = useCallback((panel: MapRightDockPanel) => {
+    const definition = getMapRightDockPanelDefinition(panel);
+    switchRightDockRoute(createMapRightDockRoute(panel, {
+      source: "panel-tab",
+      focusReturn: activeRightDockRoute?.focusReturn ?? "trigger",
+      detail: activeRightDockRoute?.detail ?? null,
+    }));
+    announce(`${definition.label} opened in the right dock`);
+  }, [activeRightDockRoute?.detail, activeRightDockRoute?.focusReturn, announce, switchRightDockRoute]);
+
+  const handleCollapseRightDockHost = useCallback(() => {
+    closeRightDockRoute();
+    announce("Right dock collapsed");
+  }, [announce, closeRightDockRoute]);
+
+  const handleCloseRightDockHost = useCallback(() => {
+    closeRightDockRoute();
+    announce("Right dock closed");
+  }, [announce, closeRightDockRoute]);
+
   const handleSetWorkspaceView = useCallback((view: MapWorkspaceView) => {
+    if (mapStartDialogState.open) {
+      closeMapStartDialog("continue", "Map launch dialog dismissed");
+    }
     setWorkspaceView(view);
     // Entering the explore workspace from the navigator-centric Overview
     // activity lands on the Layers workbench so the layer stack stays the
@@ -3926,7 +4070,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       setWorkbenchSidebarTab("layers-stack");
     }
     announce(`Map workspace switched to ${view}`);
-  }, [activeActivityId, announce]);
+  }, [activeActivityId, announce, closeMapStartDialog, mapStartDialogState.open]);
 
   const focusActiveActivityButton = useCallback(() => {
     if (typeof document === "undefined") {
@@ -3963,6 +4107,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const handleCollapseAllPanels = useCallback(() => {
     closeFloatingRightPanels();
     closeRightDockPanels();
+    closeRightDockRoute();
     setLayoutPreferences({ panelMode: "collapsed" });
     setShowLayerPanel(false);
     setWorkbenchSidebarCollapsed(true);
@@ -3980,6 +4125,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     announce("All map panels collapsed");
   }, [
     announce,
+    closeRightDockRoute,
     closeFloatingRightPanels,
     closeRightDockPanels,
     setLayoutPreferences,
@@ -3990,6 +4136,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const handleResetLayout = useCallback(() => {
     closeFloatingRightPanels();
     closeRightDockPanels();
+    closeRightDockRoute();
     restoreDefaultLayoutPreferences();
     setWorkspaceView("explore");
     setActiveActivityId("layers");
@@ -4010,6 +4157,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     announce("Map layout reset to map-first chrome");
   }, [
     announce,
+    closeRightDockRoute,
     closeFloatingRightPanels,
     closeRightDockPanels,
     restoreDefaultLayoutPreferences,
@@ -6316,6 +6464,10 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const handleProjectLoad = useCallback(async (projectIdOverride?: string | null, options?: {
     silent?: boolean;
   }) => {
+    if (mapStartDialogState.open) {
+      closeMapStartDialog("project-load", "Map launch dialog dismissed");
+    }
+
     const projectId = projectIdOverride ?? selectedProjectId;
     if (!projectId) {
       if (!options?.silent) {
@@ -6371,7 +6523,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     announce,
     applyProjectSnapshot,
     clearProjectContent,
+    closeMapStartDialog,
     fitToBounds,
+    mapStartDialogState.open,
     selectedProject?.bbox,
     selectedProjectId,
   ]);
@@ -6869,6 +7023,10 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   }, [addOverlayLayer, announce, fitToBounds, recordMapReviewEvent, registerLayerEvidenceCandidate, upsertSourceHandle]);
 
   const handleCatalogAddDemoPack = useCallback((insertion: MapCatalogLayerInsertion) => {
+    if (mapStartDialogState.open) {
+      closeMapStartDialog("demo-pack", "Map launch dialog dismissed");
+    }
+
     for (const sourceHandle of insertion.sourceHandles) {
       upsertSourceHandle(sourceHandle);
     }
@@ -6879,12 +7037,20 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     handleSetWorkspaceView("explore");
     toastSuccess("Added synthetic demo pack with registered source records.");
     announce("Catalog added synthetic demo pack to the map");
-  }, [addOverlayLayer, announce, handleSetWorkspaceView, registerLayerEvidenceCandidate, upsertSourceHandle]);
+  }, [addOverlayLayer, announce, closeMapStartDialog, handleSetWorkspaceView, mapStartDialogState.open, registerLayerEvidenceCandidate, upsertSourceHandle]);
 
   const handleCatalogBrowseSources = useCallback(() => {
     setShowImportHub(true);
     announce("Catalog opened the data import browser");
   }, [announce]);
+
+  const handleStartDialogOpenSources = useCallback(() => {
+    if (mapStartDialogState.open) {
+      closeMapStartDialog("continue", "Map launch dialog dismissed");
+    }
+    setShowImportHub(true);
+    announce("Opened data sources from the launch dialog");
+  }, [announce, closeMapStartDialog, mapStartDialogState.open]);
 
   const handleCatalogRepairSource = useCallback((item: MapCatalogItem) => {
     setShowImportHub(true);
@@ -7149,8 +7315,11 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   }, [announce, clearPendingColumnarImport, handleImportedLayerReady, pendingColumnarImport]);
 
   const handleImportRequest = useCallback(() => {
+    if (mapStartDialogState.open) {
+      closeMapStartDialog("import", "Map launch dialog dismissed");
+    }
     setShowImportHub(true);
-  }, []);
+  }, [closeMapStartDialog, mapStartDialogState.open]);
 
   const handleBrowseLocalFiles = useCallback(() => {
     importInputRef.current?.click();
@@ -7923,6 +8092,10 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   }, [announce]);
 
   const handleMapQuickAction = useCallback((actionId: MapQuickActionId) => {
+    if (mapStartDialogState.open) {
+      closeMapStartDialog(getMapStartDialogQuickActionHandoff(actionId), "Map launch dialog dismissed");
+    }
+
     switch (actionId) {
       case "import-data":
         handleSetWorkspaceView("explore");
@@ -7933,7 +8106,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         setShowLayerPanel(true);
         break;
       case "review-problems":
-        openBottomPanelTab("problems", "QA Problems opened from Overview readiness cockpit");
+        openBottomPanelTab("problems", "QA Problems opened from Overview readiness cockpit", "quick-action");
         break;
       case "open-pins":
         handleSetWorkspaceView("explore");
@@ -7975,7 +8148,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       default:
         break;
     }
-  }, [activeStyleLayer, announce, closeFloatingRightPanels, handleImportRequest, handleMapExportRequest, handleOpenPublishTab, handleOpenStyleTab, handleProjectSave, handleSetDrawTool, handleSetMeasureTool, handleSetWorkspaceView, openBottomPanelTab, setActiveTool]);
+  }, [activeStyleLayer, announce, closeFloatingRightPanels, closeMapStartDialog, handleImportRequest, handleMapExportRequest, handleOpenPublishTab, handleOpenStyleTab, handleProjectSave, handleSetDrawTool, handleSetMeasureTool, handleSetWorkspaceView, mapStartDialogState.open, openBottomPanelTab, setActiveTool]);
 
   const handleExportConfirm = useCallback(async () => {
     try {
@@ -8309,12 +8482,12 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     },
   });
 
-  const openMapProblems = useCallback(() => {
-    openBottomPanelTab("problems", "QA Problems opened in the bottom panel");
+  const openMapProblems = useCallback((routeSource: MapRightDockRouteSource = "programmatic") => {
+    openBottomPanelTab("problems", "QA Problems opened in the bottom panel", routeSource);
   }, [openBottomPanelTab]);
 
   const handleToggleMapProblems = useCallback(() => {
-    toggleBottomPanelTab("problems", "QA Problems opened in the bottom panel");
+    toggleBottomPanelTab("problems", "QA Problems opened in the bottom panel", "toolbar");
   }, [toggleBottomPanelTab]);
 
   const handleOpenCanvasCrsReadiness = useCallback(() => {
@@ -8383,13 +8556,13 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         openPublishActivityTab("publish-figure", "Publish workspace opened");
         break;
       case "qa":
-        openMapProblems();
+        openMapProblems("activity-rail");
         break;
       case "review":
         openReviewSidebar("review", "Review timeline opened in the review sidebar");
         break;
       case "diagnostics":
-        openBottomPanelTab("diagnostics", "Performance diagnostics opened in the bottom panel");
+        openBottomPanelTab("diagnostics", "Performance diagnostics opened in the bottom panel", "activity-rail");
         break;
       case "extensions":
         setShowPluginPanel(true);
@@ -8678,7 +8851,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const reviewActions: MapPublishPathAction[] = [
     {
       label: "Review timeline",
-      onClick: () => openBottomPanelTab("timeline", "Review timeline opened in the bottom panel"),
+      onClick: () => openBottomPanelTab("timeline", "Review timeline opened in the bottom panel", "toolbar"),
     },
     {
       label: "IDE manifest",
@@ -9126,8 +9299,12 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     />
   );
 
+  // Left-panel Overview tab renders a compact, width-aware readiness summary —
+  // NOT the full launch/readiness cockpit. The full cockpit body remains the
+  // navigator-stage overview experience only (never the left panel). See
+  // map-explorer-premium-redesign Prompt 04 (UX-02 launch decoupling).
   const overviewCockpitElement = (
-    <MapWorkspaceCockpit
+    <MapWorkspaceOverviewSummary
       workspaceView={workspaceView}
       onSelectView={handleSetWorkspaceView}
       onQuickAction={handleMapQuickAction}
@@ -9141,12 +9318,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       activeAoiLabel={activeAoiLabel}
       qaIssueCount={scientificQAIssueCount}
       qaBlockerCount={scientificQABlockerCount}
-      workflowReadyCount={workflowReadyCount}
       visiblePublicationLayerCount={visiblePublicationLayers.length}
-      viewportSyncEnabled={viewportSyncEnabled}
-      syncStatus={viewportSyncStatus}
-      analysisRecommendations={analysisRecommendationState.recommendations}
-      onAnalysisRecommendationAction={handleAnalysisRecommendationAction}
     />
   );
 
@@ -9767,7 +9939,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   } satisfies Omit<React.ComponentProps<typeof MapCanvasControls>, "surface">;
 
   return createPortal(
-    <MapWorkspaceShell mode={mode} shellRef={trapRef} onClose={onClose} activeActivityId={activeActivityId}>
+    <MapWorkspaceShell mode={mode} shellRef={trapRef} onClose={handleMapExplorerCloseRequest} activeActivityId={activeActivityId}>
         {reducedMotion ? (
           <style>
             {'[data-map-explorer-shell="true"], [data-map-explorer-shell="true"] * { transition: none !important; animation: none !important; scroll-behavior: auto !important; }'}
@@ -10006,8 +10178,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
           <button
             type="button"
             style={commandHeaderCloseButton}
-            onClick={onClose}
-            aria-label="Close map explorer (Escape)"
+            onClick={handleMapExplorerCloseRequest}
+            aria-label={startDialogOpen ? "Dismiss map launch dialog (Escape)" : "Close map explorer (Escape)"}
           >
             <IconClose size={MAP_ICON_SIZES.md} />
           </button>
@@ -10333,8 +10505,10 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             </div>
           ) : null}
 
-          {workspaceView === "navigator" ? (
+          {navigatorStageMode ? (
             <div
+              data-map-start-dialog-state={startDialogOpen ? "open" : "closed"}
+              data-map-start-dialog-reason={mapStartDialogState.reason ?? undefined}
               style={{
                 ...mapStyles.navigatorStage,
                 top: MAP_NAVIGATOR_STAGE_TOP,
@@ -10343,38 +10517,62 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
                 bottom: MAP_NAVIGATOR_STAGE_BOTTOM,
               }}
             >
-              <div
-                style={{
-                  ...mapStyles.navigatorStageInner,
-                  width: `min(calc(100% - ${MAP_SPACING.lg}), ${MAP_DIMENSIONS.navigatorMaxWidth})`,
-                  height: `calc(100% - ${MAP_SPACING.xs})`,
-                  maxWidth: `min(calc(100% - ${MAP_SPACING.lg}), ${MAP_DIMENSIONS.navigatorMaxWidth})`,
-                  maxHeight: `min(calc(100% - ${MAP_SPACING.sm}), ${MAP_DIMENSIONS.navigatorMaxHeight})`,
-                  overflow: "hidden",
-                }}
-              >
-                <MapWorkspaceCockpit
-                  workspaceView={workspaceView}
-                  onSelectView={handleSetWorkspaceView}
-                  onQuickAction={handleMapQuickAction}
-                  contextSummary={contextSummary}
+              {startDialogOpen ? (
+                <MapStartDialog
+                  reason={mapStartDialogState.reason}
+                  selectedProjectId={selectedProjectId}
+                  lastSavedAt={lastSavedAt}
                   overlayLayers={overlayLayers}
+                  contextSummary={contextSummary}
                   pinCount={pins.length}
                   drawnFeatureCount={drawnFeatures.length}
                   measurementCount={measurements.length}
-                  selectedProjectId={selectedProjectId}
-                  lastSavedAt={lastSavedAt}
                   activeAoiLabel={activeAoiLabel}
                   qaIssueCount={scientificQAIssueCount}
                   qaBlockerCount={scientificQABlockerCount}
-                  workflowReadyCount={workflowReadyCount}
-                  visiblePublicationLayerCount={visiblePublicationLayers.length}
-                  viewportSyncEnabled={viewportSyncEnabled}
-                  syncStatus={viewportSyncStatus}
-                  analysisRecommendations={analysisRecommendationState.recommendations}
-                  onAnalysisRecommendationAction={handleAnalysisRecommendationAction}
+                  onImport={handleImportRequest}
+                  onOpenProject={() => {
+                    void handleProjectLoad();
+                  }}
+                  onAddDemoPack={() => handleCatalogAddDemoPack(buildDemoPackCatalogInsertion())}
+                  onContinue={() => closeMapStartDialog("continue", "Map launch dialog dismissed")}
+                  onClose={handleMapExplorerCloseRequest}
+                  onOpenSourceHealth={handleStartDialogOpenSources}
                 />
-              </div>
+              ) : (
+                <div
+                  style={{
+                    ...mapStyles.navigatorStageInner,
+                    width: `min(calc(100% - ${MAP_SPACING.lg}), ${MAP_DIMENSIONS.navigatorMaxWidth})`,
+                    height: `calc(100% - ${MAP_SPACING.xs})`,
+                    maxWidth: `min(calc(100% - ${MAP_SPACING.lg}), ${MAP_DIMENSIONS.navigatorMaxWidth})`,
+                    maxHeight: `min(calc(100% - ${MAP_SPACING.sm}), ${MAP_DIMENSIONS.navigatorMaxHeight})`,
+                    overflow: "hidden",
+                  }}
+                >
+                  <MapWorkspaceCockpit
+                    workspaceView={workspaceView}
+                    onSelectView={handleSetWorkspaceView}
+                    onQuickAction={handleMapQuickAction}
+                    contextSummary={contextSummary}
+                    overlayLayers={overlayLayers}
+                    pinCount={pins.length}
+                    drawnFeatureCount={drawnFeatures.length}
+                    measurementCount={measurements.length}
+                    selectedProjectId={selectedProjectId}
+                    lastSavedAt={lastSavedAt}
+                    activeAoiLabel={activeAoiLabel}
+                    qaIssueCount={scientificQAIssueCount}
+                    qaBlockerCount={scientificQABlockerCount}
+                    workflowReadyCount={workflowReadyCount}
+                    visiblePublicationLayerCount={visiblePublicationLayers.length}
+                    viewportSyncEnabled={viewportSyncEnabled}
+                    syncStatus={viewportSyncStatus}
+                    analysisRecommendations={analysisRecommendationState.recommendations}
+                    onAnalysisRecommendationAction={handleAnalysisRecommendationAction}
+                  />
+                </div>
+              )}
             </div>
           ) : null}
 
@@ -10382,7 +10580,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
           {effectiveShowLayerPanel ? (
             <MapPanelRail
               ref={legendRef}
-              side={dockLayout.layerPanelPlacement === "bottom" ? "bottom" : "left"}
+              side="left"
               width={dockLayout.layerPanelWidth}
               height="min(24rem, 54%)"
               minWidth={MAP_LAYER_PANEL_MIN_WIDTH}
@@ -10544,6 +10742,19 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             <MapPerformanceBudgetBanner
               diagnostics={performanceDiagnostics}
               rightInset={navigatorRightInset + 16}
+            />
+          ) : null}
+
+          {activeRightDockRoute && !navigatorStageMode ? (
+            <MapRightDockHost
+              route={activeRightDockRoute}
+              panels={MAP_RIGHT_DOCK_PANEL_IDS}
+              presentation={dockLayout.compactDock ? "side-drawer" : "right-dock"}
+              width={dockLayout.rightPanelWidth}
+              stateLabel={activeRightDockRoute.legacyBottomTabId ? "Migrating" : "Routed"}
+              onPanelChange={handleRightDockHostPanelChange}
+              onCollapse={handleCollapseRightDockHost}
+              onClose={handleCloseRightDockHost}
             />
           ) : null}
 
@@ -11058,11 +11269,17 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
           />
         </MapCanvasRegion>
 
-        <MapBottomTimeline timelineSlot={bottomTimelineSlot} data-testid="map-bottom-timeline">
+        <MapBottomTimeline
+          timelineSlot={bottomTimelineSlot}
+          data-testid="map-bottom-timeline"
+          data-map-right-dock-route={activeRightDockRoute?.panel ?? "none"}
+          data-map-right-dock-route-source={activeRightDockRoute?.source ?? "none"}
+          data-map-legacy-bottom-tab={activeRightDockRoute?.legacyBottomTabId ?? "none"}
+        >
           <MapBottomPanel
             visible={bottomPanelOpen && !navigatorStageMode}
             activeTabId={activeBottomPanelTab}
-            onTabChange={(tabId) => openBottomPanelTab(tabId)}
+            onTabChange={(tabId) => openBottomPanelTab(tabId, undefined, "panel-tab")}
             onClose={closeBottomPanel}
             problems={bottomPanelProblemsContent}
             attributes={bottomPanelAttributesContent}
@@ -11092,15 +11309,15 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               qaStatus={contextSummary.qa.status}
               qaIssueCount={scientificQAIssueCount}
               qaBlockerCount={scientificQABlockerCount}
-              onOpenProblems={openMapProblems}
+              onOpenProblems={() => openMapProblems("status-bar")}
               onOpenAttributes={handleOpenAttributesFromStatus}
               reviewEventCount={reviewSession.events.length}
-              onOpenTimeline={() => openBottomPanelTab("timeline", "Review timeline opened in the bottom panel")}
+              onOpenTimeline={() => openBottomPanelTab("timeline", "Review timeline opened in the bottom panel", "status-bar")}
               collaborationStatus={reviewCollaborationSnapshot.connectionState}
               collaborationPresenceCount={reviewCollaborationSnapshot.presence.length}
               collaborationCommentCount={reviewCollaborationSnapshot.comments.length}
-              onOpenCollaboration={() => openBottomPanelTab("timeline", "Review collaboration opened in the bottom panel")}
-              onOpenDiagnostics={() => openBottomPanelTab("diagnostics", "Performance diagnostics opened in the bottom panel")}
+              onOpenCollaboration={() => openBottomPanelTab("timeline", "Review collaboration opened in the bottom panel", "status-bar")}
+              onOpenDiagnostics={() => openBottomPanelTab("diagnostics", "Performance diagnostics opened in the bottom panel", "status-bar")}
               performanceMode={performanceDiagnostics.renderMode}
               performanceIssueCount={performanceIssueCount}
               lastRenderDurationMs={performanceDiagnostics.lastRenderTiming?.durationMs ?? null}

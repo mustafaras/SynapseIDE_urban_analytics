@@ -1,7 +1,33 @@
 import { MAP_NUMERIC } from "./mapTokens";
 
-export type MapRightDockPanel = "pins" | "draw" | "measure" | "scientificQA" | "report" | "workflow" | "urbanMethod";
-export type MapLayerPanelPlacement = "left" | "bottom";
+export type MapRightDockPanel =
+  | "inspect"
+  | "attributes"
+  | "problems"
+  | "timeline"
+  | "tasks"
+  | "diagnostics"
+  | "pins"
+  | "draw"
+  | "measure"
+  | "selection"
+  | "scientificQA"
+  | "qa"
+  | "workflow"
+  | "report"
+  | "performance"
+  | "collaboration"
+  | "urbanMethod";
+
+/**
+ * Workspace docking placements for the left layer/data panel.
+ *
+ * `"bottom"` is intentionally NOT a member: the Map Explorer redesign forbids a
+ * persistent bottom workspace. On constrained widths the panel collapses into a
+ * left-side overlay `"drawer"` instead of a bottom drawer. See
+ * map-explorer-premium-redesign-2026-06-05 Prompt 05 (UX-03).
+ */
+export type MapLayerPanelPlacement = "left" | "drawer";
 
 export interface MapDockLayoutInput {
   containerWidth: number;
@@ -44,20 +70,33 @@ function clampNumber(value: number | undefined, min: number, max: number, fallba
   return Math.max(min, Math.min(max, Number(value)));
 }
 
+/**
+ * Default lane width per right-dock panel. Declared as a `Record` so adding a
+ * new `MapRightDockPanel` member is a compile error until a width is provided.
+ * All values are clamped to [MIN, MAX] before use.
+ */
+const RIGHT_PANEL_DEFAULT_WIDTH: Record<MapRightDockPanel, number> = {
+  inspect: 420,
+  attributes: 480,
+  problems: 420,
+  timeline: 420,
+  tasks: 400,
+  diagnostics: 480,
+  pins: MAP_NUMERIC.pinSidebarWidth,
+  draw: MAP_NUMERIC.drawingPanelWidth,
+  measure: MAP_NUMERIC.measurementPanelWidth,
+  selection: 420,
+  scientificQA: MAP_SCIENTIFIC_QA_PANEL_WIDTH,
+  qa: MAP_SCIENTIFIC_QA_PANEL_WIDTH,
+  workflow: 480,
+  report: 430,
+  performance: 460,
+  collaboration: 420,
+  urbanMethod: 448,
+};
+
 function getRightPanelWidth(panel: MapRightDockPanel | null, preferredWidth?: number): number {
-  const fallback = panel === "scientificQA"
-    ? MAP_SCIENTIFIC_QA_PANEL_WIDTH
-    : panel === "report"
-      ? 430
-      : panel === "workflow"
-        ? 480
-        : panel === "urbanMethod"
-          ? 448
-    : panel === "draw"
-      ? MAP_NUMERIC.drawingPanelWidth
-      : panel === "measure"
-        ? MAP_NUMERIC.measurementPanelWidth
-        : MAP_NUMERIC.pinSidebarWidth;
+  const fallback = panel ? RIGHT_PANEL_DEFAULT_WIDTH[panel] : MAP_NUMERIC.pinSidebarWidth;
   return clampNumber(preferredWidth, MAP_RIGHT_PANEL_MIN_WIDTH, MAP_RIGHT_PANEL_MAX_WIDTH, fallback);
 }
 
@@ -89,8 +128,10 @@ export function getMapDockLayout(input: MapDockLayoutInput): MapDockLayout {
     centerWithLeftOnly < MAP_NUMERIC.mapDockMinCenterWidth ||
     (activeRightPanel != null && centerWithBothRails < MAP_NUMERIC.mapDockMinCenterWidth)
   );
+  // Constrained widths collapse the layer panel into a left-side overlay drawer
+  // — never a persistent bottom workspace.
   const layerPanelPlacement: MapLayerPanelPlacement | null = requestedLayerPanel
-    ? compactDock ? "bottom" : "left"
+    ? compactDock ? "drawer" : "left"
     : null;
 
   const showLayerPanel = requestedLayerPanel;

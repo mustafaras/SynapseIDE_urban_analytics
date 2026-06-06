@@ -3,6 +3,8 @@ import {
   type MapSurfaceInventoryEntry,
   type MapWorkbenchTargetHome,
 } from "./mapSurfaceInventory";
+import type { MapRightDockPanel } from "../mapDocking";
+import { getRightDockPanelForBottomTab } from "../mapRightDockRoutes";
 
 export type MapActivityId =
   | "overview"
@@ -90,6 +92,7 @@ export interface MapActivityDefinition {
   defaultSidebarTabId: MapSidebarTabId | null;
   defaultInspectorContextId: MapInspectorContextId | null;
   defaultBottomPanelTabId: MapBottomPanelTabId | null;
+  defaultRightDockPanelId: MapRightDockPanel | null;
   commandCategory: string;
   commandKeywords: readonly string[];
 }
@@ -126,6 +129,7 @@ export interface MapTaskLensDefinition {
   sidebarTabPriority: readonly MapSidebarTabId[];
   inspectorContextPriority: readonly MapInspectorContextId[];
   bottomPanelTabPriority: readonly MapBottomPanelTabId[];
+  rightDockPanelPriority: readonly MapRightDockPanel[];
   preserveCommandPalette: true;
 }
 
@@ -137,6 +141,7 @@ export interface MapInventoryNavigationBinding {
   sidebarTabId: MapSidebarTabId | null;
   inspectorContextId: MapInspectorContextId | null;
   bottomPanelTabId: MapBottomPanelTabId | null;
+  rightDockPanelId: MapRightDockPanel | null;
 }
 
 export const MAP_PRIMARY_ACTIVITY_ORDER = [
@@ -169,6 +174,7 @@ export const MAP_ACTIVITY_DEFINITIONS = [
     defaultSidebarTabId: "overview-readiness",
     defaultInspectorContextId: null,
     defaultBottomPanelTabId: null,
+    defaultRightDockPanelId: null,
     commandCategory: "Overview",
     commandKeywords: ["overview", "navigator", "readiness", "project", "notes"],
   },
@@ -184,6 +190,7 @@ export const MAP_ACTIVITY_DEFINITIONS = [
     defaultSidebarTabId: "data-import",
     defaultInspectorContextId: "source",
     defaultBottomPanelTabId: "tasks",
+    defaultRightDockPanelId: "tasks",
     commandCategory: "Data",
     commandKeywords: ["data", "import", "source", "catalog", "service", "connection", "demo"],
   },
@@ -199,6 +206,7 @@ export const MAP_ACTIVITY_DEFINITIONS = [
     defaultSidebarTabId: "layers-stack",
     defaultInspectorContextId: "layer",
     defaultBottomPanelTabId: "attributes",
+    defaultRightDockPanelId: "attributes",
     commandCategory: "Layers",
     commandKeywords: ["layers", "contents", "stack", "visibility", "schema", "attributes"],
   },
@@ -214,6 +222,7 @@ export const MAP_ACTIVITY_DEFINITIONS = [
     defaultSidebarTabId: "analyze-workflows",
     defaultInspectorContextId: "analysis-run",
     defaultBottomPanelTabId: "tasks",
+    defaultRightDockPanelId: "tasks",
     commandCategory: "Analyze",
     commandKeywords: ["analyze", "workflow", "processing", "model", "query", "statistics", "data operations", "measure"],
   },
@@ -229,6 +238,7 @@ export const MAP_ACTIVITY_DEFINITIONS = [
     defaultSidebarTabId: "style-renderer",
     defaultInspectorContextId: "layer",
     defaultBottomPanelTabId: null,
+    defaultRightDockPanelId: null,
     commandCategory: "Style",
     commandKeywords: ["style", "symbology", "choropleth", "label", "legend", "cartography"],
   },
@@ -244,6 +254,7 @@ export const MAP_ACTIVITY_DEFINITIONS = [
     defaultSidebarTabId: "scene-3d",
     defaultInspectorContextId: "scene-item",
     defaultBottomPanelTabId: "timeline",
+    defaultRightDockPanelId: "timeline",
     commandCategory: "Scene",
     commandKeywords: ["scene", "raster", "temporal", "3d", "zoning", "massing", "voxcity"],
   },
@@ -259,6 +270,7 @@ export const MAP_ACTIVITY_DEFINITIONS = [
     defaultSidebarTabId: "publish-figure",
     defaultInspectorContextId: "publish-item",
     defaultBottomPanelTabId: "tasks",
+    defaultRightDockPanelId: "tasks",
     commandCategory: "Publish",
     commandKeywords: ["publish", "figure", "export", "package", "report", "attribution"],
   },
@@ -274,6 +286,7 @@ export const MAP_ACTIVITY_DEFINITIONS = [
     defaultSidebarTabId: null,
     defaultInspectorContextId: "qa-issue",
     defaultBottomPanelTabId: "problems",
+    defaultRightDockPanelId: "problems",
     commandCategory: "QA",
     commandKeywords: ["qa", "problems", "crs", "projection", "geometry", "caveat"],
   },
@@ -289,6 +302,7 @@ export const MAP_ACTIVITY_DEFINITIONS = [
     defaultSidebarTabId: null,
     defaultInspectorContextId: "publish-item",
     defaultBottomPanelTabId: "timeline",
+    defaultRightDockPanelId: "timeline",
     commandCategory: "Review",
     commandKeywords: ["review", "timeline", "audit", "collaboration", "comments", "evidence"],
   },
@@ -304,6 +318,7 @@ export const MAP_ACTIVITY_DEFINITIONS = [
     defaultSidebarTabId: null,
     defaultInspectorContextId: null,
     defaultBottomPanelTabId: "diagnostics",
+    defaultRightDockPanelId: "diagnostics",
     commandCategory: "Diagnostics",
     commandKeywords: ["diagnostics", "performance", "render", "worker", "telemetry", "recovery"],
   },
@@ -319,6 +334,7 @@ export const MAP_ACTIVITY_DEFINITIONS = [
     defaultSidebarTabId: "extensions-registry",
     defaultInspectorContextId: "extension",
     defaultBottomPanelTabId: null,
+    defaultRightDockPanelId: null,
     commandCategory: "Extensions",
     commandKeywords: ["extensions", "plugins", "registry", "source connector", "renderer", "urban bridge"],
   },
@@ -686,6 +702,7 @@ export const MAP_TASK_LENSES = [
     sidebarTabPriority: ["data-import", "data-catalog", "layers-stack", "analyze-workflows", "analyze-tools", "analyze-query", "analyze-data-operations"],
     inspectorContextPriority: ["source", "layer", "analysis-run", "qa-issue"],
     bottomPanelTabPriority: ["problems", "attributes", "tasks", "diagnostics"],
+    rightDockPanelPriority: ["problems", "attributes", "tasks", "diagnostics"],
     preserveCommandPalette: true,
   },
   {
@@ -698,6 +715,7 @@ export const MAP_TASK_LENSES = [
     sidebarTabPriority: ["layers-stack", "scene-3d", "scene-zoning", "scene-massing", "scene-sun-shadow", "style-renderer", "publish-figure"],
     inspectorContextPriority: ["layer", "scene-item", "publish-item", "qa-issue"],
     bottomPanelTabPriority: ["attributes", "timeline", "problems", "tasks"],
+    rightDockPanelPriority: ["attributes", "timeline", "problems", "tasks"],
     preserveCommandPalette: true,
   },
   {
@@ -710,6 +728,7 @@ export const MAP_TASK_LENSES = [
     sidebarTabPriority: ["data-health", "data-catalog", "layers-sources", "layers-contents", "overview-readiness"],
     inspectorContextPriority: ["qa-issue", "source", "layer", "analysis-run", "publish-item"],
     bottomPanelTabPriority: ["problems", "timeline", "diagnostics", "console"],
+    rightDockPanelPriority: ["problems", "timeline", "diagnostics"],
     preserveCommandPalette: true,
   },
   {
@@ -722,6 +741,7 @@ export const MAP_TASK_LENSES = [
     sidebarTabPriority: ["publish-figure", "publish-data-export", "publish-report", "publish-offline-package", "publish-review-package", "style-legend", "style-labels"],
     inspectorContextPriority: ["publish-item", "layer", "qa-issue", "source"],
     bottomPanelTabPriority: ["timeline", "problems", "tasks", "attributes"],
+    rightDockPanelPriority: ["timeline", "problems", "tasks", "attributes"],
     preserveCommandPalette: true,
   },
 ] as const satisfies readonly MapTaskLensDefinition[];
@@ -865,6 +885,7 @@ export function buildMapInventoryNavigationBinding(entry: MapSurfaceInventoryEnt
   const sidebarTabId = getSidebarTabForInventoryEntry(entry, activityId);
   const inspectorContextId = getInspectorContextForInventoryEntry(entry, activityId);
   const bottomPanelTabId = getBottomPanelTabForInventoryEntry(entry, activityId);
+  const rightDockPanelId = bottomPanelTabId === null ? null : getRightDockPanelForBottomTab(bottomPanelTabId);
 
   return {
     inventoryId: entry.id,
@@ -874,6 +895,7 @@ export function buildMapInventoryNavigationBinding(entry: MapSurfaceInventoryEnt
     sidebarTabId,
     inspectorContextId,
     bottomPanelTabId,
+    rightDockPanelId,
   };
 }
 

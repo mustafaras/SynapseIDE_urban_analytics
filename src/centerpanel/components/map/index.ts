@@ -42,10 +42,12 @@ export { MapSearchBar } from "./MapSearchBar";
 export type { MapSearchBarProps } from "./MapSearchBar";
 
 export { MapStatusBar } from "./MapStatusBar";
+export { MapRightDockHost } from "./MapRightDockHost";
 export { ScientificQAPanel } from "./ScientificQAPanel";
 export { MapProblemsPanel } from "./problems";
 export { MapBottomPanel } from "./bottom";
 export type { MapStatusBarProps } from "./MapStatusBar";
+export type { MapRightDockHostPresentation, MapRightDockHostProps } from "./MapRightDockHost";
 export type { ScientificQAPanelProps } from "./ScientificQAPanel";
 export type {
   MapBottomPanelCoreTabId,
@@ -200,6 +202,29 @@ export {
   getRecommendedMapQuickAction,
 } from "./mapExperience";
 export type { MapQuickActionId, MapWorkspaceView } from "./mapExperience";
+
+export {
+  EMPTY_MAP_RIGHT_DOCK_ROUTE_STATE,
+  MAP_MIGRATED_BOTTOM_TAB_TO_RIGHT_DOCK_PANEL,
+  MAP_RIGHT_DOCK_PANEL_DEFINITIONS,
+  MAP_RIGHT_DOCK_PANEL_IDS,
+  buildMapRightDockRouteAnnouncement,
+  closeMapRightDockRouteState,
+  createMapRightDockRoute,
+  createMapRightDockRouteFromBottomTab,
+  getMapActivityIdForRightDockPanel,
+  getMapRightDockPanelDefinition,
+  getRightDockPanelForBottomTab,
+  openMapRightDockRouteState,
+  switchMapRightDockRouteState,
+} from "./mapRightDockRoutes";
+export type {
+  MapRightDockFocusReturn,
+  MapRightDockPanelDefinition,
+  MapRightDockRoute,
+  MapRightDockRouteSource,
+  MapRightDockRouteState,
+} from "./mapRightDockRoutes";
 
 export {
   buildMapExplorerContextSummary,

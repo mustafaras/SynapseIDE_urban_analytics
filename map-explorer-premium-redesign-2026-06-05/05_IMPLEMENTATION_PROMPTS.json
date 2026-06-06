@@ -76,7 +76,7 @@
       "id": "prompt-02",
       "number": 2,
       "title": "Launch Dialog State Boundary",
-      "status": "pending",
+      "status": "implemented",
       "objective": "Separate launch/readiness dialog state from left-panel state and workspace tab state.",
       "read": [
         "01_OPENING_MODAL_SPEC.md",
@@ -105,7 +105,7 @@
       "id": "prompt-03",
       "number": 3,
       "title": "Start Dialog Visual Redesign",
-      "status": "pending",
+      "status": "implemented",
       "objective": "Build the premium opening dialog as a dedicated component.",
       "read": [
         "01_OPENING_MODAL_SPEC.md",
@@ -138,7 +138,7 @@
       "id": "prompt-04",
       "number": 4,
       "title": "Left Panel Launch Decoupling",
-      "status": "pending",
+      "status": "implemented",
       "objective": "Remove full launch/readiness modal content from all left-panel render paths.",
       "read": [
         "01_OPENING_MODAL_SPEC.md",
@@ -170,7 +170,7 @@
       "id": "prompt-05",
       "number": 5,
       "title": "Docking Type Contract Without Bottom Placement",
-      "status": "pending",
+      "status": "implemented",
       "objective": "Make bottom workspace placement structurally impossible in the docking model.",
       "read": [
         "02_PANEL_ARCHITECTURE_SPEC.md",
@@ -202,7 +202,7 @@
       "id": "prompt-06",
       "number": 6,
       "title": "Right Dock State And Route Model",
-      "status": "pending",
+      "status": "implemented",
       "objective": "Create a single typed route model for right-dock panels and migrated bottom surfaces.",
       "read": [
         "02_PANEL_ARCHITECTURE_SPEC.md",
@@ -234,7 +234,7 @@
       "id": "prompt-07",
       "number": 7,
       "title": "Right Dock Host Visual Shell",
-      "status": "pending",
+      "status": "implemented",
       "objective": "Add or evolve a premium right inspector dock host before migrating content into it.",
       "read": [
         "02_PANEL_ARCHITECTURE_SPEC.md",

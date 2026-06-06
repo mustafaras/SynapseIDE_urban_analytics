@@ -17,6 +17,11 @@ import {
   getMapActivityDefinition,
   getMapInventoryNavigationBinding,
 } from "../navigation";
+import {
+  MAP_MIGRATED_BOTTOM_TAB_TO_RIGHT_DOCK_PANEL,
+  MAP_RIGHT_DOCK_PANEL_IDS,
+  getRightDockPanelForBottomTab,
+} from "../mapRightDockRoutes";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../../");
 const allActivityIds = [...MAP_PRIMARY_ACTIVITY_ORDER, ...MAP_UTILITY_ACTIVITY_ORDER];
@@ -106,6 +111,7 @@ describe("mapNavigationModel", () => {
     const sidebarTabIds = new Set(MAP_SIDEBAR_TAB_DEFINITIONS.map((tab) => tab.id));
     const inspectorContextIds = new Set(MAP_INSPECTOR_CONTEXT_DEFINITIONS.map((context) => context.id));
     const bottomPanelTabIds = new Set(MAP_BOTTOM_PANEL_TAB_DEFINITIONS.map((tab) => tab.id));
+    const rightDockPanelIds = new Set(MAP_RIGHT_DOCK_PANEL_IDS);
 
     expectUnique(MAP_SIDEBAR_TAB_DEFINITIONS.map((tab) => tab.id), "sidebar tab ids");
     expectUnique(MAP_INSPECTOR_CONTEXT_DEFINITIONS.map((context) => context.id), "inspector context ids");
@@ -136,6 +142,14 @@ describe("mapNavigationModel", () => {
       }
       if (activity.defaultBottomPanelTabId !== null) {
         expect(bottomPanelTabIds.has(activity.defaultBottomPanelTabId), activity.id).toBe(true);
+        expect(activity.defaultRightDockPanelId, activity.id).toBe(
+          getRightDockPanelForBottomTab(activity.defaultBottomPanelTabId),
+        );
+      } else {
+        expect(activity.defaultRightDockPanelId, activity.id).toBeNull();
+      }
+      if (activity.defaultRightDockPanelId !== null) {
+        expect(rightDockPanelIds.has(activity.defaultRightDockPanelId), activity.id).toBe(true);
       }
     }
   });
@@ -152,6 +166,7 @@ describe("mapNavigationModel", () => {
     const sidebarTabIds = new Set(MAP_SIDEBAR_TAB_DEFINITIONS.map((tab) => tab.id));
     const inspectorContextIds = new Set(MAP_INSPECTOR_CONTEXT_DEFINITIONS.map((context) => context.id));
     const bottomPanelTabIds = new Set(MAP_BOTTOM_PANEL_TAB_DEFINITIONS.map((tab) => tab.id));
+    const rightDockPanelIds = new Set(MAP_RIGHT_DOCK_PANEL_IDS);
 
     for (const lens of MAP_TASK_LENSES) {
       expect(lens.ariaLabel, lens.id).toContain(lens.label);
@@ -162,6 +177,7 @@ describe("mapNavigationModel", () => {
       expect(lens.sidebarTabPriority.every((tabId) => sidebarTabIds.has(tabId)), lens.id).toBe(true);
       expect(lens.inspectorContextPriority.every((contextId) => inspectorContextIds.has(contextId)), lens.id).toBe(true);
       expect(lens.bottomPanelTabPriority.every((tabId) => bottomPanelTabIds.has(tabId)), lens.id).toBe(true);
+      expect(lens.rightDockPanelPriority.every((panelId) => rightDockPanelIds.has(panelId)), lens.id).toBe(true);
     }
   });
 
@@ -174,6 +190,7 @@ describe("mapNavigationModel", () => {
     const sidebarTabIds = new Set(MAP_SIDEBAR_TAB_DEFINITIONS.map((tab) => tab.id));
     const inspectorContextIds = new Set(MAP_INSPECTOR_CONTEXT_DEFINITIONS.map((context) => context.id));
     const bottomPanelTabIds = new Set(MAP_BOTTOM_PANEL_TAB_DEFINITIONS.map((tab) => tab.id));
+    const rightDockPanelIds = new Set(MAP_RIGHT_DOCK_PANEL_IDS);
 
     for (const binding of MAP_INVENTORY_NAVIGATION_BINDINGS) {
       expect(inventoryIds.has(binding.inventoryId), binding.inventoryId).toBe(true);
@@ -187,6 +204,14 @@ describe("mapNavigationModel", () => {
       }
       if (binding.bottomPanelTabId !== null) {
         expect(bottomPanelTabIds.has(binding.bottomPanelTabId), binding.inventoryId).toBe(true);
+        expect(binding.rightDockPanelId, binding.inventoryId).toBe(
+          getRightDockPanelForBottomTab(binding.bottomPanelTabId),
+        );
+      } else {
+        expect(binding.rightDockPanelId, binding.inventoryId).toBeNull();
+      }
+      if (binding.rightDockPanelId !== null) {
+        expect(rightDockPanelIds.has(binding.rightDockPanelId), binding.inventoryId).toBe(true);
       }
     }
   });
@@ -235,6 +260,7 @@ describe("mapNavigationModel", () => {
     expect(getMapInventoryNavigationBinding("toolbar.qa")).toMatchObject({
       activityId: "qa",
       bottomPanelTabId: "problems",
+      rightDockPanelId: "problems",
     });
     expect(getMapInventoryNavigationBinding("hidden-toggle.raster")).toMatchObject({
       activityId: "scene",
@@ -243,6 +269,23 @@ describe("mapNavigationModel", () => {
     expect(getMapInventoryNavigationBinding("status.performance")).toMatchObject({
       activityId: "diagnostics",
       bottomPanelTabId: "diagnostics",
+      rightDockPanelId: "diagnostics",
+    });
+  });
+
+  it("maps every old bottom tab to an explicit right dock destination", () => {
+    const mappedBottomTabs = Object.keys(MAP_MIGRATED_BOTTOM_TAB_TO_RIGHT_DOCK_PANEL).sort();
+    const bottomPanelTabIds = MAP_BOTTOM_PANEL_TAB_DEFINITIONS.map((tab) => tab.id).sort();
+
+    expect(mappedBottomTabs).toEqual(bottomPanelTabIds);
+    expect(MAP_MIGRATED_BOTTOM_TAB_TO_RIGHT_DOCK_PANEL).toEqual({
+      problems: "problems",
+      attributes: "attributes",
+      timeline: "timeline",
+      tasks: "tasks",
+      diagnostics: "diagnostics",
+      console: "diagnostics",
+      measurements: "measure",
     });
   });
 

@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import {
   getActiveRightDockPanel,
   getMapDockLayout,
+  type MapRightDockPanel,
 } from "../mapDocking";
 
 interface MapPanelLayoutPreferences {
@@ -22,6 +23,7 @@ interface UseMapPanelLayoutOptions {
   showWorkflowDrawer: boolean;
   showReviewTimeline: boolean;
   hasReportHandoffSource: boolean;
+  activeRightDockRoutePanel: MapRightDockPanel | null;
   navigatorStageMode: boolean;
   navigatorStageMargin: number;
   layoutPreferences: MapPanelLayoutPreferences;
@@ -39,11 +41,12 @@ export function useMapPanelLayout({
   showWorkflowDrawer,
   showReviewTimeline,
   hasReportHandoffSource,
+  activeRightDockRoutePanel,
   navigatorStageMode,
   navigatorStageMargin,
   layoutPreferences,
 }: UseMapPanelLayoutOptions) {
-  const requestedRightDockPanel = hasReportHandoffSource
+  const requestedRightDockPanel = activeRightDockRoutePanel ?? (hasReportHandoffSource
     ? "report"
     : showUrbanMethodPanel
       ? "urbanMethod"
@@ -55,7 +58,7 @@ export function useMapPanelLayout({
             showPinSidebar: showSidebar,
             showDrawPanel,
             showMeasurePanel,
-          });
+          }));
 
   const dockLayout = useMemo(() => getMapDockLayout({
     containerWidth: mapContainerWidth,
@@ -65,6 +68,7 @@ export function useMapPanelLayout({
     layerPanelWidth: layoutPreferences.layerPanelWidth,
     rightPanelWidth: layoutPreferences.rightPanelWidth,
   }), [
+    activeRightDockRoutePanel,
     layoutPreferences.layerPanelWidth,
     layoutPreferences.rightPanelWidth,
     mapContainerWidth,
