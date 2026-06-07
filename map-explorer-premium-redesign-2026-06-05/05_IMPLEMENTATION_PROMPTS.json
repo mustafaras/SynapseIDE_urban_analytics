@@ -490,7 +490,7 @@
       "id": "prompt-15",
       "number": 15,
       "title": "Draw Sketch Annotation Dock Consolidation",
-      "status": "pending",
+      "status": "implemented",
       "objective": "Remove persistent floating draw/sketch/annotation panels and move detail into the right dock.",
       "read": [
         "02_PANEL_ARCHITECTURE_SPEC.md",

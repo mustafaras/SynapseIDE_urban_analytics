@@ -464,7 +464,7 @@ describe("MapDrawingManager — module exports", () => {
     expect(mod).toBeDefined();
   });
 
-  it("renders the compact sketch side panel summary", async () => {
+  it("renders the compact sketch side panel summary (floating presentation)", async () => {
     const mod = await import("../../MapDrawingManager");
     const feature: DrawnFeature = {
       id: "feature-1",
@@ -475,6 +475,7 @@ describe("MapDrawingManager — module exports", () => {
     const html = renderToStaticMarkup(React.createElement(mod.MapDrawingManager, {
       mapRef: React.createRef<MapLibreMap>(),
       activeDrawTool: "polygon",
+      presentation: "floating",
       sidebarVisible: true,
       drawnFeatures: [feature],
       selectedFeatureId: feature.id,
@@ -491,6 +492,58 @@ describe("MapDrawingManager — module exports", () => {
     expect(html).toContain("Polygon");
     expect(html).toContain("Features");
     expect(html).toContain("Transit hub");
+  });
+
+  it("renders the draw panel body in embedded presentation (right dock mode)", async () => {
+    const mod = await import("../../MapDrawingManager");
+    const feature: DrawnFeature = {
+      id: "feature-2",
+      geometry: makePolygon([[0, 0], [1, 0], [1, 1], [0, 1]]),
+      properties: { label: "AOI boundary", createdAt: "2024-01-01T00:00:00Z" },
+    };
+
+    const html = renderToStaticMarkup(React.createElement(mod.MapDrawingManager, {
+      mapRef: React.createRef<MapLibreMap>(),
+      activeDrawTool: "polygon",
+      presentation: "embedded",
+      sidebarVisible: true,
+      drawnFeatures: [feature],
+      selectedFeatureId: null,
+      onAddFeature: () => undefined,
+      onRemoveFeature: () => undefined,
+      onUpdateFeature: () => undefined,
+      onClearFeatures: () => undefined,
+      onSelectFeature: () => undefined,
+      onCancelDraw: () => undefined,
+    }));
+
+    expect(html).toContain("Sketch");
+    expect(html).toContain("Polygon");
+    expect(html).toContain("AOI boundary");
+    // Embedded mode uses data-testid for right dock integration
+    expect(html).toContain("map-right-dock-draw-body");
+    // Embedded mode must NOT use the floating/draggable panel style
+    expect(html).not.toContain("position");
+  });
+
+  it("embedded presentation returns null when sidebarVisible=false", async () => {
+    const mod = await import("../../MapDrawingManager");
+    const html = renderToStaticMarkup(React.createElement(mod.MapDrawingManager, {
+      mapRef: React.createRef<MapLibreMap>(),
+      activeDrawTool: null,
+      presentation: "embedded",
+      sidebarVisible: false,
+      drawnFeatures: [],
+      selectedFeatureId: null,
+      onAddFeature: () => undefined,
+      onRemoveFeature: () => undefined,
+      onUpdateFeature: () => undefined,
+      onClearFeatures: () => undefined,
+      onSelectFeature: () => undefined,
+      onCancelDraw: () => undefined,
+    }));
+
+    expect(html).toBe("");
   });
 });
 

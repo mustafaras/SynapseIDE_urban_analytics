@@ -2,6 +2,8 @@
 /*  MapDrawingManager                                                  */
 /*  Manages drawing interactions on the MapLibre GL canvas.            */
 /*  Renders ghost feedback, vertex handles, and the feature sidebar.   */
+/*  presentation="floating"  → legacy draggable floating panel         */
+/*  presentation="embedded"  → scrollable body for the right dock      */
 /* ================================================================== */
 
 import React, { useCallback, useEffect, useRef } from "react";
@@ -114,9 +116,17 @@ export interface MapDrawingSnapSource {
   featureCollection: GeoJSON.FeatureCollection;
 }
 
+export type MapDrawingManagerPresentation = "floating" | "embedded";
+
 export interface MapDrawingManagerProps {
   mapRef: React.RefObject<maplibregl.Map | null>;
   activeDrawTool: DrawToolId | null;
+  /**
+   * When `"floating"` (default): renders the classic draggable floating sidebar.
+   * When `"embedded"`: renders the feature list as a scrollable body suitable for
+   * embedding inside the `MapRightDockHost` draw panel.
+   */
+  presentation?: MapDrawingManagerPresentation;
   sidebarVisible?: boolean;
   seedDrawStart?: {
     coordinate: [number, number];
@@ -180,6 +190,7 @@ const emptyStyle: React.CSSProperties = {
 export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
   mapRef,
   activeDrawTool,
+  presentation = "floating",
   sidebarVisible = true,
   seedDrawStart = null,
   drawnFeatures,
@@ -1044,6 +1055,125 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
   const selectedFeature = drawnFeatures.find((feature) => feature.id === selectedFeatureId) ?? null;
   const activeToolLabel = activeDrawTool ? DRAW_TOOL_LABELS[activeDrawTool] : "Select";
 
+  /* Shared content — used in both floating and embedded presentations */
+  const summaryStrip = (
+    <div style={mapStyles.sidePanelSummaryStrip} aria-label="Sketch summary">
+      <div style={mapStyles.sidePanelMetric}>
+        <span style={mapStyles.sidePanelMetricLabel}>Tool</span>
+        <span style={mapStyles.sidePanelMetricValue}>{activeToolLabel}</span>
+      </div>
+      <div style={mapStyles.sidePanelMetric}>
+        <span style={mapStyles.sidePanelMetricLabel}>Features</span>
+        <span style={mapStyles.sidePanelMetricValue}>{drawnFeatures.length}</span>
+      </div>
+      <div style={{ ...mapStyles.sidePanelMetric, borderRight: MAP_STROKES.none }}>
+        <span style={mapStyles.sidePanelMetricLabel}>Selected</span>
+        <span style={mapStyles.sidePanelMetricValue}>{selectedFeature ? selectedFeature.geometry.type : "None"}</span>
+      </div>
+    </div>
+  );
+
+  const featureList = (
+    drawnFeatures.length === 0 ? (
+      <div style={emptyStyle}>
+        No drawn features.
+      </div>
+    ) : (
+      <div style={mapStyles.sidePanelBody} role="listbox" aria-label="Drawn feature list">
+        {drawnFeatures.map((f) => {
+          const validationStatus = f.properties.validation?.status;
+          const validationLabel = getDrawnValidationLabel(validationStatus);
+          const validationColor = getDrawnValidationColor(validationStatus);
+
+          return (
+          <div
+            key={f.id}
+            role="option"
+            style={f.id === selectedFeatureId ? rowSelectedStyle : rowStyle}
+            onClick={() => onSelectFeature(f.id === selectedFeatureId ? null : f.id)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onSelectFeature(f.id === selectedFeatureId ? null : f.id);
+              }
+            }}
+            tabIndex={0}
+            aria-selected={f.id === selectedFeatureId}
+            aria-label={`${f.properties.label} — ${f.geometry.type}`}
+          >
+            <span style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", color: f.id === selectedFeatureId ? MAP_COLORS.interaction : MAP_COLORS.textMuted }}>
+              {f.geometry.type === "Point" ? <IconPoint size={MAP_ICON_SIZES.sm} /> : f.geometry.type === "LineString" ? <IconLine size={MAP_ICON_SIZES.sm} /> : f.geometry.type === "Polygon" ? <IconPolygon size={MAP_ICON_SIZES.sm} /> : <IconUnknown size={MAP_ICON_SIZES.sm} />}
+            </span>
+            <span style={{ minWidth: MAP_SPACING.zero, display: "grid", gap: MAP_SPACING.xs }}>
+              <span
+                style={{
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  color: f.id === selectedFeatureId ? MAP_COLORS.interaction : MAP_COLORS.text,
+                  fontWeight: f.id === selectedFeatureId ? MAP_TYPOGRAPHY.fontWeight.semibold : MAP_TYPOGRAPHY.fontWeight.medium,
+                }}
+              >
+                {f.properties.label}
+              </span>
+              <span style={{ color: MAP_COLORS.textMuted, fontFamily: MAP_TYPOGRAPHY.fontFamilyMono, fontSize: MAP_TYPOGRAPHY.fontSize.xs }}>
+                {f.geometry.type} - <span style={{ color: validationColor }}>{validationLabel}</span>
+              </span>
+            </span>
+            <button
+              type="button"
+              style={smallBtn}
+              onClick={(e) => {
+                e.stopPropagation();
+                onRemoveFeature(f.id);
+                if (f.id === selectedFeatureId) onSelectFeature(null);
+                onAnnounce?.(`${f.properties.label} removed`);
+              }}
+              aria-label={`Delete ${f.properties.label}`}
+            >
+              <IconTrash size={12} />
+            </button>
+          </div>
+          );
+        })}
+      </div>
+    )
+  );
+
+  /* ---- Embedded presentation: plain scrollable body for right dock ---- */
+  if (presentation === "embedded") {
+    return (
+      <div
+        style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}
+        role="region"
+        aria-label="Drawn features"
+        data-testid="map-right-dock-draw-body"
+      >
+        <div style={headerStyle}>
+          <div style={mapStyles.sidePanelTitleStack}>
+            <span style={mapStyles.sidePanelEyebrow}>Sketch</span>
+            <span style={mapStyles.sidePanelTitle}><IconPencil size={MAP_ICON_SIZES.sm} /> Drawings</span>
+          </div>
+          <div style={mapStyles.sidePanelHeaderActions}>
+            {drawnFeatures.length > 0 ? (
+              <button
+                type="button"
+                style={smallBtn}
+                onClick={onClearFeatures}
+                aria-label="Clear all drawn features"
+              >
+                Clear all
+              </button>
+            ) : null}
+          </div>
+        </div>
+        {summaryStrip}
+        {featureList}
+      </div>
+    );
+  }
+
+  /* ---- Floating presentation (default): draggable opaque panel ---- */
   return (
     <div style={{ ...panelStyle, ...panelPositionStyle }} role="region" aria-label="Drawn features">
       <div style={{ ...headerStyle, ...dragHandleStyle }} {...dragHandleProps}>
@@ -1064,86 +1194,8 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
           ) : null}
         </div>
       </div>
-
-      <div style={mapStyles.sidePanelSummaryStrip} aria-label="Sketch summary">
-        <div style={mapStyles.sidePanelMetric}>
-          <span style={mapStyles.sidePanelMetricLabel}>Tool</span>
-          <span style={mapStyles.sidePanelMetricValue}>{activeToolLabel}</span>
-        </div>
-        <div style={mapStyles.sidePanelMetric}>
-          <span style={mapStyles.sidePanelMetricLabel}>Features</span>
-          <span style={mapStyles.sidePanelMetricValue}>{drawnFeatures.length}</span>
-        </div>
-        <div style={{ ...mapStyles.sidePanelMetric, borderRight: MAP_STROKES.none }}>
-          <span style={mapStyles.sidePanelMetricLabel}>Selected</span>
-          <span style={mapStyles.sidePanelMetricValue}>{selectedFeature ? selectedFeature.geometry.type : "None"}</span>
-        </div>
-      </div>
-
-      {drawnFeatures.length === 0 ? (
-        <div style={emptyStyle}>
-          No drawn features.
-        </div>
-      ) : (
-        <div style={mapStyles.sidePanelBody} role="listbox" aria-label="Drawn feature list">
-          {drawnFeatures.map((f) => {
-            const validationStatus = f.properties.validation?.status;
-            const validationLabel = getDrawnValidationLabel(validationStatus);
-            const validationColor = getDrawnValidationColor(validationStatus);
-
-            return (
-            <div
-              key={f.id}
-              role="option"
-              style={f.id === selectedFeatureId ? rowSelectedStyle : rowStyle}
-              onClick={() => onSelectFeature(f.id === selectedFeatureId ? null : f.id)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  onSelectFeature(f.id === selectedFeatureId ? null : f.id);
-                }
-              }}
-              tabIndex={0}
-              aria-selected={f.id === selectedFeatureId}
-              aria-label={`${f.properties.label} — ${f.geometry.type}`}
-            >
-              <span style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", color: f.id === selectedFeatureId ? MAP_COLORS.interaction : MAP_COLORS.textMuted }}>
-                {f.geometry.type === "Point" ? <IconPoint size={MAP_ICON_SIZES.sm} /> : f.geometry.type === "LineString" ? <IconLine size={MAP_ICON_SIZES.sm} /> : f.geometry.type === "Polygon" ? <IconPolygon size={MAP_ICON_SIZES.sm} /> : <IconUnknown size={MAP_ICON_SIZES.sm} />}
-              </span>
-              <span style={{ minWidth: MAP_SPACING.zero, display: "grid", gap: MAP_SPACING.xs }}>
-                <span
-                  style={{
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                    color: f.id === selectedFeatureId ? MAP_COLORS.interaction : MAP_COLORS.text,
-                    fontWeight: f.id === selectedFeatureId ? MAP_TYPOGRAPHY.fontWeight.semibold : MAP_TYPOGRAPHY.fontWeight.medium,
-                  }}
-                >
-                  {f.properties.label}
-                </span>
-                <span style={{ color: MAP_COLORS.textMuted, fontFamily: MAP_TYPOGRAPHY.fontFamilyMono, fontSize: MAP_TYPOGRAPHY.fontSize.xs }}>
-                  {f.geometry.type} - <span style={{ color: validationColor }}>{validationLabel}</span>
-                </span>
-              </span>
-              <button
-                type="button"
-                style={smallBtn}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRemoveFeature(f.id);
-                  if (f.id === selectedFeatureId) onSelectFeature(null);
-                  onAnnounce?.(`${f.properties.label} removed`);
-                }}
-                aria-label={`Delete ${f.properties.label}`}
-              >
-                <IconTrash size={12} />
-              </button>
-            </div>
-            );
-          })}
-        </div>
-      )}
+      {summaryStrip}
+      {featureList}
     </div>
   );
 };

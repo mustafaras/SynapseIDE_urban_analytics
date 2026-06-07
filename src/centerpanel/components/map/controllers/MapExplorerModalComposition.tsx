@@ -2496,7 +2496,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const [showExternalServiceDialog, setShowExternalServiceDialog] = useState(false);
   const [pointSymbologyLayerId, setPointSymbologyLayerId] = useState<string | null>(null);
   const [pointSymbologyMode, setPointSymbologyMode] = useState<SymbolMode | "heatmap">("heatmap");
-  const [showDrawPanel, setShowDrawPanel] = useState(true);
+  const [showDrawPanel, setShowDrawPanel] = useState(false);
   const [showMeasurePanel, setShowMeasurePanel] = useState(false);
   const [selectionDragTool, setSelectionDragTool] = useState<SelectionDragTool | null>(null);
   const [showCanvasKeyboardHelp, setShowCanvasKeyboardHelp] = useState(false);
@@ -5477,22 +5477,23 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       setActiveDrawTool(tool);
       setSelectionDragTool(null);
       setShowCanvasKeyboardHelp(false);
-      // When activating draw, deactivate pin mode
+      // When activating draw, deactivate pin mode and open right dock draw panel
       if (tool) {
         setActiveTool(null);
         setActiveMeasureTool(null);
         setShowSidebar(false);
         setShowScientificQAPanel(false);
         closeFloatingRightPanels();
-        setShowDrawPanel(true);
+        setShowDrawPanel(false);
         setShowMeasurePanel(false);
         setWorkspaceView("analyze");
+        openRightDockPanel("draw", `Draw workspace opened in the right dock`, "toolbar");
         announce(`Drawing tool: ${tool}`);
       } else {
         announce("Drawing tool deactivated");
       }
     },
-    [announce, closeFloatingRightPanels, setActiveDrawTool, setActiveMeasureTool, setActiveTool],
+    [announce, closeFloatingRightPanels, openRightDockPanel, setActiveDrawTool, setActiveMeasureTool, setActiveTool],
   );
 
   const handleCancelDraw = useCallback(() => {
@@ -5500,17 +5501,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   }, [setActiveDrawTool]);
 
   const handleToggleDrawPanel = useCallback(() => {
-    setShowDrawPanel((prev) => {
-      if (!prev) {
-        setShowScientificQAPanel(false);
-        closeFloatingRightPanels();
-        setShowSidebar(false);
-        setShowMeasurePanel(false);
-      }
-      announce(!prev ? "Drawings panel opened" : "Drawings panel closed");
-      return !prev;
-    });
-  }, [announce, closeFloatingRightPanels]);
+    toggleRightDockPanel("draw", "Drawings panel opened in the right dock", "toolbar");
+  }, [toggleRightDockPanel]);
 
   /* ---- Measurement handlers ---- */
   const handleSetMeasureTool = useCallback(
@@ -8660,6 +8652,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const rightScientificQADockActive = activeRightDockRoute?.panel === "scientificQA" || activeRightDockRoute?.panel === "qa";
   const rightDiagnosticsDockActive = activeRightDockRoute?.panel === "diagnostics";
   const rightPerformanceDockActive = activeRightDockRoute?.panel === "performance";
+  const rightDrawDockActive = activeRightDockRoute?.panel === "draw";
 
   const buildReviewTimeline = (
     visible: boolean,
@@ -8873,6 +8866,31 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             />
           </MapPanelErrorBoundary>
         </div>
+      );
+    }
+
+    if (rightDrawDockActive) {
+      return (
+        <MapDrawingManager
+          mapRef={mapInstanceRef}
+          activeDrawTool={activeDrawTool}
+          presentation="embedded"
+          sidebarVisible
+          drawnFeatures={drawnFeatures}
+          snapSources={drawingSnapSources}
+          selectedFeatureId={selectedFeatureId}
+          onAddFeature={addDrawnFeature}
+          onRemoveFeature={removeDrawnFeature}
+          onUpdateFeature={updateDrawnFeature}
+          onCommitFeatureEdit={handleCommitDrawnFeatureEdit}
+          onClearFeatures={clearDrawnFeatures}
+          onSelectFeature={setSelectedFeatureId}
+          onCancelDraw={handleCancelDraw}
+          onSeedHandled={(token) =>
+            setDrawSeed((current) => (current?.token === token ? null : current))
+          }
+          onAnnounce={announce}
+        />
       );
     }
 
@@ -11326,12 +11344,12 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             </div>
           ) : null}
 
-          {/* Drawing manager + sidebar (right side) */}
+          {/* Drawing manager — canvas interaction only (sidebar content goes to right dock) */}
           {!navigatorStageMode ? (
             <MapDrawingManager
               mapRef={mapInstanceRef}
               activeDrawTool={activeDrawTool}
-              sidebarVisible={effectiveShowDrawPanel}
+              sidebarVisible={effectiveShowDrawPanel && !rightDrawDockActive}
               seedDrawStart={drawSeed}
               drawnFeatures={drawnFeatures}
               snapSources={drawingSnapSources}
