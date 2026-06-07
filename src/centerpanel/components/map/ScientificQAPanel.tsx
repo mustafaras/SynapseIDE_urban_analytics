@@ -37,7 +37,7 @@ export interface ScientificQAPanelProps {
   overlayLayers: OverlayLayerConfig[];
   onClose: () => void;
   onShowDetails?: (issue: MapScientificQAIssue) => void;
-  presentation?: "floating" | "right-rail" | "bottom-drawer";
+  presentation?: "floating" | "right-rail" | "bottom-drawer" | "embedded";
   width?: number;
   minWidth?: number;
   maxWidth?: number;
@@ -117,6 +117,17 @@ const rightRailResizeHandleStyle: React.CSSProperties = {
 function clampPanelWidth(width: number, minWidth: number, maxWidth: number): number {
   return Math.max(minWidth, Math.min(maxWidth, width));
 }
+
+const embeddedPanelStyle: React.CSSProperties = {
+  ...mapStyles.sidePanelSurface,
+  position: "relative",
+  inset: "auto",
+  width: "100%",
+  height: "100%",
+  maxWidth: "none",
+  borderLeft: MAP_STROKES.none,
+  zIndex: "auto",
+};
 
 function getDockedPanelStyle(presentation: "right-rail" | "bottom-drawer", width?: number): React.CSSProperties {
   if (presentation === "bottom-drawer") {
@@ -549,15 +560,23 @@ export const ScientificQAPanel: React.FC<ScientificQAPanelProps> = ({
   }
 
   const floating = presentation === "floating";
+  const embedded = presentation === "embedded";
   const resolvedPanelStyle = floating
     ? { ...panelStyle, ...panelPositionStyle }
-    : getDockedPanelStyle(presentation, width);
+    : embedded
+      ? embeddedPanelStyle
+      : getDockedPanelStyle(presentation, width);
   const resolvedHeaderStyle = floating
     ? { ...mapStyles.sidePanelHeader, ...dragHandleStyle }
     : mapStyles.sidePanelHeader;
 
   return (
-    <aside style={resolvedPanelStyle} role="dialog" aria-modal="false" aria-label="Scientific QA side panel">
+    <aside
+      style={resolvedPanelStyle}
+      role={embedded ? "region" : "dialog"}
+      aria-modal={embedded ? undefined : "false"}
+      aria-label="Scientific QA side panel"
+    >
       {presentation === "right-rail" && onWidthChange ? (
         <button
           type="button"
@@ -624,7 +643,7 @@ export const ScientificQAPanel: React.FC<ScientificQAPanelProps> = ({
         <section style={sectionStyle} aria-label="Scientific QA problems">
           <MapProblemsPanel
             model={problemsModel}
-            compact={presentation === "bottom-drawer"}
+            compact={presentation === "bottom-drawer" || embedded}
             onProblemAction={handleProblemAction}
           />
         </section>

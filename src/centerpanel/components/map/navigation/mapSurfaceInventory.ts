@@ -31,7 +31,6 @@ export type MapSurfaceInventoryKind =
   | "workspace-view";
 
 export type MapSurfaceTargetSlot =
-  | "bottom-panel"
   | "canvas"
   | "command-center"
   | "dialog"
@@ -175,9 +174,9 @@ export const MAP_SURFACE_INVENTORY = [
     label: "Scientific QA command",
     kind: "toolbar-command",
     targetHome: "qa",
-    targetSlot: "bottom-panel",
+    targetSlot: "right-inspector",
     currentSurface: "MapToolbar",
-    targetSurface: "QA activity > Problems",
+    targetSurface: "Right dock > Problems",
   },
   {
     id: "toolbar.query",
@@ -205,9 +204,9 @@ export const MAP_SURFACE_INVENTORY = [
     label: "Review timeline command",
     kind: "toolbar-command",
     targetHome: "review",
-    targetSlot: "bottom-panel",
+    targetSlot: "right-inspector",
     currentSurface: "MapToolbar",
-    targetSurface: "Review activity > Timeline",
+    targetSurface: "Right dock > Timeline",
   },
   {
     id: "toolbar.undo-map-action",
@@ -285,9 +284,9 @@ export const MAP_SURFACE_INVENTORY = [
     label: "Performance diagnostics command",
     kind: "toolbar-command",
     targetHome: "diagnostics",
-    targetSlot: "bottom-panel",
+    targetSlot: "right-inspector",
     currentSurface: "MapToolbar",
-    targetSurface: "Diagnostics activity > Render budget",
+    targetSurface: "Right dock > Performance",
   },
   {
     id: "toolbar.plugin-registry",
@@ -515,9 +514,9 @@ export const MAP_SURFACE_INVENTORY = [
     label: "Measurement results command",
     kind: "toolbar-command",
     targetHome: "analyze",
-    targetSlot: "bottom-panel",
+    targetSlot: "right-inspector",
     currentSurface: "MapToolbar",
-    targetSurface: "Analyze activity > Measurements",
+    targetSurface: "Right dock > Measure",
   },
   {
     id: "toolbar.save-project",
@@ -685,9 +684,9 @@ export const MAP_SURFACE_INVENTORY = [
     label: "Diagnostics rail item",
     kind: "activity-rail-item",
     targetHome: "diagnostics",
-    targetSlot: "bottom-panel",
+    targetSlot: "right-inspector",
     currentSurface: "MapActivityRail",
-    targetSurface: "Diagnostics activity",
+    targetSurface: "Right dock > Diagnostics",
   },
   {
     id: "rail.extensions.activity",
@@ -765,9 +764,9 @@ export const MAP_SURFACE_INVENTORY = [
     label: "QA rail item",
     kind: "activity-rail-item",
     targetHome: "qa",
-    targetSlot: "bottom-panel",
+    targetSlot: "right-inspector",
     currentSurface: "MapActivityRail",
-    targetSurface: "QA activity",
+    targetSurface: "Right dock > Problems",
   },
   {
     id: "rail.export",
@@ -845,9 +844,9 @@ export const MAP_SURFACE_INVENTORY = [
     label: "Review problems quick action",
     kind: "quick-action",
     targetHome: "qa",
-    targetSlot: "bottom-panel",
+    targetSlot: "right-inspector",
     currentSurface: "MapWorkspaceCockpit",
-    targetSurface: "QA activity > Problems",
+    targetSurface: "Right dock > Problems",
   },
   {
     id: "quick-action.open-pins",
@@ -985,9 +984,9 @@ export const MAP_SURFACE_INVENTORY = [
     label: "Scientific QA panel visibility",
     kind: "panel-flag",
     targetHome: "qa",
-    targetSlot: "bottom-panel",
+    targetSlot: "right-inspector",
     currentSurface: "ScientificQAPanel",
-    targetSurface: "QA activity > Problems",
+    targetSurface: "Right dock > Problems",
   },
   {
     id: "state.showNLQueryPanel",
@@ -1015,9 +1014,9 @@ export const MAP_SURFACE_INVENTORY = [
     label: "Review timeline visibility",
     kind: "panel-flag",
     targetHome: "review",
-    targetSlot: "bottom-panel",
+    targetSlot: "right-inspector",
     currentSurface: "MapReviewTimelinePanel",
-    targetSurface: "Review activity > Timeline",
+    targetSurface: "Right dock > Timeline",
   },
   {
     id: "state.showFigureComposer",
@@ -1105,9 +1104,9 @@ export const MAP_SURFACE_INVENTORY = [
     label: "Performance diagnostics visibility",
     kind: "panel-flag",
     targetHome: "diagnostics",
-    targetSlot: "bottom-panel",
+    targetSlot: "right-inspector",
     currentSurface: "MapPerformanceDiagnosticsPanel",
-    targetSurface: "Diagnostics activity > Render budget",
+    targetSurface: "Right dock > Performance",
   },
   {
     id: "state.showProcessingToolbox",
@@ -1255,9 +1254,9 @@ export const MAP_SURFACE_INVENTORY = [
     label: "Attribute table context",
     kind: "panel-flag",
     targetHome: "layers",
-    targetSlot: "bottom-panel",
+    targetSlot: "right-inspector",
     currentSurface: "MapAttributeTable",
-    targetSurface: "Bottom panel > Attributes",
+    targetSurface: "Right dock > Attributes",
   },
   {
     id: "state.pointSymbologyLayerId",
@@ -1365,9 +1364,9 @@ export const MAP_SURFACE_INVENTORY = [
     label: "Temporal playback overlay context",
     kind: "canvas-overlay",
     targetHome: "scene",
-    targetSlot: "bottom-panel",
+    targetSlot: "right-inspector",
     currentSurface: "MapTemporalPlayer",
-    targetSurface: "Scene activity > Temporal",
+    targetSurface: "Right dock > Timeline",
   },
   {
     id: "state.temporalStoreFrameCount",
@@ -1375,9 +1374,9 @@ export const MAP_SURFACE_INVENTORY = [
     label: "Temporal player panel host context",
     kind: "canvas-overlay",
     targetHome: "scene",
-    targetSlot: "bottom-panel",
+    targetSlot: "right-inspector",
     currentSurface: "TemporalPlayerPanel host",
-    targetSurface: "Scene activity > Temporal",
+    targetSurface: "Right dock > Timeline",
   },
   {
     id: "file-input.local-import",

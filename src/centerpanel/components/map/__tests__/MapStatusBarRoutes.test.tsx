@@ -12,9 +12,13 @@ let root: Root | null = null;
 let host: HTMLDivElement | null = null;
 
 function renderStatusBar(callbacks: {
+  onOpenCrsReadiness: () => void;
   onOpenProblems: () => void;
   onOpenAttributes: () => void;
+  onOpenSelection: () => void;
+  onOpenMeasurements: () => void;
   onOpenTimeline: () => void;
+  onOpenCollaboration: () => void;
   onOpenDiagnostics: () => void;
 }): void {
   host = document.createElement("div");
@@ -31,9 +35,13 @@ function renderStatusBar(callbacks: {
         reviewEventCount={5}
         performanceMode="preview"
         performanceIssueCount={1}
+        onOpenCrsReadiness={callbacks.onOpenCrsReadiness}
         onOpenProblems={callbacks.onOpenProblems}
         onOpenAttributes={callbacks.onOpenAttributes}
+        onOpenSelection={callbacks.onOpenSelection}
+        onOpenMeasurements={callbacks.onOpenMeasurements}
         onOpenTimeline={callbacks.onOpenTimeline}
+        onOpenCollaboration={callbacks.onOpenCollaboration}
         onOpenDiagnostics={callbacks.onOpenDiagnostics}
       />,
     );
@@ -52,25 +60,35 @@ afterEach(() => {
   host = null;
 });
 
-describe("MapStatusBar bottom panel routes", () => {
-  it("routes QA, selection, review, and performance status items", () => {
+describe("MapStatusBar right-dock routes", () => {
+  it("routes CRS, QA, selection, measurements, review, collaboration, and performance status items", () => {
     const callbacks = {
+      onOpenCrsReadiness: vi.fn(),
       onOpenProblems: vi.fn(),
       onOpenAttributes: vi.fn(),
+      onOpenSelection: vi.fn(),
+      onOpenMeasurements: vi.fn(),
       onOpenTimeline: vi.fn(),
+      onOpenCollaboration: vi.fn(),
       onOpenDiagnostics: vi.fn(),
     };
     renderStatusBar(callbacks);
 
+    clickStatus("Open CRS readiness");
     clickStatus("Open QA Problems");
-    clickStatus("Open selected feature attributes");
+    clickStatus("Open selected feature details");
+    clickStatus("Open measurement results");
     clickStatus("Open Review collaboration (local-only)");
     clickStatus("Open review timeline");
     clickStatus("Open performance diagnostics");
 
+    expect(callbacks.onOpenCrsReadiness).toHaveBeenCalledTimes(1);
     expect(callbacks.onOpenProblems).toHaveBeenCalledTimes(1);
-    expect(callbacks.onOpenAttributes).toHaveBeenCalledTimes(1);
-    expect(callbacks.onOpenTimeline).toHaveBeenCalledTimes(2);
+    expect(callbacks.onOpenAttributes).not.toHaveBeenCalled();
+    expect(callbacks.onOpenSelection).toHaveBeenCalledTimes(1);
+    expect(callbacks.onOpenMeasurements).toHaveBeenCalledTimes(1);
+    expect(callbacks.onOpenCollaboration).toHaveBeenCalledTimes(1);
+    expect(callbacks.onOpenTimeline).toHaveBeenCalledTimes(1);
     expect(callbacks.onOpenDiagnostics).toHaveBeenCalledTimes(1);
   });
 });

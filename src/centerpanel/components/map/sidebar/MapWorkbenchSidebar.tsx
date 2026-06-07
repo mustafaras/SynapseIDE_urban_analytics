@@ -260,6 +260,17 @@ export const MapWorkbenchSidebar: React.FC<MapWorkbenchSidebarProps> = ({
       data-testid={testId}
       data-map-workbench-sidebar="true"
       data-active-tab={resolvedActiveId}
+      data-width-band={
+        typeof width === "number"
+          ? width <= 320
+            ? "min"
+            : width <= 420
+              ? "narrow"
+              : width <= 520
+                ? "standard"
+                : "wide"
+          : "auto"
+      }
       aria-label={`${title} sidebar`}
       style={{ ...shellBaseStyle, width, maxWidth: "100%", ...style }}
       onKeyDown={(event) => {

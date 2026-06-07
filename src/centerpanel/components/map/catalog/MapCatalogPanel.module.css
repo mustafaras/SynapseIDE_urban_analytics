@@ -23,6 +23,8 @@
   width: 100%;
   height: 100%;
   grid-template-rows: minmax(0, 1fr);
+  container-type: inline-size;
+  container-name: catalogPanel;
   border: 0;
   border-radius: 0;
   box-shadow: none;
@@ -648,5 +650,35 @@
 
   .importEntryHeader {
     display: grid;
+  }
+}
+
+/* Prompt 14 — Left Panel Responsive Fit Pass */
+/* Respond to the embedded container width rather than the viewport. */
+
+/* ≤ 420 px: collapse two-column embedded body to single column */
+@container catalogPanel (max-width: 420px) {
+  .body {
+    grid-template-columns: 1fr;
+  }
+
+  .controlRail {
+    border-right: 0;
+    border-bottom: 1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.22));
+  }
+
+  .supportRow {
+    grid-template-columns: 1fr;
+  }
+
+  .importEntryHeader {
+    display: grid;
+  }
+}
+
+/* ≤ 360 px: readiness grid single column */
+@container catalogPanel (max-width: 360px) {
+  .readinessGrid {
+    grid-template-columns: 1fr;
   }
 }

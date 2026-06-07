@@ -29,6 +29,7 @@ export interface MapPerformanceDiagnosticsPanelProps {
 export interface MapPerformanceBudgetBannerProps {
   diagnostics: MapPerformanceDiagnosticsSummary;
   rightInset?: number;
+  onOpenDetails?: () => void;
 }
 
 const panelStyle: React.CSSProperties = {
@@ -300,6 +301,24 @@ const bannerStyle: React.CSSProperties = {
   boxShadow: MAP_SHADOWS.panel,
 };
 
+const bannerActionButtonStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: MAP_SPACING.xs,
+  width: "fit-content",
+  minHeight: "1.625rem",
+  padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
+  border: `1px solid ${MAP_COLORS.caveatText}`,
+  borderRadius: MAP_RADIUS.sm,
+  background: MAP_COLORS.transparent,
+  color: MAP_COLORS.caveatText,
+  cursor: "pointer",
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+  lineHeight: MAP_TYPOGRAPHY.lineHeight.tight,
+};
+
 function formatCount(value: number): string {
   return value.toLocaleString();
 }
@@ -381,6 +400,7 @@ function shouldForceDiagnosticsCrash(): boolean {
 export const MapPerformanceBudgetBanner: React.FC<MapPerformanceBudgetBannerProps> = ({
   diagnostics,
   rightInset = 16,
+  onOpenDetails,
 }) => {
   if (diagnostics.previewLayerCount === 0) return null;
   const previewFeatureCount = diagnostics.layers
@@ -404,6 +424,17 @@ export const MapPerformanceBudgetBanner: React.FC<MapPerformanceBudgetBannerProp
       <div style={{ fontFamily: MAP_TYPOGRAPHY.fontFamilyMono, fontSize: MAP_TYPOGRAPHY.fontSize.xs, color: MAP_COLORS.textMuted }}>
         Source {formatCount(diagnostics.totalFeatureCount)} features / preview {formatCount(previewFeatureCount)} features / budget {formatCount(diagnostics.budgets.renderFeatureCount)}.
       </div>
+      {onOpenDetails ? (
+        <button
+          type="button"
+          style={bannerActionButtonStyle}
+          data-testid="map-performance-bounded-open-details"
+          onClick={onOpenDetails}
+        >
+          <BarChart3 size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+          Open diagnostics
+        </button>
+      ) : null}
     </div>
   );
 };

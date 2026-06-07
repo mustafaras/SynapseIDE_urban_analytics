@@ -344,6 +344,7 @@ function buildMeasurementClipboardText(measurement: Measurement, unit: MeasureUn
 export interface MapMeasurementToolProps {
   mapRef: React.RefObject<maplibregl.Map | null>;
   activeMeasureTool: MeasureToolId | null;
+  presentation?: "floating" | "embedded";
   seedMeasurementStart?: {
     coordinate: LngLat;
     tool: MeasureToolId;
@@ -362,6 +363,17 @@ export interface MapMeasurementToolProps {
 
 const panelStyle: React.CSSProperties = {
   ...createOpaqueFloatingPanelStyle(MAP_DIMENSIONS.measurementPanelWidth),
+};
+
+const embeddedPanelStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateRows: "auto auto auto auto minmax(0, 1fr)",
+  height: "100%",
+  minHeight: 0,
+  minWidth: 0,
+  overflow: "hidden",
+  background: MAP_COLORS.bgPanel,
+  color: MAP_COLORS.text,
 };
 
 const headerStyle: React.CSSProperties = {
@@ -404,6 +416,12 @@ const helperTextStyle: React.CSSProperties = {
   lineHeight: MAP_TYPOGRAPHY.lineHeight.normal,
 };
 
+const embeddedBodyStyle: React.CSSProperties = {
+  ...mapStyles.sidePanelBody,
+  minHeight: 0,
+  overflow: "auto",
+};
+
 function getUnitButtonStyle(active: boolean): React.CSSProperties {
   return active
     ? {
@@ -420,6 +438,7 @@ function getUnitButtonStyle(active: boolean): React.CSSProperties {
 export const MapMeasurementTool: React.FC<MapMeasurementToolProps> = ({
   mapRef,
   activeMeasureTool,
+  presentation = "floating",
   seedMeasurementStart = null,
   measurements,
   measureUnit,
@@ -912,10 +931,17 @@ export const MapMeasurementTool: React.FC<MapMeasurementToolProps> = ({
   }, []);
 
   const { panelPositionStyle, dragHandleProps, dragHandleStyle } = useDraggableMapPanel();
+  const embedded = presentation === "embedded";
 
   return (
-    <div style={{ ...panelStyle, ...panelPositionStyle }} role="region" aria-label="Measurement results">
-      <div style={{ ...headerStyle, ...dragHandleStyle }} {...dragHandleProps}>
+    <div
+      style={embedded ? embeddedPanelStyle : { ...panelStyle, ...panelPositionStyle }}
+      role="region"
+      aria-label="Measurement results"
+      data-testid="map-measurement-tool"
+      data-map-measurement-presentation={presentation}
+    >
+      <div style={embedded ? headerStyle : { ...headerStyle, ...dragHandleStyle }} {...(embedded ? {} : dragHandleProps)}>
         <div style={mapStyles.sidePanelTitleStack}>
           <span style={mapStyles.sidePanelEyebrow}>Measure</span>
           <span style={mapStyles.sidePanelTitle}>
@@ -1024,7 +1050,7 @@ export const MapMeasurementTool: React.FC<MapMeasurementToolProps> = ({
         </div>
       ) : null}
 
-      <div style={mapStyles.sidePanelBody}>
+      <div style={embedded ? embeddedBodyStyle : mapStyles.sidePanelBody}>
         {measurements.map((measurement, index) => {
           const isDistance = measurement.type === "measure-distance";
           const isCopied = copiedMeasurementId === measurement.id;

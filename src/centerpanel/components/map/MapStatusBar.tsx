@@ -36,8 +36,11 @@ export interface MapStatusBarProps {
   qaBlockerCount?: number;
   performanceMode?: LayerRenderMode;
   performanceIssueCount?: number;
+  onOpenCrsReadiness?: () => void;
   onOpenProblems?: () => void;
   onOpenAttributes?: () => void;
+  onOpenSelection?: () => void;
+  onOpenMeasurements?: () => void;
   reviewEventCount?: number;
   onOpenTimeline?: () => void;
   collaborationStatus?: MapStatusBarCollaborationState;
@@ -313,8 +316,11 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
   qaBlockerCount = 0,
   performanceMode = "full",
   performanceIssueCount = 0,
+  onOpenCrsReadiness,
   onOpenProblems,
   onOpenAttributes,
+  onOpenSelection,
+  onOpenMeasurements,
   reviewEventCount = 0,
   onOpenTimeline,
   collaborationStatus = "local-only",
@@ -355,12 +361,12 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
     ...(taskLensLabel ? [{ label: "Lens", value: taskLensLabel, maxWidth: "7rem" }] : []),
     ...(densityLabel ? [{ label: "Density", value: densityLabel, maxWidth: "7rem" }] : []),
     { label: "Layers", value: `${visibleLayerCount}/${layerCount}` },
-    { label: "Select", value: `${selectedFeatureCount}`, onClick: onOpenAttributes, ariaLabel: "Open selected feature attributes" },
+    { label: "Select", value: `${selectedFeatureCount}`, onClick: onOpenSelection ?? onOpenAttributes, ariaLabel: "Open selected feature details" },
     ...(activeCanvasToolLabel ? [{ label: "Tool", value: activeCanvasToolLabel, maxWidth: "10rem", tone: "info" as const }] : []),
     { label: "AOI", value: hasActiveAoi ? "active" : "none", tone: hasActiveAoi ? "info" : "stale" },
-    { label: "Marks", value: geometryLabel },
+    { label: "Marks", value: geometryLabel, onClick: onOpenMeasurements, ariaLabel: "Open measurement results" },
     { label: "Units", value: measureUnit === "metric" ? "metric" : "imperial" },
-    { label: "CRS", value: crs, tone: "info" },
+    { label: "CRS", value: crs, tone: "info", onClick: onOpenCrsReadiness, ariaLabel: "Open CRS readiness" },
     { label: "QA", value: qaLabel, tone: qaValueTone, onClick: onOpenProblems, ariaLabel: "Open QA Problems" },
     {
       label: "Collab",

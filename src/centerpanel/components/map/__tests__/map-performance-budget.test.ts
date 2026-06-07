@@ -20,23 +20,28 @@ function sourceSlice(source: string, startNeedle: string, endNeedle: string): st
 describe("Prompt 21 performance budget source contract", () => {
   const compositionSource = readRepoFile("src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx");
 
-  it("keeps attribute tables and diagnostics behind active bottom-panel tab guards", () => {
+  it("keeps attribute tables behind the attributes right-dock guard and diagnostics in right-dock routes", () => {
     const attributesSource = sourceSlice(
       compositionSource,
-      "const bottomPanelAttributesContent",
-      "const bottomPanelTimelineContent",
+      "if (rightAttributesDockActive)",
+      "if (rightSelectionDockActive)",
     );
-    const diagnosticsSource = sourceSlice(
+    const rightDockDiagnosticsSource = sourceSlice(
       compositionSource,
-      "const bottomPanelDiagnosticsContent",
+      "const rightDockBodyContent",
       "/* ---- Render ---- */",
     );
 
-    expect(attributesSource).toContain("bottomAttributesTabActive");
-    expect(attributesSource.indexOf("bottomAttributesTabActive")).toBeLessThan(attributesSource.indexOf("<MapAttributeWorkflowPanel"));
-    expect(diagnosticsSource).toContain("bottomDiagnosticsTabActive");
-    expect(diagnosticsSource.indexOf("bottomDiagnosticsTabActive")).toBeLessThan(diagnosticsSource.indexOf("<MapPerformanceDiagnosticsPanel"));
-    expect(diagnosticsSource).toContain("visible");
+    expect(attributesSource).toContain("rightAttributesDockActive");
+    expect(attributesSource.indexOf("rightAttributesDockActive")).toBeLessThan(attributesSource.indexOf("<MapAttributeWorkflowPanel"));
+    expect(attributesSource).toContain("map-right-dock-attributes-body");
+    expect(rightDockDiagnosticsSource).toContain("rightDiagnosticsDockActive");
+    expect(rightDockDiagnosticsSource).toContain("rightPerformanceDockActive");
+    expect(rightDockDiagnosticsSource.indexOf("rightDiagnosticsDockActive")).toBeLessThan(rightDockDiagnosticsSource.indexOf("<MapPerformanceDiagnosticsPanel"));
+    expect(rightDockDiagnosticsSource).toContain("map-right-dock-diagnostics-body");
+    expect(rightDockDiagnosticsSource).toContain("map-right-dock-performance-body");
+    // Bottom panel diagnostics host is retired — no bottomPanelDiagnosticsContent variable
+    expect(compositionSource).not.toContain("const bottomPanelDiagnosticsContent");
   });
 
   it("keeps raster previews, 3D scene, and embedded model builder behind active activity tabs", () => {

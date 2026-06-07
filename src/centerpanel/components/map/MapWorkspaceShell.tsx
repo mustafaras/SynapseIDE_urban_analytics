@@ -5,7 +5,6 @@ import {
   MAP_COLORS,
   MAP_DIMENSIONS,
   MAP_NUMERIC,
-  MAP_PANEL_SIZES,
   MAP_RADIUS,
   MAP_SHELL_DIMENSIONS,
   MAP_SPACING,
@@ -25,7 +24,7 @@ export interface MapWorkspaceShellProps {
   activeActivityId?: string | null;
 }
 
-export type MapPanelRailSide = "left" | "right" | "bottom";
+export type MapPanelRailSide = "left" | "right";
 
 export interface MapPanelRailProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "children"> {
   side: MapPanelRailSide;
@@ -345,7 +344,6 @@ function clampPanelWidth(width: number, minWidth: number, maxWidth: number): num
 }
 
 const MAP_CHROME_BORDER_SUBTLE = "1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.32))";
-const MAP_CHROME_BORDER_STRONG = "1px solid var(--syn-border-strong, rgba(148, 163, 184, 0.48))";
 
 const panelRailBaseStyle: React.CSSProperties = {
   position: "absolute",
@@ -443,8 +441,7 @@ const workspaceFocusCss = `
   }
   [data-map-explorer-shell="true"] [data-map-workbench-sidebar="true"],
   [data-map-explorer-shell="true"] [data-map-panel-rail],
-  [data-map-explorer-shell="true"] [data-testid="map-inspector-host"],
-  [data-map-explorer-shell="true"] [data-testid="map-bottom-panel"] {
+  [data-map-explorer-shell="true"] [data-testid="map-inspector-host"] {
     border-color: CanvasText !important;
   }
   [data-map-explorer-shell="true"] [data-gis-progress-bar="true"] > div {
@@ -453,21 +450,7 @@ const workspaceFocusCss = `
 }
 `;
 
-function getPanelRailStyle(side: MapPanelRailSide, width: number | string | undefined, height: number | string | undefined): React.CSSProperties {
-  if (side === "bottom") {
-    return {
-      ...panelRailBaseStyle,
-      left: MAP_SPACING.zero,
-      right: MAP_SPACING.zero,
-      bottom: MAP_SPACING.zero,
-      height: formatCssSize(height, MAP_PANEL_SIZES.bottomPanelHeight),
-      width: "auto",
-      maxHeight: MAP_PANEL_SIZES.bottomPanelMaxHeight,
-      borderTop: MAP_CHROME_BORDER_STRONG,
-      borderRight: MAP_STROKES.none,
-    };
-  }
-
+function getPanelRailStyle(side: MapPanelRailSide, width: number | string | undefined, _height: number | string | undefined): React.CSSProperties {
   return {
     ...panelRailBaseStyle,
     top: MAP_SPACING.zero,
@@ -589,7 +572,7 @@ export const MapPanelRail = React.forwardRef<HTMLDivElement, MapPanelRailProps>(
   ...props
 }, ref) => {
   const handlePointerDown = React.useCallback<React.PointerEventHandler<HTMLDivElement>>((event) => {
-    if (!resizable || side === "bottom" || !onWidthChange) {
+    if (!resizable || !onWidthChange) {
       return;
     }
 
@@ -616,7 +599,7 @@ export const MapPanelRail = React.forwardRef<HTMLDivElement, MapPanelRailProps>(
   }, [maxWidth, minWidth, onWidthChange, resizable, side, width]);
 
   const handleResizeKeyDown = React.useCallback<React.KeyboardEventHandler<HTMLDivElement>>((event) => {
-    if (!resizable || side === "bottom" || !onWidthChange) {
+    if (!resizable || !onWidthChange) {
       return;
     }
 
@@ -657,7 +640,7 @@ export const MapPanelRail = React.forwardRef<HTMLDivElement, MapPanelRailProps>(
       } as React.CSSProperties}
     >
       {children}
-      {resizable && side !== "bottom" ? (
+      {resizable ? (
         <div
           role="separator"
           aria-orientation="vertical"

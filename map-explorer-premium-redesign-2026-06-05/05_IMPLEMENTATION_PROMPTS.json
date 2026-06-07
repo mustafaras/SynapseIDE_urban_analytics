@@ -266,7 +266,7 @@
       "id": "prompt-08",
       "number": 8,
       "title": "Navigation And Surface Inventory Migration",
-      "status": "pending",
+      "status": "implemented",
       "objective": "Move the navigation model and surface inventory away from bottom-panel concepts.",
       "read": [
         "02_PANEL_ARCHITECTURE_SPEC.md",
@@ -297,7 +297,7 @@
       "id": "prompt-09",
       "number": 9,
       "title": "Bottom Panel Body Extraction",
-      "status": "pending",
+      "status": "implemented",
       "objective": "Extract reusable content bodies from `MapBottomPanel` without changing their data sources.",
       "read": [
         "02_PANEL_ARCHITECTURE_SPEC.md",
@@ -329,7 +329,7 @@
       "id": "prompt-10",
       "number": 10,
       "title": "Problems QA Diagnostics Right Dock Migration",
-      "status": "pending",
+      "status": "implemented",
       "objective": "Move Problems, scientific QA detail, Diagnostics, and Performance detail to the right dock.",
       "read": [
         "02_PANEL_ARCHITECTURE_SPEC.md",
@@ -361,7 +361,7 @@
       "id": "prompt-11",
       "number": 11,
       "title": "Attributes Selection Timeline Tasks Right Dock Migration",
-      "status": "pending",
+      "status": "implemented",
       "objective": "Move Attributes, Selection, Timeline, Review/Collaboration, Tasks, and Measurements to the right dock.",
       "read": [
         "02_PANEL_ARCHITECTURE_SPEC.md",
@@ -393,7 +393,7 @@
       "id": "prompt-12",
       "number": 12,
       "title": "Remove Bottom Workspace Host And Shell Primitive",
-      "status": "pending",
+      "status": "implemented",
       "objective": "Retire persistent bottom workspace rendering after all content has migrated.",
       "read": [
         "02_PANEL_ARCHITECTURE_SPEC.md",
@@ -426,7 +426,7 @@
       "id": "prompt-13",
       "number": 13,
       "title": "Left Panel Content Contracts",
-      "status": "pending",
+      "status": "implemented",
       "objective": "Define width-aware contracts for left-panel tabs before changing their layout.",
       "read": [
         "02_PANEL_ARCHITECTURE_SPEC.md",
@@ -458,7 +458,7 @@
       "id": "prompt-14",
       "number": 14,
       "title": "Left Panel Responsive Fit Pass",
-      "status": "pending",
+      "status": "implemented",
       "objective": "Apply the left-panel contracts to real tab content.",
       "read": [
         "02_PANEL_ARCHITECTURE_SPEC.md",

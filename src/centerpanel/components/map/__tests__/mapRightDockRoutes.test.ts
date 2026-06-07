@@ -15,7 +15,7 @@ import {
   openMapRightDockRouteState,
   switchMapRightDockRouteState,
 } from "../mapRightDockRoutes";
-import { MAP_BOTTOM_PANEL_TAB_DEFINITIONS } from "../navigation";
+import { MAP_LEGACY_BOTTOM_PANEL_TAB_DEFINITIONS } from "../mapLegacyBottomTabs";
 
 const EXPECTED_RIGHT_DOCK_PANEL_IDS = [
   "inspect",
@@ -50,7 +50,7 @@ describe("mapRightDockRoutes", () => {
   });
 
   it("maps every old bottom tab to one explicit right dock destination", () => {
-    const bottomTabIds = MAP_BOTTOM_PANEL_TAB_DEFINITIONS.map((tab) => tab.id).sort();
+    const bottomTabIds = MAP_LEGACY_BOTTOM_PANEL_TAB_DEFINITIONS.map((tab) => tab.id).sort();
     expect(Object.keys(MAP_MIGRATED_BOTTOM_TAB_TO_RIGHT_DOCK_PANEL).sort()).toEqual(bottomTabIds);
     expect(MAP_MIGRATED_BOTTOM_TAB_TO_RIGHT_DOCK_PANEL).toEqual({
       problems: "problems",

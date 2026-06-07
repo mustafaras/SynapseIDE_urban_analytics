@@ -1,12 +1,18 @@
 # 07 - Anti-Amnesia Ledger
 
 Status: Active  
-Last updated: 2026-06-06  
+Last updated: 2026-06-10  
 Purpose: Keep redesign state resumable without rereading the full repo.
 
 ## Current Snapshot
 
-Prompts 00 through 07 have been implemented. The docking model can no longer return a bottom workspace placement: `MapLayerPanelPlacement` is now `"left" | "drawer"` (constrained widths collapse the layer panel into a left-side overlay drawer, never a bottom drawer), and `MapRightDockPanel` is expanded with the migration target IDs (`inspect`, `attributes`, `problems`, `timeline`, `tasks`, `diagnostics`, `selection`, `qa`, `performance`, `collaboration`). Prompt 06 added the typed right-dock route model and mapped every old bottom tab (`problems`, `attributes`, `timeline`, `tasks`, `diagnostics`, `console`, `measurements`) to an explicit right-dock destination. Prompt 07 added the premium `MapRightDockHost` shell, tab rail, header controls, overflow route details, side-drawer presentation, and layout reservation for active right-dock routes while preserving the current bottom-panel content host until Prompt 09-12 migration work.
+Prompts 00 through 14 have been implemented. Prompt 14 applied the left-panel content contracts to real embedded panel CSS by adding CSS container queries (`container-type: inline-size`) to `MapContentsTreePanel.module.css` and `MapCatalogPanel.module.css`. The embedded panels now respond to their container width (not viewport width) at 380/420/520 px breakpoints. `MapWorkbenchSidebar` exposes a `data-width-band` debug attribute on the expanded sidebar. A new test file `map-left-panel-responsive-fit.test.ts` (16 tests) validates width-band coverage, contract bounds, clamping precision, and overflow-strategy correctness at all spec widths. `npm run typecheck`, `npm run lint:errors`, and `npm run test -- src/centerpanel/components/map` (763 tests) all pass. `UX-02` is now fully resolved.
+
+Prompts 00 through 13 (earlier history): Prompt 13 added `mapLeftPanelContracts.ts` — a compile-time-complete registry (`MAP_LEFT_PANEL_CONTRACTS`) of `MapLeftPanelContentContract` entries for every `MapSidebarTabId`. Each contract declares `minComfortWidth`, `preferredWidth`, `maxUsefulWidth`, and `overflowStrategy`. Width-clamping helpers (`clampLeftPanelWidth`, `getLeftPanelContentStrategy`, `getLeftPanelContract`) are provided. Tests in `map-left-panel-contracts.test.ts` (17 tests) enforce registry completeness, width-bounds ordering, `horizontal-disallowed` strategy invariants, and clamping correctness. `UX-02` width-contract precondition was satisfied; responsive fit rendering (Prompt 14) is now complete.
+
+Prompts 00 through 12 (earlier history): The persistent bottom workspace host (`MapBottomPanel`) is now fully retired: it is no longer rendered in `MapExplorerModalComposition`, and the `MapPanelRailSide` type no longer includes `"bottom"`. The bottom edge of the Map Explorer now contains only `MapStatusBar` (via `MapBottomTimeline` → status bar slot). The `openLegacyBottomTabInRightDock` helper and associated state (`bottomPanelOpen`, `activeBottomPanelTab`, `closeBottomPanel`) have been removed. The right dock remains as the only destination for workspace panel surfaces. `MapBottomPanelScrollBody` and `MapBottomPanelTasksBody` remain as reusable primitives (used in the right dock Tasks body and selection body). The `bottomPanelReturnFocusRef` focus-tracking ref was retained and wired into `handleCloseRightDockHost` for proper focus restoration when the right dock closes. `UX-03` is fully resolved.The persistent bottom workspace host (`MapBottomPanel`) is now fully retired: it is no longer rendered in `MapExplorerModalComposition`, and the `MapPanelRailSide` type no longer includes `"bottom"`. The bottom edge of the Map Explorer now contains only `MapStatusBar` (via `MapBottomTimeline` → status bar slot). The `openLegacyBottomTabInRightDock` helper and associated state (`bottomPanelOpen`, `activeBottomPanelTab`, `closeBottomPanel`) have been removed. The right dock remains as the only destination for workspace panel surfaces. `MapBottomPanelScrollBody` and `MapBottomPanelTasksBody` remain as reusable primitives (used in the right dock Tasks body and selection body). The `bottomPanelReturnFocusRef` focus-tracking ref was retained and wired into `handleCloseRightDockHost` for proper focus restoration when the right dock closes. `UX-03` is fully resolved.
+
+Prompts 00 through 11 (earlier history): The docking model can no longer return a bottom workspace placement: `MapLayerPanelPlacement` is now `"left" | "drawer"` (constrained widths collapse the layer panel into a left-side overlay drawer, never a bottom drawer), and `MapRightDockPanel` is expanded with the migration target IDs (`inspect`, `attributes`, `problems`, `timeline`, `tasks`, `diagnostics`, `selection`, `qa`, `performance`, `collaboration`). Prompt 06 added the typed right-dock route model and mapped every old bottom tab (`problems`, `attributes`, `timeline`, `tasks`, `diagnostics`, `console`, `measurements`) to an explicit right-dock destination. Prompt 07 added the premium `MapRightDockHost` shell, tab rail, header controls, overflow route details, side-drawer presentation, and layout reservation for active right-dock routes. Prompt 08 removed bottom-panel responsibilities from the navigation model and surface inventory. Prompt 09 extracted reusable bottom-panel body primitives. Prompt 10 migrated Problems, QA, Diagnostics, and Performance content/actions into the right dock. Prompt 11 migrated Attributes, Selection, Timeline, Tasks, Collaboration, and Measure content/actions into the right dock, leaving the transitional `MapBottomPanel` shell present but without migrated content bodies until Prompt 12 removes the host.
 
 Prompts 00 through 04 (earlier history): Baseline surface inventory guards now freeze current bottom-panel, floating-panel, canvas-overlay, dialog, drawer, and bottom navigation routes before redesign behavior changes; a Playwright visual baseline harness now captures the current failing Map Explorer states; launch/readiness dialog state is now separated from workspace tab and left-panel state; the opening/readiness surface is now a dedicated premium `MapStartDialog` component rendered in place of the heavy `MapWorkspaceCockpit` whenever the launch dialog is open; and the left-panel `overview-readiness` tab now renders a compact width-aware `MapWorkspaceOverviewSummary` instead of the full launch/readiness cockpit body (the full `MapWorkspaceCockpit` is now reachable only as the navigator-stage overview overlay, never the left panel).
 
@@ -24,8 +30,8 @@ Known current UI problems from the user review:
 | ID | Status | Owner prompt | Notes |
 | --- | --- | --- | --- |
 | `UX-01` | `implemented` | Prompt 02, Prompt 03 | Opening dialog state boundary (Prompt 02) plus premium `MapStartDialog` visual redesign (Prompt 03). Left-panel decoupling guard remains in Prompt 04. |
-| `UX-02` | `in_progress` | Prompt 04, Prompt 13, Prompt 14 | Launch-modal removal from left panel done in Prompt 04 (compact `MapWorkspaceOverviewSummary`). Width/content contracts (Prompt 13) and responsive fit (Prompt 14) remain. |
-| `UX-03` | `in_progress` | Prompt 05 through Prompt 12 | Docking model now forbids bottom placement (Prompt 05), old bottom tabs now have typed right-dock route targets (Prompt 06), and the premium right-dock host shell is mounted for active routes (Prompt 07). Navigation inventory migration, content migration, and bottom workspace removal remain (Prompts 08-12). |
+| `UX-02` | `implemented` | Prompt 04, Prompt 13, Prompt 14 | Launch-modal removal from left panel done in Prompt 04 (compact `MapWorkspaceOverviewSummary`). Left panel content contracts defined in Prompt 13 (`mapLeftPanelContracts.ts`). Width/content responsive rendering done in Prompt 14 (CSS container queries on embedded panels, `data-width-band` attribute, responsive-fit tests). `UX-02` fully resolved. |
+| `UX-03` | `implemented` | Prompt 05 through Prompt 12 | Docking model forbids bottom placement (Prompt 05), old bottom tabs have typed right-dock targets (Prompt 06), the right-dock host is mounted (Prompt 07), navigation/surface inventory no longer define bottom-panel destinations (Prompt 08), reusable bottom bodies exist (Prompt 09), Prompt 10-11 migrated all content into the right dock, and Prompt 12 removed the persistent bottom workspace host and shell primitive. `UX-03` fully resolved. |
 | `UX-04` | `pending` | Prompt 15, Prompt 16 | Draw/sketch/annotation plus measure/selection consolidation. |
 | `UX-05` | `pending` | Prompt 17 | Unified top command surface. |
 | `UX-06` | `pending` | Prompt 18 | Advanced status bar. |
@@ -42,13 +48,13 @@ Known current UI problems from the user review:
 | 05 | Docking Type Contract Without Bottom Placement | `implemented` | `MapLayerPanelPlacement` is `"left" \| "drawer"`; `getMapDockLayout` never returns bottom; `MapRightDockPanel` expanded. `typecheck` + `map-docking.test.ts` (11 passed) green. |
 | 06 | Right Dock State And Route Model | `implemented` | Typed `mapRightDockRoutes` model added; every old bottom tab maps to a right-dock panel; route state is wired through current bottom-tab callbacks. `typecheck`, `lint:errors`, and `test -- src/centerpanel/components/map` passed. |
 | 07 | Right Dock Host Visual Shell | `implemented` | Premium `MapRightDockHost` shell added and wired to active route state; `typecheck`, `lint:errors`, and `test -- src/centerpanel/components/map` passed. |
-| 08 | Navigation And Surface Inventory Migration | `pending` | Not started. |
-| 09 | Bottom Panel Body Extraction | `pending` | Not started. |
-| 10 | Problems QA Diagnostics Right Dock Migration | `pending` | Not started. |
-| 11 | Attributes Selection Timeline Tasks Right Dock Migration | `pending` | Not started. |
-| 12 | Remove Bottom Workspace Host And Shell Primitive | `pending` | Not started. |
-| 13 | Left Panel Content Contracts | `pending` | Not started. |
-| 14 | Left Panel Responsive Fit Pass | `pending` | Not started. |
+| 08 | Navigation And Surface Inventory Migration | `implemented` | Navigation model no longer exposes bottom-panel defaults/priorities/bindings; surface inventory rejects `targetSlot: "bottom-panel"` and migrated IDs target right dock. `typecheck`, prompt targeted tests, `lint:errors`, and full map component tests passed. |
+| 09 | Bottom Panel Body Extraction | `implemented` | Reusable bottom body primitives added and wired; `MapBottomPanel` usage remains. `typecheck`, `lint:errors`, and prompt targeted map tests passed. |
+| 10 | Problems QA Diagnostics Right Dock Migration | `implemented` | Problems, QA, Diagnostics, and Performance render in right dock; `typecheck`, `lint:errors`, and `test -- src/centerpanel/components/map` passed. |
+| 11 | Attributes Selection Timeline Tasks Right Dock Migration | `implemented` | Attributes, Selection, Timeline, Tasks, Collaboration, and Measure render in right dock; `typecheck`, `lint:errors`, and `test -- src/centerpanel/components/map` passed. |
+| 12 | Remove Bottom Workspace Host And Shell Primitive | `implemented` | `<MapBottomPanel>` removed from composition; `MapPanelRailSide` narrowed to `"left" \| "right"`; `bottomPanelOpen`, `activeBottomPanelTab`, `closeBottomPanel`, `openLegacyBottomTabInRightDock` removed; null content vars removed; `handleCloseRightDockHost` now restores focus; reusable body primitives kept; `MapBottomPanel.test.tsx` rewritten as right-dock body + retirement tests; `map-right-dock-migration.test.ts` and `map-performance-budget.test.ts` source-marker updated. `typecheck`, `lint:errors`, and `test -- src/centerpanel/components/map` (737 tests) passed. |
+| 13 | Left Panel Content Contracts | `implemented` | `mapLeftPanelContracts.ts` added with `MAP_LEFT_PANEL_CONTRACTS` registry covering all 36 `MapSidebarTabId` entries; `clampLeftPanelWidth`, `getLeftPanelContentStrategy`, `getLeftPanelContract` helpers added; `map-left-panel-contracts.test.ts` (17 tests) all pass; `typecheck` and `lint:errors` pass. Full `test -- src/centerpanel/components/map` suite hangs on pre-existing load-induced timeouts (geodesic-measurement, drawing-tools) as noted for Prompt 04; targeted test files (contracts + docking + navigation + surfaceInventory = 50 tests) all pass. |
+| 14 | Left Panel Responsive Fit Pass | `implemented` | CSS container queries added to `MapContentsTreePanel.module.css` and `MapCatalogPanel.module.css`; `data-width-band` on sidebar; `map-left-panel-responsive-fit.test.ts` (16 tests); `typecheck`, `lint:errors`, and `test -- src/centerpanel/components/map` (763 tests) passed. `UX-02` fully resolved. |
 | 15 | Draw Sketch Annotation Dock Consolidation | `pending` | Not started. |
 | 16 | Measure Selection Inspect Dock Consolidation | `pending` | Not started. |
 | 17 | Unified Top Command Surface | `pending` | Not started. |
@@ -402,6 +408,156 @@ Copy this under the relevant prompt when implemented:
   - Navigation surface inventory still contains `targetSlot: "bottom-panel"` entries by design; Prompt 08 owns replacing those inventory destinations.
   - Several legacy right-side panels still use their older `bottom-drawer` compact presentation prop; Prompt 12 owns final bottom workspace host/shell primitive removal.
 - Next prompt: Prompt 08 - Navigation And Surface Inventory Migration.
+
+### Prompt 08 Completion
+
+- Status: `implemented`
+- Date: 2026-06-06
+- Files changed:
+  - `src/centerpanel/components/map/mapLegacyBottomTabs.ts` (new)
+  - `src/centerpanel/components/map/mapRightDockRoutes.ts`
+  - `src/centerpanel/components/map/bottom/MapBottomPanel.tsx`
+  - `src/centerpanel/components/map/navigation/index.ts`
+  - `src/centerpanel/components/map/navigation/mapNavigationModel.ts`
+  - `src/centerpanel/components/map/navigation/mapSurfaceInventory.ts`
+  - `src/centerpanel/components/map/__tests__/mapNavigationModel.test.ts`
+  - `src/centerpanel/components/map/__tests__/mapSurfaceInventory.test.ts`
+  - `src/centerpanel/components/map/__tests__/mapRightDockRoutes.test.ts`
+  - `map-explorer-premium-redesign-2026-06-05/05_IMPLEMENTATION_PROMPTS.json`
+  - `map-explorer-premium-redesign-2026-06-05/07_ANTI_AMNESIA_LEDGER.md`
+- UX IDs addressed: `UX-03` navigation/surface-inventory migration groundwork.
+- What changed:
+  - Removed `defaultBottomPanelTabId`, `bottomPanelTabPriority`, `bottomPanelTabId`, and `MAP_BOTTOM_PANEL_TAB_DEFINITIONS` from the navigation model/barrel.
+  - Added `mapLegacyBottomTabs.ts` so the transitional `MapBottomPanel` and `mapRightDockRoutes` can keep old tab-name compatibility without making navigation depend on bottom-panel concepts.
+  - Removed `"bottom-panel"` from `MapSurfaceTargetSlot` and moved the former bottom inventory targets (`toolbar.qa`, `toolbar.review-timeline`, `toolbar.performance-diagnostics`, `toolbar.measure-results`, `rail.diagnostics.activity`, `rail.qa`, `quick-action.review-problems`, `state.showScientificQAPanel`, `state.showReviewTimeline`, `state.showPerformanceDiagnostics`, `state.attributeTableLayerId`, `state.activeTemporalLayer`, `state.temporalStoreFrameCount`) to `right-inspector` targets.
+  - Replaced old bottom-tab-derived binding logic with direct `rightDockPanelId` routing for problems, attributes, timeline, diagnostics, performance, measure, workflow, report, draw, pins, selection, collaboration, and urban method contexts.
+- Behavior preserved:
+  - Runtime bottom-panel rendering is intentionally still present for Prompt 09-12 migration work; only navigation/inventory responsibilities changed.
+  - Legacy bottom-tab-to-right-dock mapping still exists in `mapRightDockRoutes` for transitional callbacks and focus-return paths.
+  - No CRS, QA, provenance, import/export, layer, draw, measure, or map-state behavior was changed.
+- Visual states checked: none; this prompt is navigation/inventory routing only.
+- Commands run:
+  - `npm run typecheck` - passed.
+  - `npm run test -- src/centerpanel/components/map/__tests__/mapNavigationModel.test.ts src/centerpanel/components/map/__tests__/mapSurfaceInventory.test.ts` - passed (2 files, 22 tests).
+  - Extra: `npm run lint:errors` - passed.
+  - Extra: `npm run test -- src/centerpanel/components/map` - passed (80 files, 734 tests).
+- Screenshots: none.
+- Known risks / residuals:
+  - The persistent `MapBottomPanel` host and its content bodies remain by design; Prompt 09 owns body extraction and Prompts 10-12 own content migration/removal.
+  - Existing unrelated worktree entries were left untouched (`package-lock.json` modified and an image deletion under the operating-pack image folder).
+- Next prompt: Prompt 09 - Bottom Panel Body Extraction.
+
+### Prompt 09 Completion
+
+- Status: `implemented`
+- Date: 2026-06-06
+- Files changed:
+  - `src/centerpanel/components/map/bottom/MapBottomPanelBodies.tsx` (new)
+  - `src/centerpanel/components/map/bottom/MapBottomPanel.tsx`
+  - `src/centerpanel/components/map/bottom/index.ts`
+  - `src/centerpanel/components/map/index.ts`
+  - `src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx`
+  - `src/centerpanel/components/map/__tests__/MapBottomPanel.test.tsx`
+  - `map-explorer-premium-redesign-2026-06-05/05_IMPLEMENTATION_PROMPTS.json`
+  - `map-explorer-premium-redesign-2026-06-05/07_ANTI_AMNESIA_LEDGER.md`
+- UX IDs addressed: `UX-03` body-extraction groundwork only; bottom host removal remains Prompt 12.
+- What changed:
+  - Extracted `MapBottomPanelActiveBody`, `MapBottomPanelScrollBody`, and `MapBottomPanelTasksBody` from the bottom panel shell into `MapBottomPanelBodies.tsx`.
+  - Kept `MapBottomPanel` mounted and focused on shell concerns: visibility, tab header, keyboard navigation, close handling, and active tab state.
+  - Reused `MapBottomPanelScrollBody` for bottom problems and review-sidebar problems content in `MapExplorerModalComposition`.
+  - Exported the new body primitives from `bottom/index.ts` and the map component barrel for later right-dock migration prompts.
+- Behavior preserved:
+  - `MapBottomPanel` still renders the same five visible tabs and preserves the existing `data-testid="map-bottom-panel"` and `map-bottom-panel-content-*` selectors.
+  - Heavy `MapAttributeWorkflowPanel` and `MapPerformanceDiagnosticsPanel` remain guarded by `bottomAttributesTabActive` / `bottomDiagnosticsTabActive`.
+  - No CRS, QA, provenance, task, diagnostics, attribute, timeline, or map-state data source changed.
+- Visual states checked: none; extraction-only prompt with no intended visual behavior change.
+- Commands run:
+  - `npm run typecheck` - passed.
+  - `npm run lint:errors` - passed.
+  - `npm run test -- src/centerpanel/components/map/__tests__/MapBottomPanel.test.tsx src/centerpanel/components/map` - passed (80 files, 735 tests).
+  - Extra focused sanity: `npm run test -- src/centerpanel/components/map/__tests__/MapBottomPanel.test.tsx` - passed (1 file, 6 tests).
+- Screenshots: none.
+- Known risks / residuals:
+  - `MapBottomPanel` still renders as a persistent bottom workspace by design; Prompt 10 and Prompt 11 migrate content to right dock, Prompt 12 removes the host.
+  - Console and measurement legacy routes remain route-level compatibility concepts; there was no active `MapBottomPanel` console/measurements body to extract in this prompt.
+  - Existing unrelated worktree entries were left untouched (`package-lock.json` modified and an image deletion under the operating-pack image folder).
+- Next prompt: Prompt 10 - Problems QA Diagnostics Right Dock Migration.
+
+### Prompt 10 Completion
+
+- Status: `implemented`
+- Date: 2026-06-06
+- Files changed:
+  - `src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx`
+  - `src/centerpanel/components/map/ScientificQAPanel.tsx`
+  - `src/centerpanel/components/map/MapPerformanceDiagnosticsPanel.tsx`
+  - `src/centerpanel/components/map/MapStatusBar.tsx`
+  - `src/centerpanel/components/map/__tests__/map-right-dock-migration.test.ts` (new)
+  - `src/centerpanel/components/map/__tests__/map-performance-budget.test.ts`
+  - `src/centerpanel/components/map/__tests__/MapStatusBarRoutes.test.tsx`
+  - `map-explorer-premium-redesign-2026-06-05/05_IMPLEMENTATION_PROMPTS.json`
+  - `map-explorer-premium-redesign-2026-06-05/07_ANTI_AMNESIA_LEDGER.md`
+- UX IDs addressed: `UX-03` diagnostics/problem bottom-area migration.
+- What changed:
+  - Added right-dock body rendering for `Problems`, `scientificQA`/`QA`, `Diagnostics`, and `Performance` routes inside `MapRightDockHost`.
+  - Routed toolbar QA, activity rail QA/diagnostics, quick-action review problems, task lens QA/diagnostics, status QA/CRS, status performance, worker retry, and render-budget details into right-dock routes.
+  - Added embedded `ScientificQAPanel` presentation so full scientific QA blockers, CRS caveats, layer badges, issue details, and recovery actions can live inside the dock body.
+  - Added a render-budget banner details action that opens the Performance right dock.
+  - Stopped mounting diagnostics content in the bottom panel; bottom problems content is now null, and bottom tab clicks for Problems/Diagnostics redirect to the right dock.
+  - Updated source/route tests for the new right-dock routing contract.
+- Behavior preserved:
+  - CRS declaration, layer inspection, geometry repair, export-readiness, worker retry, render warnings, source caveats, and QA blocker paths still call the same underlying handlers.
+  - Attributes, timeline, collaboration, tasks, selection, and measurements remain transitional bottom/review surfaces for Prompt 11.
+  - The `MapBottomPanel` shell remains mounted only for remaining migration work; Prompt 12 owns final removal.
+- Visual states checked: no screenshots in this prompt; behavior is covered by source-contract, component, type, lint, and map test validation.
+- Commands run:
+  - `npm run typecheck` - passed.
+  - `npm run lint:errors` - passed after removing the now-unused `toggleBottomPanelTab` helper.
+  - `npm run test -- src/centerpanel/components/map` - passed (81 files, 736 tests).
+- Screenshots: none.
+- Known risks / residuals:
+  - The right dock now has migrated QA/diagnostics bodies, but Attributes/Selection/Timeline/Tasks/Measurements still need Prompt 11 migration.
+  - `MapBottomPanel` still exists as a transitional shell until Prompt 12.
+  - Existing unrelated worktree entries were left untouched (`package-lock.json` modified and an image deletion under the operating-pack image folder).
+- Next prompt: Prompt 11 - Attributes Selection Timeline Tasks Right Dock Migration.
+
+### Prompt 11 Completion
+
+- Status: `implemented`
+- Date: 2026-06-07
+- Files changed:
+  - `src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx`
+  - `src/centerpanel/components/MapMeasurementTool.tsx`
+  - `src/centerpanel/components/map/MapSelectionTools.tsx`
+  - `src/centerpanel/components/map/MapReviewTimelinePanel.tsx`
+  - `src/centerpanel/components/map/MapStatusBar.tsx`
+  - `src/centerpanel/components/map/__tests__/map-right-dock-migration.test.ts`
+  - `src/centerpanel/components/map/__tests__/MapStatusBarRoutes.test.tsx`
+  - `src/centerpanel/components/map/__tests__/map-performance-budget.test.ts`
+  - `map-explorer-premium-redesign-2026-06-05/05_IMPLEMENTATION_PROMPTS.json`
+  - `map-explorer-premium-redesign-2026-06-05/07_ANTI_AMNESIA_LEDGER.md`
+- UX IDs addressed: `UX-03` remaining bottom-tab content migration.
+- What changed:
+  - Added right-dock bodies for `Attributes`, `Selection`, `Timeline`, `Tasks`, `Collaboration`, and `Measure` inside `MapRightDockHost`.
+  - Routed attribute-table opens, derived attribute tables, selected-feature status, review timeline, collaboration status, task tab clicks, measurement status, and measure tool activation into right-dock routes.
+  - Added embedded presentations for `MapMeasurementTool` and `MapSelectionTools`; added `initialTab` support to `MapReviewTimelinePanel` so the Collaboration route opens the collaboration sub-surface.
+  - Changed the transitional bottom-tab helper so it maps legacy tab clicks to right-dock routes and no longer opens the bottom panel for migrated content.
+- Behavior preserved:
+  - Attribute workflow lazy mounting is preserved by `rightAttributesDockActive`.
+  - Selection tools still use the existing query planner, rectangle/lasso drag state, AOI handoff, export, focus, and clear handlers.
+  - Review timeline still uses the existing audit session, event status updates, revert command path, and local-only collaboration snapshot.
+  - Measurement map-layer synchronization, geodesic assumptions, unit switching, copy/remove/clear actions, and CRS caveats are preserved.
+- Visual states checked: no screenshots in this prompt; right-dock body routing is covered by source-contract, status-route, type, lint, and map component tests.
+- Commands run:
+  - `npm run typecheck` - passed.
+  - `npm run lint:errors` - passed.
+  - `npm run test -- src/centerpanel/components/map` - initially failed on an overly literal source-contract assertion, then passed after the assertion was corrected (81 files, 737 tests).
+- Screenshots: none.
+- Known risks / residuals:
+  - `MapBottomPanel` is still mounted as a transitional shell with migrated content bodies set to right-dock routes; Prompt 12 owns removing the persistent bottom workspace host and shell primitive.
+  - Draw/sketch floating-panel consolidation remains Prompt 15; measure/selection final floating-detail cleanup remains Prompt 16.
+  - Existing unrelated worktree entries were left untouched (`package-lock.json` modified and an image deletion under the operating-pack image folder).
+- Next prompt: Prompt 12 - Remove Bottom Workspace Host And Shell Primitive.
 
 ## Handoff Template
 

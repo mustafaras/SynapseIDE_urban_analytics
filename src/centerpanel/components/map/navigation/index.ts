@@ -10,7 +10,6 @@ export {
 } from "./mapSurfaceInventory";
 export {
   MAP_ACTIVITY_DEFINITIONS,
-  MAP_BOTTOM_PANEL_TAB_DEFINITIONS,
   MAP_INSPECTOR_CONTEXT_DEFINITIONS,
   MAP_INVENTORY_NAVIGATION_BINDINGS,
   MAP_PRIMARY_ACTIVITY_ORDER,
@@ -24,8 +23,6 @@ export {
   type MapActivityDefinition,
   type MapActivityId,
   type MapActivityPlacement,
-  type MapBottomPanelTabDefinition,
-  type MapBottomPanelTabId,
   type MapInspectorContextDefinition,
   type MapInspectorContextId,
   type MapInventoryNavigationBinding,

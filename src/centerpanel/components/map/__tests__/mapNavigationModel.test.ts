@@ -5,7 +5,6 @@ import { describe, expect, it } from "vitest";
 
 import {
   MAP_ACTIVITY_DEFINITIONS,
-  MAP_BOTTOM_PANEL_TAB_DEFINITIONS,
   MAP_INSPECTOR_CONTEXT_DEFINITIONS,
   MAP_INVENTORY_NAVIGATION_BINDINGS,
   MAP_PRIMARY_ACTIVITY_ORDER,
@@ -17,24 +16,11 @@ import {
   getMapActivityDefinition,
   getMapInventoryNavigationBinding,
 } from "../navigation";
-import {
-  MAP_MIGRATED_BOTTOM_TAB_TO_RIGHT_DOCK_PANEL,
-  MAP_RIGHT_DOCK_PANEL_IDS,
-  getRightDockPanelForBottomTab,
-} from "../mapRightDockRoutes";
+import { MAP_RIGHT_DOCK_PANEL_IDS } from "../mapRightDockRoutes";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../../");
 const allActivityIds = [...MAP_PRIMARY_ACTIVITY_ORDER, ...MAP_UTILITY_ACTIVITY_ORDER];
-const BASELINE_BOTTOM_PANEL_TAB_IDS = [
-  "attributes",
-  "console",
-  "diagnostics",
-  "measurements",
-  "problems",
-  "tasks",
-  "timeline",
-] as const;
-const BASELINE_ACTIVITY_BOTTOM_PANEL_DEFAULTS = {
+const EXPECTED_ACTIVITY_RIGHT_DOCK_DEFAULTS = {
   analyze: "tasks",
   data: "tasks",
   diagnostics: "diagnostics",
@@ -44,11 +30,11 @@ const BASELINE_ACTIVITY_BOTTOM_PANEL_DEFAULTS = {
   review: "timeline",
   scene: "timeline",
 } as const;
-const BASELINE_TASK_LENS_BOTTOM_PANEL_PRIORITIES = {
+const EXPECTED_TASK_LENS_RIGHT_DOCK_PRIORITIES = {
   analyst: ["problems", "attributes", "tasks", "diagnostics"],
   planner: ["attributes", "timeline", "problems", "tasks"],
   publisher: ["timeline", "problems", "tasks", "attributes"],
-  reviewer: ["problems", "timeline", "diagnostics", "console"],
+  reviewer: ["problems", "timeline", "diagnostics"],
 } as const;
 
 function readRepoFile(relativePath: string): string {
@@ -106,16 +92,14 @@ describe("mapNavigationModel", () => {
     }
   });
 
-  it("keeps sidebar tabs, inspector contexts, and bottom panel tabs reference-safe", () => {
+  it("keeps sidebar tabs, inspector contexts, and right dock defaults reference-safe", () => {
     const activityIds = new Set(allActivityIds);
     const sidebarTabIds = new Set(MAP_SIDEBAR_TAB_DEFINITIONS.map((tab) => tab.id));
     const inspectorContextIds = new Set(MAP_INSPECTOR_CONTEXT_DEFINITIONS.map((context) => context.id));
-    const bottomPanelTabIds = new Set(MAP_BOTTOM_PANEL_TAB_DEFINITIONS.map((tab) => tab.id));
     const rightDockPanelIds = new Set(MAP_RIGHT_DOCK_PANEL_IDS);
 
     expectUnique(MAP_SIDEBAR_TAB_DEFINITIONS.map((tab) => tab.id), "sidebar tab ids");
     expectUnique(MAP_INSPECTOR_CONTEXT_DEFINITIONS.map((context) => context.id), "inspector context ids");
-    expectUnique(MAP_BOTTOM_PANEL_TAB_DEFINITIONS.map((tab) => tab.id), "bottom panel tab ids");
 
     for (const tab of MAP_SIDEBAR_TAB_DEFINITIONS) {
       expect(activityIds.has(tab.activityId), tab.id).toBe(true);
@@ -128,25 +112,12 @@ describe("mapNavigationModel", () => {
       expect(context.description.trim().length, context.id).toBeGreaterThan(24);
     }
 
-    for (const tab of MAP_BOTTOM_PANEL_TAB_DEFINITIONS) {
-      expect(tab.ariaLabel.toLowerCase(), tab.id).toContain(tab.label.toLowerCase());
-      expect(tab.description.trim().length, tab.id).toBeGreaterThan(24);
-    }
-
     for (const activity of MAP_ACTIVITY_DEFINITIONS) {
       if (activity.defaultSidebarTabId !== null) {
         expect(sidebarTabIds.has(activity.defaultSidebarTabId), activity.id).toBe(true);
       }
       if (activity.defaultInspectorContextId !== null) {
         expect(inspectorContextIds.has(activity.defaultInspectorContextId), activity.id).toBe(true);
-      }
-      if (activity.defaultBottomPanelTabId !== null) {
-        expect(bottomPanelTabIds.has(activity.defaultBottomPanelTabId), activity.id).toBe(true);
-        expect(activity.defaultRightDockPanelId, activity.id).toBe(
-          getRightDockPanelForBottomTab(activity.defaultBottomPanelTabId),
-        );
-      } else {
-        expect(activity.defaultRightDockPanelId, activity.id).toBeNull();
       }
       if (activity.defaultRightDockPanelId !== null) {
         expect(rightDockPanelIds.has(activity.defaultRightDockPanelId), activity.id).toBe(true);
@@ -165,7 +136,6 @@ describe("mapNavigationModel", () => {
     const activityIds = new Set(allActivityIds);
     const sidebarTabIds = new Set(MAP_SIDEBAR_TAB_DEFINITIONS.map((tab) => tab.id));
     const inspectorContextIds = new Set(MAP_INSPECTOR_CONTEXT_DEFINITIONS.map((context) => context.id));
-    const bottomPanelTabIds = new Set(MAP_BOTTOM_PANEL_TAB_DEFINITIONS.map((tab) => tab.id));
     const rightDockPanelIds = new Set(MAP_RIGHT_DOCK_PANEL_IDS);
 
     for (const lens of MAP_TASK_LENSES) {
@@ -176,7 +146,6 @@ describe("mapNavigationModel", () => {
       expect(lens.activityPriority.every((activityId) => activityIds.has(activityId)), lens.id).toBe(true);
       expect(lens.sidebarTabPriority.every((tabId) => sidebarTabIds.has(tabId)), lens.id).toBe(true);
       expect(lens.inspectorContextPriority.every((contextId) => inspectorContextIds.has(contextId)), lens.id).toBe(true);
-      expect(lens.bottomPanelTabPriority.every((tabId) => bottomPanelTabIds.has(tabId)), lens.id).toBe(true);
       expect(lens.rightDockPanelPriority.every((panelId) => rightDockPanelIds.has(panelId)), lens.id).toBe(true);
     }
   });
@@ -189,26 +158,18 @@ describe("mapNavigationModel", () => {
     const activityIds = new Set(allActivityIds);
     const sidebarTabIds = new Set(MAP_SIDEBAR_TAB_DEFINITIONS.map((tab) => tab.id));
     const inspectorContextIds = new Set(MAP_INSPECTOR_CONTEXT_DEFINITIONS.map((context) => context.id));
-    const bottomPanelTabIds = new Set(MAP_BOTTOM_PANEL_TAB_DEFINITIONS.map((tab) => tab.id));
     const rightDockPanelIds = new Set(MAP_RIGHT_DOCK_PANEL_IDS);
 
     for (const binding of MAP_INVENTORY_NAVIGATION_BINDINGS) {
       expect(inventoryIds.has(binding.inventoryId), binding.inventoryId).toBe(true);
       expect(activityIds.has(binding.activityId), binding.inventoryId).toBe(true);
       expect(getMapActivityDefinition(binding.activityId).placement, binding.inventoryId).toBe(binding.placement);
+      expect(Object.prototype.hasOwnProperty.call(binding, "bottomPanelTabId"), binding.inventoryId).toBe(false);
       if (binding.sidebarTabId !== null) {
         expect(sidebarTabIds.has(binding.sidebarTabId), binding.inventoryId).toBe(true);
       }
       if (binding.inspectorContextId !== null) {
         expect(inspectorContextIds.has(binding.inspectorContextId), binding.inventoryId).toBe(true);
-      }
-      if (binding.bottomPanelTabId !== null) {
-        expect(bottomPanelTabIds.has(binding.bottomPanelTabId), binding.inventoryId).toBe(true);
-        expect(binding.rightDockPanelId, binding.inventoryId).toBe(
-          getRightDockPanelForBottomTab(binding.bottomPanelTabId),
-        );
-      } else {
-        expect(binding.rightDockPanelId, binding.inventoryId).toBeNull();
       }
       if (binding.rightDockPanelId !== null) {
         expect(rightDockPanelIds.has(binding.rightDockPanelId), binding.inventoryId).toBe(true);
@@ -228,20 +189,25 @@ describe("mapNavigationModel", () => {
     }
   });
 
-  it("freezes the current bottom-panel navigation baseline until right-dock migration owns it", () => {
-    const bottomPanelTabIds = MAP_BOTTOM_PANEL_TAB_DEFINITIONS.map((tab) => tab.id).sort();
-    const activityBottomPanelDefaults = Object.fromEntries(
+  it("uses right dock navigation defaults instead of bottom panel defaults", () => {
+    const activityRightDockDefaults = Object.fromEntries(
       MAP_ACTIVITY_DEFINITIONS
-        .filter((activity) => activity.defaultBottomPanelTabId !== null)
-        .map((activity) => [activity.id, activity.defaultBottomPanelTabId]),
+        .filter((activity) => activity.defaultRightDockPanelId !== null)
+        .map((activity) => [activity.id, activity.defaultRightDockPanelId]),
     );
-    const taskLensBottomPanelPriorities = Object.fromEntries(
-      MAP_TASK_LENSES.map((lens) => [lens.id, [...lens.bottomPanelTabPriority]]),
+    const taskLensRightDockPriorities = Object.fromEntries(
+      MAP_TASK_LENSES.map((lens) => [lens.id, [...lens.rightDockPanelPriority]]),
     );
 
-    expect(bottomPanelTabIds).toEqual([...BASELINE_BOTTOM_PANEL_TAB_IDS].sort());
-    expect(activityBottomPanelDefaults).toEqual(BASELINE_ACTIVITY_BOTTOM_PANEL_DEFAULTS);
-    expect(taskLensBottomPanelPriorities).toEqual(BASELINE_TASK_LENS_BOTTOM_PANEL_PRIORITIES);
+    expect(activityRightDockDefaults).toEqual(EXPECTED_ACTIVITY_RIGHT_DOCK_DEFAULTS);
+    expect(taskLensRightDockPriorities).toEqual(EXPECTED_TASK_LENS_RIGHT_DOCK_PRIORITIES);
+
+    for (const activity of MAP_ACTIVITY_DEFINITIONS) {
+      expect(Object.prototype.hasOwnProperty.call(activity, "defaultBottomPanelTabId"), activity.id).toBe(false);
+    }
+    for (const lens of MAP_TASK_LENSES) {
+      expect(Object.prototype.hasOwnProperty.call(lens, "bottomPanelTabPriority"), lens.id).toBe(false);
+    }
   });
 
   it("keeps representative inventory routes in their planned homes", () => {
@@ -256,10 +222,10 @@ describe("mapNavigationModel", () => {
     expect(getMapInventoryNavigationBinding("toolbar.workflow")).toMatchObject({
       activityId: "analyze",
       inspectorContextId: "analysis-run",
+      rightDockPanelId: "workflow",
     });
     expect(getMapInventoryNavigationBinding("toolbar.qa")).toMatchObject({
       activityId: "qa",
-      bottomPanelTabId: "problems",
       rightDockPanelId: "problems",
     });
     expect(getMapInventoryNavigationBinding("hidden-toggle.raster")).toMatchObject({
@@ -268,24 +234,15 @@ describe("mapNavigationModel", () => {
     });
     expect(getMapInventoryNavigationBinding("status.performance")).toMatchObject({
       activityId: "diagnostics",
-      bottomPanelTabId: "diagnostics",
-      rightDockPanelId: "diagnostics",
+      rightDockPanelId: "performance",
     });
-  });
-
-  it("maps every old bottom tab to an explicit right dock destination", () => {
-    const mappedBottomTabs = Object.keys(MAP_MIGRATED_BOTTOM_TAB_TO_RIGHT_DOCK_PANEL).sort();
-    const bottomPanelTabIds = MAP_BOTTOM_PANEL_TAB_DEFINITIONS.map((tab) => tab.id).sort();
-
-    expect(mappedBottomTabs).toEqual(bottomPanelTabIds);
-    expect(MAP_MIGRATED_BOTTOM_TAB_TO_RIGHT_DOCK_PANEL).toEqual({
-      problems: "problems",
-      attributes: "attributes",
-      timeline: "timeline",
-      tasks: "tasks",
-      diagnostics: "diagnostics",
-      console: "diagnostics",
-      measurements: "measure",
+    expect(getMapInventoryNavigationBinding("state.attributeTableLayerId")).toMatchObject({
+      activityId: "layers",
+      rightDockPanelId: "attributes",
+    });
+    expect(getMapInventoryNavigationBinding("toolbar.measure-results")).toMatchObject({
+      activityId: "analyze",
+      rightDockPanelId: "measure",
     });
   });
 

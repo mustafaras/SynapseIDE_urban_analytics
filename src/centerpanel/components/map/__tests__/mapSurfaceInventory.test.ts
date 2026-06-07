@@ -41,7 +41,7 @@ function missingFromInventory(sourceIds: Iterable<string>, inventoryIds: Set<str
   return [...sourceIds].filter((sourceId) => !inventoryIds.has(sourceId)).sort();
 }
 
-const BASELINE_BOTTOM_PANEL_TARGET_IDS = [
+const MIGRATED_RIGHT_DOCK_TARGET_IDS = [
   "quick-action.review-problems",
   "rail.diagnostics.activity",
   "rail.qa",
@@ -274,13 +274,21 @@ describe("Map surface inventory", () => {
     }
   });
 
-  it("freezes the current bottom workspace target baseline until right-dock migration owns it", () => {
+  it("routes migrated bottom workspace inventory to the right dock and forbids bottom-panel target slots", () => {
     const bottomPanelTargetIds = MAP_SURFACE_INVENTORY
-      .filter((entry) => entry.targetSlot === "bottom-panel")
+      .filter((entry) => (entry.targetSlot as string) === "bottom-panel")
       .map((entry) => entry.id)
       .sort();
+    const migratedRightDockTargetIds = MAP_SURFACE_INVENTORY
+      .filter((entry) => MIGRATED_RIGHT_DOCK_TARGET_IDS.includes(entry.id as (typeof MIGRATED_RIGHT_DOCK_TARGET_IDS)[number]))
+      .filter((entry) => entry.targetSlot === "right-inspector")
+      .map((entry) => entry.id)
+      .sort();
+    const inventorySource = readRepoFile("src/centerpanel/components/map/navigation/mapSurfaceInventory.ts");
 
-    expect(bottomPanelTargetIds).toEqual([...BASELINE_BOTTOM_PANEL_TARGET_IDS].sort());
+    expect(bottomPanelTargetIds).toEqual([]);
+    expect(inventorySource).not.toContain('"bottom-panel"');
+    expect(migratedRightDockTargetIds).toEqual([...MIGRATED_RIGHT_DOCK_TARGET_IDS].sort());
   });
 
   it("freezes the current floating and canvas-overlay baseline until dock consolidation owns it", () => {

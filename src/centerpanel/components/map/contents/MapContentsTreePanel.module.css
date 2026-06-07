@@ -24,6 +24,8 @@
   z-index: auto;
   width: 100%;
   height: 100%;
+  container-type: inline-size;
+  container-name: contentsTreePanel;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -512,6 +514,48 @@
 }
 
 @media (max-width: 560px) {
+  .groupBar,
+  .groupHeader,
+  .twoFields,
+  .readinessGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .groupStats {
+    justify-content: flex-start;
+  }
+}
+
+/* Prompt 14 — Left Panel Responsive Fit Pass */
+/* Respond to the embedded container width rather than the viewport. */
+
+/* ≤ 520 px: properties panel stacks below tree (already handled by .embeddedPanel .body display:block, but ensure no residual constraint) */
+@container contentsTreePanel (max-width: 520px) {
+  .body {
+    grid-template-columns: 1fr;
+  }
+
+  .properties {
+    border-top: 1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.22));
+    border-left: 0;
+  }
+}
+
+/* ≤ 420 px: wrap row actions below the title row so they don't force a min-width overflow */
+@container contentsTreePanel (max-width: 420px) {
+  .rowHead {
+    grid-template-columns: 16px 26px minmax(0, 1fr);
+  }
+
+  .rowActions {
+    grid-column: 1 / -1;
+    justify-content: start;
+    min-width: 0;
+  }
+}
+
+/* ≤ 380 px: collapse two-column property grids to single column */
+@container contentsTreePanel (max-width: 380px) {
   .groupBar,
   .groupHeader,
   .twoFields,

@@ -45,11 +45,17 @@ export { MapStatusBar } from "./MapStatusBar";
 export { MapRightDockHost } from "./MapRightDockHost";
 export { ScientificQAPanel } from "./ScientificQAPanel";
 export { MapProblemsPanel } from "./problems";
-export { MapBottomPanel } from "./bottom";
+export {
+  MapBottomPanel,
+  MapBottomPanelActiveBody,
+  MapBottomPanelScrollBody,
+  MapBottomPanelTasksBody,
+} from "./bottom";
 export type { MapStatusBarProps } from "./MapStatusBar";
 export type { MapRightDockHostPresentation, MapRightDockHostProps } from "./MapRightDockHost";
 export type { ScientificQAPanelProps } from "./ScientificQAPanel";
 export type {
+  MapBottomPanelBodyContent,
   MapBottomPanelCoreTabId,
   MapBottomPanelProps,
   MapBottomPanelTask,

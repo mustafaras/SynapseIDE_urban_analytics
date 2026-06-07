@@ -1,5 +1,6 @@
 import type { MapRightDockPanel } from "./mapDocking";
-import type { MapActivityId, MapBottomPanelTabId } from "./navigation/mapNavigationModel";
+import type { MapBottomPanelTabId } from "./mapLegacyBottomTabs";
+import type { MapActivityId } from "./navigation/mapNavigationModel";
 
 export type MapRightDockRouteSource =
   | "activity-rail"

@@ -56,8 +56,9 @@ export interface MapSelectionToolsProps {
    * - "floating" — standalone floating card over the canvas (default)
    * - "flush"    — docked card without the floating shadow
    * - "bar"      — inline compact cluster for embedding in the unified command header
+   * - "embedded" — full-width dock content without absolute positioning
    */
-  variant?: "floating" | "flush" | "bar";
+  variant?: "floating" | "flush" | "bar" | "embedded";
   leftInset?: number;
   topOffset?: React.CSSProperties["top"];
   onSetSelectedFeatures: (layerId: string, featureIds: string[]) => void;
@@ -132,6 +133,27 @@ const barFilterPopoverStyle: React.CSSProperties = {
   borderRadius: MAP_RADIUS.sm,
   background: "var(--syn-surface-panel, rgba(12, 16, 24, 0.96))",
   boxShadow: MAP_SHADOWS.dropdown,
+};
+
+const embeddedPanelStyle: React.CSSProperties = {
+  position: "relative",
+  display: "grid",
+  gap: MAP_SPACING.sm,
+  width: "100%",
+  minWidth: 0,
+  padding: MAP_SPACING.md,
+  border: MAP_STROKES.none,
+  borderRadius: 0,
+  background: MAP_COLORS.transparent,
+  boxShadow: MAP_SHADOWS.none,
+};
+
+const embeddedFilterRowStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1fr)",
+  gap: MAP_SPACING.xs,
+  alignItems: "stretch",
+  minWidth: 0,
 };
 
 const barCountChipStyle: React.CSSProperties = {
@@ -736,6 +758,7 @@ export const MapSelectionTools: React.FC<MapSelectionToolsProps> = ({
     : {};
 
   const isBar = variant === "bar";
+  const isEmbedded = variant === "embedded";
   const chipStyle = isBar ? barCountChipStyle : countChipStyle;
   const btnStyle = isBar ? barIconButtonStyle : iconButtonStyle;
   const btnActiveStyle = isBar ? barActiveIconButtonStyle : activeIconButtonStyle;
@@ -928,17 +951,19 @@ export const MapSelectionTools: React.FC<MapSelectionToolsProps> = ({
       aria-label="Map selection tools"
       data-testid="map-selection-tools"
       data-map-selection-variant={variant}
-      style={{
-        ...panelStyle,
-        ...flushStyle,
-        top: topOffset ?? panelStyle.top,
-        left: panelLeft,
-        maxWidth: `calc(100% - ${leftInset}px - ${MAP_SPACING.lg})`,
-      }}
+      style={isEmbedded
+        ? embeddedPanelStyle
+        : {
+            ...panelStyle,
+            ...flushStyle,
+            top: topOffset ?? panelStyle.top,
+            left: panelLeft,
+            maxWidth: `calc(100% - ${leftInset}px - ${MAP_SPACING.lg})`,
+          }}
     >
       {toolbarRow}
       {filterOpen ? (
-        <div style={filterRowStyle} data-testid="map-selection-filter-row">
+        <div style={isEmbedded ? embeddedFilterRowStyle : filterRowStyle} data-testid="map-selection-filter-row">
           {filterControls}
         </div>
       ) : (

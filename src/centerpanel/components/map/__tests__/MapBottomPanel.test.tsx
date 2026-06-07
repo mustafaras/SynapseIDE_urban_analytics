@@ -1,12 +1,25 @@
 // @vitest-environment jsdom
 
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import React from "react";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { MapBottomPanel, type MapBottomPanelCoreTabId, type MapBottomPanelTask } from "../bottom";
+import { afterEach, describe, expect, it } from "vitest";
+import {
+  MapBottomPanelScrollBody,
+  MapBottomPanelTasksBody,
+  type MapBottomPanelTask,
+} from "../bottom";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+
+const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../../");
+
+function readRepoFile(relativePath: string): string {
+  return readFileSync(resolve(repoRoot, relativePath), "utf8");
+}
 
 let root: Root | null = null;
 let host: HTMLDivElement | null = null;
@@ -21,36 +34,14 @@ const tasks: MapBottomPanelTask[] = [
   },
 ];
 
-function renderBottomPanel(options: {
-  activeTabId?: MapBottomPanelCoreTabId;
-  onTabChange?: (tabId: MapBottomPanelCoreTabId) => void;
-  onClose?: () => void;
-  attributes?: React.ReactNode;
-  diagnostics?: React.ReactNode;
-} = {}): void {
+function renderNode(node: React.ReactNode): void {
   host = document.createElement("div");
   document.body.appendChild(host);
   root = createRoot(host);
 
   act(() => {
-    root!.render(
-      <MapBottomPanel
-        visible
-        activeTabId={options.activeTabId ?? "problems"}
-        onTabChange={options.onTabChange ?? (() => {})}
-        onClose={options.onClose ?? (() => {})}
-        problems={<div data-testid="problems-content">Problems content</div>}
-        attributes={options.attributes ?? <div data-testid="attributes-content">Attributes content</div>}
-        timeline={<div data-testid="timeline-content">Timeline content</div>}
-        tasks={tasks}
-        diagnostics={options.diagnostics ?? <div data-testid="diagnostics-content">Diagnostics content</div>}
-      />,
-    );
+    root!.render(node);
   });
-}
-
-function tab(tabId: MapBottomPanelCoreTabId): HTMLButtonElement {
-  return host!.querySelector(`[data-testid="map-bottom-tab-${tabId}"]`)!;
 }
 
 afterEach(() => {
@@ -60,76 +51,59 @@ afterEach(() => {
   host = null;
 });
 
-describe("MapBottomPanel", () => {
-  it("renders the active tab content with semantic tabs", () => {
-    renderBottomPanel({ activeTabId: "timeline" });
+describe("MapBottomPanelScrollBody and MapBottomPanelTasksBody (right dock reusable bodies)", () => {
+  it("renders reusable scroll body and tasks body outside the retired bottom panel shell", () => {
+    renderNode(
+      <section data-testid="right-dock-body">
+        <MapBottomPanelScrollBody data-testid="reusable-scroll-body">
+          <MapBottomPanelTasksBody tasks={tasks} />
+        </MapBottomPanelScrollBody>
+      </section>,
+    );
 
-    expect(host!.querySelector('[data-testid="map-bottom-panel"]')?.getAttribute("data-active-bottom-tab")).toBe("timeline");
-    expect(tab("timeline").getAttribute("aria-selected")).toBe("true");
-    expect(host!.querySelector('[data-testid="timeline-content"]')?.textContent).toContain("Timeline content");
-    expect(host!.querySelector('[data-testid="problems-content"]')).toBeNull();
+    expect(host!.querySelector('[data-testid="right-dock-body"]')).toBeTruthy();
+    expect(host!.querySelector('[data-testid="reusable-scroll-body"]')).toBeTruthy();
+    expect(host!.querySelector('[data-testid="map-bottom-panel-tasks"]')?.textContent).toContain("Render budget");
   });
 
-  it("does not mount inactive heavy tab content", () => {
-    const renderAttributes = vi.fn(() => <div data-testid="heavy-attributes">Attributes</div>);
-    const renderDiagnostics = vi.fn(() => <div data-testid="heavy-diagnostics">Diagnostics</div>);
-    const HeavyAttributes = (): React.ReactElement => renderAttributes();
-    const HeavyDiagnostics = (): React.ReactElement => renderDiagnostics();
-
-    renderBottomPanel({
-      activeTabId: "problems",
-      attributes: <HeavyAttributes />,
-      diagnostics: <HeavyDiagnostics />,
-    });
-
-    expect(renderAttributes).not.toHaveBeenCalled();
-    expect(renderDiagnostics).not.toHaveBeenCalled();
-    expect(host!.querySelector('[data-testid="heavy-attributes"]')).toBeNull();
-    expect(host!.querySelector('[data-testid="heavy-diagnostics"]')).toBeNull();
+  it("renders empty state when tasks list is empty", () => {
+    renderNode(<MapBottomPanelTasksBody tasks={[]} />);
+    expect(host!.textContent).toContain("No background tasks");
   });
 
-  it("routes pointer tab changes and close actions", () => {
-    const onTabChange = vi.fn();
-    const onClose = vi.fn();
-    renderBottomPanel({ onTabChange, onClose });
+  it("renders multiple task rows with label, detail, and status", () => {
+    const multipleTasks: MapBottomPanelTask[] = [
+      { id: "import", label: "Data import", status: "running", detail: "Preparing spatial metadata.", meta: "75%" },
+      { id: "render", label: "Render budget", status: "complete", detail: "Within budget.", meta: "full" },
+    ];
+    renderNode(<MapBottomPanelTasksBody tasks={multipleTasks} />);
+    const taskList = host!.querySelector('[data-testid="map-bottom-panel-tasks"]');
+    expect(taskList?.textContent).toContain("Data import");
+    expect(taskList?.textContent).toContain("Render budget");
+    expect(taskList?.textContent).toContain("running");
+    expect(taskList?.textContent).toContain("complete");
+  });
+});
 
-    act(() => tab("attributes").dispatchEvent(new MouseEvent("click", { bubbles: true })));
-    expect(onTabChange).toHaveBeenCalledWith("attributes");
-
-    const closeButton = host!.querySelector('button[aria-label="Close bottom panel"]')!;
-    act(() => closeButton.dispatchEvent(new MouseEvent("click", { bubbles: true })));
-    expect(onClose).toHaveBeenCalledTimes(1);
+describe("MapBottomPanel is retired as a workspace host", () => {
+  it("MapBottomPanel is no longer rendered in MapExplorerModalComposition", () => {
+    const composition = readRepoFile("src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx");
+    // The host shell MapBottomPanel component must not be rendered (check for the tag with attributes/newline)
+    expect(composition).not.toMatch(/<MapBottomPanel\b(?!ScrollBody|TasksBody|ActiveBody)/);
+    expect(composition).not.toContain("bottomPanelOpen");
+    expect(composition).not.toContain("setBottomPanelOpen");
+    expect(composition).not.toContain("closeBottomPanel");
   });
 
-  it("supports arrow, Home, and End keyboard navigation", () => {
-    const onTabChange = vi.fn();
-    renderBottomPanel({ activeTabId: "problems", onTabChange });
-
-    act(() => tab("problems").dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true })));
-    act(() => tab("problems").dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true })));
-    act(() => tab("problems").dispatchEvent(new KeyboardEvent("keydown", { key: "End", bubbles: true })));
-    act(() => tab("problems").dispatchEvent(new KeyboardEvent("keydown", { key: "Home", bubbles: true })));
-
-    expect(onTabChange).toHaveBeenNthCalledWith(1, "attributes");
-    expect(onTabChange).toHaveBeenNthCalledWith(2, "diagnostics");
-    expect(onTabChange).toHaveBeenNthCalledWith(3, "diagnostics");
-    expect(onTabChange).toHaveBeenNthCalledWith(4, "problems");
+  it("MapPanelRailSide no longer includes bottom placement", () => {
+    const shell = readRepoFile("src/centerpanel/components/map/MapWorkspaceShell.tsx");
+    expect(shell).not.toContain('"left" | "right" | "bottom"');
+    expect(shell).toContain('"left" | "right"');
   });
 
-  it("closes with scoped Escape without bubbling to the modal", () => {
-    const onClose = vi.fn();
-    renderBottomPanel({ onClose });
-
-    const panel = host!.querySelector('[data-testid="map-bottom-panel"]')!;
-    const event = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
-    const bubbleListener = vi.fn();
-    document.body.addEventListener("keydown", bubbleListener);
-
-    act(() => panel.dispatchEvent(event));
-
-    expect(onClose).toHaveBeenCalledTimes(1);
-    expect(event.defaultPrevented).toBe(true);
-    expect(bubbleListener).not.toHaveBeenCalled();
-    document.body.removeEventListener("keydown", bubbleListener);
+  it("status bar remains as the only bottom edge element", () => {
+    const composition = readRepoFile("src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx");
+    expect(composition).toContain("MapStatusBarWithCursor");
+    expect(composition).toContain("MapBottomTimeline");
   });
 });

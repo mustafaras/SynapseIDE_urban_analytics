@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   CheckCircle2,
   Download,
@@ -64,6 +64,7 @@ export interface MapReviewTimelinePanelProps {
   qaState: MapScientificQAState | null;
   onClose: () => void;
   presentation?: "floating" | "embedded";
+  initialTab?: ReviewWorkspaceTab;
   onRecordEvent: (event: MapReviewTimelineEventInput) => void;
   onUpdateEventStatus: (eventId: string, status: MapReviewTimelineEventStatus, outcome?: string) => void;
   onClearSession: () => void;
@@ -1110,6 +1111,7 @@ export const MapReviewTimelinePanel: React.FC<MapReviewTimelinePanelProps> = ({
   qaState,
   onClose,
   presentation = "floating",
+  initialTab = "timeline",
   onRecordEvent,
   onUpdateEventStatus,
   onClearSession,
@@ -1117,7 +1119,7 @@ export const MapReviewTimelinePanel: React.FC<MapReviewTimelinePanelProps> = ({
   onAnnounce,
 }) => {
   const panelDrag = useDraggableMapPanel();
-  const [activeTab, setActiveTab] = useState<ReviewWorkspaceTab>("timeline");
+  const [activeTab, setActiveTab] = useState<ReviewWorkspaceTab>(initialTab);
   const [typeFilter, setTypeFilter] = useState<MapReviewTimelineEventType | "all">("all");
   const [categoryFilter, setCategoryFilter] = useState<MapReviewAuditCategory | "all">("all");
   const [statusFilter, setStatusFilter] = useState<MapReviewTimelineEventStatus | "all">("all");
@@ -1165,6 +1167,10 @@ export const MapReviewTimelinePanel: React.FC<MapReviewTimelinePanelProps> = ({
   const auditLanes = useMemo(() => createReviewAuditLanes(session.events), [session.events]);
 
   const resolvedCollaborationSnapshot = collaborationSnapshot ?? createLocalOnlyCollaborationSnapshot(session.id);
+
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
 
   if (!visible) return null;
 
