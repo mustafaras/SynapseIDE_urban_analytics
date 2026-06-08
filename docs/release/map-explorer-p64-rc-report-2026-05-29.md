@@ -16,8 +16,8 @@ The blocking reasons are:
 - `npm run validate:rc` failed at `npm run perf:budgets` after typecheck, lint, full Vitest, and production build had completed.
 - The focused P40 visual QA run has two current failures: missing `map-activity-rail` test hook/rail contract and a blank-canvas detector threshold failure.
 - `npm run test:e2e:ci` did not run inside `validate:rc` because the aggregate command stopped at the bundle-budget failure.
-- Prompt 63 documentation close-out remains TODO, and the source support matrix is stale relative to later shipped raster, streaming, vector-tile, and 3D work.
-- Prompts 54-62 remain TODO; do not claim undo/redo, plugin registry, telemetry, offline package export, AI guardrails, collaboration, terrain/3D Tiles, view corridors/sections, or raster/temporal/3D evidence visual-state close-out as release-certified.
+- Prompt 63 documentation close-out was incomplete at this checkpoint, and the source support matrix was stale relative to later shipped raster, streaming, vector-tile, and 3D work.
+- Prompts 54-62 were incomplete at this checkpoint; do not claim undo/redo, plugin registry, telemetry, offline package export, AI guardrails, collaboration, terrain/3D Tiles, view corridors/sections, or raster/temporal/3D evidence visual-state close-out as release-certified.
 
 ## Validation Evidence
 
@@ -86,7 +86,7 @@ Command exited with code 1
 | Visual QA shell contract | P40 desktop shell test cannot find `data-testid="map-activity-rail"`. | Restore the canonical activity rail/test hook or update the P40 spec to the current canonical shell contract, then rerun P40. |
 | Visual QA blank-canvas proof | P40 blank overlay expected `<= 10` unique byte values but measured `82`. | Rework the detector sampling/overlay region or recalibrate threshold with a true blank/nonblank bidirectional proof. |
 | Full E2E CI | `npm run test:e2e:ci` did not run inside `validate:rc` because the command failed earlier at perf budgets. | After budget gate passes, run the full `validate:rc` command and require smoke, a11y, and functional Playwright suites to pass in the aggregate. |
-| Documentation close-out | Prompt 63 remains TODO; current source support matrix still describes several later-shipped capabilities as partial/not committed. | Complete Prompt 63: architecture/user docs, source matrix, CRS/QA note, bridge note, design/motion/visual QA notes, validation summary, and link/cross-reference check. |
+| Documentation close-out | Prompt 63 was incomplete at this checkpoint; the source support matrix described several later-shipped capabilities as partial/not committed. | Complete Prompt 63: architecture/user docs, source matrix, CRS/QA note, bridge note, design/motion/visual QA notes, validation summary, and link/cross-reference check. |
 | Enterprise prompt ladder scope | Prompts 54-62 are not implemented in the ledger. | Implement and verify those prompts before claiming their capabilities or excluding them formally from an RC scope document. |
 
 ## Sign-off
