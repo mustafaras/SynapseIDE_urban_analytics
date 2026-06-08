@@ -352,6 +352,60 @@ describe("MapToolbar command palette", () => {
     expect(document.querySelector<HTMLButtonElement>('[data-testid="map-command-palette-option-catalog"]')).not.toBeNull();
   });
 
+  it("renders grouped top-surface menus with stable command order and disabled reasons", () => {
+    renderToolbar({
+      layerCount: 1,
+      visibleLayerCount: 1,
+      onImportClick: vi.fn(),
+      onOpenExternalServices: vi.fn(),
+      onToggleCatalog: vi.fn(),
+      onToggleLayerPanel: vi.fn(),
+      onToggleContents: vi.fn(),
+      onToggleScientificQAPanel: vi.fn(),
+      onToggleWorkflowDrawer: vi.fn(),
+      onToggleProcessingToolbox: vi.fn(),
+      onSetDrawTool: vi.fn(),
+      onSetMeasureTool: vi.fn(),
+      onToggleMeasurePanel: vi.fn(),
+      onExportClick: vi.fn(),
+      onImageExportClick: vi.fn(),
+      onExportPackageClick: vi.fn(),
+      onAddToReportClick: vi.fn(),
+      onSaveProjectClick: vi.fn(),
+      onLoadProjectClick: vi.fn(),
+      persistenceDisabled: true,
+    });
+
+    const dataGroup = document.querySelector<HTMLButtonElement>('[data-testid="map-command-group-data"]');
+    const exploreGroup = document.querySelector<HTMLButtonElement>('[data-testid="map-command-group-explore"]');
+    const analyzeGroup = document.querySelector<HTMLButtonElement>('[data-testid="map-command-group-analyze"]');
+    const publishGroup = document.querySelector<HTMLButtonElement>('[data-testid="map-command-group-publish"]');
+    expect(dataGroup).not.toBeNull();
+    expect(exploreGroup).not.toBeNull();
+    expect(analyzeGroup).not.toBeNull();
+    expect(publishGroup).not.toBeNull();
+
+    act(() => {
+      dataGroup!.click();
+    });
+
+    const dataMenu = document.querySelector<HTMLElement>('[data-testid="map-command-group-menu-data"]');
+    expect(dataMenu).not.toBeNull();
+    expect(
+      Array.from(dataMenu!.querySelectorAll<HTMLElement>("[data-map-command-id]")).map((node) => node.dataset.mapCommandId),
+    ).toEqual(["import", "catalog", "services"]);
+
+    act(() => {
+      publishGroup!.click();
+    });
+
+    const publishMenu = document.querySelector<HTMLElement>('[data-testid="map-command-group-menu-publish"]');
+    expect(publishMenu).not.toBeNull();
+    const saveButton = publishMenu!.querySelector<HTMLButtonElement>('[data-testid="map-toolbar-command-save-project"]');
+    expect(saveButton).not.toBeNull();
+    expect(saveButton?.dataset.disabledReason).toContain("Select or create a project before saving map state.");
+  });
+
   it("exposes undo and redo commands as buttons, palette entries, and global shortcuts", () => {
     const onUndoMapAction = vi.fn();
     const onRedoMapAction = vi.fn();
@@ -363,6 +417,9 @@ describe("MapToolbar command palette", () => {
       onUndoMapAction,
       onRedoMapAction,
     });
+
+    expect(document.querySelector('[data-testid="map-toolbar-command-undo-map-action"]')).not.toBeNull();
+    expect(document.querySelector('[data-testid="map-toolbar-command-redo-map-action"]')).not.toBeNull();
 
     keydown(window, "z", { ctrlKey: true });
     keydown(window, "y", { ctrlKey: true });

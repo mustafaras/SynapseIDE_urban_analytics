@@ -269,6 +269,7 @@ describe("barrel index exports", () => {
     expect(barrel.MapCanvasRegion).toBeDefined();
     expect(barrel.MapBottomTimeline).toBeDefined();
     expect(barrel.MapToolbar).toBeDefined();
+    expect(barrel.MapTopCommandSurface).toBeDefined();
     expect(barrel.MapLayerPanel).toBeDefined();
     expect(barrel.MapSearchBar).toBeDefined();
     expect(barrel.MapStatusBar).toBeDefined();
@@ -316,6 +317,12 @@ describe("component modules are individually importable", () => {
     const mod = await import("../MapToolbar");
     expect(mod.MapToolbar).toBeDefined();
     expect(typeof mod.MapToolbar).toBe("function");
+  });
+
+  it("MapTopCommandSurface exports a named component", async () => {
+    const mod = await import("../MapTopCommandSurface");
+    expect(mod.MapTopCommandSurface).toBeDefined();
+    expect(typeof mod.MapTopCommandSurface).toBe("function");
   });
 
   it("MapLayerPanel exports a named component", async () => {
@@ -1012,6 +1019,21 @@ describe("Map Explorer components render without errors", () => {
     expect(html).toContain("saving");
     expect(html).toContain("Project persistence in progress");
     expect(html).toContain("animateTransform");
+  });
+
+  it("renders reduced-motion persistence indicators in MapStatusBar without animation", async () => {
+    const { MapStatusBar } = await import("../MapStatusBar");
+    const html = renderToStaticMarkup(
+      React.createElement(MapStatusBar, {
+        cursor: null,
+        zoom: 12,
+        isSaving: true,
+        reducedMotion: true,
+      }),
+    );
+
+    expect(html).toContain("Project persistence in progress");
+    expect(html).not.toContain("animateTransform");
   });
 
   it("renders MapPinSidebar", async () => {

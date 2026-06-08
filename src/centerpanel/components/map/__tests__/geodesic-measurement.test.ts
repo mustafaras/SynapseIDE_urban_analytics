@@ -574,6 +574,24 @@ describe("MapMeasurementTool — module export", () => {
     expect(html).toContain("Copy");
     expect(html).toContain("2024-01-01T00:00:00Z");
   });
+
+  it("supports headless presentation for docked-only measurement workflows", async () => {
+    const mod = await import("../../MapMeasurementTool");
+    const html = renderToStaticMarkup(React.createElement(mod.MapMeasurementTool, {
+      mapRef: React.createRef<MapLibreMap>(),
+      activeMeasureTool: "measure-distance",
+      presentation: "headless",
+      measurements: [],
+      measureUnit: "metric",
+      onAddMeasurement: () => undefined,
+      onRemoveMeasurement: () => undefined,
+      onClearMeasurements: () => undefined,
+      onSetMeasureUnit: () => undefined,
+      onCancelMeasure: () => undefined,
+    }));
+
+    expect(html).toBe("");
+  });
 });
 
 /* ================================================================== */

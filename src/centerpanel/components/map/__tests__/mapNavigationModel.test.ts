@@ -244,6 +244,10 @@ describe("mapNavigationModel", () => {
       activityId: "analyze",
       rightDockPanelId: "measure",
     });
+    expect(getMapInventoryNavigationBinding("state.selectionStatsSummary")).toMatchObject({
+      activityId: "analyze",
+      rightDockPanelId: "selection",
+    });
   });
 
   it("builds navigation bindings without mutating inventory entries", () => {

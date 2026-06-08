@@ -42,6 +42,7 @@ describe("Map Explorer right dock migration", () => {
   it("routes attributes, selection, timeline, tasks, collaboration, and measurements to right dock bodies", () => {
     const attributesSource = sourceSlice(compositionSource, "const handleOpenAttributeTable", "const handleAttributeTableSelection");
     const measureToolSource = sourceSlice(compositionSource, "const handleSetMeasureTool", "const handleCancelMeasure");
+    const contextMeasureSource = sourceSlice(compositionSource, "const handleStartMeasureFromContext", "const handleStartPolygonFromContext");
     const selectionToolSource = sourceSlice(compositionSource, "const handleSetSelectionDragTool", "const handleToggleCanvasKeyboardHelp");
     const rightDockBodiesSource = sourceSlice(compositionSource, "const rightDockBodyContent", "/* ---- Render ---- */");
     const statusSource = sourceSlice(compositionSource, "onOpenAttributes={handleOpenAttributesFromStatus}", "lastRenderDurationMs");
@@ -51,12 +52,18 @@ describe("Map Explorer right dock migration", () => {
     expect(attributesSource).not.toContain("bottom panel");
     expect(measureToolSource).toContain("openRightDockPanel");
     expect(measureToolSource).toContain('"measure"');
+    expect(contextMeasureSource).toContain("openRightDockPanel(");
+    expect(contextMeasureSource).toContain('"measure"');
+    expect(contextMeasureSource).not.toContain("setShowMeasurePanel(true)");
     expect(selectionToolSource).toContain("openRightDockPanel");
     expect(selectionToolSource).toContain('"selection"');
+    expect(compositionSource).toContain("handleSetSelectedFeatures");
+    expect(compositionSource).toContain("handleClearSelectedFeatures");
     expect(rightDockBodiesSource).toContain("rightAttributesDockActive");
     expect(rightDockBodiesSource).toContain("map-right-dock-attributes-body");
     expect(rightDockBodiesSource).toContain("rightSelectionDockActive");
     expect(rightDockBodiesSource).toContain("map-right-dock-selection-body");
+    expect(rightDockBodiesSource).toContain("map-right-dock-selection-stats");
     expect(rightDockBodiesSource).toContain("rightTimelineDockActive");
     expect(rightDockBodiesSource).toContain("map-right-dock-timeline-body");
     expect(rightDockBodiesSource).toContain("rightCollaborationDockActive");
@@ -65,6 +72,7 @@ describe("Map Explorer right dock migration", () => {
     expect(rightDockBodiesSource).toContain("MapBottomPanelTasksBody");
     expect(rightDockBodiesSource).toContain("rightMeasureDockActive");
     expect(rightDockBodiesSource).toContain("map-right-dock-measure-body");
+    expect(compositionSource).toContain('presentation="headless"');
     expect(statusSource).toContain("onOpenSelection={handleOpenSelectionFromStatus}");
     expect(statusSource).toContain("onOpenMeasurements={handleOpenMeasurementsFromStatus}");
     expect(statusSource).toContain('openRightDockPanel("timeline"');

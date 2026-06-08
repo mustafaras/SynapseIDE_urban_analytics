@@ -274,6 +274,17 @@ describe("Map surface inventory", () => {
     }
   });
 
+  it("routes selection statistics into the right inspector instead of a canvas HUD", () => {
+    const selectionStatsEntry = MAP_SURFACE_INVENTORY.find((entry) => entry.id === "state.selectionStatsSummary");
+
+    expect(selectionStatsEntry).toMatchObject({
+      kind: "panel-flag",
+      targetHome: "analyze",
+      targetSlot: "right-inspector",
+      targetSurface: "Right dock > Selection statistics",
+    });
+  });
+
   it("routes migrated bottom workspace inventory to the right dock and forbids bottom-panel target slots", () => {
     const bottomPanelTargetIds = MAP_SURFACE_INVENTORY
       .filter((entry) => (entry.targetSlot as string) === "bottom-panel")
