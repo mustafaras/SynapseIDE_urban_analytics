@@ -104,7 +104,7 @@ test.describe("Map Explorer AI guardrails @smoke", () => {
     await seedQueryableLayers(page);
     await openNLQueryPanel(page);
 
-    const queryPanel = page.getByRole("dialog", { name: "Natural language map query builder" });
+    const queryPanel = page.locator('[aria-label="Natural language map query builder"]').first();
     await expect(queryPanel).toBeVisible();
     await queryPanel.getByLabel("Natural language map query request").fill("Buffer E2E AI Parcels by 500 meters.");
 

@@ -1,16 +1,16 @@
 # 07 - Anti-Amnesia Ledger
 
-Status: Active  
+Status: Archived  
 Last updated: 2026-06-08  
 Purpose: Keep redesign state resumable without rereading the full repo.
 
 ## Current Snapshot
 
-Prompts 00 through 18 have been implemented. Prompt 18 rebuilt `MapStatusBar` into the sole bottom-edge surface: fixed-width operational segments cover cursor, zoom/scale, project/save, mode/lens, layers, selection, sketch, measure, units, CRS, QA, review, tasks, performance, sync/collaboration, and basemap attribution; when width runs short, lower-priority segments move into an actionable overflow menu instead of clipping. `MapExplorerModalComposition` now routes status clicks to inspect/detail, data and layers left-panel destinations, right-dock draw/measure/selection/tasks/timeline/collaboration/diagnostics targets, and existing CRS/QA handlers while preserving the no-bottom-panel rule. `npm run typecheck` and `npm run lint:errors` pass. The exact prompt validation command `npm run test -- src/centerpanel/components/map/__tests__/MapStatusBarRoutes.test.tsx src/centerpanel/components/map` now executes but fails under the full 84-file suite load because two existing `MapExplorerModal` import smoke tests time out at 30s (`map-accessibility.test.ts`, `map-layer-management.test.ts`); both files pass when run directly, and prompt-focused status-bar regressions (`MapStatusBarRoutes.test.tsx`, `map-components.test.ts`) pass. `UX-06` is now resolved.
+Prompts 00 through 18 remain implemented in the repo and this pack has been archived out of the repository root. During the 2026-06-08 archive-prep revalidation pass, local Node tooling was available again: `npm run typecheck`, `npm run lint:errors`, `npm run test:analytics`, and `npm run build` all passed. Additional closeout fixes landed in `MapExplorerModalComposition.tsx`, `MapToolbar.tsx`, `mapNavigationModel.ts`, and the affected Playwright specs to restore the top-shell close control contract, dismiss the launch dialog on real workspace entry points, and realign several e2e flows with the redesigned command surface and docked panels.
 
-Prompt 19 closeout remains blocked. A 2026-06-08 revalidation run executed the full prompt validation command list, but this environment is missing local Node toolchain dependencies: `npm run typecheck` failed because `tsc` is not recognized, `npm run lint:errors` failed because `eslint` is not recognized, `npm run test:analytics` failed because `vitest` is not recognized, `npm run test:e2e` failed because `playwright` is not recognized, and `npm run build` failed with missing `node_modules/vite/bin/vite.js`. Prompt 19 therefore remains `blocked`, and the UX issues stay `implemented` rather than promoted to `verified`.
+Prompt 19 still remains blocked in this archive. Focused Playwright reruns now pass for Prompt 03 accessibility, Prompt 34 Scene 3D interaction, AI guardrails, catalog, choropleth, and the late-suite Map Explorer drift repaired during archive closeout: columnar I/O, contents, context/GeoJSON, CSV/KML/GPX import, stability, external service, figure composer, and image export. Because the full `npm run test:e2e` closeout was not rerun to completion after the last targeted fix, `UX-01` through `UX-06` remain `implemented` rather than promoted to `verified`.
 
-There are currently no `pending` prompts in `05_IMPLEMENTATION_PROMPTS.json`; `prompt-19` is the only non-implemented item and remains `blocked`.
+There are no `pending` prompts in `05_IMPLEMENTATION_PROMPTS.json`. Prompt 19 is the only non-verified item and remains `blocked` as archived historical work.
 
 Prompts 00 through 15 have been implemented. Prompt 15 removed the persistent floating draw/sketch sidebar from the Map Explorer and routed it into the right dock `draw` panel. Key changes: (1) `MapDrawingManager` gains a `presentation` prop — `"floating"` keeps the legacy draggable panel, `"embedded"` renders the feature list as a plain scrollable body for embedding in `MapRightDockHost`. (2) `MapExplorerModalComposition` now calls `openRightDockPanel("draw", ...)` when a draw tool is activated (replacing the old `setShowDrawPanel(true)` float show), and `handleToggleDrawPanel` uses `toggleRightDockPanel("draw", ...)`. The floating `MapDrawingManager` canvas-interaction instance is still rendered for map-layer interaction but its `sidebarVisible` is now `effectiveShowDrawPanel && !rightDrawDockActive`, so the floating panel never appears when the right dock is hosting the draw body. The initial `showDrawPanel` state changed from `true` to `false`. A `rightDrawDockActive` constant drives the right dock body content switch. `map-drawing-tools.test.ts` extended with embedded-presentation tests. `npm run typecheck`, `npm run lint:errors`, and `npm run test -- src/centerpanel/components/map` (765 tests) all pass. The draw/sketch portion of `UX-04` is resolved.
 
@@ -67,7 +67,7 @@ Known current UI problems from the user review:
 | 16 | Measure Selection Inspect Dock Consolidation | `implemented` | `MapMeasurementTool` gained `headless` presentation; context-menu measure opens right dock `Measure`; selection statistics moved from canvas HUD into right-dock `Selection`; `selectionStatsSummary` inventory retargeted to right inspector; `typecheck`, `lint:errors`, and prompt validation tests (83 files, 767 tests) passed. |
 | 17 | Unified Top Command Surface | `implemented` | `MapTopCommandSurface` added; `MapToolbar` now exposes grouped top-surface command menus, visible undo/redo, and unified command-bar layout. `typecheck`, `lint:errors`, focused toolbar/top-surface/accessibility regressions, and `geodesic-measurement.test.ts` passed; full `test -- src/centerpanel/components/map` hangs under the current directory-target Vitest invocation. |
 | 18 | Advanced Status Bar | `implemented` | `MapStatusBar` now exposes fixed-width operational segments, overflow menu behavior, reduced-motion-safe busy indicators, and status-click routing into inspect/data/layers/right-dock destinations. `typecheck`, `lint:errors`, `MapStatusBarRoutes.test.tsx`, and `map-components.test.ts` pass; the exact prompt command fails under full-suite load because `map-accessibility.test.ts` and `map-layer-management.test.ts` hit their existing 30s import smoke-test timeout, but both files pass when run directly. |
-| 19 | Final Polish, Accessibility, Regression, And Ledger Closeout | `blocked` | Revalidated on 2026-06-08; all required commands were run but failed due missing local Node dependencies/tools (`tsc`, `eslint`, `vitest`, `playwright`, `vite`). Prompt remains blocked until project dependencies are installed and full closeout gates are rerun. |
+| 19 | Final Polish, Accessibility, Regression, And Ledger Closeout | `blocked` | Revalidated on 2026-06-08 with local dependencies restored. `typecheck`, `lint:errors`, `test:analytics`, `build`, and targeted Playwright repairs pass for the known late-suite drift through `e2e/map-image-export.spec.ts`; full `npm run test:e2e` was not rerun to completion after the last targeted fix. |
 
 ## Decision Log
 
@@ -702,38 +702,60 @@ Use this when handing work to another agent:
 ### Prompt 19 Completion
 
 - Status: `blocked`
-- Date: 2026-06-07
+- Date: 2026-06-08
 - Files changed:
-  - `src/centerpanel/components/map/MapStartDialog.module.css`
   - `src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx`
-  - `e2e/helpers/urbanAnalytics.ts`
+  - `src/centerpanel/components/map/MapToolbar.tsx`
+  - `src/centerpanel/components/map/navigation/mapNavigationModel.ts`
   - `e2e/accessibility-audit.spec.ts`
-  - `e2e/map-3d-design.spec.ts`
-  - `map-explorer-premium-redesign-2026-06-05/05_IMPLEMENTATION_PROMPTS.json`
+  - `e2e/map-catalog.spec.ts`
+  - `e2e/map-ai-guardrails-p58.spec.ts`
+  - `e2e/map-choropleth.spec.ts`
+  - `e2e/map-columnar-io.spec.ts`
+  - `e2e/map-contents.spec.ts`
+  - `e2e/map-context-and-geojson.spec.ts`
+  - `e2e/map-csv-kml-gpx-import.spec.ts`
+  - `e2e/map-explorer-stability.spec.ts`
+  - `e2e/map-external-service.spec.ts`
+  - `e2e/map-figure-composer.spec.ts`
+  - `e2e/map-image-export.spec.ts`
+  - `map-explorer-premium-redesign-2026-06-05/README.md`
+  - `map-explorer-premium-redesign-2026-06-05/AGENT_NEXT_PROMPT.md`
+  - `map-explorer-premium-redesign-2026-06-05/ARCHIVE_INDEX.md`
   - `map-explorer-premium-redesign-2026-06-05/07_ANTI_AMNESIA_LEDGER.md`
+  - `docs/archive/development-plans/README.md`
 - UX IDs addressed: closeout/verification only; no issue was promoted to `verified`.
 - What changed:
-  - Tightened Map Start dialog hint contrast on the primary launch tile so the prompt-03 accessibility audit no longer fails on the prior sub-threshold 11px contrast pairing.
-  - Updated Prompt 55 accessibility e2e coverage to the right-dock architecture by replacing the removed bottom-panel assertion and aligning the final forced-colors activity assertion with the active QA route.
-  - Updated stale Map Explorer e2e launch helpers and Prompt 34 3D setup to use current Map Explorer activity-rail entry points instead of retired toolbar labels, and added an explicit map-canvas Escape close request path when no inner tool layer consumes Escape.
+  - The top command-surface close button now always closes the Map Explorer modal, while the launch dialog keeps its own dedicated close control.
+  - Workspace entry routes now dismiss the launch dialog when the user commits into real work surfaces (activity rail, style/analyze/data/layers helpers, and related command paths), which fixed the stuck launch-overlay behavior seen in multiple Playwright flows.
+  - Backward-compatible accessible aliases were added for the redesigned activity rail and command surface so legacy Playwright locators for explore/analyze/import/export/advanced-command surfaces still resolve while the premium UI stays visually unchanged.
+  - Prompt 19 closeout specs that had drifted away from the redesigned shell were updated to target stable activity buttons, docked panels, and current store-level outcomes instead of retired toolbar labels or removed layer-row contracts.
 - Behavior preserved:
   - No bottom workspace host or floating tool panel was reintroduced during closeout.
   - Existing Map Explorer shell, right-dock routing, and status-bar interaction surfaces remain the canonical redesign endpoints.
 - Visual states checked:
-  - Prompt-targeted accessibility and Scene 3D Playwright diagnostics were rerun after the closeout fixes; the QA/right-dock keyboard path now passes, while the remaining failures are documented below.
+  - Prompt-targeted accessibility, Scene 3D, catalog, AI guardrails, and choropleth Playwright diagnostics were rerun after the closeout fixes and now pass.
 - Commands run:
   - `npm run typecheck` - passed.
   - `npm run lint:errors` - passed.
-  - `npm run test:analytics` - could not be completed; both the script and a direct `vitest run ... --maxWorkers=1` attempt stalled without progressing beyond the initial queued analytics files.
-  - `npm run build` - could not be completed; Vite printed transform progress and then stalled with no additional output or meaningful CPU usage.
-  - `npm run test:e2e` - failed.
-  - `npx playwright test --max-failures=5` - failed with five early closeout regressions: one Map Explorer accessibility scenario plus three Prompt 34 Scene 3D interaction-strip smoke tests, after 25 passing tests.
-  - `npx playwright test e2e/accessibility-audit.spec.ts --grep "keyboard-only path reaches import, inspect, QA, and command palette with scoped Escape"` - passed.
-  - `npx playwright test e2e/accessibility-audit.spec.ts --grep "map modal exposes skip navigation, keyboard map focus, close control, and no serious axe issues"` - still fails because the close control is not keyboard-focusable after the canvas-focused keyboard path.
-  - `npx playwright test e2e/map-3d-design.spec.ts --grep "interaction strip renders all 8 mode buttons"` - still fails because `scene3d-interaction-strip` never appears after the toggle action.
+  - `npm run test:analytics` - passed.
+  - `npm run build` - passed (large chunk warnings remain, but the build completed successfully).
+  - `npm run test:e2e` - rerun progressed through the first 50 tests after closeout fixes, then exposed additional late-suite drift. Those known failures were repaired with targeted reruns instead of repeatedly rerunning passing specs.
+  - `npx playwright test e2e/accessibility-audit.spec.ts --grep "map modal exposes skip navigation, keyboard map focus, close control, and no serious axe issues"` - passed.
+  - `npx playwright test e2e/map-3d-design.spec.ts` - passed.
+  - `npx playwright test e2e/map-ai-guardrails-p58.spec.ts` - passed.
+  - `npx playwright test e2e/map-catalog.spec.ts` - passed.
+  - `npx playwright test e2e/map-choropleth.spec.ts` - passed.
+  - `npx playwright test e2e/map-columnar-io.spec.ts` - passed.
+  - `npx playwright test e2e/map-contents.spec.ts` - passed.
+  - `npx playwright test e2e/map-context-and-geojson.spec.ts` - passed.
+  - `npx playwright test e2e/map-csv-kml-gpx-import.spec.ts` - passed.
+  - `npx playwright test e2e/map-explorer-stability.spec.ts` - passed.
+  - `npx playwright test e2e/map-external-service.spec.ts e2e/map-figure-composer.spec.ts e2e/map-image-export.spec.ts` - external service and figure composer passed; image export exposed one final retired toolbar route.
+  - `npx playwright test e2e/map-image-export.spec.ts` - passed after rerouting the test to Publish Figure and the current `Map image export` action.
 - Screenshots:
-  - Playwright failure artifacts recorded under `test-results/accessibility-audit-*` and `test-results/map-3d-design-*`.
+  - Playwright failure artifacts are transient local outputs under `test-results/` and were superseded by targeted reruns for the known failed specs.
 - Known risks / residuals:
-  - Full redesign closeout remains blocked until the analytics suite stall, build stall, Map Explorer close-control accessibility path, and Prompt 34 Scene 3D interaction-strip failures are resolved or explicitly accepted as residual.
-  - Because the closeout gates are blocked, `UX-01` through `UX-06` remain `implemented` rather than `verified`.
-- Next prompt: none; closeout is blocked pending the remaining validation failures above.
+  - Full redesign closeout remains blocked until the full `npm run test:e2e` gate completes green after the targeted fixes.
+  - Because the closeout gate is still blocked, `UX-01` through `UX-06` remain `implemented` rather than `verified` in this archive.
+- Next prompt: none; this pack is archived as historical material with Prompt 19 blocked.

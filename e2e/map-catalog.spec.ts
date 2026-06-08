@@ -2,17 +2,10 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 import { openUrbanAnalyticsWorkbench, resetWorkbenchState, triggerDomClick } from "./helpers/urbanAnalytics";
 
 async function openCatalog(page: Page, mapExplorer: Locator): Promise<void> {
-  const directButton = mapExplorer.getByRole("button", { name: /catalog/i }).first();
-  if (await directButton.isVisible({ timeout: 1_000 }).catch(() => false)) {
-    await triggerDomClick(directButton);
-    return;
-  }
-  await triggerDomClick(
-    mapExplorer.getByRole("button", { name: "Scientific QA, 3D sync, density, and command controls" }),
-  );
-  await triggerDomClick(
-    page.getByRole("menu", { name: "Advanced commands" }).getByRole("menuitem", { name: /catalog/i }),
-  );
+  await triggerDomClick(mapExplorer.getByTestId("activity-btn-data"));
+  const catalogTab = mapExplorer.getByTestId("map-workbench-sidebar-tab-data-catalog");
+  await expect(catalogTab).toBeVisible();
+  await triggerDomClick(catalogTab);
 }
 
 test.describe("Map Explorer catalog", () => {
@@ -32,9 +25,17 @@ test.describe("Map Explorer catalog", () => {
     await expect(catalog).toContainText("DEMO / SYNTHETIC");
     await expect(catalog).toContainText("Not observational data");
     await triggerDomClick(catalog.getByTestId("catalog-add-demo-pack"));
+    await expect(catalog).toContainText(/Added \d+ synthetic demo layers with registered source records\./i);
 
-    const layerRow = page.getByRole("option", { name: /Layer: Fatih Demo Blocks/i }).first();
-    await expect(layerRow).toBeVisible();
-    await expect(layerRow).toContainText(/Demo \/ restored/i);
+    await expect
+      .poll(async () => page.evaluate(async () => {
+        const module = await import("/src/stores/useMapExplorerStore.ts");
+        const layers = module.useMapExplorerStore.getState().overlayLayers;
+        return {
+          total: layers.length,
+          demo: layers.filter((layer) => layer.sourceKind === "demo").length,
+        };
+      }))
+      .toEqual({ total: 9, demo: 9 });
   });
 });

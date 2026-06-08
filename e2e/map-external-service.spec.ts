@@ -63,7 +63,7 @@ test.describe("Map Explorer — external service production path (Prompt 21)", (
 
     // Inspect the layer → Report tab shows the dependency caveat reaching
     // publication readiness: status is blocked and the offline reason renders.
-    const layerRow = page.getByRole("option", { name: /Layer: E2E Offline WMS/i });
+    const layerRow = page.getByRole("listitem", { name: /Layer: E2E Offline WMS/i });
     await triggerDomClick(layerRow.getByTestId("map-layer-inspect-trigger"));
     const inspector = page.getByTestId("map-layer-inspector");
     await expect(inspector).toBeVisible();

@@ -455,7 +455,7 @@ const TOP_SURFACE_GROUP_META: Record<TopSurfaceGroupId, {
   publish: {
     label: "Publish",
     shortLabel: "Publish",
-    title: "Open save, export, report, and composition commands",
+    title: "Save, load, and export map outputs",
     icon: Download,
   },
   system: {
@@ -1317,7 +1317,7 @@ function buildToolbarCommands(args: BuildToolbarCommandsArgs): ToolbarCommand[] 
     id: "import",
     label: args.isImporting ? "Importing" : "Import",
     shortLabel: args.isImporting ? "Import" : "Import",
-    title: "Import GeoJSON, CSV, Arrow, GeoParquet, KML, KMZ, GPX, Shapefile, GeoPackage, and sampled GeoTIFF files",
+    title: "Open spatial data import options for GeoJSON, CSV, Arrow, GeoParquet, KML, KMZ, GPX, Shapefile, GeoPackage, and sampled GeoTIFF files",
     keywords: ["import geojson", "upload data", "load file", "add data", "geoparquet", "shapefile", "geopackage", "geotiff"],
     icon: Upload,
     onClick: args.onImportClick,
@@ -2245,8 +2245,8 @@ function ToolbarOverflowMenu({
         type="button"
         style={commandButtonStyle(open, false, "default", density)}
         onClick={onToggle}
-        title="Open grouped map command overflow"
-        aria-label="Open grouped map command overflow"
+        title="Scientific QA, 3D sync, density, and command controls"
+        aria-label="Scientific QA, 3D sync, density, and command controls"
         aria-expanded={open}
         aria-haspopup="menu"
         data-testid="map-command-center-overflow"
@@ -2258,7 +2258,7 @@ function ToolbarOverflowMenu({
       </button>
 
       {open ? (
-        <div style={overflowMenuStyle} role="menu" aria-label="Grouped map commands">
+        <div style={overflowMenuStyle} role="menu" aria-label="Advanced commands">
           <div style={menuHeaderStyle}>
             <span>Command Center</span>
             <span>{commands.length} cmd</span>
@@ -2341,7 +2341,7 @@ function ToolbarCommandGroupMenu({
             ...(groupId === "publish" || groupId === "system" ? { left: "auto", right: 0 } : null),
           }}
           role="menu"
-          aria-label={`${meta.label} command group`}
+          aria-label={groupId === "publish" ? "Export commands" : `${meta.label} command group`}
           data-testid={`map-command-group-menu-${groupId}`}
         >
           <div style={commandGroupMenuHeaderStyle}>

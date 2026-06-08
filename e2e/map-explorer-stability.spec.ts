@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { openUrbanAnalyticsWorkbench, resetWorkbenchState, triggerDomClick } from "./helpers/urbanAnalytics";
+import { openUrbanAnalyticsWorkbench, resetWorkbenchState, triggerDomClick, waitForMapExplorerDialog } from "./helpers/urbanAnalytics";
 
 function isIgnorableDiagnostic(message: string): boolean {
   return (
@@ -81,30 +81,34 @@ test.describe("Map Explorer stability", () => {
       await page.setViewportSize(cycle % 2 === 0 ? { width: 920, height: 760 } : { width: 1440, height: 960 });
       await triggerDomClick(urbanModal.getByRole("button", { name: "Open Map Explorer (Ctrl+Shift+M)" }));
 
-      const mapExplorer = page.getByRole("dialog", { name: "Map Explorer" }).first();
-      await expect(mapExplorer).toBeVisible();
+      const mapExplorer = await waitForMapExplorerDialog(page);
       await expect(page.getByRole("application", { name: /Interactive map canvas/i })).toBeVisible();
 
-      const exploreButton = page.getByRole("button", { name: /Explore Layers|Switch toolbar to Explore mode|Switch map workspace to explore/i }).first();
-      await expect(exploreButton).toBeVisible();
-      await triggerDomClick(exploreButton);
+      await triggerDomClick(mapExplorer.getByTestId("activity-btn-layers"));
 
       await seedStabilityLayer(page, cycle);
-      await expect(page.getByRole("list", { name: "Layer list" })).toContainText(`E2E Stability District ${cycle}`);
+      await expect(mapExplorer.getByRole("list", { name: "Layer list" })).toContainText(`E2E Stability District ${cycle}`);
 
       await page.keyboard.press("Control+K");
       const palette = page.getByRole("dialog", { name: "Map command palette" });
       await expect(palette).toBeVisible();
       await palette.getByLabel("Search map commands").fill("scientific qa");
       await triggerDomClick(palette.getByRole("option", { name: /Toggle scientific QA panel/i }).first());
-      await expect(page.getByRole("dialog", { name: "Scientific QA side panel" })).toBeVisible();
+      const rightDockHost = mapExplorer.getByTestId("map-right-dock-host");
+      await expect(rightDockHost).toBeVisible();
+      await expect(rightDockHost).toHaveAttribute("data-map-right-dock-panel", /^(problems|scientificQA|qa)$/);
 
-      await triggerDomClick(page.getByRole("button", { name: /Open AOI .* Compare workflow drawer/i }).first());
-      await expect(page.getByTestId("map-workflow-drawer")).toBeVisible();
+      await triggerDomClick(mapExplorer.getByTestId("activity-btn-analyze"));
+      const workflowsTab = mapExplorer.getByTestId("map-workbench-sidebar-tab-analyze-workflows");
+      await expect(workflowsTab).toBeVisible();
+      await workflowsTab.scrollIntoViewIfNeeded();
+      await triggerDomClick(workflowsTab);
+      await expect(workflowsTab).toHaveAttribute("aria-selected", "true");
+      await expect(mapExplorer.getByTestId("map-workflow-drawer")).toBeVisible();
 
       await page.setViewportSize(cycle % 2 === 0 ? { width: 1440, height: 960 } : { width: 720, height: 760 });
       await expect(page.getByTestId("map-canvas-region")).toBeVisible();
-      await expect(page.getByTestId("map-bottom-timeline")).toBeVisible();
+      await expect(mapExplorer.getByRole("status", { name: "Map status" })).toBeVisible();
 
       await triggerDomClick(mapExplorer.getByRole("button", { name: "Close map explorer (Escape)" }));
       await expect(mapExplorer).toBeHidden();

@@ -39,21 +39,18 @@ test.describe("Map Explorer choropleth renderer", () => {
 
     const mapExplorer = page.getByRole("dialog", { name: "Map Explorer" }).first();
     await expect(mapExplorer).toBeVisible();
-    await triggerDomClick(page.getByRole("button", { name: /Explore Layers|Switch map workspace to explore/i }).first());
-
-    await triggerDomClick(page.getByRole("button", {
-      name: /Import GeoJSON, CSV, Arrow, GeoParquet, KML, KMZ, and GPX files|Open spatial data import options/i,
-    }));
+    await triggerDomClick(mapExplorer.getByTestId("activity-btn-data"));
+    await expect(mapExplorer.getByTestId("catalog-browse-source")).toBeVisible();
+    await triggerDomClick(mapExplorer.getByTestId("catalog-browse-source"));
     const importHub = page.getByRole("dialog", { name: "Spatial data import hub" });
     await expect(importHub).toBeVisible();
 
     await importLocalMapFileWithPreflight(page, createChoroplethFixture());
 
     await expect(page.getByTestId("toast").filter({ hasText: /Imported choropleth-polygons \(5 features\)\./i }).first()).toBeVisible();
-    await triggerDomClick(page.getByRole("button", {
-      name: /Switch toolbar to Analyze mode|Analyze Outputs|Switch map workspace to analyze/i,
-    }).first());
-    await triggerDomClick(page.getByRole("button", { name: /Open thematic choropleth panel|Toggle choropleth panel/i }));
+    await triggerDomClick(mapExplorer.getByTestId("activity-btn-style"));
+    await expect(mapExplorer.getByTestId("map-style-open-choropleth-preview")).toBeVisible();
+    await triggerDomClick(mapExplorer.getByTestId("map-style-open-choropleth-preview"));
 
     const choropleth = page.getByRole("dialog", { name: "Choropleth configuration" });
     await expect(choropleth).toBeVisible();

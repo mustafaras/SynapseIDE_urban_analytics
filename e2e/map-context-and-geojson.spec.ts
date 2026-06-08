@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { promises as fs } from "node:fs";
 import { importLocalMapFileWithPreflight } from "./helpers/mapImport";
-import { openUrbanAnalyticsWorkbench, resetWorkbenchState, triggerDomClick } from "./helpers/urbanAnalytics";
+import { openMapExplorer, resetWorkbenchState, triggerDomClick } from "./helpers/urbanAnalytics";
 
 function createGeoJsonFixture() {
   const document = {
@@ -85,12 +85,7 @@ test.describe("Map Explorer context menu and GeoJSON I/O", () => {
     await page.setViewportSize({ width: 1680, height: 1100 });
     await resetWorkbenchState(page);
 
-    const urbanModal = await openUrbanAnalyticsWorkbench(page);
-    await triggerDomClick(urbanModal.getByRole("button", { name: "Open Map Explorer (Ctrl+Shift+M)" }));
-
-    const mapExplorer = page.getByRole("dialog", { name: "Map Explorer" }).first();
-    await expect(mapExplorer).toBeVisible();
-    await triggerDomClick(page.getByRole("button", { name: /Explore Layers|Switch map workspace to explore/i }).first());
+    const mapExplorer = await openMapExplorer(page);
 
     const mapCanvas = page.getByRole("application", { name: /Interactive map canvas/i });
     await expect(mapCanvas).toBeVisible();
@@ -119,15 +114,14 @@ test.describe("Map Explorer context menu and GeoJSON I/O", () => {
     await page.keyboard.press("ArrowDown");
     await page.keyboard.press("Enter");
 
-    await expect(page.getByRole("button", {
-      name: /Switch toolbar to Analyze mode|Analyze Outputs|Switch map workspace to analyze/i,
-    }).first()).toHaveAttribute("aria-pressed", "true");
-    await expect(page.getByRole("region", { name: "Measurement results" })).toBeVisible();
+    await expect(mapExplorer.getByTestId("activity-btn-analyze")).toHaveAttribute("aria-pressed", "true");
+    await expect(mapExplorer.getByTestId("map-right-dock-measure-body")).toBeVisible();
 
     await mapCanvas.click({ button: "right", position: { x: 640, y: 420 } });
     await expect(contextMenu).toBeVisible();
     await contextMenu.getByRole("menuitem", { name: /Draw polygon here/i }).click();
-    await expect(page.getByRole("region", { name: "Drawn features" })).toBeVisible();
+    await expect(mapExplorer.getByTestId("map-active-tool-indicator")).toContainText("Draw polygon");
+    await expect(mapExplorer.getByTestId("map-canvas-draw-aoi")).toHaveAttribute("aria-pressed", "true");
   });
 
   test("imports, exports, and re-imports GeoJSON through the visible UI", async ({ page }) => {
@@ -136,16 +130,11 @@ test.describe("Map Explorer context menu and GeoJSON I/O", () => {
     await page.setViewportSize({ width: 1680, height: 1100 });
     await resetWorkbenchState(page);
 
-    const urbanModal = await openUrbanAnalyticsWorkbench(page);
-    await triggerDomClick(urbanModal.getByRole("button", { name: "Open Map Explorer (Ctrl+Shift+M)" }));
+    const mapExplorer = await openMapExplorer(page);
 
-    const mapExplorer = page.getByRole("dialog", { name: "Map Explorer" }).first();
-    await expect(mapExplorer).toBeVisible();
-    await triggerDomClick(page.getByRole("button", { name: /Explore Layers|Switch map workspace to explore/i }).first());
-
-    await triggerDomClick(mapExplorer.getByRole("button", {
-      name: /Import GeoJSON, CSV, Arrow, GeoParquet, KML, KMZ, and GPX files|Open spatial data import options/i,
-    }).first());
+    await triggerDomClick(mapExplorer.getByTestId("activity-btn-data"));
+    await expect(mapExplorer.getByTestId("catalog-browse-source")).toBeVisible();
+    await triggerDomClick(mapExplorer.getByTestId("catalog-browse-source"));
     const importHub = page.getByRole("dialog", { name: "Spatial data import hub" });
     await expect(importHub).toContainText("GeoJSON");
 
@@ -153,13 +142,17 @@ test.describe("Map Explorer context menu and GeoJSON I/O", () => {
 
     await expect(page.getByTestId("toast").filter({ hasText: /Imported study-area \(2 features\)\./i }).first()).toBeVisible();
 
-    const layerList = page.getByRole("list", { name: "Layer list" });
+    await triggerDomClick(mapExplorer.getByTestId("activity-btn-layers"));
+    const layerList = mapExplorer.getByRole("list", { name: "Layer list" });
     await expect(layerList).toContainText("study-area");
 
-    await triggerDomClick(mapExplorer.getByRole("button", { name: "Save, load, and export map outputs" }));
-    await triggerDomClick(page.getByRole("menu", { name: "Export commands" }).getByRole("menuitem", {
-      name: "Export visible map data as GeoJSON",
-    }));
+    await triggerDomClick(mapExplorer.getByTestId("activity-btn-publish"));
+    const publishDataExportTab = mapExplorer.getByTestId("map-workbench-sidebar-tab-publish-data-export");
+    await expect(publishDataExportTab).toBeVisible();
+    await triggerDomClick(publishDataExportTab);
+    const publishWorkspace = mapExplorer.getByTestId("map-publish-workspace");
+    await expect(publishWorkspace).toContainText("GeoJSON and GeoParquet export");
+    await triggerDomClick(publishWorkspace.getByRole("button", { name: "Spatial data export" }));
 
     const exportDialog = page.getByRole("dialog", { name: "Spatial data export options" });
     await expect(exportDialog).toBeVisible();
@@ -179,6 +172,10 @@ test.describe("Map Explorer context menu and GeoJSON I/O", () => {
     expect(JSON.parse(exportedText)).toEqual(JSON.parse(raw));
     await expect(page.getByTestId("toast").filter({ hasText: /Exported 2 features to .*\.geojson/i }).first()).toBeVisible();
 
+    await triggerDomClick(mapExplorer.getByTestId("activity-btn-data"));
+    await expect(mapExplorer.getByTestId("catalog-browse-source")).toBeVisible();
+    await triggerDomClick(mapExplorer.getByTestId("catalog-browse-source"));
+    await expect(page.getByRole("dialog", { name: "Spatial data import hub" })).toBeVisible();
     await importLocalMapFileWithPreflight(page, {
       name: "study-area-roundtrip.geojson",
       mimeType: "application/geo+json",
@@ -186,6 +183,7 @@ test.describe("Map Explorer context menu and GeoJSON I/O", () => {
     });
 
     await expect(page.getByTestId("toast").filter({ hasText: /Imported study-area-roundtrip \(2 features\)\./i }).first()).toBeVisible();
+    await triggerDomClick(mapExplorer.getByTestId("activity-btn-layers"));
     await expect(layerList).toContainText("study-area-roundtrip");
   });
 });

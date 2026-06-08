@@ -74,11 +74,18 @@ test.describe("Map Explorer PNG image export", () => {
     await triggerDomClick(page.getByRole("button", { name: /Explore Layers|Switch map workspace to explore/i }).first());
     await seedExportLayer(page);
     await expect(page.getByRole("list", { name: "Layer list" })).toContainText("E2E Image Export District");
+    const showLegendButton = mapExplorer.getByRole("button", { name: "Show legend" });
+    await expect(showLegendButton).toBeVisible();
+    await triggerDomClick(showLegendButton);
+    await expect(mapExplorer.getByRole("button", { name: "Hide legend" })).toBeVisible();
 
-    await triggerDomClick(mapExplorer.getByRole("button", { name: "Save, load, and export map outputs" }));
-    await triggerDomClick(page.getByRole("menu", { name: "Export commands" }).getByRole("menuitem", {
-      name: "Export current map as PNG",
-    }));
+    await triggerDomClick(mapExplorer.getByTestId("activity-btn-publish"));
+    const publishFigureTab = mapExplorer.getByTestId("map-workbench-sidebar-tab-publish-figure");
+    await expect(publishFigureTab).toBeVisible();
+    await publishFigureTab.scrollIntoViewIfNeeded();
+    await triggerDomClick(publishFigureTab);
+    await expect(publishFigureTab).toHaveAttribute("aria-selected", "true");
+    await triggerDomClick(mapExplorer.getByRole("button", { name: "Map image export" }));
 
     const dialog = page.getByRole("dialog", { name: "Publication map export options" });
     await expect(dialog).toBeVisible();

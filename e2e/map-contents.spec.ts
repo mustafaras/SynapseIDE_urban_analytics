@@ -6,23 +6,15 @@ async function openMapExplorer(page: Page): Promise<Locator> {
   await triggerDomClick(urbanModal.getByRole("button", { name: "Open Map Explorer (Ctrl+Shift+M)" }));
   const mapExplorer = page.getByRole("dialog", { name: "Map Explorer" }).first();
   await expect(mapExplorer).toBeVisible();
-  const explore = page.getByRole("button", { name: /Explore Layers|Switch map workspace to explore/i }).first();
-  if (await explore.isVisible().catch(() => false)) await triggerDomClick(explore);
+  await triggerDomClick(mapExplorer.getByTestId("activity-btn-layers"));
   return mapExplorer;
 }
 
 async function openContents(page: Page, mapExplorer: Locator): Promise<Locator> {
-  const directButton = mapExplorer.getByRole("button", { name: /contents/i }).first();
-  if (await directButton.isVisible({ timeout: 1_000 }).catch(() => false)) {
-    await triggerDomClick(directButton);
-  } else {
-    await triggerDomClick(
-      mapExplorer.getByRole("button", { name: "Scientific QA, 3D sync, density, and command controls" }),
-    );
-    await triggerDomClick(
-      page.getByRole("menu", { name: "Advanced commands" }).getByRole("menuitem", { name: /contents/i }),
-    );
-  }
+  await triggerDomClick(mapExplorer.getByTestId("activity-btn-layers"));
+  const contentsTab = mapExplorer.getByTestId("map-workbench-sidebar-tab-layers-contents");
+  await expect(contentsTab).toBeVisible();
+  await triggerDomClick(contentsTab);
   const contents = page.getByTestId("map-contents-tree");
   await expect(contents).toBeVisible();
   return contents;

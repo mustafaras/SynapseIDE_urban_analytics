@@ -1,8 +1,9 @@
 import { expect, test, type Page } from "@playwright/test";
-import { openUrbanAnalyticsWorkbench, resetWorkbenchState, triggerDomClick } from "./helpers/urbanAnalytics";
+import { openMapExplorer as openMapExplorerDialog, resetWorkbenchState, triggerDomClick } from "./helpers/urbanAnalytics";
 
 async function expectImportedLayer(page: Page, layerName: string, importFormat: string): Promise<void> {
   const mapExplorer = page.getByRole("dialog", { name: "Map Explorer" }).first();
+  await triggerDomClick(mapExplorer.getByTestId("activity-btn-layers"));
   const layerList = mapExplorer.getByRole("list", { name: "Layer list" }).filter({ hasText: layerName }).first();
   await expect(layerList).toContainText(layerName);
   await expect(layerList).toContainText(importFormat.toUpperCase());
@@ -11,14 +12,8 @@ async function expectImportedLayer(page: Page, layerName: string, importFormat: 
 async function openMapExplorer(page: Page) {
   await page.setViewportSize({ width: 1680, height: 1100 });
   await resetWorkbenchState(page);
-
-  const urbanModal = await openUrbanAnalyticsWorkbench(page);
-  await triggerDomClick(urbanModal.getByRole("button", { name: "Open Map Explorer (Ctrl+Shift+M)" }));
-
-  const mapExplorer = page.getByRole("dialog", { name: "Map Explorer" }).first();
-  await expect(mapExplorer).toBeVisible();
-  await triggerDomClick(page.getByRole("button", { name: /Explore Layers|Switch map workspace to explore/i }).first());
-  await expect(mapExplorer.getByText("Symbology review")).toBeVisible();
+  const mapExplorer = await openMapExplorerDialog(page);
+  await expect(mapExplorer.getByRole("list", { name: "Layer list" })).toBeVisible();
   return mapExplorer;
 }
 
@@ -27,9 +22,9 @@ async function importLocalFile(
   file: { name: string; mimeType: string; buffer: Buffer },
 ) {
   const mapExplorer = page.getByRole("dialog", { name: "Map Explorer" }).first();
-  await triggerDomClick(mapExplorer.getByRole("button", {
-    name: /Import GeoJSON, CSV, Arrow, GeoParquet, KML, KMZ, and GPX files|Open spatial data import options/i,
-  }).first());
+  await triggerDomClick(mapExplorer.getByTestId("activity-btn-data"));
+  await expect(mapExplorer.getByTestId("catalog-browse-source")).toBeVisible();
+  await triggerDomClick(mapExplorer.getByTestId("catalog-browse-source"));
   const importHub = page.getByRole("dialog", { name: "Spatial data import hub" });
   await expect(importHub).toBeVisible();
 

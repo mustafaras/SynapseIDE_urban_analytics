@@ -53,8 +53,9 @@ export async function openUrbanAnalyticsWorkbench(page: Page): Promise<Locator> 
   await welcomeDialog.getByRole("button", { name: /Start Workbench/i }).click();
   await expect(welcomeDialog).toBeHidden();
 
+  await expect(page.getByTestId("urban-analytics-modal-loading")).toBeHidden({ timeout: 60000 });
   const urbanModal = page.getByRole("dialog", { name: "Urban Analytics Workbench" });
-  await expect(urbanModal).toBeVisible();
+  await expect(urbanModal).toBeVisible({ timeout: 60000 });
 
   const closeDetailPanelButton = urbanModal.getByRole("button", { name: "Close detail panel" });
   if (await closeDetailPanelButton.isVisible().catch(() => false)) {

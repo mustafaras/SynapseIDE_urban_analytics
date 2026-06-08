@@ -80,22 +80,14 @@ test.describe("Map Explorer figure composer", () => {
     await seedMissingAttributionLayer(page);
     await expect(page.getByRole("list", { name: "Layer list" })).toContainText("E2E Missing Attribution District");
 
-    await triggerDomClick(mapExplorer.getByRole("button", { name: "Switch toolbar to Publish mode" }));
-    const figureButton = mapExplorer.getByRole("button", {
-      name: /Compose a gate-checked publication figure/i,
-    }).first();
-    if (await figureButton.isVisible({ timeout: 1_000 }).catch(() => false)) {
-      await triggerDomClick(figureButton);
-    } else {
-      await triggerDomClick(mapExplorer.getByRole("button", {
-        name: "Scientific QA, 3D sync, density, and command controls",
-      }));
-      await triggerDomClick(page.getByRole("menu", { name: "Advanced commands" }).getByRole("menuitem", {
-        name: /Compose a gate-checked publication figure/i,
-      }));
-    }
+    await triggerDomClick(mapExplorer.getByTestId("activity-btn-publish"));
+    const publishFigureTab = mapExplorer.getByTestId("map-workbench-sidebar-tab-publish-figure");
+    await expect(publishFigureTab).toBeVisible();
+    await publishFigureTab.scrollIntoViewIfNeeded();
+    await triggerDomClick(publishFigureTab);
+    await expect(publishFigureTab).toHaveAttribute("aria-selected", "true");
 
-    const composer = page.getByRole("dialog", { name: /Publication figure composer|Layout designer/i }).first();
+    const composer = mapExplorer.getByTestId("map-figure-composer").or(mapExplorer.getByTestId("map-layout-designer"));
     await expect(composer).toBeVisible();
     const blockers = composer.getByTestId("map-figure-blockers").or(composer.getByTestId("map-layout-blockers"));
     await expect(blockers).toContainText("Attribution and license");

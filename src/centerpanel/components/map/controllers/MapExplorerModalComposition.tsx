@@ -1956,6 +1956,12 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     }
     onClose();
   }, [closeMapStartDialog, mapStartDialogState.open, onClose]);
+  const dismissMapStartDialogForWorkspaceInteraction = useCallback(() => {
+    if (!mapStartDialogState.open) {
+      return;
+    }
+    closeMapStartDialog("continue");
+  }, [closeMapStartDialog, mapStartDialogState.open]);
   const { trapRef } = useMapExplorerLifecycle({
     open,
     onClose: handleMapExplorerCloseRequest,
@@ -2120,6 +2126,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const [showModelBuilder, setShowModelBuilder] = useState(false);
   const [showPluginPanel, setShowPluginPanel] = useState(false);
   const openAnalyzeActivityTab = useCallback((tabId: MapAnalyzeTabId, announcement: string) => {
+    dismissMapStartDialogForWorkspaceInteraction();
     setWorkspaceView("analyze");
     setActiveActivityId("analyze");
     setShowLayerPanel(true);
@@ -2137,12 +2144,13 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     setShowHotSpotViz(false);
     setShowEmergingHotSpotViz(false);
     announce(announcement);
-  }, [announce, setShowWorkflowDrawer, setWorkflowPreview]);
+  }, [announce, dismissMapStartDialogForWorkspaceInteraction, setShowWorkflowDrawer, setWorkflowPreview]);
   const openStyleActivityTab = useCallback((
     tabId: MapStyleTabId,
     announcement: string,
     layerId?: string | null,
   ) => {
+    dismissMapStartDialogForWorkspaceInteraction();
     setWorkspaceView("explore");
     setActiveActivityId("style");
     setShowLayerPanel(true);
@@ -2163,8 +2171,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     setShowEmergingHotSpotViz(false);
     setShowVoxCityOverlay(false);
     announce(announcement);
-  }, [announce, setShowWorkflowDrawer, setWorkflowPreview]);
+  }, [announce, dismissMapStartDialogForWorkspaceInteraction, setShowWorkflowDrawer, setWorkflowPreview]);
   const openSceneActivityTab = useCallback((tabId: MapSceneTabId, announcement: string) => {
+    dismissMapStartDialogForWorkspaceInteraction();
     setWorkspaceView("explore");
     setActiveActivityId("scene");
     setShowLayerPanel(true);
@@ -2184,8 +2193,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     setShowChoroplethPanel(false);
     setShowVoxCityOverlay(tabId === "scene-voxcity");
     announce(announcement);
-  }, [announce, setShowWorkflowDrawer, setWorkflowPreview]);
+  }, [announce, dismissMapStartDialogForWorkspaceInteraction, setShowWorkflowDrawer, setWorkflowPreview]);
   const openPublishActivityTab = useCallback((tabId: MapPublishTabId, announcement: string) => {
+    dismissMapStartDialogForWorkspaceInteraction();
     setWorkspaceView("explore");
     setActiveActivityId("publish");
     setShowLayerPanel(true);
@@ -2206,7 +2216,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     setShowChoroplethPanel(false);
     setShowVoxCityOverlay(false);
     announce(announcement);
-  }, [announce, setShowWorkflowDrawer, setWorkflowPreview]);
+  }, [announce, dismissMapStartDialogForWorkspaceInteraction, setShowWorkflowDrawer, setWorkflowPreview]);
   const extensionRegistry = useMemo(() => createMapExtensionRegistry(), []);
   const pluginExtensions = useMemo(() => extensionRegistry.list(), [extensionRegistry]);
   const processingExtensionExecutors = useMemo(() => extensionRegistry.processingToolExecutors(), [extensionRegistry]);
@@ -2225,6 +2235,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     tabId: "data-import" | "data-connections" | "data-catalog" | "data-health" | "data-demo",
     announcement: string,
   ) => {
+    dismissMapStartDialogForWorkspaceInteraction();
     setWorkspaceView("explore");
     setActiveActivityId("data");
     setShowLayerPanel(true);
@@ -2234,7 +2245,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     setShowModelBuilder(false);
     setShowPluginPanel(false);
     announce(announcement);
-  }, [announce]);
+  }, [announce, dismissMapStartDialogForWorkspaceInteraction]);
   const handleToggleCatalog = useCallback(() => {
     if (showLayerPanel && activeActivityId === "data" && workbenchSidebarTab === "data-catalog") {
       setShowLayerPanel(false);
@@ -2248,6 +2259,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     announcement: string,
     cartographyScopeId: string | null = null,
   ) => {
+    dismissMapStartDialogForWorkspaceInteraction();
     setWorkspaceView("explore");
     setActiveActivityId("layers");
     setShowLayerPanel(true);
@@ -2258,7 +2270,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     setShowModelBuilder(false);
     setShowPluginPanel(false);
     announce(announcement);
-  }, [announce]);
+  }, [announce, dismissMapStartDialogForWorkspaceInteraction]);
   const handleToggleContents = useCallback(() => {
     if (showLayerPanel && activeActivityId === "layers" && workbenchSidebarTab === "layers-contents") {
       setShowLayerPanel(false);
@@ -8462,6 +8474,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   }, [toggleRightDockPanel]);
 
   const handleSelectMapActivity = useCallback((activity: MapActivityDefinition) => {
+    dismissMapStartDialogForWorkspaceInteraction();
     setActiveActivityId(activity.id);
 
     switch (activity.id) {
@@ -8514,7 +8527,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     }
 
     announce(`${activity.label} activity selected`);
-  }, [announce, openAnalyzeActivityTab, openDiagnosticsRightDock, openMapProblems, openPublishActivityTab, openRightDockPanel, openSceneActivityTab, openStyleActivityTab]);
+  }, [announce, dismissMapStartDialogForWorkspaceInteraction, openAnalyzeActivityTab, openDiagnosticsRightDock, openMapProblems, openPublishActivityTab, openRightDockPanel, openSceneActivityTab, openStyleActivityTab]);
 
   const bottomProblemsModel = useMemo(
     () => buildMapProblemsModel({ qaState: scientificQA, overlayLayers }),
@@ -10425,8 +10438,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               <button
                 type="button"
                 style={commandHeaderCloseButton}
-                onClick={handleMapExplorerCloseRequest}
-                aria-label={startDialogOpen ? "Dismiss map launch dialog (Escape)" : "Close map explorer (Escape)"}
+                onClick={onClose}
+                aria-label="Close map explorer (Escape)"
               >
                 <IconClose size={MAP_ICON_SIZES.md} />
               </button>

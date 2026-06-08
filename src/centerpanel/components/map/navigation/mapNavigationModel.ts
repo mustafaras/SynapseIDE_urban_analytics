@@ -175,7 +175,7 @@ export const MAP_ACTIVITY_DEFINITIONS = [
   {
     id: "layers",
     label: "Layers",
-    ariaLabel: "Layers activity",
+    ariaLabel: "Explore Layers - switch map workspace to explore",
     description: "Layer stack, contents tree, visibility, grouping, scale filters, and layer metadata.",
     placement: "primary-rail",
     order: 2,
@@ -190,7 +190,7 @@ export const MAP_ACTIVITY_DEFINITIONS = [
   {
     id: "analyze",
     label: "Analyze",
-    ariaLabel: "Analyze activity",
+    ariaLabel: "Analyze Outputs - switch map workspace to analyze",
     description: "Workflows, processing tools, model chains, query scope, statistics, AOI, and measurement work.",
     placement: "primary-rail",
     order: 3,

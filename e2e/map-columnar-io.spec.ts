@@ -31,9 +31,9 @@ test.describe("Map Explorer columnar I/O", () => {
     const mapExplorer = mapExplorerDialogs.first();
     await expect(mapExplorer).toBeVisible();
 
-    await triggerDomClick(mapExplorer.getByRole("button", {
-      name: /Import GeoJSON, CSV, Arrow, GeoParquet, KML, KMZ, and GPX files|Open spatial data import options/i,
-    }));
+    await triggerDomClick(mapExplorer.getByTestId("activity-btn-data"));
+    await expect(mapExplorer.getByTestId("catalog-browse-source")).toBeVisible();
+    await triggerDomClick(mapExplorer.getByTestId("catalog-browse-source"));
     const importHub = page.getByRole("dialog", { name: "Spatial data import hub" });
     await expect(importHub).toContainText("Arrow");
     await expect(importHub).toContainText("GeoParquet");
@@ -53,7 +53,7 @@ test.describe("Map Explorer columnar I/O", () => {
     await queueDomClick(geoParquetPreview.getByRole("button", { name: "Import Dataset" }));
 
     await expect(page.getByText(/Imported 2 spatial rows from urban-observations/i)).toBeVisible();
-    await triggerDomClick(mapExplorer.getByRole("button", { name: /Explore Layers|Switch map workspace to explore/i }).first());
+    await triggerDomClick(mapExplorer.getByTestId("activity-btn-layers"));
     const layerList = mapExplorer.getByRole("list", { name: "Layer list" });
     await expect(layerList).toContainText("urban-observations");
     await expect(layerList).toContainText("GeoParquet");
@@ -105,10 +105,13 @@ test.describe("Map Explorer columnar I/O", () => {
       testWindow.__lastDownloadMeta = null;
     });
 
-    await triggerDomClick(mapExplorer.getByRole("button", { name: "Save, load, and export map outputs" }));
-    await triggerDomClick(page.getByRole("menu", { name: "Export commands" }).getByRole("menuitem", {
-      name: "GeoJSON",
-    }));
+    await triggerDomClick(mapExplorer.getByTestId("activity-btn-publish"));
+    const publishDataExportTab = mapExplorer.getByTestId("map-workbench-sidebar-tab-publish-data-export");
+    await expect(publishDataExportTab).toBeVisible();
+    await triggerDomClick(publishDataExportTab);
+    const publishWorkspace = mapExplorer.getByTestId("map-publish-workspace");
+    await expect(publishWorkspace).toContainText("GeoJSON and GeoParquet export");
+    await triggerDomClick(publishWorkspace.getByRole("button", { name: "Spatial data export" }));
     const exportDialog = page.getByRole("dialog", { name: "Spatial data export options" });
     const exportFormat = exportDialog.getByRole("combobox", { name: "Export Format" });
     await exportFormat.selectOption({ label: "GeoParquet" });
@@ -156,9 +159,9 @@ test.describe("Map Explorer columnar I/O", () => {
     const mapExplorer = page.getByRole("dialog", { name: "Map Explorer" }).first();
     await expect(mapExplorer).toBeVisible();
 
-    await triggerDomClick(mapExplorer.getByRole("button", {
-      name: /Import GeoJSON, CSV, Arrow, GeoParquet, KML, KMZ, and GPX files|Open spatial data import options/i,
-    }));
+    await triggerDomClick(mapExplorer.getByTestId("activity-btn-data"));
+    await expect(mapExplorer.getByTestId("catalog-browse-source")).toBeVisible();
+    await triggerDomClick(mapExplorer.getByTestId("catalog-browse-source"));
     const importHub = page.getByRole("dialog", { name: "Spatial data import hub" });
 
     const [arrowChooser] = await Promise.all([
@@ -176,7 +179,7 @@ test.describe("Map Explorer columnar I/O", () => {
     await expect(arrowPreview).toContainText("Unsupported WKT geometry type: INVALID.");
     await queueDomClick(arrowPreview.getByRole("button", { name: "Import Dataset" }));
 
-    await triggerDomClick(mapExplorer.getByRole("button", { name: /Explore Layers|Switch map workspace to explore/i }).first());
+    await triggerDomClick(mapExplorer.getByTestId("activity-btn-layers"));
     const layerList = mapExplorer.getByRole("list", { name: "Layer list" });
     await expect(layerList).toContainText("urban-zones");
     await expect(layerList).toContainText("Arrow");
