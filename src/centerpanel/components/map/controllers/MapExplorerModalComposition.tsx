@@ -67,6 +67,7 @@ import {
 } from "../mapTokens";
 import { MapCanvas, type MapFeatureReportRequest } from "../MapCanvas";
 import { MapCanvasControls } from "../MapCanvasControls";
+import { MapTopCommandSurface } from "../MapTopCommandSurface";
 import { MapToolbar } from "../MapToolbar";
 import {
   MapLayerCartographyPanel,
@@ -1391,181 +1392,6 @@ const mapActivityRailOverlayStyle: React.CSSProperties = {
   height: "100%",
 };
 
-const commandHeaderStyle: React.CSSProperties = {
-  ...mapStyles.header,
-  display: "grid",
-  gridTemplateColumns: "minmax(10.75rem, 0.68fr) minmax(17rem, 1fr) minmax(21rem, 1.05fr) auto auto",
-  position: "relative",
-  zIndex: MAP_NUMERIC.importProgressZIndex + 1,
-  flexWrap: "nowrap",
-  alignItems: "center",
-  alignContent: "center",
-  gap: MAP_SPACING.xs,
-  minHeight: "3.125rem",
-  height: "3.125rem",
-  padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm} ${MAP_SPACING.xs} calc(${MAP_ACTIVITY_RAIL_WIDTH} + ${MAP_SPACING.sm})`,
-  overflowX: "visible",
-  overflowY: "visible",
-  background: [
-    "linear-gradient(115deg, transparent 0%, color-mix(in srgb, var(--syn-interaction-active, #3794ff) 11%, transparent) 38%, transparent 72%)",
-    "repeating-linear-gradient(90deg, color-mix(in srgb, var(--syn-border-subtle, rgba(148, 163, 184, 0.3)) 34%, transparent) 0 1px, transparent 1px 5.5rem)",
-    "linear-gradient(180deg, color-mix(in srgb, var(--syn-surface-header, #20242b) 96%, #ffffff 4%), var(--syn-surface-header, #20242b))",
-  ].join(", "),
-  backgroundSize: "34rem 100%, 11rem 100%, 100% 100%",
-  backgroundPosition: "-34rem 0, 0 0, 0 0",
-  borderBottom: "1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.32))",
-  boxShadow: "inset 0 -1px 0 color-mix(in srgb, var(--syn-interaction-active, #3794ff) 18%, transparent)",
-  isolation: "isolate",
-};
-
-const premiumHeaderMotionCss = `
-@keyframes mapPremiumHeaderDrift {
-  0% { background-position: -34rem 0, 0 0, 0 0; }
-  100% { background-position: 34rem 0, 11rem 0, 0 0; }
-}
-
-[data-map-premium-header="true"] {
-  animation: mapPremiumHeaderDrift 18s linear infinite;
-}
-
-[data-map-premium-header="true"] > * {
-  min-width: 0;
-}
-
-@media (max-width: 1180px) {
-  [data-map-premium-header="true"] {
-    grid-template-columns: minmax(9.75rem, 0.72fr) minmax(14rem, 1fr) minmax(18rem, 1fr) auto auto !important;
-  }
-}
-
-@media (max-width: 1320px) and (max-height: 680px) {
-  [data-map-premium-header="true"] {
-    grid-template-columns: minmax(10rem, 0.58fr) minmax(15rem, 0.92fr) minmax(18rem, 1fr) auto auto !important;
-  }
-
-  [data-map-command-bar="true"],
-  [data-map-selection-dock="true"] {
-    display: none !important;
-  }
-}
-
-@media (max-width: 860px) {
-  [data-map-premium-header="true"] {
-    grid-template-columns: minmax(9rem, 0.8fr) minmax(14rem, 1fr) auto auto !important;
-  }
-
-  [data-map-command-bar="true"],
-  [data-map-selection-dock="true"] {
-    display: none !important;
-  }
-}
-`;
-
-const commandHeaderTitleStyle: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: MAP_SPACING.xs,
-  order: 1,
-  minHeight: "2.375rem",
-  padding: `${MAP_SPACING.zero} ${MAP_SPACING.sm}`,
-  marginRight: MAP_SPACING.zero,
-  borderRadius: MAP_RADIUS.sm,
-  background: "linear-gradient(180deg, color-mix(in srgb, var(--syn-surface-panel, #151a21) 42%, transparent), transparent)",
-  border: "1px solid color-mix(in srgb, var(--syn-border-subtle, rgba(148, 163, 184, 0.3)) 72%, transparent)",
-  lineHeight: MAP_TYPOGRAPHY.lineHeight.tight,
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-};
-
-const commandHeaderBrandAccentStyle: React.CSSProperties = {
-  width: "1.625rem",
-  height: "1.625rem",
-  borderRadius: MAP_RADIUS.sm,
-  border: "1px solid color-mix(in srgb, var(--syn-interaction-active, #3794ff) 44%, transparent)",
-  background: [
-    "linear-gradient(135deg, color-mix(in srgb, var(--syn-interaction-active, #3794ff) 88%, #ffffff 8%), transparent 54%)",
-    "linear-gradient(315deg, color-mix(in srgb, var(--syn-status-running, #4ec27d) 72%, transparent), transparent 58%)",
-    "var(--syn-surface-header, #20242b)",
-  ].join(", "),
-  boxShadow: "inset 0 0 0 1px color-mix(in srgb, #ffffff 10%, transparent)",
-  flexShrink: 0,
-};
-
-const commandHeaderBrandCopyStyle: React.CSSProperties = {
-  display: "grid",
-  gridTemplateRows: "auto auto",
-  gap: "0.0625rem",
-  minWidth: MAP_SPACING.zero,
-};
-
-const commandHeaderBrandKickerStyle: React.CSSProperties = {
-  color: MAP_COLORS.interaction,
-  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
-  fontSize: "0.625rem",
-  fontWeight: MAP_TYPOGRAPHY.fontWeight.bold,
-  letterSpacing: 0,
-  textTransform: "uppercase",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-};
-
-const commandHeaderBrandLineStyle: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: MAP_SPACING.xs,
-  minWidth: MAP_SPACING.zero,
-  color: MAP_COLORS.text,
-  fontFamily: MAP_TYPOGRAPHY.fontFamilyBrand,
-  fontSize: MAP_TYPOGRAPHY.fontSize.sm,
-  fontWeight: MAP_TYPOGRAPHY.fontWeight.bold,
-  letterSpacing: 0,
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-};
-
-const commandHeaderActivityPillStyle: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  minWidth: MAP_SPACING.zero,
-  maxWidth: "8rem",
-  height: "1.125rem",
-  padding: `0 ${MAP_SPACING.xs}`,
-  border: MAP_STROKES.hairlineSubtle,
-  borderRadius: MAP_RADIUS.xs,
-  color: MAP_COLORS.textMuted,
-  background: "var(--syn-surface-subtle, rgba(15, 23, 42, 0.42))",
-  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
-  fontSize: "0.625rem",
-  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
-  textTransform: "uppercase",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-};
-
-const commandHeaderSearchSlotStyle: React.CSSProperties = {
-  order: 2,
-  display: "flex",
-  alignItems: "center",
-  minHeight: "2.375rem",
-  padding: `${MAP_SPACING.zero} ${MAP_SPACING.xs}`,
-  border: MAP_STROKES.hairlineSubtle,
-  borderRadius: MAP_RADIUS.sm,
-  background: "color-mix(in srgb, var(--syn-surface-panel, #151a21) 42%, transparent)",
-};
-
-const commandHeaderToolbarSlot: React.CSSProperties = {
-  order: 3,
-  minWidth: MAP_SPACING.zero,
-  display: "flex",
-  alignItems: "center",
-  minHeight: "2.375rem",
-  padding: `${MAP_SPACING.zero} ${MAP_SPACING.xs}`,
-  borderRadius: MAP_RADIUS.sm,
-  border: MAP_STROKES.hairlineSubtle,
-  background: "color-mix(in srgb, var(--syn-surface-panel, #151a21) 48%, transparent)",
-  overflow: "visible",
-};
-
 const canvasSelectionDockStyle: React.CSSProperties = {
   position: "absolute",
   top: "3.25rem",
@@ -1957,7 +1783,6 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const dragCounterRef = useRef(0);
   const lastMapRenderErrorRef = useRef<{ message: string; timestamp: number } | null>(null);
-  const headerRef = useRef<HTMLDivElement | null>(null);
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const legendRef = useRef<HTMLDivElement | null>(null);
   const statusBarRef = useRef<HTMLDivElement | null>(null);
@@ -2759,6 +2584,15 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   }, [addMapReviewEvent, buildCurrentReviewSnapshot]);
 
   const handleSelectionResult = useCallback((result: MapQueryExecutionResult, label: string) => {
+    setSelectionStatsSummary(null);
+    if (result.totalMatched > 0) {
+      openRightDockPanel(
+        "selection",
+        `${label} selection opened in the right dock`,
+        "programmatic",
+        label.toLowerCase(),
+      );
+    }
     const matchedLayers = result.layers.filter((layer) => layer.matchedFeatureCount > 0);
     recordMapReviewEvent({
       type: "query-run",
@@ -2790,7 +2624,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         })),
       },
     });
-  }, [recordMapReviewEvent]);
+  }, [openRightDockPanel, recordMapReviewEvent]);
 
   // Map command lifecycle (Prompt 9): high-impact actions flow through
   // MapActionExecutor so each one is preflighted, audited (one review-timeline
@@ -3140,6 +2974,58 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     openRightDockPanel("attributes", "Attribute table opened in the right dock", "toolbar");
   }, [openRightDockPanel]);
 
+  const handleOpenInspectFromStatus = useCallback(() => {
+    const selectedLayerId = Object.entries(selectedFeatureIds)
+      .find(([, featureIds]) => featureIds.length > 0)?.[0] ?? null;
+    const analysisLayerId = activeAnalysisResultLayerIds
+      .find((layerId) => overlayLayers.some((layer) => layer.id === layerId)) ?? null;
+    const visibleLayerId = overlayLayers.find((layer) => layer.visible)?.id ?? overlayLayers[0]?.id ?? null;
+    const targetLayerId = inspectorLayerId ?? attributeTableLayerId ?? selectedLayerId ?? analysisLayerId ?? visibleLayerId;
+
+    if (targetLayerId) {
+      handleInspectLayer(targetLayerId);
+      announce("Map view detail opened");
+      return;
+    }
+
+    openRightDockPanel("attributes", "Attributes opened in the right dock without an active layer", "status-bar");
+  }, [
+    activeAnalysisResultLayerIds,
+    announce,
+    attributeTableLayerId,
+    handleInspectLayer,
+    inspectorLayerId,
+    openRightDockPanel,
+    overlayLayers,
+    selectedFeatureIds,
+  ]);
+
+  const handleOpenProjectFromStatus = useCallback(() => {
+    setWorkspaceView("explore");
+    setActiveActivityId("data");
+    setShowLayerPanel(true);
+    setShowProcessingToolbox(false);
+    setShowModelBuilder(false);
+    setShowPluginPanel(false);
+    setWorkbenchSidebarTab("data-import");
+    announce(
+      selectedProjectId
+        ? "Project and save detail opened in the data panel"
+        : "Data panel opened for project setup",
+    );
+  }, [announce, selectedProjectId]);
+
+  const handleOpenLayersFromStatus = useCallback(() => {
+    setWorkspaceView("explore");
+    setActiveActivityId("layers");
+    setShowLayerPanel(true);
+    setShowProcessingToolbox(false);
+    setShowModelBuilder(false);
+    setShowPluginPanel(false);
+    setWorkbenchSidebarTab("layers-stack");
+    announce("Layers workspace opened");
+  }, [announce]);
+
   const handleOpenAttributesFromStatus = useCallback(() => {
     const selectedLayerId = Object.entries(selectedFeatureIds)
       .find(([, featureIds]) => featureIds.length > 0)?.[0] ?? null;
@@ -3170,12 +3056,32 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     openRightDockPanel("measure", "Measurement results opened in the right dock", "status-bar");
   }, [openRightDockPanel]);
 
-  const handleAttributeTableSelection = useCallback((layerId: string, featureIds: string[]) => {
+  const handleOpenDrawFromStatus = useCallback(() => {
+    openRightDockPanel(
+      "draw",
+      contextSummary.activeAoi || drawnFeatures.length > 0
+        ? "Draw and AOI detail opened in the right dock"
+        : "Drawing tools opened in the right dock",
+      "status-bar",
+    );
+  }, [contextSummary.activeAoi, drawnFeatures.length, openRightDockPanel]);
+
+  const handleSetSelectedFeatures = useCallback((layerId: string, featureIds: string[]) => {
+    setSelectionStatsSummary(null);
     setSelectedFeatures(layerId, featureIds);
+  }, [setSelectedFeatures]);
+
+  const handleClearSelectedFeatures = useCallback(() => {
+    setSelectionStatsSummary(null);
+    clearSelectedFeatures();
+  }, [clearSelectedFeatures]);
+
+  const handleAttributeTableSelection = useCallback((layerId: string, featureIds: string[]) => {
+    handleSetSelectedFeatures(layerId, featureIds);
     if (featureIds.length > 0) {
       setActiveAnalysisResultLayers([layerId]);
     }
-  }, [setActiveAnalysisResultLayers, setSelectedFeatures]);
+  }, [handleSetSelectedFeatures, setActiveAnalysisResultLayers]);
 
   const handleCreateAttributeDerivedLayer = useCallback((draft: MapAttributeDerivedFieldDraft) => {
     const sourceLayer = overlayLayers.find((entry) => entry.id === draft.sourceLayerId);
@@ -3675,6 +3581,17 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       setShowEmergingHotSpotViz(true);
     }
   }, [activeActivityId, handleOpenAnalyzeTab, showEmergingHotSpotViz, workbenchSidebarTab]);
+  const handleSelectionStatisticsReady = useCallback((summary: SelectionStatisticsSummary[]) => {
+    if (summary.length === 0) {
+      return;
+    }
+    openRightDockPanel(
+      "selection",
+      "Selection statistics opened in the right dock",
+      "programmatic",
+      "statistics",
+    );
+  }, [openRightDockPanel]);
   const {
     handleToggleRestrictToMapView,
     handleOpenFlowDispatchDialog,
@@ -3687,6 +3604,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     contextSummary,
     currentMapBounds,
     flowDispatchAoi,
+    onSelectionStatisticsReady: handleSelectionStatisticsReady,
     overlayLayers,
     recordMapReviewEvent,
     restrictToMapView,
@@ -3813,6 +3731,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       ?? overlayLayers[0]
       ?? null;
   }, [inspectorLayer, overlayLayers, selectedPointSymbologyLayer, styleWorkspaceLayerId]);
+  const topSurfaceActiveLayer = attributeTableLayer ?? inspectorLayer ?? activeStyleLayer;
   useEffect(() => {
     if (styleWorkspaceLayerId && !overlayLayers.some((layer) => layer.id === styleWorkspaceLayerId)) {
       setStyleWorkspaceLayerId(null);
@@ -5663,6 +5582,38 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     selectedFeatureId,
     selectedFeatureIds,
   ]);
+  const topSurfaceScopeLabel = selectedCanvasFitContext?.label ?? (visibleLayerFitBounds ? "visible extent" : "no extent");
+  const topSurfaceCrsSummary = useMemo(
+    () => topSurfaceActiveLayer ? resolveOverlayLayerCrsSummary(topSurfaceActiveLayer) : null,
+    [topSurfaceActiveLayer],
+  );
+  const topSurfaceCrsLabel = useMemo(() => {
+    if (!topSurfaceCrsSummary) {
+      return visiblePublicationLayers.length > 0 ? "EPSG:4326 display" : "CRS unknown";
+    }
+    if (topSurfaceCrsSummary.crs) {
+      return topSurfaceCrsSummary.crs;
+    }
+    if (topSurfaceCrsSummary.status === "missing") {
+      return "CRS missing";
+    }
+    return "CRS unknown";
+  }, [topSurfaceCrsSummary, visiblePublicationLayers.length]);
+  const topSurfaceCrsTone = useMemo<"accent" | "warning" | "danger" | "success">(() => {
+    if (!topSurfaceCrsSummary) {
+      return visiblePublicationLayers.length > 0 ? "accent" : "warning";
+    }
+    if (topSurfaceCrsSummary.status === "known") {
+      return "success";
+    }
+    if (topSurfaceCrsSummary.status === "missing") {
+      return "danger";
+    }
+    return "warning";
+  }, [topSurfaceCrsSummary, visiblePublicationLayers.length]);
+  const topSurfaceCrsTitle = topSurfaceActiveLayer
+    ? `${topSurfaceActiveLayer.name}: ${topSurfaceCrsSummary?.notes.join(" ") || "CRS summary available in QA."}`
+    : "Display CRS uses EPSG:4326. Open QA for coordinate reference details.";
 
   const handleCanvasZoom = useCallback((delta: number) => {
     const map = mapInstanceRef.current;
@@ -8421,7 +8372,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     closeFloatingRightPanels();
     setShowSidebar(false);
     setShowDrawPanel(false);
-    setShowMeasurePanel(true);
+    setShowMeasurePanel(false);
     setSelectionDragTool(null);
     setActiveTool(null);
     setActiveDrawTool(null);
@@ -8431,7 +8382,13 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       tool: "measure-distance",
       token: Date.now(),
     });
-  }, [closeFloatingRightPanels, setActiveDrawTool, setActiveMeasureTool, setActiveTool]);
+    openRightDockPanel(
+      "measure",
+      "Measurement workspace opened in the right dock",
+      "quick-action",
+      "context-measure",
+    );
+  }, [closeFloatingRightPanels, openRightDockPanel, setActiveDrawTool, setActiveMeasureTool, setActiveTool]);
 
   const handleStartPolygonFromContext = useCallback((coordinate: [number, number]) => {
     setWorkspaceView("analyze");
@@ -8642,6 +8599,21 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     workflowPreview,
   ]);
 
+  const activeBackgroundTaskCount = useMemo(
+    () => bottomPanelTasks.filter((task) => task.status === "running").length,
+    [bottomPanelTasks],
+  );
+
+  const handleOpenTasksFromStatus = useCallback(() => {
+    openRightDockPanel(
+      "tasks",
+      activeBackgroundTaskCount > 0
+        ? "Background tasks opened in the right dock"
+        : "Tasks opened in the right dock",
+      "status-bar",
+    );
+  }, [activeBackgroundTaskCount, openRightDockPanel]);
+
   const rightAttributesDockActive = activeRightDockRoute?.panel === "attributes";
   const rightSelectionDockActive = activeRightDockRoute?.panel === "selection";
   const rightTimelineDockActive = activeRightDockRoute?.panel === "timeline";
@@ -8716,6 +8688,19 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
 
     if (rightSelectionDockActive) {
       const selectedLayerEntries = Object.entries(selectedFeatureIds).filter(([, featureIds]) => featureIds.length > 0);
+      const selectionStatsCount = selectionStatsSummary?.reduce(
+        (total, summary) => total + summary.selectedFeatureCount,
+        0,
+      ) ?? 0;
+      const selectionActionButtonStyle: React.CSSProperties = {
+        ...mapStyles.btn,
+        minHeight: "1.875rem",
+        padding: `0 ${MAP_SPACING.sm}`,
+      };
+      const selectionActionDisabledStyle: React.CSSProperties = {
+        opacity: 0.5,
+        cursor: "not-allowed",
+      };
       return (
         <MapBottomPanelScrollBody data-testid="map-right-dock-selection-body" padding={0}>
           <MapSelectionTools
@@ -8725,15 +8710,64 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             activeDragTool={selectionDragTool}
             showModeButtons
             variant="embedded"
-            onSetSelectedFeatures={setSelectedFeatures}
-            onClearSelectedFeatures={() => clearSelectedFeatures()}
+            onSetSelectedFeatures={handleSetSelectedFeatures}
+            onClearSelectedFeatures={handleClearSelectedFeatures}
             onSetActiveAnalysisResultLayers={setActiveAnalysisResultLayers}
             onAddDrawnFeature={addDrawnFeature}
             onActiveDragToolChange={setSelectionDragTool}
             onSelectionResult={handleSelectionResult}
             onAnnounce={announce}
           />
-          <div style={{ display: "grid", gap: MAP_SPACING.xs, padding: `0 ${MAP_SPACING.md} ${MAP_SPACING.md}` }}>
+          <div style={{ display: "grid", gap: MAP_SPACING.md, padding: `${MAP_SPACING.sm} ${MAP_SPACING.md} ${MAP_SPACING.md}` }}>
+            <div style={{ display: "grid", gap: MAP_SPACING.sm }}>
+              <div style={{ display: "grid", gap: "0.125rem" }}>
+                <span
+                  style={{
+                    color: MAP_COLORS.textMuted,
+                    fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+                    fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Selection detail
+                </span>
+                <span
+                  style={{
+                    color: MAP_COLORS.text,
+                    fontSize: MAP_TYPOGRAPHY.fontSize.sm,
+                    fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+                  }}
+                >
+                  {selectedFeatureCount.toLocaleString()} selected feature(s) across {selectedLayerEntries.length.toLocaleString()} layer(s)
+                </span>
+                <span style={{ color: MAP_COLORS.textSecondary, fontSize: MAP_TYPOGRAPHY.fontSize.xs }}>
+                  Keep selections here, then open layer attributes or compute descriptive statistics without covering the map canvas.
+                </span>
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: MAP_SPACING.xs }}>
+                <button
+                  type="button"
+                  style={{
+                    ...selectionActionButtonStyle,
+                    ...(selectedLayerEntries.length === 0 ? selectionActionDisabledStyle : {}),
+                  }}
+                  disabled={selectedLayerEntries.length === 0}
+                  title={selectedLayerEntries.length === 0 ? "Select one or more features before computing statistics" : "Compute descriptive statistics for the current selection"}
+                  onClick={handleRunSelectionStatistics}
+                >
+                  Run statistics
+                </button>
+                {selectionStatsSummary?.length ? (
+                  <button
+                    type="button"
+                    style={selectionActionButtonStyle}
+                    onClick={() => setSelectionStatsSummary(null)}
+                  >
+                    Hide statistics
+                  </button>
+                ) : null}
+              </div>
+            </div>
             {selectedLayerEntries.length > 0 ? (
               selectedLayerEntries.map(([layerId, featureIds]) => {
                 const layerName = overlayLayers.find((layer) => layer.id === layerId)?.name ?? layerId;
@@ -8742,7 +8776,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
                     key={layerId}
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "minmax(0, 1fr) auto",
+                      gridTemplateColumns: "minmax(0, 1fr) auto auto",
                       gap: MAP_SPACING.sm,
                       minWidth: 0,
                       padding: `${MAP_SPACING.xs} 0`,
@@ -8750,10 +8784,25 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
                       color: MAP_COLORS.textSecondary,
                       fontSize: MAP_TYPOGRAPHY.fontSize.xs,
                     }}
-                  >
-                    <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", color: MAP_COLORS.text }}>{layerName}</span>
-                    <span style={{ color: MAP_COLORS.textMuted }}>{featureIds.length.toLocaleString()} selected feature(s)</span>
-                  </div>
+                    >
+                      <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", color: MAP_COLORS.text }}>{layerName}</span>
+                      <span style={{ color: MAP_COLORS.textMuted }}>{featureIds.length.toLocaleString()} selected feature(s)</span>
+                      <button
+                        type="button"
+                        style={selectionActionButtonStyle}
+                        onClick={() => {
+                          setAttributeTableLayerId(layerId);
+                          openRightDockPanel(
+                            "attributes",
+                            "Selected feature attributes opened in the right dock",
+                            "panel-tab",
+                            "selection",
+                          );
+                        }}
+                      >
+                        Attributes
+                      </button>
+                    </div>
                 );
               })
             ) : (
@@ -8763,6 +8812,66 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
                 compact
               />
             )}
+            {selectionStatsSummary?.length ? (
+              <div
+                data-testid="map-right-dock-selection-stats"
+                style={{
+                  display: "grid",
+                  gap: MAP_SPACING.sm,
+                  padding: MAP_SPACING.md,
+                  border: MAP_STROKES.hairlineSubtle,
+                  borderRadius: MAP_RADIUS.sm,
+                  background: "var(--syn-surface-subtle, rgba(15, 23, 42, 0.56))",
+                }}
+              >
+                <div style={{ display: "grid", gap: "0.125rem" }}>
+                  <span
+                    style={{
+                      color: MAP_COLORS.textMuted,
+                      fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+                      fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    Quick statistics
+                  </span>
+                  <span
+                    style={{
+                      color: MAP_COLORS.text,
+                      fontSize: MAP_TYPOGRAPHY.fontSize.sm,
+                      fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+                    }}
+                  >
+                    {selectionStatsCount.toLocaleString()} feature(s) summarized
+                  </span>
+                </div>
+                {selectionStatsSummary.map((summary) => (
+                  <div
+                    key={summary.layerId}
+                    style={{
+                      display: "grid",
+                      gap: MAP_SPACING.xs,
+                      paddingTop: MAP_SPACING.sm,
+                      borderTop: MAP_STROKES.hairlineSubtle,
+                    }}
+                  >
+                    <div style={{ color: MAP_COLORS.text, fontSize: MAP_TYPOGRAPHY.fontSize.xs, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
+                      {summary.layerName} · {summary.selectedFeatureCount.toLocaleString()} selected
+                    </div>
+                    {summary.numericFields.length === 0 ? (
+                      <span style={{ color: MAP_COLORS.textMuted, fontSize: MAP_TYPOGRAPHY.fontSize.xs }}>
+                        Missing prerequisite: selected features need numeric attributes before summary statistics can be computed.
+                      </span>
+                    ) : summary.numericFields.slice(0, 4).map((field) => (
+                      <div key={field.field} style={{ display: "grid", gap: "0.125rem", color: MAP_COLORS.textSecondary, fontSize: MAP_TYPOGRAPHY.fontSize.xs }}>
+                        <strong style={{ color: MAP_COLORS.interaction, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>{field.field}</strong>
+                        <span>min {field.min.toFixed(2)} · max {field.max.toFixed(2)} · mean {field.mean.toFixed(2)} · median {field.median.toFixed(2)}</span>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            ) : null}
           </div>
         </MapBottomPanelScrollBody>
       );
@@ -10087,8 +10196,6 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             {'[data-map-explorer-shell="true"], [data-map-explorer-shell="true"] * { transition: none !important; animation: none !important; scroll-behavior: auto !important; }'}
           </style>
         ) : null}
-        <style>{premiumHeaderMotionCss}</style>
-
         <input
           ref={importInputRef}
           type="file"
@@ -10141,25 +10248,25 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         />
 
         {/* Header bar */}
-        <div
-          ref={headerRef}
-          style={commandHeaderStyle}
-          role="toolbar"
-          aria-label="Map command bar"
-          data-map-premium-header="true"
-        >
-          <span style={commandHeaderTitleStyle} id="map-explorer-title" aria-label="Map Explorer" data-testid="map-command-center-title">
-            <span aria-hidden data-testid="map-command-brand" style={commandHeaderBrandAccentStyle} />
-            <span style={commandHeaderBrandCopyStyle}>
-              <span style={commandHeaderBrandKickerStyle}>Urban Analytics</span>
-              <span style={commandHeaderBrandLineStyle}>
-                <span>Map Explorer</span>
-                <span aria-hidden style={commandHeaderActivityPillStyle}>{activeActivity.label}</span>
-              </span>
-            </span>
-          </span>
-
-          <div style={commandHeaderSearchSlotStyle}>
+        <MapTopCommandSurface
+          activeActivityLabel={activeActivity.label}
+          projectName={selectedProject?.name ?? null}
+          workspaceView={workspaceView}
+          taskLensLabel={activeTaskLens.label}
+          hasUnsavedProjectChanges={hasUnsavedProjectChanges}
+          persistenceDisabled={persistenceDisabled}
+          isSavingProject={isSavingProject}
+          isLoadingProject={isLoadingProject}
+          lastSavedAt={lastSavedAt}
+          scopeLabel={topSurfaceScopeLabel}
+          scopeTitle={`Current scope: ${topSurfaceScopeLabel}.`}
+          crsLabel={topSurfaceCrsLabel}
+          crsTone={topSurfaceCrsTone}
+          crsTitle={topSurfaceCrsTitle}
+          onOpenCrsReadiness={topSurfaceCrsTone === "success" ? undefined : handleOpenCanvasCrsReadiness}
+          activeLayerLabel={topSurfaceActiveLayer?.name ?? null}
+          activeLayerTitle={topSurfaceActiveLayer?.name ?? "No active layer available."}
+          searchSlot={(
             <MapSearchBar
               compact
               onFlyTo={flyTo}
@@ -10177,9 +10284,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               }}
               onResultCount={(count) => announce(`${count} search result${count !== 1 ? "s" : ""} found`)}
             />
-          </div>
-
-          <div style={commandHeaderToolbarSlot}>
+          )}
+          commandSlot={(
             <MapToolbar
               workspaceView={workspaceView}
               onWorkspaceViewChange={handleSetWorkspaceView}
@@ -10303,29 +10409,30 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               onUndoMapAction={() => handleUndoMapAction()}
               onRedoMapAction={handleRedoMapAction}
             />
-          </div>
-
-          <MapBookmarkBar
-            variant="menu"
-            bookmarks={bookmarks}
-            maxBookmarks={MAP_BOOKMARK_LIMIT}
-            onSaveBookmark={handleSaveBookmark}
-            onRestoreBookmark={handleRestoreBookmark}
-            onRenameBookmark={handleRenameBookmark}
-            onDeleteBookmark={handleDeleteBookmark}
-            onShareBookmark={handleShareBookmark}
-            style={{ order: 5 }}
-          />
-
-          <button
-            type="button"
-            style={commandHeaderCloseButton}
-            onClick={handleMapExplorerCloseRequest}
-            aria-label={startDialogOpen ? "Dismiss map launch dialog (Escape)" : "Close map explorer (Escape)"}
-          >
-            <IconClose size={MAP_ICON_SIZES.md} />
-          </button>
-        </div>
+          )}
+          trailingSlot={(
+            <>
+              <MapBookmarkBar
+                variant="menu"
+                bookmarks={bookmarks}
+                maxBookmarks={MAP_BOOKMARK_LIMIT}
+                onSaveBookmark={handleSaveBookmark}
+                onRestoreBookmark={handleRestoreBookmark}
+                onRenameBookmark={handleRenameBookmark}
+                onDeleteBookmark={handleDeleteBookmark}
+                onShareBookmark={handleShareBookmark}
+              />
+              <button
+                type="button"
+                style={commandHeaderCloseButton}
+                onClick={handleMapExplorerCloseRequest}
+                aria-label={startDialogOpen ? "Dismiss map launch dialog (Escape)" : "Close map explorer (Escape)"}
+              >
+                <IconClose size={MAP_ICON_SIZES.md} />
+              </button>
+            </>
+          )}
+        />
 
         {/* Map area */}
         {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions -- map surface needs drag-and-drop file handling */}
@@ -10349,7 +10456,10 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             void handleDrop(event);
           }}
           onKeyDown={(event) => {
-            if (event.key === "Escape" && (activeTool || activeDrawTool || activeMeasureTool || selectionDragTool || showCanvasKeyboardHelp)) {
+            if (event.key !== "Escape") {
+              return;
+            }
+            if (activeTool || activeDrawTool || activeMeasureTool || selectionDragTool || showCanvasKeyboardHelp) {
               event.preventDefault();
               event.stopPropagation();
               if (showCanvasKeyboardHelp) {
@@ -10358,7 +10468,10 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
                 return;
               }
               handleClearActiveCanvasTool();
+              return;
             }
+            event.preventDefault();
+            handleMapExplorerEscapeRequest();
           }}
         >
           {isDragActive ? (
@@ -10452,61 +10565,6 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               <span style={{ color: "var(--syn-text-primary, rgba(244, 247, 255, 0.94))", fontSize: 12, lineHeight: 1.45 }}>
                 {dispatchFeedback.description}
               </span>
-            </div>
-          ) : null}
-
-          {selectionStatsSummary && selectionStatsSummary.length > 0 ? (
-            <div
-              style={{
-                position: "absolute",
-                right: navigatorRightInset,
-                bottom: 16,
-                width: 360,
-                maxWidth: `calc(100% - ${navigatorLeftInset + navigatorRightInset}px)`,
-                display: "grid",
-                gap: 10,
-                padding: "12px 14px",
-                borderRadius: MAP_RADIUS.sm,
-                border: "1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.34))",
-                background: "var(--syn-surface-panel, rgba(12, 16, 24, 0.92))",
-                zIndex: 20,
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                <div>
-                  <div style={{ color: "var(--syn-status-info, #38bdf8)", fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-                    Quick Statistics
-                  </div>
-                  <div style={{ color: "var(--syn-text-primary, rgba(244, 247, 255, 0.94))", fontSize: 13, fontWeight: 600 }}>
-                    Selected feature summary
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  style={mapStyles.btn}
-                  onClick={() => setSelectionStatsSummary(null)}
-                  aria-label="Close selection statistics panel"
-                >
-                  <IconClose size={MAP_ICON_SIZES.sm} />
-                </button>
-              </div>
-              {selectionStatsSummary.map((summary) => (
-                <div key={summary.layerId} style={{ display: "grid", gap: 8, paddingTop: 4, borderTop: "1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.3))" }}>
-                  <div style={{ color: "var(--syn-text-primary, rgba(244, 247, 255, 0.94))", fontSize: 12, fontWeight: 600 }}>
-                    {summary.layerName} · {summary.selectedFeatureCount.toLocaleString()} selected
-                  </div>
-                  {summary.numericFields.length === 0 ? (
-                    <div style={{ color: "var(--syn-text-muted, rgba(148, 163, 184, 0.88))", fontSize: 12 }}>
-                      Missing prerequisite: selected features need numeric attributes before summary statistics can be computed.
-                    </div>
-                  ) : summary.numericFields.slice(0, 4).map((field) => (
-                    <div key={field.field} style={{ display: "grid", gap: 2, fontSize: 11, color: "var(--syn-text-secondary, rgba(203, 213, 225, 0.9))" }}>
-                      <strong style={{ color: "var(--syn-status-info, #38bdf8)", fontWeight: 600 }}>{field.field}</strong>
-                      <span>min {field.min.toFixed(2)} · max {field.max.toFixed(2)} · mean {field.mean.toFixed(2)} · median {field.median.toFixed(2)}</span>
-                    </div>
-                  ))}
-                </div>
-              ))}
             </div>
           ) : null}
 
@@ -10865,8 +10923,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
                 activeDragTool={selectionDragTool}
                 showModeButtons
                 variant="bar"
-                onSetSelectedFeatures={setSelectedFeatures}
-                onClearSelectedFeatures={() => clearSelectedFeatures()}
+                onSetSelectedFeatures={handleSetSelectedFeatures}
+                onClearSelectedFeatures={handleClearSelectedFeatures}
                 onSetActiveAnalysisResultLayers={setActiveAnalysisResultLayers}
                 onAddDrawnFeature={addDrawnFeature}
                 onActiveDragToolChange={setSelectionDragTool}
@@ -11368,11 +11426,12 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             />
           ) : null}
 
-          {/* Measurement tool + sidebar */}
-          {effectiveShowMeasurePanel && !rightMeasureDockActive ? (
+          {/* Measurement controller — keep geodesic overlays and active tool state without a floating card */}
+          {!navigatorStageMode && effectiveShowMeasurePanel && !rightMeasureDockActive ? (
             <MapMeasurementTool
               mapRef={mapInstanceRef}
               activeMeasureTool={activeMeasureTool}
+              presentation="headless"
               seedMeasurementStart={measurementSeed}
               measurements={measurements}
               measureUnit={measureUnit}
@@ -11428,13 +11487,20 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               qaStatus={contextSummary.qa.status}
               qaIssueCount={scientificQAIssueCount}
               qaBlockerCount={scientificQABlockerCount}
+              onOpenInspect={handleOpenInspectFromStatus}
+              onOpenProject={handleOpenProjectFromStatus}
+              onOpenLayers={handleOpenLayersFromStatus}
               onOpenCrsReadiness={handleOpenCanvasCrsReadiness}
               onOpenProblems={() => openMapProblems("status-bar")}
               onOpenAttributes={handleOpenAttributesFromStatus}
               onOpenSelection={handleOpenSelectionFromStatus}
+              onOpenDraw={handleOpenDrawFromStatus}
               onOpenMeasurements={handleOpenMeasurementsFromStatus}
               reviewEventCount={reviewSession.events.length}
               onOpenTimeline={() => openRightDockPanel("timeline", "Review timeline opened in the right dock", "status-bar")}
+              taskCount={bottomPanelTasks.length}
+              activeTaskCount={activeBackgroundTaskCount}
+              onOpenTasks={handleOpenTasksFromStatus}
               collaborationStatus={reviewCollaborationSnapshot.connectionState}
               collaborationPresenceCount={reviewCollaborationSnapshot.presence.length}
               collaborationCommentCount={reviewCollaborationSnapshot.comments.length}
@@ -11447,6 +11513,15 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               isLoading={isLoadingProject}
               lastSavedAt={lastSavedAt}
               autoSaveEnabled={autoSaveEnabled}
+              providerLabel={BASE_STYLES[activeBaseLayer].name}
+              providerHref={
+                activeBaseLayer === "streets"
+                  ? "https://www.openstreetmap.org/copyright"
+                  : activeBaseLayer === "dark" || activeBaseLayer === "terrain"
+                    ? "https://carto.com/attributions"
+                    : undefined
+              }
+              reducedMotion={reducedMotion}
               style={{ transition: transitionStyle }}
             />
           </div>

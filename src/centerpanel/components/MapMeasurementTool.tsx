@@ -344,7 +344,7 @@ function buildMeasurementClipboardText(measurement: Measurement, unit: MeasureUn
 export interface MapMeasurementToolProps {
   mapRef: React.RefObject<maplibregl.Map | null>;
   activeMeasureTool: MeasureToolId | null;
-  presentation?: "floating" | "embedded";
+  presentation?: "floating" | "embedded" | "headless";
   seedMeasurementStart?: {
     coordinate: LngLat;
     tool: MeasureToolId;
@@ -932,6 +932,11 @@ export const MapMeasurementTool: React.FC<MapMeasurementToolProps> = ({
 
   const { panelPositionStyle, dragHandleProps, dragHandleStyle } = useDraggableMapPanel();
   const embedded = presentation === "embedded";
+  const headless = presentation === "headless";
+
+  if (headless) {
+    return null;
+  }
 
   return (
     <div

@@ -10,6 +10,9 @@ export type { MapCanvasControlsProps } from "./MapCanvasControls";
 export { MapToolbar } from "./MapToolbar";
 export type { MapToolbarProps } from "./MapToolbar";
 
+export { MapTopCommandSurface } from "./MapTopCommandSurface";
+export type { MapTopCommandSurfaceProps } from "./MapTopCommandSurface";
+
 export { MapLayerPanel } from "./MapLayerPanel";
 export type { MapLayerPanelProps } from "./MapLayerPanel";
 

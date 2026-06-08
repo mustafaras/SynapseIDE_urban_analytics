@@ -34,6 +34,7 @@ interface UseMapAoiDispatchArgs {
   contextSummary: MapExplorerContextSummary;
   currentMapBounds: [number, number, number, number] | null;
   flowDispatchAoi: FlowDispatchAoiCandidate | null;
+  onSelectionStatisticsReady?: (summary: SelectionStatisticsSummary[]) => void;
   overlayLayers: OverlayLayerConfig[];
   recordMapReviewEvent: (event: MapReviewTimelineEventInput) => void;
   restrictToMapView: boolean;
@@ -50,6 +51,7 @@ export function useMapAoiDispatch({
   contextSummary,
   currentMapBounds,
   flowDispatchAoi,
+  onSelectionStatisticsReady,
   overlayLayers,
   recordMapReviewEvent,
   restrictToMapView,
@@ -113,6 +115,7 @@ export function useMapAoiDispatch({
 
     const selectedFeatureCount = summary.reduce((total, entry) => total + entry.selectedFeatureCount, 0);
     setSelectionStatsSummary(summary);
+    onSelectionStatisticsReady?.(summary);
     recordMapReviewEvent({
       type: "analysis-dispatch",
       status: "applied",
@@ -131,10 +134,11 @@ export function useMapAoiDispatch({
       title: "Selection statistics ready",
       description: `Computed descriptive statistics for ${selectedFeatureCount.toLocaleString()} selected feature(s).`,
     });
-    announce("Selection statistics panel updated");
+    announce("Selection statistics updated in the right dock");
   }, [
     announce,
     overlayLayers,
+    onSelectionStatisticsReady,
     recordMapReviewEvent,
     selectedFeatureIds,
     contextSummary.contextId,

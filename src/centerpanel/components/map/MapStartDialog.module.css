@@ -226,6 +226,10 @@
   white-space: nowrap;
 }
 
+.tilePrimary .tileHint {
+  color: var(--start-text-secondary);
+}
+
 .tileDisabledReason {
   color: color-mix(in srgb, var(--start-caveat) 88%, white 12%);
 }

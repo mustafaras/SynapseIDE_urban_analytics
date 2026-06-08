@@ -1291,12 +1291,12 @@ export const MAP_SURFACE_INVENTORY = [
   {
     id: "state.selectionStatsSummary",
     sourceId: "selectionStatsSummary",
-    label: "Selection statistics HUD context",
-    kind: "canvas-overlay",
+    label: "Selection statistics dock context",
+    kind: "panel-flag",
     targetHome: "analyze",
-    targetSlot: "canvas",
-    currentSurface: "Selection statistics canvas HUD",
-    targetSurface: "Analyze activity > Statistics",
+    targetSlot: "right-inspector",
+    currentSurface: "Right dock selection statistics section",
+    targetSurface: "Right dock > Selection statistics",
   },
   {
     id: "state.isFlowDispatchDialogOpen",
