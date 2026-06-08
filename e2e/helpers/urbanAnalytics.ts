@@ -80,11 +80,9 @@ export async function openMapExplorer(
   await triggerDomClick(urbanModal.getByRole("button", { name: "Open Map Explorer (Ctrl+Shift+M)" }));
 
   const mapExplorer = await waitForMapExplorerDialog(page);
-  const workspaceButton = page.getByRole("button", {
-    name: workspace === "scene"
-      ? /Scene activity|Switch map workspace to scene/i
-      : /Explore Layers|Switch map workspace to explore/i,
-  }).first();
+  const workspaceButton = mapExplorer.getByTestId(
+    workspace === "scene" ? "activity-btn-scene" : "activity-btn-layers",
+  );
   await expect(workspaceButton).toBeVisible();
   await triggerDomClick(workspaceButton);
   return mapExplorer;
@@ -109,11 +107,9 @@ export async function openMapExplorerFromHarness(
   });
 
   const mapExplorer = await waitForMapExplorerDialog(page);
-  const workspaceButton = page.getByRole("button", {
-    name: workspace === "scene"
-      ? /Scene activity|Switch map workspace to scene/i
-      : /Explore Layers|Switch map workspace to explore/i,
-  }).first();
+  const workspaceButton = mapExplorer.getByTestId(
+    workspace === "scene" ? "activity-btn-scene" : "activity-btn-layers",
+  );
   await expect(workspaceButton).toBeVisible();
   await triggerDomClick(workspaceButton);
   return mapExplorer;

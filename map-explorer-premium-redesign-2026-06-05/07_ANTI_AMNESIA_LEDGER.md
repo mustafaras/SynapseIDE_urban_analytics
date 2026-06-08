@@ -1,10 +1,16 @@
 # 07 - Anti-Amnesia Ledger
 
 Status: Active  
-Last updated: 2026-06-11  
+Last updated: 2026-06-08  
 Purpose: Keep redesign state resumable without rereading the full repo.
 
 ## Current Snapshot
+
+Prompts 00 through 18 have been implemented. Prompt 18 rebuilt `MapStatusBar` into the sole bottom-edge surface: fixed-width operational segments cover cursor, zoom/scale, project/save, mode/lens, layers, selection, sketch, measure, units, CRS, QA, review, tasks, performance, sync/collaboration, and basemap attribution; when width runs short, lower-priority segments move into an actionable overflow menu instead of clipping. `MapExplorerModalComposition` now routes status clicks to inspect/detail, data and layers left-panel destinations, right-dock draw/measure/selection/tasks/timeline/collaboration/diagnostics targets, and existing CRS/QA handlers while preserving the no-bottom-panel rule. `npm run typecheck` and `npm run lint:errors` pass. The exact prompt validation command `npm run test -- src/centerpanel/components/map/__tests__/MapStatusBarRoutes.test.tsx src/centerpanel/components/map` now executes but fails under the full 84-file suite load because two existing `MapExplorerModal` import smoke tests time out at 30s (`map-accessibility.test.ts`, `map-layer-management.test.ts`); both files pass when run directly, and prompt-focused status-bar regressions (`MapStatusBarRoutes.test.tsx`, `map-components.test.ts`) pass. `UX-06` is now resolved.
+
+Prompt 19 closeout remains blocked. A 2026-06-08 revalidation run executed the full prompt validation command list, but this environment is missing local Node toolchain dependencies: `npm run typecheck` failed because `tsc` is not recognized, `npm run lint:errors` failed because `eslint` is not recognized, `npm run test:analytics` failed because `vitest` is not recognized, `npm run test:e2e` failed because `playwright` is not recognized, and `npm run build` failed with missing `node_modules/vite/bin/vite.js`. Prompt 19 therefore remains `blocked`, and the UX issues stay `implemented` rather than promoted to `verified`.
+
+There are currently no `pending` prompts in `05_IMPLEMENTATION_PROMPTS.json`; `prompt-19` is the only non-implemented item and remains `blocked`.
 
 Prompts 00 through 15 have been implemented. Prompt 15 removed the persistent floating draw/sketch sidebar from the Map Explorer and routed it into the right dock `draw` panel. Key changes: (1) `MapDrawingManager` gains a `presentation` prop — `"floating"` keeps the legacy draggable panel, `"embedded"` renders the feature list as a plain scrollable body for embedding in `MapRightDockHost`. (2) `MapExplorerModalComposition` now calls `openRightDockPanel("draw", ...)` when a draw tool is activated (replacing the old `setShowDrawPanel(true)` float show), and `handleToggleDrawPanel` uses `toggleRightDockPanel("draw", ...)`. The floating `MapDrawingManager` canvas-interaction instance is still rendered for map-layer interaction but its `sidebarVisible` is now `effectiveShowDrawPanel && !rightDrawDockActive`, so the floating panel never appears when the right dock is hosting the draw body. The initial `showDrawPanel` state changed from `true` to `false`. A `rightDrawDockActive` constant drives the right dock body content switch. `map-drawing-tools.test.ts` extended with embedded-presentation tests. `npm run typecheck`, `npm run lint:errors`, and `npm run test -- src/centerpanel/components/map` (765 tests) all pass. The draw/sketch portion of `UX-04` is resolved.
 
@@ -34,9 +40,9 @@ Known current UI problems from the user review:
 | `UX-01` | `implemented` | Prompt 02, Prompt 03 | Opening dialog state boundary (Prompt 02) plus premium `MapStartDialog` visual redesign (Prompt 03). Left-panel decoupling guard remains in Prompt 04. |
 | `UX-02` | `implemented` | Prompt 04, Prompt 13, Prompt 14 | Launch-modal removal from left panel done in Prompt 04 (compact `MapWorkspaceOverviewSummary`). Left panel content contracts defined in Prompt 13 (`mapLeftPanelContracts.ts`). Width/content responsive rendering done in Prompt 14 (CSS container queries on embedded panels, `data-width-band` attribute, responsive-fit tests). `UX-02` fully resolved. |
 | `UX-03` | `implemented` | Prompt 05 through Prompt 12 | Docking model forbids bottom placement (Prompt 05), old bottom tabs have typed right-dock targets (Prompt 06), the right-dock host is mounted (Prompt 07), navigation/surface inventory no longer define bottom-panel destinations (Prompt 08), reusable bottom bodies exist (Prompt 09), Prompt 10-11 migrated all content into the right dock, and Prompt 12 removed the persistent bottom workspace host and shell primitive. `UX-03` fully resolved. |
-| `UX-04` | `in_progress` | Prompt 15, Prompt 16 | Draw/sketch portion resolved in Prompt 15 (`MapDrawingManager` docked in right panel). Measure/selection consolidation remains in Prompt 16. |
-| `UX-05` | `pending` | Prompt 17 | Unified top command surface. |
-| `UX-06` | `pending` | Prompt 18 | Advanced status bar. |
+| `UX-04` | `implemented` | Prompt 15, Prompt 16 | Prompt 15 docked Draw and removed the persistent floating sketch sidebar. Prompt 16 moved measurement detail and selection statistics into the right dock, retired the floating measurement card/selection HUD, and kept geodesic caveats and selection routing intact. `UX-04` is fully resolved. |
+| `UX-05` | `implemented` | Prompt 17 | `MapTopCommandSurface` now unifies project/search/context and grouped toolbar actions; `MapToolbar` exposes grouped command menus plus visible undo/redo and primary action while keeping palette/search reachability intact. |
+| `UX-06` | `implemented` | Prompt 18 | `MapStatusBar` is now the only bottom surface and exposes fixed-width, overflow-safe status segments with click routing into inspect, left-panel, and right-dock destinations. |
 
 ## Prompt Status Ledger
 
@@ -58,10 +64,10 @@ Known current UI problems from the user review:
 | 13 | Left Panel Content Contracts | `implemented` | `mapLeftPanelContracts.ts` added with `MAP_LEFT_PANEL_CONTRACTS` registry covering all 36 `MapSidebarTabId` entries; `clampLeftPanelWidth`, `getLeftPanelContentStrategy`, `getLeftPanelContract` helpers added; `map-left-panel-contracts.test.ts` (17 tests) all pass; `typecheck` and `lint:errors` pass. Full `test -- src/centerpanel/components/map` suite hangs on pre-existing load-induced timeouts (geodesic-measurement, drawing-tools) as noted for Prompt 04; targeted test files (contracts + docking + navigation + surfaceInventory = 50 tests) all pass. |
 | 14 | Left Panel Responsive Fit Pass | `implemented` | CSS container queries added to `MapContentsTreePanel.module.css` and `MapCatalogPanel.module.css`; `data-width-band` on sidebar; `map-left-panel-responsive-fit.test.ts` (16 tests); `typecheck`, `lint:errors`, and `test -- src/centerpanel/components/map` (763 tests) passed. `UX-02` fully resolved. |
 | 15 | Draw Sketch Annotation Dock Consolidation | `implemented` | `MapDrawingManager` gained `presentation` prop; draw tool activation now opens right dock via `openRightDockPanel("draw")`; floating sidebar suppressed when right dock is active; 765 tests pass. |
-| 16 | Measure Selection Inspect Dock Consolidation | `pending` | Not started. |
-| 17 | Unified Top Command Surface | `pending` | Not started. |
-| 18 | Advanced Status Bar | `pending` | Not started. |
-| 19 | Final Polish, Accessibility, Regression, And Ledger Closeout | `pending` | Not started. |
+| 16 | Measure Selection Inspect Dock Consolidation | `implemented` | `MapMeasurementTool` gained `headless` presentation; context-menu measure opens right dock `Measure`; selection statistics moved from canvas HUD into right-dock `Selection`; `selectionStatsSummary` inventory retargeted to right inspector; `typecheck`, `lint:errors`, and prompt validation tests (83 files, 767 tests) passed. |
+| 17 | Unified Top Command Surface | `implemented` | `MapTopCommandSurface` added; `MapToolbar` now exposes grouped top-surface command menus, visible undo/redo, and unified command-bar layout. `typecheck`, `lint:errors`, focused toolbar/top-surface/accessibility regressions, and `geodesic-measurement.test.ts` passed; full `test -- src/centerpanel/components/map` hangs under the current directory-target Vitest invocation. |
+| 18 | Advanced Status Bar | `implemented` | `MapStatusBar` now exposes fixed-width operational segments, overflow menu behavior, reduced-motion-safe busy indicators, and status-click routing into inspect/data/layers/right-dock destinations. `typecheck`, `lint:errors`, `MapStatusBarRoutes.test.tsx`, and `map-components.test.ts` pass; the exact prompt command fails under full-suite load because `map-accessibility.test.ts` and `map-layer-management.test.ts` hit their existing 30s import smoke-test timeout, but both files pass when run directly. |
+| 19 | Final Polish, Accessibility, Regression, And Ledger Closeout | `blocked` | Revalidated on 2026-06-08; all required commands were run but failed due missing local Node dependencies/tools (`tsc`, `eslint`, `vitest`, `playwright`, `vite`). Prompt remains blocked until project dependencies are installed and full closeout gates are rerun. |
 
 ## Decision Log
 
@@ -585,3 +591,149 @@ Use this when handing work to another agent:
 - Use absolute dates.
 - Do not claim `verified` without naming commands or visual checks.
 - If functionality was intentionally changed, document the previous behavior, new behavior, and why it is safe.
+
+### Prompt 16 Completion
+
+- Status: `implemented`
+- Date: 2026-06-07
+- Files changed:
+  - `src/centerpanel/components/MapMeasurementTool.tsx`
+  - `src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx`
+  - `src/centerpanel/components/map/useMapAoiDispatch.ts`
+  - `src/centerpanel/components/map/navigation/mapSurfaceInventory.ts`
+  - `src/centerpanel/components/map/__tests__/geodesic-measurement.test.ts`
+  - `src/centerpanel/components/map/__tests__/map-right-dock-migration.test.ts`
+  - `src/centerpanel/components/map/__tests__/mapNavigationModel.test.ts`
+  - `src/centerpanel/components/map/__tests__/mapSurfaceInventory.test.ts`
+  - `map-explorer-premium-redesign-2026-06-05/05_IMPLEMENTATION_PROMPTS.json`
+  - `map-explorer-premium-redesign-2026-06-05/07_ANTI_AMNESIA_LEDGER.md`
+- UX IDs addressed: `UX-04` measure/selection dock consolidation.
+- What changed:
+  - Added `presentation="headless"` to `MapMeasurementTool` so geodesic overlays and measurement state stay alive without showing a floating card when the right dock is closed.
+  - Routed context-menu measurement startup into right-dock `Measure` and removed the remaining visible floating measurement panel from `MapExplorerModalComposition`.
+  - Moved selection quick statistics out of the canvas HUD and into the right-dock `Selection` body; running statistics now opens the dock automatically.
+  - Cleared stale `selectionStatsSummary` state when selections change or clear, and added per-layer attribute handoff buttons so Selection and Attributes stay aligned.
+  - Retargeted `selectionStatsSummary` in `mapSurfaceInventory.ts` from a canvas overlay to a right-inspector panel flag.
+- Behavior preserved:
+  - Geodesic distance/area caveats, units, active tool state, clipboard export, and completed measurement labels still come from the existing `MapMeasurementTool` logic.
+  - Selection rectangle/lasso/filter behavior, AOI export/focus actions, and attribute workflow routing still use the existing query planner and store actions.
+  - No new persistent floating panel was introduced; only transient labels/context menus remain anchored to map geometry.
+- Visual states checked: no screenshots in this prompt; the scope is covered by source-contract, inventory, navigation, geodesic, and full map-component validation.
+- Commands run:
+  - `npm run typecheck` - passed.
+  - `npm run lint:errors` - passed.
+  - `npm run test -- src/centerpanel/components/map/__tests__/geodesic-measurement.test.ts src/centerpanel/components/map` - passed (83 files, 767 tests).
+- Screenshots: none.
+- Known risks / residuals:
+  - The separate `LazyMapInspectorHost` layer inspector still exists alongside the right-dock host; Prompt 17 remains focused on the top command surface rather than inspector unification.
+  - Existing unrelated worktree entries were left untouched.
+- Next prompt: Prompt 17 - Unified Top Command Surface.
+
+### Prompt 17 Completion
+
+- Status: `implemented`
+- Date: 2026-06-07
+- Files changed:
+  - `src/centerpanel/components/map/MapTopCommandSurface.tsx`
+  - `src/centerpanel/components/map/MapToolbar.tsx`
+  - `src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx`
+  - `src/centerpanel/components/map/index.ts`
+  - `src/centerpanel/components/map/__tests__/MapTopCommandSurface.test.tsx`
+  - `src/centerpanel/components/map/__tests__/MapToolbar.command-palette.test.tsx`
+  - `src/centerpanel/components/map/__tests__/map-components.test.ts`
+  - `map-explorer-premium-redesign-2026-06-05/05_IMPLEMENTATION_PROMPTS.json`
+  - `map-explorer-premium-redesign-2026-06-05/07_ANTI_AMNESIA_LEDGER.md`
+- UX IDs addressed: `UX-05`.
+- What changed:
+  - Added `MapTopCommandSurface` so the Map Explorer header now presents one unified command surface with project name, workspace/lens context, save-state chip, place search, scope chip, CRS caveat chip, active-layer chip, bookmarks, and close control.
+  - Reworked `MapToolbar` to expose grouped Data / Explore / Analyze / Publish / System command menus, keep the contextual primary action, keep the command palette searchable, and show undo/redo directly when they are available.
+  - Preserved command-palette taxonomy, disabled reasons, processing-tool palette behavior, and grouped overflow while keeping toolbar actions routed to left/right dock surfaces instead of reintroducing persistent floating panels.
+- Behavior preserved:
+  - Existing task-lens switching, command-palette keyboard shortcut, import/export/report/save flows, and right-dock routing still use the existing handlers in `MapExplorerModalComposition`.
+  - Place search still uses the existing `MapSearchBar` behavior and continues to update workflow geocoding context from the top surface.
+- Visual states checked:
+  - Source-level coverage now exercises the unified top command surface, grouped toolbar menus, barrel exports, and command accessibility wiring.
+- Commands run:
+  - `npm run typecheck` - passed.
+  - `npm run lint:errors` - passed.
+  - `npm run test -- src/centerpanel/components/map` - could not be completed; the directory-target Vitest invocation consistently hangs in this environment before advancing beyond the initial queued file state.
+  - `npm run test -- src/centerpanel/components/map/__tests__/geodesic-measurement.test.ts` - passed.
+  - `npm run test -- src/centerpanel/components/map/__tests__/MapToolbar.command-palette.test.tsx src/centerpanel/components/map/__tests__/MapTopCommandSurface.test.tsx src/centerpanel/components/map/__tests__/map-components.test.ts` - passed (81 tests).
+  - `npm run test -- src/centerpanel/components/map/__tests__/map-accessibility.test.ts src/centerpanel/components/map/__tests__/MapToolbar.command-palette.test.tsx src/centerpanel/components/map/__tests__/MapTopCommandSurface.test.tsx src/centerpanel/components/map/__tests__/map-components.test.ts` - passed (115 tests).
+- Screenshots: none.
+- Known risks / residuals:
+  - The exact prompt validation directory run still needs follow-up if the Vitest directory-target hang is expected to be eliminated rather than documented.
+  - Prompt 18 still owns the bottom-edge status-bar redesign and overflow behavior for `UX-06`.
+- Next prompt: Prompt 18 - Advanced Status Bar.
+
+### Prompt 18 Completion
+
+- Status: `implemented`
+- Date: 2026-06-07
+- Files changed:
+  - `src/centerpanel/components/map/MapStatusBar.tsx`
+  - `src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx`
+  - `src/centerpanel/components/map/__tests__/MapStatusBarRoutes.test.tsx`
+  - `src/centerpanel/components/map/__tests__/map-components.test.ts`
+  - `map-explorer-premium-redesign-2026-06-05/05_IMPLEMENTATION_PROMPTS.json`
+  - `map-explorer-premium-redesign-2026-06-05/07_ANTI_AMNESIA_LEDGER.md`
+- UX IDs addressed: `UX-06`.
+- What changed:
+  - Rebuilt `MapStatusBar` into a dense segmented bottom status surface with fixed-width truncation, semantic tones, reduced-motion-safe busy indicators, and overflow routing so the lowest edge stays operational instead of expanding into a panel host.
+  - Added status segments for cursor, zoom/scale, project/save, mode/lens, layers, selection, sketch/AOI, measure, units, CRS, QA, review, tasks, performance, sync/collaboration, and basemap attribution.
+  - Wired segment clicks to existing inspector, data, layers, draw, measure, selection, tasks, timeline, collaboration, diagnostics, and CRS/QA handlers in `MapExplorerModalComposition`.
+- Behavior preserved:
+  - The bottom edge remains status-only; no legacy bottom workspace affordance was reintroduced.
+  - Existing right-dock, inspector, project, and QA handlers remain the source of truth; the status bar only routes into those surfaces.
+- Visual states checked:
+  - Inline and overflow segment rendering, reduced-motion persistence feedback, and status-route regression coverage all execute without clipping or layout-host mutation in prompt-targeted tests.
+- Commands run:
+  - `npm run typecheck` - passed.
+  - `npm run lint:errors` - passed.
+  - `npm run test -- src/centerpanel/components/map/__tests__/MapStatusBarRoutes.test.tsx src/centerpanel/components/map/__tests__/map-components.test.ts` - passed (66 tests).
+  - `npm run test -- src/centerpanel/components/map/__tests__/MapStatusBarRoutes.test.tsx src/centerpanel/components/map` - failed under the full 84-file suite load because `src/centerpanel/components/map/__tests__/map-accessibility.test.ts` and `src/centerpanel/components/map/__tests__/map-layer-management.test.ts` hit their 30s `MapExplorerModal` import smoke-test timeout.
+  - `npm run test -- src/centerpanel/components/map/__tests__/map-accessibility.test.ts src/centerpanel/components/map/__tests__/map-layer-management.test.ts` - passed (85 tests), indicating the exact prompt-command failure is tied to full-suite load rather than the prompt-18 status-bar changes.
+- Screenshots: none.
+- Known risks / residuals:
+  - The exact prompt validation command still needs follow-up if the full map-suite import smoke-test timeout is expected to be eliminated rather than documented.
+  - Prompt 19 still owns final polish, responsive visual matrix, and repo-level regression closeout.
+- Next prompt: Prompt 19 - Final Polish, Accessibility, Regression, And Ledger Closeout.
+
+### Prompt 19 Completion
+
+- Status: `blocked`
+- Date: 2026-06-07
+- Files changed:
+  - `src/centerpanel/components/map/MapStartDialog.module.css`
+  - `src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx`
+  - `e2e/helpers/urbanAnalytics.ts`
+  - `e2e/accessibility-audit.spec.ts`
+  - `e2e/map-3d-design.spec.ts`
+  - `map-explorer-premium-redesign-2026-06-05/05_IMPLEMENTATION_PROMPTS.json`
+  - `map-explorer-premium-redesign-2026-06-05/07_ANTI_AMNESIA_LEDGER.md`
+- UX IDs addressed: closeout/verification only; no issue was promoted to `verified`.
+- What changed:
+  - Tightened Map Start dialog hint contrast on the primary launch tile so the prompt-03 accessibility audit no longer fails on the prior sub-threshold 11px contrast pairing.
+  - Updated Prompt 55 accessibility e2e coverage to the right-dock architecture by replacing the removed bottom-panel assertion and aligning the final forced-colors activity assertion with the active QA route.
+  - Updated stale Map Explorer e2e launch helpers and Prompt 34 3D setup to use current Map Explorer activity-rail entry points instead of retired toolbar labels, and added an explicit map-canvas Escape close request path when no inner tool layer consumes Escape.
+- Behavior preserved:
+  - No bottom workspace host or floating tool panel was reintroduced during closeout.
+  - Existing Map Explorer shell, right-dock routing, and status-bar interaction surfaces remain the canonical redesign endpoints.
+- Visual states checked:
+  - Prompt-targeted accessibility and Scene 3D Playwright diagnostics were rerun after the closeout fixes; the QA/right-dock keyboard path now passes, while the remaining failures are documented below.
+- Commands run:
+  - `npm run typecheck` - passed.
+  - `npm run lint:errors` - passed.
+  - `npm run test:analytics` - could not be completed; both the script and a direct `vitest run ... --maxWorkers=1` attempt stalled without progressing beyond the initial queued analytics files.
+  - `npm run build` - could not be completed; Vite printed transform progress and then stalled with no additional output or meaningful CPU usage.
+  - `npm run test:e2e` - failed.
+  - `npx playwright test --max-failures=5` - failed with five early closeout regressions: one Map Explorer accessibility scenario plus three Prompt 34 Scene 3D interaction-strip smoke tests, after 25 passing tests.
+  - `npx playwright test e2e/accessibility-audit.spec.ts --grep "keyboard-only path reaches import, inspect, QA, and command palette with scoped Escape"` - passed.
+  - `npx playwright test e2e/accessibility-audit.spec.ts --grep "map modal exposes skip navigation, keyboard map focus, close control, and no serious axe issues"` - still fails because the close control is not keyboard-focusable after the canvas-focused keyboard path.
+  - `npx playwright test e2e/map-3d-design.spec.ts --grep "interaction strip renders all 8 mode buttons"` - still fails because `scene3d-interaction-strip` never appears after the toggle action.
+- Screenshots:
+  - Playwright failure artifacts recorded under `test-results/accessibility-audit-*` and `test-results/map-3d-design-*`.
+- Known risks / residuals:
+  - Full redesign closeout remains blocked until the analytics suite stall, build stall, Map Explorer close-control accessibility path, and Prompt 34 Scene 3D interaction-strip failures are resolved or explicitly accepted as residual.
+  - Because the closeout gates are blocked, `UX-01` through `UX-06` remain `implemented` rather than `verified`.
+- Next prompt: none; closeout is blocked pending the remaining validation failures above.

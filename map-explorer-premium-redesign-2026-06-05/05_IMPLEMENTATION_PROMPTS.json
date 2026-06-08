@@ -522,7 +522,7 @@
       "id": "prompt-16",
       "number": 16,
       "title": "Measure Selection Inspect Dock Consolidation",
-      "status": "pending",
+      "status": "implemented",
       "objective": "Move measurement and selection detail into right dock surfaces.",
       "read": [
         "02_PANEL_ARCHITECTURE_SPEC.md",
@@ -554,7 +554,7 @@
       "id": "prompt-17",
       "number": 17,
       "title": "Unified Top Command Surface",
-      "status": "pending",
+      "status": "implemented",
       "objective": "Redesign header and toolbar into one professional command surface.",
       "read": [
         "03_TOP_AND_STATUS_BAR_SPEC.md",
@@ -588,7 +588,7 @@
       "id": "prompt-18",
       "number": 18,
       "title": "Advanced Status Bar",
-      "status": "pending",
+      "status": "implemented",
       "objective": "Upgrade the bottom edge into the only bottom surface: a dense, clickable, non-overlapping status bar.",
       "read": [
         "03_TOP_AND_STATUS_BAR_SPEC.md",
@@ -622,7 +622,7 @@
       "id": "prompt-19",
       "number": 19,
       "title": "Final Polish, Accessibility, Regression, And Ledger Closeout",
-      "status": "pending",
+      "status": "blocked",
       "objective": "Prove the redesign is coherent, accessible, responsive, and non-breaking.",
       "read": [
         "04_VISUAL_INTERACTION_SYSTEM.md",

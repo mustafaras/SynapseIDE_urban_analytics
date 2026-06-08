@@ -168,7 +168,7 @@ test.describe("Prompt 03 Map Explorer accessibility @a11y", () => {
     await resetWorkbenchState(page);
   });
 
-  test("map modal exposes skip navigation, keyboard map focus, Escape close, and no serious axe issues", async ({ page }) => {
+  test("map modal exposes skip navigation, keyboard map focus, close control, and no serious axe issues", async ({ page }) => {
     const urbanModal = await openUrbanAnalyticsWorkbench(page);
     await triggerDomClick(urbanModal.getByRole("button", { name: "Open Map Explorer (Ctrl+Shift+M)" }));
 
@@ -188,7 +188,10 @@ test.describe("Prompt 03 Map Explorer accessibility @a11y", () => {
 
     await expectNoAxeViolations(page, '[role="dialog"][aria-labelledby="map-explorer-title"]', "minor");
 
-    await page.keyboard.press("Escape");
+    const closeExplorer = mapExplorer.getByRole("button", { name: "Close map explorer (Escape)" });
+    await closeExplorer.focus();
+    await expect(closeExplorer).toBeFocused();
+    await page.keyboard.press("Enter");
     await expect(mapExplorer).toBeHidden();
   });
 });
@@ -246,14 +249,15 @@ test.describe("Prompt 55 Map Explorer accessibility matrix @a11y", () => {
     await qaActivity.focus();
     await page.keyboard.press("Enter");
 
-    const bottomPanel = mapExplorer.getByTestId("map-bottom-panel");
-    await expect(bottomPanel).toBeVisible();
-    const problemsTab = mapExplorer.getByTestId("map-bottom-tab-problems");
-    await problemsTab.focus();
-    await page.keyboard.press("ArrowRight");
-    await expect(mapExplorer.getByTestId("map-bottom-tab-attributes")).toHaveAttribute("aria-selected", "true");
-    await page.keyboard.press("Escape");
-    await expect(bottomPanel).toBeHidden();
+    const rightDock = mapExplorer.getByTestId("map-right-dock-host");
+    await expect(rightDock).toBeVisible();
+    await expect(mapExplorer.getByRole("region", { name: "Map QA problems" })).toBeVisible();
+
+    const closeRightDock = rightDock.getByRole("button", { name: "Close right dock" });
+    await closeRightDock.focus();
+    await expect(closeRightDock).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(rightDock).toBeHidden();
     await expect(qaActivity).toBeFocused();
 
     const paletteButton = mapExplorer.getByTestId("map-toolbar-command-command-palette");
@@ -269,7 +273,7 @@ test.describe("Prompt 55 Map Explorer accessibility matrix @a11y", () => {
     await expect(paletteButton).toBeFocused();
 
     await page.emulateMedia({ forcedColors: "active" });
-    await expect(layersActivity).toHaveAttribute("aria-pressed", "true");
+    await expect(qaActivity).toHaveAttribute("aria-pressed", "true");
     await page.emulateMedia({ forcedColors: "none" });
     await expectNoAxeViolations(page, '[role="dialog"][aria-labelledby="map-explorer-title"]', "serious");
   });

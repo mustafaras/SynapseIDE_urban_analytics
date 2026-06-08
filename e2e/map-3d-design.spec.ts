@@ -25,11 +25,7 @@ async function openMapExplorer(page: Page, options: { reset?: boolean } = {}): P
     urbanModal.getByRole("button", { name: "Open Map Explorer (Ctrl+Shift+M)" }),
   );
   await expect(page.getByRole("dialog", { name: "Map Explorer" }).first()).toBeVisible();
-  await triggerDomClick(
-    page
-      .getByRole("button", { name: /Explore Layers|Switch map workspace to explore/i })
-      .first(),
-  );
+  await triggerDomClick(page.getByRole("dialog", { name: "Map Explorer" }).first().getByTestId("activity-btn-scene"));
 }
 
 async function openInteractionStrip(page: Page): Promise<void> {
