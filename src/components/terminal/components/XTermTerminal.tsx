@@ -6,7 +6,11 @@ import { SearchAddon } from '@xterm/addon-search';
 import '@xterm/xterm/css/xterm.css';
 import type { ShellType } from '../types/shellTypes';
 
-const TERM_SERVER_URL = `ws://127.0.0.1:${import.meta.env.VITE_TERM_PORT ?? 9231}`;
+const configuredTerminalUrl = import.meta.env.VITE_TERM_WS_URL as string | undefined;
+const TERM_SERVER_URL = configuredTerminalUrl || `ws://127.0.0.1:${import.meta.env.VITE_TERM_PORT ?? 9231}`;
+const IS_GITHUB_PAGES_DEMO = typeof window !== 'undefined'
+  && window.location.hostname.endsWith('github.io')
+  && !configuredTerminalUrl;
 
 type ConnState = 'connecting' | 'connected' | 'disconnected' | 'error';
 
@@ -64,8 +68,14 @@ export const XTermTerminal: React.FC<XTermTerminalProps> = ({
     onStateChange?.(s);
   };
 
-  // Auto-retry countdown on disconnect/error
+  // Auto-retry countdown on disconnect/error. GitHub Pages is a static demo,
+  // so there is no local terminal backend to reconnect to there.
   useEffect(() => {
+    if (IS_GITHUB_PAGES_DEMO) {
+      setAutoRetryIn(null);
+      return undefined;
+    }
+
     if (connState !== 'disconnected' && connState !== 'error') {
       if (autoRetryTimerRef.current) {
         clearTimeout(autoRetryTimerRef.current);
@@ -126,6 +136,30 @@ export const XTermTerminal: React.FC<XTermTerminalProps> = ({
 
     term.onTitleChange(title => onTitleChange?.(title));
 
+    // Container resize → fit
+    const ro = new ResizeObserver(() => {
+      try { fitAddon.fit(); } catch {}
+    });
+    if (containerRef.current) ro.observe(containerRef.current);
+    resizeObserverRef.current = ro;
+
+    if (IS_GITHUB_PAGES_DEMO) {
+      notifyState('error');
+      setErrorMsg('Static demo mode');
+      term.writeln('\x1b[36m[Synapse] GitHub Pages demo mode.\x1b[0m');
+      term.writeln('\x1b[33m[Synapse] The browser UI is running, but the integrated terminal is disabled here.\x1b[0m');
+      term.writeln('\x1b[33m[Synapse] GitHub Pages cannot run bash, PowerShell, or the Node terminal server.\x1b[0m');
+      term.writeln('\x1b[32m[Synapse] Full local terminal support is available after cloning the repo.\x1b[0m');
+      term.writeln('\x1b[32m[Synapse] Run locally with: npm ci && npm run dev:full\x1b[0m\r\n');
+
+      return () => {
+        ro.disconnect();
+        term.dispose();
+        termRef.current = null;
+        fitAddonRef.current = null;
+      };
+    }
+
     // Build WebSocket URL with shell + initial dimensions
     const { cols, rows } = term;
     const wsUrl = `${TERM_SERVER_URL}?shell=${encodeURIComponent(shell)}&cols=${cols}&rows=${rows}`;
@@ -178,13 +212,6 @@ export const XTermTerminal: React.FC<XTermTerminalProps> = ({
       }
     });
 
-    // Container resize → fit
-    const ro = new ResizeObserver(() => {
-      try { fitAddon.fit(); } catch {}
-    });
-    if (containerRef.current) ro.observe(containerRef.current);
-    resizeObserverRef.current = ro;
-
     return () => {
       ro.disconnect();
       ws.close();
@@ -198,6 +225,8 @@ export const XTermTerminal: React.FC<XTermTerminalProps> = ({
   }, [shell]);
 
   const handleReconnect = useCallback(() => {
+    if (IS_GITHUB_PAGES_DEMO) return;
+
     // Cancel auto-retry countdown
     if (autoRetryTimerRef.current) {
       clearTimeout(autoRetryTimerRef.current);
@@ -256,7 +285,7 @@ export const XTermTerminal: React.FC<XTermTerminalProps> = ({
           {connState === 'connecting' && 'Connecting…'}
           {connState === 'disconnected' && (autoRetryIn != null ? `Reconnecting in ${autoRetryIn}s…` : 'Disconnected')}
           {connState === 'error' && (errorMsg || 'Server not running')}
-          {(connState === 'disconnected' || connState === 'error') && (
+          {!IS_GITHUB_PAGES_DEMO && (connState === 'disconnected' || connState === 'error') && (
             <button
               onClick={handleReconnect}
               style={{
