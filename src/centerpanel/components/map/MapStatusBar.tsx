@@ -120,7 +120,7 @@ const statusBar: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: MAP_SPACING.sm,
-  minHeight: "1.9rem",
+  minHeight: "var(--map-shell-status-height, 1.9rem)",
   padding: `${MAP_SPACING.xs} ${MAP_SPACING.md}`,
   background: MAP_COLORS.bgPanel,
   borderTop: MAP_STROKES.hairlineSubtle,

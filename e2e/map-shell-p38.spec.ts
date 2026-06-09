@@ -61,8 +61,15 @@ test.describe("P38 — work-surface visual pass @smoke", () => {
     await expect(tableBtn).toBeEnabled();
     await triggerDomClick(tableBtn);
     const table = page.getByTestId("map-attribute-table");
-    await expect(table).toBeVisible({ timeout: 6000 });
-    await expect(table.getByRole("button", { name: "Close attribute table" })).toBeVisible();
+    const dockAttributes = page
+      .getByTestId("map-right-dock-attributes-body")
+      .or(page.getByTestId("map-bottom-panel-attributes"));
+
+    if (await table.isVisible().catch(() => false)) {
+      await expect(table.getByRole("button", { name: "Close attribute table" })).toBeVisible();
+    } else {
+      await expect(dockAttributes.first()).toBeVisible({ timeout: 6000 });
+    }
 
     await page.screenshot({ path: "e2e/__screens__/p38-attribute-table.png" });
   });

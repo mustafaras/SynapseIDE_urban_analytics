@@ -1413,6 +1413,41 @@ const commandHeaderCloseButton: React.CSSProperties = {
   background: "color-mix(in srgb, var(--syn-surface-panel, #151a21) 54%, transparent)",
 };
 
+const shellLayoutGridStyle: React.CSSProperties = {
+  position: "relative",
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1fr)",
+  gridTemplateRows: "var(--map-shell-command-height, 2.75rem) minmax(0, 1fr) auto",
+  width: "100%",
+  height: "100%",
+  minHeight: 0,
+  minWidth: 0,
+  overflow: "hidden",
+};
+
+const shellHeaderRegionStyle: React.CSSProperties = {
+  gridRow: "1",
+  minHeight: "var(--map-shell-command-height, 2.75rem)",
+  minWidth: 0,
+  overflow: "hidden",
+};
+
+const shellCenterRegionStyle: React.CSSProperties = {
+  gridRow: "2",
+  display: "flex",
+  flexDirection: "column",
+  minHeight: 0,
+  minWidth: 0,
+  overflow: "hidden",
+};
+
+const shellBottomRegionStyle: React.CSSProperties = {
+  gridRow: "3",
+  minHeight: 0,
+  minWidth: 0,
+  overflow: "hidden",
+};
+
 /* ================================================================== */
 /*  Props                                                              */
 /* ================================================================== */
@@ -10260,7 +10295,13 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
           style={mapActivityRailOverlayStyle}
         />
 
+        <div
+          style={shellLayoutGridStyle}
+          data-testid="map-shell-layout-grid"
+          data-map-shell-layout="grid"
+        >
         {/* Header bar */}
+        <div data-map-shell-region="header" style={shellHeaderRegionStyle}>
         <MapTopCommandSurface
           activeActivityLabel={activeActivity.label}
           projectName={selectedProject?.name ?? null}
@@ -10446,9 +10487,11 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             </>
           )}
         />
+        </div>
 
         {/* Map area */}
         {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions -- map surface needs drag-and-drop file handling */}
+        <div data-map-shell-region="center" style={shellCenterRegionStyle}>
         <MapCanvasRegion
           ref={handleMapContainerRef}
           style={{
@@ -11470,7 +11513,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             onFlyTo={flyTo}
           />
         </MapCanvasRegion>
+        </div>
 
+        <div data-map-shell-region="bottom" style={shellBottomRegionStyle}>
         <MapBottomTimeline
           timelineSlot={bottomTimelineSlot}
           data-testid="map-bottom-timeline"
@@ -11539,6 +11584,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             />
           </div>
         </MapBottomTimeline>
+        </div>
+        </div>
 
         <MapDataExportDialog
           open={showExportDialog}

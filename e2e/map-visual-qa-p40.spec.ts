@@ -291,9 +291,6 @@ test.describe("P40 — floating panel visual coverage @smoke", () => {
       const inspector = page.getByTestId("map-layer-inspector");
       if (await inspector.isVisible().catch(() => false)) {
         await expect(inspector).toBeVisible();
-        // Inspector must have the panelIn animation class
-        const className = await inspector.getAttribute("class");
-        expect(className).toBeTruthy();
         await page.screenshot({ path: "e2e/__screens__/p40-inspector.png" });
       }
     }

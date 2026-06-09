@@ -47,7 +47,10 @@
     "test:e2e:headed": "playwright test --headed",
     "perf:budgets": "node scripts/check-bundle-budgets.mjs",
     "perf:budgets:json": "node scripts/check-bundle-budgets.mjs --json",
+    "validate:pr": "npm run typecheck && npm run lint:errors && npm run test:analytics && npm run build && npm run perf:budgets",
+    "validate:pr:ui": "npm run test:e2e:smoke",
     "validate:rc": "npm run typecheck && npm run lint:errors && npm run test && npm run build && npm run perf:budgets && npm run test:e2e:ci",
+    "validate:nightly": "npm run validate:rc",
     "terminal-server": "node server/terminal-server.cjs",
     "dev:full": "concurrently -n vite,terminal -c cyan,yellow \"node --max-old-space-size=12288 node_modules/vite/bin/vite.js\" \"node server/terminal-server.cjs\""
   },

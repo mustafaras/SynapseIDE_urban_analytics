@@ -73,7 +73,11 @@ vi.mock("../map/MapWorkspaceShell", () => ({
 vi.mock("../map/MapCanvas", () => ({ MapCanvas: () => <div data-testid="map-canvas" /> }));
 vi.mock("../map/MapToolbar", () => ({ MapToolbar: () => <div data-testid="map-toolbar" /> }));
 vi.mock("../map/MapLayerPanel", () => ({ MapLayerPanel: () => null }));
-vi.mock("../map/MapLayerManager", () => ({ MapLayerManager: () => null }));
+vi.mock("../map/MapLayerManager", () => ({
+  MapLayerManager: () => null,
+  MapLayerSourcesPanel: () => null,
+  MapLayerCartographyPanel: () => null,
+}));
 vi.mock("../MapDrawingManager", () => ({ MapDrawingManager: () => null }));
 vi.mock("../MapMeasurementTool", () => ({ MapMeasurementTool: () => null }));
 vi.mock("../MapChoroplethLayer", () => ({ MapChoroplethLayer: () => null }));

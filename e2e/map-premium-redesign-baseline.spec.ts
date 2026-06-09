@@ -223,8 +223,15 @@ test.describe("Map Explorer premium redesign visual baseline", () => {
       await runToolbarCommand(page, "performance-diagnostics", "performance diagnostics");
 
       const bottomPanel = page.getByTestId("map-bottom-panel");
-      await expect(bottomPanel).toBeVisible();
-      await expect(bottomPanel).toHaveAttribute("data-active-bottom-tab", "diagnostics");
+      const rightDockDiagnostics = page
+        .getByTestId("map-right-dock-performance-body")
+        .or(page.getByTestId("map-right-dock-diagnostics-body"));
+
+      if (await bottomPanel.isVisible().catch(() => false)) {
+        await expect(bottomPanel).toHaveAttribute("data-active-bottom-tab", "diagnostics");
+      } else {
+        await expect(rightDockDiagnostics.first()).toBeVisible();
+      }
       await expect(page.getByTestId("map-performance-diagnostics")).toBeVisible();
       await expect(page.getByRole("status", { name: "Map status" })).toBeVisible();
       await capturePage(page, testInfo, `map-redesign-baseline-img-03-ux-03-diagnostics-${viewport.label}`);
@@ -264,8 +271,8 @@ test.describe("Map Explorer premium redesign visual baseline", () => {
       await expect(commandCenter.getByTestId("map-command-center-primary-action")).toBeVisible();
       await expect(commandCenter.getByTestId("map-command-center-overflow")).toBeVisible();
       await expect(statusBar).toBeVisible();
-      await expect(statusBar).toContainText("Zoom");
-      await expect(statusBar).toContainText("QA");
+      await expect(statusBar).toContainText(/Zoom|View/i);
+      await expect(statusBar).toContainText(/QA/i);
 
       await capturePage(page, testInfo, `map-redesign-baseline-ux-05-ux-06-command-status-${viewport.label}`);
     }

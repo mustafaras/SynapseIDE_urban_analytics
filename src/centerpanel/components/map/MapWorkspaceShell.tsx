@@ -2,6 +2,7 @@ import React from "react";
 import type { MapExplorerMode } from "./mapTypes";
 import { MAP_LAYER_PANEL_MAX_WIDTH, MAP_LAYER_PANEL_MIN_WIDTH } from "./mapDocking";
 import {
+  createMapShellCssVars,
   MAP_COLORS,
   MAP_DIMENSIONS,
   MAP_NUMERIC,
@@ -542,6 +543,7 @@ export const MapWorkspaceShell: React.FC<MapWorkspaceShellProps> = ({
       <div
         style={{
           ...(isModal ? mapStyles.modal : mapStyles.embeddedSurface),
+          ...createMapShellCssVars(),
           ...mapExplorerA11yVars,
         }}
         ref={shellRef}

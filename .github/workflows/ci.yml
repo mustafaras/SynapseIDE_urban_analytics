@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   quality:
-    name: Lint, Typecheck, Test, Build
+    name: PR Gate (typecheck, lint, focused tests, build, budgets)
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -34,67 +34,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Typecheck
-        run: npm run typecheck
+      - name: Run lightweight PR validation gate
+        run: npm run validate:pr
 
-      - name: Lint (errors only)
-        run: npm run lint:errors
-
-      - name: Unit tests
-        run: npm run test
-
-      - name: Production build
-        run: npm run build
-
-      - name: Bundle budgets
-        run: npm run perf:budgets
-
-  e2e:
-    name: Playwright E2E
-    runs-on: ubuntu-latest
-    needs: quality
-    # The full functional suite is slow (~25min+) and previously hit the 30min
-    # cap, which produces a "cancelled" run that continue-on-error cannot
-    # absorb. Give it enough headroom to finish so the job ends in pass/fail.
-    timeout-minutes: 60
-    # Non-blocking: the suite still runs on every push and uploads artifacts,
-    # but a failure here does not mark the overall workflow run as failed.
-    # continue-on-error only absorbs a *failure*, not a timeout cancellation,
-    # which is why the timeout above must be generous. The `quality` job stays
-    # the blocking gate. Revisit once the Playwright suite is stabilised.
-    continue-on-error: true
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
-
-      - name: Run Playwright smoke subset
-        run: npm run test:e2e:smoke
-
-      - name: Run Playwright accessibility suite
-        run: npm run test:e2e:a11y
-
-      - name: Run remaining Playwright functional suite
-        run: npm run test:e2e:functional
-
-      - name: Upload Playwright artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-artifacts
-          path: |
-            playwright-report
-            test-results
-          if-no-files-found: ignore

@@ -1,0 +1,48 @@
+name: Nightly Validation
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  full-rc-validation:
+    name: Full RC Gate (nightly/manual)
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run full release-candidate validation
+        run: npm run validate:nightly
+
+      - name: Upload Playwright artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-playwright-artifacts
+          path: |
+            playwright-report
+            test-results
+          if-no-files-found: ignore
