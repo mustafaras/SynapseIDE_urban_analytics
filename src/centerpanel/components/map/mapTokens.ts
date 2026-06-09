@@ -272,20 +272,56 @@ export const MAP_DIMENSIONS = {
 export const MAP_SHELL_DIMENSIONS = {
   activityRailWidth: "2.625rem",
   railButtonSize: "2.25rem",
+  modalChromeHeight: "2.75rem",
   commandCenterHeight: "2.75rem",
+  topCommandHeight: "2.75rem",
   leftSidebarMinWidth: "17.5rem",
   leftSidebarWidth: "clamp(17.5rem, 24vw, 22.5rem)",
   leftSidebarMaxWidth: "22.5rem",
+  leftPanelWidth: "clamp(17.5rem, 24vw, 22.5rem)",
   rightInspectorMinWidth: "22.5rem",
   rightInspectorWidth: "clamp(22.5rem, 28vw, 27.5rem)",
   rightInspectorMaxWidth: "27.5rem",
+  rightDockWidth: "clamp(22.5rem, 28vw, 27.5rem)",
   bottomPanelMinHeight: "13.75rem",
   bottomPanelHeight: "clamp(13.75rem, 30vh, 21.25rem)",
   bottomPanelMaxHeight: "21.25rem",
+  bottomPanelHeightDefault: "clamp(13.75rem, 30vh, 21.25rem)",
   statusBarHeight: "1.75rem",
+  statusHeight: "1.75rem",
   canvasOverlayInset: MAP_SPACING.md,
   separatorWidth: MAP_DIMENSIONS.separatorWidth,
 } as const;
+
+export const MAP_LAYOUT_TOKENS = {
+  modalChromeHeight: MAP_SHELL_DIMENSIONS.modalChromeHeight,
+  topCommandHeight: MAP_SHELL_DIMENSIONS.topCommandHeight,
+  leftPanelWidth: MAP_SHELL_DIMENSIONS.leftPanelWidth,
+  rightDockWidth: MAP_SHELL_DIMENSIONS.rightDockWidth,
+  bottomPanelHeight: MAP_SHELL_DIMENSIONS.bottomPanelHeightDefault,
+  statusBarHeight: MAP_SHELL_DIMENSIONS.statusHeight,
+  overlaySafeInsetX: "0.75rem",
+  overlaySafeInsetY: "0.25rem",
+  overlaySafeBottom: "6.75rem",
+  popoverMaxHeight: "min(24rem, calc(100vh - 8rem))",
+  dialogMaxHeight: "min(42rem, calc(100vh - 3rem))",
+} as const;
+
+export function createMapShellCssVars(): React.CSSProperties {
+  return {
+    "--map-shell-modal-chrome-height": MAP_LAYOUT_TOKENS.modalChromeHeight,
+    "--map-shell-command-height": MAP_LAYOUT_TOKENS.topCommandHeight,
+    "--map-shell-left-panel-width": MAP_LAYOUT_TOKENS.leftPanelWidth,
+    "--map-shell-right-dock-width": MAP_LAYOUT_TOKENS.rightDockWidth,
+    "--map-shell-bottom-panel-height": MAP_LAYOUT_TOKENS.bottomPanelHeight,
+    "--map-shell-status-height": MAP_LAYOUT_TOKENS.statusBarHeight,
+    "--map-overlay-safe-inset-x": MAP_LAYOUT_TOKENS.overlaySafeInsetX,
+    "--map-overlay-safe-inset-y": MAP_LAYOUT_TOKENS.overlaySafeInsetY,
+    "--map-overlay-safe-bottom": MAP_LAYOUT_TOKENS.overlaySafeBottom,
+    "--map-popover-max-height": MAP_LAYOUT_TOKENS.popoverMaxHeight,
+    "--map-dialog-max-height": MAP_LAYOUT_TOKENS.dialogMaxHeight,
+  } as React.CSSProperties;
+}
 
 export const MAP_NUMERIC = {
   ...mapToken.numeric,

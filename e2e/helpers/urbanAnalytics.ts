@@ -68,8 +68,28 @@ export async function openUrbanAnalyticsWorkbench(page: Page): Promise<Locator> 
 export async function waitForMapExplorerDialog(page: Page): Promise<Locator> {
   const loadingStatus = page.getByText("Loading Map Explorer...");
   await expect(loadingStatus).toBeHidden({ timeout: 60000 });
-  const mapExplorer = page.getByRole("dialog", { name: "Map Explorer" }).first();
+
+  const closeMapExplorerButton = page.getByRole("button", { name: /Close map explorer/i }).first();
+  await expect(closeMapExplorerButton).toBeVisible({ timeout: 60000 });
+
+  const mapExplorer = page
+    .locator('[data-map-workspace-shell="modal"]')
+    .filter({ has: closeMapExplorerButton })
+    .first();
   await expect(mapExplorer).toBeVisible({ timeout: 60000 });
+
+  // First-open sessions can intentionally land on the start dialog instead of
+  // the cockpit workspace. Continue to map so baseline checks target the
+  // operational shell, not launch onboarding.
+  const mapStartDialog = page.getByTestId("map-start-dialog");
+  if (await mapStartDialog.isVisible().catch(() => false)) {
+    const continueButton = mapStartDialog
+      .getByRole("button", { name: /Continue to map|Continue Empty/i })
+      .first();
+    await triggerDomClick(continueButton);
+    await expect(mapStartDialog).toBeHidden({ timeout: 15000 });
+  }
+
   return mapExplorer;
 }
 

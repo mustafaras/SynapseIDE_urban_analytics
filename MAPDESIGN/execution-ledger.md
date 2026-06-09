@@ -4,6 +4,7 @@
 - Workspace: `c:/Users/m_ras/Desktop/SynapseIDE_urban_analytics`
 - Execution mode: local-only implementation and validation
 - Source docs:
+  - `MAPDESIGN/prompts-compact-en.md` (primary)
   - `MAPDESIGN/prompts-detailed-en.md`
   - `MAPDESIGN/ui-ux-audit-plan.md`
 - Rule: preserve prompt intent, semantics, and phase order
@@ -44,11 +45,11 @@
 ## Prompt Progress Ledger
 | Prompt | Branch | Status | Last Commit | Validation | Resume From | Notes |
 |---|---|---|---|---|---|---|
-| P01 | local/p01-inventory | in_progress |  | pending | MAPDESIGN/prompts-detailed-en.md (Prompt 01) | Started 2026-06-09 |
-| P02 |  | not_started |  |  |  |  |
-| P03 |  | not_started |  |  |  |  |
-| P04 | ui/map-modal-layout-stabilization-p1 | not_started |  |  |  |  |
-| P05 | ui/map-modal-layout-stabilization-p1 | not_started |  |  |  |  |
+| P01 | local/p01-inventory | done |  | completed (inventory note delivered) | MAPDESIGN/prompts-detailed-en.md (Prompt 01) | Completed 2026-06-09 |
+| P02 | local/p02-visual-baseline | done |  | typecheck passed; baseline e2e spec passed 5/5 | MAPDESIGN/p02-visual-baseline-2026-06-09.md | Closed 2026-06-09 after diagnostics/status assertion updates |
+| P03 | local/p03-test-contracts | done |  | analysis-only search/read pass completed | MAPDESIGN/p03-test-contracts-2026-06-09.md | Closed 2026-06-09 with selector contract note |
+| P04 | ui/map-modal-layout-stabilization-p1 | done |  | typecheck passed; lint:errors passed | MAPDESIGN/execution-ledger.md | Closed 2026-06-09 with tokenized shell/safe-inset model |
+| P05 | ui/map-modal-layout-stabilization-p1 | done |  | typecheck passed; lint:errors passed; mapShellPrimitives tests passed | src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx | Closed 2026-06-09 with explicit shell grid regions |
 | P06 | ui/map-modal-layout-stabilization-p1 | not_started |  |  |  |  |
 | P07 | ui/map-modal-layout-stabilization-p1 | not_started |  |  |  |  |
 | P08 | ui/map-modal-layout-stabilization-p1 | not_started |  |  |  |  |
@@ -99,22 +100,66 @@
 
 ## Active Prompt Log
 ### P01 - Build the Map Explorer repository inventory
-- Status: in_progress
+- Status: done
 - Intent: Build a complete repository inventory for Map Explorer modal surfaces before any UI edits.
 - Definition of Done: Produce the Prompt 01 markdown audit note with all required sections and no code edits.
 - Decisions: Local-only execution; no remote deployment dependency for this prompt.
 - Changed Files: MAPDESIGN/execution-ledger.md
-- Validation: Pending (analysis-only prompt, no build/test expected).
-- Open Risks: Repository inventory may include legacy paths that need canonical vs historical classification.
-- Resume From: MAPDESIGN/prompts-detailed-en.md (Prompt 01 block)
+- Validation: Completed (analysis-only prompt; inventory delivered).
+- Open Risks: None for Prompt 01 scope.
+- Resume From: MAPDESIGN/p02-visual-baseline-2026-06-09.md
 - Next Prompt: P02
 
+### P02 - Establish the live and local visual baseline
+- Status: done
+- Intent: Establish the visual baseline for Map Explorer modal using local repository behavior and local preview/live endpoints.
+- Definition of Done: Produce Prompt 02 baseline note with deployment discovery, command sequence, screenshot matrix, acceptance rules, and findings.
+- Decisions: Baseline blocker mitigation required targeted code hardening before P03; applied minimal fixes to Urban→Map handoff and e2e modal detection.
+- Changed Files: MAPDESIGN/execution-ledger.md; MAPDESIGN/p02-visual-baseline-2026-06-09.md; src/features/urbanAnalytics/UrbanAnalyticsModal.tsx; src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx; e2e/helpers/urbanAnalytics.ts
+- Validation: `npm run typecheck` passed; `npm run test:analytics` executed; `e2e/map-premium-redesign-baseline.spec.ts` passed (5 passed / 0 failed).
+- Open Risks: None for Prompt 02 baseline scope.
+- Resume From: MAPDESIGN/prompts-detailed-en.md (Prompt 03 block)
+- Next Prompt: P03
+
+### P03 - Map test contracts and stable selectors
+- Status: done
+- Intent: Inventory current Map Explorer test contracts and define stable selector safety rules before Phase 1 layout edits.
+- Definition of Done: Produce a Prompt 03 contract note covering existing tests, stable selector map, migration rules, gap list, and safe selector-add recommendations.
+- Decisions: Executed in compact mode with detailed Prompt 03 fallback semantics; focused on map e2e + map component/store/controller tests and canonical selector surfaces.
+- Changed Files: MAPDESIGN/p03-test-contracts-2026-06-09.md; MAPDESIGN/execution-ledger.md
+- Validation: Analysis-only validation via targeted repository search and source inspection (`file_search`, `grep_search`, `read_file`) across e2e and src map test suites.
+- Open Risks: Some e2e contracts still rely on long visible text labels; selector alias additions should be completed before broad layout surgery in P04/P05.
+- Resume From: MAPDESIGN/p03-test-contracts-2026-06-09.md
+- Next Prompt: P04
+
+### P04 - Phase 1: Stabilize layout tokens and modal inset system
+- Status: done
+- Intent: Consolidate map layout tokens and safe-inset variables so shell, overlays, status, and panel surfaces share one readable contract.
+- Definition of Done: Add or clarify shared layout variables (modal chrome, command height, panel widths, bottom/status heights, safe insets, popover/dialog bounds) and wire them into core shell/control consumers without changing semantics.
+- Decisions: Added consolidated `MAP_LAYOUT_TOKENS` + `createMapShellCssVars()` in map tokens; applied shell-level CSS variables and replaced hardcoded control offsets/heights with CSS var consumption for compatibility-safe behavior.
+- Changed Files: src/centerpanel/components/map/mapTokens.ts; src/centerpanel/components/map/MapWorkspaceShell.tsx; src/centerpanel/components/map/MapCanvasControls.tsx; src/centerpanel/components/map/MapStatusBar.tsx; MAPDESIGN/execution-ledger.md
+- Validation: `Set-Location "c:/Users/m_ras/Desktop/SynapseIDE_urban_analytics"; npm run typecheck` passed; `Set-Location "c:/Users/m_ras/Desktop/SynapseIDE_urban_analytics"; npm run lint:errors` passed; targeted diagnostics (`get_errors`) on touched files reported no errors.
+- Open Risks: Minor vertical alignment drift may appear where previous fixed offsets were relied upon indirectly; behavior expected to remain equivalent due fallback defaults.
+- Resume From: src/centerpanel/components/map/mapTokens.ts (MAP_LAYOUT_TOKENS, createMapShellCssVars)
+- Next Prompt: P05
+
+### P05 - Phase 1: Stabilize modal shell grid and safe-area placement
+- Status: done
+- Intent: Make Map Explorer shell region placement explicit and stable across header, center map, and bottom timeline/status surfaces.
+- Definition of Done: Introduce a predictable shell layout grid and explicit region wrappers while preserving existing controls, panels, and functionality.
+- Decisions: Added a dedicated shell content grid (`map-shell-layout-grid`) with row contract `command / center / bottom`; wrapped `MapTopCommandSurface`, `MapCanvasRegion`, and `MapBottomTimeline` in explicit region containers with `data-map-shell-region` markers. Post-P05 hotfixes: (1) `ResizeObserver`-driven `map.resize()` synchronization in `MapCanvas`; (2) restored flex context on shell center region so `MapCanvasRegion` (`flex: 1`) expands fully instead of staying at `min-height` and leaving a lower blank band.
+- Changed Files: src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx; src/centerpanel/components/map/MapCanvas.tsx; MAPDESIGN/execution-ledger.md
+- Validation: `Set-Location "c:/Users/m_ras/Desktop/SynapseIDE_urban_analytics"; npm run typecheck` passed; `Set-Location "c:/Users/m_ras/Desktop/SynapseIDE_urban_analytics"; npm run lint:errors` passed; `Set-Location "c:/Users/m_ras/Desktop/SynapseIDE_urban_analytics"; npx vitest run src/centerpanel/components/map/__tests__/mapShellPrimitives.test.tsx` passed (32/32).
+- Open Risks: Header row height currently follows `--map-shell-command-height`; if command surface intrinsic height changes in future prompts, row and content height must stay aligned. No remaining blank-gap risk expected after resize synchronization.
+- Resume From: src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx (shellLayoutGridStyle, data-map-shell-region wrappers)
+- Next Prompt: P06
+
 ## Hand-off Checklist
-- [ ] Prompt block status updated
+- [x] Prompt block status updated
 - [ ] Last commit hash recorded
-- [ ] Validation commands recorded
-- [ ] Remaining risks listed
-- [ ] Next prompt identified
+- [x] Validation commands recorded
+- [x] Remaining risks listed
+- [x] Next prompt identified
 
 ## P01 Quick Start
 - Agent call: Map Explorer Local Prompt Executor: Prompt 01

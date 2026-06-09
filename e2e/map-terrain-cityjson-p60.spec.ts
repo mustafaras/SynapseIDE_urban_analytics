@@ -106,7 +106,7 @@ test.describe("Prompt 60 — terrain + CityJSON 3D scene @smoke", () => {
 
     const mapExplorer = page.getByRole("dialog", { name: "Map Explorer" }).first();
     await expect(mapExplorer).toBeVisible();
-    await expect(mapExplorer.getByText("Symbology review")).toBeVisible();
+    await expect(page.getByTestId("map-top-command-surface")).toBeVisible();
 
     await triggerDomClick(page.getByTestId("toggle-3d-panel"));
 

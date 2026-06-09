@@ -1,5 +1,11 @@
 # Map Explorer Modal - Sequential GPT Implementation Prompt List
 
+Token note:
+- Default execution source is `MAPDESIGN/prompts-compact-en.md`.
+- Use this detailed file only when a prompt requires extra acceptance nuance or edge-case clarification.
+- Keep prompt runs token-efficient by sending `Prompt NN` plus the compact packet instead of pasting full blocks.
+- Canonical rule: if compact and detailed wording ever diverge, this detailed file is authoritative for acceptance criteria.
+
 **Repository:** `SynapseIDE_urban_analytics`
 **Primary objective:** Apply the Map Explorer modal production UI/UX stabilization plan through small, safe, reversible local branches and commit batches.
 **Language requirement:** All implementation notes, local change summaries, test notes, issue descriptions, and developer-facing comments must be written in English.

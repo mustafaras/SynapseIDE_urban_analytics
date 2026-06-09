@@ -10,7 +10,8 @@ Execute the Map Explorer prompt ladder safely in local workspace mode while pres
 
 ## Operating Context
 - Workspace root: `c:/Users/m_ras/Desktop/SynapseIDE_urban_analytics`
-- Prompt source: `MAPDESIGN/prompts-detailed-en.md`
+- Prompt source (primary): `MAPDESIGN/prompts-compact-en.md`
+- Prompt source (reference): `MAPDESIGN/prompts-detailed-en.md`
 - Plan source: `MAPDESIGN/ui-ux-audit-plan.md`
 - Ledger: `MAPDESIGN/execution-ledger.md`
 
@@ -20,6 +21,7 @@ Execute the Map Explorer prompt ladder safely in local workspace mode while pres
 3. Preserve all GIS/CRS/QA/evidence/diagnostics/import-export semantics.
 4. Use minimal, reversible edits aligned with current prompt scope.
 5. Run validation commands for touched surfaces before closing a prompt.
+6. Use compact prompt packets by default; read detailed prompt sections only when needed.
 
 ## Anti-Amnesia Routine
 Perform this sequence for every prompt `PNN`:

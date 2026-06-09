@@ -58,7 +58,7 @@ describe("MapToolbar external services", () => {
     });
 
     const overflowButton = document.querySelector<HTMLButtonElement>(
-      'button[aria-label="Open grouped map command overflow"]',
+      'button[data-testid="map-command-center-overflow"]',
     );
     expect(overflowButton).not.toBeNull();
 
@@ -66,7 +66,7 @@ describe("MapToolbar external services", () => {
       overflowButton!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
-    const commandMenu = document.querySelector<HTMLElement>('[role="menu"][aria-label="Grouped map commands"]');
+    const commandMenu = document.querySelector<HTMLElement>('[role="menu"][aria-label="Advanced commands"]');
     expect(commandMenu?.textContent).toContain("External Services");
 
     const externalServicesButton = Array.from(commandMenu?.querySelectorAll<HTMLButtonElement>("button") ?? [])
@@ -152,12 +152,12 @@ describe("MapToolbar external services", () => {
       );
     });
 
-    const overflowButton = document.querySelector<HTMLButtonElement>(
-      'button[aria-label="Open grouped map command overflow"]',
+    const publishGroupButton = document.querySelector<HTMLButtonElement>(
+      'button[data-testid="map-command-group-publish"]',
     );
-    if (overflowButton) {
+    if (publishGroupButton) {
       act(() => {
-        overflowButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        publishGroupButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
       });
     }
 

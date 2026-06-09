@@ -920,7 +920,10 @@ export default function UrbanAnalyticsModal({ open, onClose }: UrbanAnalyticsMod
  onNavQueryChange={setNavQuery}
  filteredCount={filtered.length}
  searchRef={searchRef}
- onOpenMap={openMap}
+ onOpenMap={() => {
+ openMap();
+ setOpen(false);
+ }}
  workspaceLayoutExpanded={workspaceLayoutExpanded}
  onToggleWorkspaceLayout={toggleWorkspaceLayoutExpanded}
  onClose={() => setOpen(false)}

@@ -533,6 +533,56 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
     }
   }, [pins]);
 
+  // Keep the render surface in sync with shell layout changes (grid/rails/docks).
+  useEffect(() => {
+    const container = containerRef.current;
+    const map = mapRef.current;
+    if (!container || !map) {
+      return;
+    }
+
+    let frame = 0;
+    const scheduleResize = () => {
+      if (frame !== 0) {
+        return;
+      }
+      frame = window.requestAnimationFrame(() => {
+        frame = 0;
+        try {
+          map.resize();
+        } catch {
+          // No-op: map may be tearing down between observer tick and frame.
+        }
+      });
+    };
+
+    scheduleResize();
+
+    if (typeof ResizeObserver !== "undefined") {
+      const observer = new ResizeObserver(() => {
+        scheduleResize();
+      });
+      observer.observe(container);
+      return () => {
+        observer.disconnect();
+        if (frame !== 0) {
+          window.cancelAnimationFrame(frame);
+        }
+      };
+    }
+
+    const onWindowResize = () => {
+      scheduleResize();
+    };
+    window.addEventListener("resize", onWindowResize);
+    return () => {
+      window.removeEventListener("resize", onWindowResize);
+      if (frame !== 0) {
+        window.cancelAnimationFrame(frame);
+      }
+    };
+  }, []);
+
   return (
     <div
       id={id}
