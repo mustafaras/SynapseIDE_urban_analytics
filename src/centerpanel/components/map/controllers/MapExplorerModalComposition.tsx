@@ -9,7 +9,11 @@ import {
   FileImage,
   History,
   Layers3,
+  Maximize2,
+  Minimize2,
   Palette,
+  PanelLeftClose,
+  PanelLeftOpen,
   Puzzle,
   ShieldAlert,
   Workflow,
@@ -1401,16 +1405,26 @@ const canvasSelectionDockStyle: React.CSSProperties = {
   maxWidth: `calc(100% - var(--map-dock-left, 0px) - var(--map-dock-right, 0px) - ${MAP_SPACING.xl})`,
 };
 
-const commandHeaderCloseButton: React.CSSProperties = {
+const modalControlClusterStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "0.25rem",
+};
+
+const modalControlButtonStyle: React.CSSProperties = {
   ...mapStyles.closeBtn,
-  order: 6,
   position: "static",
   flex: "0 0 auto",
-  width: "1.75rem",
-  height: "1.75rem",
+  width: "1.875rem",
+  height: "1.875rem",
   border: "1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.32))",
   borderRadius: MAP_RADIUS.sm,
   background: "color-mix(in srgb, var(--syn-surface-panel, #151a21) 54%, transparent)",
+};
+
+const modalControlCloseButtonStyle: React.CSSProperties = {
+  ...modalControlButtonStyle,
+  border: "1px solid var(--syn-border-strong, rgba(148, 163, 184, 0.42))",
 };
 
 /* ================================================================== */
@@ -10201,6 +10215,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     onToggleKeyboardHelp: handleToggleCanvasKeyboardHelp,
     onClearActiveTool: handleClearActiveCanvasTool,
   } satisfies Omit<React.ComponentProps<typeof MapCanvasControls>, "surface">;
+  const dockControlLabel = effectiveShowLayerPanel ? "Hide docked panels" : "Show docked panels";
 
   return createPortal(
     <MapWorkspaceShell mode={mode} shellRef={trapRef} onClose={handleMapExplorerCloseRequest} activeActivityId={activeActivityId}>
@@ -10423,27 +10438,61 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               onRedoMapAction={handleRedoMapAction}
             />
           )}
-          trailingSlot={(
-            <>
-              <MapBookmarkBar
-                variant="menu"
-                bookmarks={bookmarks}
-                maxBookmarks={MAP_BOOKMARK_LIMIT}
-                onSaveBookmark={handleSaveBookmark}
-                onRestoreBookmark={handleRestoreBookmark}
-                onRenameBookmark={handleRenameBookmark}
-                onDeleteBookmark={handleDeleteBookmark}
-                onShareBookmark={handleShareBookmark}
-              />
+          utilitySlot={(
+            <MapBookmarkBar
+              variant="menu"
+              bookmarks={bookmarks}
+              maxBookmarks={MAP_BOOKMARK_LIMIT}
+              onSaveBookmark={handleSaveBookmark}
+              onRestoreBookmark={handleRestoreBookmark}
+              onRenameBookmark={handleRenameBookmark}
+              onDeleteBookmark={handleDeleteBookmark}
+              onShareBookmark={handleShareBookmark}
+            />
+          )}
+          modalControlSlot={(
+            <div style={modalControlClusterStyle} data-testid="map-modal-control-cluster">
               <button
                 type="button"
-                style={commandHeaderCloseButton}
+                style={modalControlButtonStyle}
+                onClick={handleToggleLayerPanel}
+                aria-label={dockControlLabel}
+                title={dockControlLabel}
+                data-testid="map-modal-control-dock"
+              >
+                {effectiveShowLayerPanel ? <PanelLeftClose size={MAP_ICON_SIZES.sm} /> : <PanelLeftOpen size={MAP_ICON_SIZES.sm} />}
+              </button>
+              <button
+                type="button"
+                style={modalControlButtonStyle}
+                onClick={handleCollapseAllPanels}
+                aria-label="Minimize map workspace chrome"
+                title="Minimize map workspace chrome"
+                data-testid="map-modal-control-minimize"
+              >
+                <Minimize2 size={MAP_ICON_SIZES.sm} />
+              </button>
+              <button
+                type="button"
+                style={modalControlButtonStyle}
+                onClick={handleResetLayout}
+                aria-label="Expand map workspace to default layout"
+                title="Expand map workspace to default layout"
+                data-testid="map-modal-control-expand"
+              >
+                <Maximize2 size={MAP_ICON_SIZES.sm} />
+              </button>
+              <button
+                type="button"
+                style={modalControlCloseButtonStyle}
                 onClick={onClose}
                 aria-label="Close map explorer (Escape)"
+                title="Close map explorer (Escape)"
+                data-testid="map-modal-control-close"
               >
                 <IconClose size={MAP_ICON_SIZES.md} />
               </button>
-            </>
+            </div>
           )}
         />
 

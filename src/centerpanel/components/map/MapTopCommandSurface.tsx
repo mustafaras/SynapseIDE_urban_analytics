@@ -33,6 +33,8 @@ export interface MapTopCommandSurfaceProps {
   activeLayerTitle?: string;
   searchSlot: React.ReactNode;
   commandSlot: React.ReactNode;
+  utilitySlot?: React.ReactNode;
+  modalControlSlot?: React.ReactNode;
   trailingSlot?: React.ReactNode;
   titleId?: string;
 }
@@ -183,10 +185,27 @@ const commandClusterStyle: React.CSSProperties = {
 };
 
 const trailingClusterStyle: React.CSSProperties = {
+  justifySelf: "end",
   display: "inline-flex",
   alignItems: "center",
   gap: MAP_SPACING.xs,
   minWidth: MAP_SPACING.zero,
+};
+
+const utilityClusterStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: MAP_SPACING.xs,
+  minWidth: MAP_SPACING.zero,
+};
+
+const modalControlClusterStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: MAP_SPACING.xs,
+  minWidth: MAP_SPACING.zero,
+  paddingLeft: MAP_SPACING.xs,
+  borderLeft: MAP_STROKES.hairlineSubtle,
 };
 
 const chipLabelStyle: React.CSSProperties = {
@@ -375,6 +394,8 @@ export const MapTopCommandSurface: React.FC<MapTopCommandSurfaceProps> = ({
   activeLayerTitle,
   searchSlot,
   commandSlot,
+  utilitySlot,
+  modalControlSlot,
   trailingSlot,
   titleId = "map-explorer-title",
 }) => {
@@ -386,6 +407,8 @@ export const MapTopCommandSurface: React.FC<MapTopCommandSurfaceProps> = ({
     persistenceDisabled,
   });
   const modeLabel = `${formatWorkspaceLabel(workspaceView)} · ${taskLensLabel}`;
+  const utilityContent = utilitySlot ?? trailingSlot;
+  const hasTrailingContent = Boolean(utilityContent || modalControlSlot);
 
   return (
     <div
@@ -450,7 +473,25 @@ export const MapTopCommandSurface: React.FC<MapTopCommandSurfaceProps> = ({
       </div>
 
       <div style={commandClusterStyle}>{commandSlot}</div>
-      {trailingSlot ? <div style={trailingClusterStyle}>{trailingSlot}</div> : <span aria-hidden />}
+      {hasTrailingContent ? (
+        <div style={trailingClusterStyle} data-testid="map-top-command-surface-trailing">
+          {utilityContent ? (
+            <div style={utilityClusterStyle} data-testid="map-top-command-surface-utility-controls">
+              {utilityContent}
+            </div>
+          ) : null}
+          {modalControlSlot ? (
+            <div
+              style={modalControlClusterStyle}
+              role="group"
+              aria-label="Map explorer modal controls"
+              data-testid="map-top-command-surface-modal-controls"
+            >
+              {modalControlSlot}
+            </div>
+          ) : null}
+        </div>
+      ) : <span aria-hidden />}
     </div>
   );
 };

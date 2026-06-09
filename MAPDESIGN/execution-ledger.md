@@ -55,7 +55,7 @@
 | P08 | ui/map-modal-layout-stabilization-p1 | done | 2c5ab73 | typecheck passed; lint:errors passed; MapStatusBarRoutes tests passed | src/centerpanel/components/map/MapStatusBar.tsx | Closed 2026-06-09 with explicit status priority tiers and critical-warning visibility guard |
 | P09 | ui/map-modal-layout-stabilization-p1 | done | 8a8cdcb | playwright p09 layout spec passed; typecheck passed; lint:errors passed; premium baseline spec passed | e2e/map-layout-regression-p09.spec.ts | Closed 2026-06-09 with overlap/clipping regression guards and baseline alignment |
 | P10 | ui/map-modal-command-bar-p2 | done | c02a3f6 | analysis-only inventory completed (surface map + duplication audit + phase-2 recommendations) | MAPDESIGN/p10-command-inventory-2026-06-09.md | Closed 2026-06-09 with Prompt 10 command/header inventory |
-| P11 | ui/map-modal-command-bar-p2 | not_started |  |  |  |  |
+| P11 | ui/map-modal-command-bar-p2 | done |  | typecheck passed; lint:errors passed; MapTopCommandSurface + modal baseline tests passed | src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx | Closed 2026-06-09 with stable top-right modal-control cluster and separated utility controls |
 | P12 | ui/map-modal-command-bar-p2 | not_started |  |  |  |  |
 | P13 | ui/map-modal-command-bar-p2 | not_started |  |  |  |  |
 | P14 | ui/map-modal-command-bar-p2 | not_started |  |  |  |  |
@@ -208,6 +208,17 @@
 - Open Risks: Modal control hierarchy currently has explicit close but not a fully unified modal-control cluster (dock/expand/minimize semantics remain distributed across panel/system surfaces).
 - Resume From: MAPDESIGN/p10-command-inventory-2026-06-09.md
 - Next Prompt: P11
+
+### P11 - Phase 2: Stabilize header and modal-control hierarchy
+- Status: done
+- Intent: Make modal controls predictable and always findable while separating utility actions from modal-level controls.
+- Definition of Done: Added a stable top-right modal-control cluster with consistent ordering (dock, minimize, expand, close), accessible labels/titles, and clear hit targets; moved non-modal utility action(s) out of the modal-control cluster.
+- Decisions: Extended `MapTopCommandSurface` with explicit `utilitySlot` and `modalControlSlot` containers to avoid mixing utility controls with modal controls. Reused existing behavior handlers (`handleToggleLayerPanel`, `handleCollapseAllPanels`, `handleResetLayout`, `onClose`) instead of introducing new behavior.
+- Changed Files: src/centerpanel/components/map/MapTopCommandSurface.tsx; src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx; src/centerpanel/components/map/__tests__/MapTopCommandSurface.test.tsx; MAPDESIGN/execution-ledger.md
+- Validation: `npm run typecheck` passed; `npm run lint:errors` passed; `npx vitest run src/centerpanel/components/map/__tests__/MapTopCommandSurface.test.tsx` passed (4/4); `npx vitest run src/centerpanel/components/map/__tests__/map-explorer-canonical-baseline.test.tsx` passed (2/2).
+- Open Risks: Manual visual verification on desktop/tablet/short-height viewports remains pending in this turn (not automated by current unit tests).
+- Resume From: src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx (MapTopCommandSurface utilitySlot + modalControlSlot wiring)
+- Next Prompt: P12
 
 ## Hand-off Checklist
 - [x] Prompt block status updated
