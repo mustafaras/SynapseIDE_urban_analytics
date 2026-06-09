@@ -52,7 +52,7 @@
 | P05 | ui/map-modal-layout-stabilization-p1 | done |  | typecheck passed; lint:errors passed; mapShellPrimitives tests passed | src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx | Closed 2026-06-09 with explicit shell grid regions |
 | P06 | ui/map-modal-layout-stabilization-p1 | done | 15707f6 | typecheck passed; lint:errors passed; map-components + map-accessibility tests passed | src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx | Closed 2026-06-09 with tokenized safe-zone placement for map furniture |
 | P07 | ui/map-modal-layout-stabilization-p1 | done |  | typecheck passed; lint:errors passed; targeted overlay/dialog tests passed | src/centerpanel/components/map/MapToolbar.tsx | Closed 2026-06-09 with modal-safe overlay/dialog containment rules |
-| P08 | ui/map-modal-layout-stabilization-p1 | done |  | typecheck passed; lint:errors passed; MapStatusBarRoutes tests passed | src/centerpanel/components/map/MapStatusBar.tsx | Closed 2026-06-09 with explicit status priority tiers and critical-warning visibility guard |
+| P08 | ui/map-modal-layout-stabilization-p1 | done | 2c5ab73 | typecheck passed; lint:errors passed; MapStatusBarRoutes tests passed | src/centerpanel/components/map/MapStatusBar.tsx | Closed 2026-06-09 with explicit status priority tiers and critical-warning visibility guard |
 | P09 | ui/map-modal-layout-stabilization-p1 | not_started |  |  |  |  |
 | P10 | ui/map-modal-command-bar-p2 | not_started |  |  |  |  |
 | P11 | ui/map-modal-command-bar-p2 | not_started |  |  |  |  |
