@@ -53,7 +53,7 @@
 | P06 | ui/map-modal-layout-stabilization-p1 | done | 15707f6 | typecheck passed; lint:errors passed; map-components + map-accessibility tests passed | src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx | Closed 2026-06-09 with tokenized safe-zone placement for map furniture |
 | P07 | ui/map-modal-layout-stabilization-p1 | done |  | typecheck passed; lint:errors passed; targeted overlay/dialog tests passed | src/centerpanel/components/map/MapToolbar.tsx | Closed 2026-06-09 with modal-safe overlay/dialog containment rules |
 | P08 | ui/map-modal-layout-stabilization-p1 | done | 2c5ab73 | typecheck passed; lint:errors passed; MapStatusBarRoutes tests passed | src/centerpanel/components/map/MapStatusBar.tsx | Closed 2026-06-09 with explicit status priority tiers and critical-warning visibility guard |
-| P09 | ui/map-modal-layout-stabilization-p1 | not_started |  |  |  |  |
+| P09 | ui/map-modal-layout-stabilization-p1 | done |  | playwright p09 layout spec passed; typecheck passed; lint:errors passed; premium baseline spec passed | e2e/map-layout-regression-p09.spec.ts | Closed 2026-06-09 with overlap/clipping regression guards and baseline alignment |
 | P10 | ui/map-modal-command-bar-p2 | not_started |  |  |  |  |
 | P11 | ui/map-modal-command-bar-p2 | not_started |  |  |  |  |
 | P12 | ui/map-modal-command-bar-p2 | not_started |  |  |  |  |
@@ -186,6 +186,17 @@
 - Open Risks: CRS warning detection currently relies on explicit status strings (e.g., `unknown`, `missing`, `unset`) within `crs`; if upstream semantics change, this tone mapping should be aligned with a typed CRS readiness signal.
 - Resume From: src/centerpanel/components/map/MapStatusBar.tsx (segment grouping + overflow priority selection)
 - Next Prompt: P09
+
+### P09 - Phase 1: Add or update layout regression tests
+- Status: done
+- Intent: Protect Map Explorer shell from overlap, clipping, and unreachable controls with stable DOM/layout assertions.
+- Definition of Done: Added targeted Playwright regression checks for modal shell visibility, panel collision guards, right-dock versus floating controls, short-height usability, reachable import dialog actions, QA/CRS warning affordances, and non-overlapping floating controls; updated existing baseline spec expectations to current shell behavior.
+- Decisions: Implemented a dedicated Prompt 09 spec (`map-layout-regression-p09.spec.ts`) for deterministic overlap/reachability checks, and minimally aligned `map-premium-redesign-baseline.spec.ts` assertions with current right-dock diagnostics and status overflow behavior without removing baseline evidence coverage.
+- Changed Files: MAPDESIGN/execution-ledger.md; e2e/map-layout-regression-p09.spec.ts; e2e/map-premium-redesign-baseline.spec.ts
+- Validation: `npx playwright test e2e/map-layout-regression-p09.spec.ts` passed (2/2); `npm run typecheck` passed; `npm run lint:errors` passed; `npx playwright test e2e/map-premium-redesign-baseline.spec.ts` passed (5/5).
+- Open Risks: Overlap assertions use current testids and control placements; if shell testid contracts are renamed in later phases, Prompt 03 selector-map aliases should be extended before refactoring.
+- Resume From: e2e/map-layout-regression-p09.spec.ts (Prompt 09 guard scenarios)
+- Next Prompt: P10
 
 ## Hand-off Checklist
 - [x] Prompt block status updated
