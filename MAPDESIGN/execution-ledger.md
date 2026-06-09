@@ -50,7 +50,7 @@
 | P03 | local/p03-test-contracts | done |  | analysis-only search/read pass completed | MAPDESIGN/p03-test-contracts-2026-06-09.md | Closed 2026-06-09 with selector contract note |
 | P04 | ui/map-modal-layout-stabilization-p1 | done |  | typecheck passed; lint:errors passed | MAPDESIGN/execution-ledger.md | Closed 2026-06-09 with tokenized shell/safe-inset model |
 | P05 | ui/map-modal-layout-stabilization-p1 | done |  | typecheck passed; lint:errors passed; mapShellPrimitives tests passed | src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx | Closed 2026-06-09 with explicit shell grid regions |
-| P06 | ui/map-modal-layout-stabilization-p1 | done |  | typecheck passed; lint:errors passed; map-components + map-accessibility tests passed | src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx | Closed 2026-06-09 with tokenized safe-zone placement for map furniture |
+| P06 | ui/map-modal-layout-stabilization-p1 | done | 15707f6 | typecheck passed; lint:errors passed; map-components + map-accessibility tests passed | src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx | Closed 2026-06-09 with tokenized safe-zone placement for map furniture |
 | P07 | ui/map-modal-layout-stabilization-p1 | not_started |  |  |  |  |
 | P08 | ui/map-modal-layout-stabilization-p1 | not_started |  |  |  |  |
 | P09 | ui/map-modal-layout-stabilization-p1 | not_started |  |  |  |  |
@@ -167,7 +167,7 @@
 
 ## Hand-off Checklist
 - [x] Prompt block status updated
-- [ ] Last commit hash recorded
+- [x] Last commit hash recorded
 - [x] Validation commands recorded
 - [x] Remaining risks listed
 - [x] Next prompt identified
