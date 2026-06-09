@@ -54,7 +54,7 @@
 | P07 | ui/map-modal-layout-stabilization-p1 | done |  | typecheck passed; lint:errors passed; targeted overlay/dialog tests passed | src/centerpanel/components/map/MapToolbar.tsx | Closed 2026-06-09 with modal-safe overlay/dialog containment rules |
 | P08 | ui/map-modal-layout-stabilization-p1 | done | 2c5ab73 | typecheck passed; lint:errors passed; MapStatusBarRoutes tests passed | src/centerpanel/components/map/MapStatusBar.tsx | Closed 2026-06-09 with explicit status priority tiers and critical-warning visibility guard |
 | P09 | ui/map-modal-layout-stabilization-p1 | done | 8a8cdcb | playwright p09 layout spec passed; typecheck passed; lint:errors passed; premium baseline spec passed | e2e/map-layout-regression-p09.spec.ts | Closed 2026-06-09 with overlap/clipping regression guards and baseline alignment |
-| P10 | ui/map-modal-command-bar-p2 | not_started |  |  |  |  |
+| P10 | ui/map-modal-command-bar-p2 | done |  | analysis-only inventory completed (surface map + duplication audit + phase-2 recommendations) | MAPDESIGN/p10-command-inventory-2026-06-09.md | Closed 2026-06-09 with Prompt 10 command/header inventory |
 | P11 | ui/map-modal-command-bar-p2 | not_started |  |  |  |  |
 | P12 | ui/map-modal-command-bar-p2 | not_started |  |  |  |  |
 | P13 | ui/map-modal-command-bar-p2 | not_started |  |  |  |  |
@@ -197,6 +197,17 @@
 - Open Risks: Overlap assertions use current testids and control placements; if shell testid contracts are renamed in later phases, Prompt 03 selector-map aliases should be extended before refactoring.
 - Resume From: e2e/map-layout-regression-p09.spec.ts (Prompt 09 guard scenarios)
 - Next Prompt: P10
+
+### P10 - Phase 2: Inventory header and command surfaces
+- Status: done
+- Intent: Build an implementation-grade inventory of Map Explorer header/command surfaces before command hierarchy changes.
+- Definition of Done: Delivered command surface map, duplication audit, primary/secondary visibility classification, modal-control audit, and phase-2 recommendations without code changes.
+- Decisions: Executed as analysis-only; used current controller composition and toolbar contracts as authoritative behavior source.
+- Changed Files: MAPDESIGN/p10-command-inventory-2026-06-09.md; MAPDESIGN/execution-ledger.md
+- Validation: Analysis-only verification via targeted source inspection (`read_file`, `grep_search`, `explore_subagent`) across MapTopCommandSurface, MapToolbar, MapCanvasControls, MapWorkspaceShell, and MapExplorerModalComposition.
+- Open Risks: Modal control hierarchy currently has explicit close but not a fully unified modal-control cluster (dock/expand/minimize semantics remain distributed across panel/system surfaces).
+- Resume From: MAPDESIGN/p10-command-inventory-2026-06-09.md
+- Next Prompt: P11
 
 ## Hand-off Checklist
 - [x] Prompt block status updated
