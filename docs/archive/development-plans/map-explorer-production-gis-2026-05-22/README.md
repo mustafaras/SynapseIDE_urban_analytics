@@ -11,7 +11,12 @@ This folder is preserved as historical execution material. The prompt ladder is 
 
 Some files inside this archive intentionally preserve interim execution notes, including earlier Prompt 64 NO-GO records. Treat those as historical audit entries superseded by the final validation commit above.
 
-This folder is a new structured plan. It is not a continuation of the archived development prompt ladders. The plan is grounded in the current repository state inspected on 2026-05-22.
+## Completion Summary
+
+- Prompt ladder span: 0-64 (all prompts executed and closed historically).
+- Final close-out commit on `master`: `401fb34e187e12656e28e27ebcb293ece90ed94e`.
+- Final gate result at close-out: `npm run validate:rc` passed after hardening.
+- Earlier Prompt 64 NO-GO rows remain intentionally in the ledger as interim audit evidence.
 
 ## File Index
 
@@ -32,7 +37,7 @@ This folder is a new structured plan. It is not a continuation of the archived d
 | `12_MOTION_AND_3D_INTERACTION_SPEC.md` | Motion, transition, feedback, accessibility, and 3D interaction specification for professional 2D/3D GIS workflows. |
 | `13_DESIGN_IMPLEMENTATION_BLUEPRINT.md` | Concrete design implementation blueprint with proposed files, components, CSS module rules, visual QA, and execution sequence. |
 | `14_MODERN_PREMIUM_GIS_GAP_ANALYSIS.md` | Gap analysis for what is still missing or under-specified for a first-class modern premium GIS tool. |
-| `LEDGER.md` | **Start here for execution.** Single source of execution state + resume point for any chat: per-prompt Status checkboxes (0 done, 1–64 TODO), a Done Log of branches/commits/proofs, the cold-start resume steps, an update protocol, and a drift-notes section. |
+| `LEDGER.md` | **Start here for historical audit.** Canonical execution history with per-prompt status, Done Log, branch/commit proofs, and preserved drift notes from active execution time. |
 | `15_AGENT_EXECUTION_PROMPTS.md` | Code-verified (v4) copy-paste agent prompt list (Prompt 0 → 64 across 8 tracks; heavy ones split a/b/c). **Prompt 0 is implemented + verified in the repo** (`src/services/map/contracts/gisContracts.ts` compiles under typecheck; `src/centerpanel/components/map/__tests__/fixtures/gisFixtures.ts` + self-test pass 8/8). Each prompt is a standalone spec with Context, numbered Build steps, Anti-patterns, real repo paths (extend-vs-create), shared TypeScript contracts + named fixtures, an explicit visible-effect Proof, and a git checkpoint/rollback rule. v4 adds Track G (capability depth: formats, streaming, raster, temporal, labeling, cartography, topology, joins, reprojection cache, vector tiles) and Track H (enterprise: command palette, undo/redo, plugin SDK, observability, offline package, AI guardrails, collaboration, terrain/CityJSON, view corridors). Includes Repo Reality Notes, the script matrix, Agent Contract v2, and a dependency-aware sequencing cheat sheet. |
 
 ## Token-Friendly Historical Entry Point
