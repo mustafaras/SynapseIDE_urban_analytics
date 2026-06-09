@@ -571,8 +571,8 @@ const overflowMenuStyle: React.CSSProperties = {
   top: "calc(100% + 0.375rem)",
   right: 0,
   zIndex: MAP_Z_INDEX.dropdown,
-  width: "min(30rem, calc(100vw - 2rem))",
-  maxHeight: "min(36rem, calc(100vh - 7rem))",
+  width: "min(30rem, calc(100% - var(--map-dock-left, 0px) - var(--map-dock-right, 0px) - 1rem))",
+  maxHeight: "var(--map-popover-max-height, min(24rem, calc(100vh - 8rem)))",
   padding: MAP_SPACING.xs,
   border: MAP_STROKES.hairlineSubtle,
   borderRadius: MAP_RADIUS.md,
@@ -587,8 +587,8 @@ const commandGroupMenuStyle: React.CSSProperties = {
   ...overflowMenuStyle,
   left: 0,
   right: "auto",
-  width: "min(19rem, calc(100vw - 2rem))",
-  maxHeight: "min(28rem, calc(100vh - 7rem))",
+  width: "min(19rem, calc(100% - var(--map-dock-left, 0px) - var(--map-dock-right, 0px) - 1rem))",
+  maxHeight: "var(--map-popover-max-height, min(24rem, calc(100vh - 8rem)))",
 };
 
 const overflowSectionStyle: React.CSSProperties = {
@@ -619,12 +619,12 @@ const paletteBackdropStyle: React.CSSProperties = {
 
 const paletteStyle: React.CSSProperties = {
   position: "fixed",
-  top: "5.5rem",
+  top: "var(--map-overlay-safe-top, 5.5rem)",
   left: "50%",
   transform: "translateX(-50%)",
   zIndex: MAP_Z_INDEX.dropdown + 1,
   width: "min(42rem, calc(100vw - 2rem))",
-  maxHeight: "min(38rem, calc(100vh - 7rem))",
+  maxHeight: "var(--map-popover-max-height, min(24rem, calc(100vh - 8rem)))",
   display: "grid",
   gridTemplateRows: "auto minmax(0, 1fr)",
   border: MAP_STROKES.hairlineStrong,

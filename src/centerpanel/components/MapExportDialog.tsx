@@ -40,8 +40,8 @@ const overlayStyle: React.CSSProperties = {
 
 const dialogStyle: React.CSSProperties = {
   width: 1080,
-  maxWidth: "96vw",
-  maxHeight: "92vh",
+  maxWidth: "calc(100% - 2rem)",
+  maxHeight: "var(--map-popover-max-height, calc(100% - 2rem))",
   overflow: "auto",
   display: "grid",
   gridTemplateColumns: "minmax(360px, 0.9fr) minmax(320px, 1.1fr)",

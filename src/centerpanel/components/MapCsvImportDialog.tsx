@@ -32,8 +32,8 @@ const overlayStyle: React.CSSProperties = {
 
 const dialogStyle: React.CSSProperties = {
   width: 720,
-  maxWidth: "calc(100vw - 48px)",
-  maxHeight: "calc(100vh - 96px)",
+  maxWidth: "calc(100% - 2rem)",
+  maxHeight: "var(--map-popover-max-height, calc(100% - 2rem))",
   overflow: "hidden",
   display: "flex",
   flexDirection: "column",

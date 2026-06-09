@@ -77,8 +77,8 @@ const MIN_DRAG_DEGREES = 0.00001;
 
 const panelStyle: React.CSSProperties = {
   position: "absolute",
-  top: MAP_SPACING.md,
-  width: "min(34rem, calc(100% - 2rem))",
+  top: "var(--map-overlay-safe-top, calc(var(--map-shell-command-height, 2.75rem) + var(--map-overlay-safe-inset-y, 0.25rem)))",
+  width: "min(34rem, calc(100% - var(--map-dock-left, 0px) - var(--map-dock-right, 0px) - 2rem))",
   display: "grid",
   gap: MAP_SPACING.sm,
   padding: MAP_SPACING.sm,
@@ -127,7 +127,9 @@ const barFilterPopoverStyle: React.CSSProperties = {
     "minmax(8rem, 1.1fr) minmax(7rem, 0.9fr) minmax(7rem, 0.9fr) minmax(8rem, 1fr) auto",
   gap: MAP_SPACING.xs,
   alignItems: "center",
-  width: "min(40rem, 88vw)",
+  width: "min(40rem, calc(100% - var(--map-dock-left, 0px) - var(--map-dock-right, 0px) - 1rem))",
+  maxHeight: "var(--map-popover-max-height, min(24rem, calc(100vh - 8rem)))",
+  overflowY: "auto",
   padding: MAP_SPACING.sm,
   border: MAP_STROKES.hairlineStrong,
   borderRadius: MAP_RADIUS.sm,

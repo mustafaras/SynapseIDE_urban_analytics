@@ -56,8 +56,8 @@ const overlay: React.CSSProperties = {
 };
 
 const dialog: React.CSSProperties = {
-  width: "min(980px, calc(100vw - 32px))",
-  maxHeight: "min(760px, calc(100vh - 48px))",
+  width: "min(980px, calc(100% - 2rem))",
+  maxHeight: "var(--map-popover-max-height, calc(100% - 2rem))",
   display: "grid",
   gridTemplateRows: "auto auto minmax(0, 1fr)",
   background: MAP_COLORS.bgPanel,

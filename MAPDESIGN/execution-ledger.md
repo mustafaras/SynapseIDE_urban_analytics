@@ -51,7 +51,7 @@
 | P04 | ui/map-modal-layout-stabilization-p1 | done |  | typecheck passed; lint:errors passed | MAPDESIGN/execution-ledger.md | Closed 2026-06-09 with tokenized shell/safe-inset model |
 | P05 | ui/map-modal-layout-stabilization-p1 | done |  | typecheck passed; lint:errors passed; mapShellPrimitives tests passed | src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx | Closed 2026-06-09 with explicit shell grid regions |
 | P06 | ui/map-modal-layout-stabilization-p1 | done | 15707f6 | typecheck passed; lint:errors passed; map-components + map-accessibility tests passed | src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx | Closed 2026-06-09 with tokenized safe-zone placement for map furniture |
-| P07 | ui/map-modal-layout-stabilization-p1 | not_started |  |  |  |  |
+| P07 | ui/map-modal-layout-stabilization-p1 | done |  | typecheck passed; lint:errors passed; targeted overlay/dialog tests passed | src/centerpanel/components/map/MapToolbar.tsx | Closed 2026-06-09 with modal-safe overlay/dialog containment rules |
 | P08 | ui/map-modal-layout-stabilization-p1 | not_started |  |  |  |  |
 | P09 | ui/map-modal-layout-stabilization-p1 | not_started |  |  |  |  |
 | P10 | ui/map-modal-command-bar-p2 | not_started |  |  |  |  |
@@ -164,6 +164,17 @@
 - Open Risks: Manual visual validation matrix (default modal, left panel open, right dock open, bottom/status visible, short-height viewport) still recommended to confirm no edge overlap in live layout.
 - Resume From: src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx (MapCanvasRegion style safe-inset css vars)
 - Next Prompt: P07
+
+### P07 - Phase 1: Add containment rules for popups, tooltips, dropdowns, and dialogs
+- Status: done
+- Intent: Prevent overlay surfaces from clipping critical controls or escaping the modal viewport while preserving all GIS/CRS/QA/evidence workflows.
+- Definition of Done: Toolbar overflow/palette, selection and CRS popovers, and import/export/service dialogs use modal-safe max sizes and internal scroll containment without changing behavior or semantics.
+- Decisions: Kept edits minimal and reversible by updating style constraints only (no workflow logic changes). Replaced viewport-bound (`vw/vh`) sizing with modal-relative bounds (`100%` + safe fallback), and standardized popover max height against `--map-popover-max-height`.
+- Changed Files: MAPDESIGN/execution-ledger.md; src/centerpanel/components/map/MapToolbar.tsx; src/centerpanel/components/map/MapSelectionTools.tsx; src/centerpanel/components/map/DeclareCrsControl.tsx; src/centerpanel/components/MapExportDialog.tsx; src/centerpanel/components/MapDataImportHubDialog.tsx; src/centerpanel/components/MapCsvImportDialog.tsx; src/centerpanel/components/MapColumnarImportDialog.tsx; src/centerpanel/components/MapServiceDialog.tsx; src/centerpanel/components/map/MapImportPreviewDialog.tsx; src/centerpanel/components/MapDataExportDialog.tsx
+- Validation: `npm run typecheck` passed; `npm run lint:errors` passed; `npx vitest run src/centerpanel/components/__tests__/MapExportDialog.test.tsx src/centerpanel/components/__tests__/MapServiceDialog.test.tsx src/centerpanel/components/map/__tests__/map-import-preflight.test.tsx src/centerpanel/components/map/__tests__/MapToolbar.command-palette.test.tsx` passed (24/24).
+- Open Risks: Full manual collision sweep is still recommended for very narrow/short modal states where multiple overlays are stacked simultaneously.
+- Resume From: src/centerpanel/components/map/MapToolbar.tsx (overflow/palette containment styles)
+- Next Prompt: P08
 
 ## Hand-off Checklist
 - [x] Prompt block status updated
