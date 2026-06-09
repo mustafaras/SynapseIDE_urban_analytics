@@ -377,11 +377,11 @@ describe("MapToolbar command palette", () => {
     });
 
     const dataGroup = document.querySelector<HTMLButtonElement>('[data-testid="map-command-group-data"]');
-    const exploreGroup = document.querySelector<HTMLButtonElement>('[data-testid="map-command-group-explore"]');
+    const evidenceGroup = document.querySelector<HTMLButtonElement>('[data-testid="map-command-group-evidence"]');
     const analyzeGroup = document.querySelector<HTMLButtonElement>('[data-testid="map-command-group-analyze"]');
     const publishGroup = document.querySelector<HTMLButtonElement>('[data-testid="map-command-group-publish"]');
     expect(dataGroup).not.toBeNull();
-    expect(exploreGroup).not.toBeNull();
+    expect(evidenceGroup).not.toBeNull();
     expect(analyzeGroup).not.toBeNull();
     expect(publishGroup).not.toBeNull();
 
@@ -393,7 +393,7 @@ describe("MapToolbar command palette", () => {
     expect(dataMenu).not.toBeNull();
     expect(
       Array.from(dataMenu!.querySelectorAll<HTMLElement>("[data-map-command-id]")).map((node) => node.dataset.mapCommandId),
-    ).toEqual(["import", "catalog", "services"]);
+    ).toEqual(["layers", "contents", "import", "catalog", "services"]);
 
     act(() => {
       publishGroup!.click();
@@ -406,7 +406,7 @@ describe("MapToolbar command palette", () => {
     expect(saveButton?.dataset.disabledReason).toContain("Select or create a project before saving map state.");
   });
 
-  it("exposes undo and redo commands as buttons, palette entries, and global shortcuts", () => {
+  it("keeps undo and redo reachable through overflow, palette entries, and global shortcuts", () => {
     const onUndoMapAction = vi.fn();
     const onRedoMapAction = vi.fn();
     renderToolbar({
@@ -418,6 +418,14 @@ describe("MapToolbar command palette", () => {
       onRedoMapAction,
     });
 
+    expect(document.querySelector('[data-testid="map-toolbar-command-undo-map-action"]')).toBeNull();
+    expect(document.querySelector('[data-testid="map-toolbar-command-redo-map-action"]')).toBeNull();
+
+    const overflowTrigger = document.querySelector<HTMLButtonElement>('[data-testid="map-command-center-overflow"]');
+    expect(overflowTrigger).not.toBeNull();
+    act(() => {
+      overflowTrigger!.click();
+    });
     expect(document.querySelector('[data-testid="map-toolbar-command-undo-map-action"]')).not.toBeNull();
     expect(document.querySelector('[data-testid="map-toolbar-command-redo-map-action"]')).not.toBeNull();
 

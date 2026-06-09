@@ -56,7 +56,7 @@
 | P09 | ui/map-modal-layout-stabilization-p1 | done | 8a8cdcb | playwright p09 layout spec passed; typecheck passed; lint:errors passed; premium baseline spec passed | e2e/map-layout-regression-p09.spec.ts | Closed 2026-06-09 with overlap/clipping regression guards and baseline alignment |
 | P10 | ui/map-modal-command-bar-p2 | done | c02a3f6 | analysis-only inventory completed (surface map + duplication audit + phase-2 recommendations) | MAPDESIGN/p10-command-inventory-2026-06-09.md | Closed 2026-06-09 with Prompt 10 command/header inventory |
 | P11 | ui/map-modal-command-bar-p2 | done | 83b3e33 | typecheck passed; lint:errors passed; MapTopCommandSurface + modal baseline tests passed | src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx | Closed 2026-06-09 with stable top-right modal-control cluster and separated utility controls |
-| P12 | ui/map-modal-command-bar-p2 | not_started |  |  |  |  |
+| P12 | ui/map-modal-command-bar-p2 | done |  | toolbar tests passed; typecheck passed; lint:errors passed; focused e2e smoke passed | src/centerpanel/components/map/MapToolbar.tsx | Closed 2026-06-09 with reduced visible toolbar density and overflow-first secondary commands |
 | P13 | ui/map-modal-command-bar-p2 | not_started |  |  |  |  |
 | P14 | ui/map-modal-command-bar-p2 | not_started |  |  |  |  |
 | P15 | ui/map-modal-command-bar-p2 | not_started |  |  |  |  |
@@ -219,6 +219,17 @@
 - Open Risks: Manual visual verification on desktop/tablet/short-height viewports remains pending in this turn (not automated by current unit tests).
 - Resume From: src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx (MapTopCommandSurface utilitySlot + modalControlSlot wiring)
 - Next Prompt: P12
+
+### P12 - Phase 2: Regroup toolbar actions into visible, overflow, and contextual commands
+- Status: done
+- Intent: Reduce visible command density while keeping all existing commands reachable through grouped menus, overflow, command palette, or shortcuts.
+- Definition of Done: Visible command groups were narrowed to high-frequency entry points (Data, Analyze, Evidence, Publish), secondary View/Advanced actions moved behind overflow, and undo/redo stayed reachable via overflow, command palette, and keyboard shortcuts.
+- Decisions: Reused the existing command registry and group-menu system instead of introducing a new toolbar primitive. Reclassified top-surface groups to `data`, `view`, `analyze`, `evidence`, `publish`, and `advanced`, while keeping only the first four visible by default across normal widths.
+- Changed Files: src/centerpanel/components/map/MapToolbar.tsx; src/centerpanel/components/map/__tests__/MapToolbar.command-palette.test.tsx; src/centerpanel/components/map/__tests__/MapToolbar.external-services.test.tsx; MAPDESIGN/execution-ledger.md
+- Validation: `npx vitest run src/centerpanel/components/map/__tests__/MapToolbar.command-palette.test.tsx src/centerpanel/components/map/__tests__/MapToolbar.external-services.test.tsx` passed (20/20); `npm run typecheck` passed; `npm run lint:errors` passed; `npx playwright test e2e/map-command-palette-p53.spec.ts e2e/map-catalog.spec.ts e2e/map-report-handoff.spec.ts` passed (3/3).
+- Open Risks: The current grouping intentionally pulls `layers` and `contents` into the Data group to emphasize entry over navigation; if user testing prefers a distinct View/Layers affordance, P13/P14 should revisit labels rather than re-expand visible density.
+- Resume From: src/centerpanel/components/map/MapToolbar.tsx (TopSurfaceGroupId grouping + visible group filter)
+- Next Prompt: P13
 
 ## Hand-off Checklist
 - [x] Prompt block status updated
