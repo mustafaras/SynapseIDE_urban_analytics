@@ -55,7 +55,7 @@
 | P08 | ui/map-modal-layout-stabilization-p1 | done | 2c5ab73 | typecheck passed; lint:errors passed; MapStatusBarRoutes tests passed | src/centerpanel/components/map/MapStatusBar.tsx | Closed 2026-06-09 with explicit status priority tiers and critical-warning visibility guard |
 | P09 | ui/map-modal-layout-stabilization-p1 | done | 8a8cdcb | playwright p09 layout spec passed; typecheck passed; lint:errors passed; premium baseline spec passed | e2e/map-layout-regression-p09.spec.ts | Closed 2026-06-09 with overlap/clipping regression guards and baseline alignment |
 | P10 | ui/map-modal-command-bar-p2 | done | c02a3f6 | analysis-only inventory completed (surface map + duplication audit + phase-2 recommendations) | MAPDESIGN/p10-command-inventory-2026-06-09.md | Closed 2026-06-09 with Prompt 10 command/header inventory |
-| P11 | ui/map-modal-command-bar-p2 | done |  | typecheck passed; lint:errors passed; MapTopCommandSurface + modal baseline tests passed | src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx | Closed 2026-06-09 with stable top-right modal-control cluster and separated utility controls |
+| P11 | ui/map-modal-command-bar-p2 | done | 83b3e33 | typecheck passed; lint:errors passed; MapTopCommandSurface + modal baseline tests passed | src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx | Closed 2026-06-09 with stable top-right modal-control cluster and separated utility controls |
 | P12 | ui/map-modal-command-bar-p2 | not_started |  |  |  |  |
 | P13 | ui/map-modal-command-bar-p2 | not_started |  |  |  |  |
 | P14 | ui/map-modal-command-bar-p2 | not_started |  |  |  |  |
