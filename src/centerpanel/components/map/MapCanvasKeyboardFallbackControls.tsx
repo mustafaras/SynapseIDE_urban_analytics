@@ -35,8 +35,8 @@ export interface MapCanvasKeyboardFallbackControlsProps {
 
 const controlShellStyle: React.CSSProperties = {
   position: "absolute",
-  right: `calc(var(--map-dock-right, 0px) + ${MAP_SPACING.md})`,
-  bottom: MAP_SPACING.md,
+  right: "calc(var(--map-dock-right, 0px) + var(--map-overlay-safe-inset-x, 0.75rem))",
+  bottom: "var(--map-overlay-safe-bottom, 6.75rem)",
   zIndex: MAP_Z_INDEX.sidebar + 2,
   display: "grid",
   gap: MAP_SPACING.xs,

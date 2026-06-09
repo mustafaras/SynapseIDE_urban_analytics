@@ -261,11 +261,11 @@ const furnitureButtonsStyle: React.CSSProperties = {
 
 const keyboardHelpPanelStyle: React.CSSProperties = {
   position: "absolute",
-  top: "3rem",
-  left: "calc(var(--map-dock-left, 0px) + 0.75rem)",
+  top: "var(--map-overlay-safe-top, calc(var(--map-shell-command-height, 2.75rem) + var(--map-overlay-safe-inset-y, 0.25rem)))",
+  left: "calc(var(--map-dock-left, 0px) + var(--map-overlay-safe-inset-x, 0.75rem))",
   display: "grid",
   gap: MAP_SPACING.xs,
-  maxWidth: "min(24rem, calc(100vw - var(--map-dock-left, 0px) - var(--map-dock-right, 0px) - 2rem))",
+  maxWidth: "min(24rem, calc(100% - var(--map-dock-left, 0px) - var(--map-dock-right, 0px) - 2rem))",
   padding: `${MAP_SPACING.sm} ${MAP_SPACING.md}`,
   border: MAP_STROKES.hairlineStrong,
   borderRadius: MAP_RADIUS.sm,
@@ -330,8 +330,8 @@ const toolMetaStyle: React.CSSProperties = {
 
 const northArrowStyle: React.CSSProperties = {
   position: "absolute",
-  right: `calc(var(--map-dock-right, 0px) + ${MAP_SPACING.md})`,
-  bottom: "6.75rem",
+  right: "calc(var(--map-dock-right, 0px) + var(--map-overlay-safe-inset-x, 0.75rem))",
+  bottom: "var(--map-overlay-safe-bottom, 6.75rem)",
   width: "2.5rem",
   height: "2.5rem",
   display: "grid",

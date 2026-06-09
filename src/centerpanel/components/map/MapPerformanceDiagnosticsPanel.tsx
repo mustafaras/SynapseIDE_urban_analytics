@@ -28,7 +28,7 @@ export interface MapPerformanceDiagnosticsPanelProps {
 
 export interface MapPerformanceBudgetBannerProps {
   diagnostics: MapPerformanceDiagnosticsSummary;
-  rightInset?: number;
+  rightInset?: React.CSSProperties["right"];
   onOpenDetails?: () => void;
 }
 
@@ -288,7 +288,7 @@ const modeBadgeBaseStyle: React.CSSProperties = {
 
 const bannerStyle: React.CSSProperties = {
   position: "absolute",
-  top: MAP_SPACING.md,
+  top: "var(--map-overlay-safe-top, calc(var(--map-shell-command-height, 2.75rem) + var(--map-overlay-safe-inset-y, 0.25rem)))",
   width: "min(27rem, calc(100% - 2rem))",
   display: "grid",
   gap: MAP_SPACING.xs,
@@ -399,7 +399,7 @@ function shouldForceDiagnosticsCrash(): boolean {
 
 export const MapPerformanceBudgetBanner: React.FC<MapPerformanceBudgetBannerProps> = ({
   diagnostics,
-  rightInset = 16,
+  rightInset = "calc(var(--map-dock-right, 0px) + var(--map-overlay-safe-inset-x, 0.75rem))",
   onOpenDetails,
 }) => {
   if (diagnostics.previewLayerCount === 0) return null;

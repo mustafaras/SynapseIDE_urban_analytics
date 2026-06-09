@@ -1394,7 +1394,7 @@ const mapActivityRailOverlayStyle: React.CSSProperties = {
 
 const canvasSelectionDockStyle: React.CSSProperties = {
   position: "absolute",
-  top: "3.25rem",
+  top: "var(--map-overlay-safe-top, calc(var(--map-shell-command-height, 2.75rem) + var(--map-overlay-safe-inset-y, 0.25rem)))",
   left: `calc(var(--map-dock-left, 0px) + ${MAP_SPACING.md})`,
   zIndex: MAP_Z_INDEX.dropdown,
   pointerEvents: "auto",
@@ -10452,8 +10452,14 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         <MapCanvasRegion
           ref={handleMapContainerRef}
           style={{
+            "--map-shell-command-height": "2.75rem",
             "--map-dock-left": `${navigatorLeftInset}px`,
             "--map-dock-right": `${navigatorRightInset}px`,
+            "--map-overlay-safe-inset-x": "0.75rem",
+            "--map-overlay-safe-inset-y": "0.25rem",
+            "--map-overlay-safe-top": "calc(var(--map-shell-command-height, 2.75rem) + var(--map-overlay-safe-inset-y, 0.25rem))",
+            "--map-overlay-safe-bottom": "6.75rem",
+            "--map-popover-max-height": "min(24rem, calc(100vh - 8rem))",
             "--map-layer-panel-width": `${dockLayout.layerPanelWidth}px`,
             "--map-activity-rail-width": MAP_ACTIVITY_RAIL_WIDTH,
             marginLeft: MAP_ACTIVITY_RAIL_WIDTH,
@@ -10557,8 +10563,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             <div
               style={{
                 position: "absolute",
-                top: 16,
-                right: navigatorRightInset,
+                top: "var(--map-overlay-safe-top, calc(var(--map-shell-command-height, 2.75rem) + var(--map-overlay-safe-inset-y, 0.25rem)))",
+                right: "calc(var(--map-dock-right, 0px) + var(--map-overlay-safe-inset-x, 0.75rem))",
                 width: 320,
                 maxWidth: `calc(100% - ${navigatorLeftInset + navigatorRightInset}px)`,
                 display: "grid",
@@ -10954,7 +10960,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
           {!navigatorStageMode ? (
             <MapPerformanceBudgetBanner
               diagnostics={performanceDiagnostics}
-              rightInset={navigatorRightInset + 16}
+              rightInset="calc(var(--map-dock-right, 0px) + var(--map-overlay-safe-inset-x, 0.75rem))"
               onOpenDetails={() => openPerformanceRightDock("Render budget details opened in the right dock", "quick-action")}
             />
           ) : null}

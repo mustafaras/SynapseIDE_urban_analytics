@@ -16,10 +16,10 @@ export interface MapLegendOverlayProps {
 
 const containerStyle: React.CSSProperties = {
   position: "absolute",
-  right: MAP_SPACING.md,
-  bottom: MAP_SPACING.md,
-  width: "min(17rem, 34vw)",
-  maxHeight: "40%",
+  right: "calc(var(--map-dock-right, 0px) + var(--map-overlay-safe-inset-x, 0.75rem))",
+  bottom: "var(--map-overlay-safe-bottom, 6.75rem)",
+  width: "min(17rem, calc(100% - var(--map-dock-left, 0px) - var(--map-dock-right, 0px) - 2rem))",
+  maxHeight: "var(--map-popover-max-height, min(24rem, calc(100vh - 8rem)))",
   display: "grid",
   gap: MAP_SPACING.xs,
   padding: MAP_SPACING.sm,

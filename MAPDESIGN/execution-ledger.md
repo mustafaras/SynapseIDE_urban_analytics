@@ -50,7 +50,7 @@
 | P03 | local/p03-test-contracts | done |  | analysis-only search/read pass completed | MAPDESIGN/p03-test-contracts-2026-06-09.md | Closed 2026-06-09 with selector contract note |
 | P04 | ui/map-modal-layout-stabilization-p1 | done |  | typecheck passed; lint:errors passed | MAPDESIGN/execution-ledger.md | Closed 2026-06-09 with tokenized shell/safe-inset model |
 | P05 | ui/map-modal-layout-stabilization-p1 | done |  | typecheck passed; lint:errors passed; mapShellPrimitives tests passed | src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx | Closed 2026-06-09 with explicit shell grid regions |
-| P06 | ui/map-modal-layout-stabilization-p1 | not_started |  |  |  |  |
+| P06 | ui/map-modal-layout-stabilization-p1 | done |  | typecheck passed; lint:errors passed; map-components + map-accessibility tests passed | src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx | Closed 2026-06-09 with tokenized safe-zone placement for map furniture |
 | P07 | ui/map-modal-layout-stabilization-p1 | not_started |  |  |  |  |
 | P08 | ui/map-modal-layout-stabilization-p1 | not_started |  |  |  |  |
 | P09 | ui/map-modal-layout-stabilization-p1 | not_started |  |  |  |  |
@@ -153,6 +153,17 @@
 - Open Risks: Header row height currently follows `--map-shell-command-height`; if command surface intrinsic height changes in future prompts, row and content height must stay aligned. No remaining blank-gap risk expected after resize synchronization.
 - Resume From: src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx (shellLayoutGridStyle, data-map-shell-region wrappers)
 - Next Prompt: P06
+
+### P06 - Phase 1: Apply map furniture safe-zone rules
+- Status: done
+- Intent: Make floating map furniture respect modal panel boundaries and shell safe insets without changing map behavior.
+- Definition of Done: Floating controls (keyboard help, north arrow, keyboard fallback controls, diagnostics banner, legend overlay, import progress, and canvas selection dock) use tokenized safe inset placement and avoid collisions with command, dock, and bottom regions.
+- Decisions: Standardized placement on shell CSS vars (`--map-overlay-safe-top`, `--map-overlay-safe-bottom`, `--map-overlay-safe-inset-x`, `--map-overlay-safe-inset-y`, `--map-dock-left`, `--map-dock-right`). Applied these vars in control overlays and legend/diagnostics surfaces; retained keyboard operability and existing tool semantics.
+- Changed Files: MAPDESIGN/execution-ledger.md; src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx; src/centerpanel/components/map/MapCanvasControls.tsx; src/centerpanel/components/map/MapCanvasKeyboardFallbackControls.tsx; src/centerpanel/components/map/MapPerformanceDiagnosticsPanel.tsx; src/centerpanel/components/map/inspector/style/MapLegendOverlay.tsx; src/centerpanel/components/map/MapCanvas.tsx; src/centerpanel/components/map/mapTokens.ts
+- Validation: `npm run typecheck` passed; `npm run lint:errors` passed; `npx vitest run src/centerpanel/components/map/__tests__/map-components.test.ts src/centerpanel/components/map/__tests__/map-accessibility.test.ts` passed (98/98). Test run emitted non-blocking React `act(...)` warning in an existing toolbar test and a non-failing Three.js duplicate import warning.
+- Open Risks: Manual visual validation matrix (default modal, left panel open, right dock open, bottom/status visible, short-height viewport) still recommended to confirm no edge overlap in live layout.
+- Resume From: src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx (MapCanvasRegion style safe-inset css vars)
+- Next Prompt: P07
 
 ## Hand-off Checklist
 - [x] Prompt block status updated
