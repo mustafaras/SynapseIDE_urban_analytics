@@ -234,14 +234,17 @@ const overflowMenuItemStyle: React.CSSProperties = {
 };
 
 type StatusTone = "neutral" | "info" | "error" | "valid" | "running" | "pending" | "stale" | "warning";
+type StatusGroup = "view" | "data" | "runtime";
 
 type StatusSegment = {
   id: MapStatusBarSegmentId;
+  group: StatusGroup;
   label: string;
   value: string;
   title: string;
   widthPx: number;
   priority: number;
+  critical?: boolean;
   tone?: StatusTone;
   busy?: boolean;
   onClick?: () => void;
@@ -363,6 +366,25 @@ function syncTone(syncStatus: string): StatusTone {
     return "info";
   }
   return "stale";
+}
+
+function providerTone(providerLabel: string): StatusTone {
+  const normalized = providerLabel.toLowerCase();
+  if (normalized.includes("error") || normalized.includes("failed") || normalized.includes("unavailable")) {
+    return "error";
+  }
+  if (normalized.includes("offline") || normalized.includes("degraded")) {
+    return "warning";
+  }
+  return "neutral";
+}
+
+function crsTone(crs: string): StatusTone {
+  const normalized = crs.toLowerCase();
+  if (normalized.includes("unknown") || normalized.includes("missing") || normalized.includes("unset")) {
+    return "warning";
+  }
+  return "info";
 }
 
 function collaborationTone(status: MapStatusBarCollaborationState): StatusTone {
@@ -599,6 +621,8 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
   );
   const syncValueTone = syncTone(syncStatus);
   const collaborationValueTone = collaborationTone(collaborationStatus);
+  const providerValueTone = providerTone(providerLabel);
+  const crsValueTone = crsTone(crs);
   const syncSummary = `${syncStatus} · ${collaborationLabel}`;
   const syncSummaryTone = mergeTone(syncValueTone, collaborationValueTone);
   const saveValueTone = saveTone(isLoading, isSaving, lastSavedAt);
@@ -610,6 +634,7 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
     if (cursor != null) {
       nextSegments.push({
         id: "cursor",
+        group: "view",
         label: "Cursor",
         value: `${cursor.lng.toFixed(5)}, ${cursor.lat.toFixed(5)}`,
         title: `Cursor longitude ${cursor.lng.toFixed(5)}, latitude ${cursor.lat.toFixed(5)}`,
@@ -623,6 +648,7 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
     nextSegments.push(
       {
         id: "view",
+        group: "view",
         label: "View",
         value: viewLabel,
         title: `Zoom ${zoom.toFixed(1)} with approximate scale ${formatApproximateScaleLabel(zoom)}`,
@@ -633,6 +659,7 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
       },
       {
         id: "project",
+        group: "view",
         label: "Project",
         value: `${projectLabel} · ${saveLabel}`,
         title: `${projectLabel}; ${isLoading ? "Loading project state" : isSaving ? "Saving project state" : formatSaveTitle(lastSavedAt)}; auto-save ${autoSaveEnabled ? "on" : "off"}`,
@@ -645,6 +672,7 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
       },
       {
         id: "mode",
+        group: "view",
         label: "Mode",
         value: modeLabel,
         title: `Workspace state ${modeLabel}`,
@@ -653,6 +681,7 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
       },
       {
         id: "layers",
+        group: "data",
         label: "Layers",
         value: `${visibleLayerCount}/${layerCount}`,
         title: `${visibleLayerCount} visible of ${layerCount} total layers`,
@@ -663,6 +692,7 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
       },
       {
         id: "selection",
+        group: "data",
         label: "Select",
         value: `${selectedFeatureCount}`,
         title: `${selectedFeatureCount} selected features`,
@@ -673,6 +703,7 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
       },
       {
         id: "sketch",
+        group: "data",
         label: "Sketch",
         value: sketchValue,
         title: `AOI ${hasActiveAoi ? "active" : "inactive"}, ${drawnFeatureCount} drawn features, ${pinCount} pins`,
@@ -684,6 +715,7 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
       },
       {
         id: "measure",
+        group: "data",
         label: "Measure",
         value: measureValue,
         title: `${measurementCount} measurements recorded`,
@@ -695,6 +727,7 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
       },
       {
         id: "units",
+        group: "data",
         label: "Units",
         value: measureUnit === "metric" ? "metric" : "imperial",
         title: `Measurement units ${measureUnit === "metric" ? "metric" : "imperial"}`,
@@ -703,28 +736,33 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
       },
       {
         id: "crs",
+        group: "data",
         label: "CRS",
         value: crs,
         title: `Coordinate reference system ${crs}`,
         widthPx: 130,
-        priority: 94,
-        tone: "info",
+        priority: 94 + (crsValueTone === "warning" ? 22 : 0),
+        critical: crsValueTone === "warning" || crsValueTone === "error",
+        tone: crsValueTone,
         onClick: onOpenCrsReadiness,
         ariaLabel: "Open CRS readiness",
       },
       {
         id: "qa",
+        group: "data",
         label: "QA",
         value: qaLabel,
         title: `${qaLabel}; blockers ${qaBlockerCount}; issues ${qaIssueCount}`,
         widthPx: 110,
         priority: 98 + (qaValueTone === "error" || qaValueTone === "warning" ? 18 : 0),
+        critical: qaValueTone === "error" || qaValueTone === "warning",
         tone: qaValueTone,
         onClick: onOpenProblems,
         ariaLabel: "Open QA Problems",
       },
       {
         id: "review",
+        group: "runtime",
         label: "Review",
         value: `${reviewEventCount}`,
         title: `${reviewEventCount} review timeline events`,
@@ -735,6 +773,7 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
       },
       {
         id: "tasks",
+        group: "runtime",
         label: "Tasks",
         value: formatTaskValue(taskCount, activeTaskCount),
         title: `${activeTaskCount} active background tasks out of ${taskCount} tracked tasks`,
@@ -747,6 +786,7 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
       },
       {
         id: "perf",
+        group: "runtime",
         label: "Perf",
         value: performanceLabel,
         title: `${performanceMode} render mode with ${performanceIssueCount} active performance caveats`,
@@ -758,22 +798,27 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
       },
       {
         id: "sync",
+        group: "runtime",
         label: "Sync",
         value: syncSummary,
         title: `Viewport sync ${syncStatus}; collaboration ${collaborationLabel}`,
         widthPx: 152,
         priority: 80 + (syncSummaryTone === "error" || syncSummaryTone === "warning" ? 12 : 0),
+        critical: syncSummaryTone === "error" || syncSummaryTone === "warning",
         tone: syncSummaryTone,
         onClick: onOpenCollaboration,
         ariaLabel: `Open Review collaboration (${collaborationLabel})`,
       },
       {
         id: "provider",
+        group: "runtime",
         label: "Base",
         value: providerLabel,
         title: `Basemap provider ${providerLabel}`,
         widthPx: 126,
-        priority: 70,
+        priority: 70 + (providerValueTone === "error" || providerValueTone === "warning" ? 16 : 0),
+        critical: providerValueTone === "error" || providerValueTone === "warning",
+        tone: providerValueTone,
         href: providerHref,
         ariaLabel: `Open basemap attribution for ${providerLabel}`,
       },
@@ -817,8 +862,10 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
     pinCount,
     projectLabel,
     projectId,
+    providerValueTone,
     providerHref,
     providerLabel,
+    crsValueTone,
     qaBlockerCount,
     qaIssueCount,
     qaLabel,
@@ -851,6 +898,9 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
     const overflowTriggerWidth = 92;
     const visibleBudget = Math.max(availableWidth - overflowTriggerWidth, 0);
     const rankedSegments = [...segments].sort((left, right) => {
+      if (Boolean(right.critical) !== Boolean(left.critical)) {
+        return right.critical ? 1 : -1;
+      }
       if (right.priority !== left.priority) {
         return right.priority - left.priority;
       }
@@ -859,7 +909,16 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
     const selectedIds = new Set<MapStatusBarSegmentId>();
     let usedWidth = 0;
 
+    const criticalSegments = rankedSegments.filter((segment) => segment.critical);
+    for (const segment of criticalSegments) {
+      selectedIds.add(segment.id);
+      usedWidth += segment.widthPx;
+    }
+
     for (const segment of rankedSegments) {
+      if (segment.critical) {
+        continue;
+      }
       if (usedWidth + segment.widthPx > visibleBudget) {
         continue;
       }
@@ -907,13 +966,19 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
     }
   }, [overflowOpen, overflowSegments.length]);
 
-  const renderInlineSegment = (segment: StatusSegment): React.ReactNode => {
+  const renderInlineSegment = (
+    segment: StatusSegment,
+    index: number,
+    list: StatusSegment[],
+  ): React.ReactNode => {
+    const isGroupStart = index > 0 && list[index - 1]?.group !== segment.group;
     const sharedProps = {
       title: segment.title,
       "data-map-status-segment": segment.id,
       style: {
         ...(segment.onClick || segment.href ? segmentButtonStyle : segmentBaseStyle),
         width: `${segment.widthPx}px`,
+        borderLeft: isGroupStart ? MAP_STROKES.hairlineSubtle : undefined,
       },
       "aria-label": segment.ariaLabel ?? `${segment.label}: ${segment.value}`,
     } as const;

@@ -52,7 +52,7 @@
 | P05 | ui/map-modal-layout-stabilization-p1 | done |  | typecheck passed; lint:errors passed; mapShellPrimitives tests passed | src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx | Closed 2026-06-09 with explicit shell grid regions |
 | P06 | ui/map-modal-layout-stabilization-p1 | done | 15707f6 | typecheck passed; lint:errors passed; map-components + map-accessibility tests passed | src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx | Closed 2026-06-09 with tokenized safe-zone placement for map furniture |
 | P07 | ui/map-modal-layout-stabilization-p1 | done |  | typecheck passed; lint:errors passed; targeted overlay/dialog tests passed | src/centerpanel/components/map/MapToolbar.tsx | Closed 2026-06-09 with modal-safe overlay/dialog containment rules |
-| P08 | ui/map-modal-layout-stabilization-p1 | not_started |  |  |  |  |
+| P08 | ui/map-modal-layout-stabilization-p1 | done |  | typecheck passed; lint:errors passed; MapStatusBarRoutes tests passed | src/centerpanel/components/map/MapStatusBar.tsx | Closed 2026-06-09 with explicit status priority tiers and critical-warning visibility guard |
 | P09 | ui/map-modal-layout-stabilization-p1 | not_started |  |  |  |  |
 | P10 | ui/map-modal-command-bar-p2 | not_started |  |  |  |  |
 | P11 | ui/map-modal-command-bar-p2 | not_started |  |  |  |  |
@@ -175,6 +175,17 @@
 - Open Risks: Full manual collision sweep is still recommended for very narrow/short modal states where multiple overlays are stacked simultaneously.
 - Resume From: src/centerpanel/components/map/MapToolbar.tsx (overflow/palette containment styles)
 - Next Prompt: P08
+
+### P08 - Phase 1: Make the status bar production-readable
+- Status: done
+- Intent: Improve status bar readability and priority behavior while preserving CRS/QA/provider/sync/perf/task/layer/selection semantics.
+- Definition of Done: Status segments are explicitly grouped (view, data, runtime), priority rules keep critical warnings visible, overflow behavior remains intact, and short-width layouts stay usable.
+- Decisions: Added explicit segment grouping and critical-warning flags in `MapStatusBar`; introduced deterministic tone logic for CRS/provider warning detection; updated overflow packing to pin critical warning segments before non-critical metadata.
+- Changed Files: MAPDESIGN/execution-ledger.md; src/centerpanel/components/map/MapStatusBar.tsx; src/centerpanel/components/map/__tests__/MapStatusBarRoutes.test.tsx
+- Validation: `npm run typecheck` passed; `npm run lint:errors` passed; `npx vitest run src/centerpanel/components/map/__tests__/MapStatusBarRoutes.test.tsx` passed (3/3).
+- Open Risks: CRS warning detection currently relies on explicit status strings (e.g., `unknown`, `missing`, `unset`) within `crs`; if upstream semantics change, this tone mapping should be aligned with a typed CRS readiness signal.
+- Resume From: src/centerpanel/components/map/MapStatusBar.tsx (segment grouping + overflow priority selection)
+- Next Prompt: P09
 
 ## Hand-off Checklist
 - [x] Prompt block status updated

@@ -172,4 +172,35 @@ describe("MapStatusBar status routes", () => {
 
     expect(callbacks.onOpenDiagnostics).toHaveBeenCalledTimes(1);
   });
+
+  it("keeps critical CRS/QA warnings visible in narrow status layouts", () => {
+    const callbacks: StatusCallbacks = {
+      onOpenInspect: vi.fn(),
+      onOpenProject: vi.fn(),
+      onOpenLayers: vi.fn(),
+      onOpenCrsReadiness: vi.fn(),
+      onOpenProblems: vi.fn(),
+      onOpenAttributes: vi.fn(),
+      onOpenSelection: vi.fn(),
+      onOpenDraw: vi.fn(),
+      onOpenMeasurements: vi.fn(),
+      onOpenTimeline: vi.fn(),
+      onOpenTasks: vi.fn(),
+      onOpenCollaboration: vi.fn(),
+      onOpenDiagnostics: vi.fn(),
+    };
+
+    renderStatusBar(callbacks, {
+      layoutWidthOverride: 360,
+      crs: "unknown",
+      qaStatus: "warning",
+      qaIssueCount: 3,
+    });
+
+    const qaVisible = host!.querySelector('[data-map-status-segment="qa"]:not([data-map-status-overflow="true"])');
+    const crsVisible = host!.querySelector('[data-map-status-segment="crs"]:not([data-map-status-overflow="true"])');
+
+    expect(qaVisible).toBeTruthy();
+    expect(crsVisible).toBeTruthy();
+  });
 });
