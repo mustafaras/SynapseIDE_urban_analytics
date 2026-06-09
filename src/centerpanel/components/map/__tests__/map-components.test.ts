@@ -562,9 +562,9 @@ describe("Map Explorer components render without errors", () => {
 
     expect(rectangleButton).toBeNull();
     expect(lassoButton).toBeNull();
-    expect(drawAoiButton?.textContent).toContain("On");
-    expect(distanceButton?.textContent).toContain("Off");
-    expect(keyboardHelpButton?.textContent).toContain("Off");
+    expect(drawAoiButton?.getAttribute("aria-pressed")).toBe("true");
+    expect(distanceButton?.getAttribute("aria-pressed")).toBe("false");
+    expect(keyboardHelpButton?.getAttribute("aria-pressed")).toBe("false");
 
     const clickByLabel = async (label: string): Promise<void> => {
       const button = host.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`);

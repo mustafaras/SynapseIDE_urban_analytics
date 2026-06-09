@@ -73,6 +73,7 @@ import { MapCanvas, type MapFeatureReportRequest } from "../MapCanvas";
 import { MapCanvasControls } from "../MapCanvasControls";
 import { MapTopCommandSurface } from "../MapTopCommandSurface";
 import { MapToolbar } from "../MapToolbar";
+import { GisIconButton } from "../ui";
 import {
   MapLayerCartographyPanel,
   MapLayerManager,
@@ -1411,20 +1412,16 @@ const modalControlClusterStyle: React.CSSProperties = {
   gap: "0.25rem",
 };
 
-const modalControlButtonStyle: React.CSSProperties = {
-  ...mapStyles.closeBtn,
-  position: "static",
-  flex: "0 0 auto",
-  width: "1.875rem",
-  height: "1.875rem",
-  border: "1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.32))",
-  borderRadius: MAP_RADIUS.sm,
-  background: "color-mix(in srgb, var(--syn-surface-panel, #151a21) 54%, transparent)",
+const modalControlCloseButtonStyle: React.CSSProperties = {
+  border: "1px solid color-mix(in srgb, var(--syn-error, #f87171) 46%, var(--syn-border-strong, rgba(148, 163, 184, 0.42)))",
+  color: "var(--syn-error, #f87171)",
 };
 
-const modalControlCloseButtonStyle: React.CSSProperties = {
-  ...modalControlButtonStyle,
-  border: "1px solid var(--syn-border-strong, rgba(148, 163, 184, 0.42))",
+const modalControlCloseDividerStyle: React.CSSProperties = {
+  width: 1,
+  height: "1.25rem",
+  background: "var(--syn-border-subtle, rgba(148, 163, 184, 0.28))",
+  margin: "0 0.125rem",
 };
 
 /* ================================================================== */
@@ -10452,46 +10449,47 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
           )}
           modalControlSlot={(
             <div style={modalControlClusterStyle} data-testid="map-modal-control-cluster">
-              <button
-                type="button"
-                style={modalControlButtonStyle}
+              <GisIconButton
+                label={dockControlLabel}
+                tooltip={dockControlLabel}
+                icon={effectiveShowLayerPanel
+                  ? <PanelLeftClose size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+                  : <PanelLeftOpen size={MAP_ICON_SIZES.sm} aria-hidden="true" />}
+                size="md"
+                active={effectiveShowLayerPanel}
                 onClick={handleToggleLayerPanel}
-                aria-label={dockControlLabel}
-                title={dockControlLabel}
                 data-testid="map-modal-control-dock"
-              >
-                {effectiveShowLayerPanel ? <PanelLeftClose size={MAP_ICON_SIZES.sm} /> : <PanelLeftOpen size={MAP_ICON_SIZES.sm} />}
-              </button>
-              <button
-                type="button"
-                style={modalControlButtonStyle}
+              />
+              <GisIconButton
+                label="Minimize map workspace chrome"
+                tooltip="Minimize map workspace chrome"
+                icon={<Minimize2 size={MAP_ICON_SIZES.sm} aria-hidden="true" />}
+                size="md"
+                showPressedState={false}
                 onClick={handleCollapseAllPanels}
-                aria-label="Minimize map workspace chrome"
-                title="Minimize map workspace chrome"
                 data-testid="map-modal-control-minimize"
-              >
-                <Minimize2 size={MAP_ICON_SIZES.sm} />
-              </button>
-              <button
-                type="button"
-                style={modalControlButtonStyle}
+              />
+              <GisIconButton
+                label="Expand map workspace to default layout"
+                tooltip="Expand map workspace to default layout"
+                icon={<Maximize2 size={MAP_ICON_SIZES.sm} aria-hidden="true" />}
+                size="md"
+                showPressedState={false}
                 onClick={handleResetLayout}
-                aria-label="Expand map workspace to default layout"
-                title="Expand map workspace to default layout"
                 data-testid="map-modal-control-expand"
-              >
-                <Maximize2 size={MAP_ICON_SIZES.sm} />
-              </button>
-              <button
-                type="button"
+              />
+              <span style={modalControlCloseDividerStyle} aria-hidden="true" />
+              <GisIconButton
+                label="Close map explorer (Escape)"
+                tooltip="Close map explorer (Escape)"
+                icon={<IconClose size={MAP_ICON_SIZES.md} aria-hidden="true" />}
+                size="md"
+                variant="accent"
+                showPressedState={false}
                 style={modalControlCloseButtonStyle}
                 onClick={onClose}
-                aria-label="Close map explorer (Escape)"
-                title="Close map explorer (Escape)"
                 data-testid="map-modal-control-close"
-              >
-                <IconClose size={MAP_ICON_SIZES.md} />
-              </button>
+              />
             </div>
           )}
         />

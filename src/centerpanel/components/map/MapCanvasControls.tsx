@@ -38,6 +38,7 @@ import {
   MAP_TYPOGRAPHY,
   MAP_Z_INDEX,
 } from "./mapTokens";
+import { GisIconButton } from "./ui";
 
 export interface MapCanvasControlsProps {
   activeBaseLayer: BaseLayerId;
@@ -148,33 +149,6 @@ const barDividerStyle: React.CSSProperties = {
   margin: "0 0.1875rem",
 };
 
-const buttonStyle: React.CSSProperties = {
-  width: "1.75rem",
-  height: "1.75rem",
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  border: "1px solid transparent",
-  borderRadius: MAP_RADIUS.sm,
-  background: MAP_COLORS.transparent,
-  color: MAP_COLORS.textSecondary,
-  cursor: "pointer",
-  flexShrink: 0,
-};
-
-const activeButtonStyle: React.CSSProperties = {
-  ...buttonStyle,
-  border: "1px solid var(--syn-border-active, rgba(245, 158, 11, 0.62))",
-  background: MAP_COLORS.selectedSubtle,
-  color: MAP_COLORS.interaction,
-};
-
-const disabledButtonStyle: React.CSSProperties = {
-  ...buttonStyle,
-  opacity: 0.45,
-  cursor: "not-allowed",
-};
-
 const toolIndicatorStyle: React.CSSProperties = {
   display: "inline-grid",
   gridTemplateColumns: "auto minmax(0, 1fr) auto",
@@ -189,58 +163,6 @@ const toolIndicatorStyle: React.CSSProperties = {
   background: "var(--syn-surface-subtle, rgba(15, 23, 42, 0.5))",
   color: MAP_COLORS.textSecondary,
   flexShrink: 0,
-};
-
-const interactionButtonStyle: React.CSSProperties = {
-  width: "1.75rem",
-  height: "1.75rem",
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  border: "1px solid transparent",
-  borderRadius: MAP_RADIUS.sm,
-  background: MAP_COLORS.transparent,
-  color: MAP_COLORS.textSecondary,
-  cursor: "pointer",
-  flexShrink: 0,
-  fontFamily: MAP_TYPOGRAPHY.fontFamily,
-  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
-  fontWeight: MAP_TYPOGRAPHY.fontWeight.medium,
-};
-
-const activeInteractionButtonStyle: React.CSSProperties = {
-  ...interactionButtonStyle,
-  border: "1px solid var(--syn-border-active, rgba(245, 158, 11, 0.62))",
-  background: MAP_COLORS.selectedSubtle,
-  color: MAP_COLORS.text,
-  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
-};
-
-const disabledInteractionButtonStyle: React.CSSProperties = {
-  ...interactionButtonStyle,
-  opacity: 0.45,
-  cursor: "not-allowed",
-};
-
-const interactionLabelStyle: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: MAP_SPACING.xs,
-  minWidth: MAP_SPACING.zero,
-};
-
-const interactionStateStyle: React.CSSProperties = {
-  /* State text (On/Off) is kept for assistive tech + tests but visually hidden;
-     active state is conveyed by the amber border + aria-pressed. */
-  position: "absolute",
-  width: "1px",
-  height: "1px",
-  padding: 0,
-  margin: "-1px",
-  overflow: "hidden",
-  clip: "rect(0 0 0 0)",
-  whiteSpace: "nowrap",
-  border: 0,
 };
 
 const furnitureGroupStyle: React.CSSProperties = {
@@ -348,16 +270,6 @@ const northArrowNeedleStyle: React.CSSProperties = {
   placeItems: "center",
   color: MAP_COLORS.interaction,
 };
-
-function iconButtonStyle(active = false, disabled = false): React.CSSProperties {
-  if (disabled) return disabledButtonStyle;
-  return active ? activeButtonStyle : buttonStyle;
-}
-
-function interactionToolButtonStyle(active = false, disabled = false): React.CSSProperties {
-  if (disabled) return disabledInteractionButtonStyle;
-  return active ? activeInteractionButtonStyle : interactionButtonStyle;
-}
 
 function selectionToolLabel(tool: SelectionDragTool): string {
   return tool === "rectangle" ? "Rect select" : "Lasso select";
@@ -485,38 +397,58 @@ export const MapCanvasControls: React.FC<MapCanvasControlsProps> = ({
 
   const viewportGroup = (
         <div style={barGroupStyle} role="group" aria-label="Viewport recovery controls" data-testid="map-canvas-viewport-controls">
-          <button type="button" style={buttonStyle} onClick={onZoomIn} aria-label="Zoom in" title="Zoom in">
-            <ZoomIn size={MAP_ICON_SIZES.sm} aria-hidden="true" />
-          </button>
-          <button type="button" style={buttonStyle} onClick={onZoomOut} aria-label="Zoom out" title="Zoom out">
-            <ZoomOut size={MAP_ICON_SIZES.sm} aria-hidden="true" />
-          </button>
-          <button type="button" style={buttonStyle} onClick={onResetView} aria-label="Reset map view" title="Reset map view">
-            <RotateCcw size={MAP_ICON_SIZES.sm} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            style={iconButtonStyle(false, fitVisibleDisabled)}
-            onClick={onFitVisibleLayers}
-            aria-label={`Fit to visible layers, ${visibleLayerCount} visible`}
-            title={fitVisibleDisabled ? fitVisibleReason : "Fit to visible layers"}
+          <GisIconButton
+            label="Zoom in"
+            tooltip="Zoom in"
+            icon={<ZoomIn size={MAP_ICON_SIZES.sm} aria-hidden="true" />}
+            size="sm"
+            showPressedState={false}
+            onClick={onZoomIn}
+          />
+          <GisIconButton
+            label="Zoom out"
+            tooltip="Zoom out"
+            icon={<ZoomOut size={MAP_ICON_SIZES.sm} aria-hidden="true" />}
+            size="sm"
+            showPressedState={false}
+            onClick={onZoomOut}
+          />
+          <GisIconButton
+            label="Reset map view"
+            tooltip="Reset map view"
+            icon={<RotateCcw size={MAP_ICON_SIZES.sm} aria-hidden="true" />}
+            size="sm"
+            showPressedState={false}
+            onClick={onResetView}
+          />
+          <GisIconButton
+            label={`Fit to visible layers, ${visibleLayerCount} visible`}
+            tooltip={fitVisibleDisabled ? fitVisibleReason : "Fit to visible layers"}
+            icon={<Maximize2 size={MAP_ICON_SIZES.sm} aria-hidden="true" />}
+            size="sm"
+            showPressedState={false}
             disabled={fitVisibleDisabled}
-          >
-            <Maximize2 size={MAP_ICON_SIZES.sm} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            style={iconButtonStyle(false, fitSelectedDisabled)}
-            onClick={onFitSelectedContext}
-            aria-label="Fit to selected layer, feature, or AOI"
-            title={fitSelectedDisabled ? fitSelectedReason : "Fit to selected layer, feature, or AOI"}
+            disabledReason={fitVisibleReason}
+            onClick={onFitVisibleLayers}
+          />
+          <GisIconButton
+            label="Fit to selected layer, feature, or AOI"
+            tooltip={fitSelectedDisabled ? fitSelectedReason : "Fit to selected layer, feature, or AOI"}
+            icon={<LocateFixed size={MAP_ICON_SIZES.sm} aria-hidden="true" />}
+            size="sm"
+            showPressedState={false}
             disabled={fitSelectedDisabled}
-          >
-            <LocateFixed size={MAP_ICON_SIZES.sm} aria-hidden="true" />
-          </button>
-          <button type="button" style={buttonStyle} onClick={onOpenCrsReadiness} aria-label="Open CRS readiness" title="Open CRS readiness">
-            <Navigation size={MAP_ICON_SIZES.sm} aria-hidden="true" />
-          </button>
+            disabledReason={fitSelectedReason}
+            onClick={onFitSelectedContext}
+          />
+          <GisIconButton
+            label="Open CRS readiness"
+            tooltip="Open CRS readiness"
+            icon={<Navigation size={MAP_ICON_SIZES.sm} aria-hidden="true" />}
+            size="sm"
+            showPressedState={false}
+            onClick={onOpenCrsReadiness}
+          />
         </div>
   );
 
@@ -527,131 +459,96 @@ export const MapCanvasControls: React.FC<MapCanvasControlsProps> = ({
             <span style={toolLabelStyle}>{tool.label}</span>
             <span style={toolMetaStyle}>{tool.detail}</span>
           </span>
-          <button
-            type="button"
-            style={iconButtonStyle(false, !tool.clearable)}
+          <GisIconButton
+            label={tool.clearable ? "Clear active map tool" : "No active map tool to clear"}
+            tooltip={tool.clearable ? "Clear active map tool" : "No active map tool to clear"}
+            icon={<X size={MAP_ICON_SIZES.sm} aria-hidden="true" />}
+            size="sm"
+            showPressedState={false}
             disabled={!tool.clearable}
+            disabledReason="No active map tool to clear"
             onClick={onClearActiveTool}
-            aria-label={tool.clearable ? "Clear active map tool" : "No active map tool to clear"}
-            title={tool.clearable ? "Clear active map tool" : "No active map tool to clear"}
-          >
-            <X size={MAP_ICON_SIZES.sm} aria-hidden="true" />
-          </button>
+          />
         </div>
   );
 
   const interactionGroup = (
         <div style={barGroupStyle} role="group" aria-label="Canvas interaction tools" data-testid="map-canvas-interaction-strip">
-          <button
-            type="button"
-            data-testid="map-canvas-draw-aoi"
-            style={interactionToolButtonStyle(activeDrawTool === "polygon")}
+          <GisIconButton
+            label={activeDrawTool === "polygon" ? "Cancel draw AOI" : "Draw AOI"}
+            tooltip={activeDrawTool === "polygon" ? "Cancel draw AOI" : "Draw AOI"}
+            icon={<MapPinned size={MAP_ICON_SIZES.sm} aria-hidden="true" />}
+            size="sm"
+            active={activeDrawTool === "polygon"}
             onClick={onDrawAoi}
-            aria-label={activeDrawTool === "polygon" ? "Cancel draw AOI" : "Draw AOI"}
-            aria-pressed={activeDrawTool === "polygon"}
-            title={activeDrawTool === "polygon" ? "Cancel draw AOI" : "Draw AOI"}
-          >
-            <span style={interactionLabelStyle}>
-              <MapPinned size={MAP_ICON_SIZES.sm} aria-hidden="true" />
-            </span>
-            <span style={interactionStateStyle} aria-hidden="true">
-              {activeDrawTool === "polygon" ? "On" : "Off"}
-            </span>
-          </button>
+            data-testid="map-canvas-draw-aoi"
+          />
 
-          <button
-            type="button"
-            data-testid="map-canvas-measure-distance"
-            style={interactionToolButtonStyle(activeMeasureTool === "measure-distance")}
+          <GisIconButton
+            label={activeMeasureTool === "measure-distance" ? "Cancel measure distance" : "Measure distance"}
+            tooltip={activeMeasureTool === "measure-distance" ? "Cancel measure distance" : "Measure distance"}
+            icon={<Ruler size={MAP_ICON_SIZES.sm} aria-hidden="true" />}
+            size="sm"
+            active={activeMeasureTool === "measure-distance"}
             onClick={onMeasureDistance}
-            aria-label={activeMeasureTool === "measure-distance" ? "Cancel measure distance" : "Measure distance"}
-            aria-pressed={activeMeasureTool === "measure-distance"}
-            title={activeMeasureTool === "measure-distance" ? "Cancel measure distance" : "Measure distance"}
-          >
-            <span style={interactionLabelStyle}>
-              <Ruler size={MAP_ICON_SIZES.sm} aria-hidden="true" />
-            </span>
-            <span style={interactionStateStyle} aria-hidden="true">
-              {activeMeasureTool === "measure-distance" ? "On" : "Off"}
-            </span>
-          </button>
+            data-testid="map-canvas-measure-distance"
+          />
 
-          <button
-            type="button"
-            data-testid="map-canvas-measure-area"
-            style={interactionToolButtonStyle(activeMeasureTool === "measure-area")}
+          <GisIconButton
+            label={activeMeasureTool === "measure-area" ? "Cancel measure area" : "Measure area"}
+            tooltip={activeMeasureTool === "measure-area" ? "Cancel measure area" : "Measure area"}
+            icon={<Square size={MAP_ICON_SIZES.sm} aria-hidden="true" />}
+            size="sm"
+            active={activeMeasureTool === "measure-area"}
             onClick={onMeasureArea}
-            aria-label={activeMeasureTool === "measure-area" ? "Cancel measure area" : "Measure area"}
-            aria-pressed={activeMeasureTool === "measure-area"}
-            title={activeMeasureTool === "measure-area" ? "Cancel measure area" : "Measure area"}
-          >
-            <span style={interactionLabelStyle}>
-              <Square size={MAP_ICON_SIZES.sm} aria-hidden="true" />
-            </span>
-            <span style={interactionStateStyle} aria-hidden="true">
-              {activeMeasureTool === "measure-area" ? "On" : "Off"}
-            </span>
-          </button>
+            data-testid="map-canvas-measure-area"
+          />
 
-          <button
-            type="button"
-            data-testid="map-canvas-keyboard-help"
-            style={interactionToolButtonStyle(keyboardHelpVisible)}
-            onClick={onToggleKeyboardHelp}
-            aria-label={keyboardHelpVisible ? "Hide keyboard map help" : "Show keyboard map help"}
-            aria-pressed={keyboardHelpVisible}
+          <GisIconButton
+            label={keyboardHelpVisible ? "Hide keyboard map help" : "Show keyboard map help"}
+            tooltip={keyboardHelpVisible ? "Hide keyboard map help" : "Show keyboard map help"}
+            icon={<Keyboard size={MAP_ICON_SIZES.sm} aria-hidden="true" />}
+            size="sm"
+            active={keyboardHelpVisible}
             aria-expanded={keyboardHelpVisible}
             aria-controls="map-canvas-keyboard-help-panel"
-            title={keyboardHelpVisible ? "Hide keyboard map help" : "Show keyboard map help"}
-          >
-            <span style={interactionLabelStyle}>
-              <Keyboard size={MAP_ICON_SIZES.sm} aria-hidden="true" />
-            </span>
-            <span style={interactionStateStyle} aria-hidden="true">
-              {keyboardHelpVisible ? "Open" : "Off"}
-            </span>
-          </button>
+            onClick={onToggleKeyboardHelp}
+            data-testid="map-canvas-keyboard-help"
+          />
         </div>
   );
 
   const furnitureGroup = (
         <div style={furnitureGroupStyle} data-testid="map-canvas-furniture-controls">
           <div style={furnitureButtonsStyle} role="group" aria-label="Publish preview furniture controls">
-            <button
-              type="button"
-              style={iconButtonStyle(scaleBarVisible)}
+            <GisIconButton
+              label={scaleBarVisible ? "Hide scale bar" : "Show scale bar"}
+              tooltip={scaleBarVisible ? "Hide scale bar" : "Show scale bar"}
+              icon={<Scale size={MAP_ICON_SIZES.sm} aria-hidden="true" />}
+              size="sm"
+              active={scaleBarVisible}
               onClick={onToggleScaleBar}
-              aria-label={scaleBarVisible ? "Hide scale bar" : "Show scale bar"}
-              aria-pressed={scaleBarVisible}
-              title={scaleBarVisible ? "Hide scale bar" : "Show scale bar"}
-            >
-              <Scale size={MAP_ICON_SIZES.sm} aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              style={iconButtonStyle(northArrowVisible)}
+            />
+            <GisIconButton
+              label={northArrowVisible ? "Hide north arrow" : "Show north arrow"}
+              tooltip={northArrowVisible ? "Hide north arrow" : "Show north arrow"}
+              icon={<Compass size={MAP_ICON_SIZES.sm} aria-hidden="true" />}
+              size="sm"
+              active={northArrowVisible}
               onClick={onToggleNorthArrow}
-              aria-label={northArrowVisible ? "Hide north arrow" : "Show north arrow"}
-              aria-pressed={northArrowVisible}
-              title={northArrowVisible ? "Hide north arrow" : "Show north arrow"}
-            >
-              <Compass size={MAP_ICON_SIZES.sm} aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              style={iconButtonStyle(legendVisible, !legendAvailable)}
-              onClick={onToggleLegend}
-              aria-label={legendVisible ? "Hide legend" : "Show legend"}
-              aria-pressed={legendVisible}
-              title={legendAvailable ? (legendVisible ? "Hide legend" : "Show legend") : "No visible layer legend available"}
+            />
+            <GisIconButton
+              label={legendVisible ? "Hide legend" : "Show legend"}
+              tooltip={legendAvailable ? (legendVisible ? "Hide legend" : "Show legend") : "No visible layer legend available"}
+              icon={legendVisible
+                ? <Eye size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+                : <EyeOff size={MAP_ICON_SIZES.sm} aria-hidden="true" />}
+              size="sm"
+              active={legendVisible}
               disabled={!legendAvailable}
-            >
-              {legendVisible ? (
-                <Eye size={MAP_ICON_SIZES.sm} aria-hidden="true" />
-              ) : (
-                <EyeOff size={MAP_ICON_SIZES.sm} aria-hidden="true" />
-              )}
-            </button>
+              disabledReason="No visible layer legend available"
+              onClick={onToggleLegend}
+            />
           </div>
           <span style={barDividerStyle} aria-hidden="true" />
           <MapLayerPanel compact activeLayer={activeBaseLayer} onSetLayer={onSetBaseLayer} />

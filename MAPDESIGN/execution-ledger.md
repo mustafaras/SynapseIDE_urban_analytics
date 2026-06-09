@@ -57,7 +57,7 @@
 | P10 | ui/map-modal-command-bar-p2 | done | c02a3f6 | analysis-only inventory completed (surface map + duplication audit + phase-2 recommendations) | MAPDESIGN/p10-command-inventory-2026-06-09.md | Closed 2026-06-09 with Prompt 10 command/header inventory |
 | P11 | ui/map-modal-command-bar-p2 | done | 83b3e33 | typecheck passed; lint:errors passed; MapTopCommandSurface + modal baseline tests passed | src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx | Closed 2026-06-09 with stable top-right modal-control cluster and separated utility controls |
 | P12 | ui/map-modal-command-bar-p2 | done | 3daec71 | toolbar tests passed; typecheck passed; lint:errors passed; focused e2e smoke passed | src/centerpanel/components/map/MapToolbar.tsx | Closed 2026-06-09 with reduced visible toolbar density and overflow-first secondary commands |
-| P13 | ui/map-modal-command-bar-p2 | not_started |  |  |  |  |
+| P13 | ui/map-modal-command-bar-p2 | done |  | typecheck passed; lint:errors passed; lint:no-tailwind-centerpanel passed; targeted vitest passed; focused e2e smoke passed | src/centerpanel/components/map/MapCanvasControls.tsx | Closed 2026-06-09 with shared icon-button affordance standardization across canvas and modal controls |
 | P14 | ui/map-modal-command-bar-p2 | not_started |  |  |  |  |
 | P15 | ui/map-modal-command-bar-p2 | not_started |  |  |  |  |
 | P16 | ui/map-modal-panel-density-p3 | not_started |  |  |  |  |
@@ -230,6 +230,17 @@
 - Open Risks: The current grouping intentionally pulls `layers` and `contents` into the Data group to emphasize entry over navigation; if user testing prefers a distinct View/Layers affordance, P13/P14 should revisit labels rather than re-expand visible density.
 - Resume From: src/centerpanel/components/map/MapToolbar.tsx (TopSurfaceGroupId grouping + visible group filter)
 - Next Prompt: P13
+
+### P13 - Phase 2: Standardize icon-only buttons and action affordances
+- Status: done
+- Intent: Make icon-only controls more understandable and visually perceivable while preserving compact desktop density and existing map workflows.
+- Definition of Done: Reuse the shared icon-button primitive, apply consistent accessible labels/tooltips/focus/pressed/disabled affordances on high-visibility icon-only controls, and keep destructive close action visually separated.
+- Decisions: Prioritized the two most visible icon-only clusters for immediate perceptual impact with minimal reversible edits: `MapCanvasControls` and top-right modal controls in `MapExplorerModalComposition`. Reused `GisIconButton` to standardize target size, focus visibility, pressed semantics, and disabled reasons.
+- Changed Files: src/centerpanel/components/map/MapCanvasControls.tsx; src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx; src/centerpanel/components/map/__tests__/map-components.test.ts; MAPDESIGN/execution-ledger.md
+- Validation: `npm run typecheck` passed; `npm run lint:errors` passed; `npm run lint:no-tailwind-centerpanel` passed; `npx vitest run src/centerpanel/components/map/__tests__/map-components.test.ts src/centerpanel/components/map/__tests__/MapTopCommandSurface.test.tsx src/centerpanel/components/map/__tests__/MapRightDockHost.test.tsx src/centerpanel/components/map/__tests__/mapShellPrimitives.test.tsx` passed (104/104); `npx playwright test e2e/map-command-palette-p53.spec.ts e2e/map-catalog.spec.ts e2e/map-report-handoff.spec.ts` passed (3/3). `npm run test:e2e -- e2e/map-modal-layout.spec.ts` reports existing unrelated failures in this branch and was not used as a completion gate for P13.
+- Open Risks: Remaining icon-only buttons in deeper panel rows/dialog internals are still mixed primitives; a follow-up sweep can standardize these without changing behavior. Broad `map-modal-layout` e2e suite has pre-existing instability unrelated to this patch.
+- Resume From: src/centerpanel/components/map/MapCanvasControls.tsx (viewport/interaction/furniture icon groups now on `GisIconButton`)
+- Next Prompt: P14
 
 ## Hand-off Checklist
 - [x] Prompt block status updated
