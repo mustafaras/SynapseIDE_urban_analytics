@@ -321,6 +321,19 @@ describe("MapAttributeTable", () => {
     expect(host?.querySelector('[data-testid="map-attribute-layer-disabled-reason"]')?.textContent).toContain("Layer is not queryable");
     expect(host?.querySelector('[data-testid="map-attribute-layer-disabled-reason"]')?.textContent).toContain("non-queryable");
     expect(host?.querySelector('[data-testid="map-attribute-join-disabled-reason"]')?.textContent).toContain("non-queryable");
+    expect(host?.querySelector('[data-testid="map-attribute-warning-section"]')?.textContent).toContain("Needs review");
+  });
+
+  it("renders a summary-first details rail for the active attribute layer", () => {
+    renderWorkflow({
+      selectedFeatureIds: { points: ["1", "2"] },
+    });
+
+    expect(host?.querySelector('[data-testid="map-attribute-summary-section"]')?.textContent).toContain("Selection summary");
+    expect(host?.querySelector('[data-testid="map-attribute-summary-section"]')?.textContent).toContain("2 in this layer");
+    expect(host?.querySelector('[data-testid="map-attribute-warning-section"]')?.textContent).toContain("No blocking queryability or CRS warnings");
+    expect(host?.querySelector('[data-testid="map-attribute-summary-primary-action"]')?.textContent).toContain("Preview join");
+    expect(host?.querySelector('[data-testid="map-attribute-field-stats-details"]')).not.toBeNull();
   });
 
   it("runs an attribute join preview from the workflow panel", async () => {

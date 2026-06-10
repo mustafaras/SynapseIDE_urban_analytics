@@ -101,6 +101,38 @@ const buttonStyle: React.CSSProperties = {
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
 };
 
+const warningCardStyle: React.CSSProperties = {
+  display: "grid",
+  gap: 2,
+  padding: MAP_SPACING.sm,
+  borderRadius: MAP_RADIUS.sm,
+  border: MAP_STROKES.hairlineSubtle,
+  background: "color-mix(in srgb, var(--syn-status-warning, #f59e0b) 10%, transparent)",
+};
+
+const warningTitleStyle: React.CSSProperties = {
+  color: MAP_COLORS.text,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+};
+
+const detailsSectionStyle: React.CSSProperties = {
+  display: "grid",
+  gap: MAP_SPACING.sm,
+  padding: MAP_SPACING.sm,
+  borderRadius: MAP_RADIUS.sm,
+  border: MAP_STROKES.hairlineSubtle,
+  background: MAP_COLORS.bgPanel,
+};
+
+const detailsSummaryStyle: React.CSSProperties = {
+  cursor: "pointer",
+  color: MAP_COLORS.text,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+  listStyle: "none",
+};
+
 const disabledButtonStyle: React.CSSProperties = {
   color: MAP_COLORS.textMuted,
   cursor: "not-allowed",
@@ -254,6 +286,18 @@ function formatRatio(value: number): string {
   return `${Math.round(value * 100)}%`;
 }
 
+function buildAttributeWarnings(activeModel: AttributeLayerModel | null): string[] {
+  if (!activeModel) return [];
+  const warnings: string[] = [];
+  if (!activeModel.queryState.crs) {
+    warnings.push("CRS is unknown. Validate projection before relying on distances, areas, or spatial joins.");
+  }
+  if (!activeModel.queryState.queryable && activeModel.queryState.disabledReason) {
+    warnings.push(activeModel.queryState.disabledReason);
+  }
+  return warnings;
+}
+
 export function MapAttributeWorkflowPanel({
   layers,
   activeLayerId,
@@ -310,6 +354,7 @@ export function MapAttributeWorkflowPanel({
   );
   const disabledReason = joinPreviewDisabledReason(activeModel, joinModel, joinMode, primaryKey, joinKey);
   const tableAnnounceProps = onAnnounce ? { onAnnounce } : {};
+  const attributeWarnings = useMemo(() => buildAttributeWarnings(activeModel), [activeModel]);
 
   useEffect(() => {
     if (!activeModel) {
@@ -496,6 +541,57 @@ export function MapAttributeWorkflowPanel({
           }}
           aria-label="Attribute workflow details"
         >
+          <section style={{ display: "grid", gap: MAP_SPACING.sm, minWidth: 0 }} data-testid="map-attribute-summary-section">
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: MAP_SPACING.sm }}>
+              <h3 style={sectionTitleStyle}>Selection summary</h3>
+              {activeQueryState ? <GisStatusChip status={queryStatusTone(activeQueryState)} label={activeQueryState.queryable ? "queryable" : "blocked"} density="compact" /> : null}
+            </div>
+            {activeModel ? (
+              <div>
+                <GisDensePropertyRow label="Layer" value={activeModel.layer.name} density="compact" />
+                <GisDensePropertyRow label="Selected" value={`${activeSelectedIds.length.toLocaleString()} in this layer`} density="compact" highlight={activeSelectedIds.length > 0 ? undefined : "warn"} />
+                <GisDensePropertyRow label="Total selected" value={totalSelectedCount.toLocaleString()} density="compact" />
+                <GisDensePropertyRow label="Rows" value={activeModel.queryState.featureCount.toLocaleString()} density="compact" />
+                <GisDensePropertyRow label="Fields" value={activeModel.queryState.fieldCount.toLocaleString()} density="compact" />
+                <GisDensePropertyRow label="Geometry" value={activeModel.queryState.geometryType} density="compact" />
+                <GisDensePropertyRow label="CRS" value={activeModel.queryState.crs ?? "unknown"} density="compact" highlight={activeModel.queryState.crs ? undefined : "warn"} />
+              </div>
+            ) : (
+              <p style={helperTextStyle}>Choose a layer to show a compact summary before inspecting rows, fields, or join previews.</p>
+            )}
+          </section>
+
+          <section style={{ display: "grid", gap: MAP_SPACING.sm, minWidth: 0 }} data-testid="map-attribute-warning-section">
+            <h3 style={sectionTitleStyle}>Warnings</h3>
+            {attributeWarnings.length > 0 ? (
+              attributeWarnings.map((warning) => (
+                <div key={warning} style={warningCardStyle}>
+                  <span style={warningTitleStyle}>Needs review</span>
+                  <span style={helperTextStyle}>{warning}</span>
+                </div>
+              ))
+            ) : (
+              <p style={helperTextStyle}>No blocking queryability or CRS warnings are currently detected for the active layer.</p>
+            )}
+          </section>
+
+          <section style={{ display: "grid", gap: MAP_SPACING.sm, minWidth: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: MAP_SPACING.sm }}>
+              <h3 style={sectionTitleStyle}>Primary action</h3>
+              <GisStatusChip status={joinPreview?.ok ? "ready" : disabledReason ? "blocked" : "metadata-only"} label={joinPreview?.summary.cardinalityLabel ?? "preview-first"} density="compact" />
+            </div>
+            <button
+              type="button"
+              style={{ ...buttonStyle, ...(disabledReason || joinPreviewBusy ? disabledButtonStyle : {}) }}
+              disabled={Boolean(disabledReason) || joinPreviewBusy}
+              onClick={() => void handleRunJoinPreview()}
+              title={disabledReason ?? "Preview match counts, cardinality, CRS, and caveats before applying a join."}
+              data-testid="map-attribute-summary-primary-action"
+            >
+              {joinPreviewBusy ? "Previewing..." : "Preview join"}
+            </button>
+          </section>
+
           <section style={{ display: "grid", gap: MAP_SPACING.sm, minWidth: 0 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: MAP_SPACING.sm }}>
               <h3 style={sectionTitleStyle}>Schema profile</h3>
@@ -516,9 +612,9 @@ export function MapAttributeWorkflowPanel({
             )}
           </section>
 
-          <section style={{ display: "grid", gap: MAP_SPACING.sm, minWidth: 0 }}>
+          <details style={detailsSectionStyle} data-testid="map-attribute-field-stats-details">
+            <summary style={detailsSummaryStyle}>Field stats</summary>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: MAP_SPACING.sm }}>
-              <h3 style={sectionTitleStyle}>Field stats</h3>
               <GisStatusChip status={activeModel?.columns.length ? "ready" : "unknown"} label={`${activeModel?.columns.length ?? 0} profiled`} density="compact" />
             </div>
             {activeModel && activeModel.columns.length > 0 ? (
@@ -539,7 +635,7 @@ export function MapAttributeWorkflowPanel({
             ) : (
               <p style={helperTextStyle}>No attribute fields are available to profile.</p>
             )}
-          </section>
+          </details>
 
           <section style={{ display: "grid", gap: MAP_SPACING.sm, minWidth: 0 }} data-testid="map-attribute-join-preview">
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: MAP_SPACING.sm }}>
