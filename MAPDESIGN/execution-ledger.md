@@ -67,7 +67,7 @@
 | P20 | ui/map-modal-panel-density-p3 | done | 95073dc | typecheck passed; lint:errors passed; inspector + attribute tests 20/20 passed | src/centerpanel/components/map/inspector/LayerInspector.tsx | Closed 2026-06-10 with summary-first inspector overview, visible warnings, quick actions, and condensed attribute workflow detail rail |
 | P21 | ui/map-modal-panel-density-p3 | done | c73eac5 | typecheck passed; lint:errors passed; MapPublishWorkspace tests 3/3 passed; test:analytics 1131/1131 passed | src/centerpanel/components/map/publish/MapPublishWorkspace.tsx | Closed 2026-06-10 with progressive disclosure for evidence/publish/caveats |
 | P22 | ui/map-modal-panel-density-p3 | done |  | typecheck passed; lint:errors passed; map-performance diagnostics tests 5/5 passed | src/centerpanel/components/map/MapPerformanceDiagnosticsPanel.tsx | Closed 2026-06-10 with severity-first operational diagnostics and collapsed advanced event history |
-| P23 | ui/map-modal-panel-density-p3 | not_started |  |  |  |  |
+| P23 | ui/map-modal-panel-density-p3 | done |  | typecheck passed; lint:errors passed; targeted Prompt 23 suites 81/81 passed; fallback p09 layout e2e 2/2 passed | src/centerpanel/components/map/__tests__/map-layer-management.test.ts | Closed 2026-06-10 with panel hierarchy and density regression coverage consolidation |
 | P24 | ui/map-modal-panel-density-p3 | not_started |  |  |  |  |
 | P25 | ui/map-modal-accessibility-p4 | not_started |  |  |  |  |
 | P26 | ui/map-modal-accessibility-p4 | not_started |  |  |  |  |
@@ -307,6 +307,17 @@
 - Open Risks: The advanced disclosure uses native `details/summary`, which keeps the change small and accessible but does not yet provide a custom persisted open/closed state across sessions. QA and problems panels were not structurally changed because their current severity-first/actionable layout already aligns with Prompt 22 intent.
 - Resume From: src/centerpanel/components/map/MapPerformanceDiagnosticsPanel.tsx
 - Next Prompt: P23
+
+### P23 - Phase 3: Add or update panel density regression tests
+- Status: done
+- Intent: Consolidate regression coverage proving Phase 3 panel hierarchy and density cleanup preserved functionality and reachability.
+- Definition of Done: Existing tests explicitly cover left panel hierarchy, layer action/menu safety, right dock primary plus overflow reachability, inspector summary-first behavior, publish/evidence action reachability, diagnostics severity-first ordering with advanced raw log access, and representative empty/loading/error panel states.
+- Decisions: Kept Prompt 23 strictly test-only and extended existing suites instead of introducing new runtime behavior or selectors. Added explicit publish path action reachability/disabled-reason assertions (`MapPublishPathPanel`), added right dock loading/error state render coverage, and added diagnostics no-issue state coverage while retaining Prompt 22 severity-first plus advanced-detail reachability assertions.
+- Changed Files: src/centerpanel/components/map/__tests__/MapPublishWorkspace.test.tsx; src/centerpanel/components/map/__tests__/MapRightDockHost.test.tsx; src/centerpanel/components/map/__tests__/map-performance-diagnostics.test.tsx; MAPDESIGN/execution-ledger.md
+- Validation: `npx vitest run src/centerpanel/components/map/__tests__/map-layer-management.test.ts src/centerpanel/components/map/__tests__/MapRightDockHost.test.tsx src/centerpanel/components/map/__tests__/layer-inspector.test.tsx src/centerpanel/components/map/__tests__/MapPublishWorkspace.test.tsx src/centerpanel/components/map/__tests__/map-performance-diagnostics.test.tsx` passed (81/81); `npm run typecheck` passed; `npm run lint:errors` passed; `npm run lint:no-tailwind-centerpanel` passed; `npx playwright test e2e/map-layout-regression-p09.spec.ts` passed (2/2). `npx playwright test e2e/map-modal-layout.spec.ts --grep "header controls reachable without clipping|keeps the docked diagnostics and status surfaces unobtrusive"` failed on an existing compact-header geometry assertion in Prompt 35 suite.
+- Open Risks: Full `map-modal-layout` e2e remains broader and currently unstable for compact-header geometry in this branch, so Prompt 23 completion relies on targeted panel-density regressions plus the stable P09 layout suite.
+- Resume From: src/centerpanel/components/map/__tests__/map-layer-management.test.ts
+- Next Prompt: P24
 
 ## Hand-off Checklist
 - [x] Prompt block status updated

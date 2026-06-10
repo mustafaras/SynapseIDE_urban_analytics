@@ -209,4 +209,24 @@ describe("Map performance diagnostics", () => {
     expect(html).toContain("Provider availability or remote service responses need attention");
     expect(html.indexOf("Worker failures")).toBeLessThan(html.indexOf("External service errors"));
   });
+
+  it("renders a production no-issues state while keeping advanced details reachable", () => {
+    const diagnostics = buildMapPerformanceDiagnostics({
+      overlayLayers: [],
+      telemetryEvents: [],
+      timings: [{
+        kind: "render",
+        label: "Layer sync",
+        durationMs: 42,
+        measuredAt: "2026-06-10T00:00:00.000Z",
+      }],
+    });
+
+    const html = renderToStaticMarkup(
+      <MapPerformanceDiagnosticsPanel visible diagnostics={diagnostics} onClose={vi.fn()} />,
+    );
+
+    expect(html).toContain("Current layer stack is within the documented interactive render budgets");
+    expect(html).toContain("No diagnostics events recorded for this map session");
+  });
 });

@@ -124,4 +124,31 @@ describe("MapRightDockHost", () => {
     fireEvent.click(screen.getByLabelText("Close right dock"));
     expect(onClose).toHaveBeenCalledOnce();
   });
+
+  it("renders explicit loading and error panel states inside the dock body", () => {
+    const { rerender } = render(
+      <MapRightDockHost
+        route={createMapRightDockRoute("diagnostics", { source: "worker" })}
+        onClose={vi.fn()}
+      >
+        <div data-testid="map-right-dock-loading">Loading diagnostics…</div>
+      </MapRightDockHost>,
+    );
+
+    const host = screen.getByTestId("map-right-dock-host");
+    expect(host.querySelector('[data-map-right-dock-body="true"]')?.textContent).toContain("Loading diagnostics");
+
+    rerender(
+      <MapRightDockHost
+        route={createMapRightDockRoute("diagnostics", { source: "worker" })}
+        onClose={vi.fn()}
+      >
+        <div role="alert" data-testid="map-right-dock-error">Diagnostics panel failed to load.</div>
+      </MapRightDockHost>,
+    );
+
+    const errorNode = screen.getByTestId("map-right-dock-error");
+    expect(errorNode.textContent).toContain("failed to load");
+    expect(errorNode.getAttribute("role")).toBe("alert");
+  });
 });

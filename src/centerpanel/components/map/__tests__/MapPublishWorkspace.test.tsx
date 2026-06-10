@@ -3,7 +3,11 @@
 import React, { act, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
-import { MapPublishWorkspace, type MapPublishReadinessItem } from "../publish";
+import {
+  MapPublishPathPanel,
+  MapPublishWorkspace,
+  type MapPublishReadinessItem,
+} from "../publish";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -179,5 +183,53 @@ describe("MapPublishWorkspace", () => {
 
     // Verify readiness still renders
     expect(query("map-publish-readiness")).not.toBeNull();
+  });
+
+  it("P23: keeps primary and secondary publish path actions reachable with disabled reasons", () => {
+    const primarySpy = { called: 0 };
+    const secondarySpy = { called: 0 };
+
+    render(
+      <MapPublishPathPanel
+        eyebrow="Publish"
+        title="Export readiness"
+        description="Keep formal output actions reachable without exposing blocked actions as active."
+        actions={[
+          {
+            label: "Export figure",
+            primary: true,
+            onClick: () => {
+              primarySpy.called += 1;
+            },
+          },
+          {
+            label: "Publish review package",
+            onClick: () => {
+              secondarySpy.called += 1;
+            },
+          },
+          {
+            label: "Publish report",
+            disabled: true,
+            disabledReason: "Resolve QA blocker before formal report publication.",
+            onClick: () => undefined,
+          },
+        ]}
+      />,
+    );
+
+    const actionButtons = host?.querySelectorAll("button") ?? [];
+    expect(actionButtons.length).toBe(3);
+    expect(host?.textContent).toContain("Resolve QA blocker before formal report publication.");
+
+    act(() => {
+      actionButtons[0]?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      actionButtons[1]?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      actionButtons[2]?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(primarySpy.called).toBe(1);
+    expect(secondarySpy.called).toBe(1);
+    expect((actionButtons[2] as HTMLButtonElement).disabled).toBe(true);
   });
 });
