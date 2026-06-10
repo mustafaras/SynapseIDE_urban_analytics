@@ -69,7 +69,7 @@
 | P22 | ui/map-modal-panel-density-p3 | done |  | typecheck passed; lint:errors passed; map-performance diagnostics tests 5/5 passed | src/centerpanel/components/map/MapPerformanceDiagnosticsPanel.tsx | Closed 2026-06-10 with severity-first operational diagnostics and collapsed advanced event history |
 | P23 | ui/map-modal-panel-density-p3 | done | dd56d87 | typecheck passed; lint:errors passed; targeted Prompt 23 suites 81/81 passed; fallback p09 layout e2e 2/2 passed | src/centerpanel/components/map/__tests__/map-layer-management.test.ts | Closed 2026-06-10 with panel hierarchy and density regression coverage consolidation |
 | P24 | fix/map-modal-collision-zindex-p4 | done | 694df16 | typecheck passed; lint:errors passed; targeted map tests passed (72/72); p09 overlap/collision e2e passed (2/2) | src/centerpanel/components/map/mapTokens.ts | Closed 2026-06-10 with named z-index/elevation model and safe literal replacement in modal overlays/dialog surfaces |
-| P25 | ui/map-modal-accessibility-p4 | not_started |  |  |  |  |
+| P25 | fix/map-modal-collision-zindex-p4 | done | 55588b8 | typecheck passed; lint:errors passed; targeted vitest 125/125; map-layout-regression-p09 e2e 2/2 | src/centerpanel/components/map/ui/GisTooltip.tsx | Closed 2026-06-10 with tooltip z-index tier fix, layerActionGrid CSS-var maxHeight, dialog tier for confirm overlays, panel tier for RasterLayerPanel, and overflow scroll for status bar menu |
 | P26 | ui/map-modal-accessibility-p4 | not_started |  |  |  |  |
 | P27 | ui/map-modal-accessibility-p4 | not_started |  |  |  |  |
 | P28 | ui/map-modal-accessibility-p4 | not_started |  |  |  |  |
@@ -341,3 +341,14 @@
 - Open Risks: Manual visual verification of stacked edge cases (layer row menu + portaled popover + import dialog + tooltip near modal controls) is still recommended because these conditions are difficult to exhaustively reproduce in a single automated suite.
 - Resume From: src/centerpanel/components/map/mapTokens.ts (`MAP_Z_INDEX` named layer model)
 - Next Prompt: P25
+
+### P25 - Phase 4: Strengthen popover, dropdown, and menu collision behavior
+- Status: done
+- Intent: Fix tooltip z-index tier mismatch, apply CSS-var maxHeight to inline absolute menus, fix dialog confirm overlay tier, fix raster panel floating tier, and add scroll containment to the status bar overflow menu.
+- Definition of Done: All five inline overlay/menu surfaces use named tiers or CSS-var max-heights; no overlay unexpectedly covers a tooltip; dialog confirms sit above dropdowns; no regression in existing tests.
+- Decisions: No new positioning library introduced. All fixes are purely style token substitution or CSS-var constraint addition. GisTooltip uses `MAP_Z_INDEX.tooltip`; layer action grid uses `--map-popover-max-height`; MapLayerManager confirm dialog uses `MAP_Z_INDEX.dialog`; RasterLayerPanel floating panel uses `MAP_Z_INDEX.panel`; MapStatusBar overflow menu gets maxHeight + overflowY.
+- Changed Files: src/centerpanel/components/map/ui/GisTooltip.tsx; src/centerpanel/components/map/MapLayerManager.tsx; src/centerpanel/components/map/MapStatusBar.tsx; src/centerpanel/components/map/raster/RasterLayerPanel.tsx; src/centerpanel/components/map/__tests__/map-components.test.ts; MAPDESIGN/execution-ledger.md
+- Validation: `npm run typecheck` passed; `npm run lint:errors` passed; `npx vitest run` targeted 125/125 passed; `npx playwright test e2e/map-layout-regression-p09.spec.ts` passed (2/2).
+- Open Risks: AppPopover's `canFlipTop` check uses `window.innerHeight` as the available-space signal; in a fullscreen modal, the available height is the same as the viewport so this remains correct. If the modal is ever embedded at a smaller size, the flip boundary should use the container height instead.
+- Resume From: src/centerpanel/components/map/ui/GisTooltip.tsx (tooltip tier)
+- Next Prompt: P26
