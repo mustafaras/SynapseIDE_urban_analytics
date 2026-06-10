@@ -60,7 +60,7 @@
 | P13 | ui/map-modal-command-bar-p2 | done |  | typecheck passed; lint:errors passed; lint:no-tailwind-centerpanel passed; targeted vitest passed; focused e2e smoke passed | src/centerpanel/components/map/MapCanvasControls.tsx | Closed 2026-06-09 with shared icon-button affordance standardization across canvas and modal controls |
 | P14 | ui/map-modal-command-bar-p2 | done |  | typecheck passed; lint:errors passed; MapTopCommandSurface + MapStatusBarRoutes tests passed | src/centerpanel/components/map/MapTopCommandSurface.tsx | Closed 2026-06-10 with calmer header metadata density, CRS chip normalization, and long-label truncation safeguards |
 | P15 | ui/map-modal-command-bar-p2 | done |  | typecheck passed; lint:errors passed; targeted command/header/a11y tests passed; prompt15 header e2e regression passed | e2e/map-modal-layout.spec.ts | Closed 2026-06-10 with command/header regression hardening for compact-width header controls and command-reachability safety |
-| P16 | ui/map-modal-panel-density-p3 | not_started |  |  |  |  |
+| P16 | ui/map-modal-panel-density-p3 | done |  | analysis-only repository audit completed (no runtime/code edits) | MAPDESIGN/p16-panel-density-audit-2026-06-10.md | Closed 2026-06-10 with panel-density inventory, readability risk map, hierarchy model, and safe implementation order |
 | P17 | ui/map-modal-panel-density-p3 | not_started |  |  |  |  |
 | P18 | ui/map-modal-panel-density-p3 | not_started |  |  |  |  |
 | P19 | ui/map-modal-panel-density-p3 | not_started |  |  |  |  |
@@ -263,6 +263,17 @@
 - Open Risks: Full `e2e/map-modal-layout.spec.ts` remains broad and can surface unrelated suite flakiness; Prompt 15 coverage is stable for command/header regressions but full-map regression health should continue to be monitored in later prompts.
 - Resume From: e2e/map-modal-layout.spec.ts ("keeps header controls reachable without clipping at compact desktop width")
 - Next Prompt: P16
+
+### P16 - Phase 3: Audit panel density and information architecture
+- Status: done
+- Intent: Inventory panel density and IA risks before any Phase 3 layout changes.
+- Definition of Done: Produce a map-panel audit note covering panel inventory, density rating, readability issues, proposed hierarchy, and safest implementation order without functional changes.
+- Decisions: Executed Prompt 16 as analysis-only documentation to keep edits minimal and reversible; used canonical map shell/right-dock/status/workflow/report/QA components as evidence source and avoided runtime behavior changes.
+- Changed Files: MAPDESIGN/p16-panel-density-audit-2026-06-10.md; MAPDESIGN/execution-ledger.md
+- Validation: Analysis-only prompt completed via targeted repository inspection of canonical map panel surfaces (`read_file`, `explore_subagent`, `grep_search`); no code/test/lint commands required because no runtime files were modified.
+- Open Risks: Density findings are now documented but not yet remediated; visible UI improvements begin in Prompt 17 and can still expose interaction regressions unless panel-grouping changes are kept incremental.
+- Resume From: MAPDESIGN/p16-panel-density-audit-2026-06-10.md
+- Next Prompt: P17
 
 ## Hand-off Checklist
 - [x] Prompt block status updated
