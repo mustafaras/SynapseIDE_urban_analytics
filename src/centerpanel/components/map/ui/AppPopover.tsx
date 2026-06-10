@@ -27,6 +27,7 @@ type PopoverPosition = {
   top: number;
   left: number;
   placement: "top" | "bottom";
+  availableHeight: number;
 };
 
 const VIEWPORT_PADDING = 8;
@@ -71,6 +72,10 @@ export const AppPopover: React.FC<AppPopoverProps> = ({
     const overflowsBottom = baseTop + panelRect.height > viewportHeight - VIEWPORT_PADDING;
     const useTopPlacement = overflowsBottom && canFlipTop;
 
+    const availableHeight = useTopPlacement
+      ? Math.max(VIEWPORT_PADDING, anchorRect.top - offset - VIEWPORT_PADDING)
+      : Math.max(VIEWPORT_PADDING, viewportHeight - baseTop - VIEWPORT_PADDING);
+
     const rawTop = useTopPlacement
       ? anchorRect.top - panelRect.height - offset
       : baseTop;
@@ -95,6 +100,7 @@ export const AppPopover: React.FC<AppPopoverProps> = ({
       top,
       left,
       placement: useTopPlacement ? "top" : "bottom",
+      availableHeight,
     });
   }, [anchorRef, offset, placement]);
 
@@ -178,7 +184,9 @@ export const AppPopover: React.FC<AppPopoverProps> = ({
     color: "var(--syn-text-primary, #f4f7ff)",
     overflowX: "hidden",
     overflowY: "auto",
-    maxHeight: "var(--map-popover-max-height, min(24rem, calc(100vh - 8rem)))",
+    maxHeight: position != null
+      ? `${Math.min(384, Math.max(VIEWPORT_PADDING, Math.floor(position.availableHeight)))}px`
+      : "var(--map-popover-max-height, min(24rem, calc(100vh - 8rem)))",
     pointerEvents: "auto",
   };
 
