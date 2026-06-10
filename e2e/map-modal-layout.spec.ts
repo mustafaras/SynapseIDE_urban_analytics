@@ -131,6 +131,34 @@ async function expectNoHorizontalOverflowOrPanelOverlap(page: Page): Promise<voi
   expect(result.overlapIssues, JSON.stringify(result.overlapIssues)).toEqual([]);
 }
 
+async function expectOpaqueMenuSurface(page: Page, menuTestId: string, minWidth: number): Promise<void> {
+  const menu = page.getByTestId(menuTestId);
+  await expect(menu).toBeVisible();
+
+  const directChildren = menu.locator(":scope > *");
+  const panel = (await directChildren.count()) > 0 ? directChildren.first() : menu;
+  await expect(panel).toBeVisible();
+
+  const box = await menu.boundingBox();
+  expect(box?.width ?? 0).toBeGreaterThanOrEqual(minWidth);
+
+  const surface = await panel.evaluate((element) => {
+    const style = window.getComputedStyle(element);
+    return {
+      backgroundColor: style.backgroundColor,
+      opacity: style.opacity,
+      boxShadow: style.boxShadow,
+      borderRadius: style.borderRadius,
+      zIndex: style.zIndex,
+    };
+  });
+
+  expect(surface.opacity).toBe("1");
+  expect(surface.backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
+  expect(surface.boxShadow).not.toBe("none");
+  expect(surface.borderRadius).toContain("px");
+}
+
 async function seedComparisonLayers(page: Page): Promise<void> {
   await page.evaluate(async () => {
     const module = await import("/src/stores/useMapExplorerStore.ts");
@@ -908,30 +936,26 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
 
     await triggerDomClick(moreTrigger);
     const moreMenu = page.getByTestId("map-command-center-overflow-menu");
-    await expect(moreMenu).toBeVisible();
+    await expectOpaqueMenuSurface(page, "map-command-center-overflow-menu", 340);
     await expect(moreMenu).toContainText("Workspace");
     await expect(moreMenu).toContainText("Settings");
     const moreBox = await moreMenu.boundingBox();
-    expect(moreBox?.width ?? 0).toBeGreaterThanOrEqual(300);
     expect((moreBox?.x ?? 0) + (moreBox?.width ?? 0)).toBeLessThanOrEqual(1440);
     await page.keyboard.press("Escape");
     await expect(moreMenu).toBeHidden();
 
     await triggerDomClick(viewsTrigger);
     const viewsMenu = page.getByTestId("map-bookmark-compact-menu");
-    await expect(viewsMenu).toBeVisible();
+    await expectOpaqueMenuSurface(page, "map-bookmark-compact-menu", 240);
     await expect(viewsMenu).toContainText("Save Current View");
-    const viewsBox = await viewsMenu.boundingBox();
-    expect(viewsBox?.width ?? 0).toBeGreaterThanOrEqual(280);
     await page.keyboard.press("Escape");
     await expect(viewsMenu).toBeHidden();
 
     await triggerDomClick(commandsTrigger);
     const commandsMenu = page.getByTestId("map-commands-menu");
-    await expect(commandsMenu).toBeVisible();
+    await expectOpaqueMenuSurface(page, "map-commands-menu", 340);
     await expect(commandsMenu).toContainText("Quick Actions");
-    const commandsBox = await commandsMenu.boundingBox();
-    expect(commandsBox?.width ?? 0).toBeGreaterThanOrEqual(320);
+    await expect(commandsMenu.getByLabel("Search commands")).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(commandsMenu).toBeHidden();
 
@@ -947,13 +971,59 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
 
     await triggerDomClick(basemapTrigger);
     const basemapMenu = page.getByTestId("map-basemap-menu");
-    await expect(basemapMenu).toBeVisible();
+    await expectOpaqueMenuSurface(page, "map-basemap-menu", 240);
     await expect(basemapMenu).toContainText("OpenStreetMap");
     const basemapBox = await basemapMenu.boundingBox();
     const canvasBox = await page.getByTestId("map-canvas-region").boundingBox();
     expect((basemapBox?.y ?? 0) + (basemapBox?.height ?? 0)).toBeLessThanOrEqual((canvasBox?.y ?? 0) + 220);
     await page.keyboard.press("Escape");
     await expect(basemapMenu).toBeHidden();
+  });
+
+  test("keeps side panels below the command bar and preserves overlay stacking", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await resetWorkbenchState(page);
+    await openMapExplorer(page);
+
+    const commandBar = page.getByRole("toolbar", { name: "Map command bar" });
+    const layerRail = page.getByTestId("map-layer-panel-rail");
+    const sidebar = page.getByTestId("map-workbench-sidebar");
+
+    await expect(commandBar).toBeVisible();
+    await expect(layerRail).toBeVisible();
+    await expect(sidebar).toBeVisible();
+
+    const geometry = await page.evaluate(() => {
+      const commandBar = document.querySelector<HTMLElement>('[data-testid="map-command-bar"]')
+        ?? document.querySelector<HTMLElement>('[data-map-command-bar="true"]')
+        ?? document.querySelector<HTMLElement>('[role="toolbar"][aria-label="Map command bar"]');
+      const layerRail = document.querySelector<HTMLElement>('[data-testid="map-layer-panel-rail"]');
+      const sidebar = document.querySelector<HTMLElement>('[data-map-workbench-sidebar="true"]');
+      const overlayRoot = document.querySelector<HTMLElement>('[data-map-overlay-root="true"]');
+      if (!commandBar || !layerRail || !sidebar || !overlayRoot) {
+        return null;
+      }
+
+      const commandRect = commandBar.getBoundingClientRect();
+      const railRect = layerRail.getBoundingClientRect();
+      const sidebarRect = sidebar.getBoundingClientRect();
+      const overlayStyle = window.getComputedStyle(overlayRoot);
+
+      return {
+        commandBottom: Math.round(commandRect.bottom),
+        railTop: Math.round(railRect.top),
+        sidebarTop: Math.round(sidebarRect.top),
+        overlayZIndex: Number(overlayStyle.zIndex || 0),
+        railZIndex: Number(window.getComputedStyle(layerRail).zIndex || 0),
+        sidebarZIndex: Number(window.getComputedStyle(sidebar).zIndex || 0),
+      };
+    });
+
+    expect(geometry).not.toBeNull();
+    expect(geometry?.railTop ?? 0).toBeGreaterThanOrEqual((geometry?.commandBottom ?? 0) - 1);
+    expect(geometry?.sidebarTop ?? 0).toBeGreaterThanOrEqual((geometry?.commandBottom ?? 0) - 1);
+    expect(geometry?.overlayZIndex ?? 0).toBeGreaterThan(geometry?.railZIndex ?? 0);
+    expect(geometry?.overlayZIndex ?? 0).toBeGreaterThan(geometry?.sidebarZIndex ?? 0);
   });
 
   test("switches premium activity rail state without hiding the work surface", async ({ page }) => {

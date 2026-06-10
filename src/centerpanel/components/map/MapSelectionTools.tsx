@@ -982,7 +982,7 @@ export const MapSelectionTools: React.FC<MapSelectionToolsProps> = ({
           anchorRef={filterToggleRef}
           onClose={() => setFilterOpen(false)}
           placement="bottom-start"
-          minWidth={260}
+          minWidth={300}
           maxWidth={760}
           role="dialog"
           ariaLabel="Selection filter"

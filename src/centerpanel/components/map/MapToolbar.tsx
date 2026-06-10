@@ -250,6 +250,7 @@ interface ToolbarCommandButtonProps {
   density: ToolbarDensity;
   menuItem?: boolean;
   primary?: boolean;
+  description?: React.ReactNode;
   onAfterClick?: () => void;
 }
 
@@ -566,11 +567,12 @@ const toolbarBadge: React.CSSProperties = {
 const overflowMenuStyle: React.CSSProperties = {
   width: "min(34rem, calc(100vw - 1rem))",
   maxHeight: "var(--map-popover-max-height, min(24rem, calc(100vh - 8rem)))",
-  padding: MAP_SPACING.sm,
   borderRadius: MAP_RADIUS.md,
   display: "grid",
-  gap: MAP_SPACING.xs,
-  overflowY: "auto",
+  gap: MAP_SPACING.zero,
+  overflow: "visible",
+  background: MAP_COLORS.transparent,
+  border: MAP_STROKES.none,
 };
 
 const commandGroupMenuStyle: React.CSSProperties = {
@@ -2134,22 +2136,6 @@ function groupCommandsByOverflowSection(commands: readonly ToolbarCommand[]): Ar
   })).filter((section) => section.commands.length > 0);
 }
 
-function renderCommandSectionItems(
-  commands: readonly ToolbarCommand[],
-  density: ToolbarDensity,
-  onClose: () => void,
-): React.ReactNode {
-  return commands.map((command) => (
-    <ToolbarCommandButton
-      key={command.id}
-      command={command}
-      density={density}
-      menuItem
-      onAfterClick={onClose}
-    />
-  ));
-}
-
 function ToolbarCommandsMenu({
   commands,
   density,
@@ -2164,17 +2150,19 @@ function ToolbarCommandsMenu({
   onOpenPalette: () => void;
 }): React.ReactElement {
   const triggerRef = React.useRef<HTMLButtonElement | null>(null);
+  const [query, setQuery] = React.useState("");
   const quickCommands = sortCommandsForSurface(
     commands.filter((command) => !command.id.startsWith("task-lens-") && command.id !== "import").slice(0, 8),
   );
+  const filteredQuickCommands = searchMapPaletteCommands(quickCommands, query, 8);
 
   return (
     <AppDropdownMenu
       open={open}
       onOpenChange={onOpenChange}
       align="start"
-      minWidth={320}
-      maxWidth={420}
+      minWidth={340}
+      maxWidth={460}
       ariaLabel="Map commands menu"
       testId="map-commands-menu"
       contentStyle={overflowMenuStyle}
@@ -2192,6 +2180,25 @@ function ToolbarCommandsMenu({
         />
       )}
     >
+      <div style={{ display: "grid", gap: MAP_SPACING.xs }}>
+        <div style={menuHeaderStyle}>
+          <span>Commands</span>
+          <span>{quickCommands.length} quick</span>
+        </div>
+        <input
+          aria-label="Search commands"
+          placeholder="Search commands"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          style={{
+            ...paletteInputStyle,
+            height: "2.25rem",
+            border: MAP_STROKES.hairlineSubtle,
+            borderRadius: MAP_RADIUS.sm,
+            background: "var(--syn-surface-subtle, rgba(15, 23, 42, 0.76))",
+          }}
+        />
+      </div>
       <AppMenuSection title="Quick Actions">
         <AppMenuItem
           icon={<Command size={MAP_ICON_SIZES.sm} strokeWidth={1.8} aria-hidden="true" />}
@@ -2203,7 +2210,21 @@ function ToolbarCommandsMenu({
           }}
           testId="map-commands-open-palette"
         />
-        {renderCommandSectionItems(quickCommands, "comfortable", () => onOpenChange(false))}
+        {filteredQuickCommands.map((command) => (
+          <ToolbarCommandButton
+            key={command.id}
+            command={command}
+            density="comfortable"
+            menuItem
+            description={command.title}
+            onAfterClick={() => onOpenChange(false)}
+          />
+        ))}
+        {filteredQuickCommands.length === 0 ? (
+          <div style={{ padding: `${MAP_SPACING.sm} ${MAP_SPACING.md}`, color: MAP_COLORS.textMuted }}>
+            No matching commands
+          </div>
+        ) : null}
       </AppMenuSection>
     </AppDropdownMenu>
   );
@@ -2214,6 +2235,7 @@ function ToolbarCommandButton({
   density,
   menuItem = false,
   primary = false,
+  description,
   onAfterClick,
 }: ToolbarCommandButtonProps): React.ReactElement {
   const Icon = command.icon;
@@ -2226,7 +2248,8 @@ function ToolbarCommandButton({
   const disabledReasonId = disabledReason
     ? `map-toolbar-command-${getCommandDomIdSegment(command.id)}-disabled-reason`
     : undefined;
-  const labelStyle = menuItem
+  const showDescription = menuItem && description != null;
+  const labelStyle = menuItem && !showDescription
     ? {
         ...toolbarButtonText,
         whiteSpace: "normal",
@@ -2258,7 +2281,16 @@ function ToolbarCommandButton({
       {...toolbarButtonInteraction(active, disabled, primary)}
     >
       <Icon size={MAP_ICON_SIZES.sm} strokeWidth={1.8} color={color} aria-hidden="true" />
-      <span style={labelStyle}>{label}</span>
+      {showDescription ? (
+        <span style={{ display: "grid", gap: "0.125rem", minWidth: 0 }}>
+          <span style={{ ...labelStyle, whiteSpace: "normal", overflow: "visible", textOverflow: "clip", lineHeight: 1.15 }}>{label}</span>
+          <span style={{ color: MAP_COLORS.textMuted, fontFamily: MAP_TYPOGRAPHY.fontFamily, fontSize: "0.6875rem", fontWeight: MAP_TYPOGRAPHY.fontWeight.normal, lineHeight: 1.2 }}>
+            {description}
+          </span>
+        </span>
+      ) : (
+        <span style={labelStyle}>{label}</span>
+      )}
       {command.badge != null && command.badge !== 0 ? <span style={toolbarBadge} aria-hidden="true">{command.badge}</span> : null}
       {disabledReason && disabledReasonId ? (
         <span id={disabledReasonId} style={mapStyles.srOnly}>
@@ -2341,7 +2373,7 @@ function ToolbarOverflowMenu({
         onClose();
       }}
       align="end"
-      minWidth={300}
+      minWidth={340}
       maxWidth={560}
       ariaLabel="Overflow map commands"
       testId="map-command-center-overflow-menu"
@@ -2371,7 +2403,16 @@ function ToolbarOverflowMenu({
           ) : groupedCommands.map((group) => {
             return (
               <AppMenuSection key={group.id} title={<><span>{group.label}</span><span>{group.commands.length}</span></>}>
-                {renderCommandSectionItems(group.commands, "comfortable", onClose)}
+                {group.commands.map((command) => (
+                  <ToolbarCommandButton
+                    key={command.id}
+                    command={command}
+                    density="comfortable"
+                    menuItem
+                    description={command.title}
+                    onAfterClick={onClose}
+                  />
+                ))}
               </AppMenuSection>
             );
           })}
@@ -2405,6 +2446,14 @@ function ToolbarCommandGroupMenu({
   const Icon = meta.icon;
   const active = open || commands.some((command) => command.active);
   const tone = getTopSurfaceGroupTone(commands);
+  const minWidthByGroup: Record<TopSurfaceGroupId, number> = {
+    data: 320,
+    view: 300,
+    analyze: 360,
+    evidence: 300,
+    publish: 320,
+    advanced: 340,
+  };
 
   return (
     <>
@@ -2430,8 +2479,8 @@ function ToolbarCommandGroupMenu({
         anchorRef={triggerRef}
         onClose={onClose}
         placement={groupId === "publish" || groupId === "advanced" ? "bottom-end" : "bottom-start"}
-        minWidth={240}
-        maxWidth={460}
+        minWidth={minWidthByGroup[groupId]}
+        maxWidth={groupId === "analyze" ? 520 : 460}
         role="menu"
         ariaLabel={groupId === "publish" ? "Export commands" : `${meta.label} command group`}
         style={commandGroupMenuStyle}
@@ -2448,6 +2497,7 @@ function ToolbarCommandGroupMenu({
               command={command}
               density="comfortable"
               menuItem
+              description={command.title}
               onAfterClick={onClose}
             />
           ))}

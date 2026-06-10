@@ -68,6 +68,7 @@ import {
   mapStyles,
   type GisStatusKey,
 } from "../mapTokens";
+import { MAP_LAYOUT_TOKENS } from "../mapLayoutTokens";
 import { MapCanvas, type MapFeatureReportRequest } from "../MapCanvas";
 import { MapCanvasControls } from "../MapCanvasControls";
 import { MapTopCommandSurface } from "../MapTopCommandSurface";
@@ -10571,16 +10572,17 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         <MapCanvasRegion
           ref={handleMapContainerRef}
           style={{
-            "--map-shell-command-height": "0rem",
+            "--map-shell-command-height": MAP_LAYOUT_TOKENS.commandBarHeight,
             "--map-dock-left": `${navigatorLeftInset}px`,
             "--map-dock-right": `${navigatorRightInset}px`,
             "--map-overlay-safe-inset-x": "0.75rem",
             "--map-overlay-safe-inset-y": "0.25rem",
-            "--map-overlay-safe-top": "calc(var(--map-overlay-safe-inset-y, 0.25rem) + 0.25rem)",
+            "--map-overlay-safe-top": "calc(var(--map-shell-command-height, 2.25rem) + var(--map-overlay-safe-inset-y, 0.25rem))",
             "--map-overlay-safe-bottom": "6.75rem",
             "--map-popover-max-height": "min(24rem, calc(100vh - 8rem))",
             "--map-layer-panel-width": `${dockLayout.layerPanelWidth}px`,
             "--map-activity-rail-width": MAP_ACTIVITY_RAIL_WIDTH,
+            width: `calc(100% - ${MAP_ACTIVITY_RAIL_WIDTH})`,
             marginLeft: MAP_ACTIVITY_RAIL_WIDTH,
           } as React.CSSProperties}
           data-map-dock-compact={dockLayout.compactDock ? "true" : "false"}

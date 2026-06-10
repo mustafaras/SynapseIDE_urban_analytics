@@ -11,6 +11,7 @@ import {
   MAP_TYPOGRAPHY,
   MAP_Z_INDEX,
 } from "../mapTokens";
+import { getMapOverlayPortalRoot } from "./mapOverlayPortal";
 
 export type AppDropdownAlign = "start" | "center" | "end";
 
@@ -31,6 +32,7 @@ export interface AppDropdownMenuProps {
 export interface AppMenuItemProps {
   icon?: React.ReactNode;
   label: React.ReactNode;
+  description?: React.ReactNode;
   shortcut?: React.ReactNode;
   disabled?: boolean;
   destructive?: boolean;
@@ -45,6 +47,11 @@ export interface AppMenuItemProps {
 export interface AppMenuSectionProps {
   title?: React.ReactNode;
   children: React.ReactNode;
+}
+
+export interface AppMenuPanelProps {
+  children: React.ReactNode;
+  style?: React.CSSProperties;
 }
 
 export interface ToolbarMenuButtonProps
@@ -68,23 +75,37 @@ export interface ToolbarMenuButtonProps
 const contentBaseStyle: React.CSSProperties = {
   zIndex: MAP_Z_INDEX.popover,
   display: "grid",
-  gap: MAP_SPACING.xs,
-  padding: MAP_SPACING.sm,
-  borderRadius: MAP_RADIUS.md,
-  border: MAP_STROKES.hairlineStrong,
-  background: "color-mix(in srgb, var(--syn-surface-panel, #151a21) 96%, #081018 4%)",
-  boxShadow: MAP_SHADOWS.dropdown,
+  gap: MAP_SPACING.zero,
+  padding: MAP_SPACING.zero,
+  borderRadius: "12px",
+  border: MAP_STROKES.none,
+  background: MAP_COLORS.transparent,
+  boxShadow: MAP_SHADOWS.none,
   color: MAP_COLORS.text,
+};
+
+const panelSurfaceStyle: React.CSSProperties = {
+  display: "grid",
+  gap: MAP_SPACING.sm,
+  padding: MAP_SPACING.md,
+  minWidth: 0,
+  borderRadius: "12px",
+  border: MAP_STROKES.hairlineStrong,
+  background: "color-mix(in srgb, var(--syn-surface-panel, #111827) 98%, #05070d 2%)",
+  boxShadow: "0 22px 56px rgba(0, 0, 0, 0.46)",
+  color: MAP_COLORS.text,
+  overflow: "hidden",
+  backdropFilter: "blur(14px)",
 };
 
 const itemBaseStyle: React.CSSProperties = {
   width: "100%",
-  minHeight: "2.25rem",
+  minHeight: "2.75rem",
   display: "grid",
-  gridTemplateColumns: "1rem minmax(0, 1fr) auto",
-  alignItems: "center",
-  gap: MAP_SPACING.sm,
-  padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
+  gridTemplateColumns: "1.125rem minmax(0, 1fr) auto",
+  alignItems: "start",
+  gap: MAP_SPACING.md,
+  padding: `${MAP_SPACING.sm} ${MAP_SPACING.md}`,
   borderRadius: MAP_RADIUS.sm,
   border: "1px solid transparent",
   background: "transparent",
@@ -97,9 +118,27 @@ const itemBaseStyle: React.CSSProperties = {
   cursor: "pointer",
 };
 
+const itemLabelStackStyle: React.CSSProperties = {
+  minWidth: 0,
+  display: "grid",
+  gap: "0.1875rem",
+};
+
+const itemDescriptionStyle: React.CSSProperties = {
+  color: MAP_COLORS.textMuted,
+  fontFamily: MAP_TYPOGRAPHY.fontFamily,
+  fontSize: "0.6875rem",
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.normal,
+  lineHeight: MAP_TYPOGRAPHY.lineHeight.tight,
+  display: "-webkit-box",
+  WebkitLineClamp: 2,
+  WebkitBoxOrient: "vertical",
+  overflow: "hidden",
+};
+
 const sectionStyle: React.CSSProperties = {
   display: "grid",
-  gap: "0.125rem",
+  gap: "0.1875rem",
 };
 
 const sectionTitleStyle: React.CSSProperties = {
@@ -107,7 +146,7 @@ const sectionTitleStyle: React.CSSProperties = {
   alignItems: "center",
   justifyContent: "space-between",
   minHeight: "1.25rem",
-  padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
+  padding: `${MAP_SPACING.xs} ${MAP_SPACING.md}`,
   color: MAP_COLORS.textMuted,
   fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
@@ -224,9 +263,14 @@ export function AppMenuSection({ title, children }: AppMenuSectionProps): React.
   );
 }
 
+export function AppMenuPanel({ children, style }: AppMenuPanelProps): React.ReactElement {
+  return <div style={{ ...panelSurfaceStyle, ...style }}>{children}</div>;
+}
+
 export function AppMenuItem({
   icon,
   label,
+  description,
   shortcut,
   disabled = false,
   destructive = false,
@@ -260,7 +304,10 @@ export function AppMenuItem({
         }}
       >
         {inset ? null : <span aria-hidden="true">{icon}</span>}
-        <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
+        <span style={itemLabelStackStyle}>
+          <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
+          {description != null ? <span style={itemDescriptionStyle}>{description}</span> : null}
+        </span>
         {shortcut ? (
           <span style={{ color: MAP_COLORS.textMuted, fontFamily: MAP_TYPOGRAPHY.fontFamilyMono, fontSize: MAP_TYPOGRAPHY.fontSize.xs }}>
             {shortcut}
@@ -311,12 +358,13 @@ export function AppDropdownMenu({
       <DropdownMenu.Trigger asChild>
         {triggerWithFallbackToggle}
       </DropdownMenu.Trigger>
-      <DropdownMenu.Portal>
+      <DropdownMenu.Portal container={getMapOverlayPortalRoot() ?? undefined}>
         <DropdownMenu.Content
           side="bottom"
           align={align}
           sideOffset={sideOffset}
           collisionPadding={8}
+          collisionBoundary={typeof document !== "undefined" ? document.body : undefined}
           loop
           aria-label={ariaLabel}
           data-testid={testId}
@@ -327,7 +375,7 @@ export function AppDropdownMenu({
             ...contentStyle,
           }}
         >
-          {children}
+          <AppMenuPanel>{children}</AppMenuPanel>
         </DropdownMenu.Content>
       </DropdownMenu.Portal>
     </DropdownMenu.Root>

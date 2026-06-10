@@ -131,7 +131,7 @@ const compactMenuShell: React.CSSProperties = {
 };
 
 const compactMenuStyle: React.CSSProperties = {
-  width: "min(24rem, calc(100vw - 1rem))",
+  width: "min(28rem, calc(100vw - 1rem))",
   maxHeight: "min(26rem, calc(100vh - 5rem))",
   overflowY: "auto",
   display: "grid",
@@ -162,7 +162,7 @@ const compactBookmarkRowStyle: React.CSSProperties = {
   gridTemplateColumns: "minmax(0, 1fr) auto",
   alignItems: "center",
   gap: MAP_SPACING.xs,
-  minHeight: "2.25rem",
+  minHeight: "2.5rem",
   padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
   borderRadius: MAP_RADIUS.sm,
   border: "1px solid color-mix(in srgb, var(--syn-border-subtle, rgba(148, 163, 184, 0.28)) 42%, transparent)",

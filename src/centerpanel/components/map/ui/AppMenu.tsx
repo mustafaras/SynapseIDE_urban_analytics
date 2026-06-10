@@ -1,5 +1,6 @@
 export {
   AppDropdownMenu,
+  AppMenuPanel,
   AppMenuItem,
   AppMenuSection,
   ToolbarMenuButton,
@@ -7,6 +8,7 @@ export {
 export type {
   AppDropdownAlign,
   AppDropdownMenuProps,
+  AppMenuPanelProps,
   AppMenuItemProps,
   AppMenuSectionProps,
   ToolbarMenuButtonProps,

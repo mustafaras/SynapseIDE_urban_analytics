@@ -1,6 +1,7 @@
 import React from "react";
 import { createPortal } from "react-dom";
 import { MAP_Z_INDEX } from "../mapTokens";
+import { getMapOverlayPortalRoot } from "./mapOverlayPortal";
 
 export type AppPopoverPlacement = "bottom-start" | "bottom-end";
 
@@ -157,10 +158,29 @@ export const AppPopover: React.FC<AppPopoverProps> = ({
 
   if (!open || typeof document === "undefined") return null;
 
+  const portalRoot = getMapOverlayPortalRoot();
+  if (!portalRoot) return null;
+
   const anchorWidth = anchorRef.current?.getBoundingClientRect().width ?? 0;
   const width = widthMode === "anchor"
     ? Math.max(minWidth ?? 0, Math.round(anchorWidth))
     : undefined;
+
+  const panelStyle: React.CSSProperties = {
+    display: "grid",
+    gap: "0.375rem",
+    padding: "0.625rem",
+    borderRadius: "12px",
+    border: "1px solid var(--syn-border-strong, rgba(148, 163, 184, 0.34))",
+    background: "color-mix(in srgb, var(--syn-surface-panel, #111827) 98%, #05070d 2%)",
+    backdropFilter: "blur(14px)",
+    boxShadow: "0 22px 56px rgba(0, 0, 0, 0.46)",
+    color: "var(--syn-text-primary, #f4f7ff)",
+    overflowX: "hidden",
+    overflowY: "auto",
+    maxHeight: "var(--map-popover-max-height, min(24rem, calc(100vh - 8rem)))",
+    pointerEvents: "auto",
+  };
 
   return createPortal(
     <div
@@ -180,8 +200,8 @@ export const AppPopover: React.FC<AppPopoverProps> = ({
         ...style,
       }}
     >
-      {children}
+      <div style={panelStyle}>{children}</div>
     </div>,
-    document.body,
+    portalRoot,
   );
 };
