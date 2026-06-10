@@ -66,7 +66,7 @@
 | P19 | ui/map-modal-panel-density-p3 | done | 63d0347 | typecheck passed; lint:errors passed; right dock tests 11/11 passed | src/centerpanel/components/map/MapRightDockHost.tsx | Closed 2026-06-10 with primary/contextual/advanced/diagnostics tier classification, primary tab rail, grouped overflow menu |
 | P20 | ui/map-modal-panel-density-p3 | done | 95073dc | typecheck passed; lint:errors passed; inspector + attribute tests 20/20 passed | src/centerpanel/components/map/inspector/LayerInspector.tsx | Closed 2026-06-10 with summary-first inspector overview, visible warnings, quick actions, and condensed attribute workflow detail rail |
 | P21 | ui/map-modal-panel-density-p3 | done | c73eac5 | typecheck passed; lint:errors passed; MapPublishWorkspace tests 3/3 passed; test:analytics 1131/1131 passed | src/centerpanel/components/map/publish/MapPublishWorkspace.tsx | Closed 2026-06-10 with progressive disclosure for evidence/publish/caveats |
-| P22 | ui/map-modal-panel-density-p3 | not_started |  |  |  |  |
+| P22 | ui/map-modal-panel-density-p3 | done |  | typecheck passed; lint:errors passed; map-performance diagnostics tests 5/5 passed | src/centerpanel/components/map/MapPerformanceDiagnosticsPanel.tsx | Closed 2026-06-10 with severity-first operational diagnostics and collapsed advanced event history |
 | P23 | ui/map-modal-panel-density-p3 | not_started |  |  |  |  |
 | P24 | ui/map-modal-panel-density-p3 | not_started |  |  |  |  |
 | P25 | ui/map-modal-accessibility-p4 | not_started |  |  |  |  |
@@ -296,6 +296,17 @@
 - Open Risks: Primary action visibility is now intentionally constrained to two actions (`Locate`, `Style`), which reduces clutter but may still require follow-up tuning if operator workflows prefer a different default primary pair on small-height viewports.
 - Resume From: src/centerpanel/components/map/MapLayerManager.tsx (`LAYER_ACTION_DENSITY_CLASSIFICATION`, `LayerActionMenu` keyboard handlers, `primaryRowActions` split)
 - Next Prompt: P19
+
+### P22 - Phase 3: Make diagnostics, logs, QA, and performance panels production-appropriate
+- Status: done
+- Intent: Make diagnostics read as severity-first operational guidance while keeping raw telemetry, provider state, recovery, and performance evidence available.
+- Definition of Done: Blockers and warnings are surfaced before raw detail, raw operations logs are collapsed by default behind an explicit advanced disclosure, recovery actions remain clear and safe, and existing diagnostics semantics stay intact.
+- Decisions: Kept Prompt 22 narrowly scoped to the canonical performance diagnostics surface because the shared problems panel already renders severity-first actionable rows. Added a severity-ranked operational summary list for telemetry categories, moved per-event raw history behind a native `details` disclosure that stays collapsed by default, and preserved existing redaction, bounded-log, and worker-retry semantics without changing provider or QA models.
+- Changed Files: src/centerpanel/components/map/MapPerformanceDiagnosticsPanel.tsx; src/centerpanel/components/map/__tests__/map-performance-diagnostics.test.tsx; MAPDESIGN/execution-ledger.md
+- Validation: `npx vitest run src/centerpanel/components/map/__tests__/map-performance-diagnostics.test.tsx src/centerpanel/components/map/__tests__/map-performance-budget.test.tsx` passed (4/4) after the first panel edit; `npx vitest run src/centerpanel/components/map/__tests__/map-performance-diagnostics.test.tsx src/centerpanel/components/map/__tests__/map-performance-budget.test.tsx` passed again after adding Prompt 22 regression coverage (5/5); `npm run typecheck` passed; `npm run lint:errors` passed.
+- Open Risks: The advanced disclosure uses native `details/summary`, which keeps the change small and accessible but does not yet provide a custom persisted open/closed state across sessions. QA and problems panels were not structurally changed because their current severity-first/actionable layout already aligns with Prompt 22 intent.
+- Resume From: src/centerpanel/components/map/MapPerformanceDiagnosticsPanel.tsx
+- Next Prompt: P23
 
 ## Hand-off Checklist
 - [x] Prompt block status updated
