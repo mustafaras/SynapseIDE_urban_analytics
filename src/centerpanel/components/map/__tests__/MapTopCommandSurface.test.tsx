@@ -136,4 +136,20 @@ describe("MapTopCommandSurface", () => {
     expect(layerChip).not.toBeNull();
     expect(layerChip?.getAttribute("title")).toBe(longLayer);
   });
+
+  it("renders contextBarSlot content when provided", () => {
+    renderSurface({
+      contextBarSlot: <div data-testid="test-context-bar">Layer controls</div>,
+    });
+
+    const cluster = document.querySelector('[data-testid="map-context-bar-cluster"]');
+    expect(cluster).not.toBeNull();
+    const inner = document.querySelector('[data-testid="test-context-bar"]');
+    expect(inner?.textContent).toBe("Layer controls");
+  });
+
+  it("does not render context bar cluster when contextBarSlot is omitted", () => {
+    renderSurface();
+    expect(document.querySelector('[data-testid="map-context-bar-cluster"]')).toBeNull();
+  });
 });

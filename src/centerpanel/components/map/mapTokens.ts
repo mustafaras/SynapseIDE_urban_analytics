@@ -354,6 +354,10 @@ export const MAP_BLUR = {
 export const MAP_Z_INDEX = {
   overlay: MAP_NUMERIC.overlayZIndex,
   dropdown: MAP_NUMERIC.dropdownZIndex,
+  /* Portaled overlay surfaces (dropdown menus, popovers) render into
+     document.body and must paint above the fullscreen map modal (10050).
+     Uses the shared design tier: modal 10050 < popover 10060 < tooltip 10070. */
+  popover: DESIGN_TOKENS.zIndex.popover,
   closeBtn: MAP_NUMERIC.closeButtonZIndex,
   sidebar: MAP_NUMERIC.sidebarZIndex,
   temporalSelector: MAP_NUMERIC.temporalSelectorZIndex,

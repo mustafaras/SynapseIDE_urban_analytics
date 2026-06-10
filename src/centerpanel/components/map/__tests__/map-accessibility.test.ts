@@ -520,10 +520,17 @@ describe("Prompt 55 keyboard route surfaces", () => {
       }));
     });
 
-    const paletteTrigger = host.querySelector('[data-testid="map-toolbar-command-command-palette"]') as HTMLButtonElement;
+    const paletteTrigger = host.querySelector('[data-testid="map-commands-trigger"]') as HTMLButtonElement;
     paletteTrigger.focus();
     await act(async () => {
       paletteTrigger.click();
+    });
+    await flushAnimationFrame();
+
+    const openPaletteItem = document.querySelector('[data-testid="map-commands-open-palette"]') as HTMLButtonElement;
+    expect(openPaletteItem).toBeTruthy();
+    await act(async () => {
+      openPaletteItem.click();
     });
     await flushAnimationFrame();
 

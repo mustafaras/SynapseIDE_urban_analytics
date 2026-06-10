@@ -53,7 +53,6 @@ import {
   isMapUndoShortcut,
   isOpenPaletteShortcut,
   MAP_COMMAND_TAXONOMY_META,
-  MAP_COMMAND_TAXONOMY_ORDER,
   searchMapPaletteCommands,
   shouldIgnoreMapPaletteShortcut,
   type MapCommandTaxonomyId,
@@ -82,6 +81,7 @@ import {
   MAP_Z_INDEX,
   mapStyles,
 } from "./mapTokens";
+import { AppDropdownMenu, AppMenuItem, AppMenuSection, AppPopover, ToolbarMenuButton } from "./ui";
 
 /* ================================================================== */
 /*  Props                                                              */
@@ -207,6 +207,7 @@ type ToolbarBreakpoint = "mobile" | "tablet" | "desktop";
 type OverflowGroupId = "tools" | "export" | "advanced";
 type CommandTaxonomyId = MapCommandTaxonomyId;
 type TopSurfaceGroupId = "data" | "view" | "analyze" | "evidence" | "publish" | "advanced";
+type ToolbarMenuSectionId = "workspace" | "view" | "tools" | "settings";
 
 interface ToolbarCommand {
   id: string;
@@ -409,23 +410,6 @@ const DENSITY_LABELS: Record<ToolbarDensity, string> = {
 
 const TOOLBAR_DENSITY_ORDER = ["compact", "comfortable"] as const satisfies readonly ToolbarDensity[];
 
-const COMMAND_TAXONOMY_ICONS: Record<CommandTaxonomyId, LucideIcon> = {
-  data: Upload,
-  layers: Layers3,
-  contents: Layers3,
-  qa: ShieldAlert,
-  analyze: Workflow,
-  query: Search,
-  style: Palette,
-  scene: Building2,
-  publish: Download,
-  review: History,
-  diagnostics: BarChart3,
-  project: Settings2,
-  extensions: Puzzle,
-};
-
-const COMMAND_TAXONOMY_ORDER: readonly CommandTaxonomyId[] = MAP_COMMAND_TAXONOMY_ORDER;
 const TOP_SURFACE_GROUP_ORDER: readonly TopSurfaceGroupId[] = ["data", "analyze", "evidence", "publish", "view", "advanced"];
 
 const TOP_SURFACE_GROUP_META: Record<TopSurfaceGroupId, {
@@ -484,9 +468,9 @@ const toolbarShell: React.CSSProperties = {
   alignContent: "center",
   flexWrap: "nowrap",
   flex: "1 1 100%",
-  gap: MAP_SPACING.xs,
-  height: "2rem",
-  padding: "0 0.125rem",
+  gap: MAP_SPACING.sm,
+  height: "2.125rem",
+  padding: "0 0.25rem",
   boxSizing: "border-box",
   minWidth: MAP_SPACING.zero,
   maxWidth: "100%",
@@ -502,9 +486,9 @@ const roleSwitch: React.CSSProperties = {
   minWidth: MAP_SPACING.zero,
   height: "1.75rem",
   padding: "0 0.125rem",
-  border: MAP_STROKES.hairlineSubtle,
+  border: "1px solid color-mix(in srgb, var(--syn-border-subtle, rgba(148, 163, 184, 0.18)) 36%, transparent)",
   borderRadius: MAP_RADIUS.sm,
-  background: "var(--syn-surface-subtle, rgba(15, 23, 42, 0.38))",
+  background: "color-mix(in srgb, var(--syn-surface-subtle, rgba(15, 23, 42, 0.2)) 20%, transparent)",
   gap: "0.125rem",
 };
 
@@ -514,7 +498,7 @@ const commandRail: React.CSSProperties = {
   justifyContent: "flex-start",
   flex: "1 1 auto",
   minWidth: MAP_SPACING.zero,
-  gap: MAP_SPACING.xs,
+  gap: MAP_SPACING.sm,
   overflow: "hidden",
 };
 
@@ -523,8 +507,8 @@ const overflowRail: React.CSSProperties = {
   alignItems: "center",
   flex: "0 0 auto",
   gap: MAP_SPACING.xs,
-  paddingLeft: MAP_SPACING.xs,
-  borderLeft: MAP_STROKES.hairlineSubtle,
+  paddingLeft: MAP_SPACING.sm,
+  borderLeft: "1px solid color-mix(in srgb, var(--syn-border-subtle, rgba(148, 163, 184, 0.18)) 40%, transparent)",
 };
 
 const commandGroupRail: React.CSSProperties = {
@@ -533,6 +517,13 @@ const commandGroupRail: React.CSSProperties = {
   minWidth: MAP_SPACING.zero,
   gap: MAP_SPACING.xs,
   overflow: "hidden",
+};
+
+const utilityRail: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: MAP_SPACING.xs,
+  minWidth: MAP_SPACING.zero,
 };
 
 const primaryActionShell: React.CSSProperties = {
@@ -573,47 +564,19 @@ const toolbarBadge: React.CSSProperties = {
 };
 
 const overflowMenuStyle: React.CSSProperties = {
-  position: "absolute",
-  top: "calc(100% + 0.375rem)",
-  right: 0,
-  zIndex: MAP_Z_INDEX.dropdown,
-  width: "min(30rem, calc(100% - var(--map-dock-left, 0px) - var(--map-dock-right, 0px) - 1rem))",
+  width: "min(34rem, calc(100vw - 1rem))",
   maxHeight: "var(--map-popover-max-height, min(24rem, calc(100vh - 8rem)))",
-  padding: MAP_SPACING.xs,
-  border: MAP_STROKES.hairlineSubtle,
+  padding: MAP_SPACING.sm,
   borderRadius: MAP_RADIUS.md,
-  background: MAP_COLORS.bgPanel,
-  boxShadow: MAP_SHADOWS.none,
   display: "grid",
-  gap: "0.125rem",
+  gap: MAP_SPACING.xs,
   overflowY: "auto",
 };
 
 const commandGroupMenuStyle: React.CSSProperties = {
   ...overflowMenuStyle,
-  left: 0,
-  right: "auto",
-  width: "min(19rem, calc(100% - var(--map-dock-left, 0px) - var(--map-dock-right, 0px) - 1rem))",
+  width: "min(22rem, calc(100vw - 1rem))",
   maxHeight: "var(--map-popover-max-height, min(24rem, calc(100vh - 8rem)))",
-};
-
-const overflowSectionStyle: React.CSSProperties = {
-  display: "grid",
-  gap: "0.125rem",
-  padding: `${MAP_SPACING.xs} 0`,
-  borderTop: MAP_STROKES.hairlineSubtle,
-};
-
-const overflowSectionHeaderStyle: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "1rem minmax(0, 1fr) auto",
-  alignItems: "center",
-  gap: MAP_SPACING.xs,
-  padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
-  color: MAP_COLORS.textMuted,
-  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
-  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
-  textTransform: "uppercase",
 };
 
 const paletteBackdropStyle: React.CSSProperties = {
@@ -667,7 +630,7 @@ const menuHeaderStyle: React.CSSProperties = {
   justifyContent: "space-between",
   gap: MAP_SPACING.sm,
   padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
-  borderBottom: MAP_STROKES.hairlineSubtle,
+  borderBottom: "1px solid color-mix(in srgb, var(--syn-border-subtle, rgba(148, 163, 184, 0.28)) 52%, transparent)",
   color: MAP_COLORS.textMuted,
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
@@ -730,15 +693,13 @@ function commandButtonStyle(
           ? "5.9rem"
           : "5.25rem";
   const border = primary
-    ? `1px solid color-mix(in srgb, ${MAP_COLORS.interaction} 46%, ${MAP_COLORS.hairlineSubtle})`
-    : active
-      ? `1px solid ${MAP_COLORS.focus}`
-      : "1px solid transparent";
+    ? `1px solid color-mix(in srgb, ${MAP_COLORS.interaction} 36%, transparent)`
+    : "1px solid transparent";
   const background = primary
     ? primaryCommandButtonBackground
     : active
       ? MAP_COLORS.selectedSubtle
-      : MAP_COLORS.transparent;
+      : "transparent";
 
   return {
     display: "inline-flex",
@@ -782,7 +743,9 @@ function toolbarButtonInteraction(
     },
     onMouseLeave: (event) => {
       if (active || disabled) return;
-      event.currentTarget.style.background = primary ? primaryCommandButtonBackground : MAP_COLORS.transparent;
+      event.currentTarget.style.background = primary
+        ? primaryCommandButtonBackground
+        : "transparent";
       event.currentTarget.style.color = primary ? MAP_COLORS.interaction : "";
     },
     onFocus: (event) => {
@@ -804,7 +767,7 @@ function roleButtonStyle(active: boolean, compact = false): React.CSSProperties 
     height: "1.4375rem",
     minWidth: compact ? "1.5rem" : undefined,
     padding: compact ? `0 ${MAP_SPACING.xs}` : `0 0.375rem`,
-    border: active ? `1px solid color-mix(in srgb, ${MAP_COLORS.interaction} 38%, transparent)` : "1px solid transparent",
+    border: "1px solid transparent",
     borderRadius: MAP_RADIUS.sm,
     background: active ? MAP_COLORS.selectedSubtle : "transparent",
     color: active ? MAP_COLORS.interaction : MAP_COLORS.textMuted,
@@ -2143,14 +2106,107 @@ function selectContextualPrimaryCommand(args: {
   return findFirstCommand(args.commands, ["layers", "contents", "catalog", "import"]) ?? activeCommand ?? null;
 }
 
-function groupCommandsByTaxonomy(commands: readonly ToolbarCommand[]): Array<{
-  id: CommandTaxonomyId;
+function getOverflowSectionId(command: ToolbarCommand): ToolbarMenuSectionId {
+  if (["save-project", "load-project", "review-timeline", "navigator", "undo-map-action", "redo-map-action", "reset-layout", "collapse-panels", "focus-map-canvas", "restore-default-widths", "switch-density"].includes(command.id)) return "workspace";
+  if (["layers", "contents", "catalog", "theme", "sync", "voxcity", "figure-composer", "export-image"].includes(command.id)) return "view";
+  if (["import", "services", "query", "workflow", "processing-toolbox", "model-builder", "export-offline-package", "add-map-to-report", "export-geojson", "drawings", "measure-results", "pin-mode", "pins"].includes(command.id) || command.id.startsWith("draw-") || command.id.startsWith("measure-")) {
+    return "tools";
+  }
+  return "settings";
+}
+
+function groupCommandsByOverflowSection(commands: readonly ToolbarCommand[]): Array<{
+  id: ToolbarMenuSectionId;
+  label: string;
   commands: ToolbarCommand[];
 }> {
-  return COMMAND_TAXONOMY_ORDER.map((id) => ({
+  const sectionOrder: readonly ToolbarMenuSectionId[] = ["workspace", "view", "tools", "settings"];
+  const labels: Record<ToolbarMenuSectionId, string> = {
+    workspace: "Workspace",
+    view: "View",
+    tools: "Tools",
+    settings: "Settings",
+  };
+  return sectionOrder.map((id) => ({
     id,
-    commands: commands.filter((command) => getCommandTaxonomy(command) === id),
-  })).filter((group) => group.commands.length > 0);
+    label: labels[id],
+    commands: sortCommandsForSurface(commands.filter((command) => getOverflowSectionId(command) === id)),
+  })).filter((section) => section.commands.length > 0);
+}
+
+function renderCommandSectionItems(
+  commands: readonly ToolbarCommand[],
+  density: ToolbarDensity,
+  onClose: () => void,
+): React.ReactNode {
+  return commands.map((command) => (
+    <ToolbarCommandButton
+      key={command.id}
+      command={command}
+      density={density}
+      menuItem
+      onAfterClick={onClose}
+    />
+  ));
+}
+
+function ToolbarCommandsMenu({
+  commands,
+  density,
+  open,
+  onOpenChange,
+  onOpenPalette,
+}: {
+  commands: readonly ToolbarCommand[];
+  density: ToolbarDensity;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onOpenPalette: () => void;
+}): React.ReactElement {
+  const triggerRef = React.useRef<HTMLButtonElement | null>(null);
+  const quickCommands = sortCommandsForSurface(
+    commands.filter((command) => !command.id.startsWith("task-lens-") && command.id !== "import").slice(0, 8),
+  );
+
+  return (
+    <AppDropdownMenu
+      open={open}
+      onOpenChange={onOpenChange}
+      align="start"
+      minWidth={320}
+      maxWidth={420}
+      ariaLabel="Map commands menu"
+      testId="map-commands-menu"
+      contentStyle={overflowMenuStyle}
+      trigger={(
+        <ToolbarMenuButton
+          ref={triggerRef}
+          label="Commands"
+          icon={<Command size={MAP_ICON_SIZES.sm} strokeWidth={1.8} aria-hidden="true" />}
+          active={open}
+          expanded={open}
+          compact={density === "compact"}
+          title="Open map commands"
+          ariaLabel="Open map commands"
+          testId="map-commands-trigger"
+        />
+      )}
+    >
+      <AppMenuSection title="Quick Actions">
+        <AppMenuItem
+          icon={<Command size={MAP_ICON_SIZES.sm} strokeWidth={1.8} aria-hidden="true" />}
+          label="Open Command Palette"
+          shortcut={formatMapKeybinding("openPalette")}
+          onSelect={() => {
+            triggerRef.current?.focus();
+            onOpenPalette();
+          }}
+          testId="map-commands-open-palette"
+        />
+        {renderCommandSectionItems(quickCommands, "comfortable", () => onOpenChange(false))}
+      </AppMenuSection>
+    </AppDropdownMenu>
+  );
 }
 
 function ToolbarCommandButton({
@@ -2170,6 +2226,15 @@ function ToolbarCommandButton({
   const disabledReasonId = disabledReason
     ? `map-toolbar-command-${getCommandDomIdSegment(command.id)}-disabled-reason`
     : undefined;
+  const labelStyle = menuItem
+    ? {
+        ...toolbarButtonText,
+        whiteSpace: "normal",
+        overflow: "visible",
+        textOverflow: "clip",
+        lineHeight: 1.25,
+      }
+    : toolbarButtonText;
 
   return (
     <button
@@ -2193,7 +2258,7 @@ function ToolbarCommandButton({
       {...toolbarButtonInteraction(active, disabled, primary)}
     >
       <Icon size={MAP_ICON_SIZES.sm} strokeWidth={1.8} color={color} aria-hidden="true" />
-      <span style={toolbarButtonText}>{label}</span>
+      <span style={labelStyle}>{label}</span>
       {command.badge != null && command.badge !== 0 ? <span style={toolbarBadge} aria-hidden="true">{command.badge}</span> : null}
       {disabledReason && disabledReasonId ? (
         <span id={disabledReasonId} style={mapStyles.srOnly}>
@@ -2234,7 +2299,12 @@ function TaskLensSwitch({
           data-testid={`map-task-lens-${entry.id}`}
           {...toolbarButtonInteraction(taskLens === entry.id, false)}
         >
-          {compact ? TASK_LENS_MICRO_LABELS[entry.id] : TASK_LENS_SHORT_LABELS[entry.id]}
+          {compact ? (
+            <>
+              <span aria-hidden>{TASK_LENS_MICRO_LABELS[entry.id]}</span>
+              <span style={mapStyles.srOnly}>{TASK_LENS_SHORT_LABELS[entry.id]}</span>
+            </>
+          ) : TASK_LENS_SHORT_LABELS[entry.id]}
         </button>
       ))}
     </div>
@@ -2256,60 +2326,58 @@ function ToolbarOverflowMenu({
   onClose: () => void;
   children?: React.ReactNode;
 }): React.ReactElement | null {
-  const groupedCommands = groupCommandsByTaxonomy(commands);
+  const groupedCommands = groupCommandsByOverflowSection(commands);
   const hasBody = commands.length > 0 || children != null;
   if (!hasBody) return null;
 
   return (
-    <div style={{ position: "relative", display: "inline-flex" }}>
-      <button
-        type="button"
-        style={commandButtonStyle(open, false, "default", density)}
-        onClick={onToggle}
-        title="Open overflow map commands"
-        aria-label="Open overflow map commands"
-        aria-expanded={open}
-        aria-haspopup="menu"
-        data-testid="map-command-center-overflow"
-        {...toolbarButtonInteraction(open, false)}
-      >
-        <Settings2 size={MAP_ICON_SIZES.sm} strokeWidth={1.8} aria-hidden="true" />
-        <span style={toolbarButtonText}>More</span>
-        <ChevronDown size={MAP_ICON_SIZES.xs} strokeWidth={1.8} aria-hidden="true" />
-      </button>
-
-      {open ? (
-        <div style={overflowMenuStyle} role="menu" aria-label="Overflow map commands">
+    <AppDropdownMenu
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (nextOpen) {
+          onToggle();
+          return;
+        }
+        onClose();
+      }}
+      align="end"
+      minWidth={300}
+      maxWidth={560}
+      ariaLabel="Overflow map commands"
+      testId="map-command-center-overflow-menu"
+      contentStyle={overflowMenuStyle}
+      trigger={(
+        <ToolbarMenuButton
+          label="More"
+          icon={<Settings2 size={MAP_ICON_SIZES.sm} strokeWidth={1.8} aria-hidden="true" />}
+          active={open}
+          expanded={open}
+          compact={density === "compact"}
+          title="Open overflow map commands"
+          ariaLabel="Open overflow map commands"
+          testId="map-command-center-overflow"
+        />
+      )}
+    >
+      <div>
           <div style={menuHeaderStyle}>
             <span>Command Center</span>
             <span>{commands.length} cmd</span>
           </div>
-          {groupedCommands.map((group) => {
-            const meta = MAP_COMMAND_TAXONOMY_META[group.id];
-            const Icon = COMMAND_TAXONOMY_ICONS[group.id];
+          {groupedCommands.length === 0 ? (
+            <div style={{ padding: `${MAP_SPACING.sm} ${MAP_SPACING.md}`, color: MAP_COLORS.textMuted }}>
+              No actions available
+            </div>
+          ) : groupedCommands.map((group) => {
             return (
-              <section key={group.id} style={overflowSectionStyle} aria-label={meta.title}>
-                <div style={overflowSectionHeaderStyle}>
-                  <Icon size={MAP_ICON_SIZES.sm} strokeWidth={1.8} aria-hidden="true" />
-                  <span>{meta.label}</span>
-                  <span>{group.commands.length}</span>
-                </div>
-                {group.commands.map((command) => (
-                  <ToolbarCommandButton
-                    key={command.id}
-                    command={command}
-                    density="comfortable"
-                    menuItem
-                    onAfterClick={onClose}
-                  />
-                ))}
-              </section>
+              <AppMenuSection key={group.id} title={<><span>{group.label}</span><span>{group.commands.length}</span></>}>
+                {renderCommandSectionItems(group.commands, "comfortable", onClose)}
+              </AppMenuSection>
             );
           })}
           {children}
-        </div>
-      ) : null}
-    </div>
+      </div>
+    </AppDropdownMenu>
   );
 }
 
@@ -2330,6 +2398,7 @@ function ToolbarCommandGroupMenu({
   onClose: () => void;
   showLabel: boolean;
 }): React.ReactElement | null {
+  const triggerRef = React.useRef<HTMLButtonElement | null>(null);
   if (commands.length === 0) return null;
 
   const meta = TOP_SURFACE_GROUP_META[groupId];
@@ -2338,8 +2407,9 @@ function ToolbarCommandGroupMenu({
   const tone = getTopSurfaceGroupTone(commands);
 
   return (
-    <div style={{ position: "relative", display: "inline-flex" }}>
+    <>
       <button
+        ref={triggerRef}
         type="button"
         style={commandButtonStyle(active, false, tone, density)}
         onClick={onToggle}
@@ -2355,16 +2425,19 @@ function ToolbarCommandGroupMenu({
         <ChevronDown size={MAP_ICON_SIZES.xs} strokeWidth={1.8} aria-hidden="true" />
       </button>
 
-      {open ? (
-        <div
-          style={{
-            ...commandGroupMenuStyle,
-            ...(groupId === "publish" || groupId === "advanced" ? { left: "auto", right: 0 } : null),
-          }}
-          role="menu"
-          aria-label={groupId === "publish" ? "Export commands" : `${meta.label} command group`}
-          data-testid={`map-command-group-menu-${groupId}`}
-        >
+      <AppPopover
+        open={open}
+        anchorRef={triggerRef}
+        onClose={onClose}
+        placement={groupId === "publish" || groupId === "advanced" ? "bottom-end" : "bottom-start"}
+        minWidth={240}
+        maxWidth={460}
+        role="menu"
+        ariaLabel={groupId === "publish" ? "Export commands" : `${meta.label} command group`}
+        style={commandGroupMenuStyle}
+        testId={`map-command-group-menu-${groupId}`}
+      >
+        <div>
           <div style={commandGroupMenuHeaderStyle}>
             <span>{meta.label}</span>
             <span>{commands.length} cmd</span>
@@ -2379,8 +2452,8 @@ function ToolbarCommandGroupMenu({
             />
           ))}
         </div>
-      ) : null}
-    </div>
+      </AppPopover>
+    </>
   );
 }
 
@@ -2781,7 +2854,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
   const setStoredTaskLens = useMapToolbarPreferencesStore((state) => state.setTaskLens);
   const taskLens = taskLensProp ?? storedTaskLens;
   const toolbarRole = getRoleForTaskLens(taskLens, workspaceView);
-  const [openMenu, setOpenMenu] = React.useState<TopSurfaceGroupId | "more" | null>(null);
+  const [openMenu, setOpenMenu] = React.useState<TopSurfaceGroupId | "commands" | "more" | null>(null);
   const [paletteOpen, setPaletteOpen] = React.useState(false);
 
   React.useEffect(() => {
@@ -2828,17 +2901,6 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
     window.addEventListener("keydown", handleKeyDown, { capture: true });
     return () => window.removeEventListener("keydown", handleKeyDown, { capture: true });
   }, [canRedoMapAction, canUndoMapAction, onRedoMapAction, onUndoMapAction, openMenu, paletteOpen]);
-
-  React.useEffect(() => {
-    if (!openMenu) return;
-    const handlePointerDown = (event: MouseEvent): void => {
-      if (!toolbarRef.current?.contains(event.target as Node)) {
-        setOpenMenu(null);
-      }
-    };
-    window.addEventListener("mousedown", handlePointerDown, { capture: true });
-    return () => window.removeEventListener("mousedown", handlePointerDown, { capture: true });
-  }, [openMenu]);
 
   const handleTaskLensChange = React.useCallback((nextTaskLens: MapTaskLensId) => {
     setStoredTaskLens(nextTaskLens);
@@ -3075,7 +3137,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
   );
 
   const breakpoint = getBreakpoint(toolbarWidth);
-  const compactTaskLens = toolbarWidth < 760;
+  const compactTaskLens = toolbarWidth < 1600;
   const primaryButtonDensity: ToolbarDensity = toolbarWidth < 340 ? "compact" : "comfortable";
   const paletteButtonDensity: ToolbarDensity = toolbarWidth < 500 ? "compact" : "comfortable";
   const commandRegistry = commands;
@@ -3120,8 +3182,6 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       workspaceView,
     ],
   );
-  const showInlinePalette = true;
-
   const openPaletteShortcut = formatMapKeybinding("openPalette");
   const commandPaletteCommand = React.useMemo<PaletteCommand>(() => ({
     id: "command-palette",
@@ -3186,7 +3246,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
     const grouped = groupCommandsByTopSurface(commandRegistry);
     return grouped.filter((group) => visibleGroupIds.has(group.id));
   }, [commandRegistry, toolbarWidth]);
-  const showGroupLabels = toolbarWidth >= 860;
+  const showGroupLabels = toolbarWidth >= 1500;
   const groupButtonDensity: ToolbarDensity = toolbarWidth < 620 ? "compact" : density;
   const directCommandIds = React.useMemo(() => {
     const ids = new Set<string>();
@@ -3201,8 +3261,8 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
     1
     + (workspaceView !== "navigator" ? 1 : 0)
     + (primaryCommand ? 1 : 0)
+    + 1
     + inlineGroups.length;
-
   const advancedFooter = (
     <>
       <DensitySwitch
@@ -3271,9 +3331,18 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
             <ToolbarCommandButton command={primaryCommand} density={primaryButtonDensity} primary />
           </div>
         ) : null}
-        {showInlinePalette ? (
-          <ToolbarCommandButton command={commandPaletteCommand} density={paletteButtonDensity} />
-        ) : null}
+        <div style={utilityRail} aria-label="Command surface actions">
+          <ToolbarCommandsMenu
+            commands={commandRegistry}
+            density={paletteButtonDensity}
+            open={openMenu === "commands"}
+            onOpenChange={(nextOpen) => setOpenMenu(nextOpen ? "commands" : null)}
+            onOpenPalette={() => {
+              setPaletteOpen(true);
+              setOpenMenu(null);
+            }}
+          />
+        </div>
         <div style={commandGroupRail} aria-label="Grouped top-surface commands">
           {inlineGroups.map((group) => (
             <ToolbarCommandGroupMenu

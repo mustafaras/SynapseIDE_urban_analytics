@@ -65,7 +65,6 @@ import {
   MAP_SPACING,
   MAP_STROKES,
   MAP_TYPOGRAPHY,
-  MAP_Z_INDEX,
   mapStyles,
   type GisStatusKey,
 } from "../mapTokens";
@@ -73,6 +72,7 @@ import { MapCanvas, type MapFeatureReportRequest } from "../MapCanvas";
 import { MapCanvasControls } from "../MapCanvasControls";
 import { MapTopCommandSurface } from "../MapTopCommandSurface";
 import { MapToolbar } from "../MapToolbar";
+import { ToolbarButton } from "../ContextToolbar";
 import { GisIconButton } from "../ui";
 import {
   MapLayerCartographyPanel,
@@ -1397,17 +1397,6 @@ const mapActivityRailOverlayStyle: React.CSSProperties = {
   height: "100%",
 };
 
-const canvasSelectionDockStyle: React.CSSProperties = {
-  position: "absolute",
-  top: "var(--map-overlay-safe-top, calc(var(--map-shell-command-height, 2.75rem) + var(--map-overlay-safe-inset-y, 0.25rem)))",
-  left: `calc(var(--map-dock-left, 0px) + ${MAP_SPACING.md})`,
-  /* Stay below docked/overlay panel rails (MAP_Z_INDEX.sidebar) so the
-     selection dock never paints over panel headers at compact widths. */
-  zIndex: MAP_Z_INDEX.sidebar - 1,
-  pointerEvents: "auto",
-  maxWidth: `calc(100% - var(--map-dock-left, 0px) - var(--map-dock-right, 0px) - ${MAP_SPACING.xl})`,
-};
-
 const modalControlClusterStyle: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
@@ -1424,6 +1413,30 @@ const modalControlCloseDividerStyle: React.CSSProperties = {
   height: "1.25rem",
   background: "var(--syn-border-subtle, rgba(148, 163, 184, 0.28))",
   margin: "0 0.125rem",
+};
+
+const contextToolbarCountStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  minHeight: "1.25rem",
+  padding: `0 ${MAP_SPACING.xs}`,
+  borderRadius: MAP_RADIUS.xs,
+  border: "1px solid color-mix(in srgb, var(--syn-border-subtle, rgba(148, 163, 184, 0.3)) 45%, transparent)",
+  background: "color-mix(in srgb, var(--syn-surface-subtle, rgba(15, 23, 42, 0.26)) 34%, transparent)",
+  color: MAP_COLORS.textMuted,
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+};
+
+const contextBarDividerStyle: React.CSSProperties = {
+  width: 1,
+  height: "1.5rem",
+  background: "var(--syn-border-subtle, rgba(148, 163, 184, 0.28))",
+  flexShrink: 0,
+  margin: "0 0.125rem",
+  alignSelf: "center",
 };
 
 /* ================================================================== */
@@ -9547,6 +9560,13 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
       onOpenLayerEducationReference={handleOpenLayerEducationReference}
       onSendLayerToUrban={handleSendLayerToUrban}
       onRepairGeometry={handleRepairLayerGeometry}
+      selectedFeatureCount={selectedFeatureCount}
+      qaIssueCount={scientificQAIssueCount}
+      qaBlockerCount={scientificQABlockerCount}
+      onOpenSourcesSection={() => openLayersActivityTab("layers-sources", "Layer sources opened")}
+      onOpenContentsSection={() => openLayersActivityTab("layers-contents", "Layer contents opened")}
+      onOpenSelectionDetail={handleOpenSelectionFromStatus}
+      onOpenLayerQaDetail={() => openMapProblems("quick-action")}
       onDeclareLayerCrs={handleDeclareLayerCrs}
       onInspectLayer={handleInspectLayer}
       onOpenAttributeTable={handleOpenAttributeTable}
@@ -10450,6 +10470,55 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
               onShareBookmark={handleShareBookmark}
             />
           )}
+          contextBarSlot={(
+            <>
+              {/* Layer context group */}
+              <ToolbarButton
+                label="Layers"
+                title={effectiveShowLayerPanel ? "Hide layers workspace" : "Show layers workspace"}
+                active={effectiveShowLayerPanel}
+                onClick={handleToggleLayerPanel}
+              />
+              <ToolbarButton
+                label="Contents"
+                title={layersContentsTabActive ? "Hide contents tree" : "Show contents tree"}
+                active={layersContentsTabActive}
+                onClick={handleToggleContents}
+              />
+              <ToolbarButton
+                label="Catalog"
+                title={dataCatalogTabActive ? "Hide data catalog" : "Show data catalog"}
+                active={dataCatalogTabActive}
+                onClick={handleToggleCatalog}
+              />
+              <span
+                style={contextToolbarCountStyle}
+                aria-label={`${overlayLayers.length.toLocaleString()} layers`}
+              >
+                {overlayLayers.length.toLocaleString()} layers
+              </span>
+              <span style={contextBarDividerStyle} aria-hidden="true" />
+              {/* Selection tools */}
+              <MapSelectionTools
+                mapRef={mapInstanceRef}
+                queryableLayers={nlQueryToolbarContext.queryableLayers}
+                selectedFeatureIds={selectedFeatureIds}
+                activeDragTool={selectionDragTool}
+                showModeButtons
+                variant="bar"
+                onSetSelectedFeatures={handleSetSelectedFeatures}
+                onClearSelectedFeatures={handleClearSelectedFeatures}
+                onSetActiveAnalysisResultLayers={setActiveAnalysisResultLayers}
+                onAddDrawnFeature={addDrawnFeature}
+                onActiveDragToolChange={setSelectionDragTool}
+                onSelectionResult={handleSelectionResult}
+                onAnnounce={announce}
+              />
+              <span style={contextBarDividerStyle} aria-hidden="true" />
+              {/* Canvas controls */}
+              <MapCanvasControls {...mapCanvasControlsProps} surface="bar" />
+            </>
+          )}
           modalControlSlot={(
             <div style={modalControlClusterStyle} data-testid="map-modal-control-cluster">
               <GisIconButton
@@ -10502,12 +10571,12 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
         <MapCanvasRegion
           ref={handleMapContainerRef}
           style={{
-            "--map-shell-command-height": "2.75rem",
+            "--map-shell-command-height": "0rem",
             "--map-dock-left": `${navigatorLeftInset}px`,
             "--map-dock-right": `${navigatorRightInset}px`,
             "--map-overlay-safe-inset-x": "0.75rem",
             "--map-overlay-safe-inset-y": "0.25rem",
-            "--map-overlay-safe-top": "calc(var(--map-shell-command-height, 2.75rem) + var(--map-overlay-safe-inset-y, 0.25rem))",
+            "--map-overlay-safe-top": "calc(var(--map-overlay-safe-inset-y, 0.25rem) + 0.25rem)",
             "--map-overlay-safe-bottom": "6.75rem",
             "--map-popover-max-height": "min(24rem, calc(100vh - 8rem))",
             "--map-layer-panel-width": `${dockLayout.layerPanelWidth}px`,
@@ -10981,27 +11050,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             onFeatureReportRequest={handleFeatureReportRequest}
           />
 
-          <MapCanvasControls {...mapCanvasControlsProps} />
-
-          {!navigatorStageMode ? (
-            <div style={canvasSelectionDockStyle} data-map-selection-dock="true">
-              <MapSelectionTools
-                mapRef={mapInstanceRef}
-                queryableLayers={nlQueryToolbarContext.queryableLayers}
-                selectedFeatureIds={selectedFeatureIds}
-                activeDragTool={selectionDragTool}
-                showModeButtons
-                variant="bar"
-                onSetSelectedFeatures={handleSetSelectedFeatures}
-                onClearSelectedFeatures={handleClearSelectedFeatures}
-                onSetActiveAnalysisResultLayers={setActiveAnalysisResultLayers}
-                onAddDrawnFeature={addDrawnFeature}
-                onActiveDragToolChange={setSelectionDragTool}
-                onSelectionResult={handleSelectionResult}
-                onAnnounce={announce}
-              />
-            </div>
-          ) : null}
+          <MapCanvasControls {...mapCanvasControlsProps} surface="overlay" />
 
           {mapCompositionOptions.includeLegend ? (
             <MapLegendOverlay items={mapPublicationLegendItems} />

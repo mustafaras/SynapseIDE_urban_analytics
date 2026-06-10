@@ -61,8 +61,8 @@
 | P14 | ui/map-modal-command-bar-p2 | done |  | typecheck passed; lint:errors passed; MapTopCommandSurface + MapStatusBarRoutes tests passed | src/centerpanel/components/map/MapTopCommandSurface.tsx | Closed 2026-06-10 with calmer header metadata density, CRS chip normalization, and long-label truncation safeguards |
 | P15 | ui/map-modal-command-bar-p2 | done |  | typecheck passed; lint:errors passed; targeted command/header/a11y tests passed; prompt15 header e2e regression passed | e2e/map-modal-layout.spec.ts | Closed 2026-06-10 with command/header regression hardening for compact-width header controls and command-reachability safety |
 | P16 | ui/map-modal-panel-density-p3 | done |  | analysis-only repository audit completed (no runtime/code edits) | MAPDESIGN/p16-panel-density-audit-2026-06-10.md | Closed 2026-06-10 with panel-density inventory, readability risk map, hierarchy model, and safe implementation order |
-| P17 | ui/map-modal-panel-density-p3 | not_started |  |  |  |  |
-| P18 | ui/map-modal-panel-density-p3 | not_started |  |  |  |  |
+| P17 | ui/map-modal-panel-density-p3 | done |  | typecheck passed; lint:errors passed; map-layer-management + MapWorkbenchSidebar tests passed | src/centerpanel/components/map/MapLayerManager.tsx | Closed 2026-06-10 with left-panel section summaries, routeable section actions, and progressive layer-detail disclosure |
+| P18 | ui/map-modal-panel-density-p3 | done |  | typecheck passed; lint:errors passed; map-layer-management tests passed | src/centerpanel/components/map/MapLayerManager.tsx | Closed 2026-06-10 with explicit row-action classification, reduced visible action density, and keyboard-first action-menu navigation |
 | P19 | ui/map-modal-panel-density-p3 | not_started |  |  |  |  |
 | P20 | ui/map-modal-panel-density-p3 | not_started |  |  |  |  |
 | P21 | ui/map-modal-panel-density-p3 | not_started |  |  |  |  |
@@ -274,6 +274,28 @@
 - Open Risks: Density findings are now documented but not yet remediated; visible UI improvements begin in Prompt 17 and can still expose interaction regressions unless panel-grouping changes are kept incremental.
 - Resume From: MAPDESIGN/p16-panel-density-audit-2026-06-10.md
 - Next Prompt: P17
+
+### P17 - Phase 3: Improve left panel and layer panel grouping
+- Status: done
+- Intent: Make the left panel easier to scan by elevating section-level summaries and reducing always-visible layer-row metadata density.
+- Definition of Done: The layer stack exposes clearer sections (Layers, Sources, Contents, Selection, Layer QA), active/important rows remain visually legible, advanced metadata moves behind progressive disclosure, and all existing actions remain reachable.
+- Decisions: Kept the implementation narrow to the canonical layer stack surface. Added section-summary cards in `MapLayerManager` with routeable actions into existing Sources, Contents, Selection, and QA flows instead of inventing new state. Converted per-row readiness/legend/analysis metadata into a hidden-by-default advanced details region while keeping visibility, opacity, warnings, and action menu access visible.
+- Changed Files: src/centerpanel/components/map/MapLayerManager.tsx; src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx; src/centerpanel/components/map/__tests__/map-layer-management.test.ts; MAPDESIGN/execution-ledger.md
+- Validation: `npm run typecheck` passed; `npm run lint:errors` passed; `npx vitest run src/centerpanel/components/map/__tests__/map-layer-management.test.ts src/centerpanel/components/map/__tests__/MapWorkbenchSidebar.test.tsx` passed (63/63). Non-blocking existing warning remains in layer-management importability test: duplicate Three.js import message.
+- Open Risks: The left panel is now calmer, but row action density itself is only partially addressed because all actions still remain in the row action menu; Prompt 18 should continue by classifying and refining visible-vs-menu row actions.
+- Resume From: src/centerpanel/components/map/MapLayerManager.tsx (section summary cards + `map-layer-details-toggle-*` advanced disclosure)
+- Next Prompt: P18
+
+### P18 - Phase 3: Reduce layer row action density and improve touch/focus behavior
+- Status: done
+- Intent: Make layer row actions easier to understand and operate while preserving all layer functionality and semantics.
+- Definition of Done: Row actions are explicitly classified (primary, secondary, destructive, advanced metadata), only high-value actions stay visible by default, secondary/destructive actions remain keyboard-reachable in the row menu, destructive actions are clearly separated, and touch/focus affordances improve without removing map capabilities.
+- Decisions: Kept implementation narrow to `MapLayerManager` and its existing tests. Added explicit `LAYER_ACTION_DENSITY_CLASSIFICATION` mapping for every row action, surfaced only primary actions (`Locate`, `Style`) inline, routed all non-primary actions through the existing row menu, and improved menu keyboard support with first-focus on open plus Arrow/Home/End/Escape navigation. Increased visibility/menu/details control minimum hit sizes to 2rem and visually separated the `cache-remove` group as destructive without changing action semantics.
+- Changed Files: src/centerpanel/components/map/MapLayerManager.tsx; src/centerpanel/components/map/__tests__/map-layer-management.test.ts; MAPDESIGN/execution-ledger.md
+- Validation: `npm run typecheck` passed; `npm run lint:errors` passed; `npx vitest run src/centerpanel/components/map/__tests__/map-layer-management.test.ts` passed (54/54). Non-blocking existing warning remains in layer-management importability test: duplicate Three.js import message.
+- Open Risks: Primary action visibility is now intentionally constrained to two actions (`Locate`, `Style`), which reduces clutter but may still require follow-up tuning if operator workflows prefer a different default primary pair on small-height viewports.
+- Resume From: src/centerpanel/components/map/MapLayerManager.tsx (`LAYER_ACTION_DENSITY_CLASSIFICATION`, `LayerActionMenu` keyboard handlers, `primaryRowActions` split)
+- Next Prompt: P19
 
 ## Hand-off Checklist
 - [x] Prompt block status updated

@@ -1,16 +1,15 @@
 import React from "react";
-import { ChevronDown, Map } from "lucide-react";
+import { Map } from "lucide-react";
 import { BASE_STYLES, type BaseLayerId } from "./mapTypes";
 import {
   MAP_COLORS,
   MAP_ICON_SIZES,
   MAP_RADIUS,
-  MAP_SHADOWS,
   MAP_SPACING,
   MAP_STROKES,
   MAP_TYPOGRAPHY,
-  MAP_Z_INDEX,
 } from "./mapTokens";
+import { AppDropdownMenu, AppMenuItem, ToolbarMenuButton } from "./ui";
 
 /* ================================================================== */
 /*  Props                                                              */
@@ -56,64 +55,12 @@ const baseLayerSelect: React.CSSProperties = {
 };
 
 const compactBaseShell: React.CSSProperties = {
-  position: "relative",
   flex: "0 0 auto",
   display: "inline-flex",
   alignItems: "center",
   minWidth: MAP_SPACING.zero,
   paddingLeft: MAP_SPACING.xs,
   borderLeft: MAP_STROKES.hairlineSubtle,
-};
-
-const compactBaseTrigger: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: "0.25rem",
-  minHeight: "1.625rem",
-  maxWidth: "7rem",
-  padding: `${MAP_SPACING.zero} ${MAP_SPACING.xs}`,
-  borderRadius: MAP_RADIUS.sm,
-  border: "1px solid transparent",
-  background: MAP_COLORS.transparent,
-  color: MAP_COLORS.textSecondary,
-  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
-  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
-  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
-  cursor: "pointer",
-  whiteSpace: "nowrap",
-};
-
-const compactBaseMenu: React.CSSProperties = {
-  position: "absolute",
-  top: "calc(100% + 0.375rem)",
-  right: 0,
-  zIndex: MAP_Z_INDEX.dropdown,
-  width: "12rem",
-  display: "grid",
-  gap: "0.125rem",
-  padding: MAP_SPACING.xs,
-  borderRadius: MAP_RADIUS.sm,
-  border: MAP_STROKES.hairlineStrong,
-  background: MAP_COLORS.bgPanel,
-  boxShadow: MAP_SHADOWS.none,
-};
-
-const compactBaseItem: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "1rem minmax(0, 1fr)",
-  alignItems: "center",
-  gap: MAP_SPACING.sm,
-  minHeight: "2rem",
-  padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
-  borderRadius: MAP_RADIUS.sm,
-  border: "1px solid transparent",
-  background: MAP_COLORS.transparent,
-  color: MAP_COLORS.textSecondary,
-  textAlign: "left",
-  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
-  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
-  cursor: "pointer",
 };
 
 /* ================================================================== */
@@ -126,73 +73,49 @@ export const MapLayerPanel: React.FC<MapLayerPanelProps> = ({
   compact = false,
 }) => {
   const [open, setOpen] = React.useState(false);
-  const shellRef = React.useRef<HTMLDivElement | null>(null);
-
-  React.useEffect(() => {
-    if (!open) return undefined;
-    const handlePointerDown = (event: PointerEvent) => {
-      if (shellRef.current?.contains(event.target as Node)) return;
-      setOpen(false);
-    };
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
-    };
-    window.addEventListener("pointerdown", handlePointerDown);
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.removeEventListener("pointerdown", handlePointerDown);
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [open]);
 
   if (compact) {
     return (
-      <div ref={shellRef} style={compactBaseShell} aria-label="Base map layer selector">
-        <button
-          type="button"
-          style={compactBaseTrigger}
-          onClick={() => setOpen((current) => !current)}
-          aria-label={`Select base map layer, current ${BASE_STYLES[activeLayer].name}`}
-          aria-expanded={open}
-          aria-haspopup="menu"
-          title="Select base map layer"
+      <div style={compactBaseShell} aria-label="Base map layer selector">
+        <AppDropdownMenu
+          open={open}
+          onOpenChange={setOpen}
+          align="end"
+          minWidth={260}
+          maxWidth={320}
+          ariaLabel="Base map layers"
+          testId="map-basemap-menu"
+          trigger={(
+            <ToolbarMenuButton
+              label={`Base ${BASE_STYLES[activeLayer].name}`}
+              icon={<Map size={MAP_ICON_SIZES.sm} aria-hidden="true" />}
+              active={open}
+              expanded={open}
+              compact
+              title="Select base map layer"
+              ariaLabel={`Select base map layer, current ${BASE_STYLES[activeLayer].name}`}
+              testId="map-basemap-trigger"
+              style={{ maxWidth: "9rem" }}
+            />
+          )}
         >
-          <Map size={MAP_ICON_SIZES.sm} aria-hidden="true" />
-          <span style={{ color: MAP_COLORS.textMuted, textTransform: "uppercase" }}>Base</span>
-          <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {BASE_STYLES[activeLayer].name}
-          </span>
-          <ChevronDown size={MAP_ICON_SIZES.xs} aria-hidden="true" />
-        </button>
-        {open ? (
-          <div style={compactBaseMenu} role="menu" aria-label="Base map layers">
-            {(Object.keys(BASE_STYLES) as BaseLayerId[]).map((key) => {
-              const active = key === activeLayer;
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  role="menuitemradio"
-                  aria-checked={active}
-                  style={{
-                    ...compactBaseItem,
-                    background: active ? MAP_COLORS.selectedSubtle : MAP_COLORS.transparent,
-                    color: active ? MAP_COLORS.interaction : MAP_COLORS.textSecondary,
-                    border: `1px solid ${active ? MAP_COLORS.focus : "transparent"}`,
-                    boxShadow: active ? `inset 2px 0 0 ${MAP_COLORS.interaction}` : "none",
-                  }}
-                  onClick={() => {
-                    onSetLayer(key);
-                    setOpen(false);
-                  }}
-                >
-                  <Map size={MAP_ICON_SIZES.xs} aria-hidden="true" />
-                  <span>{BASE_STYLES[key].name}</span>
-                </button>
-              );
-            })}
-          </div>
-        ) : null}
+          {(Object.keys(BASE_STYLES) as BaseLayerId[]).map((key) => {
+            const selected = key === activeLayer;
+            return (
+              <AppMenuItem
+                key={key}
+                icon={<Map size={MAP_ICON_SIZES.xs} aria-hidden="true" />}
+                label={BASE_STYLES[key].name}
+                role="menuitemradio"
+                checked={selected}
+                onSelect={() => {
+                  onSetLayer(key);
+                  setOpen(false);
+                }}
+              />
+            );
+          })}
+        </AppDropdownMenu>
       </div>
     );
   }

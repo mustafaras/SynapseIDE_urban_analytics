@@ -591,7 +591,7 @@ describe("Map Explorer components render without errors", () => {
     await act(async () => {
       baseTrigger?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
-    const streetsButton = Array.from(host.querySelectorAll<HTMLButtonElement>("button"))
+    const streetsButton = Array.from(document.querySelectorAll<HTMLButtonElement>("button"))
       .find((button) => button.textContent?.includes("OpenStreetMap"));
     await act(async () => {
       streetsButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -751,7 +751,7 @@ describe("Map Explorer components render without errors", () => {
       trigger?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
-    const streetsButton = Array.from(host.querySelectorAll<HTMLButtonElement>("button"))
+    const streetsButton = Array.from(document.querySelectorAll<HTMLButtonElement>("button"))
       .find((button) => button.textContent?.includes("OpenStreetMap"));
     expect(streetsButton).toBeDefined();
 
@@ -802,7 +802,11 @@ describe("Map Explorer components render without errors", () => {
       trigger?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
-    const restoreButton = Array.from(host.querySelectorAll<HTMLButtonElement>("button"))
+    const viewsMenu = document.querySelector<HTMLElement>('[data-testid="map-bookmark-compact-menu"]');
+    expect(viewsMenu).not.toBeNull();
+    expect(viewsMenu?.textContent).toContain("Save Current View");
+
+    const restoreButton = Array.from(document.querySelectorAll<HTMLButtonElement>("button"))
       .find((button) => button.textContent?.includes("Downtown"));
     expect(restoreButton).toBeDefined();
 

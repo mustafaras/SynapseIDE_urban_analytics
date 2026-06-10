@@ -1096,10 +1096,99 @@ describe("MapLayerManager component", () => {
     }
     expect(html).toContain('data-testid="map-layer-table-trigger"');
     expect(html).toContain('data-testid="map-layer-inspect-trigger"');
+    expect(html).toContain('data-layer-action-class="primary"');
+    expect(html).toContain('data-layer-action-class="destructive"');
     expect(html).toContain("Active style");
     expect(html).toContain("Style active");
     expect(html).toContain("Open symbology panel for Action Layer");
     expect(html).toContain("Layer actions for Action Layer");
+  });
+
+  it("supports keyboard-first layer menu navigation and keeps destructive actions intentional", async () => {
+    const mod = await import("../MapLayerManager");
+    const removedIds: string[] = [];
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    const layers: OverlayLayerConfig[] = [
+      {
+        id: "keyboard-layer",
+        name: "Keyboard Layer",
+        type: "geojson",
+        visible: true,
+        opacity: 0.82,
+        group: "data",
+        metadata: {
+          featureCount: 18,
+          geometryType: "Polygon",
+          bounds: [32.8, 39.8, 32.95, 39.95],
+        },
+      },
+    ];
+
+    await act(async () => {
+      root.render(
+        React.createElement(mod.MapLayerManager, {
+          overlayLayers: layers,
+          activeBaseLayerName: "Dark Matter",
+          onToggleVisibility: () => undefined,
+          onSetOpacity: () => undefined,
+          onRemoveLayer: (id: string) => {
+            removedIds.push(id);
+          },
+          onReorderLayers: () => undefined,
+          onAddLayer: () => undefined,
+          onFocusLayer: () => undefined,
+          onInspectLayer: () => undefined,
+        }),
+      );
+    });
+
+    const summary = container.querySelector<HTMLButtonElement>('[data-testid="map-layer-actions-summary"]');
+    expect(summary).not.toBeNull();
+
+    await act(async () => {
+      summary?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
+    });
+
+    const menu = container.querySelector<HTMLElement>('[role="menu"][aria-label="Layer command menu for Keyboard Layer"]');
+    expect(menu?.hidden).toBe(false);
+    const focusedLabelAfterOpen = (document.activeElement as HTMLElement | null)?.getAttribute("data-layer-action");
+    expect(focusedLabelAfterOpen).toBe("inspect");
+
+    await act(async () => {
+      menu?.dispatchEvent(new KeyboardEvent("keydown", { key: "End", bubbles: true }));
+    });
+    expect((document.activeElement as HTMLElement | null)?.getAttribute("data-layer-action")).toBe("remove");
+
+    await act(async () => {
+      menu?.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    });
+
+    expect(menu?.hidden).toBe(true);
+    expect(document.activeElement).toBe(summary);
+
+    await act(async () => {
+      summary?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    const removeButton = container.querySelector<HTMLElement>('[data-layer-action="remove"]');
+    expect(removeButton).not.toBeNull();
+
+    expect(removedIds).toEqual([]);
+
+    await act(async () => {
+      removeButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(removedIds).toEqual([]);
+    expect(container.querySelector('[data-layer-action="confirm-remove"]')).not.toBeNull();
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
   });
 
   it("renders embedded layer stack without duplicate panel chrome", async () => {
@@ -1149,6 +1238,149 @@ describe("MapLayerManager component", () => {
     expect(html).toContain("Demo / metadata only");
     expect(html).toContain("Sample data");
     expect(html).toContain("Polygon / 12 features");
+    expect(html).toContain("Layer QA");
+    expect(html).toContain("Selection");
+  });
+
+  it("renders left-panel section summaries and routes section actions", async () => {
+    const mod = await import("../MapLayerManager");
+    const sourcesSpy = vi.fn();
+    const contentsSpy = vi.fn();
+    const selectionSpy = vi.fn();
+    const qaSpy = vi.fn();
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    const layers: OverlayLayerConfig[] = [
+      {
+        id: "grouped-layer",
+        name: "Grouped Layer",
+        type: "geojson",
+        visible: true,
+        opacity: 0.9,
+        group: "data",
+        sourceKind: "imported",
+        queryable: true,
+        qaStatus: "warning",
+        metadata: {
+          featureCount: 12,
+          geometryType: "Polygon",
+          sourceId: "source-1",
+          crsSummary: {
+            crs: "EPSG:3857",
+            status: "known",
+            source: "explicit",
+            notes: [],
+          },
+        },
+      },
+    ];
+
+    await act(async () => {
+      root.render(
+        React.createElement(mod.MapLayerManager, {
+          overlayLayers: layers,
+          activeBaseLayerName: "Dark Matter",
+          onToggleVisibility: () => undefined,
+          onSetOpacity: () => undefined,
+          onRemoveLayer: () => undefined,
+          onReorderLayers: () => undefined,
+          onAddLayer: () => undefined,
+          selectedFeatureCount: 3,
+          qaIssueCount: 2,
+          qaBlockerCount: 1,
+          onOpenSourcesSection: sourcesSpy,
+          onOpenContentsSection: contentsSpy,
+          onOpenSelectionDetail: selectionSpy,
+          onOpenLayerQaDetail: qaSpy,
+          presentation: "embedded",
+          cartographyReviewPlacement: "none",
+        }),
+      );
+    });
+
+    expect(container.querySelector('[data-testid="map-layer-section-sources"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="map-layer-section-contents"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="map-layer-section-selection"]')?.textContent).toContain("3 selected");
+    expect(container.querySelector('[data-testid="map-layer-section-layer-qa"]')?.textContent).toContain("1 blocked");
+
+    await act(async () => {
+      container.querySelector('[data-testid="map-layer-section-action-sources"]')?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      container.querySelector('[data-testid="map-layer-section-action-contents"]')?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      container.querySelector('[data-testid="map-layer-section-action-selection"]')?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      container.querySelector('[data-testid="map-layer-section-action-layer-qa"]')?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(sourcesSpy).toHaveBeenCalledTimes(1);
+    expect(contentsSpy).toHaveBeenCalledTimes(1);
+    expect(selectionSpy).toHaveBeenCalledTimes(1);
+    expect(qaSpy).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it("keeps advanced layer readiness details collapsed until requested", async () => {
+    const mod = await import("../MapLayerManager");
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    const layers: OverlayLayerConfig[] = [
+      {
+        id: "detail-layer",
+        name: "Detail Layer",
+        type: "geojson",
+        visible: true,
+        opacity: 1,
+        group: "data",
+        sourceKind: "imported",
+        queryable: true,
+        metadata: {
+          featureCount: 240,
+          geometryType: "Polygon",
+          crsSummary: {
+            crs: "EPSG:3857",
+            status: "known",
+            source: "explicit",
+            notes: [],
+          },
+        },
+      },
+    ];
+
+    await act(async () => {
+      root.render(
+        React.createElement(mod.MapLayerManager, {
+          overlayLayers: layers,
+          activeBaseLayerName: "Dark Matter",
+          onToggleVisibility: () => undefined,
+          onSetOpacity: () => undefined,
+          onRemoveLayer: () => undefined,
+          onReorderLayers: () => undefined,
+          onAddLayer: () => undefined,
+        }),
+      );
+    });
+
+    const hiddenDetails = container.querySelector<HTMLElement>('[data-testid="map-layer-advanced-details-detail-layer"]');
+    expect(hiddenDetails).not.toBeNull();
+    expect(hiddenDetails?.hidden).toBe(true);
+
+    await act(async () => {
+      container.querySelector('[data-testid="map-layer-details-toggle-detail-layer"]')?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(container.querySelector<HTMLElement>('[data-testid="map-layer-advanced-details-detail-layer"]')?.hidden).toBe(false);
+    expect(container.querySelector('[data-testid="map-layer-readiness-detail-layer-crs"]')).not.toBeNull();
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
   });
 
   it("renders per-layer source restore status in the Sources activity surface", async () => {

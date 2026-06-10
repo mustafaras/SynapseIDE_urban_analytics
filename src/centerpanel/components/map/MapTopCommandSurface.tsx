@@ -6,7 +6,6 @@ import {
   MAP_ICON_SIZES,
   MAP_RADIUS,
   MAP_SPACING,
-  MAP_STROKES,
   MAP_TYPOGRAPHY,
   MAP_Z_INDEX,
 } from "./mapTokens";
@@ -32,6 +31,8 @@ export interface MapTopCommandSurfaceProps {
   activeLayerLabel?: string | null;
   activeLayerTitle?: string;
   searchSlot: React.ReactNode;
+  mapToolsSlot?: React.ReactNode;
+  contextBarSlot?: React.ReactNode;
   commandSlot: React.ReactNode;
   utilitySlot?: React.ReactNode;
   modalControlSlot?: React.ReactNode;
@@ -40,21 +41,19 @@ export interface MapTopCommandSurfaceProps {
 }
 
 const shellStyle: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "minmax(12rem, 1fr) minmax(12rem, 1fr) minmax(0, 1.3fr) auto",
+  display: "flex",
+  flexWrap: "wrap",
   alignItems: "center",
-  gap: MAP_SPACING.xs,
-  minHeight: "3.5rem",
-  height: "3.5rem",
-  padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm} ${MAP_SPACING.xs} calc(var(--map-activity-rail-width, 2.625rem) + ${MAP_SPACING.sm})`,
+  gap: MAP_SPACING.sm,
+  minHeight: "3.25rem",
+  padding: `0.375rem ${MAP_SPACING.md} 0.375rem calc(var(--map-activity-rail-width, 2.625rem) + ${MAP_SPACING.md})`,
   background: [
-    "linear-gradient(115deg, transparent 0%, color-mix(in srgb, var(--syn-interaction-active, #3794ff) 11%, transparent) 38%, transparent 72%)",
-    "repeating-linear-gradient(90deg, color-mix(in srgb, var(--syn-border-subtle, rgba(148, 163, 184, 0.3)) 34%, transparent) 0 1px, transparent 1px 5.5rem)",
-    "linear-gradient(180deg, color-mix(in srgb, var(--syn-surface-header, #20242b) 96%, #ffffff 4%), var(--syn-surface-header, #20242b))",
+    "linear-gradient(115deg, transparent 0%, color-mix(in srgb, var(--syn-interaction-active, #3794ff) 4%, transparent) 38%, transparent 72%)",
+    "linear-gradient(180deg, color-mix(in srgb, var(--syn-surface-header, #20242b) 98%, #ffffff 2%), var(--syn-surface-header, #20242b))",
   ].join(", "),
-  backgroundSize: "34rem 100%, 11rem 100%, 100% 100%",
-  borderBottom: "1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.32))",
-  boxShadow: "inset 0 -1px 0 color-mix(in srgb, var(--syn-interaction-active, #3794ff) 18%, transparent)",
+  backgroundSize: "34rem 100%, 100% 100%",
+  borderBottom: "1px solid color-mix(in srgb, var(--syn-border-subtle, rgba(148, 163, 184, 0.18)) 52%, transparent)",
+  boxShadow: "none",
   overflow: "visible",
   position: "relative",
   zIndex: MAP_Z_INDEX.dropdown + 1,
@@ -62,20 +61,29 @@ const shellStyle: React.CSSProperties = {
 };
 
 const clusterShellStyle: React.CSSProperties = {
-  display: "grid",
+  display: "flex",
   alignItems: "center",
   minWidth: MAP_SPACING.zero,
-  minHeight: "2.5rem",
-  padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
+  minHeight: "2rem",
+  padding: `0.125rem ${MAP_SPACING.xs}`,
   borderRadius: MAP_RADIUS.sm,
-  border: MAP_STROKES.hairlineSubtle,
-  background: "color-mix(in srgb, var(--syn-surface-panel, #151a21) 48%, transparent)",
+  border: "1px solid transparent",
+  background: "transparent",
   overflow: "visible",
 };
 
-const identityClusterStyle: React.CSSProperties = {
+const leadingClusterStyle: React.CSSProperties = {
   ...clusterShellStyle,
-  gap: "0.1875rem",
+  display: "inline-flex",
+  flex: "0 1 auto",
+  gap: MAP_SPACING.sm,
+  minWidth: "14rem",
+};
+
+const identityClusterStyle: React.CSSProperties = {
+  display: "grid",
+  gap: "0.125rem",
+  minWidth: "10rem",
 };
 
 const brandRowStyle: React.CSSProperties = {
@@ -138,10 +146,10 @@ const activityPillStyle: React.CSSProperties = {
   maxWidth: "8rem",
   height: "1.125rem",
   padding: `0 ${MAP_SPACING.xs}`,
-  border: MAP_STROKES.hairlineSubtle,
+  border: "1px solid transparent",
   borderRadius: MAP_RADIUS.xs,
   color: MAP_COLORS.textMuted,
-  background: "var(--syn-surface-subtle, rgba(15, 23, 42, 0.42))",
+  background: "color-mix(in srgb, var(--syn-surface-subtle, rgba(15, 23, 42, 0.2)) 28%, transparent)",
   fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
   fontSize: "0.625rem",
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
@@ -163,13 +171,15 @@ const searchClusterStyle: React.CSSProperties = {
   ...clusterShellStyle,
   display: "flex",
   alignItems: "center",
+  flex: "1 1 36rem",
   gap: MAP_SPACING.xs,
+  minWidth: "18rem",
 };
 
 const searchSlotStyle: React.CSSProperties = {
-  flex: "1 1 12rem",
-  minWidth: "10rem",
-  maxWidth: "18rem",
+  flex: "1 1 18rem",
+  minWidth: "11rem",
+  maxWidth: "28rem",
 };
 
 const contextRailStyle: React.CSSProperties = {
@@ -180,24 +190,45 @@ const contextRailStyle: React.CSSProperties = {
   overflow: "hidden",
 };
 
+const mapToolRailStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  minWidth: "8rem",
+  flex: "1 1 16rem",
+  overflow: "hidden",
+  borderLeft: "1px solid color-mix(in srgb, var(--syn-border-subtle, rgba(148, 163, 184, 0.16)) 42%, transparent)",
+  marginLeft: MAP_SPACING.xs,
+  paddingLeft: MAP_SPACING.sm,
+};
+
 const commandClusterStyle: React.CSSProperties = {
   ...clusterShellStyle,
-  padding: `${MAP_SPACING.zero} ${MAP_SPACING.xs}`,
+  display: "inline-flex",
+  flex: "1 1 24rem",
+  justifyContent: "flex-end",
+  padding: `${MAP_SPACING.zero} ${MAP_SPACING.zero}`,
+};
+
+const contextBarClusterStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: MAP_SPACING.sm,
+  flex: "0 1 auto",
+  minWidth: 0,
+  overflow: "visible",
+  paddingLeft: MAP_SPACING.sm,
+  borderLeft: "1px solid color-mix(in srgb, var(--syn-border-subtle, rgba(148, 163, 184, 0.16)) 42%, transparent)",
 };
 
 const trailingClusterStyle: React.CSSProperties = {
-  justifySelf: "end",
   display: "inline-flex",
   alignItems: "center",
-  gap: MAP_SPACING.xs,
+  gap: MAP_SPACING.sm,
   minWidth: MAP_SPACING.zero,
-  /* Keep window controls layered above any overflowing command content at
-     compact widths so Close/Expand stay legible and clickable. */
+  flex: "0 0 auto",
   position: "relative",
   zIndex: 1,
-  paddingLeft: MAP_SPACING.xs,
-  background: "var(--syn-surface-header, #20242b)",
-  boxShadow: "-10px 0 12px -10px rgba(0, 0, 0, 0.7)",
+  paddingLeft: MAP_SPACING.sm,
 };
 
 const utilityClusterStyle: React.CSSProperties = {
@@ -212,8 +243,8 @@ const modalControlClusterStyle: React.CSSProperties = {
   alignItems: "center",
   gap: MAP_SPACING.xs,
   minWidth: MAP_SPACING.zero,
-  paddingLeft: MAP_SPACING.xs,
-  borderLeft: MAP_STROKES.hairlineSubtle,
+  paddingLeft: MAP_SPACING.sm,
+  borderLeft: "1px solid color-mix(in srgb, var(--syn-border-subtle, rgba(148, 163, 184, 0.16)) 42%, transparent)",
 };
 
 const chipLabelStyle: React.CSSProperties = {
@@ -330,8 +361,12 @@ function chipStyle(interactive: boolean, tone: TopSurfaceTone): React.CSSPropert
     height: "1.5rem",
     padding: `0 ${MAP_SPACING.xs}`,
     borderRadius: MAP_RADIUS.xs,
-    border: `1px solid color-mix(in srgb, ${toneForeground(tone)} 30%, var(--syn-border-subtle, rgba(148, 163, 184, 0.32)))`,
-    background: toneBackground(tone),
+    border: tone === "neutral"
+      ? "1px solid transparent"
+      : `1px solid color-mix(in srgb, ${toneForeground(tone)} 30%, var(--syn-border-subtle, rgba(148, 163, 184, 0.32)))`,
+    background: tone === "neutral"
+      ? "transparent"
+      : toneBackground(tone),
     color: toneForeground(tone),
     font: "inherit",
     cursor: interactive ? "pointer" : "default",
@@ -406,6 +441,8 @@ export const MapTopCommandSurface: React.FC<MapTopCommandSurfaceProps> = ({
   activeLayerLabel = null,
   activeLayerTitle,
   searchSlot,
+  mapToolsSlot,
+  contextBarSlot,
   commandSlot,
   utilitySlot,
   modalControlSlot,
@@ -419,6 +456,9 @@ export const MapTopCommandSurface: React.FC<MapTopCommandSurfaceProps> = ({
     lastSavedAt,
     persistenceDisabled,
   });
+  const hasProjectName = Boolean(projectName && projectName.trim().length > 0);
+  const showProjectChip = hasProjectName;
+  const showSaveChip = !persistenceDisabled || isLoadingProject || isSavingProject || hasUnsavedProjectChanges || Boolean(lastSavedAt);
   const modeLabel = `${formatWorkspaceLabel(workspaceView)} · ${taskLensLabel}`;
   const utilityContent = utilitySlot ?? trailingSlot;
   const hasTrailingContent = Boolean(utilityContent || modalControlSlot);
@@ -432,26 +472,32 @@ export const MapTopCommandSurface: React.FC<MapTopCommandSurfaceProps> = ({
       data-map-top-command-surface="true"
       data-testid="map-top-command-surface"
     >
-      <div style={identityClusterStyle}>
-        <div style={brandRowStyle} id={titleId} aria-label="Map Explorer" data-testid="map-command-center-title">
-          <span aria-hidden data-testid="map-command-brand" style={brandAccentStyle} />
-          <span style={brandCopyStyle}>
-            <span style={brandKickerStyle}>Urban Analytics</span>
-            <span style={brandLineStyle}>
-              <span>Map Explorer</span>
-              <span aria-hidden style={activityPillStyle}>{activeActivityLabel}</span>
+      <div style={leadingClusterStyle}>
+        <div style={identityClusterStyle}>
+          <div style={brandRowStyle} id={titleId} aria-label="Map Explorer" data-testid="map-command-center-title">
+            <span aria-hidden data-testid="map-command-brand" style={brandAccentStyle} />
+            <span style={brandCopyStyle}>
+              <span style={brandKickerStyle}>Urban Analytics</span>
+              <span style={brandLineStyle}>
+                <span>Map Explorer</span>
+                <span aria-hidden style={activityPillStyle}>{activeActivityLabel}</span>
+              </span>
             </span>
-          </span>
+          </div>
         </div>
         <div style={chipRailStyle}>
-          <SurfaceChip
-            label="Project"
-            value={projectName && projectName.trim().length > 0 ? projectName : "No project"}
-            title={projectName ?? "No project selected."}
-            testId="map-top-command-surface-project"
-          />
+          {showProjectChip ? (
+            <SurfaceChip
+              label="Project"
+              value={projectName && projectName.trim().length > 0 ? projectName : "No project"}
+              title={projectName ?? "No project selected."}
+              testId="map-top-command-surface-project"
+            />
+          ) : null}
           <SurfaceChip label="Mode" value={modeLabel} title={`Current workspace mode and lens: ${modeLabel}.`} />
-          <SurfaceChip label="Save" value={saveState.value} tone={saveState.tone} title={saveState.title} testId="map-top-command-surface-save-state" />
+          {showSaveChip ? (
+            <SurfaceChip label="Save" value={saveState.value} tone={saveState.tone} title={saveState.title} testId="map-top-command-surface-save-state" />
+          ) : null}
         </div>
       </div>
 
@@ -483,7 +529,19 @@ export const MapTopCommandSurface: React.FC<MapTopCommandSurfaceProps> = ({
             />
           ) : null}
         </div>
+        {mapToolsSlot ? <div style={mapToolRailStyle}>{mapToolsSlot}</div> : null}
       </div>
+
+      {contextBarSlot ? (
+        <div
+          style={contextBarClusterStyle}
+          role="group"
+          aria-label="Layer context and selection controls"
+          data-testid="map-context-bar-cluster"
+        >
+          {contextBarSlot}
+        </div>
+      ) : null}
 
       <div style={commandClusterStyle}>{commandSlot}</div>
       {hasTrailingContent ? (
