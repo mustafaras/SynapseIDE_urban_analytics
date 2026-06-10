@@ -211,11 +211,15 @@ const overflowTriggerStyle: React.CSSProperties = {
 const overflowMenuStyle: React.CSSProperties = {
   position: "absolute",
   right: MAP_SPACING.zero,
+  /* Opens upward from the status bar — stays above the bar, below map controls */
   bottom: "calc(100% + 0.35rem)",
   display: "grid",
   gap: "2px",
   minWidth: "16rem",
   maxWidth: "22rem",
+  /* Cap height for dense segment lists; allows scroll so all items are reachable */
+  maxHeight: "var(--map-popover-max-height, min(20rem, calc(100vh - 6rem)))",
+  overflowY: "auto",
   padding: MAP_SPACING.xs,
   background: MAP_COLORS.bgPanel,
   border: MAP_STROKES.hairlineStrong,

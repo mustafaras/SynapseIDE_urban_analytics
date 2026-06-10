@@ -215,6 +215,19 @@ describe("mapTokens — z-index", () => {
     expect(MAP_Z_INDEX.mapFurniture).toBeLessThan(MAP_Z_INDEX.panel);
     expect(MAP_Z_INDEX.commandBar).toBeLessThan(MAP_Z_INDEX.panel);
   });
+
+  it("tooltip sits above dropdown and popover so overlay menus do not obscure tooltip text", () => {
+    // GisTooltip uses tooltip tier; layer menus use dropdown tier.
+    // Tooltip must render above open menus near the edge of the panel.
+    expect(MAP_Z_INDEX.tooltip).toBeGreaterThan(MAP_Z_INDEX.dropdown);
+    expect(MAP_Z_INDEX.tooltip).toBeGreaterThan(MAP_Z_INDEX.popover);
+  });
+
+  it("dialog sits above dropdown and popover so confirm overlays are not trapped under menus", () => {
+    // MapLayerManager dialogOverlayStyle and modal dispatch dialog use dialog tier.
+    expect(MAP_Z_INDEX.dialog).toBeGreaterThan(MAP_Z_INDEX.dropdown);
+    expect(MAP_Z_INDEX.dialog).toBeGreaterThan(MAP_Z_INDEX.popover);
+  });
 });
 
 /* ------------------------------------------------------------------ */

@@ -8,7 +8,7 @@
  */
 import React, { useCallback, useEffect, useRef } from "react";
 import { useRasterLayerStore } from "../../../../stores/useRasterLayerStore";
-import { MAP_COLORS, MAP_TYPOGRAPHY, resolveMapPaintColor } from "../mapTokens";
+import { MAP_COLORS, MAP_TYPOGRAPHY, MAP_Z_INDEX, resolveMapPaintColor } from "../mapTokens";
 import { GisStatusChip } from "../ui/GisStatusChip";
 import { GisEmptyState } from "../ui/GisEmptyState";
 import { GisProgressBar } from "../ui/GisProgressBar";
@@ -211,7 +211,9 @@ export const RasterLayerPanel: React.FC<RasterLayerPanelProps> = ({
     fontFamily: MAP_TYPOGRAPHY.fontFamily,
     fontSize: "12px",
     color: MAP_COLORS.text,
-    zIndex: 30,
+    /* Use named panel tier so the floating raster panel stays above the
+       map canvas but below dropdowns and dialogs. */
+    zIndex: MAP_Z_INDEX.panel,
     overflow: "hidden",
   };
   const embeddedPanelStyle: React.CSSProperties = {

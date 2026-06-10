@@ -557,6 +557,8 @@ const layerActionSummary: React.CSSProperties = {
 const layerActionGrid: React.CSSProperties = {
   position: "absolute",
   top: "calc(100% + 6px)",
+  /* right:0 keeps the menu from overflowing the right edge of its
+     scroll container (the layer panel), which is already bounded. */
   right: 0,
   display: "grid",
   gridTemplateColumns: "1fr",
@@ -565,7 +567,9 @@ const layerActionGrid: React.CSSProperties = {
   padding: 7,
   minWidth: 230,
   maxWidth: 260,
-  maxHeight: "min(34rem, calc(100vh - 7rem))",
+  /* Use the shell's popover max-height var so menus stay within the modal
+     viewport regardless of short-height states. Falls back to 24rem. */
+  maxHeight: "var(--map-popover-max-height, min(24rem, calc(100% - 4rem)))",
   overflowY: "auto",
   border: MAP_STROKES.hairlineStrong,
   borderRadius: MAP_RADIUS.sm,
@@ -928,7 +932,9 @@ const dialogOverlayStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  zIndex: MAP_Z_INDEX.dropdown + 1,
+  /* Use named dialog tier so this confirm overlay sits above dropdowns
+     and popovers but below toast notifications. */
+  zIndex: MAP_Z_INDEX.dialog,
 };
 
 const dialogStyle: React.CSSProperties = {
