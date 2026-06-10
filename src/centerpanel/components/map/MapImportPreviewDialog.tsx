@@ -7,6 +7,7 @@ import {
   MAP_SPACING,
   MAP_STROKES,
   MAP_TYPOGRAPHY,
+  MAP_Z_INDEX,
 } from "./mapTokens";
 
 export interface MapImportPreviewDialogProps {
@@ -23,7 +24,7 @@ const overlayStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  zIndex: 42,
+  zIndex: MAP_Z_INDEX.dialog,
   padding: MAP_SPACING.lg,
 };
 

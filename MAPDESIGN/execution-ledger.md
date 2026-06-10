@@ -68,7 +68,7 @@
 | P21 | ui/map-modal-panel-density-p3 | done | c73eac5 | typecheck passed; lint:errors passed; MapPublishWorkspace tests 3/3 passed; test:analytics 1131/1131 passed | src/centerpanel/components/map/publish/MapPublishWorkspace.tsx | Closed 2026-06-10 with progressive disclosure for evidence/publish/caveats |
 | P22 | ui/map-modal-panel-density-p3 | done |  | typecheck passed; lint:errors passed; map-performance diagnostics tests 5/5 passed | src/centerpanel/components/map/MapPerformanceDiagnosticsPanel.tsx | Closed 2026-06-10 with severity-first operational diagnostics and collapsed advanced event history |
 | P23 | ui/map-modal-panel-density-p3 | done | dd56d87 | typecheck passed; lint:errors passed; targeted Prompt 23 suites 81/81 passed; fallback p09 layout e2e 2/2 passed | src/centerpanel/components/map/__tests__/map-layer-management.test.ts | Closed 2026-06-10 with panel hierarchy and density regression coverage consolidation |
-| P24 | ui/map-modal-panel-density-p3 | not_started |  |  |  |  |
+| P24 | fix/map-modal-collision-zindex-p4 | done |  | typecheck passed; lint:errors passed; targeted map tests passed (72/72); p09 overlap/collision e2e passed (2/2) | src/centerpanel/components/map/mapTokens.ts | Closed 2026-06-10 with named z-index/elevation model and safe literal replacement in modal overlays/dialog surfaces |
 | P25 | ui/map-modal-accessibility-p4 | not_started |  |  |  |  |
 | P26 | ui/map-modal-accessibility-p4 | not_started |  |  |  |  |
 | P27 | ui/map-modal-accessibility-p4 | not_started |  |  |  |  |
@@ -330,3 +330,14 @@
 - Agent call: Map Explorer Local Prompt Executor: Prompt 01
 - Expected output: Prompt 01 inventory-only markdown audit note (no code edits).
 - Resume file: MAPDESIGN/prompts-detailed-en.md (Prompt 01 block)
+
+### P24 - Phase 4: Unify z-index and elevation discipline
+- Status: done
+- Intent: Unify Map Explorer layering with a named, compatibility-safe z-index model and remove local magic literals where safe.
+- Definition of Done: Named layers are present in map tokens, scoped overlays/dialogs use named z-index tiers, dialog surfaces stay above popovers, and overlap/collision regressions remain green.
+- Decisions: Kept edits minimal and reversible by extending existing `MAP_Z_INDEX` instead of introducing new framework utilities; replaced only high-confidence literals in active modal surfaces (import preview dialog, dispatch feedback/dialog, right-dock overflow popover variable wiring).
+- Changed Files: src/centerpanel/components/map/mapTokens.ts; src/centerpanel/components/map/MapImportPreviewDialog.tsx; src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx; src/centerpanel/components/map/MapRightDockHost.tsx; src/centerpanel/components/map/MapRightDockHost.module.css; src/centerpanel/components/map/__tests__/map-components.test.ts; MAPDESIGN/execution-ledger.md
+- Validation: `npm run typecheck` passed; `npm run lint:errors` passed; `npx vitest run src/centerpanel/components/map/__tests__/map-components.test.ts src/centerpanel/components/map/__tests__/MapRightDockHost.test.ts src/centerpanel/components/map/__tests__/MapImportPreviewDialog.test.ts` passed (72/72); `npx playwright test e2e/map-layout-regression-p09.spec.ts` passed (2/2).
+- Open Risks: Manual visual verification of stacked edge cases (layer row menu + portaled popover + import dialog + tooltip near modal controls) is still recommended because these conditions are difficult to exhaustively reproduce in a single automated suite.
+- Resume From: src/centerpanel/components/map/mapTokens.ts (`MAP_Z_INDEX` named layer model)
+- Next Prompt: P25

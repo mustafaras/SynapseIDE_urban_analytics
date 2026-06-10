@@ -34,7 +34,7 @@ import {
   getMapRightDockPanelTier,
   getRightDockVisibleTabPanels,
 } from "./mapRightDockRoutes";
-import { MAP_ICON_SIZES } from "./mapTokens";
+import { MAP_ICON_SIZES, MAP_Z_INDEX } from "./mapTokens";
 import { GisIconButton } from "./ui";
 import styles from "./MapRightDockHost.module.css";
 
@@ -149,7 +149,11 @@ export const MapRightDockHost: React.FC<MapRightDockHostProps> = ({
       data-map-right-dock-panel={route.panel}
       data-map-right-dock-source={route.source}
       data-presentation={presentation}
-      style={{ "--right-dock-width": `${width}px` } as React.CSSProperties}
+      style={{
+        "--right-dock-width": `${width}px`,
+        "--map-right-dock-z": `${MAP_Z_INDEX.panel}`,
+        "--map-right-dock-overflow-z": `${MAP_Z_INDEX.commandBar}`,
+      } as React.CSSProperties}
     >
       <header className={styles.header}>
         <div className={styles.titleStack}>

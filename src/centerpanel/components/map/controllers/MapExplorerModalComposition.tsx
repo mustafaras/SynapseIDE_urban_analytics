@@ -65,6 +65,7 @@ import {
   MAP_SPACING,
   MAP_STROKES,
   MAP_TYPOGRAPHY,
+  MAP_Z_INDEX,
   mapStyles,
   type GisStatusKey,
 } from "../mapTokens";
@@ -1169,7 +1170,7 @@ const workflowPreviewHudStyle: React.CSSProperties = {
   left: "50%",
   bottom: `calc(${MAP_SPACING.lg} + ${MAP_SPACING.lg})`,
   transform: "translateX(-50%)",
-  zIndex: MAP_NUMERIC.sidebarZIndex,
+  zIndex: MAP_Z_INDEX.panel,
   display: "grid",
   gap: MAP_SPACING.xs,
   minWidth: "min(26rem, calc(100% - 2rem))",
@@ -1191,7 +1192,7 @@ const workflowDividerStyle: React.CSSProperties = {
   width: MAP_DIMENSIONS.separatorWidth,
   background: "var(--syn-status-info, #38bdf8)",
   pointerEvents: "none",
-  zIndex: MAP_NUMERIC.sidebarZIndex - 1,
+  zIndex: MAP_Z_INDEX.panel - 1,
 };
 
 const comparisonLegendStyle: React.CSSProperties = {
@@ -10694,7 +10695,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
                 borderRadius: MAP_RADIUS.sm,
                 border: "1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.36))",
                 background: "var(--syn-surface-panel, rgba(12, 16, 24, 0.9))",
-                zIndex: 20,
+                zIndex: MAP_Z_INDEX.mapFurniture,
               }}
               role="status"
               aria-live="polite"
@@ -10716,7 +10717,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
                 display: "grid",
                 placeItems: "center",
                 background: "rgba(0, 0, 0, 0.34)",
-                zIndex: 22,
+                zIndex: MAP_Z_INDEX.dialog,
               }}
             >
               <div

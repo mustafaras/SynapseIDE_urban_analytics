@@ -205,6 +205,16 @@ describe("mapTokens — z-index", () => {
     // design tier (modal:10050 < popover:10060 < tooltip:10070 < toast:10080).
     expect(MAP_Z_INDEX.overlay).toBe(10050);
   });
+
+  it("keeps dialog above popover while preserving toast as the top app surface", () => {
+    expect(MAP_Z_INDEX.dialog).toBeGreaterThan(MAP_Z_INDEX.popover);
+    expect(MAP_Z_INDEX.toast).toBeGreaterThan(MAP_Z_INDEX.dialog);
+  });
+
+  it("keeps local map furniture below panel chrome", () => {
+    expect(MAP_Z_INDEX.mapFurniture).toBeLessThan(MAP_Z_INDEX.panel);
+    expect(MAP_Z_INDEX.commandBar).toBeLessThan(MAP_Z_INDEX.panel);
+  });
 });
 
 /* ------------------------------------------------------------------ */

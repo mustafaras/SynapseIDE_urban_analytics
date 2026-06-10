@@ -352,12 +352,20 @@ export const MAP_BLUR = {
 
 /* ---- Z-Index ---- */
 export const MAP_Z_INDEX = {
+  canvas: DESIGN_TOKENS.zIndex.base,
+  mapFurniture: MAP_NUMERIC.sidebarZIndex - 10,
+  commandBar: MAP_NUMERIC.sidebarZIndex - 8,
+  panel: MAP_NUMERIC.sidebarZIndex,
+  modalChrome: MAP_NUMERIC.overlayZIndex,
   overlay: MAP_NUMERIC.overlayZIndex,
   dropdown: MAP_NUMERIC.dropdownZIndex,
   /* Portaled overlay surfaces (dropdown menus, popovers) render into
      document.body and must paint above the fullscreen map modal (10050).
      Uses the shared design tier: modal 10050 < popover 10060 < tooltip 10070. */
   popover: DESIGN_TOKENS.zIndex.popover,
+  dialog: DESIGN_TOKENS.zIndex.popover + 1,
+  toast: DESIGN_TOKENS.zIndex.toast,
+  tooltip: DESIGN_TOKENS.zIndex.tooltip,
   closeBtn: MAP_NUMERIC.closeButtonZIndex,
   sidebar: MAP_NUMERIC.sidebarZIndex,
   temporalSelector: MAP_NUMERIC.temporalSelectorZIndex,
