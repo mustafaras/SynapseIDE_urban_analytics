@@ -63,7 +63,7 @@
 | P16 | ui/map-modal-panel-density-p3 | done |  | analysis-only repository audit completed (no runtime/code edits) | MAPDESIGN/p16-panel-density-audit-2026-06-10.md | Closed 2026-06-10 with panel-density inventory, readability risk map, hierarchy model, and safe implementation order |
 | P17 | ui/map-modal-panel-density-p3 | done |  | typecheck passed; lint:errors passed; map-layer-management + MapWorkbenchSidebar tests passed | src/centerpanel/components/map/MapLayerManager.tsx | Closed 2026-06-10 with left-panel section summaries, routeable section actions, and progressive layer-detail disclosure |
 | P18 | ui/map-modal-panel-density-p3 | done |  | typecheck passed; lint:errors passed; map-layer-management tests passed | src/centerpanel/components/map/MapLayerManager.tsx | Closed 2026-06-10 with explicit row-action classification, reduced visible action density, and keyboard-first action-menu navigation |
-| P19 | ui/map-modal-panel-density-p3 | not_started |  |  |  |  |
+| P19 | ui/map-modal-panel-density-p3 | done | 63d0347 | typecheck passed; lint:errors passed; right dock tests 11/11 passed | src/centerpanel/components/map/MapRightDockHost.tsx | Closed 2026-06-10 with primary/contextual/advanced/diagnostics tier classification, primary tab rail, grouped overflow menu |
 | P20 | ui/map-modal-panel-density-p3 | not_started |  |  |  |  |
 | P21 | ui/map-modal-panel-density-p3 | not_started |  |  |  |  |
 | P22 | ui/map-modal-panel-density-p3 | not_started |  |  |  |  |
