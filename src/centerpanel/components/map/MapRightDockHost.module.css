@@ -114,6 +114,31 @@
   white-space: nowrap;
 }
 
+.stateLabelTier {
+  display: inline-flex;
+  align-items: center;
+  min-height: 18px;
+  max-width: 100%;
+  padding: 1px 7px;
+  border: 1px solid color-mix(in srgb, var(--syn-text-muted, rgba(148, 163, 184, 0.9)) 28%, transparent);
+  border-radius: 4px;
+  color: var(--syn-text-muted, rgba(148, 163, 184, 0.9));
+  background: color-mix(in srgb, var(--syn-text-muted, rgba(148, 163, 184, 0.9)) 8%, transparent);
+  font-family: var(--font-mono, "JetBrains Mono", monospace);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stateLabelTier[data-panel-tier="diagnostics"] {
+  border-color: color-mix(in srgb, var(--syn-status-warning, #f59e0b) 32%, transparent);
+  color: var(--syn-status-warning, #f59e0b);
+  background: color-mix(in srgb, var(--syn-status-warning, #f59e0b) 8%, transparent);
+}
+
 .actions {
   display: inline-flex;
   align-items: center;
@@ -205,6 +230,78 @@
   background: var(--syn-surface-raised, rgba(15, 23, 42, 0.98));
   color: var(--syn-text-secondary, rgba(203, 213, 225, 0.92));
   box-shadow: 0 14px 32px rgba(2, 6, 12, 0.42);
+}
+
+.overflowGroup {
+  display: grid;
+  gap: 2px;
+}
+
+.overflowGroupLabel {
+  padding: 3px 6px 4px;
+  color: var(--syn-text-muted, rgba(148, 163, 184, 0.9));
+  font-family: var(--font-mono, "JetBrains Mono", monospace);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.overflowItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--syn-text-secondary, rgba(203, 213, 225, 0.92));
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: left;
+  width: 100%;
+}
+
+.overflowItem:hover:not(:disabled) {
+  background: var(--syn-surface-raised, rgba(148, 163, 184, 0.1));
+  color: var(--syn-text-default, rgba(244, 247, 255, 0.94));
+}
+
+.overflowItem:focus-visible {
+  outline: 2px solid var(--syn-interaction-active, #69b6ff);
+  outline-offset: -2px;
+}
+
+.overflowItemActive {
+  color: var(--syn-text-default, rgba(244, 247, 255, 0.94));
+  background: color-mix(in srgb, var(--syn-interaction-active, #69b6ff) 11%, transparent);
+}
+
+.overflowItemIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  color: var(--syn-text-muted, rgba(148, 163, 184, 0.7));
+}
+
+.overflowItemActive .overflowItemIcon {
+  color: var(--syn-interaction-active, #69b6ff);
+}
+
+.overflowItemActiveDot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-left: auto;
+  border-radius: 50%;
+  background: var(--syn-interaction-active, #69b6ff);
+  flex: 0 0 auto;
 }
 
 .metaRow {

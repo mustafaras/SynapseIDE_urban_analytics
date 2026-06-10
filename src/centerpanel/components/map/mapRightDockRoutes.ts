@@ -141,6 +141,76 @@ export const MAP_RIGHT_DOCK_PANEL_DEFINITIONS = {
 
 export const MAP_RIGHT_DOCK_PANEL_IDS = Object.keys(MAP_RIGHT_DOCK_PANEL_DEFINITIONS) as MapRightDockPanel[];
 
+/** Panels always visible in the primary tab rail (summary-level access). */
+export const MAP_RIGHT_DOCK_PRIMARY_PANELS: readonly MapRightDockPanel[] = [
+  "inspect",
+  "attributes",
+  "problems",
+  "report",
+  "workflow",
+];
+
+/**
+ * Panels shown contextually when activated (draw, measure, selection, scientific work,
+ * urban method, pins). Hidden from the tab rail until the user or context activates them,
+ * at which point they appear inline.
+ */
+export const MAP_RIGHT_DOCK_CONTEXTUAL_PANELS: readonly MapRightDockPanel[] = [
+  "selection",
+  "draw",
+  "measure",
+  "pins",
+  "scientificQA",
+  "urbanMethod",
+];
+
+/**
+ * Advanced panels that are always reachable but not shown in the primary tab rail.
+ * Surfaced via the grouped overflow menu.
+ */
+export const MAP_RIGHT_DOCK_ADVANCED_PANELS: readonly MapRightDockPanel[] = [
+  "timeline",
+  "tasks",
+  "qa",
+  "collaboration",
+];
+
+/**
+ * Developer/ops diagnostic panels: always reachable, hidden from the primary tab rail
+ * by default. Surfaced in a separate overflow group.
+ */
+export const MAP_RIGHT_DOCK_DIAGNOSTICS_PANELS: readonly MapRightDockPanel[] = [
+  "diagnostics",
+  "performance",
+];
+
+/** Human-readable group labels for overflow menu sections. */
+export const MAP_RIGHT_DOCK_OVERFLOW_GROUPS = [
+  { label: "Advanced", panels: MAP_RIGHT_DOCK_ADVANCED_PANELS },
+  { label: "Diagnostics", panels: MAP_RIGHT_DOCK_DIAGNOSTICS_PANELS },
+] as const;
+
+/**
+ * Returns the tier for a panel: "primary" | "contextual" | "advanced" | "diagnostics".
+ */
+export function getMapRightDockPanelTier(panel: MapRightDockPanel): "primary" | "contextual" | "advanced" | "diagnostics" {
+  if (MAP_RIGHT_DOCK_PRIMARY_PANELS.includes(panel)) return "primary";
+  if (MAP_RIGHT_DOCK_CONTEXTUAL_PANELS.includes(panel)) return "contextual";
+  if (MAP_RIGHT_DOCK_DIAGNOSTICS_PANELS.includes(panel)) return "diagnostics";
+  return "advanced";
+}
+
+/**
+ * Returns the set of panels that should be visible in the primary tab rail.
+ * Always includes primary panels plus the current active panel (so contextual/
+ * advanced panels remain inline while active).
+ */
+export function getRightDockVisibleTabPanels(activePanel: MapRightDockPanel): readonly MapRightDockPanel[] {
+  const primary = MAP_RIGHT_DOCK_PRIMARY_PANELS;
+  if (primary.includes(activePanel)) return primary;
+  return [...primary, activePanel];
+}
+
 export const MAP_MIGRATED_BOTTOM_TAB_TO_RIGHT_DOCK_PANEL = {
   problems: "problems",
   attributes: "attributes",
