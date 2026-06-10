@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  AlertTriangle,
   ClipboardCheck,
   Database,
   FileImage,
@@ -74,6 +75,16 @@ export interface MapPublishWorkspaceProps {
   onToggleCollapse?: () => void;
   onClose?: () => void;
   width?: number | string;
+  /**
+   * P21: Critical caveats to display before export/publish.
+   * Rendered as a high-visibility section after readiness checks.
+   */
+  caveats?: readonly string[];
+  /**
+   * P21: Evidence artifact IDs (from analytical runs or prior exports).
+   * Rendered as reference links after caveats.
+   */
+  evidenceIds?: readonly string[];
 }
 
 const PUBLISH_TAB_DEFINITIONS: ReadonlyArray<{
@@ -268,6 +279,128 @@ const disabledReasonStyle: React.CSSProperties = {
   lineHeight: MAP_TYPOGRAPHY.lineHeight.normal,
 };
 
+const caveatsSectionStyle: React.CSSProperties = {
+  display: "grid",
+  gap: MAP_SPACING.sm,
+  padding: `${MAP_SPACING.sm} ${MAP_SPACING.md}`,
+  marginBottom: MAP_SPACING.md,
+  border: `2px solid ${MAP_COLORS.caveatBorder}`,
+  borderRadius: MAP_RADIUS.sm,
+  background: MAP_COLORS.caveatBg,
+};
+
+const caveatsHeaderStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: MAP_SPACING.xs,
+  color: MAP_COLORS.caveatText,
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+  textTransform: "uppercase",
+  letterSpacing: 0,
+};
+
+const caveatItemStyle: React.CSSProperties = {
+  color: MAP_COLORS.caveatText,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  lineHeight: MAP_TYPOGRAPHY.lineHeight.normal,
+  ...MAP_TEXT_STYLES.valueWrap,
+};
+
+const evidenceSectionStyle: React.CSSProperties = {
+  display: "grid",
+  gap: MAP_SPACING.sm,
+  paddingBottom: MAP_SPACING.md,
+  borderBottom: MAP_STROKES.hairlineSubtle,
+};
+
+const evidenceHeaderStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: MAP_SPACING.xs,
+  color: MAP_COLORS.textMuted,
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+  textTransform: "uppercase",
+  letterSpacing: 0,
+};
+
+const evidenceListStyle: React.CSSProperties = {
+  display: "grid",
+  gap: MAP_SPACING.xs,
+  paddingLeft: MAP_SPACING.md,
+};
+
+const evidenceItemStyle: React.CSSProperties = {
+  color: MAP_COLORS.textSecondary,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  lineHeight: MAP_TYPOGRAPHY.lineHeight.normal,
+  listStyleType: "none",
+};
+
+const MapPublishCaveatsSection: React.FC<{
+  caveats: readonly string[];
+}> = ({ caveats }) => {
+  if (caveats.length === 0) {
+    return null;
+  }
+
+  return (
+    <div
+      style={caveatsSectionStyle}
+      aria-label="Publication caveats and limitations"
+      role="region"
+      data-testid="map-publish-caveats"
+    >
+      <div style={caveatsHeaderStyle}>
+        <AlertTriangle size={12} aria-hidden />
+        Caveats & Limitations
+      </div>
+      <div style={{ display: "grid", gap: MAP_SPACING.xs }}>
+        {caveats.map((caveat, idx) => (
+          <div key={`caveat-${idx}`} style={caveatItemStyle}>
+            • {caveat}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+/**
+ * P21: Evidence references section.
+ * Shows linked evidence IDs from analytical runs or prior exports.
+ */
+const MapPublishEvidenceSection: React.FC<{
+  evidenceIds: readonly string[];
+}> = ({ evidenceIds }) => {
+  if (evidenceIds.length === 0) {
+    return null;
+  }
+
+  return (
+    <section
+      style={evidenceSectionStyle}
+      aria-label="Evidence references"
+      data-testid="map-publish-evidence"
+    >
+      <div style={evidenceHeaderStyle}>
+        <ShieldCheck size={12} aria-hidden />
+        Evidence References
+      </div>
+      <ul style={evidenceListStyle}>
+        {evidenceIds.map((id) => (
+          <li key={id} style={evidenceItemStyle}>
+            {id}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+};
+
 function summarizeReadiness(items: readonly MapPublishReadinessItem[]): { label: string; status: GisStatusKey } {
   if (items.some((item) => item.status === "blocked")) return { label: "Blocked", status: "blocked" };
   if (items.some((item) => item.status === "caveat" || item.status === "unknown")) {
@@ -318,10 +451,14 @@ const MapPublishReadinessChecklist: React.FC<{
 
 const MapPublishBody: React.FC<{
   readinessItems: readonly MapPublishReadinessItem[];
+  caveats?: readonly string[];
+  evidenceIds?: readonly string[];
   children: React.ReactNode;
-}> = ({ readinessItems, children }) => (
+}> = ({ readinessItems, caveats = [], evidenceIds = [], children }) => (
   <div style={bodyStyle} data-testid="map-publish-tab-body">
     <MapPublishReadinessChecklist items={readinessItems} />
+    <MapPublishCaveatsSection caveats={caveats} />
+    <MapPublishEvidenceSection evidenceIds={evidenceIds} />
     <div style={panelSlotStyle} data-testid="map-publish-panel-slot">
       {children}
     </div>
@@ -398,6 +535,8 @@ export const MapPublishWorkspace: React.FC<MapPublishWorkspaceProps> = ({
   onToggleCollapse,
   onClose,
   width = "100%",
+  caveats = [],
+  evidenceIds = [],
 }) => {
   const contentByTab: Record<MapPublishTabId, React.ReactNode> = {
     "publish-figure": figure,
@@ -412,7 +551,11 @@ export const MapPublishWorkspace: React.FC<MapPublishWorkspaceProps> = ({
     label: tab.label,
     icon: tab.icon,
     render: () => (
-      <MapPublishBody readinessItems={readinessItems}>
+      <MapPublishBody
+        readinessItems={readinessItems}
+        caveats={caveats}
+        evidenceIds={evidenceIds}
+      >
         {contentByTab[tab.id]}
       </MapPublishBody>
     ),
