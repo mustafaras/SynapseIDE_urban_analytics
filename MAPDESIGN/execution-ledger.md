@@ -65,7 +65,7 @@
 | P18 | ui/map-modal-panel-density-p3 | done |  | typecheck passed; lint:errors passed; map-layer-management tests passed | src/centerpanel/components/map/MapLayerManager.tsx | Closed 2026-06-10 with explicit row-action classification, reduced visible action density, and keyboard-first action-menu navigation |
 | P19 | ui/map-modal-panel-density-p3 | done | 63d0347 | typecheck passed; lint:errors passed; right dock tests 11/11 passed | src/centerpanel/components/map/MapRightDockHost.tsx | Closed 2026-06-10 with primary/contextual/advanced/diagnostics tier classification, primary tab rail, grouped overflow menu |
 | P20 | ui/map-modal-panel-density-p3 | done | 95073dc | typecheck passed; lint:errors passed; inspector + attribute tests 20/20 passed | src/centerpanel/components/map/inspector/LayerInspector.tsx | Closed 2026-06-10 with summary-first inspector overview, visible warnings, quick actions, and condensed attribute workflow detail rail |
-| P21 | ui/map-modal-panel-density-p3 | not_started |  |  |  |  |
+| P21 | ui/map-modal-panel-density-p3 | done | c73eac5 | typecheck passed; lint:errors passed; MapPublishWorkspace tests 3/3 passed; test:analytics 1131/1131 passed | src/centerpanel/components/map/publish/MapPublishWorkspace.tsx | Closed 2026-06-10 with progressive disclosure for evidence/publish/caveats |
 | P22 | ui/map-modal-panel-density-p3 | not_started |  |  |  |  |
 | P23 | ui/map-modal-panel-density-p3 | not_started |  |  |  |  |
 | P24 | ui/map-modal-panel-density-p3 | not_started |  |  |  |  |
