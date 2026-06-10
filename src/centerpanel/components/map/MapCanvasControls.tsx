@@ -93,7 +93,9 @@ const rootStyle: React.CSSProperties = {
   position: "absolute",
   inset: 0,
   pointerEvents: "none",
-  zIndex: MAP_Z_INDEX.dropdown - 1,
+  /* Below MAP_Z_INDEX.sidebar so docked/overlay panel rails always paint
+     above canvas furniture (command bar, legend, help) at compact widths. */
+  zIndex: MAP_Z_INDEX.sidebar - 1,
 };
 
 /* ------------------------------------------------------------------ */

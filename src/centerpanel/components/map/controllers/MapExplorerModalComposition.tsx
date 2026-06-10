@@ -1401,7 +1401,9 @@ const canvasSelectionDockStyle: React.CSSProperties = {
   position: "absolute",
   top: "var(--map-overlay-safe-top, calc(var(--map-shell-command-height, 2.75rem) + var(--map-overlay-safe-inset-y, 0.25rem)))",
   left: `calc(var(--map-dock-left, 0px) + ${MAP_SPACING.md})`,
-  zIndex: MAP_Z_INDEX.dropdown,
+  /* Stay below docked/overlay panel rails (MAP_Z_INDEX.sidebar) so the
+     selection dock never paints over panel headers at compact widths. */
+  zIndex: MAP_Z_INDEX.sidebar - 1,
   pointerEvents: "auto",
   maxWidth: `calc(100% - var(--map-dock-left, 0px) - var(--map-dock-right, 0px) - ${MAP_SPACING.xl})`,
 };
@@ -10238,6 +10240,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
           href={`#${mapCanvasId}`}
           style={srOnlyFocusable}
           aria-label="Skip to interactive map canvas"
+          data-map-skip-link="true"
           onClick={(event) => {
             event.preventDefault();
             focusInteractiveMapCanvas();
@@ -11530,6 +11533,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
           data-map-right-dock-route={activeRightDockRoute?.panel ?? "none"}
           data-map-right-dock-route-source={activeRightDockRoute?.source ?? "none"}
           data-map-legacy-bottom-tab={activeRightDockRoute?.legacyBottomTabId ?? "none"}
+          style={{ paddingLeft: MAP_ACTIVITY_RAIL_WIDTH }}
         >
           <div ref={statusBarRef}>
             <MapStatusBarWithCursor

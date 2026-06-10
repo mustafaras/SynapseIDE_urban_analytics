@@ -110,9 +110,12 @@ export function useFocusTrap(active: boolean): {
   const activate = useCallback(() => {
     if (!trapRef.current) return;
     const focusable = getFocusableElements(trapRef.current);
-    if (focusable.length > 0) {
-      focusable[0].focus();
-    }
+    if (focusable.length === 0) return;
+    /* Prefer the first element that is not a skip-navigation link so the
+       visually-hidden skip link does not flash open on modal entry. It
+       remains first in tab order for keyboard users. */
+    const initial = focusable.find((element) => !element.hasAttribute("data-map-skip-link")) ?? focusable[0];
+    initial.focus();
   }, []);
 
   return { trapRef, activate };

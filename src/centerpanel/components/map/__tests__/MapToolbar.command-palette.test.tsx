@@ -447,6 +447,42 @@ describe("MapToolbar command palette", () => {
     expect(redoOption!.textContent).toContain("Ctrl+Y");
   });
 
+  it("keeps reset and recovery commands out of primary actions while preserving overflow reachability", () => {
+    renderToolbar({
+      onResetLayout: vi.fn(),
+      onCollapsePanels: vi.fn(),
+      onRestoreDefaultWidths: vi.fn(),
+      onFocusMapCanvas: vi.fn(),
+    });
+
+    const commandCenter = document.querySelector<HTMLElement>('[data-testid="map-command-center"]');
+    const primaryAction = document.querySelector<HTMLElement>('[data-testid="map-command-center-primary-action"]');
+    expect(commandCenter).not.toBeNull();
+    if (primaryAction) {
+      const primaryActionText = primaryAction.textContent?.toLowerCase() ?? "";
+      expect(primaryActionText).not.toContain("reset");
+      expect(primaryActionText).not.toContain("restore");
+    }
+
+    expect(document.querySelector('[data-testid="map-toolbar-command-reset-layout"]')).toBeNull();
+    expect(document.querySelector('[data-testid="map-toolbar-command-collapse-panels"]')).toBeNull();
+
+    const overflowTrigger = document.querySelector<HTMLButtonElement>('[data-testid="map-command-center-overflow"]');
+    expect(overflowTrigger).not.toBeNull();
+    act(() => {
+      overflowTrigger!.click();
+    });
+
+    expect(document.querySelector('[data-testid="map-toolbar-command-reset-layout"]')).not.toBeNull();
+    expect(document.querySelector('[data-testid="map-toolbar-command-collapse-panels"]')).not.toBeNull();
+    expect(document.querySelector('[data-testid="map-toolbar-command-restore-default-widths"]')).not.toBeNull();
+
+    keydown(window, "k", { ctrlKey: true });
+    const input = paletteInput();
+    setInputValue(input, "reset layout");
+    expect(document.querySelector('[data-testid="map-command-palette-option-reset-layout"]')).not.toBeNull();
+  });
+
   it("exposes Prompt 17 task lens and layout recovery commands in the command palette", () => {
     const onTaskLensChange = vi.fn();
     const onResetLayout = vi.fn();

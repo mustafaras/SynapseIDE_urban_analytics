@@ -41,7 +41,7 @@ export interface MapTopCommandSurfaceProps {
 
 const shellStyle: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "minmax(14rem, 0.92fr) minmax(18rem, 1.08fr) minmax(22rem, 1.28fr) auto",
+  gridTemplateColumns: "minmax(12rem, 1fr) minmax(12rem, 1fr) minmax(0, 1.3fr) auto",
   alignItems: "center",
   gap: MAP_SPACING.xs,
   minHeight: "3.5rem",
@@ -167,8 +167,9 @@ const searchClusterStyle: React.CSSProperties = {
 };
 
 const searchSlotStyle: React.CSSProperties = {
-  flex: "1 1 14rem",
-  minWidth: "13rem",
+  flex: "1 1 12rem",
+  minWidth: "10rem",
+  maxWidth: "18rem",
 };
 
 const contextRailStyle: React.CSSProperties = {
@@ -190,6 +191,13 @@ const trailingClusterStyle: React.CSSProperties = {
   alignItems: "center",
   gap: MAP_SPACING.xs,
   minWidth: MAP_SPACING.zero,
+  /* Keep window controls layered above any overflowing command content at
+     compact widths so Close/Expand stay legible and clickable. */
+  position: "relative",
+  zIndex: 1,
+  paddingLeft: MAP_SPACING.xs,
+  background: "var(--syn-surface-header, #20242b)",
+  boxShadow: "-10px 0 12px -10px rgba(0, 0, 0, 0.7)",
 };
 
 const utilityClusterStyle: React.CSSProperties = {
@@ -214,6 +222,8 @@ const chipLabelStyle: React.CSSProperties = {
   fontSize: "0.625rem",
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
   textTransform: "uppercase",
+  whiteSpace: "nowrap",
+  flexShrink: 0,
 };
 
 const chipValueStyle: React.CSSProperties = {
@@ -312,8 +322,11 @@ function chipStyle(interactive: boolean, tone: TopSurfaceTone): React.CSSPropert
     display: "inline-flex",
     alignItems: "center",
     gap: MAP_SPACING.xs,
-    minWidth: MAP_SPACING.zero,
-    maxWidth: "12rem",
+    /* Shrinkable, but never below a readable floor — title attrs keep the
+       full values reachable when ellipsized. */
+    minWidth: "4.5rem",
+    maxWidth: "11rem",
+    flexShrink: 1,
     height: "1.5rem",
     padding: `0 ${MAP_SPACING.xs}`,
     borderRadius: MAP_RADIUS.xs,
@@ -454,7 +467,7 @@ export const MapTopCommandSurface: React.FC<MapTopCommandSurfaceProps> = ({
           {crsLabel ? (
             <SurfaceChip
               label="CRS"
-              value={crsLabel}
+              value={crsLabel.replace(/^CRS\s+/, "")}
               tone={crsTone}
               title={crsTitle}
               onClick={onOpenCrsReadiness}

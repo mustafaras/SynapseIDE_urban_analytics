@@ -273,6 +273,22 @@ export function MapAttributeWorkflowPanel({
   const [joinPreview, setJoinPreview] = useState<MapJoinPreviewResult | null>(null);
   const [joinPreviewError, setJoinPreviewError] = useState<string | null>(null);
   const [joinPreviewBusy, setJoinPreviewBusy] = useState(false);
+  // The panel is hosted both in the wide bottom dock and the narrow right
+  // dock. Track our own width so the table/details split stacks instead of
+  // collapsing the table column to zero width in narrow hosts.
+  const rootRef = React.useRef<HTMLElement | null>(null);
+  const [stackedLayout, setStackedLayout] = useState(false);
+
+  useEffect(() => {
+    const node = rootRef.current;
+    if (!node || typeof ResizeObserver === "undefined") return undefined;
+    const observer = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect.width ?? node.getBoundingClientRect().width;
+      setStackedLayout(width > 0 && width < 760);
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
 
   const layerModels = useMemo(() => layers.map(buildAttributeLayerModel), [layers]);
   const activeModel = useMemo(
@@ -367,6 +383,7 @@ export function MapAttributeWorkflowPanel({
 
   return (
     <section
+      ref={rootRef}
       style={{
         display: "grid",
         gridTemplateRows: "auto minmax(0, 1fr)",
@@ -379,20 +396,21 @@ export function MapAttributeWorkflowPanel({
       }}
       aria-label="Attribute, field, join, and table workflow"
       data-testid="map-attribute-workflow-panel"
+      data-layout={stackedLayout ? "stacked" : "split"}
     >
       <header
         style={{
           display: "grid",
-          gridTemplateColumns: "minmax(13rem, 1fr) auto",
+          gridTemplateColumns: stackedLayout ? "minmax(0, 1fr)" : "minmax(13rem, 1fr) auto",
           alignItems: "center",
-          gap: MAP_SPACING.md,
+          gap: stackedLayout ? MAP_SPACING.sm : MAP_SPACING.md,
           minWidth: 0,
           padding: `${MAP_SPACING.sm} ${MAP_SPACING.md}`,
           borderBottom: MAP_STROKES.hairlineSubtle,
           background: MAP_COLORS.bgHeader,
         }}
       >
-        <div style={{ display: "grid", gridTemplateColumns: "auto minmax(12rem, 24rem) minmax(0, 1fr)", alignItems: "center", gap: MAP_SPACING.sm, minWidth: 0 }}>
+        <div style={{ display: "grid", gridTemplateColumns: stackedLayout ? "auto minmax(0, 1fr)" : "auto minmax(12rem, 24rem) minmax(0, 1fr)", alignItems: "center", gap: MAP_SPACING.sm, minWidth: 0 }}>
           <span style={{ color: MAP_COLORS.textMuted, fontSize: MAP_TYPOGRAPHY.fontSize.xs, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>Active layer</span>
           <select
             value={activeModel?.layer.id ?? ""}
@@ -423,7 +441,13 @@ export function MapAttributeWorkflowPanel({
         ) : null}
       </header>
 
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(18rem, 24rem)", minHeight: 0, minWidth: 0 }}>
+      <div
+        style={
+          stackedLayout
+            ? { display: "grid", gridTemplateRows: "minmax(0, 1.4fr) minmax(0, 1fr)", minHeight: 0, minWidth: 0, overflow: "hidden" }
+            : { display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(18rem, 24rem)", minHeight: 0, minWidth: 0 }
+        }
+      >
         <div style={{ minHeight: 0, minWidth: 0, overflow: "hidden" }}>
           {!activeModel ? (
             <GisEmptyState
@@ -462,9 +486,12 @@ export function MapAttributeWorkflowPanel({
             alignContent: "start",
             gap: MAP_SPACING.md,
             minWidth: 0,
+            minHeight: 0,
             overflow: "auto",
             padding: MAP_SPACING.md,
-            borderLeft: MAP_STROKES.hairlineSubtle,
+            ...(stackedLayout
+              ? { borderTop: MAP_STROKES.hairlineSubtle }
+              : { borderLeft: MAP_STROKES.hairlineSubtle }),
             background: MAP_COLORS.bgWorkspace,
           }}
           aria-label="Attribute workflow details"

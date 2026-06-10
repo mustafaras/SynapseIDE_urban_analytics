@@ -110,4 +110,30 @@ describe("MapTopCommandSurface", () => {
     buttons[3]?.focus();
     expect(document.activeElement).toBe(buttons[3]);
   });
+
+  it("keeps long metadata readable via titles and normalizes CRS chip values", () => {
+    const longProject = "City Resilience Program - Coastal Flood Adaptation and Mobility Prioritization";
+    const longLayer = "Parcels and Building Footprints from Regional Cadastre 2026 Baseline";
+
+    renderSurface({
+      projectName: longProject,
+      crsLabel: "CRS EPSG:3857",
+      activeLayerLabel: longLayer,
+      activeLayerTitle: longLayer,
+    });
+
+    const projectChip = document.querySelector<HTMLElement>('[data-testid="map-top-command-surface-project"]');
+    const crsChip = document.querySelector<HTMLElement>('[data-testid="map-top-command-surface-crs"]');
+    const layerChip = document.querySelector<HTMLElement>('[data-testid="map-top-command-surface-layer"]');
+
+    expect(projectChip).not.toBeNull();
+    expect(projectChip?.getAttribute("title")).toBe(longProject);
+
+    expect(crsChip).not.toBeNull();
+    expect(crsChip?.textContent).toContain("EPSG:3857");
+    expect(crsChip?.textContent).not.toContain("CRS EPSG:3857");
+
+    expect(layerChip).not.toBeNull();
+    expect(layerChip?.getAttribute("title")).toBe(longLayer);
+  });
 });

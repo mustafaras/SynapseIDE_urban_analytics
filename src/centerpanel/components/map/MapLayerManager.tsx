@@ -500,7 +500,7 @@ const layerActionGrid: React.CSSProperties = {
   border: MAP_STROKES.hairlineStrong,
   borderRadius: MAP_RADIUS.sm,
   background: MAP_COLORS.bgPanel,
-  boxShadow: MAP_SHADOWS.none,
+  boxShadow: MAP_SHADOWS.dropdown,
   zIndex: MAP_Z_INDEX.dropdown,
 };
 
@@ -1599,7 +1599,7 @@ const LayerActionMenu: React.FC<LayerActionMenuProps> = ({ layerName, actions, f
       </button>
       <div
         id={menuId}
-        style={layerActionGrid}
+        style={{ ...layerActionGrid, display: open ? layerActionGrid.display : "none" }}
         role="menu"
         aria-label={`Layer command menu for ${layerName}`}
         hidden={!open}

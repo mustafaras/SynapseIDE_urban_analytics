@@ -58,8 +58,8 @@
 | P11 | ui/map-modal-command-bar-p2 | done | 83b3e33 | typecheck passed; lint:errors passed; MapTopCommandSurface + modal baseline tests passed | src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx | Closed 2026-06-09 with stable top-right modal-control cluster and separated utility controls |
 | P12 | ui/map-modal-command-bar-p2 | done | 3daec71 | toolbar tests passed; typecheck passed; lint:errors passed; focused e2e smoke passed | src/centerpanel/components/map/MapToolbar.tsx | Closed 2026-06-09 with reduced visible toolbar density and overflow-first secondary commands |
 | P13 | ui/map-modal-command-bar-p2 | done |  | typecheck passed; lint:errors passed; lint:no-tailwind-centerpanel passed; targeted vitest passed; focused e2e smoke passed | src/centerpanel/components/map/MapCanvasControls.tsx | Closed 2026-06-09 with shared icon-button affordance standardization across canvas and modal controls |
-| P14 | ui/map-modal-command-bar-p2 | not_started |  |  |  |  |
-| P15 | ui/map-modal-command-bar-p2 | not_started |  |  |  |  |
+| P14 | ui/map-modal-command-bar-p2 | done |  | typecheck passed; lint:errors passed; MapTopCommandSurface + MapStatusBarRoutes tests passed | src/centerpanel/components/map/MapTopCommandSurface.tsx | Closed 2026-06-10 with calmer header metadata density, CRS chip normalization, and long-label truncation safeguards |
+| P15 | ui/map-modal-command-bar-p2 | done |  | typecheck passed; lint:errors passed; targeted command/header/a11y tests passed; prompt15 header e2e regression passed | e2e/map-modal-layout.spec.ts | Closed 2026-06-10 with command/header regression hardening for compact-width header controls and command-reachability safety |
 | P16 | ui/map-modal-panel-density-p3 | not_started |  |  |  |  |
 | P17 | ui/map-modal-panel-density-p3 | not_started |  |  |  |  |
 | P18 | ui/map-modal-panel-density-p3 | not_started |  |  |  |  |
@@ -241,6 +241,28 @@
 - Open Risks: Remaining icon-only buttons in deeper panel rows/dialog internals are still mixed primitives; a follow-up sweep can standardize these without changing behavior. Broad `map-modal-layout` e2e suite has pre-existing instability unrelated to this patch.
 - Resume From: src/centerpanel/components/map/MapCanvasControls.tsx (viewport/interaction/furniture icon groups now on `GisIconButton`)
 - Next Prompt: P14
+
+### P14 - Phase 2: Calm search, CRS, project, and active layer indicators in the header
+- Status: done
+- Intent: Reduce header metadata noise while preserving CRS/QA warning visibility, search usability, and active project/layer context.
+- Definition of Done: Header metadata is grouped into calmer, compact chips with predictable truncation and full-label access; critical CRS/QA semantics remain visible and routable; narrow-width behavior does not hide modal controls.
+- Decisions: Kept edits minimal and reversible by refining existing `MapTopCommandSurface` density rules (cluster column balance, chip sizing, search bounds, trailing control layering) instead of changing command semantics. Normalized CRS chip display to avoid duplicated `CRS` prefix and added explicit regression coverage for long project/layer labels and accessible full-value titles.
+- Changed Files: src/centerpanel/components/map/MapTopCommandSurface.tsx; src/centerpanel/components/map/MapStatusBar.tsx; src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx; src/centerpanel/components/map/MapCanvasControls.tsx; src/centerpanel/components/map/MapLayerManager.tsx; src/centerpanel/components/map/useFocusTrap.ts; src/centerpanel/components/map/table/MapAttributeWorkflowPanel.tsx; src/centerpanel/components/map/__tests__/MapTopCommandSurface.test.tsx; e2e/map-modal-layout.spec.ts; e2e/helpers/urbanAnalytics.ts; MAPDESIGN/execution-ledger.md
+- Validation: `npm run typecheck` passed; `npm run lint:errors` passed; `npx vitest run src/centerpanel/components/map/__tests__/MapTopCommandSurface.test.tsx src/centerpanel/components/map/__tests__/MapStatusBarRoutes.test.tsx` passed (8/8).
+- Open Risks: Broad `e2e/map-modal-layout.spec.ts` remains a large integration surface and has previously shown unrelated instability in this branch; full visual matrix rerun is recommended in Prompt 15 regression pass.
+- Resume From: src/centerpanel/components/map/MapTopCommandSurface.tsx (cluster sizing, chip truncation, CRS chip value normalization)
+- Next Prompt: P15
+
+### P15 - Phase 2: Add or update command/header regression tests
+- Status: done
+- Intent: Guard Phase 2 header/command hierarchy against regressions while preserving all GIS/CRS/QA/evidence command semantics.
+- Definition of Done: Command/header tests cover stable header/title context, modal-control reachability, grouped command visibility, overflow command reachability, icon-only/accessibility naming expectations, CRS/QA warning visibility, recovery-command separation, and compact-width non-clipping behavior.
+- Decisions: Added minimal test-only changes on top of Prompt 14 to avoid behavior churn: (1) command-center regression asserting reset/recovery commands remain overflow/palette reachable and out of primary routine action area; (2) compact desktop e2e regression asserting top command surface + modal controls remain visible/focusable and unclipped while search/palette remains usable.
+- Changed Files: src/centerpanel/components/map/__tests__/MapToolbar.command-palette.test.tsx; e2e/map-modal-layout.spec.ts; MAPDESIGN/execution-ledger.md
+- Validation: `npm run typecheck` passed; `npm run lint:errors` passed; `npx vitest run src/centerpanel/components/map/__tests__/MapTopCommandSurface.test.tsx src/centerpanel/components/map/__tests__/MapToolbar.command-palette.test.tsx src/centerpanel/components/map/__tests__/MapStatusBarRoutes.test.tsx` passed (25/25); `npx vitest run src/centerpanel/components/map/__tests__/map-accessibility.test.ts` passed (34/34, with pre-existing non-blocking React `act(...)` warnings); `npx playwright test e2e/map-modal-layout.spec.ts --grep "header controls reachable without clipping" --reporter=line` passed (1/1).
+- Open Risks: Full `e2e/map-modal-layout.spec.ts` remains broad and can surface unrelated suite flakiness; Prompt 15 coverage is stable for command/header regressions but full-map regression health should continue to be monitored in later prompts.
+- Resume From: e2e/map-modal-layout.spec.ts ("keeps header controls reachable without clipping at compact desktop width")
+- Next Prompt: P16
 
 ## Hand-off Checklist
 - [x] Prompt block status updated
