@@ -70,7 +70,7 @@
 | P23 | ui/map-modal-panel-density-p3 | done | dd56d87 | typecheck passed; lint:errors passed; targeted Prompt 23 suites 81/81 passed; fallback p09 layout e2e 2/2 passed | src/centerpanel/components/map/__tests__/map-layer-management.test.ts | Closed 2026-06-10 with panel hierarchy and density regression coverage consolidation |
 | P24 | fix/map-modal-collision-zindex-p4 | done | 694df16 | typecheck passed; lint:errors passed; targeted map tests passed (72/72); p09 overlap/collision e2e passed (2/2) | src/centerpanel/components/map/mapTokens.ts | Closed 2026-06-10 with named z-index/elevation model and safe literal replacement in modal overlays/dialog surfaces |
 | P25 | fix/map-modal-collision-zindex-p4 | done | 0726858 | typecheck passed; lint:errors passed; AppPopover test 2/2; overlay consumer vitest 24/24; map-layout-regression-p09 e2e 2/2 | src/centerpanel/components/map/ui/AppPopover.tsx | Closed 2026-06-10 with shared popover flip/clamp/max-height behavior and regression coverage for right-edge and short-height collisions |
-| P26 | ui/map-modal-accessibility-p4 | not_started |  |  |  |  |
+| P26 | fix/map-modal-collision-zindex-p4 | done |  | typecheck passed; lint:errors passed; targeted drawer tests 10/10 passed; p09 layout e2e 2/2 passed | src/centerpanel/components/map/MapWorkflowDrawer.tsx | Closed 2026-06-10 with short-height shrinkable embedded drawers and bounded panel bodies for NL query, workflow, and report handoff surfaces |
 | P27 | ui/map-modal-accessibility-p4 | not_started |  |  |  |  |
 | P28 | ui/map-modal-accessibility-p4 | not_started |  |  |  |  |
 | P29 | ui/map-modal-accessibility-p4 | not_started |  |  |  |  |
@@ -352,3 +352,14 @@
 - Open Risks: The short-height cap now derives from `window.innerHeight` in the shared popover utility; if a future embedded modal uses a smaller container than the viewport, the boundary should be switched to the container rect.
 - Resume From: src/centerpanel/components/map/ui/AppPopover.tsx (shared popover positioning and max-height logic)
 - Next Prompt: P26
+
+### P26 - Phase 4: Fix scroll containment and short-height viewport behavior
+- Status: done
+- Intent: Remove fixed embedded minimum heights that force short viewport overflow while keeping panel headers and footer actions stable.
+- Definition of Done: Embedded workflow, NL query, and report handoff surfaces can shrink in short-height layouts; their bodies remain the scroll region; dialog and drawer actions stay reachable.
+- Decisions: Kept the change local by replacing fixed 34rem embedded minimums with shrinkable `minHeight: 0` plus bounded `maxHeight` on the dense drawer surfaces that were blocking short-height layouts.
+- Changed Files: src/centerpanel/components/map/MapWorkflowDrawer.tsx; src/centerpanel/components/map/MapNLQueryPanel.tsx; src/centerpanel/components/map/MapReportHandoffDrawer.tsx; src/centerpanel/components/map/__tests__/map-workflow-worker-ui.test.tsx; src/centerpanel/components/map/__tests__/MapNLQueryPanel.test.tsx; src/centerpanel/components/map/__tests__/MapReportHandoffDrawer.test.tsx; MAPDESIGN/execution-ledger.md
+- Validation: `npm run typecheck` passed; `npm run lint:errors` passed; `npx vitest run src/centerpanel/components/map/__tests__/MapNLQueryPanel.test.tsx src/centerpanel/components/map/__tests__/map-workflow-worker-ui.test.tsx src/centerpanel/components/map/__tests__/MapReportHandoffDrawer.test.tsx` passed (10/10); `npx playwright test e2e/map-layout-regression-p09.spec.ts` passed (2/2).
+- Open Risks: The embedded surfaces now defer entirely to container height; if a future host introduces an unexpectedly small container, the outer shell should provide the authoritative height budget.
+- Resume From: src/centerpanel/components/map/MapWorkflowDrawer.tsx (embedded drawer surface sizing)
+- Next Prompt: P27

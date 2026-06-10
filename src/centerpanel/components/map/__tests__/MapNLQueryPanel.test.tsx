@@ -102,6 +102,36 @@ function hasExactSpanText(host: HTMLElement, text: string): boolean {
 }
 
 describe("MapNLQueryPanel", () => {
+  it("keeps the embedded surface shrinkable for short-height layouts", async () => {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const root = createRoot(host);
+    roots.push(root);
+
+    await act(async () => {
+      root.render(
+        <MapNLQueryPanel
+          visible
+          presentation="embedded"
+          overlayLayers={[layer("parcels", "Parcels", parcels)]}
+          selectedAoiFeature={null}
+          currentMapBounds={[28.9, 40.9, 29.2, 41.2]}
+          isRunning={false}
+          lastRunSummary={null}
+          onRun={vi.fn()}
+          onProposalGenerated={vi.fn()}
+          onPreviewDecision={vi.fn()}
+          onClose={vi.fn()}
+        />,
+      );
+    });
+
+    const panel = host.firstElementChild as HTMLElement | null;
+    expect(panel).not.toBeNull();
+    expect(panel?.style.minHeight).toBe("0px");
+    expect(panel?.style.maxHeight).toBe("calc(100% - 2rem)");
+  });
+
   it("requires explicit preview acceptance before running a map query", async () => {
     const onRun = vi.fn();
     const onProposalGenerated = vi.fn();
