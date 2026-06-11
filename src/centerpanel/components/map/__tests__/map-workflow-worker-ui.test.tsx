@@ -86,6 +86,25 @@ function layer(
 }
 
 describe("MapWorkflowDrawer worker execution UI", () => {
+  it("keeps the embedded surface shrinkable for short-height layouts", () => {
+    act(() => {
+      root?.render(
+        <MapWorkflowDrawer
+          visible
+          context={context}
+          onClose={() => {}}
+          onApply={() => {}}
+          presentation="embedded"
+        />,
+      );
+    });
+
+    const panel = host?.firstElementChild as HTMLElement | null;
+    expect(panel).not.toBeNull();
+    expect(panel?.style.minHeight).toBe("0px");
+    expect(panel?.style.maxHeight).toBe("calc(100% - 2rem)");
+  });
+
   it("renders a progress bar + cancel control while a workflow runs in a worker", () => {
     const onCancelWorkflow = vi.fn();
     act(() => {

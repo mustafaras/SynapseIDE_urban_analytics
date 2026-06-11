@@ -31,3 +31,22 @@ export type { GisProgressBarProps } from "./GisProgressBar";
 
 export { GisTooltip } from "./GisTooltip";
 export type { GisTooltipProps } from "./GisTooltip";
+
+export { AppPopover } from "./AppPopover";
+export type { AppPopoverPlacement, AppPopoverProps } from "./AppPopover";
+
+export {
+	AppDropdownMenu,
+	AppMenuPanel,
+	AppMenuItem,
+	AppMenuSection,
+	ToolbarMenuButton,
+} from "./AppMenu";
+export type {
+	AppDropdownAlign,
+	AppDropdownMenuProps,
+	AppMenuPanelProps,
+	AppMenuItemProps,
+	AppMenuSectionProps,
+	ToolbarMenuButtonProps,
+} from "./AppMenu";

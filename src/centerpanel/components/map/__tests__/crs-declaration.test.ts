@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 import { fcMissingCrs } from "./fixtures/gisFixtures";
 import type { OverlayLayerConfig } from "../mapTypes";
 import {
-  USER_DECLARED_CRS_CAVEAT,
   buildUserDeclaredCrsSummary,
   normalizeLayerRegistryMetadata,
   resolveOverlayLayerCrsSummary,
+  USER_DECLARED_CRS_CAVEAT,
 } from "../mapLayerMetadata";
 
 function missingCrsLayer(): OverlayLayerConfig {

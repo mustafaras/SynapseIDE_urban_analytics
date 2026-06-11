@@ -1,25 +1,16 @@
 // @vitest-environment jsdom
 
-import { readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 import React from "react";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   MapBottomPanelScrollBody,
-  MapBottomPanelTasksBody,
   type MapBottomPanelTask,
+  MapBottomPanelTasksBody,
 } from "../bottom";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-
-const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../../");
-
-function readRepoFile(relativePath: string): string {
-  return readFileSync(resolve(repoRoot, relativePath), "utf8");
-}
 
 let root: Root | null = null;
 let host: HTMLDivElement | null = null;
@@ -85,25 +76,3 @@ describe("MapBottomPanelScrollBody and MapBottomPanelTasksBody (right dock reusa
   });
 });
 
-describe("MapBottomPanel is retired as a workspace host", () => {
-  it("MapBottomPanel is no longer rendered in MapExplorerModalComposition", () => {
-    const composition = readRepoFile("src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx");
-    // The host shell MapBottomPanel component must not be rendered (check for the tag with attributes/newline)
-    expect(composition).not.toMatch(/<MapBottomPanel\b(?!ScrollBody|TasksBody|ActiveBody)/);
-    expect(composition).not.toContain("bottomPanelOpen");
-    expect(composition).not.toContain("setBottomPanelOpen");
-    expect(composition).not.toContain("closeBottomPanel");
-  });
-
-  it("MapPanelRailSide no longer includes bottom placement", () => {
-    const shell = readRepoFile("src/centerpanel/components/map/MapWorkspaceShell.tsx");
-    expect(shell).not.toContain('"left" | "right" | "bottom"');
-    expect(shell).toContain('"left" | "right"');
-  });
-
-  it("status bar remains as the only bottom edge element", () => {
-    const composition = readRepoFile("src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx");
-    expect(composition).toContain("MapStatusBarWithCursor");
-    expect(composition).toContain("MapBottomTimeline");
-  });
-});

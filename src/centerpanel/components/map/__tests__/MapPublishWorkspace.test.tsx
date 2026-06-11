@@ -3,7 +3,11 @@
 import React, { act, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
-import { MapPublishWorkspace, type MapPublishReadinessItem } from "../publish";
+import {
+  MapPublishPathPanel,
+  type MapPublishReadinessItem,
+  MapPublishWorkspace,
+} from "../publish";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -97,5 +101,135 @@ describe("MapPublishWorkspace", () => {
     click("map-workbench-sidebar-tab-publish-review-package");
     expect(query("publish-content-review")).not.toBeNull();
     expect(query("publish-content-data")).toBeNull();
+  });
+
+  it("P21: renders caveats and evidence sections when provided", () => {
+    const readinessItems: MapPublishReadinessItem[] = [
+      { id: "layers", label: "Layers", status: "ready", detail: "All layers ready." },
+    ];
+
+    const caveats = [
+      "This is a preliminary output and should not be used for official reports.",
+      "Spatial accuracy is limited to 10 meters at this zoom level.",
+    ];
+
+    const evidenceIds = ["evidence-2026-06-10-001", "evidence-2026-06-10-002"];
+
+    const Harness: React.FC = () => {
+      const [activeTabId, setActiveTabId] = useState("publish-figure");
+      return (
+        <MapPublishWorkspace
+          activeTabId={activeTabId}
+          onTabChange={setActiveTabId}
+          readinessItems={readinessItems}
+          caveats={caveats}
+          evidenceIds={evidenceIds}
+          figure={<div data-testid="publish-content-figure">Figure content</div>}
+          dataExport={<div data-testid="publish-content-data">Data export content</div>}
+          report={<div data-testid="publish-content-report">Report content</div>}
+          offlinePackage={<div data-testid="publish-content-offline">Offline package content</div>}
+          reviewPackage={<div data-testid="publish-content-review">Review package content</div>}
+        />
+      );
+    };
+
+    render(<Harness />);
+
+    // Verify readiness section renders
+    expect(query("map-publish-readiness")).not.toBeNull();
+    expect(query("map-publish-readiness-layers")).not.toBeNull();
+
+    // Verify caveats section renders with proper styling
+    expect(query("map-publish-caveats")).not.toBeNull();
+    const caveatsSection = query("map-publish-caveats");
+    expect(caveatsSection?.textContent).toContain("Caveats & Limitations");
+    expect(caveatsSection?.textContent).toContain("preliminary output");
+    expect(caveatsSection?.textContent).toContain("Spatial accuracy");
+
+    // Verify evidence section renders
+    expect(query("map-publish-evidence")).not.toBeNull();
+    const evidenceSection = query("map-publish-evidence");
+    expect(evidenceSection?.textContent).toContain("Evidence References");
+    expect(evidenceSection?.textContent).toContain("evidence-2026-06-10-001");
+    expect(evidenceSection?.textContent).toContain("evidence-2026-06-10-002");
+  });
+
+  it("P21: does not render caveats/evidence sections when empty", () => {
+    const readinessItems: MapPublishReadinessItem[] = [
+      { id: "layers", label: "Layers", status: "ready", detail: "All layers ready." },
+    ];
+
+    const Harness: React.FC = () => {
+      const [activeTabId, setActiveTabId] = useState("publish-figure");
+      return (
+        <MapPublishWorkspace
+          activeTabId={activeTabId}
+          onTabChange={setActiveTabId}
+          readinessItems={readinessItems}
+          figure={<div data-testid="publish-content-figure">Figure content</div>}
+          dataExport={<div data-testid="publish-content-data">Data export content</div>}
+          report={<div data-testid="publish-content-report">Report content</div>}
+          offlinePackage={<div data-testid="publish-content-offline">Offline package content</div>}
+          reviewPackage={<div data-testid="publish-content-review">Review package content</div>}
+        />
+      );
+    };
+
+    render(<Harness />);
+
+    // Verify caveats and evidence sections do not render when empty
+    expect(query("map-publish-caveats")).toBeNull();
+    expect(query("map-publish-evidence")).toBeNull();
+
+    // Verify readiness still renders
+    expect(query("map-publish-readiness")).not.toBeNull();
+  });
+
+  it("P23: keeps primary and secondary publish path actions reachable with disabled reasons", () => {
+    const primarySpy = { called: 0 };
+    const secondarySpy = { called: 0 };
+
+    render(
+      <MapPublishPathPanel
+        eyebrow="Publish"
+        title="Export readiness"
+        description="Keep formal output actions reachable without exposing blocked actions as active."
+        actions={[
+          {
+            label: "Export figure",
+            primary: true,
+            onClick: () => {
+              primarySpy.called += 1;
+            },
+          },
+          {
+            label: "Publish review package",
+            onClick: () => {
+              secondarySpy.called += 1;
+            },
+          },
+          {
+            label: "Publish report",
+            disabled: true,
+            disabledReason: "Resolve QA blocker before formal report publication.",
+            onClick: () => undefined,
+          },
+        ]}
+      />,
+    );
+
+    const actionButtons = host?.querySelectorAll("button") ?? [];
+    expect(actionButtons.length).toBe(3);
+    expect(host?.textContent).toContain("Resolve QA blocker before formal report publication.");
+
+    act(() => {
+      actionButtons[0]?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      actionButtons[1]?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      actionButtons[2]?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(primarySpy.called).toBe(1);
+    expect(secondarySpy.called).toBe(1);
+    expect((actionButtons[2] as HTMLButtonElement).disabled).toBe(true);
   });
 });

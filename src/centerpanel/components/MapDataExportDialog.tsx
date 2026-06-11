@@ -37,7 +37,9 @@ const overlayStyle: React.CSSProperties = {
 
 const dialogStyle: React.CSSProperties = {
   width: 360,
-  maxWidth: "92vw",
+  maxWidth: "calc(100% - 2rem)",
+  maxHeight: "var(--map-popover-max-height, calc(100% - 2rem))",
+  overflowY: "auto",
   background: MAP_COLORS.bgPanel,
   border: MAP_STROKES.hairlineStrong,
   borderRadius: MAP_RADIUS.sm,

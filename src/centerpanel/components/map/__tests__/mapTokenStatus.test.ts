@@ -9,17 +9,17 @@
  * 3. MAP_DENSITY has compact, comfortable, and default presets.
  * 4. usePrefersReducedMotion returns true under emulated prefers-reduced-motion.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 /* ---- import tokens synchronously ---- */
 import {
+  GIS_STATUS_KEYS,
   MAP_CHROME_SLOT_KEYS,
   MAP_CHROME_TOKENS,
+  MAP_DENSITY,
   MAP_MOTION,
   MAP_SHELL_DIMENSIONS,
   MAP_STATUS_TOKENS,
-  MAP_DENSITY,
-  GIS_STATUS_KEYS,
 } from "@/centerpanel/components/map/mapTokens";
 
 const bareHex = /(?<![,()\w])#[0-9a-fA-F]{3,8}\b(?![^(]*\))/;

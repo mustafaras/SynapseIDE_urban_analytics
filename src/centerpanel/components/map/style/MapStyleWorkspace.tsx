@@ -23,9 +23,9 @@ import {
   getLayerNumericStyleFieldNames,
   getLayerStyleFieldNames,
   getSerializedLegendSpecFromStyle,
-  serializedLegendSpecToCompositionItems,
   type LayerStyleUpdate,
   type SerializedLegendMode,
+  serializedLegendSpecToCompositionItems,
   type SerializedMapLegendSpec,
 } from "../inspector/style/legendContract";
 import type { OverlayLayerConfig } from "../mapTypes";

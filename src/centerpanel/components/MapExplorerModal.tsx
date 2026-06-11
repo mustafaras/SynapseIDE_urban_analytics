@@ -1,2 +1,2 @@
-export { MapExplorerModal } from "./map/controllers/MapExplorerModalComposition";
-export type { MapExplorerModalProps } from "./map/controllers/MapExplorerModalComposition";
+export { MapExplorerModal } from "./map/controllers/MapExplorerModalRoot";
+export type { MapExplorerModalProps } from "./map/controllers/MapExplorerModalRoot";

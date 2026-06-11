@@ -11,18 +11,18 @@ import {
   Bookmark,
   Columns2,
   Eye,
-  MoveVertical,
   MousePointer2,
+  MoveVertical,
   Ruler,
   Scissors,
   Sun,
 } from "lucide-react";
 import {
   INTERACTION_MODES,
+  type Scene3DInteractionMode,
   selectCameraBookmarks,
   selectInteractionMode,
   useScene3DStore,
-  type Scene3DInteractionMode,
 } from "@/stores/useScene3DStore";
 import {
   MAP_COLORS,
@@ -31,8 +31,8 @@ import {
   MAP_SHADOWS,
   MAP_SPACING,
   MAP_STROKES,
-  MAP_TYPOGRAPHY,
   MAP_TRANSITIONS,
+  MAP_TYPOGRAPHY,
   MAP_Z_INDEX,
 } from "../mapTokens";
 import { GisIconButton } from "../ui/GisIconButton";
@@ -231,7 +231,7 @@ export const Scene3DInteractionStrip: React.FC<Scene3DInteractionStripProps> = (
         </React.Fragment>
       ))}
 
-      {showBookmarks && (
+      {!!showBookmarks && (
         <div style={resolvedBookmarkListStyle} data-testid="camera-bookmark-list">
           {bookmarks.length === 0 ? (
             <p style={emptyBookmarkStyle}>No saved views</p>

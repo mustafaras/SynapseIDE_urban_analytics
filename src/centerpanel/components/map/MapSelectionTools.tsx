@@ -18,11 +18,11 @@ import {
   createMapSpatialPolygonShape,
   executeMapQueryPlan,
   getMapFeatureCollectionBounds,
-  planMapQuery,
   type MapAttributeOperator,
   type MapQueryExecutionResult,
   type MapSpatialQueryShape,
   type MapSpatialQuerySource,
+  planMapQuery,
 } from "@/services/map/query/MapQueryPlanner";
 import {
   summarizeDrawnGeometryValidation,
@@ -41,6 +41,7 @@ import {
   MAP_Z_INDEX,
   resolveMapPaintColor,
 } from "./mapTokens";
+import { AppPopover } from "./ui";
 
 type SelectionDragTool = "rectangle" | "lasso";
 
@@ -77,8 +78,8 @@ const MIN_DRAG_DEGREES = 0.00001;
 
 const panelStyle: React.CSSProperties = {
   position: "absolute",
-  top: MAP_SPACING.md,
-  width: "min(34rem, calc(100% - 2rem))",
+  top: "var(--map-overlay-safe-top, calc(var(--map-shell-command-height, 2.75rem) + var(--map-overlay-safe-inset-y, 0.25rem)))",
+  width: "min(34rem, calc(100% - var(--map-dock-left, 0px) - var(--map-dock-right, 0px) - 2rem))",
   display: "grid",
   gap: MAP_SPACING.sm,
   padding: MAP_SPACING.sm,
@@ -104,6 +105,7 @@ const barClusterStyle: React.CSSProperties = {
   position: "relative",
   display: "inline-flex",
   alignItems: "center",
+  width: "100%",
   minWidth: MAP_SPACING.zero,
   fontFamily: MAP_TYPOGRAPHY.fontFamily,
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
@@ -113,22 +115,26 @@ const barClusterStyle: React.CSSProperties = {
 const barToolbarStyle: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
+  minHeight: "2.25rem",
+  padding: `0 ${MAP_SPACING.xs}`,
+  borderRadius: MAP_RADIUS.sm,
+  border: "1px solid transparent",
+  background: "transparent",
   gap: "0.1875rem",
   minWidth: MAP_SPACING.zero,
+  overflow: "visible",
 };
 
 const barFilterPopoverStyle: React.CSSProperties = {
-  position: "absolute",
-  top: "calc(100% + 0.5rem)",
-  left: MAP_SPACING.zero,
-  zIndex: MAP_Z_INDEX.dropdown + 2,
   display: "grid",
   gridTemplateColumns:
     "minmax(8rem, 1.1fr) minmax(7rem, 0.9fr) minmax(7rem, 0.9fr) minmax(8rem, 1fr) auto",
   gap: MAP_SPACING.xs,
   alignItems: "center",
-  width: "min(40rem, 88vw)",
-  padding: MAP_SPACING.sm,
+  width: "min(46rem, calc(100vw - 1rem))",
+  maxHeight: "var(--map-popover-max-height, min(24rem, calc(100vh - 8rem)))",
+  overflowY: "auto",
+  padding: MAP_SPACING.md,
   border: MAP_STROKES.hairlineStrong,
   borderRadius: MAP_RADIUS.sm,
   background: "var(--syn-surface-panel, rgba(12, 16, 24, 0.96))",
@@ -162,15 +168,22 @@ const barCountChipStyle: React.CSSProperties = {
   gap: MAP_SPACING.xs,
   height: "1.875rem",
   padding: `0 ${MAP_SPACING.sm}`,
-  border: "1px solid var(--syn-border-active, rgba(245, 158, 11, 0.42))",
+  border: "1px solid transparent",
   borderRadius: MAP_RADIUS.sm,
-  color: MAP_COLORS.interaction,
-  background: MAP_COLORS.selectedSubtle,
+  color: MAP_COLORS.textMuted,
+  background: "transparent",
   fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
-  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.medium,
   whiteSpace: "nowrap",
   flexShrink: 0,
+};
+
+const barCountChipActiveStyle: React.CSSProperties = {
+  ...barCountChipStyle,
+  color: MAP_COLORS.interaction,
+  background: "color-mix(in srgb, var(--syn-interaction-active, #3794ff) 12%, transparent)",
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
 };
 
 const barIconButtonStyle: React.CSSProperties = {
@@ -181,7 +194,7 @@ const barIconButtonStyle: React.CSSProperties = {
   height: "1.875rem",
   border: "1px solid transparent",
   borderRadius: MAP_RADIUS.sm,
-  background: MAP_COLORS.transparent,
+  background: "transparent",
   color: MAP_COLORS.textSecondary,
   cursor: "pointer",
   flexShrink: 0,
@@ -189,9 +202,9 @@ const barIconButtonStyle: React.CSSProperties = {
 
 const barActiveIconButtonStyle: React.CSSProperties = {
   ...barIconButtonStyle,
-  border: "1px solid var(--syn-border-active, rgba(245, 158, 11, 0.62))",
+  border: "1px solid color-mix(in srgb, var(--syn-interaction-active, #3794ff) 26%, transparent)",
   color: MAP_COLORS.interaction,
-  background: MAP_COLORS.selectedSubtle,
+  background: "color-mix(in srgb, var(--syn-interaction-active, #3794ff) 12%, transparent)",
 };
 
 const iconButtonStyle: React.CSSProperties = {
@@ -447,6 +460,9 @@ export const MapSelectionTools: React.FC<MapSelectionToolsProps> = ({
   const [filterOperator, setFilterOperator] = useState<MapAttributeOperator>("contains");
   const [filterValue, setFilterValue] = useState("");
   const activeDragTool = activeDragToolProp ?? internalActiveDragTool;
+  const filterPopoverRef = useRef<HTMLDivElement | null>(null);
+  const filterToggleRef = useRef<HTMLButtonElement | null>(null);
+  const filterPopoverId = React.useId();
   const queryableLayersRef = useRef(queryableLayers);
   const dragStartRef = useRef<[number, number] | null>(null);
   const lassoRingRef = useRef<Position[]>([]);
@@ -491,6 +507,30 @@ export const MapSelectionTools: React.FC<MapSelectionToolsProps> = ({
     setFilterLayerId((current) => current || activeLayer.id);
     setFilterField((current) => current || activeFields[0] || "");
   }, [activeFields, activeLayer]);
+
+  useEffect(() => {
+    if (!filterOpen) return undefined;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (filterPopoverRef.current?.contains(target)) return;
+      if (filterToggleRef.current?.contains(target)) return;
+      setFilterOpen(false);
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setFilterOpen(false);
+      filterToggleRef.current?.focus({ preventScroll: true });
+    };
+
+    window.addEventListener("pointerdown", handlePointerDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("pointerdown", handlePointerDown);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [filterOpen]);
 
   const applyQueryResult = useCallback((result: MapQueryExecutionResult, label: string) => {
     onClearSelectedFeatures();
@@ -759,7 +799,9 @@ export const MapSelectionTools: React.FC<MapSelectionToolsProps> = ({
 
   const isBar = variant === "bar";
   const isEmbedded = variant === "embedded";
-  const chipStyle = isBar ? barCountChipStyle : countChipStyle;
+  const chipStyle = isBar
+    ? (totalSelected > 0 ? barCountChipActiveStyle : barCountChipStyle)
+    : countChipStyle;
   const btnStyle = isBar ? barIconButtonStyle : iconButtonStyle;
   const btnActiveStyle = isBar ? barActiveIconButtonStyle : activeIconButtonStyle;
   const compactZeroSelectionChip = false;
@@ -809,9 +851,12 @@ export const MapSelectionTools: React.FC<MapSelectionToolsProps> = ({
         </>
       ) : null}
       <button
+        ref={filterToggleRef}
         type="button"
         aria-label={filterOpen ? "Close filter select" : "Filter select"}
         title="Filter select"
+        aria-expanded={filterOpen}
+        aria-controls={filterPopoverId}
         style={filterOpen ? btnActiveStyle : btnStyle}
         onClick={() => setFilterOpen((current) => !current)}
       >
@@ -930,18 +975,22 @@ export const MapSelectionTools: React.FC<MapSelectionToolsProps> = ({
 
   if (isBar) {
     return (
-      <div
-        style={barClusterStyle}
-        aria-label="Map selection tools"
-        data-testid="map-selection-tools"
-        data-map-selection-variant="bar"
-      >
+      <div style={barClusterStyle} aria-label="Map selection tools" data-testid="map-selection-tools" data-map-selection-variant="bar">
         {toolbarRow}
-        {filterOpen ? (
-          <div style={barFilterPopoverStyle} data-testid="map-selection-filter-row">
-            {filterControls}
-          </div>
-        ) : null}
+        <AppPopover
+          open={filterOpen}
+          anchorRef={filterToggleRef}
+          onClose={() => setFilterOpen(false)}
+          placement="bottom-start"
+          minWidth={300}
+          maxWidth={760}
+          role="dialog"
+          ariaLabel="Selection filter"
+          style={barFilterPopoverStyle}
+          testId="map-selection-filter-row"
+        >
+          <div ref={filterPopoverRef} id={filterPopoverId}>{filterControls}</div>
+        </AppPopover>
       </div>
     );
   }

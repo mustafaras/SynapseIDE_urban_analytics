@@ -1,11 +1,11 @@
 import React from "react";
 import { Box, Building2, Clock3, Image, LandPlot, Layers3, Sun, Waypoints } from "lucide-react";
 import {
+  type GisStatusKey,
   MAP_COLORS,
   MAP_SPACING,
   MAP_STROKES,
   MAP_TYPOGRAPHY,
-  type GisStatusKey,
 } from "../mapTokens";
 import type { MapSidebarTabId } from "../navigation";
 import { MapWorkbenchSidebar, type MapWorkbenchSidebarTab } from "../sidebar";

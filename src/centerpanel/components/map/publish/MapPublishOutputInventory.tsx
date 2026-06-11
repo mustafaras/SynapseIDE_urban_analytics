@@ -1,13 +1,13 @@
 import React from "react";
 import { CheckCircle2, CircleSlash, Database, MapPin, ShieldAlert } from "lucide-react";
 import {
+  type GisStatusKey,
   MAP_COLORS,
   MAP_RADIUS,
   MAP_SPACING,
   MAP_STROKES,
   MAP_TEXT_STYLES,
   MAP_TYPOGRAPHY,
-  type GisStatusKey,
 } from "../mapTokens";
 import { GisStatusChip } from "../ui";
 

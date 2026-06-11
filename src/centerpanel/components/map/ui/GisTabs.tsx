@@ -5,6 +5,7 @@
  */
 import React, { useCallback, useRef } from "react";
 import {
+  type GisDensity,
   MAP_COLORS,
   MAP_DENSITY,
   MAP_RADIUS,
@@ -13,7 +14,6 @@ import {
   MAP_TEXT_STYLES,
   MAP_TRANSITIONS,
   MAP_TYPOGRAPHY,
-  type GisDensity,
   mapStyles,
 } from "../mapTokens";
 import primitiveStyles from "./GisPrimitive.module.css";

@@ -7,6 +7,7 @@ import {
   MAP_SPACING,
   MAP_STROKES,
   MAP_TYPOGRAPHY,
+  MAP_Z_INDEX,
 } from "./mapTokens";
 
 export interface MapImportPreviewDialogProps {
@@ -23,14 +24,14 @@ const overlayStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  zIndex: 42,
+  zIndex: MAP_Z_INDEX.dialog,
   padding: MAP_SPACING.lg,
 };
 
 const dialogStyle: React.CSSProperties = {
   width: 880,
-  maxWidth: "calc(100vw - 48px)",
-  maxHeight: "calc(100vh - 72px)",
+  maxWidth: "calc(100% - 2rem)",
+  maxHeight: "var(--map-popover-max-height, calc(100% - 2rem))",
   overflow: "hidden",
   display: "grid",
   gridTemplateRows: "auto auto minmax(0, 1fr) auto",
@@ -210,7 +211,7 @@ export const MapImportPreviewDialog: React.FC<MapImportPreviewDialogProps> = ({
   const commitCaveats = profile.caveats.slice(0, 5);
 
   return (
-    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- overlay click dismiss
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events -- overlay click dismiss
     <div
       style={overlayStyle}
       onClick={(event) => {

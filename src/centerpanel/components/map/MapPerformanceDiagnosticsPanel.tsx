@@ -28,7 +28,7 @@ export interface MapPerformanceDiagnosticsPanelProps {
 
 export interface MapPerformanceBudgetBannerProps {
   diagnostics: MapPerformanceDiagnosticsSummary;
-  rightInset?: number;
+  rightInset?: React.CSSProperties["right"];
   onOpenDetails?: () => void;
 }
 
@@ -260,6 +260,80 @@ const telemetryMutedNoteStyle: React.CSSProperties = {
   lineHeight: MAP_TYPOGRAPHY.lineHeight.normal,
 };
 
+const operationalStatusListStyle: React.CSSProperties = {
+  display: "grid",
+  gap: MAP_SPACING.xs,
+};
+
+const operationalStatusRowStyle: React.CSSProperties = {
+  display: "grid",
+  gap: MAP_SPACING.xs,
+  padding: MAP_SPACING.sm,
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.sm,
+  background: MAP_COLORS.bg,
+};
+
+const operationalStatusHeaderStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: MAP_SPACING.xs,
+  flexWrap: "wrap",
+};
+
+const operationalStatusBadgeStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  minHeight: "1.25rem",
+  padding: "0.0625rem 0.375rem",
+  borderRadius: MAP_RADIUS.sm,
+  border: MAP_STROKES.hairlineSubtle,
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+  textTransform: "uppercase",
+};
+
+const operationalStatusLabelStyle: React.CSSProperties = {
+  color: MAP_COLORS.text,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+  lineHeight: MAP_TYPOGRAPHY.lineHeight.tight,
+};
+
+const operationalStatusCopyStyle: React.CSSProperties = {
+  color: MAP_COLORS.textSecondary,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  lineHeight: MAP_TYPOGRAPHY.lineHeight.normal,
+  overflowWrap: "anywhere",
+};
+
+const operationalStatusLatestStyle: React.CSSProperties = {
+  color: MAP_COLORS.textMuted,
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  lineHeight: MAP_TYPOGRAPHY.lineHeight.normal,
+  overflowWrap: "anywhere",
+};
+
+const detailsStyle: React.CSSProperties = {
+  display: "grid",
+  gap: MAP_SPACING.sm,
+};
+
+const detailsSummaryStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: MAP_SPACING.xs,
+  width: "fit-content",
+  color: MAP_COLORS.textSecondary,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+  cursor: "pointer",
+  listStyle: "none",
+};
+
 const retryButtonStyle: React.CSSProperties = {
   width: "fit-content",
   display: "inline-flex",
@@ -288,7 +362,7 @@ const modeBadgeBaseStyle: React.CSSProperties = {
 
 const bannerStyle: React.CSSProperties = {
   position: "absolute",
-  top: MAP_SPACING.md,
+  top: "var(--map-overlay-safe-top, calc(var(--map-shell-command-height, 2.75rem) + var(--map-overlay-safe-inset-y, 0.25rem)))",
   width: "min(27rem, calc(100% - 2rem))",
   display: "grid",
   gap: MAP_SPACING.xs,
@@ -381,6 +455,38 @@ function categoryMaxSeverity(events: readonly MapTelemetryEvent[]): MapTelemetry
   return "info";
 }
 
+function telemetrySeverityLabel(severity: MapTelemetrySeverity): string {
+  if (severity === "error") return "Blocker";
+  if (severity === "warning") return "Warning";
+  return "Info";
+}
+
+function telemetrySeverityRank(severity: MapTelemetrySeverity): number {
+  if (severity === "error") return 0;
+  if (severity === "warning") return 1;
+  return 2;
+}
+
+function telemetryCategoryGuidance(kind: MapTelemetryEventKind, severity: MapTelemetrySeverity): string {
+  switch (kind) {
+    case "worker.failure":
+      return severity === "error"
+        ? "A worker-backed task is blocked. Review the failure and retry only when the job can be safely re-run."
+        : "Worker activity completed with a recoverable caveat. Review the affected task before continuing."
+      ;
+    case "external-service.error":
+      return "Provider availability or remote service responses need attention before relying on the affected layer or request.";
+    case "command.run":
+      return "A map command needs review before it is re-run. Check inputs and the affected panel state first.";
+    case "performance.budget":
+      return "Interactive rendering is approaching or exceeding declared budgets. Reduce visible load or continue in bounded preview mode.";
+    case "panel.error":
+      return "A panel fell back to a recovery state. Reopen the panel only after reviewing the latest issue.";
+    default:
+      return "Operational detail is available for review in the advanced log.";
+  }
+}
+
 interface TelemetryCategoryGroup extends TelemetryCategoryConfig {
   events: MapTelemetryEvent[];
 }
@@ -392,6 +498,17 @@ function groupTelemetryByCategory(events: readonly MapTelemetryEvent[]): Telemet
   })).filter((category) => category.events.length > 0);
 }
 
+function sortTelemetryGroups(groups: readonly TelemetryCategoryGroup[]): TelemetryCategoryGroup[] {
+  return [...groups].sort((left, right) => {
+    const severityDelta = telemetrySeverityRank(categoryMaxSeverity(left.events)) - telemetrySeverityRank(categoryMaxSeverity(right.events));
+    if (severityDelta !== 0) {
+      return severityDelta;
+    }
+    return TELEMETRY_CATEGORY_ORDER.findIndex((entry) => entry.kind === left.kind)
+      - TELEMETRY_CATEGORY_ORDER.findIndex((entry) => entry.kind === right.kind);
+  });
+}
+
 function shouldForceDiagnosticsCrash(): boolean {
   if (typeof window === "undefined") return false;
   return Boolean((window as typeof window & { __MAP_E2E_FORCE_MAP_DIAGNOSTICS_CRASH__?: boolean }).__MAP_E2E_FORCE_MAP_DIAGNOSTICS_CRASH__);
@@ -399,7 +516,7 @@ function shouldForceDiagnosticsCrash(): boolean {
 
 export const MapPerformanceBudgetBanner: React.FC<MapPerformanceBudgetBannerProps> = ({
   diagnostics,
-  rightInset = 16,
+  rightInset = "calc(var(--map-dock-right, 0px) + var(--map-overlay-safe-inset-x, 0.75rem))",
   onOpenDetails,
 }) => {
   if (diagnostics.previewLayerCount === 0) return null;
@@ -451,7 +568,7 @@ export const MapPerformanceDiagnosticsPanel: React.FC<MapPerformanceDiagnosticsP
   if (shouldForceDiagnosticsCrash()) {
     throw new Error("Forced Map diagnostics panel failure for recovery proof.");
   }
-  const telemetryGroups = groupTelemetryByCategory(diagnostics.telemetryEvents);
+  const telemetryGroups = sortTelemetryGroups(groupTelemetryByCategory(diagnostics.telemetryEvents));
   const totalTelemetryCount = diagnostics.telemetryEvents.length;
   const embedded = presentation === "embedded";
 
@@ -572,35 +689,86 @@ export const MapPerformanceDiagnosticsPanel: React.FC<MapPerformanceDiagnosticsP
               No diagnostics events recorded for this map session.
             </div>
           ) : (
-            <div style={{ display: "grid", gap: MAP_SPACING.md }}>
-              {telemetryGroups.map((category) => {
-                const severity = categoryMaxSeverity(category.events);
-                const shown = category.events.slice(0, TELEMETRY_DISPLAY_PER_CATEGORY);
-                const hiddenCount = category.events.length - shown.length;
-                return (
-                  <section
-                    key={category.kind}
-                    style={telemetryCategoryStyle}
-                    data-testid={`map-observability-category-${category.kind}`}
-                    aria-label={category.label}
-                  >
-                    <div style={telemetryCategoryHeaderStyle}>
-                      <ShieldAlert size={MAP_ICON_SIZES.sm} aria-hidden="true" style={{ color: severityColor(severity) }} />
-                      <span>{category.label}</span>
-                      <span style={{ ...telemetryCountChipStyle, color: severityColor(severity), borderColor: severityColor(severity) }}>
-                        {formatCount(category.events.length)}
-                      </span>
-                    </div>
-                    <div style={telemetryListStyle}>{shown.map(renderTelemetryEvent)}</div>
-                    {hiddenCount > 0 ? (
-                      <div style={telemetryMutedNoteStyle}>
-                        +{formatCount(hiddenCount)} older {category.label.toLowerCase()} in the bounded log.
+            <>
+              <div style={operationalStatusListStyle} data-testid="map-operational-status-list">
+                {telemetryGroups.map((category) => {
+                  const severity = categoryMaxSeverity(category.events);
+                  const latestEvent = category.events[0];
+                  const recoveryEvent = category.events.find((event) => event.recoverable);
+                  const recoveryJobId = recoveryEvent && recoveryEvent.kind === "worker.failure"
+                    ? detailString(recoveryEvent, "jobId")
+                    : null;
+                  return (
+                    <article
+                      key={`${category.kind}-summary`}
+                      style={{ ...operationalStatusRowStyle, borderColor: severityColor(severity) }}
+                      data-testid={`map-operational-status-${category.kind}`}
+                    >
+                      <div style={operationalStatusHeaderStyle}>
+                        <span
+                          style={{
+                            ...operationalStatusBadgeStyle,
+                            color: severityColor(severity),
+                            borderColor: severityColor(severity),
+                          }}
+                        >
+                          {telemetrySeverityLabel(severity)}
+                        </span>
+                        <span style={operationalStatusLabelStyle}>{category.label}</span>
+                        <span style={{ ...telemetryCountChipStyle, color: severityColor(severity), borderColor: severityColor(severity), marginLeft: "auto" }}>
+                          {formatCount(category.events.length)}
+                        </span>
                       </div>
-                    ) : null}
-                  </section>
-                );
-              })}
-            </div>
+                      <div style={operationalStatusCopyStyle}>{telemetryCategoryGuidance(category.kind, severity)}</div>
+                      <div style={operationalStatusLatestStyle}>Latest: {latestEvent.message}</div>
+                      {recoveryJobId && recoveryEvent && onRetryWorkerJob ? (
+                        <button
+                          type="button"
+                          style={retryButtonStyle}
+                          data-testid="map-worker-recovery-retry"
+                          onClick={() => onRetryWorkerJob(recoveryJobId)}
+                        >
+                          <RotateCcw size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+                          {recoveryEvent.recoveryLabel ?? "Retry worker job"}
+                        </button>
+                      ) : null}
+                    </article>
+                  );
+                })}
+              </div>
+              <details style={detailsStyle} data-testid="map-observability-details">
+                <summary style={detailsSummaryStyle}>Advanced details and raw event history</summary>
+                <div style={{ display: "grid", gap: MAP_SPACING.md }}>
+                  {telemetryGroups.map((category) => {
+                    const severity = categoryMaxSeverity(category.events);
+                    const shown = category.events.slice(0, TELEMETRY_DISPLAY_PER_CATEGORY);
+                    const hiddenCount = category.events.length - shown.length;
+                    return (
+                      <section
+                        key={category.kind}
+                        style={telemetryCategoryStyle}
+                        data-testid={`map-observability-category-${category.kind}`}
+                        aria-label={category.label}
+                      >
+                        <div style={telemetryCategoryHeaderStyle}>
+                          <ShieldAlert size={MAP_ICON_SIZES.sm} aria-hidden="true" style={{ color: severityColor(severity) }} />
+                          <span>{category.label}</span>
+                          <span style={{ ...telemetryCountChipStyle, color: severityColor(severity), borderColor: severityColor(severity) }}>
+                            {formatCount(category.events.length)}
+                          </span>
+                        </div>
+                        <div style={telemetryListStyle}>{shown.map(renderTelemetryEvent)}</div>
+                        {hiddenCount > 0 ? (
+                          <div style={telemetryMutedNoteStyle}>
+                            +{formatCount(hiddenCount)} older {category.label.toLowerCase()} in the bounded log.
+                          </div>
+                        ) : null}
+                      </section>
+                    );
+                  })}
+                </div>
+              </details>
+            </>
           )}
           <div style={telemetryMutedNoteStyle} data-testid="map-observability-redaction-note">
             <ShieldAlert size={MAP_ICON_SIZES.sm} aria-hidden="true" />

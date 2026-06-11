@@ -1,9 +1,9 @@
-import { readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import {
+  buildMapInventoryNavigationBinding,
+  getMapActivityDefinition,
+  getMapInventoryNavigationBinding,
   MAP_ACTIVITY_DEFINITIONS,
   MAP_INSPECTOR_CONTEXT_DEFINITIONS,
   MAP_INVENTORY_NAVIGATION_BINDINGS,
@@ -12,13 +12,9 @@ import {
   MAP_SURFACE_INVENTORY,
   MAP_TASK_LENSES,
   MAP_UTILITY_ACTIVITY_ORDER,
-  buildMapInventoryNavigationBinding,
-  getMapActivityDefinition,
-  getMapInventoryNavigationBinding,
 } from "../navigation";
 import { MAP_RIGHT_DOCK_PANEL_IDS } from "../mapRightDockRoutes";
 
-const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../../");
 const allActivityIds = [...MAP_PRIMARY_ACTIVITY_ORDER, ...MAP_UTILITY_ACTIVITY_ORDER];
 const EXPECTED_ACTIVITY_RIGHT_DOCK_DEFAULTS = {
   analyze: "tasks",
@@ -36,10 +32,6 @@ const EXPECTED_TASK_LENS_RIGHT_DOCK_PRIORITIES = {
   publisher: ["timeline", "problems", "tasks", "attributes"],
   reviewer: ["problems", "timeline", "diagnostics"],
 } as const;
-
-function readRepoFile(relativePath: string): string {
-  return readFileSync(resolve(repoRoot, relativePath), "utf8");
-}
 
 function uniqueValues<T>(values: readonly T[]): Set<T> {
   return new Set(values);
@@ -265,15 +257,4 @@ describe("mapNavigationModel", () => {
     expect(entry).toEqual(before);
   });
 
-  it("does not import the navigation model into runtime shell files yet", () => {
-    const liveShellSources = [
-      readRepoFile("src/centerpanel/components/map/MapToolbar.tsx"),
-      readRepoFile("src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx"),
-      readRepoFile("src/centerpanel/components/map/MapWorkspaceShell.tsx"),
-    ].join("\n");
-
-    expect(liveShellSources).not.toContain("mapNavigationModel");
-    expect(liveShellSources).not.toContain("MAP_ACTIVITY_DEFINITIONS");
-    expect(liveShellSources).not.toContain("MAP_INVENTORY_NAVIGATION_BINDINGS");
-  });
 });

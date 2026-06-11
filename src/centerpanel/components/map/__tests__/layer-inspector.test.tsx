@@ -7,9 +7,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { SourceHandle } from "@/services/map/contracts/gisContracts";
 import type { OverlayLayerConfig } from "../mapTypes";
 import {
+  type InspectorTabId,
   LayerInspector,
   MapInspectorHost,
-  type InspectorTabId,
   type MapInspectorHostContext,
 } from "../inspector";
 
@@ -134,6 +134,19 @@ describe("LayerInspector", () => {
     expect(html).toContain("source-points");
     expect(html).toContain("indexeddb-local");
     expect(html).toContain("restored");
+  });
+
+  it("renders a summary-first overview with warnings, actions, and collapsed technical details", () => {
+    const html = markup(missingCrsLayer(), "overview");
+
+    expect(html).toContain("Summary");
+    expect(html).toContain("Warnings");
+    expect(html).toContain("Actions");
+    expect(html).toContain("Core metadata");
+    expect(html).toContain("Technical details");
+    expect(html).toContain("Coordinate reference system needs review");
+    expect(html).toContain("Inspect schema");
+    expect(html).toContain("Check report readiness");
   });
 });
 

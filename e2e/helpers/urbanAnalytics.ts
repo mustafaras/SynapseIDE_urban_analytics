@@ -182,12 +182,11 @@ export async function openLayerActionMenu(layerRow: Locator): Promise<void> {
     return;
   }
 
-  const details = layerRow.locator("details").first();
-  const summary = layerRow.locator('summary[aria-label^="Layer actions for "]').first();
-  await expect(summary).toBeVisible();
-  const isOpen = await details.evaluate((node) => node.hasAttribute("open")).catch(() => false);
+  const trigger = layerRow.locator('button[aria-label^="Layer actions for "]').first();
+  await expect(trigger).toBeVisible();
+  const isOpen = (await trigger.getAttribute("aria-expanded")) === "true";
   if (!isOpen) {
-    await triggerDomClick(summary);
+    await triggerDomClick(trigger);
   }
   await expect(menu).toBeVisible();
 }

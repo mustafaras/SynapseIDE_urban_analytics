@@ -70,8 +70,96 @@ vi.mock("../map/MapWorkspaceShell", () => ({
   MapBottomTimeline: ({ children }: { children?: React.ReactNode }) => <div data-testid="map-bottom-timeline">{children}</div>,
 }));
 
-vi.mock("../map/MapCanvas", () => ({ MapCanvas: () => <div data-testid="map-canvas" /> }));
-vi.mock("../map/MapToolbar", () => ({ MapToolbar: () => <div data-testid="map-toolbar" /> }));
+vi.mock("../map/MapCanvas", () => ({
+  MapCanvas: ({ onMapDestroy, onMapReady }: {
+    onMapDestroy: () => void;
+    onMapReady: (map: {
+      boxZoom: { enable: () => void };
+      doubleClickZoom: { enable: () => void };
+      dragPan: { enable: () => void };
+      easeTo: () => void;
+      fitBounds: () => void;
+      getBounds: () => { getEast: () => number; getNorth: () => number; getSouth: () => number; getWest: () => number };
+      getBearing: () => number;
+      getCenter: () => { lat: number; lng: number };
+      getContainer: () => { getBoundingClientRect: () => DOMRect };
+      getPitch: () => number;
+      getZoom: () => number;
+      keyboard: { enable: () => void };
+      off: () => void;
+      on: () => void;
+      scrollZoom: { enable: () => void };
+      touchZoomRotate: { enable: () => void };
+    }) => void;
+  }) => {
+    React.useEffect(() => {
+      onMapReady({
+        boxZoom: { enable: () => undefined },
+        doubleClickZoom: { enable: () => undefined },
+        dragPan: { enable: () => undefined },
+        easeTo: () => undefined,
+        fitBounds: () => undefined,
+        getBounds: () => ({
+          getEast: () => 28.98,
+          getNorth: () => 41.03,
+          getSouth: () => 40.99,
+          getWest: () => 28.94,
+        }),
+        getBearing: () => 0,
+        getCenter: () => ({ lat: 41.01, lng: 28.96 }),
+        getContainer: () => ({ getBoundingClientRect: () => new DOMRect(0, 0, 1024, 768) }),
+        getPitch: () => 0,
+        getZoom: () => 12,
+        keyboard: { enable: () => undefined },
+        off: () => undefined,
+        on: () => undefined,
+        scrollZoom: { enable: () => undefined },
+        touchZoomRotate: { enable: () => undefined },
+      });
+      return onMapDestroy;
+    }, [onMapDestroy, onMapReady]);
+
+    return <div data-testid="map-canvas" />;
+  },
+}));
+vi.mock("../map/MapToolbar", () => ({
+  MapToolbar: ({
+    onExportClick,
+    onImageExportClick,
+    onImportClick,
+    onSetDrawTool,
+    onSetMeasureTool,
+    onToggleReviewTimeline,
+  }: {
+    onExportClick?: () => void;
+    onImageExportClick?: () => void;
+    onImportClick?: () => void;
+    onSetDrawTool?: (tool: "polygon" | null) => void;
+    onSetMeasureTool?: (tool: "measure-distance" | null) => void;
+    onToggleReviewTimeline?: () => void;
+  }) => (
+    <div data-testid="map-toolbar">
+      <button type="button" data-testid="toolbar-import" onClick={onImportClick}>
+        Import
+      </button>
+      <button type="button" data-testid="toolbar-data-export" onClick={onExportClick}>
+        Data export
+      </button>
+      <button type="button" data-testid="toolbar-image-export" onClick={onImageExportClick}>
+        Image export
+      </button>
+      <button type="button" data-testid="toolbar-draw-polygon" onClick={() => onSetDrawTool?.("polygon")}>
+        Draw polygon
+      </button>
+      <button type="button" data-testid="toolbar-measure-distance" onClick={() => onSetMeasureTool?.("measure-distance")}>
+        Measure distance
+      </button>
+      <button type="button" data-testid="toolbar-review-timeline" onClick={onToggleReviewTimeline}>
+        Review timeline
+      </button>
+    </div>
+  ),
+}));
 vi.mock("../map/MapLayerPanel", () => ({ MapLayerPanel: () => null }));
 vi.mock("../map/MapLayerManager", () => ({
   MapLayerManager: () => null,
@@ -87,11 +175,57 @@ vi.mock("../MapHeatmapLayer", () => ({ MapHeatmapLayer: () => null }));
 vi.mock("../MapHotSpotViz", () => ({ MapHotSpotViz: () => null }));
 vi.mock("../MapSymbolLayer", () => ({ MapSymbolLayer: () => null }));
 vi.mock("../MapTemporalPlayer", () => ({ MapTemporalPlayer: () => null }));
-vi.mock("../MapDataExportDialog", () => ({ MapDataExportDialog: () => null }));
-vi.mock("../MapExportDialog", () => ({ MapExportDialog: () => null }));
+vi.mock("../MapAnnotationLayer", () => ({ MapAnnotationLayer: () => null }));
+vi.mock("../MapDataExportDialog", () => ({
+  MapDataExportDialog: ({ open, onClose }: { open: boolean; onClose: () => void }) =>
+    open ? (
+      <section data-testid="data-export-dialog">
+        <button type="button" data-testid="data-export-close" onClick={onClose}>
+          Close data export
+        </button>
+      </section>
+    ) : null,
+}));
+vi.mock("../MapExportDialog", () => ({
+  MapExportDialog: ({ open, onClose }: { open: boolean; onClose: () => void }) =>
+    open ? (
+      <section data-testid="image-export-dialog">
+        <button type="button" data-testid="image-export-close" onClick={onClose}>
+          Close image export
+        </button>
+      </section>
+    ) : null,
+}));
 vi.mock("../MapCsvImportDialog", () => ({ MapCsvImportDialog: () => null }));
 vi.mock("../MapColumnarImportDialog", () => ({ MapColumnarImportDialog: () => null }));
-vi.mock("../MapDataImportHubDialog", () => ({ MapDataImportHubDialog: () => null }));
+vi.mock("../MapDataImportHubDialog", () => ({
+  MapDataImportHubDialog: ({ open, onClose }: { open: boolean; onClose: () => void }) =>
+    open ? (
+      <section data-testid="import-hub-dialog">
+        <button type="button" data-testid="import-hub-close" onClick={onClose}>
+          Close import
+        </button>
+      </section>
+    ) : null,
+}));
+vi.mock("../map/MapRightDockHost", () => ({
+  MapRightDockHost: ({
+    children,
+    onClose,
+    route,
+  }: {
+    children?: React.ReactNode;
+    onClose?: () => void;
+    route: { panel: string };
+  }) => (
+    <aside data-testid="map-right-dock-host" data-active-panel={route.panel}>
+      <button type="button" data-testid="right-dock-close" onClick={onClose}>
+        Close dock
+      </button>
+      {children}
+    </aside>
+  ),
+}));
 vi.mock("../map/MapSearchBar", () => ({ MapSearchBar: () => null }));
 vi.mock("../map/MapStatusBar", () => ({ MapStatusBar: () => null }));
 vi.mock("../map/MapPinSidebar", () => ({ MapPinSidebar: () => null }));
@@ -267,6 +401,121 @@ beforeEach(() => {
 });
 
 describe("MapExplorerModal map dispatch", () => {
+  it("opens and closes import and export dialogs from toolbar actions", async () => {
+    const { container, root } = mountModal();
+    await act(async () => {
+      root.render(<MapExplorerModal open onClose={() => undefined} mode="embedded" mapCanvasRef={{ current: null }} />);
+    });
+
+    const importButton = document.body.querySelector<HTMLButtonElement>('[data-testid="toolbar-import"]');
+    expect(importButton).not.toBeNull();
+    await act(async () => {
+      importButton?.click();
+    });
+    expect(document.body.querySelector('[data-testid="import-hub-dialog"]')).not.toBeNull();
+
+    const closeImportButton = document.body.querySelector<HTMLButtonElement>('[data-testid="import-hub-close"]');
+    expect(closeImportButton).not.toBeNull();
+    await act(async () => {
+      closeImportButton?.click();
+    });
+    expect(document.body.querySelector('[data-testid="import-hub-dialog"]')).toBeNull();
+
+    const dataExportButton = document.body.querySelector<HTMLButtonElement>('[data-testid="toolbar-data-export"]');
+    expect(dataExportButton).not.toBeNull();
+    await act(async () => {
+      dataExportButton?.click();
+    });
+    expect(document.body.querySelector('[data-testid="data-export-dialog"]')).not.toBeNull();
+
+    const closeDataExportButton = document.body.querySelector<HTMLButtonElement>('[data-testid="data-export-close"]');
+    expect(closeDataExportButton).not.toBeNull();
+    await act(async () => {
+      closeDataExportButton?.click();
+    });
+    expect(document.body.querySelector('[data-testid="data-export-dialog"]')).toBeNull();
+
+    const imageExportButton = document.body.querySelector<HTMLButtonElement>('[data-testid="toolbar-image-export"]');
+    expect(imageExportButton).not.toBeNull();
+    await act(async () => {
+      imageExportButton?.click();
+    });
+    await waitFor(() => {
+      expect(document.body.querySelector('[data-testid="image-export-dialog"]')).not.toBeNull();
+    });
+
+    const closeImageExportButton = document.body.querySelector<HTMLButtonElement>('[data-testid="image-export-close"]');
+    expect(closeImageExportButton).not.toBeNull();
+    await act(async () => {
+      closeImageExportButton?.click();
+    });
+    expect(document.body.querySelector('[data-testid="image-export-dialog"]')).toBeNull();
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  }, 15000);
+
+  it("routes toolbar draw and measurement actions through the canvas tool state", async () => {
+    const { container, root } = mountModal();
+    await act(async () => {
+      root.render(<MapExplorerModal open onClose={() => undefined} mode="embedded" mapCanvasRef={{ current: null }} />);
+    });
+
+    const drawButton = document.body.querySelector<HTMLButtonElement>('[data-testid="toolbar-draw-polygon"]');
+    expect(drawButton).not.toBeNull();
+    await act(async () => {
+      drawButton?.click();
+    });
+    await waitFor(() => {
+      expect(useMapExplorerStore.getState().activeDrawTool).toBe("polygon");
+      expect(useMapExplorerStore.getState().activeMeasureTool).toBeNull();
+    });
+
+    const measureButton = document.body.querySelector<HTMLButtonElement>('[data-testid="toolbar-measure-distance"]');
+    expect(measureButton).not.toBeNull();
+    await act(async () => {
+      measureButton?.click();
+    });
+    await waitFor(() => {
+      expect(useMapExplorerStore.getState().activeMeasureTool).toBe("measure-distance");
+      expect(useMapExplorerStore.getState().activeDrawTool).toBeNull();
+    });
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  }, 15000);
+
+  it("opens the review timeline in the right dock from the toolbar", async () => {
+    const { container, root } = mountModal();
+    await act(async () => {
+      root.render(<MapExplorerModal open onClose={() => undefined} mode="embedded" mapCanvasRef={{ current: null }} />);
+    });
+
+    expect(document.body.querySelector('[data-testid="map-right-dock-host"]')).toBeNull();
+
+    const timelineButton = document.body.querySelector<HTMLButtonElement>('[data-testid="toolbar-review-timeline"]');
+    expect(timelineButton).not.toBeNull();
+    await act(async () => {
+      timelineButton?.click();
+    });
+
+    expect(document.body.querySelector('[data-testid="map-right-dock-host"]')?.getAttribute("data-active-panel")).toBe("timeline");
+
+    await act(async () => {
+      document.body.querySelector<HTMLButtonElement>('[data-testid="right-dock-close"]')?.click();
+    });
+    expect(document.body.querySelector('[data-testid="map-right-dock-host"]')).toBeNull();
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  }, 15000);
+
   it("runs quick hot spot dispatch and publishes the analysis layer", async () => {
     const { container, root } = mountModal();
     await act(async () => {

@@ -28,7 +28,7 @@ import {
   MAP_Z_INDEX,
   mapStyles,
 } from "./mapTokens";
-import { MapProblemsPanel, buildMapProblemsModel, type MapProblemRow } from "./problems";
+import { buildMapProblemsModel, type MapProblemRow, MapProblemsPanel } from "./problems";
 import { createOpaqueFloatingPanelStyle, useDraggableMapPanel } from "./useDraggableMapPanel";
 
 export interface ScientificQAPanelProps {

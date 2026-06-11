@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Bookmark, ChevronDown, Copy, Pencil, Save, Trash2 } from "lucide-react";
+import { Bookmark, Copy, Pencil, Save, Trash2 } from "lucide-react";
 import type { MapBookmark } from "./map/mapTypes";
 import {
   MAP_COLORS,
@@ -12,6 +12,7 @@ import {
   MAP_Z_INDEX,
   mapStyles,
 } from "./map/mapTokens";
+import { AppDropdownMenu, AppMenuItem, AppMenuSection, ToolbarMenuButton } from "./map/ui";
 
 interface BookmarkContextMenuState {
   bookmark: MapBookmark;
@@ -122,48 +123,24 @@ const menuItemStyle: React.CSSProperties = {
 };
 
 const compactMenuShell: React.CSSProperties = {
-  position: "relative",
   flex: "0 0 auto",
   display: "inline-flex",
   alignItems: "center",
   minWidth: MAP_SPACING.zero,
-  paddingLeft: MAP_SPACING.xs,
-  borderLeft: MAP_STROKES.hairlineSubtle,
-};
-
-const compactTriggerStyle: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: "0.25rem",
-  minHeight: "1.625rem",
-  padding: `${MAP_SPACING.zero} ${MAP_SPACING.xs}`,
-  borderRadius: MAP_RADIUS.sm,
-  border: "1px solid transparent",
-  background: MAP_COLORS.transparent,
-  color: MAP_COLORS.textSecondary,
-  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
-  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
-  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
-  cursor: "pointer",
-  whiteSpace: "nowrap",
+  paddingLeft: MAP_SPACING.sm,
 };
 
 const compactMenuStyle: React.CSSProperties = {
-  position: "absolute",
-  top: "calc(100% + 0.375rem)",
-  right: 0,
-  zIndex: MAP_Z_INDEX.dropdown,
-  width: "min(18rem, calc(100vw - 2rem))",
+  width: "min(28rem, calc(100vw - 1rem))",
   maxHeight: "min(26rem, calc(100vh - 5rem))",
   overflowY: "auto",
   display: "grid",
-  gap: MAP_SPACING.xs,
-  padding: MAP_SPACING.xs,
+  gap: MAP_SPACING.sm,
+  padding: MAP_SPACING.sm,
   borderRadius: MAP_RADIUS.md,
   border: MAP_STROKES.hairlineStrong,
   background: MAP_COLORS.bgPanel,
-  boxShadow: MAP_SHADOWS.none,
+  boxShadow: MAP_SHADOWS.dropdown,
 };
 
 const compactMenuHeaderStyle: React.CSSProperties = {
@@ -185,11 +162,11 @@ const compactBookmarkRowStyle: React.CSSProperties = {
   gridTemplateColumns: "minmax(0, 1fr) auto",
   alignItems: "center",
   gap: MAP_SPACING.xs,
-  minHeight: "2.25rem",
+  minHeight: "2.5rem",
   padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
   borderRadius: MAP_RADIUS.sm,
-  border: MAP_STROKES.hairlineSubtle,
-  background: MAP_COLORS.transparent,
+  border: "1px solid color-mix(in srgb, var(--syn-border-subtle, rgba(148, 163, 184, 0.28)) 42%, transparent)",
+  background: "color-mix(in srgb, var(--syn-surface-subtle, rgba(15, 23, 42, 0.24)) 30%, transparent)",
 };
 
 const compactIconButtonStyle: React.CSSProperties = {
@@ -218,6 +195,14 @@ const compactCountBadgeStyle: React.CSSProperties = {
   fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+};
+
+const compactEmptyStateStyle: React.CSSProperties = {
+  padding: `${MAP_SPACING.sm} ${MAP_SPACING.sm}`,
+  color: MAP_COLORS.textMuted,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  borderRadius: MAP_RADIUS.sm,
+  background: "color-mix(in srgb, var(--syn-surface-subtle, rgba(15, 23, 42, 0.2)) 24%, transparent)",
 };
 
 const bookmarkCountPillStyle: React.CSSProperties = {
@@ -292,7 +277,7 @@ export const MapBookmarkBar: React.FC<MapBookmarkBarProps> = ({
   const [contextMenu, setContextMenu] = useState<BookmarkContextMenuState | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
-  const compactMenuRef = useRef<HTMLDivElement | null>(null);
+  const compactTriggerRef = useRef<HTMLButtonElement | null>(null);
   const inline = variant === "inline";
   const compactMenu = variant === "menu";
 
@@ -302,10 +287,9 @@ export const MapBookmarkBar: React.FC<MapBookmarkBarProps> = ({
   }, []);
 
   useEffect(() => {
-    if (!contextMenu && !menuOpen) return undefined;
+    if (!contextMenu) return undefined;
     const handlePointerDown = (event: PointerEvent) => {
       if (menuRef.current?.contains(event.target as Node)) return;
-      if (compactMenuRef.current?.contains(event.target as Node)) return;
       closeMenu();
     };
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -317,7 +301,7 @@ export const MapBookmarkBar: React.FC<MapBookmarkBarProps> = ({
       window.removeEventListener("pointerdown", handlePointerDown);
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [closeMenu, contextMenu, menuOpen]);
+  }, [closeMenu, contextMenu]);
 
   const handleSave = () => {
     const fallbackName = `View ${bookmarks.length + 1}`;
@@ -349,24 +333,38 @@ export const MapBookmarkBar: React.FC<MapBookmarkBarProps> = ({
 
   if (compactMenu) {
     return (
-      <div ref={compactMenuRef} style={{ ...compactMenuShell, ...style }} aria-label="Saved map views">
+      <div style={{ ...compactMenuShell, ...style }} aria-label="Saved map views">
         <button
+          ref={compactTriggerRef}
           type="button"
-          style={compactTriggerStyle}
-          onClick={() => setMenuOpen((current) => !current)}
-          aria-label={`Open saved views menu (${bookmarks.length} saved view${bookmarks.length === 1 ? "" : "s"})`}
-          aria-expanded={menuOpen}
-          aria-haspopup="menu"
-          title="Open saved views"
-        >
-          <Bookmark size={MAP_ICON_SIZES.sm} aria-hidden="true" />
-          <span>Views</span>
-          <span style={compactCountBadgeStyle}>{bookmarks.length}/{maxBookmarks}</span>
-          <ChevronDown size={MAP_ICON_SIZES.xs} aria-hidden="true" />
-        </button>
+          style={{ display: "none" }}
+          aria-hidden="true"
+          tabIndex={-1}
+        />
 
-        {menuOpen ? (
-          <div style={compactMenuStyle} role="menu" aria-label="Saved map views menu">
+        <AppDropdownMenu
+          open={menuOpen}
+          onOpenChange={setMenuOpen}
+          align="end"
+          minWidth={300}
+          maxWidth={520}
+          ariaLabel="Saved map views menu"
+          testId="map-bookmark-compact-menu"
+          contentStyle={compactMenuStyle}
+          trigger={(
+            <ToolbarMenuButton
+              label="Views"
+              icon={<Bookmark size={MAP_ICON_SIZES.sm} aria-hidden="true" />}
+              badge={<span style={compactCountBadgeStyle}>{bookmarks.length}/{maxBookmarks}</span>}
+              active={menuOpen}
+              expanded={menuOpen}
+              title="Open saved views"
+              ariaLabel={`Open saved views menu (${bookmarks.length} saved view${bookmarks.length === 1 ? "" : "s"})`}
+              testId="map-views-trigger"
+            />
+          )}
+        >
+          <div>
             <div style={compactMenuHeaderStyle}>
               <span>Saved Views</span>
               <span>{bookmarks.length}/{maxBookmarks}</span>
@@ -379,63 +377,67 @@ export const MapBookmarkBar: React.FC<MapBookmarkBarProps> = ({
               <span>Review package</span>
               <span>Offline package</span>
             </div>
-            <button
-              type="button"
-              role="menuitem"
-              style={{ ...menuItemStyle, border: MAP_STROKES.hairlineSubtle, background: MAP_COLORS.transparent, color: MAP_COLORS.interaction }}
-              onClick={handleSave}
+            <AppMenuSection title="Workspace">
+              <AppMenuItem
+                icon={<Save size={MAP_ICON_SIZES.sm} aria-hidden="true" />}
+                label="Save Current View"
               disabled={bookmarks.length >= maxBookmarks}
-            >
-              <Save size={MAP_ICON_SIZES.sm} aria-hidden="true" />
-              Save Current View
-            </button>
+                onSelect={handleSave}
+                testId="map-save-current-view"
+                style={{ color: MAP_COLORS.interaction }}
+              />
+            </AppMenuSection>
             {bookmarks.length === 0 ? (
-              <div style={{ padding: MAP_SPACING.sm, color: MAP_COLORS.textMuted, fontSize: MAP_TYPOGRAPHY.fontSize.xs }}>
+              <div style={compactEmptyStateStyle}>
                 No saved views
               </div>
-            ) : bookmarks.map((bookmark) => (
-              <div key={bookmark.id} style={compactBookmarkRowStyle}>
-                <button
-                  type="button"
-                  role="menuitem"
-                  style={{
-                    minWidth: 0,
-                    display: "grid",
-                    gap: "0.125rem",
-                    border: MAP_STROKES.none,
-                    background: MAP_COLORS.transparent,
-                    color: MAP_COLORS.textSecondary,
-                    textAlign: "left",
-                    cursor: "pointer",
-                  }}
-                  onClick={() => {
-                    onRestoreBookmark(bookmark);
-                    setMenuOpen(false);
-                  }}
-                  title={formatBookmarkTitle(bookmark)}
-                >
-                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: MAP_COLORS.text }}>
-                    {bookmark.name}
-                  </span>
-                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: MAP_COLORS.textMuted, fontSize: MAP_TYPOGRAPHY.fontSize.xs }}>
-                    {bookmark.layers.length} visible layer{bookmark.layers.length === 1 ? "" : "s"}
-                  </span>
-                </button>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: "0.125rem" }}>
-                  <button type="button" style={compactIconButtonStyle} onClick={() => handleRename(bookmark)} aria-label={`Rename ${bookmark.name}`}>
-                    <Pencil size={MAP_ICON_SIZES.xs} aria-hidden="true" />
-                  </button>
-                  <button type="button" style={compactIconButtonStyle} onClick={() => handleShare(bookmark)} aria-label={`Copy link for ${bookmark.name}`}>
-                    <Copy size={MAP_ICON_SIZES.xs} aria-hidden="true" />
-                  </button>
-                  <button type="button" style={{ ...compactIconButtonStyle, color: MAP_COLORS.error }} onClick={() => handleDelete(bookmark)} aria-label={`Delete ${bookmark.name}`}>
-                    <Trash2 size={MAP_ICON_SIZES.xs} aria-hidden="true" />
-                  </button>
-                </span>
-              </div>
-            ))}
+            ) : (
+              <AppMenuSection title="Saved Views">
+                {bookmarks.map((bookmark) => (
+                  <div key={bookmark.id} style={compactBookmarkRowStyle}>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      style={{
+                        minWidth: 0,
+                        display: "grid",
+                        gap: "0.125rem",
+                        border: MAP_STROKES.none,
+                        background: MAP_COLORS.transparent,
+                        color: MAP_COLORS.textSecondary,
+                        textAlign: "left",
+                        cursor: "pointer",
+                      }}
+                      onClick={() => {
+                        onRestoreBookmark(bookmark);
+                        setMenuOpen(false);
+                      }}
+                      title={formatBookmarkTitle(bookmark)}
+                    >
+                      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: MAP_COLORS.text }}>
+                        {bookmark.name}
+                      </span>
+                      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: MAP_COLORS.textMuted, fontSize: MAP_TYPOGRAPHY.fontSize.xs }}>
+                        {bookmark.layers.length} visible layer{bookmark.layers.length === 1 ? "" : "s"}
+                      </span>
+                    </button>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "0.125rem" }}>
+                      <button type="button" style={compactIconButtonStyle} onClick={() => handleRename(bookmark)} aria-label={`Rename ${bookmark.name}`}>
+                        <Pencil size={MAP_ICON_SIZES.xs} aria-hidden="true" />
+                      </button>
+                      <button type="button" style={compactIconButtonStyle} onClick={() => handleShare(bookmark)} aria-label={`Copy link for ${bookmark.name}`}>
+                        <Copy size={MAP_ICON_SIZES.xs} aria-hidden="true" />
+                      </button>
+                      <button type="button" style={{ ...compactIconButtonStyle, color: MAP_COLORS.error }} onClick={() => handleDelete(bookmark)} aria-label={`Delete ${bookmark.name}`}>
+                        <Trash2 size={MAP_ICON_SIZES.xs} aria-hidden="true" />
+                      </button>
+                    </span>
+                  </div>
+                ))}
+              </AppMenuSection>
+            )}
           </div>
-        ) : null}
+        </AppDropdownMenu>
       </div>
     );
   }

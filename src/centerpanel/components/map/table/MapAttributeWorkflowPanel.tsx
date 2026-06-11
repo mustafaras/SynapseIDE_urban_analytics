@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import type { Feature } from "geojson";
 import type { OverlayLayerConfig } from "../mapTypes";
 import {
+  type GisStatusKey,
   MAP_COLORS,
   MAP_DENSITY,
   MAP_RADIUS,
@@ -9,17 +10,16 @@ import {
   MAP_STROKES,
   MAP_TEXT_STYLES,
   MAP_TYPOGRAPHY,
-  type GisStatusKey,
 } from "../mapTokens";
 import { GisDensePropertyRow, GisEmptyState, GisStatusChip } from "../ui";
 import {
+  type AttrFeature,
   extractFeatures,
+  type MapAttributeDerivedFieldDraft,
   MapAttributeTable,
   resolveLayerColumns,
-  type AttrFeature,
-  type MapAttributeDerivedFieldDraft,
 } from "./MapAttributeTable";
-import { buildFieldProfiles, formatFieldProfileMetric, type FieldProfile } from "./fieldProfiles";
+import { buildFieldProfiles, type FieldProfile, formatFieldProfileMetric } from "./fieldProfiles";
 import type {
   MapJoinLayerInput,
   MapJoinMode,
@@ -99,6 +99,38 @@ const buttonStyle: React.CSSProperties = {
   cursor: "pointer",
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+};
+
+const warningCardStyle: React.CSSProperties = {
+  display: "grid",
+  gap: 2,
+  padding: MAP_SPACING.sm,
+  borderRadius: MAP_RADIUS.sm,
+  border: MAP_STROKES.hairlineSubtle,
+  background: "color-mix(in srgb, var(--syn-status-warning, #f59e0b) 10%, transparent)",
+};
+
+const warningTitleStyle: React.CSSProperties = {
+  color: MAP_COLORS.text,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+};
+
+const detailsSectionStyle: React.CSSProperties = {
+  display: "grid",
+  gap: MAP_SPACING.sm,
+  padding: MAP_SPACING.sm,
+  borderRadius: MAP_RADIUS.sm,
+  border: MAP_STROKES.hairlineSubtle,
+  background: MAP_COLORS.bgPanel,
+};
+
+const detailsSummaryStyle: React.CSSProperties = {
+  cursor: "pointer",
+  color: MAP_COLORS.text,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+  listStyle: "none",
 };
 
 const disabledButtonStyle: React.CSSProperties = {
@@ -254,6 +286,18 @@ function formatRatio(value: number): string {
   return `${Math.round(value * 100)}%`;
 }
 
+function buildAttributeWarnings(activeModel: AttributeLayerModel | null): string[] {
+  if (!activeModel) return [];
+  const warnings: string[] = [];
+  if (!activeModel.queryState.crs) {
+    warnings.push("CRS is unknown. Validate projection before relying on distances, areas, or spatial joins.");
+  }
+  if (!activeModel.queryState.queryable && activeModel.queryState.disabledReason) {
+    warnings.push(activeModel.queryState.disabledReason);
+  }
+  return warnings;
+}
+
 export function MapAttributeWorkflowPanel({
   layers,
   activeLayerId,
@@ -273,6 +317,22 @@ export function MapAttributeWorkflowPanel({
   const [joinPreview, setJoinPreview] = useState<MapJoinPreviewResult | null>(null);
   const [joinPreviewError, setJoinPreviewError] = useState<string | null>(null);
   const [joinPreviewBusy, setJoinPreviewBusy] = useState(false);
+  // The panel is hosted both in the wide bottom dock and the narrow right
+  // dock. Track our own width so the table/details split stacks instead of
+  // collapsing the table column to zero width in narrow hosts.
+  const rootRef = React.useRef<HTMLElement | null>(null);
+  const [stackedLayout, setStackedLayout] = useState(false);
+
+  useEffect(() => {
+    const node = rootRef.current;
+    if (!node || typeof ResizeObserver === "undefined") return undefined;
+    const observer = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect.width ?? node.getBoundingClientRect().width;
+      setStackedLayout(width > 0 && width < 760);
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
 
   const layerModels = useMemo(() => layers.map(buildAttributeLayerModel), [layers]);
   const activeModel = useMemo(
@@ -294,6 +354,7 @@ export function MapAttributeWorkflowPanel({
   );
   const disabledReason = joinPreviewDisabledReason(activeModel, joinModel, joinMode, primaryKey, joinKey);
   const tableAnnounceProps = onAnnounce ? { onAnnounce } : {};
+  const attributeWarnings = useMemo(() => buildAttributeWarnings(activeModel), [activeModel]);
 
   useEffect(() => {
     if (!activeModel) {
@@ -367,6 +428,7 @@ export function MapAttributeWorkflowPanel({
 
   return (
     <section
+      ref={rootRef}
       style={{
         display: "grid",
         gridTemplateRows: "auto minmax(0, 1fr)",
@@ -379,20 +441,21 @@ export function MapAttributeWorkflowPanel({
       }}
       aria-label="Attribute, field, join, and table workflow"
       data-testid="map-attribute-workflow-panel"
+      data-layout={stackedLayout ? "stacked" : "split"}
     >
       <header
         style={{
           display: "grid",
-          gridTemplateColumns: "minmax(13rem, 1fr) auto",
+          gridTemplateColumns: stackedLayout ? "minmax(0, 1fr)" : "minmax(13rem, 1fr) auto",
           alignItems: "center",
-          gap: MAP_SPACING.md,
+          gap: stackedLayout ? MAP_SPACING.sm : MAP_SPACING.md,
           minWidth: 0,
           padding: `${MAP_SPACING.sm} ${MAP_SPACING.md}`,
           borderBottom: MAP_STROKES.hairlineSubtle,
           background: MAP_COLORS.bgHeader,
         }}
       >
-        <div style={{ display: "grid", gridTemplateColumns: "auto minmax(12rem, 24rem) minmax(0, 1fr)", alignItems: "center", gap: MAP_SPACING.sm, minWidth: 0 }}>
+        <div style={{ display: "grid", gridTemplateColumns: stackedLayout ? "auto minmax(0, 1fr)" : "auto minmax(12rem, 24rem) minmax(0, 1fr)", alignItems: "center", gap: MAP_SPACING.sm, minWidth: 0 }}>
           <span style={{ color: MAP_COLORS.textMuted, fontSize: MAP_TYPOGRAPHY.fontSize.xs, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>Active layer</span>
           <select
             value={activeModel?.layer.id ?? ""}
@@ -423,7 +486,13 @@ export function MapAttributeWorkflowPanel({
         ) : null}
       </header>
 
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(18rem, 24rem)", minHeight: 0, minWidth: 0 }}>
+      <div
+        style={
+          stackedLayout
+            ? { display: "grid", gridTemplateRows: "minmax(0, 1.4fr) minmax(0, 1fr)", minHeight: 0, minWidth: 0, overflow: "hidden" }
+            : { display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(18rem, 24rem)", minHeight: 0, minWidth: 0 }
+        }
+      >
         <div style={{ minHeight: 0, minWidth: 0, overflow: "hidden" }}>
           {!activeModel ? (
             <GisEmptyState
@@ -462,13 +531,67 @@ export function MapAttributeWorkflowPanel({
             alignContent: "start",
             gap: MAP_SPACING.md,
             minWidth: 0,
+            minHeight: 0,
             overflow: "auto",
             padding: MAP_SPACING.md,
-            borderLeft: MAP_STROKES.hairlineSubtle,
+            ...(stackedLayout
+              ? { borderTop: MAP_STROKES.hairlineSubtle }
+              : { borderLeft: MAP_STROKES.hairlineSubtle }),
             background: MAP_COLORS.bgWorkspace,
           }}
           aria-label="Attribute workflow details"
         >
+          <section style={{ display: "grid", gap: MAP_SPACING.sm, minWidth: 0 }} data-testid="map-attribute-summary-section">
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: MAP_SPACING.sm }}>
+              <h3 style={sectionTitleStyle}>Selection summary</h3>
+              {activeQueryState ? <GisStatusChip status={queryStatusTone(activeQueryState)} label={activeQueryState.queryable ? "queryable" : "blocked"} density="compact" /> : null}
+            </div>
+            {activeModel ? (
+              <div>
+                <GisDensePropertyRow label="Layer" value={activeModel.layer.name} density="compact" />
+                <GisDensePropertyRow label="Selected" value={`${activeSelectedIds.length.toLocaleString()} in this layer`} density="compact" highlight={activeSelectedIds.length > 0 ? undefined : "warn"} />
+                <GisDensePropertyRow label="Total selected" value={totalSelectedCount.toLocaleString()} density="compact" />
+                <GisDensePropertyRow label="Rows" value={activeModel.queryState.featureCount.toLocaleString()} density="compact" />
+                <GisDensePropertyRow label="Fields" value={activeModel.queryState.fieldCount.toLocaleString()} density="compact" />
+                <GisDensePropertyRow label="Geometry" value={activeModel.queryState.geometryType} density="compact" />
+                <GisDensePropertyRow label="CRS" value={activeModel.queryState.crs ?? "unknown"} density="compact" highlight={activeModel.queryState.crs ? undefined : "warn"} />
+              </div>
+            ) : (
+              <p style={helperTextStyle}>Choose a layer to show a compact summary before inspecting rows, fields, or join previews.</p>
+            )}
+          </section>
+
+          <section style={{ display: "grid", gap: MAP_SPACING.sm, minWidth: 0 }} data-testid="map-attribute-warning-section">
+            <h3 style={sectionTitleStyle}>Warnings</h3>
+            {attributeWarnings.length > 0 ? (
+              attributeWarnings.map((warning) => (
+                <div key={warning} style={warningCardStyle}>
+                  <span style={warningTitleStyle}>Needs review</span>
+                  <span style={helperTextStyle}>{warning}</span>
+                </div>
+              ))
+            ) : (
+              <p style={helperTextStyle}>No blocking queryability or CRS warnings are currently detected for the active layer.</p>
+            )}
+          </section>
+
+          <section style={{ display: "grid", gap: MAP_SPACING.sm, minWidth: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: MAP_SPACING.sm }}>
+              <h3 style={sectionTitleStyle}>Primary action</h3>
+              <GisStatusChip status={joinPreview?.ok ? "ready" : disabledReason ? "blocked" : "metadata-only"} label={joinPreview?.summary.cardinalityLabel ?? "preview-first"} density="compact" />
+            </div>
+            <button
+              type="button"
+              style={{ ...buttonStyle, ...(disabledReason || joinPreviewBusy ? disabledButtonStyle : {}) }}
+              disabled={Boolean(disabledReason) || joinPreviewBusy}
+              onClick={() => void handleRunJoinPreview()}
+              title={disabledReason ?? "Preview match counts, cardinality, CRS, and caveats before applying a join."}
+              data-testid="map-attribute-summary-primary-action"
+            >
+              {joinPreviewBusy ? "Previewing..." : "Preview join"}
+            </button>
+          </section>
+
           <section style={{ display: "grid", gap: MAP_SPACING.sm, minWidth: 0 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: MAP_SPACING.sm }}>
               <h3 style={sectionTitleStyle}>Schema profile</h3>
@@ -489,9 +612,9 @@ export function MapAttributeWorkflowPanel({
             )}
           </section>
 
-          <section style={{ display: "grid", gap: MAP_SPACING.sm, minWidth: 0 }}>
+          <details style={detailsSectionStyle} data-testid="map-attribute-field-stats-details">
+            <summary style={detailsSummaryStyle}>Field stats</summary>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: MAP_SPACING.sm }}>
-              <h3 style={sectionTitleStyle}>Field stats</h3>
               <GisStatusChip status={activeModel?.columns.length ? "ready" : "unknown"} label={`${activeModel?.columns.length ?? 0} profiled`} density="compact" />
             </div>
             {activeModel && activeModel.columns.length > 0 ? (
@@ -512,7 +635,7 @@ export function MapAttributeWorkflowPanel({
             ) : (
               <p style={helperTextStyle}>No attribute fields are available to profile.</p>
             )}
-          </section>
+          </details>
 
           <section style={{ display: "grid", gap: MAP_SPACING.sm, minWidth: 0 }} data-testid="map-attribute-join-preview">
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: MAP_SPACING.sm }}>

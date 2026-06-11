@@ -4,7 +4,7 @@ import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type maplibregl from "maplibre-gl";
-import { MapVoxCityOverlay, __VOXCITY_OVERLAY_LAYER_IDS__ } from "../../MapVoxCityOverlay";
+import { __VOXCITY_OVERLAY_LAYER_IDS__, MapVoxCityOverlay } from "../../MapVoxCityOverlay";
 import type { OverlayLayerConfig } from "../mapTypes";
 import { useCityJSONScene } from "@/features/urbanAnalytics/voxcity/hooks/useCityJSONScene";
 import { useMapExplorerStore } from "@/stores/useMapExplorerStore";

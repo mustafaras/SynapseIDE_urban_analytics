@@ -545,6 +545,27 @@ describe("MapDrawingManager — module exports", () => {
 
     expect(html).toBe("");
   });
+
+  it("headless presentation returns null while preserving canvas-side drawing logic", async () => {
+    const mod = await import("../../MapDrawingManager");
+    const html = renderToStaticMarkup(React.createElement(mod.MapDrawingManager, {
+      mapRef: React.createRef<MapLibreMap>(),
+      activeDrawTool: "polygon",
+      presentation: "headless",
+      sidebarVisible: true,
+      drawnFeatures: [],
+      selectedFeatureId: null,
+      onAddFeature: () => undefined,
+      onRemoveFeature: () => undefined,
+      onUpdateFeature: () => undefined,
+      onClearFeatures: () => undefined,
+      onSelectFeature: () => undefined,
+      onCancelDraw: () => undefined,
+    }));
+
+    expect(html).toBe("");
+  });
+
 });
 
 /* ================================================================== */

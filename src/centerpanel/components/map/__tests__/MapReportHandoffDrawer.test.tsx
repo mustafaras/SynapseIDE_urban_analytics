@@ -63,6 +63,48 @@ function layer(): OverlayLayerConfig {
 }
 
 describe("MapReportHandoffDrawer", () => {
+  it("keeps the embedded surface shrinkable for short-height layouts", async () => {
+    const draft = buildMapReportHandoffDraft({
+      overlayLayers: [layer()],
+      viewport,
+      snapshot: {
+        dataUrl: "data:image/png;base64,abc",
+        width: 320,
+        height: 220,
+        scaleBarLabel: "1 km",
+        northArrowBearing: 0,
+        attributionText: "Sources: Planning data unit",
+      },
+      createdAt: "2025-01-06T00:00:00.000Z",
+    });
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const root = createRoot(host);
+    roots.push(root);
+
+    await act(async () => {
+      root.render(
+        <MapReportHandoffDrawer
+          draft={draft}
+          options={DEFAULT_MAP_REPORT_HANDOFF_OPTIONS}
+          isGeneratingSnapshot={false}
+          presentation="embedded"
+          onOptionsChange={vi.fn()}
+          onRefreshSnapshot={vi.fn()}
+          onRegisterEvidence={vi.fn()}
+          onDownloadPdf={vi.fn()}
+          onInsert={vi.fn()}
+          onClose={vi.fn()}
+        />,
+      );
+    });
+
+    const panel = host.firstElementChild as HTMLElement | null;
+    expect(panel).not.toBeNull();
+    expect(panel?.style.minHeight).toBe("0px");
+    expect(panel?.style.maxHeight).toBe("calc(100% - 2rem)");
+  });
+
   it("exposes a structured evidence registration action", async () => {
     const onRegisterEvidence = vi.fn();
     const draft = buildMapReportHandoffDraft({

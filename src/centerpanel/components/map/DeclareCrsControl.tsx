@@ -10,11 +10,11 @@ import {
 } from "./mapTokens";
 import { IconClose, IconGlobe } from "./MapIcons";
 import {
+  type CrsCatalogEntry,
   parseDeclarableCrs,
   searchCrsCatalog,
-  suggestLocalCrsForExtent,
-  type CrsCatalogEntry,
   type SuggestedCrs,
+  suggestLocalCrsForExtent,
 } from "@/services/map/crs/crsCatalog";
 
 /**
@@ -58,7 +58,9 @@ const popoverStyle: React.CSSProperties = {
   top: "calc(100% + 4px)",
   right: 0,
   width: 300,
-  maxWidth: "min(300px, 90vw)",
+  maxWidth: "min(300px, calc(100% - var(--map-dock-left, 0px) - var(--map-dock-right, 0px) - 1rem))",
+  maxHeight: "var(--map-popover-max-height, min(24rem, calc(100vh - 8rem)))",
+  overflowY: "auto",
   background: MAP_COLORS.bgPanel,
   border: MAP_STROKES.hairlineStrong,
   borderRadius: MAP_RADIUS.md,

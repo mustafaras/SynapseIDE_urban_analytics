@@ -170,6 +170,151 @@ const noteStyle: React.CSSProperties = {
   lineHeight: 1.4,
 };
 
+const helperTextStyle: React.CSSProperties = {
+  color: MAP_COLORS.textSecondary,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  lineHeight: 1.4,
+};
+
+const summaryGridStyle: React.CSSProperties = {
+  display: "grid",
+  gap: MAP_SPACING.md,
+};
+
+const summarySectionStyle: React.CSSProperties = {
+  display: "grid",
+  gap: MAP_SPACING.xs,
+};
+
+const warningListStyle: React.CSSProperties = {
+  display: "grid",
+  gap: MAP_SPACING.xs,
+};
+
+const warningCardStyle: React.CSSProperties = {
+  display: "grid",
+  gap: 2,
+  padding: MAP_SPACING.sm,
+  borderRadius: MAP_RADIUS.sm,
+  border: MAP_STROKES.hairlineSubtle,
+  background: "color-mix(in srgb, var(--syn-status-warning, #f59e0b) 10%, transparent)",
+};
+
+const warningTitleStyle: React.CSSProperties = {
+  color: MAP_COLORS.text,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+};
+
+const actionRowStyle: React.CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: MAP_SPACING.xs,
+};
+
+const summaryButtonStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  minHeight: "1.875rem",
+  padding: `0 ${MAP_SPACING.sm}`,
+  borderRadius: MAP_RADIUS.sm,
+  border: MAP_STROKES.hairlineSubtle,
+  background: MAP_COLORS.transparent,
+  color: MAP_COLORS.interaction,
+  cursor: "pointer",
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+};
+
+const detailsWrapStyle: React.CSSProperties = {
+  display: "grid",
+  gap: MAP_SPACING.sm,
+  padding: MAP_SPACING.sm,
+  borderRadius: MAP_RADIUS.sm,
+  border: MAP_STROKES.hairlineSubtle,
+  background: MAP_COLORS.bgWorkspace,
+};
+
+const detailsSummaryStyle: React.CSSProperties = {
+  cursor: "pointer",
+  color: MAP_COLORS.text,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+  listStyle: "none",
+};
+
+function buildOverviewWarnings(input: {
+  crs: string | null;
+  crsStatus: string;
+  qaStatus: string;
+  publicationStatus: string;
+  queryable: boolean;
+  analysisStale: boolean;
+}): Array<{ id: string; title: string; detail: string }> {
+  const warnings: Array<{ id: string; title: string; detail: string }> = [];
+
+  if (!input.queryable) {
+    warnings.push({
+      id: "queryability",
+      title: "Inspection is metadata-only",
+      detail: "This layer is not queryable, so row-level attribute inspection and map selection workflows may be limited.",
+    });
+  }
+
+  if (!input.crs || input.crsStatus !== "known") {
+    warnings.push({
+      id: "crs",
+      title: "Coordinate reference system needs review",
+      detail: `CRS is ${input.crs ?? input.crsStatus}. Validate projection before relying on area, distance, or spatial comparison outputs.`,
+    });
+  }
+
+  if (input.qaStatus !== "ready" && input.qaStatus !== "pass") {
+    warnings.push({
+      id: "qa",
+      title: "Scientific QA is not fully ready",
+      detail: `Current QA state is ${input.qaStatus}. Review QA findings before publication or analytical reuse.`,
+    });
+  }
+
+  if (input.publicationStatus !== "ready") {
+    warnings.push({
+      id: "publication",
+      title: "Publication readiness has caveats",
+      detail: `Report/export readiness is ${input.publicationStatus}. Check missing evidence, metadata, or blocking issues before publish handoff.`,
+    });
+  }
+
+  if (input.analysisStale) {
+    warnings.push({
+      id: "stale",
+      title: "Derived output may be stale",
+      detail: "This analytical output is marked stale and may not reflect the latest source data or parameter choices.",
+    });
+  }
+
+  return warnings;
+}
+
+function buildOverviewActions(input: {
+  warnings: Array<{ id: string; title: string; detail: string }>;
+  setActiveTab: (tab: InspectorTabId) => void;
+}): Array<{ id: string; label: string; onClick: () => void }> {
+  const actions: Array<{ id: string; label: string; onClick: () => void }> = [];
+
+  if (input.warnings.some((warning) => warning.id === "qa")) {
+    actions.push({ id: "review-qa", label: "Review QA", onClick: () => input.setActiveTab("qa") });
+  }
+  if (input.warnings.some((warning) => warning.id === "crs")) {
+    actions.push({ id: "review-crs", label: "Review CRS", onClick: () => input.setActiveTab("crs") });
+  }
+  actions.push({ id: "review-schema", label: "Inspect schema", onClick: () => input.setActiveTab("schema") });
+  actions.push({ id: "review-report", label: "Check report readiness", onClick: () => input.setActiveTab("report") });
+
+  return actions;
+}
+
 function SectionTitle({ children }: { children: React.ReactNode }): React.ReactElement {
   return <div style={sectionTitleStyle}>{children}</div>;
 }
@@ -241,36 +386,97 @@ export const LayerInspector: React.FC<LayerInspectorProps> = ({
   const analysis = metadata?.analysisResult;
   const manifest = analysis?.reproducibilityManifest ?? metadata?.reproducibilityManifest;
   const qa = metadata?.scientificQA;
+  const overviewWarnings = useMemo(
+    () => buildOverviewWarnings({
+      crs: registry.crsSummary.crs,
+      crsStatus: registry.crsSummary.status,
+      qaStatus: registry.qaStatus,
+      publicationStatus: registry.publicationReadiness.status,
+      queryable: registry.queryable,
+      analysisStale: Boolean(analysis?.stale),
+    }),
+    [analysis?.stale, registry.crsSummary.crs, registry.crsSummary.status, registry.publicationReadiness.status, registry.qaStatus, registry.queryable],
+  );
+  const overviewActions = useMemo(
+    () => buildOverviewActions({ warnings: overviewWarnings, setActiveTab }),
+    [overviewWarnings, setActiveTab],
+  );
 
   const renderTab = (): React.ReactElement => {
     switch (activeTab) {
       case "overview":
         return (
-          <section>
-            <SectionTitle>Overview</SectionTitle>
-            <Row label="Name" value={layer.name} />
-            <Row label="Type" value={layer.type} />
-            <Row label="Source kind" value={registry.sourceKind} />
-            <Row label="Feature count" value={registry.featureCount} fallback={UNKNOWN} />
-            <Row label="Geometry" value={registry.geometrySummary.geometryType} />
-            <Row label="Queryable" value={registry.queryable ? "Yes" : "No"} />
-            <Row label="QA status" value={registry.qaStatus} />
-            <Row label="CRS" value={registry.crsSummary.crs} fallback={registry.crsSummary.status} mono />
-            <Row label="CRS provenance" value={registry.crsSummary.source} />
-            <Row label="Publication" value={registry.publicationReadiness.status} />
-            <Row label="Visible" value={layer.visible ? "Yes" : "No"} />
-            <Row label="Opacity" value={`${Math.round(layer.opacity * 100)}%`} />
-            {registry.geometrySummary.bounds ? (
-              <Row
-                label="Bounds"
-                value={`[${(registry.geometrySummary.bounds as number[]).map((n) => n.toFixed(4)).join(", ")}]`}
-                mono
-              />
-            ) : null}
-            {registry.evidenceArtifactId ? (
-              <Row label="Evidence artifact" value={registry.evidenceArtifactId} mono />
-            ) : null}
-          </section>
+          <div style={summaryGridStyle}>
+            <section style={summarySectionStyle} data-testid="map-layer-inspector-summary-overview">
+              <SectionTitle>Summary</SectionTitle>
+              <Row label="Layer" value={layer.name} />
+              <Row label="Type" value={layer.type} />
+              <Row label="Source kind" value={registry.sourceKind} />
+              <Row label="Feature count" value={registry.featureCount} fallback={UNKNOWN} />
+            </section>
+
+            <section style={summarySectionStyle} data-testid="map-layer-inspector-summary-warnings">
+              <SectionTitle>Warnings</SectionTitle>
+              {overviewWarnings.length > 0 ? (
+                <div style={warningListStyle}>
+                  {overviewWarnings.map((warning) => (
+                    <div key={warning.id} style={warningCardStyle}>
+                      <span style={warningTitleStyle}>{warning.title}</span>
+                      <span style={helperTextStyle}>{warning.detail}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p style={helperTextStyle}>No blocking CRS, QA, publication, or queryability warnings are currently detected.</p>
+              )}
+            </section>
+
+            <section style={summarySectionStyle} data-testid="map-layer-inspector-summary-actions">
+              <SectionTitle>Actions</SectionTitle>
+              <div style={actionRowStyle}>
+                {overviewActions.map((action) => (
+                  <button key={action.id} type="button" style={summaryButtonStyle} onClick={action.onClick}>
+                    {action.label}
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            <section style={summarySectionStyle}>
+              <SectionTitle>Core metadata</SectionTitle>
+              <Row label="Geometry" value={registry.geometrySummary.geometryType} />
+              <Row label="Queryable" value={registry.queryable ? "Yes" : "No"} />
+              <Row label="QA status" value={registry.qaStatus} />
+              <Row label="CRS" value={registry.crsSummary.crs} fallback={registry.crsSummary.status} mono />
+              <Row label="CRS provenance" value={registry.crsSummary.source} />
+              <Row label="Publication" value={registry.publicationReadiness.status} />
+              <Row label="Visible" value={layer.visible ? "Yes" : "No"} />
+              <Row label="Opacity" value={`${Math.round(layer.opacity * 100)}%`} />
+            </section>
+
+            <details style={detailsWrapStyle}>
+              <summary style={detailsSummaryStyle}>Technical details</summary>
+              <div style={{ display: "grid", gap: MAP_SPACING.xs }}>
+                {registry.geometrySummary.bounds ? (
+                  <Row
+                    label="Bounds"
+                    value={`[${(registry.geometrySummary.bounds as number[]).map((n) => n.toFixed(4)).join(", ")}]`}
+                    mono
+                  />
+                ) : null}
+                {registry.evidenceArtifactId ? (
+                  <Row label="Evidence artifact" value={registry.evidenceArtifactId} mono />
+                ) : null}
+                {analysis ? (
+                  <>
+                    <Row label="Run id" value={analysis.runId} mono />
+                    <Row label="Run at" value={analysis.runTimestamp} />
+                    <Row label="Output mode" value={analysis.outputMode} fallback="standard" />
+                  </>
+                ) : null}
+              </div>
+            </details>
+          </div>
         );
       case "source":
         return (

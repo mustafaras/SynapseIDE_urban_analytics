@@ -39,7 +39,9 @@ const tooltipStyle: React.CSSProperties = {
   whiteSpace: "normal",
   overflowWrap: "anywhere",
   pointerEvents: "none",
-  zIndex: MAP_Z_INDEX.dropdown,
+  /* Tooltip must sit above dropdowns and popovers so it remains visible
+     when triggered near an open menu. Use the named tooltip tier. */
+  zIndex: MAP_Z_INDEX.tooltip,
 };
 
 export const GisTooltip: React.FC<GisTooltipProps> = ({

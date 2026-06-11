@@ -16,7 +16,7 @@ import {
 import styles from "./MapWorkspaceOverviewSummary.module.css";
 import { MAP_TYPOGRAPHY } from "./mapTokens";
 import type { OverlayLayerConfig } from "./mapTypes";
-import { resolveOverlayLayerCrs, type MapExplorerContextSummary } from "./mapContextSummary";
+import { type MapExplorerContextSummary, resolveOverlayLayerCrs } from "./mapContextSummary";
 import {
   getMapWorkspaceReadiness,
   MAP_QUICK_ACTIONS,

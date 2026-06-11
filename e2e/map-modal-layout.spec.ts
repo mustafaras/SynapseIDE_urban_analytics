@@ -131,6 +131,34 @@ async function expectNoHorizontalOverflowOrPanelOverlap(page: Page): Promise<voi
   expect(result.overlapIssues, JSON.stringify(result.overlapIssues)).toEqual([]);
 }
 
+async function expectOpaqueMenuSurface(page: Page, menuTestId: string, minWidth: number): Promise<void> {
+  const menu = page.getByTestId(menuTestId);
+  await expect(menu).toBeVisible();
+
+  const directChildren = menu.locator(":scope > *");
+  const panel = (await directChildren.count()) > 0 ? directChildren.first() : menu;
+  await expect(panel).toBeVisible();
+
+  const box = await menu.boundingBox();
+  expect(box?.width ?? 0).toBeGreaterThanOrEqual(minWidth);
+
+  const surface = await panel.evaluate((element) => {
+    const style = window.getComputedStyle(element);
+    return {
+      backgroundColor: style.backgroundColor,
+      opacity: style.opacity,
+      boxShadow: style.boxShadow,
+      borderRadius: style.borderRadius,
+      zIndex: style.zIndex,
+    };
+  });
+
+  expect(surface.opacity).toBe("1");
+  expect(surface.backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
+  expect(surface.boxShadow).not.toBe("none");
+  expect(surface.borderRadius).toContain("px");
+}
+
 async function seedComparisonLayers(page: Page): Promise<void> {
   await page.evaluate(async () => {
     const module = await import("/src/stores/useMapExplorerStore.ts");
@@ -371,9 +399,21 @@ async function seedSelectionFixtureLayer(page: import("@playwright/test").Page):
 }
 
 async function openWorkflowDrawer(page: import("@playwright/test").Page) {
+  const drawer = page.getByTestId("map-workflow-drawer");
+  // On constrained widths the toolbar consolidates analysis commands into a
+  // grouped "Open workflow, query, ..." menu whose accessible name also
+  // matches /Workflow/i, so clicking the matched button may only expand a menu.
+  const workflowMenuItem = page.getByRole("menuitem", { name: /Compare workflow drawer/i }).first();
   const directWorkflowButton = page.getByRole("button", { name: /Workflow|Open AOI .* Compare workflow drawer/i }).first();
   if (await directWorkflowButton.isVisible().catch(() => false)) {
     await triggerDomClick(directWorkflowButton);
+    await Promise.race([
+      drawer.waitFor({ state: "visible", timeout: 5000 }).catch(() => undefined),
+      workflowMenuItem.waitFor({ state: "visible", timeout: 5000 }).catch(() => undefined),
+    ]);
+    if (!(await drawer.isVisible().catch(() => false)) && (await workflowMenuItem.isVisible().catch(() => false))) {
+      await triggerDomClick(workflowMenuItem);
+    }
   } else {
     await page.keyboard.press("Control+K");
     const palette = page.getByRole("dialog", { name: "Map command palette" });
@@ -382,7 +422,6 @@ async function openWorkflowDrawer(page: import("@playwright/test").Page) {
     await triggerDomClick(palette.getByRole("option", { name: /Workflow/i }).first());
   }
 
-  const drawer = page.getByTestId("map-workflow-drawer");
   await expect(drawer).toBeVisible();
   return drawer;
 }
@@ -494,13 +533,13 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
 
   test("keeps hidden Prompt 16 command palette routes discoverable", async ({ page }) => {
     await openPrompt16Explorer(page);
-    await openCommandPalette(page);
-    await expectPaletteCommand(page, "catalog", "catalog");
-    await expectPaletteCommand(page, "contents", "contents");
-    await expectPaletteCommand(page, "processing toolbox", "processing-toolbox");
-    await expectPaletteCommand(page, "layout figure", "figure-composer");
-    await expectPaletteCommand(page, "scientific qa", "qa");
-    await expectPaletteCommand(page, "export geojson", "export-geojson");
+      await openCommandPalette(page);
+      await expectPaletteCommand(page, "catalog", "catalog");
+      await expectPaletteCommand(page, "contents", "contents");
+      await expectPaletteCommand(page, "processing toolbox", "processing-toolbox");
+      await expectPaletteCommand(page, "layout figure", "figure-composer");
+      await expectPaletteCommand(page, "scientific qa", "qa");
+      await expectPaletteCommand(page, "export geojson", "export-geojson");
     await page.keyboard.press("Escape");
     await expect(page.getByRole("dialog", { name: "Map command palette" })).toBeHidden();
   });
@@ -579,11 +618,9 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
 
     await openLayerActionMenu(seededLayerRow);
     await triggerDomClick(seededLayerRow.getByTestId("map-layer-table-trigger"));
-    await expect(page.getByTestId("map-bottom-panel")).toHaveAttribute("data-active-bottom-tab", "attributes");
     await expect(page.getByTestId("map-attribute-table")).toBeVisible();
 
     await triggerDomClick(page.getByRole("button", { name: "Open QA Problems" }));
-    await expect(page.getByTestId("map-bottom-panel")).toHaveAttribute("data-active-bottom-tab", "problems");
     await expect(page.getByRole("region", { name: "Map QA problems" })).toBeVisible();
   });
 
@@ -655,7 +692,7 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
         pitch: 25,
       });
     });
-    await triggerDomClick(viewportControls.getByRole("button", { name: "Reset map view" }));
+      await triggerDomClick(viewportControls.getByRole("button", { name: "Reset map view" }));
     await expect.poll(() => page.evaluate(async () => {
       const module = await import("/src/stores/useMapExplorerStore.ts");
       const state = module.useMapExplorerStore.getState();
@@ -702,7 +739,8 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
       };
     });
     await triggerDomClick(furnitureControls.getByRole("button", { name: /Select base map layer/i }));
-    await triggerDomClick(furnitureControls.getByRole("menuitemradio", { name: "OpenStreetMap" }));
+    await expect(page.getByTestId("map-basemap-menu")).toBeVisible();
+    await triggerDomClick(page.getByRole("menuitemradio", { name: "OpenStreetMap" }));
     await expect.poll(() => page.evaluate(async () => {
       const module = await import("/src/stores/useMapExplorerStore.ts");
       const state = module.useMapExplorerStore.getState();
@@ -792,7 +830,7 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
     await expect(layerRail).toHaveAttribute("data-map-panel-rail", "left");
     await expect(bottomTimeline).toBeVisible();
     await expect(commandCenter).toBeVisible();
-    await expect(commandCenter.getByTestId("map-toolbar-command-command-palette")).toBeVisible();
+    await expect(commandCenter.getByTestId("map-commands-trigger")).toBeVisible();
     await expect(commandCenter.getByTestId("map-command-center-primary-action")).toBeVisible();
     await expect(commandCenter.getByTestId("map-command-center-overflow")).toBeVisible();
     await expect(page.getByRole("application", { name: /Interactive map canvas/i })).toBeVisible();
@@ -812,6 +850,180 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
       body: await page.screenshot({ fullPage: true }),
       contentType: "image/png",
     });
+  });
+
+  test("keeps header controls reachable without clipping at compact desktop width", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await resetWorkbenchState(page);
+    await openMapExplorer(page);
+
+    const topSurface = page.getByTestId("map-top-command-surface");
+    const commandCenter = page.getByTestId("map-command-center");
+    const closeControl = page.getByTestId("map-modal-control-close");
+    const dockControl = page.getByTestId("map-modal-control-dock");
+    const minimizeControl = page.getByTestId("map-modal-control-minimize");
+    const expandControl = page.getByTestId("map-modal-control-expand");
+
+    await expect(topSurface).toBeVisible();
+    await expect(commandCenter).toBeVisible();
+    await expect(closeControl).toBeVisible();
+    await expect(dockControl).toBeVisible();
+    await expect(minimizeControl).toBeVisible();
+    await expect(expandControl).toBeVisible();
+
+    await closeControl.focus();
+    await expect(closeControl).toBeFocused();
+
+    await triggerDomClick(commandCenter.getByTestId("map-commands-trigger"));
+    const commandsMenu = page.getByTestId("map-commands-menu");
+    await expect(commandsMenu).toBeVisible();
+    await expect(commandsMenu).toContainText("Open Command Palette");
+    await triggerDomClick(page.getByTestId("map-commands-open-palette"));
+    const palette = page.getByRole("dialog", { name: "Map command palette" });
+    await expect(palette).toBeVisible();
+    await palette.getByLabel("Search map commands").fill("qa");
+    await expect(page.getByTestId("map-command-palette-option-qa")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(palette).toBeHidden();
+
+    const headerGeometry = await page.evaluate(() => {
+      const top = document.querySelector<HTMLElement>('[data-testid="map-top-command-surface"]');
+      const controls = [
+        document.querySelector<HTMLElement>('[data-testid="map-modal-control-dock"]'),
+        document.querySelector<HTMLElement>('[data-testid="map-modal-control-minimize"]'),
+        document.querySelector<HTMLElement>('[data-testid="map-modal-control-expand"]'),
+        document.querySelector<HTMLElement>('[data-testid="map-modal-control-close"]'),
+      ].filter((node): node is HTMLElement => Boolean(node));
+      if (!top) {
+        return { topMissing: true, topOverflow: 1, outOfBounds: ["top-surface-missing"] as string[] };
+      }
+
+      const topRect = top.getBoundingClientRect();
+      const outOfBounds: string[] = [];
+      if (topRect.left < -1 || topRect.right > window.innerWidth + 1 || topRect.top < -1) {
+        outOfBounds.push("top-surface");
+      }
+
+      controls.forEach((control, index) => {
+        const rect = control.getBoundingClientRect();
+        if (rect.left < -1 || rect.right > window.innerWidth + 1 || rect.top < -1 || rect.bottom > window.innerHeight + 1) {
+          outOfBounds.push(`control-${index}`);
+        }
+      });
+
+      return {
+        topMissing: false,
+        topOverflow: Math.max(0, top.scrollWidth - top.clientWidth),
+        outOfBounds,
+      };
+    });
+
+    expect(headerGeometry.topMissing).toBe(false);
+    expect(headerGeometry.topOverflow).toBeLessThanOrEqual(2);
+    expect(headerGeometry.outOfBounds).toEqual([]);
+  });
+
+  test("keeps More, Views, Commands, filter, and basemap menus visible and unclipped", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await resetWorkbenchState(page);
+    await openMapExplorer(page);
+
+    const moreTrigger = page.getByTestId("map-command-center-overflow");
+    const viewsTrigger = page.getByTestId("map-views-trigger");
+    const commandsTrigger = page.getByTestId("map-commands-trigger");
+    const filterTrigger = page.getByRole("button", { name: /filter select/i }).first();
+    const basemapTrigger = page.getByTestId("map-basemap-trigger");
+
+    await triggerDomClick(moreTrigger);
+    const moreMenu = page.getByTestId("map-command-center-overflow-menu");
+    await expectOpaqueMenuSurface(page, "map-command-center-overflow-menu", 340);
+    await expect(moreMenu).toContainText("Workspace");
+    await expect(moreMenu).toContainText("Settings");
+    const moreBox = await moreMenu.boundingBox();
+    expect((moreBox?.x ?? 0) + (moreBox?.width ?? 0)).toBeLessThanOrEqual(1440);
+    await page.keyboard.press("Escape");
+    await expect(moreMenu).toBeHidden();
+
+    await triggerDomClick(viewsTrigger);
+    const viewsMenu = page.getByTestId("map-bookmark-compact-menu");
+    await expectOpaqueMenuSurface(page, "map-bookmark-compact-menu", 240);
+    await expect(viewsMenu).toContainText("Save Current View");
+    await page.keyboard.press("Escape");
+    await expect(viewsMenu).toBeHidden();
+
+    await triggerDomClick(commandsTrigger);
+    const commandsMenu = page.getByTestId("map-commands-menu");
+    await expectOpaqueMenuSurface(page, "map-commands-menu", 340);
+    await expect(commandsMenu).toContainText("Quick Actions");
+    await expect(commandsMenu.getByLabel("Search commands")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(commandsMenu).toBeHidden();
+
+    await triggerDomClick(filterTrigger);
+    const filterMenu = page.getByTestId("map-selection-filter-row");
+    await expect(filterMenu).toBeVisible();
+    await page.mouse.click(12, 12);
+    await expect(filterMenu).toBeHidden();
+    await triggerDomClick(filterTrigger);
+    await expect(filterMenu).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(filterMenu).toBeHidden();
+
+    await triggerDomClick(basemapTrigger);
+    const basemapMenu = page.getByTestId("map-basemap-menu");
+    await expectOpaqueMenuSurface(page, "map-basemap-menu", 240);
+    await expect(basemapMenu).toContainText("OpenStreetMap");
+    const basemapBox = await basemapMenu.boundingBox();
+    const canvasBox = await page.getByTestId("map-canvas-region").boundingBox();
+    expect((basemapBox?.y ?? 0) + (basemapBox?.height ?? 0)).toBeLessThanOrEqual((canvasBox?.y ?? 0) + 220);
+    await page.keyboard.press("Escape");
+    await expect(basemapMenu).toBeHidden();
+  });
+
+  test("keeps side panels below the command bar and preserves overlay stacking", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await resetWorkbenchState(page);
+    await openMapExplorer(page);
+
+    const commandBar = page.getByRole("toolbar", { name: "Map command bar" });
+    const layerRail = page.getByTestId("map-layer-panel-rail");
+    const sidebar = page.getByTestId("map-workbench-sidebar");
+
+    await expect(commandBar).toBeVisible();
+    await expect(layerRail).toBeVisible();
+    await expect(sidebar).toBeVisible();
+
+    const geometry = await page.evaluate(() => {
+      const commandBar = document.querySelector<HTMLElement>('[data-testid="map-command-bar"]')
+        ?? document.querySelector<HTMLElement>('[data-map-command-bar="true"]')
+        ?? document.querySelector<HTMLElement>('[role="toolbar"][aria-label="Map command bar"]');
+      const layerRail = document.querySelector<HTMLElement>('[data-testid="map-layer-panel-rail"]');
+      const sidebar = document.querySelector<HTMLElement>('[data-map-workbench-sidebar="true"]');
+      const overlayRoot = document.querySelector<HTMLElement>('[data-map-overlay-root="true"]');
+      if (!commandBar || !layerRail || !sidebar || !overlayRoot) {
+        return null;
+      }
+
+      const commandRect = commandBar.getBoundingClientRect();
+      const railRect = layerRail.getBoundingClientRect();
+      const sidebarRect = sidebar.getBoundingClientRect();
+      const overlayStyle = window.getComputedStyle(overlayRoot);
+
+      return {
+        commandBottom: Math.round(commandRect.bottom),
+        railTop: Math.round(railRect.top),
+        sidebarTop: Math.round(sidebarRect.top),
+        overlayZIndex: Number(overlayStyle.zIndex || 0),
+        railZIndex: Number(window.getComputedStyle(layerRail).zIndex || 0),
+        sidebarZIndex: Number(window.getComputedStyle(sidebar).zIndex || 0),
+      };
+    });
+
+    expect(geometry).not.toBeNull();
+    expect(geometry?.railTop ?? 0).toBeGreaterThanOrEqual((geometry?.commandBottom ?? 0) - 1);
+    expect(geometry?.sidebarTop ?? 0).toBeGreaterThanOrEqual((geometry?.commandBottom ?? 0) - 1);
+    expect(geometry?.overlayZIndex ?? 0).toBeGreaterThan(geometry?.railZIndex ?? 0);
+    expect(geometry?.overlayZIndex ?? 0).toBeGreaterThan(geometry?.sidebarZIndex ?? 0);
   });
 
   test("switches premium activity rail state without hiding the work surface", async ({ page }) => {
@@ -878,8 +1090,7 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
     const layerRail = page.getByTestId("map-layer-panel-rail");
 
     await expect(canvasRegion).toHaveAttribute("data-map-dock-compact", "true");
-    await expect(canvasRegion).toHaveAttribute("data-map-layer-placement", "bottom");
-    await expect(layerRail).toHaveAttribute("data-map-panel-rail", "bottom");
+    await expect(canvasRegion).toHaveAttribute("data-map-layer-placement", "drawer");
     await expect(layerRail).toBeVisible();
 
     const canvasBox = await canvasRegion.boundingBox();
@@ -887,7 +1098,10 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
 
     expect(canvasBox?.height ?? 0).toBeGreaterThanOrEqual(420);
     expect(railBox?.height ?? 0).toBeGreaterThan(160);
-    expect(railBox?.width ?? 0).toBeGreaterThan(680);
+    // Drawer placement renders an overlay rail; it must stay comfortably wide
+    // without consuming the whole constrained viewport.
+    expect(railBox?.width ?? 0).toBeGreaterThan(400);
+    expect(railBox?.width ?? 0).toBeLessThanOrEqual(720);
 
     await testInfo.attach("prompt-35-narrow-viewport", {
       body: await page.screenshot({ fullPage: true }),
@@ -1089,7 +1303,7 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
       await expect(page.getByRole("region", { name: "Drawn features" })).toBeHidden();
     }
 
-    const countChip = page.getByTestId("map-selection-count-chip");
+    const countChip = page.getByTestId("map-selection-count-chip").first();
     await expect(countChip).toBeVisible();
     await expect(countChip).toContainText("0 selected");
     await triggerDomClick(page.getByTestId("map-rectangle-select-tool"));
@@ -1144,9 +1358,7 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
 
     // Remove the layer through the layer-action menu (Delete -> Confirm delete);
     // both removal paths are routed through MapActionExecutor.
-    await page.getByLabel("Layer actions for E2E Istanbul WGS84 Points").evaluate((el) => {
-      (el as HTMLElement).closest("details")?.setAttribute("open", "");
-    });
+    await openLayerActionMenu(page.getByRole("listitem", { name: /Layer: E2E Istanbul WGS84 Points/i }));
     await triggerDomClick(page.getByRole("menuitem", { name: "Delete E2E Istanbul WGS84 Points" }));
     await triggerDomClick(page.getByRole("menuitem", { name: "Confirm delete E2E Istanbul WGS84 Points" }));
     await expect(layerList).not.toContainText("E2E Istanbul WGS84 Points");
@@ -1309,7 +1521,7 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
       const bottomTimeline = page.getByTestId("map-bottom-timeline");
       await expect(canvasRegion).toBeVisible();
       await expect(bottomTimeline).toBeVisible();
-      await expect(page.getByTestId("map-bottom-panel")).toHaveAttribute("data-active-bottom-tab", "problems");
+      await expect(page.getByRole("region", { name: "Map QA problems" })).toBeVisible();
 
       const canvasBox = await canvasRegion.boundingBox();
       expect(canvasBox?.height ?? 0).toBeGreaterThanOrEqual(viewport.minimumHeight);

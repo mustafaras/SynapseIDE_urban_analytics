@@ -6,18 +6,18 @@
 import React, { useCallback, useMemo, useState } from "react";
 import {
   AlertTriangle,
+  BarChart2,
+  Building2,
   CheckCircle2,
   Plus,
   Trash2,
   X,
-  Building2,
-  BarChart2,
 } from "lucide-react";
 import type { Feature, Polygon } from "geojson";
 import {
-  useMassingStore,
-  selectMassingScenarios,
   selectComparisonMetadata,
+  selectMassingScenarios,
+  useMassingStore,
 } from "@/stores/useMassingStore";
 import {
   selectAssignmentForParcel,
@@ -26,6 +26,7 @@ import {
 } from "@/stores/useZoningStore";
 import type { ZoningRule } from "@/services/map/zoning/ZoningRuleEngine";
 import {
+  type GisStatusKey,
   MAP_COLORS,
   MAP_ICON_SIZES,
   MAP_RADIUS,
@@ -34,7 +35,6 @@ import {
   MAP_STROKES,
   MAP_TYPOGRAPHY,
   MAP_Z_INDEX,
-  type GisStatusKey,
 } from "../mapTokens";
 import { GisStatusChip } from "../ui/GisStatusChip";
 import { createOpaqueFloatingPanelStyle, useDraggableMapPanel } from "../useDraggableMapPanel";
@@ -508,7 +508,7 @@ export const MassingScenarioPanel: React.FC<MassingScenarioPanelProps> = ({
               >
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: MAP_SPACING.sm }}>
                   <span style={{ fontFamily: MAP_TYPOGRAPHY.fontFamilyMono, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
-                    {sc.isBaseline && (
+                    {!!sc.isBaseline && (
                       <span style={{ color: MAP_COLORS.interaction, marginRight: MAP_SPACING.xs }}>
                         [B]
                       </span>
@@ -569,7 +569,7 @@ export const MassingScenarioPanel: React.FC<MassingScenarioPanelProps> = ({
         </div>
 
         {/* ── Section 2: Add Scenario form ── */}
-        {showAddForm && (
+        {!!showAddForm && (
           <div
             style={{ display: "grid", gap: MAP_SPACING.sm, padding: MAP_SPACING.sm, border: MAP_STROKES.hairlineSubtle, borderRadius: MAP_RADIUS.sm }}
             data-testid="massing-add-form"
@@ -583,7 +583,7 @@ export const MassingScenarioPanel: React.FC<MassingScenarioPanelProps> = ({
               </div>
             )}
 
-            {parcelId && (!resolvedParcel || !resolvedRule || !isProjectedCrs(effectiveDeclaredCrs)) && (
+            {!!parcelId && (!resolvedParcel || !resolvedRule || !isProjectedCrs(effectiveDeclaredCrs)) && (
               <div style={caveatStyle}>
                 <AlertTriangle size={MAP_ICON_SIZES.xs} aria-hidden="true" />
                 <span>Generated massing requires parcel geometry, assigned rule, and projected CRS.</span>
@@ -762,7 +762,7 @@ export const MassingScenarioPanel: React.FC<MassingScenarioPanelProps> = ({
             </div>
 
             {/* Comparison metadata summary */}
-            {comparisonMetadata && (
+            {!!comparisonMetadata && (
               <div
                 style={{ display: "grid", gap: MAP_SPACING.xs, padding: MAP_SPACING.sm, border: MAP_STROKES.hairlineSubtle, borderRadius: MAP_RADIUS.sm }}
                 data-testid="massing-comparison-metadata"

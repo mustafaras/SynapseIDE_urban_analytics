@@ -4,22 +4,22 @@ import {
   buildLayerStyleUpdate,
   getDefaultLayerStyleOptions,
   getSerializedLegendSpecFromStyle,
-  serializedLegendSpecToCompositionItems,
   type LayerStyleEditorOptions,
   type LayerStyleUpdate,
   type SerializedLegendMode,
+  serializedLegendSpecToCompositionItems,
 } from "../inspector/style/legendContract";
 import { fcPointsWGS84, fcPolygonsProjected } from "./fixtures/gisFixtures";
 import {
-  DEFAULT_MAP_COMPOSITION_OPTIONS,
   buildMapCompositionLegendItems,
   buildMapPublicationReadiness,
+  DEFAULT_MAP_COMPOSITION_OPTIONS,
 } from "@/services/map/MapExportService";
 import { buildMapReportHandoffDraft } from "@/services/map/MapReportHandoffService";
 import { generateMapCartographyReview } from "@/services/map/MapCartographyAdvisor";
 import {
-  DOT_DENSITY_NORMALIZATION_CAVEAT,
   buildDotDensityFeatureCollection,
+  DOT_DENSITY_NORMALIZATION_CAVEAT,
   getSerializedAdvancedCartographySpecFromStyle,
 } from "@/services/map/cartography/AdvancedCartographyEngine";
 import {

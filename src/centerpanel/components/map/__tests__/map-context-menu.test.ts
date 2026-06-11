@@ -2,11 +2,11 @@ import { describe, expect, it } from "vitest";
 import type { DrawnFeature, OverlayLayerConfig } from "../mapTypes";
 import { MapContextMenu } from "../../MapContextMenu";
 import {
-  LAYER_ACTION_COMMAND_GROUPS,
   clampContextMenuPosition,
   collectVisibleBounds,
   formatCoordinatePair,
   getLayerActionCommandGroupLabel,
+  LAYER_ACTION_COMMAND_GROUPS,
 } from "../contextMenuUtils";
 
 describe("MapContextMenu helpers", () => {

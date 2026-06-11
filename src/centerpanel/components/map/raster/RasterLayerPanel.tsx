@@ -8,14 +8,14 @@
  */
 import React, { useCallback, useEffect, useRef } from "react";
 import { useRasterLayerStore } from "../../../../stores/useRasterLayerStore";
-import { MAP_COLORS, MAP_TYPOGRAPHY, resolveMapPaintColor } from "../mapTokens";
+import { MAP_COLORS, MAP_TYPOGRAPHY, MAP_Z_INDEX, resolveMapPaintColor } from "../mapTokens";
 import { GisStatusChip } from "../ui/GisStatusChip";
 import { GisEmptyState } from "../ui/GisEmptyState";
 import { GisProgressBar } from "../ui/GisProgressBar";
 import { GisSectionHeader } from "../ui/GisSectionHeader";
 import { GisIconButton } from "../ui/GisIconButton";
 import { RasterHistogramChart } from "./RasterHistogramChart";
-import { RasterLegend, RAMP_OPTIONS } from "./RasterLegend";
+import { RAMP_OPTIONS, RasterLegend } from "./RasterLegend";
 import { COLOR_RAMP_STOPS, computeHistogram } from "../../../../services/map/raster/RasterHistogramEngine";
 import type { ColorRampId } from "../../../../services/map/raster/RasterHistogramEngine";
 import type { GisStatusKey } from "../mapTokens";
@@ -211,7 +211,9 @@ export const RasterLayerPanel: React.FC<RasterLayerPanelProps> = ({
     fontFamily: MAP_TYPOGRAPHY.fontFamily,
     fontSize: "12px",
     color: MAP_COLORS.text,
-    zIndex: 30,
+    /* Use named panel tier so the floating raster panel stays above the
+       map canvas but below dropdowns and dialogs. */
+    zIndex: MAP_Z_INDEX.panel,
     overflow: "hidden",
   };
   const embeddedPanelStyle: React.CSSProperties = {
@@ -374,7 +376,7 @@ export const RasterLayerPanel: React.FC<RasterLayerPanelProps> = ({
             density="compact"
             data-testid="raster-qa-status-chip"
           />
-          {onClose && (
+          {!!onClose && (
             <GisIconButton
               label="Close raster panel"
               icon={<span aria-hidden>✕</span>}
@@ -387,7 +389,7 @@ export const RasterLayerPanel: React.FC<RasterLayerPanelProps> = ({
 
       <div style={bodyStyle}>
         {/* Parsing state */}
-        {parsing && (
+        {!!parsing && (
           <div style={{ marginBottom: 10 }}>
             <GisProgressBar
               value={undefined}
@@ -401,7 +403,7 @@ export const RasterLayerPanel: React.FC<RasterLayerPanelProps> = ({
         )}
 
         {/* Parse error */}
-        {parseError && !parsing && (
+        {!!parseError && !parsing && (
           <GisEmptyState
             title="Parse error"
             description={parseError}
@@ -419,7 +421,7 @@ export const RasterLayerPanel: React.FC<RasterLayerPanelProps> = ({
         )}
 
         {/* Source and evidence summary */}
-        {meta && (
+        {!!meta && (
           <div style={sectionGap}>
             <GisSectionHeader title="Raster evidence" level={4} />
             <div style={stateChipRowStyle} data-testid="raster-state-chips">
@@ -480,7 +482,7 @@ export const RasterLayerPanel: React.FC<RasterLayerPanelProps> = ({
                 </span>
               </div>
             </div>
-            {meta.sampled && (
+            {!!meta.sampled && (
               <div style={caveatNoteStyle} data-testid="raster-sample-caveat">
                 Statistics and histogram are based on a bounded sample. Full-resolution raster analytics are not claimed here.
               </div>
@@ -489,7 +491,7 @@ export const RasterLayerPanel: React.FC<RasterLayerPanelProps> = ({
         )}
 
         {/* Band metadata */}
-        {meta && (
+        {!!meta && (
           <div style={sectionGap}>
             <GisSectionHeader title="Band metadata" level={4} />
             <div style={bandListStyle} data-testid="raster-band-metadata">
@@ -526,7 +528,7 @@ export const RasterLayerPanel: React.FC<RasterLayerPanelProps> = ({
         )}
 
         {/* Render config */}
-        {meta && (
+        {!!meta && (
           <div style={sectionGap}>
             <GisSectionHeader title="Display" level={4} />
 
@@ -590,7 +592,7 @@ export const RasterLayerPanel: React.FC<RasterLayerPanelProps> = ({
         )}
 
         {/* Legend */}
-        {meta && histogram && (
+        {!!meta && !!histogram && (
           <div style={sectionGap}>
             <GisSectionHeader title="Legend" level={4} />
             <div style={visualContextStyle} data-testid="raster-legend-caveat-chips">
@@ -632,10 +634,10 @@ export const RasterLayerPanel: React.FC<RasterLayerPanelProps> = ({
         )}
 
         {/* Histogram */}
-        {histogram && (
+        {!!histogram && (
           <div style={sectionGap}>
             <GisSectionHeader title="Histogram" level={4} />
-            {meta && (
+            {!!meta && (
               <div style={visualContextStyle} data-testid="raster-chart-caveat-chips">
                 <GisStatusChip
                   status={crsStatusToChip(meta.epsgCode)}
@@ -674,7 +676,7 @@ export const RasterLayerPanel: React.FC<RasterLayerPanelProps> = ({
         )}
 
         {/* Evidence references */}
-        {meta && (
+        {!!meta && (
           <div style={sectionGap}>
             <GisSectionHeader title="Evidence references" level={4} />
             <div style={evidenceSummaryStyle} data-testid="raster-evidence-references">
@@ -699,7 +701,7 @@ export const RasterLayerPanel: React.FC<RasterLayerPanelProps> = ({
         )}
 
         {/* QA caveats */}
-        {qa && qa.caveats.length > 0 && (
+        {!!qa && qa.caveats.length > 0 && (
           <div style={sectionGap}>
             <GisSectionHeader title="QA" level={4} />
             <ul
@@ -720,7 +722,7 @@ export const RasterLayerPanel: React.FC<RasterLayerPanelProps> = ({
         )}
 
         {/* Parse caveats */}
-        {inspection && inspection.caveats.length > 0 && (
+        {!!inspection && inspection.caveats.length > 0 && (
           <div style={sectionGap}>
             <ul
               style={{

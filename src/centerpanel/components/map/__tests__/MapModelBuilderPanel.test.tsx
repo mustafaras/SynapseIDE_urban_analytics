@@ -6,8 +6,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { MapModelBuilderPanel } from "../modelBuilder";
 import type { OverlayLayerConfig } from "../mapTypes";
 import {
-  fcPolygonsProjected,
   FC_POLYGONS_PROJECTED_COUNT,
+  fcPolygonsProjected,
 } from "./fixtures/gisFixtures";
 import type { MapActionEffects } from "@/services/map/actions/MapActionExecutor";
 import {

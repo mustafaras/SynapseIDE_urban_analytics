@@ -205,6 +205,29 @@ describe("mapTokens — z-index", () => {
     // design tier (modal:10050 < popover:10060 < tooltip:10070 < toast:10080).
     expect(MAP_Z_INDEX.overlay).toBe(10050);
   });
+
+  it("keeps dialog above popover while preserving toast as the top app surface", () => {
+    expect(MAP_Z_INDEX.dialog).toBeGreaterThan(MAP_Z_INDEX.popover);
+    expect(MAP_Z_INDEX.toast).toBeGreaterThan(MAP_Z_INDEX.dialog);
+  });
+
+  it("keeps local map furniture below panel chrome", () => {
+    expect(MAP_Z_INDEX.mapFurniture).toBeLessThan(MAP_Z_INDEX.panel);
+    expect(MAP_Z_INDEX.commandBar).toBeLessThan(MAP_Z_INDEX.panel);
+  });
+
+  it("tooltip sits above dropdown and popover so overlay menus do not obscure tooltip text", () => {
+    // GisTooltip uses tooltip tier; layer menus use dropdown tier.
+    // Tooltip must render above open menus near the edge of the panel.
+    expect(MAP_Z_INDEX.tooltip).toBeGreaterThan(MAP_Z_INDEX.dropdown);
+    expect(MAP_Z_INDEX.tooltip).toBeGreaterThan(MAP_Z_INDEX.popover);
+  });
+
+  it("dialog sits above dropdown and popover so confirm overlays are not trapped under menus", () => {
+    // MapLayerManager dialogOverlayStyle and modal dispatch dialog use dialog tier.
+    expect(MAP_Z_INDEX.dialog).toBeGreaterThan(MAP_Z_INDEX.dropdown);
+    expect(MAP_Z_INDEX.dialog).toBeGreaterThan(MAP_Z_INDEX.popover);
+  });
 });
 
 /* ------------------------------------------------------------------ */
@@ -562,9 +585,9 @@ describe("Map Explorer components render without errors", () => {
 
     expect(rectangleButton).toBeNull();
     expect(lassoButton).toBeNull();
-    expect(drawAoiButton?.textContent).toContain("On");
-    expect(distanceButton?.textContent).toContain("Off");
-    expect(keyboardHelpButton?.textContent).toContain("Off");
+    expect(drawAoiButton?.getAttribute("aria-pressed")).toBe("true");
+    expect(distanceButton?.getAttribute("aria-pressed")).toBe("false");
+    expect(keyboardHelpButton?.getAttribute("aria-pressed")).toBe("false");
 
     const clickByLabel = async (label: string): Promise<void> => {
       const button = host.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`);
@@ -591,7 +614,7 @@ describe("Map Explorer components render without errors", () => {
     await act(async () => {
       baseTrigger?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
-    const streetsButton = Array.from(host.querySelectorAll<HTMLButtonElement>("button"))
+    const streetsButton = Array.from(document.querySelectorAll<HTMLButtonElement>("button"))
       .find((button) => button.textContent?.includes("OpenStreetMap"));
     await act(async () => {
       streetsButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -751,7 +774,7 @@ describe("Map Explorer components render without errors", () => {
       trigger?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
-    const streetsButton = Array.from(host.querySelectorAll<HTMLButtonElement>("button"))
+    const streetsButton = Array.from(document.querySelectorAll<HTMLButtonElement>("button"))
       .find((button) => button.textContent?.includes("OpenStreetMap"));
     expect(streetsButton).toBeDefined();
 
@@ -802,7 +825,11 @@ describe("Map Explorer components render without errors", () => {
       trigger?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
-    const restoreButton = Array.from(host.querySelectorAll<HTMLButtonElement>("button"))
+    const viewsMenu = document.querySelector<HTMLElement>('[data-testid="map-bookmark-compact-menu"]');
+    expect(viewsMenu).not.toBeNull();
+    expect(viewsMenu?.textContent).toContain("Save Current View");
+
+    const restoreButton = Array.from(document.querySelectorAll<HTMLButtonElement>("button"))
       .find((button) => button.textContent?.includes("Downtown"));
     expect(restoreButton).toBeDefined();
 

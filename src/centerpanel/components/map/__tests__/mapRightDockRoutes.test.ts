@@ -2,16 +2,16 @@ import { describe, expect, it } from "vitest";
 
 import type { MapRightDockPanel } from "../mapDocking";
 import {
-  EMPTY_MAP_RIGHT_DOCK_ROUTE_STATE,
-  MAP_MIGRATED_BOTTOM_TAB_TO_RIGHT_DOCK_PANEL,
-  MAP_RIGHT_DOCK_PANEL_DEFINITIONS,
-  MAP_RIGHT_DOCK_PANEL_IDS,
   buildMapRightDockRouteAnnouncement,
   closeMapRightDockRouteState,
   createMapRightDockRoute,
   createMapRightDockRouteFromBottomTab,
+  EMPTY_MAP_RIGHT_DOCK_ROUTE_STATE,
   getMapActivityIdForRightDockPanel,
   getRightDockPanelForBottomTab,
+  MAP_MIGRATED_BOTTOM_TAB_TO_RIGHT_DOCK_PANEL,
+  MAP_RIGHT_DOCK_PANEL_DEFINITIONS,
+  MAP_RIGHT_DOCK_PANEL_IDS,
   openMapRightDockRouteState,
   switchMapRightDockRouteState,
 } from "../mapRightDockRoutes";

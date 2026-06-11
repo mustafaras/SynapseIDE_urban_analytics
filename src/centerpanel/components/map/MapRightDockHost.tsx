@@ -11,6 +11,7 @@ import {
   Info,
   Layers,
   ListChecks,
+  type LucideIcon,
   MapPin,
   MoreHorizontal,
   MousePointer2,
@@ -20,16 +21,20 @@ import {
   Users,
   Workflow,
   X,
-  type LucideIcon,
 } from "lucide-react";
 import type { MapRightDockPanel } from "./mapDocking";
 import {
+  getMapRightDockPanelDefinition,
   MAP_RIGHT_DOCK_PANEL_DEFINITIONS,
   MAP_RIGHT_DOCK_PANEL_IDS,
-  getMapRightDockPanelDefinition,
   type MapRightDockRoute,
 } from "./mapRightDockRoutes";
-import { MAP_ICON_SIZES } from "./mapTokens";
+import {
+  getMapRightDockPanelTier,
+  getRightDockVisibleTabPanels,
+  MAP_RIGHT_DOCK_OVERFLOW_GROUPS,
+} from "./mapRightDockRoutes";
+import { MAP_ICON_SIZES, MAP_Z_INDEX } from "./mapTokens";
 import { GisIconButton } from "./ui";
 import styles from "./MapRightDockHost.module.css";
 
@@ -67,15 +72,12 @@ const PANEL_ICON_MAP: Record<MapRightDockPanel, LucideIcon> = {
   urbanMethod: GitBranch,
 };
 
-const ROUTE_SOURCE_LABELS: Record<MapRightDockRoute["source"], string> = {
-  "activity-rail": "Activity rail",
-  "bottom-tab": "Bottom tab route",
-  "panel-tab": "Dock tab",
-  programmatic: "Programmatic",
-  "quick-action": "Quick action",
-  "status-bar": "Status bar",
-  toolbar: "Toolbar",
-  worker: "Worker",
+/** Label for the tab rail tier indicator shown on contextual/advanced active panels. */
+const TIER_LABELS: Record<ReturnType<typeof getMapRightDockPanelTier>, string | null> = {
+  primary: null,
+  contextual: "Contextual",
+  advanced: "Advanced",
+  diagnostics: "Diagnostics",
 };
 
 function getPanelIcon(panel: MapRightDockPanel): React.ReactNode {
@@ -110,19 +112,33 @@ export const MapRightDockHost: React.FC<MapRightDockHostProps> = ({
 
   const handleTabKeyDown = useCallback((event: React.KeyboardEvent<HTMLButtonElement>, panel: MapRightDockPanel) => {
     const currentIndex = normalizedPanels.indexOf(panel);
+    const visiblePanels = getRightDockVisibleTabPanels(route.panel).filter((p) =>
+      normalizedPanels.includes(p),
+    );
+    const currentVisibleIndex = visiblePanels.indexOf(panel);
     let nextIndex: number | null = null;
-    if (event.key === "ArrowRight") nextIndex = (currentIndex + 1) % normalizedPanels.length;
-    else if (event.key === "ArrowLeft") nextIndex = (currentIndex - 1 + normalizedPanels.length) % normalizedPanels.length;
-    else if (event.key === "Home") nextIndex = 0;
-    else if (event.key === "End") nextIndex = normalizedPanels.length - 1;
+    if (currentVisibleIndex >= 0) {
+      // Arrow navigation applies to visible tab rail panels
+      if (event.key === "ArrowRight") nextIndex = (currentVisibleIndex + 1) % visiblePanels.length;
+      else if (event.key === "ArrowLeft") nextIndex = (currentVisibleIndex - 1 + visiblePanels.length) % visiblePanels.length;
+      else if (event.key === "Home") nextIndex = 0;
+      else if (event.key === "End") nextIndex = visiblePanels.length - 1;
+    } else {
+      // Fallback: full panel set (for overflow items)
+      if (event.key === "ArrowRight") nextIndex = (currentIndex + 1) % normalizedPanels.length;
+      else if (event.key === "ArrowLeft") nextIndex = (currentIndex - 1 + normalizedPanels.length) % normalizedPanels.length;
+      else if (event.key === "Home") nextIndex = 0;
+      else if (event.key === "End") nextIndex = normalizedPanels.length - 1;
+    }
 
     if (nextIndex == null) return;
     event.preventDefault();
-    const nextPanel = normalizedPanels[nextIndex];
+    const targetList = currentVisibleIndex >= 0 ? visiblePanels : normalizedPanels;
+    const nextPanel = targetList[nextIndex];
     if (!nextPanel) return;
     onPanelChange?.(nextPanel);
     focusPanelTab(tabRefs, nextPanel);
-  }, [normalizedPanels, onPanelChange]);
+  }, [normalizedPanels, onPanelChange, route.panel]);
 
   return (
     <aside
@@ -133,13 +149,23 @@ export const MapRightDockHost: React.FC<MapRightDockHostProps> = ({
       data-map-right-dock-panel={route.panel}
       data-map-right-dock-source={route.source}
       data-presentation={presentation}
-      style={{ "--right-dock-width": `${width}px` } as React.CSSProperties}
+      style={{
+        "--right-dock-width": `${width}px`,
+        "--map-right-dock-z": `${MAP_Z_INDEX.panel}`,
+        "--map-right-dock-overflow-z": `${MAP_Z_INDEX.commandBar}`,
+      } as React.CSSProperties}
     >
       <header className={styles.header}>
         <div className={styles.titleStack}>
           <div className={styles.eyebrowRow}>
             <span className={styles.eyebrow}>Right inspector</span>
-            <span className={styles.stateLabel}>{stateLabel}</span>
+            {TIER_LABELS[getMapRightDockPanelTier(route.panel)] ? (
+              <span className={styles.stateLabelTier} data-panel-tier={getMapRightDockPanelTier(route.panel)}>
+                {TIER_LABELS[getMapRightDockPanelTier(route.panel)]}
+              </span>
+            ) : (
+              <span className={styles.stateLabel}>{stateLabel}</span>
+            )}
           </div>
           <div className={styles.titleRow}>
             <span className={styles.titleIcon}>{getPanelIcon(route.panel)}</span>
@@ -174,54 +200,72 @@ export const MapRightDockHost: React.FC<MapRightDockHostProps> = ({
           />
         </div>
         {overflowOpen ? (
-          <div className={styles.overflowPopover} role="menu" aria-label="Right dock route details">
-            <div className={styles.metaRow}>
-              <span className={styles.metaKey}>Source</span>
-              <span className={styles.metaValue}>{ROUTE_SOURCE_LABELS[route.source]}</span>
-            </div>
-            <div className={styles.metaRow}>
-              <span className={styles.metaKey}>Activity</span>
-              <span className={styles.metaValue}>{activeDefinition.activityId}</span>
-            </div>
-            <div className={styles.metaRow}>
-              <span className={styles.metaKey}>Legacy</span>
-              <span className={styles.metaValue}>{route.legacyBottomTabId ?? "none"}</span>
-            </div>
-            <div className={styles.metaRow}>
-              <span className={styles.metaKey}>Detail</span>
-              <span className={styles.metaValue}>{route.detail ?? "none"}</span>
-            </div>
+          <div className={styles.overflowPopover} role="menu" aria-label="More dock panels">
+            {MAP_RIGHT_DOCK_OVERFLOW_GROUPS.map((group) => {
+              const groupPanels = group.panels.filter((p) => normalizedPanels.includes(p));
+              if (groupPanels.length === 0) return null;
+              return (
+                <div key={group.label} className={styles.overflowGroup}>
+                  <span className={styles.overflowGroupLabel}>{group.label}</span>
+                  {groupPanels.map((panel) => {
+                    const definition = getMapRightDockPanelDefinition(panel);
+                    const active = panel === route.panel;
+                    return (
+                      <button
+                        key={panel}
+                        type="button"
+                        role="menuitem"
+                        className={`${styles.overflowItem}${active ? ` ${styles.overflowItemActive}` : ""}`}
+                        onClick={() => {
+                          onPanelChange?.(panel);
+                          setOverflowOpen(false);
+                        }}
+                        onKeyDown={(event) => handleTabKeyDown(event, panel)}
+                        data-map-right-dock-tab={panel}
+                        data-active={active ? "true" : undefined}
+                      >
+                        <span className={styles.overflowItemIcon}>{getPanelIcon(panel)}</span>
+                        <span>{definition.label}</span>
+                        {active ? <span className={styles.overflowItemActiveDot} aria-hidden="true" /> : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            })}
           </div>
         ) : null}
       </header>
 
       <div className={styles.tabRail} role="tablist" aria-label="Right dock panels">
-        {normalizedPanels.map((panel) => {
-          const definition = getMapRightDockPanelDefinition(panel);
-          const active = panel === route.panel;
-          return (
-            <button
-              key={panel}
-              ref={(element) => {
-                tabRefs.current[panel] = element;
-              }}
-              type="button"
-              role="tab"
-              aria-selected={active}
-              aria-controls={active ? bodyId : undefined}
-              tabIndex={active ? 0 : -1}
-              className={`${styles.tabButton}${active ? ` ${styles.tabButtonActive}` : ""}`}
-              title={definition.label}
-              onClick={() => onPanelChange?.(panel)}
-              onKeyDown={(event) => handleTabKeyDown(event, panel)}
-              data-map-right-dock-tab={panel}
-              data-active={active ? "true" : undefined}
-            >
-              {getPanelIcon(panel)}
-              <span className={styles.tabText}>{definition.label}</span>
-            </button>
-          );
-        })}
+        {getRightDockVisibleTabPanels(route.panel)
+          .filter((panel) => normalizedPanels.includes(panel))
+          .map((panel) => {
+            const definition = getMapRightDockPanelDefinition(panel);
+            const active = panel === route.panel;
+            return (
+              <button
+                key={panel}
+                ref={(element) => {
+                  tabRefs.current[panel] = element;
+                }}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                aria-controls={active ? bodyId : undefined}
+                tabIndex={active ? 0 : -1}
+                className={`${styles.tabButton}${active ? ` ${styles.tabButtonActive}` : ""}`}
+                title={definition.label}
+                onClick={() => onPanelChange?.(panel)}
+                onKeyDown={(event) => handleTabKeyDown(event, panel)}
+                data-map-right-dock-tab={panel}
+                data-active={active ? "true" : undefined}
+              >
+                {getPanelIcon(panel)}
+                <span className={styles.tabText}>{definition.label}</span>
+              </button>
+            );
+          })}
       </div>
 
       <div

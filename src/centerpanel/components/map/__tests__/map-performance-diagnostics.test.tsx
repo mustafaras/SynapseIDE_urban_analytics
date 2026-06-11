@@ -4,8 +4,8 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
-  MAP_GEOJSON_RENDER_FEATURE_BUDGET,
   buildFeatureCollectionMetadata,
+  MAP_GEOJSON_RENDER_FEATURE_BUDGET,
 } from "@/services/map/MapDataImporter";
 import {
   buildMapPerformanceDiagnostics,
@@ -171,5 +171,62 @@ describe("Map performance diagnostics", () => {
     expect(html).toContain("redacted before any event is stored");
     expect(html).toContain("[REDACTED]");
     expect(html).not.toContain("plain-secret");
+  });
+
+  it("surfaces severity-first operational summaries before advanced raw event details", () => {
+    recordMapTelemetryEvent({
+      kind: "external-service.error",
+      severity: "warning",
+      source: "external-service",
+      message: "Tile provider timed out",
+    });
+    recordMapTelemetryEvent({
+      kind: "worker.failure",
+      severity: "error",
+      source: "worker-pool",
+      message: "Worker execution stopped unexpectedly",
+      recoverable: true,
+      recoveryLabel: "Retry worker job",
+      details: { jobId: "job-priority-1" },
+    });
+    const diagnostics = buildMapPerformanceDiagnostics({
+      overlayLayers: [largeLayer()],
+      telemetryEvents: getMapTelemetryEvents(),
+    });
+
+    const html = renderToStaticMarkup(
+      <MapPerformanceDiagnosticsPanel
+        visible
+        diagnostics={diagnostics}
+        onClose={vi.fn()}
+        onRetryWorkerJob={vi.fn()}
+      />,
+    );
+
+    expect(html).toContain("map-operational-status-list");
+    expect(html).toContain("Advanced details and raw event history");
+    expect(html).toContain("A worker-backed task is blocked");
+    expect(html).toContain("Provider availability or remote service responses need attention");
+    expect(html.indexOf("Worker failures")).toBeLessThan(html.indexOf("External service errors"));
+  });
+
+  it("renders a production no-issues state while keeping advanced details reachable", () => {
+    const diagnostics = buildMapPerformanceDiagnostics({
+      overlayLayers: [],
+      telemetryEvents: [],
+      timings: [{
+        kind: "render",
+        label: "Layer sync",
+        durationMs: 42,
+        measuredAt: "2026-06-10T00:00:00.000Z",
+      }],
+    });
+
+    const html = renderToStaticMarkup(
+      <MapPerformanceDiagnosticsPanel visible diagnostics={diagnostics} onClose={vi.fn()} />,
+    );
+
+    expect(html).toContain("Current layer stack is within the documented interactive render budgets");
+    expect(html).toContain("No diagnostics events recorded for this map session");
   });
 });

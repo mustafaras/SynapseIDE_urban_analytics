@@ -62,6 +62,13 @@ export interface MapLayerManagerProps {
   onOpenLayerEducationReference?: (id: string) => void;
   onFocusLayer?: (id: string) => void;
   onRepairGeometry?: (id: string) => void;
+  selectedFeatureCount?: number;
+  qaIssueCount?: number;
+  qaBlockerCount?: number;
+  onOpenSourcesSection?: () => void;
+  onOpenContentsSection?: () => void;
+  onOpenSelectionDetail?: () => void;
+  onOpenLayerQaDetail?: () => void;
   onClearLayerCache?: () => void;
   activeRerunToken?: string | null;
   onOpenSymbology?: (id: string) => void;
@@ -273,8 +280,8 @@ const visibilityBtn: React.CSSProperties = {
   borderRadius: MAP_RADIUS.sm,
   cursor: "pointer",
   fontSize: 14,
-  width: MAP_DENSITY.compact.rowHeight,
-  height: MAP_DENSITY.compact.rowHeight,
+  width: "2rem",
+  height: "2rem",
   padding: 0,
   lineHeight: 1,
   transition: MAP_TRANSITIONS.fast,
@@ -386,6 +393,69 @@ const layerControlRow: React.CSSProperties = {
   minHeight: MAP_DENSITY.compact.rowHeight,
 };
 
+const layerSectionGrid: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  gap: MAP_SPACING.xs,
+  padding: `${MAP_SPACING.xs} ${MAP_SPACING.md} ${MAP_SPACING.sm}`,
+  borderBottom: MAP_STROKES.hairlineSubtle,
+};
+
+const layerSectionCard: React.CSSProperties = {
+  display: "grid",
+  gap: 4,
+  minWidth: 0,
+  padding: `${MAP_SPACING.sm} ${MAP_SPACING.sm}`,
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.sm,
+  background: MAP_COLORS.bg,
+};
+
+const layerSectionCardHeader: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: MAP_SPACING.xs,
+  minWidth: 0,
+};
+
+const layerSectionCardTitle: React.CSSProperties = {
+  color: MAP_COLORS.textMuted,
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+  fontSize: 9,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+  letterSpacing: MAP_TYPOGRAPHY.letterSpacing.caps,
+  textTransform: "uppercase",
+};
+
+const layerSectionCardValue: React.CSSProperties = {
+  color: MAP_COLORS.text,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+};
+
+const layerSectionCardDetail: React.CSSProperties = {
+  color: MAP_COLORS.textMuted,
+  fontSize: 10,
+  lineHeight: 1.35,
+  overflowWrap: "anywhere",
+};
+
+const layerSectionCardAction: React.CSSProperties = {
+  justifySelf: "start",
+  padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.sm,
+  background: MAP_COLORS.transparent,
+  color: MAP_COLORS.interaction,
+  fontSize: 10,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+  cursor: "pointer",
+};
+
 const layerReadinessGrid: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
@@ -469,7 +539,7 @@ const layerActionSummary: React.CSSProperties = {
   justifyContent: "center",
   width: "3.5rem",
   minWidth: "3.5rem",
-  minHeight: MAP_DENSITY.compact.rowHeight,
+  minHeight: "2rem",
   boxSizing: "border-box",
   background: MAP_COLORS.transparent,
   border: MAP_STROKES.hairlineSubtle,
@@ -487,6 +557,8 @@ const layerActionSummary: React.CSSProperties = {
 const layerActionGrid: React.CSSProperties = {
   position: "absolute",
   top: "calc(100% + 6px)",
+  /* right:0 keeps the menu from overflowing the right edge of its
+     scroll container (the layer panel), which is already bounded. */
   right: 0,
   display: "grid",
   gridTemplateColumns: "1fr",
@@ -495,12 +567,14 @@ const layerActionGrid: React.CSSProperties = {
   padding: 7,
   minWidth: 230,
   maxWidth: 260,
-  maxHeight: "min(34rem, calc(100vh - 7rem))",
+  /* Use the shell's popover max-height var so menus stay within the modal
+     viewport regardless of short-height states. Falls back to 24rem. */
+  maxHeight: "var(--map-popover-max-height, min(24rem, calc(100% - 4rem)))",
   overflowY: "auto",
   border: MAP_STROKES.hairlineStrong,
   borderRadius: MAP_RADIUS.sm,
   background: MAP_COLORS.bgPanel,
-  boxShadow: MAP_SHADOWS.none,
+  boxShadow: MAP_SHADOWS.dropdown,
   zIndex: MAP_Z_INDEX.dropdown,
 };
 
@@ -508,6 +582,12 @@ const layerActionGroup: React.CSSProperties = {
   display: "grid",
   gap: 3,
   minWidth: 0,
+};
+
+const layerActionGroupDanger: React.CSSProperties = {
+  marginTop: MAP_SPACING.xs,
+  paddingTop: MAP_SPACING.xs,
+  borderTop: MAP_STROKES.hairlineSubtle,
 };
 
 const layerActionGroupLabel: React.CSSProperties = {
@@ -518,6 +598,11 @@ const layerActionGroupLabel: React.CSSProperties = {
   letterSpacing: MAP_TYPOGRAPHY.letterSpacing.caps,
   lineHeight: MAP_TYPOGRAPHY.lineHeight.tight,
   textTransform: "uppercase",
+};
+
+const layerActionGroupLabelDanger: React.CSSProperties = {
+  ...layerActionGroupLabel,
+  color: MAP_COLORS.error,
 };
 
 const layerActionButton: React.CSSProperties = {
@@ -538,6 +623,37 @@ const layerActionButton: React.CSSProperties = {
   minWidth: 0,
   whiteSpace: "normal",
   textAlign: "left" as const,
+};
+
+const layerPrimaryActionsRow: React.CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  alignItems: "center",
+  gap: MAP_SPACING.xs,
+  minWidth: 0,
+};
+
+const layerPrimaryActionButton: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  minHeight: "2rem",
+  padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.sm,
+  background: MAP_COLORS.transparent,
+  color: MAP_COLORS.interaction,
+  fontSize: 10,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+  cursor: "pointer",
+  maxWidth: "100%",
+  textAlign: "left",
+};
+
+const layerPrimaryActionButtonDanger: React.CSSProperties = {
+  color: MAP_COLORS.error,
+  border: `1px solid ${MAP_COLORS.error}`,
+  background: "rgba(248, 113, 113, 0.08)",
 };
 
 const layerActionButtonLabel: React.CSSProperties = {
@@ -816,7 +932,9 @@ const dialogOverlayStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  zIndex: MAP_Z_INDEX.dropdown + 1,
+  /* Use named dialog tier so this confirm overlay sits above dropdowns
+     and popovers but below toast notifications. */
+  zIndex: MAP_Z_INDEX.dialog,
 };
 
 const dialogStyle: React.CSSProperties = {
@@ -937,6 +1055,51 @@ const layerLegendPreviewLabel: React.CSSProperties = {
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
 };
+
+const layerAdvancedDetails: React.CSSProperties = {
+  display: "grid",
+  gap: MAP_SPACING.xs,
+  minWidth: 0,
+};
+
+const layerAdvancedSummary: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: MAP_SPACING.xs,
+  minHeight: "2rem",
+  width: "fit-content",
+  padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.sm,
+  background: MAP_COLORS.transparent,
+  color: MAP_COLORS.textSecondary,
+  fontSize: 10,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+  cursor: "pointer",
+  listStyle: "none",
+};
+
+const layerActiveState: React.CSSProperties = {
+  boxShadow: `inset 2px 0 0 ${MAP_COLORS.interaction}`,
+  background: MAP_COLORS.selectedSubtle,
+};
+
+const layerPrimarySummaryRow: React.CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  alignItems: "center",
+  gap: MAP_SPACING.xs,
+  minWidth: 0,
+};
+
+interface LayerSectionCardModel {
+  id: "layers" | "sources" | "contents" | "selection" | "layer-qa";
+  title: string;
+  value: string;
+  detail: string;
+  actionLabel?: string;
+  onAction?: () => void;
+}
 
 const rerunBtn: React.CSSProperties = {
   marginTop: 10,
@@ -1141,6 +1304,8 @@ type LayerActionId =
 
 type LayerActionTone = "default" | "warning" | "danger";
 
+type LayerActionDensityClass = "primary" | "secondary" | "destructive" | "advanced-metadata";
+
 interface LayerEvidenceActionModel {
   id: LayerActionId;
   groupId: LayerActionCommandGroupId;
@@ -1150,6 +1315,31 @@ interface LayerEvidenceActionModel {
   disabledReason?: string;
   onSelect?: () => void;
   testId?: string;
+}
+
+const LAYER_ACTION_DENSITY_CLASSIFICATION: Readonly<Record<LayerActionId, LayerActionDensityClass>> = {
+  inspect: "advanced-metadata",
+  table: "advanced-metadata",
+  locate: "primary",
+  "move-up": "secondary",
+  "move-down": "secondary",
+  style: "primary",
+  review: "secondary",
+  rerun: "secondary",
+  "repair-geometry": "secondary",
+  export: "secondary",
+  urban: "secondary",
+  ide: "secondary",
+  report: "secondary",
+  dashboard: "secondary",
+  education: "advanced-metadata",
+  remove: "destructive",
+  "confirm-remove": "destructive",
+  "cancel-remove": "destructive",
+} as const;
+
+function getLayerActionDensityClass(action: LayerEvidenceActionModel): LayerActionDensityClass {
+  return LAYER_ACTION_DENSITY_CLASSIFICATION[action.id];
 }
 
 interface LayerEvidenceActionCallbacks {
@@ -1569,6 +1759,7 @@ function layerActionToneStyle(tone: LayerActionTone | undefined): React.CSSPrope
 const LayerActionMenu: React.FC<LayerActionMenuProps> = ({ layerName, actions, forceOpen = false, onAnnounce }) => {
   const [expanded, setExpanded] = useState(forceOpen);
   const summaryRef = useRef<HTMLButtonElement | null>(null);
+  const menuItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const menuId = React.useId();
   const open = forceOpen || expanded;
   const groupedActions = LAYER_ACTION_COMMAND_GROUPS
@@ -1577,6 +1768,41 @@ const LayerActionMenu: React.FC<LayerActionMenuProps> = ({ layerName, actions, f
       actions: actions.filter((action) => action.groupId === group.id),
     }))
     .filter((group) => group.actions.length > 0);
+
+  const flattenedActions = groupedActions.flatMap((group) => group.actions);
+
+  const focusMenuAction = useCallback((direction: "first" | "last" | "next" | "prev") => {
+    const focusableIndexes = flattenedActions
+      .map((action, index) => ({ action, index }))
+      .filter(({ action }) => !action.disabledReason && action.onSelect)
+      .map(({ index }) => index);
+    if (focusableIndexes.length === 0) return;
+
+    const activeElement = typeof document !== "undefined" ? document.activeElement : null;
+    const currentIndex = menuItemRefs.current.findIndex((node) => node === activeElement);
+    const currentFocusableIndex = focusableIndexes.findIndex((index) => index === currentIndex);
+
+    if (direction === "first") {
+      menuItemRefs.current[focusableIndexes[0]]?.focus({ preventScroll: true });
+      return;
+    }
+    if (direction === "last") {
+      menuItemRefs.current[focusableIndexes[focusableIndexes.length - 1]]?.focus({ preventScroll: true });
+      return;
+    }
+
+    const nextFocusableIndex = direction === "next"
+      ? (currentFocusableIndex < 0 ? 0 : (currentFocusableIndex + 1) % focusableIndexes.length)
+      : (currentFocusableIndex < 0
+        ? focusableIndexes.length - 1
+        : (currentFocusableIndex - 1 + focusableIndexes.length) % focusableIndexes.length);
+    menuItemRefs.current[focusableIndexes[nextFocusableIndex]]?.focus({ preventScroll: true });
+  }, [flattenedActions]);
+
+  React.useEffect(() => {
+    if (!open) return;
+    focusMenuAction("first");
+  }, [focusMenuAction, open]);
 
   return (
     <div style={layerActionMenu}>
@@ -1594,33 +1820,64 @@ const LayerActionMenu: React.FC<LayerActionMenuProps> = ({ layerName, actions, f
           event.stopPropagation();
           setExpanded((current) => !current);
         }}
+        onKeyDown={(event) => {
+          if (event.key !== "ArrowDown") return;
+          event.preventDefault();
+          event.stopPropagation();
+          setExpanded(true);
+        }}
       >
         Actions
       </button>
       <div
         id={menuId}
-        style={layerActionGrid}
+        style={{ ...layerActionGrid, display: open ? layerActionGrid.display : "none" }}
         role="menu"
         aria-label={`Layer command menu for ${layerName}`}
         hidden={!open}
         onKeyDown={(event) => {
-          if (event.key !== "Escape") return;
-          event.preventDefault();
-          event.stopPropagation();
-          setExpanded(false);
-          summaryRef.current?.focus({ preventScroll: true });
+          if (event.key === "Escape") {
+            event.preventDefault();
+            event.stopPropagation();
+            setExpanded(false);
+            summaryRef.current?.focus({ preventScroll: true });
+            return;
+          }
+          if (event.key === "ArrowDown") {
+            event.preventDefault();
+            focusMenuAction("next");
+            return;
+          }
+          if (event.key === "ArrowUp") {
+            event.preventDefault();
+            focusMenuAction("prev");
+            return;
+          }
+          if (event.key === "Home") {
+            event.preventDefault();
+            focusMenuAction("first");
+            return;
+          }
+          if (event.key === "End") {
+            event.preventDefault();
+            focusMenuAction("last");
+          }
         }}
       >
         {groupedActions.map(({ group, actions: groupActions }) => (
           <div
             key={group.id}
-            style={layerActionGroup}
+            style={{
+              ...layerActionGroup,
+              ...(group.id === "cache-remove" ? layerActionGroupDanger : {}),
+            }}
             role="group"
             aria-label={group.label}
             data-layer-action-group={group.id}
           >
-            <div style={layerActionGroupLabel}>{group.label}</div>
+            <div style={group.id === "cache-remove" ? layerActionGroupLabelDanger : layerActionGroupLabel}>{group.label}</div>
             {groupActions.map((action) => {
+              const actionIndex = flattenedActions.findIndex((candidate) => candidate.id === action.id && candidate.groupId === action.groupId);
               const disabled = Boolean(action.disabledReason || !action.onSelect);
               const title = action.disabledReason ?? action.title;
               return (
@@ -1638,8 +1895,14 @@ const LayerActionMenu: React.FC<LayerActionMenuProps> = ({ layerName, actions, f
                   aria-disabled={disabled || undefined}
                   aria-label={disabled ? `${action.label}: ${title}` : `${action.label} ${layerName}`}
                   data-layer-action={action.id}
+                  data-layer-action-class={getLayerActionDensityClass(action)}
                   {...(action.testId ? { "data-testid": action.testId } : {})}
                   {...(action.disabledReason ? { "data-disabled-reason": action.disabledReason } : {})}
+                  ref={(node) => {
+                    if (actionIndex >= 0) {
+                      menuItemRefs.current[actionIndex] = node;
+                    }
+                  }}
                   onClick={(event) => {
                     event.stopPropagation();
                     if (disabled || !action.onSelect) {
@@ -2335,7 +2598,7 @@ const AddLayerDialog: React.FC<AddLayerDialogProps> = ({ onAdd, onClose }) => {
   }, [canSubmit, name, onAdd, onClose, sourceKind, type, url]);
 
   return (
-    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- overlay click to dismiss
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events -- overlay click to dismiss
     <div style={dialogOverlayStyle} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div style={dialogStyle} role="dialog" aria-modal="true" aria-label="Add layer">
         <div style={{ ...panelTitle, marginBottom: 12 }}>Add Layer</div>
@@ -2487,6 +2750,7 @@ const LayerRow: React.FC<LayerRowProps> = ({
   onDragEnd,
 }) => {
   const rowRef = useRef<HTMLDivElement>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const analysisResult = layer.metadata?.analysisResult;
   const columnar = layer.metadata?.columnar;
   const scientificQA = layer.metadata?.scientificQA;
@@ -2605,6 +2869,10 @@ const LayerRow: React.FC<LayerRowProps> = ({
         onSelect: () => onRequestRemove(layer.id),
       }];
   const rowActions = [...coreCommandActions, ...utilityActions, ...evidenceActions, ...removalActions];
+  const primaryRowActions = rowActions
+    .filter((action) => getLayerActionDensityClass(action) === "primary")
+    .slice(0, 2);
+  const menuActions = rowActions.filter((action) => getLayerActionDensityClass(action) !== "primary");
   const importFormat = formatImportSourceLabel(layer.metadata?.importFormat);
   const restoreStatus = resolveLayerSourceRestoreStatus(layer);
   const outputMode = analysisResult?.outputMode;
@@ -2624,10 +2892,24 @@ const LayerRow: React.FC<LayerRowProps> = ({
     onNameClick(layer.id, top);
   }, [layer.id, onNameClick]);
 
+  const shouldEmphasizeRow = detailsOpen || isSymbologyActive || isRemovePending;
+  const alwaysVisibleSummary = [
+    geometryFeatureSummary,
+    registry.publicationReadiness.status === "blocked"
+      ? "publish blocked"
+      : registry.publicationReadiness.status === "needs-review"
+        ? "publish review"
+        : null,
+    queryable ? "queryable" : "not queryable",
+  ].filter(Boolean).join(" / ");
+
   return (
     <div
       ref={rowRef}
-      style={isDragging ? layerRowDragging : layerRow}
+      style={{
+        ...(isDragging ? layerRowDragging : layerRow),
+        ...(shouldEmphasizeRow ? layerActiveState : {}),
+      }}
       className={motionStyles.layerFade}
       draggable
       onDragStart={(e) => onDragStart(e, layer.id)}
@@ -2719,37 +3001,58 @@ const LayerRow: React.FC<LayerRowProps> = ({
             ))}
         </div>
 
-        <div style={layerReadinessGrid} aria-label={`Layer readiness for ${layer.name}: ${detailSummary}`}>
-          {readinessCells.map((cell) => (
-            <LayerReadinessCell key={cell.id} layerId={layer.id} cell={cell} />
-          ))}
+        <div style={layerPrimarySummaryRow} aria-label={`Layer summary for ${layer.name}`}>
+          {alwaysVisibleSummary ? (
+            <span style={layerMetaText} title={detailSummary}>{alwaysVisibleSummary}</span>
+          ) : null}
+          <button
+            type="button"
+            style={layerAdvancedSummary}
+            aria-expanded={detailsOpen}
+            aria-label={`${detailsOpen ? "Hide" : "Show"} advanced layer details for ${layer.name}`}
+            data-testid={`map-layer-details-toggle-${layer.id}`}
+            onClick={() => setDetailsOpen((current) => !current)}
+          >
+            <span>{detailsOpen ? "Hide details" : "Show details"}</span>
+          </button>
         </div>
 
-        {legendPreviewItems.length > 0 ? (
-          <div style={layerLegendPreview} aria-label={`Layer legend for ${layer.name}`}>
-            {legendPreviewItems.map((item, index) => (
-              <div key={`${item.label}-${index}`} style={layerLegendPreviewRow}>
-                <span
-                  aria-hidden="true"
+        {primaryRowActions.length > 0 ? (
+          <div style={layerPrimaryActionsRow} aria-label={`Primary row actions for ${layer.name}`}>
+            {primaryRowActions.map((action) => {
+              const disabled = Boolean(action.disabledReason || !action.onSelect);
+              const title = action.disabledReason ?? action.title;
+              return (
+                <button
+                  key={action.id}
+                  type="button"
                   style={{
-                    width: 10,
-                    height: item.kind === "line" ? 2 : 10,
-                    borderRadius: item.kind === "circle" || item.kind === "dot-density" ? MAP_RADIUS.full : MAP_RADIUS.xs,
-                    background: item.kind === "label" ? MAP_COLORS.transparent : item.color,
-                    border: MAP_STROKES.hairlineSubtle,
-                    color: item.color,
-                    fontSize: 9,
-                    fontWeight: MAP_TYPOGRAPHY.fontWeight.bold,
-                    lineHeight: 1,
+                    ...layerPrimaryActionButton,
+                    ...(action.tone === "danger" ? layerPrimaryActionButtonDanger : {}),
+                    ...(disabled ? layerActionButtonDisabled : {}),
+                  }}
+                  aria-label={disabled ? `${action.label}: ${title}` : `${action.label} ${layer.name}`}
+                  title={title}
+                  disabled={disabled}
+                  data-layer-action={action.id}
+                  data-layer-action-group={action.groupId}
+                  data-layer-action-class="primary"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    if (disabled || !action.onSelect) {
+                      if (action.disabledReason) {
+                        onAnnounce?.(`${action.label} disabled for ${layer.name}: ${action.disabledReason}`);
+                      }
+                      return;
+                    }
+                    action.onSelect();
+                    onAnnounce?.(`${action.label} requested for ${layer.name}`);
                   }}
                 >
-                  {item.kind === "label" ? "Aa" : null}
-                </span>
-                <span style={layerLegendPreviewLabel} title={item.secondaryLabel ? `${item.label} / ${item.secondaryLabel}` : item.label}>
-                  {item.label}
-                </span>
-              </div>
-            ))}
+                  {action.label}
+                </button>
+              );
+            })}
           </div>
         ) : null}
 
@@ -2767,19 +3070,59 @@ const LayerRow: React.FC<LayerRowProps> = ({
           </div>
         ) : null}
 
-        {analysisResult ? (
-          <div style={layerTextBlock}>
-            <span style={analysisMetaText} title={`${analysisResult.engine} at ${formatAnalysisTimestamp(analysisResult.runTimestamp)}`}>
-              {analysisResult.engine} • {formatAnalysisTimestamp(analysisResult.runTimestamp)}
-            </span>
-            <span style={analysisSummaryText} title={analysisResult.parameterSummary}>
-              {analysisResult.parameterSummary}
-            </span>
-          </div>
-        ) : null}
+        <div
+          style={{ ...layerAdvancedDetails, display: detailsOpen ? "grid" : "none" }}
+          data-testid={`map-layer-advanced-details-${layer.id}`}
+          hidden={!detailsOpen}
+        >
+            <div style={layerReadinessGrid} aria-label={`Layer readiness for ${layer.name}: ${detailSummary}`}>
+              {readinessCells.map((cell) => (
+                <LayerReadinessCell key={cell.id} layerId={layer.id} cell={cell} />
+              ))}
+            </div>
 
-        <div style={layerMetaRow} aria-label={`Layer metadata for ${layer.name}`}>
-          <span style={layerMetaText} title={detailSummary}>{detailSummary}</span>
+            {legendPreviewItems.length > 0 ? (
+              <div style={layerLegendPreview} aria-label={`Layer legend for ${layer.name}`}>
+                {legendPreviewItems.map((item, index) => (
+                  <div key={`${item.label}-${index}`} style={layerLegendPreviewRow}>
+                    <span
+                      aria-hidden="true"
+                      style={{
+                        width: 10,
+                        height: item.kind === "line" ? 2 : 10,
+                        borderRadius: item.kind === "circle" || item.kind === "dot-density" ? MAP_RADIUS.full : MAP_RADIUS.xs,
+                        background: item.kind === "label" ? MAP_COLORS.transparent : item.color,
+                        border: MAP_STROKES.hairlineSubtle,
+                        color: item.color,
+                        fontSize: 9,
+                        fontWeight: MAP_TYPOGRAPHY.fontWeight.bold,
+                        lineHeight: 1,
+                      }}
+                    >
+                      {item.kind === "label" ? "Aa" : null}
+                    </span>
+                    <span style={layerLegendPreviewLabel} title={item.secondaryLabel ? `${item.label} / ${item.secondaryLabel}` : item.label}>
+                      {item.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+
+            {analysisResult ? (
+              <div style={layerTextBlock}>
+                <span style={analysisMetaText} title={`${analysisResult.engine} at ${formatAnalysisTimestamp(analysisResult.runTimestamp)}`}>
+                  {analysisResult.engine} • {formatAnalysisTimestamp(analysisResult.runTimestamp)}
+                </span>
+                <span style={analysisSummaryText} title={analysisResult.parameterSummary}>
+                  {analysisResult.parameterSummary}
+                </span>
+              </div>
+            ) : null}
+
+            <div style={layerMetaRow} aria-label={`Layer metadata for ${layer.name}`}>
+              <span style={layerMetaText} title={detailSummary}>{detailSummary}</span>
+            </div>
         </div>
 
         <div style={layerControlRow}>
@@ -2797,7 +3140,7 @@ const LayerRow: React.FC<LayerRowProps> = ({
       </div>
       <LayerActionMenu
         layerName={layer.name}
-        actions={rowActions}
+        actions={menuActions}
         forceOpen={isRemovePending}
         {...(onAnnounce ? { onAnnounce } : {})}
       />
@@ -2829,6 +3172,13 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
   onOpenLayerEducationReference,
   onFocusLayer,
   onRepairGeometry,
+  selectedFeatureCount = 0,
+  qaIssueCount = 0,
+  qaBlockerCount = 0,
+  onOpenSourcesSection,
+  onOpenContentsSection,
+  onOpenSelectionDetail,
+  onOpenLayerQaDetail,
   onClearLayerCache,
   activeRerunToken = null,
   onOpenSymbology,
@@ -2918,6 +3268,64 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
     data: overlayLayers.filter((layer) => (layer.group ?? "data") === "data").length,
     analysis: overlayLayers.filter((layer) => (layer.group ?? "data") === "analysis").length,
   }), [overlayLayers]);
+
+  const sourceBackedLayerCount = useMemo(
+    () => overlayLayers.filter((layer) => {
+      const sourceKind = resolveLayerSourceKind(layer);
+      return sourceKind !== "derived" || Boolean(layer.metadata?.sourceId) || Boolean(layer.provenance?.sourceName);
+    }).length,
+    [overlayLayers],
+  );
+
+  const queryableLayerCount = useMemo(
+    () => overlayLayers.filter((layer) => isLayerQueryable(layer)).length,
+    [overlayLayers],
+  );
+
+  const layerWarningCount = useMemo(
+    () => overlayLayers.filter((layer) => {
+      const registry = normalizeLayerRegistryMetadata(layer);
+      return registry.qaStatus === "warning" || registry.qaStatus === "error" || registry.crsSummary.status !== "known";
+    }).length,
+    [overlayLayers],
+  );
+
+  const layerSectionCards: LayerSectionCardModel[] = [
+    {
+      id: "layers",
+      title: "Layers",
+      value: `${layerSummary.visible}/${layerSummary.total} visible`,
+      detail: `${layerSummary.data} data / ${layerSummary.analysis} analysis`,
+    },
+    {
+      id: "sources",
+      title: "Sources",
+      value: `${sourceBackedLayerCount} registered`,
+      detail: `${Math.max(0, overlayLayers.length - sourceBackedLayerCount)} need source context`,
+      ...(onOpenSourcesSection ? { actionLabel: "Open sources", onAction: onOpenSourcesSection } : {}),
+    },
+    {
+      id: "contents",
+      title: "Contents",
+      value: `${queryableLayerCount} queryable`,
+      detail: `${overlayLayers.length - queryableLayerCount} non-queryable`,
+      ...(onOpenContentsSection ? { actionLabel: "Open contents", onAction: onOpenContentsSection } : {}),
+    },
+    {
+      id: "selection",
+      title: "Selection",
+      value: `${selectedFeatureCount.toLocaleString()} selected`,
+      detail: selectedFeatureCount > 0 ? "Selection tools and right-dock detail available" : "No active feature selection",
+      ...(onOpenSelectionDetail ? { actionLabel: "Open selection", onAction: onOpenSelectionDetail } : {}),
+    },
+    {
+      id: "layer-qa",
+      title: "Layer QA",
+      value: qaBlockerCount > 0 ? `${qaBlockerCount} blocked` : `${qaIssueCount} issues`,
+      detail: `${layerWarningCount} layer warning${layerWarningCount === 1 ? "" : "s"} currently visible`,
+      ...(onOpenLayerQaDetail ? { actionLabel: "Open QA", onAction: onOpenLayerQaDetail } : {}),
+    },
+  ];
 
   const cartographyRecommendations = cartographyReviewState?.recommendations ?? [];
   const cartographyRecommendationCountByLayer = useMemo(() => {
@@ -3280,6 +3688,33 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
           <span style={mapStyles.sidePanelMetricLabel}>Analysis</span>
           <span style={mapStyles.sidePanelMetricValue}>{layerSummary.analysis}</span>
         </div>
+      </div>
+
+      <div style={layerSectionGrid} aria-label="Layer workspace sections" data-testid="map-layer-section-grid">
+        {layerSectionCards.map((section) => (
+          <section
+            key={section.id}
+            style={layerSectionCard}
+            aria-label={`${section.title} summary`}
+            data-testid={`map-layer-section-${section.id}`}
+          >
+            <div style={layerSectionCardHeader}>
+              <span style={layerSectionCardTitle}>{section.title}</span>
+              <span style={layerSectionCardValue}>{section.value}</span>
+            </div>
+            <span style={layerSectionCardDetail}>{section.detail}</span>
+            {section.actionLabel && section.onAction ? (
+              <button
+                type="button"
+                style={layerSectionCardAction}
+                onClick={section.onAction}
+                data-testid={`map-layer-section-action-${section.id}`}
+              >
+                {section.actionLabel}
+              </button>
+            ) : null}
+          </section>
+        ))}
       </div>
 
       {cartographyReviewPlacement === "inline" && cartographyReviewState && onApplyCartographyRecommendation && onDismissCartographyRecommendation ? (

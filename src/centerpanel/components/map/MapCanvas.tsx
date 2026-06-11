@@ -584,17 +584,32 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
   }, []);
 
   return (
-    <div
-      id={id}
-      role="application"
-      aria-label="Interactive map canvas — use Arrow keys to pan, +/− to zoom, R to reset view"
-      aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight + - R"
-      aria-roledescription="map"
-      data-map-keyboard-scope="true"
-      style={{ position: "absolute", inset: MAP_SPACING.zero }}
-      ref={containerRef}
-      // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- map canvas needs focus for keyboard navigation
-      tabIndex={0}
-    />
+    <>
+      <style>
+        {`
+          [data-map-keyboard-scope="true"] .maplibregl-ctrl-bottom-left {
+            left: calc(var(--map-dock-left, 0px) + var(--map-overlay-safe-inset-x, 0.75rem));
+            bottom: var(--map-overlay-safe-bottom, 6.75rem);
+          }
+
+          [data-map-keyboard-scope="true"] .maplibregl-ctrl-bottom-left .maplibregl-ctrl {
+            margin-left: 0;
+            margin-bottom: 0;
+          }
+        `}
+      </style>
+      <div
+        id={id}
+        role="application"
+        aria-label="Interactive map canvas — use Arrow keys to pan, +/− to zoom, R to reset view"
+        aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight + - R"
+        aria-roledescription="map"
+        data-map-keyboard-scope="true"
+        style={{ position: "absolute", inset: MAP_SPACING.zero }}
+        ref={containerRef}
+         
+        tabIndex={0}
+      />
+    </>
   );
 };

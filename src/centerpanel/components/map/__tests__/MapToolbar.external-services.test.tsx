@@ -36,7 +36,7 @@ describe("MapToolbar external services", () => {
     expect(html).toContain("Services");
   });
 
-  it("lists external services inside the Advanced menu", async () => {
+  it("lists external services inside the Data group", async () => {
     const onOpenExternalServices = vi.fn();
     const host = document.createElement("div");
     document.body.appendChild(host);
@@ -57,16 +57,14 @@ describe("MapToolbar external services", () => {
       );
     });
 
-    const overflowButton = document.querySelector<HTMLButtonElement>(
-      'button[data-testid="map-command-center-overflow"]',
-    );
-    expect(overflowButton).not.toBeNull();
+    const dataGroupButton = document.querySelector<HTMLButtonElement>('[data-testid="map-command-group-data"]');
+    expect(dataGroupButton).not.toBeNull();
 
     await act(async () => {
-      overflowButton!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      dataGroupButton!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
-    const commandMenu = document.querySelector<HTMLElement>('[role="menu"][aria-label="Advanced commands"]');
+    const commandMenu = document.querySelector<HTMLElement>('[data-testid="map-command-group-menu-data"]');
     expect(commandMenu?.textContent).toContain("External Services");
 
     const externalServicesButton = Array.from(commandMenu?.querySelectorAll<HTMLButtonElement>("button") ?? [])
@@ -152,16 +150,14 @@ describe("MapToolbar external services", () => {
       );
     });
 
-    const publishGroupButton = document.querySelector<HTMLButtonElement>(
-      'button[data-testid="map-command-group-publish"]',
-    );
+    const publishGroupButton = document.querySelector<HTMLButtonElement>('[data-testid="map-command-group-publish"]');
     if (publishGroupButton) {
       act(() => {
         publishGroupButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
       });
     }
 
-    const exportButton = document.querySelector<HTMLButtonElement>('[data-map-command-id="export-geojson"]');
+    const exportButton = document.querySelector<HTMLButtonElement>('[data-testid="map-toolbar-command-export-geojson"]');
     expect(exportButton).not.toBeNull();
     expect(exportButton?.getAttribute("aria-label")).toContain("Export visible map data as GeoJSON");
     expect(exportButton?.getAttribute("aria-label")).toContain("Add pins, drawings, or visible overlay layers before exporting GeoJSON.");

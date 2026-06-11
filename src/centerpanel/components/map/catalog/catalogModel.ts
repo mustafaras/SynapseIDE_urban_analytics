@@ -3,9 +3,9 @@ import type { ExternalServiceKind } from "@/services/map/ExternalServiceConnecto
 import {
   buildConnectionLayerMetadata,
   buildConnectionSourceHandle,
-  getMapConnectionProvider,
   type ExternalServiceDependencyStatus,
   type ExternalServiceHealth,
+  getMapConnectionProvider,
   type MapConnectionDescriptor,
 } from "@/services/map/sources/MapConnectionRegistry";
 import {

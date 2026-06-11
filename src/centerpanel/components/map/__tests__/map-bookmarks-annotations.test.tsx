@@ -5,7 +5,7 @@ import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import type maplibregl from "maplibre-gl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { MapAnnotationLayer, ANNOTATION_SYMBOL_LAYER_ID } from "../../MapAnnotationLayer";
+import { ANNOTATION_SYMBOL_LAYER_ID, MapAnnotationLayer } from "../../MapAnnotationLayer";
 import { MapBookmarkBar } from "../../MapBookmarkBar";
 import { MapPublicationMarksPanel } from "../publish";
 import { MapPinSidebar } from "../MapPinSidebar";

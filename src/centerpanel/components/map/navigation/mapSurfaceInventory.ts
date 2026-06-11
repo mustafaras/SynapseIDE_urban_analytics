@@ -1385,7 +1385,7 @@ export const MAP_SURFACE_INVENTORY = [
     kind: "file-input",
     targetHome: "data",
     targetSlot: "dialog",
-    currentSurface: "MapExplorerModalComposition hidden input",
+    currentSurface: "MapExplorerModalRuntime hidden input",
     targetSurface: "Data activity > Import",
   },
   {

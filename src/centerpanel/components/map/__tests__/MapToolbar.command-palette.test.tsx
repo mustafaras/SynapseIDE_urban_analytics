@@ -343,7 +343,7 @@ describe("MapToolbar command palette", () => {
     expect(commandCenter).not.toBeNull();
     expect(Number(commandCenter!.dataset.commandRegistryCount)).toBeGreaterThan(8);
     expect(document.querySelector('[data-testid="map-command-center-primary-action"]')).not.toBeNull();
-    expect(document.querySelector('[data-testid="map-toolbar-command-command-palette"]')).not.toBeNull();
+    expect(document.querySelector('[data-testid="map-commands-trigger"]')).not.toBeNull();
     expect(document.querySelector('[data-testid="map-toolbar-command-catalog"]')).toBeNull();
 
     keydown(window, "k", { ctrlKey: true });
@@ -377,11 +377,11 @@ describe("MapToolbar command palette", () => {
     });
 
     const dataGroup = document.querySelector<HTMLButtonElement>('[data-testid="map-command-group-data"]');
-    const exploreGroup = document.querySelector<HTMLButtonElement>('[data-testid="map-command-group-explore"]');
+    const evidenceGroup = document.querySelector<HTMLButtonElement>('[data-testid="map-command-group-evidence"]');
     const analyzeGroup = document.querySelector<HTMLButtonElement>('[data-testid="map-command-group-analyze"]');
     const publishGroup = document.querySelector<HTMLButtonElement>('[data-testid="map-command-group-publish"]');
     expect(dataGroup).not.toBeNull();
-    expect(exploreGroup).not.toBeNull();
+    expect(evidenceGroup).not.toBeNull();
     expect(analyzeGroup).not.toBeNull();
     expect(publishGroup).not.toBeNull();
 
@@ -393,7 +393,7 @@ describe("MapToolbar command palette", () => {
     expect(dataMenu).not.toBeNull();
     expect(
       Array.from(dataMenu!.querySelectorAll<HTMLElement>("[data-map-command-id]")).map((node) => node.dataset.mapCommandId),
-    ).toEqual(["import", "catalog", "services"]);
+    ).toEqual(["layers", "contents", "import", "catalog", "services"]);
 
     act(() => {
       publishGroup!.click();
@@ -406,7 +406,7 @@ describe("MapToolbar command palette", () => {
     expect(saveButton?.dataset.disabledReason).toContain("Select or create a project before saving map state.");
   });
 
-  it("exposes undo and redo commands as buttons, palette entries, and global shortcuts", () => {
+  it("keeps undo and redo reachable through overflow, palette entries, and global shortcuts", () => {
     const onUndoMapAction = vi.fn();
     const onRedoMapAction = vi.fn();
     renderToolbar({
@@ -418,6 +418,17 @@ describe("MapToolbar command palette", () => {
       onRedoMapAction,
     });
 
+    expect(document.querySelector('[data-testid="map-toolbar-command-undo-map-action"]')).toBeNull();
+    expect(document.querySelector('[data-testid="map-toolbar-command-redo-map-action"]')).toBeNull();
+
+    const overflowTrigger = document.querySelector<HTMLButtonElement>('[data-testid="map-command-center-overflow"]');
+    expect(overflowTrigger).not.toBeNull();
+    act(() => {
+      overflowTrigger!.click();
+    });
+    const overflowMenu = document.querySelector<HTMLElement>('[data-testid="map-command-center-overflow-menu"]');
+    expect(overflowMenu).not.toBeNull();
+    expect(overflowMenu?.textContent).toContain("Workspace");
     expect(document.querySelector('[data-testid="map-toolbar-command-undo-map-action"]')).not.toBeNull();
     expect(document.querySelector('[data-testid="map-toolbar-command-redo-map-action"]')).not.toBeNull();
 
@@ -437,6 +448,76 @@ describe("MapToolbar command palette", () => {
     const redoOption = document.querySelector<HTMLButtonElement>('[data-testid="map-command-palette-option-redo-map-action"]');
     expect(redoOption).not.toBeNull();
     expect(redoOption!.textContent).toContain("Ctrl+Y");
+  });
+
+  it("keeps reset and recovery commands out of primary actions while preserving overflow reachability", () => {
+    renderToolbar({
+      onResetLayout: vi.fn(),
+      onCollapsePanels: vi.fn(),
+      onRestoreDefaultWidths: vi.fn(),
+      onFocusMapCanvas: vi.fn(),
+    });
+
+    const commandCenter = document.querySelector<HTMLElement>('[data-testid="map-command-center"]');
+    const primaryAction = document.querySelector<HTMLElement>('[data-testid="map-command-center-primary-action"]');
+    expect(commandCenter).not.toBeNull();
+    if (primaryAction) {
+      const primaryActionText = primaryAction.textContent?.toLowerCase() ?? "";
+      expect(primaryActionText).not.toContain("reset");
+      expect(primaryActionText).not.toContain("restore");
+    }
+
+    expect(document.querySelector('[data-testid="map-toolbar-command-reset-layout"]')).toBeNull();
+    expect(document.querySelector('[data-testid="map-toolbar-command-collapse-panels"]')).toBeNull();
+
+    const overflowTrigger = document.querySelector<HTMLButtonElement>('[data-testid="map-command-center-overflow"]');
+    expect(overflowTrigger).not.toBeNull();
+    act(() => {
+      overflowTrigger!.click();
+    });
+
+    const overflowMenu = document.querySelector<HTMLElement>('[data-testid="map-command-center-overflow-menu"]');
+    expect(overflowMenu).not.toBeNull();
+    expect(overflowMenu?.textContent).toContain("Settings");
+
+    expect(document.querySelector('[data-testid="map-toolbar-command-reset-layout"]')).not.toBeNull();
+    expect(document.querySelector('[data-testid="map-toolbar-command-collapse-panels"]')).not.toBeNull();
+    expect(document.querySelector('[data-testid="map-toolbar-command-restore-default-widths"]')).not.toBeNull();
+
+    keydown(window, "k", { ctrlKey: true });
+    const input = paletteInput();
+    setInputValue(input, "reset layout");
+    expect(document.querySelector('[data-testid="map-command-palette-option-reset-layout"]')).not.toBeNull();
+  });
+
+  it("opens a readable Commands dropdown and launches the command palette from it", () => {
+    renderToolbar({
+      onImportClick: vi.fn(),
+      onToggleCatalog: vi.fn(),
+      onToggleLayerPanel: vi.fn(),
+      onToggleContents: vi.fn(),
+    });
+
+    const commandsTrigger = document.querySelector<HTMLButtonElement>('[data-testid="map-commands-trigger"]');
+    expect(commandsTrigger).not.toBeNull();
+
+    act(() => {
+      commandsTrigger!.click();
+    });
+
+    const commandsMenu = document.querySelector<HTMLElement>('[data-testid="map-commands-menu"]');
+    expect(commandsMenu).not.toBeNull();
+    expect(commandsMenu?.textContent).toContain("Quick Actions");
+    expect(commandsMenu?.textContent).toContain("Open Command Palette");
+
+    const openPaletteItem = document.querySelector<HTMLElement>('[data-testid="map-commands-open-palette"]');
+    expect(openPaletteItem).not.toBeNull();
+
+    act(() => {
+      openPaletteItem!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(document.querySelector('[data-testid="map-command-palette"]')).not.toBeNull();
   });
 
   it("exposes Prompt 17 task lens and layout recovery commands in the command palette", () => {

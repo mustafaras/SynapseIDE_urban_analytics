@@ -4,11 +4,11 @@
  * mapTokens only. No Tailwind. No hard-coded hex colours.
  */
 import React, { useCallback, useState } from "react";
-import { AlertTriangle, Sun, X, BookOpen } from "lucide-react";
+import { AlertTriangle, BookOpen, Sun, X } from "lucide-react";
 import {
-  useSunShadowStore,
   selectSunShadowScenarios,
   type ShadowEvidencePayload,
+  useSunShadowStore,
 } from "@/stores/useSunShadowStore";
 import { computeSolarPosition } from "@/services/map/scene3d/SolarPositionService";
 import {
@@ -401,7 +401,7 @@ export const SunShadowPanel: React.FC<SunShadowPanelProps> = ({
         {/* Solar Position */}
         <section>
           <p style={sectionTitleStyle}>Solar Position</p>
-          {sunBelowHorizon && (
+          {!!sunBelowHorizon && (
             <div style={{ ...warningStyle, marginTop: MAP_SPACING.sm }}>
               <AlertTriangle size={MAP_ICON_SIZES.xs} aria-hidden="true" />
               <span>Sun below horizon — no shadow cast</span>
