@@ -6,10 +6,14 @@ import { MapAttributeWorkflowPanel } from "../table/MapAttributeWorkflowPanel";
 import { MapBottomPanelScrollBody, type MapBottomPanelTask, MapBottomPanelTasksBody } from "../bottom";
 import { MapSelectionTools, type SelectionDragTool } from "../MapSelectionTools";
 import { ScientificQAPanel } from "../ScientificQAPanel";
+import { LayerInspector, type MapInspectorHostContext } from "../inspector";
+import type { LayerStyleUpdate } from "../inspector/style/legendContract";
 import { type MapProblemRow, MapProblemsPanel } from "../problems";
 import { MapPanelErrorBoundary } from "../MapPanelErrorBoundary";
 import { MapPerformanceDiagnosticsPanel } from "../MapPerformanceDiagnosticsPanel";
-import { GisEmptyState } from "../ui";
+import { GisEmptyState, GisStatusChip } from "../ui";
+import type { MapRightDockPanel } from "../mapDocking";
+import type { MapPublishReadinessItem, MapPublishTabId } from "../publish";
 import {
   MAP_COLORS,
   MAP_RADIUS,
@@ -20,10 +24,117 @@ import {
 } from "../mapTokens";
 import type { SelectionStatisticsSummary } from "../../../../services/map/MapAnalysisDispatcher";
 
+const rightDockBodyShellStyle: React.CSSProperties = {
+  display: "grid",
+  alignContent: "start",
+  gap: MAP_SPACING.md,
+  minHeight: "100%",
+  padding: MAP_SPACING.md,
+};
+
+const rightDockSectionStyle: React.CSSProperties = {
+  display: "grid",
+  gap: MAP_SPACING.sm,
+  minWidth: 0,
+  paddingBottom: MAP_SPACING.md,
+  borderBottom: MAP_STROKES.hairlineSubtle,
+};
+
+const rightDockSectionHeaderStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: MAP_SPACING.sm,
+  minWidth: 0,
+};
+
+const rightDockSectionTitleStyle: React.CSSProperties = {
+  margin: 0,
+  color: MAP_COLORS.text,
+  fontSize: MAP_TYPOGRAPHY.fontSize.sm,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+};
+
+const rightDockSectionEyebrowStyle: React.CSSProperties = {
+  color: MAP_COLORS.textMuted,
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+  textTransform: "uppercase",
+};
+
+const rightDockTabStripStyle: React.CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: MAP_SPACING.xs,
+  minWidth: 0,
+};
+
+const rightDockTabButtonStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  minHeight: "1.75rem",
+  padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.sm,
+  background: MAP_COLORS.transparent,
+  color: MAP_COLORS.textSecondary,
+  cursor: "pointer",
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+};
+
+const rightDockTabButtonActiveStyle: React.CSSProperties = {
+  color: MAP_COLORS.text,
+  borderColor: MAP_COLORS.hairlineStrong,
+  background: MAP_COLORS.interactionSubtle,
+};
+
+function RightDockRouteSection({
+  title,
+  eyebrow,
+  actions,
+  children,
+}: {
+  title: string;
+  eyebrow?: string;
+  actions?: React.ReactNode;
+  children: React.ReactNode;
+}): React.ReactElement {
+  return (
+    <section style={rightDockSectionStyle}>
+      <div style={rightDockSectionHeaderStyle}>
+        <div style={{ display: "grid", gap: 2, minWidth: 0 }}>
+          {eyebrow ? <span style={rightDockSectionEyebrowStyle}>{eyebrow}</span> : null}
+          <h3 style={rightDockSectionTitleStyle}>{title}</h3>
+        </div>
+        {actions}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function RightDockEmptyState({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}): React.ReactElement {
+  return (
+    <div style={rightDockBodyShellStyle}>
+      <GisEmptyState title={title} description={description} />
+    </div>
+  );
+}
+
 interface MapRightDockBodyContentProps {
   activeDrawTool: React.ComponentProps<typeof MapDrawingManager>["activeDrawTool"];
   activeMeasureTool: React.ComponentProps<typeof MapMeasurementTool>["activeMeasureTool"];
-  activeRightDockPanel: string | null;
+  activeRightDockPanel: MapRightDockPanel | null;
+  activePublishTabId: MapPublishTabId;
   addDrawnFeature: React.ComponentProps<typeof MapDrawingManager>["onAddFeature"];
   addMeasurement: React.ComponentProps<typeof MapMeasurementTool>["onAddMeasurement"];
   announce: (message: string) => void;
@@ -46,6 +157,7 @@ interface MapRightDockBodyContentProps {
   handleFocusLayer: React.ComponentProps<typeof ScientificQAPanel>["onOpenLayer"];
   handleInspectLayer: React.ComponentProps<typeof ScientificQAPanel>["onInspectLayer"];
   handleOpenPublishTab: (tabId: "publish-data-export", announcement: string) => void;
+  handlePublishWorkspaceTabChange: (tabId: string) => void;
   handleRepairLayerGeometry: React.ComponentProps<typeof ScientificQAPanel>["onRepairGeometry"];
   handleRetryWorkerJob: React.ComponentProps<typeof MapPerformanceDiagnosticsPanel>["onRetryWorkerJob"];
   handleRunSelectionStatistics: () => void;
@@ -88,12 +200,27 @@ interface MapRightDockBodyContentProps {
   setSelectionStatsSummary: React.Dispatch<React.SetStateAction<SelectionStatisticsSummary[] | null>>;
   updateDrawnFeature: React.ComponentProps<typeof MapDrawingManager>["onUpdateFeature"];
   openRightDockPanel: (panel: "attributes", announcement: string, source: "panel-tab", detail?: string) => void;
+  inspectorContext: MapInspectorHostContext;
+  onApplyLayerStyle?: (layerId: string, update: LayerStyleUpdate) => void;
+  publishDataExportElement: React.ReactNode;
+  publishFigureElement: React.ReactNode;
+  publishOfflinePackageElement: React.ReactNode;
+  publishReadinessItems: readonly MapPublishReadinessItem[];
+  publishReportElement: React.ReactNode;
+  publishReviewPackageElement: React.ReactNode;
+  styleAdvisorElement: React.ReactNode;
+  styleLabelsElement: React.ReactNode;
+  styleLegendElement: React.ReactNode;
+  styleRendererElement: React.ReactNode;
+  styleSymbolsElement: React.ReactNode;
+  workflowElement: React.ReactNode;
 }
 
 export const MapRightDockBodyContent: React.FC<MapRightDockBodyContentProps> = ({
   activeDrawTool,
   activeMeasureTool,
   activeRightDockPanel,
+  activePublishTabId,
   addDrawnFeature,
   addMeasurement,
   announce,
@@ -116,6 +243,7 @@ export const MapRightDockBodyContent: React.FC<MapRightDockBodyContentProps> = (
   handleFocusLayer,
   handleInspectLayer,
   handleOpenPublishTab,
+  handlePublishWorkspaceTabChange,
   handleRepairLayerGeometry,
   handleRetryWorkerJob,
   handleRunSelectionStatistics,
@@ -158,7 +286,129 @@ export const MapRightDockBodyContent: React.FC<MapRightDockBodyContentProps> = (
   setSelectionStatsSummary,
   updateDrawnFeature,
   openRightDockPanel,
+  inspectorContext,
+  onApplyLayerStyle,
+  publishDataExportElement,
+  publishFigureElement,
+  publishOfflinePackageElement,
+  publishReadinessItems,
+  publishReportElement,
+  publishReviewPackageElement,
+  styleAdvisorElement,
+  styleLabelsElement,
+  styleLegendElement,
+  styleRendererElement,
+  styleSymbolsElement,
+  workflowElement,
 }) => {
+  if (activeRightDockPanel === "inspect") {
+    if (inspectorContext.kind === "layer") {
+      return (
+        <div data-testid="map-right-dock-inspector-body" style={{ height: "100%", minHeight: 0 }}>
+          <LayerInspector
+            layer={inspectorContext.layer}
+            sourceHandle={inspectorContext.sourceHandle ?? null}
+            onClose={handleCloseRightDockHost}
+            {...(onApplyLayerStyle ? { onApplyStyle: onApplyLayerStyle } : {})}
+            presentation="embedded"
+            showHeader={false}
+          />
+        </div>
+      );
+    }
+
+    return (
+      <RightDockEmptyState
+        title="No layer selected"
+        description="Select a map layer or feature output to review source, schema, CRS, QA, style, lineage, and report readiness."
+      />
+    );
+  }
+
+  if (activeRightDockPanel === "style") {
+    return (
+      <div style={rightDockBodyShellStyle} data-testid="map-right-dock-style-body">
+        <RightDockRouteSection title="Renderer" eyebrow="Style">
+          {styleRendererElement}
+        </RightDockRouteSection>
+        <RightDockRouteSection title="Live legend preview" eyebrow="Legend contract">
+          {styleLegendElement}
+        </RightDockRouteSection>
+        <RightDockRouteSection title="Symbols and labels" eyebrow="Cartography">
+          <div style={{ display: "grid", gap: MAP_SPACING.md }}>
+            {styleSymbolsElement}
+            {styleLabelsElement}
+          </div>
+        </RightDockRouteSection>
+        <RightDockRouteSection title="Advisor" eyebrow="QA-aware styling">
+          {styleAdvisorElement}
+        </RightDockRouteSection>
+      </div>
+    );
+  }
+
+  if (activeRightDockPanel === "workflow") {
+    return (
+      <div data-testid="map-right-dock-workflow-body" style={{ height: "100%", minHeight: 0 }}>
+        {workflowElement}
+      </div>
+    );
+  }
+
+  if (activeRightDockPanel === "report") {
+    const publishTabs: Array<{ id: MapPublishTabId; label: string; content: React.ReactNode }> = [
+      { id: "publish-figure", label: "Figure", content: publishFigureElement },
+      { id: "publish-data-export", label: "Data", content: publishDataExportElement },
+      { id: "publish-report", label: "Report", content: publishReportElement },
+      { id: "publish-offline-package", label: "Offline", content: publishOfflinePackageElement },
+      { id: "publish-review-package", label: "Review", content: publishReviewPackageElement },
+    ];
+    const activePublishTab = publishTabs.find((tab) => tab.id === activePublishTabId) ?? publishTabs[0]!;
+    return (
+      <div style={rightDockBodyShellStyle} data-testid="map-right-dock-publish-body">
+        <RightDockRouteSection
+          title="Readiness"
+          eyebrow="Publish"
+          actions={<GisStatusChip status={publishReadinessItems.some((item) => item.status === "blocked") ? "blocked" : "ready"} label={`${publishReadinessItems.length} checks`} density="compact" />}
+        >
+          <div style={{ display: "grid", gap: MAP_SPACING.xs }}>
+            {publishReadinessItems.length > 0 ? publishReadinessItems.map((item) => (
+              <div key={item.id} style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto", gap: MAP_SPACING.sm, alignItems: "start", paddingBottom: MAP_SPACING.xs, borderBottom: MAP_STROKES.hairlineSubtle }}>
+                <span style={{ minWidth: 0, display: "grid", gap: 2 }}>
+                  <span style={{ color: MAP_COLORS.text, fontSize: MAP_TYPOGRAPHY.fontSize.xs, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>{item.label}</span>
+                  <span style={{ color: MAP_COLORS.textSecondary, fontSize: MAP_TYPOGRAPHY.fontSize.xs, lineHeight: 1.35 }}>{item.detail}</span>
+                </span>
+                <GisStatusChip status={item.status} label={item.status.replace(/-/g, " ")} density="compact" title={item.title} />
+              </div>
+            )) : (
+              <GisEmptyState title="No readiness checks" description="Publish readiness will appear when map layers, export targets, or report handoff metadata are available." compact />
+            )}
+          </div>
+        </RightDockRouteSection>
+        <div style={rightDockTabStripStyle} role="tablist" aria-label="Publish route tabs">
+          {publishTabs.map((tab) => {
+            const active = tab.id === activePublishTab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                style={{ ...rightDockTabButtonStyle, ...(active ? rightDockTabButtonActiveStyle : {}) }}
+                onClick={() => handlePublishWorkspaceTabChange(tab.id)}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+        <RightDockRouteSection title={activePublishTab.label} eyebrow="Output path">
+          {activePublishTab.content}
+        </RightDockRouteSection>
+      </div>
+    );
+  }
+
   if (rightAttributesDockActive) {
     return (
       <div data-testid="map-right-dock-attributes-body" style={{ height: "100%", minHeight: 0 }}>
@@ -499,5 +749,10 @@ export const MapRightDockBodyContent: React.FC<MapRightDockBodyContentProps> = (
     );
   }
 
-  return null;
+  return (
+    <RightDockEmptyState
+      title="No routed content"
+      description="This right-dock route is available, but the current map context has no active content for it yet."
+    />
+  );
 };

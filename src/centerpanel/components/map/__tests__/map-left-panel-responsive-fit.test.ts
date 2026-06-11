@@ -32,7 +32,9 @@ const PRIMARY_TABS: readonly MapSidebarTabId[] = [
   "data-demo",
   "layers-stack",
   "layers-contents",
+  "layers-catalog",
   "layers-sources",
+  "layers-bookmarks",
   "overview-readiness",
 ];
 

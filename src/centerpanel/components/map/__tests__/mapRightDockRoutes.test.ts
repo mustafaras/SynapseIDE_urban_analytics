@@ -19,6 +19,7 @@ import { MAP_LEGACY_BOTTOM_PANEL_TAB_DEFINITIONS } from "../mapLegacyBottomTabs"
 
 const EXPECTED_RIGHT_DOCK_PANEL_IDS = [
   "inspect",
+  "style",
   "attributes",
   "problems",
   "timeline",

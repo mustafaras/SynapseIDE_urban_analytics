@@ -164,6 +164,14 @@ export const MAP_LEFT_PANEL_CONTRACTS: Record<
     maxUsefulWidth: LEFT_PANEL_STD_MAX_WIDTH,
     overflowStrategy: "horizontal-disallowed",
   },
+  "layers-catalog": {
+    id: "layers-catalog",
+    minComfortWidth: LEFT_PANEL_ABS_MIN_WIDTH,
+    preferredWidth: LEFT_PANEL_DEFAULT_WIDTH,
+    maxUsefulWidth: LEFT_PANEL_WIDE_MODE_MAX,
+    overflowStrategy: "table-to-list",
+    wideMode: true,
+  },
   "layers-sources": {
     id: "layers-sources",
     minComfortWidth: LEFT_PANEL_ABS_MIN_WIDTH,
@@ -171,6 +179,13 @@ export const MAP_LEFT_PANEL_CONTRACTS: Record<
     maxUsefulWidth: LEFT_PANEL_WIDE_MODE_MAX,
     overflowStrategy: "table-to-list",
     wideMode: true,
+  },
+  "layers-bookmarks": {
+    id: "layers-bookmarks",
+    minComfortWidth: LEFT_PANEL_ABS_MIN_WIDTH,
+    preferredWidth: LEFT_PANEL_DEFAULT_WIDTH,
+    maxUsefulWidth: LEFT_PANEL_STD_MAX_WIDTH,
+    overflowStrategy: "horizontal-disallowed",
   },
   "layers-cartography": {
     id: "layers-cartography",

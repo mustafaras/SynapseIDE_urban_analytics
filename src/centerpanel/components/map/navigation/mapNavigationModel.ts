@@ -30,7 +30,9 @@ export type MapSidebarTabId =
   | "data-demo"
   | "layers-stack"
   | "layers-contents"
+  | "layers-catalog"
   | "layers-sources"
+  | "layers-bookmarks"
   | "layers-cartography"
   | "analyze-workflows"
   | "analyze-tools"
@@ -374,11 +376,25 @@ export const MAP_SIDEBAR_TAB_DEFINITIONS = [
     description: "Groups, scale ranges, definition filters, duplication, and properties.",
   },
   {
+    id: "layers-catalog",
+    activityId: "layers",
+    label: "Catalog",
+    ariaLabel: "Layers catalog tab",
+    description: "Source catalog, restore health, service records, demo packs, and repair actions from the layer workspace.",
+  },
+  {
     id: "layers-sources",
     activityId: "layers",
     label: "Sources",
     ariaLabel: "Layers sources tab",
     description: "Layer-source relationships, source handles, provenance, and restore state.",
+  },
+  {
+    id: "layers-bookmarks",
+    activityId: "layers",
+    label: "Bookmarks",
+    ariaLabel: "Layers bookmarks tab",
+    description: "Saved views, pins, visible layer references, and zoom-to actions for field review.",
   },
   {
     id: "layers-cartography",
@@ -623,7 +639,7 @@ export const MAP_TASK_LENSES = [
     description: "Prioritizes data loading, layer review, analysis, and QA.",
     defaultActivityId: "data",
     activityPriority: ["data", "layers", "analyze", "qa", "overview", "style", "publish", "review", "diagnostics", "scene", "extensions"],
-    sidebarTabPriority: ["data-import", "data-catalog", "layers-stack", "analyze-workflows", "analyze-tools", "analyze-query", "analyze-data-operations"],
+    sidebarTabPriority: ["data-import", "data-catalog", "layers-stack", "layers-catalog", "analyze-workflows", "analyze-tools", "analyze-query", "analyze-data-operations"],
     inspectorContextPriority: ["source", "layer", "analysis-run", "qa-issue"],
     rightDockPanelPriority: ["problems", "attributes", "tasks", "diagnostics"],
     preserveCommandPalette: true,
@@ -635,7 +651,7 @@ export const MAP_TASK_LENSES = [
     description: "Prioritizes layer interpretation, scene review, styling, and publish readiness.",
     defaultActivityId: "layers",
     activityPriority: ["layers", "scene", "style", "publish", "overview", "analyze", "qa", "review", "diagnostics", "data", "extensions"],
-    sidebarTabPriority: ["layers-stack", "scene-3d", "scene-zoning", "scene-massing", "scene-sun-shadow", "style-renderer", "publish-figure"],
+    sidebarTabPriority: ["layers-stack", "layers-contents", "layers-bookmarks", "scene-3d", "scene-zoning", "scene-massing", "scene-sun-shadow", "style-renderer", "publish-figure"],
     inspectorContextPriority: ["layer", "scene-item", "publish-item", "qa-issue"],
     rightDockPanelPriority: ["attributes", "timeline", "problems", "tasks"],
     preserveCommandPalette: true,
@@ -647,7 +663,7 @@ export const MAP_TASK_LENSES = [
     description: "Prioritizes QA, review timeline, provenance, source caveats, and inspector evidence.",
     defaultActivityId: "qa",
     activityPriority: ["qa", "review", "data", "layers", "diagnostics", "overview", "publish", "analyze", "style", "scene", "extensions"],
-    sidebarTabPriority: ["data-health", "data-catalog", "layers-sources", "layers-contents", "overview-readiness"],
+    sidebarTabPriority: ["data-health", "data-catalog", "layers-sources", "layers-catalog", "layers-contents", "overview-readiness"],
     inspectorContextPriority: ["qa-issue", "source", "layer", "analysis-run", "publish-item"],
     rightDockPanelPriority: ["problems", "timeline", "diagnostics"],
     preserveCommandPalette: true,
@@ -720,6 +736,8 @@ function getSidebarTabForInventoryEntry(entry: MapSurfaceInventoryEntry, activit
   }
 
   if (activityId === "layers") {
+    if (includesAny(fingerprint, ["bookmark", "pin", "saved view", "field note"])) return "layers-bookmarks";
+    if (includesAny(fingerprint, ["catalog", "source catalog", "demo pack"])) return "layers-catalog";
     if (includesAny(fingerprint, ["contents", "tree", "group", "scale", "filter"])) return "layers-contents";
     if (includesAny(fingerprint, ["source", "provenance", "restore"])) return "layers-sources";
     if (includesAny(fingerprint, ["cartography", "recommendation"])) return "layers-cartography";

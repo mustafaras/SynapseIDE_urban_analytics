@@ -6,7 +6,7 @@ import type {
 import type { SourceHandle, SourceRestoreStatus } from "@/services/map/contracts/gisContracts";
 import { buildMapCompositionLegendItems } from "@/services/map/MapExportService";
 import { MAP_VECTOR_TILE_SIMPLIFICATION_CAVEAT_LABEL } from "./mapTypes";
-import type { LayerGroupId, LayerPublicationReadinessStatus, LayerQaStatus, LayerScientificQABadge, LayerSourceKind, OverlayLayerConfig } from "./mapTypes";
+import type { LayerGroupId, LayerPublicationReadinessStatus, LayerQaStatus, LayerScientificQABadge, LayerSourceKind, MapBookmark, MapPin, OverlayLayerConfig } from "./mapTypes";
 import { CartographyRecommendationList } from "./CartographyRecommendationList";
 import { DeclareCrsControl } from "./DeclareCrsControl";
 import { createMapExplorerDemoLayerPack, getDemoAoiBoundsList } from "./demoDataPacks";
@@ -32,7 +32,7 @@ import {
   mapStyles,
 } from "./mapTokens";
 import motionStyles from "./design/motion.module.css";
-import { IconClose, IconEyeClosed, IconEyeOpen } from "./MapIcons";
+import { IconClose, IconEyeClosed, IconEyeOpen, IconLayers, IconLine, IconPin, IconPoint, IconPolygon, IconUnknown } from "./MapIcons";
 
 /* ================================================================== */
 /*  Props                                                              */
@@ -84,9 +84,12 @@ export interface MapLayerManagerProps {
   cartographyReviewPlacement?: "inline" | "none";
   onRequestClose?: () => void;
   panelStyle?: React.CSSProperties;
+  density?: MapLayerPanelDensity;
   /** Screen reader announcement */
   onAnnounce?: (msg: string) => void;
 }
+
+export type MapLayerPanelDensity = "compact" | "comfortable";
 
 export interface MapLayerSourcesPanelProps {
   overlayLayers: readonly OverlayLayerConfig[];
@@ -115,6 +118,17 @@ export interface MapLayerCartographyPanelProps {
   onUndoCartographyRecommendation?: () => void;
   canUndoCartographyRecommendation?: boolean;
   onShowCartographyDetails?: (recommendation: MapCartographyRecommendation) => void;
+}
+
+export interface MapLayerBookmarksPanelProps {
+  bookmarks: readonly MapBookmark[];
+  pins: readonly MapPin[];
+  maxBookmarks: number;
+  onSaveBookmark: (name: string) => void;
+  onRestoreBookmark: (bookmark: MapBookmark) => void;
+  onRemovePin: (id: string) => void;
+  onClearPins: () => void;
+  onFlyTo: (lng: number, lat: number, zoom?: number) => void;
 }
 
 /* ================================================================== */
@@ -258,11 +272,11 @@ const groupHeader: React.CSSProperties = {
 const layerRow: React.CSSProperties = {
   ...mapStyles.sidePanelRow,
   display: "grid",
-  gridTemplateColumns: "1.625rem minmax(0, 1fr) 3.5rem",
-  alignItems: "stretch",
-  gap: MAP_DENSITY.compact.gap,
-  minHeight: "7.5rem",
-  padding: `${MAP_SPACING.sm} ${MAP_SPACING.sm}`,
+  gridTemplateColumns: "1rem 1.35rem minmax(0, 1fr) 1.75rem 3.5rem",
+  alignItems: "center",
+  gap: "0.3125rem",
+  minHeight: "2.375rem",
+  padding: "0.3125rem 0.375rem",
   boxSizing: "border-box",
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
   cursor: "grab",
@@ -272,6 +286,39 @@ const layerRowDragging: React.CSSProperties = {
   ...layerRow,
   opacity: 0.5,
   background: MAP_COLORS.neutralSubtle,
+};
+
+const layerRowDropTarget: React.CSSProperties = {
+  boxShadow: `inset 0 -2px 0 ${MAP_COLORS.interaction}, inset 2px 0 0 ${MAP_COLORS.interaction}`,
+};
+
+const layerRowComfortable: React.CSSProperties = {
+  minHeight: "2.75rem",
+  padding: "0.4375rem 0.5rem",
+};
+
+const layerDragHandle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "1rem",
+  color: MAP_COLORS.textMuted,
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+  fontSize: 12,
+  lineHeight: 1,
+  cursor: "grab",
+};
+
+const layerTypeIconShell: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "1.25rem",
+  height: "1.25rem",
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.sm,
+  color: MAP_COLORS.textSecondary,
+  background: MAP_COLORS.transparent,
 };
 
 const visibilityBtn: React.CSSProperties = {
@@ -296,7 +343,7 @@ const layerContent: React.CSSProperties = {
   minWidth: 0,
   display: "grid",
   alignContent: "start",
-  gap: MAP_SPACING.xs,
+  gap: 3,
 };
 
 const layerNameButton: React.CSSProperties = {
@@ -330,8 +377,9 @@ const layerTextBlock: React.CSSProperties = {
 };
 
 const layerNameLine: React.CSSProperties = {
-  display: "grid",
-  gap: 2,
+  display: "flex",
+  alignItems: "center",
+  gap: MAP_SPACING.xs,
   minWidth: 0,
 };
 
@@ -388,9 +436,18 @@ const layerBadgeRail: React.CSSProperties = {
 const layerControlRow: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
-  gap: 6,
+  gap: MAP_SPACING.xs,
   minWidth: 0,
-  minHeight: MAP_DENSITY.compact.rowHeight,
+  minHeight: "1rem",
+};
+
+const opacityValueLabel: React.CSSProperties = {
+  flex: "0 0 auto",
+  minWidth: "2rem",
+  color: MAP_COLORS.textMuted,
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+  fontSize: 9,
+  textAlign: "right",
 };
 
 const layerSectionGrid: React.CSSProperties = {
@@ -625,37 +682,6 @@ const layerActionButton: React.CSSProperties = {
   textAlign: "left" as const,
 };
 
-const layerPrimaryActionsRow: React.CSSProperties = {
-  display: "flex",
-  flexWrap: "wrap",
-  alignItems: "center",
-  gap: MAP_SPACING.xs,
-  minWidth: 0,
-};
-
-const layerPrimaryActionButton: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  minHeight: "2rem",
-  padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
-  border: MAP_STROKES.hairlineSubtle,
-  borderRadius: MAP_RADIUS.sm,
-  background: MAP_COLORS.transparent,
-  color: MAP_COLORS.interaction,
-  fontSize: 10,
-  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
-  cursor: "pointer",
-  maxWidth: "100%",
-  textAlign: "left",
-};
-
-const layerPrimaryActionButtonDanger: React.CSSProperties = {
-  color: MAP_COLORS.error,
-  border: `1px solid ${MAP_COLORS.error}`,
-  background: "rgba(248, 113, 113, 0.08)",
-};
-
 const layerActionButtonLabel: React.CSSProperties = {
   minWidth: 0,
   overflowWrap: "anywhere",
@@ -737,7 +763,7 @@ const scientificQaChipWarning: React.CSSProperties = {
 
 const opacitySlider: React.CSSProperties = {
   width: "100%",
-  minWidth: 72,
+  minWidth: 48,
   height: 4,
   accentColor: MAP_COLORS.interaction,
   cursor: "pointer",
@@ -801,6 +827,18 @@ const layerFooterActions: React.CSSProperties = {
   gap: MAP_SPACING.xs,
   padding: `${MAP_SPACING.sm} ${MAP_SPACING.md}`,
   borderTop: MAP_STROKES.hairlineSubtle,
+};
+
+const layerFooterStatusLine: React.CSSProperties = {
+  gridColumn: "1 / -1",
+  display: "flex",
+  justifyContent: "space-between",
+  gap: MAP_SPACING.sm,
+  minWidth: 0,
+  color: MAP_COLORS.textMuted,
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+  fontSize: 10,
+  lineHeight: 1.3,
 };
 
 const addManualLayerBtn: React.CSSProperties = {
@@ -884,9 +922,90 @@ const layerSourceActionRow: React.CSSProperties = {
   gap: MAP_SPACING.xs,
 };
 
+const bookmarkPanelBody: React.CSSProperties = {
+  ...layerAuxBody,
+  gap: MAP_SPACING.md,
+};
+
+const bookmarkSection: React.CSSProperties = {
+  display: "grid",
+  gap: MAP_SPACING.xs,
+  minWidth: 0,
+};
+
+const bookmarkSectionHeader: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: MAP_SPACING.sm,
+  minHeight: "1.625rem",
+  borderBottom: MAP_STROKES.hairlineSubtle,
+};
+
+const bookmarkSectionTitle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: MAP_SPACING.xs,
+  minWidth: 0,
+  color: MAP_COLORS.textSecondary,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+  textTransform: "uppercase",
+  letterSpacing: MAP_TYPOGRAPHY.letterSpacing.caps,
+};
+
+const bookmarkRows: React.CSSProperties = {
+  display: "grid",
+  gap: MAP_SPACING.xs,
+};
+
+const bookmarkRow: React.CSSProperties = {
+  ...mapStyles.sidePanelRow,
+  display: "grid",
+  gridTemplateColumns: "1.25rem minmax(0, 1fr) auto",
+  alignItems: "center",
+  gap: MAP_SPACING.sm,
+  minHeight: "2.5rem",
+  padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.sm,
+};
+
+const bookmarkRowTitle: React.CSSProperties = {
+  minWidth: 0,
+  color: MAP_COLORS.text,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+  ...MAP_TEXT_STYLES.truncate,
+};
+
+const bookmarkRowMeta: React.CSSProperties = {
+  minWidth: 0,
+  color: MAP_COLORS.textMuted,
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+  fontSize: 10,
+  ...MAP_TEXT_STYLES.truncate,
+};
+
 const layerAuxEmpty: React.CSSProperties = {
   ...mapStyles.sidePanelEmpty,
   padding: MAP_SPACING.md,
+};
+
+const fileDropOverlay: React.CSSProperties = {
+  position: "absolute",
+  inset: MAP_SPACING.sm,
+  zIndex: MAP_Z_INDEX.dropdown,
+  display: "grid",
+  placeItems: "center",
+  pointerEvents: "none",
+  border: `1px dashed ${MAP_COLORS.interaction}`,
+  borderRadius: MAP_RADIUS.md,
+  background: "rgba(6, 10, 16, 0.78)",
+  color: MAP_COLORS.text,
+  fontSize: MAP_TYPOGRAPHY.fontSize.sm,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+  textAlign: "center",
 };
 
 const cartographyScopeRail: React.CSSProperties = {
@@ -1000,10 +1119,13 @@ const dialogBtnPrimary: React.CSSProperties = {
 };
 
 const emptyGroupMsg: React.CSSProperties = {
+  display: "grid",
+  gap: MAP_SPACING.xs,
+  justifyItems: "start",
   color: MAP_COLORS.textMuted,
   fontSize: 11,
   padding: `4px ${MAP_SPACING.md}`,
-  fontStyle: "italic",
+  lineHeight: 1.45,
 };
 
 const analysisSectionTitle: React.CSSProperties = {
@@ -1253,6 +1375,35 @@ function formatLayerGeometryFeatureSummary(layer: OverlayLayerConfig): string | 
     return `${featureCount.toLocaleString()} features`;
   }
   return geometryType !== "Unknown" ? geometryType : null;
+}
+
+function formatLayerGeometryChip(layer: OverlayLayerConfig): string {
+  return formatLayerGeometryFeatureSummary(layer) ?? layer.type;
+}
+
+function getLayerGeometryIconKind(layer: OverlayLayerConfig): "point" | "line" | "polygon" | "pin" | "layer" | "unknown" {
+  const geometry = normalizeLayerRegistryMetadata(layer).geometrySummary.geometryType.toLowerCase();
+  if (geometry.includes("point")) return "point";
+  if (geometry.includes("line")) return "line";
+  if (geometry.includes("polygon")) return "polygon";
+  if (layer.type === "marker") return "pin";
+  if (layer.type === "geojson" || layer.type === "heatmap" || layer.type === "symbol-density") return "layer";
+  return "unknown";
+}
+
+function formatBookmarkTimestamp(timestamp: string): string {
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return "saved view";
+  return date.toLocaleString(undefined, {
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function hasFileDrag(event: React.DragEvent): boolean {
+  return Array.from(event.dataTransfer.types).includes("Files");
 }
 
 function scientificQaBadgeStyle(badge: LayerScientificQABadge): React.CSSProperties {
@@ -1720,6 +1871,26 @@ const LayerBadge: React.FC<{ badge: LayerBadgeModel }> = ({ badge }) => (
   </span>
 );
 
+const LayerGeometryIcon: React.FC<{ layer: OverlayLayerConfig }> = ({ layer }) => {
+  const kind = getLayerGeometryIconKind(layer);
+  const color = MAP_COLORS.textSecondary;
+  switch (kind) {
+    case "point":
+      return <IconPoint size={13} color={color} />;
+    case "line":
+      return <IconLine size={13} color={color} />;
+    case "polygon":
+      return <IconPolygon size={13} color={color} />;
+    case "pin":
+      return <IconPin size={13} color={color} />;
+    case "layer":
+      return <IconLayers size={13} color={color} />;
+    case "unknown":
+    default:
+      return <IconUnknown size={13} color={color} />;
+  }
+};
+
 function layerReadinessCellStyle(tone: LayerBadgeTone): React.CSSProperties {
   const toneStyle = layerBadgeToneStyle(tone);
   return {
@@ -2087,6 +2258,135 @@ export const MapLayerSourcesPanel: React.FC<MapLayerSourcesPanelProps> = ({
             </article>
           );
         })}
+      </div>
+    </section>
+  );
+};
+
+export const MapLayerBookmarksPanel: React.FC<MapLayerBookmarksPanelProps> = ({
+  bookmarks,
+  pins,
+  maxBookmarks,
+  onSaveBookmark,
+  onRestoreBookmark,
+  onRemovePin,
+  onClearPins,
+  onFlyTo,
+}) => {
+  const handleSaveBookmark = (): void => {
+    const fallback = `View ${bookmarks.length + 1}`;
+    const name = typeof window !== "undefined" && typeof window.prompt === "function"
+      ? window.prompt("Name this map view", fallback)
+      : fallback;
+    if (name == null) return;
+    onSaveBookmark(name);
+  };
+
+  return (
+    <section style={layerAuxPanel} aria-label="Layer bookmarks and pins" data-testid="map-layer-bookmarks-panel">
+      <div style={layerAuxSummary} aria-label="Bookmark and pin summary">
+        <div style={mapStyles.sidePanelMetric}>
+          <span style={mapStyles.sidePanelMetricLabel}>Bookmarks</span>
+          <span style={mapStyles.sidePanelMetricValue}>{bookmarks.length}/{maxBookmarks}</span>
+        </div>
+        <div style={{ ...mapStyles.sidePanelMetric, borderRight: MAP_STROKES.none }}>
+          <span style={mapStyles.sidePanelMetricLabel}>Pins</span>
+          <span style={mapStyles.sidePanelMetricValue}>{pins.length}</span>
+        </div>
+      </div>
+      <div style={bookmarkPanelBody}>
+        <section style={bookmarkSection} aria-label="Saved views">
+          <div style={bookmarkSectionHeader}>
+            <span style={bookmarkSectionTitle}>
+              <IconLayers size={12} />
+              Saved views
+            </span>
+            <button
+              type="button"
+              style={layerInlineActionButton}
+              onClick={handleSaveBookmark}
+              disabled={bookmarks.length >= maxBookmarks}
+              title={bookmarks.length >= maxBookmarks ? `Maximum ${maxBookmarks} saved views reached` : "Save current map view"}
+            >
+              Save View
+            </button>
+          </div>
+          {bookmarks.length === 0 ? (
+            <p style={layerAuxEmpty}>No saved views yet. Save the current map view to return to this viewport and visible-layer set.</p>
+          ) : (
+            <div style={bookmarkRows} role="list" aria-label="Saved map views">
+              {bookmarks.map((bookmark) => (
+                <article key={bookmark.id} style={bookmarkRow} role="listitem" data-testid={`map-layer-bookmark-row-${bookmark.id}`}>
+                  <IconLayers size={13} color={MAP_COLORS.interaction} />
+                  <span style={{ minWidth: 0, display: "grid", gap: 2 }}>
+                    <span style={bookmarkRowTitle}>{bookmark.name}</span>
+                    <span style={bookmarkRowMeta}>
+                      {formatBookmarkTimestamp(bookmark.timestamp)} / {bookmark.layers.length} visible layer{bookmark.layers.length === 1 ? "" : "s"}
+                    </span>
+                  </span>
+                  <button
+                    type="button"
+                    style={layerInlineActionButton}
+                    onClick={() => onRestoreBookmark(bookmark)}
+                    aria-label={`Zoom to saved view ${bookmark.name}`}
+                  >
+                    Zoom
+                  </button>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section style={bookmarkSection} aria-label="Pinned locations">
+          <div style={bookmarkSectionHeader}>
+            <span style={bookmarkSectionTitle}>
+              <IconPin size={12} />
+              Pins
+            </span>
+            {pins.length > 0 ? (
+              <button type="button" style={layerInlineActionButton} onClick={onClearPins}>
+                Clear Pins
+              </button>
+            ) : null}
+          </div>
+          {pins.length === 0 ? (
+            <p style={layerAuxEmpty}>No pinned locations. Use the pin tool on the map to create zoom targets.</p>
+          ) : (
+            <div style={bookmarkRows} role="list" aria-label="Pinned map locations">
+              {pins.map((pin) => {
+                const label = pin.label ?? pin.id;
+                return (
+                  <article key={pin.id} style={bookmarkRow} role="listitem" data-testid={`map-layer-pin-row-${pin.id}`}>
+                    <IconPin size={13} color={MAP_COLORS.interaction} />
+                    <span style={{ minWidth: 0, display: "grid", gap: 2 }}>
+                      <span style={bookmarkRowTitle}>{label}</span>
+                      <span style={bookmarkRowMeta}>{pin.lat.toFixed(5)}, {pin.lng.toFixed(5)}</span>
+                    </span>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: MAP_SPACING.xs }}>
+                      <button
+                        type="button"
+                        style={layerInlineActionButton}
+                        onClick={() => onFlyTo(pin.lng, pin.lat)}
+                        aria-label={`Zoom to pin ${label}`}
+                      >
+                        Zoom
+                      </button>
+                      <button
+                        type="button"
+                        style={{ ...layerInlineActionButton, color: MAP_COLORS.error }}
+                        onClick={() => onRemovePin(pin.id)}
+                        aria-label={`Remove pin ${label}`}
+                      >
+                        Remove
+                      </button>
+                    </span>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </section>
       </div>
     </section>
   );
@@ -2705,10 +3005,12 @@ interface LayerRowProps {
   cartographyRecommendationCount?: number;
   onReviewCartography?: (id: string) => void;
   onAnnounce?: (msg: string) => void;
+  density: MapLayerPanelDensity;
   /** Drag and drop */
   isDragging: boolean;
+  isDropTarget: boolean;
   onDragStart: (e: React.DragEvent, id: string) => void;
-  onDragOver: (e: React.DragEvent) => void;
+  onDragOver: (e: React.DragEvent, id: string) => void;
   onDrop: (e: React.DragEvent, targetId: string) => void;
   onDragEnd: () => void;
 }
@@ -2743,7 +3045,9 @@ const LayerRow: React.FC<LayerRowProps> = ({
   cartographyRecommendationCount = 0,
   onReviewCartography,
   onAnnounce,
+  density,
   isDragging,
+  isDropTarget,
   onDragStart,
   onDragOver,
   onDrop,
@@ -2869,12 +3173,11 @@ const LayerRow: React.FC<LayerRowProps> = ({
         onSelect: () => onRequestRemove(layer.id),
       }];
   const rowActions = [...coreCommandActions, ...utilityActions, ...evidenceActions, ...removalActions];
-  const primaryRowActions = rowActions
-    .filter((action) => getLayerActionDensityClass(action) === "primary")
-    .slice(0, 2);
-  const menuActions = rowActions.filter((action) => getLayerActionDensityClass(action) !== "primary");
+  const menuActions = rowActions;
   const importFormat = formatImportSourceLabel(layer.metadata?.importFormat);
   const restoreStatus = resolveLayerSourceRestoreStatus(layer);
+  const sourceRestoreLabel = restoreStatus ? SOURCE_RESTORE_STATUS_LABELS[restoreStatus] : "unregistered";
+  const geometryChip = formatLayerGeometryChip(layer);
   const outputMode = analysisResult?.outputMode;
   const detailSummary = [
     SOURCE_KIND_LABELS[sourceKind],
@@ -2908,12 +3211,16 @@ const LayerRow: React.FC<LayerRowProps> = ({
       ref={rowRef}
       style={{
         ...(isDragging ? layerRowDragging : layerRow),
+        ...(density === "comfortable" ? layerRowComfortable : {}),
+        ...(isDropTarget ? layerRowDropTarget : {}),
         ...(shouldEmphasizeRow ? layerActiveState : {}),
       }}
       className={motionStyles.layerFade}
+      data-layer-row-density={density}
+      data-layer-drop-target={isDropTarget ? "true" : undefined}
       draggable
       onDragStart={(e) => onDragStart(e, layer.id)}
-      onDragOver={onDragOver}
+      onDragOver={(e) => onDragOver(e, layer.id)}
       onDrop={(e) => onDrop(e, layer.id)}
       onDragEnd={onDragEnd}
       role="listitem"
@@ -2925,18 +3232,12 @@ const LayerRow: React.FC<LayerRowProps> = ({
         }
       }}
     >
-      {/* Visibility toggle */}
-      <button
-        type="button"
-        style={visibilityBtn}
-        onClick={() => onToggleVisibility(layer.id)}
-        aria-label={`${layer.visible ? "Hide" : "Show"} layer ${layer.name}`}
-        aria-pressed={layer.visible}
-      >
-        <span style={{ color: layer.visible ? MAP_COLORS.interaction : MAP_COLORS.textMuted, display: "inline-flex", alignItems: "center" }}>
-          {layer.visible ? <IconEyeOpen size={13} /> : <IconEyeClosed size={13} />}
-        </span>
-      </button>
+      <span style={layerDragHandle} aria-hidden="true" title="Drag to reorder">
+        ::
+      </span>
+      <span style={layerTypeIconShell} title={`${geometryChip} layer type`} aria-hidden="true">
+        <LayerGeometryIcon layer={layer} />
+      </span>
 
       <div style={layerContent}>
         <div style={layerNameLine}>
@@ -2949,9 +3250,45 @@ const LayerRow: React.FC<LayerRowProps> = ({
           >
             <span style={layerName}>{layer.name}</span>
           </button>
+          <LayerBadge
+            badge={{
+              id: "geometry",
+              label: geometryChip,
+              title: `Geometry/type: ${geometryChip}.`,
+              tone: geometryChip === layer.type ? "neutral" : "info",
+            }}
+          />
         </div>
 
         <div style={layerModeRail} aria-label={`Layer mode and caveat badges for ${layer.name}`}>
+          <LayerBadge
+            badge={{
+              id: "source",
+              label: `${SOURCE_KIND_LABELS[sourceKind]} / ${sourceRestoreLabel}`,
+              title: `Source kind: ${SOURCE_KIND_LABELS[sourceKind]}. Restore state: ${sourceRestoreLabel}.`,
+              tone: sourceRestoreBadgeTone(restoreStatus, sourceKind),
+            }}
+          />
+          <LayerBadge
+            badge={{
+              id: "crs",
+              label: buildCrsReadinessValue(layer),
+              title: registry.crsSummary.notes.length > 0
+                ? registry.crsSummary.notes.join(" ")
+                : `CRS status: ${buildCrsReadinessValue(layer)}.`,
+              tone: registry.crsSummary.status === "known"
+                ? (registry.crsSummary.source === "user-declared" ? "warning" : "good")
+                : "error",
+            }}
+          />
+          <LayerBadge
+            badge={{
+              id: "qa",
+              label: QA_STATUS_LABELS[qaStatus],
+              title: `Scientific QA status: ${QA_STATUS_LABELS[qaStatus]}.`,
+              tone: qaBadgeTone(qaStatus),
+            }}
+          />
           {isSymbologyActive ? (
             <span style={staleChip} title="This layer is active in the style workspace">
               Active style
@@ -3016,45 +3353,6 @@ const LayerRow: React.FC<LayerRowProps> = ({
             <span>{detailsOpen ? "Hide details" : "Show details"}</span>
           </button>
         </div>
-
-        {primaryRowActions.length > 0 ? (
-          <div style={layerPrimaryActionsRow} aria-label={`Primary row actions for ${layer.name}`}>
-            {primaryRowActions.map((action) => {
-              const disabled = Boolean(action.disabledReason || !action.onSelect);
-              const title = action.disabledReason ?? action.title;
-              return (
-                <button
-                  key={action.id}
-                  type="button"
-                  style={{
-                    ...layerPrimaryActionButton,
-                    ...(action.tone === "danger" ? layerPrimaryActionButtonDanger : {}),
-                    ...(disabled ? layerActionButtonDisabled : {}),
-                  }}
-                  aria-label={disabled ? `${action.label}: ${title}` : `${action.label} ${layer.name}`}
-                  title={title}
-                  disabled={disabled}
-                  data-layer-action={action.id}
-                  data-layer-action-group={action.groupId}
-                  data-layer-action-class="primary"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    if (disabled || !action.onSelect) {
-                      if (action.disabledReason) {
-                        onAnnounce?.(`${action.label} disabled for ${layer.name}: ${action.disabledReason}`);
-                      }
-                      return;
-                    }
-                    action.onSelect();
-                    onAnnounce?.(`${action.label} requested for ${layer.name}`);
-                  }}
-                >
-                  {action.label}
-                </button>
-              );
-            })}
-          </div>
-        ) : null}
 
         {onDeclareLayerCrs && (registry.crsSummary.status !== "known" || registry.crsSummary.source === "user-declared") ? (
           <div style={{ marginTop: MAP_SPACING.xs }}>
@@ -3126,6 +3424,7 @@ const LayerRow: React.FC<LayerRowProps> = ({
         </div>
 
         <div style={layerControlRow}>
+          <span style={opacityValueLabel}>{Math.round(layer.opacity * 100)}%</span>
           <input
             type="range"
             min={0}
@@ -3138,6 +3437,17 @@ const LayerRow: React.FC<LayerRowProps> = ({
           />
         </div>
       </div>
+      <button
+        type="button"
+        style={visibilityBtn}
+        onClick={() => onToggleVisibility(layer.id)}
+        aria-label={`${layer.visible ? "Hide" : "Show"} layer ${layer.name}`}
+        aria-pressed={layer.visible}
+      >
+        <span style={{ color: layer.visible ? MAP_COLORS.interaction : MAP_COLORS.textMuted, display: "inline-flex", alignItems: "center" }}>
+          {layer.visible ? <IconEyeOpen size={13} /> : <IconEyeClosed size={13} />}
+        </span>
+      </button>
       <LayerActionMenu
         layerName={layer.name}
         actions={menuActions}
@@ -3194,6 +3504,7 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
   cartographyReviewPlacement = "inline",
   onRequestClose,
   panelStyle,
+  density = "compact",
   onAnnounce,
 }) => {
   const [collapsed, setCollapsed] = useState(false);
@@ -3201,6 +3512,8 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
   const [popoverLayerId, setPopoverLayerId] = useState<string | null>(null);
   const [popoverTop, setPopoverTop] = useState(0);
   const [dragId, setDragId] = useState<string | null>(null);
+  const [dropTargetId, setDropTargetId] = useState<string | null>(null);
+  const [fileDropActive, setFileDropActive] = useState(false);
   const [query, setQuery] = useState("");
   const [cartographyPanelOpen, setCartographyPanelOpen] = useState(false);
   const [cartographyLayerFilterId, setCartographyLayerFilterId] = useState<string | null>(null);
@@ -3365,18 +3678,25 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
     setDragId(id);
   }, []);
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
+  const handleDragOver = useCallback((e: React.DragEvent, id: string) => {
     e.preventDefault();
+    setDropTargetId(id);
   }, []);
 
   const handleDrop = useCallback((e: React.DragEvent, targetId: string) => {
     e.preventDefault();
-    if (!dragId || dragId === targetId) return;
+    if (!dragId || dragId === targetId) {
+      setDropTargetId(null);
+      return;
+    }
 
     const ids = overlayLayers.map((l) => l.id);
     const fromIdx = ids.indexOf(dragId);
     const toIdx = ids.indexOf(targetId);
-    if (fromIdx === -1 || toIdx === -1) return;
+    if (fromIdx === -1 || toIdx === -1) {
+      setDropTargetId(null);
+      return;
+    }
 
     const reordered = [...ids];
     reordered.splice(fromIdx, 1);
@@ -3384,10 +3704,36 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
     onReorderLayers(reordered);
     onAnnounce?.("Layer order updated");
     setDragId(null);
+    setDropTargetId(null);
   }, [dragId, overlayLayers, onReorderLayers, onAnnounce]);
 
   const handleDragEnd = useCallback(() => {
     setDragId(null);
+    setDropTargetId(null);
+  }, []);
+
+  const handlePanelDragEnter = useCallback((event: React.DragEvent) => {
+    if (hasFileDrag(event)) {
+      setFileDropActive(true);
+    }
+  }, []);
+
+  const handlePanelDragOver = useCallback((event: React.DragEvent) => {
+    if (hasFileDrag(event)) {
+      setFileDropActive(true);
+    }
+  }, []);
+
+  const handlePanelDragLeave = useCallback((event: React.DragEvent) => {
+    const nextTarget = event.relatedTarget;
+    if (nextTarget instanceof Node && event.currentTarget.contains(nextTarget)) {
+      return;
+    }
+    setFileDropActive(false);
+  }, []);
+
+  const handlePanelDrop = useCallback(() => {
+    setFileDropActive(false);
   }, []);
 
   const handleMoveLayer = useCallback((id: string, direction: "up" | "down") => {
@@ -3650,10 +3996,15 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
 
   return (
     <div
-      style={{ ...(presentation === "embedded" ? panelContainerEmbedded : panelContainer), ...panelStyle }}
+      style={{ ...(presentation === "embedded" ? panelContainerEmbedded : panelContainer), position: "relative", ...panelStyle }}
       role="region"
       aria-label="Layer management panel"
       data-presentation={presentation}
+      data-layer-panel-density={density}
+      onDragEnter={handlePanelDragEnter}
+      onDragOver={handlePanelDragOver}
+      onDragLeave={handlePanelDragLeave}
+      onDrop={handlePanelDrop}
     >
       {/* Panel header */}
       {presentation === "standalone" ? (
@@ -3773,9 +4124,20 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
       <div style={mapStyles.sidePanelBody} role="list" aria-label="Layer list">
         {filteredOverlayLayers.length === 0 ? (
           <div style={emptyGroupMsg}>
-            {hasSearch
-              ? "No layers match the current search. Clear the search or add a layer whose name, CRS, source, or field metadata matches."
-              : "Missing prerequisite: no overlay layers added. Import or add a dataset to enable layer controls, QA, comparison, and report handoff."}
+            <span>
+              {hasSearch
+                ? "No layers match the current search. Clear the search or add a layer whose name, CRS, source, or field metadata matches."
+                : "Drop files on the map or use Add Data to enable layer controls, QA, comparison, and report handoff."}
+            </span>
+            {!hasSearch ? (
+              <button
+                type="button"
+                style={{ ...layerInlineActionButton, marginTop: MAP_SPACING.sm }}
+                onClick={() => setShowAddDialog(true)}
+              >
+                Add Data
+              </button>
+            ) : null}
           </div>
         ) : null}
 
@@ -3819,7 +4181,9 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
                         activeRerunToken={activeRerunToken}
                         {...(onReRunAnalysisLayer ? { onReRunAnalysisLayer } : {})}
                         {...(onAnnounce ? { onAnnounce } : {})}
+                        density={density}
                         isDragging={dragId === layer.id}
+                        isDropTarget={dropTargetId === layer.id && dragId !== layer.id}
                         onDragStart={handleDragStart}
                         onDragOver={handleDragOver}
                         onDrop={handleDrop}
@@ -3841,13 +4205,18 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
 
       {/* Add layer actions */}
       <div style={layerFooterActions}>
+        <div style={layerFooterStatusLine}>
+          <span>{selectedFeatureCount.toLocaleString()} selected</span>
+          <span>{layerSummary.visible.toLocaleString()} / {layerSummary.total.toLocaleString()} visible layers</span>
+        </div>
         <button
           type="button"
           style={addManualLayerBtn}
           onClick={() => setShowAddDialog(true)}
           aria-label="Add a new layer"
+          title="Add Layer / Add Data"
         >
-          Add Layer
+          Add Data
         </button>
         <button
           type="button"
@@ -3902,6 +4271,11 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
           onAdd={handleAddLayer}
           onClose={() => setShowAddDialog(false)}
         />
+      ) : null}
+      {fileDropActive ? (
+        <div style={fileDropOverlay} aria-hidden="true">
+          Drop files on the map or use Add Data
+        </div>
       ) : null}
     </div>
   );

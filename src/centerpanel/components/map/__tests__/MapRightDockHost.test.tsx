@@ -7,6 +7,7 @@ import type { MapRightDockPanel } from "../mapDocking";
 import {
   createMapRightDockRoute,
   createMapRightDockRouteFromBottomTab,
+  getMapRightDockPanelDefinition,
   MAP_MIGRATED_BOTTOM_TAB_TO_RIGHT_DOCK_PANEL,
   MAP_RIGHT_DOCK_PANEL_IDS,
   MAP_RIGHT_DOCK_PRIMARY_PANELS,
@@ -24,10 +25,10 @@ describe("MapRightDockHost", () => {
     );
 
     const host = screen.getByTestId("map-right-dock-host");
-    expect(screen.getByRole("complementary", { name: "Problems" })).toBe(host);
+    expect(screen.getByRole("complementary", { name: "QA" })).toBe(host);
     expect(host.getAttribute("data-map-right-dock-panel")).toBe("problems");
     expect(host.getAttribute("data-map-right-dock-source")).toBe("status-bar");
-    expect(screen.getByRole("heading", { name: "Problems" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "QA" })).toBeTruthy();
     expect(host.querySelector("[data-map-right-dock-body='true']")).toBeTruthy();
   });
 
@@ -45,13 +46,13 @@ describe("MapRightDockHost", () => {
 
     // Primary panels are always in the tab rail
     for (const panel of primaryInMigrated) {
-      expect(screen.getByRole("tab", { name: new RegExp(panel, "i") })).toBeTruthy();
+      expect(screen.getByRole("tab", { name: new RegExp(getMapRightDockPanelDefinition(panel).label, "i") })).toBeTruthy();
     }
     // Non-primary panels are all defined in MAP_RIGHT_DOCK_PANEL_IDS (always reachable via overflow)
     expect(overflowInMigrated.length).toBeGreaterThanOrEqual(0); // structural guard: every panel has a tier
 
     const body = screen.getByRole("tabpanel");
-    expect(body.textContent).toBe("");
+    expect(body.textContent).toContain("No attributes content");
   });
 
   it("switches the active panel through the primary tab pattern", () => {
@@ -59,18 +60,18 @@ describe("MapRightDockHost", () => {
     render(
       <MapRightDockHost
         route={createMapRightDockRoute("problems", { source: "toolbar" })}
-        panels={["inspect", "attributes", "problems", "report", "workflow"]}
+        panels={["inspect", "style", "problems", "workflow", "report"]}
         onPanelChange={onPanelChange}
         onClose={vi.fn()}
       />,
     );
 
-    fireEvent.click(screen.getByRole("tab", { name: /attributes/i }));
-    expect(onPanelChange).toHaveBeenCalledWith("attributes");
+    fireEvent.click(screen.getByRole("tab", { name: /style/i }));
+    expect(onPanelChange).toHaveBeenCalledWith("style");
 
-    // Arrow right from problems → next primary panel is report (primary order: inspect, attributes, problems, report, workflow)
-    fireEvent.keyDown(screen.getByRole("tab", { name: /problems/i }), { key: "ArrowRight" });
-    expect(onPanelChange).toHaveBeenLastCalledWith("report");
+    // Arrow right from QA → next primary panel is workflow (primary order: inspector, style, QA, workflow, publish)
+    fireEvent.keyDown(screen.getByRole("tab", { name: /qa/i }), { key: "ArrowRight" });
+    expect(onPanelChange).toHaveBeenLastCalledWith("workflow");
   });
 
   it("routes to a non-primary panel via overflow menu item and keeps it reachable", () => {
@@ -85,7 +86,7 @@ describe("MapRightDockHost", () => {
     );
 
     // Open overflow and click a diagnostics-tier panel
-    fireEvent.click(screen.getByLabelText("Right dock options"));
+    fireEvent.click(screen.getByLabelText("More right dock routes"));
     const overflowMenu = screen.getByRole("menu", { name: "More dock panels" });
     expect(overflowMenu).toBeTruthy();
 
@@ -112,16 +113,16 @@ describe("MapRightDockHost", () => {
     const host = screen.getByTestId("map-right-dock-host");
     expect(host.getAttribute("data-presentation")).toBe("side-drawer");
 
-    fireEvent.click(screen.getByLabelText("Right dock options"));
+    fireEvent.click(screen.getByLabelText("More right dock routes"));
     const overflowMenu = screen.getByRole("menu", { name: "More dock panels" });
     expect(overflowMenu).toBeTruthy();
-    // Advanced group label is visible in overflow menu
-    expect(overflowMenu.querySelector(".overflowGroupLabel") !== null || overflowMenu.textContent?.includes("Advanced")).toBeTruthy();
+    // Review group label is visible in overflow menu
+    expect(overflowMenu.textContent?.includes("Review")).toBeTruthy();
 
-    fireEvent.click(screen.getByLabelText("Collapse right dock"));
+    fireEvent.click(screen.getByLabelText("Collapse Diagnostics"));
     expect(onCollapse).toHaveBeenCalledOnce();
 
-    fireEvent.click(screen.getByLabelText("Close right dock"));
+    fireEvent.click(screen.getByLabelText("Close Diagnostics"));
     expect(onClose).toHaveBeenCalledOnce();
   });
 

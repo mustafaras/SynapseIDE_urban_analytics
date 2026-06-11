@@ -25,9 +25,11 @@ import {
   MAP_SPACING,
   MAP_STROKES,
   MAP_TYPOGRAPHY,
+  type GisStatusKey,
   MAP_Z_INDEX,
   mapStyles,
 } from "./mapTokens";
+import { GisStatusChip } from "./ui";
 import { buildMapProblemsModel, type MapProblemRow, MapProblemsPanel } from "./problems";
 import { createOpaqueFloatingPanelStyle, useDraggableMapPanel } from "./useDraggableMapPanel";
 
@@ -378,16 +380,30 @@ function severityColor(severity: MapScientificQAIssueSeverity): string {
   }
 }
 
-function domainSeverityColor(severity: MapScientificQASeverity): string {
+function issueSeverityStatus(severity: MapScientificQAIssueSeverity): GisStatusKey {
   switch (severity) {
-    case "blocked":
-      return MAP_COLORS.error;
+    case "blocker":
+    case "error":
+      return "blocked";
     case "warning":
-      return MAP_COLORS.warning;
-    case "unknown":
-      return MAP_COLORS.textMuted;
+      return "caveat";
+    case "info":
     default:
-      return MAP_COLORS.success;
+      return "unknown";
+  }
+}
+
+function domainSeverityStatus(severity: MapScientificQASeverity): GisStatusKey {
+  switch (severity) {
+    case "pass":
+      return "ready";
+    case "warning":
+      return "caveat";
+    case "blocked":
+      return "blocked";
+    case "unknown":
+    default:
+      return "unknown";
   }
 }
 
@@ -656,7 +672,6 @@ export const ScientificQAPanel: React.FC<ScientificQAPanelProps> = ({
           {categoryRows.length > 0 ? (
             <div style={categoryGrid}>
               {categoryRows.map((row) => {
-                const color = domainSeverityColor(row.severity);
                 const affectedLayers = row.affectedLayerIds
                   .map((layerId) => layerNameById.get(layerId) ?? layerId)
                   .slice(0, 3);
@@ -664,9 +679,11 @@ export const ScientificQAPanel: React.FC<ScientificQAPanelProps> = ({
                   <div key={row.category} style={categoryRowStyle}>
                     <div style={categoryHeaderStyle}>
                       <span style={issueTitle}>{CATEGORY_LABELS[row.category]}</span>
-                      <span style={{ ...badgeStyle, color, border: `1px solid ${color}` }}>
-                        {DOMAIN_SEVERITY_LABELS[row.severity]}
-                      </span>
+                      <GisStatusChip
+                        status={domainSeverityStatus(row.severity)}
+                        label={DOMAIN_SEVERITY_LABELS[row.severity]}
+                        density="compact"
+                      />
                     </div>
                     <div style={issueCopy}>{row.reasons[0] ?? "No QA reason recorded for this domain."}</div>
                     {affectedLayers.length > 0 ? (
@@ -752,6 +769,11 @@ export const ScientificQAPanel: React.FC<ScientificQAPanelProps> = ({
                       <span style={{ ...badgeStyle, color, border: `1px solid ${color}` }}>
                         {issue.code}
                       </span>
+                      <GisStatusChip
+                        status={issueSeverityStatus(issue.severity)}
+                        label={SEVERITY_LABELS[issue.severity]}
+                        density="compact"
+                      />
                     </div>
 
                     <div style={issueCopy}>{issue.explanation}</div>

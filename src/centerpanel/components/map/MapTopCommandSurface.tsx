@@ -42,19 +42,19 @@ export interface MapTopCommandSurfaceProps {
 
 const shellStyle: React.CSSProperties = {
   display: "flex",
-  flexWrap: "wrap",
+  flexWrap: "nowrap",
   alignItems: "center",
-  gap: MAP_SPACING.sm,
-  minHeight: "3.25rem",
-  padding: `0.375rem ${MAP_SPACING.md} 0.375rem calc(var(--map-activity-rail-width, 2.625rem) + ${MAP_SPACING.md})`,
+  gap: MAP_SPACING.xs,
+  minHeight: "2.625rem",
+  padding: `0.25rem ${MAP_SPACING.md} 0.25rem calc(var(--map-activity-rail-width, 2.625rem) + ${MAP_SPACING.md})`,
   background: [
-    "linear-gradient(115deg, transparent 0%, color-mix(in srgb, var(--syn-interaction-active, #3794ff) 4%, transparent) 38%, transparent 72%)",
-    "linear-gradient(180deg, color-mix(in srgb, var(--syn-surface-header, #20242b) 98%, #ffffff 2%), var(--syn-surface-header, #20242b))",
+    "linear-gradient(115deg, transparent 0%, color-mix(in srgb, var(--syn-interaction-active, #3794ff) 3%, transparent) 28%, transparent 58%)",
+    "linear-gradient(180deg, color-mix(in srgb, var(--syn-surface-header, #141b24) 99%, #ffffff 1%), var(--syn-surface-header, #141b24))",
   ].join(", "),
-  backgroundSize: "34rem 100%, 100% 100%",
+  backgroundSize: "24rem 100%, 100% 100%",
   borderBottom: "1px solid color-mix(in srgb, var(--syn-border-subtle, rgba(148, 163, 184, 0.18)) 52%, transparent)",
   boxShadow: "none",
-  overflow: "visible",
+  overflow: "hidden",
   position: "relative",
   zIndex: MAP_Z_INDEX.dropdown + 1,
   isolation: "isolate",
@@ -76,8 +76,8 @@ const leadingClusterStyle: React.CSSProperties = {
   ...clusterShellStyle,
   display: "inline-flex",
   flex: "0 1 auto",
-  gap: MAP_SPACING.sm,
-  minWidth: "14rem",
+  gap: MAP_SPACING.xs,
+  minWidth: "10rem",
 };
 
 const identityClusterStyle: React.CSSProperties = {
@@ -171,9 +171,9 @@ const searchClusterStyle: React.CSSProperties = {
   ...clusterShellStyle,
   display: "flex",
   alignItems: "center",
-  flex: "1 1 36rem",
+  flex: "0 1 24rem",
   gap: MAP_SPACING.xs,
-  minWidth: "18rem",
+  minWidth: "12rem",
 };
 
 const searchSlotStyle: React.CSSProperties = {
@@ -204,31 +204,32 @@ const mapToolRailStyle: React.CSSProperties = {
 const commandClusterStyle: React.CSSProperties = {
   ...clusterShellStyle,
   display: "inline-flex",
-  flex: "1 1 24rem",
-  justifyContent: "flex-end",
+  flex: "1 1 48rem",
+  justifyContent: "flex-start",
   padding: `${MAP_SPACING.zero} ${MAP_SPACING.zero}`,
+  minWidth: "18rem",
 };
 
 const contextBarClusterStyle: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
-  gap: MAP_SPACING.sm,
+  gap: MAP_SPACING.xs,
   flex: "0 1 auto",
   minWidth: 0,
   overflow: "visible",
-  paddingLeft: MAP_SPACING.sm,
+  paddingLeft: MAP_SPACING.xs,
   borderLeft: "1px solid color-mix(in srgb, var(--syn-border-subtle, rgba(148, 163, 184, 0.16)) 42%, transparent)",
 };
 
 const trailingClusterStyle: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
-  gap: MAP_SPACING.sm,
+  gap: MAP_SPACING.xs,
   minWidth: MAP_SPACING.zero,
   flex: "0 0 auto",
   position: "relative",
   zIndex: 1,
-  paddingLeft: MAP_SPACING.sm,
+  paddingLeft: MAP_SPACING.xs,
 };
 
 const utilityClusterStyle: React.CSSProperties = {
@@ -501,6 +502,8 @@ export const MapTopCommandSurface: React.FC<MapTopCommandSurfaceProps> = ({
         </div>
       </div>
 
+      <div style={commandClusterStyle}>{commandSlot}</div>
+
       <div style={searchClusterStyle}>
         <div style={searchSlotStyle}>{searchSlot}</div>
         <div style={contextRailStyle}>
@@ -542,8 +545,6 @@ export const MapTopCommandSurface: React.FC<MapTopCommandSurfaceProps> = ({
           {contextBarSlot}
         </div>
       ) : null}
-
-      <div style={commandClusterStyle}>{commandSlot}</div>
       {hasTrailingContent ? (
         <div style={trailingClusterStyle} data-testid="map-top-command-surface-trailing">
           {utilityContent ? (
