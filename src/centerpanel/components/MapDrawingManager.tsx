@@ -4,6 +4,7 @@
 /*  Renders ghost feedback, vertex handles, and the feature sidebar.   */
 /*  presentation="floating"  → legacy draggable floating panel         */
 /*  presentation="embedded"  → scrollable body for the right dock      */
+/*  presentation="headless"  → canvas-only controller, no sidebar UI   */
 /* ================================================================== */
 
 import React, { useCallback, useEffect, useRef } from "react";
@@ -116,7 +117,7 @@ export interface MapDrawingSnapSource {
   featureCollection: GeoJSON.FeatureCollection;
 }
 
-export type MapDrawingManagerPresentation = "floating" | "embedded";
+export type MapDrawingManagerPresentation = "floating" | "embedded" | "headless";
 
 export interface MapDrawingManagerProps {
   mapRef: React.RefObject<maplibregl.Map | null>;
@@ -125,6 +126,8 @@ export interface MapDrawingManagerProps {
    * When `"floating"` (default): renders the classic draggable floating sidebar.
    * When `"embedded"`: renders the feature list as a scrollable body suitable for
    * embedding inside the `MapRightDockHost` draw panel.
+   * When `"headless"`: keeps drawing/map interaction logic active without
+   * rendering sidebar chrome inside the modal.
    */
   presentation?: MapDrawingManagerPresentation;
   sidebarVisible?: boolean;
@@ -1047,6 +1050,11 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
   /* ================================================================ */
 
   const { panelPositionStyle, dragHandleProps, dragHandleStyle } = useDraggableMapPanel();
+  const headless = presentation === "headless";
+
+  if (headless) {
+    return null;
+  }
 
   if (!sidebarVisible) {
     return null;

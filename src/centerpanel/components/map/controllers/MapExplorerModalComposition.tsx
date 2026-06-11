@@ -4168,6 +4168,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
   useEffect(() => {
     if (workspaceView !== "analyze") {
       setShowLayerPanel(true);
+      setShowDrawPanel(false);
       setShowMeasurePanel(false);
       if (activeMeasureTool) {
         setActiveMeasureTool(null);
@@ -4176,15 +4177,17 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     }
 
     setShowLayerPanel(true);
-    if (activeMeasureTool || showMeasurePanel) {
+    if (activeRightDockRoute?.panel === "measure") {
       setShowDrawPanel(false);
       setShowMeasurePanel(true);
-    } else if (activeDrawTool) {
+    } else if (activeRightDockRoute?.panel === "draw") {
+      setShowMeasurePanel(false);
       setShowDrawPanel(true);
     } else {
       setShowDrawPanel(false);
+      setShowMeasurePanel(false);
     }
-  }, [activeDrawTool, activeMeasureTool, setActiveMeasureTool, showMeasurePanel, workspaceView]);
+  }, [activeMeasureTool, activeRightDockRoute?.panel, setActiveMeasureTool, workspaceView]);
 
   useEffect(() => {
     if (!selectionDragTool) {
@@ -8435,18 +8438,18 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
     setShowScientificQAPanel(false);
     closeFloatingRightPanels();
     setShowSidebar(false);
-    setShowDrawPanel(true);
     setShowMeasurePanel(false);
     setSelectionDragTool(null);
     setActiveTool(null);
     setActiveMeasureTool(null);
     setActiveDrawTool("polygon");
+    openRightDockPanel("draw", "Draw workspace opened in the right dock", "quick-action", "context-draw");
     setDrawSeed({
       coordinate,
       tool: "polygon",
       token: Date.now(),
     });
-  }, [closeFloatingRightPanels, setActiveDrawTool, setActiveMeasureTool, setActiveTool]);
+  }, [closeFloatingRightPanels, openRightDockPanel, setActiveDrawTool, setActiveMeasureTool, setActiveTool]);
 
   const toolbarCommandHandlers = useMapCommandHandlers({
     onImport: handleImportRequest,
@@ -11528,7 +11531,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({
             <MapDrawingManager
               mapRef={mapInstanceRef}
               activeDrawTool={activeDrawTool}
-              sidebarVisible={effectiveShowDrawPanel && !rightDrawDockActive}
+              presentation="headless"
+              sidebarVisible={false}
               seedDrawStart={drawSeed}
               drawnFeatures={drawnFeatures}
               snapSources={drawingSnapSources}

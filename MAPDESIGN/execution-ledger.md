@@ -71,8 +71,8 @@
 | P24 | fix/map-modal-collision-zindex-p4 | done | 694df16 | typecheck passed; lint:errors passed; targeted map tests passed (72/72); p09 overlap/collision e2e passed (2/2) | src/centerpanel/components/map/mapTokens.ts | Closed 2026-06-10 with named z-index/elevation model and safe literal replacement in modal overlays/dialog surfaces |
 | P25 | fix/map-modal-collision-zindex-p4 | done | 0726858 | typecheck passed; lint:errors passed; AppPopover test 2/2; overlay consumer vitest 24/24; map-layout-regression-p09 e2e 2/2 | src/centerpanel/components/map/ui/AppPopover.tsx | Closed 2026-06-10 with shared popover flip/clamp/max-height behavior and regression coverage for right-edge and short-height collisions |
 | P26 | fix/map-modal-collision-zindex-p4 | done | 46cf984 | typecheck passed; lint:errors passed; targeted drawer tests 10/10 passed; p09 layout e2e 2/2 passed | src/centerpanel/components/map/MapWorkflowDrawer.tsx | Closed 2026-06-10 with short-height shrinkable embedded drawers and bounded panel bodies for NL query, workflow, and report handoff surfaces |
-| P27 | ui/map-modal-accessibility-p4 | not_started |  |  |  |  |
-| P28 | ui/map-modal-accessibility-p4 | not_started |  |  |  |  |
+| P27 | fix/map-modal-collision-zindex-p4 | done |  | typecheck passed; targeted eslint passed; targeted draw/modal vitest 52/52 passed; p09 layout e2e 2/2 passed | src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx | Closed 2026-06-11 with canonical right-dock/headless draw control reconciliation and legacy-control path guard |
+| P28 | fix/map-modal-collision-zindex-p4 | not_started |  |  |  |  |
 | P29 | ui/map-modal-accessibility-p4 | not_started |  |  |  |  |
 | P30 | ui/map-modal-accessibility-p4 | not_started |  |  |  |  |
 | P31 | ui/map-modal-polish-p5 | not_started |  |  |  |  |
@@ -363,3 +363,14 @@
 - Open Risks: The embedded surfaces now defer entirely to container height; if a future host introduces an unexpectedly small container, the outer shell should provide the authoritative height budget.
 - Resume From: src/centerpanel/components/map/MapWorkflowDrawer.tsx (embedded drawer surface sizing)
 - Next Prompt: P27
+
+### P27 - Phase 4: Reconcile legacy map controls with canonical modal controls
+- Status: done
+- Intent: Verify whether legacy map controls still render in the Map Explorer modal and reconcile any remaining legacy control path with the canonical right-dock/modal control system.
+- Definition of Done: The modal keeps a single canonical control path, legacy `src/components/map` controls remain outside the modal path, and drawing control chrome no longer falls back to a legacy floating sidebar inside the modal.
+- Decisions: Audited `src/components/map/MapControls.tsx`, `src/components/map/LayerManager.tsx`, and modal composition imports before editing. Confirmed `MapControls` and legacy `LayerManager` are barrel-only and not rendered by `MapExplorerModalComposition`. Reconciled the active legacy path by adding `headless` presentation support to `MapDrawingManager`, routing context-start polygon draws through `openRightDockPanel("draw", ...)`, and syncing draw/measure visibility flags to the active right-dock route so closed routes do not leave orphaned legacy panel state behind. Added a source-backed regression guard proving the modal uses embedded/headless canonical draw presentations and does not render legacy `MapControls`/`LayerManager`.
+- Changed Files: src/centerpanel/components/MapDrawingManager.tsx; src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx; src/centerpanel/components/map/__tests__/map-drawing-tools.test.ts; MAPDESIGN/execution-ledger.md
+- Validation: `npm run typecheck` passed; `npm run lint:errors` failed on pre-existing unrelated errors under `GeoLibre-main/**`; `npx eslint src/centerpanel/components/MapDrawingManager.tsx src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx src/centerpanel/components/map/__tests__/map-drawing-tools.test.ts --quiet` passed; `npx vitest run src/centerpanel/components/map/__tests__/map-drawing-tools.test.ts src/centerpanel/components/map/__tests__/map-explorer-canonical-baseline.test.tsx src/centerpanel/components/__tests__/MapExplorerModal.dispatch.test.tsx` passed (52/52); `npx playwright test e2e/map-layout-regression-p09.spec.ts --reporter=line` passed (2/2).
+- Open Risks: Full repository lint remains red because the vendored `GeoLibre-main` subtree already contains unrelated lint violations outside Map Explorer scope. No manual browser inspection was performed in this run; duplicate-control safety relies on the new source-backed control-path test plus stable Playwright layout smoke coverage.
+- Resume From: src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx (route-synced draw/measure panel visibility and headless modal draw controller)
+- Next Prompt: P28

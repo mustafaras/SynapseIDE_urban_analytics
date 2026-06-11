@@ -10,6 +10,9 @@
  *   6. Barrel exports — new types
  */
 
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { Map as MapLibreMap } from "maplibre-gl";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -28,6 +31,12 @@ import {
   makeRectangle,
 } from "../../../../utils/drawingHelpers";
 import type { DrawnFeature, DrawToolId, FeatureStyle } from "../mapTypes";
+
+const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../../");
+
+function readRepoFile(relativePath: string): string {
+  return readFileSync(resolve(repoRoot, relativePath), "utf8");
+}
 
 /* ================================================================== */
 /*  1. drawingHelpers — Pure utility tests                             */
@@ -544,6 +553,35 @@ describe("MapDrawingManager — module exports", () => {
     }));
 
     expect(html).toBe("");
+  });
+
+  it("headless presentation returns null while preserving canvas-side drawing logic", async () => {
+    const mod = await import("../../MapDrawingManager");
+    const html = renderToStaticMarkup(React.createElement(mod.MapDrawingManager, {
+      mapRef: React.createRef<MapLibreMap>(),
+      activeDrawTool: "polygon",
+      presentation: "headless",
+      sidebarVisible: true,
+      drawnFeatures: [],
+      selectedFeatureId: null,
+      onAddFeature: () => undefined,
+      onRemoveFeature: () => undefined,
+      onUpdateFeature: () => undefined,
+      onClearFeatures: () => undefined,
+      onSelectFeature: () => undefined,
+      onCancelDraw: () => undefined,
+    }));
+
+    expect(html).toBe("");
+  });
+
+  it("keeps legacy map controls out of the modal control path", () => {
+    const composition = readRepoFile("src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx");
+
+    expect(composition).not.toMatch(/<MapControls\b/);
+    expect(composition).not.toMatch(/<LayerManager\b/);
+    expect(composition).toMatch(/<MapDrawingManager[\s\S]*?presentation="embedded"/);
+    expect(composition).toMatch(/<MapDrawingManager[\s\S]*?presentation="headless"/);
   });
 });
 
