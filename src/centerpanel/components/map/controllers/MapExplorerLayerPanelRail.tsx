@@ -3,7 +3,8 @@ import React from "react";
 import {
   MapPanelRail,
 } from "../MapWorkspaceShell";
-import { MapWorkbenchSidebar, type MapWorkbenchSidebarTab } from "../sidebar";
+import { MapWorkbenchSidebar } from "../sidebar";
+import { MapDockPanelFrame } from "../shell";
 import {
   MapAnalyzeWorkspace,
 } from "../analyze";
@@ -38,6 +39,8 @@ interface MapExplorerLayerPanelRailProps {
   figureElement: React.ReactNode;
   focusActiveActivityButton: () => void;
   isWorkbenchActivity: boolean;
+  layerCount: number;
+  crsWarningCount: number;
   layerPanelWidth: number;
   layerStackElement: React.ReactNode;
   legendRef: React.Ref<HTMLDivElement>;
@@ -66,9 +69,9 @@ interface MapExplorerLayerPanelRailProps {
   styleLegendElement: React.ReactNode;
   styleRendererElement: React.ReactNode;
   styleSymbolsElement: React.ReactNode;
-  workbenchSidebarTab: MapWorkbenchSidebarTab;
+  workbenchSidebarTab: string;
   workbenchSidebarTabs: React.ComponentProps<typeof MapWorkbenchSidebar>["tabs"];
-  onWorkbenchSidebarTabChange: React.Dispatch<React.SetStateAction<MapWorkbenchSidebarTab>>;
+  onWorkbenchSidebarTabChange: (id: string) => void;
 }
 
 export const MapExplorerLayerPanelRail: React.FC<MapExplorerLayerPanelRailProps> = ({
@@ -87,6 +90,8 @@ export const MapExplorerLayerPanelRail: React.FC<MapExplorerLayerPanelRailProps>
   figureElement,
   focusActiveActivityButton,
   isWorkbenchActivity,
+  layerCount,
+  crsWarningCount,
   layerPanelWidth,
   layerStackElement,
   legendRef,
@@ -118,20 +123,45 @@ export const MapExplorerLayerPanelRail: React.FC<MapExplorerLayerPanelRailProps>
   workbenchSidebarTab,
   workbenchSidebarTabs,
   onWorkbenchSidebarTabChange,
-}) => (
-  <MapPanelRail
-    ref={legendRef}
-    side="left"
-    width={layerPanelWidth}
-    height="min(24rem, 54%)"
-    minWidth={MAP_LAYER_PANEL_MIN_WIDTH}
-    maxWidth={MAP_LAYER_PANEL_MAX_WIDTH}
-    resizable={dockLayerPanelPlacement === "left"}
-    onWidthChange={onLayerPanelWidthChange}
-    ariaLabel="Layer and data panel"
-    data-testid="map-layer-panel-rail"
-  >
-    {isWorkbenchActivity ? (
+}) => {
+  const activeWorkspaceName =
+    workbenchSidebarTabs.find((tab) => tab.id === workbenchSidebarTab)?.label ?? activeActivityLabel;
+  const dockSummaryItems = [
+    {
+      id: "workspace",
+      label: "Workspace",
+      value: activeWorkspaceName,
+      title: `Active left workspace: ${activeWorkspaceName}`,
+    },
+    {
+      id: "layers",
+      label: "Layers",
+      value: layerCount.toLocaleString(),
+      title: `${layerCount.toLocaleString()} layer${layerCount === 1 ? "" : "s"} in the map stack`,
+    },
+    {
+      id: "crs",
+      label: "CRS",
+      value: `${crsWarningCount.toLocaleString()} warning${crsWarningCount === 1 ? "" : "s"}`,
+      title: `${crsWarningCount.toLocaleString()} layer${crsWarningCount === 1 ? "" : "s"} require CRS review`,
+    },
+  ];
+  const leftDockTitle = activeActivityId === "layers" ? "Layers/Data" : activeActivityLabel;
+
+  return (
+    <MapPanelRail
+      ref={legendRef}
+      side="left"
+      width={layerPanelWidth}
+      height="min(24rem, 54%)"
+      minWidth={MAP_LAYER_PANEL_MIN_WIDTH}
+      maxWidth={MAP_LAYER_PANEL_MAX_WIDTH}
+      resizable={dockLayerPanelPlacement === "left"}
+      onWidthChange={onLayerPanelWidthChange}
+      ariaLabel="Layer and data panel"
+      data-testid="map-layer-panel-rail"
+    >
+      {isWorkbenchActivity ? (
       activeActivityId === "analyze" ? (
         <MapAnalyzeWorkspace
           activeTabId={workbenchSidebarTab}
@@ -214,7 +244,9 @@ export const MapExplorerLayerPanelRail: React.FC<MapExplorerLayerPanelRailProps>
         />
       ) : (
         <MapWorkbenchSidebar
-          title={activeActivityLabel}
+          title={leftDockTitle}
+          subtitle="Layer/Data workspace"
+          summaryItems={dockSummaryItems}
           tabs={workbenchSidebarTabs}
           activeTabId={workbenchSidebarTab}
           onTabChange={onWorkbenchSidebarTabChange}
@@ -229,7 +261,24 @@ export const MapExplorerLayerPanelRail: React.FC<MapExplorerLayerPanelRailProps>
         />
       )
     ) : (
-      layerStackElement
+      <MapDockPanelFrame
+        title="Layers/Data"
+        subtitle="Layer/Data workspace"
+        activeWorkspaceName="Layers"
+        summaryItems={dockSummaryItems}
+        onToggleCollapse={() => setCollapsed((prev) => !prev)}
+        onClose={() => {
+          setShowLayerPanel(false);
+          announce("Layer panel closed");
+          focusActiveActivityButton();
+        }}
+        collapseLabel="Collapse layer and data panel"
+        closeLabel="Close layer and data panel"
+        bodyStyle={{ display: "flex", minHeight: 0 }}
+      >
+        {layerStackElement}
+      </MapDockPanelFrame>
     )}
-  </MapPanelRail>
-);
+    </MapPanelRail>
+  );
+};

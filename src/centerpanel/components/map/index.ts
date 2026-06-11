@@ -18,11 +18,13 @@ export type { MapLayerPanelProps } from "./MapLayerPanel";
 
 export {
   MapLayerCartographyPanel,
+  MapLayerBookmarksPanel,
   MapLayerManager,
   MapLayerSourcesPanel,
 } from "./MapLayerManager";
 export type {
   MapLayerCartographyPanelProps,
+  MapLayerBookmarksPanelProps,
   MapLayerManagerProps,
   MapLayerSourcesPanelProps,
 } from "./MapLayerManager";

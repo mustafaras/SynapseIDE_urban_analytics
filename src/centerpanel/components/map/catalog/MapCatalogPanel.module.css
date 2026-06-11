@@ -85,12 +85,22 @@
   padding: 14px;
 }
 
+.embeddedPanel .controlRail,
+.embeddedPanel .catalogTree {
+  padding: 10px;
+}
+
 .controlRail {
   display: grid;
   align-content: start;
   gap: 12px;
   border-right: 1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.22));
   background: color-mix(in srgb, var(--syn-bg-panel, #181b22) 92%, black);
+}
+
+.embeddedPanel .controlRail {
+  gap: 10px;
+  background: color-mix(in srgb, var(--syn-bg-panel, #181b22) 72%, transparent);
 }
 
 .stats {
@@ -263,6 +273,10 @@
   gap: 12px;
 }
 
+.embeddedPanel .catalogTree {
+  gap: 9px;
+}
+
 .importEntry {
   display: grid;
   gap: 8px;
@@ -270,6 +284,12 @@
   border: 1px solid color-mix(in srgb, var(--syn-interaction-active, #d09a48) 36%, var(--syn-border-subtle, rgba(148, 163, 184, 0.2)));
   border-radius: 3px;
   background: color-mix(in srgb, var(--syn-bg-panel, #181b22) 86%, black);
+}
+
+.embeddedPanel .importEntry {
+  gap: 6px;
+  padding: 8px;
+  background: color-mix(in srgb, var(--syn-bg-panel, #181b22) 70%, transparent);
 }
 
 .importEntryHeader {
@@ -323,6 +343,13 @@
   border: 1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.2));
   border-radius: 3px;
   background: color-mix(in srgb, var(--syn-bg-panel, #181b22) 88%, black);
+}
+
+.embeddedPanel .supportMatrix,
+.embeddedPanel .providerCaveats {
+  gap: 7px;
+  padding: 8px;
+  background: color-mix(in srgb, var(--syn-bg-panel, #181b22) 70%, transparent);
 }
 
 .supportMatrix h3,
@@ -428,6 +455,10 @@
   gap: 7px;
 }
 
+.embeddedPanel .category {
+  gap: 6px;
+}
+
 .category h3 {
   display: flex;
   align-items: center;
@@ -460,6 +491,10 @@
   gap: 7px;
 }
 
+.embeddedPanel .items {
+  gap: 6px;
+}
+
 .item {
   display: grid;
   gap: 6px;
@@ -468,12 +503,23 @@
   border-radius: 3px;
 }
 
+.embeddedPanel .item {
+  gap: 5px;
+  padding: 7px 8px;
+  background: color-mix(in srgb, var(--syn-bg-panel, #181b22) 68%, transparent);
+}
+
 .itemHeading {
   display: flex;
   align-items: start;
   justify-content: space-between;
   gap: 8px;
   font-size: 12px;
+}
+
+.embeddedPanel .itemHeading {
+  align-items: center;
+  font-size: 11px;
 }
 
 .itemTitleStack {
@@ -628,6 +674,11 @@
   min-height: 27px;
   padding: 4px 8px;
   font-size: 10px;
+}
+
+.embeddedPanel .itemActions button {
+  min-height: 24px;
+  padding: 3px 7px;
 }
 
 @media (max-width: 760px) {

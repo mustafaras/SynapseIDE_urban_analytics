@@ -17,19 +17,21 @@
  * panels mount only when their tab is active.
  */
 import React from "react";
-import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { PanelLeftOpen } from "lucide-react";
 import {
   MAP_COLORS,
   MAP_PANEL_SIZES,
   MAP_SPACING,
   MAP_STROKES,
-  MAP_TEXT_STYLES,
   MAP_TYPOGRAPHY,
   MAP_Z_INDEX,
 } from "../mapTokens";
 import { GisEmptyState, GisIconButton, GisTabs } from "../ui";
 import type { GisTab } from "../ui";
-import { IconClose } from "../MapIcons";
+import {
+  MapDockPanelFrame,
+  type MapDockPanelFrameSummaryItem,
+} from "../shell";
 
 export interface MapWorkbenchSidebarTab {
   /** Stable tab id (typically a `MapSidebarTabId`). */
@@ -56,6 +58,8 @@ export interface MapWorkbenchSidebarProps {
   title: string;
   /** Optional sub-label / breadcrumb shown next to the title. */
   subtitle?: string;
+  /** Compact metadata shown in the shared dock frame header. */
+  summaryItems?: readonly MapDockPanelFrameSummaryItem[];
   /** Tab definitions for the active activity. */
   tabs: MapWorkbenchSidebarTab[];
   /** Currently active tab id. */
@@ -83,72 +87,13 @@ const shellBaseStyle: React.CSSProperties = {
   minWidth: 0,
   minHeight: 0,
   height: "100%",
-  background: MAP_COLORS.bgPanel,
+  background: MAP_COLORS.transparent,
   color: MAP_COLORS.text,
-  borderRight: MAP_STROKES.hairline,
+  border: 0,
   fontFamily: MAP_TYPOGRAPHY.fontFamily,
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
   zIndex: MAP_Z_INDEX.sidebar,
   overflow: "hidden",
-};
-
-const headerStyle: React.CSSProperties = {
-  display: "flex",
-  flexDirection: "row",
-  alignItems: "center",
-  gap: MAP_SPACING.sm,
-  minHeight: "2.375rem",
-  padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm} ${MAP_SPACING.xs} ${MAP_SPACING.md}`,
-  background: MAP_COLORS.bgHeader,
-  borderBottom: MAP_STROKES.hairline,
-  flexShrink: 0,
-};
-
-const titleRowStyle: React.CSSProperties = {
-  flex: 1,
-  minWidth: 0,
-  display: "flex",
-  alignItems: "center",
-  gap: MAP_SPACING.sm,
-  overflow: "hidden",
-};
-
-const headerAccentStyle: React.CSSProperties = {
-  width: "0.1875rem",
-  height: "1.05rem",
-  borderRadius: "2px",
-  background: MAP_COLORS.interaction,
-  flexShrink: 0,
-};
-
-const titleWrapStyle: React.CSSProperties = {
-  flex: 1,
-  minWidth: 0,
-  display: "grid",
-  gap: "0.125rem",
-  overflow: "hidden",
-};
-
-const titleStyle: React.CSSProperties = {
-  margin: 0,
-  fontSize: MAP_TYPOGRAPHY.fontSize.sm,
-  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
-  color: MAP_COLORS.text,
-  letterSpacing: 0,
-  ...MAP_TEXT_STYLES.titleWrap,
-};
-
-const subtitleStyle: React.CSSProperties = {
-  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
-  color: MAP_COLORS.textMuted,
-  ...MAP_TEXT_STYLES.truncate,
-};
-
-const headerActionsStyle: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: "2px",
-  flexShrink: 0,
 };
 
 const collapsedRailStyle: React.CSSProperties = {
@@ -186,6 +131,7 @@ const singleTabBodyStyle: React.CSSProperties = {
 export const MapWorkbenchSidebar: React.FC<MapWorkbenchSidebarProps> = ({
   title,
   subtitle,
+  summaryItems,
   tabs,
   activeTabId,
   onTabChange,
@@ -281,60 +227,45 @@ export const MapWorkbenchSidebar: React.FC<MapWorkbenchSidebarProps> = ({
         }
       }}
     >
-      <div style={headerStyle}>
-        <div style={titleRowStyle}>
-          <span aria-hidden style={headerAccentStyle} />
-          <div style={titleWrapStyle}>
-            <h2 style={titleStyle}>{title}</h2>
-            {subtitle ? (
-              <span aria-hidden style={subtitleStyle}>
-                {subtitle}
-              </span>
-            ) : null}
+      <MapDockPanelFrame
+        title={title}
+        subtitle={subtitle ?? "Workspace"}
+        activeWorkspaceName={activeTab?.label}
+        summaryItems={summaryItems}
+        onToggleCollapse={onToggleCollapse}
+        onClose={onClose}
+        collapseLabel={`Collapse ${title} sidebar`}
+        closeLabel={`Close ${title} sidebar`}
+        collapseTestId="map-workbench-sidebar-collapse"
+        closeTestId="map-workbench-sidebar-close"
+        bodyStyle={{ display: "flex", flexDirection: "column" }}
+        aria-label={`${title} dock frame`}
+      >
+        {tabs.length > 1 ? (
+          <GisTabs
+            tabs={gisTabs}
+            activeId={resolvedActiveId}
+            onTabChange={onTabChange}
+            aria-label={`${title} sections`}
+            tabTestIdPrefix="map-workbench-sidebar-tab"
+            data-testid="map-workbench-sidebar-tabs"
+            variant="compact"
+            density="compact"
+            style={{ flex: 1, minHeight: 0 }}
+          >
+            {renderBody()}
+          </GisTabs>
+        ) : (
+          <div
+            role="tabpanel"
+            id={`map-workbench-sidebar-panel-${resolvedActiveId}`}
+            aria-label={activeTab?.label ?? title}
+            style={singleTabBodyStyle}
+          >
+            {renderBody()}
           </div>
-        </div>
-        <div style={headerActionsStyle}>
-          {onToggleCollapse ? (
-            <GisIconButton
-              label={`Collapse ${title} sidebar`}
-              icon={<PanelLeftClose size={14} />}
-              data-testid="map-workbench-sidebar-collapse"
-              onClick={onToggleCollapse}
-            />
-          ) : null}
-          {onClose ? (
-            <GisIconButton
-              label={`Close ${title} sidebar`}
-              icon={<IconClose size={14} />}
-              data-testid="map-workbench-sidebar-close"
-              onClick={onClose}
-            />
-          ) : null}
-        </div>
-      </div>
-
-      {tabs.length > 1 ? (
-        <GisTabs
-          tabs={gisTabs}
-          activeId={resolvedActiveId}
-          onTabChange={onTabChange}
-          aria-label={`${title} sections`}
-          tabTestIdPrefix="map-workbench-sidebar-tab"
-          data-testid="map-workbench-sidebar-tabs"
-          style={{ flex: 1, minHeight: 0 }}
-        >
-          {renderBody()}
-        </GisTabs>
-      ) : (
-        <div
-          role="tabpanel"
-          id={`map-workbench-sidebar-panel-${resolvedActiveId}`}
-          aria-label={activeTab?.label ?? title}
-          style={singleTabBodyStyle}
-        >
-          {renderBody()}
-        </div>
-      )}
+        )}
+      </MapDockPanelFrame>
     </aside>
   );
 };

@@ -2,6 +2,7 @@ import { MAP_NUMERIC } from "./mapTokens";
 
 export type MapRightDockPanel =
   | "inspect"
+  | "style"
   | "attributes"
   | "problems"
   | "timeline"
@@ -41,6 +42,7 @@ export interface MapDockLayoutInput {
 export interface MapDockLayout {
   activeRightPanel: MapRightDockPanel | null;
   compactDock: boolean;
+  rightPanelPlacement: "rail" | "drawer" | null;
   showLayerPanel: boolean;
   showPinSidebar: boolean;
   showDrawPanel: boolean;
@@ -77,6 +79,7 @@ function clampNumber(value: number | undefined, min: number, max: number, fallba
  */
 const RIGHT_PANEL_DEFAULT_WIDTH: Record<MapRightDockPanel, number> = {
   inspect: 420,
+  style: 460,
   attributes: 480,
   problems: 420,
   timeline: 420,
@@ -124,6 +127,7 @@ export function getMapDockLayout(input: MapDockLayoutInput): MapDockLayout {
   const measuredWidth = Math.max(0, input.containerWidth);
   const centerWithLeftOnly = measuredWidth - layerPanelWidth - MAP_NUMERIC.overlayMargin * 2;
   const centerWithBothRails = measuredWidth - layerPanelWidth - rightPanelWidth - MAP_NUMERIC.overlayMargin * 2;
+  const rightPanelDrawerAtMediumWidth = activeRightPanel != null && measuredWidth >= 1200 && measuredWidth < 1440;
   const compactDock = measuredWidth > 0 && requestedLayerPanel && (
     centerWithLeftOnly < MAP_NUMERIC.mapDockMinCenterWidth ||
     (activeRightPanel != null && centerWithBothRails < MAP_NUMERIC.mapDockMinCenterWidth)
@@ -133,9 +137,12 @@ export function getMapDockLayout(input: MapDockLayoutInput): MapDockLayout {
   const layerPanelPlacement: MapLayerPanelPlacement | null = requestedLayerPanel
     ? compactDock ? "drawer" : "left"
     : null;
+  const rightPanelPlacement: MapDockLayout["rightPanelPlacement"] = activeRightPanel
+    ? compactDock || rightPanelDrawerAtMediumWidth ? "drawer" : "rail"
+    : null;
 
   const showLayerPanel = requestedLayerPanel;
-  const reserveRightRail = activeRightPanel != null && !compactDock;
+  const reserveRightRail = rightPanelPlacement === "rail";
   const leftInset = layerPanelPlacement === "left"
     ? layerPanelWidth + MAP_NUMERIC.overlayMargin
     : MAP_NUMERIC.overlayMargin;
@@ -146,6 +153,7 @@ export function getMapDockLayout(input: MapDockLayoutInput): MapDockLayout {
   return {
     activeRightPanel,
     compactDock,
+    rightPanelPlacement,
     showLayerPanel,
     showPinSidebar: activeRightPanel === "pins",
     showDrawPanel: activeRightPanel === "draw",

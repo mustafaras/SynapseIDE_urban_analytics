@@ -77,7 +77,7 @@
 .embeddedPanel .tree,
 .embeddedPanel .properties {
   overflow: visible;
-  padding: 10px 12px;
+  padding: 8px 10px;
 }
 
 .properties {
@@ -177,6 +177,10 @@
   gap: 6px;
 }
 
+.embeddedPanel .group {
+  gap: 5px;
+}
+
 .groupHeader {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -184,6 +188,12 @@
   gap: 10px;
   min-height: 28px;
   border-bottom: 1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.16));
+}
+
+.embeddedPanel .groupHeader {
+  min-height: 26px;
+  padding-left: 7px;
+  border-left: 2px solid color-mix(in srgb, var(--syn-interaction-active, #d09a48) 34%, transparent);
 }
 
 .group h3 {
@@ -249,8 +259,19 @@
   background: color-mix(in srgb, var(--syn-bg-panel, #181b22) 86%, black);
 }
 
+.embeddedPanel .row {
+  min-height: 3.25rem;
+  padding: 6px 7px 6px 9px;
+  border-left: 2px solid rgba(148, 163, 184, 0.14);
+  background: color-mix(in srgb, var(--syn-bg-panel, #181b22) 70%, transparent);
+}
+
 .row[data-active="true"] {
   border-color: color-mix(in srgb, var(--syn-interaction-active, #d09a48) 48%, transparent);
+}
+
+.embeddedPanel .row[data-active="true"] {
+  box-shadow: inset 2px 0 0 var(--syn-interaction-active, #d09a48);
 }
 
 .rowHead {
@@ -259,6 +280,12 @@
   align-items: center;
   gap: 7px;
   min-height: 28px;
+}
+
+.embeddedPanel .rowHead {
+  grid-template-columns: 14px 24px minmax(0, 1fr) auto;
+  gap: 6px;
+  min-height: 24px;
 }
 
 .rowHead input {
@@ -300,6 +327,10 @@
   font-weight: 600;
 }
 
+.embeddedPanel .layerTitle {
+  font-size: 11px;
+}
+
 .layerTitle span {
   min-width: 0;
   overflow-wrap: anywhere;
@@ -327,6 +358,10 @@
   justify-content: end;
   gap: 4px;
   min-width: 10.5rem;
+}
+
+.embeddedPanel .rowActions {
+  min-width: 0;
 }
 
 .rowActions button {
@@ -360,6 +395,14 @@
   line-height: 1.25;
   text-transform: uppercase;
   overflow-wrap: anywhere;
+}
+
+.embeddedPanel .badges span,
+.embeddedPanel .compactBadge,
+.embeddedPanel .filterBadge,
+.embeddedPanel .scaleBadge {
+  min-height: 18px;
+  padding: 1px 5px;
 }
 
 .compactBadge {

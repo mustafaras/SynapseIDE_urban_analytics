@@ -36,7 +36,9 @@ const ALL_SIDEBAR_TAB_IDS: readonly MapSidebarTabId[] = [
   "data-demo",
   "layers-stack",
   "layers-contents",
+  "layers-catalog",
   "layers-sources",
+  "layers-bookmarks",
   "layers-cartography",
   "analyze-workflows",
   "analyze-tools",
@@ -222,6 +224,8 @@ describe("mapLeftPanelContracts — spec adherence summary", () => {
       "data-health",
       "data-demo",
       "layers-stack",
+      "layers-catalog",
+      "layers-bookmarks",
     ];
     for (const id of primaryTabs) {
       const c = getLeftPanelContract(id);

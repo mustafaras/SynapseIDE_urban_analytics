@@ -37,7 +37,13 @@ export interface MapRightDockRouteState {
 export const MAP_RIGHT_DOCK_PANEL_DEFINITIONS = {
   inspect: {
     id: "inspect",
-    label: "Inspect",
+    label: "Inspector",
+    activityId: "layers",
+    serializable: true,
+  },
+  style: {
+    id: "style",
+    label: "Style",
     activityId: "layers",
     serializable: true,
   },
@@ -49,13 +55,13 @@ export const MAP_RIGHT_DOCK_PANEL_DEFINITIONS = {
   },
   problems: {
     id: "problems",
-    label: "Problems",
+    label: "QA",
     activityId: "qa",
     serializable: true,
   },
   timeline: {
     id: "timeline",
-    label: "Timeline",
+    label: "Review",
     activityId: "review",
     serializable: true,
   },
@@ -115,7 +121,7 @@ export const MAP_RIGHT_DOCK_PANEL_DEFINITIONS = {
   },
   report: {
     id: "report",
-    label: "Report",
+    label: "Publish",
     activityId: "publish",
     serializable: true,
   },
@@ -144,10 +150,10 @@ export const MAP_RIGHT_DOCK_PANEL_IDS = Object.keys(MAP_RIGHT_DOCK_PANEL_DEFINIT
 /** Panels always visible in the primary tab rail (summary-level access). */
 export const MAP_RIGHT_DOCK_PRIMARY_PANELS: readonly MapRightDockPanel[] = [
   "inspect",
-  "attributes",
+  "style",
   "problems",
-  "report",
   "workflow",
+  "report",
 ];
 
 /**
@@ -156,6 +162,7 @@ export const MAP_RIGHT_DOCK_PRIMARY_PANELS: readonly MapRightDockPanel[] = [
  * at which point they appear inline.
  */
 export const MAP_RIGHT_DOCK_CONTEXTUAL_PANELS: readonly MapRightDockPanel[] = [
+  "attributes",
   "selection",
   "draw",
   "measure",

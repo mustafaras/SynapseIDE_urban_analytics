@@ -5,7 +5,7 @@ import React, { Suspense } from "react";
 import { MapVoxCityOverlay } from "../../MapVoxCityOverlay";
 import { MapHeatmapLayer } from "../../MapHeatmapLayer";
 import { MapSymbolLayer } from "../../MapSymbolLayer";
-import { BASE_STYLES, type BaseLayerId, type OverlayLayerConfig } from "../mapTypes";
+import { BASE_STYLES, MAP_BOOKMARK_LIMIT, type BaseLayerId, type OverlayLayerConfig } from "../mapTypes";
 import { type GisStatusKey, mapStyles } from "../mapTokens";
 import { MapWorkspaceOverviewSummary } from "../MapWorkspaceOverviewSummary";
 import type { MapWorkbenchSidebarTab } from "../sidebar";
@@ -13,7 +13,7 @@ import { MapCanvasControls } from "../MapCanvasControls";
 import { buildDemoPackCatalogInsertion, MapCatalogPanel } from "../catalog";
 import type { MapDataActivitySectionId } from "../catalog/MapCatalogPanel";
 import { MapContentsTreePanel } from "../contents";
-import { MapLayerCartographyPanel, MapLayerManager, MapLayerSourcesPanel } from "../MapLayerManager";
+import { MapLayerBookmarksPanel, MapLayerCartographyPanel, MapLayerManager, MapLayerSourcesPanel } from "../MapLayerManager";
 import { CartographyRecommendationList } from "../CartographyRecommendationList";
 import {
   MapAnalyzeDataOperationsPanel,
@@ -79,6 +79,7 @@ export function buildMapRuntimeRenderModel(args: BuildMapRuntimeRenderModelArgs)
     activeBaseLayer,
     activeDrawTool,
     activeMeasureTool,
+    activeRightDockRoutePanel,
     activePublishTabId,
     activeRasterLayerId,
     activeRasterLayerName,
@@ -102,6 +103,7 @@ export function buildMapRuntimeRenderModel(args: BuildMapRuntimeRenderModelArgs)
     effectiveShowSidebar,
     exportFormat,
     exportTarget,
+    flyTo,
     handleApplyCartographyRecommendation,
     handleApplyLayerStyle,
     handleBindLayerToDashboard,
@@ -158,6 +160,7 @@ export function buildMapRuntimeRenderModel(args: BuildMapRuntimeRenderModelArgs)
     handleMapNLQueryPreviewDecision,
     handleRunProcessingTool,
     handleRunSelectionStatistics,
+    handleSaveBookmark,
     handleSaveWorkflowReport,
     handleSendLayerToUrban,
     handleSetBaseLayer,
@@ -179,6 +182,9 @@ export function buildMapRuntimeRenderModel(args: BuildMapRuntimeRenderModelArgs)
     handleToggleHotSpotViz,
     handleToggleSidebar,
     handleUndoCartographyRecommendation,
+    handleRestoreBookmark,
+    handleRemovePin,
+    handleClearPins,
     handleApplyMapWorkflow,
     handleCancelMapWorkflow,
     handleCloseReportHandoff,
@@ -263,6 +269,7 @@ export function buildMapRuntimeRenderModel(args: BuildMapRuntimeRenderModelArgs)
     temporalLayers,
     temporalLayoutRestoreRequest,
     temporalRuntimeMode,
+    toolbarDensity,
     toggleLayerVisibility,
     updateLayerMetadata,
     visibleLayerFitBounds,
@@ -602,6 +609,7 @@ export function buildMapRuntimeRenderModel(args: BuildMapRuntimeRenderModelArgs)
         announce("Layer panel closed");
       }}
       panelStyle={{ width: "100%", height: "100%" }}
+      density={toolbarDensity === "compact" ? "compact" : "comfortable"}
       onAnnounce={announce}
     />
   );
@@ -654,6 +662,25 @@ export function buildMapRuntimeRenderModel(args: BuildMapRuntimeRenderModelArgs)
     />
   );
 
+  const layersCatalogElement = (
+    <MapCatalogPanel
+      visible
+      presentation="embedded"
+      activeSection="catalog"
+      sourceHandles={sourceHandles}
+      layers={overlayLayers}
+      onClose={() => {
+        openLayersActivityTab("layers-stack", "Layer stack opened");
+      }}
+      onBrowseSources={handleCatalogBrowseSources}
+      onAddDemoPack={handleCatalogAddDemoPack}
+      onRepairSource={handleCatalogRepairSource}
+      onReconnectSource={handleCatalogReconnectSource}
+      onAddConnection={handleCatalogAddConnection}
+      onOpenExternalServices={handleOpenExternalServicesFromDataActivity}
+    />
+  );
+
   const layersContentsElement = (
     <MapContentsTreePanel
       visible
@@ -687,6 +714,19 @@ export function buildMapRuntimeRenderModel(args: BuildMapRuntimeRenderModelArgs)
       onRepairGeometry={handleRepairLayerGeometry}
       onFocusLayer={handleFocusLayer}
       onAnnounce={announce}
+    />
+  );
+
+  const layersBookmarksElement = (
+    <MapLayerBookmarksPanel
+      bookmarks={bookmarks}
+      pins={pins}
+      maxBookmarks={MAP_BOOKMARK_LIMIT}
+      onSaveBookmark={handleSaveBookmark}
+      onRestoreBookmark={handleRestoreBookmark}
+      onRemovePin={handleRemovePin}
+      onClearPins={handleClearPins}
+      onFlyTo={flyTo}
     />
   );
 
@@ -1032,7 +1072,7 @@ export function buildMapRuntimeRenderModel(args: BuildMapRuntimeRenderModelArgs)
 
   const analyzeWorkflowElement = (
     <MapWorkflowDrawer
-      visible={analyzeWorkflowsTabActive}
+      visible={analyzeWorkflowsTabActive || activeRightDockRoutePanel === "workflow"}
       context={workflowContext}
       initialDraftRequest={urbanWorkflowDraftRequest}
       presentation="embedded"
@@ -1183,7 +1223,7 @@ export function buildMapRuntimeRenderModel(args: BuildMapRuntimeRenderModelArgs)
         : [
             {
               id: "layers-stack",
-              label: "Stack",
+              label: "Layers",
               render: () => layerStackElement,
             },
             {
@@ -1192,16 +1232,22 @@ export function buildMapRuntimeRenderModel(args: BuildMapRuntimeRenderModelArgs)
               render: () => layersContentsElement,
             },
             {
+              id: "layers-catalog",
+              label: "Catalog",
+              render: () => layersCatalogElement,
+            },
+            {
               id: "layers-sources",
               label: "Sources",
               render: () => layersSourcesElement,
             },
             {
-              id: "layers-cartography",
-              label: "Cartography",
-              render: () => layersCartographyElement,
+              id: "layers-bookmarks",
+              label: "Bookmarks",
+              render: () => layersBookmarksElement,
             },
           ];
+  void layersCartographyElement;
   const layersContentsTabActive =
     showLayerPanel && activeActivityId === "layers" && workbenchSidebarTab === "layers-contents";
   const dataCatalogTabActive =

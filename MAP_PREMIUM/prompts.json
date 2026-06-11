@@ -1,0 +1,160 @@
+{
+  "$schema": "./prompts.schema.json",
+  "version": 2,
+  "packName": "MAP_PREMIUM",
+  "planFile": "mapexplorer_geolibre_premium_ui_ux_plan_full_audited.md",
+  "ledgerFile": "LEDGER.md",
+  "antiAmnesiaFile": "07_ANTI_AMNESIA_LEDGER.md",
+  "detailedPromptsFile": "01_DETAILED_PROMPTS.md",
+  "triggerPromptsFile": "02_TRIGGER_PROMPTS.md",
+  "minVisibleChangesPerPrompt": 20,
+  "prompts": [
+    {
+      "id": 1,
+      "title": "Premium shell foundation and token system",
+      "anchor": "Prompt 01",
+      "planSections": ["0", "5", "6", "12", "14"],
+      "visibleChanges": 22,
+      "dependsOn": [],
+      "status": "todo",
+      "trigger": "Execute MAP_PREMIUM Prompt 01 (Premium shell foundation and token system) exactly as written in MAP_PREMIUM/01_DETAILED_PROMPTS.md. Read AGENTS.md, MAP_PREMIUM/LEDGER.md, and plan sections 0/5/6/12/14 first. Deliver all 22 visible changes, run the listed validation commands, then update LEDGER.md (status, Done Log, Current Pointer) in the same change.",
+      "validation": [
+        "npm run typecheck",
+        "npm run lint:errors",
+        "npm run lint:no-tailwind-centerpanel",
+        "npx vitest run src/centerpanel/components/map/__tests__/mapShellPrimitives.test.tsx src/centerpanel/components/map/__tests__/mapVisualQA.test.ts src/centerpanel/components/map/__tests__/map-accessibility.test.ts src/centerpanel/components/map/__tests__/map-explorer-canonical-baseline.test.tsx"
+      ]
+    },
+    {
+      "id": 2,
+      "title": "GeoLibre-like top menu bar",
+      "anchor": "Prompt 02",
+      "planSections": ["2", "7"],
+      "visibleChanges": 22,
+      "dependsOn": [1],
+      "status": "todo",
+      "trigger": "Execute MAP_PREMIUM Prompt 02 (GeoLibre-like top menu bar) exactly as written in MAP_PREMIUM/01_DETAILED_PROMPTS.md. Read AGENTS.md, MAP_PREMIUM/LEDGER.md, and plan section 7 first. Deliver all 22 visible changes using only existing command handlers, run the listed validation commands, then update LEDGER.md in the same change.",
+      "validation": [
+        "npm run typecheck",
+        "npx vitest run src/centerpanel/components/map/__tests__/MapToolbar.command-palette.test.tsx src/centerpanel/components/map/__tests__/MapToolbar.external-services.test.tsx src/centerpanel/components/map/__tests__/MapTopCommandSurface.test.tsx src/centerpanel/components/map/__tests__/MapCommandPaletteSearch.test.ts"
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Left Layers/Data workspace",
+      "anchor": "Prompt 03",
+      "planSections": ["8"],
+      "visibleChanges": 22,
+      "dependsOn": [1, 2],
+      "status": "todo",
+      "trigger": "Execute MAP_PREMIUM Prompt 03 (Left Layers/Data workspace) exactly as written in MAP_PREMIUM/01_DETAILED_PROMPTS.md. Read AGENTS.md, MAP_PREMIUM/LEDGER.md, and plan section 8 first. Deliver all 22 visible changes while preserving layer/catalog/contents semantics, run the listed validation commands, then update LEDGER.md in the same change.",
+      "validation": [
+        "npm run typecheck",
+        "npx vitest run src/centerpanel/components/map/__tests__/map-layer-management.test.ts src/centerpanel/components/map/__tests__/MapCatalogPanel.test.tsx src/centerpanel/components/map/__tests__/MapContentsModel.test.ts src/centerpanel/components/map/__tests__/MapWorkbenchSidebar.test.tsx src/centerpanel/components/map/__tests__/map-left-panel-contracts.test.ts src/centerpanel/components/map/__tests__/map-left-panel-responsive-fit.test.ts"
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Right premium Inspector dock",
+      "anchor": "Prompt 04",
+      "planSections": ["9"],
+      "visibleChanges": 22,
+      "dependsOn": [1, 2],
+      "status": "todo",
+      "trigger": "Execute MAP_PREMIUM Prompt 04 (Right premium Inspector dock) exactly as written in MAP_PREMIUM/01_DETAILED_PROMPTS.md. Read AGENTS.md, MAP_PREMIUM/LEDGER.md, and plan section 9 first. Deliver all 22 visible changes without removing any route definition, run the listed validation commands, then update LEDGER.md in the same change.",
+      "validation": [
+        "npm run typecheck",
+        "npx vitest run src/centerpanel/components/map/__tests__/MapRightDockHost.test.tsx src/centerpanel/components/map/__tests__/mapRightDockRoutes.test.ts src/centerpanel/components/map/__tests__/map-right-dock-migration.test.ts src/centerpanel/components/map/__tests__/MapStyleWorkspace.test.tsx src/centerpanel/components/map/__tests__/style-editor-legend-contract.test.ts"
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Canvas furniture and safe-inset cleanup",
+      "anchor": "Prompt 05",
+      "planSections": ["6.4", "10"],
+      "visibleChanges": 22,
+      "dependsOn": [1, 3, 4],
+      "status": "todo",
+      "trigger": "Execute MAP_PREMIUM Prompt 05 (Canvas furniture and safe-inset cleanup) exactly as written in MAP_PREMIUM/01_DETAILED_PROMPTS.md. Read AGENTS.md, MAP_PREMIUM/LEDGER.md, and plan sections 6.4/10 first. Deliver all 22 visible changes without breaking any canvas overlay behavior, run the listed validation commands, then update LEDGER.md in the same change.",
+      "validation": [
+        "npm run typecheck",
+        "npx vitest run src/centerpanel/components/map/__tests__/MapCanvas.lifecycle.test.tsx src/centerpanel/components/map/__tests__/map-drawing-tools.test.ts src/centerpanel/components/map/__tests__/geodesic-measurement.test.ts src/centerpanel/components/map/__tests__/map-bookmarks-annotations.test.tsx"
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Compact status bar and output drawer",
+      "anchor": "Prompt 06",
+      "planSections": ["11"],
+      "visibleChanges": 22,
+      "dependsOn": [4, 5],
+      "status": "todo",
+      "trigger": "Execute MAP_PREMIUM Prompt 06 (Compact status bar and output drawer) exactly as written in MAP_PREMIUM/01_DETAILED_PROMPTS.md. Read AGENTS.md, MAP_PREMIUM/LEDGER.md, and plan section 11 first. Deliver all 22 visible changes with truthful status chips and an on-demand drawer, run the listed validation commands, then update LEDGER.md in the same change.",
+      "validation": [
+        "npm run typecheck",
+        "npx vitest run src/centerpanel/components/map/__tests__/MapBottomPanel.test.tsx src/centerpanel/components/map/__tests__/MapAttributeTable.test.tsx src/centerpanel/components/map/__tests__/MapStatusBarRoutes.test.tsx src/centerpanel/components/map/__tests__/MapReviewTimelinePanel.test.tsx src/centerpanel/components/map/__tests__/mapProblemsPanel.test.tsx"
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Start, import, export, publish polish",
+      "anchor": "Prompt 07",
+      "planSections": ["12", "15-phase7", "16"],
+      "visibleChanges": 22,
+      "dependsOn": [1, 4, 6],
+      "status": "todo",
+      "trigger": "Execute MAP_PREMIUM Prompt 07 (Start, import, export, publish polish) exactly as written in MAP_PREMIUM/01_DETAILED_PROMPTS.md. Read AGENTS.md, MAP_PREMIUM/LEDGER.md, and plan Phase 7 + sections 12/16 first. Deliver all 22 visible changes without weakening any preflight or readiness rule, run the listed validation commands, then update LEDGER.md in the same change.",
+      "validation": [
+        "npm run typecheck",
+        "npx vitest run src/centerpanel/components/map/__tests__/MapStartDialog.test.tsx src/centerpanel/components/map/__tests__/map-start-dialog-state.test.ts src/centerpanel/components/map/__tests__/map-import-preflight.test.tsx src/centerpanel/components/map/__tests__/MapPublishWorkspace.test.tsx src/centerpanel/components/map/__tests__/MapPublishOutputInventory.test.tsx src/centerpanel/components/map/__tests__/MapReportHandoffDrawer.test.tsx src/centerpanel/components/map/__tests__/MapLayoutDesignerPanel.test.tsx"
+      ]
+    },
+    {
+      "id": 8,
+      "title": "Advanced panels visual normalization",
+      "anchor": "Prompt 08",
+      "planSections": ["15-phase8", "16"],
+      "visibleChanges": 22,
+      "dependsOn": [4, 5, 6],
+      "status": "todo",
+      "trigger": "Execute MAP_PREMIUM Prompt 08 (Advanced panels visual normalization) exactly as written in MAP_PREMIUM/01_DETAILED_PROMPTS.md. Read AGENTS.md, MAP_PREMIUM/LEDGER.md, and plan Phase 8 + section 16 first. Deliver all 22 visible changes with zero behavior change in any service, run the listed validation commands, then update LEDGER.md in the same change.",
+      "validation": [
+        "npm run typecheck",
+        "npx vitest run src/centerpanel/components/map/__tests__/MapAnalyzeWorkspace.test.tsx src/centerpanel/components/map/__tests__/MapProcessingToolbox.test.tsx src/centerpanel/components/map/__tests__/MapProcessingToolboxDesign.test.tsx src/centerpanel/components/map/__tests__/MapModelBuilderPanel.test.tsx src/centerpanel/components/map/__tests__/MapPluginPanel.test.tsx src/centerpanel/components/map/__tests__/Scene3DPanel.test.tsx src/centerpanel/components/map/__tests__/RasterLayerPanel.test.tsx src/centerpanel/components/map/__tests__/MapNLQueryPanel.test.tsx"
+      ]
+    },
+    {
+      "id": 9,
+      "title": "Responsive behavior, accessibility, and map-only mode",
+      "anchor": "Prompt 09",
+      "planSections": ["13", "14"],
+      "visibleChanges": 22,
+      "dependsOn": [2, 3, 4, 5, 6],
+      "status": "todo",
+      "trigger": "Execute MAP_PREMIUM Prompt 09 (Responsive behavior, accessibility, and map-only mode) exactly as written in MAP_PREMIUM/01_DETAILED_PROMPTS.md. Read AGENTS.md, MAP_PREMIUM/LEDGER.md, and plan sections 13/14 first. Deliver all 22 visible changes including a lossless map-only mode, run the listed validation commands, then update LEDGER.md in the same change.",
+      "validation": [
+        "npm run typecheck",
+        "npx vitest run src/centerpanel/components/map/__tests__/map-accessibility.test.ts src/centerpanel/components/map/__tests__/mapShellPrimitives.test.tsx src/centerpanel/components/map/__tests__/map-left-panel-responsive-fit.test.ts",
+        "npx playwright test e2e/accessibility-audit.spec.ts (if dev server available)"
+      ]
+    },
+    {
+      "id": 10,
+      "title": "Full regression, visual QA, and ledger closeout",
+      "anchor": "Prompt 10",
+      "planSections": ["17", "18", "20", "21"],
+      "visibleChanges": 22,
+      "dependsOn": [1, 2, 3, 4, 5, 6, 7, 8, 9],
+      "status": "todo",
+      "trigger": "Execute MAP_PREMIUM Prompt 10 (Full regression, visual QA, and ledger closeout) exactly as written in MAP_PREMIUM/01_DETAILED_PROMPTS.md. Read AGENTS.md, MAP_PREMIUM/LEDGER.md, and plan sections 17/18/20/21 first. Verify all 22 acceptance checks, run every required command truthfully, then write the closeout note and final status in LEDGER.md.",
+      "validation": [
+        "npm run typecheck",
+        "npm run lint:errors",
+        "npm run lint:no-tailwind-centerpanel",
+        "npx vitest run src/centerpanel/components/map",
+        "npm run build",
+        "targeted Playwright specs (if dev server available)"
+      ]
+    }
+  ]
+}

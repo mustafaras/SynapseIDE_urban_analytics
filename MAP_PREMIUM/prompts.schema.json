@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.schema/map-premium-prompts.json",
+  "title": "MAP_PREMIUM Prompt Pack (detailed + trigger)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "packName",
+    "planFile",
+    "ledgerFile",
+    "antiAmnesiaFile",
+    "detailedPromptsFile",
+    "triggerPromptsFile",
+    "minVisibleChangesPerPrompt",
+    "prompts"
+  ],
+  "properties": {
+    "version": { "type": "integer", "minimum": 1 },
+    "packName": { "type": "string", "minLength": 1 },
+    "planFile": { "type": "string", "minLength": 1 },
+    "ledgerFile": { "type": "string", "minLength": 1 },
+    "antiAmnesiaFile": { "type": "string", "minLength": 1 },
+    "detailedPromptsFile": { "type": "string", "minLength": 1 },
+    "triggerPromptsFile": { "type": "string", "minLength": 1 },
+    "minVisibleChangesPerPrompt": { "type": "integer", "minimum": 20 },
+    "prompts": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/promptEntry" }
+    }
+  },
+  "$defs": {
+    "promptEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "anchor",
+        "planSections",
+        "visibleChanges",
+        "dependsOn",
+        "status",
+        "trigger",
+        "validation"
+      ],
+      "properties": {
+        "id": { "type": "integer", "minimum": 1 },
+        "title": { "type": "string", "minLength": 1 },
+        "anchor": {
+          "type": "string",
+          "pattern": "^Prompt [0-9]{2}$",
+          "description": "Heading anchor inside the detailed prompts file."
+        },
+        "planSections": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "visibleChanges": {
+          "type": "integer",
+          "minimum": 20,
+          "description": "Number of required visible UI/UX changes; must be >= minVisibleChangesPerPrompt."
+        },
+        "dependsOn": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 1 }
+        },
+        "status": {
+          "type": "string",
+          "enum": ["todo", "in-progress", "done", "blocked"]
+        },
+        "trigger": {
+          "type": "string",
+          "minLength": 50,
+          "description": "Short copy-paste prompt that fully activates the detailed prompt."
+        },
+        "validation": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

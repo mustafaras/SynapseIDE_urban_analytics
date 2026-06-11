@@ -1,6 +1,7 @@
 import React from "react";
 import type { MapExplorerMode } from "./mapTypes";
 import { MAP_LAYER_PANEL_MAX_WIDTH, MAP_LAYER_PANEL_MIN_WIDTH } from "./mapDocking";
+import shellStyles from "./shell/MapPremiumShell.module.css";
 import {
   createMapShellCssVars,
   MAP_COLORS,
@@ -14,12 +15,14 @@ import {
   MAP_Z_INDEX,
   mapStyles,
 } from "./mapTokens";
+import { getMapShellResponsiveMode } from "./shell";
 import { GisIconButton } from "./ui/GisIconButton";
 
 export interface MapWorkspaceShellProps {
   mode: MapExplorerMode;
   children: React.ReactNode;
   shellRef?: React.RefObject<HTMLDivElement | null>;
+  className?: string;
   onClose?: () => void;
   labelledBy?: string;
   activeActivityId?: string | null;
@@ -474,12 +477,30 @@ export const MapWorkspaceShell: React.FC<MapWorkspaceShellProps> = ({
   mode,
   children,
   shellRef,
+  className,
   onClose,
   labelledBy = "map-explorer-title",
   activeActivityId = null,
 }) => {
   const isModal = mode === "modal" || mode === "presentation";
+  const [shellViewportWidth, setShellViewportWidth] = React.useState<number>(() => (typeof window === "undefined" ? 1440 : window.innerWidth));
   const rootRef = React.useRef<HTMLDivElement | null>(null);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") {
+      return undefined;
+    }
+
+    const handleResize = (): void => {
+      setShellViewportWidth(window.innerWidth);
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const shellViewportMode = getMapShellResponsiveMode(shellViewportWidth);
 
   React.useEffect(() => {
     if (!isModal || !rootRef.current) {
@@ -528,6 +549,7 @@ export const MapWorkspaceShell: React.FC<MapWorkspaceShellProps> = ({
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events -- backdrop click closes modal; Escape is handled by the caller.
     <div
       style={isModal ? mapStyles.overlay : mapStyles.embeddedShell}
+      className={["MapWorkspaceShell", shellStyles.mapPremiumShellRoot, className].filter(Boolean).join(" ")}
       onClick={(event) => {
         if (isModal && event.target === event.currentTarget) {
           onClose?.();
@@ -537,7 +559,6 @@ export const MapWorkspaceShell: React.FC<MapWorkspaceShellProps> = ({
       aria-modal={isModal ? true : undefined}
       aria-labelledby={labelledBy}
       ref={rootRef}
-      className="MapWorkspaceShell"
       data-map-workspace-shell={isModal ? "modal" : "embedded"}
     >
       <div
@@ -545,12 +566,15 @@ export const MapWorkspaceShell: React.FC<MapWorkspaceShellProps> = ({
           ...(isModal ? mapStyles.modal : mapStyles.embeddedSurface),
           ...createMapShellCssVars(),
           ...mapExplorerA11yVars,
+          display: "grid",
+          gridTemplateRows: "var(--map-menu-h, 2.375rem) minmax(0, 1fr) var(--map-status-h, 1.75rem)",
         }}
         ref={shellRef}
-        className="MapWorkspaceShell__surface"
+        className={["MapWorkspaceShell__surface", shellStyles.mapPremiumShellSurface].join(" ")}
         data-map-explorer-shell="true"
         data-map-explorer-mode={mode}
         data-map-active-activity={activeActivityId ?? undefined}
+        data-map-shell-viewport-mode={shellViewportMode}
       >
         <style>{workspaceFocusCss}</style>
         {children}
