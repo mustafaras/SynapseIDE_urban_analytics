@@ -68,7 +68,6 @@ export function useMapPanelLayout({
     layerPanelWidth: layoutPreferences.layerPanelWidth,
     rightPanelWidth: layoutPreferences.rightPanelWidth,
   }), [
-    activeRightDockRoutePanel,
     layoutPreferences.layerPanelWidth,
     layoutPreferences.rightPanelWidth,
     mapContainerWidth,

@@ -1,4 +1,4 @@
-import { MAP_SHELL_DIMENSIONS, MAP_PANEL_SIZES } from "./mapTokens";
+import { MAP_PANEL_SIZES, MAP_SHELL_DIMENSIONS } from "./mapTokens";
 
 /**
  * Consolidated layout tokens for the Map Explorer modal. These values alias

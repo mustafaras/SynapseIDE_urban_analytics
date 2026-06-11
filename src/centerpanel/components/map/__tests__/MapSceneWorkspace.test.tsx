@@ -3,7 +3,7 @@
 import React, { act, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
-import { MapSceneWorkspace, type MapSceneStatusChip } from "../scene";
+import { type MapSceneStatusChip, MapSceneWorkspace } from "../scene";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 

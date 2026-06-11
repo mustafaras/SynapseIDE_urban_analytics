@@ -1,5 +1,4 @@
-import { useEffect } from "react";
-import type React from "react";
+import { type MutableRefObject, useEffect } from "react";
 import type maplibregl from "maplibre-gl";
 
 import { useMapExplorerStore } from "@/stores/useMapExplorerStore";
@@ -13,7 +12,7 @@ type MapBoundsTuple = [number, number, number, number];
 interface UseMapUrbanBridgeControllerOptions {
   open: boolean;
   reducedMotion: boolean;
-  mapInstanceRef: React.MutableRefObject<maplibregl.Map | null>;
+  mapInstanceRef: MutableRefObject<maplibregl.Map | null>;
   onUrbanToMapMethodRequest: (request: UrbanToMapMethodRequest) => void;
 }
 

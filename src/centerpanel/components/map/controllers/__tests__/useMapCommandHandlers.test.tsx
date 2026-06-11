@@ -4,7 +4,7 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { describe, expect, it, vi } from "vitest";
 
-import { useMapCommandHandlers, type MapToolbarCommandKind } from "../useMapCommandHandlers";
+import { type MapToolbarCommandKind, useMapCommandHandlers } from "../useMapCommandHandlers";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 

@@ -211,7 +211,7 @@ export const MapImportPreviewDialog: React.FC<MapImportPreviewDialogProps> = ({
   const commitCaveats = profile.caveats.slice(0, 5);
 
   return (
-    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- overlay click dismiss
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events -- overlay click dismiss
     <div
       style={overlayStyle}
       onClick={(event) => {

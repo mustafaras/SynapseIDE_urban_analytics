@@ -1,17 +1,17 @@
 import * as React from "react";
 import {
+  GIS_STATUS_KEYS,
   MAP_CHROME_SLOT_KEYS,
   MAP_CHROME_TOKENS,
-  GIS_STATUS_KEYS,
-  MAP_STATUS_TOKENS,
-  MAP_DENSITY,
   MAP_COLORS,
+  MAP_DENSITY,
   MAP_MOTION,
   MAP_SHELL_DIMENSIONS,
   MAP_SPACING,
+  MAP_STATUS_TOKENS,
   MAP_TYPOGRAPHY,
 } from "../mapTokens";
-import type { GisStatusKey, GisDensity } from "../mapTokens";
+import type { GisDensity, GisStatusKey } from "../mapTokens";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import styles from "./motion.module.css";
 

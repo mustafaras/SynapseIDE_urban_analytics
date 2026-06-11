@@ -22,8 +22,8 @@ import {
 import {
   buildFieldProfile,
   buildFieldProfiles,
-  formatFieldProfileMetric,
   type FieldProfile,
+  formatFieldProfileMetric,
 } from "./fieldProfiles";
 
 export type AttrFeature = GeoJSON.Feature;

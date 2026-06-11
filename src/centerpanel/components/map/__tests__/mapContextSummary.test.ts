@@ -1,14 +1,14 @@
-import { describe, expect, it, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import {
+  _resetMapContextSummaryCacheForTests,
   buildMapExplorerContextSummary,
+  type MapExplorerContextSummaryInput,
   resolveOverlayLayerCrs,
   resolveOverlayLayerQueryable,
   selectMapExplorerContextSummary,
   selectMapExplorerLayerSummaries,
   selectMapExplorerVisibleLayerSummaries,
   summarizeOverlayLayer,
-  _resetMapContextSummaryCacheForTests,
-  type MapExplorerContextSummaryInput,
 } from "../mapContextSummary";
 import type { DrawnFeature, OverlayLayerConfig } from "../mapTypes";
 import type { MapScientificQAState } from "../../../../services/map/MapScientificQA";

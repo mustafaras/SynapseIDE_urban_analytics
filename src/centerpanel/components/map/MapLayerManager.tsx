@@ -2598,7 +2598,7 @@ const AddLayerDialog: React.FC<AddLayerDialogProps> = ({ onAdd, onClose }) => {
   }, [canSubmit, name, onAdd, onClose, sourceKind, type, url]);
 
   return (
-    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- overlay click to dismiss
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events -- overlay click to dismiss
     <div style={dialogOverlayStyle} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div style={dialogStyle} role="dialog" aria-modal="true" aria-label="Add layer">
         <div style={{ ...panelTitle, marginBottom: 12 }}>Add Layer</div>

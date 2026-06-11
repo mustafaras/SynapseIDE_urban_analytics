@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import type maplibregl from "maplibre-gl";
 import {
-  normalizeGeoJSONSourceDataForRender,
   type GeoJSONRenderNormalizationOptions,
+  normalizeGeoJSONSourceDataForRender,
 } from "@/services/map/MapDataImporter";
 import {
   createMapPerformanceTiming,
@@ -10,14 +10,14 @@ import {
 } from "@/services/map/MapPerformanceDiagnostics";
 import { normalizeXyzTileUrlTemplate } from "@/services/map/ExternalTileUrlTemplates";
 import {
-  STYLE_LABEL_SPEC_KEY,
   buildMapLibreLabelFragments,
   getSerializedMapLabelSpecFromStyle,
+  STYLE_LABEL_SPEC_KEY,
 } from "@/services/map/labels/MapLabelEngine";
 import {
-  STYLE_ADVANCED_CARTOGRAPHY_SPEC_KEY,
   buildDotDensityFeatureCollection,
   getSerializedAdvancedCartographySpecFromStyle,
+  STYLE_ADVANCED_CARTOGRAPHY_SPEC_KEY,
 } from "@/services/map/cartography/AdvancedCartographyEngine";
 import {
   buildVectorTilePipeline,

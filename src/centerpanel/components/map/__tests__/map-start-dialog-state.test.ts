@@ -5,11 +5,11 @@ import {
   dismissMapStartDialog,
   getMapStartDialogQuickActionHandoff,
   hasMapStartDialogWorkspaceContent,
+  type MapStartDialogContext,
   normalizeLegacyMapStartDialogDismissedAt,
   normalizeMapStartDialogState,
   openMapStartDialog,
   resolveInitialMapStartDialogReason,
-  type MapStartDialogContext,
 } from "../mapStartDialogState";
 
 const EMPTY_CONTEXT: MapStartDialogContext = {

@@ -1,8 +1,8 @@
 import {
+  getMapActivityDefinition,
   MAP_PRIMARY_ACTIVITY_ORDER,
   MAP_TASK_LENSES,
   MAP_UTILITY_ACTIVITY_ORDER,
-  getMapActivityDefinition,
 } from "./navigation/mapNavigationModel";
 import type {
   MapTaskLensDefinition,

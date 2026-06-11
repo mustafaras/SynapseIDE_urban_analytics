@@ -17,11 +17,11 @@ import {
 import type { OverlayLayerConfig } from "./mapTypes";
 import type {
   MapReviewAuditCategory,
+  MapReviewSession,
   MapReviewTimelineEvent,
   MapReviewTimelineEventInput,
   MapReviewTimelineEventStatus,
   MapReviewTimelineEventType,
-  MapReviewSession,
 } from "@/services/map/MapReviewSessionService";
 import {
   filterMapReviewTimelineEvents,

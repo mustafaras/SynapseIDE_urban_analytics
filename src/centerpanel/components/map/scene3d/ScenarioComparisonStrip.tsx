@@ -10,7 +10,7 @@
  */
 import React, { useCallback } from "react";
 import { AlertTriangle, Building2, Clock, Sun } from "lucide-react";
-import { selectMassingScenarios, selectActiveScenarioId, useMassingStore } from "@/stores/useMassingStore";
+import { selectActiveScenarioId, selectMassingScenarios, useMassingStore } from "@/stores/useMassingStore";
 import {
   selectActiveHour,
   selectSunShadowScenarios,
@@ -305,7 +305,7 @@ export const ScenarioComparisonStrip: React.FC<ScenarioComparisonStripProps> = (
       <div style={bodyStyle}>
 
         {/* Sun-shadow timeline */}
-        {hasTimeline && (
+        {!!hasTimeline && (
           <section aria-label="Sun/shadow timeline">
             <p style={sectionLabelStyle}>
               <Sun size={10} aria-hidden style={{ display: "inline", marginRight: 4 }} />
@@ -331,7 +331,7 @@ export const ScenarioComparisonStrip: React.FC<ScenarioComparisonStripProps> = (
         )}
 
         {/* Massing scenarios */}
-        {hasMassing && (
+        {!!hasMassing && (
           <section aria-label="Massing scenarios">
             <p style={sectionLabelStyle}>
               <Building2 size={10} aria-hidden style={{ display: "inline", marginRight: 4 }} />
@@ -376,8 +376,7 @@ export const ScenarioComparisonStrip: React.FC<ScenarioComparisonStripProps> = (
                       {sc.label}
                     </div>
 
-                    {alt && (
-                      <>
+                    {!!alt && <>
                         <div style={metricRowStyle}>
                           <span>FAR</span>
                           <span style={metricValueStyle}>{alt.achievedFAR.toFixed(2)}</span>
@@ -397,8 +396,7 @@ export const ScenarioComparisonStrip: React.FC<ScenarioComparisonStripProps> = (
                             Ht {alt.heightCompliant ? "✓" : "✗"}
                           </span>
                         </div>
-                      </>
-                    )}
+                      </>}
 
                     {!alt && (
                       <span style={{ fontSize: MAP_TYPOGRAPHY.fontSize.xs, color: MAP_COLORS.textMuted }}>
@@ -413,7 +411,7 @@ export const ScenarioComparisonStrip: React.FC<ScenarioComparisonStripProps> = (
         )}
 
         {/* Shadow scenarios */}
-        {hasShadow && (
+        {!!hasShadow && (
           <section aria-label="Shadow scenarios">
             <p style={sectionLabelStyle}>
               <Clock size={10} aria-hidden style={{ display: "inline", marginRight: 4 }} />
@@ -425,12 +423,12 @@ export const ScenarioComparisonStrip: React.FC<ScenarioComparisonStripProps> = (
                   <span style={{ fontSize: MAP_TYPOGRAPHY.fontSize.xs, color: MAP_COLORS.text }}>
                     {sc.label}
                   </span>
-                  {sc.result && (
+                  {!!sc.result && (
                     <span style={{ fontFamily: MAP_TYPOGRAPHY.fontFamilyMono, fontSize: MAP_TYPOGRAPHY.fontSize.xs, color: MAP_COLORS.textSecondary }}>
                       {(sc.result.shadowCoverageRatio * 100).toFixed(0)}% shadow
                     </span>
                   )}
-                  {sc.result?.sunBelowHorizon && (
+                  {!!sc.result?.sunBelowHorizon && (
                     <span style={{ fontSize: MAP_TYPOGRAPHY.fontSize.xs, color: MAP_COLORS.textMuted }}>
                       (sun below horizon)
                     </span>

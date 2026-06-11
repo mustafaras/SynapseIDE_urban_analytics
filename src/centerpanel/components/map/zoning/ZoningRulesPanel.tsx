@@ -3,7 +3,7 @@
  * mapTokens only, no Tailwind, no hard-coded hex.
  */
 import React, { useCallback, useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, Plus, Trash2, X, Layers } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Layers, Plus, Trash2, X } from "lucide-react";
 import type { Feature, MultiPolygon, Polygon } from "geojson";
 import {
   selectAssignmentForParcel,
@@ -12,6 +12,7 @@ import {
   useZoningStore,
 } from "@/stores/useZoningStore";
 import {
+  type GisStatusKey,
   MAP_COLORS,
   MAP_ICON_SIZES,
   MAP_RADIUS,
@@ -20,7 +21,6 @@ import {
   MAP_STROKES,
   MAP_TYPOGRAPHY,
   MAP_Z_INDEX,
-  type GisStatusKey,
 } from "../mapTokens";
 import { GisStatusChip } from "../ui/GisStatusChip";
 import { createOpaqueFloatingPanelStyle, useDraggableMapPanel } from "../useDraggableMapPanel";
@@ -559,7 +559,7 @@ export const ZoningRulesPanel: React.FC<ZoningRulesPanelProps> = ({
                   </div>
                 )}
 
-                {currentAssignment && (
+                {!!currentAssignment && (
                   <button
                     type="button"
                     style={{ ...buttonStyle, color: MAP_COLORS.textMuted }}
@@ -597,7 +597,7 @@ export const ZoningRulesPanel: React.FC<ZoningRulesPanelProps> = ({
           </div>
 
           {/* Add-rule form */}
-          {showAddForm && (
+          {!!showAddForm && (
             <div
               style={{ display: "grid", gap: MAP_SPACING.sm, padding: MAP_SPACING.sm, border: MAP_STROKES.hairlineSubtle, borderRadius: MAP_RADIUS.sm }}
               data-testid="zoning-add-rule-form"
@@ -698,9 +698,7 @@ export const ZoningRulesPanel: React.FC<ZoningRulesPanelProps> = ({
                     <span>Coverage ≤ {(rule.maxCoverageRatio * 100).toFixed(0)}%</span>
                     <span>H ≤ {rule.maxHeightMetres} m</span>
                   </div>
-                  {rule.notes && (
-                    <span style={{ color: MAP_COLORS.textMuted }}>{rule.notes}</span>
-                  )}
+                  {!!rule.notes && <span style={{ color: MAP_COLORS.textMuted }}>{rule.notes}</span>}
                 </div>
               );
             })

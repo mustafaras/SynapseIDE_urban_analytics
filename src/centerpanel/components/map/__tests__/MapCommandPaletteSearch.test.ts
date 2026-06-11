@@ -5,12 +5,12 @@ import {
   isMapRedoShortcut,
   isMapUndoShortcut,
   isOpenPaletteShortcut,
-  MAP_KEYBINDINGS,
   MAP_COMMAND_TAXONOMY_META,
   MAP_COMMAND_TAXONOMY_ORDER,
+  MAP_KEYBINDINGS,
+  type MapPaletteSearchCommand,
   searchMapPaletteCommands,
   shouldIgnoreMapPaletteShortcut,
-  type MapPaletteSearchCommand,
 } from "@/services/map/commands/MapCommandPalette";
 
 const commands: MapPaletteSearchCommand[] = [

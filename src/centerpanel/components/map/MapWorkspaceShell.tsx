@@ -524,7 +524,7 @@ export const MapWorkspaceShell: React.FC<MapWorkspaceShellProps> = ({
   }, [isModal]);
 
   return (
-    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- backdrop click closes modal; Escape is handled by the caller.
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events -- backdrop click closes modal; Escape is handled by the caller.
     <div
       style={isModal ? mapStyles.overlay : mapStyles.embeddedShell}
       onClick={(event) => {

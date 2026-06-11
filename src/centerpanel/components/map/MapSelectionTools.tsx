@@ -18,11 +18,11 @@ import {
   createMapSpatialPolygonShape,
   executeMapQueryPlan,
   getMapFeatureCollectionBounds,
-  planMapQuery,
   type MapAttributeOperator,
   type MapQueryExecutionResult,
   type MapSpatialQueryShape,
   type MapSpatialQuerySource,
+  planMapQuery,
 } from "@/services/map/query/MapQueryPlanner";
 import {
   summarizeDrawnGeometryValidation,

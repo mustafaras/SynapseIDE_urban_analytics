@@ -5,11 +5,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { MapRightDockHost } from "../MapRightDockHost";
 import type { MapRightDockPanel } from "../mapDocking";
 import {
+  createMapRightDockRoute,
+  createMapRightDockRouteFromBottomTab,
   MAP_MIGRATED_BOTTOM_TAB_TO_RIGHT_DOCK_PANEL,
   MAP_RIGHT_DOCK_PANEL_IDS,
   MAP_RIGHT_DOCK_PRIMARY_PANELS,
-  createMapRightDockRoute,
-  createMapRightDockRouteFromBottomTab,
 } from "../mapRightDockRoutes";
 
 afterEach(() => cleanup());

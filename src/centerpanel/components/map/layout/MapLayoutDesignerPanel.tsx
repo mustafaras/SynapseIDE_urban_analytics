@@ -7,14 +7,14 @@ import {
   buildMapFigureAttributionText,
   composeMapBook,
   LAYOUT_PRESETS,
-  preflightMapFigure,
-  restorePageInputsFromMetadata,
-  summariseFigureReadiness,
   type MapBookSpec,
   type MapFigureRestoreMetadata,
   type MapLayoutPreset,
   type MapPageInput,
   type MapPageSlot,
+  preflightMapFigure,
+  restorePageInputsFromMetadata,
+  summariseFigureReadiness,
 } from "@/services/map/layout/MapLayoutComposer";
 import {
   MAP_COLORS,

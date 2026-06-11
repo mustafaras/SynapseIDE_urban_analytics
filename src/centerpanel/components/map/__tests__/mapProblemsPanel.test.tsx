@@ -5,7 +5,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { evaluateMapScientificQASync } from "@/services/map/MapScientificQA";
 import type { OverlayLayerConfig } from "../mapTypes";
-import { MapProblemsPanel, buildMapProblemsModel } from "../problems";
+import { buildMapProblemsModel, MapProblemsPanel } from "../problems";
 import { externalServiceStub, fcInvalidGeometry, fcMissingCrs } from "./fixtures/gisFixtures";
 
 function createGeoJsonLayer(

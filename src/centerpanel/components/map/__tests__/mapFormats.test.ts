@@ -2,11 +2,11 @@
 
 import { describe, expect, it } from "vitest";
 import {
-  parsePrjText,
   buildShapefileLayerFromFc,
   extractGeoPackageLayerCrsSummary,
-  profileSource,
   type GeoPackageLayerInfo,
+  parsePrjText,
+  profileSource,
 } from "@/services/map/MapDataImporter";
 import type { FeatureCollection } from "geojson";
 

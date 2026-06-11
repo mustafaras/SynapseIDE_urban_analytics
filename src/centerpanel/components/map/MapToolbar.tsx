@@ -21,11 +21,12 @@ import {
   Keyboard,
   Layers3,
   Link2,
+  type LucideIcon,
   MapPin,
   Palette,
   PanelTop,
-  Pentagon,
   Pencil,
+  Pentagon,
   Puzzle,
   RectangleHorizontal,
   Redo2,
@@ -42,7 +43,6 @@ import {
   Undo2,
   Upload,
   Workflow,
-  type LucideIcon,
 } from "lucide-react";
 import type { ProcessingToolDescriptor, ToolParameterDescriptor } from "@/services/map/contracts/gisContracts";
 import {
@@ -53,15 +53,15 @@ import {
   isMapUndoShortcut,
   isOpenPaletteShortcut,
   MAP_COMMAND_TAXONOMY_META,
-  searchMapPaletteCommands,
-  shouldIgnoreMapPaletteShortcut,
   type MapCommandTaxonomyId,
   type MapPaletteSearchCommand,
+  searchMapPaletteCommands,
+  shouldIgnoreMapPaletteShortcut,
 } from "@/services/map/commands/MapCommandPalette";
 import BackgroundTasksControl from "../BackgroundTasksControl";
 import {
-  useMapToolbarPreferencesStore,
   type MapToolbarDensityPreference,
+  useMapToolbarPreferencesStore,
 } from "../../../stores/useMapToolbarPreferencesStore";
 import type { DrawToolId, LayerQaStatus, MeasureToolId } from "./mapTypes";
 import type { MapWorkspaceView } from "./mapExperience";

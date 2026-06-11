@@ -4,7 +4,7 @@
  * Never claims a total feature count for remote streaming sources.
  */
 import React from "react";
-import { MAP_COLORS, MAP_TYPOGRAPHY, MAP_STATUS_TOKENS } from "../mapTokens";
+import { MAP_COLORS, MAP_STATUS_TOKENS, MAP_TYPOGRAPHY } from "../mapTokens";
 import type { StreamingLayerState } from "../../../../services/map/streaming/VectorStreamingService";
 
 export interface StreamingBadgeProps {
@@ -80,7 +80,7 @@ export const StreamingBadge: React.FC<StreamingBadgeProps> = ({
           {countLabel}
         </span>
       )}
-      {fetchError && (
+      {!!fetchError && (
         <span
           style={{ color: MAP_COLORS.error, fontSize: "10px" }}
           title={fetchError}

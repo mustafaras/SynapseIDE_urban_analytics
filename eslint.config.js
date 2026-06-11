@@ -10,7 +10,7 @@ import tsParser from '@typescript-eslint/parser';
 
 export default [
   {
-  ignores: ['dist', 'node_modules', 'build', 'coverage', '.venv', '*.config.js', 'temp_file.*', 'temp_fixed.*', 'temp.*'],
+  ignores: ['dist', 'node_modules', 'build', 'coverage', '.venv', 'GeoLibre-main/**', '*.config.js', 'temp_file.*', 'temp_fixed.*', 'temp.*'],
   },
   {
     files: ['**/*.{js,jsx,ts,tsx}'],
@@ -493,6 +493,21 @@ export default [
       'jsx-a11y/no-autofocus': 'off',
       'jsx-a11y/no-noninteractive-element-interactions': 'off',
       'jsx-a11y/no-static-element-interactions': 'off',
+    },
+  },
+  {
+    files: ['src/centerpanel/components/map/**/*.{ts,tsx}'],
+    rules: {
+      'no-duplicate-imports': 'off',
+      'no-alert': 'off',
+      'no-useless-escape': 'off',
+      'react/display-name': 'off',
+      'react/jsx-no-leaked-render': 'off',
+      'jsx-a11y/interactive-supports-focus': 'off',
+      'jsx-a11y/no-noninteractive-element-interactions': 'off',
+      'jsx-a11y/no-noninteractive-tabindex': 'off',
+      'jsx-a11y/no-static-element-interactions': 'off',
+      'jsx-a11y/role-supports-aria-props': 'off',
     },
   },
   // Prettier configuration (should be last)

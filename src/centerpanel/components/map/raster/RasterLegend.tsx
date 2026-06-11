@@ -2,12 +2,12 @@
  * Prompt 45 — Color ramp legend + noData swatch for a raster band.
  */
 import React from "react";
-import { MAP_COLORS, MAP_TYPOGRAPHY, type GisStatusKey } from "../mapTokens";
+import { type GisStatusKey, MAP_COLORS, MAP_TYPOGRAPHY } from "../mapTokens";
 import { GisStatusChip } from "../ui/GisStatusChip";
 import {
   buildRampGradient,
-  type ColorRampId,
   COLOR_RAMP_STOPS,
+  type ColorRampId,
 } from "../../../../services/map/raster/RasterHistogramEngine";
 import type { RasterBandStats } from "../../../../services/map/raster/RasterHistogramEngine";
 

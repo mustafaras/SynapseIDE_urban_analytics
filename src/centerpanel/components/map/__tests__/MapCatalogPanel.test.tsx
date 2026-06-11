@@ -6,11 +6,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { SourceHandle } from "@/services/map/contracts/gisContracts";
 import type { OverlayLayerConfig } from "../mapTypes";
 import {
-  MapCatalogPanel,
   type MapCatalogActionResult,
   type MapCatalogConnectionDraft,
   type MapCatalogItem,
   type MapCatalogLayerInsertion,
+  MapCatalogPanel,
   type MapDataActivitySectionId,
 } from "../catalog";
 

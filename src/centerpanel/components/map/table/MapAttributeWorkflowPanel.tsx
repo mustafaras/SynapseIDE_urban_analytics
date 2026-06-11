@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import type { Feature } from "geojson";
 import type { OverlayLayerConfig } from "../mapTypes";
 import {
+  type GisStatusKey,
   MAP_COLORS,
   MAP_DENSITY,
   MAP_RADIUS,
@@ -9,17 +10,16 @@ import {
   MAP_STROKES,
   MAP_TEXT_STYLES,
   MAP_TYPOGRAPHY,
-  type GisStatusKey,
 } from "../mapTokens";
 import { GisDensePropertyRow, GisEmptyState, GisStatusChip } from "../ui";
 import {
+  type AttrFeature,
   extractFeatures,
+  type MapAttributeDerivedFieldDraft,
   MapAttributeTable,
   resolveLayerColumns,
-  type AttrFeature,
-  type MapAttributeDerivedFieldDraft,
 } from "./MapAttributeTable";
-import { buildFieldProfiles, formatFieldProfileMetric, type FieldProfile } from "./fieldProfiles";
+import { buildFieldProfiles, type FieldProfile, formatFieldProfileMetric } from "./fieldProfiles";
 import type {
   MapJoinLayerInput,
   MapJoinMode,

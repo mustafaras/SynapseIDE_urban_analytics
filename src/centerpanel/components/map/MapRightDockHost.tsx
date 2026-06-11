@@ -11,6 +11,7 @@ import {
   Info,
   Layers,
   ListChecks,
+  type LucideIcon,
   MapPin,
   MoreHorizontal,
   MousePointer2,
@@ -20,19 +21,18 @@ import {
   Users,
   Workflow,
   X,
-  type LucideIcon,
 } from "lucide-react";
 import type { MapRightDockPanel } from "./mapDocking";
 import {
+  getMapRightDockPanelDefinition,
   MAP_RIGHT_DOCK_PANEL_DEFINITIONS,
   MAP_RIGHT_DOCK_PANEL_IDS,
-  getMapRightDockPanelDefinition,
   type MapRightDockRoute,
 } from "./mapRightDockRoutes";
 import {
-  MAP_RIGHT_DOCK_OVERFLOW_GROUPS,
   getMapRightDockPanelTier,
   getRightDockVisibleTabPanels,
+  MAP_RIGHT_DOCK_OVERFLOW_GROUPS,
 } from "./mapRightDockRoutes";
 import { MAP_ICON_SIZES, MAP_Z_INDEX } from "./mapTokens";
 import { GisIconButton } from "./ui";

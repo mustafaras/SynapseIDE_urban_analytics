@@ -5,13 +5,13 @@
  */
 import React from "react";
 import {
+  type GisDensity,
   MAP_COLORS,
   MAP_DENSITY,
   MAP_SPACING,
   MAP_STROKES,
   MAP_TEXT_STYLES,
   MAP_TYPOGRAPHY,
-  type GisDensity,
 } from "../mapTokens";
 import primitiveStyles from "./GisPrimitive.module.css";
 

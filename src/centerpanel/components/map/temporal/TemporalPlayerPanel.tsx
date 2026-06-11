@@ -11,11 +11,11 @@
 import React from "react";
 import { Download, Pause, Play, SkipBack, SkipForward } from "lucide-react";
 import {
+  type GisStatusKey,
   MAP_COLORS,
   MAP_RADIUS,
   MAP_SPACING,
   MAP_TYPOGRAPHY,
-  type GisStatusKey,
 } from "../mapTokens";
 import { usePrefersReducedMotion } from "../design";
 import { GisIconButton, GisProgressBar, GisStatusChip } from "../ui";
@@ -26,8 +26,8 @@ import {
 import {
   selectActiveTemporalFrame,
   selectTemporalFrameCount,
-  useTemporalLayerStore,
   type TemporalFrameExportPayload,
+  useTemporalLayerStore,
 } from "@/stores/useTemporalLayerStore";
 import type { PlaybackSpeed } from "../mapTypes";
 
@@ -182,7 +182,7 @@ export const TemporalPlayerPanel: React.FC<TemporalPlayerPanelProps> = ({
           label={playbackLabel(hasFrames, isPlaying, playbackMode)}
           data-testid="temporal-playback-chip"
         />
-        {prefersReducedMotion && (
+        {!!prefersReducedMotion && (
           <GisStatusChip
             status="caveat"
             label="reduced motion"

@@ -3,15 +3,15 @@ import { classifyNumericValues } from "@/utils/classification";
 import type { ColorRampName } from "@/utils/colorRamps";
 import { getColorRampColors } from "@/utils/colorRamps";
 import {
-  STYLE_LABEL_SPEC_KEY,
   buildSerializedMapLabelSpec,
+  STYLE_LABEL_SPEC_KEY,
 } from "@/services/map/labels/MapLabelEngine";
 import {
-  STYLE_ADVANCED_CARTOGRAPHY_SPEC_KEY,
-  STYLE_ADVANCED_CARTOGRAPHY_SPEC_VERSION,
   buildBivariateChoroplethRenderer,
   buildDotDensityRenderer,
   type SerializedAdvancedCartographySpec,
+  STYLE_ADVANCED_CARTOGRAPHY_SPEC_KEY,
+  STYLE_ADVANCED_CARTOGRAPHY_SPEC_VERSION,
 } from "@/services/map/cartography/AdvancedCartographyEngine";
 import type {
   MapLabelCollisionPolicy,

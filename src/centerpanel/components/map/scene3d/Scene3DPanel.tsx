@@ -2,23 +2,24 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { FeatureCollection, GeoJsonProperties, Polygon } from "geojson";
 import { AlertTriangle, Box, ChevronDown, Crosshair, Eye, Layers, Scissors } from "lucide-react";
 import {
-  selectSectionPlaneDefinition,
-  selectSectionPlaneResult,
-  selectScene3DActiveLayerCrs,
-  selectScene3DActiveLayerId,
-  selectScene3DBuildings,
   selectBuildingConfig,
   selectExtrusionAnalysis,
   selectInspectorEntries,
+  selectScene3DActiveLayerCrs,
+  selectScene3DActiveLayerId,
+  selectScene3DBuildings,
   selectScene3DCityModelSourceHandle,
-  selectScene3DTerrainSourceHandle,
   selectScene3DMode,
   selectScene3DSelected,
+  selectScene3DTerrainSourceHandle,
+  selectSectionPlaneDefinition,
+  selectSectionPlaneResult,
   selectViewCorridorResult,
   useScene3DStore,
 } from "@/stores/useScene3DStore";
 import { useMapExplorerStore } from "@/stores/useMapExplorerStore";
 import {
+  type GisStatusKey,
   MAP_COLORS,
   MAP_ICON_SIZES,
   MAP_RADIUS,
@@ -29,7 +30,6 @@ import {
   MAP_TYPOGRAPHY,
   MAP_Z_INDEX,
   resolveMapPaintColor,
-  type GisStatusKey,
 } from "../mapTokens";
 import { GisStatusChip } from "../ui/GisStatusChip";
 import { createOpaqueFloatingPanelStyle, useDraggableMapPanel } from "../useDraggableMapPanel";
@@ -1023,21 +1023,21 @@ export const Scene3DPanel: React.FC<Scene3DPanelProps> = ({
           </div>
         </div>
 
-        {previewActive && (
+        {!!previewActive && (
           <section style={dockedControlSectionStyle} data-testid="scene3d-docked-interaction-tools">
             <span style={sectionTitleStyle}>Interaction tools</span>
             <Scene3DInteractionStrip visible presentation="embedded" />
           </section>
         )}
 
-        {previewActive && (
+        {!!previewActive && (
           <section style={dockedControlSectionStyle} data-testid="scene3d-docked-scenario-comparison">
             <ScenarioComparisonStrip visible presentation="embedded" />
           </section>
         )}
 
         {/* Extrusion config */}
-        {previewActive && (
+        {!!previewActive && (
           <div style={{ display: "grid", gap: MAP_SPACING.xs }} data-testid="scene3d-extrusion-config">
             <span style={sectionTitleStyle}>Extrusion</span>
             <div style={rowStyle}>
@@ -1084,7 +1084,7 @@ export const Scene3DPanel: React.FC<Scene3DPanelProps> = ({
           </div>
         )}
 
-        {previewActive && (
+        {!!previewActive && (
           <div style={analysisPanelStyle} data-testid="scene3d-analysis-tools">
             <span style={sectionTitleStyle}>Corridor + section</span>
             <div style={stateChipRowStyle} data-testid="scene3d-urban-form-controls">
@@ -1179,14 +1179,14 @@ export const Scene3DPanel: React.FC<Scene3DPanelProps> = ({
               </div>
             </div>
 
-            {viewCorridorResult?.blockedReason && (
+            {!!viewCorridorResult?.blockedReason && (
               <div style={caveatStyle} data-testid="scene3d-corridor-blocked">
                 <AlertTriangle size={MAP_ICON_SIZES.xs} aria-hidden="true" />
                 <span>{viewCorridorResult.blockedReason}</span>
               </div>
             )}
 
-            {viewCorridorResult && viewCorridorResult.intrusions.length > 0 && (
+            {!!viewCorridorResult && viewCorridorResult.intrusions.length > 0 && (
               <div style={{ display: "grid", gap: MAP_SPACING.xs }} data-testid="scene3d-corridor-intrusions">
                 {viewCorridorResult.intrusions.slice(0, 4).map((intrusion) => (
                   <div
@@ -1243,14 +1243,14 @@ export const Scene3DPanel: React.FC<Scene3DPanelProps> = ({
               </div>
             </div>
 
-            {sectionPlaneResult && (
+            {!!sectionPlaneResult && (
               <div style={rowStyle} data-testid="scene3d-section-context-retained">
                 <span style={keyStyle}>Context retained</span>
                 <span>{sectionPlaneResult.retainedContextFeatureIds.length} / {sectionPlaneResult.contextFeatureCount}</span>
               </div>
             )}
 
-            {sectionPlaneResult?.blockedReason && (
+            {!!sectionPlaneResult?.blockedReason && (
               <div style={caveatStyle} data-testid="scene3d-section-blocked">
                 <AlertTriangle size={MAP_ICON_SIZES.xs} aria-hidden="true" />
                 <span>{sectionPlaneResult.blockedReason}</span>
@@ -1268,7 +1268,7 @@ export const Scene3DPanel: React.FC<Scene3DPanelProps> = ({
               >
                 Publish evidence
               </button>
-              {publishedAnalysisId && (
+              {!!publishedAnalysisId && (
                 <span
                   style={{ ...keyStyle, alignSelf: "center" }}
                   data-testid="scene3d-analysis-evidence-published"
@@ -1294,7 +1294,7 @@ export const Scene3DPanel: React.FC<Scene3DPanelProps> = ({
         )}
 
         {/* Building inspector */}
-        {buildingConfig && inspectorEntries.length > 0 && (
+        {!!buildingConfig && inspectorEntries.length > 0 && (
           <div style={{ display: "grid", gap: MAP_SPACING.xs }} data-testid="scene3d-inspector">
             <span style={sectionTitleStyle}>
               Building inspector — {inspectorEntries.length} feature(s),{" "}

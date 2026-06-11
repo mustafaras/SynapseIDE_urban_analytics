@@ -23,9 +23,9 @@ import { Layers, Settings, X } from "lucide-react";
 import React from "react";
 
 import {
-  GisEmptyState,
   GisDensePropertyRow,
   GisDisclosureRow,
+  GisEmptyState,
   GisIconButton,
   GisProgressBar,
   GisSectionHeader,

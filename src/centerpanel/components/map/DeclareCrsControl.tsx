@@ -10,11 +10,11 @@ import {
 } from "./mapTokens";
 import { IconClose, IconGlobe } from "./MapIcons";
 import {
+  type CrsCatalogEntry,
   parseDeclarableCrs,
   searchCrsCatalog,
-  suggestLocalCrsForExtent,
-  type CrsCatalogEntry,
   type SuggestedCrs,
+  suggestLocalCrsForExtent,
 } from "@/services/map/crs/crsCatalog";
 
 /**

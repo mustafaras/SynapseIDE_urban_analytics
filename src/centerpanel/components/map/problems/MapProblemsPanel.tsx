@@ -1,7 +1,7 @@
 import React from "react";
 import {
-  MAP_PROBLEM_SEVERITY_LABELS,
   getMapProblemKindLabel,
+  MAP_PROBLEM_SEVERITY_LABELS,
   type MapProblemRow,
   type MapProblemSeverity,
   type MapProblemsModel,

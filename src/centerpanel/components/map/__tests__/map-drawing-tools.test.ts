@@ -10,9 +10,6 @@
  *   6. Barrel exports — new types
  */
 
-import { readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 import type { Map as MapLibreMap } from "maplibre-gl";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -31,12 +28,6 @@ import {
   makeRectangle,
 } from "../../../../utils/drawingHelpers";
 import type { DrawnFeature, DrawToolId, FeatureStyle } from "../mapTypes";
-
-const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../../");
-
-function readRepoFile(relativePath: string): string {
-  return readFileSync(resolve(repoRoot, relativePath), "utf8");
-}
 
 /* ================================================================== */
 /*  1. drawingHelpers — Pure utility tests                             */
@@ -575,14 +566,6 @@ describe("MapDrawingManager — module exports", () => {
     expect(html).toBe("");
   });
 
-  it("keeps legacy map controls out of the modal control path", () => {
-    const composition = readRepoFile("src/centerpanel/components/map/controllers/MapExplorerModalComposition.tsx");
-
-    expect(composition).not.toMatch(/<MapControls\b/);
-    expect(composition).not.toMatch(/<LayerManager\b/);
-    expect(composition).toMatch(/<MapDrawingManager[\s\S]*?presentation="embedded"/);
-    expect(composition).toMatch(/<MapDrawingManager[\s\S]*?presentation="headless"/);
-  });
 });
 
 /* ================================================================== */

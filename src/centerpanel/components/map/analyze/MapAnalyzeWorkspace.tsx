@@ -10,8 +10,7 @@ import {
   MAP_TEXT_STYLES,
   MAP_TYPOGRAPHY,
 } from "../mapTokens";
-import { MapWorkbenchSidebar } from "../sidebar";
-import type { MapWorkbenchSidebarTab } from "../sidebar";
+import { MapWorkbenchSidebar, type MapWorkbenchSidebarTab } from "../sidebar";
 import { resolveSpatialStatsLayerContext } from "../spatialStatsVizUtils";
 import { GisEmptyState } from "../ui";
 

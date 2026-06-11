@@ -5,16 +5,16 @@ import {
   Compass,
   FolderOpen,
   Globe,
+  type LucideIcon,
   PackageOpen,
   Sparkles,
   Upload,
   X,
-  type LucideIcon,
 } from "lucide-react";
 import styles from "./MapStartDialog.module.css";
 import { MAP_TYPOGRAPHY } from "./mapTokens";
 import type { OverlayLayerConfig } from "./mapTypes";
-import { resolveOverlayLayerCrs, type MapExplorerContextSummary } from "./mapContextSummary";
+import { type MapExplorerContextSummary, resolveOverlayLayerCrs } from "./mapContextSummary";
 import { getMapWorkspaceReadiness } from "./mapExperience";
 import type { MapStartDialogReason } from "./mapStartDialogState";
 

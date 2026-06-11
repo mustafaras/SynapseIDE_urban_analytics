@@ -9,13 +9,13 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import {
+  type GisStatusKey,
   MAP_COLORS,
   MAP_RADIUS,
   MAP_SPACING,
   MAP_STROKES,
   MAP_TEXT_STYLES,
   MAP_TYPOGRAPHY,
-  type GisStatusKey,
 } from "../mapTokens";
 import type { MapSidebarTabId } from "../navigation";
 import { MapWorkbenchSidebar, type MapWorkbenchSidebarTab } from "../sidebar";

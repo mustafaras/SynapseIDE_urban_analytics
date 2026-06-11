@@ -5,6 +5,8 @@
  */
 import React from "react";
 import {
+  type GisDensity,
+  type GisStatusKey,
   MAP_COLORS,
   MAP_DENSITY,
   MAP_RADIUS,
@@ -12,8 +14,6 @@ import {
   MAP_STATUS_TOKENS,
   MAP_TEXT_STYLES,
   MAP_TYPOGRAPHY,
-  type GisDensity,
-  type GisStatusKey,
 } from "../mapTokens";
 import motionStyles from "../design/motion.module.css";
 import primitiveStyles from "./GisPrimitive.module.css";

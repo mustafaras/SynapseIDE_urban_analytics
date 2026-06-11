@@ -12,7 +12,7 @@ import {
   runProcessingTool,
 } from "../../../../services/map/processing";
 import type { MapActionEffects } from "../../../../services/map/actions/MapActionExecutor";
-import { fcPolygonsProjected, FC_POLYGONS_PROJECTED_COUNT } from "./fixtures/gisFixtures";
+import { FC_POLYGONS_PROJECTED_COUNT, fcPolygonsProjected } from "./fixtures/gisFixtures";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 

@@ -1,17 +1,17 @@
 import React from "react";
 import type { OverlayLayerConfig } from "../mapTypes";
 import {
+  type GisStatusKey,
   MAP_COLORS,
   MAP_RADIUS,
   MAP_SPACING,
   MAP_STROKES,
   MAP_TYPOGRAPHY,
-  type GisStatusKey,
 } from "../mapTokens";
 import { usePrefersReducedMotion } from "../design";
 import { GisStatusChip } from "../ui";
 import { TemporalPlayerPanel } from "./TemporalPlayerPanel";
-import { useTemporalLayerStore, type TemporalFrameExportPayload } from "@/stores/useTemporalLayerStore";
+import { type TemporalFrameExportPayload, useTemporalLayerStore } from "@/stores/useTemporalLayerStore";
 
 export interface TemporalScenePanelProps {
   activeLayer: OverlayLayerConfig;

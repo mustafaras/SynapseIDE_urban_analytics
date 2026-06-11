@@ -557,7 +557,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
         data-map-keyboard-scope="true"
         style={{ position: "absolute", inset: MAP_SPACING.zero }}
         ref={containerRef}
-        // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- map canvas needs focus for keyboard navigation
+         
         tabIndex={0}
       />
     </>

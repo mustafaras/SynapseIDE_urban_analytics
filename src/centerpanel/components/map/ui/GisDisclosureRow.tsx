@@ -1,6 +1,7 @@
 import React from "react";
 import { ChevronRight } from "lucide-react";
 import {
+  type GisDensity,
   MAP_COLORS,
   MAP_DENSITY,
   MAP_ICON_SIZES,
@@ -10,7 +11,6 @@ import {
   MAP_TEXT_STYLES,
   MAP_TYPOGRAPHY,
   mapStyles,
-  type GisDensity,
 } from "../mapTokens";
 import motionStyles from "../design/motion.module.css";
 import primitiveStyles from "./GisPrimitive.module.css";

@@ -7,9 +7,9 @@ import {
   buildFigureReadinessChecklist,
   buildMapFigureAttributionText,
   composeMapFigure,
+  type MapFigureSpec,
   preflightMapFigure,
   summariseFigureReadiness,
-  type MapFigureSpec,
 } from "@/services/map/layout/MapLayoutComposer";
 import { GisStatusChip } from "../ui";
 import {

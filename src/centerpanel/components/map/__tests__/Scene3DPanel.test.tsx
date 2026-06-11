@@ -4,7 +4,7 @@ import React, { act, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Scene3DPanel } from "../scene3d/Scene3DPanel";
-import { MapSceneWorkspace, type MapSceneStatusChip } from "../scene";
+import { type MapSceneStatusChip, MapSceneWorkspace } from "../scene";
 import { buildingFootprints } from "./fixtures/gisFixtures";
 import { useScene3DStore } from "@/stores/useScene3DStore";
 import type { SourceHandle } from "@/services/map/contracts/gisContracts";

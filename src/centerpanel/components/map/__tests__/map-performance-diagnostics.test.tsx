@@ -4,8 +4,8 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
-  MAP_GEOJSON_RENDER_FEATURE_BUDGET,
   buildFeatureCollectionMetadata,
+  MAP_GEOJSON_RENDER_FEATURE_BUDGET,
 } from "@/services/map/MapDataImporter";
 import {
   buildMapPerformanceDiagnostics,

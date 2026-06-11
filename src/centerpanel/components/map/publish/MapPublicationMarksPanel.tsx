@@ -11,6 +11,7 @@ import {
   Type,
 } from "lucide-react";
 import {
+  type GisStatusKey,
   MAP_COLORS,
   MAP_ICON_SIZES,
   MAP_RADIUS,
@@ -18,7 +19,6 @@ import {
   MAP_STROKES,
   MAP_TEXT_STYLES,
   MAP_TYPOGRAPHY,
-  type GisStatusKey,
 } from "../mapTokens";
 import { MAP_ANNOTATION_LIMIT, MAP_BOOKMARK_LIMIT } from "../mapTypes";
 import { GisStatusChip } from "../ui";
