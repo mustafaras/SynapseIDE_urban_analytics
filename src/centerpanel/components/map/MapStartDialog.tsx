@@ -17,6 +17,7 @@ import type { OverlayLayerConfig } from "./mapTypes";
 import { type MapExplorerContextSummary, resolveOverlayLayerCrs } from "./mapContextSummary";
 import { getMapWorkspaceReadiness } from "./mapExperience";
 import type { MapStartDialogReason } from "./mapStartDialogState";
+import { useDraggableMapPanel } from "./useDraggableMapPanel";
 
 export interface MapStartDialogProps {
   reason: MapStartDialogReason | null;
@@ -176,13 +177,15 @@ export const MapStartDialog: React.FC<MapStartDialogProps> = ({
 }) => {
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const primaryActionRef = useRef<HTMLButtonElement | null>(null);
+  const { panelPositionStyle, dragHandleProps, dragHandleStyle } = useDraggableMapPanel({ boundsPadding: 18 });
 
   const dialogStyle = useMemo(
     () => ({
       "--font-brand": MAP_TYPOGRAPHY.fontFamilyBrand,
       "--font-mono": MAP_TYPOGRAPHY.fontFamilyMono,
+      ...panelPositionStyle,
     }) as React.CSSProperties,
-    [],
+    [panelPositionStyle],
   );
 
   useEffect(() => {
@@ -361,8 +364,13 @@ export const MapStartDialog: React.FC<MapStartDialogProps> = ({
       aria-describedby="map-start-dialog-narrative"
       style={dialogStyle}
       data-testid="map-start-dialog"
+      data-draggable-map-panel="true"
     >
-      <header className={styles.header}>
+      <header
+        className={styles.header}
+        {...dragHandleProps}
+        style={dragHandleStyle}
+      >
         <span className={styles.brandMark} aria-hidden="true"><Globe size={18} /></span>
         <div className={styles.headerCopy}>
           <span className={styles.headerKicker}>Map Explorer</span>

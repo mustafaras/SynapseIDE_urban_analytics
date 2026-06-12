@@ -60,10 +60,10 @@ export interface MapDockLayout {
 }
 
 export const MAP_SCIENTIFIC_QA_PANEL_WIDTH = 384;
-export const MAP_LAYER_PANEL_MIN_WIDTH = 420;
-export const MAP_LAYER_PANEL_MAX_WIDTH = 680;
-export const MAP_RIGHT_PANEL_MIN_WIDTH = 300;
-export const MAP_RIGHT_PANEL_MAX_WIDTH = 520;
+export const MAP_LAYER_PANEL_MIN_WIDTH = 360;
+export const MAP_LAYER_PANEL_MAX_WIDTH = 760;
+export const MAP_RIGHT_PANEL_MIN_WIDTH = 340;
+export const MAP_RIGHT_PANEL_MAX_WIDTH = 560;
 
 function clampNumber(value: number | undefined, min: number, max: number, fallback: number): number {
   if (typeof value !== "number" || !Number.isFinite(value)) {
@@ -78,24 +78,24 @@ function clampNumber(value: number | undefined, min: number, max: number, fallba
  * All values are clamped to [MIN, MAX] before use.
  */
 const RIGHT_PANEL_DEFAULT_WIDTH: Record<MapRightDockPanel, number> = {
-  inspect: 420,
-  style: 460,
-  attributes: 480,
-  problems: 420,
-  timeline: 420,
+  inspect: 440,
+  style: 480,
+  attributes: 520,
+  problems: 440,
+  timeline: 460,
   tasks: 400,
-  diagnostics: 480,
+  diagnostics: 520,
   pins: MAP_NUMERIC.pinSidebarWidth,
   draw: MAP_NUMERIC.drawingPanelWidth,
   measure: MAP_NUMERIC.measurementPanelWidth,
   selection: 420,
   scientificQA: MAP_SCIENTIFIC_QA_PANEL_WIDTH,
   qa: MAP_SCIENTIFIC_QA_PANEL_WIDTH,
-  workflow: 480,
-  report: 430,
-  performance: 460,
-  collaboration: 420,
-  urbanMethod: 448,
+  workflow: 520,
+  report: 460,
+  performance: 500,
+  collaboration: 440,
+  urbanMethod: 480,
 };
 
 function getRightPanelWidth(panel: MapRightDockPanel | null, preferredWidth?: number): number {

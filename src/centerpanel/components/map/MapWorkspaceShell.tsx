@@ -114,7 +114,7 @@ function buildActivityButtonStyle(active: boolean): React.CSSProperties {
           boxShadow: `inset 3px 0 0 ${MAP_COLORS.interaction}, inset 0 0 0 1px ${MAP_COLORS.hairlineSubtle}`,
         }
       : {}),
-    borderRadius: MAP_RADIUS.sm,
+    borderRadius: MAP_RADIUS.xs,
   };
 }
 
@@ -366,7 +366,7 @@ const railResizeHandleBaseStyle: React.CSSProperties = {
   position: "absolute",
   top: MAP_SPACING.zero,
   bottom: MAP_SPACING.zero,
-  width: "0.625rem",
+  width: "0.75rem",
   zIndex: MAP_Z_INDEX.sidebar + 1,
   cursor: "col-resize",
   touchAction: "none",
@@ -567,7 +567,7 @@ export const MapWorkspaceShell: React.FC<MapWorkspaceShellProps> = ({
           ...createMapShellCssVars(),
           ...mapExplorerA11yVars,
           display: "grid",
-          gridTemplateRows: "var(--map-menu-h, 2.375rem) minmax(0, 1fr) var(--map-status-h, 1.75rem)",
+          gridTemplateRows: "var(--map-menu-h, 3.5625rem) minmax(0, 1fr) var(--map-status-h, 1.75rem)",
         }}
         ref={shellRef}
         className={["MapWorkspaceShell__surface", shellStyles.mapPremiumShellSurface].join(" ")}

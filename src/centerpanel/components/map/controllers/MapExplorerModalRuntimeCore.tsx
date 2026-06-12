@@ -1,7 +1,7 @@
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type maplibregl from 'maplibre-gl';
-import { Maximize2, Minimize2, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Maximize2 } from 'lucide-react';
 import type { FeatureCollection, Geometry } from 'geojson';
 import { BASE_STYLES, type DrawnFeature, type DrawToolId, type LayerQaStatus, type LayerSchemaFieldSummary, type LayerScientificQABadge, MAP_BOOKMARK_LIMIT, MAP_LAYER_REGISTRY_EVENT, type MapBookmark, type MapEvidenceArtifact, type MapExplorerMode, type MapLayerRegistryChangeDetail, type MapPin, type MeasureToolId, type OverlayLayerConfig } from '../mapTypes';
 import { resolveOverlayLayerCrsSummary } from '../mapLayerMetadata';
@@ -5007,7 +5007,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
   /* ---- Render ---- */
   if (!open) return null;
 
-  const { analyzeDataOperationsElement, analyzeModelsElement, analyzeQueryElement, analyzeStatisticsElement, analyzeToolsElement, analyzeWorkflowElement, analyzeModelsTabActive, analyzeQueryTabActive, analyzeToolsTabActive, analyzeWorkflowsTabActive, dataCatalogTabActive, dockControlLabel, exportDisabled, exportDisabledReason, isWorkbenchActivity, layerStackElement, layersContentsTabActive, mapCanvasControlsProps, packageExportDisabled, packageExportDisabledReason, pointSymbologyControlBody, publishDataExportElement, publishFigureElement, publishFigureTabActive, publishOfflinePackageElement, publishReadinessItems, publishReportElement, publishReportTabActive, publishReviewPackageElement, reportDisabledReason, scene3DElement, scene3DTabActive, sceneMassingElement, sceneMassingTabActive, sceneRasterElement, sceneRasterTabActive, sceneStatusChips, sceneSunShadowElement, sceneSunShadowTabActive, sceneTemporalElement, sceneTemporalTabActive, sceneVoxCityElement, sceneVoxCityTabActive, sceneZoningElement, sceneZoningTabActive, styleAdvisorElement, styleLabelsElement, styleLegendElement, styleRendererElement, styleRendererTabActive, styleSymbolsElement, transitionStyle, workbenchSidebarTabs, handleSceneWorkspaceTabChange, handleToggleStyleRenderer } = buildMapRuntimeRenderModel({
+  const { analyzeDataOperationsElement, analyzeModelsElement, analyzeQueryElement, analyzeStatisticsElement, analyzeToolsElement, analyzeWorkflowElement, analyzeModelsTabActive, analyzeQueryTabActive, analyzeToolsTabActive, analyzeWorkflowsTabActive, dataCatalogTabActive, exportDisabled, exportDisabledReason, isWorkbenchActivity, layerStackElement, layersContentsTabActive, mapCanvasControlsProps, packageExportDisabled, packageExportDisabledReason, pointSymbologyControlBody, publishDataExportElement, publishFigureElement, publishFigureTabActive, publishOfflinePackageElement, publishReadinessItems, publishReportElement, publishReportTabActive, publishReviewPackageElement, reportDisabledReason, scene3DElement, scene3DTabActive, sceneMassingElement, sceneMassingTabActive, sceneRasterElement, sceneRasterTabActive, sceneStatusChips, sceneSunShadowElement, sceneSunShadowTabActive, sceneTemporalElement, sceneTemporalTabActive, sceneVoxCityElement, sceneVoxCityTabActive, sceneZoningElement, sceneZoningTabActive, styleAdvisorElement, styleLabelsElement, styleLegendElement, styleRendererElement, styleRendererTabActive, styleSymbolsElement, transitionStyle, workbenchSidebarTabs, handleSceneWorkspaceTabChange, handleToggleStyleRenderer } = buildMapRuntimeRenderModel({
     activeActivityId,
     activeAnalysisResultLayerIds,
     activeBaseLayer,
@@ -5680,8 +5680,6 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
         }
         modalControlSlot={
           <div style={modalControlClusterStyle} data-testid="map-modal-control-cluster">
-            <GisIconButton label={dockControlLabel} tooltip={dockControlLabel} icon={effectiveShowLayerPanel ? <PanelLeftClose size={MAP_ICON_SIZES.sm} aria-hidden="true" /> : <PanelLeftOpen size={MAP_ICON_SIZES.sm} aria-hidden="true" />} size="md" active={effectiveShowLayerPanel} onClick={handleToggleLayerPanel} data-testid="map-modal-control-dock" />
-            <GisIconButton label="Minimize map workspace chrome" tooltip="Minimize map workspace chrome" icon={<Minimize2 size={MAP_ICON_SIZES.sm} aria-hidden="true" />} size="md" showPressedState={false} onClick={handleCollapseAllPanels} data-testid="map-modal-control-minimize" />
             <GisIconButton label="Expand map workspace to default layout" tooltip="Expand map workspace to default layout" icon={<Maximize2 size={MAP_ICON_SIZES.sm} aria-hidden="true" />} size="md" showPressedState={false} onClick={handleResetLayout} data-testid="map-modal-control-expand" />
             <span style={modalControlCloseDividerStyle} aria-hidden="true" />
             <GisIconButton label="Close map explorer (Escape)" tooltip="Close map explorer (Escape)" icon={<IconClose size={MAP_ICON_SIZES.md} aria-hidden="true" />} size="md" variant="accent" showPressedState={false} style={modalControlCloseButtonStyle} onClick={onClose} data-testid="map-modal-control-close" />

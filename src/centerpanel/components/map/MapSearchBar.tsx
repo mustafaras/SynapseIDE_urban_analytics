@@ -4,7 +4,6 @@ import {
   MAP_COLORS,
   MAP_DIMENSIONS,
   MAP_ICON_SIZES,
-  MAP_RADIUS,
   MAP_SHADOWS,
   MAP_SPACING,
   MAP_STROKES,
@@ -43,7 +42,7 @@ interface NominatimSearchResult {
 
 const searchInput: React.CSSProperties = {
   padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
-  borderRadius: MAP_RADIUS.sm,
+  borderRadius: 2,
   border: MAP_STROKES.hairlineSubtle,
   background: "color-mix(in srgb, var(--syn-surface-input, #1a1f26) 88%, transparent)",
   color: MAP_COLORS.text,
@@ -59,7 +58,7 @@ const dropdownContainer: React.CSSProperties = {
   zIndex: MAP_Z_INDEX.dropdown,
   background: MAP_COLORS.bgPanel,
   border: MAP_STROKES.hairlineSubtle,
-  borderRadius: MAP_RADIUS.sm,
+  borderRadius: 3,
   overflow: "hidden",
   maxWidth: MAP_DIMENSIONS.searchMaxWidth,
   minWidth: MAP_DIMENSIONS.searchWidth,
@@ -147,8 +146,8 @@ export const MapSearchBar: React.FC<MapSearchBarProps> = ({ onFlyTo, onResultCou
         flex: compact ? "1 1 100%" : undefined,
         padding: compact ? "0.125rem" : undefined,
         border: compact ? MAP_STROKES.hairlineSubtle : undefined,
-        borderRadius: compact ? MAP_RADIUS.full : undefined,
-        background: compact ? "color-mix(in srgb, var(--syn-surface-panel, rgba(12, 16, 24, 0.88)) 86%, transparent)" : undefined,
+        borderRadius: compact ? 3 : undefined,
+        background: compact ? "color-mix(in srgb, var(--syn-surface-input, rgba(12, 16, 24, 0.9)) 92%, transparent)" : undefined,
         boxShadow: compact && (focused || results.length > 0) ? MAP_SHADOWS.dropdown : undefined,
         transition: compact ? MAP_TRANSITIONS.fast : undefined,
       }}
@@ -159,7 +158,7 @@ export const MapSearchBar: React.FC<MapSearchBarProps> = ({ onFlyTo, onResultCou
         style={{
           ...searchInput,
           width: compact ? "100%" : MAP_DIMENSIONS.searchWidth,
-          minHeight: compact ? "1.875rem" : undefined,
+          minHeight: compact ? "2.125rem" : undefined,
           padding: compact ? `${MAP_SPACING.zero} ${MAP_SPACING.sm}` : searchInput.padding,
           fontFamily: compact ? MAP_TYPOGRAPHY.fontFamilyMono : undefined,
           borderColor: compact ? "transparent" : undefined,
@@ -190,11 +189,12 @@ export const MapSearchBar: React.FC<MapSearchBarProps> = ({ onFlyTo, onResultCou
         type="button"
         style={{
           ...mapStyles.btn,
-          minHeight: compact ? "1.875rem" : undefined,
-          width: compact ? "1.875rem" : undefined,
+          minHeight: compact ? "2.125rem" : undefined,
+          width: compact ? "2.125rem" : undefined,
           justifyContent: "center",
           padding: compact ? MAP_SPACING.zero : mapStyles.btn.padding,
           border: compact ? "1px solid transparent" : mapStyles.btn.border,
+          borderRadius: compact ? 2 : mapStyles.btn.borderRadius,
           fontFamily: compact ? MAP_TYPOGRAPHY.fontFamilyMono : mapStyles.btn.fontFamily,
         }}
         onClick={handleSearch}

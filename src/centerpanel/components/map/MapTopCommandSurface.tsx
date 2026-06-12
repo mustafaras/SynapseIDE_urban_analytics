@@ -48,8 +48,8 @@ const shellStyle: React.CSSProperties = {
   flexWrap: "nowrap",
   alignItems: "center",
   gap: MAP_SPACING.xs,
-  minHeight: "2.625rem",
-  padding: `0.25rem ${MAP_SPACING.md} 0.25rem calc(var(--map-activity-rail-width, 2.625rem) + ${MAP_SPACING.md})`,
+  minHeight: "3.5625rem",
+  padding: `0.375rem ${MAP_SPACING.md} 0.375rem calc(var(--map-activity-rail-width, 2.625rem) + ${MAP_SPACING.md})`,
   background: [
     "linear-gradient(115deg, transparent 0%, color-mix(in srgb, var(--syn-interaction-active, #3794ff) 3%, transparent) 28%, transparent 58%)",
     "linear-gradient(180deg, color-mix(in srgb, var(--syn-surface-header, #141b24) 99%, #ffffff 1%), var(--syn-surface-header, #141b24))",
@@ -67,9 +67,9 @@ const clusterShellStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   minWidth: MAP_SPACING.zero,
-  minHeight: "2rem",
+  minHeight: "2.75rem",
   padding: `0.125rem ${MAP_SPACING.xs}`,
-  borderRadius: MAP_RADIUS.sm,
+  borderRadius: MAP_RADIUS.xs,
   border: "1px solid transparent",
   background: "transparent",
   overflow: "visible",
@@ -100,9 +100,9 @@ const brandRowStyle: React.CSSProperties = {
 };
 
 const brandAccentStyle: React.CSSProperties = {
-  width: "1.625rem",
-  height: "1.625rem",
-  borderRadius: MAP_RADIUS.sm,
+  width: "2.125rem",
+  height: "2.125rem",
+  borderRadius: MAP_RADIUS.xs,
   border: "1px solid color-mix(in srgb, var(--syn-interaction-active, #3794ff) 44%, transparent)",
   background: [
     "linear-gradient(135deg, color-mix(in srgb, var(--syn-interaction-active, #3794ff) 88%, #ffffff 8%), transparent 54%)",
@@ -149,10 +149,10 @@ const activityPillStyle: React.CSSProperties = {
   alignItems: "center",
   minWidth: MAP_SPACING.zero,
   maxWidth: "8rem",
-  height: "1.125rem",
+  height: "1.25rem",
   padding: `0 ${MAP_SPACING.xs}`,
   border: "1px solid transparent",
-  borderRadius: MAP_RADIUS.xs,
+  borderRadius: 2,
   color: MAP_COLORS.textMuted,
   background: "color-mix(in srgb, var(--syn-surface-subtle, rgba(15, 23, 42, 0.2)) 28%, transparent)",
   fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
@@ -184,9 +184,9 @@ const searchClusterStyle: React.CSSProperties = {
 };
 
 const searchSlotStyle: React.CSSProperties = {
-  flex: "1 1 12rem",
+  flex: "1 1 14rem",
   minWidth: 0,
-  maxWidth: "22rem",
+  maxWidth: "24rem",
 };
 
 const contextRailStyle: React.CSSProperties = {
@@ -374,9 +374,9 @@ function chipStyle(interactive: boolean, tone: TopSurfaceTone): React.CSSPropert
     minWidth: 0,
     maxWidth: "9.5rem",
     flexShrink: 1,
-    height: "1.5rem",
+    height: "1.625rem",
     padding: `0 ${MAP_SPACING.xs}`,
-    borderRadius: MAP_RADIUS.xs,
+    borderRadius: 2,
     border: tone === "neutral"
       ? "1px solid transparent"
       : `1px solid color-mix(in srgb, ${toneForeground(tone)} 30%, var(--syn-border-subtle, rgba(148, 163, 184, 0.32)))`,
