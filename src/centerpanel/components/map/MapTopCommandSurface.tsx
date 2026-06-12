@@ -13,7 +13,7 @@ import {
 type TopSurfaceTone = "neutral" | "accent" | "success" | "warning" | "danger";
 
 /** Minimum surface width that can host the context bar without collapsing the menu bar. */
-const CONTEXT_BAR_MIN_SURFACE_WIDTH = 2200;
+const CONTEXT_BAR_MIN_SURFACE_WIDTH = 3000;
 
 export interface MapTopCommandSurfaceProps {
   activeActivityLabel: string;
@@ -79,7 +79,7 @@ const leadingClusterStyle: React.CSSProperties = {
   ...clusterShellStyle,
   display: "inline-flex",
   // Shrinks ahead of the command cluster so the premium menu bar keeps room.
-  flex: "0 1.5 15rem",
+  flex: "0 2 12rem",
   gap: MAP_SPACING.xs,
   minWidth: 0,
   overflow: "hidden",
@@ -177,7 +177,7 @@ const searchClusterStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   // Shrinks ahead of the command cluster so the premium menu bar keeps room.
-  flex: "0 1.5 15rem",
+  flex: "0 2 12rem",
   gap: MAP_SPACING.xs,
   minWidth: 0,
   overflow: "hidden",
@@ -215,7 +215,7 @@ const commandClusterStyle: React.CSSProperties = {
   // The grouped menu bar is the primary occupant of the top surface: it
   // absorbs free space first and gives it up last so the menus stay visible
   // at desktop widths instead of collapsing into the hamburger fallback.
-  flex: "2 0.35 36rem",
+  flex: "4 0.1 44rem",
   justifyContent: "flex-start",
   padding: `${MAP_SPACING.zero} ${MAP_SPACING.zero}`,
   minWidth: 0,

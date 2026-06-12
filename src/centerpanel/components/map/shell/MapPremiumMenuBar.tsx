@@ -50,7 +50,7 @@ function getMenuLabel(menu: MapPremiumMenuModel, width: number, open: boolean): 
   if (width >= 1320) {
     return menu.label;
   }
-  if (width >= 900) {
+  if (width >= 560) {
     return menu.shortLabel;
   }
   return open ? menu.shortLabel : "";
@@ -66,7 +66,7 @@ function getMenuItemDescription(item: { description?: string; disabled?: boolean
 function getVisibleMenuBudget(width: number): number {
   if (width >= 1160) return 8;
   if (width >= 1020) return 7;
-  if (width >= 900) return 6;
+  if (width >= 720) return 6;
   return 5;
 }
 
@@ -93,8 +93,8 @@ function renderMenuSections(menu: MapPremiumMenuModel): React.ReactNode {
 
 export function MapPremiumMenuBar({ menus, quickActions, width }: MapPremiumMenuBarProps): React.ReactElement {
   const [openMenuId, setOpenMenuId] = React.useState<string | null>(null);
-  const compactMode = width < 720;
-  const iconOnlyMode = width < 900;
+  const compactMode = width < 500;
+  const iconOnlyMode = width < 560;
   const maxQuickActions = width >= 1600 ? 5 : width >= 1440 ? 4 : width >= 1240 ? 3 : width >= 1000 ? 2 : 1;
   const visibleQuickActions = quickActions.slice(0, maxQuickActions);
   const visibleMenuBudget = getVisibleMenuBudget(width);
