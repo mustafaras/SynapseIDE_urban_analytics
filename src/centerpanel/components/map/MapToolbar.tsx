@@ -3437,7 +3437,10 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
         <div style={premiumMenuRail}>
           <MapPremiumMenuBar menus={menus} quickActions={quickActions} width={toolbarWidth} />
         </div>
-        <div style={compactCommandCenterRail} aria-label="Compact command-center controls">
+        {/* Legacy compact rail: every command it exposes now lives in the
+            premium menu bar, quick actions, or the command palette. It stays
+            in the DOM (hidden) so programmatic automation hooks keep working. */}
+        <div style={{ ...compactCommandCenterRail, display: "none" }} aria-label="Compact command-center controls" aria-hidden="true">
           <div
             style={primaryActionShell}
             data-testid="map-command-center-primary-action"

@@ -12,6 +12,9 @@ import {
 
 type TopSurfaceTone = "neutral" | "accent" | "success" | "warning" | "danger";
 
+/** Minimum surface width that can host the context bar without collapsing the menu bar. */
+const CONTEXT_BAR_MIN_SURFACE_WIDTH = 2200;
+
 export interface MapTopCommandSurfaceProps {
   activeActivityLabel: string;
   projectName?: string | null;
@@ -75,7 +78,8 @@ const clusterShellStyle: React.CSSProperties = {
 const leadingClusterStyle: React.CSSProperties = {
   ...clusterShellStyle,
   display: "inline-flex",
-  flex: "0 1 17rem",
+  // Shrinks ahead of the command cluster so the premium menu bar keeps room.
+  flex: "0 1.5 15rem",
   gap: MAP_SPACING.xs,
   minWidth: 0,
   overflow: "hidden",
@@ -172,7 +176,8 @@ const searchClusterStyle: React.CSSProperties = {
   ...clusterShellStyle,
   display: "flex",
   alignItems: "center",
-  flex: "0 1 18rem",
+  // Shrinks ahead of the command cluster so the premium menu bar keeps room.
+  flex: "0 1.5 15rem",
   gap: MAP_SPACING.xs,
   minWidth: 0,
   overflow: "hidden",
@@ -207,7 +212,10 @@ const mapToolRailStyle: React.CSSProperties = {
 const commandClusterStyle: React.CSSProperties = {
   ...clusterShellStyle,
   display: "inline-flex",
-  flex: "1 1 34rem",
+  // The grouped menu bar is the primary occupant of the top surface: it
+  // absorbs free space first and gives it up last so the menus stay visible
+  // at desktop widths instead of collapsing into the hamburger fallback.
+  flex: "2 0.35 36rem",
   justifyContent: "flex-start",
   padding: `${MAP_SPACING.zero} ${MAP_SPACING.zero}`,
   minWidth: 0,
@@ -218,7 +226,10 @@ const contextBarClusterStyle: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   gap: MAP_SPACING.xs,
-  flex: "0 1 auto",
+  // Context shortcuts duplicate commands that stay reachable through the
+  // grouped menus, quick actions, and canvas dock, so this cluster yields
+  // space to the menu bar first.
+  flex: "0 2.5 auto",
   minWidth: 0,
   overflow: "hidden",
   paddingLeft: MAP_SPACING.xs,
@@ -467,9 +478,27 @@ export const MapTopCommandSurface: React.FC<MapTopCommandSurfaceProps> = ({
   const modeLabel = `${formatWorkspaceLabel(workspaceView)} · ${taskLensLabel}`;
   const utilityContent = utilitySlot ?? trailingSlot;
   const hasTrailingContent = Boolean(utilityContent || modalControlSlot);
+  const surfaceRef = React.useRef<HTMLDivElement>(null);
+  const [surfaceWidth, setSurfaceWidth] = React.useState<number | null>(null);
+  React.useEffect(() => {
+    const node = surfaceRef.current;
+    if (!node || typeof ResizeObserver === "undefined") return undefined;
+    const observer = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect.width;
+      if (typeof width === "number") setSurfaceWidth(width);
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+  // The context shortcuts duplicate commands that stay reachable through the
+  // grouped menus, quick actions, and the canvas control dock. Below this
+  // width they would starve the menu bar into its hamburger fallback, so the
+  // cluster is dropped instead. Unmeasured environments keep it visible.
+  const showContextBar = contextBarSlot != null && (surfaceWidth == null || surfaceWidth >= CONTEXT_BAR_MIN_SURFACE_WIDTH);
 
   return (
     <div
+      ref={surfaceRef}
       style={shellStyle}
       role="toolbar"
       aria-label="Map command bar"
@@ -539,7 +568,7 @@ export const MapTopCommandSurface: React.FC<MapTopCommandSurfaceProps> = ({
         {mapToolsSlot ? <div style={mapToolRailStyle}>{mapToolsSlot}</div> : null}
       </div>
 
-      {contextBarSlot ? (
+      {showContextBar ? (
         <div
           style={contextBarClusterStyle}
           role="group"

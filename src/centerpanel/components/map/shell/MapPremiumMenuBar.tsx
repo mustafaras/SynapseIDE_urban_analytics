@@ -47,10 +47,10 @@ const compactMenuContentStyle: React.CSSProperties = {
 };
 
 function getMenuLabel(menu: MapPremiumMenuModel, width: number, open: boolean): string {
-  if (width >= 1440) {
+  if (width >= 1320) {
     return menu.label;
   }
-  if (width >= 1200) {
+  if (width >= 900) {
     return menu.shortLabel;
   }
   return open ? menu.shortLabel : "";
@@ -64,9 +64,9 @@ function getMenuItemDescription(item: { description?: string; disabled?: boolean
 }
 
 function getVisibleMenuBudget(width: number): number {
-  if (width >= 1240) return 8;
-  if (width >= 1120) return 7;
-  if (width >= 1000) return 6;
+  if (width >= 1160) return 8;
+  if (width >= 1020) return 7;
+  if (width >= 900) return 6;
   return 5;
 }
 
@@ -93,9 +93,9 @@ function renderMenuSections(menu: MapPremiumMenuModel): React.ReactNode {
 
 export function MapPremiumMenuBar({ menus, quickActions, width }: MapPremiumMenuBarProps): React.ReactElement {
   const [openMenuId, setOpenMenuId] = React.useState<string | null>(null);
-  const compactMode = width < 900;
-  const iconOnlyMode = width < 1200;
-  const maxQuickActions = width >= 1680 ? 5 : width >= 1520 ? 4 : width >= 1360 ? 3 : width >= 1200 ? 2 : 1;
+  const compactMode = width < 720;
+  const iconOnlyMode = width < 900;
+  const maxQuickActions = width >= 1600 ? 5 : width >= 1440 ? 4 : width >= 1240 ? 3 : width >= 1000 ? 2 : 1;
   const visibleQuickActions = quickActions.slice(0, maxQuickActions);
   const visibleMenuBudget = getVisibleMenuBudget(width);
   const visibleMenus = menus.slice(0, visibleMenuBudget);
@@ -184,7 +184,7 @@ export function MapPremiumMenuBar({ menus, quickActions, width }: MapPremiumMenu
   }
 
   return (
-    <div style={menuBarStyle} role="toolbar" aria-label="Premium map menu bar" data-testid="map-premium-menu-bar" data-menu-mode={iconOnlyMode ? "icons" : width < 1440 ? "compact" : "full"}>
+    <div style={menuBarStyle} role="toolbar" aria-label="Premium map menu bar" data-testid="map-premium-menu-bar" data-menu-mode={iconOnlyMode ? "icons" : width < 1320 ? "compact" : "full"}>
       <div style={menusRailStyle}>
         {visibleMenus.map((menu) => {
           const open = openMenuId === menu.id;
@@ -204,7 +204,7 @@ export function MapPremiumMenuBar({ menus, quickActions, width }: MapPremiumMenu
                   icon={menu.icon}
                   active={open}
                   expanded={open}
-                  compact={width < 1440}
+                  compact={width < 1320}
                   title={menu.title}
                   ariaLabel={menu.title}
                   testId={menu.triggerTestId}
@@ -227,11 +227,11 @@ export function MapPremiumMenuBar({ menus, quickActions, width }: MapPremiumMenu
             testId="map-premium-menu-overflow-content"
             trigger={(
               <ToolbarMenuButton
-                label={width >= 1440 ? "More" : ""}
+                label={width >= 1320 ? "More" : ""}
                 icon={<Menu size={MAP_ICON_SIZES.sm} strokeWidth={1.8} aria-hidden="true" />}
                 active={openMenuId === "menu-overflow"}
                 expanded={openMenuId === "menu-overflow"}
-                compact={width < 1440}
+                compact={width < 1320}
                 title="Open additional map menus"
                 ariaLabel="Open additional map menus"
                 testId="map-premium-menu-overflow"
@@ -265,18 +265,18 @@ export function MapPremiumMenuBar({ menus, quickActions, width }: MapPremiumMenu
         {visibleQuickActions.map((action) => (
           <ToolbarMenuButton
             key={action.id}
-            label={width >= 1440 ? action.label : width >= 1200 ? action.shortLabel : ""}
+            label={width >= 1320 ? action.label : width >= 900 ? action.shortLabel : ""}
             icon={action.icon}
             badge={action.badge}
             active={action.active}
             disabled={action.disabled}
-            compact={width < 1440}
+            compact={width < 1320}
             showChevron={false}
             title={action.disabled ? `${action.title}. ${action.disabledReason ?? "Unavailable in the current map state."}` : action.title}
             ariaLabel={action.disabled ? `${action.label}. ${action.disabledReason ?? "Unavailable in the current map state."}` : action.label}
             onClick={action.disabled ? undefined : action.onClick}
             testId={action.testId}
-            style={width < 1200 ? { minWidth: "2rem" } : undefined}
+            style={width < 900 ? { minWidth: "2rem" } : undefined}
           />
         ))}
       </div>

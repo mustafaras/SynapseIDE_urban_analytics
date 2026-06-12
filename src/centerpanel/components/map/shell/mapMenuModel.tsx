@@ -207,6 +207,14 @@ export function buildMapPremiumMenuModel({
           ]),
         },
         {
+          id: "project-history",
+          title: "History",
+          items: compactItems([
+            commandItem(commands, ["undo-map-action"], { label: "Undo Map Action" }),
+            commandItem(commands, ["redo-map-action"], { label: "Redo Map Action" }),
+          ]),
+        },
+        {
           id: "project-lenses",
           title: "Task Lens",
           items: compactItems([
@@ -518,6 +526,7 @@ export function buildMapPremiumMenuModel({
           items: compactItems([
             commandItem(commands, ["switch-density"], { label: "Density" }),
             commandItem(commands, ["restore-default-widths"], { label: "Panel Widths" }),
+            commandItem(commands, ["collapse-panels"], { label: "Collapse Panels" }),
             commandItem(commands, ["reset-layout"], { label: "Responsive Reset" }),
           ]),
         },
