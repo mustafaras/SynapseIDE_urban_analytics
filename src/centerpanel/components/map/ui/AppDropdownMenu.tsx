@@ -281,43 +281,40 @@ export function AppMenuItem({
   style,
   testId,
 }: AppMenuItemProps): React.ReactElement {
+  const hasDescription = description != null;
   return (
     <DropdownMenu.Item
-      asChild
       disabled={disabled}
-      onSelect={(event) => {
-        event.preventDefault();
+      onSelect={() => {
         if (disabled) return;
         onSelect?.();
       }}
       role={role}
       aria-checked={checked}
+      data-testid={testId}
+      style={{
+        ...itemBaseStyle,
+        minHeight: hasDescription ? itemBaseStyle.minHeight : "2.125rem",
+        alignItems: hasDescription ? itemBaseStyle.alignItems : "center",
+        color: destructive ? MAP_COLORS.error : disabled ? MAP_COLORS.textMuted : MAP_COLORS.textSecondary,
+        gridTemplateColumns: inset ? "minmax(0, 1fr) auto" : itemBaseStyle.gridTemplateColumns,
+        ...(style ?? {}),
+      }}
     >
-      <button
-        type="button"
-        data-testid={testId}
-        style={{
-          ...itemBaseStyle,
-          color: destructive ? MAP_COLORS.error : disabled ? MAP_COLORS.textMuted : MAP_COLORS.textSecondary,
-          gridTemplateColumns: inset ? "minmax(0, 1fr) auto" : itemBaseStyle.gridTemplateColumns,
-          ...(style ?? {}),
-        }}
-      >
-        {inset ? null : <span aria-hidden="true">{icon}</span>}
-        <span style={itemLabelStackStyle}>
-          <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
-          {description != null ? <span style={itemDescriptionStyle}>{description}</span> : null}
+      {inset ? null : <span aria-hidden="true">{icon}</span>}
+      <span style={itemLabelStackStyle}>
+        <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
+        {description != null ? <span style={itemDescriptionStyle}>{description}</span> : null}
+      </span>
+      {shortcut ? (
+        <span style={{ color: MAP_COLORS.textMuted, fontFamily: MAP_TYPOGRAPHY.fontFamilyMono, fontSize: MAP_TYPOGRAPHY.fontSize.xs }}>
+          {shortcut}
         </span>
-        {shortcut ? (
-          <span style={{ color: MAP_COLORS.textMuted, fontFamily: MAP_TYPOGRAPHY.fontFamilyMono, fontSize: MAP_TYPOGRAPHY.fontSize.xs }}>
-            {shortcut}
-          </span>
-        ) : checked != null ? (
-          <span style={{ color: checked ? MAP_COLORS.interaction : MAP_COLORS.textMuted, fontFamily: MAP_TYPOGRAPHY.fontFamilyMono, fontSize: MAP_TYPOGRAPHY.fontSize.xs }}>
-            {checked ? "On" : "Off"}
-          </span>
-        ) : <span aria-hidden="true" />}
-      </button>
+      ) : checked != null ? (
+        <span style={{ color: checked ? MAP_COLORS.interaction : MAP_COLORS.textMuted, fontFamily: MAP_TYPOGRAPHY.fontFamilyMono, fontSize: MAP_TYPOGRAPHY.fontSize.xs }}>
+          {checked ? "On" : "Off"}
+        </span>
+      ) : <span aria-hidden="true" />}
     </DropdownMenu.Item>
   );
 }

@@ -173,13 +173,11 @@ export const MapSearchBar: React.FC<MapSearchBarProps> = ({ onFlyTo, onResultCou
         }}
         onFocus={(e) => {
           setFocused(true);
-          e.currentTarget.style.borderColor = MAP_COLORS.focus;
           e.currentTarget.style.outline = `2px solid ${MAP_COLORS.focus}`;
           e.currentTarget.style.outlineOffset = "2px";
         }}
         onBlur={(e) => {
           setFocused(false);
-          e.currentTarget.style.borderColor = compact ? "transparent" : MAP_COLORS.hairlineSubtle;
           e.currentTarget.style.outline = "";
           e.currentTarget.style.outlineOffset = "";
         }}

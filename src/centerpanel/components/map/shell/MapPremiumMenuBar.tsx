@@ -56,6 +56,20 @@ function getMenuLabel(menu: MapPremiumMenuModel, width: number, open: boolean): 
   return open ? menu.shortLabel : "";
 }
 
+function getMenuItemDescription(item: { description?: string; disabled?: boolean; disabledReason?: string }): string | undefined {
+  if (item.disabled) {
+    return item.disabledReason ?? item.description;
+  }
+  return undefined;
+}
+
+function getVisibleMenuBudget(width: number): number {
+  if (width >= 1240) return 8;
+  if (width >= 1120) return 7;
+  if (width >= 1000) return 6;
+  return 5;
+}
+
 function renderMenuSections(menu: MapPremiumMenuModel): React.ReactNode {
   return menu.sections.map((section) => (
     <AppMenuSection key={section.id} title={section.title}>
@@ -64,7 +78,7 @@ function renderMenuSections(menu: MapPremiumMenuModel): React.ReactNode {
           key={item.id}
           icon={item.icon}
           label={item.label}
-          description={item.disabled ? item.disabledReason ?? item.description : item.description}
+          description={getMenuItemDescription(item)}
           shortcut={item.shortcut}
           disabled={item.disabled}
           checked={item.checked}
@@ -81,6 +95,11 @@ export function MapPremiumMenuBar({ menus, quickActions, width }: MapPremiumMenu
   const [openMenuId, setOpenMenuId] = React.useState<string | null>(null);
   const compactMode = width < 900;
   const iconOnlyMode = width < 1200;
+  const maxQuickActions = width >= 1680 ? 5 : width >= 1520 ? 4 : width >= 1360 ? 3 : width >= 1200 ? 2 : 1;
+  const visibleQuickActions = quickActions.slice(0, maxQuickActions);
+  const visibleMenuBudget = getVisibleMenuBudget(width);
+  const visibleMenus = menus.slice(0, visibleMenuBudget);
+  const hiddenMenus = menus.slice(visibleMenuBudget);
 
   if (compactMode) {
     return (
@@ -113,7 +132,7 @@ export function MapPremiumMenuBar({ menus, quickActions, width }: MapPremiumMenu
                 key={action.id}
                 icon={action.icon}
                 label={action.label}
-                description={action.disabled ? action.disabledReason ?? action.title : action.title}
+                description={action.disabled ? action.disabledReason ?? action.title : undefined}
                 disabled={action.disabled}
                 checked={action.active}
                 onSelect={action.disabled ? undefined : action.onClick}
@@ -128,7 +147,7 @@ export function MapPremiumMenuBar({ menus, quickActions, width }: MapPremiumMenu
                   key={`${menu.id}-${item.id}`}
                   icon={item.icon}
                   label={item.label}
-                  description={item.disabled ? item.disabledReason ?? item.description : item.description}
+                  description={getMenuItemDescription(item)}
                   shortcut={item.shortcut}
                   disabled={item.disabled}
                   checked={item.checked}
@@ -167,7 +186,7 @@ export function MapPremiumMenuBar({ menus, quickActions, width }: MapPremiumMenu
   return (
     <div style={menuBarStyle} role="toolbar" aria-label="Premium map menu bar" data-testid="map-premium-menu-bar" data-menu-mode={iconOnlyMode ? "icons" : width < 1440 ? "compact" : "full"}>
       <div style={menusRailStyle}>
-        {menus.map((menu) => {
+        {visibleMenus.map((menu) => {
           const open = openMenuId === menu.id;
           return (
             <AppDropdownMenu
@@ -197,10 +216,53 @@ export function MapPremiumMenuBar({ menus, quickActions, width }: MapPremiumMenu
             </AppDropdownMenu>
           );
         })}
+        {hiddenMenus.length > 0 ? (
+          <AppDropdownMenu
+            open={openMenuId === "menu-overflow"}
+            onOpenChange={(nextOpen) => setOpenMenuId(nextOpen ? "menu-overflow" : null)}
+            align="end"
+            minWidth={340}
+            maxWidth={520}
+            ariaLabel="More map menus"
+            testId="map-premium-menu-overflow-content"
+            trigger={(
+              <ToolbarMenuButton
+                label={width >= 1440 ? "More" : ""}
+                icon={<Menu size={MAP_ICON_SIZES.sm} strokeWidth={1.8} aria-hidden="true" />}
+                active={openMenuId === "menu-overflow"}
+                expanded={openMenuId === "menu-overflow"}
+                compact={width < 1440}
+                title="Open additional map menus"
+                ariaLabel="Open additional map menus"
+                testId="map-premium-menu-overflow"
+                style={iconOnlyMode ? { minWidth: "2rem" } : undefined}
+              />
+            )}
+          >
+            {hiddenMenus.map((menu) => (
+              <AppMenuSection key={menu.id} title={menu.label}>
+                {menu.sections.flatMap((section) => section.items).map((item) => (
+                  <AppMenuItem
+                    key={`${menu.id}-${item.id}`}
+                    icon={item.icon}
+                    label={item.label}
+                    description={getMenuItemDescription(item)}
+                    shortcut={item.shortcut}
+                    disabled={item.disabled}
+                    checked={item.checked}
+                    destructive={item.destructive}
+                    onSelect={item.onSelect}
+                    testId={item.testId}
+                  />
+                ))}
+              </AppMenuSection>
+            ))}
+          </AppDropdownMenu>
+        ) : null}
       </div>
 
       <div style={quickActionsRailStyle} aria-label="Quick map actions">
-        {quickActions.map((action) => (
+        {visibleQuickActions.map((action) => (
           <ToolbarMenuButton
             key={action.id}
             label={width >= 1440 ? action.label : width >= 1200 ? action.shortLabel : ""}

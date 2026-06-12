@@ -113,7 +113,7 @@ function commandItem(
   return {
     id: options.id ?? command.id,
     label: options.label ?? command.label,
-    description: options.description ?? (command.disabled ? command.disabledReason ?? command.title : command.title),
+    description: options.description ?? (command.disabled ? command.disabledReason ?? command.title : undefined),
     icon: <Icon size={MAP_ICON_SIZES.sm} strokeWidth={1.8} aria-hidden="true" />,
     onSelect: command.disabled ? undefined : command.onClick,
     checked: options.checked ?? command.active,
@@ -146,7 +146,6 @@ function paletteItem(onOpenPalette: () => void, paletteShortcut: string): MapPre
   return {
     id: "command-palette",
     label: "Command Palette",
-    description: "Search the full command and processing-tool registry.",
     icon: <Command size={MAP_ICON_SIZES.sm} strokeWidth={1.8} aria-hidden="true" />,
     onSelect: onOpenPalette,
     shortcut: paletteShortcut,
@@ -156,6 +155,19 @@ function paletteItem(onOpenPalette: () => void, paletteShortcut: string): MapPre
 
 function compactItems(items: Array<MapPremiumMenuItemModel | null>): MapPremiumMenuItemModel[] {
   return items.filter((item): item is MapPremiumMenuItemModel => item != null);
+}
+
+function commandAliasItem(
+  commands: readonly MapPremiumSourceCommand[],
+  commandId: string,
+  aliasId: string,
+  label: string,
+): MapPremiumMenuItemModel | null {
+  return commandItem(commands, [commandId], {
+    id: aliasId,
+    label,
+    testId: `map-toolbar-command-${aliasId}`,
+  });
 }
 
 export function buildMapPremiumMenuModel({
@@ -216,13 +228,55 @@ export function buildMapPremiumMenuModel({
       icon: <FileStack size={MAP_ICON_SIZES.sm} strokeWidth={1.8} aria-hidden="true" />,
       sections: [
         {
-          id: "add-data-core",
-          title: "Sources",
+          id: "add-data-files",
+          title: "Files",
           items: compactItems([
-            commandItem(commands, ["import"], { label: "Local Files" }),
-            commandItem(commands, ["catalog"], { label: "Catalog" }),
-            commandItem(commands, ["services"], { label: "External Services" }),
-            commandItem(commands, ["voxcity"], { label: "Scene Sources" }),
+            commandAliasItem(commands, "import", "import-vector", "Vector Layer"),
+            commandAliasItem(commands, "import", "import-raster", "Raster Layer"),
+            commandAliasItem(commands, "import", "import-delimited", "Delimited Text Layer"),
+            commandAliasItem(commands, "import", "import-gpx", "GPX Layer"),
+            commandAliasItem(commands, "import", "import-mbtiles", "MBTiles Layer"),
+            commandAliasItem(commands, "import", "import-osm-pbf", "OSM PBF Layer"),
+          ]),
+        },
+        {
+          id: "add-data-services",
+          title: "Web Services",
+          items: compactItems([
+            commandAliasItem(commands, "services", "services-xyz", "XYZ Layer"),
+            commandAliasItem(commands, "services", "services-wms", "WMS Layer"),
+            commandAliasItem(commands, "services", "services-wfs", "WFS Layer"),
+            commandAliasItem(commands, "services", "services-wmts", "WMTS Layer"),
+            commandAliasItem(commands, "services", "services-arcgis", "ArcGIS Layer"),
+            commandAliasItem(commands, "services", "services-stac", "STAC Layer"),
+          ]),
+        },
+        {
+          id: "add-data-cloud",
+          title: "Cloud Formats",
+          items: compactItems([
+            commandAliasItem(commands, "catalog", "catalog-geoparquet", "GeoParquet Layer"),
+            commandAliasItem(commands, "catalog", "catalog-flatgeobuf", "FlatGeobuf Layer"),
+            commandAliasItem(commands, "catalog", "catalog-pmtiles", "PMTiles Layer"),
+            commandAliasItem(commands, "catalog", "catalog-zarr", "Zarr Layer"),
+            commandAliasItem(commands, "catalog", "catalog-netcdf", "NetCDF / HDF"),
+          ]),
+        },
+        {
+          id: "add-data-3d",
+          title: "3D Sources",
+          items: compactItems([
+            commandAliasItem(commands, "voxcity", "voxcity-lidar", "LiDAR Layer"),
+            commandAliasItem(commands, "voxcity", "voxcity-splats", "Splatting Layer"),
+            commandAliasItem(commands, "voxcity", "voxcity-3dtiles", "3D Tiles Layer"),
+          ]),
+        },
+        {
+          id: "add-data-database",
+          title: "Databases",
+          items: compactItems([
+            commandAliasItem(commands, "catalog", "catalog-duckdb", "DuckDB Layer"),
+            commandAliasItem(commands, "services", "services-postgis", "PostgreSQL / PostGIS"),
           ]),
         },
       ],
@@ -242,6 +296,12 @@ export function buildMapPremiumMenuModel({
           items: compactItems([
             commandItem(commands, ["layers"], { label: "Layers Workspace", checked: layersCommand?.active }),
             commandItem(commands, ["contents"], { label: "Contents Tree", checked: contentsCommand?.active }),
+          ]),
+        },
+        {
+          id: "layers-governance",
+          title: "Quality",
+          items: compactItems([
             commandItem(commands, ["catalog"], { label: "Source Catalog", checked: catalogCommand?.active }),
             commandItem(commands, ["qa"], { label: "CRS and QA", checked: qaCommand?.active }),
           ]),
@@ -272,22 +332,28 @@ export function buildMapPremiumMenuModel({
     },
     {
       id: "analyze",
-      label: "Analyze",
-      shortLabel: "Analyze",
-      title: "Query, workflows, processing tools, and statistical analysis",
+      label: "Processing",
+      shortLabel: "Process",
+      title: "Processing tools, workflows, and statistical analysis",
       icon: <BarChart3 size={MAP_ICON_SIZES.sm} strokeWidth={1.8} aria-hidden="true" />,
       sections: [
         {
-          id: "analyze-core",
-          title: "Analysis",
+          id: "analyze-exploration",
+          title: "Exploration",
           items: compactItems([
             commandItem(commands, ["query"], { label: "Natural-Language Query" }),
             commandItem(commands, ["workflow"], { label: "Spatial Workflows" }),
-            commandItem(commands, ["processing-toolbox"], { label: "Processing Toolbox" }),
-            commandItem(commands, ["model-builder"], { label: "Model Builder" }),
             commandItem(commands, ["lisa"], { label: "LISA" }),
             commandItem(commands, ["hotspot"], { label: "Hot Spot" }),
             commandItem(commands, ["emerging-hotspot"], { label: "Emerging Hot Spot" }),
+          ]),
+        },
+        {
+          id: "analyze-automation",
+          title: "Automation",
+          items: compactItems([
+            commandItem(commands, ["processing-toolbox"], { label: "Processing Toolbox" }),
+            commandItem(commands, ["model-builder"], { label: "Model Builder" }),
           ]),
         },
       ],
@@ -321,11 +387,17 @@ export function buildMapPremiumMenuModel({
       icon: <FileStack size={MAP_ICON_SIZES.sm} strokeWidth={1.8} aria-hidden="true" />,
       sections: [
         {
-          id: "publish-core",
-          title: "Outputs",
+          id: "publish-composition",
+          title: "Composition",
           items: compactItems([
             commandItem(commands, ["figure-composer"]),
             commandItem(commands, ["export-image"], { label: "Image Export" }),
+          ]),
+        },
+        {
+          id: "publish-delivery",
+          title: "Delivery",
+          items: compactItems([
             commandItem(commands, ["export-offline-package"], { label: "Offline Package" }),
             commandItem(commands, ["add-map-to-report"], { label: "Report Handoff" }),
             commandItem(commands, ["export-geojson"], { label: "Data Export" }),
@@ -343,13 +415,19 @@ export function buildMapPremiumMenuModel({
       icon: <Search size={MAP_ICON_SIZES.sm} strokeWidth={1.8} aria-hidden="true" />,
       sections: [
         {
-          id: "review-core",
-          title: "Review",
+          id: "review-quality",
+          title: "Quality",
+          items: compactItems([
+            commandItem(commands, ["qa"], { label: "QA Issues", checked: qaCommand?.active }),
+            commandItem(commands, ["performance-diagnostics"], { label: "Diagnostics", checked: diagnosticsCommand?.active }),
+          ]),
+        },
+        {
+          id: "review-collaboration",
+          title: "Collaboration",
           items: compactItems([
             commandItem(commands, ["review-timeline"], { label: "Review Timeline", checked: reviewCommand?.active }),
-            commandItem(commands, ["qa"], { label: "QA Issues", checked: qaCommand?.active }),
             commandItem(commands, ["pins"], { label: "Comments and Pins" }),
-            commandItem(commands, ["performance-diagnostics"], { label: "Diagnostics", checked: diagnosticsCommand?.active }),
           ]),
         },
       ],
@@ -364,15 +442,21 @@ export function buildMapPremiumMenuModel({
       icon: <Search size={MAP_ICON_SIZES.sm} strokeWidth={1.8} aria-hidden="true" />,
       sections: [
         {
-          id: "controls-core",
-          title: "Map Controls",
+          id: "controls-navigation",
+          title: "Navigation",
           items: compactItems([
             paletteItem(onOpenPalette, paletteShortcut),
+            commandItem(commands, ["focus-map-canvas"], { label: "Keyboard Focus" }),
+          ]),
+        },
+        {
+          id: "controls-markup",
+          title: "Markup and Measure",
+          items: compactItems([
             commandItem(commands, ["pin-mode"], { label: "Drop Pins" }),
             commandItem(commands, ["pins"], { label: "Bookmarks and Pins" }),
             commandItem(commands, ["drawings"], { label: "Drawing Tools" }),
             commandItem(commands, ["measure-results"], { label: "Measurement Tools" }),
-            commandItem(commands, ["focus-map-canvas"], { label: "Keyboard Focus" }),
           ]),
         },
       ],
@@ -399,9 +483,9 @@ export function buildMapPremiumMenuModel({
     },
     {
       id: "view",
-      label: "View",
-      shortLabel: "View",
-      title: "Panel visibility, density, layout widths, and workspace visibility commands",
+      label: "Settings",
+      shortLabel: "Settings",
+      title: "Panel visibility, layout controls, and workspace settings",
       icon: <Eye size={MAP_ICON_SIZES.sm} strokeWidth={1.8} aria-hidden="true" />,
       sections: [
         {
@@ -413,13 +497,13 @@ export function buildMapPremiumMenuModel({
             disabledItem({
               id: "bottom-drawer",
               label: "Bottom Drawer",
-              description: "Bottom output drawer lands in Prompt 06.",
+              description: "Available through the bottom output workspace.",
               icon: <LayoutPanelTop size={MAP_ICON_SIZES.sm} strokeWidth={1.8} aria-hidden="true" />,
             }),
             disabledItem({
               id: "map-only-mode",
               label: "Map-Only Mode",
-              description: "Map-only mode lands in Prompt 09.",
+              description: "Available when full-screen canvas mode is enabled.",
               icon: <Eye size={MAP_ICON_SIZES.sm} strokeWidth={1.8} aria-hidden="true" />,
             }),
           ]),
@@ -454,7 +538,7 @@ export function buildMapPremiumMenuModel({
             disabledItem({
               id: "keyboard-shortcuts",
               label: "Keyboard Shortcuts",
-              description: `Use ${paletteShortcut} for the command palette; canvas shortcuts remain available on the map surface.`,
+              description: `Use ${paletteShortcut} for the command palette and map canvas shortcuts.`,
               icon: <Command size={MAP_ICON_SIZES.sm} strokeWidth={1.8} aria-hidden="true" />,
             }),
           ]),
@@ -516,6 +600,23 @@ export function buildMapPremiumMenuModel({
       } satisfies MapPremiumQuickActionModel;
     })(),
     (() => {
+      const command = findCommand(commands, ["drawings"]);
+      if (!command) return null;
+      return {
+        id: command.id,
+        label: "Draw",
+        shortLabel: "Draw",
+        title: command.disabled ? `${command.title}. ${command.disabledReason ?? "Unavailable in the current map state."}` : command.title,
+        icon: React.createElement(command.icon, { size: MAP_ICON_SIZES.sm, strokeWidth: 1.8, "aria-hidden": true }),
+        onClick: command.onClick,
+        active: command.active,
+        disabled: command.disabled,
+        disabledReason: command.disabledReason,
+        badge: command.badge,
+        testId: `map-premium-quick-action-${command.id}`,
+      } satisfies MapPremiumQuickActionModel;
+    })(),
+    (() => {
       const command = findCommand(commands, ["qa", "workflow", "save-project"]);
       if (!command) return null;
       return {
@@ -544,6 +645,60 @@ export function buildMapPremiumMenuModel({
   ]);
 
   const quickActions = quickActionCandidates.filter((action, index, collection) => collection.findIndex((candidate) => candidate.id === action.id) === index).slice(0, 5);
+  const projectMenu = menus.find((menu) => menu.id === "project");
+  const addDataMenu = menus.find((menu) => menu.id === "add-data");
+  const layersMenu = menus.find((menu) => menu.id === "layers");
+  const processingMenu = menus.find((menu) => menu.id === "analyze");
+  const controlsMenu = menus.find((menu) => menu.id === "controls");
+  const pluginsMenu = menus.find((menu) => menu.id === "plugins");
+  const settingsMenu = menus.find((menu) => menu.id === "view");
+  const helpMenu = menus.find((menu) => menu.id === "help");
+  const styleMenu = menus.find((menu) => menu.id === "style");
+  const sceneMenu = menus.find((menu) => menu.id === "scene");
+  const publishMenu = menus.find((menu) => menu.id === "publish");
+  const reviewMenu = menus.find((menu) => menu.id === "review");
 
-  return { menus, quickActions };
+  const resolvedProjectMenu = projectMenu
+    ? {
+        ...projectMenu,
+        sections: [
+          ...projectMenu.sections,
+          ...(reviewMenu?.sections ?? []),
+          ...(publishMenu?.sections ?? []),
+        ],
+      }
+    : null;
+
+  const resolvedLayersMenu = layersMenu
+    ? {
+        ...layersMenu,
+        sections: [
+          ...layersMenu.sections,
+          ...(styleMenu?.sections ?? []),
+        ],
+      }
+    : null;
+
+  const resolvedControlsMenu = controlsMenu
+    ? {
+        ...controlsMenu,
+        sections: [
+          ...controlsMenu.sections,
+          ...(sceneMenu?.sections ?? []),
+        ],
+      }
+    : null;
+
+  const consolidatedMenus = [
+    resolvedProjectMenu,
+    addDataMenu,
+    resolvedLayersMenu,
+    processingMenu,
+    resolvedControlsMenu,
+    pluginsMenu,
+    settingsMenu,
+    helpMenu,
+  ].filter((menu): menu is MapPremiumMenuModel => menu != null);
+
+  return { menus: consolidatedMenus, quickActions };
 }

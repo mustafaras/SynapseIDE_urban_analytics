@@ -523,7 +523,7 @@ const commandRail: React.CSSProperties = {
 const premiumMenuRail: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
-  flex: "1 1 22rem",
+  flex: "1 1 36rem",
   minWidth: MAP_SPACING.zero,
   overflow: "hidden",
 };
@@ -534,7 +534,7 @@ const compactCommandCenterRail: React.CSSProperties = {
   flex: "0 0 auto",
   gap: "0.125rem",
   minWidth: MAP_SPACING.zero,
-  maxWidth: "min(44rem, 60vw)",
+  maxWidth: "min(16rem, 24vw)",
   paddingLeft: MAP_SPACING.xs,
   borderLeft: "1px solid color-mix(in srgb, var(--syn-border-subtle, rgba(148, 163, 184, 0.18)) 38%, transparent)",
   overflow: "hidden",
@@ -1077,6 +1077,11 @@ function getCommandStatus(command: ToolbarCommand): { label: string; tone: Comma
 
 function getCommandUnavailableReason(command: ToolbarCommand): string {
   return command.disabledReason ?? "Unavailable in the current map state.";
+}
+
+function getMenuCommandDescription(command: ToolbarCommand): string | undefined {
+  if (!command.disabled) return undefined;
+  return getCommandUnavailableReason(command);
 }
 
 function getCommandAccessibleTitle(command: ToolbarCommand): string {
@@ -2206,7 +2211,7 @@ export function ToolbarCommandsMenu({
             command={command}
             density="comfortable"
             menuItem
-            description={command.title}
+            description={getMenuCommandDescription(command)}
             onAfterClick={() => onOpenChange(false)}
           />
         ))}
@@ -2399,7 +2404,7 @@ export function ToolbarOverflowMenu({
                     command={command}
                     density="comfortable"
                     menuItem
-                    description={command.title}
+                    description={getMenuCommandDescription(command)}
                     onAfterClick={onClose}
                   />
                 ))}
@@ -2487,7 +2492,7 @@ export function ToolbarCommandGroupMenu({
               command={command}
               density="comfortable"
               menuItem
-              description={command.title}
+              description={getMenuCommandDescription(command)}
               onAfterClick={onClose}
             />
           ))}
@@ -3303,6 +3308,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
     [commandRegistry],
   );
   const showLegacyGroupLabels = toolbarWidth >= 1320;
+  const showLegacyCompactClusters = false;
   const visibleCommandCount =
     menus.length +
     quickActions.length +
@@ -3348,13 +3354,16 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
             }}
           />
           <div
-            style={activeLensShell}
+            style={showLegacyCompactClusters ? activeLensShell : { ...activeLensShell, display: "none" }}
             data-testid="map-command-center-active-lens"
             data-active-lens={taskLens}
           >
             <TaskLensSwitch taskLens={taskLens} onTaskLensChange={handleTaskLensChange} compact />
           </div>
-          <div style={topSurfaceGroupRail} aria-label="Grouped map command menus">
+          <div
+            style={showLegacyCompactClusters ? topSurfaceGroupRail : { ...topSurfaceGroupRail, display: "none" }}
+            aria-label="Grouped map command menus"
+          >
             {visibleTopSurfaceGroupIds.map((groupId) => (
               <ToolbarCommandGroupMenu
                 key={groupId}

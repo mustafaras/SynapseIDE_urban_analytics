@@ -75,15 +75,16 @@ const clusterShellStyle: React.CSSProperties = {
 const leadingClusterStyle: React.CSSProperties = {
   ...clusterShellStyle,
   display: "inline-flex",
-  flex: "0 1 auto",
+  flex: "0 1 17rem",
   gap: MAP_SPACING.xs,
-  minWidth: "10rem",
+  minWidth: 0,
+  overflow: "hidden",
 };
 
 const identityClusterStyle: React.CSSProperties = {
   display: "grid",
   gap: "0.125rem",
-  minWidth: "10rem",
+  minWidth: 0,
 };
 
 const brandRowStyle: React.CSSProperties = {
@@ -171,15 +172,16 @@ const searchClusterStyle: React.CSSProperties = {
   ...clusterShellStyle,
   display: "flex",
   alignItems: "center",
-  flex: "0 1 24rem",
+  flex: "0 1 18rem",
   gap: MAP_SPACING.xs,
-  minWidth: "12rem",
+  minWidth: 0,
+  overflow: "hidden",
 };
 
 const searchSlotStyle: React.CSSProperties = {
-  flex: "1 1 18rem",
-  minWidth: "11rem",
-  maxWidth: "28rem",
+  flex: "1 1 12rem",
+  minWidth: 0,
+  maxWidth: "22rem",
 };
 
 const contextRailStyle: React.CSSProperties = {
@@ -188,12 +190,13 @@ const contextRailStyle: React.CSSProperties = {
   gap: MAP_SPACING.xs,
   minWidth: MAP_SPACING.zero,
   overflow: "hidden",
+  flexShrink: 1,
 };
 
 const mapToolRailStyle: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
-  minWidth: "8rem",
+  minWidth: 0,
   flex: "1 1 16rem",
   overflow: "hidden",
   borderLeft: "1px solid color-mix(in srgb, var(--syn-border-subtle, rgba(148, 163, 184, 0.16)) 42%, transparent)",
@@ -204,10 +207,11 @@ const mapToolRailStyle: React.CSSProperties = {
 const commandClusterStyle: React.CSSProperties = {
   ...clusterShellStyle,
   display: "inline-flex",
-  flex: "1 1 48rem",
+  flex: "1 1 34rem",
   justifyContent: "flex-start",
   padding: `${MAP_SPACING.zero} ${MAP_SPACING.zero}`,
-  minWidth: "18rem",
+  minWidth: 0,
+  overflow: "hidden",
 };
 
 const contextBarClusterStyle: React.CSSProperties = {
@@ -216,7 +220,7 @@ const contextBarClusterStyle: React.CSSProperties = {
   gap: MAP_SPACING.xs,
   flex: "0 1 auto",
   minWidth: 0,
-  overflow: "visible",
+  overflow: "hidden",
   paddingLeft: MAP_SPACING.xs,
   borderLeft: "1px solid color-mix(in srgb, var(--syn-border-subtle, rgba(148, 163, 184, 0.16)) 42%, transparent)",
 };
@@ -356,8 +360,8 @@ function chipStyle(interactive: boolean, tone: TopSurfaceTone): React.CSSPropert
     gap: MAP_SPACING.xs,
     /* Shrinkable, but never below a readable floor — title attrs keep the
        full values reachable when ellipsized. */
-    minWidth: "4.5rem",
-    maxWidth: "11rem",
+    minWidth: 0,
+    maxWidth: "9.5rem",
     flexShrink: 1,
     height: "1.5rem",
     padding: `0 ${MAP_SPACING.xs}`,
