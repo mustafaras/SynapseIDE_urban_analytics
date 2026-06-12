@@ -16,12 +16,12 @@
   --map-shell-accent-soft: rgba(92, 164, 247, 0.12);
   --map-shell-radius-panel: 0;
   --map-shell-radius-control: 0.1875rem;
-  --map-shell-menu-height: var(--map-menu-h, 2.375rem);
+  --map-shell-menu-height: var(--map-menu-h, 5.34375rem);
   --map-shell-status-height: var(--map-status-h, 1.75rem);
   --map-shell-left-min: var(--map-left-min, 17.5rem);
-  --map-shell-left-width: var(--map-left-w, clamp(17.5rem, 24vw, 22.5rem));
-  --map-shell-right-min: var(--map-right-min, 22.5rem);
-  --map-shell-right-width: var(--map-right-w, clamp(22.5rem, 28vw, 27.5rem));
+  --map-shell-left-width: var(--map-left-w, clamp(17.5rem, 22vw, 22.5rem));
+  --map-shell-right-min: var(--map-right-min, 20rem);
+  --map-shell-right-width: var(--map-right-w, clamp(20rem, 24vw, 26rem));
   --map-shell-bottom-drawer-height: clamp(13.75rem, 30vh, 21.25rem);
   --map-shell-safe-top: var(--map-shell-safe-inset-top, 0.5rem);
   --map-shell-safe-right: var(--map-shell-safe-inset-right, 0.75rem);
@@ -116,13 +116,13 @@
 }
 
 .mapPremiumShellSurface[data-map-shell-viewport-mode="wide"] {
-  --map-shell-left-width: clamp(22.5rem, 26vw, 29rem);
-  --map-shell-right-width: clamp(21.25rem, 28vw, 34rem);
+  --map-shell-left-width: clamp(19rem, 22vw, 24rem);
+  --map-shell-right-width: clamp(20rem, 24vw, 26rem);
 }
 
 .mapPremiumShellSurface[data-map-shell-viewport-mode="medium"] {
-  --map-shell-left-width: clamp(21rem, 28vw, 27rem);
-  --map-shell-right-width: clamp(21rem, 31vw, 30rem);
+  --map-shell-left-width: clamp(18rem, 24vw, 22rem);
+  --map-shell-right-width: clamp(19rem, 26vw, 24rem);
 }
 
 .mapPremiumShellSurface[data-map-shell-viewport-mode="narrow"] {

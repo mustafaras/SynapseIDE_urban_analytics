@@ -4,7 +4,6 @@ import type { MapWorkspaceView } from "./mapExperience";
 import {
   MAP_COLORS,
   MAP_ICON_SIZES,
-  MAP_RADIUS,
   MAP_SPACING,
   MAP_TYPOGRAPHY,
   MAP_Z_INDEX,
@@ -44,17 +43,11 @@ export interface MapTopCommandSurfaceProps {
 }
 
 const shellStyle: React.CSSProperties = {
-  display: "flex",
-  flexWrap: "nowrap",
-  alignItems: "center",
-  gap: MAP_SPACING.xs,
-  minHeight: "3.5625rem",
-  padding: `0.375rem ${MAP_SPACING.md} 0.375rem calc(var(--map-activity-rail-width, 2.625rem) + ${MAP_SPACING.md})`,
-  background: [
-    "linear-gradient(115deg, transparent 0%, color-mix(in srgb, var(--syn-interaction-active, #3794ff) 3%, transparent) 28%, transparent 58%)",
-    "linear-gradient(180deg, color-mix(in srgb, var(--syn-surface-header, #141b24) 99%, #ffffff 1%), var(--syn-surface-header, #141b24))",
-  ].join(", "),
-  backgroundSize: "24rem 100%, 100% 100%",
+  display: "grid",
+  gridTemplateRows: "minmax(0, 1.12fr) minmax(0, 1fr)",
+  minHeight: "var(--map-menu-h, 5.34375rem)",
+  paddingLeft: "var(--map-activity-rail-width, 2.625rem)",
+  background: "var(--syn-surface-header, #141b24)",
   borderBottom: "1px solid color-mix(in srgb, var(--syn-border-subtle, rgba(148, 163, 184, 0.18)) 52%, transparent)",
   boxShadow: "none",
   overflow: "hidden",
@@ -63,13 +56,36 @@ const shellStyle: React.CSSProperties = {
   isolation: "isolate",
 };
 
+const identityRowStyle: React.CSSProperties = {
+  display: "flex",
+  flexWrap: "nowrap",
+  alignItems: "center",
+  gap: MAP_SPACING.xs,
+  minWidth: 0,
+  minHeight: 0,
+  padding: `0 ${MAP_SPACING.md}`,
+  borderBottom: "1px solid color-mix(in srgb, var(--syn-border-subtle, rgba(148, 163, 184, 0.16)) 46%, transparent)",
+  overflow: "hidden",
+};
+
+const menuRowStyle: React.CSSProperties = {
+  display: "flex",
+  flexWrap: "nowrap",
+  alignItems: "center",
+  gap: MAP_SPACING.xs,
+  minWidth: 0,
+  minHeight: 0,
+  padding: `0 ${MAP_SPACING.md}`,
+  overflow: "hidden",
+};
+
 const clusterShellStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   minWidth: MAP_SPACING.zero,
-  minHeight: "2.75rem",
-  padding: `0.125rem ${MAP_SPACING.xs}`,
-  borderRadius: MAP_RADIUS.xs,
+  minHeight: "2.25rem",
+  padding: `0 ${MAP_SPACING.xs}`,
+  borderRadius: 0,
   border: "1px solid transparent",
   background: "transparent",
   overflow: "visible",
@@ -78,9 +94,9 @@ const clusterShellStyle: React.CSSProperties = {
 const leadingClusterStyle: React.CSSProperties = {
   ...clusterShellStyle,
   display: "inline-flex",
-  // Shrinks ahead of the command cluster so the premium menu bar keeps room.
-  flex: "0 2 12rem",
-  gap: MAP_SPACING.xs,
+  // Identity block anchors the row; chips ellipsize before the search shrinks.
+  flex: "1 1 18rem",
+  gap: MAP_SPACING.sm,
   minWidth: 0,
   overflow: "hidden",
 };
@@ -100,16 +116,11 @@ const brandRowStyle: React.CSSProperties = {
 };
 
 const brandAccentStyle: React.CSSProperties = {
-  width: "2.125rem",
-  height: "2.125rem",
-  borderRadius: MAP_RADIUS.xs,
-  border: "1px solid color-mix(in srgb, var(--syn-interaction-active, #3794ff) 44%, transparent)",
-  background: [
-    "linear-gradient(135deg, color-mix(in srgb, var(--syn-interaction-active, #3794ff) 88%, #ffffff 8%), transparent 54%)",
-    "linear-gradient(315deg, color-mix(in srgb, var(--syn-status-running, #4ec27d) 72%, transparent), transparent 58%)",
-    "var(--syn-surface-header, #20242b)",
-  ].join(", "),
-  boxShadow: "inset 0 0 0 1px color-mix(in srgb, #ffffff 10%, transparent)",
+  width: "0.1875rem",
+  height: "1.625rem",
+  borderRadius: 0,
+  border: "none",
+  background: "var(--syn-interaction-active, #3794ff)",
   flexShrink: 0,
 };
 
@@ -152,7 +163,7 @@ const activityPillStyle: React.CSSProperties = {
   height: "1.25rem",
   padding: `0 ${MAP_SPACING.xs}`,
   border: "1px solid transparent",
-  borderRadius: 2,
+  borderRadius: 0,
   color: MAP_COLORS.textMuted,
   background: "color-mix(in srgb, var(--syn-surface-subtle, rgba(15, 23, 42, 0.2)) 28%, transparent)",
   fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
@@ -176,9 +187,9 @@ const searchClusterStyle: React.CSSProperties = {
   ...clusterShellStyle,
   display: "flex",
   alignItems: "center",
-  // Shrinks ahead of the command cluster so the premium menu bar keeps room.
-  flex: "0 2 12rem",
-  gap: MAP_SPACING.xs,
+  justifyContent: "flex-end",
+  flex: "1 1 22rem",
+  gap: MAP_SPACING.sm,
   minWidth: 0,
   overflow: "hidden",
 };
@@ -202,7 +213,7 @@ const mapToolRailStyle: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   minWidth: 0,
-  flex: "1 1 16rem",
+  flex: "0 1 auto",
   overflow: "hidden",
   borderLeft: "1px solid color-mix(in srgb, var(--syn-border-subtle, rgba(148, 163, 184, 0.16)) 42%, transparent)",
   marginLeft: MAP_SPACING.xs,
@@ -212,10 +223,10 @@ const mapToolRailStyle: React.CSSProperties = {
 const commandClusterStyle: React.CSSProperties = {
   ...clusterShellStyle,
   display: "inline-flex",
-  // The grouped menu bar is the primary occupant of the top surface: it
-  // absorbs free space first and gives it up last so the menus stay visible
-  // at desktop widths instead of collapsing into the hamburger fallback.
-  flex: "4 0.1 44rem",
+  // The grouped menu bar owns the second row outright, so the menus stay
+  // visible at desktop widths instead of collapsing into the hamburger
+  // fallback.
+  flex: "1 1 auto",
   justifyContent: "flex-start",
   padding: `${MAP_SPACING.zero} ${MAP_SPACING.zero}`,
   minWidth: 0,
@@ -357,14 +368,9 @@ function toneForeground(tone: TopSurfaceTone): string {
   }
 }
 
-function toneBackground(tone: TopSurfaceTone): string {
-  if (tone === "neutral") {
-    return "var(--syn-surface-subtle, rgba(15, 23, 42, 0.42))";
-  }
-  return "color-mix(in srgb, var(--syn-interaction-active, #3794ff) 10%, transparent)";
-}
-
 function chipStyle(interactive: boolean, tone: TopSurfaceTone): React.CSSProperties {
+  /* Status is carried by the value text colour alone — no green/red frames,
+     no tinted pill backgrounds. Containers stay neutral hairlines. */
   return {
     display: "inline-flex",
     alignItems: "center",
@@ -376,13 +382,11 @@ function chipStyle(interactive: boolean, tone: TopSurfaceTone): React.CSSPropert
     flexShrink: 1,
     height: "1.625rem",
     padding: `0 ${MAP_SPACING.xs}`,
-    borderRadius: 2,
+    borderRadius: 0,
     border: tone === "neutral"
       ? "1px solid transparent"
-      : `1px solid color-mix(in srgb, ${toneForeground(tone)} 30%, var(--syn-border-subtle, rgba(148, 163, 184, 0.32)))`,
-    background: tone === "neutral"
-      ? "transparent"
-      : toneBackground(tone),
+      : "1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.28))",
+    background: "transparent",
     color: toneForeground(tone),
     font: "inherit",
     cursor: interactive ? "pointer" : "default",
@@ -506,97 +510,101 @@ export const MapTopCommandSurface: React.FC<MapTopCommandSurfaceProps> = ({
       data-map-top-command-surface="true"
       data-testid="map-top-command-surface"
     >
-      <div style={leadingClusterStyle}>
-        <div style={identityClusterStyle}>
-          <div style={brandRowStyle} id={titleId} aria-label="Map Explorer" data-testid="map-command-center-title">
-            <span aria-hidden data-testid="map-command-brand" style={brandAccentStyle} />
-            <span style={brandCopyStyle}>
-              <span style={brandKickerStyle}>Urban Analytics</span>
-              <span style={brandLineStyle}>
-                <span>Map Explorer</span>
-                <span aria-hidden style={activityPillStyle}>{activeActivityLabel}</span>
+      <div style={identityRowStyle} data-testid="map-top-command-surface-identity-row">
+        <div style={leadingClusterStyle}>
+          <div style={identityClusterStyle}>
+            <div style={brandRowStyle} id={titleId} aria-label="Map Explorer" data-testid="map-command-center-title">
+              <span aria-hidden data-testid="map-command-brand" style={brandAccentStyle} />
+              <span style={brandCopyStyle}>
+                <span style={brandKickerStyle}>Urban Analytics</span>
+                <span style={brandLineStyle}>
+                  <span>Map Explorer</span>
+                  <span aria-hidden style={activityPillStyle}>{activeActivityLabel}</span>
+                </span>
               </span>
-            </span>
+            </div>
+          </div>
+          <div style={chipRailStyle}>
+            {showProjectChip ? (
+              <SurfaceChip
+                label="Project"
+                value={projectName && projectName.trim().length > 0 ? projectName : "No project"}
+                title={projectName ?? "No project selected."}
+                testId="map-top-command-surface-project"
+              />
+            ) : null}
+            <SurfaceChip label="Mode" value={modeLabel} title={`Current workspace mode and lens: ${modeLabel}.`} />
+            {showSaveChip ? (
+              <SurfaceChip label="Save" value={saveState.value} tone={saveState.tone} title={saveState.title} testId="map-top-command-surface-save-state" />
+            ) : null}
           </div>
         </div>
-        <div style={chipRailStyle}>
-          {showProjectChip ? (
+
+        <div style={searchClusterStyle}>
+          <div style={searchSlotStyle}>{searchSlot}</div>
+          <div style={contextRailStyle}>
             <SurfaceChip
-              label="Project"
-              value={projectName && projectName.trim().length > 0 ? projectName : "No project"}
-              title={projectName ?? "No project selected."}
-              testId="map-top-command-surface-project"
+              label="Scope"
+              value={scopeLabel && scopeLabel.trim().length > 0 ? scopeLabel : "Visible extent"}
+              title={scopeTitle ?? "Current visible map extent."}
+              testId="map-top-command-surface-scope"
             />
-          ) : null}
-          <SurfaceChip label="Mode" value={modeLabel} title={`Current workspace mode and lens: ${modeLabel}.`} />
-          {showSaveChip ? (
-            <SurfaceChip label="Save" value={saveState.value} tone={saveState.tone} title={saveState.title} testId="map-top-command-surface-save-state" />
-          ) : null}
+            {crsLabel ? (
+              <SurfaceChip
+                label="CRS"
+                value={crsLabel.replace(/^CRS\s+/, "")}
+                tone={crsTone}
+                title={crsTitle}
+                onClick={onOpenCrsReadiness}
+                testId="map-top-command-surface-crs"
+              />
+            ) : null}
+            {activeLayerLabel ? (
+              <SurfaceChip
+                label="Layer"
+                value={activeLayerLabel}
+                title={activeLayerTitle ?? activeLayerLabel}
+                testId="map-top-command-surface-layer"
+              />
+            ) : null}
+          </div>
         </div>
+
+        {hasTrailingContent ? (
+          <div style={trailingClusterStyle} data-testid="map-top-command-surface-trailing">
+            {utilityContent ? (
+              <div style={utilityClusterStyle} data-testid="map-top-command-surface-utility-controls">
+                {utilityContent}
+              </div>
+            ) : null}
+            {modalControlSlot ? (
+              <div
+                style={modalControlClusterStyle}
+                role="group"
+                aria-label="Map explorer modal controls"
+                data-testid="map-top-command-surface-modal-controls"
+              >
+                {modalControlSlot}
+              </div>
+            ) : null}
+          </div>
+        ) : <span aria-hidden />}
       </div>
 
-      <div style={commandClusterStyle}>{commandSlot}</div>
-
-      <div style={searchClusterStyle}>
-        <div style={searchSlotStyle}>{searchSlot}</div>
-        <div style={contextRailStyle}>
-          <SurfaceChip
-            label="Scope"
-            value={scopeLabel && scopeLabel.trim().length > 0 ? scopeLabel : "Visible extent"}
-            title={scopeTitle ?? "Current visible map extent."}
-            testId="map-top-command-surface-scope"
-          />
-          {crsLabel ? (
-            <SurfaceChip
-              label="CRS"
-              value={crsLabel.replace(/^CRS\s+/, "")}
-              tone={crsTone}
-              title={crsTitle}
-              onClick={onOpenCrsReadiness}
-              testId="map-top-command-surface-crs"
-            />
-          ) : null}
-          {activeLayerLabel ? (
-            <SurfaceChip
-              label="Layer"
-              value={activeLayerLabel}
-              title={activeLayerTitle ?? activeLayerLabel}
-              testId="map-top-command-surface-layer"
-            />
-          ) : null}
-        </div>
+      <div style={menuRowStyle} data-testid="map-top-command-surface-menu-row">
+        <div style={commandClusterStyle}>{commandSlot}</div>
         {mapToolsSlot ? <div style={mapToolRailStyle}>{mapToolsSlot}</div> : null}
+        {showContextBar ? (
+          <div
+            style={contextBarClusterStyle}
+            role="group"
+            aria-label="Layer context and selection controls"
+            data-testid="map-context-bar-cluster"
+          >
+            {contextBarSlot}
+          </div>
+        ) : null}
       </div>
-
-      {showContextBar ? (
-        <div
-          style={contextBarClusterStyle}
-          role="group"
-          aria-label="Layer context and selection controls"
-          data-testid="map-context-bar-cluster"
-        >
-          {contextBarSlot}
-        </div>
-      ) : null}
-      {hasTrailingContent ? (
-        <div style={trailingClusterStyle} data-testid="map-top-command-surface-trailing">
-          {utilityContent ? (
-            <div style={utilityClusterStyle} data-testid="map-top-command-surface-utility-controls">
-              {utilityContent}
-            </div>
-          ) : null}
-          {modalControlSlot ? (
-            <div
-              style={modalControlClusterStyle}
-              role="group"
-              aria-label="Map explorer modal controls"
-              data-testid="map-top-command-surface-modal-controls"
-            >
-              {modalControlSlot}
-            </div>
-          ) : null}
-        </div>
-      ) : <span aria-hidden />}
     </div>
   );
 };

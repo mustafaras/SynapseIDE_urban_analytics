@@ -273,17 +273,17 @@ export const MAP_SHELL_DIMENSIONS = {
   activityRailWidth: "2.625rem",
   railButtonSize: "2.25rem",
   modalChromeHeight: "2.75rem",
-  commandCenterHeight: "3.5625rem",
-  menuBarHeight: "3.5625rem",
-  topCommandHeight: "3.5625rem",
-  leftSidebarMinWidth: "22.5rem",
-  leftSidebarWidth: "clamp(22.5rem, 26vw, 29rem)",
+  commandCenterHeight: "5.34375rem",
+  menuBarHeight: "5.34375rem",
+  topCommandHeight: "5.34375rem",
+  leftSidebarMinWidth: "18.75rem",
+  leftSidebarWidth: "clamp(19rem, 22vw, 24rem)",
   leftSidebarMaxWidth: "47.5rem",
-  leftPanelWidth: "clamp(22.5rem, 26vw, 29rem)",
-  rightInspectorMinWidth: "21.25rem",
-  rightInspectorWidth: "clamp(21.25rem, 28vw, 34rem)",
+  leftPanelWidth: "clamp(19rem, 22vw, 24rem)",
+  rightInspectorMinWidth: "20rem",
+  rightInspectorWidth: "clamp(20rem, 24vw, 26rem)",
   rightInspectorMaxWidth: "35rem",
-  rightDockWidth: "clamp(21.25rem, 28vw, 34rem)",
+  rightDockWidth: "clamp(20rem, 24vw, 26rem)",
   bottomPanelMinHeight: "13.75rem",
   bottomPanelHeight: "clamp(13.75rem, 30vh, 21.25rem)",
   bottomPanelMaxHeight: "21.25rem",
@@ -326,6 +326,10 @@ export const MAP_LAYOUT_TOKENS = {
   },
   popoverMaxHeight: "min(24rem, calc(100vh - 8rem))",
   dialogMaxHeight: "min(42rem, calc(100vh - 3rem))",
+  /* Standard floating dialog geometry — every Map Explorer modal shares the
+     same footprint so stacked workflows feel like one coherent surface. */
+  dialogWidth: "min(1040px, calc(100vw - 4rem))",
+  dialogHeight: "min(680px, calc(100vh - 10rem))",
 } as const;
 
 export function createMapShellCssVars(): React.CSSProperties {
@@ -355,6 +359,8 @@ export function createMapShellCssVars(): React.CSSProperties {
     "--map-shell-breakpoint-narrow": `${MAP_LAYOUT_TOKENS.breakpoints.narrow}px`,
     "--map-popover-max-height": MAP_LAYOUT_TOKENS.popoverMaxHeight,
     "--map-dialog-max-height": MAP_LAYOUT_TOKENS.dialogMaxHeight,
+    "--map-dialog-w": MAP_LAYOUT_TOKENS.dialogWidth,
+    "--map-dialog-h": MAP_LAYOUT_TOKENS.dialogHeight,
   } as React.CSSProperties;
 }
 
@@ -846,7 +852,7 @@ export const mapStyles = {
 
   layerPanelOpenButton: {
     position: "absolute",
-    top: "calc(var(--map-overlay-safe-top, calc(var(--map-shell-command-height, 3.5625rem) + var(--map-overlay-safe-inset-y, 0.25rem))) + 0.75rem)",
+    top: "calc(var(--map-overlay-safe-top, calc(var(--map-shell-command-height, 5.34375rem) + var(--map-overlay-safe-inset-y, 0.25rem))) + 0.75rem)",
     left: MAP_SPACING.zero,
     zIndex: MAP_Z_INDEX.sidebar,
     display: "inline-flex",

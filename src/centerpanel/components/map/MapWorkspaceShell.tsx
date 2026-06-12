@@ -567,7 +567,7 @@ export const MapWorkspaceShell: React.FC<MapWorkspaceShellProps> = ({
           ...createMapShellCssVars(),
           ...mapExplorerA11yVars,
           display: "grid",
-          gridTemplateRows: "var(--map-menu-h, 3.5625rem) minmax(0, 1fr) var(--map-status-h, 1.75rem)",
+          gridTemplateRows: "var(--map-menu-h, 5.34375rem) minmax(0, 1fr) var(--map-status-h, 1.75rem)",
         }}
         ref={shellRef}
         className={["MapWorkspaceShell__surface", shellStyles.mapPremiumShellSurface].join(" ")}

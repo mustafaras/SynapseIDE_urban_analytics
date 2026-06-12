@@ -42,7 +42,7 @@ interface NominatimSearchResult {
 
 const searchInput: React.CSSProperties = {
   padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
-  borderRadius: 2,
+  borderRadius: 0,
   border: MAP_STROKES.hairlineSubtle,
   background: "color-mix(in srgb, var(--syn-surface-input, #1a1f26) 88%, transparent)",
   color: MAP_COLORS.text,
@@ -58,11 +58,11 @@ const dropdownContainer: React.CSSProperties = {
   zIndex: MAP_Z_INDEX.dropdown,
   background: MAP_COLORS.bgPanel,
   border: MAP_STROKES.hairlineSubtle,
-  borderRadius: 3,
+  borderRadius: 0,
   overflow: "hidden",
   maxWidth: MAP_DIMENSIONS.searchMaxWidth,
   minWidth: MAP_DIMENSIONS.searchWidth,
-  boxShadow: MAP_SHADOWS.none,
+  boxShadow: MAP_SHADOWS.dropdown,
   marginTop: MAP_SPACING.xs,
 };
 
@@ -146,7 +146,7 @@ export const MapSearchBar: React.FC<MapSearchBarProps> = ({ onFlyTo, onResultCou
         flex: compact ? "1 1 100%" : undefined,
         padding: compact ? "0.125rem" : undefined,
         border: compact ? MAP_STROKES.hairlineSubtle : undefined,
-        borderRadius: compact ? 3 : undefined,
+        borderRadius: compact ? 0 : undefined,
         background: compact ? "color-mix(in srgb, var(--syn-surface-input, rgba(12, 16, 24, 0.9)) 92%, transparent)" : undefined,
         boxShadow: compact && (focused || results.length > 0) ? MAP_SHADOWS.dropdown : undefined,
         transition: compact ? MAP_TRANSITIONS.fast : undefined,
@@ -194,7 +194,8 @@ export const MapSearchBar: React.FC<MapSearchBarProps> = ({ onFlyTo, onResultCou
           justifyContent: "center",
           padding: compact ? MAP_SPACING.zero : mapStyles.btn.padding,
           border: compact ? "1px solid transparent" : mapStyles.btn.border,
-          borderRadius: compact ? 2 : mapStyles.btn.borderRadius,
+          borderLeft: compact ? MAP_STROKES.hairlineSubtle : undefined,
+          borderRadius: compact ? 0 : mapStyles.btn.borderRadius,
           fontFamily: compact ? MAP_TYPOGRAPHY.fontFamilyMono : mapStyles.btn.fontFamily,
         }}
         onClick={handleSearch}
