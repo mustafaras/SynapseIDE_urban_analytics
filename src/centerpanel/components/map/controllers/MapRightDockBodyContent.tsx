@@ -77,7 +77,7 @@ const rightDockTabButtonStyle: React.CSSProperties = {
   minHeight: "1.75rem",
   padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
   border: MAP_STROKES.hairlineSubtle,
-  borderRadius: MAP_RADIUS.sm,
+  borderRadius: 2,
   background: MAP_COLORS.transparent,
   color: MAP_COLORS.textSecondary,
   cursor: "pointer",

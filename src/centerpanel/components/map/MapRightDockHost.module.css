@@ -6,9 +6,9 @@
   bottom: 0;
   z-index: var(--map-z-panel, 35);
   width: min(var(--right-dock-width), calc(100% - 2rem));
-  min-width: 300px;
-  max-width: 520px;
-  padding: 6px 6px 6px 0;
+  min-width: 340px;
+  max-width: 560px;
+  padding: 0;
   color: var(--syn-text-primary, #f3f4f6);
   font-family: var(--font-sans, "Inter", sans-serif);
   outline: none;
@@ -17,27 +17,27 @@
 
 .host[data-presentation="side-drawer"] {
   width: min(var(--right-dock-width), calc(100% - var(--map-activity-rail-width, 3rem)));
-  min-width: min(300px, calc(100% - var(--map-activity-rail-width, 3rem)));
+  min-width: min(340px, calc(100% - var(--map-activity-rail-width, 3rem)));
   max-width: calc(100% - var(--map-activity-rail-width, 3rem));
-  filter: drop-shadow(-12px 0 32px rgba(0, 0, 0, 0.34));
+  filter: drop-shadow(-10px 0 28px rgba(0, 0, 0, 0.32));
 }
 
 .frame {
   position: relative;
   height: 100%;
-  border-radius: 4px 0 0 4px;
+  border-radius: 0;
 }
 
 .resizeHandle {
   position: absolute;
-  top: 8px;
-  bottom: 8px;
-  left: -5px;
+  top: 0;
+  bottom: 0;
+  left: -6px;
   z-index: 2;
-  width: 10px;
+  width: 12px;
   padding: 0;
   border: 0;
-  border-radius: 999px;
+  border-radius: 0;
   background: transparent;
   cursor: col-resize;
   touch-action: none;
@@ -46,7 +46,7 @@
 .resizeHandle::after {
   content: "";
   position: absolute;
-  inset: 34% 4px;
+  inset: 0 5px;
   border-left: 1px solid color-mix(in srgb, var(--syn-interaction-active, #d09a48) 42%, transparent);
   opacity: 0.78;
 }
@@ -69,7 +69,7 @@
   overflow-x: auto;
   overflow-y: hidden;
   border-bottom: 1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.24));
-  background: color-mix(in srgb, var(--syn-bg-panel, #181b22) 94%, transparent);
+  background: color-mix(in srgb, var(--syn-bg-panel, #181b22) 96%, transparent);
   scrollbar-gutter: stable;
 }
 
@@ -176,10 +176,10 @@
   z-index: 20;
   display: grid;
   gap: 7px;
-  width: min(276px, calc(100% - 20px));
+  width: min(304px, calc(100% - 20px));
   padding: 10px;
   border: 1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.34));
-  border-radius: 4px;
+  border-radius: 3px;
   background: var(--syn-bg-elevated, #20252e);
   color: var(--syn-text-secondary, #b8c0cd);
   box-shadow: 0 14px 32px rgba(2, 6, 12, 0.42);
@@ -208,7 +208,7 @@
   width: 100%;
   padding: 0 10px;
   border: 0;
-  border-radius: 3px;
+  border-radius: 2px;
   background: transparent;
   color: var(--syn-text-secondary, #b8c0cd);
   cursor: pointer;

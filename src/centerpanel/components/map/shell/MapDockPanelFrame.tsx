@@ -48,7 +48,7 @@ const frameStyle: React.CSSProperties = {
   height: "100%",
   overflow: "hidden",
   border: MAP_STROKES.hairlineSubtle,
-  borderRadius: MAP_RADIUS.md,
+  borderRadius: MAP_RADIUS.none,
   background: MAP_COLORS.bgPanel,
   color: MAP_COLORS.text,
   fontFamily: MAP_TYPOGRAPHY.fontFamily,
@@ -119,7 +119,7 @@ const summaryItemStyle: React.CSSProperties = {
   display: "grid",
   gap: "0.125rem",
   minWidth: 0,
-  padding: `${MAP_SPACING.xs} ${MAP_SPACING.md}`,
+  padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
   borderRight: MAP_STROKES.hairlineSubtle,
 };
 

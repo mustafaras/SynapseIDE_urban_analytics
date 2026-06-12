@@ -2,13 +2,13 @@ import React from "react";
 import type { SourceProfile } from "@/services/map/MapDataImporter";
 import {
   MAP_COLORS,
-  MAP_RADIUS,
   MAP_SHADOWS,
   MAP_SPACING,
   MAP_STROKES,
   MAP_TYPOGRAPHY,
   MAP_Z_INDEX,
 } from "./mapTokens";
+import { useDraggableMapPanel } from "./useDraggableMapPanel";
 
 export interface MapImportPreviewDialogProps {
   open: boolean;
@@ -28,23 +28,24 @@ const overlayStyle: React.CSSProperties = {
   position: "absolute",
   inset: 0,
   background: MAP_COLORS.overlayBg,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
   zIndex: MAP_Z_INDEX.dialog,
   padding: MAP_SPACING.lg,
 };
 
 const dialogStyle: React.CSSProperties = {
-  width: 880,
+  position: "absolute",
+  left: "50%",
+  top: "50%",
+  transform: "translate(-50%, -50%)",
+  width: "min(1040px, calc(100% - 2rem))",
   maxWidth: "calc(100% - 2rem)",
-  maxHeight: "var(--map-popover-max-height, calc(100% - 2rem))",
+  maxHeight: "min(680px, calc(100% - 2rem))",
   overflow: "hidden",
   display: "grid",
   gridTemplateRows: "auto auto minmax(0, 1fr) auto",
   background: MAP_COLORS.bgPanel,
   border: MAP_STROKES.hairlineStrong,
-  borderRadius: MAP_RADIUS.sm,
+  borderRadius: 4,
   boxShadow: MAP_SHADOWS.panel,
   color: MAP_COLORS.text,
   fontFamily: MAP_TYPOGRAPHY.fontFamily,
@@ -55,6 +56,9 @@ const headerStyle: React.CSSProperties = {
   gap: 8,
   padding: MAP_SPACING.md,
   borderBottom: MAP_STROKES.hairlineSubtle,
+  cursor: "grab",
+  touchAction: "none",
+  userSelect: "none",
 };
 
 const badgeStyle: React.CSSProperties = {
@@ -62,7 +66,7 @@ const badgeStyle: React.CSSProperties = {
   alignItems: "center",
   gap: 6,
   padding: "4px 8px",
-  borderRadius: MAP_RADIUS.sm,
+  borderRadius: 2,
   border: MAP_STROKES.hairlineSubtle,
   background: MAP_COLORS.bg,
   color: MAP_COLORS.textSecondary,
@@ -90,7 +94,7 @@ const formatCardStyle: React.CSSProperties = {
   display: "grid",
   gap: 4,
   padding: MAP_SPACING.sm,
-  borderRadius: MAP_RADIUS.sm,
+  borderRadius: 3,
   border: MAP_STROKES.hairlineSubtle,
   background: MAP_COLORS.bg,
 };
@@ -99,7 +103,7 @@ const schemaSectionStyle: React.CSSProperties = {
   display: "grid",
   gap: 8,
   padding: MAP_SPACING.sm,
-  borderRadius: MAP_RADIUS.sm,
+  borderRadius: 3,
   border: MAP_STROKES.hairlineSubtle,
   background: MAP_COLORS.bg,
 };
@@ -109,7 +113,7 @@ const schemaGridStyle: React.CSSProperties = {
   gridTemplateColumns: "minmax(8rem, 1fr) minmax(6rem, 0.5fr) minmax(0, 1fr)",
   gap: 0,
   border: MAP_STROKES.hairlineSubtle,
-  borderRadius: MAP_RADIUS.sm,
+  borderRadius: 3,
   overflow: "hidden",
 };
 
@@ -176,14 +180,14 @@ const footerCaveatsStyle: React.CSSProperties = {
   display: "grid",
   gap: 4,
   padding: MAP_SPACING.sm,
-  borderRadius: MAP_RADIUS.sm,
+  borderRadius: 3,
   border: `1px solid ${MAP_COLORS.focus}`,
   background: MAP_COLORS.caveat,
 };
 
 const buttonStyle: React.CSSProperties = {
   padding: "6px 14px",
-  borderRadius: MAP_RADIUS.sm,
+  borderRadius: 3,
   border: MAP_STROKES.hairlineSubtle,
   background: "transparent",
   color: MAP_COLORS.textSecondary,
@@ -202,7 +206,7 @@ const caveatPanelStyle: React.CSSProperties = {
   display: "grid",
   gap: 6,
   padding: MAP_SPACING.sm,
-  borderRadius: MAP_RADIUS.sm,
+  borderRadius: 3,
   border: `1px solid ${MAP_COLORS.focus}`,
   background: MAP_COLORS.caveat,
 };
@@ -306,6 +310,8 @@ export const MapImportPreviewDialog: React.FC<MapImportPreviewDialogProps> = ({
   onClose,
   onImport,
 }) => {
+  const { panelPositionStyle, dragHandleProps, dragHandleStyle } = useDraggableMapPanel({ boundsPadding: 18 });
+
   React.useEffect(() => {
     if (!open || !profile) return;
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -357,8 +363,14 @@ export const MapImportPreviewDialog: React.FC<MapImportPreviewDialogProps> = ({
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <div style={dialogStyle} role="dialog" aria-modal="true" aria-label="Import source preflight">
-        <div style={headerStyle}>
+      <div
+        style={{ ...dialogStyle, ...panelPositionStyle }}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Import source preflight"
+        data-draggable-map-panel="true"
+      >
+        <div style={{ ...headerStyle, ...dragHandleStyle }} {...dragHandleProps}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <span style={badgeStyle}>{profile.format.toUpperCase()}</span>
             <span style={{ ...badgeStyle, ...supportTone(profile) }}>{formatLabel(profile.supportStatus)}</span>

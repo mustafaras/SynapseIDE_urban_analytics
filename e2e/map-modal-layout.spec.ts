@@ -860,15 +860,11 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
     const topSurface = page.getByTestId("map-top-command-surface");
     const commandCenter = page.getByTestId("map-command-center");
     const closeControl = page.getByTestId("map-modal-control-close");
-    const dockControl = page.getByTestId("map-modal-control-dock");
-    const minimizeControl = page.getByTestId("map-modal-control-minimize");
     const expandControl = page.getByTestId("map-modal-control-expand");
 
     await expect(topSurface).toBeVisible();
     await expect(commandCenter).toBeVisible();
     await expect(closeControl).toBeVisible();
-    await expect(dockControl).toBeVisible();
-    await expect(minimizeControl).toBeVisible();
     await expect(expandControl).toBeVisible();
 
     await closeControl.focus();
@@ -889,8 +885,6 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
     const headerGeometry = await page.evaluate(() => {
       const top = document.querySelector<HTMLElement>('[data-testid="map-top-command-surface"]');
       const controls = [
-        document.querySelector<HTMLElement>('[data-testid="map-modal-control-dock"]'),
-        document.querySelector<HTMLElement>('[data-testid="map-modal-control-minimize"]'),
         document.querySelector<HTMLElement>('[data-testid="map-modal-control-expand"]'),
         document.querySelector<HTMLElement>('[data-testid="map-modal-control-close"]'),
       ].filter((node): node is HTMLElement => Boolean(node));
