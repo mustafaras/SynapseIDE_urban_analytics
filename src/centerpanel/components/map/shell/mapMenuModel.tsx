@@ -448,6 +448,9 @@ export function buildMapPremiumMenuModel({
           items: compactItems([
             paletteItem(onOpenPalette, paletteShortcut),
             commandItem(commands, ["focus-map-canvas"], { label: "Keyboard Focus" }),
+            commandItem(commands, ["minimap"], { label: "Minimap" }),
+            commandItem(commands, ["view-state-copy"], { label: "Copy View State" }),
+            commandItem(commands, ["view-state-restore"], { label: "Restore View State" }),
           ]),
         },
         {

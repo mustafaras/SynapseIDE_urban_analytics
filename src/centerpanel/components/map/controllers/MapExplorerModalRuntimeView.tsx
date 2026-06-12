@@ -6,6 +6,7 @@ import { MapProcessingToolboxPanel } from "../processing";
 import { MapModelBuilderPanel } from "../modelBuilder";
 import { MapPluginPanel } from "../plugins";
 import { MapSqlWorkspacePanel } from "../sql";
+import { MapMinimapOverlay } from "../MapMinimapOverlay";
 import { ScientificQAPanel } from "../ScientificQAPanel";
 import { MapNLQueryPanel } from "../MapNLQueryPanel";
 import { MapWorkflowDrawer } from "../MapWorkflowDrawer";
@@ -45,6 +46,9 @@ interface MapExplorerModalRuntimeViewProps {
   showSqlWorkspace: boolean;
   setShowSqlWorkspace: React.Dispatch<React.SetStateAction<boolean>>;
   handleSqlResultToMap: React.ComponentProps<typeof MapSqlWorkspacePanel>["onSendToMap"];
+  showMinimap: boolean;
+  minimapCenter: [number, number];
+  minimapZoom: number;
   showProcessingToolbox: boolean;
   setShowProcessingToolbox: React.Dispatch<React.SetStateAction<boolean>>;
   analyzeToolsTabActive: boolean;
@@ -210,6 +214,9 @@ export const MapExplorerModalRuntimeView: React.FC<MapExplorerModalRuntimeViewPr
   showSqlWorkspace,
   setShowSqlWorkspace,
   handleSqlResultToMap,
+  showMinimap,
+  minimapCenter,
+  minimapZoom,
   showProcessingToolbox,
   setShowProcessingToolbox,
   analyzeToolsTabActive,
@@ -617,6 +624,13 @@ export const MapExplorerModalRuntimeView: React.FC<MapExplorerModalRuntimeViewPr
     {showLegendOverlay ? (
       <MapLegendOverlay items={mapPublicationLegendItems} />
     ) : null}
+
+    <MapMinimapOverlay
+      visible={showMinimap && !navigatorStageMode}
+      center={minimapCenter}
+      zoom={minimapZoom}
+      onNavigate={(lng, lat) => flyTo(lng, lat, minimapZoom)}
+    />
 
     {!navigatorStageMode ? (
       <MapPerformanceBudgetBanner

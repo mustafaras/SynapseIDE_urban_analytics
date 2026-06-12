@@ -110,6 +110,33 @@ describe("buildMapPremiumMenuModel", () => {
     expect(catalogCommand.onClick).toHaveBeenCalledTimes(1);
   });
 
+  it("exposes minimap and view-state commands in the Controls menu", () => {
+    const minimapCommand = command("minimap", { active: true });
+    const copyCommand = command("view-state-copy");
+    const restoreCommand = command("view-state-restore", {
+      disabled: true,
+      disabledReason: "Copy a view state first.",
+    });
+    const { menus } = buildModel([minimapCommand, copyCommand, restoreCommand, command("pins")]);
+    const controlsMenu = menus.find((menu) => menu.id === "controls");
+    expect(controlsMenu).toBeDefined();
+    const items = controlsMenu!.sections.flatMap((section) => section.items);
+
+    const minimapItem = items.find((item) => item.id === "minimap");
+    expect(minimapItem?.checked).toBe(true);
+    minimapItem!.onSelect?.();
+    expect(minimapCommand.onClick).toHaveBeenCalledTimes(1);
+
+    const copyItem = items.find((item) => item.id === "view-state-copy");
+    expect(copyItem?.label).toBe("Copy View State");
+    copyItem!.onSelect?.();
+    expect(copyCommand.onClick).toHaveBeenCalledTimes(1);
+
+    const restoreItem = items.find((item) => item.id === "view-state-restore");
+    expect(restoreItem?.disabled).toBe(true);
+    expect(restoreItem?.onSelect).toBeUndefined();
+  });
+
   it("keeps disabled commands selectable-looking but inert", () => {
     const disabledCommand = command("save-project", {
       disabled: true,
