@@ -614,10 +614,11 @@ describe("Map Explorer components render without errors", () => {
     await act(async () => {
       baseTrigger?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
-    const streetsButton = Array.from(document.querySelectorAll<HTMLButtonElement>("button"))
-      .find((button) => button.textContent?.includes("OpenStreetMap"));
+    const streetsItem = Array.from(document.querySelectorAll<HTMLElement>('[role="menuitemradio"], [role="menuitem"]'))
+      .find((item) => item.textContent?.includes("OpenStreetMap"));
+    expect(streetsItem).toBeDefined();
     await act(async () => {
-      streetsButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      streetsItem?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
     expect(onZoomIn).toHaveBeenCalledTimes(1);
@@ -651,7 +652,7 @@ describe("Map Explorer components render without errors", () => {
         onImportClick: () => undefined,
       }),
     );
-    expect(html).toContain("Overview");
+    expect(html).toContain("map-premium-menu-bar");
     expect(html).toContain("Import");
     expect(html).not.toContain("Sketch");
     expect(html).not.toContain("Measure");
@@ -774,12 +775,12 @@ describe("Map Explorer components render without errors", () => {
       trigger?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
-    const streetsButton = Array.from(document.querySelectorAll<HTMLButtonElement>("button"))
-      .find((button) => button.textContent?.includes("OpenStreetMap"));
-    expect(streetsButton).toBeDefined();
+    const streetsItem = Array.from(document.querySelectorAll<HTMLElement>('[role="menuitemradio"], [role="menuitem"]'))
+      .find((item) => item.textContent?.includes("OpenStreetMap"));
+    expect(streetsItem).toBeDefined();
 
     await act(async () => {
-      streetsButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      streetsItem?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
     expect(onSetLayer).toHaveBeenCalledWith("streets");

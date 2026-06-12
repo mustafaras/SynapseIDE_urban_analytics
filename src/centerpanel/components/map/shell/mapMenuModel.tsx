@@ -207,6 +207,14 @@ export function buildMapPremiumMenuModel({
           ]),
         },
         {
+          id: "project-history",
+          title: "History",
+          items: compactItems([
+            commandItem(commands, ["undo-map-action"], { label: "Undo Map Action" }),
+            commandItem(commands, ["redo-map-action"], { label: "Redo Map Action" }),
+          ]),
+        },
+        {
           id: "project-lenses",
           title: "Task Lens",
           items: compactItems([
@@ -296,6 +304,7 @@ export function buildMapPremiumMenuModel({
           items: compactItems([
             commandItem(commands, ["layers"], { label: "Layers Workspace", checked: layersCommand?.active }),
             commandItem(commands, ["contents"], { label: "Contents Tree", checked: contentsCommand?.active }),
+            commandItem(commands, ["attributes"], { label: "Attribute Table" }),
           ]),
         },
         {
@@ -353,6 +362,7 @@ export function buildMapPremiumMenuModel({
           title: "Automation",
           items: compactItems([
             commandItem(commands, ["processing-toolbox"], { label: "Processing Toolbox" }),
+            commandItem(commands, ["sql-workspace"], { label: "SQL Workspace (DuckDB)" }),
             commandItem(commands, ["model-builder"], { label: "Model Builder" }),
           ]),
         },
@@ -447,6 +457,9 @@ export function buildMapPremiumMenuModel({
           items: compactItems([
             paletteItem(onOpenPalette, paletteShortcut),
             commandItem(commands, ["focus-map-canvas"], { label: "Keyboard Focus" }),
+            commandItem(commands, ["minimap"], { label: "Minimap" }),
+            commandItem(commands, ["view-state-copy"], { label: "Copy View State" }),
+            commandItem(commands, ["view-state-restore"], { label: "Restore View State" }),
           ]),
         },
         {
@@ -514,6 +527,7 @@ export function buildMapPremiumMenuModel({
           items: compactItems([
             commandItem(commands, ["switch-density"], { label: "Density" }),
             commandItem(commands, ["restore-default-widths"], { label: "Panel Widths" }),
+            commandItem(commands, ["collapse-panels"], { label: "Collapse Panels" }),
             commandItem(commands, ["reset-layout"], { label: "Responsive Reset" }),
           ]),
         },

@@ -7,8 +7,11 @@ import {
   ChevronDown,
   Circle,
   CircleDot,
+  ClipboardPaste,
   Command,
   Compass,
+  Copy,
+  Database,
   Download,
   FileImage,
   FileJson,
@@ -21,6 +24,7 @@ import {
   Layers3,
   Link2,
   type LucideIcon,
+  Map as MapGlyph,
   MapPin,
   Palette,
   PanelTop,
@@ -110,6 +114,8 @@ export interface MapToolbarProps {
   catalogSourceCount?: number;
   showContents?: boolean;
   onToggleContents?: () => void;
+  showAttributeTable?: boolean;
+  onOpenAttributeTableClick?: () => void;
   activeLayerGeometryType?: string | null;
   hasSelectedAoi?: boolean;
   scientificQAStatus?: LayerQaStatus;
@@ -135,6 +141,13 @@ export interface MapToolbarProps {
   showProcessingToolbox?: boolean;
   onToggleProcessingToolbox?: () => void;
   processingToolCount?: number;
+  showSqlWorkspace?: boolean;
+  onToggleSqlWorkspace?: () => void;
+  showMinimap?: boolean;
+  onToggleMinimap?: () => void;
+  onCopyViewState?: () => void;
+  onRestoreViewState?: () => void;
+  viewStateRestoreAvailable?: boolean;
   showModelBuilder?: boolean;
   onToggleModelBuilder?: () => void;
   showFigureComposer?: boolean;
@@ -268,6 +281,7 @@ interface BuildToolbarCommandsArgs extends Required<Pick<
   | "showCatalog"
   | "catalogSourceCount"
   | "showContents"
+  | "showAttributeTable"
   | "activeLayerGeometryType"
   | "hasSelectedAoi"
   | "scientificQAStatus"
@@ -286,6 +300,9 @@ interface BuildToolbarCommandsArgs extends Required<Pick<
   | "pluginExtensionCount"
   | "showProcessingToolbox"
   | "processingToolCount"
+  | "showSqlWorkspace"
+  | "showMinimap"
+  | "viewStateRestoreAvailable"
   | "showModelBuilder"
   | "showFigureComposer"
   | "showChoroplethPanel"
@@ -329,6 +346,7 @@ interface BuildToolbarCommandsArgs extends Required<Pick<
   onToggleLayerPanel?: (() => void) | undefined;
   onToggleCatalog?: (() => void) | undefined;
   onToggleContents?: (() => void) | undefined;
+  onOpenAttributeTableClick?: (() => void) | undefined;
   onToggleScientificQAPanel?: (() => void) | undefined;
   onToggleNLQueryPanel?: (() => void) | undefined;
   onToggleWorkflowDrawer?: (() => void) | undefined;
@@ -336,6 +354,10 @@ interface BuildToolbarCommandsArgs extends Required<Pick<
   onTogglePerformanceDiagnostics?: (() => void) | undefined;
   onTogglePluginPanel?: (() => void) | undefined;
   onToggleProcessingToolbox?: (() => void) | undefined;
+  onToggleSqlWorkspace?: (() => void) | undefined;
+  onToggleMinimap?: (() => void) | undefined;
+  onCopyViewState?: (() => void) | undefined;
+  onRestoreViewState?: (() => void) | undefined;
   onToggleModelBuilder?: (() => void) | undefined;
   onToggleFigureComposer?: (() => void) | undefined;
   onToggleChoroplethPanel?: (() => void) | undefined;
@@ -457,8 +479,8 @@ const TOP_SURFACE_GROUP_META: Record<TopSurfaceGroupId, {
 
 const TOP_SURFACE_GROUP_COMMAND_IDS: Record<TopSurfaceGroupId, readonly string[]> = {
   data: ["layers", "contents", "import", "catalog", "services"],
-  view: ["theme", "sync", "voxcity", "pin-mode", "drawings", "measure-results", "pins"],
-  analyze: ["query", "workflow", "processing-toolbox", "model-builder", "lisa", "hotspot", "emerging-hotspot"],
+  view: ["theme", "attributes", "sync", "voxcity", "pin-mode", "drawings", "measure-results", "pins", "minimap", "view-state-copy", "view-state-restore"],
+  analyze: ["query", "workflow", "processing-toolbox", "sql-workspace", "model-builder", "lisa", "hotspot", "emerging-hotspot"],
   evidence: ["qa", "review-timeline", "performance-diagnostics", "plugin-registry"],
   publish: ["save-project", "load-project", "figure-composer", "export-image", "export-offline-package", "add-map-to-report", "export-geojson"],
   advanced: ["undo-map-action", "redo-map-action", "reset-layout", "collapse-panels", "focus-map-canvas", "restore-default-widths", "switch-density"],
@@ -954,6 +976,10 @@ const LEGACY_COMMAND_ALIASES: Record<string, readonly string[]> = {
   "performance-diagnostics": ["diagnostics", "render budget", "worker transfer", "telemetry", "recovery", "performance"],
   "plugin-registry": ["plugins", "extensions", "extension registry", "source connector", "renderer extension", "Urban bridge"],
   "processing-toolbox": ["processing toolbox", "geoprocessing", "buffer", "intersect", "spatial join", "field calculator"],
+  "sql-workspace": ["sql workspace", "duckdb", "spatial sql", "ST_", "select", "query layers"],
+  minimap: ["minimap", "overview map", "inset map", "locator map"],
+  "view-state-copy": ["copy view", "view state", "camera state", "share viewport"],
+  "view-state-restore": ["restore view", "view state", "camera state", "return to view"],
   "model-builder": ["model builder", "workflow graph", "batch", "processing chain", "buffer", "intersect", "join"],
   "figure-composer": ["layout figure", "figure composer", "map book", "legend", "scale bar", "north arrow", "attribution", "CRS", "projection"],
   theme: ["theme data", "choropleth", "renderer", "symbology", "classification", "style layer"],
@@ -1121,6 +1147,7 @@ function getCommandTaxonomy(command: Pick<ToolbarCommand, "id" | "overflowGroup"
   if (
     id === "workflow" ||
     id === "processing-toolbox" ||
+    id === "sql-workspace" ||
     id === "model-builder" ||
     id === "extent" ||
     id === "lisa" ||
@@ -1133,7 +1160,7 @@ function getCommandTaxonomy(command: Pick<ToolbarCommand, "id" | "overflowGroup"
   ) {
     return "analyze";
   }
-  if (["theme", "annotations"].includes(id)) return "style";
+  if (["attributes", "theme", "annotations"].includes(id)) return id === "attributes" ? "contents" : "style";
   if (["sync", "voxcity"].includes(id)) return "scene";
   if (
     id === "figure-composer" ||
@@ -1357,6 +1384,36 @@ function buildToolbarCommands(args: BuildToolbarCommandsArgs): ToolbarCommand[] 
     priority: args.showContents ? 128 : hasLayers ? 92 : 120,
     active: args.showContents,
     badge: args.layerCount > 0 ? args.layerCount : null,
+    tone: "default",
+    navigator: true,
+  });
+
+  add(args.onOpenAttributeTableClick && {
+    id: "attributes",
+    label: "Attributes",
+    shortLabel: "Attrs",
+    title: "Open the attribute table with filtering, selected-feature review, derived fields, and export paths",
+    keywords: [
+      "attributes",
+      "attribute table",
+      "table",
+      "fields",
+      "filter attributes",
+      "sort",
+      "selected features",
+      "derived field",
+      "export csv",
+      "export geoparquet",
+    ],
+    icon: FileText,
+    onClick: args.onOpenAttributeTableClick,
+    roles: ["explore", "analyze", "publish"],
+    overflowGroup: "advanced",
+    priority: args.showAttributeTable ? 126 : hasLayers ? 91 : 39,
+    active: args.showAttributeTable,
+    badge: hasLayers ? args.layerCount : null,
+    disabled: !hasLayers,
+    disabledReason: "Add a vector layer before opening the attribute table.",
     tone: "default",
     navigator: true,
   });
@@ -1600,6 +1657,66 @@ function buildToolbarCommands(args: BuildToolbarCommandsArgs): ToolbarCommand[] 
     tone: "default",
     contextBoost: "polygon",
     navigator: true,
+  });
+
+  add(args.onToggleSqlWorkspace && {
+    id: "sql-workspace",
+    label: "SQL",
+    shortLabel: "SQL",
+    title: "Open the SQL workspace: DuckDB spatial queries against loaded layers",
+    keywords: ["sql", "duckdb", "spatial sql", "query", "select", "ST_", "workspace"],
+    icon: Database,
+    onClick: args.onToggleSqlWorkspace,
+    roles: ["analyze", "explore"],
+    overflowGroup: "advanced",
+    priority: args.showSqlWorkspace ? 124 : 85,
+    active: args.showSqlWorkspace,
+    badge: null,
+    tone: "default",
+    navigator: true,
+  });
+
+  add(args.onToggleMinimap && {
+    id: "minimap",
+    label: "Minimap",
+    shortLabel: "Mini",
+    title: "Toggle the overview minimap inset on the map canvas",
+    keywords: ["minimap", "overview", "inset map", "locator", "navigation"],
+    icon: MapGlyph,
+    onClick: args.onToggleMinimap,
+    roles: ["explore", "analyze", "publish"],
+    overflowGroup: "tools",
+    priority: args.showMinimap ? 96 : 70,
+    active: args.showMinimap,
+    navigator: true,
+  });
+
+  add(args.onCopyViewState && {
+    id: "view-state-copy",
+    label: "Copy View",
+    shortLabel: "Copy",
+    title: "Copy the current view state (center, zoom, bearing, pitch) to the clipboard",
+    keywords: ["view state", "copy view", "camera", "viewport", "share view"],
+    icon: Copy,
+    onClick: args.onCopyViewState,
+    roles: ["explore", "analyze", "publish"],
+    overflowGroup: "tools",
+    priority: 69,
+  });
+
+  add(args.onRestoreViewState && {
+    id: "view-state-restore",
+    label: "Restore View",
+    shortLabel: "Restore",
+    title: "Return the map to the last copied view state",
+    keywords: ["view state", "restore view", "camera", "return", "previous view"],
+    icon: ClipboardPaste,
+    onClick: args.onRestoreViewState,
+    roles: ["explore", "analyze", "publish"],
+    overflowGroup: "tools",
+    priority: 68,
+    disabled: !args.viewStateRestoreAvailable,
+    disabledReason: "Copy a view state first.",
   });
 
   add(args.onToggleModelBuilder && {
@@ -2105,7 +2222,7 @@ function selectContextualPrimaryCommand(args: {
 
 export function getOverflowSectionId(command: ToolbarCommand): ToolbarMenuSectionId {
   if (["save-project", "load-project", "review-timeline", "navigator", "undo-map-action", "redo-map-action"].includes(command.id)) return "workspace";
-  if (["layers", "contents", "catalog", "theme", "sync", "voxcity", "figure-composer", "export-image"].includes(command.id)) return "view";
+  if (["layers", "contents", "attributes", "catalog", "theme", "sync", "voxcity", "figure-composer", "export-image"].includes(command.id)) return "view";
   if (["import", "services", "query", "workflow", "processing-toolbox", "model-builder", "export-offline-package", "add-map-to-report", "export-geojson", "drawings", "measure-results", "pin-mode", "pins"].includes(command.id) || command.id.startsWith("draw-") || command.id.startsWith("measure-")) {
     return "tools";
   }
@@ -2802,6 +2919,8 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
   catalogSourceCount = 0,
   showContents = false,
   onToggleContents,
+  showAttributeTable = false,
+  onOpenAttributeTableClick,
   activeLayerGeometryType = null,
   hasSelectedAoi = false,
   scientificQAStatus = "unchecked",
@@ -2827,6 +2946,13 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
   showProcessingToolbox = false,
   onToggleProcessingToolbox,
   processingToolCount = 0,
+  showSqlWorkspace = false,
+  onToggleSqlWorkspace,
+  showMinimap = false,
+  onToggleMinimap,
+  onCopyViewState,
+  onRestoreViewState,
+  viewStateRestoreAvailable = false,
   showModelBuilder = false,
   onToggleModelBuilder,
   showFigureComposer = false,
@@ -2983,6 +3109,8 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       catalogSourceCount,
       showContents,
       onToggleContents,
+      showAttributeTable,
+      onOpenAttributeTableClick,
       activeLayerGeometryType,
       hasSelectedAoi,
       scientificQAStatus,
@@ -3008,6 +3136,13 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       showProcessingToolbox,
       onToggleProcessingToolbox,
       processingToolCount,
+      showSqlWorkspace,
+      onToggleSqlWorkspace,
+      showMinimap,
+      onToggleMinimap,
+      onCopyViewState,
+      onRestoreViewState,
+      viewStateRestoreAvailable,
       showModelBuilder,
       onToggleModelBuilder,
       showFigureComposer,
@@ -3104,6 +3239,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       onAddToReportClick,
       onImportClick,
       onLoadProjectClick,
+      onOpenAttributeTableClick,
       onOpenExternalServices,
       onResetLayout,
       onRestoreDefaultWidths,
@@ -3124,6 +3260,11 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       onTogglePerformanceDiagnostics,
       onTogglePluginPanel,
       onToggleProcessingToolbox,
+      onToggleSqlWorkspace,
+      onToggleMinimap,
+      onCopyViewState,
+      onRestoreViewState,
+      viewStateRestoreAvailable,
       onToggleModelBuilder,
       onToggleWorkflowDrawer,
       onTogglePinMode,
@@ -3157,11 +3298,14 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       showLayerPanel,
       showCatalog,
       showContents,
+      showAttributeTable,
       showMeasurePanel,
       showNLQueryPanel,
       showPerformanceDiagnostics,
       showPluginPanel,
       showProcessingToolbox,
+      showSqlWorkspace,
+      showMinimap,
       showModelBuilder,
       showReviewTimeline,
       showFigureComposer,
@@ -3333,7 +3477,10 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
         <div style={premiumMenuRail}>
           <MapPremiumMenuBar menus={menus} quickActions={quickActions} width={toolbarWidth} />
         </div>
-        <div style={compactCommandCenterRail} aria-label="Compact command-center controls">
+        {/* Legacy compact rail: every command it exposes now lives in the
+            premium menu bar, quick actions, or the command palette. It stays
+            in the DOM (hidden) so programmatic automation hooks keep working. */}
+        <div style={{ ...compactCommandCenterRail, display: "none" }} aria-label="Compact command-center controls" aria-hidden="true">
           <div
             style={primaryActionShell}
             data-testid="map-command-center-primary-action"

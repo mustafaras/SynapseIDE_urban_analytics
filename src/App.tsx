@@ -26,15 +26,14 @@ import { initializeSampleData } from './utils/sampleData';
 import { wireNetworkEvents } from './utils/resilience/netEvents';
 import { flags } from './config/flags';
 import { useAppStore } from './stores/appStore';
-import { useMapExplorerStore } from '@/stores/useMapExplorerStore';
 import { useTemporalLayerStore } from '@/stores/useTemporalLayerStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useSynapseWorkspaceStore } from '@/stores/useSynapseWorkspaceStore';
 import { useUrbanStore } from './features/urbanAnalytics/store';
 import { ChunkLoadBoundary, lazyWithRetry } from '@/utils/lazyWithRetry';
-import { MapExplorerModal as MapExplorerModalComponent } from '@/centerpanel/components/MapExplorerModal';
 
 const UrbanAnalyticsModal = lazyWithRetry(() => import('@/features/urbanAnalytics/UrbanAnalyticsModal'));
+const MapExplorerHost = lazyWithRetry(() => import('@/centerpanel/components/MapExplorerHost'));
 
 function ModalLoadingFallback({ label, testId }: { label: string; testId: string }) {
   return (
@@ -84,26 +83,6 @@ function ModalLoadingFallback({ label, testId }: { label: string; testId: string
     </div>
   );
 }
-
-function MapExplorerHost(): React.ReactElement | null {
-  const isMapOpen = useMapExplorerStore((state) => state.isOpen);
-  const closeMap = useMapExplorerStore((state) => state.close);
-
-  if (!isMapOpen) {
-    return null;
-  }
-
-  return (
-    <ChunkLoadBoundary
-      compact
-      title="Map Explorer unavailable"
-      message="The Map Explorer did not load. Retry after the dev server reconnects, or reload the app if it persists."
-    >
-      <MapExplorerModalComponent open={isMapOpen} onClose={closeMap} />
-    </ChunkLoadBoundary>
-  );
-}
-
 
 const ThemeToggle: React.FC = () => {
   const { themeName, toggleTheme } = useTheme();
@@ -1031,6 +1010,11 @@ const MainApp: React.FC<MainAppProps> = ({ onOpenAnalytics }) => {
 
     try {
       if (typeof window !== 'undefined') {
+        const loadMapExplorerStore = async () => {
+          const { useMapExplorerStore } = await import('@/stores/useMapExplorerStore');
+          return useMapExplorerStore;
+        };
+
         (window as any).e2e = (window as any).e2e || {};
         (window as any).e2e.setView = (v: 'homepage'|'demo'|'ide'|'fileexplorer') => setCurrentView(v);
         (window as any).e2e.openAssistant = async () => {
@@ -1047,7 +1031,7 @@ const MainApp: React.FC<MainAppProps> = ({ onOpenAnalytics }) => {
           useAppStore.getState().updateLayout({ aiChatVisible: !cur });
           setIsAiAssistantOpen((v) => !v);
         };
-        (window as any).e2e.seedGeoJSONLayer = (input: {
+        (window as any).e2e.seedGeoJSONLayer = async (input: {
           id?: string;
           name: string;
           featureCollection: {
@@ -1060,6 +1044,7 @@ const MainApp: React.FC<MainAppProps> = ({ onOpenAnalytics }) => {
           datasetTitle?: string;
           sourceLabel?: string;
         }) => {
+          const useMapExplorerStore = await loadMapExplorerStore();
           const featureCollection = input.featureCollection;
           const geometryType = featureCollection.features[0]?.geometry?.type ?? 'Unknown';
           const fields = Array.from(new Set(featureCollection.features.flatMap((feature) => Object.keys(feature.properties ?? {}))));
@@ -1083,10 +1068,11 @@ const MainApp: React.FC<MainAppProps> = ({ onOpenAnalytics }) => {
             },
           });
         };
-        (window as any).e2e.openMapExplorer = () => {
+        (window as any).e2e.openMapExplorer = async () => {
+          const useMapExplorerStore = await loadMapExplorerStore();
           useMapExplorerStore.getState().open();
         };
-        (window as any).e2e.seedTemporalLayer = (input: {
+        (window as any).e2e.seedTemporalLayer = async (input: {
           id?: string;
           name: string;
           frames: Array<{
@@ -1100,6 +1086,7 @@ const MainApp: React.FC<MainAppProps> = ({ onOpenAnalytics }) => {
           runtimeMode?: 'live' | 'demo' | 'synthetic' | 'unknown';
           sourceLabel?: string;
         }) => {
+          const useMapExplorerStore = await loadMapExplorerStore();
           const frames = input.frames.map((frame) => ({
             key: frame.key,
             label: frame.label,
@@ -1147,7 +1134,8 @@ const MainApp: React.FC<MainAppProps> = ({ onOpenAnalytics }) => {
             },
           });
         };
-        (window as any).e2e.getTemporalPlaybackState = () => {
+        (window as any).e2e.getTemporalPlaybackState = async () => {
+          const useMapExplorerStore = await loadMapExplorerStore();
           const map = useMapExplorerStore.getState();
           const temporal = useTemporalLayerStore.getState();
           return {
@@ -1162,7 +1150,8 @@ const MainApp: React.FC<MainAppProps> = ({ onOpenAnalytics }) => {
             temporalSpeed: temporal.speed,
           };
         };
-        (window as any).e2e.clearGeoJSONLayers = () => {
+        (window as any).e2e.clearGeoJSONLayers = async () => {
+          const useMapExplorerStore = await loadMapExplorerStore();
           useMapExplorerStore.getState().replaceOverlayLayers([]);
         };
       }
@@ -1390,6 +1379,7 @@ function App() {
     void (async () => {
       try {
         const { clearPersistedMapProjectSnapshots } = await import('@/services/map/MapPersistenceService');
+        const { useMapExplorerStore } = await import('@/stores/useMapExplorerStore');
         const removedProjectSnapshots = clearPersistedMapProjectSnapshots();
         useMapExplorerStore.getState().clearProjectContent();
         void useMapExplorerStore.persist.clearStorage();
@@ -1503,7 +1493,15 @@ function App() {
                 </ChunkLoadBoundary>
               ) : null}
 
-              <MapExplorerHost />
+              <ChunkLoadBoundary
+                compact
+                title="Map Explorer host unavailable"
+                message="The Map Explorer host did not load. Retry after the dev server reconnects, or reload the app if it persists."
+              >
+                <Suspense fallback={null}>
+                  <MapExplorerHost />
+                </Suspense>
+              </ChunkLoadBoundary>
 
               {}
               {}

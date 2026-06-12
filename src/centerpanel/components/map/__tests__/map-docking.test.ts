@@ -10,7 +10,7 @@ import { MAP_NUMERIC } from "../mapTokens";
 describe("map docking layout", () => {
   it("keeps layer and right-side tools open on wide layouts", () => {
     const layout = getMapDockLayout({
-      containerWidth: 1200,
+      containerWidth: 1440,
       layerPanelRequested: true,
       rightPanel: "draw",
       navigatorStageMode: false,
@@ -23,6 +23,20 @@ describe("map docking layout", () => {
     expect(layout.leftInset).toBe(MAP_NUMERIC.layerPanelWidth + MAP_NUMERIC.overlayMargin);
     expect(layout.rightInset).toBe(MAP_NUMERIC.drawingPanelWidth + MAP_NUMERIC.overlayMargin);
     expect(layout.centerLaneWidth).toBeGreaterThanOrEqual(MAP_NUMERIC.mapDockMinCenterWidth);
+  });
+
+  it("presents the right panel as an overlay drawer at medium widths to protect the center lane", () => {
+    const layout = getMapDockLayout({
+      containerWidth: 1280,
+      layerPanelRequested: true,
+      rightPanel: "scientificQA",
+      navigatorStageMode: false,
+    });
+
+    expect(layout.activeRightPanel).toBe("scientificQA");
+    expect(layout.showScientificQAPanel).toBe(true);
+    expect(layout.rightPanelPlacement).toBe("drawer");
+    expect(layout.rightInset).toBe(MAP_NUMERIC.overlayMargin);
   });
 
   it("collapses the layer panel into a left-side overlay drawer (never a bottom drawer) on compact widths", () => {
@@ -92,7 +106,7 @@ describe("map docking layout", () => {
 
   it("allocates a dedicated right dock lane for the scientific QA panel", () => {
     const layout = getMapDockLayout({
-      containerWidth: 1220,
+      containerWidth: 1440,
       layerPanelRequested: true,
       rightPanel: "scientificQA",
       navigatorStageMode: false,
@@ -108,7 +122,7 @@ describe("map docking layout", () => {
 
   it("allocates the right dock lane for report handoff", () => {
     const layout = getMapDockLayout({
-      containerWidth: 1320,
+      containerWidth: 1440,
       layerPanelRequested: true,
       rightPanel: "report",
       navigatorStageMode: false,
@@ -124,7 +138,7 @@ describe("map docking layout", () => {
 
   it("allocates a dedicated right dock lane for an Urban method request", () => {
     const layout = getMapDockLayout({
-      containerWidth: 1320,
+      containerWidth: 1440,
       layerPanelRequested: true,
       rightPanel: "urbanMethod",
       navigatorStageMode: false,

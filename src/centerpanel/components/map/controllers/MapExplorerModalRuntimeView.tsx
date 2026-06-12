@@ -5,6 +5,8 @@ import { MapPanelErrorBoundary } from "../MapPanelErrorBoundary";
 import { MapProcessingToolboxPanel } from "../processing";
 import { MapModelBuilderPanel } from "../modelBuilder";
 import { MapPluginPanel } from "../plugins";
+import { MapSqlWorkspacePanel } from "../sql";
+import { MapMinimapOverlay } from "../MapMinimapOverlay";
 import { ScientificQAPanel } from "../ScientificQAPanel";
 import { MapNLQueryPanel } from "../MapNLQueryPanel";
 import { MapWorkflowDrawer } from "../MapWorkflowDrawer";
@@ -41,6 +43,12 @@ interface MapExplorerModalRuntimeViewProps {
   showPluginPanel: boolean;
   setShowPluginPanel: React.Dispatch<React.SetStateAction<boolean>>;
   pluginExtensions: React.ComponentProps<typeof MapPluginPanel>["extensions"];
+  showSqlWorkspace: boolean;
+  setShowSqlWorkspace: React.Dispatch<React.SetStateAction<boolean>>;
+  handleSqlResultToMap: React.ComponentProps<typeof MapSqlWorkspacePanel>["onSendToMap"];
+  showMinimap: boolean;
+  minimapCenter: [number, number];
+  minimapZoom: number;
   showProcessingToolbox: boolean;
   setShowProcessingToolbox: React.Dispatch<React.SetStateAction<boolean>>;
   analyzeToolsTabActive: boolean;
@@ -203,6 +211,12 @@ export const MapExplorerModalRuntimeView: React.FC<MapExplorerModalRuntimeViewPr
   showPluginPanel,
   setShowPluginPanel,
   pluginExtensions,
+  showSqlWorkspace,
+  setShowSqlWorkspace,
+  handleSqlResultToMap,
+  showMinimap,
+  minimapCenter,
+  minimapZoom,
   showProcessingToolbox,
   setShowProcessingToolbox,
   analyzeToolsTabActive,
@@ -471,6 +485,27 @@ export const MapExplorerModalRuntimeView: React.FC<MapExplorerModalRuntimeViewPr
       </MapPanelErrorBoundary>
     ) : null}
 
+    {Boolean(showSqlWorkspace) && !navigatorStageMode ? (
+      <MapPanelErrorBoundary
+        panelName="SQL workspace"
+        resetKey={showSqlWorkspace}
+        onClose={() => {
+          setShowSqlWorkspace(false);
+          announce("SQL workspace closed");
+        }}
+      >
+        <MapSqlWorkspacePanel
+          visible
+          overlayLayers={overlayLayers}
+          onSendToMap={handleSqlResultToMap}
+          onClose={() => {
+            setShowSqlWorkspace(false);
+            announce("SQL workspace closed");
+          }}
+        />
+      </MapPanelErrorBoundary>
+    ) : null}
+
     <MapPanelErrorBoundary
       panelName="Processing toolbox"
       resetKey={showProcessingToolbox}
@@ -589,6 +624,13 @@ export const MapExplorerModalRuntimeView: React.FC<MapExplorerModalRuntimeViewPr
     {showLegendOverlay ? (
       <MapLegendOverlay items={mapPublicationLegendItems} />
     ) : null}
+
+    <MapMinimapOverlay
+      visible={showMinimap && !navigatorStageMode}
+      center={minimapCenter}
+      zoom={minimapZoom}
+      onNavigate={(lng, lat) => flyTo(lng, lat, minimapZoom)}
+    />
 
     {!navigatorStageMode ? (
       <MapPerformanceBudgetBanner
