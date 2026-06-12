@@ -114,6 +114,8 @@ export interface MapToolbarProps {
   catalogSourceCount?: number;
   showContents?: boolean;
   onToggleContents?: () => void;
+  showAttributeTable?: boolean;
+  onOpenAttributeTableClick?: () => void;
   activeLayerGeometryType?: string | null;
   hasSelectedAoi?: boolean;
   scientificQAStatus?: LayerQaStatus;
@@ -279,6 +281,7 @@ interface BuildToolbarCommandsArgs extends Required<Pick<
   | "showCatalog"
   | "catalogSourceCount"
   | "showContents"
+  | "showAttributeTable"
   | "activeLayerGeometryType"
   | "hasSelectedAoi"
   | "scientificQAStatus"
@@ -343,6 +346,7 @@ interface BuildToolbarCommandsArgs extends Required<Pick<
   onToggleLayerPanel?: (() => void) | undefined;
   onToggleCatalog?: (() => void) | undefined;
   onToggleContents?: (() => void) | undefined;
+  onOpenAttributeTableClick?: (() => void) | undefined;
   onToggleScientificQAPanel?: (() => void) | undefined;
   onToggleNLQueryPanel?: (() => void) | undefined;
   onToggleWorkflowDrawer?: (() => void) | undefined;
@@ -475,7 +479,7 @@ const TOP_SURFACE_GROUP_META: Record<TopSurfaceGroupId, {
 
 const TOP_SURFACE_GROUP_COMMAND_IDS: Record<TopSurfaceGroupId, readonly string[]> = {
   data: ["layers", "contents", "import", "catalog", "services"],
-  view: ["theme", "sync", "voxcity", "pin-mode", "drawings", "measure-results", "pins", "minimap", "view-state-copy", "view-state-restore"],
+  view: ["theme", "attributes", "sync", "voxcity", "pin-mode", "drawings", "measure-results", "pins", "minimap", "view-state-copy", "view-state-restore"],
   analyze: ["query", "workflow", "processing-toolbox", "sql-workspace", "model-builder", "lisa", "hotspot", "emerging-hotspot"],
   evidence: ["qa", "review-timeline", "performance-diagnostics", "plugin-registry"],
   publish: ["save-project", "load-project", "figure-composer", "export-image", "export-offline-package", "add-map-to-report", "export-geojson"],
@@ -1156,7 +1160,7 @@ function getCommandTaxonomy(command: Pick<ToolbarCommand, "id" | "overflowGroup"
   ) {
     return "analyze";
   }
-  if (["theme", "annotations"].includes(id)) return "style";
+  if (["attributes", "theme", "annotations"].includes(id)) return id === "attributes" ? "contents" : "style";
   if (["sync", "voxcity"].includes(id)) return "scene";
   if (
     id === "figure-composer" ||
@@ -1380,6 +1384,36 @@ function buildToolbarCommands(args: BuildToolbarCommandsArgs): ToolbarCommand[] 
     priority: args.showContents ? 128 : hasLayers ? 92 : 120,
     active: args.showContents,
     badge: args.layerCount > 0 ? args.layerCount : null,
+    tone: "default",
+    navigator: true,
+  });
+
+  add(args.onOpenAttributeTableClick && {
+    id: "attributes",
+    label: "Attributes",
+    shortLabel: "Attrs",
+    title: "Open the attribute table with filtering, selected-feature review, derived fields, and export paths",
+    keywords: [
+      "attributes",
+      "attribute table",
+      "table",
+      "fields",
+      "filter attributes",
+      "sort",
+      "selected features",
+      "derived field",
+      "export csv",
+      "export geoparquet",
+    ],
+    icon: FileText,
+    onClick: args.onOpenAttributeTableClick,
+    roles: ["explore", "analyze", "publish"],
+    overflowGroup: "advanced",
+    priority: args.showAttributeTable ? 126 : hasLayers ? 91 : 39,
+    active: args.showAttributeTable,
+    badge: hasLayers ? args.layerCount : null,
+    disabled: !hasLayers,
+    disabledReason: "Add a vector layer before opening the attribute table.",
     tone: "default",
     navigator: true,
   });
@@ -2188,7 +2222,7 @@ function selectContextualPrimaryCommand(args: {
 
 export function getOverflowSectionId(command: ToolbarCommand): ToolbarMenuSectionId {
   if (["save-project", "load-project", "review-timeline", "navigator", "undo-map-action", "redo-map-action"].includes(command.id)) return "workspace";
-  if (["layers", "contents", "catalog", "theme", "sync", "voxcity", "figure-composer", "export-image"].includes(command.id)) return "view";
+  if (["layers", "contents", "attributes", "catalog", "theme", "sync", "voxcity", "figure-composer", "export-image"].includes(command.id)) return "view";
   if (["import", "services", "query", "workflow", "processing-toolbox", "model-builder", "export-offline-package", "add-map-to-report", "export-geojson", "drawings", "measure-results", "pin-mode", "pins"].includes(command.id) || command.id.startsWith("draw-") || command.id.startsWith("measure-")) {
     return "tools";
   }
@@ -2885,6 +2919,8 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
   catalogSourceCount = 0,
   showContents = false,
   onToggleContents,
+  showAttributeTable = false,
+  onOpenAttributeTableClick,
   activeLayerGeometryType = null,
   hasSelectedAoi = false,
   scientificQAStatus = "unchecked",
@@ -3073,6 +3109,8 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       catalogSourceCount,
       showContents,
       onToggleContents,
+      showAttributeTable,
+      onOpenAttributeTableClick,
       activeLayerGeometryType,
       hasSelectedAoi,
       scientificQAStatus,
@@ -3201,6 +3239,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       onAddToReportClick,
       onImportClick,
       onLoadProjectClick,
+      onOpenAttributeTableClick,
       onOpenExternalServices,
       onResetLayout,
       onRestoreDefaultWidths,
@@ -3259,6 +3298,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       showLayerPanel,
       showCatalog,
       showContents,
+      showAttributeTable,
       showMeasurePanel,
       showNLQueryPanel,
       showPerformanceDiagnostics,

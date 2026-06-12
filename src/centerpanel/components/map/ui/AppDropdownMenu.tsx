@@ -82,6 +82,10 @@ const contentBaseStyle: React.CSSProperties = {
   background: MAP_COLORS.transparent,
   boxShadow: MAP_SHADOWS.none,
   color: MAP_COLORS.text,
+  pointerEvents: "auto",
+  overflowX: "hidden",
+  overflowY: "auto",
+  overscrollBehavior: "contain",
 };
 
 const panelSurfaceStyle: React.CSSProperties = {

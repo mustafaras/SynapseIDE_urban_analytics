@@ -304,6 +304,7 @@ export function buildMapPremiumMenuModel({
           items: compactItems([
             commandItem(commands, ["layers"], { label: "Layers Workspace", checked: layersCommand?.active }),
             commandItem(commands, ["contents"], { label: "Contents Tree", checked: contentsCommand?.active }),
+            commandItem(commands, ["attributes"], { label: "Attribute Table" }),
           ]),
         },
         {

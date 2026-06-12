@@ -406,6 +406,37 @@ describe("MapToolbar command palette", () => {
     expect(saveButton?.dataset.disabledReason).toContain("Select or create a project before saving map state.");
   });
 
+  it("opens the attribute table from the premium Layers menu", () => {
+    const onOpenAttributeTableClick = vi.fn();
+    renderToolbar({
+      layerCount: 2,
+      visibleLayerCount: 2,
+      onToggleLayerPanel: vi.fn(),
+      onToggleContents: vi.fn(),
+      onOpenAttributeTableClick,
+    });
+
+    const layersMenuTrigger = document.querySelector<HTMLButtonElement>('[data-testid="map-premium-menu-layers"]');
+    expect(layersMenuTrigger).not.toBeNull();
+
+    act(() => {
+      layersMenuTrigger!.click();
+    });
+
+    const layersMenu = document.querySelector<HTMLElement>('[data-testid="map-premium-menu-content-layers"]');
+    expect(layersMenu).not.toBeNull();
+    expect(layersMenu?.textContent).toContain("Attribute Table");
+
+    const attributesItem = layersMenu!.querySelector<HTMLElement>('[data-testid="map-toolbar-command-attributes"]');
+    expect(attributesItem).not.toBeNull();
+
+    act(() => {
+      attributesItem!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(onOpenAttributeTableClick).toHaveBeenCalledTimes(1);
+  });
+
   it("keeps undo and redo reachable through overflow, palette entries, and global shortcuts", () => {
     const onUndoMapAction = vi.fn();
     const onRedoMapAction = vi.fn();

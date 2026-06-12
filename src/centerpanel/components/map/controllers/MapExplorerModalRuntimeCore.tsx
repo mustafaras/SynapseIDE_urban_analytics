@@ -1473,6 +1473,23 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
     [openRightDockPanel]
   );
 
+  const handleOpenAttributesFromToolbar = useCallback(() => {
+    const selectedLayerId = Object.entries(selectedFeatureIds).find(([, featureIds]) => featureIds.length > 0)?.[0] ?? null;
+    const analysisLayerId = activeAnalysisResultLayerIds.find(layerId => overlayLayers.some(layer => layer.id === layerId)) ?? null;
+    const visibleLayerId = overlayLayers.find(layer => layer.visible)?.id ?? overlayLayers[0]?.id ?? null;
+    const targetLayerId = attributeTableLayerId ?? selectedLayerId ?? analysisLayerId ?? visibleLayerId;
+
+    if (targetLayerId) {
+      setAttributeTableLayerId(targetLayerId);
+      openRightDockPanel('attributes', 'Attribute table opened in the right dock', 'toolbar', targetLayerId);
+      announce('Attribute table opened');
+      return;
+    }
+
+    openRightDockPanel('attributes', 'Attributes opened in the right dock without an active layer', 'toolbar');
+    announce('Attributes panel opened');
+  }, [activeAnalysisResultLayerIds, announce, attributeTableLayerId, openRightDockPanel, overlayLayers, selectedFeatureIds]);
+
   const handleOpenInspectFromStatus = useCallback(() => {
     const selectedLayerId = Object.entries(selectedFeatureIds).find(([, featureIds]) => featureIds.length > 0)?.[0] ?? null;
     const analysisLayerId = activeAnalysisResultLayerIds.find(layerId => overlayLayers.some(layer => layer.id === layerId)) ?? null;
@@ -5533,6 +5550,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
             catalogSourceCount={sourceHandles.length}
             showContents={layersContentsTabActive}
             onToggleContents={handleToggleContents}
+            showAttributeTable={rightAttributesDockActive}
+            onOpenAttributeTableClick={handleOpenAttributesFromToolbar}
             activeLayerGeometryType={toolbarActiveGeometryType}
             hasSelectedAoi={Boolean(selectedAoiFeatureForQuery)}
             scientificQAStatus={scientificQA?.status ?? 'unchecked'}
