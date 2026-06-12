@@ -32,21 +32,24 @@ const overlayStyle: React.CSSProperties = {
   padding: MAP_SPACING.lg,
 };
 
+/* Shares the standard Map Explorer dialog footprint (--map-dialog-w/h) so
+   every modal opens with the same geometry. */
 const dialogStyle: React.CSSProperties = {
   position: "absolute",
   left: "50%",
   top: "50%",
   transform: "translate(-50%, -50%)",
-  width: "min(1040px, calc(100% - 2rem))",
+  width: "var(--map-dialog-w, min(1040px, calc(100vw - 4rem)))",
   maxWidth: "calc(100% - 2rem)",
+  height: "var(--map-dialog-h, min(680px, calc(100vh - 10rem)))",
   maxHeight: "min(680px, calc(100% - 2rem))",
   overflow: "hidden",
   display: "grid",
   gridTemplateRows: "auto auto minmax(0, 1fr) auto",
   background: MAP_COLORS.bgPanel,
   border: MAP_STROKES.hairlineStrong,
-  borderRadius: 4,
-  boxShadow: MAP_SHADOWS.panel,
+  borderRadius: 2,
+  boxShadow: MAP_SHADOWS.dropdown,
   color: MAP_COLORS.text,
   fontFamily: MAP_TYPOGRAPHY.fontFamily,
 };

@@ -95,7 +95,10 @@ export function MapPremiumMenuBar({ menus, quickActions, width }: MapPremiumMenu
   const [openMenuId, setOpenMenuId] = React.useState<string | null>(null);
   const compactMode = width < 500;
   const iconOnlyMode = width < 560;
-  const maxQuickActions = width >= 1600 ? 5 : width >= 1440 ? 4 : width >= 1240 ? 3 : width >= 1000 ? 2 : 1;
+  // Quick actions duplicate commands that stay reachable through the grouped
+  // menus, so the rail stays intentionally small — panel toggles live in the
+  // menus and at the panel edges, not as a button strip.
+  const maxQuickActions = width >= 1440 ? 3 : width >= 1000 ? 2 : 1;
   const visibleQuickActions = quickActions.slice(0, maxQuickActions);
   const visibleMenuBudget = getVisibleMenuBudget(width);
   const visibleMenus = menus.slice(0, visibleMenuBudget);

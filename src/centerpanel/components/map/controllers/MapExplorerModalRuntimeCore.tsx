@@ -618,7 +618,6 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
     announce,
     closeMapStartDialog,
     mapStartDialogOpen: mapStartDialogState.open,
-    setActiveActivityId,
     setShowDrawPanel,
     setShowMeasurePanel,
     setShowReviewTimeline,

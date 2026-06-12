@@ -9,7 +9,6 @@ import {
   type GisStatusKey,
   MAP_COLORS,
   MAP_DENSITY,
-  MAP_RADIUS,
   MAP_SPACING,
   MAP_STATUS_TOKENS,
   MAP_TEXT_STYLES,
@@ -56,6 +55,9 @@ export const GisStatusChip: React.FC<GisStatusChipProps> = ({
   const d = MAP_DENSITY[density];
   const borderStyle = getStatusBorderStyle(status);
 
+  /* Premium chrome: geometric corners and a neutral hairline frame. Status is
+     carried by the text colour (plus dashed/dotted styles for provenance) —
+     never by green/red borders or pill silhouettes. */
   const chipStyle: React.CSSProperties = {
     display: "inline-flex",
     alignItems: "center",
@@ -65,7 +67,7 @@ export const GisStatusChip: React.FC<GisStatusChipProps> = ({
     minWidth: 0,
     maxWidth: "100%",
     padding: `2px 8px`,
-    borderRadius: MAP_RADIUS.sm,
+    borderRadius: 0,
     fontSize: d.fontSize,
     fontFamily: MAP_TYPOGRAPHY.fontFamily,
     fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
@@ -74,7 +76,7 @@ export const GisStatusChip: React.FC<GisStatusChipProps> = ({
     background: tok.bg,
     borderWidth: 1,
     borderStyle,
-    borderColor: tok.border,
+    borderColor: MAP_COLORS.hairlineSubtle,
     overflow: "visible",
     textOverflow: "clip",
     whiteSpace: "normal",
@@ -130,8 +132,8 @@ export const GisSplitStatusChip: React.FC<GisSplitStatusChipProps> = ({
         maxWidth: "100%",
         borderWidth: 1,
         borderStyle,
-        borderColor: tok.border,
-        borderRadius: MAP_RADIUS.sm,
+        borderColor: MAP_COLORS.hairlineSubtle,
+        borderRadius: 0,
         overflow: "hidden",
         fontSize: d.fontSize,
         fontFamily: MAP_TYPOGRAPHY.fontFamily,
@@ -146,7 +148,7 @@ export const GisSplitStatusChip: React.FC<GisSplitStatusChipProps> = ({
           background: tok.bg,
           color: tok.text,
           fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
-          borderRight: `1px solid ${tok.border}`,
+          borderRight: `1px solid ${MAP_COLORS.hairlineSubtle}`,
           ...MAP_TEXT_STYLES.chipLabel,
           overflow: "visible",
           textOverflow: "clip",

@@ -1,12 +1,12 @@
 .host {
-  --right-dock-width: 420px;
+  --right-dock-width: 400px;
   position: absolute;
   top: 0;
   right: 0;
   bottom: 0;
   z-index: var(--map-z-panel, 35);
   width: min(var(--right-dock-width), calc(100% - 2rem));
-  min-width: 340px;
+  min-width: 320px;
   max-width: 560px;
   padding: 0;
   color: var(--syn-text-primary, #f3f4f6);
@@ -32,9 +32,9 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  left: -6px;
+  left: -7px;
   z-index: 2;
-  width: 12px;
+  width: 14px;
   padding: 0;
   border: 0;
   border-radius: 0;
@@ -46,9 +46,9 @@
 .resizeHandle::after {
   content: "";
   position: absolute;
-  inset: 0 5px;
-  border-left: 1px solid color-mix(in srgb, var(--syn-interaction-active, #d09a48) 42%, transparent);
-  opacity: 0.78;
+  inset: 0 6px;
+  border-left: 1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.24));
+  opacity: 0.9;
 }
 
 .resizeHandle:hover::after,

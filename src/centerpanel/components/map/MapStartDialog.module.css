@@ -18,11 +18,12 @@
   pointer-events: auto;
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr) auto;
-  width: min(1040px, calc(100vw - 56px));
+  width: var(--map-dialog-w, min(1040px, calc(100vw - 56px)));
   max-width: 100%;
-  max-height: min(680px, calc(100vh - var(--map-menu-h, 3.5625rem) - var(--map-status-h, 1.75rem) - 48px));
+  height: var(--map-dialog-h, min(680px, calc(100vh - 10rem)));
+  max-height: min(680px, calc(100vh - var(--map-menu-h, 5.34375rem) - var(--map-status-h, 1.75rem) - 48px));
   border: 1px solid var(--syn-border-subtle);
-  border-radius: 4px;
+  border-radius: 2px;
   background: var(--syn-surface-panel);
   box-shadow: 0 18px 48px rgba(2, 6, 12, 0.46);
   color: var(--start-text);
@@ -104,19 +105,18 @@
   font-weight: 600;
   letter-spacing: 0.04em;
   padding: 2px 7px;
-  border-radius: 4px;
+  border-radius: 2px;
   border: 1px solid var(--syn-border-subtle);
   color: var(--start-text-secondary);
   white-space: nowrap;
 }
 
+/* Status reads through text colour only — frames stay neutral hairlines. */
 .chipReady {
-  border-color: color-mix(in srgb, var(--start-valid) 42%, transparent);
   color: color-mix(in srgb, var(--start-valid) 88%, white 12%);
 }
 
 .chipCaveat {
-  border-color: color-mix(in srgb, var(--start-caveat) 46%, transparent);
   color: color-mix(in srgb, var(--start-caveat) 90%, white 10%);
 }
 
@@ -133,7 +133,7 @@
   justify-content: center;
   width: 30px;
   height: 30px;
-  border-radius: 6px;
+  border-radius: 2px;
   border: 1px solid transparent;
   background: transparent;
   color: var(--start-text-secondary);
@@ -166,7 +166,7 @@
   align-items: center;
   gap: 10px;
   padding: 12px 14px;
-  border-radius: 6px;
+  border-radius: 2px;
   border: 1px solid var(--syn-border-subtle);
   background: color-mix(in srgb, var(--syn-surface-raised, rgba(148, 163, 184, 0.06)) 72%, transparent);
   color: var(--start-text);
@@ -201,7 +201,7 @@
   justify-content: center;
   width: 30px;
   height: 30px;
-  border-radius: 6px;
+  border-radius: 2px;
   background: color-mix(in srgb, var(--start-accent) 14%, transparent);
   color: var(--start-accent);
   flex: 0 0 auto;
@@ -231,8 +231,8 @@
 .tileBadge {
   display: inline-flex;
   align-items: center;
-  border: 1px solid color-mix(in srgb, var(--start-caveat) 52%, transparent);
-  border-radius: 4px;
+  border: 1px solid var(--syn-border-subtle);
+  border-radius: 2px;
   padding: 1px 5px;
   color: color-mix(in srgb, var(--start-caveat) 94%, white 6%);
   font-family: var(--font-mono, "JetBrains Mono", monospace);
@@ -298,7 +298,7 @@
   gap: 8px;
   min-width: 0;
   padding: 8px 10px;
-  border-radius: 6px;
+  border-radius: 2px;
   border: 1px solid var(--syn-border-subtle);
   background: var(--syn-surface-raised, rgba(148, 163, 184, 0.04));
 }
@@ -341,7 +341,7 @@
   flex-direction: column;
   gap: 3px;
   padding: 9px 10px;
-  border-radius: 6px;
+  border-radius: 2px;
   border: 1px solid var(--syn-border-subtle);
   background: color-mix(in srgb, var(--syn-surface-raised, rgba(148, 163, 184, 0.05)) 72%, transparent);
   min-width: 0;
@@ -389,7 +389,7 @@
   gap: 8px;
   max-height: 160px;
   padding: 12px 14px;
-  border-radius: 6px;
+  border-radius: 2px;
   border: 1px solid var(--syn-border-subtle);
   background: var(--syn-surface-raised, rgba(148, 163, 184, 0.05));
 }
@@ -426,7 +426,7 @@
 
 /* ---- Advanced disclosure ---- */
 .advanced {
-  border-radius: 6px;
+  border-radius: 2px;
   border: 1px solid var(--syn-border-subtle);
   background: var(--syn-surface-raised, rgba(148, 163, 184, 0.04));
 }
@@ -451,7 +451,7 @@
 .advancedSummary:focus-visible {
   outline: 2px solid var(--start-accent);
   outline-offset: -2px;
-  border-radius: 6px;
+  border-radius: 2px;
 }
 
 .advancedBody {
@@ -478,7 +478,7 @@
   align-items: center;
   gap: 6px;
   padding: 6px 10px;
-  border-radius: 6px;
+  border-radius: 2px;
   border: 1px solid color-mix(in srgb, var(--start-accent) 42%, transparent);
   background: transparent;
   color: var(--start-accent);
@@ -536,7 +536,7 @@
   align-items: center;
   gap: 6px;
   padding: 8px 14px;
-  border-radius: 6px;
+  border-radius: 2px;
   border: 1px solid var(--syn-border-subtle);
   background: transparent;
   color: var(--start-text-secondary);
@@ -551,7 +551,7 @@
   align-items: center;
   gap: 6px;
   padding: 8px 14px;
-  border-radius: 6px;
+  border-radius: 2px;
   border: 1px solid color-mix(in srgb, var(--start-accent) 58%, transparent);
   background: color-mix(in srgb, var(--start-accent) 14%, var(--syn-surface-panel));
   color: var(--start-text);
@@ -583,6 +583,7 @@
 @media (max-height: 720px) {
   .dialog {
     width: min(900px, calc(100vw - 48px));
+    height: calc(100vh - 48px);
     max-height: calc(100vh - 48px);
   }
 }
@@ -591,6 +592,7 @@
 @media (max-width: 640px) {
   .dialog {
     width: calc(100vw - 24px);
+    height: auto;
     max-height: calc(100vh - 24px);
   }
 

@@ -13,7 +13,6 @@ import {
   switchMapRightDockRouteState,
 } from "../mapRightDockRoutes";
 import type {
-  MapActivityId,
   MapWorkspaceView,
 } from "../mapExperience";
 import type { MapStartDialogHandoff } from "../mapStartDialogState";
@@ -22,7 +21,6 @@ interface UseMapRightDockRoutingInput {
   announce: (message: string) => void;
   closeMapStartDialog: (action: MapStartDialogHandoff | "dismiss" | "close" | "escape", announcement?: string) => void;
   mapStartDialogOpen: boolean;
-  setActiveActivityId: React.Dispatch<React.SetStateAction<MapActivityId>>;
   setShowDrawPanel: React.Dispatch<React.SetStateAction<boolean>>;
   setShowMeasurePanel: React.Dispatch<React.SetStateAction<boolean>>;
   setShowReviewTimeline: React.Dispatch<React.SetStateAction<boolean>>;
@@ -58,7 +56,6 @@ export function useMapRightDockRouting({
   announce,
   closeMapStartDialog,
   mapStartDialogOpen,
-  setActiveActivityId,
   setShowDrawPanel,
   setShowMeasurePanel,
   setShowReviewTimeline,
@@ -118,13 +115,16 @@ export function useMapRightDockRouting({
     setShowMeasurePanel(false);
 
     const definition = getMapRightDockPanelDefinition(panel);
-    setActiveActivityId(definition.activityId);
+    // Deliberately NOT calling setActiveActivityId here: the right dock is an
+    // inspector surface and must not hijack the left activity rail/sidebar.
+    // Activity-rail clicks set the activity themselves before routing here,
+    // so rail-driven opens keep their highlight while toolbar/menu-driven
+    // opens leave the left workspace untouched.
     announce(announcement ?? `${definition.label} opened in the right dock`);
   }, [
     announce,
     closeMapStartDialog,
     mapStartDialogOpen,
-    setActiveActivityId,
     setShowDrawPanel,
     setShowMeasurePanel,
     setShowReviewTimeline,
