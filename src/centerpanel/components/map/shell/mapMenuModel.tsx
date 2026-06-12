@@ -353,6 +353,7 @@ export function buildMapPremiumMenuModel({
           title: "Automation",
           items: compactItems([
             commandItem(commands, ["processing-toolbox"], { label: "Processing Toolbox" }),
+            commandItem(commands, ["sql-workspace"], { label: "SQL Workspace (DuckDB)" }),
             commandItem(commands, ["model-builder"], { label: "Model Builder" }),
           ]),
         },

@@ -9,6 +9,7 @@ import {
   CircleDot,
   Command,
   Compass,
+  Database,
   Download,
   FileImage,
   FileJson,
@@ -135,6 +136,8 @@ export interface MapToolbarProps {
   showProcessingToolbox?: boolean;
   onToggleProcessingToolbox?: () => void;
   processingToolCount?: number;
+  showSqlWorkspace?: boolean;
+  onToggleSqlWorkspace?: () => void;
   showModelBuilder?: boolean;
   onToggleModelBuilder?: () => void;
   showFigureComposer?: boolean;
@@ -286,6 +289,7 @@ interface BuildToolbarCommandsArgs extends Required<Pick<
   | "pluginExtensionCount"
   | "showProcessingToolbox"
   | "processingToolCount"
+  | "showSqlWorkspace"
   | "showModelBuilder"
   | "showFigureComposer"
   | "showChoroplethPanel"
@@ -336,6 +340,7 @@ interface BuildToolbarCommandsArgs extends Required<Pick<
   onTogglePerformanceDiagnostics?: (() => void) | undefined;
   onTogglePluginPanel?: (() => void) | undefined;
   onToggleProcessingToolbox?: (() => void) | undefined;
+  onToggleSqlWorkspace?: (() => void) | undefined;
   onToggleModelBuilder?: (() => void) | undefined;
   onToggleFigureComposer?: (() => void) | undefined;
   onToggleChoroplethPanel?: (() => void) | undefined;
@@ -458,7 +463,7 @@ const TOP_SURFACE_GROUP_META: Record<TopSurfaceGroupId, {
 const TOP_SURFACE_GROUP_COMMAND_IDS: Record<TopSurfaceGroupId, readonly string[]> = {
   data: ["layers", "contents", "import", "catalog", "services"],
   view: ["theme", "sync", "voxcity", "pin-mode", "drawings", "measure-results", "pins"],
-  analyze: ["query", "workflow", "processing-toolbox", "model-builder", "lisa", "hotspot", "emerging-hotspot"],
+  analyze: ["query", "workflow", "processing-toolbox", "sql-workspace", "model-builder", "lisa", "hotspot", "emerging-hotspot"],
   evidence: ["qa", "review-timeline", "performance-diagnostics", "plugin-registry"],
   publish: ["save-project", "load-project", "figure-composer", "export-image", "export-offline-package", "add-map-to-report", "export-geojson"],
   advanced: ["undo-map-action", "redo-map-action", "reset-layout", "collapse-panels", "focus-map-canvas", "restore-default-widths", "switch-density"],
@@ -954,6 +959,7 @@ const LEGACY_COMMAND_ALIASES: Record<string, readonly string[]> = {
   "performance-diagnostics": ["diagnostics", "render budget", "worker transfer", "telemetry", "recovery", "performance"],
   "plugin-registry": ["plugins", "extensions", "extension registry", "source connector", "renderer extension", "Urban bridge"],
   "processing-toolbox": ["processing toolbox", "geoprocessing", "buffer", "intersect", "spatial join", "field calculator"],
+  "sql-workspace": ["sql workspace", "duckdb", "spatial sql", "ST_", "select", "query layers"],
   "model-builder": ["model builder", "workflow graph", "batch", "processing chain", "buffer", "intersect", "join"],
   "figure-composer": ["layout figure", "figure composer", "map book", "legend", "scale bar", "north arrow", "attribution", "CRS", "projection"],
   theme: ["theme data", "choropleth", "renderer", "symbology", "classification", "style layer"],
@@ -1121,6 +1127,7 @@ function getCommandTaxonomy(command: Pick<ToolbarCommand, "id" | "overflowGroup"
   if (
     id === "workflow" ||
     id === "processing-toolbox" ||
+    id === "sql-workspace" ||
     id === "model-builder" ||
     id === "extent" ||
     id === "lisa" ||
@@ -1599,6 +1606,23 @@ function buildToolbarCommands(args: BuildToolbarCommandsArgs): ToolbarCommand[] 
     badge: args.processingToolCount > 0 ? args.processingToolCount : null,
     tone: "default",
     contextBoost: "polygon",
+    navigator: true,
+  });
+
+  add(args.onToggleSqlWorkspace && {
+    id: "sql-workspace",
+    label: "SQL",
+    shortLabel: "SQL",
+    title: "Open the SQL workspace: DuckDB spatial queries against loaded layers",
+    keywords: ["sql", "duckdb", "spatial sql", "query", "select", "ST_", "workspace"],
+    icon: Database,
+    onClick: args.onToggleSqlWorkspace,
+    roles: ["analyze", "explore"],
+    overflowGroup: "advanced",
+    priority: args.showSqlWorkspace ? 124 : 85,
+    active: args.showSqlWorkspace,
+    badge: null,
+    tone: "default",
     navigator: true,
   });
 
@@ -2827,6 +2851,8 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
   showProcessingToolbox = false,
   onToggleProcessingToolbox,
   processingToolCount = 0,
+  showSqlWorkspace = false,
+  onToggleSqlWorkspace,
   showModelBuilder = false,
   onToggleModelBuilder,
   showFigureComposer = false,
@@ -3008,6 +3034,8 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       showProcessingToolbox,
       onToggleProcessingToolbox,
       processingToolCount,
+      showSqlWorkspace,
+      onToggleSqlWorkspace,
       showModelBuilder,
       onToggleModelBuilder,
       showFigureComposer,
@@ -3124,6 +3152,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       onTogglePerformanceDiagnostics,
       onTogglePluginPanel,
       onToggleProcessingToolbox,
+      onToggleSqlWorkspace,
       onToggleModelBuilder,
       onToggleWorkflowDrawer,
       onTogglePinMode,
@@ -3162,6 +3191,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       showPerformanceDiagnostics,
       showPluginPanel,
       showProcessingToolbox,
+      showSqlWorkspace,
       showModelBuilder,
       showReviewTimeline,
       showFigureComposer,
