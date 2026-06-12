@@ -61,9 +61,9 @@ const menuStyle: React.CSSProperties = {
   border: `1px solid ${MAP_COLORS.hairlineStrong}`,
   borderRadius: MAP_RADIUS.sm,
   backdropFilter: DESIGN_TOKENS.glassmorphism.backdrop.glassDark,
-  boxShadow: MAP_SHADOWS.none,
+  boxShadow: MAP_SHADOWS.dropdown,
   color: MAP_COLORS.text,
-  zIndex: MAP_Z_INDEX.importProgress + 2,
+  zIndex: MAP_Z_INDEX.mapFurniture + 4,
 };
 
 const menuHeaderStyle: React.CSSProperties = {
@@ -298,15 +298,15 @@ export const MapContextMenu: React.FC<MapContextMenuProps> = ({
     return [
       {
         id: "whats-here",
-        label: "What's here?",
-        description: "Reverse geocode address, admin area, and coordinates",
+        label: "Identify location",
+        description: "Reverse geocode address, admin boundary, and coordinates",
         Icon: IconGlobe,
         onSelect: startReverseGeocode,
         disabled: isReverseGeocoding,
       },
       {
         id: "add-pin",
-        label: "Add pin here",
+        label: "Add map pin",
         description: "Create a labeled pin at this location",
         Icon: IconPin,
         onSelect: () => {
@@ -317,8 +317,8 @@ export const MapContextMenu: React.FC<MapContextMenuProps> = ({
       },
       {
         id: "measure-here",
-        label: "Measure from here",
-        description: "Start distance measurement from this point",
+        label: "Start distance measure",
+        description: "Begin geodesic distance measurement from this point",
         Icon: IconRuler,
         onSelect: () => {
           closeMenu();
@@ -328,8 +328,8 @@ export const MapContextMenu: React.FC<MapContextMenuProps> = ({
       },
       {
         id: "draw-polygon-here",
-        label: "Draw polygon here",
-        description: "Start polygon drawing from this point",
+        label: "Start polygon AOI",
+        description: "Begin an area-of-interest polygon from this point",
         Icon: IconPolygon,
         onSelect: () => {
           closeMenu();
@@ -339,7 +339,7 @@ export const MapContextMenu: React.FC<MapContextMenuProps> = ({
       },
       {
         id: "analyze-area",
-        label: "Analyze this area",
+        label: "Analyze area",
         description: "Route the current AOI into a compatible workflow",
         Icon: IconPolygon,
         onSelect: () => {
@@ -350,7 +350,7 @@ export const MapContextMenu: React.FC<MapContextMenuProps> = ({
       },
       {
         id: "isochrone-from-here",
-        label: "Isochrone from here",
+        label: "Build isochrone",
         description: "Launch accessibility analysis from this origin",
         Icon: IconGlobe,
         onSelect: () => {
@@ -361,7 +361,7 @@ export const MapContextMenu: React.FC<MapContextMenuProps> = ({
       },
       {
         id: "hotspot-around-here",
-        label: "Hot spot analysis around here",
+        label: "Run hot spot analysis",
         description: "Run Getis-Ord Gi* on the nearest visible polygon dataset",
         Icon: IconMeasure,
         onSelect: () => {
@@ -372,7 +372,7 @@ export const MapContextMenu: React.FC<MapContextMenuProps> = ({
       },
       {
         id: "selection-stats",
-        label: "Run statistics on selection",
+        label: "Summarize selection",
         description: selectionStatsAvailable
           ? "Summarize numeric fields for selected features"
           : "Select one or more map features to enable quick statistics",
@@ -386,7 +386,7 @@ export const MapContextMenu: React.FC<MapContextMenuProps> = ({
       {
         id: "copy-coordinates",
         label: "Copy coordinates",
-        description: "Copy lat, lng with 6 decimal places",
+        description: "Copy longitude and latitude with 6 decimal places",
         Icon: IconPin,
         onSelect: async () => {
           closeMenu();
@@ -402,14 +402,14 @@ export const MapContextMenu: React.FC<MapContextMenuProps> = ({
       },
       {
         id: "zoom-all",
-        label: "Zoom to all features",
+        label: "Fit visible features",
         description: "Fit pins, drawings, and visible overlay layers",
         Icon: IconGlobe,
         onSelect: zoomToAllVisible,
       },
       {
         id: "center-here",
-        label: "Center map here",
+        label: "Center map",
         description: "Fly to this point at the current zoom level",
         Icon: IconGlobe,
         onSelect: () => {
@@ -616,7 +616,7 @@ export const MapContextMenu: React.FC<MapContextMenuProps> = ({
             fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
           }}
         >
-          Spatial Actions
+          Map actions
         </div>
         <div
           style={{

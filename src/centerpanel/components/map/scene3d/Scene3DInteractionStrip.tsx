@@ -58,9 +58,9 @@ const MODE_ICONS: Record<Scene3DInteractionMode, React.ReactNode> = {
 
 const stripStyle: React.CSSProperties = {
   position: "absolute",
-  top: MAP_SPACING.md,
-  left: MAP_SPACING.md,
-  zIndex: MAP_Z_INDEX.symbologyPanel + 10,
+  top: "var(--map-overlay-safe-top, calc(var(--map-shell-command-height, 2.75rem) + var(--map-overlay-safe-inset-y, 0.25rem)))",
+  left: "calc(var(--map-dock-left, 0px) + var(--map-overlay-safe-inset-x, 0.75rem))",
+  zIndex: MAP_Z_INDEX.mapFurniture,
   display: "flex",
   flexDirection: "row",
   alignItems: "center",
@@ -77,7 +77,7 @@ const bookmarkListStyle: React.CSSProperties = {
   position: "absolute",
   top: "calc(100% + 6px)",
   left: 0,
-  zIndex: MAP_Z_INDEX.symbologyPanel + 11,
+  zIndex: MAP_Z_INDEX.mapFurniture + 1,
   background: MAP_COLORS.bgPanel,
   border: MAP_STROKES.hairline,
   borderRadius: MAP_RADIUS.md,
@@ -213,6 +213,7 @@ export const Scene3DInteractionStrip: React.FC<Scene3DInteractionStripProps> = (
       data-testid="scene3d-interaction-strip"
       data-presentation={presentation}
       data-position={embedded ? "docked" : "top-left"}
+      data-map-safe-inset-consumer={embedded ? undefined : "scene3d-interaction-strip"}
       style={resolvedStripStyle}
       role="toolbar"
       aria-label="3D interaction tools"

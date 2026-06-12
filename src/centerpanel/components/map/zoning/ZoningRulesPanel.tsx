@@ -23,6 +23,7 @@ import {
   MAP_Z_INDEX,
 } from "../mapTokens";
 import { GisStatusChip } from "../ui/GisStatusChip";
+import { GisSectionHeader } from "../ui/GisSectionHeader";
 import { createOpaqueFloatingPanelStyle, useDraggableMapPanel } from "../useDraggableMapPanel";
 import type { ZoningRuleInput } from "@/services/map/zoning/ZoningRuleEngine";
 import {
@@ -103,13 +104,17 @@ const bodyStyle: React.CSSProperties = {
   alignContent: "start",
 };
 
-const sectionTitleStyle: React.CSSProperties = {
+const _sectionTitleStyle: React.CSSProperties = {
   color: MAP_COLORS.textMuted,
   fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
   letterSpacing: MAP_TYPOGRAPHY.letterSpacing.caps,
   textTransform: "uppercase",
+};
+
+const sectionHeaderStyle: React.CSSProperties = {
+  marginBottom: MAP_SPACING.xs,
 };
 
 const rowStyle: React.CSSProperties = {
@@ -230,10 +235,6 @@ const metricCellStyle: React.CSSProperties = {
   border: MAP_STROKES.hairlineSubtle,
   borderRadius: MAP_RADIUS.sm,
 };
-
-/* ------------------------------------------------------------------ */
-/*  Default new-rule form values                                        */
-/* ------------------------------------------------------------------ */
 
 const DEFAULT_RULE: ZoningRuleInput = {
   name: "",
@@ -413,7 +414,7 @@ export const ZoningRulesPanel: React.FC<ZoningRulesPanelProps> = ({
       {/* Body */}
       <div style={embedded ? { ...bodyStyle, overflowY: "visible" } : bodyStyle}>
         <section style={assumptionPanelStyle} data-testid="zoning-urban-form-assumptions">
-          <span style={sectionTitleStyle}>Urban form prerequisites</span>
+          <GisSectionHeader title="Urban form prerequisites" level={4} compact separator={false} style={sectionHeaderStyle} />
           <div style={assumptionChipRowStyle}>
             <GisStatusChip
               status={selectedParcel ? "ready" : "blocked"}
@@ -454,7 +455,7 @@ export const ZoningRulesPanel: React.FC<ZoningRulesPanelProps> = ({
 
         <section style={assumptionPanelStyle} data-testid="zoning-envelope-summary">
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: MAP_SPACING.sm }}>
-            <span style={sectionTitleStyle}>Zoning envelope</span>
+            <GisSectionHeader title="Zoning envelope" level={4} compact separator={false} style={sectionHeaderStyle} />
             <GisStatusChip
               status={resolvedEnvelopeStatus}
               label={envelopeLabel(selectedParcel, currentRule, envelopeResult)}
@@ -494,9 +495,7 @@ export const ZoningRulesPanel: React.FC<ZoningRulesPanelProps> = ({
         {/* Selected parcel + metrics */}
         {selectedParcelId != null && (
           <div style={{ display: "grid", gap: MAP_SPACING.sm }} data-testid="zoning-parcel-metrics">
-            <span style={sectionTitleStyle}>
-              Parcel #{String(selectedParcelId)}
-            </span>
+            <GisSectionHeader title={`Parcel #${String(selectedParcelId)}`} level={4} compact separator={false} style={sectionHeaderStyle} />
 
             {metrics ? (
               <>
@@ -584,7 +583,7 @@ export const ZoningRulesPanel: React.FC<ZoningRulesPanelProps> = ({
         {/* Rules table */}
         <div style={{ display: "grid", gap: MAP_SPACING.sm }} data-testid="zoning-rules-table">
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <span style={sectionTitleStyle}>Rules ({rules.length})</span>
+            <GisSectionHeader title={`Rules (${rules.length})`} level={4} compact separator={false} style={sectionHeaderStyle} />
             <button
               type="button"
               style={buttonStyle}
@@ -602,7 +601,7 @@ export const ZoningRulesPanel: React.FC<ZoningRulesPanelProps> = ({
               style={{ display: "grid", gap: MAP_SPACING.sm, padding: MAP_SPACING.sm, border: MAP_STROKES.hairlineSubtle, borderRadius: MAP_RADIUS.sm }}
               data-testid="zoning-add-rule-form"
             >
-              <span style={sectionTitleStyle}>New rule</span>
+              <GisSectionHeader title="New rule" level={4} compact separator={false} style={sectionHeaderStyle} />
               {(
                 [
                   { key: "name" as const, label: "Name", type: "text" },
@@ -708,7 +707,7 @@ export const ZoningRulesPanel: React.FC<ZoningRulesPanelProps> = ({
         {/* Assignment summary */}
         {assignments.length > 0 && (
           <div style={{ display: "grid", gap: MAP_SPACING.xs }} data-testid="zoning-assignments-summary">
-            <span style={sectionTitleStyle}>Assignments ({assignments.length})</span>
+            <GisSectionHeader title={`Assignments (${assignments.length})`} level={4} compact separator={false} style={sectionHeaderStyle} />
             {assignments.slice(0, 8).map((a) => {
               const rule = rules.find((r) => r.id === a.ruleId);
               return (

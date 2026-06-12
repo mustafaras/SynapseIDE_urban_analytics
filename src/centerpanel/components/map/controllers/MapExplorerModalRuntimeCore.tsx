@@ -3,18 +3,18 @@ import { createPortal } from 'react-dom';
 import type maplibregl from 'maplibre-gl';
 import { Maximize2, Minimize2, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import type { FeatureCollection, Geometry } from 'geojson';
-import { BASE_STYLES, type DrawnFeature, type DrawToolId, type LayerQaStatus, type LayerSchemaFieldSummary, type LayerScientificQABadge, MAP_BOOKMARK_LIMIT, MAP_LAYER_REGISTRY_EVENT, type MapBookmark, type MapExplorerMode, type MapLayerRegistryChangeDetail, type MapPin, type MeasureToolId, type OverlayLayerConfig } from '../mapTypes';
+import { BASE_STYLES, type DrawnFeature, type DrawToolId, type LayerQaStatus, type LayerSchemaFieldSummary, type LayerScientificQABadge, MAP_BOOKMARK_LIMIT, MAP_LAYER_REGISTRY_EVENT, type MapBookmark, type MapEvidenceArtifact, type MapExplorerMode, type MapLayerRegistryChangeDetail, type MapPin, type MeasureToolId, type OverlayLayerConfig } from '../mapTypes';
 import { resolveOverlayLayerCrsSummary } from '../mapLayerMetadata';
 import { applyMapCommand, type MapActionEffects, redoMapCommand, revertMapCommand } from '@/services/map/actions/MapActionExecutor';
 import { createMapActionHistory, findRedoableEntry, findRevertableEntry, findUndoableEntry, type MapActionHistory, type MapActionHistoryEntry, markMapActionRedone, markMapActionUndone, recordMapActionHistoryEntry, summarizeMapUndoRedo } from '@/services/map/actions/MapActionHistoryService';
-import { MAP_ICON_SIZES, mapStyles } from '../mapTokens';
+import { type GisStatusKey, MAP_COLORS, MAP_ICON_SIZES, MAP_RADIUS, MAP_SPACING, MAP_STROKES, MAP_TYPOGRAPHY, mapStyles } from '../mapTokens';
 import { MAP_LAYOUT_TOKENS } from '../mapLayoutTokens';
 import { MapCanvas } from '../MapCanvas';
 import { MapCanvasControls } from '../MapCanvasControls';
 import { MapTopCommandSurface } from '../MapTopCommandSurface';
 import { MapToolbar } from '../MapToolbar';
 import { ToolbarButton } from '../ContextToolbar';
-import { GisIconButton } from '../ui';
+import { GisEmptyState, GisIconButton, GisStatusChip } from '../ui';
 import { SAMPLE_BUILDINGS } from '@/features/urbanAnalytics/voxcity';
 import type { SymbolMode } from '../../MapSymbolLayer';
 import { type TemporalFrameExportPayload, useTemporalLayerStore } from '@/stores/useTemporalLayerStore';
@@ -29,9 +29,9 @@ import { type MapAnalyzeTabId } from '../analyze';
 import { type MapStyleTabId } from '../style';
 import { type LayerStyleUpdate } from '../inspector/style/legendContract';
 import { type MapSceneTabId } from '../scene';
-import { type MapPublishTabId } from '../publish';
-import { type MapBottomPanelTask } from '../bottom';
-import { buildMapProblemsModel, type MapProblemRow } from '../problems';
+import { type MapPublishReadinessItem, type MapPublishTabId } from '../publish';
+import { MapBottomPanelScrollBody, type MapBottomPanelTask, MapBottomPanelTasksBody } from '../bottom';
+import { buildMapProblemsModel, MapProblemsPanel, type MapProblemRow } from '../problems';
 import type { MapNLQueryPanelRunSummary } from '../MapNLQueryPanel';
 import { MapSelectionTools, type SelectionDragTool } from '../MapSelectionTools';
 import { summarizeDrawnGeometryValidation, validateDrawnGeometry } from '@/services/map/DrawnGeometryValidation';
@@ -43,6 +43,7 @@ import { createMapProcessingRegistry, previewProcessingTool, runProcessingTool }
 import { createMapExtensionRegistry } from '../../../../services/map/plugins';
 import { buildMapModelCodeArtifactRequest, executeMapModel, executeMapModelBatch, type MapModelBatchResult, type MapModelBatchTarget, type MapModelDefinition, type MapModelRunResult } from '../../../../services/map/model';
 import { type AttrFeature, type MapAttributeDerivedFieldDraft } from '../table/MapAttributeTable';
+import { MapAttributeWorkflowPanel } from '../table/MapAttributeWorkflowPanel';
 import type { MapInspectorHostContext } from '../inspector';
 import { createMapWorkflowResultEvidenceArtifact } from '../mapEvidenceArtifacts';
 import { useDraggableMapPanel } from '../useDraggableMapPanel';
@@ -82,6 +83,14 @@ import { MapPointSymbologyFloatingPanel } from './MapPointSymbologyFloatingPanel
 import { MapRightDockBodyContent } from './MapRightDockBodyContent';
 import { buildMapRuntimeRenderModel } from './buildMapRuntimeRenderModel';
 import { type MapStatusBarCursorHandle, MapStatusBarWithCursor } from './MapStatusBarWithCursor';
+import {
+  MAP_BOTTOM_OUTPUT_DRAWER_DEFAULT_HEIGHT,
+  MAP_BOTTOM_OUTPUT_DRAWER_MAX_HEIGHT,
+  MAP_BOTTOM_OUTPUT_DRAWER_MIN_HEIGHT,
+  MAP_BOTTOM_OUTPUT_DRAWER_TABS,
+  MapBottomOutputDrawer,
+  type MapBottomOutputDrawerTabId,
+} from '../shell';
 import { buildDrawingSnapSources, buildDrawnAoiFromWorkflowResult, filterFeatureCollectionToBounds, getFeatureBounds, getLayerFitBounds, getSelectedFeatureFitBounds, hasPolygonGeometry, isPolygonLayerCandidate, matchesSpatialStatsOutput, mergeBounds, replaceSpatialStatsOutput, resolveFlowDispatchAoiCandidate } from './mapExplorerSpatialHelpers';
 import { publishTabLabel } from './mapExplorerPublishHelpers';
 import { buildTemporalFrameDefinitions, collectTemporalSourceFields, resolvePublishTabId, resolveTemporalRuntimeMode, sceneVerticalDatumValue, sourceHandleCrs } from './mapExplorerSceneHelpers';
@@ -139,6 +148,341 @@ interface CartographyUndoEntry {
   beforeLayer: OverlayLayerConfig;
 }
 
+const outputDrawerStackStyle: React.CSSProperties = {
+  display: 'grid',
+  alignContent: 'start',
+  gap: MAP_SPACING.md,
+  minHeight: '100%',
+  minWidth: 0,
+};
+
+const outputDrawerSectionStyle: React.CSSProperties = {
+  display: 'grid',
+  gap: MAP_SPACING.sm,
+  minWidth: 0,
+  paddingBottom: MAP_SPACING.md,
+  borderBottom: MAP_STROKES.hairlineSubtle,
+};
+
+const outputDrawerSectionHeaderStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  gap: MAP_SPACING.sm,
+  minWidth: 0,
+};
+
+const outputDrawerEyebrowStyle: React.CSSProperties = {
+  color: MAP_COLORS.textMuted,
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+  textTransform: 'uppercase',
+};
+
+const outputDrawerTitleStyle: React.CSSProperties = {
+  margin: 0,
+  color: MAP_COLORS.text,
+  fontSize: MAP_TYPOGRAPHY.fontSize.sm,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+  lineHeight: MAP_TYPOGRAPHY.lineHeight.tight,
+};
+
+const outputDrawerRowStyle: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'minmax(0, 1fr) auto',
+  alignItems: 'start',
+  gap: MAP_SPACING.md,
+  minWidth: 0,
+  padding: MAP_SPACING.sm,
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.sm,
+  background: MAP_COLORS.bgWorkspace,
+};
+
+const outputDrawerRowTitleStyle: React.CSSProperties = {
+  color: MAP_COLORS.text,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+};
+
+const outputDrawerRowMetaStyle: React.CSSProperties = {
+  color: MAP_COLORS.textMuted,
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+};
+
+const outputDrawerRowDetailStyle: React.CSSProperties = {
+  color: MAP_COLORS.textSecondary,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  lineHeight: MAP_TYPOGRAPHY.lineHeight.normal,
+  overflowWrap: 'anywhere',
+};
+
+function OutputDrawerSection({
+  eyebrow,
+  title,
+  meta,
+  children,
+}: {
+  eyebrow?: string;
+  title: string;
+  meta?: React.ReactNode;
+  children: React.ReactNode;
+}): React.ReactElement {
+  return (
+    <section style={outputDrawerSectionStyle}>
+      <div style={outputDrawerSectionHeaderStyle}>
+        <div style={{ display: 'grid', gap: 2, minWidth: 0 }}>
+          {eyebrow ? <span style={outputDrawerEyebrowStyle}>{eyebrow}</span> : null}
+          <h3 style={outputDrawerTitleStyle}>{title}</h3>
+        </div>
+        {meta}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function formatOutputDrawerTimestamp(value: string | null | undefined): string {
+  if (!value) return 'not recorded';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return 'not recorded';
+  return parsed.toLocaleString([], { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
+
+function evidenceStateStatus(state: MapEvidenceArtifact['state']): GisStatusKey {
+  switch (state) {
+    case 'active':
+    case 'published':
+      return 'ready';
+    case 'blocked':
+      return 'blocked';
+    case 'stale':
+      return 'stale';
+    case 'archived':
+      return 'metadata-only';
+    case 'draft':
+    default:
+      return 'unknown';
+  }
+}
+
+function evidenceQaStatus(state: MapEvidenceArtifact['qa']['state']): GisStatusKey {
+  switch (state) {
+    case 'passed':
+      return 'ready';
+    case 'warning':
+      return 'caveat';
+    case 'error':
+    case 'blocked':
+      return 'blocked';
+    case 'unchecked':
+    default:
+      return 'unknown';
+  }
+}
+
+function MapEvidenceArtifactsDrawerBody({ artifacts }: { artifacts: readonly MapEvidenceArtifact[] }): React.ReactElement {
+  if (artifacts.length === 0) {
+    return (
+      <MapBottomPanelScrollBody padding={12}>
+        <GisEmptyState
+          title="No evidence artifacts"
+          description="Workflow outputs, QA findings, exports, and report snapshots will appear here after they are registered."
+          compact
+        />
+      </MapBottomPanelScrollBody>
+    );
+  }
+
+  const recentArtifacts = [...artifacts]
+    .sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt))
+    .slice(0, 20);
+
+  return (
+    <MapBottomPanelScrollBody padding={12} data-testid="map-output-drawer-evidence-body">
+      <div style={outputDrawerStackStyle}>
+        <OutputDrawerSection
+          eyebrow="Evidence"
+          title="Registered artifact references"
+          meta={<GisStatusChip status="metadata-only" label={`${artifacts.length.toLocaleString()} total`} density="compact" />}
+        >
+          <div role="list" aria-label="Map evidence artifacts" style={{ display: 'grid', gap: MAP_SPACING.sm }}>
+            {recentArtifacts.map((artifact) => (
+              <article key={artifact.id} role="listitem" style={outputDrawerRowStyle}>
+                <div style={{ display: 'grid', gap: 4, minWidth: 0 }}>
+                  <span title={artifact.title} style={outputDrawerRowTitleStyle}>{artifact.title}</span>
+                  <span style={outputDrawerRowMetaStyle}>
+                    {artifact.kind} / {artifact.sourceModule} / updated {formatOutputDrawerTimestamp(artifact.updatedAt)}
+                  </span>
+                  {artifact.summary ? <span style={outputDrawerRowDetailStyle}>{artifact.summary}</span> : null}
+                  <span style={outputDrawerRowMetaStyle}>
+                    layers {artifact.linkedLayerIds.length.toLocaleString()} / qa issues {artifact.qa.issueCount.toLocaleString()}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'end', gap: MAP_SPACING.xs }}>
+                  <GisStatusChip status={evidenceStateStatus(artifact.state)} label={artifact.state} density="compact" />
+                  <GisStatusChip status={evidenceQaStatus(artifact.qa.state)} label={`qa ${artifact.qa.state}`} density="compact" />
+                </div>
+              </article>
+            ))}
+          </div>
+        </OutputDrawerSection>
+      </div>
+    </MapBottomPanelScrollBody>
+  );
+}
+
+function MapRuntimeLogsDrawerBody({
+  tasks,
+  telemetryEvents,
+  warnings,
+}: {
+  tasks: readonly MapBottomPanelTask[];
+  telemetryEvents: readonly {
+    id: string;
+    severity: 'info' | 'warning' | 'error';
+    source: string;
+    message: string;
+    createdAt: string;
+    recoverable: boolean;
+  }[];
+  warnings: readonly string[];
+}): React.ReactElement {
+  const recentTelemetry = telemetryEvents.slice(-8).reverse();
+  const hasLogContent = tasks.length > 0 || recentTelemetry.length > 0 || warnings.length > 0;
+
+  if (!hasLogContent) {
+    return (
+      <MapBottomPanelScrollBody padding={12}>
+        <GisEmptyState
+          title="No runtime output"
+          description="Background tasks, performance warnings, and redacted operational telemetry will appear here when available."
+          compact
+        />
+      </MapBottomPanelScrollBody>
+    );
+  }
+
+  return (
+    <MapBottomPanelScrollBody padding={12} data-testid="map-output-drawer-logs-body">
+      <div style={outputDrawerStackStyle}>
+        <OutputDrawerSection
+          eyebrow="Runtime"
+          title="Background tasks"
+          meta={<GisStatusChip status={tasks.some((task) => task.status === 'running') ? 'running' : tasks.length > 0 ? 'ready' : 'unknown'} label={`${tasks.length.toLocaleString()} tracked`} density="compact" />}
+        >
+          <MapBottomPanelTasksBody tasks={tasks} />
+        </OutputDrawerSection>
+
+        {warnings.length > 0 ? (
+          <OutputDrawerSection
+            eyebrow="Performance"
+            title="Current warnings"
+            meta={<GisStatusChip status="caveat" label={`${warnings.length.toLocaleString()} warning(s)`} density="compact" />}
+          >
+            <div role="list" aria-label="Performance warnings" style={{ display: 'grid', gap: MAP_SPACING.sm }}>
+              {warnings.map((warning) => (
+                <div key={warning} role="listitem" style={outputDrawerRowStyle}>
+                  <span style={outputDrawerRowDetailStyle}>{warning}</span>
+                  <GisStatusChip status="caveat" label="warning" density="compact" />
+                </div>
+              ))}
+            </div>
+          </OutputDrawerSection>
+        ) : null}
+
+        {recentTelemetry.length > 0 ? (
+          <OutputDrawerSection
+            eyebrow="Telemetry"
+            title="Redacted operational events"
+            meta={<GisStatusChip status={recentTelemetry.some((event) => event.severity === 'error') ? 'blocked' : recentTelemetry.some((event) => event.severity === 'warning') ? 'caveat' : 'ready'} label={`${recentTelemetry.length.toLocaleString()} recent`} density="compact" />}
+          >
+            <div role="list" aria-label="Operational telemetry events" style={{ display: 'grid', gap: MAP_SPACING.sm }}>
+              {recentTelemetry.map((event) => {
+                const status: GisStatusKey = event.severity === 'error' ? 'blocked' : event.severity === 'warning' ? 'caveat' : 'ready';
+                return (
+                  <article key={event.id} role="listitem" style={outputDrawerRowStyle}>
+                    <div style={{ display: 'grid', gap: 4, minWidth: 0 }}>
+                      <span style={outputDrawerRowTitleStyle}>{event.message}</span>
+                      <span style={outputDrawerRowMetaStyle}>{event.source} / {formatOutputDrawerTimestamp(event.createdAt)}</span>
+                    </div>
+                    <GisStatusChip status={status} label={event.recoverable ? `${event.severity} recoverable` : event.severity} density="compact" />
+                  </article>
+                );
+              })}
+            </div>
+          </OutputDrawerSection>
+        ) : null}
+      </div>
+    </MapBottomPanelScrollBody>
+  );
+}
+
+function MapReportsDrawerBody({
+  readinessItems,
+  dataExportElement,
+  reportElement,
+  reviewPackageElement,
+}: {
+  readinessItems: readonly MapPublishReadinessItem[];
+  dataExportElement: React.ReactNode;
+  reportElement: React.ReactNode;
+  reviewPackageElement: React.ReactNode;
+}): React.ReactElement {
+  const blockedCount = readinessItems.filter((item) => item.status === 'blocked').length;
+  const caveatCount = readinessItems.filter((item) => item.status === 'caveat' || item.status === 'stale' || item.status === 'unknown').length;
+  const readinessStatus: GisStatusKey = blockedCount > 0 ? 'blocked' : caveatCount > 0 ? 'caveat' : 'ready';
+
+  return (
+    <MapBottomPanelScrollBody padding={12} data-testid="map-output-drawer-reports-body">
+      <div style={outputDrawerStackStyle}>
+        <OutputDrawerSection
+          eyebrow="Publish"
+          title="Readiness"
+          meta={<GisStatusChip status={readinessStatus} label={`${readinessItems.length.toLocaleString()} checks`} density="compact" />}
+        >
+          {readinessItems.length > 0 ? (
+            <div role="list" aria-label="Publish readiness checks" style={{ display: 'grid', gap: MAP_SPACING.sm }}>
+              {readinessItems.map((item) => (
+                <article key={item.id} role="listitem" title={item.title} style={outputDrawerRowStyle}>
+                  <div style={{ display: 'grid', gap: 4, minWidth: 0 }}>
+                    <span style={outputDrawerRowTitleStyle}>{item.label}</span>
+                    <span style={outputDrawerRowDetailStyle}>{item.detail}</span>
+                  </div>
+                  <GisStatusChip status={item.status} label={item.status.replace(/-/g, ' ')} density="compact" />
+                </article>
+              ))}
+            </div>
+          ) : (
+            <GisEmptyState
+              title="No publish checks"
+              description="Publish readiness will appear when map layers, export targets, or report metadata are available."
+              compact
+            />
+          )}
+        </OutputDrawerSection>
+        <OutputDrawerSection eyebrow="Report" title="Report handoff">
+          {reportElement}
+        </OutputDrawerSection>
+        <OutputDrawerSection eyebrow="Package" title="Review package">
+          {reviewPackageElement}
+        </OutputDrawerSection>
+        <OutputDrawerSection eyebrow="Data" title="Data export">
+          {dataExportElement}
+        </OutputDrawerSection>
+      </div>
+    </MapBottomPanelScrollBody>
+  );
+}
+
 /* ================================================================== */
 /*  Visually-hidden style (skip-nav link)                              */
 /* ================================================================== */
@@ -169,6 +513,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const legendRef = useRef<HTMLDivElement | null>(null);
   const statusBarRef = useRef<HTMLDivElement | null>(null);
+  const bottomOutputDrawerReturnFocusRef = useRef<HTMLElement | null>(null);
   const scientificQASequenceRef = useRef(0);
   const lastReviewQaSignatureRef = useRef<string | null>(null);
   const lastReviewRecommendationSignatureRef = useRef<string | null>(null);
@@ -193,6 +538,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
   const [workspaceView, setWorkspaceView] = useState<MapWorkspaceView>(initialWorkspaceView);
   const [activeActivityId, setActiveActivityId] = useState<MapActivityId>(initialActivityId);
   const [workbenchSidebarTab, setWorkbenchSidebarTab] = useState<string>('layers-stack');
+  const [bottomOutputDrawerOpen, setBottomOutputDrawerOpen] = useState(false);
+  const [activeBottomOutputDrawerTabId, setActiveBottomOutputDrawerTabId] = useState<MapBottomOutputDrawerTabId>('attributes');
+  const [bottomOutputDrawerHeight, setBottomOutputDrawerHeight] = useState(MAP_BOTTOM_OUTPUT_DRAWER_DEFAULT_HEIGHT);
   const closeMapStartDialog = useCallback(
     (action: MapStartDialogHandoff | 'dismiss' | 'close' | 'escape', announcement?: string) => {
       setMapStartDialogState(current => dismissMapStartDialog(current, action));
@@ -287,6 +635,21 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
   const handleTogglePerformanceDiagnostics = useCallback(() => {
     toggleRightDockPanel('performance', 'Performance diagnostics opened in the right dock', 'toolbar');
   }, [toggleRightDockPanel]);
+  const openBottomOutputDrawer = useCallback(
+    (tabId: MapBottomOutputDrawerTabId, announcement: string) => {
+      const activeElement = typeof document !== 'undefined' ? document.activeElement : null;
+      bottomOutputDrawerReturnFocusRef.current = activeElement instanceof HTMLElement ? activeElement : null;
+      setActiveBottomOutputDrawerTabId(tabId);
+      setBottomOutputDrawerOpen(true);
+      announce(announcement);
+    },
+    [announce],
+  );
+  const closeBottomOutputDrawer = useCallback(() => {
+    setBottomOutputDrawerOpen(false);
+    announce('Output drawer closed');
+    restoreFocusToElement(bottomOutputDrawerReturnFocusRef.current);
+  }, [announce]);
   const [showProcessingToolbox, setShowProcessingToolbox] = useState(false);
   const [showModelBuilder, setShowModelBuilder] = useState(false);
   const [showPluginPanel, setShowPluginPanel] = useState(false);
@@ -1117,12 +1480,12 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
 
     if (targetLayerId) {
       setAttributeTableLayerId(targetLayerId);
-      openRightDockPanel('attributes', 'Selected feature attributes opened in the right dock', 'status-bar');
+      openBottomOutputDrawer('attributes', 'Selected feature attributes opened in the output drawer');
       return;
     }
 
-    openRightDockPanel('attributes', 'Attributes opened in the right dock without an active layer', 'status-bar');
-  }, [activeAnalysisResultLayerIds, attributeTableLayerId, openRightDockPanel, overlayLayers, selectedFeatureIds]);
+    openBottomOutputDrawer('attributes', 'Attributes drawer opened without an active layer');
+  }, [activeAnalysisResultLayerIds, attributeTableLayerId, openBottomOutputDrawer, overlayLayers, selectedFeatureIds]);
 
   const handleOpenSelectionFromStatus = useCallback(() => {
     const selectedCount = Object.values(selectedFeatureIds).reduce((total, featureIds) => total + featureIds.length, 0);
@@ -4489,8 +4852,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
   const activeBackgroundTaskCount = useMemo(() => bottomPanelTasks.filter(task => task.status === 'running').length, [bottomPanelTasks]);
 
   const handleOpenTasksFromStatus = useCallback(() => {
-    openRightDockPanel('tasks', activeBackgroundTaskCount > 0 ? 'Background tasks opened in the right dock' : 'Tasks opened in the right dock', 'status-bar');
-  }, [activeBackgroundTaskCount, openRightDockPanel]);
+    openBottomOutputDrawer('logs', activeBackgroundTaskCount > 0 ? 'Background task log opened in the output drawer' : 'Runtime log opened in the output drawer');
+  }, [activeBackgroundTaskCount, openBottomOutputDrawer]);
 
   const rightAttributesDockActive = activeRightDockRoute?.panel === 'attributes';
   const rightSelectionDockActive = activeRightDockRoute?.panel === 'selection';
@@ -4858,6 +5221,127 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
     />
   );
 
+  const bottomOutputDrawerTabs = MAP_BOTTOM_OUTPUT_DRAWER_TABS.map((tab) => {
+    const badge = (() => {
+      switch (tab.id) {
+        case 'attributes':
+          return selectedFeatureCount > 0 ? selectedFeatureCount.toLocaleString() : null;
+        case 'timeline':
+          return reviewSession.events.length > 0 ? reviewSession.events.length.toLocaleString() : null;
+        case 'problems':
+          return bottomProblemsModel.rows.length > 0 ? bottomProblemsModel.rows.length.toLocaleString() : null;
+        case 'logs':
+          return activeBackgroundTaskCount > 0 ? `${activeBackgroundTaskCount.toLocaleString()} active` : bottomPanelTasks.length > 0 ? bottomPanelTasks.length.toLocaleString() : null;
+        case 'evidence':
+          return mapEvidenceArtifacts.length > 0 ? mapEvidenceArtifacts.length.toLocaleString() : null;
+        case 'review':
+          return reviewCollaborationSnapshot.comments.length > 0 ? reviewCollaborationSnapshot.comments.length.toLocaleString() : null;
+        case 'reports': {
+          const blockedCount = publishReadinessItems.filter((item) => item.status === 'blocked').length;
+          return blockedCount > 0 ? `${blockedCount.toLocaleString()} blocked` : null;
+        }
+        default:
+          return null;
+      }
+    })();
+    return badge ? { ...tab, badge } : tab;
+  });
+
+  const bottomOutputDeferredBody = (
+    title: string,
+    description: string,
+  ): React.ReactElement => (
+    <MapBottomPanelScrollBody padding={12}>
+      <GisEmptyState title={title} description={description} compact />
+    </MapBottomPanelScrollBody>
+  );
+
+  const bottomOutputDrawerContent: Readonly<Record<MapBottomOutputDrawerTabId, React.ReactNode>> = {
+    attributes: bottomOutputDrawerOpen && activeBottomOutputDrawerTabId === 'attributes' ? (
+      <MapAttributeWorkflowPanel
+        layers={overlayLayers}
+        activeLayerId={attributeTableLayerId}
+        selectedFeatureIds={selectedFeatureIds}
+        onActiveLayerChange={setAttributeTableLayerId}
+        onSelectFeatures={handleAttributeTableSelection}
+        onFocusFeature={handleFocusAttributeFeature}
+        onCreateDerivedLayer={handleCreateAttributeDerivedLayer}
+        onClose={closeBottomOutputDrawer}
+        onAnnounce={announce}
+      />
+    ) : bottomOutputDeferredBody(
+      'Attributes are loaded on demand',
+      'Open this tab to mount the active layer table, selected rows, field profile, and join preview.',
+    ),
+    timeline: bottomOutputDrawerOpen && activeBottomOutputDrawerTabId === 'timeline'
+      ? buildReviewTimeline(true, closeBottomOutputDrawer, 'timeline')
+      : bottomOutputDeferredBody(
+        'Timeline is loaded on demand',
+        'Open this tab to review timeline events, audit trail entries, and revertable commands.',
+      ),
+    problems: bottomOutputDrawerOpen && activeBottomOutputDrawerTabId === 'problems' ? (
+      <MapBottomPanelScrollBody padding={12} data-testid="map-output-drawer-problems-body">
+        <MapProblemsPanel model={bottomProblemsModel} compact onProblemAction={handleBottomProblemAction} />
+      </MapBottomPanelScrollBody>
+    ) : bottomOutputDeferredBody(
+      'Problems are loaded on demand',
+      'Open this tab to inspect QA blockers, warnings, CRS issues, and geometry validity rows.',
+    ),
+    logs: bottomOutputDrawerOpen && activeBottomOutputDrawerTabId === 'logs' ? (
+      <MapRuntimeLogsDrawerBody
+        tasks={bottomPanelTasks}
+        telemetryEvents={performanceDiagnostics.telemetryEvents}
+        warnings={performanceDiagnostics.warnings}
+      />
+    ) : bottomOutputDeferredBody(
+      'Runtime logs are loaded on demand',
+      'Open this tab to inspect background tasks, performance warnings, and redacted telemetry.',
+    ),
+    evidence: bottomOutputDrawerOpen && activeBottomOutputDrawerTabId === 'evidence'
+      ? <MapEvidenceArtifactsDrawerBody artifacts={mapEvidenceArtifacts} />
+      : bottomOutputDeferredBody(
+        'Evidence is loaded on demand',
+        'Open this tab to inspect artifact references, provenance, linked layers, and QA state.',
+      ),
+    review: bottomOutputDrawerOpen && activeBottomOutputDrawerTabId === 'review'
+      ? buildReviewTimeline(true, closeBottomOutputDrawer, 'collaboration')
+      : bottomOutputDeferredBody(
+        'Review is loaded on demand',
+        'Open this tab to inspect collaboration status, comments, handoff state, and audit export.',
+      ),
+    reports: bottomOutputDrawerOpen && activeBottomOutputDrawerTabId === 'reports' ? (
+      <MapReportsDrawerBody
+        readinessItems={publishReadinessItems}
+        dataExportElement={publishDataExportElement}
+        reportElement={publishReportElement}
+        reviewPackageElement={publishReviewPackageElement}
+      />
+    ) : bottomOutputDeferredBody(
+      'Reports are loaded on demand',
+      'Open this tab to inspect publish readiness, report handoff, review package, and data export output.',
+    ),
+  };
+
+  const bottomOutputDrawerStatusText = (() => {
+    switch (activeBottomOutputDrawerTabId) {
+      case 'attributes':
+        return attributeTableLayer?.name ?? 'No active attribute layer';
+      case 'problems':
+        return `${bottomProblemsModel.rows.length.toLocaleString()} QA problem(s)`;
+      case 'logs':
+        return `${activeBackgroundTaskCount.toLocaleString()} active task(s)`;
+      case 'evidence':
+        return `${mapEvidenceArtifacts.length.toLocaleString()} evidence artifact(s)`;
+      case 'reports':
+        return `${publishReadinessItems.length.toLocaleString()} publish check(s)`;
+      case 'review':
+        return reviewCollaborationSnapshot.connectionState;
+      case 'timeline':
+      default:
+        return `${reviewSession.events.length.toLocaleString()} timeline event(s)`;
+    }
+  })();
+
   return createPortal(
     <MapWorkspaceShell mode={mode} shellRef={trapRef} onClose={handleMapExplorerCloseRequest} activeActivityId={activeActivityId}>
       {reducedMotion ? <style>{'[data-map-explorer-shell="true"], [data-map-explorer-shell="true"] * { transition: none !important; animation: none !important; scroll-behavior: auto !important; }'}</style> : null}
@@ -5112,6 +5596,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
             '--map-overlay-safe-inset-y': '0.25rem',
             '--map-overlay-safe-top': 'calc(var(--map-shell-command-height, 2.25rem) + var(--map-overlay-safe-inset-y, 0.25rem))',
             '--map-overlay-safe-bottom': '6.75rem',
+            '--map-canvas-control-dock-width': '20rem',
+            '--map-canvas-control-dock-clearance': '10rem',
             '--map-popover-max-height': 'min(24rem, calc(100vh - 8rem))',
             '--map-layer-panel-width': `${dockLayout.layerPanelWidth}px`,
             '--map-activity-rail-width': MAP_ACTIVITY_RAIL_WIDTH,
@@ -5152,13 +5638,27 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
           <div
             style={{
               ...mapStyles.dragOverlay,
+              inset: 'calc(var(--map-overlay-safe-inset-x, 0.75rem) + 0.25rem)',
+              display: 'grid',
+              placeItems: 'center',
+              alignContent: 'center',
+              gap: '0.75rem',
+              textAlign: 'center',
               border: '1px solid var(--syn-border-active, rgba(56, 189, 248, 0.6))',
               background: 'var(--syn-surface-overlay, rgba(8, 12, 18, 0.68))',
               color: 'var(--syn-text-secondary, rgba(203, 213, 225, 0.92))',
             }}
             aria-hidden="true"
+            data-map-safe-inset-consumer="drag-drop"
           >
-            Drop GeoJSON, CSV, Arrow, GeoParquet, KML, KMZ, GPX, or GeoTIFF to import
+            <span style={{ display: 'grid', gap: 4 }}>
+              <span style={{ color: 'var(--syn-text-primary, rgba(244, 247, 255, 0.94))', fontSize: 14, fontWeight: 700 }}>
+                Drop spatial data to import
+              </span>
+              <span style={{ color: 'var(--syn-text-muted, rgba(148, 163, 184, 0.86))', fontSize: 12, fontFamily: 'var(--syn-font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace)' }}>
+                GeoJSON . CSV . Arrow . GeoParquet . KML/KMZ . GPX . GeoTIFF
+              </span>
+            </span>
           </div>
         ) : null}
 
@@ -5205,6 +5705,52 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
 
         <MapCanvas id={mapCanvasId} baseLayer={activeBaseLayer} pinMode={pinMode} pins={pins} interactiveLayerIds={interactiveAnalysisLayerIds} reducedMotion={reducedMotion} preserveDrawingBuffer={mapCanvasCaptureMode} showScaleBar={mapCompositionOptions.includeScaleBar} onCursorMove={handleCursorMove} onZoomChange={handleZoomChange} onViewportChange={handleViewportChange} onMapClick={handleMapClick} onMapReady={handleMapReady} onMapDestroy={handleMapDestroy} onRenderError={handleMapRenderError} onFeatureReportRequest={handleFeatureReportRequest} />
 
+        {overlayLayers.length === 0 && !navigatorStageMode && !isDragActive ? (
+          <div
+            style={{
+              position: 'absolute',
+              left: 'calc(var(--map-dock-left, 0px) + var(--map-overlay-safe-inset-x, 0.75rem))',
+              right: 'calc(var(--map-dock-right, 0px) + var(--map-overlay-safe-inset-x, 0.75rem))',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              display: 'grid',
+              placeItems: 'center',
+              gap: '0.75rem',
+              pointerEvents: 'none',
+              zIndex: 1,
+              color: 'var(--syn-text-secondary, rgba(203, 213, 225, 0.92))',
+              textAlign: 'center',
+            }}
+            role="status"
+            aria-label="Empty map state"
+            data-testid="map-empty-canvas-state"
+            data-map-safe-inset-consumer="empty-map-state"
+          >
+            <div style={{ display: 'grid', gap: '0.5rem', maxWidth: '28rem', padding: '0.75rem 1rem', pointerEvents: 'auto' }}>
+              <span style={{ color: 'var(--syn-text-primary, rgba(244, 247, 255, 0.94))', fontSize: 14, fontWeight: 700 }}>
+                No map layers yet
+              </span>
+              <span style={{ color: 'var(--syn-text-muted, rgba(148, 163, 184, 0.86))', fontSize: 12 }}>
+                Add Data or drop GeoJSON, CSV, Arrow, GeoParquet, KML, KMZ, GPX, or GeoTIFF files on the canvas.
+              </span>
+              <button
+                type="button"
+                style={{
+                  ...mapStyles.btn,
+                  justifySelf: 'center',
+                  border: '1px solid var(--syn-border-active, rgba(56, 189, 248, 0.6))',
+                  color: 'var(--syn-text-primary, rgba(244, 247, 255, 0.94))',
+                  background: 'color-mix(in srgb, var(--syn-interaction-active, #3794ff) 14%, transparent)',
+                  pointerEvents: 'auto',
+                }}
+                onClick={handleImportRequest}
+              >
+                Add Data
+              </button>
+            </div>
+          </div>
+        ) : null}
+
         {publishReportTabActive ? null : (
           <Suspense fallback={null}>
             <LazyMapReportHandoffDrawer draft={reportHandoffDraft} options={reportHandoffOptions} isGeneratingSnapshot={isGeneratingReportHandoffSnapshot} isExportingPdf={isExportingReportHandoffPdf} presentation={dockLayout.compactDock ? 'bottom-drawer' : 'right-rail'} width={dockLayout.rightPanelWidth} onWidthChange={handleRightPanelWidthChange} onOptionsChange={handleReportHandoffOptionsChange} onRefreshSnapshot={handleRefreshReportHandoffSnapshot} onRegisterEvidence={handleRegisterReportEvidenceBlock} onDownloadPdf={handleDownloadReportHandoffPdf} onInsert={handleInsertReportHandoff} onClose={handleCloseReportHandoff} />
@@ -5212,16 +5758,30 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
         )}
 
         <Suspense fallback={null}>
-          <LazyMapInspectorHost visible={inspectorContext.kind !== 'none' && activeRightDockRoute?.panel !== 'inspect'} context={inspectorContext} presentation={dockLayout.compactDock ? 'bottom-drawer' : 'right-rail'} width={dockLayout.rightPanelWidth} onClose={handleCloseInspectorHost} onApplyLayerStyle={handleApplyLayerStyle} returnFocusTo={inspectorReturnFocusRef.current} />
+          <LazyMapInspectorHost visible={inspectorContext.kind !== 'none'} context={inspectorContext} presentation={dockLayout.compactDock ? 'bottom-drawer' : 'right-rail'} width={dockLayout.rightPanelWidth} onClose={handleCloseInspectorHost} onApplyLayerStyle={handleApplyLayerStyle} returnFocusTo={inspectorReturnFocusRef.current} />
         </Suspense>
         <MapExplorerModalRuntimeView announce={announce} handleOpenSceneTab={handleOpenSceneTab} navigatorStageMode={navigatorStageMode} scene3DTabActive={scene3DTabActive} sceneMassingTabActive={sceneMassingTabActive} sceneRasterTabActive={sceneRasterTabActive} sceneSunShadowTabActive={sceneSunShadowTabActive} sceneZoningTabActive={sceneZoningTabActive} showPluginPanel={showPluginPanel} setShowPluginPanel={setShowPluginPanel} pluginExtensions={pluginExtensions} showProcessingToolbox={showProcessingToolbox} setShowProcessingToolbox={setShowProcessingToolbox} analyzeToolsTabActive={analyzeToolsTabActive} searchProcessingTools={searchProcessingTools} processingToolboxLayers={processingToolboxLayers} handlePreviewProcessingTool={handlePreviewProcessingTool} handleRunProcessingTool={handleRunProcessingTool} showModelBuilder={showModelBuilder} setShowModelBuilder={setShowModelBuilder} analyzeModelsTabActive={analyzeModelsTabActive} processingToolDescriptors={processingToolDescriptors} handleRunMapModel={handleRunMapModel} handleRunMapModelBatch={handleRunMapModelBatch} handleExportMapModelToIdeAndUrban={handleExportMapModelToIdeAndUrban} effectiveShowWorkflowDrawer={effectiveShowWorkflowDrawer} analyzeWorkflowsTabActive={analyzeWorkflowsTabActive} workflowPreview={workflowPreview} effectiveShowScientificQAPanel={effectiveShowScientificQAPanel} scientificQA={scientificQA} overlayLayers={overlayLayers} compactDock={dockLayout.compactDock} rightPanelWidth={dockLayout.rightPanelWidth} handleRightPanelWidthChange={handleRightPanelWidthChange} setShowScientificQAPanel={setShowScientificQAPanel} handleFocusLayer={handleFocusLayer} handleInspectLayer={handleInspectLayer} handleRepairLayerGeometry={handleRepairLayerGeometry} handleOpenPublishTab={handleOpenPublishTab} effectiveShowNLQueryPanel={effectiveShowNLQueryPanel} analyzeQueryTabActive={analyzeQueryTabActive} selectedAoiFeatureForQuery={selectedAoiFeatureForQuery} currentMapBounds={currentMapBounds} isRunningMapNLQuery={isRunningMapNLQuery} lastMapNLQuerySummary={lastMapNLQuerySummary} handleRunMapNLQuery={handleRunMapNLQuery} handleMapNLQueryProposalGenerated={handleMapNLQueryProposalGenerated} handleMapNLQueryPreviewDecision={handleMapNLQueryPreviewDecision} setShowNLQueryPanel={setShowNLQueryPanel} urbanWorkflowDraftRequest={urbanWorkflowDraftRequest} workflowContext={workflowContext} setShowWorkflowDrawer={setShowWorkflowDrawer} setWorkflowPreview={setWorkflowPreview} setUrbanWorkflowDraftRequest={setUrbanWorkflowDraftRequest} handleApplyMapWorkflow={handleApplyMapWorkflow} handleSaveWorkflowReport={handleSaveWorkflowReport} handleOpenWorkflowScriptInIde={handleOpenWorkflowScriptInIde} handleExecuteMapWorkflow={handleExecuteMapWorkflow} handleCancelMapWorkflow={handleCancelMapWorkflow} workflowExecution={workflowExecution} mapCanvasControlsProps={mapCanvasControlsProps} showLegendOverlay={mapCompositionOptions.includeLegend} mapPublicationLegendItems={mapPublicationLegendItems} performanceDiagnostics={performanceDiagnostics} openPerformanceRightDock={openPerformanceRightDock} activeRightDockRoute={activeRightDockRoute} rightDockPanels={MAP_RIGHT_DOCK_PANEL_IDS} rightDockBodyContent={rightDockBodyContent} rightDockPresentation={dockLayout.rightPanelPlacement === 'drawer' ? 'side-drawer' : 'right-dock'} handleRightDockHostPanelChange={handleRightDockHostPanelChange} handleCollapseRightDockHost={handleCollapseRightDockHost} handleCloseRightDockHost={handleCloseRightDockHost} effectiveShowUrbanMethodPanel={effectiveShowUrbanMethodPanel} activeUrbanMethodRequest={activeUrbanMethodRequest} activeUrbanMethodPreview={activeUrbanMethodPreview} handleCloseUrbanMethodRail={handleCloseUrbanMethodRail} handleFocusUrbanMethodLayer={handleFocusUrbanMethodLayer} handlePreviewUrbanMethodWorkflow={handlePreviewUrbanMethodWorkflow} showFigureComposer={showFigureComposer} publishFigureTabActive={publishFigureTabActive} bearing={bearing} temporalLayoutRestoreRequest={temporalLayoutRestoreRequest} setShowFigureComposer={setShowFigureComposer} setShowMapExportDialog={setShowMapExportDialog} handleTemporalRestoreRequestHandled={handleTemporalRestoreRequestHandled} mapRef={mapInstanceRef} reducedMotion={reducedMotion} temporalPlayerMap={mapInstanceRef.current} temporalFrames={activeTemporalLayer?.metadata?.analysisResult?.visualization.temporalFrames ?? []} temporalTimeProperty={activeTemporalLayer?.metadata?.analysisResult?.visualization.timeProperty ?? 'timestamp'} temporalSourceId={activeTemporalLayer?.id ?? null} temporalLayerId={activeTemporalLayer?.id ?? null} temporalLayerName={activeTemporalLayer?.name ?? null} temporalPlayerVisible={!!open && sceneTemporalTabActive} showChoroplethPanel={showChoroplethPanel} setShowChoroplethPanel={setShowChoroplethPanel} showClusterViz={showClusterViz} setShowClusterViz={setShowClusterViz} showHotSpotViz={showHotSpotViz} setShowHotSpotViz={setShowHotSpotViz} showEmergingHotSpotViz={showEmergingHotSpotViz} setShowEmergingHotSpotViz={setShowEmergingHotSpotViz} activeDrawTool={activeDrawTool} drawSeed={drawSeed} drawnFeatures={drawnFeatures} drawingSnapSources={drawingSnapSources} selectedFeatureId={selectedFeatureId} addDrawnFeature={addDrawnFeature} removeDrawnFeature={removeDrawnFeature} updateDrawnFeature={updateDrawnFeature} handleCommitDrawnFeatureEdit={handleCommitDrawnFeatureEdit} clearDrawnFeatures={clearDrawnFeatures} setSelectedFeatureId={setSelectedFeatureId} handleCancelDraw={handleCancelDraw} setDrawSeed={setDrawSeed} effectiveShowMeasurePanel={effectiveShowMeasurePanel} rightMeasureDockActive={rightMeasureDockActive} activeMeasureTool={activeMeasureTool} measurementSeed={measurementSeed} measurements={measurements} measureUnit={measureUnit} addMeasurement={addMeasurement} removeMeasurement={removeMeasurement} clearMeasurements={clearMeasurements} setMeasureUnit={setMeasureUnit} handleCancelMeasure={handleCancelMeasure} setMeasurementSeed={setMeasurementSeed} pins={pins} effectiveShowSidebar={effectiveShowSidebar} handleRemovePin={handleRemovePin} handleClearPins={handleClearPins} flyTo={flyTo} effectiveShowLayerPanel={effectiveShowLayerPanel} layerPanelOpenButtonStyle={mapStyles.layerPanelOpenButton} layerOpenButtonIconSize={MAP_ICON_SIZES.sm} handleMapClick={handleMapClick} handleStartMeasureFromContext={handleStartMeasureFromContext} handleStartPolygonFromContext={handleStartPolygonFromContext} handleOpenFlowDispatchDialog={handleOpenFlowDispatchDialog} handleIsochroneDispatch={handleIsochroneDispatch} handleHotSpotDispatch={handleHotSpotDispatch} handleRunSelectionStatistics={handleRunSelectionStatistics} selectionStatsAvailable={selectionStatsAvailable} annotationMode={annotationMode} annotations={annotations} selectedAnnotationId={selectedAnnotationId} annotationToolSettings={annotationToolSettings} handleAddMapAnnotation={handleAddMapAnnotation} handleUpdateMapAnnotation={handleUpdateMapAnnotation} handleMoveMapAnnotation={handleMoveMapAnnotation} handleRemoveMapAnnotation={handleRemoveMapAnnotation} setSelectedAnnotationId={setSelectedAnnotationId} setAnnotationToolSettings={setAnnotationToolSettings} handleDeactivateAnnotationMode={handleDeactivateAnnotationMode} setShowComparisonStrip={setShowComparisonStrip} setShowInteractionStrip={setShowInteractionStrip} setShowLayerPanel={setShowLayerPanel} showComparisonStrip={showComparisonStrip} showInteractionStrip={showInteractionStrip} />
 
         <MapPointSymbologyFloatingPanel visible={Boolean(pointSymbologyLayerId) && !styleSymbolsTabActive && !effectiveShowScientificQAPanel && !effectiveShowNLQueryPanel} layerName={selectedPointSymbologyLayer?.name ?? 'Point layer'} mode={pointSymbologyMode} controls={pointSymbologyControlBody} panelPositionStyle={symbologyPanelDrag.panelPositionStyle} dragHandleStyle={symbologyPanelDrag.dragHandleStyle} dragHandleProps={symbologyPanelDrag.dragHandleProps} onModeChange={setPointSymbologyMode} onClose={() => setPointSymbologyLayerId(null)} />
+
+        <MapBottomOutputDrawer
+          open={bottomOutputDrawerOpen}
+          activeTabId={activeBottomOutputDrawerTabId}
+          onTabChange={setActiveBottomOutputDrawerTabId}
+          onClose={closeBottomOutputDrawer}
+          tabs={bottomOutputDrawerTabs}
+          childrenByTab={bottomOutputDrawerContent}
+          height={bottomOutputDrawerHeight}
+          minHeight={MAP_BOTTOM_OUTPUT_DRAWER_MIN_HEIGHT}
+          maxHeight={MAP_BOTTOM_OUTPUT_DRAWER_MAX_HEIGHT}
+          onHeightChange={setBottomOutputDrawerHeight}
+          statusText={bottomOutputDrawerStatusText}
+        />
       </MapCanvasRegion>
 
       <MapBottomTimeline timelineSlot={bottomTimelineSlot} data-testid="map-bottom-timeline" data-map-right-dock-route={activeRightDockRoute?.panel ?? 'none'} data-map-right-dock-route-source={activeRightDockRoute?.source ?? 'none'} data-map-legacy-bottom-tab={activeRightDockRoute?.legacyBottomTabId ?? 'none'} style={{ paddingLeft: MAP_ACTIVITY_RAIL_WIDTH }}>
         <div ref={statusBarRef}>
-          <MapStatusBarWithCursor ref={statusCursorRef} zoom={zoom} projectId={selectedProjectId} workspaceLabel={workspaceView} taskLensLabel={activeTaskLens.label} densityLabel={toolbarDensity === 'comfortable' ? 'comfort' : toolbarDensity} layerCount={overlayLayers.length} visibleLayerCount={overlayLayers.filter(layer => layer.visible).length} pinCount={pins.length} drawnFeatureCount={drawnFeatures.length} measurementCount={measurements.length} measureUnit={measureUnit} crs="EPSG:4326" syncStatus={viewportSyncStatus} selectedFeatureCount={contextSummary.selection.totalSelectedFeatures} activeCanvasToolLabel={activeCanvasToolLabel} hasActiveAoi={Boolean(contextSummary.activeAoi)} qaStatus={contextSummary.qa.status} qaIssueCount={scientificQAIssueCount} qaBlockerCount={scientificQABlockerCount} onOpenInspect={handleOpenInspectFromStatus} onOpenProject={handleOpenProjectFromStatus} onOpenLayers={handleOpenLayersFromStatus} onOpenCrsReadiness={handleOpenCanvasCrsReadiness} onOpenProblems={() => openMapProblems('status-bar')} onOpenAttributes={handleOpenAttributesFromStatus} onOpenSelection={handleOpenSelectionFromStatus} onOpenDraw={handleOpenDrawFromStatus} onOpenMeasurements={handleOpenMeasurementsFromStatus} reviewEventCount={reviewSession.events.length} onOpenTimeline={() => openRightDockPanel('timeline', 'Review timeline opened in the right dock', 'status-bar')} taskCount={bottomPanelTasks.length} activeTaskCount={activeBackgroundTaskCount} onOpenTasks={handleOpenTasksFromStatus} collaborationStatus={reviewCollaborationSnapshot.connectionState} collaborationPresenceCount={reviewCollaborationSnapshot.presence.length} collaborationCommentCount={reviewCollaborationSnapshot.comments.length} onOpenCollaboration={() => openRightDockPanel('collaboration', 'Review collaboration opened in the right dock', 'status-bar')} onOpenDiagnostics={() => openPerformanceRightDock('Performance diagnostics opened in the right dock', 'status-bar')} performanceMode={performanceDiagnostics.renderMode} performanceIssueCount={performanceIssueCount} lastRenderDurationMs={performanceDiagnostics.lastRenderTiming?.durationMs ?? null} isSaving={isSavingProject} isLoading={isLoadingProject} lastSavedAt={lastSavedAt} autoSaveEnabled={autoSaveEnabled} providerLabel={BASE_STYLES[activeBaseLayer].name} providerHref={activeBaseLayer === 'streets' ? 'https://www.openstreetmap.org/copyright' : activeBaseLayer === 'dark' || activeBaseLayer === 'terrain' ? 'https://carto.com/attributions' : undefined} reducedMotion={reducedMotion} style={{ transition: transitionStyle }} />
+          <MapStatusBarWithCursor ref={statusCursorRef} zoom={zoom} projectId={selectedProjectId} workspaceLabel={workspaceView} taskLensLabel={activeTaskLens.label} densityLabel={toolbarDensity === 'comfortable' ? 'comfort' : toolbarDensity} layerCount={overlayLayers.length} visibleLayerCount={overlayLayers.filter(layer => layer.visible).length} pinCount={pins.length} drawnFeatureCount={drawnFeatures.length} measurementCount={measurements.length} measureUnit={measureUnit} crs="EPSG:4326" syncStatus={viewportSyncStatus} selectedFeatureCount={contextSummary.selection.totalSelectedFeatures} activeCanvasToolLabel={activeCanvasToolLabel} hasActiveAoi={Boolean(contextSummary.activeAoi)} qaStatus={contextSummary.qa.status} qaIssueCount={scientificQAIssueCount} qaBlockerCount={scientificQABlockerCount} onOpenInspect={handleOpenInspectFromStatus} onOpenProject={handleOpenProjectFromStatus} onOpenLayers={handleOpenLayersFromStatus} onOpenCrsReadiness={handleOpenCanvasCrsReadiness} onOpenProblems={() => openBottomOutputDrawer('problems', 'QA Problems opened in the output drawer')} onOpenAttributes={handleOpenAttributesFromStatus} onOpenSelection={handleOpenSelectionFromStatus} onOpenDraw={handleOpenDrawFromStatus} onOpenMeasurements={handleOpenMeasurementsFromStatus} reviewEventCount={reviewSession.events.length} onOpenTimeline={() => openBottomOutputDrawer('timeline', 'Review timeline opened in the output drawer')} taskCount={bottomPanelTasks.length} activeTaskCount={activeBackgroundTaskCount} onOpenTasks={handleOpenTasksFromStatus} collaborationStatus={reviewCollaborationSnapshot.connectionState} collaborationPresenceCount={reviewCollaborationSnapshot.presence.length} collaborationCommentCount={reviewCollaborationSnapshot.comments.length} onOpenCollaboration={() => openRightDockPanel('collaboration', 'Review collaboration opened in the right dock', 'status-bar')} onOpenDiagnostics={() => openPerformanceRightDock('Performance diagnostics opened in the right dock', 'status-bar')} performanceMode={performanceDiagnostics.renderMode} performanceIssueCount={performanceIssueCount} lastRenderDurationMs={performanceDiagnostics.lastRenderTiming?.durationMs ?? null} isSaving={isSavingProject} isLoading={isLoadingProject} lastSavedAt={lastSavedAt} autoSaveEnabled={autoSaveEnabled} providerLabel={BASE_STYLES[activeBaseLayer].name} providerHref={activeBaseLayer === 'streets' ? 'https://www.openstreetmap.org/copyright' : activeBaseLayer === 'dark' || activeBaseLayer === 'terrain' ? 'https://carto.com/attributions' : undefined} reducedMotion={reducedMotion} style={{ transition: transitionStyle }} />
         </div>
       </MapBottomTimeline>
 

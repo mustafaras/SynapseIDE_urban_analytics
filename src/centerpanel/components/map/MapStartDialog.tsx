@@ -30,6 +30,12 @@ export interface MapStartDialogProps {
   activeAoiLabel?: string | null;
   qaIssueCount?: number;
   qaBlockerCount?: number;
+  recentWorkspaces?: ReadonlyArray<{
+    id: string;
+    label: string;
+    lastOpenedAt: string | null;
+    source?: "project" | "local" | "demo";
+  }>;
   onImport: () => void;
   onOpenProject: () => void;
   onAddDemoPack: () => void;
@@ -63,6 +69,14 @@ interface DecisionTile {
   primary?: boolean;
   disabled?: boolean;
   disabledReason?: string;
+  demoBadge?: string;
+}
+
+interface RecentWorkspaceItem {
+  id: string;
+  label: string;
+  lastOpenedAt: string | null;
+  source: "project" | "local" | "demo";
 }
 
 function formatProjectLabel(projectId?: string | null): string {
@@ -90,6 +104,22 @@ function formatSaveState(lastSavedAt?: string | null): string {
     minute: "2-digit",
   }).format(parsed);
   return `Saved ${time}`;
+}
+
+function formatRecentTimestamp(timestamp?: string | null): string {
+  if (!timestamp) {
+    return "No recent save";
+  }
+  const parsed = new Date(timestamp);
+  if (Number.isNaN(parsed.getTime())) {
+    return "No recent save";
+  }
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(parsed);
 }
 
 function resolveCrsSegment(overlayLayers: OverlayLayerConfig[]): { value: string; tone: ReadinessTone } {
@@ -136,6 +166,7 @@ export const MapStartDialog: React.FC<MapStartDialogProps> = ({
   activeAoiLabel = null,
   qaIssueCount = 0,
   qaBlockerCount = 0,
+  recentWorkspaces,
   onImport,
   onOpenProject,
   onAddDemoPack,
@@ -165,6 +196,25 @@ export const MapStartDialog: React.FC<MapStartDialogProps> = ({
   const projectLabel = useMemo(() => formatProjectLabel(selectedProjectId), [selectedProjectId]);
   const saveState = useMemo(() => formatSaveState(lastSavedAt), [lastSavedAt]);
   const hasProject = Boolean(selectedProjectId && selectedProjectId.trim().length > 0);
+
+  const recentWorkspaceItems = useMemo<RecentWorkspaceItem[]>(() => {
+    if (recentWorkspaces && recentWorkspaces.length > 0) {
+      return recentWorkspaces.slice(0, 5).map((workspace) => ({
+        id: workspace.id,
+        label: workspace.label,
+        lastOpenedAt: workspace.lastOpenedAt,
+        source: workspace.source ?? "project",
+      }));
+    }
+
+    const fallbackLabel = hasProject ? projectLabel : "Untitled local workspace";
+    return [{
+      id: hasProject ? String(selectedProjectId) : "local-workspace",
+      label: fallbackLabel,
+      lastOpenedAt: lastSavedAt,
+      source: hasProject ? "project" : "local",
+    }];
+  }, [hasProject, lastSavedAt, projectLabel, recentWorkspaces, selectedProjectId]);
 
   const readiness = useMemo(
     () => getMapWorkspaceReadiness({
@@ -287,6 +337,7 @@ export const MapStartDialog: React.FC<MapStartDialogProps> = ({
       hint: "Load a clearly-labelled sample dataset to explore.",
       Icon: PackageOpen,
       onClick: onAddDemoPack,
+      demoBadge: "DEMO / SYNTHETIC",
     },
     {
       id: "continue",
@@ -350,7 +401,10 @@ export const MapStartDialog: React.FC<MapStartDialogProps> = ({
             >
               <span className={styles.tileIcon} aria-hidden="true"><TileIcon size={16} /></span>
               <span className={styles.tileCopy}>
-                <span className={styles.tileLabel}>{tile.label}</span>
+                <span className={styles.tileLabelRow}>
+                  <span className={styles.tileLabel}>{tile.label}</span>
+                  {tile.demoBadge ? <span className={styles.tileBadge}>{tile.demoBadge}</span> : null}
+                </span>
                 <span className={`${styles.tileHint} ${tile.disabled ? styles.tileDisabledReason : ""}`}>
                   {tile.disabled && tile.disabledReason ? tile.disabledReason : tile.hint}
                 </span>
@@ -362,6 +416,21 @@ export const MapStartDialog: React.FC<MapStartDialogProps> = ({
       </div>
 
       <div className={styles.body}>
+        <section aria-label="Recent workspaces">
+          <div className={styles.sectionLabel}>Recent workspaces</div>
+          <div className={styles.recentWorkspaceList}>
+            {recentWorkspaceItems.map((workspace) => (
+              <div key={workspace.id} className={styles.recentWorkspaceRow}>
+                <span className={styles.recentWorkspaceName}>{workspace.label}</span>
+                <span className={styles.recentWorkspaceMeta}>
+                  <span>{formatRecentTimestamp(workspace.lastOpenedAt)}</span>
+                  <span className={styles.recentWorkspaceSource}>{workspace.source}</span>
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+
         <section aria-label="Readiness summary">
           <div className={styles.sectionLabel}>Readiness</div>
           <div className={styles.readinessStrip}>
@@ -423,11 +492,16 @@ export const MapStartDialog: React.FC<MapStartDialogProps> = ({
       </div>
 
       <footer className={styles.footer}>
-        <span className={styles.footerNote}>
-          You can reopen this dialog from the workspace at any time.
-        </span>
+        <div className={styles.footerLeft}>
+          <button type="button" className={styles.ghostBtn} onClick={onClose}>
+            Dismiss
+          </button>
+          <span className={styles.footerNote}>
+            You can reopen this dialog from the workspace at any time.
+          </span>
+        </div>
         <div className={styles.footerActions}>
-          <button type="button" className={styles.ghostBtn} onClick={onContinue}>
+          <button type="button" className={styles.primaryBtn} onClick={onContinue}>
             <Compass size={14} aria-hidden="true" />
             Continue to map
           </button>

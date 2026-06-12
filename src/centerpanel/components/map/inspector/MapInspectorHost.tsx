@@ -200,10 +200,26 @@ export const MapInspectorHost: React.FC<MapInspectorHostProps> = ({
 
   useEffect(() => {
     if (!visible) return;
-    window.requestAnimationFrame(() => {
-      hostRef.current?.focus({ preventScroll: true });
+    const focusHost = () => hostRef.current?.focus({ preventScroll: true });
+    const rafId = window.requestAnimationFrame(() => {
+      focusHost();
     });
+    return () => {
+      window.cancelAnimationFrame(rafId);
+    };
   }, [context.kind, visible]);
+
+  useEffect(() => {
+    if (!visible) return;
+    const handleWindowKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopPropagation();
+      handleClose();
+    };
+    window.addEventListener("keydown", handleWindowKeyDown, true);
+    return () => window.removeEventListener("keydown", handleWindowKeyDown, true);
+  }, [handleClose, visible]);
 
   if (!visible) return null;
 
@@ -241,6 +257,12 @@ export const MapInspectorHost: React.FC<MapInspectorHostProps> = ({
       data-testid="map-inspector-host"
       data-context={context.kind}
       data-presentation={presentation}
+      onKeyDownCapture={(event) => {
+        if (event.key === "Escape") {
+          event.stopPropagation();
+          handleClose();
+        }
+      }}
       onKeyDown={(event) => {
         if (event.key === "Escape") {
           event.stopPropagation();

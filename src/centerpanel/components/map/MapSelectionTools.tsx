@@ -787,7 +787,7 @@ export const MapSelectionTools: React.FC<MapSelectionToolsProps> = ({
 
   const clearDisabled = totalSelected === 0;
   const selectedActionsDisabled = totalSelected === 0 || selectedCollection.features.length === 0;
-  const panelLeft = `calc(${leftInset}px + ${MAP_SPACING.md})`;
+  const panelLeft = `calc(${leftInset}px + var(--map-overlay-safe-inset-x, 0.75rem))`;
   const flushStyle: React.CSSProperties = variant === "flush"
     ? {
         border: MAP_STROKES.hairline,
@@ -975,7 +975,14 @@ export const MapSelectionTools: React.FC<MapSelectionToolsProps> = ({
 
   if (isBar) {
     return (
-      <div style={barClusterStyle} aria-label="Map selection tools" data-testid="map-selection-tools" data-map-selection-variant="bar">
+      <div
+        style={barClusterStyle}
+        aria-label="Map selection tools"
+        data-testid="map-selection-tools"
+        data-map-selection-cluster="true"
+        data-map-selection-active={activeDragTool ? activeDragTool : totalSelected > 0 ? "selected" : "idle"}
+        data-map-selection-variant="bar"
+      >
         {toolbarRow}
         <AppPopover
           open={filterOpen}
@@ -999,7 +1006,10 @@ export const MapSelectionTools: React.FC<MapSelectionToolsProps> = ({
     <section
       aria-label="Map selection tools"
       data-testid="map-selection-tools"
+      data-map-selection-cluster="true"
+      data-map-selection-active={activeDragTool ? activeDragTool : totalSelected > 0 ? "selected" : "idle"}
       data-map-selection-variant={variant}
+      data-map-safe-inset-consumer="selection-tools"
       style={isEmbedded
         ? embeddedPanelStyle
         : {
@@ -1007,7 +1017,7 @@ export const MapSelectionTools: React.FC<MapSelectionToolsProps> = ({
             ...flushStyle,
             top: topOffset ?? panelStyle.top,
             left: panelLeft,
-            maxWidth: `calc(100% - ${leftInset}px - ${MAP_SPACING.lg})`,
+            maxWidth: `calc(100% - ${leftInset}px - var(--map-dock-right, 0px) - (2 * var(--map-overlay-safe-inset-x, 0.75rem)))`,
           }}
     >
       {toolbarRow}

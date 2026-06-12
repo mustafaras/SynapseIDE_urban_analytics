@@ -362,7 +362,7 @@ const modeBadgeBaseStyle: React.CSSProperties = {
 
 const bannerStyle: React.CSSProperties = {
   position: "absolute",
-  top: "var(--map-overlay-safe-top, calc(var(--map-shell-command-height, 2.75rem) + var(--map-overlay-safe-inset-y, 0.25rem)))",
+  top: "calc(var(--map-overlay-safe-top, calc(var(--map-shell-command-height, 2.75rem) + var(--map-overlay-safe-inset-y, 0.25rem))) + var(--map-canvas-control-dock-clearance, 10rem))",
   width: "min(27rem, calc(100% - 2rem))",
   display: "grid",
   gap: MAP_SPACING.xs,
@@ -371,7 +371,7 @@ const bannerStyle: React.CSSProperties = {
   border: `1px solid ${MAP_COLORS.caveatText}`,
   background: MAP_COLORS.caveat,
   color: MAP_COLORS.textSecondary,
-  zIndex: MAP_Z_INDEX.sidebar + 6,
+  zIndex: MAP_Z_INDEX.mapFurniture,
   boxShadow: MAP_SHADOWS.panel,
 };
 
@@ -529,6 +529,7 @@ export const MapPerformanceBudgetBanner: React.FC<MapPerformanceBudgetBannerProp
       role="status"
       aria-live="polite"
       data-testid="map-performance-bounded-banner"
+      data-map-safe-inset-consumer="performance-banner"
       style={{ ...bannerStyle, right: rightInset }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: MAP_SPACING.xs, color: MAP_COLORS.caveatText, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>

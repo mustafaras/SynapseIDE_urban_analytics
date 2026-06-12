@@ -17,6 +17,13 @@ export interface MapImportPreviewDialogProps {
   onImport?: () => void;
 }
 
+interface SourceFormatCard {
+  id: string;
+  label: string;
+  detail: string;
+  state: "active" | "supported" | "profile-only";
+}
+
 const overlayStyle: React.CSSProperties = {
   position: "absolute",
   inset: 0,
@@ -69,6 +76,68 @@ const summaryGridStyle: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
   borderBottom: MAP_STROKES.hairlineSubtle,
+};
+
+const formatCardsStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
+  gap: 8,
+  padding: MAP_SPACING.sm,
+  borderBottom: MAP_STROKES.hairlineSubtle,
+};
+
+const formatCardStyle: React.CSSProperties = {
+  display: "grid",
+  gap: 4,
+  padding: MAP_SPACING.sm,
+  borderRadius: MAP_RADIUS.sm,
+  border: MAP_STROKES.hairlineSubtle,
+  background: MAP_COLORS.bg,
+};
+
+const schemaSectionStyle: React.CSSProperties = {
+  display: "grid",
+  gap: 8,
+  padding: MAP_SPACING.sm,
+  borderRadius: MAP_RADIUS.sm,
+  border: MAP_STROKES.hairlineSubtle,
+  background: MAP_COLORS.bg,
+};
+
+const schemaGridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "minmax(8rem, 1fr) minmax(6rem, 0.5fr) minmax(0, 1fr)",
+  gap: 0,
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.sm,
+  overflow: "hidden",
+};
+
+const schemaHeaderCellStyle: React.CSSProperties = {
+  padding: "6px 8px",
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+  fontSize: 10,
+  color: MAP_COLORS.textMuted,
+  textTransform: "uppercase",
+  borderBottom: MAP_STROKES.hairlineSubtle,
+  background: MAP_COLORS.bgPanel,
+};
+
+const schemaCellStyle: React.CSSProperties = {
+  padding: "7px 8px",
+  fontSize: 11,
+  color: MAP_COLORS.textSecondary,
+  borderBottom: MAP_STROKES.hairlineSubtle,
+  minWidth: 0,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+};
+
+const profileStatusRowStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
+  gap: 8,
 };
 
 const summaryCellStyle: React.CSSProperties = {
@@ -194,12 +263,61 @@ function supportTone(profile: SourceProfile): React.CSSProperties {
   return { borderColor: MAP_COLORS.error, color: MAP_COLORS.error };
 }
 
+function sourceFormatCards(profile: SourceProfile): SourceFormatCard[] {
+  const activeFormat = profile.format.toUpperCase();
+  return [
+    {
+      id: "active-format",
+      label: activeFormat,
+      detail: "Detected for this source",
+      state: "active",
+    },
+    {
+      id: "vector-support",
+      label: "Vector formats",
+      detail: "GeoJSON, KML, Shapefile ZIP, GeoPackage",
+      state: "supported",
+    },
+    {
+      id: "columnar-support",
+      label: "Columnar formats",
+      detail: "GeoParquet, Arrow IPC, Feather",
+      state: "supported",
+    },
+    {
+      id: "profile-only",
+      label: "Profile-only formats",
+      detail: "FlatGeobuf, PMTiles, selected services",
+      state: "profile-only",
+    },
+  ];
+}
+
+function formatSampleValue(fieldName: string, profile: SourceProfile): string {
+  if (profile.schemaSummary?.source === "feature-scan") {
+    return `derived from ${fieldName}`;
+  }
+  return "sample unavailable";
+}
+
 export const MapImportPreviewDialog: React.FC<MapImportPreviewDialogProps> = ({
   open,
   profile,
   onClose,
   onImport,
 }) => {
+  React.useEffect(() => {
+    if (!open || !profile) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [open, profile, onClose]);
+
   if (!open || !profile) return null;
 
   const importEnabled = Boolean(onImport && profile.canCommit);
@@ -209,6 +327,27 @@ export const MapImportPreviewDialog: React.FC<MapImportPreviewDialogProps> = ({
       ? "This source contains no spatial features to commit."
       : "Resolve preflight blockers before commit.";
   const commitCaveats = profile.caveats.slice(0, 5);
+  const formatCards = sourceFormatCards(profile);
+  const schemaFields = profile.schemaSummary?.fields.slice(0, 8) ?? [];
+  const profileSummary = [
+    {
+      label: "Profile stage",
+      value: profile.profileStrategy.replace(/-/g, " "),
+    },
+    {
+      label: "Profiled at",
+      value: new Intl.DateTimeFormat(undefined, {
+        hour: "2-digit",
+        minute: "2-digit",
+        month: "short",
+        day: "2-digit",
+      }).format(new Date(profile.profiledAt)),
+    },
+    {
+      label: "Skipped rows",
+      value: `${(profile.skippedRecordCount ?? 0).toLocaleString()} skipped`,
+    },
+  ];
 
   return (
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events -- overlay click dismiss
@@ -244,6 +383,26 @@ export const MapImportPreviewDialog: React.FC<MapImportPreviewDialogProps> = ({
               {profile.sourceName} has been profiled. Review CRS, schema, row quality, size, and worker readiness before committing it to the map workspace.
             </div>
           </div>
+        </div>
+
+        <div style={formatCardsStyle} aria-label="Detected source format support">
+          {formatCards.map((card) => (
+            <div
+              key={card.id}
+              style={{
+                ...formatCardStyle,
+                borderColor: card.state === "active"
+                  ? MAP_COLORS.focus
+                  : card.state === "profile-only"
+                    ? MAP_COLORS.caveatText
+                    : MAP_COLORS.hairlineSubtle,
+                background: card.state === "active" ? MAP_COLORS.interactionSubtle : MAP_COLORS.bg,
+              }}
+            >
+              <span style={{ color: MAP_COLORS.text, fontSize: 12, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>{card.label}</span>
+              <span style={{ color: MAP_COLORS.textSecondary, fontSize: 11 }}>{card.detail}</span>
+            </div>
+          ))}
         </div>
 
         <div style={summaryGridStyle}>
@@ -304,6 +463,39 @@ export const MapImportPreviewDialog: React.FC<MapImportPreviewDialogProps> = ({
         </div>
 
         <div style={bodyStyle}>
+          <section style={schemaSectionStyle} aria-label="Import profile progress and schema preview">
+            <div style={profileStatusRowStyle}>
+              {profileSummary.map((entry) => (
+                <div key={entry.label} style={{ ...formatCardStyle, padding: "6px 8px" }}>
+                  <span style={{ color: MAP_COLORS.textMuted, fontFamily: MAP_TYPOGRAPHY.fontFamilyMono, fontSize: 10, textTransform: "uppercase" }}>{entry.label}</span>
+                  <span style={{ color: MAP_COLORS.text, fontSize: 12 }}>{entry.value}</span>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ color: MAP_COLORS.textMuted, fontFamily: MAP_TYPOGRAPHY.fontFamilyMono, fontSize: 10, textTransform: "uppercase" }}>
+              Field/schema preview
+            </div>
+            <div style={schemaGridStyle} data-testid="map-import-schema-grid">
+              <span style={schemaHeaderCellStyle}>Column</span>
+              <span style={schemaHeaderCellStyle}>Type</span>
+              <span style={schemaHeaderCellStyle}>Sample value</span>
+              {schemaFields.length > 0 ? schemaFields.map((field) => (
+                <React.Fragment key={field.name}>
+                  <span style={schemaCellStyle} title={field.name}>{field.name}</span>
+                  <span style={schemaCellStyle} title={field.type ?? "unknown"}>{field.type ?? "unknown"}</span>
+                  <span style={schemaCellStyle} title={formatSampleValue(field.name, profile)}>{formatSampleValue(field.name, profile)}</span>
+                </React.Fragment>
+              )) : (
+                <>
+                  <span style={schemaCellStyle}>No fields detected</span>
+                  <span style={schemaCellStyle}>n/a</span>
+                  <span style={schemaCellStyle}>Preview unavailable for this source</span>
+                </>
+              )}
+            </div>
+          </section>
+
           {profile.rendering?.mode === "preview" ? (
             <div style={boundedPreviewPanelStyle} role="status" data-testid="map-import-bounded-preview-warning">
               <div style={{ color: MAP_COLORS.caveatText, fontSize: 12, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>

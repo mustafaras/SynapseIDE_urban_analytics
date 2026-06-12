@@ -15,7 +15,7 @@ import {
   MAP_Z_INDEX,
 } from "../mapTokens";
 import { ToolParameterForm, type ToolParameterValue } from "./ToolParameterForm";
-import { GisEmptyState, GisIconButton, GisProgressBar } from "../ui";
+import { GisEmptyState, GisIconButton, GisProgressBar, GisSectionHeader } from "../ui";
 import motionStyles from "../design/motion.module.css";
 
 export interface ProcessingToolboxLayerOption {
@@ -211,12 +211,14 @@ const listStyle: React.CSSProperties = {
 };
 
 const listCategoryHeadingStyle: React.CSSProperties = {
-  padding: `${MAP_SPACING.sm} ${MAP_SPACING.md} ${MAP_SPACING.xs}`,
-  color: MAP_COLORS.textMuted,
-  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
-  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
-  textTransform: "uppercase",
-  letterSpacing: 0,
+  padding: MAP_SPACING.zero,
+  background: MAP_COLORS.transparent,
+};
+
+const sectionHeaderStyle: React.CSSProperties = {
+  padding: MAP_SPACING.zero,
+  borderBottom: MAP_STROKES.none,
+  background: MAP_COLORS.transparent,
 };
 
 const detailStyle: React.CSSProperties = {
@@ -608,7 +610,7 @@ export function MapProcessingToolboxPanel({
           })}
         </div>
         <div style={runtimeLegendStyle} data-testid="processing-tool-runtime-legend" aria-label="Processing runtime modes">
-          <span>Runtime modes</span>
+          <GisSectionHeader title="Runtime modes" level={4} compact separator={false} style={sectionHeaderStyle} />
           {ALL_RUNTIME_MODES.map((mode) => (
             <span key={mode} style={chipStyle("mode")}>
               {RUNTIME_LABELS[mode]}
@@ -630,7 +632,7 @@ export function MapProcessingToolboxPanel({
           ) : (
             groupedResults.map(([category, tools]) => (
               <div key={category}>
-                <div style={listCategoryHeadingStyle}>{category}</div>
+                <GisSectionHeader title={category} level={4} compact separator={false} style={listCategoryHeadingStyle} />
                 {tools.map((tool) => {
                   const active = selected?.toolId === tool.toolId;
                   return (
@@ -702,7 +704,7 @@ export function MapProcessingToolboxPanel({
               <div style={readinessCardStyle(readinessTone)} data-testid="processing-tool-readiness-card">
                 <div style={readinessHeaderStyle}>
                   <div style={detailSectionStyle}>
-                    <span style={eyebrowStyle}>Preview and readiness</span>
+                    <GisSectionHeader title="Preview and readiness" level={4} compact separator={false} style={sectionHeaderStyle} />
                     <strong>{readinessTitle}</strong>
                     <span style={{ color: MAP_COLORS.textSecondary, fontSize: MAP_TYPOGRAPHY.fontSize.xs }}>
                       {selected.implemented

@@ -89,6 +89,7 @@ export const MapSearchBar: React.FC<MapSearchBarProps> = ({ onFlyTo, onResultCou
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<NominatimSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [focused, setFocused] = useState(false);
 
   const handleSearch = useCallback(async () => {
     if (!query.trim()) return;
@@ -129,14 +130,27 @@ export const MapSearchBar: React.FC<MapSearchBarProps> = ({ onFlyTo, onResultCou
 
   return (
     <div
+      data-testid={compact ? "map-search-capsule" : undefined}
+      data-map-search-expanded={compact && (focused || results.length > 0) ? "true" : "false"}
       style={{
         position: "relative",
         display: "flex",
         alignItems: "center",
         gap: compact ? MAP_SPACING.xs : MAP_SPACING.sm,
         minWidth: compact ? "9.5rem" : undefined,
-        width: compact ? "100%" : undefined,
+        width: compact
+          ? focused || results.length > 0
+            ? "min(24rem, calc(100vw - 4rem))"
+            : "clamp(10rem, 14vw, 14rem)"
+          : undefined,
+        maxWidth: compact ? "100%" : undefined,
         flex: compact ? "1 1 100%" : undefined,
+        padding: compact ? "0.125rem" : undefined,
+        border: compact ? MAP_STROKES.hairlineSubtle : undefined,
+        borderRadius: compact ? MAP_RADIUS.full : undefined,
+        background: compact ? "color-mix(in srgb, var(--syn-surface-panel, rgba(12, 16, 24, 0.88)) 86%, transparent)" : undefined,
+        boxShadow: compact && (focused || results.length > 0) ? MAP_SHADOWS.dropdown : undefined,
+        transition: compact ? MAP_TRANSITIONS.fast : undefined,
       }}
     >
       <input
@@ -149,6 +163,7 @@ export const MapSearchBar: React.FC<MapSearchBarProps> = ({ onFlyTo, onResultCou
           padding: compact ? `${MAP_SPACING.zero} ${MAP_SPACING.sm}` : searchInput.padding,
           fontFamily: compact ? MAP_TYPOGRAPHY.fontFamilyMono : undefined,
           borderColor: compact ? "transparent" : undefined,
+          background: compact ? MAP_COLORS.transparent : searchInput.background,
         }}
         placeholder="Search location..."
         value={query}
@@ -157,12 +172,14 @@ export const MapSearchBar: React.FC<MapSearchBarProps> = ({ onFlyTo, onResultCou
           if (e.key === "Enter") handleSearch();
         }}
         onFocus={(e) => {
+          setFocused(true);
           e.currentTarget.style.borderColor = MAP_COLORS.focus;
           e.currentTarget.style.outline = `2px solid ${MAP_COLORS.focus}`;
           e.currentTarget.style.outlineOffset = "2px";
         }}
         onBlur={(e) => {
-          e.currentTarget.style.borderColor = MAP_COLORS.hairlineSubtle;
+          setFocused(false);
+          e.currentTarget.style.borderColor = compact ? "transparent" : MAP_COLORS.hairlineSubtle;
           e.currentTarget.style.outline = "";
           e.currentTarget.style.outlineOffset = "";
         }}
@@ -195,7 +212,16 @@ export const MapSearchBar: React.FC<MapSearchBarProps> = ({ onFlyTo, onResultCou
       </button>
 
       {results.length > 0 && (
-        <div id="map-search-results" style={dropdownContainer} role="listbox" aria-label="Search results">
+        <div
+          id="map-search-results"
+          style={{
+            ...dropdownContainer,
+            minWidth: compact ? "100%" : dropdownContainer.minWidth,
+            maxWidth: compact ? "min(24rem, calc(100vw - 4rem))" : dropdownContainer.maxWidth,
+          }}
+          role="listbox"
+          aria-label="Search results"
+        >
           {results.map((r, i) => (
             <button
               key={i}

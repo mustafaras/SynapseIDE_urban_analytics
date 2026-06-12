@@ -164,6 +164,9 @@ export const MapRightDockHost: React.FC<MapRightDockHostProps> = ({
   }, [normalizedPanels, visiblePanels]);
 
   useEffect(() => {
+    if (route.panel === "inspect") {
+      return;
+    }
     window.requestAnimationFrame(() => {
       hostRef.current?.focus({ preventScroll: true });
     });
@@ -243,7 +246,7 @@ export const MapRightDockHost: React.FC<MapRightDockHostProps> = ({
         title={activeDefinition.label}
         subtitle="Right inspector"
         activeWorkspaceName={TIER_LABELS[getMapRightDockPanelTier(route.panel)]}
-        closeLabel={`Close ${activeDefinition.label}`}
+              closeLabel="Close right dock"
         collapseLabel={`Collapse ${activeDefinition.label}`}
         onToggleCollapse={onCollapse}
         onClose={onClose}

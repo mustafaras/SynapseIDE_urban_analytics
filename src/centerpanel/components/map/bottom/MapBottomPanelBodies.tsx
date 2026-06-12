@@ -1,7 +1,8 @@
 import React from "react";
-import { Activity, AlertTriangle, CheckCircle2, Circle, CircleDashed } from "lucide-react";
+import { Circle } from "lucide-react";
 import type { MapBottomPanelTabId } from "../mapLegacyBottomTabs";
 import {
+  type GisStatusKey,
   MAP_COLORS,
   MAP_ICON_SIZES,
   MAP_RADIUS,
@@ -10,7 +11,7 @@ import {
   MAP_TEXT_STYLES,
   MAP_TYPOGRAPHY,
 } from "../mapTokens";
-import { GisEmptyState } from "../ui";
+import { GisEmptyState, GisStatusChip } from "../ui";
 
 export type MapBottomPanelCoreTabId = Extract<
   MapBottomPanelTabId,
@@ -118,50 +119,31 @@ const taskStatusStyle: React.CSSProperties = {
   textTransform: "capitalize",
 };
 
-function statusTone(status: MapBottomPanelTaskStatus): { color: string; background: string; icon: React.ReactNode } {
+function taskStatusToGisStatus(status: MapBottomPanelTaskStatus): GisStatusKey {
   switch (status) {
     case "running":
-      return {
-        color: "var(--syn-status-running, #60a5fa)",
-        background: "rgba(37, 99, 235, 0.14)",
-        icon: <Activity size={MAP_ICON_SIZES.xs} aria-hidden="true" />,
-      };
+      return "running";
     case "warning":
-      return {
-        color: MAP_COLORS.caveatText,
-        background: MAP_COLORS.caveat,
-        icon: <AlertTriangle size={MAP_ICON_SIZES.xs} aria-hidden="true" />,
-      };
+      return "caveat";
     case "blocked":
-      return {
-        color: MAP_COLORS.error,
-        background: "rgba(127, 29, 29, 0.28)",
-        icon: <AlertTriangle size={MAP_ICON_SIZES.xs} aria-hidden="true" />,
-      };
+      return "blocked";
     case "ready":
     case "complete":
-      return {
-        color: MAP_COLORS.success,
-        background: MAP_COLORS.selectedSubtle,
-        icon: <CheckCircle2 size={MAP_ICON_SIZES.xs} aria-hidden="true" />,
-      };
+      return "ready";
     case "idle":
     default:
-      return {
-        color: MAP_COLORS.textMuted,
-        background: MAP_COLORS.transparent,
-        icon: <CircleDashed size={MAP_ICON_SIZES.xs} aria-hidden="true" />,
-      };
+      return "unknown";
   }
 }
 
 function TaskStatusChip({ status }: { status: MapBottomPanelTaskStatus }): React.ReactElement {
-  const tone = statusTone(status);
   return (
-    <span style={{ ...taskStatusStyle, color: tone.color, background: tone.background, borderColor: tone.color }}>
-      {tone.icon}
-      {status}
-    </span>
+    <GisStatusChip
+      status={taskStatusToGisStatus(status)}
+      label={status}
+      density="compact"
+      style={taskStatusStyle}
+    />
   );
 }
 

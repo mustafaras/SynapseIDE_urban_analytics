@@ -28,6 +28,7 @@ import type {
 } from "./mapTypes";
 import type { SelectionDragTool } from "./MapSelectionTools";
 import { MapLayerPanel } from "./MapLayerPanel";
+import { MapCanvasControlDock } from "./shell/MapCanvasControlDock";
 import {
   MAP_COLORS,
   MAP_ICON_SIZES,
@@ -64,11 +65,14 @@ export interface MapCanvasControlsProps {
   /** Optional product wordmark shown at the start of the command bar. */
   brandTitle?: string;
   brandSubtitle?: string;
+  mapOnlyMode?: boolean;
+  pinCount?: number;
+  bookmarkCount?: number;
   /**
    * Render surface:
-   * - "full"   — standalone floating overlay bar + north arrow + keyboard popover (default; used by unit tests)
+   * - "full"   — standalone canvas dock + keyboard popover (default; used by unit tests)
    * - "bar"    — inline tool cluster only, to embed inside the unified command header
-   * - "overlay"— north arrow + keyboard popover only, anchored over the map canvas
+   * - "overlay"— safe-inset canvas dock + keyboard popover over the map canvas
    */
   surface?: "full" | "bar" | "overlay";
   onZoomIn: () => void;
@@ -84,6 +88,7 @@ export interface MapCanvasControlsProps {
   onDrawAoi: () => void;
   onMeasureDistance: () => void;
   onMeasureArea: () => void;
+  onToggleMapOnlyMode?: () => void;
   keyboardHelpVisible: boolean;
   onToggleKeyboardHelp: () => void;
   onClearActiveTool: () => void;
@@ -95,7 +100,7 @@ const rootStyle: React.CSSProperties = {
   pointerEvents: "none",
   /* Below MAP_Z_INDEX.sidebar so docked/overlay panel rails always paint
      above canvas furniture (command bar, legend, help) at compact widths. */
-  zIndex: MAP_Z_INDEX.sidebar - 1,
+  zIndex: MAP_Z_INDEX.mapFurniture,
 };
 
 /* ------------------------------------------------------------------ */
@@ -105,24 +110,8 @@ const rootStyle: React.CSSProperties = {
 /* ------------------------------------------------------------------ */
 
 const commandBarStyle: React.CSSProperties = {
-  position: "absolute",
-  top: MAP_SPACING.zero,
-  left: "calc(var(--map-dock-left, 0px))",
-  right: "calc(var(--map-dock-right, 0px))",
-  display: "flex",
-  alignItems: "center",
-  gap: MAP_SPACING.xs,
-  height: "2.75rem",
-  minHeight: "2.75rem",
-  padding: `0 ${MAP_SPACING.sm}`,
-  boxSizing: "border-box",
-  background: MAP_COLORS.bgHeader,
-  borderBottom: MAP_STROKES.hairlineStrong,
-  boxShadow: MAP_SHADOWS.none,
-  pointerEvents: "auto",
-  overflowX: "visible",
-  overflowY: "visible",
-  zIndex: MAP_Z_INDEX.dropdown,
+  width: "min(42rem, calc(100% - var(--map-dock-left, 0px) - var(--map-dock-right, 0px) - 2rem))",
+  maxWidth: "calc(100% - var(--map-dock-left, 0px) - var(--map-dock-right, 0px) - 2rem)",
 };
 
 const embeddedBarStyle: React.CSSProperties = {
@@ -253,24 +242,86 @@ const toolMetaStyle: React.CSSProperties = {
 };
 
 const northArrowStyle: React.CSSProperties = {
-  position: "absolute",
-  right: "calc(var(--map-dock-right, 0px) + var(--map-overlay-safe-inset-x, 0.75rem))",
-  bottom: "var(--map-overlay-safe-bottom, 6.75rem)",
-  width: "2.5rem",
-  height: "2.5rem",
-  display: "grid",
-  placeItems: "center",
-  border: MAP_STROKES.hairlineStrong,
   borderRadius: MAP_RADIUS.full,
-  background: "var(--syn-surface-panel, rgba(12, 16, 24, 0.9))",
-  color: MAP_COLORS.text,
-  pointerEvents: "none",
+  borderColor: "color-mix(in srgb, var(--syn-interaction-active, #3794ff) 28%, transparent)",
 };
 
 const northArrowNeedleStyle: React.CSSProperties = {
   display: "grid",
   placeItems: "center",
   color: MAP_COLORS.interaction,
+};
+
+const dockDividerStyle: React.CSSProperties = {
+  width: 1,
+  height: "1.5rem",
+  background: "var(--syn-border-subtle, rgba(148, 163, 184, 0.28))",
+  flexShrink: 0,
+  margin: "0 0.1875rem",
+};
+
+const dockChipStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "0.25rem",
+  minHeight: "1.5rem",
+  maxWidth: "9.5rem",
+  padding: "0 0.5rem",
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.full,
+  background: "color-mix(in srgb, var(--syn-surface-subtle, rgba(15, 23, 42, 0.68)) 78%, transparent)",
+  color: MAP_COLORS.textMuted,
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+  fontSize: "0.625rem",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+};
+
+const dockChipActiveStyle: React.CSSProperties = {
+  ...dockChipStyle,
+  borderColor: "color-mix(in srgb, var(--syn-interaction-active, #3794ff) 32%, transparent)",
+  color: MAP_COLORS.interaction,
+  background: "color-mix(in srgb, var(--syn-interaction-active, #3794ff) 12%, transparent)",
+};
+
+const contextualTrayStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "auto minmax(0, 1fr) auto",
+  alignItems: "center",
+  gap: MAP_SPACING.xs,
+  minWidth: 0,
+  padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.sm,
+  background: "color-mix(in srgb, var(--syn-surface-subtle, rgba(15, 23, 42, 0.72)) 86%, transparent)",
+};
+
+const contextualTrayTextStyle: React.CSSProperties = {
+  display: "grid",
+  gap: 1,
+  minWidth: 0,
+};
+
+const contextualTrayTitleStyle: React.CSSProperties = {
+  minWidth: 0,
+  color: MAP_COLORS.text,
+  fontFamily: MAP_TYPOGRAPHY.fontFamily,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+};
+
+const contextualTrayMetaStyle: React.CSSProperties = {
+  minWidth: 0,
+  color: MAP_COLORS.textMuted,
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+  fontSize: "0.625rem",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
 };
 
 function selectionToolLabel(tool: SelectionDragTool): string {
@@ -365,6 +416,9 @@ export const MapCanvasControls: React.FC<MapCanvasControlsProps> = ({
   scaleBarVisible,
   northArrowVisible,
   bearing,
+  mapOnlyMode = false,
+  pinCount = 0,
+  bookmarkCount = 0,
   fitSelectedDisabled = false,
   fitSelectedReason = "Select a feature, layer, or AOI before fitting the map.",
   fitVisibleDisabled = false,
@@ -382,6 +436,7 @@ export const MapCanvasControls: React.FC<MapCanvasControlsProps> = ({
   onDrawAoi,
   onMeasureDistance,
   onMeasureArea,
+  onToggleMapOnlyMode,
   keyboardHelpVisible,
   onToggleKeyboardHelp,
   onClearActiveTool,
@@ -577,23 +632,183 @@ export const MapCanvasControls: React.FC<MapCanvasControlsProps> = ({
   ) : null;
 
   const northArrowNode = northArrowVisible ? (
-    <div
+    <GisIconButton
+      label="Reset north arrow bearing"
+      tooltip="Reset north arrow bearing"
+      icon={(
+        <span style={{ position: "relative", display: "grid", placeItems: "center" }}>
+          <span style={{ ...northArrowNeedleStyle, transform: `rotate(${-safeBearing}deg)` }}>
+            <Navigation size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+          </span>
+          <span
+            aria-hidden="true"
+            style={{
+              position: "absolute",
+              top: "-0.5rem",
+              color: MAP_COLORS.text,
+              fontSize: "0.5rem",
+              fontWeight: 700,
+              lineHeight: 1,
+            }}
+          >
+            N
+          </span>
+        </span>
+      )}
+      size="sm"
+      active={Math.abs(safeBearing) > 1}
+      showPressedState={false}
+      onClick={onResetView}
       style={northArrowStyle}
-      aria-hidden="true"
       data-testid="map-north-arrow-preview"
-    >
-      <span style={{ ...northArrowNeedleStyle, transform: `rotate(${-safeBearing}deg)` }}>
-        <Navigation size={MAP_ICON_SIZES.md} aria-hidden="true" />
+    />
+  ) : null;
+
+  const mapOnlyNode = (
+    <GisIconButton
+      label={mapOnlyMode ? "Restore map workspace chrome" : "Map-only mode"}
+      tooltip={mapOnlyMode ? "Restore map workspace chrome" : "Map-only mode"}
+      icon={<Maximize2 size={MAP_ICON_SIZES.sm} aria-hidden="true" />}
+      size="sm"
+      active={mapOnlyMode}
+      onClick={onToggleMapOnlyMode ?? (() => undefined)}
+      data-testid="map-canvas-map-only-toggle"
+    />
+  );
+
+  const dockPrimaryNode = (
+    <>
+      {viewportGroup}
+      <span style={dockDividerStyle} aria-hidden="true" />
+      {northArrowNode}
+      <span style={dockDividerStyle} aria-hidden="true" />
+      {furnitureGroup}
+      <span style={dockDividerStyle} aria-hidden="true" />
+      {mapOnlyNode}
+    </>
+  );
+
+  const dockChipsNode = (
+    <>
+      <span
+        style={visibleLayerCount > 0 ? dockChipActiveStyle : dockChipStyle}
+        data-map-canvas-dock-chip="layers"
+        title={`${visibleLayerCount.toLocaleString()} visible layers`}
+      >
+        {visibleLayerCount.toLocaleString()} visible
       </span>
-      <span style={{ position: "absolute", top: "0.25rem", fontSize: "0.625rem", fontWeight: 700 }}>N</span>
+      <span
+        style={selectedFeatureCount > 0 || hasActiveAoi ? dockChipActiveStyle : dockChipStyle}
+        data-map-canvas-dock-chip="selection"
+        title={hasActiveAoi ? "AOI active" : `${selectedFeatureCount.toLocaleString()} selected features`}
+      >
+        {hasActiveAoi ? "AOI" : `${selectedFeatureCount.toLocaleString()} selected`}
+      </span>
+      <span
+        style={pinCount > 0 || bookmarkCount > 0 ? dockChipActiveStyle : dockChipStyle}
+        data-map-canvas-dock-chip="pins-bookmarks"
+        title={`${pinCount.toLocaleString()} pins / ${bookmarkCount.toLocaleString()} bookmarks`}
+      >
+        {pinCount.toLocaleString()} pins / {bookmarkCount.toLocaleString()} views
+      </span>
+    </>
+  );
+
+  const selectionContextTray = selectionDragTool || selectedFeatureCount > 0 || hasActiveAoi ? (
+    <div
+      style={contextualTrayStyle}
+      data-map-canvas-context-tray="selection"
+      data-active={selectionDragTool ? "true" : undefined}
+      role="status"
+      aria-label="Selection context"
+    >
+      <MousePointer2 size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+      <span style={contextualTrayTextStyle}>
+        <span style={contextualTrayTitleStyle}>
+          {selectionDragTool ? selectionToolLabel(selectionDragTool) : "Selection"}
+        </span>
+        <span style={contextualTrayMetaStyle}>
+          {hasActiveAoi ? "AOI active" : `${selectedFeatureCount.toLocaleString()} selected`}
+        </span>
+      </span>
+      <GisIconButton
+        label={tool.clearable ? "Clear active map tool" : "Clear selected context"}
+        tooltip={tool.clearable ? "Clear active map tool" : "Clear selected context"}
+        icon={<X size={MAP_ICON_SIZES.sm} aria-hidden="true" />}
+        size="sm"
+        showPressedState={false}
+        disabled={!tool.clearable && selectedFeatureCount === 0 && !hasActiveAoi}
+        disabledReason="No active map selection context to clear"
+        onClick={onClearActiveTool}
+      />
     </div>
   ) : null;
+
+  const drawContextTray = activeDrawTool ? (
+    <div
+      style={contextualTrayStyle}
+      data-map-canvas-context-tray="draw"
+      data-active="true"
+      role="status"
+      aria-label="Drawing tool context"
+    >
+      <Crosshair size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+      <span style={contextualTrayTextStyle}>
+        <span style={contextualTrayTitleStyle}>{drawToolLabel(activeDrawTool)}</span>
+        <span style={contextualTrayMetaStyle}>Click the canvas to continue drawing</span>
+      </span>
+      <GisIconButton
+        label="Cancel draw AOI"
+        tooltip="Cancel draw AOI"
+        icon={<X size={MAP_ICON_SIZES.sm} aria-hidden="true" />}
+        size="sm"
+        active
+        onClick={onDrawAoi}
+      />
+    </div>
+  ) : null;
+
+  const measureContextTray = activeMeasureTool ? (
+    <div
+      style={contextualTrayStyle}
+      data-map-canvas-context-tray="measure"
+      data-active="true"
+      role="status"
+      aria-label="Measurement tool context"
+    >
+      <Ruler size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+      <span style={contextualTrayTextStyle}>
+        <span style={contextualTrayTitleStyle}>{measureToolLabel(activeMeasureTool)}</span>
+        <span style={contextualTrayMetaStyle}>Readouts stay in the dock edge</span>
+      </span>
+      <GisIconButton
+        label={activeMeasureTool === "measure-distance" ? "Cancel measure distance" : "Cancel measure area"}
+        tooltip={activeMeasureTool === "measure-distance" ? "Cancel measure distance" : "Cancel measure area"}
+        icon={<X size={MAP_ICON_SIZES.sm} aria-hidden="true" />}
+        size="sm"
+        active
+        onClick={activeMeasureTool === "measure-distance" ? onMeasureDistance : onMeasureArea}
+      />
+    </div>
+  ) : null;
+
+  const overlayContextNode = (
+    <>
+      {drawContextTray}
+      {measureContextTray}
+      {selectionContextTray}
+    </>
+  );
 
   if (surface === "overlay") {
     return (
       <div style={rootStyle} role="group" aria-label="Map canvas overlays" data-testid="map-canvas-overlays">
+        <MapCanvasControlDock
+          primary={dockPrimaryNode}
+          chips={dockChipsNode}
+          contextual={drawContextTray || measureContextTray || selectionContextTray ? overlayContextNode : null}
+        />
         {keyboardPanel}
-        {northArrowNode}
       </div>
     );
   }
@@ -624,16 +839,26 @@ export const MapCanvasControls: React.FC<MapCanvasControlsProps> = ({
 
   return (
     <div style={rootStyle} role="group" aria-label="Map canvas controls" data-testid="map-canvas-controls">
-      <div style={commandBarStyle} data-testid="map-command-bar" data-map-command-bar="true">
-        {viewportGroup}
-        <span style={barDividerStyle} aria-hidden="true" />
-        {indicatorNode}
-        <span style={barDividerStyle} aria-hidden="true" />
-        {interactionGroup}
-        {furnitureGroup}
-      </div>
+      <MapCanvasControlDock
+        primary={(
+          <>
+            {viewportGroup}
+            <span style={dockDividerStyle} aria-hidden="true" />
+            {indicatorNode}
+            <span style={dockDividerStyle} aria-hidden="true" />
+            {interactionGroup}
+            <span style={dockDividerStyle} aria-hidden="true" />
+            {furnitureGroup}
+            <span style={dockDividerStyle} aria-hidden="true" />
+            {northArrowNode}
+            {mapOnlyNode}
+          </>
+        )}
+        chips={dockChipsNode}
+        contextual={drawContextTray || measureContextTray || selectionContextTray ? overlayContextNode : null}
+        style={commandBarStyle}
+      />
       {keyboardPanel}
-      {northArrowNode}
     </div>
   );
 };

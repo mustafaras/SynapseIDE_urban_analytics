@@ -13,13 +13,13 @@ import type { MapWorkflowPreview } from "../../../../services/map/MapWorkflowSer
 const workflowPreviewHudStyle: React.CSSProperties = {
   position: "absolute",
   left: "50%",
-  bottom: `calc(${MAP_SPACING.lg} + ${MAP_SPACING.lg})`,
+  bottom: "calc(var(--map-overlay-safe-bottom, 6.75rem) + 0.75rem)",
   transform: "translateX(-50%)",
-  zIndex: MAP_Z_INDEX.panel,
+  zIndex: MAP_Z_INDEX.mapFurniture,
   display: "grid",
   gap: MAP_SPACING.xs,
-  minWidth: "min(26rem, calc(100% - 2rem))",
-  maxWidth: "34rem",
+  minWidth: "min(26rem, calc(100% - var(--map-dock-left, 0px) - var(--map-dock-right, 0px) - 2rem))",
+  maxWidth: "min(34rem, calc(100% - var(--map-dock-left, 0px) - var(--map-dock-right, 0px) - 2rem))",
   padding: `${MAP_SPACING.sm} ${MAP_SPACING.md}`,
   border: "1px solid var(--syn-border-strong, rgba(148, 163, 184, 0.48))",
   borderRadius: MAP_RADIUS.sm,
@@ -37,7 +37,7 @@ const workflowDividerStyle: React.CSSProperties = {
   width: MAP_DIMENSIONS.separatorWidth,
   background: "var(--syn-status-info, #38bdf8)",
   pointerEvents: "none",
-  zIndex: MAP_Z_INDEX.panel - 1,
+  zIndex: MAP_Z_INDEX.mapFurniture - 1,
 };
 
 const comparisonLegendStyle: React.CSSProperties = {
@@ -139,7 +139,7 @@ export const WorkflowPreviewOverlay: React.FC<{ preview: MapWorkflowPreview | nu
           aria-hidden="true"
         />
       ) : null}
-      <div style={workflowPreviewHudStyle} data-testid="map-workflow-preview-hud" aria-live="polite">
+      <div style={workflowPreviewHudStyle} data-testid="map-workflow-preview-hud" data-map-safe-inset-consumer="workflow-preview" aria-live="polite">
         <strong style={{ color: "var(--syn-text-primary, rgba(244, 247, 255, 0.94))" }}>
           {comparison ? "Comparison preview" : "Workflow preview layer"}
         </strong>

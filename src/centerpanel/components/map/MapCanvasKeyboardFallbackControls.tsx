@@ -37,14 +37,15 @@ const controlShellStyle: React.CSSProperties = {
   position: "absolute",
   right: "calc(var(--map-dock-right, 0px) + var(--map-overlay-safe-inset-x, 0.75rem))",
   bottom: "var(--map-overlay-safe-bottom, 6.75rem)",
-  zIndex: MAP_Z_INDEX.sidebar + 2,
+  zIndex: MAP_Z_INDEX.mapFurniture,
   display: "grid",
   gap: MAP_SPACING.xs,
   padding: MAP_SPACING.xs,
-  border: "1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.32))",
+  border: "1px solid var(--syn-border-strong, rgba(148, 163, 184, 0.42))",
   borderRadius: MAP_RADIUS.sm,
-  background: "var(--syn-surface-overlay, rgba(8, 12, 18, 0.72))",
+  background: "color-mix(in srgb, var(--syn-surface-panel, rgba(12, 16, 24, 0.96)) 88%, transparent)",
   color: MAP_COLORS.textSecondary,
+  boxShadow: "0 8px 24px rgba(0, 0, 0, 0.28)",
 };
 
 const panGridStyle: React.CSSProperties = {
@@ -233,6 +234,7 @@ export const MapCanvasKeyboardFallbackControls: React.FC<MapCanvasKeyboardFallba
       role="group"
       aria-label="Keyboard map canvas controls"
       data-map-canvas-fallback-controls="true"
+      data-map-safe-inset-consumer="keyboard-fallback"
     >
       <span style={mapStyles.srOnly}>
         Map canvas fallback controls for pan, zoom, reset, and focus.

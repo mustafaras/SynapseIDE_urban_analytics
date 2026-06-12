@@ -32,6 +32,7 @@ import {
   resolveMapPaintColor,
 } from "../mapTokens";
 import { GisStatusChip } from "../ui/GisStatusChip";
+import { GisSectionHeader } from "../ui/GisSectionHeader";
 import { createOpaqueFloatingPanelStyle, useDraggableMapPanel } from "../useDraggableMapPanel";
 import { Scene3DInteractionStrip } from "./Scene3DInteractionStrip";
 import { ScenarioComparisonStrip } from "./ScenarioComparisonStrip";
@@ -114,13 +115,10 @@ const bodyStyle: React.CSSProperties = {
   alignContent: "start",
 };
 
-const sectionTitleStyle: React.CSSProperties = {
-  color: MAP_COLORS.textMuted,
-  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
-  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
-  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
-  letterSpacing: MAP_TYPOGRAPHY.letterSpacing.caps,
-  textTransform: "uppercase",
+const sectionHeaderStyle: React.CSSProperties = {
+  padding: MAP_SPACING.zero,
+  borderBottom: MAP_STROKES.none,
+  background: MAP_COLORS.transparent,
 };
 
 const rowStyle: React.CSSProperties = {
@@ -871,7 +869,7 @@ export const Scene3DPanel: React.FC<Scene3DPanelProps> = ({
       <div style={embedded ? { ...bodyStyle, overflowY: "visible" } : bodyStyle}>
         {/* Mode switcher */}
         <div style={{ display: "grid", gap: MAP_SPACING.xs }}>
-          <span style={sectionTitleStyle}>View mode</span>
+          <GisSectionHeader title="View mode" level={4} compact separator={false} style={sectionHeaderStyle} />
           <div style={modeSwitchStyle} role="group" aria-label="3D view mode">
             {RUNTIME_MODES.map((m) => (
               <button
@@ -890,7 +888,7 @@ export const Scene3DPanel: React.FC<Scene3DPanelProps> = ({
         </div>
 
         <div style={{ display: "grid", gap: MAP_SPACING.xs }} data-testid="scene3d-source-handle">
-          <span style={sectionTitleStyle}>Scene source</span>
+          <GisSectionHeader title="Scene source" level={4} compact separator={false} style={sectionHeaderStyle} />
           {previewActive ? (
             <canvas
               ref={canvasRef}
@@ -1025,7 +1023,7 @@ export const Scene3DPanel: React.FC<Scene3DPanelProps> = ({
 
         {!!previewActive && (
           <section style={dockedControlSectionStyle} data-testid="scene3d-docked-interaction-tools">
-            <span style={sectionTitleStyle}>Interaction tools</span>
+            <GisSectionHeader title="Interaction tools" level={4} compact separator={false} style={sectionHeaderStyle} />
             <Scene3DInteractionStrip visible presentation="embedded" />
           </section>
         )}
@@ -1039,7 +1037,7 @@ export const Scene3DPanel: React.FC<Scene3DPanelProps> = ({
         {/* Extrusion config */}
         {!!previewActive && (
           <div style={{ display: "grid", gap: MAP_SPACING.xs }} data-testid="scene3d-extrusion-config">
-            <span style={sectionTitleStyle}>Extrusion</span>
+            <GisSectionHeader title="Extrusion" level={4} compact separator={false} style={sectionHeaderStyle} />
             <div style={rowStyle}>
               <span style={keyStyle}>Height field</span>
               <span>{analysis?.heightField ?? "auto"}</span>
@@ -1086,7 +1084,7 @@ export const Scene3DPanel: React.FC<Scene3DPanelProps> = ({
 
         {!!previewActive && (
           <div style={analysisPanelStyle} data-testid="scene3d-analysis-tools">
-            <span style={sectionTitleStyle}>Corridor + section</span>
+            <GisSectionHeader title="Corridor + section" level={4} compact separator={false} style={sectionHeaderStyle} />
             <div style={stateChipRowStyle} data-testid="scene3d-urban-form-controls">
               <GisStatusChip
                 status={analysisToolStatus(viewCorridorResult, sceneBuildings.length > 0)}
@@ -1283,7 +1281,7 @@ export const Scene3DPanel: React.FC<Scene3DPanelProps> = ({
         {/* Caveats */}
         {caveats.length > 0 && (
           <div style={{ display: "grid", gap: MAP_SPACING.xs }} data-testid="scene3d-caveats">
-            <span style={sectionTitleStyle}>Caveats</span>
+            <GisSectionHeader title="Caveats" level={4} compact separator={false} style={sectionHeaderStyle} />
             {caveats.map((caveat, i) => (
               <div key={i} style={caveatStyle}>
                 <AlertTriangle size={MAP_ICON_SIZES.xs} aria-hidden="true" />
@@ -1296,10 +1294,13 @@ export const Scene3DPanel: React.FC<Scene3DPanelProps> = ({
         {/* Building inspector */}
         {!!buildingConfig && inspectorEntries.length > 0 && (
           <div style={{ display: "grid", gap: MAP_SPACING.xs }} data-testid="scene3d-inspector">
-            <span style={sectionTitleStyle}>
-              Building inspector — {inspectorEntries.length} feature(s),{" "}
-              {selectedIds.length} selected
-            </span>
+            <GisSectionHeader
+              title={`Building inspector - ${inspectorEntries.length} feature(s), ${selectedIds.length} selected`}
+              level={4}
+              compact
+              separator={false}
+              style={sectionHeaderStyle}
+            />
             <div style={{ display: "grid", gap: MAP_SPACING.xs, maxHeight: "12rem", overflowY: "auto" }}>
               {inspectorEntries.slice(0, 20).map((entry) => (
                 (() => {

@@ -327,6 +327,20 @@ export const MapLayoutDesignerPanel: React.FC<MapLayoutDesignerPanelProps> = ({
     onRestoreRequestHandled?.(restoreRequest.id);
   }, [onAnnounce, onRestoreRequestHandled, overlayLayers, restoreRequest]);
 
+  useEffect(() => {
+    if (!visible) {
+      return;
+    }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose, visible]);
+
   const preset: MapLayoutPreset = LAYOUT_PRESETS[presetIndex] ?? LAYOUT_PRESETS[0];
 
   const derivedAttributionText = useMemo(

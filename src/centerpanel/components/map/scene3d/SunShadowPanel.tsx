@@ -22,6 +22,7 @@ import {
   MAP_Z_INDEX,
 } from "../mapTokens";
 import { GisStatusChip } from "../ui/GisStatusChip";
+import { GisSectionHeader } from "../ui/GisSectionHeader";
 import { createOpaqueFloatingPanelStyle, useDraggableMapPanel } from "../useDraggableMapPanel";
 
 /* ------------------------------------------------------------------ */
@@ -91,16 +92,6 @@ const bodyStyle: React.CSSProperties = {
   gap: MAP_SPACING.md,
   padding: MAP_SPACING.md,
   alignContent: "start",
-};
-
-const sectionTitleStyle: React.CSSProperties = {
-  color: MAP_COLORS.textMuted,
-  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
-  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
-  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
-  letterSpacing: MAP_TYPOGRAPHY.letterSpacing.caps,
-  textTransform: "uppercase",
-  margin: 0,
 };
 
 const timelineGridStyle: React.CSSProperties = {
@@ -241,6 +232,12 @@ const coordTextStyle: React.CSSProperties = {
   color: MAP_COLORS.textMuted,
 };
 
+const sectionHeaderStyle: React.CSSProperties = {
+  padding: MAP_SPACING.zero,
+  borderBottom: MAP_STROKES.none,
+  background: MAP_COLORS.transparent,
+};
+
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                             */
 /* ------------------------------------------------------------------ */
@@ -328,7 +325,7 @@ export const SunShadowPanel: React.FC<SunShadowPanelProps> = ({
       {/* ---- Body ---- */}
       <div style={embedded ? { ...bodyStyle, overflowY: "visible" } : bodyStyle}>
         <section style={assumptionPanelStyle} data-testid="sunshadow-urban-form-assumptions">
-          <p style={sectionTitleStyle}>Urban form assumptions</p>
+          <GisSectionHeader title="Urban form assumptions" level={4} compact separator={false} style={sectionHeaderStyle} />
           <div style={assumptionChipRowStyle}>
             <GisStatusChip
               status="caveat"
@@ -369,7 +366,7 @@ export const SunShadowPanel: React.FC<SunShadowPanelProps> = ({
 
         {/* Timeline */}
         <section>
-          <p style={sectionTitleStyle}>Timeline</p>
+          <GisSectionHeader title="Timeline" level={4} compact separator={false} style={sectionHeaderStyle} />
           <div style={{ ...timelineGridStyle, marginTop: MAP_SPACING.sm }}>
             {timelineHours.map((h, idx) => {
               const dt = new Date(activeDateTime);
@@ -400,7 +397,7 @@ export const SunShadowPanel: React.FC<SunShadowPanelProps> = ({
 
         {/* Solar Position */}
         <section>
-          <p style={sectionTitleStyle}>Solar Position</p>
+          <GisSectionHeader title="Solar Position" level={4} compact separator={false} style={sectionHeaderStyle} />
           {!!sunBelowHorizon && (
             <div style={{ ...warningStyle, marginTop: MAP_SPACING.sm }}>
               <AlertTriangle size={MAP_ICON_SIZES.xs} aria-hidden="true" />
@@ -421,7 +418,7 @@ export const SunShadowPanel: React.FC<SunShadowPanelProps> = ({
 
         {/* Scenarios */}
         <section>
-          <p style={sectionTitleStyle}>Scenarios ({scenarios.length})</p>
+          <GisSectionHeader title={`Scenarios (${scenarios.length})`} level={4} compact separator={false} style={sectionHeaderStyle} />
           {scenarios.length === 0 && (
             <p style={{ ...valueStyle, marginTop: MAP_SPACING.sm }}>
               No shadow scenarios; parcel and building prerequisites are listed above.
@@ -505,7 +502,7 @@ export const SunShadowPanel: React.FC<SunShadowPanelProps> = ({
         {/* Last published evidence */}
         {lastPublished !== null && (
           <section>
-            <p style={sectionTitleStyle}>Evidence Published</p>
+            <GisSectionHeader title="Evidence Published" level={4} compact separator={false} style={sectionHeaderStyle} />
             <div style={{ ...solarInfoStyle, marginTop: MAP_SPACING.sm }}>
               <span style={keyStyle}>ID</span>
               <span style={valueStyle}>{lastPublished.evidenceId}</span>

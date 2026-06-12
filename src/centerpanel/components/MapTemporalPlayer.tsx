@@ -26,6 +26,7 @@ import {
   MAP_STROKES,
   MAP_TRANSITIONS,
   MAP_TYPOGRAPHY,
+  MAP_Z_INDEX,
   resolveMapPaintColor,
 } from "./map/mapTokens";
 import { type MapExplorerState, useMapExplorerStore } from "../../stores/useMapExplorerStore";
@@ -242,10 +243,10 @@ const IconStepForward: React.FC<{ size?: number; color?: string }> = ({
 
 const playerBarStyle: React.CSSProperties = {
   position: "absolute",
-  bottom: `calc(${MAP_SPACING.xl} + ${MAP_SPACING.xs})`,
-  left: MAP_SPACING.zero,
-  right: MAP_SPACING.zero,
-  zIndex: 15,
+  bottom: "var(--map-overlay-safe-bottom, 6.75rem)",
+  left: "calc(var(--map-dock-left, 0px) + var(--map-overlay-safe-inset-x, 0.75rem))",
+  right: "calc(var(--map-dock-right, 0px) + var(--map-overlay-safe-inset-x, 0.75rem))",
+  zIndex: MAP_Z_INDEX.mapFurniture,
   display: "flex",
   alignItems: "center",
   gap: MAP_SPACING.sm,
@@ -262,9 +263,9 @@ const playerBarStyle: React.CSSProperties = {
 const timeLabelOverlayStyle: React.CSSProperties = {
   position: "absolute",
   left: "50%",
-  bottom: "4.25rem",
+  bottom: "calc(var(--map-overlay-safe-bottom, 6.75rem) + 3.25rem)",
   transform: "translateX(-50%)",
-  zIndex: 16,
+  zIndex: MAP_Z_INDEX.mapFurniture,
   maxWidth: "min(32rem, calc(100% - 2rem))",
   padding: `${MAP_SPACING.sm} ${MAP_SPACING.md}`,
   border: MAP_STROKES.hairlineStrong,
@@ -892,7 +893,7 @@ export const MapTemporalPlayer: React.FC<MapTemporalPlayerProps> = ({
 
   return (
     <>
-    <div style={timeLabelOverlayStyle} aria-live="polite" aria-atomic="true">
+    <div style={timeLabelOverlayStyle} aria-live="polite" aria-atomic="true" data-map-safe-inset-consumer="temporal-time-label">
       {fullFrameLabel}
     </div>
 
@@ -900,6 +901,7 @@ export const MapTemporalPlayer: React.FC<MapTemporalPlayerProps> = ({
       style={playerBarStyle}
       role="region"
       aria-label="Temporal animation player"
+      data-map-safe-inset-consumer="temporal-player"
     >
       <div style={controlRowStyle}>
           <button

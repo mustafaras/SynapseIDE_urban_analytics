@@ -226,8 +226,8 @@ export function buildMapPremiumMenuModel({
           ]),
         },
       ],
-      triggerTestId: "map-command-group-data",
-      menuTestId: "map-command-group-menu-data",
+      triggerTestId: "map-premium-menu-add-data",
+      menuTestId: "map-premium-menu-content-add-data",
     },
     {
       id: "layers",
@@ -332,7 +332,7 @@ export function buildMapPremiumMenuModel({
           ]),
         },
       ],
-      triggerTestId: "map-command-group-publish",
+      triggerTestId: "map-premium-menu-publish",
       menuTestId: "map-premium-menu-content-publish",
     },
     {

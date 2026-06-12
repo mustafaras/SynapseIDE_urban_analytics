@@ -70,9 +70,13 @@ export const MapCanvasOverlayChrome: React.FC<MapCanvasOverlayChromeProps> = ({
 
     {showImportProgress ? (
       <div
-        style={mapStyles.importProgress}
+        style={{
+          ...mapStyles.importProgress,
+          maxWidth: "calc(100% - var(--map-dock-left, 0px) - var(--map-dock-right, 0px) - 2rem)",
+        }}
         role="status"
         aria-label={`Importing ${importLabel ?? "spatial data"} ${Math.round(importProgress?.percent ?? 0)} percent`}
+        data-map-safe-inset-consumer="import-progress"
       >
         <div style={mapStyles.importProgressHeader}>
           <span>{importLabel ?? "Importing spatial data"}</span>
@@ -107,7 +111,7 @@ export const MapCanvasOverlayChrome: React.FC<MapCanvasOverlayChromeProps> = ({
       <div
         style={{
           position: "absolute",
-          top: "var(--map-overlay-safe-top, calc(var(--map-shell-command-height, 2.75rem) + var(--map-overlay-safe-inset-y, 0.25rem)))",
+          top: "calc(var(--map-overlay-safe-top, calc(var(--map-shell-command-height, 2.75rem) + var(--map-overlay-safe-inset-y, 0.25rem))) + var(--map-canvas-control-dock-clearance, 9.75rem))",
           right: "calc(var(--map-dock-right, 0px) + var(--map-overlay-safe-inset-x, 0.75rem))",
           width: 320,
           maxWidth: `calc(100% - ${navigatorLeftInset + navigatorRightInset}px)`,
@@ -119,6 +123,7 @@ export const MapCanvasOverlayChrome: React.FC<MapCanvasOverlayChromeProps> = ({
           background: "var(--syn-surface-panel, rgba(12, 16, 24, 0.9))",
           zIndex: MAP_Z_INDEX.mapFurniture,
         }}
+        data-map-safe-inset-consumer="dispatch-feedback"
         role="status"
         aria-live="polite"
       >

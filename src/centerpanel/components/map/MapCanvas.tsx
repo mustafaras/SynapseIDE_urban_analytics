@@ -589,12 +589,29 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
         {`
           [data-map-keyboard-scope="true"] .maplibregl-ctrl-bottom-left {
             left: calc(var(--map-dock-left, 0px) + var(--map-overlay-safe-inset-x, 0.75rem));
-            bottom: var(--map-overlay-safe-bottom, 6.75rem);
+            bottom: calc(var(--map-overlay-safe-bottom, 6.75rem) + 0.375rem);
           }
 
           [data-map-keyboard-scope="true"] .maplibregl-ctrl-bottom-left .maplibregl-ctrl {
             margin-left: 0;
             margin-bottom: 0;
+          }
+
+          [data-map-keyboard-scope="true"] .maplibregl-ctrl-scale {
+            border-color: var(--syn-border-strong, rgba(148, 163, 184, 0.42));
+            color: var(--syn-text-secondary, rgba(203, 213, 225, 0.92));
+            background: color-mix(in srgb, var(--syn-surface-panel, rgba(12, 16, 24, 0.96)) 82%, transparent);
+            font-family: var(--syn-font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
+            font-size: 0.625rem;
+          }
+
+          [data-map-keyboard-scope="true"] .maplibregl-ctrl-attrib {
+            max-width: min(22rem, calc(100vw - var(--map-dock-left, 0px) - var(--map-dock-right, 0px) - 2rem));
+            border: 1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.28));
+            border-radius: 0.375rem;
+            background: color-mix(in srgb, var(--syn-surface-panel, rgba(12, 16, 24, 0.96)) 80%, transparent);
+            color: var(--syn-text-muted, rgba(148, 163, 184, 0.86));
+            font-size: 0.625rem;
           }
         `}
       </style>

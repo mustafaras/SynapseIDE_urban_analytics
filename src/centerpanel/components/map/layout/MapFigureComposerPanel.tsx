@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, CheckCircle2, Image, ShieldCheck, X } from "lucide-react";
 import type { OverlayLayerConfig } from "../mapTypes";
 import type { MapScientificQAState } from "@/services/map/MapScientificQA";
@@ -273,6 +273,20 @@ export const MapFigureComposerPanel: React.FC<MapFigureComposerPanelProps> = ({
     [dpi, figure, pageSizeLabel],
   );
   const readinessSummary = summariseFigureReadiness(readinessRows);
+
+  useEffect(() => {
+    if (!visible) {
+      return;
+    }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose, visible]);
 
   if (!visible) return null;
 

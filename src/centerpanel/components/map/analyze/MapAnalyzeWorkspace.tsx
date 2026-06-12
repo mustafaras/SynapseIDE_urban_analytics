@@ -4,6 +4,7 @@ import type { MapSidebarTabId } from "../navigation";
 import type { OverlayLayerConfig } from "../mapTypes";
 import {
   MAP_COLORS,
+  mapStyles,
   MAP_RADIUS,
   MAP_SPACING,
   MAP_STROKES,
@@ -12,7 +13,7 @@ import {
 } from "../mapTokens";
 import { MapWorkbenchSidebar, type MapWorkbenchSidebarTab } from "../sidebar";
 import { resolveSpatialStatsLayerContext } from "../spatialStatsVizUtils";
-import { GisEmptyState } from "../ui";
+import { GisEmptyState, GisSectionHeader, GisStatusChip } from "../ui";
 
 export type MapAnalyzeTabId = Extract<
   MapSidebarTabId,
@@ -103,7 +104,7 @@ const sectionHeaderStyle: React.CSSProperties = {
   minWidth: 0,
 };
 
-const sectionTitleStyle: React.CSSProperties = {
+const _sectionTitleStyle: React.CSSProperties = {
   margin: 0,
   color: MAP_COLORS.text,
   fontSize: MAP_TYPOGRAPHY.fontSize.sm,
@@ -210,15 +211,12 @@ const caveatRowStyle: React.CSSProperties = {
 
 function actionButtonStyle(active = false, disabled = false): React.CSSProperties {
   return {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: MAP_SPACING.xs,
+    ...(active ? mapStyles.sidePanelPrimaryButton : mapStyles.sidePanelActionButton),
     minHeight: "1.875rem",
     padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
-    border: active ? MAP_STROKES.hairlineStrong : MAP_STROKES.hairlineSubtle,
+    border: active ? MAP_STROKES.hairlineStrong : mapStyles.sidePanelActionButton.border,
     borderRadius: MAP_RADIUS.sm,
-    background: active ? MAP_COLORS.selectedSubtle : MAP_COLORS.transparent,
+    background: active ? MAP_COLORS.selectedSubtle : (mapStyles.sidePanelActionButton.background as React.CSSProperties["background"]),
     color: disabled ? MAP_COLORS.textMuted : active ? MAP_COLORS.interaction : MAP_COLORS.textSecondary,
     cursor: disabled ? "not-allowed" : "pointer",
     fontSize: MAP_TYPOGRAPHY.fontSize.xs,
@@ -312,10 +310,14 @@ export const MapAnalyzeStatisticsPanel: React.FC<MapAnalyzeStatisticsPanelProps>
   return (
     <div style={panelStackStyle} data-testid="map-analyze-statistics">
       <section style={sectionStyle} aria-label="Statistics readiness" data-testid="analyze-statistics-readiness">
-        <div style={sectionHeaderStyle}>
-          <h3 style={sectionTitleStyle}>Readiness</h3>
-          <span style={chipStyle}>{analysisOutputLayers.length.toLocaleString()} outputs tracked</span>
-        </div>
+        <GisSectionHeader
+          title="Readiness"
+          level={4}
+          compact
+          separator={false}
+          actions={<GisStatusChip status={analysisOutputLayers.length > 0 ? "ready" : "caveat"} label={`${analysisOutputLayers.length.toLocaleString()} outputs tracked`} density="compact" />}
+          style={sectionHeaderStyle}
+        />
         <div style={readinessGridStyle}>
           <article style={readinessCardStyle}>
             <div style={labelStyle}>Required geometry</div>
@@ -351,10 +353,14 @@ export const MapAnalyzeStatisticsPanel: React.FC<MapAnalyzeStatisticsPanelProps>
       </section>
 
       <section style={sectionStyle} aria-label="Spatial statistics launchers">
-        <div style={sectionHeaderStyle}>
-          <h3 style={sectionTitleStyle}>Spatial Statistics</h3>
-          <span style={chipStyle}>{hasAnalysisLayers ? "layers ready" : "no layers"}</span>
-        </div>
+        <GisSectionHeader
+          title="Spatial Statistics"
+          level={4}
+          compact
+          separator={false}
+          actions={<GisStatusChip status={hasAnalysisLayers ? "ready" : "blocked"} label={hasAnalysisLayers ? "layers ready" : "no layers"} density="compact" />}
+          style={sectionHeaderStyle}
+        />
         {!hasAnalysisLayers ? (
           <div style={mutedStyle} data-testid="analyze-statistics-layer-blocked">
             {layerBlockedReason}
@@ -395,10 +401,14 @@ export const MapAnalyzeStatisticsPanel: React.FC<MapAnalyzeStatisticsPanelProps>
       </section>
 
       <section style={sectionStyle} aria-label="Statistics caveats" data-testid="analyze-statistics-caveats">
-        <div style={sectionHeaderStyle}>
-          <h3 style={sectionTitleStyle}>Shared Caveats</h3>
-          <span style={chipStyle}>{sharedCaveats.length.toLocaleString()} visible</span>
-        </div>
+        <GisSectionHeader
+          title="Shared Caveats"
+          level={4}
+          compact
+          separator={false}
+          actions={<GisStatusChip status={sharedCaveats.length > 0 ? "caveat" : "ready"} label={`${sharedCaveats.length.toLocaleString()} visible`} density="compact" />}
+          style={sectionHeaderStyle}
+        />
         <div style={caveatListStyle}>
           {sharedCaveats.map((message) => (
             <div key={message} style={caveatRowStyle}>
@@ -409,10 +419,14 @@ export const MapAnalyzeStatisticsPanel: React.FC<MapAnalyzeStatisticsPanelProps>
       </section>
 
       <section style={sectionStyle} aria-label="Statistics output layer group" data-testid="analyze-statistics-output-group">
-        <div style={sectionHeaderStyle}>
-          <h3 style={sectionTitleStyle}>Output Layer Group</h3>
-          <span style={chipStyle}>Analysis Results</span>
-        </div>
+        <GisSectionHeader
+          title="Output Layer Group"
+          level={4}
+          compact
+          separator={false}
+          actions={<GisStatusChip status="ready" label="Analysis Results" density="compact" />}
+          style={sectionHeaderStyle}
+        />
         {outputPreviewLayers.length > 0 ? (
           <div style={listStyle}>
             {outputPreviewLayers.map((layer) => {
@@ -441,10 +455,14 @@ export const MapAnalyzeStatisticsPanel: React.FC<MapAnalyzeStatisticsPanelProps>
       </section>
 
       <section style={sectionStyle} aria-label="Selection statistics">
-        <div style={sectionHeaderStyle}>
-          <h3 style={sectionTitleStyle}>Selection Summary</h3>
-          <span style={chipStyle}>{selectedFeatureCount.toLocaleString()} selected</span>
-        </div>
+        <GisSectionHeader
+          title="Selection Summary"
+          level={4}
+          compact
+          separator={false}
+          actions={<GisStatusChip status={selectedFeatureCount > 0 ? "ready" : "caveat"} label={`${selectedFeatureCount.toLocaleString()} selected`} density="compact" />}
+          style={sectionHeaderStyle}
+        />
         {!selectionStatsAvailable ? (
           <div style={mutedStyle} data-testid="analyze-statistics-selection-blocked">
             {selectionBlockedReason}
@@ -480,10 +498,14 @@ export const MapAnalyzeDataOperationsPanel: React.FC<MapAnalyzeDataOperationsPan
   return (
     <div style={panelStackStyle} data-testid="map-analyze-data-operations">
       <section style={sectionStyle} aria-label="Analysis output layers">
-        <div style={sectionHeaderStyle}>
-          <h3 style={sectionTitleStyle}>Output Layers</h3>
-          <span style={chipStyle}>{layers.length.toLocaleString()} outputs</span>
-        </div>
+        <GisSectionHeader
+          title="Output Layers"
+          level={4}
+          compact
+          separator={false}
+          actions={<GisStatusChip status={layers.length > 0 ? "ready" : "caveat"} label={`${layers.length.toLocaleString()} outputs`} density="compact" />}
+          style={sectionHeaderStyle}
+        />
         {layers.length > 0 ? (
           <div style={listStyle}>
             {layers.map((layer) => {
@@ -527,10 +549,14 @@ export const MapAnalyzeDataOperationsPanel: React.FC<MapAnalyzeDataOperationsPan
       </section>
 
       <section style={sectionStyle} aria-label="Selected feature operations">
-        <div style={sectionHeaderStyle}>
-          <h3 style={sectionTitleStyle}>Selected Features</h3>
-          <span style={chipStyle}>{selectedFeatureCount.toLocaleString()} selected</span>
-        </div>
+        <GisSectionHeader
+          title="Selected Features"
+          level={4}
+          compact
+          separator={false}
+          actions={<GisStatusChip status={selectedFeatureCount > 0 ? "ready" : "caveat"} label={`${selectedFeatureCount.toLocaleString()} selected`} density="compact" />}
+          style={sectionHeaderStyle}
+        />
         <div style={actionRowStyle}>
           <button
             type="button"

@@ -12,7 +12,7 @@ import {
   type MapSavedModel,
   saveMapModel,
 } from "@/services/map/model";
-import { GisProgressBar, GisPropertyGrid, GisStatusChip } from "../ui";
+import { GisProgressBar, GisPropertyGrid, GisSectionHeader, GisStatusChip } from "../ui";
 import styles from "./MapModelBuilderPanel.module.css";
 
 export interface MapModelBuilderLayerOption {
@@ -412,7 +412,7 @@ export function MapModelBuilderPanel({
           <div className={styles.workflowGrid}>
             <section className={styles.stepGraph} aria-label="Model step graph">
               <div className={styles.sectionTitleRow}>
-                <h3>Workflow graph</h3>
+                <GisSectionHeader title="Workflow graph" level={4} compact separator={false} />
                 <GisStatusChip status={blockedSteps.length === 0 ? "ready" : "blocked"} label={blockedSteps.length === 0 ? "All steps ready" : `${blockedSteps.length} blocked`} density="compact" />
               </div>
               <div className={styles.stepList} data-testid="model-step-list">
@@ -462,7 +462,7 @@ export function MapModelBuilderPanel({
 
             <section className={styles.stepEditor} aria-label="Selected step editor" data-testid="model-step-editor">
               <div className={styles.sectionTitleRow}>
-                <h3>Selected step editor</h3>
+                <GisSectionHeader title="Selected step editor" level={4} compact separator={false} />
                 {selectedStep ? <GisStatusChip status={blockedSteps.some((entry) => entry.step.stepId === selectedStep.stepId) ? "blocked" : "ready"} label={selectedStep.stepId} density="compact" /> : null}
               </div>
               {selectedStep && selectedDescriptor ? (
@@ -563,7 +563,7 @@ export function MapModelBuilderPanel({
         <aside className={styles.runRail} aria-label="Model run and publication">
           <section className={styles.runPreview} aria-label="Run preview" data-testid="model-run-preview">
             <div className={styles.sectionTitleRow}>
-              <h3><CheckCircle2 size={13} aria-hidden /> Run preview</h3>
+              <GisSectionHeader title="Run preview" level={4} compact separator={false} badge={<CheckCircle2 size={13} aria-hidden />} />
               <GisStatusChip status={canRun ? "ready" : "blocked"} label={canRun ? "Executable" : "Needs input"} density="compact" />
             </div>
             <GisPropertyGrid
@@ -601,7 +601,7 @@ export function MapModelBuilderPanel({
 
           <section className={styles.batch} aria-label="Batch targets">
             <div className={styles.sectionTitleRow}>
-              <h3><Layers3 size={13} aria-hidden /> Batch targets</h3>
+              <GisSectionHeader title="Batch targets" level={4} compact separator={false} badge={<Layers3 size={13} aria-hidden />} />
               <GisStatusChip status={batchLayerIds.length > 0 ? "ready" : "blocked"} label={`${batchLayerIds.length} selected`} density="compact" />
             </div>
             <p>Run this template against selected layer inputs. Each output retains a separate manifest.</p>
@@ -634,7 +634,7 @@ export function MapModelBuilderPanel({
             </button>
             {batchResult ? (
               <section className={batchResult.status === "applied" ? styles.result : styles.blocked} data-testid="model-batch-result" data-status={batchResult.status}>
-                <h3>Batch {batchResult.status}</h3>
+                <GisSectionHeader title={`Batch ${batchResult.status}`} level={4} compact separator={false} />
                 <span>{batchResult.results.filter((entry) => entry.result.status === "applied").length} output(s) applied</span>
                 {batchResult.blockers.length > 0 ? renderList(batchResult.blockers, "model-batch-blockers") : null}
               </section>
@@ -643,7 +643,13 @@ export function MapModelBuilderPanel({
 
           {lastRun ? (
             <section className={lastRun.status === "applied" ? styles.result : styles.blocked} aria-label="Output and evidence" data-testid="model-run-result" data-status={lastRun.status}>
-              <h3><FileCode2 size={13} aria-hidden /> {lastRun.status === "applied" ? "Output and evidence" : "Model blocked"}</h3>
+              <GisSectionHeader
+                title={lastRun.status === "applied" ? "Output and evidence" : "Model blocked"}
+                level={4}
+                compact
+                separator={false}
+                badge={<FileCode2 size={13} aria-hidden />}
+              />
               {lastRun.status === "applied" ? (
                 <>
                   <GisPropertyGrid
@@ -672,7 +678,7 @@ export function MapModelBuilderPanel({
             </section>
           ) : (
             <section className={styles.outputPlaceholder} aria-label="Output and evidence" data-testid="model-output-evidence">
-              <h3><FileCode2 size={13} aria-hidden /> Output and evidence</h3>
+              <GisSectionHeader title="Output and evidence" level={4} compact separator={false} badge={<FileCode2 size={13} aria-hidden />} />
               <p>Run the chain to create a derived layer, model manifest, IDE workflow script request, and Urban evidence handoff label.</p>
               {modelBlockers.length > 0 ? <span><AlertTriangle size={12} aria-hidden /> Resolve blocked steps before export.</span> : <span>Artifact label: {outputLabel}</span>}
             </section>

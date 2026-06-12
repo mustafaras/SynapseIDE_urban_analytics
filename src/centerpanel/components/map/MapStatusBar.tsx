@@ -120,9 +120,11 @@ const statusBar: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: MAP_SPACING.sm,
-  minHeight: "var(--map-shell-status-height, 1.9rem)",
-  padding: `${MAP_SPACING.xs} ${MAP_SPACING.md}`,
-  background: MAP_COLORS.bgPanel,
+  height: "var(--map-shell-status-height, 1.75rem)",
+  minHeight: "var(--map-shell-status-height, 1.75rem)",
+  maxHeight: "var(--map-shell-status-height, 1.75rem)",
+  padding: `0 ${MAP_SPACING.md}`,
+  background: MAP_COLORS.bgHeader,
   borderTop: MAP_STROKES.hairlineSubtle,
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
   fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
@@ -150,7 +152,7 @@ const segmentBaseStyle: React.CSSProperties = {
   maxWidth: "100%",
   flexShrink: 0,
   padding: `0 ${MAP_SPACING.sm}`,
-  height: "1.45rem",
+  height: "1.35rem",
   borderRight: MAP_STROKES.hairlineSubtle,
   whiteSpace: "nowrap",
   overflow: "hidden",
@@ -179,6 +181,7 @@ const segmentLabelStyle: React.CSSProperties = {
 
 const segmentValueStyle: React.CSSProperties = {
   minWidth: MAP_SPACING.zero,
+  maxWidth: "100%",
   display: "inline-flex",
   alignItems: "center",
   gap: MAP_SPACING.xs,
@@ -980,6 +983,7 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
     const sharedProps = {
       title: segment.title,
       "data-map-status-segment": segment.id,
+      "data-map-status-tone": segment.tone ?? "neutral",
       style: {
         ...(segment.onClick || segment.href ? segmentButtonStyle : segmentBaseStyle),
         width: `${segment.widthPx}px`,
@@ -1022,6 +1026,7 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
       title: segment.title,
       "data-map-status-segment": segment.id,
       "data-map-status-overflow": "true",
+      "data-map-status-tone": segment.tone ?? "neutral",
       style: overflowMenuItemStyle,
       "aria-label": segment.ariaLabel ?? `${segment.label}: ${segment.value}`,
     } as const;

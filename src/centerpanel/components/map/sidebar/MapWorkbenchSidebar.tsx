@@ -23,6 +23,7 @@ import {
   MAP_PANEL_SIZES,
   MAP_SPACING,
   MAP_STROKES,
+  MAP_TEXT_STYLES,
   MAP_TYPOGRAPHY,
   MAP_Z_INDEX,
 } from "../mapTokens";
@@ -113,6 +114,7 @@ const collapsedRailStyle: React.CSSProperties = {
 };
 
 const collapsedTitleStyle: React.CSSProperties = {
+  ...MAP_TEXT_STYLES.truncate,
   writingMode: "vertical-rl",
   transform: "rotate(180deg)",
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,

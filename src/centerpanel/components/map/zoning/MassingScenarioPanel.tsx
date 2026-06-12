@@ -37,6 +37,7 @@ import {
   MAP_Z_INDEX,
 } from "../mapTokens";
 import { GisStatusChip } from "../ui/GisStatusChip";
+import { GisSectionHeader } from "../ui/GisSectionHeader";
 import { createOpaqueFloatingPanelStyle, useDraggableMapPanel } from "../useDraggableMapPanel";
 
 /* ------------------------------------------------------------------ */
@@ -113,13 +114,10 @@ const bodyStyle: React.CSSProperties = {
   alignContent: "start",
 };
 
-const sectionTitleStyle: React.CSSProperties = {
-  color: MAP_COLORS.textMuted,
-  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
-  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
-  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
-  letterSpacing: MAP_TYPOGRAPHY.letterSpacing.caps,
-  textTransform: "uppercase",
+const sectionHeaderStyle: React.CSSProperties = {
+  padding: MAP_SPACING.zero,
+  borderBottom: MAP_STROKES.none,
+  background: MAP_COLORS.transparent,
 };
 
 const rowStyle: React.CSSProperties = {
@@ -424,7 +422,7 @@ export const MassingScenarioPanel: React.FC<MassingScenarioPanelProps> = ({
       {/* Body */}
       <div style={embedded ? { ...bodyStyle, overflowY: "visible" } : bodyStyle}>
         <section style={assumptionPanelStyle} data-testid="massing-urban-form-assumptions">
-          <span style={sectionTitleStyle}>Urban form prerequisites</span>
+          <GisSectionHeader title="Urban form prerequisites" level={4} compact separator={false} style={sectionHeaderStyle} />
           <div style={assumptionChipRowStyle}>
             <GisStatusChip
               status={parcelId != null ? "ready" : "blocked"}
@@ -472,7 +470,7 @@ export const MassingScenarioPanel: React.FC<MassingScenarioPanelProps> = ({
         {/* ── Section 1: Scenarios list ── */}
         <div style={{ display: "grid", gap: MAP_SPACING.sm }} data-testid="massing-scenarios-section">
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <span style={sectionTitleStyle}>Scenarios ({scenarios.length})</span>
+            <GisSectionHeader title={`Scenarios (${scenarios.length})`} level={4} compact separator={false} style={sectionHeaderStyle} />
             <button
               type="button"
               style={buttonStyle}
@@ -574,7 +572,7 @@ export const MassingScenarioPanel: React.FC<MassingScenarioPanelProps> = ({
             style={{ display: "grid", gap: MAP_SPACING.sm, padding: MAP_SPACING.sm, border: MAP_STROKES.hairlineSubtle, borderRadius: MAP_RADIUS.sm }}
             data-testid="massing-add-form"
           >
-            <span style={sectionTitleStyle}>Add Scenario</span>
+            <GisSectionHeader title="Add Scenario" level={4} compact separator={false} style={sectionHeaderStyle} />
 
             {!parcelId && (
               <div style={caveatStyle}>
@@ -677,10 +675,14 @@ export const MassingScenarioPanel: React.FC<MassingScenarioPanelProps> = ({
             data-testid="massing-comparison-section"
           >
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <span style={{ ...sectionTitleStyle, display: "flex", alignItems: "center", gap: MAP_SPACING.xs }}>
-                <BarChart2 size={MAP_ICON_SIZES.xs} aria-hidden="true" />
-                Comparison
-              </span>
+              <GisSectionHeader
+                title="Comparison"
+                level={4}
+                compact
+                separator={false}
+                style={sectionHeaderStyle}
+                badge={<BarChart2 size={MAP_ICON_SIZES.xs} aria-hidden="true" />}
+              />
               <button
                 type="button"
                 style={primaryButtonStyle}

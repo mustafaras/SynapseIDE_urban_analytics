@@ -40,6 +40,7 @@ import {
   MAP_Z_INDEX,
   mapStyles,
 } from "./mapTokens";
+import { GisProgressBar, GisSectionHeader } from "./ui";
 import {
   createOpaqueFloatingPanelStyle,
   useDraggableMapPanel,
@@ -871,7 +872,7 @@ export const MapWorkflowDrawer: React.FC<MapWorkflowDrawerProps> = ({
         {/* Suggestions — explicit actions */}
         {preview.suggestions.length > 0 ? (
           <div style={sectionStyle}>
-            <div style={sectionTitle}>Suggestions</div>
+            <GisSectionHeader title="Suggestions" level={4} compact separator={false} style={{ padding: 0, background: MAP_COLORS.transparent, borderBottom: MAP_STROKES.none }} />
             {preview.suggestions.map((suggestion) => (
               <button
                 key={suggestion.id}
@@ -892,7 +893,7 @@ export const MapWorkflowDrawer: React.FC<MapWorkflowDrawerProps> = ({
         {/* Report capture */}
         {report ? (
           <div style={sectionStyle}>
-            <div style={sectionTitle}>{MAP_WORKFLOW_STEP_LABELS.report}</div>
+            <GisSectionHeader title={MAP_WORKFLOW_STEP_LABELS.report} level={4} compact separator={false} style={{ padding: 0, background: MAP_COLORS.transparent, borderBottom: MAP_STROKES.none }} />
             <div style={{ display: "grid", gap: MAP_SPACING.xs, color: MAP_COLORS.textSecondary }}>
               <strong style={{ color: MAP_COLORS.text }}>{report.title}</strong>
               <span style={{ color: MAP_COLORS.textMuted }}>{report.description}</span>
@@ -923,31 +924,12 @@ export const MapWorkflowDrawer: React.FC<MapWorkflowDrawerProps> = ({
         >
           {executionActive ? (
             <>
-              <div
-                role="progressbar"
-                aria-label="Workflow execution progress"
-                aria-valuenow={workflowExecution?.percent ?? 0}
-                aria-valuemin={0}
-                aria-valuemax={100}
+              <GisProgressBar
+                value={Math.max(4, Math.min(100, workflowExecution?.percent ?? 0))}
+                label="Workflow execution progress"
+                height="0.375rem"
                 data-testid="map-workflow-progress"
-                style={{
-                  position: "relative",
-                  height: "0.375rem",
-                  borderRadius: MAP_RADIUS.full,
-                  background: MAP_COLORS.selectedSubtle,
-                  overflow: "hidden",
-                }}
-              >
-                <div
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    width: `${Math.max(4, Math.min(100, workflowExecution?.percent ?? 0))}%`,
-                    background: MAP_COLORS.interaction,
-                    transition: "width 120ms linear",
-                  }}
-                />
-              </div>
+              />
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: MAP_SPACING.sm }}>
                 <span style={{ color: MAP_COLORS.textMuted, fontSize: MAP_TYPOGRAPHY.fontSize.xs }}>
                   {workflowExecution?.detail ?? workflowExecution?.stage ?? "Processing"}

@@ -30,6 +30,7 @@ import {
   MAP_TYPOGRAPHY,
   mapStyles,
 } from "./mapTokens";
+import { GisSectionHeader } from "./ui";
 import { createOpaqueFloatingPanelStyle, useDraggableMapPanel } from "./useDraggableMapPanel";
 
 export interface MapNLQueryPanelRunSummary {
@@ -103,13 +104,10 @@ const sectionStyle: React.CSSProperties = {
   borderBottom: MAP_STROKES.hairlineSubtle,
 };
 
-const sectionTitle: React.CSSProperties = {
-  color: MAP_COLORS.textMuted,
-  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
-  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
-  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
-  letterSpacing: 0,
-  textTransform: "uppercase",
+const sectionHeaderStyle: React.CSSProperties = {
+  padding: MAP_SPACING.zero,
+  borderBottom: MAP_STROKES.none,
+  background: MAP_COLORS.transparent,
 };
 
 const queryInputStyle: React.CSSProperties = {
@@ -493,7 +491,7 @@ export const MapNLQueryPanel: React.FC<MapNLQueryPanelProps> = ({
         </div>
 
         <div style={sectionStyle}>
-          <div style={sectionTitle}>Scope and Layer Limits</div>
+          <GisSectionHeader title="Scope and Layer Limits" level={4} compact separator={false} style={sectionHeaderStyle} />
           <div style={responsiveCardGrid}>
             <div style={layerCard}>
               <div style={{ color: MAP_COLORS.text, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
@@ -551,7 +549,7 @@ export const MapNLQueryPanel: React.FC<MapNLQueryPanelProps> = ({
         </div>
 
         <div style={sectionStyle}>
-          <div style={sectionTitle}>Prompt Input</div>
+          <GisSectionHeader title="Prompt Input" level={4} compact separator={false} style={sectionHeaderStyle} />
           <div style={mutedText}>
             The proposal below is generated from a sanitized, read-only prompt review. Raw text is never applied directly.
           </div>
@@ -592,7 +590,7 @@ export const MapNLQueryPanel: React.FC<MapNLQueryPanelProps> = ({
 
         <div style={{ ...sectionStyle, gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)" }}>
           <div style={{ display: "grid", gap: MAP_SPACING.sm }}>
-            <div style={sectionTitle}>Scope</div>
+            <GisSectionHeader title="Scope" level={4} compact separator={false} style={sectionHeaderStyle} />
             <div style={segmentedGroup} role="group" aria-label="Query execution scope">
               {SCOPES.map((entry) => (
                 <button
@@ -608,7 +606,7 @@ export const MapNLQueryPanel: React.FC<MapNLQueryPanelProps> = ({
             </div>
           </div>
           <div style={{ display: "grid", gap: MAP_SPACING.sm }}>
-            <div style={sectionTitle}>Execution Mode</div>
+            <GisSectionHeader title="Execution Mode" level={4} compact separator={false} style={sectionHeaderStyle} />
             <div style={segmentedGroup} role="group" aria-label="Query execution mode">
               {MODES.map((entry) => (
                 <button
@@ -626,7 +624,7 @@ export const MapNLQueryPanel: React.FC<MapNLQueryPanelProps> = ({
         </div>
 
         <div style={sectionStyle}>
-          <div style={sectionTitle}>Interpreted Intent Preview</div>
+          <GisSectionHeader title="Interpreted Intent Preview" level={4} compact separator={false} style={sectionHeaderStyle} />
           <div style={layerCard}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: MAP_SPACING.sm }}>
               <div style={{ color: MAP_COLORS.text, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
@@ -687,7 +685,7 @@ export const MapNLQueryPanel: React.FC<MapNLQueryPanelProps> = ({
         </div>
 
         <div style={sectionStyle}>
-          <div style={sectionTitle}>AI Guardrail Status</div>
+          <GisSectionHeader title="AI Guardrail Status" level={4} compact separator={false} style={sectionHeaderStyle} />
           <div style={responsiveCardGrid}>
             <div style={layerCard}>
               <div style={{ color: MAP_COLORS.text, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
@@ -741,7 +739,7 @@ export const MapNLQueryPanel: React.FC<MapNLQueryPanelProps> = ({
 
         <div style={sectionStyle}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: MAP_SPACING.sm }}>
-            <div style={sectionTitle}>Affected Layers and Required Fields</div>
+            <GisSectionHeader title="Affected Layers and Required Fields" level={4} compact separator={false} style={sectionHeaderStyle} />
             <Layers size={MAP_ICON_SIZES.sm} color={MAP_COLORS.textMuted} aria-hidden="true" />
           </div>
           {preview.sourceLayers.length > 0 ? (
@@ -781,7 +779,7 @@ export const MapNLQueryPanel: React.FC<MapNLQueryPanelProps> = ({
         <div style={sectionStyle}>
           <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto", alignItems: "center", gap: MAP_SPACING.sm }}>
             <div>
-              <div style={sectionTitle}>Generated SQL / Spatial Predicate</div>
+              <GisSectionHeader title="Generated SQL / Spatial Predicate" level={4} compact separator={false} style={sectionHeaderStyle} />
               <div style={{ ...mutedText, marginTop: MAP_SPACING.xs }}>
                 Output: {preview.expectedOutputType} · Predicate: {preview.predicate}
               </div>
@@ -805,7 +803,7 @@ export const MapNLQueryPanel: React.FC<MapNLQueryPanelProps> = ({
 
         {(preview.blockers.length > 0 || preview.warnings.length > 0) ? (
           <div style={sectionStyle}>
-            <div style={sectionTitle}>{blockedProposal ? "Unsupported / Blocked Proposal" : "Execution Notes"}</div>
+            <GisSectionHeader title={blockedProposal ? "Unsupported / Blocked Proposal" : "Execution Notes"} level={4} compact separator={false} style={sectionHeaderStyle} />
             <div style={layerCard}>
               <div style={{ color: blockedProposal ? MAP_COLORS.warning : MAP_COLORS.text, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
                 {blockedProposal ? "This proposal cannot be applied as written." : "Review these notes before confirmation."}
@@ -835,7 +833,7 @@ export const MapNLQueryPanel: React.FC<MapNLQueryPanelProps> = ({
         ) : null}
 
         <div style={sectionStyle}>
-          <div style={sectionTitle}>Preview Confirmation</div>
+          <GisSectionHeader title="Preview Confirmation" level={4} compact separator={false} style={sectionHeaderStyle} />
           <div style={layerCard}>
             <div style={{ color: MAP_COLORS.text, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
               {previewAccepted
@@ -864,7 +862,7 @@ export const MapNLQueryPanel: React.FC<MapNLQueryPanelProps> = ({
 
         <div style={sectionStyle}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: MAP_SPACING.sm }}>
-            <div style={sectionTitle}>Unavailable Layers</div>
+            <GisSectionHeader title="Unavailable Layers" level={4} compact separator={false} style={sectionHeaderStyle} />
             <Database size={MAP_ICON_SIZES.sm} color={MAP_COLORS.textMuted} aria-hidden="true" />
           </div>
           {preview.unavailableLayers.length > 0 ? (
@@ -888,7 +886,7 @@ export const MapNLQueryPanel: React.FC<MapNLQueryPanelProps> = ({
 
         {lastRunSummary ? (
           <div style={sectionStyle}>
-            <div style={sectionTitle}>Run Result</div>
+            <GisSectionHeader title="Run Result" level={4} compact separator={false} style={sectionHeaderStyle} />
             <div style={layerCard}>
               <div style={{ color: MAP_COLORS.text, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
                 {lastRunSummary.layerName}

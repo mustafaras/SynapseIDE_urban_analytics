@@ -170,6 +170,38 @@ const panelSlotStyle: React.CSSProperties = {
   minWidth: 0,
 };
 
+const workflowStepperStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+  gap: MAP_SPACING.xs,
+  paddingBottom: MAP_SPACING.sm,
+  borderBottom: MAP_STROKES.hairlineSubtle,
+};
+
+const workflowStepStyle: React.CSSProperties = {
+  display: "grid",
+  gap: 4,
+  minWidth: 0,
+  padding: MAP_SPACING.xs,
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.xs,
+  background: MAP_COLORS.transparent,
+};
+
+const workflowStepTitleStyle: React.CSSProperties = {
+  color: MAP_COLORS.textMuted,
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  textTransform: "uppercase",
+};
+
+const workflowStepDetailStyle: React.CSSProperties = {
+  color: MAP_COLORS.textSecondary,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  lineHeight: MAP_TYPOGRAPHY.lineHeight.normal,
+  ...MAP_TEXT_STYLES.valueWrap,
+};
+
 const pathPanelStyle: React.CSSProperties = {
   display: "grid",
   gap: MAP_SPACING.md,
@@ -442,6 +474,11 @@ const MapPublishReadinessChecklist: React.FC<{
               ) : null}
             </div>
             <div style={readinessDetailStyle}>{item.detail}</div>
+            {item.status === "blocked" ? (
+              <div style={{ ...readinessDetailStyle, color: MAP_COLORS.caveatText }}>
+                Recommended fix: {item.detail.includes("Resolve") ? item.detail : `Resolve ${item.label.toLowerCase()} before publish.`}
+              </div>
+            ) : null}
           </div>
         ))}
       </div>
@@ -456,6 +493,23 @@ const MapPublishBody: React.FC<{
   children: React.ReactNode;
 }> = ({ readinessItems, caveats = [], evidenceIds = [], children }) => (
   <div style={bodyStyle} data-testid="map-publish-tab-body">
+    <section style={workflowStepperStyle} aria-label="Publish workflow steps" data-testid="map-publish-workflow-steps">
+      <div style={workflowStepStyle}>
+        <div style={workflowStepTitleStyle}>Step 1</div>
+        <GisStatusChip status="ready" label="Content" density="compact" />
+        <div style={workflowStepDetailStyle}>Pick map content, marks, and layout scope.</div>
+      </div>
+      <div style={workflowStepStyle}>
+        <div style={workflowStepTitleStyle}>Step 2</div>
+        <GisStatusChip status={summarizeReadiness(readinessItems).status} label="Readiness" density="compact" />
+        <div style={workflowStepDetailStyle}>Validate CRS, QA, provenance, and publication checks.</div>
+      </div>
+      <div style={workflowStepStyle}>
+        <div style={workflowStepTitleStyle}>Step 3</div>
+        <GisStatusChip status="unknown" label="Output" density="compact" />
+        <div style={workflowStepDetailStyle}>Generate export package or publish report handoff.</div>
+      </div>
+    </section>
     <MapPublishReadinessChecklist items={readinessItems} />
     <MapPublishCaveatsSection caveats={caveats} />
     <MapPublishEvidenceSection evidenceIds={evidenceIds} />

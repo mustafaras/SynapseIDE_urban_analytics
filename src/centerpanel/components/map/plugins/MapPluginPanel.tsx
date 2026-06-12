@@ -14,7 +14,7 @@ import {
   MAP_TYPOGRAPHY,
   MAP_Z_INDEX,
 } from "../mapTokens";
-import { GisIconButton, GisStatusChip, type GisStatusChipProps } from "../ui";
+import { GisIconButton, GisSectionHeader, GisStatusChip, type GisStatusChipProps } from "../ui";
 import motionStyles from "../design/motion.module.css";
 
 export interface MapPluginPanelProps {
@@ -103,8 +103,9 @@ const rowStyle: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns: "minmax(0, 1fr) auto",
   gap: MAP_SPACING.sm,
-  padding: `${MAP_SPACING.sm} 0`,
+  padding: `${MAP_SPACING.sm} ${MAP_SPACING.xs}`,
   borderBottom: MAP_STROKES.hairlineSubtle,
+  borderLeft: `2px solid ${MAP_COLORS.transparent}`,
 };
 
 const rowTitleStyle: React.CSSProperties = {
@@ -245,14 +246,25 @@ export function MapPluginPanel({ visible, extensions, onClose }: MapPluginPanelP
       <div style={bodyStyle}>
         {KIND_ORDER.map((kind) => (
           <section key={kind} style={groupStyle} aria-label={KIND_LABELS[kind]}>
-            <div style={groupHeaderStyle}>
-              <span>{KIND_LABELS[kind]}</span>
-              <span>{groups[kind].length}</span>
-            </div>
+            <GisSectionHeader
+              title={KIND_LABELS[kind]}
+              level={4}
+              compact
+              separator={false}
+              actions={<GisStatusChip status={groups[kind].length > 0 ? "ready" : "caveat"} label={groups[kind].length.toLocaleString()} density="compact" />}
+              style={groupHeaderStyle}
+            />
             {groups[kind].map((extension) => (
               <div
                 key={extension.extensionId}
-                style={rowStyle}
+                style={{
+                  ...rowStyle,
+                  borderLeftColor: extension.availabilityStatus === "blocked"
+                    ? MAP_COLORS.error
+                    : extension.availabilityStatus === "limited"
+                      ? MAP_COLORS.caveatText
+                      : MAP_COLORS.interaction,
+                }}
                 data-testid={`map-plugin-extension-${extension.extensionId}`}
                 data-kind={extension.kind}
               >

@@ -210,11 +210,32 @@
   min-width: 0;
 }
 
+.tileLabelRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
 .tileLabel {
   font-size: 13px;
   font-weight: 600;
   line-height: 1.2;
   color: var(--start-text);
+}
+
+.tileBadge {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--start-caveat) 52%, transparent);
+  border-radius: 4px;
+  padding: 1px 5px;
+  color: color-mix(in srgb, var(--start-caveat) 94%, white 6%);
+  font-family: var(--font-mono, "JetBrains Mono", monospace);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
 }
 
 .tileHint {
@@ -259,6 +280,49 @@
   text-transform: uppercase;
   color: var(--start-text-muted);
   margin-bottom: 8px;
+}
+
+.recentWorkspaceList {
+  display: grid;
+  gap: 6px;
+}
+
+.recentWorkspaceRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--syn-border-subtle);
+  background: var(--syn-surface-raised, rgba(148, 163, 184, 0.04));
+}
+
+.recentWorkspaceName {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--start-text);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recentWorkspaceMeta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--start-text-muted);
+  font-family: var(--font-mono, "JetBrains Mono", monospace);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.recentWorkspaceSource {
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--start-text-secondary);
 }
 
 /* ---- Readiness summary strip ---- */
@@ -440,6 +504,13 @@
   background: var(--syn-surface-panel);
 }
 
+.footerLeft {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
 .footerNote {
   font-size: 11px;
   color: var(--start-text-muted);
@@ -469,6 +540,29 @@
   font-weight: 600;
   cursor: pointer;
   transition: border-color 120ms ease, color 120ms ease;
+}
+
+.primaryBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--start-accent) 58%, transparent);
+  background: color-mix(in srgb, var(--start-accent) 14%, var(--syn-surface-panel));
+  color: var(--start-text);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.primaryBtn:hover {
+  border-color: color-mix(in srgb, var(--start-accent) 70%, transparent);
+}
+
+.primaryBtn:focus-visible {
+  outline: 2px solid var(--start-accent);
+  outline-offset: 1px;
 }
 
 .ghostBtn:hover {
@@ -509,6 +603,10 @@
     align-items: stretch;
   }
 
+  .footerLeft {
+    justify-content: space-between;
+  }
+
   .footerActions {
     justify-content: flex-end;
   }
@@ -518,6 +616,7 @@
   .tile,
   .closeBtn,
   .ghostBtn,
+  .primaryBtn,
   .sourceHealthLink {
     transition: none;
   }

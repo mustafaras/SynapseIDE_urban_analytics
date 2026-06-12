@@ -122,7 +122,7 @@ describe("MapRightDockHost", () => {
     fireEvent.click(screen.getByLabelText("Collapse Diagnostics"));
     expect(onCollapse).toHaveBeenCalledOnce();
 
-    fireEvent.click(screen.getByLabelText("Close Diagnostics"));
+    fireEvent.click(screen.getByLabelText("Close right dock"));
     expect(onClose).toHaveBeenCalledOnce();
   });
 

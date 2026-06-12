@@ -272,10 +272,10 @@ const groupHeader: React.CSSProperties = {
 const layerRow: React.CSSProperties = {
   ...mapStyles.sidePanelRow,
   display: "grid",
-  gridTemplateColumns: "1rem 1.35rem minmax(0, 1fr) 1.75rem 3.5rem",
-  alignItems: "center",
-  gap: "0.3125rem",
-  minHeight: "2.375rem",
+  gridTemplateColumns: "1.625rem minmax(0, 1fr) 3.5rem",
+  alignItems: "start",
+  gap: "0.375rem",
+  minHeight: "7.5rem",
   padding: "0.3125rem 0.375rem",
   boxSizing: "border-box",
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
@@ -327,8 +327,8 @@ const visibilityBtn: React.CSSProperties = {
   borderRadius: MAP_RADIUS.sm,
   cursor: "pointer",
   fontSize: 14,
-  width: "2rem",
-  height: "2rem",
+  width: "1.625rem",
+  height: "1.625rem",
   padding: 0,
   lineHeight: 1,
   transition: MAP_TRANSITIONS.fast,
@@ -3232,15 +3232,25 @@ const LayerRow: React.FC<LayerRowProps> = ({
         }
       }}
     >
-      <span style={layerDragHandle} aria-hidden="true" title="Drag to reorder">
-        ::
-      </span>
-      <span style={layerTypeIconShell} title={`${geometryChip} layer type`} aria-hidden="true">
-        <LayerGeometryIcon layer={layer} />
-      </span>
-
+      <button
+        type="button"
+        style={visibilityBtn}
+        onClick={() => onToggleVisibility(layer.id)}
+        aria-label={`${layer.visible ? "Hide" : "Show"} layer ${layer.name}`}
+        aria-pressed={layer.visible}
+      >
+        <span style={{ color: layer.visible ? MAP_COLORS.interaction : MAP_COLORS.textMuted, display: "inline-flex", alignItems: "center" }}>
+          {layer.visible ? <IconEyeOpen size={13} /> : <IconEyeClosed size={13} />}
+        </span>
+      </button>
       <div style={layerContent}>
         <div style={layerNameLine}>
+          <span style={layerDragHandle} aria-hidden="true" title="Drag to reorder">
+            ::
+          </span>
+          <span style={layerTypeIconShell} title={`${geometryChip} layer type`} aria-hidden="true">
+            <LayerGeometryIcon layer={layer} />
+          </span>
           <button
             type="button"
             style={layerNameButton}
@@ -3437,17 +3447,6 @@ const LayerRow: React.FC<LayerRowProps> = ({
           />
         </div>
       </div>
-      <button
-        type="button"
-        style={visibilityBtn}
-        onClick={() => onToggleVisibility(layer.id)}
-        aria-label={`${layer.visible ? "Hide" : "Show"} layer ${layer.name}`}
-        aria-pressed={layer.visible}
-      >
-        <span style={{ color: layer.visible ? MAP_COLORS.interaction : MAP_COLORS.textMuted, display: "inline-flex", alignItems: "center" }}>
-          {layer.visible ? <IconEyeOpen size={13} /> : <IconEyeClosed size={13} />}
-        </span>
-      </button>
       <LayerActionMenu
         layerName={layer.name}
         actions={menuActions}

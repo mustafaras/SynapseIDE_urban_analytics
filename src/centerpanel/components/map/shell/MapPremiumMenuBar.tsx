@@ -84,7 +84,7 @@ export function MapPremiumMenuBar({ menus, quickActions, width }: MapPremiumMenu
 
   if (compactMode) {
     return (
-      <div style={menuBarStyle} role="menubar" aria-label="Premium map menu bar" data-testid="map-premium-menu-bar" data-menu-mode="compact">
+      <div style={menuBarStyle} role="toolbar" aria-label="Premium map menu bar" data-testid="map-premium-menu-bar" data-menu-mode="compact">
         <AppDropdownMenu
           open={openMenuId === "compact"}
           onOpenChange={(open) => setOpenMenuId(open ? "compact" : null)}
@@ -165,7 +165,7 @@ export function MapPremiumMenuBar({ menus, quickActions, width }: MapPremiumMenu
   }
 
   return (
-    <div style={menuBarStyle} role="menubar" aria-label="Premium map menu bar" data-testid="map-premium-menu-bar" data-menu-mode={iconOnlyMode ? "icons" : width < 1440 ? "compact" : "full"}>
+    <div style={menuBarStyle} role="toolbar" aria-label="Premium map menu bar" data-testid="map-premium-menu-bar" data-menu-mode={iconOnlyMode ? "icons" : width < 1440 ? "compact" : "full"}>
       <div style={menusRailStyle}>
         {menus.map((menu) => {
           const open = openMenuId === menu.id;
