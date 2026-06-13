@@ -38,6 +38,12 @@ export interface MapCanvasProps {
    */
   initialViewport?: Partial<ViewportState>;
   /**
+   * External viewport to mirror after construction. Used by secondary,
+   * controlled canvases such as swipe compare so they stay aligned with the
+   * primary Map Explorer camera without owning global store state.
+   */
+  syncViewport?: Partial<ViewportState> | null;
+  /**
    * Viewport ownership mode.
    *
    * - `'shared'` (default): the canvas participates in the global Map
@@ -245,6 +251,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
   preserveDrawingBuffer = false,
   showScaleBar = true,
   initialViewport,
+  syncViewport = null,
   viewportMode = 'shared',
   onCursorMove,
   onZoomChange,
@@ -500,6 +507,36 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
     if (!mapRef.current) return;
     syncScaleControl(mapRef.current, showScaleBar);
   }, [showScaleBar, syncScaleControl]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !syncViewport) return;
+
+    const currentCenter = map.getCenter();
+    const nextCenter = syncViewport.center;
+    const nextZoom = syncViewport.zoom;
+    const nextBearing = syncViewport.bearing;
+    const nextPitch = syncViewport.pitch;
+    const epsilon = 0.000001;
+    const needsCenter =
+      nextCenter != null &&
+      (Math.abs(currentCenter.lng - nextCenter[0]) > epsilon ||
+        Math.abs(currentCenter.lat - nextCenter[1]) > epsilon);
+    const needsZoom = nextZoom != null && Math.abs(map.getZoom() - nextZoom) > 0.001;
+    const needsBearing = nextBearing != null && Math.abs(map.getBearing() - nextBearing) > 0.001;
+    const needsPitch = nextPitch != null && Math.abs(map.getPitch() - nextPitch) > 0.001;
+
+    if (!needsCenter && !needsZoom && !needsBearing && !needsPitch) {
+      return;
+    }
+
+    map.jumpTo({
+      ...(nextCenter != null ? { center: nextCenter } : {}),
+      ...(nextZoom != null ? { zoom: nextZoom } : {}),
+      ...(nextBearing != null ? { bearing: nextBearing } : {}),
+      ...(nextPitch != null ? { pitch: nextPitch } : {}),
+    });
+  }, [syncViewport]);
 
   /* ---- Switch base layer ---- */
   useEffect(() => {

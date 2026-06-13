@@ -36,10 +36,41 @@
   filter: drop-shadow(-10px 0 28px rgba(0, 0, 0, 0.32));
 }
 
+.host[data-collapsed="true"] {
+  width: var(--right-dock-width, 48px);
+  min-width: var(--right-dock-width, 48px);
+  max-width: var(--right-dock-width, 48px);
+  background: var(--syn-bg-panel, #181b22);
+  border-left: 1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.28));
+  box-shadow: -8px 0 22px rgba(0, 0, 0, 0.24);
+}
+
 .frame {
   position: relative;
   height: 100%;
   border-radius: 0;
+}
+
+.collapsedRail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  height: 100%;
+  padding: 6px 4px;
+  box-sizing: border-box;
+}
+
+.collapsedRailDivider {
+  display: block;
+  width: 1.4rem;
+  height: 1px;
+  margin: 2px 0;
+  background: var(--syn-border-subtle, rgba(148, 163, 184, 0.28));
+}
+
+.collapsedRailSpacer {
+  flex: 1 1 auto;
 }
 
 .resizeHandle {

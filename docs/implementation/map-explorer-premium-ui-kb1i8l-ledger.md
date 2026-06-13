@@ -36,31 +36,30 @@ be captured here — rely on tests + CSS reasoning.
   MapLibre bottom-left `ScaleControl` switched off on the main canvas
   (`showScaleBar={false}` in `MapExplorerModalRuntimeCore`); `MapCanvas` + its
   lifecycle test untouched. Commit `2023ad2`.
-- `[~]` **6 — MapLibre / geolibre features.** New `MapNavExtras.tsx` adds
-  Locate-me, Go-to-coordinate, Full-screen (right-edge, dock-offset, collision-free).
-  Saved views already ship via `MapBookmarkBar` (not duplicated). Commit `cda4c77`.
-  **Remaining: Swipe compare** — needs an architecture decision (dual synced map
-  vs per-layer clip); deferred pending user input, NOT rushed.
-- `[~]` **5 — Draggable modals.** `MapFlowDispatchDialog`, `MapDataExportDialog`,
-  `MapCsvImportDialog` now use `useDraggableMapPanel` (header drag handle,
-  double-click recenters, Escape closes, viewport-clamped, raised shadow). Also
-  fixed a pre-existing broken test (`MapExplorerModal.dispatch` — missing
-  `MapLayerBookmarksPanel` mock export). Commits `7c64fea`, (this).
-  **Remaining:** `MapExportDialog` needs a header/title bar added before it can
-  be a clean drag surface; a shared `DialogShell` would DRY all dialogs.
-- `[~]` **2 — Dock identity + fluidity.** Right dock: discoverable resize grip
-  (hover/focus dotted grip + accent edge) and smooth, drag-safe width transition
-  (`data-resizing` gates the animation; reduced-motion respected). Left rail:
-  mirrored grip affordance. Commits `739df81`, `1674ab6`.
-  **Remaining:** real collapse-to-rail for the right dock; premium interior rhythm.
-- `[~]` **3 — Status bar premium polish.** Live "breathing" underline pulse on
-  running-tone segments, pending-tone signal, smooth hover micro-interaction with
-  accent underline; all reduced-motion safe. (CSS-only in the shell block.) This commit.
-  **Remaining:** richer per-segment hover detail popovers / sparklines (needs TSX).
-- `[ ]` 1 — Design-debt cleanup (stacked frames/borders, right-dock body nesting, context-aware left summary)
-- `[ ]` 6 (swipe) — **Approved approach: two synced MapLibre maps (full swipe).**
-  Next: add a second `MapCanvas` instance behind a draggable vertical divider with
-  viewport sync; gate behind a furniture toggle.
+- `[x]` **6 — MapLibre / geolibre features.** `MapNavExtras.tsx` covers
+  Locate-me, Go-to-coordinate, and Full-screen (right-edge, dock-offset,
+  collision-free). Saved views continue to ship through `MapBookmarkBar`.
+  Swipe compare is now implemented via `MapSwipeCompareOverlay.tsx`: a second
+  controlled `MapCanvas` instance mirrors the main viewport through
+  `syncViewport`, keeps overlay layers in sync through `useLayerSync`, exposes a
+  draggable divider, and lets the user choose a non-active comparison basemap
+  from the on-map furniture toggle.
+- `[x]` **5 — Unified draggable modals.** `MapDialogShell.tsx` now provides the
+  shared draggable chrome, native resize, focus trap, Escape/overlay dismiss, and
+  consistent title/action treatment. `MapExportDialog`, `MapDataExportDialog`,
+  `MapCsvImportDialog`, and `MapFlowDispatchDialog` all use the shared shell.
+- `[x]` **2 — Dock identity + fluidity.** Right dock has the earlier
+  discoverable resize grip and now a real collapse-to-rail state that preserves
+  the active route, exposes compact panel buttons, and uses a dock-aware
+  collapsed width in `mapDocking.ts`. Left rail keeps its mirrored grip
+  affordance.
+- `[x]` **3 — Status bar premium polish.** Live tone/motion remains
+  reduced-motion safe, and each inline segment now exposes a richer hover/focus
+  detail popover with compact signal bars instead of only a flat underline.
+- `[x]` **1 — Design-debt cleanup.** Right-dock body spacing/borders were
+  flattened to reduce stacked-card nesting, and the left dock summary now adapts
+  to Publish/Scene/Analyze/Style context instead of always repeating a generic
+  workspace line.
 
 - `[x]` **1 (remnant) — Canvas furniture z-index bug fixed.** Discovered via
   Playwright proof: `mapFurniture` resolved to **−5** (`sidebarZIndex−10`), below
@@ -82,7 +81,10 @@ bottom-left scale remnant** (`.maplibregl-ctrl-scale` count = 0). Temp specs +
 `e2e/__screens__` are deleted (never committed).
 
 Validation snapshot (latest): `src/centerpanel/components/map` + dispatch =
-**92 files / 825 tests green**; typecheck clean; eslint 0 errors.
+**92 files / 827 tests green**; typecheck clean; eslint 0 errors. This pass
+adds focused coverage for controlled `MapCanvas.syncViewport` and right-dock
+collapse-to-rail. JSDOM still prints the existing canvas `getContext` warning in
+headless tests, but the suite exits successfully.
 
 ## Key anchors
 

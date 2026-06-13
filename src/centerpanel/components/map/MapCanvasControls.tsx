@@ -2,6 +2,7 @@ import React from "react";
 import {
   BoxSelect,
   Compass,
+  Columns2,
   Crosshair,
   Eye,
   EyeOff,
@@ -56,6 +57,7 @@ export interface MapCanvasControlsProps {
   legendVisible: boolean;
   legendAvailable: boolean;
   scaleBarVisible: boolean;
+  swipeCompareVisible?: boolean;
   northArrowVisible: boolean;
   bearing: number;
   fitSelectedDisabled?: boolean;
@@ -83,6 +85,7 @@ export interface MapCanvasControlsProps {
   onOpenCrsReadiness: () => void;
   onToggleLegend: () => void;
   onToggleScaleBar: () => void;
+  onToggleSwipeCompare?: () => void;
   onToggleNorthArrow: () => void;
   onSetSelectionDragTool: (tool: SelectionDragTool | null) => void;
   onDrawAoi: () => void;
@@ -414,6 +417,7 @@ export const MapCanvasControls: React.FC<MapCanvasControlsProps> = ({
   legendVisible,
   legendAvailable,
   scaleBarVisible,
+  swipeCompareVisible = false,
   northArrowVisible,
   bearing,
   mapOnlyMode = false,
@@ -432,6 +436,7 @@ export const MapCanvasControls: React.FC<MapCanvasControlsProps> = ({
   onOpenCrsReadiness,
   onToggleLegend,
   onToggleScaleBar,
+  onToggleSwipeCompare,
   onToggleNorthArrow,
   onDrawAoi,
   onMeasureDistance,
@@ -585,6 +590,15 @@ export const MapCanvasControls: React.FC<MapCanvasControlsProps> = ({
               size="sm"
               active={scaleBarVisible}
               onClick={onToggleScaleBar}
+            />
+            <GisIconButton
+              label={swipeCompareVisible ? "Hide swipe compare" : "Show swipe compare"}
+              tooltip={swipeCompareVisible ? "Hide swipe compare" : "Show swipe compare"}
+              icon={<Columns2 size={MAP_ICON_SIZES.sm} aria-hidden="true" />}
+              size="sm"
+              active={swipeCompareVisible}
+              onClick={onToggleSwipeCompare ?? (() => undefined)}
+              data-testid="map-canvas-swipe-compare"
             />
             <GisIconButton
               label={northArrowVisible ? "Hide north arrow" : "Show north arrow"}

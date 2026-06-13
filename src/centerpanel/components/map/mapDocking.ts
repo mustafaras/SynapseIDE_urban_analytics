@@ -34,6 +34,7 @@ export interface MapDockLayoutInput {
   containerWidth: number;
   layerPanelRequested: boolean;
   rightPanel: MapRightDockPanel | null;
+  rightPanelCollapsed?: boolean;
   navigatorStageMode: boolean;
   layerPanelWidth?: number;
   rightPanelWidth?: number;
@@ -64,6 +65,7 @@ export const MAP_LAYER_PANEL_MIN_WIDTH = 300;
 export const MAP_LAYER_PANEL_MAX_WIDTH = 760;
 export const MAP_RIGHT_PANEL_MIN_WIDTH = 320;
 export const MAP_RIGHT_PANEL_MAX_WIDTH = 560;
+export const MAP_RIGHT_PANEL_COLLAPSED_WIDTH = 48;
 
 function clampNumber(value: number | undefined, min: number, max: number, fallback: number): number {
   if (typeof value !== "number" || !Number.isFinite(value)) {
@@ -123,7 +125,9 @@ export function getMapDockLayout(input: MapDockLayoutInput): MapDockLayout {
     MAP_LAYER_PANEL_MAX_WIDTH,
     MAP_NUMERIC.layerPanelWidth,
   );
-  const rightPanelWidth = getRightPanelWidth(activeRightPanel, input.rightPanelWidth);
+  const rightPanelWidth = input.rightPanelCollapsed && activeRightPanel
+    ? MAP_RIGHT_PANEL_COLLAPSED_WIDTH
+    : getRightPanelWidth(activeRightPanel, input.rightPanelWidth);
   const measuredWidth = Math.max(0, input.containerWidth);
   const centerWithLeftOnly = measuredWidth - layerPanelWidth - MAP_NUMERIC.overlayMargin * 2;
   const centerWithBothRails = measuredWidth - layerPanelWidth - rightPanelWidth - MAP_NUMERIC.overlayMargin * 2;

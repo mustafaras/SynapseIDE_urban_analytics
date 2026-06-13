@@ -7,6 +7,12 @@ export type { MapCanvasKeyboardFallbackControlsProps } from "./MapCanvasKeyboard
 export { MapCanvasControls } from "./MapCanvasControls";
 export type { MapCanvasControlsProps } from "./MapCanvasControls";
 
+export { MapDialogShell } from "./MapDialogShell";
+export type { MapDialogShellProps } from "./MapDialogShell";
+
+export { MapSwipeCompareOverlay } from "./MapSwipeCompareOverlay";
+export type { MapSwipeCompareOverlayProps } from "./MapSwipeCompareOverlay";
+
 export { MapToolbar } from "./MapToolbar";
 export type { MapToolbarProps } from "./MapToolbar";
 

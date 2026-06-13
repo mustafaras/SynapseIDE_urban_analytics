@@ -107,6 +107,7 @@ interface MapExplorerModalRuntimeViewProps {
   rightDockPanels: React.ComponentProps<typeof MapRightDockHost>["panels"];
   rightDockBodyContent: React.ReactNode;
   rightDockPresentation: React.ComponentProps<typeof MapRightDockHost>["presentation"];
+  rightDockCollapsed?: boolean;
   handleRightDockHostPanelChange: React.ComponentProps<typeof MapRightDockHost>["onPanelChange"];
   handleCollapseRightDockHost: React.ComponentProps<typeof MapRightDockHost>["onCollapse"];
   handleCloseRightDockHost: React.ComponentProps<typeof MapRightDockHost>["onClose"];
@@ -275,6 +276,7 @@ export const MapExplorerModalRuntimeView: React.FC<MapExplorerModalRuntimeViewPr
   rightDockPanels,
   rightDockBodyContent,
   rightDockPresentation,
+  rightDockCollapsed = false,
   handleRightDockHostPanelChange,
   handleCollapseRightDockHost,
   handleCloseRightDockHost,
@@ -645,6 +647,7 @@ export const MapExplorerModalRuntimeView: React.FC<MapExplorerModalRuntimeViewPr
         route={activeRightDockRoute}
         panels={rightDockPanels}
         presentation={rightDockPresentation}
+        collapsed={rightDockCollapsed}
         width={rightPanelWidth}
         stateLabel={activeRightDockRoute.legacyBottomTabId ? "Migrating" : "Routed"}
         onPanelChange={handleRightDockHostPanelChange}

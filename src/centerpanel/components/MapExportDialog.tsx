@@ -1,15 +1,14 @@
 import React from "react";
-import { DESIGN_TOKENS } from "@/constants/design";
 import type { MapCompositionOptions, MapPublicationReadiness } from "@/services/map/MapExportService";
 import { MapCompositionLayout } from "./MapCompositionLayout";
 import {
   MAP_COLORS,
   MAP_RADIUS,
-  MAP_SHADOWS,
   MAP_SPACING,
   MAP_STROKES,
   MAP_TYPOGRAPHY,
 } from "./map/mapTokens";
+import { MapDialogShell } from "./map/MapDialogShell";
 
 export interface MapExportDialogProps {
   open: boolean;
@@ -27,32 +26,12 @@ export interface MapExportDialogProps {
   onOpenExportNoteInIde?: () => void;
 }
 
-const overlayStyle: React.CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  zIndex: 50,
-  background: "rgba(0,0,0,0.58)",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  padding: 24,
-};
-
-const dialogStyle: React.CSSProperties = {
-  width: 1080,
-  maxWidth: "calc(100% - 2rem)",
-  maxHeight: "var(--map-popover-max-height, calc(100% - 2rem))",
-  overflow: "auto",
+const dialogBodyStyle: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns: "minmax(360px, 0.9fr) minmax(320px, 1.1fr)",
   gap: 20,
   padding: 20,
-  borderRadius: MAP_RADIUS.lg,
-  border: `1px solid ${DESIGN_TOKENS.glassmorphism.border.dark}`,
-  background: DESIGN_TOKENS.glassmorphism.background.glassDark,
-  backdropFilter: DESIGN_TOKENS.glassmorphism.backdrop.glassDark,
-  boxShadow: MAP_SHADOWS.dropdown,
-  color: MAP_COLORS.text,
+  minHeight: 0,
 };
 
 const sectionStyle: React.CSSProperties = {
@@ -183,14 +162,16 @@ export const MapExportDialog: React.FC<MapExportDialogProps> = ({
   const readinessFindings = readiness ? (readiness.blockers.length > 0 ? readiness.blockers : readiness.warnings) : [];
 
   return (
-    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- overlay click dismiss
-    <div
-      style={overlayStyle}
-      onClick={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
+    <MapDialogShell
+      ariaLabel="Publication map export options"
+      title="Publication Export"
+      subtitle="Compose the map figure, inspect readiness, and render the selected output format."
+      width={1080}
+      maxWidth="calc(100% - 2rem)"
+      maxHeight="var(--map-dialog-max-height, calc(100% - 2rem))"
+      bodyStyle={dialogBodyStyle}
+      onClose={onClose}
     >
-      <div style={dialogStyle} role="dialog" aria-modal="true" aria-label="Publication map export options">
         <div style={sectionStyle}>
           <MapCompositionLayout
             options={compositionOptions}
@@ -275,8 +256,7 @@ export const MapExportDialog: React.FC<MapExportDialogProps> = ({
             </div>
           ) : null}
         </div>
-      </div>
-    </div>
+    </MapDialogShell>
   );
 };
 

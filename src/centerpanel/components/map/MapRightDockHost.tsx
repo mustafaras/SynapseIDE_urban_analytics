@@ -15,6 +15,7 @@ import {
   MoreHorizontal,
   MousePointer2,
   Palette,
+  PanelRightOpen,
   PencilRuler,
   Pin,
   PinOff,
@@ -22,6 +23,7 @@ import {
   ShieldAlert,
   Users,
   Workflow,
+  X,
 } from "lucide-react";
 import {
   MAP_RIGHT_PANEL_MAX_WIDTH,
@@ -50,6 +52,7 @@ export interface MapRightDockHostProps {
   route: MapRightDockRoute;
   panels?: readonly MapRightDockPanel[];
   presentation?: MapRightDockHostPresentation;
+  collapsed?: boolean;
   width?: number;
   stateLabel?: string;
   onPanelChange?: (panel: MapRightDockPanel) => void;
@@ -128,6 +131,7 @@ export const MapRightDockHost: React.FC<MapRightDockHostProps> = ({
   route,
   panels = MAP_RIGHT_DOCK_PANEL_IDS,
   presentation = "right-dock",
+  collapsed = false,
   width = 420,
   stateLabel = "Routed",
   onPanelChange,
@@ -217,6 +221,67 @@ export const MapRightDockHost: React.FC<MapRightDockHostProps> = ({
     document.addEventListener("pointermove", handlePointerMove);
     document.addEventListener("pointerup", handlePointerUp, { once: true });
   }, [onWidthChange, width]);
+
+  if (collapsed) {
+    return (
+      <aside
+        ref={hostRef}
+        className={styles.host}
+        aria-label={`${activeDefinition.label} right dock rail`}
+        data-testid="map-right-dock-host"
+        data-map-right-dock-host="true"
+        data-map-right-dock-panel={route.panel}
+        data-map-right-dock-source={route.source}
+        data-presentation={presentation}
+        data-panel-tier={getMapRightDockPanelTier(route.panel)}
+        data-collapsed="true"
+        tabIndex={-1}
+        style={{
+          "--right-dock-width": `${width}px`,
+        } as React.CSSProperties}
+      >
+        <div className={styles.collapsedRail} role="toolbar" aria-label="Collapsed right dock panels">
+          <GisIconButton
+            label={`Expand ${activeDefinition.label}`}
+            tooltip={`Expand ${activeDefinition.label}`}
+            icon={<PanelRightOpen size={MAP_ICON_SIZES.sm} aria-hidden="true" />}
+            size="sm"
+            onClick={onCollapse}
+            data-testid="map-right-dock-collapse"
+          />
+          <span className={styles.collapsedRailDivider} aria-hidden="true" />
+          {visiblePanels.map((panel) => {
+            const definition = getMapRightDockPanelDefinition(panel);
+            const active = panel === route.panel;
+            return (
+              <GisIconButton
+                key={panel}
+                label={definition.label}
+                tooltip={definition.label}
+                icon={getPanelIcon(panel)}
+                size="sm"
+                active={active}
+                onClick={() => {
+                  if (active) onCollapse?.();
+                  else onPanelChange?.(panel);
+                }}
+                data-testid={`map-right-dock-collapsed-tab-${panel}`}
+              />
+            );
+          })}
+          <span aria-hidden className={styles.collapsedRailSpacer} />
+          <GisIconButton
+            label="Close right dock"
+            tooltip="Close right dock"
+            icon={<X size={MAP_ICON_SIZES.sm} aria-hidden="true" />}
+            size="sm"
+            onClick={onClose}
+            data-testid="map-right-dock-close"
+          />
+        </div>
+      </aside>
+    );
+  }
 
   return (
     <aside

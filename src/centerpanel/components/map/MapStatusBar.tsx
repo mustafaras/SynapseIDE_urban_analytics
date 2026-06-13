@@ -130,7 +130,7 @@ const statusBar: React.CSSProperties = {
   color: MAP_COLORS.textMuted,
   flexShrink: 0,
   minWidth: MAP_SPACING.zero,
-  overflow: "hidden",
+  overflow: "visible",
   transition: MAP_TRANSITIONS.fast,
 };
 
@@ -240,6 +240,51 @@ const overflowMenuItemStyle: React.CSSProperties = {
   borderRadius: 0,
 };
 
+const detailPopoverStyle: React.CSSProperties = {
+  position: "absolute",
+  left: MAP_SPACING.md,
+  bottom: "calc(100% + 0.4rem)",
+  display: "grid",
+  gap: MAP_SPACING.xs,
+  width: "min(24rem, calc(100vw - 2rem))",
+  padding: MAP_SPACING.sm,
+  border: MAP_STROKES.hairlineStrong,
+  borderRadius: 2,
+  background: MAP_COLORS.bgPanel,
+  color: MAP_COLORS.textSecondary,
+  boxShadow: "0 12px 30px rgba(15, 23, 42, 0.42)",
+  zIndex: MAP_Z_INDEX.dropdown,
+  pointerEvents: "none",
+};
+
+const detailHeaderStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: MAP_SPACING.sm,
+};
+
+const detailTitleStyle: React.CSSProperties = {
+  color: MAP_COLORS.text,
+  fontFamily: MAP_TYPOGRAPHY.fontFamily,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+};
+
+const detailMetaStyle: React.CSSProperties = {
+  color: MAP_COLORS.textMuted,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  lineHeight: 1.45,
+};
+
+const detailBarsStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(8, 1fr)",
+  gap: 2,
+  height: 14,
+  alignItems: "end",
+};
+
 type StatusTone = "neutral" | "info" | "error" | "valid" | "running" | "pending" | "stale" | "warning";
 type StatusGroup = "view" | "data" | "runtime";
 
@@ -258,6 +303,28 @@ type StatusSegment = {
   href?: string;
   ariaLabel?: string;
 };
+
+function renderDetailBars(segment: StatusSegment): React.ReactNode {
+  const toneColor = segment.tone ? STATUS_TONE_COLOR[segment.tone] : MAP_COLORS.textMuted;
+  return (
+    <span style={detailBarsStyle} aria-hidden="true">
+      {Array.from({ length: 8 }, (_, index) => {
+        const height = 4 + ((segment.priority + index * 7) % 11);
+        return (
+          <span
+            key={`${segment.id}-bar-${index}`}
+            style={{
+              height,
+              borderRadius: 2,
+              background: toneColor,
+              opacity: 0.34 + index * 0.055,
+            }}
+          />
+        );
+      })}
+    </span>
+  );
+}
 
 function StatusSpinner({
   reducedMotion,
@@ -599,6 +666,7 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
   const overflowRef = useRef<HTMLDivElement | null>(null);
   const availableWidth = useAvailableWidth(containerRef, layoutWidthOverride);
   const [overflowOpen, setOverflowOpen] = useState(false);
+  const [activeDetailSegmentId, setActiveDetailSegmentId] = useState<MapStatusBarSegmentId | null>(null);
 
   const saveLabel = isLoading
     ? "loading"
@@ -973,6 +1041,11 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
     }
   }, [overflowOpen, overflowSegments.length]);
 
+  const activeDetailSegment = useMemo(
+    () => visibleSegments.find((segment) => segment.id === activeDetailSegmentId) ?? null,
+    [activeDetailSegmentId, visibleSegments],
+  );
+
   const renderInlineSegment = (
     segment: StatusSegment,
     index: number,
@@ -983,6 +1056,10 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
       title: segment.title,
       "data-map-status-segment": segment.id,
       "data-map-status-tone": segment.tone ?? "neutral",
+      onMouseEnter: () => setActiveDetailSegmentId(segment.id),
+      onFocus: () => setActiveDetailSegmentId(segment.id),
+      onMouseLeave: () => setActiveDetailSegmentId((current) => (current === segment.id ? null : current)),
+      onBlur: () => setActiveDetailSegmentId((current) => (current === segment.id ? null : current)),
       style: {
         ...(segment.onClick || segment.href ? segmentButtonStyle : segmentBaseStyle),
         width: `${segment.widthPx}px`,
@@ -1106,6 +1183,23 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
               {overflowSegments.map(renderOverflowSegment)}
             </div>
           ) : null}
+        </div>
+      ) : null}
+
+      {activeDetailSegment ? (
+        <div
+          style={detailPopoverStyle}
+          role="tooltip"
+          data-map-status-detail-popover={activeDetailSegment.id}
+        >
+          <span style={detailHeaderStyle}>
+            <span style={detailTitleStyle}>{activeDetailSegment.label}</span>
+            <span style={{ ...segmentValueStyle, color: activeDetailSegment.tone ? STATUS_TONE_COLOR[activeDetailSegment.tone] : segmentValueStyle.color }}>
+              {activeDetailSegment.value}
+            </span>
+          </span>
+          {renderDetailBars(activeDetailSegment)}
+          <span style={detailMetaStyle}>{activeDetailSegment.title}</span>
         </div>
       ) : null}
     </div>

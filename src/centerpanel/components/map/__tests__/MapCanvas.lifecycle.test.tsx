@@ -15,6 +15,7 @@ const mapMockState = vi.hoisted(() => {
       options?: { preserveDrawingBuffer?: boolean };
       addControl: ReturnType<typeof vi.fn>;
       removeControl: ReturnType<typeof vi.fn>;
+      jumpTo: ReturnType<typeof vi.fn>;
     }>,
   };
 });
@@ -28,6 +29,7 @@ vi.mock("maplibre-gl", () => {
         options,
         addControl: this.addControl,
         removeControl: this.removeControl,
+        jumpTo: this.jumpTo,
         emit: (type, event) => {
           for (const handler of this.listeners.get(type) ?? []) {
             handler(event);
@@ -39,6 +41,8 @@ vi.mock("maplibre-gl", () => {
     addControl = vi.fn();
 
     removeControl = vi.fn();
+
+    jumpTo = vi.fn();
 
     on = vi.fn((type: string, handler: (event: { error?: unknown; preventDefault?: () => void }) => void) => {
       const handlers = this.listeners.get(type) ?? [];
@@ -225,6 +229,56 @@ describe("MapCanvas lifecycle", () => {
 
     expect(mapMockState.instances).toHaveLength(1);
     expect(mapMockState.instances[0]?.removeControl).toHaveBeenCalledWith(scaleControl);
+
+    await act(async () => {
+      root.unmount();
+    });
+  });
+
+  it("mirrors an external sync viewport without recreating the canvas", async () => {
+    const { MapCanvas } = await import("../MapCanvas");
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    const renderCanvas = (syncViewport: {
+      center: [number, number];
+      zoom: number;
+      bearing: number;
+      pitch: number;
+    }) => (
+      <MapCanvas
+        baseLayer="dark"
+        pinMode={false}
+        pins={[]}
+        syncViewport={syncViewport}
+        onCursorMove={() => undefined}
+        onZoomChange={() => undefined}
+        onViewportChange={() => undefined}
+        onMapClick={() => undefined}
+        onMapReady={() => undefined}
+        onMapDestroy={() => undefined}
+      />
+    );
+
+    await act(async () => {
+      root.render(renderCanvas({ center: [29, 41], zoom: 11, bearing: 0, pitch: 0 }));
+    });
+
+    expect(mapMockState.instances).toHaveLength(1);
+    expect(mapMockState.instances[0]?.jumpTo).not.toHaveBeenCalled();
+
+    await act(async () => {
+      root.render(renderCanvas({ center: [30, 42], zoom: 12, bearing: 5, pitch: 15 }));
+    });
+
+    expect(mapMockState.instances).toHaveLength(1);
+    expect(mapMockState.instances[0]?.jumpTo).toHaveBeenCalledWith({
+      center: [30, 42],
+      zoom: 12,
+      bearing: 5,
+      pitch: 15,
+    });
 
     await act(async () => {
       root.unmount();

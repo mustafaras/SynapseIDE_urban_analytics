@@ -1,8 +1,7 @@
 import React from "react";
 
-import { IconClose } from "../MapIcons";
-import { MAP_COLORS, MAP_ICON_SIZES, MAP_RADIUS, MAP_Z_INDEX, mapStyles } from "../mapTokens";
-import { useDraggableMapPanel } from "../useDraggableMapPanel";
+import { MAP_COLORS, MAP_RADIUS, MAP_SPACING, mapStyles } from "../mapTokens";
+import { MapDialogShell } from "../MapDialogShell";
 import type { getCompatibleAoiFlows } from "../../../../services/map/MapAnalysisDispatcher";
 import type { resolveFlowDispatchAoiCandidate } from "./mapExplorerSpatialHelpers";
 
@@ -28,8 +27,6 @@ export const MapFlowDispatchDialog: React.FC<MapFlowDispatchDialogProps> = ({
   onToggleRestrictToMapView,
   restrictToMapView,
 }) => {
-  const { panelPositionStyle, dragHandleProps, dragHandleStyle } = useDraggableMapPanel();
-
   if (!flowDispatchAoi) {
     return null;
   }
@@ -37,60 +34,15 @@ export const MapFlowDispatchDialog: React.FC<MapFlowDispatchDialogProps> = ({
   const hasViewFilter = restrictToMapView && hasCurrentMapBounds;
 
   return (
-    <div
-      style={{
-        position: "absolute",
-        inset: 0,
-        background: "rgba(0, 0, 0, 0.34)",
-        zIndex: MAP_Z_INDEX.dialog,
-      }}
-      onKeyDown={(event) => {
-        if (event.key === "Escape") {
-          event.stopPropagation();
-          onClose();
-        }
-      }}
+    <MapDialogShell
+      ariaLabel="Choose workflow for map analysis dispatch"
+      title={`Route ${flowDispatchAoi.label.toLowerCase()} into a workflow`}
+      subtitle="Analyze This Area"
+      width={460}
+      bodyStyle={{ display: "grid", gap: 14, padding: `0 ${MAP_SPACING.lg} ${MAP_SPACING.lg}` }}
+      overlayStyle={{ background: "rgba(0, 0, 0, 0.34)" }}
+      onClose={onClose}
     >
-      <div
-        style={{
-          position: "absolute",
-          ...panelPositionStyle,
-          width: 460,
-          maxWidth: "calc(100% - 32px)",
-          display: "grid",
-          gap: 14,
-          padding: "18px 18px 16px",
-          borderRadius: MAP_RADIUS.sm,
-          border: "1px solid var(--syn-border-strong, rgba(148, 163, 184, 0.42))",
-          background: "var(--syn-surface-panel, rgba(12, 16, 24, 0.94))",
-          boxShadow: "0 12px 32px rgba(0,0,0,0.4)",
-        }}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Choose workflow for map analysis dispatch"
-        data-draggable-map-panel="true"
-      >
-        <div
-          {...dragHandleProps}
-          style={{ ...dragHandleStyle, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}
-        >
-          <div>
-            <div style={{ color: "var(--syn-status-info, #38bdf8)", fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-              Analyze This Area
-            </div>
-            <div style={{ color: "var(--syn-text-primary, rgba(244, 247, 255, 0.94))", fontSize: 15, fontWeight: 600 }}>
-              Route {flowDispatchAoi.label.toLowerCase()} into a workflow
-            </div>
-          </div>
-          <button
-            type="button"
-            style={mapStyles.btn}
-            onClick={onClose}
-            aria-label="Close map analysis workflow selector"
-          >
-            <IconClose size={MAP_ICON_SIZES.sm} />
-          </button>
-        </div>
         <div style={{ color: "var(--syn-text-muted, rgba(148, 163, 184, 0.9))", fontSize: 12, lineHeight: 1.5 }}>
           Choose a compatible workflow to inspect this AOI in Analyze. Nothing runs yet; the selected workflow opens in CenterPanel with this map-dispatch input attached{hasViewFilter ? " and the current view preserved as a spatial filter" : ""}.
         </div>
@@ -180,7 +132,6 @@ export const MapFlowDispatchDialog: React.FC<MapFlowDispatchDialogProps> = ({
             </button>
           ))}
         </div>
-      </div>
-    </div>
+    </MapDialogShell>
   );
 };
