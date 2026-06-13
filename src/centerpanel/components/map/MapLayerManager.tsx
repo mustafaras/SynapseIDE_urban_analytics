@@ -9,10 +9,7 @@ import { MAP_VECTOR_TILE_SIMPLIFICATION_CAVEAT_LABEL } from "./mapTypes";
 import type { LayerGroupId, LayerPublicationReadinessStatus, LayerQaStatus, LayerScientificQABadge, LayerSourceKind, MapBookmark, MapPin, OverlayLayerConfig } from "./mapTypes";
 import { CartographyRecommendationList } from "./CartographyRecommendationList";
 import { DeclareCrsControl } from "./DeclareCrsControl";
-import { createMapExplorerDemoLayerPack, getDemoAoiBoundsList } from "./demoDataPacks";
 import { normalizeLayerRegistryMetadata } from "./mapLayerMetadata";
-import { createOsmBuildingsLayerConfig } from "@/services/map/ExternalServiceConnector";
-import { executeOverpassBuildingsAsync } from "@/services/map/ExternalServiceQueue";
 import {
   LAYER_ACTION_COMMAND_GROUPS,
   type LayerActionCommandGroupId,
@@ -189,11 +186,6 @@ const SCIENTIFIC_QA_BADGE_TITLES: Record<LayerScientificQABadge, string> = {
   stale_result: "Layer is stale relative to its source data.",
   uncertain_output: "Layer output has scientific caveats.",
 };
-
-function createMapExplorerDemoLayers(createdAt = new Date().toISOString()): OverlayLayerConfig[] {
-  return createMapExplorerDemoLayerPack(createdAt);
-}
-
 
 /* ================================================================== */
 /*  Styles                                                             */
@@ -846,10 +838,6 @@ const layerFooterStatusLine: React.CSSProperties = {
 };
 
 const addManualLayerBtn: React.CSSProperties = {
-  ...addLayerBtn,
-};
-
-const addDemoLayersBtn: React.CSSProperties = {
   ...addLayerBtn,
 };
 
@@ -3472,7 +3460,6 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
   onRemoveLayer,
   onReorderLayers,
   onAddLayer,
-  onAddDemoPack,
   onReRunAnalysisLayer,
   onAddLayerToReport,
   onExportLayer,
@@ -3770,144 +3757,6 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
     onAddLayer(layer);
     onAnnounce?.(`Layer "${layer.name}" added`);
   }, [onAddLayer, onAnnounce]);
-
-  const handleAddDemoLayers = useCallback(() => {
-    if (onAddDemoPack) {
-      onAddDemoPack();
-      return;
-    }
-    const layers = createMapExplorerDemoLayers();
-    for (const layer of layers) {
-      onAddLayer(layer);
-    }
-    onAnnounce?.(
-      `${layers.length} demo layers added or refreshed (synthetic streets, blocks, and buildings for 3 Istanbul AOIs).`,
-    );
-  }, [onAddDemoPack, onAddLayer, onAnnounce]);
-
-  const [osmReferenceBusy, setOsmReferenceBusy] = useState(false);
-  const handleLoadOsmReference = useCallback(async () => {
-    if (osmReferenceBusy) return;
-    setOsmReferenceBusy(true);
-
-    // Memory + render guardrails for dense Istanbul AOIs. Without these, dense
-    // historic fabric (Fatih center) returns thousands of building polygons
-    // which, when combined with structured-clone across the worker boundary,
-    // Zustand state copy, and MapLibre source upload, can blow past the V8
-    // heap allocation ceiling ("allocation size overflow") and pin the main
-    // thread for many seconds.
-    const MAX_FEATURES_PER_AOI = 1500;
-    const OSM_BBOX_SHRINK = 0.5; // request only the inner 50% of the demo AOI
-
-    const shrinkBounds = (
-      bounds: [number, number, number, number],
-    ): [number, number, number, number] => {
-      const [minLng, minLat, maxLng, maxLat] = bounds;
-      const centerLng = (minLng + maxLng) / 2;
-      const centerLat = (minLat + maxLat) / 2;
-      const halfLng = ((maxLng - minLng) * OSM_BBOX_SHRINK) / 2;
-      const halfLat = ((maxLat - minLat) * OSM_BBOX_SHRINK) / 2;
-      return [
-        Number((centerLng - halfLng).toFixed(6)),
-        Number((centerLat - halfLat).toFixed(6)),
-        Number((centerLng + halfLng).toFixed(6)),
-        Number((centerLat + halfLat).toFixed(6)),
-      ];
-    };
-
-    const aoiBoundsList = getDemoAoiBoundsList();
-    onAnnounce?.(
-      `Loading OpenStreetMap building reference for ${aoiBoundsList.length} demo AOIs (inner ${Math.round(OSM_BBOX_SHRINK * 100)}% of each AOI, capped at ${MAX_FEATURES_PER_AOI.toLocaleString()} features per AOI). Layers land hidden — toggle in the layer rail to view.`,
-    );
-
-    // Yield to the browser between AOIs so MapLibre and React can paint and
-    // settle their state. Three dense Istanbul AOIs in a tight loop would
-    // otherwise pin the main thread for several seconds.
-    const yieldToBrowser = (): Promise<void> =>
-      new Promise<void>((resolve) => {
-        if (typeof requestAnimationFrame === "function") {
-          requestAnimationFrame(() => resolve());
-        } else {
-          setTimeout(resolve, 16);
-        }
-      });
-
-    let addedAois = 0;
-    let totalFeatures = 0;
-    let truncatedAois = 0;
-    const failures: string[] = [];
-
-    for (const aoi of aoiBoundsList) {
-      onAnnounce?.(`${aoi.district}: fetching OSM building footprints…`);
-      try {
-        const fetchBounds = shrinkBounds(aoi.bounds);
-        const handle = executeOverpassBuildingsAsync(fetchBounds);
-        const result = await handle.promise;
-        const fetchedFeatures = result.featureCollection.features;
-        const totalCount = fetchedFeatures.length;
-        const wasTruncated = totalCount > MAX_FEATURES_PER_AOI;
-        const keptFeatures = wasTruncated
-          ? fetchedFeatures.slice(0, MAX_FEATURES_PER_AOI)
-          : fetchedFeatures;
-        const cappedResult = wasTruncated
-          ? {
-              ...result,
-              featureCollection: {
-                ...result.featureCollection,
-                features: keptFeatures,
-              },
-            }
-          : result;
-        const baseLayer = createOsmBuildingsLayerConfig(cappedResult);
-        totalFeatures += keptFeatures.length;
-        if (wasTruncated) truncatedAois += 1;
-        const truncationNotes = wasTruncated
-          ? [
-              `Truncated to first ${MAX_FEATURES_PER_AOI.toLocaleString()} of ${totalCount.toLocaleString()} OSM buildings to keep map rendering responsive.`,
-              `Fetched from the inner ${Math.round(OSM_BBOX_SHRINK * 100)}% of the demo AOI bounds to bound payload size.`,
-            ]
-          : [`Fetched from the inner ${Math.round(OSM_BBOX_SHRINK * 100)}% of the demo AOI bounds to bound payload size.`];
-        // Add the layer hidden by default. Three dense OSM responses landing
-        // visible at the same time forces MapLibre to upload + style every
-        // feature at once, which causes the perceived freeze. Hidden layers
-        // are parsed but not rendered, and the user can opt them in per AOI.
-        onAddLayer({
-          ...baseLayer,
-          id: `${baseLayer.id}-${aoi.id}`,
-          name: `${aoi.district} OSM Buildings (reference)`,
-          visible: false,
-          provenance: {
-            ...(baseLayer.provenance ?? {}),
-            notes: [
-              ...(baseLayer.provenance?.notes ?? []),
-              ...truncationNotes,
-            ],
-          },
-        });
-        addedAois += 1;
-        const cacheNote = result.cacheHit ? " from 10-minute cache" : "";
-        const truncationLabel = wasTruncated
-          ? `${MAX_FEATURES_PER_AOI.toLocaleString()} of ${totalCount.toLocaleString()} buildings (truncated for performance)`
-          : `${keptFeatures.length.toLocaleString()} building${keptFeatures.length === 1 ? "" : "s"}`;
-        onAnnounce?.(
-          `${aoi.district}: ${truncationLabel}${cacheNote} ready. Toggle visible in the layer rail when needed.`,
-        );
-        await yieldToBrowser();
-      } catch (error) {
-        failures.push(`${aoi.district}: ${error instanceof Error ? error.message : "fetch failed"}`);
-      }
-    }
-    setOsmReferenceBusy(false);
-    if (addedAois > 0) {
-      const truncationSummary = truncatedAois > 0
-        ? ` ${truncatedAois} AOI${truncatedAois > 1 ? "s" : ""} truncated.`
-        : "";
-      const summary = `Loaded OSM reference for ${addedAois} AOI${addedAois > 1 ? "s" : ""} (${totalFeatures.toLocaleString()} feature${totalFeatures === 1 ? "" : "s"} total, hidden by default).${truncationSummary}`;
-      onAnnounce?.(failures.length === 0 ? summary : `${summary} ${failures.length} failed.`);
-    } else {
-      onAnnounce?.(`OSM reference load failed for all demo AOIs (${failures[0] ?? "no detail"}).`);
-    }
-  }, [onAddLayer, onAnnounce, osmReferenceBusy]);
 
   /* ---- Toggle visibility with announcement ---- */
   const handleToggle = useCallback((id: string) => {
@@ -4222,26 +4071,6 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
           title="Add Layer / Add Data"
         >
           Add Data
-        </button>
-        <button
-          type="button"
-          style={addDemoLayersBtn}
-          onClick={handleAddDemoLayers}
-          aria-label="Add demo street, block, and building layers for three Istanbul AOIs"
-          title="Adds 9 synthetic demo layers (streets, blocks, buildings) across Üsküdar, Fatih, and Kadıköy for engine and UI review"
-        >
-          Add Demo Pack
-        </button>
-        <button
-          type="button"
-          style={addDemoLayersBtn}
-          onClick={() => { void handleLoadOsmReference(); }}
-          disabled={osmReferenceBusy}
-          aria-label="Load OpenStreetMap building reference for demo AOIs"
-          aria-busy={osmReferenceBusy}
-          title="Fetches live OSM building footprints for the three demo AOIs via Overpass. Network required; results land hidden — toggle visible in the layer rail to view. Falls back to cache when available."
-        >
-          {osmReferenceBusy ? "Loading OSM…" : "Load OSM Reference"}
         </button>
         {onClearLayerCache ? (
           <button

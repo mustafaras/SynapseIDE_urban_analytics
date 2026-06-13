@@ -16,7 +16,7 @@
   --map-shell-accent-soft: rgba(92, 164, 247, 0.12);
   --map-shell-radius-panel: 0;
   --map-shell-radius-control: 0.1875rem;
-  --map-shell-menu-height: var(--map-menu-h, 5.34375rem);
+  --map-shell-menu-height: var(--map-menu-h, 3.25rem);
   --map-shell-status-height: var(--map-status-h, 1.75rem);
   --map-shell-left-min: var(--map-left-min, 17.5rem);
   --map-shell-left-width: var(--map-left-w, clamp(17.5rem, 22vw, 22.5rem));

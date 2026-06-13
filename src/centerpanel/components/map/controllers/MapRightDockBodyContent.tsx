@@ -1,4 +1,5 @@
 import React from "react";
+import * as turf from "@turf/turf";
 
 import { MapMeasurementTool } from "../../MapMeasurementTool";
 import { MapDrawingManager } from "../../MapDrawingManager";
@@ -13,6 +14,7 @@ import { MapPanelErrorBoundary } from "../MapPanelErrorBoundary";
 import { MapPerformanceDiagnosticsPanel } from "../MapPerformanceDiagnosticsPanel";
 import { GisEmptyState, GisStatusChip } from "../ui";
 import type { MapRightDockPanel } from "../mapDocking";
+import type { DrawnFeature, OverlayLayerConfig } from "../mapTypes";
 import type { MapPublishReadinessItem, MapPublishTabId } from "../publish";
 import {
   MAP_COLORS,
@@ -23,6 +25,251 @@ import {
   mapStyles,
 } from "../mapTokens";
 import type { SelectionStatisticsSummary } from "../../../../services/map/MapAnalysisDispatcher";
+
+type AoiGeometry = GeoJSON.Polygon | GeoJSON.MultiPolygon;
+
+interface AoiAnalysisSummary {
+  aoiId: string;
+  label: string;
+  areaM2: number;
+  perimeterM: number;
+  bbox: [number, number, number, number];
+  centroid: [number, number];
+  intersectingFeatureCount: number;
+  intersectingLayerCount: number;
+  buildingCount: number;
+  greenFeatureCount: number;
+  greenAreaM2: number | null;
+  layerHits: Array<{ layerId: string; layerName: string; count: number }>;
+}
+
+function isAoiGeometry(geometry: GeoJSON.Geometry): geometry is AoiGeometry {
+  return geometry.type === "Polygon" || geometry.type === "MultiPolygon";
+}
+
+function drawnFeatureToAoiFeature(feature: DrawnFeature): GeoJSON.Feature<AoiGeometry> | null {
+  if (!isAoiGeometry(feature.geometry)) return null;
+  return {
+    type: "Feature",
+    id: feature.id,
+    geometry: feature.geometry,
+    properties: {
+      label: feature.properties.label,
+      createdAt: feature.properties.createdAt,
+    },
+  };
+}
+
+function sourceDataToFeatureCollection(sourceData: OverlayLayerConfig["sourceData"]): GeoJSON.FeatureCollection | null {
+  if (!sourceData || typeof sourceData === "string") return null;
+  if ((sourceData as GeoJSON.FeatureCollection).type === "FeatureCollection") {
+    return sourceData as GeoJSON.FeatureCollection;
+  }
+  if ((sourceData as GeoJSON.Feature).type === "Feature") {
+    return { type: "FeatureCollection", features: [sourceData as GeoJSON.Feature] };
+  }
+  if (typeof (sourceData as GeoJSON.Geometry).type === "string") {
+    return {
+      type: "FeatureCollection",
+      features: [{ type: "Feature", geometry: sourceData as GeoJSON.Geometry, properties: {} }],
+    };
+  }
+  return null;
+}
+
+function isBuildingFeature(layer: OverlayLayerConfig, feature: GeoJSON.Feature): boolean {
+  const props = feature.properties ?? {};
+  return layer.group === "voxcity"
+    || /building/i.test(layer.name)
+    || props.building != null
+    || props["building:levels"] != null
+    || props.building_id != null;
+}
+
+function isGreenFeature(layer: OverlayLayerConfig, feature: GeoJSON.Feature): boolean {
+  const props = feature.properties ?? {};
+  const coverage = layer.metadata?.datasetContext?.thematicCoverage ?? [];
+  return coverage.some((tag) => /green|vegetation|park|landuse/i.test(tag))
+    || /green|park|vegetation|grass|landuse/i.test(layer.name)
+    || props.green_space === true
+    || props.green_class != null
+    || props.leisure === "park"
+    || props.landuse === "grass"
+    || props.landuse === "forest"
+    || props.natural === "wood"
+    || props.natural === "grassland";
+}
+
+function featureIntersectsAoi(feature: GeoJSON.Feature, aoiFeature: GeoJSON.Feature<AoiGeometry>): boolean {
+  if (!feature.geometry) return false;
+  try {
+    return turf.booleanIntersects(feature as never, aoiFeature as never);
+  } catch {
+    return false;
+  }
+}
+
+function polygonPerimeterMeters(geometry: AoiGeometry): number {
+  const polygonRings = geometry.type === "Polygon" ? [geometry.coordinates] : geometry.coordinates;
+  return polygonRings.reduce((total, rings) => {
+    const ringLengthKm = rings.reduce((ringTotal, ring) => {
+      if (ring.length < 2) return ringTotal;
+      return ringTotal + turf.length(turf.lineString(ring as number[][]), { units: "kilometers" });
+    }, 0);
+    return total + ringLengthKm * 1000;
+  }, 0);
+}
+
+function intersectedGreenAreaM2(feature: GeoJSON.Feature, aoiFeature: GeoJSON.Feature<AoiGeometry>): number | null {
+  if (!feature.geometry || (feature.geometry.type !== "Polygon" && feature.geometry.type !== "MultiPolygon")) {
+    return null;
+  }
+  try {
+    const intersection = turf.intersect(turf.featureCollection([aoiFeature as never, feature as never]) as never);
+    if (!intersection) return null;
+    return turf.area(intersection as never);
+  } catch {
+    try {
+      return turf.area(feature as never);
+    } catch {
+      return null;
+    }
+  }
+}
+
+function buildAoiAnalysisSummary(
+  drawnFeatures: readonly DrawnFeature[],
+  selectedFeatureId: string | null,
+  overlayLayers: readonly OverlayLayerConfig[],
+): AoiAnalysisSummary | null {
+  const selectedAoi = selectedFeatureId
+    ? drawnFeatures.find((feature) => feature.id === selectedFeatureId && isAoiGeometry(feature.geometry))
+    : null;
+  const aoi = selectedAoi ?? drawnFeatures.find((feature) => isAoiGeometry(feature.geometry));
+  if (!aoi) return null;
+
+  const aoiFeature = drawnFeatureToAoiFeature(aoi);
+  if (!aoiFeature) return null;
+
+  const layerHits: AoiAnalysisSummary["layerHits"] = [];
+  let intersectingFeatureCount = 0;
+  let buildingCount = 0;
+  let greenFeatureCount = 0;
+  let greenAreaM2 = 0;
+  let hasGreenArea = false;
+
+  for (const layer of overlayLayers) {
+    if (!layer.visible || layer.type !== "geojson") continue;
+    const featureCollection = sourceDataToFeatureCollection(layer.sourceData);
+    if (!featureCollection) continue;
+    let layerCount = 0;
+    for (const feature of featureCollection.features) {
+      if (!featureIntersectsAoi(feature, aoiFeature)) continue;
+      layerCount += 1;
+      intersectingFeatureCount += 1;
+      if (isBuildingFeature(layer, feature)) {
+        buildingCount += 1;
+      }
+      if (isGreenFeature(layer, feature)) {
+        greenFeatureCount += 1;
+        const clippedArea = intersectedGreenAreaM2(feature, aoiFeature);
+        if (clippedArea != null) {
+          greenAreaM2 += clippedArea;
+          hasGreenArea = true;
+        }
+      }
+    }
+    if (layerCount > 0) {
+      layerHits.push({ layerId: layer.id, layerName: layer.name, count: layerCount });
+    }
+  }
+
+  const centroid = turf.centroid(aoiFeature as never).geometry.coordinates as [number, number];
+  const bbox = turf.bbox(aoiFeature as never) as [number, number, number, number];
+  return {
+    aoiId: aoi.id,
+    label: aoi.properties.label || aoi.id,
+    areaM2: turf.area(aoiFeature as never),
+    perimeterM: polygonPerimeterMeters(aoi.geometry),
+    bbox,
+    centroid,
+    intersectingFeatureCount,
+    intersectingLayerCount: layerHits.length,
+    buildingCount,
+    greenFeatureCount,
+    greenAreaM2: hasGreenArea ? greenAreaM2 : null,
+    layerHits,
+  };
+}
+
+function formatArea(valueM2: number): string {
+  return valueM2 >= 1_000_000 ? `${(valueM2 / 1_000_000).toFixed(2)} km2` : `${valueM2.toLocaleString(undefined, { maximumFractionDigits: 0 })} m2`;
+}
+
+function formatDistance(valueM: number): string {
+  return valueM >= 1000 ? `${(valueM / 1000).toFixed(2)} km` : `${valueM.toLocaleString(undefined, { maximumFractionDigits: 0 })} m`;
+}
+
+function formatCoordinate(value: number): string {
+  return value.toFixed(5);
+}
+
+function AoiAnalysisPanel({
+  summary,
+  onCopySummary,
+}: {
+  summary: AoiAnalysisSummary;
+  onCopySummary: (summary: AoiAnalysisSummary) => void;
+}): React.ReactElement {
+  const greenCoverage = summary.greenAreaM2 != null && summary.areaM2 > 0
+    ? `${((summary.greenAreaM2 / summary.areaM2) * 100).toFixed(1)}%`
+    : "No green-area polygons";
+  const rows = [
+    { label: "Area", value: formatArea(summary.areaM2) },
+    { label: "Perimeter", value: formatDistance(summary.perimeterM) },
+    { label: "Centroid", value: `${formatCoordinate(summary.centroid[1])}, ${formatCoordinate(summary.centroid[0])}` },
+    { label: "BBox", value: summary.bbox.map(formatCoordinate).join(", ") },
+    { label: "Feature hits", value: `${summary.intersectingFeatureCount.toLocaleString()} across ${summary.intersectingLayerCount.toLocaleString()} layer(s)` },
+    { label: "Buildings", value: summary.buildingCount.toLocaleString() },
+    { label: "Green coverage", value: greenCoverage },
+  ];
+
+  return (
+    <div data-testid="map-right-dock-aoi-analysis" style={{ display: "grid", gap: MAP_SPACING.sm, paddingTop: MAP_SPACING.sm, borderTop: MAP_STROKES.hairlineSubtle }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: MAP_SPACING.sm }}>
+        <div style={{ display: "grid", gap: "0.125rem", minWidth: 0 }}>
+          <span style={{ color: MAP_COLORS.textMuted, fontSize: MAP_TYPOGRAPHY.fontSize.xs, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold, textTransform: "uppercase" }}>
+            Selected area GIS analysis
+          </span>
+          <strong style={{ color: MAP_COLORS.text, fontSize: MAP_TYPOGRAPHY.fontSize.sm, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{summary.label}</strong>
+        </div>
+        <button type="button" style={{ ...mapStyles.btn, minHeight: "1.875rem", padding: `0 ${MAP_SPACING.sm}` }} onClick={() => onCopySummary(summary)}>
+          Copy JSON
+        </button>
+      </div>
+      <div style={{ display: "grid", gap: MAP_SPACING.xs }}>
+        {rows.map((row) => (
+          <div key={row.label} style={{ display: "grid", gridTemplateColumns: "7rem minmax(0, 1fr)", gap: MAP_SPACING.sm, color: MAP_COLORS.textSecondary, fontSize: MAP_TYPOGRAPHY.fontSize.xs }}>
+            <span style={{ color: MAP_COLORS.textMuted }}>{row.label}</span>
+            <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>{row.value}</span>
+          </div>
+        ))}
+      </div>
+      {summary.layerHits.length > 0 ? (
+        <div style={{ display: "grid", gap: "0.125rem", color: MAP_COLORS.textMuted, fontSize: MAP_TYPOGRAPHY.fontSize.xs }}>
+          {summary.layerHits.slice(0, 4).map((hit) => (
+            <span key={hit.layerId}>{hit.layerName}: {hit.count.toLocaleString()} hit(s)</span>
+          ))}
+          {summary.layerHits.length > 4 ? <span>{summary.layerHits.length - 4} more layer(s)</span> : null}
+        </div>
+      ) : (
+        <span style={{ color: MAP_COLORS.textMuted, fontSize: MAP_TYPOGRAPHY.fontSize.xs }}>
+          No visible queryable layer intersects this AOI yet. Add OSM buildings or green spaces from External Services, then refresh this panel.
+        </span>
+      )}
+    </div>
+  );
+}
 
 const rightDockBodyShellStyle: React.CSSProperties = {
   display: "grid",
@@ -446,6 +693,35 @@ export const MapRightDockBodyContent: React.FC<MapRightDockBodyContentProps> = (
       opacity: 0.5,
       cursor: "not-allowed",
     };
+    const aoiAnalysisSummary = buildAoiAnalysisSummary(drawnFeatures, selectedFeatureId, overlayLayers);
+    const handleCopyAoiAnalysis = (summary: AoiAnalysisSummary) => {
+      const payload = {
+        type: "map-aoi-analysis",
+        generatedAt: new Date().toISOString(),
+        aoiId: summary.aoiId,
+        label: summary.label,
+        metrics: {
+          areaM2: summary.areaM2,
+          perimeterM: summary.perimeterM,
+          bbox: summary.bbox,
+          centroid: summary.centroid,
+          intersectingFeatureCount: summary.intersectingFeatureCount,
+          intersectingLayerCount: summary.intersectingLayerCount,
+          buildingCount: summary.buildingCount,
+          greenFeatureCount: summary.greenFeatureCount,
+          greenAreaM2: summary.greenAreaM2,
+          greenCoverageRatio: summary.greenAreaM2 != null && summary.areaM2 > 0 ? summary.greenAreaM2 / summary.areaM2 : null,
+        },
+        layerHits: summary.layerHits,
+      };
+      if (!navigator.clipboard?.writeText) {
+        announce("AOI analysis copy is unavailable in this browser context");
+        return;
+      }
+      void navigator.clipboard.writeText(JSON.stringify(payload, null, 2))
+        .then(() => announce("AOI analysis JSON copied"))
+        .catch(() => announce("AOI analysis copy failed"));
+    };
 
     return (
       <MapBottomPanelScrollBody data-testid="map-right-dock-selection-body" padding={0}>
@@ -514,6 +790,9 @@ export const MapRightDockBodyContent: React.FC<MapRightDockBodyContentProps> = (
               ) : null}
             </div>
           </div>
+          {aoiAnalysisSummary ? (
+            <AoiAnalysisPanel summary={aoiAnalysisSummary} onCopySummary={handleCopyAoiAnalysis} />
+          ) : null}
           {selectedLayerEntries.length > 0 ? (
             selectedLayerEntries.map(([layerId, featureIds]) => {
               const layerName = overlayLayers.find((layer) => layer.id === layerId)?.name ?? layerId;

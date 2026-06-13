@@ -16,9 +16,7 @@ import {
 } from "@/services/map/sources/MapSourceRegistry";
 import {
   createMapExplorerDemoLayerPack,
-  DEMO_PACK_ID,
   DEMO_PACK_PROVENANCE,
-  DEMO_PACK_TITLE,
 } from "../demoDataPacks";
 import { resolveOverlayLayerCrsSummary } from "../mapLayerMetadata";
 import type { LayerSourceKind, OverlayLayerConfig } from "../mapTypes";
@@ -134,8 +132,8 @@ export const MAP_CATALOG_CATEGORIES: readonly MapCatalogCategory[] = [
   },
   {
     id: "demo-packs",
-    label: "Demo Packs",
-    emptyLabel: "No demo data packs.",
+    label: "Synthetic Sources",
+    emptyLabel: "No synthetic source records.",
   },
 ] as const;
 
@@ -272,18 +270,6 @@ export function buildMapCatalogItems(
     });
   }
 
-  items.push({
-    id: `template-${DEMO_PACK_ID}`,
-    category: "demo-packs",
-    title: DEMO_PACK_TITLE,
-    summary: DEMO_PACK_PROVENANCE,
-    health: "demo",
-    sourceKind: "demo",
-    layerIds: [],
-    caveats: [DEMO_PACK_PROVENANCE, "Not observational data."],
-    synthetic: true,
-    template: "demo-pack",
-  });
   return items;
 }
 

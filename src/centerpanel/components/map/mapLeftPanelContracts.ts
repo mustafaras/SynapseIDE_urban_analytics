@@ -139,14 +139,6 @@ export const MAP_LEFT_PANEL_CONTRACTS: Record<
     maxUsefulWidth: LEFT_PANEL_STD_MAX_WIDTH,
     overflowStrategy: "stack",
   },
-  "data-demo": {
-    id: "data-demo",
-    minComfortWidth: LEFT_PANEL_ABS_MIN_WIDTH,
-    preferredWidth: LEFT_PANEL_DEFAULT_WIDTH,
-    maxUsefulWidth: LEFT_PANEL_STD_MAX_WIDTH,
-    overflowStrategy: "stack",
-  },
-
   // ------------------------------------------------------------------
   // Layers activity
   // ------------------------------------------------------------------

@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from "react";
-import { X } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { Maximize2, Minimize2, RotateCcw, X } from "lucide-react";
 
 import {
   MAP_COLORS,
@@ -25,6 +25,7 @@ export interface MapDialogShellProps {
   bodyStyle?: React.CSSProperties;
   overlayStyle?: React.CSSProperties;
   headerActions?: React.ReactNode;
+  maximizable?: boolean;
   onClose: () => void;
   children: React.ReactNode;
 }
@@ -128,11 +129,13 @@ export function MapDialogShell({
   bodyStyle,
   overlayStyle,
   headerActions,
+  maximizable = true,
   onClose,
   children,
 }: MapDialogShellProps): React.ReactElement {
-  const { panelPositionStyle, dragHandleProps, dragHandleStyle } = useDraggableMapPanel();
+  const { panelPositionStyle, resetPosition, dragHandleProps, dragHandleStyle } = useDraggableMapPanel();
   const panelRef = useRef<HTMLDivElement | null>(null);
+  const [maximized, setMaximized] = useState(false);
 
   useEffect(() => {
     const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -181,6 +184,33 @@ export function MapDialogShell({
     }
   };
 
+  const handleResetPosition = () => {
+    setMaximized(false);
+    resetPosition();
+    panelRef.current?.focus({ preventScroll: true });
+  };
+
+  const handleToggleMaximized = () => {
+    setMaximized((current) => {
+      if (!current) {
+        resetPosition();
+      }
+      return !current;
+    });
+  };
+
+  const maximizedPanelStyle: React.CSSProperties = maximized
+    ? {
+        left: "50%",
+        top: "50%",
+        width: "calc(100% - 2rem)",
+        height: "calc(100% - 2rem)",
+        maxWidth: "calc(100% - 2rem)",
+        maxHeight: "calc(100% - 2rem)",
+        resize: "none",
+      }
+    : {};
+
   return (
     <div
       style={{ ...overlayBaseStyle, ...overlayStyle }}
@@ -203,15 +233,35 @@ export function MapDialogShell({
           maxHeight,
           ...panelPositionStyle,
           ...panelStyle,
+          ...maximizedPanelStyle,
+          resize: maximized ? "none" : panelStyle?.resize ?? panelBaseStyle.resize,
         }}
       >
-        <div {...dragHandleProps} style={{ ...headerStyle, ...dragHandleStyle }}>
+        <div {...dragHandleProps} style={{ ...headerStyle, ...(maximized ? { cursor: "default" } : dragHandleStyle) }}>
           <div style={headingWrapStyle}>
             <h2 style={titleStyle}>{title}</h2>
             {subtitle ? <span style={subtitleStyle}>{subtitle}</span> : null}
           </div>
           <div style={actionsStyle}>
             {headerActions}
+            <GisIconButton
+              label={`Center ${title}`}
+              tooltip={`Center ${title}`}
+              icon={<RotateCcw size={MAP_ICON_SIZES.sm} aria-hidden="true" />}
+              size="sm"
+              onClick={handleResetPosition}
+            />
+            {maximizable ? (
+              <GisIconButton
+                label={maximized ? `Restore ${title}` : `Maximize ${title}`}
+                tooltip={maximized ? `Restore ${title}` : `Maximize ${title}`}
+                icon={maximized
+                  ? <Minimize2 size={MAP_ICON_SIZES.sm} aria-hidden="true" />
+                  : <Maximize2 size={MAP_ICON_SIZES.sm} aria-hidden="true" />}
+                size="sm"
+                onClick={handleToggleMaximized}
+              />
+            ) : null}
             <GisIconButton
               label={`Close ${title}`}
               tooltip={`Close ${title}`}

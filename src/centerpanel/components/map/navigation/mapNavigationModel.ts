@@ -27,7 +27,6 @@ export type MapSidebarTabId =
   | "data-catalog"
   | "data-connections"
   | "data-health"
-  | "data-demo"
   | "layers-stack"
   | "layers-contents"
   | "layers-catalog"
@@ -163,7 +162,7 @@ export const MAP_ACTIVITY_DEFINITIONS = [
     id: "data",
     label: "Data",
     ariaLabel: "Data activity",
-    description: "Local import, external services, source catalog, restore health, and demo data.",
+    description: "Local import, external services, source catalog, and restore health.",
     placement: "primary-rail",
     order: 1,
     mnemonic: "D",
@@ -172,7 +171,7 @@ export const MAP_ACTIVITY_DEFINITIONS = [
     defaultInspectorContextId: "source",
     defaultRightDockPanelId: "tasks",
     commandCategory: "Data",
-    commandKeywords: ["data", "import", "source", "catalog", "service", "connection", "demo"],
+    commandKeywords: ["data", "import", "source", "catalog", "service", "connection"],
   },
   {
     id: "layers",
@@ -338,7 +337,7 @@ export const MAP_SIDEBAR_TAB_DEFINITIONS = [
     activityId: "data",
     label: "Catalog",
     ariaLabel: "Data catalog tab",
-    description: "Source catalog, source handles, restore state, demo packs, and repair actions.",
+    description: "Source catalog, source handles, restore state, external references, and repair actions.",
   },
   {
     id: "data-connections",
@@ -353,13 +352,6 @@ export const MAP_SIDEBAR_TAB_DEFINITIONS = [
     label: "Source Health",
     ariaLabel: "Data source health tab",
     description: "Recoverable, unavailable, metadata-only, and external dependency states.",
-  },
-  {
-    id: "data-demo",
-    activityId: "data",
-    label: "Demo Data",
-    ariaLabel: "Data Demo Data tab",
-    description: "Synthetic teaching packs, demo provenance, and non-observational source labels.",
   },
   {
     id: "layers-stack",
@@ -729,7 +721,7 @@ function getSidebarTabForInventoryEntry(entry: MapSurfaceInventoryEntry, activit
 
   if (activityId === "data") {
     if (includesAny(fingerprint, ["connection", "service", "provider", "wms", "wfs", "xyz"])) return "data-connections";
-    if (includesAny(fingerprint, ["demo pack", "demo data", "synthetic"])) return "data-demo";
+    if (includesAny(fingerprint, ["demo pack", "demo data", "synthetic"])) return "data-health";
     if (includesAny(fingerprint, ["catalog", "source catalog"])) return "data-catalog";
     if (includesAny(fingerprint, ["health", "restore", "recoverable", "unavailable", "metadata-only"])) return "data-health";
     return "data-import";

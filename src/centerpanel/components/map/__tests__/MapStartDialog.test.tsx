@@ -83,14 +83,14 @@ afterEach(() => {
 });
 
 describe("MapStartDialog", () => {
-  it("renders the four primary actions and readiness strip from empty state", () => {
+  it("renders the primary real-source actions and readiness strip from empty state", () => {
     renderDialog();
 
     const text = host!.textContent ?? "";
     expect(text).toContain("Import Data");
     expect(text).toContain("Open Project");
-    expect(text).toContain("Add Demo Pack");
     expect(text).toContain("Continue Empty");
+    expect(text).not.toContain("Add Demo Pack");
 
     // Readiness strip segments.
     expect(text).toContain("Layers");
@@ -123,7 +123,7 @@ describe("MapStartDialog", () => {
     expect(onOpenProject).toHaveBeenCalledOnce();
   });
 
-  it("fires import, demo, continue, and close callbacks", () => {
+  it("fires import, continue, and close callbacks", () => {
     const { onImport, onAddDemoPack, onContinue, onClose } = renderDialog();
 
     const tiles = Array.from(host!.querySelectorAll("button"));
@@ -133,8 +133,7 @@ describe("MapStartDialog", () => {
     act(() => findTile("Import Data").dispatchEvent(new MouseEvent("click", { bubbles: true })));
     expect(onImport).toHaveBeenCalledOnce();
 
-    act(() => findTile("Add Demo Pack").dispatchEvent(new MouseEvent("click", { bubbles: true })));
-    expect(onAddDemoPack).toHaveBeenCalledOnce();
+    expect(onAddDemoPack).not.toHaveBeenCalled();
 
     click('[aria-label="Close launch dialog"]');
     expect(onClose).toHaveBeenCalledOnce();

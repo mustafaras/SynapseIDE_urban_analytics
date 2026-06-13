@@ -815,7 +815,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
     announce(`SQL result added to map: ${geojson.features.length} features`);
   }, [addOverlayLayer, announce]);
   const openDataActivitySection = useCallback(
-    (tabId: 'data-import' | 'data-connections' | 'data-catalog' | 'data-health' | 'data-demo', announcement: string) => {
+    (tabId: 'data-import' | 'data-connections' | 'data-catalog' | 'data-health', announcement: string) => {
       dismissMapStartDialogForWorkspaceInteraction();
       setWorkspaceView('explore');
       setActiveActivityId('data');

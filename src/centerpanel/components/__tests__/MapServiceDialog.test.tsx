@@ -22,7 +22,8 @@ describe("MapServiceDialog", () => {
     expect(html).toContain("WMS / WMTS");
     expect(html).toContain("WFS");
     expect(html).toContain("XYZ");
-    expect(html).toContain("OSM Buildings");
+    expect(html).toContain("OSM Layers");
+    expect(html).toContain("OSM green spaces");
     expect(html).toContain("CityJSON URL");
     expect(html).toContain("Manager (0)");
   });

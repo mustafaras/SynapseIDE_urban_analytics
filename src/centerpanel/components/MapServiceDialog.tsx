@@ -1,8 +1,9 @@
 import React, { useMemo, useState } from "react";
-import { Building2, DatabaseZap, Globe2, RefreshCw, Trash2, X } from "lucide-react";
+import { Building2, DatabaseZap, Globe2, Leaf, RefreshCw, Trash2, X } from "lucide-react";
 import {
   ExternalServiceConnector,
   OSM_BUILDING_PROVENANCE,
+  OSM_GREENSPACE_PROVENANCE,
   XYZ_PRESETS,
   type ExternalLayerInfo,
   type WfsCapabilities,
@@ -437,6 +438,30 @@ export const MapServiceDialog: React.FC<MapServiceDialogProps> = ({
     });
   };
 
+  const handleFetchOsmGreenSpaces = () => {
+    if (!bounds) {
+      setError("OSM green-space fetch needs a selected/drawn AOI or a live map extent. Draw/select an area, then try again.");
+      return;
+    }
+    void runBusy("Fetching OSM green spaces", async () => {
+      const result = await ExternalServiceConnector.fetchOverpassGreenSpacesForBounds(bounds);
+      const layer = ExternalServiceConnector.createOsmGreenSpacesLayerConfig(result);
+      onAddLayer(layer);
+      setProgress({
+        busy: true,
+        label: "OSM green spaces",
+        progress: {
+          loaded: 100,
+          total: 100,
+          percent: 100,
+          stage: result.cacheHit ? "Loaded from 10-minute bbox cache" : "OSM green spaces added",
+          rowCount: result.featureCollection.features.length,
+        },
+      });
+      onAnnounce?.(`${result.featureCollection.features.length.toLocaleString()} OSM green-space polygon(s) added for ${requestBoundsLabel ?? "the current map extent"}`);
+    });
+  };
+
   const handleLoadCityJson = () => {
     void runBusy("Loading remote CityJSON", async () => {
       const result = await ExternalServiceConnector.loadRemoteCityJSON(cityJsonUrl);
@@ -501,6 +526,20 @@ export const MapServiceDialog: React.FC<MapServiceDialogProps> = ({
         if (!refreshBounds) {
           throw new Error("OSM refresh needs a current or stored bbox.");
         }
+        const isGreenSpaceLayer = layer.metadata?.datasetContext?.thematicCoverage?.some((tag) => /green|vegetation|park|landuse/i.test(tag))
+          || /green|park|vegetation/i.test(layer.name);
+        if (isGreenSpaceLayer) {
+          const result = await ExternalServiceConnector.fetchOverpassGreenSpacesForBounds(refreshBounds, { bypassCache: true });
+          onAddLayer({
+            ...ExternalServiceConnector.createOsmGreenSpacesLayerConfig(result),
+            id: layer.id,
+            visible: layer.visible,
+            opacity: layer.opacity,
+          });
+          onAnnounce?.(`${layer.name} refreshed with ${result.featureCollection.features.length.toLocaleString()} OSM green-space polygon(s)`);
+          return;
+        }
+
         const handle = executeOverpassBuildingsAsync(refreshBounds, { bypassCache: true });
         const result = await handle.promise;
         onAddLayer({
@@ -665,14 +704,19 @@ export const MapServiceDialog: React.FC<MapServiceDialogProps> = ({
         <>
           <div style={stack}>
             <div style={section}>
-              <span style={label}>OSM Overpass building footprints</span>
-              <div style={metaLine}>Query `way[building]` and `relation[building]` in the current map extent. Requests are clamped to 4 km² and cached by bbox for 10 minutes.</div>
-              <button type="button" style={primaryButton} onClick={handleFetchOsm} disabled={!bounds || Boolean(busyLabel)}>
-                <Building2 size={14} /> Fetch buildings from OSM
-              </button>
+              <span style={label}>OSM Overpass real layers</span>
+              <div style={metaLine}>Query the current AOI/extent for building footprints or green-space polygons. Buildings feed the VoxCity/3D inspection bridge; green spaces stay as queryable polygon layers. Requests are clamped to 4 km² and cached by bbox for 10 minutes.</div>
+              <div style={actionRow}>
+                <button type="button" style={primaryButton} onClick={handleFetchOsm} disabled={!bounds || Boolean(busyLabel)}>
+                  <Building2 size={14} /> Fetch buildings
+                </button>
+                <button type="button" style={secondaryButton} onClick={handleFetchOsmGreenSpaces} disabled={!bounds || Boolean(busyLabel)}>
+                  <Leaf size={14} /> Fetch green spaces
+                </button>
+              </div>
             </div>
           </div>
-          {renderStatusPanel("OpenStreetMap", `${bounds ? `Analysis scope: ${scopedBoundsLabel(bounds, requestBoundsLabel)}` : "Select/draw an AOI or wait for map bounds"}. Provenance: ${OSM_BUILDING_PROVENANCE}`)}
+          {renderStatusPanel("OpenStreetMap", `${bounds ? `Analysis scope: ${scopedBoundsLabel(bounds, requestBoundsLabel)}` : "Select/draw an AOI or wait for map bounds"}. Buildings: ${OSM_BUILDING_PROVENANCE}. Green spaces: ${OSM_GREENSPACE_PROVENANCE}`)}
         </>
       );
     }
@@ -748,7 +792,7 @@ export const MapServiceDialog: React.FC<MapServiceDialogProps> = ({
             <Globe2 size={18} color={MAP_COLORS.interaction} />
             <div>
               <div style={title}>External Map Services</div>
-              <div style={subtitle}>WMS, WMTS, WFS, XYZ tiles, OSM buildings, and remote CityJSON sources.</div>
+              <div style={subtitle}>WMS, WMTS, WFS, XYZ tiles, OSM buildings, OSM green spaces, and remote CityJSON sources.</div>
             </div>
           </div>
           <button type="button" style={closeBtn} onClick={onClose} aria-label="Close external map services dialog">
@@ -760,7 +804,7 @@ export const MapServiceDialog: React.FC<MapServiceDialogProps> = ({
           <TabButton id="wms" activeTab={activeTab} onSelect={setActiveTab}>WMS / WMTS</TabButton>
           <TabButton id="wfs" activeTab={activeTab} onSelect={setActiveTab}>WFS</TabButton>
           <TabButton id="xyz" activeTab={activeTab} onSelect={setActiveTab}>XYZ</TabButton>
-          <TabButton id="osm" activeTab={activeTab} onSelect={setActiveTab}>OSM Buildings</TabButton>
+          <TabButton id="osm" activeTab={activeTab} onSelect={setActiveTab}>OSM Layers</TabButton>
           <TabButton id="cityjson" activeTab={activeTab} onSelect={setActiveTab}>CityJSON URL</TabButton>
           <TabButton id="manager" activeTab={activeTab} onSelect={setActiveTab}>Manager ({externalLayers.length})</TabButton>
         </nav>

@@ -7,7 +7,6 @@ import {
   FolderOpen,
   Grip,
   HelpCircle,
-  LayoutPanelTop,
   Palette,
   Puzzle,
   Search,
@@ -124,24 +123,6 @@ function commandItem(
   };
 }
 
-function disabledItem(input: {
-  id: string;
-  label: string;
-  description: string;
-  icon: React.ReactNode;
-  testId?: string;
-}): MapPremiumMenuItemModel {
-  return {
-    id: input.id,
-    label: input.label,
-    description: input.description,
-    icon: input.icon,
-    disabled: true,
-    disabledReason: input.description,
-    testId: input.testId,
-  };
-}
-
 function paletteItem(onOpenPalette: () => void, paletteShortcut: string): MapPremiumMenuItemModel {
   return {
     id: "command-palette",
@@ -202,7 +183,7 @@ export function buildMapPremiumMenuModel({
             commandItem(commands, ["load-project"], { label: "Open Project" }),
             commandItem(commands, ["save-project"], { label: "Save Project" }),
             commandItem(commands, ["import"], { label: "Import Data" }),
-            commandItem(commands, ["export-geojson"], { label: "Export Data" }),
+            commandItem(commands, ["export-geojson"], { id: "project-export-data", label: "Export Data" }),
             commandItem(commands, ["reset-layout"], { label: "Reset Layout" }),
           ]),
         },
@@ -507,18 +488,6 @@ export function buildMapPremiumMenuModel({
           items: compactItems([
             commandItem(commands, ["layers"], { label: "Left Panel", checked: layersCommand?.active }),
             commandItem(commands, ["qa", "review-timeline", "performance-diagnostics"], { label: "Right Inspector", checked: Boolean(qaCommand?.active || reviewCommand?.active || diagnosticsCommand?.active) }),
-            disabledItem({
-              id: "bottom-drawer",
-              label: "Bottom Drawer",
-              description: "Available through the bottom output workspace.",
-              icon: <LayoutPanelTop size={MAP_ICON_SIZES.sm} strokeWidth={1.8} aria-hidden="true" />,
-            }),
-            disabledItem({
-              id: "map-only-mode",
-              label: "Map-Only Mode",
-              description: "Available when full-screen canvas mode is enabled.",
-              icon: <Eye size={MAP_ICON_SIZES.sm} strokeWidth={1.8} aria-hidden="true" />,
-            }),
           ]),
         },
         {
@@ -549,12 +518,6 @@ export function buildMapPremiumMenuModel({
             paletteItem(onOpenPalette, paletteShortcut),
             commandItem(commands, ["performance-diagnostics"], { label: "Performance Diagnostics" }),
             commandItem(commands, ["focus-map-canvas"], { label: "Accessibility Focus" }),
-            disabledItem({
-              id: "keyboard-shortcuts",
-              label: "Keyboard Shortcuts",
-              description: `Use ${paletteShortcut} for the command palette and map canvas shortcuts.`,
-              icon: <Command size={MAP_ICON_SIZES.sm} strokeWidth={1.8} aria-hidden="true" />,
-            }),
           ]),
         },
       ],
@@ -597,13 +560,13 @@ export function buildMapPremiumMenuModel({
       } satisfies MapPremiumQuickActionModel;
     })(),
     (() => {
-      const command = findCommand(commands, ["layers"]);
+      const command = findCommand(commands, ["drawings"]);
       if (!command) return null;
       return {
         id: command.id,
-        label: "Layers",
-        shortLabel: "Layers",
-        title: command.title,
+        label: "Draw",
+        shortLabel: "Draw",
+        title: command.disabled ? `${command.title}. ${command.disabledReason ?? "Unavailable in the current map state."}` : command.title,
         icon: React.createElement(command.icon, { size: MAP_ICON_SIZES.sm, strokeWidth: 1.8, "aria-hidden": true }),
         onClick: command.onClick,
         active: command.active,
@@ -614,13 +577,13 @@ export function buildMapPremiumMenuModel({
       } satisfies MapPremiumQuickActionModel;
     })(),
     (() => {
-      const command = findCommand(commands, ["drawings"]);
+      const command = findCommand(commands, ["layers"]);
       if (!command) return null;
       return {
         id: command.id,
-        label: "Draw",
-        shortLabel: "Draw",
-        title: command.disabled ? `${command.title}. ${command.disabledReason ?? "Unavailable in the current map state."}` : command.title,
+        label: "Layers",
+        shortLabel: "Layers",
+        title: command.title,
         icon: React.createElement(command.icon, { size: MAP_ICON_SIZES.sm, strokeWidth: 1.8, "aria-hidden": true }),
         onClick: command.onClick,
         active: command.active,

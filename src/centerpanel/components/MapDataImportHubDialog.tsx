@@ -1,10 +1,10 @@
 import React from "react";
 import { DatasetLibraryBrowser } from "../../features/education/DatasetLibraryBrowser";
 import type { TeachingDatasetId } from "../../services/data/datasetLibrary";
+import { MapDialogShell } from "./map/MapDialogShell";
 import {
   MAP_COLORS,
   MAP_RADIUS,
-  MAP_SHADOWS,
   MAP_SPACING,
   MAP_STROKES,
   MAP_TYPOGRAPHY,
@@ -18,48 +18,6 @@ export interface MapDataImportHubDialogProps {
   onLoadDataset: (datasetId: TeachingDatasetId) => void | Promise<void>;
 }
 
-const overlayStyle: React.CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  background: "rgba(0,0,0,0.6)",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  zIndex: 41,
-  padding: 24,
-};
-
-const dialogStyle: React.CSSProperties = {
-  width: 1280,
-  maxWidth: "calc(100% - 2rem)",
-  maxHeight: "var(--map-popover-max-height, calc(100% - 2rem))",
-  display: "grid",
-  gridTemplateRows: "auto 1fr",
-  overflow: "hidden",
-  background: MAP_COLORS.bgPanel,
-  border: MAP_STROKES.hairlineStrong,
-  borderRadius: MAP_RADIUS.sm,
-  boxShadow: MAP_SHADOWS.panel,
-  color: MAP_COLORS.text,
-  fontFamily: MAP_TYPOGRAPHY.fontFamily,
-};
-
-const headerStyle: React.CSSProperties = {
-  display: "grid",
-  gap: MAP_SPACING.md,
-  padding: MAP_SPACING.md,
-  borderBottom: MAP_STROKES.hairlineSubtle,
-  background: MAP_COLORS.bgPanel,
-};
-
-const actionStripStyle: React.CSSProperties = {
-  display: "flex",
-  gap: 12,
-  alignItems: "center",
-  justifyContent: "space-between",
-  flexWrap: "wrap",
-};
-
 const primaryButtonStyle: React.CSSProperties = {
   border: `1px solid ${MAP_COLORS.focus}`,
   borderRadius: MAP_RADIUS.sm,
@@ -69,17 +27,6 @@ const primaryButtonStyle: React.CSSProperties = {
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
   background: MAP_COLORS.interactionSubtle,
   color: MAP_COLORS.interaction,
-};
-
-const secondaryButtonStyle: React.CSSProperties = {
-  border: MAP_STROKES.hairlineSubtle,
-  borderRadius: MAP_RADIUS.sm,
-  padding: "8px 12px",
-  cursor: "pointer",
-  fontSize: 12,
-  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
-  background: "transparent",
-  color: MAP_COLORS.textSecondary,
 };
 
 const bodyStyle: React.CSSProperties = {
@@ -133,6 +80,15 @@ const localFormatLabelStyle: React.CSSProperties = {
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
   letterSpacing: 0,
   textTransform: "uppercase",
+};
+
+const sourceStatusStripStyle: React.CSSProperties = {
+  display: "grid",
+  gap: MAP_SPACING.xs,
+  padding: MAP_SPACING.md,
+  border: MAP_STROKES.hairlineSubtle,
+  borderRadius: MAP_RADIUS.sm,
+  background: "var(--syn-surface-subtle, rgba(15, 23, 42, 0.56))",
 };
 
 const LOCAL_FORMAT_GROUPS = [
@@ -219,80 +175,34 @@ export const MapDataImportHubDialog: React.FC<MapDataImportHubDialogProps> = ({
   onBrowseLocalFiles,
   onLoadDataset,
 }) => {
-  const dialogRef = React.useRef<HTMLDivElement | null>(null);
-
-  React.useEffect(() => {
-    if (!open) {
-      return;
-    }
-    window.requestAnimationFrame(() => {
-      dialogRef.current?.focus({ preventScroll: true });
-    });
-  }, [open]);
-
   if (!open) {
     return null;
   }
 
   return (
-    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- overlay click dismiss
-    <div
-      style={overlayStyle}
-      onClick={(event) => {
-        if (event.target === event.currentTarget) {
-          onClose();
-        }
-      }}
+    <MapDialogShell
+      ariaLabel="Spatial data import hub"
+      title="Spatial Data Import Hub"
+      subtitle="Connect real local files and external services with source preflight; configured teaching packs stay clearly labelled with CRS, schema, license, and provenance metadata."
+      width="min(82rem, calc(100% - 2rem))"
+      maxHeight="calc(100% - 2rem)"
+      bodyStyle={bodyStyle}
+      headerActions={(
+        <button type="button" style={primaryButtonStyle} onClick={onBrowseLocalFiles}>
+          Browse Local File
+        </button>
+      )}
+      onClose={onClose}
     >
-      <div
-        ref={dialogRef}
-        style={dialogStyle}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Spatial data import hub"
-        tabIndex={-1}
-        onKeyDown={(event) => {
-          if (event.key === "Escape") {
-            event.preventDefault();
-            event.stopPropagation();
-            onClose();
-          }
-        }}
-      >
-        <div style={headerStyle}>
-          <div>
-            <div
-              style={{
-                color: MAP_COLORS.text,
-                fontFamily: MAP_TYPOGRAPHY.fontFamilyBrand,
-                fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
-                fontSize: 15,
-                marginBottom: 6,
-              }}
-            >
-              Spatial Data Import Hub
-            </div>
-            <div style={{ color: MAP_COLORS.textSecondary, fontSize: 13, lineHeight: 1.55, maxWidth: 900 }}>
-              Load a curated teaching city pack with validated CRS and schema metadata, or continue with a local spatial file and review its source preflight before commit.
-            </div>
+        <div style={sourceStatusStripStyle}>
+          <div style={{ color: MAP_COLORS.text, fontSize: 12, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold }}>
+            Source workflow
           </div>
-
-          <div style={actionStripStyle}>
-            <div style={{ color: MAP_COLORS.textMuted, fontSize: 12, lineHeight: 1.5 }}>
-              Teaching datasets auto-configure the map workspace and publish multiple ready-to-inspect layers. Local files remain available for ad hoc imports.
-            </div>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <button type="button" style={primaryButtonStyle} onClick={onBrowseLocalFiles}>
-                Browse Local File
-              </button>
-              <button type="button" style={secondaryButtonStyle} onClick={onClose}>
-                Close
-              </button>
-            </div>
+          <div style={{ color: MAP_COLORS.textSecondary, fontSize: 12, lineHeight: 1.55 }}>
+            Local imports now commit only after source preflight. Service URLs, OSM/Overpass, STAC/EO, and scene sources remain configurable through their dedicated panels with provider caveats and attribution preserved.
           </div>
         </div>
 
-        <div style={bodyStyle}>
           <div style={localFormatSectionStyle}>
             <div>
               <div style={{ color: MAP_COLORS.textMuted, fontSize: 12, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold, marginBottom: 6, textTransform: "uppercase" }}>
@@ -330,13 +240,11 @@ export const MapDataImportHubDialog: React.FC<MapDataImportHubDialogProps> = ({
           <DatasetLibraryBrowser
             onLoadDataset={onLoadDataset}
             loadingDatasetId={loadingDatasetId}
-            introTitle="Curated city packs for demonstration, onboarding, and benchmarking"
+            introTitle="Configured city packs with explicit provenance"
             introText="Each package includes spatial extent thumbnails, thematic tags, source and license metadata, update date, CRS, and schema summaries. Loading a pack validates the bundle before publishing it to Map Explorer."
             testIdPrefix="map-import-dataset"
           />
-        </div>
-      </div>
-    </div>
+    </MapDialogShell>
   );
 };
 

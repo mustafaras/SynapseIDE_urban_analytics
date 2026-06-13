@@ -21,7 +21,7 @@
   width: var(--map-dialog-w, min(1040px, calc(100vw - 56px)));
   max-width: 100%;
   height: var(--map-dialog-h, min(680px, calc(100vh - 10rem)));
-  max-height: min(680px, calc(100vh - var(--map-menu-h, 5.34375rem) - var(--map-status-h, 1.75rem) - 48px));
+  max-height: min(680px, calc(100vh - var(--map-menu-h, 3.25rem) - var(--map-status-h, 1.75rem) - 48px));
   border: 1px solid var(--syn-border-subtle);
   border-radius: 2px;
   background: var(--syn-surface-panel);

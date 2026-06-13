@@ -6,7 +6,6 @@ import {
   FolderOpen,
   Globe,
   type LucideIcon,
-  PackageOpen,
   Sparkles,
   Upload,
   X,
@@ -170,7 +169,6 @@ export const MapStartDialog: React.FC<MapStartDialogProps> = ({
   recentWorkspaces,
   onImport,
   onOpenProject,
-  onAddDemoPack,
   onContinue,
   onClose,
   onOpenSourceHealth,
@@ -335,21 +333,13 @@ export const MapStartDialog: React.FC<MapStartDialogProps> = ({
       disabledReason: hasProject ? undefined : "Select a project first",
     },
     {
-      id: "demo-pack",
-      label: "Add Demo Pack",
-      hint: "Load a clearly-labelled sample dataset to explore.",
-      Icon: PackageOpen,
-      onClick: onAddDemoPack,
-      demoBadge: "DEMO / SYNTHETIC",
-    },
-    {
       id: "continue",
       label: "Continue Empty",
       hint: "Open the map and import or draw as you go.",
       Icon: Compass,
       onClick: onContinue,
     },
-  ], [hasProject, onAddDemoPack, onContinue, onImport, onOpenProject, projectLabel]);
+  ], [hasProject, onContinue, onImport, onOpenProject, projectLabel]);
 
   const narrative = reasonNarrative[reason ?? "first-open"];
   const hasContext = layerCount > 0 || pinCount > 0 || drawnFeatureCount > 0 || measurementCount > 0;

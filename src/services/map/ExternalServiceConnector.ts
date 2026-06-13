@@ -1716,6 +1716,268 @@ export function createOsmRoadsLayerConfig(result: OverpassRoadsResult): OverlayL
   });
 }
 
+/* -------------------------------------------------------------------- */
+/*  Overpass green spaces (real OSM parks, grass, woodland polygons)     */
+/* -------------------------------------------------------------------- */
+
+export const OSM_GREENSPACE_PROVENANCE = "OpenStreetMap contributors — © ODbL";
+
+export interface OverpassGreenSpacesResult {
+  featureCollection: FeatureCollection<Polygon | MultiPolygon, GeoJsonProperties>;
+  requestedBounds: [number, number, number, number];
+  clampedBounds: [number, number, number, number];
+  areaKm2: number;
+  wasClamped: boolean;
+  cacheKey: string;
+  cacheHit: boolean;
+  fetchedAt: string;
+  endpoint?: string;
+  provenance: string;
+}
+
+interface OverpassGreenSpacesCacheEntry {
+  expiresAt: number;
+  result: OverpassGreenSpacesResult;
+}
+
+const overpassGreenSpacesCache = new Map<string, OverpassGreenSpacesCacheEntry>();
+
+function buildOverpassGreenSpacesQuery(bounds: [number, number, number, number]): string {
+  const [west, south, east, north] = bounds;
+  const bbox = `${south},${west},${north},${east}`;
+  return `
+[out:json][timeout:25];
+(
+  way["leisure"~"^(park|garden|nature_reserve|recreation_ground)$"](${bbox});
+  relation["leisure"~"^(park|garden|nature_reserve|recreation_ground)$"](${bbox});
+  way["landuse"~"^(grass|forest|meadow|recreation_ground|village_green|orchard|vineyard)$"](${bbox});
+  relation["landuse"~"^(grass|forest|meadow|recreation_ground|village_green|orchard|vineyard)$"](${bbox});
+  way["natural"~"^(wood|scrub|grassland|heath|wetland)$"](${bbox});
+  relation["natural"~"^(wood|scrub|grassland|heath|wetland)$"](${bbox});
+  way["boundary"="protected_area"](${bbox});
+  relation["boundary"="protected_area"](${bbox});
+);
+out body geom;
+`;
+}
+
+function normalizeOsmGreenProperties(element: OverpassElement): GeoJsonProperties {
+  const tags = element.tags ?? {};
+  const greenClass = tags.leisure ?? tags.landuse ?? tags.natural ?? tags.boundary ?? "green_space";
+  return {
+    green_space: true,
+    green_class: greenClass,
+    leisure: tags.leisure ?? null,
+    landuse: tags.landuse ?? null,
+    natural: tags.natural ?? null,
+    boundary: tags.boundary ?? null,
+    name: tags.name ?? null,
+    operator: tags.operator ?? null,
+    access: tags.access ?? null,
+    osm_id: `${element.type}/${element.id}`,
+    green_id: `osm-green-${element.type}-${element.id}`,
+    source: "OpenStreetMap",
+  };
+}
+
+function normalizeOverpassGreenWay(element: OverpassElement): Feature<Polygon, GeoJsonProperties> | null {
+  const ring = overpassRingFromGeometry(element.geometry);
+  if (!ring) return null;
+  return {
+    type: "Feature",
+    id: `osm-green-way-${element.id}`,
+    geometry: { type: "Polygon", coordinates: [ring] },
+    properties: normalizeOsmGreenProperties(element),
+  };
+}
+
+function normalizeOverpassGreenRelation(element: OverpassElement): Feature<Polygon | MultiPolygon, GeoJsonProperties> | null {
+  const members = element.members ?? [];
+  const outerRings = members
+    .filter((member) => member.role === "outer" || !member.role)
+    .map((member) => overpassRingFromGeometry(member.geometry))
+    .filter((ring): ring is Position[] => ring !== null);
+  const innerRings = members
+    .filter((member) => member.role === "inner")
+    .map((member) => overpassRingFromGeometry(member.geometry))
+    .filter((ring): ring is Position[] => ring !== null);
+  if (outerRings.length === 0) return null;
+  const properties = normalizeOsmGreenProperties(element);
+  if (outerRings.length === 1) {
+    return {
+      type: "Feature",
+      id: `osm-green-relation-${element.id}`,
+      geometry: { type: "Polygon", coordinates: [outerRings[0]!, ...innerRings] },
+      properties,
+    };
+  }
+  return {
+    type: "Feature",
+    id: `osm-green-relation-${element.id}`,
+    geometry: { type: "MultiPolygon", coordinates: outerRings.map((ring) => [ring]) },
+    properties,
+  };
+}
+
+export function overpassGreenSpacesToGeoJSON(
+  response: OverpassResponse,
+): FeatureCollection<Polygon | MultiPolygon, GeoJsonProperties> {
+  const features = (response.elements ?? [])
+    .filter((element) => element.type === "way" || element.type === "relation")
+    .map((element) => element.type === "way" ? normalizeOverpassGreenWay(element) : normalizeOverpassGreenRelation(element))
+    .filter((feature): feature is Feature<Polygon | MultiPolygon, GeoJsonProperties> => feature !== null);
+  return { type: "FeatureCollection", features };
+}
+
+export async function fetchOverpassGreenSpacesForBounds(
+  bounds: [number, number, number, number],
+  options: { endpoint?: string; timeoutMs?: number; bypassCache?: boolean } = {},
+): Promise<OverpassGreenSpacesResult> {
+  const boundsInfo = clampOverpassBounds(bounds);
+  const cached = overpassGreenSpacesCache.get(boundsInfo.cacheKey);
+  if (!options.bypassCache && cached && cached.expiresAt > Date.now()) {
+    return { ...cached.result, cacheHit: true };
+  }
+
+  const endpoint = options.endpoint ?? DEFAULT_OVERPASS_ENDPOINT;
+  const response = await fetchExternalService(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+    },
+    body: new URLSearchParams({ data: buildOverpassGreenSpacesQuery(boundsInfo.clampedBounds) }).toString(),
+  }, {
+    timeoutMs: options.timeoutMs ?? 30_000,
+    accept: "application/json",
+    attribution: OSM_GREENSPACE_PROVENANCE,
+  });
+  const payload = await response.json() as OverpassResponse;
+  const featureCollection = overpassGreenSpacesToGeoJSON(payload);
+  const result: OverpassGreenSpacesResult = {
+    featureCollection,
+    requestedBounds: boundsInfo.requestedBounds,
+    clampedBounds: boundsInfo.clampedBounds,
+    areaKm2: boundsInfo.areaKm2,
+    wasClamped: boundsInfo.wasClamped,
+    cacheKey: boundsInfo.cacheKey,
+    cacheHit: false,
+    fetchedAt: nowIsoTimestamp(),
+    endpoint,
+    provenance: OSM_GREENSPACE_PROVENANCE,
+  };
+  overpassGreenSpacesCache.set(boundsInfo.cacheKey, {
+    expiresAt: Date.now() + OVERPASS_CACHE_TTL_MS,
+    result,
+  });
+  return result;
+}
+
+export function clearOverpassGreenSpacesCache(): void {
+  overpassGreenSpacesCache.clear();
+}
+
+export function createOsmGreenSpacesLayerConfig(result: OverpassGreenSpacesResult): OverlayLayerConfig {
+  const metadata = buildFeatureCollectionMetadata(result.featureCollection);
+  const layerId = createLayerId("osm-green-spaces", "osm-green-spaces");
+  const endpoint = result.endpoint ?? DEFAULT_OVERPASS_ENDPOINT;
+  const crs = "EPSG:4326";
+  const caveats = externalServiceCaveats({
+    kind: "overpass",
+    crs,
+    cacheHit: result.cacheHit,
+    wasClamped: result.wasClamped,
+    extra: ["OSM green-space tagging is community-maintained; compare with authoritative parks, tree-canopy, or land-cover data before regulatory decisions."],
+  });
+  const scientificQA = buildExternalScientificQA({
+    layerId,
+    kind: "overpass",
+    checkedAt: result.fetchedAt,
+    queryable: true,
+    crs,
+    hasLicenseOrAttribution: true,
+    caveats,
+    dependencyStatus: result.cacheHit ? "cached" : "live",
+    cacheHit: result.cacheHit,
+  });
+
+  return withEvidenceMetadata({
+    id: layerId,
+    name: "OSM Green Spaces",
+    type: "geojson",
+    visible: true,
+    opacity: 0.68,
+    sourceData: result.featureCollection,
+    group: "data",
+    sourceKind: "external",
+    queryable: true,
+    qaStatus: scientificQA.status,
+    style: {
+      "fill-color": [
+        "match",
+        ["coalesce", ["get", "green_class"], "green_space"],
+        "forest",
+        "#15803D",
+        "wood",
+        "#166534",
+        "wetland",
+        "#0F766E",
+        "park",
+        "#22C55E",
+        "garden",
+        "#84CC16",
+        "#16A34A",
+      ],
+      "fill-outline-color": "rgba(34, 197, 94, 0.72)",
+    },
+    provenance: {
+      label: OSM_GREENSPACE_PROVENANCE,
+      sourceName: "OpenStreetMap Overpass API",
+      sourceUrl: endpoint,
+      license: "ODbL",
+      attribution: OSM_GREENSPACE_PROVENANCE,
+      method: `Overpass green-space query clipped to ${result.areaKm2.toFixed(2)} km² bbox`,
+      generatedAt: result.fetchedAt,
+      notes: caveats,
+    },
+    metadata: {
+      ...metadata,
+      updatedAt: result.fetchedAt,
+      dataVersion: result.fetchedAt,
+      externalService: buildExternalServiceMetadata({
+        kind: "overpass",
+        endpoint,
+        title: "OpenStreetMap Overpass API",
+        bounds: result.requestedBounds,
+        crs,
+        refreshedAt: result.fetchedAt,
+        dependencyStatus: result.cacheHit ? "cached" : "live",
+        cacheTtlMs: OVERPASS_CACHE_TTL_MS,
+        cacheHit: result.cacheHit,
+        license: "ODbL",
+        attribution: OSM_GREENSPACE_PROVENANCE,
+        caveats,
+      }),
+      crsSummary: buildExternalCrsSummary(crs, "external-service", ["Overpass green-space coordinates are returned as longitude/latitude GeoJSON from OpenStreetMap."]),
+      licenseAttribution: buildExternalLicenseAttribution({
+        sourceName: "OpenStreetMap Overpass API",
+        sourceUrl: endpoint,
+        license: "ODbL",
+        attribution: OSM_GREENSPACE_PROVENANCE,
+      }),
+      scientificQA,
+      datasetContext: {
+        layerTitle: "OSM Green Spaces",
+        source: "OpenStreetMap Overpass API",
+        license: "ODbL",
+        crs: "EPSG:4326",
+        thematicCoverage: ["green_infrastructure", "parks", "vegetation", "landuse"],
+        spatialExtent: result.clampedBounds.map((value) => value.toFixed(4)).join(", "),
+        schemaSummary: ["green_space", "green_class", "leisure", "landuse", "natural", "boundary", "name", "osm_id"],
+      },
+    },
+  });
+}
+
 export async function loadRemoteCityJSON(rawUrl: string): Promise<CityJSONLoadResult> {
   const response = await fetchExternalService(rawUrl, {}, { accept: "application/json,*/*" });
   const raw = await response.text();
@@ -1820,6 +2082,10 @@ export const ExternalServiceConnector = {
   fetchOverpassRoadsForBounds,
   createOsmRoadsLayerConfig,
   clearOverpassRoadsCache,
+  overpassGreenSpacesToGeoJSON,
+  fetchOverpassGreenSpacesForBounds,
+  createOsmGreenSpacesLayerConfig,
+  clearOverpassGreenSpacesCache,
   loadRemoteCityJSON,
   createRemoteCityJSONLayerConfig,
 };

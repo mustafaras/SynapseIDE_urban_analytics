@@ -3,7 +3,6 @@ import { Activity, Cloud, Database, FolderOpen, Globe2, Info, RefreshCw, Wrench,
 import type { SourceHandle } from "@/services/map/contracts/gisContracts";
 import type { OverlayLayerConfig } from "../mapTypes";
 import {
-  buildDemoPackCatalogInsertion,
   buildMapCatalogItems,
   buildMapSourceReadinessCounts,
   MAP_CATALOG_CATEGORIES,
@@ -21,7 +20,7 @@ import { GisEmptyState, GisIconButton, GisStatusChip } from "../ui";
 import type { GisStatusKey } from "../mapTokens";
 
 export type MapCatalogPanelPresentation = "floating" | "embedded";
-export type MapDataActivitySectionId = "add-data" | "connections" | "catalog" | "source-health" | "demo-data";
+export type MapDataActivitySectionId = "add-data" | "connections" | "catalog" | "source-health";
 
 export interface MapCatalogPanelProps {
   visible: boolean;
@@ -181,10 +180,6 @@ const SECTION_COPY: Record<MapDataActivitySectionId, { title: string; descriptio
     title: "Source Health",
     description: "Counts and per-source states for restored, recoverable, unavailable, external, metadata-only, and demo records.",
   },
-  "demo-data": {
-    title: "Demo Data",
-    description: "Add synthetic onboarding layers while keeping demonstration provenance explicit.",
-  },
 };
 
 function healthLabel(health: MapCatalogHealth): string {
@@ -229,7 +224,6 @@ export const MapCatalogPanel: React.FC<MapCatalogPanelProps> = ({
   layers,
   onClose,
   onBrowseSources,
-  onAddDemoPack,
   onRepairSource,
   onReconnectSource,
   onAddConnection,
@@ -270,11 +264,6 @@ export const MapCatalogPanel: React.FC<MapCatalogPanelProps> = ({
     presentation === "embedded" ? styles.embeddedPanel : motionStyles.panelIn,
   ].filter(Boolean).join(" ");
 
-  const addDemoPack = (): void => {
-    onAddDemoPack(buildDemoPackCatalogInsertion());
-    setFeedback({ ok: true, message: "Added 9 synthetic demo layers with registered source records.", status: "demo" });
-  };
-
   const reconnect = async (item: MapCatalogItem): Promise<void> => {
     setBusyId(item.id);
     setFeedback(await onReconnectSource(item));
@@ -309,8 +298,6 @@ export const MapCatalogPanel: React.FC<MapCatalogPanelProps> = ({
     switch (activeSection) {
       case "connections":
         return ["external-services"];
-      case "demo-data":
-        return ["demo-packs"];
       case "source-health":
         return ["project-sources", "imported-files", "external-services", "worker-database", "generated-outputs"];
       case "catalog":
@@ -325,8 +312,6 @@ export const MapCatalogPanel: React.FC<MapCatalogPanelProps> = ({
     switch (activeSection) {
       case "connections":
         return item.category === "external-services";
-      case "demo-data":
-        return item.category === "demo-packs";
       case "source-health":
         return item.template !== "demo-pack";
       case "catalog":
@@ -542,9 +527,6 @@ export const MapCatalogPanel: React.FC<MapCatalogPanelProps> = ({
                     ) : null}
                     {item.actionableReason ? <p className={styles.actionable}>{item.actionableReason}</p> : null}
                     <div className={styles.itemActions}>
-                      {item.template === "demo-pack" ? (
-                        <button type="button" data-testid="catalog-add-demo-pack" onClick={addDemoPack}>Add to Map</button>
-                      ) : null}
                       {item.category === "external-services" && !item.template ? (
                         <button
                           type="button"
@@ -605,16 +587,6 @@ export const MapCatalogPanel: React.FC<MapCatalogPanelProps> = ({
         <>
           {renderReadinessCounts()}
           {renderBrowseButton()}
-        </>
-      );
-    }
-    if (activeSection === "demo-data") {
-      return (
-        <>
-          {renderSourceStats()}
-          <button className={styles.primaryButton} type="button" data-testid="catalog-add-demo-pack-rail" onClick={addDemoPack}>
-            Add Demo Pack
-          </button>
         </>
       );
     }

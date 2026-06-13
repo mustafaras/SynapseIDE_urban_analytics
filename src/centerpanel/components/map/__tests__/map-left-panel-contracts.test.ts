@@ -33,7 +33,6 @@ const ALL_SIDEBAR_TAB_IDS: readonly MapSidebarTabId[] = [
   "data-catalog",
   "data-connections",
   "data-health",
-  "data-demo",
   "layers-stack",
   "layers-contents",
   "layers-catalog",
@@ -215,14 +214,13 @@ describe("getLeftPanelContract", () => {
 });
 
 describe("mapLeftPanelContracts — spec adherence summary", () => {
-  it("all primary left-panel tabs (Data, Layers, Catalog, Source Health, Demo, Overview) have contracts", () => {
+  it("all primary left-panel tabs (Data, Layers, Catalog, Source Health, Overview) have contracts", () => {
     const primaryTabs: MapSidebarTabId[] = [
       "overview-readiness",
       "data-import",
       "data-catalog",
       "data-connections",
       "data-health",
-      "data-demo",
       "layers-stack",
       "layers-catalog",
       "layers-bookmarks",

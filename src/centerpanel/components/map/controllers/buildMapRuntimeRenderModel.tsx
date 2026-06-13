@@ -10,7 +10,7 @@ import { type GisStatusKey, mapStyles } from "../mapTokens";
 import { MapWorkspaceOverviewSummary } from "../MapWorkspaceOverviewSummary";
 import type { MapWorkbenchSidebarTab } from "../sidebar";
 import { MapCanvasControls } from "../MapCanvasControls";
-import { buildDemoPackCatalogInsertion, MapCatalogPanel } from "../catalog";
+import { MapCatalogPanel } from "../catalog";
 import type { MapDataActivitySectionId } from "../catalog/MapCatalogPanel";
 import { MapContentsTreePanel } from "../contents";
 import { MapLayerBookmarksPanel, MapLayerCartographyPanel, MapLayerManager, MapLayerSourcesPanel } from "../MapLayerManager";
@@ -572,7 +572,6 @@ export function buildMapRuntimeRenderModel(args: BuildMapRuntimeRenderModelArgs)
         }
         addOverlayLayer(layer);
       }}
-      onAddDemoPack={() => handleCatalogAddDemoPack(buildDemoPackCatalogInsertion())}
       onFocusLayer={handleFocusLayer}
       onAddLayerToReport={handleLayerReportRequest}
       onBindLayerToDashboard={handleBindLayerToDashboard}
@@ -1215,11 +1214,6 @@ export function buildMapRuntimeRenderModel(args: BuildMapRuntimeRenderModelArgs)
               id: "data-health",
               label: "Source Health",
               render: () => renderDataActivitySection("source-health"),
-            },
-            {
-              id: "data-demo",
-              label: "Demo Data",
-              render: () => renderDataActivitySection("demo-data"),
             },
           ]
         : [

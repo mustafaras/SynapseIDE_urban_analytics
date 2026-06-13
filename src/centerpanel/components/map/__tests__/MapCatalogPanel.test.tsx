@@ -316,22 +316,12 @@ describe("MapCatalogPanel", () => {
     expect(host!.querySelector('[data-testid="catalog-readiness-demoSynthetic"]')?.textContent).toContain("1");
   });
 
-  it("labels the demo pack and emits source-linked layers when it is added", () => {
+  it("does not expose synthetic pack insertion as a default catalog action", () => {
     const addDemoPack = vi.fn<(insertion: MapCatalogLayerInsertion) => void>();
     renderPanel({ onAddDemoPack: addDemoPack });
 
-    expect(host!.textContent).toContain("DEMO / SYNTHETIC");
-    expect(host!.textContent).toContain("Not observational data");
-    click("catalog-add-demo-pack");
-
-    const insertion = addDemoPack.mock.calls[0]?.[0];
-    expect(insertion?.layers).toHaveLength(9);
-    expect(insertion?.sourceHandles).toHaveLength(9);
-    expect(insertion?.sourceHandles.every((handle) =>
-      handle.kind === "demo" && handle.restoreStatus === "restored",
-    )).toBe(true);
-    expect(insertion?.layers.every((layer) =>
-      layer.sourceKind === "demo" && Boolean(layer.metadata?.sourceId),
-    )).toBe(true);
+    expect(host!.textContent).toContain("Synthetic Sources");
+    expect(host!.querySelector('[data-testid="catalog-add-demo-pack"]')).toBeNull();
+    expect(addDemoPack).not.toHaveBeenCalled();
   });
 });

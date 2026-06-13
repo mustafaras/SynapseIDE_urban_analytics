@@ -43,10 +43,13 @@ export interface MapTopCommandSurfaceProps {
 }
 
 const shellStyle: React.CSSProperties = {
-  display: "grid",
-  gridTemplateRows: "minmax(0, 1.12fr) minmax(0, 1fr)",
-  minHeight: "var(--map-menu-h, 5.34375rem)",
+  display: "flex",
+  flexWrap: "nowrap",
+  alignItems: "center",
+  gap: MAP_SPACING.xs,
+  minHeight: "var(--map-menu-h, 3.25rem)",
   paddingLeft: "var(--map-activity-rail-width, 2.625rem)",
+  paddingRight: MAP_SPACING.sm,
   background: "var(--syn-surface-header, #141b24)",
   borderBottom: "1px solid color-mix(in srgb, var(--syn-border-subtle, rgba(148, 163, 184, 0.18)) 52%, transparent)",
   boxShadow: "none",
@@ -61,10 +64,10 @@ const identityRowStyle: React.CSSProperties = {
   flexWrap: "nowrap",
   alignItems: "center",
   gap: MAP_SPACING.xs,
+  flex: "1 1 40rem",
   minWidth: 0,
-  minHeight: 0,
-  padding: `0 ${MAP_SPACING.md}`,
-  borderBottom: "1px solid color-mix(in srgb, var(--syn-border-subtle, rgba(148, 163, 184, 0.16)) 46%, transparent)",
+  minHeight: "100%",
+  padding: `0 ${MAP_SPACING.sm} 0 ${MAP_SPACING.md}`,
   overflow: "hidden",
 };
 
@@ -73,9 +76,11 @@ const menuRowStyle: React.CSSProperties = {
   flexWrap: "nowrap",
   alignItems: "center",
   gap: MAP_SPACING.xs,
+  flex: "0 1 auto",
   minWidth: 0,
-  minHeight: 0,
-  padding: `0 ${MAP_SPACING.md}`,
+  minHeight: "100%",
+  padding: `0 ${MAP_SPACING.xs} 0 ${MAP_SPACING.sm}`,
+  borderLeft: "1px solid color-mix(in srgb, var(--syn-border-subtle, rgba(148, 163, 184, 0.16)) 42%, transparent)",
   overflow: "hidden",
 };
 
@@ -203,10 +208,7 @@ const mapToolRailStyle: React.CSSProperties = {
 const commandClusterStyle: React.CSSProperties = {
   ...clusterShellStyle,
   display: "inline-flex",
-  // The grouped menu bar owns the second row outright, so the menus stay
-  // visible at desktop widths instead of collapsing into the hamburger
-  // fallback.
-  flex: "1 1 auto",
+  flex: "0 1 auto",
   justifyContent: "flex-start",
   padding: `${MAP_SPACING.zero} ${MAP_SPACING.zero}`,
   minWidth: 0,
@@ -556,25 +558,6 @@ export const MapTopCommandSurface: React.FC<MapTopCommandSurfaceProps> = ({
           </div>
         </div>
 
-        {hasTrailingContent ? (
-          <div style={trailingClusterStyle} data-testid="map-top-command-surface-trailing">
-            {utilityContent ? (
-              <div style={utilityClusterStyle} data-testid="map-top-command-surface-utility-controls">
-                {utilityContent}
-              </div>
-            ) : null}
-            {modalControlSlot ? (
-              <div
-                style={modalControlClusterStyle}
-                role="group"
-                aria-label="Map explorer modal controls"
-                data-testid="map-top-command-surface-modal-controls"
-              >
-                {modalControlSlot}
-              </div>
-            ) : null}
-          </div>
-        ) : <span aria-hidden />}
       </div>
 
       <div style={menuRowStyle} data-testid="map-top-command-surface-menu-row">
@@ -587,10 +570,30 @@ export const MapTopCommandSurface: React.FC<MapTopCommandSurfaceProps> = ({
             aria-label="Layer context and selection controls"
             data-testid="map-context-bar-cluster"
           >
-            {contextBarSlot}
-          </div>
-        ) : null}
+          {contextBarSlot}
+        </div>
+      ) : null}
       </div>
+
+      {hasTrailingContent ? (
+        <div style={trailingClusterStyle} data-testid="map-top-command-surface-trailing">
+          {utilityContent ? (
+            <div style={utilityClusterStyle} data-testid="map-top-command-surface-utility-controls">
+              {utilityContent}
+            </div>
+          ) : null}
+          {modalControlSlot ? (
+            <div
+              style={modalControlClusterStyle}
+              role="group"
+              aria-label="Map explorer modal controls"
+              data-testid="map-top-command-surface-modal-controls"
+            >
+              {modalControlSlot}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 };

@@ -456,7 +456,7 @@ describe("MapLayerManager component", () => {
     expect(html).toContain("Delete");
   });
 
-  it("renders the demo layer footer action", async () => {
+  it("renders real-source layer footer actions without demo shortcuts", async () => {
     const mod = await import("../MapLayerManager");
     const html = renderToStaticMarkup(
       React.createElement(mod.MapLayerManager, {
@@ -470,8 +470,8 @@ describe("MapLayerManager component", () => {
       }),
     );
 
-    expect(html).toContain("Add Demo Pack");
-    expect(html).toContain("Load OSM Reference");
+    expect(html).not.toContain("Add Demo Pack");
+    expect(html).not.toContain("Load OSM Reference");
     expect(html).toContain("Add Layer");
   });
 
@@ -583,10 +583,9 @@ describe("MapLayerManager component", () => {
     container.remove();
   });
 
-  it("adds the demo layer pack from the layer panel footer", async () => {
+  it("does not expose demo layer insertion from the layer panel footer", async () => {
     const mod = await import("../MapLayerManager");
     const addedLayers: OverlayLayerConfig[] = [];
-    const announcements: string[] = [];
     const container = document.createElement("div");
     document.body.appendChild(container);
     const root = createRoot(container);
@@ -603,103 +602,20 @@ describe("MapLayerManager component", () => {
           onAddLayer: (layer: OverlayLayerConfig) => {
             addedLayers.push(layer);
           },
-          onAnnounce: (message: string) => {
-            announcements.push(message);
-          },
         }),
       );
     });
 
-    const calculateBoundsFromSourceData = (sourceData: OverlayLayerConfig["sourceData"]) => {
-      const bounds = {
-        minLng: Number.POSITIVE_INFINITY,
-        minLat: Number.POSITIVE_INFINITY,
-        maxLng: Number.NEGATIVE_INFINITY,
-        maxLat: Number.NEGATIVE_INFINITY,
-      };
-      const collectBounds = (value: unknown) => {
-        if (!Array.isArray(value)) {
-          return;
-        }
-        const [longitude, latitude] = value;
-        if (typeof longitude === "number" && typeof latitude === "number") {
-          bounds.minLng = Math.min(bounds.minLng, longitude);
-          bounds.minLat = Math.min(bounds.minLat, latitude);
-          bounds.maxLng = Math.max(bounds.maxLng, longitude);
-          bounds.maxLat = Math.max(bounds.maxLat, latitude);
-          return;
-        }
-        for (const entry of value) {
-          collectBounds(entry);
-        }
-      };
-      if (typeof sourceData !== "object" || sourceData == null || !("type" in sourceData)) {
-        return null;
-      }
-      if (sourceData.type === "FeatureCollection") {
-        for (const feature of sourceData.features) {
-          if (feature.geometry && "coordinates" in feature.geometry) {
-            collectBounds(feature.geometry.coordinates);
-          }
-        }
-      }
-      return [bounds.minLng, bounds.minLat, bounds.maxLng, bounds.maxLat];
-    };
-
     const demoButton = container.querySelector(
       '[aria-label="Add demo street, block, and building layers for three Istanbul AOIs"]',
     );
-    expect(demoButton).not.toBeNull();
+    expect(demoButton).toBeNull();
+    expect(addedLayers).toHaveLength(0);
 
-    await act(async () => {
-      demoButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-
-    // 3 AOIs × {streets, blocks, buildings} = 9 layers in deterministic order.
-    expect(addedLayers).toHaveLength(9);
-    expect(addedLayers.map((layer) => layer.id)).toEqual([
-      "demo-uskudar-streets",
-      "demo-uskudar-blocks",
-      "demo-uskudar-buildings",
-      "demo-fatih-streets",
-      "demo-fatih-blocks",
-      "demo-fatih-buildings",
-      "demo-kadikoy-streets",
-      "demo-kadikoy-blocks",
-      "demo-kadikoy-buildings",
-    ]);
-    expect(addedLayers.map((layer) => layer.name)).toEqual([
-      "Üsküdar Demo Streets",
-      "Üsküdar Demo Blocks",
-      "Üsküdar Demo Buildings",
-      "Fatih Demo Streets",
-      "Fatih Demo Blocks",
-      "Fatih Demo Buildings",
-      "Kadıköy Demo Streets",
-      "Kadıköy Demo Blocks",
-      "Kadıköy Demo Buildings",
-    ]);
-    for (const layer of addedLayers) {
-      expect(layer.sourceKind).toBe("demo");
-      expect(layer.qaStatus).toBe("warning");
-      expect(layer.queryable).toBe(true);
-      const expectedGeometry = layer.id.endsWith("-streets") ? "LineString" : "Polygon";
-      expect(layer.metadata?.geometryType).toBe(expectedGeometry);
-      expect(layer.metadata?.bounds).toEqual(calculateBoundsFromSourceData(layer.sourceData));
-      expect(layer.metadata?.geometrySummary?.bounds).toEqual(layer.metadata?.bounds);
-      expect(layer.metadata?.scientificQA?.badges).toContain("sample_data");
-      expect(layer.metadata?.publicationReadiness?.caveats.join(" ")).toContain("Synthetic demo data");
-      expect(layer.provenance?.label).toContain("Not observational data");
-    }
-    expect(
-      announcements.some((message) => /9 demo layers added or refreshed/.test(message)),
-    ).toBe(true);
-
-    // OSM reference button is exposed alongside the demo pack button.
     const osmButton = container.querySelector(
       '[aria-label="Load OpenStreetMap building reference for demo AOIs"]',
     );
-    expect(osmButton).not.toBeNull();
+    expect(osmButton).toBeNull();
 
     await act(async () => {
       root.unmount();

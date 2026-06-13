@@ -10,6 +10,7 @@ import {
 
 export interface DraggableMapPanelBindings {
   panelPositionStyle: React.CSSProperties;
+  resetPosition: () => void;
   dragHandleProps: {
     onPointerDown: React.PointerEventHandler<HTMLElement>;
     onDoubleClick: React.MouseEventHandler<HTMLElement>;
@@ -121,6 +122,7 @@ export function useDraggableMapPanel(options: DraggableMapPanelOptions = {}): Dr
       top: `calc(50% + ${offset.y}px)`,
       transform: "translate(-50%, -50%)",
     },
+    resetPosition: () => setOffset({ x: 0, y: 0 }),
     dragHandleProps: {
       onPointerDown: handlePointerDown,
       onDoubleClick: () => setOffset({ x: 0, y: 0 }),

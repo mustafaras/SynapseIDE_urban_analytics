@@ -273,9 +273,9 @@ export const MAP_SHELL_DIMENSIONS = {
   activityRailWidth: "2.625rem",
   railButtonSize: "2.25rem",
   modalChromeHeight: "2.75rem",
-  commandCenterHeight: "5.34375rem",
-  menuBarHeight: "5.34375rem",
-  topCommandHeight: "5.34375rem",
+  commandCenterHeight: "3.25rem",
+  menuBarHeight: "3.25rem",
+  topCommandHeight: "3.25rem",
   leftSidebarMinWidth: "18.75rem",
   leftSidebarWidth: "clamp(19rem, 22vw, 24rem)",
   leftSidebarMaxWidth: "47.5rem",
@@ -855,7 +855,7 @@ export const mapStyles = {
 
   layerPanelOpenButton: {
     position: "absolute",
-    top: "calc(var(--map-overlay-safe-top, calc(var(--map-shell-command-height, 5.34375rem) + var(--map-overlay-safe-inset-y, 0.25rem))) + 0.75rem)",
+    top: "calc(var(--map-overlay-safe-top, calc(var(--map-shell-command-height, 3.25rem) + var(--map-overlay-safe-inset-y, 0.25rem))) + 0.75rem)",
     left: MAP_SPACING.zero,
     zIndex: MAP_Z_INDEX.sidebar,
     display: "inline-flex",

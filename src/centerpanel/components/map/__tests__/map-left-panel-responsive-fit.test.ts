@@ -29,7 +29,6 @@ const PRIMARY_TABS: readonly MapSidebarTabId[] = [
   "data-catalog",
   "data-connections",
   "data-health",
-  "data-demo",
   "layers-stack",
   "layers-contents",
   "layers-catalog",
