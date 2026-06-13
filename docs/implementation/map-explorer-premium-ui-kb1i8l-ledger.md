@@ -62,6 +62,25 @@ be captured here — rely on tests + CSS reasoning.
   Next: add a second `MapCanvas` instance behind a draggable vertical divider with
   viewport sync; gate behind a furniture toggle.
 
+- `[x]` **1 (remnant) — Canvas furniture z-index bug fixed.** Discovered via
+  Playwright proof: `mapFurniture` resolved to **−5** (`sidebarZIndex−10`), below
+  the MapLibre map element (z-index:auto), so ALL on-canvas furniture (scale, nav
+  extras, control dock, legend, dispatch feedback, perf, keyboard fallback) painted
+  BEHIND the basemap — invisible and non-clickable. Lifted the `mapFurniture`/
+  `commandBar` tiers to small positive values (2 / 3) so furniture sits above the
+  map yet below the panels (5). Verified: control dock + nav pill + scale now
+  render above the map and the go-to-coordinate popover is clickable.
+
+### Visual proof (this session)
+Playwright can run here via the baked browser at
+`/opt/pw-browsers/chromium-1194/chrome-linux/chrome` (`test.use({ launchOptions:
+{ executablePath } })`). Basemap tiles need network (unavailable), so proof specs
+inject a light backdrop on `.maplibregl-map` for contrast (screenshot aid only).
+Proven: bottom-centre scale cluster ("10 km / 5 mi / 1:440,000"), right-edge nav
+pill, top-right control dock, go-to-coordinate popover, and **no native
+bottom-left scale remnant** (`.maplibregl-ctrl-scale` count = 0). Temp specs +
+`e2e/__screens__` are deleted (never committed).
+
 Validation snapshot (latest): `src/centerpanel/components/map` + dispatch =
 **92 files / 825 tests green**; typecheck clean; eslint 0 errors.
 
