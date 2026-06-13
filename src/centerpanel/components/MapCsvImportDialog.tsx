@@ -8,6 +8,7 @@ import {
   MAP_STROKES,
   MAP_TYPOGRAPHY,
 } from "./map/mapTokens";
+import { useDraggableMapPanel } from "./map/useDraggableMapPanel";
 
 export interface MapCsvImportDialogProps {
   open: boolean;
@@ -145,6 +146,8 @@ export const MapCsvImportDialog: React.FC<MapCsvImportDialogProps> = ({
   onClose,
   onImport,
 }) => {
+  const { panelPositionStyle, dragHandleProps, dragHandleStyle } = useDraggableMapPanel();
+
   if (!open || !session) return null;
 
   const sourceProfile = profileCsvImportSession(session, {
@@ -165,10 +168,24 @@ export const MapCsvImportDialog: React.FC<MapCsvImportDialogProps> = ({
       onClick={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          event.stopPropagation();
+          onClose();
+        }
+      }}
     >
-      <div style={dialogStyle} role="dialog" aria-modal="true" aria-label="CSV coordinate mapping">
+      <div
+        style={{ ...dialogStyle, position: "absolute", ...panelPositionStyle }}
+        role="dialog"
+        aria-modal="true"
+        aria-label="CSV coordinate mapping"
+        data-draggable-map-panel="true"
+      >
         <div
+          {...dragHandleProps}
           style={{
+            ...dragHandleStyle,
             ...sectionStyle,
             paddingBottom: MAP_SPACING.md,
             borderBottom: MAP_STROKES.hairlineSubtle,

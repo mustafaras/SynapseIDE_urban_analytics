@@ -8,6 +8,7 @@ import {
   MAP_STROKES,
   MAP_TYPOGRAPHY,
 } from "./map/mapTokens";
+import { useDraggableMapPanel } from "./map/useDraggableMapPanel";
 
 export interface MapDataExportDialogProps {
   open: boolean;
@@ -116,18 +117,37 @@ export const MapDataExportDialog: React.FC<MapDataExportDialogProps> = ({
   onClose,
   onExport,
 }) => {
+  const { panelPositionStyle, dragHandleProps, dragHandleStyle } = useDraggableMapPanel();
+
   if (!open) return null;
 
   const isGeoJson = format === "geojson";
 
   return (
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- overlay click dismiss
-    <div style={overlayStyle} onClick={(event) => {
-      if (event.target === event.currentTarget) onClose();
-    }}>
-      <div style={dialogStyle} role="dialog" aria-modal="true" aria-label="Spatial data export options">
+    <div
+      style={overlayStyle}
+      onClick={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          event.stopPropagation();
+          onClose();
+        }
+      }}
+    >
+      <div
+        style={{ ...dialogStyle, position: "absolute", ...panelPositionStyle }}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Spatial data export options"
+        data-draggable-map-panel="true"
+      >
         <div
+          {...dragHandleProps}
           style={{
+            ...dragHandleStyle,
             color: MAP_COLORS.text,
             fontFamily: MAP_TYPOGRAPHY.fontFamilyBrand,
             fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
