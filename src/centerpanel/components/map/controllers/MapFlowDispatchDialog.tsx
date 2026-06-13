@@ -2,6 +2,7 @@ import React from "react";
 
 import { IconClose } from "../MapIcons";
 import { MAP_COLORS, MAP_ICON_SIZES, MAP_RADIUS, MAP_Z_INDEX, mapStyles } from "../mapTokens";
+import { useDraggableMapPanel } from "../useDraggableMapPanel";
 import type { getCompatibleAoiFlows } from "../../../../services/map/MapAnalysisDispatcher";
 import type { resolveFlowDispatchAoiCandidate } from "./mapExplorerSpatialHelpers";
 
@@ -27,6 +28,8 @@ export const MapFlowDispatchDialog: React.FC<MapFlowDispatchDialogProps> = ({
   onToggleRestrictToMapView,
   restrictToMapView,
 }) => {
+  const { panelPositionStyle, dragHandleProps, dragHandleStyle } = useDraggableMapPanel();
+
   if (!flowDispatchAoi) {
     return null;
   }
@@ -38,14 +41,20 @@ export const MapFlowDispatchDialog: React.FC<MapFlowDispatchDialogProps> = ({
       style={{
         position: "absolute",
         inset: 0,
-        display: "grid",
-        placeItems: "center",
         background: "rgba(0, 0, 0, 0.34)",
         zIndex: MAP_Z_INDEX.dialog,
+      }}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          event.stopPropagation();
+          onClose();
+        }
       }}
     >
       <div
         style={{
+          position: "absolute",
+          ...panelPositionStyle,
           width: 460,
           maxWidth: "calc(100% - 32px)",
           display: "grid",
@@ -54,12 +63,17 @@ export const MapFlowDispatchDialog: React.FC<MapFlowDispatchDialogProps> = ({
           borderRadius: MAP_RADIUS.sm,
           border: "1px solid var(--syn-border-strong, rgba(148, 163, 184, 0.42))",
           background: "var(--syn-surface-panel, rgba(12, 16, 24, 0.94))",
+          boxShadow: "0 12px 32px rgba(0,0,0,0.4)",
         }}
         role="dialog"
         aria-modal="true"
         aria-label="Choose workflow for map analysis dispatch"
+        data-draggable-map-panel="true"
       >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+        <div
+          {...dragHandleProps}
+          style={{ ...dragHandleStyle, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}
+        >
           <div>
             <div style={{ color: "var(--syn-status-info, #38bdf8)", fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>
               Analyze This Area
