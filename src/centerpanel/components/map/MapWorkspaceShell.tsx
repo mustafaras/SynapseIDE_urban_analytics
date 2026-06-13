@@ -423,6 +423,32 @@ const workspaceFocusCss = `
   background: color-mix(in srgb, var(--syn-interaction-active, #3794ff) 12%, transparent) !important;
   border-inline-color: var(--syn-border-focus, #3794ff) !important;
 }
+/* Discoverable grip on the panel resize handle, mirroring the right dock. */
+[data-map-explorer-shell="true"] [data-testid="map-panel-resize-handle"]::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 3px;
+  height: 26px;
+  transform: translate(-50%, -50%);
+  border-radius: 3px;
+  background-image: radial-gradient(var(--syn-text-muted, #8993a3) 38%, transparent 42%);
+  background-size: 3px 6px;
+  background-repeat: repeat-y;
+  opacity: 0;
+  transition: opacity 140ms ease;
+  pointer-events: none;
+}
+[data-map-explorer-shell="true"] [data-testid="map-panel-resize-handle"]:hover::after,
+[data-map-explorer-shell="true"] [data-testid="map-panel-resize-handle"]:focus-visible::after {
+  opacity: 0.85;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-map-explorer-shell="true"] [data-testid="map-panel-resize-handle"]::after {
+    transition: none;
+  }
+}
 /* ---- Premium status bar interaction feedback ---- */
 [data-map-explorer-shell="true"] [data-map-status-bar="true"] button[data-map-status-segment]:hover,
 [data-map-explorer-shell="true"] [data-map-status-bar="true"] a[data-map-status-segment]:hover {
