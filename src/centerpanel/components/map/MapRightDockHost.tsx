@@ -139,6 +139,7 @@ export const MapRightDockHost: React.FC<MapRightDockHostProps> = ({
   const bodyId = useId();
   const [overflowOpen, setOverflowOpen] = useState(false);
   const [pinned, setPinned] = useState(true);
+  const [isResizing, setIsResizing] = useState(false);
   const hostRef = useRef<HTMLElement | null>(null);
   const tabRefs = useRef<Partial<Record<MapRightDockPanel, HTMLButtonElement | null>>>({});
   const activeDefinition = getMapRightDockPanelDefinition(route.panel);
@@ -202,11 +203,13 @@ export const MapRightDockHost: React.FC<MapRightDockHostProps> = ({
     event.preventDefault();
     const startX = event.clientX;
     const startWidth = width;
+    setIsResizing(true);
 
     const handlePointerMove = (moveEvent: PointerEvent): void => {
       onWidthChange(clampRightDockWidth(startWidth + (startX - moveEvent.clientX)));
     };
     const handlePointerUp = (): void => {
+      setIsResizing(false);
       document.removeEventListener("pointermove", handlePointerMove);
       document.removeEventListener("pointerup", handlePointerUp);
     };
@@ -228,6 +231,7 @@ export const MapRightDockHost: React.FC<MapRightDockHostProps> = ({
       data-tab-layout={tabLayout}
       data-panel-tier={getMapRightDockPanelTier(route.panel)}
       data-pinned={pinned ? "true" : "false"}
+      data-resizing={isResizing ? "true" : "false"}
       tabIndex={-1}
       style={{
         "--right-dock-width": `${width}px`,
