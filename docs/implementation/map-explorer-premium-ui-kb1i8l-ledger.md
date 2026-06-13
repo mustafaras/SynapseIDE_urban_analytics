@@ -48,12 +48,22 @@ be captured here — rely on tests + CSS reasoning.
   `MapLayerBookmarksPanel` mock export). Commits `7c64fea`, (this).
   **Remaining:** `MapExportDialog` needs a header/title bar added before it can
   be a clean drag surface; a shared `DialogShell` would DRY all dialogs.
+- `[~]` **2 — Dock identity + fluidity.** Right dock: discoverable resize grip
+  (hover/focus dotted grip + accent edge) and smooth, drag-safe width transition
+  (`data-resizing` gates the animation; reduced-motion respected). Left rail:
+  mirrored grip affordance. Commits `739df81`, `1674ab6`.
+  **Remaining:** real collapse-to-rail for the right dock; premium interior rhythm.
+- `[~]` **3 — Status bar premium polish.** Live "breathing" underline pulse on
+  running-tone segments, pending-tone signal, smooth hover micro-interaction with
+  accent underline; all reduced-motion safe. (CSS-only in the shell block.) This commit.
+  **Remaining:** richer per-segment hover detail popovers / sparklines (needs TSX).
 - `[ ]` 1 — Design-debt cleanup (stacked frames/borders, right-dock body nesting, context-aware left summary)
-- `[ ]` 2 — Dock identity + fluidity (real collapse-to-rail, discoverable resize, premium interior)
-- `[ ]` 3 — Status bar interactivity polish (already routed/clickable; add live micro-indicators + premium tone)
+- `[ ]` 6 (swipe) — **Approved approach: two synced MapLibre maps (full swipe).**
+  Next: add a second `MapCanvas` instance behind a draggable vertical divider with
+  viewport sync; gate behind a furniture toggle.
 
-Validation snapshot (latest): full `src/centerpanel/components/map` suite
-**91 files / 821 tests green**; dialog tests 11/11; typecheck clean; eslint 0 errors.
+Validation snapshot (latest): `src/centerpanel/components/map` + dispatch =
+**92 files / 825 tests green**; typecheck clean; eslint 0 errors.
 
 ## Key anchors
 
