@@ -97,7 +97,7 @@ const formatCardStyle: React.CSSProperties = {
   display: "grid",
   gap: 4,
   padding: MAP_SPACING.sm,
-  borderRadius: 3,
+  borderRadius: 0,
   border: MAP_STROKES.hairlineSubtle,
   background: MAP_COLORS.bg,
 };
@@ -106,7 +106,7 @@ const schemaSectionStyle: React.CSSProperties = {
   display: "grid",
   gap: 8,
   padding: MAP_SPACING.sm,
-  borderRadius: 3,
+  borderRadius: 0,
   border: MAP_STROKES.hairlineSubtle,
   background: MAP_COLORS.bg,
 };
@@ -116,7 +116,7 @@ const schemaGridStyle: React.CSSProperties = {
   gridTemplateColumns: "minmax(8rem, 1fr) minmax(6rem, 0.5fr) minmax(0, 1fr)",
   gap: 0,
   border: MAP_STROKES.hairlineSubtle,
-  borderRadius: 3,
+  borderRadius: 0,
   overflow: "hidden",
 };
 
@@ -183,14 +183,14 @@ const footerCaveatsStyle: React.CSSProperties = {
   display: "grid",
   gap: 4,
   padding: MAP_SPACING.sm,
-  borderRadius: 3,
+  borderRadius: 0,
   border: `1px solid ${MAP_COLORS.focus}`,
   background: MAP_COLORS.caveat,
 };
 
 const buttonStyle: React.CSSProperties = {
   padding: "6px 14px",
-  borderRadius: 3,
+  borderRadius: 0,
   border: MAP_STROKES.hairlineSubtle,
   background: "transparent",
   color: MAP_COLORS.textSecondary,
@@ -209,7 +209,7 @@ const caveatPanelStyle: React.CSSProperties = {
   display: "grid",
   gap: 6,
   padding: MAP_SPACING.sm,
-  borderRadius: 3,
+  borderRadius: 0,
   border: `1px solid ${MAP_COLORS.focus}`,
   background: MAP_COLORS.caveat,
 };

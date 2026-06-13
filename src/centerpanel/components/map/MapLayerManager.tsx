@@ -452,20 +452,20 @@ const opacityValueLabel: React.CSSProperties = {
 
 const layerSectionGrid: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-  gap: MAP_SPACING.xs,
-  padding: `${MAP_SPACING.xs} ${MAP_SPACING.md} ${MAP_SPACING.sm}`,
+  gridTemplateColumns: "minmax(0, 1fr)",
+  gap: 0,
+  padding: `0 ${MAP_SPACING.md} ${MAP_SPACING.xs}`,
   borderBottom: MAP_STROKES.hairlineSubtle,
 };
 
+/* Flat summary rows — hairline separated, no boxed card chrome. */
 const layerSectionCard: React.CSSProperties = {
   display: "grid",
-  gap: 4,
+  gap: 2,
   minWidth: 0,
-  padding: `${MAP_SPACING.sm} ${MAP_SPACING.sm}`,
-  border: MAP_STROKES.hairlineSubtle,
-  borderRadius: MAP_RADIUS.sm,
-  background: MAP_COLORS.bg,
+  padding: `${MAP_SPACING.xs} 0`,
+  borderTop: MAP_STROKES.hairlineSubtle,
+  background: MAP_COLORS.transparent,
 };
 
 const layerSectionCardHeader: React.CSSProperties = {
@@ -503,14 +503,16 @@ const layerSectionCardDetail: React.CSSProperties = {
 
 const layerSectionCardAction: React.CSSProperties = {
   justifySelf: "start",
-  padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
-  border: MAP_STROKES.hairlineSubtle,
-  borderRadius: MAP_RADIUS.sm,
+  padding: 0,
+  border: MAP_STROKES.none,
+  borderRadius: 0,
   background: MAP_COLORS.transparent,
   color: MAP_COLORS.interaction,
   fontSize: 10,
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
   cursor: "pointer",
+  textDecoration: "underline",
+  textUnderlineOffset: 3,
 };
 
 const layerReadinessGrid: React.CSSProperties = {
@@ -520,6 +522,7 @@ const layerReadinessGrid: React.CSSProperties = {
   minWidth: 0,
 };
 
+/* Flat readiness cells — slim left accent only, no boxed chrome. */
 const layerReadinessCellBase: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns: "3.25rem minmax(0, 1fr)",
@@ -528,10 +531,11 @@ const layerReadinessCellBase: React.CSSProperties = {
   minHeight: MAP_DENSITY.compact.rowHeight,
   minWidth: 0,
   padding: "2px 5px",
-  border: MAP_STROKES.hairlineSubtle,
+  border: 0,
+  borderLeft: MAP_STROKES.hairlineSubtle,
   borderLeftWidth: 2,
-  borderRadius: MAP_RADIUS.sm,
-  background: "rgba(255,255,255,0.018)",
+  borderRadius: 0,
+  background: MAP_COLORS.transparent,
   boxSizing: "border-box",
 };
 
@@ -4041,10 +4045,10 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
       </div>
 
       <div style={layerSectionGrid} aria-label="Layer workspace sections" data-testid="map-layer-section-grid">
-        {layerSectionCards.map((section) => (
+        {layerSectionCards.map((section, index) => (
           <section
             key={section.id}
-            style={layerSectionCard}
+            style={index === 0 ? { ...layerSectionCard, borderTop: MAP_STROKES.none } : layerSectionCard}
             aria-label={`${section.title} summary`}
             data-testid={`map-layer-section-${section.id}`}
           >
@@ -4052,17 +4056,19 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
               <span style={layerSectionCardTitle}>{section.title}</span>
               <span style={layerSectionCardValue}>{section.value}</span>
             </div>
-            <span style={layerSectionCardDetail}>{section.detail}</span>
-            {section.actionLabel && section.onAction ? (
-              <button
-                type="button"
-                style={layerSectionCardAction}
-                onClick={section.onAction}
-                data-testid={`map-layer-section-action-${section.id}`}
-              >
-                {section.actionLabel}
-              </button>
-            ) : null}
+            <div style={layerSectionCardHeader}>
+              <span style={layerSectionCardDetail}>{section.detail}</span>
+              {section.actionLabel && section.onAction ? (
+                <button
+                  type="button"
+                  style={layerSectionCardAction}
+                  onClick={section.onAction}
+                  data-testid={`map-layer-section-action-${section.id}`}
+                >
+                  {section.actionLabel}
+                </button>
+              ) : null}
+            </div>
           </section>
         ))}
       </div>

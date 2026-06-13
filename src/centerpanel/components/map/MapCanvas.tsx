@@ -587,31 +587,48 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
     <>
       <style>
         {`
+          /* Bottom-centred map info cluster: centred within the visible
+             canvas lane (between the dock insets) so the scale never
+             collides with the left/right docks, the minimap, or the canvas
+             control dock. */
           [data-map-keyboard-scope="true"] .maplibregl-ctrl-bottom-left {
-            left: calc(var(--map-dock-left, 0px) + var(--map-overlay-safe-inset-x, 0.75rem));
-            bottom: calc(var(--map-overlay-safe-bottom, 6.75rem) + 0.375rem);
+            left: calc(var(--map-dock-left, 0px) + (100% - var(--map-dock-left, 0px) - var(--map-dock-right, 0px)) / 2);
+            right: auto;
+            bottom: 0.75rem;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: flex-end;
+            gap: 0.5rem;
+            pointer-events: none;
           }
 
           [data-map-keyboard-scope="true"] .maplibregl-ctrl-bottom-left .maplibregl-ctrl {
-            margin-left: 0;
-            margin-bottom: 0;
+            margin: 0;
+            float: none;
           }
 
           [data-map-keyboard-scope="true"] .maplibregl-ctrl-scale {
+            box-sizing: border-box;
+            padding: 1px 8px 0;
             border-color: var(--syn-border-strong, rgba(148, 163, 184, 0.42));
+            border-radius: 0;
             color: var(--syn-text-secondary, rgba(203, 213, 225, 0.92));
-            background: color-mix(in srgb, var(--syn-surface-panel, rgba(12, 16, 24, 0.96)) 82%, transparent);
+            background: color-mix(in srgb, var(--syn-surface-header, #141b24) 80%, transparent);
             font-family: var(--syn-font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
             font-size: 0.625rem;
+            line-height: 1.5;
+            text-align: center;
+            white-space: nowrap;
           }
 
           [data-map-keyboard-scope="true"] .maplibregl-ctrl-attrib {
             max-width: min(22rem, calc(100vw - var(--map-dock-left, 0px) - var(--map-dock-right, 0px) - 2rem));
             border: 1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.28));
-            border-radius: 0.375rem;
+            border-radius: 0;
             background: color-mix(in srgb, var(--syn-surface-panel, rgba(12, 16, 24, 0.96)) 80%, transparent);
             color: var(--syn-text-muted, rgba(148, 163, 184, 0.86));
             font-size: 0.625rem;
+            pointer-events: auto;
           }
         `}
       </style>

@@ -155,26 +155,6 @@ const brandLineStyle: React.CSSProperties = {
   whiteSpace: "nowrap",
 };
 
-const activityPillStyle: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  minWidth: MAP_SPACING.zero,
-  maxWidth: "8rem",
-  height: "1.25rem",
-  padding: `0 ${MAP_SPACING.xs}`,
-  border: "1px solid transparent",
-  borderRadius: 0,
-  color: MAP_COLORS.textMuted,
-  background: "color-mix(in srgb, var(--syn-surface-subtle, rgba(15, 23, 42, 0.2)) 28%, transparent)",
-  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
-  fontSize: "0.625rem",
-  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
-  textTransform: "uppercase",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-};
-
 const chipRailStyle: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
@@ -378,7 +358,7 @@ function chipStyle(interactive: boolean, tone: TopSurfaceTone): React.CSSPropert
     /* Shrinkable, but never below a readable floor — title attrs keep the
        full values reachable when ellipsized. */
     minWidth: 0,
-    maxWidth: "9.5rem",
+    maxWidth: "14rem",
     flexShrink: 1,
     height: "1.625rem",
     padding: `0 ${MAP_SPACING.xs}`,
@@ -513,13 +493,19 @@ export const MapTopCommandSurface: React.FC<MapTopCommandSurfaceProps> = ({
       <div style={identityRowStyle} data-testid="map-top-command-surface-identity-row">
         <div style={leadingClusterStyle}>
           <div style={identityClusterStyle}>
-            <div style={brandRowStyle} id={titleId} aria-label="Map Explorer" data-testid="map-command-center-title">
+            {/* The active activity is announced via aria-label and shown by the
+                Mode chip — no duplicate activity pill next to the brand. */}
+            <div
+              style={brandRowStyle}
+              id={titleId}
+              aria-label={`Map Explorer — ${activeActivityLabel}`}
+              data-testid="map-command-center-title"
+            >
               <span aria-hidden data-testid="map-command-brand" style={brandAccentStyle} />
               <span style={brandCopyStyle}>
                 <span style={brandKickerStyle}>Urban Analytics</span>
                 <span style={brandLineStyle}>
                   <span>Map Explorer</span>
-                  <span aria-hidden style={activityPillStyle}>{activeActivityLabel}</span>
                 </span>
               </span>
             </div>
