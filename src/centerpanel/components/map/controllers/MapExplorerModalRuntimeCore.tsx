@@ -11,6 +11,7 @@ import { type GisStatusKey, MAP_COLORS, MAP_ICON_SIZES, MAP_RADIUS, MAP_SPACING,
 import { MAP_LAYOUT_TOKENS } from '../mapLayoutTokens';
 import { MapCanvas } from '../MapCanvas';
 import { MapScaleIndicator } from '../MapScaleIndicator';
+import { MapNavExtras } from '../MapNavExtras';
 import { MapCanvasControls } from '../MapCanvasControls';
 import { MapTopCommandSurface } from '../MapTopCommandSurface';
 import { MapToolbar } from '../MapToolbar';
@@ -5810,6 +5811,10 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
 
         {!navigatorStageMode ? (
           <MapScaleIndicator visible={mapCompositionOptions.includeScaleBar} />
+        ) : null}
+
+        {!navigatorStageMode ? (
+          <MapNavExtras flyTo={flyTo} onAnnounce={announce} />
         ) : null}
 
         {overlayLayers.length === 0 && !navigatorStageMode && !isDragActive ? (
