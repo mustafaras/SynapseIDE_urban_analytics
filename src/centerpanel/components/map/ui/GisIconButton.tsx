@@ -8,7 +8,6 @@ import React from "react";
 import {
   MAP_COLORS,
   MAP_ICON_SIZES,
-  MAP_RADIUS,
   MAP_SHELL_DIMENSIONS,
   MAP_STROKES,
   MAP_TRANSITIONS,
@@ -57,7 +56,7 @@ function buildButtonStyle(
     width: dimension,
     height: dimension,
     border: railVariant || active ? MAP_STROKES.hairlineSubtle : "1px solid transparent",
-    borderRadius: railVariant ? MAP_RADIUS.md : MAP_RADIUS.sm,
+    borderRadius: 0,
     cursor: disabled ? "not-allowed" : "pointer",
     background: active
       ? variant === "accent"
@@ -143,7 +142,7 @@ export const GisIconButton = React.forwardRef<
               top: 0,
               bottom: 0,
               width: variant === "rail" ? "3px" : "2px",
-              borderRadius: variant === "rail" ? `0 ${MAP_RADIUS.full} ${MAP_RADIUS.full} 0` : undefined,
+              borderRadius: 0,
               background: MAP_COLORS.interaction,
               transformOrigin: "left center",
             }}

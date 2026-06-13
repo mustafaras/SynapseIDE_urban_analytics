@@ -78,8 +78,10 @@ export const modalControlClusterStyle: React.CSSProperties = {
   gap: "0.25rem",
 };
 
+/* Close stays recognisable through the icon colour alone — no red frame. */
 export const modalControlCloseButtonStyle: React.CSSProperties = {
-  border: "1px solid color-mix(in srgb, var(--syn-error, #f87171) 46%, var(--syn-border-strong, rgba(148, 163, 184, 0.42)))",
+  border: "1px solid transparent",
+  borderRadius: 0,
   color: "var(--syn-error, #f87171)",
 };
 

@@ -3,7 +3,6 @@ import { MoreHorizontal } from "lucide-react";
 import type { LayerQaStatus, LayerRenderMode, MeasureUnit } from "./mapTypes";
 import {
   MAP_COLORS,
-  MAP_RADIUS,
   MAP_SPACING,
   MAP_STROKES,
   MAP_TRANSITIONS,
@@ -226,7 +225,7 @@ const overflowMenuStyle: React.CSSProperties = {
   padding: MAP_SPACING.xs,
   background: MAP_COLORS.bgPanel,
   border: MAP_STROKES.hairlineStrong,
-  borderRadius: MAP_RADIUS.md,
+  borderRadius: 2,
   boxShadow: "0 12px 30px rgba(15, 23, 42, 0.42)",
   zIndex: MAP_Z_INDEX.dropdown,
 };
@@ -238,7 +237,7 @@ const overflowMenuItemStyle: React.CSSProperties = {
   height: "1.9rem",
   paddingInline: MAP_SPACING.sm,
   borderRight: MAP_SPACING.zero,
-  borderRadius: MAP_RADIUS.sm,
+  borderRadius: 0,
 };
 
 type StatusTone = "neutral" | "info" | "error" | "valid" | "running" | "pending" | "stale" | "warning";
@@ -1077,6 +1076,7 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
       style={{ ...statusBar, ...styleProp }}
       role="status"
       aria-label="Map status"
+      data-map-status-bar="true"
       data-map-status-overflow-count={overflowSegments.length}
     >
       <div style={segmentStripStyle}>

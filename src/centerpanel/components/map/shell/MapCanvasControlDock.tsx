@@ -1,7 +1,6 @@
 import React from "react";
 import {
   MAP_COLORS,
-  MAP_RADIUS,
   MAP_SHADOWS,
   MAP_SPACING,
   MAP_STROKES,
@@ -28,7 +27,7 @@ const dockStyle: React.CSSProperties = {
   gap: MAP_SPACING.xs,
   padding: MAP_SPACING.xs,
   border: MAP_STROKES.hairlineStrong,
-  borderRadius: MAP_RADIUS.md,
+  borderRadius: 2,
   background: "color-mix(in srgb, var(--syn-surface-panel, rgba(12, 16, 24, 0.96)) 92%, transparent)",
   boxShadow: MAP_SHADOWS.dropdown,
   color: MAP_COLORS.textSecondary,

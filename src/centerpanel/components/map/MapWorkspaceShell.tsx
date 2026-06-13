@@ -423,6 +423,26 @@ const workspaceFocusCss = `
   background: color-mix(in srgb, var(--syn-interaction-active, #3794ff) 12%, transparent) !important;
   border-inline-color: var(--syn-border-focus, #3794ff) !important;
 }
+/* ---- Premium status bar interaction feedback ---- */
+[data-map-explorer-shell="true"] [data-map-status-bar="true"] button[data-map-status-segment]:hover,
+[data-map-explorer-shell="true"] [data-map-status-bar="true"] a[data-map-status-segment]:hover {
+  background: color-mix(in srgb, var(--syn-interaction-active, #3794ff) 12%, transparent) !important;
+  color: var(--syn-text-default, #d7dce5) !important;
+}
+[data-map-explorer-shell="true"] [data-map-status-bar="true"] button[data-map-status-segment]:active {
+  background: color-mix(in srgb, var(--syn-interaction-active, #3794ff) 18%, transparent) !important;
+}
+/* Attention tones carry a slim bottom signal instead of coloured frames. */
+[data-map-explorer-shell="true"] [data-map-status-bar="true"] [data-map-status-segment][data-map-status-tone="error"] {
+  box-shadow: inset 0 -2px 0 var(--syn-status-error, #ef4444);
+}
+[data-map-explorer-shell="true"] [data-map-status-bar="true"] [data-map-status-segment][data-map-status-tone="warning"] {
+  box-shadow: inset 0 -2px 0 var(--syn-status-warning, #fbbf24);
+}
+[data-map-explorer-shell="true"] [data-map-status-bar="true"] [data-map-status-segment][data-map-status-tone="running"] {
+  box-shadow: inset 0 -2px 0 var(--syn-status-running, #60a5fa);
+}
+
 @media (forced-colors: active) {
   [data-map-explorer-shell="true"] :focus-visible {
     outline: 2px solid Highlight !important;
