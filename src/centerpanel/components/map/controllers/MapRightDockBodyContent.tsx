@@ -27,17 +27,17 @@ import type { SelectionStatisticsSummary } from "../../../../services/map/MapAna
 const rightDockBodyShellStyle: React.CSSProperties = {
   display: "grid",
   alignContent: "start",
-  gap: MAP_SPACING.md,
+  gap: MAP_SPACING.sm,
   minHeight: "100%",
-  padding: MAP_SPACING.md,
+  padding: `${MAP_SPACING.sm} ${MAP_SPACING.md} ${MAP_SPACING.md}`,
 };
 
 const rightDockSectionStyle: React.CSSProperties = {
   display: "grid",
   gap: MAP_SPACING.sm,
   minWidth: 0,
-  paddingBottom: MAP_SPACING.md,
-  borderBottom: MAP_STROKES.hairlineSubtle,
+  padding: `${MAP_SPACING.sm} 0 ${MAP_SPACING.md}`,
+  borderBottom: "1px solid color-mix(in srgb, var(--syn-border-subtle, rgba(148,163,184,0.28)) 55%, transparent)",
 };
 
 const rightDockSectionHeaderStyle: React.CSSProperties = {

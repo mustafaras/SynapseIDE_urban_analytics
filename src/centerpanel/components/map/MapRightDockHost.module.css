@@ -13,6 +13,20 @@
   font-family: var(--font-sans, "Inter", sans-serif);
   outline: none;
   isolation: isolate;
+  transition: width 170ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* No animation while the user is actively dragging the resize handle —
+   the width must track the pointer 1:1. Smooth motion is reserved for
+   programmatic width changes (snap, collapse, route switch). */
+.host[data-resizing="true"] {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .host {
+    transition: none;
+  }
 }
 
 .host[data-presentation="side-drawer"] {
@@ -22,10 +36,41 @@
   filter: drop-shadow(-10px 0 28px rgba(0, 0, 0, 0.32));
 }
 
+.host[data-collapsed="true"] {
+  width: var(--right-dock-width, 48px);
+  min-width: var(--right-dock-width, 48px);
+  max-width: var(--right-dock-width, 48px);
+  background: var(--syn-bg-panel, #181b22);
+  border-left: 1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.28));
+  box-shadow: -8px 0 22px rgba(0, 0, 0, 0.24);
+}
+
 .frame {
   position: relative;
   height: 100%;
   border-radius: 0;
+}
+
+.collapsedRail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  height: 100%;
+  padding: 6px 4px;
+  box-sizing: border-box;
+}
+
+.collapsedRailDivider {
+  display: block;
+  width: 1.4rem;
+  height: 1px;
+  margin: 2px 0;
+  background: var(--syn-border-subtle, rgba(148, 163, 184, 0.28));
+}
+
+.collapsedRailSpacer {
+  flex: 1 1 auto;
 }
 
 .resizeHandle {
@@ -49,16 +94,52 @@
   inset: 0 6px;
   border-left: 1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.24));
   opacity: 0.9;
+  transition: border-left-color 140ms ease, box-shadow 140ms ease;
+}
+
+/* Discoverable grip: a short vertical row of dots, centred on the handle,
+   revealed on hover/focus so the resize affordance is obvious. */
+.resizeHandle::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 3px;
+  height: 26px;
+  transform: translate(-50%, -50%);
+  border-radius: 3px;
+  background-image: radial-gradient(
+    var(--syn-text-muted, #8993a3) 38%,
+    transparent 42%
+  );
+  background-size: 3px 6px;
+  background-repeat: repeat-y;
+  opacity: 0;
+  transition: opacity 140ms ease;
+  pointer-events: none;
+}
+
+.resizeHandle:hover::before,
+.resizeHandle:focus-visible::before {
+  opacity: 0.85;
 }
 
 .resizeHandle:hover::after,
 .resizeHandle:focus-visible::after {
   border-left-color: var(--syn-interaction-active, #d09a48);
+  box-shadow: -1px 0 0 var(--syn-interaction-active, #d09a48);
 }
 
 .resizeHandle:focus-visible {
   outline: 2px solid var(--syn-interaction-active, #d09a48);
   outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .resizeHandle::after,
+  .resizeHandle::before {
+    transition: none;
+  }
 }
 
 .tabRail {

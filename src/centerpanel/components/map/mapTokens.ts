@@ -430,8 +430,11 @@ export const MAP_BLUR = {
 /* ---- Z-Index ---- */
 export const MAP_Z_INDEX = {
   canvas: DESIGN_TOKENS.zIndex.base,
-  mapFurniture: MAP_NUMERIC.sidebarZIndex - 10,
-  commandBar: MAP_NUMERIC.sidebarZIndex - 8,
+  /* On-canvas furniture must paint ABOVE the MapLibre map element (which renders
+     at z-index:auto) yet BELOW the docked panels/sidebar. Positive offsets keep
+     the furniture both visible and pointer-interactive over the basemap. */
+  mapFurniture: MAP_NUMERIC.sidebarZIndex - 3,
+  commandBar: MAP_NUMERIC.sidebarZIndex - 2,
   panel: MAP_NUMERIC.sidebarZIndex,
   modalChrome: MAP_NUMERIC.overlayZIndex,
   overlay: MAP_NUMERIC.overlayZIndex,

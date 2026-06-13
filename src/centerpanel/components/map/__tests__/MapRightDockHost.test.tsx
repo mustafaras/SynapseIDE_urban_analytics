@@ -126,6 +126,41 @@ describe("MapRightDockHost", () => {
     expect(onClose).toHaveBeenCalledOnce();
   });
 
+  it("collapses to a rail without losing the active route", () => {
+    const onCollapse = vi.fn();
+    const onPanelChange = vi.fn();
+    const onClose = vi.fn();
+    render(
+      <MapRightDockHost
+        route={createMapRightDockRoute("problems", { source: "status-bar", detail: "qa-segment" })}
+        panels={["inspect", "style", "problems"]}
+        collapsed
+        onCollapse={onCollapse}
+        onPanelChange={onPanelChange}
+        onClose={onClose}
+      />,
+    );
+
+    const host = screen.getByTestId("map-right-dock-host");
+    expect(host.getAttribute("data-collapsed")).toBe("true");
+    expect(host.getAttribute("data-map-right-dock-panel")).toBe("problems");
+    expect(host.getAttribute("data-map-right-dock-source")).toBe("status-bar");
+    expect(screen.queryByRole("tabpanel")).toBeNull();
+
+    fireEvent.click(screen.getByTestId("map-right-dock-collapsed-tab-style"));
+    expect(onPanelChange).toHaveBeenCalledWith("style");
+    expect(onCollapse).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByTestId("map-right-dock-collapsed-tab-problems"));
+    expect(onCollapse).toHaveBeenCalledOnce();
+
+    fireEvent.click(screen.getByTestId("map-right-dock-collapse"));
+    expect(onCollapse).toHaveBeenCalledTimes(2);
+
+    fireEvent.click(screen.getByTestId("map-right-dock-close"));
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
   it("renders explicit loading and error panel states inside the dock body", () => {
     const { rerender } = render(
       <MapRightDockHost

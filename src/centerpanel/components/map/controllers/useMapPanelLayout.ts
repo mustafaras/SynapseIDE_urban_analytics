@@ -24,6 +24,7 @@ interface UseMapPanelLayoutOptions {
   showReviewTimeline: boolean;
   hasReportHandoffSource: boolean;
   activeRightDockRoutePanel: MapRightDockPanel | null;
+  rightDockCollapsed?: boolean;
   navigatorStageMode: boolean;
   navigatorStageMargin: number;
   layoutPreferences: MapPanelLayoutPreferences;
@@ -42,6 +43,7 @@ export function useMapPanelLayout({
   showReviewTimeline,
   hasReportHandoffSource,
   activeRightDockRoutePanel,
+  rightDockCollapsed = false,
   navigatorStageMode,
   navigatorStageMargin,
   layoutPreferences,
@@ -64,6 +66,7 @@ export function useMapPanelLayout({
     containerWidth: mapContainerWidth,
     layerPanelRequested: showLayerPanel,
     rightPanel: requestedRightDockPanel,
+    rightPanelCollapsed: rightDockCollapsed && activeRightDockRoutePanel != null,
     navigatorStageMode,
     layerPanelWidth: layoutPreferences.layerPanelWidth,
     rightPanelWidth: layoutPreferences.rightPanelWidth,
@@ -72,6 +75,8 @@ export function useMapPanelLayout({
     layoutPreferences.rightPanelWidth,
     mapContainerWidth,
     navigatorStageMode,
+    rightDockCollapsed,
+    activeRightDockRoutePanel,
     requestedRightDockPanel,
     showLayerPanel,
   ]);

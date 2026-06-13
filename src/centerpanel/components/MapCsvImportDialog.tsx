@@ -3,11 +3,11 @@ import { profileCsvImportSession, type CsvImportSession } from "../../services/m
 import {
   MAP_COLORS,
   MAP_RADIUS,
-  MAP_SHADOWS,
   MAP_SPACING,
   MAP_STROKES,
   MAP_TYPOGRAPHY,
 } from "./map/mapTokens";
+import { MapDialogShell } from "./map/MapDialogShell";
 
 export interface MapCsvImportDialogProps {
   open: boolean;
@@ -20,29 +20,10 @@ export interface MapCsvImportDialogProps {
   onImport: () => void;
 }
 
-const overlayStyle: React.CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  background: "rgba(0,0,0,0.55)",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  zIndex: 42,
-};
-
-const dialogStyle: React.CSSProperties = {
-  width: 720,
-  maxWidth: "calc(100% - 2rem)",
-  maxHeight: "var(--map-popover-max-height, calc(100% - 2rem))",
-  overflow: "hidden",
+const dialogBodyStyle: React.CSSProperties = {
   display: "flex",
   flexDirection: "column",
-  background: MAP_COLORS.bgPanel,
-  border: MAP_STROKES.hairlineStrong,
-  borderRadius: MAP_RADIUS.sm,
-  boxShadow: MAP_SHADOWS.panel,
-  color: MAP_COLORS.text,
-  fontFamily: MAP_TYPOGRAPHY.fontFamily,
+  minHeight: 0,
 };
 
 const sectionStyle: React.CSSProperties = {
@@ -159,39 +140,14 @@ export const MapCsvImportDialog: React.FC<MapCsvImportDialogProps> = ({
   const commitCaveats = sourceProfile.caveats.slice(0, 5);
 
   return (
-    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- overlay click dismiss
-    <div
-      style={overlayStyle}
-      onClick={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
+    <MapDialogShell
+      ariaLabel="CSV coordinate mapping"
+      title="Import CSV Points"
+      subtitle={`${session.fileName} contains ${session.totalRows.toLocaleString()} data row${session.totalRows !== 1 ? "s" : ""}`}
+      width={720}
+      bodyStyle={dialogBodyStyle}
+      onClose={onClose}
     >
-      <div style={dialogStyle} role="dialog" aria-modal="true" aria-label="CSV coordinate mapping">
-        <div
-          style={{
-            ...sectionStyle,
-            paddingBottom: MAP_SPACING.md,
-            borderBottom: MAP_STROKES.hairlineSubtle,
-          }}
-        >
-          <div
-            style={{
-              color: MAP_COLORS.text,
-              fontFamily: MAP_TYPOGRAPHY.fontFamilyBrand,
-              fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
-              fontSize: 14,
-              marginBottom: 8,
-            }}
-          >
-            Import CSV Points
-          </div>
-          <div style={{ color: MAP_COLORS.textSecondary, fontSize: 12, lineHeight: 1.5 }}>
-            {session.fileName} contains {session.totalRows.toLocaleString()} data row
-            {session.totalRows !== 1 ? "s" : ""}. Map the coordinate columns to convert each row
-            into a GeoJSON point feature.
-          </div>
-        </div>
-
         <div
           style={{
             ...sectionStyle,
@@ -427,8 +383,7 @@ export const MapCsvImportDialog: React.FC<MapCsvImportDialogProps> = ({
             </button>
           </div>
         </div>
-      </div>
-    </div>
+    </MapDialogShell>
   );
 };
 

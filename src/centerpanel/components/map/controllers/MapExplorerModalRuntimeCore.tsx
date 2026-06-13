@@ -3,13 +3,16 @@ import { createPortal } from 'react-dom';
 import type maplibregl from 'maplibre-gl';
 import { Maximize2 } from 'lucide-react';
 import type { FeatureCollection, Geometry } from 'geojson';
-import { BASE_STYLES, type DrawnFeature, type DrawToolId, type LayerQaStatus, type LayerSchemaFieldSummary, type LayerScientificQABadge, MAP_BOOKMARK_LIMIT, MAP_LAYER_REGISTRY_EVENT, type MapBookmark, type MapEvidenceArtifact, type MapExplorerMode, type MapLayerRegistryChangeDetail, type MapPin, type MeasureToolId, type OverlayLayerConfig } from '../mapTypes';
+import { BASE_STYLES, type BaseLayerId, type DrawnFeature, type DrawToolId, type LayerQaStatus, type LayerSchemaFieldSummary, type LayerScientificQABadge, MAP_BOOKMARK_LIMIT, MAP_LAYER_REGISTRY_EVENT, type MapBookmark, type MapEvidenceArtifact, type MapExplorerMode, type MapLayerRegistryChangeDetail, type MapPin, type MeasureToolId, type OverlayLayerConfig } from '../mapTypes';
 import { resolveOverlayLayerCrsSummary } from '../mapLayerMetadata';
 import { applyMapCommand, type MapActionEffects, redoMapCommand, revertMapCommand } from '@/services/map/actions/MapActionExecutor';
 import { createMapActionHistory, findRedoableEntry, findRevertableEntry, findUndoableEntry, type MapActionHistory, type MapActionHistoryEntry, markMapActionRedone, markMapActionUndone, recordMapActionHistoryEntry, summarizeMapUndoRedo } from '@/services/map/actions/MapActionHistoryService';
 import { type GisStatusKey, MAP_COLORS, MAP_ICON_SIZES, MAP_RADIUS, MAP_SPACING, MAP_STROKES, MAP_TYPOGRAPHY, mapStyles } from '../mapTokens';
 import { MAP_LAYOUT_TOKENS } from '../mapLayoutTokens';
 import { MapCanvas } from '../MapCanvas';
+import { MapScaleIndicator } from '../MapScaleIndicator';
+import { MapNavExtras } from '../MapNavExtras';
+import { MapSwipeCompareOverlay } from '../MapSwipeCompareOverlay';
 import { MapCanvasControls } from '../MapCanvasControls';
 import { MapTopCommandSurface } from '../MapTopCommandSurface';
 import { MapToolbar } from '../MapToolbar';
@@ -491,6 +494,10 @@ function MapReportsDrawerBody({
 /*  Props                                                              */
 /* ================================================================== */
 
+function getDefaultCompareBaseLayer(activeBaseLayer: BaseLayerId): BaseLayerId {
+  return activeBaseLayer === 'satellite' ? 'streets' : 'satellite';
+}
+
 export interface MapExplorerModalProps {
   open: boolean;
   onClose: () => void;
@@ -612,6 +619,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
   const [showFigureComposer, setShowFigureComposer] = useState(false);
   const [showInteractionStrip, setShowInteractionStrip] = useState(false);
   const [showComparisonStrip, setShowComparisonStrip] = useState(false);
+  const [showSwipeCompare, setShowSwipeCompare] = useState(false);
+  const [swipeCompareBaseLayer, setSwipeCompareBaseLayer] = useState<BaseLayerId>('satellite');
+  const [rightDockCollapsed, setRightDockCollapsed] = useState(false);
   const [showDrawPanel, setShowDrawPanel] = useState(false);
   const [showMeasurePanel, setShowMeasurePanel] = useState(false);
   const { activeRightDockRoute, bottomPanelReturnFocusRef, closeRightDockRoute, openDiagnosticsRightDock, openPerformanceRightDock, openRightDockPanel, switchRightDockRoute, toggleRightDockPanel } = useMapRightDockRouting({
@@ -1902,6 +1912,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
     showReviewTimeline,
     hasReportHandoffSource: Boolean(reportHandoffSource) && !publishReportTabDocked,
     activeRightDockRoutePanel: activeRightDockRoute?.panel ?? null,
+    rightDockCollapsed,
     navigatorStageMode,
     navigatorStageMargin: MAP_NAVIGATOR_STAGE_MARGIN,
     layoutPreferences,
@@ -2259,6 +2270,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
   const handleRightDockHostPanelChange = useCallback(
     (panel: MapRightDockPanel) => {
       const definition = getMapRightDockPanelDefinition(panel);
+      setRightDockCollapsed(false);
       switchRightDockRoute(
         createMapRightDockRoute(panel, {
           source: 'panel-tab',
@@ -2278,11 +2290,15 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
   );
 
   const handleCollapseRightDockHost = useCallback(() => {
-    closeRightDockRoute();
-    announce('Right dock collapsed');
-  }, [announce, closeRightDockRoute]);
+    setRightDockCollapsed(current => {
+      const next = !current;
+      announce(next ? 'Right dock collapsed to rail' : 'Right dock expanded');
+      return next;
+    });
+  }, [announce]);
 
   const handleCloseRightDockHost = useCallback(() => {
+    setRightDockCollapsed(false);
     closeRightDockRoute();
     announce('Right dock closed');
     restoreFocusToElement(bottomPanelReturnFocusRef.current);
@@ -4834,6 +4850,23 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
     announce(includeScaleBar ? 'Scale bar shown for publish preview' : 'Scale bar hidden for publish preview');
   }, [announce, mapCompositionOptions.includeScaleBar]);
 
+  useEffect(() => {
+    if (swipeCompareBaseLayer === activeBaseLayer) {
+      setSwipeCompareBaseLayer(getDefaultCompareBaseLayer(activeBaseLayer));
+    }
+  }, [activeBaseLayer, swipeCompareBaseLayer]);
+
+  const handleToggleCanvasSwipeCompare = useCallback(() => {
+    setShowSwipeCompare(current => {
+      const next = !current;
+      if (next && swipeCompareBaseLayer === activeBaseLayer) {
+        setSwipeCompareBaseLayer(getDefaultCompareBaseLayer(activeBaseLayer));
+      }
+      announce(next ? 'Swipe compare enabled' : 'Swipe compare disabled');
+      return next;
+    });
+  }, [activeBaseLayer, announce, swipeCompareBaseLayer]);
+
   const handleToggleCanvasNorthArrow = useCallback(() => {
     const includeNorthArrow = !mapCompositionOptions.includeNorthArrow;
     setMapCompositionOptions(current => ({ ...current, includeNorthArrow }));
@@ -5110,6 +5143,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
     handleToggleCanvasLegend,
     handleToggleCanvasNorthArrow,
     handleToggleCanvasScaleBar,
+    handleToggleCanvasSwipeCompare,
     handleToggleCatalog,
     handleToggleClusterViz,
     handleToggleContents,
@@ -5199,6 +5233,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
     setWorkbenchSidebarTab,
     setWorkflowPreview,
     showCanvasKeyboardHelp,
+    showSwipeCompare,
     showChoroplethPanel,
     showClusterViz,
     showEmergingHotSpotViz,
@@ -5805,7 +5840,33 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
 
         {effectiveShowLayerPanel ? <MapExplorerLayerPanelRail activeActivityId={activeActivityId} activeActivityLabel={activeActivity.label} analyzeDataOperationsElement={analyzeDataOperationsElement} analyzeModelsElement={analyzeModelsElement} analyzeQueryElement={analyzeQueryElement} analyzeStatisticsElement={analyzeStatisticsElement} analyzeToolsElement={analyzeToolsElement} analyzeWorkflowElement={analyzeWorkflowElement} announce={announce} collapsed={workbenchSidebarCollapsed} dataExportElement={publishDataExportElement} dockLayerPanelPlacement={dockLayout.layerPanelPlacement ?? null} figureElement={publishFigureElement} focusActiveActivityButton={focusActiveActivityButton} isWorkbenchActivity={isWorkbenchActivity} layerCount={overlayLayers.length} crsWarningCount={overlayLayers.filter((layer) => resolveOverlayLayerCrsSummary(layer).status !== 'known').length} layerPanelWidth={dockLayout.layerPanelWidth} layerStackElement={layerStackElement} legendRef={legendRef} massingElement={sceneMassingElement} offlinePackageElement={publishOfflinePackageElement} onLayerPanelWidthChange={handleLayerPanelWidthChange} onPublishTabChange={handlePublishWorkspaceTabChange} onSceneTabChange={handleSceneWorkspaceTabChange} publishReadinessItems={publishReadinessItems} reportElement={publishReportElement} reviewPackageElement={publishReviewPackageElement} scene3DElement={scene3DElement} sceneRasterElement={sceneRasterElement} sceneStatusChips={sceneStatusChips} sceneSunShadowElement={sceneSunShadowElement} sceneTemporalElement={sceneTemporalElement} sceneVoxCityElement={sceneVoxCityElement} sceneZoningElement={sceneZoningElement} setCollapsed={setWorkbenchSidebarCollapsed} setShowFigureComposer={setShowFigureComposer} setShowLayerPanel={setShowLayerPanel} setShowVoxCityOverlay={setShowVoxCityOverlay} clearWorkflowPreview={() => setWorkflowPreview(null)} styleAdvisorElement={styleAdvisorElement} styleLabelsElement={styleLabelsElement} styleLegendElement={styleLegendElement} styleRendererElement={styleRendererElement} styleSymbolsElement={styleSymbolsElement} workbenchSidebarTab={workbenchSidebarTab} workbenchSidebarTabs={workbenchSidebarTabs} onWorkbenchSidebarTabChange={setWorkbenchSidebarTab} /> : null}
 
-        <MapCanvas id={mapCanvasId} baseLayer={activeBaseLayer} pinMode={pinMode} pins={pins} interactiveLayerIds={interactiveAnalysisLayerIds} reducedMotion={reducedMotion} preserveDrawingBuffer={mapCanvasCaptureMode} showScaleBar={mapCompositionOptions.includeScaleBar} onCursorMove={handleCursorMove} onZoomChange={handleZoomChange} onViewportChange={handleViewportChange} onMapClick={handleMapClick} onMapReady={handleMapReady} onMapDestroy={handleMapDestroy} onRenderError={handleMapRenderError} onFeatureReportRequest={handleFeatureReportRequest} />
+        <MapCanvas id={mapCanvasId} baseLayer={activeBaseLayer} pinMode={pinMode} pins={pins} interactiveLayerIds={interactiveAnalysisLayerIds} reducedMotion={reducedMotion} preserveDrawingBuffer={mapCanvasCaptureMode} showScaleBar={false} onCursorMove={handleCursorMove} onZoomChange={handleZoomChange} onViewportChange={handleViewportChange} onMapClick={handleMapClick} onMapReady={handleMapReady} onMapDestroy={handleMapDestroy} onRenderError={handleMapRenderError} onFeatureReportRequest={handleFeatureReportRequest} />
+
+        {!navigatorStageMode ? (
+          <MapSwipeCompareOverlay
+            visible={showSwipeCompare}
+            baseLayer={activeBaseLayer}
+            compareBaseLayer={swipeCompareBaseLayer}
+            overlayLayers={mapRenderLayers}
+            pins={pins}
+            viewport={{ center, zoom, bearing, pitch }}
+            reducedMotion={reducedMotion}
+            onCompareBaseLayerChange={setSwipeCompareBaseLayer}
+            onClose={() => {
+              setShowSwipeCompare(false);
+              announce('Swipe compare disabled');
+            }}
+            onAnnounce={announce}
+          />
+        ) : null}
+
+        {!navigatorStageMode ? (
+          <MapScaleIndicator visible={mapCompositionOptions.includeScaleBar} />
+        ) : null}
+
+        {!navigatorStageMode ? (
+          <MapNavExtras flyTo={flyTo} onAnnounce={announce} />
+        ) : null}
 
         {overlayLayers.length === 0 && !navigatorStageMode && !isDragActive ? (
           <div
@@ -5862,7 +5923,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
         <Suspense fallback={null}>
           <LazyMapInspectorHost visible={inspectorContext.kind !== 'none'} context={inspectorContext} presentation={dockLayout.compactDock ? 'bottom-drawer' : 'right-rail'} width={dockLayout.rightPanelWidth} onClose={handleCloseInspectorHost} onApplyLayerStyle={handleApplyLayerStyle} returnFocusTo={inspectorReturnFocusRef.current} />
         </Suspense>
-        <MapExplorerModalRuntimeView announce={announce} handleOpenSceneTab={handleOpenSceneTab} navigatorStageMode={navigatorStageMode} scene3DTabActive={scene3DTabActive} sceneMassingTabActive={sceneMassingTabActive} sceneRasterTabActive={sceneRasterTabActive} sceneSunShadowTabActive={sceneSunShadowTabActive} sceneZoningTabActive={sceneZoningTabActive} showPluginPanel={showPluginPanel} setShowPluginPanel={setShowPluginPanel} pluginExtensions={pluginExtensions} showProcessingToolbox={showProcessingToolbox} setShowProcessingToolbox={setShowProcessingToolbox} showSqlWorkspace={showSqlWorkspace} setShowSqlWorkspace={setShowSqlWorkspace} handleSqlResultToMap={handleSqlResultToMap} showMinimap={showMinimap} minimapCenter={center} minimapZoom={zoom} analyzeToolsTabActive={analyzeToolsTabActive} searchProcessingTools={searchProcessingTools} processingToolboxLayers={processingToolboxLayers} handlePreviewProcessingTool={handlePreviewProcessingTool} handleRunProcessingTool={handleRunProcessingTool} showModelBuilder={showModelBuilder} setShowModelBuilder={setShowModelBuilder} analyzeModelsTabActive={analyzeModelsTabActive} processingToolDescriptors={processingToolDescriptors} handleRunMapModel={handleRunMapModel} handleRunMapModelBatch={handleRunMapModelBatch} handleExportMapModelToIdeAndUrban={handleExportMapModelToIdeAndUrban} effectiveShowWorkflowDrawer={effectiveShowWorkflowDrawer} analyzeWorkflowsTabActive={analyzeWorkflowsTabActive} workflowPreview={workflowPreview} effectiveShowScientificQAPanel={effectiveShowScientificQAPanel} scientificQA={scientificQA} overlayLayers={overlayLayers} compactDock={dockLayout.compactDock} rightPanelWidth={dockLayout.rightPanelWidth} handleRightPanelWidthChange={handleRightPanelWidthChange} setShowScientificQAPanel={setShowScientificQAPanel} handleFocusLayer={handleFocusLayer} handleInspectLayer={handleInspectLayer} handleRepairLayerGeometry={handleRepairLayerGeometry} handleOpenPublishTab={handleOpenPublishTab} effectiveShowNLQueryPanel={effectiveShowNLQueryPanel} analyzeQueryTabActive={analyzeQueryTabActive} selectedAoiFeatureForQuery={selectedAoiFeatureForQuery} currentMapBounds={currentMapBounds} isRunningMapNLQuery={isRunningMapNLQuery} lastMapNLQuerySummary={lastMapNLQuerySummary} handleRunMapNLQuery={handleRunMapNLQuery} handleMapNLQueryProposalGenerated={handleMapNLQueryProposalGenerated} handleMapNLQueryPreviewDecision={handleMapNLQueryPreviewDecision} setShowNLQueryPanel={setShowNLQueryPanel} urbanWorkflowDraftRequest={urbanWorkflowDraftRequest} workflowContext={workflowContext} setShowWorkflowDrawer={setShowWorkflowDrawer} setWorkflowPreview={setWorkflowPreview} setUrbanWorkflowDraftRequest={setUrbanWorkflowDraftRequest} handleApplyMapWorkflow={handleApplyMapWorkflow} handleSaveWorkflowReport={handleSaveWorkflowReport} handleOpenWorkflowScriptInIde={handleOpenWorkflowScriptInIde} handleExecuteMapWorkflow={handleExecuteMapWorkflow} handleCancelMapWorkflow={handleCancelMapWorkflow} workflowExecution={workflowExecution} mapCanvasControlsProps={mapCanvasControlsProps} showLegendOverlay={mapCompositionOptions.includeLegend} mapPublicationLegendItems={mapPublicationLegendItems} performanceDiagnostics={performanceDiagnostics} openPerformanceRightDock={openPerformanceRightDock} activeRightDockRoute={activeRightDockRoute} rightDockPanels={MAP_RIGHT_DOCK_PANEL_IDS} rightDockBodyContent={rightDockBodyContent} rightDockPresentation={dockLayout.rightPanelPlacement === 'drawer' ? 'side-drawer' : 'right-dock'} handleRightDockHostPanelChange={handleRightDockHostPanelChange} handleCollapseRightDockHost={handleCollapseRightDockHost} handleCloseRightDockHost={handleCloseRightDockHost} effectiveShowUrbanMethodPanel={effectiveShowUrbanMethodPanel} activeUrbanMethodRequest={activeUrbanMethodRequest} activeUrbanMethodPreview={activeUrbanMethodPreview} handleCloseUrbanMethodRail={handleCloseUrbanMethodRail} handleFocusUrbanMethodLayer={handleFocusUrbanMethodLayer} handlePreviewUrbanMethodWorkflow={handlePreviewUrbanMethodWorkflow} showFigureComposer={showFigureComposer} publishFigureTabActive={publishFigureTabActive} bearing={bearing} temporalLayoutRestoreRequest={temporalLayoutRestoreRequest} setShowFigureComposer={setShowFigureComposer} setShowMapExportDialog={setShowMapExportDialog} handleTemporalRestoreRequestHandled={handleTemporalRestoreRequestHandled} mapRef={mapInstanceRef} reducedMotion={reducedMotion} temporalPlayerMap={mapInstanceRef.current} temporalFrames={activeTemporalLayer?.metadata?.analysisResult?.visualization.temporalFrames ?? []} temporalTimeProperty={activeTemporalLayer?.metadata?.analysisResult?.visualization.timeProperty ?? 'timestamp'} temporalSourceId={activeTemporalLayer?.id ?? null} temporalLayerId={activeTemporalLayer?.id ?? null} temporalLayerName={activeTemporalLayer?.name ?? null} temporalPlayerVisible={!!open && sceneTemporalTabActive} showChoroplethPanel={showChoroplethPanel} setShowChoroplethPanel={setShowChoroplethPanel} showClusterViz={showClusterViz} setShowClusterViz={setShowClusterViz} showHotSpotViz={showHotSpotViz} setShowHotSpotViz={setShowHotSpotViz} showEmergingHotSpotViz={showEmergingHotSpotViz} setShowEmergingHotSpotViz={setShowEmergingHotSpotViz} activeDrawTool={activeDrawTool} drawSeed={drawSeed} drawnFeatures={drawnFeatures} drawingSnapSources={drawingSnapSources} selectedFeatureId={selectedFeatureId} addDrawnFeature={addDrawnFeature} removeDrawnFeature={removeDrawnFeature} updateDrawnFeature={updateDrawnFeature} handleCommitDrawnFeatureEdit={handleCommitDrawnFeatureEdit} clearDrawnFeatures={clearDrawnFeatures} setSelectedFeatureId={setSelectedFeatureId} handleCancelDraw={handleCancelDraw} setDrawSeed={setDrawSeed} effectiveShowMeasurePanel={effectiveShowMeasurePanel} rightMeasureDockActive={rightMeasureDockActive} activeMeasureTool={activeMeasureTool} measurementSeed={measurementSeed} measurements={measurements} measureUnit={measureUnit} addMeasurement={addMeasurement} removeMeasurement={removeMeasurement} clearMeasurements={clearMeasurements} setMeasureUnit={setMeasureUnit} handleCancelMeasure={handleCancelMeasure} setMeasurementSeed={setMeasurementSeed} pins={pins} effectiveShowSidebar={effectiveShowSidebar} handleRemovePin={handleRemovePin} handleClearPins={handleClearPins} flyTo={flyTo} effectiveShowLayerPanel={effectiveShowLayerPanel} layerPanelOpenButtonStyle={mapStyles.layerPanelOpenButton} layerOpenButtonIconSize={MAP_ICON_SIZES.sm} handleMapClick={handleMapClick} handleStartMeasureFromContext={handleStartMeasureFromContext} handleStartPolygonFromContext={handleStartPolygonFromContext} handleOpenFlowDispatchDialog={handleOpenFlowDispatchDialog} handleIsochroneDispatch={handleIsochroneDispatch} handleHotSpotDispatch={handleHotSpotDispatch} handleRunSelectionStatistics={handleRunSelectionStatistics} selectionStatsAvailable={selectionStatsAvailable} annotationMode={annotationMode} annotations={annotations} selectedAnnotationId={selectedAnnotationId} annotationToolSettings={annotationToolSettings} handleAddMapAnnotation={handleAddMapAnnotation} handleUpdateMapAnnotation={handleUpdateMapAnnotation} handleMoveMapAnnotation={handleMoveMapAnnotation} handleRemoveMapAnnotation={handleRemoveMapAnnotation} setSelectedAnnotationId={setSelectedAnnotationId} setAnnotationToolSettings={setAnnotationToolSettings} handleDeactivateAnnotationMode={handleDeactivateAnnotationMode} setShowComparisonStrip={setShowComparisonStrip} setShowInteractionStrip={setShowInteractionStrip} setShowLayerPanel={setShowLayerPanel} showComparisonStrip={showComparisonStrip} showInteractionStrip={showInteractionStrip} />
+        <MapExplorerModalRuntimeView announce={announce} handleOpenSceneTab={handleOpenSceneTab} navigatorStageMode={navigatorStageMode} scene3DTabActive={scene3DTabActive} sceneMassingTabActive={sceneMassingTabActive} sceneRasterTabActive={sceneRasterTabActive} sceneSunShadowTabActive={sceneSunShadowTabActive} sceneZoningTabActive={sceneZoningTabActive} showPluginPanel={showPluginPanel} setShowPluginPanel={setShowPluginPanel} pluginExtensions={pluginExtensions} showProcessingToolbox={showProcessingToolbox} setShowProcessingToolbox={setShowProcessingToolbox} showSqlWorkspace={showSqlWorkspace} setShowSqlWorkspace={setShowSqlWorkspace} handleSqlResultToMap={handleSqlResultToMap} showMinimap={showMinimap} minimapCenter={center} minimapZoom={zoom} analyzeToolsTabActive={analyzeToolsTabActive} searchProcessingTools={searchProcessingTools} processingToolboxLayers={processingToolboxLayers} handlePreviewProcessingTool={handlePreviewProcessingTool} handleRunProcessingTool={handleRunProcessingTool} showModelBuilder={showModelBuilder} setShowModelBuilder={setShowModelBuilder} analyzeModelsTabActive={analyzeModelsTabActive} processingToolDescriptors={processingToolDescriptors} handleRunMapModel={handleRunMapModel} handleRunMapModelBatch={handleRunMapModelBatch} handleExportMapModelToIdeAndUrban={handleExportMapModelToIdeAndUrban} effectiveShowWorkflowDrawer={effectiveShowWorkflowDrawer} analyzeWorkflowsTabActive={analyzeWorkflowsTabActive} workflowPreview={workflowPreview} effectiveShowScientificQAPanel={effectiveShowScientificQAPanel} scientificQA={scientificQA} overlayLayers={overlayLayers} compactDock={dockLayout.compactDock} rightPanelWidth={dockLayout.rightPanelWidth} handleRightPanelWidthChange={handleRightPanelWidthChange} setShowScientificQAPanel={setShowScientificQAPanel} handleFocusLayer={handleFocusLayer} handleInspectLayer={handleInspectLayer} handleRepairLayerGeometry={handleRepairLayerGeometry} handleOpenPublishTab={handleOpenPublishTab} effectiveShowNLQueryPanel={effectiveShowNLQueryPanel} analyzeQueryTabActive={analyzeQueryTabActive} selectedAoiFeatureForQuery={selectedAoiFeatureForQuery} currentMapBounds={currentMapBounds} isRunningMapNLQuery={isRunningMapNLQuery} lastMapNLQuerySummary={lastMapNLQuerySummary} handleRunMapNLQuery={handleRunMapNLQuery} handleMapNLQueryProposalGenerated={handleMapNLQueryProposalGenerated} handleMapNLQueryPreviewDecision={handleMapNLQueryPreviewDecision} setShowNLQueryPanel={setShowNLQueryPanel} urbanWorkflowDraftRequest={urbanWorkflowDraftRequest} workflowContext={workflowContext} setShowWorkflowDrawer={setShowWorkflowDrawer} setWorkflowPreview={setWorkflowPreview} setUrbanWorkflowDraftRequest={setUrbanWorkflowDraftRequest} handleApplyMapWorkflow={handleApplyMapWorkflow} handleSaveWorkflowReport={handleSaveWorkflowReport} handleOpenWorkflowScriptInIde={handleOpenWorkflowScriptInIde} handleExecuteMapWorkflow={handleExecuteMapWorkflow} handleCancelMapWorkflow={handleCancelMapWorkflow} workflowExecution={workflowExecution} mapCanvasControlsProps={mapCanvasControlsProps} showLegendOverlay={mapCompositionOptions.includeLegend} mapPublicationLegendItems={mapPublicationLegendItems} performanceDiagnostics={performanceDiagnostics} openPerformanceRightDock={openPerformanceRightDock} activeRightDockRoute={activeRightDockRoute} rightDockPanels={MAP_RIGHT_DOCK_PANEL_IDS} rightDockBodyContent={rightDockBodyContent} rightDockPresentation={dockLayout.rightPanelPlacement === 'drawer' ? 'side-drawer' : 'right-dock'} rightDockCollapsed={rightDockCollapsed} handleRightDockHostPanelChange={handleRightDockHostPanelChange} handleCollapseRightDockHost={handleCollapseRightDockHost} handleCloseRightDockHost={handleCloseRightDockHost} effectiveShowUrbanMethodPanel={effectiveShowUrbanMethodPanel} activeUrbanMethodRequest={activeUrbanMethodRequest} activeUrbanMethodPreview={activeUrbanMethodPreview} handleCloseUrbanMethodRail={handleCloseUrbanMethodRail} handleFocusUrbanMethodLayer={handleFocusUrbanMethodLayer} handlePreviewUrbanMethodWorkflow={handlePreviewUrbanMethodWorkflow} showFigureComposer={showFigureComposer} publishFigureTabActive={publishFigureTabActive} bearing={bearing} temporalLayoutRestoreRequest={temporalLayoutRestoreRequest} setShowFigureComposer={setShowFigureComposer} setShowMapExportDialog={setShowMapExportDialog} handleTemporalRestoreRequestHandled={handleTemporalRestoreRequestHandled} mapRef={mapInstanceRef} reducedMotion={reducedMotion} temporalPlayerMap={mapInstanceRef.current} temporalFrames={activeTemporalLayer?.metadata?.analysisResult?.visualization.temporalFrames ?? []} temporalTimeProperty={activeTemporalLayer?.metadata?.analysisResult?.visualization.timeProperty ?? 'timestamp'} temporalSourceId={activeTemporalLayer?.id ?? null} temporalLayerId={activeTemporalLayer?.id ?? null} temporalLayerName={activeTemporalLayer?.name ?? null} temporalPlayerVisible={!!open && sceneTemporalTabActive} showChoroplethPanel={showChoroplethPanel} setShowChoroplethPanel={setShowChoroplethPanel} showClusterViz={showClusterViz} setShowClusterViz={setShowClusterViz} showHotSpotViz={showHotSpotViz} setShowHotSpotViz={setShowHotSpotViz} showEmergingHotSpotViz={showEmergingHotSpotViz} setShowEmergingHotSpotViz={setShowEmergingHotSpotViz} activeDrawTool={activeDrawTool} drawSeed={drawSeed} drawnFeatures={drawnFeatures} drawingSnapSources={drawingSnapSources} selectedFeatureId={selectedFeatureId} addDrawnFeature={addDrawnFeature} removeDrawnFeature={removeDrawnFeature} updateDrawnFeature={updateDrawnFeature} handleCommitDrawnFeatureEdit={handleCommitDrawnFeatureEdit} clearDrawnFeatures={clearDrawnFeatures} setSelectedFeatureId={setSelectedFeatureId} handleCancelDraw={handleCancelDraw} setDrawSeed={setDrawSeed} effectiveShowMeasurePanel={effectiveShowMeasurePanel} rightMeasureDockActive={rightMeasureDockActive} activeMeasureTool={activeMeasureTool} measurementSeed={measurementSeed} measurements={measurements} measureUnit={measureUnit} addMeasurement={addMeasurement} removeMeasurement={removeMeasurement} clearMeasurements={clearMeasurements} setMeasureUnit={setMeasureUnit} handleCancelMeasure={handleCancelMeasure} setMeasurementSeed={setMeasurementSeed} pins={pins} effectiveShowSidebar={effectiveShowSidebar} handleRemovePin={handleRemovePin} handleClearPins={handleClearPins} flyTo={flyTo} effectiveShowLayerPanel={effectiveShowLayerPanel} layerPanelOpenButtonStyle={mapStyles.layerPanelOpenButton} layerOpenButtonIconSize={MAP_ICON_SIZES.sm} handleMapClick={handleMapClick} handleStartMeasureFromContext={handleStartMeasureFromContext} handleStartPolygonFromContext={handleStartPolygonFromContext} handleOpenFlowDispatchDialog={handleOpenFlowDispatchDialog} handleIsochroneDispatch={handleIsochroneDispatch} handleHotSpotDispatch={handleHotSpotDispatch} handleRunSelectionStatistics={handleRunSelectionStatistics} selectionStatsAvailable={selectionStatsAvailable} annotationMode={annotationMode} annotations={annotations} selectedAnnotationId={selectedAnnotationId} annotationToolSettings={annotationToolSettings} handleAddMapAnnotation={handleAddMapAnnotation} handleUpdateMapAnnotation={handleUpdateMapAnnotation} handleMoveMapAnnotation={handleMoveMapAnnotation} handleRemoveMapAnnotation={handleRemoveMapAnnotation} setSelectedAnnotationId={setSelectedAnnotationId} setAnnotationToolSettings={setAnnotationToolSettings} handleDeactivateAnnotationMode={handleDeactivateAnnotationMode} setShowComparisonStrip={setShowComparisonStrip} setShowInteractionStrip={setShowInteractionStrip} setShowLayerPanel={setShowLayerPanel} showComparisonStrip={showComparisonStrip} showInteractionStrip={showInteractionStrip} />
 
         <MapPointSymbologyFloatingPanel visible={Boolean(pointSymbologyLayerId) && !styleSymbolsTabActive && !effectiveShowScientificQAPanel && !effectiveShowNLQueryPanel} layerName={selectedPointSymbologyLayer?.name ?? 'Point layer'} mode={pointSymbologyMode} controls={pointSymbologyControlBody} panelPositionStyle={symbologyPanelDrag.panelPositionStyle} dragHandleStyle={symbologyPanelDrag.dragHandleStyle} dragHandleProps={symbologyPanelDrag.dragHandleProps} onModeChange={setPointSymbologyMode} onClose={() => setPointSymbologyLayerId(null)} />
 

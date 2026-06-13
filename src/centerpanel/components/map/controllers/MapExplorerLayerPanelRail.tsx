@@ -126,13 +126,51 @@ export const MapExplorerLayerPanelRail: React.FC<MapExplorerLayerPanelRailProps>
 }) => {
   const activeWorkspaceName =
     workbenchSidebarTabs.find((tab) => tab.id === workbenchSidebarTab)?.label ?? activeActivityLabel;
-  const dockSummaryItems = [
-    {
+  const activeContextSummaryItem = (() => {
+    if (activeActivityId === "publish") {
+      const blocked = publishReadinessItems.filter((item) => item.status === "blocked").length;
+      return {
+        id: "workspace",
+        label: "Publish",
+        value: blocked > 0 ? `${blocked} blocked` : `${publishReadinessItems.length} checks`,
+        title: blocked > 0
+          ? `${blocked} publish readiness check${blocked === 1 ? "" : "s"} blocked`
+          : `${publishReadinessItems.length} publish readiness check${publishReadinessItems.length === 1 ? "" : "s"} available`,
+      };
+    }
+    if (activeActivityId === "scene") {
+      return {
+        id: "workspace",
+        label: "Scene",
+        value: `${sceneStatusChips.length} signal${sceneStatusChips.length === 1 ? "" : "s"}`,
+        title: `${activeWorkspaceName} scene workspace with ${sceneStatusChips.length} status signal${sceneStatusChips.length === 1 ? "" : "s"}`,
+      };
+    }
+    if (activeActivityId === "analyze") {
+      return {
+        id: "workspace",
+        label: "Analyze",
+        value: activeWorkspaceName,
+        title: `Active analysis workspace: ${activeWorkspaceName}`,
+      };
+    }
+    if (activeActivityId === "style") {
+      return {
+        id: "workspace",
+        label: "Style",
+        value: activeWorkspaceName,
+        title: `Active cartography workspace: ${activeWorkspaceName}`,
+      };
+    }
+    return {
       id: "workspace",
       label: "Workspace",
       value: activeWorkspaceName,
       title: `Active left workspace: ${activeWorkspaceName}`,
-    },
+    };
+  })();
+  const dockSummaryItems = [
+    activeContextSummaryItem,
     {
       id: "layers",
       label: "Layers",

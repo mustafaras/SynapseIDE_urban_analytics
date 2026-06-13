@@ -3,11 +3,11 @@ import type { MapExportFormat, MapExportTarget } from "../../services/map/MapDat
 import {
   MAP_COLORS,
   MAP_RADIUS,
-  MAP_SHADOWS,
   MAP_SPACING,
   MAP_STROKES,
   MAP_TYPOGRAPHY,
 } from "./map/mapTokens";
+import { MapDialogShell } from "./map/MapDialogShell";
 
 export interface MapDataExportDialogProps {
   open: boolean;
@@ -25,28 +25,8 @@ export interface MapDataExportDialogProps {
   onExport: () => void;
 }
 
-const overlayStyle: React.CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  background: "rgba(0,0,0,0.55)",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  zIndex: 40,
-};
-
-const dialogStyle: React.CSSProperties = {
-  width: 360,
-  maxWidth: "calc(100% - 2rem)",
-  maxHeight: "var(--map-popover-max-height, calc(100% - 2rem))",
-  overflowY: "auto",
-  background: MAP_COLORS.bgPanel,
-  border: MAP_STROKES.hairlineStrong,
-  borderRadius: MAP_RADIUS.sm,
-  boxShadow: MAP_SHADOWS.panel,
+const dialogBodyStyle: React.CSSProperties = {
   padding: MAP_SPACING.lg,
-  color: MAP_COLORS.text,
-  fontFamily: MAP_TYPOGRAPHY.fontFamily,
 };
 
 const labelStyle: React.CSSProperties = {
@@ -121,23 +101,14 @@ export const MapDataExportDialog: React.FC<MapDataExportDialogProps> = ({
   const isGeoJson = format === "geojson";
 
   return (
-    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- overlay click dismiss
-    <div style={overlayStyle} onClick={(event) => {
-      if (event.target === event.currentTarget) onClose();
-    }}>
-      <div style={dialogStyle} role="dialog" aria-modal="true" aria-label="Spatial data export options">
-        <div
-          style={{
-            color: MAP_COLORS.text,
-            fontFamily: MAP_TYPOGRAPHY.fontFamilyBrand,
-            fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
-            fontSize: 14,
-            marginBottom: 14,
-          }}
-        >
-          Export Spatial Data
-        </div>
-
+    <MapDialogShell
+      ariaLabel="Spatial data export options"
+      title="Export Spatial Data"
+      subtitle={isGeoJson ? "GeoJSON export settings" : "GeoParquet export settings"}
+      width={360}
+      bodyStyle={dialogBodyStyle}
+      onClose={onClose}
+    >
         <label style={labelStyle}>
           Export Format
           <select
@@ -224,8 +195,7 @@ export const MapDataExportDialog: React.FC<MapDataExportDialogProps> = ({
             Export
           </button>
         </div>
-      </div>
-    </div>
+    </MapDialogShell>
   );
 };
 

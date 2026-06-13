@@ -423,11 +423,44 @@ const workspaceFocusCss = `
   background: color-mix(in srgb, var(--syn-interaction-active, #3794ff) 12%, transparent) !important;
   border-inline-color: var(--syn-border-focus, #3794ff) !important;
 }
+/* Discoverable grip on the panel resize handle, mirroring the right dock. */
+[data-map-explorer-shell="true"] [data-testid="map-panel-resize-handle"]::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 3px;
+  height: 26px;
+  transform: translate(-50%, -50%);
+  border-radius: 3px;
+  background-image: radial-gradient(var(--syn-text-muted, #8993a3) 38%, transparent 42%);
+  background-size: 3px 6px;
+  background-repeat: repeat-y;
+  opacity: 0;
+  transition: opacity 140ms ease;
+  pointer-events: none;
+}
+[data-map-explorer-shell="true"] [data-testid="map-panel-resize-handle"]:hover::after,
+[data-map-explorer-shell="true"] [data-testid="map-panel-resize-handle"]:focus-visible::after {
+  opacity: 0.85;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-map-explorer-shell="true"] [data-testid="map-panel-resize-handle"]::after {
+    transition: none;
+  }
+}
 /* ---- Premium status bar interaction feedback ---- */
+[data-map-explorer-shell="true"] [data-map-status-bar="true"] [data-map-status-segment] {
+  transition: background-color 140ms ease, color 140ms ease, box-shadow 140ms ease;
+}
 [data-map-explorer-shell="true"] [data-map-status-bar="true"] button[data-map-status-segment]:hover,
 [data-map-explorer-shell="true"] [data-map-status-bar="true"] a[data-map-status-segment]:hover {
   background: color-mix(in srgb, var(--syn-interaction-active, #3794ff) 12%, transparent) !important;
   color: var(--syn-text-default, #d7dce5) !important;
+}
+[data-map-explorer-shell="true"] [data-map-status-bar="true"] button[data-map-status-segment]:hover,
+[data-map-explorer-shell="true"] [data-map-status-bar="true"] a[data-map-status-segment]:hover {
+  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--syn-interaction-active, #3794ff) 60%, transparent);
 }
 [data-map-explorer-shell="true"] [data-map-status-bar="true"] button[data-map-status-segment]:active {
   background: color-mix(in srgb, var(--syn-interaction-active, #3794ff) 18%, transparent) !important;
@@ -439,8 +472,25 @@ const workspaceFocusCss = `
 [data-map-explorer-shell="true"] [data-map-status-bar="true"] [data-map-status-segment][data-map-status-tone="warning"] {
   box-shadow: inset 0 -2px 0 var(--syn-status-warning, #fbbf24);
 }
+/* Running work gets a live, breathing underline so async activity reads as live. */
+@keyframes mapStatusRunningPulse {
+  0%, 100% { box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--syn-status-running, #60a5fa) 45%, transparent); }
+  50% { box-shadow: inset 0 -2px 0 var(--syn-status-running, #60a5fa); }
+}
 [data-map-explorer-shell="true"] [data-map-status-bar="true"] [data-map-status-segment][data-map-status-tone="running"] {
-  box-shadow: inset 0 -2px 0 var(--syn-status-running, #60a5fa);
+  animation: mapStatusRunningPulse 1.6s ease-in-out infinite;
+}
+[data-map-explorer-shell="true"] [data-map-status-bar="true"] [data-map-status-segment][data-map-status-tone="pending"] {
+  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--syn-status-pending, #a78bfa) 70%, transparent);
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-map-explorer-shell="true"] [data-map-status-bar="true"] [data-map-status-segment][data-map-status-tone="running"] {
+    animation: none;
+    box-shadow: inset 0 -2px 0 var(--syn-status-running, #60a5fa);
+  }
+  [data-map-explorer-shell="true"] [data-map-status-bar="true"] [data-map-status-segment] {
+    transition: none;
+  }
 }
 
 @media (forced-colors: active) {

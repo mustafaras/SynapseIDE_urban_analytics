@@ -165,6 +165,7 @@ vi.mock("../map/MapLayerManager", () => ({
   MapLayerManager: () => null,
   MapLayerSourcesPanel: () => null,
   MapLayerCartographyPanel: () => null,
+  MapLayerBookmarksPanel: () => null,
 }));
 vi.mock("../MapDrawingManager", () => ({ MapDrawingManager: () => null }));
 vi.mock("../MapMeasurementTool", () => ({ MapMeasurementTool: () => null }));
