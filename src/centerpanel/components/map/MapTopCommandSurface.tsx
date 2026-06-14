@@ -64,7 +64,10 @@ const identityRowStyle: React.CSSProperties = {
   flexWrap: "nowrap",
   alignItems: "center",
   gap: MAP_SPACING.xs,
-  flex: "1 1 40rem",
+  // Identity (brand + search + chips) keeps a comfortable basis for the search
+  // box; the menu cluster still claims the remaining free space (higher grow)
+  // so the GeoLibre dropdowns stay expanded on one row.
+  flex: "1 1 30rem",
   minWidth: 0,
   minHeight: "100%",
   padding: `0 ${MAP_SPACING.sm} 0 ${MAP_SPACING.md}`,
@@ -76,7 +79,8 @@ const menuRowStyle: React.CSSProperties = {
   flexWrap: "nowrap",
   alignItems: "center",
   gap: MAP_SPACING.xs,
-  flex: "0 1 auto",
+  // Menu cluster claims free space first (high grow) to host the full menu set.
+  flex: "100 1 auto",
   minWidth: 0,
   minHeight: "100%",
   padding: `0 ${MAP_SPACING.xs} 0 ${MAP_SPACING.sm}`,
@@ -99,25 +103,24 @@ const clusterShellStyle: React.CSSProperties = {
 const leadingClusterStyle: React.CSSProperties = {
   ...clusterShellStyle,
   display: "inline-flex",
-  // Identity block anchors the row; chips ellipsize before the search shrinks.
-  flex: "1 1 18rem",
+  // Brand block never shrinks; search yields width first.
+  flex: "0 0 auto",
   gap: MAP_SPACING.sm,
   minWidth: 0,
-  overflow: "hidden",
 };
 
 const identityClusterStyle: React.CSSProperties = {
   display: "grid",
   gap: "0.125rem",
   minWidth: 0,
+  flexShrink: 0,
 };
 
 const brandRowStyle: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   gap: MAP_SPACING.xs,
-  minWidth: MAP_SPACING.zero,
-  overflow: "hidden",
+  flexShrink: 0,
 };
 
 const brandAccentStyle: React.CSSProperties = {
@@ -141,8 +144,6 @@ const brandKickerStyle: React.CSSProperties = {
   fontSize: "0.625rem",
   fontWeight: MAP_TYPOGRAPHY.fontWeight.bold,
   textTransform: "uppercase",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
   whiteSpace: "nowrap",
 };
 
@@ -155,8 +156,6 @@ const brandLineStyle: React.CSSProperties = {
   fontFamily: MAP_TYPOGRAPHY.fontFamilyBrand,
   fontSize: MAP_TYPOGRAPHY.fontSize.sm,
   fontWeight: MAP_TYPOGRAPHY.fontWeight.bold,
-  overflow: "hidden",
-  textOverflow: "ellipsis",
   whiteSpace: "nowrap",
 };
 
@@ -208,7 +207,9 @@ const mapToolRailStyle: React.CSSProperties = {
 const commandClusterStyle: React.CSSProperties = {
   ...clusterShellStyle,
   display: "inline-flex",
-  flex: "0 1 auto",
+  // Grow so the grouped GeoLibre menu bar gets the width it needs to render
+  // all eight menus with labels instead of the hamburger fallback.
+  flex: "1 1 auto",
   justifyContent: "flex-start",
   padding: `${MAP_SPACING.zero} ${MAP_SPACING.zero}`,
   minWidth: 0,

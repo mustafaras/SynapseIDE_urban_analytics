@@ -3878,21 +3878,9 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
         </div>
       ) : null}
 
-      <div style={mapStyles.sidePanelSummaryStrip} aria-label="Layer stack summary">
-        <div style={mapStyles.sidePanelMetric}>
-          <span style={mapStyles.sidePanelMetricLabel}>Visible</span>
-          <span style={mapStyles.sidePanelMetricValue}>{layerSummary.visible}/{layerSummary.total} visible</span>
-        </div>
-        <div style={mapStyles.sidePanelMetric}>
-          <span style={mapStyles.sidePanelMetricLabel}>Data</span>
-          <span style={mapStyles.sidePanelMetricValue}>{layerSummary.data}</span>
-        </div>
-        <div style={{ ...mapStyles.sidePanelMetric, borderRight: MAP_STROKES.none }}>
-          <span style={mapStyles.sidePanelMetricLabel}>Analysis</span>
-          <span style={mapStyles.sidePanelMetricValue}>{layerSummary.analysis}</span>
-        </div>
-      </div>
-
+      {/* The Visible/Data/Analysis strip duplicated the "Layers" section card
+          and the rail header counts; removed to declutter the composition
+          dock so the layer tree leads. */}
       <div style={layerSectionGrid} aria-label="Layer workspace sections" data-testid="map-layer-section-grid">
         {layerSectionCards.map((section, index) => (
           <section

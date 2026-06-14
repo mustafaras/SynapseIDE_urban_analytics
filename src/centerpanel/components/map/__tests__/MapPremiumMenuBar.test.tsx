@@ -68,7 +68,9 @@ describe("MapPremiumMenuBar", () => {
   });
 
   it("uses the hamburger fallback only for genuinely constrained command widths", () => {
-    renderMenuBar(499);
+    // Single-row command bar keeps menus visible down to ~420px; the hamburger
+    // fallback is reserved for genuinely tiny widths below that.
+    renderMenuBar(400);
 
     expect(document.querySelector('[data-testid="map-premium-menu-compact"]')?.textContent).toContain("Menu");
     expect(document.querySelector('[data-testid="map-premium-menu-project"]')).toBeNull();

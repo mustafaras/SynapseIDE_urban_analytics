@@ -47,10 +47,12 @@ const compactMenuContentStyle: React.CSSProperties = {
 };
 
 function getMenuLabel(menu: MapPremiumMenuModel, width: number, open: boolean): string {
-  if (width >= 1320) {
+  // Tuned for the single-row command bar: full GeoLibre labels from ~820px,
+  // short labels above ~480px (component used only by the topbar).
+  if (width >= 820) {
     return menu.label;
   }
-  if (width >= 560) {
+  if (width >= 480) {
     return menu.shortLabel;
   }
   return open ? menu.shortLabel : "";
@@ -64,9 +66,10 @@ function getMenuItemDescription(item: { description?: string; disabled?: boolean
 }
 
 function getVisibleMenuBudget(width: number): number {
-  if (width >= 1160) return 8;
-  if (width >= 1020) return 7;
-  if (width >= 720) return 6;
+  // Lowered so the full GeoLibre menu set stays visible on one row.
+  if (width >= 820) return 8;
+  if (width >= 700) return 7;
+  if (width >= 600) return 6;
   return 5;
 }
 
@@ -93,8 +96,8 @@ function renderMenuSections(menu: MapPremiumMenuModel): React.ReactNode {
 
 export function MapPremiumMenuBar({ menus, quickActions, width }: MapPremiumMenuBarProps): React.ReactElement {
   const [openMenuId, setOpenMenuId] = React.useState<string | null>(null);
-  const compactMode = width < 500;
-  const iconOnlyMode = width < 560;
+  const compactMode = width < 420;
+  const iconOnlyMode = width < 480;
   // Quick actions duplicate commands that stay reachable through the grouped
   // menus, so the rail stays intentionally small — panel toggles live in the
   // menus and at the panel edges, not as a button strip.
