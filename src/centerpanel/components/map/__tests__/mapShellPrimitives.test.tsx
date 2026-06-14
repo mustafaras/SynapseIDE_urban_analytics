@@ -231,10 +231,7 @@ describe("Prompt 26 activity rail taxonomy", () => {
       "overview",
       "data",
       "layers",
-      "analyze",
-      "style",
       "scene",
-      "publish",
     ]);
     expect(MAP_UTILITY_ACTIVITY_ORDER).toEqual([
       "qa",
