@@ -347,8 +347,11 @@ const layerNameButton: React.CSSProperties = {
   padding: 0,
   cursor: "pointer",
   minWidth: 0,
-  width: "100%",
+  // Shrinkable so the layer name truncates and leaves room for the trailing
+  // geometry badge in the single-line GIS tree row (no overlap).
+  flex: "1 1 auto",
   maxWidth: "100%",
+  overflow: "hidden",
   display: "block",
 };
 
@@ -3281,7 +3284,12 @@ const LayerRow: React.FC<LayerRowProps> = ({
             title="Show layer details"
             aria-label={`Show metadata for ${layer.name}`}
           >
-            <span style={layerName}>{layer.name}</span>
+            <span
+              style={density === "compact" ? { ...layerName, ...MAP_TEXT_STYLES.truncate } : layerName}
+              title={layer.name}
+            >
+              {layer.name}
+            </span>
           </button>
           <LayerBadge
             badge={{
@@ -3293,7 +3301,14 @@ const LayerRow: React.FC<LayerRowProps> = ({
           />
         </div>
 
-        <div style={layerModeRail} aria-label={`Layer mode and caveat badges for ${layer.name}`}>
+        <div
+          style={
+            density === "compact" && !detailsOpen
+              ? { ...layerModeRail, flexWrap: "nowrap", overflow: "hidden", maxHeight: "1.25rem" }
+              : layerModeRail
+          }
+          aria-label={`Layer mode and caveat badges for ${layer.name}`}
+        >
           <LayerBadge
             badge={{
               id: "source",
@@ -3372,7 +3387,7 @@ const LayerRow: React.FC<LayerRowProps> = ({
         </div>
 
         <div style={layerPrimarySummaryRow} aria-label={`Layer summary for ${layer.name}`}>
-          {alwaysVisibleSummary ? (
+          {alwaysVisibleSummary && (density !== "compact" || detailsOpen) ? (
             <span style={layerMetaText} title={detailSummary}>{alwaysVisibleSummary}</span>
           ) : null}
           <button
@@ -3456,7 +3471,7 @@ const LayerRow: React.FC<LayerRowProps> = ({
             </div>
         </div>
 
-        <div style={layerControlRow}>
+        <div style={density === "compact" && !detailsOpen ? { ...layerControlRow, display: "none" } : layerControlRow}>
           <span style={opacityValueLabel}>{Math.round(layer.opacity * 100)}%</span>
           <input
             type="range"

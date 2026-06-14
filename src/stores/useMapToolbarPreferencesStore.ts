@@ -16,12 +16,14 @@ type PersistedMapToolbarPreferencesState = Pick<MapToolbarPreferencesState, "den
 
 const MAP_TOOLBAR_PREFERENCES_VERSION = 1;
 const DEFAULT_MAP_TOOLBAR_PREFERENCES: PersistedMapToolbarPreferencesState = {
-  density: "comfortable",
+  // GIS-grade default: a compact, ArcGIS/QGIS-style dense layout out of the box.
+  density: "compact",
   taskLens: "analyst",
 };
 
 function normalizeDensity(input: unknown): MapToolbarDensityPreference {
-  return input === "compact" ? "compact" : "comfortable";
+  // Compact is the GIS-grade default; only an explicit "comfortable" opts out.
+  return input === "comfortable" ? "comfortable" : "compact";
 }
 
 function normalizeTaskLens(input: unknown): MapToolbarTaskLensPreference {

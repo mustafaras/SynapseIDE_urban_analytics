@@ -61,10 +61,10 @@ export interface MapDockLayout {
 }
 
 export const MAP_SCIENTIFIC_QA_PANEL_WIDTH = 384;
-export const MAP_LAYER_PANEL_MIN_WIDTH = 300;
-export const MAP_LAYER_PANEL_MAX_WIDTH = 760;
-export const MAP_RIGHT_PANEL_MIN_WIDTH = 320;
-export const MAP_RIGHT_PANEL_MAX_WIDTH = 560;
+export const MAP_LAYER_PANEL_MIN_WIDTH = 260;
+export const MAP_LAYER_PANEL_MAX_WIDTH = 520;
+export const MAP_RIGHT_PANEL_MIN_WIDTH = 260;
+export const MAP_RIGHT_PANEL_MAX_WIDTH = 520;
 export const MAP_RIGHT_PANEL_COLLAPSED_WIDTH = 48;
 
 function clampNumber(value: number | undefined, min: number, max: number, fallback: number): number {

@@ -39,11 +39,11 @@ afterEach(() => {
 });
 
 describe("useMapToolbarPreferencesStore", () => {
-  it("defaults to the analyst lens with comfortable density", async () => {
+  it("defaults to the analyst lens with compact density", async () => {
     const store = await freshToolbarPreferencesStore();
 
     expect(store.getState().taskLens).toBe("analyst");
-    expect(store.getState().density).toBe("comfortable");
+    expect(store.getState().density).toBe("compact");
   });
 
   it("persists only lightweight toolbar layout preferences", async () => {
@@ -76,7 +76,7 @@ describe("useMapToolbarPreferencesStore", () => {
 
     const store = await freshToolbarPreferencesStore({ clearStorage: false });
 
-    expect(store.getState().density).toBe("comfortable");
+    expect(store.getState().density).toBe("compact");
     expect(store.getState().taskLens).toBe("analyst");
     expect("overlayLayers" in store.getState()).toBe(false);
   });
@@ -93,7 +93,7 @@ describe("useMapToolbarPreferencesStore", () => {
 
     const store = await freshToolbarPreferencesStore({ clearStorage: false });
 
-    expect(store.getState().density).toBe("comfortable");
+    expect(store.getState().density).toBe("compact");
     expect(store.getState().taskLens).toBe("analyst");
   });
 });

@@ -648,27 +648,6 @@ export const MapWorkspaceShell: React.FC<MapWorkspaceShellProps> = ({
         data-map-shell-viewport-mode={shellViewportMode}
       >
         <style>{workspaceFocusCss}</style>
-        {/* TEMP Phase 2 proof marker — remove before Phase 3 finalization */}
-        <span
-          data-ui-proof="shell-proof-label"
-          style={{
-            position: "absolute",
-            top: 4,
-            left: "50%",
-            transform: "translateX(-50%)",
-            zIndex: 99999,
-            padding: "2px 8px",
-            fontSize: "10px",
-            fontWeight: 700,
-            letterSpacing: "0.08em",
-            color: "#0b0d12",
-            background: "#fbbf24",
-            borderRadius: 3,
-            pointerEvents: "none",
-          }}
-        >
-          UI SHELL PROOF
-        </span>
         {children}
       </div>
     </div>

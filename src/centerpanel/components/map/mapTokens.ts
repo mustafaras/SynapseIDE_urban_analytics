@@ -273,17 +273,25 @@ export const MAP_SHELL_DIMENSIONS = {
   activityRailWidth: "2.625rem",
   railButtonSize: "2.25rem",
   modalChromeHeight: "2.75rem",
-  commandCenterHeight: "4.875rem",
-  menuBarHeight: "4.875rem",
-  topCommandHeight: "4.875rem",
-  leftSidebarMinWidth: "18.75rem",
-  leftSidebarWidth: "clamp(19rem, 22vw, 24rem)",
-  leftSidebarMaxWidth: "47.5rem",
-  leftPanelWidth: "clamp(19rem, 22vw, 24rem)",
-  rightInspectorMinWidth: "20rem",
-  rightInspectorWidth: "clamp(20rem, 24vw, 26rem)",
-  rightInspectorMaxWidth: "35rem",
-  rightDockWidth: "clamp(20rem, 24vw, 26rem)",
+  // Deliberate, premium command-bar height — a clearly taller GIS application
+  // chrome than a thin browser toolbar, while staying visually filled by the
+  // single-row brand + search + menu composition. Drives --map-menu-h /
+  // --map-shell-command-height.
+  commandCenterHeight: "5.5rem",
+  menuBarHeight: "5.5rem",
+  topCommandHeight: "5.5rem",
+  // Left dock: compact GIS layer explorer width band (≈320–360px default,
+  // 260px min, 520px max) per the production GIS layout spec.
+  leftSidebarMinWidth: "16.25rem",
+  leftSidebarWidth: "clamp(20rem, 23vw, 22.5rem)",
+  leftSidebarMaxWidth: "32.5rem",
+  leftPanelWidth: "clamp(20rem, 23vw, 22.5rem)",
+  // Right inspector: contextual dock width band (≈360–420px default,
+  // 260px min, 520px max).
+  rightInspectorMinWidth: "16.25rem",
+  rightInspectorWidth: "clamp(22.5rem, 25vw, 26.25rem)",
+  rightInspectorMaxWidth: "32.5rem",
+  rightDockWidth: "clamp(22.5rem, 25vw, 26.25rem)",
   bottomPanelMinHeight: "13.75rem",
   bottomPanelHeight: "clamp(13.75rem, 30vh, 21.25rem)",
   bottomPanelMaxHeight: "21.25rem",
