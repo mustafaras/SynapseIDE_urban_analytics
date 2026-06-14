@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from "react";
+import { useMapDialogLayoutStore } from "../../../stores/useMapDialogLayoutStore";
 import {
   MAP_COLORS,
   MAP_RADIUS,
@@ -21,6 +22,8 @@ export interface DraggableMapPanelBindings {
 
 export interface DraggableMapPanelOptions {
   boundsPadding?: number;
+  /** When set, drag offset is remembered durably (Zustand persist). */
+  memoryKey?: string;
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -54,8 +57,21 @@ export function createOpaqueFloatingPanelStyle(
 }
 
 export function useDraggableMapPanel(options: DraggableMapPanelOptions = {}): DraggableMapPanelBindings {
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const { memoryKey } = options;
+  const persistedGeometry = useMapDialogLayoutStore((state) => (memoryKey ? state.geometry[memoryKey] ?? null : null));
+  const persistOffset = useMapDialogLayoutStore((state) => state.setOffset);
+  const resetGeometry = useMapDialogLayoutStore((state) => state.resetGeometry);
+  const [offset, setOffset] = useState(() =>
+    persistedGeometry ? { x: persistedGeometry.offsetX, y: persistedGeometry.offsetY } : { x: 0, y: 0 },
+  );
   const boundsPadding = options.boundsPadding ?? 12;
+
+  const commitOffset = useCallback(
+    (next: { x: number; y: number }) => {
+      if (memoryKey) persistOffset(memoryKey, next.x, next.y);
+    },
+    [memoryKey, persistOffset],
+  );
 
   const clampOffsetToViewport = useCallback((nextOffset: { x: number; y: number }, panelElement: HTMLElement | null) => {
     if (typeof window === "undefined" || !panelElement) {
@@ -108,13 +124,14 @@ export function useDraggableMapPanel(options: DraggableMapPanelOptions = {}): Dr
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointerup", handlePointerUp);
       window.removeEventListener("pointercancel", handlePointerUp);
+      setOffset((current) => { commitOffset(current); return current; });
     };
 
     window.addEventListener("pointermove", handlePointerMove);
     window.addEventListener("pointerup", handlePointerUp);
     window.addEventListener("pointercancel", handlePointerUp);
     event.preventDefault();
-  }, [clampOffsetToViewport, offset]);
+  }, [clampOffsetToViewport, commitOffset, offset]);
 
   return {
     panelPositionStyle: {
@@ -122,10 +139,16 @@ export function useDraggableMapPanel(options: DraggableMapPanelOptions = {}): Dr
       top: `calc(50% + ${offset.y}px)`,
       transform: "translate(-50%, -50%)",
     },
-    resetPosition: () => setOffset({ x: 0, y: 0 }),
+    resetPosition: () => {
+      setOffset({ x: 0, y: 0 });
+      if (memoryKey) resetGeometry(memoryKey);
+    },
     dragHandleProps: {
       onPointerDown: handlePointerDown,
-      onDoubleClick: () => setOffset({ x: 0, y: 0 }),
+      onDoubleClick: () => {
+        setOffset({ x: 0, y: 0 });
+        if (memoryKey) resetGeometry(memoryKey);
+      },
       title: "Drag panel. Double-click to center.",
     },
     dragHandleStyle: {
