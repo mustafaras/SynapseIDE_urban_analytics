@@ -19,6 +19,7 @@ export type MapStatusBarCollaborationState = "connected" | "local-only" | "offli
 type MapStatusBarSegmentId =
   | "cursor"
   | "view"
+  | "camera"
   | "project"
   | "mode"
   | "layers"
@@ -37,6 +38,8 @@ type MapStatusBarSegmentId =
 export interface MapStatusBarProps {
   cursor: { lng: number; lat: number } | null;
   zoom: number;
+  bearing?: number;
+  pitch?: number;
   projectId?: string | null;
   workspaceLabel?: string | null;
   taskLensLabel?: string | null;
@@ -612,6 +615,8 @@ function renderSegmentBody(
 export const MapStatusBar: React.FC<MapStatusBarProps> = ({
   cursor,
   zoom,
+  bearing = 0,
+  pitch = 0,
   projectId = null,
   workspaceLabel = null,
   taskLensLabel = null,
@@ -705,6 +710,9 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
 
   const segments = useMemo<StatusSegment[]>(() => {
     const nextSegments: StatusSegment[] = [];
+    const cameraCompass = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"][
+      Math.round((((bearing % 360) + 360) % 360) / 45) % 8
+    ] ?? "N";
 
     if (cursor != null) {
       nextSegments.push({
@@ -731,6 +739,16 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
         priority: 96,
         onClick: onOpenInspect,
         ariaLabel: "Open zoom and scale detail",
+      },
+      {
+        id: "camera",
+        group: "view",
+        label: "Cam",
+        value: `${cameraCompass} ${Math.round(((bearing % 360) + 360) % 360)}° · ${Math.round(pitch)}°↑`,
+        title: `Camera bearing ${Math.round(((bearing % 360) + 360) % 360)}° (${cameraCompass}), pitch ${Math.round(pitch)}°`,
+        widthPx: 132,
+        priority: 60,
+        ariaLabel: "Map camera bearing and pitch",
       },
       {
         id: "project",
@@ -901,6 +919,8 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
 
     return nextSegments;
   }, [
+    bearing,
+    pitch,
     activeCanvasToolLabel,
     activeTaskCount,
     autoSaveEnabled,
