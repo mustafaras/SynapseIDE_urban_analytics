@@ -45,9 +45,9 @@ export interface MapTopCommandSurfaceProps {
 const shellStyle: React.CSSProperties = {
   display: "flex",
   flexWrap: "nowrap",
-  alignItems: "center",
-  gap: MAP_SPACING.xs,
-  minHeight: "var(--map-menu-h, 3.25rem)",
+  alignItems: "stretch",
+  gap: MAP_SPACING.zero,
+  minHeight: "var(--map-menu-h, 4.875rem)",
   paddingLeft: "var(--map-activity-rail-width, 2.625rem)",
   paddingRight: MAP_SPACING.sm,
   background: "var(--syn-surface-header, #141b24)",
@@ -70,7 +70,7 @@ const identityRowStyle: React.CSSProperties = {
   flex: "1 1 30rem",
   minWidth: 0,
   minHeight: "100%",
-  padding: `0 ${MAP_SPACING.sm} 0 ${MAP_SPACING.md}`,
+  padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm} ${MAP_SPACING.xs} ${MAP_SPACING.md}`,
   overflow: "hidden",
 };
 
@@ -83,7 +83,7 @@ const menuRowStyle: React.CSSProperties = {
   flex: "100 1 auto",
   minWidth: 0,
   minHeight: "100%",
-  padding: `0 ${MAP_SPACING.xs} 0 ${MAP_SPACING.sm}`,
+  padding: `${MAP_SPACING.xs} ${MAP_SPACING.xs} ${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
   borderLeft: "1px solid color-mix(in srgb, var(--syn-border-subtle, rgba(148, 163, 184, 0.16)) 42%, transparent)",
   overflow: "hidden",
 };
@@ -92,7 +92,7 @@ const clusterShellStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   minWidth: MAP_SPACING.zero,
-  minHeight: "2.25rem",
+  minHeight: "2.5rem",
   padding: `0 ${MAP_SPACING.xs}`,
   borderRadius: 0,
   border: "1px solid transparent",
@@ -111,7 +111,7 @@ const leadingClusterStyle: React.CSSProperties = {
 
 const identityClusterStyle: React.CSSProperties = {
   display: "grid",
-  gap: "0.125rem",
+  gap: "0.1875rem",
   minWidth: 0,
   flexShrink: 0,
 };
@@ -172,16 +172,16 @@ const searchClusterStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   justifyContent: "flex-end",
-  flex: "1 1 22rem",
+  flex: "1 1 26rem",
   gap: MAP_SPACING.sm,
   minWidth: 0,
   overflow: "hidden",
 };
 
 const searchSlotStyle: React.CSSProperties = {
-  flex: "1 1 14rem",
+  flex: "1 1 16rem",
   minWidth: 0,
-  maxWidth: "24rem",
+  maxWidth: "28rem",
 };
 
 const contextRailStyle: React.CSSProperties = {
@@ -239,6 +239,8 @@ const trailingClusterStyle: React.CSSProperties = {
   position: "relative",
   zIndex: 1,
   paddingLeft: MAP_SPACING.xs,
+  paddingTop: MAP_SPACING.xs,
+  paddingBottom: MAP_SPACING.xs,
 };
 
 const utilityClusterStyle: React.CSSProperties = {

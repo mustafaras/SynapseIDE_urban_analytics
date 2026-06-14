@@ -278,6 +278,7 @@ describe("BuildingViewer", () => {
     await waitFor(() => {
       expect(container.querySelector('[data-testid="voxcity-sync-status"]')?.textContent).toContain("3D link off");
       expect(useFlowStore.getState().completedRuns).toHaveLength(1);
+      expect(orbitListeners.size).toBeGreaterThan(0);
     });
 
     await act(async () => {
@@ -295,6 +296,10 @@ describe("BuildingViewer", () => {
     await waitFor(() => {
       expect(orbitTargetSet).toHaveBeenLastCalledWith(29.025, expect.any(Number), 41.02);
       expect(useViewportSyncStore.getState().statusLabel).toBe("Synced with 3D");
+    });
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
     });
 
     await act(async () => {

@@ -273,9 +273,9 @@ export const MAP_SHELL_DIMENSIONS = {
   activityRailWidth: "2.625rem",
   railButtonSize: "2.25rem",
   modalChromeHeight: "2.75rem",
-  commandCenterHeight: "3.25rem",
-  menuBarHeight: "3.25rem",
-  topCommandHeight: "3.25rem",
+  commandCenterHeight: "4.875rem",
+  menuBarHeight: "4.875rem",
+  topCommandHeight: "4.875rem",
   leftSidebarMinWidth: "18.75rem",
   leftSidebarWidth: "clamp(19rem, 22vw, 24rem)",
   leftSidebarMaxWidth: "47.5rem",
@@ -330,6 +330,8 @@ export const MAP_LAYOUT_TOKENS = {
      same footprint so stacked workflows feel like one coherent surface. */
   dialogWidth: "min(1040px, calc(100vw - 4rem))",
   dialogHeight: "min(680px, calc(100vh - 10rem))",
+  dialogMinWidth: "min(24rem, calc(100vw - 2rem))",
+  dialogMinHeight: "min(18rem, calc(100vh - 2rem))",
 } as const;
 
 export function createMapShellCssVars(): React.CSSProperties {
@@ -346,7 +348,7 @@ export function createMapShellCssVars(): React.CSSProperties {
     "--map-left-min": MAP_LAYOUT_TOKENS.leftPanelMinWidth,
     "--map-left-w": MAP_LAYOUT_TOKENS.leftPanelWidth,
     "--map-right-min": MAP_LAYOUT_TOKENS.rightPanelMinWidth,
-    "--map-right-w": MAP_LAYOUT_TOKENS.rightPanelWidth,
+    "--map-right-w": MAP_LAYOUT_TOKENS.rightDockWidth,
     "--map-overlay-safe-inset-x": MAP_LAYOUT_TOKENS.overlaySafeInsetX,
     "--map-overlay-safe-inset-y": MAP_LAYOUT_TOKENS.overlaySafeInsetY,
     "--map-overlay-safe-bottom": MAP_LAYOUT_TOKENS.overlaySafeBottom,
@@ -361,6 +363,8 @@ export function createMapShellCssVars(): React.CSSProperties {
     "--map-dialog-max-height": MAP_LAYOUT_TOKENS.dialogMaxHeight,
     "--map-dialog-w": MAP_LAYOUT_TOKENS.dialogWidth,
     "--map-dialog-h": MAP_LAYOUT_TOKENS.dialogHeight,
+    "--map-dialog-min-w": MAP_LAYOUT_TOKENS.dialogMinWidth,
+    "--map-dialog-min-h": MAP_LAYOUT_TOKENS.dialogMinHeight,
   } as React.CSSProperties;
 }
 

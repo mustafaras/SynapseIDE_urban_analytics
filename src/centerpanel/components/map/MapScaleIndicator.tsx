@@ -14,6 +14,7 @@ import { useMapExplorerStore } from "../../../stores/useMapExplorerStore";
 import {
   MAP_COLORS,
   MAP_RADIUS,
+  MAP_SPACING,
   MAP_TYPOGRAPHY,
   MAP_Z_INDEX,
 } from "./mapTokens";
@@ -86,7 +87,7 @@ export interface MapScaleIndicatorProps {
 
 const wrapperStyle: React.CSSProperties = {
   position: "absolute",
-  bottom: "calc(var(--map-status-h, 1.75rem) + 0.5rem)",
+  bottom: "calc(var(--map-status-h, 1.75rem) + var(--map-overlay-safe-inset-x, 0.75rem))",
   left: "calc((var(--map-dock-left, 0px) + 100% - var(--map-dock-right, 0px)) / 2)",
   transform: "translateX(-50%)",
   zIndex: MAP_Z_INDEX.mapFurniture,
@@ -94,7 +95,9 @@ const wrapperStyle: React.CSSProperties = {
   userSelect: "none",
   display: "flex",
   alignItems: "flex-end",
-  gap: 8,
+  justifyContent: "center",
+  flexWrap: "wrap",
+  gap: MAP_SPACING.xs,
   padding: "5px 9px",
   borderRadius: MAP_RADIUS.sm,
   border: "1px solid color-mix(in srgb, var(--syn-border-subtle, rgba(148,163,184,0.34)) 100%, transparent)",
@@ -103,6 +106,7 @@ const wrapperStyle: React.CSSProperties = {
   WebkitBackdropFilter: "blur(8px)",
   fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
   boxShadow: "0 2px 10px rgba(0,0,0,0.22)",
+  maxWidth: "min(28rem, calc(100% - var(--map-dock-left, 0px) - var(--map-dock-right, 0px) - 2rem))",
 };
 
 const barColumnStyle: React.CSSProperties = {
@@ -120,8 +124,14 @@ const ratioChipStyle: React.CSSProperties = {
   color: MAP_COLORS.textSecondary,
   fontSize: 10,
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
-  letterSpacing: "0.02em",
+  letterSpacing: 0,
   whiteSpace: "nowrap",
+};
+
+const contextChipStyle: React.CSSProperties = {
+  ...ratioChipStyle,
+  color: MAP_COLORS.textMuted,
+  background: "transparent",
 };
 
 function ScaleBarRow({
@@ -185,6 +195,7 @@ export function MapScaleIndicator({
       metric: { ...metric, label: formatMetric(metric.value) },
       imperial: { ...imperial, label: formatImperial(imperial.value) },
       ratio: formatRatio(denominator),
+      context: `z${zoom.toFixed(1)} · lat ${latitude.toFixed(2)}°`,
     };
   }, [latitude, zoom]);
 
@@ -198,13 +209,14 @@ export function MapScaleIndicator({
     <div
       style={wrapperStyle}
       role="img"
-      aria-label={`Map scale ${primary.label}, representative fraction ${model.ratio}`}
+      aria-label={`Map scale ${primary.label}, representative fraction ${model.ratio}, zoom ${zoom.toFixed(1)}, latitude ${latitude.toFixed(2)} degrees`}
       data-map-furniture="scale"
       data-map-safe-inset-consumer="scale-indicator"
     >
       <ScaleBarRow widthPx={primary.widthPx} label={primary.label} accent />
       <ScaleBarRow widthPx={secondary.widthPx} label={secondary.label} accent={false} />
       <span style={ratioChipStyle}>{model.ratio}</span>
+      <span style={contextChipStyle}>{model.context}</span>
     </div>
   );
 }

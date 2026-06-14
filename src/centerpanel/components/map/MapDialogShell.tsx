@@ -39,7 +39,7 @@ const overlayBaseStyle: React.CSSProperties = {
   zIndex: MAP_Z_INDEX.dialog,
   display: "grid",
   placeItems: "center",
-  padding: MAP_SPACING.lg,
+  padding: "clamp(0.75rem, 2vw, 1.5rem)",
   background: "rgba(0,0,0,0.56)",
 };
 
@@ -47,18 +47,19 @@ const panelBaseStyle: React.CSSProperties = {
   position: "absolute",
   display: "flex",
   flexDirection: "column",
-  minWidth: "min(22rem, calc(100% - 2rem))",
-  minHeight: "14rem",
+  minWidth: "var(--map-dialog-min-w, min(24rem, calc(100% - 2rem)))",
+  minHeight: "var(--map-dialog-min-h, min(18rem, calc(100% - 2rem)))",
   maxWidth: "calc(100% - 2rem)",
   maxHeight: "var(--map-dialog-max-height, calc(100% - 2rem))",
   overflow: "hidden",
   resize: "both",
-  borderRadius: MAP_RADIUS.md,
+  borderRadius: MAP_RADIUS.sm,
   border: MAP_STROKES.hairlineStrong,
   background: MAP_COLORS.bgPanel,
   color: MAP_COLORS.text,
   boxShadow: MAP_SHADOWS.dropdown,
   fontFamily: MAP_TYPOGRAPHY.fontFamily,
+  outline: "none",
 };
 
 const headerStyle: React.CSSProperties = {
@@ -99,8 +100,10 @@ const actionsStyle: React.CSSProperties = {
 };
 
 const bodyBaseStyle: React.CSSProperties = {
+  flex: "1 1 auto",
   minHeight: 0,
   overflow: "auto",
+  overscrollBehavior: "contain",
 };
 
 const focusableSelector = [
@@ -121,11 +124,17 @@ function getFocusableElements(container: HTMLElement | null): HTMLElement[] {
   });
 }
 
+function clampRememberedDimension(value: number, axis: "width" | "height"): number {
+  if (typeof window === "undefined") return value;
+  const viewport = axis === "width" ? window.innerWidth : window.innerHeight;
+  return Math.max(0, Math.min(value, viewport - 32));
+}
+
 export function MapDialogShell({
   ariaLabel,
   title,
   subtitle,
-  width = "min(42rem, calc(100% - 2rem))",
+  width = "var(--map-dialog-w, min(42rem, calc(100% - 2rem)))",
   maxWidth = "calc(100% - 2rem)",
   maxHeight = "var(--map-dialog-max-height, calc(100% - 2rem))",
   panelStyle,
@@ -138,14 +147,17 @@ export function MapDialogShell({
   children,
 }: MapDialogShellProps): React.ReactElement {
   const { panelPositionStyle, resetPosition, dragHandleProps, dragHandleStyle } = useDraggableMapPanel(
-    memoryKey ? { memoryKey } : {},
+    memoryKey ? { memoryKey, boundsPadding: 16 } : { boundsPadding: 16 },
   );
   const panelRef = useRef<HTMLDivElement | null>(null);
   const [maximized, setMaximized] = useState(false);
   const persistedSize = useMapDialogLayoutStore((state) => (memoryKey ? state.geometry[memoryKey] ?? null : null));
   const persistSize = useMapDialogLayoutStore((state) => state.setSize);
   const rememberedSize = persistedSize && persistedSize.width != null && persistedSize.height != null
-    ? { width: persistedSize.width, height: persistedSize.height }
+    ? {
+        width: clampRememberedDimension(persistedSize.width, "width"),
+        height: clampRememberedDimension(persistedSize.height, "height"),
+      }
     : null;
 
   // Persist user resize (native CSS resize) so size survives reopen/reload.
@@ -165,6 +177,21 @@ export function MapDialogShell({
     observer.observe(panel);
     return () => { window.cancelAnimationFrame(frame); observer.disconnect(); };
   }, [memoryKey, maximized, persistSize]);
+
+  useEffect(() => {
+    if (maximized || typeof window === "undefined") return;
+    const panel = panelRef.current;
+    if (!panel) return;
+    const rect = panel.getBoundingClientRect();
+    const outsideViewport =
+      rect.left < 8 ||
+      rect.top < 8 ||
+      rect.right > window.innerWidth - 8 ||
+      rect.bottom > window.innerHeight - 8;
+    if (outsideViewport) {
+      resetPosition();
+    }
+  }, [maximized, rememberedSize?.height, rememberedSize?.width, resetPosition]);
 
   useEffect(() => {
     const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -254,6 +281,8 @@ export function MapDialogShell({
         aria-label={ariaLabel}
         tabIndex={-1}
         data-draggable-map-panel="true"
+        data-map-dialog-shell="true"
+        data-map-dialog-state={maximized ? "maximized" : "floating"}
         onKeyDown={handleDialogKeyDown}
         style={{
           ...panelBaseStyle,

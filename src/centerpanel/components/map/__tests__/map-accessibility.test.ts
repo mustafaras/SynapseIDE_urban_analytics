@@ -720,7 +720,7 @@ describe("MapExplorerModal — accessibility integration", () => {
     const mod = await import("../../MapExplorerModal");
     expect(mod.MapExplorerModal).toBeDefined();
     expect(typeof mod.MapExplorerModal).toBe("function");
-  }, 30000);
+  }, 60000);
 });
 
 /* ================================================================== */

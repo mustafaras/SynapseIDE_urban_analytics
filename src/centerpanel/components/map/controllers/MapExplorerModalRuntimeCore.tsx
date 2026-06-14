@@ -16,7 +16,6 @@ import { MapSwipeCompareOverlay } from '../MapSwipeCompareOverlay';
 import { MapCanvasControls } from '../MapCanvasControls';
 import { MapTopCommandSurface } from '../MapTopCommandSurface';
 import { MapToolbar } from '../MapToolbar';
-import { ToolbarButton } from '../ContextToolbar';
 import { GisEmptyState, GisIconButton, GisStatusChip } from '../ui';
 import { SAMPLE_BUILDINGS } from '@/features/urbanAnalytics/voxcity';
 import type { SymbolMode } from '../../MapSymbolLayer';
@@ -5697,10 +5696,6 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
         utilitySlot={<MapBookmarkBar variant="menu" bookmarks={bookmarks} maxBookmarks={MAP_BOOKMARK_LIMIT} onSaveBookmark={handleSaveBookmark} onRestoreBookmark={handleRestoreBookmark} onRenameBookmark={handleRenameBookmark} onDeleteBookmark={handleDeleteBookmark} onShareBookmark={handleShareBookmark} />}
         contextBarSlot={
           <>
-            {/* Layer context group */}
-            <ToolbarButton label="Layers" title={effectiveShowLayerPanel ? 'Hide layers workspace' : 'Show layers workspace'} active={effectiveShowLayerPanel} onClick={handleToggleLayerPanel} />
-            <ToolbarButton label="Contents" title={layersContentsTabActive ? 'Hide contents tree' : 'Show contents tree'} active={layersContentsTabActive} onClick={handleToggleContents} />
-            <ToolbarButton label="Catalog" title={dataCatalogTabActive ? 'Hide data catalog' : 'Show data catalog'} active={dataCatalogTabActive} onClick={handleToggleCatalog} />
             <span style={contextToolbarCountStyle} aria-label={`${overlayLayers.length.toLocaleString()} layers`}>
               {overlayLayers.length.toLocaleString()} layers
             </span>

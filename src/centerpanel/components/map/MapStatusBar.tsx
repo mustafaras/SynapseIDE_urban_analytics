@@ -19,6 +19,7 @@ export type MapStatusBarCollaborationState = "connected" | "local-only" | "offli
 type MapStatusBarSegmentId =
   | "cursor"
   | "view"
+  | "scale"
   | "camera"
   | "project"
   | "mode"
@@ -687,7 +688,8 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
   ]
     .filter((entry): entry is string => Boolean(entry))
     .join(" · ");
-  const viewLabel = `z${zoom.toFixed(1)} · ${formatApproximateScaleLabel(zoom)}`;
+  const scaleLabel = formatApproximateScaleLabel(zoom);
+  const viewLabel = `z${zoom.toFixed(1)}`;
   const sketchValue = formatSketchValue(hasActiveAoi, drawnFeatureCount, pinCount);
   const measureValue = formatMeasureValue(measurementCount);
   const qaLabel = formatQaLabel(qaStatus, qaIssueCount, qaBlockerCount);
@@ -734,11 +736,23 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
         group: "view",
         label: "View",
         value: viewLabel,
-        title: `Zoom ${zoom.toFixed(1)} with approximate scale ${formatApproximateScaleLabel(zoom)}`,
+        title: `Zoom ${zoom.toFixed(1)} with approximate scale ${scaleLabel}`,
         widthPx: 148,
         priority: 96,
         onClick: onOpenInspect,
         ariaLabel: "Open zoom and scale detail",
+      },
+      {
+        id: "scale",
+        group: "view",
+        label: "Scale",
+        value: scaleLabel,
+        title: `Approximate representative fraction ${scaleLabel} at zoom ${zoom.toFixed(1)}`,
+        widthPx: 112,
+        priority: 95,
+        tone: "info",
+        onClick: onOpenInspect,
+        ariaLabel: "Open map scale detail",
       },
       {
         id: "camera",
@@ -968,6 +982,7 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
     reviewEventCount,
     saveLabel,
     saveValueTone,
+    scaleLabel,
     selectedFeatureCount,
     sketchValue,
     syncStatus,

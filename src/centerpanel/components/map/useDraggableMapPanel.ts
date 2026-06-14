@@ -133,22 +133,21 @@ export function useDraggableMapPanel(options: DraggableMapPanelOptions = {}): Dr
     event.preventDefault();
   }, [clampOffsetToViewport, commitOffset, offset]);
 
+  const resetPosition = useCallback(() => {
+    setOffset({ x: 0, y: 0 });
+    if (memoryKey) resetGeometry(memoryKey);
+  }, [memoryKey, resetGeometry]);
+
   return {
     panelPositionStyle: {
       left: `calc(50% + ${offset.x}px)`,
       top: `calc(50% + ${offset.y}px)`,
       transform: "translate(-50%, -50%)",
     },
-    resetPosition: () => {
-      setOffset({ x: 0, y: 0 });
-      if (memoryKey) resetGeometry(memoryKey);
-    },
+    resetPosition,
     dragHandleProps: {
       onPointerDown: handlePointerDown,
-      onDoubleClick: () => {
-        setOffset({ x: 0, y: 0 });
-        if (memoryKey) resetGeometry(memoryKey);
-      },
+      onDoubleClick: resetPosition,
       title: "Drag panel. Double-click to center.",
     },
     dragHandleStyle: {

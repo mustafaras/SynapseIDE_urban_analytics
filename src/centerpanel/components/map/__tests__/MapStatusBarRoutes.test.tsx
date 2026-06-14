@@ -203,4 +203,28 @@ describe("MapStatusBar status routes", () => {
     expect(qaVisible).toBeTruthy();
     expect(crsVisible).toBeTruthy();
   });
+
+  it("renders scale as a dedicated GIS status segment", () => {
+    const callbacks: StatusCallbacks = {
+      onOpenInspect: vi.fn(),
+      onOpenProject: vi.fn(),
+      onOpenLayers: vi.fn(),
+      onOpenCrsReadiness: vi.fn(),
+      onOpenProblems: vi.fn(),
+      onOpenAttributes: vi.fn(),
+      onOpenSelection: vi.fn(),
+      onOpenDraw: vi.fn(),
+      onOpenMeasurements: vi.fn(),
+      onOpenTimeline: vi.fn(),
+      onOpenTasks: vi.fn(),
+      onOpenCollaboration: vi.fn(),
+      onOpenDiagnostics: vi.fn(),
+    };
+
+    renderStatusBar(callbacks);
+
+    const scaleSegment = host!.querySelector('[data-map-status-segment="scale"]');
+    expect(scaleSegment?.textContent).toContain("Scale");
+    expect(scaleSegment?.textContent).toContain("1:");
+  });
 });

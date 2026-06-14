@@ -21,10 +21,12 @@ import {
   MAP_COLORS,
   MAP_RADIUS,
   MAP_SHADOWS,
+  MAP_SHELL_DIMENSIONS,
   MAP_SPACING,
   MAP_TRANSITIONS,
   MAP_TYPOGRAPHY,
   MAP_Z_INDEX,
+  createMapShellCssVars,
   mapStyles,
 } from "../mapTokens";
 import { DESIGN_TOKENS } from "@/constants/design";
@@ -160,6 +162,18 @@ describe("mapTokens — shadows", () => {
 describe("mapTokens — transitions", () => {
   it("fast uses DESIGN_TOKENS.transitions.sm", () => {
     expect(MAP_TRANSITIONS.fast).toBe(DESIGN_TOKENS.transitions.sm);
+  });
+});
+
+describe("mapTokens — shell geometry", () => {
+  it("keeps the premium top command surface 50 percent taller than the old compact row", () => {
+    expect(MAP_SHELL_DIMENSIONS.topCommandHeight).toBe("4.875rem");
+    expect(MAP_SHELL_DIMENSIONS.menuBarHeight).toBe(MAP_SHELL_DIMENSIONS.topCommandHeight);
+  });
+
+  it("publishes the right dock CSS variable from the right dock width token", () => {
+    const vars = createMapShellCssVars() as Record<string, string>;
+    expect(vars["--map-right-w"]).toBe(MAP_SHELL_DIMENSIONS.rightDockWidth);
   });
 });
 
