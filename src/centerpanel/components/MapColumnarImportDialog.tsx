@@ -3,11 +3,11 @@ import type { ColumnarImportSession } from "../../services/map/MapDataImporter";
 import {
   MAP_COLORS,
   MAP_RADIUS,
-  MAP_SHADOWS,
   MAP_SPACING,
   MAP_STROKES,
   MAP_TYPOGRAPHY,
 } from "./map/mapTokens";
+import { MapDialogShell } from "./map/MapDialogShell";
 
 export interface MapColumnarImportDialogProps {
   open: boolean;
@@ -15,40 +15,6 @@ export interface MapColumnarImportDialogProps {
   onClose: () => void;
   onImport: () => void;
 }
-
-const overlayStyle: React.CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  background: "rgba(0,0,0,0.58)",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  zIndex: 42,
-  padding: 24,
-};
-
-const dialogStyle: React.CSSProperties = {
-  width: 980,
-  maxWidth: "calc(100% - 2rem)",
-  maxHeight: "var(--map-popover-max-height, calc(100% - 2rem))",
-  overflow: "hidden",
-  display: "grid",
-  gridTemplateRows: "auto auto minmax(0, 1fr) auto",
-  background: MAP_COLORS.bgPanel,
-  border: MAP_STROKES.hairlineStrong,
-  borderRadius: MAP_RADIUS.sm,
-  boxShadow: MAP_SHADOWS.panel,
-  color: MAP_COLORS.text,
-  fontFamily: MAP_TYPOGRAPHY.fontFamily,
-};
-
-const headerStyle: React.CSSProperties = {
-  display: "grid",
-  gap: 8,
-  padding: MAP_SPACING.md,
-  borderBottom: MAP_STROKES.hairlineSubtle,
-  background: MAP_COLORS.bgPanel,
-};
 
 const badgeStyle: React.CSSProperties = {
   display: "inline-flex",
@@ -109,15 +75,6 @@ const tableShellStyle: React.CSSProperties = {
   borderRadius: MAP_RADIUS.sm,
   overflow: "hidden",
   background: MAP_COLORS.bg,
-};
-
-const footerStyle: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "flex-end",
-  gap: 12,
-  padding: MAP_SPACING.md,
-  borderTop: MAP_STROKES.hairlineSubtle,
 };
 
 const footerCaveatsStyle: React.CSSProperties = {
@@ -253,47 +210,49 @@ export const MapColumnarImportDialog: React.FC<MapColumnarImportDialogProps> = (
   const commitCaveats = Array.from(new Set([...sourceProfile.caveats, ...session.warnings])).slice(0, 6);
 
   return (
-    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- overlay click dismiss
-    <div
-      style={overlayStyle}
-      onClick={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
-      <div style={dialogStyle} role="dialog" aria-modal="true" aria-label={`${formatLabelText} schema preview`}>
-        <div style={headerStyle}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            <span style={badgeStyle}>{formatLabelText}</span>
-            {session.geoParquet?.version ? <span style={{ ...badgeStyle, opacity: 0.8 }}>Geo {session.geoParquet.version}</span> : null}
-            <span style={{ ...badgeStyle, borderColor: qualityColor(session.quality.grade), color: qualityColor(session.quality.grade), background: qualityBackground(session.quality.grade) }}>
-              Quality {session.quality.score}/100 — {session.quality.grade}
+    <MapDialogShell
+      ariaLabel={`${formatLabelText} schema preview`}
+      title={`Review ${formatLabelText} Import`}
+      subtitle={`${session.fileName} has been profiled for commit. Inspect the column schema, geometry encoding, preview rows, and the projected memory footprint before publishing the dataset into the map workspace.`}
+      memoryKey="map.columnar-import"
+      width={980}
+      headerActions={
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <span style={badgeStyle}>{formatLabelText}</span>
+          {session.geoParquet?.version ? <span style={{ ...badgeStyle, opacity: 0.8 }}>Geo {session.geoParquet.version}</span> : null}
+          <span style={{ ...badgeStyle, borderColor: qualityColor(session.quality.grade), color: qualityColor(session.quality.grade), background: qualityBackground(session.quality.grade) }}>
+            Quality {session.quality.score}/100 — {session.quality.grade}
+          </span>
+          {session.sizeComparison.savingsPercent > 0 ? (
+            <span style={{ ...badgeStyle, borderColor: MAP_COLORS.success, color: MAP_COLORS.success, background: "color-mix(in srgb, var(--syn-status-valid, #4ec27d) 10%, transparent)" }}>
+              {session.sizeComparison.savingsPercent}% smaller than GeoJSON
             </span>
-            {session.sizeComparison.savingsPercent > 0 ? (
-              <span style={{ ...badgeStyle, borderColor: MAP_COLORS.success, color: MAP_COLORS.success, background: "color-mix(in srgb, var(--syn-status-valid, #4ec27d) 10%, transparent)" }}>
-                {session.sizeComparison.savingsPercent}% smaller than GeoJSON
-              </span>
-            ) : null}
-          </div>
-
-          <div>
-            <div
-              style={{
-                color: MAP_COLORS.text,
-                fontFamily: MAP_TYPOGRAPHY.fontFamilyBrand,
-                fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
-                fontSize: 15,
-                marginBottom: 6,
-              }}
-            >
-              Review {formatLabelText} Import
-            </div>
-            <div style={{ color: MAP_COLORS.textSecondary, fontSize: 12, lineHeight: 1.55, maxWidth: 860 }}>
-              {session.fileName} has been profiled for commit. Inspect the column schema, geometry encoding,
-              preview rows, and the projected memory footprint before publishing the dataset into the map workspace.
-            </div>
-          </div>
+          ) : null}
         </div>
-
+      }
+      footerStyle={{ justifyContent: "space-between", alignItems: "flex-start" }}
+      footer={
+        <>
+          <div style={footerCaveatsStyle} aria-label={`${formatLabelText} commit caveats`}>
+            <div style={{ color: MAP_COLORS.caveatText, fontSize: 10, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold, textTransform: "uppercase" }}>
+              Commit caveats
+            </div>
+            {commitCaveats.length > 0 ? commitCaveats.map((caveat) => (
+              <div key={caveat} style={{ color: MAP_COLORS.textSecondary, fontSize: 11, lineHeight: 1.45 }}>{caveat}</div>
+            )) : (
+              <div style={{ color: MAP_COLORS.textSecondary, fontSize: 11, lineHeight: 1.45 }}>
+                Import publishes a standard map layer and a worker-ready Arrow IPC transfer.
+              </div>
+            )}
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button type="button" style={buttonStyle} onClick={onClose}>Cancel</button>
+            <button type="button" style={primaryButtonStyle} onClick={onImport}>Import Dataset</button>
+          </div>
+        </>
+      }
+      onClose={onClose}
+    >
         <div style={summaryGridStyle}>
           <div style={summaryCellStyle}>
             <span style={{ color: MAP_COLORS.textMuted, fontSize: 10, textTransform: "uppercase", letterSpacing: 0 }}>Rows</span>
@@ -520,26 +479,7 @@ export const MapColumnarImportDialog: React.FC<MapColumnarImportDialogProps> = (
           </div>
         </div>
 
-        <div style={footerStyle}>
-          <div style={footerCaveatsStyle} aria-label={`${formatLabelText} commit caveats`}>
-            <div style={{ color: MAP_COLORS.caveatText, fontSize: 10, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold, textTransform: "uppercase" }}>
-              Commit caveats
-            </div>
-            {commitCaveats.length > 0 ? commitCaveats.map((caveat) => (
-              <div key={caveat} style={{ color: MAP_COLORS.textSecondary, fontSize: 11, lineHeight: 1.45 }}>{caveat}</div>
-            )) : (
-              <div style={{ color: MAP_COLORS.textSecondary, fontSize: 11, lineHeight: 1.45 }}>
-                Import publishes a standard map layer and a worker-ready Arrow IPC transfer.
-              </div>
-            )}
-          </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <button type="button" style={buttonStyle} onClick={onClose}>Cancel</button>
-            <button type="button" style={primaryButtonStyle} onClick={onImport}>Import Dataset</button>
-          </div>
-        </div>
-      </div>
-    </div>
+    </MapDialogShell>
   );
 };
 

@@ -26,6 +26,9 @@ export interface MapDialogShellProps {
   bodyStyle?: React.CSSProperties;
   overlayStyle?: React.CSSProperties;
   headerActions?: React.ReactNode;
+  /** Pinned footer (e.g. primary/secondary actions) below the scrolling body. */
+  footer?: React.ReactNode;
+  footerStyle?: React.CSSProperties;
   maximizable?: boolean;
   /** When set, drag position + resized size persist durably across sessions. */
   memoryKey?: string;
@@ -106,6 +109,17 @@ const bodyBaseStyle: React.CSSProperties = {
   overscrollBehavior: "contain",
 };
 
+const footerBaseStyle: React.CSSProperties = {
+  flex: "0 0 auto",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "flex-end",
+  gap: MAP_SPACING.sm,
+  padding: `${MAP_SPACING.sm} ${MAP_SPACING.lg}`,
+  borderTop: MAP_STROKES.hairlineSubtle,
+  background: "color-mix(in srgb, var(--syn-surface-header, rgba(20,27,36,0.96)) 88%, transparent)",
+};
+
 const focusableSelector = [
   "a[href]",
   "button:not([disabled])",
@@ -141,6 +155,8 @@ export function MapDialogShell({
   bodyStyle,
   overlayStyle,
   headerActions,
+  footer,
+  footerStyle,
   maximizable = true,
   memoryKey,
   onClose,
@@ -332,6 +348,7 @@ export function MapDialogShell({
           </div>
         </div>
         <div style={{ ...bodyBaseStyle, ...bodyStyle }}>{children}</div>
+        {footer ? <div style={{ ...footerBaseStyle, ...footerStyle }}>{footer}</div> : null}
       </div>
     </div>
   );

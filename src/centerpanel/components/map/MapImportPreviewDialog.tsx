@@ -2,13 +2,11 @@ import React from "react";
 import type { SourceProfile } from "@/services/map/MapDataImporter";
 import {
   MAP_COLORS,
-  MAP_SHADOWS,
   MAP_SPACING,
   MAP_STROKES,
   MAP_TYPOGRAPHY,
-  MAP_Z_INDEX,
 } from "./mapTokens";
-import { useDraggableMapPanel } from "./useDraggableMapPanel";
+import { MapDialogShell } from "./MapDialogShell";
 
 export interface MapImportPreviewDialogProps {
   open: boolean;
@@ -23,46 +21,6 @@ interface SourceFormatCard {
   detail: string;
   state: "active" | "supported" | "profile-only";
 }
-
-const overlayStyle: React.CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  background: MAP_COLORS.overlayBg,
-  zIndex: MAP_Z_INDEX.dialog,
-  padding: MAP_SPACING.lg,
-};
-
-/* Shares the standard Map Explorer dialog footprint (--map-dialog-w/h) so
-   every modal opens with the same geometry. */
-const dialogStyle: React.CSSProperties = {
-  position: "absolute",
-  left: "50%",
-  top: "50%",
-  transform: "translate(-50%, -50%)",
-  width: "var(--map-dialog-w, min(1040px, calc(100vw - 4rem)))",
-  maxWidth: "calc(100% - 2rem)",
-  height: "var(--map-dialog-h, min(680px, calc(100vh - 10rem)))",
-  maxHeight: "min(680px, calc(100% - 2rem))",
-  overflow: "hidden",
-  display: "grid",
-  gridTemplateRows: "auto auto minmax(0, 1fr) auto",
-  background: MAP_COLORS.bgPanel,
-  border: MAP_STROKES.hairlineStrong,
-  borderRadius: 2,
-  boxShadow: MAP_SHADOWS.dropdown,
-  color: MAP_COLORS.text,
-  fontFamily: MAP_TYPOGRAPHY.fontFamily,
-};
-
-const headerStyle: React.CSSProperties = {
-  display: "grid",
-  gap: 8,
-  padding: MAP_SPACING.md,
-  borderBottom: MAP_STROKES.hairlineSubtle,
-  cursor: "grab",
-  touchAction: "none",
-  userSelect: "none",
-};
 
 const badgeStyle: React.CSSProperties = {
   display: "inline-flex",
@@ -161,15 +119,6 @@ const bodyStyle: React.CSSProperties = {
   display: "grid",
   gap: MAP_SPACING.md,
   padding: MAP_SPACING.md,
-};
-
-const footerStyle: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "flex-end",
-  gap: MAP_SPACING.md,
-  padding: MAP_SPACING.md,
-  borderTop: MAP_STROKES.hairlineSubtle,
 };
 
 const footerNoteStackStyle: React.CSSProperties = {
@@ -313,20 +262,6 @@ export const MapImportPreviewDialog: React.FC<MapImportPreviewDialogProps> = ({
   onClose,
   onImport,
 }) => {
-  const { panelPositionStyle, dragHandleProps, dragHandleStyle } = useDraggableMapPanel({ boundsPadding: 18 });
-
-  React.useEffect(() => {
-    if (!open || !profile) return;
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        onClose();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [open, profile, onClose]);
-
   if (!open || !profile) return null;
 
   const importEnabled = Boolean(onImport && profile.canCommit);
@@ -359,47 +294,54 @@ export const MapImportPreviewDialog: React.FC<MapImportPreviewDialogProps> = ({
   ];
 
   return (
-    // eslint-disable-next-line jsx-a11y/click-events-have-key-events -- overlay click dismiss
-    <div
-      style={overlayStyle}
-      onClick={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
-      <div
-        style={{ ...dialogStyle, ...panelPositionStyle }}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Import source preflight"
-        data-draggable-map-panel="true"
-      >
-        <div style={{ ...headerStyle, ...dragHandleStyle }} {...dragHandleProps}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <span style={badgeStyle}>{profile.format.toUpperCase()}</span>
-            <span style={{ ...badgeStyle, ...supportTone(profile) }}>{formatLabel(profile.supportStatus)}</span>
-            <span style={badgeStyle}>{profile.profileStrategy}</span>
-            <span style={{ ...badgeStyle, color: profile.workerReady ? MAP_COLORS.success : MAP_COLORS.textMuted }}>
-              Worker {profile.workerReady ? "ready" : "not required"}
-            </span>
-          </div>
-          <div>
-            <div
-              style={{
-                color: MAP_COLORS.text,
-                fontFamily: MAP_TYPOGRAPHY.fontFamilyBrand,
-                fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
-                fontSize: 15,
-                marginBottom: 6,
-              }}
-            >
-              Review Source Before Import
-            </div>
-            <div style={{ color: MAP_COLORS.textSecondary, fontSize: 12, lineHeight: 1.55, maxWidth: 760 }}>
-              {profile.sourceName} has been profiled. Review CRS, schema, row quality, size, and worker readiness before committing it to the map workspace.
-            </div>
-          </div>
+    <MapDialogShell
+      ariaLabel="Import source preflight"
+      title="Review Source Before Import"
+      subtitle={`${profile.sourceName} has been profiled. Review CRS, schema, row quality, size, and worker readiness before committing it to the map workspace.`}
+      memoryKey="map.import-preview"
+      headerActions={
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <span style={badgeStyle}>{profile.format.toUpperCase()}</span>
+          <span style={{ ...badgeStyle, ...supportTone(profile) }}>{formatLabel(profile.supportStatus)}</span>
+          <span style={badgeStyle}>{profile.profileStrategy}</span>
+          <span style={{ ...badgeStyle, color: profile.workerReady ? MAP_COLORS.success : MAP_COLORS.textMuted }}>
+            Worker {profile.workerReady ? "ready" : "not required"}
+          </span>
         </div>
-
+      }
+      footerStyle={{ justifyContent: "space-between", alignItems: "flex-start" }}
+      footer={
+        <>
+          <div style={footerNoteStackStyle}>
+            <div style={{ color: MAP_COLORS.textMuted, fontSize: 11, lineHeight: 1.45 }}>
+              {importEnabled ? "Import will publish this profiled source as a QA-aware layer." : disabledReason}
+            </div>
+            {commitCaveats.length > 0 ? (
+              <div style={footerCaveatsStyle} aria-label="Commit caveats">
+                <div style={{ color: MAP_COLORS.caveatText, fontSize: 10, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold, textTransform: "uppercase" }}>
+                  Commit caveats
+                </div>
+                {commitCaveats.map((caveat) => (
+                  <div key={caveat} style={{ color: MAP_COLORS.textSecondary, fontSize: 11, lineHeight: 1.45 }}>{caveat}</div>
+                ))}
+              </div>
+            ) : null}
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button type="button" style={buttonStyle} onClick={onClose}>Cancel</button>
+            <button
+              type="button"
+              style={importEnabled ? primaryButtonStyle : { ...primaryButtonStyle, opacity: 0.55, cursor: "not-allowed" }}
+              onClick={onImport}
+              disabled={!importEnabled}
+            >
+              Import Source
+            </button>
+          </div>
+        </>
+      }
+      onClose={onClose}
+    >
         <div style={formatCardsStyle} aria-label="Detected source format support">
           {formatCards.map((card) => (
             <div
@@ -533,36 +475,7 @@ export const MapImportPreviewDialog: React.FC<MapImportPreviewDialogProps> = ({
           ) : null}
         </div>
 
-        <div style={footerStyle}>
-          <div style={footerNoteStackStyle}>
-            <div style={{ color: MAP_COLORS.textMuted, fontSize: 11, lineHeight: 1.45 }}>
-              {importEnabled ? "Import will publish this profiled source as a QA-aware layer." : disabledReason}
-            </div>
-            {commitCaveats.length > 0 ? (
-              <div style={footerCaveatsStyle} aria-label="Commit caveats">
-                <div style={{ color: MAP_COLORS.caveatText, fontSize: 10, fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold, textTransform: "uppercase" }}>
-                  Commit caveats
-                </div>
-                {commitCaveats.map((caveat) => (
-                  <div key={caveat} style={{ color: MAP_COLORS.textSecondary, fontSize: 11, lineHeight: 1.45 }}>{caveat}</div>
-                ))}
-              </div>
-            ) : null}
-          </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <button type="button" style={buttonStyle} onClick={onClose}>Cancel</button>
-            <button
-              type="button"
-              style={importEnabled ? primaryButtonStyle : { ...primaryButtonStyle, opacity: 0.55, cursor: "not-allowed" }}
-              onClick={onImport}
-              disabled={!importEnabled}
-            >
-              Import Source
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+    </MapDialogShell>
   );
 };
 

@@ -2351,7 +2351,9 @@ export function ToolbarCommandButton({
   onAfterClick,
 }: ToolbarCommandButtonProps): React.ReactElement {
   const Icon = command.icon;
-  const label = density === "comfortable" || menuItem ? command.label : command.shortLabel;
+  // The prominent primary CTA always shows its full label for clarity, even in
+  // compact density where secondary toolbar buttons use their short labels.
+  const label = density === "comfortable" || menuItem || primary ? command.label : command.shortLabel;
   const active = Boolean(command.active);
   const disabled = Boolean(command.disabled);
   const color = primary && !disabled ? MAP_COLORS.interaction : active ? MAP_COLORS.interaction : toneColor(command.tone ?? "default");
