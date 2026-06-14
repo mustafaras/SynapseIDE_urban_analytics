@@ -5,7 +5,8 @@ import type { MapPublishTabId } from "../publish";
 import type { MapSceneTabId } from "../scene";
 import type { MapStyleTabId } from "../style";
 import type { MapActivityDefinition } from "../mapActivityRuntime";
-import type { MapRightDockPanelId, MapRightDockSource } from "../dock/MapRightDock";
+import type { MapRightDockPanel } from "../mapDocking";
+import type { MapRightDockRouteSource } from "../mapRightDockRoutes";
 import type { WorkbenchSidebarTabId } from "../MapLayerManager";
 
 interface UseMapActivityRailSelectionParams {
@@ -15,9 +16,9 @@ interface UseMapActivityRailSelectionParams {
   openStyleActivityTab: (tabId: MapStyleTabId, announcement: string, focusLayerId?: string | null) => void;
   openSceneActivityTab: (tabId: MapSceneTabId, announcement: string) => void;
   openPublishActivityTab: (tabId: MapPublishTabId, announcement: string) => void;
-  openMapProblems: (source: MapRightDockSource) => void;
-  openRightDockPanel: (panel: MapRightDockPanelId, announcement: string, source: MapRightDockSource) => void;
-  openDiagnosticsRightDock: (announcement?: string, source?: MapRightDockSource) => void;
+  openMapProblems: (source: MapRightDockRouteSource) => void;
+  openRightDockPanel: (panel: MapRightDockPanel, announcement: string, source: MapRightDockRouteSource) => void;
+  openDiagnosticsRightDock: (announcement?: string, source?: MapRightDockRouteSource) => void;
   setActiveActivityId: (activityId: MapActivityDefinition["id"]) => void;
   setShowLayerPanel: (show: boolean) => void;
   setShowModelBuilder: (show: boolean) => void;
