@@ -1154,16 +1154,16 @@ describe("MapLayerManager component", () => {
     expect(html).toContain("Demo / metadata only");
     expect(html).toContain("Sample data");
     expect(html).toContain("Polygon / 12 features");
-    expect(html).toContain("Layer QA");
-    expect(html).toContain("Selection");
+    // Selection + Layer QA are right-dock concerns now; the left composition
+    // dock must not mirror them.
+    expect(html).not.toContain('data-testid="map-layer-section-selection"');
+    expect(html).not.toContain('data-testid="map-layer-section-layer-qa"');
   });
 
   it("renders left-panel section summaries and routes section actions", async () => {
     const mod = await import("../MapLayerManager");
     const sourcesSpy = vi.fn();
     const contentsSpy = vi.fn();
-    const selectionSpy = vi.fn();
-    const qaSpy = vi.fn();
     const container = document.createElement("div");
     document.body.appendChild(container);
     const root = createRoot(container);
@@ -1204,34 +1204,28 @@ describe("MapLayerManager component", () => {
           onReorderLayers: () => undefined,
           onAddLayer: () => undefined,
           selectedFeatureCount: 3,
-          qaIssueCount: 2,
-          qaBlockerCount: 1,
           onOpenSourcesSection: sourcesSpy,
           onOpenContentsSection: contentsSpy,
-          onOpenSelectionDetail: selectionSpy,
-          onOpenLayerQaDetail: qaSpy,
           presentation: "embedded",
           cartographyReviewPlacement: "none",
         }),
       );
     });
 
+    // Left composition dock keeps Sources + Contents; Selection + Layer QA are
+    // owned by the right (inspector/analysis) dock and must not appear here.
     expect(container.querySelector('[data-testid="map-layer-section-sources"]')).not.toBeNull();
     expect(container.querySelector('[data-testid="map-layer-section-contents"]')).not.toBeNull();
-    expect(container.querySelector('[data-testid="map-layer-section-selection"]')?.textContent).toContain("3 selected");
-    expect(container.querySelector('[data-testid="map-layer-section-layer-qa"]')?.textContent).toContain("1 blocked");
+    expect(container.querySelector('[data-testid="map-layer-section-selection"]')).toBeNull();
+    expect(container.querySelector('[data-testid="map-layer-section-layer-qa"]')).toBeNull();
 
     await act(async () => {
       container.querySelector('[data-testid="map-layer-section-action-sources"]')?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
       container.querySelector('[data-testid="map-layer-section-action-contents"]')?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-      container.querySelector('[data-testid="map-layer-section-action-selection"]')?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-      container.querySelector('[data-testid="map-layer-section-action-layer-qa"]')?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
     expect(sourcesSpy).toHaveBeenCalledTimes(1);
     expect(contentsSpy).toHaveBeenCalledTimes(1);
-    expect(selectionSpy).toHaveBeenCalledTimes(1);
-    expect(qaSpy).toHaveBeenCalledTimes(1);
 
     await act(async () => {
       root.unmount();
