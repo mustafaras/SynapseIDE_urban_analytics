@@ -62,6 +62,30 @@ export interface MapRightDockHostProps {
   children?: React.ReactNode;
 }
 
+/* Right dock = Inspector / Analysis surface — the subtitle describes the
+   active panel's role instead of the static "Right inspector", reinforcing the
+   left (compose/data) vs right (inspect/analyse) separation. */
+const PANEL_SUBTITLE: Record<MapRightDockPanel, string> = {
+  inspect: "Selected layer & feature properties",
+  style: "Styling & symbology for the active layer",
+  attributes: "Feature attribute table",
+  problems: "Data quality issues",
+  timeline: "Review history",
+  tasks: "Background task queue",
+  diagnostics: "Runtime diagnostics",
+  pins: "Saved map pins",
+  draw: "Sketch & draw tools",
+  measure: "Distance & area measurement",
+  selection: "Selected-area analytics",
+  scientificQA: "Scientific QA & repairs",
+  qa: "Data quality issues",
+  workflow: "Analysis workflow runner",
+  report: "Publish, export & report",
+  performance: "Render performance",
+  collaboration: "Collaboration & presence",
+  urbanMethod: "Urban analytics method",
+};
+
 const PANEL_ICON_MAP: Record<MapRightDockPanel, LucideIcon> = {
   inspect: Info,
   style: Palette,
@@ -313,7 +337,7 @@ export const MapRightDockHost: React.FC<MapRightDockHostProps> = ({
       ) : null}
       <MapDockPanelFrame
         title={activeDefinition.label}
-        subtitle="Right inspector"
+        subtitle={PANEL_SUBTITLE[route.panel] ?? "Inspector"}
         activeWorkspaceName={TIER_LABELS[getMapRightDockPanelTier(route.panel)]}
               closeLabel="Close right dock"
         collapseLabel={`Collapse ${activeDefinition.label}`}
