@@ -19,21 +19,15 @@ import { LayerInspector } from "./LayerInspector";
 
 export type MapInspectorHostPresentation = "right-rail" | "bottom-drawer";
 
-export type MapInspectorContextKind =
-  | "none"
-  | "map"
-  | "layer"
-  | "feature-selection"
-  | "qa-issue"
-  | "workflow-preview"
-  | "publish"
-  | "scene";
+// The inspector host renders the real LayerInspector for a selected layer. The
+// earlier feature/qa/workflow/publish/scene placeholder contexts were never
+// produced by the runtime; those concerns are handled by the dedicated right
+// dock panels, so the context model is narrowed to the states actually used.
+export type MapInspectorContextKind = "none" | "layer";
 
 export type MapInspectorHostContext =
   | { kind: "none" }
-  | { kind: "map"; title?: string; description?: string }
-  | { kind: "layer"; layer: OverlayLayerConfig; sourceHandle?: SourceHandle | null }
-  | { kind: Exclude<MapInspectorContextKind, "none" | "map" | "layer">; title?: string; description?: string };
+  | { kind: "layer"; layer: OverlayLayerConfig; sourceHandle?: SourceHandle | null };
 
 export interface MapInspectorHostProps {
   visible: boolean;
@@ -110,68 +104,11 @@ function getHostStyle(presentation: MapInspectorHostPresentation, width?: number
 }
 
 function contextTitle(context: MapInspectorHostContext): string {
-  switch (context.kind) {
-    case "layer":
-      return context.layer.name;
-    case "feature-selection":
-      return context.title ?? "Feature selection";
-    case "qa-issue":
-      return context.title ?? "QA issue";
-    case "workflow-preview":
-      return context.title ?? "Workflow preview";
-    case "publish":
-      return context.title ?? "Publish context";
-    case "scene":
-      return context.title ?? "Scene context";
-    case "map":
-      return context.title ?? "Map context";
-    case "none":
-    default:
-      return "Map context";
-  }
-}
-
-function contextDescription(context: MapInspectorHostContext): string {
-  switch (context.kind) {
-    case "layer":
-      return "Layer metadata, source, schema, CRS, QA, style, lineage, and report readiness.";
-    case "feature-selection":
-      return context.description ?? "Feature selection inspection will land here as a focused placeholder.";
-    case "qa-issue":
-      return context.description ?? "QA issue details will land here as the problems model is promoted into the inspector.";
-    case "workflow-preview":
-      return context.description ?? "Workflow preview inspection will land here when analysis routing is unified.";
-    case "publish":
-      return context.description ?? "Publication and export inspection will land here when publish routing is unified.";
-    case "scene":
-      return context.description ?? "Scene, raster, 3D, and temporal inspection will land here as scene panels consolidate.";
-    case "map":
-      return context.description ?? "Select a layer or map object to inspect its metadata and readiness.";
-    case "none":
-    default:
-      return "Select a layer or map object to inspect its metadata and readiness.";
-  }
+  return context.kind === "layer" ? context.layer.name : "Map context";
 }
 
 function contextEyebrow(context: MapInspectorHostContext): string {
-  switch (context.kind) {
-    case "feature-selection":
-      return "Selection inspector";
-    case "qa-issue":
-      return "QA inspector";
-    case "workflow-preview":
-      return "Workflow inspector";
-    case "publish":
-      return "Publish inspector";
-    case "scene":
-      return "Scene inspector";
-    case "layer":
-      return "Layer inspector";
-    case "map":
-    case "none":
-    default:
-      return "Map inspector";
-  }
+  return context.kind === "layer" ? "Layer inspector" : "Map inspector";
 }
 
 export const MapInspectorHost: React.FC<MapInspectorHostProps> = ({
@@ -240,8 +177,8 @@ export const MapInspectorHost: React.FC<MapInspectorHostProps> = ({
     return (
       <div style={placeholderWrapStyle}>
         <GisEmptyState
-          title={contextTitle(context)}
-          description={contextDescription(context)}
+          title="No layer selected"
+          description="Select a layer to inspect its metadata, source, schema, CRS, QA, style, lineage, and report readiness."
         />
       </div>
     );
