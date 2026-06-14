@@ -450,25 +450,21 @@ const layerSectionGrid: React.CSSProperties = {
   borderBottom: MAP_STROKES.hairlineSubtle,
 };
 
-/* Flat summary rows — hairline separated, no boxed card chrome. */
+/* Single dense row per section — VS Code "Explorer" density: hairline
+   separated, title · value · muted detail · trailing action. */
 const layerSectionCard: React.CSSProperties = {
-  display: "grid",
-  gap: 2,
+  display: "flex",
+  alignItems: "baseline",
+  gap: MAP_SPACING.sm,
   minWidth: 0,
   padding: `${MAP_SPACING.xs} 0`,
   borderTop: MAP_STROKES.hairlineSubtle,
   background: MAP_COLORS.transparent,
 };
 
-const layerSectionCardHeader: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: MAP_SPACING.xs,
-  minWidth: 0,
-};
-
 const layerSectionCardTitle: React.CSSProperties = {
+  flexShrink: 0,
+  minWidth: "4.25rem",
   color: MAP_COLORS.textMuted,
   fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
   fontSize: 9,
@@ -478,23 +474,26 @@ const layerSectionCardTitle: React.CSSProperties = {
 };
 
 const layerSectionCardValue: React.CSSProperties = {
+  flexShrink: 0,
   color: MAP_COLORS.text,
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
-  overflow: "hidden",
-  textOverflow: "ellipsis",
   whiteSpace: "nowrap",
 };
 
 const layerSectionCardDetail: React.CSSProperties = {
+  flex: "1 1 auto",
+  minWidth: 0,
   color: MAP_COLORS.textMuted,
   fontSize: 10,
-  lineHeight: 1.35,
-  overflowWrap: "anywhere",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
 };
 
 const layerSectionCardAction: React.CSSProperties = {
-  justifySelf: "start",
+  marginLeft: "auto",
+  flexShrink: 0,
   padding: 0,
   border: MAP_STROKES.none,
   borderRadius: 0,
@@ -3867,23 +3866,19 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
             aria-label={`${section.title} summary`}
             data-testid={`map-layer-section-${section.id}`}
           >
-            <div style={layerSectionCardHeader}>
-              <span style={layerSectionCardTitle}>{section.title}</span>
-              <span style={layerSectionCardValue}>{section.value}</span>
-            </div>
-            <div style={layerSectionCardHeader}>
-              <span style={layerSectionCardDetail}>{section.detail}</span>
-              {section.actionLabel && section.onAction ? (
-                <button
-                  type="button"
-                  style={layerSectionCardAction}
-                  onClick={section.onAction}
-                  data-testid={`map-layer-section-action-${section.id}`}
-                >
-                  {section.actionLabel}
-                </button>
-              ) : null}
-            </div>
+            <span style={layerSectionCardTitle}>{section.title}</span>
+            <span style={layerSectionCardValue}>{section.value}</span>
+            <span style={layerSectionCardDetail}>{section.detail}</span>
+            {section.actionLabel && section.onAction ? (
+              <button
+                type="button"
+                style={layerSectionCardAction}
+                onClick={section.onAction}
+                data-testid={`map-layer-section-action-${section.id}`}
+              >
+                {section.actionLabel}
+              </button>
+            ) : null}
           </section>
         ))}
       </div>
