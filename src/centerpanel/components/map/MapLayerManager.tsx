@@ -10,6 +10,7 @@ import type { LayerGroupId, LayerPublicationReadinessStatus, LayerQaStatus, Laye
 import { CartographyRecommendationList } from "./CartographyRecommendationList";
 import { DeclareCrsControl } from "./DeclareCrsControl";
 import { normalizeLayerRegistryMetadata } from "./mapLayerMetadata";
+import { useMapExplorerStore } from "../../../stores/useMapExplorerStore";
 import {
   LAYER_ACTION_COMMAND_GROUPS,
   type LayerActionCommandGroupId,
@@ -1427,6 +1428,7 @@ interface LayerReadinessCellModel {
 type LayerActionId =
   | "inspect"
   | "table"
+  | "toggle-3d"
   | "locate"
   | "move-up"
   | "move-down"
@@ -1462,6 +1464,7 @@ interface LayerEvidenceActionModel {
 const LAYER_ACTION_DENSITY_CLASSIFICATION: Readonly<Record<LayerActionId, LayerActionDensityClass>> = {
   inspect: "advanced-metadata",
   table: "advanced-metadata",
+  "toggle-3d": "secondary",
   locate: "primary",
   "move-up": "secondary",
   "move-down": "secondary",
@@ -1796,7 +1799,36 @@ function buildLayerCoreCommandActions(
       "Attribute table is not connected from the layer rail yet.",
       { testId: "map-layer-table-trigger" },
     ),
+    buildLayer3DToggleAction(layer),
   ];
+}
+
+/**
+ * Toggle MapLibre 3D fill-extrusion for a polygon layer. Heights come from real
+ * attributes (height / levels / building:levels) with a labelled 6m fallback.
+ */
+function buildLayer3DToggleAction(layer: OverlayLayerConfig): LayerEvidenceActionModel {
+  const geo = (layer.metadata?.geometryType ?? "").toLowerCase();
+  const is3DCapable = layer.type === "geojson" && (geo.includes("polygon") || geo === "");
+  const render3D = layer.metadata?.render3D === true;
+  const disabledReason = is3DCapable ? null : "3D extrusion needs a polygon (building) layer.";
+  return {
+    id: "toggle-3d",
+    groupId: "view-focus",
+    label: render3D ? "3D buildings: on" : "3D buildings",
+    title: disabledReason
+      ?? "Toggle 3D fill-extrusion. Uses real height / levels attributes; falls back to 6 m when absent.",
+    tone: render3D ? "warning" : "default",
+    ...(disabledReason ? { disabledReason } : {}),
+    ...(disabledReason
+      ? {}
+      : {
+          onSelect: () =>
+            useMapExplorerStore.getState().updateLayerMetadata(layer.id, {
+              metadata: { ...(layer.metadata ?? {}), render3D: !render3D },
+            }),
+        }),
+  };
 }
 
 function buildLayerRerunAction(
