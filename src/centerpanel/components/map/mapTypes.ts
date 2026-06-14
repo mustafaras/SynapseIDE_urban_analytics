@@ -416,6 +416,8 @@ export interface MapRasterLayerMetadata {
 export interface LayerMetadata {
   featureCount?: number;
   geometryType?: string;
+  /** When true, polygon layers render as MapLibre 3D fill-extrusion (buildings). */
+  render3D?: boolean;
   bounds?: [number, number, number, number]; // [minLng, minLat, maxLng, maxLat]
   fields?: string[];
   importFormat?: "geojson" | "csv" | "arrow" | "geoparquet" | "kml" | "kmz" | "gpx" | "shapefile" | "geopackage" | "geotiff";

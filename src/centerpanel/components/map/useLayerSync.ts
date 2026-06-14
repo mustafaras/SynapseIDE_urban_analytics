@@ -243,6 +243,8 @@ function resolveLayerType(
   if (layer.type === "raster-tile") return "raster";
 
   const geo = layer.metadata?.geometryType?.toLowerCase() ?? "";
+  // 3D buildings: polygon layers flagged render3D extrude with MapLibre.
+  if (layer.metadata?.render3D && (geo.includes("polygon") || geo === "")) return "fill-extrusion";
   if (geo.includes("point")) return "circle";
   if (geo.includes("line")) return "line";
   if (geo.includes("polygon")) return "fill";
@@ -250,6 +252,26 @@ function resolveLayerType(
   // Default for unknown GeoJSON / vector-tile
   return "circle";
 }
+
+/**
+ * MapLibre height expression for extruded buildings from real attributes:
+ * explicit height (m) → levels x 3m → building:levels x 3m → 6m fallback.
+ */
+const BUILDING_HEIGHT_EXPRESSION: unknown = [
+  "coalesce",
+  ["to-number", ["get", "height"]],
+  ["to-number", ["get", "render_height"]],
+  ["*", ["to-number", ["get", "levels"]], 3],
+  ["*", ["to-number", ["get", "building:levels"]], 3],
+  6,
+];
+
+const BUILDING_BASE_EXPRESSION: unknown = [
+  "coalesce",
+  ["to-number", ["get", "min_height"]],
+  ["to-number", ["get", "render_min_height"]],
+  0,
+];
 
 /** Build the paint property relevant for the layer type with the given opacity */
 function buildPaint(
@@ -273,6 +295,17 @@ function buildPaint(
     case "fill":
       base["fill-opacity"] = opacity * 0.6;
       if (!base["fill-color"]) base["fill-color"] = MAP_COLORS.interaction;
+      break;
+    case "fill-extrusion":
+      base["fill-extrusion-opacity"] = Math.min(0.95, opacity);
+      if (!base["fill-extrusion-color"]) base["fill-extrusion-color"] = MAP_COLORS.interaction;
+      // Real attributes drive height/base; clearly-labelled fallback when absent.
+      base["fill-extrusion-height"] = BUILDING_HEIGHT_EXPRESSION;
+      base["fill-extrusion-base"] = BUILDING_BASE_EXPRESSION;
+      // Strip 2D fill keys that MapLibre rejects on an extrusion layer.
+      delete base["fill-color"];
+      delete base["fill-opacity"];
+      delete base["fill-outline-color"];
       break;
     case "heatmap":
       base["heatmap-opacity"] = opacity;
@@ -305,6 +338,7 @@ const COLOR_PAINT_KEYS = [
   "line-color",
   "fill-color",
   "fill-outline-color",
+  "fill-extrusion-color",
   "text-color",
   "text-halo-color",
 ] as const;
@@ -315,6 +349,7 @@ function opacityKey(mlType: string): string {
     case "circle": return "circle-opacity";
     case "line": return "line-opacity";
     case "fill": return "fill-opacity";
+    case "fill-extrusion": return "fill-extrusion-opacity";
     case "heatmap": return "heatmap-opacity";
     case "raster": return "raster-opacity";
     default: return "circle-opacity";
@@ -642,6 +677,7 @@ export function useLayerSync(
           prevLayer.type !== layer.type ||
           prevLayer.style !== layer.style ||
           prevLayer.metadata?.geometryType !== layer.metadata?.geometryType ||
+          prevLayer.metadata?.render3D !== layer.metadata?.render3D ||
           (prevLayer.sourceData !== layer.sourceData && !isGeoJSONBackedLayer(layer))
         );
 
