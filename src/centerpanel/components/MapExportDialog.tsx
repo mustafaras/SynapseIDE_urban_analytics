@@ -164,6 +164,7 @@ export const MapExportDialog: React.FC<MapExportDialogProps> = ({
   return (
     <MapDialogShell
       ariaLabel="Publication map export options"
+      memoryKey="map-publication-export"
       title="Publication Export"
       subtitle="Compose the map figure, inspect readiness, and render the selected output format."
       width={1080}

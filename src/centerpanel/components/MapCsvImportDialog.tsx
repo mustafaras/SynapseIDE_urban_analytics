@@ -142,6 +142,7 @@ export const MapCsvImportDialog: React.FC<MapCsvImportDialogProps> = ({
   return (
     <MapDialogShell
       ariaLabel="CSV coordinate mapping"
+      memoryKey="map-csv-import"
       title="Import CSV Points"
       subtitle={`${session.fileName} contains ${session.totalRows.toLocaleString()} data row${session.totalRows !== 1 ? "s" : ""}`}
       width={720}
