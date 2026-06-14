@@ -18,7 +18,7 @@ export type MapActivityId =
   | "diagnostics"
   | "extensions";
 
-export type MapActivityPlacement = "primary-rail" | "utility-rail";
+export type MapActivityPlacement = "primary-rail" | "utility-rail" | "command-routed";
 
 export type MapSidebarTabId =
   | "overview-readiness"
@@ -125,13 +125,21 @@ export interface MapInventoryNavigationBinding {
   rightDockPanelId: MapRightDockPanel | null;
 }
 
+// Left activity rail = composition / data only (what exists in the map).
 export const MAP_PRIMARY_ACTIVITY_ORDER = [
   "overview",
   "data",
   "layers",
+  "scene",
+] as const satisfies readonly MapActivityId[];
+
+// Analyze / Style / Publish are inspection / analysis / output concerns. They
+// are reached from the topbar command menus (not the left rail) so the left and
+// right docks never duplicate function; their definitions remain valid for the
+// runtime command handlers.
+export const MAP_COMMAND_ACTIVITY_ORDER = [
   "analyze",
   "style",
-  "scene",
   "publish",
 ] as const satisfies readonly MapActivityId[];
 
@@ -193,7 +201,7 @@ export const MAP_ACTIVITY_DEFINITIONS = [
     label: "Analyze",
     ariaLabel: "Analyze Outputs - switch map workspace to analyze",
     description: "Workflows, processing tools, model chains, query scope, statistics, AOI, and measurement work.",
-    placement: "primary-rail",
+    placement: "command-routed",
     order: 3,
     mnemonic: "A",
     iconName: "Workflow",
@@ -208,7 +216,7 @@ export const MAP_ACTIVITY_DEFINITIONS = [
     label: "Style",
     ariaLabel: "Style activity",
     description: "Renderers, symbols, labels, legend, and cartography recommendations.",
-    placement: "primary-rail",
+    placement: "command-routed",
     order: 4,
     mnemonic: "S",
     iconName: "Palette",
@@ -238,7 +246,7 @@ export const MAP_ACTIVITY_DEFINITIONS = [
     label: "Publish",
     ariaLabel: "Publish activity",
     description: "Figure composition, map image export, data export, offline package, and report handoff.",
-    placement: "primary-rail",
+    placement: "command-routed",
     order: 6,
     mnemonic: "P",
     iconName: "FileImage",

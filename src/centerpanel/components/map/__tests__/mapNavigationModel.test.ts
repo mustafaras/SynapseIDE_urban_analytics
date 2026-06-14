@@ -8,6 +8,7 @@ import {
   MAP_INSPECTOR_CONTEXT_DEFINITIONS,
   MAP_INVENTORY_NAVIGATION_BINDINGS,
   MAP_PRIMARY_ACTIVITY_ORDER,
+  MAP_COMMAND_ACTIVITY_ORDER,
   MAP_SIDEBAR_TAB_DEFINITIONS,
   MAP_SURFACE_INVENTORY,
   MAP_TASK_LENSES,
@@ -15,7 +16,7 @@ import {
 } from "../navigation";
 import { MAP_RIGHT_DOCK_PANEL_IDS } from "../mapRightDockRoutes";
 
-const allActivityIds = [...MAP_PRIMARY_ACTIVITY_ORDER, ...MAP_UTILITY_ACTIVITY_ORDER];
+const allActivityIds = [...MAP_PRIMARY_ACTIVITY_ORDER, ...MAP_COMMAND_ACTIVITY_ORDER, ...MAP_UTILITY_ACTIVITY_ORDER];
 const EXPECTED_ACTIVITY_RIGHT_DOCK_DEFAULTS = {
   analyze: "tasks",
   data: "tasks",
@@ -47,9 +48,11 @@ describe("mapNavigationModel", () => {
       "overview",
       "data",
       "layers",
+      "scene",
+    ]);
+    expect(MAP_COMMAND_ACTIVITY_ORDER).toEqual([
       "analyze",
       "style",
-      "scene",
       "publish",
     ]);
     expect(MAP_UTILITY_ACTIVITY_ORDER).toEqual([
@@ -61,7 +64,10 @@ describe("mapNavigationModel", () => {
   });
 
   it("defines stable activity metadata for labels, accessibility, keyboard order, and placement", () => {
-    expect(MAP_ACTIVITY_DEFINITIONS.map((activity) => activity.id)).toEqual(allActivityIds);
+    // Definitions cover exactly the union of all activity orders (set equality;
+    // rail order is asserted separately above).
+    expect(new Set(MAP_ACTIVITY_DEFINITIONS.map((activity) => activity.id))).toEqual(new Set(allActivityIds));
+    expect(MAP_ACTIVITY_DEFINITIONS.length).toBe(allActivityIds.length);
     expectUnique(MAP_ACTIVITY_DEFINITIONS.map((activity) => activity.id), "activity ids");
 
     const primaryMnemonics = MAP_ACTIVITY_DEFINITIONS
