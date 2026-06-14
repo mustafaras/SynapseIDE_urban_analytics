@@ -197,6 +197,7 @@ export const MapExplorerLayerPanelRail: React.FC<MapExplorerLayerPanelRailProps>
       resizable={dockLayerPanelPlacement === "left"}
       onWidthChange={onLayerPanelWidthChange}
       ariaLabel="Layer and data panel"
+      data-ui-proof="real-left-dock"
       data-testid="map-layer-panel-rail"
     >
       {isWorkbenchActivity ? (

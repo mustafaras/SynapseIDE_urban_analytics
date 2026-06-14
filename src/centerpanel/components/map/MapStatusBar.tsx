@@ -1188,6 +1188,7 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
       style={{ ...statusBar, ...styleProp }}
       role="status"
       aria-label="Map status"
+      data-ui-proof="real-status-bar"
       data-map-status-bar="true"
       data-map-status-overflow-count={overflowSegments.length}
     >

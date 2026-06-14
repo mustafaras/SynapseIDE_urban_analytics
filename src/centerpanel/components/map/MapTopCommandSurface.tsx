@@ -493,6 +493,7 @@ export const MapTopCommandSurface: React.FC<MapTopCommandSurfaceProps> = ({
       aria-label="Map command bar"
       data-map-premium-header="true"
       data-map-top-command-surface="true"
+      data-ui-proof="real-topbar"
       data-testid="map-top-command-surface"
     >
       <div style={identityRowStyle} data-testid="map-top-command-surface-identity-row">

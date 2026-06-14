@@ -281,6 +281,7 @@ export function MapDialogShell({
         aria-label={ariaLabel}
         tabIndex={-1}
         data-draggable-map-panel="true"
+        data-ui-proof="real-modal-system"
         data-map-dialog-shell="true"
         data-map-dialog-state={maximized ? "maximized" : "floating"}
         onKeyDown={handleDialogKeyDown}
