@@ -80,4 +80,20 @@ describe("useMapToolbarPreferencesStore", () => {
     expect(store.getState().taskLens).toBe("analyst");
     expect("overlayLayers" in store.getState()).toBe(false);
   });
+
+  it("resets old-version toolbar preferences even when their values were valid", async () => {
+    const storage = ensureLocalStorage();
+    storage.setItem("synapse-map-toolbar-preferences", JSON.stringify({
+      state: {
+        density: "compact",
+        taskLens: "publisher",
+      },
+      version: 0,
+    }));
+
+    const store = await freshToolbarPreferencesStore({ clearStorage: false });
+
+    expect(store.getState().density).toBe("comfortable");
+    expect(store.getState().taskLens).toBe("analyst");
+  });
 });

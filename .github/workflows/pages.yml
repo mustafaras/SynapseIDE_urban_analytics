@@ -36,7 +36,7 @@ jobs:
         run: npm ci
 
       - name: Build for GitHub Pages
-        run: npm run build -- --base=/SynapseIDE_urban_analytics/
+        run: npm run build:pages
 
       - name: Add SPA fallback
         run: cp dist/index.html dist/404.html
@@ -54,6 +54,20 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Verify deployed Pages build
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+          EXPECTED_SHA: ${{ github.sha }}
+        run: node scripts/verify-pages-deployment.mjs --url "$PAGE_URL" --sha "$EXPECTED_SHA"

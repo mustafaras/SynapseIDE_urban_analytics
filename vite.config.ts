@@ -1,4 +1,4 @@
-import { createLogger, defineConfig } from 'vite'
+import { createLogger, defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 import fs from 'fs'
@@ -275,6 +275,35 @@ viteLogger.warnOnce = (message, options) => {
   viteLoggerWarnOnce(message, options);
 };
 
+function escapeHtmlAttribute(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function buildProvenancePlugin(options: {
+  appVersion: string;
+  buildHash: string;
+  buildTime: string;
+}): Plugin {
+  const tags = [
+    ['synapse-app-version', options.appVersion],
+    ['synapse-build-sha', options.buildHash],
+    ['synapse-build-time', options.buildTime],
+  ]
+    .map(([name, content]) => `    <meta name="${name}" content="${escapeHtmlAttribute(content)}">`)
+    .join('\n');
+
+  return {
+    name: 'synapse-build-provenance',
+    transformIndexHtml(html) {
+      return html.replace(/<head>/i, `<head>\n${tags}`);
+    },
+  };
+}
+
 export default defineConfig(() => {
   // Compute build-time provenance values and inject as VITE_* defines for runtime access
   const fnvHex = (str: string): string => {
@@ -294,6 +323,7 @@ export default defineConfig(() => {
   try { appVersion = JSON.parse(pkgJson)?.version || '0.0.0' } catch {}
   let buildHash = 'dev'
   try { buildHash = execSync('git rev-parse --short=12 HEAD', { stdio: ['ignore', 'pipe', 'ignore'] }).toString('utf8').trim() } catch {}
+  const buildTime = new Date().toISOString()
   const recipesHash = fnvHex(safeRead('src/centerpanel/Tools/export/recipes.ts'))
   const profilesHash = fnvHex(safeRead('src/centerpanel/Tools/export/deid/profiles.ts'))
   const normalizeId = (id: string): string => id.split(path.win32.sep).join('/')
@@ -382,10 +412,11 @@ export default defineConfig(() => {
   }
   return {
   customLogger: viteLogger,
-  plugins: [react(), devSseApiPlugin()],
+  plugins: [react(), buildProvenancePlugin({ appVersion, buildHash, buildTime }), devSseApiPlugin()],
   define: {
     'import.meta.env.VITE_APP_VERSION': JSON.stringify(appVersion),
     'import.meta.env.VITE_BUILD_HASH': JSON.stringify(buildHash),
+    'import.meta.env.VITE_BUILD_TIME': JSON.stringify(buildTime),
     'import.meta.env.VITE_RECIPES_HASH': JSON.stringify(recipesHash),
     'import.meta.env.VITE_PROFILES_HASH': JSON.stringify(profilesHash),
   },

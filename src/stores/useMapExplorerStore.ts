@@ -100,6 +100,8 @@ export const DEFAULT_MAP_EXPLORER_LAYOUT_PREFERENCES: MapExplorerLayoutPreferenc
   panelMode: "map-first",
 };
 
+const MAP_EXPLORER_PERSISTENCE_VERSION = 2;
+
 const DEFAULT_ANNOTATION_SETTINGS: MapAnnotationStyleSettings = {
   fontSize: 16,
   color: "#3794ff",
@@ -547,6 +549,36 @@ function normalizeLayoutPreferences(input: Partial<MapExplorerLayoutPreferences>
       DEFAULT_MAP_EXPLORER_LAYOUT_PREFERENCES.rightPanelWidth,
     ),
     panelMode: input?.panelMode === "collapsed" ? "collapsed" : "map-first",
+  };
+}
+
+function migratePersistedMapExplorerState(
+  persistedState: unknown,
+  fromVersion: number,
+): PersistedMapExplorerState {
+  const persisted = typeof persistedState === "object" && persistedState !== null
+    ? { ...(persistedState as Partial<PersistedMapExplorerState>) }
+    : {};
+
+  persisted.layoutPreferences = fromVersion < MAP_EXPLORER_PERSISTENCE_VERSION
+    ? { ...DEFAULT_MAP_EXPLORER_LAYOUT_PREFERENCES }
+    : normalizeLayoutPreferences(persisted.layoutPreferences);
+
+  return persisted as PersistedMapExplorerState;
+}
+
+function mergePersistedMapExplorerState(
+  persistedState: unknown,
+  currentState: MapExplorerState,
+): MapExplorerState {
+  const persisted = typeof persistedState === "object" && persistedState !== null
+    ? (persistedState as Partial<PersistedMapExplorerState>)
+    : {};
+
+  return {
+    ...currentState,
+    ...persisted,
+    layoutPreferences: normalizeLayoutPreferences(persisted.layoutPreferences),
   };
 }
 
@@ -1729,7 +1761,10 @@ export const useMapExplorerStore = create<MapExplorerState>()(
     }),
     {
       name: "synapse-map-explorer",
+      version: MAP_EXPLORER_PERSISTENCE_VERSION,
       storage: createJSONStorage<PersistedMapExplorerState>(() => resolveMapExplorerStorage()),
+      migrate: (persistedState, fromVersion) => migratePersistedMapExplorerState(persistedState, fromVersion),
+      merge: (persistedState, currentState) => mergePersistedMapExplorerState(persistedState, currentState),
       partialize: (state) => partializeMapExplorerState(state, normalizeLayoutPreferences),
     },
   ),

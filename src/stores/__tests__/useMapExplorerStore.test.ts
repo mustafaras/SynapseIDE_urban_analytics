@@ -834,6 +834,55 @@ describe("useMapExplorerStore", () => {
       expect(serializedPersistedState).not.toContain("FeatureCollection");
     });
 
+    it("resets legacy layout preferences while preserving persisted map content", async () => {
+      const stored = {
+        state: {
+          center: [10, 20] as [number, number],
+          zoom: 5,
+          bearing: 30,
+          pitch: 15,
+          activeBaseLayer: "satellite",
+          pins: [makePin("legacy-pin")],
+          bookmarks: [{
+            id: "legacy-bookmark",
+            name: "Legacy Bookmark",
+            center: [10, 20] as [number, number],
+            zoom: 5,
+            bearing: 30,
+            pitch: 15,
+            layers: ["legacy-layer"],
+            timestamp: "2026-06-14T00:00:00.000Z",
+            activeVisualization: null,
+          }],
+          sourceHandles: [makeSourceHandle("legacy-source")],
+          selectedFeatureIds: { "legacy-layer": ["feature-1"] },
+          activeAoiId: "legacy-aoi",
+          activeAnalysisResultLayerIds: ["legacy-layer"],
+          layoutPreferences: {
+            layerPanelWidth: 700,
+            rightPanelWidth: 520,
+            panelMode: "collapsed",
+          },
+        },
+        version: 0,
+      };
+      localStorage.setItem("synapse-map-explorer", JSON.stringify(stored));
+
+      const store = await freshStore();
+      const state = store.getState();
+
+      expect(state.layoutPreferences).toEqual(DEFAULT_MAP_EXPLORER_LAYOUT_PREFERENCES);
+      expect(state.center).toEqual([10, 20]);
+      expect(state.zoom).toBe(5);
+      expect(state.activeBaseLayer).toBe("satellite");
+      expect(state.pins.map((pin) => pin.id)).toEqual(["legacy-pin"]);
+      expect(state.bookmarks.map((bookmark) => bookmark.id)).toEqual(["legacy-bookmark"]);
+      expect(state.sourceHandles.map((handle) => handle.sourceId)).toEqual(["legacy-source"]);
+      expect(state.selectedFeatureIds).toEqual({ "legacy-layer": ["feature-1"] });
+      expect(state.activeAoiId).toBe("legacy-aoi");
+      expect(state.activeAnalysisResultLayerIds).toEqual(["legacy-layer"]);
+    });
+
     it("does NOT persist transient copilot state (snapshots, proposals, audit, pending count)", async () => {
       const store = await freshStore();
       store.getState().emitCopilotContextSnapshot({

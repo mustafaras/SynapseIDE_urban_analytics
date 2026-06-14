@@ -12,6 +12,7 @@ function logSamplingChanged(_sampling: Sampling) {  }
 const STORAGE_KEY = 'synapse.aiConfig.v3';
 const DEFAULT_PROVIDER: ProviderId = 'openai';
 const DEFAULT_SAMPLING: Sampling = { temperature: 0.2, top_p: 1, max_tokens: 2048, json_mode: false, system_prompt: '' };
+const DEFAULT_OLLAMA_BASE_URL = 'http://localhost:11434';
 
 type Internal = {
 
@@ -28,6 +29,33 @@ type UpdateOpts = { bumpVersion?: boolean };
 
 type SlicePartial = Partial<AiConfigState & Internal>;
 type SetFn = (partial: SlicePartial | ((state: AiConfigState & Internal) => SlicePartial)) => void;
+
+function hasConfiguredBaseUrl(key: ProviderKey | undefined): boolean {
+  return typeof key?.baseUrl === 'string' && key.baseUrl.trim().length > 0;
+}
+
+function canUseImplicitLocalOllama(): boolean {
+  return import.meta.env.MODE === 'development';
+}
+
+function shouldRefreshProviderModels(provider: ProviderId, key: ProviderKey | undefined): boolean {
+  if (provider === 'ollama') {
+    return hasConfiguredBaseUrl(key) || canUseImplicitLocalOllama();
+  }
+  if (provider === 'custom') {
+    return hasConfiguredBaseUrl(key) || !!key?.apiKey;
+  }
+  return !!key?.apiKey;
+}
+
+function resolveOllamaBaseUrl(key: ProviderKey | undefined): string | null {
+  const baseUrl = key?.baseUrl?.trim();
+  if (baseUrl) {
+    return baseUrl;
+  }
+  return canUseImplicitLocalOllama() ? DEFAULT_OLLAMA_BASE_URL : null;
+}
+
 const createSlice = (set: SetFn, get: () => (AiConfigState & Internal)): (AiConfigState & Internal) => ({
   _abortActiveStream: () => {},
   provider: DEFAULT_PROVIDER,
@@ -126,6 +154,7 @@ const createSlice = (set: SetFn, get: () => (AiConfigState & Internal)): (AiConf
       model: resolveModel(s.model, staticList, provider),
     }));
     const keys = get().keys[provider] ?? {};
+    if (!shouldRefreshProviderModels(provider, keys)) return;
     const remote = await listModelsDynamic(provider, keys).catch(() => []);
     if (seq !== __refreshSeq) return;
     const merged = provider === 'openai' && remote.length
@@ -158,11 +187,11 @@ const createSlice = (set: SetFn, get: () => (AiConfigState & Internal)): (AiConf
     if (existing?.retryAt && Date.now() < existing.retryAt) {
       return;
     }
+  const update = (state: 'unknown'|'verified'|'invalid'|'rate-limited', message?: string, retryAt?: number) => { set(s => ({ keyStatus: { ...s.keyStatus, [provider]: { state, message, checkedAt: Date.now(), retryAt } } })); };
     if (!key && provider !== 'ollama') {
-  set((s: AiConfigState & Internal) => ({ keyStatus: { ...s.keyStatus, [provider]: { state:'invalid', message:'No key set', checkedAt: Date.now() } } }));
+  update('invalid', 'No key set');
       return;
     }
-  const update = (state: 'unknown'|'verified'|'invalid'|'rate-limited', message?: string, retryAt?: number) => { set(s => ({ keyStatus: { ...s.keyStatus, [provider]: { state, message, checkedAt: Date.now(), retryAt } } })); };
     try {
       if (provider === 'openai') {
 
@@ -188,7 +217,11 @@ const createSlice = (set: SetFn, get: () => (AiConfigState & Internal)): (AiConf
       }
       if (provider === 'ollama') {
 
-        const base = get().keys.ollama.baseUrl || 'http://localhost:11434';
+        const base = resolveOllamaBaseUrl(get().keys.ollama);
+        if (!base) {
+          update('unknown', 'Ollama base URL not configured');
+          return;
+        }
         const url = `${base.replace(/\/$/,'')}/api/tags`;
         const r = await fetch(url);
         if (r.ok) { update('verified'); return; }
@@ -260,8 +293,7 @@ export const useAiConfigStore = create<AiConfigState & Internal>()(persist(
           const providers: ProviderId[] = ['openai', 'anthropic', 'gemini', 'ollama', 'custom'];
           let delay = 0;
           for (const p of providers) {
-            const hasKey = !!(st.keys?.[p]?.apiKey) || p === 'ollama';
-            if (!hasKey) continue;
+            if (!shouldRefreshProviderModels(p, st.keys?.[p])) continue;
             const fetchedAt = st.modelListFetchedAt?.[p];
             const isStale = !fetchedAt || (Date.now() - fetchedAt) > STALE_MS;
             if (!isStale) continue;
