@@ -103,6 +103,7 @@ export const MapDataExportDialog: React.FC<MapDataExportDialogProps> = ({
   return (
     <MapDialogShell
       ariaLabel="Spatial data export options"
+      memoryKey="map-data-export"
       title="Export Spatial Data"
       subtitle={isGeoJson ? "GeoJSON export settings" : "GeoParquet export settings"}
       width={360}

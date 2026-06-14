@@ -36,6 +36,7 @@ export const MapFlowDispatchDialog: React.FC<MapFlowDispatchDialogProps> = ({
   return (
     <MapDialogShell
       ariaLabel="Choose workflow for map analysis dispatch"
+      memoryKey="map-flow-dispatch"
       title={`Route ${flowDispatchAoi.label.toLowerCase()} into a workflow`}
       subtitle="Analyze This Area"
       width={460}

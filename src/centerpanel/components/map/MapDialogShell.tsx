@@ -12,6 +12,7 @@ import {
   MAP_Z_INDEX,
 } from "./mapTokens";
 import { useDraggableMapPanel } from "./useDraggableMapPanel";
+import { useMapDialogLayoutStore } from "../../../stores/useMapDialogLayoutStore";
 import { GisIconButton } from "./ui";
 
 export interface MapDialogShellProps {
@@ -26,6 +27,8 @@ export interface MapDialogShellProps {
   overlayStyle?: React.CSSProperties;
   headerActions?: React.ReactNode;
   maximizable?: boolean;
+  /** When set, drag position + resized size persist durably across sessions. */
+  memoryKey?: string;
   onClose: () => void;
   children: React.ReactNode;
 }
@@ -130,12 +133,38 @@ export function MapDialogShell({
   overlayStyle,
   headerActions,
   maximizable = true,
+  memoryKey,
   onClose,
   children,
 }: MapDialogShellProps): React.ReactElement {
-  const { panelPositionStyle, resetPosition, dragHandleProps, dragHandleStyle } = useDraggableMapPanel();
+  const { panelPositionStyle, resetPosition, dragHandleProps, dragHandleStyle } = useDraggableMapPanel(
+    memoryKey ? { memoryKey } : {},
+  );
   const panelRef = useRef<HTMLDivElement | null>(null);
   const [maximized, setMaximized] = useState(false);
+  const persistedSize = useMapDialogLayoutStore((state) => (memoryKey ? state.geometry[memoryKey] ?? null : null));
+  const persistSize = useMapDialogLayoutStore((state) => state.setSize);
+  const rememberedSize = persistedSize && persistedSize.width != null && persistedSize.height != null
+    ? { width: persistedSize.width, height: persistedSize.height }
+    : null;
+
+  // Persist user resize (native CSS resize) so size survives reopen/reload.
+  useEffect(() => {
+    if (!memoryKey || maximized) return undefined;
+    const panel = panelRef.current;
+    if (!panel || typeof ResizeObserver === "undefined") return undefined;
+    let frame = 0;
+    const observer = new ResizeObserver(() => {
+      window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(() => {
+        if (panel.offsetWidth > 0 && panel.offsetHeight > 0) {
+          persistSize(memoryKey, panel.offsetWidth, panel.offsetHeight);
+        }
+      });
+    });
+    observer.observe(panel);
+    return () => { window.cancelAnimationFrame(frame); observer.disconnect(); };
+  }, [memoryKey, maximized, persistSize]);
 
   useEffect(() => {
     const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -228,7 +257,8 @@ export function MapDialogShell({
         onKeyDown={handleDialogKeyDown}
         style={{
           ...panelBaseStyle,
-          width,
+          width: rememberedSize && !maximized ? `${rememberedSize.width}px` : width,
+          height: rememberedSize && !maximized ? `${rememberedSize.height}px` : undefined,
           maxWidth,
           maxHeight,
           ...panelPositionStyle,

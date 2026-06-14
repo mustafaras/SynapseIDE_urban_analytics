@@ -186,6 +186,7 @@ export const MapDataImportHubDialog: React.FC<MapDataImportHubDialogProps> = ({
       subtitle="Connect real local files and external services with source preflight; configured teaching packs stay clearly labelled with CRS, schema, license, and provenance metadata."
       width="min(82rem, calc(100% - 2rem))"
       maxHeight="calc(100% - 2rem)"
+      memoryKey="map-data-hub"
       bodyStyle={bodyStyle}
       headerActions={(
         <button type="button" style={primaryButtonStyle} onClick={onBrowseLocalFiles}>
