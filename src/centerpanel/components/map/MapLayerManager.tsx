@@ -3473,12 +3473,8 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
   onFocusLayer,
   onRepairGeometry,
   selectedFeatureCount = 0,
-  qaIssueCount = 0,
-  qaBlockerCount = 0,
   onOpenSourcesSection,
   onOpenContentsSection,
-  onOpenSelectionDetail,
-  onOpenLayerQaDetail,
   onClearLayerCache,
   activeRerunToken = null,
   onOpenSymbology,
@@ -3585,14 +3581,6 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
     [overlayLayers],
   );
 
-  const layerWarningCount = useMemo(
-    () => overlayLayers.filter((layer) => {
-      const registry = normalizeLayerRegistryMetadata(layer);
-      return registry.qaStatus === "warning" || registry.qaStatus === "error" || registry.crsSummary.status !== "known";
-    }).length,
-    [overlayLayers],
-  );
-
   const layerSectionCards: LayerSectionCardModel[] = [
     {
       id: "layers",
@@ -3614,20 +3602,10 @@ export const MapLayerManager: React.FC<MapLayerManagerProps> = ({
       detail: `${overlayLayers.length - queryableLayerCount} non-queryable`,
       ...(onOpenContentsSection ? { actionLabel: "Open contents", onAction: onOpenContentsSection } : {}),
     },
-    {
-      id: "selection",
-      title: "Selection",
-      value: `${selectedFeatureCount.toLocaleString()} selected`,
-      detail: selectedFeatureCount > 0 ? "Selection tools and right-dock detail available" : "No active feature selection",
-      ...(onOpenSelectionDetail ? { actionLabel: "Open selection", onAction: onOpenSelectionDetail } : {}),
-    },
-    {
-      id: "layer-qa",
-      title: "Layer QA",
-      value: qaBlockerCount > 0 ? `${qaBlockerCount} blocked` : `${qaIssueCount} issues`,
-      detail: `${layerWarningCount} layer warning${layerWarningCount === 1 ? "" : "s"} currently visible`,
-      ...(onOpenLayerQaDetail ? { actionLabel: "Open QA", onAction: onOpenLayerQaDetail } : {}),
-    },
+    // Selection and Layer QA were summarized here too — they are inspection /
+    // analysis concerns that belong solely to the RIGHT dock, so they are no
+    // longer mirrored in the LEFT (composition) dock. Left = what exists,
+    // right = what is selected/active.
   ];
 
   const cartographyRecommendations = cartographyReviewState?.recommendations ?? [];
