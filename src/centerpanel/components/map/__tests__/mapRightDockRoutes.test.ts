@@ -6,9 +6,14 @@ import {
   closeMapRightDockRouteState,
   createMapRightDockRoute,
   createMapRightDockRouteFromBottomTab,
+  deriveContextualToolPanelVisibility,
   EMPTY_MAP_RIGHT_DOCK_ROUTE_STATE,
   getMapActivityIdForRightDockPanel,
   getRightDockPanelForBottomTab,
+  isFloatingModalRoutePanel,
+  isHostRenderedRoutePanel,
+  MAP_EXTERNALLY_RENDERED_ROUTE_PANELS,
+  MAP_FLOATING_MODAL_ROUTE_PANELS,
   MAP_MIGRATED_BOTTOM_TAB_TO_RIGHT_DOCK_PANEL,
   MAP_RIGHT_DOCK_PANEL_DEFINITIONS,
   MAP_RIGHT_DOCK_PANEL_IDS,
@@ -98,5 +103,82 @@ describe("mapRightDockRoutes", () => {
     const closed = closeMapRightDockRouteState(switched);
     expect(closed.activeRoute).toBeNull();
     expect(closed.lastRoute).toBe(attributesRoute);
+  });
+});
+
+describe("contextual tool panel single source of truth (p04)", () => {
+  it("derives pins / draw / measure visibility from the active route only", () => {
+    expect(deriveContextualToolPanelVisibility("pins")).toEqual({
+      showPinSidebar: true,
+      showDrawPanel: false,
+      showMeasurePanel: false,
+    });
+    expect(deriveContextualToolPanelVisibility("draw")).toEqual({
+      showPinSidebar: false,
+      showDrawPanel: true,
+      showMeasurePanel: false,
+    });
+    expect(deriveContextualToolPanelVisibility("measure")).toEqual({
+      showPinSidebar: false,
+      showDrawPanel: false,
+      showMeasurePanel: true,
+    });
+    // A non-tool route (or no route) leaves every contextual tool panel closed.
+    expect(deriveContextualToolPanelVisibility("inspect")).toEqual({
+      showPinSidebar: false,
+      showDrawPanel: false,
+      showMeasurePanel: false,
+    });
+    expect(deriveContextualToolPanelVisibility(null)).toEqual({
+      showPinSidebar: false,
+      showDrawPanel: false,
+      showMeasurePanel: false,
+    });
+  });
+
+  it("never projects two contextual tool panels open at once for any panel", () => {
+    for (const panel of MAP_RIGHT_DOCK_PANEL_IDS) {
+      const visibility = deriveContextualToolPanelVisibility(panel);
+      const openCount = [visibility.showPinSidebar, visibility.showDrawPanel, visibility.showMeasurePanel].filter(Boolean).length;
+      expect(openCount, panel).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it("flips the projected tool visibility as the single route is opened, switched, then closed", () => {
+    const drawRoute = createMapRightDockRoute("draw", { source: "toolbar" });
+    const measureRoute = createMapRightDockRoute("measure", { source: "toolbar" });
+
+    const opened = openMapRightDockRouteState(EMPTY_MAP_RIGHT_DOCK_ROUTE_STATE, drawRoute);
+    expect(deriveContextualToolPanelVisibility(opened.activeRoute?.panel ?? null).showDrawPanel).toBe(true);
+
+    const switched = switchMapRightDockRouteState(opened, measureRoute);
+    const switchedVisibility = deriveContextualToolPanelVisibility(switched.activeRoute?.panel ?? null);
+    expect(switchedVisibility.showDrawPanel).toBe(false);
+    expect(switchedVisibility.showMeasurePanel).toBe(true);
+
+    const closed = closeMapRightDockRouteState(switched);
+    expect(deriveContextualToolPanelVisibility(closed.activeRoute?.panel ?? null)).toEqual({
+      showPinSidebar: false,
+      showDrawPanel: false,
+      showMeasurePanel: false,
+    });
+  });
+
+  it("classifies the drawing modal as a floating-modal route and pins/draw as externally rendered", () => {
+    expect([...MAP_FLOATING_MODAL_ROUTE_PANELS]).toEqual(["draw"]);
+    expect(isFloatingModalRoutePanel("draw")).toBe(true);
+    expect(isFloatingModalRoutePanel("measure")).toBe(false);
+    expect(isFloatingModalRoutePanel("pins")).toBe(false);
+    expect(isFloatingModalRoutePanel(null)).toBe(false);
+
+    // The pin sidebar and drawing modal render in dedicated surfaces, so the
+    // shared right-dock host must stay hidden for them (no empty "No routed
+    // content" shell behind the dedicated surface).
+    expect(new Set(MAP_EXTERNALLY_RENDERED_ROUTE_PANELS)).toEqual(new Set(["pins", "draw"]));
+    expect(isHostRenderedRoutePanel("pins")).toBe(false);
+    expect(isHostRenderedRoutePanel("draw")).toBe(false);
+    expect(isHostRenderedRoutePanel("measure")).toBe(true);
+    expect(isHostRenderedRoutePanel("inspect")).toBe(true);
+    expect(isHostRenderedRoutePanel(null)).toBe(false);
   });
 });

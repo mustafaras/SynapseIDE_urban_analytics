@@ -218,6 +218,55 @@ export function getRightDockVisibleTabPanels(activePanel: MapRightDockPanel): re
   return [...primary, activePanel];
 }
 
+/**
+ * p04 — dock-visibility single source of truth.
+ *
+ * The active right-dock route is the ONLY authority for which contextual tool
+ * panel (pins / draw / measure) is open. The legacy `showPinSidebar` /
+ * `showDrawPanel` / `showMeasurePanel` booleans are PURE PROJECTIONS of it —
+ * never independent React state. Deriving them here (rather than mirroring the
+ * route into `useState` via effects) is what removes the racing-boolean bugs
+ * that made these tools need two clicks and fight each other.
+ */
+export interface MapContextualToolPanelVisibility {
+  showPinSidebar: boolean;
+  showDrawPanel: boolean;
+  showMeasurePanel: boolean;
+}
+
+export function deriveContextualToolPanelVisibility(
+  panel: MapRightDockPanel | null | undefined,
+): MapContextualToolPanelVisibility {
+  return {
+    showPinSidebar: panel === "pins",
+    showDrawPanel: panel === "draw",
+    showMeasurePanel: panel === "measure",
+  };
+}
+
+/**
+ * Route panels rendered as a floating dialog over the map rather than a docked
+ * rail. They must NOT reserve right-dock rail width in the layout (the map must
+ * not shift when the drawing modal opens).
+ */
+export const MAP_FLOATING_MODAL_ROUTE_PANELS: readonly MapRightDockPanel[] = ["draw"];
+
+/**
+ * Route panels rendered by a dedicated surface (the floating pin sidebar / the
+ * drawing modal) instead of the shared `MapRightDockHost` body. The host must
+ * stay hidden for these so it does not paint an empty "No routed content" shell
+ * on top of the dedicated surface.
+ */
+export const MAP_EXTERNALLY_RENDERED_ROUTE_PANELS: readonly MapRightDockPanel[] = ["pins", "draw"];
+
+export function isFloatingModalRoutePanel(panel: MapRightDockPanel | null | undefined): boolean {
+  return panel != null && MAP_FLOATING_MODAL_ROUTE_PANELS.includes(panel);
+}
+
+export function isHostRenderedRoutePanel(panel: MapRightDockPanel | null | undefined): boolean {
+  return panel != null && !MAP_EXTERNALLY_RENDERED_ROUTE_PANELS.includes(panel);
+}
+
 export const MAP_MIGRATED_BOTTOM_TAB_TO_RIGHT_DOCK_PANEL = {
   problems: "problems",
   attributes: "attributes",

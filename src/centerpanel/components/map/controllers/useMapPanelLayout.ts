@@ -1,10 +1,13 @@
 import { useMemo } from "react";
 
 import {
-  getActiveRightDockPanel,
   getMapDockLayout,
   type MapRightDockPanel,
 } from "../mapDocking";
+import {
+  isFloatingModalRoutePanel,
+  isHostRenderedRoutePanel,
+} from "../mapRightDockRoutes";
 
 interface MapPanelLayoutPreferences {
   layerPanelWidth: number;
@@ -14,9 +17,6 @@ interface MapPanelLayoutPreferences {
 interface UseMapPanelLayoutOptions {
   mapContainerWidth: number;
   showLayerPanel: boolean;
-  showSidebar: boolean;
-  showDrawPanel: boolean;
-  showMeasurePanel: boolean;
   showScientificQAPanel: boolean;
   showUrbanMethodPanel: boolean;
   showNLQueryPanel: boolean;
@@ -33,9 +33,6 @@ interface UseMapPanelLayoutOptions {
 export function useMapPanelLayout({
   mapContainerWidth,
   showLayerPanel,
-  showSidebar,
-  showDrawPanel,
-  showMeasurePanel,
   showScientificQAPanel,
   showUrbanMethodPanel,
   showNLQueryPanel,
@@ -48,7 +45,15 @@ export function useMapPanelLayout({
   navigatorStageMargin,
   layoutPreferences,
 }: UseMapPanelLayoutOptions) {
-  const requestedRightDockPanel = activeRightDockRoutePanel ?? (hasReportHandoffSource
+  // p04: the active right-dock route is the single source of truth for which
+  // contextual tool panel (pins / draw / measure) is open — there is no longer
+  // a parallel `getActiveRightDockPanel(booleans)` derivation. A floating-modal
+  // route (the drawing modal) reserves NO rail width: it paints over the map.
+  const layoutRoutePanel = isFloatingModalRoutePanel(activeRightDockRoutePanel)
+    ? null
+    : activeRightDockRoutePanel;
+
+  const requestedRightDockPanel = layoutRoutePanel ?? (hasReportHandoffSource
     ? "report"
     : showUrbanMethodPanel
       ? "urbanMethod"
@@ -56,17 +61,13 @@ export function useMapPanelLayout({
         ? "scientificQA"
         : showWorkflowDrawer
           ? "workflow"
-          : getActiveRightDockPanel({
-            showPinSidebar: showSidebar,
-            showDrawPanel,
-            showMeasurePanel,
-          }));
+          : null);
 
   const dockLayout = useMemo(() => getMapDockLayout({
     containerWidth: mapContainerWidth,
     layerPanelRequested: showLayerPanel,
     rightPanel: requestedRightDockPanel,
-    rightPanelCollapsed: rightDockCollapsed && activeRightDockRoutePanel != null,
+    rightPanelCollapsed: rightDockCollapsed && isHostRenderedRoutePanel(activeRightDockRoutePanel),
     navigatorStageMode,
     layerPanelWidth: layoutPreferences.layerPanelWidth,
     rightPanelWidth: layoutPreferences.rightPanelWidth,

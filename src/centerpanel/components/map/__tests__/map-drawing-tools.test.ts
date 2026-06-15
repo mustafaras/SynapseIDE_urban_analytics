@@ -28,6 +28,19 @@ import {
   makeRectangle,
 } from "../../../../utils/drawingHelpers";
 import type { DrawnFeature, DrawToolId, FeatureStyle } from "../mapTypes";
+import {
+  createMapRightDockRoute,
+  deriveContextualToolPanelVisibility,
+  EMPTY_MAP_RIGHT_DOCK_ROUTE_STATE,
+  openMapRightDockRouteState,
+  type MapRightDockRouteState,
+} from "../mapRightDockRoutes";
+import {
+  DEFAULT_DRAW_TOOL,
+  DRAW_TOOL_IDS,
+  isDrawToolId,
+  resolveDrawToolOnOpen,
+} from "../mapDrawToolPreferences";
 
 /* ================================================================== */
 /*  1. drawingHelpers — Pure utility tests                             */
@@ -580,7 +593,110 @@ describe("MapToolbar — draw tool integration", () => {
 });
 
 /* ================================================================== */
-/*  6. Barrel exports — New drawing types                              */
+/*  6. p05 — Drawing first-click open + per-tool activation             */
+/* ================================================================== */
+
+/**
+ * Mirrors Core `handleToggleDrawPanel` (topbar Draw command) + `handleSetDrawTool`:
+ * a SINGLE topbar activation must seed a usable tool AND open the 'draw' route in
+ * one action. We model that composition from the same pure helpers Core uses, so
+ * the open contract is guarded without rendering the (very large) runtime.
+ */
+function activateDrawFromTopbar(
+  route: MapRightDockRouteState,
+  currentTool: DrawToolId | null,
+  lastUsedTool: DrawToolId | null,
+): { seededTool: DrawToolId; nextRoute: MapRightDockRouteState } {
+  const seededTool = resolveDrawToolOnOpen(currentTool, lastUsedTool);
+  const nextRoute = openMapRightDockRouteState(
+    route,
+    createMapRightDockRoute("draw", { source: "toolbar", detail: `Drawing tool: ${seededTool}` }),
+  );
+  return { seededTool, nextRoute };
+}
+
+describe("p05 — resolveDrawToolOnOpen", () => {
+  it("defaults to polygon (the primary AOI tool) when nothing is active or remembered", () => {
+    expect(DEFAULT_DRAW_TOOL).toBe("polygon");
+    expect(resolveDrawToolOnOpen(null)).toBe("polygon");
+    expect(resolveDrawToolOnOpen(null, null)).toBe("polygon");
+  });
+
+  it("keeps the already-active tool when re-opening mid-edit", () => {
+    expect(resolveDrawToolOnOpen("rectangle", "circle")).toBe("rectangle");
+  });
+
+  it("falls back to the last-used tool when no tool is active", () => {
+    expect(resolveDrawToolOnOpen(null, "linestring")).toBe("linestring");
+  });
+
+  it("never resolves to null/select — the surface always opens usable", () => {
+    // Regression guard: the pre-p05 topbar Draw command opened the route but
+    // seeded NO tool, landing on the empty "Select" (null) state that looked
+    // like "nothing happened". The resolver must always return a real tool.
+    for (const current of [null, ...DRAW_TOOL_IDS] as Array<DrawToolId | null>) {
+      expect(resolveDrawToolOnOpen(current, null)).not.toBeNull();
+      expect(isDrawToolId(resolveDrawToolOnOpen(current, null))).toBe(true);
+    }
+  });
+});
+
+describe("p05 — single topbar Draw activation opens a usable surface", () => {
+  it("opens the 'draw' route (modal mounted) AND seeds a real tool in one action", () => {
+    const { seededTool, nextRoute } = activateDrawFromTopbar(
+      EMPTY_MAP_RIGHT_DOCK_ROUTE_STATE,
+      null,
+      null,
+    );
+    // Route panel 'draw' active → modal gate (showDrawPanel) true → modal mounts.
+    expect(nextRoute.activeRoute?.panel).toBe("draw");
+    expect(nextRoute.activeRoute?.source).toBe("toolbar");
+    expect(
+      deriveContextualToolPanelVisibility(nextRoute.activeRoute?.panel).showDrawPanel,
+    ).toBe(true);
+    // A real tool is ready immediately — not the empty Select state.
+    expect(seededTool).not.toBeNull();
+    expect(seededTool).toBe("polygon");
+  });
+
+  it("re-opening preserves the user's active tool rather than resetting to Select", () => {
+    const { seededTool } = activateDrawFromTopbar(
+      EMPTY_MAP_RIGHT_DOCK_ROUTE_STATE,
+      "circle",
+      "rectangle",
+    );
+    expect(seededTool).toBe("circle");
+  });
+
+  it("re-opening after deselecting falls back to the last-used tool", () => {
+    const { seededTool } = activateDrawFromTopbar(
+      EMPTY_MAP_RIGHT_DOCK_ROUTE_STATE,
+      null,
+      "linestring",
+    );
+    expect(seededTool).toBe("linestring");
+  });
+});
+
+describe("p05 — per-tool activation (no second click)", () => {
+  it.each(DRAW_TOOL_IDS)("activates %s and keeps the drawing surface open on first click", (tool) => {
+    // handleSetDrawTool(tool): sets activeDrawTool and opens the 'draw' route in
+    // one action; activeDrawTool flows to MapDrawingManager which activates the
+    // matching canvas interaction immediately.
+    const nextRoute = openMapRightDockRouteState(
+      EMPTY_MAP_RIGHT_DOCK_ROUTE_STATE,
+      createMapRightDockRoute("draw", { source: "toolbar", detail: `Drawing tool: ${tool}` }),
+    );
+    expect(
+      deriveContextualToolPanelVisibility(nextRoute.activeRoute?.panel).showDrawPanel,
+    ).toBe(true);
+    // The chosen tool is preserved by the open resolver — no reset, no 2nd click.
+    expect(resolveDrawToolOnOpen(tool, null)).toBe(tool);
+  });
+});
+
+/* ================================================================== */
+/*  7. Barrel exports — New drawing types                              */
 /* ================================================================== */
 
 describe("barrel exports — drawing types", () => {

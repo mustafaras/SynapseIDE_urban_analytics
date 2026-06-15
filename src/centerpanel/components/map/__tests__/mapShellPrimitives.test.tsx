@@ -227,11 +227,16 @@ describe("MapActivityRail", () => {
 /* ================================================================== */
 describe("Prompt 26 activity rail taxonomy", () => {
   it("keeps the stable GIS workflow order", () => {
+    // The left activity rail is the workspace host: composition (overview),
+    // data, layers, style, analyze, scene, and publish all open in the left dock.
     expect(MAP_PRIMARY_ACTIVITY_ORDER).toEqual([
       "overview",
       "data",
       "layers",
+      "style",
+      "analyze",
       "scene",
+      "publish",
     ]);
     expect(MAP_UTILITY_ACTIVITY_ORDER).toEqual([
       "qa",

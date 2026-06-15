@@ -2,7 +2,7 @@
 
 > **Read this FIRST every session. Update it LAST before exiting.** A track is `done` only with evidence (a test-summary file in `evidence/` or a screenshot path). Never write `done` without an `evidence` link. This ledger is the single human-readable source of truth for "where are we"; [STATE.json](STATE.json) is its machine mirror — keep them in sync.
 
-**Overall status:** `IN PROGRESS` — p00-p03 complete (badge/status-language phases closed 2026-06-15; next action p04).
+**Overall status:** `IN PROGRESS` — p00-p05 complete (badge/status-language phases + dock-state unification + draw first-click fix closed 2026-06-15; next action p06).
 
 Status values: `pending` · `in_progress` · `done` · `blocked`
 
@@ -12,8 +12,8 @@ Status values: `pending` · `in_progress` · `done` · `blocked`
 | p01 | Token foundation | Badge policy test + status tokens | **done** | Status-language preview shots | **done** | ☑ |
 | p02 | Badge cleanup: right dock | Remove routeStatus chip noise | **done** | Right-dock header shots | **done** | ☑ |
 | p03 | Badge cleanup: global | De-round 11 offender files | **done** | Workspace/scene/table shots | **done** | ☑ |
-| p04 | Dock-state unification | Converge on route model | pending | (n/a — behavior parity shots) | pending | ☐ |
-| p05 | Draw first-click fix | Open on first click + wiring | pending | First-click open shot | pending | ☐ |
+| p04 | Dock-state unification | Converge on route model | **done** | Behavior-parity shots (4 surfaces) | **done** | ☑ |
+| p05 | Draw first-click fix | Open on first click + wiring | **done** | First-click open shot | **done** | ☑ |
 | p06 | Draw premium modal | (support shots only) | pending | Premium drawing modal | pending | ☐ |
 | p07 | AOI → fetch data | Rectangle bounds → data fetch | pending | Fetch-data flow shots | pending | ☐ |
 | p08 | AOI → analysis | Compatible flows → evidence | pending | Analysis dispatch shots | pending | ☐ |
@@ -71,6 +71,24 @@ Status values: `pending` · `in_progress` · `done` · `blocked`
 - Track B: captured `evidence/p03-problems-panel.png`, `evidence/p03-review-timeline.png`, `evidence/p03-attribute-table.png`, `evidence/p03-style-workspace.png`, and `evidence/p03-scene-strip.png`.
 - Evidence: `evidence/p03-trackA.md` plus the screenshots above.
 - **Next action:** `prompts/p04-dock-state-unification.md`.
+
+### 2026-06-15 — p04 EXECUTED — both tracks done ✅
+- Track A: **the right-dock route model is now the single source of truth for dock visibility.** Replaced the three independent Core `useState` booleans (`showSidebar`/`showDrawPanel`/`showMeasurePanel`) with pure route projections (`deriveContextualToolPanelVisibility`) + thin `Dispatch<SetStateAction<boolean>>` setter wrappers that dispatch route open/close (with an optimistic route ref so intra-event "open one, close others" sequences resolve against the intended route). Deleted the racing draw-route→boolean conversion effect (`Core:812`) and the route→boolean mirroring in the measure effect (`Core:2589`); removed the second `getActiveRightDockPanel(booleans)` derivation from `useMapPanelLayout` (route is authoritative, draw excluded as a floating modal that reserves no rail); dropped the three setter inputs/resets from `useMapRightDockRouting`; rewired `handleSetDrawTool`/`handleToggleDrawPanel`/`handleOpenDrawFromStatus`/`handleSetMeasureTool`/`handleSetSelectionDragTool` to open routes (killing the `setShowDrawPanel(true)+closeRightDockRoute()` contradiction). `MapRightDockHost` is now gated by `isHostRenderedRoutePanel` so pins/draw (dedicated surfaces) never paint an empty host shell.
+  - New pure helpers in `mapRightDockRoutes.ts`: `deriveContextualToolPanelVisibility`, `MAP_FLOATING_MODAL_ROUTE_PANELS`/`isFloatingModalRoutePanel`, `MAP_EXTERNALLY_RENDERED_ROUTE_PANELS`/`isHostRenderedRoutePanel` — unit-tested for single-source + mutual exclusivity.
+  - Gates: 4 dock specs **29/29**; full map suite **840/840 (92 files), 0 failures**; typecheck PASS; lint:errors PASS; no-Tailwind PASS.
+  - **Fixed the long-standing p00 baseline failure** (`mapShellPrimitives > keeps the stable GIS workflow order`): updated the stale 4-item assertion to the documented 7-item `MAP_PRIMARY_ACTIVITY_ORDER` (source of truth `mapNavigationModel.ts:130`). The map suite is now fully green — the standing "832/833 known fail" caveat is retired.
+- Track B: parity capture (temp `e2e/p04-parity-capture.spec.ts`, deleted at closeout) → **4/4 pass**. Captured `evidence/p04-parity-draw.png` (floating Draw modal), `p04-parity-measure.png` (host-rendered Measure dock), `p04-parity-pins.png` (floating pin sidebar — **no empty host shell behind it**, confirming the host-gate exclusion), `p04-parity-scientificqa.png` (host-rendered QA dock). All four contextual surfaces open correctly under one route with correct dedicated-vs-host render path. Parity-positive side effect: draw now opens cleanly via the toolbar command (the p00 "draw never opens via command" symptom no longer reproduces; p05 formally owns/hardens the open path).
+- Evidence: `evidence/p04-trackA.md`, `evidence/p04-trackB.md`, `evidence/p04-parity-{draw,measure,pins,scientificqa}.png`.
+- Verify result: typecheck ok; specs map-docking/mapRightDockRoutes/map-right-dock-migration/useMapPanelLayout all green; full map suite 840/840.
+- **Next action:** `prompts/p05-draw-first-click.md`.
+
+### 2026-06-15 — p05 EXECUTED — both tracks done ✅
+- **Root cause (record for p06/p10):** post-p04 the topbar Draw command DID open the `draw` route on the first click — the modal just opened **empty**. `handleToggleDrawPanel` opened the route but seeded **no tool** (`activeDrawTool === null` → `Select` state), so "nothing drawable" read as "the Draw button doesn't work." This is candidate (b); causes (a)/(c)/(d) were not in play after p04 (route↔gate agree, `navigatorStageMode` not swallowing, command registered). The per-tool topbar buttons were already first-click-fine (`handleSetDrawTool` sets tool + opens route in one action).
+- Track A: new pure helper `mapDrawToolPreferences.ts` (`DEFAULT_DRAW_TOOL='polygon'`, `resolveDrawToolOnOpen` keep-active→last-used→default, never null; `DRAW_TOOL_IDS`/`isDrawToolId`). Core `handleToggleDrawPanel` now opens **via `handleSetDrawTool`** seeding the resolved tool (reuses the single open path); `handleSetDrawTool` records last-used in a session ref (`lastUsedDrawToolRef`, seeded to default). No `showDrawPanel` boolean reintroduced, `MapDrawingManager` not forked, no `localStorage`/new store (session memory only; persistence stays optional per guardrail).
+  - Tests: `map-drawing-tools.test.ts` §6 added — `resolveDrawToolOnOpen` (incl. never-null regression guard), single topbar activation opens `draw` route + seeds real tool, per-tool `it.each` activation. Gates: `map-drawing-tools`+`map-docking` **72/72**; draw-wiring (`MapExplorerModal.dispatch`+`MapToolbar.command-palette`+`mapRightDockRoutes`) **31/31**; `npm run typecheck` PASS.
+- Track B: temp spec `e2e/p05-draw-first-click-capture.spec.ts` (deleted at closeout) → **1 passed**. Opened via command palette (Ctrl+K → Drawings → one click = `onToggleDrawPanel`). Asserted modal visible, Polygon `aria-pressed=true`, Select `aria-pressed=false`, `store.activeDrawTool==='polygon'`, drawn feature listed. Captured `evidence/p05-draw-first-click.png` (modal open, polygon pre-selected, interactive tool rail) and `evidence/p05-draw-polygon.png` (polygon tool active + "Study area AOI" polygon drawing present).
+- Evidence: `evidence/p05-trackA.md`, `evidence/p05-trackB.md`, `evidence/p05-draw-first-click.png`, `evidence/p05-draw-polygon.png`.
+- **Next action:** `prompts/p06-draw-premium-modal.md` (premium visual redesign of the drawing modal — behaviour now correct, look unchanged here).
 
 <!-- Append new sessions below. Template:
 ### YYYY-MM-DD — <phase/track> — <short title>

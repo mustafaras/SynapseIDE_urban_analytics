@@ -21,11 +21,8 @@ interface UseMapRightDockRoutingInput {
   announce: (message: string) => void;
   closeMapStartDialog: (action: MapStartDialogHandoff | "dismiss" | "close" | "escape", announcement?: string) => void;
   mapStartDialogOpen: boolean;
-  setShowDrawPanel: React.Dispatch<React.SetStateAction<boolean>>;
-  setShowMeasurePanel: React.Dispatch<React.SetStateAction<boolean>>;
   setShowReviewTimeline: React.Dispatch<React.SetStateAction<boolean>>;
   setShowScientificQAPanel: React.Dispatch<React.SetStateAction<boolean>>;
-  setShowSidebar: React.Dispatch<React.SetStateAction<boolean>>;
   setWorkspaceView: React.Dispatch<React.SetStateAction<MapWorkspaceView>>;
   workspaceView: MapWorkspaceView;
 }
@@ -56,11 +53,8 @@ export function useMapRightDockRouting({
   announce,
   closeMapStartDialog,
   mapStartDialogOpen,
-  setShowDrawPanel,
-  setShowMeasurePanel,
   setShowReviewTimeline,
   setShowScientificQAPanel,
-  setShowSidebar,
   setWorkspaceView,
   workspaceView,
 }: UseMapRightDockRoutingInput): MapRightDockRoutingController {
@@ -108,11 +102,12 @@ export function useMapRightDockRouting({
       setWorkspaceView("explore");
     }
 
+    // p04: the contextual tool booleans (pins / draw / measure) are pure
+    // projections of the active route, so switching the route here updates them
+    // automatically — no manual reset needed. Review-timeline and scientific-QA
+    // remain independent state, so they are still cleared explicitly.
     setShowReviewTimeline(false);
     setShowScientificQAPanel(false);
-    setShowSidebar(false);
-    setShowDrawPanel(false);
-    setShowMeasurePanel(false);
 
     const definition = getMapRightDockPanelDefinition(panel);
     // Deliberately NOT calling setActiveActivityId here: the right dock is an
@@ -125,11 +120,8 @@ export function useMapRightDockRouting({
     announce,
     closeMapStartDialog,
     mapStartDialogOpen,
-    setShowDrawPanel,
-    setShowMeasurePanel,
     setShowReviewTimeline,
     setShowScientificQAPanel,
-    setShowSidebar,
     setWorkspaceView,
     workspaceView,
   ]);

@@ -24,6 +24,7 @@ import { MapCanvasControls } from "../MapCanvasControls";
 import { MapLegendOverlay } from "../inspector/style/MapLegendOverlay";
 import { MapPerformanceBudgetBanner } from "../MapPerformanceDiagnosticsPanel";
 import { MapRightDockHost, type MapRightDockPanelStatus } from "../MapRightDockHost";
+import { isHostRenderedRoutePanel } from "../mapRightDockRoutes";
 import { MapUrbanMethodCompatibilityRail } from "../MapUrbanMethodCompatibilityRail";
 import { MapLayoutDesignerPanel } from "../layout/MapLayoutDesignerPanel";
 import { WorkflowPreviewOverlay } from "./MapWorkflowPreviewOverlay";
@@ -678,7 +679,7 @@ export const MapExplorerModalRuntimeView: React.FC<MapExplorerModalRuntimeViewPr
       />
     ) : null}
 
-    {activeRightDockRoute && !navigatorStageMode ? (
+    {activeRightDockRoute && isHostRenderedRoutePanel(activeRightDockRoute.panel) && !navigatorStageMode ? (
       <MapRightDockHost
         route={activeRightDockRoute}
         panels={rightDockPanels}

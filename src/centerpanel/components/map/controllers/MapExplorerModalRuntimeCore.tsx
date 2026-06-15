@@ -52,7 +52,8 @@ import type { MapInspectorHostContext } from '../inspector';
 import { createMapWorkflowResultEvidenceArtifact } from '../mapEvidenceArtifacts';
 import { useDraggableMapPanel } from '../useDraggableMapPanel';
 import { type MapRightDockPanel } from '../mapDocking';
-import { createMapRightDockRoute, getMapRightDockPanelDefinition, MAP_RIGHT_DOCK_PANEL_IDS, type MapRightDockRouteSource } from '../mapRightDockRoutes';
+import { createMapRightDockRoute, deriveContextualToolPanelVisibility, getMapRightDockPanelDefinition, MAP_RIGHT_DOCK_PANEL_IDS, type MapRightDockRouteSource } from '../mapRightDockRoutes';
+import { DEFAULT_DRAW_TOOL, resolveDrawToolOnOpen } from '../mapDrawToolPreferences';
 import { type MapWorkspaceView } from '../mapExperience';
 import { createInitialMapStartDialogState, dismissMapStartDialog, hasMapStartDialogWorkspaceContent, type MapStartDialogHandoff, type MapStartDialogState } from '../mapStartDialogState';
 import { selectMapExplorerContextSummary } from '../mapContextSummary';
@@ -715,7 +716,6 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
   const [workbenchSidebarCollapsed, setWorkbenchSidebarCollapsed] = useState(layoutPreferences.panelMode === 'collapsed');
   const [layersCartographyScopeId, setLayersCartographyScopeId] = useState<string | null>(null);
   const [styleWorkspaceLayerId, setStyleWorkspaceLayerId] = useState<string | null>(null);
-  const [showSidebar, setShowSidebar] = useState(false);
   const [showLayerPanel, setShowLayerPanelState] = useState(layoutPreferences.panelMode !== 'collapsed');
   const setShowLayerPanel = useCallback<React.Dispatch<React.SetStateAction<boolean>>>(
     next => {
@@ -747,20 +747,61 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
   const [showCanvasControlDock, setShowCanvasControlDock] = useState(false);
   const [swipeCompareBaseLayer, setSwipeCompareBaseLayer] = useState<BaseLayerId>('satellite');
   const [rightDockCollapsed, setRightDockCollapsed] = useState(false);
-  const [showDrawPanel, setShowDrawPanel] = useState(false);
-  const [showMeasurePanel, setShowMeasurePanel] = useState(false);
   const { activeRightDockRoute, bottomPanelReturnFocusRef, closeRightDockRoute, openDiagnosticsRightDock, openPerformanceRightDock, openRightDockPanel, switchRightDockRoute, toggleRightDockPanel } = useMapRightDockRouting({
     announce,
     closeMapStartDialog,
     mapStartDialogOpen: mapStartDialogState.open,
-    setShowDrawPanel,
-    setShowMeasurePanel,
     setShowReviewTimeline,
     setShowScientificQAPanel,
-    setShowSidebar,
     setWorkspaceView,
     workspaceView,
   });
+
+  // p04 — dock-visibility single source of truth. The active right-dock route is
+  // the ONLY authority for which contextual tool panel (pins / draw / measure) is
+  // open; these booleans are pure projections of it (no independent state, no
+  // mirroring effects). Their setters are thin wrappers that dispatch route
+  // open/close so the many existing `setShowX(...)` call sites stay intact.
+  // p04: the drawing modal is the only contextual tool panel rendered OUTSIDE
+  // the dock host & layout, so Core derives its open state from the route here.
+  // Pin-sidebar / measure visibility are derived from the same route inside the
+  // layout (effectiveShowSidebar / effectiveShowMeasurePanel), so they need no
+  // local mirror.
+  const { showDrawPanel } = deriveContextualToolPanelVisibility(activeRightDockRoute?.panel ?? null);
+  // Mirror the live route into a ref each render. The thin setter wrappers below
+  // ALSO update it optimistically so that intra-event sequences such as
+  // `setShowSidebar(true); setShowDrawPanel(false);` resolve against the intended
+  // next route — not the stale pre-event route — which is what keeps "open one,
+  // close the others" call sites from cancelling the route they just opened.
+  const activeRightDockRoutePanelRef = useRef<MapRightDockPanel | null>(activeRightDockRoute?.panel ?? null);
+  activeRightDockRoutePanelRef.current = activeRightDockRoute?.panel ?? null;
+  const setContextualToolPanelOpen = useCallback(
+    (panel: Extract<MapRightDockPanel, 'pins' | 'draw' | 'measure'>, announcement: string, next: React.SetStateAction<boolean>) => {
+      const isOpen = activeRightDockRoutePanelRef.current === panel;
+      const resolved = typeof next === 'function' ? next(isOpen) : next;
+      if (resolved === isOpen) return;
+      if (resolved) {
+        activeRightDockRoutePanelRef.current = panel;
+        openRightDockPanel(panel, announcement, 'toolbar');
+      } else {
+        activeRightDockRoutePanelRef.current = null;
+        closeRightDockRoute();
+      }
+    },
+    [closeRightDockRoute, openRightDockPanel],
+  );
+  const setShowSidebar = useCallback<React.Dispatch<React.SetStateAction<boolean>>>(
+    (next) => setContextualToolPanelOpen('pins', 'Pin sidebar opened', next),
+    [setContextualToolPanelOpen],
+  );
+  const setShowDrawPanel = useCallback<React.Dispatch<React.SetStateAction<boolean>>>(
+    (next) => setContextualToolPanelOpen('draw', 'Drawings modal opened', next),
+    [setContextualToolPanelOpen],
+  );
+  const setShowMeasurePanel = useCallback<React.Dispatch<React.SetStateAction<boolean>>>(
+    (next) => setContextualToolPanelOpen('measure', 'Measurements opened in the right dock', next),
+    [setContextualToolPanelOpen],
+  );
 
   const { handleRetryWorkerJob, performanceTimings, recordPerformanceTiming, telemetryEvents } = useMapPerformanceRuntime({
     announce,
@@ -809,14 +850,10 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
     }
   }, [activeActivityId, activeRightDockRoute, closeRightDockRoute]);
 
-  useEffect(() => {
-    if (activeRightDockRoute?.panel !== 'draw') {
-      return;
-    }
-    closeRightDockRoute();
-    setShowDrawPanel(true);
-    announce('Drawings modal opened');
-  }, [activeRightDockRoute?.panel, announce, closeRightDockRoute]);
+  // p04: the legacy draw-route → boolean conversion effect was removed. The
+  // drawing modal now renders directly off `showDrawPanel = route?.panel ===
+  // 'draw'`, so the 'draw' route stays the single source of truth instead of
+  // being closed and mirrored into a racing boolean. (p05 hardens the open path.)
 
   const openAnalyzeActivityTab = useCallback(
     (tabId: MapAnalyzeTabId, announcement: string) => {
@@ -1709,14 +1746,16 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
   }, [openRightDockPanel]);
 
   const handleOpenDrawFromStatus = useCallback(() => {
-    closeRightDockRoute();
-    setShowSidebar(false);
-    setShowMeasurePanel(false);
+    // p04: open the 'draw' route directly (single source of truth); the route
+    // switch closes any other tool panel. Custom announcement preserved.
     setShowScientificQAPanel(false);
+    openRightDockPanel(
+      'draw',
+      contextSummary.activeAoi || drawnFeatures.length > 0 ? 'Draw and AOI detail opened in the drawing modal' : 'Drawing tools opened in the drawing modal',
+      'status-bar',
+    );
     setWorkspaceView('analyze');
-    setShowDrawPanel(true);
-    announce(contextSummary.activeAoi || drawnFeatures.length > 0 ? 'Draw and AOI detail opened in the drawing modal' : 'Drawing tools opened in the drawing modal');
-  }, [announce, closeRightDockRoute, contextSummary.activeAoi, drawnFeatures.length]);
+  }, [contextSummary.activeAoi, drawnFeatures.length, openRightDockPanel, setWorkspaceView]);
 
   const handleSetSelectedFeatures = useCallback(
     (layerId: string, featureIds: string[]) => {
@@ -2056,9 +2095,6 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
   const { dockLayout, effectiveShowSidebar, effectiveShowLayerPanel, effectiveShowMeasurePanel, effectiveShowScientificQAPanel, effectiveShowUrbanMethodPanel, effectiveShowNLQueryPanel, effectiveShowWorkflowDrawer, navigatorLeftInset, navigatorRightInset } = useMapPanelLayout({
     mapContainerWidth,
     showLayerPanel,
-    showSidebar,
-    showDrawPanel: false,
-    showMeasurePanel,
     showScientificQAPanel,
     showUrbanMethodPanel: activeUrbanMethodPreview !== null,
     showNLQueryPanel,
@@ -2433,9 +2469,11 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
         })
       );
       if (panel === 'attributes' || panel === 'selection' || panel === 'timeline' || panel === 'tasks' || panel === 'measure' || panel === 'collaboration' || panel === 'problems' || panel === 'scientificQA' || panel === 'qa' || panel === 'diagnostics' || panel === 'performance') {
+        // p04: measure visibility is route-derived now — switching the route
+        // above already updates it. (Only the still-independent review-timeline
+        // and scientific-QA booleans need an explicit reset here.)
         setShowReviewTimeline(false);
         setShowScientificQAPanel(false);
-        setShowMeasurePanel(false);
       }
       setActiveActivityId(definition.activityId);
       announce(`${definition.label} opened in the right dock`);
@@ -2587,28 +2625,20 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
   );
 
   useEffect(() => {
+    setShowLayerPanel(true);
+    // p04: draw/measure panel visibility is no longer mirrored into booleans
+    // here — it is derived from the active route. We only keep the real side
+    // effects: the Analyze workspace owns these tools, so leaving it clears the
+    // measure tool and closes the drawing modal (matching pre-p04 behaviour).
     if (workspaceView !== 'analyze') {
-      setShowLayerPanel(true);
-      setShowDrawPanel(false);
-      setShowMeasurePanel(false);
       if (activeMeasureTool) {
         setActiveMeasureTool(null);
       }
-      return;
+      if (activeRightDockRoutePanelRef.current === 'draw') {
+        closeRightDockRoute();
+      }
     }
-
-    setShowLayerPanel(true);
-    if (activeRightDockRoute?.panel === 'measure') {
-      setShowDrawPanel(false);
-      setShowMeasurePanel(true);
-    } else if (activeRightDockRoute?.panel === 'draw') {
-      setShowMeasurePanel(false);
-      setShowDrawPanel(true);
-    } else {
-      setShowDrawPanel(false);
-      setShowMeasurePanel(false);
-    }
-  }, [activeMeasureTool, activeRightDockRoute?.panel, setActiveMeasureTool, workspaceView]);
+  }, [activeMeasureTool, closeRightDockRoute, setActiveMeasureTool, setShowLayerPanel, workspaceView]);
 
   useEffect(() => {
     if (!selectionDragTool) {
@@ -3853,6 +3883,10 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
   );
 
   /* ---- Drawing handlers ---- */
+  // p05: session memory of the last drawing tool the user activated, so the
+  // topbar Draw command re-opens onto a real tool rather than the empty "Select"
+  // state. Seeded with the default AOI tool for the very first open.
+  const lastUsedDrawToolRef = useRef<DrawToolId>(DEFAULT_DRAW_TOOL);
   const handleSetDrawTool = useCallback(
     (tool: DrawToolId | null) => {
       setActiveDrawTool(tool);
@@ -3860,21 +3894,21 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
       setShowCanvasKeyboardHelp(false);
       // When activating draw, deactivate pin mode and open the draggable drawing modal.
       if (tool) {
+        lastUsedDrawToolRef.current = tool;
         setActiveTool(null);
         setActiveMeasureTool(null);
-        setShowSidebar(false);
         setShowScientificQAPanel(false);
         closeFloatingRightPanels();
-        setShowMeasurePanel(false);
-        closeRightDockRoute();
-        setShowDrawPanel(true);
+        // p04: open the 'draw' route — the single source of truth. Switching the
+        // route closes any other tool panel and drives `showDrawPanel`, so no
+        // manual boolean resets or closeRightDockRoute race is needed.
+        openRightDockPanel('draw', `Drawing tool: ${tool}. Drawing modal opened`, 'toolbar');
         setWorkspaceView('analyze');
-        announce(`Drawing tool: ${tool}. Drawing modal opened`);
       } else {
         announce('Drawing tool deactivated');
       }
     },
-    [announce, closeFloatingRightPanels, closeRightDockRoute, setActiveDrawTool, setActiveMeasureTool, setActiveTool]
+    [announce, closeFloatingRightPanels, openRightDockPanel, setActiveDrawTool, setActiveMeasureTool, setActiveTool, setWorkspaceView]
   );
 
   const handleCancelDraw = useCallback(() => {
@@ -3882,19 +3916,19 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
   }, [setActiveDrawTool]);
 
   const handleToggleDrawPanel = useCallback(() => {
-    setShowDrawPanel(current => {
-      const next = !current;
-      if (next) {
-        setShowSidebar(false);
-        setShowMeasurePanel(false);
-        setShowScientificQAPanel(false);
-        closeRightDockRoute();
-        setWorkspaceView('analyze');
-      }
-      announce(next ? 'Drawings modal opened' : 'Drawings modal closed');
-      return next;
-    });
-  }, [announce, closeRightDockRoute]);
+    // p04: toggle the 'draw' route directly (single source of truth) rather than
+    // flipping a racing boolean.
+    if (activeRightDockRoutePanelRef.current === 'draw') {
+      closeRightDockRoute();
+      announce('Drawings modal closed');
+      return;
+    }
+    // p05: open via handleSetDrawTool so the first click lands on a real,
+    // immediately usable tool (keep the active tool when re-opening, else the
+    // last-used tool, else the default AOI tool) instead of the empty "Select"
+    // state that looked like "nothing happened".
+    handleSetDrawTool(resolveDrawToolOnOpen(activeDrawTool, lastUsedDrawToolRef.current));
+  }, [activeDrawTool, announce, closeRightDockRoute, handleSetDrawTool]);
 
   const handleAddDrawingsAsLayer = useCallback(() => {
     if (drawnFeatures.length === 0) return;
@@ -3936,12 +3970,11 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
       if (tool) {
         setActiveTool(null);
         setActiveDrawTool(null);
-        setShowSidebar(false);
         setShowScientificQAPanel(false);
         closeFloatingRightPanels();
-        setShowMeasurePanel(false);
-        setShowDrawPanel(false);
         setWorkspaceView('analyze');
+        // p04: opening the 'measure' route is the single source of truth; it
+        // closes any other tool panel (pins/draw) via the route switch.
         openRightDockPanel('measure', `Measure ${tool === 'measure-distance' ? 'distance' : 'area'} opened in the right dock`, 'toolbar');
       } else {
         announce('Measure tool deactivated');
@@ -3968,12 +4001,11 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
       setWorkspaceView('analyze');
       setShowScientificQAPanel(false);
       closeFloatingRightPanels();
-      setShowSidebar(false);
-      setShowDrawPanel(false);
-      setShowMeasurePanel(false);
       setActiveTool(null);
       setActiveDrawTool(null);
       setActiveMeasureTool(null);
+      // p04: the 'selection' route is the single source of truth — opening it
+      // closes any active tool panel (pins/draw/measure) via the route switch.
       openRightDockPanel('selection', tool === 'rectangle' ? 'Rectangle selection opened in the right dock' : 'Lasso selection opened in the right dock', 'toolbar');
     },
     [closeFloatingRightPanels, openRightDockPanel, setActiveDrawTool, setActiveMeasureTool, setActiveTool]

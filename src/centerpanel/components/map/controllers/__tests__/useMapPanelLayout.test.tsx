@@ -43,15 +43,13 @@ function renderPanelLayoutHook(
 const baseOptions: Parameters<typeof useMapPanelLayout>[0] = {
   mapContainerWidth: 1440,
   showLayerPanel: true,
-  showSidebar: false,
-  showDrawPanel: false,
-  showMeasurePanel: false,
   showScientificQAPanel: false,
   showUrbanMethodPanel: false,
   showNLQueryPanel: false,
   showWorkflowDrawer: false,
   showReviewTimeline: false,
   hasReportHandoffSource: false,
+  activeRightDockRoutePanel: null,
   navigatorStageMode: false,
   navigatorStageMargin: 24,
   layoutPreferences: {
@@ -100,6 +98,46 @@ describe("useMapPanelLayout", () => {
     expect(hook.current.effectiveShowUrbanMethodPanel).toBe(true);
     expect(hook.current.effectiveShowScientificQAPanel).toBe(false);
     expect(hook.current.effectiveShowWorkflowDrawer).toBe(false);
+
+    hook.cleanup();
+  });
+
+  it("treats the drawing-modal route as floating — it reserves no right rail (p04 single source)", () => {
+    const hook = renderPanelLayoutHook({
+      ...baseOptions,
+      activeRightDockRoutePanel: "draw",
+    });
+
+    // The drawing modal paints over the map; it must not become the docked
+    // right panel or shift the center lane.
+    expect(hook.current.requestedRightDockPanel).toBeNull();
+    expect(hook.current.dockLayout.activeRightPanel).toBeNull();
+    expect(hook.current.dockLayout.showDrawPanel).toBe(false);
+
+    hook.cleanup();
+  });
+
+  it("reserves the right rail for pins / measure straight from the active route", () => {
+    const pinsHook = renderPanelLayoutHook({ ...baseOptions, activeRightDockRoutePanel: "pins" });
+    expect(pinsHook.current.requestedRightDockPanel).toBe("pins");
+    expect(pinsHook.current.effectiveShowSidebar).toBe(true);
+    pinsHook.cleanup();
+
+    const measureHook = renderPanelLayoutHook({ ...baseOptions, activeRightDockRoutePanel: "measure" });
+    expect(measureHook.current.requestedRightDockPanel).toBe("measure");
+    expect(measureHook.current.effectiveShowMeasurePanel).toBe(true);
+    measureHook.cleanup();
+  });
+
+  it("lets the active route outrank the legacy QA / workflow layout fallbacks", () => {
+    const hook = renderPanelLayoutHook({
+      ...baseOptions,
+      activeRightDockRoutePanel: "inspect",
+      showScientificQAPanel: true,
+      showWorkflowDrawer: true,
+    });
+
+    expect(hook.current.requestedRightDockPanel).toBe("inspect");
 
     hook.cleanup();
   });
