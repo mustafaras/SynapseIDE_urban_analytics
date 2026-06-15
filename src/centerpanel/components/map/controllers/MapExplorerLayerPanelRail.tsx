@@ -2,6 +2,7 @@ import React from "react";
 
 import {
   MapPanelRail,
+  type MapPanelRailSide,
 } from "../MapWorkspaceShell";
 import { MapWorkbenchSidebar } from "../sidebar";
 import { MapDockPanelFrame } from "../shell";
@@ -26,6 +27,10 @@ import type { MapActivityId } from "../mapActivityRuntime";
 interface MapExplorerLayerPanelRailProps {
   activeActivityId: MapActivityId;
   activeActivityLabel: string;
+  /** Which screen edge this dock attaches to. Composition activities use the
+   *  left edge; Style/Analyze/Scene/Publish workspaces dock on the right so the
+   *  left dock stays composition-only. */
+  side?: MapPanelRailSide;
   analyzeDataOperationsElement: React.ReactNode;
   analyzeModelsElement: React.ReactNode;
   analyzeQueryElement: React.ReactNode;
@@ -77,6 +82,7 @@ interface MapExplorerLayerPanelRailProps {
 export const MapExplorerLayerPanelRail: React.FC<MapExplorerLayerPanelRailProps> = ({
   activeActivityId,
   activeActivityLabel,
+  side = "left",
   analyzeDataOperationsElement,
   analyzeModelsElement,
   analyzeQueryElement,
@@ -189,16 +195,17 @@ export const MapExplorerLayerPanelRail: React.FC<MapExplorerLayerPanelRailProps>
   return (
     <MapPanelRail
       ref={legendRef}
-      side="left"
+      side={side}
       width={layerPanelWidth}
       height="min(24rem, 54%)"
       minWidth={MAP_LAYER_PANEL_MIN_WIDTH}
       maxWidth={MAP_LAYER_PANEL_MAX_WIDTH}
-      resizable={dockLayerPanelPlacement === "left"}
+      resizable={side === "right" || dockLayerPanelPlacement === "left"}
       onWidthChange={onLayerPanelWidthChange}
-      ariaLabel="Layer and data panel"
-      data-ui-proof="real-left-dock"
+      ariaLabel={side === "right" ? "Workspace panel" : "Layer and data panel"}
+      data-ui-proof={side === "right" ? "real-workspace-dock" : "real-left-dock"}
       data-testid="map-layer-panel-rail"
+      data-map-panel-side={side}
     >
       {isWorkbenchActivity ? (
       activeActivityId === "analyze" ? (
