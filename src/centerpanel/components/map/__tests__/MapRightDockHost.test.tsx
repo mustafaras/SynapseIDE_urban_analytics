@@ -32,6 +32,32 @@ describe("MapRightDockHost", () => {
     expect(host.querySelector("[data-map-right-dock-body='true']")).toBeTruthy();
   });
 
+  it("does not render a default status chip for primary panels", () => {
+    render(
+      <MapRightDockHost
+        route={createMapRightDockRoute("style", { source: "panel-tab" })}
+        onClose={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByTestId("map-right-dock-status")).toBeNull();
+    expect(screen.getByLabelText("More right dock routes")).toBeTruthy();
+  });
+
+  it("renders exactly one status chip when a real panel condition is provided", () => {
+    render(
+      <MapRightDockHost
+        route={createMapRightDockRoute("problems", { source: "status-bar", detail: "qa-count" })}
+        panelStatus={{ status: "caveat", label: "3 QA issues", title: "QA has 3 open issues" }}
+        onClose={vi.fn()}
+      />,
+    );
+
+    const chips = screen.getAllByTestId("map-right-dock-status");
+    expect(chips).toHaveLength(1);
+    expect(chips[0]?.textContent).toContain("3 QA issues");
+  });
+
   it("exposes primary tabs in the tab rail and all migrated panels reachable via tab or overflow", () => {
     const migratedPanels = Array.from(new Set(Object.values(MAP_MIGRATED_BOTTOM_TAB_TO_RIGHT_DOCK_PANEL))) as MapRightDockPanel[];
     const primaryInMigrated = migratedPanels.filter((p) => MAP_RIGHT_DOCK_PRIMARY_PANELS.includes(p));

@@ -127,7 +127,7 @@ const tabCountStyle: React.CSSProperties = {
   minWidth: "1.25rem",
   height: "1.125rem",
   padding: `0 ${MAP_SPACING.xs}`,
-  borderRadius: MAP_RADIUS.full,
+  borderRadius: MAP_RADIUS.badge,
   border: MAP_STROKES.hairlineSubtle,
   color: MAP_COLORS.textSecondary,
   background: MAP_COLORS.transparent,

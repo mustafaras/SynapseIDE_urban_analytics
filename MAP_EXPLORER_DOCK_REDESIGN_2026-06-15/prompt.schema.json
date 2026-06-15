@@ -1,0 +1,83 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://urban-analytics.local/schemas/map-explorer-dock-redesign-prompt.schema.json",
+  "title": "Map Explorer Redesign — Self-Contained Phase Prompt Contract",
+  "description": "Schema for a single agent-ready prompt. A prompt drives ONE track (functional OR visual) of ONE phase and must be executable by an agent with NO memory of prior sessions. Markdown prompt files in prompts/ are the human-facing rendering of this contract; STATE.json mirrors the status fields.",
+  "type": "object",
+  "required": ["promptId", "phaseId", "track", "title", "intent", "sessionBootstrap", "contextPrimer", "files", "steps", "verification", "doneCriteria", "antiAmnesia", "guardrails"],
+  "additionalProperties": false,
+  "properties": {
+    "promptId": {
+      "type": "string",
+      "pattern": "^map-dock/p(0[0-9]|1[0-9])-(trackA|trackB)$",
+      "description": "Stable id, e.g. map-dock/p05-trackA."
+    },
+    "phaseId": { "type": "string", "pattern": "^p(0[0-9]|1[0-9])$" },
+    "track": { "type": "string", "enum": ["trackA", "trackB"], "description": "trackA = Functional (code+tests). trackB = Visual (design+screenshots)." },
+    "title": { "type": "string", "minLength": 4 },
+    "intent": { "type": "string", "description": "One paragraph: the user-visible problem this prompt fixes and the target end state." },
+    "sessionBootstrap": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" },
+      "description": "Ordered files the agent MUST read before acting, so a cold session recovers context. Always begins with ANTI_AMNESIA.md and LEDGER.md."
+    },
+    "contextPrimer": {
+      "type": "string",
+      "description": "Embedded architecture facts the agent needs even with zero prior context: how the relevant subsystem works and where its seams are. Self-contained; does not assume PLAN.md was read."
+    },
+    "dependsOn": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^map-dock/p(0[0-9]|1[0-9])-(trackA|trackB)$" },
+      "description": "Prompt ids that must be 'done' in STATE.json before this runs."
+    },
+    "files": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["path", "role"],
+        "additionalProperties": false,
+        "properties": {
+          "path": { "type": "string" },
+          "role": { "type": "string", "enum": ["edit", "create", "reference", "test"] },
+          "anchor": { "type": "string", "description": "Line/symbol anchor, e.g. 'Core:750 showDrawPanel' or 'routeStatus ~117-148'." },
+          "note": { "type": "string" }
+        }
+      }
+    },
+    "doNotTouch": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Files/contracts that must NOT be modified or redefined (shared contracts, fixtures, hooks to reuse)."
+    },
+    "steps": { "type": "array", "minItems": 1, "items": { "type": "string" }, "description": "Ordered, concrete actions." },
+    "verification": {
+      "type": "object",
+      "required": ["kind", "commands", "evidencePath"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "type": "string", "enum": ["functional", "visual"] },
+        "commands": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+        "evidencePath": { "type": "string", "description": "Where proof is saved, e.g. evidence/p05-trackA.md or evidence/p05-draw-open.png." }
+      }
+    },
+    "doneCriteria": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+    "antiAmnesia": {
+      "type": "object",
+      "required": ["updateLedger", "updateState", "exitNote"],
+      "additionalProperties": false,
+      "properties": {
+        "updateLedger": { "type": "boolean", "const": true },
+        "updateState": { "type": "boolean", "const": true },
+        "exitNote": { "type": "string", "description": "What the agent must write into the LEDGER session log + STATE.json evidence before exiting." }
+      }
+    },
+    "guardrails": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" },
+      "description": "Hard constraints carried into every prompt: no Tailwind in centerpanel; reuse gisContracts/gisFixtures/useDraggableMapPanel; no direct localStorage (Zustand persist urban.config.map.*); exactOptionalPropertyTypes; no synthetic-as-real data; do not close the phase until both tracks verified."
+    }
+  }
+}

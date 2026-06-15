@@ -487,7 +487,7 @@ function normalizeViewport(input: unknown): ViewportState {
 function normalizeLayoutPreferences(input: unknown): MapProjectSnapshotLayoutPreferences | undefined {
   if (!isObject(input)) return undefined;
   return {
-    layerPanelWidth: clampNumber(input.layerPanelWidth, 220, 520, 280),
+    layerPanelWidth: clampNumber(input.layerPanelWidth, 300, 640, 440),
     rightPanelWidth: clampNumber(input.rightPanelWidth, 300, 620, 384),
   };
 }

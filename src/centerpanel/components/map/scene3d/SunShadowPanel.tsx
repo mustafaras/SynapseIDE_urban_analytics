@@ -157,7 +157,7 @@ const scenarioRowActiveStyle: React.CSSProperties = {
 const coverageBarWrapStyle: React.CSSProperties = {
   height: "4px",
   background: MAP_COLORS.bgHeader,
-  borderRadius: MAP_RADIUS.full,
+  borderRadius: MAP_RADIUS.badge,
   overflow: "hidden",
 };
 
@@ -457,7 +457,7 @@ export const SunShadowPanel: React.FC<SunShadowPanelProps> = ({
                           height: "100%",
                           width: `${(coverageRatio * 100).toFixed(1)}%`,
                           background: MAP_COLORS.interaction,
-                          borderRadius: MAP_RADIUS.full,
+                          borderRadius: MAP_RADIUS.badge,
                           transition: "width 0.2s ease",
                         }}
                         aria-hidden="true"

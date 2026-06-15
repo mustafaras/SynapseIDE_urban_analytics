@@ -10,6 +10,7 @@ import {
   MAP_RADIUS,
   MAP_SHADOWS,
   MAP_SPACING,
+  MAP_STATUS_TOKENS,
   MAP_STROKES,
   MAP_TYPOGRAPHY,
   MAP_Z_INDEX,
@@ -266,9 +267,9 @@ const readinessCardStyle = (tone: "ready" | "blocked" | "pending"): React.CSSPro
   gap: MAP_SPACING.sm,
   padding: MAP_SPACING.md,
   borderRadius: MAP_RADIUS.sm,
-  border: tone === "blocked" ? `1px solid ${MAP_COLORS.error}` : MAP_STROKES.hairlineSubtle,
-  background: tone === "blocked" ? MAP_COLORS.selectedSubtle : MAP_COLORS.bg,
-  boxShadow: tone === "ready" ? `inset 2px 0 0 ${MAP_COLORS.interaction}` : tone === "blocked" ? `inset 2px 0 0 ${MAP_COLORS.error}` : "none",
+  border: tone === "blocked" ? `1px solid ${MAP_STATUS_TOKENS.blocked.border}` : MAP_STROKES.hairlineSubtle,
+  background: tone === "blocked" ? MAP_STATUS_TOKENS.blocked.bg : MAP_COLORS.bg,
+  boxShadow: tone === "ready" ? `inset 2px 0 0 ${MAP_STATUS_TOKENS.ready.text}` : tone === "blocked" ? `inset 2px 0 0 ${MAP_STATUS_TOKENS.blocked.text}` : "none",
 });
 
 const readinessGridStyle: React.CSSProperties = {
@@ -310,18 +311,26 @@ const readinessListStyle: React.CSSProperties = {
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
 };
 
-const readinessPillStyle = (tone: "ready" | "blocked" | "pending"): React.CSSProperties => ({
-  display: "inline-flex",
-  alignItems: "center",
-  gap: MAP_SPACING.xs,
-  padding: `2px ${MAP_SPACING.sm}`,
-  borderRadius: MAP_RADIUS.full,
-  border: tone === "blocked" ? `1px solid ${MAP_COLORS.error}` : tone === "ready" ? `1px solid ${MAP_COLORS.success}` : MAP_STROKES.hairlineSubtle,
-  color: tone === "blocked" ? MAP_COLORS.error : tone === "ready" ? MAP_COLORS.success : MAP_COLORS.textMuted,
-  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
-  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
-  whiteSpace: "nowrap",
-});
+const readinessPillStyle = (tone: "ready" | "blocked" | "pending"): React.CSSProperties => {
+  const statusTone = tone === "ready"
+    ? MAP_STATUS_TOKENS.ready
+    : tone === "blocked"
+      ? MAP_STATUS_TOKENS.blocked
+      : MAP_STATUS_TOKENS.unknown;
+  return {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: MAP_SPACING.xs,
+    padding: `2px ${MAP_SPACING.sm}`,
+    borderRadius: MAP_RADIUS.badge,
+    border: `1px solid ${statusTone.border}`,
+    color: statusTone.text,
+    background: statusTone.bg,
+    fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+    fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+    whiteSpace: "nowrap",
+  };
+};
 
 const executionCardStyle: React.CSSProperties = {
   display: "grid",
@@ -808,7 +817,7 @@ export function MapProcessingToolboxPanel({
                   <GisProgressBar
                     value={lastRun.status === "applied" ? 100 : 8}
                     label={lastRun.status === "applied" ? "Tool applied" : "Tool blocked"}
-                    color={lastRun.status === "applied" ? MAP_COLORS.success : MAP_COLORS.error}
+                    color={lastRun.status === "applied" ? MAP_STATUS_TOKENS.ready.text : MAP_STATUS_TOKENS.blocked.text}
                     height="4px"
                     data-testid="processing-run-progress"
                   />

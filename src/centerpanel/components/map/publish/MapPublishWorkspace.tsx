@@ -143,7 +143,7 @@ const readinessGridStyle: React.CSSProperties = {
 
 const readinessItemStyle: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "minmax(6.5rem, 0.32fr) minmax(0, 1fr)",
+  gridTemplateColumns: "minmax(0, 1fr)",
   gap: MAP_SPACING.sm,
   alignItems: "start",
   padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
@@ -172,7 +172,7 @@ const panelSlotStyle: React.CSSProperties = {
 
 const workflowStepperStyle: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+  gridTemplateColumns: "minmax(0, 1fr)",
   gap: MAP_SPACING.xs,
   paddingBottom: MAP_SPACING.sm,
   borderBottom: MAP_STROKES.hairlineSubtle,
@@ -244,7 +244,7 @@ const pathDescriptionStyle: React.CSSProperties = {
 
 const pathMetaGridStyle: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(8rem, 1fr))",
+  gridTemplateColumns: "minmax(0, 1fr)",
   gap: MAP_SPACING.xs,
 };
 

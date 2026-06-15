@@ -330,11 +330,12 @@
 
 .overflowItemActiveDot {
   display: inline-block;
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   margin-left: auto;
-  border-radius: 50%;
-  background: var(--syn-interaction-active, #d09a48);
+  border: 1px solid var(--syn-interaction-active, #d09a48);
+  border-radius: 0;
+  background: transparent;
   flex: 0 0 auto;
 }
 

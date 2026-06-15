@@ -41,12 +41,15 @@ interface NominatimSearchResult {
 /* ================================================================== */
 
 const searchInput: React.CSSProperties = {
+  boxSizing: "border-box",
+  minWidth: 0,
   padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
   borderRadius: 0,
   border: MAP_STROKES.hairlineSubtle,
   background: "color-mix(in srgb, var(--syn-surface-input, #1a1f26) 88%, transparent)",
   color: MAP_COLORS.text,
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+  lineHeight: MAP_TYPOGRAPHY.lineHeight.tight,
   width: MAP_DIMENSIONS.searchWidth,
   transition: MAP_TRANSITIONS.fast,
 };
@@ -135,15 +138,16 @@ export const MapSearchBar: React.FC<MapSearchBarProps> = ({ onFlyTo, onResultCou
         position: "relative",
         display: "flex",
         alignItems: "center",
-        gap: compact ? MAP_SPACING.xs : MAP_SPACING.sm,
-        minWidth: compact ? "9.5rem" : undefined,
+        gap: compact ? MAP_SPACING.zero : MAP_SPACING.sm,
+        minWidth: compact ? "8rem" : undefined,
         width: compact
           ? focused || results.length > 0
-            ? "min(24rem, calc(100vw - 4rem))"
-            : "clamp(10rem, 14vw, 14rem)"
+            ? "min(20rem, calc(100vw - 4rem))"
+            : "clamp(8.5rem, 12vw, 12rem)"
           : undefined,
         maxWidth: compact ? "100%" : undefined,
         flex: compact ? "1 1 100%" : undefined,
+        boxSizing: compact ? "border-box" : undefined,
         padding: compact ? "0.125rem" : undefined,
         border: compact ? MAP_STROKES.hairlineSubtle : undefined,
         borderRadius: compact ? 0 : undefined,
@@ -157,9 +161,12 @@ export const MapSearchBar: React.FC<MapSearchBarProps> = ({ onFlyTo, onResultCou
         role="combobox"
         style={{
           ...searchInput,
+          flex: compact ? "1 1 0" : undefined,
+          minWidth: compact ? 0 : searchInput.minWidth,
           width: compact ? "100%" : MAP_DIMENSIONS.searchWidth,
-          minHeight: compact ? "2.125rem" : undefined,
-          padding: compact ? `${MAP_SPACING.zero} ${MAP_SPACING.sm}` : searchInput.padding,
+          minHeight: compact ? "1.75rem" : undefined,
+          height: compact ? "1.75rem" : undefined,
+          padding: compact ? `${MAP_SPACING.zero} ${MAP_SPACING.xs}` : searchInput.padding,
           fontFamily: compact ? MAP_TYPOGRAPHY.fontFamilyMono : undefined,
           borderColor: compact ? "transparent" : undefined,
           background: compact ? MAP_COLORS.transparent : searchInput.background,
@@ -189,8 +196,11 @@ export const MapSearchBar: React.FC<MapSearchBarProps> = ({ onFlyTo, onResultCou
         type="button"
         style={{
           ...mapStyles.btn,
-          minHeight: compact ? "2.125rem" : undefined,
-          width: compact ? "2.125rem" : undefined,
+          flex: compact ? "0 0 1.75rem" : undefined,
+          minWidth: compact ? "1.75rem" : undefined,
+          minHeight: compact ? "1.75rem" : undefined,
+          width: compact ? "1.75rem" : undefined,
+          height: compact ? "1.75rem" : undefined,
           justifyContent: "center",
           padding: compact ? MAP_SPACING.zero : mapStyles.btn.padding,
           border: compact ? "1px solid transparent" : mapStyles.btn.border,
@@ -204,7 +214,7 @@ export const MapSearchBar: React.FC<MapSearchBarProps> = ({ onFlyTo, onResultCou
       >
         {isSearching ? "..." : compact ? (
           <>
-            <Search size={MAP_ICON_SIZES.sm} strokeWidth={1.8} aria-hidden="true" />
+            <Search size={MAP_ICON_SIZES.xs} strokeWidth={1.8} aria-hidden="true" />
             <span style={mapStyles.srOnly}>Search</span>
           </>
         ) : "Search"}
@@ -216,7 +226,7 @@ export const MapSearchBar: React.FC<MapSearchBarProps> = ({ onFlyTo, onResultCou
           style={{
             ...dropdownContainer,
             minWidth: compact ? "100%" : dropdownContainer.minWidth,
-            maxWidth: compact ? "min(24rem, calc(100vw - 4rem))" : dropdownContainer.maxWidth,
+            maxWidth: compact ? "min(20rem, calc(100vw - 4rem))" : dropdownContainer.maxWidth,
           }}
           role="listbox"
           aria-label="Search results"

@@ -73,7 +73,7 @@ export const GisToolbar: React.FC<GisToolbarProps> = ({
     padding: pill ? "3px" : "0",
     background: pill ? MAP_COLORS.bgPanel : "transparent",
     border: pill ? MAP_STROKES.hairline : MAP_STROKES.none,
-    borderRadius: pill ? MAP_RADIUS.full : MAP_RADIUS.none,
+    borderRadius: pill ? MAP_RADIUS.badge : MAP_RADIUS.none,
     boxShadow: pill ? MAP_SHADOWS.panel : "none",
     ...style,
   };

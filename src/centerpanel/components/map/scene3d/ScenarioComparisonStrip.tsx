@@ -22,6 +22,7 @@ import {
   MAP_RADIUS,
   MAP_SHADOWS,
   MAP_SPACING,
+  MAP_STATUS_TOKENS,
   MAP_STROKES,
   MAP_TRANSITIONS,
   MAP_TYPOGRAPHY,
@@ -90,7 +91,7 @@ function getHourChipStyle(active: boolean): React.CSSProperties {
     alignItems: "center",
     gap: "3px",
     padding: `2px ${MAP_SPACING.sm}`,
-    borderRadius: MAP_RADIUS.full,
+    borderRadius: MAP_RADIUS.badge,
     fontSize: MAP_TYPOGRAPHY.fontSize.xs,
     background: active ? MAP_COLORS.interaction : MAP_COLORS.bgHeader,
     color: active ? MAP_COLORS.bgPanel : MAP_COLORS.textSecondary,
@@ -156,14 +157,18 @@ const metricValueStyle: React.CSSProperties = {
   fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
 };
 
-const complianceBadgeStyle = (ok: boolean): React.CSSProperties => ({
-  display: "inline-block",
-  padding: `0 ${MAP_SPACING.xs}`,
-  borderRadius: MAP_RADIUS.xs,
-  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
-  background: ok ? MAP_COLORS.success : MAP_COLORS.error,
-  color: MAP_COLORS.bgPanel,
-});
+const complianceBadgeStyle = (ok: boolean): React.CSSProperties => {
+  const tone = ok ? MAP_STATUS_TOKENS.ready : MAP_STATUS_TOKENS.blocked;
+  return {
+    display: "inline-block",
+    padding: `0 ${MAP_SPACING.xs}`,
+    borderRadius: MAP_RADIUS.badge,
+    border: `1px solid ${tone.border}`,
+    fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+    background: tone.bg,
+    color: tone.text,
+  };
+};
 
 /* Shadow scenario chips */
 

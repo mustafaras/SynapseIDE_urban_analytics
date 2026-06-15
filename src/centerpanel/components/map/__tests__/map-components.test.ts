@@ -166,8 +166,8 @@ describe("mapTokens — transitions", () => {
 });
 
 describe("mapTokens — shell geometry", () => {
-  it("keeps the premium top command surface a substantial, filled GIS chrome height", () => {
-    expect(MAP_SHELL_DIMENSIONS.topCommandHeight).toBe("5.5rem");
+  it("keeps the compact premium top command surface height in sync", () => {
+    expect(MAP_SHELL_DIMENSIONS.topCommandHeight).toBe("3.3rem");
     expect(MAP_SHELL_DIMENSIONS.menuBarHeight).toBe(MAP_SHELL_DIMENSIONS.topCommandHeight);
   });
 

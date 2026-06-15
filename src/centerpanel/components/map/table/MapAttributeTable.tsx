@@ -260,7 +260,7 @@ const titleRowStyle: React.CSSProperties = {
 const badgeStyle: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
-  borderRadius: MAP_RADIUS.full,
+  borderRadius: MAP_RADIUS.badge,
   border: MAP_STROKES.hairlineSubtle,
   padding: `1px ${MAP_SPACING.xs}`,
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
@@ -400,7 +400,7 @@ const distributionLabelStyle: React.CSSProperties = {
 const distributionTrackStyle: React.CSSProperties = {
   position: "relative",
   height: 8,
-  borderRadius: MAP_RADIUS.full,
+  borderRadius: MAP_RADIUS.badge,
   background: MAP_COLORS.bgPanel,
   border: MAP_STROKES.hairlineSubtle,
   overflow: "hidden",

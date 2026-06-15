@@ -125,23 +125,32 @@ export interface MapInventoryNavigationBinding {
   rightDockPanelId: MapRightDockPanel | null;
 }
 
-// Left activity rail = composition / data only (what exists in the map).
+// Left activity rail = workspace host. Composition, style, analysis, scene,
+// and publish panels all open in the left dock.
 export const MAP_PRIMARY_ACTIVITY_ORDER = [
   "overview",
   "data",
   "layers",
-  "scene",
-] as const satisfies readonly MapActivityId[];
-
-// Analyze / Style / Publish are inspection / analysis / output concerns. They
-// are reached from the topbar command menus (not the left rail) so the left and
-// right docks never duplicate function; their definitions remain valid for the
-// runtime command handlers.
-export const MAP_COMMAND_ACTIVITY_ORDER = [
-  "analyze",
   "style",
+  "analyze",
+  "scene",
   "publish",
 ] as const satisfies readonly MapActivityId[];
+
+// The topbar command menus still expose these workspaces, but the visible
+// workspace host is now the left activity rail.
+export const MAP_COMMAND_ACTIVITY_ORDER = [] as const satisfies readonly MapActivityId[];
+
+const MAP_LEFT_WORKSPACE_ACTIVITY_IDS = new Set<MapActivityId>([
+  "overview",
+  "data",
+  "layers",
+  "analyze",
+  "style",
+  "scene",
+  "publish",
+  "extensions",
+]);
 
 export const MAP_UTILITY_ACTIVITY_ORDER = [
   "qa",
@@ -177,7 +186,7 @@ export const MAP_ACTIVITY_DEFINITIONS = [
     iconName: "Database",
     defaultSidebarTabId: "data-import",
     defaultInspectorContextId: "source",
-    defaultRightDockPanelId: "tasks",
+    defaultRightDockPanelId: null,
     commandCategory: "Data",
     commandKeywords: ["data", "import", "source", "catalog", "service", "connection"],
   },
@@ -192,7 +201,7 @@ export const MAP_ACTIVITY_DEFINITIONS = [
     iconName: "Layers3",
     defaultSidebarTabId: "layers-stack",
     defaultInspectorContextId: "layer",
-    defaultRightDockPanelId: "attributes",
+    defaultRightDockPanelId: null,
     commandCategory: "Layers",
     commandKeywords: ["layers", "contents", "stack", "visibility", "schema", "attributes"],
   },
@@ -201,13 +210,13 @@ export const MAP_ACTIVITY_DEFINITIONS = [
     label: "Analyze",
     ariaLabel: "Analyze Outputs - switch map workspace to analyze",
     description: "Workflows, processing tools, model chains, query scope, statistics, AOI, and measurement work.",
-    placement: "command-routed",
+    placement: "primary-rail",
     order: 3,
     mnemonic: "A",
     iconName: "Workflow",
     defaultSidebarTabId: "analyze-workflows",
     defaultInspectorContextId: "analysis-run",
-    defaultRightDockPanelId: "tasks",
+    defaultRightDockPanelId: null,
     commandCategory: "Analyze",
     commandKeywords: ["analyze", "workflow", "processing", "model", "query", "statistics", "data operations", "measure"],
   },
@@ -216,7 +225,7 @@ export const MAP_ACTIVITY_DEFINITIONS = [
     label: "Style",
     ariaLabel: "Style activity",
     description: "Renderers, symbols, labels, legend, and cartography recommendations.",
-    placement: "command-routed",
+    placement: "primary-rail",
     order: 4,
     mnemonic: "S",
     iconName: "Palette",
@@ -237,7 +246,7 @@ export const MAP_ACTIVITY_DEFINITIONS = [
     iconName: "Box",
     defaultSidebarTabId: "scene-3d",
     defaultInspectorContextId: "scene-item",
-    defaultRightDockPanelId: "timeline",
+    defaultRightDockPanelId: null,
     commandCategory: "Scene",
     commandKeywords: ["scene", "raster", "temporal", "3d", "zoning", "massing", "voxcity"],
   },
@@ -246,13 +255,13 @@ export const MAP_ACTIVITY_DEFINITIONS = [
     label: "Publish",
     ariaLabel: "Publish activity",
     description: "Figure composition, map image export, data export, offline package, and report handoff.",
-    placement: "command-routed",
+    placement: "primary-rail",
     order: 6,
     mnemonic: "P",
     iconName: "FileImage",
     defaultSidebarTabId: "publish-figure",
     defaultInspectorContextId: "publish-item",
-    defaultRightDockPanelId: "tasks",
+    defaultRightDockPanelId: null,
     commandCategory: "Publish",
     commandKeywords: ["publish", "figure", "export", "package", "report", "attribution"],
   },
@@ -828,6 +837,12 @@ function getRightDockPanelForInventoryEntry(entry: MapSurfaceInventoryEntry, act
 
   if (!explicitRightDockTarget && !statusShortcutTarget && !rightDockSignal) {
     return null;
+  }
+
+  if (MAP_LEFT_WORKSPACE_ACTIVITY_IDS.has(activityId)) {
+    if (includesAny(fingerprint, ["workflow", "processing", "report", "handoff", "figure", "package", "raster", "temporal", "3d", "zoning", "massing", "sun", "shadow", "voxcity", "draw", "sketch", "annotation", "aoi"])) {
+      return null;
+    }
   }
 
   if (includesAny(fingerprint, ["measurement", "measure"])) return "measure";

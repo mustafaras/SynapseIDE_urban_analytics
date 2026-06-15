@@ -1718,13 +1718,14 @@ export function useMapDataOutputController(args: UseMapDataOutputControllerArgs)
     setActiveTool(null);
     setActiveMeasureTool(null);
     setActiveDrawTool("polygon");
-    openRightDockPanel("draw", "Draw workspace opened in the right dock", "quick-action", "context-draw");
+    setShowDrawPanel(true);
+    announce("Draw workspace opened in the drawing modal");
     setDrawSeed({
       coordinate,
       tool: "polygon",
       token: Date.now(),
     });
-  }, [closeFloatingRightPanels, openRightDockPanel, setActiveDrawTool, setActiveMeasureTool, setActiveTool]);
+  }, [announce, closeFloatingRightPanels, setActiveDrawTool, setActiveMeasureTool, setActiveTool]);
 
 
   return {

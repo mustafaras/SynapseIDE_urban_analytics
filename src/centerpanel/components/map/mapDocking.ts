@@ -61,8 +61,8 @@ export interface MapDockLayout {
 }
 
 export const MAP_SCIENTIFIC_QA_PANEL_WIDTH = 384;
-export const MAP_LAYER_PANEL_MIN_WIDTH = 260;
-export const MAP_LAYER_PANEL_MAX_WIDTH = 520;
+export const MAP_LAYER_PANEL_MIN_WIDTH = 300;
+export const MAP_LAYER_PANEL_MAX_WIDTH = 640;
 export const MAP_RIGHT_PANEL_MIN_WIDTH = 260;
 export const MAP_RIGHT_PANEL_MAX_WIDTH = 520;
 export const MAP_RIGHT_PANEL_COLLAPSED_WIDTH = 48;

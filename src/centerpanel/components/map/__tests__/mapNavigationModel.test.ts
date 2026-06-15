@@ -18,14 +18,9 @@ import { MAP_RIGHT_DOCK_PANEL_IDS } from "../mapRightDockRoutes";
 
 const allActivityIds = [...MAP_PRIMARY_ACTIVITY_ORDER, ...MAP_COMMAND_ACTIVITY_ORDER, ...MAP_UTILITY_ACTIVITY_ORDER];
 const EXPECTED_ACTIVITY_RIGHT_DOCK_DEFAULTS = {
-  analyze: "tasks",
-  data: "tasks",
   diagnostics: "diagnostics",
-  layers: "attributes",
-  publish: "tasks",
   qa: "problems",
   review: "timeline",
-  scene: "timeline",
 } as const;
 const EXPECTED_TASK_LENS_RIGHT_DOCK_PRIORITIES = {
   analyst: ["problems", "attributes", "tasks", "diagnostics"],
@@ -48,13 +43,12 @@ describe("mapNavigationModel", () => {
       "overview",
       "data",
       "layers",
-      "scene",
-    ]);
-    expect(MAP_COMMAND_ACTIVITY_ORDER).toEqual([
-      "analyze",
       "style",
+      "analyze",
+      "scene",
       "publish",
     ]);
+    expect(MAP_COMMAND_ACTIVITY_ORDER).toEqual([]);
     expect(MAP_UTILITY_ACTIVITY_ORDER).toEqual([
       "qa",
       "review",
@@ -220,7 +214,7 @@ describe("mapNavigationModel", () => {
     expect(getMapInventoryNavigationBinding("toolbar.workflow")).toMatchObject({
       activityId: "analyze",
       inspectorContextId: "analysis-run",
-      rightDockPanelId: "workflow",
+      rightDockPanelId: null,
     });
     expect(getMapInventoryNavigationBinding("toolbar.qa")).toMatchObject({
       activityId: "qa",

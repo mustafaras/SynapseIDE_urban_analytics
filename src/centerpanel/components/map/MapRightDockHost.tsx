@@ -48,6 +48,12 @@ import styles from "./MapRightDockHost.module.css";
 
 export type MapRightDockHostPresentation = "right-dock" | "side-drawer";
 
+export interface MapRightDockPanelStatus {
+  status: GisStatusKey;
+  label: string;
+  title?: string;
+}
+
 export interface MapRightDockHostProps {
   route: MapRightDockRoute;
   panels?: readonly MapRightDockPanel[];
@@ -55,6 +61,7 @@ export interface MapRightDockHostProps {
   collapsed?: boolean;
   width?: number;
   stateLabel?: string;
+  panelStatus?: MapRightDockPanelStatus | null;
   onPanelChange?: (panel: MapRightDockPanel) => void;
   onCollapse?: () => void;
   onClose: () => void;
@@ -114,23 +121,6 @@ const TIER_LABELS: Record<ReturnType<typeof getMapRightDockPanelTier>, string> =
   diagnostics: "Diagnostics",
 };
 
-const TIER_STATUS: Record<ReturnType<typeof getMapRightDockPanelTier>, GisStatusKey> = {
-  primary: "ready",
-  contextual: "caveat",
-  advanced: "generated",
-  diagnostics: "unknown",
-};
-
-const PANEL_STATUS: Partial<Record<MapRightDockPanel, { status: GisStatusKey; label: string }>> = {
-  problems: { status: "caveat", label: "QA" },
-  scientificQA: { status: "caveat", label: "Scientific QA" },
-  qa: { status: "caveat", label: "QA" },
-  workflow: { status: "running", label: "Workflow" },
-  report: { status: "ready", label: "Publish" },
-  diagnostics: { status: "unknown", label: "Diagnostics" },
-  performance: { status: "unknown", label: "Performance" },
-};
-
 function getPanelIcon(panel: MapRightDockPanel): React.ReactNode {
   const Icon = PANEL_ICON_MAP[panel] ?? Layers;
   return <Icon size={MAP_ICON_SIZES.sm} aria-hidden="true" />;
@@ -138,13 +128,6 @@ function getPanelIcon(panel: MapRightDockPanel): React.ReactNode {
 
 function focusPanelTab(tabRefs: React.MutableRefObject<Partial<Record<MapRightDockPanel, HTMLButtonElement | null>>>, panel: MapRightDockPanel): void {
   window.requestAnimationFrame(() => tabRefs.current[panel]?.focus({ preventScroll: true }));
-}
-
-function getRouteStatus(panel: MapRightDockPanel): { status: GisStatusKey; label: string } {
-  return PANEL_STATUS[panel] ?? {
-    status: TIER_STATUS[getMapRightDockPanelTier(panel)],
-    label: TIER_LABELS[getMapRightDockPanelTier(panel)],
-  };
 }
 
 function clampRightDockWidth(width: number): number {
@@ -158,6 +141,7 @@ export const MapRightDockHost: React.FC<MapRightDockHostProps> = ({
   collapsed = false,
   width = 420,
   stateLabel = "Routed",
+  panelStatus = null,
   onPanelChange,
   onCollapse,
   onClose,
@@ -171,7 +155,6 @@ export const MapRightDockHost: React.FC<MapRightDockHostProps> = ({
   const hostRef = useRef<HTMLElement | null>(null);
   const tabRefs = useRef<Partial<Record<MapRightDockPanel, HTMLButtonElement | null>>>({});
   const activeDefinition = getMapRightDockPanelDefinition(route.panel);
-  const routeStatus = getRouteStatus(route.panel);
   const tabLayout = width <= 360 || presentation === "side-drawer" ? "rail" : "segmented";
   const normalizedPanels = useMemo(
     () => panels.filter((panel) => MAP_RIGHT_DOCK_PANEL_DEFINITIONS[panel] != null),
@@ -352,13 +335,15 @@ export const MapRightDockHost: React.FC<MapRightDockHostProps> = ({
         aria-label={`${activeDefinition.label} right dock frame`}
         actions={(
           <>
-            <GisStatusChip
-              status={routeStatus.status}
-              label={routeStatus.label}
-              density="compact"
-              title={`${activeDefinition.label} status: ${routeStatus.label}. ${stateLabel}`}
-              data-testid="map-right-dock-status"
-            />
+            {panelStatus ? (
+              <GisStatusChip
+                status={panelStatus.status}
+                label={panelStatus.label}
+                density="compact"
+                title={panelStatus.title ?? `${activeDefinition.label} status: ${panelStatus.label}. ${stateLabel}`}
+                data-testid="map-right-dock-status"
+              />
+            ) : null}
             <GisIconButton
               label={pinned ? `Unpin ${activeDefinition.label}` : `Pin ${activeDefinition.label}`}
               tooltip={pinned ? `Unpin ${activeDefinition.label}` : `Pin ${activeDefinition.label}`}

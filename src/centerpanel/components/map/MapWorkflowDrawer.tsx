@@ -264,7 +264,7 @@ const stepPillBase: React.CSSProperties = {
   gap: MAP_SPACING.xs,
   padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
   border: MAP_STROKES.hairlineSubtle,
-  borderRadius: MAP_RADIUS.sm,
+  borderRadius: MAP_RADIUS.none,
   fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
   color: MAP_COLORS.textSecondary,
@@ -293,7 +293,7 @@ const stepPillBlocked: React.CSSProperties = {
 
 const optionRow: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(10rem, 1fr))",
+  gridTemplateColumns: "minmax(0, 1fr)",
   gap: MAP_SPACING.sm,
 };
 
@@ -302,7 +302,7 @@ const tileButtonBase: React.CSSProperties = {
   gap: MAP_SPACING.xs,
   padding: MAP_SPACING.sm,
   border: MAP_STROKES.hairlineSubtle,
-  borderRadius: MAP_RADIUS.sm,
+  borderRadius: MAP_RADIUS.none,
   background: MAP_COLORS.bg,
   color: MAP_COLORS.text,
   textAlign: "left",
@@ -350,14 +350,14 @@ const selectStyle: React.CSSProperties = {
 
 const metricGrid: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(8rem, 1fr))",
+  gridTemplateColumns: "minmax(0, 1fr)",
   gap: MAP_SPACING.sm,
 };
 
 const metricCell: React.CSSProperties = {
   padding: MAP_SPACING.sm,
   border: MAP_STROKES.hairlineSubtle,
-  borderRadius: MAP_RADIUS.sm,
+  borderRadius: MAP_RADIUS.none,
   background: MAP_COLORS.bg,
   display: "grid",
   gap: MAP_SPACING.xs,
@@ -412,7 +412,7 @@ const labelStyle: React.CSSProperties = {
 
 const fieldGrid: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(10rem, 1fr))",
+  gridTemplateColumns: "minmax(0, 1fr)",
   gap: MAP_SPACING.sm,
 };
 
@@ -420,7 +420,7 @@ type LaunchSummaryTone = "default" | "ready" | "warning" | "blocked";
 
 const launchSummaryGrid: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(12rem, 1fr))",
+  gridTemplateColumns: "minmax(0, 1fr)",
   gap: MAP_SPACING.sm,
 };
 
@@ -1768,7 +1768,7 @@ function getLaunchCardStyle(tone: LaunchSummaryTone): React.CSSProperties {
     display: "grid",
     gap: MAP_SPACING.sm,
     padding: MAP_SPACING.sm,
-    borderRadius: MAP_RADIUS.sm,
+    borderRadius: MAP_RADIUS.none,
     border: `1px solid ${accent}`,
     background: tone === "blocked" ? MAP_COLORS.selectedSubtle : MAP_COLORS.bg,
     boxShadow: `inset 2px 0 0 ${accent}`,
@@ -1781,7 +1781,7 @@ function getLaunchStatusPillStyle(tone: LaunchSummaryTone): React.CSSProperties 
     alignItems: "center",
     gap: MAP_SPACING.xs,
     padding: `0 ${MAP_SPACING.xs}`,
-    borderRadius: MAP_RADIUS.full,
+    borderRadius: MAP_RADIUS.none,
     border: `1px solid ${getLaunchToneColor(tone)}`,
     color: getLaunchToneColor(tone),
     fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
