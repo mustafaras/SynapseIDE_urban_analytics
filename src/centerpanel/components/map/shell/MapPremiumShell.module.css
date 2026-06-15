@@ -82,7 +82,7 @@
 .mapPremiumShellSurface :global([data-testid="map-inspector-host"]::-webkit-scrollbar-thumb) {
   background: rgba(146, 160, 179, 0.34);
   border: 2px solid transparent;
-  border-radius: 999px;
+  border-radius: 0;
   background-clip: padding-box;
 }
 

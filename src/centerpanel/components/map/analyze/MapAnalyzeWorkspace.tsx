@@ -182,7 +182,7 @@ const actionRowStyle: React.CSSProperties = {
 
 const readinessGridStyle: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+  gridTemplateColumns: "minmax(0, 1fr)",
   gap: MAP_SPACING.sm,
 };
 

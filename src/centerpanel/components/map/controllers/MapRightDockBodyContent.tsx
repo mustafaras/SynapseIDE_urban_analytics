@@ -378,7 +378,6 @@ function RightDockEmptyState({
 }
 
 interface MapRightDockBodyContentProps {
-  activeDrawTool: React.ComponentProps<typeof MapDrawingManager>["activeDrawTool"];
   activeMeasureTool: React.ComponentProps<typeof MapMeasurementTool>["activeMeasureTool"];
   activeRightDockPanel: MapRightDockPanel | null;
   activePublishTabId: MapPublishTabId;
@@ -388,17 +387,13 @@ interface MapRightDockBodyContentProps {
   attributeTableLayerId: string | null;
   bottomPanelTasks: MapBottomPanelTask[];
   bottomProblemsModel: React.ComponentProps<typeof MapProblemsPanel>["model"];
-  clearDrawnFeatures: React.ComponentProps<typeof MapDrawingManager>["onClearFeatures"];
   clearMeasurements: React.ComponentProps<typeof MapMeasurementTool>["onClearMeasurements"];
-  drawingSnapSources: React.ComponentProps<typeof MapDrawingManager>["snapSources"];
   drawnFeatures: React.ComponentProps<typeof MapDrawingManager>["drawnFeatures"];
   handleAttributeTableSelection: React.ComponentProps<typeof MapAttributeWorkflowPanel>["onSelectFeatures"];
   handleBottomProblemAction: (problem: MapProblemRow) => void;
-  handleCancelDraw: React.ComponentProps<typeof MapDrawingManager>["onCancelDraw"];
   handleCancelMeasure: React.ComponentProps<typeof MapMeasurementTool>["onCancelMeasure"];
   handleClearSelectedFeatures: React.ComponentProps<typeof MapSelectionTools>["onClearSelectedFeatures"];
   handleCloseRightDockHost: () => void;
-  handleCommitDrawnFeatureEdit: React.ComponentProps<typeof MapDrawingManager>["onCommitFeatureEdit"];
   handleCreateAttributeDerivedLayer: React.ComponentProps<typeof MapAttributeWorkflowPanel>["onCreateDerivedLayer"];
   handleFocusAttributeFeature: React.ComponentProps<typeof MapAttributeWorkflowPanel>["onFocusFeature"];
   handleFocusLayer: React.ComponentProps<typeof ScientificQAPanel>["onOpenLayer"];
@@ -417,13 +412,11 @@ interface MapRightDockBodyContentProps {
   overlayLayers: React.ComponentProps<typeof ScientificQAPanel>["overlayLayers"];
   performanceDiagnostics: React.ComponentProps<typeof MapPerformanceDiagnosticsPanel>["diagnostics"];
   queryableLayers: React.ComponentProps<typeof MapSelectionTools>["queryableLayers"];
-  removeDrawnFeature: React.ComponentProps<typeof MapDrawingManager>["onRemoveFeature"];
   removeMeasurement: React.ComponentProps<typeof MapMeasurementTool>["onRemoveMeasurement"];
   renderReviewTimeline: (visible: boolean, onClose: () => void, initialTab?: "timeline" | "collaboration") => React.ReactNode;
   rightAttributesDockActive: boolean;
   rightCollaborationDockActive: boolean;
   rightDiagnosticsDockActive: boolean;
-  rightDrawDockActive: boolean;
   rightMeasureDockActive: boolean;
   rightPerformanceDockActive: boolean;
   rightProblemsDockActive: boolean;
@@ -439,13 +432,10 @@ interface MapRightDockBodyContentProps {
   selectionStatsSummary: SelectionStatisticsSummary[] | null;
   setActiveAnalysisResultLayers: React.ComponentProps<typeof MapSelectionTools>["onSetActiveAnalysisResultLayers"];
   setAttributeTableLayerId: React.Dispatch<React.SetStateAction<string | null>>;
-  setDrawSeed: React.Dispatch<React.SetStateAction<React.ComponentProps<typeof MapDrawingManager>["seedDrawStart"]>>;
   setMeasureUnit: React.ComponentProps<typeof MapMeasurementTool>["onSetMeasureUnit"];
   setMeasurementSeed: React.Dispatch<React.SetStateAction<React.ComponentProps<typeof MapMeasurementTool>["seedMeasurementStart"]>>;
-  setSelectedFeatureId: React.ComponentProps<typeof MapDrawingManager>["onSelectFeature"];
   setSelectionDragTool: React.Dispatch<React.SetStateAction<SelectionDragTool | null>>;
   setSelectionStatsSummary: React.Dispatch<React.SetStateAction<SelectionStatisticsSummary[] | null>>;
-  updateDrawnFeature: React.ComponentProps<typeof MapDrawingManager>["onUpdateFeature"];
   openRightDockPanel: (panel: "attributes", announcement: string, source: "panel-tab", detail?: string) => void;
   inspectorContext: MapInspectorHostContext;
   onApplyLayerStyle?: (layerId: string, update: LayerStyleUpdate) => void;
@@ -464,7 +454,6 @@ interface MapRightDockBodyContentProps {
 }
 
 export const MapRightDockBodyContent: React.FC<MapRightDockBodyContentProps> = ({
-  activeDrawTool,
   activeMeasureTool,
   activeRightDockPanel,
   activePublishTabId,
@@ -474,17 +463,13 @@ export const MapRightDockBodyContent: React.FC<MapRightDockBodyContentProps> = (
   attributeTableLayerId,
   bottomPanelTasks,
   bottomProblemsModel,
-  clearDrawnFeatures,
   clearMeasurements,
-  drawingSnapSources,
   drawnFeatures,
   handleAttributeTableSelection,
   handleBottomProblemAction,
-  handleCancelDraw,
   handleCancelMeasure,
   handleClearSelectedFeatures,
   handleCloseRightDockHost,
-  handleCommitDrawnFeatureEdit,
   handleCreateAttributeDerivedLayer,
   handleFocusAttributeFeature,
   handleFocusLayer,
@@ -503,13 +488,11 @@ export const MapRightDockBodyContent: React.FC<MapRightDockBodyContentProps> = (
   overlayLayers,
   performanceDiagnostics,
   queryableLayers,
-  removeDrawnFeature,
   removeMeasurement,
   renderReviewTimeline,
   rightAttributesDockActive,
   rightCollaborationDockActive,
   rightDiagnosticsDockActive,
-  rightDrawDockActive,
   rightMeasureDockActive,
   rightPerformanceDockActive,
   rightProblemsDockActive,
@@ -525,13 +508,10 @@ export const MapRightDockBodyContent: React.FC<MapRightDockBodyContentProps> = (
   selectionStatsSummary,
   setActiveAnalysisResultLayers,
   setAttributeTableLayerId,
-  setDrawSeed,
   setMeasureUnit,
   setMeasurementSeed,
-  setSelectedFeatureId,
   setSelectionDragTool,
   setSelectionStatsSummary,
-  updateDrawnFeature,
   openRightDockPanel,
   inspectorContext,
   onApplyLayerStyle,
@@ -1000,31 +980,6 @@ export const MapRightDockBodyContent: React.FC<MapRightDockBodyContentProps> = (
           />
         </MapPanelErrorBoundary>
       </div>
-    );
-  }
-
-  if (rightDrawDockActive) {
-    return (
-      <MapDrawingManager
-        mapRef={mapRef}
-        activeDrawTool={activeDrawTool}
-        presentation="embedded"
-        sidebarVisible
-        drawnFeatures={drawnFeatures}
-        snapSources={drawingSnapSources}
-        selectedFeatureId={selectedFeatureId}
-        onAddFeature={addDrawnFeature}
-        onRemoveFeature={removeDrawnFeature}
-        onUpdateFeature={updateDrawnFeature}
-        onCommitFeatureEdit={handleCommitDrawnFeatureEdit}
-        onClearFeatures={clearDrawnFeatures}
-        onSelectFeature={setSelectedFeatureId}
-        onCancelDraw={handleCancelDraw}
-        onSeedHandled={(token) =>
-          setDrawSeed((current) => (current?.token === token ? null : current))
-        }
-        onAnnounce={announce}
-      />
     );
   }
 

@@ -23,7 +23,7 @@ import { MapTemporalPlayer } from "../../MapTemporalPlayer";
 import { MapCanvasControls } from "../MapCanvasControls";
 import { MapLegendOverlay } from "../inspector/style/MapLegendOverlay";
 import { MapPerformanceBudgetBanner } from "../MapPerformanceDiagnosticsPanel";
-import { MapRightDockHost } from "../MapRightDockHost";
+import { MapRightDockHost, type MapRightDockPanelStatus } from "../MapRightDockHost";
 import { MapUrbanMethodCompatibilityRail } from "../MapUrbanMethodCompatibilityRail";
 import { MapLayoutDesignerPanel } from "../layout/MapLayoutDesignerPanel";
 import { WorkflowPreviewOverlay } from "./MapWorkflowPreviewOverlay";
@@ -99,6 +99,8 @@ interface MapExplorerModalRuntimeViewProps {
   handleCancelMapWorkflow: React.ComponentProps<typeof MapWorkflowDrawer>["onCancelWorkflow"];
   workflowExecution: React.ComponentProps<typeof MapWorkflowDrawer>["workflowExecution"];
   mapCanvasControlsProps: React.ComponentProps<typeof MapCanvasControls>;
+  canvasControlDockVisible: boolean;
+  onCloseCanvasControlDock: () => void;
   showLegendOverlay: boolean;
   mapPublicationLegendItems: React.ComponentProps<typeof MapLegendOverlay>["items"];
   performanceDiagnostics: React.ComponentProps<typeof MapPerformanceBudgetBanner>["diagnostics"];
@@ -200,6 +202,29 @@ interface MapExplorerModalRuntimeViewProps {
   showInteractionStrip: boolean;
 }
 
+function buildRightDockPanelStatus(
+  route: React.ComponentProps<typeof MapRightDockHost>["route"] | null,
+  qaState: React.ComponentProps<typeof ScientificQAPanel>["qaState"],
+): MapRightDockPanelStatus | null {
+  if (!route || (route.panel !== "problems" && route.panel !== "qa" && route.panel !== "scientificQA")) {
+    return null;
+  }
+  if (!qaState || qaState.issues.length === 0) {
+    return null;
+  }
+  const blockerCount = qaState.metadata.issueCounts.blocker + qaState.metadata.issueCounts.error;
+  const issueCount = qaState.issues.length;
+  const status = blockerCount > 0 ? "blocked" : "caveat";
+  const label = blockerCount > 0
+    ? `${blockerCount} blocker${blockerCount === 1 ? "" : "s"}`
+    : `${issueCount} QA issue${issueCount === 1 ? "" : "s"}`;
+  return {
+    status,
+    label,
+    title: `Scientific QA reports ${issueCount} open issue${issueCount === 1 ? "" : "s"}.`,
+  };
+}
+
 export const MapExplorerModalRuntimeView: React.FC<MapExplorerModalRuntimeViewProps> = ({
   announce,
   handleOpenSceneTab,
@@ -268,6 +293,8 @@ export const MapExplorerModalRuntimeView: React.FC<MapExplorerModalRuntimeViewPr
   handleCancelMapWorkflow,
   workflowExecution,
   mapCanvasControlsProps,
+  canvasControlDockVisible,
+  onCloseCanvasControlDock,
   showLegendOverlay,
   mapPublicationLegendItems,
   performanceDiagnostics,
@@ -621,7 +648,16 @@ export const MapExplorerModalRuntimeView: React.FC<MapExplorerModalRuntimeViewPr
       onAnnounce={announce}
     />
 
-    <MapCanvasControls {...mapCanvasControlsProps} surface="overlay" />
+    {canvasControlDockVisible && !navigatorStageMode ? (
+      <MapCanvasControls
+        {...mapCanvasControlsProps}
+        surface="overlay"
+        draggableControlDock
+        controlDockTitle="View controls"
+        controlDockSubtitle="Viewport, base map, selection"
+        onCloseControlDock={onCloseCanvasControlDock}
+      />
+    ) : null}
 
     {showLegendOverlay ? (
       <MapLegendOverlay items={mapPublicationLegendItems} />
@@ -650,6 +686,7 @@ export const MapExplorerModalRuntimeView: React.FC<MapExplorerModalRuntimeViewPr
         collapsed={rightDockCollapsed}
         width={rightPanelWidth}
         stateLabel={activeRightDockRoute.legacyBottomTabId ? "Migrating" : "Routed"}
+        panelStatus={buildRightDockPanelStatus(activeRightDockRoute, scientificQA)}
         onPanelChange={handleRightDockHostPanelChange}
         onCollapse={handleCollapseRightDockHost}
         onClose={handleCloseRightDockHost}

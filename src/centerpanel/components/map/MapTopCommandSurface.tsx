@@ -13,6 +13,8 @@ type TopSurfaceTone = "neutral" | "accent" | "success" | "warning" | "danger";
 
 /** Minimum surface width that can host the context bar without collapsing the menu bar. */
 const CONTEXT_BAR_MIN_SURFACE_WIDTH = 3000;
+/** Optional metadata chips yield first in the compact single-row command bar. */
+const METADATA_RAIL_MIN_SURFACE_WIDTH = 2200;
 
 export interface MapTopCommandSurfaceProps {
   activeActivityLabel: string;
@@ -47,8 +49,8 @@ const shellStyle: React.CSSProperties = {
   flexWrap: "nowrap",
   alignItems: "stretch",
   gap: MAP_SPACING.zero,
-  minHeight: "var(--map-menu-h, 4.875rem)",
-  paddingLeft: "var(--map-activity-rail-width, 2.625rem)",
+  minHeight: "var(--map-menu-h, 3.3rem)",
+  paddingLeft: MAP_SPACING.zero,
   paddingRight: MAP_SPACING.sm,
   background: "var(--syn-surface-header, #141b24)",
   borderBottom: "1px solid color-mix(in srgb, var(--syn-border-subtle, rgba(148, 163, 184, 0.18)) 52%, transparent)",
@@ -64,13 +66,10 @@ const identityRowStyle: React.CSSProperties = {
   flexWrap: "nowrap",
   alignItems: "center",
   gap: MAP_SPACING.xs,
-  // Identity (brand + search + chips) keeps a comfortable basis for the search
-  // box; the menu cluster still claims the remaining free space (higher grow)
-  // so the GeoLibre dropdowns stay expanded on one row.
-  flex: "1 1 30rem",
+  flex: "0 1 auto",
   minWidth: 0,
   minHeight: "100%",
-  padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm} ${MAP_SPACING.xs} ${MAP_SPACING.md}`,
+  padding: `0 ${MAP_SPACING.sm} 0 ${MAP_SPACING.md}`,
   overflow: "hidden",
 };
 
@@ -78,12 +77,11 @@ const menuRowStyle: React.CSSProperties = {
   display: "flex",
   flexWrap: "nowrap",
   alignItems: "center",
-  gap: MAP_SPACING.xs,
-  // Menu cluster claims free space first (high grow) to host the full menu set.
-  flex: "100 1 auto",
+  gap: MAP_SPACING.sm,
+  flex: "1 1 auto",
   minWidth: 0,
   minHeight: "100%",
-  padding: `${MAP_SPACING.xs} ${MAP_SPACING.xs} ${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
+  padding: `0 ${MAP_SPACING.xs} 0 ${MAP_SPACING.sm}`,
   borderLeft: "1px solid color-mix(in srgb, var(--syn-border-subtle, rgba(148, 163, 184, 0.16)) 42%, transparent)",
   overflow: "hidden",
 };
@@ -92,7 +90,7 @@ const clusterShellStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   minWidth: MAP_SPACING.zero,
-  minHeight: "2.5rem",
+  minHeight: "2rem",
   padding: `0 ${MAP_SPACING.xs}`,
   borderRadius: 0,
   border: "1px solid transparent",
@@ -103,7 +101,6 @@ const clusterShellStyle: React.CSSProperties = {
 const leadingClusterStyle: React.CSSProperties = {
   ...clusterShellStyle,
   display: "inline-flex",
-  // Brand block never shrinks; search yields width first.
   flex: "0 0 auto",
   gap: MAP_SPACING.sm,
   minWidth: 0,
@@ -125,7 +122,7 @@ const brandRowStyle: React.CSSProperties = {
 
 const brandAccentStyle: React.CSSProperties = {
   width: "0.1875rem",
-  height: "1.625rem",
+  height: "1.25rem",
   borderRadius: 0,
   border: "none",
   background: "var(--syn-interaction-active, #3794ff)",
@@ -167,21 +164,21 @@ const chipRailStyle: React.CSSProperties = {
   overflow: "hidden",
 };
 
-const searchClusterStyle: React.CSSProperties = {
-  ...clusterShellStyle,
+const centerSearchSlotStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
-  justifyContent: "flex-end",
-  flex: "1 1 26rem",
-  gap: MAP_SPACING.sm,
+  justifyContent: "center",
+  flex: "1 1 12rem",
   minWidth: 0,
+  maxWidth: "14rem",
+  padding: `0 ${MAP_SPACING.xs}`,
   overflow: "hidden",
 };
 
 const searchSlotStyle: React.CSSProperties = {
-  flex: "1 1 16rem",
+  flex: "1 1 11rem",
   minWidth: 0,
-  maxWidth: "28rem",
+  maxWidth: "14rem",
 };
 
 const contextRailStyle: React.CSSProperties = {
@@ -207,12 +204,10 @@ const mapToolRailStyle: React.CSSProperties = {
 const commandClusterStyle: React.CSSProperties = {
   ...clusterShellStyle,
   display: "inline-flex",
-  // Grow so the grouped GeoLibre menu bar gets the width it needs to render
-  // all eight menus with labels instead of the hamburger fallback.
-  flex: "1 1 auto",
+  flex: "100 1 48rem",
   justifyContent: "flex-start",
   padding: `${MAP_SPACING.zero} ${MAP_SPACING.zero}`,
-  minWidth: 0,
+  minWidth: "34rem",
   overflow: "hidden",
 };
 
@@ -239,8 +234,8 @@ const trailingClusterStyle: React.CSSProperties = {
   position: "relative",
   zIndex: 1,
   paddingLeft: MAP_SPACING.xs,
-  paddingTop: MAP_SPACING.xs,
-  paddingBottom: MAP_SPACING.xs,
+  paddingTop: MAP_SPACING.zero,
+  paddingBottom: MAP_SPACING.zero,
 };
 
 const utilityClusterStyle: React.CSSProperties = {
@@ -484,6 +479,7 @@ export const MapTopCommandSurface: React.FC<MapTopCommandSurfaceProps> = ({
   // width they would starve the menu bar into its hamburger fallback, so the
   // cluster is dropped instead. Unmeasured environments keep it visible.
   const showContextBar = contextBarSlot != null && (surfaceWidth == null || surfaceWidth >= CONTEXT_BAR_MIN_SURFACE_WIDTH);
+  const showMetadataRail = surfaceWidth == null || surfaceWidth >= METADATA_RAIL_MIN_SURFACE_WIDTH;
 
   return (
     <div
@@ -532,8 +528,14 @@ export const MapTopCommandSurface: React.FC<MapTopCommandSurfaceProps> = ({
           </div>
         </div>
 
-        <div style={searchClusterStyle}>
+      </div>
+
+      <div style={menuRowStyle} data-testid="map-top-command-surface-menu-row">
+        <div style={commandClusterStyle}>{commandSlot}</div>
+        <div style={centerSearchSlotStyle} data-testid="map-top-command-surface-center-search">
           <div style={searchSlotStyle}>{searchSlot}</div>
+        </div>
+        {showMetadataRail ? (
           <div style={contextRailStyle}>
             <SurfaceChip
               label="Scope"
@@ -560,12 +562,7 @@ export const MapTopCommandSurface: React.FC<MapTopCommandSurfaceProps> = ({
               />
             ) : null}
           </div>
-        </div>
-
-      </div>
-
-      <div style={menuRowStyle} data-testid="map-top-command-surface-menu-row">
-        <div style={commandClusterStyle}>{commandSlot}</div>
+        ) : null}
         {mapToolsSlot ? <div style={mapToolRailStyle}>{mapToolsSlot}</div> : null}
         {showContextBar ? (
           <div

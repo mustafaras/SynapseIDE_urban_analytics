@@ -66,10 +66,10 @@ export const srOnlyFocusable: React.CSSProperties = {
 
 export const mapActivityRailOverlayStyle: React.CSSProperties = {
   position: "absolute",
-  top: 0,
-  bottom: 0,
+  top: "var(--map-menu-h, 3.3rem)",
+  bottom: "var(--map-status-h, 1.75rem)",
   left: 0,
-  height: "100%",
+  height: "auto",
 };
 
 export const modalControlClusterStyle: React.CSSProperties = {

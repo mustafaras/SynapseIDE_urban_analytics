@@ -44,7 +44,7 @@ export const GisProgressBar: React.FC<GisProgressBarProps> = ({
   const trackStyle: React.CSSProperties = {
     width: "100%",
     height,
-    borderRadius: MAP_RADIUS.full,
+    borderRadius: MAP_RADIUS.badge,
     background: MAP_COLORS.interactionSubtle,
     border: MAP_STROKES.hairlineSubtle,
     overflow: "hidden",
@@ -54,7 +54,7 @@ export const GisProgressBar: React.FC<GisProgressBarProps> = ({
   const fillStyle: React.CSSProperties = {
     height: "100%",
     width: isIndeterminate ? "40%" : `${pct}%`,
-    borderRadius: MAP_RADIUS.full,
+    borderRadius: MAP_RADIUS.badge,
     background: fillColor,
     transition: reducedMotion ? "none" : MAP_TRANSITIONS.standard,
     /* Indeterminate without motion: static 40% fill — no infinite animation */

@@ -6,7 +6,7 @@ import {
   type MapProblemSeverity,
   type MapProblemsModel,
 } from "./mapProblemsModel";
-import { MAP_COLORS, MAP_STROKES } from "../mapTokens";
+import { MAP_COLORS, MAP_RADIUS, MAP_STATUS_TOKENS, MAP_STROKES } from "../mapTokens";
 
 export interface MapProblemsPanelProps {
   model: MapProblemsModel;
@@ -16,24 +16,24 @@ export interface MapProblemsPanelProps {
 
 const severityTone: Record<MapProblemSeverity, { border: string; background: string; text: string }> = {
   blocker: {
-    border: "rgba(248, 113, 113, 0.76)",
-    background: "rgba(127, 29, 29, 0.34)",
-    text: "#fecaca",
+    border: MAP_STATUS_TOKENS.blocked.border,
+    background: MAP_STATUS_TOKENS.blocked.bg,
+    text: MAP_STATUS_TOKENS.blocked.text,
   },
   error: {
-    border: "rgba(251, 146, 60, 0.72)",
-    background: "rgba(124, 45, 18, 0.32)",
-    text: "#fed7aa",
+    border: MAP_STATUS_TOKENS.blocked.border,
+    background: MAP_STATUS_TOKENS.blocked.bg,
+    text: MAP_STATUS_TOKENS.blocked.text,
   },
   warning: {
-    border: "rgba(245, 158, 11, 0.68)",
-    background: "rgba(120, 53, 15, 0.28)",
-    text: "#fde68a",
+    border: MAP_STATUS_TOKENS.caveat.border,
+    background: MAP_STATUS_TOKENS.caveat.bg,
+    text: MAP_STATUS_TOKENS.caveat.text,
   },
   info: {
-    border: "rgba(125, 211, 252, 0.55)",
-    background: "rgba(12, 74, 110, 0.24)",
-    text: "#bae6fd",
+    border: MAP_STATUS_TOKENS.unknown.border,
+    background: MAP_STATUS_TOKENS.unknown.bg,
+    text: MAP_STATUS_TOKENS.unknown.text,
   },
 };
 
@@ -90,7 +90,7 @@ const groupHeaderStyle: React.CSSProperties = {
 };
 
 const emptyStyle: React.CSSProperties = {
-  border: MAP_STROKES.panel,
+  border: MAP_STROKES.hairlineSubtle,
   borderRadius: 8,
   padding: "12px 14px",
   color: MAP_COLORS.textMuted,
@@ -103,7 +103,7 @@ const rowStyle: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns: "88px minmax(0, 1fr)",
   gap: 10,
-  border: MAP_STROKES.panel,
+  border: MAP_STROKES.hairlineSubtle,
   borderRadius: 8,
   padding: 10,
   background: "rgba(2, 6, 23, 0.38)",
@@ -187,7 +187,7 @@ function severityChipStyle(severity: MapProblemSeverity): React.CSSProperties {
     minHeight: 22,
     padding: "0 7px",
     border: `1px solid ${tone.border}`,
-    borderRadius: 999,
+    borderRadius: MAP_RADIUS.badge,
     color: tone.text,
     background: tone.background,
     fontSize: 9,
@@ -204,7 +204,7 @@ function CountPill(props: { severity: MapProblemSeverity; count: number }): Reac
     <span
       style={{
         border: `1px solid ${tone.border}`,
-        borderRadius: 999,
+        borderRadius: MAP_RADIUS.badge,
         color: tone.text,
         background: tone.background,
         padding: "4px 7px",

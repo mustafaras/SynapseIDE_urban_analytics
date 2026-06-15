@@ -4,6 +4,7 @@
 /*  Renders ghost feedback, vertex handles, and the feature sidebar.   */
 /*  presentation="floating"  → legacy draggable floating panel         */
 /*  presentation="embedded"  → scrollable body for the right dock      */
+/*  presentation="modal"     → body for the draggable drawing dialog   */
 /*  presentation="headless"  → canvas-only controller, no sidebar UI   */
 /* ================================================================== */
 
@@ -117,7 +118,7 @@ export interface MapDrawingSnapSource {
   featureCollection: GeoJSON.FeatureCollection;
 }
 
-export type MapDrawingManagerPresentation = "floating" | "embedded" | "headless";
+export type MapDrawingManagerPresentation = "floating" | "embedded" | "modal" | "headless";
 
 export interface MapDrawingManagerProps {
   mapRef: React.RefObject<maplibregl.Map | null>;
@@ -126,6 +127,7 @@ export interface MapDrawingManagerProps {
    * When `"floating"` (default): renders the classic draggable floating sidebar.
    * When `"embedded"`: renders the feature list as a scrollable body suitable for
    * embedding inside the `MapRightDockHost` draw panel.
+   * When `"modal"`: renders the same feature controls inside the draggable Draw dialog.
    * When `"headless"`: keeps drawing/map interaction logic active without
    * rendering sidebar chrome inside the modal.
    */
@@ -184,6 +186,35 @@ const smallBtn: React.CSSProperties = {
 
 const emptyStyle: React.CSSProperties = {
   ...mapStyles.sidePanelEmpty,
+};
+
+const modalBodyStyle: React.CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  height: "100%",
+  minHeight: 0,
+  background: MAP_COLORS.bgPanel,
+};
+
+const modalActionStripStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: MAP_SPACING.sm,
+  minHeight: "2.25rem",
+  padding: `${MAP_SPACING.xs} ${MAP_SPACING.md}`,
+  borderBottom: MAP_STROKES.hairlineSubtle,
+  background: "color-mix(in srgb, var(--syn-surface-subtle, rgba(15, 23, 42, 0.68)) 74%, transparent)",
+};
+
+const modalActionMetaStyle: React.CSSProperties = {
+  minWidth: 0,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+  color: MAP_COLORS.textSecondary,
+  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
+  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
 };
 
 /* ================================================================== */
@@ -1174,6 +1205,35 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
               </button>
             ) : null}
           </div>
+        </div>
+        {summaryStrip}
+        {featureList}
+      </div>
+    );
+  }
+
+  if (presentation === "modal") {
+    return (
+      <div
+        style={modalBodyStyle}
+        role="region"
+        aria-label="Drawing modal workspace"
+        data-testid="map-draw-modal-body"
+      >
+        <div style={modalActionStripStyle}>
+          <span style={modalActionMetaStyle}>
+            Tool {activeToolLabel} / Features {drawnFeatures.length} / Selected {selectedFeature ? selectedFeature.geometry.type : "None"}
+          </span>
+          {drawnFeatures.length > 0 ? (
+            <button
+              type="button"
+              style={smallBtn}
+              onClick={onClearFeatures}
+              aria-label="Clear all drawn features"
+            >
+              Clear all
+            </button>
+          ) : null}
         </div>
         {summaryStrip}
         {featureList}

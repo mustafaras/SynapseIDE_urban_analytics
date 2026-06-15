@@ -27,9 +27,8 @@ import type { MapActivityId } from "../mapActivityRuntime";
 interface MapExplorerLayerPanelRailProps {
   activeActivityId: MapActivityId;
   activeActivityLabel: string;
-  /** Which screen edge this dock attaches to. Composition activities use the
-   *  left edge; Style/Analyze/Scene/Publish workspaces dock on the right so the
-   *  left dock stays composition-only. */
+  /** Which screen edge this dock attaches to. The current workbench keeps
+   *  workspace content on the left edge so the right edge stays contextual. */
   side?: MapPanelRailSide;
   analyzeDataOperationsElement: React.ReactNode;
   analyzeModelsElement: React.ReactNode;
@@ -202,7 +201,7 @@ export const MapExplorerLayerPanelRail: React.FC<MapExplorerLayerPanelRailProps>
       maxWidth={MAP_LAYER_PANEL_MAX_WIDTH}
       resizable={side === "right" || dockLayerPanelPlacement === "left"}
       onWidthChange={onLayerPanelWidthChange}
-      ariaLabel={side === "right" ? "Workspace panel" : "Layer and data panel"}
+      ariaLabel={side === "right" ? "Workspace panel" : "Workspace and layer panel"}
       data-ui-proof={side === "right" ? "real-workspace-dock" : "real-left-dock"}
       data-testid="map-layer-panel-rail"
       data-map-panel-side={side}

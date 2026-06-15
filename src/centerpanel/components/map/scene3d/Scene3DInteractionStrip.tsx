@@ -68,7 +68,7 @@ const stripStyle: React.CSSProperties = {
   padding: "3px",
   background: MAP_COLORS.bgPanel,
   border: MAP_STROKES.hairline,
-  borderRadius: MAP_RADIUS.full,
+  borderRadius: MAP_RADIUS.badge,
   boxShadow: MAP_SHADOWS.panel,
   /* strip intentionally placed top-left — does not occlude center/right canvas */
 };

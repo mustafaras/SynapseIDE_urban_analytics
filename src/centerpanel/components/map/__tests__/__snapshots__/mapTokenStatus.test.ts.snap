@@ -3,9 +3,9 @@
 exports[`MAP_STATUS_TOKENS > snapshot: full status token map 1`] = `
 {
   "blocked": {
-    "bg": "color-mix(in srgb, var(--syn-status-error, #f87171) 12%, transparent)",
-    "border": "color-mix(in srgb, var(--syn-status-error, #f87171) 28%, transparent)",
-    "text": "var(--syn-status-error, #f87171)",
+    "bg": "color-mix(in srgb, var(--syn-text-muted, #778190) 14%, transparent)",
+    "border": "color-mix(in srgb, var(--syn-border-subtle, #343a44) 72%, transparent)",
+    "text": "color-mix(in srgb, var(--syn-status-error, #f87171) 60%, var(--syn-text-secondary, #a4adbb))",
   },
   "caveat": {
     "bg": "color-mix(in srgb, var(--syn-status-info, #6aa9ff) 12%, transparent)",
@@ -18,14 +18,14 @@ exports[`MAP_STATUS_TOKENS > snapshot: full status token map 1`] = `
     "text": "var(--syn-interaction-active, #3794ff)",
   },
   "external": {
-    "bg": "color-mix(in srgb, var(--syn-status-info, #6aa9ff) 10%, transparent)",
+    "bg": "color-mix(in srgb, var(--syn-text-muted, #778190) 14%, transparent)",
     "border": "var(--syn-border-default, #4a5260)",
     "text": "var(--syn-status-info, #6aa9ff)",
   },
   "external-offline": {
-    "bg": "color-mix(in srgb, var(--syn-status-error, #f87171) 12%, transparent)",
-    "border": "color-mix(in srgb, var(--syn-status-error, #f87171) 28%, transparent)",
-    "text": "var(--syn-status-error, #f87171)",
+    "bg": "color-mix(in srgb, var(--syn-text-muted, #778190) 14%, transparent)",
+    "border": "color-mix(in srgb, var(--syn-border-subtle, #343a44) 72%, transparent)",
+    "text": "color-mix(in srgb, var(--syn-status-error, #f87171) 60%, var(--syn-text-secondary, #a4adbb))",
   },
   "generated": {
     "bg": "color-mix(in srgb, var(--syn-interaction-active, #3794ff) 10%, transparent)",
@@ -38,9 +38,9 @@ exports[`MAP_STATUS_TOKENS > snapshot: full status token map 1`] = `
     "text": "var(--syn-text-secondary, #a4adbb)",
   },
   "ready": {
-    "bg": "color-mix(in srgb, var(--syn-status-valid, #4ec27d) 12%, transparent)",
-    "border": "color-mix(in srgb, var(--syn-status-valid, #4ec27d) 28%, transparent)",
-    "text": "var(--syn-status-valid, #4ec27d)",
+    "bg": "color-mix(in srgb, var(--syn-text-muted, #778190) 14%, transparent)",
+    "border": "color-mix(in srgb, var(--syn-border-subtle, #343a44) 72%, transparent)",
+    "text": "color-mix(in srgb, var(--syn-status-valid, #4ec27d) 60%, var(--syn-text-secondary, #a4adbb))",
   },
   "running": {
     "bg": "color-mix(in srgb, var(--syn-interaction-active, #3794ff) 10%, transparent)",
@@ -48,8 +48,8 @@ exports[`MAP_STATUS_TOKENS > snapshot: full status token map 1`] = `
     "text": "var(--syn-interaction-active, #3794ff)",
   },
   "stale": {
-    "bg": "color-mix(in srgb, var(--syn-status-info, #6aa9ff) 8%, transparent)",
-    "border": "color-mix(in srgb, var(--syn-status-info, #6aa9ff) 20%, transparent)",
+    "bg": "color-mix(in srgb, var(--syn-text-muted, #778190) 14%, transparent)",
+    "border": "color-mix(in srgb, var(--syn-border-subtle, #343a44) 72%, transparent)",
     "text": "var(--syn-status-info, #6aa9ff)",
   },
   "synthetic": {

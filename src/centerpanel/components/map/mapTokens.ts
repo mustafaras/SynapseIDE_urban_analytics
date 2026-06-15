@@ -174,6 +174,12 @@ export const MAP_RADIUS = {
   lg: DESIGN_TOKENS.borderRadius.sm,
   glass: DESIGN_TOKENS.borderRadius.sm,
   full: DESIGN_TOKENS.borderRadius.full,
+  /**
+   * Single source of truth for status chips / badges. Square by policy — the
+   * Map Explorer redesign forbids pill/round status silhouettes. Enforced by
+   * __tests__/mapBadgePolicy.test.ts. Use this instead of inline `borderRadius: 0`.
+   */
+  badge: DESIGN_TOKENS.borderRadius.geometric,
 } as const;
 
 /* ---- Shadows ---- */
@@ -273,13 +279,12 @@ export const MAP_SHELL_DIMENSIONS = {
   activityRailWidth: "2.625rem",
   railButtonSize: "2.25rem",
   modalChromeHeight: "2.75rem",
-  // Deliberate, premium command-bar height — a clearly taller GIS application
-  // chrome than a thin browser toolbar, while staying visually filled by the
-  // single-row brand + search + menu composition. Drives --map-menu-h /
-  // --map-shell-command-height.
-  commandCenterHeight: "5.5rem",
-  menuBarHeight: "5.5rem",
-  topCommandHeight: "5.5rem",
+  // Compact premium command-bar height. This is 40% shorter than the previous
+  // 5.5rem chrome while preserving a single-row brand + search + menu layout.
+  // Drives --map-menu-h / --map-shell-command-height.
+  commandCenterHeight: "3.3rem",
+  menuBarHeight: "3.3rem",
+  topCommandHeight: "3.3rem",
   // Left dock: compact GIS layer explorer width band (≈320–360px default,
   // 260px min, 520px max) per the production GIS layout spec.
   leftSidebarMinWidth: "16.25rem",
@@ -1240,14 +1245,24 @@ export type GisStatusKey =
   | "blocked"
   | "running";
 
+/**
+ * Calm status tones (p01). Status meaning is carried by a MUTED text tone, never
+ * by saturated green/red fills or borders. The success/error palette vars are
+ * blended toward neutral text so a chip reads as a quiet label, not an alarm.
+ * Fills and borders must NOT reference --syn-status-valid / --syn-status-error
+ * (enforced by __tests__/mapBadgePolicy.test.ts).
+ */
+const MAP_STATUS_TONE_SUCCESS = `color-mix(in srgb, ${MAP_COLORS.success} 60%, ${MAP_COLORS.textSecondary})`;
+const MAP_STATUS_TONE_ERROR = `color-mix(in srgb, ${MAP_COLORS.error} 60%, ${MAP_COLORS.textSecondary})`;
+
 export const MAP_STATUS_TOKENS: Record<
   GisStatusKey,
   { readonly text: string; readonly bg: string; readonly border: string }
 > = {
   ready: {
-    text: MAP_COLORS.success,
-    bg: `color-mix(in srgb, ${MAP_COLORS.success} 12%, transparent)`,
-    border: `color-mix(in srgb, ${MAP_COLORS.success} 28%, transparent)`,
+    text: MAP_STATUS_TONE_SUCCESS,
+    bg: MAP_COLORS.neutralSubtle,
+    border: MAP_COLORS.hairlineSubtle,
   },
   caveat: {
     text: MAP_COLORS.caveatText,
@@ -1276,7 +1291,7 @@ export const MAP_STATUS_TOKENS: Record<
   },
   external: {
     text: MAP_COLORS.caveatText,
-    bg: `color-mix(in srgb, ${MAP_COLORS.caveatText} 10%, transparent)`,
+    bg: MAP_COLORS.neutralSubtle,
     border: MAP_COLORS.hairlineStrong,
   },
   "metadata-only": {
@@ -1285,19 +1300,19 @@ export const MAP_STATUS_TOKENS: Record<
     border: MAP_COLORS.dashed,
   },
   "external-offline": {
-    text: MAP_COLORS.error,
-    bg: `color-mix(in srgb, ${MAP_COLORS.error} 12%, transparent)`,
-    border: `color-mix(in srgb, ${MAP_COLORS.error} 28%, transparent)`,
+    text: MAP_STATUS_TONE_ERROR,
+    bg: MAP_COLORS.neutralSubtle,
+    border: MAP_COLORS.hairlineSubtle,
   },
   stale: {
     text: MAP_COLORS.caveatText,
-    bg: `color-mix(in srgb, ${MAP_COLORS.caveatText} 8%, transparent)`,
-    border: `color-mix(in srgb, ${MAP_COLORS.caveatText} 20%, transparent)`,
+    bg: MAP_COLORS.neutralSubtle,
+    border: MAP_COLORS.hairlineSubtle,
   },
   blocked: {
-    text: MAP_COLORS.error,
-    bg: `color-mix(in srgb, ${MAP_COLORS.error} 12%, transparent)`,
-    border: `color-mix(in srgb, ${MAP_COLORS.error} 28%, transparent)`,
+    text: MAP_STATUS_TONE_ERROR,
+    bg: MAP_COLORS.neutralSubtle,
+    border: MAP_COLORS.hairlineSubtle,
   },
   running: {
     text: MAP_COLORS.interaction,

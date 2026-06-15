@@ -77,6 +77,10 @@ export interface MapCanvasControlsProps {
    * - "overlay"— safe-inset canvas dock + keyboard popover over the map canvas
    */
   surface?: "full" | "bar" | "overlay";
+  draggableControlDock?: boolean;
+  controlDockTitle?: string;
+  controlDockSubtitle?: string;
+  onCloseControlDock?: () => void;
   onZoomIn: () => void;
   onZoomOut: () => void;
   onResetView: () => void;
@@ -245,7 +249,7 @@ const toolMetaStyle: React.CSSProperties = {
 };
 
 const northArrowStyle: React.CSSProperties = {
-  borderRadius: MAP_RADIUS.full,
+  borderRadius: MAP_RADIUS.none,
   borderColor: "color-mix(in srgb, var(--syn-interaction-active, #3794ff) 28%, transparent)",
 };
 
@@ -267,11 +271,11 @@ const dockChipStyle: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   gap: "0.25rem",
-  minHeight: "1.5rem",
-  maxWidth: "9.5rem",
+  minHeight: "1.75rem",
+  maxWidth: "10.5rem",
   padding: "0 0.5rem",
   border: MAP_STROKES.hairlineSubtle,
-  borderRadius: MAP_RADIUS.full,
+  borderRadius: MAP_RADIUS.none,
   background: "color-mix(in srgb, var(--syn-surface-subtle, rgba(15, 23, 42, 0.68)) 78%, transparent)",
   color: MAP_COLORS.textMuted,
   fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
@@ -289,20 +293,22 @@ const dockChipActiveStyle: React.CSSProperties = {
 };
 
 const contextualTrayStyle: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "auto minmax(0, 1fr) auto",
+  display: "inline-flex",
   alignItems: "center",
   gap: MAP_SPACING.xs,
   minWidth: 0,
+  minHeight: "2rem",
   padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
   border: MAP_STROKES.hairlineSubtle,
-  borderRadius: MAP_RADIUS.sm,
+  borderRadius: MAP_RADIUS.none,
   background: "color-mix(in srgb, var(--syn-surface-subtle, rgba(15, 23, 42, 0.72)) 86%, transparent)",
+  flexShrink: 0,
 };
 
 const contextualTrayTextStyle: React.CSSProperties = {
-  display: "grid",
-  gap: 1,
+  display: "inline-flex",
+  alignItems: "baseline",
+  gap: MAP_SPACING.xs,
   minWidth: 0,
 };
 
@@ -428,6 +434,10 @@ export const MapCanvasControls: React.FC<MapCanvasControlsProps> = ({
   fitVisibleDisabled = false,
   fitVisibleReason = "Show at least one layer before fitting visible layers.",
   surface = "full",
+  draggableControlDock = false,
+  controlDockTitle,
+  controlDockSubtitle,
+  onCloseControlDock,
   onZoomIn,
   onZoomOut,
   onResetView,
@@ -821,6 +831,10 @@ export const MapCanvasControls: React.FC<MapCanvasControlsProps> = ({
           primary={dockPrimaryNode}
           chips={dockChipsNode}
           contextual={drawContextTray || measureContextTray || selectionContextTray ? overlayContextNode : null}
+          draggable={draggableControlDock}
+          title={controlDockTitle}
+          subtitle={controlDockSubtitle}
+          onClose={onCloseControlDock}
         />
         {keyboardPanel}
       </div>

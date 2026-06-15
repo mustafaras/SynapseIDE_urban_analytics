@@ -108,19 +108,21 @@ const headerActionsStyle: React.CSSProperties = {
 };
 
 const summaryStyle: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+  display: "flex",
+  flexDirection: "column",
   borderBottom: MAP_STROKES.hairlineSubtle,
   background: MAP_COLORS.transparent,
-  minHeight: "2.125rem",
 };
 
 const summaryItemStyle: React.CSSProperties = {
-  display: "grid",
-  gap: "0.125rem",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: MAP_SPACING.sm,
   minWidth: 0,
-  padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
-  borderRight: MAP_STROKES.hairlineSubtle,
+  minHeight: "1.75rem",
+  padding: `0 ${MAP_SPACING.md}`,
+  borderBottom: MAP_STROKES.hairlineSubtle,
 };
 
 const summaryLabelStyle: React.CSSProperties = {
@@ -220,7 +222,7 @@ export const MapDockPanelFrame: React.FC<MapDockPanelFrameProps> = ({
             key={item.id}
             style={{
               ...summaryItemStyle,
-              ...(index === summaryItems.length - 1 ? { borderRight: MAP_STROKES.none } : {}),
+              ...(index === summaryItems.length - 1 ? { borderBottom: MAP_STROKES.none } : {}),
             }}
             title={item.title}
           >

@@ -263,7 +263,7 @@ const lineSwatchStyle: React.CSSProperties = {
   ...swatchStyle,
   height: "0.25rem",
   alignSelf: "center",
-  borderRadius: MAP_RADIUS.full,
+  borderRadius: MAP_RADIUS.xs,
 };
 
 const circleSwatchStyle: React.CSSProperties = {
@@ -273,7 +273,7 @@ const circleSwatchStyle: React.CSSProperties = {
 
 const readinessGridStyle: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(8.5rem, 1fr))",
+  gridTemplateColumns: "minmax(0, 1fr)",
   gap: MAP_SPACING.xs,
 };
 
@@ -289,7 +289,7 @@ const readinessCellStyle: React.CSSProperties = {
 
 const rendererChoiceGridStyle: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(9.75rem, 1fr))",
+  gridTemplateColumns: "minmax(0, 1fr)",
   gap: MAP_SPACING.xs,
 };
 
