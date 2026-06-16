@@ -115,6 +115,14 @@ Status values: `pending` · `in_progress` · `done` · `blocked`
 - Gates: typecheck PASS, lint PASS, `map-drawing-tools` **87** (added MapDialogShell nonBlocking unit tests), map+utils **933**, `test:analytics` **1131**, `build` PASS, `perf:budgets` PASS. E2E (temp, deleted): map clicks keep modal open + Inspector complete. Screenshot refreshed: `evidence/p06-draw-pro.png`.
 - Merged → `master` (triggers `pages.yml` deploy).
 
+### 2026-06-16 — p06+ FIX — rectangle/circle drawing (vanished on 2nd click) ✅
+- Owner report: circle & rectangle "disappear on the second click". Two root causes (both surfaced once the non-blocking modal made map drawing actually reachable):
+  1. **Doubled canvas handlers.** A `headless` `MapDrawingManager` (View) *and* the `modal`/`embedded` UI instances all ran the canvas event effect → every map click was processed by multiple instances → duplicate shapes (each instance had its own dedup ref). Fix: only the canvas owner attaches map/source/keyboard/cursor effects — new `managesCanvas = presentation === "headless" || "floating"`; `modal`/`embedded` are now pure UI.
+  2. **Duplicate `click` events.** A single physical click fired the handler ~4×; rectangle/line/polygon/point survived via same-point guards, but the circle's "reset on tiny radius" branch cancelled its own centre. Fix: a same-point/time click debounce (`lastClickRef`, 350ms) collapses duplicates so every tool gets exactly one logical click; circle now mirrors the rectangle's same-point guard.
+- Also reworked rectangle & circle to intuitive **two-click** tools (click start → click end / centre → radius), removed the old broken mousedown/mouseup drag path (its `onMouseUp` referenced an undefined `e`), added a duplicate-commit guard in `finishFeature`, and a tool-change reset so a half-drawn shape never leaks into the next tool.
+- Verified by temp e2e (deleted): Rect → exactly 1 polygon, Circle → exactly 1 polygon, Point ×3 → 3, Polygon multi-click → 1; modal stays open throughout. Gates: typecheck PASS, lint PASS, `map-drawing-tools` **87**, map+utils **933**, `test:analytics` **1131**, `build` PASS, `perf:budgets` PASS.
+- Merged → `master` (triggers `pages.yml` deploy).
+
 <!-- Append new sessions below. Template:
 ### YYYY-MM-DD — <phase/track> — <short title>
 - Did: ...

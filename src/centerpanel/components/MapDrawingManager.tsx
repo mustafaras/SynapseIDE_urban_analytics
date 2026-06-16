@@ -986,6 +986,22 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
   const featuresRef = useRef(drawnFeatures);
   const snapSourcesRef = useRef<readonly MapDrawingSnapSource[]>(snapSources);
   const handledSeedTokenRef = useRef<number | null>(null);
+  // Last committed geometry signature + timestamp — used to drop accidental
+  // duplicate commits of the same shape from doubled pointer events.
+  const lastCommitRef = useRef<{ signature: string; at: number } | null>(null);
+  // Last handled map click (coordinate + time) — collapses duplicate `click`
+  // events fired for a single physical click so every tool gets exactly one
+  // logical click per gesture (critical for the two-click circle/rectangle).
+  const lastClickRef = useRef<{ key: string; at: number } | null>(null);
+
+  /**
+   * Only ONE instance may own the map canvas (sources, event handlers, cursor).
+   * The `modal` / `embedded` UIs are always rendered alongside a `headless`
+   * controller, so they must NOT attach map handlers — otherwise every click is
+   * processed twice and shapes get duplicated. `headless` and the legacy
+   * standalone `floating` panel are the canvas owners.
+   */
+  const managesCanvas = presentation === "headless" || presentation === "floating";
 
   // Keep refs in sync
   activeToolRef.current = activeDrawTool;
@@ -1228,10 +1244,10 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
           properties: {},
         });
       }
-    } else if (tool === "rectangle" && dragStartRef.current) {
+    } else if (tool === "rectangle" && verts.length === 1) {
       features.push({
         type: "Feature",
-        geometry: makeRectangle(dragStartRef.current, cursor),
+        geometry: makeRectangle(verts[0], cursor),
         properties: {},
       });
     } else if (tool === "circle" && verts.length === 1) {
@@ -1299,11 +1315,26 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
 
   const finishFeature = useCallback(
     (geometry: GeoJSON.Geometry, label: string) => {
+      // Guard against an identical shape being committed twice in quick
+      // succession (e.g. a duplicated pointer event finalising the same
+      // rectangle/circle). Distinct shapes — or the same shape redrawn later —
+      // are unaffected.
+      const signature = JSON.stringify(geometry);
+      const now = Date.now();
+      if (
+        lastCommitRef.current &&
+        lastCommitRef.current.signature === signature &&
+        now - lastCommitRef.current.at < 500
+      ) {
+        return;
+      }
+
       const validation = validateDrawnGeometry(geometry);
       if (validation.status === "blocked") {
         onAnnounce?.(`${label} was not added: ${summarizeDrawnGeometryValidation(validation)}`);
         return;
       }
+      lastCommitRef.current = { signature, at: now };
 
       const feature: DrawnFeature = {
         id: drawId(),
@@ -1377,6 +1408,7 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
   syncFeaturesRef.current = syncFeaturesToMap;
 
   useEffect(() => {
+    if (!managesCanvas) return undefined;
     const map = mapRef.current;
     if (!map) return undefined;
 
@@ -1398,19 +1430,37 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
       map.off("style.load", onStyleLoad);
       removeSources(map);
     };
-  }, [mapRef, ensureSources, removeSources]);
+  }, [mapRef, ensureSources, removeSources, managesCanvas]);
 
   /* Sync drawn features whenever they change */
   useEffect(() => {
+    if (!managesCanvas) return;
     const map = mapRef.current;
     if (!map || !isMapAlive(map)) return;
     if (map.isStyleLoaded()) {
       syncFeaturesToMap();
     }
     // If style isn't loaded, the style.load handler above will sync after sources exist
-  }, [mapRef, drawnFeatures, selectedFeatureId, syncFeaturesToMap]);
+  }, [mapRef, drawnFeatures, selectedFeatureId, syncFeaturesToMap, managesCanvas]);
+
+  /* Reset any in-progress (uncommitted) sketch when the active tool changes,
+     so a half-drawn rectangle/circle/line never leaks into the next tool. */
+  useEffect(() => {
+    if (!managesCanvas) return;
+    verticesRef.current = [];
+    cursorRef.current = null;
+    snapRef.current = null;
+    dragStartRef.current = null;
+    isDrawingRef.current = false;
+    const map = mapRef.current;
+    if (map && isMapAlive(map)) {
+      const ghost = map.getSource(GHOST_SOURCE) as maplibregl.GeoJSONSource | undefined;
+      ghost?.setData(featureCollection([]));
+    }
+  }, [activeDrawTool, mapRef, managesCanvas]);
 
   useEffect(() => {
+    if (!managesCanvas) return;
     if (!seedDrawStart || activeDrawTool !== seedDrawStart.tool) return;
     if (handledSeedTokenRef.current === seedDrawStart.token) return;
     handledSeedTokenRef.current = seedDrawStart.token;
@@ -1430,6 +1480,7 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
 
   /* ---- Main click / mousemove / dblclick / mousedown / mouseup ---- */
   useEffect(() => {
+    if (!managesCanvas) return undefined;
     const map = mapRef.current;
     if (!map) return undefined;
 
@@ -1472,6 +1523,19 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
         +e.lngLat.lat.toFixed(6),
       ];
 
+      // Collapse duplicate `click` events emitted for one physical click
+      // (otherwise the two-click circle/rectangle would self-cancel).
+      const clickKey = `${coord[0]},${coord[1]}`;
+      const clickNow = Date.now();
+      if (
+        lastClickRef.current &&
+        lastClickRef.current.key === clickKey &&
+        clickNow - lastClickRef.current.at < 350
+      ) {
+        return;
+      }
+      lastClickRef.current = { key: clickKey, at: clickNow };
+
       // Snap
       const snapped = trySnap(coord, map);
       const pt = snapped ?? coord;
@@ -1479,6 +1543,49 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
       if (tool === "point") {
         finishFeature(makePoint(pt), `Point ${featuresRef.current.length + 1}`);
         syncGhost();
+        return;
+      }
+
+      if (tool === "rectangle") {
+        // Two-click: first click sets a corner, second sets the opposite corner.
+        const verts = verticesRef.current;
+        if (verts.length === 0) {
+          verticesRef.current = [pt];
+          cursorRef.current = pt;
+          isDrawingRef.current = true;
+          syncGhost();
+          onAnnounce?.("Rectangle started — click the opposite corner");
+        } else {
+          const start = verts[0];
+          if (Math.abs(pt[0] - start[0]) < 1e-7 && Math.abs(pt[1] - start[1]) < 1e-7) {
+            return; // ignore a duplicate/same-point second click
+          }
+          finishFeature(makeRectangle(start, pt), `Rectangle ${featuresRef.current.length + 1}`);
+          syncGhost();
+        }
+        return;
+      }
+
+      if (tool === "circle") {
+        // Two-click: first click sets the centre, second sets the radius.
+        const verts = verticesRef.current;
+        if (verts.length === 0) {
+          verticesRef.current = [pt];
+          cursorRef.current = pt;
+          isDrawingRef.current = true;
+          syncGhost();
+          onAnnounce?.("Circle started — click to set the radius");
+        } else {
+          const center = verts[0];
+          if (Math.abs(pt[0] - center[0]) < 1e-7 && Math.abs(pt[1] - center[1]) < 1e-7) {
+            return; // same-point click — keep the centre, wait for a real radius
+          }
+          const radius = haversineDistance(center, pt);
+          if (radius > 1) {
+            finishFeature(makeCircle(center, radius), `Circle ${featuresRef.current.length + 1}`);
+          }
+          syncGhost();
+        }
         return;
       }
 
@@ -1494,8 +1601,6 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
         syncGhost();
         return;
       }
-
-      /* rectangle and circle use mousedown/mouseup drag, not click */
     };
 
     /* ---------- Mousemove ---------- */
@@ -1564,10 +1669,9 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
       cursorRef.current = snapped ?? coord;
       snapRef.current = snapped;
 
-      if (tool === "rectangle" && dragStartRef.current) {
-        // Ghost preview
-        syncGhost();
-      } else if (isDrawingRef.current || verticesRef.current.length > 0 || snapRef.current) {
+      // Live preview while a multi-click shape (line/polygon/rectangle/circle)
+      // is in progress, or whenever a snap candidate is highlighted.
+      if (isDrawingRef.current || verticesRef.current.length > 0 || snapRef.current) {
         syncGhost();
       }
     };
@@ -1606,10 +1710,10 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
       }
     };
 
-    /* ---------- Mousedown → rectangle start / vertex edit start ---------- */
+    /* ---------- Mousedown → vertex edit start ----------
+       Rectangle & circle are click-driven (see onClick); mousedown only
+       initiates vertex dragging on the selected feature. */
     const onMouseDown = (e: maplibregl.MapMouseEvent) => {
-      const tool = activeToolRef.current;
-
       // Vertex editing: check if we're clicking on a vertex of the selected feature
       if (selectedFeatureId) {
         const feat = featuresRef.current.find((f) => f.id === selectedFeatureId);
@@ -1637,35 +1741,9 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
           }
         }
       }
-
-      if (tool === "rectangle") {
-        const coord: [number, number] = [
-          +e.lngLat.lng.toFixed(6),
-          +e.lngLat.lat.toFixed(6),
-        ];
-        dragStartRef.current = coord;
-        isDrawingRef.current = true;
-        map.dragPan.disable();
-        e.preventDefault();
-      }
-
-      if (tool === "circle") {
-        const coord: [number, number] = [
-          +e.lngLat.lng.toFixed(6),
-          +e.lngLat.lat.toFixed(6),
-        ];
-        verticesRef.current = [coord];
-        cursorRef.current = coord;
-        snapRef.current = null;
-        dragStartRef.current = coord;
-        isDrawingRef.current = true;
-        map.dragPan.disable();
-        e.preventDefault();
-        syncGhost();
-      }
     };
 
-    /* ---------- Mouseup → rectangle finish / vertex edit end ---------- */
+    /* ---------- Mouseup → vertex edit end ---------- */
     const onMouseUp = () => {
       // Vertex editing end
       if (editingRef.current) {
@@ -1677,51 +1755,6 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
         if (edit.latest) {
           onCommitFeatureEdit?.(edit.featureId, edit.before, edit.latest);
         }
-        return;
-      }
-
-      const tool = activeToolRef.current;
-      if (tool === "rectangle" && dragStartRef.current) {
-        const coord: [number, number] = [
-          +e.lngLat.lng.toFixed(6),
-          +e.lngLat.lat.toFixed(6),
-        ];
-        // Only create if there's meaningful distance
-        if (
-          Math.abs(coord[0] - dragStartRef.current[0]) > 0.00001 ||
-          Math.abs(coord[1] - dragStartRef.current[1]) > 0.00001
-        ) {
-          finishFeature(
-            makeRectangle(dragStartRef.current, coord),
-            `Rectangle ${featuresRef.current.length + 1}`,
-          );
-        }
-        dragStartRef.current = null;
-        isDrawingRef.current = false;
-        map.dragPan.enable();
-        syncGhost();
-      }
-
-      if (tool === "circle" && dragStartRef.current && verticesRef.current.length === 1) {
-        const coord: [number, number] = [
-          +e.lngLat.lng.toFixed(6),
-          +e.lngLat.lat.toFixed(6),
-        ];
-        const center = verticesRef.current[0];
-        const radius = haversineDistance(center, coord);
-        if (radius > 1) {
-          finishFeature(
-            makeCircle(center, radius),
-            `Circle ${featuresRef.current.length + 1}`,
-          );
-        }
-        verticesRef.current = [];
-        cursorRef.current = null;
-        snapRef.current = null;
-        dragStartRef.current = null;
-        isDrawingRef.current = false;
-        map.dragPan.enable();
-        syncGhost();
       }
     };
 
@@ -1753,6 +1786,7 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
     onSelectFeature,
     onAnnounce,
     ensureSources,
+    managesCanvas,
   ]);
 
   /* ================================================================ */
@@ -1760,6 +1794,7 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
   /* ================================================================ */
 
   useEffect(() => {
+    if (!managesCanvas) return undefined;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape" && (isDrawingRef.current || activeToolRef.current)) {
         e.stopPropagation(); // Prevent modal close
@@ -1795,6 +1830,7 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
     onRemoveFeature,
     onSelectFeature,
     onAnnounce,
+    managesCanvas,
   ]);
 
   /* ================================================================ */
@@ -1802,6 +1838,7 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
   /* ================================================================ */
 
   useEffect(() => {
+    if (!managesCanvas) return undefined;
     const map = mapRef.current;
     if (!map || !isMapAlive(map)) return undefined;
     const canvas = map.getCanvas();
@@ -1814,7 +1851,7 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
       if (!isMapAlive(map)) return;
       canvas.style.cursor = "";
     };
-  }, [mapRef, activeDrawTool]);
+  }, [mapRef, activeDrawTool, managesCanvas]);
 
   /* ================================================================ */
   /*  Feature sidebar rendered in React                                */
