@@ -2,7 +2,7 @@
 
 > **Read this FIRST every session. Update it LAST before exiting.** A track is `done` only with evidence (a test-summary file in `evidence/` or a screenshot path). Never write `done` without an `evidence` link. This ledger is the single human-readable source of truth for "where are we"; [STATE.json](STATE.json) is its machine mirror — keep them in sync.
 
-**Overall status:** `IN PROGRESS` — p00-p09 complete (badge/status-language phases + dock-state unification + draw first-click fix + premium drawing modal + rectangle-AOI bounds-clipped real fetch + AOI analysis/evidence dispatch + floating right-dock shell closed; next action p10).
+**Overall status:** `IN PROGRESS` — p00-p11 complete (badge/status-language phases + dock-state unification + draw first-click fix + premium drawing modal + rectangle-AOI bounds-clipped real fetch + AOI analysis/evidence dispatch + floating right-dock shell + right-panel single-column conversion closed; next action p12).
 
 Status values: `pending` · `in_progress` · `done` · `blocked`
 
@@ -18,8 +18,8 @@ Status values: `pending` · `in_progress` · `done` · `blocked`
 | p07 | AOI → fetch data | Rectangle bounds → data fetch | **done** | Fetch-data flow shots | **done** | ☑ |
 | p08 | AOI → analysis | Compatible flows → evidence | **done** | Analysis dispatch shots | **done** | ☑ |
 | p09 | Right dock floating modal | Drag + resize + clamp + persist | **done** | Moved/resized modal shots | **done** | ☑ |
-| p10 | Right dock single-click | One-click open + state cleanup | pending | One-click open shot | pending | ☐ |
-| p11 | Right panel single-column | Remove dual-column | pending | Single-column shots | pending | ☐ |
+| p10 | Right dock single-click | One-click open + state cleanup | **done** | One-click open shot | **done** | ☑ |
+| p11 | Right panel single-column | Remove dual-column | **done** | Single-column shots | **done** | ☑ |
 | p12 | Right dock motion | (motion test/reduced-motion) | pending | Animated open/close | pending | ☐ |
 | p13 | Left dock single-column | Workspace single-column | pending | Data/Add Data shots | pending | ☐ |
 | p14 | Models recompose | Single-column builder | pending | (support shots) | pending | ☐ |
@@ -185,6 +185,16 @@ Status values: `pending` · `in_progress` · `done` · `blocked`
 - Environment stabilization during capture: installed missing local deps (`vitest`, `@duckdb/duckdb-wasm`, `onnxruntime-web`) and excluded `pdf-lib` from Vite optimizeDeps to avoid pre-bundle failure from broken package shape in this environment.
 - Evidence: `evidence/p10-trackA.md`, `evidence/p10-trackB.md`, `evidence/p10-single-click-open.png`, `evidence/p10-narrow-fallback.png`.
 - Next action: `prompts/p11-right-panel-single-column.md`.
+
+### 2026-06-16 — p11 EXECUTED — both tracks done ✅
+- Track A: converted right-dock dual-column layouts to single-column vertical flow across style/report/selection context. `LayerStyleEditor` control grid now stacks in one column; `CartographyRecommendationList` preview now stacks before/after vertically; AOI label/value rows in right-dock selection now use `GisPropertyGrid` (sanctioned dense primitive). Added right-dock single-column markers (`data-right-dock-layout="single-column"`) on style and publish bodies and converted timeline filter strip to single-column for narrow readability.
+- Track A tests/gates: `mapRightDockRoutes.test.ts` + new `map-right-dock-single-column-layout.test.ts` PASS (12 tests), full map suite PASS (**95 files / 904 tests**), `npm run typecheck` PASS, `npm run lint:no-tailwind-centerpanel` PASS.
+- Track B: captured narrow/wide proof set for converted right-dock panels:
+  - `evidence/p11-style-wide.png`, `evidence/p11-style-narrow.png`
+  - `evidence/p11-selection-wide.png`, `evidence/p11-selection-narrow.png`
+  - `evidence/p11-report-wide.png`, `evidence/p11-report-narrow.png`
+- Evidence: `evidence/p11-trackA.md`, `evidence/p11-trackB.md`.
+- Next action: `prompts/p12-right-dock-motion.md`.
 
 <!-- Append new sessions below. Template:
 ### YYYY-MM-DD — <phase/track> — <short title>

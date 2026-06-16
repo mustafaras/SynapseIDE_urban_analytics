@@ -216,7 +216,7 @@ const iconButtonStyle: React.CSSProperties = {
 
 const filterGridStyle: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  gridTemplateColumns: "minmax(0, 1fr)",
   gap: MAP_SPACING.sm,
   padding: MAP_SPACING.sm,
   borderBottom: MAP_STROKES.hairlineSubtle,

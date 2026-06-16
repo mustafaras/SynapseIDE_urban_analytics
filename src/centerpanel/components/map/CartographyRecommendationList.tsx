@@ -125,7 +125,7 @@ const severityPillStyle: React.CSSProperties = {
 
 const previewGridStyle: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "1fr 1fr",
+  gridTemplateColumns: "minmax(0, 1fr)",
   gap: MAP_SPACING.sm,
 };
 
@@ -321,7 +321,7 @@ export const CartographyRecommendationList: React.FC<CartographyRecommendationLi
             <div style={fixStyle}>{recommendation.suggestedFix}</div>
 
             <div style={previewGridStyle} aria-label={`Before and after legend preview for ${recommendation.title}`}>
-              <div style={previewBoxStyle}>
+              <div style={previewBoxStyle} data-testid="map-cartography-preview-single-column">
                 <div style={previewTitleStyle}>Before</div>
                 {renderLegendItems(recommendation.preview.beforeLegend)}
               </div>

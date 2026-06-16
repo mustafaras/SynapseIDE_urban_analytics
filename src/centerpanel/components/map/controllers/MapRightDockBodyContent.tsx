@@ -12,7 +12,7 @@ import type { LayerStyleUpdate } from "../inspector/style/legendContract";
 import { type MapProblemRow, MapProblemsPanel } from "../problems";
 import { MapPanelErrorBoundary } from "../MapPanelErrorBoundary";
 import { MapPerformanceDiagnosticsPanel } from "../MapPerformanceDiagnosticsPanel";
-import { GisEmptyState, GisStatusChip } from "../ui";
+import { GisEmptyState, GisPropertyGrid, GisStatusChip } from "../ui";
 import type { MapRightDockPanel } from "../mapDocking";
 import type { DrawnFeature, OverlayLayerConfig } from "../mapTypes";
 import type { MapPublishReadinessItem, MapPublishTabId } from "../publish";
@@ -247,14 +247,11 @@ function AoiAnalysisPanel({
           Copy JSON
         </button>
       </div>
-      <div style={{ display: "grid", gap: MAP_SPACING.xs }}>
-        {rows.map((row) => (
-          <div key={row.label} style={{ display: "grid", gridTemplateColumns: "7rem minmax(0, 1fr)", gap: MAP_SPACING.sm, color: MAP_COLORS.textSecondary, fontSize: MAP_TYPOGRAPHY.fontSize.xs }}>
-            <span style={{ color: MAP_COLORS.textMuted }}>{row.label}</span>
-            <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>{row.value}</span>
-          </div>
-        ))}
-      </div>
+      <GisPropertyGrid
+        data-testid="map-right-dock-aoi-analysis-properties"
+        density="compact"
+        rows={rows.map((row) => ({ key: row.label, value: row.value }))}
+      />
       {summary.layerHits.length > 0 ? (
         <div style={{ display: "grid", gap: "0.125rem", color: MAP_COLORS.textMuted, fontSize: MAP_TYPOGRAPHY.fontSize.xs }}>
           {summary.layerHits.slice(0, 4).map((hit) => (
@@ -554,7 +551,7 @@ export const MapRightDockBodyContent: React.FC<MapRightDockBodyContentProps> = (
 
   if (activeRightDockPanel === "style") {
     return (
-      <div style={rightDockBodyShellStyle} data-testid="map-right-dock-style-body">
+      <div style={rightDockBodyShellStyle} data-testid="map-right-dock-style-body" data-right-dock-layout="single-column">
         <RightDockRouteSection title="Renderer" eyebrow="Style">
           {styleRendererElement}
         </RightDockRouteSection>
@@ -592,7 +589,7 @@ export const MapRightDockBodyContent: React.FC<MapRightDockBodyContentProps> = (
     ];
     const activePublishTab = publishTabs.find((tab) => tab.id === activePublishTabId) ?? publishTabs[0]!;
     return (
-      <div style={rightDockBodyShellStyle} data-testid="map-right-dock-publish-body">
+      <div style={rightDockBodyShellStyle} data-testid="map-right-dock-publish-body" data-right-dock-layout="single-column">
         <RightDockRouteSection
           title="Readiness"
           eyebrow="Publish"
@@ -704,7 +701,7 @@ export const MapRightDockBodyContent: React.FC<MapRightDockBodyContentProps> = (
     };
 
     return (
-      <MapBottomPanelScrollBody data-testid="map-right-dock-selection-body" padding={0}>
+      <MapBottomPanelScrollBody data-testid="map-right-dock-selection-body" data-right-dock-layout="single-column" padding={0}>
         <MapSelectionTools
           mapRef={mapRef}
           queryableLayers={queryableLayers}

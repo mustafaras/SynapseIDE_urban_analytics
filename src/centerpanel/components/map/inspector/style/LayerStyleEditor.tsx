@@ -38,7 +38,7 @@ const sectionStyle: React.CSSProperties = {
 
 const gridStyle: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  gridTemplateColumns: "minmax(0, 1fr)",
   gap: MAP_SPACING.sm,
 };
 
@@ -227,7 +227,7 @@ export const LayerStyleEditor: React.FC<LayerStyleEditorProps> = ({
         </div>
       </div>
 
-      <div style={gridStyle}>
+      <div style={gridStyle} data-testid="map-layer-style-single-column-fields">
         <label style={sectionStyle}>
           <span style={labelStyle}>Mode</span>
           <select
