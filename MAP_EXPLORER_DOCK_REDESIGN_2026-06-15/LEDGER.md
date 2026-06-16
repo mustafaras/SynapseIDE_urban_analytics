@@ -108,6 +108,13 @@ Status values: `pending` · `in_progress` · `done` · `blocked`
 - Gates: typecheck PASS, lint:errors PASS, `map-drawing-tools` **85**, map+utils suite **931**, `test:analytics` **1131**, `build` PASS, `perf:budgets` PASS.
 - Screenshot: `evidence/p06-draw-pro.png`. Merged feature branch → `master` (triggers `pages.yml` deploy).
 
+### 2026-06-16 — p06+ STABILITY — non-blocking modal + clean inspector ✅
+- Owner report: draw modal "closes by itself", map-click info looked "half-baked", needs to be consistent/flawless. Root cause: `MapDialogShell` rendered a full-screen blocking backdrop → clicking the map closed the modal AND blocked draw clicks.
+- Fix: added `nonBlocking` prop to `MapDialogShell` (overlay `pointer-events:none` + transparent backdrop, no close-on-outside-click, no Tab trap, `aria-modal=false`); the draw modal opts in. Map stays interactive; modal stays put.
+- Layout: moved the Inspector inside the feature-list scroll region so measurements + style editor are never clipped; panel min 24×22rem.
+- Gates: typecheck PASS, lint PASS, `map-drawing-tools` **87** (added MapDialogShell nonBlocking unit tests), map+utils **933**, `test:analytics` **1131**, `build` PASS, `perf:budgets` PASS. E2E (temp, deleted): map clicks keep modal open + Inspector complete. Screenshot refreshed: `evidence/p06-draw-pro.png`.
+- Merged → `master` (triggers `pages.yml` deploy).
+
 <!-- Append new sessions below. Template:
 ### YYYY-MM-DD — <phase/track> — <short title>
 - Did: ...

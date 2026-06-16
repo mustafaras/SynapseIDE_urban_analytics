@@ -32,6 +32,13 @@ export interface MapDialogShellProps {
   maximizable?: boolean;
   /** When set, drag position + resized size persist durably across sessions. */
   memoryKey?: string;
+  /**
+   * Non-modal mode: the backdrop does not capture pointer events (the map
+   * stays interactive for drawing/measuring), clicking "outside" does NOT
+   * close the dialog, and Tab focus is not trapped. The dialog still opens
+   * focused and closes on Escape / the close button.
+   */
+  nonBlocking?: boolean;
   onClose: () => void;
   children: React.ReactNode;
 }
@@ -159,6 +166,7 @@ export function MapDialogShell({
   footerStyle,
   maximizable = true,
   memoryKey,
+  nonBlocking = false,
   onClose,
   children,
 }: MapDialogShellProps): React.ReactElement {
@@ -229,7 +237,7 @@ export function MapDialogShell({
       return;
     }
 
-    if (event.key !== "Tab") {
+    if (event.key !== "Tab" || nonBlocking) {
       return;
     }
 
@@ -285,15 +293,25 @@ export function MapDialogShell({
 
   return (
     <div
-      style={{ ...overlayBaseStyle, ...overlayStyle }}
-      onClick={(event) => {
-        if (event.target === event.currentTarget) onClose();
+      style={{
+        ...overlayBaseStyle,
+        ...overlayStyle,
+        // Non-modal: let the map underneath stay interactive (draw/pan/zoom)
+        // and drop the dimming backdrop so the canvas reads clearly.
+        ...(nonBlocking ? { pointerEvents: "none", background: "transparent" } : {}),
       }}
+      onClick={
+        nonBlocking
+          ? undefined
+          : (event) => {
+              if (event.target === event.currentTarget) onClose();
+            }
+      }
     >
       <div
         ref={panelRef}
         role="dialog"
-        aria-modal="true"
+        aria-modal={nonBlocking ? false : true}
         aria-label={ariaLabel}
         tabIndex={-1}
         data-draggable-map-panel="true"
@@ -311,6 +329,8 @@ export function MapDialogShell({
           ...panelStyle,
           ...maximizedPanelStyle,
           resize: maximized ? "none" : panelStyle?.resize ?? panelBaseStyle.resize,
+          // Re-enable interaction on the panel when the overlay is click-through.
+          ...(nonBlocking ? { pointerEvents: "auto" } : {}),
         }}
       >
         <div {...dragHandleProps} style={{ ...headerStyle, ...(maximized ? { cursor: "default" } : dragHandleStyle) }}>

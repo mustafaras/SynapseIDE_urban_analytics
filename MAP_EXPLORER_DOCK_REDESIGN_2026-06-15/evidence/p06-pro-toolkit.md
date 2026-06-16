@@ -45,6 +45,22 @@ geospatial sketch workbench**. All four requested capability groups shipped.
   handlers unchanged (p07/p08 depend). `MapDialogShell` still owns focus/Escape.
 - `DrawnFeature.properties` gained an optional `hidden?: boolean`.
 
+## Stability fixes (follow-up)
+- **Modal closing by itself / can't draw:** the draw modal used `MapDialogShell`'s
+  full-screen blocking backdrop, so any click on the map hit the backdrop and
+  closed the modal (and the map never received draw clicks). Added a
+  `nonBlocking` mode to `MapDialogShell`: the overlay is `pointer-events:none`
+  with a transparent (undimmed) backdrop, outside-clicks no longer close, Tab is
+  not trapped, and `aria-modal="false"`. The draw modal opts in → the map stays
+  fully interactive and the modal stays put. (Default dialogs unchanged.)
+- **"Half-baked" info when clicking on the map:** the Inspector now lives inside
+  the same scroll region as the feature list, so measurements + style editor are
+  never clipped; min panel size (24×22rem) keeps content legible. Verified: both
+  feature rows + full Inspector (Type/Vertices/Area/Perimeter/Centroid) + style
+  editor render cleanly and on-design.
+- E2E proof: clicking the map canvas twice keeps the modal visible (was the
+  regression), and the Inspector shows complete Area/Perimeter/Centroid.
+
 ## Verify (all green)
 - `typecheck` PASS · `lint:errors` PASS (clean).
 - `map-drawing-tools.test.ts` **85 passed** (added geodesic measurement,

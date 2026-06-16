@@ -845,10 +845,10 @@ const DrawModalBody: React.FC<DrawModalBodyProps> = ({
             })}
           </div>
         )}
-      </div>
 
-      {/* Inspector — measurements + style editor for the selected feature */}
-      {selectedFeature && selectedMeasure ? (
+        {/* Inspector — measurements + style editor for the selected feature.
+            Lives inside the scroll region so it never gets clipped. */}
+        {selectedFeature && selectedMeasure ? (
         <div className={drawModalStyles.inspector} data-testid="map-draw-modal-inspector">
           <GisSectionHeader title={`Inspector · ${selectedFeature.properties.label}`} compact separator={false} />
           <div className={drawModalStyles.metricGrid}>
@@ -945,7 +945,8 @@ const DrawModalBody: React.FC<DrawModalBodyProps> = ({
             </div>
           </div>
         </div>
-      ) : null}
+        ) : null}
+      </div>
     </div>
   );
 };

@@ -1056,6 +1056,40 @@ describe("p06+ — pro modal body renders the multi-functional toolkit", () => {
 });
 
 /* ================================================================== */
+/*  6f. Stability — MapDialogShell non-blocking (map stays interactive) */
+/* ================================================================== */
+
+describe("MapDialogShell — nonBlocking mode keeps the map interactive", () => {
+  it("renders a non-modal dialog with a click-through, undimmed backdrop", async () => {
+    const { MapDialogShell } = await import("../MapDialogShell");
+    const html = renderToStaticMarkup(
+      React.createElement(
+        MapDialogShell,
+        { ariaLabel: "Drawing tools modal", title: "Draw", nonBlocking: true, onClose: () => undefined },
+        React.createElement("div", null, "body"),
+      ),
+    );
+    // Non-modal so screen readers + click-outside behave like a tool palette.
+    expect(html).toContain('aria-modal="false"');
+    // Backdrop must not capture clicks (so map drawing works) nor dim the map.
+    expect(html).toContain("pointer-events:none");
+    expect(html).toContain("background:transparent");
+  });
+
+  it("stays a blocking modal (aria-modal true) by default", async () => {
+    const { MapDialogShell } = await import("../MapDialogShell");
+    const html = renderToStaticMarkup(
+      React.createElement(
+        MapDialogShell,
+        { ariaLabel: "Dialog", title: "Dialog", onClose: () => undefined },
+        React.createElement("div", null, "body"),
+      ),
+    );
+    expect(html).toContain('aria-modal="true"');
+  });
+});
+
+/* ================================================================== */
 /*  7. Barrel exports — New drawing types                              */
 /* ================================================================== */
 

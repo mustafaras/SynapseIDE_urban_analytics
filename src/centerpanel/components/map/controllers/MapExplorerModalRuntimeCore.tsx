@@ -6155,6 +6155,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
             maxWidth="calc(100% - 2rem)"
             maxHeight="calc(100% - 4rem)"
             memoryKey="map-draw-modal"
+            nonBlocking
             panelStyle={drawModalPanelStyle}
             bodyStyle={drawModalBodyStyle}
             overlayStyle={drawModalOverlayStyle}
