@@ -123,6 +123,13 @@ Status values: `pending` · `in_progress` · `done` · `blocked`
 - Verified by temp e2e (deleted): Rect → exactly 1 polygon, Circle → exactly 1 polygon, Point ×3 → 3, Polygon multi-click → 1; modal stays open throughout. Gates: typecheck PASS, lint PASS, `map-drawing-tools` **87**, map+utils **933**, `test:analytics` **1131**, `build` PASS, `perf:budgets` PASS.
 - Merged → `master` (triggers `pages.yml` deploy).
 
+### 2026-06-16 — p06+ FIX — feature popup + one-click AOI→3D buildings ✅
+- Owner report: the map "Feature Details" popup is half/clipped and off-design; calling 3D buildings for the rectangle AOI is too complex / doesn't work.
+- **Popup:** rebuilt `buildFeaturePopupHtml` (MapCanvas) into a fixed-width self-contained premium card — long values wrap (`overflow-wrap:anywhere; min-width:0`) so OSM/building ids no longer clip; themed maplibre chrome (`stylePremiumPopupContainer`: square, hairline, dropdown shadow, themed tip/close), mono dense rows, square accent "Add to report"; popup `maxWidth` raised. New `map-feature-popup.test.ts` (5).
+- **AOI→3D:** new Core `handleOpen3DBuildingsForAoi` makes the drawing modal's "3D buildings" one click — resolves the drawn polygon/rectangle AOI, fits the map to it, opens the VoxCity scene, and bumps a new `voxCityAutoFetchToken` prop so `MapVoxCityOverlay` auto-runs `handleFetchOsmBuildings` for that AOI (VoxCity already targets the AOI via `resolveMapAnalysisBounds`). Button disabled until something is drawn. E2E: rectangle → "3D buildings" → VoxCity scene opens + Overpass request auto-queued for the AOI (`evidence/p06-aoi-3d-buildings.png`).
+- Gates: typecheck PASS, lint PASS, map+popup unit **92**, map+utils **938**, `test:analytics` **1131**, `build` PASS, `perf:budgets` PASS. Evidence: `evidence/p06-popup-and-3d.md`, `evidence/p06-aoi-3d-buildings.png`.
+- Merged → `master` (triggers `pages.yml` deploy).
+
 <!-- Append new sessions below. Template:
 ### YYYY-MM-DD — <phase/track> — <short title>
 - Did: ...

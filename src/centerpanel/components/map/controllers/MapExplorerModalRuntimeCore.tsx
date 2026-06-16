@@ -54,6 +54,7 @@ import { useDraggableMapPanel } from '../useDraggableMapPanel';
 import { type MapRightDockPanel } from '../mapDocking';
 import { createMapRightDockRoute, deriveContextualToolPanelVisibility, getMapRightDockPanelDefinition, MAP_RIGHT_DOCK_PANEL_IDS, type MapRightDockRouteSource } from '../mapRightDockRoutes';
 import { DEFAULT_DRAW_TOOL, isDrawAoiActionDisabled, resolveDrawToolOnOpen } from '../mapDrawToolPreferences';
+import { geometryBounds } from '../drawGeometryOps';
 import { type MapWorkspaceView } from '../mapExperience';
 import { createInitialMapStartDialogState, dismissMapStartDialog, hasMapStartDialogWorkspaceContent, type MapStartDialogHandoff, type MapStartDialogState } from '../mapStartDialogState';
 import { selectMapExplorerContextSummary } from '../mapContextSummary';
@@ -721,6 +722,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
   const [showHotSpotViz, setShowHotSpotViz] = useState(false);
   const [showEmergingHotSpotViz, setShowEmergingHotSpotViz] = useState(false);
   const [showVoxCityOverlay, setShowVoxCityOverlay] = useState(false);
+  const [voxCityAutoFetchToken, setVoxCityAutoFetchToken] = useState(0);
   const [showScientificQAPanel, setShowScientificQAPanel] = useState(false);
   const [activeUrbanMethodRequest, setActiveUrbanMethodRequest] = useState<UrbanToMapMethodRequestPayload | null>(null);
   const [activeUrbanMethodPreview, setActiveUrbanMethodPreview] = useState<UrbanToMapMethodRequestPreview | null>(null);
@@ -2155,6 +2157,32 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
     },
     [closeFloatingRightPanels, closeRightDockPanels, openPublishActivityTab]
   );
+  /**
+   * One-click "3D buildings" for the drawn area: resolve the AOI (selected or
+   * first drawn polygon/rectangle), fit the map to it, open the VoxCity scene,
+   * and auto-fetch its OSM buildings — no manual panel steps required.
+   */
+  const handleOpen3DBuildingsForAoi = useCallback(() => {
+    const aoi =
+      drawnFeatures.find((f) => f.id === selectedFeatureId && f.geometry.type === "Polygon") ??
+      drawnFeatures.find((f) => f.geometry.type === "Polygon") ??
+      null;
+    if (!aoi) {
+      announce("Draw a rectangle or polygon first, then load its 3D buildings.");
+      return;
+    }
+    const bounds = geometryBounds(aoi.geometry);
+    const map = mapInstanceRef.current;
+    if (bounds && map) {
+      try {
+        map.fitBounds(bounds, { padding: 64, maxZoom: 18, duration: 600 });
+      } catch {
+        /* map may be mid-transition — ignore */
+      }
+    }
+    handleOpenSceneTab('scene-voxcity', `Loading 3D buildings for ${aoi.properties.label}`);
+    setVoxCityAutoFetchToken((token) => token + 1);
+  }, [drawnFeatures, selectedFeatureId, announce, handleOpenSceneTab]);
   const handlePublishWorkspaceTabChange = useCallback(
     (tabId: string) => {
       const resolvedTabId = resolvePublishTabId(tabId);
@@ -5440,6 +5468,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
     setShowLayerPanel,
     setShowMapExportDialog,
     setShowVoxCityOverlay,
+    voxCityAutoFetchToken,
     setShowWorkflowDrawer,
     setStyleWorkspaceLayerId,
     setUrbanWorkflowDraftRequest,
@@ -6183,9 +6212,10 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
                   </button>
                   <button
                     type="button"
-                    title="View 3D building heights on map"
-                    style={drawModalTertiaryActionBtnStyle}
-                    onClick={() => handleOpenSceneTab('scene-voxcity', '3D building heights opened')}
+                    title="Load 3D buildings for the drawn area"
+                    disabled={isDrawAoiActionDisabled(drawnFeatures.length)}
+                    style={{ ...drawModalTertiaryActionBtnStyle, ...(isDrawAoiActionDisabled(drawnFeatures.length) ? drawModalDisabledActionStyle : {}) }}
+                    onClick={handleOpen3DBuildingsForAoi}
                   >
                     3D buildings
                   </button>

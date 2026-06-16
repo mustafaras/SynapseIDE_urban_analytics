@@ -808,6 +808,12 @@ export interface MapVoxCityOverlayProps {
     label: string | null;
     progress: MapImportProgress | null;
   }) => void;
+  /**
+   * Monotonic token. Each new value triggers a one-click OSM building fetch for
+   * the current AOI (drawn rectangle/polygon) — used by the drawing modal's
+   * "3D buildings" action so the selected area's buildings load automatically.
+   */
+  autoFetchToken?: number;
 }
 
 export const MapVoxCityOverlay: React.FC<MapVoxCityOverlayProps> = ({
@@ -817,6 +823,7 @@ export const MapVoxCityOverlay: React.FC<MapVoxCityOverlayProps> = ({
   presentation = "floating",
   onAnnounce,
   onExternalImportProgress,
+  autoFetchToken,
 }) => {
   const { panelPositionStyle, dragHandleProps, dragHandleStyle } = useDraggableMapPanel();
   const embedded = presentation === "embedded";
@@ -1329,6 +1336,20 @@ export const MapVoxCityOverlay: React.FC<MapVoxCityOverlayProps> = ({
         }, 750);
       });
   }, [addOverlayLayer, onAnnounce, onExternalImportProgress]);
+
+  /* -------- One-click AOI → 3D buildings (driven by autoFetchToken) -------- */
+  const lastAutoFetchTokenRef = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    if (autoFetchToken == null || autoFetchToken === lastAutoFetchTokenRef.current) {
+      return;
+    }
+    lastAutoFetchTokenRef.current = autoFetchToken;
+    if (autoFetchToken > 0) {
+      // Ensure OSM footprints are the active source, then fetch for the AOI.
+      setSourceMode("osm");
+      handleFetchOsmBuildings();
+    }
+  }, [autoFetchToken, handleFetchOsmBuildings]);
 
   /* -------- Apply color-by changes -------- */
   useEffect(() => {

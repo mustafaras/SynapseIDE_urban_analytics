@@ -255,6 +255,7 @@ export function buildMapRuntimeRenderModel(args: BuildMapRuntimeRenderModelArgs)
     setShowLayerPanel,
     setShowMapExportDialog,
     setShowVoxCityOverlay,
+    voxCityAutoFetchToken,
     setStyleWorkspaceLayerId,
     setUrbanWorkflowDraftRequest,
     setWorkbenchSidebarTab,
@@ -1068,6 +1069,7 @@ export function buildMapRuntimeRenderModel(args: BuildMapRuntimeRenderModelArgs)
       }}
       onAnnounce={announce}
       onExternalImportProgress={handleExternalServiceProgress}
+      autoFetchToken={voxCityAutoFetchToken}
     />
   );
 

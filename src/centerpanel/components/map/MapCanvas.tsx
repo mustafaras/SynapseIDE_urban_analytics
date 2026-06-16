@@ -7,6 +7,7 @@ import {
   MAP_DIMENSIONS,
   MAP_NUMERIC,
   MAP_RADIUS,
+  MAP_SHADOWS,
   MAP_SPACING,
   MAP_STROKES,
   MAP_TYPOGRAPHY,
@@ -150,7 +151,7 @@ function getFeaturePopupTitle(properties: Record<string, unknown> | undefined, f
   return title ? String(title) : fallback;
 }
 
-function buildFeaturePopupHtml(properties: Record<string, unknown> | undefined): string | null {
+export function buildFeaturePopupHtml(properties: Record<string, unknown> | undefined): string | null {
   const visibleEntries = Object.entries(properties ?? {}).filter(([key, value]) => {
     if (key.startsWith("__")) {
       return false;
@@ -163,24 +164,62 @@ function buildFeaturePopupHtml(properties: Record<string, unknown> | undefined):
   }
 
   const title = getFeaturePopupTitle(properties);
+  const mono = MAP_TYPOGRAPHY.fontFamilyMono;
 
   const rows = visibleEntries
     .slice(0, 12)
     .map(([key, value]) => {
       return `
-        <div style="display:grid;grid-template-columns:auto 1fr;gap:${MAP_SPACING.sm};padding:${MAP_SPACING.xs} 0;border-top:1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.32))">
-          <span style="font-size:${MAP_TYPOGRAPHY.fontSize.xs};color:${MAP_COLORS.textMuted};text-transform:uppercase;letter-spacing:${MAP_TYPOGRAPHY.letterSpacing.caps}">${escapeHtml(humanizePropertyKey(key))}</span>
-          <span style="font-size:${MAP_TYPOGRAPHY.fontSize.xs};color:${MAP_COLORS.textSecondary};text-align:right">${escapeHtml(formatPopupValue(value))}</span>
+        <div style="display:grid;grid-template-columns:minmax(4.25rem,auto) minmax(0,1fr);column-gap:${MAP_SPACING.md};align-items:baseline;padding:5px 0;border-top:1px solid ${MAP_COLORS.hairlineSubtle}">
+          <span style="font-size:10px;font-family:${mono};color:${MAP_COLORS.textMuted};text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap">${escapeHtml(humanizePropertyKey(key))}</span>
+          <span style="font-size:11px;font-family:${mono};color:${MAP_COLORS.text};text-align:right;min-width:0;overflow-wrap:anywhere;word-break:break-word">${escapeHtml(formatPopupValue(value))}</span>
         </div>`;
     })
     .join("");
 
+  // Self-contained premium card: width is fixed and values wrap, so long
+  // OSM ids / source names never clip. The maplibre content chrome is themed
+  // to match in `stylePremiumPopupContainer`.
   return `
-    <div style="min-width:${MAP_DIMENSIONS.searchWidth};max-width:${MAP_DIMENSIONS.pinSidebarWidth};padding:${MAP_SPACING.sm};font-family:${MAP_TYPOGRAPHY.fontFamily}">
-      <div style="font-size:${MAP_TYPOGRAPHY.fontSize.sm};font-weight:${MAP_TYPOGRAPHY.fontWeight.bold};color:var(--syn-text-primary, ${MAP_COLORS.text});margin-bottom:${MAP_SPACING.sm}">${escapeHtml(title)}</div>
-      <div>${rows}</div>
-      <button type="button" data-map-feature-report="true" style="margin-top:${MAP_SPACING.sm};width:100%;border:1px solid var(--syn-border-strong, rgba(148, 163, 184, 0.5));border-radius:${MAP_RADIUS.sm};background:var(--syn-interaction-hover, rgba(56, 189, 248, 0.14));color:var(--syn-text-primary, ${MAP_COLORS.text});font-size:${MAP_TYPOGRAPHY.fontSize.xs};font-weight:${MAP_TYPOGRAPHY.fontWeight.semibold};padding:${MAP_SPACING.xs} ${MAP_SPACING.sm};cursor:pointer">Add to report</button>
+    <div style="width:17rem;max-width:17rem;box-sizing:border-box;font-family:${MAP_TYPOGRAPHY.fontFamily};color:${MAP_COLORS.text}">
+      <div style="display:flex;flex-direction:column;gap:2px;padding:${MAP_SPACING.sm} ${MAP_SPACING.md};border-bottom:1px solid ${MAP_COLORS.hairlineSubtle}">
+        <span style="font-size:10px;font-family:${mono};color:${MAP_COLORS.textMuted};text-transform:uppercase;letter-spacing:0.06em">Feature</span>
+        <span style="font-size:${MAP_TYPOGRAPHY.fontSize.sm};font-weight:${MAP_TYPOGRAPHY.fontWeight.semibold};color:${MAP_COLORS.text};overflow-wrap:anywhere">${escapeHtml(title)}</span>
+      </div>
+      <div style="padding:${MAP_SPACING.xs} ${MAP_SPACING.md}">${rows}</div>
+      <div style="padding:${MAP_SPACING.xs} ${MAP_SPACING.md} ${MAP_SPACING.sm}">
+        <button type="button" data-map-feature-report="true" style="width:100%;border:1px solid ${MAP_COLORS.interaction};border-radius:0;background:${MAP_COLORS.interaction};color:${MAP_COLORS.bgPanel};font-family:${mono};font-size:11px;font-weight:${MAP_TYPOGRAPHY.fontWeight.semibold};padding:6px 9px;cursor:pointer">Add to report</button>
+      </div>
     </div>`;
+}
+
+/** Theme a maplibre popup's chrome (content card, tip, close button) to the
+ *  premium dark, square design so feature popups match the rest of the UI. */
+function stylePremiumPopupContainer(popup: maplibregl.Popup): void {
+  const popupEl = popup.getElement();
+  if (!popupEl) return;
+  const surface = "var(--syn-surface-panel, #232832)";
+  const content = popupEl.querySelector(".maplibregl-popup-content");
+  if (content instanceof HTMLElement) {
+    content.style.background = surface;
+    content.style.padding = "0";
+    content.style.borderRadius = "0";
+    content.style.border = `1px solid ${MAP_COLORS.hairlineStrong}`;
+    content.style.boxShadow = MAP_SHADOWS.dropdown;
+    content.style.overflow = "hidden";
+  }
+  const tipTop = popupEl.querySelector(".maplibregl-popup-anchor-top .maplibregl-popup-tip");
+  const tipBottom = popupEl.querySelector(".maplibregl-popup-anchor-bottom .maplibregl-popup-tip");
+  if (tipTop instanceof HTMLElement) tipTop.style.borderBottomColor = surface;
+  if (tipBottom instanceof HTMLElement) tipBottom.style.borderTopColor = surface;
+  const closeBtn = popupEl.querySelector(".maplibregl-popup-close-button");
+  if (closeBtn instanceof HTMLElement) {
+    closeBtn.style.color = MAP_COLORS.textMuted;
+    closeBtn.style.fontSize = "16px";
+    closeBtn.style.padding = "2px 8px";
+    closeBtn.style.right = "2px";
+    closeBtn.style.top = "2px";
+  }
 }
 
 function isAbortLikeError(error: unknown): boolean {
@@ -454,10 +493,11 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
       }
 
       popupRef.current?.remove();
-      popupRef.current = new maplibregl.Popup({ offset: MAP_NUMERIC.popupOffset, closeButton: true })
+      popupRef.current = new maplibregl.Popup({ offset: MAP_NUMERIC.popupOffset, closeButton: true, maxWidth: "18rem" })
         .setLngLat(e.lngLat)
         .setHTML(popupHtml)
         .addTo(map);
+      stylePremiumPopupContainer(popupRef.current);
       const reportButton = popupRef.current.getElement()?.querySelector<HTMLButtonElement>("[data-map-feature-report]");
       reportButton?.addEventListener("click", (event) => {
         event.preventDefault();
