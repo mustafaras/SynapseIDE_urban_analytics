@@ -1683,6 +1683,21 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
     announce('Attributes panel opened');
   }, [activeAnalysisResultLayerIds, announce, attributeTableLayerId, openRightDockPanel, overlayLayers, selectedFeatureIds]);
 
+  const handleToggleInspectorPanel = useCallback(() => {
+    const selectedLayerId = Object.entries(selectedFeatureIds).find(([, featureIds]) => featureIds.length > 0)?.[0] ?? null;
+    const analysisLayerId = activeAnalysisResultLayerIds.find(layerId => overlayLayers.some(layer => layer.id === layerId)) ?? null;
+    const visibleLayerId = overlayLayers.find(layer => layer.visible)?.id ?? overlayLayers[0]?.id ?? null;
+    const targetLayerId = inspectorLayerId ?? attributeTableLayerId ?? selectedLayerId ?? analysisLayerId ?? visibleLayerId;
+
+    if (activeRightDockRoute?.panel !== 'inspect' && targetLayerId) {
+      setInspectorLayerId(targetLayerId);
+      toggleRightDockPanel('inspect', 'Layer inspector opened in the right dock', 'toolbar', targetLayerId);
+      return;
+    }
+
+    toggleRightDockPanel('inspect', 'Inspector opened in the right dock', 'toolbar');
+  }, [activeAnalysisResultLayerIds, activeRightDockRoute?.panel, attributeTableLayerId, inspectorLayerId, overlayLayers, selectedFeatureIds, toggleRightDockPanel]);
+
   const handleOpenInspectFromStatus = useCallback(() => {
     const selectedLayerId = Object.entries(selectedFeatureIds).find(([, featureIds]) => featureIds.length > 0)?.[0] ?? null;
     const analysisLayerId = activeAnalysisResultLayerIds.find(layerId => overlayLayers.some(layer => layer.id === layerId)) ?? null;
@@ -5627,6 +5642,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
   }, [activeBackgroundTaskCount, openBottomOutputDrawer]);
 
   const rightAttributesDockActive = activeRightDockRoute?.panel === 'attributes';
+  const rightInspectorDockActive = activeRightDockRoute?.panel === 'inspect';
   const rightSelectionDockActive = activeRightDockRoute?.panel === 'selection';
   const rightTimelineDockActive = activeRightDockRoute?.panel === 'timeline';
   const rightTasksDockActive = activeRightDockRoute?.panel === 'tasks';
@@ -6208,6 +6224,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
             showSidebar={effectiveShowSidebar}
             onToggleSidebar={handleToggleSidebar}
             pinCount={pins.length}
+            showInspectorPanel={rightInspectorDockActive}
+            onToggleInspectorPanel={handleToggleInspectorPanel}
             showLayerPanel={effectiveShowLayerPanel}
             onToggleLayerPanel={handleToggleLayerPanel}
             layerCount={overlayLayers.length}

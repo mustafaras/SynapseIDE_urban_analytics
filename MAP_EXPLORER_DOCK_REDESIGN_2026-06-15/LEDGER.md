@@ -178,6 +178,14 @@ Status values: `pending` · `in_progress` · `done` · `blocked`
 - Evidence: `evidence/p09-trackA.md`, `evidence/p09-trackB.md`, `evidence/p09-float-default.png`, `evidence/p09-float-moved.png`, `evidence/p09-float-resized.png`.
 - Next action: `prompts/p10-right-dock-single-click.md`.
 
+### 2026-06-16 — p10 EXECUTED — both tracks done ✅
+- Track A: implemented single-click inspector command wiring through the right-dock route model without reintroducing legacy booleans. `MapToolbar` now exposes an `inspector` command entry; `MapExplorerModalRuntimeCore` routes command clicks to `handleToggleInspectorPanel`, opening `inspect` on first click and closing on second click via `toggleRightDockPanel`. Focus behavior was tightened by restoring trigger focus on route-toggle close in `useMapRightDockRouting`, and dock open-focus behavior now includes `inspect` in `MapRightDockHost`.
+- Track A tests/gates: `mapRightDockRoutes.test.ts`, `MapRightDockHost.test.tsx`, `map-right-dock-migration.test.ts` passed (23 tests total); `npm run typecheck` PASS.
+- Track B: captured `evidence/p10-single-click-open.png` (floating-modal at wide viewport) and `evidence/p10-narrow-fallback.png` (side-drawer fallback at constrained viewport). Capture used a temporary e2e spec, then removed it after artifacts were saved.
+- Environment stabilization during capture: installed missing local deps (`vitest`, `@duckdb/duckdb-wasm`, `onnxruntime-web`) and excluded `pdf-lib` from Vite optimizeDeps to avoid pre-bundle failure from broken package shape in this environment.
+- Evidence: `evidence/p10-trackA.md`, `evidence/p10-trackB.md`, `evidence/p10-single-click-open.png`, `evidence/p10-narrow-fallback.png`.
+- Next action: `prompts/p11-right-panel-single-column.md`.
+
 <!-- Append new sessions below. Template:
 ### YYYY-MM-DD — <phase/track> — <short title>
 - Did: ...

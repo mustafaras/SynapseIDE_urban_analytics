@@ -134,12 +134,18 @@ export function useMapRightDockRouting({
   ) => {
     const definition = getMapRightDockPanelDefinition(panel);
     if (activeRightDockRoute?.panel === panel) {
+      const shouldRestoreFocus = activeRightDockRoute.focusReturn === "trigger";
       closeRightDockRoute();
       announce(`${definition.label} right dock closed`);
+      if (shouldRestoreFocus) {
+        window.requestAnimationFrame(() => {
+          bottomPanelReturnFocusRef.current?.focus({ preventScroll: true });
+        });
+      }
       return;
     }
     openRightDockPanel(panel, announcement, routeSource, detail);
-  }, [activeRightDockRoute?.panel, announce, closeRightDockRoute, openRightDockPanel]);
+  }, [activeRightDockRoute, announce, closeRightDockRoute, openRightDockPanel]);
 
   const openDiagnosticsRightDock = useCallback((
     announcement = "Diagnostics opened in the right dock",

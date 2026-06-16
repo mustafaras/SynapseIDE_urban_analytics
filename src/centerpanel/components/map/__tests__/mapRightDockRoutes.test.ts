@@ -104,6 +104,23 @@ describe("mapRightDockRoutes", () => {
     expect(closed.activeRoute).toBeNull();
     expect(closed.lastRoute).toBe(attributesRoute);
   });
+
+  it("supports single-click inspector open and second-click close semantics", () => {
+    const inspectorRoute = createMapRightDockRoute("inspect", {
+      source: "toolbar",
+      detail: "single-click inspector",
+      focusReturn: "trigger",
+    });
+
+    const opened = openMapRightDockRouteState(EMPTY_MAP_RIGHT_DOCK_ROUTE_STATE, inspectorRoute);
+    expect(opened.activeRoute?.panel).toBe("inspect");
+    expect(opened.activeRoute?.source).toBe("toolbar");
+    expect(opened.activeRoute?.focusReturn).toBe("trigger");
+
+    const closed = closeMapRightDockRouteState(opened);
+    expect(closed.activeRoute).toBeNull();
+    expect(closed.lastRoute?.panel).toBe("inspect");
+  });
 });
 
 describe("contextual tool panel single source of truth (p04)", () => {

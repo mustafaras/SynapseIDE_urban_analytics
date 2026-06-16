@@ -105,6 +105,8 @@ export interface MapToolbarProps {
   showSidebar: boolean;
   onToggleSidebar: () => void;
   pinCount: number;
+  showInspectorPanel?: boolean;
+  onToggleInspectorPanel?: () => void;
   showLayerPanel?: boolean;
   onToggleLayerPanel?: () => void;
   layerCount?: number;
@@ -275,6 +277,7 @@ interface BuildToolbarCommandsArgs extends Required<Pick<
   | "showSidebar"
   | "onToggleSidebar"
   | "pinCount"
+  | "showInspectorPanel"
   | "showLayerPanel"
   | "layerCount"
   | "visibleLayerCount"
@@ -343,6 +346,7 @@ interface BuildToolbarCommandsArgs extends Required<Pick<
   onUndoMapAction?: (() => void) | undefined;
   onRedoMapAction?: (() => void) | undefined;
   onWorkspaceViewChange?: ((view: MapWorkspaceView) => void) | undefined;
+  onToggleInspectorPanel?: (() => void) | undefined;
   onToggleLayerPanel?: (() => void) | undefined;
   onToggleCatalog?: (() => void) | undefined;
   onToggleContents?: (() => void) | undefined;
@@ -1279,6 +1283,21 @@ function buildToolbarCommands(args: BuildToolbarCommandsArgs): ToolbarCommand[] 
     active: args.showLayerPanel,
     badge: args.layerCount,
     contextBoost: "empty",
+    navigator: true,
+  });
+
+  add(args.onToggleInspectorPanel && {
+    id: "inspector",
+    label: "Inspector",
+    shortLabel: "Inspect",
+    title: "Toggle right dock inspector panel",
+    keywords: ["inspector", "right dock", "right panel", "inspect", "properties"],
+    icon: Search,
+    onClick: args.onToggleInspectorPanel,
+    roles: ["explore", "analyze", "publish"],
+    overflowGroup: "tools",
+    priority: args.showInspectorPanel ? 104 : 62,
+    active: args.showInspectorPanel,
     navigator: true,
   });
 
@@ -2912,6 +2931,8 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
   showSidebar,
   onToggleSidebar,
   pinCount,
+  showInspectorPanel = false,
+  onToggleInspectorPanel,
   showLayerPanel = false,
   onToggleLayerPanel,
   layerCount = 0,
@@ -3102,6 +3123,8 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       showSidebar,
       onToggleSidebar,
       pinCount,
+      showInspectorPanel,
+      onToggleInspectorPanel,
       showLayerPanel,
       onToggleLayerPanel,
       layerCount,
@@ -3264,6 +3287,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       onToggleProcessingToolbox,
       onToggleSqlWorkspace,
       onToggleMinimap,
+      onToggleInspectorPanel,
       onCopyViewState,
       onRestoreViewState,
       viewStateRestoreAvailable,
@@ -3284,6 +3308,7 @@ export const MapToolbar: React.FC<MapToolbarProps> = ({
       processingToolCount,
       pinCount,
       pinMode,
+      showInspectorPanel,
       restrictToMapView,
       reportDisabled,
       reportDisabledReason,

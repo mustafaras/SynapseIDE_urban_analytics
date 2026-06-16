@@ -243,9 +243,6 @@ export const MapRightDockHost: React.FC<MapRightDockHostProps> = ({
   }, [normalizedPanels, visiblePanels]);
 
   useEffect(() => {
-    if (route.panel === "inspect") {
-      return;
-    }
     window.requestAnimationFrame(() => {
       hostRef.current?.focus({ preventScroll: true });
     });

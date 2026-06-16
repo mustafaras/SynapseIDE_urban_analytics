@@ -493,6 +493,9 @@ export default defineConfig(() => {
       'three',
       'three-stdlib',
     ],
+    // pdf-lib's ESM package shape is inconsistent in some environments;
+    // keep it out of pre-bundling so dev/e2e boot remains stable.
+    exclude: ['pdf-lib'],
   },
   build: {
     outDir: 'dist',
