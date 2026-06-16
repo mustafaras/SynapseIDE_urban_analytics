@@ -97,7 +97,7 @@ import {
   MapBottomOutputDrawer,
   type MapBottomOutputDrawerTabId,
 } from '../shell';
-import { buildDrawingSnapSources, buildDrawnAoiFromWorkflowResult, filterFeatureCollectionToBounds, getFeatureBounds, getLayerFitBounds, getSelectedFeatureFitBounds, hasPolygonGeometry, isPolygonLayerCandidate, matchesSpatialStatsOutput, mergeBounds, replaceSpatialStatsOutput, resolveFlowDispatchAoiCandidate } from './mapExplorerSpatialHelpers';
+import { buildAoiFetchResult, buildDrawingSnapSources, buildDrawnAoiFromWorkflowResult, filterFeatureCollectionToBounds, getFeatureBounds, getLayerFitBounds, getSelectedFeatureFitBounds, hasPolygonGeometry, isPolygonLayerCandidate, matchesSpatialStatsOutput, mergeBounds, replaceSpatialStatsOutput, resolveAoiFetchBounds, resolveFlowDispatchAoiCandidate, type AoiFetchSource } from './mapExplorerSpatialHelpers';
 import { publishTabLabel } from './mapExplorerPublishHelpers';
 import { buildTemporalFrameDefinitions, collectTemporalSourceFields, resolvePublishTabId, resolveTemporalRuntimeMode, sceneVerticalDatumValue, sourceHandleCrs } from './mapExplorerSceneHelpers';
 import { type DispatchFeedbackState, MAP_RENDER_ERROR_NOTICE_COOLDOWN_MS, type MapProjectSaveTrigger, restoreFocusToElement, sameMapProjectSaveTrigger } from './mapExplorerControllerHelpers';
@@ -3975,6 +3975,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
     announce(`Drawings added as layer: ${drawnFeatures.length} feature${drawnFeatures.length === 1 ? '' : 's'}`);
   }, [addOverlayLayer, announce, drawnFeatures]);
 
+  const [isFetchingAoiData, setIsFetchingAoiData] = useState(false);
+
   /* ---- Measurement handlers ---- */
   const handleSetMeasureTool = useCallback(
     (tool: MeasureToolId | null) => {
@@ -4110,6 +4112,111 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
     },
     [flyTo, reducedMotion]
   );
+
+  /**
+   * "Fetch data" — drive a real, bounds-restricted fetch from the drawn/selected
+   * rectangle AOI. Clips every active queryable vector source to the AOI bounds,
+   * scopes subsequent source loads to those bounds, and publishes the clipped
+   * result as a derived layer with provenance. If no source intersects (or none
+   * is queryable) it surfaces an explicit honest outcome — never a fake layer.
+   */
+  const handleFetchAoiData = useCallback(async () => {
+    if (isFetchingAoiData) {
+      return;
+    }
+    const resolved = resolveAoiFetchBounds(drawnFeatures, selectedFeatureId);
+    if (!resolved) {
+      const message = 'Draw or select a rectangle/polygon AOI before fetching data.';
+      setDispatchFeedback({ tone: 'error', title: 'No AOI available', description: message });
+      toastInfo(message);
+      announce(message);
+      return;
+    }
+
+    setIsFetchingAoiData(true);
+    // Scope subsequent source loads to the AOI bounds (AOI-restricted fetch).
+    setMapViewRestriction(resolved.bounds, true);
+    setDispatchFeedback({
+      tone: 'busy',
+      title: 'Fetching AOI data',
+      description: `Clipping queryable layers to ${resolved.label}.`,
+    });
+
+    try {
+      const queryableLayers = overlayLayers.filter(
+        (layer) => layer.queryable === true && layer.type === 'geojson' && Boolean(layer.sourceData),
+      );
+
+      const sources: AoiFetchSource[] = [];
+      for (const layer of queryableLayers) {
+        try {
+          const collection = await resolveFeatureCollection(layer);
+          sources.push({
+            layerId: layer.id,
+            layerName: layer.name,
+            collection,
+            ...(layer.sourceKind ? { sourceKind: layer.sourceKind } : {}),
+          });
+        } catch {
+          // Unresolvable source (e.g. remote/URL not reachable in this environment);
+          // skip it — if nothing resolves we surface an honest no-source outcome below.
+        }
+      }
+
+      const outcome = buildAoiFetchResult(sources, resolved.bounds, { aoiLabel: resolved.label });
+
+      if (outcome.status === 'fetched') {
+        addOverlayLayer(outcome.layer);
+        setActiveAnalysisResultLayers([outcome.layer.id]);
+        fitToBounds(resolved.bounds);
+        recordMapReviewEvent({
+          type: 'analysis-dispatch',
+          status: 'applied',
+          title: 'AOI data fetched',
+          summary: `Clipped ${outcome.featureCount.toLocaleString()} feature(s) from ${outcome.sourceLayerCount} source layer(s) to ${resolved.label}.`,
+          layerIds: [outcome.layer.id, ...outcome.provenance.sourceLayerIds],
+          details: {
+            aoiLabel: resolved.label,
+            aoiBounds: resolved.bounds,
+            capabilityStatus: outcome.provenance.capabilityStatus,
+            method: outcome.provenance.method,
+            featureCount: outcome.featureCount,
+            sourceLayerCount: outcome.sourceLayerCount,
+          },
+        });
+        const message = `Fetched ${outcome.featureCount.toLocaleString()} feature(s) clipped to ${resolved.label} from ${outcome.sourceLayerCount} layer(s).`;
+        setDispatchFeedback({ tone: 'success', title: 'AOI data fetched', description: message });
+        toastSuccess(message);
+        announce(message);
+        return;
+      }
+
+      if (outcome.status === 'empty') {
+        setDispatchFeedback({ tone: 'info', title: 'No data inside AOI', description: outcome.reason });
+        toastInfo(outcome.reason);
+        announce(outcome.reason);
+        return;
+      }
+
+      // no-source — honest environment-dependent outcome, no fabricated layer.
+      setDispatchFeedback({ tone: 'error', title: 'No queryable source', description: outcome.reason });
+      toastWarning(outcome.reason);
+      announce(outcome.reason);
+    } finally {
+      setIsFetchingAoiData(false);
+    }
+  }, [
+    addOverlayLayer,
+    announce,
+    drawnFeatures,
+    fitToBounds,
+    isFetchingAoiData,
+    overlayLayers,
+    recordMapReviewEvent,
+    selectedFeatureId,
+    setActiveAnalysisResultLayers,
+    setDispatchFeedback,
+  ]);
 
   const handleFocusLayer = useCallback(
     (layerId: string) => {
@@ -6193,12 +6300,12 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
                 <div style={drawModalFooterActionsStyle}>
                   <button
                     type="button"
-                    title="Fetch data for drawn area"
-                    disabled={isDrawAoiActionDisabled(drawnFeatures.length)}
-                    style={{ ...drawModalPrimaryActionBtnStyle, ...(isDrawAoiActionDisabled(drawnFeatures.length) ? drawModalDisabledActionStyle : {}) }}
-                    onClick={handleOpenFlowDispatchDialog}
+                    title="Fetch real layer data clipped to the drawn area"
+                    disabled={isDrawAoiActionDisabled(drawnFeatures.length) || isFetchingAoiData}
+                    style={{ ...drawModalPrimaryActionBtnStyle, ...((isDrawAoiActionDisabled(drawnFeatures.length) || isFetchingAoiData) ? drawModalDisabledActionStyle : {}) }}
+                    onClick={handleFetchAoiData}
                   >
-                    Fetch data
+                    {isFetchingAoiData ? 'Fetching…' : 'Fetch data'}
                   </button>
                   <button
                     type="button"

@@ -2,7 +2,7 @@
 
 > **Read this FIRST every session. Update it LAST before exiting.** A track is `done` only with evidence (a test-summary file in `evidence/` or a screenshot path). Never write `done` without an `evidence` link. This ledger is the single human-readable source of truth for "where are we"; [STATE.json](STATE.json) is its machine mirror — keep them in sync.
 
-**Overall status:** `IN PROGRESS` — p00-p06 complete (badge/status-language phases + dock-state unification + draw first-click fix + premium drawing modal closed; next action p07).
+**Overall status:** `IN PROGRESS` — p00-p07 complete (badge/status-language phases + dock-state unification + draw first-click fix + premium drawing modal + rectangle-AOI bounds-clipped real fetch closed; next action p08).
 
 Status values: `pending` · `in_progress` · `done` · `blocked`
 
@@ -15,7 +15,7 @@ Status values: `pending` · `in_progress` · `done` · `blocked`
 | p04 | Dock-state unification | Converge on route model | **done** | Behavior-parity shots (4 surfaces) | **done** | ☑ |
 | p05 | Draw first-click fix | Open on first click + wiring | **done** | First-click open shot | **done** | ☑ |
 | p06 | Draw premium modal | a11y roles + disabled logic + tests | **done** | Premium drawing modal shots | **done** | ☑ |
-| p07 | AOI → fetch data | Rectangle bounds → data fetch | pending | Fetch-data flow shots | pending | ☐ |
+| p07 | AOI → fetch data | Rectangle bounds → data fetch | **done** | Fetch-data flow shots | **done** | ☑ |
 | p08 | AOI → analysis | Compatible flows → evidence | pending | Analysis dispatch shots | pending | ☐ |
 | p09 | Right dock floating modal | Drag + resize + clamp + persist | pending | Moved/resized modal shots | pending | ☐ |
 | p10 | Right dock single-click | One-click open + state cleanup | pending | One-click open shot | pending | ☐ |
@@ -129,6 +129,20 @@ Status values: `pending` · `in_progress` · `done` · `blocked`
 - **AOI→3D:** new Core `handleOpen3DBuildingsForAoi` makes the drawing modal's "3D buildings" one click — resolves the drawn polygon/rectangle AOI, fits the map to it, opens the VoxCity scene, and bumps a new `voxCityAutoFetchToken` prop so `MapVoxCityOverlay` auto-runs `handleFetchOsmBuildings` for that AOI (VoxCity already targets the AOI via `resolveMapAnalysisBounds`). Button disabled until something is drawn. E2E: rectangle → "3D buildings" → VoxCity scene opens + Overpass request auto-queued for the AOI (`evidence/p06-aoi-3d-buildings.png`).
 - Gates: typecheck PASS, lint PASS, map+popup unit **92**, map+utils **938**, `test:analytics` **1131**, `build` PASS, `perf:budgets` PASS. Evidence: `evidence/p06-popup-and-3d.md`, `evidence/p06-aoi-3d-buildings.png`.
 - Merged → `master` (triggers `pages.yml` deploy).
+
+### 2026-06-16 — p07 EXECUTED — both tracks done ✅
+- **Rectangle AOI → real bounds-clipped fetch.** The footer "Fetch data" button previously only opened the Flow Dispatch dialog; it now runs a real, AOI-scoped fetch and publishes a derived layer (or an honest no-data outcome).
+- Track A: new pure helpers in `controllers/mapExplorerSpatialHelpers.ts` —
+  - `resolveAoiFetchBounds(drawnFeatures, selectedFeatureId)` derives AOI bounds+label from the selected polygon or merges all drawn polygon/rectangle envelopes via existing `getFeatureBounds`+`mergeBounds` (lon/lat extent only → **CRS-safe**, no metric in 4326).
+  - `buildAoiFetchResult(sources, bounds, opts)` clips each queryable source with existing `filterFeatureCollectionToBounds`, merges survivors into one derived `OverlayLayerConfig` (`sourceKind:'derived'`, provenance `method:'AOI fetch (bounds clip)'`, `generatedAt`, `sourceLayerIds`, bounds metadata, per-feature source trace) → outcome `fetched`(`implemented`) / `empty`(`residual_gap`) / `no-source`(`environment_dependent`). **Never fabricates a layer.**
+  - Core `handleFetchAoiData` resolves queryable `geojson` sources via `resolveFeatureCollection`, calls `setMapViewRestriction(bounds,true)` to AOI-scope subsequent loads, `addOverlayLayer`, `setActiveAnalysisResultLayers`, `fitToBounds`, records an `analysis-dispatch/applied` review event, and surfaces toast/feedback/announce. Footer button repointed (busy `Fetching…` state). The **Flow Dispatch dialog is untouched** — still the confirmation surface for analysis routing (map context menu / p08); AOI still feeds it; no silent auto-apply.
+  - **Bug found & fixed mid-impl:** first handler placement referenced `fitToBounds` (defined later) in its dep array → `ReferenceError: Cannot access 'fitToBounds' before initialization` crashed `<MapExplorerModal>` on mount (caught in Track B capture). Relocated `handleFetchAoiData` to after `fitToBounds`.
+  - Gates: new `map-drawing-aoi-data.test.ts` **9**, `map-drawing-tools` **87**, **full map suite 870/870 (84 files)**, `typecheck` PASS, `eslint --quiet` (3 changed files) PASS. No-Tailwind: `pwsh` unavailable (same env note); TS-only changes, no `className` literals → guard unaffected.
+- Track B: temp `e2e/p07-aoi-fetch-capture.spec.ts` (deleted at closeout) → **1 passed** with in-test assertions (derived layer present, `sourceKind:'derived'`, **6 source features → 4 clipped inside AOI**, provenance method + sourceLayerIds). Seeded a queryable point source (4 inside / 2 outside the AOI) + a drawn rectangle via the store; opened Draw via command palette. Captured `evidence/p07-aoi-fetch.png` (Draw modal: Study area AOI rectangle, Inspector, Fetch data primary) and `evidence/p07-aoi-result-layer.png` (derived "AOI fetch · Study area AOI (4) · 4 features", "AOI DATA FETCHED" toast). Map basemap renders blank (no tile network in e2e — environment limitation, consistent with prior phases); the layer list + provenance + feature count are the proof.
+- **Sources real vs environment-dependent:** the fetch clips whatever **queryable vector layers are currently loaded** (imported GeoJSON/CSV + derived analysis layers — all real). It does **not** invent a remote source: `environment_dependent` when none is loaded/resolvable, `residual_gap` when sources exist but none intersects the AOI.
+- Evidence: `evidence/p07-trackA.md`, `evidence/p07-aoi-fetch.png`, `evidence/p07-aoi-result-layer.png`.
+- Env gotcha (future agents): chromium pinned to `/opt/pw-browsers/chromium-1194/chrome-linux/chrome`; first Vite mount ~1 min; the `drawings` command is in toolbar overflow → open via command palette (`map-commands-trigger` → `map-commands-open-palette` → search "drawings" → `map-command-palette-option-drawings`).
+- **Next action:** `prompts/p08-aoi-analysis.md` (AOI → compatible scientific flows → evidence).
 
 <!-- Append new sessions below. Template:
 ### YYYY-MM-DD — <phase/track> — <short title>
