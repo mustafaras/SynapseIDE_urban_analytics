@@ -17,13 +17,19 @@ import {
   visitDrawnGeometryPositions,
 } from "@/services/map/DrawnGeometryValidation";
 import {
+  IconCircle,
   IconLine,
   IconPencil,
   IconPoint,
   IconPolygon,
+  IconRectangle,
   IconTrash,
   IconUnknown,
 } from "./map/MapIcons";
+import { GisEmptyState, GisSectionHeader } from "./map/ui";
+import { getNextDrawToolRailIndex } from "./map/mapDrawToolPreferences";
+import motionStyles from "./map/design/motion.module.css";
+import drawModalStyles from "./MapDrawingManager.module.css";
 import {
   drawId,
   featureCollection,
@@ -150,6 +156,12 @@ export interface MapDrawingManagerProps {
   onCancelDraw: () => void;
   onSeedHandled?: (token: number) => void;
   onAnnounce?: (msg: string) => void;
+  /**
+   * Activates a draw tool (or `null` for Select). When provided, the `"modal"`
+   * presentation renders the premium tool rail in-body so the modal owns its
+   * own tool selection instead of relying on a duplicate rail in the host.
+   */
+  onSetDrawTool?: (tool: DrawToolId | null) => void;
 }
 
 /* ================================================================== */
@@ -196,25 +208,94 @@ const modalBodyStyle: React.CSSProperties = {
   background: MAP_COLORS.bgPanel,
 };
 
-const modalActionStripStyle: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: MAP_SPACING.sm,
-  minHeight: "2.25rem",
-  padding: `${MAP_SPACING.xs} ${MAP_SPACING.md}`,
-  borderBottom: MAP_STROKES.hairlineSubtle,
-  background: "color-mix(in srgb, var(--syn-surface-subtle, rgba(15, 23, 42, 0.68)) 74%, transparent)",
-};
+/* ================================================================== */
+/*  Modal tool rail — premium segmented control (p06)                  */
+/* ================================================================== */
 
-const modalActionMetaStyle: React.CSSProperties = {
-  minWidth: 0,
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-  color: MAP_COLORS.textSecondary,
-  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
-  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
+interface DrawToolRailEntry {
+  id: DrawToolId | null;
+  label: string;
+  title: string;
+}
+
+/** Rail order mirrors MODAL_DRAW_TOOL_RAIL so roving-tabindex indices align. */
+const DRAW_TOOL_RAIL_META: readonly DrawToolRailEntry[] = [
+  { id: null, label: "Select", title: "Select / edit drawn features" },
+  { id: "point", label: "Point", title: "Draw point" },
+  { id: "linestring", label: "Line", title: "Draw line" },
+  { id: "polygon", label: "Polygon", title: "Draw polygon" },
+  { id: "rectangle", label: "Rect", title: "Draw rectangle" },
+  { id: "circle", label: "Circle", title: "Draw circle" },
+];
+
+/** Icon for a rail tool; colour inherits the button's CSS `currentColor`. */
+function renderDrawToolIcon(id: DrawToolId | null): React.ReactNode {
+  switch (id) {
+    case "point":
+      return <IconPoint size={13} />;
+    case "linestring":
+      return <IconLine size={13} />;
+    case "polygon":
+      return <IconPolygon size={13} />;
+    case "rectangle":
+      return <IconRectangle size={13} />;
+    case "circle":
+      return <IconCircle size={13} />;
+    default:
+      return <IconPencil size={13} />;
+  }
+}
+
+const ModalDrawToolRail: React.FC<{
+  activeTool: DrawToolId | null;
+  onSelect: (tool: DrawToolId | null) => void;
+}> = ({ activeTool, onSelect }) => {
+  const buttonsRef = useRef<Array<HTMLButtonElement | null>>([]);
+  const activeIndex = DRAW_TOOL_RAIL_META.findIndex((entry) => entry.id === activeTool);
+  // Roving tabindex anchor: the active tool, else the rail head (Select).
+  const tabStopIndex = activeIndex >= 0 ? activeIndex : 0;
+
+  const handleKeyDown = (event: React.KeyboardEvent, index: number) => {
+    const nextIndex = getNextDrawToolRailIndex(index, event.key, DRAW_TOOL_RAIL_META.length);
+    if (nextIndex === null) return;
+    event.preventDefault();
+    event.stopPropagation();
+    buttonsRef.current[nextIndex]?.focus();
+  };
+
+  return (
+    <div
+      role="toolbar"
+      aria-label="Draw tools"
+      aria-orientation="horizontal"
+      className={drawModalStyles.toolRail}
+    >
+      {DRAW_TOOL_RAIL_META.map((entry, index) => {
+        const active = entry.id === activeTool;
+        return (
+          <React.Fragment key={entry.label}>
+            {index > 0 ? <span aria-hidden="true" className={drawModalStyles.toolSep} /> : null}
+            <button
+              type="button"
+              ref={(el) => {
+                buttonsRef.current[index] = el;
+              }}
+              aria-pressed={active}
+              data-active={active ? "true" : undefined}
+              tabIndex={index === tabStopIndex ? 0 : -1}
+              title={entry.title}
+              className={drawModalStyles.toolButton}
+              onClick={() => onSelect(entry.id)}
+              onKeyDown={(event) => handleKeyDown(event, index)}
+            >
+              {renderDrawToolIcon(entry.id)}
+              <span className={drawModalStyles.toolLabel}>{entry.label}</span>
+            </button>
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
 };
 
 /* ================================================================== */
@@ -239,6 +320,7 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
   onCancelDraw,
   onSeedHandled,
   onAnnounce,
+  onSetDrawTool,
 }) => {
   /* ---- Refs for transient drawing state (NOT React state to avoid
          excessive re-renders during mousemove) ---- */
@@ -1112,12 +1194,7 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
     </div>
   );
 
-  const featureList = (
-    drawnFeatures.length === 0 ? (
-      <div style={emptyStyle}>
-        No drawn features.
-      </div>
-    ) : (
+  const featureRows = (
       <div style={mapStyles.sidePanelBody} role="listbox" aria-label="Drawn feature list">
         {drawnFeatures.map((f) => {
           const validationStatus = f.properties.validation?.status;
@@ -1176,6 +1253,15 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
           );
         })}
       </div>
+  );
+
+  const featureList = (
+    drawnFeatures.length === 0 ? (
+      <div style={emptyStyle}>
+        No drawn features.
+      </div>
+    ) : (
+      featureRows
     )
   );
 
@@ -1213,30 +1299,63 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
   }
 
   if (presentation === "modal") {
+    const featureCountLabel = `${drawnFeatures.length} ${drawnFeatures.length === 1 ? "feature" : "features"}`;
     return (
       <div
+        className={motionStyles.panelIn}
         style={modalBodyStyle}
         role="region"
         aria-label="Drawing modal workspace"
         data-testid="map-draw-modal-body"
       >
-        <div style={modalActionStripStyle}>
-          <span style={modalActionMetaStyle}>
-            Tool {activeToolLabel} / Features {drawnFeatures.length} / Selected {selectedFeature ? selectedFeature.geometry.type : "None"}
+        {onSetDrawTool ? (
+          <ModalDrawToolRail activeTool={activeDrawTool} onSelect={onSetDrawTool} />
+        ) : null}
+
+        {/* Calm one-line status summary (replaces the raw Tool/Features/Selected row) */}
+        <div className={drawModalStyles.statusLine} aria-label="Drawing status">
+          <span>
+            <span className={drawModalStyles.statusStrong}>{activeToolLabel}</span> tool
           </span>
-          {drawnFeatures.length > 0 ? (
-            <button
-              type="button"
-              style={smallBtn}
-              onClick={onClearFeatures}
-              aria-label="Clear all drawn features"
-            >
-              Clear all
-            </button>
+          <span className={drawModalStyles.statusMuted} aria-hidden="true">·</span>
+          <span>{featureCountLabel}</span>
+          {selectedFeature ? (
+            <>
+              <span className={drawModalStyles.statusMuted} aria-hidden="true">·</span>
+              <span className={drawModalStyles.statusMuted}>selected {selectedFeature.geometry.type}</span>
+            </>
           ) : null}
         </div>
-        {summaryStrip}
-        {featureList}
+
+        <GisSectionHeader
+          title="Drawn features"
+          compact
+          actions={
+            drawnFeatures.length > 0 ? (
+              <button
+                type="button"
+                style={smallBtn}
+                onClick={onClearFeatures}
+                aria-label="Clear all drawn features"
+              >
+                Clear all
+              </button>
+            ) : undefined
+          }
+        />
+
+        <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
+          {drawnFeatures.length === 0 ? (
+            <GisEmptyState
+              icon={<IconPencil size={20} />}
+              title="No drawn features"
+              description="Pick a tool above to start sketching on the map."
+              data-testid="map-draw-modal-empty"
+            />
+          ) : (
+            featureRows
+          )}
+        </div>
       </div>
     );
   }

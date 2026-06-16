@@ -53,7 +53,7 @@ import { createMapWorkflowResultEvidenceArtifact } from '../mapEvidenceArtifacts
 import { useDraggableMapPanel } from '../useDraggableMapPanel';
 import { type MapRightDockPanel } from '../mapDocking';
 import { createMapRightDockRoute, deriveContextualToolPanelVisibility, getMapRightDockPanelDefinition, MAP_RIGHT_DOCK_PANEL_IDS, type MapRightDockRouteSource } from '../mapRightDockRoutes';
-import { DEFAULT_DRAW_TOOL, resolveDrawToolOnOpen } from '../mapDrawToolPreferences';
+import { DEFAULT_DRAW_TOOL, isDrawAoiActionDisabled, resolveDrawToolOnOpen } from '../mapDrawToolPreferences';
 import { type MapWorkspaceView } from '../mapExperience';
 import { createInitialMapStartDialogState, dismissMapStartDialog, hasMapStartDialogWorkspaceContent, type MapStartDialogHandoff, type MapStartDialogState } from '../mapStartDialogState';
 import { selectMapExplorerContextSummary } from '../mapContextSummary';
@@ -100,7 +100,7 @@ import { buildDrawingSnapSources, buildDrawnAoiFromWorkflowResult, filterFeature
 import { publishTabLabel } from './mapExplorerPublishHelpers';
 import { buildTemporalFrameDefinitions, collectTemporalSourceFields, resolvePublishTabId, resolveTemporalRuntimeMode, sceneVerticalDatumValue, sourceHandleCrs } from './mapExplorerSceneHelpers';
 import { type DispatchFeedbackState, MAP_RENDER_ERROR_NOTICE_COOLDOWN_MS, type MapProjectSaveTrigger, restoreFocusToElement, sameMapProjectSaveTrigger } from './mapExplorerControllerHelpers';
-import { IconClose, IconPoint, IconLine, IconPolygon, IconRectangle, IconCircle, IconLayers, IconPencil } from '../MapIcons';
+import { IconClose, IconLayers } from '../MapIcons';
 import { getRuntimeMapActivityDefinition, getRuntimeMapTaskLensDefinition, type MapActivityId, type MapTaskLensId } from '../mapActivityRuntime';
 import { contextBarDividerStyle, contextToolbarCountStyle, MAP_ACTIVITY_RAIL_WIDTH, MAP_NAVIGATOR_STAGE_MARGIN, mapActivityRailOverlayStyle, modalControlCloseButtonStyle, modalControlCloseDividerStyle, modalControlClusterStyle, srOnlyFocusable } from './mapExplorerRuntimeShellUi';
 import { usePrefersReducedMotion } from '../../../../hooks/usePrefersReducedMotion';
@@ -295,41 +295,6 @@ const drawModalFooterMetaStyle: React.CSSProperties = {
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
 };
 
-const drawModalToolbarStyle: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: "2px",
-  padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
-  borderBottom: `1px solid ${MAP_COLORS.hairlineSubtle}`,
-  flexShrink: 0,
-  background: MAP_COLORS.bgHeader,
-};
-
-const drawModalToolBtnBaseStyle: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: "4px",
-  padding: "3px 8px",
-  border: "none",
-  borderRadius: "3px",
-  cursor: "pointer",
-  fontSize: MAP_TYPOGRAPHY.fontSize.xs,
-  fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
-  color: MAP_COLORS.textMuted,
-  background: "transparent",
-  whiteSpace: "nowrap",
-  lineHeight: "1",
-};
-
-const drawModalToolBtnSepStyle: React.CSSProperties = {
-  width: "1px",
-  height: "14px",
-  background: MAP_COLORS.hairlineSubtle,
-  flexShrink: 0,
-  margin: "0 4px",
-};
-
 const drawModalFooterActionsStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
@@ -337,13 +302,14 @@ const drawModalFooterActionsStyle: React.CSSProperties = {
   flexShrink: 0,
 };
 
+/* Secondary action — bordered ghost (Add as layer). */
 const drawModalActionBtnStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: "4px",
-  padding: "2px 7px",
+  padding: "3px 9px",
   border: `1px solid ${MAP_COLORS.hairlineSubtle}`,
-  borderRadius: "3px",
+  borderRadius: MAP_RADIUS.none,
   cursor: "pointer",
   fontSize: MAP_TYPOGRAPHY.fontSize.xs,
   fontFamily: MAP_TYPOGRAPHY.fontFamilyMono,
@@ -351,6 +317,27 @@ const drawModalActionBtnStyle: React.CSSProperties = {
   background: "transparent",
   whiteSpace: "nowrap",
   lineHeight: "1",
+};
+
+/* Primary action — filled restrained accent (Fetch data, the analytical action). */
+const drawModalPrimaryActionBtnStyle: React.CSSProperties = {
+  ...drawModalActionBtnStyle,
+  border: `1px solid ${MAP_COLORS.interaction}`,
+  background: MAP_COLORS.interaction,
+  color: MAP_COLORS.bgPanel,
+  fontWeight: MAP_TYPOGRAPHY.fontWeight.semibold,
+};
+
+/* Tertiary action — borderless ghost (3D buildings). */
+const drawModalTertiaryActionBtnStyle: React.CSSProperties = {
+  ...drawModalActionBtnStyle,
+  border: "1px solid transparent",
+  color: MAP_COLORS.textMuted,
+};
+
+const drawModalDisabledActionStyle: React.CSSProperties = {
+  opacity: 0.4,
+  cursor: "not-allowed",
 };
 
 function OutputDrawerSection({
@@ -6176,9 +6163,18 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
                 <div style={drawModalFooterActionsStyle}>
                   <button
                     type="button"
+                    title="Fetch data for drawn area"
+                    disabled={isDrawAoiActionDisabled(drawnFeatures.length)}
+                    style={{ ...drawModalPrimaryActionBtnStyle, ...(isDrawAoiActionDisabled(drawnFeatures.length) ? drawModalDisabledActionStyle : {}) }}
+                    onClick={handleOpenFlowDispatchDialog}
+                  >
+                    Fetch data
+                  </button>
+                  <button
+                    type="button"
                     title="Add drawings as a map layer"
-                    disabled={drawnFeatures.length === 0}
-                    style={{ ...drawModalActionBtnStyle, ...(drawnFeatures.length === 0 ? { opacity: 0.4, cursor: 'not-allowed' } : {}) }}
+                    disabled={isDrawAoiActionDisabled(drawnFeatures.length)}
+                    style={{ ...drawModalActionBtnStyle, ...(isDrawAoiActionDisabled(drawnFeatures.length) ? drawModalDisabledActionStyle : {}) }}
                     onClick={handleAddDrawingsAsLayer}
                   >
                     <IconLayers size={12} color={MAP_COLORS.textSecondary} />
@@ -6186,17 +6182,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
                   </button>
                   <button
                     type="button"
-                    title="Fetch data for drawn area"
-                    disabled={drawnFeatures.length === 0}
-                    style={{ ...drawModalActionBtnStyle, ...(drawnFeatures.length === 0 ? { opacity: 0.4, cursor: 'not-allowed' } : {}) }}
-                    onClick={handleOpenFlowDispatchDialog}
-                  >
-                    Fetch data
-                  </button>
-                  <button
-                    type="button"
                     title="View 3D building heights on map"
-                    style={drawModalActionBtnStyle}
+                    style={drawModalTertiaryActionBtnStyle}
                     onClick={() => handleOpenSceneTab('scene-voxcity', '3D building heights opened')}
                   >
                     3D buildings
@@ -6213,94 +6200,28 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
               announce('Drawings modal closed');
             }}
           >
-            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, width: '100%' }}>
-              <div role="toolbar" aria-label="Draw tools" style={drawModalToolbarStyle}>
-                <button
-                  type="button"
-                  aria-pressed={activeDrawTool === null}
-                  title="Select / edit drawn features"
-                  style={{ ...drawModalToolBtnBaseStyle, ...(activeDrawTool === null ? { background: MAP_COLORS.selectedSubtle, color: MAP_COLORS.text } : {}) }}
-                  onClick={() => handleSetDrawTool(null)}
-                >
-                  <IconPencil size={13} color={activeDrawTool === null ? MAP_COLORS.interaction : MAP_COLORS.textMuted} />
-                  Select
-                </button>
-                <div aria-hidden="true" style={drawModalToolBtnSepStyle} />
-                <button
-                  type="button"
-                  aria-pressed={activeDrawTool === 'point'}
-                  title="Draw point"
-                  style={{ ...drawModalToolBtnBaseStyle, ...(activeDrawTool === 'point' ? { background: MAP_COLORS.selectedSubtle, color: MAP_COLORS.text } : {}) }}
-                  onClick={() => handleSetDrawTool('point')}
-                >
-                  <IconPoint size={13} color={activeDrawTool === 'point' ? MAP_COLORS.interaction : MAP_COLORS.textMuted} />
-                  Point
-                </button>
-                <button
-                  type="button"
-                  aria-pressed={activeDrawTool === 'linestring'}
-                  title="Draw line"
-                  style={{ ...drawModalToolBtnBaseStyle, ...(activeDrawTool === 'linestring' ? { background: MAP_COLORS.selectedSubtle, color: MAP_COLORS.text } : {}) }}
-                  onClick={() => handleSetDrawTool('linestring')}
-                >
-                  <IconLine size={13} color={activeDrawTool === 'linestring' ? MAP_COLORS.interaction : MAP_COLORS.textMuted} />
-                  Line
-                </button>
-                <button
-                  type="button"
-                  aria-pressed={activeDrawTool === 'polygon'}
-                  title="Draw polygon"
-                  style={{ ...drawModalToolBtnBaseStyle, ...(activeDrawTool === 'polygon' ? { background: MAP_COLORS.selectedSubtle, color: MAP_COLORS.text } : {}) }}
-                  onClick={() => handleSetDrawTool('polygon')}
-                >
-                  <IconPolygon size={13} color={activeDrawTool === 'polygon' ? MAP_COLORS.interaction : MAP_COLORS.textMuted} />
-                  Polygon
-                </button>
-                <button
-                  type="button"
-                  aria-pressed={activeDrawTool === 'rectangle'}
-                  title="Draw rectangle"
-                  style={{ ...drawModalToolBtnBaseStyle, ...(activeDrawTool === 'rectangle' ? { background: MAP_COLORS.selectedSubtle, color: MAP_COLORS.text } : {}) }}
-                  onClick={() => handleSetDrawTool('rectangle')}
-                >
-                  <IconRectangle size={13} color={activeDrawTool === 'rectangle' ? MAP_COLORS.interaction : MAP_COLORS.textMuted} />
-                  Rect
-                </button>
-                <button
-                  type="button"
-                  aria-pressed={activeDrawTool === 'circle'}
-                  title="Draw circle"
-                  style={{ ...drawModalToolBtnBaseStyle, ...(activeDrawTool === 'circle' ? { background: MAP_COLORS.selectedSubtle, color: MAP_COLORS.text } : {}) }}
-                  onClick={() => handleSetDrawTool('circle')}
-                >
-                  <IconCircle size={13} color={activeDrawTool === 'circle' ? MAP_COLORS.interaction : MAP_COLORS.textMuted} />
-                  Circle
-                </button>
-              </div>
-              <div style={{ flex: 1, minHeight: 0, display: 'flex' }}>
-                <MapDrawingManager
-                  mapRef={mapInstanceRef}
-                  activeDrawTool={activeDrawTool}
-                  presentation="modal"
-                  sidebarVisible
-                  seedDrawStart={drawSeed}
-                  drawnFeatures={drawnFeatures}
-                  snapSources={drawingSnapSources}
-                  selectedFeatureId={selectedFeatureId}
-                  onAddFeature={addDrawnFeature}
-                  onRemoveFeature={removeDrawnFeature}
-                  onUpdateFeature={updateDrawnFeature}
-                  onCommitFeatureEdit={handleCommitDrawnFeatureEdit}
-                  onClearFeatures={clearDrawnFeatures}
-                  onSelectFeature={setSelectedFeatureId}
-                  onCancelDraw={handleCancelDraw}
-                  onSeedHandled={(token) =>
-                    setDrawSeed((current) => (current?.token === token ? null : current))
-                  }
-                  onAnnounce={announce}
-                />
-              </div>
-            </div>
+            <MapDrawingManager
+              mapRef={mapInstanceRef}
+              activeDrawTool={activeDrawTool}
+              presentation="modal"
+              sidebarVisible
+              seedDrawStart={drawSeed}
+              drawnFeatures={drawnFeatures}
+              snapSources={drawingSnapSources}
+              selectedFeatureId={selectedFeatureId}
+              onAddFeature={addDrawnFeature}
+              onRemoveFeature={removeDrawnFeature}
+              onUpdateFeature={updateDrawnFeature}
+              onCommitFeatureEdit={handleCommitDrawnFeatureEdit}
+              onClearFeatures={clearDrawnFeatures}
+              onSelectFeature={setSelectedFeatureId}
+              onCancelDraw={handleCancelDraw}
+              onSetDrawTool={handleSetDrawTool}
+              onSeedHandled={(token) =>
+                setDrawSeed((current) => (current?.token === token ? null : current))
+              }
+              onAnnounce={announce}
+            />
           </MapDialogShell>
         ) : null}
 

@@ -2,7 +2,7 @@
 
 > **Read this FIRST every session. Update it LAST before exiting.** A track is `done` only with evidence (a test-summary file in `evidence/` or a screenshot path). Never write `done` without an `evidence` link. This ledger is the single human-readable source of truth for "where are we"; [STATE.json](STATE.json) is its machine mirror — keep them in sync.
 
-**Overall status:** `IN PROGRESS` — p00-p05 complete (badge/status-language phases + dock-state unification + draw first-click fix closed 2026-06-15; next action p06).
+**Overall status:** `IN PROGRESS` — p00-p06 complete (badge/status-language phases + dock-state unification + draw first-click fix + premium drawing modal closed; next action p07).
 
 Status values: `pending` · `in_progress` · `done` · `blocked`
 
@@ -14,7 +14,7 @@ Status values: `pending` · `in_progress` · `done` · `blocked`
 | p03 | Badge cleanup: global | De-round 11 offender files | **done** | Workspace/scene/table shots | **done** | ☑ |
 | p04 | Dock-state unification | Converge on route model | **done** | Behavior-parity shots (4 surfaces) | **done** | ☑ |
 | p05 | Draw first-click fix | Open on first click + wiring | **done** | First-click open shot | **done** | ☑ |
-| p06 | Draw premium modal | (support shots only) | pending | Premium drawing modal | pending | ☐ |
+| p06 | Draw premium modal | a11y roles + disabled logic + tests | **done** | Premium drawing modal shots | **done** | ☑ |
 | p07 | AOI → fetch data | Rectangle bounds → data fetch | pending | Fetch-data flow shots | pending | ☐ |
 | p08 | AOI → analysis | Compatible flows → evidence | pending | Analysis dispatch shots | pending | ☐ |
 | p09 | Right dock floating modal | Drag + resize + clamp + persist | pending | Moved/resized modal shots | pending | ☐ |
@@ -89,6 +89,14 @@ Status values: `pending` · `in_progress` · `done` · `blocked`
 - Track B: temp spec `e2e/p05-draw-first-click-capture.spec.ts` (deleted at closeout) → **1 passed**. Opened via command palette (Ctrl+K → Drawings → one click = `onToggleDrawPanel`). Asserted modal visible, Polygon `aria-pressed=true`, Select `aria-pressed=false`, `store.activeDrawTool==='polygon'`, drawn feature listed. Captured `evidence/p05-draw-first-click.png` (modal open, polygon pre-selected, interactive tool rail) and `evidence/p05-draw-polygon.png` (polygon tool active + "Study area AOI" polygon drawing present).
 - Evidence: `evidence/p05-trackA.md`, `evidence/p05-trackB.md`, `evidence/p05-draw-first-click.png`, `evidence/p05-draw-polygon.png`.
 - **Next action:** `prompts/p06-draw-premium-modal.md` (premium visual redesign of the drawing modal — behaviour now correct, look unchanged here).
+
+### 2026-06-16 — p06 EXECUTED — both tracks done ✅
+- **Premium drawing modal.** Moved the tool rail + status + feature list out of `MapExplorerModalRuntimeCore` inline markup into `MapDrawingManager` (`presentation="modal"`) + a new CSS Module `MapDrawingManager.module.css`. The modal is still rendered by `MapDialogShell` (focus-on-open → tool rail, Escape close, focus-return all reused — no new focus-trap hook).
+- Track A: new pure helpers in `mapDrawToolPreferences.ts` — `MODAL_DRAW_TOOL_RAIL` (`[null, ...DRAW_TOOL_IDS]`), `getNextDrawToolRailIndex` (roving-tabindex arrow nav: L/R + U/D wrap, Home/End, null for non-nav), `isDrawAoiActionDisabled` (footer rule). New `ModalDrawToolRail` exposes `role="toolbar"` + `aria-label="Draw tools"` + per-tool `aria-pressed` + roving tabindex + arrow nav. Footer `Fetch data`/`Add as layer` disabled via `isDrawAoiActionDisabled`; handlers unchanged (p07/p08 depend). Tests: `map-drawing-tools.test.ts` §6b added → **70 passed**; `map-docking`+`mapRightDockRoutes` **20 passed** (no open/route regression); `typecheck` PASS; `lint:errors` PASS (clean). No-Tailwind: changed files use `className={…}` CSS-Module expressions only (guard regex matches literal `className="…"` strings only → stays green; `pwsh` unavailable in container, same env note as p00/p04).
+- Track B: tool rail = premium segmented control (icon+label, equal segments, hairline separators, no rounds, accent stripe + hover/focus via CSS module); raw "Tool/Features/Selected" row → single calm "Polygon tool · N feature(s)" status; footer hierarchy = Fetch data **primary** (filled accent) / Add as layer **secondary** (ghost) / 3D buildings **tertiary** (borderless), right-aligned meta; empty state via `GisEmptyState`; entrance via `motion.module.css` `panelIn` (reduced-motion respected). Captured `evidence/p06-draw-premium.png` (with feature) + `evidence/p06-draw-empty.png` (empty + disabled actions). a11y audit (`accessibility-audit.spec.ts`) does NOT cover the draw modal → **coverage gap noted**; modal a11y is covered by Track A unit tests instead.
+  - **Env gotcha for future agents:** `cdn.playwright.dev` is blocked, and `npm install` upgraded `@playwright/test` to want chromium build 1217 while only **1194** is pre-provisioned. Capture spec pinned `launchOptions.executablePath` to `/opt/pw-browsers/chromium-1194/chrome-linux/chrome`; first Vite mount needs a long warm-up before the IDE entry button renders.
+- Evidence: `evidence/p06-trackA.md`, `evidence/p06-trackB.md`, `evidence/p06-draw-premium.png`, `evidence/p06-draw-empty.png`.
+- **Next action:** `prompts/p07-aoi-fetch-data.md` (rectangle AOI → fetch real data in bounds).
 
 <!-- Append new sessions below. Template:
 ### YYYY-MM-DD — <phase/track> — <short title>

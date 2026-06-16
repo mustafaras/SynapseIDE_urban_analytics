@@ -38,7 +38,10 @@ import {
 import {
   DEFAULT_DRAW_TOOL,
   DRAW_TOOL_IDS,
+  getNextDrawToolRailIndex,
+  isDrawAoiActionDisabled,
   isDrawToolId,
+  MODAL_DRAW_TOOL_RAIL,
   resolveDrawToolOnOpen,
 } from "../mapDrawToolPreferences";
 
@@ -692,6 +695,134 @@ describe("p05 — per-tool activation (no second click)", () => {
     ).toBe(true);
     // The chosen tool is preserved by the open resolver — no reset, no 2nd click.
     expect(resolveDrawToolOnOpen(tool, null)).toBe(tool);
+  });
+});
+
+/* ================================================================== */
+/*  6b. p06 — Premium modal: tool-rail a11y + footer disabled logic    */
+/* ================================================================== */
+
+describe("p06 — MODAL_DRAW_TOOL_RAIL order", () => {
+  it("leads with Select (null) then the five draw tools in canonical order", () => {
+    expect(MODAL_DRAW_TOOL_RAIL).toEqual([null, ...DRAW_TOOL_IDS]);
+    expect(MODAL_DRAW_TOOL_RAIL[0]).toBeNull();
+    expect(MODAL_DRAW_TOOL_RAIL.length).toBe(6);
+  });
+});
+
+describe("p06 — getNextDrawToolRailIndex (roving-tabindex arrow navigation)", () => {
+  const len = MODAL_DRAW_TOOL_RAIL.length;
+
+  it("moves focus forward and wraps with ArrowRight/ArrowDown", () => {
+    expect(getNextDrawToolRailIndex(0, "ArrowRight", len)).toBe(1);
+    expect(getNextDrawToolRailIndex(2, "ArrowDown", len)).toBe(3);
+    expect(getNextDrawToolRailIndex(len - 1, "ArrowRight", len)).toBe(0);
+  });
+
+  it("moves focus backward and wraps with ArrowLeft/ArrowUp", () => {
+    expect(getNextDrawToolRailIndex(3, "ArrowLeft", len)).toBe(2);
+    expect(getNextDrawToolRailIndex(0, "ArrowUp", len)).toBe(len - 1);
+  });
+
+  it("jumps to ends with Home/End", () => {
+    expect(getNextDrawToolRailIndex(3, "Home", len)).toBe(0);
+    expect(getNextDrawToolRailIndex(1, "End", len)).toBe(len - 1);
+  });
+
+  it("returns null for non-navigation keys (caller leaves the event alone)", () => {
+    expect(getNextDrawToolRailIndex(0, "Enter", len)).toBeNull();
+    expect(getNextDrawToolRailIndex(0, "a", len)).toBeNull();
+    expect(getNextDrawToolRailIndex(0, " ", len)).toBeNull();
+  });
+});
+
+describe("p06 — isDrawAoiActionDisabled (footer disabled-state logic)", () => {
+  it("disables AOI actions when there are no drawn features", () => {
+    expect(isDrawAoiActionDisabled(0)).toBe(true);
+  });
+
+  it("enables AOI actions once at least one feature exists", () => {
+    expect(isDrawAoiActionDisabled(1)).toBe(false);
+    expect(isDrawAoiActionDisabled(12)).toBe(false);
+  });
+});
+
+describe("p06 — modal presentation a11y roles survive the redesign", () => {
+  const baseProps = {
+    mapRef: React.createRef<MapLibreMap>(),
+    presentation: "modal" as const,
+    sidebarVisible: true,
+    onAddFeature: () => undefined,
+    onRemoveFeature: () => undefined,
+    onUpdateFeature: () => undefined,
+    onClearFeatures: () => undefined,
+    onSelectFeature: () => undefined,
+    onCancelDraw: () => undefined,
+    onSetDrawTool: () => undefined,
+  };
+
+  it("renders a labelled tool rail toolbar with aria-pressed + roving tabindex", async () => {
+    const mod = await import("../../MapDrawingManager");
+    const html = renderToStaticMarkup(
+      React.createElement(mod.MapDrawingManager, {
+        ...baseProps,
+        activeDrawTool: "polygon",
+        drawnFeatures: [],
+        selectedFeatureId: null,
+      }),
+    );
+
+    expect(html).toContain('role="toolbar"');
+    expect(html).toContain('aria-label="Draw tools"');
+    // Every rail tool is present and labelled.
+    for (const label of ["Select", "Point", "Line", "Polygon", "Rect", "Circle"]) {
+      expect(html).toContain(label);
+    }
+    // The active tool is pressed; the roving tab stop lands on it (tabindex 0).
+    expect(html).toContain('aria-pressed="true"');
+    expect(html).toContain('data-active="true"');
+    expect(html).toContain('tabindex="0"');
+    expect(html).toContain('tabindex="-1"');
+  });
+
+  it("shows the GisEmptyState when nothing is drawn (no raw 'No drawn features.' row)", async () => {
+    const mod = await import("../../MapDrawingManager");
+    const html = renderToStaticMarkup(
+      React.createElement(mod.MapDrawingManager, {
+        ...baseProps,
+        activeDrawTool: "polygon",
+        drawnFeatures: [],
+        selectedFeatureId: null,
+      }),
+    );
+
+    expect(html).toContain("map-draw-modal-body");
+    expect(html).toContain('data-gis-empty-state="true"');
+    expect(html).toContain("No drawn features");
+    expect(html).toContain("Drawn features");
+  });
+
+  it("renders the feature list + calm status summary when features exist", async () => {
+    const mod = await import("../../MapDrawingManager");
+    const feature: DrawnFeature = {
+      id: "feature-modal-1",
+      geometry: makePolygon([[0, 0], [1, 0], [1, 1], [0, 1]]),
+      properties: { label: "Study area AOI", createdAt: "2024-01-01T00:00:00Z" },
+    };
+    const html = renderToStaticMarkup(
+      React.createElement(mod.MapDrawingManager, {
+        ...baseProps,
+        activeDrawTool: "polygon",
+        drawnFeatures: [feature],
+        selectedFeatureId: feature.id,
+      }),
+    );
+
+    expect(html).toContain("Study area AOI");
+    // Calm single-line status summary (not the old Tool/Features/Selected raw row).
+    expect(html).toContain("1 feature");
+    expect(html).toContain("Polygon");
+    expect(html).not.toContain("Features 0 / Selected");
   });
 });
 
