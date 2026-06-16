@@ -111,9 +111,11 @@ interface MapExplorerModalRuntimeViewProps {
   rightDockBodyContent: React.ReactNode;
   rightDockPresentation: React.ComponentProps<typeof MapRightDockHost>["presentation"];
   rightDockCollapsed?: boolean;
+  rightDockFloatingRect?: React.ComponentProps<typeof MapRightDockHost>["floatingRect"];
   handleRightDockHostPanelChange: React.ComponentProps<typeof MapRightDockHost>["onPanelChange"];
   handleCollapseRightDockHost: React.ComponentProps<typeof MapRightDockHost>["onCollapse"];
   handleCloseRightDockHost: React.ComponentProps<typeof MapRightDockHost>["onClose"];
+  handleRightDockFloatingRectChange?: React.ComponentProps<typeof MapRightDockHost>["onFloatingRectChange"];
   effectiveShowUrbanMethodPanel: boolean;
   activeUrbanMethodRequest: React.ComponentProps<typeof MapUrbanMethodCompatibilityRail>["request"];
   activeUrbanMethodPreview: React.ComponentProps<typeof MapUrbanMethodCompatibilityRail>["preview"];
@@ -305,9 +307,11 @@ export const MapExplorerModalRuntimeView: React.FC<MapExplorerModalRuntimeViewPr
   rightDockBodyContent,
   rightDockPresentation,
   rightDockCollapsed = false,
+  rightDockFloatingRect,
   handleRightDockHostPanelChange,
   handleCollapseRightDockHost,
   handleCloseRightDockHost,
+  handleRightDockFloatingRectChange,
   effectiveShowUrbanMethodPanel,
   activeUrbanMethodRequest,
   activeUrbanMethodPreview,
@@ -686,12 +690,14 @@ export const MapExplorerModalRuntimeView: React.FC<MapExplorerModalRuntimeViewPr
         presentation={rightDockPresentation}
         collapsed={rightDockCollapsed}
         width={rightPanelWidth}
+        floatingRect={rightDockFloatingRect}
         stateLabel={activeRightDockRoute.legacyBottomTabId ? "Migrating" : "Routed"}
         panelStatus={buildRightDockPanelStatus(activeRightDockRoute, scientificQA)}
         onPanelChange={handleRightDockHostPanelChange}
         onCollapse={handleCollapseRightDockHost}
         onClose={handleCloseRightDockHost}
         onWidthChange={handleRightPanelWidthChange}
+        onFloatingRectChange={handleRightDockFloatingRectChange}
       >
         {rightDockBodyContent}
       </MapRightDockHost>

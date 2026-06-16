@@ -4,6 +4,7 @@ import { MAP_SURFACE_INVENTORY } from "../navigation";
 import {
   createMapRightDockRoute,
   getMapRightDockPanelDefinition,
+  isFloatingModalRoutePanel,
   MAP_RIGHT_DOCK_PANEL_IDS,
 } from "../mapRightDockRoutes";
 
@@ -47,5 +48,11 @@ describe("Map Explorer right dock migration", () => {
   it("does not route any inventory item to a retired bottom-panel target slot", () => {
     const bottomPanelTargets = MAP_SURFACE_INVENTORY.filter((entry) => entry.targetSlot === "bottom-panel");
     expect(bottomPanelTargets).toEqual([]);
+  });
+
+  it("keeps draw as a floating modal route and other primary panels host-rendered", () => {
+    expect(isFloatingModalRoutePanel("draw")).toBe(true);
+    expect(isFloatingModalRoutePanel("inspect")).toBe(false);
+    expect(isFloatingModalRoutePanel("workflow")).toBe(false);
   });
 });

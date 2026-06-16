@@ -2,7 +2,7 @@ import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } fr
 import { createPortal } from 'react-dom';
 import type maplibregl from 'maplibre-gl';
 import { Maximize2, SlidersHorizontal } from 'lucide-react';
-import type { FeatureCollection, Geometry } from 'geojson';
+import type { Feature, FeatureCollection, Geometry, MultiPolygon, Polygon } from 'geojson';
 import { BASE_STYLES, type BaseLayerId, type DrawnFeature, type DrawToolId, type LayerQaStatus, type LayerSchemaFieldSummary, type LayerScientificQABadge, MAP_BOOKMARK_LIMIT, MAP_LAYER_REGISTRY_EVENT, type MapBookmark, type MapEvidenceArtifact, type MapExplorerMode, type MapLayerRegistryChangeDetail, type MapPin, type MeasureToolId, type OverlayLayerConfig } from '../mapTypes';
 import { resolveOverlayLayerCrsSummary } from '../mapLayerMetadata';
 import { applyMapCommand, type MapActionEffects, redoMapCommand, revertMapCommand } from '@/services/map/actions/MapActionExecutor';
@@ -97,7 +97,7 @@ import {
   MapBottomOutputDrawer,
   type MapBottomOutputDrawerTabId,
 } from '../shell';
-import { buildAoiFetchResult, buildDrawingSnapSources, buildDrawnAoiFromWorkflowResult, filterFeatureCollectionToBounds, getFeatureBounds, getLayerFitBounds, getSelectedFeatureFitBounds, hasPolygonGeometry, isPolygonLayerCandidate, matchesSpatialStatsOutput, mergeBounds, replaceSpatialStatsOutput, resolveAoiFetchBounds, resolveFlowDispatchAoiCandidate, type AoiFetchSource } from './mapExplorerSpatialHelpers';
+import { buildAoiAnalysisBusPayloads, buildAoiAnalysisResult, buildAoiFetchResult, buildDrawingSnapSources, buildDrawnAoiFromWorkflowResult, filterFeatureCollectionToBounds, getFeatureBounds, getLayerFitBounds, getSelectedFeatureFitBounds, hasPolygonGeometry, isPolygonLayerCandidate, matchesSpatialStatsOutput, mergeBounds, replaceSpatialStatsOutput, resolveAoiFetchBounds, resolveFlowDispatchAoiCandidate, type AoiFetchSource } from './mapExplorerSpatialHelpers';
 import { publishTabLabel } from './mapExplorerPublishHelpers';
 import { buildTemporalFrameDefinitions, collectTemporalSourceFields, resolvePublishTabId, resolveTemporalRuntimeMode, sceneVerticalDatumValue, sourceHandleCrs } from './mapExplorerSceneHelpers';
 import { type DispatchFeedbackState, MAP_RENDER_ERROR_NOTICE_COOLDOWN_MS, type MapProjectSaveTrigger, restoreFocusToElement, sameMapProjectSaveTrigger } from './mapExplorerControllerHelpers';
@@ -112,7 +112,8 @@ import { recordMapTelemetryEvent } from '../../../../services/map/observability'
 import { bindTableAlias, loadGeoJSON, toGeoJSON } from '../../../../engine/spatial-db/SpatialDB';
 import { buildMapCompositionLegendItems, buildMapPublicationReadiness } from '../../../../services/map/MapExportService';
 import { attachSpatialStatsRerun, createAnalysisCompletedRun, createAnalysisMapOutput, createSpatialStatsCompletedRun, hasAnalysisRerun, rerunAnalysisResult } from '../../../../services/map/MapEngineAdapter';
-import { buildBufferedPointBounds, dispatchRecommendationFlow, getCompatibleAoiFlows, type SelectionStatisticsSummary, setMapViewRestriction } from '../../../../services/map/MapAnalysisDispatcher';
+import { buildBufferedPointBounds, dispatchRecommendationFlow, getCompatibleAoiFlows, type MapDispatchCompatibleFlow, type SelectionStatisticsSummary, setMapViewRestriction } from '../../../../services/map/MapAnalysisDispatcher';
+import { synapseBus } from '../../../../services/synapseBus';
 import { resolveMapAnalysisBounds } from '../../../../services/map/MapAnalysisBounds';
 import { publishViewportSync, setViewportSyncEnabled, subscribeToViewportSync, useViewportSyncStore } from '../../../../services/map/MapSyncService';
 import { sendMapContextToUrban } from '../../../../services/map/MapToUrbanContextAdapter';
@@ -257,7 +258,7 @@ function buildTopbarViewControlsButtonStyle(active: boolean): React.CSSPropertie
 
 const drawModalOverlayStyle: React.CSSProperties = {
   zIndex: 10060,
-  background: "rgba(0, 0, 0, 0.22)",
+  background: "transparent",
   placeItems: "start end",
   paddingTop: "calc(var(--map-overlay-safe-top, 3.75rem) + 0.75rem)",
   paddingRight: "calc(var(--map-overlay-safe-inset-x, 0.75rem) + 0.75rem)",
@@ -339,6 +340,15 @@ const drawModalTertiaryActionBtnStyle: React.CSSProperties = {
 const drawModalDisabledActionStyle: React.CSSProperties = {
   opacity: 0.4,
   cursor: "not-allowed",
+};
+
+const AOI_FLOW_REQUIRED_CRS: Partial<Record<MapDispatchCompatibleFlow["id"], string>> = {
+  site_suitability: "EPSG:3857",
+  vulnerability: "EPSG:3857",
+  equity_audit: "EPSG:3857",
+  change_detection: "EPSG:3857",
+  facility_optimisation: "EPSG:3857",
+  urban_morphology: "EPSG:3857",
 };
 
 function OutputDrawerSection({
@@ -2264,6 +2274,272 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
     },
     [openRightDockPanel]
   );
+  const handleAoiFlowSelectionDispatched = useCallback(async (input: {
+    selectedFlow: MapDispatchCompatibleFlow | undefined;
+    flowId: string;
+    requestId: string;
+    layerReferenceCount: number;
+    flowDispatchAoi: {
+      feature: Feature<Polygon | MultiPolygon>;
+      source: 'drawn-aoi' | 'map-context-menu';
+      label: string;
+    };
+    restrictToView: boolean;
+    viewBounds: [number, number, number, number] | null;
+  }) => {
+    const selectedFlow = input.selectedFlow;
+    if (!selectedFlow) {
+      return;
+    }
+
+    const aoiBounds = getFeatureBounds(input.flowDispatchAoi.feature);
+    if (!aoiBounds) {
+      return;
+    }
+
+    const requiredCrs = AOI_FLOW_REQUIRED_CRS[selectedFlow.id] ?? null;
+    const queryableLayers = overlayLayers.filter(
+      (layer) => layer.queryable === true && layer.type === 'geojson' && Boolean(layer.sourceData),
+    );
+
+    const sources: AoiFetchSource[] = [];
+    for (const layer of queryableLayers) {
+      try {
+        const collection = await resolveFeatureCollection(layer);
+        sources.push({
+          layerId: layer.id,
+          layerName: layer.name,
+          collection,
+          ...(layer.sourceKind ? { sourceKind: layer.sourceKind } : {}),
+        });
+      } catch {
+        // Skip unresolvable layers; environment-dependent outcomes are handled below.
+      }
+    }
+
+    const analysisOutcome = buildAoiAnalysisResult(sources, aoiBounds, {
+      aoiLabel: input.flowDispatchAoi.label,
+      flowId: selectedFlow.id,
+      flowLabel: selectedFlow.label,
+      requiredCrs,
+    });
+
+    const recommendation: MapAnalysisRecommendation = {
+      id: `aoi-dispatch-${selectedFlow.id}-${input.requestId}`,
+      category: 'polygon',
+      severity: analysisOutcome.status === 'fetched' ? 'medium' : 'high',
+      score: analysisOutcome.status === 'fetched' ? 0.86 : 0.72,
+      title: `${selectedFlow.label} (AOI dispatch)`,
+      rationale: `Run ${selectedFlow.label} for ${input.flowDispatchAoi.label} with map AOI dispatch context attached.`,
+      requiredInputs: ['AOI geometry', 'Queryable map layers'],
+      expectedOutput: 'Derived AOI analysis layer and evidence artifact reference.',
+      scientificCaveat: requiredCrs
+        ? `Map-side AOI dispatch performs bounds filtering only. Metric operations must run in ${requiredCrs} inside the selected workflow.`
+        : 'Map-side AOI dispatch performs bounds filtering only; metric operations must run in a projected workflow CRS.',
+      actionLabel: `Open ${selectedFlow.label}`,
+      action: {
+        type: 'open-flow',
+        flowId: selectedFlow.id,
+        layerIds: analysisOutcome.provenance.sourceLayerIds,
+      },
+      layerIds: analysisOutcome.provenance.sourceLayerIds,
+      evidence: [`aoi:${input.flowDispatchAoi.label}`],
+      reasons: [
+        {
+          kind: 'aoi',
+          tone: 'supporting',
+          label: 'AOI selected',
+          detail: `${input.flowDispatchAoi.label} was selected as the analysis area.`,
+        },
+      ],
+      readiness: {
+        status: analysisOutcome.status === 'fetched' ? 'ready' : 'needs-review',
+        label: analysisOutcome.status === 'fetched' ? 'Ready for workflow handoff' : 'Needs review',
+        blockers: [],
+        warnings: analysisOutcome.status === 'fetched'
+          ? []
+          : [analysisOutcome.reason],
+        requiredActions: requiredCrs
+          ? [`Project data to ${requiredCrs} before metric calculations in the destination workflow.`]
+          : ['Confirm analytical CRS before metric calculations.'],
+        qaBlockingIssueCount: 0,
+        hasActiveAoi: true,
+        checkedAt: new Date().toISOString(),
+        ...(contextSummary.contextId ? { contextId: contextSummary.contextId } : {}),
+        ...(activeUrbanContext?.contextId ? { urbanContextId: activeUrbanContext.contextId } : {}),
+      },
+    };
+
+    const recommendationDispatch = dispatchRecommendationFlow({
+      recommendation,
+      flowId: selectedFlow.id,
+      overlayLayers,
+      mapContextSummary: contextSummary,
+      urbanContext: activeUrbanContext,
+    });
+
+    const linkedLayerIds = new Set<string>(analysisOutcome.provenance.sourceLayerIds);
+    let summary = `${selectedFlow.label} dispatched for ${input.flowDispatchAoi.label}.`;
+    if (analysisOutcome.status === 'fetched') {
+      addOverlayLayer(analysisOutcome.layer);
+      setActiveAnalysisResultLayers([analysisOutcome.layer.id]);
+      const map = mapInstanceRef.current;
+      if (map) {
+        const [minLng, minLat, maxLng, maxLat] = aoiBounds;
+        if (minLng === maxLng && minLat === maxLat) {
+          map.easeTo({
+            center: [minLng, minLat],
+            zoom: Math.max(map.getZoom(), 14),
+            duration: reducedMotion ? 0 : 500,
+            essential: true,
+          });
+        } else {
+          map.fitBounds(
+            [
+              [minLng, minLat],
+              [maxLng, maxLat],
+            ],
+            {
+              padding: 64,
+              duration: reducedMotion ? 0 : 900,
+              essential: true,
+            },
+          );
+        }
+      }
+      linkedLayerIds.add(analysisOutcome.layer.id);
+      summary = `${selectedFlow.label} produced ${analysisOutcome.featureCount.toLocaleString()} AOI-clipped feature(s) from ${analysisOutcome.sourceLayerCount} layer(s).`;
+      setDispatchFeedback({
+        tone: 'success',
+        title: `${selectedFlow.label} analysis registered`,
+        description: summary,
+      });
+      toastSuccess(summary);
+    } else if (analysisOutcome.status === 'empty') {
+      summary = `${selectedFlow.label} found no intersecting AOI features. ${analysisOutcome.reason}`;
+      setDispatchFeedback({
+        tone: 'info',
+        title: `${selectedFlow.label} dispatched with no AOI intersections`,
+        description: analysisOutcome.reason,
+      });
+      toastInfo(analysisOutcome.reason);
+    } else {
+      summary = `${selectedFlow.label} dispatch is environment-dependent. ${analysisOutcome.reason}`;
+      setDispatchFeedback({
+        tone: 'error',
+        title: `${selectedFlow.label} dispatch waiting for queryable data`,
+        description: analysisOutcome.reason,
+      });
+      toastWarning(analysisOutcome.reason);
+    }
+
+    const linkedAoiId = typeof input.flowDispatchAoi.feature.id === 'string'
+      ? input.flowDispatchAoi.feature.id
+      : typeof input.flowDispatchAoi.feature.id === 'number'
+        ? String(input.flowDispatchAoi.feature.id)
+        : undefined;
+
+    const evidenceArtifact = createMapWorkflowResultEvidenceArtifact({
+      title: `${selectedFlow.label} \u00b7 ${input.flowDispatchAoi.label}`,
+      summary,
+      workflowId: selectedFlow.id,
+      runId: input.requestId,
+      sourceLayerIds: analysisOutcome.provenance.sourceLayerIds,
+      ...(analysisOutcome.status === 'fetched' ? { derivedLayerId: analysisOutcome.layer.id } : {}),
+      ...(linkedAoiId ? { linkedAoiId } : {}),
+      crsSummary: {
+        displayCrs: 'EPSG:4326',
+        sourceLayerCrs: [],
+        missingLayerIds: analysisOutcome.provenance.sourceLayerIds,
+        notes: requiredCrs
+          ? [
+              `Selected flow requires ${requiredCrs} for metric operations.`,
+              'Map-side AOI dispatch used bounds intersection only; no area or distance was computed in EPSG:4326.',
+            ]
+          : ['Map-side AOI dispatch used bounds intersection only; no area or distance was computed in EPSG:4326.'],
+      },
+      geometrySummary: {
+        geometryTypes: ['Polygon'],
+        featureCount: analysisOutcome.status === 'fetched' ? analysisOutcome.featureCount : 0,
+        bounds: analysisOutcome.provenance.aoiBounds,
+        source: 'workflow-summary',
+        notes: [
+          `AOI label: ${input.flowDispatchAoi.label}`,
+          `Capability status: ${analysisOutcome.provenance.capabilityStatus}`,
+        ],
+      },
+      qa: {
+        state: analysisOutcome.status === 'fetched' ? 'passed' : 'warning',
+        issueIds: [],
+        issueCount: 0,
+        blockerCount: 0,
+        caveats: analysisOutcome.status === 'fetched'
+          ? []
+          : [analysisOutcome.reason],
+      },
+      metadata: {
+        flowId: selectedFlow.id,
+        flowLabel: selectedFlow.label,
+        source: input.flowDispatchAoi.source,
+        analysisDispatchRequestId: input.requestId,
+        recommendationDispatchRequestId: recommendationDispatch.requestId,
+        capabilityStatus: analysisOutcome.provenance.capabilityStatus,
+        requiredCrs,
+        dataFitnessScore: null,
+      },
+      createdAt: analysisOutcome.provenance.generatedAt,
+    });
+    upsertMapEvidenceArtifact(evidenceArtifact);
+
+    const busPayloads = buildAoiAnalysisBusPayloads({
+      artifactId: evidenceArtifact.id,
+      title: evidenceArtifact.title,
+      summary: evidenceArtifact.summary,
+      relatedLayerIds: [...linkedLayerIds],
+      relatedRunIds: [input.requestId, recommendationDispatch.requestId],
+      flowId: selectedFlow.id,
+      capabilityStatus: analysisOutcome.provenance.capabilityStatus,
+    });
+    synapseBus.emit('analytics.artifact.publish', busPayloads.analyticsArtifactPublish);
+    synapseBus.emit('evidence.artifact.register', busPayloads.evidenceArtifactRegister);
+
+    recordMapReviewEvent({
+      type: 'analysis-dispatch',
+      status: analysisOutcome.status === 'fetched' ? 'applied' : 'recorded',
+      title: `AOI analysis dispatched: ${selectedFlow.label}`,
+      summary,
+      layerIds: [...linkedLayerIds],
+      actionIds: [input.requestId, recommendationDispatch.requestId],
+      details: {
+        flowId: selectedFlow.id,
+        flowLabel: selectedFlow.label,
+        requestId: input.requestId,
+        recommendationRequestId: recommendationDispatch.requestId,
+        layerReferenceCount: input.layerReferenceCount,
+        sourceLayerCount: analysisOutcome.provenance.sourceLayerIds.length,
+        capabilityStatus: analysisOutcome.provenance.capabilityStatus,
+        requiredCrs,
+        aoiSource: input.flowDispatchAoi.source,
+        aoiBounds,
+        restrictToView: input.restrictToView,
+        viewBounds: input.viewBounds,
+        evidenceArtifactId: evidenceArtifact.id,
+      },
+    });
+
+    announce(`${selectedFlow.label} analysis dispatched and evidence registered`);
+  }, [
+    activeUrbanContext,
+    addOverlayLayer,
+    announce,
+    contextSummary,
+    overlayLayers,
+    recordMapReviewEvent,
+    reducedMotion,
+    setActiveAnalysisResultLayers,
+    setDispatchFeedback,
+    upsertMapEvidenceArtifact,
+  ]);
   const { handleToggleRestrictToMapView, handleOpenFlowDispatchDialog, handleRunSelectionStatistics, handleDispatchFlowSelection, handleIsochroneDispatch } = useMapAoiDispatch({
     announce,
     compatibleAoiFlows,
@@ -2279,6 +2555,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
     setIsFlowDispatchDialogOpen,
     setRestrictToMapView,
     setSelectionStatsSummary,
+    onFlowSelectionDispatched: handleAoiFlowSelectionDispatched,
   });
   const [drawSeed, setDrawSeed] = useState<{
     coordinate: [number, number];
@@ -2437,7 +2714,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
   const activeRasterLayerId = rasterLayerIds[0] ?? null;
   const activeRasterLayerName = activeRasterLayerId ? (overlayLayers.find(layer => layer.id === activeRasterLayerId)?.name ?? activeRasterLayerId) : 'Raster layer';
   const activeRasterState = activeRasterLayerId ? rasterLayerStates[activeRasterLayerId] : undefined;
-  const temporalLayers = useMemo(() => overlayLayers.filter(layer => layer.visible && layer.metadata?.analysisResult?.visualization.kind === 'temporal' && (layer.metadata.analysisResult.visualization.temporalFrames?.length ?? 0) > 0), [overlayLayers]);
+  const temporalLayers = useMemo(() => overlayLayers.filter(layer => layer.visible && layer.metadata?.analysisResult?.visualization?.kind === 'temporal' && (layer.metadata.analysisResult.visualization?.temporalFrames?.length ?? 0) > 0), [overlayLayers]);
   const activeTemporalLayer = temporalLayers.find(layer => layer.id === selectedTemporalLayerId) ?? temporalLayers[0] ?? null;
   const activeTemporalVisualization = activeTemporalLayer?.metadata?.analysisResult?.visualization?.kind === 'temporal' ? activeTemporalLayer.metadata.analysisResult.visualization : null;
   const activeTemporalFrames = activeTemporalVisualization?.temporalFrames ?? [];
@@ -2467,9 +2744,25 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
 
   const handleRightPanelWidthChange = useCallback(
     (width: number) => {
-      setLayoutPreferences({ rightPanelWidth: width });
+      setLayoutPreferences({
+        rightPanelWidth: width,
+        rightDockFloating: {
+          ...layoutPreferences.rightDockFloating,
+          width,
+        },
+      });
     },
-    [setLayoutPreferences]
+    [layoutPreferences.rightDockFloating, setLayoutPreferences]
+  );
+
+  const handleRightDockFloatingRectChange = useCallback(
+    (rect: { x: number; y: number; width: number; height: number }) => {
+      setLayoutPreferences({
+        rightPanelWidth: rect.width,
+        rightDockFloating: rect,
+      });
+    },
+    [setLayoutPreferences],
   );
 
   const handleRightDockHostPanelChange = useCallback(
@@ -2552,6 +2845,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
     setLayoutPreferences({
       layerPanelWidth: DEFAULT_MAP_EXPLORER_LAYOUT_PREFERENCES.layerPanelWidth,
       rightPanelWidth: DEFAULT_MAP_EXPLORER_LAYOUT_PREFERENCES.rightPanelWidth,
+      rightDockFloating: DEFAULT_MAP_EXPLORER_LAYOUT_PREFERENCES.rightDockFloating,
     });
     announce(`Default panel widths restored (${DEFAULT_MAP_EXPLORER_LAYOUT_PREFERENCES.layerPanelWidth}px sidebar, ${DEFAULT_MAP_EXPLORER_LAYOUT_PREFERENCES.rightPanelWidth}px inspector)`);
   }, [announce, setLayoutPreferences]);
@@ -6280,7 +6574,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
         <Suspense fallback={null}>
           <LazyMapInspectorHost visible={inspectorContext.kind !== 'none'} context={inspectorContext} presentation={dockLayout.compactDock ? 'bottom-drawer' : 'right-rail'} width={dockLayout.rightPanelWidth} onClose={handleCloseInspectorHost} onApplyLayerStyle={handleApplyLayerStyle} returnFocusTo={inspectorReturnFocusRef.current} />
         </Suspense>
-        <MapExplorerModalRuntimeView announce={announce} handleOpenSceneTab={handleOpenSceneTab} navigatorStageMode={navigatorStageMode} scene3DTabActive={scene3DTabActive} sceneMassingTabActive={sceneMassingTabActive} sceneRasterTabActive={sceneRasterTabActive} sceneSunShadowTabActive={sceneSunShadowTabActive} sceneZoningTabActive={sceneZoningTabActive} showPluginPanel={showPluginPanel} setShowPluginPanel={setShowPluginPanel} pluginExtensions={pluginExtensions} showProcessingToolbox={showProcessingToolbox} setShowProcessingToolbox={setShowProcessingToolbox} showSqlWorkspace={showSqlWorkspace} setShowSqlWorkspace={setShowSqlWorkspace} handleSqlResultToMap={handleSqlResultToMap} showMinimap={showMinimap} minimapCenter={center} minimapZoom={zoom} analyzeToolsTabActive={analyzeToolsTabActive} searchProcessingTools={searchProcessingTools} processingToolboxLayers={processingToolboxLayers} handlePreviewProcessingTool={handlePreviewProcessingTool} handleRunProcessingTool={handleRunProcessingTool} showModelBuilder={showModelBuilder} setShowModelBuilder={setShowModelBuilder} analyzeModelsTabActive={analyzeModelsTabActive} processingToolDescriptors={processingToolDescriptors} handleRunMapModel={handleRunMapModel} handleRunMapModelBatch={handleRunMapModelBatch} handleExportMapModelToIdeAndUrban={handleExportMapModelToIdeAndUrban} effectiveShowWorkflowDrawer={effectiveShowWorkflowDrawer} analyzeWorkflowsTabActive={analyzeWorkflowsTabActive} workflowPreview={workflowPreview} effectiveShowScientificQAPanel={effectiveShowScientificQAPanel} scientificQA={scientificQA} overlayLayers={overlayLayers} compactDock={dockLayout.compactDock} rightPanelWidth={dockLayout.rightPanelWidth} handleRightPanelWidthChange={handleRightPanelWidthChange} setShowScientificQAPanel={setShowScientificQAPanel} handleFocusLayer={handleFocusLayer} handleInspectLayer={handleInspectLayer} handleRepairLayerGeometry={handleRepairLayerGeometry} handleOpenPublishTab={handleOpenPublishTab} effectiveShowNLQueryPanel={effectiveShowNLQueryPanel} analyzeQueryTabActive={analyzeQueryTabActive} selectedAoiFeatureForQuery={selectedAoiFeatureForQuery} currentMapBounds={currentMapBounds} isRunningMapNLQuery={isRunningMapNLQuery} lastMapNLQuerySummary={lastMapNLQuerySummary} handleRunMapNLQuery={handleRunMapNLQuery} handleMapNLQueryProposalGenerated={handleMapNLQueryProposalGenerated} handleMapNLQueryPreviewDecision={handleMapNLQueryPreviewDecision} setShowNLQueryPanel={setShowNLQueryPanel} urbanWorkflowDraftRequest={urbanWorkflowDraftRequest} workflowContext={workflowContext} setShowWorkflowDrawer={setShowWorkflowDrawer} setWorkflowPreview={setWorkflowPreview} setUrbanWorkflowDraftRequest={setUrbanWorkflowDraftRequest} handleApplyMapWorkflow={handleApplyMapWorkflow} handleSaveWorkflowReport={handleSaveWorkflowReport} handleOpenWorkflowScriptInIde={handleOpenWorkflowScriptInIde} handleExecuteMapWorkflow={handleExecuteMapWorkflow} handleCancelMapWorkflow={handleCancelMapWorkflow} workflowExecution={workflowExecution} mapCanvasControlsProps={mapCanvasControlsProps} canvasControlDockVisible={showCanvasControlDock} onCloseCanvasControlDock={() => { setShowCanvasControlDock(false); announce('View controls closed'); }} showLegendOverlay={mapCompositionOptions.includeLegend} mapPublicationLegendItems={mapPublicationLegendItems} performanceDiagnostics={performanceDiagnostics} openPerformanceRightDock={openPerformanceRightDock} activeRightDockRoute={activeRightDockRoute} rightDockPanels={MAP_RIGHT_DOCK_PANEL_IDS} rightDockBodyContent={rightDockBodyContent} rightDockPresentation={dockLayout.rightPanelPlacement === 'drawer' ? 'side-drawer' : 'right-dock'} rightDockCollapsed={rightDockCollapsed} handleRightDockHostPanelChange={handleRightDockHostPanelChange} handleCollapseRightDockHost={handleCollapseRightDockHost} handleCloseRightDockHost={handleCloseRightDockHost} effectiveShowUrbanMethodPanel={effectiveShowUrbanMethodPanel} activeUrbanMethodRequest={activeUrbanMethodRequest} activeUrbanMethodPreview={activeUrbanMethodPreview} handleCloseUrbanMethodRail={handleCloseUrbanMethodRail} handleFocusUrbanMethodLayer={handleFocusUrbanMethodLayer} handlePreviewUrbanMethodWorkflow={handlePreviewUrbanMethodWorkflow} showFigureComposer={showFigureComposer} publishFigureTabActive={publishFigureTabActive} bearing={bearing} temporalLayoutRestoreRequest={temporalLayoutRestoreRequest} setShowFigureComposer={setShowFigureComposer} setShowMapExportDialog={setShowMapExportDialog} handleTemporalRestoreRequestHandled={handleTemporalRestoreRequestHandled} mapRef={mapInstanceRef} reducedMotion={reducedMotion} temporalPlayerMap={mapInstanceRef.current} temporalFrames={activeTemporalLayer?.metadata?.analysisResult?.visualization.temporalFrames ?? []} temporalTimeProperty={activeTemporalLayer?.metadata?.analysisResult?.visualization.timeProperty ?? 'timestamp'} temporalSourceId={activeTemporalLayer?.id ?? null} temporalLayerId={activeTemporalLayer?.id ?? null} temporalLayerName={activeTemporalLayer?.name ?? null} temporalPlayerVisible={!!open && sceneTemporalTabActive} showChoroplethPanel={showChoroplethPanel} setShowChoroplethPanel={setShowChoroplethPanel} showClusterViz={showClusterViz} setShowClusterViz={setShowClusterViz} showHotSpotViz={showHotSpotViz} setShowHotSpotViz={setShowHotSpotViz} showEmergingHotSpotViz={showEmergingHotSpotViz} setShowEmergingHotSpotViz={setShowEmergingHotSpotViz} activeDrawTool={activeDrawTool} drawSeed={drawSeed} drawnFeatures={drawnFeatures} drawingSnapSources={drawingSnapSources} selectedFeatureId={selectedFeatureId} addDrawnFeature={addDrawnFeature} removeDrawnFeature={removeDrawnFeature} updateDrawnFeature={updateDrawnFeature} handleCommitDrawnFeatureEdit={handleCommitDrawnFeatureEdit} clearDrawnFeatures={clearDrawnFeatures} setSelectedFeatureId={setSelectedFeatureId} handleCancelDraw={handleCancelDraw} setDrawSeed={setDrawSeed} effectiveShowMeasurePanel={effectiveShowMeasurePanel} rightMeasureDockActive={rightMeasureDockActive} activeMeasureTool={activeMeasureTool} measurementSeed={measurementSeed} measurements={measurements} measureUnit={measureUnit} addMeasurement={addMeasurement} removeMeasurement={removeMeasurement} clearMeasurements={clearMeasurements} setMeasureUnit={setMeasureUnit} handleCancelMeasure={handleCancelMeasure} setMeasurementSeed={setMeasurementSeed} pins={pins} effectiveShowSidebar={effectiveShowSidebar} handleRemovePin={handleRemovePin} handleClearPins={handleClearPins} flyTo={flyTo} effectiveShowLayerPanel={effectiveShowLayerPanel} layerPanelOpenButtonStyle={mapStyles.layerPanelOpenButton} layerOpenButtonIconSize={MAP_ICON_SIZES.sm} handleMapClick={handleMapClick} handleStartMeasureFromContext={handleStartMeasureFromContext} handleStartPolygonFromContext={handleStartPolygonFromContext} handleOpenFlowDispatchDialog={handleOpenFlowDispatchDialog} handleIsochroneDispatch={handleIsochroneDispatch} handleHotSpotDispatch={handleHotSpotDispatch} handleRunSelectionStatistics={handleRunSelectionStatistics} selectionStatsAvailable={selectionStatsAvailable} annotationMode={annotationMode} annotations={annotations} selectedAnnotationId={selectedAnnotationId} annotationToolSettings={annotationToolSettings} handleAddMapAnnotation={handleAddMapAnnotation} handleUpdateMapAnnotation={handleUpdateMapAnnotation} handleMoveMapAnnotation={handleMoveMapAnnotation} handleRemoveMapAnnotation={handleRemoveMapAnnotation} setSelectedAnnotationId={setSelectedAnnotationId} setAnnotationToolSettings={setAnnotationToolSettings} handleDeactivateAnnotationMode={handleDeactivateAnnotationMode} setShowComparisonStrip={setShowComparisonStrip} setShowInteractionStrip={setShowInteractionStrip} setShowLayerPanel={setShowLayerPanel} showComparisonStrip={showComparisonStrip} showInteractionStrip={showInteractionStrip} />
+        <MapExplorerModalRuntimeView announce={announce} handleOpenSceneTab={handleOpenSceneTab} navigatorStageMode={navigatorStageMode} scene3DTabActive={scene3DTabActive} sceneMassingTabActive={sceneMassingTabActive} sceneRasterTabActive={sceneRasterTabActive} sceneSunShadowTabActive={sceneSunShadowTabActive} sceneZoningTabActive={sceneZoningTabActive} showPluginPanel={showPluginPanel} setShowPluginPanel={setShowPluginPanel} pluginExtensions={pluginExtensions} showProcessingToolbox={showProcessingToolbox} setShowProcessingToolbox={setShowProcessingToolbox} showSqlWorkspace={showSqlWorkspace} setShowSqlWorkspace={setShowSqlWorkspace} handleSqlResultToMap={handleSqlResultToMap} showMinimap={showMinimap} minimapCenter={center} minimapZoom={zoom} analyzeToolsTabActive={analyzeToolsTabActive} searchProcessingTools={searchProcessingTools} processingToolboxLayers={processingToolboxLayers} handlePreviewProcessingTool={handlePreviewProcessingTool} handleRunProcessingTool={handleRunProcessingTool} showModelBuilder={showModelBuilder} setShowModelBuilder={setShowModelBuilder} analyzeModelsTabActive={analyzeModelsTabActive} processingToolDescriptors={processingToolDescriptors} handleRunMapModel={handleRunMapModel} handleRunMapModelBatch={handleRunMapModelBatch} handleExportMapModelToIdeAndUrban={handleExportMapModelToIdeAndUrban} effectiveShowWorkflowDrawer={effectiveShowWorkflowDrawer} analyzeWorkflowsTabActive={analyzeWorkflowsTabActive} workflowPreview={workflowPreview} effectiveShowScientificQAPanel={effectiveShowScientificQAPanel} scientificQA={scientificQA} overlayLayers={overlayLayers} compactDock={dockLayout.compactDock} rightPanelWidth={dockLayout.rightPanelWidth} handleRightPanelWidthChange={handleRightPanelWidthChange} setShowScientificQAPanel={setShowScientificQAPanel} handleFocusLayer={handleFocusLayer} handleInspectLayer={handleInspectLayer} handleRepairLayerGeometry={handleRepairLayerGeometry} handleOpenPublishTab={handleOpenPublishTab} effectiveShowNLQueryPanel={effectiveShowNLQueryPanel} analyzeQueryTabActive={analyzeQueryTabActive} selectedAoiFeatureForQuery={selectedAoiFeatureForQuery} currentMapBounds={currentMapBounds} isRunningMapNLQuery={isRunningMapNLQuery} lastMapNLQuerySummary={lastMapNLQuerySummary} handleRunMapNLQuery={handleRunMapNLQuery} handleMapNLQueryProposalGenerated={handleMapNLQueryProposalGenerated} handleMapNLQueryPreviewDecision={handleMapNLQueryPreviewDecision} setShowNLQueryPanel={setShowNLQueryPanel} urbanWorkflowDraftRequest={urbanWorkflowDraftRequest} workflowContext={workflowContext} setShowWorkflowDrawer={setShowWorkflowDrawer} setWorkflowPreview={setWorkflowPreview} setUrbanWorkflowDraftRequest={setUrbanWorkflowDraftRequest} handleApplyMapWorkflow={handleApplyMapWorkflow} handleSaveWorkflowReport={handleSaveWorkflowReport} handleOpenWorkflowScriptInIde={handleOpenWorkflowScriptInIde} handleExecuteMapWorkflow={handleExecuteMapWorkflow} handleCancelMapWorkflow={handleCancelMapWorkflow} workflowExecution={workflowExecution} mapCanvasControlsProps={mapCanvasControlsProps} canvasControlDockVisible={showCanvasControlDock} onCloseCanvasControlDock={() => { setShowCanvasControlDock(false); announce('View controls closed'); }} showLegendOverlay={mapCompositionOptions.includeLegend} mapPublicationLegendItems={mapPublicationLegendItems} performanceDiagnostics={performanceDiagnostics} openPerformanceRightDock={openPerformanceRightDock} activeRightDockRoute={activeRightDockRoute} rightDockPanels={MAP_RIGHT_DOCK_PANEL_IDS} rightDockBodyContent={rightDockBodyContent} rightDockPresentation={dockLayout.rightPanelPlacement === 'drawer' ? 'side-drawer' : 'floating-modal'} rightDockCollapsed={rightDockCollapsed} rightDockFloatingRect={layoutPreferences.rightDockFloating} handleRightDockHostPanelChange={handleRightDockHostPanelChange} handleCollapseRightDockHost={handleCollapseRightDockHost} handleCloseRightDockHost={handleCloseRightDockHost} handleRightDockFloatingRectChange={handleRightDockFloatingRectChange} effectiveShowUrbanMethodPanel={effectiveShowUrbanMethodPanel} activeUrbanMethodRequest={activeUrbanMethodRequest} activeUrbanMethodPreview={activeUrbanMethodPreview} handleCloseUrbanMethodRail={handleCloseUrbanMethodRail} handleFocusUrbanMethodLayer={handleFocusUrbanMethodLayer} handlePreviewUrbanMethodWorkflow={handlePreviewUrbanMethodWorkflow} showFigureComposer={showFigureComposer} publishFigureTabActive={publishFigureTabActive} bearing={bearing} temporalLayoutRestoreRequest={temporalLayoutRestoreRequest} setShowFigureComposer={setShowFigureComposer} setShowMapExportDialog={setShowMapExportDialog} handleTemporalRestoreRequestHandled={handleTemporalRestoreRequestHandled} mapRef={mapInstanceRef} reducedMotion={reducedMotion} temporalPlayerMap={mapInstanceRef.current} temporalFrames={activeTemporalLayer?.metadata?.analysisResult?.visualization.temporalFrames ?? []} temporalTimeProperty={activeTemporalLayer?.metadata?.analysisResult?.visualization.timeProperty ?? 'timestamp'} temporalSourceId={activeTemporalLayer?.id ?? null} temporalLayerId={activeTemporalLayer?.id ?? null} temporalLayerName={activeTemporalLayer?.name ?? null} temporalPlayerVisible={!!open && sceneTemporalTabActive} showChoroplethPanel={showChoroplethPanel} setShowChoroplethPanel={setShowChoroplethPanel} showClusterViz={showClusterViz} setShowClusterViz={setShowClusterViz} showHotSpotViz={showHotSpotViz} setShowHotSpotViz={setShowHotSpotViz} showEmergingHotSpotViz={showEmergingHotSpotViz} setShowEmergingHotSpotViz={setShowEmergingHotSpotViz} activeDrawTool={activeDrawTool} drawSeed={drawSeed} drawnFeatures={drawnFeatures} drawingSnapSources={drawingSnapSources} selectedFeatureId={selectedFeatureId} addDrawnFeature={addDrawnFeature} removeDrawnFeature={removeDrawnFeature} updateDrawnFeature={updateDrawnFeature} handleCommitDrawnFeatureEdit={handleCommitDrawnFeatureEdit} clearDrawnFeatures={clearDrawnFeatures} setSelectedFeatureId={setSelectedFeatureId} handleCancelDraw={handleCancelDraw} setDrawSeed={setDrawSeed} effectiveShowMeasurePanel={effectiveShowMeasurePanel} rightMeasureDockActive={rightMeasureDockActive} activeMeasureTool={activeMeasureTool} measurementSeed={measurementSeed} measurements={measurements} measureUnit={measureUnit} addMeasurement={addMeasurement} removeMeasurement={removeMeasurement} clearMeasurements={clearMeasurements} setMeasureUnit={setMeasureUnit} handleCancelMeasure={handleCancelMeasure} setMeasurementSeed={setMeasurementSeed} pins={pins} effectiveShowSidebar={effectiveShowSidebar} handleRemovePin={handleRemovePin} handleClearPins={handleClearPins} flyTo={flyTo} effectiveShowLayerPanel={effectiveShowLayerPanel} layerPanelOpenButtonStyle={mapStyles.layerPanelOpenButton} layerOpenButtonIconSize={MAP_ICON_SIZES.sm} handleMapClick={handleMapClick} handleStartMeasureFromContext={handleStartMeasureFromContext} handleStartPolygonFromContext={handleStartPolygonFromContext} handleOpenFlowDispatchDialog={handleOpenFlowDispatchDialog} handleIsochroneDispatch={handleIsochroneDispatch} handleHotSpotDispatch={handleHotSpotDispatch} handleRunSelectionStatistics={handleRunSelectionStatistics} selectionStatsAvailable={selectionStatsAvailable} annotationMode={annotationMode} annotations={annotations} selectedAnnotationId={selectedAnnotationId} annotationToolSettings={annotationToolSettings} handleAddMapAnnotation={handleAddMapAnnotation} handleUpdateMapAnnotation={handleUpdateMapAnnotation} handleMoveMapAnnotation={handleMoveMapAnnotation} handleRemoveMapAnnotation={handleRemoveMapAnnotation} setSelectedAnnotationId={setSelectedAnnotationId} setAnnotationToolSettings={setAnnotationToolSettings} handleDeactivateAnnotationMode={handleDeactivateAnnotationMode} setShowComparisonStrip={setShowComparisonStrip} setShowInteractionStrip={setShowInteractionStrip} setShowLayerPanel={setShowLayerPanel} showComparisonStrip={showComparisonStrip} showInteractionStrip={showInteractionStrip} />
 
         {showDrawPanel && !navigatorStageMode ? (
           <MapDialogShell

@@ -66,12 +66,70 @@ export const MAP_LAYER_PANEL_MAX_WIDTH = 640;
 export const MAP_RIGHT_PANEL_MIN_WIDTH = 260;
 export const MAP_RIGHT_PANEL_MAX_WIDTH = 520;
 export const MAP_RIGHT_PANEL_COLLAPSED_WIDTH = 48;
+export const MAP_RIGHT_PANEL_MIN_HEIGHT = 300;
+export const MAP_RIGHT_PANEL_MAX_HEIGHT = 760;
+export const MAP_RIGHT_PANEL_FLOATING_MARGIN = 16;
+
+export interface MapRightDockFloatingRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface MapRightDockFloatingViewport {
+  width: number;
+  height: number;
+}
 
 function clampNumber(value: number | undefined, min: number, max: number, fallback: number): number {
   if (typeof value !== "number" || !Number.isFinite(value)) {
     return fallback;
   }
   return Math.max(min, Math.min(max, Number(value)));
+}
+
+function clampFloatingSize(value: number, min: number, max: number, viewportLimit: number): number {
+  const boundedMax = Math.max(min, Math.min(max, viewportLimit));
+  return Math.min(Math.max(value, min), boundedMax);
+}
+
+export function clampMapRightDockFloatingRect(
+  rect: MapRightDockFloatingRect,
+  viewport: MapRightDockFloatingViewport,
+  margin = MAP_RIGHT_PANEL_FLOATING_MARGIN,
+): MapRightDockFloatingRect {
+  const safeViewportWidth = Math.max(1, viewport.width);
+  const safeViewportHeight = Math.max(1, viewport.height);
+  const widthLimit = safeViewportWidth - margin * 2;
+  const heightLimit = safeViewportHeight - margin * 2;
+  const width = clampFloatingSize(rect.width, MAP_RIGHT_PANEL_MIN_WIDTH, MAP_RIGHT_PANEL_MAX_WIDTH, widthLimit);
+  const height = clampFloatingSize(rect.height, MAP_RIGHT_PANEL_MIN_HEIGHT, MAP_RIGHT_PANEL_MAX_HEIGHT, heightLimit);
+  const maxX = Math.max(margin, safeViewportWidth - width - margin);
+  const maxY = Math.max(margin, safeViewportHeight - height - margin);
+  return {
+    x: Math.min(Math.max(rect.x, margin), maxX),
+    y: Math.min(Math.max(rect.y, margin), maxY),
+    width,
+    height,
+  };
+}
+
+export function createDefaultMapRightDockFloatingRect(
+  viewport: MapRightDockFloatingViewport,
+  width: number,
+  height = 560,
+): MapRightDockFloatingRect {
+  const clamped = clampMapRightDockFloatingRect(
+    {
+      x: viewport.width - width - MAP_RIGHT_PANEL_FLOATING_MARGIN,
+      y: 84,
+      width,
+      height,
+    },
+    viewport,
+  );
+  return clamped;
 }
 
 /**

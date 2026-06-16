@@ -2,7 +2,7 @@
 
 > **Read this FIRST every session. Update it LAST before exiting.** A track is `done` only with evidence (a test-summary file in `evidence/` or a screenshot path). Never write `done` without an `evidence` link. This ledger is the single human-readable source of truth for "where are we"; [STATE.json](STATE.json) is its machine mirror — keep them in sync.
 
-**Overall status:** `IN PROGRESS` — p00-p07 complete (badge/status-language phases + dock-state unification + draw first-click fix + premium drawing modal + rectangle-AOI bounds-clipped real fetch closed; next action p08).
+**Overall status:** `IN PROGRESS` — p00-p09 complete (badge/status-language phases + dock-state unification + draw first-click fix + premium drawing modal + rectangle-AOI bounds-clipped real fetch + AOI analysis/evidence dispatch + floating right-dock shell closed; next action p10).
 
 Status values: `pending` · `in_progress` · `done` · `blocked`
 
@@ -16,8 +16,8 @@ Status values: `pending` · `in_progress` · `done` · `blocked`
 | p05 | Draw first-click fix | Open on first click + wiring | **done** | First-click open shot | **done** | ☑ |
 | p06 | Draw premium modal | a11y roles + disabled logic + tests | **done** | Premium drawing modal shots | **done** | ☑ |
 | p07 | AOI → fetch data | Rectangle bounds → data fetch | **done** | Fetch-data flow shots | **done** | ☑ |
-| p08 | AOI → analysis | Compatible flows → evidence | pending | Analysis dispatch shots | pending | ☐ |
-| p09 | Right dock floating modal | Drag + resize + clamp + persist | pending | Moved/resized modal shots | pending | ☐ |
+| p08 | AOI → analysis | Compatible flows → evidence | **done** | Analysis dispatch shots | **done** | ☑ |
+| p09 | Right dock floating modal | Drag + resize + clamp + persist | **done** | Moved/resized modal shots | **done** | ☑ |
 | p10 | Right dock single-click | One-click open + state cleanup | pending | One-click open shot | pending | ☐ |
 | p11 | Right panel single-column | Remove dual-column | pending | Single-column shots | pending | ☐ |
 | p12 | Right dock motion | (motion test/reduced-motion) | pending | Animated open/close | pending | ☐ |
@@ -143,6 +143,40 @@ Status values: `pending` · `in_progress` · `done` · `blocked`
 - Evidence: `evidence/p07-trackA.md`, `evidence/p07-aoi-fetch.png`, `evidence/p07-aoi-result-layer.png`.
 - Env gotcha (future agents): chromium pinned to `/opt/pw-browsers/chromium-1194/chrome-linux/chrome`; first Vite mount ~1 min; the `drawings` command is in toolbar overflow → open via command palette (`map-commands-trigger` → `map-commands-open-palette` → search "drawings" → `map-command-palette-option-drawings`).
 - **Next action:** `prompts/p08-aoi-analysis.md` (AOI → compatible scientific flows → evidence).
+
+### 2026-06-16 — p08 EXECUTED (Track A done, Track B blocked) ⚠
+- Track A: AOI dispatch now routes through compatible scientific workflows and produces immutable evidence artifacts with IDs-only bus publication (`analytics.artifact.publish`, `evidence.artifact.register`).
+- Added/updated tests for AOI analysis shaping and IDs-only payload behavior; targeted p08 validations passed earlier in-session (`map-drawing-aoi-data`, `mapEvidenceArtifacts`, typecheck, lint:errors).
+- During Track B capture runs, multiple runtime null-safety crashes surfaced and were fixed:
+  - `MapAnalysisRecommender.ts`: guard missing `analysisResult.visualization` in temporal frame resolver.
+  - `MapCartographyAdvisor.ts`: guard missing `analysisResult.visualization` in legend reads.
+  - `MapExplorerModalRuntimeCore.tsx`: guard temporal layer filter for missing visualization.
+  - `MapClusterViz.tsx`: guard LISA candidate check for missing visualization.
+- Track B remains blocked by unstable Playwright startup/runtime behavior in this environment:
+  - intermittent `ERR_CONNECTION_REFUSED` to `http://127.0.0.1:4173/?e2e=1&view=ide`
+  - prior long-running capture attempts timing out while modal shell was unavailable after runtime errors.
+- Evidence: `evidence/p08-trackA.md`.
+- **Next action:** clear Playwright webServer stability and recapture `evidence/p08-aoi-analysis.png` + `evidence/p08-evidence-registered.png`.
+
+### 2026-06-16 — p08 Track B partial capture update
+- Confirmed `evidence/p08-aoi-analysis.png` exists and is valid (AOI dispatch modal with compatible workflow list visible).
+- Added blocker note file `evidence/p08-trackB.md`; `STATE.json` now points p08 Track B evidence to that file while status remains `blocked`.
+- Remaining requirement for Track B completion is still `evidence/p08-evidence-registered.png`.
+
+### 2026-06-16 — p08 EXECUTED — Track B unblocked and done ✅
+- Rebuilt a deterministic p08 capture spec at `e2e/p08-aoi-analysis-capture.spec.ts` and stabilized the flow: seeded AOI/queryable layer, opened context-menu Analyze Area on map canvas, dispatched a compatible flow, then captured registration confirmation.
+- Captured missing screenshot `evidence/p08-evidence-registered.png` (toast confirms analysis registration), while preserving `evidence/p08-aoi-analysis.png`.
+- Fixed one runtime blocker discovered during capture: `MapHotSpotViz.tsx` now guards `analysisResult.visualization` access with optional chaining (`analysis?.visualization?.kind`) to prevent modal crashes from sparse metadata.
+- Verify result: `playwright test e2e/p08-aoi-analysis-capture.spec.ts --workers=1 --retries=0 --timeout=180000` => **1 passed**.
+- Evidence: `evidence/p08-trackA.md`, `evidence/p08-aoi-analysis.png`, `evidence/p08-evidence-registered.png`.
+- Next action: `prompts/p09-right-dock-floating-modal.md`.
+
+### 2026-06-16 — p09 EXECUTED — both tracks done ✅
+- Track A: implemented `floating-modal` right-dock host mode with portal rendering, header drag (reused `useDraggableMapPanel`), edge/corner resize, viewport clamping, and persistent `{x,y,width,height}` via Zustand layout preferences (`layoutPreferences.rightDockFloating`) in `synapse-map-explorer` persisted state. Added shared clamp/default helpers in `mapDocking.ts`, plumbed floating rect through runtime core/view, and kept constrained-width fallback to `side-drawer`.
+- Track A tests/gates: `map-right-dock-migration.test.ts` **4/4**, `MapRightDockHost.test.tsx` **10/10**, `map-docking.test.ts` **14/14**, `npm run typecheck` PASS.
+- Track B: captured floating modal visuals `evidence/p09-float-default.png`, `evidence/p09-float-moved.png`, `evidence/p09-float-resized.png` (default, dragged, resized larger/smaller states).
+- Evidence: `evidence/p09-trackA.md`, `evidence/p09-trackB.md`, `evidence/p09-float-default.png`, `evidence/p09-float-moved.png`, `evidence/p09-float-resized.png`.
+- Next action: `prompts/p10-right-dock-single-click.md`.
 
 <!-- Append new sessions below. Template:
 ### YYYY-MM-DD — <phase/track> — <short title>

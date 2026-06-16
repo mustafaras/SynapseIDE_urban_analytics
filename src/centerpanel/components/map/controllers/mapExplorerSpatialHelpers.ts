@@ -4,6 +4,7 @@ import type { MapOutput } from "@/features/urbanAnalytics/lib/types";
 import type { DrawnFeature, LayerSourceKind, OverlayLayerConfig } from "../mapTypes";
 import { MAP_COLORS } from "../mapTokens";
 import type { MapDrawingSnapSource } from "../../MapDrawingManager";
+import type { AnalyticsArtifactPublishPayload, EvidenceArtifactRegisterPayload } from "@/types/synapse-bus";
 import { validateDrawnGeometry } from "@/services/map/DrawnGeometryValidation";
 import {
   buildBoundsPolygon,
@@ -318,6 +319,7 @@ export type AoiFetchCapabilityStatus =
   | "residual_gap";
 
 export const AOI_FETCH_METHOD = "AOI fetch (bounds clip)" as const;
+export const AOI_ANALYSIS_METHOD = "AOI compatible analysis dispatch" as const;
 
 /** Property keys stamped onto each clipped feature for source traceability. */
 export const AOI_FETCH_SOURCE_LAYER_ID_FIELD = "__aoiSourceLayerId" as const;
@@ -360,6 +362,39 @@ export type AoiFetchOutcome =
       status: "no-source";
       reason: string;
       provenance: AoiFetchProvenanceSummary;
+    };
+
+export type AoiAnalysisCapabilityStatus = AoiFetchCapabilityStatus;
+
+export interface AoiAnalysisProvenanceSummary {
+  label: string;
+  method: typeof AOI_ANALYSIS_METHOD;
+  generatedAt: string;
+  capabilityStatus: AoiAnalysisCapabilityStatus;
+  flowId: string;
+  flowLabel: string;
+  requiredCrs: string | null;
+  aoiBounds: [number, number, number, number];
+  sourceLayerIds: string[];
+}
+
+export type AoiAnalysisOutcome =
+  | {
+      status: "fetched";
+      layer: OverlayLayerConfig;
+      featureCount: number;
+      sourceLayerCount: number;
+      provenance: AoiAnalysisProvenanceSummary;
+    }
+  | {
+      status: "empty";
+      reason: string;
+      provenance: AoiAnalysisProvenanceSummary;
+    }
+  | {
+      status: "no-source";
+      reason: string;
+      provenance: AoiAnalysisProvenanceSummary;
     };
 
 function drawnFeatureBounds(feature: DrawnFeature): [number, number, number, number] | null {
@@ -532,6 +567,144 @@ export function buildAoiFetchResult(
       capabilityStatus: "implemented",
       aoiBounds: bounds,
       sourceLayerIds: contributingLayerIds,
+    },
+  };
+}
+
+/**
+ * Build an AOI-compatible analysis output by clipping queryable data sources
+ * to the AOI envelope, then stamping flow metadata onto the derived layer.
+ *
+ * This intentionally avoids metric computation in EPSG:4326; it only performs
+ * envelope intersection and feature filtering.
+ */
+export function buildAoiAnalysisResult(
+  sources: readonly AoiFetchSource[],
+  bounds: [number, number, number, number],
+  options: {
+    aoiLabel: string;
+    flowId: string;
+    flowLabel: string;
+    requiredCrs?: string | null;
+    generatedAt?: string;
+    layerId?: string;
+  },
+): AoiAnalysisOutcome {
+  const generatedAt = options.generatedAt ?? new Date().toISOString();
+  const requiredCrs = options.requiredCrs ?? null;
+  const fetchOutcome = buildAoiFetchResult(sources, bounds, {
+    aoiLabel: options.aoiLabel,
+    generatedAt,
+    layerId: options.layerId,
+  });
+
+  if (fetchOutcome.status === "no-source" || fetchOutcome.status === "empty") {
+    return {
+      ...fetchOutcome,
+      provenance: {
+        label: `AOI analysis \u00b7 ${options.flowLabel}`,
+        method: AOI_ANALYSIS_METHOD,
+        generatedAt,
+        capabilityStatus: fetchOutcome.provenance.capabilityStatus,
+        flowId: options.flowId,
+        flowLabel: options.flowLabel,
+        requiredCrs,
+        aoiBounds: fetchOutcome.provenance.aoiBounds,
+        sourceLayerIds: fetchOutcome.provenance.sourceLayerIds,
+      },
+    };
+  }
+
+  const nextLayer: OverlayLayerConfig = {
+    ...fetchOutcome.layer,
+    name: `${options.flowLabel} \u00b7 ${options.aoiLabel} (${fetchOutcome.featureCount})`,
+    provenance: {
+      ...(fetchOutcome.layer.provenance ?? {}),
+      label: `AOI analysis \u00b7 ${options.flowLabel}`,
+      method: AOI_ANALYSIS_METHOD,
+      generatedAt,
+      sourceLayerIds: fetchOutcome.provenance.sourceLayerIds,
+      notes: [
+        `Flow: ${options.flowId}.`,
+        ...(requiredCrs ? [`Required CRS for metric operations: ${requiredCrs}.`] : []),
+        "Map-side AOI dispatch uses bounds filtering only; metric calculations must run in a projected CRS inside the selected workflow.",
+      ],
+    },
+    metadata: {
+      ...(fetchOutcome.layer.metadata ?? {}),
+      updatedAt: generatedAt,
+      analysisResult: {
+        engine: options.flowId,
+        runId: `${options.flowId}-${generatedAt}`,
+        runTimestamp: generatedAt,
+        parameterSummary: `AOI: ${options.aoiLabel}`,
+        inputParameters: {
+          aoiLabel: options.aoiLabel,
+          flowId: options.flowId,
+          requiredCrs,
+          analysisMethod: AOI_ANALYSIS_METHOD,
+        },
+        sourceLayerIds: fetchOutcome.provenance.sourceLayerIds,
+      },
+    },
+  };
+
+  return {
+    status: "fetched",
+    layer: nextLayer,
+    featureCount: fetchOutcome.featureCount,
+    sourceLayerCount: fetchOutcome.sourceLayerCount,
+    provenance: {
+      label: `AOI analysis \u00b7 ${options.flowLabel}`,
+      method: AOI_ANALYSIS_METHOD,
+      generatedAt,
+      capabilityStatus: "implemented",
+      flowId: options.flowId,
+      flowLabel: options.flowLabel,
+      requiredCrs,
+      aoiBounds: fetchOutcome.provenance.aoiBounds,
+      sourceLayerIds: fetchOutcome.provenance.sourceLayerIds,
+    },
+  };
+}
+
+export function buildAoiAnalysisBusPayloads(input: {
+  artifactId: string;
+  title: string;
+  summary: string;
+  relatedLayerIds: readonly string[];
+  relatedRunIds: readonly string[];
+  flowId: string;
+  capabilityStatus: AoiAnalysisCapabilityStatus;
+}): {
+  analyticsArtifactPublish: AnalyticsArtifactPublishPayload;
+  evidenceArtifactRegister: EvidenceArtifactRegisterPayload;
+} {
+  const requestedAt = new Date().toISOString();
+  return {
+    analyticsArtifactPublish: {
+      artifactId: input.artifactId,
+      artifactType: "analysis-result",
+      title: input.title,
+      summary: input.summary,
+      source: "map-explorer",
+      requestedAt,
+    },
+    evidenceArtifactRegister: {
+      artifactId: input.artifactId,
+      artifactType: "analysis-result",
+      sourceModule: "map-explorer",
+      title: input.title,
+      summary: input.summary,
+      relatedLayerIds: [...input.relatedLayerIds],
+      relatedRunIds: [...input.relatedRunIds],
+      artifactKind: "workflow-result",
+      manifestMetadata: {
+        flowId: input.flowId,
+        capabilityStatus: input.capabilityStatus,
+      },
+      source: "map-explorer",
+      requestedAt,
     },
   };
 }

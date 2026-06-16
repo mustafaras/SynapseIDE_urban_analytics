@@ -213,4 +213,29 @@ describe("MapRightDockHost", () => {
     expect(errorNode.textContent).toContain("failed to load");
     expect(errorNode.getAttribute("role")).toBe("alert");
   });
+
+  it("renders as a floating modal and emits floating rect changes on resize drag", () => {
+    const onFloatingRectChange = vi.fn();
+    render(
+      <MapRightDockHost
+        route={createMapRightDockRoute("inspect", { source: "toolbar" })}
+        presentation="floating-modal"
+        width={420}
+        floatingRect={{ x: 80, y: 100, width: 420, height: 520 }}
+        onFloatingRectChange={onFloatingRectChange}
+        onClose={vi.fn()}
+      />,
+    );
+
+    const host = screen.getByTestId("map-right-dock-host");
+    expect(host.getAttribute("data-presentation")).toBe("floating-modal");
+    expect(screen.queryByLabelText("Collapse Inspector")).toBeNull();
+
+    const resizeHandle = screen.getByLabelText("Resize width and height");
+    fireEvent.pointerDown(resizeHandle, { button: 0, clientX: 300, clientY: 320 });
+    fireEvent.pointerMove(document, { clientX: 332, clientY: 356 });
+    fireEvent.pointerUp(document);
+
+    expect(onFloatingRectChange).toHaveBeenCalled();
+  });
 });

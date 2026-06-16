@@ -286,7 +286,7 @@ function isHotSpotResultLayerCandidate(layer: OverlayLayerConfig): boolean {
   }
 
   const analysis = layer.metadata?.analysisResult;
-  if (analysis?.engine === "GetisOrdGi" || analysis?.visualization.kind === "hotspot") {
+  if (analysis?.engine === "GetisOrdGi" || analysis?.visualization?.kind === "hotspot") {
     return true;
   }
 

@@ -591,7 +591,7 @@ function existingLegend(layer: OverlayLayerConfig): MapCartographyLegendPreviewI
       .filter((entry): entry is MapCartographyLegendPreviewItem => entry != null);
   }
 
-  const analysisLegend = layer.metadata?.analysisResult?.visualization.legendEntries;
+  const analysisLegend = layer.metadata?.analysisResult?.visualization?.legendEntries;
   if (Array.isArray(analysisLegend)) {
     return analysisLegend.map((entry, index) => ({
       label: entry.label || `Class ${index + 1}`,
@@ -1076,7 +1076,7 @@ function createLegendRecommendation(
 ): MapCartographyRecommendation | null {
   if (!numericField && layer.type !== "heatmap") return null;
   const hasStyleLegend = Array.isArray(layer.style?.legendEntries) || Array.isArray(layer.style?.legend) || Array.isArray(layer.style?.classes);
-  const hasAnalysisLegend = (layer.metadata?.analysisResult?.visualization.legendEntries?.length ?? 0) > 0;
+  const hasAnalysisLegend = (layer.metadata?.analysisResult?.visualization?.legendEntries?.length ?? 0) > 0;
   if (hasStyleLegend || hasAnalysisLegend) return null;
 
   const id = recommendationId(layer, "legend-completeness", numericField?.field ?? "heatmap");

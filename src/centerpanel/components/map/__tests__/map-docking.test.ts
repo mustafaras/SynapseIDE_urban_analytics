@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  clampMapRightDockFloatingRect,
+  createDefaultMapRightDockFloatingRect,
   getActiveRightDockPanel,
   getMapDockLayout,
   MAP_RIGHT_PANEL_MAX_WIDTH,
@@ -205,5 +207,38 @@ describe("map docking layout", () => {
     expect(getActiveRightDockPanel({ showPinSidebar: true, showDrawPanel: true, showMeasurePanel: false })).toBe("pins");
     expect(getActiveRightDockPanel({ showPinSidebar: false, showDrawPanel: true, showMeasurePanel: false })).toBe("draw");
     expect(getActiveRightDockPanel({ showPinSidebar: false, showDrawPanel: false, showMeasurePanel: false })).toBeNull();
+  });
+
+  it("clamps floating right dock rect within viewport bounds", () => {
+    const clamped = clampMapRightDockFloatingRect(
+      {
+        x: -120,
+        y: -80,
+        width: 999,
+        height: 999,
+      },
+      {
+        width: 1280,
+        height: 720,
+      },
+    );
+
+    expect(clamped.x).toBeGreaterThanOrEqual(16);
+    expect(clamped.y).toBeGreaterThanOrEqual(16);
+    expect(clamped.width).toBeLessThanOrEqual(520);
+    expect(clamped.height).toBeLessThanOrEqual(688);
+  });
+
+  it("creates a default floating rect anchored to top-right and already clamped", () => {
+    const rect = createDefaultMapRightDockFloatingRect(
+      { width: 1440, height: 900 },
+      420,
+      560,
+    );
+
+    expect(rect.width).toBe(420);
+    expect(rect.height).toBe(560);
+    expect(rect.x + rect.width).toBeLessThanOrEqual(1440 - 16);
+    expect(rect.y).toBeGreaterThanOrEqual(16);
   });
 });

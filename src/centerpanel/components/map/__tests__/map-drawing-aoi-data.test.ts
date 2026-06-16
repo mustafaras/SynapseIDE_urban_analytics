@@ -15,8 +15,11 @@ import { describe, expect, it } from "vitest";
 
 import type { DrawnFeature } from "../mapTypes";
 import {
+  AOI_ANALYSIS_METHOD,
   AOI_FETCH_METHOD,
   AOI_FETCH_SOURCE_LAYER_ID_FIELD,
+  buildAoiAnalysisBusPayloads,
+  buildAoiAnalysisResult,
   buildAoiFetchResult,
   resolveAoiFetchBounds,
   type AoiFetchSource,
@@ -234,5 +237,106 @@ describe("p07 · end-to-end AOI fetch pipeline", () => {
     expect(outcome.layer.sourceKind).toBe("derived");
     expect(outcome.layer.provenance?.generatedAt).toBe(GENERATED_AT);
     expect(outcome.provenance.capabilityStatus).toBe("implemented");
+  });
+});
+
+describe("p08 · AOI analysis dispatch result", () => {
+  it("produces an AOI-compatible derived analysis layer with flow metadata", () => {
+    const sources = [
+      source("parcels", "Parcels", [
+        pointFeature(29.0, 41.0, "inside-1"),
+        pointFeature(29.05, 41.03, "inside-2"),
+        pointFeature(31.0, 42.0, "outside-1"),
+      ]),
+    ];
+
+    const outcome = buildAoiAnalysisResult(sources, AOI_BOUNDS, {
+      aoiLabel: "Study area",
+      flowId: "site_suitability",
+      flowLabel: "Site Suitability Analysis",
+      requiredCrs: "EPSG:3857",
+      generatedAt: GENERATED_AT,
+      layerId: "aoi-analysis-fixed",
+    });
+
+    expect(outcome.status).toBe("fetched");
+    if (outcome.status !== "fetched") return;
+
+    expect(outcome.featureCount).toBe(2);
+    expect(outcome.layer.sourceKind).toBe("derived");
+    expect(outcome.layer.name).toContain("Site Suitability Analysis");
+    expect(outcome.provenance.method).toBe(AOI_ANALYSIS_METHOD);
+    expect(outcome.provenance.flowId).toBe("site_suitability");
+    expect(outcome.provenance.requiredCrs).toBe("EPSG:3857");
+    expect(outcome.provenance.capabilityStatus).toBe("implemented");
+
+    const analysisResult = outcome.layer.metadata?.analysisResult;
+    expect(analysisResult?.engine).toBe("site_suitability");
+    expect(analysisResult?.inputParameters).toMatchObject({
+      flowId: "site_suitability",
+      requiredCrs: "EPSG:3857",
+    });
+  });
+
+  it("returns environment_dependent or residual_gap honestly when no fetched output exists", () => {
+    const noSource = buildAoiAnalysisResult([], AOI_BOUNDS, {
+      aoiLabel: "Study area",
+      flowId: "vulnerability",
+      flowLabel: "Vulnerability Assessment",
+    });
+    expect(noSource.status).toBe("no-source");
+    if (noSource.status !== "no-source") return;
+    expect(noSource.provenance.capabilityStatus).toBe("environment_dependent");
+
+    const empty = buildAoiAnalysisResult(
+      [source("only-outside", "Only outside", [pointFeature(35, 39, "outside")])],
+      AOI_BOUNDS,
+      {
+        aoiLabel: "Study area",
+        flowId: "equity_audit",
+        flowLabel: "Equity Audit",
+      },
+    );
+    expect(empty.status).toBe("empty");
+    if (empty.status !== "empty") return;
+    expect(empty.provenance.capabilityStatus).toBe("residual_gap");
+  });
+});
+
+describe("p08 · AOI analysis bus payloads", () => {
+  it("builds analytics/evidence payloads with IDs only and no geometry payload", () => {
+    const payloads = buildAoiAnalysisBusPayloads({
+      artifactId: "map-evidence-workflow-site-1",
+      title: "Site Suitability Analysis · Study area",
+      summary: "Site Suitability Analysis produced 2 AOI-clipped features.",
+      relatedLayerIds: ["aoi-analysis-fixed", "parcels"],
+      relatedRunIds: ["flow-request-1", "recommendation-request-1"],
+      flowId: "site_suitability",
+      capabilityStatus: "implemented",
+    });
+
+    expect(payloads.analyticsArtifactPublish).toMatchObject({
+      artifactId: "map-evidence-workflow-site-1",
+      artifactType: "analysis-result",
+      source: "map-explorer",
+    });
+
+    expect(payloads.evidenceArtifactRegister).toMatchObject({
+      artifactId: "map-evidence-workflow-site-1",
+      artifactType: "analysis-result",
+      sourceModule: "map-explorer",
+      relatedLayerIds: ["aoi-analysis-fixed", "parcels"],
+      relatedRunIds: ["flow-request-1", "recommendation-request-1"],
+      artifactKind: "workflow-result",
+    });
+
+    // IDs only: no AOI geometry or raw feature payload should be sent on bus.
+    const analyticsRecord = payloads.analyticsArtifactPublish as Record<string, unknown>;
+    const evidenceRecord = payloads.evidenceArtifactRegister as Record<string, unknown>;
+    expect(analyticsRecord).not.toHaveProperty("aoi");
+    expect(analyticsRecord).not.toHaveProperty("geometry");
+    expect(evidenceRecord).not.toHaveProperty("aoi");
+    expect(evidenceRecord).not.toHaveProperty("geometry");
+    expect(evidenceRecord).not.toHaveProperty("sourceData");
   });
 });

@@ -16,6 +16,32 @@
   transition: width 170ms cubic-bezier(0.2, 0, 0, 1);
 }
 
+.floatingHost {
+  position: fixed;
+  top: var(--right-dock-y, 84px);
+  left: var(--right-dock-x, 32px);
+  right: auto;
+  bottom: auto;
+  width: var(--right-dock-width, 400px);
+  height: var(--right-dock-height, 560px);
+  min-height: 320px;
+  max-height: calc(100% - 2rem);
+  max-width: calc(100% - 2rem);
+  pointer-events: auto;
+  border: 1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.28));
+  box-shadow: 0 20px 36px rgba(2, 6, 12, 0.46), 0 0 0 1px rgba(0, 0, 0, 0.32);
+}
+
+.floatingHeader {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.host[data-dragging="true"] .floatingHeader {
+  cursor: grabbing;
+}
+
 /* No animation while the user is actively dragging the resize handle —
    the width must track the pointer 1:1. Smooth motion is reserved for
    programmatic width changes (snap, collapse, route switch). */
@@ -86,6 +112,58 @@
   background: transparent;
   cursor: col-resize;
   touch-action: none;
+}
+
+.floatingResizeHandle {
+  position: absolute;
+  z-index: 3;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  touch-action: none;
+}
+
+.floatingResizeHandleWest {
+  top: 0;
+  left: -6px;
+  bottom: 0;
+  width: 12px;
+  cursor: ew-resize;
+}
+
+.floatingResizeHandleEast {
+  top: 0;
+  right: -6px;
+  bottom: 0;
+  width: 12px;
+  cursor: ew-resize;
+}
+
+.floatingResizeHandleSouth {
+  left: 0;
+  right: 0;
+  bottom: -6px;
+  height: 12px;
+  cursor: ns-resize;
+}
+
+.floatingResizeHandleSouthEast {
+  right: -8px;
+  bottom: -8px;
+  width: 16px;
+  height: 16px;
+  cursor: nwse-resize;
+}
+
+.floatingResizeHandleSouthEast::after {
+  content: "";
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  width: 8px;
+  height: 8px;
+  border-right: 1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.6));
+  border-bottom: 1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.6));
 }
 
 .resizeHandle::after {

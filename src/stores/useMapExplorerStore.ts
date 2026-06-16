@@ -29,8 +29,16 @@ import {
   type ViewportState,
 } from "../centerpanel/components/map/mapTypes";
 import {
+  MAP_RIGHT_PANEL_FLOATING_MARGIN,
+  MAP_RIGHT_PANEL_MAX_HEIGHT,
   MAP_LAYER_PANEL_MAX_WIDTH,
   MAP_LAYER_PANEL_MIN_WIDTH,
+  MAP_RIGHT_PANEL_MIN_HEIGHT,
+  MAP_RIGHT_PANEL_MAX_WIDTH,
+  MAP_RIGHT_PANEL_MIN_WIDTH,
+  clampMapRightDockFloatingRect,
+  createDefaultMapRightDockFloatingRect,
+  type MapRightDockFloatingRect,
 } from "../centerpanel/components/map/mapDocking";
 import { MAP_NUMERIC } from "../centerpanel/components/map/mapTokens";
 import { summarizeOverlayLayer } from "../centerpanel/components/map/mapContextSummary";
@@ -91,16 +99,23 @@ export type MapExplorerLayoutPanelMode = "map-first" | "collapsed";
 export interface MapExplorerLayoutPreferences {
   layerPanelWidth: number;
   rightPanelWidth: number;
+  rightDockFloating: MapRightDockFloatingRect;
   panelMode: MapExplorerLayoutPanelMode;
 }
 
 export const DEFAULT_MAP_EXPLORER_LAYOUT_PREFERENCES: MapExplorerLayoutPreferences = {
   layerPanelWidth: MAP_NUMERIC.layerPanelWidth,
   rightPanelWidth: 384,
+  rightDockFloating: {
+    x: 32,
+    y: 84,
+    width: 384,
+    height: 560,
+  },
   panelMode: "map-first",
 };
 
-const MAP_EXPLORER_PERSISTENCE_VERSION = 2;
+const MAP_EXPLORER_PERSISTENCE_VERSION = 3;
 
 const DEFAULT_ANNOTATION_SETTINGS: MapAnnotationStyleSettings = {
   fontSize: 16,
@@ -535,6 +550,43 @@ function normalizePersistedAnnotation(annotation: MapAnnotation, fallbackIndex: 
 }
 
 function normalizeLayoutPreferences(input: Partial<MapExplorerLayoutPreferences> | undefined): MapExplorerLayoutPreferences {
+  const rightPanelWidth = clampNumber(
+    Number(input?.rightPanelWidth),
+    MAP_RIGHT_PANEL_MIN_WIDTH,
+    MAP_RIGHT_PANEL_MAX_WIDTH,
+    DEFAULT_MAP_EXPLORER_LAYOUT_PREFERENCES.rightPanelWidth,
+  );
+  const rawFloating = input?.rightDockFloating;
+  const normalizedFloating: MapRightDockFloatingRect = {
+    x: Number(rawFloating?.x),
+    y: Number(rawFloating?.y),
+    width: Number(rawFloating?.width),
+    height: Number(rawFloating?.height),
+  };
+  const fallbackFloating = {
+    ...DEFAULT_MAP_EXPLORER_LAYOUT_PREFERENCES.rightDockFloating,
+    width: rightPanelWidth,
+  };
+  const floatingRect = clampMapRightDockFloatingRect(
+    {
+      x: Number.isFinite(normalizedFloating.x) ? normalizedFloating.x : fallbackFloating.x,
+      y: Number.isFinite(normalizedFloating.y) ? normalizedFloating.y : fallbackFloating.y,
+      width: Number.isFinite(normalizedFloating.width) ? normalizedFloating.width : fallbackFloating.width,
+      height: Number.isFinite(normalizedFloating.height) ? normalizedFloating.height : fallbackFloating.height,
+    },
+    {
+      width: Math.max(
+        MAP_RIGHT_PANEL_MIN_WIDTH + MAP_RIGHT_PANEL_FLOATING_MARGIN * 2,
+        (Number(globalThis.innerWidth) || 1600),
+      ),
+      height: Math.max(
+        MAP_RIGHT_PANEL_MIN_HEIGHT + MAP_RIGHT_PANEL_FLOATING_MARGIN * 2,
+        (Number(globalThis.innerHeight) || 900),
+      ),
+    },
+    MAP_RIGHT_PANEL_FLOATING_MARGIN,
+  );
+
   return {
     layerPanelWidth: clampNumber(
       Number(input?.layerPanelWidth),
@@ -542,12 +594,12 @@ function normalizeLayoutPreferences(input: Partial<MapExplorerLayoutPreferences>
       MAP_LAYER_PANEL_MAX_WIDTH,
       DEFAULT_MAP_EXPLORER_LAYOUT_PREFERENCES.layerPanelWidth,
     ),
-    rightPanelWidth: clampNumber(
-      Number(input?.rightPanelWidth),
-      300,
-      520,
-      DEFAULT_MAP_EXPLORER_LAYOUT_PREFERENCES.rightPanelWidth,
-    ),
+    rightPanelWidth,
+    rightDockFloating: {
+      ...floatingRect,
+      width: rightPanelWidth,
+      height: clampNumber(floatingRect.height, MAP_RIGHT_PANEL_MIN_HEIGHT, MAP_RIGHT_PANEL_MAX_HEIGHT, floatingRect.height),
+    },
     panelMode: input?.panelMode === "collapsed" ? "collapsed" : "map-first",
   };
 }
@@ -561,7 +613,14 @@ function migratePersistedMapExplorerState(
     : {};
 
   persisted.layoutPreferences = fromVersion < MAP_EXPLORER_PERSISTENCE_VERSION
-    ? { ...DEFAULT_MAP_EXPLORER_LAYOUT_PREFERENCES }
+    ? {
+      ...DEFAULT_MAP_EXPLORER_LAYOUT_PREFERENCES,
+      rightDockFloating: createDefaultMapRightDockFloatingRect(
+        { width: 1600, height: 900 },
+        DEFAULT_MAP_EXPLORER_LAYOUT_PREFERENCES.rightPanelWidth,
+        DEFAULT_MAP_EXPLORER_LAYOUT_PREFERENCES.rightDockFloating.height,
+      ),
+    }
     : normalizeLayoutPreferences(persisted.layoutPreferences);
 
   return persisted as PersistedMapExplorerState;

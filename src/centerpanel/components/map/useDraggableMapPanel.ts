@@ -24,6 +24,10 @@ export interface DraggableMapPanelOptions {
   boundsPadding?: number;
   /** When set, drag offset is remembered durably (Zustand persist). */
   memoryKey?: string;
+  /** Optional controlled offset. When provided, this value is used as the drag source of truth. */
+  offset?: { x: number; y: number };
+  /** Receives the clamped offset during drag and on drag end. */
+  onOffsetChange?: (offset: { x: number; y: number }) => void;
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -57,21 +61,39 @@ export function createOpaqueFloatingPanelStyle(
 }
 
 export function useDraggableMapPanel(options: DraggableMapPanelOptions = {}): DraggableMapPanelBindings {
-  const { memoryKey } = options;
+  const { memoryKey, offset: controlledOffset, onOffsetChange } = options;
   const persistedGeometry = useMapDialogLayoutStore((state) => (memoryKey ? state.geometry[memoryKey] ?? null : null));
   const persistOffset = useMapDialogLayoutStore((state) => state.setOffset);
   const resetGeometry = useMapDialogLayoutStore((state) => state.resetGeometry);
-  const [offset, setOffset] = useState(() =>
+  const [offsetState, setOffsetState] = useState(() =>
     persistedGeometry ? { x: persistedGeometry.offsetX, y: persistedGeometry.offsetY } : { x: 0, y: 0 },
   );
+  const offset = controlledOffset ?? offsetState;
   const boundsPadding = options.boundsPadding ?? 12;
 
   const commitOffset = useCallback(
     (next: { x: number; y: number }) => {
+      onOffsetChange?.(next);
       if (memoryKey) persistOffset(memoryKey, next.x, next.y);
     },
-    [memoryKey, persistOffset],
+    [memoryKey, onOffsetChange, persistOffset],
   );
+
+  const setOffset = useCallback((next: { x: number; y: number } | ((current: { x: number; y: number }) => { x: number; y: number })) => {
+    if (typeof next === "function") {
+      const resolver = next as (current: { x: number; y: number }) => { x: number; y: number };
+      const resolved = resolver(controlledOffset ?? offsetState);
+      if (controlledOffset == null) {
+        setOffsetState(resolved);
+      }
+      onOffsetChange?.(resolved);
+      return;
+    }
+    if (controlledOffset == null) {
+      setOffsetState(next);
+    }
+    onOffsetChange?.(next);
+  }, [controlledOffset, offsetState, onOffsetChange]);
 
   const clampOffsetToViewport = useCallback((nextOffset: { x: number; y: number }, panelElement: HTMLElement | null) => {
     if (typeof window === "undefined" || !panelElement) {

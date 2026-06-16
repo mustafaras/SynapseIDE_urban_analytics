@@ -289,7 +289,7 @@ function isLisaResultLayerCandidate(layer: OverlayLayerConfig): boolean {
   }
 
   const analysis = layer.metadata?.analysisResult;
-  if (analysis?.engine === "LocalMoransI" || analysis?.visualization.kind === "lisa-cluster") {
+  if (analysis?.engine === "LocalMoransI" || analysis?.visualization?.kind === "lisa-cluster") {
     return true;
   }
 

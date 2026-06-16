@@ -322,7 +322,7 @@ function collectManifestIds(layer: OverlayLayerConfig): string[] {
 }
 
 function resolveTemporalFrameCount(layer: OverlayLayerConfig): number {
-  return layer.metadata?.analysisResult?.visualization.temporalFrames?.length ?? 0;
+  return layer.metadata?.analysisResult?.visualization?.temporalFrames?.length ?? 0;
 }
 
 function resolveIsBuildingLayer(layer: OverlayLayerConfig): boolean {

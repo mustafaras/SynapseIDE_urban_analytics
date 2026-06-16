@@ -43,6 +43,15 @@ interface UseMapAoiDispatchArgs {
   setIsFlowDispatchDialogOpen: Dispatch<SetStateAction<boolean>>;
   setRestrictToMapView: Dispatch<SetStateAction<boolean>>;
   setSelectionStatsSummary: Dispatch<SetStateAction<SelectionStatisticsSummary[] | null>>;
+  onFlowSelectionDispatched?: (input: {
+    selectedFlow: MapDispatchCompatibleFlow | undefined;
+    flowId: string;
+    requestId: string;
+    layerReferenceCount: number;
+    flowDispatchAoi: FlowDispatchAoiCandidate;
+    restrictToView: boolean;
+    viewBounds: [number, number, number, number] | null;
+  }) => void | Promise<void>;
 }
 
 export function useMapAoiDispatch({
@@ -60,6 +69,7 @@ export function useMapAoiDispatch({
   setIsFlowDispatchDialogOpen,
   setRestrictToMapView,
   setSelectionStatsSummary,
+  onFlowSelectionDispatched,
 }: UseMapAoiDispatchArgs) {
   const buildDispatchContext = useCallback(() => buildMapAnalysisDispatchContextSummary({
     mapContextSummary: contextSummary,
@@ -182,6 +192,15 @@ export function useMapAoiDispatch({
         viewBounds: restrictToMapView ? currentMapBounds : null,
       },
     });
+    void onFlowSelectionDispatched?.({
+      selectedFlow,
+      flowId,
+      requestId: payload.requestId,
+      layerReferenceCount: payload.layerReferences?.length ?? 0,
+      flowDispatchAoi,
+      restrictToView: restrictToMapView,
+      viewBounds: restrictToMapView ? currentMapBounds : null,
+    });
     announce(`${selectedFlow?.label ?? flowId} opened from map dispatch`);
   }, [
     announce,
@@ -192,6 +211,7 @@ export function useMapAoiDispatch({
     flowDispatchAoi,
     recordMapReviewEvent,
     restrictToMapView,
+    onFlowSelectionDispatched,
     setDispatchFeedback,
     setIsFlowDispatchDialogOpen,
   ]);

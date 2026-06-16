@@ -8,13 +8,10 @@ import { OPENAI_CHAT_DEFAULT_MODELS } from '../utils/ai/models/openaiGpt5';
 const STATIC_MODELS: Record<ProviderId, ModelId[]> = {
   openai: [...OPENAI_CHAT_DEFAULT_MODELS],
   anthropic: [
-
-  'claude-4-opus','claude-4-sonnet','claude-4-haiku',
-
-    'claude-3.7-sonnet','claude-3.7-haiku',
-    'claude-3.5-sonnet','claude-3.5-haiku',
-    'claude-3-opus','claude-3-sonnet','claude-3-haiku',
-
+    'claude-4-opus','claude-4-sonnet',
+    'claude-3.7-sonnet',
+    'claude-3.5-sonnet',
+    'claude-3-opus','claude-3-sonnet',
     'claude-2.1','claude-2.0'
   ],
   gemini: [

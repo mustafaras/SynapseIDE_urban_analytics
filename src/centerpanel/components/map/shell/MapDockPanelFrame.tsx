@@ -35,6 +35,8 @@ export interface MapDockPanelFrameProps {
   closeTestId?: string;
   className?: string;
   style?: React.CSSProperties;
+  headerProps?: React.HTMLAttributes<HTMLElement>;
+  headerClassName?: string;
   bodyStyle?: React.CSSProperties;
   "aria-label"?: string;
   "data-testid"?: string;
@@ -171,6 +173,8 @@ export const MapDockPanelFrame: React.FC<MapDockPanelFrameProps> = ({
   closeTestId,
   className,
   style,
+  headerProps,
+  headerClassName,
   bodyStyle: bodyStyleOverride,
   "aria-label": ariaLabel,
   "data-testid": testId,
@@ -182,7 +186,11 @@ export const MapDockPanelFrame: React.FC<MapDockPanelFrameProps> = ({
     data-map-dock-panel-frame="true"
     data-testid={testId}
   >
-    <header style={headerStyle}>
+    <header
+      {...headerProps}
+      className={headerClassName}
+      style={{ ...headerStyle, ...headerProps?.style }}
+    >
       <div style={titleStackStyle}>
         <span style={eyebrowStyle}>
           {subtitle}
