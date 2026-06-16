@@ -263,10 +263,10 @@ const drawModalOverlayStyle: React.CSSProperties = {
 };
 
 const drawModalPanelStyle: React.CSSProperties = {
-  width: "min(36rem, calc(100% - 2rem))",
-  height: "min(34rem, calc(100% - 5.5rem))",
-  minWidth: "22rem",
-  minHeight: "18rem",
+  width: "min(40rem, calc(100% - 2rem))",
+  height: "min(42rem, calc(100% - 5.5rem))",
+  minWidth: "24rem",
+  minHeight: "22rem",
   borderRadius: MAP_RADIUS.none,
   background: "color-mix(in srgb, var(--syn-surface-panel, rgba(13, 18, 27, 0.98)) 96%, transparent)",
 };
@@ -6150,8 +6150,8 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
           <MapDialogShell
             ariaLabel="Drawing tools modal"
             title="Draw"
-            subtitle="Sketch / AOI / edit"
-            width="min(36rem, calc(100% - 2rem))"
+            subtitle="Sketch · measure · style · import/export"
+            width="min(40rem, calc(100% - 2rem))"
             maxWidth="calc(100% - 2rem)"
             maxHeight="calc(100% - 4rem)"
             memoryKey="map-draw-modal"

@@ -8,9 +8,9 @@
 /*  presentation="headless"  → canvas-only controller, no sidebar UI   */
 /* ================================================================== */
 
-import React, { useCallback, useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import type maplibregl from "maplibre-gl";
-import type { DrawnFeature, DrawnGeometryValidation, DrawToolId } from "./map/mapTypes";
+import type { DrawnFeature, DrawnGeometryValidation, DrawToolId, FeatureStyle } from "./map/mapTypes";
 import {
   summarizeDrawnGeometryValidation,
   validateDrawnGeometry,
@@ -26,8 +26,27 @@ import {
   IconTrash,
   IconUnknown,
 } from "./map/MapIcons";
+import {
+  IconEyeClosed,
+  IconEyeOpen,
+  IconExport,
+  IconGlobe,
+  IconImport,
+  IconLayers,
+} from "./map/MapIcons";
 import { GisEmptyState, GisSectionHeader } from "./map/ui";
 import { getNextDrawToolRailIndex } from "./map/mapDrawToolPreferences";
+import { formatArea, formatDistance, type UnitSystem } from "../../utils/geodesic";
+import {
+  measureDrawnGeometry,
+  summarizeDrawnGeometries,
+} from "../../utils/drawFeatureMeasure";
+import {
+  drawnFeaturesToGeoJSON,
+  duplicateDrawnFeature,
+  geometryBounds,
+  parseDrawnFeaturesFromGeoJSON,
+} from "./map/drawGeometryOps";
 import motionStyles from "./map/design/motion.module.css";
 import drawModalStyles from "./MapDrawingManager.module.css";
 import {
@@ -76,6 +95,39 @@ const DRAW_TOOL_LABELS: Record<DrawToolId, string> = {
   rectangle: "Rectangle",
   circle: "Circle",
 };
+
+/** Default style applied when the user opens the style editor on a feature. */
+export const DEFAULT_DRAW_FEATURE_STYLE: Required<FeatureStyle> = {
+  strokeColor: "#3794ff",
+  fillColor: "#3794ff",
+  strokeWidth: 2,
+  fillOpacity: 0.15,
+};
+
+/** Restrained palette presets for quick per-feature recolouring. */
+export const DRAW_STYLE_SWATCHES: readonly string[] = [
+  "#3794ff",
+  "#4ec27d",
+  "#f5a623",
+  "#e8633a",
+  "#b56bd6",
+  "#d7dce5",
+];
+
+/**
+ * Map a FeatureStyle into the `_*` render properties consumed by the
+ * data-driven MapLibre paint expressions. Only defined keys are emitted so
+ * the layer falls back to the accent for unstyled features.
+ */
+function drawStyleRenderProps(style: FeatureStyle | undefined): Record<string, string | number> {
+  if (!style) return {};
+  const props: Record<string, string | number> = {};
+  if (style.strokeColor) props._strokeColor = style.strokeColor;
+  if (style.fillColor) props._fillColor = style.fillColor;
+  if (typeof style.strokeWidth === "number") props._strokeWidth = style.strokeWidth;
+  if (typeof style.fillOpacity === "number") props._fillOpacity = style.fillOpacity;
+  return props;
+}
 
 /** Returns false if the MapLibre instance has already been destroyed via map.remove(). */
 const isMapAlive = (map: maplibregl.Map): boolean => {
@@ -299,6 +351,606 @@ const ModalDrawToolRail: React.FC<{
 };
 
 /* ================================================================== */
+/*  Modal body — pro, multi-functional drawing workspace (p06+)        */
+/* ================================================================== */
+
+function geometryRowIcon(type: string, selected: boolean): React.ReactNode {
+  const color = selected ? MAP_COLORS.interaction : MAP_COLORS.textMuted;
+  if (type === "Point") return <IconPoint size={MAP_ICON_SIZES.sm} color={color} />;
+  if (type === "LineString") return <IconLine size={MAP_ICON_SIZES.sm} color={color} />;
+  if (type === "Polygon") return <IconPolygon size={MAP_ICON_SIZES.sm} color={color} />;
+  return <IconUnknown size={MAP_ICON_SIZES.sm} color={color} />;
+}
+
+function rowMeasureSummary(geometry: GeoJSON.Geometry, unit: UnitSystem): string {
+  const m = measureDrawnGeometry(geometry);
+  if (m.kind === "polygon") return formatArea(m.areaM2 ?? 0, unit);
+  if (m.kind === "line") return formatDistance(m.lengthM ?? 0, unit);
+  if (m.kind === "point") return "point";
+  return "—";
+}
+
+interface DrawModalBodyProps {
+  mapRef: React.RefObject<maplibregl.Map | null>;
+  activeDrawTool: DrawToolId | null;
+  drawnFeatures: DrawnFeature[];
+  selectedFeatureId: string | null;
+  onSetDrawTool: (tool: DrawToolId | null) => void;
+  onAddFeature: (feature: DrawnFeature) => void;
+  onRemoveFeature: (id: string) => void;
+  onUpdateFeature: (id: string, patch: Partial<DrawnFeature>) => void;
+  onClearFeatures: () => void;
+  onSelectFeature: (id: string | null) => void;
+  onAnnounce?: (msg: string) => void;
+}
+
+const DrawModalBody: React.FC<DrawModalBodyProps> = ({
+  mapRef,
+  activeDrawTool,
+  drawnFeatures,
+  selectedFeatureId,
+  onSetDrawTool,
+  onAddFeature,
+  onRemoveFeature,
+  onUpdateFeature,
+  onClearFeatures,
+  onSelectFeature,
+  onAnnounce,
+}) => {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [bulkSelection, setBulkSelection] = useState<ReadonlySet<string>>(() => new Set());
+  const [unitSystem, setUnitSystem] = useState<UnitSystem>("metric");
+  const [showImport, setShowImport] = useState(false);
+  const [importText, setImportText] = useState("");
+  const [importError, setImportError] = useState<string | null>(null);
+  const [renameId, setRenameId] = useState<string | null>(null);
+  const [renameDraft, setRenameDraft] = useState("");
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const activeToolLabel = activeDrawTool ? DRAW_TOOL_LABELS[activeDrawTool] : "Select";
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const filtered = normalizedQuery
+    ? drawnFeatures.filter(
+        (f) =>
+          f.properties.label.toLowerCase().includes(normalizedQuery) ||
+          f.geometry.type.toLowerCase().includes(normalizedQuery),
+      )
+    : drawnFeatures;
+  const selectedFeature = drawnFeatures.find((f) => f.id === selectedFeatureId) ?? null;
+  const summary = summarizeDrawnGeometries(drawnFeatures.map((f) => f.geometry));
+  const bulkCount = bulkSelection.size;
+  const allFilteredSelected = filtered.length > 0 && filtered.every((f) => bulkSelection.has(f.id));
+
+  const toggleBulk = (id: string) =>
+    setBulkSelection((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const toggleSelectAll = () =>
+    setBulkSelection((prev) => {
+      const next = new Set(prev);
+      if (allFilteredSelected) filtered.forEach((f) => next.delete(f.id));
+      else filtered.forEach((f) => next.add(f.id));
+      return next;
+    });
+
+  const handleBulkDelete = () => {
+    const ids = [...bulkSelection];
+    if (ids.length === 0) return;
+    ids.forEach((id) => onRemoveFeature(id));
+    if (selectedFeatureId && bulkSelection.has(selectedFeatureId)) onSelectFeature(null);
+    setBulkSelection(new Set());
+    onAnnounce?.(`Deleted ${ids.length} feature${ids.length === 1 ? "" : "s"}`);
+  };
+
+  const handleZoomTo = (feature: DrawnFeature) => {
+    const map = mapRef.current;
+    if (!map) return;
+    const bounds = geometryBounds(feature.geometry);
+    if (!bounds) return;
+    const samePoint = bounds[0][0] === bounds[1][0] && bounds[0][1] === bounds[1][1];
+    try {
+      if (samePoint) {
+        map.easeTo({ center: [bounds[0][0], bounds[0][1]], zoom: Math.max(map.getZoom(), 15), duration: 500 });
+      } else {
+        map.fitBounds(bounds, { padding: 80, maxZoom: 17, duration: 600 });
+      }
+      onAnnounce?.(`Zoomed to ${feature.properties.label}`);
+    } catch {
+      /* map may be mid-transition — ignore */
+    }
+  };
+
+  const handleDuplicate = (feature: DrawnFeature) => {
+    const copy = duplicateDrawnFeature(feature);
+    onAddFeature(copy);
+    onSelectFeature(copy.id);
+    onAnnounce?.(`Duplicated ${feature.properties.label}`);
+  };
+
+  const toggleVisibility = (feature: DrawnFeature) => {
+    const willHide = !feature.properties.hidden;
+    onUpdateFeature(feature.id, { properties: { ...feature.properties, hidden: willHide } });
+    onAnnounce?.(`${feature.properties.label} ${willHide ? "hidden" : "shown"}`);
+  };
+
+  const startRename = (feature: DrawnFeature) => {
+    setRenameId(feature.id);
+    setRenameDraft(feature.properties.label);
+  };
+
+  const commitRename = (feature: DrawnFeature) => {
+    const name = renameDraft.trim();
+    if (name && name !== feature.properties.label) {
+      onUpdateFeature(feature.id, { properties: { ...feature.properties, label: name } });
+      onAnnounce?.(`Renamed to ${name}`);
+    }
+    setRenameId(null);
+  };
+
+  const updateStyle = (feature: DrawnFeature, patch: Partial<FeatureStyle>) => {
+    const style = { ...DEFAULT_DRAW_FEATURE_STYLE, ...feature.properties.style, ...patch };
+    onUpdateFeature(feature.id, { properties: { ...feature.properties, style } });
+  };
+
+  const handleExport = () => {
+    if (drawnFeatures.length === 0) return;
+    const fc = drawnFeaturesToGeoJSON(drawnFeatures);
+    const blob = new Blob([JSON.stringify(fc, null, 2)], { type: "application/geo+json" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `drawings-${new Date().toISOString().slice(0, 10)}.geojson`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+    onAnnounce?.(`Exported ${drawnFeatures.length} drawing${drawnFeatures.length === 1 ? "" : "s"} as GeoJSON`);
+  };
+
+  const handleCopy = async () => {
+    if (drawnFeatures.length === 0) return;
+    const text = JSON.stringify(drawnFeaturesToGeoJSON(drawnFeatures), null, 2);
+    try {
+      await navigator.clipboard?.writeText(text);
+      onAnnounce?.("Copied GeoJSON to clipboard");
+    } catch {
+      onAnnounce?.("Clipboard unavailable — use Export instead");
+    }
+  };
+
+  const applyImport = (text: string) => {
+    const result = parseDrawnFeaturesFromGeoJSON(text);
+    if (result.error) {
+      setImportError(result.error);
+      return;
+    }
+    result.features.forEach((f) => onAddFeature(f));
+    setImportError(null);
+    setImportText("");
+    setShowImport(false);
+    onAnnounce?.(
+      `Imported ${result.features.length} feature${result.features.length === 1 ? "" : "s"}` +
+        (result.skipped ? `, skipped ${result.skipped}` : ""),
+    );
+  };
+
+  const handleFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    try {
+      const text = await file.text();
+      setShowImport(true);
+      setImportText(text);
+      applyImport(text);
+    } catch {
+      setImportError("Could not read the selected file.");
+    }
+  };
+
+  const rowFlexStyle = (selected: boolean): React.CSSProperties => ({
+    display: "flex",
+    alignItems: "center",
+    gap: MAP_SPACING.xs,
+    padding: `${MAP_SPACING.xs} ${MAP_SPACING.sm}`,
+    borderBottom: MAP_STROKES.hairlineSubtle,
+    background: selected ? MAP_COLORS.selectedSubtle : "transparent",
+    cursor: "pointer",
+  });
+
+  const selectedMeasure = selectedFeature ? measureDrawnGeometry(selectedFeature.geometry) : null;
+  const selectedStyle = { ...DEFAULT_DRAW_FEATURE_STYLE, ...(selectedFeature?.properties.style ?? {}) };
+
+  const statusParts: string[] = [`${summary.count} feature${summary.count === 1 ? "" : "s"}`];
+  if (summary.totalAreaM2 > 0) statusParts.push(formatArea(summary.totalAreaM2, unitSystem));
+  if (summary.totalLengthM > 0) statusParts.push(formatDistance(summary.totalLengthM, unitSystem));
+
+  return (
+    <div
+      className={motionStyles.panelIn}
+      style={modalBodyStyle}
+      role="region"
+      aria-label="Drawing modal workspace"
+      data-testid="map-draw-modal-body"
+    >
+      <ModalDrawToolRail activeTool={activeDrawTool} onSelect={onSetDrawTool} />
+
+      {/* Calm one-line status summary with live totals */}
+      <div className={drawModalStyles.statusLine} aria-label="Drawing status">
+        <span>
+          <span className={drawModalStyles.statusStrong}>{activeToolLabel}</span> tool
+        </span>
+        {statusParts.map((part, index) => (
+          <React.Fragment key={part + index}>
+            <span className={drawModalStyles.statusMuted} aria-hidden="true">·</span>
+            <span>{part}</span>
+          </React.Fragment>
+        ))}
+      </div>
+
+      {/* Action bar — search + units + import/export */}
+      <div className={drawModalStyles.actionBar}>
+        <input
+          type="search"
+          className={drawModalStyles.searchInput}
+          placeholder="Search drawings…"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          aria-label="Search drawn features"
+        />
+        <button
+          type="button"
+          className={drawModalStyles.chipButton}
+          onClick={() => setUnitSystem((u) => (u === "metric" ? "imperial" : "metric"))}
+          title="Toggle measurement units"
+          aria-label={`Units: ${unitSystem}. Toggle metric / imperial`}
+        >
+          {unitSystem === "metric" ? "m" : "ft"}
+        </button>
+        <button
+          type="button"
+          className={drawModalStyles.chipButton}
+          onClick={() => {
+            setShowImport((v) => !v);
+            setImportError(null);
+          }}
+          aria-expanded={showImport}
+          title="Import GeoJSON"
+        >
+          <IconImport size={12} /> Import
+        </button>
+        <button
+          type="button"
+          className={drawModalStyles.chipButton}
+          onClick={handleCopy}
+          disabled={drawnFeatures.length === 0}
+          title="Copy all drawings as GeoJSON"
+        >
+          Copy
+        </button>
+        <button
+          type="button"
+          className={drawModalStyles.chipButton}
+          onClick={handleExport}
+          disabled={drawnFeatures.length === 0}
+          title="Download all drawings as GeoJSON"
+        >
+          <IconExport size={12} /> Export
+        </button>
+      </div>
+
+      {/* Import drawer */}
+      {showImport ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: MAP_SPACING.xs, padding: `${MAP_SPACING.sm}`, borderBottom: MAP_STROKES.hairlineSubtle }}>
+          <textarea
+            className={drawModalStyles.importArea}
+            placeholder="Paste GeoJSON (FeatureCollection, Feature, or Geometry)…"
+            value={importText}
+            onChange={(e) => setImportText(e.target.value)}
+            aria-label="GeoJSON to import"
+          />
+          {importError ? <span className={drawModalStyles.importError}>{importError}</span> : null}
+          <div style={{ display: "flex", gap: MAP_SPACING.xs }}>
+            <button
+              type="button"
+              className={drawModalStyles.chipButton}
+              onClick={() => applyImport(importText)}
+              disabled={importText.trim().length === 0}
+            >
+              Add features
+            </button>
+            <button
+              type="button"
+              className={drawModalStyles.chipButton}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              Load file…
+            </button>
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".geojson,.json,application/geo+json,application/json"
+            style={{ display: "none" }}
+            onChange={handleFile}
+          />
+        </div>
+      ) : null}
+
+      <GisSectionHeader
+        title={normalizedQuery ? `Drawn features (${filtered.length}/${drawnFeatures.length})` : "Drawn features"}
+        compact
+        actions={
+          drawnFeatures.length > 0 ? (
+            <>
+              {filtered.length > 0 ? (
+                <label
+                  style={{ display: "inline-flex", alignItems: "center", gap: 4, color: MAP_COLORS.textMuted, fontSize: MAP_TYPOGRAPHY.fontSize.xs, cursor: "pointer" }}
+                  title="Select all (for bulk delete)"
+                >
+                  <input type="checkbox" checked={allFilteredSelected} onChange={toggleSelectAll} aria-label="Select all drawn features" />
+                  All
+                </label>
+              ) : null}
+              {bulkCount > 0 ? (
+                <button
+                  type="button"
+                  className={`${drawModalStyles.chipButton} ${drawModalStyles.chipButtonDanger}`}
+                  onClick={handleBulkDelete}
+                  aria-label={`Delete ${bulkCount} selected features`}
+                >
+                  <IconTrash size={11} /> {bulkCount}
+                </button>
+              ) : (
+                <button type="button" style={smallBtn} onClick={onClearFeatures} aria-label="Clear all drawn features">
+                  Clear all
+                </button>
+              )}
+            </>
+          ) : undefined
+        }
+      />
+
+      {/* Feature list */}
+      <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
+        {drawnFeatures.length === 0 ? (
+          <GisEmptyState
+            icon={<IconPencil size={20} />}
+            title="No drawn features"
+            description="Pick a tool above to start sketching on the map."
+            data-testid="map-draw-modal-empty"
+          />
+        ) : filtered.length === 0 ? (
+          <GisEmptyState title="No matches" description={`Nothing matches “${searchQuery}”.`} compact />
+        ) : (
+          <div role="listbox" aria-label="Drawn feature list">
+            {filtered.map((f) => {
+              const isSelected = f.id === selectedFeatureId;
+              const isHidden = Boolean(f.properties.hidden);
+              return (
+                <div
+                  key={f.id}
+                  role="option"
+                  aria-selected={isSelected}
+                  aria-label={`${f.properties.label} — ${f.geometry.type}`}
+                  style={{ ...rowFlexStyle(isSelected), opacity: isHidden ? 0.55 : 1 }}
+                  onClick={() => onSelectFeature(isSelected ? null : f.id)}
+                >
+                  <input
+                    type="checkbox"
+                    checked={bulkSelection.has(f.id)}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={() => toggleBulk(f.id)}
+                    aria-label={`Select ${f.properties.label}`}
+                  />
+                  <button
+                    type="button"
+                    className={drawModalStyles.rowIconButton}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleVisibility(f);
+                    }}
+                    aria-label={isHidden ? `Show ${f.properties.label}` : `Hide ${f.properties.label}`}
+                    title={isHidden ? "Show on map" : "Hide on map"}
+                  >
+                    {isHidden ? <IconEyeClosed size={13} /> : <IconEyeOpen size={13} />}
+                  </button>
+                  <span style={{ flexShrink: 0, display: "inline-flex", alignItems: "center" }}>
+                    {geometryRowIcon(f.geometry.type, isSelected)}
+                  </span>
+                  <span style={{ flex: 1, minWidth: 0, display: "grid", gap: 2 }}>
+                    {renameId === f.id ? (
+                      <input
+                        autoFocus
+                        className={drawModalStyles.searchInput}
+                        value={renameDraft}
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={(e) => setRenameDraft(e.target.value)}
+                        onBlur={() => commitRename(f)}
+                        onKeyDown={(e) => {
+                          e.stopPropagation();
+                          if (e.key === "Enter") commitRename(f);
+                          else if (e.key === "Escape") setRenameId(null);
+                        }}
+                        aria-label={`Rename ${f.properties.label}`}
+                      />
+                    ) : (
+                      <span
+                        title="Double-click to rename"
+                        onDoubleClick={(e) => {
+                          e.stopPropagation();
+                          startRename(f);
+                        }}
+                        style={{
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          color: isSelected ? MAP_COLORS.interaction : MAP_COLORS.text,
+                          fontWeight: isSelected ? MAP_TYPOGRAPHY.fontWeight.semibold : MAP_TYPOGRAPHY.fontWeight.medium,
+                        }}
+                      >
+                        {f.properties.label}
+                      </span>
+                    )}
+                    <span style={{ color: MAP_COLORS.textMuted, fontFamily: MAP_TYPOGRAPHY.fontFamilyMono, fontSize: MAP_TYPOGRAPHY.fontSize.xs }}>
+                      {f.geometry.type} · {rowMeasureSummary(f.geometry, unitSystem)}
+                    </span>
+                  </span>
+                  <span style={{ display: "inline-flex", alignItems: "center", flexShrink: 0 }}>
+                    <button
+                      type="button"
+                      className={drawModalStyles.rowIconButton}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleZoomTo(f);
+                      }}
+                      aria-label={`Zoom to ${f.properties.label}`}
+                      title="Zoom to feature"
+                    >
+                      <IconGlobe size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      className={drawModalStyles.rowIconButton}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDuplicate(f);
+                      }}
+                      aria-label={`Duplicate ${f.properties.label}`}
+                      title="Duplicate"
+                    >
+                      <IconLayers size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      className={drawModalStyles.rowIconButton}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRemoveFeature(f.id);
+                        if (isSelected) onSelectFeature(null);
+                        onAnnounce?.(`${f.properties.label} removed`);
+                      }}
+                      aria-label={`Delete ${f.properties.label}`}
+                      title="Delete"
+                    >
+                      <IconTrash size={13} />
+                    </button>
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Inspector — measurements + style editor for the selected feature */}
+      {selectedFeature && selectedMeasure ? (
+        <div className={drawModalStyles.inspector} data-testid="map-draw-modal-inspector">
+          <GisSectionHeader title={`Inspector · ${selectedFeature.properties.label}`} compact separator={false} />
+          <div className={drawModalStyles.metricGrid}>
+            <div className={drawModalStyles.metricCell}>
+              <span className={drawModalStyles.metricLabel}>Type</span>
+              <span className={drawModalStyles.metricValue}>{selectedFeature.geometry.type}</span>
+            </div>
+            <div className={drawModalStyles.metricCell}>
+              <span className={drawModalStyles.metricLabel}>Vertices</span>
+              <span className={drawModalStyles.metricValue}>{selectedMeasure.vertexCount}</span>
+            </div>
+            {selectedMeasure.kind === "polygon" ? (
+              <>
+                <div className={drawModalStyles.metricCell}>
+                  <span className={drawModalStyles.metricLabel}>Area</span>
+                  <span className={drawModalStyles.metricValue}>{formatArea(selectedMeasure.areaM2 ?? 0, unitSystem)}</span>
+                </div>
+                <div className={drawModalStyles.metricCell}>
+                  <span className={drawModalStyles.metricLabel}>Perimeter</span>
+                  <span className={drawModalStyles.metricValue}>{formatDistance(selectedMeasure.perimeterM ?? 0, unitSystem)}</span>
+                </div>
+              </>
+            ) : selectedMeasure.kind === "line" ? (
+              <div className={drawModalStyles.metricCell}>
+                <span className={drawModalStyles.metricLabel}>Length</span>
+                <span className={drawModalStyles.metricValue}>{formatDistance(selectedMeasure.lengthM ?? 0, unitSystem)}</span>
+              </div>
+            ) : null}
+            <div className={drawModalStyles.metricCell} style={{ gridColumn: "1 / -1" }}>
+              <span className={drawModalStyles.metricLabel}>Centroid (lat, lng)</span>
+              <span className={drawModalStyles.metricValue}>
+                {selectedMeasure.centroid
+                  ? `${selectedMeasure.centroid[1].toFixed(5)}, ${selectedMeasure.centroid[0].toFixed(5)}`
+                  : "—"}
+              </span>
+            </div>
+          </div>
+
+          <div style={{ borderTop: MAP_STROKES.hairlineSubtle }}>
+            <div className={drawModalStyles.styleRow}>
+              <span className={drawModalStyles.styleLabel}>Colour</span>
+              <div className={drawModalStyles.swatchRow}>
+                {DRAW_STYLE_SWATCHES.map((swatch) => (
+                  <button
+                    key={swatch}
+                    type="button"
+                    className={drawModalStyles.swatch}
+                    style={{ background: swatch }}
+                    onClick={() => updateStyle(selectedFeature, { strokeColor: swatch, fillColor: swatch })}
+                    aria-label={`Set colour ${swatch}`}
+                    title={swatch}
+                  />
+                ))}
+                <input
+                  type="color"
+                  value={selectedStyle.strokeColor}
+                  onChange={(e) => updateStyle(selectedFeature, { strokeColor: e.target.value, fillColor: e.target.value })}
+                  aria-label="Custom feature colour"
+                  style={{ width: 24, height: 18, padding: 0, border: "none", background: "transparent", cursor: "pointer" }}
+                />
+              </div>
+            </div>
+            <div className={drawModalStyles.styleRow}>
+              <span className={drawModalStyles.styleLabel}>Width</span>
+              <input
+                type="range"
+                min={1}
+                max={8}
+                step={1}
+                value={selectedStyle.strokeWidth}
+                onChange={(e) => updateStyle(selectedFeature, { strokeWidth: Number(e.target.value) })}
+                aria-label="Stroke width"
+                style={{ flex: 1 }}
+              />
+              <span className={drawModalStyles.metricValue} style={{ minWidth: "2.5rem", textAlign: "right" }}>
+                {selectedStyle.strokeWidth}px
+              </span>
+            </div>
+            <div className={drawModalStyles.styleRow}>
+              <span className={drawModalStyles.styleLabel}>Fill</span>
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.05}
+                value={selectedStyle.fillOpacity}
+                onChange={(e) => updateStyle(selectedFeature, { fillOpacity: Number(e.target.value) })}
+                aria-label="Fill opacity"
+                style={{ flex: 1 }}
+              />
+              <span className={drawModalStyles.metricValue} style={{ minWidth: "2.5rem", textAlign: "right" }}>
+                {Math.round(selectedStyle.fillOpacity * 100)}%
+              </span>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+};
+
+/* ================================================================== */
 /*  Component                                                          */
 /* ================================================================== */
 
@@ -369,8 +1021,9 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
           source: DRAW_SOURCE,
           filter: ["==", "$type", "Polygon"],
           paint: {
-            "fill-color": accentColor,
-            "fill-opacity": 0.15,
+            // Data-driven: per-feature style overrides fall back to the accent.
+            "fill-color": ["coalesce", ["get", "_fillColor"], accentColor],
+            "fill-opacity": ["coalesce", ["get", "_fillOpacity"], 0.15],
           },
         });
         map.addLayer({
@@ -378,8 +1031,8 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
           type: "line",
           source: DRAW_SOURCE,
           paint: {
-            "line-color": accentColor,
-            "line-width": 2,
+            "line-color": ["coalesce", ["get", "_strokeColor"], accentColor],
+            "line-width": ["coalesce", ["get", "_strokeWidth"], 2],
             "line-dasharray": [2, 2],
           },
         });
@@ -480,10 +1133,12 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
 
     const features: GeoJSON.Feature[] = [];
     for (const f of featuresRef.current) {
+      // Hidden features stay in state but are not drawn on the map.
+      if (f.properties.hidden) continue;
       features.push({
         type: "Feature",
         geometry: f.geometry,
-        properties: { ...f.properties, _fid: f.id },
+        properties: { ...f.properties, ...drawStyleRenderProps(f.properties.style), _fid: f.id },
       });
       // Also render vertex dots for editable features
       if (f.id === selectedFeatureId && f.geometry.type === "Polygon") {
@@ -673,11 +1328,13 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
         const src = map.getSource(DRAW_SOURCE) as maplibregl.GeoJSONSource | undefined;
         if (src) {
           const all = [...featuresRef.current, feature];
-          const geoFeatures: GeoJSON.Feature[] = all.map((f) => ({
-            type: "Feature" as const,
-            geometry: f.geometry,
-            properties: { ...f.properties, _fid: f.id },
-          }));
+          const geoFeatures: GeoJSON.Feature[] = all
+            .filter((f) => !f.properties.hidden)
+            .map((f) => ({
+              type: "Feature" as const,
+              geometry: f.geometry,
+              properties: { ...f.properties, ...drawStyleRenderProps(f.properties.style), _fid: f.id },
+            }));
           src.setData(featureCollection(geoFeatures));
         }
       }
@@ -1298,8 +1955,26 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
     );
   }
 
+  if (presentation === "modal" && onSetDrawTool) {
+    return (
+      <DrawModalBody
+        mapRef={mapRef}
+        activeDrawTool={activeDrawTool}
+        drawnFeatures={drawnFeatures}
+        selectedFeatureId={selectedFeatureId}
+        onSetDrawTool={onSetDrawTool}
+        onAddFeature={onAddFeature}
+        onRemoveFeature={onRemoveFeature}
+        onUpdateFeature={onUpdateFeature}
+        onClearFeatures={onClearFeatures}
+        onSelectFeature={onSelectFeature}
+        onAnnounce={onAnnounce}
+      />
+    );
+  }
+
   if (presentation === "modal") {
-    const featureCountLabel = `${drawnFeatures.length} ${drawnFeatures.length === 1 ? "feature" : "features"}`;
+    // Fallback when no tool setter is wired (kept minimal; Core always wires it).
     return (
       <div
         className={motionStyles.panelIn}
@@ -1308,48 +1983,13 @@ export const MapDrawingManager: React.FC<MapDrawingManagerProps> = ({
         aria-label="Drawing modal workspace"
         data-testid="map-draw-modal-body"
       >
-        {onSetDrawTool ? (
-          <ModalDrawToolRail activeTool={activeDrawTool} onSelect={onSetDrawTool} />
-        ) : null}
-
-        {/* Calm one-line status summary (replaces the raw Tool/Features/Selected row) */}
-        <div className={drawModalStyles.statusLine} aria-label="Drawing status">
-          <span>
-            <span className={drawModalStyles.statusStrong}>{activeToolLabel}</span> tool
-          </span>
-          <span className={drawModalStyles.statusMuted} aria-hidden="true">·</span>
-          <span>{featureCountLabel}</span>
-          {selectedFeature ? (
-            <>
-              <span className={drawModalStyles.statusMuted} aria-hidden="true">·</span>
-              <span className={drawModalStyles.statusMuted}>selected {selectedFeature.geometry.type}</span>
-            </>
-          ) : null}
-        </div>
-
-        <GisSectionHeader
-          title="Drawn features"
-          compact
-          actions={
-            drawnFeatures.length > 0 ? (
-              <button
-                type="button"
-                style={smallBtn}
-                onClick={onClearFeatures}
-                aria-label="Clear all drawn features"
-              >
-                Clear all
-              </button>
-            ) : undefined
-          }
-        />
-
+        <GisSectionHeader title="Drawn features" compact />
         <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
           {drawnFeatures.length === 0 ? (
             <GisEmptyState
               icon={<IconPencil size={20} />}
               title="No drawn features"
-              description="Pick a tool above to start sketching on the map."
+              description="Pick a tool to start sketching on the map."
               data-testid="map-draw-modal-empty"
             />
           ) : (

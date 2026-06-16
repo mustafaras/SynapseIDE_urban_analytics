@@ -109,10 +109,209 @@
   color: var(--syn-text-muted, #778190);
 }
 
+/* ---- Action bar (search + import/export) ---- */
+
+.actionBar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 6px 10px;
+  border-bottom: 1px solid color-mix(in srgb, var(--syn-border-subtle, #343a44) 72%, transparent);
+  background: color-mix(in srgb, var(--syn-surface-panel, #232832) 50%, transparent);
+}
+
+.searchInput {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 4px 8px;
+  border: 1px solid color-mix(in srgb, var(--syn-border-subtle, #343a44) 72%, transparent);
+  border-radius: 0;
+  background: var(--syn-surface-panel, #232832);
+  color: var(--syn-text-default, #d7dce5);
+  font-family: 'JetBrains Mono', 'Fira Code', 'Monaco', 'Menlo', monospace;
+  font-size: 0.6875rem;
+  line-height: 1.4;
+}
+
+.searchInput::placeholder {
+  color: var(--syn-text-muted, #778190);
+}
+
+.searchInput:focus-visible {
+  outline: 2px solid var(--syn-border-focus, #3794ff);
+  outline-offset: -1px;
+}
+
+.chipButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  padding: 4px 8px;
+  border: 1px solid color-mix(in srgb, var(--syn-border-subtle, #343a44) 72%, transparent);
+  border-radius: 0;
+  background: transparent;
+  color: var(--syn-text-secondary, #a4adbb);
+  font-family: 'JetBrains Mono', 'Fira Code', 'Monaco', 'Menlo', monospace;
+  font-size: 0.6875rem;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 140ms cubic-bezier(0.2, 0, 0, 1), color 140ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.chipButton:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--syn-interaction-active, #3794ff) 8%, transparent);
+  color: var(--syn-text-default, #d7dce5);
+}
+
+.chipButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.chipButton:focus-visible {
+  outline: 2px solid var(--syn-border-focus, #3794ff);
+  outline-offset: -2px;
+}
+
+.chipButtonDanger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--syn-status-error, #f87171) 14%, transparent);
+  color: var(--syn-status-error, #f87171);
+}
+
+/* ---- Row icon button (zoom / duplicate / visibility / delete) ---- */
+
+.rowIconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 1px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--syn-text-muted, #778190);
+  cursor: pointer;
+  transition: background 140ms cubic-bezier(0.2, 0, 0, 1), color 140ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.rowIconButton:hover {
+  background: color-mix(in srgb, var(--syn-interaction-active, #3794ff) 10%, transparent);
+  color: var(--syn-text-default, #d7dce5);
+}
+
+.rowIconButton:focus-visible {
+  outline: 2px solid var(--syn-border-focus, #3794ff);
+  outline-offset: -2px;
+}
+
+/* ---- Inspector (measurements + style editor) ---- */
+
+.inspector {
+  flex-shrink: 0;
+  border-top: 1px solid color-mix(in srgb, var(--syn-border-subtle, #343a44) 72%, transparent);
+  background: color-mix(in srgb, var(--syn-surface-panel, #232832) 55%, transparent);
+}
+
+.metricGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  background: color-mix(in srgb, var(--syn-border-subtle, #343a44) 50%, transparent);
+}
+
+.metricCell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 7px 10px;
+  background: var(--syn-surface-panel, #232832);
+}
+
+.metricLabel {
+  color: var(--syn-text-muted, #778190);
+  font-family: 'JetBrains Mono', 'Fira Code', 'Monaco', 'Menlo', monospace;
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.metricValue {
+  color: var(--syn-text-default, #d7dce5);
+  font-family: 'JetBrains Mono', 'Fira Code', 'Monaco', 'Menlo', monospace;
+  font-size: 0.75rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.styleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+}
+
+.styleLabel {
+  flex: 0 0 4.5rem;
+  color: var(--syn-text-secondary, #a4adbb);
+  font-family: 'JetBrains Mono', 'Fira Code', 'Monaco', 'Menlo', monospace;
+  font-size: 0.6875rem;
+}
+
+.swatchRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.swatch {
+  width: 16px;
+  height: 16px;
+  border: 1px solid color-mix(in srgb, var(--syn-border-subtle, #343a44) 72%, transparent);
+  border-radius: 0;
+  cursor: pointer;
+  padding: 0;
+}
+
+.swatch:focus-visible {
+  outline: 2px solid var(--syn-border-focus, #3794ff);
+  outline-offset: 1px;
+}
+
+.importArea {
+  width: 100%;
+  min-height: 5.5rem;
+  resize: vertical;
+  padding: 6px 8px;
+  border: 1px solid color-mix(in srgb, var(--syn-border-subtle, #343a44) 72%, transparent);
+  border-radius: 0;
+  background: var(--syn-surface-panel, #232832);
+  color: var(--syn-text-default, #d7dce5);
+  font-family: 'JetBrains Mono', 'Fira Code', 'Monaco', 'Menlo', monospace;
+  font-size: 0.6875rem;
+  line-height: 1.45;
+}
+
+.importArea:focus-visible {
+  outline: 2px solid var(--syn-border-focus, #3794ff);
+  outline-offset: -1px;
+}
+
+.importError {
+  color: var(--syn-status-error, #f87171);
+  font-family: 'JetBrains Mono', 'Fira Code', 'Monaco', 'Menlo', monospace;
+  font-size: 0.625rem;
+}
+
 /* ---- Reduced motion ---- */
 
 @media (prefers-reduced-motion: reduce) {
-  .toolButton {
+  .toolButton,
+  .chipButton,
+  .rowIconButton {
     transition: none;
   }
 }

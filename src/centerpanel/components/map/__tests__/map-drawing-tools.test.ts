@@ -827,6 +827,235 @@ describe("p06 — modal presentation a11y roles survive the redesign", () => {
 });
 
 /* ================================================================== */
+/*  6c. Pro toolkit — geodesic measurement helpers                     */
+/* ================================================================== */
+
+import {
+  measureDrawnGeometry,
+  summarizeDrawnGeometries,
+} from "../../../../utils/drawFeatureMeasure";
+import {
+  drawnFeaturesToGeoJSON,
+  duplicateDrawnFeature,
+  geometryBounds,
+  parseDrawnFeaturesFromGeoJSON,
+  translateGeometry,
+} from "../drawGeometryOps";
+
+describe("drawFeatureMeasure — measureDrawnGeometry", () => {
+  it("returns a point measurement with the coordinate as centroid", () => {
+    const m = measureDrawnGeometry(makePoint([29, 41]));
+    expect(m.kind).toBe("point");
+    expect(m.vertexCount).toBe(1);
+    expect(m.areaM2).toBeNull();
+    expect(m.centroid).toEqual([29, 41]);
+  });
+
+  it("measures a line's geodesic length (London → Paris ≈ 343 km)", () => {
+    const m = measureDrawnGeometry(makeLineString([[-0.1278, 51.5074], [2.3522, 48.8566]]));
+    expect(m.kind).toBe("line");
+    expect(m.vertexCount).toBe(2);
+    expect(m.lengthM).toBeGreaterThan(340_000);
+    expect(m.lengthM).toBeLessThan(347_000);
+    expect(m.areaM2).toBeNull();
+  });
+
+  it("measures a polygon's geodesic area + perimeter, ignoring the closing vertex", () => {
+    const m = measureDrawnGeometry(makePolygon([[0, 0], [0.01, 0], [0.01, 0.01], [0, 0.01]]));
+    expect(m.kind).toBe("polygon");
+    expect(m.vertexCount).toBe(4); // closing vertex excluded
+    expect(m.areaM2).not.toBeNull();
+    expect(m.areaM2!).toBeGreaterThan(0);
+    expect(m.perimeterM).not.toBeNull();
+    expect(m.perimeterM!).toBeGreaterThan(0);
+    expect(m.lengthM).toBeNull();
+  });
+
+  it("summarizes mixed geometries into totals", () => {
+    const summary = summarizeDrawnGeometries([
+      makePoint([0, 0]),
+      makeLineString([[0, 0], [0.1, 0]]),
+      makePolygon([[0, 0], [0.01, 0], [0.01, 0.01], [0, 0.01]]),
+    ]);
+    expect(summary.count).toBe(3);
+    expect(summary.pointCount).toBe(1);
+    expect(summary.lineCount).toBe(1);
+    expect(summary.polygonCount).toBe(1);
+    expect(summary.totalAreaM2).toBeGreaterThan(0);
+    expect(summary.totalLengthM).toBeGreaterThan(0);
+  });
+});
+
+/* ================================================================== */
+/*  6d. Pro toolkit — geometry ops (bounds / translate / import-export) */
+/* ================================================================== */
+
+describe("drawGeometryOps — geometryBounds", () => {
+  it("computes [[minLng,minLat],[maxLng,maxLat]] for a polygon", () => {
+    const bounds = geometryBounds(makePolygon([[0, 0], [2, 0], [2, 3], [0, 3]]));
+    expect(bounds).toEqual([[0, 0], [2, 3]]);
+  });
+
+  it("returns a degenerate (equal) bound for a point", () => {
+    const bounds = geometryBounds(makePoint([5, 6]));
+    expect(bounds).toEqual([[5, 6], [5, 6]]);
+  });
+});
+
+describe("drawGeometryOps — translate + duplicate", () => {
+  it("translateGeometry shifts every position", () => {
+    const moved = translateGeometry(makeLineString([[0, 0], [1, 1]]), 10, -5);
+    expect((moved as GeoJSON.LineString).coordinates).toEqual([[10, -5], [11, -4]]);
+  });
+
+  it("duplicateDrawnFeature creates a fresh id, a (copy) label, and an offset", () => {
+    const original: DrawnFeature = {
+      id: "orig-1",
+      geometry: makePoint([10, 10]),
+      properties: { label: "Site A", createdAt: "2024-01-01T00:00:00Z" },
+    };
+    const copy = duplicateDrawnFeature(original);
+    expect(copy.id).not.toBe(original.id);
+    expect(copy.properties.label).toBe("Site A (copy)");
+    expect((copy.geometry as GeoJSON.Point).coordinates).not.toEqual([10, 10]);
+  });
+});
+
+describe("drawGeometryOps — GeoJSON round-trip", () => {
+  it("exports a FeatureCollection preserving label + style", () => {
+    const fc = drawnFeaturesToGeoJSON([
+      {
+        id: "f-1",
+        geometry: makePolygon([[0, 0], [1, 0], [1, 1], [0, 1]]),
+        properties: { label: "AOI", createdAt: "", style: { fillColor: "#4ec27d" } },
+      },
+    ]);
+    expect(fc.type).toBe("FeatureCollection");
+    expect(fc.features).toHaveLength(1);
+    expect(fc.features[0].properties?.label).toBe("AOI");
+    expect((fc.features[0].properties as { style?: { fillColor?: string } }).style?.fillColor).toBe("#4ec27d");
+  });
+
+  it("parses a FeatureCollection and assigns ids/labels", () => {
+    const text = JSON.stringify({
+      type: "FeatureCollection",
+      features: [
+        { type: "Feature", geometry: { type: "Point", coordinates: [1, 2] }, properties: { label: "Pin" } },
+      ],
+    });
+    const result = parseDrawnFeaturesFromGeoJSON(text);
+    expect(result.error).toBeNull();
+    expect(result.features).toHaveLength(1);
+    expect(result.features[0].properties.label).toBe("Pin");
+    expect(result.features[0].id).toMatch(/^drawn-/);
+  });
+
+  it("parses a bare geometry and a single Feature", () => {
+    expect(parseDrawnFeaturesFromGeoJSON(JSON.stringify({ type: "Point", coordinates: [0, 0] })).features).toHaveLength(1);
+    expect(
+      parseDrawnFeaturesFromGeoJSON(
+        JSON.stringify({ type: "Feature", geometry: { type: "Point", coordinates: [0, 0] }, properties: {} }),
+      ).features,
+    ).toHaveLength(1);
+  });
+
+  it("skips unsupported geometries and reports invalid JSON", () => {
+    const mixed = parseDrawnFeaturesFromGeoJSON(
+      JSON.stringify({
+        type: "FeatureCollection",
+        features: [
+          { type: "Feature", geometry: { type: "Point", coordinates: [0, 0] }, properties: {} },
+          { type: "Feature", geometry: { type: "MultiPolygon", coordinates: [] }, properties: {} },
+        ],
+      }),
+    );
+    expect(mixed.features).toHaveLength(1);
+    expect(mixed.skipped).toBe(1);
+
+    const bad = parseDrawnFeaturesFromGeoJSON("{ not json");
+    expect(bad.error).toBeTruthy();
+    expect(bad.features).toHaveLength(0);
+  });
+
+  it("round-trips export → import", () => {
+    const features: DrawnFeature[] = [
+      { id: "a", geometry: makePolygon([[0, 0], [1, 0], [1, 1], [0, 1]]), properties: { label: "AOI", createdAt: "" } },
+    ];
+    const text = JSON.stringify(drawnFeaturesToGeoJSON(features));
+    const back = parseDrawnFeaturesFromGeoJSON(text);
+    expect(back.features).toHaveLength(1);
+    expect(back.features[0].geometry.type).toBe("Polygon");
+    expect(back.features[0].properties.label).toBe("AOI");
+  });
+});
+
+/* ================================================================== */
+/*  6e. Pro modal body — multi-functional UI surfaces render            */
+/* ================================================================== */
+
+describe("p06+ — pro modal body renders the multi-functional toolkit", () => {
+  const baseProps = {
+    mapRef: React.createRef<MapLibreMap>(),
+    presentation: "modal" as const,
+    sidebarVisible: true,
+    onAddFeature: () => undefined,
+    onRemoveFeature: () => undefined,
+    onUpdateFeature: () => undefined,
+    onClearFeatures: () => undefined,
+    onSelectFeature: () => undefined,
+    onCancelDraw: () => undefined,
+    onSetDrawTool: () => undefined,
+  };
+
+  it("renders search + import/export action bar and a measurement summary", async () => {
+    const mod = await import("../../MapDrawingManager");
+    const feature: DrawnFeature = {
+      id: "poly-1",
+      geometry: makePolygon([[0, 0], [0.01, 0], [0.01, 0.01], [0, 0.01]]),
+      properties: { label: "Study area", createdAt: "2024-01-01T00:00:00Z" },
+    };
+    const html = renderToStaticMarkup(
+      React.createElement(mod.MapDrawingManager, {
+        ...baseProps,
+        activeDrawTool: "polygon",
+        drawnFeatures: [feature],
+        selectedFeatureId: null,
+      }),
+    );
+    expect(html).toContain("Search drawn features");
+    expect(html).toContain("Import");
+    expect(html).toContain("Export");
+    expect(html).toContain("Study area");
+    // Geodesic area appears in the row summary (m² / ha / km²).
+    expect(html).toMatch(/m²|ha|km²/);
+  });
+
+  it("renders the inspector (measurements + style editor) for the selected feature", async () => {
+    const mod = await import("../../MapDrawingManager");
+    const feature: DrawnFeature = {
+      id: "poly-2",
+      geometry: makePolygon([[0, 0], [0.01, 0], [0.01, 0.01], [0, 0.01]]),
+      properties: { label: "Selected AOI", createdAt: "2024-01-01T00:00:00Z" },
+    };
+    const html = renderToStaticMarkup(
+      React.createElement(mod.MapDrawingManager, {
+        ...baseProps,
+        activeDrawTool: null,
+        drawnFeatures: [feature],
+        selectedFeatureId: "poly-2",
+      }),
+    );
+    expect(html).toContain("map-draw-modal-inspector");
+    expect(html).toContain("Inspector");
+    expect(html).toContain("Area");
+    expect(html).toContain("Perimeter");
+    expect(html).toContain("Centroid");
+    // Style editor colour swatches + native colour input.
+    expect(html).toContain('type="color"');
+  });
+});
+
+/* ================================================================== */
 /*  7. Barrel exports — New drawing types                              */
 /* ================================================================== */
 

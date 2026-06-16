@@ -1157,6 +1157,8 @@ export interface DrawnFeature {
     createdAt: string;
     style?: FeatureStyle;
     validation?: DrawnGeometryValidation;
+    /** When true the feature is kept in state but not rendered on the map. */
+    hidden?: boolean;
   };
 }
 

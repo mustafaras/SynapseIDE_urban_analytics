@@ -98,6 +98,16 @@ Status values: `pending` · `in_progress` · `done` · `blocked`
 - Evidence: `evidence/p06-trackA.md`, `evidence/p06-trackB.md`, `evidence/p06-draw-premium.png`, `evidence/p06-draw-empty.png`.
 - **Next action:** `prompts/p07-aoi-fetch-data.md` (rectangle AOI → fetch real data in bounds).
 
+### 2026-06-16 — p06+ PRO TOOLKIT — multi-functional upgrade + merge/deploy ✅
+- Owner asked to make the drawing tool "more pro / multi-functional", then commit + merge + deploy to Pages. Implemented **all four** capability groups (see `evidence/p06-pro-toolkit.md`):
+  1. **Measurements (CRS-correct):** new `src/utils/drawFeatureMeasure.ts` (`measureDrawnGeometry`, `summarizeDrawnGeometries`) using existing geodesic WGS-84 helpers — never planar 4326. Live status-line totals + per-row summary + full Inspector (area/perimeter/length/vertices/centroid) + metric/imperial toggle.
+  2. **Feature management:** show/hide (new optional `DrawnFeature.properties.hidden`, filtered from the map source), zoom-to (geodesic bounds → fitBounds/easeTo), duplicate, double-click rename, search/filter, select-all + bulk delete.
+  3. **Import/Export:** new `src/centerpanel/components/map/drawGeometryOps.ts` (bounds/translate/duplicate + `drawnFeaturesToGeoJSON` + `parseDrawnFeaturesFromGeoJSON`); Export/Copy/Import (paste or file).
+  4. **Style editor:** per-feature stroke/fill colour (swatches + picker), width, opacity → `properties.style`, reflected via data-driven MapLibre paint expressions (coalesce → accent fallback).
+- All in `MapDrawingManager` (`DrawModalBody`) + `MapDrawingManager.module.css` (no Tailwind). Footer handlers unchanged. Modal panel enlarged to 40×42rem.
+- Gates: typecheck PASS, lint:errors PASS, `map-drawing-tools` **85**, map+utils suite **931**, `test:analytics` **1131**, `build` PASS, `perf:budgets` PASS.
+- Screenshot: `evidence/p06-draw-pro.png`. Merged feature branch → `master` (triggers `pages.yml` deploy).
+
 <!-- Append new sessions below. Template:
 ### YYYY-MM-DD — <phase/track> — <short title>
 - Did: ...
