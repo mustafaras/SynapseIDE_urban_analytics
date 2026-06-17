@@ -78,4 +78,19 @@ describe("MapLayoutDesignerPanel", () => {
     expect((screen.getByLabelText("Export preset") as HTMLSelectElement).value).toBe("1");
     expect(handled).toHaveBeenCalledWith("temporal-frame-2024");
   });
+
+  it("is draggable and resizable when rendered as floating panel", () => {
+    render(
+      <MapLayoutDesignerPanel
+        visible
+        overlayLayers={[makeLayer()]}
+        qaState={null}
+        onClose={() => undefined}
+      />,
+    );
+
+    const panel = screen.getByTestId("map-layout-designer");
+    expect(panel.getAttribute("data-draggable-map-panel")).toBe("true");
+    expect((panel as HTMLElement).style.resize).toBe("both");
+  });
 });

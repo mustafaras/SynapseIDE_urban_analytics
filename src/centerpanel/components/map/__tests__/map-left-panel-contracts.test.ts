@@ -249,7 +249,9 @@ describe("mapLeftPanelContracts — spec adherence summary", () => {
       join(process.cwd(), "src/centerpanel/components/map/modelBuilder/MapModelBuilderPanel.tsx"),
       "utf-8",
     );
-    expect(source).toContain('data-left-workspace-layout={presentation === "embedded" ? "single-column" : "split"}');
+    // layout is unconditionally single-column (no presentation-conditional split)
+    expect(source).toContain('data-left-workspace-layout="single-column"');
+    expect(source).not.toContain('data-left-workspace-layout={presentation');
     expect(source).toContain('data-testid="model-section-define"');
     expect(source).toContain('data-testid="model-section-workflow"');
   });

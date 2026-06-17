@@ -47,6 +47,9 @@ const MAX_PAGES = 6;
 
 const panelStyle: React.CSSProperties = {
   ...createOpaqueFloatingPanelStyle("min(36rem, calc(100vw - 2rem))", MAP_Z_INDEX.symbologyPanel + 10),
+  position: "fixed",
+  minWidth: "min(22rem, calc(100% - 2rem))",
+  minHeight: "min(24rem, calc(100% - 2rem))",
   height: "min(48rem, calc(100% - 2rem))",
   display: "grid",
   gridTemplateRows: "auto auto minmax(0, 1fr) auto",
@@ -56,6 +59,7 @@ const panelStyle: React.CSSProperties = {
   boxShadow: MAP_SHADOWS.panel,
   color: MAP_COLORS.text,
   overflow: "hidden",
+  resize: "both",
 };
 
 const embeddedPanelStyle: React.CSSProperties = {
@@ -307,7 +311,7 @@ export const MapLayoutDesignerPanel: React.FC<MapLayoutDesignerPanelProps> = ({
   onRestoreRequestHandled,
   onAnnounce,
 }) => {
-  const panelDrag = useDraggableMapPanel();
+  const panelDrag = useDraggableMapPanel({ dragBounds: "viewport" });
   const [pages, setPages] = useState<PageState[]>([makeDefaultPage(1)]);
   const [activePageIndex, setActivePageIndex] = useState(0);
   const [presetIndex, setPresetIndex] = useState(0);

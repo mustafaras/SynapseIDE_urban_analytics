@@ -382,14 +382,14 @@ const bottomTimelineShellStyle: React.CSSProperties = {
   gridTemplateColumns: "minmax(0, 1fr)",
   background: MAP_COLORS.bgPanel,
   borderTop: MAP_CHROME_BORDER_SUBTLE,
-  overflow: "hidden",
+  overflow: "visible",
 };
 
 const bottomTimelineSlotStyle: React.CSSProperties = {
   ...mapStyles.bottomTimelineRegion,
   borderTop: MAP_STROKES.none,
   minWidth: MAP_SPACING.zero,
-  overflow: "hidden",
+  overflow: "visible",
 };
 
 const mapExplorerA11yVars = {
@@ -593,7 +593,10 @@ export const MapWorkspaceShell: React.FC<MapWorkspaceShellProps> = ({
       selfBranch = selfBranch.parentElement;
     }
     const siblings = Array.from(document.body.children).filter(
-      (element) => element !== root && element !== selfBranch,
+      (element) =>
+        element !== root &&
+        element !== selfBranch &&
+        element.getAttribute("data-map-overlay-root") !== "true",
     );
     const previousValues = siblings.map((element) => ({
       element,

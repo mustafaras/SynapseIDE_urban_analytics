@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { MoreHorizontal } from "lucide-react";
 import type { LayerQaStatus, LayerRenderMode, MeasureUnit } from "./mapTypes";
 import {
@@ -140,11 +140,29 @@ const statusBar: React.CSSProperties = {
 
 const segmentStripStyle: React.CSSProperties = {
   display: "flex",
-  alignItems: "stretch",
+  alignItems: "center",
   gap: MAP_SPACING.zero,
   flex: 1,
   minWidth: MAP_SPACING.zero,
   overflow: "hidden",
+};
+
+const segmentStripLeftStyle: React.CSSProperties = {
+  ...segmentStripStyle,
+  flex: "0 1 auto",
+};
+
+const segmentStripRightStyle: React.CSSProperties = {
+  ...segmentStripStyle,
+  justifyContent: "flex-end",
+};
+
+const segmentClusterDividerStyle: React.CSSProperties = {
+  width: 1,
+  alignSelf: "stretch",
+  background: "var(--syn-hairline-subtle, rgba(148, 163, 184, 0.28))",
+  marginInline: MAP_SPACING.xs,
+  flexShrink: 0,
 };
 
 const segmentBaseStyle: React.CSSProperties = {
@@ -173,6 +191,11 @@ const segmentButtonStyle: React.CSSProperties = {
   margin: MAP_SPACING.zero,
   font: "inherit",
   textAlign: "left",
+};
+
+const segmentButtonActiveStyle: React.CSSProperties = {
+  background: "var(--syn-overlay-muted, rgba(59, 130, 246, 0.14))",
+  color: MAP_COLORS.text,
 };
 
 const segmentLabelStyle: React.CSSProperties = {
@@ -307,6 +330,90 @@ type StatusSegment = {
   href?: string;
   ariaLabel?: string;
 };
+
+type SegmentWidthMap = Partial<Record<MapStatusBarSegmentId, number>>;
+
+const MAP_STATUS_LEFT_SEGMENTS: readonly MapStatusBarSegmentId[] = ["cursor", "view", "scale", "camera"];
+
+function isLeftStatusSegment(id: MapStatusBarSegmentId): boolean {
+  return MAP_STATUS_LEFT_SEGMENTS.includes(id);
+}
+
+function widthMapsEqual(left: SegmentWidthMap, right: SegmentWidthMap): boolean {
+  const leftKeys = Object.keys(left) as MapStatusBarSegmentId[];
+  const rightKeys = Object.keys(right) as MapStatusBarSegmentId[];
+  if (leftKeys.length !== rightKeys.length) {
+    return false;
+  }
+  return leftKeys.every((key) => left[key] === right[key]);
+}
+
+function partitionStatusSegments(
+  segments: readonly StatusSegment[],
+  availableWidth: number,
+  segmentWidths: SegmentWidthMap,
+  overflowTriggerWidth: number,
+): { visibleSegments: StatusSegment[]; overflowSegments: StatusSegment[] } {
+  if (!Number.isFinite(availableWidth)) {
+    return { visibleSegments: [...segments], overflowSegments: [] };
+  }
+
+  const widthOf = (segment: StatusSegment): number => {
+    const measuredWidth = segmentWidths[segment.id];
+    if (typeof measuredWidth === "number" && Number.isFinite(measuredWidth) && measuredWidth > 0) {
+      return measuredWidth;
+    }
+    return segment.widthPx;
+  };
+
+  const totalWidth = segments.reduce((sum, segment) => sum + widthOf(segment), 0);
+  if (totalWidth <= availableWidth) {
+    return { visibleSegments: [...segments], overflowSegments: [] };
+  }
+
+  const triggerWidth = Math.max(64, overflowTriggerWidth);
+  const visibleBudget = Math.max(availableWidth - triggerWidth, 0);
+  const rankedSegments = [...segments].sort((left, right) => {
+    if (Boolean(right.critical) !== Boolean(left.critical)) {
+      return right.critical ? 1 : -1;
+    }
+    if (right.priority !== left.priority) {
+      return right.priority - left.priority;
+    }
+    return segments.indexOf(left) - segments.indexOf(right);
+  });
+
+  const selectedIds = new Set<MapStatusBarSegmentId>();
+  let usedWidth = 0;
+
+  for (const segment of rankedSegments) {
+    if (!segment.critical) {
+      continue;
+    }
+    selectedIds.add(segment.id);
+    usedWidth += widthOf(segment);
+  }
+
+  for (const segment of rankedSegments) {
+    if (segment.critical) {
+      continue;
+    }
+    const segmentWidth = widthOf(segment);
+    if (usedWidth + segmentWidth > visibleBudget) {
+      continue;
+    }
+    selectedIds.add(segment.id);
+    usedWidth += segmentWidth;
+  }
+
+  if (selectedIds.size === 0 && rankedSegments.length > 0) {
+    selectedIds.add(rankedSegments[0].id);
+  }
+
+  const visibleSegments = segments.filter((segment) => selectedIds.has(segment.id));
+  const overflowSegments = segments.filter((segment) => !selectedIds.has(segment.id));
+  return { visibleSegments, overflowSegments };
+}
 
 function renderDetailBars(segment: StatusSegment): React.ReactNode {
   const toneColor = segment.tone ? STATUS_TONE_COLOR[segment.tone] : MAP_COLORS.textMuted;
@@ -670,9 +777,14 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const overflowRef = useRef<HTMLDivElement | null>(null);
+  const measurementRef = useRef<HTMLDivElement | null>(null);
+  const overflowTriggerMeasureRef = useRef<HTMLButtonElement | null>(null);
   const availableWidth = useAvailableWidth(containerRef, layoutWidthOverride);
   const [overflowOpen, setOverflowOpen] = useState(false);
   const [activeDetailSegmentId, setActiveDetailSegmentId] = useState<MapStatusBarSegmentId | null>(null);
+  const [activeInteractiveSegmentId, setActiveInteractiveSegmentId] = useState<MapStatusBarSegmentId | null>(null);
+  const [measuredSegmentWidths, setMeasuredSegmentWidths] = useState<SegmentWidthMap>({});
+  const [measuredOverflowTriggerWidth, setMeasuredOverflowTriggerWidth] = useState(92);
 
   const saveLabel = isLoading
     ? "loading"
@@ -995,55 +1107,38 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
     zoom,
   ]);
 
-  const { visibleSegments, overflowSegments } = useMemo(() => {
-    if (!Number.isFinite(availableWidth)) {
-      return { visibleSegments: segments, overflowSegments: [] as StatusSegment[] };
+  useLayoutEffect(() => {
+    const measureRoot = measurementRef.current;
+    if (!measureRoot) {
+      return;
     }
 
-    const totalWidth = segments.reduce((sum, segment) => sum + segment.widthPx, 0);
-    if (totalWidth <= availableWidth) {
-      return { visibleSegments: segments, overflowSegments: [] as StatusSegment[] };
-    }
-
-    const overflowTriggerWidth = 92;
-    const visibleBudget = Math.max(availableWidth - overflowTriggerWidth, 0);
-    const rankedSegments = [...segments].sort((left, right) => {
-      if (Boolean(right.critical) !== Boolean(left.critical)) {
-        return right.critical ? 1 : -1;
+    const measured: SegmentWidthMap = {};
+    const nodes = measureRoot.querySelectorAll<HTMLElement>("[data-map-status-measure-segment]");
+    nodes.forEach((node) => {
+      const segmentId = node.dataset.mapStatusMeasureSegment as MapStatusBarSegmentId | undefined;
+      if (!segmentId) {
+        return;
       }
-      if (right.priority !== left.priority) {
-        return right.priority - left.priority;
+      const width = Math.ceil(node.getBoundingClientRect().width);
+      if (Number.isFinite(width) && width > 0) {
+        measured[segmentId] = width;
       }
-      return segments.indexOf(left) - segments.indexOf(right);
     });
-    const selectedIds = new Set<MapStatusBarSegmentId>();
-    let usedWidth = 0;
 
-    const criticalSegments = rankedSegments.filter((segment) => segment.critical);
-    for (const segment of criticalSegments) {
-      selectedIds.add(segment.id);
-      usedWidth += segment.widthPx;
+    setMeasuredSegmentWidths((current) => (widthMapsEqual(current, measured) ? current : measured));
+
+    const triggerWidth = overflowTriggerMeasureRef.current
+      ? Math.ceil(overflowTriggerMeasureRef.current.getBoundingClientRect().width)
+      : 0;
+    if (Number.isFinite(triggerWidth) && triggerWidth > 0) {
+      setMeasuredOverflowTriggerWidth((current) => (current === triggerWidth ? current : triggerWidth));
     }
+  }, [segments]);
 
-    for (const segment of rankedSegments) {
-      if (segment.critical) {
-        continue;
-      }
-      if (usedWidth + segment.widthPx > visibleBudget) {
-        continue;
-      }
-      selectedIds.add(segment.id);
-      usedWidth += segment.widthPx;
-    }
-
-    if (selectedIds.size === 0 && segments.length > 0) {
-      selectedIds.add(rankedSegments[0].id);
-    }
-
-    const nextVisible = segments.filter((segment) => selectedIds.has(segment.id));
-    const nextOverflow = segments.filter((segment) => !selectedIds.has(segment.id));
-    return { visibleSegments: nextVisible, overflowSegments: nextOverflow };
-  }, [availableWidth, segments]);
+  const { visibleSegments, overflowSegments } = useMemo(() => {
+    return partitionStatusSegments(segments, availableWidth, measuredSegmentWidths, measuredOverflowTriggerWidth);
+  }, [availableWidth, measuredOverflowTriggerWidth, measuredSegmentWidths, segments]);
 
   useEffect(() => {
     if (!overflowOpen) {
@@ -1081,23 +1176,38 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
     [activeDetailSegmentId, visibleSegments],
   );
 
+  const visibleLeftSegments = useMemo(
+    () => visibleSegments.filter((segment) => isLeftStatusSegment(segment.id)),
+    [visibleSegments],
+  );
+
+  const visibleRightSegments = useMemo(
+    () => visibleSegments.filter((segment) => !isLeftStatusSegment(segment.id)),
+    [visibleSegments],
+  );
+
   const renderInlineSegment = (
     segment: StatusSegment,
     index: number,
     list: StatusSegment[],
   ): React.ReactNode => {
     const isGroupStart = index > 0 && list[index - 1]?.group !== segment.group;
+    const isInteractive = Boolean(segment.onClick || segment.href);
+    const isInteractiveActive = activeInteractiveSegmentId === segment.id;
     const sharedProps = {
       title: segment.title,
       "data-map-status-segment": segment.id,
+      "data-map-status-side": isLeftStatusSegment(segment.id) ? "left" : "right",
       "data-map-status-tone": segment.tone ?? "neutral",
+      "data-map-status-interactive": isInteractive ? "true" : "false",
       onMouseEnter: () => setActiveDetailSegmentId(segment.id),
       onFocus: () => setActiveDetailSegmentId(segment.id),
       onMouseLeave: () => setActiveDetailSegmentId((current) => (current === segment.id ? null : current)),
       onBlur: () => setActiveDetailSegmentId((current) => (current === segment.id ? null : current)),
       style: {
-        ...(segment.onClick || segment.href ? segmentButtonStyle : segmentBaseStyle),
-        width: `${segment.widthPx}px`,
+        ...(isInteractive ? segmentButtonStyle : segmentBaseStyle),
+        ...(isInteractive && isInteractiveActive ? segmentButtonActiveStyle : null),
+        width: `${measuredSegmentWidths[segment.id] ?? segment.widthPx}px`,
         borderLeft: isGroupStart ? MAP_STROKES.hairlineSubtle : undefined,
       },
       "aria-label": segment.ariaLabel ?? `${segment.label}: ${segment.value}`,
@@ -1105,7 +1215,28 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
 
     if (segment.onClick) {
       return (
-        <button key={segment.id} type="button" {...sharedProps} onClick={segment.onClick}>
+        <button
+          key={segment.id}
+          type="button"
+          {...sharedProps}
+          onMouseEnter={() => {
+            setActiveDetailSegmentId(segment.id);
+            setActiveInteractiveSegmentId(segment.id);
+          }}
+          onFocus={() => {
+            setActiveDetailSegmentId(segment.id);
+            setActiveInteractiveSegmentId(segment.id);
+          }}
+          onMouseLeave={() => {
+            setActiveDetailSegmentId((current) => (current === segment.id ? null : current));
+            setActiveInteractiveSegmentId((current) => (current === segment.id ? null : current));
+          }}
+          onBlur={() => {
+            setActiveDetailSegmentId((current) => (current === segment.id ? null : current));
+            setActiveInteractiveSegmentId((current) => (current === segment.id ? null : current));
+          }}
+          onClick={segment.onClick}
+        >
           {renderSegmentBody(segment, reducedMotion)}
         </button>
       );
@@ -1116,6 +1247,22 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
         <a
           key={segment.id}
           {...sharedProps}
+          onMouseEnter={() => {
+            setActiveDetailSegmentId(segment.id);
+            setActiveInteractiveSegmentId(segment.id);
+          }}
+          onFocus={() => {
+            setActiveDetailSegmentId(segment.id);
+            setActiveInteractiveSegmentId(segment.id);
+          }}
+          onMouseLeave={() => {
+            setActiveDetailSegmentId((current) => (current === segment.id ? null : current));
+            setActiveInteractiveSegmentId((current) => (current === segment.id ? null : current));
+          }}
+          onBlur={() => {
+            setActiveDetailSegmentId((current) => (current === segment.id ? null : current));
+            setActiveInteractiveSegmentId((current) => (current === segment.id ? null : current));
+          }}
           href={segment.href}
           target="_blank"
           rel="noopener noreferrer"
@@ -1133,11 +1280,14 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
   };
 
   const renderOverflowSegment = (segment: StatusSegment): React.ReactNode => {
+    const isInteractive = Boolean(segment.onClick || segment.href);
     const sharedProps = {
       title: segment.title,
       "data-map-status-segment": segment.id,
+      "data-map-status-side": isLeftStatusSegment(segment.id) ? "left" : "right",
       "data-map-status-overflow": "true",
       "data-map-status-tone": segment.tone ?? "neutral",
+      "data-map-status-interactive": isInteractive ? "true" : "false",
       style: overflowMenuItemStyle,
       "aria-label": segment.ariaLabel ?? `${segment.label}: ${segment.value}`,
     } as const;
@@ -1192,8 +1342,16 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
       data-map-status-bar="true"
       data-map-status-overflow-count={overflowSegments.length}
     >
-      <div style={segmentStripStyle}>
-        {visibleSegments.map(renderInlineSegment)}
+      <div style={segmentStripLeftStyle} data-map-status-cluster="left">
+        {visibleLeftSegments.map(renderInlineSegment)}
+      </div>
+
+      {visibleLeftSegments.length > 0 && visibleRightSegments.length > 0 ? (
+        <span aria-hidden="true" style={segmentClusterDividerStyle} />
+      ) : null}
+
+      <div style={segmentStripRightStyle} data-map-status-cluster="right">
+        {visibleRightSegments.map(renderInlineSegment)}
       </div>
 
       {overflowSegments.length > 0 ? (
@@ -1238,6 +1396,54 @@ export const MapStatusBar: React.FC<MapStatusBarProps> = ({
           <span style={detailMetaStyle}>{activeDetailSegment.title}</span>
         </div>
       ) : null}
+
+      <div
+        ref={measurementRef}
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          left: -100_000,
+          top: MAP_SPACING.zero,
+          visibility: "hidden",
+          pointerEvents: "none",
+          whiteSpace: "nowrap",
+          display: "flex",
+          alignItems: "stretch",
+          gap: MAP_SPACING.zero,
+          height: MAP_SPACING.zero,
+          overflow: "hidden",
+        }}
+      >
+        {segments.map((segment, index) => {
+          const isGroupStart = index > 0 && segments[index - 1]?.group !== segment.group;
+          return (
+            <span
+              key={`${segment.id}-measure`}
+              data-map-status-measure-segment={segment.id}
+              style={{
+                ...(segment.onClick || segment.href ? segmentButtonStyle : segmentBaseStyle),
+                width: "auto",
+                maxWidth: "none",
+                overflow: "visible",
+                borderLeft: isGroupStart ? MAP_STROKES.hairlineSubtle : undefined,
+              }}
+            >
+              {renderSegmentBody(segment, reducedMotion)}
+            </span>
+          );
+        })}
+        <button
+          ref={overflowTriggerMeasureRef}
+          type="button"
+          style={overflowTriggerStyle}
+        >
+          <span style={segmentLabelStyle}>More</span>
+          <span style={segmentValueStyle}>
+            <MoreHorizontal aria-hidden size={12} />
+            {segments.length}
+          </span>
+        </button>
+      </div>
     </div>
   );
 };

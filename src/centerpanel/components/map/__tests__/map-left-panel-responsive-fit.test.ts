@@ -150,18 +150,35 @@ describe("Prompt 14 — Left Panel Responsive Fit", () => {
       );
       expect(css).toContain(".summaryBand {");
       expect(css).toContain(".embeddedPanel .summaryBand {");
+      // embedded tabs must avoid overlap and keep one scroll owner
+      expect(css).toContain(".importEntryHeader {");
+      expect(css).toContain("grid-template-columns: minmax(0, 1fr) auto;");
+      expect(css).toContain(".embeddedPanel .importEntryHeader {");
+      expect(css).toContain("grid-template-columns: 1fr;");
+      expect(css).toContain(".embeddedPanel .supportRow {");
+      expect(css).toContain("scrollbar-gutter: stable both-edges;");
     });
   });
 
   describe("embedded models panel layout", () => {
-    it("uses single-column body and workflow grid for embedded mode", () => {
+    it("uses single-column body and workflow grid with bounded section overflow", () => {
       const css = readFileSync(
         join(process.cwd(), "src/centerpanel/components/map/modelBuilder/MapModelBuilderPanel.module.css"),
         "utf-8",
       );
-      expect(css).toContain(".panelEmbedded .body {");
+      // workflowGrid is globally single-column — no panelEmbedded override needed
+      expect(css).toContain(".workflowGrid {");
       expect(css).toContain("grid-template-columns: minmax(0, 1fr);");
-      expect(css).toContain(".panelEmbedded .workflowGrid {");
+      // body is also globally single-column
+      expect(css).toContain(".body {");
+      // runRail must remain a real stacking container (display: contents caused visual overlap)
+      expect(css).toContain(".runRail {");
+      expect(css).toContain("display: grid;");
+      expect(css).not.toContain("display: contents;");
+      // workflow graph + step editor are bounded and scrollable to avoid text stacking across sections
+      expect(css).toContain("max-height: min(22rem, 48vh);");
+      expect(css).toContain("overflow: auto;");
+      expect(css).not.toContain(".panelEmbedded .workflowGrid {");
     });
   });
 });

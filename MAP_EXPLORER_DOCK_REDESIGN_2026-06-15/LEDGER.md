@@ -2,7 +2,7 @@
 
 > **Read this FIRST every session. Update it LAST before exiting.** A track is `done` only with evidence (a test-summary file in `evidence/` or a screenshot path). Never write `done` without an `evidence` link. This ledger is the single human-readable source of truth for "where are we"; [STATE.json](STATE.json) is its machine mirror — keep them in sync.
 
-**Overall status:** `IN PROGRESS` — p00-p13 complete (badge/status-language phases + dock-state unification + draw first-click fix + premium drawing modal + rectangle-AOI bounds-clipped real fetch + AOI analysis/evidence dispatch + floating right-dock shell + right-panel single-column conversion + right-dock motion + left-dock single-column conversion closed; next action p14).
+**Overall status:** `IN PROGRESS` — p00-p17 complete (badge/status-language phases + dock-state unification + draw first-click fix + premium drawing modal + rectangle-AOI bounds-clipped real fetch + AOI analysis/evidence dispatch + floating right-dock shell + right-panel single-column conversion + right-dock motion + left-dock single-column conversion + Models tab single-column recompose + premium visual flow + status overflow correctness + status premium interactions closed; next action p18).
 
 Status values: `pending` · `in_progress` · `done` · `blocked`
 
@@ -22,10 +22,10 @@ Status values: `pending` · `in_progress` · `done` · `blocked`
 | p11 | Right panel single-column | Remove dual-column | **done** | Single-column shots | **done** | ☑ |
 | p12 | Right dock motion | Motion test + reduced-motion behavior | **done** | Animated open/close | **done** | ☑ |
 | p13 | Left dock single-column | Workspace single-column | **done** | Data/Add Data shots | **done** | ☑ |
-| p14 | Models recompose | Single-column builder | pending | (support shots) | pending | ☐ |
-| p15 | Models premium visual | (support shots) | pending | Readable Models flow | pending | ☐ |
-| p16 | Status overflow fix | Overflow measurement/popover | pending | (support shots) | pending | ☐ |
-| p17 | Status premium | VS Code interactions | pending | Status bar + More shots | pending | ☐ |
+| p14 | Models recompose | Single-column builder | **done** | (support shots) | **done** | ☑ |
+| p15 | Models premium visual | (support shots) | **done** | Readable Models flow | **done** | ☑ |
+| p16 | Status overflow fix | Overflow measurement/popover | **done** | (support shots) | **done** | ☑ |
+| p17 | Status premium | VS Code interactions | **done** | Status bar + More shots | **done** | ☑ |
 | p18 | Consistency pass | Density/a11y/reduced-motion | pending | Cross-surface QA shots | pending | ☐ |
 | p19 | Final RC gate | Full gate + archive | pending | Before/after sweep | pending | ☐ |
 
@@ -217,3 +217,61 @@ Status values: `pending` · `in_progress` · `done` · `blocked`
 - Verify result: typecheck <ok/fail>, specs <names + pass/fail>
 - Next action: <phase/track + prompt file>
 -->
+
+### 2026-06-17 — p14 EXECUTED — both tracks done ✅
+- Track A: recomposed `MapModelBuilderPanel` from a cramped multi-column layout into one unconditional single-column vertical flow.
+  - `workflowGrid` changed from 2-col (`minmax(15rem, 0.85fr) minmax(17rem, 1.15fr)`) → 1-col (`minmax(0, 1fr)`); step graph and step editor now stack vertically.
+  - `.body` changed from 2-col → 1-col (stale; was dead code since `runRail` is inside `configuration`).
+  - `.runRail` changed to `display: contents` — all run/preview/batch/output sections participate directly in the `configuration` grid as vertical rows.
+  - `addStepRow` changed from 2-col (field | button) → single-column vertical stack (field + full-width button).
+  - Definition bar: removed `inputGrid` 2-col sub-wrapper — primary and overlay source fields are now direct full-width children.
+  - Added `GisSectionHeader title="Define"` and `GisSectionHeader title="Steps"` to make sections clearly labeled.
+  - `data-left-workspace-layout` set unconditionally to `"single-column"` (removed presentation conditional).
+  - Removed all `.panelEmbedded` scoped layout overrides (`.body`, `.workflowGrid`, `.runRail`, `.inputGrid`, `.parameters`, `.addStepRow`) — global defaults are now correct for all presentations.
+  - Updated `map-left-panel-responsive-fit.test.ts` and `map-left-panel-contracts.test.ts` to match new unconditional single-column reality.
+- Track A gates: model builder tests **3/3**, full map suite **913/913 (96 files)**, `npm run typecheck` PASS, no-tailwind guard PASS.
+- Track B: captured `evidence/p14-models-flow.png` (empty model, all 6 sections readable top-to-bottom in left dock) and `evidence/p14-models-blocked.png` (1-step blocked model with calm "Blocked" chips, run/batch actions correctly disabled).
+- Evidence: `evidence/p14-trackA.md`, `evidence/p14-models-flow.png`, `evidence/p14-models-blocked.png`.
+- Next action: `prompts/p15-models-visual.md`.
+
+### 2026-06-17 — p15 EXECUTED — both tracks done ✅
+- Track A: confirmed no behavior drift after p15 visual polish of the Models tab. Existing model-builder tests remained green and no type/lint-no-tailwind regressions were introduced.
+- Track B: captured required premium visuals: `evidence/p15-models-premium.png` and `evidence/p15-models-run.png`.
+- Evidence: `evidence/p15-trackA.md`, `evidence/p15-trackB.md`, `evidence/p15-models-premium.png`, `evidence/p15-models-run.png`.
+- Next action: `prompts/p16-status-overflow-fix.md`.
+
+### 2026-06-17 — p16 EXECUTED — both tracks done ✅
+- Track A: fixed status-bar overflow partition correctness in `MapStatusBar.tsx` using measured segment widths + measured More-trigger width. Partition is now exhaustive/disjoint and re-computes reliably on width/content changes. Overflow popover rendering remains aligned with inline segment rendering and preserves `data-map-status-overflow*` hooks.
+- Track A tests/gates: `mapStatusBarOverflow.test.tsx` PASS (4/4), `MapStatusBarRoutes.test.tsx` PASS (4/4), `npm run typecheck` PASS.
+- Track B: captured `evidence/p16-status-more.png` with overflow expanded, showing all hidden segments present in the More popover.
+- Evidence: `evidence/p16-trackA.md`, `evidence/p16-status-more.png`.
+- Next action: `prompts/p17-status-premium.md`.
+
+### 2026-06-17 — p17 EXECUTED — both tracks done ✅
+- Track A: upgraded `MapStatusBar.tsx` to premium VS Code interaction semantics while preserving p16 overflow correctness.
+  - Added explicit left/right cluster rendering (`data-map-status-cluster="left|right"`) with a hairline divider.
+  - Added honest interactivity markers (`data-map-status-interactive="true|false"`) and side markers (`data-map-status-side="left|right"`) for inline and overflow segments.
+  - Added actionable-segment hover/focus active treatment while keeping inert segments visually inert.
+  - Expanded `MapStatusBarRoutes.test.tsx` to assert grouping/interaction markers and keyboard-operability for interactive segments.
+- Track A tests/gates: `mapStatusBarOverflow.test.tsx` + `MapStatusBarRoutes.test.tsx` PASS (**10/10** combined), `npm run typecheck` PASS, no-tailwind guard PASS via `pwsh -File scripts/check-no-tailwind-centerpanel.ps1`.
+- a11y verification: `npm run test:e2e:a11y` executed; **5 passed / 1 failed** (`e2e/accessibility-audit.spec.ts` Prompt 55 keyboard path expects `map-inspector-host` focus). Logged as existing non-status-bar failure.
+- Track B: captured required visuals `evidence/p17-status-bar.png`, `evidence/p17-status-hover.png`, and `evidence/p17-status-more.png` (capture spec run then removed).
+- Evidence: `evidence/p17-trackA.md`, `evidence/p17-trackB.md`, plus the 3 screenshots above.
+- Next action: `prompts/p18-consistency-pass.md`.
+
+### 2026-06-17 — p16/p17 compliance audit (long-prompt parity) ✅
+- Scope: verified `prompts/p16-status-overflow-fix.md` and `prompts/p17-status-premium.md` requirements against ledger/state statuses, evidence files, tests, and captured visuals.
+- Result: **no mismatch found**.
+  - p16 Track A/Track B done criteria are satisfied (`evidence/p16-trackA.md`, `evidence/p16-status-more.png`, overflow tests + typecheck recorded).
+  - p17 Track A/Track B done criteria are satisfied (`evidence/p17-trackA.md`, `evidence/p17-trackB.md`, required premium screenshots present, routing/overflow tests + typecheck recorded, a11y run recorded with one existing non-status-bar failure note).
+- State sync check: `STATE.json` already mirrors p16/p17 as `done` with evidence paths; no state edits required.
+- Next action remains unchanged: `prompts/p18-consistency-pass.md`.
+
+### 2026-06-17 — status snapshot refreshed ✅
+- Latest phase status snapshot:
+  - p16: Track A `done`, Track B `done`, phase closed.
+  - p17: Track A `done`, Track B `done`, phase closed.
+  - p18: Track A `pending`, Track B `pending`.
+  - p19: Track A `pending`, Track B `pending`.
+- Source of truth check: `LEDGER.md` table and `STATE.json` are aligned for p16-p19.
+- Next actionable prompt: `prompts/p18-consistency-pass.md`.

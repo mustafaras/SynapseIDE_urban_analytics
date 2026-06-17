@@ -32,6 +32,8 @@ import { Scene3DInteractionStrip } from "../scene3d/Scene3DInteractionStrip";
 import { ScenarioComparisonStrip } from "../scene3d/ScenarioComparisonStrip";
 import type { MapSceneTabId } from "../scene";
 
+const RIGHT_DOCK_CLOSE_ANIMATION_MS = 160;
+
 interface MapExplorerModalRuntimeViewProps {
   announce: (message: string) => void;
   handleOpenSceneTab: (tabId: MapSceneTabId, announcement: string) => void;

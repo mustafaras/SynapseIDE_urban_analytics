@@ -364,8 +364,14 @@ export function MapModelBuilderPanel({
       <header className={styles.header}>
         <h2><GitBranch size={16} aria-hidden /> Model builder</h2>
         <div className={styles.headerChips} aria-label="Model builder readiness">
-          <GisStatusChip status={canRun ? "ready" : "blocked"} label={canRun ? "Ready" : "Blocked"} density="compact" data-testid="model-readiness" />
-          <GisStatusChip status="generated" label={`${steps.length} step${steps.length === 1 ? "" : "s"}`} density="compact" />
+          <span
+            className={styles.readinessLine}
+            data-status={canRun ? "ready" : "blocked"}
+            data-testid="model-readiness"
+          >
+            {canRun ? "All steps ready" : "Blocked"}
+          </span>
+          <span className={styles.stepCount}>{steps.length} step{steps.length === 1 ? "" : "s"}</span>
         </div>
         <button type="button" className={styles.iconButton} onClick={onClose} aria-label="Close model builder">
           <X size={16} aria-hidden />
@@ -373,31 +379,31 @@ export function MapModelBuilderPanel({
       </header>
 
       <div className={styles.body}>
-        <section className={styles.configuration} aria-label="Model builder workflow" data-left-workspace-layout={presentation === "embedded" ? "single-column" : "split"}>
+        <section className={styles.configuration} aria-label="Model builder workflow" data-left-workspace-layout="single-column">
           <div className={styles.definitionBar} data-testid="model-section-define">
+            <GisSectionHeader title="Define" level={4} compact separator={false} />
             <label className={styles.field}>
               <span>Model name</span>
               <input data-testid="model-name" value={title} onChange={(event) => setTitle(event.target.value)} />
             </label>
-            <div className={styles.inputGrid}>
-              <label className={styles.field}>
-                <span>Primary source</span>
-                <select data-testid="model-source-input" value={sourceLayerId} onChange={(event) => setSourceLayerId(event.target.value)}>
-                  {layers.length === 0 ? <option value="">No layer available</option> : null}
-                  {layers.map((layer) => <option key={layer.id} value={layer.id}>{layer.name}</option>)}
-                </select>
-              </label>
-              <label className={styles.field}>
-                <span>Overlay source</span>
-                <select data-testid="model-overlay-input" value={overlayLayerId} onChange={(event) => setOverlayLayerId(event.target.value)}>
-                  {layers.length === 0 ? <option value="">No layer available</option> : null}
-                  {layers.map((layer) => <option key={layer.id} value={layer.id}>{layer.name}</option>)}
-                </select>
-              </label>
-            </div>
+            <label className={styles.field}>
+              <span>Primary source</span>
+              <select data-testid="model-source-input" value={sourceLayerId} onChange={(event) => setSourceLayerId(event.target.value)}>
+                {layers.length === 0 ? <option value="">No layer available</option> : null}
+                {layers.map((layer) => <option key={layer.id} value={layer.id}>{layer.name}</option>)}
+              </select>
+            </label>
+            <label className={styles.field}>
+              <span>Overlay source</span>
+              <select data-testid="model-overlay-input" value={overlayLayerId} onChange={(event) => setOverlayLayerId(event.target.value)}>
+                {layers.length === 0 ? <option value="">No layer available</option> : null}
+                {layers.map((layer) => <option key={layer.id} value={layer.id}>{layer.name}</option>)}
+              </select>
+            </label>
           </div>
 
           <div className={styles.addStepRow} data-testid="model-section-steps">
+            <GisSectionHeader title="Steps" level={4} compact separator={false} badge={<span>{steps.length} step{steps.length === 1 ? "" : "s"}</span>} />
             <label className={styles.field}>
               <span>Add processing step</span>
               <select data-testid="model-add-tool" value={selectedToolId} onChange={(event) => setSelectedToolId(event.target.value)}>
@@ -413,7 +419,9 @@ export function MapModelBuilderPanel({
             <section className={styles.stepGraph} aria-label="Model step graph">
               <div className={styles.sectionTitleRow}>
                 <GisSectionHeader title="Workflow graph" level={4} compact separator={false} />
-                <GisStatusChip status={blockedSteps.length === 0 ? "ready" : "blocked"} label={blockedSteps.length === 0 ? "All steps ready" : `${blockedSteps.length} blocked`} density="compact" />
+                <span className={styles.readinessLine} data-status={blockedSteps.length === 0 ? "ready" : "blocked"}>
+                  {blockedSteps.length === 0 ? "All steps ready" : `${blockedSteps.length} blocked`}
+                </span>
               </div>
               <div className={styles.stepList} data-testid="model-step-list">
                 {steps.length === 0 ? <p className={styles.empty}>Add a processing step to construct an ordered model.</p> : null}
@@ -424,37 +432,40 @@ export function MapModelBuilderPanel({
                     data-testid={`model-step-${entry.step.toolId}`}
                     data-status={entry.status}
                   >
-                    <button
-                      type="button"
-                      className={styles.stepSelect}
-                      onClick={() => setSelectedStepId(entry.step.stepId)}
-                      aria-pressed={entry.step.stepId === selectedStepId}
-                    >
-                      <span className={styles.stepIndex}>{String(entry.index + 1).padStart(2, "0")}</span>
-                      <span className={styles.stepMain}>
-                        <strong>{entry.step.label}</strong>
-                        <small>{entry.descriptor?.summary ?? entry.step.toolId}</small>
-                      </span>
-                      <GisStatusChip
-                        status={entry.status === "ready" ? "ready" : "blocked"}
-                        label={entry.status === "ready" ? "Ready" : "Blocked"}
-                        density="compact"
-                        data-testid={`model-step-status-${entry.step.stepId}`}
-                      />
-                    </button>
+                    <div className={styles.stepHeaderRow}>
+                      <button
+                        type="button"
+                        className={styles.stepSelect}
+                        onClick={() => setSelectedStepId(entry.step.stepId)}
+                        aria-pressed={entry.step.stepId === selectedStepId}
+                      >
+                        <span className={styles.stepIndex}>{String(entry.index + 1).padStart(2, "0")}</span>
+                        <span className={styles.stepMain}>
+                          <strong>{entry.step.label}</strong>
+                          <small>{entry.descriptor?.summary ?? entry.step.toolId}</small>
+                        </span>
+                        <span
+                          className={styles.readinessLine}
+                          data-status={entry.status === "ready" ? "ready" : "blocked"}
+                          data-testid={`model-step-status-${entry.step.stepId}`}
+                        >
+                          {entry.status === "ready" ? "Ready" : "Blocked"}
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.removeButton}
+                        onClick={() => removeStep(entry.step.stepId)}
+                        aria-label={`Remove ${entry.step.label} step`}
+                      >
+                        Remove
+                      </button>
+                    </div>
                     <div className={styles.stepMeta}>
                       <span className={styles.role}>{entry.index === steps.length - 1 ? "final output" : "passes output"}</span>
                       <span>{entry.outputLabel}</span>
                     </div>
                     {entry.reasons.length > 0 ? renderList(entry.reasons, `model-step-blockers-${entry.step.stepId}`) : null}
-                    <button
-                      type="button"
-                      className={styles.removeButton}
-                      onClick={() => removeStep(entry.step.stepId)}
-                      aria-label={`Remove ${entry.step.label} step`}
-                    >
-                      Remove
-                    </button>
                   </article>
                 ))}
               </div>
@@ -563,7 +574,9 @@ export function MapModelBuilderPanel({
             <section className={styles.runPreview} aria-label="Run preview" data-testid="model-run-preview" data-model-flow-section="run-preview">
             <div className={styles.sectionTitleRow}>
               <GisSectionHeader title="Run preview" level={4} compact separator={false} badge={<CheckCircle2 size={13} aria-hidden />} />
-              <GisStatusChip status={canRun ? "ready" : "blocked"} label={canRun ? "Executable" : "Needs input"} density="compact" />
+              <span className={styles.readinessLine} data-status={canRun ? "ready" : "blocked"}>
+                {canRun ? "Executable" : "Needs input"}
+              </span>
             </div>
             <GisPropertyGrid
               density="compact"
@@ -587,6 +600,7 @@ export function MapModelBuilderPanel({
           </section>
 
             <div className={styles.actions} data-model-flow-section="run-actions">
+              <GisSectionHeader title="Run controls" level={4} compact separator={false} />
               <button type="button" className={styles.primaryButton} disabled={!canRun} onClick={() => runDefinition(buildDefinition())} data-testid="model-run" title={!canRun ? runDisabledReason : undefined}>
                 <Play size={13} aria-hidden /> Run model
               </button>
@@ -601,7 +615,7 @@ export function MapModelBuilderPanel({
             <section className={styles.batch} aria-label="Batch targets" data-testid="model-section-batch" data-model-flow-section="batch-targets">
             <div className={styles.sectionTitleRow}>
               <GisSectionHeader title="Batch targets" level={4} compact separator={false} badge={<Layers3 size={13} aria-hidden />} />
-              <GisStatusChip status={batchLayerIds.length > 0 ? "ready" : "blocked"} label={`${batchLayerIds.length} selected`} density="compact" />
+              <span className={styles.stepCount}>{batchLayerIds.length} selected</span>
             </div>
             <p>Run this template against selected layer inputs. Each output retains a separate manifest.</p>
             <GisProgressBar value={batchProgress} label="Batch run progress" data-testid="model-batch-progress" />
