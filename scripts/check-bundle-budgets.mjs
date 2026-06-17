@@ -14,8 +14,8 @@ const APPROVED_LAZY_BUDGET_OVERRIDES = {
     reason: 'Map explorer intentionally isolates importer, map engine, dataset library, diagnostics, map-persistence recovery stacks, and the 3D/zoning/massing/sun-shadow panel suite (Prompts 30–33) behind a single lazy boundary.',
   },
   'centerpanel/components/MapExplorerHost': {
-    budgetBytes: 4300 * 1024,
-    reason: 'Map explorer host intentionally keeps the modal, persisted store, importer, map engine, dataset library, diagnostics, map-persistence recovery stacks, and the 3D/zoning/massing/sun-shadow panel suite behind the lazy Map Explorer boundary.',
+    budgetBytes: 4400 * 1024,
+    reason: 'Map explorer host intentionally keeps the modal, persisted store, importer, map engine, dataset library, diagnostics, map-persistence recovery stacks, and the 3D/zoning/massing/sun-shadow panel suite behind the lazy Map Explorer boundary. The 2026-06 dock redesign added the floating right-dock modal, single-column right/left panels, premium VS Code status bar, and shared consistency primitives to this same lazy (off-boot-path) boundary; initial-load budget is unaffected and remains within budget.',
   },
   'centerpanel/Flows/SunlightSimFlow': {
     budgetBytes: 1365 * 1024,

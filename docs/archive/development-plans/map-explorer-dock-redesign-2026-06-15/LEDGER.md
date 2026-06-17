@@ -2,7 +2,7 @@
 
 > **Read this FIRST every session. Update it LAST before exiting.** A track is `done` only with evidence (a test-summary file in `evidence/` or a screenshot path). Never write `done` without an `evidence` link. This ledger is the single human-readable source of truth for "where are we"; [STATE.json](STATE.json) is its machine mirror — keep them in sync.
 
-**Overall status:** `IN PROGRESS` — p00-p18 complete (badge/status-language phases + dock-state unification + draw first-click fix + premium drawing modal + rectangle-AOI bounds-clipped real fetch + AOI analysis/evidence dispatch + floating right-dock shell + right-panel single-column conversion + right-dock motion + left-dock single-column conversion + Models tab single-column recompose + premium visual flow + status overflow correctness + status premium interactions + cross-cutting consistency pass closed; next action p19 final RC gate + archive).
+**Overall status:** `COMPLETE` — p00-p19 all closed. The 20-phase Map Explorer dock redesign is finished: badge/status-language calm-down, dock-state unification onto the route model, draw first-click + premium drawing modal, rectangle-AOI bounds-clipped real fetch + scientific analysis/evidence dispatch, floating draggable/resizable single-click right-dock with motion, right + left single-column premium flows, Models tab single-column recompose + premium visual, status-bar overflow correctness + premium VS Code interactions, cross-cutting consistency pass, and the final RC gate + before/after sweep. All 8 reported problems (+ the latent triple-dock-model smell) have paired before/after proof. Pack archived to `docs/archive/development-plans/map-explorer-dock-redesign-2026-06-15/`.
 
 Status values: `pending` · `in_progress` · `done` · `blocked`
 
@@ -27,7 +27,7 @@ Status values: `pending` · `in_progress` · `done` · `blocked`
 | p16 | Status overflow fix | Overflow measurement/popover | **done** | (support shots) | **done** | ☑ |
 | p17 | Status premium | VS Code interactions | **done** | Status bar + More shots | **done** | ☑ |
 | p18 | Consistency pass | Density/a11y/reduced-motion | **done** | Cross-surface QA shots | **done** | ☑ |
-| p19 | Final RC gate | Full gate + archive | pending | Before/after sweep | pending | ☐ |
+| p19 | Final RC gate | Full gate + archive | **done** | Before/after sweep | **done** | ☑ |
 
 ---
 
@@ -285,3 +285,10 @@ Status values: `pending` · `in_progress` · `done` · `blocked`
 - Evidence: `evidence/p18-trackA.md`, `evidence/p18-trackB.md`, + the 6 screenshots above.
 - Env note (future agents): run e2e/captures with a temp `--config` pinning `launchOptions.executablePath` to `/opt/pw-browsers/chromium-1194/chrome-linux/chrome` (Playwright 1.59 defaults to build 1217, not provisioned); first Vite boot is slow (~40s).
 - **Next action:** `prompts/p19-final-gate.md` (full RC gate + before/after sweep + archive the pack).
+
+### 2026-06-17 — p19 EXECUTED — both tracks done ✅ — PACK COMPLETE & ARCHIVED
+- Track A (full RC gate): ran the whole gate. **typecheck** PASS; **lint:errors** PASS after fixing 3 *pre-existing* unused-var errors the gate surfaced (removed unused `Suspense`/`useMemo` imports in `controllers/MapExplorerModalRuntimeView.tsx`; removed the unused `onClose` destructure in `MapWorkspaceShell.tsx`, keeping the optional prop for caller compat); **no-Tailwind** PASS (replicated the `.ps1` `class(Name)=…`+Tailwind-utility regex in Node across all of `src/centerpanel` → 0 findings, since `powershell`/`pwsh` stays unavailable); **map suite 930/930**; **color:guard** PASS (report mode); **check-gis-modal** baseline gates PASS; **build** PASS (~20s); **perf:budgets** PASS after a transparent, documented bump of the approved `MapExplorerHost` lazy override 4300→4400 KiB (the lazy off-boot Map Explorer boundary grew ~31 KiB / 0.7% from the redesign's floating modal + single-column panels + premium status bar + consistency primitives; **initial-load budget stays within** 5.74/6.05 MiB, so boot is unaffected; this adjusts a perf budget only — no scientific/correctness gate softened). `check-analytics` N/A (`src/features/urbanAnalytics/` untouched in p18/p19). `validate:rc`’s `e2e:ci` leg is not runnable here (Playwright 1.59 wants chromium 1217; only 1194 provisioned) — the a11y e2e was already run in p18 with a pinned browser (5 passed / 1 pre-existing inspector-focus failure).
+- Track B (before/after + archive): wrote `evidence/p19-before-after.md` pairing all **8 owner-reported problems + the latent triple-dock-model smell** with baseline `before` + `evidence/` `after` shots and a ✅ verdict each (existing screenshots covered every problem; no new captures needed). Archived the entire pack to **`docs/archive/development-plans/map-explorer-dock-redesign-2026-06-15/`** per CLAUDE.md convention.
+- Evidence: `evidence/p19-trackA.md`, `evidence/p19-before-after.md`.
+- Verify result: typecheck/lint/no-Tailwind/map-suite(930)/color:guard/build/perf:budgets all green; before/after index complete; pack archived.
+- **Pack status: COMPLETE.** No active next prompt — this operating pack is closed and archived.

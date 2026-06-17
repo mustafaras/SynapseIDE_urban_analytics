@@ -90,7 +90,7 @@ test.describe("p08 AOI analysis capture", () => {
     await expect(dispatchDialog).toBeVisible({ timeout: 15000 });
     await expect(dispatchDialog.getByText("Analyze This Area")).toBeVisible();
 
-    await page.screenshot({ path: "MAP_EXPLORER_DOCK_REDESIGN_2026-06-15/evidence/p08-aoi-analysis.png", fullPage: true });
+    await page.screenshot({ path: "docs/archive/development-plans/map-explorer-dock-redesign-2026-06-15/evidence/p08-aoi-analysis.png", fullPage: true });
 
     const compatibleFlowButtons = dispatchDialog.locator("button").filter({ hasText: /AOI attached/i });
     await expect(compatibleFlowButtons.first()).toBeVisible();
@@ -127,6 +127,6 @@ test.describe("p08 AOI analysis capture", () => {
     const registeredToast = page.getByText(/ANALYSIS REGISTERED/i).first();
     await expect(registeredToast).toBeVisible({ timeout: 15000 });
 
-    await page.screenshot({ path: "MAP_EXPLORER_DOCK_REDESIGN_2026-06-15/evidence/p08-evidence-registered.png", fullPage: true });
+    await page.screenshot({ path: "docs/archive/development-plans/map-explorer-dock-redesign-2026-06-15/evidence/p08-evidence-registered.png", fullPage: true });
   });
 });

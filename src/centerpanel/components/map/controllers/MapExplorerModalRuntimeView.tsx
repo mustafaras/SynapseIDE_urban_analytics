@@ -1,4 +1,4 @@
-import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 import { IconLayers } from "../MapIcons";
 import { MapPanelErrorBoundary } from "../MapPanelErrorBoundary";

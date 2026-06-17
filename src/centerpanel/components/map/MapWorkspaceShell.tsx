@@ -548,7 +548,6 @@ export const MapWorkspaceShell: React.FC<MapWorkspaceShellProps> = ({
   children,
   shellRef,
   className,
-  onClose,
   labelledBy = "map-explorer-title",
   activeActivityId = null,
 }) => {

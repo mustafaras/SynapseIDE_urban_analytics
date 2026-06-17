@@ -3,7 +3,7 @@
   "pack": "map-explorer-dock-redesign",
   "createdAt": "2026-06-15",
   "module": "map-explorer",
-  "overallStatus": "in_progress",
+  "overallStatus": "complete",
   "mode": "dual_track",
   "closeRule": "A phase closes only when BOTH trackA and trackB are status=done with an evidence path.",
   "serialOrder": ["p00","p01","p02","p03","p04","p05","p06","p07","p08","p09","p10","p11","p12","p13","p14","p15","p16","p17","p18","p19"],
@@ -98,7 +98,8 @@
       "notes": "Audit found the redesigned surfaces already consistent (shared GisEmptyState/GisSectionHeader/motion + reduced-motion); the one real divergence was the right-dock full-panel fallback empty body — harmonized to GisEmptyState (dead .emptyBody CSS removed). Froze consistency with new tests: mapVisualQA 'Prompt p18 cross-surface consistency contract' + map-accessibility 'Prompt p18 redesigned-surface reduced-motion + keyboard consistency'. Also harmonized a pre-existing drift in map-left-panel-responsive-fit.test.ts (asserted 22rem/48vh vs rendered 24rem/50vh). Gates: map suite 930/930, typecheck PASS, no-Tailwind verified manually (pwsh unavailable), e2e:a11y 5 passed/1 failed (pre-existing Prompt 55 map-inspector-host focus, same as p17). Visual: p18-overview-{default,reduced-motion,high-contrast}.png + p18-right-dock-default.png + p18-models-default.png + p18-left-workspace-default.png. Drawing modal default shot deferred to p06 evidence + p18 source tests (open path diverged under full modal)." },
     { "id": "p19", "title": "Final RC gate + visual QA sweep + archive", "dependsOn": ["p01","p02","p03","p04","p05","p06","p07","p08","p09","p10","p11","p12","p13","p14","p15","p16","p17","p18"],
       "prompt": "prompts/p19-final-gate.md",
-      "trackA": { "title": "Full validation gate", "status": "pending", "evidence": null },
-      "trackB": { "title": "Before/after sweep + archive", "status": "pending", "evidence": null } }
+      "trackA": { "title": "Full validation gate", "status": "done", "evidence": "evidence/p19-trackA.md" },
+      "trackB": { "title": "Before/after sweep + archive", "status": "done", "evidence": "evidence/p19-before-after.md" },
+      "notes": "Full gate green: typecheck, lint:errors (fixed 3 pre-existing unused-var errors), no-Tailwind (Node replication; pwsh unavailable), map suite 930/930, color:guard, build, perf:budgets (bumped the approved MapExplorerHost lazy override 4300->4400 KiB for accumulated redesign growth on the lazy off-boot boundary; initial-load within budget). validate:rc e2e:ci leg not runnable (chromium 1217 vs provisioned 1194). check-analytics N/A (urbanAnalytics untouched). Before/after index (evidence/p19-before-after.md) pairs all 8 problems + the latent dock-model smell with baseline+after proof, all verdicts pass. Pack archived to docs/archive/development-plans/map-explorer-dock-redesign-2026-06-15/." }
   ]
 }

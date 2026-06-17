@@ -4,7 +4,7 @@
  * p01 — Map Explorer badge / status-language policy gate.
  *
  * Two enforced invariants for the dock/drawing/status redesign pack
- * (MAP_EXPLORER_DOCK_REDESIGN_2026-06-15):
+ * (archived: docs/archive/development-plans/map-explorer-dock-redesign-2026-06-15):
  *
  *  A. STATUS TONE (hard, enforced now): MAP_STATUS_TOKENS fills and borders must
  *     NOT be tinted with the saturated success/error palette vars
