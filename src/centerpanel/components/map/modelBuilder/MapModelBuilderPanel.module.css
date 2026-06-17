@@ -29,21 +29,11 @@
 }
 
 .panelEmbedded .body {
-  grid-template-columns: minmax(0, 1fr);
   overflow: hidden;
 }
 
-.panelEmbedded .configuration,
-.panelEmbedded .runRail {
-  overflow: visible;
-}
-
-.panelEmbedded .runRail {
-  border-top: 1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.22));
-  border-left: 0;
-  padding-left: 0;
-  padding-right: 0;
-  background: transparent;
+.panelEmbedded .configuration {
+  overflow-y: auto;
 }
 
 .header {
@@ -64,12 +54,35 @@
 }
 
 .headerChips {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  display: grid;
+  justify-items: end;
+  gap: 2px;
   min-width: 0;
   margin-left: auto;
   margin-right: 8px;
+}
+
+.stepCount {
+  color: var(--syn-text-muted, #8993a3);
+  font-family: var(--font-mono, "JetBrains Mono", monospace);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.readinessLine {
+  color: var(--syn-text-secondary, #b8c0cd);
+  font-size: 11px;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.readinessLine[data-status="ready"] {
+  color: var(--syn-status-success, #4ca078);
+}
+
+.readinessLine[data-status="blocked"] {
+  color: var(--syn-status-warning, #d09a48);
 }
 
 .iconButton {
@@ -87,29 +100,32 @@
 
 .body {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 20rem;
+  grid-template-columns: minmax(0, 1fr);
   min-height: 0;
 }
 
-.configuration,
-.runRail {
+.configuration {
   display: grid;
   align-content: start;
-  gap: 12px;
+  gap: 14px;
   min-height: 0;
   padding: 14px;
   overflow-y: auto;
 }
 
 .runRail {
-  border-left: 1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.22));
-  background: color-mix(in srgb, var(--syn-bg-panel, #181b22) 92%, black);
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  min-height: 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.22));
 }
 
 .definitionBar {
   display: grid;
   gap: 10px;
-  padding-bottom: 10px;
+  padding-bottom: 12px;
   border-bottom: 1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.18));
 }
 
@@ -140,35 +156,24 @@
   font: inherit;
 }
 
-.inputGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
 .addStepRow {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: end;
   gap: 8px;
-  padding-top: 4px;
+  padding-top: 8px;
+  padding-bottom: 2px;
   border-top: 1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.18));
 }
 
 .stepList {
   display: grid;
-  gap: 8px;
+  gap: 6px;
 }
 
 .workflowGrid {
   display: grid;
-  grid-template-columns: minmax(15rem, 0.85fr) minmax(17rem, 1.15fr);
-  gap: 12px;
-  min-height: 0;
-}
-
-.panelEmbedded .workflowGrid {
   grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+  min-height: 0;
 }
 
 .stepGraph,
@@ -179,11 +184,32 @@
   align-content: start;
   gap: 10px;
   min-width: 0;
+  position: relative;
+  isolation: isolate;
 }
 
 .stepGraph,
 .stepEditor {
   min-height: 0;
+  max-height: min(24rem, 50vh);
+  overflow: auto;
+  padding: 10px 10px 12px;
+  border-top: 1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.22));
+  background: transparent;
+}
+
+.runPreview,
+.batch,
+.outputPlaceholder,
+.result,
+.blocked {
+  padding: 10px 10px 12px;
+  border-top: 1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.2));
+  background: transparent;
+}
+
+.runPreview {
+  border-top-color: color-mix(in srgb, var(--syn-interaction-active, #d09a48) 34%, transparent);
 }
 
 .sectionTitleRow {
@@ -192,6 +218,10 @@
   justify-content: space-between;
   gap: 8px;
   min-width: 0;
+}
+
+.sectionTitleRow :global(h4) {
+  margin: 0;
 }
 
 .sectionTitleRow h3 {
@@ -213,17 +243,24 @@
 
 .step {
   display: grid;
-  gap: 10px;
-  padding: 10px;
+  gap: 8px;
+  padding: 8px 9px;
   border: 1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.22));
   border-left: 2px solid var(--syn-interaction-active, #d09a48);
-  border-radius: 3px;
+  border-radius: 2px;
   background: transparent;
 }
 
 .stepSelected {
   background: color-mix(in srgb, var(--syn-interaction-active, #d09a48) 8%, transparent);
   border-color: color-mix(in srgb, var(--syn-interaction-active, #d09a48) 44%, transparent);
+}
+
+.stepHeaderRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 8px;
 }
 
 .stepSelect {
@@ -242,7 +279,7 @@
 
 .stepMain {
   display: grid;
-  gap: 2px;
+  gap: 3px;
   min-width: 0;
 }
 
@@ -258,7 +295,7 @@
 .stepMain small {
   color: var(--syn-text-muted, #8993a3);
   font-size: 10px;
-  line-height: 1.35;
+  line-height: 1.4;
 }
 
 .stepMeta {
@@ -291,11 +328,17 @@
 }
 
 .removeButton {
-  border: 0;
+  border: 1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.22));
+  border-radius: 2px;
+  min-height: 24px;
+  padding: 3px 7px;
   background: transparent;
   color: var(--syn-text-muted, #8993a3);
   cursor: pointer;
   font-size: 10px;
+  font-family: var(--font-mono, "JetBrains Mono", monospace);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
 }
 
 .reasonList {
@@ -329,19 +372,23 @@
   gap: 8px;
 }
 
-.panelEmbedded .inputGrid,
-.panelEmbedded .parameters,
-.panelEmbedded .addStepRow {
+.parameters {
   grid-template-columns: minmax(0, 1fr);
 }
 
-.panelEmbedded .addStepRow .secondaryButton {
+.addStepRow .secondaryButton {
   width: 100%;
 }
 
 .actions {
   display: grid;
   gap: 8px;
+  padding-top: 2px;
+}
+
+.actions :global(h4) {
+  margin: 0;
+  color: var(--syn-text-muted, #8993a3);
 }
 
 .primaryButton,
@@ -354,7 +401,7 @@
   min-height: 32px;
   padding: 6px 10px;
   border: 1px solid color-mix(in srgb, var(--syn-interaction-active, #d09a48) 48%, transparent);
-  border-radius: 3px;
+  border-radius: 2px;
   background: transparent;
   color: var(--syn-interaction-active, #d09a48);
   cursor: pointer;
@@ -364,8 +411,13 @@
 
 .primaryButton,
 .exportButton {
-  background: var(--syn-interaction-active, #d09a48);
+  background: color-mix(in srgb, var(--syn-interaction-active, #d09a48) 88%, #f1dfbf);
   color: var(--syn-bg, #111319);
+}
+
+.secondaryButton {
+  border-color: var(--syn-border-subtle, rgba(148, 163, 184, 0.28));
+  color: var(--syn-text-secondary, #b8c0cd);
 }
 
 .primaryButton:disabled,
@@ -380,9 +432,8 @@
 .batch {
   display: grid;
   gap: 8px;
-  padding: 12px 0;
-  border-top: 1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.18));
-  border-bottom: 1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.18));
+  padding: 10px 10px 12px;
+  opacity: 0.92;
 }
 
 .batch h3,
@@ -408,6 +459,7 @@
 
 .readyText {
   color: var(--syn-status-success, #4ca078);
+  font-size: 11px;
 }
 
 .batchLayers {
@@ -444,9 +496,9 @@
 .blocked {
   display: grid;
   gap: 8px;
-  padding: 10px;
-  border: 1px solid color-mix(in srgb, var(--syn-status-success, #4ca078) 34%, transparent);
-  border-radius: 3px;
+  padding: 10px 10px 12px;
+  border-top: 1px solid color-mix(in srgb, var(--syn-status-success, #4ca078) 34%, transparent);
+  border-radius: 0;
   color: var(--syn-text-secondary, #b8c0cd);
   font-size: 11px;
 }
@@ -458,7 +510,7 @@
 }
 
 .blocked {
-  border-color: color-mix(in srgb, var(--syn-status-warning, #d09a48) 44%, transparent);
+  border-top-color: color-mix(in srgb, var(--syn-status-warning, #d09a48) 44%, transparent);
 }
 
 .panelEmbedded .actions {
@@ -481,21 +533,10 @@
   }
 
   .panelEmbedded .body {
-    grid-template-columns: 1fr;
     overflow: auto;
   }
 
   .workflowGrid {
     grid-template-columns: 1fr;
-  }
-
-  .runRail {
-    border-top: 1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.22));
-    border-left: 0;
-  }
-
-  .panelEmbedded .runRail {
-    border-top: 1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.22));
-    border-left: 0;
   }
 }

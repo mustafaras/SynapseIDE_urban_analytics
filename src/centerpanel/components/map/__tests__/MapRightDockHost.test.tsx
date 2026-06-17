@@ -239,6 +239,25 @@ describe("MapRightDockHost", () => {
     expect(onFloatingRectChange).toHaveBeenCalled();
   });
 
+  it("does not enter dragging state when floating header action controls are pressed", () => {
+    render(
+      <MapRightDockHost
+        route={createMapRightDockRoute("inspect", { source: "toolbar" })}
+        presentation="floating-modal"
+        width={420}
+        floatingRect={{ x: 80, y: 100, width: 420, height: 520 }}
+        onFloatingRectChange={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    const host = screen.getByTestId("map-right-dock-host");
+    const closeButton = screen.getByLabelText("Close right dock");
+    fireEvent.pointerDown(closeButton, { button: 0, clientX: 120, clientY: 120 });
+
+    expect(host.getAttribute("data-dragging")).toBe("false");
+  });
+
   it("marks the host as closing and reduced-motion safe when requested", () => {
     render(
       <MapRightDockHost

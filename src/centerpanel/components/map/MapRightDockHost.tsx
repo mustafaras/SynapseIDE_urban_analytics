@@ -317,7 +317,9 @@ export const MapRightDockHost: React.FC<MapRightDockHostProps> = ({
     if (presentation !== "floating-modal" || !normalizedFloatingRect || !onFloatingRectChange) {
       return;
     }
-    if (!isSameFloatingRect(normalizedFloatingRect, floatingRect ?? null)) {
+    // Only initialize missing external state. Continuous sync here can create
+    // update feedback loops while dragging/resizing.
+    if (!floatingRect) {
       onFloatingRectChange(normalizedFloatingRect);
     }
   }, [floatingRect, normalizedFloatingRect, onFloatingRectChange, presentation]);
@@ -328,17 +330,20 @@ export const MapRightDockHost: React.FC<MapRightDockHostProps> = ({
     }
     const handleResize = () => {
       const clamped = clampMapRightDockFloatingRect(normalizedFloatingRect, getViewportSize());
-      onFloatingRectChange(clamped);
+      if (!isSameFloatingRect(clamped, floatingRect ?? null)) {
+        onFloatingRectChange(clamped);
+      }
     };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
-  }, [normalizedFloatingRect, onFloatingRectChange, presentation]);
+  }, [floatingRect, normalizedFloatingRect, onFloatingRectChange, presentation]);
 
   const handleFloatingResizePointerDown = useCallback((event: React.PointerEvent<HTMLButtonElement>, direction: FloatingResizeDirection) => {
     if (!normalizedFloatingRect || !onFloatingRectChange) {
       return;
     }
     event.preventDefault();
+    event.stopPropagation();
     const startX = event.clientX;
     const startY = event.clientY;
     const startRect = normalizedFloatingRect;
@@ -372,6 +377,13 @@ export const MapRightDockHost: React.FC<MapRightDockHostProps> = ({
   }, [normalizedFloatingRect, onFloatingRectChange]);
 
   const handleFloatingHeaderPointerDown = useCallback((event: React.PointerEvent<HTMLElement>) => {
+    if (event.button !== 0) {
+      return;
+    }
+    const target = event.target as HTMLElement | null;
+    if (target?.closest("button,input,select,textarea,a,[data-no-panel-drag='true']")) {
+      return;
+    }
     setIsDragging(true);
     const stopDragging = (): void => {
       setIsDragging(false);

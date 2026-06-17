@@ -2761,6 +2761,9 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
 
   const handleRightPanelWidthChange = useCallback(
     (width: number) => {
+      if (layoutPreferences.rightPanelWidth === width && layoutPreferences.rightDockFloating.width === width) {
+        return;
+      }
       setLayoutPreferences({
         rightPanelWidth: width,
         rightDockFloating: {
@@ -2769,17 +2772,27 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
         },
       });
     },
-    [layoutPreferences.rightDockFloating, setLayoutPreferences]
+    [layoutPreferences.rightDockFloating, layoutPreferences.rightPanelWidth, setLayoutPreferences]
   );
 
   const handleRightDockFloatingRectChange = useCallback(
     (rect: { x: number; y: number; width: number; height: number }) => {
+      const currentRect = layoutPreferences.rightDockFloating;
+      if (
+        currentRect.x === rect.x &&
+        currentRect.y === rect.y &&
+        currentRect.width === rect.width &&
+        currentRect.height === rect.height &&
+        layoutPreferences.rightPanelWidth === rect.width
+      ) {
+        return;
+      }
       setLayoutPreferences({
         rightPanelWidth: rect.width,
         rightDockFloating: rect,
       });
     },
-    [setLayoutPreferences],
+    [layoutPreferences.rightDockFloating, layoutPreferences.rightPanelWidth, setLayoutPreferences],
   );
 
   const handleRightDockHostPanelChange = useCallback(

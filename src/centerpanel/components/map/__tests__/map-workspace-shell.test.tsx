@@ -26,4 +26,22 @@ describe("MapWorkspaceShell", () => {
 
     expect(onClose).not.toHaveBeenCalled();
   });
+
+  it("keeps the overlay portal root available to in-modal popovers", () => {
+    const overlayRoot = document.createElement("div");
+    overlayRoot.dataset.mapOverlayRoot = "true";
+    overlayRoot.setAttribute("aria-hidden", "false");
+    document.body.appendChild(overlayRoot);
+
+    const { unmount } = render(
+      <MapWorkspaceShell mode="modal" onClose={() => undefined}>
+        <div>Workspace content</div>
+      </MapWorkspaceShell>,
+    );
+
+    expect(overlayRoot.getAttribute("aria-hidden")).toBe("false");
+
+    unmount();
+    overlayRoot.remove();
+  });
 });

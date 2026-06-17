@@ -92,6 +92,18 @@ function clickByAriaPrefix(prefix: string): void {
   act(() => target.dispatchEvent(new MouseEvent("click", { bubbles: true })));
 }
 
+function pressEnterByAriaLabel(label: string): void {
+  const target = host!.querySelector<HTMLElement>(`[aria-label="${label}"]`);
+  if (!target) {
+    throw new Error(`Unable to find target with aria-label "${label}"`);
+  }
+  act(() => {
+    target.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    target.dispatchEvent(new KeyboardEvent("keyup", { key: "Enter", bubbles: true }));
+    target.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  });
+}
+
 afterEach(() => {
   if (root) {
     act(() => root!.unmount());
@@ -226,5 +238,61 @@ describe("MapStatusBar status routes", () => {
     const scaleSegment = host!.querySelector('[data-map-status-segment="scale"]');
     expect(scaleSegment?.textContent).toContain("Scale");
     expect(scaleSegment?.textContent).toContain("1:");
+  });
+
+  it("keeps premium left/right grouping markers and honest interactivity markers", () => {
+    const callbacks: StatusCallbacks = {
+      onOpenInspect: vi.fn(),
+      onOpenProject: vi.fn(),
+      onOpenLayers: vi.fn(),
+      onOpenCrsReadiness: vi.fn(),
+      onOpenProblems: vi.fn(),
+      onOpenAttributes: vi.fn(),
+      onOpenSelection: vi.fn(),
+      onOpenDraw: vi.fn(),
+      onOpenMeasurements: vi.fn(),
+      onOpenTimeline: vi.fn(),
+      onOpenTasks: vi.fn(),
+      onOpenCollaboration: vi.fn(),
+      onOpenDiagnostics: vi.fn(),
+    };
+
+    renderStatusBar(callbacks);
+
+    const leftCluster = host!.querySelector('[data-map-status-cluster="left"]');
+    const rightCluster = host!.querySelector('[data-map-status-cluster="right"]');
+    const viewSegment = host!.querySelector('[data-map-status-segment="view"]');
+    const cameraSegment = host!.querySelector('[data-map-status-segment="camera"]');
+
+    expect(leftCluster).toBeTruthy();
+    expect(rightCluster).toBeTruthy();
+    expect(viewSegment?.getAttribute("data-map-status-interactive")).toBe("true");
+    expect(cameraSegment?.getAttribute("data-map-status-interactive")).toBe("false");
+  });
+
+  it("keeps interactive segments keyboard-operable", () => {
+    const callbacks: StatusCallbacks = {
+      onOpenInspect: vi.fn(),
+      onOpenProject: vi.fn(),
+      onOpenLayers: vi.fn(),
+      onOpenCrsReadiness: vi.fn(),
+      onOpenProblems: vi.fn(),
+      onOpenAttributes: vi.fn(),
+      onOpenSelection: vi.fn(),
+      onOpenDraw: vi.fn(),
+      onOpenMeasurements: vi.fn(),
+      onOpenTimeline: vi.fn(),
+      onOpenTasks: vi.fn(),
+      onOpenCollaboration: vi.fn(),
+      onOpenDiagnostics: vi.fn(),
+    };
+
+    renderStatusBar(callbacks);
+
+    pressEnterByAriaLabel("Open layers workspace");
+    pressEnterByAriaLabel("Open selected feature details");
+
+    expect(callbacks.onOpenLayers).toHaveBeenCalledTimes(1);
+    expect(callbacks.onOpenSelection).toHaveBeenCalledTimes(1);
   });
 });

@@ -71,6 +71,7 @@
   display: grid;
   grid-template-columns: 18rem minmax(0, 1fr);
   min-height: 0;
+  overflow: hidden;
 }
 
 .embeddedPanel .body {
@@ -93,7 +94,10 @@
 .controlRail,
 .catalogTree {
   min-height: 0;
-  overflow-y: auto;
+  min-width: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable both-edges;
   padding: 14px;
 }
 
@@ -281,8 +285,13 @@
 
 .catalogTree {
   display: grid;
+  grid-auto-rows: max-content;
   align-content: start;
   gap: 12px;
+}
+
+.catalogTree > * {
+  min-width: 0;
 }
 
 .embeddedPanel .catalogTree {
@@ -293,6 +302,15 @@
   gap: 8px;
   margin-bottom: 8px;
   padding: 8px;
+}
+
+.summaryBand > * {
+  min-width: 0;
+}
+
+.embeddedPanel .summaryBand .primaryButton,
+.embeddedPanel .summaryBand .secondaryButton {
+  width: 100%;
 }
 
 .importEntry {
@@ -311,10 +329,18 @@
 }
 
 .importEntryHeader {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: start;
-  justify-content: space-between;
   gap: 12px;
+}
+
+.importEntryHeader > * {
+  min-width: 0;
+}
+
+.embeddedPanel .importEntryHeader {
+  grid-template-columns: 1fr;
 }
 
 .importEntryHeader h3 {
@@ -415,7 +441,7 @@
 
 .supportRow {
   display: grid;
-  grid-template-columns: minmax(6rem, 0.34fr) minmax(5.5rem, 0.22fr) minmax(0, 1fr);
+  grid-template-columns: minmax(8rem, 0.34fr) minmax(6.5rem, 0.22fr) minmax(0, 1fr);
   gap: 8px;
   align-items: start;
   padding: 7px 8px;
@@ -425,6 +451,8 @@
 }
 
 .supportRow strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
   color: var(--syn-text-primary, #f3f4f6);
   font-size: 10px;
   font-weight: 650;
@@ -432,16 +460,25 @@
 }
 
 .supportRow span {
+  min-width: 0;
+  overflow-wrap: anywhere;
   color: var(--syn-interaction-active, #d09a48);
   font-family: var(--font-mono, "JetBrains Mono", monospace);
   font-size: 10px;
 }
 
 .supportRow p {
+  min-width: 0;
+  overflow-wrap: anywhere;
   margin: 0;
   color: var(--syn-text-muted, #8993a3);
   font-size: 10px;
   line-height: 1.45;
+}
+
+.embeddedPanel .supportRow {
+  grid-template-columns: 1fr;
+  gap: 4px;
 }
 
 .providerCaveats ul {
@@ -529,10 +566,15 @@
 
 .itemHeading {
   display: flex;
+  flex-wrap: wrap;
   align-items: start;
   justify-content: space-between;
   gap: 8px;
   font-size: 12px;
+}
+
+.itemHeading > * {
+  min-width: 0;
 }
 
 .embeddedPanel .itemHeading {

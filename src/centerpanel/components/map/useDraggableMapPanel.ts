@@ -22,6 +22,8 @@ export interface DraggableMapPanelBindings {
 
 export interface DraggableMapPanelOptions {
   boundsPadding?: number;
+  /** Choose drag bounds source. "container" keeps panel inside offset parent; "viewport" uses window bounds. */
+  dragBounds?: "container" | "viewport";
   /** When set, drag offset is remembered durably (Zustand persist). */
   memoryKey?: string;
   /** Optional controlled offset. When provided, this value is used as the drag source of truth. */
@@ -71,6 +73,7 @@ export function useDraggableMapPanel(options: DraggableMapPanelOptions = {}): Dr
   const offset = controlledOffset ?? offsetState;
   const lastEmittedOffsetRef = useRef(offset);
   const boundsPadding = options.boundsPadding ?? 12;
+  const dragBounds = options.dragBounds ?? "container";
 
   useEffect(() => {
     lastEmittedOffsetRef.current = offset;
@@ -102,30 +105,6 @@ export function useDraggableMapPanel(options: DraggableMapPanelOptions = {}): Dr
     onOffsetChange?.(next);
   }, [controlledOffset, offsetState, onOffsetChange]);
 
-  const clampOffsetToViewport = useCallback((nextOffset: { x: number; y: number }, panelElement: HTMLElement | null) => {
-    if (typeof window === "undefined" || !panelElement) {
-      return nextOffset;
-    }
-
-    const panelWidth = panelElement.offsetWidth;
-    const panelHeight = panelElement.offsetHeight;
-    if (panelWidth <= 0 || panelHeight <= 0) {
-      return nextOffset;
-    }
-
-    const nextLeft = window.innerWidth / 2 + nextOffset.x - panelWidth / 2;
-    const nextTop = window.innerHeight / 2 + nextOffset.y - panelHeight / 2;
-    const maxLeft = Math.max(boundsPadding, window.innerWidth - panelWidth - boundsPadding);
-    const maxTop = Math.max(boundsPadding, window.innerHeight - panelHeight - boundsPadding);
-    const clampedLeft = clamp(nextLeft, boundsPadding, maxLeft);
-    const clampedTop = clamp(nextTop, boundsPadding, maxTop);
-
-    return {
-      x: clampedLeft + panelWidth / 2 - window.innerWidth / 2,
-      y: clampedTop + panelHeight / 2 - window.innerHeight / 2,
-    };
-  }, [boundsPadding]);
-
   const handlePointerDown = useCallback<React.PointerEventHandler<HTMLElement>>((event) => {
     if (event.button !== 0) {
       return;
@@ -142,11 +121,55 @@ export function useDraggableMapPanel(options: DraggableMapPanelOptions = {}): Dr
     const panelElement = event.currentTarget.closest("[data-draggable-map-panel='true']") as HTMLElement | null
       ?? event.currentTarget.parentElement;
 
+    // Measure the panel once at drag start. We work entirely in viewport
+    // coordinates and derive the panel's geometry from its real rendered rect,
+    // so the clamp is correct regardless of how the panel is positioned
+    // (fixed, absolute, transformed ancestor, etc.).
+    const startRect = panelElement?.getBoundingClientRect() ?? null;
+
+    // The bounding box (viewport coords) the panel centre must stay inside.
+    const resolveBounds = (): { left: number; top: number; right: number; bottom: number } => {
+      if (dragBounds === "container" && panelElement) {
+        const container = panelElement.offsetParent instanceof HTMLElement ? panelElement.offsetParent : null;
+        const rect = container?.getBoundingClientRect();
+        if (rect && rect.width > 0 && rect.height > 0) {
+          return { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom };
+        }
+      }
+      return { left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight };
+    };
+
+    const bounds = typeof window === "undefined" ? null : resolveBounds();
+
+    // rendered centre = base centre + applied offset  →  base = measured centre − startOffset.
+    const baseCentreX = startRect ? startRect.left + startRect.width / 2 - startOffset.x : 0;
+    const baseCentreY = startRect ? startRect.top + startRect.height / 2 - startOffset.y : 0;
+
+    const clampOffset = (candidate: { x: number; y: number }): { x: number; y: number } => {
+      if (!startRect || !bounds || startRect.width <= 0 || startRect.height <= 0) {
+        return candidate;
+      }
+      const halfWidth = startRect.width / 2;
+      const halfHeight = startRect.height / 2;
+      const centreX = baseCentreX + candidate.x;
+      const centreY = baseCentreY + candidate.y;
+      const minCentreX = bounds.left + boundsPadding + halfWidth;
+      const maxCentreX = bounds.right - boundsPadding - halfWidth;
+      const minCentreY = bounds.top + boundsPadding + halfHeight;
+      const maxCentreY = bounds.bottom - boundsPadding - halfHeight;
+      const clampedCentreX = clamp(centreX, minCentreX, Math.max(minCentreX, maxCentreX));
+      const clampedCentreY = clamp(centreY, minCentreY, Math.max(minCentreY, maxCentreY));
+      return {
+        x: clampedCentreX - baseCentreX,
+        y: clampedCentreY - baseCentreY,
+      };
+    };
+
     const handlePointerMove = (moveEvent: PointerEvent) => {
-      setOffset(clampOffsetToViewport({
+      setOffset(clampOffset({
         x: startOffset.x + moveEvent.clientX - startX,
         y: startOffset.y + moveEvent.clientY - startY,
-      }, panelElement));
+      }));
     };
 
     const handlePointerUp = () => {
@@ -160,7 +183,7 @@ export function useDraggableMapPanel(options: DraggableMapPanelOptions = {}): Dr
     window.addEventListener("pointerup", handlePointerUp);
     window.addEventListener("pointercancel", handlePointerUp);
     event.preventDefault();
-  }, [clampOffsetToViewport, commitOffset, offset]);
+  }, [boundsPadding, commitOffset, dragBounds, offset, setOffset]);
 
   const resetPosition = useCallback(() => {
     setOffset({ x: 0, y: 0 });

@@ -14,6 +14,7 @@ import {
   MAP_TYPOGRAPHY,
   MAP_Z_INDEX,
 } from "../mapTokens";
+import { createOpaqueFloatingPanelStyle, useDraggableMapPanel } from "../useDraggableMapPanel";
 import { GisIconButton, GisSectionHeader, GisStatusChip, type GisStatusChipProps } from "../ui";
 import motionStyles from "../design/motion.module.css";
 
@@ -38,11 +39,11 @@ const KIND_LABELS: Record<MapExtensionKind, string> = {
 };
 
 const panelStyle: React.CSSProperties = {
-  position: "absolute",
-  top: MAP_SPACING.md,
-  right: MAP_SPACING.md,
-  width: "min(34rem, calc(100% - 2rem))",
-  maxHeight: "min(38rem, calc(100% - 2rem))",
+  ...createOpaqueFloatingPanelStyle("min(34rem, calc(100% - 2rem))", MAP_Z_INDEX.symbologyPanel + 14),
+  position: "fixed",
+  minWidth: "min(22rem, calc(100% - 2rem))",
+  minHeight: "min(20rem, calc(100% - 2rem))",
+  height: "min(38rem, calc(100% - 2rem))",
   zIndex: MAP_Z_INDEX.symbologyPanel + 14,
   display: "grid",
   gridTemplateRows: "auto minmax(0, 1fr)",
@@ -52,6 +53,7 @@ const panelStyle: React.CSSProperties = {
   boxShadow: MAP_SHADOWS.panel,
   color: MAP_COLORS.text,
   overflow: "hidden",
+  resize: "both",
 };
 
 const headerStyle: React.CSSProperties = {
@@ -225,19 +227,21 @@ function groupExtensions(extensions: readonly MapExtensionDescriptor[]): Record<
 }
 
 export function MapPluginPanel({ visible, extensions, onClose }: MapPluginPanelProps): React.ReactElement | null {
+  const panelDrag = useDraggableMapPanel({ memoryKey: "map.plugin-registry.panel", dragBounds: "viewport" });
   const groups = useMemo(() => groupExtensions(extensions), [extensions]);
 
   if (!visible) return null;
 
   return (
     <section
-      style={panelStyle}
+      data-draggable-map-panel="true"
+      style={{ ...panelStyle, ...panelDrag.panelPositionStyle }}
       className={motionStyles.panelIn}
       role="dialog"
       aria-label="Plugin registry"
       data-testid="map-plugin-panel"
     >
-      <header style={headerStyle}>
+      <header style={{ ...headerStyle, ...panelDrag.dragHandleStyle }} {...panelDrag.dragHandleProps}>
         <h2 style={titleStyle}>
           <Puzzle size={16} aria-hidden /> Plugin registry
         </h2>

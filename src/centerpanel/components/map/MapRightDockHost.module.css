@@ -341,8 +341,19 @@
 
 .bodyContent {
   display: grid;
+  align-content: start;
   min-width: 0;
   min-height: 0;
+}
+
+.bodyContent > * {
+  min-width: 0;
+}
+
+.bodyContent :where(section, article, div, main, aside, ul, ol, dl, li, p, span, small, strong, em, code, pre, label, button, a, h1, h2, h3, h4, h5, h6) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .host[data-tab-layout="rail"] .body {

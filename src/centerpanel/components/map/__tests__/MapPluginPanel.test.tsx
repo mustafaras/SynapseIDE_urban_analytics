@@ -40,6 +40,14 @@ afterEach(() => {
 });
 
 describe("MapPluginPanel", () => {
+  it("is draggable and resizable in floating mode", () => {
+    renderPanel();
+
+    const panel = query("map-plugin-panel") as HTMLElement;
+    expect(panel.getAttribute("data-draggable-map-panel")).toBe("true");
+    expect(panel.style.resize).toBe("both");
+  });
+
   it("lists each registered extension kind with availability text", () => {
     renderPanel();
 
