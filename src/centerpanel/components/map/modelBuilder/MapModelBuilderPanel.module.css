@@ -29,7 +29,7 @@
 }
 
 .panelEmbedded .body {
-  grid-template-columns: minmax(0, 1fr) 20rem;
+  grid-template-columns: minmax(0, 1fr);
   overflow: hidden;
 }
 
@@ -39,8 +39,11 @@
 }
 
 .panelEmbedded .runRail {
-  border-top: 0;
-  border-left: 1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.22));
+  border-top: 1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.22));
+  border-left: 0;
+  padding-left: 0;
+  padding-right: 0;
+  background: transparent;
 }
 
 .header {
@@ -162,6 +165,10 @@
   grid-template-columns: minmax(15rem, 0.85fr) minmax(17rem, 1.15fr);
   gap: 12px;
   min-height: 0;
+}
+
+.panelEmbedded .workflowGrid {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .stepGraph,
@@ -322,6 +329,16 @@
   gap: 8px;
 }
 
+.panelEmbedded .inputGrid,
+.panelEmbedded .parameters,
+.panelEmbedded .addStepRow {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.panelEmbedded .addStepRow .secondaryButton {
+  width: 100%;
+}
+
 .actions {
   display: grid;
   gap: 8px;
@@ -406,6 +423,12 @@
   gap: 6px;
   color: var(--syn-text-secondary, #b8c0cd);
   font-size: 11px;
+  min-width: 0;
+}
+
+.batchLayers label span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .outputPlaceholder span {
@@ -436,6 +459,20 @@
 
 .blocked {
   border-color: color-mix(in srgb, var(--syn-status-warning, #d09a48) 44%, transparent);
+}
+
+.panelEmbedded .actions {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.panelEmbedded .header {
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+
+.panelEmbedded .headerChips {
+  margin-left: 0;
+  margin-right: 0;
 }
 
 @media (max-width: 780px) {

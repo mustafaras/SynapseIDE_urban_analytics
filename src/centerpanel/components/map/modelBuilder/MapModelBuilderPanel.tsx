@@ -373,8 +373,8 @@ export function MapModelBuilderPanel({
       </header>
 
       <div className={styles.body}>
-        <section className={styles.configuration} aria-label="Model definition">
-          <div className={styles.definitionBar}>
+        <section className={styles.configuration} aria-label="Model builder workflow" data-left-workspace-layout={presentation === "embedded" ? "single-column" : "split"}>
+          <div className={styles.definitionBar} data-testid="model-section-define">
             <label className={styles.field}>
               <span>Model name</span>
               <input data-testid="model-name" value={title} onChange={(event) => setTitle(event.target.value)} />
@@ -397,7 +397,7 @@ export function MapModelBuilderPanel({
             </div>
           </div>
 
-          <div className={styles.addStepRow}>
+          <div className={styles.addStepRow} data-testid="model-section-steps">
             <label className={styles.field}>
               <span>Add processing step</span>
               <select data-testid="model-add-tool" value={selectedToolId} onChange={(event) => setSelectedToolId(event.target.value)}>
@@ -409,7 +409,7 @@ export function MapModelBuilderPanel({
             </button>
           </div>
 
-          <div className={styles.workflowGrid}>
+          <div className={styles.workflowGrid} data-testid="model-section-workflow">
             <section className={styles.stepGraph} aria-label="Model step graph">
               <div className={styles.sectionTitleRow}>
                 <GisSectionHeader title="Workflow graph" level={4} compact separator={false} />
@@ -558,10 +558,9 @@ export function MapModelBuilderPanel({
               )}
             </section>
           </div>
-        </section>
 
-        <aside className={styles.runRail} aria-label="Model run and publication">
-          <section className={styles.runPreview} aria-label="Run preview" data-testid="model-run-preview">
+          <section className={styles.runRail} aria-label="Model run and publication">
+            <section className={styles.runPreview} aria-label="Run preview" data-testid="model-run-preview" data-model-flow-section="run-preview">
             <div className={styles.sectionTitleRow}>
               <GisSectionHeader title="Run preview" level={4} compact separator={false} badge={<CheckCircle2 size={13} aria-hidden />} />
               <GisStatusChip status={canRun ? "ready" : "blocked"} label={canRun ? "Executable" : "Needs input"} density="compact" />
@@ -587,19 +586,19 @@ export function MapModelBuilderPanel({
             {modelBlockers.length > 0 ? renderList(modelBlockers, "model-blocking-reasons") : <p className={styles.readyText}>Chain is ready for deterministic execution.</p>}
           </section>
 
-          <div className={styles.actions}>
-            <button type="button" className={styles.primaryButton} disabled={!canRun} onClick={() => runDefinition(buildDefinition())} data-testid="model-run" title={!canRun ? runDisabledReason : undefined}>
-              <Play size={13} aria-hidden /> Run model
-            </button>
-            <button type="button" className={styles.secondaryButton} disabled={!canRun} onClick={handleSave} data-testid="model-save" title={!canRun ? runDisabledReason : undefined}>
-              <Save size={13} aria-hidden /> Save and run
-            </button>
-            <button type="button" className={styles.secondaryButton} disabled={!savedModel} onClick={handleRerun} data-testid="model-rerun">
-              Rerun saved
-            </button>
-          </div>
+            <div className={styles.actions} data-model-flow-section="run-actions">
+              <button type="button" className={styles.primaryButton} disabled={!canRun} onClick={() => runDefinition(buildDefinition())} data-testid="model-run" title={!canRun ? runDisabledReason : undefined}>
+                <Play size={13} aria-hidden /> Run model
+              </button>
+              <button type="button" className={styles.secondaryButton} disabled={!canRun} onClick={handleSave} data-testid="model-save" title={!canRun ? runDisabledReason : undefined}>
+                <Save size={13} aria-hidden /> Save and run
+              </button>
+              <button type="button" className={styles.secondaryButton} disabled={!savedModel} onClick={handleRerun} data-testid="model-rerun">
+                Rerun saved
+              </button>
+            </div>
 
-          <section className={styles.batch} aria-label="Batch targets">
+            <section className={styles.batch} aria-label="Batch targets" data-testid="model-section-batch" data-model-flow-section="batch-targets">
             <div className={styles.sectionTitleRow}>
               <GisSectionHeader title="Batch targets" level={4} compact separator={false} badge={<Layers3 size={13} aria-hidden />} />
               <GisStatusChip status={batchLayerIds.length > 0 ? "ready" : "blocked"} label={`${batchLayerIds.length} selected`} density="compact" />
@@ -641,8 +640,8 @@ export function MapModelBuilderPanel({
             ) : null}
           </section>
 
-          {lastRun ? (
-            <section className={lastRun.status === "applied" ? styles.result : styles.blocked} aria-label="Output and evidence" data-testid="model-run-result" data-status={lastRun.status}>
+            {lastRun ? (
+              <section className={lastRun.status === "applied" ? styles.result : styles.blocked} aria-label="Output and evidence" data-testid="model-run-result" data-status={lastRun.status} data-model-flow-section="output-evidence">
               <GisSectionHeader
                 title={lastRun.status === "applied" ? "Output and evidence" : "Model blocked"}
                 level={4}
@@ -675,15 +674,16 @@ export function MapModelBuilderPanel({
               ) : (
                 renderList(lastRun.blockers, "model-run-blockers")
               )}
-            </section>
-          ) : (
-            <section className={styles.outputPlaceholder} aria-label="Output and evidence" data-testid="model-output-evidence">
-              <GisSectionHeader title="Output and evidence" level={4} compact separator={false} badge={<FileCode2 size={13} aria-hidden />} />
-              <p>Run the chain to create a derived layer, model manifest, IDE workflow script request, and Urban evidence handoff label.</p>
-              {modelBlockers.length > 0 ? <span><AlertTriangle size={12} aria-hidden /> Resolve blocked steps before export.</span> : <span>Artifact label: {outputLabel}</span>}
-            </section>
-          )}
-        </aside>
+              </section>
+            ) : (
+              <section className={styles.outputPlaceholder} aria-label="Output and evidence" data-testid="model-output-evidence" data-model-flow-section="output-evidence">
+                <GisSectionHeader title="Output and evidence" level={4} compact separator={false} badge={<FileCode2 size={13} aria-hidden />} />
+                <p>Run the chain to create a derived layer, model manifest, IDE workflow script request, and Urban evidence handoff label.</p>
+                {modelBlockers.length > 0 ? <span><AlertTriangle size={12} aria-hidden /> Resolve blocked steps before export.</span> : <span>Artifact label: {outputLabel}</span>}
+              </section>
+            )}
+          </section>
+        </section>
       </div>
     </section>
   );

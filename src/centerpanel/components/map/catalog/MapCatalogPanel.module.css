@@ -74,8 +74,20 @@
 }
 
 .embeddedPanel .body {
-  grid-template-columns: minmax(11rem, 0.72fr) minmax(0, 1fr);
+  grid-template-columns: 1fr;
   height: 100%;
+}
+
+.summaryBand {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  min-height: 0;
+  margin-bottom: 6px;
+  padding: 10px;
+  border: 1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.22));
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--syn-bg-panel, #181b22) 74%, transparent);
 }
 
 .controlRail,
@@ -275,6 +287,12 @@
 
 .embeddedPanel .catalogTree {
   gap: 9px;
+}
+
+.embeddedPanel .summaryBand {
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 8px;
 }
 
 .importEntry {

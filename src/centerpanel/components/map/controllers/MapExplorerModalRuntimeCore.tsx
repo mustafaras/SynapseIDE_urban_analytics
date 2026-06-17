@@ -835,16 +835,18 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
     bearing: number;
     pitch: number;
   } | null>(null);
-  // Workspace activities (Style/Analyze/Scene/Publish) dock on the right edge.
-  // The inspector right dock also lives on the right, so close any active right
-  // dock route when a workspace opens to avoid two panels overlapping.
+  // Workspace activities (Style/Analyze/Scene/Publish) may render their own
+  // docked surfaces. Close non-tab-driven right-dock routes when those
+  // workspaces become active, but keep panel-tab routes open so right-dock tab
+  // switches (for example Workflow) remain stable and don't bounce back.
   useEffect(() => {
     const isWorkspaceActivity =
       activeActivityId === 'style' ||
       activeActivityId === 'analyze' ||
       activeActivityId === 'scene' ||
       activeActivityId === 'publish';
-    if (isWorkspaceActivity && activeRightDockRoute) {
+    const isPanelTabRoute = activeRightDockRoute?.source === 'panel-tab';
+    if (isWorkspaceActivity && activeRightDockRoute && !isPanelTabRoute) {
       closeRightDockRoute();
     }
   }, [activeActivityId, activeRightDockRoute, closeRightDockRoute]);
@@ -2782,7 +2784,6 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
 
   const handleRightDockHostPanelChange = useCallback(
     (panel: MapRightDockPanel) => {
-      const definition = getMapRightDockPanelDefinition(panel);
       setRightDockCollapsed(false);
       switchRightDockRoute(
         createMapRightDockRoute(panel, {
@@ -2798,7 +2799,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
         setShowReviewTimeline(false);
         setShowScientificQAPanel(false);
       }
-      setActiveActivityId(definition.activityId);
+      const definition = getMapRightDockPanelDefinition(panel);
       announce(`${definition.label} opened in the right dock`);
     },
     [activeRightDockRoute?.detail, activeRightDockRoute?.focusReturn, announce, switchRightDockRoute]

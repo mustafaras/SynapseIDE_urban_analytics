@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 
 import { IconLayers } from "../MapIcons";
 import { MapPanelErrorBoundary } from "../MapPanelErrorBoundary";
@@ -24,7 +24,7 @@ import { MapCanvasControls } from "../MapCanvasControls";
 import { MapLegendOverlay } from "../inspector/style/MapLegendOverlay";
 import { MapPerformanceBudgetBanner } from "../MapPerformanceDiagnosticsPanel";
 import { MapRightDockHost, type MapRightDockPanelStatus } from "../MapRightDockHost";
-import { isHostRenderedRoutePanel } from "../mapRightDockRoutes";
+import { isHostRenderedRoutePanel, type MapRightDockRoute } from "../mapRightDockRoutes";
 import { MapUrbanMethodCompatibilityRail } from "../MapUrbanMethodCompatibilityRail";
 import { MapLayoutDesignerPanel } from "../layout/MapLayoutDesignerPanel";
 import { WorkflowPreviewOverlay } from "./MapWorkflowPreviewOverlay";
@@ -399,7 +399,36 @@ export const MapExplorerModalRuntimeView: React.FC<MapExplorerModalRuntimeViewPr
   setShowLayerPanel,
   showComparisonStrip,
   showInteractionStrip,
-}) => (
+}) => {
+  const [closingRightDockRoute, setClosingRightDockRoute] = useState<MapRightDockRoute | null>(null);
+  const lastOpenRightDockRouteRef = useRef<MapRightDockRoute | null>(null);
+
+  useEffect(() => {
+    if (activeRightDockRoute) {
+      lastOpenRightDockRouteRef.current = activeRightDockRoute;
+      setClosingRightDockRoute(null);
+      return;
+    }
+
+    if (reducedMotion) {
+      setClosingRightDockRoute(null);
+      return;
+    }
+
+    const previousRoute = lastOpenRightDockRouteRef.current;
+    if (!previousRoute) {
+      return;
+    }
+
+    setClosingRightDockRoute(previousRoute);
+    const timeout = window.setTimeout(() => setClosingRightDockRoute(null), RIGHT_DOCK_CLOSE_ANIMATION_MS);
+    return () => window.clearTimeout(timeout);
+  }, [activeRightDockRoute, reducedMotion]);
+
+  const renderedRightDockRoute = activeRightDockRoute ?? closingRightDockRoute;
+  const isRightDockClosing = activeRightDockRoute == null && closingRightDockRoute != null;
+
+  return (
   <>
     {/* 3D + Zoning toggle triggers — accessible via toolbar or testid */}
     <button
@@ -683,16 +712,18 @@ export const MapExplorerModalRuntimeView: React.FC<MapExplorerModalRuntimeViewPr
       />
     ) : null}
 
-    {activeRightDockRoute && isHostRenderedRoutePanel(activeRightDockRoute.panel) && !navigatorStageMode ? (
+    {renderedRightDockRoute && isHostRenderedRoutePanel(renderedRightDockRoute.panel) && !navigatorStageMode ? (
       <MapRightDockHost
-        route={activeRightDockRoute}
+        route={renderedRightDockRoute}
         panels={rightDockPanels}
         presentation={rightDockPresentation}
         collapsed={rightDockCollapsed}
+        reducedMotion={reducedMotion}
+        closing={isRightDockClosing}
         width={rightPanelWidth}
         floatingRect={rightDockFloatingRect}
-        stateLabel={activeRightDockRoute.legacyBottomTabId ? "Migrating" : "Routed"}
-        panelStatus={buildRightDockPanelStatus(activeRightDockRoute, scientificQA)}
+        stateLabel={renderedRightDockRoute.legacyBottomTabId ? "Migrating" : "Routed"}
+        panelStatus={buildRightDockPanelStatus(renderedRightDockRoute, scientificQA)}
         onPanelChange={handleRightDockHostPanelChange}
         onCollapse={handleCollapseRightDockHost}
         onClose={handleCloseRightDockHost}
@@ -879,4 +910,5 @@ export const MapExplorerModalRuntimeView: React.FC<MapExplorerModalRuntimeViewPr
       onFlyTo={flyTo}
     />
   </>
-);
+  );
+};

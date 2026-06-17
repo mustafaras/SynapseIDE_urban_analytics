@@ -13,6 +13,8 @@
  */
 
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   clampLeftPanelWidth,
   getLeftPanelContentStrategy,
@@ -230,5 +232,25 @@ describe("mapLeftPanelContracts — spec adherence summary", () => {
       expect(c.minComfortWidth).toBe(LEFT_PANEL_ABS_MIN_WIDTH);
       expect(c.preferredWidth).toBe(LEFT_PANEL_DEFAULT_WIDTH);
     }
+  });
+
+  it("documents embedded Add Data as single-column in the catalog panel markup", () => {
+    const source = readFileSync(
+      join(process.cwd(), "src/centerpanel/components/map/catalog/MapCatalogPanel.tsx"),
+      "utf-8",
+    );
+    expect(source).toContain('data-layout={presentation === "embedded" ? "single-column" : "split"}');
+    expect(source).toContain('data-left-workspace-layout="single-column"');
+    expect(source).toContain('data-testid="map-catalog-summary-band"');
+  });
+
+  it("documents embedded Models workspace as single-column in model builder markup", () => {
+    const source = readFileSync(
+      join(process.cwd(), "src/centerpanel/components/map/modelBuilder/MapModelBuilderPanel.tsx"),
+      "utf-8",
+    );
+    expect(source).toContain('data-left-workspace-layout={presentation === "embedded" ? "single-column" : "split"}');
+    expect(source).toContain('data-testid="model-section-define"');
+    expect(source).toContain('data-testid="model-section-workflow"');
   });
 });

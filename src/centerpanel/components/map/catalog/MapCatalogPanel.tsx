@@ -618,13 +618,19 @@ export const MapCatalogPanel: React.FC<MapCatalogPanelProps> = ({
         </header>
       ) : null}
 
-      <div className={styles.body}>
-        <aside className={styles.controlRail}>
-          {renderControlRail()}
-        </aside>
-
-        <main className={styles.catalogTree}>
-          {presentation === "embedded" ? (
+      <div
+        className={styles.body}
+        data-layout={presentation === "embedded" ? "single-column" : "split"}
+      >
+        {presentation === "embedded" ? (
+          <main className={styles.catalogTree} data-left-workspace-layout="single-column">
+            <section
+              className={styles.summaryBand}
+              data-testid="map-catalog-summary-band"
+              aria-label="Data readiness summary"
+            >
+              {renderControlRail()}
+            </section>
             <header className={styles.sectionHeader}>
               <h2>
                 {activeSection === "source-health" ? <Activity size={14} /> : <Database size={14} />}
@@ -632,27 +638,55 @@ export const MapCatalogPanel: React.FC<MapCatalogPanelProps> = ({
               </h2>
               <p>{sectionCopy.description}</p>
             </header>
-          ) : null}
-          {activeSection === "add-data" ? renderImportEntry() : null}
-          {activeSection === "add-data" ? renderSupportMatrix() : null}
-          {activeSection === "connections" ? renderProviderCaveats() : null}
-          {categoryIdsForSection().length > 0 ? (
-            <label className={styles.search}>
-              <span>Filter catalog</span>
-              <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search sources and outputs"
-              />
-            </label>
-          ) : null}
-          {feedback ? (
-            <p className={styles.feedback} data-ok={feedback.ok ? "true" : "false"} role="status">
-              {feedback.message}
-            </p>
-          ) : null}
-          {renderCatalogSections()}
-        </main>
+            {activeSection === "add-data" ? renderImportEntry() : null}
+            {activeSection === "add-data" ? renderSupportMatrix() : null}
+            {activeSection === "connections" ? renderProviderCaveats() : null}
+            {categoryIdsForSection().length > 0 ? (
+              <label className={styles.search}>
+                <span>Filter catalog</span>
+                <input
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Search sources and outputs"
+                />
+              </label>
+            ) : null}
+            {feedback ? (
+              <p className={styles.feedback} data-ok={feedback.ok ? "true" : "false"} role="status">
+                {feedback.message}
+              </p>
+            ) : null}
+            {renderCatalogSections()}
+          </main>
+        ) : (
+          <>
+            <aside className={styles.controlRail}>
+              {renderControlRail()}
+            </aside>
+
+            <main className={styles.catalogTree}>
+              {activeSection === "add-data" ? renderImportEntry() : null}
+              {activeSection === "add-data" ? renderSupportMatrix() : null}
+              {activeSection === "connections" ? renderProviderCaveats() : null}
+              {categoryIdsForSection().length > 0 ? (
+                <label className={styles.search}>
+                  <span>Filter catalog</span>
+                  <input
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder="Search sources and outputs"
+                  />
+                </label>
+              ) : null}
+              {feedback ? (
+                <p className={styles.feedback} data-ok={feedback.ok ? "true" : "false"} role="status">
+                  {feedback.message}
+                </p>
+              ) : null}
+              {renderCatalogSections()}
+            </main>
+          </>
+        )}
       </div>
     </section>
   );

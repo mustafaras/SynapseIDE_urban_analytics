@@ -13,7 +13,12 @@
   font-family: var(--font-sans, "Inter", sans-serif);
   outline: none;
   isolation: isolate;
+  opacity: 1;
+  transform: translateY(0);
   transition: width 170ms cubic-bezier(0.2, 0, 0, 1);
+  transition-property: width, opacity, transform;
+  transition-duration: 170ms, 160ms, 160ms;
+  transition-timing-function: cubic-bezier(0.2, 0, 0, 1), ease-out, ease-out;
 }
 
 .floatingHost {
@@ -30,6 +35,16 @@
   pointer-events: auto;
   border: 1px solid var(--syn-border-subtle, rgba(148, 163, 184, 0.28));
   box-shadow: 0 20px 36px rgba(2, 6, 12, 0.46), 0 0 0 1px rgba(0, 0, 0, 0.32);
+}
+
+.host[data-closing="true"] {
+  opacity: 0;
+  transform: translateY(-6px);
+  pointer-events: none;
+}
+
+.host[data-reduced-motion="true"] {
+  transition: none;
 }
 
 .floatingHeader {
@@ -322,6 +337,12 @@
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
   background: var(--syn-bg-panel, #181b22);
+}
+
+.bodyContent {
+  display: grid;
+  min-width: 0;
+  min-height: 0;
 }
 
 .host[data-tab-layout="rail"] .body {

@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useMapDialogLayoutStore } from "../../../stores/useMapDialogLayoutStore";
 import {
   MAP_COLORS,
@@ -69,7 +69,12 @@ export function useDraggableMapPanel(options: DraggableMapPanelOptions = {}): Dr
     persistedGeometry ? { x: persistedGeometry.offsetX, y: persistedGeometry.offsetY } : { x: 0, y: 0 },
   );
   const offset = controlledOffset ?? offsetState;
+  const lastEmittedOffsetRef = useRef(offset);
   const boundsPadding = options.boundsPadding ?? 12;
+
+  useEffect(() => {
+    lastEmittedOffsetRef.current = offset;
+  }, [offset]);
 
   const commitOffset = useCallback(
     (next: { x: number; y: number }) => {
@@ -86,12 +91,14 @@ export function useDraggableMapPanel(options: DraggableMapPanelOptions = {}): Dr
       if (controlledOffset == null) {
         setOffsetState(resolved);
       }
+      lastEmittedOffsetRef.current = resolved;
       onOffsetChange?.(resolved);
       return;
     }
     if (controlledOffset == null) {
       setOffsetState(next);
     }
+    lastEmittedOffsetRef.current = next;
     onOffsetChange?.(next);
   }, [controlledOffset, offsetState, onOffsetChange]);
 
@@ -146,7 +153,7 @@ export function useDraggableMapPanel(options: DraggableMapPanelOptions = {}): Dr
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointerup", handlePointerUp);
       window.removeEventListener("pointercancel", handlePointerUp);
-      setOffset((current) => { commitOffset(current); return current; });
+      commitOffset(lastEmittedOffsetRef.current);
     };
 
     window.addEventListener("pointermove", handlePointerMove);

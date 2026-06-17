@@ -616,15 +616,11 @@ export const MapWorkspaceShell: React.FC<MapWorkspaceShellProps> = ({
   }, [isModal]);
 
   return (
-    // eslint-disable-next-line jsx-a11y/click-events-have-key-events -- backdrop click closes modal; Escape is handled by the caller.
+    // Keep the backdrop passive: closing via explicit controls/Escape avoids
+    // accidental modal exits when dock interactions miss hit targets.
     <div
       style={isModal ? mapStyles.overlay : mapStyles.embeddedShell}
       className={["MapWorkspaceShell", shellStyles.mapPremiumShellRoot, className].filter(Boolean).join(" ")}
-      onClick={(event) => {
-        if (isModal && event.target === event.currentTarget) {
-          onClose?.();
-        }
-      }}
       role={isModal ? "dialog" : "region"}
       aria-modal={isModal ? true : undefined}
       aria-labelledby={labelledBy}

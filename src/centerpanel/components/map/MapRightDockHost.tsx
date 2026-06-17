@@ -51,6 +51,7 @@ import { MapDockPanelFrame } from "./shell";
 import { GisIconButton, GisStatusChip } from "./ui";
 import { getMapOverlayPortalRoot } from "./ui/mapOverlayPortal";
 import { useDraggableMapPanel } from "./useDraggableMapPanel";
+import motionStyles from "./design/motion.module.css";
 import styles from "./MapRightDockHost.module.css";
 
 export type MapRightDockHostPresentation = "right-dock" | "side-drawer" | "floating-modal";
@@ -65,6 +66,8 @@ export interface MapRightDockHostProps {
   route: MapRightDockRoute;
   panels?: readonly MapRightDockPanel[];
   presentation?: MapRightDockHostPresentation;
+  reducedMotion?: boolean;
+  closing?: boolean;
   collapsed?: boolean;
   width?: number;
   stateLabel?: string;
@@ -195,6 +198,8 @@ export const MapRightDockHost: React.FC<MapRightDockHostProps> = ({
   route,
   panels = MAP_RIGHT_DOCK_PANEL_IDS,
   presentation = "right-dock",
+  reducedMotion = false,
+  closing = false,
   collapsed = false,
   width = 420,
   stateLabel = "Routed",
@@ -391,6 +396,8 @@ export const MapRightDockHost: React.FC<MapRightDockHostProps> = ({
         data-map-right-dock-source={route.source}
         data-presentation={presentation}
         data-panel-tier={getMapRightDockPanelTier(route.panel)}
+        data-reduced-motion={reducedMotion ? "true" : "false"}
+        data-closing={closing ? "true" : "false"}
         data-collapsed="true"
         tabIndex={-1}
         style={{
@@ -453,6 +460,8 @@ export const MapRightDockHost: React.FC<MapRightDockHostProps> = ({
       data-presentation={presentation}
       data-tab-layout={tabLayout}
       data-panel-tier={getMapRightDockPanelTier(route.panel)}
+      data-reduced-motion={reducedMotion ? "true" : "false"}
+      data-closing={closing ? "true" : "false"}
       data-pinned={pinned ? "true" : "false"}
       data-resizing={isResizing ? "true" : "false"}
       data-dragging={isDragging ? "true" : "false"}
@@ -497,7 +506,7 @@ export const MapRightDockHost: React.FC<MapRightDockHostProps> = ({
         onClose={onClose}
         closeTestId="map-right-dock-close"
         collapseTestId="map-right-dock-collapse"
-        className={styles.frame}
+        className={`${styles.frame}${!reducedMotion && !closing ? ` ${motionStyles.panelIn}` : ""}`}
         headerClassName={presentation === "floating-modal" ? styles.floatingHeader : undefined}
         headerProps={presentation === "floating-modal"
           ? {
@@ -608,12 +617,18 @@ export const MapRightDockHost: React.FC<MapRightDockHostProps> = ({
           aria-label={activeDefinition.label}
           data-map-right-dock-body="true"
         >
-          {children ?? (
-            <div className={styles.emptyBody}>
-              <Info size={MAP_ICON_SIZES.md} aria-hidden="true" />
-              <span>No {activeDefinition.label.toLowerCase()} content is available for the current map context.</span>
-            </div>
-          )}
+          <div
+            key={route.panel}
+            className={`${styles.bodyContent}${!reducedMotion ? ` ${motionStyles.fadeIn}` : ""}`}
+            data-map-right-dock-body-content="true"
+          >
+            {children ?? (
+              <div className={styles.emptyBody}>
+                <Info size={MAP_ICON_SIZES.md} aria-hidden="true" />
+                <span>No {activeDefinition.label.toLowerCase()} content is available for the current map context.</span>
+              </div>
+            )}
+          </div>
         </div>
       </MapDockPanelFrame>
     </aside>

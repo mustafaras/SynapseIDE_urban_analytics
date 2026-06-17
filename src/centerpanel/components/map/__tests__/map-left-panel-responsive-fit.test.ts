@@ -13,6 +13,8 @@
  */
 
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   clampLeftPanelWidth,
   getLeftPanelContentStrategy,
@@ -128,6 +130,38 @@ describe("Prompt 14 — Left Panel Responsive Fit", () => {
         // At preferred width, the strategy should still be the contract strategy
         expect(strategy).toBe(contract.overflowStrategy);
       }
+    });
+  });
+
+  describe("embedded catalog panel layout", () => {
+    it("uses single-column body layout for embedded mode", () => {
+      const css = readFileSync(
+        join(process.cwd(), "src/centerpanel/components/map/catalog/MapCatalogPanel.module.css"),
+        "utf-8",
+      );
+      expect(css).toContain(".embeddedPanel .body {");
+      expect(css).toContain("grid-template-columns: 1fr;");
+    });
+
+    it("defines a compact summary band above full-width content", () => {
+      const css = readFileSync(
+        join(process.cwd(), "src/centerpanel/components/map/catalog/MapCatalogPanel.module.css"),
+        "utf-8",
+      );
+      expect(css).toContain(".summaryBand {");
+      expect(css).toContain(".embeddedPanel .summaryBand {");
+    });
+  });
+
+  describe("embedded models panel layout", () => {
+    it("uses single-column body and workflow grid for embedded mode", () => {
+      const css = readFileSync(
+        join(process.cwd(), "src/centerpanel/components/map/modelBuilder/MapModelBuilderPanel.module.css"),
+        "utf-8",
+      );
+      expect(css).toContain(".panelEmbedded .body {");
+      expect(css).toContain("grid-template-columns: minmax(0, 1fr);");
+      expect(css).toContain(".panelEmbedded .workflowGrid {");
     });
   });
 });

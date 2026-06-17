@@ -2,7 +2,7 @@
 
 > **Read this FIRST every session. Update it LAST before exiting.** A track is `done` only with evidence (a test-summary file in `evidence/` or a screenshot path). Never write `done` without an `evidence` link. This ledger is the single human-readable source of truth for "where are we"; [STATE.json](STATE.json) is its machine mirror — keep them in sync.
 
-**Overall status:** `IN PROGRESS` — p00-p11 complete (badge/status-language phases + dock-state unification + draw first-click fix + premium drawing modal + rectangle-AOI bounds-clipped real fetch + AOI analysis/evidence dispatch + floating right-dock shell + right-panel single-column conversion closed; next action p12).
+**Overall status:** `IN PROGRESS` — p00-p13 complete (badge/status-language phases + dock-state unification + draw first-click fix + premium drawing modal + rectangle-AOI bounds-clipped real fetch + AOI analysis/evidence dispatch + floating right-dock shell + right-panel single-column conversion + right-dock motion + left-dock single-column conversion closed; next action p14).
 
 Status values: `pending` · `in_progress` · `done` · `blocked`
 
@@ -20,8 +20,8 @@ Status values: `pending` · `in_progress` · `done` · `blocked`
 | p09 | Right dock floating modal | Drag + resize + clamp + persist | **done** | Moved/resized modal shots | **done** | ☑ |
 | p10 | Right dock single-click | One-click open + state cleanup | **done** | One-click open shot | **done** | ☑ |
 | p11 | Right panel single-column | Remove dual-column | **done** | Single-column shots | **done** | ☑ |
-| p12 | Right dock motion | (motion test/reduced-motion) | pending | Animated open/close | pending | ☐ |
-| p13 | Left dock single-column | Workspace single-column | pending | Data/Add Data shots | pending | ☐ |
+| p12 | Right dock motion | Motion test + reduced-motion behavior | **done** | Animated open/close | **done** | ☑ |
+| p13 | Left dock single-column | Workspace single-column | **done** | Data/Add Data shots | **done** | ☑ |
 | p14 | Models recompose | Single-column builder | pending | (support shots) | pending | ☐ |
 | p15 | Models premium visual | (support shots) | pending | Readable Models flow | pending | ☐ |
 | p16 | Status overflow fix | Overflow measurement/popover | pending | (support shots) | pending | ☐ |
@@ -195,6 +195,20 @@ Status values: `pending` · `in_progress` · `done` · `blocked`
   - `evidence/p11-report-wide.png`, `evidence/p11-report-narrow.png`
 - Evidence: `evidence/p11-trackA.md`, `evidence/p11-trackB.md`.
 - Next action: `prompts/p12-right-dock-motion.md`.
+
+### 2026-06-16 — p12 EXECUTED — both tracks done ✅
+- Track A: added restrained right-dock motion and reduced-motion gating across the host/runtime path. `MapExplorerModalRuntimeView` now retains the closing route briefly for the exit animation, passes `reducedMotion`/`closing` into `MapRightDockHost`, and restores the final state immediately when reduced-motion is enabled. `MapRightDockHost` and `MapRightDockHost.module.css` now own the visual enter/exit state and keep the body content wrapper stable while the dock animates.
+- Track A tests/gates: `npx vitest run src/centerpanel/components/map/__tests__/mapMotionSystem.test.ts src/centerpanel/components/map/__tests__/MapRightDockHost.test.tsx` PASS, `npm run typecheck` PASS, `pwsh -File scripts/check-no-tailwind-centerpanel.ps1` PASS.
+- Track B: captured `evidence/p12-open.png`, `evidence/p12-close.png`, and `evidence/p12-reduced-motion.png`.
+- Evidence: `evidence/p12-trackA.md`, `evidence/p12-trackB.md`, and the screenshots above.
+- Next action: `prompts/p13-left-dock-single-column.md`.
+
+### 2026-06-16 — p13 EXECUTED — both tracks done ✅
+- Track A: completed left-dock embedded single-column conversion for Data/Catalog workspace content. Embedded `MapCatalogPanel` now renders a compact top summary band and a full-width body (`data-layout="single-column"` marker in embedded mode), removing the competing two-column split in the left workspace surface.
+- Track A tests/gates: `map-left-panel-contracts.test.ts` PASS (18), `map-left-panel-responsive-fit.test.ts` PASS (11), full map suite PASS (**95 files / 908 tests**), `npm run typecheck` PASS, no-tailwind guard PASS via `pwsh -File scripts/check-no-tailwind-centerpanel.ps1`.
+- Track B: captured required left-dock visuals at min/wide and related workspace states: `evidence/p13-add-data.png`, `evidence/p13-add-data-wide.png`, `evidence/p13-catalog.png`, `evidence/p13-layers.png`.
+- Evidence: `evidence/p13-trackA.md` and screenshots above.
+- Next action: `prompts/p14-models-recompose.md`.
 
 <!-- Append new sessions below. Template:
 ### YYYY-MM-DD — <phase/track> — <short title>

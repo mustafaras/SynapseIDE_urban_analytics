@@ -84,6 +84,57 @@ afterEach(() => {
 });
 
 describe("MapModelBuilderPanel", () => {
+  it("renders embedded models workflow as a readable single-column section order", () => {
+    const registry = createMapProcessingRegistry();
+    host = document.createElement("div");
+    document.body.appendChild(host);
+    root = createRoot(host);
+    act(() => {
+      root!.render(
+        <MapModelBuilderPanel
+          visible
+          presentation="embedded"
+          onClose={() => {}}
+          tools={registry.list()}
+          layers={[
+            { id: "primary", name: "Primary polygons" },
+            { id: "overlay", name: "Overlay polygons" },
+          ]}
+          onRun={() => { throw new Error("Not expected in layout assertion test"); }}
+          onRunBatch={() => { throw new Error("Not expected in layout assertion test"); }}
+          onExportToIdeAndUrban={() => {}}
+        />,
+      );
+    });
+
+    click("model-add-step");
+
+    const workflow = host.querySelector('[data-left-workspace-layout="single-column"]');
+    const define = host.querySelector('[data-testid="model-section-define"]');
+    const steps = host.querySelector('[data-testid="model-section-steps"]');
+    const graph = host.querySelector('[data-testid="model-section-workflow"]');
+    const runPreview = host.querySelector('[data-model-flow-section="run-preview"]');
+    const batchTargets = host.querySelector('[data-model-flow-section="batch-targets"]');
+    const outputEvidence = host.querySelector('[data-model-flow-section="output-evidence"]');
+
+    expect(workflow).not.toBeNull();
+    expect(define).not.toBeNull();
+    expect(steps).not.toBeNull();
+    expect(graph).not.toBeNull();
+    expect(runPreview).not.toBeNull();
+    expect(batchTargets).not.toBeNull();
+    expect(outputEvidence).not.toBeNull();
+
+    const isBefore = (a: Element | null, b: Element | null): boolean =>
+      Boolean(a && b && (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING));
+
+    expect(isBefore(define, steps)).toBe(true);
+    expect(isBefore(steps, graph)).toBe(true);
+    expect(isBefore(graph, runPreview)).toBe(true);
+    expect(isBefore(runPreview, batchTargets)).toBe(true);
+    expect(isBefore(batchTargets, outputEvidence)).toBe(true);
+  });
+
   it("shows blocked step reasons before run when model inputs are missing", () => {
     const registry = createMapProcessingRegistry();
     host = document.createElement("div");

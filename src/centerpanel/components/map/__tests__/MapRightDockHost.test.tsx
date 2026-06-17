@@ -238,4 +238,20 @@ describe("MapRightDockHost", () => {
 
     expect(onFloatingRectChange).toHaveBeenCalled();
   });
+
+  it("marks the host as closing and reduced-motion safe when requested", () => {
+    render(
+      <MapRightDockHost
+        route={createMapRightDockRoute("inspect", { source: "toolbar" })}
+        reducedMotion
+        closing
+        onClose={vi.fn()}
+      />,
+    );
+
+    const host = screen.getByTestId("map-right-dock-host");
+    expect(host.getAttribute("data-reduced-motion")).toBe("true");
+    expect(host.getAttribute("data-closing")).toBe("true");
+    expect(host.querySelector("[data-map-right-dock-body-content='true']")).toBeTruthy();
+  });
 });
