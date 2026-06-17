@@ -48,7 +48,7 @@ import {
   type GisStatusKey,
 } from "./mapTokens";
 import { MapDockPanelFrame } from "./shell";
-import { GisIconButton, GisStatusChip } from "./ui";
+import { GisEmptyState, GisIconButton, GisStatusChip } from "./ui";
 import { getMapOverlayPortalRoot } from "./ui/mapOverlayPortal";
 import { useDraggableMapPanel } from "./useDraggableMapPanel";
 import motionStyles from "./design/motion.module.css";
@@ -635,10 +635,13 @@ export const MapRightDockHost: React.FC<MapRightDockHostProps> = ({
             data-map-right-dock-body-content="true"
           >
             {children ?? (
-              <div className={styles.emptyBody}>
-                <Info size={MAP_ICON_SIZES.md} aria-hidden="true" />
-                <span>No {activeDefinition.label.toLowerCase()} content is available for the current map context.</span>
-              </div>
+              <GisEmptyState
+                icon={<Info size={MAP_ICON_SIZES.md} aria-hidden="true" />}
+                title={`No ${activeDefinition.label.toLowerCase()} content`}
+                description="No content is available for the current map context."
+                style={{ minHeight: "12rem" }}
+                data-testid="map-right-dock-empty"
+              />
             )}
           </div>
         </div>

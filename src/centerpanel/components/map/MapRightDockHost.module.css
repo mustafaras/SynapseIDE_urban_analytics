@@ -449,18 +449,6 @@
   flex: 0 0 auto;
 }
 
-.emptyBody {
-  display: grid;
-  place-items: center;
-  gap: 8px;
-  min-height: 12rem;
-  padding: 18px;
-  color: var(--syn-text-muted, #8993a3);
-  font-size: 12px;
-  line-height: 1.45;
-  text-align: center;
-}
-
 .srOnly {
   position: absolute;
   width: 1px;

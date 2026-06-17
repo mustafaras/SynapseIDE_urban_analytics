@@ -12,6 +12,8 @@
  *   6. usePrefersReducedMotion — SSR safety
  */
 
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -733,6 +735,94 @@ describe("reduced motion — matchMedia support", () => {
     const mod = await import("@/hooks/usePrefersReducedMotion");
     expect(mod.usePrefersReducedMotion).toBeDefined();
     expect(typeof mod.usePrefersReducedMotion).toBe("function");
+  });
+});
+
+/* ================================================================== */
+/*  12. Prompt p18 — redesigned-surface a11y consistency               */
+/* ================================================================== */
+
+describe("Prompt p18 redesigned-surface reduced-motion + keyboard consistency", () => {
+  it("stops the status-bar persistence spinner from animating under reduced motion", async () => {
+    const { MapStatusBar } = await import("../MapStatusBar");
+
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const root = createRoot(host);
+    roots.push(root);
+
+    await act(async () => {
+      root.render(React.createElement(MapStatusBar, {
+        cursor: { lng: 29.0, lat: 41.0 },
+        zoom: 11,
+        reducedMotion: true,
+        isSaving: true,
+        onOpenLayers: () => {},
+      }));
+    });
+
+    const spinner = host.querySelector('svg[data-reduced-motion]') as SVGSVGElement | null;
+    expect(spinner).toBeTruthy();
+    expect(spinner?.getAttribute("data-reduced-motion")).toBe("true");
+    // No SMIL rotation animation is emitted when reduced motion is active.
+    expect(host.querySelector("animateTransform")).toBeNull();
+  });
+
+  it("keeps actionable status segments as keyboard-operable buttons with labels", async () => {
+    const { MapStatusBar } = await import("../MapStatusBar");
+    const onOpenLayers = vi.fn();
+
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const root = createRoot(host);
+    roots.push(root);
+
+    await act(async () => {
+      root.render(React.createElement(MapStatusBar, {
+        cursor: { lng: 29.0, lat: 41.0 },
+        zoom: 11,
+        reducedMotion: true,
+        onOpenLayers,
+      }));
+    });
+
+    const layers = host.querySelector(
+      '[data-map-status-segment="layers"][data-map-status-interactive="true"]',
+    ) as HTMLButtonElement | null;
+    expect(layers).toBeTruthy();
+    expect(layers?.tagName).toBe("BUTTON");
+    expect(layers?.getAttribute("aria-label")).toBeTruthy();
+
+    act(() => {
+      layers!.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+      layers!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(onOpenLayers).toHaveBeenCalledTimes(1);
+
+    // Inert segments must not masquerade as interactive.
+    const camera = host.querySelector('[data-map-status-segment="camera"]');
+    expect(camera?.getAttribute("data-map-status-interactive")).toBe("false");
+  });
+
+  it("keeps reduced-motion + keyboard affordances declared at the source of redesigned surfaces", () => {
+    const drawingManager = readFileSync(
+      join(process.cwd(), "src/centerpanel/components/MapDrawingManager.tsx"),
+      "utf-8",
+    );
+    const drawingManagerCss = readFileSync(
+      join(process.cwd(), "src/centerpanel/components/MapDrawingManager.module.css"),
+      "utf-8",
+    );
+    const rightDockHost = readFileSync(
+      join(process.cwd(), "src/centerpanel/components/map/MapRightDockHost.tsx"),
+      "utf-8",
+    );
+
+    // Drawing modal: keyboard-navigable toolbar + self-guarded motion.
+    expect(drawingManager).toContain('role="toolbar"');
+    expect(drawingManagerCss).toContain("@media (prefers-reduced-motion");
+    // Right dock: enter/exit motion is gated on the reducedMotion flag.
+    expect(rightDockHost).toContain("!reducedMotion");
   });
 });
 

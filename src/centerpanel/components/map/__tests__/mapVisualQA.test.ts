@@ -357,3 +357,106 @@ describe("Prompt 30 layer stack row visual contract", () => {
     expect(layerManager).toContain('testId: "map-layer-inspect-trigger"');
   });
 });
+
+// ---------------------------------------------------------------------------
+// Prompt p18 — cross-surface consistency contract.
+//
+// After the dock-redesign phases (p02-p17), the redesigned surfaces must read
+// as one premium system: shared empty states, shared section headers, shared
+// motion with reduced-motion safety, and tokenized typography. This contract
+// freezes that consistency at the source level so drift cannot creep back in.
+// ---------------------------------------------------------------------------
+const DRAWING_MANAGER_PATH = join(
+  process.cwd(),
+  "src/centerpanel/components/MapDrawingManager.tsx",
+);
+const DRAWING_MANAGER_CSS_PATH = join(
+  process.cwd(),
+  "src/centerpanel/components/MapDrawingManager.module.css",
+);
+const STATUS_BAR_PATH = join(
+  process.cwd(),
+  "src/centerpanel/components/map/MapStatusBar.tsx",
+);
+const RIGHT_DOCK_HOST_PATH = join(
+  process.cwd(),
+  "src/centerpanel/components/map/MapRightDockHost.tsx",
+);
+const MODEL_BUILDER_PATH = join(
+  process.cwd(),
+  "src/centerpanel/components/map/modelBuilder/MapModelBuilderPanel.tsx",
+);
+const CATALOG_PANEL_PATH = join(
+  process.cwd(),
+  "src/centerpanel/components/map/catalog/MapCatalogPanel.tsx",
+);
+const EMPTY_STATE_PATH = join(
+  process.cwd(),
+  "src/centerpanel/components/map/ui/GisEmptyState.tsx",
+);
+const MOTION_CSS_PATH = join(
+  process.cwd(),
+  "src/centerpanel/components/map/design/motion.module.css",
+);
+
+describe("Prompt p18 cross-surface consistency contract", () => {
+  const drawingManager = readFileSync(DRAWING_MANAGER_PATH, "utf-8");
+  const drawingManagerCss = readFileSync(DRAWING_MANAGER_CSS_PATH, "utf-8");
+  const statusBar = readFileSync(STATUS_BAR_PATH, "utf-8");
+  const rightDockHost = readFileSync(RIGHT_DOCK_HOST_PATH, "utf-8");
+  const modelBuilder = readFileSync(MODEL_BUILDER_PATH, "utf-8");
+  const catalogPanel = readFileSync(CATALOG_PANEL_PATH, "utf-8");
+  const emptyState = readFileSync(EMPTY_STATE_PATH, "utf-8");
+  const motionCss = readFileSync(MOTION_CSS_PATH, "utf-8");
+
+  it("routes every full-panel empty state through the shared GisEmptyState primitive", () => {
+    // Drawing modal, right dock fallback, and left catalog all share one empty-state voice.
+    expect(drawingManager).toContain("GisEmptyState");
+    expect(rightDockHost).toContain("GisEmptyState");
+    expect(rightDockHost).toContain('data-testid="map-right-dock-empty"');
+    expect(catalogPanel).toContain("GisEmptyState");
+    // The right dock no longer ships a bespoke empty-body block.
+    expect(rightDockHost).not.toContain("styles.emptyBody");
+  });
+
+  it("keeps the shared empty-state primitive reduced-motion safe", () => {
+    expect(emptyState).toContain("motion.module.css");
+    expect(emptyState).toContain("motionStyles.fadeIn");
+  });
+
+  it("uses the shared GisSectionHeader rhythm in the Models builder", () => {
+    expect(modelBuilder).toContain("GisSectionHeader");
+    expect(modelBuilder).toContain("GisPropertyGrid");
+    expect(modelBuilder).toContain("GisStatusChip");
+    expect(modelBuilder).toContain("GisProgressBar");
+  });
+
+  it("shares one motion system with reduced-motion gating across animated surfaces", () => {
+    // The drawing modal animates via the shared motion module and self-guards in CSS.
+    expect(drawingManager).toContain("motionStyles.panelIn");
+    expect(drawingManagerCss).toContain("@media (prefers-reduced-motion");
+    // The right dock gates its enter/exit motion on the reducedMotion flag.
+    expect(rightDockHost).toContain("motionStyles");
+    expect(rightDockHost).toContain("reducedMotion");
+    expect(rightDockHost).toContain("!reducedMotion");
+    // The left catalog opts into the shared panel-in motion.
+    expect(catalogPanel).toContain("motionStyles.panelIn");
+    // The shared motion module removes animation under reduced motion for both classes.
+    const reducedIdx = motionCss.indexOf("@media (prefers-reduced-motion");
+    expect(reducedIdx).toBeGreaterThan(-1);
+    const reducedBlock = motionCss.slice(reducedIdx);
+    expect(reducedBlock).toContain(".panelIn");
+    expect(reducedBlock).toContain(".fadeIn");
+  });
+
+  it("keeps the status bar premium, tokenized, grouped, and reduced-motion honest", () => {
+    expect(statusBar).toContain("MAP_TYPOGRAPHY");
+    expect(statusBar).toContain("MAP_SPACING");
+    // Premium VS Code grouping + honest interactivity markers from p17.
+    expect(statusBar).toContain('data-map-status-cluster="left"');
+    expect(statusBar).toContain('data-map-status-cluster="right"');
+    expect(statusBar).toContain('data-map-status-interactive');
+    // The status spinner stops animating under reduced motion.
+    expect(statusBar).toContain("reducedMotion ? null");
+  });
+});

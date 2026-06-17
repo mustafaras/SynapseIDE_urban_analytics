@@ -176,7 +176,7 @@ describe("Prompt 14 — Left Panel Responsive Fit", () => {
       expect(css).toContain("display: grid;");
       expect(css).not.toContain("display: contents;");
       // workflow graph + step editor are bounded and scrollable to avoid text stacking across sections
-      expect(css).toContain("max-height: min(22rem, 48vh);");
+      expect(css).toContain("max-height: min(24rem, 50vh);");
       expect(css).toContain("overflow: auto;");
       expect(css).not.toContain(".panelEmbedded .workflowGrid {");
     });

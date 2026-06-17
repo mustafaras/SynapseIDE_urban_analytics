@@ -2,7 +2,7 @@
 
 > **Read this FIRST every session. Update it LAST before exiting.** A track is `done` only with evidence (a test-summary file in `evidence/` or a screenshot path). Never write `done` without an `evidence` link. This ledger is the single human-readable source of truth for "where are we"; [STATE.json](STATE.json) is its machine mirror — keep them in sync.
 
-**Overall status:** `IN PROGRESS` — p00-p17 complete (badge/status-language phases + dock-state unification + draw first-click fix + premium drawing modal + rectangle-AOI bounds-clipped real fetch + AOI analysis/evidence dispatch + floating right-dock shell + right-panel single-column conversion + right-dock motion + left-dock single-column conversion + Models tab single-column recompose + premium visual flow + status overflow correctness + status premium interactions closed; next action p18).
+**Overall status:** `IN PROGRESS` — p00-p18 complete (badge/status-language phases + dock-state unification + draw first-click fix + premium drawing modal + rectangle-AOI bounds-clipped real fetch + AOI analysis/evidence dispatch + floating right-dock shell + right-panel single-column conversion + right-dock motion + left-dock single-column conversion + Models tab single-column recompose + premium visual flow + status overflow correctness + status premium interactions + cross-cutting consistency pass closed; next action p19 final RC gate + archive).
 
 Status values: `pending` · `in_progress` · `done` · `blocked`
 
@@ -26,7 +26,7 @@ Status values: `pending` · `in_progress` · `done` · `blocked`
 | p15 | Models premium visual | (support shots) | **done** | Readable Models flow | **done** | ☑ |
 | p16 | Status overflow fix | Overflow measurement/popover | **done** | (support shots) | **done** | ☑ |
 | p17 | Status premium | VS Code interactions | **done** | Status bar + More shots | **done** | ☑ |
-| p18 | Consistency pass | Density/a11y/reduced-motion | pending | Cross-surface QA shots | pending | ☐ |
+| p18 | Consistency pass | Density/a11y/reduced-motion | **done** | Cross-surface QA shots | **done** | ☑ |
 | p19 | Final RC gate | Full gate + archive | pending | Before/after sweep | pending | ☐ |
 
 ---
@@ -275,3 +275,13 @@ Status values: `pending` · `in_progress` · `done` · `blocked`
   - p19: Track A `pending`, Track B `pending`.
 - Source of truth check: `LEDGER.md` table and `STATE.json` are aligned for p16-p19.
 - Next actionable prompt: `prompts/p18-consistency-pass.md`.
+
+### 2026-06-17 — p18 EXECUTED — both tracks done ✅
+- Track A: cross-cutting consistency audit + harmonization. Audited the redesigned surfaces (drawing modal, status bar, right dock, left workspaces, Models tab) against the shared `ui/`/`design/` primitives, tokens, and reduced-motion. Found them already largely consistent (shared `GisEmptyState`/`GisSectionHeader`/`GisPropertyGrid`/`GisStatusChip`/`GisProgressBar`, one shared `motion.module.css` system, reduced-motion gating). **One real divergence** — the right-dock full-panel fallback empty body was bespoke markup → **harmonized to `GisEmptyState`** (`MapRightDockHost.tsx`); removed the now-dead `.emptyBody` class (`MapRightDockHost.module.css`). Left the Models-builder one-line inline hints as-is (a centered full empty-state block would fight the dense single-column form).
+  - Froze the consistency at the source with new tests: `mapVisualQA.test.ts` → **"Prompt p18 cross-surface consistency contract"** (shared empty states; reduced-motion-safe empty-state primitive; Models `GisSectionHeader` rhythm; one motion system with reduced-motion gating; premium tokenized/grouped/reduced-motion-honest status bar). `map-accessibility.test.ts` → **"Prompt p18 redesigned-surface reduced-motion + keyboard consistency"** (behavioral: status spinner stops animating under reduced motion; actionable segments are keyboard-operable labelled `<button>`s; inert segments honestly marked; source: drawing `role="toolbar"` + reduced-motion CSS, right dock `!reducedMotion` gate).
+  - **Fixed a pre-existing drift** (committed together in `343ff01`, surfaced once the full map suite was re-run in a fresh container): `map-left-panel-responsive-fit.test.ts` asserted `max-height: min(22rem, 48vh)` while the rendered Models CSS uses `min(24rem, 50vh)`. Aligned the stale test to the rendered/visually-verified CSS value.
+  - Gates: `map-accessibility`+`mapVisualQA` **84**; full map suite **930/930 (97 files)**; `npm run typecheck` PASS; no-Tailwind verified manually (`pwsh` unavailable, env limit since p00 — changed files add no `className="…"` literals); `npm run test:e2e:a11y` **5 passed / 1 failed** (browser pinned to provisioned `chromium-1194`; the single failure is the **pre-existing** `Prompt 55 › map-inspector-host` focus scenario, identical to p17, untouched by p18).
+- Track B: cross-surface sweep via temp Playwright specs (removed at closeout). Captured `evidence/p18-overview-default.png`, `p18-overview-reduced-motion.png`, `p18-overview-high-contrast.png` (the three-variant coherence proof — premium grouped status bar, single-column left dock, truthful `user-declared EPSG:5254`/QA chips; high-contrast delineates structure with borders), plus `p18-right-dock-default.png` (floating single-column inspector), `p18-models-default.png` (single-column builder with shared section-header rhythm), and `p18-left-workspace-default.png` (Analyze Workflows). Drawing-modal default shot deferred to p06 evidence + p18 source tests (its open path diverged under the full modal); canvas blank = no e2e tile network (consistent with all prior phases).
+- Evidence: `evidence/p18-trackA.md`, `evidence/p18-trackB.md`, + the 6 screenshots above.
+- Env note (future agents): run e2e/captures with a temp `--config` pinning `launchOptions.executablePath` to `/opt/pw-browsers/chromium-1194/chrome-linux/chrome` (Playwright 1.59 defaults to build 1217, not provisioned); first Vite boot is slow (~40s).
+- **Next action:** `prompts/p19-final-gate.md` (full RC gate + before/after sweep + archive the pack).
