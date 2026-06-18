@@ -13,6 +13,7 @@ mirror is [`STATE.json`](./STATE.json); keep them in sync. Newest entries at the
 | 2026-06-17 | — | pack created | 69bee05.. | n/a | n/a | Pack scaffolded: prompts.json (22), schema, triggers, STATE, CLAUDE/SKILL/PROOF, modal-fix skill. No prompt executed yet. |
 | 2026-06-18 | MFP-01 | done | 3f393e3ea3.. | general | proofs/MFP-01/ | KeysModal.tsx:174 undefined `color:GOLD` → `var(--syn-accent-gold, #f5b301)`. typecheck + lint:errors clean; render-smoke test added (1 passed). |
 | 2026-06-18 | MFP-02 | done | 0dceb8adea.. | gis | proofs/MFP-02/ | Promoted useFocusTrap to src/hooks/ (verbatim); map path → `export * from '@/hooks/useFocusTrap';`. Pure move + re-export. typecheck clean; 932 unit tests pass (map-accessibility unchanged + new hooks trap test); lint:errors clean; no-tailwind check env-blocked (no PowerShell) — manually verified. Unblocks MFP-06/MFP-13. |
+| 2026-06-18 | MFP-03 | done | 80eda980c7.. | general | proofs/MFP-03/ | Added src/hooks/useScrollLock.ts — ref-counted body-scroll lock; first lock saves prior overflow + sets 'hidden', last release restores saved value (not 'unset'); SSR-safe. Fixes M5. Modal.tsx untouched (MFP-06 wires it). typecheck clean; vitest src/hooks = 5 passed; lint:errors clean. |
 
 ## How to add a row (when you run a prompt)
 1. Run the prompt via the **modal-fix** skill (trigger, e.g. `P1`).
