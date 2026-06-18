@@ -23,7 +23,9 @@ INPUT: a trigger (e.g. "P8", "MFP-08", "ai-settings")
 6. VALIDATE  run the prompt.validate commands for its gate
 7. PROVE     write every prompt.proofRequired artifact to proofs/<id>/
 8. RECORD    update STATE.json (status, commit, notes) + append LEDGER.md row
-9. REPORT    short summary: changes, gate result, proofs, next prompt
+9. FINALIZE  commit ledger/STATE bookkeeping, push the branch, MERGE the PR into master
+             (standing owner authorization for this pack — see CLAUDE.md §6)
+10. REPORT   short summary: changes, gate result, proofs, merge sha, next prompt
 ```
 
 Do **not** read other prompts, the full audits, or unrelated files. If the prompt has
@@ -58,7 +60,9 @@ Run the command set for the prompt's `gate` (general / gis / analytics / release
 - Never weaken the already-strong Map Explorer a11y; keep `test:e2e:a11y` green.
 - Never introduce `any`, direct `localStorage`, Tailwind in `centerpanel/`, raw `z-index`
   literals (use tokens), or untyped `CustomEvent`s.
-- One prompt = one commit/PR. Never push to `master` without explicit permission.
+- One prompt = one commit/PR, **merged into `master` at the end of that prompt** (the repo
+  owner granted standing authorization for this pack; see [`CLAUDE.md`](./CLAUDE.md) §6).
+  Outside this pack, never push to `master` without explicit permission.
 
 ## Example
 

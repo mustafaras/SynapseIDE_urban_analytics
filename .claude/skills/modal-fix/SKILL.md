@@ -28,11 +28,17 @@ Execute exactly **one** prompt from the pack at
    `docs/audits/modal-remediation-pack/proofs/<id>/` (see that folder's `PROOF.md`).
 8. **Record:** update `STATE.json` (status → `done`, commit sha, notes) and append a row to
    `LEDGER.md`.
-9. **Report** concisely: changes, gate result, proofs captured, suggested next prompt.
+9. **Finalize (standing policy):** at the end of **every** prompt, once the gate is green and
+   all proofs are captured, commit the ledger/STATE bookkeeping, push the feature branch, and
+   **merge the PR into `master`**. The repo owner has granted standing authorization for the
+   modal-remediation pack — do this without re-asking. (See CLAUDE.md §6.)
+10. **Report** concisely: changes, gate result, proofs captured, merge sha, suggested next prompt.
 
 ## Hard rules
 
-- One prompt = one focused commit/PR. Never push to `master` without explicit permission.
+- One prompt = one focused commit/PR, **merged into `master` at the end of that prompt**
+  (standing owner authorization for this pack — see CLAUDE.md §6). Outside this pack, never
+  push to `master` without explicit permission.
 - No `any`, no direct `localStorage`, no Tailwind in `centerpanel/`, no raw `z-index`
   literals (use tokens), no untyped `CustomEvent` (use `synapseBus`), errors via
   `reportError`.

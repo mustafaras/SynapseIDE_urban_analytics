@@ -18,6 +18,10 @@ mirror is [`STATE.json`](./STATE.json); keep them in sync. Newest entries at the
 2. After the gate is green and `proofs/<id>/` is populated, append a row here:
    `| <date> | MFP-XX | done | <sha> | <gate> | proofs/MFP-XX/ | <one line> |`
 3. Update `STATE.json[MFP-XX]` to match (status, commit, notes).
+4. **Finalize (standing policy):** commit this ledger/STATE update, push the branch, open
+   the PR, and **merge it into `master`**. The owner authorized this end-of-prompt flow for
+   the pack (see [`CLAUDE.md`](./CLAUDE.md) §6) — no need to re-ask. Never merge a prompt
+   whose gate failed or whose proofs are missing.
 
 ## Release checklist (all must be `verified`)
 - [ ] Phase 0: MFP-01, MFP-08, MFP-09
