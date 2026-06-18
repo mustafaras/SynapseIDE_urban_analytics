@@ -1,59 +1,58 @@
-# TRIGGERS — context-light prompt dispatch
+# TRIGGERS — fire one prompt at a time
 
-**Why:** so you can fire any prompt without re-pasting it and without flooding context.
-Type a trigger; the agent loads **only** that one prompt object from
-[`prompts.json`](./prompts.json) and runs the [`modal-fix`](../../../.claude/skills/modal-fix/SKILL.md)
-procedure. Machine map: [`triggers.json`](./triggers.json).
+**How to use:** send **one trigger** (the `P#` form). The agent loads only that prompt
+(`prompts.json` object + its `prompts/<id>.md` spec) and runs the
+[`modal-fix`](../../../.claude/skills/modal-fix/SKILL.md) procedure — it does **not** read
+the rest of the pack. One trigger = one focused change + proof.
 
-## How to fire a prompt
+> **To avoid confusion, use the `P#` form below.** `MFP-0#` and the slugs in
+> [`triggers.json`](./triggers.json) also resolve, but `P#` is the single recommended way.
 
-Any of these resolve to the same task — e.g. for AI Settings:
+## The 22 triggers (one-line goal each)
 
-```
-P8            MFP-08            ai-settings            /modal-fix 8
-```
-
-The agent then: resolve → guard deps (STATE.json) → load one prompt → edit → validate →
-capture proofs → update STATE/LEDGER → report. It will **not** read the other prompts or
-the full audits.
-
-## Trigger table
-
-| Trigger(s) | id | Pri | Phase | Title |
+| Send | id | Goal (one sentence) | Pri | Needs |
 |---|---|---|---|---|
-| `P1` · `keys-gold` · `gold-bug` | MFP-01 | P0 | 0 | Fix undefined `GOLD` in KeysModal |
-| `P2` · `promote-focustrap` · `shared-hook` | MFP-02 | P0 | 1 | Promote `useFocusTrap` to a shared hook |
-| `P3` · `scroll-lock` | MFP-03 | P1 | 1 | Ref-counted `useScrollLock` |
-| `P4` · `inert` · `inert-background` | MFP-04 | P1 | 1 | `useInertBackground` |
-| `P5` · `z-index-tokens` · `ztokens` | MFP-05 | P1 | 1 | Publish z-index CSS tokens |
-| `P6` · `base-modal` · `rebuild-modal` | MFP-06 | P1 | 1 | Rebuild base `Modal` on foundation |
-| `P7` · `foundation-tests` | MFP-07 | P1 | 1 | Foundation unit tests |
-| `P8` · `ai-settings` | MFP-08 | P0 | 0 | AiSettingsModal conformant dialog |
-| `P9` · `map-service` | MFP-09 | P0 | 0 | MapServiceDialog trap/role/shadowing |
-| `P10` · `new-file` | MFP-10 | P1 | 2 | NewFileModal role/selectors/focus/data |
-| `P11` · `new-project` | MFP-11 | P1 | 2 | NewProjectModal keyboard cards |
-| `P12` · `global-search` | MFP-12 | P1 | 2 | GlobalSearch combobox/listbox/reflow |
-| `P13` · `migrate-traps` · `dedupe-traps` | MFP-13 | P2 | 2 | Migrate bespoke traps to hook |
-| `P14` · `names` · `accessible-names` | MFP-14 | P1 | 2 | Standardize accessible names |
-| `P15` · `apply-ztokens` · `z-index-fix` | MFP-15 | P2 | 2 | Apply z-index tokens (occlusion) |
-| `P16` · `settings-extract` | MFP-16 | P3 | 3 | SettingsModal extract/reflow |
-| `P17` · `urban-welcome` · `reduced-motion` | MFP-17 | P2 | 2 | Urban/Welcome RM + typed events |
-| `P18` · `map-dialog-family` | MFP-18 | P2 | 2 | Map dialog family cleanups |
-| `P19` · `map-core` · `decompose` | MFP-19 | P3 | 3 | Decompose Map Explorer Core |
-| `P20` · `tests` · `guardrails` | MFP-20 | P2 | 2 | Tests + regression guardrails |
-| `P21` · `branding` · `naming` | MFP-21 | P2 | 2 | Branding & name consistency ⚠ decision |
-| `P22` · `release` · `publish-assets` | MFP-22 | P2 | 2 | Release assets (title/favicon/meta) ⚠ decision |
+| `P1` | MFP-01 | Fix the undefined `GOLD` crash in KeysModal (replace with an amber token). | P0 | — |
+| `P2` | MFP-02 | Move `useFocusTrap` to `src/hooks/` so every modal can share one trap. | P0 | — |
+| `P3` | MFP-03 | Add a ref-counted `useScrollLock` so stacked modals don't fight body scroll. | P1 | — |
+| `P4` | MFP-04 | Add `useInertBackground` so the page behind a modal is inert to assistive tech. | P1 | — |
+| `P5` | MFP-05 | Add the missing `--z-system-banner` z-index token. | P1 | — |
+| `P6` | MFP-06 | Rebuild the base `Modal`: focus trap, focus restore, inert, unique title id, scoped Escape. | P1 | P2,P3,P4,P5 |
+| `P7` | MFP-07 | Unit-test the foundation (base `Modal` + the three new hooks). | P1 | P6 |
+| `P8` | MFP-08 | Make AiSettingsModal a real dialog: name, portal, Escape, focus trap, token z-index, no `any`. | P0 | P2 |
+| `P9` | MFP-09 | Give MapServiceDialog a focus trap + Escape and fix its listbox/option roles. | P0 | — |
+| `P10` | MFP-10 | Make NewFileModal keyboard-operable, move the dialog role to the panel, extract template data. | P1 | P6 |
+| `P11` | MFP-11 | Turn NewProjectModal's template cards into keyboard-operable radios. | P1 | P6 |
+| `P12` | MFP-12 | Fix GlobalSearch combobox/listbox semantics, arrow navigation, and the 640px reflow floor. | P1 | P6 |
+| `P13` | MFP-13 | Replace the five hand-rolled focus traps with the shared hook. | P2 | P2 |
+| `P14` | MFP-14 | Give every dialog a real `aria-labelledby` accessible name. | P1 | P6 |
+| `P15` | MFP-15 | Replace raw modal z-index numbers with tokens (fix occlusion). | P2 | P5 |
+| `P16` | MFP-16 | Slim SettingsModal: extract key-verification + virtualization and enable reflow. | P3 | P6 |
+| `P17` | MFP-17 | Gate close-delays on reduced-motion and replace Urban's untyped events with `synapseBus`. | P2 | — |
+| `P18` | MFP-18 | Map dialog family cleanup: dead code, responsive grids, CSV memoization. | P2 | — |
+| `P19` | MFP-19 | Decompose the 6,791-line Map Explorer Core (staged) and route errors via `reportError`. | P3 | P20 |
+| `P20` | MFP-20 | Add focus/Escape/axe tests for every modal + z-index/name lint guardrails. | P2 | P6 |
+| `P21` | MFP-21 | Establish `brand.ts` and unify the product name across modals/shell. ⚠ needs your sign-off | P2 | — |
+| `P22` | MFP-22 | Fix `index.html` title/favicon/meta + version for release. ⚠ needs your sign-off | P2 | P21 |
 
-⚠ = `requiresHumanDecision` — the agent will confirm the canonical name/version first.
+⚠ = the agent confirms the canonical name/version with you (via a question) before editing.
 
-## Batch / phase triggers (optional)
+## Recommended order
 
-- `phase 0` → MFP-01, MFP-08, MFP-09 (quick wins / blockers)
-- `phase 1` → MFP-02..MFP-07 (foundation)
-- `phase 2` → MFP-10..MFP-15, MFP-17, MFP-18, MFP-20, MFP-21, MFP-22
-- `phase 3` → MFP-16, MFP-19 (decomposition, last)
-- `next` → the lowest-id prompt in STATE.json whose status is `pending` and whose deps are met
-- `status` → summarise STATE.json (counts per status, next actionable prompt)
+Dependencies are enforced automatically (the agent refuses a prompt whose prerequisite
+isn't `done`). A safe path:
 
-When firing a batch, run prompts **one at a time**, committing + recording each before the
-next, so the ledger stays truthful and context stays small.
+```
+P1 → P2 → P9        (quick wins / blockers)
+P3 → P4 → P5 → P6 → P7   (foundation)
+P8 → P10 → P11 → P12 → P14 → P15 → P13 → P17 → P18 → P20   (migrate + fix)
+P21 → P22           (branding/release — your sign-off)
+P16 → P19           (decomposition — last)
+```
+
+## Shortcuts (optional)
+
+- `status` → summarise [`STATE.json`](./STATE.json) (counts + the next actionable prompt).
+- `next` → run the lowest-numbered `pending` prompt whose dependencies are met.
+
+That's it — send a `P#` and I'll execute just that one, with proof.

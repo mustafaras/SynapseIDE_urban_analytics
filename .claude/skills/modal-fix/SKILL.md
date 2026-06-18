@@ -15,8 +15,9 @@ Execute exactly **one** prompt from the pack at
    and slugs all resolve).
 2. **Guard:** read `STATE.json` for that id and its `dependsOn`. If any dependency is not
    `done`/`verified`, STOP and tell the user the missing prerequisite.
-3. **Load only that prompt object** from `prompts.json` (match by `id`). Do not read other
-   prompts, the full audits, or unrelated source.
+3. **Load that prompt object** from `prompts.json` (match by `id`) **and read its spec
+   file** `docs/audits/modal-remediation-pack/prompts/<id>.md` (the detailed source). Do not
+   read other prompts, the full audits, or unrelated source.
 4. **Re-anchor:** open each `target.file`; confirm the `symbols` (line `anchors` are
    advisory — lines drift). If `requiresHumanDecision: true`, use `AskUserQuestion` first.
 5. **Edit** per `steps`, honouring `constraints` and the pack operating manual

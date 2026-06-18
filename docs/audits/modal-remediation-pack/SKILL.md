@@ -16,7 +16,8 @@ proof capture and anti-amnesia bookkeeping — without flooding context with the
 INPUT: a trigger (e.g. "P8", "MFP-08", "ai-settings")
 1. RESOLVE   trigger → id            via triggers.json
 2. GUARD     read STATE.json[id] + dependsOn; abort if a dep is not done/verified
-3. LOAD      read ONLY prompts.json → prompts[] where id == resolved   (one object)
+3. LOAD      read the prompts.json object for that id + its spec file prompts/<id>.md
+             (the detailed source). Read nothing else from the pack.
 4. RE-ANCHOR open each target file; confirm symbols (anchors are advisory — lines drift)
 5. EDIT      apply steps; honour constraints + repo CLAUDE.md rules
 6. VALIDATE  run the prompt.validate commands for its gate
