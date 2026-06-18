@@ -102,7 +102,7 @@
       "notes": "Rebuilt base molecules Modal on MFP-02/03/04/05 hooks: useFocusTrap (trap+restore via layout move-in + post-uninert restore effect), useId title id, dialog-scoped Escape + backdrop-only overlay click (dropped global useKeyPress/useOnClickOutside), useScrollLock, useInertBackground, aria-live status, SYNAPSE_OVERLAY.surface palette, min-width:min(640px,100%) reflow, prefers-reduced-motion. New optional ariaLabel/describedby; no any. Gate general: typecheck + lint:errors clean. Modal.a11y.test.tsx = 6/6. Full vitest 3085 passed; the 3 failures (useMapExplorerStore persistence x2, MapExplorerModal.dispatch x1) are PRE-EXISTING on master (verified by running with master's Modal.tsx) — not caused by MFP-06. PROOF CAVEAT: e2e-a11y environment-blocked (Playwright browser download denied by sandbox; dev server not bootable) — substituted by jsdom a11y suite + manual-keyboard.md; re-run npm run test:e2e:a11y in a browser-capable env for the full Map Explorer audit. Unblocks MFP-07/10/11/12/14/16/20."
     },
     "MFP-07": {
-      "status": "pending",
+      "status": "done",
       "priority": "P1",
       "phase": 1,
       "dependsOn": [
@@ -113,8 +113,8 @@
         "unit-test"
       ],
       "proofDir": "proofs/MFP-07/",
-      "commit": null,
-      "notes": ""
+      "commit": "576055fbfa1b2e60a7b92ca54845884588b95bab",
+      "notes": "Foundation tests: new src/test/assertDialogA11y.ts (reusable contract: focus-in, Tab/Shift+Tab wrap, restore, Escape — reused by MFP-20); new Modal.test.tsx (assertDialogA11y + unique useId title ids + ariaLabel/describedby wiring); expanded useFocusTrap.test.ts (capture/restore + document.contains guard + wrap). useScrollLock/useInertBackground tests already cover ref-counting + inert toggling from MFP-03/04. No any (typed WritableRef). Validation: vitest src/components/molecules src/hooks = 5 files / 21 passed; typecheck + lint:errors clean."
     },
     "MFP-08": {
       "status": "pending",
