@@ -1,0 +1,10 @@
+=== npx vitest run src/styles/__tests__/zIndexTokens.test.ts ===
+
+ RUN  v4.1.9 /home/user/SynapseIDE_urban_analytics
+
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  13:27:11
+   Duration  498ms (transform 127ms, setup 0ms, import 149ms, tests 4ms, environment 0ms)
+

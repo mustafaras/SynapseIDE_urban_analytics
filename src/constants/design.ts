@@ -334,6 +334,7 @@ export const DESIGN_TOKENS = {
     popover: 10060,
     tooltip: 10070,
     toast: 10080,
+    systemBanner: 10090, // global gold bars; replaces the 2147483648 literals (MFP-15)
     terminal: 10000,
     aiAssistant: 10001,
   },

@@ -67,7 +67,7 @@
       "notes": "Added src/hooks/useInertBackground.ts — generalizes MapWorkspaceShell sibling-exclusion; while active sets inert + aria-hidden on body-level siblings, excluding self branch + modal/portal root + data-map-overlay-root; snapshots/restores prior state (nested-safe); SSR-safe; inert via setAttribute (no any). Fixes M6. Modal.tsx untouched (MFP-06 wires it). Gate general: typecheck clean, vitest src/hooks = 8 passed, lint:errors clean."
     },
     "MFP-05": {
-      "status": "pending",
+      "status": "done",
       "priority": "P1",
       "phase": 1,
       "dependsOn": [],
@@ -77,8 +77,8 @@
         "color-guard"
       ],
       "proofDir": "proofs/MFP-05/",
-      "commit": null,
-      "notes": ""
+      "commit": "7966fd5ae58296bb8c4aaa999b5303a0cc0400c4",
+      "notes": "Published z-index CSS vars: design.ts zIndex gains systemBanner:10090 (above toast); theme.ts createCSSVariables publishes --z-system-banner and --z-statusbar (statusBar tier was defined but unexposed). Single source of truth = design.ts; no literals in theme.ts; no consumer migrated (MFP-15 does that). Gate general: typecheck clean, color:guard clean, new zIndexTokens drift test = 2 passed, lint:errors clean. Unblocks MFP-15."
     },
     "MFP-06": {
       "status": "pending",
