@@ -1,0 +1,27 @@
+=== npm run perf:budgets ===
+
+> urban-analytics-workbench@1.0.0 perf:budgets
+> node scripts/check-bundle-budgets.mjs
+
+Bundle budget summary
+- Initial load: 5.73 MiB raw / 1.65 MiB gzip (budget 6.05 MiB raw)
+- Lazy centerpanel/components/MapExplorerHost: 4.22 MiB raw / 1.11 MiB gzip (budget 4.30 MiB raw, approved exception)
+- Lazy features/urbanAnalytics/UrbanAnalyticsModal: 2.09 MiB raw / 615.54 KiB gzip (budget 2.83 MiB raw, approved exception)
+- Lazy features/urbanAnalytics/RightPanelFourBlock: 1.09 MiB raw / 351.54 KiB gzip (budget 1.86 MiB raw, approved exception)
+- Lazy centerpanel/Flows/SunlightSimFlow: 1.01 MiB raw / 271.07 KiB gzip (budget 1.33 MiB raw, approved exception)
+- Lazy centerpanel/Flows/VoxCity3DFlow: 991.65 KiB raw / 259.00 KiB gzip (budget 1.32 MiB raw, approved exception)
+- Lazy centerpanel/Flows/CityJSONFlow: 957.91 KiB raw / 248.01 KiB gzip (budget 1.00 MiB raw, approved exception)
+- Lazy node_modules/html2pdf.js/dist/html2pdf: 913.79 KiB raw / 257.30 KiB gzip (budget 1.00 MiB raw, approved exception)
+- Lazy features/education/EducationModule: 606.27 KiB raw / 164.99 KiB gzip (budget 875.00 KiB raw, approved exception)
+- Lazy node_modules/pdf-lib/es/index: 410.25 KiB raw / 170.74 KiB gzip
+- Lazy features/education/MethodologyExplainer: 406.90 KiB raw / 108.01 KiB gzip
+- Largest budgeted assets:
+  assets/useMapExplorerStore-C4THbnSX.js: 2.75 MiB raw / 841.65 KiB gzip
+  assets/MapExplorerHost-B12W3tAe.js: 1.65 MiB raw / 433.27 KiB gzip
+  assets/index-RXeXRgdi.js: 1.57 MiB raw / 432.78 KiB gzip
+  assets/MapPublicationOutputBindingService-BZgQtYru.js: 842.83 KiB raw / 226.05 KiB gzip
+  assets/useCityJSONScene-EgSoPWYD.js: 841.29 KiB raw / 220.79 KiB gzip
+  assets/html2pdf-BraFqxtl.js: 718.84 KiB raw / 212.00 KiB gzip
+  assets/reportArtifactBuilder-CLm496JU.js: 696.74 KiB raw / 235.03 KiB gzip
+  assets/es-CMXk7Qai.js: 410.25 KiB raw / 170.74 KiB gzip
+Bundle budgets passed.

@@ -1,0 +1,10 @@
+=== vitest NewFileModal.a11y ===
+
+ RUN  v4.1.9 /home/user/SynapseIDE_urban_analytics
+
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  23:05:02
+   Duration  6.76s (transform 201ms, setup 0ms, import 754ms, tests 676ms, environment 5.13s)
+
