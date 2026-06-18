@@ -39,7 +39,7 @@
       "notes": "Promoted canonical focus trap to src/hooks/useFocusTrap.ts (verbatim; exports FOCUSABLE_SELECTOR, getFocusableElements, useFocusTrap); reduced src/centerpanel/components/map/useFocusTrap.ts to `export * from '@/hooks/useFocusTrap';`. Pure move + re-export, no behavioural change. Gate gis: typecheck clean, 932 unit tests pass (map-accessibility unchanged + new src/hooks trap test), lint:errors clean; lint:no-tailwind-centerpanel not runnable (PowerShell absent on Linux runner) — manually verified the touched centerpanel file has no class/className literal. Unblocks MFP-06/MFP-13."
     },
     "MFP-03": {
-      "status": "pending",
+      "status": "done",
       "priority": "P1",
       "phase": 1,
       "dependsOn": [],
@@ -49,8 +49,8 @@
         "unit-test"
       ],
       "proofDir": "proofs/MFP-03/",
-      "commit": null,
-      "notes": ""
+      "commit": "80eda980c7d146989b1b55ae48c46ceac05cfa34",
+      "notes": "Added src/hooks/useScrollLock.ts — module-level ref-counted body-scroll lock; first lock saves prior overflow + sets 'hidden', last release restores the saved value (not 'unset'); SSR-safe. Fixes M5 (stacked modals fighting body scroll). Modal.tsx untouched (wiring is MFP-06). Gate general: typecheck clean, vitest src/hooks = 5 passed, lint:errors clean."
     },
     "MFP-04": {
       "status": "pending",
