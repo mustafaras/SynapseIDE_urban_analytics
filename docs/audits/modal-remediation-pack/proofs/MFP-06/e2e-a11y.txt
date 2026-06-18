@@ -1,0 +1,43 @@
+MFP-06 — e2e-a11y proof
+=======================
+
+Command (gate): npm run test:e2e:a11y  -> playwright test e2e/accessibility-audit.spec.ts
+
+STATUS: ENVIRONMENT-BLOCKED in this remote container (not a code failure).
+
+Why it could not run here
+-------------------------
+- Playwright browsers are not installed (no ~/.cache/ms-playwright).
+- `npx playwright install chromium` FAILS in this sandbox — the browser binary
+  download is blocked by the network policy:
+
+    Failed to install browsers
+    Error: Failed to download Chrome for Testing 147.0.7727.15 (playwright chromium v1217)
+    Error: Download failure, code=1
+
+- The a11y audit also requires the full app dev server (Vite + terminal server,
+  port 9231) which is not bootable headlessly in this environment.
+
+Scope note
+----------
+The Playwright a11y audit (e2e/accessibility-audit.spec.ts) targets the Map
+Explorer surface. MFP-06 changes ONLY src/components/molecules/Modal.tsx (the
+base molecules Modal) and adds tests; it does not touch Map Explorer code
+(MapWorkspaceShell, map components, services/map). So the Map Explorer a11y
+audit is not expected to regress from this change.
+
+Substituting automated a11y evidence (ran clean here)
+-----------------------------------------------------
+src/components/molecules/__tests__/Modal.a11y.test.tsx  — 6/6 passed
+(jsdom, deterministic). Covers the foundation a11y behaviours:
+  1. focus moves into the dialog on open; restores to the opener on close (M1/M2)
+  2. each simultaneous Modal gets a unique useId() title id (no hardcoded
+     "modal-title") (M3)
+  3. focus-trap wrap: Shift+Tab from first -> last, Tab from last -> first (M1)
+  4. Escape closes only when closeOnEscape, handler is dialog-scoped (M4)
+  5. overlay backdrop click closes; clicks inside the panel do not (M4)
+  6. background sibling is inert + aria-hidden while open, restored on close (M6)
+
+ACTION REQUIRED (full verification): run `npm run test:e2e:a11y` in an
+environment with Playwright browsers + a bootable dev server to capture the
+green Map Explorer a11y audit.

@@ -1,10 +1,12 @@
-import { type FC, type ReactNode, useEffect, useRef } from 'react';
+import { type FC, type ReactNode, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import styled, { css, keyframes } from 'styled-components';
 import { SYNAPSE_OVERLAY } from '@/ui/theme/synapseTheme';
 import { X } from 'lucide-react';
 import Button from '@/components/atoms/Button';
-import { useKeyPress, useOnClickOutside } from '@/hooks/useCommon';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { useScrollLock } from '@/hooks/useScrollLock';
+import { useInertBackground } from '@/hooks/useInertBackground';
 
 interface ModalProps {
   isOpen: boolean;
@@ -20,6 +22,11 @@ interface ModalProps {
   className?: string;
 
   variant?: 'default' | 'palette';
+
+  /** Accessible name when no visible `title` is rendered. */
+  ariaLabel?: string;
+  /** id of an element that describes the dialog (wires `aria-describedby`). */
+  describedby?: string;
 }
 
 const fadeIn = keyframes`
@@ -54,6 +61,10 @@ const Overlay = styled.div<{ $isOpen: boolean; $variant: 'default' | 'palette' }
 
   animation: ${fadeIn} var(--duration-medium) var(--syn-easing-bauhaus);
 
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+
   ${props =>
     !props.$isOpen &&
     css`
@@ -62,7 +73,7 @@ const Overlay = styled.div<{ $isOpen: boolean; $variant: 'default' | 'palette' }
 `;
 
 const ModalContainer = styled.div<{ size: string; $variant: 'default' | 'palette' }>`
-  background: ${props => (props.$variant === 'palette' ? '#121212' : SYNAPSE_OVERLAY.surface)};
+  background: ${SYNAPSE_OVERLAY.surface};
   border: 1px solid
     ${props => (props.$variant === 'palette' ? 'rgba(255,255,255,0.08)' : SYNAPSE_OVERLAY.surfaceBorder)};
   border-radius: ${props => (props.$variant === 'palette' ? '6px' : 'var(--border-radius-lg)')};
@@ -74,6 +85,16 @@ const ModalContainer = styled.div<{ size: string; $variant: 'default' | 'palette
   max-height: ${props => (props.$variant === 'palette' ? '80vh' : '90vh')};
   overflow-y: auto;
   animation: ${slideUp} var(--duration-medium) var(--syn-easing-bauhaus);
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+
+  /* The dialog container is programmatically focusable as a fallback so the
+     background still inerts correctly when no child is focusable. */
+  &:focus-visible {
+    outline: none;
+  }
 
   font-family: var(--font-mono, var(--font-code, "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace));
 
@@ -98,7 +119,9 @@ const ModalContainer = styled.div<{ size: string; $variant: 'default' | 'palette
         return css`
           width: 100%;
           max-width: 960px;
-          min-width: 640px;
+          /* Reflow below 688px: cap the comfortable desktop floor at the
+             available width instead of forcing a hard 640px (M9). */
+          min-width: min(640px, 100%);
         `;
       case 'xl':
         return css`
@@ -145,6 +168,18 @@ const ModalContent = styled.div<{ $variant: 'default' | 'palette' }>`
   font-family: inherit;
 `;
 
+const VisuallyHidden = styled.div`
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+`;
+
 export const Modal: FC<ModalProps> = ({
   isOpen,
   onClose,
@@ -157,64 +192,96 @@ export const Modal: FC<ModalProps> = ({
   preventBodyScroll = true,
   className,
   variant = 'default',
+  ariaLabel,
+  describedby,
 }) => {
-  const modalRef = useRef<HTMLDivElement>(null);
-  const escapePressed = useKeyPress('Escape');
+  const titleId = useId();
+  const openerRef = useRef<HTMLElement | null>(null);
+  const { trapRef, activate } = useFocusTrap(isOpen);
+  const [announcement, setAnnouncement] = useState('');
 
-  useOnClickOutside(modalRef as React.RefObject<HTMLElement>, () => {
-    if (closeOnOverlayClick) {
-      onClose();
+  // Body scroll-lock + background inerting via the shared foundation hooks.
+  // useInertBackground is declared AFTER the focus-move layout effect so it
+  // anchors on an element inside the dialog (the app behind it is inerted), and
+  // its cleanup runs BEFORE the focus-restore effect below (so the opener is no
+  // longer in an inert subtree when we restore focus on close).
+  useScrollLock(isOpen && preventBodyScroll);
+
+  // Capture the opener and move initial focus into the dialog. A layout effect
+  // runs before passive effects, so focus is inside the dialog by the time
+  // useInertBackground's passive effect computes which branch to keep live.
+  useLayoutEffect(() => {
+    if (!isOpen) return;
+    openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    activate();
+    const container = trapRef.current;
+    if (container && (!document.activeElement || !container.contains(document.activeElement))) {
+      container.focus();
     }
-  });
+  }, [isOpen, activate, trapRef]);
 
+  useInertBackground(isOpen);
 
+  // Restore focus to the opener on close. Declared after useInertBackground so
+  // this cleanup runs after the background is un-inerted.
   useEffect(() => {
-    if (escapePressed && closeOnEscape && isOpen) {
-      onClose();
-    }
-  }, [escapePressed, closeOnEscape, isOpen, onClose]);
-
-
-  useEffect(() => {
-    if (preventBodyScroll && isOpen) {
-      document.body.style.overflow = 'hidden';
-      return () => {
-        document.body.style.overflow = 'unset';
-      };
-    }
-    return undefined;
-  }, [preventBodyScroll, isOpen]);
-
-
-  useEffect(() => {
-    if (isOpen && modalRef.current) {
-      const focusableElements = modalRef.current.querySelectorAll(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-      );
-      const firstElement = focusableElements[0] as HTMLElement;
-      if (firstElement) {
-        firstElement.focus();
+    if (!isOpen) return undefined;
+    return () => {
+      const opener = openerRef.current;
+      openerRef.current = null;
+      if (opener && document.contains(opener)) {
+        opener.focus();
       }
-    }
+    };
   }, [isOpen]);
+
+  // Polite live-region announcement when the dialog opens (M7).
+  useEffect(() => {
+    if (!isOpen) {
+      setAnnouncement('');
+      return undefined;
+    }
+    const label = title ?? ariaLabel ?? 'Dialog';
+    const timer = window.setTimeout(() => setAnnouncement(`${label} dialog opened`), 50);
+    return () => {
+      window.clearTimeout(timer);
+      setAnnouncement('');
+    };
+  }, [isOpen, title, ariaLabel]);
 
   if (!isOpen) {
     return null;
   }
 
+  const onOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (closeOnOverlayClick && e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
+  const onOverlayKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (closeOnEscape && e.key === 'Escape') {
+      e.stopPropagation();
+      onClose();
+    }
+  };
+
   const modalContent = (
-  <Overlay $isOpen={isOpen} $variant={variant}>
+    <Overlay $isOpen={isOpen} $variant={variant} onClick={onOverlayClick} onKeyDown={onOverlayKeyDown}>
       <ModalContainer
-        ref={modalRef}
+        ref={trapRef}
         size={size}
         $variant={variant}
         className={className}
         role="dialog"
-        aria-modal
-        aria-labelledby={title ? 'modal-title' : undefined}
+        aria-modal="true"
+        aria-labelledby={title ? titleId : undefined}
+        aria-label={!title ? ariaLabel : undefined}
+        aria-describedby={describedby}
+        tabIndex={-1}
       >
         {(title || showCloseButton) ? <ModalHeader $variant={variant}>
-            {title ? <ModalTitle id="modal-title" $variant={variant}>{title}</ModalTitle> : null}
+            {title ? <ModalTitle id={titleId} $variant={variant}>{title}</ModalTitle> : null}
             {showCloseButton ? <Button
                 variant="ghost"
                 size="sm"
@@ -226,6 +293,7 @@ export const Modal: FC<ModalProps> = ({
 
         <ModalContent $variant={variant}>{children}</ModalContent>
       </ModalContainer>
+      <VisuallyHidden role="status" aria-live="polite">{announcement}</VisuallyHidden>
     </Overlay>
   );
 
