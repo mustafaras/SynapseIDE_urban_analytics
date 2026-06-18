@@ -1,0 +1,343 @@
+{
+  "pack": "modal-remediation-final-wave",
+  "version": "1.0.0",
+  "updated": "2026-06-17",
+  "legend": [
+    "pending",
+    "in_progress",
+    "blocked",
+    "done",
+    "verified"
+  ],
+  "prompts": {
+    "MFP-01": {
+      "status": "pending",
+      "priority": "P0",
+      "phase": 0,
+      "dependsOn": [],
+      "proofRequired": [
+        "typecheck-clean",
+        "render-smoke"
+      ],
+      "proofDir": "proofs/MFP-01/",
+      "commit": null,
+      "notes": ""
+    },
+    "MFP-02": {
+      "status": "pending",
+      "priority": "P0",
+      "phase": 1,
+      "dependsOn": [],
+      "proofRequired": [
+        "typecheck-clean",
+        "unit-test"
+      ],
+      "proofDir": "proofs/MFP-02/",
+      "commit": null,
+      "notes": ""
+    },
+    "MFP-03": {
+      "status": "pending",
+      "priority": "P1",
+      "phase": 1,
+      "dependsOn": [],
+      "proofRequired": [
+        "typecheck-clean",
+        "unit-test"
+      ],
+      "proofDir": "proofs/MFP-03/",
+      "commit": null,
+      "notes": ""
+    },
+    "MFP-04": {
+      "status": "pending",
+      "priority": "P1",
+      "phase": 1,
+      "dependsOn": [],
+      "proofRequired": [
+        "typecheck-clean",
+        "unit-test"
+      ],
+      "proofDir": "proofs/MFP-04/",
+      "commit": null,
+      "notes": ""
+    },
+    "MFP-05": {
+      "status": "pending",
+      "priority": "P1",
+      "phase": 1,
+      "dependsOn": [],
+      "proofRequired": [
+        "typecheck-clean",
+        "color-guard"
+      ],
+      "proofDir": "proofs/MFP-05/",
+      "commit": null,
+      "notes": ""
+    },
+    "MFP-06": {
+      "status": "pending",
+      "priority": "P1",
+      "phase": 1,
+      "dependsOn": [
+        "MFP-02",
+        "MFP-03",
+        "MFP-04",
+        "MFP-05"
+      ],
+      "proofRequired": [
+        "typecheck-clean",
+        "lint-clean",
+        "e2e-a11y",
+        "manual-keyboard"
+      ],
+      "proofDir": "proofs/MFP-06/",
+      "commit": null,
+      "notes": ""
+    },
+    "MFP-07": {
+      "status": "pending",
+      "priority": "P1",
+      "phase": 1,
+      "dependsOn": [
+        "MFP-06"
+      ],
+      "proofRequired": [
+        "unit-test"
+      ],
+      "proofDir": "proofs/MFP-07/",
+      "commit": null,
+      "notes": ""
+    },
+    "MFP-08": {
+      "status": "pending",
+      "priority": "P0",
+      "phase": 0,
+      "dependsOn": [
+        "MFP-02"
+      ],
+      "proofRequired": [
+        "typecheck-clean",
+        "axe-clean",
+        "manual-keyboard",
+        "screenshot"
+      ],
+      "proofDir": "proofs/MFP-08/",
+      "commit": null,
+      "notes": ""
+    },
+    "MFP-09": {
+      "status": "pending",
+      "priority": "P0",
+      "phase": 0,
+      "dependsOn": [],
+      "proofRequired": [
+        "typecheck-clean",
+        "manual-keyboard",
+        "axe-clean"
+      ],
+      "proofDir": "proofs/MFP-09/",
+      "commit": null,
+      "notes": ""
+    },
+    "MFP-10": {
+      "status": "pending",
+      "priority": "P1",
+      "phase": 2,
+      "dependsOn": [
+        "MFP-06"
+      ],
+      "proofRequired": [
+        "typecheck-clean",
+        "axe-clean",
+        "manual-keyboard",
+        "screenshot"
+      ],
+      "proofDir": "proofs/MFP-10/",
+      "commit": null,
+      "notes": ""
+    },
+    "MFP-11": {
+      "status": "pending",
+      "priority": "P1",
+      "phase": 2,
+      "dependsOn": [
+        "MFP-06"
+      ],
+      "proofRequired": [
+        "typecheck-clean",
+        "manual-keyboard"
+      ],
+      "proofDir": "proofs/MFP-11/",
+      "commit": null,
+      "notes": ""
+    },
+    "MFP-12": {
+      "status": "pending",
+      "priority": "P1",
+      "phase": 2,
+      "dependsOn": [
+        "MFP-06"
+      ],
+      "proofRequired": [
+        "typecheck-clean",
+        "axe-clean",
+        "manual-keyboard"
+      ],
+      "proofDir": "proofs/MFP-12/",
+      "commit": null,
+      "notes": ""
+    },
+    "MFP-13": {
+      "status": "pending",
+      "priority": "P2",
+      "phase": 2,
+      "dependsOn": [
+        "MFP-02"
+      ],
+      "proofRequired": [
+        "typecheck-clean",
+        "unit-test",
+        "e2e-a11y"
+      ],
+      "proofDir": "proofs/MFP-13/",
+      "commit": null,
+      "notes": ""
+    },
+    "MFP-14": {
+      "status": "pending",
+      "priority": "P1",
+      "phase": 2,
+      "dependsOn": [
+        "MFP-06"
+      ],
+      "proofRequired": [
+        "typecheck-clean",
+        "axe-clean",
+        "e2e-a11y"
+      ],
+      "proofDir": "proofs/MFP-14/",
+      "commit": null,
+      "notes": ""
+    },
+    "MFP-15": {
+      "status": "pending",
+      "priority": "P2",
+      "phase": 2,
+      "dependsOn": [
+        "MFP-05"
+      ],
+      "proofRequired": [
+        "typecheck-clean",
+        "color-guard",
+        "screenshot"
+      ],
+      "proofDir": "proofs/MFP-15/",
+      "commit": null,
+      "notes": ""
+    },
+    "MFP-16": {
+      "status": "pending",
+      "priority": "P3",
+      "phase": 3,
+      "dependsOn": [
+        "MFP-06"
+      ],
+      "proofRequired": [
+        "typecheck-clean",
+        "unit-test",
+        "screenshot"
+      ],
+      "proofDir": "proofs/MFP-16/",
+      "commit": null,
+      "notes": ""
+    },
+    "MFP-17": {
+      "status": "pending",
+      "priority": "P2",
+      "phase": 2,
+      "dependsOn": [],
+      "proofRequired": [
+        "typecheck-clean",
+        "unit-test"
+      ],
+      "proofDir": "proofs/MFP-17/",
+      "commit": null,
+      "notes": ""
+    },
+    "MFP-18": {
+      "status": "pending",
+      "priority": "P2",
+      "phase": 2,
+      "dependsOn": [],
+      "proofRequired": [
+        "typecheck-clean",
+        "deadcode-clean",
+        "screenshot"
+      ],
+      "proofDir": "proofs/MFP-18/",
+      "commit": null,
+      "notes": ""
+    },
+    "MFP-19": {
+      "status": "pending",
+      "priority": "P3",
+      "phase": 3,
+      "dependsOn": [
+        "MFP-20"
+      ],
+      "proofRequired": [
+        "typecheck-clean",
+        "e2e-a11y",
+        "perf-budgets"
+      ],
+      "proofDir": "proofs/MFP-19/",
+      "commit": null,
+      "notes": ""
+    },
+    "MFP-20": {
+      "status": "pending",
+      "priority": "P2",
+      "phase": 2,
+      "dependsOn": [
+        "MFP-06"
+      ],
+      "proofRequired": [
+        "unit-test",
+        "e2e-a11y"
+      ],
+      "proofDir": "proofs/MFP-20/",
+      "commit": null,
+      "notes": ""
+    },
+    "MFP-21": {
+      "status": "pending",
+      "priority": "P2",
+      "phase": 2,
+      "dependsOn": [],
+      "proofRequired": [
+        "typecheck-clean",
+        "screenshot"
+      ],
+      "proofDir": "proofs/MFP-21/",
+      "commit": null,
+      "notes": ""
+    },
+    "MFP-22": {
+      "status": "pending",
+      "priority": "P2",
+      "phase": 2,
+      "dependsOn": [
+        "MFP-21"
+      ],
+      "proofRequired": [
+        "typecheck-clean",
+        "screenshot",
+        "e2e-a11y"
+      ],
+      "proofDir": "proofs/MFP-22/",
+      "commit": null,
+      "notes": ""
+    }
+  }
+}

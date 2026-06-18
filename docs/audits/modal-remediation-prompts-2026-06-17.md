@@ -5,6 +5,7 @@
 | **Date** | 2026-06-17 |
 | **Sources** | [`modal-design-audit-2026-06-17.md`](./modal-design-audit-2026-06-17.md) · [`modal-remediation-plan-2026-06-17.md`](./modal-remediation-plan-2026-06-17.md) |
 | **How to use** | Each prompt is a self-contained task for an engineer/agent. Run them in numeric order — later prompts depend on earlier foundation work. Every prompt names exact files + lines, the change, constraints, acceptance criteria, and validation commands. |
+| **Canonical pack** | This readable list is superseded by the machine-driven operating pack at [`modal-remediation-pack/`](./modal-remediation-pack/) (22 prompts incl. branding/release, JSON + schema, triggers, anti-amnesia STATE/LEDGER, the `modal-fix` skill, and proof capture). Fire prompts with a trigger like `P8` instead of pasting them. |
 
 ### Global constraints (apply to EVERY prompt)
 - **TypeScript:** `strict` + `exactOptionalPropertyTypes` — `prop?: string` ≠ `prop: string | undefined`. No silent `any`; use `unknown` + narrowing.

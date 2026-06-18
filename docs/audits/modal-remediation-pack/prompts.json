@@ -1,0 +1,595 @@
+{
+  "pack": "modal-remediation-final-wave",
+  "version": "1.0.0",
+  "generated": "2026-06-17",
+  "canonicalProductName": {
+    "full": "Synapse IDE — Urban Analytics Workbench",
+    "short": "Synapse IDE",
+    "status": "proposed",
+    "note": "CONFIRM with the product owner before MFP-21/MFP-22. Today the brand appears three ways: 'SynapseIDE' (App.tsx:215,392,903), 'Synapse IDE' (App.tsx:1249), 'Urban Analytics Workbench' (document.title App.tsx:1309; package.json name 'urban-analytics-workbench'). index.html still says 'Coder App - Professional Code Editor'."
+  },
+  "gates": {
+    "general": ["npm run typecheck", "npm run lint:errors"],
+    "gis": ["npm run typecheck", "npm run lint:errors", "npm run lint:no-tailwind-centerpanel", "npx vitest run src/centerpanel/components/map"],
+    "analytics": ["npm run typecheck", "npm run test:analytics"],
+    "release": ["npm run typecheck", "npm run lint:errors", "npm run build", "npm run test:e2e:a11y"]
+  },
+  "prompts": [
+    {
+      "id": "MFP-01",
+      "trigger": ["P1", "keys-gold", "gold-bug"],
+      "title": "Fix the undefined GOLD runtime bug in KeysModal",
+      "severity": "high",
+      "priority": "P0",
+      "phase": 0,
+      "dependsOn": [],
+      "targets": [{ "file": "src/components/ai/panel/KeysModal.tsx", "anchors": ["L174", "L7-L15"], "symbols": ["GOLD", "ACCENT"], "action": "edit" }],
+      "problem": "KeysModal.tsx:174 renders style={{ color:GOLD }}, but GOLD is never declared or imported anywhere in src/ (repo-wide grep finds only GOLDEN_RATIO in constants/design.ts:465 and GOLDEN_PAIRS in a test). This is a 'Cannot find name GOLD' typecheck failure and a render-time ReferenceError.",
+      "findings": ["KeysModal-GOLD"],
+      "steps": [
+        "Grep repo-wide for `\\bGOLD\\b` to confirm there is no intended import to restore (only GOLDEN_* exist).",
+        "Replace `color:GOLD` on line 174 with a CSS-variable amber token consistent with the file's existing var(--syn-*) usage."
+      ],
+      "codeSketch": "// before: style={{ ..., color:GOLD }}\n// after:\nstyle={{ ..., color: 'var(--syn-accent-gold, #f5b301)' }}",
+      "constraints": ["No new any.", "Keep the title node's existing inline-style object shape.", "Do NOT touch z-index here — that is centralized in MFP-15."],
+      "acceptance": ["npm run typecheck passes with no 'Cannot find name GOLD'.", "KeysModal mounts without a ReferenceError.", "Title renders in the amber accent."],
+      "validate": ["npm run typecheck", "npm run lint:errors"],
+      "proofRequired": ["typecheck-clean", "render-smoke"],
+      "gate": "general"
+    },
+    {
+      "id": "MFP-02",
+      "trigger": ["P2", "promote-focustrap", "shared-hook"],
+      "title": "Promote useFocusTrap to a shared hook",
+      "severity": "medium",
+      "priority": "P0",
+      "phase": 1,
+      "dependsOn": [],
+      "targets": [
+        { "file": "src/hooks/useFocusTrap.ts", "action": "create" },
+        { "file": "src/centerpanel/components/map/useFocusTrap.ts", "symbols": ["FOCUSABLE_SELECTOR", "getFocusableElements", "useFocusTrap"], "action": "move" }
+      ],
+      "problem": "The correct, reusable trap (re-queries focusables per Tab; filters hidden/aria-hidden/negative-tabindex; captures+restores opener with a document.contains guard; wraps both directions; data-map-skip-link aware activate()) lives under map/, so non-map modals cannot find it and reimplement it. 6+ trap copies exist.",
+      "findings": ["audit-5.2", "M1", "M2"],
+      "steps": [
+        "Move the file contents verbatim to src/hooks/useFocusTrap.ts (keep all named exports: FOCUSABLE_SELECTOR, getFocusableElements, useFocusTrap).",
+        "Replace the old map path with `export * from '@/hooks/useFocusTrap';` so map imports do not change."
+      ],
+      "codeSketch": "// src/centerpanel/components/map/useFocusTrap.ts\nexport * from '@/hooks/useFocusTrap';",
+      "constraints": ["No behavioural change.", "Identical named exports.", "@/ alias resolves to src/."],
+      "acceptance": ["src/centerpanel/components/map/__tests__/map-accessibility.test.ts passes unchanged.", "useMapExplorerLifecycle.ts still resolves the hook."],
+      "validate": ["npm run typecheck", "npx vitest run src/centerpanel/components/map"],
+      "proofRequired": ["typecheck-clean", "unit-test"],
+      "gate": "gis"
+    },
+    {
+      "id": "MFP-03",
+      "trigger": ["P3", "scroll-lock"],
+      "title": "Add a ref-counted useScrollLock hook",
+      "severity": "medium",
+      "priority": "P1",
+      "phase": 1,
+      "dependsOn": [],
+      "targets": [{ "file": "src/hooks/useScrollLock.ts", "action": "create" }],
+      "problem": "Modal.tsx:178-186 mutates document.body.style.overflow directly. With stacked modals, the first to close restores scroll while another is still open (M5).",
+      "findings": ["M5"],
+      "steps": [
+        "Implement useScrollLock(active: boolean) backed by a module-level counter.",
+        "On first lock: save the prior overflow value, set 'hidden'. Release only when the counter returns to 0, restoring the saved value."
+      ],
+      "codeSketch": "let locks = 0; let prev = '';\nexport function useScrollLock(active: boolean){\n  useEffect(()=>{ if(!active) return;\n    if(locks===0){ prev = document.body.style.overflow; document.body.style.overflow='hidden'; }\n    locks++;\n    return ()=>{ locks=Math.max(0,locks-1); if(locks===0) document.body.style.overflow=prev; };\n  },[active]);\n}",
+      "constraints": ["No direct localStorage.", "SSR-safe (guard document)."],
+      "acceptance": ["Unit test: two locks then release one keeps overflow:hidden; releasing the last restores the original value."],
+      "validate": ["npm run typecheck", "npx vitest run src/hooks"],
+      "proofRequired": ["typecheck-clean", "unit-test"],
+      "gate": "general"
+    },
+    {
+      "id": "MFP-04",
+      "trigger": ["P4", "inert", "inert-background"],
+      "title": "Add useInertBackground hook",
+      "severity": "medium",
+      "priority": "P1",
+      "phase": 1,
+      "dependsOn": [],
+      "targets": [
+        { "file": "src/hooks/useInertBackground.ts", "action": "create" },
+        { "file": "src/centerpanel/components/map/MapWorkspaceShell.tsx", "anchors": ["L574-L618", "L594-L599"], "action": "verify" }
+      ],
+      "problem": "Only the Map Explorer shell inerts the background; the base Modal and most bespoke modals leave the app reachable by AT (M6).",
+      "findings": ["M6"],
+      "steps": [
+        "Implement useInertBackground(active) that, while active, sets inert (with aria-hidden='true' fallback) on the app root's siblings, excluding the modal/portal root and known overlay roots — generalize the exclusion logic in MapWorkspaceShell.tsx:594-599.",
+        "Restore (remove inert/aria-hidden) on deactivate."
+      ],
+      "constraints": ["Never inert the portal/modal root itself.", "Exclude data-map-overlay-root."],
+      "acceptance": ["Unit test: while active a background button is inert/not tabbable; after deactivate the attributes are gone."],
+      "validate": ["npm run typecheck", "npx vitest run src/hooks"],
+      "proofRequired": ["typecheck-clean", "unit-test"],
+      "gate": "general"
+    },
+    {
+      "id": "MFP-05",
+      "trigger": ["P5", "z-index-tokens", "ztokens"],
+      "title": "Publish the full z-index scale as CSS variables",
+      "severity": "medium",
+      "priority": "P1",
+      "phase": 1,
+      "dependsOn": [],
+      "targets": [
+        { "file": "src/styles/theme.ts", "anchors": ["L304"], "symbols": ["--z-modal"], "action": "edit" },
+        { "file": "src/constants/design.ts", "anchors": ["L323-L340"], "symbols": ["zIndex"], "action": "verify" }
+      ],
+      "problem": "The scale (backdrop:1040, statusBar:9999, modal:10050, popover:10060, tooltip:10070, toast:10080) is defined in design.ts but only --z-modal is published as a CSS var, so bespoke modals hardcode raw numbers (§4.3).",
+      "findings": ["audit-4.3"],
+      "steps": [
+        "Publish --z-backdrop, --z-popover, --z-tooltip, --z-toast from DESIGN_TOKENS.zIndex alongside the existing --z-modal.",
+        "Add a --z-system-banner tier above toast for the global gold bars (replaces the 2147483648 literals in MFP-15).",
+        "Do NOT change consumers here — MFP-15 does that."
+      ],
+      "constraints": ["Single source of truth = design.ts zIndex.", "Keep numeric values identical to design.ts."],
+      "acceptance": ["All documented tiers reachable as CSS vars.", "npm run color:guard clean."],
+      "validate": ["npm run typecheck", "npm run color:guard"],
+      "proofRequired": ["typecheck-clean", "color-guard"],
+      "gate": "general"
+    },
+    {
+      "id": "MFP-06",
+      "trigger": ["P6", "base-modal", "rebuild-modal"],
+      "title": "Rebuild the base Modal on the shared foundation",
+      "severity": "high",
+      "priority": "P1",
+      "phase": 1,
+      "dependsOn": ["MFP-02", "MFP-03", "MFP-04", "MFP-05"],
+      "targets": [{ "file": "src/components/molecules/Modal.tsx", "anchors": ["L162-L168", "L178-L199", "L214-L217", "L65", "L101"], "symbols": ["Modal", "useKeyPress", "useOnClickOutside"], "action": "edit" }],
+      "problem": "Base Modal has no focus trap (L189-199), no focus restore, hardcoded id='modal-title' (L214,217), global unscoped Escape/click (L162-168), direct body scroll mutation (L178-186), no inert, no live region, palette min-width:640px floor (L101), token bypass #121212 (L65).",
+      "findings": ["M1", "M2", "M3", "M4", "M5", "M6", "M7", "M8", "M9"],
+      "steps": [
+        "Consume useFocusTrap(isOpen); attach trapRef to the panel (ModalContainer) → trap + restore (M1/M2).",
+        "Replace the body-scroll effect with useScrollLock(isOpen && preventBodyScroll) (M5).",
+        "Add useInertBackground(isOpen) (M6).",
+        "Replace hardcoded id='modal-title' with a useId()-derived id (M3).",
+        "Scope Escape to the dialog (keydown on overlay/panel) instead of global useKeyPress; keep closeOnEscape/closeOnOverlayClick props (M4).",
+        "Add a polite aria-live announcement on open (M7).",
+        "Add optional ariaLabel + describedby props; render aria-labelledby when titled else aria-label. Keep the public API backward-compatible.",
+        "Source the palette surface from SYNAPSE_OVERLAY.surface (M8); parametrize/lower the min-width:640px floor so the dialog can reflow (M9)."
+      ],
+      "codeSketch": "const titleId = useId();\nconst { trapRef } = useFocusTrap(isOpen);\nuseScrollLock(isOpen && preventBodyScroll);\nuseInertBackground(isOpen);\n// ...\n<ModalContainer ref={trapRef} role=\"dialog\" aria-modal=\"true\"\n  aria-labelledby={title ? titleId : undefined}\n  aria-label={!title ? ariaLabel : undefined}\n  aria-describedby={describedby} />",
+      "constraints": ["Backward-compatible props (Command Palette, Global Search, New Project, Settings must not break).", "Respect prefers-reduced-motion for slide/fade.", "exactOptionalPropertyTypes: pass undefined explicitly, never optional-vs-undefined mismatch."],
+      "acceptance": ["Command Palette, Global Search, New Project, Settings gain trap+restore+inert with no per-consumer change.", "Two simultaneous Modals no longer emit duplicate modal-title ids.", "Map Explorer e2e a11y stays green."],
+      "validate": ["npm run typecheck", "npm run lint:errors", "npm run test:e2e:a11y"],
+      "proofRequired": ["typecheck-clean", "lint-clean", "e2e-a11y", "manual-keyboard"],
+      "gate": "general"
+    },
+    {
+      "id": "MFP-07",
+      "trigger": ["P7", "foundation-tests"],
+      "title": "Foundation unit tests (Modal + hooks)",
+      "severity": "medium",
+      "priority": "P1",
+      "phase": 1,
+      "dependsOn": ["MFP-06"],
+      "targets": [
+        { "file": "src/components/molecules/__tests__/Modal.test.tsx", "action": "create" },
+        { "file": "src/hooks/__tests__/useFocusTrap.test.ts", "action": "create" },
+        { "file": "src/hooks/__tests__/useScrollLock.test.ts", "action": "create" },
+        { "file": "src/hooks/__tests__/useInertBackground.test.ts", "action": "create" }
+      ],
+      "problem": "The foundation that most dialogs depend on is untested (§8).",
+      "findings": ["audit-8"],
+      "steps": [
+        "Add a reusable assertDialogA11y(render) helper: initial focus moves in; Tab/Shift+Tab wrap; focus restores to opener on close; Escape closes.",
+        "Add scroll-lock ref-counting, background inert toggling, and unique-title-ids-across-two-instances assertions.",
+        "Assert ariaLabel/describedby wiring."
+      ],
+      "constraints": ["vitest + jsdom; satisfy src/config/coveragePolicy.json."],
+      "acceptance": ["New tests pass; coverage policy satisfied."],
+      "validate": ["npx vitest run src/components/molecules src/hooks"],
+      "proofRequired": ["unit-test"],
+      "gate": "general"
+    },
+    {
+      "id": "MFP-08",
+      "trigger": ["P8", "ai-settings"],
+      "title": "Make AiSettingsModal a conformant dialog",
+      "severity": "high",
+      "priority": "P0",
+      "phase": 0,
+      "dependsOn": ["MFP-02"],
+      "targets": [
+        { "file": "src/components/ai/settings/AiSettingsModal.tsx", "anchors": ["L158-L167", "L10", "L82-L85", "L126-L128"], "symbols": ["AiSettingsModal"], "action": "edit" },
+        { "file": "src/components/ai/settings/AiSettingsModal.module.css", "anchors": ["L11"], "symbols": [".modal"], "action": "edit" }
+      ],
+      "problem": "Unnamed dialog (L159-166), not portaled (L158), no Escape, no focus trap/restore, close button '×' has only title (L167), z-index:1000 below backdrop/statusbar (module.css:11), pervasive any (L10,82-85,126-128).",
+      "findings": ["AS1", "AS2", "AS3", "AS4", "AS5", "AS6", "AS7"],
+      "steps": [
+        "Portal the dialog to document.body (createPortal).",
+        "Add a heading id and aria-labelledby='ai-settings-title' (AS3).",
+        "Consume useFocusTrap for trap+restore; add Escape-to-close on the dialog root (AS1/AS2).",
+        "Give the close button aria-label='Close AI settings' (AS5).",
+        "Set the overlay z-index to var(--z-modal) (AS6).",
+        "Replace Record<string, any>/keyPayload:any with typed shapes from useAiConfigStore.types (AS7)."
+      ],
+      "codeSketch": "return createPortal(\n  <div className={styles.modal} role=\"dialog\" aria-modal=\"true\"\n       aria-labelledby=\"ai-settings-title\" ref={trapRef}\n       onKeyDown={(e)=>{ if(e.key==='Escape') onCancel(); }}>\n    <div className={styles.panel}>\n      <div className={styles.header}>\n        <strong id=\"ai-settings-title\" className={styles.title}>AI Settings</strong>\n        <button onClick={onCancel} aria-label=\"Close AI settings\" className={styles.closeBtn}>×</button>",
+      "constraints": ["No any.", "Keep the existing form behaviour/validation."],
+      "acceptance": ["axe: no serious violations.", "Dialog has an accessible name.", "Tab cycles within; Escape closes; focus returns to opener.", "typecheck clean with no any."],
+      "validate": ["npm run typecheck", "npm run lint:errors", "npm run test"],
+      "proofRequired": ["typecheck-clean", "axe-clean", "manual-keyboard", "screenshot"],
+      "gate": "general"
+    },
+    {
+      "id": "MFP-09",
+      "trigger": ["P9", "map-service"],
+      "title": "Make MapServiceDialog keyboard-conformant + fix roles/shadowing",
+      "severity": "high",
+      "priority": "P0",
+      "phase": 0,
+      "dependsOn": [],
+      "targets": [{ "file": "src/centerpanel/components/MapServiceDialog.tsx", "anchors": ["L254", "L290", "L299-L583", "L599-L619", "L787-L816"], "symbols": ["boundsLabel"], "action": "edit" }],
+      "problem": "aria-modal='true' (L789) with no trap, no Escape, no initial focus, no restore; role='listbox' with <button> children (L599-619); boundsLabel is both a prop and a module function (L254,290).",
+      "findings": ["MapService"],
+      "steps": [
+        "Wrap the dialog body in MapDialogShell (provides trap+Escape+restore), or consume useFocusTrap directly.",
+        "Fix the layer list: role='listbox' + child role='option' (with aria-selected), or drop the listbox role and use a labelled group of buttons.",
+        "Rename the module-level boundsLabel function to remove the prop/function collision.",
+        "Route fetch failures through reportError (sets up the MFP-19 pattern)."
+      ],
+      "constraints": ["centerpanel = no Tailwind; CSS Modules only.", "reportError not raw toast for errors."],
+      "acceptance": ["Keyboard users Tab within and Escape out.", "SR announces options.", "map-* e2e specs pass."],
+      "validate": ["npm run typecheck", "npm run lint:no-tailwind-centerpanel", "npx vitest run src/centerpanel/components/map"],
+      "proofRequired": ["typecheck-clean", "manual-keyboard", "axe-clean"],
+      "gate": "gis"
+    },
+    {
+      "id": "MFP-10",
+      "trigger": ["P10", "new-file"],
+      "title": "NewFileModal: correct dialog role, keyboard selectors, focus, data extraction",
+      "severity": "high",
+      "priority": "P1",
+      "phase": 2,
+      "dependsOn": ["MFP-06"],
+      "targets": [{ "file": "src/components/file-explorer/NewFileModal.tsx", "anchors": ["L17-L88", "L91-L388", "L457-L466", "L585", "L632", "L720", "L783-L788", "L829-L833", "L849-L853", "L864-L868"], "symbols": ["getTemplateContentByLanguage", "LANGUAGE_CATEGORIES", "TEMPLATE_TYPES"], "action": "edit" }],
+      "problem": "role='dialog' on the click-to-close overlay (L783-788) not the panel (L790); category/language/template are clickable <div>s with no role/tabindex/keydown (mouse-only); no focus trap/restore; dead inline &:hover/&:focus pseudo-selectors (L585,632,720); ~470 lines of static data inlined (L17-388).",
+      "findings": ["NF1", "NF2", "NF3", "NF4", "NF5"],
+      "steps": [
+        "Move role='dialog'/aria-modal/aria-label onto the panel (NF1).",
+        "Convert each selection group to role='radiogroup' of keyboard-operable role='radio' (or real <button>): tabIndex, Enter/Space, aria-checked, accessible labels (NF2).",
+        "Add focus trap+restore (useFocusTrap, or render via the rebuilt base Modal) (NF3).",
+        "Extract getTemplateContentByLanguage, LANGUAGE_CATEGORIES, TEMPLATE_TYPES to src/components/file-explorer/newFileTemplates.ts and lazy-load (NF4).",
+        "Remove dead pseudo-selectors; move hover/focus styling to CSS Module/styled (NF5)."
+      ],
+      "codeSketch": "<div role=\"radiogroup\" aria-label=\"File template\">\n  {templates.map(t => (\n    <button type=\"button\" role=\"radio\" aria-checked={selected===t.id}\n            onClick={()=>select(t.id)} key={t.id}>{t.name}</button>\n  ))}\n</div>",
+      "constraints": ["Keep the wizard step flow.", "Lazy import keeps the chunk budget."],
+      "acceptance": ["category→language→template→filename flow operable by keyboard alone.", "axe clean.", "SR boundary is the panel.", "NewFileModal.tsx shrinks materially."],
+      "validate": ["npm run typecheck", "npm run lint:errors", "npm run test", "npm run perf:budgets"],
+      "proofRequired": ["typecheck-clean", "axe-clean", "manual-keyboard", "screenshot"],
+      "gate": "general"
+    },
+    {
+      "id": "MFP-11",
+      "trigger": ["P11", "new-project"],
+      "title": "NewProjectModal: keyboard-operable template cards",
+      "severity": "medium",
+      "priority": "P1",
+      "phase": 2,
+      "dependsOn": ["MFP-06"],
+      "targets": [{ "file": "src/components/molecules/NewProjectModal.tsx", "anchors": ["L160-L173"], "symbols": ["TemplateCard", "TemplateGrid"], "action": "edit" }],
+      "problem": "TemplateCard is a clickable <div onClick> (L161-172) with no role/tabIndex/key handler/aria-checked and no AT description.",
+      "findings": ["NewProject"],
+      "steps": [
+        "Convert the template grid to role='radiogroup' (aria-label='Project template').",
+        "Make each card a keyboard-operable role='radio' (Enter/Space, aria-checked, aria-describedby → its description text).",
+        "Keep the existing visual styling."
+      ],
+      "constraints": ["Built on base Modal (gaps fixed by MFP-06)."],
+      "acceptance": ["Template selection works by keyboard.", "axe clean."],
+      "validate": ["npm run typecheck", "npm run lint:errors"],
+      "proofRequired": ["typecheck-clean", "manual-keyboard"],
+      "gate": "general"
+    },
+    {
+      "id": "MFP-12",
+      "trigger": ["P12", "global-search"],
+      "title": "GlobalSearch: combobox/listbox semantics, arrow nav, reflow",
+      "severity": "medium",
+      "priority": "P1",
+      "phase": 2,
+      "dependsOn": ["MFP-06"],
+      "targets": [{ "file": "src/components/ide/GlobalSearch.tsx", "anchors": ["L374-L390", "L398", "L413-L424", "L428", "L450"], "symbols": ["ResultRow", "ScopeTabs", "Results"], "action": "edit" }],
+      "problem": "role='listbox' with <button> children + aria-selected (L428,450) is invalid (GS2); incomplete tab pattern (role='tab' with no tabpanel/aria-controls/roving, L413-424) — really filter toggles (GS3); arrow nav dead-ends once a row is focused, no Home/End/wrap (L374-390) (GS4); palette min-width:640px overflows <688px (GS5).",
+      "findings": ["GS1", "GS2", "GS3", "GS4", "GS5"],
+      "steps": [
+        "Adopt a combobox+listbox pattern: input role='combobox' with aria-expanded/aria-controls/aria-activedescendant; results role='listbox' with children role='option' (not buttons); select via aria-activedescendant rather than moving DOM focus into rows (fixes GS4).",
+        "Replace the scope role='tab' set with a segmented control / role='radiogroup' (or complete the tab pattern with aria-controls); add roving + Home/End (GS3).",
+        "Make the panel responsive (lift the 640px floor via MFP-06's parametrized size, or use a non-palette size); optionally wrap input in role='search' (GS5)."
+      ],
+      "constraints": ["Keep file/content/artifact grouping aligned with flatResults index."],
+      "acceptance": ["axe clean.", "Keyboard nav works end-to-end (arrows/Home/End/Enter/Escape).", "Usable at 320px."],
+      "validate": ["npm run typecheck", "npm run lint:errors", "npm run test"],
+      "proofRequired": ["typecheck-clean", "axe-clean", "manual-keyboard"],
+      "gate": "general"
+    },
+    {
+      "id": "MFP-13",
+      "trigger": ["P13", "migrate-traps", "dedupe-traps"],
+      "title": "Migrate bespoke focus traps onto the shared hook",
+      "severity": "medium",
+      "priority": "P2",
+      "phase": 2,
+      "dependsOn": ["MFP-02"],
+      "targets": [
+        { "file": "src/components/ai/panel/KeysModal.tsx", "anchors": ["L120-L136", "L99-L118"], "action": "edit" },
+        { "file": "src/components/ide/UnsavedChangesDialog.tsx", "anchors": ["L112-L132"], "action": "edit" },
+        { "file": "src/features/urbanAnalytics/WelcomeModal.tsx", "anchors": ["L60-L82", "L519-L585"], "symbols": ["FOCUSABLE_MODAL_SELECTOR", "getFocusableModalElements"], "action": "edit" },
+        { "file": "src/features/urbanAnalytics/UrbanAnalyticsModal.tsx", "anchors": ["L782-L807"], "action": "edit" },
+        { "file": "src/centerpanel/components/map/MapDialogShell.tsx", "anchors": ["L139-L265"], "action": "edit" }
+      ],
+      "problem": "Five hand-rolled traps duplicate useFocusTrap. WelcomeModal copies the selector/query helpers (L60-82). UrbanAnalyticsModal binds its trap listener to the modal element, not document (L805), so it cannot recapture escaped focus (UA1).",
+      "findings": ["M4", "MX4", "UA1"],
+      "steps": [
+        "Replace each hand-rolled trap with useFocusTrap.",
+        "Delete WelcomeModal's FOCUSABLE_MODAL_SELECTOR/getFocusableModalElements.",
+        "For UrbanAnalyticsModal, the hook's document-level capture fixes UA1.",
+        "Preserve each modal's focus-restore semantics (the hook already restores)."
+      ],
+      "constraints": ["centerpanel + analytics gates apply.", "No behavioural regression."],
+      "acceptance": ["All five keep trap+restore.", "One audited trap path remains.", "Bundle does not grow."],
+      "validate": ["npm run typecheck", "npm run test:analytics", "npx vitest run src/centerpanel/components/map", "npm run test:e2e:a11y"],
+      "proofRequired": ["typecheck-clean", "unit-test", "e2e-a11y"],
+      "gate": "gis"
+    },
+    {
+      "id": "MFP-14",
+      "trigger": ["P14", "names", "accessible-names"],
+      "title": "Standardize accessible names across all dialogs",
+      "severity": "medium",
+      "priority": "P1",
+      "phase": 2,
+      "dependsOn": ["MFP-06"],
+      "targets": [
+        { "file": "src/features/urbanAnalytics/WelcomeModal.tsx", "anchors": ["L596-L598", "L708"], "action": "edit" },
+        { "file": "src/centerpanel/components/map/MapDialogShell.tsx", "anchors": ["L313-L315", "L338"], "action": "edit" },
+        { "file": "src/components/ai/settings/AiSettingsModal.tsx", "anchors": ["L159-L166"], "action": "verify" }
+      ],
+      "problem": "Inconsistent naming — WelcomeModal uses aria-label while a visible <h1 id='welcome-modal-title'> (L708) is never referenced; MapDialogShell uses aria-label only — its <h2> (L338) is unwired, so all 7 shell dialogs lack a programmatic title.",
+      "findings": ["AS3", "Welcome-name", "MapDialogShell-name", "B3"],
+      "steps": [
+        "WelcomeModal: set aria-labelledby='welcome-modal-title' and drop the duplicate aria-label.",
+        "MapDialogShell: generate a title id, render it on the <h2>, set aria-labelledby on the dialog — propagating a real name to all shell dialogs.",
+        "Verify every role='dialog' in the repo has aria-labelledby (preferred) or aria-label (AiSettings handled by MFP-08)."
+      ],
+      "constraints": ["Prefer aria-labelledby → visible heading."],
+      "acceptance": ["axe 'dialog has accessible name' passes for every modal.", "Names point at visible headings where present."],
+      "validate": ["npm run typecheck", "npm run test:e2e:a11y"],
+      "proofRequired": ["typecheck-clean", "axe-clean", "e2e-a11y"],
+      "gate": "gis"
+    },
+    {
+      "id": "MFP-15",
+      "trigger": ["P15", "apply-ztokens", "z-index-fix"],
+      "title": "Apply z-index tokens to bespoke modals (fix occlusion)",
+      "severity": "medium",
+      "priority": "P2",
+      "phase": 2,
+      "dependsOn": ["MFP-05"],
+      "targets": [
+        { "file": "src/components/ai/panel/KeysModal.tsx", "anchors": ["L21"], "action": "edit" },
+        { "file": "src/components/ai/settings/AiSettingsModal.module.css", "anchors": ["L11"], "action": "edit" },
+        { "file": "src/components/ide/UnsavedChangesDialog.tsx", "anchors": ["L144"], "action": "edit" },
+        { "file": "src/features/urbanAnalytics/UrbanAnalyticsModal.tsx", "anchors": ["L1291"], "action": "edit" },
+        { "file": "src/features/urbanAnalytics/WelcomeModal.tsx", "anchors": ["L599", "L945"], "action": "edit" },
+        { "file": "src/components/ide/EnhancedIDE.tsx", "anchors": ["L1696"], "action": "edit" }
+      ],
+      "problem": "Five z-index strategies; concrete occlusion bugs — AI Settings 1000 (below backdrop/statusbar), Keys 2200, Unsaved 9999 (statusbar tier, below modal). Gold bars use 2147483648 (UrbanAnalyticsModal:1291, WelcomeModal:945, EnhancedIDE:1696=999999).",
+      "findings": ["audit-4.3"],
+      "steps": [
+        "Replace modal overlay z-indexes with var(--z-modal): Keys (2200), AiSettings (1000), Unsaved (9999).",
+        "Replace global gold-bar values with var(--z-system-banner) (from MFP-05).",
+        "Leave UrbanAnalyticsModal's deliberate 10049 dialog z-index unless it now conflicts."
+      ],
+      "constraints": ["No raw z-index literals left in modal overlays.", "Visual QA unchanged."],
+      "acceptance": ["No modal can be occluded by the status bar/backdrop.", "color:guard / screenshot spot-check unchanged."],
+      "validate": ["npm run typecheck", "npm run color:guard"],
+      "proofRequired": ["typecheck-clean", "color-guard", "screenshot"],
+      "gate": "general"
+    },
+    {
+      "id": "MFP-16",
+      "trigger": ["P16", "settings-extract"],
+      "title": "SettingsModal: extract logic, fix anti-patterns, enable reflow",
+      "severity": "medium",
+      "priority": "P3",
+      "phase": 3,
+      "dependsOn": ["MFP-06"],
+      "targets": [{ "file": "src/components/settings/SettingsModal.tsx", "anchors": ["L17-L21", "L188-L201", "L448", "L573", "L613-L631", "L690-L728", "L829-L894"], "symbols": ["__KEY_ROUTER_SUSPENDED__", "testOpenAI", "testAnthropic", "testGemini"], "action": "edit" }],
+      "problem": "~19 useState; render-injected inline <style> (L690-728); hand-rolled virtualization reading scrollTop during render (L829-894); network key verification embedded (L613-631); brittle globalThis.__KEY_ROUTER_SUSPENDED__ (L188-201,563-564); ref-in-deps anti-patterns (L448,573); fixed height:560px + base min-width:640px reflow floor (L17-21).",
+      "findings": ["Settings-monolith", "M9"],
+      "steps": [
+        "Extract key-verification into src/services/ai/verifyProviderKey.ts with unit tests; the component only calls it.",
+        "Replace hand-rolled virtualization with a tested useVirtualList hook (or vetted lib in budget) — no scrollTop reads during render.",
+        "Remove globalThis.__KEY_ROUTER_SUSPENDED__ in favor of a scoped keydown handler.",
+        "Fix ref-in-deps effects (L448,573).",
+        "Lift the 560px/640px floor so the modal reflows (coordinate with MFP-06)."
+      ],
+      "constraints": ["Preserve the strong tab/radio/listbox ARIA.", "No localStorage."],
+      "acceptance": ["Component shrinks; verification + virtualization have unit tests; usable at 320px; ARIA unchanged."],
+      "validate": ["npm run typecheck", "npm run lint:errors", "npm run test"],
+      "proofRequired": ["typecheck-clean", "unit-test", "screenshot"],
+      "gate": "general"
+    },
+    {
+      "id": "MFP-17",
+      "trigger": ["P17", "urban-welcome", "reduced-motion"],
+      "title": "Urban Analytics + Welcome: reduced-motion, typed events, cleanups",
+      "severity": "medium",
+      "priority": "P2",
+      "phase": 2,
+      "dependsOn": [],
+      "targets": [
+        { "file": "src/features/urbanAnalytics/UrbanAnalyticsModal.tsx", "anchors": ["L1", "L521", "L687-L756", "L966"], "action": "edit" },
+        { "file": "src/features/urbanAnalytics/WelcomeModal.tsx", "anchors": ["L466-L470"], "action": "edit" },
+        { "file": "src/types/synapse-bus.ts", "symbols": ["SynapseBusEventMap"], "action": "edit" }
+      ],
+      "problem": "Close setTimeouts ignore prefers-reduced-motion (WelcomeModal:466, UrbanAnalyticsModal:521); UrbanAnalyticsModal dispatches untyped window.dispatchEvent(new CustomEvent('synapse:…')) (L687-756) instead of synapseBus; file-wide jsx-a11y/no-noninteractive-element-interactions suppression (L1); leftover aria-hidden={false} on .midCol (L966).",
+      "findings": ["UA3", "UA4", "UA5", "Welcome-rm"],
+      "steps": [
+        "Gate both close-delay setTimeouts on prefers-reduced-motion (skip the delay when reduced).",
+        "Replace CustomEvent dispatches with typed synapseBus.emit(...); add any missing event to SynapseBusEventMap (IDs/refs only, no heavy payloads).",
+        "Correct the dialog root's interaction handlers so the file-wide a11y-lint suppression can be removed (or narrow it with justification).",
+        "Delete the no-op aria-hidden={false}."
+      ],
+      "constraints": ["analytics gate.", "synapseBus payloads carry IDs/refs only."],
+      "acceptance": ["Reduced-motion users get instant close; no untyped cross-module events; lint suppression removed/narrowed."],
+      "validate": ["npm run typecheck", "npm run test:analytics"],
+      "proofRequired": ["typecheck-clean", "unit-test"],
+      "gate": "analytics"
+    },
+    {
+      "id": "MFP-18",
+      "trigger": ["P18", "map-dialog-family"],
+      "title": "Map dialog family: dead code, responsive grids, memoization",
+      "severity": "low",
+      "priority": "P2",
+      "phase": 2,
+      "dependsOn": [],
+      "targets": [
+        { "file": "src/centerpanel/components/map/MapStartDialog.tsx", "anchors": ["L42", "L176", "L351-L354", "L404"], "symbols": ["dialogRef", "onAddDemoPack", "demoBadge"], "action": "edit" },
+        { "file": "src/centerpanel/components/MapExportDialog.tsx", "anchors": ["L31"], "action": "edit" },
+        { "file": "src/centerpanel/components/MapColumnarImportDialog.tsx", "anchors": ["L54"], "action": "edit" },
+        { "file": "src/centerpanel/components/MapCsvImportDialog.tsx", "anchors": ["L131-L134"], "symbols": ["profileCsvImportSession"], "action": "edit" },
+        { "file": "src/centerpanel/components/map/MapWorkspaceShell.tsx", "anchors": ["L527", "L539"], "action": "edit" }
+      ],
+      "problem": "MapStartDialog: unused dialogRef (L176), unused onAddDemoPack (L42), dead demoBadge branch (L404), risk of double aria-modal when wrapped. MapExportDialog grid minmax(360px,…) minmax(320px,…)=680px min (L31) and MapColumnarImportDialog 1.15fr/0.85fr (L54) don't stack. MapCsvImportDialog profiles unmemoized every render (L131-134). MapWorkspaceShell getPanelRailStyle ignores the height param.",
+      "findings": ["MapStart-dead", "MapExport-reflow", "MapColumnar-reflow", "MapCsv-memo", "MapWorkspace-param"],
+      "steps": [
+        "Remove dead ref/prop/branch in MapStartDialog; ensure it doesn't set aria-modal when wrapped.",
+        "Make the two grids responsive (auto-fit/stacking under a breakpoint).",
+        "Wrap CSV profiling in useMemo keyed on its inputs.",
+        "Use or remove the ignored height param."
+      ],
+      "constraints": ["centerpanel = no Tailwind, CSS Modules only."],
+      "acceptance": ["npm run deadcode shows no new dead exports.", "Both dialogs usable at 320px.", "CSV dialog no longer reprofiles every render."],
+      "validate": ["npm run typecheck", "npm run lint:no-tailwind-centerpanel", "npm run deadcode", "npx vitest run src/centerpanel/components/map"],
+      "proofRequired": ["typecheck-clean", "deadcode-clean", "screenshot"],
+      "gate": "gis"
+    },
+    {
+      "id": "MFP-19",
+      "trigger": ["P19", "map-core", "decompose"],
+      "title": "Decompose MapExplorerModalRuntimeCore (staged)",
+      "severity": "high",
+      "priority": "P3",
+      "phase": 3,
+      "dependsOn": ["MFP-20"],
+      "targets": [
+        { "file": "src/centerpanel/components/map/controllers/MapExplorerModalRuntimeCore.tsx", "anchors": ["L21", "L46-L48", "L112", "L137", "L6609"], "action": "edit" },
+        { "file": "src/centerpanel/components/map/controllers/MapExplorerModalRuntimeView.tsx", "anchors": ["L37-L208", "L534", "L554", "L574", "L596"], "action": "edit" },
+        { "file": "src/centerpanel/components/MapExplorerModal.tsx", "action": "edit" },
+        { "file": "src/centerpanel/components/map/controllers/MapExplorerModalRoot.tsx", "action": "edit" },
+        { "file": "src/centerpanel/components/map/controllers/MapExplorerModalRuntime.tsx", "action": "edit" }
+      ],
+      "problem": "God-component (~6791 lines, ~325 hooks); ~170-field View props spread in one JSX element (View:37-208; Core:6609); three pure passthrough files; 51 direct toast* calls, 0 reportError (Core:137); no top-level shell error boundary; eager analysis-service web + SAMPLE_BUILDINGS + SpatialDB (Core:21,46-48,112).",
+      "findings": ["MX1", "MX2", "MX3", "MX5", "MX6"],
+      "steps": [
+        "STAGE A: collapse the three passthrough files into one (each its own PR).",
+        "STAGE B: replace the ~170-prop View interface with grouped context objects / per-panel context providers; continue lifting panel state into existing controller hooks.",
+        "STAGE C: route the 51 toast* error calls through reportError (keep success/info toasts).",
+        "STAGE D: add a top-level shell error boundary (in addition to per-panel MapPanelErrorBoundary).",
+        "STAGE E: lazy-load the eager analysis-service web where not needed on open; verify with perf:budgets."
+      ],
+      "constraints": ["MUST NOT regress Map a11y/e2e.", "Do not bundle with foundation changes.", "Each stage = its own PR behind green tests."],
+      "acceptance": ["Core shrinks materially; View prop surface grouped; errors go through reportError; modal open time improves; a11y/e2e suites green."],
+      "validate": ["npm run typecheck", "npm run test:e2e", "npm run perf:budgets", "npx vitest run src/centerpanel/components/map"],
+      "proofRequired": ["typecheck-clean", "e2e-a11y", "perf-budgets"],
+      "gate": "gis"
+    },
+    {
+      "id": "MFP-20",
+      "trigger": ["P20", "tests", "guardrails"],
+      "title": "Test coverage + regression guardrails for all modals",
+      "severity": "medium",
+      "priority": "P2",
+      "phase": 2,
+      "dependsOn": ["MFP-06"],
+      "targets": [
+        { "file": "e2e/accessibility-audit.spec.ts", "action": "edit" },
+        { "file": "src/components/ide/__tests__/GlobalSearch.a11y.test.tsx", "action": "create" },
+        { "file": "src/components/ai/panel/__tests__/KeysModal.a11y.test.tsx", "action": "create" },
+        { "file": "src/components/ai/settings/__tests__/AiSettingsModal.a11y.test.tsx", "action": "create" },
+        { "file": "src/components/settings/__tests__/SettingsModal.a11y.test.tsx", "action": "create" },
+        { "file": "src/components/ide/__tests__/UnsavedChangesDialog.a11y.test.tsx", "action": "create" }
+      ],
+      "problem": "Modal-a11y tests exist only for Map Explorer. Untested: base Modal, GlobalSearch, KeysModal, SettingsModal, AiSettingsModal, WelcomeModal, UrbanAnalyticsModal, UnsavedChangesDialog, MapServiceDialog, MapStartDialog (§8).",
+      "findings": ["audit-8"],
+      "steps": [
+        "Add unit tests using the assertDialogA11y helper (MFP-07) for each untested modal: role/name, initial focus, Tab/Shift+Tab wrap, focus restore, Escape.",
+        "Extend e2e/accessibility-audit.spec.ts with a parametrized loop that opens each app modal, runs axe (no serious/critical), verifies scoped Escape returns focus to the trigger, and checks reflow at 320px.",
+        "Add CI guardrails: an ESLint rule (or color:guard-style check) forbidding raw z-index literals in modal files, and a check that any role='dialog' has an accessible name. Keep lint:no-tailwind-centerpanel green."
+      ],
+      "constraints": ["axe via @axe-core/playwright (already used in accessibility-audit.spec.ts)."],
+      "acceptance": ["Every modal has ≥1 focus/Escape/axe test; guardrails fail on a regression; npm run validate:rc passes."],
+      "validate": ["npm run validate:rc"],
+      "proofRequired": ["unit-test", "e2e-a11y"],
+      "gate": "general"
+    },
+    {
+      "id": "MFP-21",
+      "trigger": ["P21", "branding", "naming"],
+      "title": "Branding & product-name consistency across modals and shell",
+      "severity": "medium",
+      "priority": "P2",
+      "phase": 2,
+      "dependsOn": [],
+      "requiresHumanDecision": true,
+      "targets": [
+        { "file": "src/constants/brand.ts", "action": "create" },
+        { "file": "src/App.tsx", "anchors": ["L215", "L392", "L570", "L903", "L1249", "L1309", "L1484-L1487"], "action": "edit" },
+        { "file": "src/features/urbanAnalytics/WelcomeModal.tsx", "anchors": ["L708"], "action": "edit" },
+        { "file": "src/features/urbanAnalytics/UrbanAnalyticsModal.tsx", "action": "edit" }
+      ],
+      "problem": "The product name appears three ways: 'SynapseIDE' (App.tsx:215,392,903), 'Synapse IDE' (App.tsx:1249), 'Urban Analytics Workbench' (document.title App.tsx:1309). Modal titles/copy are inconsistent. There is no single brand source of truth.",
+      "findings": ["branding-naming"],
+      "steps": [
+        "CONFIRM the canonical name with the product owner (proposed: full 'Synapse IDE — Urban Analytics Workbench', short 'Synapse IDE').",
+        "Create src/constants/brand.ts exporting BRAND = { full, short, tagline, version } as the single source of truth.",
+        "Replace hardcoded name strings in App.tsx and modal titles (Welcome heading L708, Urban modal title, Settings/Command Palette titles) with BRAND constants.",
+        "Ensure document.title (App.tsx:1309) uses BRAND.full."
+      ],
+      "branding": "Use the welcome/about/empty-state surfaces as the primary branding moments. Keep the minimal-premium design language (dense typography, thin separators, restrained amber accent) — no marketing hero layouts.",
+      "constraints": ["No behavioural change beyond copy.", "Do not invent a tagline without owner sign-off."],
+      "acceptance": ["One brand source of truth; no divergent name strings in modals/shell; document.title consistent."],
+      "validate": ["npm run typecheck", "npm run lint:errors"],
+      "proofRequired": ["typecheck-clean", "screenshot"],
+      "gate": "general"
+    },
+    {
+      "id": "MFP-22",
+      "trigger": ["P22", "release", "publish-assets"],
+      "title": "Release/publish assets: index.html, favicon, meta, version",
+      "severity": "medium",
+      "priority": "P2",
+      "phase": 2,
+      "dependsOn": ["MFP-21"],
+      "requiresHumanDecision": true,
+      "targets": [
+        { "file": "index.html", "anchors": ["L5", "L7"], "symbols": ["title", "icon"], "action": "edit" },
+        { "file": "package.json", "anchors": ["L2", "L4"], "symbols": ["name", "version"], "action": "edit" },
+        { "file": "public/favicon.svg", "action": "create" }
+      ],
+      "problem": "index.html <title> still says 'Coder App - Professional Code Editor' (L7) and favicon is the default Vite logo /vite.svg (L5). No meta description, og:/twitter cards, or theme-color. document.title is set at runtime (App.tsx:1309) but the static title is wrong (bad SEO/share preview/tab label).",
+      "findings": ["branding-release"],
+      "steps": [
+        "Set <title> to BRAND.full; add <meta name='description'>, og:title/og:description/og:image, twitter:card, and <meta name='theme-color'>.",
+        "Add a real product favicon (public/favicon.svg) and reference it; remove the /vite.svg default.",
+        "Align package.json name with BRAND (kebab) and bump version for the release (confirm semver with owner).",
+        "Confirm App.tsx:1309 runtime title matches the static title."
+      ],
+      "branding": "This is the public-facing first impression (browser tab, social share, PWA). Keep it consistent with MFP-21's BRAND constants.",
+      "constraints": ["Asset must be optimized/licensed.", "Confirm version bump with owner."],
+      "acceptance": ["Tab title and share preview show the correct brand; favicon is the product mark; npm run build succeeds; e2e:a11y green."],
+      "validate": ["npm run typecheck", "npm run build", "npm run test:e2e:a11y"],
+      "proofRequired": ["typecheck-clean", "screenshot", "e2e-a11y"],
+      "gate": "release"
+    }
+  ]
+}

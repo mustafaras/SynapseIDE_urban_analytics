@@ -1,0 +1,86 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://synapseide.urban-analytics/schemas/modal-remediation-prompts.schema.json",
+  "title": "Modal Remediation Prompt Pack",
+  "description": "Canonical, machine-readable registry of the final-wave modal/dialog remediation prompts. Each entry is a self-contained, file-specific task. The companion TRIGGERS map lets an agent load exactly one prompt by id without ingesting the whole pack (context economy / anti-amnesia).",
+  "type": "object",
+  "required": ["pack", "version", "canonicalProductName", "prompts"],
+  "additionalProperties": false,
+  "properties": {
+    "pack": { "type": "string", "const": "modal-remediation-final-wave" },
+    "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "generated": { "type": "string", "format": "date" },
+    "canonicalProductName": {
+      "type": "object",
+      "required": ["full", "short", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "full": { "type": "string" },
+        "short": { "type": "string" },
+        "status": { "type": "string", "enum": ["proposed", "confirmed"] },
+        "note": { "type": "string" }
+      }
+    },
+    "gates": {
+      "type": "object",
+      "description": "Validation gate command sets keyed by area.",
+      "additionalProperties": { "type": "array", "items": { "type": "string" } }
+    },
+    "prompts": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/definitions/prompt" }
+    }
+  },
+  "definitions": {
+    "prompt": {
+      "type": "object",
+      "required": ["id", "trigger", "title", "severity", "priority", "phase", "dependsOn", "targets", "problem", "steps", "acceptance", "validate", "proofRequired", "gate"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "pattern": "^MFP-[0-9]{2}$", "description": "Stable id, e.g. MFP-01." },
+        "trigger": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string" },
+          "description": "Short phrases that resolve to this prompt (e.g. 'P1', 'keys-gold')."
+        },
+        "title": { "type": "string" },
+        "severity": { "type": "string", "enum": ["high", "medium", "low"] },
+        "priority": { "type": "string", "enum": ["P0", "P1", "P2", "P3"] },
+        "phase": { "type": "integer", "minimum": 0, "maximum": 4 },
+        "dependsOn": { "type": "array", "items": { "type": "string", "pattern": "^MFP-[0-9]{2}$" } },
+        "targets": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["file"],
+            "additionalProperties": false,
+            "properties": {
+              "file": { "type": "string" },
+              "anchors": { "type": "array", "items": { "type": "string" }, "description": "Line anchors verified at audit time, e.g. 'L174'. Re-verify before editing; lines drift." },
+              "symbols": { "type": "array", "items": { "type": "string" } },
+              "action": { "type": "string", "enum": ["edit", "create", "delete", "move", "verify"] }
+            }
+          }
+        },
+        "problem": { "type": "string" },
+        "findings": { "type": "array", "items": { "type": "string" }, "description": "Finding ids from the audit (e.g. AS1, NF2, MX5)." },
+        "steps": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+        "codeSketch": { "type": "string" },
+        "constraints": { "type": "array", "items": { "type": "string" } },
+        "acceptance": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+        "validate": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+        "proofRequired": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "enum": ["typecheck-clean", "lint-clean", "unit-test", "e2e-a11y", "axe-clean", "screenshot", "render-smoke", "deadcode-clean", "perf-budgets", "color-guard", "manual-keyboard", "visual-diff"] },
+          "description": "Evidence that MUST be captured into ./proofs/<id>/ before marking done."
+        },
+        "branding": { "type": "string", "description": "Branding/UX-copy considerations, if any." },
+        "requiresHumanDecision": { "type": "boolean", "default": false }
+      }
+    }
+  }
+}
