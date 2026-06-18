@@ -1,0 +1,39 @@
+/* NewFileModal hover/focus styling (MFP-10) — moved out of the dead inline
+   `&:hover`/`&:focus` pseudo-selectors that React never applied. */
+
+.interactive {
+  transition: background 0.18s var(--syn-easing-bauhaus), border-color 0.18s var(--syn-easing-bauhaus), transform 0.18s var(--syn-easing-bauhaus);
+}
+.interactive:hover {
+  background: color-mix(in srgb, var(--syn-interaction-active) 12%, transparent);
+  border-color: var(--syn-interaction-active);
+}
+.interactive:focus-visible {
+  outline: 2px solid var(--syn-interaction-active);
+  outline-offset: 2px;
+}
+
+.btn {
+  transition: background 0.18s var(--syn-easing-bauhaus), border-color 0.18s var(--syn-easing-bauhaus), transform 0.18s var(--syn-easing-bauhaus);
+}
+.btn:hover {
+  background: color-mix(in srgb, var(--syn-interaction-active) 12%, transparent);
+  border-color: var(--syn-interaction-active);
+}
+.btn:focus-visible {
+  outline: 2px solid var(--syn-interaction-active);
+  outline-offset: 2px;
+}
+
+.closeBtn:hover {
+  background: color-mix(in srgb, var(--syn-interaction-active) 16%, transparent);
+  color: var(--syn-interaction-active);
+}
+.closeBtn:focus-visible {
+  outline: 2px solid var(--syn-interaction-active);
+  outline-offset: 2px;
+}
+
+.input:focus {
+  border-color: var(--syn-interaction-active);
+}

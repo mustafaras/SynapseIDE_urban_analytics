@@ -1,0 +1,6 @@
+=== npm run lint:errors ===
+
+> urban-analytics-workbench@1.0.0 lint:errors
+> eslint . --ext ts,tsx --quiet
+
+lint exit: 0

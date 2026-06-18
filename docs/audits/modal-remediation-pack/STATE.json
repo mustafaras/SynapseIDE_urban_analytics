@@ -150,7 +150,7 @@
       "notes": "MapServiceDialog conformant: useFocusTrap(open) on overlay + activate (trap/focus-in/restore); dialog-scoped Escape (stopPropagation); layer list role=listbox->group (children stay toggle buttons, drops invalid listbox+button+aria-pressed); renamed module boundsLabel->formatBoundsLabel (removes prop shadow); fetch catches route through reportError(source:adapter). No Tailwind/any; data-testid preserved. Gate gis: typecheck + lint:errors clean; vitest src/centerpanel/components/map = 98 files/933 passed (map-accessibility unchanged + new MapServiceDialog.a11y.test.tsx 3/3); lint:no-tailwind-centerpanel PowerShell-only (env-blocked) manually verified. REAL-CHROMIUM axe excluding pre-existing color-contrast = 0 violations; after.png screenshot. CAVEAT: full axe has 8 color-contrast residuals from SHARED map tokens (#778190/#3794ff, Map-Explorer-wide) - out of MFP-09 scope (keyboard/roles), recommend dedicated map-contrast pass."
     },
     "MFP-10": {
-      "status": "pending",
+      "status": "done",
       "priority": "P1",
       "phase": 2,
       "dependsOn": [
@@ -164,8 +164,8 @@
         "screenshot"
       ],
       "proofDir": "proofs/MFP-10/",
-      "commit": null,
-      "notes": ""
+      "commit": "3934b34116ec8de0b05e4511a2ec345407b0ddcf",
+      "notes": "NewFileModal NF1-NF5: dialog role/aria moved to panel (overlay role=presentation); category/language/template are role=radiogroup of real <button role=radio aria-checked> (keyboard-operable); useFocusTrap+useScrollLock replace hand-rolled Escape/body-scroll, activate() focus-in, dialog-scoped Escape, filename rAF autofocus preserved; static data extracted to newFileTemplates.ts (metadata, static) + newFileTemplateContent.ts (heavy map, lazy import on create -> own ~16.8kB chunk, no ineffective-import warning), 940->553 lines; dead inline pseudo-selectors removed -> NewFileModal.module.css; no any. Gate general: typecheck+lint clean; perf:budgets passed; build OK; NewFileModal.a11y.test.tsx 4/4. REAL-CHROMIUM axe on open dialog = 0 violations (before: 1 serious scrollable-region); before/after screenshots."
     },
     "MFP-11": {
       "status": "pending",
