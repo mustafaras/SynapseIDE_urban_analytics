@@ -12,7 +12,8 @@ trigger; the agent loads one prompt at a time and records proof + progress.
 | [`SKILL.md`](./SKILL.md) | `modal-fix` runbook (procedure + proof matrix) |
 | [`TRIGGERS.md`](./TRIGGERS.md) | Human trigger table + phase/batch triggers |
 | [`triggers.json`](./triggers.json) | Machine: trigger → prompt id (auto-derived) |
-| [`prompts.json`](./prompts.json) | **Canonical** 22 detailed prompts (file-specific) |
+| [`prompts.json`](./prompts.json) | **Canonical** 22 prompts (file-specific) + `spec` link to each long form |
+| [`prompts/`](./prompts/) | **Full per-prompt specs** (`MFP-01.md`..`MFP-22.md`) — why / evidence / before→after / steps / edge cases / acceptance / tests / proof |
 | [`prompts.schema.json`](./prompts.schema.json) | JSON Schema validating `prompts.json` |
 | [`STATE.json`](./STATE.json) | **Anti-amnesia** machine state (status/commit/proof per prompt) |
 | [`LEDGER.md`](./LEDGER.md) | **Anti-amnesia** human progress log |
