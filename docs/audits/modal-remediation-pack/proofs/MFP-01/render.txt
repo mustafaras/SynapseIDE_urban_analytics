@@ -1,0 +1,9 @@
+
+ RUN  v4.1.9 /home/user/SynapseIDE_urban_analytics
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  12:47:12
+   Duration  1.74s (transform 188ms, setup 0ms, import 388ms, tests 182ms, environment 940ms)
+
