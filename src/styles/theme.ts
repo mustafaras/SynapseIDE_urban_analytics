@@ -305,6 +305,8 @@ export const createCSSVariables = (theme: Theme) => {
     '--z-popover': DESIGN_TOKENS.zIndex.popover.toString(),
     '--z-tooltip': DESIGN_TOKENS.zIndex.tooltip.toString(),
     '--z-toast': DESIGN_TOKENS.zIndex.toast.toString(),
+    '--z-statusbar': DESIGN_TOKENS.zIndex.statusBar.toString(),
+    '--z-system-banner': DESIGN_TOKENS.zIndex.systemBanner.toString(),
   };
 };
 
