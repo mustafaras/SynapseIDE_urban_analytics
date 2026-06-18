@@ -11,7 +11,7 @@
   ],
   "prompts": {
     "MFP-01": {
-      "status": "pending",
+      "status": "done",
       "priority": "P0",
       "phase": 0,
       "dependsOn": [],
@@ -21,8 +21,8 @@
         "render-smoke"
       ],
       "proofDir": "proofs/MFP-01/",
-      "commit": null,
-      "notes": ""
+      "commit": "3f393e3ea388c5328117a31eaa9f6dc9de5a2b7f",
+      "notes": "KeysModal.tsx:174 undefined `color:GOLD` replaced with var(--syn-accent-gold, #f5b301) (single repo-wide occurrence, nothing to import-restore). Gate general green: typecheck + lint:errors clean. Added render-smoke test KeysModal.smoke.test.tsx (1 passed). Branch claude/modal-fix-p1-0r2g87."
     },
     "MFP-02": {
       "status": "pending",
