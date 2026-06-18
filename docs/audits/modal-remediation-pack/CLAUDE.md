@@ -91,8 +91,17 @@ title/favicon/meta/version. Do not invent taglines or names — confirm with the
 ## 6. Git & PR discipline
 
 - One prompt = one focused commit/PR. Do not bundle foundation changes with decomposition.
-- Develop on the designated feature branch; never push to `master` without explicit
-  permission. Use `git push -u origin <branch>` with exponential-backoff retry on network
-  errors only.
+- Develop on the designated feature branch. Use `git push -u origin <branch>` with
+  exponential-backoff retry on network errors only.
+- **End-of-prompt finalize (standing owner authorization for THIS pack):** at the end of
+  **every** prompt — once the gate is green, all `proofRequired` artifacts exist, and
+  `STATE.json` + `LEDGER.md` are updated — commit the bookkeeping, push the branch, open the
+  PR, and **merge it into `master`**. The owner has authorized this standing flow, so do not
+  re-ask per prompt. Sequence: **gate green → proofs → ledger/STATE → commit → push → PR →
+  merge to `master`**.
+  - This standing authorization is scoped to the modal-remediation pack only. Anywhere else,
+    never push to or merge into `master` without explicit permission.
+  - If the gate fails or a `proofRequired` artifact is missing, the prompt is **not** `done`
+    — do **not** merge. Fix first, or mark `blocked` and report.
 - Commit trailer (chat-only model id never in commits):
   `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`
