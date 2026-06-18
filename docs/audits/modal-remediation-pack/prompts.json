@@ -3,10 +3,15 @@
   "version": "1.0.0",
   "generated": "2026-06-17",
   "canonicalProductName": {
-    "full": "Synapse IDE — Urban Analytics Workbench",
+    "full": "Synapse IDE — GIS & Urban Analytics Workbench",
     "short": "Synapse IDE",
+    "candidates": [
+      "Synapse IDE — GIS & Urban Analytics Workbench",
+      "Synapse — Spatial Intelligence Workbench (GIS + Urban Analytics)",
+      "Synapse IDE — Urban Analytics Workbench"
+    ],
     "status": "proposed",
-    "note": "CONFIRM with the product owner before MFP-21/MFP-22. Today the brand appears three ways: 'SynapseIDE' (App.tsx:215,392,903), 'Synapse IDE' (App.tsx:1249), 'Urban Analytics Workbench' (document.title App.tsx:1309; package.json name 'urban-analytics-workbench'). index.html still says 'Coder App - Professional Code Editor'."
+    "note": "CONFIRM with the product owner before MFP-21/MFP-22. The platform is tri-modal: Synapse IDE + Map Explorer + Urban Analytics. Map Explorer IS the GIS surface (browser-based spatial intelligence — deck.gl/maplibre, CRS-aware spatial ops), so the proposed name now surfaces 'GIS' alongside 'Urban Analytics'. Today the brand appears three ways: 'SynapseIDE' (App.tsx:215,392,903), 'Synapse IDE' (App.tsx:1249), 'Urban Analytics Workbench' (document.title App.tsx:1309; package.json name 'urban-analytics-workbench'); index.html still says 'Coder App - Professional Code Editor'. Pick one of `candidates` (or supply another) at MFP-21."
   },
   "gates": {
     "general": ["npm run typecheck", "npm run lint:errors"],
@@ -550,8 +555,8 @@
       "problem": "The product name appears three ways: 'SynapseIDE' (App.tsx:215,392,903), 'Synapse IDE' (App.tsx:1249), 'Urban Analytics Workbench' (document.title App.tsx:1309). Modal titles/copy are inconsistent. There is no single brand source of truth.",
       "findings": ["branding-naming"],
       "steps": [
-        "CONFIRM the canonical name with the product owner (proposed: full 'Synapse IDE — Urban Analytics Workbench', short 'Synapse IDE').",
-        "Create src/constants/brand.ts exporting BRAND = { full, short, tagline, version } as the single source of truth.",
+        "CONFIRM the canonical name with the product owner. Proposed default (GIS-inclusive, since Map Explorer is the GIS surface): full 'Synapse IDE — GIS & Urban Analytics Workbench', short 'Synapse IDE'. See canonicalProductName.candidates for alternatives.",
+        "Create src/constants/brand.ts exporting BRAND = { full, short, tagline, version, modules } as the single source of truth (modules: 'Synapse IDE' | 'Map Explorer (GIS)' | 'Urban Analytics').",
         "Replace hardcoded name strings in App.tsx and modal titles (Welcome heading L708, Urban modal title, Settings/Command Palette titles) with BRAND constants.",
         "Ensure document.title (App.tsx:1309) uses BRAND.full."
       ],

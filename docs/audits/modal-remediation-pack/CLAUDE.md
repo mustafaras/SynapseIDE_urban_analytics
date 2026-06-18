@@ -5,7 +5,7 @@
 > ingest the whole pack. Everything here OVERRIDES default behaviour for pack work.
 
 This pack executes the **final wave** of modal/dialog fixes for the
-**Synapse IDE — Urban Analytics Workbench** before release. It turns two audits into a
+**Synapse IDE — GIS & Urban Analytics Workbench** before release. It turns two audits into a
 controlled, proof-backed execution sequence.
 
 - Findings: [`../modal-design-audit-2026-06-17.md`](../modal-design-audit-2026-06-17.md)

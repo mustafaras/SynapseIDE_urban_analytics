@@ -1,7 +1,7 @@
 # Modal Remediation — Final-Wave Operating Pack
 
 The controlled, proof-backed execution pack that closes **every** finding from the modal
-audits before release of **Synapse IDE — Urban Analytics Workbench**. Fire prompts by
+audits before release of **Synapse IDE — GIS & Urban Analytics Workbench**. Fire prompts by
 trigger; the agent loads one prompt at a time and records proof + progress.
 
 ## Contents
