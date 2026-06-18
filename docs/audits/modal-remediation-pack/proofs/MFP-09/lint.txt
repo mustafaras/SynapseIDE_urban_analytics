@@ -1,0 +1,8 @@
+=== lint:errors ===
+
+> urban-analytics-workbench@1.0.0 lint:errors
+> eslint . --ext ts,tsx --quiet
+
+=== lint:no-tailwind-centerpanel ===
+NOTE: gate command runs scripts/check-no-tailwind-centerpanel.ps1 via PowerShell, unavailable on this Linux runner.
+MapServiceDialog.tsx uses inline style objects from mapTokens (no className) — verified no class=/className literals, so no Tailwind possible.

@@ -1,0 +1,320 @@
+{
+  "summary": {
+    "label": "after",
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "nodes": 8
+      }
+    ],
+    "violationCount": 1,
+    "serious_or_critical": 1,
+    "passes": 17,
+    "pageConsoleErrors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ]
+  },
+  "violations": [
+    {
+      "id": "color-contrast",
+      "impact": "serious",
+      "tags": [
+        "cat.color",
+        "wcag2aa",
+        "wcag143",
+        "TTv5",
+        "TT13.c",
+        "EN-301-549",
+        "EN-9.1.4.3",
+        "ACT",
+        "RGAAv4",
+        "RGAA-3.2.1"
+      ],
+      "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "help": "Elements must meet minimum color contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.11/color-contrast?application=axeAPI",
+      "nodes": [
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#778190",
+                "bgColor": "#232832",
+                "contrastRatio": 3.74,
+                "fontSize": "9.0pt (12px)",
+                "fontWeight": "normal",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<section role=\"dialog\" aria-modal=\"true\" aria-label=\"External map service...\" data-testid=\"map-service-dialog\" style=\"width: min(980px, 10...\">",
+                  "target": [
+                    "section"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 3.74 (foreground color: #778190, background color: #232832, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<div style=\"color: var(--syn-text-muted, #778190); font-size: 0.75rem; line-height: 1.45;\">WMS, WMTS, WFS, XYZ tiles, OSM buildings, OSM green spaces, and remote CityJSON sources.</div>",
+          "target": [
+            "div > div > div:nth-child(2)"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.74 (foreground color: #778190, background color: #232832, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#3794ff",
+                "bgColor": "#25354b",
+                "contrastRatio": 4.04,
+                "fontSize": "9.0pt (12px)",
+                "fontWeight": "normal",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<button type=\"button\" aria-pressed=\"true\" style=\"padding: 0.25rem 0.5...\">",
+                  "target": [
+                    "nav > button[type=\"button\"]:nth-child(1)"
+                  ]
+                },
+                {
+                  "html": "<section role=\"dialog\" aria-modal=\"true\" aria-label=\"External map service...\" data-testid=\"map-service-dialog\" style=\"width: min(980px, 10...\">",
+                  "target": [
+                    "section"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 4.04 (foreground color: #3794ff, background color: #25354b, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<button type=\"button\" aria-pressed=\"true\" style=\"padding: 0.25rem 0.5...\">",
+          "target": [
+            "nav > button[type=\"button\"]:nth-child(1)"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.04 (foreground color: #3794ff, background color: #25354b, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#778190",
+                "bgColor": "#232832",
+                "contrastRatio": 3.74,
+                "fontSize": "9.0pt (12px)",
+                "fontWeight": "normal",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<section role=\"dialog\" aria-modal=\"true\" aria-label=\"External map service...\" data-testid=\"map-service-dialog\" style=\"width: min(980px, 10...\">",
+                  "target": [
+                    "section"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 3.74 (foreground color: #778190, background color: #232832, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<label for=\"external-wms-url\" style=\"color: var(--syn-text-muted, #778190); font-size: 0.75rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;\">WMS / WMTS capabilities URL</label>",
+          "target": [
+            "label"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.74 (foreground color: #778190, background color: #232832, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#778190",
+                "bgColor": "#1e1f24",
+                "contrastRatio": 4.17,
+                "fontSize": "9.0pt (12px)",
+                "fontWeight": "normal",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<aside aria-label=\"WMS / WMTS status\" style=\"display: grid; gap: 0.5rem; align-content: start; padding: 1rem; border-radius: 0.375rem; border: 1px solid color-mix(in srgb, var(--syn-border-subtle, #343a44) 72%, transparent); background: var(--syn-surface-workbench, #1e1f24);\">",
+                  "target": [
+                    "aside"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 4.17 (foreground color: #778190, background color: #1e1f24, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<div style=\"color: var(--syn-text-muted, #778190); font-size: 0.75rem; line-height: 1.45; min-width: 0px; overflow-wrap: anywhere;\">Fetch a capabilities document to inspect advertised layers.</div>",
+          "target": [
+            "aside > div:nth-child(2)"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.17 (foreground color: #778190, background color: #1e1f24, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#778190",
+                "bgColor": "#1e1f24",
+                "contrastRatio": 4.17,
+                "fontSize": "9.0pt (12px)",
+                "fontWeight": "normal",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<aside aria-label=\"WMS / WMTS status\" style=\"display: grid; gap: 0.5rem; align-content: start; padding: 1rem; border-radius: 0.375rem; border: 1px solid color-mix(in srgb, var(--syn-border-subtle, #343a44) 72%, transparent); background: var(--syn-surface-workbench, #1e1f24);\">",
+                  "target": [
+                    "aside"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 4.17 (foreground color: #778190, background color: #1e1f24, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<div style=\"color: var(--syn-text-muted, #778190); font-size: 0.75rem; line-height: 1.45; min-width: 0px; overflow-wrap: anywhere;\">Timeout policy: 10 seconds for capabilities and service metadata; Overpass runs as a cancelable background task.</div>",
+          "target": [
+            "aside > div:nth-child(3)"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.17 (foreground color: #778190, background color: #1e1f24, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#778190",
+                "bgColor": "#1e1f24",
+                "contrastRatio": 4.17,
+                "fontSize": "9.0pt (12px)",
+                "fontWeight": "normal",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<aside aria-label=\"WMS / WMTS status\" style=\"display: grid; gap: 0.5rem; align-content: start; padding: 1rem; border-radius: 0.375rem; border: 1px solid color-mix(in srgb, var(--syn-border-subtle, #343a44) 72%, transparent); background: var(--syn-surface-workbench, #1e1f24);\">",
+                  "target": [
+                    "aside"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 4.17 (foreground color: #778190, background color: #1e1f24, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<li>No credentials, tokens, cookies, or provider bytes are stored in project packages.</li>",
+          "target": [
+            "li:nth-child(1)"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.17 (foreground color: #778190, background color: #1e1f24, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#778190",
+                "bgColor": "#1e1f24",
+                "contrastRatio": 4.17,
+                "fontSize": "9.0pt (12px)",
+                "fontWeight": "normal",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<aside aria-label=\"WMS / WMTS status\" style=\"display: grid; gap: 0.5rem; align-content: start; padding: 1rem; border-radius: 0.375rem; border: 1px solid color-mix(in srgb, var(--syn-border-subtle, #343a44) 72%, transparent); background: var(--syn-surface-workbench, #1e1f24);\">",
+                  "target": [
+                    "aside"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 4.17 (foreground color: #778190, background color: #1e1f24, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<li>WMS, WMTS, and XYZ layers are visual references unless a queryable vector service is fetched explicitly.</li>",
+          "target": [
+            "li:nth-child(2)"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.17 (foreground color: #778190, background color: #1e1f24, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "any": [
+            {
+              "id": "color-contrast",
+              "data": {
+                "fgColor": "#778190",
+                "bgColor": "#1e1f24",
+                "contrastRatio": 4.17,
+                "fontSize": "9.0pt (12px)",
+                "fontWeight": "normal",
+                "messageKey": null,
+                "expectedContrastRatio": "4.5:1"
+              },
+              "relatedNodes": [
+                {
+                  "html": "<aside aria-label=\"WMS / WMTS status\" style=\"display: grid; gap: 0.5rem; align-content: start; padding: 1rem; border-radius: 0.375rem; border: 1px solid color-mix(in srgb, var(--syn-border-subtle, #343a44) 72%, transparent); background: var(--syn-surface-workbench, #1e1f24);\">",
+                  "target": [
+                    "aside"
+                  ]
+                }
+              ],
+              "impact": "serious",
+              "message": "Element has insufficient color contrast of 4.17 (foreground color: #778190, background color: #1e1f24, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ],
+          "all": [],
+          "none": [],
+          "impact": "serious",
+          "html": "<li>Provider availability, CORS policy, rate limits, license, and attribution must be reviewed before publication.</li>",
+          "target": [
+            "li:nth-child(3)"
+          ],
+          "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.17 (foreground color: #778190, background color: #1e1f24, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+        }
+      ]
+    }
+  ]
+}

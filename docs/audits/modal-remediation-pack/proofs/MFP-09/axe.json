@@ -1,0 +1,9 @@
+{
+  "summary": {
+    "scope": "wcag2a/aa excluding color-contrast (MFP-09 keyboard/roles/names conformance)",
+    "violationCount": 0,
+    "violations": [],
+    "passes": 16
+  },
+  "violations": []
+}

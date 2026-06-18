@@ -1,0 +1,12 @@
+=== vitest run src/centerpanel/components/map ===
+
+ RUN  v4.1.9 /home/user/SynapseIDE_urban_analytics
+
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+
+ Test Files  98 passed (98)
+      Tests  933 passed (933)
+   Start at  18:57:07
+   Duration  70.66s (transform 21.21s, setup 0ms, import 43.93s, tests 71.82s, environment 68.19s)
+
