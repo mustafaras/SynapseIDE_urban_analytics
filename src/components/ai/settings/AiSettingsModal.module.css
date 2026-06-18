@@ -8,7 +8,7 @@
   align-items: center;
   justify-content: center;
   padding: clamp(56px,6vw,64px);
-  z-index: 1000;
+  z-index: var(--z-modal);
 }
 
 .panel {
@@ -70,7 +70,7 @@
 
 .label {
   font-size: 13px;
-  color: var(--ai-fg-secondary, var(--syn-text-muted));
+  color: var(--ai-fg-secondary, var(--syn-text-secondary));
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -79,7 +79,7 @@
 
 .labelFlex1 {
   font-size: 13px;
-  color: var(--ai-fg-secondary, var(--syn-text-muted));
+  color: var(--ai-fg-secondary, var(--syn-text-secondary));
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -89,7 +89,7 @@
 
 .labelFlexBasis120 {
   font-size: 13px;
-  color: var(--ai-fg-secondary, var(--syn-text-muted));
+  color: var(--ai-fg-secondary, var(--syn-text-secondary));
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -122,7 +122,7 @@
 
 .hint {
   font-size: 12px;
-  color: var(--ai-fg-secondary, var(--syn-text-muted));
+  color: var(--ai-fg-secondary, var(--syn-text-secondary));
 }
 
 .hintError {
