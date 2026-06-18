@@ -81,7 +81,7 @@
       "notes": "Published z-index CSS vars: design.ts zIndex gains systemBanner:10090 (above toast); theme.ts createCSSVariables publishes --z-system-banner and --z-statusbar (statusBar tier was defined but unexposed). Single source of truth = design.ts; no literals in theme.ts; no consumer migrated (MFP-15 does that). Gate general: typecheck clean, color:guard clean, new zIndexTokens drift test = 2 passed, lint:errors clean. Unblocks MFP-15."
     },
     "MFP-06": {
-      "status": "pending",
+      "status": "done",
       "priority": "P1",
       "phase": 1,
       "dependsOn": [
@@ -98,8 +98,8 @@
         "manual-keyboard"
       ],
       "proofDir": "proofs/MFP-06/",
-      "commit": null,
-      "notes": ""
+      "commit": "6bb6635f5ce164d6b6783e99753d6c02ac9a9ed2",
+      "notes": "Rebuilt base molecules Modal on MFP-02/03/04/05 hooks: useFocusTrap (trap+restore via layout move-in + post-uninert restore effect), useId title id, dialog-scoped Escape + backdrop-only overlay click (dropped global useKeyPress/useOnClickOutside), useScrollLock, useInertBackground, aria-live status, SYNAPSE_OVERLAY.surface palette, min-width:min(640px,100%) reflow, prefers-reduced-motion. New optional ariaLabel/describedby; no any. Gate general: typecheck + lint:errors clean. Modal.a11y.test.tsx = 6/6. Full vitest 3085 passed; the 3 failures (useMapExplorerStore persistence x2, MapExplorerModal.dispatch x1) are PRE-EXISTING on master (verified by running with master's Modal.tsx) — not caused by MFP-06. PROOF CAVEAT: e2e-a11y environment-blocked (Playwright browser download denied by sandbox; dev server not bootable) — substituted by jsdom a11y suite + manual-keyboard.md; re-run npm run test:e2e:a11y in a browser-capable env for the full Map Explorer audit. Unblocks MFP-07/10/11/12/14/16/20."
     },
     "MFP-07": {
       "status": "pending",
