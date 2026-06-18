@@ -171,7 +171,7 @@ export const KeysModal: React.FC<{ open: boolean; onClose: () => void }> = ({ op
         data-testid="keys-modal"
         onKeyDown={onKeyDownTrap}
       >
-        <div id={`${id}-title`} style={{ fontWeight:700, marginBottom:12, fontSize:14, letterSpacing:.5, textTransform:'uppercase', color:GOLD }}>Provider Keys</div>
+        <div id={`${id}-title`} style={{ fontWeight:700, marginBottom:12, fontSize:14, letterSpacing:.5, textTransform:'uppercase', color: 'var(--syn-accent-gold, #f5b301)' }}>Provider Keys</div>
         <Tabs role="tablist" aria-label="Providers">
           {(['openai','anthropic','gemini','ollama'] as const).map(p => (
             <TabBtn
