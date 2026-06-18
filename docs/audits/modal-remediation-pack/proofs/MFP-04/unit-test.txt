@@ -1,0 +1,10 @@
+=== npx vitest run src/hooks ===
+
+ RUN  v4.1.9 /home/user/SynapseIDE_urban_analytics
+
+
+ Test Files  3 passed (3)
+      Tests  8 passed (8)
+   Start at  13:15:45
+   Duration  22.58s (transform 514ms, setup 0ms, import 3.10s, tests 269ms, environment 59.29s)
+

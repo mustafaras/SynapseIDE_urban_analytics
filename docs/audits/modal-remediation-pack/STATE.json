@@ -53,7 +53,7 @@
       "notes": "Added src/hooks/useScrollLock.ts — module-level ref-counted body-scroll lock; first lock saves prior overflow + sets 'hidden', last release restores the saved value (not 'unset'); SSR-safe. Fixes M5 (stacked modals fighting body scroll). Modal.tsx untouched (wiring is MFP-06). Gate general: typecheck clean, vitest src/hooks = 5 passed, lint:errors clean."
     },
     "MFP-04": {
-      "status": "pending",
+      "status": "done",
       "priority": "P1",
       "phase": 1,
       "dependsOn": [],
@@ -63,8 +63,8 @@
         "unit-test"
       ],
       "proofDir": "proofs/MFP-04/",
-      "commit": null,
-      "notes": ""
+      "commit": "07996b68c063d2021f7fed646adacdd75f056cfc",
+      "notes": "Added src/hooks/useInertBackground.ts — generalizes MapWorkspaceShell sibling-exclusion; while active sets inert + aria-hidden on body-level siblings, excluding self branch + modal/portal root + data-map-overlay-root; snapshots/restores prior state (nested-safe); SSR-safe; inert via setAttribute (no any). Fixes M6. Modal.tsx untouched (MFP-06 wires it). Gate general: typecheck clean, vitest src/hooks = 8 passed, lint:errors clean."
     },
     "MFP-05": {
       "status": "pending",
