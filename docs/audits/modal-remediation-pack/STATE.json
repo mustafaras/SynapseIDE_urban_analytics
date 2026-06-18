@@ -25,7 +25,7 @@
       "notes": "KeysModal.tsx:174 undefined `color:GOLD` replaced with var(--syn-accent-gold, #f5b301) (single repo-wide occurrence, nothing to import-restore). Gate general green: typecheck + lint:errors clean. Added render-smoke test KeysModal.smoke.test.tsx (1 passed). Branch claude/modal-fix-p1-0r2g87."
     },
     "MFP-02": {
-      "status": "pending",
+      "status": "done",
       "priority": "P0",
       "phase": 1,
       "dependsOn": [],
@@ -35,8 +35,8 @@
         "unit-test"
       ],
       "proofDir": "proofs/MFP-02/",
-      "commit": null,
-      "notes": ""
+      "commit": "0dceb8adeacf8e3abfbf885f8d6100ae47c688b4",
+      "notes": "Promoted canonical focus trap to src/hooks/useFocusTrap.ts (verbatim; exports FOCUSABLE_SELECTOR, getFocusableElements, useFocusTrap); reduced src/centerpanel/components/map/useFocusTrap.ts to `export * from '@/hooks/useFocusTrap';`. Pure move + re-export, no behavioural change. Gate gis: typecheck clean, 932 unit tests pass (map-accessibility unchanged + new src/hooks trap test), lint:errors clean; lint:no-tailwind-centerpanel not runnable (PowerShell absent on Linux runner) — manually verified the touched centerpanel file has no class/className literal. Unblocks MFP-06/MFP-13."
     },
     "MFP-03": {
       "status": "pending",

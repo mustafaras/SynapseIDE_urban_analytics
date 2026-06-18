@@ -1,0 +1,12 @@
+=== npx vitest run src/centerpanel/components/map + src/hooks/__tests__/useFocusTrap.test.ts ===
+
+ RUN  v4.1.9 /home/user/SynapseIDE_urban_analytics
+
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+
+ Test Files  98 passed (98)
+      Tests  932 passed (932)
+   Start at  13:01:14
+   Duration  58.48s (transform 17.23s, setup 0ms, import 36.79s, tests 58.52s, environment 57.16s)
+

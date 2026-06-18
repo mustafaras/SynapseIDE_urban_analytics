@@ -1,0 +1,20 @@
+=== npm run lint:errors ===
+
+> urban-analytics-workbench@1.0.0 lint:errors
+> eslint . --ext ts,tsx --quiet
+
+=== npm run lint:no-tailwind-centerpanel ===
+
+> urban-analytics-workbench@1.0.0 lint:no-tailwind-centerpanel
+> powershell -ExecutionPolicy Bypass -File scripts/check-no-tailwind-centerpanel.ps1
+
+sh: 1: powershell: not found
+
+=== lint:no-tailwind-centerpanel ===
+NOTE: gate command runs scripts/check-no-tailwind-centerpanel.ps1 via PowerShell,
+which is not installed on this Linux runner (sh: powershell: not found, exit 127).
+Environment-dependent, not a code failure. The only centerpanel file touched by
+MFP-02 is src/centerpanel/components/map/useFocusTrap.ts, now reduced to a single
+re-export line with no class=/className= literal — it cannot introduce Tailwind.
+Verified manually:
+  (no class/className literals in the changed file)
