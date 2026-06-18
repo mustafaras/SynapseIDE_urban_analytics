@@ -117,7 +117,7 @@
       "notes": "Foundation tests: new src/test/assertDialogA11y.ts (reusable contract: focus-in, Tab/Shift+Tab wrap, restore, Escape — reused by MFP-20); new Modal.test.tsx (assertDialogA11y + unique useId title ids + ariaLabel/describedby wiring); expanded useFocusTrap.test.ts (capture/restore + document.contains guard + wrap). useScrollLock/useInertBackground tests already cover ref-counting + inert toggling from MFP-03/04. No any (typed WritableRef). Validation: vitest src/components/molecules src/hooks = 5 files / 21 passed; typecheck + lint:errors clean."
     },
     "MFP-08": {
-      "status": "pending",
+      "status": "done",
       "priority": "P0",
       "phase": 0,
       "dependsOn": [
@@ -131,8 +131,8 @@
         "screenshot"
       ],
       "proofDir": "proofs/MFP-08/",
-      "commit": null,
-      "notes": ""
+      "commit": "caa6316e5291413d73811a53c9f63bd961361c88",
+      "notes": "AiSettingsModal made conformant (AS1-AS7): createPortal to body; useFocusTrap(open)+activate (trap/restore/focus-in); dialog-scoped Escape; useId aria-labelledby; close button aria-label; z-index var(--z-modal); removed all 4 any (ProviderKey/BuildParams + optional chaining). Also WCAG 1.4.3: label/hint fallback --syn-text-muted -> --syn-text-secondary (--ai-fg-secondary undefined repo-wide so labels really failed AA 4.17:1; css-module-only, color:guard-safe); preview <pre> made focusable. Gate general: typecheck clean (no any) + lint:errors clean. AiSettingsModal.a11y.test.tsx 5/5. REAL-CHROMIUM PROOF (Playwright via /opt/pw-browsers chromium-1194 + Vite harness): axe-core on open dialog = 0 violations (before: 2 serious - 11 color-contrast + 1 scrollable-region); before.png/after.png screenshots captured. Unblocks MFP-20 (a11y test reused)."
     },
     "MFP-09": {
       "status": "pending",
