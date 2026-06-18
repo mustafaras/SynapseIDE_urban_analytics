@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Building2, DatabaseZap, Globe2, Leaf, RefreshCw, Trash2, X } from "lucide-react";
 import {
   ExternalServiceConnector,
@@ -14,6 +14,8 @@ import { cityJSONObjectsToFootprintCollection, DEFAULT_VOXCITY_GEO_ANCHOR } from
 import { useCityJSONScene } from "@/features/urbanAnalytics/voxcity/hooks/useCityJSONScene";
 import type { OverlayLayerConfig } from "./map/mapTypes";
 import type { MapImportProgress } from "@/services/map/MapDataImporter";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
+import { reportError } from "@/lib/error-bus";
 import {
   MAP_COLORS,
   MAP_RADIUS,
@@ -251,12 +253,12 @@ function layerKey(layer: ExternalLayerInfo): string {
   return `${layer.name}::${layer.title}`;
 }
 
-function boundsLabel(bounds: [number, number, number, number] | null): string {
+function formatBoundsLabel(bounds: [number, number, number, number] | null): string {
   return bounds ? bounds.map((value) => value.toFixed(4)).join(", ") : "No live map extent yet";
 }
 
 function scopedBoundsLabel(bounds: [number, number, number, number] | null, labelText?: string | null): string {
-  return labelText ? `${labelText}: ${boundsLabel(bounds)}` : boundsLabel(bounds);
+  return labelText ? `${labelText}: ${formatBoundsLabel(bounds)}` : formatBoundsLabel(bounds);
 }
 
 function isLikelyGeographic(referenceSystem?: string | null): boolean {
@@ -316,6 +318,17 @@ export const MapServiceDialog: React.FC<MapServiceDialogProps> = ({
   );
   const selectedWfsInfo = wfsCapabilities?.featureTypes.find((layer) => layerKey(layer) === selectedWfsType) ?? null;
 
+  // Dialog focus management: trap + restore-to-opener via the shared hook (MFP-02).
+  const { trapRef, activate } = useFocusTrap(open);
+  useEffect(() => { if (open) activate(); }, [open, activate]);
+
+  const handleDialogKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Escape") {
+      event.stopPropagation();
+      onClose();
+    }
+  };
+
   if (!open) {
     return null;
   }
@@ -338,6 +351,7 @@ export const MapServiceDialog: React.FC<MapServiceDialogProps> = ({
       const message = serviceErrorMessage(requestError);
       setError(message);
       onAnnounce?.(message);
+      reportError({ source: "adapter", code: "MAP_SERVICE_REQUEST_FAILED", message: "External map service request failed", detail: message });
     } finally {
       setBusyLabel(null);
       window.setTimeout(() => {
@@ -408,7 +422,9 @@ export const MapServiceDialog: React.FC<MapServiceDialogProps> = ({
       onAddLayer(ExternalServiceConnector.createXyzRasterLayerConfig(name, url, attribution));
       onAnnounce?.(`${name} added as XYZ raster overlay`);
     } catch (requestError) {
-      setError(serviceErrorMessage(requestError));
+      const message = serviceErrorMessage(requestError);
+      setError(message);
+      reportError({ source: "adapter", code: "MAP_SERVICE_XYZ_FAILED", message: "Could not add XYZ raster overlay", detail: message });
     }
   };
 
@@ -596,7 +612,7 @@ export const MapServiceDialog: React.FC<MapServiceDialogProps> = ({
   ) => {
     const selectedSet = new Set(Array.isArray(selected) ? selected : selected ? [selected] : []);
     return (
-    <div style={layerList} role="listbox" aria-label="Service layer list">
+    <div style={layerList} role="group" aria-label="Service layer list">
       {items.length === 0 ? (
         <div style={metaLine}>No layers were discovered in the capabilities document.</div>
       ) : items.map((layer) => {
@@ -785,7 +801,7 @@ export const MapServiceDialog: React.FC<MapServiceDialogProps> = ({
   );
 
   return (
-    <div style={overlay} role="presentation" data-testid="map-service-dialog-overlay">
+    <div style={overlay} role="presentation" data-testid="map-service-dialog-overlay" ref={trapRef} onKeyDown={handleDialogKeyDown}>
       <section style={dialog} role="dialog" aria-modal="true" aria-label="External map services" data-testid="map-service-dialog">
         <header style={header}>
           <div style={titleRow}>
