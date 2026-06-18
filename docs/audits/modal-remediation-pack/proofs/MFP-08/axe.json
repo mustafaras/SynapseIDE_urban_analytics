@@ -1,0 +1,15 @@
+{
+  "summary": {
+    "label": "after",
+    "url": "http://127.0.0.1:5199/",
+    "violations": [],
+    "violationCount": 0,
+    "serious_or_critical": 0,
+    "passes": 17,
+    "pageConsoleErrors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: net::ERR_CONNECTION_REFUSED"
+    ]
+  },
+  "violations": []
+}

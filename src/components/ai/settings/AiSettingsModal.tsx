@@ -1,13 +1,16 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { AiSelectors, useAiConfigStore } from '@/stores/useAiConfigStore';
 import { buildProviderRequest, sanitizeBuiltRequest } from '@/ai/samplingMapper';
 import { getCaps, getStaticModels, listModelsDynamic } from '@/ai/modelRegistry';
-import type { ProviderId, Sampling } from '@/stores/useAiConfigStore.types';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
+import type { ProviderId, Sampling, ProviderKey } from '@/stores/useAiConfigStore.types';
+import type { BuildParams } from '@/ai/types';
 import styles from './AiSettingsModal.module.css';
 
 interface Props { open: boolean; onClose(): void; }
 
-type Snapshot = { provider: ProviderId; model: string | null; sampling: Sampling; keys: Record<string, any> };
+type Snapshot = { provider: ProviderId; model: string | null; sampling: Sampling; keys: Record<ProviderId, ProviderKey> };
 
 interface DraftState {
   provider: ProviderId;
@@ -38,6 +41,8 @@ export const AiSettingsModal: React.FC<Props> = ({ open, onClose }) => {
   const [testMsg, setTestMsg] = useState<string|null>(null);
   const [modelRefreshPending, setModelRefreshPending] = useState(false);
   const [errors, setErrors] = useState<Record<string,string>>({});
+  const titleId = useId();
+  const { trapRef, activate } = useFocusTrap(open);
 
 
   useEffect(() => {
@@ -48,8 +53,8 @@ export const AiSettingsModal: React.FC<Props> = ({ open, onClose }) => {
         provider: snap.provider,
         model: snap.model,
         sampling: { ...snap.sampling },
-        apiKey: (snap.keys[snap.provider] || {}).apiKey,
-        baseUrl: (snap.keys[snap.provider] || {}).baseUrl,
+        apiKey: snap.keys[snap.provider]?.apiKey,
+        baseUrl: snap.keys[snap.provider]?.baseUrl,
         models: [...storeModels],
         caps: storeCaps,
         dirty: false,
@@ -73,13 +78,16 @@ export const AiSettingsModal: React.FC<Props> = ({ open, onClose }) => {
 
   useEffect(() => { setErrors(computeValidation(draft)); }, [draft, computeValidation]);
 
+  // Move focus into the dialog on open; the shared trap restores it to the opener on close.
+  useEffect(() => { if (open) activate(); }, [open, activate]);
+
   const applyDraftToStore = useCallback(async (closeAfter: boolean) => {
     if (!draft) return;
     if (Object.keys(errors).length) return;
     if (draft.provider !== storeProvider) await setProvider(draft.provider);
     if (draft.model && draft.model !== storeModel) setModel(draft.model);
     setSampling({ ...draft.sampling });
-    const keyPayload: any = {};
+    const keyPayload: ProviderKey = {};
     if (draft.apiKey) keyPayload.apiKey = draft.apiKey;
     if (draft.baseUrl) keyPayload.baseUrl = draft.baseUrl;
     await setKey(draft.provider, keyPayload);
@@ -91,7 +99,7 @@ export const AiSettingsModal: React.FC<Props> = ({ open, onClose }) => {
   const builtPreview = useMemo(() => {
     if (!draft || !draft.model) return null;
     try {
-      const opt: any = { provider: draft.provider, model: draft.model, sampling: draft.sampling, prompt: '[sample prompt]' };
+      const opt: BuildParams = { provider: draft.provider, model: draft.model, sampling: draft.sampling, prompt: '[sample prompt]' };
       if (draft.apiKey) opt.apiKey = draft.apiKey;
       if (draft.baseUrl) opt.baseUrl = draft.baseUrl;
       const built = buildProviderRequest(opt);
@@ -109,8 +117,8 @@ export const AiSettingsModal: React.FC<Props> = ({ open, onClose }) => {
       provider: snap.provider,
       model: snap.model,
       sampling: { ...snap.sampling },
-      apiKey: (snap.keys[snap.provider]||{}).apiKey,
-      baseUrl: (snap.keys[snap.provider]||{}).baseUrl,
+      apiKey: snap.keys[snap.provider]?.apiKey,
+      baseUrl: snap.keys[snap.provider]?.baseUrl,
       models: getStaticModels(snap.provider),
       caps: getCaps(snap.provider),
       dirty: false,
@@ -123,7 +131,7 @@ export const AiSettingsModal: React.FC<Props> = ({ open, onClose }) => {
     if (!draft) return;
     setTesting(true); setTestMsg(null);
     try {
-      const keyPayload: any = {};
+      const keyPayload: ProviderKey = {};
       if (draft.apiKey) keyPayload.apiKey = draft.apiKey;
       if (draft.baseUrl) keyPayload.baseUrl = draft.baseUrl;
       const remote = await listModelsDynamic(draft.provider, keyPayload).catch(()=>[]);
@@ -135,7 +143,7 @@ export const AiSettingsModal: React.FC<Props> = ({ open, onClose }) => {
   const refreshModelsLocal = async () => {
     if (!draft) return; setModelRefreshPending(true);
     try {
-      const keyPayload: any = {};
+      const keyPayload: ProviderKey = {};
       if (draft.apiKey) keyPayload.apiKey = draft.apiKey;
       if (draft.baseUrl) keyPayload.baseUrl = draft.baseUrl;
       const remote = await listModelsDynamic(draft.provider, keyPayload).catch(()=>[]);
@@ -155,16 +163,19 @@ export const AiSettingsModal: React.FC<Props> = ({ open, onClose }) => {
   const dirty = !!draft?.dirty;
   const onCancel = onClose;
 
-  return (
+  return createPortal(
     <div
+      ref={trapRef}
       role='dialog'
       aria-modal='true'
+      aria-labelledby={titleId}
       className={styles.modal}
+      onKeyDown={(e) => { if (e.key === 'Escape') onCancel(); }}
     >
       <div className={styles.panel}>
         <div className={styles.header}>
-          <strong className={styles.title}>AI Settings</strong>
-          <button onClick={onCancel} className={styles.closeBtn} title='Close without reverting committed store state.'>×</button>
+          <strong id={titleId} className={styles.title}>AI Settings</strong>
+          <button onClick={onCancel} className={styles.closeBtn} aria-label='Close AI settings' title='Close without reverting committed store state.'>×</button>
         </div>
         <div className={styles.row}>
           <div className={styles.label}>
@@ -175,8 +186,8 @@ export const AiSettingsModal: React.FC<Props> = ({ open, onClose }) => {
                 provider: p,
                 model: getStaticModels(p)[0] || null,
                 sampling: { ...sampling, json_mode: getCaps(p).jsonMode ? sampling.json_mode : false, max_tokens: sampling.max_tokens },
-                apiKey: (snapshotRef.current?.keys[p]||{}).apiKey,
-                baseUrl: (snapshotRef.current?.keys[p]||{}).baseUrl,
+                apiKey: snapshotRef.current?.keys[p]?.apiKey,
+                baseUrl: snapshotRef.current?.keys[p]?.baseUrl,
                 models: getStaticModels(p),
                 caps: getCaps(p),
                 dirty: true,
@@ -250,7 +261,7 @@ export const AiSettingsModal: React.FC<Props> = ({ open, onClose }) => {
           <summary className={styles.previewSummary}>Request Preview (dry-run)</summary>
           <div className={styles.previewContent}>
             {builtPreview ? (
-              <pre className={styles.previewPre}>{(() => { try { return JSON.stringify(builtPreview, null, 2); } catch { return '—'; } })()}</pre>
+              <pre className={styles.previewPre} tabIndex={0} aria-label="Request preview JSON">{(() => { try { return JSON.stringify(builtPreview, null, 2); } catch { return '—'; } })()}</pre>
             ) : <span className={styles.hint}>Select provider + model to preview.</span>}
             {Object.keys(errors).length > 0 && <div className={styles.errorMessage}>Cannot apply – fix validation errors.</div>}
           </div>
@@ -268,7 +279,8 @@ export const AiSettingsModal: React.FC<Props> = ({ open, onClose }) => {
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
 
