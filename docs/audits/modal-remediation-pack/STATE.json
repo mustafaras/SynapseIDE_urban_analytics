@@ -15,6 +15,7 @@
       "priority": "P0",
       "phase": 0,
       "dependsOn": [],
+      "spec": "prompts/MFP-01.md",
       "proofRequired": [
         "typecheck-clean",
         "render-smoke"
@@ -28,6 +29,7 @@
       "priority": "P0",
       "phase": 1,
       "dependsOn": [],
+      "spec": "prompts/MFP-02.md",
       "proofRequired": [
         "typecheck-clean",
         "unit-test"
@@ -41,6 +43,7 @@
       "priority": "P1",
       "phase": 1,
       "dependsOn": [],
+      "spec": "prompts/MFP-03.md",
       "proofRequired": [
         "typecheck-clean",
         "unit-test"
@@ -54,6 +57,7 @@
       "priority": "P1",
       "phase": 1,
       "dependsOn": [],
+      "spec": "prompts/MFP-04.md",
       "proofRequired": [
         "typecheck-clean",
         "unit-test"
@@ -67,6 +71,7 @@
       "priority": "P1",
       "phase": 1,
       "dependsOn": [],
+      "spec": "prompts/MFP-05.md",
       "proofRequired": [
         "typecheck-clean",
         "color-guard"
@@ -85,6 +90,7 @@
         "MFP-04",
         "MFP-05"
       ],
+      "spec": "prompts/MFP-06.md",
       "proofRequired": [
         "typecheck-clean",
         "lint-clean",
@@ -102,6 +108,7 @@
       "dependsOn": [
         "MFP-06"
       ],
+      "spec": "prompts/MFP-07.md",
       "proofRequired": [
         "unit-test"
       ],
@@ -116,6 +123,7 @@
       "dependsOn": [
         "MFP-02"
       ],
+      "spec": "prompts/MFP-08.md",
       "proofRequired": [
         "typecheck-clean",
         "axe-clean",
@@ -131,6 +139,7 @@
       "priority": "P0",
       "phase": 0,
       "dependsOn": [],
+      "spec": "prompts/MFP-09.md",
       "proofRequired": [
         "typecheck-clean",
         "manual-keyboard",
@@ -147,6 +156,7 @@
       "dependsOn": [
         "MFP-06"
       ],
+      "spec": "prompts/MFP-10.md",
       "proofRequired": [
         "typecheck-clean",
         "axe-clean",
@@ -164,6 +174,7 @@
       "dependsOn": [
         "MFP-06"
       ],
+      "spec": "prompts/MFP-11.md",
       "proofRequired": [
         "typecheck-clean",
         "manual-keyboard"
@@ -179,6 +190,7 @@
       "dependsOn": [
         "MFP-06"
       ],
+      "spec": "prompts/MFP-12.md",
       "proofRequired": [
         "typecheck-clean",
         "axe-clean",
@@ -195,6 +207,7 @@
       "dependsOn": [
         "MFP-02"
       ],
+      "spec": "prompts/MFP-13.md",
       "proofRequired": [
         "typecheck-clean",
         "unit-test",
@@ -211,6 +224,7 @@
       "dependsOn": [
         "MFP-06"
       ],
+      "spec": "prompts/MFP-14.md",
       "proofRequired": [
         "typecheck-clean",
         "axe-clean",
@@ -227,6 +241,7 @@
       "dependsOn": [
         "MFP-05"
       ],
+      "spec": "prompts/MFP-15.md",
       "proofRequired": [
         "typecheck-clean",
         "color-guard",
@@ -243,6 +258,7 @@
       "dependsOn": [
         "MFP-06"
       ],
+      "spec": "prompts/MFP-16.md",
       "proofRequired": [
         "typecheck-clean",
         "unit-test",
@@ -257,6 +273,7 @@
       "priority": "P2",
       "phase": 2,
       "dependsOn": [],
+      "spec": "prompts/MFP-17.md",
       "proofRequired": [
         "typecheck-clean",
         "unit-test"
@@ -270,6 +287,7 @@
       "priority": "P2",
       "phase": 2,
       "dependsOn": [],
+      "spec": "prompts/MFP-18.md",
       "proofRequired": [
         "typecheck-clean",
         "deadcode-clean",
@@ -286,6 +304,7 @@
       "dependsOn": [
         "MFP-20"
       ],
+      "spec": "prompts/MFP-19.md",
       "proofRequired": [
         "typecheck-clean",
         "e2e-a11y",
@@ -302,6 +321,7 @@
       "dependsOn": [
         "MFP-06"
       ],
+      "spec": "prompts/MFP-20.md",
       "proofRequired": [
         "unit-test",
         "e2e-a11y"
@@ -315,6 +335,7 @@
       "priority": "P2",
       "phase": 2,
       "dependsOn": [],
+      "spec": "prompts/MFP-21.md",
       "proofRequired": [
         "typecheck-clean",
         "screenshot"
@@ -330,6 +351,7 @@
       "dependsOn": [
         "MFP-21"
       ],
+      "spec": "prompts/MFP-22.md",
       "proofRequired": [
         "typecheck-clean",
         "screenshot",

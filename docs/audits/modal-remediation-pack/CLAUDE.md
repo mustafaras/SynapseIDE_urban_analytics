@@ -19,19 +19,23 @@ controlled, proof-backed execution sequence.
 
 When the user gives a trigger (e.g. `P8`, `MFP-08`, `ai-settings`, or `/modal-fix 8`):
 
-1. **Resolve** the trigger → prompt id via [`triggers.json`](./triggers.json).
-2. **Load only that prompt's object** from `prompts.json` (by `id`). Do **not** read the
-   other prompts, the full audits, or unrelated source.
+1. **Resolve** the trigger → prompt id via [`triggers.json`](./triggers.json) (or read the
+   one-line goal in [`TRIGGERS.md`](./TRIGGERS.md)).
+2. **Load that prompt's object** from `prompts.json` (by `id`) **and** read its `spec`
+   file — `prompts/<id>.md` — which is the detailed source (why / evidence / before→after /
+   steps / edge cases / tests / proof). Do **not** read the other prompts, the full audits,
+   or unrelated source.
 3. **Check `STATE.json`** for that id and its `dependsOn`. If a dependency is not `done`/
    `verified`, STOP and tell the user which prerequisite is missing.
-4. **Execute** the prompt's `steps` against the listed `targets`. Re-verify line anchors
+4. **Execute** the spec's steps against the listed `targets`. Re-verify line anchors
    before editing (lines drift — anchors are advisory, `symbols` are authoritative).
 5. **Validate** with the prompt's `validate` commands and capture every `proofRequired`
    artifact into `proofs/<id>/` (see [`PROOF.md`](./PROOF.md)).
 6. **Update `STATE.json`** (status + commit sha + notes) and append a [`LEDGER.md`](./LEDGER.md) row.
 7. Reply with a short summary: what changed, proofs captured, gate result.
 
-This keeps each turn cheap: **1 prompt object + the target files**, never the whole pack.
+This keeps each turn cheap: **1 prompt object + its `prompts/<id>.md` spec + the target
+files**, never the whole pack.
 
 ---
 
