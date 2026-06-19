@@ -19,7 +19,7 @@ const focusRing = () => `0 0 0 2px color-mix(in srgb, var(--syn-interaction-focu
 
 const Backdrop = styled.div`
   position: fixed; inset: 0; background: var(--syn-surface-overlay, rgba(12,15,20,0.78));
-  display: flex; align-items: center; justify-content: center; z-index: 2200;
+  display: flex; align-items: center; justify-content: center; z-index: var(--z-modal);
   font-family: var(--font-mono, var(--font-code, "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace));
 `;
 const Dialog = styled.div`

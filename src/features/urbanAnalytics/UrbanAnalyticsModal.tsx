@@ -1264,7 +1264,7 @@ const MODAL_CSS = `
 
 /* Accent line */
 .accentline {
- position: fixed; top:0; left:0; right:0; height:2px; z-index:2147483648;
+ position: fixed; top:0; left:0; right:0; height:2px; z-index: var(--z-system-banner);
  pointer-events: none;
  background: var(--syn-interaction-active);
 }

@@ -527,7 +527,7 @@ const WelcomeModal: React.FC<WelcomeModalProps> = ({ open, onClose }) => {
       role="dialog"
       aria-modal="true"
       aria-labelledby="welcome-modal-title"
-      style={{ zIndex: 2147483648 }}
+      style={{ zIndex: 'var(--z-system-banner)' }}
     >
       <button
         type="button"
@@ -873,7 +873,7 @@ const WelcomeModal: React.FC<WelcomeModalProps> = ({ open, onClose }) => {
         .welcome-modal {
           position: fixed !important;
           inset: 0 !important;
-          z-index: 2147483648 !important;
+          z-index: var(--z-system-banner) !important;
           display: flex !important;
           align-items: center !important;
           justify-content: center !important;
