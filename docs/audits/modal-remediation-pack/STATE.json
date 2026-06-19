@@ -168,7 +168,7 @@
       "notes": "NewFileModal NF1-NF5: dialog role/aria moved to panel (overlay role=presentation); category/language/template are role=radiogroup of real <button role=radio aria-checked> (keyboard-operable); useFocusTrap+useScrollLock replace hand-rolled Escape/body-scroll, activate() focus-in, dialog-scoped Escape, filename rAF autofocus preserved; static data extracted to newFileTemplates.ts (metadata, static) + newFileTemplateContent.ts (heavy map, lazy import on create -> own ~16.8kB chunk, no ineffective-import warning), 940->553 lines; dead inline pseudo-selectors removed -> NewFileModal.module.css; no any. Gate general: typecheck+lint clean; perf:budgets passed; build OK; NewFileModal.a11y.test.tsx 4/4. REAL-CHROMIUM axe on open dialog = 0 violations (before: 1 serious scrollable-region); before/after screenshots."
     },
     "MFP-11": {
-      "status": "pending",
+      "status": "done",
       "priority": "P1",
       "phase": 2,
       "dependsOn": [
@@ -180,8 +180,8 @@
         "manual-keyboard"
       ],
       "proofDir": "proofs/MFP-11/",
-      "commit": null,
-      "notes": ""
+      "commit": "a446d70e74be186b0f831a0472ea2498365d7af5",
+      "notes": "NewProjectModal template chooser: TemplateGrid role=radiogroup (aria-label=Project template); each TemplateCard role=radio + aria-checked + aria-label + aria-describedby + roving tabIndex (0 selected/-1 others); onKeyDown Enter/Space select + Arrow keys roving (ref-array focus); isCreating guards both paths; visual styling unchanged; dialog shell owned by base Modal (MFP-06); no any. Gate general: typecheck + lint:errors clean; NewProjectModal.test.tsx 4/4. REAL-CHROMIUM axe on open dialog = 0 violations (before also 0 — axe can't detect mouse-only div keyboard gap; fix proven by tests; passes 15->16); before/after screenshots."
     },
     "MFP-12": {
       "status": "pending",
