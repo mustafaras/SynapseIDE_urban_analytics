@@ -4,6 +4,7 @@ import { useFlowStore } from '@/stores/useFlowStore';
 import { useMapExplorerStore } from '@/stores/useMapExplorerStore';
 import { useUrbanContextStore } from './useUrbanContextStore';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion';
 
 export interface WelcomeModalProps {
   open: boolean;
@@ -418,6 +419,7 @@ const WelcomeModal: React.FC<WelcomeModalProps> = ({ open, onClose }) => {
   const { trapRef } = useFocusTrap(open);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [isClosing, setIsClosing] = useState(false);
+  const prefersReducedMotion = usePrefersReducedMotion();
   const [scrolled, setScrolled] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [activeSection, setActiveSection] = useState<WelcomeSectionId>('brief');
@@ -440,11 +442,16 @@ const WelcomeModal: React.FC<WelcomeModalProps> = ({ open, onClose }) => {
 
   const handleClose = useCallback(() => {
     setIsClosing(true);
-    setTimeout(() => {
+    const finishClose = () => {
       setIsClosing(false);
       onClose();
-    }, 400);
-  }, [onClose]);
+    };
+    if (prefersReducedMotion) {
+      finishClose();
+      return;
+    }
+    setTimeout(finishClose, 400);
+  }, [onClose, prefersReducedMotion]);
 
   const updateScrollState = useCallback((scrollEl: HTMLDivElement) => {
     const maxScroll = Math.max(1, scrollEl.scrollHeight - scrollEl.clientHeight);
@@ -482,15 +489,12 @@ const WelcomeModal: React.FC<WelcomeModalProps> = ({ open, onClose }) => {
       - scrollEl.getBoundingClientRect().top
       + scrollEl.scrollTop
       - 10;
-    const reducedMotion = typeof window.matchMedia === 'function'
-      && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
     scrollEl.scrollTo({
       top: Math.max(0, targetTop),
-      behavior: reducedMotion ? 'auto' : 'smooth',
+      behavior: prefersReducedMotion ? 'auto' : 'smooth',
     });
     setActiveSection(sectionId);
-  }, []);
+  }, [prefersReducedMotion]);
 
   // Escape closes; the Tab trap + focus-restore are owned by useFocusTrap (MFP-13).
   useEffect(() => {

@@ -1,5 +1,3 @@
-/* eslint-disable jsx-a11y/no-noninteractive-element-interactions */
-
 /**
  * Urban Analytics Workbench — Main Modal Container
  *
@@ -29,6 +27,10 @@ import { MapExplorerButton } from '@/centerpanel/components/MapExplorerButton';
 import { type MapExplorerState, useMapExplorerStore } from '@/stores/useMapExplorerStore';
 import { usePanelBridgeStore } from '@/stores/usePanelBridgeStore';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion';
+import editorBridge from '@/services/editorBridge';
+import { busTimestamp, synapseBus } from '@/services/synapseBus';
+import { reportError } from '@/lib/error-bus';
 
 import {
  __setUrbanLibrary,
@@ -510,6 +512,7 @@ export interface UrbanAnalyticsModalProps {
 
 export default function UrbanAnalyticsModal({ open, onClose }: UrbanAnalyticsModalProps) {
  const [isClosing, setIsClosing] = useState(false);
+ const prefersReducedMotion = usePrefersReducedMotion();
 
  // Library is injected at module scope (above). No effect needed.
 
@@ -520,15 +523,20 @@ export default function UrbanAnalyticsModal({ open, onClose }: UrbanAnalyticsMod
  const setOpen = useCallback((v: boolean) => {
  if (!v) {
  setIsClosing(true);
- setTimeout(() => {
+ const finishClose = () => {
  setIsClosing(false);
  if (open === undefined) store?.close?.();
  onClose?.();
- }, 300);
+ };
+ if (prefersReducedMotion) {
+ finishClose();
+ return;
+ }
+ setTimeout(finishClose, 300);
  } else {
  if (open === undefined) store?.open?.();
  }
- }, [open, store, onClose]);
+ }, [open, store, onClose, prefersReducedMotion]);
 
  // listen for global close
  useEffect(() => {
@@ -685,9 +693,14 @@ export default function UrbanAnalyticsModal({ open, onClose }: UrbanAnalyticsMod
 
  const sendToChat = useCallback(async () => {
  const { plain, htmlWrapped } = buildPayload();
+ const meta: { cardId?: string; title?: string } = {};
+ if (selected?.id) meta.cardId = selected.id;
+ if (selected?.title) meta.title = selected.title;
+ // Content transport channel: chat inserts carry rendered text/HTML, so they
+ // intentionally stay off the typed Synapse Bus, whose Urban events are ID/ref-only.
  window.dispatchEvent(
  new CustomEvent('synapse:chat:insert', {
- detail: { plainText: plain, html: htmlWrapped, meta: { cardId: selected?.id, title: selected?.title } },
+ detail: { plainText: plain, html: htmlWrapped, meta },
  }),
  );
  try { await navigator.clipboard.writeText(plain); } catch { /* noop */ }
@@ -695,14 +708,21 @@ export default function UrbanAnalyticsModal({ open, onClose }: UrbanAnalyticsMod
  }, [buildPayload, selected, show]);
 
  const insertToEditor = useCallback(async () => {
- const { plain, htmlWrapped } = buildPayload();
- window.dispatchEvent(
- new CustomEvent('synapse:editor:insert', {
- detail: { html: htmlWrapped, plainText: plain },
- }),
- );
+ const { plain } = buildPayload();
+ let inserted = false;
+ try {
+ await editorBridge.insertIntoActive({ code: plain, language: 'markdown' });
+ inserted = true;
+ } catch (error) {
+ reportError({
+ source: 'ui',
+ code: 'URBAN_EDITOR_INSERT_FAILED',
+ message: 'Could not insert Urban Analytics card into the editor.',
+ detail: error instanceof Error ? error.message : String(error),
+ });
+ }
  try { await navigator.clipboard.writeText(plain); } catch { /* noop */ }
- show('Inserted to editor (copied)');
+ show(inserted ? 'Inserted to editor (copied)' : 'Could not insert; copied to clipboard');
  }, [buildPayload, show]);
 
  // --- additional status-bar actions ---
@@ -732,27 +752,42 @@ export default function UrbanAnalyticsModal({ open, onClose }: UrbanAnalyticsMod
  }, [selectedCard, show]);
 
  const openRecent = useCallback(() => {
- window.dispatchEvent(new CustomEvent('synapse:urban:open-recent'));
+ synapseBus.emit('analytics.recent.open', {
+ source: 'urban-analytics',
+ requestedAt: busTimestamp(),
+ });
  show('Recent items');
  }, [show]);
 
  const refreshRecs = useCallback(() => {
- window.dispatchEvent(new CustomEvent('synapse:urban:refresh-recs'));
+ synapseBus.emit('analytics.recommendations.refresh', {
+ source: 'urban-analytics',
+ requestedAt: busTimestamp(),
+ });
  show('Refreshing recommendations…');
  }, [show]);
 
  const openShortcuts = useCallback(() => {
- window.dispatchEvent(new CustomEvent('synapse:open-shortcuts', { detail: { source: 'urban' } }));
+ synapseBus.emit('ui.shortcuts.open', {
+ source: 'urban-analytics',
+ requestedAt: busTimestamp(),
+ });
  show('Keyboard shortcuts');
  }, [show]);
 
  const toggleTheme = useCallback(() => {
- window.dispatchEvent(new CustomEvent('synapse:theme:toggle'));
+ synapseBus.emit('ui.theme.toggle', {
+ source: 'urban-analytics',
+ requestedAt: busTimestamp(),
+ });
  show('Theme toggled');
  }, [show]);
 
  const openCompare = useCallback(() => {
- window.dispatchEvent(new CustomEvent('synapse:urban:compare', { detail: { cardId: selectedCard?.id ?? null } }));
+ const payload = selectedCard?.id
+ ? { source: 'urban-analytics' as const, requestedAt: busTimestamp(), cardId: selectedCard.id }
+ : { source: 'urban-analytics' as const, requestedAt: busTimestamp() };
+ synapseBus.emit('analytics.compare.open', payload);
  show('Compare mode');
  }, [selectedCard, show]);
 
@@ -837,6 +872,7 @@ export default function UrbanAnalyticsModal({ open, onClose }: UrbanAnalyticsMod
 
  // --- render ---
  const node = (
+ // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- The dialog root owns backdrop dismissal and scoped modal shortcuts; interactive controls remain real buttons.
  <div
  ref={trapRef}
  role="dialog"
@@ -939,7 +975,7 @@ export default function UrbanAnalyticsModal({ open, onClose }: UrbanAnalyticsMod
  </div>
 
  {/* Center Panel */}
- <div className="midCol" aria-hidden={false} style={{ pointerEvents: 'auto', overflow: 'hidden', minHeight: 0 }}>
+ <div className="midCol" style={{ pointerEvents: 'auto', overflow: 'hidden', minHeight: 0 }}>
  <div style={{ height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
  <CenterPanelShell
  title="Urban Analytics"

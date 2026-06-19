@@ -21,6 +21,11 @@
  * │ map.selection.export            │ map-explorer  │ ide, urban-analytics         │
  * │ analytics.scenario.open         │ urban-analytics│ ide, map-explorer           │
  * │ analytics.artifact.publish      │ urban-analytics│ ide, evidence-tray          │
+ * │ analytics.recent.open           │ urban-analytics│ shell                       │
+ * │ analytics.recommendations.refresh│ urban-analytics│ shell, urban-analytics     │
+ * │ analytics.compare.open          │ urban-analytics│ shell, urban-analytics      │
+ * │ ui.shortcuts.open               │ system        │ shell                         │
+ * │ ui.theme.toggle                 │ system        │ shell                         │
  * │ evidence.artifact.register      │ system        │ ide, map-explorer,           │
  * │                                 │               │ urban-analytics              │
  * └─────────────────────────────────┴───────────────┴──────────────────────────────┘
@@ -268,6 +273,46 @@ export interface AnalyticsScenarioRegisterPayload extends SynapseBusBase {
   uncertainty?: AnalyticsUncertaintyMetadata;
 }
 
+/**
+ * Urban Analytics requests that the shell open the recent-items surface.
+ *
+ * Owner: urban-analytics.
+ */
+export type AnalyticsRecentOpenPayload = SynapseBusBase;
+
+/**
+ * Urban Analytics requests recommendation refresh without carrying result data.
+ *
+ * Owner: urban-analytics.
+ */
+export type AnalyticsRecommendationsRefreshPayload = SynapseBusBase;
+
+/**
+ * Urban Analytics requests compare mode for the current card, if one exists.
+ *
+ * Owner: urban-analytics.
+ */
+export interface AnalyticsCompareOpenPayload extends SynapseBusBase {
+  /** Optional Urban Analytics card ID to seed comparison. */
+  cardId?: string;
+}
+
+// ── ui.* events ───────────────────────────────────────────────────────────
+
+/**
+ * A module requests that the shell open the keyboard shortcuts surface.
+ *
+ * Owner: system.
+ */
+export type UiShortcutsOpenPayload = SynapseBusBase;
+
+/**
+ * A module requests that the shell toggle the active theme.
+ *
+ * Owner: system.
+ */
+export type UiThemeTogglePayload = SynapseBusBase;
+
 // ── evidence.* events ──────────────────────────────────────────────────────
 
 /**
@@ -327,6 +372,11 @@ export interface SynapseBusEventMap {
   'analytics.scaffold.propose': AnalyticsScaffoldProposePayload;
   'analytics.indicator.inspect': AnalyticsIndicatorInspectPayload;
   'analytics.scenario.register': AnalyticsScenarioRegisterPayload;
+  'analytics.recent.open':       AnalyticsRecentOpenPayload;
+  'analytics.recommendations.refresh': AnalyticsRecommendationsRefreshPayload;
+  'analytics.compare.open':      AnalyticsCompareOpenPayload;
+  'ui.shortcuts.open':           UiShortcutsOpenPayload;
+  'ui.theme.toggle':             UiThemeTogglePayload;
   'evidence.artifact.register': EvidenceArtifactRegisterPayload;
 }
 

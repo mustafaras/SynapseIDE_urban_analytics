@@ -1,0 +1,19 @@
+
+> urban-analytics-workbench@1.0.0 test
+> vitest run src/features/urbanAnalytics/__tests__/modalReducedMotionEvents.test.tsx --reporter verbose
+
+
+ RUN  v4.1.9 C:/Users/m_ras/synapseide_urban_analytics
+
+ ✓ src/features/urbanAnalytics/__tests__/modalReducedMotionEvents.test.tsx > MFP-17 reduced-motion close behavior > closes WelcomeModal immediately when reduced motion is requested 283ms
+ ✓ src/features/urbanAnalytics/__tests__/modalReducedMotionEvents.test.tsx > MFP-17 reduced-motion close behavior > keeps the WelcomeModal close delay for non-reduced motion users 96ms
+ ✓ src/features/urbanAnalytics/__tests__/modalReducedMotionEvents.test.tsx > MFP-17 reduced-motion close behavior > closes UrbanAnalyticsModal immediately when reduced motion is requested 58ms
+ ✓ src/features/urbanAnalytics/__tests__/modalReducedMotionEvents.test.tsx > MFP-17 reduced-motion close behavior > keeps the UrbanAnalyticsModal close delay for non-reduced motion users 41ms
+ ✓ src/features/urbanAnalytics/__tests__/modalReducedMotionEvents.test.tsx > MFP-17 Urban Analytics bus actions > emits typed ID/ref-only events for status-bar shell actions 72ms
+ ✓ src/features/urbanAnalytics/__tests__/modalReducedMotionEvents.test.tsx > MFP-17 Urban Analytics bus actions > routes editor bulk content through the editor bridge instead of a synapse DOM event 30ms
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  16:20:52
+   Duration  2.48s (transform 645ms, setup 0ms, import 1.25s, tests 582ms, environment 519ms)
+

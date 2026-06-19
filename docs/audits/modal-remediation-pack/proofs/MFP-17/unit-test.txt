@@ -1,0 +1,13 @@
+
+> urban-analytics-workbench@1.0.0 test:analytics
+> vitest run src/engine src/features/urbanAnalytics src/services/data src/workers/pool src/centerpanel/Tools/__tests__/CoverageDiagnosticsPanel.test.tsx
+
+
+ RUN  v4.1.9 C:/Users/m_ras/synapseide_urban_analytics
+
+
+ Test Files  66 passed (66)
+      Tests  1138 passed (1138)
+   Start at  16:20:55
+   Duration  5.53s (transform 44.91s, setup 0ms, import 70.23s, tests 5.84s, environment 25.33s)
+

@@ -1,0 +1,46 @@
+{
+  "metrics": {
+    "welcome": {
+      "hasDialog": true,
+      "dialogRole": "dialog",
+      "labelledby": "welcome-modal-title",
+      "reducedMotion": true,
+      "bodyScrollWidth": 1350,
+      "viewportWidth": 1366,
+      "rect": {
+        "width": 1366,
+        "height": 900,
+        "top": 0,
+        "left": 0
+      },
+      "animationName": "wmFadeIn",
+      "animationDuration": "1e-05s"
+    },
+    "urban": {
+      "hasDialog": true,
+      "dialogRole": "dialog",
+      "labelledby": "urban-modal-title",
+      "reducedMotion": true,
+      "bodyScrollWidth": 1350,
+      "viewportWidth": 1366,
+      "rect": {
+        "width": 1366,
+        "height": 900,
+        "top": 0,
+        "left": 0
+      },
+      "animationName": "urbanModalFadeIn",
+      "animationDuration": "1e-05s"
+    }
+  },
+  "consoleMessages": [
+    "debug: [vite] connecting...",
+    "debug: [vite] connected.",
+    "debug: [vite] connecting...",
+    "debug: [vite] connected.",
+    "info: %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
+    "debug: [vite] connecting...",
+    "debug: [vite] connected.",
+    "info: %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+  ]
+}
