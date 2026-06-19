@@ -201,7 +201,7 @@
       "notes": "GlobalSearch GS1-GS5: input role=combobox (aria-expanded/controls/autocomplete/activedescendant); Results listbox id + ResultRow div role=option (stable ids, aria-selected; no <button aria-selected>); handleKeyDown Arrow-wrap+Home/End+Enter via aria-activedescendant + scrollIntoView (guarded), input keeps focus (inputRef rAF claims focus over base Modal close btn); scope role=tablist->radiogroup of role=radio (roving + Arrow/Home/End); reflow via palette min(640px,100%) (MFP-06) + role=search; local RowPath contrast --syn-text-muted->secondary. No any; styled-components; flatResults index kept. Gate general: typecheck+lint clean; GlobalSearch.a11y.test.tsx 4/4. REAL-CHROMIUM axe on open dialog (4 seeded options, activedescendant set) = 0 violations; after.png screenshot."
     },
     "MFP-13": {
-      "status": "pending",
+      "status": "done",
       "priority": "P2",
       "phase": 2,
       "dependsOn": [
@@ -214,8 +214,8 @@
         "e2e-a11y"
       ],
       "proofDir": "proofs/MFP-13/",
-      "commit": null,
-      "notes": ""
+      "commit": "810da63d6188b7aa48674ab83190162c56c02a7f",
+      "notes": "Migrated 5 bespoke focus traps to shared useFocusTrap: KeysModal (open), UnsavedChangesDialog (true), WelcomeModal (open; deleted FOCUSABLE_MODAL_SELECTOR/getFocusableModalElements), UrbanAnalyticsModal (active; element-bound trap deleted -> document-level capture fixes UA1), MapDialogShell (!nonBlocking; merged trapRef onto panelRef). Per-modal Escape kept; one audited trap remains. Net -184 lines (55+/239-), bundle shrinks; no any. Gate gis: typecheck + lint:errors clean; vitest map = 98 files/933 passed (map-accessibility intact); test:analytics = 64 files/1131 passed; KeysModal.trap+smoke + ide dialog tests pass. CAVEAT: e2e-a11y environment-blocked (Playwright needs Chromium 1217, only 1194 installed, download network-blocked, symlink shim rejected by launcher) — substituted by jsdom map-accessibility + analytics suites + useFocusTrap.test.ts (document-level wrap = UA1 mechanism); re-run npm run test:e2e:a11y in a browser-capable env."
     },
     "MFP-14": {
       "status": "pending",

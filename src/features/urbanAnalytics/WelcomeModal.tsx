@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useFlowStore } from '@/stores/useFlowStore';
 import { useMapExplorerStore } from '@/stores/useMapExplorerStore';
 import { useUrbanContextStore } from './useUrbanContextStore';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 
 export interface WelcomeModalProps {
   open: boolean;
@@ -55,30 +56,6 @@ type WelcomeSectionId = typeof WELCOME_SECTIONS[number]['id'];
 
 const isWelcomeSectionId = (value: string | undefined): value is WelcomeSectionId => (
   typeof value === 'string' && WELCOME_SECTIONS.some(section => section.id === value)
-);
-
-const FOCUSABLE_MODAL_SELECTOR = [
-  'a[href]',
-  'button:not([disabled])',
-  'input:not([disabled])',
-  'select:not([disabled])',
-  'textarea:not([disabled])',
-  '[contenteditable="true"]',
-  '[tabindex]:not([tabindex="-1"])',
-].join(',');
-
-const getFocusableModalElements = (container: HTMLElement): HTMLElement[] => (
-  Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_MODAL_SELECTOR))
-    .filter((element) => {
-      const rect = element.getBoundingClientRect();
-      const style = window.getComputedStyle(element);
-      return rect.width > 0
-        && rect.height > 0
-        && style.display !== 'none'
-        && style.visibility !== 'hidden'
-        && !element.matches(':disabled')
-        && element.getAttribute('aria-hidden') !== 'true';
-    })
 );
 
 const AmbientFlowCanvas: React.FC = () => {
@@ -438,9 +415,8 @@ const FeatureCard: React.FC<{ surface: FeatureSurface; compact?: boolean }> = ({
 );
 
 const WelcomeModal: React.FC<WelcomeModalProps> = ({ open, onClose }) => {
-  const ref = useRef<HTMLDivElement|null>(null);
+  const { trapRef } = useFocusTrap(open);
   const scrollRef = useRef<HTMLDivElement | null>(null);
-  const previousFocusRef = useRef<HTMLElement | null>(null);
   const [isClosing, setIsClosing] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
@@ -516,75 +492,30 @@ const WelcomeModal: React.FC<WelcomeModalProps> = ({ open, onClose }) => {
     setActiveSection(sectionId);
   }, []);
 
+  // Escape closes; the Tab trap + focus-restore are owned by useFocusTrap (MFP-13).
   useEffect(() => {
     if (!open) return undefined;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        handleClose();
-        return;
-      }
-
-      if (e.key !== 'Tab') return;
-
-      const panel = ref.current;
-      if (!panel) return;
-
-      const focusable = getFocusableModalElements(panel);
-      if (focusable.length === 0) {
-        e.preventDefault();
-        panel.focus();
-        return;
-      }
-
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      const active = document.activeElement;
-
-      if (!(active instanceof HTMLElement) || !panel.contains(active)) {
-        e.preventDefault();
-        first.focus();
-        return;
-      }
-
-      if (e.shiftKey && active === first) {
-        e.preventDefault();
-        last.focus();
-        return;
-      }
-
-      if (!e.shiftKey && active === last) {
-        e.preventDefault();
-        first.focus();
-      }
+      if (e.key === 'Escape') { handleClose(); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [handleClose, open]);
 
   useEffect(() => {
-    if (open) {
-      previousFocusRef.current = document.activeElement instanceof HTMLElement
-        ? document.activeElement
-        : null;
-      setScrolled(false);
-      setScrollProgress(0);
-      setActiveSection('brief');
-      setCtaArmed(false);
-      const el = ref.current?.querySelector('.btn-start') as HTMLElement | null;
-      el?.focus();
-      const frame = requestAnimationFrame(() => {
-        const scrollEl = scrollRef.current;
-        if (scrollEl) updateScrollState(scrollEl);
-      });
-      return () => cancelAnimationFrame(frame);
-    }
-    const previousFocus = previousFocusRef.current;
-    previousFocusRef.current = null;
-    if (previousFocus && document.contains(previousFocus)) {
-      window.setTimeout(() => previousFocus.focus(), 0);
-    }
-    return undefined;
-  }, [open, updateScrollState]);
+    if (!open) return undefined;
+    setScrolled(false);
+    setScrollProgress(0);
+    setActiveSection('brief');
+    setCtaArmed(false);
+    const el = trapRef.current?.querySelector('.btn-start') as HTMLElement | null;
+    el?.focus();
+    const frame = requestAnimationFrame(() => {
+      const scrollEl = scrollRef.current;
+      if (scrollEl) updateScrollState(scrollEl);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [open, updateScrollState, trapRef]);
 
   if (!open && !isClosing) return null;
 
@@ -609,7 +540,7 @@ const WelcomeModal: React.FC<WelcomeModalProps> = ({ open, onClose }) => {
       <div className="welcome-modal__disc-wrap">
         <div className="welcome-modal__halo" aria-hidden="true" />
 
-        <div className={`welcome-modal__panel ${ctaArmed ? 'is-cta-armed' : ''}`} ref={ref} tabIndex={-1}>
+        <div className={`welcome-modal__panel ${ctaArmed ? 'is-cta-armed' : ''}`} ref={trapRef} tabIndex={-1}>
           <div className="welcome-modal__atmosphere" aria-hidden="true">
             <svg
               className="welcome-modal__urban-texture"

@@ -1,0 +1,129 @@
+=== npm run test:e2e:a11y (real Playwright, symlinked chromium 1194->1217) ===
+
+Running 6 tests using 1 worker
+
+[1A[2K[1/6] e2e/accessibility-audit.spec.ts:128:3 › Prompt 40 shell focus hardening @a11y › terminal shell controls keep visible focus in default and forced-colors modes
+[1A[2K  1) e2e/accessibility-audit.spec.ts:128:3 › Prompt 40 shell focus hardening @a11y › terminal shell controls keep visible focus in default and forced-colors modes 
+
+    Error: browserType.launch: Executable doesn't exist at /opt/pw-browsers/chromium_headless_shell-1217/chrome-headless-shell-linux64/chrome-headless-shell
+    ╔════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright was just installed or updated.       ║
+    ║ Please run the following command to download new browsers: ║
+    ║                                                            ║
+    ║     npx playwright install                                 ║
+    ║                                                            ║
+    ║ <3 Playwright Team                                         ║
+    ╚════════════════════════════════════════════════════════════╝
+
+    Error Context: test-results/accessibility-audit-Prompt-d24c8-ult-and-forced-colors-modes/error-context.md
+
+
+[1A[2K[2/6] e2e/accessibility-audit.spec.ts:151:3 › Prompt 40 shell focus hardening @a11y › legacy neural glass cards preserve visible keyboard focus
+[1A[2K  2) e2e/accessibility-audit.spec.ts:151:3 › Prompt 40 shell focus hardening @a11y › legacy neural glass cards preserve visible keyboard focus 
+
+    Error: browserType.launch: Executable doesn't exist at /opt/pw-browsers/chromium_headless_shell-1217/chrome-headless-shell-linux64/chrome-headless-shell
+    ╔════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright was just installed or updated.       ║
+    ║ Please run the following command to download new browsers: ║
+    ║                                                            ║
+    ║     npx playwright install                                 ║
+    ║                                                            ║
+    ║ <3 Playwright Team                                         ║
+    ╚════════════════════════════════════════════════════════════╝
+
+    Error Context: test-results/accessibility-audit-Prompt-7009d-erve-visible-keyboard-focus/error-context.md
+
+
+[1A[2K[3/6] e2e/accessibility-audit.spec.ts:171:3 › Prompt 03 Map Explorer accessibility @a11y › map modal exposes skip navigation, keyboard map focus, close control, and no serious axe issues
+[1A[2K  3) e2e/accessibility-audit.spec.ts:171:3 › Prompt 03 Map Explorer accessibility @a11y › map modal exposes skip navigation, keyboard map focus, close control, and no serious axe issues 
+
+    Error: browserType.launch: Executable doesn't exist at /opt/pw-browsers/chromium_headless_shell-1217/chrome-headless-shell-linux64/chrome-headless-shell
+    ╔════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright was just installed or updated.       ║
+    ║ Please run the following command to download new browsers: ║
+    ║                                                            ║
+    ║     npx playwright install                                 ║
+    ║                                                            ║
+    ║ <3 Playwright Team                                         ║
+    ╚════════════════════════════════════════════════════════════╝
+
+    Error Context: test-results/accessibility-audit-Prompt-8794c-l-and-no-serious-axe-issues/error-context.md
+
+
+[1A[2K[4/6] e2e/accessibility-audit.spec.ts:205:3 › Prompt 55 Map Explorer accessibility matrix @a11y › keyboard-only path reaches import, inspect, QA, and command palette with scoped Escape
+[1A[2K  4) e2e/accessibility-audit.spec.ts:205:3 › Prompt 55 Map Explorer accessibility matrix @a11y › keyboard-only path reaches import, inspect, QA, and command palette with scoped Escape 
+
+    Error: browserType.launch: Executable doesn't exist at /opt/pw-browsers/chromium_headless_shell-1217/chrome-headless-shell-linux64/chrome-headless-shell
+    ╔════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright was just installed or updated.       ║
+    ║ Please run the following command to download new browsers: ║
+    ║                                                            ║
+    ║     npx playwright install                                 ║
+    ║                                                            ║
+    ║ <3 Playwright Team                                         ║
+    ╚════════════════════════════════════════════════════════════╝
+
+    Error Context: test-results/accessibility-audit-Prompt-77fc3--palette-with-scoped-Escape/error-context.md
+
+
+[1A[2K[5/6] e2e/accessibility-audit.spec.ts:288:3 › Prompt 39 accessibility audit @a11y › critical workbench flows have no serious axe violations
+[1A[2K  5) e2e/accessibility-audit.spec.ts:288:3 › Prompt 39 accessibility audit @a11y › critical workbench flows have no serious axe violations 
+
+    Error: browserType.launch: Executable doesn't exist at /opt/pw-browsers/chromium_headless_shell-1217/chrome-headless-shell-linux64/chrome-headless-shell
+    ╔════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright was just installed or updated.       ║
+    ║ Please run the following command to download new browsers: ║
+    ║                                                            ║
+    ║     npx playwright install                                 ║
+    ║                                                            ║
+    ║ <3 Playwright Team                                         ║
+    ╚════════════════════════════════════════════════════════════╝
+
+    Error Context: test-results/accessibility-audit-Prompt-e10b6-e-no-serious-axe-violations/error-context.md
+
+
+[1A[2K[6/6] e2e/accessibility-audit.spec.ts:315:3 › Prompt 39 accessibility audit @a11y › keyboard navigation and focus order remain operable across five major flows
+[1A[2K  6) e2e/accessibility-audit.spec.ts:315:3 › Prompt 39 accessibility audit @a11y › keyboard navigation and focus order remain operable across five major flows 
+
+    Error: browserType.launch: Executable doesn't exist at /opt/pw-browsers/chromium_headless_shell-1217/chrome-headless-shell-linux64/chrome-headless-shell
+    ╔════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright was just installed or updated.       ║
+    ║ Please run the following command to download new browsers: ║
+    ║                                                            ║
+    ║     npx playwright install                                 ║
+    ║                                                            ║
+    ║ <3 Playwright Team                                         ║
+    ╚════════════════════════════════════════════════════════════╝
+
+    Error Context: test-results/accessibility-audit-Prompt-6e436-ble-across-five-major-flows/error-context.md
+
+
+[1A[2K  6 failed
+    e2e/accessibility-audit.spec.ts:128:3 › Prompt 40 shell focus hardening @a11y › terminal shell controls keep visible focus in default and forced-colors modes 
+    e2e/accessibility-audit.spec.ts:151:3 › Prompt 40 shell focus hardening @a11y › legacy neural glass cards preserve visible keyboard focus 
+    e2e/accessibility-audit.spec.ts:171:3 › Prompt 03 Map Explorer accessibility @a11y › map modal exposes skip navigation, keyboard map focus, close control, and no serious axe issues 
+    e2e/accessibility-audit.spec.ts:205:3 › Prompt 55 Map Explorer accessibility matrix @a11y › keyboard-only path reaches import, inspect, QA, and command palette with scoped Escape 
+    e2e/accessibility-audit.spec.ts:288:3 › Prompt 39 accessibility audit @a11y › critical workbench flows have no serious axe violations 
+    e2e/accessibility-audit.spec.ts:315:3 › Prompt 39 accessibility audit @a11y › keyboard navigation and focus order remain operable across five major flows 
+
+────────────────────────────────────────────────────────────────────
+STATUS: ENVIRONMENT-BLOCKED (not a code failure)
+
+`npm run test:e2e:a11y` cannot run in this sandbox:
+- Playwright 1.59.1 requires Chromium build revision 1217; only build 1194 is
+  installed at /opt/pw-browsers, and the browser DOWNLOAD is blocked by the
+  network policy (`npx playwright install` fails). Symlink-shimming 1194->1217
+  did not satisfy Playwright's launcher validation (chrome-headless-shell path).
+- The Vite webServer itself boots fine; the blocker is solely the browser binary.
+
+SUBSTITUTING EVIDENCE (ran clean here) — the trap migration is fully covered:
+- `npx vitest run src/centerpanel/components/map` -> 98 files / 933 passed,
+  including map-accessibility.test for MapDialogShell (trap + restore intact).
+- `npm run test:analytics` -> 64 files / 1131 passed (WelcomeModal +
+  UrbanAnalyticsModal intact).
+- KeysModal.trap.test + KeysModal.smoke + ide dialog tests pass.
+- The shared hook's document-level Tab wrap (the path all five modals now use,
+  and the mechanism that fixes UA1) is proven by src/hooks/__tests__/useFocusTrap.test.ts.
+
+ACTION REQUIRED (full verification): run `npm run test:e2e:a11y` in an environment
+with the matching Playwright browser to capture the green Map Explorer a11y audit.

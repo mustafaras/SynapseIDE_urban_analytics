@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { AlertTriangle } from 'lucide-react';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 
 interface UnsavedChangesDialogProps {
   fileName: string;
@@ -103,32 +104,18 @@ export function UnsavedChangesDialog({
 }: UnsavedChangesDialogProps): React.ReactElement {
   ensureStyles();
 
-  const saveRef   = useRef<HTMLButtonElement>(null);
-  const discardRef= useRef<HTMLButtonElement>(null);
-  const cancelRef = useRef<HTMLButtonElement>(null);
-  const panelRef  = useRef<HTMLDivElement>(null);
+  const saveRef = useRef<HTMLButtonElement>(null);
+  // Shared focus trap + restore-to-opener (MFP-02/13); the dialog is active while mounted.
+  const { trapRef } = useFocusTrap(true);
 
-  // Focus Save (primary action) on mount; restore focus on unmount
+  // Focus Save (primary action) on mount; the hook restores focus on unmount.
   useEffect(() => {
-    const prev = document.activeElement as HTMLElement | null;
     saveRef.current?.focus();
-    return () => { prev?.focus(); };
   }, []);
 
-  // Focus trap: Tab / Shift+Tab cycle within the three buttons
+  // Escape closes; Tab trapping is owned by useFocusTrap.
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === 'Escape') { onCancel(); return; }
-    if (e.key !== 'Tab') return;
-
-    const focusable = [cancelRef.current, discardRef.current, saveRef.current].filter(Boolean) as HTMLButtonElement[];
-    const idx = focusable.indexOf(document.activeElement as HTMLButtonElement);
-    if (idx === -1) return;
-
-    e.preventDefault();
-    const next = e.shiftKey
-      ? focusable[(idx - 1 + focusable.length) % focusable.length]
-      : focusable[(idx + 1) % focusable.length];
-    next.focus();
+    if (e.key === 'Escape') { onCancel(); }
   }, [onCancel]);
 
   return createPortal(
@@ -152,7 +139,7 @@ export function UnsavedChangesDialog({
       onKeyDown={handleKeyDown}
     >
       <div
-        ref={panelRef}
+        ref={trapRef}
         className="ucd-panel"
         style={{
           background: '#1C1C1C',
@@ -238,10 +225,10 @@ export function UnsavedChangesDialog({
 
         {/* Action buttons */}
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center' }}>
-          <button ref={cancelRef}  className="ucd-btn ucd-btn-cancel"  onClick={onCancel}>
+          <button className="ucd-btn ucd-btn-cancel"  onClick={onCancel}>
             Cancel
           </button>
-          <button ref={discardRef} className="ucd-btn ucd-btn-discard" onClick={onDiscard}>
+          <button className="ucd-btn ucd-btn-discard" onClick={onDiscard}>
             Don't Save
           </button>
           <button ref={saveRef}    className="ucd-btn ucd-btn-save"    onClick={onSave}>
