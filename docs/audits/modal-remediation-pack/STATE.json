@@ -235,7 +235,7 @@
       "notes": "Standardized dialog accessible names. WelcomeModal: aria-label -> aria-labelledby='welcome-modal-title' (drop duplicate name; visible <h1> is now the programmatic name). MapDialogShell: useId() rendered on <h2 id>, aria-labelledby={title ? id : undefined} + aria-label fallback when no title — propagates a visible-heading name to all ~7 shell dialogs (title is a required prop, so all consumers get heading names). App.tsx AI Assistant side panel was unnamed -> added aria-label='AI Assistant' (heading lives inside AiAssistant, no root id to reference). Repo sweep: every role='dialog' in src/ now exposes aria-labelledby (preferred) or aria-label. Verified AiSettingsModal already named via aria-labelledby (MFP-08). Gate gis: typecheck + lint:errors clean; vitest src/centerpanel/components/map = 98 files/935 passed (map-accessibility intact + 2 new MapDialogShell name tests); lint:no-tailwind-centerpanel PowerShell-only (env-blocked) manually verified (naming-attribute wiring only, no Tailwind). New tests: map-accessibility (MapDialogShell name + ariaLabel fallback), WelcomeModal.a11y.test.tsx, e2e dialog-name assertion. REAL-CHROMIUM axe (chromium-1194 + throwaway Vite harness): rule aria-dialog-name PASSES (1 node) for WelcomeModal + MapDialogShell, 0 naming violations; after.png/welcome-after.png/mapshell-after.png. CAVEAT: e2e-a11y environment-blocked (Playwright wants chromium_headless_shell-1217, only 1194 installed, download disabled) — new spec assertion registered but cannot launch; substituted by real-Chromium axe + jsdom suites; re-run npm run test:e2e:a11y in a browser-capable env."
     },
     "MFP-15": {
-      "status": "pending",
+      "status": "done",
       "priority": "P2",
       "phase": 2,
       "dependsOn": [
@@ -248,8 +248,8 @@
         "screenshot"
       ],
       "proofDir": "proofs/MFP-15/",
-      "commit": null,
-      "notes": ""
+      "commit": "3c8a6bd3606f68f7c7d1c7995ebe8b57429ba6d1",
+      "notes": "Applied published z-index tokens to bespoke modal overlays and global bars: KeysModal and UnsavedChangesDialog now use var(--z-modal); AiSettingsModal was already on var(--z-modal) from MFP-08 and verified; UrbanAnalyticsModal accentline, WelcomeModal root/CSS, and EnhancedIDE global gold bar now use var(--z-system-banner). Added zIndexConsumerUsage guardrail test for the six P15 consumers. Gate general: typecheck + lint:errors clean; color:guard exit 0 (report mode); zIndex token/consumer tests 4 passed. REAL-CHROME screenshot proof via throwaway Vite harness with createCSSVariables(GlobalSynapseStyles): after order = systemBanner 10090 > modal 10050 > statusbar 9999 > backdrop 1040. Scope note: unrelated EnhancedIDE dev/demo and dock-layout raw zIndex values remain outside modal-overlay/global-bar scope."
     },
     "MFP-16": {
       "status": "pending",
