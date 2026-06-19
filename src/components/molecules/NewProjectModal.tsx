@@ -1,4 +1,4 @@
-import { type FC, useState } from 'react';
+import { type FC, useRef, useState } from 'react';
 import { Modal } from './Modal';
 import Button from '@/components/atoms/Button';
 import Input from '@/components/atoms/Input';
@@ -79,6 +79,25 @@ export const NewProjectModal: FC<NewProjectModalProps> = ({ isOpen, onClose, onC
   const [projectName, setProjectName] = useState('');
   const [projectDescription, setProjectDescription] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  const handleTemplateKeyDown = (e: React.KeyboardEvent<HTMLDivElement>, index: number) => {
+    if (isCreating) return;
+    const count = PROJECT_TEMPLATES.length;
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      setSelectedTemplate(PROJECT_TEMPLATES[index].id);
+      return;
+    }
+    let next = -1;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowRight') next = (index + 1) % count;
+    else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') next = (index - 1 + count) % count;
+    if (next >= 0) {
+      e.preventDefault();
+      setSelectedTemplate(PROJECT_TEMPLATES[next].id);
+      cardRefs.current[next]?.focus();
+    }
+  };
 
   const handleCreate = async () => {
     if (!projectName.trim()) return;
@@ -156,20 +175,31 @@ export const NewProjectModal: FC<NewProjectModalProps> = ({ isOpen, onClose, onC
           <Code2 size={16} style={{ marginRight: '0.5rem' }} />
           Choose Template
         </FormLabel>
-        <TemplateGrid>
-          {PROJECT_TEMPLATES.map(template => (
-            <TemplateCard
-              key={template.id}
-              $isSelected={selectedTemplate === template.id}
-              onClick={() => !isCreating && setSelectedTemplate(template.id)}
-            >
-              <TemplateHeader>
-                <TemplateIcon>{template.icon}</TemplateIcon>
-                <TemplateTitle>{template.name}</TemplateTitle>
-              </TemplateHeader>
-              <TemplateDescription>{template.description}</TemplateDescription>
-            </TemplateCard>
-          ))}
+        <TemplateGrid role="radiogroup" aria-label="Project template">
+          {PROJECT_TEMPLATES.map((template, index) => {
+            const descId = `np-tpl-desc-${template.id}`;
+            const isSelected = selectedTemplate === template.id;
+            return (
+              <TemplateCard
+                key={template.id}
+                ref={(el: HTMLDivElement | null) => { cardRefs.current[index] = el; }}
+                $isSelected={isSelected}
+                role="radio"
+                aria-checked={isSelected}
+                aria-label={template.name}
+                aria-describedby={descId}
+                tabIndex={isSelected ? 0 : -1}
+                onClick={() => !isCreating && setSelectedTemplate(template.id)}
+                onKeyDown={e => handleTemplateKeyDown(e, index)}
+              >
+                <TemplateHeader>
+                  <TemplateIcon>{template.icon}</TemplateIcon>
+                  <TemplateTitle>{template.name}</TemplateTitle>
+                </TemplateHeader>
+                <TemplateDescription id={descId}>{template.description}</TemplateDescription>
+              </TemplateCard>
+            );
+          })}
         </TemplateGrid>
       </FormSection>
 

@@ -1,0 +1,11 @@
+{
+  "summary": {
+    "label": "before",
+    "violationCount": 0,
+    "serious_or_critical": 0,
+    "violations": [],
+    "passes": 15,
+    "pageErrors": []
+  },
+  "violations": []
+}
