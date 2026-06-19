@@ -1,0 +1,10 @@
+=== vitest NewProjectModal ===
+
+ RUN  v4.1.9 /home/user/SynapseIDE_urban_analytics
+
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  00:56:08
+   Duration  24.31s (transform 412ms, setup 0ms, import 1.57s, tests 804ms, environment 20.63s)
+
