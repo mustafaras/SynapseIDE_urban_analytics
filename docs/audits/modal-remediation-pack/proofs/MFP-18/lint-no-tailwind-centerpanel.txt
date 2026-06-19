@@ -1,0 +1,5 @@
+
+> urban-analytics-workbench@1.0.0 lint:no-tailwind-centerpanel
+> powershell -ExecutionPolicy Bypass -File scripts/check-no-tailwind-centerpanel.ps1
+
+No Tailwind-like utility classes found in src/centerpanel.

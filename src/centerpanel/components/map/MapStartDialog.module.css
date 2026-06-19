@@ -228,20 +228,6 @@
   color: var(--start-text);
 }
 
-.tileBadge {
-  display: inline-flex;
-  align-items: center;
-  border: 1px solid var(--syn-border-subtle);
-  border-radius: 2px;
-  padding: 1px 5px;
-  color: color-mix(in srgb, var(--start-caveat) 94%, white 6%);
-  font-family: var(--font-mono, "JetBrains Mono", monospace);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  white-space: nowrap;
-}
-
 .tileHint {
   font-size: 11px;
   line-height: 1.35;

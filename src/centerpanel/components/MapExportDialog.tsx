@@ -28,7 +28,7 @@ export interface MapExportDialogProps {
 
 const dialogBodyStyle: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "minmax(360px, 0.9fr) minmax(320px, 1.1fr)",
+  gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 22rem), 1fr))",
   gap: 20,
   padding: 20,
   minHeight: 0,

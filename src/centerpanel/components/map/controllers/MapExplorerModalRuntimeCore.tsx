@@ -41,7 +41,6 @@ import { MapSelectionTools, type SelectionDragTool } from '../MapSelectionTools'
 import { summarizeDrawnGeometryValidation, validateDrawnGeometry } from '@/services/map/DrawnGeometryValidation';
 import { MapReviewTimelinePanel } from '../MapReviewTimelinePanel';
 import type { ProcessingToolboxLayerOption } from '../processing';
-import { buildDemoPackCatalogInsertion } from '../catalog';
 import { applyContentsToRenderLayers } from '../contents';
 import { createMapProcessingRegistry, previewProcessingTool, runProcessingTool } from '../../../../services/map/processing';
 import { createMapExtensionRegistry } from '../../../../services/map/plugins';
@@ -6515,7 +6514,6 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
           onOpenProject={() => {
             void handleProjectLoad();
           }}
-          onAddDemoPack={() => handleCatalogAddDemoPack(buildDemoPackCatalogInsertion())}
           onContinue={() => closeMapStartDialog('continue', 'Map launch dialog dismissed')}
           onClose={handleMapExplorerCloseRequest}
           onOpenSourceHealth={handleStartDialogOpenSources}

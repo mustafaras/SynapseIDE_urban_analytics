@@ -1,8 +1,11 @@
 // @vitest-environment jsdom
 
 import React from "react";
+import { act } from "react";
+import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import * as MapDataImporter from "@/services/map/MapDataImporter";
 import {
   createCsvImportSession,
   MAP_GEOJSON_RENDER_FEATURE_BUDGET,
@@ -12,6 +15,46 @@ import { MapCsvImportDialog } from "../../MapCsvImportDialog";
 import { MapCatalogPanel } from "../catalog";
 import { MapImportPreviewDialog } from "../MapImportPreviewDialog";
 import { csvPointsRaw, fcLarge, fcMissingCrs } from "./fixtures/gisFixtures";
+
+(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+
+let root: Root | null = null;
+let host: HTMLDivElement | null = null;
+
+function renderCsvDialogWithRoot(
+  session: ReturnType<typeof createCsvImportSession>,
+  latitudeColumn: string,
+  longitudeColumn: string,
+): void {
+  if (!host) {
+    host = document.createElement("div");
+    document.body.appendChild(host);
+    root = createRoot(host);
+  }
+
+  act(() => {
+    root!.render(
+      <MapCsvImportDialog
+        open
+        session={session}
+        latitudeColumn={latitudeColumn}
+        longitudeColumn={longitudeColumn}
+        onLatitudeColumnChange={vi.fn()}
+        onLongitudeColumnChange={vi.fn()}
+        onClose={vi.fn()}
+        onImport={vi.fn()}
+      />,
+    );
+  });
+}
+
+afterEach(() => {
+  if (root) act(() => root!.unmount());
+  host?.remove();
+  root = null;
+  host = null;
+  vi.restoreAllMocks();
+});
 
 describe("Map import source preflight UI", () => {
   it("renders CSV skipped-row and CRS caveats before commit", () => {
@@ -35,6 +78,20 @@ describe("Map import source preflight UI", () => {
     expect(html).toContain("Memory estimate");
     expect(html).toContain("Worker Transfer");
     expect(html).toContain("Commit caveats");
+  });
+
+  it("memoizes CSV source profiling across stable render inputs", () => {
+    const session = createCsvImportSession(csvPointsRaw, "fixtures.csv");
+    const profileSpy = vi.spyOn(MapDataImporter, "profileCsvImportSession");
+
+    renderCsvDialogWithRoot(session, "lat", "lon");
+    expect(profileSpy).toHaveBeenCalledTimes(1);
+
+    renderCsvDialogWithRoot(session, "lat", "lon");
+    expect(profileSpy).toHaveBeenCalledTimes(1);
+
+    renderCsvDialogWithRoot(session, "lat", "lng");
+    expect(profileSpy).toHaveBeenCalledTimes(2);
   });
 
   it("renders ready-source profile facts in the import preview dialog", () => {

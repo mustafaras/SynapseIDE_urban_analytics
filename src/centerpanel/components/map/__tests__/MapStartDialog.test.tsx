@@ -33,13 +33,11 @@ function emptyContextSummary(overlayLayers: OverlayLayerConfig[] = []) {
 function renderDialog(overrides: Partial<MapStartDialogProps> = {}): {
   onImport: ReturnType<typeof vi.fn>;
   onOpenProject: ReturnType<typeof vi.fn>;
-  onAddDemoPack: ReturnType<typeof vi.fn>;
   onContinue: ReturnType<typeof vi.fn>;
   onClose: ReturnType<typeof vi.fn>;
 } {
   const onImport = vi.fn();
   const onOpenProject = vi.fn();
-  const onAddDemoPack = vi.fn();
   const onContinue = vi.fn();
   const onClose = vi.fn();
 
@@ -56,7 +54,6 @@ function renderDialog(overrides: Partial<MapStartDialogProps> = {}): {
         contextSummary={emptyContextSummary()}
         onImport={onImport}
         onOpenProject={onOpenProject}
-        onAddDemoPack={onAddDemoPack}
         onContinue={onContinue}
         onClose={onClose}
         {...overrides}
@@ -64,7 +61,7 @@ function renderDialog(overrides: Partial<MapStartDialogProps> = {}): {
     );
   });
 
-  return { onImport, onOpenProject, onAddDemoPack, onContinue, onClose };
+  return { onImport, onOpenProject, onContinue, onClose };
 }
 
 function click(selector: string): void {
@@ -124,7 +121,7 @@ describe("MapStartDialog", () => {
   });
 
   it("fires import, continue, and close callbacks", () => {
-    const { onImport, onAddDemoPack, onContinue, onClose } = renderDialog();
+    const { onImport, onContinue, onClose } = renderDialog();
 
     const tiles = Array.from(host!.querySelectorAll("button"));
     const findTile = (label: string): HTMLButtonElement =>
@@ -132,8 +129,6 @@ describe("MapStartDialog", () => {
 
     act(() => findTile("Import Data").dispatchEvent(new MouseEvent("click", { bubbles: true })));
     expect(onImport).toHaveBeenCalledOnce();
-
-    expect(onAddDemoPack).not.toHaveBeenCalled();
 
     click('[aria-label="Close launch dialog"]');
     expect(onClose).toHaveBeenCalledOnce();
@@ -153,5 +148,14 @@ describe("MapStartDialog", () => {
     const details = host!.querySelector("details");
     expect(details).toBeTruthy();
     expect((details as HTMLDetailsElement).open).toBe(false);
+  });
+
+  it("omits aria-modal when the host wrapper owns dialog modality", () => {
+    renderDialog({ wrapped: true });
+
+    const dialog = host!.querySelector('[data-testid="map-start-dialog"]');
+    expect(dialog?.getAttribute("role")).toBe("dialog");
+    expect(dialog?.hasAttribute("aria-modal")).toBe(false);
+    expect(host!.querySelector('[class*="tileBadge"]')).toBeNull();
   });
 });
