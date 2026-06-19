@@ -1,0 +1,74 @@
+=== vitest run src/centerpanel/components/map (MapDialogShell + map-accessibility) ===
+
+ RUN  v4.1.9 /home/user/SynapseIDE_urban_analytics
+
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+
+ Test Files  98 passed (98)
+      Tests  933 passed (933)
+   Start at  10:36:31
+   Duration  59.02s (transform 17.37s, setup 0ms, import 33.43s, tests 59.37s, environment 62.36s)
+
+
+=== npm run test:analytics ===
+
+> urban-analytics-workbench@1.0.0 test:analytics
+> vitest run src/engine src/features/urbanAnalytics src/services/data src/workers/pool src/centerpanel/Tools/__tests__/CoverageDiagnosticsPanel.test.tsx
+
+
+ RUN  v4.1.9 /home/user/SynapseIDE_urban_analytics
+
+
+ Test Files  64 passed (64)
+      Tests  1131 passed (1131)
+   Start at  10:37:41
+   Duration  17.27s (transform 7.95s, setup 0ms, import 18.54s, tests 5.33s, environment 15.20s)
+
+
+=== vitest KeysModal (smoke + trap) + UnsavedChangesDialog ===
+
+ RUN  v4.1.9 /home/user/SynapseIDE_urban_analytics
+
+ ❯ src/components/ai/panel/__tests__/KeysModal.trap.test.tsx (2 tests | 1 failed) 446ms
+   × preserves trap + restore via the shared hook 398ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/components/ai/panel/__tests__/KeysModal.trap.test.tsx > preserves trap + restore via the shared hook
+AssertionError: expected <button …(5)></button> to be <button …(3)></button> // Object.is equality
+
+- Expected
++ Received
+
+  <button
+-   aria-label="Show API key"
+-   aria-pressed="false"
+-   class="sc-fuztkK bhFKyK"
++   aria-controls="«r0»-panel-openai"
++   aria-selected="true"
++   class="sc-hKVpXn bFoqYO"
++   id="«r0»-tab-openai"
++   role="tab"
+  >
+-   Show
++   Openai
+  </button>
+
+ ❯ assertDialogA11y src/test/assertDialogA11y.ts:40:34
+     38|   last.focus();
+     39|   fireEvent.keyDown(document, { key: 'Tab' });
+     40|   expect(document.activeElement).toBe(first);
+       |                                  ^
+     41|
+     42|   // 3. Shift+Tab from first wraps to last
+ ❯ src/components/ai/panel/__tests__/KeysModal.trap.test.tsx:16:3
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 2 passed (3)
+      Tests  1 failed | 6 passed (7)
+   Start at  10:38:44
+   Duration  3.08s (transform 518ms, setup 0ms, import 1.26s, tests 2.41s, environment 2.35s)
+

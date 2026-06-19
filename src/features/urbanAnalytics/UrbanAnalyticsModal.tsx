@@ -28,6 +28,7 @@ import { Maximize2, Minimize2 } from 'lucide-react';
 import { MapExplorerButton } from '@/centerpanel/components/MapExplorerButton';
 import { type MapExplorerState, useMapExplorerStore } from '@/stores/useMapExplorerStore';
 import { usePanelBridgeStore } from '@/stores/usePanelBridgeStore';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 
 import {
  __setUrbanLibrary,
@@ -636,7 +637,7 @@ export default function UrbanAnalyticsModal({ open, onClose }: UrbanAnalyticsMod
  }, []);
 
  // --- refs ---
- const modalRef = useRef<HTMLDivElement>(null);
+ const { trapRef } = useFocusTrap(active);
  const actionsRef = useRef<HTMLDivElement>(null);
  const liveRef = useRef<HTMLDivElement>(null);
  const searchRef = useRef<HTMLInputElement | null>(null);
@@ -778,33 +779,8 @@ export default function UrbanAnalyticsModal({ open, onClose }: UrbanAnalyticsMod
  return () => window.removeEventListener('keydown', onKey);
  }, [active, setOpen, copyOut]);
 
- // --- focus trap ---
- useEffect(() => {
- if (!active) return;
- const el = modalRef.current!;
- if (!el) return;
- const selectable = () =>
- Array.from(
- el.querySelectorAll<HTMLElement>(
- "button,[href],input,textarea,select,[tabindex]:not([tabindex='-1'])",
- ),
- ).filter((n) => !n.hasAttribute('disabled'));
-
- const onKeyDown = (e: KeyboardEvent) => {
- if (e.key === 'Tab') {
- const items = selectable();
- if (!items.length) return;
- const a = document.activeElement as HTMLElement | null;
- if (e.shiftKey) {
- if (a === items[0]) { e.preventDefault(); items[items.length - 1].focus(); }
- } else {
- if (a === items[items.length - 1]) { e.preventDefault(); items[0].focus(); }
- }
- }
- };
- el.addEventListener('keydown', onKeyDown);
- return () => el.removeEventListener('keydown', onKeyDown);
- }, [active]);
+ // --- focus trap: shared useFocusTrap(active) (MFP-13) listens at document level,
+ // so it recaptures focus that escapes the panel (fixes UA1) and restores the opener. ---
 
  // --- announce ---
  function announce(msg: string) {
@@ -862,7 +838,7 @@ export default function UrbanAnalyticsModal({ open, onClose }: UrbanAnalyticsMod
  // --- render ---
  const node = (
  <div
- ref={modalRef}
+ ref={trapRef}
  role="dialog"
  aria-modal
  aria-labelledby="urban-modal-title"

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Maximize2, Minimize2, RotateCcw, X } from "lucide-react";
 
 import {
@@ -14,6 +14,7 @@ import {
 import { useDraggableMapPanel } from "./useDraggableMapPanel";
 import { useMapDialogLayoutStore } from "../../../stores/useMapDialogLayoutStore";
 import { GisIconButton } from "./ui";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 
 export interface MapDialogShellProps {
   ariaLabel: string;
@@ -127,24 +128,6 @@ const footerBaseStyle: React.CSSProperties = {
   background: "color-mix(in srgb, var(--syn-surface-header, rgba(20,27,36,0.96)) 88%, transparent)",
 };
 
-const focusableSelector = [
-  "a[href]",
-  "button:not([disabled])",
-  "input:not([disabled])",
-  "select:not([disabled])",
-  "textarea:not([disabled])",
-  "[tabindex]:not([tabindex='-1'])",
-].join(",");
-
-function getFocusableElements(container: HTMLElement | null): HTMLElement[] {
-  if (!container) return [];
-  return Array.from(container.querySelectorAll<HTMLElement>(focusableSelector)).filter((node) => {
-    const disabled = node.getAttribute("aria-disabled") === "true";
-    const hidden = node.hasAttribute("hidden") || node.getAttribute("aria-hidden") === "true";
-    return !disabled && !hidden;
-  });
-}
-
 function clampRememberedDimension(value: number, axis: "width" | "height"): number {
   if (typeof window === "undefined") return value;
   const viewport = axis === "width" ? window.innerWidth : window.innerHeight;
@@ -174,6 +157,13 @@ export function MapDialogShell({
     memoryKey ? { memoryKey, boundsPadding: 16 } : { boundsPadding: 16 },
   );
   const panelRef = useRef<HTMLDivElement | null>(null);
+  // Shared focus trap (MFP-13): document-level Tab trap + restore-to-opener. Skipped
+  // when nonBlocking (the panel coexists with the page). Merge its ref onto panelRef.
+  const { trapRef, activate } = useFocusTrap(!nonBlocking);
+  const setPanelRef = useCallback((el: HTMLDivElement | null) => {
+    panelRef.current = el;
+    (trapRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
+  }, [trapRef]);
   const [maximized, setMaximized] = useState(false);
   const persistedSize = useMapDialogLayoutStore((state) => (memoryKey ? state.geometry[memoryKey] ?? null : null));
   const persistSize = useMapDialogLayoutStore((state) => state.setSize);
@@ -217,50 +207,16 @@ export function MapDialogShell({
     }
   }, [maximized, rememberedSize?.height, rememberedSize?.width, resetPosition]);
 
+  // Move initial focus into the dialog on open (the hook restores it on close).
   useEffect(() => {
-    const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const panel = panelRef.current;
-    const firstFocusable = getFocusableElements(panel)[0];
-    (firstFocusable ?? panel)?.focus({ preventScroll: true });
-
-    return () => {
-      if (previouslyFocused?.isConnected) {
-        previouslyFocused.focus({ preventScroll: true });
-      }
-    };
-  }, []);
+    if (!nonBlocking) activate();
+  }, [nonBlocking, activate]);
 
   const handleDialogKeyDown: React.KeyboardEventHandler<HTMLDivElement> = (event) => {
+    // Escape closes; the Tab trap is owned by useFocusTrap.
     if (event.key === "Escape") {
       event.stopPropagation();
       onClose();
-      return;
-    }
-
-    if (event.key !== "Tab" || nonBlocking) {
-      return;
-    }
-
-    const focusable = getFocusableElements(panelRef.current);
-    if (focusable.length === 0) {
-      event.preventDefault();
-      panelRef.current?.focus({ preventScroll: true });
-      return;
-    }
-
-    const first = focusable[0]!;
-    const last = focusable[focusable.length - 1]!;
-    const active = document.activeElement;
-
-    if (event.shiftKey && active === first) {
-      event.preventDefault();
-      last.focus({ preventScroll: true });
-      return;
-    }
-
-    if (!event.shiftKey && active === last) {
-      event.preventDefault();
-      first.focus({ preventScroll: true });
     }
   };
 
@@ -309,7 +265,7 @@ export function MapDialogShell({
       }
     >
       <div
-        ref={panelRef}
+        ref={setPanelRef}
         role="dialog"
         aria-modal={nonBlocking ? false : true}
         aria-label={ariaLabel}

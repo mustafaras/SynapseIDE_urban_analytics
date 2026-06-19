@@ -1,7 +1,8 @@
-import React, { useEffect, useId, useRef, useState } from 'react';
+import React, { useEffect, useId, useState } from 'react';
 import styled from 'styled-components';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { showToast } from '@/ui/toast/api';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 
 
 const ACCENT = 'var(--syn-interaction-active, #3794ff)';
@@ -76,8 +77,7 @@ const ToggleBtn = styled.button`
 
 export const KeysModal: React.FC<{ open: boolean; onClose: () => void }> = ({ open, onClose }) => {
   const id = useId();
-  const dialogRef = useRef<HTMLDivElement | null>(null);
-  const restoreFocusEl = useRef<HTMLElement | null>(null);
+  const { trapRef, activate } = useFocusTrap(open);
   const { profiles, activeProfileId, setApiKey, setOllamaBaseUrl } = useSettingsStore();
   const active = profiles.find(p => p.id === activeProfileId);
   const keys = (active?.data as any)?.keys || {};
@@ -96,44 +96,11 @@ export const KeysModal: React.FC<{ open: boolean; onClose: () => void }> = ({ op
   }, [open, onClose]);
 
 
+  // Focus trap + restore-to-opener via the shared hook (MFP-02/13); move initial
+  // focus into the dialog on open.
   useEffect(() => {
-    if (!open) return;
-
-    restoreFocusEl.current = (document.activeElement as HTMLElement) || null;
-
-    const node = dialogRef.current;
-    if (node) {
-      const focusables = node.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
-      );
-      const first = focusables[0];
-      if (first) setTimeout(() => first.focus(), 0);
-    }
-    return () => {
-
-      if (restoreFocusEl.current) {
-        try { restoreFocusEl.current.focus(); } catch {}
-      }
-    };
-  }, [open]);
-
-  const onKeyDownTrap = (e: React.KeyboardEvent) => {
-    if (e.key !== 'Tab') return;
-    const node = dialogRef.current;
-    if (!node) return;
-    const focusables = Array.from(node.querySelectorAll<HTMLElement>(
-      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
-    ));
-    if (focusables.length === 0) { e.preventDefault(); return; }
-    const first = focusables[0];
-    const last = focusables[focusables.length - 1];
-    const active = document.activeElement as HTMLElement | null;
-    if (e.shiftKey) {
-      if (!active || active === first) { e.preventDefault(); last.focus(); }
-    } else {
-      if (!active || active === last) { e.preventDefault(); first.focus(); }
-    }
-  };
+    if (open) activate();
+  }, [open, activate]);
 
   if (!open) return null;
 
@@ -164,12 +131,11 @@ export const KeysModal: React.FC<{ open: boolean; onClose: () => void }> = ({ op
   return (
     <Backdrop aria-hidden={!open}>
       <Dialog
-        ref={dialogRef}
+        ref={trapRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={`${id}-title`}
         data-testid="keys-modal"
-        onKeyDown={onKeyDownTrap}
       >
         <div id={`${id}-title`} style={{ fontWeight:700, marginBottom:12, fontSize:14, letterSpacing:.5, textTransform:'uppercase', color: 'var(--syn-accent-gold, #f5b301)' }}>Provider Keys</div>
         <Tabs role="tablist" aria-label="Providers">
