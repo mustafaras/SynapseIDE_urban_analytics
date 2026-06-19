@@ -17,6 +17,11 @@
       "properties": {
         "full": { "type": "string" },
         "short": { "type": "string" },
+        "candidates": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Candidate full product names carried until the owner confirms the canonical release name."
+        },
         "status": { "type": "string", "enum": ["proposed", "confirmed"] },
         "note": { "type": "string" }
       }
@@ -72,6 +77,16 @@
         "constraints": { "type": "array", "items": { "type": "string" } },
         "acceptance": { "type": "array", "minItems": 1, "items": { "type": "string" } },
         "validate": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+        "gate": {
+          "type": "string",
+          "enum": ["general", "gis", "analytics", "release"],
+          "description": "Named validation gate from the top-level gates map."
+        },
+        "spec": {
+          "type": "string",
+          "pattern": "^prompts/MFP-[0-9]{2}\\.md$",
+          "description": "Relative path to the detailed per-prompt Markdown specification."
+        },
         "proofRequired": {
           "type": "array",
           "minItems": 1,

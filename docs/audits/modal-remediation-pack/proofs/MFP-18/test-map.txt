@@ -1,0 +1,11 @@
+
+ RUN  v4.1.4 C:/Users/PC/Documents/Codex/2026-06-12/github-plugin-github-openai-curated-remote/work/SynapseIDE_urban_analytics
+
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+
+ Test Files  98 passed (98)
+      Tests  937 passed (937)
+   Start at  21:26:39
+   Duration  83.94s (transform 120.94s, setup 0ms, import 332.89s, tests 204.06s, environment 189.99s)
+

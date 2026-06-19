@@ -38,10 +38,10 @@ export interface MapStartDialogProps {
   }>;
   onImport: () => void;
   onOpenProject: () => void;
-  onAddDemoPack: () => void;
   onContinue: () => void;
   onClose: () => void;
   onOpenSourceHealth?: () => void;
+  wrapped?: boolean;
 }
 
 type ReadinessTone = "ready" | "attention" | "blocked" | "neutral";
@@ -69,7 +69,6 @@ interface DecisionTile {
   primary?: boolean;
   disabled?: boolean;
   disabledReason?: string;
-  demoBadge?: string;
 }
 
 interface RecentWorkspaceItem {
@@ -172,8 +171,8 @@ export const MapStartDialog: React.FC<MapStartDialogProps> = ({
   onContinue,
   onClose,
   onOpenSourceHealth,
+  wrapped = false,
 }) => {
-  const dialogRef = useRef<HTMLDivElement | null>(null);
   const primaryActionRef = useRef<HTMLButtonElement | null>(null);
   const { panelPositionStyle, dragHandleProps, dragHandleStyle } = useDraggableMapPanel({ boundsPadding: 18 });
 
@@ -346,10 +345,9 @@ export const MapStartDialog: React.FC<MapStartDialogProps> = ({
 
   return (
     <div
-      ref={dialogRef}
       className={styles.dialog}
       role="dialog"
-      aria-modal="true"
+      aria-modal={wrapped ? undefined : true}
       aria-labelledby="map-start-dialog-title"
       aria-describedby="map-start-dialog-narrative"
       style={dialogStyle}
@@ -401,7 +399,6 @@ export const MapStartDialog: React.FC<MapStartDialogProps> = ({
               <span className={styles.tileCopy}>
                 <span className={styles.tileLabelRow}>
                   <span className={styles.tileLabel}>{tile.label}</span>
-                  {tile.demoBadge ? <span className={styles.tileBadge}>{tile.demoBadge}</span> : null}
                 </span>
                 <span className={`${styles.tileHint} ${tile.disabled ? styles.tileDisabledReason : ""}`}>
                   {tile.disabled && tile.disabledReason ? tile.disabledReason : tile.hint}

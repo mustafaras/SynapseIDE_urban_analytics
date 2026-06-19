@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { profileCsvImportSession, type CsvImportSession } from "../../services/map/MapDataImporter";
 import {
   MAP_COLORS,
@@ -126,12 +126,17 @@ export const MapCsvImportDialog: React.FC<MapCsvImportDialogProps> = ({
   onClose,
   onImport,
 }) => {
-  if (!open || !session) return null;
+  const sourceProfile = useMemo(
+    () => session
+      ? profileCsvImportSession(session, {
+        latitudeColumn,
+        longitudeColumn,
+      })
+      : null,
+    [latitudeColumn, longitudeColumn, session],
+  );
 
-  const sourceProfile = profileCsvImportSession(session, {
-    latitudeColumn,
-    longitudeColumn,
-  });
+  if (!open || !session || !sourceProfile) return null;
 
   const importDisabled =
     latitudeColumn.length === 0 ||

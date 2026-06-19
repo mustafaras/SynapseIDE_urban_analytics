@@ -31,6 +31,24 @@ const badgeStyle: React.CSSProperties = {
   textTransform: "uppercase",
 };
 
+const headerActionsStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "flex-end",
+  gap: 10,
+  flexWrap: "wrap",
+  maxWidth: "min(14rem, 46vw)",
+  minWidth: 0,
+};
+
+const headerBadgeStyle: React.CSSProperties = {
+  ...badgeStyle,
+  maxWidth: "100%",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+};
+
 const summaryGridStyle: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
@@ -51,7 +69,7 @@ const summaryCellStyle: React.CSSProperties = {
 const bodyStyle: React.CSSProperties = {
   overflow: "auto",
   display: "grid",
-  gridTemplateColumns: "minmax(0, 1.15fr) minmax(0, 0.85fr)",
+  gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 22rem), 1fr))",
   gap: 0,
 };
 
@@ -73,7 +91,7 @@ const sectionTitleStyle: React.CSSProperties = {
 const tableShellStyle: React.CSSProperties = {
   border: MAP_STROKES.hairlineSubtle,
   borderRadius: MAP_RADIUS.sm,
-  overflow: "hidden",
+  overflow: "auto",
   background: MAP_COLORS.bg,
 };
 
@@ -172,21 +190,6 @@ function qualityColor(grade: string): string {
   return QUALITY_COLORS[grade] ?? MAP_COLORS.textMuted;
 }
 
-function qualityBackground(grade: string): string {
-  switch (grade) {
-    case "excellent":
-      return "color-mix(in srgb, var(--syn-status-valid, #4ec27d) 12%, transparent)";
-    case "good":
-      return MAP_COLORS.interactionSubtle;
-    case "fair":
-      return MAP_COLORS.caveat;
-    case "poor":
-      return "color-mix(in srgb, var(--syn-status-error, #f87171) 12%, transparent)";
-    default:
-      return MAP_COLORS.neutralSubtle;
-  }
-}
-
 function formatNumber(value: number | undefined, decimals = 1): string {
   if (value === undefined || !Number.isFinite(value)) return "—";
   return value.toFixed(decimals);
@@ -217,17 +220,9 @@ export const MapColumnarImportDialog: React.FC<MapColumnarImportDialogProps> = (
       memoryKey="map.columnar-import"
       width={980}
       headerActions={
-        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-          <span style={badgeStyle}>{formatLabelText}</span>
-          {session.geoParquet?.version ? <span style={{ ...badgeStyle, opacity: 0.8 }}>Geo {session.geoParquet.version}</span> : null}
-          <span style={{ ...badgeStyle, borderColor: qualityColor(session.quality.grade), color: qualityColor(session.quality.grade), background: qualityBackground(session.quality.grade) }}>
-            Quality {session.quality.score}/100 — {session.quality.grade}
-          </span>
-          {session.sizeComparison.savingsPercent > 0 ? (
-            <span style={{ ...badgeStyle, borderColor: MAP_COLORS.success, color: MAP_COLORS.success, background: "color-mix(in srgb, var(--syn-status-valid, #4ec27d) 10%, transparent)" }}>
-              {session.sizeComparison.savingsPercent}% smaller than GeoJSON
-            </span>
-          ) : null}
+        <div style={headerActionsStyle}>
+          <span style={headerBadgeStyle}>{formatLabelText}</span>
+          {session.geoParquet?.version ? <span style={{ ...headerBadgeStyle, opacity: 0.8 }}>Geo {session.geoParquet.version}</span> : null}
         </div>
       }
       footerStyle={{ justifyContent: "space-between", alignItems: "flex-start" }}

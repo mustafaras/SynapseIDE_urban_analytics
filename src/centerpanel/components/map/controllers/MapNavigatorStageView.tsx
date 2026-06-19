@@ -17,7 +17,6 @@ interface MapNavigatorStageViewProps {
   measurementCount: number;
   navigatorLeftInset: number;
   navigatorRightInset: number;
-  onAddDemoPack: React.ComponentProps<typeof MapStartDialog>["onAddDemoPack"];
   onAnalysisRecommendationAction: React.ComponentProps<typeof MapWorkspaceCockpit>["onAnalysisRecommendationAction"];
   onClose: React.ComponentProps<typeof MapStartDialog>["onClose"];
   onContinue: React.ComponentProps<typeof MapStartDialog>["onContinue"];
@@ -50,7 +49,6 @@ export const MapNavigatorStageView: React.FC<MapNavigatorStageViewProps> = ({
   measurementCount,
   navigatorLeftInset,
   navigatorRightInset,
-  onAddDemoPack,
   onAnalysisRecommendationAction,
   onClose,
   onContinue,
@@ -104,7 +102,6 @@ export const MapNavigatorStageView: React.FC<MapNavigatorStageViewProps> = ({
           qaBlockerCount={qaBlockerCount}
           onImport={onImport}
           onOpenProject={onOpenProject}
-          onAddDemoPack={onAddDemoPack}
           onContinue={onContinue}
           onClose={onClose}
           onOpenSourceHealth={onOpenSourceHealth}

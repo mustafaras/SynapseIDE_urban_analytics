@@ -524,12 +524,14 @@ const workspaceFocusCss = `
 }
 `;
 
-function getPanelRailStyle(side: MapPanelRailSide, width: number | string | undefined, _height: number | string | undefined): React.CSSProperties {
+function getPanelRailStyle(side: MapPanelRailSide, width: number | string | undefined, height: number | string | undefined): React.CSSProperties {
   return {
     ...panelRailBaseStyle,
     top: MAP_SPACING.zero,
-    bottom: MAP_SPACING.zero,
     width: formatCssSize(width, MAP_DIMENSIONS.layerPanelWidth),
+    ...(height == null
+      ? { bottom: MAP_SPACING.zero }
+      : { height: formatCssSize(height, "100%"), maxHeight: formatCssSize(height, "100%") }),
     ...(side === "left"
       ? { left: MAP_SPACING.zero, borderRight: MAP_CHROME_BORDER_SUBTLE }
       : { right: MAP_SPACING.zero, borderLeft: MAP_CHROME_BORDER_SUBTLE }),
