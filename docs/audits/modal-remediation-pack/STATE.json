@@ -184,7 +184,7 @@
       "notes": "NewProjectModal template chooser: TemplateGrid role=radiogroup (aria-label=Project template); each TemplateCard role=radio + aria-checked + aria-label + aria-describedby + roving tabIndex (0 selected/-1 others); onKeyDown Enter/Space select + Arrow keys roving (ref-array focus); isCreating guards both paths; visual styling unchanged; dialog shell owned by base Modal (MFP-06); no any. Gate general: typecheck + lint:errors clean; NewProjectModal.test.tsx 4/4. REAL-CHROMIUM axe on open dialog = 0 violations (before also 0 — axe can't detect mouse-only div keyboard gap; fix proven by tests; passes 15->16); before/after screenshots."
     },
     "MFP-12": {
-      "status": "pending",
+      "status": "done",
       "priority": "P1",
       "phase": 2,
       "dependsOn": [
@@ -197,8 +197,8 @@
         "manual-keyboard"
       ],
       "proofDir": "proofs/MFP-12/",
-      "commit": null,
-      "notes": ""
+      "commit": "dfb6a2beb13c5a21b0ff7c89991ce734e5ea2e10",
+      "notes": "GlobalSearch GS1-GS5: input role=combobox (aria-expanded/controls/autocomplete/activedescendant); Results listbox id + ResultRow div role=option (stable ids, aria-selected; no <button aria-selected>); handleKeyDown Arrow-wrap+Home/End+Enter via aria-activedescendant + scrollIntoView (guarded), input keeps focus (inputRef rAF claims focus over base Modal close btn); scope role=tablist->radiogroup of role=radio (roving + Arrow/Home/End); reflow via palette min(640px,100%) (MFP-06) + role=search; local RowPath contrast --syn-text-muted->secondary. No any; styled-components; flatResults index kept. Gate general: typecheck+lint clean; GlobalSearch.a11y.test.tsx 4/4. REAL-CHROMIUM axe on open dialog (4 seeded options, activedescendant set) = 0 violations; after.png screenshot."
     },
     "MFP-13": {
       "status": "pending",
