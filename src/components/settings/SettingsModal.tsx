@@ -11,14 +11,18 @@ import { useSettingsStore } from '@/store/useSettingsStore';
 import { selectAdvanced, selectFlags, selectKeysEnc, selectTokenBudget, selectUI, useAiSettingsStore } from '@/stores/useAiSettingsStore';
 import { useSpatialIndexStore } from '@/stores/useSpatialIndexStore';
 import { showToast } from '@/ui/toast/api';
+import { useVirtualList } from '@/hooks/useVirtualList';
+import { verifyProviderKey, type ProviderKeyProvider, type ProviderKeyStatus } from '@/services/ai/verifyProviderKey';
 
 const Wrap = styled.div`
   display: grid;
   grid-template-columns: 180px 1fr;
   gap: 16px;
-  height: 560px;
-  min-height: 560px;
-  max-height: 560px;
+  width: min(100%, 912px);
+  height: min(560px, calc(100vh - 160px));
+  min-height: 0;
+  max-height: min(560px, calc(100vh - 160px));
+  overflow: hidden;
   font-family: var(--font-mono, var(--font-code, 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace));
 
 
@@ -43,6 +47,49 @@ const Wrap = styled.div`
 
 
   color: var(--textPrimary);
+  --settings-accent: var(--syn-interaction-active);
+
+  input[type='text'],
+  input[type='password'],
+  select,
+  textarea {
+    background: var(--syn-surface-input);
+    border: 1px solid var(--syn-border-subtle);
+    border-radius: 2px;
+    color: var(--syn-text-default);
+    font-size: 13px;
+    padding: 0 10px;
+    min-height: 28px;
+    font-family: inherit;
+    transition: border-color .12s ease;
+  }
+
+  textarea {
+    padding: 8px 10px;
+    min-height: 80px;
+    resize: vertical;
+  }
+
+  input:focus,
+  select:focus,
+  textarea:focus {
+    outline: none;
+    border-color: var(--syn-border-focus);
+  }
+
+  input:hover,
+  select:hover,
+  textarea:hover {
+    border-color: var(--syn-border-default);
+  }
+
+  @media (max-width: 640px) {
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+    max-height: calc(100vh - 128px);
+    overflow-y: auto;
+    gap: 12px;
+  }
 `;
 
 const Nav = styled.nav`
@@ -55,6 +102,13 @@ const Nav = styled.nav`
   border-right: 1px solid var(--syn-border-subtle);
   padding-right: 8px;
   font-family: inherit;
+
+  @media (max-width: 640px) {
+    border-right: none;
+    border-bottom: 1px solid var(--syn-border-subtle);
+    padding-right: 0;
+    padding-bottom: 8px;
+  }
 `;
 
 const NavBtn = styled.button<{ $active?: boolean }>`
@@ -87,6 +141,7 @@ const PanelShell = styled.section`
   box-shadow: none;
   overflow: hidden;
   min-height: 0;
+  min-width: 0;
 `;
 
 const TabsContentWrap = styled.div`
@@ -152,8 +207,23 @@ const KeyInput = styled(Input)<{ $invalid?: boolean }>`
 `;
 
 
-type KeyRowStatus = 'Untested' | 'Verified' | 'Invalid' | 'Rate-limited';
-type KeyRowProv = 'openai' | 'anthropic' | 'gemini';
+type KeyRowStatus = ProviderKeyStatus;
+type KeyRowProv = ProviderKeyProvider;
+type NewProv = ProviderKeyProvider;
+type Status = ProviderKeyStatus;
+
+const KeyRowGrid = styled.div`
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr) auto auto;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+
+  @media (max-width: 640px) {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+  }
+`;
 
 interface KeyRowNewProps {
   provider: KeyRowProv;
@@ -175,7 +245,7 @@ const KeyRowNew: React.FC<KeyRowNewProps> = (props) => {
 
   _prov && null;
   return (
-  <div style={{ display: 'grid', gridTemplateColumns: '160px minmax(0,1fr) auto auto', gap: 12, alignItems: 'center', marginBottom: 12 }}>
+  <KeyRowGrid>
       <Label style={{ alignSelf: 'flex-start', paddingTop: 2 }}>{label}</Label>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: '100%' }}>
         <KeyInput
@@ -185,11 +255,6 @@ const KeyRowNew: React.FC<KeyRowNewProps> = (props) => {
           value={value}
           onChange={e => onChange(e.target.value)}
 
-          onMouseDownCapture={() => { try { (globalThis as any).__KEY_ROUTER_SUSPENDED__ = true; } catch {} }}
-          onPointerDownCapture={() => { try { (globalThis as any).__KEY_ROUTER_SUSPENDED__ = true; } catch {} }}
-          onFocus={() => { try { (globalThis as any).__KEY_ROUTER_SUSPENDED__ = true; } catch {} }}
-          onBlur={() => { try { delete (globalThis as any).__KEY_ROUTER_SUSPENDED__; } catch {} }}
-
           onKeyDownCapture={(e) => { if ((e as unknown as KeyboardEvent).key !== 'Escape') e.stopPropagation(); }}
           onKeyUpCapture={(e) => e.stopPropagation()}
           onKeyPressCapture={(e) => e.stopPropagation()}
@@ -197,8 +262,8 @@ const KeyRowNew: React.FC<KeyRowNewProps> = (props) => {
           onKeyDown={(e) => { if (e.key !== 'Escape') e.stopPropagation(); }}
           onKeyPress={(e) => e.stopPropagation()}
           onBeforeInput={(e) => e.stopPropagation()}
-          onCompositionStart={() => { try { (globalThis as any).__KEY_ROUTER_SUSPENDED__ = true; } catch {} }}
-          onCompositionEnd={() => { try { delete (globalThis as any).__KEY_ROUTER_SUSPENDED__; } catch {} }}
+          onCompositionStart={(e) => e.stopPropagation()}
+          onCompositionEnd={(e) => e.stopPropagation()}
           autoComplete="off"
           autoCorrect="off"
           autoCapitalize="off"
@@ -217,14 +282,15 @@ const KeyRowNew: React.FC<KeyRowNewProps> = (props) => {
         </IconButton>
       </div>
       <div style={{ display: 'flex', justifyContent: 'flex-start' }}><span style={{ fontSize: 11, padding: '2px 6px', borderRadius: 2, background: 'transparent', border: 'none', color: status === 'Verified' ? 'var(--syn-status-valid)' : status === 'Invalid' ? 'var(--syn-status-error)' : status === 'Rate-limited' ? 'var(--syn-status-warning)' : 'var(--syn-text-muted)', lineHeight: 1 }}>{status}</span></div>
-      {!!invalid && <div style={{ gridColumn: '2 / 5', fontSize: 11, color: 'var(--error)' }}>Invalid key format.</div>}
-    </div>
+      {!!invalid && <div style={{ gridColumn: '1 / -1', fontSize: 11, color: 'var(--error)' }}>Invalid key format.</div>}
+    </KeyRowGrid>
   );
 };
 
 
 const Actions = styled.div`
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   justify-content: flex-end;
   padding-top: 4px;
@@ -284,6 +350,11 @@ const ProviderGroup = styled.div`
   margin-top: 6px;
   margin-bottom: 10px;
   overflow-x: auto;
+
+  @media (max-width: 640px) {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
 `;
 
 const RadioPill = styled.label<{ $active?: boolean }>`
@@ -439,13 +510,18 @@ export const SettingsModal: React.FC<{ open: boolean; onClose: () => void }> = (
     if (modelCursor >= filtered.length) setModelCursor(0);
   }, [uModels, modelSearch, tagFilters, uProvider]);
 
-  const [, setScrollTick] = useState(0);
-  useEffect(() => {
-    const el = listRef.current; if (!el) return;
-    const onScroll = () => setScrollTick(t => (t + 1) % 1000);
-    el.addEventListener('scroll', onScroll);
-    return () => { el.removeEventListener('scroll', onScroll); };
-  }, [listRef.current]);
+  const filteredModels = useMemo(
+    () => filterModels(uModels, modelSearch, tagFilters, uProvider),
+    [uModels, modelSearch, tagFilters, uProvider, favorites],
+  );
+  const staticModelSet = useMemo(() => new Set(getStaticModels(uProvider as any)), [uProvider]);
+  const modelWindow = useVirtualList<HTMLDivElement>({
+    itemCount: filteredModels.length,
+    itemHeight: 34,
+    overscan: 4,
+    containerRef: listRef,
+    viewportHeight: 260,
+  });
   const caps = uCaps;
   const onChangeProvider = async (p: string) => { await setUProvider(p as any); await refreshUModels(p as any); };
   const onChangeModel = (m: string) => { setUModel(m); };
@@ -511,9 +587,6 @@ export const SettingsModal: React.FC<{ open: boolean; onClose: () => void }> = (
     onClose();
   };
 
-
-  type NewProv = 'openai' | 'anthropic' | 'gemini';
-  type Status = 'Untested' | 'Verified' | 'Invalid' | 'Rate-limited';
   const aiKeys = useAiSettingsStore(s => s.keys);
   const setAiKey = useAiSettingsStore(s => s.setKey);
   const clearAiKey = useAiSettingsStore(s => s.clearKey);
@@ -560,24 +633,6 @@ export const SettingsModal: React.FC<{ open: boolean; onClose: () => void }> = (
     const root = providersScopeRef.current;
     if (!root) return;
 
-    const onFocusIn = () => { try { (globalThis as any).__KEY_ROUTER_SUSPENDED__ = true; } catch {} };
-    const onFocusOut = () => { try { delete (globalThis as any).__KEY_ROUTER_SUSPENDED__; } catch {} };
-
-    root.addEventListener('focusin', onFocusIn);
-    root.addEventListener('focusout', onFocusOut);
-
-
-    if (document.activeElement && root.contains(document.activeElement)) onFocusIn();
-
-    return () => { root.removeEventListener('focusin', onFocusIn); root.removeEventListener('focusout', onFocusOut); onFocusOut(); };
-  }, [open, tab, providersScopeRef]);
-
-
-  useEffect(() => {
-    if (!open || tab !== 'providers') return;
-    const root = providersScopeRef.current;
-    if (!root) return;
-
     const stopCapture = (e: KeyboardEvent) => {
 
       if (e.key === 'Escape') return;
@@ -595,7 +650,7 @@ export const SettingsModal: React.FC<{ open: boolean; onClose: () => void }> = (
       root.removeEventListener('keypress', stopSimple, true);
       root.removeEventListener('keyup', stopSimple, true);
     };
-  }, [open, tab, providersScopeRef]);
+  }, [open, tab]);
 
 
   const toggleShow = async (p: NewProv) => {
@@ -610,30 +665,10 @@ export const SettingsModal: React.FC<{ open: boolean; onClose: () => void }> = (
   const onChangeKey = (p: NewProv, v: string) => setDirtyKeys(d => ({ ...d, [p]: v }));
   const onClear = (p: NewProv) => { clearAiKey(p); setDirtyKeys(d => { const n = { ...d }; delete (n as any)[p]; return n; }); setRevealed(r => { const n = { ...r }; delete (n as any)[p]; return n; }); setStatus(s => ({ ...s, [p]: 'Untested' })); };
 
-  async function testOpenAI(k: string): Promise<Status> {
-    try {
-      const r = await fetch('/api/openai/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: k }) });
-      if (r.status === 200) return 'Verified'; if (r.status === 401 || r.status === 403) return 'Invalid'; if (r.status === 429) return 'Rate-limited'; return 'Untested';
-    } catch { return 'Untested'; }
-  }
-  async function testAnthropic(k: string): Promise<Status> {
-    try {
-      const r = await fetch('https://api.anthropic.com/v1/models', { headers: { 'x-api-key': k, 'anthropic-version': '2023-06-01' } });
-      if (r.status === 200) return 'Verified'; if (r.status === 401 || r.status === 403) return 'Invalid'; if (r.status === 429) return 'Rate-limited'; if (r.status === 404) return 'Untested'; return 'Untested';
-    } catch { return 'Untested'; }
-  }
-  async function testGemini(k: string): Promise<Status> {
-    try {
-      const r = await fetch(`https://generativelanguage.googleapis.com/v1/models?key=${encodeURIComponent(k)}`);
-      if (r.status === 200) return 'Verified'; if ([400,401,403].includes(r.status)) return 'Invalid'; if (r.status === 429) return 'Rate-limited'; return 'Untested';
-    } catch { return 'Untested'; }
-  }
-  const testers: Record<NewProv, (k: string) => Promise<Status>> = { openai: testOpenAI, anthropic: testAnthropic, gemini: testGemini };
-
   const onTest = async (p: NewProv) => {
   const key = dirtyKeys[p] ?? revealed[p] ?? await getDecryptedKey(p, passphrase || undefined);
     if (!key) { setStatus(s => ({ ...s, [p]: 'Untested' })); return; }
-    const res = await testers[p](key);
+    const res = await verifyProviderKey(p, key);
     setStatus(s => ({ ...s, [p]: res }));
   };
   const onTestAll = async () => {
@@ -687,45 +722,6 @@ export const SettingsModal: React.FC<{ open: boolean; onClose: () => void }> = (
 
   return (
     <Modal isOpen={open} onClose={onClose} title="Settings" size="palette" variant="palette" className="settings-modal-palette">
-      <style>{`
-        .settings-modal-palette { --settings-accent: var(--syn-interaction-active); }
-        .settings-modal-palette [data-nav] { width: 100%; flex-shrink: 0; display: flex; flex-direction: column; gap: 1px; padding: 4px 0; }
-        .settings-modal-palette [data-nav] button { text-align: left; padding: 6px 12px; border-radius: 4px; font-size: 13px; background: transparent; border: none; color: var(--syn-text-secondary); cursor: pointer; transition: background .12s ease, color .12s ease; }
-        .settings-modal-palette [data-nav] button:hover { background: var(--syn-interaction-hover); color: var(--syn-text-default); }
-        .settings-modal-palette [data-nav] button[aria-selected='true'] { background: var(--syn-interaction-hover); color: var(--syn-text-default); }
-        .settings-modal-palette [data-nav] button:focus-visible { outline: 1px solid var(--syn-interaction-focus-ring); outline-offset: -1px; }
-        .settings-modal-palette .panel-shell { position: relative; flex: 1; min-width: 0; }
-        .settings-modal-palette .panel-shell > * { background: transparent; }
-        .settings-modal-palette .tab-panel { display: none; }
-        .settings-modal-palette .tab-panel[data-active='true'] { display: block; }
-        .settings-modal-palette h3.settings-section-title { font-size: 13px; font-weight: 600; margin: 0 0 4px; color: var(--syn-text-default); }
-        .settings-modal-palette .settings-divider { border: 0; border-top: 1px solid var(--syn-border-subtle); margin: 6px 0 12px; }
-        .settings-modal-palette input[type='text'],
-        .settings-modal-palette input[type='password'],
-        .settings-modal-palette select,
-        .settings-modal-palette textarea { background: var(--syn-surface-input); border: 1px solid var(--syn-border-subtle); border-radius: 2px; color: var(--syn-text-default); font-size: 13px; padding: 0 10px; min-height: 28px; font-family: inherit; transition: border-color .12s ease; }
-        .settings-modal-palette textarea { padding: 8px 10px; min-height: 80px; resize: vertical; }
-        .settings-modal-palette input:focus, .settings-modal-palette select:focus, .settings-modal-palette textarea:focus { outline: none; border-color: var(--syn-border-focus); }
-        .settings-modal-palette input:hover, .settings-modal-palette select:hover, .settings-modal-palette textarea:hover { border-color: var(--syn-border-default); }
-        .settings-modal-palette .tag-button { font-size: 11px; padding: 2px 8px; border-radius: 2px; border: none; background: transparent; color: var(--syn-text-muted); cursor: pointer; letter-spacing: 0; transition: background .12s ease, color .12s ease; }
-        .settings-modal-palette .tag-button:hover { background: var(--syn-interaction-hover); color: var(--syn-text-default); }
-        .settings-modal-palette .tag-button[data-active='true'] { background: color-mix(in srgb, var(--syn-interaction-active) 22%, transparent); color: var(--syn-interaction-active); }
-        .settings-modal-palette .tag-button:focus-visible { outline: 1px solid var(--syn-interaction-focus-ring); outline-offset: -1px; }
-        .settings-modal-palette .provider-segment { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; font-size: 12px; border-radius: 2px; cursor: pointer; background: transparent; border: none; color: var(--syn-text-secondary); transition: background .12s ease, color .12s ease; }
-        .settings-modal-palette .provider-segment[data-active='true'] { background: color-mix(in srgb, var(--syn-interaction-active) 18%, transparent); color: var(--syn-interaction-active); }
-        .settings-modal-palette .provider-segment:hover { background: var(--syn-interaction-hover); color: var(--syn-text-default); }
-        .settings-modal-palette .provider-segment:focus-visible { outline: 1px solid var(--syn-interaction-focus-ring); outline-offset: -1px; }
-        .settings-modal-palette .footer-bar { position: sticky; bottom: 0; left: 0; right: 0; padding: 12px 0 0; margin-top: 16px; background: linear-gradient(180deg, rgba(18,18,18,0) 0%, var(--syn-surface-workbench) 60%); }
-        .settings-modal-palette .footer-bar-inner { border-top: 1px solid var(--syn-border-subtle); padding-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
-        .settings-modal-palette .footer-btn { padding: 6px 14px; min-height: 28px; border-radius: 2px; font-size: 13px; border: none; background: var(--syn-interaction-hover); color: var(--syn-text-default); cursor: pointer; transition: background .12s ease; }
-        .settings-modal-palette .footer-btn.primary { background: var(--syn-interaction-active); color: var(--syn-text-inverse); }
-        .settings-modal-palette .footer-btn.danger { background: var(--syn-status-error); color: var(--syn-text-inverse); }
-        .settings-modal-palette .footer-btn:hover { background: color-mix(in srgb, var(--syn-text-default) 10%, var(--syn-interaction-hover)); }
-        .settings-modal-palette .footer-btn.primary:hover { background: color-mix(in srgb, var(--syn-text-default) 14%, var(--syn-interaction-active)); color: var(--syn-text-inverse); }
-        .settings-modal-palette .footer-btn.danger:hover { background: color-mix(in srgb, var(--syn-text-default) 14%, var(--syn-status-error)); color: var(--syn-text-inverse); }
-        .settings-modal-palette .footer-btn:focus-visible { outline: 1px solid var(--syn-interaction-focus-ring); outline-offset: -1px; }
-        .settings-modal-palette .footer-btn:disabled { opacity: .4; cursor: not-allowed; }
-      `}</style>
       <Wrap style={open ? undefined : { visibility:'hidden', pointerEvents:'none' }}>
         <Nav role="tablist" aria-orientation="vertical" onKeyDown={onKeyNav} data-nav>
           {TAB_ORDER.map(t => (
@@ -826,27 +822,15 @@ export const SettingsModal: React.FC<{ open: boolean; onClose: () => void }> = (
                       }}
                       ref={listRef}
                     >
-                      {(() => {
-                        const filtered = filterModels(uModels, modelSearch, tagFilters, uProvider);
-                        if (!filtered.length) return <div style={{ fontSize:11, opacity:0.6, padding:'4px 6px' }}>No matches</div>;
-                        const staticSet = new Set(getStaticModels(uProvider as any));
-
-                        const ITEM_H = 34;
-                        const total = filtered.length;
-                        const container = listRef.current;
-                        let scrollTop = 0; let viewH = 260;
-                        if (container) { scrollTop = container.scrollTop; viewH = container.clientHeight; }
-                        const start = Math.max(0, Math.floor(scrollTop / ITEM_H) - 4);
-                        const end = Math.min(total, Math.ceil((scrollTop + viewH)/ITEM_H) + 4);
-                        const topSpacer = start * ITEM_H;
-                        const bottomSpacer = (total - end) * ITEM_H;
-                        const slice = filtered.slice(start, end);
-                        return [
-                          <div key='top' style={{ height: topSpacer }} />,
-                          ...slice.map((m: string, i: number) => {
-                            const idx = start + i;
+                      {!filteredModels.length ? (
+                        <div style={{ fontSize:11, opacity:0.6, padding:'4px 6px' }}>No matches</div>
+                      ) : (
+                        <>
+                          <div key='top' style={{ height: modelWindow.topSpacer }} />
+                          {filteredModels.slice(modelWindow.start, modelWindow.end).map((m: string, i: number) => {
+                            const idx = modelWindow.start + i;
                             const isSelected = m === uModel;
-                            const isDynamic = !staticSet.has(m);
+                            const isDynamic = !staticModelSet.has(m);
                             const isActive = idx === modelCursor;
                             const meta = deriveModelMeta(uProvider as any, m);
                             const fav = favorites.includes(m);
@@ -888,10 +872,10 @@ export const SettingsModal: React.FC<{ open: boolean; onClose: () => void }> = (
                                 </span>
                               </button>
                             );
-                          }),
-                          <div key='bottom' style={{ height: bottomSpacer }} />
-                        ];
-                      })()}
+                          })}
+                          <div key='bottom' style={{ height: modelWindow.bottomSpacer }} />
+                        </>
+                      )}
                     </div>
                     <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, paddingTop:2 }}>
                       <div style={{ fontSize:11, color:'var(--syn-text-muted)', minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
@@ -936,9 +920,9 @@ export const SettingsModal: React.FC<{ open: boolean; onClose: () => void }> = (
             <TabPanel role="tabpanel" id={`${id}-panel-providers`} aria-labelledby={`${id}-tab-providers`} $active={tab==='providers'} data-hidden={tab!=='providers'} ref={tab==='providers'?providersScopeRef:undefined}>
               <Title id={tab==='providers'?panelLabelId:undefined}>Providers & API Keys</Title>
               <Divider />
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12 }}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap' }}>
                 <Hint style={{ flex:1 }}>Manage provider keys. Keys are stored locally. Visibility toggle only reveals current input text.</Hint>
-                <div style={{ display:'flex', gap:8 }}>
+                <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
                   <Button onClick={onTestAll} style={{ alignSelf:'flex-start' }}>Test All</Button>
                   <Button
                     onClick={async () => { await saveKeys(); }}
@@ -1042,7 +1026,7 @@ export const SettingsModal: React.FC<{ open: boolean; onClose: () => void }> = (
                   <input type="checkbox" checked={encrypt} onChange={e => setEncrypt(e.target.checked)} /> Encrypt locally (AES-GCM)
                 </label>
                 {!!encrypt && (
-                  <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+                  <div style={{ display:'flex', gap:8, alignItems:'center', flexWrap:'wrap' }}>
                     <Input type="password" placeholder="Passphrase (not stored)" value={passphrase} onChange={e => setPassphrase(e.target.value)} style={{ maxWidth:260 }} />
                     {!!encrypt && !passphrase.trim() && !!anyDirty && <span style={{ fontSize:11, color:'var(--warning)' }}>Enter a passphrase to enable encrypted save.</span>}
                   </div>

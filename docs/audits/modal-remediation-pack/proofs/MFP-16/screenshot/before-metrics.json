@@ -1,0 +1,54 @@
+{
+  "default": {
+    "viewport": {
+      "width": 960,
+      "height": 720
+    },
+    "documentScrollWidth": 960,
+    "documentClientWidth": 960,
+    "bodyScrollWidth": 960,
+    "bodyClientWidth": 960,
+    "dialog": {
+      "width": 845,
+      "height": 576,
+      "ariaModal": "true"
+    },
+    "wrap": {
+      "display": "grid",
+      "gridTemplateColumns": "180px 598.812px",
+      "width": 795,
+      "height": 560
+    },
+    "aria": {
+      "tablistOrientation": "vertical",
+      "optionRolePreserved": true,
+      "favoriteControlPreserved": true
+    }
+  },
+  "mobile320": {
+    "viewport": {
+      "width": 320,
+      "height": 720
+    },
+    "documentScrollWidth": 320,
+    "documentClientWidth": 320,
+    "bodyScrollWidth": 320,
+    "bodyClientWidth": 320,
+    "dialog": {
+      "width": 224,
+      "height": 576,
+      "ariaModal": "true"
+    },
+    "wrap": {
+      "display": "grid",
+      "gridTemplateColumns": "180px 4px",
+      "width": 174,
+      "height": 560
+    },
+    "aria": {
+      "tablistOrientation": "vertical",
+      "optionRolePreserved": true,
+      "favoriteControlPreserved": true
+    }
+  }
+}
