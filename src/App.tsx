@@ -1278,6 +1278,7 @@ const MainApp: React.FC<MainAppProps> = ({ onOpenAnalytics }) => {
           data-testid="assistant-modal"
           role="dialog"
           aria-modal="true"
+          aria-label="AI Assistant"
           style={{
             position: 'fixed',
             right: 0,

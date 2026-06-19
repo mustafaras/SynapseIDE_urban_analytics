@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Maximize2, Minimize2, RotateCcw, X } from "lucide-react";
 
 import {
@@ -157,6 +157,9 @@ export function MapDialogShell({
     memoryKey ? { memoryKey, boundsPadding: 16 } : { boundsPadding: 16 },
   );
   const panelRef = useRef<HTMLDivElement | null>(null);
+  // Accessible name (MFP-14): prefer the visible <h2> heading via aria-labelledby; fall
+  // back to aria-label only when no title is provided so no dialog ends up unnamed.
+  const titleId = useId();
   // Shared focus trap (MFP-13): document-level Tab trap + restore-to-opener. Skipped
   // when nonBlocking (the panel coexists with the page). Merge its ref onto panelRef.
   const { trapRef, activate } = useFocusTrap(!nonBlocking);
@@ -268,7 +271,8 @@ export function MapDialogShell({
         ref={setPanelRef}
         role="dialog"
         aria-modal={nonBlocking ? false : true}
-        aria-label={ariaLabel}
+        aria-labelledby={title ? titleId : undefined}
+        aria-label={title ? undefined : ariaLabel}
         tabIndex={-1}
         data-draggable-map-panel="true"
         data-ui-proof="real-modal-system"
@@ -291,7 +295,7 @@ export function MapDialogShell({
       >
         <div {...dragHandleProps} style={{ ...headerStyle, ...(maximized ? { cursor: "default" } : dragHandleStyle) }}>
           <div style={headingWrapStyle}>
-            <h2 style={titleStyle}>{title}</h2>
+            <h2 id={titleId} style={titleStyle}>{title}</h2>
             {subtitle ? <span style={subtitleStyle}>{subtitle}</span> : null}
           </div>
           <div style={actionsStyle}>

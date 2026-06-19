@@ -1,0 +1,36 @@
+{
+  "welcome": {
+    "dialogs": [
+      {
+        "ariaLabelledby": "welcome-modal-title",
+        "ariaLabel": null,
+        "resolvedName": "Urban AnalyticsWorkbenchGIS"
+      }
+    ],
+    "ariaDialogName": {
+      "passed": true,
+      "violated": false,
+      "passNodes": 1
+    },
+    "totalViolations": 0,
+    "violationIds": []
+  },
+  "mapshell": {
+    "dialogs": [
+      {
+        "ariaLabelledby": "«r0»",
+        "ariaLabel": null,
+        "resolvedName": "Layer Inspector"
+      }
+    ],
+    "ariaDialogName": {
+      "passed": true,
+      "violated": false,
+      "passNodes": 1
+    },
+    "totalViolations": 1,
+    "violationIds": [
+      "color-contrast (serious) x1"
+    ]
+  }
+}
