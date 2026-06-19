@@ -9,10 +9,46 @@
  * that could drift from the visible heading.
  */
 import { cleanup, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import WelcomeModal from '../WelcomeModal';
 
 afterEach(cleanup);
+
+beforeEach(() => {
+  const canvasContext: Partial<CanvasRenderingContext2D> = {
+    setTransform: () => undefined,
+    clearRect: () => undefined,
+    beginPath: () => undefined,
+    ellipse: () => undefined,
+    stroke: () => undefined,
+    arc: () => undefined,
+    fill: () => undefined,
+    lineWidth: 1,
+    strokeStyle: '',
+    shadowBlur: 0,
+    shadowColor: '',
+    fillStyle: '',
+  };
+  Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
+    configurable: true,
+    value: (contextId: string) => (
+      contextId === '2d' ? canvasContext as CanvasRenderingContext2D : null
+    ),
+  });
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    value: (query: string): MediaQueryList => ({
+      matches: query === '(prefers-reduced-motion: reduce)',
+      media: query,
+      onchange: null,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+      addListener: () => undefined,
+      removeListener: () => undefined,
+      dispatchEvent: () => true,
+    }),
+  });
+});
 
 describe('WelcomeModal accessible name (MFP-14)', () => {
   it('names the dialog from the visible #welcome-modal-title heading, with no stray aria-label', () => {

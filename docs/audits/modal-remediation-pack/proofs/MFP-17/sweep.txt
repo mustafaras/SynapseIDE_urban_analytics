@@ -1,0 +1,14 @@
+MFP-17 sweep
+
+Commands:
+- rg "synapse:chat:insert|window\.dispatchEvent|CustomEvent" src/features/urbanAnalytics/UrbanAnalyticsModal.tsx
+- rg "synapseBus\.emit\('analytics\.(recent\.open|recommendations\.refresh|compare\.open)'|synapseBus\.emit\('ui\.(shortcuts\.open|theme\.toggle)'" src/features/urbanAnalytics/UrbanAnalyticsModal.tsx
+- rg "aria-hidden=\{false\}|eslint-disable jsx-a11y/no-noninteractive-element-interactions|__KEY_ROUTER_SUSPENDED__|synapse:urban:open-recent|synapse:urban:refresh-recs|synapse:open-shortcuts|synapse:theme:toggle|synapse:urban:compare|synapse:editor:insert" src/features/urbanAnalytics/UrbanAnalyticsModal.tsx
+
+Results:
+- ID/ref-only CustomEvent names removed from UrbanAnalyticsModal.
+- Typed bus emits present for analytics.recent.open, analytics.recommendations.refresh, analytics.compare.open, ui.shortcuts.open, and ui.theme.toggle.
+- aria-hidden={false} removed from .midCol.
+- File-wide jsx-a11y/no-noninteractive-element-interactions disable removed; one dialog-root inline disable remains with justification.
+- synapse:editor:insert removed; editor bulk content now routes through the editor bridge.
+- synapse:chat:insert remains as a documented content-transport channel, not a typed Synapse Bus event.
