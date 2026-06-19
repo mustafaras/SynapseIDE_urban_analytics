@@ -1,7 +1,7 @@
 {
   "pack": "modal-remediation-final-wave",
   "version": "1.0.0",
-  "updated": "2026-06-17",
+  "updated": "2026-06-19",
   "legend": [
     "pending",
     "in_progress",
@@ -252,7 +252,7 @@
       "notes": "Applied published z-index tokens to bespoke modal overlays and global bars: KeysModal and UnsavedChangesDialog now use var(--z-modal); AiSettingsModal was already on var(--z-modal) from MFP-08 and verified; UrbanAnalyticsModal accentline, WelcomeModal root/CSS, and EnhancedIDE global gold bar now use var(--z-system-banner). Added zIndexConsumerUsage guardrail test for the six P15 consumers. Gate general: typecheck + lint:errors clean; color:guard exit 0 (report mode); zIndex token/consumer tests 4 passed. REAL-CHROME screenshot proof via throwaway Vite harness with createCSSVariables(GlobalSynapseStyles): after order = systemBanner 10090 > modal 10050 > statusbar 9999 > backdrop 1040. Scope note: unrelated EnhancedIDE dev/demo and dock-layout raw zIndex values remain outside modal-overlay/global-bar scope."
     },
     "MFP-16": {
-      "status": "pending",
+      "status": "done",
       "priority": "P3",
       "phase": 3,
       "dependsOn": [
@@ -265,8 +265,8 @@
         "screenshot"
       ],
       "proofDir": "proofs/MFP-16/",
-      "commit": null,
-      "notes": ""
+      "commit": "5348665ac5b4d3b9bde8d0ecec0220c9596cb9b6",
+      "notes": "SettingsModal key verification extracted to src/services/ai/verifyProviderKey.ts and virtualized provider model list extracted to src/hooks/useVirtualList.ts. Removed globalThis.__KEY_ROUTER_SUSPENDED__, render-injected style block, ref values from effect deps, and render-time DOM reads from list virtualization. 320px reflow proof shows single-column layout with no horizontal overflow while preserving tabs/radio/listbox/favorite semantics. Gate general green: typecheck + lint:errors clean; focused unit suites 2 files / 24 tests passed. Full vitest proof retained with known unrelated Map Explorer failures."
     },
     "MFP-17": {
       "status": "pending",
