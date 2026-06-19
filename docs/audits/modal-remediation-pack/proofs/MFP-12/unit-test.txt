@@ -1,0 +1,10 @@
+=== test ===
+
+ RUN  v4.1.9 /home/user/SynapseIDE_urban_analytics
+
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  05:28:28
+   Duration  3.17s (transform 213ms, setup 0ms, import 470ms, tests 1.71s, environment 792ms)
+

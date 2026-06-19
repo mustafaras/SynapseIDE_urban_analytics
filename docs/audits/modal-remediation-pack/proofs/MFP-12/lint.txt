@@ -1,0 +1,5 @@
+=== lint ===
+
+> urban-analytics-workbench@1.0.0 lint:errors
+> eslint . --ext ts,tsx --quiet
+
