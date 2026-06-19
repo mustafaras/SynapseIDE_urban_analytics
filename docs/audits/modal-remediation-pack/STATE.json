@@ -283,7 +283,7 @@
       "notes": "UrbanAnalyticsModal and WelcomeModal close paths now respect usePrefersReducedMotion: reduced-motion closes run immediately, non-reduced timing stays 300ms/400ms. UrbanAnalyticsModal ID/ref-only status-bar signals now emit typed Synapse Bus events (analytics.recent.open, analytics.recommendations.refresh, analytics.compare.open, ui.shortcuts.open, ui.theme.toggle) with source/requestedAt payloads; new event contracts documented in SynapseBusEventMap. synapse:editor:insert removed in favor of editorBridge.insertIntoActive; synapse:chat:insert remains documented as a content-transport channel outside the typed ID/ref-only bus. Removed file-wide a11y suppression, narrowed the dialog-root exception with justification, and removed .midCol aria-hidden={false}. Gate analytics green: typecheck + lint:errors clean; focused MFP-17 suite 6/6; test:analytics 66 files / 1138 tests passed. Real Chrome reduced-motion screenshots captured for Welcome and Urban."
     },
     "MFP-18": {
-      "status": "pending",
+      "status": "done",
       "priority": "P2",
       "phase": 2,
       "dependsOn": [],
@@ -294,8 +294,8 @@
         "screenshot"
       ],
       "proofDir": "proofs/MFP-18/",
-      "commit": null,
-      "notes": ""
+      "commit": "ed9de0b7cb733346d09c4f6a29fe6432d0559635",
+      "notes": "Map dialog family cleanup completed: removed the dead MapStartDialog demo-pack path/badge and stale ref, added wrapped-mode aria-modal suppression for host-owned modality, fixed MapExportDialog and MapColumnarImportDialog 320px reflow, memoized CSV profiling to avoid render-time recomputation, and consumed the MapWorkspaceShell rail height parameter. Updated prompts.schema.json to match the canonical manifest fields encountered during validation. Gate gis green: typecheck, lint:errors, lint:no-tailwind-centerpanel, deadcode, map vitest, screenshot proof, and schema validation all pass."
     },
     "MFP-19": {
       "status": "pending",
