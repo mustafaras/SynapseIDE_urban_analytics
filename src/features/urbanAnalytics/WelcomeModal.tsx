@@ -526,7 +526,7 @@ const WelcomeModal: React.FC<WelcomeModalProps> = ({ open, onClose }) => {
       className={`welcome-modal ${isClosing ? 'welcome-modal--closing' : ''}`}
       role="dialog"
       aria-modal="true"
-      aria-label="Welcome to Urban Analytics Workbench"
+      aria-labelledby="welcome-modal-title"
       style={{ zIndex: 2147483648 }}
     >
       <button

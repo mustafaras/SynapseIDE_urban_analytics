@@ -194,6 +194,18 @@ test.describe("Prompt 03 Map Explorer accessibility @a11y", () => {
     await page.keyboard.press("Enter");
     await expect(mapExplorer).toBeHidden();
   });
+
+  test("every opened dialog reports a non-empty accessible name (MFP-14)", async ({ page }) => {
+    // The Urban Analytics Workbench shell is itself a named role=dialog.
+    const urbanModal = await openUrbanAnalyticsWorkbench(page);
+    await expect(urbanModal).toHaveAccessibleName(/\S/);
+
+    // Opening Map Explorer surfaces a second dialog — it too must be named.
+    await triggerDomClick(urbanModal.getByRole("button", { name: "Open Map Explorer (Ctrl+Shift+M)" }));
+    const mapExplorer = page.getByRole("dialog", { name: "Map Explorer" });
+    await expect(mapExplorer).toBeVisible();
+    await expect(mapExplorer).toHaveAccessibleName(/\S/);
+  });
 });
 
 test.describe("Prompt 55 Map Explorer accessibility matrix @a11y", () => {

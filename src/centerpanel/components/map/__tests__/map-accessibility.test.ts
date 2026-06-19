@@ -867,3 +867,57 @@ describe("Prompt 55 accessibility interaction matrix", () => {
     expect(JSON.stringify(MAP_ACCESSIBILITY_INTERACTION_MATRIX)).not.toMatch(/FeatureCollection|sourceData|coordinates|geometry/i);
   });
 });
+
+/* ================================================================== */
+/*  7. MapDialogShell — accessible name (MFP-14)                       */
+/* ================================================================== */
+
+describe("MapDialogShell — accessible name (MFP-14)", () => {
+  /** Extract the opening <div role="dialog"> tag from static markup. */
+  function dialogTag(markup: string): string {
+    const match = /<[^>]*role="dialog"[^>]*>/.exec(markup);
+    expect(match).not.toBeNull();
+    return match![0];
+  }
+
+  it("names the dialog from its visible <h2> via aria-labelledby when a title is present", async () => {
+    const { MapDialogShell } = await import("../MapDialogShell");
+    const { renderToStaticMarkup } = await import("react-dom/server");
+
+    const markup = renderToStaticMarkup(
+      React.createElement(
+        MapDialogShell,
+        { ariaLabel: "fallback label", title: "Layer Inspector", onClose: () => undefined },
+        React.createElement("div", null, "body"),
+      ),
+    );
+
+    const tag = dialogTag(markup);
+    const labelledBy = /aria-labelledby="([^"]+)"/.exec(tag)?.[1];
+    // Programmatic name comes from the visible heading, not a drifting aria-label.
+    expect(labelledBy).toBeTruthy();
+    expect(tag).not.toContain("aria-label=");
+
+    // The referenced id is the visible <h2> carrying the title text.
+    const headingText = new RegExp(`<h2 id="${labelledBy}"[^>]*>([^<]*)</h2>`).exec(markup)?.[1];
+    expect(headingText).toBe("Layer Inspector");
+  });
+
+  it("falls back to aria-label when no visible title is provided", async () => {
+    const { MapDialogShell } = await import("../MapDialogShell");
+    const { renderToStaticMarkup } = await import("react-dom/server");
+
+    const markup = renderToStaticMarkup(
+      React.createElement(
+        MapDialogShell,
+        { ariaLabel: "Selection filter", title: "", onClose: () => undefined },
+        React.createElement("div", null, "body"),
+      ),
+    );
+
+    const tag = dialogTag(markup);
+    // No visible heading → keep the dialog named via the ariaLabel prop.
+    expect(tag).toContain('aria-label="Selection filter"');
+    expect(tag).not.toContain("aria-labelledby=");
+  });
+});
