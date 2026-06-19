@@ -1,0 +1,135 @@
+
+> urban-analytics-workbench@1.0.0 test
+> vitest run
+
+
+ RUN  v4.1.9 C:/Users/m_ras/synapseide_urban_analytics
+
+ ❯ src/stores/__tests__/useMapExplorerStore.test.ts (64 tests | 2 failed) 314ms
+       × persists only lightweight layout recovery preferences 27ms
+       × resets legacy layout preferences while preserving persisted map content 14ms
+stderr | src/centerpanel/components/__tests__/MapExplorerModal.dispatch.test.tsx
+WARNING: Multiple instances of Three.js being imported.
+ ❯ src/centerpanel/components/__tests__/MapExplorerModal.dispatch.test.tsx (4 tests | 1 failed) 3738ms
+     × opens the review timeline in the right dock from the toolbar 683ms
+
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/stores/__tests__/useMapExplorerStore.test.ts > useMapExplorerStore > persistence > persists only lightweight layout recovery preferences
+AssertionError: expected { layerPanelWidth: 640, …(3) } to deeply equal { layerPanelWidth: 640, …(2) }
+
+- Expected
++ Received
+
+  {
+    "layerPanelWidth": 640,
+    "panelMode": "collapsed",
++   "rightDockFloating": {
++     "height": 560,
++     "width": 500,
++     "x": 32,
++     "y": 84,
++   },
+    "rightPanelWidth": 500,
+  }
+
+ ❯ src/stores/__tests__/useMapExplorerStore.test.ts:827:46
+    825|       const serializedPersistedState = JSON.stringify(parsed.state);
+    826|
+    827|       expect(parsed.state.layoutPreferences).toEqual({
+       |                                              ^
+    828|         layerPanelWidth: 640,
+    829|         rightPanelWidth: 500,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  src/stores/__tests__/useMapExplorerStore.test.ts > useMapExplorerStore > persistence > resets legacy layout preferences while preserving persisted map content
+AssertionError: expected { layerPanelWidth: 440, …(3) } to deeply equal { layerPanelWidth: 440, …(3) }
+
+- Expected
++ Received
+
+@@ -2,10 +2,10 @@
+    "layerPanelWidth": 440,
+    "panelMode": "map-first",
+    "rightDockFloating": {
+      "height": 560,
+      "width": 384,
+-     "x": 32,
++     "x": 1200,
+      "y": 84,
+    },
+    "rightPanelWidth": 384,
+  }
+
+ ❯ src/stores/__tests__/useMapExplorerStore.test.ts:874:39
+    872|       const state = store.getState();
+    873|
+    874|       expect(state.layoutPreferences).toEqual(DEFAULT_MAP_EXPLORER_LAY…
+       |                                       ^
+    875|       expect(state.center).toEqual([10, 20]);
+    876|       expect(state.zoom).toBe(5);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  src/centerpanel/components/__tests__/MapExplorerModal.dispatch.test.tsx > MapExplorerModal map dispatch > opens the review timeline in the right dock from the toolbar
+AssertionError: expected <aside …(2)>…(2)</aside> to be null
+
+- Expected:
+null
+
++ Received:
+<aside
+  data-active-panel="timeline"
+  data-testid="map-right-dock-host"
+>
+  <button
+    data-testid="right-dock-close"
+    type="button"
+  >
+    Close dock
+  </button>
+  <div
+    style="display: grid; align-content: start; gap: 0.5rem; min-height: 100%; padding: 0.5rem 1rem 1rem;"
+  >
+    <div
+      aria-live="polite"
+      class="_fadeIn_cc9f1a"
+      data-gis-empty-state="true"
+      role="status"
+      style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem; padding: 1.618rem; text-align: center; color: var(--syn-text-muted, #778190); min-width: 0px; max-width: 100%;"
+    >
+      <p
+        style="margin: 0px; font-size: 0.75rem; font-family: \"Inter\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", system-ui, sans-serif; font-weight: 600; color: var(--syn-text-secondary, #a4adbb); line-height: 1.5; overflow-wrap: anywhere;"
+      >
+        No routed content
+      </p>
+      <p
+        style="margin: 0px; font-size: 0.75rem; font-family: \"Inter\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", system-ui, sans-serif; color: var(--syn-text-muted, #778190); line-height: 1.625; max-width: 20rem; overflow-wrap: anywhere;"
+      >
+        This right-dock route is available, but the current map context has no active content for it yet.
+      </p>
+    </div>
+  </div>
+</aside>
+
+ ❯ src/centerpanel/components/__tests__/MapExplorerModal.dispatch.test.tsx:512:80
+    510|       document.body.querySelector<HTMLButtonElement>('[data-testid="ri…
+    511|     });
+    512|     expect(document.body.querySelector('[data-testid="map-right-dock-h…
+       |                                                                                ^
+    513|
+    514|     await act(async () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  2 failed | 294 passed (296)
+      Tests  3 failed | 3143 passed | 2 skipped (3148)
+   Start at  15:41:18
+   Duration  25.00s (transform 99.77s, setup 0ms, import 275.80s, tests 114.75s, environment 206.77s)
+
