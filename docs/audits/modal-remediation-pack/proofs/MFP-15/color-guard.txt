@@ -1,0 +1,134 @@
+
+> urban-analytics-workbench@1.0.0 color:guard
+> node scripts/check-color-regression.mjs
+
+Color regression guard (report mode)
+- Scope: all source files
+- Candidate files: 1484
+- Scanned files: 1169
+- Files with findings: 308
+- Total findings: 8172
+- Allowed hard-coded categories: token-source, data-visualization, test-fixture, fallback
+- Skipped (allowlist): token-source=5, data-visualization=13, test-fixture=297
+- Literal totals: hex=3246, rgb=1779, hsl=2, gradient=340, fallback=2532, named=273
+- Top files:
+  src/features/urbanAnalytics/WelcomeModal.tsx: 427
+    #3aa8ff (line 888)
+    #72ddff (line 889)
+    #d6a84f (line 891)
+    #eef6ff (line 892)
+    #9aaabd (line 893)
+  src/centerpanel/styles/tools.module.css: 414
+    #3794ff (line 111)
+    #d7ba7d (line 1927)
+    #6aa9ff (line 2450)
+    #1f232a (line 3360)
+    #252a32 (line 3655)
+  src/components/ai/panel/styles.ts: 264
+    #232832 (line 14)
+    #d7dce5 (line 16)
+    #2b3038 (line 21)
+    #343a44 (line 22)
+    #4a5260 (line 23)
+  src/centerpanel/styles/tools.left.module.css: 257
+    #3794ff (line 49)
+    #FCA5A5 (line 87)
+    #4ec27d (line 88)
+    #ffffff (line 130)
+    #D6D3D1 (line 253)
+  src/centerpanel/styles/flows.module.css: 251
+    #1a1a1a (line 1788)
+    #e5e5e5 (line 1789)
+    #333 (line 1790)
+    #777 (line 1800)
+    #2a2a2a (line 1834)
+  src/centerpanel/components/map/catalog/MapCatalogPanel.module.css: 183
+    #181b22 (line 13)
+    #f3f4f6 (line 15)
+    #8993a3 (line 53)
+    #b8c0cd (line 66)
+    #d09a48 (line 153)
+  src/templates/templateContent.ts: 173
+    #F59E0B (line 103)
+    #D97706 (line 104)
+    #000000 (line 105)
+    #121212 (line 106)
+    #FAFAF9 (line 107)
+  src/components/terminal/components/Terminal.tsx: 139
+    #0f1115 (line 174)
+    #60a5fa (line 178)
+    #d4d4d4 (line 179)
+    #121212 (line 240)
+    #1a1d24 (line 256)
+  src/centerpanel/styles/tokens.css: 138
+    #000000 (line 54)
+    #333333 (line 56)
+    #ffffff (line 95)
+    #A8A29E (line 98)
+    #F97316 (line 108)
+  src/components/atoms/StatusBar.tsx: 127
+    #F59E0B (line 99)
+    #3178C6 (line 100)
+    #E34F26 (line 101)
+    #1572B6 (line 102)
+    #3776AB (line 104)
+  src/components/editor/MonacoEditor.tsx: 127
+    #F59E0B (line 679)
+    #60A5FA (line 730)
+    #4ADE80 (line 730)
+    #A78BFA (line 730)
+    #9CA3AF (line 730)
+  src/centerpanel/components/map/contents/MapContentsTreePanel.module.css: 116
+    #181b22 (line 13)
+    #f3f4f6 (line 15)
+    #8993a3 (line 54)
+    #b8c0cd (line 114)
+    #111319 (line 138)
+  src/centerpanel/components/map/modelBuilder/MapModelBuilderPanel.module.css: 114
+    #181b22 (line 13)
+    #f3f4f6 (line 15)
+    #8993a3 (line 66)
+    #b8c0cd (line 74)
+    #4ca078 (line 81)
+  src/centerpanel/styles/note.module.css: 110
+    #FAFAF9 (line 49)
+    rgba(255,255,255,0.12) (line 47)
+    rgba(0,0,0,0.25) (line 48)
+    rgba(255, 255, 255, 0.55) (line 2822)
+    rgba(255, 255, 255, 0.5) (line 2837)
+  src/features/urbanAnalytics/voxcity/SunlightSimulatorPanel.tsx: 105
+    #0d0d0d (line 67)
+    #FAFAF9 (line 68)
+    #1a1a1a (line 92)
+    #333 (line 93)
+    #a4adbb (line 104)
+  src/centerpanel/components/map/MapRightDockHost.module.css: 102
+    #f3f4f6 (line 12)
+    #181b22 (line 84)
+    #8993a3 (line 205)
+    #d09a48 (line 222)
+    #20252e (line 374)
+  src/components/atoms/NeuralGlassCardFinal.tsx: 101
+    #3794FF (line 155)
+    #2A2A2A (line 158)
+    #5AA9FF (line 162)
+    #CBD5E1 (line 165)
+    #93C5FD (line 169)
+  src/styles/GlobalStyles.ts: 99
+    #F59E0B (line 35)
+    #D97706 (line 36)
+    #3794ff (line 124)
+    #B45309 (line 138)
+    #FBBF24 (line 143)
+  src/centerpanel/components/MapDrawingManager.module.css: 94
+    #343a44 (line 16)
+    #252a31 (line 17)
+    #778190 (line 32)
+    #3794ff (line 43)
+    #a4adbb (line 44)
+  src/centerpanel/styles/centerpanel.module.css: 83
+    #778190 (line 597)
+    #3794ff (line 636)
+    #2b3038 (line 690)
+    rgba(255,255,255,0.16) (line 583)
+    rgba(255,255,255,0.10) (line 674)

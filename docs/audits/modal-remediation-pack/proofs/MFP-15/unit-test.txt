@@ -1,0 +1,13 @@
+
+> urban-analytics-workbench@1.0.0 test
+> vitest run src/styles/__tests__/zIndexTokens.test.ts src/styles/__tests__/zIndexConsumerUsage.test.ts
+
+
+ RUN  v4.1.9 C:/Users/m_ras/synapseide_urban_analytics
+
+
+ Test Files  2 passed (2)
+      Tests  4 passed (4)
+   Start at  15:16:03
+   Duration  193ms (transform 57ms, setup 0ms, import 71ms, tests 5ms, environment 0ms)
+

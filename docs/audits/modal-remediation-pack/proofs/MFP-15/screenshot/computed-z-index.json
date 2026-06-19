@@ -1,0 +1,52 @@
+{
+  "root": {
+    "modal": "10050",
+    "backdrop": "1040",
+    "statusbar": "9999",
+    "systemBanner": "10090"
+  },
+  "before": [
+    {
+      "layer": "status",
+      "inlineZIndex": "z-index: var(--z-statusbar);",
+      "computedZIndex": "9999"
+    },
+    {
+      "layer": "backdrop",
+      "inlineZIndex": "z-index: var(--z-backdrop);",
+      "computedZIndex": "1040"
+    },
+    {
+      "layer": "modal",
+      "inlineZIndex": "z-index: 1000;",
+      "computedZIndex": "1000"
+    },
+    {
+      "layer": "banner",
+      "inlineZIndex": "z-index: 2147483647;",
+      "computedZIndex": "2147483647"
+    }
+  ],
+  "after": [
+    {
+      "layer": "status",
+      "inlineZIndex": "z-index: var(--z-statusbar);",
+      "computedZIndex": "9999"
+    },
+    {
+      "layer": "backdrop",
+      "inlineZIndex": "z-index: var(--z-backdrop);",
+      "computedZIndex": "1040"
+    },
+    {
+      "layer": "modal",
+      "inlineZIndex": "z-index: var(--z-modal);",
+      "computedZIndex": "10050"
+    },
+    {
+      "layer": "banner",
+      "inlineZIndex": "z-index: var(--z-system-banner);",
+      "computedZIndex": "10090"
+    }
+  ]
+}
