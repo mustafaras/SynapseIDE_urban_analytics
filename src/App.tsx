@@ -13,6 +13,7 @@ import ErrorBoundary from './components/utilities/ErrorBoundary';
 import TestHarness from './components/utilities/TestHarness';
 import { AiAssistant } from './components/ai.ts';
 import WelcomeModal from '@/features/urbanAnalytics/WelcomeModal';
+import { BRAND } from '@/constants/brand';
 import '@/styles/fonts.css';
 import '@/styles/ui.css';
 import SynapseHomepage from './components/templates/SynapseHomepage';
@@ -212,7 +213,7 @@ const DemoPage: React.FC<DemoPageProps> = ({ onOpenAnalytics }) => {
                   lineHeight: 'var(--line-height-tight)',
                 }}
               >
-                SynapseIDE
+                {BRAND.short}
               </h1>
               <p
                 style={{
@@ -389,7 +390,7 @@ const DemoPage: React.FC<DemoPageProps> = ({ onOpenAnalytics }) => {
               filter: 'drop-shadow(0 0 20px var(--color-primary))',
             }}
           >
-            SynapseIDE
+            {BRAND.short}
           </h1>
 
           {}
@@ -567,7 +568,7 @@ const DemoPage: React.FC<DemoPageProps> = ({ onOpenAnalytics }) => {
                       lineHeight: 'var(--line-height-tight)',
                     }}
                   >
-                    Welcome to SynapseIDE
+                    {`Welcome to ${BRAND.short}`}
                   </h2>
                   <p
                     style={{
@@ -900,7 +901,7 @@ const DemoPage: React.FC<DemoPageProps> = ({ onOpenAnalytics }) => {
                   fontWeight: 'var(--font-weight-semibold)',
                 }}
               >
-                SynapseIDE
+                {BRAND.short}
               </h4>
               <p
                 style={{
@@ -1246,7 +1247,7 @@ const MainApp: React.FC<MainAppProps> = ({ onOpenAnalytics }) => {
         {currentView === 'ide' && (
           <StatusBar
             language="javascript"
-            content="// Welcome to Synapse IDE"
+            content={`// Welcome to ${BRAND.short}`}
             cursorPosition={{ line: 1, column: 1 }}
             encoding="UTF-8"
             lineEnding="LF"
@@ -1307,7 +1308,7 @@ function App() {
   const [showUrbanModal, setShowUrbanModal] = useState(false);
   const [hasLoadedUrbanModal, setHasLoadedUrbanModal] = useState(false);
 
-  useEffect(() => { document.title = 'Urban Analytics Workbench'; }, []);
+  useEffect(() => { document.title = BRAND.full; }, []);
 
   // ── Synapse workspace memory: hydrate .synapse/ slots on mount ──────────
   useEffect(() => {
@@ -1482,10 +1483,10 @@ function App() {
               {hasLoadedUrbanModal ? (
                 <ChunkLoadBoundary
                   compact
-                  title="Urban Analytics Workbench unavailable"
-                  message="The Urban Analytics Workbench did not load. Retry after the dev server reconnects, or reload the app if it persists."
+                  title={`${BRAND.short} workspace unavailable`}
+                  message={`The ${BRAND.short} workspace did not load. Retry after the dev server reconnects, or reload the app if it persists.`}
                 >
-                  <Suspense fallback={<ModalLoadingFallback label="Loading Urban Analytics Workbench..." testId="urban-analytics-modal-loading" />}>
+                  <Suspense fallback={<ModalLoadingFallback label={`Loading ${BRAND.short} workspace…`} testId="urban-analytics-modal-loading" />}>
                     <UrbanAnalyticsModal
                       open={showUrbanModal}
                       onClose={() => setShowUrbanModal(false)}

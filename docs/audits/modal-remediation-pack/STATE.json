@@ -332,7 +332,7 @@
       "notes": "MFP-20 modal accessibility guardrails (codex). Modal-scoped proofs all green: focused unit suite 9 files/34 tests passed; test:e2e:a11y 12 passed incl five app-modal probes; validate:pr, build:pages, prompts.json schema validation passed. Squash-merged to master as f539d16e via PR #47. OWNER WAIVER (2026-06-20): validate:rc exits 1 — typecheck+lint+full Vitest+build+perf+smoke e2e+a11y e2e all pass, then the broad non-smoke functional Playwright segment reports 43 Map Explorer/GeoAI flow failures after 45 passes (full log in proofs/MFP-20/validate-rc.txt). Those 43 are out-of-scope app-level GIS/GeoAI functional flows (not modal accessibility), explicitly WAIVED by the repo owner to merge + deploy this wave; tracked as a residual RC gap (carry into MFP-22 release readiness), not a modal regression. Unblocks MFP-19."
     },
     "MFP-21": {
-      "status": "pending",
+      "status": "done",
       "priority": "P2",
       "phase": 2,
       "dependsOn": [],
@@ -343,7 +343,7 @@
       ],
       "proofDir": "proofs/MFP-21/",
       "commit": null,
-      "notes": ""
+      "notes": "Branding single source of truth. OWNER-CONFIRMED (AskUserQuestion, see decision.md): name must include GIS + Synapse IDE -> full='Synapse IDE — GIS & Urban Analytics Workbench', short='Synapse IDE'; tagline omitted (no preference -> spec says don't invent); version='0.9.0'. New src/constants/brand.ts (frozen BRAND, as const, no tagline). App.tsx: 4 shell literals (SynapseIDE x3 + 'Welcome to SynapseIDE' + status '// Welcome to Synapse IDE') -> BRAND.short; document.title -> BRAND.full; UA chunk-fallback copy -> BRAND.short. WelcomeModal title spans driven from BRAND (IDE-led, GIS-inclusive); #welcome-modal-title + classes preserved (MFP-14 intact; accessible name still contains 'Urban Analytics' so MFP-14 test still passes). UrbanAnalyticsModal deliberately KEPT 'Urban Analytics Workbench' (module name + e2e accessible-name contract: e2e/helpers/urbanAnalytics.ts selects getByRole('dialog',{name:'Urban Analytics Workbench'}) — renaming would regress e2e). Gate general: typecheck + lint:errors clean; no SynapseIDE/'Welcome to Synapse IDE' literals remain in App.tsx; WelcomeModal.a11y 1/1. REAL-CHROMIUM screenshot (chromium-1194): welcome-after.png shows unified brand; document.title=BRAND.full. Unblocks MFP-22."
     },
     "MFP-22": {
       "status": "pending",
