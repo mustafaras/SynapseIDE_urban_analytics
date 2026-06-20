@@ -509,7 +509,9 @@ describe("MapExplorerModal map dispatch", () => {
     await act(async () => {
       document.body.querySelector<HTMLButtonElement>('[data-testid="right-dock-close"]')?.click();
     });
-    expect(document.body.querySelector('[data-testid="map-right-dock-host"]')).toBeNull();
+    await waitFor(() => {
+      expect(document.body.querySelector('[data-testid="map-right-dock-host"]')).toBeNull();
+    });
 
     await act(async () => {
       root.unmount();

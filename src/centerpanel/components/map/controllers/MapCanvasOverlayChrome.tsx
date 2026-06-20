@@ -26,6 +26,7 @@ interface MapCanvasOverlayChromeProps {
   navigatorLeftInset: number;
   navigatorRightInset: number;
   overlayLayers: React.ComponentProps<typeof MapServiceDialog>["overlayLayers"];
+  onExternalServiceDialogClosed?: () => void;
   removeOverlayLayer: React.ComponentProps<typeof MapServiceDialog>["onRemoveLayer"];
   setShowExternalServiceDialog: React.Dispatch<React.SetStateAction<boolean>>;
   showExternalServiceDialog: boolean;
@@ -45,6 +46,7 @@ export const MapCanvasOverlayChrome: React.FC<MapCanvasOverlayChromeProps> = ({
   navigatorLeftInset,
   navigatorRightInset,
   overlayLayers,
+  onExternalServiceDialogClosed,
   removeOverlayLayer,
   setShowExternalServiceDialog,
   showExternalServiceDialog,
@@ -62,6 +64,7 @@ export const MapCanvasOverlayChrome: React.FC<MapCanvasOverlayChromeProps> = ({
         setShowExternalServiceDialog(false);
         handleExternalServiceProgress?.({ busy: false, label: null, progress: null });
         announce("External map services dialog closed");
+        onExternalServiceDialogClosed?.();
       }}
       onAnnounce={announce}
       onProgress={handleExternalServiceProgress ?? (() => undefined)}

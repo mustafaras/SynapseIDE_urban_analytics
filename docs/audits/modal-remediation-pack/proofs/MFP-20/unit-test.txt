@@ -1,0 +1,11 @@
+COMMAND: npx vitest run src/hooks/__tests__/useFocusTrap.test.ts src/components/molecules/__tests__/Modal.a11y.test.tsx src/components/molecules/__tests__/Modal.test.tsx src/components/ide/__tests__/GlobalSearch.a11y.test.tsx src/components/ai/panel/__tests__/KeysModal.a11y.test.tsx src/components/ai/settings/__tests__/AiSettingsModal.a11y.test.tsx src/components/settings/__tests__/SettingsModal.a11y.test.tsx src/components/ide/__tests__/UnsavedChangesDialog.a11y.test.tsx src/test/__tests__/modalGuardrails.test.ts
+
+ RUN  v4.1.4 C:/Users/PC/Documents/Codex/2026-06-12/github-plugin-github-openai-curated-remote/work/SynapseIDE_urban_analytics
+
+
+ Test Files  9 passed (9)
+      Tests  34 passed (34)
+   Start at  22:57:58
+   Duration  9.84s (transform 3.55s, setup 0ms, import 9.23s, tests 11.86s, environment 24.67s)
+
+EXIT_CODE: 0

@@ -1,5 +1,5 @@
 
-import React, { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAppStore, useLayoutActions } from '../../stores/appStore';
 import {
   useActiveTab,
@@ -1062,8 +1062,25 @@ export const EnhancedIDE: React.FC = () => {
   );
   const [isCmdOpen, setCmdOpen] = useState(false);
   const [isSearchOpen, setSearchOpen] = useState(false);
+  const searchReturnFocusRef = useRef<HTMLElement | null>(null);
   const handleOpenCommandPalette = useCallback(() => setCmdOpen(true), []);
-  const handleGlobalSearch = useCallback(() => setSearchOpen(true), []);
+  const handleGlobalSearch = useCallback(() => {
+    searchReturnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setSearchOpen(true);
+  }, []);
+  const handleCloseGlobalSearch = useCallback(() => {
+    setSearchOpen(false);
+    const target = searchReturnFocusRef.current;
+    searchReturnFocusRef.current = null;
+    window.setTimeout(() => {
+      const focusTarget = target && document.contains(target)
+        ? target
+        : document.querySelector<HTMLElement>('button[aria-label="Global Search"]');
+      if (focusTarget) {
+        focusTarget.focus();
+      }
+    }, 0);
+  }, []);
   const handleActivitySelect = useCallback(
     (item: IdeActivityRailItem) => {
       setActivityRailItem(item);
@@ -2126,7 +2143,7 @@ export const EnhancedIDE: React.FC = () => {
         />
 
         {}
-        <GlobalSearch isOpen={isSearchOpen} onClose={() => setSearchOpen(false)} />
+        <GlobalSearch isOpen={isSearchOpen} onClose={handleCloseGlobalSearch} />
 
   {}
   {layout.aiChatVisible ? <div

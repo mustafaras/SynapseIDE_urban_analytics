@@ -10,6 +10,7 @@ import {
   openLayerActionMenu,
   openMapExplorer,
   resetWorkbenchState,
+  seedGeoJSONLayerFixture,
   triggerDomClick,
 } from "./helpers/urbanAnalytics";
 
@@ -47,11 +48,22 @@ test.describe("P38 — work-surface visual pass @smoke", () => {
     await triggerDomClick(mapExplorer.getByTestId("activity-btn-layers"));
     await triggerDomClick(page.getByTestId("map-workbench-sidebar-tab-layers-stack"));
 
-    await triggerDomClick(
-      page
-        .getByRole("button", { name: /Add demo street, block, and building layers/i })
-        .first(),
-    );
+    await seedGeoJSONLayerFixture(page, {
+      id: "p38-streets",
+      name: "Üsküdar Demo Streets",
+      featureCollection: {
+        type: "FeatureCollection",
+        features: [
+          {
+            type: "Feature",
+            geometry: { type: "LineString", coordinates: [[29.0, 41.0], [29.01, 41.01]] },
+            properties: { name: "Demo street", class: "residential" },
+          },
+        ],
+      },
+      datasetTitle: "Üsküdar Demo Streets",
+      sourceLabel: "P38 E2E seeded streets",
+    });
 
     const streetsRow = page.getByRole("listitem", { name: /Layer: Üsküdar Demo Streets/i }).first();
     await expect(streetsRow).toBeVisible({ timeout: 8000 });

@@ -252,6 +252,7 @@ const KeyRowNew: React.FC<KeyRowNewProps> = (props) => {
           $invalid={invalid}
           type={show ? 'text' : 'password'}
           placeholder={placeholder || ''}
+          aria-label={label}
           value={value}
           onChange={e => onChange(e.target.value)}
 

@@ -10,6 +10,7 @@ import {
   selectVisibleLayerSummaries,
   useMapExplorerStore,
 } from "../useMapExplorerStore";
+import { createDefaultMapRightDockFloatingRect } from "../../centerpanel/components/map/mapDocking";
 import type {
   DrawnFeature,
   MapPin,
@@ -827,6 +828,10 @@ describe("useMapExplorerStore", () => {
       expect(parsed.state.layoutPreferences).toEqual({
         layerPanelWidth: 640,
         rightPanelWidth: 500,
+        rightDockFloating: {
+          ...DEFAULT_MAP_EXPLORER_LAYOUT_PREFERENCES.rightDockFloating,
+          width: 500,
+        },
         panelMode: "collapsed",
       });
       expect(parsed.state.overlayLayers).toBeUndefined();
@@ -871,7 +876,14 @@ describe("useMapExplorerStore", () => {
       const store = await freshStore();
       const state = store.getState();
 
-      expect(state.layoutPreferences).toEqual(DEFAULT_MAP_EXPLORER_LAYOUT_PREFERENCES);
+      expect(state.layoutPreferences).toEqual({
+        ...DEFAULT_MAP_EXPLORER_LAYOUT_PREFERENCES,
+        rightDockFloating: createDefaultMapRightDockFloatingRect(
+          { width: 1600, height: 900 },
+          DEFAULT_MAP_EXPLORER_LAYOUT_PREFERENCES.rightPanelWidth,
+          DEFAULT_MAP_EXPLORER_LAYOUT_PREFERENCES.rightDockFloating.height,
+        ),
+      });
       expect(state.center).toEqual([10, 20]);
       expect(state.zoom).toBe(5);
       expect(state.activeBaseLayer).toBe("satellite");

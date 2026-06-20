@@ -126,7 +126,7 @@ test.describe("Prompt 43 release candidate UI smoke @smoke", () => {
     const mapExplorer = page.getByRole("dialog", { name: "Map Explorer" });
     await expect(mapExplorer).toBeVisible();
     await expect(page.getByTestId("map-top-command-surface")).toBeVisible();
-    await expect(page.getByTestId("map-command-center-overflow")).toBeVisible();
+    await expect(page.getByTestId("map-command-center")).toHaveAttribute("data-command-registry-count", /\d+/);
     await triggerDomClick(page.getByRole("button", { name: "Close map explorer (Escape)" }));
     await expect(mapExplorer).toBeHidden();
 

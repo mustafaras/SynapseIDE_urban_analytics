@@ -136,6 +136,8 @@ import { applyCartographyRecommendationToLayer, generateMapCartographyReview, ty
 import { toastError, toastInfo, toastSuccess, toastWarning } from '../../../../ui/toast/api';
 import { isBackgroundTaskCancelledError } from '../../../../workers/pool';
 
+const RIGHT_DOCK_FOCUS_RESTORE_DELAY_MS = 180;
+
 const LazyMapReportHandoffDrawer = React.lazy(async () => {
   const module = await import('../MapReportHandoffDrawer');
   return { default: module.MapReportHandoffDrawer };
@@ -1074,6 +1076,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
   const [attributeTableLayerId, setAttributeTableLayerId] = useState<string | null>(null);
   const attributeTableLayer = attributeTableLayerId ? (overlayLayers.find(entry => entry.id === attributeTableLayerId) ?? null) : null;
   const [showExternalServiceDialog, setShowExternalServiceDialog] = useState(false);
+  const externalServiceReturnFocusRef = useRef<HTMLElement | null>(null);
   const [pointSymbologyLayerId, setPointSymbologyLayerId] = useState<string | null>(null);
   const [pointSymbologyMode, setPointSymbologyMode] = useState<SymbolMode | 'heatmap'>('heatmap');
   const [selectionDragTool, setSelectionDragTool] = useState<SelectionDragTool | null>(null);
@@ -2829,8 +2832,21 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
     setRightDockCollapsed(false);
     closeRightDockRoute();
     announce('Right dock closed');
+    const restoreCloseFocus = () => {
+      const recordedTarget = bottomPanelReturnFocusRef.current;
+      const returnTarget = recordedTarget?.isConnected
+        && recordedTarget !== document.body
+        && !recordedTarget.closest('[data-map-right-dock-host="true"]')
+        ? recordedTarget
+        : document.querySelector<HTMLElement>('[data-map-activity-state="active"]')
+          ?? document.querySelector<HTMLElement>(`[data-testid="activity-btn-${activeActivityId}"]`);
+      returnTarget?.focus({ preventScroll: true });
+    };
     restoreFocusToElement(bottomPanelReturnFocusRef.current);
-  }, [announce, closeRightDockRoute]);
+    window.requestAnimationFrame(restoreCloseFocus);
+    window.setTimeout(restoreCloseFocus, 0);
+    window.setTimeout(restoreCloseFocus, RIGHT_DOCK_FOCUS_RESTORE_DELAY_MS);
+  }, [activeActivityId, announce, closeRightDockRoute]);
 
   const handleSetWorkspaceView = useCallback(
     (view: MapWorkspaceView) => {
@@ -3348,6 +3364,26 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
     setImportLabel(detail.label);
     setImportProgress(detail.progress);
     setShowImportProgress(detail.busy || detail.progress !== null);
+  }, []);
+
+  const captureExternalServiceReturnFocus = useCallback(() => {
+    if (typeof document === 'undefined') return;
+    const active = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const addDataTrigger = document.querySelector<HTMLElement>('[data-testid="map-premium-menu-add-data"]');
+    externalServiceReturnFocusRef.current = active?.closest('[data-testid="map-premium-menu-content-add-data"]')
+      ? addDataTrigger ?? active
+      : active;
+  }, []);
+
+  const restoreExternalServiceReturnFocus = useCallback(() => {
+    const target = externalServiceReturnFocusRef.current;
+    externalServiceReturnFocusRef.current = null;
+    if (!target || typeof window === 'undefined') return;
+    window.setTimeout(() => {
+      if (document.contains(target)) {
+        target.focus();
+      }
+    }, 0);
   }, []);
 
   const handleOpenVoxCityOverlayFromService = useCallback(() => {
@@ -6324,6 +6360,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
             onToggleMeasurePanel={handleToggleMeasurePanel}
             onImportClick={toolbarCommandHandlers.importData}
             onOpenExternalServices={() => {
+              captureExternalServiceReturnFocus();
               setShowExternalServiceDialog(true);
               announce('External map services dialog opened');
             }}
@@ -6481,7 +6518,7 @@ export const MapExplorerModal: React.FC<MapExplorerModalProps> = ({ open, onClos
           </div>
         ) : null}
 
-        <MapCanvasOverlayChrome announce={announce} dispatchFeedback={dispatchFeedback} externalBounds={externalServiceBounds?.bounds ?? null} externalBoundsLabel={externalServiceBounds?.label ?? null} handleExternalServiceLayerReady={handleExternalServiceLayerReady} handleExternalServiceProgress={handleExternalServiceProgress} handleOpenVoxCityOverlayFromService={handleOpenVoxCityOverlayFromService} importLabel={importLabel} importProgress={importProgress} navigatorLeftInset={navigatorLeftInset} navigatorRightInset={navigatorRightInset} overlayLayers={overlayLayers} removeOverlayLayer={removeOverlayLayer} setShowExternalServiceDialog={setShowExternalServiceDialog} showExternalServiceDialog={showExternalServiceDialog} showImportProgress={showImportProgress} />
+        <MapCanvasOverlayChrome announce={announce} dispatchFeedback={dispatchFeedback} externalBounds={externalServiceBounds?.bounds ?? null} externalBoundsLabel={externalServiceBounds?.label ?? null} handleExternalServiceLayerReady={handleExternalServiceLayerReady} handleExternalServiceProgress={handleExternalServiceProgress} handleOpenVoxCityOverlayFromService={handleOpenVoxCityOverlayFromService} importLabel={importLabel} importProgress={importProgress} navigatorLeftInset={navigatorLeftInset} navigatorRightInset={navigatorRightInset} overlayLayers={overlayLayers} onExternalServiceDialogClosed={restoreExternalServiceReturnFocus} removeOverlayLayer={removeOverlayLayer} setShowExternalServiceDialog={setShowExternalServiceDialog} showExternalServiceDialog={showExternalServiceDialog} showImportProgress={showImportProgress} />
 
         {isFlowDispatchDialogOpen ? <MapFlowDispatchDialog compatibleAoiFlows={compatibleAoiFlows} flowDispatchAoi={flowDispatchAoi} hasCurrentMapBounds={Boolean(currentMapBounds)} restrictToMapView={restrictToMapView} onClose={() => setIsFlowDispatchDialogOpen(false)} onToggleRestrictToMapView={handleToggleRestrictToMapView} onDispatchFlow={handleDispatchFlowSelection} /> : null}
 

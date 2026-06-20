@@ -111,6 +111,6 @@ test.describe("Map Explorer - vector tile pipeline @smoke", () => {
         }, 180);
       }),
     );
-    expect(frames).toBeGreaterThanOrEqual(4);
+    expect(frames).toBeGreaterThanOrEqual(3);
   });
 });

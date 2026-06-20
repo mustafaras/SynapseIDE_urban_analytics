@@ -202,6 +202,7 @@ describe("MapInspectorHost", () => {
         returnFocusTo={opener}
       />,
     );
+    vi.runAllTimers();
 
     fireEvent.click(screen.getByRole("button", { name: "Close inspector" }));
     expect(onClose).toHaveBeenCalledOnce();

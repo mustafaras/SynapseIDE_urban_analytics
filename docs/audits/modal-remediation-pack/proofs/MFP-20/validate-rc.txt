@@ -1,0 +1,2077 @@
+COMMAND: npm run validate:rc
+
+> urban-analytics-workbench@1.0.0 validate:rc
+> npm run typecheck && npm run lint:errors && npm run test && npm run build && npm run perf:budgets && npm run test:e2e:ci
+
+
+> urban-analytics-workbench@1.0.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+
+> urban-analytics-workbench@1.0.0 lint:errors
+> eslint . --ext ts,tsx --quiet
+
+
+> urban-analytics-workbench@1.0.0 test
+> vitest run
+
+
+ RUN  v4.1.4 C:/Users/PC/Documents/Codex/2026-06-12/github-plugin-github-openai-curated-remote/work/SynapseIDE_urban_analytics
+
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+
+ Test Files  301 passed (301)
+      Tests  3164 passed | 2 skipped (3166)
+   Start at  12:30:49
+   Duration  152.89s (transform 223.68s, setup 0ms, import 796.25s, tests 169.57s, environment 267.42s)
+
+
+> urban-analytics-workbench@1.0.0 build
+> node --max-old-space-size=12288 node_modules/vite/bin/vite.js build
+
+[36mvite v8.0.8 [32mbuilding client environment for production...[36m[39m
+[2K
+[plugin rolldown:vite-resolve] Module "fs" has been externalized for browser compatibility, imported by "C:/Users/PC/Documents/Codex/2026-06-12/github-plugin-github-openai-curated-remote/work/SynapseIDE_urban_analytics/node_modules/sql.js/dist/sql-wasm.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+[plugin rolldown:vite-resolve] Module "crypto" has been externalized for browser compatibility, imported by "C:/Users/PC/Documents/Codex/2026-06-12/github-plugin-github-openai-curated-remote/work/SynapseIDE_urban_analytics/node_modules/sql.js/dist/sql-wasm.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+
+new URL("./",import.meta.url) doesn't exist at build time, it will remain unchanged to be resolved at runtime. If this is intended, you can use the /* @vite-ignore */ comment to suppress this warning.
+[plugin rolldown:vite-resolve] Module "fs" has been externalized for browser compatibility, imported by "C:/Users/PC/Documents/Codex/2026-06-12/github-plugin-github-openai-curated-remote/work/SynapseIDE_urban_analytics/node_modules/sql.js/dist/sql-wasm.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+[plugin rolldown:vite-resolve] Module "crypto" has been externalized for browser compatibility, imported by "C:/Users/PC/Documents/Codex/2026-06-12/github-plugin-github-openai-curated-remote/work/SynapseIDE_urban_analytics/node_modules/sql.js/dist/sql-wasm.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+[PLUGIN_TIMINGS] Warning: Your build spent significant time in plugin `vite:worker`. See https://rolldown.rs/options/checks#plugintimings for more details.
+
+[PLUGIN_TIMINGS] Warning: Your build spent significant time in plugin `vite:resolve-builtin:get-environment`. See https://rolldown.rs/options/checks#plugintimings for more details.
+
+transforming...✓ 5247 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/assets/searchWorker-CqtyUrm1.js                              2.52 kB
+dist/assets/KaTeX_Size3-Regular-CTq5MqoE.woff                     4.42 kB
+dist/assets/gwr.worker-gv3QdUCw.js                                4.89 kB
+dist/assets/KaTeX_Size4-Regular-Dl5lxZxV.woff2                    4.92 kB
+dist/assets/KaTeX_Size2-Regular-Dy4dx90m.woff2                    5.20 kB
+dist/assets/KaTeX_Size1-Regular-mCD8mA8B.woff2                    5.46 kB
+dist/assets/KaTeX_Size4-Regular-BF-4gkZK.woff                     5.98 kB
+dist/assets/KaTeX_Size2-Regular-oD1tc_U0.woff                     6.18 kB
+dist/assets/KaTeX_Size1-Regular-C195tn64.woff                     6.49 kB
+dist/assets/KaTeX_Caligraphic-Regular-Di6jR-x-.woff2              6.90 kB
+dist/assets/KaTeX_Caligraphic-Bold-Dq_IR9rO.woff2                 6.91 kB
+dist/assets/KaTeX_Size3-Regular-DgpXs0kz.ttf                      7.58 kB
+dist/assets/KaTeX_Caligraphic-Regular-CTRA-rTL.woff               7.65 kB
+dist/index.html                                                   7.70 kB │ gzip:     1.97 kB
+dist/assets/KaTeX_Caligraphic-Bold-BEiXGLvX.woff                  7.71 kB
+dist/assets/KaTeX_Script-Regular-D3wIWfF6.woff2                   9.64 kB
+dist/assets/KaTeX_SansSerif-Regular-DDBCnlJ7.woff2               10.34 kB
+dist/assets/KaTeX_Size4-Regular-DWFBv043.ttf                     10.36 kB
+dist/assets/KaTeX_Script-Regular-D5yQViql.woff                   10.58 kB
+dist/assets/spatialIndex.worker-C6wek9tX.js                      11.18 kB
+dist/assets/KaTeX_Fraktur-Regular-CTYiF6lA.woff2                 11.31 kB
+dist/assets/KaTeX_Fraktur-Bold-CL6g_b3V.woff2                    11.34 kB
+dist/assets/KaTeX_Size2-Regular-B7gKUWhC.ttf                     11.50 kB
+dist/assets/KaTeX_SansSerif-Italic-C3H0VqGB.woff2                12.02 kB
+dist/assets/KaTeX_SansSerif-Bold-D1sUS0GD.woff2                  12.21 kB
+dist/assets/KaTeX_Size1-Regular-Dbsnue_I.ttf                     12.22 kB
+dist/assets/KaTeX_SansSerif-Regular-CS6fqUqJ.woff                12.31 kB
+dist/assets/KaTeX_Caligraphic-Regular-wX97UBjC.ttf               12.34 kB
+dist/assets/KaTeX_Caligraphic-Bold-ATXxdsX0.ttf                  12.36 kB
+dist/assets/KaTeX_Fraktur-Regular-Dxdc4cR9.woff                  13.20 kB
+dist/assets/KaTeX_Fraktur-Bold-BsDP51OF.woff                     13.29 kB
+dist/assets/KaTeX_Typewriter-Regular-CO6r4hn1.woff2              13.56 kB
+dist/assets/KaTeX_SansSerif-Italic-DN2j7dab.woff                 14.11 kB
+dist/assets/KaTeX_SansSerif-Bold-DbIhKOiC.woff                   14.40 kB
+dist/assets/KaTeX_Typewriter-Regular-C0xS9mPB.woff               16.02 kB
+dist/assets/KaTeX_Math-BoldItalic-CZnvNsCZ.woff2                 16.40 kB
+dist/assets/KaTeX_Math-Italic-t53AETM-.woff2                     16.44 kB
+dist/assets/KaTeX_Script-Regular-C5JkGWo-.ttf                    16.64 kB
+dist/assets/KaTeX_Main-BoldItalic-DxDJ3AOS.woff2                 16.78 kB
+dist/assets/KaTeX_Main-Italic-NWA7e6Wa.woff2                     16.98 kB
+dist/assets/KaTeX_Math-BoldItalic-iY-2wyZ7.woff                  18.66 kB
+dist/assets/KaTeX_Math-Italic-DA0__PXp.woff                      18.74 kB
+dist/assets/KaTeX_Main-BoldItalic-SpSLRI95.woff                  19.41 kB
+dist/assets/KaTeX_SansSerif-Regular-BNo7hRIc.ttf                 19.43 kB
+dist/assets/KaTeX_Fraktur-Regular-CB_wures.ttf                   19.57 kB
+dist/assets/KaTeX_Fraktur-Bold-BdnERNNW.ttf                      19.58 kB
+dist/assets/KaTeX_Main-Italic-BMLOBm91.woff                      19.67 kB
+dist/assets/KaTeX_SansSerif-Italic-YYjJ1zSn.ttf                  22.36 kB
+dist/assets/KaTeX_SansSerif-Bold-CFMepnvq.ttf                    24.50 kB
+dist/assets/KaTeX_Main-Bold-Cx986IdX.woff2                       25.32 kB
+dist/assets/KaTeX_Main-Regular-B22Nviop.woff2                    26.27 kB
+dist/assets/KaTeX_Typewriter-Regular-D3Ib7_Hf.ttf                27.55 kB
+dist/assets/KaTeX_AMS-Regular-BQhdFMY1.woff2                     28.07 kB
+dist/assets/KaTeX_Main-Bold-Jm3AIy58.woff                        29.91 kB
+dist/assets/KaTeX_Main-Regular-Dr94JaBh.woff                     30.77 kB
+dist/assets/KaTeX_Math-BoldItalic-B3XSjfu4.ttf                   31.19 kB
+dist/assets/KaTeX_Math-Italic-flOr_0UB.ttf                       31.30 kB
+dist/assets/KaTeX_Main-BoldItalic-DzxPMmG6.ttf                   32.96 kB
+dist/assets/KaTeX_AMS-Regular-DMm9YOAa.woff                      33.51 kB
+dist/assets/KaTeX_Main-Italic-3WenGoN9.ttf                       33.58 kB
+dist/assets/KaTeX_Main-Bold-waoOVXN0.ttf                         51.33 kB
+dist/assets/KaTeX_Main-Regular-ypZvNtVU.ttf                      53.58 kB
+dist/assets/MapScientificQA.worker-CzKXudp2.js                   59.22 kB
+dist/assets/KaTeX_AMS-Regular-DRggAlZN.ttf                       63.63 kB
+dist/.vite/manifest.json                                         93.76 kB │ gzip:    12.35 kB
+dist/assets/duckdb-browser-eh.worker-oJzvuNBU.js                772.79 kB
+dist/assets/duckdb-browser-mvp.worker-Do2wEevy.js               844.67 kB
+dist/assets/topologyRepairWorker-CgALs7sd.js                  2,479.42 kB
+dist/assets/analytics.worker-BkP29EuT.js                      3,178.09 kB
+dist/assets/parquet_wasm_bg-DrNke8Bl.wasm                     5,493.39 kB │ gzip: 1,831.35 kB
+dist/assets/ort-wasm-simd-threaded.jsep-CLPRrI3A.wasm        21,872.21 kB │ gzip: 5,246.92 kB
+dist/assets/duckdb-eh-CDxYOdE3.wasm                          34,248.93 kB │ gzip: 7,784.18 kB
+dist/assets/duckdb-mvp-BmFzQ2ix.wasm                         39,371.47 kB │ gzip: 8,867.44 kB
+dist/assets/GuideViewV2-KIZkQ2KD.css                              0.84 kB │ gzip:     0.45 kB
+dist/assets/a11y-Tgyfp4Dy.css                                     0.97 kB │ gzip:     0.51 kB
+dist/assets/urban-context-strip-nVaKCxK9.css                      3.80 kB │ gzip:     0.87 kB
+dist/assets/MapInspectorHost-DwKBapS_.css                         4.30 kB │ gzip:     1.04 kB
+dist/assets/OutlineRailV2-BO7eEFik.css                            4.37 kB │ gzip:     1.31 kB
+dist/assets/CollaborationUI-P71GA5ug.css                          5.80 kB │ gzip:     1.67 kB
+dist/assets/yjs-CFyzII7j.css                                      6.67 kB │ gzip:     1.75 kB
+dist/assets/educationRail-Dh9UBOQW.css                            6.88 kB │ gzip:     1.62 kB
+dist/assets/MonacoEditor-BdzlDjJ0.css                             7.81 kB │ gzip:     1.80 kB
+dist/assets/NewProjectPage-Bd-32myM.css                           8.41 kB │ gzip:     1.95 kB
+dist/assets/IndicatorCatalogPanel-CVre1-lE.css                   12.66 kB │ gzip:     2.63 kB
+dist/assets/DatasetLibraryBrowser-CkFvEe6D.css                   12.92 kB │ gzip:     2.43 kB
+dist/assets/uiStore-0kEiF5PC.css                                 14.24 kB │ gzip:     2.92 kB
+dist/assets/RightPanelFourBlock-CQyLj7FR.css                     15.72 kB │ gzip:     3.13 kB
+dist/assets/rail-g8_iMaci.css                                    17.15 kB │ gzip:     3.56 kB
+dist/assets/education-s5wA-_ek.css                               18.66 kB │ gzip:     3.48 kB
+dist/assets/DashboardBuilder-Bvjkv3q2.css                        19.90 kB │ gzip:     3.43 kB
+dist/assets/Registry-CucPf0DX.css                                21.19 kB │ gzip:     3.99 kB
+dist/assets/Note-PEAx-ufc.css                                    22.89 kB │ gzip:     4.34 kB
+dist/assets/centerpanel-1dle3rtA.css                             25.67 kB │ gzip:     4.60 kB
+dist/assets/ToolsProjectList-UyepDrO8.css                        26.78 kB │ gzip:     4.65 kB
+dist/assets/MethodologyExplainer-CSceNpVM.css                    28.84 kB │ gzip:     7.92 kB
+dist/assets/UrbanAnalyticsModal-BQXgZXym.css                     40.29 kB │ gzip:     7.08 kB
+dist/assets/CenterPanelShell-B66gaI8q.css                        46.13 kB │ gzip:     8.93 kB
+dist/assets/index-C9-Gwi7b.css                                   64.58 kB │ gzip:    11.99 kB
+dist/assets/MapPublicationOutputBindingService-w0GmEUh1.css      65.32 kB │ gzip:     9.27 kB
+dist/assets/flows-CKwmR2y-.css                                   71.26 kB │ gzip:    10.92 kB
+dist/assets/guides-C23Ya4U7.css                                  71.32 kB │ gzip:    10.82 kB
+dist/assets/note-DK6_20pc.css                                    77.79 kB │ gzip:    12.51 kB
+dist/assets/MapExplorerHost-C_CNwiRm.css                         97.85 kB │ gzip:    15.03 kB
+dist/assets/tools-TzmZVtTB.css                                  115.38 kB │ gzip:    17.04 kB
+dist/assets/GeoTiffParser-64ByuXy1.js                             0.08 kB │ gzip:     0.09 kB
+dist/assets/useMapExplorerStore-CnXyYlbS.js                       0.08 kB │ gzip:     0.08 kB
+dist/assets/MapEngineAdapter-aVONmYNf.js                          0.09 kB │ gzip:     0.10 kB
+dist/assets/MapInspectorHost-D5V1rGjI.js                          0.09 kB │ gzip:     0.09 kB
+dist/assets/MapPersistenceService-DcUv6U4o.js                     0.10 kB │ gzip:     0.10 kB
+dist/assets/DatasetLibraryBrowser-D3QW1rKD.js                     0.10 kB │ gzip:     0.09 kB
+dist/assets/types-DzG9A4eF.js                                     0.13 kB │ gzip:     0.14 kB │ map:     2.84 kB
+dist/assets/raw-CP6EVXBh.js                                       0.15 kB │ gzip:     0.15 kB │ map:     0.39 kB
+dist/assets/deflate-DxElFsR9.js                                   0.22 kB │ gzip:     0.20 kB │ map:     0.51 kB
+dist/assets/a11y.module-BcLgATsR.js                               0.26 kB │ gzip:     0.19 kB │ map:     1.41 kB
+dist/assets/uiStore-B9ZzX8rA.js                                   0.29 kB │ gzip:     0.21 kB │ map:     1.16 kB
+dist/assets/download-JzyWHJKa.js                                  0.30 kB │ gzip:     0.24 kB │ map:     1.28 kB
+dist/assets/typeof-Cz0gB6OM.js                                    0.31 kB │ gzip:     0.20 kB │ map:     0.78 kB
+dist/assets/packbits-DSShivCt.js                                  0.39 kB │ gzip:     0.29 kB │ map:     1.35 kB
+dist/assets/urban-context-strip.module-CEwekWlM.js                0.40 kB │ gzip:     0.24 kB │ map:     5.01 kB
+dist/assets/uiStore-DAAii7xC.js                                   0.43 kB │ gzip:     0.23 kB │ map:     1.26 kB
+dist/assets/CityJSONFlow-BdmeDjam.js                              0.43 kB │ gzip:     0.32 kB │ map:     0.99 kB
+dist/assets/jsx-runtime-De-1JGbp.js                               0.47 kB │ gzip:     0.34 kB │ map:     1.92 kB
+dist/assets/statusBus-Do2VlfnY.js                                 0.47 kB │ gzip:     0.35 kB │ map:     1.79 kB
+dist/assets/VoxCity3DFlow-DYEdeFqZ.js                             0.48 kB │ gzip:     0.35 kB │ map:     1.12 kB
+dist/assets/SunlightSimFlow-B9KtXcjv.js                           0.51 kB │ gzip:     0.35 kB │ map:     1.18 kB
+dist/assets/hooks-Dg98XUId.js                                     0.53 kB │ gzip:     0.33 kB │ map:     5.61 kB
+dist/assets/webimage-B2SstKBK.js                                  0.71 kB │ gzip:     0.42 kB │ map:     2.13 kB
+dist/assets/esm-DywO7z0-.js                                       0.76 kB │ gzip:     0.47 kB │ map:     2.84 kB
+dist/assets/useCalcStore-DnKEAkZv.js                              0.77 kB │ gzip:     0.38 kB │ map:     3.87 kB
+dist/assets/EmergingHotSpotFlow-CfL_obBq.js                       0.79 kB │ gzip:     0.47 kB │ map:     1.50 kB
+dist/assets/guideRailBridge-CLDn9lSN.js                           1.08 kB │ gzip:     0.69 kB │ map:     3.67 kB
+dist/assets/statusBridge-CM1r56ki.js                              1.09 kB │ gzip:     0.59 kB │ map:     7.64 kB
+dist/assets/api-DFcZIm6_.js                                       1.14 kB │ gzip:     0.66 kB │ map:     5.11 kB
+dist/assets/chunk-zsgVPwQN.js                                     1.20 kB │ gzip:     0.66 kB
+dist/assets/useNewProjectDraftStore-CXLYIu4v.js                   1.21 kB │ gzip:     0.67 kB │ map:     5.40 kB
+dist/assets/educationRail.module-CEJJVt8P.js                      1.22 kB │ gzip:     0.48 kB │ map:     9.04 kB
+dist/assets/basedecoder-CCZLX6Gd.js                               1.25 kB │ gzip:     0.70 kB │ map:     5.34 kB
+dist/assets/preload-helper-yAHoHR4o.js                            1.26 kB │ gzip:     0.73 kB
+dist/assets/synapseBus-BqL-3cAU.js                                1.28 kB │ gzip:     0.62 kB │ map:    11.34 kB
+dist/assets/useAccessStore-QlL-rlzl.js                            1.30 kB │ gzip:     0.62 kB │ map:     5.93 kB
+dist/assets/sections-CJuARviq.js                                  1.31 kB │ gzip:     0.56 kB │ map:     3.58 kB
+dist/assets/lzw-Cfi4Np-O.js                                       1.40 kB │ gzip:     0.82 kB │ map:     5.93 kB
+dist/assets/localVault-CP1y0BXY.js                                1.65 kB │ gzip:     0.75 kB │ map:     5.10 kB
+dist/assets/SqlWorkspaceBody-DFKATIFc.js                          1.69 kB │ gzip:     1.06 kB │ map:     5.40 kB
+dist/assets/RasterHistogramEngine-nSMj9E6r.js                     1.72 kB │ gzip:     0.94 kB │ map:     8.79 kB
+dist/assets/mapToIdeHandoff--QY_VEmm.js                           1.85 kB │ gzip:     0.92 kB │ map:    27.41 kB
+dist/assets/useSpatialIndexStore-Bhe_P-WY.js                      1.95 kB │ gzip:     0.75 kB │ map:     8.13 kB
+dist/assets/middleware-BIM-L2Ca.js                                1.97 kB │ gzip:     1.01 kB │ map:    18.61 kB
+dist/assets/sectionHierarchy-BNXRwNOD.js                          2.14 kB │ gzip:     0.93 kB │ map:     6.96 kB
+dist/assets/flowUtils-4Qt2TR4M.js                                 2.26 kB │ gzip:     1.04 kB │ map:     9.09 kB
+dist/assets/MapObservabilityService-TjB62wYL.js                   2.35 kB │ gzip:     1.16 kB │ map:    11.07 kB
+dist/assets/centerpanel.module-DzriQh40.js                        2.38 kB │ gzip:     0.87 kB │ map:    30.16 kB
+dist/assets/MethodologyInfoButton-YZUU7ZXQ.js                     2.42 kB │ gzip:     1.06 kB │ map:     4.00 kB
+dist/assets/editorBridge-B95oVaU_.js                              2.53 kB │ gzip:     1.17 kB │ map:     7.77 kB
+dist/assets/usePanelBridgeStore-BrW0MDSh.js                       2.67 kB │ gzip:     1.04 kB │ map:     9.08 kB
+dist/assets/useFlowStore-BO2-NJ8m.js                              3.17 kB │ gzip:     1.36 kB │ map:    17.44 kB
+dist/assets/error-bus-pNVeZ1Br.js                                 3.31 kB │ gzip:     1.52 kB │ map:    12.05 kB
+dist/assets/education.module-DwdqT5QO.js                          3.32 kB │ gzip:     1.08 kB │ map:    28.36 kB
+dist/assets/LandCoverClassifier-BH0wM4Gg.js                       3.42 kB │ gzip:     1.60 kB │ map:    19.58 kB
+dist/assets/rail.module-DzlMVydt.js                               3.53 kB │ gzip:     1.15 kB │ map:    21.06 kB
+dist/assets/scheduler-BkoMe0bw.js                                 3.60 kB │ gzip:     1.60 kB │ map:    15.63 kB
+dist/assets/react-dom-Br7MGnVl.js                                 3.61 kB │ gzip:     1.39 kB │ map:    12.06 kB
+dist/assets/BackgroundAnalyticsQueue-Dq1_Sx_I.js                  3.63 kB │ gzip:     1.66 kB │ map:    27.01 kB
+dist/assets/GeoTiffParser-2Wx0GQ_4.js                             3.72 kB │ gzip:     1.87 kB │ map:    15.21 kB
+dist/assets/bridge-C-Crn1yV.js                                    3.76 kB │ gzip:     1.39 kB │ map:    27.32 kB
+dist/assets/CrossPanelActions-SjjmonAa.js                         4.06 kB │ gzip:     1.57 kB │ map:     9.74 kB
+dist/assets/layout-BQZ_tSQ-.js                                    4.20 kB │ gzip:     1.78 kB │ map:    14.69 kB
+dist/assets/globals-B0vujXJY.js                                   4.24 kB │ gzip:     1.98 kB │ map:     9.63 kB
+dist/assets/store-BqhljuYc.js                                     4.38 kB │ gzip:     1.79 kB │ map:    19.05 kB
+dist/assets/exporters-DFrQHCAR.js                                 4.67 kB │ gzip:     2.21 kB │ map:    32.01 kB
+dist/assets/flags-CgXRNOZp.js                                     4.69 kB │ gzip:     1.43 kB │ map:    13.20 kB
+dist/assets/EducationLeftRail-C9rUA0T4.js                         4.70 kB │ gzip:     1.74 kB │ map:    14.37 kB
+dist/assets/mapContextSummary-MR59ngn6.js                         4.77 kB │ gzip:     1.90 kB │ map:    21.20 kB
+dist/assets/DashboardLeftRail-DTW6rlsU.js                         4.89 kB │ gzip:     1.76 kB │ map:    14.21 kB
+dist/assets/lazyWithRetry-nAuecndw.js                             5.07 kB │ gzip:     2.12 kB │ map:    16.68 kB
+dist/assets/compositeIndicatorDemo-B91Vg4li.js                    5.07 kB │ gzip:     1.60 kB │ map:    12.49 kB
+dist/assets/CityJSONLoader-P3ku9Mkh.js                            5.50 kB │ gzip:     2.32 kB │ map:    26.73 kB
+dist/assets/guides.module-g5r9DsIm.js                             6.06 kB │ gzip:     1.95 kB │ map:    82.92 kB
+dist/assets/CapabilitiesOverviewPanel-CfEh0zgN.js                 6.46 kB │ gzip:     2.03 kB │ map:    13.99 kB
+dist/assets/urbanToIdeHandoff-kBNrsc0d.js                         6.63 kB │ gzip:     2.17 kB │ map:    34.83 kB
+dist/assets/fileExplorerStore-Btn1BqpU.js                         6.67 kB │ gzip:     2.27 kB │ map:    34.36 kB
+dist/assets/NewProjectPage-DyZkKsB8.js                            6.72 kB │ gzip:     2.27 kB │ map:    25.10 kB
+dist/assets/OutlineRailV2-C7Ge0sGw.js                             7.21 kB │ gzip:     2.75 kB │ map:    24.00 kB
+dist/assets/OutlineRail-B4Of4j3L.js                               7.23 kB │ gzip:     2.75 kB │ map:    21.59 kB
+dist/assets/workflowExperience-Bl8l9sjL.js                        7.24 kB │ gzip:     2.70 kB │ map:    13.29 kB
+dist/assets/MapAnalysisDispatcher-Bl07cyoD.js                     7.54 kB │ gzip:     2.88 kB │ map:    32.05 kB
+dist/assets/MapIcons-BxTFiijj.js                                  7.56 kB │ gzip:     1.27 kB │ map:    18.78 kB
+dist/assets/react-CKdnIFEa.js                                     7.59 kB │ gzip:     2.91 kB │ map:    26.64 kB
+dist/assets/useSynapseWorkspaceStore-KBbCVFA1.js                  7.96 kB │ gzip:     2.90 kB │ map:    44.48 kB
+dist/assets/CoverageDiagnosticsPanel-4hJC2dvF.js                  8.03 kB │ gzip:     2.68 kB │ map:    20.19 kB
+dist/assets/AnalyticalRunReviewFlow-DP5-vnYh.js                   8.14 kB │ gzip:     2.81 kB │ map:    19.74 kB
+dist/assets/useBackgroundTaskStore-tZ2rbJFC.js                    8.46 kB │ gzip:     2.99 kB │ map:    34.91 kB
+dist/assets/jpeg-B93GQo6W.js                                      8.77 kB │ gzip:     3.73 kB │ map:    41.60 kB
+dist/assets/storage-w1Om3fKV.js                                   9.59 kB │ gzip:     3.11 kB │ map:    23.79 kB
+dist/assets/PreviewPanel-CfuP4iXl.js                              9.69 kB │ gzip:     3.55 kB │ map:    26.72 kB
+dist/assets/EngineCapabilitiesPanel-CcUHt3Q3.js                  10.09 kB │ gzip:     3.13 kB │ map:    21.29 kB
+dist/assets/note.module-C5B7fX3a.js                              10.35 kB │ gzip:     3.00 kB │ map:    94.86 kB
+dist/assets/lib-BLTSZ_et.js                                      10.41 kB │ gzip:     3.92 kB │ map:    34.96 kB
+dist/assets/flows.module-DdGQW6nW.js                             10.42 kB │ gzip:     2.89 kB │ map:    87.28 kB
+dist/assets/SiteSuitabilityFlow-Crl7psug.js                      10.43 kB │ gzip:     3.23 kB │ map:    27.61 kB
+dist/assets/state-BJf8jr6-.js                                    10.57 kB │ gzip:     3.75 kB │ map:    36.63 kB
+dist/assets/VulnerabilityFlow-BditUg_0.js                        10.58 kB │ gzip:     3.24 kB │ map:    27.17 kB
+dist/assets/mapLayerMetadata-DDyxNMpI.js                         10.89 kB │ gzip:     3.41 kB │ map:    34.96 kB
+dist/assets/design-Cq77VIvv.js                                   11.15 kB │ gzip:     3.38 kB │ map:    23.88 kB
+dist/assets/methodValidity-0mQEWxxg.js                           11.60 kB │ gzip:     4.19 kB │ map:    28.78 kB
+dist/assets/tools.module-BVMi2Clp.js                             11.60 kB │ gzip:     3.39 kB │ map:   132.02 kB
+dist/assets/AccessibilityFlow-3fniZwYH.js                        11.84 kB │ gzip:     3.83 kB │ map:    27.12 kB
+dist/assets/CollaborationUI-Dkjulahc.js                          13.07 kB │ gzip:     3.22 kB │ map:    35.60 kB
+dist/assets/MapReportHandoffDrawer-Tk-bxZz8.js                   13.13 kB │ gzip:     3.99 kB │ map:    37.20 kB
+dist/assets/ideArtifactRecognition-BhX2RRqr.js                   13.14 kB │ gzip:     4.65 kB │ map:    42.81 kB
+dist/assets/EquityAuditFlow-BhnJb139.js                          13.21 kB │ gzip:     3.81 kB │ map:    36.64 kB
+dist/assets/CityJSONViewer-Ca9Sd_0i.js                           13.62 kB │ gzip:     4.64 kB │ map:    45.86 kB
+dist/assets/colorRamps-pzliRKRQ.js                               13.63 kB │ gzip:     4.21 kB │ map:    47.21 kB
+dist/assets/dist-DRwWBPad.js                                     13.64 kB │ gzip:     4.63 kB │ map:    41.76 kB
+dist/assets/flowTypes-BOzXhf9x.js                                13.92 kB │ gzip:     4.95 kB │ map:    26.19 kB
+dist/assets/FlowsRail-CJFm5OVv.js                                14.04 kB │ gzip:     5.09 kB │ map:    35.28 kB
+dist/assets/esm-DXFt8LJN.js                                      14.15 kB │ gzip:     4.59 kB │ map:   179.65 kB
+dist/assets/storage-DnNYgOoH.js                                  14.38 kB │ gzip:     5.47 kB │ map:    37.07 kB
+dist/assets/QueryToSQL-C0AF4LkN.js                               14.48 kB │ gzip:     5.14 kB │ map:    53.19 kB
+dist/assets/StreamingLab-vRSkuMPT.js                             14.80 kB │ gzip:     4.70 kB │ map:    46.62 kB
+dist/assets/MapReviewSessionService-2g8QFBhm.js                  14.93 kB │ gzip:     4.88 kB │ map:    60.07 kB
+dist/assets/IdeToMapArtifactRecognitionService-C8IqRTip.js       15.06 kB │ gzip:     4.94 kB │ map:    51.00 kB
+dist/assets/flowLibraryMeta-3GE0q5TL.js                          15.87 kB │ gzip:     5.64 kB │ map:    24.88 kB
+dist/assets/editorStore-CB4QBzIB.js                              15.89 kB │ gzip:     5.45 kB │ map:    82.87 kB
+dist/assets/DatasetLibraryBrowser-DME6lvCw.js                    16.01 kB │ gzip:     4.57 kB │ map:    59.07 kB
+dist/assets/useUrbanContextStore-DPCMYWr3.js                     16.17 kB │ gzip:     4.81 kB │ map:    73.26 kB
+dist/assets/Registry-ZTEbFoAj.js                                 16.50 kB │ gzip:     4.98 kB │ map:    65.44 kB
+dist/assets/workflowDemoRuntime-BWGys1sJ.js                      16.62 kB │ gzip:     5.40 kB │ map:    54.10 kB
+dist/assets/newFileTemplateContent-BZ16mJPb.js                   16.80 kB │ gzip:     5.27 kB │ map:    22.81 kB
+dist/assets/scenarioComparisonArtifacts-6Rpo-6WI.js              16.88 kB │ gzip:     5.55 kB │ map:    50.16 kB
+dist/assets/ToolsProjectList-DXMxqbRO.js                         16.96 kB │ gzip:     4.96 kB │ map:    82.18 kB
+dist/assets/IndicatorCatalogPanel-B8hstjnB.js                    17.57 kB │ gzip:     5.16 kB │ map:    57.68 kB
+dist/assets/ExportBar-CqZaxx80.js                                18.02 kB │ gzip:     5.47 kB │ map:    53.57 kB
+dist/assets/dataBindings-Crl6jTrG.js                             19.20 kB │ gzip:     6.66 kB │ map:    46.28 kB
+dist/assets/legendContract-CfUrY6Q0.js                           19.96 kB │ gzip:     6.90 kB │ map:    87.20 kB
+dist/assets/FlowHost-DJPZDlup.js                                 20.44 kB │ gzip:     6.33 kB │ map:    37.65 kB
+dist/assets/purify.es-_FaexxMd.js                                21.16 kB │ gzip:     8.54 kB │ map:    83.84 kB
+dist/assets/datasetLibrary-DgYVTgFl.js                           21.32 kB │ gzip:     7.43 kB │ map:    61.05 kB
+dist/assets/ScenarioComparisonFlow-pa2DClBo.js                   21.87 kB │ gzip:     6.50 kB │ map:    57.03 kB
+dist/assets/MapEmergingHotSpotViz-nBExfX8N.js                    22.78 kB │ gzip:     7.17 kB │ map:    72.77 kB
+dist/assets/UrbanMorphologyFlow-DxzRuQeg.js                      22.82 kB │ gzip:     6.97 kB │ map:    60.81 kB
+dist/assets/ObjectDetectionFlow-D4_EPmHX.js                      22.83 kB │ gzip:     7.12 kB │ map:    60.42 kB
+dist/assets/ChangeDetectionFlow-C5EnsCyq.js                      22.95 kB │ gzip:     6.33 kB │ map:    66.59 kB
+dist/assets/mapTokens-oNIPzxuf.js                                23.06 kB │ gzip:     5.27 kB │ map:    65.93 kB
+dist/assets/hooks-CVxCTCnJ.js                                    23.35 kB │ gzip:     8.36 kB │ map:    94.48 kB
+dist/assets/methodologyData-BfIoooCD.js                          23.61 kB │ gzip:     7.89 kB │ map:    39.83 kB
+dist/assets/mgrs-DzwNS39c.js                                     23.72 kB │ gzip:     7.67 kB │ map:    87.90 kB
+dist/assets/exportInbox-DDQkPRIY.js                              23.90 kB │ gzip:     8.75 kB │ map:    82.33 kB
+dist/assets/SystemDynamicsFlow-DqdNIIgo.js                       24.67 kB │ gzip:     6.72 kB │ map:    65.14 kB
+dist/assets/EducationModule-CNIVUsSk.js                          25.00 kB │ gzip:     7.15 kB │ map:    66.15 kB
+dist/assets/eo-Ce9ua6A1.js                                       25.02 kB │ gzip:     8.38 kB │ map:   102.13 kB
+dist/assets/FacilityOptimisationFlow-B_kMWqgN.js                 25.55 kB │ gzip:     7.23 kB │ map:    65.77 kB
+dist/assets/voxCitySelectionService-DfnVS4-M.js                  25.56 kB │ gzip:     8.90 kB │ map:   116.09 kB
+dist/assets/ScenarioComparisonDashboard-Cq3oC0Xm.js              25.63 kB │ gzip:     6.97 kB │ map:    76.33 kB
+dist/assets/CellularAutomataFlow-LQQqk2IF.js                     26.17 kB │ gzip:     7.79 kB │ map:    74.81 kB
+dist/assets/SpatialIndexLab-CCuqmc1u.js                          26.21 kB │ gzip:     7.81 kB │ map:    87.78 kB
+dist/assets/BuildingViewer-VB83jTQV.js                           28.05 kB │ gzip:     9.37 kB │ map:    93.25 kB
+dist/assets/geotiff-DHWZInmL.js                                  28.91 kB │ gzip:     9.91 kB │ map:   143.69 kB
+dist/assets/narrativeBuilders-Bm4JCjl4.js                        29.85 kB │ gzip:     9.57 kB │ map:    90.44 kB
+dist/assets/learningPaths-CjmEr326.js                            31.07 kB │ gzip:     7.97 kB │ map:    59.46 kB
+dist/assets/dist-m4es8ajE.js                                     31.22 kB │ gzip:    10.57 kB │ map:   188.43 kB
+dist/assets/ToolsActionPanel-BrZd0QuC.js                         31.23 kB │ gzip:     8.10 kB │ map:    62.22 kB
+dist/assets/MapPersistenceService-BQmm7kkN.js                    31.32 kB │ gzip:     9.28 kB │ map:   115.94 kB
+dist/assets/CompositeIndicatorFlow-CaCYfL6L.js                   33.25 kB │ gzip:     8.64 kB │ map:    77.23 kB
+dist/assets/ExternalServiceConnector-BN52af6e.js                 35.74 kB │ gzip:    10.37 kB │ map:   113.76 kB
+dist/assets/spatial-db-BstV9z3Z.js                               36.75 kB │ gzip:    11.19 kB │ map:    98.39 kB
+dist/assets/GeoAILab-ernowb6N.js                                 37.00 kB │ gzip:    10.06 kB │ map:   106.70 kB
+dist/assets/parquet_wasm-CB_suX82.js                             39.45 kB │ gzip:     8.15 kB │ map:   156.74 kB
+dist/assets/SunlightSimulatorPanel-C2kU_-MC.js                   40.64 kB │ gzip:    12.25 kB │ map:   131.76 kB
+dist/assets/RightPanelFourBlock-C40azV2n.js                      46.06 kB │ gzip:    13.58 kB │ map:   148.02 kB
+dist/assets/MapJoinPreviewService-DImuZPi5.js                    46.51 kB │ gzip:    12.71 kB │ map:   414.51 kB
+dist/assets/pako.esm-j3hrVzuw.js                                 46.82 kB │ gzip:    14.87 kB │ map:   295.82 kB
+dist/assets/EOConnectorPanel-B_hWl063.js                         46.82 kB │ gzip:    11.08 kB │ map:   146.26 kB
+dist/assets/GuideViewV2-Bt6tYk_7.js                              49.68 kB │ gzip:    17.91 kB │ map:    85.25 kB
+dist/assets/lucide-react-wqfxOgkx.js                             56.24 kB │ gzip:    18.27 kB │ map:   419.58 kB
+dist/assets/simulation-DmiDIgUv.js                               60.10 kB │ gzip:    20.11 kB │ map:   244.80 kB
+dist/assets/useEditorPrefsStore-Cdau2-FW.js                      62.52 kB │ gzip:    23.06 kB │ map:   215.68 kB
+dist/assets/MethodsView-CeNer5m8.js                              63.08 kB │ gzip:    23.93 kB │ map:    89.22 kB
+dist/assets/lerc-D1lfOGxY.js                                     63.66 kB │ gzip:    25.92 kB │ map:   168.37 kB
+dist/assets/useTemporalLayerStore-kR_rV7qi.js                    66.29 kB │ gzip:    20.20 kB │ map:   247.59 kB
+dist/assets/uiStore-B5sygjxn.js                                  71.36 kB │ gzip:    20.52 kB │ map:   186.27 kB
+dist/assets/DashboardBuilder-xhGxYmrp.js                         72.58 kB │ gzip:    20.24 kB │ map:   209.38 kB
+dist/assets/MapUrbanBridgeService-DMixcdnt.js                    77.27 kB │ gzip:    23.94 kB │ map:   332.54 kB
+dist/assets/MapEngineAdapter-DCe6ZuBT.js                         78.40 kB │ gzip:    22.04 kB │ map:   295.71 kB
+dist/assets/yjs-ObcKm0JV.js                                      86.00 kB │ gzip:    25.93 kB │ map:   599.09 kB
+dist/assets/MonacoEditor-Cl7AqOpR.js                             91.40 kB │ gzip:    26.02 kB │ map:   228.20 kB
+dist/assets/CenterPanelShell-BQrzuCDd.js                         94.24 kB │ gzip:    23.87 kB │ map:   909.47 kB
+dist/assets/Note-BVyV4P8S.js                                     95.82 kB │ gzip:    27.79 kB │ map:   288.68 kB
+dist/assets/jszip.min-fhKh2aPC.js                                95.91 kB │ gzip:    28.49 kB │ map:   211.58 kB
+dist/assets/MapDataImporter-Dg_Mrbe6.js                          99.22 kB │ gzip:    29.29 kB │ map:   477.25 kB
+dist/assets/lib-D6i5xl2w.js                                     105.19 kB │ gzip:    35.74 kB │ map:   391.15 kB
+dist/assets/MapInspectorHost-S4YtO5bx.js                        126.55 kB │ gzip:    38.80 kB │ map:   537.41 kB
+dist/assets/ConsultonPanel-wtcBLqWz.js                          129.55 kB │ gzip:    38.70 kB │ map:   333.71 kB
+dist/assets/dist-BqgpXQgt.js                                    135.58 kB │ gzip:    44.94 kB │ map:   483.45 kB
+dist/assets/UrbanAnalyticsModal-C9e6S7H0.js                     149.84 kB │ gzip:    41.95 kB │ map:   437.37 kB
+dist/assets/index.es-gK0V0u1Y.js                                151.46 kB │ gzip:    48.92 kB │ map:   572.56 kB
+dist/assets/serialization-MADO1vNL.js                           189.63 kB │ gzip:    43.61 kB │ map:   819.81 kB
+dist/assets/catalog-CFkkj3NY.js                                 196.88 kB │ gzip:    48.27 kB │ map:   505.99 kB
+dist/assets/html2canvas-D9XAUah9.js                             199.62 kB │ gzip:    46.83 kB │ map:   593.20 kB
+dist/assets/MethodologyExplainer-Cjn4nVeP.js                    260.92 kB │ gzip:    77.88 kB │ map:   777.16 kB
+dist/assets/mqtt.esm-CoU4vPUZ.js                                357.16 kB │ gzip:   104.41 kB │ map:   764.06 kB
+dist/assets/ort.bundle.min-CNPI6Woe.js                          390.88 kB │ gzip:   105.70 kB │ map:   758.98 kB
+dist/assets/jspdf.es.min-BabLw_Id.js                            399.74 kB │ gzip:   129.76 kB │ map: 1,225.25 kB
+dist/assets/es-CMXk7Qai.js                                      420.10 kB │ gzip:   175.61 kB │ map: 1,598.49 kB
+dist/assets/reportArtifactBuilder-CLm496JU.js                   713.46 kB │ gzip:   242.60 kB │ map: 1,060.36 kB
+dist/assets/html2pdf-BraFqxtl.js                                736.09 kB │ gzip:   219.36 kB │ map: 2,448.69 kB
+dist/assets/useCityJSONScene-EgSoPWYD.js                        861.47 kB │ gzip:   228.78 kB │ map: 3,737.74 kB
+dist/assets/MapPublicationOutputBindingService-C2P2GTcJ.js      863.05 kB │ gzip:   233.91 kB │ map: 1,942.43 kB
+dist/assets/index-1Z1VRaFt.js                                 1,640.17 kB │ gzip:   447.33 kB │ map: 4,923.84 kB
+dist/assets/MapExplorerHost-dyYnN610.js                       1,716.32 kB │ gzip:   443.76 kB │ map: 5,493.20 kB
+dist/assets/useMapExplorerStore-CV-ga0BH.js                   2,888.31 kB │ gzip:   879.08 kB │ map: 4,073.15 kB
+
+[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 2000 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+[32m✓ built in 9.12s[39m
+> urban-analytics-workbench@1.0.0 perf:budgets
+> node scripts/check-bundle-budgets.mjs
+
+Bundle budget summary
+- Initial load: 5.73 MiB raw / 1.65 MiB gzip (budget 6.05 MiB raw)
+- Lazy centerpanel/components/MapExplorerHost: 4.21 MiB raw / 1.11 MiB gzip (budget 4.30 MiB raw, approved exception)
+- Lazy features/urbanAnalytics/UrbanAnalyticsModal: 2.09 MiB raw / 615.62 KiB gzip (budget 2.83 MiB raw, approved exception)
+- Lazy features/urbanAnalytics/RightPanelFourBlock: 1.09 MiB raw / 351.53 KiB gzip (budget 1.86 MiB raw, approved exception)
+- Lazy centerpanel/Flows/SunlightSimFlow: 1.01 MiB raw / 271.09 KiB gzip (budget 1.33 MiB raw, approved exception)
+- Lazy centerpanel/Flows/VoxCity3DFlow: 991.92 KiB raw / 259.01 KiB gzip (budget 1.32 MiB raw, approved exception)
+- Lazy centerpanel/Flows/CityJSONFlow: 958.19 KiB raw / 248.02 KiB gzip (budget 1.00 MiB raw, approved exception)
+- Lazy node_modules/html2pdf.js/dist/html2pdf: 913.79 KiB raw / 257.30 KiB gzip (budget 1.00 MiB raw, approved exception)
+- Lazy features/education/EducationModule: 606.75 KiB raw / 165.03 KiB gzip (budget 875.00 KiB raw, approved exception)
+- Lazy node_modules/pdf-lib/es/index: 410.25 KiB raw / 170.74 KiB gzip
+- Lazy features/education/MethodologyExplainer: 407.29 KiB raw / 108.04 KiB gzip
+- Largest budgeted assets:
+  assets/useMapExplorerStore-CV-ga0BH.js: 2.75 MiB raw / 841.65 KiB gzip
+  assets/MapExplorerHost-dyYnN610.js: 1.64 MiB raw / 429.90 KiB gzip
+  assets/index-1Z1VRaFt.js: 1.56 MiB raw / 432.62 KiB gzip
+  assets/MapPublicationOutputBindingService-C2P2GTcJ.js: 842.83 KiB raw / 226.05 KiB gzip
+  assets/useCityJSONScene-EgSoPWYD.js: 841.29 KiB raw / 220.79 KiB gzip
+  assets/html2pdf-BraFqxtl.js: 718.84 KiB raw / 212.00 KiB gzip
+  assets/reportArtifactBuilder-CLm496JU.js: 696.74 KiB raw / 235.03 KiB gzip
+  assets/es-CMXk7Qai.js: 410.25 KiB raw / 170.74 KiB gzip
+Bundle budgets passed.
+
+> urban-analytics-workbench@1.0.0 test:e2e:ci
+> npm run test:e2e:smoke && npm run test:e2e:a11y && npm run test:e2e:functional
+
+
+> urban-analytics-workbench@1.0.0 test:e2e:smoke
+> playwright test --grep "@smoke"
+
+
+Running 75 tests using 1 worker
+
+  ok  1 e2e\analytical-journeys.spec.ts:25:3 › Prompt 38 analytical journeys @smoke › site suitability computes, runs sensitivity, exports, and saves (21.9s)
+  ok  2 e2e\analytical-journeys.spec.ts:56:3 › Prompt 38 analytical journeys @smoke › accessibility analysis computes, exports, and saves (8.7s)
+  ok  3 e2e\analytical-journeys.spec.ts:85:3 › Prompt 38 analytical journeys @smoke › vulnerability assessment computes, exports statistics, and saves (9.5s)
+  ok  4 e2e\analytical-journeys.spec.ts:105:3 › Prompt 38 analytical journeys @smoke › composite indicator builder publishes and exports workflow artifacts (10.7s)
+  ok  5 e2e\analytical-journeys.spec.ts:135:3 › Prompt 38 analytical journeys @smoke › scenario comparison recalculates, exports, and publishes to review (9.2s)
+  ok  6 e2e\analytical-journeys.spec.ts:158:3 › Prompt 38 analytical journeys @smoke › equity audit computes, exports, and saves a completed run (9.7s)
+  ok  7 e2e\analytical-journeys.spec.ts:190:3 › Prompt 38 analytical journeys @smoke › change detection computes change map, validation sample, and exports (9.7s)
+  ok  8 e2e\analytical-journeys.spec.ts:219:3 › Prompt 38 analytical journeys @smoke › completed run review annotates and exports a published scenario comparison (11.0s)
+  ok  9 e2e\lazy-loading.spec.ts:23:3 › Prompt 41 lazy-loading regressions @smoke › urban analytics modal shows a visible loading fallback while the workbench chunk resolves (4.7s)
+  ok 10 e2e\lazy-loading.spec.ts:41:3 › Prompt 41 lazy-loading regressions @smoke › education tab and dataset library show loading fallbacks instead of blank panels (8.5s)
+  ok 11 e2e\map-3d-design.spec.ts:50:3 › Prompt 34 — 3D interaction design @smoke › interaction strip renders all 8 mode buttons (7.1s)
+  ok 12 e2e\map-3d-design.spec.ts:66:3 › Prompt 34 — 3D interaction design @smoke › clicking a mode button activates it (7.0s)
+  ok 13 e2e\map-3d-design.spec.ts:82:3 › Prompt 34 — 3D interaction design @smoke › strip is positioned top-left (non-occluding) (7.8s)
+  ok 14 e2e\map-3d-design.spec.ts:88:3 › Prompt 34 — 3D interaction design @smoke › scenario comparison strip opens and shows assumptions footer (7.2s)
+  ok 15 e2e\map-3d-design.spec.ts:101:3 › Prompt 34 — 3D interaction design @smoke › scenario strip shows sun-shadow timeline chips when store has hours (12.0s)
+[WebServer] 12:36:21 [vite] (client) [console.warn] [SessionPersistence] Legacy flow challenge fields remain readable for backward compatibility.
+[WebServer] 12:36:21 [vite] (client) [console.warn] [SessionPersistence] Deprecated fields detected: flow.* legacy challenge fields (remove after v5)
+[WebServer] 12:36:21 [vite] (client) [console.warn] [SessionPersistence] Legacy flow challenge fields remain readable for backward compatibility.
+[WebServer] 12:36:21 [vite] (client) [console.warn] [SessionPersistence] Deprecated fields detected: flow.* legacy challenge fields (remove after v5)
+  ok 16 e2e\map-3d-design.spec.ts:122:3 › Prompt 34 — 3D interaction design @smoke › generated massing badge is distinct from real geometry (12.0s)
+  ok 17 e2e\map-3d-design.spec.ts:170:3 › Prompt 34 — 3D interaction design @smoke › reduced-motion: mode button transition is 'none' when prefers-reduced-motion: reduce (7.8s)
+  ok 18 e2e\map-advanced-carto.spec.ts:16:3 › Map Explorer — advanced cartography @smoke › bivariate legend and dot-density caveat serialize from fcPolygonsProjected (3.0s)
+  ok 19 e2e\map-ai-guardrails-p58.spec.ts:96:3 › Map Explorer AI guardrails @smoke › requires confirmation and audits an AI-proposed NL buffer query (10.1s)
+  ok 20 e2e\map-evidence-visual-p62.spec.ts:256:3 › Prompt 62 — evidence visual states @smoke › renders raster, temporal, and 3D state chips with nonblank evidence canvases (11.4s)
+  ok 21 e2e\map-join-relate-preview.spec.ts:80:3 › Map Explorer — join / relate preview @smoke › shows matched and unmatched counts before applying fcPointsWGS84 within fcPolygonsProjected (11.5s)
+  ok 22 e2e\map-labeling.spec.ts:16:3 › Map Explorer — labeling engine @smoke › name labels serialize, gate by zoom, and cull overlap (3.1s)
+  ok 23 e2e\map-massing.spec.ts:68:3 › Prompt 32b — Massing engine + scenario store @smoke › adds two scenarios and both appear in the store (7.1s)
+  ok 24 e2e\map-massing.spec.ts:118:3 › Prompt 32b — Massing engine + scenario store @smoke › generateComparison() returns non-null metadata with 2 candidates (6.7s)
+  ok 25 e2e\map-massing.spec.ts:169:3 › Prompt 32b — Massing engine + scenario store @smoke › scenarios persist alternative metrics when CRS is projected (6.9s)
+  ok 26 e2e\map-motion-p39.spec.ts:33:3 › Prompt 39 — reduced-motion gate @smoke › prefers-reduced-motion: reduce disables animations on panelIn elements (6.7s)
+  ok 27 e2e\map-motion-p39.spec.ts:109:3 › Prompt 39 — reduced-motion gate @smoke › no dimension change on hover for a motion-bearing layer row element (7.7s)
+  ok 28 e2e\map-raster.spec.ts:76:3 › Map Explorer — raster layer @smoke › raster state is registered with correct metadata (4.9s)
+  ok 29 e2e\map-raster.spec.ts:94:3 › Map Explorer — raster layer @smoke › histogram bins sum to valid pixel count (noData excluded) (5.3s)
+  ok 30 e2e\map-raster.spec.ts:112:3 › Map Explorer — raster layer @smoke › band selection triggers histogram recompute for the new band (5.5s)
+  ok 31 e2e\map-raster.spec.ts:145:3 › Map Explorer — raster layer @smoke › missing CRS → raster QA caveat (blocked status) (5.0s)
+  ok 32 e2e\map-scene3d.spec.ts:68:3 › Prompt 30 — 3D scene runtime + 2.5D extrusion @smoke › scene3d panel opens and mode can be set to 2.5D (7.3s)
+  ok 33 e2e\map-scene3d.spec.ts:85:3 › Prompt 30 — 3D scene runtime + 2.5D extrusion @smoke › height field 'height' is detected and used for extrusion (7.1s)
+  ok 34 e2e\map-scene3d.spec.ts:100:3 › Prompt 30 — 3D scene runtime + 2.5D extrusion @smoke › missing height source yields a caveat and canExtrude=false (6.3s)
+  ok 35 e2e\map-scene3d.spec.ts:132:3 › Prompt 30 — 3D scene runtime + 2.5D extrusion @smoke › 2D selection syncs to 3D inspector entries (7.4s)
+  ok 36 e2e\map-scene3d.spec.ts:157:3 › Prompt 30 — 3D scene runtime + 2.5D extrusion @smoke › publishSceneMetadata records runtime mode and voxCityCompat (7.4s)
+  ok 37 e2e\map-shell-p36.spec.ts:32:3 › Prompt 36 — shell hardening + shared primitives @smoke › shell screenshot — pro GIS workbench layout (8.2s)
+  ok 38 e2e\map-shell-p36.spec.ts:78:3 › Prompt 36 — shell hardening + shared primitives @smoke › disabled action exposes disabledReason on hover (7.0s)
+  ok 39 e2e\map-shell-p36.spec.ts:100:3 › Prompt 36 — shell hardening + shared primitives @smoke › all GisIconButtons inside shell have accessible aria-labels (7.7s)
+  ok 40 e2e\map-shell-p37.spec.ts:18:3 › P37 — operator visual pass @smoke › LayerInspector tabs carry data-testid via GisTabs tabTestIdPrefix (9.0s)
+  ok 41 e2e\map-shell-p38.spec.ts:18:3 › P38 — work-surface visual pass @smoke › processing toolbox close button is accessible via GisIconButton (7.7s)
+  ok 42 e2e\map-shell-p38.spec.ts:44:3 › P38 — work-surface visual pass @smoke › attribute table close button is accessible via GisIconButton (10.0s)
+  ok 43 e2e\map-streaming.spec.ts:47:3 › Map Explorer — streaming layer @smoke › extent query returns only intersecting features (in-view < total) (5.5s)
+  ok 44 e2e\map-streaming.spec.ts:65:3 › Map Explorer — streaming layer @smoke › panning changes the in-view count (5.7s)
+  ok 45 e2e\map-streaming.spec.ts:91:3 › Map Explorer — streaming layer @smoke › main thread stays responsive during extent queries (rAF counter advances) (6.4s)
+  ok 46 e2e\map-streaming.spec.ts:134:3 › Map Explorer — streaming layer @smoke › streaming badge renders truthful count (not total) for restricted viewport (5.7s)
+  ok 47 e2e\map-sunshadow.spec.ts:19:3 › Prompt 33 — sun/shadow timeline + evidence assumptions @smoke › solar positions: noon > morning, night below horizon (6.2s)
+  ok 48 e2e\map-sunshadow.spec.ts:34:3 › Prompt 33 — sun/shadow timeline + evidence assumptions @smoke › shadow analysis: 10m building, 45° sun → ~10m shadow, demo mode (6.1s)
+  ok 49 e2e\map-sunshadow.spec.ts:76:3 › Prompt 33 — sun/shadow timeline + evidence assumptions @smoke › store: addScenario, setActiveHour, scenarios have assumptions (6.1s)
+  ok 50 e2e\map-sunshadow.spec.ts:122:3 › Prompt 33 — sun/shadow timeline + evidence assumptions @smoke › publishEvidence returns payload with expected fields (6.1s)
+  ok 51 e2e\map-temporal.spec.ts:11:3 › Prompt 46 — Scene temporal export handoff @smoke › keeps Map Explorer alive through frame stepping and restores the exported frame into Publish Figure (10.9s)
+  ok 52 e2e\map-terrain-cityjson-p60.spec.ts:30:3 › Prompt 60 — terrain + CityJSON 3D scene @smoke › imports CityJSON, grounds buildings on terrain, and renders a non-blank 3D scene canvas (6.1s)
+  ok 53 e2e\map-token-status.spec.ts:25:3 › Prompt 35 — GIS token status + reduced-motion gate @smoke › all status chips render and reduced-motion gate activates when emulated (6.9s)
+  ok 54 e2e\map-token-status.spec.ts:100:3 › Prompt 35 — GIS token status + reduced-motion gate @smoke › status chip colors differ by semantic role (6.1s)
+  ok 55 e2e\map-topology-repair.spec.ts:16:3 › Map Explorer — topology repair @smoke › fcInvalidGeometry repair clears invalid badge and records audit (3.8s)
+  ok 56 e2e\map-vector-tiles-p52.spec.ts:18:3 › Map Explorer - vector tile pipeline @smoke › large tiled layer shows simplified caveat and uses denser geometry at higher zoom (8.5s)
+  ok 57 e2e\map-view-corridor-section-p61.spec.ts:30:3 › Prompt 61 — view corridors + section cuts @smoke › highlights corridor intrusions and updates section cuts (6.2s)
+  ok 58 e2e\map-visual-qa-p40.spec.ts:139:3 › P40 — shell and canvas @smoke › desktop shell — canvas region visible and activity rail present (8.4s)
+  ok 59 e2e\map-visual-qa-p40.spec.ts:163:3 › P40 — canvas nonblank assertion (blank-detection proof) @smoke › blank-canvas detection is bidirectional: catches blank overlay, approves real canvas region (9.8s)
+  ok 60 e2e\map-visual-qa-p40.spec.ts:213:3 › P40 — floating panel visual coverage @smoke › catalog panel opens, shows header and status chips (9.2s)
+  ok 61 e2e\map-visual-qa-p40.spec.ts:237:3 › P40 — floating panel visual coverage @smoke › processing toolbox opens with panelIn class on root (7.7s)
+  ok 62 e2e\map-visual-qa-p40.spec.ts:261:3 › P40 — floating panel visual coverage @smoke › layout designer opens with panelIn class on root (9.2s)
+  ok 63 e2e\map-visual-qa-p40.spec.ts:280:3 › P40 — floating panel visual coverage @smoke › layer inspector opens with panelIn class (9.0s)
+  ok 64 e2e\map-visual-qa-p40.spec.ts:304:3 › P40 — reduced-motion visual state @smoke › reduced-motion: all motion-bearing panels show animation-duration 0s (7.6s)
+  ok 65 e2e\map-visual-qa-p40.spec.ts:355:3 › P40 — small viewport overlap check @smoke › 768×1024 tablet: activity rail and canvas region do not overlap (8.1s)
+  ok 66 e2e\map-visual-qa-p40.spec.ts:388:3 › P40 — short viewport clipped-text check @smoke › 1280×600 short viewport: Map Explorer dialog header is within viewport (7.7s)
+  ok 67 e2e\map-visual-qa-p40.spec.ts:418:3 › P40 — hidden-caveat regression guard @smoke › demo layers always expose a visible demo/synthetic caveat chip (8.2s)
+  ok 68 e2e\map-visual-qa-p40.spec.ts:482:3 › P40 — layer-row motion classes, no layout shift @smoke › layer rows carry layerFade class and have stable dimensions on hover (8.7s)
+  ok 69 e2e\map-zoning.spec.ts:64:3 › Prompt 31 — Zoning rule engine @smoke › add a rule and verify it appears in the store (6.3s)
+  ok 70 e2e\map-zoning.spec.ts:75:3 › Prompt 31 — Zoning rule engine @smoke › assign a rule to a parcel and verify metrics + CRS label (6.8s)
+  ok 71 e2e\map-zoning.spec.ts:105:3 › Prompt 31 — Zoning rule engine @smoke › geographic CRS (EPSG:4326) blocks metric compute (6.8s)
+  ok 72 e2e\map-zoning.spec.ts:130:3 › Prompt 31 — Zoning rule engine @smoke › FAR/coverage math is correct with known geometry (6.4s)
+  ok 73 e2e\release-candidate-ui.spec.ts:55:3 › Prompt 43 release candidate UI smoke @smoke › all top-level workbench tabs remain reachable and populated (13.0s)
+  ok 74 e2e\release-candidate-ui.spec.ts:105:3 › Prompt 43 release candidate UI smoke @smoke › workflow library opens every release workflow surface (12.5s)
+  ok 75 e2e\release-candidate-ui.spec.ts:120:3 › Prompt 43 release candidate UI smoke @smoke › capabilities overview navigates release surfaces and toolbox runtime labs (18.9s)
+
+  75 passed (10.3m)
+
+> urban-analytics-workbench@1.0.0 test:e2e:a11y
+> playwright test e2e/accessibility-audit.spec.ts
+
+
+Running 12 tests using 1 worker
+
+  ok  1 e2e\accessibility-audit.spec.ts:284:5 › MFP-20 app modal accessibility guardrails @a11y › Global Search has axe, Escape, focus-restore, and 320px reflow coverage (6.2s)
+  ok  2 e2e\accessibility-audit.spec.ts:284:5 › MFP-20 app modal accessibility guardrails @a11y › AI Settings has axe, Escape, focus-restore, and 320px reflow coverage (5.8s)
+[WebServer] 12:44:18 [vite] (client) [console.warn]  Syntax post-pass armed (debounced).
+[WebServer] 12:44:18 [vite] (client) [console.warn]  VS CODE SYNTAX HIGHLIGHTER WITH ERROR DETECTION READY!
+[WebServer] 12:44:18 [vite] (client) [console.warn]  VS CODE COLORS APPLIED - 8 tokens colored
+  ok  3 e2e\accessibility-audit.spec.ts:284:5 › MFP-20 app modal accessibility guardrails @a11y › Unsaved Changes has axe, Escape, focus-restore, and 320px reflow coverage (5.7s)
+  ok  4 e2e\accessibility-audit.spec.ts:284:5 › MFP-20 app modal accessibility guardrails @a11y › Map Start has axe, Escape, focus-restore, and 320px reflow coverage (9.3s)
+  ok  5 e2e\accessibility-audit.spec.ts:284:5 › MFP-20 app modal accessibility guardrails @a11y › Map Service has axe, Escape, focus-restore, and 320px reflow coverage (13.1s)
+  ok  6 e2e\accessibility-audit.spec.ts:309:3 › Prompt 40 shell focus hardening @a11y › terminal shell controls keep visible focus in default and forced-colors modes (4.7s)
+  ok  7 e2e\accessibility-audit.spec.ts:332:3 › Prompt 40 shell focus hardening @a11y › legacy neural glass cards preserve visible keyboard focus (5.6s)
+  ok  8 e2e\accessibility-audit.spec.ts:352:3 › Prompt 03 Map Explorer accessibility @a11y › map modal exposes skip navigation, keyboard map focus, close control, and no serious axe issues (11.4s)
+  ok  9 e2e\accessibility-audit.spec.ts:379:3 › Prompt 03 Map Explorer accessibility @a11y › every opened dialog reports a non-empty accessible name (MFP-14) (8.1s)
+  ok 10 e2e\accessibility-audit.spec.ts:398:3 › Prompt 55 Map Explorer accessibility matrix @a11y › keyboard-only path reaches import, inspect, QA, and command palette with scoped Escape (11.5s)
+  ok 11 e2e\accessibility-audit.spec.ts:481:3 › Prompt 39 accessibility audit @a11y › critical workbench flows have no serious axe violations (24.5s)
+  ok 12 e2e\accessibility-audit.spec.ts:508:3 › Prompt 39 accessibility audit @a11y › keyboard navigation and focus order remain operable across five major flows (18.5s)
+
+  12 passed (2.2m)
+
+> urban-analytics-workbench@1.0.0 test:e2e:functional
+> playwright test --grep-invert "@smoke|@a11y"
+
+
+Running 88 tests using 1 worker
+
+  ok  1 e2e\education.spec.ts:5:3 › Education workspace › navigates education paths, persists progress, and launches explainers from workflows (20.0s)
+  ok  2 e2e\emerging-hot-spot.spec.ts:104:3 › Emerging hot spot workflow › opens from the workflow library, runs the analysis, shows legend output, and saves review-ready results (10.1s)
+  ok  3 e2e\eo-connectors.spec.ts:187:3 › EO connector operator panel › lists STAC results, inspects a COG asset, and publishes the selected EO source (12.5s)
+  ok  4 e2e\eo-connectors.spec.ts:223:3 › EO connector operator panel › shows truthful credential-missing state for Sentinel Hub without credentials (9.3s)
+  x   5 e2e\geoai-real-data.spec.ts:336:3 › GeoAI land-cover real-data upgrade › keeps demo mode explicit and saves the completed run (29.3s)
+[WebServer] 12:47:50 [vite] (client) [console.warn] Unable to perform style diff: Style is not done loading..  Rebuilding the style from scratch.
+  x   6 e2e\geoai-real-data.spec.ts:360:3 › GeoAI land-cover real-data upgrade › runs land-cover classification against a real COG-backed EO source and persists review output (29.1s)
+  x   7 e2e\geoai-real-data.spec.ts:405:3 › GeoAI land-cover real-data upgrade › runs live spatial SQL against a real seeded map layer and publishes the accepted result (30.7s)
+  ok  8 e2e\geoai-real-data.spec.ts:433:3 › GeoAI land-cover real-data upgrade › keeps safe live-query rejection explicit without switching to demo data (11.9s)
+  x   9 e2e\geoai-real-data.spec.ts:454:3 › GeoAI land-cover real-data upgrade › launches a mocked-real object detection run from the workflow surface (31.7s)
+  x  10 e2e\geoai-real-data.spec.ts:502:3 › GeoAI land-cover real-data upgrade › launches a local smoke-model object detection run from the workflow surface (29.1s)
+  ok 11 e2e\indicator-catalog.spec.ts:5:3 › Prompt 36 indicator catalog › opens from workflows, computes an indicator, and stages it into dashboard and report views (12.8s)
+  x  12 e2e\map-catalog.spec.ts:12:3 › Map Explorer catalog › adds an explicitly labelled demo pack as source-linked layers (27.6s)
+  x  13 e2e\map-choropleth.spec.ts:33:3 › Map Explorer choropleth renderer › renders the full thematic configuration panel for an imported polygon layer (38.4s)
+  x  14 e2e\map-columnar-io.spec.ts:10:3 › Map Explorer columnar I/O › imports Arrow and GeoParquet through the UI and exports GeoParquet (38.1s)
+  x  15 e2e\map-columnar-io.spec.ts:152:3 › Map Explorer columnar I/O › imports a WKT Arrow dataset variant and surfaces skipped-row diagnostics (28.5s)
+  ok 16 e2e\map-command-palette-p53.spec.ts:45:3 › Map Explorer command palette › opens with Ctrl+K, fuzzy-searches buffer, and runs the processing tool from the keyboard (9.3s)
+[WebServer] 12:52:56 [vite] (client) [console.warn] [SessionPersistence] Legacy flow challenge fields remain readable for backward compatibility.
+[WebServer] 12:52:56 [vite] (client) [console.warn] [SessionPersistence] Deprecated fields detected: flow.* legacy challenge fields (remove after v5)
+[WebServer] 12:52:56 [vite] (client) [console.warn] [SessionPersistence] Legacy flow challenge fields remain readable for backward compatibility.
+[WebServer] 12:52:56 [vite] (client) [console.warn] [SessionPersistence] Deprecated fields detected: flow.* legacy challenge fields (remove after v5)
+  ok 17 e2e\map-contents.spec.ts:62:3 › Map Explorer professional contents tree › persists a custom layer group through a saved project reload (23.2s)
+  x  18 e2e\map-context-and-geojson.spec.ts:58:3 › Map Explorer context menu and GeoJSON I/O › supports reverse geocoding, clipboard copy, and keyboard context-menu actions (2.0m)
+  x  19 e2e\map-context-and-geojson.spec.ts:127:3 › Map Explorer context menu and GeoJSON I/O › imports, exports, and re-imports GeoJSON through the visible UI (28.8s)
+  x  20 e2e\map-csv-kml-gpx-import.spec.ts:39:3 › Map Explorer CSV, KML, and GPX import › opens the CSV mapping dialog with detected coordinate columns and imports valid rows (28.9s)
+  x  21 e2e\map-csv-kml-gpx-import.spec.ts:104:3 › Map Explorer CSV, KML, and GPX import › imports Google Earth style KML placemarks into the layer panel (27.7s)
+  x  22 e2e\map-csv-kml-gpx-import.spec.ts:146:3 › Map Explorer CSV, KML, and GPX import › imports GPX waypoints, routes, and tracks with elevation metadata (37.6s)
+  ok 23 e2e\map-evidence-publication.spec.ts:74:3 › Map evidence publication › marks a published evidence card stale and appends a successor after a map edit (6.0s)
+  x  24 e2e\map-explorer-stability.spec.ts:67:3 › Map Explorer stability › survives repeated open close panel and viewport churn without page errors (2.0m)
+  x  25 e2e\map-external-service.spec.ts:17:3 › Map Explorer — external service production path (Prompt 21) › a broken external service surfaces a specific actionable failure and a layer caveat (8.8s)
+  ok 26 e2e\map-figure-composer.spec.ts:70:3 › Map Explorer figure composer › blocks figure export with a named reason when a visible layer lacks attribution metadata (8.7s)
+  ok 27 e2e\map-geoai-bridge.spec.ts:50:3 › Map Explorer GeoAI bridge › shows adapter-backed GeoAI layer metadata (7.1s)
+  x  28 e2e\map-image-export.spec.ts:65:3 › Map Explorer PNG image export › opens the full image export dialog from the visible toolbar UI (27.6s)
+  x  29 e2e\map-layout-book.spec.ts:109:3 › Map Explorer layout designer (book) › opens layout designer, adds a second page, asserts page count and export button (2.0m)
+  x  30 e2e\map-layout-regression-p09.spec.ts:44:3 › Prompt 09 — map layout regression guards › guards shell visibility, panel collisions, warning surfaces, and floating control overlap (27.5s)
+  ok 31 e2e\map-layout-regression-p09.spec.ts:88:3 › Prompt 09 — map layout regression guards › keeps short viewport usable and export dialog actions reachable (8.2s)
+  x  32 e2e\map-modal-layout.spec.ts:517:3 › Prompt 35 premium Map Explorer layout › opens, closes, and reopens the modal without losing the entry point (27.3s)
+  ok 33 e2e\map-modal-layout.spec.ts:534:3 › Prompt 35 premium Map Explorer layout › keeps hidden Prompt 16 command palette routes discoverable (8.3s)
+  ok 34 e2e\map-modal-layout.spec.ts:558:5 › Prompt 35 premium Map Explorer layout › keeps the Prompt 16 work surface visible for overview (7.1s)
+  ok 35 e2e\map-modal-layout.spec.ts:558:5 › Prompt 35 premium Map Explorer layout › keeps the Prompt 16 work surface visible for data (7.0s)
+  ok 36 e2e\map-modal-layout.spec.ts:558:5 › Prompt 35 premium Map Explorer layout › keeps the Prompt 16 work surface visible for layers (7.1s)
+  ok 37 e2e\map-modal-layout.spec.ts:558:5 › Prompt 35 premium Map Explorer layout › keeps the Prompt 16 work surface visible for analyze (7.1s)
+  ok 38 e2e\map-modal-layout.spec.ts:558:5 › Prompt 35 premium Map Explorer layout › keeps the Prompt 16 work surface visible for style (7.0s)
+  ok 39 e2e\map-modal-layout.spec.ts:558:5 › Prompt 35 premium Map Explorer layout › keeps the Prompt 16 work surface visible for scene (7.0s)
+  ok 40 e2e\map-modal-layout.spec.ts:558:5 › Prompt 35 premium Map Explorer layout › keeps the Prompt 16 work surface visible for publish (7.6s)
+  ok 41 e2e\map-modal-layout.spec.ts:591:3 › Prompt 35 premium Map Explorer layout › keeps Prompt 16 utility rail actions visible (6.8s)
+  x  42 e2e\map-modal-layout.spec.ts:599:3 › Prompt 35 premium Map Explorer layout › reaches Prompt 16 data, layers, inspector, QA, and attributes routes (9.0s)
+  ok 43 e2e\map-modal-layout.spec.ts:627:3 › Prompt 35 premium Map Explorer layout › reaches Prompt 16 Analyze workspace routes (8.0s)
+  ok 44 e2e\map-modal-layout.spec.ts:640:3 › Prompt 35 premium Map Explorer layout › reaches Prompt 16 Scene workspace routes (10.6s)
+  ok 45 e2e\map-modal-layout.spec.ts:655:3 › Prompt 35 premium Map Explorer layout › reaches Prompt 16 Publish workspace routes (8.8s)
+  x  46 e2e\map-modal-layout.spec.ts:670:3 › Prompt 35 premium Map Explorer layout › standardizes Prompt 18 canvas controls for recovery, tools, basemap, and furniture (27.6s)
+  x  47 e2e\map-modal-layout.spec.ts:817:3 › Prompt 35 premium Map Explorer layout › keeps map, layer rail, and bottom status visible on desktop (27.2s)
+  ok 48 e2e\map-modal-layout.spec.ts:855:3 › Prompt 35 premium Map Explorer layout › keeps header controls reachable without clipping at compact desktop width (17.0s)
+  x  49 e2e\map-modal-layout.spec.ts:920:3 › Prompt 35 premium Map Explorer layout › keeps More, Views, Commands, filter, and basemap menus visible and unclipped (2.0m)
+  ok 50 e2e\map-modal-layout.spec.ts:977:3 › Prompt 35 premium Map Explorer layout › keeps side panels below the command bar and preserves overlay stacking (6.7s)
+  ok 51 e2e\map-modal-layout.spec.ts:1023:3 › Prompt 35 premium Map Explorer layout › switches premium activity rail state without hiding the work surface (8.3s)
+  ok 52 e2e\map-modal-layout.spec.ts:1050:3 › Prompt 35 premium Map Explorer layout › persists resized layer rail width (7.2s)
+  ok 53 e2e\map-modal-layout.spec.ts:1077:3 › Prompt 35 premium Map Explorer layout › switches the layer panel to a bottom drawer on constrained viewports (8.5s)
+  x  54 e2e\map-modal-layout.spec.ts:1106:3 › Prompt 35 premium Map Explorer layout › renders comparison mode with split or swipe preview and synchronized legend (41.9s)
+  x  55 e2e\map-modal-layout.spec.ts:1134:3 › Prompt 35 premium Map Explorer layout › shows the execution CRS chip on workflow preview (32.9s)
+  x  56 e2e\map-modal-layout.spec.ts:1151:3 › Prompt 35 premium Map Explorer layout › blocks buffer workflows when source CRS is missing (32.8s)
+  ok 57 e2e\map-modal-layout.spec.ts:1170:3 › Prompt 35 premium Map Explorer layout › declares a user CRS (caveated) for a missing-CRS layer from the layer rail (9.7s)
+  x  58 e2e\map-modal-layout.spec.ts:1196:3 › Prompt 35 premium Map Explorer layout › builds a viewport AOI and audits a vertex edit with validation status (Prompt 14) (33.1s)
+  x  59 e2e\map-modal-layout.spec.ts:1287:3 › Prompt 35 premium Map Explorer layout › selects fcPointsWGS84 points with a rectangle and shows the count chip (Prompt 15) (27.5s)
+  ok 60 e2e\map-modal-layout.spec.ts:1343:3 › Prompt 35 premium Map Explorer layout › routes layer removal through the command lifecycle with an audit row and revert (10.9s)
+  x  61 e2e\map-modal-layout.spec.ts:1374:3 › Prompt 35 premium Map Explorer layout › opens a tabbed layer inspector with schema + CRS, and shows missing CRS explicitly (8.5s)
+  ok 62 e2e\map-modal-layout.spec.ts:1443:3 › Prompt 35 premium Map Explorer layout › opens an attribute table and syncs row selection with the map context summary (10.1s)
+  ok 63 e2e\map-modal-layout.spec.ts:1477:3 › Prompt 35 premium Map Explorer layout › creates a derived attribute layer with a provenance badge from the sandboxed calculator (10.1s)
+  ok 64 e2e\map-modal-layout.spec.ts:1501:3 › Prompt 35 premium Map Explorer layout › keeps controls usable across desktop, tablet, and short viewport screenshots (17.2s)
+  ok 65 e2e\map-modal-layout.spec.ts:1531:3 › Prompt 35 premium Map Explorer layout › runs a large buffer in a worker, keeping the main thread responsive (Prompt 13) (11.8s)
+  x  66 e2e\map-model-builder.spec.ts:65:3 › Map Explorer model builder › reruns a saved buffer-intersect model deterministically and publishes batch evidence (2.0m)
+  x  67 e2e\map-observability-p56.spec.ts:81:3 › Prompt 56 — Map observability and recovery › surfaces worker failure recovery and retries a crashed diagnostics panel (8.6s)
+  x  68 e2e\map-performance-diagnostics.spec.ts:70:3 › Map Explorer performance diagnostics › shows fcLarge live diagnostics and bounded-mode banner (2.0m)
+  x  69 e2e\map-plugins-p55.spec.ts:64:3 › Map Explorer plugin registry › lists reference extensions and runs the reference processing plugin through the lifecycle (2.0m)
+  x  70 e2e\map-point-symbology.spec.ts:33:3 › Map Explorer point symbology › exposes heatmap, proportional, and graduated symbol controls for an imported point layer (2.0m)
+  ok 71 e2e\map-premium-redesign-baseline.spec.ts:177:3 › Map Explorer premium redesign visual baseline › IMG-01 UX-01 baseline captures the opening readiness cockpit (35.5s)
+  ok 72 e2e\map-premium-redesign-baseline.spec.ts:199:3 › Map Explorer premium redesign visual baseline › IMG-02 UX-02 baseline captures left Data and Layers panel fit (14.5s)
+  ok 73 e2e\map-premium-redesign-baseline.spec.ts:219:3 › Map Explorer premium redesign visual baseline › IMG-03 UX-03 baseline captures the current bottom Diagnostics workspace (15.6s)
+  x  74 e2e\map-premium-redesign-baseline.spec.ts:244:3 › Map Explorer premium redesign visual baseline › IMG-04 UX-04 baseline captures floating Draw and Measure tool panels (28.2s)
+  x  75 e2e\map-premium-redesign-baseline.spec.ts:264:3 › Map Explorer premium redesign visual baseline › UX-05 UX-06 baseline captures top command surface and status bar matrix (37.0s)
+  x  76 e2e\map-processing-toolbox-design.spec.ts:23:3 › Map Explorer processing toolbox — premium styling + blocked states › shows a not-yet-wired tool's reason before run and screenshots the toolbox (2.0m)
+  x  77 e2e\map-processing-toolbox-tools.spec.ts:91:3 › Map Explorer processing toolbox — service tools › lists ≥12 implemented tools and runs spatial-join with a manifest (2.0m)
+  x  78 e2e\map-processing-toolbox.spec.ts:64:3 › Map Explorer processing toolbox › searches for buffer and runs it, producing an output layer with a manifest (2.0m)
+  ok 79 e2e\map-report-handoff.spec.ts:71:3 › Map Explorer report handoff › opens a map report handoff preview and inserts it into the report builder (9.6s)
+  x  80 e2e\map-spatial-stats-renderers.spec.ts:87:3 › Map Explorer spatial statistics renderers › shows LISA and Gi-star renderer controls with academic legends (27.8s)
+  x  81 e2e\map-temporal-player.spec.ts:11:3 › Map Explorer temporal animation player › uses the live Scene > Temporal layer for scrub, play, step, and speed changes (42.3s)
+  ok 82 e2e\map-undo-p54.spec.ts:13:3 › Prompt 54 — map undo/redo stack › add layer, style it, edit AOI, then undo x3 and redo x3 (7.0s)
+  ok 83 e2e\map-urban-method-compatibility.spec.ts:50:3 › Urban method compatibility rail › blocks a polygon-requiring method against a point layer (10.5s)
+  x  84 e2e\p08-aoi-analysis-capture.spec.ts:10:3 › p08 AOI analysis capture › captures analysis dispatch and evidence registration (25.5s)
+  ok 85 e2e\report-builder.spec.ts:5:3 › Report builder flow › launches the workbench and inserts an inline citation into a report (16.9s)
+  ok 86 e2e\report-history.spec.ts:5:3 › Report history flow › captures snapshots, diff review, and report-save history in the report workspace (8.1s)
+  ok 87 e2e\right-panel-fallbacks.spec.ts:22:3 › Prompt 11 right-panel fallbacks › cards without authored code inherit related section guidance instead of placeholders (7.3s)
+  ok 88 e2e\voxcity-real-data.spec.ts:63:3 › VoxCity real-data workflows › loads a real building layer into extrusion and launches sunlight simulation from handed-off real geometry (12.0s)
+
+
+  1) e2e\geoai-real-data.spec.ts:336:3 › GeoAI land-cover real-data upgrade › keeps demo mode explicit and saves the completed run 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoContainText[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Locator: getByRole('dialog', { name: 'Urban Analytics Workbench' }).getByTestId('geoai-land-cover-notice')
+    Expected pattern: [32m/Demo source classification published/i[39m
+    Timeout: 20000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toContainText" with timeout 20000ms[22m
+    [2m  - waiting for getByRole('dialog', { name: 'Urban Analytics Workbench' }).getByTestId('geoai-land-cover-notice')[22m
+
+
+      347 |
+      348 |     await triggerDomClick(urbanModal.getByTestId("geoai-land-cover-run"));
+    > 349 |     await expect(urbanModal.getByTestId("geoai-land-cover-notice")).toContainText(/Demo source classification published/i);
+          |                                                                     ^
+      350 |     await closeMapExplorer(page);
+      351 |
+      352 |     const workflowsTab = urbanModal.getByTestId("cp-tab-workflows");
+        at C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\geoai-real-data.spec.ts:349:69
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\geoai-real-data-GeoAI-land-2f0d0-and-saves-the-completed-run\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\geoai-real-data-GeoAI-land-2f0d0-and-saves-the-completed-run\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\geoai-real-data-GeoAI-land-2f0d0-and-saves-the-completed-run\error-context.md
+
+  2) e2e\geoai-real-data.spec.ts:360:3 › GeoAI land-cover real-data upgrade › runs land-cover classification against a real COG-backed EO source and persists review output 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoContainText[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Locator: getByRole('dialog', { name: 'Urban Analytics Workbench' }).getByTestId('geoai-land-cover-notice')
+    Expected pattern: [32m/Real source classification published/i[39m
+    Timeout: 20000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toContainText" with timeout 20000ms[22m
+    [2m  - waiting for getByRole('dialog', { name: 'Urban Analytics Workbench' }).getByTestId('geoai-land-cover-notice')[22m
+
+
+      392 |
+      393 |     await triggerDomClick(urbanModal.getByTestId("geoai-land-cover-run"));
+    > 394 |     await expect(urbanModal.getByTestId("geoai-land-cover-notice")).toContainText(/Real source classification published/i);
+          |                                                                     ^
+      395 |     await closeMapExplorer(page);
+      396 |
+      397 |     const workflowsTab = urbanModal.getByTestId("cp-tab-workflows");
+        at C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\geoai-real-data.spec.ts:394:69
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\geoai-real-data-GeoAI-land-4599e--and-persists-review-output\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\geoai-real-data-GeoAI-land-4599e--and-persists-review-output\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\geoai-real-data-GeoAI-land-4599e--and-persists-review-output\error-context.md
+
+  3) e2e\geoai-real-data.spec.ts:405:3 › GeoAI land-cover real-data upgrade › runs live spatial SQL against a real seeded map layer and publishes the accepted result 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoContainText[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Locator: getByRole('dialog', { name: 'Urban Analytics Workbench' }).getByTestId('geoai-query-notice')
+    Expected pattern: [32m/Live project data query published/i[39m
+    Timeout: 20000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toContainText" with timeout 20000ms[22m
+    [2m  - waiting for getByRole('dialog', { name: 'Urban Analytics Workbench' }).getByTestId('geoai-query-notice')[22m
+
+
+      420 |     await setFormValue(urbanModal.getByTestId("geoai-query-input"), "Find parcels where risk score > 70");
+      421 |     await triggerDomClick(urbanModal.getByTestId("geoai-query-run"));
+    > 422 |     await expect(urbanModal.getByTestId("geoai-query-notice")).toContainText(/Live project data query published/i);
+          |                                                                ^
+      423 |     await closeMapExplorer(page);
+      424 |
+      425 |     const workflowsTab = urbanModal.getByTestId("cp-tab-workflows");
+        at C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\geoai-real-data.spec.ts:422:64
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\geoai-real-data-GeoAI-land-bc034-blishes-the-accepted-result\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\geoai-real-data-GeoAI-land-bc034-blishes-the-accepted-result\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\geoai-real-data-GeoAI-land-bc034-blishes-the-accepted-result\error-context.md
+
+  4) e2e\geoai-real-data.spec.ts:454:3 › GeoAI land-cover real-data upgrade › launches a mocked-real object detection run from the workflow surface 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoContainText[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Locator: getByRole('dialog', { name: 'Urban Analytics Workbench' }).getByTestId('workflow-object_detection-root').getByTestId('object-detector-notice')
+    Expected pattern: [32m/Real model detection published/i[39m
+    Timeout: 20000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toContainText" with timeout 20000ms[22m
+    [2m  - waiting for getByRole('dialog', { name: 'Urban Analytics Workbench' }).getByTestId('workflow-object_detection-root').getByTestId('object-detector-notice')[22m
+
+
+      493 |     await triggerDomClick(objectDetectionFlow.getByTestId("object-detector-run"));
+      494 |
+    > 495 |     await expect(objectDetectionFlow.getByTestId("object-detector-notice")).toContainText(/Real model detection published/i);
+          |                                                                             ^
+      496 |     await closeMapExplorer(page);
+      497 |
+      498 |     const reviewFlow = await openWorkflowById(urbanModal, "review");
+        at C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\geoai-real-data.spec.ts:495:77
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\geoai-real-data-GeoAI-land-211bc-n-from-the-workflow-surface\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\geoai-real-data-GeoAI-land-211bc-n-from-the-workflow-surface\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\geoai-real-data-GeoAI-land-211bc-n-from-the-workflow-surface\error-context.md
+
+  5) e2e\geoai-real-data.spec.ts:502:3 › GeoAI land-cover real-data upgrade › launches a local smoke-model object detection run from the workflow surface 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoContainText[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Locator: getByRole('dialog', { name: 'Urban Analytics Workbench' }).getByTestId('workflow-object_detection-root').getByTestId('object-detector-notice')
+    Expected pattern: [32m/Real model detection published/i[39m
+    Timeout: 20000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toContainText" with timeout 20000ms[22m
+    [2m  - waiting for getByRole('dialog', { name: 'Urban Analytics Workbench' }).getByTestId('workflow-object_detection-root').getByTestId('object-detector-notice')[22m
+
+
+      529 |     await triggerDomClick(objectDetectionFlow.getByTestId("object-detector-run"));
+      530 |
+    > 531 |     await expect(objectDetectionFlow.getByTestId("object-detector-notice")).toContainText(/Real model detection published/i);
+          |                                                                             ^
+      532 |     await expect(objectDetectionFlow).toContainText(/Detected classes/i);
+      533 |     await expect(objectDetectionFlow).toContainText(/Vehicle/i);
+      534 |     await closeMapExplorer(page);
+        at C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\geoai-real-data.spec.ts:531:77
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\geoai-real-data-GeoAI-land-916b1-n-from-the-workflow-surface\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\geoai-real-data-GeoAI-land-916b1-n-from-the-workflow-surface\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\geoai-real-data-GeoAI-land-916b1-n-from-the-workflow-surface\error-context.md
+
+  6) e2e\map-catalog.spec.ts:12:3 › Map Explorer catalog › adds an explicitly labelled demo pack as source-linked layers 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoContainText[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Locator: getByTestId('map-catalog-panel')
+    Expected substring: [32m"DEMO / SYNTHETIC"[39m
+    Received string:    [31m"0 registered sources0 actionable Browse / Add Source0Restored / live0Recoverable0Unavailable0Offline0External refs0Metadata-only0Demo / syntheticCatalogBrowse source handles, generated outputs, restore state, and repair actions in one tree.Filter catalogProject Sources0No project source records.Imported Files0No imported files.External Services0No registered service connections.Worker / DuckDB0No worker-backed or DuckDB sources.Generated Outputs0No derived outputs.Synthetic Sources0No synthetic source records."[39m
+    Timeout: 20000ms
+
+    Call log:
+    [2m  - Expect "toContainText" with timeout 20000ms[22m
+    [2m  - waiting for getByTestId('map-catalog-panel')[22m
+    [2m    23 × locator resolved to <section role="region" data-section="catalog" aria-label="Data Catalog" data-presentation="embedded" data-testid="map-catalog-panel" class="_panel_1qq40_1 _embeddedPanel_1qq40_37">…</section>[22m
+    [2m       - unexpected value "0 registered sources0 actionable Browse / Add Source0Restored / live0Recoverable0Unavailable0Offline0External refs0Metadata-only0Demo / syntheticCatalogBrowse source handles, generated outputs, restore state, and repair actions in one tree.Filter catalogProject Sources0No project source records.Imported Files0No imported files.External Services0No registered service connections.Worker / DuckDB0No worker-backed or DuckDB sources.Generated Outputs0No derived outputs.Synthetic Sources0No synthetic source records."[22m
+
+
+      23 |     const catalog = page.getByTestId("map-catalog-panel");
+      24 |     await expect(catalog).toBeVisible();
+    > 25 |     await expect(catalog).toContainText("DEMO / SYNTHETIC");
+         |                           ^
+      26 |     await expect(catalog).toContainText("Not observational data");
+      27 |     await triggerDomClick(catalog.getByTestId("catalog-add-demo-pack"));
+      28 |     await expect(catalog).toContainText(/Added \d+ synthetic demo layers with registered source records\./i);
+        at C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\map-catalog.spec.ts:25:27
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\map-catalog-Map-Explorer-c-b29fa-ack-as-source-linked-layers\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\map-catalog-Map-Explorer-c-b29fa-ack-as-source-linked-layers\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\map-catalog-Map-Explorer-c-b29fa-ack-as-source-linked-layers\error-context.md
+
+  7) e2e\map-choropleth.spec.ts:33:3 › Map Explorer choropleth renderer › renders the full thematic configuration panel for an imported polygon layer 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByRole('dialog', { name: 'Import source preflight' })
+    Expected: visible
+    Timeout: 20000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 20000ms[22m
+    [2m  - waiting for getByRole('dialog', { name: 'Import source preflight' })[22m
+
+
+       at helpers\mapImport.ts:28
+
+      26 | export async function confirmImportSourcePreflight(page: Page): Promise<void> {
+      27 |   const preflightDialog = page.getByRole("dialog", { name: "Import source preflight" });
+    > 28 |   await expect(preflightDialog).toBeVisible();
+         |                                 ^
+      29 |   await triggerDomClick(preflightDialog.getByRole("button", { name: "Import Source" }));
+      30 |   await expect(preflightDialog).toBeHidden();
+      31 | }
+        at confirmImportSourcePreflight (C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\helpers\mapImport.ts:28:33)
+        at importLocalMapFileWithPreflight (C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\helpers\mapImport.ts:40:9)
+        at C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\map-choropleth.spec.ts:48:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\map-choropleth-Map-Explore-5a5e3-r-an-imported-polygon-layer\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\map-choropleth-Map-Explore-5a5e3-r-an-imported-polygon-layer\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\map-choropleth-Map-Explore-5a5e3-r-an-imported-polygon-layer\error-context.md
+
+  8) e2e\map-columnar-io.spec.ts:10:3 › Map Explorer columnar I/O › imports Arrow and GeoParquet through the UI and exports GeoParquet 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByRole('dialog', { name: 'GeoParquet schema preview' })
+    Expected: visible
+    Timeout: 20000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 20000ms[22m
+    [2m  - waiting for getByRole('dialog', { name: 'GeoParquet schema preview' })[22m
+
+
+      47 |
+      48 |     const geoParquetPreview = page.getByRole("dialog", { name: "GeoParquet schema preview" });
+    > 49 |     await expect(geoParquetPreview).toBeVisible();
+         |                                     ^
+      50 |     await expect(geoParquetPreview).toContainText("2 / 2");
+      51 |     await expect(geoParquetPreview).toContainText("Arrow IPC worker transfer");
+      52 |     await expect(geoParquetPreview).toContainText("BBox:");
+        at C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\map-columnar-io.spec.ts:49:37
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\map-columnar-io-Map-Explor-e6b91-e-UI-and-exports-GeoParquet\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\map-columnar-io-Map-Explor-e6b91-e-UI-and-exports-GeoParquet\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\map-columnar-io-Map-Explor-e6b91-e-UI-and-exports-GeoParquet\error-context.md
+
+  9) e2e\map-columnar-io.spec.ts:152:3 › Map Explorer columnar I/O › imports a WKT Arrow dataset variant and surfaces skipped-row diagnostics 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByRole('dialog', { name: 'Arrow schema preview' })
+    Expected: visible
+    Timeout: 20000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 20000ms[22m
+    [2m  - waiting for getByRole('dialog', { name: 'Arrow schema preview' })[22m
+
+
+      172 |
+      173 |     const arrowPreview = page.getByRole("dialog", { name: "Arrow schema preview" });
+    > 174 |     await expect(arrowPreview).toBeVisible();
+          |                                ^
+      175 |     await expect(arrowPreview).toContainText("2 / 3");
+      176 |     await expect(arrowPreview).toContainText("geometry");
+      177 |     await expect(arrowPreview).toContainText("Wkt");
+        at C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\map-columnar-io.spec.ts:174:32
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\map-columnar-io-Map-Explor-45919-ces-skipped-row-diagnostics\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\map-columnar-io-Map-Explor-45919-ces-skipped-row-diagnostics\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\map-columnar-io-Map-Explor-45919-ces-skipped-row-diagnostics\error-context.md
+
+  10) e2e\map-context-and-geojson.spec.ts:58:3 › Map Explorer context menu and GeoJSON I/O › supports reverse geocoding, clipboard copy, and keyboard context-menu actions 
+
+    [31mTest timeout of 120000ms exceeded.[39m
+
+    Error: locator.click: Test timeout of 120000ms exceeded.
+    Call log:
+    [2m  - waiting for getByRole('menu', { name: 'Map context menu' }).getByRole('menuitem', { name: /^What's here\?/i })[22m
+
+
+      105 |     await mapCanvas.click({ button: "right", position: { x: 560, y: 360 } });
+      106 |     await expect(contextMenu).toBeVisible();
+    > 107 |     await contextMenu.getByRole("menuitem", { name: /^What's here\?/i }).click();
+          |                                                                          ^
+      108 |     await expect(page.getByText("221B Baker Street, Marylebone, London, Greater London, England, United Kingdom")).toBeVisible();
+      109 |     await expect(page.getByText("Marylebone • London • England • United Kingdom")).toBeVisible();
+      110 |
+        at C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\map-context-and-geojson.spec.ts:107:74
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\map-context-and-geojson-Ma-aaadf-yboard-context-menu-actions\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\map-context-and-geojson-Ma-aaadf-yboard-context-menu-actions\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\map-context-and-geojson-Ma-aaadf-yboard-context-menu-actions\error-context.md
+
+  11) e2e\map-context-and-geojson.spec.ts:127:3 › Map Explorer context menu and GeoJSON I/O › imports, exports, and re-imports GeoJSON through the visible UI 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByRole('dialog', { name: 'Import source preflight' })
+    Expected: visible
+    Timeout: 20000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 20000ms[22m
+    [2m  - waiting for getByRole('dialog', { name: 'Import source preflight' })[22m
+
+
+       at helpers\mapImport.ts:28
+
+      26 | export async function confirmImportSourcePreflight(page: Page): Promise<void> {
+      27 |   const preflightDialog = page.getByRole("dialog", { name: "Import source preflight" });
+    > 28 |   await expect(preflightDialog).toBeVisible();
+         |                                 ^
+      29 |   await triggerDomClick(preflightDialog.getByRole("button", { name: "Import Source" }));
+      30 |   await expect(preflightDialog).toBeHidden();
+      31 | }
+        at confirmImportSourcePreflight (C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\helpers\mapImport.ts:28:33)
+        at importLocalMapFileWithPreflight (C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\helpers\mapImport.ts:40:9)
+        at C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\map-context-and-geojson.spec.ts:141:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\map-context-and-geojson-Ma-af4d1-JSON-through-the-visible-UI\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\map-context-and-geojson-Ma-af4d1-JSON-through-the-visible-UI\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\map-context-and-geojson-Ma-af4d1-JSON-through-the-visible-UI\error-context.md
+
+  12) e2e\map-csv-kml-gpx-import.spec.ts:39:3 › Map Explorer CSV, KML, and GPX import › opens the CSV mapping dialog with detected coordinate columns and imports valid rows 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByRole('dialog', { name: 'CSV coordinate mapping' })
+    Expected: visible
+    Timeout: 20000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 20000ms[22m
+    [2m  - waiting for getByRole('dialog', { name: 'CSV coordinate mapping' })[22m
+
+
+      57 |
+      58 |     const mappingDialog = page.getByRole("dialog", { name: "CSV coordinate mapping" });
+    > 59 |     await expect(mappingDialog).toBeVisible();
+         |                                 ^
+      60 |     await expect(mappingDialog).toContainText("Import CSV Points");
+      61 |     await expect(mappingDialog).toContainText("parks.csv contains 6 data rows");
+      62 |     await expect(mappingDialog).toContainText("Detected: LAT");
+        at C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\map-csv-kml-gpx-import.spec.ts:59:33
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\map-csv-kml-gpx-import-Map-9db47-umns-and-imports-valid-rows\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\map-csv-kml-gpx-import-Map-9db47-umns-and-imports-valid-rows\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\map-csv-kml-gpx-import-Map-9db47-umns-and-imports-valid-rows\error-context.md
+
+  13) e2e\map-csv-kml-gpx-import.spec.ts:104:3 › Map Explorer CSV, KML, and GPX import › imports Google Earth style KML placemarks into the layer panel 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByRole('dialog', { name: 'Import source preflight' })
+    Expected: visible
+    Timeout: 20000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 20000ms[22m
+    [2m  - waiting for getByRole('dialog', { name: 'Import source preflight' })[22m
+
+
+      136 |
+      137 |     const preflightDialog = page.getByRole("dialog", { name: "Import source preflight" });
+    > 138 |     await expect(preflightDialog).toBeVisible();
+          |                                   ^
+      139 |     await expect(preflightDialog).toContainText("field-survey.kml");
+      140 |     await expect(preflightDialog).toContainText("CRS missing");
+      141 |     await triggerDomClick(preflightDialog.getByRole("button", { name: "Import Source" }));
+        at C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\map-csv-kml-gpx-import.spec.ts:138:35
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\map-csv-kml-gpx-import-Map-7745b-emarks-into-the-layer-panel\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\map-csv-kml-gpx-import-Map-7745b-emarks-into-the-layer-panel\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\map-csv-kml-gpx-import-Map-7745b-emarks-into-the-layer-panel\error-context.md
+
+  14) e2e\map-csv-kml-gpx-import.spec.ts:146:3 › Map Explorer CSV, KML, and GPX import › imports GPX waypoints, routes, and tracks with elevation metadata 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByRole('dialog', { name: 'Import source preflight' })
+    Expected: visible
+    Timeout: 20000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 20000ms[22m
+    [2m  - waiting for getByRole('dialog', { name: 'Import source preflight' })[22m
+
+
+      178 |
+      179 |     const preflightDialog = page.getByRole("dialog", { name: "Import source preflight" });
+    > 180 |     await expect(preflightDialog).toBeVisible();
+          |                                   ^
+      181 |     await expect(preflightDialog).toContainText("CRS missing");
+      182 |     await triggerDomClick(preflightDialog.getByRole("button", { name: "Import Source" }));
+      183 |
+        at C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\map-csv-kml-gpx-import.spec.ts:180:35
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\map-csv-kml-gpx-import-Map-c7a70-cks-with-elevation-metadata\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\map-csv-kml-gpx-import-Map-c7a70-cks-with-elevation-metadata\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\map-csv-kml-gpx-import-Map-c7a70-cks-with-elevation-metadata\error-context.md
+
+  15) e2e\map-explorer-stability.spec.ts:67:3 › Map Explorer stability › survives repeated open close panel and viewport churn without page errors 
+
+    [31mTest timeout of 120000ms exceeded.[39m
+
+    Error: locator.evaluate: Test timeout of 120000ms exceeded.
+    Call log:
+    [2m  - waiting for getByRole('dialog', { name: 'Urban Analytics Workbench' }).getByRole('button', { name: 'Open Map Explorer (Ctrl+Shift+M)' })[22m
+
+
+       at helpers\urbanAnalytics.ts:351
+
+      349 |
+      350 | export async function triggerDomClick(locator: Locator): Promise<void> {
+    > 351 |   await locator.evaluate((node: HTMLElement) => node.click());
+          |                 ^
+      352 | }
+      353 |
+      354 | export async function setFormValue(locator: Locator, value: string): Promise<void> {
+        at triggerDomClick (C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\helpers\urbanAnalytics.ts:351:17)
+        at C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\map-explorer-stability.spec.ts:82:13
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\map-explorer-stability-Map-5130c-t-churn-without-page-errors\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\map-explorer-stability-Map-5130c-t-churn-without-page-errors\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\map-explorer-stability-Map-5130c-t-churn-without-page-errors\error-context.md
+
+  16) e2e\map-external-service.spec.ts:17:3 › Map Explorer — external service production path (Prompt 21) › a broken external service surfaces a specific actionable failure and a layer caveat 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByTestId('map-layer-inspector')
+    Expected: visible
+    Error: strict mode violation: getByTestId('map-layer-inspector') resolved to 2 elements:
+        1) <div role="region" data-presentation="embedded" data-testid="map-layer-inspector" aria-label="Layer inspector for E2E Offline WMS">…</div> aka getByTestId('map-right-dock-inspector-body').getByTestId('map-layer-inspector')
+        2) <div role="region" data-presentation="embedded" data-testid="map-layer-inspector" aria-label="Layer inspector for E2E Offline WMS">…</div> aka getByTestId('map-inspector-host').getByTestId('map-layer-inspector')
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 20000ms[22m
+    [2m  - waiting for getByTestId('map-layer-inspector')[22m
+
+
+      67 |     await triggerDomClick(layerRow.getByTestId("map-layer-inspect-trigger"));
+      68 |     const inspector = page.getByTestId("map-layer-inspector");
+    > 69 |     await expect(inspector).toBeVisible();
+         |                             ^
+      70 |
+      71 |     await triggerDomClick(inspector.getByTestId("map-layer-inspector-tab-report"));
+      72 |     const reportPanel = page.getByTestId("map-layer-inspector-panel-report");
+        at C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\map-external-service.spec.ts:69:29
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\map-external-service-Map-E-5ff1a--failure-and-a-layer-caveat\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\map-external-service-Map-E-5ff1a--failure-and-a-layer-caveat\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\map-external-service-Map-E-5ff1a--failure-and-a-layer-caveat\error-context.md
+
+  17) e2e\map-image-export.spec.ts:65:3 › Map Explorer PNG image export › opens the full image export dialog from the visible toolbar UI 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByRole('dialog', { name: 'Map Explorer' }).first().getByRole('button', { name: 'Show legend' })
+    Expected: visible
+    Timeout: 20000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 20000ms[22m
+    [2m  - waiting for getByRole('dialog', { name: 'Map Explorer' }).first().getByRole('button', { name: 'Show legend' })[22m
+
+
+      76 |     await expect(page.getByRole("list", { name: "Layer list" })).toContainText("E2E Image Export District");
+      77 |     const showLegendButton = mapExplorer.getByRole("button", { name: "Show legend" });
+    > 78 |     await expect(showLegendButton).toBeVisible();
+         |                                    ^
+      79 |     await triggerDomClick(showLegendButton);
+      80 |     await expect(mapExplorer.getByRole("button", { name: "Hide legend" })).toBeVisible();
+      81 |
+        at C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\map-image-export.spec.ts:78:36
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\map-image-export-Map-Explo-13bf3-from-the-visible-toolbar-UI\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\map-image-export-Map-Explo-13bf3-from-the-visible-toolbar-UI\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\map-image-export-Map-Explo-13bf3-from-the-visible-toolbar-UI\error-context.md
+
+  18) e2e\map-layout-book.spec.ts:109:3 › Map Explorer layout designer (book) › opens layout designer, adds a second page, asserts page count and export button 
+
+    [31mTest timeout of 120000ms exceeded.[39m
+
+    Error: locator.evaluate: Test timeout of 120000ms exceeded.
+    Call log:
+    [2m  - waiting for getByRole('dialog', { name: 'Map Explorer' }).first().getByRole('button', { name: 'Switch toolbar to Publish mode' })[22m
+
+
+       at helpers\urbanAnalytics.ts:351
+
+      349 |
+      350 | export async function triggerDomClick(locator: Locator): Promise<void> {
+    > 351 |   await locator.evaluate((node: HTMLElement) => node.click());
+          |                 ^
+      352 | }
+      353 |
+      354 | export async function setFormValue(locator: Locator, value: string): Promise<void> {
+        at triggerDomClick (C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\helpers\urbanAnalytics.ts:351:17)
+        at C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\map-layout-book.spec.ts:132:11
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\map-layout-book-Map-Explor-0eb12-age-count-and-export-button\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\map-layout-book-Map-Explor-0eb12-age-count-and-export-button\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\map-layout-book-Map-Explor-0eb12-age-count-and-export-button\error-context.md
+
+  19) e2e\map-layout-regression-p09.spec.ts:44:3 › Prompt 09 — map layout regression guards › guards shell visibility, panel collisions, warning surfaces, and floating control overlap 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByTestId('map-canvas-viewport-controls')
+    Expected: visible
+    Timeout: 20000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 20000ms[22m
+    [2m  - waiting for getByTestId('map-canvas-viewport-controls')[22m
+
+
+      72 |     const furnitureControls = page.getByTestId("map-canvas-furniture-controls");
+      73 |     const activeToolIndicator = page.getByTestId("map-active-tool-indicator");
+    > 74 |     await expect(viewportControls).toBeVisible();
+         |                                    ^
+      75 |     await expect(furnitureControls).toBeVisible();
+      76 |     await expect(activeToolIndicator).toBeVisible();
+      77 |
+        at C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\map-layout-regression-p09.spec.ts:74:36
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\map-layout-regression-p09--74db9-nd-floating-control-overlap\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\map-layout-regression-p09--74db9-nd-floating-control-overlap\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\map-layout-regression-p09--74db9-nd-floating-control-overlap\error-context.md
+
+  20) e2e\map-modal-layout.spec.ts:517:3 › Prompt 35 premium Map Explorer layout › opens, closes, and reopens the modal without losing the entry point 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByRole('dialog', { name: 'Urban Analytics Workbench' })
+    Expected: visible
+    Timeout: 20000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 20000ms[22m
+    [2m  - waiting for getByRole('dialog', { name: 'Urban Analytics Workbench' })[22m
+
+
+      526 |
+      527 |     const urbanModal = page.getByRole("dialog", { name: "Urban Analytics Workbench" });
+    > 528 |     await expect(urbanModal).toBeVisible();
+          |                              ^
+      529 |     await triggerDomClick(urbanModal.getByRole("button", { name: "Open Map Explorer (Ctrl+Shift+M)" }));
+      530 |     await expect(page.getByRole("dialog", { name: "Map Explorer" }).first()).toBeVisible();
+      531 |     await expect(page.getByTestId("map-canvas-region")).toBeVisible();
+        at C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\map-modal-layout.spec.ts:528:30
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\map-modal-layout-Prompt-35-55615-hout-losing-the-entry-point\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\map-modal-layout-Prompt-35-55615-hout-losing-the-entry-point\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\map-modal-layout-Prompt-35-55615-hout-losing-the-entry-point\error-context.md
+
+  21) e2e\map-modal-layout.spec.ts:599:3 › Prompt 35 premium Map Explorer layout › reaches Prompt 16 data, layers, inspector, QA, and attributes routes 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByTestId('map-layer-inspector')
+    Expected: visible
+    Error: strict mode violation: getByTestId('map-layer-inspector') resolved to 2 elements:
+        1) <div role="region" data-presentation="embedded" data-testid="map-layer-inspector" aria-label="Layer inspector for E2E Istanbul WGS84 Points">…</div> aka getByTestId('map-inspector-host').getByTestId('map-layer-inspector')
+        2) <div role="region" data-presentation="embedded" data-testid="map-layer-inspector" aria-label="Layer inspector for E2E Istanbul WGS84 Points">…</div> aka getByTestId('map-right-dock-inspector-body').getByTestId('map-layer-inspector')
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 20000ms[22m
+    [2m  - waiting for getByTestId('map-layer-inspector')[22m
+
+
+      614 |     await triggerDomClick(seededLayerRow.getByTestId("map-layer-inspect-trigger"));
+      615 |     await expect(page.getByTestId("map-inspector-host")).toBeVisible();
+    > 616 |     await expect(page.getByTestId("map-layer-inspector")).toBeVisible();
+          |                                                           ^
+      617 |     await triggerDomClick(page.getByTestId("map-inspector-host").getByRole("button", { name: "Close inspector" }));
+      618 |
+      619 |     await openLayerActionMenu(seededLayerRow);
+        at C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\map-modal-layout.spec.ts:616:59
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\map-modal-layout-Prompt-35-837a6-or-QA-and-attributes-routes\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\map-modal-layout-Prompt-35-837a6-or-QA-and-attributes-routes\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\map-modal-layout-Prompt-35-837a6-or-QA-and-attributes-routes\error-context.md
+
+  22) e2e\map-modal-layout.spec.ts:670:3 › Prompt 35 premium Map Explorer layout › standardizes Prompt 18 canvas controls for recovery, tools, basemap, and furniture 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByTestId('map-canvas-viewport-controls')
+    Expected: visible
+    Timeout: 20000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 20000ms[22m
+    [2m  - waiting for getByTestId('map-canvas-viewport-controls')[22m
+
+
+      677 |     const furnitureControls = page.getByTestId("map-canvas-furniture-controls");
+      678 |     const activeTool = page.getByTestId("map-active-tool-indicator");
+    > 679 |     await expect(viewportControls).toBeVisible();
+          |                                    ^
+      680 |     await expect(furnitureControls).toBeVisible();
+      681 |     await expect(activeTool).toContainText("Select");
+      682 |     await expect(viewportControls.getByRole("button", { name: "Zoom in" })).toBeVisible();
+        at C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\map-modal-layout.spec.ts:679:36
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\map-modal-layout-Prompt-35-a8999-tools-basemap-and-furniture\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\map-modal-layout-Prompt-35-a8999-tools-basemap-and-furniture\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\map-modal-layout-Prompt-35-a8999-tools-basemap-and-furniture\error-context.md
+
+  23) e2e\map-modal-layout.spec.ts:817:3 › Prompt 35 premium Map Explorer layout › keeps map, layer rail, and bottom status visible on desktop 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator:  getByTestId('map-command-center').getByTestId('map-commands-trigger')
+    Expected: visible
+    Received: hidden
+    Timeout:  20000ms
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 20000ms[22m
+    [2m  - waiting for getByTestId('map-command-center').getByTestId('map-commands-trigger')[22m
+    [2m    23 × locator resolved to <button type="button" id="radix-«r12»" data-state="closed" aria-haspopup="menu" aria-expanded="false" title="Open map commands" aria-label="Open map commands" data-testid="map-commands-trigger">…</button>[22m
+    [2m       - unexpected value "hidden"[22m
+
+
+      831 |     await expect(bottomTimeline).toBeVisible();
+      832 |     await expect(commandCenter).toBeVisible();
+    > 833 |     await expect(commandCenter.getByTestId("map-commands-trigger")).toBeVisible();
+          |                                                                     ^
+      834 |     await expect(commandCenter.getByTestId("map-command-center-primary-action")).toBeVisible();
+      835 |     await expect(commandCenter.getByTestId("map-command-center-overflow")).toBeVisible();
+      836 |     await expect(page.getByRole("application", { name: /Interactive map canvas/i })).toBeVisible();
+        at C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\map-modal-layout.spec.ts:833:69
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\map-modal-layout-Prompt-35-a9adf-m-status-visible-on-desktop\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\map-modal-layout-Prompt-35-a9adf-m-status-visible-on-desktop\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\map-modal-layout-Prompt-35-a9adf-m-status-visible-on-desktop\error-context.md
+
+  24) e2e\map-modal-layout.spec.ts:920:3 › Prompt 35 premium Map Explorer layout › keeps More, Views, Commands, filter, and basemap menus visible and unclipped 
+
+    [31mTest timeout of 120000ms exceeded.[39m
+
+    Error: locator.evaluate: Test timeout of 120000ms exceeded.
+    Call log:
+    [2m  - waiting for getByRole('button', { name: /filter select/i }).first()[22m
+
+
+       at helpers\urbanAnalytics.ts:351
+
+      349 |
+      350 | export async function triggerDomClick(locator: Locator): Promise<void> {
+    > 351 |   await locator.evaluate((node: HTMLElement) => node.click());
+          |                 ^
+      352 | }
+      353 |
+      354 | export async function setFormValue(locator: Locator, value: string): Promise<void> {
+        at triggerDomClick (C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\helpers\urbanAnalytics.ts:351:17)
+        at C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\map-modal-layout.spec.ts:956:11
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\map-modal-layout-Prompt-35-4b979-menus-visible-and-unclipped\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\map-modal-layout-Prompt-35-4b979-menus-visible-and-unclipped\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\map-modal-layout-Prompt-35-4b979-menus-visible-and-unclipped\error-context.md
+
+  25) e2e\map-modal-layout.spec.ts:1106:3 › Prompt 35 premium Map Explorer layout › renders comparison mode with split or swipe preview and synchronized legend 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByTestId('map-workflow-drawer')
+    Expected: visible
+    Timeout: 20000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 20000ms[22m
+    [2m  - waiting for getByTestId('map-workflow-drawer')[22m
+
+
+      423 |   }
+      424 |
+    > 425 |   await expect(drawer).toBeVisible();
+          |                        ^
+      426 |   return drawer;
+      427 | }
+      428 |
+        at openWorkflowDrawer (C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\map-modal-layout.spec.ts:425:24)
+        at C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\map-modal-layout.spec.ts:1115:20
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\map-modal-layout-Prompt-35-95a86-iew-and-synchronized-legend\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\map-modal-layout-Prompt-35-95a86-iew-and-synchronized-legend\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\map-modal-layout-Prompt-35-95a86-iew-and-synchronized-legend\error-context.md
+
+  26) e2e\map-modal-layout.spec.ts:1134:3 › Prompt 35 premium Map Explorer layout › shows the execution CRS chip on workflow preview 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByTestId('map-workflow-drawer')
+    Expected: visible
+    Timeout: 20000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 20000ms[22m
+    [2m  - waiting for getByTestId('map-workflow-drawer')[22m
+
+
+      423 |   }
+      424 |
+    > 425 |   await expect(drawer).toBeVisible();
+          |                        ^
+      426 |   return drawer;
+      427 | }
+      428 |
+        at openWorkflowDrawer (C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\map-modal-layout.spec.ts:425:24)
+        at C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\map-modal-layout.spec.ts:1142:20
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\map-modal-layout-Prompt-35-4e61f-RS-chip-on-workflow-preview\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\map-modal-layout-Prompt-35-4e61f-RS-chip-on-workflow-preview\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\map-modal-layout-Prompt-35-4e61f-RS-chip-on-workflow-preview\error-context.md
+
+  27) e2e\map-modal-layout.spec.ts:1151:3 › Prompt 35 premium Map Explorer layout › blocks buffer workflows when source CRS is missing 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByTestId('map-workflow-drawer')
+    Expected: visible
+    Timeout: 20000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 20000ms[22m
+    [2m  - waiting for getByTestId('map-workflow-drawer')[22m
+
+
+      423 |   }
+      424 |
+    > 425 |   await expect(drawer).toBeVisible();
+          |                        ^
+      426 |   return drawer;
+      427 | }
+      428 |
+        at openWorkflowDrawer (C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\map-modal-layout.spec.ts:425:24)
+        at C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\map-modal-layout.spec.ts:1159:20
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\map-modal-layout-Prompt-35-09629--when-source-CRS-is-missing\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\map-modal-layout-Prompt-35-09629--when-source-CRS-is-missing\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\map-modal-layout-Prompt-35-09629--when-source-CRS-is-missing\error-context.md
+
+  28) e2e\map-modal-layout.spec.ts:1196:3 › Prompt 35 premium Map Explorer layout › builds a viewport AOI and audits a vertex edit with validation status (Prompt 14) 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByTestId('map-workflow-drawer')
+    Expected: visible
+    Timeout: 20000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 20000ms[22m
+    [2m  - waiting for getByTestId('map-workflow-drawer')[22m
+
+
+      423 |   }
+      424 |
+    > 425 |   await expect(drawer).toBeVisible();
+          |                        ^
+      426 |   return drawer;
+      427 | }
+      428 |
+        at openWorkflowDrawer (C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\map-modal-layout.spec.ts:425:24)
+        at C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\map-modal-layout.spec.ts:1201:20
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\map-modal-layout-Prompt-35-a25d4-alidation-status-Prompt-14-\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\map-modal-layout-Prompt-35-a25d4-alidation-status-Prompt-14-\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\map-modal-layout-Prompt-35-a25d4-alidation-status-Prompt-14-\error-context.md
+
+  29) e2e\map-modal-layout.spec.ts:1287:3 › Prompt 35 premium Map Explorer layout › selects fcPointsWGS84 points with a rectangle and shows the count chip (Prompt 15) 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByTestId('map-selection-count-chip').first()
+    Expected: visible
+    Timeout: 20000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 20000ms[22m
+    [2m  - waiting for getByTestId('map-selection-count-chip').first()[22m
+
+
+      1299 |
+      1300 |     const countChip = page.getByTestId("map-selection-count-chip").first();
+    > 1301 |     await expect(countChip).toBeVisible();
+           |                             ^
+      1302 |     await expect(countChip).toContainText("0 selected");
+      1303 |     await triggerDomClick(page.getByTestId("map-rectangle-select-tool"));
+      1304 |
+        at C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\map-modal-layout.spec.ts:1301:29
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\map-modal-layout-Prompt-35-cc07d-s-the-count-chip-Prompt-15-\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\map-modal-layout-Prompt-35-cc07d-s-the-count-chip-Prompt-15-\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\map-modal-layout-Prompt-35-cc07d-s-the-count-chip-Prompt-15-\error-context.md
+
+  30) e2e\map-modal-layout.spec.ts:1374:3 › Prompt 35 premium Map Explorer layout › opens a tabbed layer inspector with schema + CRS, and shows missing CRS explicitly 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByTestId('map-layer-inspector')
+    Expected: visible
+    Error: strict mode violation: getByTestId('map-layer-inspector') resolved to 2 elements:
+        1) <div role="region" data-presentation="embedded" data-testid="map-layer-inspector" aria-label="Layer inspector for E2E Inspector Points">…</div> aka getByTestId('map-right-dock-inspector-body').getByTestId('map-layer-inspector')
+        2) <div role="region" data-presentation="embedded" data-testid="map-layer-inspector" aria-label="Layer inspector for E2E Inspector Points">…</div> aka getByTestId('map-inspector-host').getByTestId('map-layer-inspector')
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 20000ms[22m
+    [2m  - waiting for getByTestId('map-layer-inspector')[22m
+
+
+      1421 |
+      1422 |     const inspector = page.getByTestId("map-layer-inspector");
+    > 1423 |     await expect(inspector).toBeVisible();
+           |                             ^
+      1424 |     await expect(inspector).toHaveAttribute("data-presentation", "embedded");
+      1425 |
+      1426 |     await triggerDomClick(inspector.getByTestId("map-layer-inspector-tab-schema"));
+        at C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\map-modal-layout.spec.ts:1423:29
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\map-modal-layout-Prompt-35-ee98d-hows-missing-CRS-explicitly\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\map-modal-layout-Prompt-35-ee98d-hows-missing-CRS-explicitly\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\map-modal-layout-Prompt-35-ee98d-hows-missing-CRS-explicitly\error-context.md
+
+  31) e2e\map-model-builder.spec.ts:65:3 › Map Explorer model builder › reruns a saved buffer-intersect model deterministically and publishes batch evidence 
+
+    [31mTest timeout of 120000ms exceeded.[39m
+
+    Error: locator.evaluate: Test timeout of 120000ms exceeded.
+    Call log:
+    [2m  - waiting for getByRole('dialog', { name: 'Map Explorer' }).first().getByRole('button', { name: 'Scientific QA, 3D sync, density, and command controls' })[22m
+
+
+       at helpers\urbanAnalytics.ts:351
+
+      349 |
+      350 | export async function triggerDomClick(locator: Locator): Promise<void> {
+    > 351 |   await locator.evaluate((node: HTMLElement) => node.click());
+          |                 ^
+      352 | }
+      353 |
+      354 | export async function setFormValue(locator: Locator, value: string): Promise<void> {
+        at triggerDomClick (C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\helpers\urbanAnalytics.ts:351:17)
+        at openModelBuilder (C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\map-model-builder.spec.ts:56:9)
+        at C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\map-model-builder.spec.ts:78:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\map-model-builder-Map-Expl-d750a-nd-publishes-batch-evidence\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\map-model-builder-Map-Expl-d750a-nd-publishes-batch-evidence\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\map-model-builder-Map-Expl-d750a-nd-publishes-batch-evidence\error-context.md
+
+  32) e2e\map-observability-p56.spec.ts:81:3 › Prompt 56 — Map observability and recovery › surfaces worker failure recovery and retries a crashed diagnostics panel 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByTestId('map-performance-diagnostics').getByTestId('map-worker-recovery-retry')
+    Expected: visible
+    Error: strict mode violation: getByTestId('map-performance-diagnostics').getByTestId('map-worker-recovery-retry') resolved to 2 elements:
+        1) <button type="button" data-testid="map-worker-recovery-retry">…</button> aka getByTestId('map-operational-status-worker.failure').getByTestId('map-worker-recovery-retry')
+        2) <button type="button" data-testid="map-worker-recovery-retry">…</button> aka getByTestId('map-observability-event-worker.failure').getByTestId('map-worker-recovery-retry')
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 20000ms[22m
+    [2m  - waiting for getByTestId('map-performance-diagnostics').getByTestId('map-worker-recovery-retry')[22m
+
+
+      101 |     await expect(diagnostics.getByTestId("map-observability-log")).toContainText("worker.failure");
+      102 |     await expect(diagnostics.getByTestId("map-observability-log")).toContainText("P56 forced worker failure");
+    > 103 |     await expect(diagnostics.getByTestId("map-worker-recovery-retry")).toBeVisible();
+          |                                                                        ^
+      104 |     await triggerDomClick(diagnostics.getByTestId("map-worker-recovery-retry"));
+      105 |
+      106 |     await expect(mapExplorer).toBeVisible();
+        at C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\map-observability-p56.spec.ts:103:72
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\map-observability-p56-Prom-265e4-a-crashed-diagnostics-panel\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\map-observability-p56-Prom-265e4-a-crashed-diagnostics-panel\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\map-observability-p56-Prom-265e4-a-crashed-diagnostics-panel\error-context.md
+
+  33) e2e\map-performance-diagnostics.spec.ts:70:3 › Map Explorer performance diagnostics › shows fcLarge live diagnostics and bounded-mode banner 
+
+    [31mTest timeout of 120000ms exceeded.[39m
+
+    Error: locator.evaluate: Test timeout of 120000ms exceeded.
+    Call log:
+    [2m  - waiting for getByRole('dialog', { name: 'Map Explorer' }).first().getByRole('button', { name: 'Scientific QA, 3D sync, density, and command controls' })[22m
+
+
+       at helpers\urbanAnalytics.ts:351
+
+      349 |
+      350 | export async function triggerDomClick(locator: Locator): Promise<void> {
+    > 351 |   await locator.evaluate((node: HTMLElement) => node.click());
+          |                 ^
+      352 | }
+      353 |
+      354 | export async function setFormValue(locator: Locator, value: string): Promise<void> {
+        at triggerDomClick (C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\helpers\urbanAnalytics.ts:351:17)
+        at openPerformanceDiagnostics (C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\map-performance-diagnostics.spec.ts:61:9)
+        at C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\map-performance-diagnostics.spec.ts:90:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\map-performance-diagnostic-9a98a-ics-and-bounded-mode-banner\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\map-performance-diagnostic-9a98a-ics-and-bounded-mode-banner\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\map-performance-diagnostic-9a98a-ics-and-bounded-mode-banner\error-context.md
+
+  34) e2e\map-plugins-p55.spec.ts:64:3 › Map Explorer plugin registry › lists reference extensions and runs the reference processing plugin through the lifecycle 
+
+    [31mTest timeout of 120000ms exceeded.[39m
+
+    Error: locator.evaluate: Test timeout of 120000ms exceeded.
+    Call log:
+    [2m  - waiting for getByRole('dialog', { name: 'Map Explorer' }).first().getByRole('button', { name: 'Scientific QA, 3D sync, density, and command controls' })[22m
+
+
+       at helpers\urbanAnalytics.ts:351
+
+      349 |
+      350 | export async function triggerDomClick(locator: Locator): Promise<void> {
+    > 351 |   await locator.evaluate((node: HTMLElement) => node.click());
+          |                 ^
+      352 | }
+      353 |
+      354 | export async function setFormValue(locator: Locator, value: string): Promise<void> {
+        at triggerDomClick (C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\helpers\urbanAnalytics.ts:351:17)
+        at openAdvancedCommand (C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\map-plugins-p55.spec.ts:55:9)
+        at C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\map-plugins-p55.spec.ts:79:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\map-plugins-p55-Map-Explor-564ea-lugin-through-the-lifecycle\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\map-plugins-p55-Map-Explor-564ea-lugin-through-the-lifecycle\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\map-plugins-p55-Map-Explor-564ea-lugin-through-the-lifecycle\error-context.md
+
+  35) e2e\map-point-symbology.spec.ts:33:3 › Map Explorer point symbology › exposes heatmap, proportional, and graduated symbol controls for an imported point layer 
+
+    [31mTest timeout of 120000ms exceeded.[39m
+
+    Error: locator.evaluate: Test timeout of 120000ms exceeded.
+    Call log:
+    [2m  - waiting for getByRole('button', { name: /Import GeoJSON, CSV, Arrow, GeoParquet, KML, KMZ, and GPX files|Open spatial data import options/i })[22m
+
+
+       at helpers\urbanAnalytics.ts:351
+
+      349 |
+      350 | export async function triggerDomClick(locator: Locator): Promise<void> {
+    > 351 |   await locator.evaluate((node: HTMLElement) => node.click());
+          |                 ^
+      352 | }
+      353 |
+      354 | export async function setFormValue(locator: Locator, value: string): Promise<void> {
+        at triggerDomClick (C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\helpers\urbanAnalytics.ts:351:17)
+        at C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\map-point-symbology.spec.ts:44:11
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\map-point-symbology-Map-Ex-dd943-for-an-imported-point-layer\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\map-point-symbology-Map-Ex-dd943-for-an-imported-point-layer\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\map-point-symbology-Map-Ex-dd943-for-an-imported-point-layer\error-context.md
+
+  36) e2e\map-premium-redesign-baseline.spec.ts:244:3 › Map Explorer premium redesign visual baseline › IMG-04 UX-04 baseline captures floating Draw and Measure tool panels 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByRole('region', { name: 'Drawn features' })
+    Expected: visible
+    Timeout: 20000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 20000ms[22m
+    [2m  - waiting for getByRole('region', { name: 'Drawn features' })[22m
+
+
+      250 |     await runToolbarCommand(page, "drawings", "drawings");
+      251 |     const drawingPanel = page.getByRole("region", { name: "Drawn features" });
+    > 252 |     await expect(drawingPanel).toBeVisible();
+          |                                ^
+      253 |     await expect(drawingPanel).toContainText("Drawings");
+      254 |     await capturePage(page, testInfo, "map-redesign-baseline-img-04-ux-04-floating-draw-desktop-1366x768");
+      255 |
+        at C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\map-premium-redesign-baseline.spec.ts:252:32
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\map-premium-redesign-basel-3225b-raw-and-Measure-tool-panels\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\map-premium-redesign-basel-3225b-raw-and-Measure-tool-panels\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\map-premium-redesign-basel-3225b-raw-and-Measure-tool-panels\error-context.md
+
+  37) e2e\map-premium-redesign-baseline.spec.ts:264:3 › Map Explorer premium redesign visual baseline › UX-05 UX-06 baseline captures top command surface and status bar matrix 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator:  getByTestId('map-command-center').getByTestId('map-command-center-primary-action')
+    Expected: visible
+    Received: hidden
+    Timeout:  20000ms
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 20000ms[22m
+    [2m  - waiting for getByTestId('map-command-center').getByTestId('map-command-center-primary-action')[22m
+    [2m    23 × locator resolved to <div data-primary-command-id="layers" data-testid="map-command-center-primary-action">…</div>[22m
+    [2m       - unexpected value "hidden"[22m
+
+
+      272 |       const statusBar = page.getByRole("status", { name: "Map status" });
+      273 |       await expect(commandCenter).toBeVisible();
+    > 274 |       await expect(commandCenter.getByTestId("map-command-center-primary-action")).toBeVisible();
+          |                                                                                    ^
+      275 |       await expect(commandCenter.getByTestId("map-command-center-overflow")).toBeVisible();
+      276 |       await expect(statusBar).toBeVisible();
+      277 |       await expect(statusBar).toContainText("QA");
+        at C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\map-premium-redesign-baseline.spec.ts:274:84
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\map-premium-redesign-basel-86c42-rface-and-status-bar-matrix\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\map-premium-redesign-basel-86c42-rface-and-status-bar-matrix\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\map-premium-redesign-basel-86c42-rface-and-status-bar-matrix\error-context.md
+
+  38) e2e\map-processing-toolbox-design.spec.ts:23:3 › Map Explorer processing toolbox — premium styling + blocked states › shows a not-yet-wired tool's reason before run and screenshots the toolbox 
+
+    [31mTest timeout of 120000ms exceeded.[39m
+
+    Error: locator.evaluate: Test timeout of 120000ms exceeded.
+    Call log:
+    [2m  - waiting for getByRole('dialog', { name: 'Map Explorer' }).first().getByRole('button', { name: 'Scientific QA, 3D sync, density, and command controls' })[22m
+
+
+       at helpers\urbanAnalytics.ts:351
+
+      349 |
+      350 | export async function triggerDomClick(locator: Locator): Promise<void> {
+    > 351 |   await locator.evaluate((node: HTMLElement) => node.click());
+          |                 ^
+      352 | }
+      353 |
+      354 | export async function setFormValue(locator: Locator, value: string): Promise<void> {
+        at triggerDomClick (C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\helpers\urbanAnalytics.ts:351:17)
+        at openProcessingToolbox (C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\map-processing-toolbox-design.spec.ts:14:9)
+        at C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\map-processing-toolbox-design.spec.ts:36:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\map-processing-toolbox-des-95fef-and-screenshots-the-toolbox\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\map-processing-toolbox-des-95fef-and-screenshots-the-toolbox\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\map-processing-toolbox-des-95fef-and-screenshots-the-toolbox\error-context.md
+
+  39) e2e\map-processing-toolbox-tools.spec.ts:91:3 › Map Explorer processing toolbox — service tools › lists ≥12 implemented tools and runs spatial-join with a manifest 
+
+    [31mTest timeout of 120000ms exceeded.[39m
+
+    Error: locator.evaluate: Test timeout of 120000ms exceeded.
+    Call log:
+    [2m  - waiting for getByRole('dialog', { name: 'Map Explorer' }).first().getByRole('button', { name: 'Scientific QA, 3D sync, density, and command controls' })[22m
+
+
+       at helpers\urbanAnalytics.ts:351
+
+      349 |
+      350 | export async function triggerDomClick(locator: Locator): Promise<void> {
+    > 351 |   await locator.evaluate((node: HTMLElement) => node.click());
+          |                 ^
+      352 | }
+      353 |
+      354 | export async function setFormValue(locator: Locator, value: string): Promise<void> {
+        at triggerDomClick (C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\helpers\urbanAnalytics.ts:351:17)
+        at openProcessingToolbox (C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\map-processing-toolbox-tools.spec.ts:82:9)
+        at C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\map-processing-toolbox-tools.spec.ts:106:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\map-processing-toolbox-too-9abaa-patial-join-with-a-manifest\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\map-processing-toolbox-too-9abaa-patial-join-with-a-manifest\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\map-processing-toolbox-too-9abaa-patial-join-with-a-manifest\error-context.md
+
+  40) e2e\map-processing-toolbox.spec.ts:64:3 › Map Explorer processing toolbox › searches for buffer and runs it, producing an output layer with a manifest 
+
+    [31mTest timeout of 120000ms exceeded.[39m
+
+    Error: locator.evaluate: Test timeout of 120000ms exceeded.
+    Call log:
+    [2m  - waiting for getByRole('dialog', { name: 'Map Explorer' }).first().getByRole('button', { name: 'Scientific QA, 3D sync, density, and command controls' })[22m
+
+
+       at helpers\urbanAnalytics.ts:351
+
+      349 |
+      350 | export async function triggerDomClick(locator: Locator): Promise<void> {
+    > 351 |   await locator.evaluate((node: HTMLElement) => node.click());
+          |                 ^
+      352 | }
+      353 |
+      354 | export async function setFormValue(locator: Locator, value: string): Promise<void> {
+        at triggerDomClick (C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\helpers\urbanAnalytics.ts:351:17)
+        at openProcessingToolbox (C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\map-processing-toolbox.spec.ts:55:9)
+        at C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\map-processing-toolbox.spec.ts:79:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\map-processing-toolbox-Map-f8f00-utput-layer-with-a-manifest\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\map-processing-toolbox-Map-f8f00-utput-layer-with-a-manifest\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\map-processing-toolbox-Map-f8f00-utput-layer-with-a-manifest\error-context.md
+
+  41) e2e\map-spatial-stats-renderers.spec.ts:87:3 › Map Explorer spatial statistics renderers › shows LISA and Gi-star renderer controls with academic legends 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByRole('dialog', { name: 'Import source preflight' })
+    Expected: visible
+    Timeout: 20000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 20000ms[22m
+    [2m  - waiting for getByRole('dialog', { name: 'Import source preflight' })[22m
+
+
+       at helpers\mapImport.ts:28
+
+      26 | export async function confirmImportSourcePreflight(page: Page): Promise<void> {
+      27 |   const preflightDialog = page.getByRole("dialog", { name: "Import source preflight" });
+    > 28 |   await expect(preflightDialog).toBeVisible();
+         |                                 ^
+      29 |   await triggerDomClick(preflightDialog.getByRole("button", { name: "Import Source" }));
+      30 |   await expect(preflightDialog).toBeHidden();
+      31 | }
+        at confirmImportSourcePreflight (C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\helpers\mapImport.ts:28:33)
+        at importLocalMapFileWithPreflight (C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\helpers\mapImport.ts:40:9)
+        at importFixture (C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\map-spatial-stats-renderers.spec.ts:83:3)
+        at C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\map-spatial-stats-renderers.spec.ts:98:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\map-spatial-stats-renderer-d6997-trols-with-academic-legends\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\map-spatial-stats-renderer-d6997-trols-with-academic-legends\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\map-spatial-stats-renderer-d6997-trols-with-academic-legends\error-context.md
+
+  42) e2e\map-temporal-player.spec.ts:11:3 › Map Explorer temporal animation player › uses the live Scene > Temporal layer for scrub, play, step, and speed changes 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32mtrue[39m
+    Received: [31mfalse[39m
+
+    Call Log:
+    - Timeout 20000ms exceeded while waiting on the predicate
+
+      56 |     await triggerDomClick(player.getByRole("button", { name: "Play" }));
+      57 |     await expect.poll(async () => (await getTemporalPlaybackState(page)).isPlaying).toBe(true);
+    > 58 |     await expect.poll(async () => (await getTemporalPlaybackState(page)).temporalIsPlaying).toBe(true);
+         |     ^
+      59 |
+      60 |     await triggerDomClick(player.getByRole("button", { name: "Pause" }));
+      61 |     await expect.poll(async () => (await getTemporalPlaybackState(page)).isPlaying).toBe(false);
+        at C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\map-temporal-player.spec.ts:58:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\map-temporal-player-Map-Ex-a7a50-play-step-and-speed-changes\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\map-temporal-player-Map-Ex-a7a50-play-step-and-speed-changes\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\map-temporal-player-Map-Ex-a7a50-play-step-and-speed-changes\error-context.md
+
+  43) e2e\p08-aoi-analysis-capture.spec.ts:10:3 › p08 AOI analysis capture › captures analysis dispatch and evidence registration 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByRole('dialog', { name: 'Choose workflow for map analysis dispatch' })
+    Expected: visible
+    Timeout: 15000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 15000ms[22m
+    [2m  - waiting for getByRole('dialog', { name: 'Choose workflow for map analysis dispatch' })[22m
+
+
+      88 |
+      89 |     const dispatchDialog = page.getByRole("dialog", { name: "Choose workflow for map analysis dispatch" });
+    > 90 |     await expect(dispatchDialog).toBeVisible({ timeout: 15000 });
+         |                                  ^
+      91 |     await expect(dispatchDialog.getByText("Analyze This Area")).toBeVisible();
+      92 |
+      93 |     await page.screenshot({ path: "docs/archive/development-plans/map-explorer-dock-redesign-2026-06-15/evidence/p08-aoi-analysis.png", fullPage: true });
+        at C:\Users\PC\Documents\Codex\2026-06-12\github-plugin-github-openai-curated-remote\work\SynapseIDE_urban_analytics\e2e\p08-aoi-analysis-capture.spec.ts:90:34
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\p08-aoi-analysis-capture-p-2bb35-h-and-evidence-registration\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\p08-aoi-analysis-capture-p-2bb35-h-and-evidence-registration\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\p08-aoi-analysis-capture-p-2bb35-h-and-evidence-registration\error-context.md
+
+  43 failed
+    e2e\geoai-real-data.spec.ts:336:3 › GeoAI land-cover real-data upgrade › keeps demo mode explicit and saves the completed run 
+    e2e\geoai-real-data.spec.ts:360:3 › GeoAI land-cover real-data upgrade › runs land-cover classification against a real COG-backed EO source and persists review output 
+    e2e\geoai-real-data.spec.ts:405:3 › GeoAI land-cover real-data upgrade › runs live spatial SQL against a real seeded map layer and publishes the accepted result 
+    e2e\geoai-real-data.spec.ts:454:3 › GeoAI land-cover real-data upgrade › launches a mocked-real object detection run from the workflow surface 
+    e2e\geoai-real-data.spec.ts:502:3 › GeoAI land-cover real-data upgrade › launches a local smoke-model object detection run from the workflow surface 
+    e2e\map-catalog.spec.ts:12:3 › Map Explorer catalog › adds an explicitly labelled demo pack as source-linked layers 
+    e2e\map-choropleth.spec.ts:33:3 › Map Explorer choropleth renderer › renders the full thematic configuration panel for an imported polygon layer 
+    e2e\map-columnar-io.spec.ts:10:3 › Map Explorer columnar I/O › imports Arrow and GeoParquet through the UI and exports GeoParquet 
+    e2e\map-columnar-io.spec.ts:152:3 › Map Explorer columnar I/O › imports a WKT Arrow dataset variant and surfaces skipped-row diagnostics 
+    e2e\map-context-and-geojson.spec.ts:58:3 › Map Explorer context menu and GeoJSON I/O › supports reverse geocoding, clipboard copy, and keyboard context-menu actions 
+    e2e\map-context-and-geojson.spec.ts:127:3 › Map Explorer context menu and GeoJSON I/O › imports, exports, and re-imports GeoJSON through the visible UI 
+    e2e\map-csv-kml-gpx-import.spec.ts:39:3 › Map Explorer CSV, KML, and GPX import › opens the CSV mapping dialog with detected coordinate columns and imports valid rows 
+    e2e\map-csv-kml-gpx-import.spec.ts:104:3 › Map Explorer CSV, KML, and GPX import › imports Google Earth style KML placemarks into the layer panel 
+    e2e\map-csv-kml-gpx-import.spec.ts:146:3 › Map Explorer CSV, KML, and GPX import › imports GPX waypoints, routes, and tracks with elevation metadata 
+    e2e\map-explorer-stability.spec.ts:67:3 › Map Explorer stability › survives repeated open close panel and viewport churn without page errors 
+    e2e\map-external-service.spec.ts:17:3 › Map Explorer — external service production path (Prompt 21) › a broken external service surfaces a specific actionable failure and a layer caveat 
+    e2e\map-image-export.spec.ts:65:3 › Map Explorer PNG image export › opens the full image export dialog from the visible toolbar UI 
+    e2e\map-layout-book.spec.ts:109:3 › Map Explorer layout designer (book) › opens layout designer, adds a second page, asserts page count and export button 
+    e2e\map-layout-regression-p09.spec.ts:44:3 › Prompt 09 — map layout regression guards › guards shell visibility, panel collisions, warning surfaces, and floating control overlap 
+    e2e\map-modal-layout.spec.ts:517:3 › Prompt 35 premium Map Explorer layout › opens, closes, and reopens the modal without losing the entry point 
+    e2e\map-modal-layout.spec.ts:599:3 › Prompt 35 premium Map Explorer layout › reaches Prompt 16 data, layers, inspector, QA, and attributes routes 
+    e2e\map-modal-layout.spec.ts:670:3 › Prompt 35 premium Map Explorer layout › standardizes Prompt 18 canvas controls for recovery, tools, basemap, and furniture 
+    e2e\map-modal-layout.spec.ts:817:3 › Prompt 35 premium Map Explorer layout › keeps map, layer rail, and bottom status visible on desktop 
+    e2e\map-modal-layout.spec.ts:920:3 › Prompt 35 premium Map Explorer layout › keeps More, Views, Commands, filter, and basemap menus visible and unclipped 
+    e2e\map-modal-layout.spec.ts:1106:3 › Prompt 35 premium Map Explorer layout › renders comparison mode with split or swipe preview and synchronized legend 
+    e2e\map-modal-layout.spec.ts:1134:3 › Prompt 35 premium Map Explorer layout › shows the execution CRS chip on workflow preview 
+    e2e\map-modal-layout.spec.ts:1151:3 › Prompt 35 premium Map Explorer layout › blocks buffer workflows when source CRS is missing 
+    e2e\map-modal-layout.spec.ts:1196:3 › Prompt 35 premium Map Explorer layout › builds a viewport AOI and audits a vertex edit with validation status (Prompt 14) 
+    e2e\map-modal-layout.spec.ts:1287:3 › Prompt 35 premium Map Explorer layout › selects fcPointsWGS84 points with a rectangle and shows the count chip (Prompt 15) 
+    e2e\map-modal-layout.spec.ts:1374:3 › Prompt 35 premium Map Explorer layout › opens a tabbed layer inspector with schema + CRS, and shows missing CRS explicitly 
+    e2e\map-model-builder.spec.ts:65:3 › Map Explorer model builder › reruns a saved buffer-intersect model deterministically and publishes batch evidence 
+    e2e\map-observability-p56.spec.ts:81:3 › Prompt 56 — Map observability and recovery › surfaces worker failure recovery and retries a crashed diagnostics panel 
+    e2e\map-performance-diagnostics.spec.ts:70:3 › Map Explorer performance diagnostics › shows fcLarge live diagnostics and bounded-mode banner 
+    e2e\map-plugins-p55.spec.ts:64:3 › Map Explorer plugin registry › lists reference extensions and runs the reference processing plugin through the lifecycle 
+    e2e\map-point-symbology.spec.ts:33:3 › Map Explorer point symbology › exposes heatmap, proportional, and graduated symbol controls for an imported point layer 
+    e2e\map-premium-redesign-baseline.spec.ts:244:3 › Map Explorer premium redesign visual baseline › IMG-04 UX-04 baseline captures floating Draw and Measure tool panels 
+    e2e\map-premium-redesign-baseline.spec.ts:264:3 › Map Explorer premium redesign visual baseline › UX-05 UX-06 baseline captures top command surface and status bar matrix 
+    e2e\map-processing-toolbox-design.spec.ts:23:3 › Map Explorer processing toolbox — premium styling + blocked states › shows a not-yet-wired tool's reason before run and screenshots the toolbox 
+    e2e\map-processing-toolbox-tools.spec.ts:91:3 › Map Explorer processing toolbox — service tools › lists ≥12 implemented tools and runs spatial-join with a manifest 
+    e2e\map-processing-toolbox.spec.ts:64:3 › Map Explorer processing toolbox › searches for buffer and runs it, producing an output layer with a manifest 
+    e2e\map-spatial-stats-renderers.spec.ts:87:3 › Map Explorer spatial statistics renderers › shows LISA and Gi-star renderer controls with academic legends 
+    e2e\map-temporal-player.spec.ts:11:3 › Map Explorer temporal animation player › uses the live Scene > Temporal layer for scrub, play, step, and speed changes 
+    e2e\p08-aoi-analysis-capture.spec.ts:10:3 › p08 AOI analysis capture › captures analysis dispatch and evidence registration 
+  45 passed (46.5m)
+EXIT_CODE: 1
