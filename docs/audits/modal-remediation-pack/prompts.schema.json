@@ -90,7 +90,7 @@
         "proofRequired": {
           "type": "array",
           "minItems": 1,
-          "items": { "type": "string", "enum": ["typecheck-clean", "lint-clean", "unit-test", "e2e-a11y", "axe-clean", "screenshot", "render-smoke", "deadcode-clean", "perf-budgets", "color-guard", "manual-keyboard", "visual-diff"] },
+          "items": { "type": "string", "enum": ["typecheck-clean", "lint-clean", "unit-test", "e2e-a11y", "axe-clean", "screenshot", "render-smoke", "deadcode-clean", "perf-budgets", "color-guard", "manual-keyboard", "visual-diff", "validate-rc"] },
           "description": "Evidence that MUST be captured into ./proofs/<id>/ before marking done."
         },
         "branding": { "type": "string", "description": "Branding/UX-copy considerations, if any." },

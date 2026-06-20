@@ -48,12 +48,17 @@ export function getFocusableElements(container: HTMLElement): HTMLElement[] {
  * Returns a ref to attach to the trap container plus a manual `activate`
  * callback that focuses the first focusable element inside.
  */
-export function useFocusTrap(active: boolean): {
+interface FocusTrapOptions {
+  restoreFocus?: boolean;
+}
+
+export function useFocusTrap(active: boolean, options: FocusTrapOptions = {}): {
   trapRef: React.RefObject<HTMLDivElement | null>;
   activate: () => void;
 } {
   const trapRef = useRef<HTMLDivElement | null>(null);
   const previouslyFocused = useRef<HTMLElement | null>(null);
+  const { restoreFocus = true } = options;
 
   /* Capture the previously-focused element when activating */
   useEffect(() => {
@@ -67,12 +72,12 @@ export function useFocusTrap(active: boolean): {
 
     return () => {
       /* Restore focus on deactivate */
-      if (previouslyFocused.current && document.contains(previouslyFocused.current)) {
+      if (restoreFocus && previouslyFocused.current && document.contains(previouslyFocused.current)) {
         previouslyFocused.current.focus();
       }
       previouslyFocused.current = null;
     };
-  }, [active]);
+  }, [active, restoreFocus]);
 
   /* Tab key handler */
   useEffect(() => {

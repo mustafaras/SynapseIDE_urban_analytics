@@ -7,11 +7,23 @@
  */
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { assertDialogA11y } from '@/test/assertDialogA11y';
 import { AiSettingsModal } from '../AiSettingsModal';
 
 afterEach(cleanup);
 
 describe('AiSettingsModal a11y (MFP-08)', () => {
+  it('satisfies the shared dialog contract (focus trap, Escape, restore)', () => {
+    const onClose = vi.fn();
+
+    assertDialogA11y(
+      () => render(<AiSettingsModal open onClose={onClose} />),
+      (r) => r.rerender(<AiSettingsModal open={false} onClose={onClose} />),
+    );
+
+    expect(onClose).toHaveBeenCalled();
+  });
+
   it('exposes an accessible dialog name via aria-labelledby', () => {
     render(<AiSettingsModal open onClose={() => {}} />);
     const dialog = screen.getByRole('dialog', { name: /ai settings/i });

@@ -197,7 +197,7 @@ export const Modal: FC<ModalProps> = ({
 }) => {
   const titleId = useId();
   const openerRef = useRef<HTMLElement | null>(null);
-  const { trapRef, activate } = useFocusTrap(isOpen);
+  const { trapRef, activate } = useFocusTrap(isOpen, { restoreFocus: false });
   const [announcement, setAnnouncement] = useState('');
 
   // Body scroll-lock + background inerting via the shared foundation hooks.
@@ -212,9 +212,12 @@ export const Modal: FC<ModalProps> = ({
   // useInertBackground's passive effect computes which branch to keep live.
   useLayoutEffect(() => {
     if (!isOpen) return;
-    openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    activate();
     const container = trapRef.current;
+    const activeElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    if (activeElement && (!container || !container.contains(activeElement))) {
+      openerRef.current = activeElement;
+    }
+    activate();
     if (container && (!document.activeElement || !container.contains(document.activeElement))) {
       container.focus();
     }
@@ -231,6 +234,12 @@ export const Modal: FC<ModalProps> = ({
       openerRef.current = null;
       if (opener && document.contains(opener)) {
         opener.focus();
+        window.setTimeout(() => {
+          const active = document.activeElement;
+          if (document.contains(opener) && (active === document.body || active == null || !document.contains(active))) {
+            opener.focus();
+          }
+        }, 0);
       }
     };
   }, [isOpen]);

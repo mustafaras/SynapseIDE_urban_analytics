@@ -1,6 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 
-import { openUrbanAnalyticsWorkbench, resetWorkbenchState } from "./helpers/urbanAnalytics";
+import { openUrbanAnalyticsWorkbench, resetWorkbenchState, triggerDomClick } from "./helpers/urbanAnalytics";
 
 async function delayFirstRequest(page: Page, pattern: RegExp, delayMs: number): Promise<void> {
   let delayed = false;
@@ -28,9 +28,11 @@ test.describe("Prompt 41 lazy-loading regressions @smoke", () => {
     await expect(openAnalyticsButton).toBeVisible();
     await openAnalyticsButton.click();
 
-    const welcomeDialog = page.getByRole("dialog", { name: "Welcome to Urban Analytics Workbench" });
+    const welcomeDialog = page.getByRole("dialog").filter({
+      has: page.getByRole("button", { name: /Start Workbench/i }),
+    });
     await expect(welcomeDialog).toBeVisible();
-    await welcomeDialog.getByRole("button", { name: /Start Workbench/i }).click();
+    await triggerDomClick(welcomeDialog.getByRole("button", { name: /Start Workbench/i }));
 
     await expect(page.getByTestId("urban-analytics-modal-loading")).toBeVisible();
     await expect(page.getByRole("dialog", { name: "Urban Analytics Workbench" })).toBeVisible();

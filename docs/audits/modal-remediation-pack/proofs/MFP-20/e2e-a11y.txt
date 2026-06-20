@@ -1,0 +1,23 @@
+COMMAND: npm run test:e2e:a11y
+
+> urban-analytics-workbench@1.0.0 test:e2e:a11y
+> playwright test e2e/accessibility-audit.spec.ts
+
+
+Running 12 tests using 1 worker
+
+  ok  1 e2e\accessibility-audit.spec.ts:284:5 › MFP-20 app modal accessibility guardrails @a11y › Global Search has axe, Escape, focus-restore, and 320px reflow coverage (5.1s)
+  ok  2 e2e\accessibility-audit.spec.ts:284:5 › MFP-20 app modal accessibility guardrails @a11y › AI Settings has axe, Escape, focus-restore, and 320px reflow coverage (4.7s)
+  ok  3 e2e\accessibility-audit.spec.ts:284:5 › MFP-20 app modal accessibility guardrails @a11y › Unsaved Changes has axe, Escape, focus-restore, and 320px reflow coverage (5.2s)
+  ok  4 e2e\accessibility-audit.spec.ts:284:5 › MFP-20 app modal accessibility guardrails @a11y › Map Start has axe, Escape, focus-restore, and 320px reflow coverage (8.7s)
+  ok  5 e2e\accessibility-audit.spec.ts:284:5 › MFP-20 app modal accessibility guardrails @a11y › Map Service has axe, Escape, focus-restore, and 320px reflow coverage (12.3s)
+  ok  6 e2e\accessibility-audit.spec.ts:309:3 › Prompt 40 shell focus hardening @a11y › terminal shell controls keep visible focus in default and forced-colors modes (4.6s)
+  ok  7 e2e\accessibility-audit.spec.ts:332:3 › Prompt 40 shell focus hardening @a11y › legacy neural glass cards preserve visible keyboard focus (5.5s)
+  ok  8 e2e\accessibility-audit.spec.ts:352:3 › Prompt 03 Map Explorer accessibility @a11y › map modal exposes skip navigation, keyboard map focus, close control, and no serious axe issues (10.1s)
+  ok  9 e2e\accessibility-audit.spec.ts:379:3 › Prompt 03 Map Explorer accessibility @a11y › every opened dialog reports a non-empty accessible name (MFP-14) (6.8s)
+  ok 10 e2e\accessibility-audit.spec.ts:398:3 › Prompt 55 Map Explorer accessibility matrix @a11y › keyboard-only path reaches import, inspect, QA, and command palette with scoped Escape (9.8s)
+  ok 11 e2e\accessibility-audit.spec.ts:481:3 › Prompt 39 accessibility audit @a11y › critical workbench flows have no serious axe violations (22.2s)
+  ok 12 e2e\accessibility-audit.spec.ts:508:3 › Prompt 39 accessibility audit @a11y › keyboard navigation and focus order remain operable across five major flows (15.8s)
+
+  12 passed (1.9m)
+EXIT_CODE: 0

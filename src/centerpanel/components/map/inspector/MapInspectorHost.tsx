@@ -141,8 +141,10 @@ export const MapInspectorHost: React.FC<MapInspectorHostProps> = ({
     const rafId = window.requestAnimationFrame(() => {
       focusHost();
     });
+    const timeoutIds = [50, 150, 300].map((delay) => window.setTimeout(focusHost, delay));
     return () => {
       window.cancelAnimationFrame(rafId);
+      timeoutIds.forEach((timeoutId) => window.clearTimeout(timeoutId));
     };
   }, [context.kind, visible]);
 

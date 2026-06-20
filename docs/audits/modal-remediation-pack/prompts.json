@@ -1408,7 +1408,8 @@
       ],
       "proofRequired": [
         "unit-test",
-        "e2e-a11y"
+        "e2e-a11y",
+        "validate-rc"
       ],
       "gate": "general",
       "spec": "prompts/MFP-20.md"

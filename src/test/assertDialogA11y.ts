@@ -1,5 +1,6 @@
-import { fireEvent, within, type RenderResult } from '@testing-library/react';
+import { fireEvent, type RenderResult } from '@testing-library/react';
 import { expect } from 'vitest';
+import { getFocusableElements } from '@/hooks/useFocusTrap';
 
 /**
  * Reusable dialog accessibility contract for any base-`Modal`-derived dialog.
@@ -30,7 +31,8 @@ export function assertDialogA11y(open: () => RenderResult, close: (r: RenderResu
   // 1. initial focus moved into the dialog
   expect(dialog.contains(document.activeElement)).toBe(true);
 
-  const focusables = within(dialog).getAllByRole('button');
+  const focusables = getFocusableElements(dialog);
+  expect(focusables.length).toBeGreaterThanOrEqual(2);
   const first = focusables[0];
   const last = focusables[focusables.length - 1];
 

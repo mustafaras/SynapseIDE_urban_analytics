@@ -443,7 +443,7 @@ export const GlobalSearch: React.FC<{ isOpen: boolean; onClose: () => void }> = 
             aria-label="Global search"
             role="combobox"
             aria-expanded={totalVisible > 0}
-            aria-controls={GS_LISTBOX_ID}
+            aria-controls={totalVisible > 0 ? GS_LISTBOX_ID : undefined}
             aria-autocomplete="list"
             aria-activedescendant={focusIdx >= 0 ? optionId(focusIdx) : undefined}
             onChange={e => setQ(e.target.value)}
@@ -470,7 +470,11 @@ export const GlobalSearch: React.FC<{ isOpen: boolean; onClose: () => void }> = 
         </ScopeTabs>
 
         {/* Results */}
-        <Results id={GS_LISTBOX_ID} role="listbox" aria-label="Search results">
+        <Results
+          id={GS_LISTBOX_ID}
+          role={totalVisible > 0 ? 'listbox' : undefined}
+          aria-label={totalVisible > 0 ? 'Search results' : undefined}
+        >
           {!q.trim() ? (
             <Empty>Type to search across filenames, paths, and file content</Empty>
           ) : totalVisible === 0 ? (

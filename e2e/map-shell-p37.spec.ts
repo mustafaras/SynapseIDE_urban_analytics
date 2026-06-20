@@ -43,14 +43,14 @@ test.describe("P37 — operator visual pass @smoke", () => {
     await expect(inspectTrigger).toBeVisible();
     await triggerDomClick(inspectTrigger);
 
-    const inspector = page.getByTestId("map-layer-inspector");
+    const inspector = page.getByTestId("map-inspector-host").getByTestId("map-layer-inspector");
     await expect(inspector).toBeVisible({ timeout: 8000 });
 
     // Verify GisTabs assigned data-testid to each tab
-    await expect(page.locator('[data-testid="map-layer-inspector-tab-overview"]')).toBeVisible();
-    await expect(page.locator('[data-testid="map-layer-inspector-tab-schema"]')).toBeVisible();
-    await expect(page.locator('[data-testid="map-layer-inspector-tab-crs"]')).toBeVisible();
-    await expect(page.locator('[data-testid="map-layer-inspector-tab-style"]')).toBeVisible();
+    await expect(inspector.locator('[data-testid="map-layer-inspector-tab-overview"]')).toBeVisible();
+    await expect(inspector.locator('[data-testid="map-layer-inspector-tab-schema"]')).toBeVisible();
+    await expect(inspector.locator('[data-testid="map-layer-inspector-tab-crs"]')).toBeVisible();
+    await expect(inspector.locator('[data-testid="map-layer-inspector-tab-style"]')).toBeVisible();
 
     // Verify close button has accessible label
     await expect(page.getByTestId("map-inspector-host").getByRole("button", { name: "Close inspector" })).toBeVisible();

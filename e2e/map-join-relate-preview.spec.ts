@@ -52,6 +52,22 @@ async function openProcessingToolbox(page: Page, mapExplorer: ReturnType<Page["g
     await triggerDomClick(directButton);
     return;
   }
+  const commandPaletteButton = page.getByTestId("map-premium-quick-action-command-palette");
+  if (await commandPaletteButton.isVisible({ timeout: 1_000 }).catch(() => false)) {
+    await triggerDomClick(commandPaletteButton);
+    const palette = page.getByRole("dialog", { name: "Map command palette" });
+    await expect(palette).toBeVisible();
+    await palette.getByLabel("Search map commands").fill("processing toolbox");
+    await triggerDomClick(palette.getByTestId("map-command-palette-option-processing-toolbox"));
+    return;
+  }
+  await page.keyboard.press("Control+K");
+  const palette = page.getByRole("dialog", { name: "Map command palette" });
+  if (await palette.isVisible({ timeout: 1_000 }).catch(() => false)) {
+    await palette.getByLabel("Search map commands").fill("processing toolbox");
+    await triggerDomClick(palette.getByTestId("map-command-palette-option-processing-toolbox"));
+    return;
+  }
   await triggerDomClick(
     mapExplorer.getByRole("button", { name: "Scientific QA, 3D sync, density, and command controls" }),
   );

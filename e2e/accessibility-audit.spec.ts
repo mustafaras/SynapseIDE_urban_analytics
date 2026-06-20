@@ -2,6 +2,7 @@ import { expect, type Locator, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./helpers/accessibility";
 import {
   clickFlowNext,
+  openMapExplorer,
   openUrbanAnalyticsWorkbench,
   openWorkflowById,
   openWorkflowsWorkspace,
@@ -118,6 +119,186 @@ async function openMapExplorerFromStore(page: Page) {
   await expect(page.getByTestId("map-canvas-region")).toBeVisible();
   return mapExplorer;
 }
+
+interface OpenedModalProbe {
+  dialog: Locator;
+  trigger: Locator;
+}
+
+interface ModalProbe {
+  name: string;
+  axeSelector: string;
+  expectFocusRestore?: boolean;
+  open: (page: Page) => Promise<OpenedModalProbe>;
+}
+
+async function installFocusAnchor(page: Page, id: string, label: string): Promise<Locator> {
+  await page.evaluate(({ anchorId, anchorLabel }) => {
+    let anchor = document.getElementById(anchorId) as HTMLButtonElement | null;
+    if (!anchor) {
+      anchor = document.createElement("button");
+      anchor.id = anchorId;
+      anchor.type = "button";
+      anchor.textContent = anchorLabel;
+      anchor.style.position = "fixed";
+      anchor.style.left = "4px";
+      anchor.style.top = "4px";
+      anchor.style.zIndex = "1";
+      document.body.appendChild(anchor);
+    }
+    anchor.focus();
+  }, { anchorId: id, anchorLabel: label });
+
+  return page.locator(`#${id}`);
+}
+
+async function expectDialogFitsViewport(page: Page, dialog: Locator): Promise<void> {
+  await page.setViewportSize({ width: 320, height: 800 });
+  await expect(dialog).toBeVisible();
+
+  const metrics = await dialog.evaluate((node) => {
+    const element = node as HTMLElement;
+    const rect = element.getBoundingClientRect();
+    return {
+      left: rect.left,
+      right: rect.right,
+      viewportWidth: window.innerWidth,
+      documentOverflow: document.documentElement.scrollWidth - window.innerWidth,
+      bodyOverflow: document.body.scrollWidth - window.innerWidth,
+    };
+  });
+
+  expect(metrics.left).toBeGreaterThanOrEqual(-1);
+  expect(metrics.right).toBeLessThanOrEqual(metrics.viewportWidth + 1);
+  expect(Math.max(metrics.documentOverflow, metrics.bodyOverflow)).toBeLessThanOrEqual(1);
+}
+
+async function focusFirstDialogButton(dialog: Locator): Promise<void> {
+  const firstButton = dialog.getByRole("button").first();
+  await expect(firstButton).toBeVisible();
+  await firstButton.focus();
+  await expect(firstButton).toBeFocused();
+}
+
+const appModalProbes: ModalProbe[] = [
+  {
+    name: "Global Search",
+    axeSelector: '[role="dialog"]:has(input[aria-label="Global search"])',
+    open: async (page) => {
+      await resetWorkbenchState(page);
+      const trigger = page.getByRole("button", { name: "Global Search" });
+      await expect(trigger).toBeVisible();
+      await trigger.focus();
+      await trigger.click();
+      const dialog = page.getByRole("dialog", { name: "Search" });
+      await expect(dialog).toBeVisible();
+      return { dialog, trigger };
+    },
+  },
+  {
+    name: "AI Settings",
+    axeSelector: '[role="dialog"]:has([role="tablist"])',
+    open: async (page) => {
+      await resetWorkbenchState(page);
+      await page.evaluate(async () => {
+        await (window as Window & { e2e?: { openAssistant?: () => Promise<void> } }).e2e?.openAssistant?.();
+      });
+      await expect(page.getByRole("heading", { name: /SynapseCore AI/i })).toBeVisible();
+      const trigger = await installFocusAnchor(page, "mfp20-ai-settings-trigger", "Open AI settings harness");
+      await page.evaluate(() => window.dispatchEvent(new Event("ai:openKeys")));
+      const dialog = page.getByRole("dialog", { name: "Settings" });
+      await expect(dialog).toBeVisible();
+      return { dialog, trigger };
+    },
+  },
+  {
+    name: "Unsaved Changes",
+    axeSelector: '[role="dialog"][aria-labelledby="ucd-title"]',
+    open: async (page) => {
+      await resetWorkbenchState(page);
+      await page.evaluate(async () => {
+        const module = await import("/src/stores/editorStore.ts");
+        const store = module.useEditorStore.getState();
+        store.openTab({
+          id: "mfp20-unsaved-file",
+          name: "mfp20-unsaved.ts",
+          type: "file",
+          path: "/mfp20-unsaved.ts",
+          content: "export const mfp20 = true;\n",
+          language: "typescript",
+          lastModified: new Date(),
+        });
+        const activeTabId = module.useEditorStore.getState().activeTabId;
+        if (activeTabId) {
+          module.useEditorStore.getState().markTabDirty(activeTabId, true);
+        }
+      });
+      const trigger = page.getByRole("button", { name: "Close mfp20-unsaved.ts" });
+      await expect(trigger).toBeVisible();
+      await trigger.focus();
+      await trigger.click();
+      const dialog = page.getByRole("dialog", { name: /Save changes/i });
+      await expect(dialog).toBeVisible();
+      return { dialog, trigger };
+    },
+  },
+  {
+    name: "Map Start",
+    axeSelector: '[data-testid="map-start-dialog"]',
+    expectFocusRestore: false,
+    open: async (page) => {
+      await resetWorkbenchState(page);
+      const trigger = await installFocusAnchor(page, "mfp20-map-start-trigger", "Open map start harness");
+      await page.evaluate(async () => {
+        const module = await import("/src/stores/useMapExplorerStore.ts");
+        module.useMapExplorerStore.getState().open();
+      });
+      await expect(page.getByRole("dialog", { name: "Map Explorer" }).first()).toBeVisible();
+      const dialog = page.getByTestId("map-start-dialog");
+      await expect(dialog).toBeVisible();
+      return { dialog, trigger };
+    },
+  },
+  {
+    name: "Map Service",
+    axeSelector: '[data-testid="map-service-dialog"]',
+    open: async (page) => {
+      await resetWorkbenchState(page);
+      const mapExplorer = await openMapExplorer(page);
+      const trigger = mapExplorer.getByTestId("map-premium-menu-add-data");
+      await expect(trigger).toBeVisible();
+      await trigger.focus();
+      await trigger.click();
+      const menu = page.getByTestId("map-premium-menu-content-add-data");
+      await expect(menu).toBeVisible();
+      await menu.getByTestId("map-toolbar-command-services-wms").click();
+      const dialog = page.getByRole("dialog", { name: "External map services" });
+      await expect(dialog).toBeVisible();
+      return { dialog, trigger };
+    },
+  },
+];
+
+test.describe("MFP-20 app modal accessibility guardrails @a11y", () => {
+  for (const modal of appModalProbes) {
+    test(`${modal.name} has axe, Escape, focus-restore, and 320px reflow coverage`, async ({ page }) => {
+      await page.setViewportSize({ width: 1680, height: 1100 });
+      const { dialog, trigger } = await modal.open(page);
+
+      await expectNoAxeViolations(page, modal.axeSelector, "serious");
+      await expectDialogFitsViewport(page, dialog);
+      await page.setViewportSize({ width: 1680, height: 1100 });
+      await expect(dialog).toBeVisible();
+      await focusFirstDialogButton(dialog);
+      await page.keyboard.press("Escape");
+      await expect(dialog).toBeHidden({ timeout: 15000 });
+
+      if (modal.expectFocusRestore !== false) {
+        await expect(trigger).toBeFocused();
+      }
+    });
+  }
+});
 
 test.describe("Prompt 40 shell focus hardening @a11y", () => {
   test.beforeEach(async ({ page }) => {
@@ -258,12 +439,14 @@ test.describe("Prompt 55 Map Explorer accessibility matrix @a11y", () => {
     await expect(inspectLayer).toBeFocused();
 
     const qaActivity = mapExplorer.getByTestId("activity-btn-qa");
+    await expect(qaActivity).toBeVisible();
     await qaActivity.focus();
-    await page.keyboard.press("Enter");
+    await expect(qaActivity).toBeFocused();
+    await qaActivity.press("Enter");
 
-    const rightDock = mapExplorer.getByTestId("map-right-dock-host");
+    const rightDock = page.getByTestId("map-right-dock-host");
     await expect(rightDock).toBeVisible();
-    await expect(mapExplorer.getByRole("region", { name: "Map QA problems" })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Map QA problems" })).toBeVisible();
 
     const closeRightDock = rightDock.getByRole("button", { name: "Close right dock" });
     await closeRightDock.focus();
@@ -272,9 +455,7 @@ test.describe("Prompt 55 Map Explorer accessibility matrix @a11y", () => {
     await expect(rightDock).toBeHidden();
     await expect(qaActivity).toBeFocused();
 
-    const paletteButton = mapExplorer.getByTestId("map-toolbar-command-command-palette");
-    await paletteButton.focus();
-    await page.keyboard.press("Enter");
+    await page.keyboard.press("Control+K");
 
     const palette = page.getByRole("dialog", { name: "Map command palette" });
     await expect(palette).toBeVisible();
@@ -282,7 +463,7 @@ test.describe("Prompt 55 Map Explorer accessibility matrix @a11y", () => {
     await page.keyboard.press("Escape");
     await expect(palette).toBeHidden();
     await expect(mapExplorer).toBeVisible();
-    await expect(paletteButton).toBeFocused();
+    await expect(qaActivity).toBeFocused();
 
     await page.emulateMedia({ forcedColors: "active" });
     await expect(qaActivity).toHaveAttribute("aria-pressed", "true");
