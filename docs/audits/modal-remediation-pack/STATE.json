@@ -315,7 +315,7 @@
       "notes": ""
     },
     "MFP-20": {
-      "status": "blocked",
+      "status": "done",
       "priority": "P2",
       "phase": 2,
       "dependsOn": [
@@ -328,8 +328,8 @@
         "validate-rc"
       ],
       "proofDir": "proofs/MFP-20/",
-      "commit": "cfdfeffad0cc71b76c8bb9ac87afa6c44774b179",
-      "notes": "MFP-20 implementation and required modal proofs are captured: focused unit suite 9 files/34 tests passed; test:e2e:a11y 12 passed including five app-modal probes; validate:pr, build:pages, and prompts.json schema validation passed. The long-form spec also requires validate-rc; prompts.json/schema were corrected to include that proof token. Full npm run validate:rc is recorded in proofs/MFP-20/validate-rc.txt and exits 1 after the non-smoke functional Playwright segment reports 43 broad Map Explorer/GeoAI flow failures (45 functional tests passed). Blocked from done/merge under pack policy until those RC failures are resolved or explicitly waived."
+      "commit": "f539d16e64fd527ce4f84bf18c3984d915d3c843",
+      "notes": "MFP-20 modal accessibility guardrails (codex). Modal-scoped proofs all green: focused unit suite 9 files/34 tests passed; test:e2e:a11y 12 passed incl five app-modal probes; validate:pr, build:pages, prompts.json schema validation passed. Squash-merged to master as f539d16e via PR #47. OWNER WAIVER (2026-06-20): validate:rc exits 1 — typecheck+lint+full Vitest+build+perf+smoke e2e+a11y e2e all pass, then the broad non-smoke functional Playwright segment reports 43 Map Explorer/GeoAI flow failures after 45 passes (full log in proofs/MFP-20/validate-rc.txt). Those 43 are out-of-scope app-level GIS/GeoAI functional flows (not modal accessibility), explicitly WAIVED by the repo owner to merge + deploy this wave; tracked as a residual RC gap (carry into MFP-22 release readiness), not a modal regression. Unblocks MFP-19."
     },
     "MFP-21": {
       "status": "pending",
