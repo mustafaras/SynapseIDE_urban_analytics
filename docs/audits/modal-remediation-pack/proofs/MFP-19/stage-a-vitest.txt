@@ -1,0 +1,8 @@
+MFP-19 STAGE A — collapse passthroughs — map vitest gate
+npx vitest run src/centerpanel/components/map + MapExplorerModal.dispatch.test
+Result: 99 files / 941 tests passed (incl. MapExplorerModal.dispatch + map a11y).
+
+e2e-a11y / perf-budgets: STAGE A is a pure re-export collapse with no behavioural
+change; the gis vitest gate + typecheck cover it. Full npm run test:e2e / perf:budgets
+are deferred to the behavioural stages (B-E) and require a browser-capable env
+(Playwright Chromium 1217 missing in this sandbox).

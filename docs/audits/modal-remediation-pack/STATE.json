@@ -298,7 +298,7 @@
       "notes": "Map dialog family cleanup completed: removed the dead MapStartDialog demo-pack path/badge and stale ref, added wrapped-mode aria-modal suppression for host-owned modality, fixed MapExportDialog and MapColumnarImportDialog 320px reflow, memoized CSV profiling to avoid render-time recomputation, and consumed the MapWorkspaceShell rail height parameter. Updated prompts.schema.json to match the canonical manifest fields encountered during validation. Gate gis green: typecheck, lint:errors, lint:no-tailwind-centerpanel, deadcode, map vitest, screenshot proof, and schema validation all pass."
     },
     "MFP-19": {
-      "status": "pending",
+      "status": "in_progress",
       "priority": "P3",
       "phase": 3,
       "dependsOn": [
@@ -312,7 +312,7 @@
       ],
       "proofDir": "proofs/MFP-19/",
       "commit": null,
-      "notes": ""
+      "notes": "STAGE A done (collapse passthroughs): MapExplorerModal.tsx now re-exports MapExplorerModal + MapExplorerModalProps directly from map/controllers/MapExplorerModalRuntimeCore; deleted MapExplorerModalRoot.tsx (FC wrapper) + MapExplorerModalRuntime.tsx (re-export), which were imported only by each other. Public entry path + Core unchanged; no behavioural change. Gate gis: typecheck + lint:errors clean; vitest map + MapExplorerModal.dispatch = 99 files/941 passed. e2e-a11y/perf-budgets env-blocked (Playwright Chromium 1217 missing) — STAGE A is a pure re-export collapse so vitest+typecheck suffice. STAGES B-E (group 170 View props, route 51 toast* errors -> reportError, top-level shell error boundary, lazy-load SAMPLE_BUILDINGS/processing/plugin/model/SpatialDB off the open path) PENDING: they mutate behaviour and the spec mandates npm run test:e2e green after every stage, which needs a browser-capable env. Fold the map-layer-inspector single-mount fix (duplicate testid: LayerInspector in both MapRightDockBodyContent + MapInspectorHost) into STAGE B."
     },
     "MFP-20": {
       "status": "done",
