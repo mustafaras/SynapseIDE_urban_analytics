@@ -22,20 +22,18 @@ test.describe("Map Explorer catalog", () => {
 
     const catalog = page.getByTestId("map-catalog-panel");
     await expect(catalog).toBeVisible();
-    await expect(catalog).toContainText("DEMO / SYNTHETIC");
-    await expect(catalog).toContainText("Not observational data");
-    await triggerDomClick(catalog.getByTestId("catalog-add-demo-pack"));
-    await expect(catalog).toContainText(/Added \d+ synthetic demo layers with registered source records\./i);
+    await expect(catalog.getByTestId("catalog-readiness-demoSynthetic")).toContainText(/Demo \/ synthetic/i);
+    await expect(catalog).toContainText("No synthetic source records.");
+    await expect(catalog.getByTestId("catalog-add-demo-pack")).toHaveCount(0);
 
-    await expect
-      .poll(async () => page.evaluate(async () => {
-        const module = await import("/src/stores/useMapExplorerStore.ts");
-        const layers = module.useMapExplorerStore.getState().overlayLayers;
-        return {
-          total: layers.length,
-          demo: layers.filter((layer) => layer.sourceKind === "demo").length,
-        };
-      }))
-      .toEqual({ total: 9, demo: 9 });
+    const layerState = await page.evaluate(async () => {
+      const module = await import("/src/stores/useMapExplorerStore.ts");
+      const layers = module.useMapExplorerStore.getState().overlayLayers;
+      return {
+        total: layers.length,
+        demo: layers.filter((layer) => layer.sourceKind === "demo").length,
+      };
+    });
+    expect(layerState).toEqual({ total: 0, demo: 0 });
   });
 });

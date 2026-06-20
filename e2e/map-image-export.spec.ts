@@ -74,6 +74,10 @@ test.describe("Map Explorer PNG image export", () => {
     await triggerDomClick(page.getByRole("button", { name: /Explore Layers|Switch map workspace to explore/i }).first());
     await seedExportLayer(page);
     await expect(page.getByRole("list", { name: "Layer list" })).toContainText("E2E Image Export District");
+    const controlsToggle = mapExplorer.getByRole("button", { name: "Show draggable view controls" });
+    if (await controlsToggle.isVisible().catch(() => false)) {
+      await triggerDomClick(controlsToggle);
+    }
     const showLegendButton = mapExplorer.getByRole("button", { name: "Show legend" });
     await expect(showLegendButton).toBeVisible();
     await triggerDomClick(showLegendButton);
@@ -87,7 +91,7 @@ test.describe("Map Explorer PNG image export", () => {
     await expect(publishFigureTab).toHaveAttribute("aria-selected", "true");
     await triggerDomClick(mapExplorer.getByRole("button", { name: "Map image export" }));
 
-    const dialog = page.getByRole("dialog", { name: "Publication map export options" });
+    const dialog = page.getByRole("dialog", { name: /^(Publication map export options|Publication Export)$/ });
     await expect(dialog).toBeVisible();
     await expect(dialog.getByRole("heading", { name: "Publication Composition" })).toBeVisible();
     await expect(dialog.getByRole("combobox", { name: "Format" })).toHaveValue("pdf");

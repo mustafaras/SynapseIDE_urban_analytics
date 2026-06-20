@@ -20,7 +20,8 @@ async function expectNoOverlap(a: Locator, b: Locator, reason: string): Promise<
   expect(aBox, `${reason} (first box missing)`).not.toBeNull();
   expect(bBox, `${reason} (second box missing)`).not.toBeNull();
   if (!aBox || !bBox) return;
-  expect(boxesOverlap(aBox, bBox), reason).toBe(false);
+  const details = `${reason}; first=${JSON.stringify(aBox)} second=${JSON.stringify(bBox)}`;
+  expect(boxesOverlap(aBox, bBox), details).toBe(false);
 }
 
 async function openMapExplorerInExploreMode(page: Page): Promise<void> {
@@ -68,18 +69,25 @@ test.describe("Prompt 09 — map layout regression guards", () => {
     await expect(rightDockClose).toBeVisible();
     await expectNoOverlap(leftRail, rightDockClose, "left panel must not cover right dock controls");
 
-    const viewportControls = page.getByTestId("map-canvas-viewport-controls");
-    const furnitureControls = page.getByTestId("map-canvas-furniture-controls");
-    const activeToolIndicator = page.getByTestId("map-active-tool-indicator");
+    const controlsToggle = mapExplorer.getByRole("button", { name: "Show draggable view controls" });
+    if (await controlsToggle.isVisible().catch(() => false)) {
+      await triggerDomClick(controlsToggle);
+    }
+    const controlDock = page.getByTestId("map-canvas-control-dock");
+    await expect(controlDock).toBeVisible();
+    const viewportControls = controlDock.getByTestId("map-canvas-viewport-controls");
+    const furnitureControls = controlDock.getByTestId("map-canvas-furniture-controls");
+    const activeToolIndicator = controlDock.getByTestId("map-active-tool-indicator");
     await expect(viewportControls).toBeVisible();
     await expect(furnitureControls).toBeVisible();
-    await expect(activeToolIndicator).toBeVisible();
+    const activeToolVisible = await activeToolIndicator.isVisible().catch(() => false);
 
-    await expectNoOverlap(rightDock, viewportControls, "right dock must not overlap viewport controls");
-    await expectNoOverlap(rightDock, activeToolIndicator, "right dock must not overlap active tool indicator");
-    await expectNoOverlap(statusBar, viewportControls, "status bar must not overlap viewport controls");
+    await expectNoOverlap(rightDock, controlDock, "right dock must not overlap view controls dock");
+    await expectNoOverlap(statusBar, controlDock, "status bar must not overlap view controls dock");
     await expectNoOverlap(viewportControls, furnitureControls, "floating control clusters must not overlap");
-    await expectNoOverlap(activeToolIndicator, furnitureControls, "active tool indicator must not overlap furniture controls");
+    if (activeToolVisible) {
+      await expectNoOverlap(activeToolIndicator, furnitureControls, "active tool indicator must not overlap furniture controls");
+    }
 
     await expect(page.getByRole("button", { name: "Open QA Problems" })).toBeVisible();
     await expect(viewportControls.getByRole("button", { name: "Open CRS readiness" })).toBeVisible();

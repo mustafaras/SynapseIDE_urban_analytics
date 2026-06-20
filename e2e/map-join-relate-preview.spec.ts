@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { openMapCommand } from "./helpers/mapExplorer";
 import { openUrbanAnalyticsWorkbench, resetWorkbenchState, triggerDomClick } from "./helpers/urbanAnalytics";
 
 async function seedPrompt50Layers(page: Page): Promise<void> {
@@ -47,33 +48,7 @@ async function seedPrompt50Layers(page: Page): Promise<void> {
 }
 
 async function openProcessingToolbox(page: Page, mapExplorer: ReturnType<Page["getByRole"]>): Promise<void> {
-  const directButton = mapExplorer.getByRole("button", { name: /processing toolbox/i }).first();
-  if (await directButton.isVisible({ timeout: 1_000 }).catch(() => false)) {
-    await triggerDomClick(directButton);
-    return;
-  }
-  const commandPaletteButton = page.getByTestId("map-premium-quick-action-command-palette");
-  if (await commandPaletteButton.isVisible({ timeout: 1_000 }).catch(() => false)) {
-    await triggerDomClick(commandPaletteButton);
-    const palette = page.getByRole("dialog", { name: "Map command palette" });
-    await expect(palette).toBeVisible();
-    await palette.getByLabel("Search map commands").fill("processing toolbox");
-    await triggerDomClick(palette.getByTestId("map-command-palette-option-processing-toolbox"));
-    return;
-  }
-  await page.keyboard.press("Control+K");
-  const palette = page.getByRole("dialog", { name: "Map command palette" });
-  if (await palette.isVisible({ timeout: 1_000 }).catch(() => false)) {
-    await palette.getByLabel("Search map commands").fill("processing toolbox");
-    await triggerDomClick(palette.getByTestId("map-command-palette-option-processing-toolbox"));
-    return;
-  }
-  await triggerDomClick(
-    mapExplorer.getByRole("button", { name: "Scientific QA, 3D sync, density, and command controls" }),
-  );
-  await triggerDomClick(
-    page.getByRole("menu", { name: "Advanced commands" }).getByRole("menuitem", { name: /processing toolbox/i }),
-  );
+  await openMapCommand(page, mapExplorer, /processing toolbox/i, /processing toolbox/i);
 }
 
 test.describe("Map Explorer — join / relate preview @smoke", () => {

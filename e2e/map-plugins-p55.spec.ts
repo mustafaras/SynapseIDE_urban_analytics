@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { openMapCommand } from "./helpers/mapExplorer";
 import { openUrbanAnalyticsWorkbench, resetWorkbenchState, triggerDomClick } from "./helpers/urbanAnalytics";
 
 async function seedProjectedLayer(page: Page): Promise<void> {
@@ -41,25 +42,6 @@ async function seedProjectedLayer(page: Page): Promise<void> {
   });
 }
 
-async function openAdvancedCommand(
-  page: Page,
-  mapExplorer: ReturnType<Page["getByRole"]>,
-  directName: RegExp,
-  menuName: RegExp,
-): Promise<void> {
-  const directButton = mapExplorer.getByRole("button", { name: directName }).first();
-  if (await directButton.isVisible({ timeout: 1_000 }).catch(() => false)) {
-    await triggerDomClick(directButton);
-    return;
-  }
-  await triggerDomClick(
-    mapExplorer.getByRole("button", { name: "Scientific QA, 3D sync, density, and command controls" }),
-  );
-  await triggerDomClick(
-    page.getByRole("menu", { name: "Advanced commands" }).getByRole("menuitem", { name: menuName }),
-  );
-}
-
 test.describe("Map Explorer plugin registry", () => {
   test("lists reference extensions and runs the reference processing plugin through the lifecycle", async ({ page }) => {
     await page.setViewportSize({ width: 1680, height: 1100 });
@@ -76,7 +58,7 @@ test.describe("Map Explorer plugin registry", () => {
     await seedProjectedLayer(page);
     await expect(page.getByRole("list", { name: "Layer list" })).toContainText("E2E P55 Projected Parcels");
 
-    await openAdvancedCommand(page, mapExplorer, /Open plugin and extension registry/i, /plugin/i);
+    await openMapCommand(page, mapExplorer, /Open plugin and extension registry/i, /plugin/i);
     const pluginPanel = page.getByTestId("map-plugin-panel");
     await expect(pluginPanel).toBeVisible();
     await expect(pluginPanel.getByTestId("map-plugin-extension-source.cityjson-static")).toBeVisible();
@@ -84,12 +66,12 @@ test.describe("Map Explorer plugin registry", () => {
     await expect(pluginPanel.getByTestId("map-plugin-extension-processing.plugin-envelope")).toBeVisible();
     await expect(pluginPanel.getByTestId("map-plugin-extension-urban.walkability-reference")).toBeVisible();
 
-    await openAdvancedCommand(page, mapExplorer, /processing toolbox/i, /processing toolbox/i);
+    await openMapCommand(page, mapExplorer, /processing toolbox/i, /processing toolbox/i);
     const toolbox = page.getByTestId("map-processing-toolbox");
     await expect(toolbox).toBeVisible();
     await toolbox.getByTestId("processing-tool-search").fill("plugin envelope");
     await triggerDomClick(toolbox.getByTestId("processing-tool-plugin-envelope"));
-    await expect(toolbox.getByTestId("processing-preflight-ok")).toContainText("Ready");
+    await expect(toolbox.getByTestId("processing-preflight-ok")).toContainText(/ready/i);
 
     await triggerDomClick(toolbox.getByTestId("processing-tool-run"));
     await expect(toolbox.getByTestId("processing-run-result")).toHaveAttribute("data-run-status", "applied");

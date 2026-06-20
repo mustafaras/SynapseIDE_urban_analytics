@@ -1,5 +1,6 @@
 import * as path from "node:path";
 import { expect, test, type Page } from "@playwright/test";
+import { openMapCommand } from "./helpers/mapExplorer";
 import { openUrbanAnalyticsWorkbench, resetWorkbenchState, triggerDomClick } from "./helpers/urbanAnalytics";
 
 async function seedAttributedLayers(page: Page): Promise<void> {
@@ -128,23 +129,14 @@ test.describe("Map Explorer layout designer (book)", () => {
     await seedAttributedLayers(page);
     await expect(page.getByRole("list", { name: "Layer list" })).toContainText("E2E Book Layer Alpha");
 
-    // Open layout designer — same toolbar button as figure composer (Publish toolbar)
-    await triggerDomClick(mapExplorer.getByRole("button", { name: "Switch toolbar to Publish mode" }));
-    const figureButton = mapExplorer.getByRole("button", {
-      name: /Compose a gate-checked publication figure/i,
-    }).first();
-    if (await figureButton.isVisible({ timeout: 1_500 }).catch(() => false)) {
-      await triggerDomClick(figureButton);
-    } else {
-      await triggerDomClick(mapExplorer.getByRole("button", {
-        name: "Scientific QA, 3D sync, density, and command controls",
-      }));
-      await triggerDomClick(page.getByRole("menu", { name: "Advanced commands" }).getByRole("menuitem", {
-        name: /Compose a gate-checked publication figure/i,
-      }));
-    }
+    await openMapCommand(
+      page,
+      mapExplorer,
+      /Compose a gate-checked publication figure/i,
+      /Compose a gate-checked publication figure/i,
+    );
 
-    const designer = page.getByRole("dialog", { name: "Layout designer" });
+    const designer = page.getByTestId("map-layout-designer");
     await expect(designer).toBeVisible();
 
     // Initially 1 page

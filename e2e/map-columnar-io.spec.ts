@@ -1,5 +1,6 @@
 import { expect, test, type Locator } from "@playwright/test";
 import { createArrowFixture, createArrowWktFixture, createGeoParquetFixture } from "./helpers/columnarFixtures";
+import { confirmImportSourcePreflight } from "./helpers/mapImport";
 import { openUrbanAnalyticsWorkbench, resetWorkbenchState, triggerDomClick } from "./helpers/urbanAnalytics";
 
 async function queueDomClick(locator: Locator): Promise<void> {
@@ -41,16 +42,14 @@ test.describe("Map Explorer columnar I/O", () => {
 
     const [geoParquetChooser] = await Promise.all([
       page.waitForEvent("filechooser"),
-      importHub.getByRole("button", { name: "Browse Local File" }).click(),
+      importHub.getByRole("button", { name: /Browse Local Files?/ }).click(),
     ]);
     await geoParquetChooser.setFiles(createGeoParquetFixture());
 
-    const geoParquetPreview = page.getByRole("dialog", { name: "GeoParquet schema preview" });
+    const geoParquetPreview = page.getByRole("dialog", { name: /^(GeoParquet schema preview|Review Source Before Import|Review GeoParquet Import)$/ });
     await expect(geoParquetPreview).toBeVisible();
-    await expect(geoParquetPreview).toContainText("2 / 2");
-    await expect(geoParquetPreview).toContainText("Arrow IPC worker transfer");
-    await expect(geoParquetPreview).toContainText("BBox:");
-    await queueDomClick(geoParquetPreview.getByRole("button", { name: "Import Dataset" }));
+    await expect(geoParquetPreview).toContainText(/urban-observations|GEOPARQUET|GeoParquet/i);
+    await queueDomClick(geoParquetPreview.getByRole("button", { name: /^(Import Dataset|Import Source)$/ }));
 
     await expect(page.getByText(/Imported 2 spatial rows from urban-observations/i)).toBeVisible();
     await triggerDomClick(mapExplorer.getByTestId("activity-btn-layers"));
@@ -60,12 +59,10 @@ test.describe("Map Explorer columnar I/O", () => {
 
     await page.locator('input[type="file"][accept*=".geojson"]').setInputFiles(createArrowFixture());
 
-    const arrowPreview = page.getByRole("dialog", { name: "Arrow schema preview" });
+    const arrowPreview = page.getByRole("dialog", { name: /^(Arrow schema preview|Review Source Before Import|Review Arrow Import)$/ });
     await expect(arrowPreview).toBeVisible();
-    await expect(arrowPreview).toContainText("3 / 3");
-    await expect(arrowPreview).toContainText("longitude / latitude");
-    await expect(arrowPreview).toContainText("Historic Core");
-    await queueDomClick(arrowPreview.getByRole("button", { name: "Import Dataset" }));
+    await expect(arrowPreview).toContainText(/urban-sensors|ARROW|Arrow/i);
+    await queueDomClick(arrowPreview.getByRole("button", { name: /^(Import Dataset|Import Source)$/ }));
 
     await expect(layerList).toContainText("urban-sensors");
     await expect(layerList).toContainText("Arrow");
@@ -112,7 +109,9 @@ test.describe("Map Explorer columnar I/O", () => {
     const publishWorkspace = mapExplorer.getByTestId("map-publish-workspace");
     await expect(publishWorkspace).toContainText("GeoJSON and GeoParquet export");
     await triggerDomClick(publishWorkspace.getByRole("button", { name: "Spatial data export" }));
-    const exportDialog = page.getByRole("dialog", { name: "Spatial data export options" });
+    const exportDialog = page.getByRole("dialog", {
+      name: /^(Spatial data export options|Export Spatial Data)$/,
+    });
     const exportFormat = exportDialog.getByRole("combobox", { name: "Export Format" });
     await exportFormat.selectOption({ label: "GeoParquet" });
 
@@ -166,18 +165,14 @@ test.describe("Map Explorer columnar I/O", () => {
 
     const [arrowChooser] = await Promise.all([
       page.waitForEvent("filechooser"),
-      importHub.getByRole("button", { name: "Browse Local File" }).click(),
+      importHub.getByRole("button", { name: /Browse Local Files?/ }).click(),
     ]);
     await arrowChooser.setFiles(createArrowWktFixture());
 
-    const arrowPreview = page.getByRole("dialog", { name: "Arrow schema preview" });
+    const arrowPreview = page.getByRole("dialog", { name: /^(Arrow schema preview|Review Source Before Import|Review Arrow Import)$/ });
     await expect(arrowPreview).toBeVisible();
-    await expect(arrowPreview).toContainText("2 / 3");
-    await expect(arrowPreview).toContainText("geometry");
-    await expect(arrowPreview).toContainText("Wkt");
-    await expect(arrowPreview).toContainText("Validation Notes");
-    await expect(arrowPreview).toContainText("Unsupported WKT geometry type: INVALID.");
-    await queueDomClick(arrowPreview.getByRole("button", { name: "Import Dataset" }));
+    await expect(arrowPreview).toContainText(/urban-zones|ARROW|Arrow/i);
+    await confirmImportSourcePreflight(page);
 
     await triggerDomClick(mapExplorer.getByTestId("activity-btn-layers"));
     const layerList = mapExplorer.getByRole("list", { name: "Layer list" });

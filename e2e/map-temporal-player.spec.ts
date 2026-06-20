@@ -17,7 +17,7 @@ test.describe("Map Explorer temporal animation player", () => {
     const fixture = await seedTemporalLayerFixture(page, {
       id: "e2e-temporal-growth",
       name: "E2E Temporal Urban Growth",
-      frameCount: 50,
+      frameCount: 120,
       startYear: 2000,
       timeProperty: "year",
       valueField: "developed_area",
@@ -26,18 +26,32 @@ test.describe("Map Explorer temporal animation player", () => {
     const scenePanel = page.getByTestId("map-scene-temporal-panel");
     await expect(scenePanel).toBeVisible();
     await expect(scenePanel).toContainText(fixture.name);
+    await page.evaluate(async () => {
+      const [{ useMapExplorerStore }, { useTemporalLayerStore }] = await Promise.all([
+        import("/src/stores/useMapExplorerStore.ts"),
+        import("/src/stores/useTemporalLayerStore.ts"),
+      ]);
+      useMapExplorerStore.getState().setCurrentTimestep(0);
+      useMapExplorerStore.getState().setIsPlaying(false);
+      useTemporalLayerStore.getState().goToFrame(0);
+      useTemporalLayerStore.getState().pause();
+    });
+    await expect.poll(async () => (await getTemporalPlaybackState(page)).currentTimestep).toBe(0);
+    await expect.poll(async () => (await getTemporalPlaybackState(page)).temporalActiveFrameIndex).toBe(0);
 
     const player = page.getByRole("region", { name: "Temporal animation player" });
+    const sceneTransport = scenePanel.getByRole("group", { name: "Temporal playback" });
     await expect(player).toBeVisible();
+    await expect(sceneTransport).toBeVisible();
     await expect(player).toContainText("Temporal");
     await expect(player).toContainText(fixture.name);
-    await expect(player).toContainText("1/50");
+    await expect(player).toContainText(`1/${fixture.frameCount}`);
     await expect(page.getByText("Year 2000").first()).toBeVisible();
 
     await triggerDomClick(player.getByRole("button", { name: "Step forward" }));
     await expect.poll(async () => (await getTemporalPlaybackState(page)).currentTimestep).toBe(1);
     await expect.poll(async () => (await getTemporalPlaybackState(page)).temporalActiveFrameIndex).toBe(1);
-    await expect(player).toContainText("2/50");
+    await expect(player).toContainText(`2/${fixture.frameCount}`);
 
     const slider = player.getByRole("slider", { name: "Timeline scrubber" });
     const box = await slider.boundingBox();
@@ -52,16 +66,31 @@ test.describe("Map Explorer temporal animation player", () => {
     await expect.poll(async () => Number(await slider.getAttribute("aria-valuenow"))).toBeGreaterThan(30);
     await expect.poll(async () => (await getTemporalPlaybackState(page)).currentTimestep).toBeGreaterThan(30);
     await expect.poll(async () => (await getTemporalPlaybackState(page)).temporalActiveFrameIndex).toBeGreaterThan(30);
+    await page.evaluate(async () => {
+      const [{ useMapExplorerStore }, { useTemporalLayerStore }] = await Promise.all([
+        import("/src/stores/useMapExplorerStore.ts"),
+        import("/src/stores/useTemporalLayerStore.ts"),
+      ]);
+      useMapExplorerStore.getState().setCurrentTimestep(30);
+      useMapExplorerStore.getState().setIsPlaying(false);
+      useTemporalLayerStore.getState().goToFrame(30);
+      useTemporalLayerStore.getState().pause();
+    });
+    await expect.poll(async () => (await getTemporalPlaybackState(page)).currentTimestep).toBe(30);
+    await expect.poll(async () => (await getTemporalPlaybackState(page)).temporalActiveFrameIndex).toBe(30);
+    await expect.poll(async () => Number(await slider.getAttribute("aria-valuenow"))).toBe(30);
 
-    await triggerDomClick(player.getByRole("button", { name: "Play" }));
+    await triggerDomClick(sceneTransport.getByRole("button", { name: "Play playback" }));
     await expect.poll(async () => (await getTemporalPlaybackState(page)).isPlaying).toBe(true);
     await expect.poll(async () => (await getTemporalPlaybackState(page)).temporalIsPlaying).toBe(true);
 
-    await triggerDomClick(player.getByRole("button", { name: "Pause" }));
+    await triggerDomClick(sceneTransport.getByRole("button", { name: "Pause playback" }));
     await expect.poll(async () => (await getTemporalPlaybackState(page)).isPlaying).toBe(false);
     await expect.poll(async () => (await getTemporalPlaybackState(page)).temporalIsPlaying).toBe(false);
 
-    await triggerDomClick(player.getByRole("button", { name: "Play" }));
+    await triggerDomClick(sceneTransport.getByRole("button", { name: "Play playback" }));
+    await expect.poll(async () => (await getTemporalPlaybackState(page)).isPlaying).toBe(true);
+    await expect.poll(async () => (await getTemporalPlaybackState(page)).temporalIsPlaying).toBe(true);
     const resumedAt = (await getTemporalPlaybackState(page)).currentTimestep;
 
     await page.evaluate(() => {

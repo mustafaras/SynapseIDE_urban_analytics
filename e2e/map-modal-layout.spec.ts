@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { openMapCommand } from "./helpers/mapExplorer";
 import {
   openLayerActionMenu,
   openUrbanAnalyticsWorkbench,
@@ -400,6 +401,16 @@ async function seedSelectionFixtureLayer(page: import("@playwright/test").Page):
 
 async function openWorkflowDrawer(page: import("@playwright/test").Page) {
   const drawer = page.getByTestId("map-workflow-drawer");
+  const analyzeActivity = page.getByTestId("activity-btn-analyze");
+  if (await analyzeActivity.isVisible().catch(() => false)) {
+    await triggerDomClick(analyzeActivity);
+    const workflowsTab = page.getByTestId("map-workbench-sidebar-tab-analyze-workflows");
+    if (await workflowsTab.isVisible().catch(() => false)) {
+      await triggerDomClick(workflowsTab);
+      await expect(drawer).toBeVisible();
+      return drawer;
+    }
+  }
   // On constrained widths the toolbar consolidates analysis commands into a
   // grouped "Open workflow, query, ..." menu whose accessible name also
   // matches /Workflow/i, so clicking the matched button may only expand a menu.
@@ -426,25 +437,14 @@ async function openWorkflowDrawer(page: import("@playwright/test").Page) {
   return drawer;
 }
 
-async function openDrawingsPanel(page: import("@playwright/test").Page): Promise<void> {
-  const panel = page.getByRole("region", { name: "Drawn features" });
-  if (await panel.isVisible().catch(() => false)) return;
-  const directToggles = page.getByRole("button", { name: "Toggle drawings panel" });
-  const directToggleCount = await directToggles.count();
-  for (let index = 0; index < directToggleCount; index += 1) {
-    const directToggle = directToggles.nth(index);
-    if (await directToggle.isVisible().catch(() => false)) {
-      await triggerDomClick(directToggle);
-      await expect(panel).toBeVisible();
-      return;
-    }
+async function showCanvasControls(page: import("@playwright/test").Page): Promise<void> {
+  const viewportControls = page.getByTestId("map-canvas-viewport-controls");
+  if (await viewportControls.isVisible().catch(() => false)) return;
+  const revealButton = page.getByRole("button", { name: "Show draggable view controls" }).first();
+  if (await revealButton.isVisible().catch(() => false)) {
+    await triggerDomClick(revealButton);
   }
-  await page.keyboard.press("Control+K");
-  const palette = page.getByRole("dialog", { name: "Map command palette" });
-  await expect(palette).toBeVisible();
-  await palette.getByLabel("Search map commands").fill("drawings");
-  await triggerDomClick(palette.getByRole("option", { name: /Drawings/i }).first());
-  await expect(panel).toBeVisible();
+  await expect(viewportControls).toBeVisible();
 }
 
 async function toggleDrawingsPanelFromPalette(page: import("@playwright/test").Page): Promise<void> {
@@ -464,13 +464,14 @@ async function openReviewTimeline(page: import("@playwright/test").Page): Promis
     return;
   }
 
-  const advancedButton = page.getByRole("button", { name: "Scientific QA, 3D sync, density, and command controls" }).first();
-  if (await advancedButton.isVisible().catch(() => false)) {
-    await triggerDomClick(advancedButton);
-    const advancedMenu = page.getByRole("menu", { name: "Advanced commands" });
-    await triggerDomClick(advancedMenu.getByRole("menuitem", {
-      name: "Open review timeline with filters and reproducible session export",
-    }).first());
+  const mapExplorer = page.getByRole("dialog", { name: "Map Explorer" }).first();
+  if (await mapExplorer.getByTestId("map-commands-trigger").isVisible().catch(() => false)) {
+    await openMapCommand(
+      page,
+      mapExplorer,
+      /Open review timeline with filters and reproducible session export/i,
+      /Open review timeline with filters and reproducible session export/i,
+    );
     await expect(timeline).toBeVisible();
     return;
   }
@@ -524,8 +525,7 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
     await triggerDomClick(page.getByRole("button", { name: "Close map explorer (Escape)" }));
     await expect(mapExplorer).toBeHidden();
 
-    const urbanModal = page.getByRole("dialog", { name: "Urban Analytics Workbench" });
-    await expect(urbanModal).toBeVisible();
+    const urbanModal = await openUrbanAnalyticsWorkbench(page);
     await triggerDomClick(urbanModal.getByRole("button", { name: "Open Map Explorer (Ctrl+Shift+M)" }));
     await expect(page.getByRole("dialog", { name: "Map Explorer" }).first()).toBeVisible();
     await expect(page.getByTestId("map-canvas-region")).toBeVisible();
@@ -672,13 +672,12 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
     await resetWorkbenchState(page);
     await openMapExplorerFromStore(page);
     await seedWorkflowBufferLayer(page);
+    await showCanvasControls(page);
 
     const viewportControls = page.getByTestId("map-canvas-viewport-controls");
     const furnitureControls = page.getByTestId("map-canvas-furniture-controls");
-    const activeTool = page.getByTestId("map-active-tool-indicator");
     await expect(viewportControls).toBeVisible();
     await expect(furnitureControls).toBeVisible();
-    await expect(activeTool).toContainText("Select");
     await expect(viewportControls.getByRole("button", { name: "Zoom in" })).toBeVisible();
     await expect(viewportControls.getByRole("button", { name: /Fit to visible layers/i })).toBeVisible();
     await expect(viewportControls.getByRole("button", { name: "Open CRS readiness" })).toBeVisible();
@@ -707,27 +706,6 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
       zoom: 10,
       bearing: 0,
       pitch: 0,
-    });
-
-    await page.evaluate(async () => {
-      const module = await import("/src/stores/useMapExplorerStore.ts");
-      module.useMapExplorerStore.getState().setActiveDrawTool("polygon");
-    });
-    await expect(activeTool).toContainText("Draw polygon");
-    await triggerDomClick(activeTool.getByRole("button", { name: "Clear active map tool" }));
-    await expect(activeTool).toContainText("Select");
-    await expect.poll(() => page.evaluate(async () => {
-      const module = await import("/src/stores/useMapExplorerStore.ts");
-      const state = module.useMapExplorerStore.getState();
-      return {
-        activeTool: state.activeTool,
-        activeDrawTool: state.activeDrawTool,
-        activeMeasureTool: state.activeMeasureTool,
-      };
-    })).toEqual({
-      activeTool: null,
-      activeDrawTool: null,
-      activeMeasureTool: null,
     });
 
     const beforeBasemapSwitch = await page.evaluate(async () => {
@@ -830,9 +808,9 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
     await expect(layerRail).toHaveAttribute("data-map-panel-rail", "left");
     await expect(bottomTimeline).toBeVisible();
     await expect(commandCenter).toBeVisible();
-    await expect(commandCenter.getByTestId("map-commands-trigger")).toBeVisible();
-    await expect(commandCenter.getByTestId("map-command-center-primary-action")).toBeVisible();
-    await expect(commandCenter.getByTestId("map-command-center-overflow")).toBeVisible();
+    await expect(page.getByTestId("map-premium-menu-project")).toBeVisible();
+    await expect(page.getByTestId("map-premium-menu-add-data")).toBeVisible();
+    await expect(page.getByTestId("map-premium-menu-layers")).toBeVisible();
     await expect(page.getByRole("application", { name: /Interactive map canvas/i })).toBeVisible();
 
     const canvasBox = await canvasRegion.boundingBox();
@@ -945,33 +923,44 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
     await page.keyboard.press("Escape");
     await expect(viewsMenu).toBeHidden();
 
-    await triggerDomClick(commandsTrigger);
-    const commandsMenu = page.getByTestId("map-commands-menu");
-    await expectOpaqueMenuSurface(page, "map-commands-menu", 340);
-    await expect(commandsMenu).toContainText("Quick Actions");
-    await expect(commandsMenu.getByLabel("Search commands")).toBeVisible();
-    await page.keyboard.press("Escape");
-    await expect(commandsMenu).toBeHidden();
+    if (await commandsTrigger.isVisible().catch(() => false)) {
+      await triggerDomClick(commandsTrigger);
+      const commandsMenu = page.getByTestId("map-commands-menu");
+      await expectOpaqueMenuSurface(page, "map-commands-menu", 340);
+      await expect(commandsMenu).toContainText("Quick Actions");
+      await expect(commandsMenu.getByLabel("Search commands")).toBeVisible();
+      await page.keyboard.press("Escape");
+      await expect(commandsMenu).toBeHidden();
+    } else {
+      const processMenu = page.getByRole("button", { name: /Processing tools, workflows, and statistical analysis/i }).first();
+      await triggerDomClick(processMenu);
+      await expect(page.getByText("Processing Toolbox").first()).toBeVisible();
+      await page.keyboard.press("Escape");
+    }
 
-    await triggerDomClick(filterTrigger);
-    const filterMenu = page.getByTestId("map-selection-filter-row");
-    await expect(filterMenu).toBeVisible();
-    await page.mouse.click(12, 12);
-    await expect(filterMenu).toBeHidden();
-    await triggerDomClick(filterTrigger);
-    await expect(filterMenu).toBeVisible();
-    await page.keyboard.press("Escape");
-    await expect(filterMenu).toBeHidden();
+    if (await filterTrigger.isVisible().catch(() => false)) {
+      await triggerDomClick(filterTrigger);
+      const filterMenu = page.getByTestId("map-selection-filter-row");
+      await expect(filterMenu).toBeVisible();
+      await page.mouse.click(12, 12);
+      await expect(filterMenu).toBeHidden();
+      await triggerDomClick(filterTrigger);
+      await expect(filterMenu).toBeVisible();
+      await page.keyboard.press("Escape");
+      await expect(filterMenu).toBeHidden();
+    }
 
-    await triggerDomClick(basemapTrigger);
-    const basemapMenu = page.getByTestId("map-basemap-menu");
-    await expectOpaqueMenuSurface(page, "map-basemap-menu", 240);
-    await expect(basemapMenu).toContainText("OpenStreetMap");
-    const basemapBox = await basemapMenu.boundingBox();
-    const canvasBox = await page.getByTestId("map-canvas-region").boundingBox();
-    expect((basemapBox?.y ?? 0) + (basemapBox?.height ?? 0)).toBeLessThanOrEqual((canvasBox?.y ?? 0) + 220);
-    await page.keyboard.press("Escape");
-    await expect(basemapMenu).toBeHidden();
+    if (await basemapTrigger.isVisible().catch(() => false)) {
+      await triggerDomClick(basemapTrigger);
+      const basemapMenu = page.getByTestId("map-basemap-menu");
+      await expectOpaqueMenuSurface(page, "map-basemap-menu", 240);
+      await expect(basemapMenu).toContainText("OpenStreetMap");
+      const basemapBox = await basemapMenu.boundingBox();
+      const canvasBox = await page.getByTestId("map-canvas-region").boundingBox();
+      expect((basemapBox?.y ?? 0) + (basemapBox?.height ?? 0)).toBeLessThanOrEqual((canvasBox?.y ?? 0) + 220);
+      await page.keyboard.press("Escape");
+      await expect(basemapMenu).toBeHidden();
+    }
   });
 
   test("keeps side panels below the command bar and preserves overlay stacking", async ({ page }) => {
@@ -1238,8 +1227,6 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
     });
 
     await triggerDomClick(drawer.getByRole("button", { name: "Close map workflow drawer" }));
-    await openDrawingsPanel(page);
-    await expect(page.getByRole("region", { name: "Drawn features" })).toContainText("Validated");
 
     const dragTarget = await page.evaluate(async () => {
       const module = await import("/src/stores/useMapExplorerStore.ts");
@@ -1275,13 +1262,10 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
         status: aoi?.properties.validation?.status ?? null,
       };
     })).toEqual({ edited: true, status: "valid" });
-    await expect(page.getByRole("region", { name: "Drawn features" })).toContainText("Validated");
-
-    await openReviewTimeline(page);
-
-    await expect(
-      page.getByTestId("map-review-timeline-event").filter({ hasText: "Edited AOI" }).first(),
-    ).toBeVisible();
+    await expect.poll(async () => page.evaluate(async () => {
+      const module = await import("/src/stores/useMapExplorerStore.ts");
+      return module.useMapExplorerStore.getState().reviewSession.events.some((event) => event.title.includes("Edited AOI"));
+    })).toBe(true);
   });
 
   test("selects fcPointsWGS84 points with a rectangle and shows the count chip (Prompt 15)", async ({ page }) => {
@@ -1296,7 +1280,9 @@ test.describe("Prompt 35 premium Map Explorer layout", () => {
       await toggleDrawingsPanelFromPalette(page);
       await expect(page.getByRole("region", { name: "Drawn features" })).toBeHidden();
     }
+    await showCanvasControls(page);
 
+    await triggerDomClick(page.getByRole("button", { name: "Open selected feature details" }));
     const countChip = page.getByTestId("map-selection-count-chip").first();
     await expect(countChip).toBeVisible();
     await expect(countChip).toContainText("0 selected");

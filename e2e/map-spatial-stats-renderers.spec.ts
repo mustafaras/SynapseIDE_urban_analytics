@@ -104,11 +104,10 @@ test.describe("Map Explorer spatial statistics renderers", () => {
     await triggerDomClick(page.getByRole("button", {
       name: /Switch toolbar to Analyze mode|Analyze Outputs|Switch map workspace to analyze/i,
     }).first());
+    await triggerDomClick(mapExplorer.getByTestId("map-workbench-sidebar-tab-analyze-statistics"));
+    await expect(mapExplorer.getByTestId("map-analyze-statistics")).toBeVisible();
 
-    await triggerDomClick(page.getByRole("button", { name: "Drawing, measuring, and map interaction tools" }));
-    await triggerDomClick(page.getByRole("menu", { name: "Tools commands" }).getByRole("menuitem", {
-      name: "Open Local Moran's I cluster map panel",
-    }));
+    await triggerDomClick(mapExplorer.getByTestId("analyze-statistics-lisa"));
     const lisaPanel = page.getByRole("dialog", { name: "Local Moran's I analysis panel" });
     await expect(lisaPanel).toBeVisible();
     await expect(lisaPanel.getByText("LISA Result Renderer")).toBeVisible();
@@ -129,10 +128,7 @@ test.describe("Map Explorer spatial statistics renderers", () => {
     });
     await expect(lisaPanel.getByText("p ≤ 0.010")).toBeVisible();
 
-    await triggerDomClick(page.getByRole("button", { name: "Drawing, measuring, and map interaction tools" }));
-    await triggerDomClick(page.getByRole("menu", { name: "Tools commands" }).getByRole("menuitem", {
-      name: "Open Getis-Ord Gi* hot and cold spot panel",
-    }));
+    await triggerDomClick(mapExplorer.getByTestId("analyze-statistics-hotspot"));
     const hotSpotPanel = page.getByRole("dialog", { name: "Getis-Ord Gi-star analysis panel" });
     await expect(hotSpotPanel).toBeVisible();
     await expect(hotSpotPanel.getByText("Gi* Hot/Cold Spot Renderer")).toBeVisible();

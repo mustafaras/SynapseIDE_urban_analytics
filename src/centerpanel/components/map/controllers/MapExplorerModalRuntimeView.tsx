@@ -34,7 +34,7 @@ import type { MapSceneTabId } from "../scene";
 
 const RIGHT_DOCK_CLOSE_ANIMATION_MS = 160;
 
-interface MapExplorerModalRuntimeViewProps {
+interface MapRuntimeViewContextFields {
   announce: (message: string) => void;
   handleOpenSceneTab: (tabId: MapSceneTabId, announcement: string) => void;
   navigatorStageMode: boolean;
@@ -207,6 +207,241 @@ interface MapExplorerModalRuntimeViewProps {
   showInteractionStrip: boolean;
 }
 
+type MapRuntimeShellContext = Pick<
+  MapRuntimeViewContextFields,
+  "announce" | "navigatorStageMode" | "overlayLayers" | "reducedMotion"
+>;
+
+type MapRuntimeSceneContext = Pick<
+  MapRuntimeViewContextFields,
+  | "handleOpenSceneTab"
+  | "scene3DTabActive"
+  | "sceneMassingTabActive"
+  | "sceneRasterTabActive"
+  | "sceneSunShadowTabActive"
+  | "sceneZoningTabActive"
+  | "setShowComparisonStrip"
+  | "setShowInteractionStrip"
+  | "setShowLayerPanel"
+  | "showComparisonStrip"
+  | "showInteractionStrip"
+>;
+
+type MapRuntimeExtensionContext = Pick<
+  MapRuntimeViewContextFields,
+  | "analyzeModelsTabActive"
+  | "analyzeToolsTabActive"
+  | "handleExportMapModelToIdeAndUrban"
+  | "handlePreviewProcessingTool"
+  | "handleRunMapModel"
+  | "handleRunMapModelBatch"
+  | "handleRunProcessingTool"
+  | "handleSqlResultToMap"
+  | "minimapCenter"
+  | "minimapZoom"
+  | "pluginExtensions"
+  | "processingToolDescriptors"
+  | "processingToolboxLayers"
+  | "searchProcessingTools"
+  | "setShowModelBuilder"
+  | "setShowPluginPanel"
+  | "setShowProcessingToolbox"
+  | "setShowSqlWorkspace"
+  | "showMinimap"
+  | "showModelBuilder"
+  | "showPluginPanel"
+  | "showProcessingToolbox"
+  | "showSqlWorkspace"
+>;
+
+type MapRuntimeQaQueryContext = Pick<
+  MapRuntimeViewContextFields,
+  | "analyzeQueryTabActive"
+  | "compactDock"
+  | "currentMapBounds"
+  | "effectiveShowNLQueryPanel"
+  | "effectiveShowScientificQAPanel"
+  | "handleFocusLayer"
+  | "handleInspectLayer"
+  | "handleMapNLQueryPreviewDecision"
+  | "handleMapNLQueryProposalGenerated"
+  | "handleOpenPublishTab"
+  | "handleRepairLayerGeometry"
+  | "handleRightPanelWidthChange"
+  | "handleRunMapNLQuery"
+  | "isRunningMapNLQuery"
+  | "lastMapNLQuerySummary"
+  | "rightPanelWidth"
+  | "scientificQA"
+  | "selectedAoiFeatureForQuery"
+  | "setShowNLQueryPanel"
+  | "setShowScientificQAPanel"
+>;
+
+type MapRuntimeWorkflowContext = Pick<
+  MapRuntimeViewContextFields,
+  | "analyzeWorkflowsTabActive"
+  | "effectiveShowWorkflowDrawer"
+  | "handleApplyMapWorkflow"
+  | "handleCancelMapWorkflow"
+  | "handleExecuteMapWorkflow"
+  | "handleOpenWorkflowScriptInIde"
+  | "handleSaveWorkflowReport"
+  | "setShowWorkflowDrawer"
+  | "setUrbanWorkflowDraftRequest"
+  | "setWorkflowPreview"
+  | "urbanWorkflowDraftRequest"
+  | "workflowContext"
+  | "workflowExecution"
+  | "workflowPreview"
+>;
+
+type MapRuntimeCanvasContext = Pick<
+  MapRuntimeViewContextFields,
+  | "canvasControlDockVisible"
+  | "mapCanvasControlsProps"
+  | "mapPublicationLegendItems"
+  | "onCloseCanvasControlDock"
+  | "openPerformanceRightDock"
+  | "performanceDiagnostics"
+  | "showLegendOverlay"
+>;
+
+type MapRuntimeRightDockContext = Pick<
+  MapRuntimeViewContextFields,
+  | "activeRightDockRoute"
+  | "activeUrbanMethodPreview"
+  | "activeUrbanMethodRequest"
+  | "effectiveShowUrbanMethodPanel"
+  | "handleCloseRightDockHost"
+  | "handleCloseUrbanMethodRail"
+  | "handleCollapseRightDockHost"
+  | "handleFocusUrbanMethodLayer"
+  | "handlePreviewUrbanMethodWorkflow"
+  | "handleRightDockFloatingRectChange"
+  | "handleRightDockHostPanelChange"
+  | "rightDockBodyContent"
+  | "rightDockCollapsed"
+  | "rightDockFloatingRect"
+  | "rightDockPanels"
+  | "rightDockPresentation"
+>;
+
+type MapRuntimePublishTemporalContext = Pick<
+  MapRuntimeViewContextFields,
+  | "bearing"
+  | "handleTemporalRestoreRequestHandled"
+  | "mapRef"
+  | "publishFigureTabActive"
+  | "setShowFigureComposer"
+  | "setShowMapExportDialog"
+  | "showFigureComposer"
+  | "temporalFrames"
+  | "temporalLayerId"
+  | "temporalLayerName"
+  | "temporalLayoutRestoreRequest"
+  | "temporalPlayerMap"
+  | "temporalPlayerVisible"
+  | "temporalSourceId"
+  | "temporalTimeProperty"
+>;
+
+type MapRuntimeVisualizationContext = Pick<
+  MapRuntimeViewContextFields,
+  | "setShowChoroplethPanel"
+  | "setShowClusterViz"
+  | "setShowEmergingHotSpotViz"
+  | "setShowHotSpotViz"
+  | "showChoroplethPanel"
+  | "showClusterViz"
+  | "showEmergingHotSpotViz"
+  | "showHotSpotViz"
+>;
+
+type MapRuntimeDrawContext = Pick<
+  MapRuntimeViewContextFields,
+  | "activeDrawTool"
+  | "addDrawnFeature"
+  | "clearDrawnFeatures"
+  | "drawSeed"
+  | "drawnFeatures"
+  | "drawingSnapSources"
+  | "handleCancelDraw"
+  | "handleCommitDrawnFeatureEdit"
+  | "removeDrawnFeature"
+  | "selectedFeatureId"
+  | "setDrawSeed"
+  | "setSelectedFeatureId"
+  | "updateDrawnFeature"
+>;
+
+type MapRuntimeMeasureContext = Pick<
+  MapRuntimeViewContextFields,
+  | "activeMeasureTool"
+  | "addMeasurement"
+  | "clearMeasurements"
+  | "effectiveShowMeasurePanel"
+  | "handleCancelMeasure"
+  | "measureUnit"
+  | "measurementSeed"
+  | "measurements"
+  | "removeMeasurement"
+  | "rightMeasureDockActive"
+  | "setMeasureUnit"
+  | "setMeasurementSeed"
+>;
+
+type MapRuntimeInteractionContext = Pick<
+  MapRuntimeViewContextFields,
+  | "effectiveShowLayerPanel"
+  | "effectiveShowSidebar"
+  | "flyTo"
+  | "handleClearPins"
+  | "handleHotSpotDispatch"
+  | "handleIsochroneDispatch"
+  | "handleMapClick"
+  | "handleOpenFlowDispatchDialog"
+  | "handleRemovePin"
+  | "handleRunSelectionStatistics"
+  | "handleStartMeasureFromContext"
+  | "handleStartPolygonFromContext"
+  | "layerOpenButtonIconSize"
+  | "layerPanelOpenButtonStyle"
+  | "pins"
+  | "selectionStatsAvailable"
+>;
+
+type MapRuntimeAnnotationContext = Pick<
+  MapRuntimeViewContextFields,
+  | "annotationMode"
+  | "annotationToolSettings"
+  | "annotations"
+  | "handleAddMapAnnotation"
+  | "handleDeactivateAnnotationMode"
+  | "handleMoveMapAnnotation"
+  | "handleRemoveMapAnnotation"
+  | "handleUpdateMapAnnotation"
+  | "selectedAnnotationId"
+  | "setAnnotationToolSettings"
+  | "setSelectedAnnotationId"
+>;
+
+interface MapExplorerModalRuntimeViewProps {
+  shell: MapRuntimeShellContext;
+  scene: MapRuntimeSceneContext;
+  extensions: MapRuntimeExtensionContext;
+  qaQuery: MapRuntimeQaQueryContext;
+  workflow: MapRuntimeWorkflowContext;
+  canvas: MapRuntimeCanvasContext;
+  rightDock: MapRuntimeRightDockContext;
+  publishTemporal: MapRuntimePublishTemporalContext;
+  visualizations: MapRuntimeVisualizationContext;
+  draw: MapRuntimeDrawContext;
+  measure: MapRuntimeMeasureContext;
+  interaction: MapRuntimeInteractionContext;
+  annotation: MapRuntimeAnnotationContext;
+}
+
 function buildRightDockPanelStatus(
   route: React.ComponentProps<typeof MapRightDockHost>["route"] | null,
   qaState: React.ComponentProps<typeof ScientificQAPanel>["qaState"],
@@ -230,7 +465,8 @@ function buildRightDockPanelStatus(
   };
 }
 
-export const MapExplorerModalRuntimeView: React.FC<MapExplorerModalRuntimeViewProps> = ({
+export const MapExplorerModalRuntimeView: React.FC<MapExplorerModalRuntimeViewProps> = (props) => {
+  const {
   announce,
   handleOpenSceneTab,
   navigatorStageMode,
@@ -401,7 +637,21 @@ export const MapExplorerModalRuntimeView: React.FC<MapExplorerModalRuntimeViewPr
   setShowLayerPanel,
   showComparisonStrip,
   showInteractionStrip,
-}) => {
+  } = {
+    ...props.shell,
+    ...props.scene,
+    ...props.extensions,
+    ...props.qaQuery,
+    ...props.workflow,
+    ...props.canvas,
+    ...props.rightDock,
+    ...props.publishTemporal,
+    ...props.visualizations,
+    ...props.draw,
+    ...props.measure,
+    ...props.interaction,
+    ...props.annotation,
+  };
   const [closingRightDockRoute, setClosingRightDockRoute] = useState<MapRightDockRoute | null>(null);
   const lastOpenRightDockRouteRef = useRef<MapRightDockRoute | null>(null);
 

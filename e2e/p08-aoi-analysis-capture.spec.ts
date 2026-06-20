@@ -86,9 +86,9 @@ test.describe("p08 AOI analysis capture", () => {
     await expect(analyzeAreaAction).toBeVisible();
     await triggerDomClick(analyzeAreaAction);
 
-    const dispatchDialog = page.getByRole("dialog", { name: "Choose workflow for map analysis dispatch" });
+    const dispatchDialog = page.getByRole("dialog", { name: /Route .* into a workflow/i });
     await expect(dispatchDialog).toBeVisible({ timeout: 15000 });
-    await expect(dispatchDialog.getByText("Analyze This Area")).toBeVisible();
+    await expect(dispatchDialog.getByText("Choose a compatible workflow")).toBeVisible();
 
     await page.screenshot({ path: "docs/archive/development-plans/map-explorer-dock-redesign-2026-06-15/evidence/p08-aoi-analysis.png", fullPage: true });
 

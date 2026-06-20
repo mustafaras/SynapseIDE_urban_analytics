@@ -30,7 +30,7 @@ async function importLocalFile(
 
   const [chooser] = await Promise.all([
     page.waitForEvent("filechooser"),
-    importHub.getByRole("button", { name: "Browse Local File" }).click(),
+    importHub.getByRole("button", { name: /Browse Local Files?/ }).click(),
   ]);
   await chooser.setFiles(file);
 }
@@ -55,7 +55,7 @@ test.describe("Map Explorer CSV, KML, and GPX import", () => {
       buffer: Buffer.from(csv),
     });
 
-    const mappingDialog = page.getByRole("dialog", { name: "CSV coordinate mapping" });
+    const mappingDialog = page.getByRole("dialog", { name: /^(CSV coordinate mapping|Import CSV Points)$/ });
     await expect(mappingDialog).toBeVisible();
     await expect(mappingDialog).toContainText("Import CSV Points");
     await expect(mappingDialog).toContainText("parks.csv contains 6 data rows");
@@ -134,7 +134,7 @@ test.describe("Map Explorer CSV, KML, and GPX import", () => {
       buffer: Buffer.from(kml),
     });
 
-    const preflightDialog = page.getByRole("dialog", { name: "Import source preflight" });
+    const preflightDialog = page.getByRole("dialog", { name: /^(Import source preflight|Review Source Before Import)$/ });
     await expect(preflightDialog).toBeVisible();
     await expect(preflightDialog).toContainText("field-survey.kml");
     await expect(preflightDialog).toContainText("CRS missing");
@@ -176,7 +176,7 @@ test.describe("Map Explorer CSV, KML, and GPX import", () => {
       buffer: Buffer.from(gpx),
     });
 
-    const preflightDialog = page.getByRole("dialog", { name: "Import source preflight" });
+    const preflightDialog = page.getByRole("dialog", { name: /^(Import source preflight|Review Source Before Import)$/ });
     await expect(preflightDialog).toBeVisible();
     await expect(preflightDialog).toContainText("CRS missing");
     await triggerDomClick(preflightDialog.getByRole("button", { name: "Import Source" }));

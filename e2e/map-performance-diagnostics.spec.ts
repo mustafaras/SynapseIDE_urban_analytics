@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
+import { openMapCommand } from "./helpers/mapExplorer";
 import { openUrbanAnalyticsWorkbench, resetWorkbenchState, triggerDomClick } from "./helpers/urbanAnalytics";
 
 async function seedLargeFeatureCollection(page: Page): Promise<void> {
@@ -50,20 +51,12 @@ async function seedLargeFeatureCollection(page: Page): Promise<void> {
 }
 
 async function openPerformanceDiagnostics(mapExplorer: Locator, page: Page): Promise<void> {
-  const diagnosticsButton = mapExplorer.getByRole("button", {
-    name: /Open live render budgets and performance diagnostics/i,
-  }).first();
-  if (await diagnosticsButton.isVisible({ timeout: 1_000 }).catch(() => false)) {
-    await triggerDomClick(diagnosticsButton);
-    return;
-  }
-
-  await triggerDomClick(mapExplorer.getByRole("button", {
-    name: "Scientific QA, 3D sync, density, and command controls",
-  }));
-  await triggerDomClick(page.getByRole("menu", { name: "Advanced commands" }).getByRole("menuitem", {
-    name: /Open live render budgets and performance diagnostics/i,
-  }));
+  await openMapCommand(
+    page,
+    mapExplorer,
+    /Open live render budgets and performance diagnostics/i,
+    /Open live render budgets and performance diagnostics/i,
+  );
 }
 
 test.describe("Map Explorer performance diagnostics", () => {
@@ -88,7 +81,7 @@ test.describe("Map Explorer performance diagnostics", () => {
     await expect(banner).toContainText("30,000");
 
     await openPerformanceDiagnostics(mapExplorer, page);
-    const panel = mapExplorer.getByTestId("map-performance-diagnostics");
+    const panel = page.getByTestId("map-performance-diagnostics");
     await expect(panel).toBeVisible();
     await expect(panel).toContainText("E2E fcLarge Diagnostics");
     await expect(panel).toContainText("Bounded preview");

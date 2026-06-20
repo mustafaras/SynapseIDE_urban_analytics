@@ -10,13 +10,19 @@ import { useFlowStore } from "@/stores/useFlowStore";
 import { useMapExplorerStore } from "@/stores/useMapExplorerStore";
 
 const executeHotSpotSpatialStatsAsyncMock = vi.fn();
-
-vi.mock("@/ui/toast/api", () => ({
+const reportErrorMock = vi.hoisted(() => vi.fn());
+const toastApiMocks = vi.hoisted(() => ({
   toastError: vi.fn(),
   toastInfo: vi.fn(),
   toastSuccess: vi.fn(),
   toastWarning: vi.fn(),
 }));
+
+vi.mock("@/lib/error-bus", () => ({
+  reportError: reportErrorMock,
+}));
+
+vi.mock("@/ui/toast/api", () => toastApiMocks);
 
 vi.mock("@/hooks/usePrefersReducedMotion", () => ({
   usePrefersReducedMotion: () => false,
@@ -366,6 +372,11 @@ beforeEach(() => {
     currentMapBounds: [28.94, 40.99, 28.98, 41.03],
   });
   executeHotSpotSpatialStatsAsyncMock.mockReset();
+  reportErrorMock.mockReset();
+  toastApiMocks.toastError.mockReset();
+  toastApiMocks.toastInfo.mockReset();
+  toastApiMocks.toastSuccess.mockReset();
+  toastApiMocks.toastWarning.mockReset();
   executeHotSpotSpatialStatsAsyncMock.mockReturnValue({
     promise: Promise.resolve({
       adaptedResult: {
@@ -541,6 +552,37 @@ describe("MapExplorerModal map dispatch", () => {
     expect(executeHotSpotSpatialStatsAsyncMock).toHaveBeenCalledTimes(1);
     expect(resultLayer?.metadata?.analysisResult?.engine).toBe("GetisOrdGi");
     expect(useMapExplorerStore.getState().activeAnalysisResultLayerIds).toEqual(["hotspot-result-layer"]);
+
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  }, 15000);
+
+  it("reports quick hot spot dispatch failures through the error bus", async () => {
+    executeHotSpotSpatialStatsAsyncMock.mockImplementationOnce(() => ({
+      promise: Promise.reject(new Error("Hot spot worker failed")),
+    }));
+    const { container, root } = mountModal();
+    await act(async () => {
+      root.render(<MapExplorerModal open onClose={() => undefined} mode="embedded" mapCanvasRef={{ current: null }} />);
+    });
+
+    const trigger = document.body.querySelector('[data-testid="dispatch-hotspot"]') as HTMLButtonElement | null;
+    expect(trigger).not.toBeNull();
+
+    await act(async () => {
+      trigger?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    await waitFor(() => {
+      expect(reportErrorMock).toHaveBeenCalledWith(expect.objectContaining({
+        code: "MAP_QUICK_HOT_SPOT_FAILED",
+        message: "Hot spot worker failed",
+        source: "ui",
+      }));
+    });
+    expect(toastApiMocks.toastError).not.toHaveBeenCalled();
 
     await act(async () => {
       root.unmount();

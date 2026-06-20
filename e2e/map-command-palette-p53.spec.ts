@@ -42,7 +42,7 @@ async function seedProjectedLayer(page: Page): Promise<void> {
 }
 
 test.describe("Map Explorer command palette", () => {
-  test("opens with Ctrl+K, fuzzy-searches buffer, and runs the processing tool from the keyboard", async ({ page }) => {
+  test("opens with Ctrl+K, fuzzy-searches buffer, and applies the guided workflow", async ({ page }) => {
     await page.setViewportSize({ width: 1680, height: 1100 });
     await resetWorkbenchState(page);
 
@@ -68,7 +68,12 @@ test.describe("Map Explorer command palette", () => {
 
     await page.keyboard.press("Enter");
     await expect(palette).toBeHidden();
-    await expect(page.getByRole("list", { name: "Layer list" })).toContainText("Buffer · E2E P53 Projected Parcels");
+    const drawer = page.getByTestId("map-workflow-drawer");
+    await expect(drawer).toBeVisible();
+    await triggerDomClick(drawer.getByRole("button", { name: /Buffer: Geodesic ring/i }));
+    await drawer.getByLabel("Layer selector").selectOption("e2e-p53-projected");
+    await drawer.getByLabel("Result layer name").fill("Buffer · E2E P53 Projected Parcels");
+    await triggerDomClick(drawer.getByRole("button", { name: /Apply spatial workflow|Apply workflow/i }));
 
     await expect.poll(async () => page.evaluate(async () => {
       const storeModule = await import("/src/stores/useMapExplorerStore.ts");
@@ -77,10 +82,13 @@ test.describe("Map Explorer command palette", () => {
         .overlayLayers.find((entry) => entry.name === "Buffer · E2E P53 Projected Parcels");
       return {
         hasLayer: Boolean(layer),
-        hasManifest: Boolean(layer?.metadata?.reproducibilityManifest?.manifestId?.startsWith("manifest-processing-buffer")),
+        hasManifest: Boolean(
+          layer?.metadata?.reproducibilityManifest?.manifestId?.startsWith("map-manifest-applied")
+          && layer.metadata.reproducibilityManifest.workflowKind === "buffer",
+        ),
         reviewEvent: storeModule.useMapExplorerStore
           .getState()
-          .reviewSession.events.some((event) => event.title.includes("Applied workflow")),
+          .reviewSession.events.some((event) => event.title.includes("Workflow applied")),
       };
     })).toEqual({ hasLayer: true, hasManifest: true, reviewEvent: true });
   });

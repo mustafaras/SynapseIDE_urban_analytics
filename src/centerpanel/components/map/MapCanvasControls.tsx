@@ -80,6 +80,7 @@ export interface MapCanvasControlsProps {
   draggableControlDock?: boolean;
   controlDockTitle?: string;
   controlDockSubtitle?: string;
+  controlDockStyle?: React.CSSProperties;
   onCloseControlDock?: () => void;
   onZoomIn: () => void;
   onZoomOut: () => void;
@@ -437,6 +438,7 @@ export const MapCanvasControls: React.FC<MapCanvasControlsProps> = ({
   draggableControlDock = false,
   controlDockTitle,
   controlDockSubtitle,
+  controlDockStyle,
   onCloseControlDock,
   onZoomIn,
   onZoomOut,
@@ -834,6 +836,7 @@ export const MapCanvasControls: React.FC<MapCanvasControlsProps> = ({
           draggable={draggableControlDock}
           title={controlDockTitle}
           subtitle={controlDockSubtitle}
+          style={controlDockStyle}
           onClose={onCloseControlDock}
         />
         {keyboardPanel}
@@ -884,7 +887,7 @@ export const MapCanvasControls: React.FC<MapCanvasControlsProps> = ({
         )}
         chips={dockChipsNode}
         contextual={drawContextTray || measureContextTray || selectionContextTray ? overlayContextNode : null}
-        style={commandBarStyle}
+        style={controlDockStyle ? { ...commandBarStyle, ...controlDockStyle } : commandBarStyle}
       />
       {keyboardPanel}
     </div>
