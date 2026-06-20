@@ -1,17 +1,39 @@
-# S Y N A P S E — U R B A N  A N A L Y T I C S  W O R K B E N C H
+<div align="center">
 
-## A tri-modal spatial intelligence platform for urban science, planning, risk, equity, and evidence-based decision making
+<img src="docs/assets/brand/og-image.png" alt="Synapse IDE — GIS & Urban Analytics Workbench" width="860" />
 
-![Build](https://img.shields.io/badge/build-passing-brightgreen)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178c6)
-![React](https://img.shields.io/badge/React-19-61dafb)
-![Vite](https://img.shields.io/badge/Vite-8.x-646cff)
-![deck.gl](https://img.shields.io/badge/deck.gl-9-f5a623)
-![DuckDB](https://img.shields.io/badge/DuckDB-WASM-yellow)
-![WebGPU](https://img.shields.io/badge/WebGPU-compute-8e44ad)
-![OpenTelemetry](https://img.shields.io/badge/telemetry-OpenTelemetry-e67e22)
-![Domain](https://img.shields.io/badge/domain-Urban%20Analytics-1b7f6b)
-![License](https://img.shields.io/badge/license-See%20LICENSE-blue)
+<h1>Synapse&nbsp;IDE&nbsp;—&nbsp;GIS&nbsp;&amp;&nbsp;Urban&nbsp;Analytics&nbsp;Workbench</h1>
+
+<p><b>A tri-modal spatial intelligence platform</b> for urban science, planning, risk, equity, and evidence-based decision making.<br/>
+<em>Synapse IDE · Map Explorer (GIS) · Urban Analytics</em> · <code>v0.9.0</code></p>
+
+<p>
+<img alt="version" src="https://img.shields.io/badge/version-0.9.0-0e8a16" />
+<img alt="Build" src="https://img.shields.io/badge/build-passing-brightgreen" />
+<img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5.8-3178c6" />
+<img alt="React" src="https://img.shields.io/badge/React-19-61dafb" />
+<img alt="Vite" src="https://img.shields.io/badge/Vite-8.x-646cff" />
+<img alt="deck.gl" src="https://img.shields.io/badge/deck.gl-9-f5a623" />
+<img alt="DuckDB" src="https://img.shields.io/badge/DuckDB-WASM-yellow" />
+<img alt="WebGPU" src="https://img.shields.io/badge/WebGPU-compute-8e44ad" />
+<img alt="Domain" src="https://img.shields.io/badge/domain-GIS%20%2B%20Urban%20Analytics-1b7f6b" />
+<img alt="License" src="https://img.shields.io/badge/license-See%20LICENSE-blue" />
+</p>
+
+<table>
+  <tr>
+    <td width="50%" align="center" valign="top">
+      <img src="docs/assets/brand/welcome.png" alt="Welcome cockpit surface" width="430" /><br/>
+      <sub><b>Welcome cockpit</b> — orbital command surface, IDE-led brand</sub>
+    </td>
+    <td width="50%" align="center" valign="top">
+      <img src="docs/assets/brand/tab-favicon.png" alt="Browser tab title and favicon" width="430" /><br/>
+      <sub><b>Tab &amp; favicon</b> — canonical title + synapse-node product mark</sub>
+    </td>
+  </tr>
+</table>
+
+</div>
 
 Repository · [Design Thesis](#1-design-thesis) · [Screen Atlas](#2-screen-atlas) · [Architecture](#3-system-architecture) · [Analytical Flows](#4-analytical-flows) · [Indicators](#5-urban-indicators--formulations) · [Map Engine](#6-map-explorer--geospatial-rendering) · [Compute](#7-engine-layer) · [AI Layer](#8-ai-orchestration) · [IDE Shell](#9-synapse-ide-shell) · [Evidence Model](#10-evidence-and-validity-model) · [Stack](#11-technology-stack) · [Quickstart](#12-quickstart) · [Validation](#13-release-validation-ladder) · [Scientific Limits](#14-scientific-limits-and-integrity)
 
