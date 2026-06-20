@@ -1,0 +1,23 @@
+MFP-22 — e2e-a11y (release gate) — ENVIRONMENT-BLOCKED, substitute
+
+Command: npm run test:e2e:a11y
+RESULT: environment-blocked — Playwright needs chromium_headless_shell-1217; only
+chromium-1194 is installed and the browser download is disabled in this sandbox
+(same block recorded for MFP-06/13/14/20).
+
+Why this is low-risk for MFP-22: the change is publish-time <head> metadata only
+(title, favicon link, description/theme-color/og:*/twitter:* meta) + package.json
+name/version. It adds no role/aria/tabindex/focus behaviour and touches no component,
+so it cannot regress the Map Explorer a11y audit. The runtime accessibility tree is
+unchanged (document.title was already BRAND.full via MFP-21).
+
+Substitute evidence (this run):
+- npm run build => exit 0 (build.txt). Vite processed index.html as the entry; the
+  built dist/index.html carries <title>Synapse IDE — GIS &amp; Urban Analytics
+  Workbench</title>, /favicon.svg, /og-image.png, theme-color, twitter:card; NO
+  "Coder App" / "/vite.svg". dist/favicon.svg + dist/og-image.png shipped.
+- Static <title> (index.html) === runtime document.title (App.tsx -> BRAND.full) =>
+  no tab-name flicker on boot.
+- npm run typecheck + lint:errors clean.
+
+RE-RUN in a browser-capable env: npm run test:e2e:a11y (expected unaffected).

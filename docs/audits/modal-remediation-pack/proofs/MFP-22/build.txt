@@ -1,0 +1,344 @@
+
+> synapse-ide-urban-analytics-workbench@0.9.0 build
+> node --max-old-space-size=12288 node_modules/vite/bin/vite.js build
+
+vite v8.0.8 building client environment for production...
+[2Ktransforming...[plugin rolldown:vite-resolve] Module "fs" has been externalized for browser compatibility, imported by "/home/user/SynapseIDE_urban_analytics/node_modules/sql.js/dist/sql-wasm.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+[plugin rolldown:vite-resolve] Module "crypto" has been externalized for browser compatibility, imported by "/home/user/SynapseIDE_urban_analytics/node_modules/sql.js/dist/sql-wasm.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+[plugin rolldown:vite-resolve] Module "fs" has been externalized for browser compatibility, imported by "/home/user/SynapseIDE_urban_analytics/node_modules/sql.js/dist/sql-wasm.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+[plugin rolldown:vite-resolve] Module "crypto" has been externalized for browser compatibility, imported by "/home/user/SynapseIDE_urban_analytics/node_modules/sql.js/dist/sql-wasm.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+
+new URL("./",import.meta.url) doesn't exist at build time, it will remain unchanged to be resolved at runtime. If this is intended, you can use the /* @vite-ignore */ comment to suppress this warning.
+[33m[PLUGIN_TIMINGS] Warning:[0m Your build spent significant time in plugin `vite:worker-import-meta-url`. See https://rolldown.rs/options/checks#plugintimings for more details.
+
+[33m[PLUGIN_TIMINGS] Warning:[0m Your build spent significant time in plugin `vite:worker-import-meta-url`. See https://rolldown.rs/options/checks#plugintimings for more details.
+
+[33m[PLUGIN_TIMINGS] Warning:[0m Your build spent significant time in plugin `vite:asset-import-meta-url`. See https://rolldown.rs/options/checks#plugintimings for more details.
+
+[33m[PLUGIN_TIMINGS] Warning:[0m Your build spent significant time in plugins. Here is a breakdown:
+  - vite:asset-import-meta-url (44%)
+  - vite:worker-import-meta-url (32%)
+  - vite:asset (22%)
+See https://rolldown.rs/options/checks#plugintimings for more details.
+
+✓ 5246 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/assets/searchWorker-CqtyUrm1.js                              2.52 kB
+dist/assets/KaTeX_Size3-Regular-CTq5MqoE.woff                     4.42 kB
+dist/assets/gwr.worker-gv3QdUCw.js                                4.89 kB
+dist/assets/KaTeX_Size4-Regular-Dl5lxZxV.woff2                    4.92 kB
+dist/assets/KaTeX_Size2-Regular-Dy4dx90m.woff2                    5.20 kB
+dist/assets/KaTeX_Size1-Regular-mCD8mA8B.woff2                    5.46 kB
+dist/assets/KaTeX_Size4-Regular-BF-4gkZK.woff                     5.98 kB
+dist/assets/KaTeX_Size2-Regular-oD1tc_U0.woff                     6.18 kB
+dist/assets/KaTeX_Size1-Regular-C195tn64.woff                     6.49 kB
+dist/assets/KaTeX_Caligraphic-Regular-Di6jR-x-.woff2              6.90 kB
+dist/assets/KaTeX_Caligraphic-Bold-Dq_IR9rO.woff2                 6.91 kB
+dist/assets/KaTeX_Size3-Regular-DgpXs0kz.ttf                      7.58 kB
+dist/assets/KaTeX_Caligraphic-Regular-CTRA-rTL.woff               7.65 kB
+dist/assets/KaTeX_Caligraphic-Bold-BEiXGLvX.woff                  7.71 kB
+dist/index.html                                                   8.64 kB │ gzip:     2.17 kB
+dist/assets/KaTeX_Script-Regular-D3wIWfF6.woff2                   9.64 kB
+dist/assets/KaTeX_SansSerif-Regular-DDBCnlJ7.woff2               10.34 kB
+dist/assets/KaTeX_Size4-Regular-DWFBv043.ttf                     10.36 kB
+dist/assets/KaTeX_Script-Regular-D5yQViql.woff                   10.58 kB
+dist/assets/spatialIndex.worker-C6wek9tX.js                      11.18 kB
+dist/assets/KaTeX_Fraktur-Regular-CTYiF6lA.woff2                 11.31 kB
+dist/assets/KaTeX_Fraktur-Bold-CL6g_b3V.woff2                    11.34 kB
+dist/assets/KaTeX_Size2-Regular-B7gKUWhC.ttf                     11.50 kB
+dist/assets/KaTeX_SansSerif-Italic-C3H0VqGB.woff2                12.02 kB
+dist/assets/KaTeX_SansSerif-Bold-D1sUS0GD.woff2                  12.21 kB
+dist/assets/KaTeX_Size1-Regular-Dbsnue_I.ttf                     12.22 kB
+dist/assets/KaTeX_SansSerif-Regular-CS6fqUqJ.woff                12.31 kB
+dist/assets/KaTeX_Caligraphic-Regular-wX97UBjC.ttf               12.34 kB
+dist/assets/KaTeX_Caligraphic-Bold-ATXxdsX0.ttf                  12.36 kB
+dist/assets/KaTeX_Fraktur-Regular-Dxdc4cR9.woff                  13.20 kB
+dist/assets/KaTeX_Fraktur-Bold-BsDP51OF.woff                     13.29 kB
+dist/assets/KaTeX_Typewriter-Regular-CO6r4hn1.woff2              13.56 kB
+dist/assets/KaTeX_SansSerif-Italic-DN2j7dab.woff                 14.11 kB
+dist/assets/KaTeX_SansSerif-Bold-DbIhKOiC.woff                   14.40 kB
+dist/assets/KaTeX_Typewriter-Regular-C0xS9mPB.woff               16.02 kB
+dist/assets/KaTeX_Math-BoldItalic-CZnvNsCZ.woff2                 16.40 kB
+dist/assets/KaTeX_Math-Italic-t53AETM-.woff2                     16.44 kB
+dist/assets/KaTeX_Script-Regular-C5JkGWo-.ttf                    16.64 kB
+dist/assets/KaTeX_Main-BoldItalic-DxDJ3AOS.woff2                 16.78 kB
+dist/assets/KaTeX_Main-Italic-NWA7e6Wa.woff2                     16.98 kB
+dist/assets/KaTeX_Math-BoldItalic-iY-2wyZ7.woff                  18.66 kB
+dist/assets/KaTeX_Math-Italic-DA0__PXp.woff                      18.74 kB
+dist/assets/KaTeX_Main-BoldItalic-SpSLRI95.woff                  19.41 kB
+dist/assets/KaTeX_SansSerif-Regular-BNo7hRIc.ttf                 19.43 kB
+dist/assets/KaTeX_Fraktur-Regular-CB_wures.ttf                   19.57 kB
+dist/assets/KaTeX_Fraktur-Bold-BdnERNNW.ttf                      19.58 kB
+dist/assets/KaTeX_Main-Italic-BMLOBm91.woff                      19.67 kB
+dist/assets/KaTeX_SansSerif-Italic-YYjJ1zSn.ttf                  22.36 kB
+dist/assets/KaTeX_SansSerif-Bold-CFMepnvq.ttf                    24.50 kB
+dist/assets/KaTeX_Main-Bold-Cx986IdX.woff2                       25.32 kB
+dist/assets/KaTeX_Main-Regular-B22Nviop.woff2                    26.27 kB
+dist/assets/KaTeX_Typewriter-Regular-D3Ib7_Hf.ttf                27.55 kB
+dist/assets/KaTeX_AMS-Regular-BQhdFMY1.woff2                     28.07 kB
+dist/assets/KaTeX_Main-Bold-Jm3AIy58.woff                        29.91 kB
+dist/assets/KaTeX_Main-Regular-Dr94JaBh.woff                     30.77 kB
+dist/assets/KaTeX_Math-BoldItalic-B3XSjfu4.ttf                   31.19 kB
+dist/assets/KaTeX_Math-Italic-flOr_0UB.ttf                       31.30 kB
+dist/assets/KaTeX_Main-BoldItalic-DzxPMmG6.ttf                   32.96 kB
+dist/assets/KaTeX_AMS-Regular-DMm9YOAa.woff                      33.51 kB
+dist/assets/KaTeX_Main-Italic-3WenGoN9.ttf                       33.58 kB
+dist/assets/KaTeX_Main-Bold-waoOVXN0.ttf                         51.33 kB
+dist/assets/KaTeX_Main-Regular-ypZvNtVU.ttf                      53.58 kB
+dist/assets/MapScientificQA.worker-CzKXudp2.js                   59.22 kB
+dist/assets/KaTeX_AMS-Regular-DRggAlZN.ttf                       63.63 kB
+dist/.vite/manifest.json                                         93.76 kB │ gzip:    12.36 kB
+dist/assets/duckdb-browser-eh.worker--3HUwN9R.js                772.84 kB
+dist/assets/duckdb-browser-mvp.worker-AS4FIczp.js               839.46 kB
+dist/assets/topologyRepairWorker-CgALs7sd.js                  2,479.42 kB
+dist/assets/analytics.worker-BkP29EuT.js                      3,178.09 kB
+dist/assets/parquet_wasm_bg-DrNke8Bl.wasm                     5,493.39 kB │ gzip: 1,831.35 kB
+dist/assets/ort-wasm-simd-threaded.jsep-CyqnNavA.wasm        26,239.90 kB │ gzip: 6,244.85 kB
+dist/assets/duckdb-eh-D-nnNw7L.wasm                          35,738.12 kB │ gzip: 8,160.66 kB
+dist/assets/duckdb-mvp-CNulJfH-.wasm                         41,086.84 kB │ gzip: 9,313.40 kB
+dist/assets/GuideViewV2-eUeqVykR.css                              0.84 kB │ gzip:     0.45 kB
+dist/assets/a11y-4-y81Iyo.css                                     0.97 kB │ gzip:     0.51 kB
+dist/assets/urban-context-strip-BjIXoYc6.css                      3.80 kB │ gzip:     0.87 kB
+dist/assets/MapInspectorHost-mvYagfW4.css                         4.28 kB │ gzip:     1.04 kB
+dist/assets/OutlineRailV2-B7Y9QnP0.css                            4.35 kB │ gzip:     1.31 kB
+dist/assets/CollaborationUI-CX3gNZiv.css                          5.78 kB │ gzip:     1.66 kB
+dist/assets/yjs-7nHpEJ3J.css                                      6.67 kB │ gzip:     1.74 kB
+dist/assets/educationRail-J4AbzyJx.css                            6.87 kB │ gzip:     1.61 kB
+dist/assets/MonacoEditor-BdzlDjJ0.css                             7.81 kB │ gzip:     1.80 kB
+dist/assets/NewProjectPage-BULFrfTv.css                           8.41 kB │ gzip:     1.94 kB
+dist/assets/IndicatorCatalogPanel-BpjcCUrf.css                   12.59 kB │ gzip:     2.63 kB
+dist/assets/DatasetLibraryBrowser-W7pT-aEI.css                   12.89 kB │ gzip:     2.42 kB
+dist/assets/uiStore-D7pynL9S.css                                 14.17 kB │ gzip:     2.90 kB
+dist/assets/RightPanelFourBlock-CQyLj7FR.css                     15.72 kB │ gzip:     3.13 kB
+dist/assets/rail-Bua6y-Z8.css                                    17.11 kB │ gzip:     3.54 kB
+dist/assets/education-ufQAY-EV.css                               18.58 kB │ gzip:     3.46 kB
+dist/assets/DashboardBuilder-DQ1Bhh5h.css                        19.81 kB │ gzip:     3.42 kB
+dist/assets/Registry-CwcQG5Mu.css                                21.12 kB │ gzip:     3.98 kB
+dist/assets/Note-B-rWSdLP.css                                    22.80 kB │ gzip:     4.33 kB
+dist/assets/centerpanel-D01J5g0G.css                             25.55 kB │ gzip:     4.60 kB
+dist/assets/ToolsProjectList-eB3kZxkO.css                        26.74 kB │ gzip:     4.63 kB
+dist/assets/MethodologyExplainer-CSceNpVM.css                    28.84 kB │ gzip:     7.92 kB
+dist/assets/UrbanAnalyticsModal-DF0I5QWP.css                     40.28 kB │ gzip:     7.08 kB
+dist/assets/CenterPanelShell-AtKWzWjI.css                        46.09 kB │ gzip:     8.91 kB
+dist/assets/index-BzjBfcbi.css                                   64.58 kB │ gzip:    11.99 kB
+dist/assets/MapPublicationOutputBindingService-w0GmEUh1.css      65.32 kB │ gzip:     9.27 kB
+dist/assets/guides-vrdEXYsH.css                                  70.98 kB │ gzip:    10.78 kB
+dist/assets/flows-Cj4NIJh5.css                                   71.05 kB │ gzip:    10.89 kB
+dist/assets/note-oogq81aw.css                                    77.61 kB │ gzip:    12.47 kB
+dist/assets/MapExplorerHost-BEa9_xWo.css                         97.53 kB │ gzip:    15.01 kB
+dist/assets/tools-C4vqHAYY.css                                  115.25 kB │ gzip:    16.96 kB
+dist/assets/GeoTiffParser-64ByuXy1.js                             0.08 kB │ gzip:     0.09 kB
+dist/assets/useMapExplorerStore-CnXyYlbS.js                       0.08 kB │ gzip:     0.08 kB
+dist/assets/MapEngineAdapter-aVONmYNf.js                          0.09 kB │ gzip:     0.10 kB
+dist/assets/MapInspectorHost-CeeOfaWg.js                          0.09 kB │ gzip:     0.09 kB
+dist/assets/MapPersistenceService-DENti6N6.js                     0.10 kB │ gzip:     0.10 kB
+dist/assets/DatasetLibraryBrowser-Drl8aBLk.js                     0.10 kB │ gzip:     0.09 kB
+dist/assets/types-DzG9A4eF.js                                     0.13 kB │ gzip:     0.14 kB │ map:     2.66 kB
+dist/assets/raw-CP6EVXBh.js                                       0.15 kB │ gzip:     0.15 kB │ map:     0.39 kB
+dist/assets/deflate-DxElFsR9.js                                   0.22 kB │ gzip:     0.20 kB │ map:     0.51 kB
+dist/assets/a11y.module-jaCud90u.js                               0.26 kB │ gzip:     0.19 kB │ map:     1.31 kB
+dist/assets/uiStore-B9ZzX8rA.js                                   0.29 kB │ gzip:     0.21 kB │ map:     1.11 kB
+dist/assets/download-JzyWHJKa.js                                  0.30 kB │ gzip:     0.24 kB │ map:     1.22 kB
+dist/assets/typeof-Cz0gB6OM.js                                    0.31 kB │ gzip:     0.20 kB │ map:     0.78 kB
+dist/assets/packbits-DSShivCt.js                                  0.39 kB │ gzip:     0.29 kB │ map:     1.35 kB
+dist/assets/urban-context-strip.module-DzLAvOdp.js                0.40 kB │ gzip:     0.24 kB │ map:     4.64 kB
+dist/assets/uiStore-DAAii7xC.js                                   0.43 kB │ gzip:     0.23 kB │ map:     1.22 kB
+dist/assets/CityJSONFlow-BSG0Ufo7.js                              0.43 kB │ gzip:     0.33 kB │ map:     0.96 kB
+dist/assets/jsx-runtime-De-1JGbp.js                               0.47 kB │ gzip:     0.34 kB │ map:     1.92 kB
+dist/assets/statusBus-Do2VlfnY.js                                 0.47 kB │ gzip:     0.35 kB │ map:     1.71 kB
+dist/assets/VoxCity3DFlow-cgMHRqzN.js                             0.48 kB │ gzip:     0.35 kB │ map:     1.07 kB
+dist/assets/SunlightSimFlow-DU3n5A6B.js                           0.51 kB │ gzip:     0.35 kB │ map:     1.13 kB
+dist/assets/hooks-Dg98XUId.js                                     0.53 kB │ gzip:     0.33 kB │ map:     5.38 kB
+dist/assets/webimage-B2SstKBK.js                                  0.71 kB │ gzip:     0.42 kB │ map:     2.13 kB
+dist/assets/esm-DywO7z0-.js                                       0.76 kB │ gzip:     0.47 kB │ map:     2.84 kB
+dist/assets/useCalcStore-DnKEAkZv.js                              0.77 kB │ gzip:     0.38 kB │ map:     3.71 kB
+dist/assets/EmergingHotSpotFlow-CKgTaU98.js                       0.79 kB │ gzip:     0.47 kB │ map:     1.44 kB
+dist/assets/guideRailBridge-CLDn9lSN.js                           1.08 kB │ gzip:     0.69 kB │ map:     3.49 kB
+dist/assets/statusBridge-CM1r56ki.js                              1.09 kB │ gzip:     0.59 kB │ map:     7.28 kB
+dist/assets/api-DFcZIm6_.js                                       1.14 kB │ gzip:     0.66 kB │ map:     4.92 kB
+dist/assets/chunk-zsgVPwQN.js                                     1.20 kB │ gzip:     0.66 kB
+dist/assets/useNewProjectDraftStore-CXLYIu4v.js                   1.21 kB │ gzip:     0.67 kB │ map:     5.16 kB
+dist/assets/educationRail.module-rXZjZ6d5.js                      1.21 kB │ gzip:     0.47 kB │ map:     8.42 kB
+dist/assets/basedecoder-CCZLX6Gd.js                               1.25 kB │ gzip:     0.70 kB │ map:     5.34 kB
+dist/assets/preload-helper-yAHoHR4o.js                            1.26 kB │ gzip:     0.73 kB
+dist/assets/synapseBus-BqL-3cAU.js                                1.28 kB │ gzip:     0.62 kB │ map:    10.81 kB
+dist/assets/useAccessStore-QlL-rlzl.js                            1.30 kB │ gzip:     0.62 kB │ map:     5.66 kB
+dist/assets/sections-CJuARviq.js                                  1.31 kB │ gzip:     0.56 kB │ map:     3.44 kB
+dist/assets/lzw-Cfi4Np-O.js                                       1.40 kB │ gzip:     0.82 kB │ map:     5.93 kB
+dist/assets/localVault-CP1y0BXY.js                                1.65 kB │ gzip:     0.75 kB │ map:     4.92 kB
+dist/assets/SqlWorkspaceBody-B-VNxCf3.js                          1.69 kB │ gzip:     1.06 kB │ map:     5.19 kB
+dist/assets/RasterHistogramEngine-nSMj9E6r.js                     1.72 kB │ gzip:     0.94 kB │ map:     8.37 kB
+dist/assets/mapToIdeHandoff--QY_VEmm.js                           1.85 kB │ gzip:     0.92 kB │ map:    26.14 kB
+dist/assets/useSpatialIndexStore-Bhe_P-WY.js                      1.95 kB │ gzip:     0.75 kB │ map:     7.76 kB
+dist/assets/middleware-BIM-L2Ca.js                                1.97 kB │ gzip:     1.01 kB │ map:    18.61 kB
+dist/assets/sectionHierarchy-BNXRwNOD.js                          2.14 kB │ gzip:     0.93 kB │ map:     6.67 kB
+dist/assets/flowUtils-4Qt2TR4M.js                                 2.26 kB │ gzip:     1.04 kB │ map:     8.71 kB
+dist/assets/MapObservabilityService-TjB62wYL.js                   2.35 kB │ gzip:     1.16 kB │ map:    10.60 kB
+dist/assets/centerpanel.module-v26XCoRR.js                        2.38 kB │ gzip:     0.87 kB │ map:    28.24 kB
+dist/assets/MethodologyInfoButton-DciYWUdM.js                     2.42 kB │ gzip:     1.06 kB │ map:     3.86 kB
+dist/assets/editorBridge-B95oVaU_.js                              2.53 kB │ gzip:     1.17 kB │ map:     7.50 kB
+dist/assets/usePanelBridgeStore-BrW0MDSh.js                       2.67 kB │ gzip:     1.04 kB │ map:     8.73 kB
+dist/assets/useFlowStore-BO2-NJ8m.js                              3.17 kB │ gzip:     1.36 kB │ map:    16.70 kB
+dist/assets/education.module-UpH316UY.js                          3.28 kB │ gzip:     1.08 kB │ map:    26.42 kB
+dist/assets/error-bus-D5OldCV9.js                                 3.31 kB │ gzip:     1.52 kB │ map:    11.63 kB
+dist/assets/LandCoverClassifier-BH0wM4Gg.js                       3.42 kB │ gzip:     1.60 kB │ map:    18.74 kB
+dist/assets/rail.module-TOAlzjYO.js                               3.50 kB │ gzip:     1.14 kB │ map:    19.64 kB
+dist/assets/scheduler-BkoMe0bw.js                                 3.60 kB │ gzip:     1.60 kB │ map:    15.63 kB
+dist/assets/react-dom-Br7MGnVl.js                                 3.61 kB │ gzip:     1.39 kB │ map:    12.06 kB
+dist/assets/BackgroundAnalyticsQueue-Dq1_Sx_I.js                  3.63 kB │ gzip:     1.66 kB │ map:    25.71 kB
+dist/assets/GeoTiffParser-2Wx0GQ_4.js                             3.72 kB │ gzip:     1.87 kB │ map:    14.60 kB
+dist/assets/bridge-C-Crn1yV.js                                    3.76 kB │ gzip:     1.39 kB │ map:    26.28 kB
+dist/assets/CrossPanelActions-Bv58dxeA.js                         4.06 kB │ gzip:     1.57 kB │ map:     9.43 kB
+dist/assets/layout-BQZ_tSQ-.js                                    4.20 kB │ gzip:     1.78 kB │ map:    14.11 kB
+dist/assets/globals-B0vujXJY.js                                   4.24 kB │ gzip:     1.98 kB │ map:     9.63 kB
+dist/assets/store-BqhljuYc.js                                     4.38 kB │ gzip:     1.79 kB │ map:    18.16 kB
+dist/assets/exporters-DFrQHCAR.js                                 4.67 kB │ gzip:     2.21 kB │ map:    30.63 kB
+dist/assets/flags-C7QiCX7L.js                                     4.69 kB │ gzip:     1.43 kB │ map:    12.69 kB
+dist/assets/EducationLeftRail-ZIyjXOXc.js                         4.70 kB │ gzip:     1.74 kB │ map:    13.83 kB
+dist/assets/mapContextSummary-MR59ngn6.js                         4.77 kB │ gzip:     1.90 kB │ map:    20.39 kB
+dist/assets/DashboardLeftRail-BWOMtpUR.js                         4.89 kB │ gzip:     1.76 kB │ map:    13.70 kB
+dist/assets/lazyWithRetry-nAuecndw.js                             5.07 kB │ gzip:     2.12 kB │ map:    15.86 kB
+dist/assets/compositeIndicatorDemo-B91Vg4li.js                    5.07 kB │ gzip:     1.60 kB │ map:    11.88 kB
+dist/assets/CityJSONLoader-P3ku9Mkh.js                            5.50 kB │ gzip:     2.32 kB │ map:    25.68 kB
+dist/assets/guides.module-CzZc-wuP.js                             5.97 kB │ gzip:     1.92 kB │ map:    77.93 kB
+dist/assets/CapabilitiesOverviewPanel-CRsupuJy.js                 6.46 kB │ gzip:     2.03 kB │ map:    13.57 kB
+dist/assets/urbanToIdeHandoff-kBNrsc0d.js                         6.63 kB │ gzip:     2.17 kB │ map:    33.51 kB
+dist/assets/fileExplorerStore-Btn1BqpU.js                         6.67 kB │ gzip:     2.27 kB │ map:    32.76 kB
+dist/assets/NewProjectPage-D83kSC5S.js                            6.71 kB │ gzip:     2.26 kB │ map:    23.81 kB
+dist/assets/OutlineRailV2-DwlHSxGT.js                             7.20 kB │ gzip:     2.75 kB │ map:    23.14 kB
+dist/assets/OutlineRail-Dh82lRu9.js                               7.23 kB │ gzip:     2.75 kB │ map:    20.94 kB
+dist/assets/workflowExperience-Bl8l9sjL.js                        7.24 kB │ gzip:     2.70 kB │ map:    12.78 kB
+dist/assets/MapAnalysisDispatcher-Bl07cyoD.js                     7.54 kB │ gzip:     2.88 kB │ map:    30.73 kB
+dist/assets/MapIcons-BxTFiijj.js                                  7.56 kB │ gzip:     1.27 kB │ map:    18.38 kB
+dist/assets/react-CKdnIFEa.js                                     7.59 kB │ gzip:     2.91 kB │ map:    26.64 kB
+dist/assets/useSynapseWorkspaceStore-KBbCVFA1.js                  7.96 kB │ gzip:     2.90 kB │ map:    42.76 kB
+dist/assets/CoverageDiagnosticsPanel-BnRi8y6k.js                  8.03 kB │ gzip:     2.68 kB │ map:    19.36 kB
+dist/assets/AnalyticalRunReviewFlow-DRsSNFga.js                   8.14 kB │ gzip:     2.81 kB │ map:    18.83 kB
+dist/assets/useBackgroundTaskStore-tZ2rbJFC.js                    8.46 kB │ gzip:     2.99 kB │ map:    33.30 kB
+dist/assets/jpeg-B93GQo6W.js                                      8.77 kB │ gzip:     3.73 kB │ map:    41.60 kB
+dist/assets/storage-w1Om3fKV.js                                   9.59 kB │ gzip:     3.11 kB │ map:    23.29 kB
+dist/assets/PreviewPanel-CF2QxP6m.js                              9.69 kB │ gzip:     3.55 kB │ map:    25.85 kB
+dist/assets/EngineCapabilitiesPanel-CcUHt3Q3.js                  10.09 kB │ gzip:     3.13 kB │ map:    20.53 kB
+dist/assets/note.module-DPs6ZlCn.js                              10.27 kB │ gzip:     2.97 kB │ map:    88.34 kB
+dist/assets/flows.module-BBVLpi78.js                             10.36 kB │ gzip:     2.89 kB │ map:    81.31 kB
+dist/assets/lib-BLTSZ_et.js                                      10.41 kB │ gzip:     3.92 kB │ map:    34.96 kB
+dist/assets/SiteSuitabilityFlow-DKnjupON.js                      10.43 kB │ gzip:     3.23 kB │ map:    26.76 kB
+dist/assets/state-BJf8jr6-.js                                    10.57 kB │ gzip:     3.75 kB │ map:    35.24 kB
+dist/assets/VulnerabilityFlow-DR5hGfg2.js                        10.58 kB │ gzip:     3.25 kB │ map:    26.35 kB
+dist/assets/mapLayerMetadata-DDyxNMpI.js                         10.89 kB │ gzip:     3.41 kB │ map:    33.77 kB
+dist/assets/design-Cq77VIvv.js                                   11.15 kB │ gzip:     3.38 kB │ map:    22.77 kB
+dist/assets/tools.module-DX3oBeKe.js                             11.59 kB │ gzip:     3.38 kB │ map:   124.21 kB
+dist/assets/methodValidity-0mQEWxxg.js                           11.60 kB │ gzip:     4.19 kB │ map:    27.70 kB
+dist/assets/AccessibilityFlow-CLdiCBH_.js                        11.84 kB │ gzip:     3.83 kB │ map:    26.15 kB
+dist/assets/CollaborationUI-CBbk2siP.js                          13.06 kB │ gzip:     3.22 kB │ map:    34.05 kB
+dist/assets/MapReportHandoffDrawer-Tk-bxZz8.js                   13.13 kB │ gzip:     3.99 kB │ map:    35.76 kB
+dist/assets/ideArtifactRecognition-BhX2RRqr.js                   13.14 kB │ gzip:     4.65 kB │ map:    41.17 kB
+dist/assets/EquityAuditFlow-B-A5Blfi.js                          13.21 kB │ gzip:     3.81 kB │ map:    35.34 kB
+dist/assets/CityJSONViewer-Ca9Sd_0i.js                           13.62 kB │ gzip:     4.64 kB │ map:    43.79 kB
+dist/assets/colorRamps-pzliRKRQ.js                               13.63 kB │ gzip:     4.21 kB │ map:    45.57 kB
+dist/assets/dist-DRwWBPad.js                                     13.64 kB │ gzip:     4.63 kB │ map:    41.76 kB
+dist/assets/flowTypes-B8Zk7R4q.js                                13.92 kB │ gzip:     4.95 kB │ map:    25.52 kB
+dist/assets/FlowsRail-BYHnOyVe.js                                14.04 kB │ gzip:     5.09 kB │ map:    34.01 kB
+dist/assets/esm-DXFt8LJN.js                                      14.15 kB │ gzip:     4.59 kB │ map:   179.65 kB
+dist/assets/storage-DnNYgOoH.js                                  14.38 kB │ gzip:     5.47 kB │ map:    35.72 kB
+dist/assets/QueryToSQL-C0AF4LkN.js                               14.48 kB │ gzip:     5.14 kB │ map:    51.18 kB
+dist/assets/StreamingLab-BBpNdAA9.js                             14.80 kB │ gzip:     4.70 kB │ map:    44.69 kB
+dist/assets/MapReviewSessionService-2g8QFBhm.js                  14.93 kB │ gzip:     4.88 kB │ map:    57.71 kB
+dist/assets/IdeToMapArtifactRecognitionService-C8IqRTip.js       15.06 kB │ gzip:     4.94 kB │ map:    49.18 kB
+dist/assets/flowLibraryMeta-3GE0q5TL.js                          15.87 kB │ gzip:     5.64 kB │ map:    24.02 kB
+dist/assets/editorStore-CB4QBzIB.js                              15.89 kB │ gzip:     5.45 kB │ map:    81.40 kB
+dist/assets/DatasetLibraryBrowser-DhOAj3xy.js                    15.99 kB │ gzip:     4.56 kB │ map:    56.50 kB
+dist/assets/useUrbanContextStore-DPCMYWr3.js                     16.17 kB │ gzip:     4.81 kB │ map:    70.02 kB
+dist/assets/Registry-DN12g6lf.js                                 16.48 kB │ gzip:     4.98 kB │ map:    62.43 kB
+dist/assets/workflowDemoRuntime-BWGys1sJ.js                      16.62 kB │ gzip:     5.40 kB │ map:    52.10 kB
+dist/assets/newFileTemplateContent-BZ16mJPb.js                   16.80 kB │ gzip:     5.27 kB │ map:    22.66 kB
+dist/assets/scenarioComparisonArtifacts-6Rpo-6WI.js              16.88 kB │ gzip:     5.55 kB │ map:    48.25 kB
+dist/assets/ToolsProjectList-D5NTZ_hE.js                         16.94 kB │ gzip:     4.96 kB │ map:    78.33 kB
+dist/assets/IndicatorCatalogPanel-DmmaDGcN.js                    17.55 kB │ gzip:     5.15 kB │ map:    54.83 kB
+dist/assets/ExportBar-Ds014oCM.js                                18.02 kB │ gzip:     5.47 kB │ map:    51.80 kB
+dist/assets/dataBindings-Crl6jTrG.js                             19.20 kB │ gzip:     6.66 kB │ map:    44.70 kB
+dist/assets/legendContract-CfUrY6Q0.js                           19.96 kB │ gzip:     6.90 kB │ map:    83.74 kB
+dist/assets/FlowHost-BPv26xxZ.js                                 20.44 kB │ gzip:     6.33 kB │ map:    36.43 kB
+dist/assets/purify.es-_FaexxMd.js                                21.16 kB │ gzip:     8.54 kB │ map:    83.84 kB
+dist/assets/datasetLibrary-DgYVTgFl.js                           21.32 kB │ gzip:     7.43 kB │ map:    58.95 kB
+dist/assets/ScenarioComparisonFlow-BLpMCdnO.js                   21.87 kB │ gzip:     6.50 kB │ map:    55.28 kB
+dist/assets/MapEmergingHotSpotViz-nBExfX8N.js                    22.78 kB │ gzip:     7.17 kB │ map:    70.10 kB
+dist/assets/UrbanMorphologyFlow-tlcxu7EW.js                      22.82 kB │ gzip:     6.97 kB │ map:    58.65 kB
+dist/assets/ObjectDetectionFlow-CbqFNNcY.js                      22.83 kB │ gzip:     7.11 kB │ map:    58.30 kB
+dist/assets/ChangeDetectionFlow-C2M8d3ie.js                      22.95 kB │ gzip:     6.32 kB │ map:    64.24 kB
+dist/assets/mapTokens-oNIPzxuf.js                                23.06 kB │ gzip:     5.27 kB │ map:    63.20 kB
+dist/assets/hooks-C3yssnWD.js                                    23.35 kB │ gzip:     8.36 kB │ map:    90.52 kB
+dist/assets/methodologyData-BfIoooCD.js                          23.61 kB │ gzip:     7.89 kB │ map:    38.34 kB
+dist/assets/mgrs-DzwNS39c.js                                     23.72 kB │ gzip:     7.67 kB │ map:    87.90 kB
+dist/assets/exportInbox-DDQkPRIY.js                              23.90 kB │ gzip:     8.75 kB │ map:    79.11 kB
+dist/assets/SystemDynamicsFlow-CadRL6Kd.js                       24.67 kB │ gzip:     6.71 kB │ map:    63.28 kB
+dist/assets/EducationModule-B19YU5AF.js                          25.00 kB │ gzip:     7.16 kB │ map:    64.20 kB
+dist/assets/eo-Ce9ua6A1.js                                       25.02 kB │ gzip:     8.38 kB │ map:    97.99 kB
+dist/assets/FacilityOptimisationFlow-Di29dI-4.js                 25.55 kB │ gzip:     7.23 kB │ map:    63.91 kB
+dist/assets/voxCitySelectionService-DfnVS4-M.js                  25.56 kB │ gzip:     8.90 kB │ map:   111.43 kB
+dist/assets/ScenarioComparisonDashboard-jbExixV-.js              25.63 kB │ gzip:     6.97 kB │ map:    73.99 kB
+dist/assets/CellularAutomataFlow-CnEbm3vo.js                     26.17 kB │ gzip:     7.79 kB │ map:    72.23 kB
+dist/assets/SpatialIndexLab-Btdgkhv9.js                          26.21 kB │ gzip:     7.81 kB │ map:    84.75 kB
+dist/assets/BuildingViewer-VB83jTQV.js                           28.05 kB │ gzip:     9.37 kB │ map:    89.52 kB
+dist/assets/geotiff-DHWZInmL.js                                  28.91 kB │ gzip:     9.91 kB │ map:   143.69 kB
+dist/assets/narrativeBuilders-Bm4JCjl4.js                        29.85 kB │ gzip:     9.57 kB │ map:    86.86 kB
+dist/assets/learningPaths-CjmEr326.js                            31.07 kB │ gzip:     7.97 kB │ map:    57.39 kB
+dist/assets/dist-m4es8ajE.js                                     31.22 kB │ gzip:    10.57 kB │ map:   188.43 kB
+dist/assets/ToolsActionPanel-mLG2E5tJ.js                         31.23 kB │ gzip:     8.10 kB │ map:    60.50 kB
+dist/assets/MapPersistenceService-DSjwxdj3.js                    31.32 kB │ gzip:     9.28 kB │ map:   111.79 kB
+dist/assets/CompositeIndicatorFlow-CHAqXbMc.js                   33.25 kB │ gzip:     8.65 kB │ map:    75.97 kB
+dist/assets/ExternalServiceConnector-BN52af6e.js                 35.74 kB │ gzip:    10.37 kB │ map:   109.55 kB
+dist/assets/spatial-db-COCAyxCa.js                               36.75 kB │ gzip:    11.19 kB │ map:    96.38 kB
+dist/assets/GeoAILab-BKKByt8N.js                                 37.00 kB │ gzip:    10.06 kB │ map:   103.39 kB
+dist/assets/parquet_wasm-CB_suX82.js                             39.45 kB │ gzip:     8.15 kB │ map:   156.74 kB
+dist/assets/SunlightSimulatorPanel-C2kU_-MC.js                   40.64 kB │ gzip:    12.25 kB │ map:   127.26 kB
+dist/assets/RightPanelFourBlock-C40azV2n.js                      46.06 kB │ gzip:    13.58 kB │ map:   141.39 kB
+dist/assets/MapJoinPreviewService-DImuZPi5.js                    46.51 kB │ gzip:    12.71 kB │ map:   412.32 kB
+dist/assets/pako.esm-j3hrVzuw.js                                 46.82 kB │ gzip:    14.87 kB │ map:   295.82 kB
+dist/assets/EOConnectorPanel-CMyYd0-t.js                         46.82 kB │ gzip:    11.08 kB │ map:   141.44 kB
+dist/assets/GuideViewV2-D0FAoF3z.js                              49.68 kB │ gzip:    17.91 kB │ map:    82.71 kB
+dist/assets/lucide-react-wqfxOgkx.js                             56.24 kB │ gzip:    18.27 kB │ map:   419.58 kB
+dist/assets/simulation-DmiDIgUv.js                               60.10 kB │ gzip:    20.11 kB │ map:   234.91 kB
+dist/assets/useEditorPrefsStore-DUxeahVb.js                      62.52 kB │ gzip:    23.06 kB │ map:   210.70 kB
+dist/assets/MethodsView-CeMBeyEL.js                              63.08 kB │ gzip:    23.93 kB │ map:    86.46 kB
+dist/assets/lerc-D1lfOGxY.js                                     63.66 kB │ gzip:    25.92 kB │ map:   168.37 kB
+dist/assets/useTemporalLayerStore-kR_rV7qi.js                    66.29 kB │ gzip:    20.20 kB │ map:   238.77 kB
+dist/assets/uiStore-D0K-znE7.js                                  71.33 kB │ gzip:    20.52 kB │ map:   179.07 kB
+dist/assets/DashboardBuilder-C9crmNqR.js                         72.56 kB │ gzip:    20.24 kB │ map:   202.64 kB
+dist/assets/MapUrbanBridgeService-DMixcdnt.js                    77.27 kB │ gzip:    23.94 kB │ map:   324.20 kB
+dist/assets/MapEngineAdapter-DCe6ZuBT.js                         78.40 kB │ gzip:    22.04 kB │ map:   284.34 kB
+dist/assets/yjs-iRGR2vuq.js                                      86.00 kB │ gzip:    25.93 kB │ map:   597.71 kB
+dist/assets/MonacoEditor-BtBSp1ek.js                             91.40 kB │ gzip:    26.02 kB │ map:   219.59 kB
+dist/assets/CenterPanelShell-BaqESfDg.js                         94.22 kB │ gzip:    23.87 kB │ map:   901.03 kB
+dist/assets/Note-D1WliAuk.js                                     95.78 kB │ gzip:    27.78 kB │ map:   278.82 kB
+dist/assets/jszip.min-fhKh2aPC.js                                95.91 kB │ gzip:    28.49 kB │ map:   211.58 kB
+dist/assets/MapDataImporter-Dg_Mrbe6.js                          99.22 kB │ gzip:    29.29 kB │ map:   462.88 kB
+dist/assets/lib-D6i5xl2w.js                                     105.19 kB │ gzip:    35.74 kB │ map:   391.15 kB
+dist/assets/MapInspectorHost-obWQkxSp.js                        126.54 kB │ gzip:    38.80 kB │ map:   529.93 kB
+dist/assets/ConsultonPanel-YyQoiqxa.js                          129.55 kB │ gzip:    38.70 kB │ map:   325.37 kB
+dist/assets/dist-BqgpXQgt.js                                    135.58 kB │ gzip:    44.94 kB │ map:   483.45 kB
+dist/assets/UrbanAnalyticsModal-DhsXOlWr.js                     149.83 kB │ gzip:    41.94 kB │ map:   420.26 kB
+dist/assets/index.es-gK0V0u1Y.js                                151.46 kB │ gzip:    48.92 kB │ map:   572.56 kB
+dist/assets/serialization-MADO1vNL.js                           189.63 kB │ gzip:    43.61 kB │ map:   819.81 kB
+dist/assets/catalog-CFkkj3NY.js                                 196.88 kB │ gzip:    48.27 kB │ map:   498.30 kB
+dist/assets/html2canvas-D9XAUah9.js                             199.62 kB │ gzip:    46.83 kB │ map:   593.20 kB
+dist/assets/MethodologyExplainer-COTvTUMI.js                    260.92 kB │ gzip:    77.88 kB │ map:   776.77 kB
+dist/assets/mqtt.esm-CoU4vPUZ.js                                357.16 kB │ gzip:   104.41 kB │ map:   764.06 kB
+dist/assets/ort.bundle.min-BhF6SHJr.js                          395.37 kB │ gzip:   106.70 kB │ map:   772.33 kB
+dist/assets/jspdf.es.min-BabLw_Id.js                            399.74 kB │ gzip:   129.76 kB │ map: 1,225.25 kB
+dist/assets/es-CMXk7Qai.js                                      420.10 kB │ gzip:   175.61 kB │ map: 1,598.49 kB
+dist/assets/reportArtifactBuilder-CLm496JU.js                   713.46 kB │ gzip:   242.60 kB │ map: 1,034.69 kB
+dist/assets/html2pdf-BraFqxtl.js                                736.09 kB │ gzip:   219.36 kB │ map: 2,448.69 kB
+dist/assets/useCityJSONScene-EgSoPWYD.js                        861.47 kB │ gzip:   228.78 kB │ map: 3,737.51 kB
+dist/assets/MapPublicationOutputBindingService-C2P2GTcJ.js      863.05 kB │ gzip:   233.91 kB │ map: 1,934.85 kB
+dist/assets/index-BYQGii-J.js                                 1,640.30 kB │ gzip:   447.39 kB │ map: 4,831.73 kB
+dist/assets/MapExplorerHost-Dr-udLA8.js                       1,716.15 kB │ gzip:   443.70 kB │ map: 5,287.75 kB
+dist/assets/useMapExplorerStore-CV-ga0BH.js                   2,888.31 kB │ gzip:   879.08 kB │ map: 4,054.46 kB
+
+[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 2000 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 16.11s
