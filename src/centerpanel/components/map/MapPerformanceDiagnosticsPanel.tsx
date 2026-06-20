@@ -726,7 +726,7 @@ export const MapPerformanceDiagnosticsPanel: React.FC<MapPerformanceDiagnosticsP
                         <button
                           type="button"
                           style={retryButtonStyle}
-                          data-testid="map-worker-recovery-retry"
+                          data-testid="map-worker-recovery-retry-status"
                           onClick={() => onRetryWorkerJob(recoveryJobId)}
                         >
                           <RotateCcw size={MAP_ICON_SIZES.sm} aria-hidden="true" />
