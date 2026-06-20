@@ -1,7 +1,7 @@
 {
-  "name": "urban-analytics-workbench",
+  "name": "synapse-ide-urban-analytics-workbench",
   "private": true,
-  "version": "1.0.0",
+  "version": "0.9.0",
   "description": "Browser-based spatial intelligence platform for urban scientists, planners, and GIS analysts",
   "type": "module",
   "scripts": {
