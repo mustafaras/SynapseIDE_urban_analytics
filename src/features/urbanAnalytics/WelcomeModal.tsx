@@ -4,6 +4,7 @@ import { useFlowStore } from '@/stores/useFlowStore';
 import { useMapExplorerStore } from '@/stores/useMapExplorerStore';
 import { useUrbanContextStore } from './useUrbanContextStore';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { BRAND } from '@/constants/brand';
 import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion';
 
 export interface WelcomeModalProps {
@@ -642,11 +643,11 @@ const WelcomeModal: React.FC<WelcomeModalProps> = ({ open, onClose }) => {
 
             <h1 id="welcome-modal-title" className="brand-title">
               <span className="brand-title__primary">
-                <span className="brand-shine">Urban Analytics</span>
+                <span className="brand-shine">{BRAND.short}</span>
               </span>
               <span className="brand-title__sep" aria-hidden="true">·</span>
-              <span className="brand-title__secondary">Workbench</span>
-              <span className="brand-chip">GIS</span>
+              <span className="brand-title__secondary">GIS &amp; Urban Analytics</span>
+              <span className="brand-chip">Workbench</span>
             </h1>
 
             <p className="brand-subtitle">
