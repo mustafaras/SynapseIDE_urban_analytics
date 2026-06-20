@@ -196,7 +196,6 @@ export const MapExplorerLayerPanelRail: React.FC<MapExplorerLayerPanelRailProps>
       ref={legendRef}
       side={side}
       width={layerPanelWidth}
-      height="min(24rem, 54%)"
       minWidth={MAP_LAYER_PANEL_MIN_WIDTH}
       maxWidth={MAP_LAYER_PANEL_MAX_WIDTH}
       resizable={side === "right" || dockLayerPanelPlacement === "left"}
